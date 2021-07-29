@@ -1,0 +1,83 @@
+bootstrap:
+  logger:
+    level: debug
+naming:
+  batch:
+    register:
+      open: true
+      queueSize: 1024
+      waitTime: 32ms
+      maxBatchCount: 32
+      concurrency: 16
+    deregister:
+      open: true
+      queueSize: 1024
+      waitTime: 32ms
+      maxBatchCount: 32
+      concurrency: 16
+  healthcheck:
+    open: true
+    kvConnNum: 50
+    kvServiceName: polarisHeartbeatCkv
+    kvNamespace: Polaris
+    kvPasswd: polaris@2021
+    slotNum: 30
+cache:
+  open: true
+  resources:
+    - name: service # 加载服务数据
+      option:
+        disableBusiness: false # 不加载业务服务
+        needMeta: true # 加载服务元数据
+    - name: instance # 加载实例数据
+      option:
+        disableBusiness: false # 不加载业务服务实例
+        needMeta: true # 加载实例元数据
+    - name: routingConfig # 加载路由数据
+    - name: rateLimitConfig # 加载限流数据
+    - name: circuitBreakerConfig # 加载熔断数据
+    - name: meshConfig # 加载网格数据
+    - name: l5 # 加载l5数据
+    - name: mesh
+    - name: meshService
+store:
+  name: defaultStore
+  option:
+    master:
+      dbType: mysql
+      dbUser: polaris
+      dbPwd: polaris
+      dbAddr: 9.134.38.82:3306
+      dbName: polaris_server_for_test
+      maxOpenConns: 128
+      maxIdleConns: 16
+      connMaxLifetime: 60
+      txIsolationLevel: 2
+    slave:
+      dbType: mysql
+      dbUser: polaris
+      dbPwd: polaris
+      dbAddr: 9.134.38.82:3306
+      dbName: polaris_server_for_test
+      maxOpenConns: 128
+      maxIdleConns: 16
+      connMaxLifetime: 60
+      txIsolationLevel: 2
+plugin:
+  history:
+    name: HistoryLogger
+  meshResourceValidate:
+    name: grpc
+    option:
+      agentIP: 127.0.0.1
+      agentPort: 6789
+  ratelimit:
+    name: token-bucket
+    option:
+      remote-conf: false
+      instance-limit:
+        open: true
+        global:
+          bucket: 2
+          rate: 2
+        resource-cache-amount: 8

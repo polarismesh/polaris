@@ -1,0 +1,40 @@
+name: Go
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+# Always force the use of Go modules
+env:
+  GO111MODULE: on
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Setup the environment.
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15
+      # Checkout latest code
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      # Execute vert check
+      - name: vert check
+        run: bash vert.sh -install && bash vert.sh
+
+      # Run tests
+      - name: run tests
+        run: |
+          cd ./test
+          go test
+
+      # TODO: Examine coverage

@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package v1;
+
+import "google/protobuf/wrappers.proto";
+
+message Location {
+	google.protobuf.StringValue region = 1;	
+	google.protobuf.StringValue zone   = 2;	
+	google.protobuf.StringValue campus = 3;	
+}
+
+message MatchString {
+	enum MatchStringType {
+		EXACT = 0;
+		REGEX = 1;
+	}
+
+	enum ValueType {
+		TEXT = 0;
+		PARAMETER = 1;
+		VARIABLE = 2;
+	}
+
+	MatchStringType type = 1;
+	google.protobuf.StringValue value = 2;
+	ValueType value_type = 3;
+}
