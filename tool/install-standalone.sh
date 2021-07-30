@@ -234,8 +234,8 @@ function installPolarisConsole() {
 
 function installPrometheus() {
   echo -e "install prometheus ... "
-  local promethues_num=$(ps -ef | grep prometheus | grep -v grep | wc -l)
-  if [ $promethues_num -ge 1 ]
+  local prometheus_num=$(ps -ef | grep prometheus | grep -v grep | wc -l)
+  if [ $prometheus_num -ge 1 ]
   then
     echo -e "prometheus is running, skip."
     return
