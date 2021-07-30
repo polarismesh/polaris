@@ -48,8 +48,8 @@ fi
 # - Ensure all source files contain a copyright message.
 not git grep -L "\(Copyright (C) [0-9]\{4,\} THL A29 Limited, a Tencent company. All rights reserved.\)\|DO NOT EDIT" -- '*.go'
 
-# - Make sure all tests use leakcheck via Teardown.
-not grep -r 'func Test[^(]' test/*.go
+## - Make sure all tests use leakcheck via Teardown.
+#not grep -r 'func Test[^(]' test/*.go
 
 # - Do not import x/net/context.
 git grep -l 'x/net/context' -- "*.go" | not grep -v ".pb.go"
