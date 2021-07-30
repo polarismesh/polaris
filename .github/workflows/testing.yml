@@ -49,18 +49,18 @@ jobs:
           popd
           
       # Run interface tests
-      - name: run interface tests
-        run: |
-          work_dir=$(ls | grep polaris-server-release | sed -n '1p')
-          echo "work_dir is $work_dir"
-          cd $work_dir
-          ls -al
-          chmod +x ./tool/*.sh
-          ./tool/install.sh
-          cd ..
-          pushd ./test
-          go test -count=1 -v
-          popd
-          cd $work_dir
-          ./tool/uninstall.sh
-          cd ..
+#      - name: run interface tests
+#        run: |
+#          work_dir=$(ls | grep polaris-server-release | sed -n '1p')
+#          echo "work_dir is $work_dir"
+#          cd $work_dir
+#         ls -al
+#          chmod +x ./tool/*.sh
+#          ./tool/install.sh
+#          cd ..
+#          pushd ./test
+#          go test -count=1 -v
+#          popd
+#          cd $work_dir
+#          ./tool/uninstall.sh
+#          cd ..
