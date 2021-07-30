@@ -51,13 +51,14 @@ jobs:
       # Run interface tests
       - name: run interface tests
         run: |
-          cd ./polaris-server-release*
+          work_dir=cd $(ls | grep polaris-server-release | sed -n '1p')
+          cd $work_dir
           chmod +x ./tool/*.sh
           ./tool/install.sh
           cd ..
           pushd ./test
           go test -count=1 -v
           popd
-          cd ./polaris-server-release*
+          cd $work_dir
           ./tool/uninstall.sh
           cd ..
