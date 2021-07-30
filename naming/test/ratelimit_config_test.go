@@ -20,9 +20,9 @@ package test
 import (
 	"context"
 	"encoding/json"
+	"github.com/golang/protobuf/ptypes/duration"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/golang/protobuf/ptypes/duration"
 	"sync"
 	"testing"
 	"time"
@@ -301,9 +301,9 @@ func TestUpdateRateLimit(t *testing.T) {
 				_, serviceResp := createCommonService(t, index)
 				defer cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 				defer cleanRateLimitRevision(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
-				_, rateLimitResp := createCommonRateLimit(t, serviceResp, i)
+				_, rateLimitResp := createCommonRateLimit(t, serviceResp, index)
 				defer cleanRateLimit(rateLimitResp.GetId().GetValue())
-				updateRateLimitContent(rateLimitResp, i+1)
+				updateRateLimitContent(rateLimitResp, index+1)
 				updateRateLimit(t, rateLimitResp)
 				filters := map[string]string{
 					"service":   serviceResp.GetName().GetValue(),
