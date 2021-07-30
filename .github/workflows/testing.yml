@@ -38,20 +38,26 @@ jobs:
       # Run unit tests
       - name: run tests
         run: |
-          cd ./naming/cache
+          pushd ./naming/cache
           go test -v
-          cd ./plugin/ratelimit/tokenBucket
+          popd
+          pushd ./plugin/ratelimit/tokenBucket
           go test -v
-          cd ./store/defaultStore
+          popd
+          pushd ./store/defaultStore
           go test -v
+          popd
           
       # Run interface tests
       - name: run interface tests
         run: |
-          cd ./polaris-server-release*
+          pushd ./polaris-server-release*
           chmod +x ./tool/*.sh
           ./tool/install.sh
-          cd ../test
+          popd
+          pushd ./test
           go test -count=1 -v
-          cd ../polaris-server-release*
+          popd
+          pushd ./polaris-server-release*
           ./tool/uninstall.sh
+          popd
