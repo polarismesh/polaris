@@ -51,13 +51,13 @@ jobs:
       # Run interface tests
       - name: run interface tests
         run: |
-          pushd ./polaris-server-release*
+          cd ./polaris-server-release*
           chmod +x ./tool/*.sh
           ./tool/install.sh
-          popd
+          cd ..
           pushd ./test
           go test -count=1 -v
           popd
-          pushd ./polaris-server-release*
+          cd ./polaris-server-release*
           ./tool/uninstall.sh
-          popd
+          cd ..
