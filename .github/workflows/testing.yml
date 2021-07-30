@@ -28,13 +28,30 @@ jobs:
         uses: actions/checkout@v2
 
       # Execute vert check
-      - name: vert check
+      - name: Vert check
         run: bash vert.sh -install && bash vert.sh
 
-      # Run tests
+      # Compile
+      - name: Build server
+        run: bash build.sh
+        
+      # Run unit tests
       - name: run tests
         run: |
-          cd ./test
-          go test
-
-      # TODO: Examine coverage
+          cd ./naming/cache
+          go test -v
+          cd ./plugin/ratelimit/tokenBucket
+          go test -v
+          cd ./store/defaultStore
+          go test -v
+          
+      # Run interface tests
+      - name: run interface tests
+        run: |
+          cd ./polaris-server-release*
+          chmod +x ./tool/*.sh
+          ./tool/install.sh
+          cd ../test
+          go test -count=1 -v
+          cd ../polaris-server-release*
+          ./tool/uninstall.sh
