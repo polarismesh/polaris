@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 curpath=$(pwd)
 
 if [ "${0:0:1}" == "/" ]; then

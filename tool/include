@@ -31,8 +31,9 @@ function start() {
     if [ ! -d "./statis" ]; then
         mkdir ./statis
     fi
-
+    set +e
     ulimit -n 409600
+	set -e
     nohup $cmdline >>./log/stdout 2>&1 &
 }
 
@@ -57,6 +58,7 @@ function reload() {
 }
 
 function add_cron() {
+    set +e
     item="$workdir/tool/check.sh >>$workdir/log/check.log 2>&1"
     exist=$(crontab -l | grep "$item" | grep -v "#" | wc -l)
     if [ "$exist" == "0" ]; then
@@ -68,9 +70,11 @@ function add_cron() {
         crontab $cron
         rm -f $cron
     fi
+	set -e
 }
 
 function del_cron() {
+    set +e
     item="$workdir/tool/check.sh >>$workdir/log/check.log 2>&1"
     exist=$(crontab -l | grep "$item" | grep -v "#" | wc -l)
     if [ "$exist" != "0" ]; then
@@ -81,4 +85,5 @@ function del_cron() {
         crontab $cron
         rm -f $cron
     fi
+	set -e
 }
