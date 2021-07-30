@@ -22,9 +22,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/golang/protobuf/ptypes/duration"
 	"strconv"
 	"strings"
 	"testing"
@@ -40,10 +40,10 @@ import (
 	"os"
 	"sync"
 
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
 	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/tokenBucket"
 	_ "github.com/polarismesh/polaris-server/store/defaultStore"
-	_ "github.com/go-sql-driver/mysql"
 	"gopkg.in/yaml.v2"
 )
 
@@ -351,8 +351,8 @@ func addHostPortInstance(t *testing.T, service *api.Service, host string, port u
 		Namespace:    utils.NewStringValue(service.GetNamespace().GetValue()),
 		Host:         utils.NewStringValue(host),
 		Port:         utils.NewUInt32Value(port),
-		Healthy:  utils.NewBoolValue(true),
-		Isolate:  utils.NewBoolValue(false),
+		Healthy:      utils.NewBoolValue(true),
+		Isolate:      utils.NewBoolValue(false),
 	}
 	resp := server.CreateInstance(defaultCtx, instanceReq)
 	if respSuccess(resp) {
@@ -1052,97 +1052,97 @@ func cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
 	}
 }
 
-// 创建一个网格规则
-func createMeshResource(typeUrl, meshID, meshToken, rule string) (*api.MeshResource, *api.Response) {
-	resource := &api.MeshResource{
-		MeshId:    utils.NewStringValue(meshID),
-		MeshToken: utils.NewStringValue(meshToken),
-		TypeUrl:   utils.NewStringValue(typeUrl),
-		Body:      utils.NewStringValue(rule),
-	}
-	reqResource := &api.MeshResource{
-		MeshId:    utils.NewStringValue(meshID),
-		MeshToken: utils.NewStringValue(meshToken),
-		TypeUrl:   utils.NewStringValue(typeUrl),
-		Body:      utils.NewStringValue(rule),
-	}
-	return reqResource, server.CreateMeshResource(defaultCtx, resource)
-}
-
-// 创建一个网格
-func createMesh(req *api.Mesh, withSystemToken bool) *api.Response {
-	ctx := defaultCtx
-	if withSystemToken {
-		ctx = context.Background()
-		ctx = context.WithValue(ctx, utils.StringContext("polaris-token"), "polaris@12345678")
-	}
-	return server.CreateMesh(ctx, req)
-}
-
-func checkReqMesh(t *testing.T, expect *api.Mesh, actual *api.Mesh) {
-	switch {
-	case actual.GetName().GetValue() != expect.GetName().GetValue():
-		t.Fatalf("mesh name not match")
-	case actual.GetBusiness().GetValue() != expect.GetBusiness().GetValue():
-		t.Fatalf("mesh business not match")
-	case actual.GetDepartment().GetValue() != expect.GetDepartment().GetValue():
-		t.Fatalf("mesh department not match")
-	case actual.GetOwners().GetValue() != expect.GetOwners().GetValue():
-		t.Fatalf("mesh owners not match")
-	case actual.GetManaged().GetValue() != expect.GetManaged().GetValue():
-		t.Fatalf("mesh managed not match")
-	case actual.GetIstioVersion().GetValue() != expect.GetIstioVersion().GetValue():
-		t.Fatalf("mesh istio version not match")
-	case actual.GetComment().GetValue() != expect.GetComment().GetValue():
-		t.Fatalf("mesh comment not match")
-	}
-}
-
-func checkReqMeshComplete(t *testing.T, expect *api.Mesh, actual *api.Mesh) {
-	checkReqMesh(t, expect, actual)
-	switch {
-	case actual.GetId().GetValue() != expect.GetId().GetValue():
-		t.Fatalf("mesh id not match")
-	case actual.GetRevision().GetValue() != expect.GetRevision().GetValue():
-		t.Fatalf("mesh revision not match")
-	}
-}
-
-// 比较两个网格规则是否一致
-func checkReqMeshResource(t *testing.T, expect *api.MeshResource, actual *api.MeshResource) {
-	switch {
-	case actual.GetName().GetValue() != expect.GetName().GetValue():
-		t.Fatalf("mesh resource name not match")
-	case actual.GetTypeUrl().GetValue() != expect.GetTypeUrl().GetValue():
-		t.Fatalf("mesh resource typeUrl not match")
-	case actual.GetMeshNamespace().GetValue() != expect.GetMeshNamespace().GetValue():
-		t.Fatalf("mesh resource mesh namespace not match")
-	case actual.GetBody().GetValue() != expect.GetBody().GetValue():
-		t.Fatalf("mesh resource body not match")
-	case actual.GetId().GetValue() == "":
-		t.Fatalf("mesh resource id empty")
-	default:
-		break
-	}
-}
-
-// 比较从cache中获取的规则是否符合预期
-func checkCacheMeshResource(t *testing.T, expect *api.MeshResource, actual *api.MeshResource) {
-	switch {
-	case expect.GetName().GetValue() != actual.GetName().GetValue():
-		t.Fatalf("mesh resource name not match")
-	case expect.GetTypeUrl().GetValue() != actual.GetTypeUrl().GetValue():
-		t.Fatalf("mesh resource typeUrl not match")
-	case expect.GetRevision().GetValue() != actual.GetRevision().GetValue():
-		t.Fatalf("mesh resource revision not match")
-	case expect.GetBody().GetValue() != actual.GetBody().GetValue():
-		t.Fatalf("mesh resource body not match")
-	case expect.GetMeshId().GetValue() != actual.GetMeshId().GetValue():
-		t.Fatalf("mesh id not match")
-	default:
-		break
-	}
-}
+//// 创建一个网格规则
+//func createMeshResource(typeUrl, meshID, meshToken, rule string) (*api.MeshResource, *api.Response) {
+//	resource := &api.MeshResource{
+//		MeshId:    utils.NewStringValue(meshID),
+//		MeshToken: utils.NewStringValue(meshToken),
+//		TypeUrl:   utils.NewStringValue(typeUrl),
+//		Body:      utils.NewStringValue(rule),
+//	}
+//	reqResource := &api.MeshResource{
+//		MeshId:    utils.NewStringValue(meshID),
+//		MeshToken: utils.NewStringValue(meshToken),
+//		TypeUrl:   utils.NewStringValue(typeUrl),
+//		Body:      utils.NewStringValue(rule),
+//	}
+//	return reqResource, server.CreateMeshResource(defaultCtx, resource)
+//}
+//
+//// 创建一个网格
+//func createMesh(req *api.Mesh, withSystemToken bool) *api.Response {
+//	ctx := defaultCtx
+//	if withSystemToken {
+//		ctx = context.Background()
+//		ctx = context.WithValue(ctx, utils.StringContext("polaris-token"), "polaris@12345678")
+//	}
+//	return server.CreateMesh(ctx, req)
+//}
+//
+//func checkReqMesh(t *testing.T, expect *api.Mesh, actual *api.Mesh) {
+//	switch {
+//	case actual.GetName().GetValue() != expect.GetName().GetValue():
+//		t.Fatalf("mesh name not match")
+//	case actual.GetBusiness().GetValue() != expect.GetBusiness().GetValue():
+//		t.Fatalf("mesh business not match")
+//	case actual.GetDepartment().GetValue() != expect.GetDepartment().GetValue():
+//		t.Fatalf("mesh department not match")
+//	case actual.GetOwners().GetValue() != expect.GetOwners().GetValue():
+//		t.Fatalf("mesh owners not match")
+//	case actual.GetManaged().GetValue() != expect.GetManaged().GetValue():
+//		t.Fatalf("mesh managed not match")
+//	case actual.GetIstioVersion().GetValue() != expect.GetIstioVersion().GetValue():
+//		t.Fatalf("mesh istio version not match")
+//	case actual.GetComment().GetValue() != expect.GetComment().GetValue():
+//		t.Fatalf("mesh comment not match")
+//	}
+//}
+//
+//func checkReqMeshComplete(t *testing.T, expect *api.Mesh, actual *api.Mesh) {
+//	checkReqMesh(t, expect, actual)
+//	switch {
+//	case actual.GetId().GetValue() != expect.GetId().GetValue():
+//		t.Fatalf("mesh id not match")
+//	case actual.GetRevision().GetValue() != expect.GetRevision().GetValue():
+//		t.Fatalf("mesh revision not match")
+//	}
+//}
+//
+//// 比较两个网格规则是否一致
+//func checkReqMeshResource(t *testing.T, expect *api.MeshResource, actual *api.MeshResource) {
+//	switch {
+//	case actual.GetName().GetValue() != expect.GetName().GetValue():
+//		t.Fatalf("mesh resource name not match")
+//	case actual.GetTypeUrl().GetValue() != expect.GetTypeUrl().GetValue():
+//		t.Fatalf("mesh resource typeUrl not match")
+//	case actual.GetMeshNamespace().GetValue() != expect.GetMeshNamespace().GetValue():
+//		t.Fatalf("mesh resource mesh namespace not match")
+//	case actual.GetBody().GetValue() != expect.GetBody().GetValue():
+//		t.Fatalf("mesh resource body not match")
+//	case actual.GetId().GetValue() == "":
+//		t.Fatalf("mesh resource id empty")
+//	default:
+//		break
+//	}
+//}
+//
+//// 比较从cache中获取的规则是否符合预期
+//func checkCacheMeshResource(t *testing.T, expect *api.MeshResource, actual *api.MeshResource) {
+//	switch {
+//	case expect.GetName().GetValue() != actual.GetName().GetValue():
+//		t.Fatalf("mesh resource name not match")
+//	case expect.GetTypeUrl().GetValue() != actual.GetTypeUrl().GetValue():
+//		t.Fatalf("mesh resource typeUrl not match")
+//	case expect.GetRevision().GetValue() != actual.GetRevision().GetValue():
+//		t.Fatalf("mesh resource revision not match")
+//	case expect.GetBody().GetValue() != actual.GetBody().GetValue():
+//		t.Fatalf("mesh resource body not match")
+//	case expect.GetMeshId().GetValue() != actual.GetMeshId().GetValue():
+//		t.Fatalf("mesh id not match")
+//	default:
+//		break
+//	}
+//}
 
 // 比较利用控制台接口获取的规则是否符合预期
 //func checkHttpMeshResource(t *testing.T, expect *api.MeshResource, actual *api.MeshResource) {
@@ -1198,178 +1198,178 @@ func checkCacheMeshResource(t *testing.T, expect *api.MeshResource, actual *api.
 //	}
 //}
 
-func cleanMeshResourceByMeshID(meshID string) {
-	log.Infof("cleanMeshResourceByMeshID: %s", meshID)
-	str := `delete from mesh_resource where mesh_id = ?`
-	if _, err := db.Exec(str, meshID); err != nil {
-		panic(err)
-	}
-	str = `delete from mesh_resource_revision where mesh_id = ?`
-	if _, err := db.Exec(str, meshID); err != nil {
-		panic(err)
-	}
-}
-
-// 清除网格
-func cleanMesh(id string) {
-	str := `delete from mesh where id = ?`
-	if _, err := db.Exec(str, id); err != nil {
-		panic(err)
-	}
-}
-
-func cleanMeshService(meshID string) {
-	str := `delete from mesh_service where mesh_id = ?`
-	if _, err := db.Exec(str, meshID); err != nil {
-		panic(err)
-	}
-	str = `delete from mesh_service_revision where mesh_id = ?`
-	if _, err := db.Exec(str, meshID); err != nil {
-		panic(err)
-	}
-}
-
-// 删除一个网格
-func deleteMesh(mesh *api.Mesh) *api.Response {
-	dMesh := &api.Mesh{
-		Id:    utils.NewStringValue(mesh.GetId().GetValue()),
-		Token: utils.NewStringValue(mesh.GetToken().GetValue()),
-	}
-	return server.DeleteMesh(defaultCtx, dMesh)
-}
-
-// 更新一个网格
-func updateMesh(mesh *api.Mesh) *api.Response {
-	return server.UpdateMesh(defaultCtx, mesh)
-}
-
-// 删除一个网格规则
-func deleteMeshResource(name, namespace, token string) *api.Response {
-	resource := &api.MeshResource{
-		Name:      utils.NewStringValue(name),
-		MeshToken: utils.NewStringValue(token),
-	}
-	return server.DeleteMeshResource(defaultCtx, resource)
-}
-
-// 创建flux限流规则
-func createCommonFluxRateLimit(t *testing.T, service *api.Service, index int) (*api.FluxConsoleRateLimitRule,
-	*api.FluxConsoleRateLimitRule) {
-	rateLimit := &api.FluxConsoleRateLimitRule{
-		Name:                  utils.NewStringValue(fmt.Sprintf("test-%d", index)),
-		Description:           utils.NewStringValue("test"),
-		CalleeServiceName:     service.GetName(),
-		CalleeServiceEnv:      service.GetNamespace(),
-		CallerServiceBusiness: utils.NewStringValue(fmt.Sprintf("business-%d", index)),
-		SetKey:                utils.NewStringValue(fmt.Sprintf("set-key-%d", index)),
-		SetAlertQps:           utils.NewStringValue(fmt.Sprintf("%d", index*10)),
-		SetWarningQps:         utils.NewStringValue(fmt.Sprintf("%d", index*8)),
-		SetRemark:             utils.NewStringValue(fmt.Sprintf("set-remark-%d", index)),
-		DefaultKey:            utils.NewStringValue(fmt.Sprintf("default-key-%d", index)),
-		DefaultAlertQps:       utils.NewStringValue(fmt.Sprintf("%d", index*2)),
-		DefaultWarningQps:     utils.NewStringValue(fmt.Sprintf("%d", index)),
-		DefaultRemark:         utils.NewStringValue(fmt.Sprintf("default-remark-%d", index)),
-		Creator:               utils.NewStringValue("test"),
-		Updater:               utils.NewStringValue("test"),
-		Status:                utils.NewUInt32Value(1),
-		Type:                  utils.NewUInt32Value(2),
-		ServiceToken:          utils.NewStringValue(service.GetToken().GetValue()),
-	}
-
-	resp := server.CreateFluxRateLimit(defaultCtx, rateLimit)
-	if !respSuccess(resp) {
-		t.Fatalf("error: %+v", resp)
-	}
-	return rateLimit, resp.GetFluxConsoleRateLimitRule()
-}
-
-// 删除限流规则
-func deleteFluxRateLimit(t *testing.T, rateLimit *api.FluxConsoleRateLimitRule) {
-	if resp := server.DeleteFluxRateLimit(defaultCtx, rateLimit); !respSuccess(resp) {
-		t.Fatalf("%s", resp.GetInfo().GetValue())
-	}
-}
-
-// 更新单个限流规则
-func updateFluxRateLimit(t *testing.T, rateLimit *api.FluxConsoleRateLimitRule) {
-	if resp := server.UpdateFluxRateLimit(defaultCtx, rateLimit); !respSuccess(resp) {
-		t.Fatalf("%s", resp.GetInfo().GetValue())
-	}
-}
-
-// 彻底删除限流规则
-func cleanFluxRateLimit(id string) {
-	str := `delete from ratelimit_flux_rule_config where id = ?`
-	if _, err := db.Exec(str, id); err != nil {
-		panic(err)
-	}
-}
-
-// 彻底删除限流规则版本号
-func cleanFluxRateLimitRevision(service, namespace string) {
-	str := `delete from ratelimit_flux_rule_revision using ratelimit_flux_rule_revision, service 
-			where service_id = service.id and name = ? and namespace = ?`
-	if _, err := db.Exec(str, service, namespace); err != nil {
-		panic(err)
-	}
-}
-
-// 更新限流规则内容
-func updateFluxRateLimitContent(rateLimit *api.FluxConsoleRateLimitRule, index int) {
-	rateLimit.SetAlertQps = utils.NewStringValue(fmt.Sprintf("%d", index*10))
-	rateLimit.SetWarningQps = utils.NewStringValue(fmt.Sprintf("%d", index*5))
-	rateLimit.SetKey = utils.NewStringValue(fmt.Sprintf("set-key-%d", index))
-	rateLimit.SetRemark = utils.NewStringValue(fmt.Sprintf("remark-%d", index))
-	rateLimit.DefaultAlertQps = utils.NewStringValue(fmt.Sprintf("%d", index*2))
-	rateLimit.DefaultWarningQps = utils.NewStringValue(fmt.Sprintf("%d", index))
-	rateLimit.DefaultKey = utils.NewStringValue(fmt.Sprintf("default-key-%d", index))
-	rateLimit.DefaultRemark = utils.NewStringValue(fmt.Sprintf("default-remark-%d", index))
-}
-
-/*
- * @brief 对比限流规则的各个属性
- */
-func checkFluxRateLimit(t *testing.T, expect *api.FluxConsoleRateLimitRule, actual *api.FluxConsoleRateLimitRule) {
-	switch {
-	case (expect.GetId().GetValue()) != "" && (expect.GetId().GetValue() != actual.GetId().GetValue()):
-		t.Fatal("invalid id")
-	case expect.GetName().GetValue() != actual.GetName().GetValue():
-		t.Fatal("error name")
-	case expect.GetDescription().GetValue() != actual.GetDescription().GetValue():
-		t.Fatal("error description")
-	case expect.GetStatus().GetValue() != actual.GetStatus().GetValue():
-		t.Fatal("invalid status")
-	case expect.GetCalleeServiceName().GetValue() != actual.GetCalleeServiceName().GetValue():
-		t.Fatal("invalid CalleeServiceName")
-	case expect.GetCalleeServiceEnv().GetValue() != actual.GetCalleeServiceEnv().GetValue():
-		t.Fatal("invalid CalleeServiceEnv")
-	case expect.GetCallerServiceBusiness().GetValue() != actual.GetCallerServiceBusiness().GetValue():
-		t.Fatal("invalid GetCallerServiceBusiness")
-	case expect.GetSetKey().GetValue() != actual.GetSetKey().GetValue():
-		t.Fatal("error set key")
-	case expect.GetSetAlertQps().GetValue() != actual.GetSetAlertQps().GetValue():
-		t.Fatal("error set alert qps")
-	case expect.GetSetWarningQps().GetValue() != actual.GetSetWarningQps().GetValue():
-		t.Fatal("error set warning qps")
-	case expect.GetSetRemark().GetValue() != actual.GetSetRemark().GetValue():
-		t.Fatal("error set remark")
-	case expect.GetDefaultKey().GetValue() != actual.GetDefaultKey().GetValue():
-		t.Fatal("error default key")
-	case expect.GetDefaultAlertQps().GetValue() != actual.GetDefaultAlertQps().GetValue():
-		t.Fatal("error default alert qps")
-	case expect.GetDefaultWarningQps().GetValue() != actual.GetDefaultWarningQps().GetValue():
-		t.Fatal("error default warning qps")
-	case expect.GetDefaultRemark().GetValue() != actual.GetDefaultRemark().GetValue():
-		t.Fatal("error default remark")
-	case expect.GetType().GetValue() != actual.GetType().GetValue():
-		t.Fatal("error type")
-	case expect.GetStatus().GetValue() != actual.GetStatus().GetValue():
-		t.Fatal("error status")
-	default:
-		break
-	}
-	t.Log("check success")
-}
+//func cleanMeshResourceByMeshID(meshID string) {
+//	log.Infof("cleanMeshResourceByMeshID: %s", meshID)
+//	str := `delete from mesh_resource where mesh_id = ?`
+//	if _, err := db.Exec(str, meshID); err != nil {
+//		panic(err)
+//	}
+//	str = `delete from mesh_resource_revision where mesh_id = ?`
+//	if _, err := db.Exec(str, meshID); err != nil {
+//		panic(err)
+//	}
+//}
+//
+//// 清除网格
+//func cleanMesh(id string) {
+//	str := `delete from mesh where id = ?`
+//	if _, err := db.Exec(str, id); err != nil {
+//		panic(err)
+//	}
+//}
+//
+//func cleanMeshService(meshID string) {
+//	str := `delete from mesh_service where mesh_id = ?`
+//	if _, err := db.Exec(str, meshID); err != nil {
+//		panic(err)
+//	}
+//	str = `delete from mesh_service_revision where mesh_id = ?`
+//	if _, err := db.Exec(str, meshID); err != nil {
+//		panic(err)
+//	}
+//}
+//
+//// 删除一个网格
+//func deleteMesh(mesh *api.Mesh) *api.Response {
+//	dMesh := &api.Mesh{
+//		Id:    utils.NewStringValue(mesh.GetId().GetValue()),
+//		Token: utils.NewStringValue(mesh.GetToken().GetValue()),
+//	}
+//	return server.DeleteMesh(defaultCtx, dMesh)
+//}
+//
+//// 更新一个网格
+//func updateMesh(mesh *api.Mesh) *api.Response {
+//	return server.UpdateMesh(defaultCtx, mesh)
+//}
+//
+//// 删除一个网格规则
+//func deleteMeshResource(name, namespace, token string) *api.Response {
+//	resource := &api.MeshResource{
+//		Name:      utils.NewStringValue(name),
+//		MeshToken: utils.NewStringValue(token),
+//	}
+//	return server.DeleteMeshResource(defaultCtx, resource)
+//}
+//
+//// 创建flux限流规则
+//func createCommonFluxRateLimit(t *testing.T, service *api.Service, index int) (*api.FluxConsoleRateLimitRule,
+//	*api.FluxConsoleRateLimitRule) {
+//	rateLimit := &api.FluxConsoleRateLimitRule{
+//		Name:                  utils.NewStringValue(fmt.Sprintf("test-%d", index)),
+//		Description:           utils.NewStringValue("test"),
+//		CalleeServiceName:     service.GetName(),
+//		CalleeServiceEnv:      service.GetNamespace(),
+//		CallerServiceBusiness: utils.NewStringValue(fmt.Sprintf("business-%d", index)),
+//		SetKey:                utils.NewStringValue(fmt.Sprintf("set-key-%d", index)),
+//		SetAlertQps:           utils.NewStringValue(fmt.Sprintf("%d", index*10)),
+//		SetWarningQps:         utils.NewStringValue(fmt.Sprintf("%d", index*8)),
+//		SetRemark:             utils.NewStringValue(fmt.Sprintf("set-remark-%d", index)),
+//		DefaultKey:            utils.NewStringValue(fmt.Sprintf("default-key-%d", index)),
+//		DefaultAlertQps:       utils.NewStringValue(fmt.Sprintf("%d", index*2)),
+//		DefaultWarningQps:     utils.NewStringValue(fmt.Sprintf("%d", index)),
+//		DefaultRemark:         utils.NewStringValue(fmt.Sprintf("default-remark-%d", index)),
+//		Creator:               utils.NewStringValue("test"),
+//		Updater:               utils.NewStringValue("test"),
+//		Status:                utils.NewUInt32Value(1),
+//		Type:                  utils.NewUInt32Value(2),
+//		ServiceToken:          utils.NewStringValue(service.GetToken().GetValue()),
+//	}
+//
+//	resp := server.CreateFluxRateLimit(defaultCtx, rateLimit)
+//	if !respSuccess(resp) {
+//		t.Fatalf("error: %+v", resp)
+//	}
+//	return rateLimit, resp.GetFluxConsoleRateLimitRule()
+//}
+//
+//// 删除限流规则
+//func deleteFluxRateLimit(t *testing.T, rateLimit *api.FluxConsoleRateLimitRule) {
+//	if resp := server.DeleteFluxRateLimit(defaultCtx, rateLimit); !respSuccess(resp) {
+//		t.Fatalf("%s", resp.GetInfo().GetValue())
+//	}
+//}
+//
+//// 更新单个限流规则
+//func updateFluxRateLimit(t *testing.T, rateLimit *api.FluxConsoleRateLimitRule) {
+//	if resp := server.UpdateFluxRateLimit(defaultCtx, rateLimit); !respSuccess(resp) {
+//		t.Fatalf("%s", resp.GetInfo().GetValue())
+//	}
+//}
+//
+//// 彻底删除限流规则
+//func cleanFluxRateLimit(id string) {
+//	str := `delete from ratelimit_flux_rule_config where id = ?`
+//	if _, err := db.Exec(str, id); err != nil {
+//		panic(err)
+//	}
+//}
+//
+//// 彻底删除限流规则版本号
+//func cleanFluxRateLimitRevision(service, namespace string) {
+//	str := `delete from ratelimit_flux_rule_revision using ratelimit_flux_rule_revision, service
+//			where service_id = service.id and name = ? and namespace = ?`
+//	if _, err := db.Exec(str, service, namespace); err != nil {
+//		panic(err)
+//	}
+//}
+//
+//// 更新限流规则内容
+//func updateFluxRateLimitContent(rateLimit *api.FluxConsoleRateLimitRule, index int) {
+//	rateLimit.SetAlertQps = utils.NewStringValue(fmt.Sprintf("%d", index*10))
+//	rateLimit.SetWarningQps = utils.NewStringValue(fmt.Sprintf("%d", index*5))
+//	rateLimit.SetKey = utils.NewStringValue(fmt.Sprintf("set-key-%d", index))
+//	rateLimit.SetRemark = utils.NewStringValue(fmt.Sprintf("remark-%d", index))
+//	rateLimit.DefaultAlertQps = utils.NewStringValue(fmt.Sprintf("%d", index*2))
+//	rateLimit.DefaultWarningQps = utils.NewStringValue(fmt.Sprintf("%d", index))
+//	rateLimit.DefaultKey = utils.NewStringValue(fmt.Sprintf("default-key-%d", index))
+//	rateLimit.DefaultRemark = utils.NewStringValue(fmt.Sprintf("default-remark-%d", index))
+//}
+//
+///*
+// * @brief 对比限流规则的各个属性
+// */
+//func checkFluxRateLimit(t *testing.T, expect *api.FluxConsoleRateLimitRule, actual *api.FluxConsoleRateLimitRule) {
+//	switch {
+//	case (expect.GetId().GetValue()) != "" && (expect.GetId().GetValue() != actual.GetId().GetValue()):
+//		t.Fatal("invalid id")
+//	case expect.GetName().GetValue() != actual.GetName().GetValue():
+//		t.Fatal("error name")
+//	case expect.GetDescription().GetValue() != actual.GetDescription().GetValue():
+//		t.Fatal("error description")
+//	case expect.GetStatus().GetValue() != actual.GetStatus().GetValue():
+//		t.Fatal("invalid status")
+//	case expect.GetCalleeServiceName().GetValue() != actual.GetCalleeServiceName().GetValue():
+//		t.Fatal("invalid CalleeServiceName")
+//	case expect.GetCalleeServiceEnv().GetValue() != actual.GetCalleeServiceEnv().GetValue():
+//		t.Fatal("invalid CalleeServiceEnv")
+//	case expect.GetCallerServiceBusiness().GetValue() != actual.GetCallerServiceBusiness().GetValue():
+//		t.Fatal("invalid GetCallerServiceBusiness")
+//	case expect.GetSetKey().GetValue() != actual.GetSetKey().GetValue():
+//		t.Fatal("error set key")
+//	case expect.GetSetAlertQps().GetValue() != actual.GetSetAlertQps().GetValue():
+//		t.Fatal("error set alert qps")
+//	case expect.GetSetWarningQps().GetValue() != actual.GetSetWarningQps().GetValue():
+//		t.Fatal("error set warning qps")
+//	case expect.GetSetRemark().GetValue() != actual.GetSetRemark().GetValue():
+//		t.Fatal("error set remark")
+//	case expect.GetDefaultKey().GetValue() != actual.GetDefaultKey().GetValue():
+//		t.Fatal("error default key")
+//	case expect.GetDefaultAlertQps().GetValue() != actual.GetDefaultAlertQps().GetValue():
+//		t.Fatal("error default alert qps")
+//	case expect.GetDefaultWarningQps().GetValue() != actual.GetDefaultWarningQps().GetValue():
+//		t.Fatal("error default warning qps")
+//	case expect.GetDefaultRemark().GetValue() != actual.GetDefaultRemark().GetValue():
+//		t.Fatal("error default remark")
+//	case expect.GetType().GetValue() != actual.GetType().GetValue():
+//		t.Fatal("error type")
+//	case expect.GetStatus().GetValue() != actual.GetStatus().GetValue():
+//		t.Fatal("error status")
+//	default:
+//		break
+//	}
+//	t.Log("check success")
+//}
 
 // 时间转化为可读字符串
 func time2String(t time.Time) string {

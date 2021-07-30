@@ -75,7 +75,7 @@ func (a *Auth) Initialize(conf *plugin.ConfigEntry) error {
 	}
 
 	if interval == 0 {
-		return fmt.Errorf("Config Plugin %s has error interval: %d", interval)
+		return fmt.Errorf("config Plugin %s has error interval: %d", PluginName, interval)
 	}
 
 	a.dbType = dbType
@@ -207,7 +207,7 @@ func fetchPlatformRows(rows *sql.Rows) ([]*model.Platform, error) {
 		var mtime int64
 		err := rows.Scan(&platform.ID, &platform.QPS, &platform.Token, &flag, &mtime)
 		if err != nil {
-			log.Errorf("[Plugin][%s] fetch platform scan err: %s", err.Error())
+			log.Errorf("[Plugin][%s] fetch platform scan err: %s", PluginName, err.Error())
 			return nil, err
 		}
 		platform.ModifyTime = time.Unix(mtime, 0)
@@ -218,7 +218,7 @@ func fetchPlatformRows(rows *sql.Rows) ([]*model.Platform, error) {
 		out = append(out, &platform)
 	}
 	if err := rows.Err(); err != nil {
-		log.Errorf("[Plugin][%s] fetch platform next err: %s", err.Error())
+		log.Errorf("[Plugin][%s] fetch platform next err: %s", PluginName, err.Error())
 		return nil, err
 	}
 	return out, nil
