@@ -1,7 +1,9 @@
-<img src="images/polaris_logo_white.png" width="50%" height="50%" />
+# Polaris: Service Discovery and Governance Center
 
-___
-# Polaris
+查看 [中文版](https://github.com/PolarisMesh/polaris/blob/master/README-zh.md)
+
+---
+
 Polaris is an operation centre that supports multiple programming languages, with high compatibility to different application framework. 
 It supports accessing with SDK or sidecar proxy.
 
