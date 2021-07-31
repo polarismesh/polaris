@@ -1,6 +1,6 @@
 # Polaris: Service Discovery and Governance
 
-<img src="images/polaris_logo_white.png" width="50%" height="50%" />
+<img src="logo.png" width="50%" height="50%" />
 
 * [English](https://github.com/PolarisMesh/polaris)
 * [简体中文](https://github.com/PolarisMesh/polaris/blob/master/README-zh.md)
