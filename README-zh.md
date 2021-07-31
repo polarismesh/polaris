@@ -22,12 +22,12 @@ README包含：
 
 特色亮点：
 
-- 采用插件化的形式实现各个功能，用户可以根据业务需求选择使用
+- 各个功能采用插件化的形式实现，可以根据业务需求选择使用和扩展
 - 提供高性能SDK和无侵入Sidecar两种接入方式，满足不同的应用场景
-- 对于高性能SDK的接入方式，提供原生的Java、Go、C++和NodeJS客户端
+- 对于高性能SDK接入方式，提供原生的Java、Go、C++和NodeJS客户端
 - 北极星SDK可以集成到常用框架和网关，例如Spring Cloud、gRPC和Nginx
-- 兼容Kubernetes，支持k8s service自动注册，支持polaris-sidecar自动注入
-- 腾讯
+- 兼容Kubernetes，支持k8s service自动注册，也支持polaris-sidecar自动注入
+- 腾讯百万级服务治理中心的开源版本，沉淀了腾讯多年的分布式服务治理经验
 
 ## 快速入门
 
