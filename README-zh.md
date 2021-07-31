@@ -1,7 +1,12 @@
+# 北极星：服务发现和治理
+
 <img src="images/polaris_logo_white.png" width="50%" height="50%" />
 
-___
-# 北极星服务治理中心
+* [English](https://github.com/PolarisMesh/polaris)
+* [简体中文](https://github.com/PolarisMesh/polaris/blob/master/README-zh.md)
+
+---
+
 北极星是一个支持多种开发语言、兼容主流开发框架的服务治理中心。支持嵌入式和非嵌入式两种使用方式，嵌入式使用服务治理SDK，非嵌入式使用流量代理Sidecar
 
 ## 概述
