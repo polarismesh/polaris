@@ -6,10 +6,18 @@
 
 ---
 
+README：
+
+- [Introduction](#introduction)
+- [Quick Start](#quick-start)
+
+Visit [website](https://polarismesh.cn) to learn more
+
+## Introduction
+
 Polaris is an operation centre that supports multiple programming languages, with high compatibility to different application framework. 
 It supports accessing with SDK or sidecar proxy.
 
-## Overview
 Polaris's operation features provided are based on the dimension of the service, 
 Polaris's service can actualize industry standard framework and service platform, like [gRPC]，[SPRING CLOUD]，and [Kubernetes Service]. 
 These applications can switch in Polaris with no downtime.
@@ -28,7 +36,7 @@ Polaris provide features listed as below：
 
     Provide multi-protocol(HTTP,gRPC), provide heartbeat report, server end will monitor heartbeat record, configure overtime health status.
     
-## Quick Guide
+## Quick Start
 
 ### Preconditions
 
