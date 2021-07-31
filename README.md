@@ -1,4 +1,4 @@
-# Polaris: Service Discovery and Governance Center
+# Polaris: Service Discovery and Governance
 
 * [English](https://github.com/PolarisMesh/polaris)
 * [简体中文](https://github.com/PolarisMesh/polaris/blob/master/README-zh.md)
