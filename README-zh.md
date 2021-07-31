@@ -1,15 +1,20 @@
 # 北极星：服务发现和治理
 
-<img src="images/polaris_logo_white.png" width="50%" height="50%" />
-
-* [English](https://github.com/PolarisMesh/polaris)
-* [简体中文](https://github.com/PolarisMesh/polaris/blob/master/README-zh.md)
+<img src="logo.png" width="10%" height="10%" />
 
 ---
 
-北极星是一个支持多种开发语言、兼容主流开发框架的服务治理中心。支持嵌入式和非嵌入式两种使用方式，嵌入式使用服务治理SDK，非嵌入式使用流量代理Sidecar
+README包含：
 
-## 概述
+- [简介](#简介)
+- [快速入门](#快速入门)
+
+其他文档请见[北极星官网](https://polarismesh.cn)
+
+## 介绍
+
+北极星是一个支持多语言、多框架的云原生服务发现和治理中心，支持高性能SDK和无侵入Sidecar两种使用方式。
+
 北极星的治理功能是基于服务维度来提供的，北极星的服务可对应到业界主流的框架/平台服务的实现，如[gRPC]，[SPRING CLOUD]，以及[Kubernetes Service]。基于这些框架/平台开发的应用可以快速接入北极星服务治理。
 
 北极星服务端提供以下主流功能特性：
@@ -81,10 +86,3 @@ curl http://127.0.0.1:8080
 ## License
 
 The polaris is licensed under the BSD 3-Clause License. Copyright and license information can be found in the file [LICENSE](LICENSE)
-
-    
-
-
-
-
-
