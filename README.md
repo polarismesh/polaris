@@ -26,7 +26,7 @@ Functions:
 
 Features:
 
-- It provides SDK for high-performance for business scenario and sidecar for non-invasive development mode.
+- It provides SDK for high-performance business scenario and sidecar for non-invasive development mode.
 - It provides multiple clients for different development languages, such as Java, Go, C++ and Nodejs.
 - It can integrate with different service frameworks and gateways, such as Spring Cloud, gRPC and Nginx.
 - It is compatible with Kubernetes and supports automatic injection of K8s service and Polaris sidecar.
