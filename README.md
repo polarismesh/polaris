@@ -20,8 +20,8 @@ Polaris is a cloud-native service discovery and governance center. It can be use
 Functions:
 
 - basic: service discover, service register and health check
-- fault tolerance: circuit break, rate limit
-- traffic control: request route, load balance
+- fault tolerance: circuit break and rate limit
+- traffic control: request route and load balance
 - secure: authenticate
 
 Features:
