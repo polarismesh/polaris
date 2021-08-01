@@ -36,26 +36,26 @@ Features:
 
 server:
 
-- [polaris](https://github.com/PolarisMesh/polaris)
-- [polaris-console](https://github.com/PolarisMesh/polaris-console)
-- [polaris-controller](https://github.com/PolarisMesh/polaris-controller)
+- [polaris](https://github.com/PolarisMesh/polaris): Control Plane for Polaris
+- [polaris-console](https://github.com/PolarisMesh/polaris-console): Console for Polaris
 
 client:
 
-- [polaris-java](https://github.com/PolarisMesh/polaris-java)
-- [polaris-go](https://github.com/PolarisMesh/polaris-go)
-- [polaris-cpp](https://github.com/PolarisMesh/polaris-cpp)
-- [polaris-nodejs](https://github.com/PolarisMesh/polaris-nodejs)
-- [polaris-sidecar](https://github.com/PolarisMesh/polaris-sidecar)
+- [polaris-java](https://github.com/PolarisMesh/polaris-java): Java Client for Polaris
+- [polaris-go](https://github.com/PolarisMesh/polaris-go): Go Client for Polaris
+- [polaris-cpp](https://github.com/PolarisMesh/polaris-cpp): C++ Client for Polaris
+- [polaris-nodejs](https://github.com/PolarisMesh/polaris-nodejs): NodeJS Client for Polaris
+- [polaris-sidecar](https://github.com/PolarisMesh/polaris-sidecar): Envoy based Sidecar for Polaris
 
 ecosystem:
 
-- [spring-cloud-polaris](https://github.com/PolarisMesh/spring-cloud-polaris)
-- [grpc-java-polaris](https://github.com/PolarisMesh/grpc-java-polaris)
-- [grpc-go-polaris](https://github.com/PolarisMesh/grpc-go-polaris)
-- [grpc-cpp-polaris](https://github.com/PolarisMesh/spring-cloud-polaris)
-- [grpc-nodejs-polaris](https://github.com/PolarisMesh/grpc-nodejs-polaris)
-- [nginx-polaris](https://github.com/PolarisMesh/nginx-polaris)
+- [polaris-controller](https://github.com/PolarisMesh/polaris-controller): K8s Controller for Automatic Injection of K8s Service and Polaris Sidecar
+- [spring-cloud-polaris](https://github.com/PolarisMesh/spring-cloud-polaris): spring cloud integrates with polaris-java
+- [grpc-java-polaris](https://github.com/PolarisMesh/grpc-java-polaris): grpc-java integrates with polaris-java
+- [grpc-go-polaris](https://github.com/PolarisMesh/grpc-go-polaris): grpc-go integrates with polaris-go
+- [grpc-cpp-polaris](https://github.com/PolarisMesh/spring-cloud-polaris): grpc integrates with polaris-cpp
+- [grpc-nodejs-polaris](https://github.com/PolarisMesh/grpc-nodejs-polaris): grpc-node integrates with polaris-nodejs
+- [nginx-polaris](https://github.com/PolarisMesh/nginx-polaris): nginx integrates with polaris-cpp
 
 ## Quick Start
 
