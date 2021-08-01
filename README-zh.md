@@ -20,13 +20,13 @@ README：
 - 流量控制：动态路由、负载均衡
 - 安全：访问鉴权
 
-特色亮点：
+特色：
 
-- 各个功能采用插件化的形式实现，可以根据业务需求选择使用和扩展
-- 提供高性能SDK和无侵入Sidecar两种接入方式，满足不同的应用场景
-- 对于高性能SDK接入方式，提供原生的Java、Go、C++和NodeJS客户端
-- 北极星SDK可以集成到常用框架和网关，例如Spring Cloud、gRPC和Nginx
-- 兼容Kubernetes，支持k8s service自动注册，也支持polaris-sidecar自动注入
+- 北极星的功能采用插件化的形式实现，业务可以根据需求选择使用，也非常容易实现扩展
+- 提供SDK和Sidecar两种接入方式，SDK适用于高性能的业务场景，Sidecar适用于无侵入的开发模式
+- 对于SDK的接入方式，提供Java、Go、C++和NodeJS等多种语言的客户端，功能实现相同
+- 北极星SDK可以集成到常用的框架和网关中，例如Spring Cloud、gRPC和Nginx
+- 适用于Kubernetes，支持K8s service和Polaris sidecar的自动注入
 - 腾讯百万级服务治理中心的开源版本，沉淀了腾讯多年的分布式服务治理经验
 
 ## 快速入门
