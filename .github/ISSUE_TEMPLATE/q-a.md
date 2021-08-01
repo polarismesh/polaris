@@ -1,6 +1,6 @@
 ---
 name: Q&A
-about: Tell us your questions.
+about: Please tell me your questions.
 title: ''
 labels: question
 assignees: ''
