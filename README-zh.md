@@ -2,6 +2,8 @@
 
 <img src="logo.png" width="10%" height="10%" />
 
+[English](./README.md) | 简体中文
+
 ---
 
 README：
