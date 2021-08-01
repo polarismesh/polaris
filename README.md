@@ -2,7 +2,7 @@
 
 <img src="logo.png" width="10%" height="10%" />
 
-* [简体中文](https://github.com/PolarisMesh/polaris/blob/main/README-zh.md)
+English | [简体中文](./README-zh.md) 
 
 ---
 
