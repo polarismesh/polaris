@@ -9,6 +9,7 @@
 README：
 
 - [Introduction](#introduction)
+- [Repositories](#repositories)
 - [Quick Start](#quick-start)
 
 Visit [website](https://polarismesh.cn) to learn more
@@ -30,6 +31,31 @@ Features:
 - It provides multiple clients for different development languages, such as Java, Go, C++ and Nodejs.
 - It can integrate with different service frameworks and gateways, such as Spring Cloud, gRPC and Nginx.
 - It is compatible with Kubernetes and supports automatic injection of K8s service and Polaris sidecar.
+
+## Repositories
+
+server:
+
+- [polaris](https://github.com/PolarisMesh/polaris)
+- [polaris-console](https://github.com/PolarisMesh/polaris-console)
+- [polaris-controller](https://github.com/PolarisMesh/polaris-controller)
+
+client:
+
+- [polaris-java](https://github.com/PolarisMesh/polaris-java)
+- [polaris-go](https://github.com/PolarisMesh/polaris-go)
+- [polaris-cpp](https://github.com/PolarisMesh/polaris-cpp)
+- [polaris-nodejs](https://github.com/PolarisMesh/polaris-nodejs)
+- [polaris-sidecar](https://github.com/PolarisMesh/polaris-sidecar)
+
+ecosystem:
+
+- [spring-cloud-polaris](https://github.com/PolarisMesh/spring-cloud-polaris)
+- [grpc-java-polaris](https://github.com/PolarisMesh/grpc-java-polaris)
+- [grpc-go-polaris](https://github.com/PolarisMesh/grpc-go-polaris)
+- [grpc-cpp-polaris](https://github.com/PolarisMesh/spring-cloud-polaris)
+- [grpc-nodejs-polaris](https://github.com/PolarisMesh/grpc-nodejs-polaris)
+- [nginx-polaris](https://github.com/PolarisMesh/nginx-polaris)
 
 ## Quick Start
 
