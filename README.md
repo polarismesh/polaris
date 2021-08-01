@@ -9,7 +9,7 @@
 README：
 
 - [Introduction](#introduction)
-- [Repositories](#repositories)
+- [Components](#components)
 - [Quick Start](#quick-start)
 
 Visit [website](https://polarismesh.cn) to learn more
@@ -32,7 +32,7 @@ Features:
 - It can integrate with different service frameworks and gateways, such as Spring Cloud, gRPC and Nginx.
 - It is compatible with Kubernetes and supports automatic injection of K8s service and Polaris sidecar.
 
-## Repositories
+## Components
 
 server:
 
