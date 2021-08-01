@@ -26,10 +26,11 @@ Functions:
 
 Features:
 
-- It supports accessing with SDK or sidecar proxy.
-- that supports multiple programming languages, with high compatibility to different application framework. 
-- Polaris's service can actualize industry standard framework and service platform, like [gRPC]，[SPRING CLOUD]，and [Kubernetes Service]. 
-    
+- It provides SDK for high-performance for business scenario and sidecar for non-invasive development mode.
+- It provides multiple clients for different development languages, such as Java, Go, C++ and Nodejs.
+- It can integrate with different service frameworks and gateways, such as Spring Cloud, gRPC and Nginx.
+- It is compatible with Kubernetes and supports automatic injection of K8s service and Polaris sidecar.
+
 ## Quick Start
 
 ### Preconditions
