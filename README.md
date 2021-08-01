@@ -10,7 +10,7 @@ README：
 
 - [Introduction](#introduction)
 - [Components](#components)
-- [Quick Start](#quick-start)
+- [Getting started](#getting-started)
 
 Visit [website](https://polarismesh.cn) to learn more
 
@@ -62,7 +62,7 @@ others:
 - [website](https://github.com/PolarisMesh/website): Source for the polarismesh.cn site
 - [samples](https://github.com/PolarisMesh/samples): Samples for Learning PolarisMesh
 
-## Quick Start
+## Getting started
 
 ### Preconditions
 
