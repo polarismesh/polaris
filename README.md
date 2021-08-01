@@ -36,16 +36,16 @@ Features:
 
 server:
 
-- [polaris](https://github.com/PolarisMesh/polaris): Control Plane for Polaris
-- [polaris-console](https://github.com/PolarisMesh/polaris-console): Console for Polaris
+- [polaris](https://github.com/PolarisMesh/polaris): Control Plane
+- [polaris-console](https://github.com/PolarisMesh/polaris-console): Console
 
 client:
 
-- [polaris-java](https://github.com/PolarisMesh/polaris-java): Java Client for Polaris
-- [polaris-go](https://github.com/PolarisMesh/polaris-go): Go Client for Polaris
-- [polaris-cpp](https://github.com/PolarisMesh/polaris-cpp): C++ Client for Polaris
-- [polaris-nodejs](https://github.com/PolarisMesh/polaris-nodejs): NodeJS Client for Polaris
-- [polaris-sidecar](https://github.com/PolarisMesh/polaris-sidecar): Envoy based Sidecar for Polaris
+- [polaris-java](https://github.com/PolarisMesh/polaris-java): Java Client
+- [polaris-go](https://github.com/PolarisMesh/polaris-go): Go Client
+- [polaris-cpp](https://github.com/PolarisMesh/polaris-cpp): C++ Client
+- [polaris-nodejs](https://github.com/PolarisMesh/polaris-nodejs): NodeJS Client
+- [polaris-sidecar](https://github.com/PolarisMesh/polaris-sidecar): Envoy based Sidecar
 
 ecosystem:
 
