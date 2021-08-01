@@ -7,6 +7,7 @@
 README：
 
 - [介绍](#介绍)
+- [组成部分](#组成部分)
 - [快速入门](#快速入门)
 
 其他文档请见[北极星官网](https://polarismesh.cn)
@@ -30,6 +31,36 @@ README：
 - 北极星SDK可以集成到常用的框架和网关中，例如Spring Cloud、gRPC和Nginx
 - 适用于Kubernetes，支持K8s service和Polaris sidecar的自动注入
 - 腾讯百万级服务治理中心的开源版本，沉淀了腾讯多年的分布式服务治理经验
+
+## 组成部分
+
+服务端:
+
+- [polaris](https://github.com/PolarisMesh/polaris): 控制面
+- [polaris-console](https://github.com/PolarisMesh/polaris-console): 控制台
+
+客户端:
+
+- [polaris-java](https://github.com/PolarisMesh/polaris-java): Java客户端
+- [polaris-go](https://github.com/PolarisMesh/polaris-go): Go客户端
+- [polaris-cpp](https://github.com/PolarisMesh/polaris-cpp): C++客户端
+- [polaris-nodejs](https://github.com/PolarisMesh/polaris-nodejs): NodeJS客户端
+- [polaris-sidecar](https://github.com/PolarisMesh/polaris-sidecar): 基于Envoy的Sidecar
+
+生态组件:
+
+- [polaris-controller](https://github.com/PolarisMesh/polaris-controller): K8s Controller，支持K8s Service和Polaris Sidecar自动注入
+- [spring-cloud-polaris](https://github.com/PolarisMesh/spring-cloud-polaris): spring cloud集成polaris-java
+- [grpc-java-polaris](https://github.com/PolarisMesh/grpc-java-polaris): grpc-java集成polaris-java
+- [grpc-go-polaris](https://github.com/PolarisMesh/grpc-go-polaris): grpc-go集成polaris-go
+- [grpc-cpp-polaris](https://github.com/PolarisMesh/grpc-cpp-polaris): grpc集成polaris-cpp
+- [grpc-nodejs-polaris](https://github.com/PolarisMesh/grpc-nodejs-polaris): grpc-node集成polaris-nodejs
+- [nginx-polaris](https://github.com/PolarisMesh/nginx-polaris): nginx集成polaris-cpp
+
+其他:
+
+- [website](https://github.com/PolarisMesh/website): 官网
+- [samples](https://github.com/PolarisMesh/samples): 示例
 
 ## 快速入门
 
