@@ -82,7 +82,3 @@ chmod +x ./tool/*.sh
 curl http://127.0.0.1:8080
 ```` 
 返回Polaris Server，证明功能正常
-
-## License
-
-The polaris is licensed under the BSD 3-Clause License. Copyright and license information can be found in the file [LICENSE](LICENSE)
