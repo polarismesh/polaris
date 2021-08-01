@@ -84,7 +84,3 @@ After all, run ./p.sh, prompt Polaris Server, proof the installation is successf
 curl http://127.0.0.1:8080
 ```` 
 Return text is 'Polaris Server', proof features run smoothly 
-
-## License
-
-The polaris is licensed under the BSD 3-Clause License. Copyright and license information can be found in the file [LICENSE](LICENSE)
