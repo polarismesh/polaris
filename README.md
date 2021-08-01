@@ -15,26 +15,20 @@ Visit [website](https://polarismesh.cn) to learn more
 
 ## Introduction
 
-Polaris is an operation centre that supports multiple programming languages, with high compatibility to different application framework. 
-It supports accessing with SDK or sidecar proxy.
+Polaris is a cloud-native service discovery and governance center. It can be used to solve the problem of service connection, fault tolerance, traffic control and secure in distributed and microservice architecture.
 
-Polaris's operation features provided are based on the dimension of the service, 
-Polaris's service can actualize industry standard framework and service platform, like [gRPC]，[SPRING CLOUD]，and [Kubernetes Service]. 
-These applications can switch in Polaris with no downtime.
+Functions:
 
-Polaris provide features listed as below：
+- basic: service discover, service register and health check
+- fault tolerance: circuit break, rate limit
+- traffic control: request route, load balance
+- secure: authenticate
 
-* ** Service Data Management
+Features:
 
-    Bringing visibility to the control panel, admin can configure HTTP port (label, health status, instance information, policy).
-
-* ** Registration and Discovery
-
-    Provide multi-protocol(HTTP,gRPC), self-registration, and caller server's ability to discover and distribute other server end's data for invocation.
-
-* ** Health Check
-
-    Provide multi-protocol(HTTP,gRPC), provide heartbeat report, server end will monitor heartbeat record, configure overtime health status.
+- It supports accessing with SDK or sidecar proxy.
+- that supports multiple programming languages, with high compatibility to different application framework. 
+- Polaris's service can actualize industry standard framework and service platform, like [gRPC]，[SPRING CLOUD]，and [Kubernetes Service]. 
     
 ## Quick Start
 
