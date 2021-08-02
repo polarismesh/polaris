@@ -1,8 +1,14 @@
 #!/bin/bash
 
+set -e
+
 workdir=$(dirname $(realpath $0))
 version=$(cat version 2>/dev/null)
 folder_name="polaris-server-release_${version}"
+if [ -n $GOOS ] && [ -n $GOARCH ]
+then
+	folder_name="polaris-server-release_${version}.${GOOS}.${GOARCH}"
+fi
 pkg_name="${folder_name}.tar.gz"
 
 cd $workdir
