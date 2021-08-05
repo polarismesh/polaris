@@ -1,6 +1,6 @@
 # Polaris: Service Discovery and Governance
 
-[![Build Status](https://github.com/polarismesh/polaris/actions/workflows/testing.yml/badge.svg)](https://github.com/PolarisMesh/polaris/actions/workflows/testing.yml
+[![Build Status](https://github.com/polarismesh/polaris/actions/workflows/testing.yml/badge.svg)](https://github.com/PolarisMesh/polaris/actions/workflows/testing.yml)
 
 <img src="logo.png" width="10%" height="10%" />
 
