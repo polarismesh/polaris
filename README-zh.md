@@ -1,6 +1,6 @@
 # 北极星：服务发现和治理
 
-<img src="logo.png" width="10%" height="10%" />
+<img src="logo.svg" width="10%" height="10%" />
 
 [English](./README.md) | 简体中文
 
