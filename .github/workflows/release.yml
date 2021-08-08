@@ -25,10 +25,8 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-          UPLOAD_URL: ${{ github.event.release.upload_url }}
         run: |
           bash build.sh
-          echo ${UPLOAD_URL}
           PACKAGE_NAME=$(ls | grep polaris-server-release*.tar.gz | sed -n '1p')
           echo ::set-output name=name::${PACKAGE_NAME}
        

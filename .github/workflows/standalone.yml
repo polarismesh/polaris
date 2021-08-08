@@ -47,12 +47,20 @@ jobs:
           tar czf $PACKAGE_NAME} *
           echo ::set-output name=name::${PACKAGE_NAME}
 
+      - name: Get Release by Tag
+        id: get_release_by_tag
+        uses: jonfriesen/get-release-by-tag@v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.event.inputs.server_version }}
+
       - name: Upload asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url }}
+          upload_url: ${{ steps.get_release_by_tag.outputs.release.data.upload_url }}
           asset_path: ./${{ steps.build.outputs.name }}
           asset_name: ${{ steps.build.outputs.name }}
           asset_content_type: application/gzip
