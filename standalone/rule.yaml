@@ -1,0 +1,80 @@
+[
+  {
+    "sources": [
+      {
+        "service": "*",
+        "namespace": "*",
+        "metadata": {
+          "protocol": {
+            "value": "grpc"
+          }
+        }
+      }
+    ],
+    "destinations": [
+      {
+        "service": "polaris.discover",
+        "namespace": "Polaris",
+        "metadata": {
+          "protocol": {
+            "value": "grpc"
+          }
+        },
+        "priority": 0,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "sources": [
+      {
+        "service": "*",
+        "namespace": "*",
+        "metadata": {
+          "protocol": {
+            "value": "trpc"
+          }
+        }
+      }
+    ],
+    "destinations": [
+      {
+        "service": "polaris.discover",
+        "namespace": "Polaris",
+        "metadata": {
+          "protocol": {
+            "value": "trpc"
+          }
+        },
+        "priority": 0,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "sources": [
+      {
+        "service": "*",
+        "namespace": "*",
+        "metadata": {
+          "protocol": {
+            "value": "http"
+          }
+        }
+      }
+    ],
+    "destinations": [
+      {
+        "service": "polaris.discover",
+        "namespace": "Polaris",
+        "metadata": {
+          "protocol": {
+            "value": "http"
+          }
+        },
+        "priority": 0,
+        "weight": 100
+      }
+    ]
+  }
+]
