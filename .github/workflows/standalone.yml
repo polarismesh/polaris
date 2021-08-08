@@ -38,7 +38,7 @@ jobs:
           mkdir route-rule
           mv rule.yaml route-rule/
           mkdir database
-          mv store/defaultStore/polaris_server.sql database/
+          mv ../store/defaultStore/polaris_server.sql database/
           SERVER_PKG_NAME=polaris-server-release_${SERVER_VERSION}.${GOOS}.${GOARCH}.tar.gz
           wget -T10 -t3 https://github.com/PolarisMesh/polaris/releases/download/${SERVER_VERSION}/${SERVER_PKG_NAME} --no-check-certificate
           CONSOLE_PKG_NAME=polaris-console-release_${CONSOLE_VERSION}.${GOOS}.${GOARCH}.tar.gz
