@@ -60,7 +60,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.get_release_by_tag.outputs.release.data.upload_url }}
+          upload_url: ${{ steps.get_release_by_tag.outputs.upload_url }}
           asset_path: ./${{ steps.build.outputs.name }}
           asset_name: ${{ steps.build.outputs.name }}
           asset_content_type: application/gzip
