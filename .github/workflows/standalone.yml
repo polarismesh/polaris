@@ -44,7 +44,8 @@ jobs:
           CONSOLE_PKG_NAME=polaris-console-release_${CONSOLE_VERSION}.${GOOS}.${GOARCH}.tar.gz
           wget -T10 -t3 https://github.com/PolarisMesh/polaris-console/releases/download/${CONSOLE_VERSION}/${CONSOLE_PKG_NAME} --no-check-certificate
           PACKAGE_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}.${GOARCH}.tar.gz
-          tar czf $PACKAGE_NAME} *
+          tar czf ${PACKAGE_NAME} *
+          mv ${PACKAGE_NAME} ../
           echo ::set-output name=name::${PACKAGE_NAME}
 
       - name: Get Release by Tag
