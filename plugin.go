@@ -21,6 +21,7 @@ import (
 	_ "github.com/polarismesh/polaris-server/apiserver/grpcserver"
 	_ "github.com/polarismesh/polaris-server/apiserver/httpserver"
 	_ "github.com/polarismesh/polaris-server/apiserver/l5pbserver"
+        _ "github.com/polarismesh/polaris-server/apiserver/xdsserver"
 
 	_ "github.com/polarismesh/polaris-server/naming/cache"
 	_ "github.com/polarismesh/polaris-server/store/defaultStore"
