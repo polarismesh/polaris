@@ -10,7 +10,7 @@ fi
 # 脚本名称
 program_name="install_standalone"
 # 数据库使用密码
-general_password="polaris@123456"
+general_password="polaris@12345678+"
 # 是否启用数据库
 db_enable=false
 db_name="polaris_server"
