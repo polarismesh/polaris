@@ -13,7 +13,7 @@ bootstrap:
     key: sz # 全局锁
   # 注册为北极星服务
   polaris_service:
-    probe_address: 119.91.74.45:3306
+    probe_address: ##DB_ADDR##
     enable_register: false
     isolated: true
     services:
@@ -115,10 +115,10 @@ store:
   option:
     master:
       dbType: mysql
-      dbUser: root
-      dbPwd: "Polaris@2021"
-      dbAddr: 119.91.74.45:3306
-      dbName: polaris_server
+      dbUser: ##DB_USER##
+      dbPwd: ##DB_PWD##
+      dbAddr: ##DB_ADDR##
+      dbName: ##DB_NAME##
       maxOpenConns: -1
       maxIdleConns: -1
       connMaxLifetime: 300 # 单位秒
