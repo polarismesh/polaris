@@ -1,0 +1,179 @@
+syntax = "proto3";
+
+package v1;
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/duration.proto";
+import "model.proto";
+
+// 同一服务下限流规则集合
+message RateLimit {
+	// 限流规则集合
+	repeated Rule rules = 1;
+	// 限流规则汇总的revision信息
+	google.protobuf.StringValue revision = 2;
+}
+
+// 单个限流规则信息
+message Rule {
+	// 限流规则唯一标识
+	google.protobuf.StringValue id = 1;
+	// 限流规则所属服务名
+	google.protobuf.StringValue service = 2;
+	// 限流规则所属命名空间
+	google.protobuf.StringValue namespace = 3;
+	// 可选，SUBSET标识
+	map<string, MatchString> subset = 4;
+	// 限流规则优先级，0值最高
+	google.protobuf.UInt32Value priority = 5;
+	// 限流资源
+	enum Resource {
+		// 针对QPS进行限流
+		QPS = 0;
+		// 针对并发数进行限流
+		CONCURRENCY = 1;
+	}
+	Resource resource = 6;
+	// 限流类型
+	// global全局限流(默认)或者local单机限流
+	enum Type {
+		GLOBAL = 0;
+		LOCAL = 1;
+	}
+	Type type = 7;
+	// 业务标签集合，通过KV进行匹配，全部匹配才使用该规则
+	map<string, MatchString> labels = 8;
+	// 限流阈值
+	// 可以有多个粒度的配置（比如同时针对秒级，分钟级，天级），匹配一个则进行限流
+	// 全局限流模式下，该值为服务配额总量；单机限流模式下，该值为单个节点能处理的配额量
+	repeated Amount amounts = 9;
+	// 限流动作，对应着客户端的插件名字
+	google.protobuf.StringValue action = 10;
+	// 是否停用该限流规则，默认启用
+	google.protobuf.BoolValue disable = 11;
+	// 限流上报方式，同时支持按固定周期上报，以及达到配额百分比后上报
+	Report report = 12;
+	// 限流规则创建时间
+	google.protobuf.StringValue ctime = 13;
+	// 限流规则修改时间
+	google.protobuf.StringValue mtime = 14;
+	// 限流规则revision信息
+	google.protobuf.StringValue revision = 15;
+	// 服务的TOKEN信息，仅用于控制台，discover接口不下发
+	google.protobuf.StringValue service_token = 16 [json_name="service_token"];
+	// 配额调整算法
+	AmountAdjuster adjuster = 17;
+	// 通配符是否合并计算，默认分开计数
+	google.protobuf.BoolValue regex_combine = 18;
+
+	// 限流阈值模式
+	enum AmountMode {
+		GLOBAL_TOTAL = 0;   // 总体阈值
+		SHARE_EQUALLY = 1;  // 单机均摊阈值
+	}
+	AmountMode amount_mode = 19;
+	// 与限流集群连接失败时降级模式
+	enum FailoverType {
+		FAILOVER_LOCAL = 0;  // 降级成本地阈值
+		FAILOVER_PASS = 1;   // 降级成直接通过
+	}
+	FailoverType failover = 20;
+	// 分布式限流服务集群
+	RateLimitCluster cluster = 21;
+	// 被调接口名
+	MatchString method = 22;
+}
+
+// 分布式限流服务集群
+message RateLimitCluster {
+	google.protobuf.StringValue service = 1;
+	// 限流规则所属命名空间
+	google.protobuf.StringValue namespace = 2;
+}
+
+// 限流配额
+message Amount {
+	// 时间周期内的最大配额数
+	google.protobuf.UInt32Value maxAmount = 1;
+	// 配额生效的时间周期，必须大于等于1s
+	google.protobuf.Duration validDuration = 2;
+	// 请求统计精度
+	google.protobuf.UInt32Value precision = 3;
+	// 可选，起始限流阈值，爬坡起始值
+	google.protobuf.UInt32Value startAmount = 4;
+	// 可选，最小限流阈值，降低时最小值
+	google.protobuf.UInt32Value minAmount = 5;
+}
+
+// 限流上报方式
+message Report {
+	// 配额固定上报周期，单位毫秒
+	google.protobuf.Duration interval = 1;
+	// 使用了百分之多少配额后启动一次实时上报，值范围(0,100]
+	google.protobuf.UInt32Value amountPercent = 2;
+}
+
+// 配额调整算法
+message AmountAdjuster {
+	ClimbConfig climb = 1;
+}
+
+// 限流调整算法Climb相关配置
+message ClimbConfig {
+	google.protobuf.BoolValue enable = 1;  // 是否开启
+
+	// 限流数据统计配置
+	message MetricConfig {
+		// 限流数据度量周期，默认60s
+		google.protobuf.Duration window = 1;
+		// 数据统计精度，决定数据度量的最小周期，度量滑窗的步长=window/precision
+		google.protobuf.UInt32Value precision = 2;
+		// 上报周期，默认20s
+		google.protobuf.Duration reportInterval = 3;
+	}
+	MetricConfig metric = 2; // 限流数据统计配置
+
+	// 触发调整的策略
+	message TriggerPolicy {
+		// 错误率触发调整配置
+		message ErrorRate {
+			google.protobuf.BoolValue enable = 1;  // 是否开启
+			google.protobuf.UInt32Value requestVolumeThreshold =2;  // 触发限流调整的最小的请求数
+			google.protobuf.Int32Value errorRate = 3;  // 触发限流的错误率配置
+
+			// 特殊错误码触发调整配置
+			message SpecialConfig {
+				google.protobuf.StringValue	type = 1;  // 自定义错误类型
+				repeated google.protobuf.Int64Value errorCodes = 2;  // 特定规则针对的错误码
+				google.protobuf.Int32Value errorRate = 3; //特定规则错误率
+			}
+			repeated SpecialConfig specials = 4;  // 针对部分错误码，使用额外的错误率统计，可设置多组特殊规则
+		}
+
+		// 慢调用触发调整配置
+		message SlowRate {
+			google.protobuf.BoolValue enable = 1;  // 是否开启
+			google.protobuf.Duration maxRt = 2;  // 最大响应时间，超过该响应时间属于慢调用
+			google.protobuf.Int32Value slowRate = 3;  // 慢请求率阈值，达到该阈值进行限流
+		}
+
+		ErrorRate errorRate = 1;  // 按错误率阈值调整
+		SlowRate slowRate = 2;  // 慢调用进行触发调整
+	}
+
+	TriggerPolicy policy = 3; // 触发调整策略
+
+	// 爬坡调整相关参数
+	message ClimbThrottling {
+		google.protobuf.Int32Value coldBelowTuneDownRate = 1;  // 冷水位以下区间的下调百分比
+		google.protobuf.Int32Value coldBelowTuneUpRate = 2;  // 冷水位以下区间的上调百分比
+		google.protobuf.Int32Value coldAboveTuneDownRate = 3;  // 冷水位以上区间的下调百分比
+		google.protobuf.Int32Value coldAboveTuneUpRate = 4;  // 冷水位以上区间的上调百分比
+		google.protobuf.Int32Value limitThresholdToTuneUp = 5;  // 冷水位以上，超过该百分的请求被限流后进行阈值上调
+		google.protobuf.Duration judgeDuration = 6;  // 阈值调整规则的决策间隔
+		google.protobuf.Int32Value tuneUpPeriod = 7;  // 阈值上调周期数，连续N个决策间隔都为上调，才执行上调
+		google.protobuf.Int32Value tuneDownPeriod = 8;  // 阈值下调周期数，连续N个决策间隔都为下调，才执行下调
+	}
+
+	ClimbThrottling throttling = 4;  // 限流调整相关参数
+}
