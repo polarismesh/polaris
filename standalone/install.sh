@@ -357,8 +357,6 @@ then
   installPolarisServer
   # 安装console
   installPolarisConsole
-  # 配置server
-  createPolarisService
   # 安装Prometheus和PushGateWay
   installPrometheus
   installPushGateway
