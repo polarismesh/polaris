@@ -10,7 +10,7 @@ fi
 # 脚本名称
 program_name="install_standalone"
 # 数据库使用密码
-general_password="polaris@12345678+"
+general_password="Polaris@2021+"
 # 是否启用数据库
 db_enable=false
 db_name="polaris_server"
@@ -38,27 +38,24 @@ function showParam() {
 function installMysql() {
   if [ $(command -v mysql) ]; then
     echo "mysql has installed, please use \"$program_name -e\" to install polaris."
-    Usage
-    exit -1
+  else
+    local target_mysql_rpm=mysql57-community-release-el7-11.noarch.rpm
+	if [ ! -f $target_mysql_rpm ]; then
+		wget -T10 -t3 https://repo.mysql.com//${target_mysql_rpm}
+		if [ $? -ne 0 ]; then
+		  echo "download $target_mysql_rpm to $install_path fail, exit."
+		  exit -1
+		else
+		  echo "download $target_mysql_rpm success."
+		fi
+	fi
+
+	# 安装rpm
+	yum -y module disable mysql
+	yum -y install ${target_mysql_rpm}
+	yum -y install mysql-community-server
+	systemctl start mysqld
   fi
-
-  local target_mysql_rpm=mysql57-community-release-el7-11.noarch.rpm
-  if [ ! -f $target_mysql_rpm ]; then
-    wget -T10 -t3 https://repo.mysql.com//${target_mysql_rpm}
-    if [ $? -ne 0 ]; then
-      echo "download $target_mysql_rpm to $install_path fail, exit."
-      exit -1
-    else
-      echo "download $target_mysql_rpm success."
-    fi
-  fi
-
-  # 安装rpm
-  yum -y module disable mysql
-  yum -y install ${target_mysql_rpm}
-  yum -y install mysql-community-server
-  systemctl start mysqld
-
   # 检查mysql是否存在
   local mysql_num=$(ps -ef | grep mysql | grep -v grep | wc -l)
   if [ $mysql_num -eq 0 ]; then
