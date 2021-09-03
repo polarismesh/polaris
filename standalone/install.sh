@@ -79,7 +79,7 @@ function installMysql() {
   fi
   
   db_enable=true
-  db_ip=$(ifconfig ${network_name} | grep inet |grep -v inet6|awk '{print $2}'|tr -d "addr:")
+  db_ip="127.0.0.1"
   db_port="3306"
   db_username="root"
   db_password=$general_password
@@ -290,205 +290,6 @@ function installPushGateway() {
   cd $install_path
 }
 
-function createPolarisService() {
-  local create_discover_rsp=$(curl -w "##%{http_code}" -H 'Content-Type: application/json;charset=UTF-8' -d '[{"name":"polaris-server","namespace":"Polaris","owners":"polaris","business":"polaris server","comment":"","metadata":{}}]' http://127.0.0.1/naming/v1/services)
-  local result=$?
-  if [ "$result" == "0" ];
-  then
-    local http_code=${create_discover_rsp##*##}
-    local rsp_body=${create_discover_rsp%%##*}
-    echo -e "create polaris-server service response: $(echo ${rsp_body%%##*} | sed ":a;N;s/[  \t \n]//g;ta" )"
-
-    if [ "$http_code" == "200" ];
-    then
-      echo -e "create polaris-server service success."
-    else
-      local rsp_check=$(echo ${rsp_body%%##*}| grep "existed resource" | wc -l)
-      if [ $rsp_check -ge 1 ];then
-        echo "polaris-server is existed, skip."
-        return
-      fi
-      
-      echo -e "create polaris-server service fail, http_code=$http_code"
-      exit -1
-    fi
-  else
-    echo -e "curl create polaris service fail: ret=$result"
-    exit -1
-  fi
-  cd $install_path
-}
-
-function aliasDiscover() {
-  local alias_rsp=$(curl -w "##%{http_code}" -H 'Content-Type: application/json;charset=UTF-8' -d '{"service":"polaris-server","namespace":"Polaris","type":0,"alias":"polaris.discover"}' http://127.0.0.1/naming/v1/service/alias)
-  local result=$?
-  if [ "$result" == "0" ];
-  then
-    local http_code=${alias_rsp##*##}
-    local rsp_body=${alias_rsp%%##*}
-    echo -e "alias polaris.discover service response: $(echo ${rsp_body%%##*} | sed ":a;N;s/[  \t \n]//g;ta" )"
-
-    if [ "$http_code" == "200" ];
-    then
-      echo -e "alias polaris.discover service success."
-    else
-      local rsp_check=$(echo ${rsp_body%%##*}| grep "existed resource" | wc -l)
-      if [ $rsp_check -ge 1 ];then
-        echo "polaris.discover is existed, skip."
-        return
-      fi
-
-      echo -e "alias polaris.discover service fail, http_code=$http_code"
-      exit -1
-    fi
-  else
-    echo -e "curl alias discover service fail: ret=$result"
-    exit -1
-  fi
-  cd $install_path
-}
-
-function aliasHealthCheck() {
-  local alias_rsp=$(curl -w "##%{http_code}" -H 'Content-Type: application/json;charset=UTF-8' -d '{"service":"polaris-server","namespace":"Polaris","type":0,"alias":"polaris.healthcheck"}' http://127.0.0.1/naming/v1/service/alias)
-  local result=$?
-  if [ "$result" == "0" ];
-  then
-    local http_code=${alias_rsp##*##}
-    local rsp_body=${alias_rsp%%##*}
-    echo -e "alias polaris.healthcheck service response: $(echo ${rsp_body%%##*} | sed ":a;N;s/[  \t \n]//g;ta" )"
-
-    if [ "$http_code" == "200" ];
-    then
-      echo -e "alias polaris.healthcheck service success."
-    else
-      local rsp_check=$(echo ${rsp_body%%##*}| grep "existed resource" | wc -l)
-      if [ $rsp_check -ge 1 ];then
-        echo "alias polaris.healthcheck is existed, skip."
-        return
-      fi
-
-      echo -e "alias healthcheck service fail, http_code=$http_code"
-      exit -1
-    fi
-  else
-    echo -e "alias healthcheck service fail: ret=$result"
-    exit -1
-  fi
-  cd $install_path
-}
-
-function createPushGatewayService() {
-  local pgw_rsp=$(curl -w "##%{http_code}" -H 'Content-Type: application/json;charset=UTF-8' -d '[{"name":"polaris.monitor","namespace":"Polaris","owners":"polaris","business":"polaris monitor","comment":"","metadata":{}}]' http://127.0.0.1/naming/v1/services)
-  local result=$?
-  if [ "$result" == "0" ];
-  then
-    local http_code=${pgw_rsp##*##}
-    local rsp_body=${pgw_rsp%%##*}
-    echo -e "create push gateway service response: $(echo ${rsp_body%%##*} | sed ":a;N;s/[  \t \n]//g;ta" )"
-
-    if [ "$http_code" == "200" ];
-    then
-      echo -e "create push gateway service success."
-    else
-      local rsp_check=$(echo ${rsp_body%%##*}| grep "existed resource" | wc -l)
-      if [ $rsp_check -ge 1 ];then
-        echo "push gateway service is existed, skip."
-        return
-      fi
-
-      echo -e "create push gateway fail, http_code=$http_code"
-      exit -1
-    fi
-  else
-    echo -e "create push gateway fail: ret=$result"
-    exit -1
-  fi
-  cd $install_path
-}
-
-function registerPushGateway() {
-  local local_host=$(ifconfig ${network_name} | grep inet |grep -v inet6|awk '{print $2}'|tr -d "addr:")
-  if [ -z "$local_host" ];then
-     echo "get ip fail, exit."
-     exit
-  fi
-
-  local pgw_rsp=$(curl -w "##%{http_code}" -H 'Content-Type: application/json;charset=UTF-8' -d '[{"service":"polaris.monitor","namespace":"Polaris","weight":100,"healthy":true,"isolate":false,"port":9091,"host":"'${local_host}'","enable_health_check":false,"metadata":{}}]' http://127.0.0.1/naming/v1/instances)
-  local result=$?
-  if [ "$result" == "0" ];
-  then
-    local http_code=${pgw_rsp##*##}
-    local rsp_body=${pgw_rsp%%##*}
-    echo -e "register push gateway service response: $(echo ${rsp_body%%##*} | sed ":a;N;s/[  \t \n]//g;ta" )"
-
-    if [ "$http_code" == "200" ];
-    then
-      echo -e "register push gateway service success."
-    else
-      local rsp_check=$(echo ${rsp_body%%##*}| grep "existed resource" | wc -l)
-      if [ $rsp_check -ge 1 ];then
-        echo "register push gateway is existed, skip."
-        return
-      fi
-
-      echo -e "register push gateway fail, http_code=$http_code"
-      exit -1
-    fi
-  else
-    echo -e "register push gateway fail: ret=$result"
-    exit -1
-  fi
-  cd $install_path
-}
-
-function addRouteStrategy() {
-  local add_route_req_json='[{"namespace":"Polaris","service":"polaris-server","inbounds":'$(cat ${install_path}/route-rule/rule.yaml | sed ":a;N;s/[  \t \n]//g;ta")',"outbounds":[]}]'
-  local add_route_rsp=$(curl -w "##%{http_code}" -H 'Content-Type: application/json;charset=UTF-8' -d $add_route_req_json http://127.0.0.1/naming/v1/routings)
-  local result=$?
-  if [ "$result" == "0" ];
-  then
-    local http_code=${add_route_rsp##*##}
-    local rsp_body=${add_route_rsp%%##*}
-    echo -e "add route response: $(echo ${rsp_body%%##*} | sed ":a;N;s/[  \t \n]//g;ta" )"
-
-    if [ "$http_code" == "200" ];
-    then
-      echo -e "add route success."
-    else
-      local rsp_check=$(echo ${rsp_body%%##*}| grep "existed resource" | wc -l)
-      if [ $rsp_check -ge 1 ];then
-        echo "polaris.discover route is existed, skip."
-        return
-      fi
-
-      echo -e "add route fail, http_code=$http_code, exit."
-      exit -1
-    fi
-  else
-    echo -e "curl route fail: ret=$result, exit."
-    exit -1
-  fi
-  cd $install_path
-}
-
-function restartPolarisServer() {
-  cd $install_path
-  local polaris_discover_tarname=$(find . -name "polaris-server-release*.tar.gz")
-  local polaris_discover_config_filename="polaris-server.yaml"
-  local polaris_discover_dirname=$(basename ${polaris_discover_tarname} .tar.gz)
-  cd $polaris_discover_dirname
-  
-  local enable_register_line=$(grep -n "enable_register:" $polaris_discover_config_filename | awk -F ":" '{print $1}')
-  sed -i ''$enable_register_line's/enable_register: false/enable_register: true/' $polaris_discover_config_filename
-  sed -i 's/isolated: true/isolated: false/' $polaris_discover_config_filename
-
-  echo -e "restart polaris server... "
-  /bin/bash ./tool/stop.sh
-  sleep 2s
-  /bin/bash ./tool/start.sh
-  cd $install_path
-}
-
 while getopts ':hvn:ei:p:u:w:EI:P:W:' varname; do
   case $varname in
   h)
@@ -558,15 +359,9 @@ then
   installPolarisConsole
   # 配置server
   createPolarisService
-  aliasDiscover
-  aliasHealthCheck
-  addRouteStrategy
-  restartPolarisServer
   # 安装Prometheus和PushGateWay
   installPrometheus
   installPushGateway
-  createPushGatewayService
-  registerPushGateway
 else
   echo -e "database config needed."
   exit -1
