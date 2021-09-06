@@ -15,56 +15,55 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package boltdb
+package boltdbStore
 
 import (
 	"github.com/polarismesh/polaris-server/common/model"
 	"time"
 )
 
-type namespaceStore struct {
+type businessStore struct {
 	handler BoltHandler
 }
 
-// 保存一个命名空间
-func (n *namespaceStore) AddNamespace(namespace *model.Namespace) error {
+// 增加一个业务集
+func (b *businessStore) AddBusiness(business *model.Business) error {
 	//TODO
 	return nil
 }
 
-// 更新命名空间
-func (n *namespaceStore) UpdateNamespace(namespace *model.Namespace) error {
+// 删除一个业务集
+func (b *businessStore) DeleteBusiness(bid string) error {
 	//TODO
 	return nil
 }
 
-// 更新命名空间token
-func (n *namespaceStore) UpdateNamespaceToken(name string, token string) error {
+// 更新业务集
+func (b *businessStore) UpdateBusiness(business *model.Business) error {
 	//TODO
 	return nil
 }
 
-// 查询owner下所有的命名空间
-func (n *namespaceStore) ListNamespaces(owner string) ([]*model.Namespace, error) {
+// 更新业务集token
+func (b *businessStore) UpdateBusinessToken(bid string, token string) error {
+	//TODO
+	return nil
+}
+
+// 查询owner下业务集
+func (b *businessStore) ListBusiness(owner string) ([]*model.Business, error) {
 	//TODO
 	return nil, nil
 }
 
-// 根据name获取命名空间的详情
-func (n *namespaceStore) GetNamespace(name string) (*model.Namespace, error) {
+// 根据业务集ID获取业务集详情
+func (b *businessStore) GetBusinessByID(id string) (*model.Business, error) {
 	//TODO
 	return nil, nil
 }
 
-// 从数据库查询命名空间
-func (n *namespaceStore) GetNamespaces(
-	filter map[string][]string, offset, limit int) ([]*model.Namespace, uint32, error) {
-	//TODO
-	return nil, 0, nil
-}
-
-// 获取增量数据
-func (n *namespaceStore) GetMoreNamespaces(mtime time.Time) ([]*model.Namespace, error) {
+// 根据mtime获取增量数据
+func (b *businessStore) GetMoreBusiness(mtime time.Time) ([]*model.Business, error) {
 	//TODO
 	return nil, nil
 }

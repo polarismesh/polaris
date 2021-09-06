@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package boltdb
+package boltdbStore
 
 import (
 	"github.com/boltdb/bolt"

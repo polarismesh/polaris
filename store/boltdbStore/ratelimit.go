@@ -15,55 +15,50 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package boltdb
+package boltdbStore
 
 import (
 	"github.com/polarismesh/polaris-server/common/model"
 	"time"
 )
 
-type businessStore struct {
+type rateLimitStore struct {
 	handler BoltHandler
 }
 
-// 增加一个业务集
-func (b *businessStore) AddBusiness(business *model.Business) error {
+// 新增限流规则
+func (r *rateLimitStore) CreateRateLimit(limiting *model.RateLimit) error {
 	//TODO
 	return nil
 }
 
-// 删除一个业务集
-func (b *businessStore) DeleteBusiness(bid string) error {
+// 更新限流规则
+func (r *rateLimitStore) UpdateRateLimit(limiting *model.RateLimit) error {
 	//TODO
 	return nil
 }
 
-// 更新业务集
-func (b *businessStore) UpdateBusiness(business *model.Business) error {
+// 删除限流规则
+func (r *rateLimitStore) DeleteRateLimit(limiting *model.RateLimit) error {
 	//TODO
 	return nil
 }
 
-// 更新业务集token
-func (b *businessStore) UpdateBusinessToken(bid string, token string) error {
+// 根据过滤条件拉取限流规则
+func (r *rateLimitStore) GetExtendRateLimits(
+	query map[string]string, offset uint32, limit uint32) (uint32, []*model.ExtendRateLimit, error) {
 	//TODO
-	return nil
+	return 0, nil, nil
 }
 
-// 查询owner下业务集
-func (b *businessStore) ListBusiness(owner string) ([]*model.Business, error) {
+// 根据限流ID拉取限流规则
+func (r *rateLimitStore) GetRateLimitWithID(id string) (*model.RateLimit, error) {
 	//TODO
 	return nil, nil
 }
 
-// 根据业务集ID获取业务集详情
-func (b *businessStore) GetBusinessByID(id string) (*model.Business, error) {
+// 根据修改时间拉取增量限流规则及最新版本号
+func (r *rateLimitStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, []*model.RateLimitRevision, error) {
 	//TODO
-	return nil, nil
-}
-
-// 根据mtime获取增量数据
-func (b *businessStore) GetMoreBusiness(mtime time.Time) ([]*model.Business, error) {
-	//TODO
-	return nil, nil
+	return nil, nil, nil
 }

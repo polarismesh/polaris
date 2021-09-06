@@ -15,50 +15,56 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package boltdb
+package boltdbStore
 
 import (
 	"github.com/polarismesh/polaris-server/common/model"
 	"time"
 )
 
-type rateLimitStore struct {
+type namespaceStore struct {
 	handler BoltHandler
 }
 
-// 新增限流规则
-func (r *rateLimitStore) CreateRateLimit(limiting *model.RateLimit) error {
+// 保存一个命名空间
+func (n *namespaceStore) AddNamespace(namespace *model.Namespace) error {
 	//TODO
 	return nil
 }
 
-// 更新限流规则
-func (r *rateLimitStore) UpdateRateLimit(limiting *model.RateLimit) error {
+// 更新命名空间
+func (n *namespaceStore) UpdateNamespace(namespace *model.Namespace) error {
 	//TODO
 	return nil
 }
 
-// 删除限流规则
-func (r *rateLimitStore) DeleteRateLimit(limiting *model.RateLimit) error {
+// 更新命名空间token
+func (n *namespaceStore) UpdateNamespaceToken(name string, token string) error {
 	//TODO
 	return nil
 }
 
-// 根据过滤条件拉取限流规则
-func (r *rateLimitStore) GetExtendRateLimits(
-	query map[string]string, offset uint32, limit uint32) (uint32, []*model.ExtendRateLimit, error) {
-	//TODO
-	return 0, nil, nil
-}
-
-// 根据限流ID拉取限流规则
-func (r *rateLimitStore) GetRateLimitWithID(id string) (*model.RateLimit, error) {
+// 查询owner下所有的命名空间
+func (n *namespaceStore) ListNamespaces(owner string) ([]*model.Namespace, error) {
 	//TODO
 	return nil, nil
 }
 
-// 根据修改时间拉取增量限流规则及最新版本号
-func (r *rateLimitStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, []*model.RateLimitRevision, error) {
+// 根据name获取命名空间的详情
+func (n *namespaceStore) GetNamespace(name string) (*model.Namespace, error) {
 	//TODO
-	return nil, nil, nil
+	return nil, nil
+}
+
+// 从数据库查询命名空间
+func (n *namespaceStore) GetNamespaces(
+	filter map[string][]string, offset, limit int) ([]*model.Namespace, uint32, error) {
+	//TODO
+	return nil, 0, nil
+}
+
+// 获取增量数据
+func (n *namespaceStore) GetMoreNamespaces(mtime time.Time) ([]*model.Namespace, error) {
+	//TODO
+	return nil, nil
 }
