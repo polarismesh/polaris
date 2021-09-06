@@ -23,8 +23,8 @@ import (
 	_ "github.com/polarismesh/polaris-server/apiserver/l5pbserver"
 
 	_ "github.com/polarismesh/polaris-server/naming/cache"
+	_ "github.com/polarismesh/polaris-server/store/boltdbStore"
 	_ "github.com/polarismesh/polaris-server/store/defaultStore"
-	_ "github.com/polarismesh/polaris-server/store/memory"
 
 	_ "github.com/polarismesh/polaris-server/plugin/cmdb/memory"
 
