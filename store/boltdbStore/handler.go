@@ -26,7 +26,13 @@ import (
 type BoltHandler interface {
 
 	// SaveValue save go object into bolt
-	SaveValue(typ string, key string, value interface{}) error
+	SaveValue(typ string, key string, object interface{}) error
+
+	// DeleteValue delete values
+	DeleteValues(typ string, key []string) error
+
+	// UpdateValue update specific properties
+	UpdateValue(typ string, key string, properties map[string]interface{}) error
 
 	// LoadValues load all objects by keys, return is map[key]value
 	LoadValues(typ string, keys []string) (map[string]interface{}, error)
@@ -103,5 +109,17 @@ func (b *boltHandler) Close() error {
 	if nil != b.db {
 		return b.db.Close()
 	}
+	return nil
+}
+
+// DeleteValue delete values
+func (b *boltHandler) DeleteValues(typ string, key []string) error {
+	//TODO
+	return nil
+}
+
+// UpdateValue update specific properties
+func (b *boltHandler) UpdateValue(typ string, key string, properties map[string]interface{}) error {
+	//TODO
 	return nil
 }
