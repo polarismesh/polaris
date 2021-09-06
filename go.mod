@@ -3,6 +3,7 @@ module github.com/polarismesh/polaris-server
 go 1.12
 
 require (
+	github.com/boltdb/bolt v1.3.1
 	github.com/emicklei/go-restful v2.9.6+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gogo/protobuf v1.3.1
