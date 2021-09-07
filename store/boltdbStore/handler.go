@@ -35,10 +35,10 @@ type BoltHandler interface {
 	UpdateValue(typ string, key string, properties map[string]interface{}) error
 
 	// LoadValues load all objects by keys, return is map[key]value
-	LoadValues(typ string, keys []string) (map[string]interface{}, error)
+	LoadValues(typ string, keys []string, typObject interface{}) (map[string]interface{}, error)
 
 	// LoadValuesByFilter load all objects by filter, return is map[key]value
-	LoadValuesByFilter(typ string, filter map[string][]string) (map[string]interface{}, error)
+	LoadValuesByFilter(typ string, filter map[string][]string, typObject interface{}) (map[string]interface{}, error)
 
 	// Close close boltdb
 	Close() error
@@ -87,20 +87,50 @@ func openBoltDB(path string) (*bolt.DB, error) {
 	})
 }
 
+func (b *boltHandler) createOrGetBucket(tx *bolt.Tx, typ string, key string) (*bolt.Bucket, error) {
+	bucket, err := tx.CreateBucketIfNotExists([]byte(typ))
+	if nil != err {
+		return nil, err
+	}
+	return bucket.CreateBucketIfNotExists([]byte(key))
+}
+
+const (
+	typeString int8 = iota
+	typeBool
+	typeInt64
+	typeTime
+	typeStruct
+)
+
+func serializeObject(value interface{}) (values map[string][]byte, buckets map[string]*bolt.Bucket, err error) {
+	//TODO
+	return nil, nil, nil
+}
+
 // SaveValue save go object into bolt
 func (b *boltHandler) SaveValue(typ string, key string, value interface{}) error {
-	//TODO
+	//tx, err := b.db.Begin(true)
+	//if nil != err {
+	//	return err
+	//}
+	//bucket, err := b.createOrGetBucket(tx, typ, key)
+	//if nil != err {
+	//	return err
+	//}
+	//bucket.Put()
 	return nil
 }
 
 // LoadValues load all objects by keys, return is map[key]value
-func (b *boltHandler) LoadValues(typ string, keys []string) (map[string]interface{}, error) {
+func (b *boltHandler) LoadValues(typ string, keys []string, typObject interface{}) (map[string]interface{}, error) {
 	//TODO
 	return nil, nil
 }
 
 // LoadValuesByFilter load all objects by filter, return is map[key]value
-func (b *boltHandler) LoadValuesByFilter(typ string, filter map[string][]string) (map[string]interface{}, error) {
+func (b *boltHandler) LoadValuesByFilter(
+	typ string, filter map[string][]string, typObject interface{}) (map[string]interface{}, error) {
 	//TODO
 	return nil, nil
 }
