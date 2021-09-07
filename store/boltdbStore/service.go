@@ -18,6 +18,9 @@
 package boltdbStore
 
 import (
+	"database/sql"
+	"errors"
+	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
 	"time"
@@ -27,95 +30,229 @@ type serviceStore struct {
 	handler BoltHandler
 }
 
+var (
+	MultipleSvcFound = errors.New("multiple service find")
+)
+
+const (
+	ServiceStoreType = "service"
+)
+
 // 保存一个服务
-func (s *serviceStore) AddService(service *model.Service) error {
-	//TODO
-	return nil
+func (ss *serviceStore) AddService(s *model.Service) error {
+	if s.ID == "" || s.Name == "" || s.Namespace == "" ||
+		s.Owner == "" || s.Token == "" {
+		return store.NewStatusError(store.EmptyParamsErr, "add Service missing some params")
+	}
+
+	err := ss.handler.SaveValue(ServiceStoreType, s.ID, s)
+
+	return store.Error(err)
 }
 
 // 删除服务
-func (s *serviceStore) DeleteService(id, serviceName, namespaceName string) error {
-	//TODO
-	return nil
+func (ss *serviceStore) DeleteService(id, serviceName, namespaceName string) error {
+	if id == "" {
+		return store.NewStatusError(store.EmptyParamsErr, "delete Service missing some params")
+	}
+	err := ss.handler.DeleteValues(ServiceStoreType, []string{id})
+	return store.Error(err)
 }
 
 // 删除服务别名
-func (s *serviceStore) DeleteServiceAlias(name string, namespace string) error {
-	//TODO
-	return nil
+func (ss *serviceStore) DeleteServiceAlias(name string, namespace string) error {
+	if name == "" || namespace == "" {
+		return store.NewStatusError(store.EmptyParamsErr, "delete Service alias missing some params")
+	}
+
+	svc, err := ss.getServiceByNameAndNs(name, namespace)
+	if err != nil {
+		return err
+	}
+	ss.handler.DeleteValues(ServiceStoreType, []string{svc.ID})
+
+	return store.Error(err)
 }
 
+
 // 修改服务别名
-func (s *serviceStore) UpdateServiceAlias(alias *model.Service, needUpdateOwner bool) error {
-	//TODO
-	return nil
+func (ss *serviceStore) UpdateServiceAlias(alias *model.Service, needUpdateOwner bool) error {
+
+	err := ss.handler.SaveValue(ServiceStoreType, alias.ID, alias)
+
+	return store.Error(err)
 }
 
 // 更新服务
-func (s *serviceStore) UpdateService(service *model.Service, needUpdateOwner bool) error {
-	//TODO
-	return nil
+func (ss *serviceStore) UpdateService(service *model.Service, needUpdateOwner bool) error {
+	if service.ID == "" || service.Name == "" || service.Namespace == "" ||
+		service.Token == "" || service.Owner == "" || service.Revision == "" {
+		return store.NewStatusError(store.EmptyParamsErr, "Update Service missing some params")
+	}
+
+	err := ss.handler.SaveValue(ServiceStoreType, service.ID, service)
+
+	serr := store.Error(err)
+	if store.Code(serr) == store.DuplicateEntryErr {
+		serr = store.NewStatusError(store.DataConflictErr, err.Error())
+	}
+	return serr
 }
 
 // 更新服务token
-func (s *serviceStore) UpdateServiceToken(serviceID string, token string, revision string) error {
-	//TODO
-	return nil
+func (ss *serviceStore) UpdateServiceToken(serviceID string, token string, revision string) error {
+
+	m := map[string]interface{}{
+		token: token,
+		revision: revision,
+	}
+
+	err := ss.handler.UpdateValue(ServiceStoreType, serviceID, m)
+
+	return store.Error(err)
 }
 
 // 获取源服务的token信息
-func (s *serviceStore) GetSourceServiceToken(name string, namespace string) (*model.Service, error) {
-	//TODO
-	return nil, nil
+func (ss *serviceStore) GetSourceServiceToken(name string, namespace string) (*model.Service, error) {
+	var out model.Service
+	s, err := ss.getServiceByNameAndNs(name, namespace)
+	switch {
+	case err == sql.ErrNoRows:
+		return nil, nil
+	case err != nil:
+		return nil, err
+	default:
+		out.ID = s.ID
+		out.Token = s.Token
+		out.PlatformID = s.PlatformID
+		out.Name = name
+		out.Namespace = namespace
+		return &out, nil
+	}
+
+	return &out, nil
 }
 
 // 根据服务名和命名空间获取服务的详情
-func (s *serviceStore) GetService(name string, namespace string) (*model.Service, error) {
-	//TODO
-	return nil, nil
+func (ss *serviceStore) GetService(name string, namespace string) (*model.Service, error) {
+	s, err := ss.getServiceByNameAndNs(name, namespace)
+
+	if err != nil{
+		return nil, err
+	}
+	if s != nil && !s.Valid {
+		return nil, nil
+	}
+	return s, nil
 }
 
 // 根据服务ID查询服务详情
-func (s *serviceStore) GetServiceByID(id string) (*model.Service, error) {
-	//TODO
-	return nil, nil
+func (ss *serviceStore) GetServiceByID(id string) (*model.Service, error) {
+	service, err := ss.getServiceByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if service != nil && !service.Valid {
+		return nil, nil
+	}
+
+	return service, nil
 }
 
+
+
 // 根据相关条件查询对应服务及数目
-func (s *serviceStore) GetServices(serviceFilters, serviceMetas map[string]string,
+func (ss *serviceStore) GetServices(serviceFilters, serviceMetas map[string]string,
 	instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.Service, error) {
 	//TODO
 	return 0, nil, nil
 }
 
 // 获取所有服务总数
-func (s *serviceStore) GetServicesCount() (uint32, error) {
+func (ss *serviceStore) GetServicesCount() (uint32, error) {
 	//TODO
 	return 0, nil
 }
 
 // 获取增量services
-func (s *serviceStore) GetMoreServices(
+func (ss *serviceStore) GetMoreServices(
 	mtime time.Time, firstUpdate, disableBusiness, needMeta bool) (map[string]*model.Service, error) {
 	//TODO
 	return nil, nil
 }
 
 // 获取服务别名列表
-func (s *serviceStore) GetServiceAliases(
+func (ss *serviceStore) GetServiceAliases(
 	filter map[string]string, offset uint32, limit uint32) (uint32, []*model.ServiceAlias, error) {
 	//TODO
 	return 0, nil, nil
 }
 
 // 获取系统服务
-func (s *serviceStore) GetSystemServices() ([]*model.Service, error) {
+func (ss *serviceStore) GetSystemServices() ([]*model.Service, error) {
 	//TODO
 	return nil, nil
 }
 
 // 批量获取服务id、负责人等信息
-func (s *serviceStore) GetServicesBatch(services []*model.Service) ([]*model.Service, error) {
+func (ss *serviceStore) GetServicesBatch(services []*model.Service) ([]*model.Service, error) {
 	//TODO
 	return nil, nil
 }
+
+
+func (ss *serviceStore) getServiceByNameAndNs(name string, namespace string) (*model.Service, error) {
+	filter := map[string][]string{
+		name: {name},
+		namespace: {namespace},
+	}
+	return ss.getOneServiceByFilter(filter)
+}
+
+func (ss *serviceStore) getOneServiceByFilter(filter map[string][]string) (*model.Service, error) {
+	var out model.Service
+
+	svc, err := ss.handler.LoadValuesByFilter(ServiceStoreType, filter, model.Service{})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(svc) > 1 {
+		log.Errorf("multiple services found %v", svc)
+		return nil, MultipleSvcFound
+	}
+
+	// 应该只能找到一个 service
+	for _, v := range svc {
+		out = v.(model.Service)
+	}
+
+	return &out, err
+}
+
+func (ss *serviceStore) getServiceByID(id string) (*model.Service, error) {
+	filter := map[string][]string{
+		id: {id},
+	}
+	return ss.getOneServiceByFilter(filter)
+}
+
+
+func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]string,
+	instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.Service, error) {
+
+	svcs, err := ss.handler.LoadValuesByFilter(ServiceStoreType, getRealFilters(serviceFilters), model.Service{})
+
+
+
+}
+
+func getRealFilters(originFilters map[string]string) map[string][]string {
+	realFilters := make(map[string][]string)
+	for k, v := range originFilters {
+		realFilters[k] = []string{v}
+	}
+
+	return realFilters
+}
+
