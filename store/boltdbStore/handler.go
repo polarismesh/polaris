@@ -38,7 +38,14 @@ type BoltHandler interface {
 	LoadValues(typ string, keys []string, typObject interface{}) (map[string]interface{}, error)
 
 	// LoadValuesByFilter load all objects by filter, return is map[key]value
-	LoadValuesByFilter(typ string, filter map[string][]string, typObject interface{}) (map[string]interface{}, error)
+	LoadValuesByFilter(typ string, fields []string,
+		typObject interface{}, filter func(map[string]interface{}) bool) (map[string]interface{}, error)
+
+	// IterateFields iterate the field values
+	IterateFields(typ string, field string, filter func(interface{})) error
+
+	// CountValues count sub items
+	CountValues(typ string) (int, error)
 
 	// Close close boltdb
 	Close() error
@@ -129,8 +136,8 @@ func (b *boltHandler) LoadValues(typ string, keys []string, typObject interface{
 }
 
 // LoadValuesByFilter load all objects by filter, return is map[key]value
-func (b *boltHandler) LoadValuesByFilter(
-	typ string, filter map[string][]string, typObject interface{}) (map[string]interface{}, error) {
+func (b *boltHandler) 	LoadValuesByFilter(typ string, fields []string,
+	typObject interface{}, filter func(map[string]interface{}) bool) (map[string]interface{}, error) {
 	//TODO
 	return nil, nil
 }
