@@ -18,8 +18,9 @@
 package boltdbStore
 
 import (
-	"github.com/boltdb/bolt"
 	"time"
+
+	"github.com/boltdb/bolt"
 )
 
 // BoltHandler encapsulate operations around boltdb

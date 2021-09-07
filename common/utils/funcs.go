@@ -88,3 +88,16 @@ func CreateInstanceModel(serviceID string, req *api.Instance) *model.Instance {
 	instance.Proto = protoIns
 	return instance
 }
+
+
+func ConvertFilter(filters map[string]string) map[string][]string {
+	newFilters := make(map[string][]string)
+
+	for k, v := range filters {
+		val := make([]string, 0)
+		val = append(val, v)
+		newFilters[k] = val
+	}
+
+	return newFilters
+}

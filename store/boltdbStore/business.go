@@ -18,52 +18,212 @@
 package boltdbStore
 
 import (
-	"github.com/polarismesh/polaris-server/common/model"
+	"errors"
+	"strings"
+	"sync"
 	"time"
+
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/store"
+)
+
+const (
+	DataTypeBusiness string = "business"
 )
 
 type businessStore struct {
 	handler BoltHandler
+	lock    *sync.RWMutex
 }
 
-// 增加一个业务集
-func (b *businessStore) AddBusiness(business *model.Business) error {
-	//TODO
+// AddBusiness 增加一个业务集
+func (bs *businessStore) AddBusiness(b *model.Business) error {
+	if b.ID == "" || b.Name == "" || b.Token == "" || b.Owner == "" {
+		log.Errorf("[Store][database] add business missing some params: %+v", b)
+		return errors.New("Add Business missing some params")
+	}
+
+	dbOp := bs.handler
+
+	tNow := time.Now()
+	b.CreateTime = tNow
+	b.ModifyTime = tNow
+
+	lock := bs.lock
+	lock.Lock()
+	defer lock.Unlock()
+
+	// first : check is exist
+	old, _ := bs.lockfreeGetBusinessByID(b.ID)
+	if old != nil {
+		log.Errorf("[Store][database] already exist when do add business : %#v", b)
+		return errors.New("Add Business Duplicate")
+	}
+
+	// second : save business
+	if err := dbOp.SaveValue(DataTypeBusiness, b.ID, b); err != nil {
+		log.Errorf("[Store][database] add business err : %s", err.Error())
+		return store.Error(err)
+	}
+
 	return nil
 }
 
-// 删除一个业务集
-func (b *businessStore) DeleteBusiness(bid string) error {
-	//TODO
+// DeleteBusiness 删除一个业务集
+func (bs *businessStore) DeleteBusiness(bid string) error {
+	if bid == "" {
+		log.Errorf("[Store][database] delete business missing id")
+		return errors.New("Delete Business missing some params")
+	}
+
+	dbOp := bs.handler
+
+	lock := bs.lock
+	lock.Lock()
+	defer lock.Unlock()
+
+	if err := dbOp.DeleteValues(DataTypeBusiness, []string{bid}); err != nil {
+		log.Errorf("[Store][database] delete business err : %s", err.Error())
+		return store.Error(err)
+	}
+
 	return nil
 }
 
-// 更新业务集
-func (b *businessStore) UpdateBusiness(business *model.Business) error {
-	//TODO
+// UpdateBusiness 更新业务集
+func (bs *businessStore) UpdateBusiness(b *model.Business) error {
+	if b.ID == "" || b.Name == "" || b.Owner == "" {
+		log.Errorf("[Store][database] update business missing some params: %+v", b)
+		return errors.New("Update Business missing some params")
+	}
+
+	dbOp := bs.handler
+
+	b.ModifyTime = time.Now()
+
+	lock := bs.lock
+	lock.Lock()
+	defer lock.Unlock()
+
+	if err := dbOp.SaveValue(DataTypeBusiness, b.ID, b); err != nil {
+		log.Errorf("[Store][database] add business err : %s", err.Error())
+		return store.Error(err)
+	}
+
 	return nil
 }
 
-// 更新业务集token
-func (b *businessStore) UpdateBusinessToken(bid string, token string) error {
-	//TODO
-	return nil
+// UpdateBusinessToken 更新业务集token
+func (bs *businessStore) UpdateBusinessToken(bid string, token string) error {
+	if bid == "" || token == "" {
+		log.Errorf("[Store][business] update business token missing some params")
+		return errors.New("Update Business Token missing some params")
+	}
+
+	// first: get business by bid
+	b, err := bs.GetBusinessByID(bid)
+	if err != nil {
+		return store.Error(err)
+	}
+
+	b.Token = token
+	return bs.UpdateBusiness(b)
 }
 
-// 查询owner下业务集
-func (b *businessStore) ListBusiness(owner string) ([]*model.Business, error) {
-	//TODO
-	return nil, nil
+// ListBusiness 查询owner下业务集
+func (bs *businessStore) ListBusiness(owner string) ([]*model.Business, error) {
+	if owner == "" {
+		log.Errorf("[Store][business] list business missing owner")
+		return nil, errors.New("List Business Mising param owner")
+	}
+
+	result, err := bs.listAllBusiness()
+	if err != nil {
+		return nil, err
+	}
+
+	ans := make([]*model.Business, 0)
+
+	for i := range result {
+		record := result[i]
+		if strings.Contains(owner, record.Owner) {
+			ans = append(ans, record)
+		}
+	}
+
+	return ans, nil
 }
 
-// 根据业务集ID获取业务集详情
-func (b *businessStore) GetBusinessByID(id string) (*model.Business, error) {
-	//TODO
-	return nil, nil
+// GetBusinessByID 根据业务集ID获取业务集详情
+func (bs *businessStore) GetBusinessByID(id string) (*model.Business, error) {
+
+	if id == "" {
+		log.Errorf("[Store][database] get business missing id")
+		return nil, errors.New("Get Business missing some params")
+	}
+
+	lock := bs.lock
+	lock.Lock()
+	defer lock.RUnlock()
+
+	return bs.lockfreeGetBusinessByID(id)
 }
 
-// 根据mtime获取增量数据
-func (b *businessStore) GetMoreBusiness(mtime time.Time) ([]*model.Business, error) {
-	//TODO
-	return nil, nil
+// lockfreeGetBusinessByID 根据业务集ID获取业务集详情
+func (bs *businessStore) lockfreeGetBusinessByID(id string) (*model.Business, error) {
+	dbOp := bs.handler
+
+	result, err := dbOp.LoadValues(DataTypeBusiness, []string{id})
+	if err != nil {
+		return nil, store.Error(err)
+	}
+
+	b := result[id].(*model.Business)
+
+	return b, nil
+}
+
+// GetMoreBusiness 根据mtime获取增量数据
+func (bs *businessStore) GetMoreBusiness(mtime time.Time) ([]*model.Business, error) {
+	result, err := bs.listAllBusiness()
+	if err != nil {
+		return nil, err
+	}
+
+	ans := make([]*model.Business, 0)
+
+	for i := range result {
+		record := result[i]
+		if record.ModifyTime.Before(mtime) {
+			continue
+		}
+
+		ans = append(ans, record)
+	}
+
+	return ans, nil
+}
+
+// listAllBusiness 列出所有的 Business 信息
+func (bs *businessStore) listAllBusiness() ([]*model.Business, error) {
+	lock := bs.lock
+	lock.Lock()
+	defer lock.RUnlock()
+
+	dbOp := bs.handler
+
+	result, err := dbOp.LoadValuesByFilter(DataTypeBusiness, make(map[string][]string))
+	if err != nil {
+		log.Errorf("[Store][business] list business by owner err : %s", err)
+		return nil, store.Error(err)
+	}
+
+	ans := make([]*model.Business, 0)
+	for _, v := range result {
+		record := v.(*model.Business)
+		ans = append(ans, record)
+	}
+
+	return ans, nil
 }
