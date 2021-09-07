@@ -38,40 +38,40 @@ func (t *transaction) LockBootstrap(key string, server string) error {
 
 // 排它锁namespace
 func (t *transaction) LockNamespace(name string) (*model.Namespace, error) {
-
+	return nil, nil
 }
 
 // 共享锁namespace
 func (t *transaction) RLockNamespace(name string) (*model.Namespace, error) {
-
+	return nil, nil
 }
 
 // 删除namespace
 func (t *transaction) DeleteNamespace(name string) error {
-
+	return nil
 }
 
 // 排它锁service
 func (t *transaction) LockService(name string, namespace string) (*model.Service, error) {
-
+	return nil, nil
 }
 
 // 共享锁service
 func (t *transaction) RLockService(name string, namespace string) (*model.Service, error) {
-
+	return nil, nil
 }
 
 // 批量锁住service，只需返回valid/bool，增加速度
 func (t *transaction) BatchRLockServices(ids map[string]bool) (map[string]bool, error) {
-
+	return nil, nil
 }
 
 // 删除service
 func (t *transaction) DeleteService(name string, namespace string) error {
-
+	return nil
 }
 
 // 删除源服服务下的所有别名
 func (t *transaction) DeleteAliasWithSourceID(sourceServiceID string) error {
-
+	return nil
 }
