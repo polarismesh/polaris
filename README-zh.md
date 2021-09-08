@@ -121,7 +121,7 @@ curl http://127.0.0.1:8080
 
 ## 交流群
 
-欢迎大家扫码加群交流，如果交流群已满 500 人，请加中间件小Q妹微信（微信号：midwareQmei），并发送入群暗号“北极星”，等待验证回复。
+欢迎大家扫码加群交流，如果交流群已满 500 人，请加中间件小Q妹微信（微信号：midwareQmei），并发送入群暗号“polaris”，等待验证回复。
 
 <img src="https://main.qcloudimg.com/raw/336e18b778f6c538d6f1e4ceeab31bf9.jpg" width="30%" height="30%" />
 
