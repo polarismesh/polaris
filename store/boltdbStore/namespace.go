@@ -18,9 +18,12 @@
 package boltdbStore
 
 import (
+	"errors"
 	"github.com/polarismesh/polaris-server/common/model"
 	"time"
 )
+
+const typNameNamespace = "namespace"
 
 type namespaceStore struct {
 	handler BoltHandler
@@ -28,8 +31,10 @@ type namespaceStore struct {
 
 // 保存一个命名空间
 func (n *namespaceStore) AddNamespace(namespace *model.Namespace) error {
-	//TODO
-	return nil
+	if namespace.Name == "" || namespace.Owner == "" || namespace.Token == "" {
+		return errors.New("store add namespace some param are empty")
+	}
+	return n.handler.SaveValue(typNameNamespace, namespace.Name, namespace)
 }
 
 // 更新命名空间
@@ -52,8 +57,19 @@ func (n *namespaceStore) ListNamespaces(owner string) ([]*model.Namespace, error
 
 // 根据name获取命名空间的详情
 func (n *namespaceStore) GetNamespace(name string) (*model.Namespace, error) {
-	//TODO
-	return nil, nil
+	values, err := n.handler.LoadValues(typNameNamespace, []string{name}, &model.Namespace{})
+	if nil != err {
+		return nil, err
+	}
+	nsValue, ok := values[name]
+	if !ok {
+		return nil, nil
+	}
+	ns := nsValue.(*model.Namespace)
+	if !ns.Valid {
+		return nil, nil
+	}
+	return ns, nil
 }
 
 // 从数据库查询命名空间
