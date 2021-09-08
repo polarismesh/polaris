@@ -23,6 +23,9 @@ import (
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris-server/store/defaultStore"
+	"sort"
+	"strconv"
 	"time"
 )
 
@@ -36,6 +39,7 @@ var (
 
 const (
 	ServiceStoreType = "service"
+	InstanceStoreType = "instance"
 )
 
 // 保存一个服务
@@ -164,55 +168,208 @@ func (ss *serviceStore) GetServiceByID(id string) (*model.Service, error) {
 // 根据相关条件查询对应服务及数目
 func (ss *serviceStore) GetServices(serviceFilters, serviceMetas map[string]string,
 	instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.Service, error) {
-	//TODO
-	return 0, nil, nil
+
+	totalCount, services, err := ss.getServices(serviceFilters, serviceMetas, instanceFilters,offset, limit)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return totalCount, services, nil
 }
 
 // 获取所有服务总数
 func (ss *serviceStore) GetServicesCount() (uint32, error) {
-	//TODO
-	return 0, nil
+
+	count, err := ss.handler.CountValues(ServiceStoreType)
+	if err != nil {
+		log.Errorf("load service from kv error %v", err)
+		return 0, err
+	}
+
+	return uint32(count), nil
 }
 
 // 获取增量services
 func (ss *serviceStore) GetMoreServices(
 	mtime time.Time, firstUpdate, disableBusiness, needMeta bool) (map[string]*model.Service, error) {
-	//TODO
-	return nil, nil
+
+	// 不考虑 needMeta ，都返回
+	fields := []string{"mtime"}
+	if disableBusiness {
+		fields = append(fields, "namespace")
+	}
+	
+	services, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, model.Service{},
+	func(m map[string]interface{}) bool{
+		if disableBusiness {
+			if m["namespace"].(string) != defaultStore.SystemNamespace {
+				return false
+			}
+		}
+		if m["mtime"].(string) >= time2String(mtime) {
+			return true
+		}
+		return false
+	})
+
+	if err != nil {
+		log.Errorf("load service from kv error, %v", err)
+		return nil, err
+	}
+
+	res := make(map[string]*model.Service)
+	for k, v := range services {
+		res[k] = v.(*model.Service)
+	}
+
+	return res, nil
 }
 
 // 获取服务别名列表
 func (ss *serviceStore) GetServiceAliases(
 	filter map[string]string, offset uint32, limit uint32) (uint32, []*model.ServiceAlias, error) {
-	//TODO
-	return 0, nil, nil
+
+	var totalCount uint32
+
+	// 先通过传入的过滤条件，找到所有的 alias 服务
+	fields := []string{"reference"}
+	for k, _ := range filter {
+		fields = append(fields, k)
+	}
+
+	services, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, model.Service{},
+	func(m map[string]interface{}) bool{
+		// 通过是否有 reference 判断是不是 alias
+		if m["reference"].(string) == "" {
+			return false
+		}
+		// 判断传入的 filter
+		for k, v := range filter {
+			if v != m[k] {
+				return false
+			}
+		}
+		return true
+	})
+	if err != nil {
+		log.Errorf("load service from kv error, %v", err)
+		return 0, nil, err
+	}
+	if len(services) == 0 {
+		return 0, []*model.ServiceAlias{}, nil
+	}
+
+	totalCount = uint32(len(services))
+
+	// 找到每一个 alias 服务的 reference 服务
+	var svcIds []string
+	for _, s := range services {
+		svcIds = append(svcIds, s.(model.Service).Reference)
+	}
+	fields = []string{"id"}
+
+	refServiceName := make(map[string]string)
+
+	refServices, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, model.Service{},
+	func(m map[string]interface{}) bool{
+		if containsString(svcIds, m["id"].(string)){
+			return true
+		}
+		return false
+	})
+
+	for _, i := range services {
+		aliasSvc := i.(model.Service)
+		refSvcId := aliasSvc.Reference
+		refSvc, ok := refServices[refSvcId]
+		if !ok {
+			log.Errorf("can't find ref service for %s", aliasSvc.ID)
+			continue
+		}
+		refServiceName[aliasSvc.ID] = refSvc.(model.Service).Name
+	}
+
+	// 排序，用 offset/limit 过滤
+	s := getRealServicesList(services, offset, limit)
+
+	// 将 service 组装为 ServiceAlias 并返回
+	var serviceAlias []*model.ServiceAlias
+	for _, service := range s {
+		alias := model.ServiceAlias{}
+		alias.ID = service.ID
+		alias.Alias = service.Name
+		alias.ServiceID = service.Reference
+		alias.Service = refServiceName[alias.ID]
+		alias.ModifyTime = service.ModifyTime
+		alias.CreateTime = service.CreateTime
+		alias.Comment = service.Comment
+		alias.Namespace = service.Namespace
+		alias.Owner = service.Owner
+
+		serviceAlias = append(serviceAlias, &alias)
+	}
+
+	return totalCount, serviceAlias, nil
 }
 
 // 获取系统服务
 func (ss *serviceStore) GetSystemServices() ([]*model.Service, error) {
-	//TODO
-	return nil, nil
+
+	fields := []string{"namespace"}
+
+	services, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, model.Service{},
+	func(m map[string]interface{}) bool{
+		if m["namespace"].(string) == defaultStore.SystemNamespace {
+			return true
+		}
+		return false
+	})
+	if err != nil {
+		log.Errorf("load service from kv error, %v", err)
+		return nil, err
+	}
+
+	return getRealServicesList(services, 0, uint32(len(services))), nil
 }
 
 // 批量获取服务id、负责人等信息
 func (ss *serviceStore) GetServicesBatch(services []*model.Service) ([]*model.Service, error) {
-	//TODO
-	return nil, nil
+
+	fields := []string{"name", "namespace"}
+	var nameList []string
+	var nsList []string
+
+	svcs, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, model.Service{},
+		func(m map[string]interface{}) bool{
+			if !containsString(nameList, m["name"].(string)) {
+				return false
+			}
+			if !containsString(nsList, m["namespace"].(string)) {
+				return false
+			}
+			return true
+		})
+	if err != nil {
+		log.Errorf("load service from kv error, %v", err)
+		return nil, err
+	}
+
+	return getRealServicesList(svcs, 0, uint32(len(services))), nil
 }
 
 
 func (ss *serviceStore) getServiceByNameAndNs(name string, namespace string) (*model.Service, error) {
-	filter := map[string][]string{
-		name: {name},
-		namespace: {namespace},
-	}
-	return ss.getOneServiceByFilter(filter)
-}
-
-func (ss *serviceStore) getOneServiceByFilter(filter map[string][]string) (*model.Service, error) {
 	var out model.Service
 
-	svc, err := ss.handler.LoadValuesByFilter(ServiceStoreType, filter, model.Service{})
+	fields := []string{"name", "namespace"}
+
+	svc, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, model.Service{},
+		func(m map[string]interface{}) bool{
+			if m["name"].(string) == name && m["namespace"].(string) == namespace {
+				return true
+			}
+			return false
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -231,28 +388,181 @@ func (ss *serviceStore) getOneServiceByFilter(filter map[string][]string) (*mode
 }
 
 func (ss *serviceStore) getServiceByID(id string) (*model.Service, error) {
-	filter := map[string][]string{
-		id: {id},
+	var out model.Service
+
+	fields := []string{"id"}
+
+	svc, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, model.Service{},
+		func(m map[string]interface{}) bool{
+			if m["id"].(string) == id {
+				return true
+			}
+			return false
+		})
+	if err != nil {
+		return nil, err
 	}
-	return ss.getOneServiceByFilter(filter)
+
+	if len(svc) > 1 {
+		log.Errorf("multiple services found %v", svc)
+		return nil, MultipleSvcFound
+	}
+
+	// 应该只能找到一个 service
+	for _, v := range svc {
+		out = v.(model.Service)
+	}
+
+	return &out, err
 }
 
 
 func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]string,
 	instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.Service, error) {
 
-	svcs, err := ss.handler.LoadValuesByFilter(ServiceStoreType, getRealFilters(serviceFilters), model.Service{})
+	var insFiltersIds []string
+	// int array to string array
+	if instanceFilters != nil && (len(instanceFilters.Ports) > 0 || len(instanceFilters.Hosts) > 0) {
 
+		portArray := make([]string, len(instanceFilters.Ports))
+		for i, port := range instanceFilters.Ports {
+			portArray[i] = strconv.Itoa(int(port))
+		}
 
+		// 从 instanceFilters 中得到过滤后的 serviceID 列表
+		filter := []string{"host", "port"}
 
-}
+		inss, err := ss.handler.LoadValuesByFilter(InstanceStoreType, filter, model.Instance{},
+			func(m map[string]interface{}) bool{
+				insHost := m["host"].(string)
+				insPort := m["port"].(uint32)
 
-func getRealFilters(originFilters map[string]string) map[string][]string {
-	realFilters := make(map[string][]string)
-	for k, v := range originFilters {
-		realFilters[k] = []string{v}
+				ifHostFilter := false
+				ifPortFilter := false
+				if len(instanceFilters.Hosts) <= 0 {
+					ifHostFilter = true
+				}else {
+					for _, h := range instanceFilters.Hosts {
+						if h == insHost {
+							ifHostFilter = true
+							break
+						}
+					}
+				}
+
+				if len(instanceFilters.Ports) <= 0 {
+					ifPortFilter = true
+				}else {
+					for _, p := range instanceFilters.Ports {
+						if p == insPort {
+							ifPortFilter = true
+							break
+						}
+					}
+				}
+
+				if ifHostFilter && ifPortFilter {
+					return true
+				}
+				return false
+		})
+		if err != nil {
+			log.Errorf("load instance from kv error %v", err)
+			return 0, nil, err
+		}
+		for _, i := range inss {
+			insFiltersIds = append(insFiltersIds, i.(*model.Instance).ServiceID)
+		}
 	}
 
-	return realFilters
+	var fields []string
+	if len(insFiltersIds) > 0 {
+		fields = append(fields, "id")
+	}
+
+	for k, _ := range serviceFilters {
+		fields = append(fields, k)
+	}
+
+	svcs, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, model.Service{},
+	func(m map[string]interface{}) bool{
+		// 判断 id
+		if len(insFiltersIds) > 0 {
+			if !containsString(insFiltersIds, m["id"].(string)){
+				return false
+			}
+		}
+		// 判断传入的 filter
+		for k, v := range serviceFilters {
+			if v != m[k] {
+				return false
+			}
+		}
+		return true
+	})
+	if err != nil {
+		log.Errorf("load service from kv error %v", err)
+		return 0, nil, err
+	}
+	totalCount := len(svcs)
+	return uint32(totalCount), getRealServicesList(svcs, offset, limit), nil
+}
+
+// 将下层返回的全量的 service map 转为有序的 list，并根据 offset/limit 返回结果
+func getRealServicesList(originServices map[string]interface{}, offset, limit uint32) []*model.Service {
+	services := make([]*model.Service, 0)
+	beginIndex := offset
+	endIndex := beginIndex + limit
+	totalCount := uint32(len(originServices))
+	// 处理异常的 offset、 limit
+	if totalCount == 0 {
+		return services
+	}
+	if beginIndex >= endIndex {
+		return services
+	}
+	if beginIndex >= totalCount {
+		return services
+	}
+	if endIndex > totalCount {
+		endIndex = totalCount
+	}
+
+	for _, s := range originServices {
+		services = append(services, s.(*model.Service))
+	}
+
+	sort.Slice(services, func (i, j int) bool{
+		// modifyTime 由近到远排序
+		if services[i].ModifyTime.After(services[j].ModifyTime) {
+			return true
+		} else if services[i].ModifyTime.Before(services[j].ModifyTime){
+			return false
+		}else{
+			// modifyTime 相同则比较id
+			return services[i].ID < services[j].ID
+		}
+	})
+
+	return services[beginIndex:endIndex]
+}
+
+func containsString(arr []string, key string) bool {
+	if len(arr) == 0 {
+		return false
+	}
+
+	for _, i := range arr {
+		if i == key {
+			return true
+		}
+	}
+
+	return false
+}
+
+// time.Time转为字符串时间
+func time2String(t time.Time) string {
+	return t.Format("2006-01-02 15:04:05")
 }
 
