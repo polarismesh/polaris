@@ -13,6 +13,8 @@ README：
 - [Introduction](#introduction)
 - [Components](#components)
 - [Getting started](#getting-started)
+- [Chat group](#chat-group)
+- [Contribution](#contribution)
 
 Visit [website](https://polarismesh.cn) to learn more
 
@@ -117,3 +119,16 @@ After all, run ./p.sh, prompt Polaris Server, proof the installation is successf
 curl http://127.0.0.1:8080
 ```` 
 Return text is 'Polaris Server', proof features run smoothly 
+
+## Chat group
+
+Welcome to scan the code and add the group for communication. If the communication group is full of 500 people, please add the wechat of ```midwareQmei``` , and send "polaris" to wait for the verification reply.
+
+<img src="https://main.qcloudimg.com/raw/336e18b778f6c538d6f1e4ceeab31bf9.jpg" width="30%" height="30%" />
+
+## Contribution
+
+If you have good comments or suggestions, please give us Issues or Pull Requests to contribute to  improve the development experience of Polaris Mesh.
+<br>see details：[CONTRIBUTING.md](./CONTRIBUTING.md)
+
+[Tencent Open Source Incentive Plan](https://opensource.tencent.com/contribution) encourages developers to participate and contribute. Look forward to your participation.

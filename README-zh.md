@@ -11,6 +11,8 @@ README：
 - [介绍](#介绍)
 - [项目构成](#项目构成)
 - [快速入门](#快速入门)
+- [交流群](#交流群)
+- [参与贡献](#参与贡献)
 
 其他文档请见[北极星官网](https://polarismesh.cn)
 
@@ -115,3 +117,19 @@ chmod +x ./tool/*.sh
 curl http://127.0.0.1:8080
 ```` 
 返回Polaris Server，证明功能正常
+
+
+## 交流群
+
+欢迎大家扫码加群交流，如果交流群已满 500 人，请加中间件小Q妹微信（微信号：midwareQmei），并发送入群暗号“北极星”，等待验证回复。
+
+<img src="https://main.qcloudimg.com/raw/336e18b778f6c538d6f1e4ceeab31bf9.jpg" width="30%" height="30%" />
+
+## 参与贡献
+
+如果你有好的意见或建议，欢迎给我们提 Issues 或 Pull Requests，为提升北极星的开发体验贡献力量。
+
+详见：[CONTRIBUTING.md](CONTRIBUTING.md)
+
+[腾讯开源激励计划](https://opensource.tencent.com/contribution) 鼓励开发者的参与和贡献，期待你的加入。
+
