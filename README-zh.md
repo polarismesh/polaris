@@ -114,7 +114,7 @@ chmod +x ./tool/*.sh
 #### 验证安装
 
 ````shell script
-curl http://127.0.0.1:8080
+curl http://127.0.0.1:8090
 ```` 
 返回Polaris Server，证明功能正常
 
