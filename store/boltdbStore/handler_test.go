@@ -42,7 +42,7 @@ func TestBoltHandler_SaveNamespace(t *testing.T) {
 		CreateTime: time.Now(),
 		ModifyTime: time.Now(),
 	}
-	err = handler.SaveValue(typNameNamespace, nsValue.Name, nsValue)
+	err = handler.SaveValue(tblNameNamespace, nsValue.Name, nsValue)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestBoltHandler_LoadNamespace(t *testing.T) {
 		CreateTime: time.Now(),
 		ModifyTime: time.Now(),
 	}
-	nsValues, err := handler.LoadValues(typNameNamespace, []string{nsValue.Name}, &model.Namespace{})
+	nsValues, err := handler.LoadValues(tblNameNamespace, []string{nsValue.Name}, &model.Namespace{})
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestBoltHandler_DeleteNamespace(t *testing.T) {
 	nsValue := &model.Namespace{
 		Name: "Test",
 	}
-	err = handler.DeleteValues(typNameNamespace, []string{nsValue.Name})
+	err = handler.DeleteValues(tblNameNamespace, []string{nsValue.Name})
 	if nil != err {
 		t.Fatal(err)
 	}

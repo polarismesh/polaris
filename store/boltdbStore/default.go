@@ -57,14 +57,22 @@ func (m *boltStore) Initialize(c *store.Config) error {
 	if nil != err {
 		return err
 	}
+	if err = m.newStore(); nil != err {
+		_ = handler.Close()
+		return err
+	}
 	m.handler = handler
 	m.start = true
-	m.newStore()
 	return nil
 }
 
 // 初始化子类
-func (m *boltStore) newStore() {
+func (m *boltStore) newStore() error {
+	m.l5Store = &l5Store{handler: m.handler}
+	if err := m.l5Store.InitL5Data(); nil != err {
+		return err
+	}
+
 	m.namespaceStore = &namespaceStore{handler: m.handler}
 
 	m.businessStore = &businessStore{handler: m.handler}
@@ -75,13 +83,13 @@ func (m *boltStore) newStore() {
 
 	m.routingStore = &routingStore{handler: m.handler}
 
-	m.l5Store = &l5Store{handler: m.handler}
-
 	m.rateLimitStore = &rateLimitStore{handler: m.handler}
 
 	m.circuitBreakerStore = &circuitBreakerStore{handler: m.handler}
 
 	m.platformStore = &platformStore{handler: m.handler}
+
+	return nil
 }
 
 // 存储的析构函数
@@ -93,7 +101,11 @@ func (m *boltStore) Destroy() error {
 }
 
 func (m *boltStore) CreateTransaction() (store.Transaction, error) {
-	return nil, nil
+	tx, err := m.handler.Transaction()
+	if nil != err {
+		return nil, err
+	}
+	return &transaction{tx: tx}, nil
 }
 
 /**
