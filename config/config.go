@@ -102,6 +102,7 @@ func Load(filePath string) (*Config, error) {
 		fmt.Printf("[ERROR] %v\n", err)
 		return nil, err
 	}
+	defer file.Close()
 
 	config := &Config{}
 	err = yaml.NewDecoder(file).Decode(config)
