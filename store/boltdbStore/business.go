@@ -164,7 +164,7 @@ func (bs *businessStore) GetBusinessByID(id string) (*model.Business, error) {
 	}
 
 	lock := bs.lock
-	lock.Lock()
+	lock.RLock()
 	defer lock.RUnlock()
 
 	return bs.lockfreeGetBusinessByID(id)
@@ -174,14 +174,17 @@ func (bs *businessStore) GetBusinessByID(id string) (*model.Business, error) {
 func (bs *businessStore) lockfreeGetBusinessByID(id string) (*model.Business, error) {
 	dbOp := bs.handler
 
-	result, err := dbOp.LoadValues(DataTypeBusiness, []string{id})
+	result, err := dbOp.LoadValues(DataTypeBusiness, []string{id}, &model.Business{})
 	if err != nil {
 		return nil, store.Error(err)
 	}
 
-	b := result[id].(*model.Business)
+	val := result[id]
+	if val != nil {
+		return val.(*model.Business), nil
+	}
 
-	return b, nil
+	return nil, nil
 }
 
 // GetMoreBusiness 根据mtime获取增量数据
@@ -208,12 +211,14 @@ func (bs *businessStore) GetMoreBusiness(mtime time.Time) ([]*model.Business, er
 // listAllBusiness 列出所有的 Business 信息
 func (bs *businessStore) listAllBusiness() ([]*model.Business, error) {
 	lock := bs.lock
-	lock.Lock()
+	lock.RLock()
 	defer lock.RUnlock()
 
 	dbOp := bs.handler
 
-	result, err := dbOp.LoadValuesByFilter(DataTypeBusiness, make(map[string][]string))
+	result, err := dbOp.LoadValuesByFilter(DataTypeBusiness, []string{}, &model.Business{}, func(m map[string]interface{}) bool {
+		return true
+	})
 	if err != nil {
 		log.Errorf("[Store][business] list business by owner err : %s", err)
 		return nil, store.Error(err)

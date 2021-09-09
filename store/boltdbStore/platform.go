@@ -20,6 +20,7 @@ package boltdbStore
 import (
 	"errors"
 	"math"
+	"reflect"
 	"sort"
 	"strings"
 	"sync"
@@ -123,7 +124,7 @@ func (p *platformStore) GetPlatformById(id string) (*model.Platform, error) {
 	}
 
 	lock := p.lock
-	lock.Lock()
+	lock.RLock()
 	defer lock.RUnlock()
 
 	return p.lockfreeGetPlatformById(id)
@@ -135,15 +136,18 @@ func (p *platformStore) lockfreeGetPlatformById(id string) (*model.Platform, err
 
 	dbOp := p.handler
 
-	result, err := dbOp.LoadValues(DataTypePlatform, []string{platformKey})
+	result, err := dbOp.LoadValues(DataTypePlatform, []string{platformKey}, &model.Platform{})
 	if err != nil {
 		log.Errorf("[Store][platform] get platform by id(%s) err: %s", id, err.Error())
 		return nil, store.Error(err)
 	}
 
-	platform := result[platformKey].(*model.Platform)
+	val := result[platformKey]
+	if val == nil {
+		return nil, nil
+	}
 
-	return platform, nil
+	return val.(*model.Platform), nil
 }
 
 // GetPlatforms 根据过滤条件查询平台信息
@@ -152,9 +156,17 @@ func (p *platformStore) GetPlatforms(
 	dbOp := p.handler
 
 	lock := p.lock
-	lock.Lock()
+	lock.RLock()
 
-	result, err := dbOp.LoadValuesByFilter(DataTypePlatform, utils.ConvertFilter(query))
+	result, err := dbOp.LoadValuesByFilter(DataTypePlatform, utils.CollectFilterFields(query), &model.Platform{}, func(m map[string]interface{}) bool {
+		for k, v := range query {
+			qV := m[k]
+			if !reflect.DeepEqual(qV, v) {
+				return false
+			}
+		}
+		return true
+	})
 	if err != nil {
 		lock.RUnlock()
 		log.Errorf("[Store][platform] get platform by query(%#v) err: %s", query, err.Error())
