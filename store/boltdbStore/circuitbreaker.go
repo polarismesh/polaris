@@ -109,6 +109,11 @@ func (c *circuitBreakerStore) tagCircuitBreaker(cb *model.CircuitBreaker) error 
 // ReleaseCircuitBreaker 发布熔断规则
 func (c *circuitBreakerStore) ReleaseCircuitBreaker(cbr *model.CircuitBreakerRelation) error {
 
+	tNow := time.Now()
+
+	cbr.CreateTime = tNow
+	cbr.ModifyTime = tNow
+
 	if err := c.releaseCircuitBreaker(cbr); err != nil {
 		log.Errorf("[Store][CircuitBreaker] release rule err: %s", err.Error())
 		return store.Error(err)
@@ -129,11 +134,6 @@ func (c *circuitBreakerStore) releaseCircuitBreaker(cbr *model.CircuitBreakerRel
 	if tRule, _ := c.GetCircuitBreaker(cbr.RuleID, cbr.RuleVersion); tRule == nil {
 		return store.NewStatusError(store.NotFoundMasterConfig, "not found tag config")
 	}
-
-	tNow := time.Now()
-
-	cbr.CreateTime = tNow
-	cbr.ModifyTime = tNow
 
 	lock := c.relationLock
 	lock.Lock()
@@ -326,7 +326,8 @@ func (c *circuitBreakerStore) GetCircuitBreakerForCache(
 
 	relations, err := dbOp.LoadValuesByFilter(DataTypeCircuitBreakerRelation, []string{"ModifyTime"}, &model.CircuitBreakerRelation{}, func(m map[string]interface{}) bool {
 		mt := m["ModifyTime"].(time.Time)
-		return mt.After(mtime)
+		isAfter := mt.After(mtime)
+		return isAfter
 	})
 	if err != nil {
 		lock.RUnlock()
@@ -354,8 +355,10 @@ func (c *circuitBreakerStore) GetCircuitBreakerForCache(
 	results := make([]*model.ServiceWithCircuitBreaker, 0)
 	for serviceId, cbKey := range serviceToCbKey {
 		results = append(results, &model.ServiceWithCircuitBreaker{
-			ServiceID: serviceId,
+			ServiceID:      serviceId,
 			CircuitBreaker: cbs[cbKey].(*model.CircuitBreaker),
+			CreateTime:     relations[serviceId].(*model.CircuitBreakerRelation).CreateTime,
+			ModifyTime:     relations[serviceId].(*model.CircuitBreakerRelation).ModifyTime,
 		})
 	}
 

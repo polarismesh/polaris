@@ -963,22 +963,29 @@ func Test_circuitBreakerStore_GetCircuitBreakerForCache(t *testing.T) {
 
 		for i := 0; i < 10; i++ {
 			cb := createTestCircuitbreaker("", true)
+			cb.CreateTime = tN.Add(time.Minute * time.Duration(i+1))
 			cb.ModifyTime = tN.Add(time.Minute * time.Duration(i+1))
 			if err := c.CreateCircuitBreaker(cb); err != nil {
 				t.Fatal(err)
 			}
 
-			if err := c.ReleaseCircuitBreaker(&model.CircuitBreakerRelation{
-				ServiceID:   "test_service",
+			serviceId := RandStringRunes(5)
+
+			if err := c.releaseCircuitBreaker(&model.CircuitBreakerRelation{
+				ServiceID:   serviceId,
 				RuleID:      cb.ID,
 				RuleVersion: cb.Version,
+				CreateTime:  tN.Add(time.Minute * time.Duration(i+1)),
+				ModifyTime:  tN.Add(time.Minute * time.Duration(i+1)),
 			}); err != nil {
 				t.Fatal(err)
 			}
 
 			cbs = append(cbs, &model.ServiceWithCircuitBreaker{
-				ServiceID:      "test_service",
+				ServiceID:      serviceId,
 				CircuitBreaker: cb,
+				CreateTime:     tN.Add(time.Minute * time.Duration(i+1)),
+				ModifyTime:     tN.Add(time.Minute * time.Duration(i+1)),
 			})
 		}
 
@@ -1016,10 +1023,10 @@ func Test_circuitBreakerStore_GetCircuitBreakerForCache(t *testing.T) {
 					relationLock: &sync.RWMutex{},
 				},
 				args: args{
-					mtime:       tN.Add(time.Minute * time.Duration(-1)),
+					mtime:       tN.Add(time.Minute * time.Duration(1)),
 					firstUpdate: false,
 				},
-				want:    compareCb(cbs, tN.Add(time.Minute*time.Duration(-1))),
+				want:    compareCb(cbs, tN.Add(time.Minute*time.Duration(1))),
 				wantErr: false,
 			},
 			{
@@ -1030,10 +1037,10 @@ func Test_circuitBreakerStore_GetCircuitBreakerForCache(t *testing.T) {
 					relationLock: &sync.RWMutex{},
 				},
 				args: args{
-					mtime:       tN.Add(time.Minute * time.Duration(-6)),
+					mtime:       tN.Add(time.Minute * time.Duration(6)),
 					firstUpdate: false,
 				},
-				want:    compareCb(cbs, tN.Add(time.Minute*time.Duration(-6))),
+				want:    compareCb(cbs, tN.Add(time.Minute*time.Duration(6))),
 				wantErr: false,
 			},
 		}
@@ -1049,6 +1056,31 @@ func Test_circuitBreakerStore_GetCircuitBreakerForCache(t *testing.T) {
 					t.Errorf("circuitBreakerStore.GetCircuitBreakerForCache() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
+
+				tN := time.Now()
+
+				for i := range got {
+					got[i].CreateTime = tN
+					got[i].ModifyTime = tN
+					got[i].CircuitBreaker.CreateTime = tN
+					got[i].CircuitBreaker.ModifyTime = tN
+				}
+
+				for i := range tt.want {
+					tt.want[i].CreateTime = tN
+					tt.want[i].ModifyTime = tN
+					tt.want[i].CircuitBreaker.CreateTime = tN
+					tt.want[i].CircuitBreaker.ModifyTime = tN
+				}
+
+				sort.Slice(got, func(i, j int) bool {
+					return strings.Compare(got[i].ServiceID, got[j].ServiceID) < 0
+				})
+
+				sort.Slice(tt.want, func(i, j int) bool {
+					return strings.Compare(tt.want[i].ServiceID, tt.want[j].ServiceID) < 0
+				})
+
 				if !reflect.DeepEqual(got, tt.want) {
 					t.Errorf("circuitBreakerStore.GetCircuitBreakerForCache() = %v, want %v", got, tt.want)
 				}
