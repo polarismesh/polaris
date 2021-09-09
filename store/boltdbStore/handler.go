@@ -31,29 +31,38 @@ import (
 // BoltHandler encapsulate operations around boltdb
 type BoltHandler interface {
 
-	// SaveValue save go object into bolt
+	// SaveValue 插入数据对象，每个数据对象都需要一个唯一主键来标识
 	SaveValue(typ string, key string, object interface{}) error
 
-	// DeleteValue delete values
+	// DeleteValue 根据主键删除数据对象
 	DeleteValues(typ string, key []string) error
 
-	// UpdateValue update specific properties
+	// UpdateValue 更新数据对象的属性值
 	UpdateValue(typ string, key string, properties map[string]interface{}) error
 
-	// LoadValues load all objects by keys, return is map[key]value
+	// LoadValues 根据主键列表获取数据对象，返回值为'主键->对象'的Map
 	LoadValues(typ string, keys []string, typObject interface{}) (map[string]interface{}, error)
 
-	// LoadValuesByFilter load all objects by filter, return is map[key]value
+	// LoadValuesByFilter 根据条件过滤并返回数据对象，返回值为'主键->对象'的Map
 	LoadValuesByFilter(typ string, fields []string,
 		typObject interface{}, filter func(map[string]interface{}) bool) (map[string]interface{}, error)
 
-	// IterateFields iterate the field values
-	IterateFields(typ string, field string, typObject interface{}, filter func(interface{})) error
+	// LoadValues 加载所有的数据对象，返回值为'主键->对象'的Map
+	LoadValuesAll(typ string, typObject interface{}) (map[string]interface{}, error)
 
-	// CountValues count sub items
+	// IterateFields 遍历所有的数对象
+	IterateFields(typ string, field string, typObject interface{}, process func(interface{})) error
+
+	// CountValues 计算数据对象的总数
 	CountValues(typ string) (int, error)
 
-	// Close close boltdb
+	// Execute 直接执行一段语句
+	Execute(writable bool, process func(tx *bolt.Tx) error) error
+
+	// BeginTransaction 启动事务，供使用者单独管理事务的写入和提交等操作
+	Transaction() (*bolt.Tx, error)
+
+	// Close 关闭内存数据库
 	Close() error
 }
 
@@ -100,7 +109,7 @@ func openBoltDB(path string) (*bolt.DB, error) {
 	})
 }
 
-// SaveValue save go object into bolt
+// SaveValue 插入数据对象，每个数据对象都需要一个唯一主键来标识
 func (b *boltHandler) SaveValue(typ string, key string, value interface{}) error {
 	return b.db.Update(func(tx *bolt.Tx) error {
 		var typBucket *bolt.Bucket
@@ -140,69 +149,78 @@ func (b *boltHandler) SaveValue(typ string, key string, value interface{}) error
 	})
 }
 
-// LoadValues load all objects by keys, return is map[key]value
+// LoadValues 根据主键列表获取数据对象，返回值为'主键->对象'的Map
 func (b *boltHandler) LoadValues(typ string, keys []string, typObject interface{}) (map[string]interface{}, error) {
 	var values = make(map[string]interface{})
 	if len(keys) == 0 {
 		return values, nil
 	}
 	err := b.db.View(func(tx *bolt.Tx) error {
-		for _, key := range keys {
-			bucket := getBucket(tx, typ, key)
-			if nil == bucket {
-				continue
-			}
-			toObj, err := deserializeObject(bucket, typObject)
-			if nil != err {
-				return err
-			}
-			values[key] = toObj
-		}
-		return nil
+		return loadValues(tx, typ, keys, typObject, values)
 	})
 	return values, err
 }
 
-// LoadValuesByFilter load all objects by filter, return is map[key]value
+func loadValues(tx *bolt.Tx, typ string, keys []string, typObject interface{}, values map[string]interface{}) error {
+	for _, key := range keys {
+		bucket := getBucket(tx, typ, key)
+		if nil == bucket {
+			continue
+		}
+		toObj, err := deserializeObject(bucket, typObject)
+		if nil != err {
+			return err
+		}
+		values[key] = toObj
+	}
+	return nil
+}
+
+// LoadValuesByFilter 根据条件过滤并返回数据对象，返回值为'主键->对象'的Map
 func (b *boltHandler) LoadValuesByFilter(typ string, fields []string,
 	typObject interface{}, filter func(map[string]interface{}) bool) (map[string]interface{}, error) {
 	values := make(map[string]interface{})
 	err := b.db.View(func(tx *bolt.Tx) error {
-		typeBucket := tx.Bucket([]byte(typ))
-		if nil == typeBucket {
-			return nil
+		return loadValuesByFilter(tx, typ, fields, typObject, filter, values)
+	})
+	return values, err
+}
+
+func loadValuesByFilter(tx *bolt.Tx, typ string, fields []string, typObject interface{},
+	filter func(map[string]interface{}) bool, values map[string]interface{}) error {
+	typeBucket := tx.Bucket([]byte(typ))
+	if nil == typeBucket {
+		return nil
+	}
+	keys, err := getKeys(typeBucket)
+	if nil != err {
+		return err
+	}
+	if len(keys) == 0 {
+		return nil
+	}
+	for _, key := range keys {
+		bucket := typeBucket.Bucket([]byte(key))
+		if nil == bucket {
+			log.Warnf("[BlobStore] bucket not found for key %s, type %s", key, typ)
+			continue
 		}
-		keys, err := b.getKeys(typeBucket)
+		var matchResult bool
+		matchResult, err = matchObject(bucket, fields, typObject, filter)
 		if nil != err {
 			return err
 		}
-		if len(keys) == 0 {
-			return nil
+		if !matchResult {
+			continue
 		}
-		for _, key := range keys {
-			bucket := typeBucket.Bucket([]byte(key))
-			if nil == bucket {
-				log.Warnf("[BlobStore] bucket not found for key %s, type %s", key, typ)
-				continue
-			}
-			var matchResult bool
-			matchResult, err = matchObject(bucket, fields, typObject, filter)
-			if nil != err {
-				return err
-			}
-			if !matchResult {
-				continue
-			}
-			var targetObj interface{}
-			targetObj, err = deserializeObject(bucket, typObject)
-			if nil != err {
-				return err
-			}
-			values[key] = targetObj
+		var targetObj interface{}
+		targetObj, err = deserializeObject(bucket, typObject)
+		if nil != err {
+			return err
 		}
-		return nil
-	})
-	return values, err
+		values[key] = targetObj
+	}
+	return nil
 }
 
 func reflectProtoMsg(typObject interface{}, fieldName string) (proto.Message, error) {
@@ -281,7 +299,7 @@ func matchObject(bucket *bolt.Bucket,
 	return filter(fieldValues), nil
 }
 
-// IterateFields iterate the field values
+// IterateFields 遍历所有的数对象
 func (b *boltHandler) IterateFields(typ string, field string, typObject interface{}, filter func(interface{})) error {
 	if nil == filter {
 		return nil
@@ -291,7 +309,7 @@ func (b *boltHandler) IterateFields(typ string, field string, typObject interfac
 		if nil == typeBucket {
 			return nil
 		}
-		keys, err := b.getKeys(typeBucket)
+		keys, err := getKeys(typeBucket)
 		if nil != err {
 			return err
 		}
@@ -315,6 +333,7 @@ func (b *boltHandler) IterateFields(typ string, field string, typObject interfac
 	})
 }
 
+// Close 关闭内存数据库
 func (b *boltHandler) Close() error {
 	if nil != b.db {
 		return b.db.Close()
@@ -322,27 +341,31 @@ func (b *boltHandler) Close() error {
 	return nil
 }
 
-// DeleteValue delete values
+// DeleteValue 根据主键删除数据对象
 func (b *boltHandler) DeleteValues(typ string, keys []string) error {
 	if len(keys) == 0 {
 		return nil
 	}
 	return b.db.Update(func(tx *bolt.Tx) error {
-		typeBucket := tx.Bucket([]byte(typ))
-		if nil == typeBucket {
-			return nil
-		}
-		for _, key := range keys {
-			keyBytes := []byte(key)
-			if nil != typeBucket.Bucket(keyBytes) {
-				err := typeBucket.DeleteBucket(keyBytes)
-				if nil != err {
-					return err
-				}
+		return deleteValues(tx, typ, keys)
+	})
+}
+
+func deleteValues(tx *bolt.Tx, typ string, keys []string) error {
+	typeBucket := tx.Bucket([]byte(typ))
+	if nil == typeBucket {
+		return nil
+	}
+	for _, key := range keys {
+		keyBytes := []byte(key)
+		if nil != typeBucket.Bucket(keyBytes) {
+			err := typeBucket.DeleteBucket(keyBytes)
+			if nil != err {
+				return err
 			}
 		}
-		return nil
-	})
+	}
+	return nil
 }
 
 func getBucket(tx *bolt.Tx, typ string, key string) *bolt.Bucket {
@@ -385,7 +408,7 @@ func convertUint64Value(value interface{}, kind reflect.Kind) uint64 {
 	return 0
 }
 
-func (b *boltHandler) getKeys(bucket *bolt.Bucket) ([]string, error) {
+func getKeys(bucket *bolt.Bucket) ([]string, error) {
 	keys := make([]string, 0)
 	err := bucket.ForEach(func(k, v []byte) error {
 		keys = append(keys, string(k))
@@ -394,7 +417,7 @@ func (b *boltHandler) getKeys(bucket *bolt.Bucket) ([]string, error) {
 	return keys, err
 }
 
-// CountValues count sub items
+// CountValues 计算数据对象的总数
 func (b *boltHandler) CountValues(typ string) (int, error) {
 	var count int
 	err := b.db.View(func(tx *bolt.Tx) error {
@@ -410,7 +433,7 @@ func (b *boltHandler) CountValues(typ string) (int, error) {
 	return count, err
 }
 
-// UpdateValue update specific properties
+// UpdateValue 更新数据对象的属性值
 func (b *boltHandler) UpdateValue(typ string, key string, properties map[string]interface{}) error {
 	return b.db.Update(func(tx *bolt.Tx) error {
 		var err error
@@ -464,4 +487,50 @@ func (b *boltHandler) UpdateValue(typ string, key string, properties map[string]
 		}
 		return nil
 	})
+}
+
+// LoadValues 加载所有的数据对象，返回值为'主键->对象'的Map
+func (b *boltHandler) LoadValuesAll(typ string, typObject interface{}) (map[string]interface{}, error) {
+	values := make(map[string]interface{})
+	err := b.db.View(func(tx *bolt.Tx) error {
+		typeBucket := tx.Bucket([]byte(typ))
+		if nil == typeBucket {
+			return nil
+		}
+		keys, err := getKeys(typeBucket)
+		if nil != err {
+			return err
+		}
+		if len(keys) == 0 {
+			return nil
+		}
+		for _, key := range keys {
+			bucket := typeBucket.Bucket([]byte(key))
+			if nil == bucket {
+				log.Warnf("[BlobStore] bucket not found for key %s, type %s", key, typ)
+				continue
+			}
+			var targetObj interface{}
+			targetObj, err = deserializeObject(bucket, typObject)
+			if nil != err {
+				return err
+			}
+			values[key] = targetObj
+		}
+		return nil
+	})
+	return values, err
+}
+
+// Execute 直接执行一段语句
+func (b *boltHandler) Execute(writable bool, process func(tx *bolt.Tx) error) error {
+	if writable {
+		return b.db.Update(process)
+	}
+	return b.db.View(process)
+}
+
+// BeginTransaction 启动事务，供使用者单独管理事务的写入和提交等操作
+func (b *boltHandler) Transaction() (*bolt.Tx, error) {
+	return b.db.Begin(true)
 }

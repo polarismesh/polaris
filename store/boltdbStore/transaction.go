@@ -23,55 +23,96 @@ import (
 )
 
 type transaction struct {
-	tx *bolt.Tx
+	tx  *bolt.Tx
+	err error
 }
 
-// 提交事务
+// Commit 提交事务
 func (t *transaction) Commit() error {
-	return t.tx.Commit()
+	if nil != t.err {
+		return t.tx.Rollback()
+	}
+	err := t.tx.Commit()
+	if nil != err {
+		return t.tx.Rollback()
+	}
+	return nil
 }
 
-// 启动锁，限制Server启动的并发数
+// LockBootstrap 启动锁，限制Server启动的并发数
 func (t *transaction) LockBootstrap(key string, server string) error {
 	return nil
 }
 
-// 排它锁namespace
+// LockNamespace 排它锁namespace
 func (t *transaction) LockNamespace(name string) (*model.Namespace, error) {
-	return nil, nil
+	return t.loadNamespace(name)
 }
 
-// 共享锁namespace
+func (t *transaction) loadNamespace(name string) (*model.Namespace, error) {
+	var values = make(map[string]interface{})
+	t.err = loadValues(t.tx, tblNameNamespace, []string{name}, &model.Namespace{}, values)
+	if nil != t.err {
+		return nil, t.err
+	}
+	value, ok := values[name]
+	if !ok {
+		return nil, nil
+	}
+	return value.(*model.Namespace), nil
+}
+
+// RLockNamespace 共享锁namespace
 func (t *transaction) RLockNamespace(name string) (*model.Namespace, error) {
-	return nil, nil
+	return t.loadNamespace(name)
 }
 
-// 删除namespace
+// DeleteNamespace 删除namespace
 func (t *transaction) DeleteNamespace(name string) error {
+	t.err = deleteValues(t.tx, tblNameNamespace, []string{name})
+	if nil != t.err {
+		return t.err
+	}
 	return nil
 }
 
-// 排它锁service
+const (
+	svcFieldName      = "Name"
+	svcFieldNamespace = "Namespace"
+)
+
+func (t *transaction) loadService(name string, namespace string) (*model.Service, error) {
+	filter := func(m map[string]interface{}) bool {
+		nameValue, ok := m[svcFieldName]
+		if !ok {
+			return false
+		}
+		namespaceValue, ok := m[svcFieldNamespace]
+		if !ok {
+			return false
+		}
+		return nameValue.(string) == name && namespaceValue.(string) == namespace
+	}
+	values := make(map[string]interface{})
+	err := loadValuesByFilter(
+		t.tx, ServiceStoreType, []string{svcFieldName, svcFieldNamespace}, &model.Service{}, filter, values)
+	if nil != err {
+		return nil, err
+	}
+	var svc *model.Service
+	for _, svcValue := range values {
+		svc = svcValue.(*model.Service)
+		break
+	}
+	return svc, nil
+}
+
+// LockService 排它锁service
 func (t *transaction) LockService(name string, namespace string) (*model.Service, error) {
-	return nil, nil
+	return t.loadService(name, namespace)
 }
 
-// 共享锁service
+// RLockService 共享锁service
 func (t *transaction) RLockService(name string, namespace string) (*model.Service, error) {
-	return nil, nil
-}
-
-// 批量锁住service，只需返回valid/bool，增加速度
-func (t *transaction) BatchRLockServices(ids map[string]bool) (map[string]bool, error) {
-	return nil, nil
-}
-
-// 删除service
-func (t *transaction) DeleteService(name string, namespace string) error {
-	return nil
-}
-
-// 删除源服服务下的所有别名
-func (t *transaction) DeleteAliasWithSourceID(sourceServiceID string) error {
-	return nil
+	return t.loadService(name, namespace)
 }
