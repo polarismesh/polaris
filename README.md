@@ -1,30 +1,72 @@
-<img src="images/polaris_logo_white.png" width="50%" height="50%" />
+# Polaris: Service Discovery and Governance
 
-___
-# Polaris
-Polaris is an operation centre that supports multiple programming languages, with high compatibility to different application framework. 
-It supports accessing with SDK or sidecar proxy.
+[![Build Status](https://github.com/polarismesh/polaris/actions/workflows/testing.yml/badge.svg)](https://github.com/PolarisMesh/polaris/actions/workflows/testing.yml)
 
-## Overview
-Polaris's operation features provided are based on the dimension of the service, 
-Polaris's service can actualize industry standard framework and service platform, like [gRPC]，[SPRING CLOUD]，and [Kubernetes Service]. 
-These applications can switch in Polaris with no downtime.
+<img src="logo.svg" width="10%" height="10%" />
 
-Polaris provide features listed as below：
+English | [简体中文](./README-zh.md) 
 
-* ** Service Data Management
+---
 
-    Bringing visibility to the control panel, admin can configure HTTP port (label, health status, instance information, policy).
+README：
 
-* ** Registration and Discovery
+- [Introduction](#introduction)
+- [Components](#components)
+- [Getting started](#getting-started)
+- [Chat group](#chat-group)
+- [Contribution](#contribution)
 
-    Provide multi-protocol(HTTP,gRPC), self-registration, and caller server's ability to discover and distribute other server end's data for invocation.
+Visit [website](https://polarismesh.cn) to learn more
 
-* ** Health Check
+## Introduction
 
-    Provide multi-protocol(HTTP,gRPC), provide heartbeat report, server end will monitor heartbeat record, configure overtime health status.
-    
-## Quick Guide
+Polaris is a cloud-native service discovery and governance center. It can be used to solve the problem of service connection, fault tolerance, traffic control and secure in distributed and microservice architecture.
+
+Functions:
+
+- basic: service discover, service register and health check
+- fault tolerance: circuit break and rate limit
+- traffic control: request route and load balance
+- secure: authenticate
+
+Features:
+
+- It provides SDK for high-performance business scenario and sidecar for non-invasive development mode.
+- It provides multiple clients for different development languages, such as Java, Go, C++ and Nodejs.
+- It can integrate with different service frameworks and gateways, such as Spring Cloud, gRPC and Nginx.
+- It is compatible with Kubernetes and supports automatic injection of K8s service and Polaris sidecar.
+
+## Components
+
+server:
+
+- [polaris](https://github.com/PolarisMesh/polaris): Control Plane
+- [polaris-console](https://github.com/PolarisMesh/polaris-console): Console
+
+client:
+
+- [polaris-java](https://github.com/PolarisMesh/polaris-java): Java Client
+- [polaris-go](https://github.com/PolarisMesh/polaris-go): Go Client
+- [polaris-cpp](https://github.com/PolarisMesh/polaris-cpp): C++ Client
+- [polaris-nodejs](https://github.com/PolarisMesh/polaris-nodejs): NodeJS Client
+- [polaris-sidecar](https://github.com/PolarisMesh/polaris-sidecar): Envoy based Sidecar
+
+ecosystem:
+
+- [polaris-controller](https://github.com/PolarisMesh/polaris-controller): K8s Controller for Automatic Injection of K8s Service and Polaris Sidecar
+- [spring-cloud-polaris](https://github.com/PolarisMesh/spring-cloud-polaris): spring cloud integrates with polaris-java
+- [grpc-java-polaris](https://github.com/PolarisMesh/grpc-java-polaris): grpc-java integrates with polaris-java
+- [grpc-go-polaris](https://github.com/PolarisMesh/grpc-go-polaris): grpc-go integrates with polaris-go
+- [grpc-cpp-polaris](https://github.com/PolarisMesh/grpc-cpp-polaris): grpc integrates with polaris-cpp
+- [grpc-nodejs-polaris](https://github.com/PolarisMesh/grpc-nodejs-polaris): grpc-node integrates with polaris-nodejs
+- [nginx-polaris](https://github.com/PolarisMesh/nginx-polaris): nginx integrates with polaris-cpp
+
+others:
+
+- [website](https://github.com/PolarisMesh/website): Source for the polarismesh.cn site
+- [samples](https://github.com/PolarisMesh/samples): Samples for Learning PolarisMesh
+
+## Getting started
 
 ### Preconditions
 
@@ -74,10 +116,19 @@ After all, run ./p.sh, prompt Polaris Server, proof the installation is successf
 #### Verify installation
 
 ````shell script
-curl http://127.0.0.1:8080
+curl http://127.0.0.1:8090
 ```` 
 Return text is 'Polaris Server', proof features run smoothly 
 
-## License
+## Chat group
 
-The polaris is licensed under the BSD 3-Clause License. Copyright and license information can be found in the file [LICENSE](LICENSE)
+Welcome to scan the code and add the group for communication. If the communication group is full of 500 people, please add the wechat of ```midwareQmei``` , and send "polaris" to wait for the verification reply.
+
+<img src="https://main.qcloudimg.com/raw/336e18b778f6c538d6f1e4ceeab31bf9.jpg" width="30%" height="30%" />
+
+## Contribution
+
+If you have good comments or suggestions, please give us Issues or Pull Requests to contribute to  improve the development experience of Polaris Mesh.
+<br>see details：[CONTRIBUTING.md](./CONTRIBUTING.md)
+
+[Tencent Open Source Incentive Plan](https://opensource.tencent.com/contribution) encourages developers to participate and contribute. Look forward to your participation.

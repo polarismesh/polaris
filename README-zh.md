@@ -1,26 +1,71 @@
-<img src="images/polaris_logo_white.png" width="50%" height="50%" />
+# 北极星：服务发现和治理
 
-___
-# 北极星服务治理中心
-北极星是一个支持多种开发语言、兼容主流开发框架的服务治理中心。支持嵌入式和非嵌入式两种使用方式，嵌入式使用服务治理SDK，非嵌入式使用流量代理Sidecar
+<img src="logo.svg" width="10%" height="10%" />
 
-## 概述
-北极星的治理功能是基于服务维度来提供的，北极星的服务可对应到业界主流的框架/平台服务的实现，如[gRPC]，[SPRING CLOUD]，以及[Kubernetes Service]。基于这些框架/平台开发的应用可以快速接入北极星服务治理。
+[English](./README.md) | 简体中文
 
-北极星服务端提供以下主流功能特性：
+---
 
-* ** 服务数据管理
+README：
 
-    执行可视化控制台或者管理员基于HTTP管理端接口对于服务数据（标签，健康状态，实例信息，治理规则）进行读写操作。
+- [介绍](#介绍)
+- [项目构成](#项目构成)
+- [快速入门](#快速入门)
+- [交流群](#交流群)
+- [参与贡献](#参与贡献)
 
-* ** 服务注册发现
+其他文档请见[北极星官网](https://polarismesh.cn)
 
-    提供多协议（HTTP,gRPC）接口供被调端服务进行自注册，以及主调端应用发现并拉取其他被调端服务的服务数据，以便接下来进行服务调用。
+## 介绍
 
-* ** 健康检查
+北极星是一个支持多语言、多框架的云原生服务发现和治理中心，解决分布式和微服务架构中的服务可见、故障容错、流量控制和安全问题。
 
-    提供多协议（HTTP,gRPC）接口供被调端进行心跳上报，服务端会实时监测心跳记录，对超时的实例进行健康状态变更。
-    
+功能：
+
+- 基础功能：服务发现、服务注册、健康检查
+- 故障容错：熔断降级、访问限流
+- 流量控制：动态路由、负载均衡
+- 安全：访问鉴权
+
+特色：
+
+- 北极星的功能采用插件化的形式实现，业务可以根据需求选择使用，也非常容易实现扩展
+- 提供SDK和Sidecar两种接入方式，SDK适用于高性能的业务场景，Sidecar适用于无侵入的开发模式
+- 对于SDK的接入方式，提供Java、Go、C++和NodeJS等多种语言的客户端，功能实现相同
+- 北极星SDK可以集成到常用的框架和网关中，例如Spring Cloud、gRPC和Nginx
+- 适用于Kubernetes，支持K8s service和Polaris sidecar的自动注入
+- 腾讯百万级服务治理中心的开源版本，沉淀了腾讯多年的分布式服务治理经验
+
+## 项目构成
+
+服务端:
+
+- [polaris](https://github.com/PolarisMesh/polaris): 控制面
+- [polaris-console](https://github.com/PolarisMesh/polaris-console): 控制台
+
+客户端:
+
+- [polaris-java](https://github.com/PolarisMesh/polaris-java): Java客户端
+- [polaris-go](https://github.com/PolarisMesh/polaris-go): Go客户端
+- [polaris-cpp](https://github.com/PolarisMesh/polaris-cpp): C++客户端
+- [polaris-nodejs](https://github.com/PolarisMesh/polaris-nodejs): NodeJS客户端
+- [polaris-sidecar](https://github.com/PolarisMesh/polaris-sidecar): 基于Envoy的Sidecar
+
+生态组件:
+
+- [polaris-controller](https://github.com/PolarisMesh/polaris-controller): K8s控制器，支持K8s Service和Polaris Sidecar自动注入
+- [spring-cloud-polaris](https://github.com/PolarisMesh/spring-cloud-polaris): spring cloud集成polaris-java
+- [grpc-java-polaris](https://github.com/PolarisMesh/grpc-java-polaris): grpc-java集成polaris-java
+- [grpc-go-polaris](https://github.com/PolarisMesh/grpc-go-polaris): grpc-go集成polaris-go
+- [grpc-cpp-polaris](https://github.com/PolarisMesh/grpc-cpp-polaris): grpc集成polaris-cpp
+- [grpc-nodejs-polaris](https://github.com/PolarisMesh/grpc-nodejs-polaris): grpc-node集成polaris-nodejs
+- [nginx-polaris](https://github.com/PolarisMesh/nginx-polaris): nginx集成polaris-cpp
+
+其他:
+
+- [website](https://github.com/PolarisMesh/website): 官网
+- [samples](https://github.com/PolarisMesh/samples): 示例
+
 ## 快速入门
 
 ### 前置准备
@@ -69,17 +114,22 @@ chmod +x ./tool/*.sh
 #### 验证安装
 
 ````shell script
-curl http://127.0.0.1:8080
+curl http://127.0.0.1:8090
 ```` 
 返回Polaris Server，证明功能正常
 
-## License
 
-The polaris is licensed under the BSD 3-Clause License. Copyright and license information can be found in the file [LICENSE](LICENSE)
+## 交流群
 
-    
+欢迎大家扫码加群交流，如果交流群已满 500 人，请加中间件小Q妹微信（微信号：midwareQmei），并发送入群暗号“polaris”，等待验证回复。
 
+<img src="https://main.qcloudimg.com/raw/336e18b778f6c538d6f1e4ceeab31bf9.jpg" width="30%" height="30%" />
 
+## 参与贡献
 
+如果你有好的意见或建议，欢迎给我们提 Issues 或 Pull Requests，为提升北极星的开发体验贡献力量。
 
+详见：[CONTRIBUTING.md](CONTRIBUTING.md)
+
+[腾讯开源激励计划](https://opensource.tencent.com/contribution) 鼓励开发者的参与和贡献，期待你的加入。
 
