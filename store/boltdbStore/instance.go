@@ -172,7 +172,7 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 			return false
 		})
 	if err != nil {
-		log.Errorf("load instance error")
+		log.Errorf("load instance error, %v", err)
 		return nil, err
 	}
 
@@ -203,7 +203,7 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 		tempIns := ins.(model.Instance)
 		svc, ok := services[tempIns.ServiceID]
 		if !ok {
-			log.Errorf("can not find instance service , instanceId is ", tempIns.ID())
+			log.Errorf("can not find instance service , instanceId is %s", tempIns.ID())
 			return nil, errors.New("can not find instance service")
 		}
 		tempService := svc.(model.Service)
