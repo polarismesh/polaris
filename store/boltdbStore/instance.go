@@ -135,19 +135,19 @@ func (i *instanceStore) CheckInstancesExisted(ids map[string]bool) (map[string]b
 		return nil, nil
 	}
 
-	err := i.handler.IterateFields(InstanceStoreType, "id", func(ins interface{}){
-		instance := ins.(model.Instance)
-
-		_, ok := ids[instance.ID()]
-		if ok {
-			ids[instance.ID()] = true
-		}
-	})
-
-	if err != nil {
-		log.Errorf("list instance in kv error, %v", err)
-		return nil, err
-	}
+	//err := i.handler.IterateFields(InstanceStoreType, "id", func(ins interface{}){
+	//	instance := ins.(model.Instance)
+	//
+	//	_, ok := ids[instance.ID()]
+	//	if ok {
+	//		ids[instance.ID()] = true
+	//	}
+	//})
+	//
+	//if err != nil {
+	//	log.Errorf("list instance in kv error, %v", err)
+	//	return nil, err
+	//}
 
 	return ids, nil
 }
