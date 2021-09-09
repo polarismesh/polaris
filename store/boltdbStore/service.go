@@ -133,8 +133,6 @@ func (ss *serviceStore) GetSourceServiceToken(name string, namespace string) (*m
 		out.Namespace = namespace
 		return &out, nil
 	}
-
-	return &out, nil
 }
 
 // 根据服务名和命名空间获取服务的详情
