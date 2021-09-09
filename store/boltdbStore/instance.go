@@ -163,14 +163,14 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 
 	// 找到全部的实例
 	inss, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, model.Instance{},
-	func(m map[string]interface{}) bool{
-		id := m["id"].(string)
-		_, ok := ids[id]
-		if ok {
-			return true
-		}
-		return false
-	})
+		func(m map[string]interface{}) bool{
+			id := m["id"].(string)
+			_, ok := ids[id]
+			if ok {
+				return true
+			}
+			return false
+		})
 	if err != nil {
 		log.Errorf("load instance error")
 		return nil, err
@@ -184,14 +184,14 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 	}
 
 	services, err := i.handler.LoadValuesByFilter(ServiceStoreType, fields, model.Service{},
-	func(m map[string]interface{}) bool{
-		id := m["id"].(string)
-		_, ok := serviceIDs[id]
-		if ok {
-			return true
-		}
-		return false
-	})
+		func(m map[string]interface{}) bool{
+			id := m["id"].(string)
+			_, ok := serviceIDs[id]
+			if ok {
+				return true
+			}
+			return false
+		})
 
 	// 组合数据
 	out := make(map[string]*model.Instance, len(ids))
@@ -228,13 +228,13 @@ func (i *instanceStore) GetInstance(instanceID string) (*model.Instance, error) 
 	fields := []string{"id"}
 
 	ins, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, model.Instance{},
-	func(m map[string]interface{}) bool{
-		id := m["id"].(string)
-		if id == instanceID {
-			return true
-		}
-		return false
-	})
+		func(m map[string]interface{}) bool{
+			id := m["id"].(string)
+			if id == instanceID {
+				return true
+			}
+			return false
+		})
 	if err != nil {
 		log.Errorf("load instance from kv error, %v", err)
 		return nil, err
@@ -262,17 +262,17 @@ func (i *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*mo
 	fields := []string{"service_id", "host"}
 
 	instances, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, model.Instance{},
-	func(m map[string]interface{}) bool{
-		svcId := m["service_id"].(string)
-		h := m["host"].(string)
-		if svcId != serviceID {
-			return false
-		}
-		if h != host {
-			return false
-		}
-		return true
-	})
+		func(m map[string]interface{}) bool{
+			svcId := m["service_id"].(string)
+			h := m["host"].(string)
+			if svcId != serviceID {
+				return false
+			}
+			if h != host {
+				return false
+			}
+			return true
+		})
 	if err != nil {
 		log.Errorf("load instance from kv error, %v", err)
 		return nil, err
