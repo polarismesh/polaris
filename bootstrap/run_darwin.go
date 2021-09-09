@@ -18,20 +18,25 @@
 package bootstrap
 
 import (
-	"github.com/polarismesh/polaris-server/apiserver"
-	"github.com/polarismesh/polaris-server/common/log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/polarismesh/polaris-server/apiserver"
+	"github.com/polarismesh/polaris-server/common/log"
 )
 
-// server主循环
+var darwinSignals = []os.Signal{
+	syscall.SIGINT, syscall.SIGTERM,
+	syscall.SIGSEGV, syscall.SIGUSR1,
+}
+
+// RunMainLoop server主循环
 func RunMainLoop(servers []apiserver.Apiserver, errCh chan error) {
 	defer StopServers(servers)
 
-	ch := make(chan os.Signal)
-	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM,
-		syscall.SIGSEGV, syscall.SIGUSR1)
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, darwinSignals...)
 	for {
 		select {
 		case s := <-ch:
@@ -42,10 +47,10 @@ func RunMainLoop(servers []apiserver.Apiserver, errCh chan error) {
 					log.Errorf("restart servers err: %s", err.Error())
 					return
 				}
-			} else {
-				log.Infof("catch signal(%+v), stop servers", s)
-				return
 			}
+
+			log.Infof("catch signal(%+v), stop servers", s)
+			return
 		case err := <-errCh:
 			log.Errorf("catch api server err: %s", err.Error())
 			return

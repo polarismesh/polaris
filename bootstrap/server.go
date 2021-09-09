@@ -25,13 +25,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/polarismesh/polaris-server/common/version"
-	"github.com/polarismesh/polaris-server/config"
-
 	"github.com/polarismesh/polaris-server/apiserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/common/version"
+	"github.com/polarismesh/polaris-server/config"
 	"github.com/polarismesh/polaris-server/naming"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
@@ -90,17 +89,23 @@ func Start(configFilePath string) {
 
 	// 初始化存储层
 	store.SetStoreConfig(&cfg.Store)
-	s, _ := store.GetStore()
+	var s store.Store
+	s, err = store.GetStore()
+	if err != nil {
+		fmt.Printf("get store error:%s", err.Error())
+		return
+	}
 
 	// 开启进入启动流程，初始化插件，加载数据等
-	tx, err := StartBootstrapOrder(s, cfg)
+	var tx store.Transaction
+	tx, err = StartBootstrapOrder(s, cfg)
 	if err != nil {
 		// 多次尝试加锁失败
 		fmt.Printf("[ERROR] %v\n", err)
 		return
 	}
 
-	cfg.Naming.HealthCheck.LocalHost = LocalHost //补充healthCheck的配置
+	cfg.Naming.HealthCheck.LocalHost = LocalHost // 补充healthCheck的配置
 	naming.SetHealthCheckConfig(&cfg.Naming.HealthCheck)
 	err = naming.Initialize(ctx, &cfg.Naming, &cfg.Cache)
 	if err != nil {
@@ -378,7 +383,7 @@ func selfRegister(host string, port uint32, protocol string, isolated bool, pola
 	return nil
 }
 
-// Server退出的时候，自动反注册
+// SelfDeregister Server退出的时候，自动反注册
 func SelfDeregister() {
 	namingServer, err := naming.GetServer()
 	if err != nil {
@@ -402,12 +407,12 @@ func getLocalHost(vip string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer func() { _ = conn.Close() }()
+	defer conn.Close()
 
 	localAddr := conn.LocalAddr().String() // ip:port
 	segs := strings.Split(localAddr, ":")
 	if len(segs) != 2 {
-		return "", fmt.Errorf("get local address format is invalid")
+		return "", errors.New("get local address format is invalid")
 	}
 
 	return segs[0], nil
