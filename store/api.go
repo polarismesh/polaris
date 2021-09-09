@@ -24,7 +24,7 @@ import (
 )
 
 /**
- * @brief 通用存储接口
+ * Store 通用存储接口
  */
 type Store interface {
 	// 存储层的名字
@@ -67,7 +67,7 @@ type Store interface {
 }
 
 /**
- * @brief 命名空间存储接口
+ * NamespaceStore 命名空间存储接口
  */
 type NamespaceStore interface {
 	// 保存一个命名空间
@@ -93,7 +93,7 @@ type NamespaceStore interface {
 }
 
 /**
- * @brief 业务集存储接口
+ * BusinessStore 业务集存储接口
  */
 type BusinessStore interface {
 	// 增加一个业务集
@@ -119,7 +119,7 @@ type BusinessStore interface {
 }
 
 /**
- * @brief 服务存储接口
+ * ServiceStore 服务存储接口
  */
 type ServiceStore interface {
 	// 保存一个服务
@@ -170,7 +170,7 @@ type ServiceStore interface {
 }
 
 /**
- * @brief 实例存储接口
+ * InstanceStore 实例存储接口
  */
 type InstanceStore interface {
 	// 增加一个实例
@@ -221,7 +221,7 @@ type InstanceStore interface {
 }
 
 /**
- * @brief L5扩展存储接口
+ * L5Store L5扩展存储接口
  */
 type L5Store interface {
 	// 获取扩展数据
@@ -250,7 +250,7 @@ type L5Store interface {
 }
 
 /**
- * @brief 路由配置表的存储接口
+ * RoutingConfigStore 路由配置表的存储接口
  */
 type RoutingConfigStore interface {
 	// 新增一个路由配置
@@ -276,7 +276,7 @@ type RoutingConfigStore interface {
 }
 
 /**
- * @brief 限流规则的存储接口
+ * RateLimitStore 限流规则的存储接口
  */
 type RateLimitStore interface {
 	// 新增限流规则
@@ -299,7 +299,7 @@ type RateLimitStore interface {
 }
 
 /**
- * @brief 熔断规则的存储接口
+ * CircuitBreakerStore 熔断规则的存储接口
  */
 type CircuitBreakerStore interface {
 	// 新增熔断规则
@@ -351,7 +351,7 @@ type CircuitBreakerStore interface {
 }
 
 /**
- * @brief 平台信息的存储接口
+ * PlatformStore 平台信息的存储接口
  */
 type PlatformStore interface {
 	// 新增平台信息
@@ -371,36 +371,24 @@ type PlatformStore interface {
 }
 
 /**
- * @brief 事务接口
+ * Transaction 事务接口，不支持多协程并发操作，当前只支持单个协程串行操作
  */
 type Transaction interface {
-	// 提交事务
+	// Commit 提交事务
 	Commit() error
 
-	// 启动锁，限制Server启动的并发数
+	// LockBootstrap 启动锁，限制Server启动的并发数
 	LockBootstrap(key string, server string) error
 
-	// 排它锁namespace
+	// LockNamespace 排它锁namespace
 	LockNamespace(name string) (*model.Namespace, error)
 
-	// 共享锁namespace
-	RLockNamespace(name string) (*model.Namespace, error)
-
-	// 删除namespace
+	// DeleteNamespace 删除namespace
 	DeleteNamespace(name string) error
 
-	// 排它锁service
+	// LockService 排它锁service
 	LockService(name string, namespace string) (*model.Service, error)
 
-	// 共享锁service
+	// RLockService 共享锁service
 	RLockService(name string, namespace string) (*model.Service, error)
-
-	// 批量锁住service，只需返回valid/bool，增加速度
-	BatchRLockServices(ids map[string]bool) (map[string]bool, error)
-
-	// 删除service
-	DeleteService(name string, namespace string) error
-
-	// 删除源服服务下的所有别名
-	DeleteAliasWithSourceID(sourceServiceID string) error
 }
