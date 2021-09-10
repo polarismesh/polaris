@@ -85,6 +85,38 @@ func createTestCircuitbreakerRelation(id string, createId bool) *model.CircuitBr
 	}
 }
 
+func createTestService(id, name, namespace string, create bool) *model.Service {
+
+	if strings.Compare(id, "") == 0 && create {
+		id = uuid.NewString()
+	}
+
+	return &model.Service{
+		ID:        RandStringRunes(15),
+		Name:      name,
+		Namespace: namespace,
+		Business:  RandStringRunes(5),
+		Ports:     "",
+		Meta: map[string]string{
+			"meta_test": "meta_test",
+		},
+		Comment:     "Comment_" + RandStringRunes(6),
+		Department:  "Department_" + RandStringRunes(6),
+		CmdbMod1:    "CmdbMod1_" + RandStringRunes(6),
+		CmdbMod2:    "CmdbMod2_" + RandStringRunes(6),
+		CmdbMod3:    "CmdbMod3_" + RandStringRunes(6),
+		Token:       RandStringRunes(15),
+		Owner:       RandStringRunes(15),
+		Revision:    "Revision_" + RandStringRunes(6),
+		Reference:   "Reference_" + RandStringRunes(6),
+		ReferFilter: "ReferFilter_" + RandStringRunes(6),
+		PlatformID:  "PlatformID_" + RandStringRunes(6),
+		Valid:       false,
+		CreateTime:  time.Time{},
+		ModifyTime:  time.Time{},
+	}
+}
+
 func CreateCircuitbreakerDBHandlerAndRun(t *testing.T, tf func(t *testing.T, handler BoltHandler)) {
 	_ = os.Remove(filepath.Join(t.TempDir(), "test_circuitbreaker.bolt"))
 	handler, err := NewBoltHandler(&BoltConfig{FileName: filepath.Join(t.TempDir(), "test_circuitbreaker.bolt")})
@@ -165,9 +197,7 @@ func Test_circuitBreakerStore_CreateCircuitBreaker(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				c := &circuitBreakerStore{
-					handler:      tt.fields.handler,
-					ruleLock:     tt.fields.ruleLock,
-					relationLock: tt.fields.relationLock,
+					handler: tt.fields.handler,
 				}
 				err := c.CreateCircuitBreaker(tt.args.cb)
 				if (err != nil) != tt.wantErr {
@@ -236,9 +266,7 @@ func Test_circuitBreakerStore_TagCircuitBreaker(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				c := &circuitBreakerStore{
-					handler:      tt.fields.handler,
-					ruleLock:     tt.fields.ruleLock,
-					relationLock: tt.fields.relationLock,
+					handler: tt.fields.handler,
 				}
 
 				old := createTestCircuitbreaker(tt.args.cb.ID, false)
@@ -308,9 +336,7 @@ func Test_circuitBreakerStore_ReleaseCircuitBreaker(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				c := &circuitBreakerStore{
-					handler:      tt.fields.handler,
-					ruleLock:     tt.fields.ruleLock,
-					relationLock: tt.fields.relationLock,
+					handler: tt.fields.handler,
 				}
 
 				cb := createTestCircuitbreaker(tt.args.cbr.RuleID, false)
@@ -325,7 +351,7 @@ func Test_circuitBreakerStore_ReleaseCircuitBreaker(t *testing.T) {
 					t.Errorf("circuitBreakerStore.ReleaseCircuitBreaker() error = %v, wantErr %v", err, tt.wantErr)
 				}
 
-				result, err := handler.LoadValues(DataTypeCircuitBreakerRelation, []string{tt.args.cbr.ServiceID}, &model.CircuitBreakerRelation{})
+				result, err := handler.LoadValues(tblCircuitBreakerRelation, []string{tt.args.cbr.ServiceID}, &model.CircuitBreakerRelation{})
 
 				if err != nil {
 					t.Fatal(err)
@@ -392,9 +418,7 @@ func Test_circuitBreakerStore_UnbindCircuitBreaker(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				c := &circuitBreakerStore{
-					handler:      tt.fields.handler,
-					ruleLock:     tt.fields.ruleLock,
-					relationLock: tt.fields.relationLock,
+					handler: tt.fields.handler,
 				}
 
 				cb := createTestCircuitbreaker(tCbR.RuleID, false)
@@ -411,7 +435,7 @@ func Test_circuitBreakerStore_UnbindCircuitBreaker(t *testing.T) {
 					t.Errorf("circuitBreakerStore.UnbindCircuitBreaker() error = %v, wantErr %v", err, tt.wantErr)
 				}
 
-				result, err := handler.LoadValues(DataTypeCircuitBreakerRelation, []string{tt.args.serviceID}, &model.CircuitBreakerRelation{})
+				result, err := handler.LoadValues(tblCircuitBreakerRelation, []string{tt.args.serviceID}, &model.CircuitBreakerRelation{})
 
 				if err != nil {
 					t.Fatal(err)
@@ -463,9 +487,7 @@ func Test_circuitBreakerStore_DeleteTagCircuitBreaker(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				c := &circuitBreakerStore{
-					handler:      tt.fields.handler,
-					ruleLock:     tt.fields.ruleLock,
-					relationLock: tt.fields.relationLock,
+					handler: tt.fields.handler,
 				}
 
 				if err := c.CreateCircuitBreaker(cb); err != nil {
@@ -522,9 +544,7 @@ func Test_circuitBreakerStore_UpdateCircuitBreaker(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				c := &circuitBreakerStore{
-					handler:      tt.fields.handler,
-					ruleLock:     tt.fields.ruleLock,
-					relationLock: tt.fields.relationLock,
+					handler: tt.fields.handler,
 				}
 
 				old := createTestCircuitbreaker(tt.args.cb.ID, false)
@@ -571,9 +591,7 @@ func Test_circuitBreakerStore_GetCircuitBreaker(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &circuitBreakerStore{
-				handler:      tt.fields.handler,
-				ruleLock:     tt.fields.ruleLock,
-				relationLock: tt.fields.relationLock,
+				handler: tt.fields.handler,
 			}
 			got, err := c.GetCircuitBreaker(tt.args.id, tt.args.version)
 			if (err != nil) != tt.wantErr {
@@ -591,9 +609,7 @@ func Test_circuitBreakerStore_GetCircuitBreakerVersions(t *testing.T) {
 	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
 
 		c := &circuitBreakerStore{
-			handler:      handler,
-			ruleLock:     &sync.RWMutex{},
-			relationLock: &sync.RWMutex{},
+			handler: handler,
 		}
 
 		ids := []string{"id_1", "id_2", "id_3"}
@@ -682,9 +698,7 @@ func Test_circuitBreakerStore_GetCircuitBreakerVersions(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				c := &circuitBreakerStore{
-					handler:      tt.fields.handler,
-					ruleLock:     tt.fields.ruleLock,
-					relationLock: tt.fields.relationLock,
+					handler: tt.fields.handler,
 				}
 				got, err := c.GetCircuitBreakerVersions(tt.args.id)
 				if (err != nil) != tt.wantErr {
@@ -707,9 +721,7 @@ func Test_circuitBreakerStore_ListMasterCircuitBreakers(t *testing.T) {
 	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
 
 		c := &circuitBreakerStore{
-			handler:      handler,
-			ruleLock:     &sync.RWMutex{},
-			relationLock: &sync.RWMutex{},
+			handler: handler,
 		}
 
 		ids := []string{"id_1", "id_2", "id_3"}
@@ -817,9 +829,7 @@ func Test_circuitBreakerStore_ListMasterCircuitBreakers(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				c := &circuitBreakerStore{
-					handler:      tt.fields.handler,
-					ruleLock:     tt.fields.ruleLock,
-					relationLock: tt.fields.relationLock,
+					handler: tt.fields.handler,
 				}
 				got, err := c.ListMasterCircuitBreakers(tt.args.filters, tt.args.offset, tt.args.limit)
 				if (err != nil) != tt.wantErr {
@@ -862,9 +872,7 @@ func Test_circuitBreakerStore_ListReleaseCircuitBreakers(t *testing.T) {
 	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
 
 		c := &circuitBreakerStore{
-			handler:      handler,
-			ruleLock:     &sync.RWMutex{},
-			relationLock: &sync.RWMutex{},
+			handler: handler,
 		}
 
 		ids := []string{"id_1", "id_2", "id_3"}
@@ -931,9 +939,7 @@ func Test_circuitBreakerStore_ListReleaseCircuitBreakers(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				c := &circuitBreakerStore{
-					handler:      tt.fields.handler,
-					ruleLock:     tt.fields.ruleLock,
-					relationLock: tt.fields.relationLock,
+					handler: tt.fields.handler,
 				}
 				got, err := c.ListReleaseCircuitBreakers(tt.args.filters, tt.args.offset, tt.args.limit)
 				if (err != nil) != tt.wantErr {
@@ -952,9 +958,7 @@ func Test_circuitBreakerStore_GetCircuitBreakerForCache(t *testing.T) {
 
 	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
 		c := &circuitBreakerStore{
-			handler:      handler,
-			ruleLock:     &sync.RWMutex{},
-			relationLock: &sync.RWMutex{},
+			handler: handler,
 		}
 
 		tN := time.Now()
@@ -1047,9 +1051,7 @@ func Test_circuitBreakerStore_GetCircuitBreakerForCache(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				c := &circuitBreakerStore{
-					handler:      tt.fields.handler,
-					ruleLock:     tt.fields.ruleLock,
-					relationLock: tt.fields.relationLock,
+					handler: tt.fields.handler,
 				}
 				got, err := c.GetCircuitBreakerForCache(tt.args.mtime, tt.args.firstUpdate)
 				if (err != nil) != tt.wantErr {
@@ -1083,6 +1085,87 @@ func Test_circuitBreakerStore_GetCircuitBreakerForCache(t *testing.T) {
 
 				if !reflect.DeepEqual(got, tt.want) {
 					t.Errorf("circuitBreakerStore.GetCircuitBreakerForCache() = %v, want %v", got, tt.want)
+				}
+			})
+		}
+	})
+}
+
+func Test_circuitBreakerStore_GetCircuitBreakersByService(t *testing.T) {
+	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+		type fields struct {
+			handler BoltHandler
+		}
+		type args struct {
+			name      string
+			namespace string
+		}
+		tests := []struct {
+			name    string
+			fields  fields
+			args    args
+			want    *model.CircuitBreaker
+			wantErr bool
+		}{
+			{
+				name: "",
+				fields: fields{
+					handler: handler,
+				},
+				args: args{
+					name:      RandStringRunes(6),
+					namespace: RandStringRunes(10),
+				},
+				want:    createTestCircuitbreaker("", true),
+				wantErr: false,
+			},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				c := &circuitBreakerStore{
+					handler: tt.fields.handler,
+				}
+
+				s := &serviceStore{
+					handler: tt.fields.handler,
+				}
+
+				service := createTestService("", tt.args.name, tt.args.namespace, true)
+
+				// first, create one service
+				if err := s.AddService(service); err != nil {
+					t.Fatal(err)
+				}
+
+				// second, create circuitbreaker
+				if err := c.CreateCircuitBreaker(tt.want); err != nil {
+					t.Fatal(err)
+				}
+
+				// third, create circuitbreaker relation
+				crb := createTestCircuitbreakerRelation(tt.want.ID, false)
+				crb.ServiceID = service.ID
+				crb.RuleVersion = tt.want.Version
+
+				if err := c.releaseCircuitBreaker(crb); err != nil {
+					t.Fatal(err)
+				}
+
+				got, err := c.GetCircuitBreakersByService(tt.args.name, tt.args.namespace)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("circuitBreakerStore.GetCircuitBreakersByService() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+
+				tN := time.Now()
+				got.CreateTime = tN
+				got.ModifyTime = tN
+
+				tt.want.CreateTime = tN
+				tt.want.ModifyTime = tN
+
+				if !reflect.DeepEqual(got, tt.want) {
+					t.Errorf("circuitBreakerStore.GetCircuitBreakersByService() = %v, want %v", got, tt.want)
 				}
 			})
 		}

@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	DataTypeBusiness string = "business"
+	tblBusiness string = "business"
 )
 
 type businessStore struct {
@@ -40,7 +40,7 @@ type businessStore struct {
 // AddBusiness 增加一个业务集
 func (bs *businessStore) AddBusiness(b *model.Business) error {
 	if b.ID == "" || b.Name == "" || b.Token == "" || b.Owner == "" {
-		log.Errorf("[Store][database] add business missing some params: %+v", b)
+		log.Errorf("[Store][business] add business missing some params: %+v", b)
 		return errors.New("Add Business missing some params")
 	}
 
@@ -57,13 +57,13 @@ func (bs *businessStore) AddBusiness(b *model.Business) error {
 	// first : check is exist
 	old, _ := bs.lockfreeGetBusinessByID(b.ID)
 	if old != nil {
-		log.Errorf("[Store][database] already exist when do add business : %#v", b)
+		log.Errorf("[Store][business] already exist when do add business : %#v", b)
 		return errors.New("Add Business Duplicate")
 	}
 
 	// second : save business
-	if err := dbOp.SaveValue(DataTypeBusiness, b.ID, b); err != nil {
-		log.Errorf("[Store][database] add business err : %s", err.Error())
+	if err := dbOp.SaveValue(tblBusiness, b.ID, b); err != nil {
+		log.Errorf("[Store][business] add business err : %s", err.Error())
 		return store.Error(err)
 	}
 
@@ -73,7 +73,7 @@ func (bs *businessStore) AddBusiness(b *model.Business) error {
 // DeleteBusiness 删除一个业务集
 func (bs *businessStore) DeleteBusiness(bid string) error {
 	if bid == "" {
-		log.Errorf("[Store][database] delete business missing id")
+		log.Errorf("[Store][business] delete business missing id")
 		return errors.New("Delete Business missing some params")
 	}
 
@@ -83,8 +83,8 @@ func (bs *businessStore) DeleteBusiness(bid string) error {
 	lock.Lock()
 	defer lock.Unlock()
 
-	if err := dbOp.DeleteValues(DataTypeBusiness, []string{bid}); err != nil {
-		log.Errorf("[Store][database] delete business err : %s", err.Error())
+	if err := dbOp.DeleteValues(tblBusiness, []string{bid}); err != nil {
+		log.Errorf("[Store][business] delete business err : %s", err.Error())
 		return store.Error(err)
 	}
 
@@ -94,7 +94,7 @@ func (bs *businessStore) DeleteBusiness(bid string) error {
 // UpdateBusiness 更新业务集
 func (bs *businessStore) UpdateBusiness(b *model.Business) error {
 	if b.ID == "" || b.Name == "" || b.Owner == "" {
-		log.Errorf("[Store][database] update business missing some params: %+v", b)
+		log.Errorf("[Store][business] update business missing some params: %+v", b)
 		return errors.New("Update Business missing some params")
 	}
 
@@ -106,8 +106,8 @@ func (bs *businessStore) UpdateBusiness(b *model.Business) error {
 	lock.Lock()
 	defer lock.Unlock()
 
-	if err := dbOp.SaveValue(DataTypeBusiness, b.ID, b); err != nil {
-		log.Errorf("[Store][database] add business err : %s", err.Error())
+	if err := dbOp.SaveValue(tblBusiness, b.ID, b); err != nil {
+		log.Errorf("[Store][business] add business err : %s", err.Error())
 		return store.Error(err)
 	}
 
@@ -121,14 +121,15 @@ func (bs *businessStore) UpdateBusinessToken(bid string, token string) error {
 		return errors.New("Update Business Token missing some params")
 	}
 
-	// first: get business by bid
-	b, err := bs.GetBusinessByID(bid)
-	if err != nil {
+	dbOp := bs.handler
+
+	if err := dbOp.UpdateValue(tblBusiness, bid, map[string]interface{}{
+		"Token": token,
+	}); err != nil {
 		return store.Error(err)
 	}
 
-	b.Token = token
-	return bs.UpdateBusiness(b)
+	return nil
 }
 
 // ListBusiness 查询owner下业务集
@@ -138,20 +139,31 @@ func (bs *businessStore) ListBusiness(owner string) ([]*model.Business, error) {
 		return nil, errors.New("List Business Mising param owner")
 	}
 
-	result, err := bs.listAllBusiness()
+	lock := bs.lock
+	lock.RLock()
+	defer lock.RUnlock()
+
+	dbOp := bs.handler
+
+	result, err := dbOp.LoadValuesByFilter(tblBusiness, []string{"Owner"}, &model.Business{}, func(m map[string]interface{}) bool {
+
+		mO, ok := m["Owner"]
+		if !ok {
+			return false
+		}
+
+		return strings.Contains(mO.(string), owner)
+	})
 	if err != nil {
-		return nil, err
+		log.Errorf("[Store][business] list business filter by Owner err : %s", err)
+		return nil, store.Error(err)
 	}
 
 	ans := make([]*model.Business, 0)
-
-	for i := range result {
-		record := result[i]
-		if strings.Contains(owner, record.Owner) {
-			ans = append(ans, record)
-		}
+	for _, v := range result {
+		record := v.(*model.Business)
+		ans = append(ans, record)
 	}
-
 	return ans, nil
 }
 
@@ -159,7 +171,7 @@ func (bs *businessStore) ListBusiness(owner string) ([]*model.Business, error) {
 func (bs *businessStore) GetBusinessByID(id string) (*model.Business, error) {
 
 	if id == "" {
-		log.Errorf("[Store][database] get business missing id")
+		log.Errorf("[Store][business] get business missing id")
 		return nil, errors.New("Get Business missing some params")
 	}
 
@@ -174,7 +186,7 @@ func (bs *businessStore) GetBusinessByID(id string) (*model.Business, error) {
 func (bs *businessStore) lockfreeGetBusinessByID(id string) (*model.Business, error) {
 	dbOp := bs.handler
 
-	result, err := dbOp.LoadValues(DataTypeBusiness, []string{id}, &model.Business{})
+	result, err := dbOp.LoadValues(tblBusiness, []string{id}, &model.Business{})
 	if err != nil {
 		return nil, store.Error(err)
 	}
@@ -189,22 +201,26 @@ func (bs *businessStore) lockfreeGetBusinessByID(id string) (*model.Business, er
 
 // GetMoreBusiness 根据mtime获取增量数据
 func (bs *businessStore) GetMoreBusiness(mtime time.Time) ([]*model.Business, error) {
-	result, err := bs.listAllBusiness()
+	lock := bs.lock
+	lock.RLock()
+	defer lock.RUnlock()
+
+	dbOp := bs.handler
+
+	result, err := dbOp.LoadValuesByFilter(tblBusiness, []string{"ModifyTime"}, &model.Business{}, func(m map[string]interface{}) bool {
+		mT := m["ModifyTime"].(time.Time)
+		return mT.After(mtime)
+	})
 	if err != nil {
-		return nil, err
+		log.Errorf("[Store][business] list business filter by mtime err : %s", err)
+		return nil, store.Error(err)
 	}
 
 	ans := make([]*model.Business, 0)
-
-	for i := range result {
-		record := result[i]
-		if record.ModifyTime.Before(mtime) {
-			continue
-		}
-
+	for _, v := range result {
+		record := v.(*model.Business)
 		ans = append(ans, record)
 	}
-
 	return ans, nil
 }
 
@@ -216,9 +232,7 @@ func (bs *businessStore) listAllBusiness() ([]*model.Business, error) {
 
 	dbOp := bs.handler
 
-	result, err := dbOp.LoadValuesByFilter(DataTypeBusiness, []string{}, &model.Business{}, func(m map[string]interface{}) bool {
-		return true
-	})
+	result, err := dbOp.LoadValues(tblBusiness, []string{}, &model.Business{})
 	if err != nil {
 		log.Errorf("[Store][business] list business by owner err : %s", err)
 		return nil, store.Error(err)

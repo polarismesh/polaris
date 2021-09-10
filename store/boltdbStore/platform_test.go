@@ -85,7 +85,6 @@ func Test_platformStore_CreatePlatform(t *testing.T) {
 
 		type fields struct {
 			handler BoltHandler
-			lock    *sync.RWMutex
 		}
 		type args struct {
 			platform *model.Platform
@@ -101,7 +100,6 @@ func Test_platformStore_CreatePlatform(t *testing.T) {
 				name: "platform_test_1",
 				fields: fields{
 					handler: handler,
-					lock:    &sync.RWMutex{},
 				},
 				args: args{
 					platform: createTestPlatform(platformId, false),
@@ -112,7 +110,6 @@ func Test_platformStore_CreatePlatform(t *testing.T) {
 				name: "platform_test_2",
 				fields: fields{
 					handler: handler,
-					lock:    &sync.RWMutex{},
 				},
 				args: args{
 					platform: createTestPlatform("", false),
@@ -126,7 +123,6 @@ func Test_platformStore_CreatePlatform(t *testing.T) {
 				name: "platform_test_3",
 				fields: fields{
 					handler: handler,
-					lock:    &sync.RWMutex{},
 				},
 				args: args{
 					platform: createTestPlatform(platformId, false),
@@ -141,7 +137,6 @@ func Test_platformStore_CreatePlatform(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				p := &platformStore{
 					handler: tt.fields.handler,
-					lock:    tt.fields.lock,
 				}
 				err := p.CreatePlatform(tt.args.platform)
 				if (err != nil) != tt.wantErr {
@@ -167,7 +162,6 @@ func Test_platformStore_UpdatePlatform(t *testing.T) {
 
 		p := &platformStore{
 			handler: handler,
-			lock:    &sync.RWMutex{},
 		}
 
 		if err := p.CreatePlatform(createTestPlatform(platformId, false)); err != nil {
@@ -191,7 +185,6 @@ func Test_platformStore_UpdatePlatform(t *testing.T) {
 				name: "platform_test_1",
 				fields: fields{
 					handler: handler,
-					lock:    &sync.RWMutex{},
 				},
 				args: args{
 					platform: platforms[0],
@@ -202,7 +195,6 @@ func Test_platformStore_UpdatePlatform(t *testing.T) {
 				name: "platform_test_2",
 				fields: fields{
 					handler: handler,
-					lock:    &sync.RWMutex{},
 				},
 				args: args{
 					platform: platforms[1],
@@ -213,7 +205,6 @@ func Test_platformStore_UpdatePlatform(t *testing.T) {
 				name: "platform_test_3",
 				fields: fields{
 					handler: handler,
-					lock:    &sync.RWMutex{},
 				},
 				args: args{
 					platform: platforms[2],
@@ -225,7 +216,6 @@ func Test_platformStore_UpdatePlatform(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				p := &platformStore{
 					handler: tt.fields.handler,
-					lock:    tt.fields.lock,
 				}
 				if err := p.UpdatePlatform(tt.args.platform); (err != nil) != tt.wantErr {
 					t.Errorf("platformStore.UpdatePlatform() error = %v, wantErr %v", err, tt.wantErr)
@@ -254,7 +244,6 @@ func Test_platformStore_DeletePlatform(t *testing.T) {
 	CreatePlatformDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
 		p := &platformStore{
 			handler: handler,
-			lock:    &sync.RWMutex{},
 		}
 
 		platform := createTestPlatform(uuid.NewString(), false)
@@ -283,7 +272,6 @@ func Test_platformStore_GetPlatforms(t *testing.T) {
 
 		p := &platformStore{
 			handler: handler,
-			lock:    &sync.RWMutex{},
 		}
 
 		platNames := []string{"polaris_1", "polaris_2", "polaris_3"}
@@ -337,7 +325,6 @@ func Test_platformStore_GetPlatforms(t *testing.T) {
 				name: "",
 				fields: fields{
 					handler: handler,
-					lock:    &sync.RWMutex{},
 				},
 				args: args{
 					query: map[string]string{
@@ -354,7 +341,6 @@ func Test_platformStore_GetPlatforms(t *testing.T) {
 				name: "",
 				fields: fields{
 					handler: handler,
-					lock:    &sync.RWMutex{},
 				},
 				args: args{
 					query: map[string]string{
@@ -372,7 +358,6 @@ func Test_platformStore_GetPlatforms(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				p := &platformStore{
 					handler: tt.fields.handler,
-					lock:    tt.fields.lock,
 				}
 				got, got1, err := p.GetPlatforms(tt.args.query, tt.args.offset, tt.args.limit)
 				if (err != nil) != tt.wantErr {
