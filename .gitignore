@@ -10,3 +10,5 @@ statis
 
 *.swp
 *.code-workspace
+
+.vscode/*

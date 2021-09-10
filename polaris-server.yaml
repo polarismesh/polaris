@@ -72,10 +72,10 @@ naming:
   # 健康检查
   healthcheck:
     open: true
-    #    kvConnNum: 50
-    #    kvServiceName: polarisHeartbeatCkv
-    #    kvNamespace: Polaris
-    #    kvPasswd: polaris@2021
+#    kvConnNum: 50
+#    kvServiceName: polarisHeartbeatCkv
+#    kvNamespace: Polaris
+#    kvPasswd: polaris@2021
     slotNum: 30
     maxIdle: 20
     idleTimeout: 120
@@ -111,18 +111,18 @@ cache:
     - name: l5 # 加载l5数据
 # 存储配置
 store:
-  name: boltdbStore
-  # option:
-  #   master:
-  #     dbType: mysql
-  #     dbUser: ##DB_USER##
-  #     dbPwd: ##DB_PWD##
-  #     dbAddr: ##DB_ADDR##
-  #     dbName: ##DB_NAME##
-  #     maxOpenConns: -1
-  #     maxIdleConns: -1
-  #     connMaxLifetime: 300 # 单位秒
-  #     txIsolationLevel: 2 #LevelReadCommitted
+  name: defaultStore
+  option:
+    master:
+      dbType: mysql
+      dbUser: ##DB_USER##
+      dbPwd: ##DB_PWD##
+      dbAddr: ##DB_ADDR##
+      dbName: ##DB_NAME##
+      maxOpenConns: -1
+      maxIdleConns: -1
+      connMaxLifetime: 300 # 单位秒
+      txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置
 plugin:
   history:
