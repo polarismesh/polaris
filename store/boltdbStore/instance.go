@@ -33,6 +33,12 @@ type instanceStore struct {
 	handler BoltHandler
 }
 
+const (
+	insFieldProto = "Proto"
+	insFieldServiceID = "ServiceID"
+	insFieldModifyTime = "ModifyTime"
+)
+
 // AddInstance add an instance
 func (i *instanceStore) AddInstance(instance *model.Instance) error {
 
@@ -82,7 +88,7 @@ func (i *instanceStore) BatchAddInstances(instances []*model.Instance) error {
 func (i *instanceStore) UpdateInstance(instance *model.Instance) error {
 
 	properties := make(map[string]interface{})
-	properties["Proto"] = instance.Proto
+	properties[insFieldProto] = instance.Proto
 
 	if err := i.handler.UpdateValue(InstanceStoreType, instance.ID(), properties); err != nil{
 		log.Errorf("update instance to kv error, %v", err)
@@ -139,7 +145,7 @@ func (i *instanceStore) CheckInstancesExisted(ids map[string]bool) (map[string]b
 		return nil, nil
 	}
 
-	err := i.handler.IterateFields(InstanceStoreType, "Proto", &model.Instance{}, func(ins interface{}){
+	err := i.handler.IterateFields(InstanceStoreType, insFieldProto, &model.Instance{}, func(ins interface{}){
 		instance := ins.(*api.Instance)
 
 		_, ok := ids[instance.GetId().GetValue()]
@@ -163,17 +169,21 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 		return nil, nil
 	}
 
-	fields := []string{"Proto"}
+	fields := []string{insFieldProto}
 
 	// find all instances with given ids
 	inss, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, &model.Instance{},
 		func(m map[string]interface{}) bool{
-			id := m["Proto"].(*api.Instance).GetId().GetValue()
-			_, ok := ids[id]
-			if ok {
-				return true
+			insProto, ok := m[insFieldProto]
+			if !ok {
+				return false
 			}
-			return false
+			id := insProto.(*api.Instance).GetId().GetValue()
+			_, ok = ids[id]
+			if !ok {
+				return false
+			}
+			return true
 		})
 	if err != nil {
 		log.Errorf("load instance error, %v", err)
@@ -187,11 +197,15 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 		serviceIDs[serviceID] = true
 	}
 
-	fields = []string{"ID"}
+	fields = []string{SvcFieldID}
 	services, err := i.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
 		func(m map[string]interface{}) bool{
-			id := m["ID"].(string)
-			_, ok := serviceIDs[id]
+			svcId, ok := m[SvcFieldID]
+			if !ok {
+				return false
+			}
+			id := svcId.(string)
+			_, ok = serviceIDs[id]
 			if !ok {
 				return false
 			}
@@ -229,11 +243,15 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 // GetInstance Query the details of an instance
 func (i *instanceStore) GetInstance(instanceID string) (*model.Instance, error) {
 
-	fields := []string{"Proto"}
+	fields := []string{insFieldProto}
 
 	ins, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, &model.Instance{},
 		func(m map[string]interface{}) bool{
-			id := m["Proto"].(*api.Instance).GetId().GetValue()
+			insProto, ok := m[insFieldProto]
+			if !ok {
+				return false
+			}
+			id := insProto.(*api.Instance).GetId().GetValue()
 			if id == instanceID {
 				return true
 			}
@@ -263,12 +281,21 @@ func (i *instanceStore) GetInstancesCount() (uint32, error) {
 func (i *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*model.Instance, error) {
 
 	// select by service_id and host
-	fields := []string{"ServiceID", "Proto"}
+	fields := []string{insFieldServiceID, insFieldProto}
 
 	instances, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, &model.Instance{},
 		func(m map[string]interface{}) bool{
-			svcId := m["ServiceID"].(string)
-			h := m["Proto"].(*api.Instance).GetHost().GetValue()
+			sId, ok := m[insFieldServiceID]
+			if !ok {
+				return false
+			}
+			insProto, ok := m[insFieldProto]
+			if !ok {
+				return false
+			}
+
+			svcId := sId.(string)
+			h := insProto.(*api.Instance).GetHost().GetValue()
 			if svcId != serviceID {
 				return false
 			}
@@ -292,11 +319,15 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 		return 0, make([]*model.Instance, 0), nil
 	}
 
-	fields := []string{"Proto"}
+	fields := []string{insFieldProto}
 
 	instances, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, &model.Instance{},
 	func(m map[string]interface{}) bool{
-		ins := m["Proto"].(*api.Instance)
+		insProto, ok := m[insFieldProto]
+		if !ok {
+			return false
+		}
+		ins := insProto.(*api.Instance)
 		namespace, isNamespace := filter["namespace"]
 		service, isService := filter["service"]
 		host, isHost := filter["host"]
@@ -361,7 +392,7 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 func (i *instanceStore) GetMoreInstances(
 	mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (map[string]*model.Instance, error) {
 
-	fields := []string{"Proto", "ServiceID"}
+	fields := []string{insFieldProto, insFieldServiceID}
 	svcIdMap := make(map[string]bool)
 	for _, s := range serviceID {
 		svcIdMap[s] = true
@@ -369,8 +400,16 @@ func (i *instanceStore) GetMoreInstances(
 
 	instances, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, &model.Instance{},
 		func(m map[string]interface{}) bool{
-			ins := m["Proto"].(*api.Instance)
-			serviceId := m["ServiceID"].(string)
+			insProto, ok := m[insFieldProto]
+			if !ok {
+				return false
+			}
+			svcId, ok := m[insFieldServiceID]
+			if !ok {
+				return false
+			}
+			ins := insProto.(*api.Instance)
+			serviceId := svcId.(string)
 
 			insMtime, err := time.Parse("2006-01-02 15:04:05", ins.GetMtime().GetValue())
 			if err != nil {
@@ -382,7 +421,7 @@ func (i *instanceStore) GetMoreInstances(
 				return false
 			}
 
-			_, ok := svcIdMap[serviceId]
+			_, ok = svcIdMap[serviceId]
 			if !ok {
 				return false
 			}
@@ -402,11 +441,15 @@ func (i *instanceStore) GetMoreInstances(
 func (i *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, revision string) error {
 
 	// get instance
-	fields := []string{"Proto"}
+	fields := []string{insFieldProto}
 
 	instances, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, &model.Instance{},
 		func(m map[string]interface{}) bool{
-			insId := m["Proto"].(*api.Instance).GetId().GetValue()
+			insProto, ok := m[insFieldProto]
+			if !ok {
+				return false
+			}
+			insId := insProto.(*api.Instance).GetId().GetValue()
 
 			if insId != instanceID {
 				return false
@@ -436,7 +479,7 @@ func (i *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, rev
 	ins.Proto.Revision.Value = revision
 
 	properties := make(map[string]interface{})
-	err = i.handler.UpdateValue(InstanceStoreType, "Proto", properties)
+	err = i.handler.UpdateValue(InstanceStoreType, insFieldProto, properties)
 	if err != nil {
 		log.Errorf("update instance error %v", err)
 		return err
@@ -459,7 +502,7 @@ func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, 
 		isolateStatus = true
 	}
 
-	fields := []string{"Proto"}
+	fields := []string{insFieldProto}
 
 	// get all instance by given ids
 	instances, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, &model.Instance{},
@@ -489,7 +532,7 @@ func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, 
 		instance.Revision.Value = revision
 
 		properties := make(map[string]interface{})
-		properties["Proto"] = instance
+		properties[insFieldProto] = instance
 		err = i.handler.UpdateValue(InstanceStoreType, id, properties)
 		if err != nil {
 			log.Errorf("update instance in set instance isolate error, %v", err)

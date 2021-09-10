@@ -22,7 +22,6 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -31,7 +30,14 @@ type routingStore struct {
 	handler BoltHandler
 }
 
-const routingStoreType = "routing"
+const (
+	routingStoreType = "routing"
+	routingFieldID = "ID"
+	routingFieldInBounds = "InBounds"
+	routingFieldOutBounds = "OutBounds"
+	routingFieldRevision = "Revision"
+	routingFieldModifyTime = "ModifyTime"
+)
 
 // CreateRoutingConfig Add a routing configuration
 func (r *routingStore) CreateRoutingConfig(conf *model.RoutingConfig) error {
@@ -65,9 +71,9 @@ func (r *routingStore) UpdateRoutingConfig(conf *model.RoutingConfig) error {
 	}
 
 	properties := make(map[string]interface{})
-	properties["InBounds"] = conf.InBounds
-	properties["OutBounds"] = conf.OutBounds
-	properties["Revision"] = conf.Revision
+	properties[routingFieldInBounds] = conf.InBounds
+	properties[routingFieldOutBounds] = conf.OutBounds
+	properties[routingFieldRevision] = conf.Revision
 
 	err := r.handler.UpdateValue(routingStoreType, conf.ID, properties)
 	if err != nil {
@@ -96,15 +102,15 @@ func (r *routingStore) DeleteRoutingConfig(serviceID string) error {
 // GetRoutingConfigsForCache Get incremental routing configuration information through mtime
 func (r *routingStore) GetRoutingConfigsForCache(mtime time.Time, firstUpdate bool) ([]*model.RoutingConfig, error) {
 
-	fields := []string{"ModifyTime"}
+	fields := []string{routingFieldModifyTime}
 
 	routes, err := r.handler.LoadValuesByFilter(routingStoreType, fields, &model.RoutingConfig{},
 		func(m map[string]interface{}) bool{
-			routeMtime, err := time.Parse("2006-01-02 15:04:05", m["ModifyTime"].(string))
-			if err != nil {
-				log.Errorf("parse route conf time error, %v", err)
+			rMtime, ok := m[routingFieldModifyTime]
+			if !ok {
 				return false
 			}
+			routeMtime := rMtime.(time.Time)
 			if routeMtime.Before(mtime) {
 				return false
 			}
@@ -142,10 +148,10 @@ func (r *routingStore) GetRoutingConfigWithID(id string) (*model.RoutingConfig, 
 }
 
 func (r *routingStore) getWithID(id string) (*model.RoutingConfig, error) {
-	fields := []string{"ID"}
+	fields := []string{routingFieldID}
 	routeConf, err := r.handler.LoadValuesByFilter(routingStoreType, fields, &model.RoutingConfig{},
 		func(m map[string]interface{}) bool{
-			if id != m["ID"].(string) {
+			if id != m[routingFieldID].(string) {
 				return false
 			}
 
@@ -168,26 +174,40 @@ func (r *routingStore) GetRoutingConfigs(
 	filter map[string]string, offset uint32, limit uint32) (uint32, []*model.ExtendRoutingConfig, error) {
 
 	// get all route config
-	fields := []string{"InBounds", "OutBounds", "Revision", "Valid"}
+	fields := []string{routingFieldInBounds, routingFieldOutBounds, routingFieldRevision}
 
 	inBounds, isInBounds := filter["inBounds"]
 	outBounds, isOutBounds := filter["outBounds"]
 	revision, isRevision := filter["revision"]
-	valid, isValid := filter["valid"]
 
 	routeConf, err := r.handler.LoadValuesByFilter(routingStoreType, fields, &model.RoutingConfig{},
 		func(m map[string]interface{}) bool{
-			if isInBounds && inBounds != m["InBounds"].(string) {
-				return false
+			if isInBounds {
+				rIn, ok := m[routingFieldInBounds]
+				if !ok {
+					return false
+				}
+				if inBounds != rIn.(string) {
+					return false
+				}
 			}
-			if isOutBounds && outBounds != m["outBounds"].(string) {
-				return false
+			if isOutBounds {
+				rOut, ok := m[routingFieldOutBounds]
+				if !ok {
+					return false
+				}
+				if outBounds != rOut.(string) {
+					return false
+				}
 			}
-			if isRevision && revision != m["revision"].(string) {
-				return false
-			}
-			if isValid && valid != strconv.FormatBool(m["valid"].(bool)) {
-				return false
+			if isRevision {
+				rRe, ok := m[routingFieldRevision]
+				if !ok {
+					return false
+				}
+				if revision != rRe.(string) {
+					return false
+				}
 			}
 			return true
 		})
@@ -206,16 +226,19 @@ func (r *routingStore) GetRoutingConfigs(
 		svcIds[k] = true
 	}
 
-	fields = []string{"ID"}
+	fields = []string{routingFieldID}
 
 	services, err := r.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
 		func(m map[string]interface{}) bool{
-			id := m["ID"].(string)
-			_, ok := svcIds[id]
+			rId, ok := m[routingFieldID]
 			if !ok {
 				return false
 			}
-
+			id := rId.(string)
+			_, ok = svcIds[id]
+			if !ok {
+				return false
+			}
 			return true
 		})
 
@@ -252,7 +275,7 @@ func getRealRouteConfList(routeConf []*model.ExtendRoutingConfig, offset, limit 
 	beginIndex := offset
 	endIndex := beginIndex + limit
 	totalCount := uint32(len(routeConf))
-	// 处理异常的 offset、 limit
+	// handle invalid offset, limit
 	if totalCount == 0 {
 		return routeConf
 	}

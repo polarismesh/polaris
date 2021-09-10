@@ -41,6 +41,20 @@ var (
 const (
 	ServiceStoreType = "service"
 	InstanceStoreType = "instance"
+
+	SvcFieldID = "ID"
+	SvcFieldName = "Name"
+	SvcFieldNamespace = "Namespace"
+	SvcFieldBusiness = "Business"
+	SvcFieldPorts = "Ports"
+	SvcFieldMeta = "Meta"
+	SvcFieldComment = "Comment"
+	SvcFieldDepartment = "Department"
+	SvcFieldModifyTime = "ModifyTime"
+	SvcFieldToken = "Token"
+	SvcFieldOwner = "Owner"
+	SvcFieldRevision = "Revision"
+	SvcFieldReference = "Reference"
 )
 
 // AddService save a service
@@ -94,13 +108,13 @@ func (ss *serviceStore) UpdateServiceAlias(alias *model.Service, needUpdateOwner
 	}
 
 	properties := make(map[string]interface{})
-	properties["ID"] = alias.ID
-	properties["Name"] = alias.Name
-	properties["Namespace"] = alias.Namespace
-	properties["Token"] = alias.Token
-	properties["Owner"] = alias.Owner
-	properties["Revision"] = alias.Revision
-	properties["Reference"] = alias.Reference
+	properties[SvcFieldID] = alias.ID
+	properties[SvcFieldName] = alias.Name
+	properties[SvcFieldNamespace] = alias.Namespace
+	properties[SvcFieldToken] = alias.Token
+	properties[SvcFieldOwner] = alias.Owner
+	properties[SvcFieldRevision] = alias.Revision
+	properties[SvcFieldReference] = alias.Reference
 
 	err := ss.handler.UpdateValue(ServiceStoreType, alias.ID, properties)
 
@@ -115,12 +129,12 @@ func (ss *serviceStore) UpdateService(service *model.Service, needUpdateOwner bo
 	}
 
 	properties := make(map[string]interface{})
-	properties["ID"] = service.ID
-	properties["Name"] = service.Name
-	properties["Namespace"] = service.Namespace
-	properties["Token"] = service.Token
-	properties["Owner"] = service.Owner
-	properties["Revision"] = service.Revision
+	properties[SvcFieldID] = service.ID
+	properties[svcFieldName] = service.Name
+	properties[svcFieldNamespace] = service.Namespace
+	properties[SvcFieldToken] = service.Token
+	properties[SvcFieldOwner] = service.Owner
+	properties[SvcFieldRevision] = service.Revision
 
 	err := ss.handler.UpdateValue(ServiceStoreType, service.ID, properties)
 
@@ -135,8 +149,8 @@ func (ss *serviceStore) UpdateService(service *model.Service, needUpdateOwner bo
 func (ss *serviceStore) UpdateServiceToken(serviceID string, token string, revision string) error {
 
 	properties := make(map[string]interface{})
-	properties["Token"] = token
-	properties["Revision"] = revision
+	properties[SvcFieldToken] = token
+	properties[SvcFieldRevision] = revision
 
 	err := ss.handler.UpdateValue(ServiceStoreType, serviceID, properties)
 
@@ -218,24 +232,29 @@ func (ss *serviceStore) GetServicesCount() (uint32, error) {
 func (ss *serviceStore) GetMoreServices(
 	mtime time.Time, firstUpdate, disableBusiness, needMeta bool) (map[string]*model.Service, error) {
 
-	fields := []string{"ModifyTime"}
+	fields := []string{SvcFieldModifyTime}
 	if disableBusiness {
-		fields = append(fields, "Namespace")
+		fields = append(fields, SvcFieldNamespace)
 	}
 	
 	services, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
 	func(m map[string]interface{}) bool{
 		if disableBusiness {
-			if m["Namespace"].(string) != defaultStore.SystemNamespace {
+			serviceNs, ok := m[SvcFieldNamespace]
+			if !ok {
+				return false
+			}
+			if serviceNs.(string) != defaultStore.SystemNamespace {
 				return false
 			}
 		}
 
-		serviceMtime, err := time.Parse("2006-01-02 15:04:05", m["ModifyTime"].(string))
-		if err != nil {
-			log.Errorf("parse time in get more service error, %v", err)
+		svcMTime, ok := m[SvcFieldModifyTime]
+		if !ok {
 			return false
 		}
+
+		serviceMtime := svcMTime.(time.Time)
 		if serviceMtime.Before(mtime) {
 			return false
 		}
@@ -262,7 +281,7 @@ func (ss *serviceStore) GetServiceAliases(
 	var totalCount uint32
 
 	// find all alias service with filters
-	fields := []string{"Reference", "Meta", "Department", "Business"}
+	fields := []string{SvcFieldReference, SvcFieldMeta, SvcFieldDepartment, SvcFieldBusiness}
 	for k, _ := range filter {
 		fields = append(fields, k)
 	}
@@ -271,7 +290,11 @@ func (ss *serviceStore) GetServiceAliases(
 	services, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
 	func(m map[string]interface{}) bool{
 		// judge whether it is alias by whether there is a reference
-		if m["Reference"].(string) == "" {
+		reference, err := m[SvcFieldReference]
+		if !err {
+			return false
+		}
+		if reference.(string) == "" {
 			return false
 		}
 
@@ -282,12 +305,22 @@ func (ss *serviceStore) GetServiceAliases(
 		business, isBusiness := filter["business"]
 
 		// filter by other
-		if isName && m["Name"].(string) != name {
-			return false
+		if isName {
+			svcName, ok := m[SvcFieldName]
+			if !ok {
+				return false
+			}
+			if svcName.(string) != name {
+				return false
+			}
 		}
 
 		if isKeys {
-			metaValue, ok := m["Meta"].(map[string]string)[keys]
+			svcMeta, ok := m[SvcFieldMeta]
+			if !ok {
+				return false
+			}
+			metaValue, ok := svcMeta.(map[string]string)[keys]
 			if !ok {
 				return false
 			}
@@ -296,13 +329,25 @@ func (ss *serviceStore) GetServiceAliases(
 			}
 		}
 
-		if isDepartment && department != m["Department"].(string) {
-			return false
+		if isDepartment {
+			svcDepartment, ok := m[SvcFieldDepartment]
+			if !ok {
+				return false
+			}
+			if department != svcDepartment.(string) {
+				return false
+			}
 		}
-		if isBusiness && business != m["Business"].(string) {
-			return false
+		if isBusiness && business != m[SvcFieldBusiness].(string) {
+			svcBusiness, ok := m[SvcFieldBusiness]
+			if !ok {
+				return false
+			}
+			if business != svcBusiness.(string) {
+				return false
+			}
 		}
-		referenceService[m["Reference"].(string)] = true
+		referenceService[m[SvcFieldReference].(string)] = true
 		return true
 	})
 	if err != nil {
@@ -316,11 +361,11 @@ func (ss *serviceStore) GetServiceAliases(
 	totalCount = uint32(len(services))
 
 	// find source service for every alias
-	fields = []string{"ID"}
+	fields = []string{SvcFieldID}
 
 	refServices, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
 	func(m map[string]interface{}) bool{
-		_, ok := referenceService[m["ID"].(string)]
+		_, ok := referenceService[m[SvcFieldID].(string)]
 		if !ok {
 			return false
 		}
@@ -352,11 +397,15 @@ func (ss *serviceStore) GetServiceAliases(
 // GetSystemServices get system services
 func (ss *serviceStore) GetSystemServices() ([]*model.Service, error) {
 
-	fields := []string{"Namespace"}
+	fields := []string{SvcFieldNamespace}
 
 	services, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
 	func(m map[string]interface{}) bool{
-		if m["Namespace"].(string) == defaultStore.SystemNamespace {
+		svcNamespace, ok := m[SvcFieldNamespace]
+		if !ok {
+			return false
+		}
+		if svcNamespace.(string) == defaultStore.SystemNamespace {
 			return true
 		}
 		return false
@@ -369,10 +418,14 @@ func (ss *serviceStore) GetSystemServices() ([]*model.Service, error) {
 	return getRealServicesList(services, 0, uint32(len(services))), nil
 }
 
-// GetServicesBatch get service id, person in charge and other information in batch
+// GetServicesBatch get service id and other information in batch
 func (ss *serviceStore) GetServicesBatch(services []*model.Service) ([]*model.Service, error) {
 
-	fields := []string{"Name", "Namespace"}
+	if len(services) == 0 {
+		return nil, nil
+	}
+
+	fields := []string{SvcFieldName, SvcFieldNamespace}
 
 	serviceInfo := make(map[string]string)
 
@@ -382,12 +435,24 @@ func (ss *serviceStore) GetServicesBatch(services []*model.Service) ([]*model.Se
 
 	svcs, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
 		func(m map[string]interface{}) bool{
-			name := m["Name"].(string)
-			namespace := m["Namespace"].(string)
-			for s, n := range serviceInfo {
-				if name != s || n != namespace {
-					return false
-				}
+
+			svcName, ok := m[SvcFieldName]
+			if !ok {
+				return false
+			}
+			svcNs, ok := m[SvcFieldNamespace]
+			if !ok {
+				return false
+			}
+
+			name := svcName.(string)
+			namespace := svcNs.(string)
+			ns, ok := serviceInfo[name]
+			if !ok {
+				return false
+			}
+			if ns != namespace {
+				return false
 			}
 			return true
 		})
@@ -404,11 +469,21 @@ func GetServiceByNameAndNs(name string, namespace string,
 	handler BoltHandler) (*model.Service, error) {
 	var out *model.Service
 
-	fields := []string{"Name", "Namespace"}
+	fields := []string{SvcFieldName, SvcFieldNamespace}
 
 	svc, err := handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
 		func(m map[string]interface{}) bool{
-			if m["Name"].(string) == name && m["Namespace"].(string) == namespace {
+
+			svcName, ok := m[SvcFieldName]
+			if !ok {
+				return false
+			}
+			svcNs, ok := m[SvcFieldNamespace]
+			if !ok {
+				return false
+			}
+
+			if svcName.(string) == name && svcNs.(string) == namespace {
 				return true
 			}
 			return false
@@ -433,11 +508,15 @@ func GetServiceByNameAndNs(name string, namespace string,
 func (ss *serviceStore) getServiceByID(id string) (*model.Service, error) {
 	var out *model.Service
 
-	fields := []string{"ID"}
+	fields := []string{SvcFieldID}
 
 	svc, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
 		func(m map[string]interface{}) bool{
-			if m["ID"].(string) == id {
+			svcId, ok := m[SvcFieldID]
+			if !ok {
+				return false
+			}
+			if svcId.(string) == id {
 				return true
 			}
 			return false
@@ -473,11 +552,15 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 		}
 
 		// get the filtered list of serviceIDs from instanceFilters
-		filter := []string{"Proto"}
+		filter := []string{insFieldProto}
 
 		inss, err := ss.handler.LoadValuesByFilter(InstanceStoreType, filter, &model.Instance{},
 			func(m map[string]interface{}) bool{
-				ins := m["Proto"].(*api.Instance)
+				insPorto, ok := m[insFieldProto]
+				if !ok {
+					return false
+				}
+				ins := insPorto.(*api.Instance)
 				insHost := ins.GetHost().GetValue()
 				insPort := ins.GetPort().GetValue()
 
@@ -516,9 +599,9 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 		}
 	}
 
-	fields := []string{"Name", "Meta", "Department", "Business"}
+	fields := []string{SvcFieldName, SvcFieldMeta, SvcFieldDepartment, SvcFieldBusiness}
 	if len(insFiltersIds) > 0 {
-		fields = append(fields, "ID")
+		fields = append(fields, SvcFieldID)
 	}
 
 	name, isName := serviceFilters["name"]
@@ -531,18 +614,32 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 	func(m map[string]interface{}) bool{
 		// filter by id
 		if len(insFiltersIds) > 0 {
-			_, ok := insFiltersIds[m["ID"].(string)]
+			svcId, ok := m[SvcFieldID]
+			if !ok {
+				return false
+			}
+			_, ok = insFiltersIds[svcId.(string)]
 			if !ok {
 				return false
 			}
 		}
 		// filter by other
-		if isName && m["Name"].(string) != name {
-			return false
+		if isName {
+			svcName, ok := m[SvcFieldName]
+			if !ok {
+				return false
+			}
+			if svcName.(string) != name {
+				return false
+			}
 		}
 
 		if isKeys {
-			metaValue, ok := m["Meta"].(map[string]string)[keys]
+			svcMeta, ok := m[SvcFieldMeta]
+			if !ok {
+				return false
+			}
+			metaValue, ok := svcMeta.(map[string]string)[keys]
 			if !ok {
 				return false
 			}
@@ -551,11 +648,23 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 			}
 		}
 
-		if isDepartment && department != m["Department"].(string) {
-			return false
+		if isDepartment && department != m[SvcFieldDepartment].(string) {
+			svcDepartment, ok := m[SvcFieldDepartment]
+			if !ok {
+				return false
+			}
+			if svcDepartment.(string) != department {
+				return false
+			}
 		}
-		if isBusiness && business != m["Business"].(string) {
-			return false
+		if isBusiness && business != m[SvcFieldBusiness].(string) {
+			svcBusiness, ok := m[SvcFieldBusiness]
+			if !ok {
+				return false
+			}
+			if svcBusiness.(string) != business {
+				return false
+			}
 		}
 
 		return true
