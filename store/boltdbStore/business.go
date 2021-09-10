@@ -20,7 +20,6 @@ package boltdbStore
 import (
 	"errors"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/log"
@@ -34,7 +33,6 @@ const (
 
 type businessStore struct {
 	handler BoltHandler
-	lock    *sync.RWMutex
 }
 
 // AddBusiness 增加一个业务集
@@ -50,18 +48,6 @@ func (bs *businessStore) AddBusiness(b *model.Business) error {
 	b.CreateTime = tNow
 	b.ModifyTime = tNow
 
-	lock := bs.lock
-	lock.Lock()
-	defer lock.Unlock()
-
-	// first : check is exist
-	old, _ := bs.lockfreeGetBusinessByID(b.ID)
-	if old != nil {
-		log.Errorf("[Store][business] already exist when do add business : %#v", b)
-		return errors.New("Add Business Duplicate")
-	}
-
-	// second : save business
 	if err := dbOp.SaveValue(tblBusiness, b.ID, b); err != nil {
 		log.Errorf("[Store][business] add business err : %s", err.Error())
 		return store.Error(err)
@@ -78,10 +64,6 @@ func (bs *businessStore) DeleteBusiness(bid string) error {
 	}
 
 	dbOp := bs.handler
-
-	lock := bs.lock
-	lock.Lock()
-	defer lock.Unlock()
 
 	if err := dbOp.DeleteValues(tblBusiness, []string{bid}); err != nil {
 		log.Errorf("[Store][business] delete business err : %s", err.Error())
@@ -101,10 +83,6 @@ func (bs *businessStore) UpdateBusiness(b *model.Business) error {
 	dbOp := bs.handler
 
 	b.ModifyTime = time.Now()
-
-	lock := bs.lock
-	lock.Lock()
-	defer lock.Unlock()
 
 	if err := dbOp.SaveValue(tblBusiness, b.ID, b); err != nil {
 		log.Errorf("[Store][business] add business err : %s", err.Error())
@@ -139,10 +117,6 @@ func (bs *businessStore) ListBusiness(owner string) ([]*model.Business, error) {
 		return nil, errors.New("List Business Mising param owner")
 	}
 
-	lock := bs.lock
-	lock.RLock()
-	defer lock.RUnlock()
-
 	dbOp := bs.handler
 
 	result, err := dbOp.LoadValuesByFilter(tblBusiness, []string{"Owner"}, &model.Business{}, func(m map[string]interface{}) bool {
@@ -174,16 +148,6 @@ func (bs *businessStore) GetBusinessByID(id string) (*model.Business, error) {
 		log.Errorf("[Store][business] get business missing id")
 		return nil, errors.New("Get Business missing some params")
 	}
-
-	lock := bs.lock
-	lock.RLock()
-	defer lock.RUnlock()
-
-	return bs.lockfreeGetBusinessByID(id)
-}
-
-// lockfreeGetBusinessByID 根据业务集ID获取业务集详情
-func (bs *businessStore) lockfreeGetBusinessByID(id string) (*model.Business, error) {
 	dbOp := bs.handler
 
 	result, err := dbOp.LoadValues(tblBusiness, []string{id}, &model.Business{})
@@ -201,9 +165,6 @@ func (bs *businessStore) lockfreeGetBusinessByID(id string) (*model.Business, er
 
 // GetMoreBusiness 根据mtime获取增量数据
 func (bs *businessStore) GetMoreBusiness(mtime time.Time) ([]*model.Business, error) {
-	lock := bs.lock
-	lock.RLock()
-	defer lock.RUnlock()
 
 	dbOp := bs.handler
 
@@ -226,9 +187,6 @@ func (bs *businessStore) GetMoreBusiness(mtime time.Time) ([]*model.Business, er
 
 // listAllBusiness 列出所有的 Business 信息
 func (bs *businessStore) listAllBusiness() ([]*model.Business, error) {
-	lock := bs.lock
-	lock.RLock()
-	defer lock.RUnlock()
 
 	dbOp := bs.handler
 

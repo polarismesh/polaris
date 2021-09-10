@@ -23,7 +23,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -81,7 +80,6 @@ func Test_businessStore_AddBusiness(t *testing.T) {
 
 		type fields struct {
 			handler BoltHandler
-			lock    *sync.RWMutex
 		}
 		type args struct {
 			b *model.Business
@@ -96,7 +94,6 @@ func Test_businessStore_AddBusiness(t *testing.T) {
 				name: "",
 				fields: fields{
 					handler: handler,
-					lock:    &sync.RWMutex{},
 				},
 				args: args{
 					b: createTestBusiness(bID, false),
@@ -108,7 +105,6 @@ func Test_businessStore_AddBusiness(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				bs := &businessStore{
 					handler: tt.fields.handler,
-					lock:    tt.fields.lock,
 				}
 				if err := bs.AddBusiness(tt.args.b); (err != nil) != tt.wantErr {
 					t.Errorf("businessStore.AddBusiness() error = %v, wantErr %v", err, tt.wantErr)
@@ -126,7 +122,6 @@ func Test_businessStore_DeleteBusiness(t *testing.T) {
 
 		type fields struct {
 			handler BoltHandler
-			lock    *sync.RWMutex
 		}
 		type args struct {
 			bid string
@@ -141,7 +136,6 @@ func Test_businessStore_DeleteBusiness(t *testing.T) {
 				name: "",
 				fields: fields{
 					handler: handler,
-					lock:    &sync.RWMutex{},
 				},
 				args: args{
 					bid: bId,
@@ -153,7 +147,6 @@ func Test_businessStore_DeleteBusiness(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				bs := &businessStore{
 					handler: tt.fields.handler,
-					lock:    tt.fields.lock,
 				}
 
 				if err := bs.AddBusiness(createTestBusiness(bId, false)); err != nil {
@@ -184,7 +177,6 @@ func Test_businessStore_UpdateBusiness(t *testing.T) {
 
 		bs := &businessStore{
 			handler: handler,
-			lock:    &sync.RWMutex{},
 		}
 
 		old := createTestBusiness(bId, false)
@@ -195,7 +187,6 @@ func Test_businessStore_UpdateBusiness(t *testing.T) {
 
 		type fields struct {
 			handler BoltHandler
-			lock    *sync.RWMutex
 		}
 		type args struct {
 			b *model.Business
@@ -210,7 +201,6 @@ func Test_businessStore_UpdateBusiness(t *testing.T) {
 				name: "",
 				fields: fields{
 					handler: handler,
-					lock:    &sync.RWMutex{},
 				},
 				args: args{
 					b: createTestBusiness(bId, false),
@@ -222,7 +212,6 @@ func Test_businessStore_UpdateBusiness(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				bs := &businessStore{
 					handler: tt.fields.handler,
-					lock:    tt.fields.lock,
 				}
 				if err := bs.UpdateBusiness(tt.args.b); (err != nil) != tt.wantErr {
 					t.Errorf("businessStore.UpdateBusiness() error = %v, wantErr %v", err, tt.wantErr)
@@ -254,7 +243,6 @@ func Test_businessStore_UpdateBusinessToken(t *testing.T) {
 
 		bs := &businessStore{
 			handler: handler,
-			lock:    &sync.RWMutex{},
 		}
 
 		old := createTestBusiness(bId, false)
@@ -265,7 +253,6 @@ func Test_businessStore_UpdateBusinessToken(t *testing.T) {
 
 		type fields struct {
 			handler BoltHandler
-			lock    *sync.RWMutex
 		}
 		type args struct {
 			bid   string
@@ -281,7 +268,6 @@ func Test_businessStore_UpdateBusinessToken(t *testing.T) {
 				name: "",
 				fields: fields{
 					handler: handler,
-					lock:    &sync.RWMutex{},
 				},
 				args: args{
 					bid:   bId,
@@ -294,7 +280,6 @@ func Test_businessStore_UpdateBusinessToken(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				bs := &businessStore{
 					handler: tt.fields.handler,
-					lock:    tt.fields.lock,
 				}
 				if err := bs.UpdateBusinessToken(tt.args.bid, tt.args.token); (err != nil) != tt.wantErr {
 					t.Errorf("businessStore.UpdateBusinessToken() error = %v, wantErr %v", err, tt.wantErr)
@@ -317,7 +302,6 @@ func Test_businessStore_ListBusiness(t *testing.T) {
 	CreateBusinessDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
 		bs := &businessStore{
 			handler: handler,
-			lock:    &sync.RWMutex{},
 		}
 
 		owners := []string{"polaris_1", "test_2", "my_3"}
@@ -346,7 +330,6 @@ func Test_businessStore_ListBusiness(t *testing.T) {
 
 		type fields struct {
 			handler BoltHandler
-			lock    *sync.RWMutex
 		}
 		type args struct {
 			owner string
@@ -362,7 +345,6 @@ func Test_businessStore_ListBusiness(t *testing.T) {
 				name: "",
 				fields: fields{
 					handler: handler,
-					lock:    &sync.RWMutex{},
 				},
 				args: args{
 					owner: owners[0],
@@ -374,7 +356,6 @@ func Test_businessStore_ListBusiness(t *testing.T) {
 				name: "",
 				fields: fields{
 					handler: handler,
-					lock:    &sync.RWMutex{},
 				},
 				args: args{
 					owner: owners[1],
@@ -386,7 +367,6 @@ func Test_businessStore_ListBusiness(t *testing.T) {
 				name: "",
 				fields: fields{
 					handler: handler,
-					lock:    &sync.RWMutex{},
 				},
 				args: args{
 					owner: owners[2],
@@ -399,7 +379,6 @@ func Test_businessStore_ListBusiness(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				bs := &businessStore{
 					handler: tt.fields.handler,
-					lock:    tt.fields.lock,
 				}
 				got, err := bs.ListBusiness(tt.args.owner)
 				if (err != nil) != tt.wantErr {
@@ -442,7 +421,6 @@ func Test_businessStore_GetBusinessByID(t *testing.T) {
 
 		type fields struct {
 			handler BoltHandler
-			lock    *sync.RWMutex
 		}
 		type args struct {
 			id string
@@ -458,7 +436,6 @@ func Test_businessStore_GetBusinessByID(t *testing.T) {
 				name: "",
 				fields: fields{
 					handler: handler,
-					lock:    &sync.RWMutex{},
 				},
 				args: args{
 					id: bus.ID,
@@ -471,7 +448,6 @@ func Test_businessStore_GetBusinessByID(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				bs := &businessStore{
 					handler: tt.fields.handler,
-					lock:    tt.fields.lock,
 				}
 				got, err := bs.GetBusinessByID(tt.args.id)
 				if (err != nil) != tt.wantErr {
