@@ -20,28 +20,29 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	"github.com/polarismesh/polaris-server/apiserver"
 	"io"
 	"net"
 	"net/http"
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
+
+	"github.com/polarismesh/polaris-server/apiserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/naming"
 	"github.com/polarismesh/polaris-server/plugin"
-	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/peer"
 )
 
 /**
  * @brief GRPC API服务器
  */
-type Grpcserver struct {
+type GRPCServer struct {
 	listenIP        string
 	listenPort      uint32
 	connLimitConfig *connlimit.Config
@@ -61,21 +62,21 @@ type Grpcserver struct {
 /**
  * @brief 获取端口
  */
-func (g *Grpcserver) GetPort() uint32 {
+func (g *GRPCServer) GetPort() uint32 {
 	return g.listenPort
 }
 
 /**
  * @brief 获取Server的协议
  */
-func (g *Grpcserver) GetProtocol() string {
+func (g *GRPCServer) GetProtocol() string {
 	return "grpc"
 }
 
 /**
- * @brief 初始化GRPC API服务器
+ * Initialize 初始化GRPC API服务器
  */
-func (g *Grpcserver) Initialize(ctx context.Context, option map[string]interface{},
+func (g *GRPCServer) Initialize(_ context.Context, option map[string]interface{},
 	api map[string]apiserver.APIConfig) error {
 	g.listenIP = option["listenIP"].(string)
 	g.listenPort = uint32(option["listenPort"].(int))
@@ -88,9 +89,9 @@ func (g *Grpcserver) Initialize(ctx context.Context, option map[string]interface
 		}
 		g.connLimitConfig = connConfig
 	}
-	if ratelimit := plugin.GetRatelimit(); ratelimit != nil {
+	if rateLimit := plugin.GetRatelimit(); rateLimit != nil {
 		log.Infof("grpc server open the ratelimit")
-		g.ratelimit = ratelimit
+		g.ratelimit = rateLimit
 	}
 
 	return nil
@@ -99,7 +100,7 @@ func (g *Grpcserver) Initialize(ctx context.Context, option map[string]interface
 /**
  * @brief 启动GRPC API服务器
  */
-func (g *Grpcserver) Run(errCh chan error) {
+func (g *GRPCServer) Run(errCh chan error) {
 	log.Infof("start grpcserver")
 	g.exitCh = make(chan struct{})
 	g.start = true
@@ -174,7 +175,7 @@ func (g *Grpcserver) Run(errCh chan error) {
 }
 
 // 关闭GRPC
-func (g *Grpcserver) Stop() {
+func (g *GRPCServer) Stop() {
 	connlimit.RemoteLimitListener(g.GetProtocol())
 	if g.server != nil {
 		g.server.Stop()
@@ -182,7 +183,7 @@ func (g *Grpcserver) Stop() {
 }
 
 // restart
-func (g *Grpcserver) Restart(option map[string]interface{}, api map[string]apiserver.APIConfig,
+func (g *GRPCServer) Restart(option map[string]interface{}, api map[string]apiserver.APIConfig,
 	errCh chan error) error {
 	log.Infof("restart grpc server with new config: %+v", option)
 
@@ -306,9 +307,9 @@ func newVirtualStream(ctx context.Context, method string, stream grpc.ServerStre
 }
 
 /**
- * @brief 在接收和回复请求时统一处理
+ * unaryInterceptor 在接收和回复请求时统一处理
  */
-func (g *Grpcserver) unaryInterceptor(ctx context.Context, req interface{},
+func (g *GRPCServer) unaryInterceptor(ctx context.Context, req interface{},
 	info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (rsp interface{}, err error) {
 
 	stream := newVirtualStream(ctx, info.FullMethod, nil, g.preprocess, g.postprocess)
@@ -325,7 +326,7 @@ func (g *Grpcserver) unaryInterceptor(ctx context.Context, req interface{},
 		}
 
 		// handler执行前，限流
-		if code := g.enterRatelimit(stream.ClientIP, stream.Method); code != api.ExecuteSuccess {
+		if code := g.enterRateLimit(stream.ClientIP, stream.Method); code != api.ExecuteSuccess {
 			rsp = api.NewResponse(code)
 			return
 		}
@@ -338,9 +339,9 @@ func (g *Grpcserver) unaryInterceptor(ctx context.Context, req interface{},
 }
 
 /**
- * @brief 在接收和回复请求时统一处理
+ * streamInterceptor 在接收和回复请求时统一处理
  */
-func (g *Grpcserver) streamInterceptor(srv interface{}, ss grpc.ServerStream,
+func (g *GRPCServer) streamInterceptor(srv interface{}, ss grpc.ServerStream,
 	info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
 
 	stream := newVirtualStream(ss.Context(), info.FullMethod, ss, g.preprocess, g.postprocess)
@@ -366,7 +367,7 @@ type PreProcessFunc func(stream *VirtualStream, isPrint bool) error
 /**
  * @brief 请求预处理
  */
-func (g *Grpcserver) preprocess(stream *VirtualStream, isPrint bool) error {
+func (g *GRPCServer) preprocess(stream *VirtualStream, isPrint bool) error {
 	// 设置开始时间
 	stream.StartTime = time.Now()
 
@@ -389,7 +390,7 @@ type PostProcessFunc func(stream *VirtualStream, m interface{})
 /**
  * @brief 请求后处理
  */
-func (g *Grpcserver) postprocess(stream *VirtualStream, m interface{}) {
+func (g *GRPCServer) postprocess(stream *VirtualStream, m interface{}) {
 	response := m.(api.ResponseMessage)
 	code := api.CalcCode(response)
 
@@ -422,18 +423,18 @@ func (g *Grpcserver) postprocess(stream *VirtualStream, m interface{}) {
 }
 
 // 限流
-func (g *Grpcserver) enterRatelimit(ip string, method string) uint32 {
+func (g *GRPCServer) enterRateLimit(ip string, method string) uint32 {
 	if g.ratelimit == nil {
 		return api.ExecuteSuccess
 	}
 
-	//ipRatelimit
+	// ip ratelimit
 	if ok := g.ratelimit.Allow(plugin.IPRatelimit, ip); !ok {
 		log.Error("[grpc] ip ratelimit is not allow", zap.String("client-ip", ip),
 			zap.String("method", method))
 		return api.IPRateLimit
 	}
-	// apiRatelimit
+	// api ratelimit
 	if ok := g.ratelimit.Allow(plugin.APIRatelimit, method); !ok {
 		log.Error("[grpc] api rate limit is not allow", zap.String("client-ip", ip),
 			zap.String("method", method))
@@ -444,7 +445,7 @@ func (g *Grpcserver) enterRatelimit(ip string, method string) uint32 {
 }
 
 // 限制访问
-func (g *Grpcserver) allowAccess(method string) bool {
+func (g *GRPCServer) allowAccess(method string) bool {
 	_, ok := g.openMethod[method]
 	return ok
 }

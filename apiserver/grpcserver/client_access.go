@@ -20,6 +20,9 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"io"
+	"strings"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
@@ -27,14 +30,12 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
-	"io"
-	"strings"
 )
 
 /**
  * @brief 客户端上报
  */
-func (g *Grpcserver) ReportClient(ctx context.Context, in *api.Client) (*api.Response, error) {
+func (g *GRPCServer) ReportClient(ctx context.Context, in *api.Client) (*api.Response, error) {
 	out := g.namingServer.ReportClient(convertContext(ctx), in)
 	return out, nil
 }
@@ -42,7 +43,7 @@ func (g *Grpcserver) ReportClient(ctx context.Context, in *api.Client) (*api.Res
 /**
  * @brief 注册服务实例
  */
-func (g *Grpcserver) RegisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
+func (g *GRPCServer) RegisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
 	rCtx := convertContext(ctx)
 	operator := ParseGrpcOperator(ctx)
@@ -54,7 +55,7 @@ func (g *Grpcserver) RegisterInstance(ctx context.Context, in *api.Instance) (*a
 /**
  * @brief 反注册服务实例
  */
-func (g *Grpcserver) DeregisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
+func (g *GRPCServer) DeregisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
 	rCtx := convertContext(ctx)
 	operator := ParseGrpcOperator(ctx)
@@ -66,7 +67,7 @@ func (g *Grpcserver) DeregisterInstance(ctx context.Context, in *api.Instance) (
 /**
  * @brief 统一发现接口
  */
-func (g *Grpcserver) Discover(server api.PolarisGRPC_DiscoverServer) error {
+func (g *GRPCServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
 	ctx := convertContext(server.Context())
 	clientIP, _ := ctx.Value(utils.StringContext("client-ip")).(string)
 	clientAddress, _ := ctx.Value(utils.StringContext("client-address")).(string)
@@ -102,7 +103,7 @@ func (g *Grpcserver) Discover(server api.PolarisGRPC_DiscoverServer) error {
 		}
 
 		// stream模式，需要对每个包进行检测
-		if code := g.enterRatelimit(clientIP, method); code != api.ExecuteSuccess {
+		if code := g.enterRateLimit(clientIP, method); code != api.ExecuteSuccess {
 			resp := api.NewDiscoverResponse(code)
 			if err = server.Send(resp); err != nil {
 				return err
@@ -136,7 +137,7 @@ func (g *Grpcserver) Discover(server api.PolarisGRPC_DiscoverServer) error {
 /**
  * @brief 上报心跳
  */
-func (g *Grpcserver) Heartbeat(ctx context.Context, in *api.Instance) (*api.Response, error) {
+func (g *GRPCServer) Heartbeat(ctx context.Context, in *api.Instance) (*api.Response, error) {
 	out := g.namingServer.Heartbeat(convertContext(ctx), in)
 	return out, nil
 }
