@@ -128,8 +128,13 @@ func (r *routingStore) GetRoutingConfigsForCache(mtime time.Time, firstUpdate bo
 // GetRoutingConfigWithService Get routing configuration based on service name and namespace
 func (r *routingStore) GetRoutingConfigWithService(name string, namespace string) (*model.RoutingConfig, error) {
 
+	dbOp := r.handler
+	ss := &serviceStore{
+		handler: dbOp,
+	}
+
 	// get service first
-	service, err := GetServiceByNameAndNs(name, name, r.handler)
+	service, err := ss.getServiceByNameAndNs(name, name)
 	if err != nil {
 		log.Errorf("[Store][boltdb] get service in route conf error, %v", err)
 		return nil, err

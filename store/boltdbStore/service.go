@@ -82,7 +82,7 @@ func (ss *serviceStore) DeleteServiceAlias(name string, namespace string) error 
 		return store.NewStatusError(store.EmptyParamsErr, "delete Service alias missing some params")
 	}
 
-	svc, err := GetServiceByNameAndNs(name, namespace, ss.handler)
+	svc, err := ss.getServiceByNameAndNs(name, namespace)
 	if err != nil {
 		log.Errorf("[Store][boltdb] get service alias error, %v", err)
 		return err
@@ -158,7 +158,7 @@ func (ss *serviceStore) UpdateServiceToken(serviceID string, token string, revis
 // GetSourceServiceToken get source service token
 func (ss *serviceStore) GetSourceServiceToken(name string, namespace string) (*model.Service, error) {
 	var out model.Service
-	s, err := GetServiceByNameAndNs(name, namespace, ss.handler)
+	s, err := ss.getServiceByNameAndNs(name, namespace)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil, nil
@@ -176,7 +176,7 @@ func (ss *serviceStore) GetSourceServiceToken(name string, namespace string) (*m
 
 // GetService get service details based on service name and namespace
 func (ss *serviceStore) GetService(name string, namespace string) (*model.Service, error) {
-	s, err := GetServiceByNameAndNs(name, namespace, ss.handler)
+	s, err := ss.getServiceByNameAndNs(name, namespace)
 
 	if err != nil{
 		return nil, err
@@ -463,13 +463,12 @@ func (ss *serviceStore) GetServicesBatch(services []*model.Service) ([]*model.Se
 }
 
 
-func GetServiceByNameAndNs(name string, namespace string,
-	handler BoltHandler) (*model.Service, error) {
+func (ss *serviceStore) getServiceByNameAndNs(name string, namespace string) (*model.Service, error) {
 	var out *model.Service
 
 	fields := []string{SvcFieldName, SvcFieldNamespace}
 
-	svc, err := handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
+	svc, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool{
 
 			svcName, ok := m[SvcFieldName]
