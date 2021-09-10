@@ -116,7 +116,7 @@ After all, run ./p.sh, prompt Polaris Server, proof the installation is successf
 #### Verify installation
 
 ````shell script
-curl http://127.0.0.1:8080
+curl http://127.0.0.1:8090
 ```` 
 Return text is 'Polaris Server', proof features run smoothly 
 

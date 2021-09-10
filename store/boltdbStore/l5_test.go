@@ -15,15 +15,30 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package grpcserver
+package boltdbStore
 
 import (
-	"github.com/polarismesh/polaris-server/apiserver"
+	"fmt"
+	"testing"
 )
 
-/**
- * @brief 自注册到API服务器插槽
- */
-func init() {
-	_ = apiserver.Register("grpcserver", &GRPCServer{})
+func TestL5Store_GenNextL5Sid(t *testing.T) {
+	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
+	if nil != err {
+		t.Fatal(err)
+	}
+	defer handler.Close()
+
+	l5store := &l5Store{handler: handler}
+
+	if err = l5store.InitL5Data(); nil != err {
+		t.Fatal(err)
+	}
+	for i := 0; i < 10; i++ {
+		sid, err := l5store.GenNextL5Sid(uint32(i + 1) % 6)
+		if nil != err {
+			t.Fatal(err)
+		}
+		fmt.Printf("sid %d is %s\n", i, sid)
+	}
 }

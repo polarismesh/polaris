@@ -20,15 +20,15 @@ package l5pbserver
 import (
 	"context"
 	"fmt"
-	"github.com/polarismesh/polaris-server/apiserver"
-	"github.com/polarismesh/polaris-server/plugin"
-	"go.uber.org/zap"
 	"net"
 	"time"
 
+	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/common/api/l5"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/naming"
+	"github.com/polarismesh/polaris-server/plugin"
+	"go.uber.org/zap"
 )
 
 const (
@@ -78,8 +78,8 @@ func (l *L5pbserver) GetProtocol() string {
 /**
  * @brief 初始化CL5 API服务器
  */
-func (l *L5pbserver) Initialize(ctx context.Context, option map[string]interface{},
-	api map[string]apiserver.APIConfig) error {
+func (l *L5pbserver) Initialize(_ context.Context, option map[string]interface{},
+	_ map[string]apiserver.APIConfig) error {
 	l.listenIP = option["listenIP"].(string)
 	l.listenPort = uint32(option["listenPort"].(int))
 	// 获取当前集群
@@ -122,7 +122,7 @@ func (l *L5pbserver) Run(errCh chan error) {
 			errCh <- err
 			return
 		}
-		//log.Infof("new connect: %v", conn.RemoteAddr())
+		// log.Infof("new connect: %v", conn.RemoteAddr())
 		go l.handleConnection(conn)
 	}
 }
@@ -135,8 +135,8 @@ func (l *L5pbserver) Stop() {
 }
 
 // restart server
-func (l *L5pbserver) Restart(option map[string]interface{}, api map[string]apiserver.APIConfig,
-	errCh chan error) error {
+func (l *L5pbserver) Restart(_ map[string]interface{}, _ map[string]apiserver.APIConfig,
+	_ chan error) error {
 	return nil
 }
 
