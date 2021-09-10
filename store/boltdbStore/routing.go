@@ -31,26 +31,26 @@ type routingStore struct {
 }
 
 const (
-	routingStoreType = "routing"
-	routingFieldID = "ID"
-	routingFieldInBounds = "InBounds"
-	routingFieldOutBounds = "OutBounds"
-	routingFieldRevision = "Revision"
+	tblNameRouting         = "routing"
+	routingFieldID         = "ID"
+	routingFieldInBounds   = "InBounds"
+	routingFieldOutBounds  = "OutBounds"
+	routingFieldRevision   = "Revision"
 	routingFieldModifyTime = "ModifyTime"
 )
 
 // CreateRoutingConfig Add a routing configuration
 func (r *routingStore) CreateRoutingConfig(conf *model.RoutingConfig) error {
 	if conf.ID == "" || conf.Revision == "" {
-		log.Errorf("[Store][database] create routing config missing service id or revision")
+		log.Errorf("[Store][boltdb] create routing config missing service id or revision")
 		return store.NewStatusError(store.EmptyParamsErr, "missing service id or revision")
 	}
 	if conf.InBounds == "" || conf.OutBounds == "" {
-		log.Errorf("[Store][database] create routing config missing params")
+		log.Errorf("[Store][boltdb] create routing config missing params")
 		return store.NewStatusError(store.EmptyParamsErr, "missing some params")
 	}
 
-	err := r.handler.SaveValue(routingStoreType, conf.ID, conf)
+	err := r.handler.SaveValue(tblNameRouting, conf.ID, conf)
 	if err != nil {
 		log.Errorf("add routing config to kv error, %v", err)
 		return err
@@ -62,11 +62,11 @@ func (r *routingStore) CreateRoutingConfig(conf *model.RoutingConfig) error {
 func (r *routingStore) UpdateRoutingConfig(conf *model.RoutingConfig) error {
 
 	if conf.ID == "" || conf.Revision == "" {
-		log.Errorf("[Store][database] update routing config missing service id or revision")
+		log.Errorf("[Store][boltdb] update routing config missing service id or revision")
 		return store.NewStatusError(store.EmptyParamsErr, "missing service id or revision")
 	}
 	if conf.InBounds == "" || conf.OutBounds == "" {
-		log.Errorf("[Store][database] update routing config missing params")
+		log.Errorf("[Store][boltdb] update routing config missing params")
 		return store.NewStatusError(store.EmptyParamsErr, "missing some params")
 	}
 
@@ -75,9 +75,9 @@ func (r *routingStore) UpdateRoutingConfig(conf *model.RoutingConfig) error {
 	properties[routingFieldOutBounds] = conf.OutBounds
 	properties[routingFieldRevision] = conf.Revision
 
-	err := r.handler.UpdateValue(routingStoreType, conf.ID, properties)
+	err := r.handler.UpdateValue(tblNameRouting, conf.ID, properties)
 	if err != nil {
-		log.Errorf("update route config to kv error, %v", err)
+		log.Errorf("[Store][boltdb] update route config to kv error, %v", err)
 		return err
 	}
 	return nil
@@ -86,13 +86,13 @@ func (r *routingStore) UpdateRoutingConfig(conf *model.RoutingConfig) error {
 // DeleteRoutingConfig Delete a routing configuration
 func (r *routingStore) DeleteRoutingConfig(serviceID string) error {
 	if serviceID == "" {
-		log.Errorf("[Store][database] delete routing config missing service id")
+		log.Errorf("[Store][boltdb] delete routing config missing service id")
 		return store.NewStatusError(store.EmptyParamsErr, "missing service id")
 	}
 
-	err := r.handler.DeleteValues(routingStoreType, []string{serviceID})
+	err := r.handler.DeleteValues(tblNameRouting, []string{serviceID})
 	if err != nil {
-		log.Errorf("delete route config to kv error, %v", err)
+		log.Errorf("[Store][boltdb] delete route config to kv error, %v", err)
 		return err
 	}
 
@@ -104,7 +104,7 @@ func (r *routingStore) GetRoutingConfigsForCache(mtime time.Time, firstUpdate bo
 
 	fields := []string{routingFieldModifyTime}
 
-	routes, err := r.handler.LoadValuesByFilter(routingStoreType, fields, &model.RoutingConfig{},
+	routes, err := r.handler.LoadValuesByFilter(tblNameRouting, fields, &model.RoutingConfig{},
 		func(m map[string]interface{}) bool{
 			rMtime, ok := m[routingFieldModifyTime]
 			if !ok {
@@ -118,7 +118,7 @@ func (r *routingStore) GetRoutingConfigsForCache(mtime time.Time, firstUpdate bo
 			return true
 		})
 	if err != nil {
-		log.Errorf("get route config from kv error, %v", err)
+		log.Errorf("[Store][boltdb] load route config from kv error, %v", err)
 		return nil, err
 	}
 
@@ -131,7 +131,7 @@ func (r *routingStore) GetRoutingConfigWithService(name string, namespace string
 	// get service first
 	service, err := GetServiceByNameAndNs(name, name, r.handler)
 	if err != nil {
-		log.Errorf("get service in route conf error, %v", err)
+		log.Errorf("[Store][boltdb] get service in route conf error, %v", err)
 		return nil, err
 	}
 
@@ -149,7 +149,7 @@ func (r *routingStore) GetRoutingConfigWithID(id string) (*model.RoutingConfig, 
 
 func (r *routingStore) getWithID(id string) (*model.RoutingConfig, error) {
 	fields := []string{routingFieldID}
-	routeConf, err := r.handler.LoadValuesByFilter(routingStoreType, fields, &model.RoutingConfig{},
+	routeConf, err := r.handler.LoadValuesByFilter(tblNameRouting, fields, &model.RoutingConfig{},
 		func(m map[string]interface{}) bool{
 			if id != m[routingFieldID].(string) {
 				return false
@@ -158,7 +158,7 @@ func (r *routingStore) getWithID(id string) (*model.RoutingConfig, error) {
 			return true
 		})
 	if err != nil {
-		log.Errorf("get route config from kv error, %v", err)
+		log.Errorf("[Store][boltdb] load route config from kv error, %v", err)
 		return nil, err
 	}
 
@@ -180,7 +180,7 @@ func (r *routingStore) GetRoutingConfigs(
 	outBounds, isOutBounds := filter["outBounds"]
 	revision, isRevision := filter["revision"]
 
-	routeConf, err := r.handler.LoadValuesByFilter(routingStoreType, fields, &model.RoutingConfig{},
+	routeConf, err := r.handler.LoadValuesByFilter(tblNameRouting, fields, &model.RoutingConfig{},
 		func(m map[string]interface{}) bool{
 			if isInBounds {
 				rIn, ok := m[routingFieldInBounds]
@@ -212,7 +212,7 @@ func (r *routingStore) GetRoutingConfigs(
 			return true
 		})
 	if err != nil {
-		log.Errorf("get route config from kv error, %v", err)
+		log.Errorf("[Store][boltdb] load route config from kv error, %v", err)
 		return 0, nil, err
 	}
 
@@ -228,7 +228,7 @@ func (r *routingStore) GetRoutingConfigs(
 
 	fields = []string{routingFieldID}
 
-	services, err := r.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
+	services, err := r.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool{
 			rId, ok := m[routingFieldID]
 			if !ok {
@@ -251,7 +251,7 @@ func (r *routingStore) GetRoutingConfigs(
 			temp.ServiceName = svc.Name
 			temp.NamespaceName = svc.Namespace
 		} else {
-			log.Warnf("get service in route conf error, service is nil, id: %s", id)
+			log.Warnf("[Store][boltdb] get service in route conf error, service is nil, id: %s", id)
 		}
 		temp.Config = r.(*model.RoutingConfig)
 

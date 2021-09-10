@@ -34,8 +34,9 @@ type instanceStore struct {
 }
 
 const (
-	insFieldProto = "Proto"
-	insFieldServiceID = "ServiceID"
+	tblNameInstance    = "instance"
+	insFieldProto      = "Proto"
+	insFieldServiceID  = "ServiceID"
 	insFieldModifyTime = "ModifyTime"
 )
 
@@ -43,13 +44,13 @@ const (
 func (i *instanceStore) AddInstance(instance *model.Instance) error {
 
 	// Before adding new data, you must clean up the old data
-	if err := i.handler.DeleteValues(InstanceStoreType, []string{instance.ID()}); err != nil {
-		log.Errorf("delete instance to kv error, %v", err)
+	if err := i.handler.DeleteValues(tblNameInstance, []string{instance.ID()}); err != nil {
+		log.Errorf("[Store][boltdb] delete instance to kv error, %v", err)
 		return err
 	}
 
-	if err := i.handler.SaveValue(InstanceStoreType, instance.ID(), instance); err != nil{
-		log.Errorf("save instance to kv error, %v", err)
+	if err := i.handler.SaveValue(tblNameInstance, instance.ID(), instance); err != nil{
+		log.Errorf("[Store][boltdb] save instance to kv error, %v", err)
 		return err
 	}
 
@@ -69,14 +70,14 @@ func (i *instanceStore) BatchAddInstances(instances []*model.Instance) error {
 	}
 
 	// clear old instances
-	if err := i.handler.DeleteValues(InstanceStoreType, insIds); err != nil{
-		log.Errorf("save instance to kv error, %v", err)
+	if err := i.handler.DeleteValues(tblNameInstance, insIds); err != nil{
+		log.Errorf("[Store][boltdb] save instance to kv error, %v", err)
 		return err
 	}
 
 	for _, instance := range instances {
-		if err := i.handler.SaveValue(InstanceStoreType, instance.ID(), instance); err != nil{
-			log.Errorf("save instance to kv error, %v", err)
+		if err := i.handler.SaveValue(tblNameInstance, instance.ID(), instance); err != nil{
+			log.Errorf("[Store][boltdb] save instance to kv error, %v", err)
 			return err
 		}
 	}
@@ -90,8 +91,8 @@ func (i *instanceStore) UpdateInstance(instance *model.Instance) error {
 	properties := make(map[string]interface{})
 	properties[insFieldProto] = instance.Proto
 
-	if err := i.handler.UpdateValue(InstanceStoreType, instance.ID(), properties); err != nil{
-		log.Errorf("update instance to kv error, %v", err)
+	if err := i.handler.UpdateValue(tblNameInstance, instance.ID(), properties); err != nil{
+		log.Errorf("[Store][boltdb] update instance to kv error, %v", err)
 		return err
 	}
 
@@ -101,8 +102,8 @@ func (i *instanceStore) UpdateInstance(instance *model.Instance) error {
 // DeleteInstance Delete an instance
 func (i *instanceStore) DeleteInstance(instanceID string) error {
 
-	if err := i.handler.DeleteValues(InstanceStoreType, []string{instanceID}); err != nil{
-		log.Errorf("update instance to kv error, %v", err)
+	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}); err != nil{
+		log.Errorf("[Store][boltdb] update instance to kv error, %v", err)
 		return err
 	}
 
@@ -122,8 +123,8 @@ func (i *instanceStore) BatchDeleteInstances(ids []interface{}) error {
 		realIds = append(realIds, id.(string))
 	}
 
-	if err := i.handler.DeleteValues(InstanceStoreType, realIds); err != nil{
-		log.Errorf("update instance to kv error, %v", err)
+	if err := i.handler.DeleteValues(tblNameInstance, realIds); err != nil{
+		log.Errorf("[Store][boltdb] update instance to kv error, %v", err)
 		return err
 	}
 	return nil
@@ -131,8 +132,8 @@ func (i *instanceStore) BatchDeleteInstances(ids []interface{}) error {
 
 // CleanInstance Delete an instance
 func (i *instanceStore) CleanInstance(instanceID string) error {
-	if err := i.handler.DeleteValues(InstanceStoreType, []string{instanceID}); err != nil{
-		log.Errorf("update instance to kv error, %v", err)
+	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}); err != nil{
+		log.Errorf("[Store][boltdb] update instance to kv error, %v", err)
 		return err
 	}
 	return nil
@@ -145,7 +146,7 @@ func (i *instanceStore) CheckInstancesExisted(ids map[string]bool) (map[string]b
 		return nil, nil
 	}
 
-	err := i.handler.IterateFields(InstanceStoreType, insFieldProto, &model.Instance{}, func(ins interface{}){
+	err := i.handler.IterateFields(tblNameInstance, insFieldProto, &model.Instance{}, func(ins interface{}){
 		instance := ins.(*api.Instance)
 
 		_, ok := ids[instance.GetId().GetValue()]
@@ -155,7 +156,7 @@ func (i *instanceStore) CheckInstancesExisted(ids map[string]bool) (map[string]b
 	})
 
 	if err != nil {
-		log.Errorf("list instance in kv error, %v", err)
+		log.Errorf("[Store][boltdb] list instance in kv error, %v", err)
 		return nil, err
 	}
 
@@ -172,7 +173,7 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 	fields := []string{insFieldProto}
 
 	// find all instances with given ids
-	inss, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, &model.Instance{},
+	inss, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool{
 			insProto, ok := m[insFieldProto]
 			if !ok {
@@ -186,7 +187,7 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 			return true
 		})
 	if err != nil {
-		log.Errorf("load instance error, %v", err)
+		log.Errorf("[Store][boltdb] load instance error, %v", err)
 		return nil, err
 	}
 
@@ -198,7 +199,7 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 	}
 
 	fields = []string{SvcFieldID}
-	services, err := i.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
+	services, err := i.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool{
 			svcId, ok := m[SvcFieldID]
 			if !ok {
@@ -222,7 +223,7 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 		tempIns := ins.(*model.Instance)
 		svc, ok := services[tempIns.ServiceID]
 		if !ok {
-			log.Errorf("can not find instance service , instanceId is %s", tempIns.ID())
+			log.Errorf("[Store][boltdb] can not find instance service , instanceId is %s", tempIns.ID())
 			return nil, errors.New("can not find instance service")
 		}
 		tempService := svc.(*model.Service)
@@ -245,7 +246,7 @@ func (i *instanceStore) GetInstance(instanceID string) (*model.Instance, error) 
 
 	fields := []string{insFieldProto}
 
-	ins, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, &model.Instance{},
+	ins, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool{
 			insProto, ok := m[insFieldProto]
 			if !ok {
@@ -258,7 +259,7 @@ func (i *instanceStore) GetInstance(instanceID string) (*model.Instance, error) 
 			return false
 		})
 	if err != nil {
-		log.Errorf("load instance from kv error, %v", err)
+		log.Errorf("[Store][boltdb] load instance from kv error, %v", err)
 		return nil, err
 	}
 	instance := ins[instanceID].(*model.Instance)
@@ -268,9 +269,9 @@ func (i *instanceStore) GetInstance(instanceID string) (*model.Instance, error) 
 // GetInstancesCount Get the total number of instances
 func (i *instanceStore) GetInstancesCount() (uint32, error) {
 
-	count, err := i.handler.CountValues(InstanceStoreType)
+	count, err := i.handler.CountValues(tblNameInstance)
 	if err != nil {
-		log.Errorf("get instance count error, %v", err)
+		log.Errorf("[Store][boltdb] get instance count error, %v", err)
 		return 0, err
 	}
 
@@ -283,7 +284,7 @@ func (i *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*mo
 	// select by service_id and host
 	fields := []string{insFieldServiceID, insFieldProto}
 
-	instances, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, &model.Instance{},
+	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool{
 			sId, ok := m[insFieldServiceID]
 			if !ok {
@@ -305,7 +306,7 @@ func (i *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*mo
 			return true
 		})
 	if err != nil {
-		log.Errorf("load instance from kv error, %v", err)
+		log.Errorf("[Store][boltdb] load instance from kv error, %v", err)
 		return nil, err
 	}
 
@@ -321,7 +322,7 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 
 	fields := []string{insFieldProto}
 
-	instances, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, &model.Instance{},
+	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 	func(m map[string]interface{}) bool{
 		insProto, ok := m[insFieldProto]
 		if !ok {
@@ -379,7 +380,7 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 		return true
 	})
 	if err != nil {
-		log.Errorf("load instance from kv error, %v", err)
+		log.Errorf("[Store][boltdb] load instance from kv error, %v", err)
 		return 0, nil, err
 	}
 
@@ -398,7 +399,7 @@ func (i *instanceStore) GetMoreInstances(
 		svcIdMap[s] = true
 	}
 
-	instances, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, &model.Instance{},
+	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool{
 			insProto, ok := m[insFieldProto]
 			if !ok {
@@ -413,7 +414,7 @@ func (i *instanceStore) GetMoreInstances(
 
 			insMtime, err := time.Parse("2006-01-02 15:04:05", ins.GetMtime().GetValue())
 			if err != nil {
-				log.Errorf("parse instance mtime error, %v", err)
+				log.Errorf("[Store][boltdb] parse instance mtime error, %v", err)
 				return false
 			}
 
@@ -430,7 +431,7 @@ func (i *instanceStore) GetMoreInstances(
 		})
 
 	if err != nil {
-		log.Errorf("load instance from kv error, %v", err)
+		log.Errorf("[Store][boltdb] load instance from kv error, %v", err)
 		return nil, err
 	}
 
@@ -443,7 +444,7 @@ func (i *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, rev
 	// get instance
 	fields := []string{insFieldProto}
 
-	instances, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, &model.Instance{},
+	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool{
 			insProto, ok := m[insFieldProto]
 			if !ok {
@@ -458,7 +459,7 @@ func (i *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, rev
 			return true
 		})
 	if err != nil {
-		log.Errorf("get instance from kv error, %v", err)
+		log.Errorf("[Store][boltdb] load instance from kv error, %v", err)
 		return err
 	}
 	if len(instances) == 0 {
@@ -479,9 +480,9 @@ func (i *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, rev
 	ins.Proto.Revision.Value = revision
 
 	properties := make(map[string]interface{})
-	err = i.handler.UpdateValue(InstanceStoreType, insFieldProto, properties)
+	err = i.handler.UpdateValue(tblNameInstance, insFieldProto, properties)
 	if err != nil {
-		log.Errorf("update instance error %v", err)
+		log.Errorf("[Store][boltdb] update instance error %v", err)
 		return err
 	}
 
@@ -505,11 +506,15 @@ func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, 
 	fields := []string{insFieldProto}
 
 	// get all instance by given ids
-	instances, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, &model.Instance{},
+	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool{
-			insId := m["Proto"].(*api.Instance).GetId().GetValue()
+			proto, ok := m[insFieldProto]
+			if !ok {
+				return false
+			}
+			insId := proto.(*api.Instance).GetId().GetValue()
 
-			_, ok := insIds[insId]
+			_, ok = insIds[insId]
 			if !ok {
 				return false
 			}
@@ -517,7 +522,7 @@ func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, 
 			return true
 		})
 	if err != nil {
-		log.Errorf("get instance from kv error, %v", err)
+		log.Errorf("[Store][boltdb] get instance from kv error, %v", err)
 		return err
 	}
 	if len(instances) == 0 {
@@ -533,9 +538,9 @@ func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, 
 
 		properties := make(map[string]interface{})
 		properties[insFieldProto] = instance
-		err = i.handler.UpdateValue(InstanceStoreType, id, properties)
+		err = i.handler.UpdateValue(tblNameInstance, id, properties)
 		if err != nil {
-			log.Errorf("update instance in set instance isolate error, %v", err)
+			log.Errorf("[Store][boltdb] update instance in set instance isolate error, %v", err)
 			return err
 		}
 	}

@@ -39,19 +39,17 @@ var (
 )
 
 const (
-	ServiceStoreType = "service"
-	InstanceStoreType = "instance"
-
-	SvcFieldID = "ID"
-	SvcFieldName = "Name"
-	SvcFieldNamespace = "Namespace"
-	SvcFieldBusiness = "Business"
-	SvcFieldPorts = "Ports"
-	SvcFieldMeta = "Meta"
-	SvcFieldComment = "Comment"
+	tblNameService     = "service"
+	SvcFieldID         = "ID"
+	SvcFieldName       = "Name"
+	SvcFieldNamespace  = "Namespace"
+	SvcFieldBusiness   = "Business"
+	SvcFieldPorts      = "Ports"
+	SvcFieldMeta       = "Meta"
+	SvcFieldComment    = "Comment"
 	SvcFieldDepartment = "Department"
 	SvcFieldModifyTime = "ModifyTime"
-	SvcFieldToken = "Token"
+	SvcFieldToken      = "Token"
 	SvcFieldOwner = "Owner"
 	SvcFieldRevision = "Revision"
 	SvcFieldReference = "Reference"
@@ -64,7 +62,7 @@ func (ss *serviceStore) AddService(s *model.Service) error {
 		return store.NewStatusError(store.EmptyParamsErr, "add Service missing some params")
 	}
 
-	err := ss.handler.SaveValue(ServiceStoreType, s.ID, s)
+	err := ss.handler.SaveValue(tblNameService, s.ID, s)
 
 	return store.Error(err)
 }
@@ -74,7 +72,7 @@ func (ss *serviceStore) DeleteService(id, serviceName, namespaceName string) err
 	if id == "" {
 		return store.NewStatusError(store.EmptyParamsErr, "delete Service missing some params")
 	}
-	err := ss.handler.DeleteValues(ServiceStoreType, []string{id})
+	err := ss.handler.DeleteValues(tblNameService, []string{id})
 	return store.Error(err)
 }
 
@@ -86,13 +84,13 @@ func (ss *serviceStore) DeleteServiceAlias(name string, namespace string) error 
 
 	svc, err := GetServiceByNameAndNs(name, namespace, ss.handler)
 	if err != nil {
-		log.Errorf("get service alias error, %v", err)
+		log.Errorf("[Store][boltdb] get service alias error, %v", err)
 		return err
 	}
 
-	err = ss.handler.DeleteValues(ServiceStoreType, []string{svc.ID})
+	err = ss.handler.DeleteValues(tblNameService, []string{svc.ID})
 	if err != nil  {
-		log.Errorf("delete service alias error, %v", err)
+		log.Errorf("[Store][boltdb] delete service alias error, %v", err)
 	}
 
 	return store.Error(err)
@@ -116,7 +114,7 @@ func (ss *serviceStore) UpdateServiceAlias(alias *model.Service, needUpdateOwner
 	properties[SvcFieldRevision] = alias.Revision
 	properties[SvcFieldReference] = alias.Reference
 
-	err := ss.handler.UpdateValue(ServiceStoreType, alias.ID, properties)
+	err := ss.handler.UpdateValue(tblNameService, alias.ID, properties)
 
 	return store.Error(err)
 }
@@ -136,7 +134,7 @@ func (ss *serviceStore) UpdateService(service *model.Service, needUpdateOwner bo
 	properties[SvcFieldOwner] = service.Owner
 	properties[SvcFieldRevision] = service.Revision
 
-	err := ss.handler.UpdateValue(ServiceStoreType, service.ID, properties)
+	err := ss.handler.UpdateValue(tblNameService, service.ID, properties)
 
 	serr := store.Error(err)
 	if store.Code(serr) == store.DuplicateEntryErr {
@@ -152,7 +150,7 @@ func (ss *serviceStore) UpdateServiceToken(serviceID string, token string, revis
 	properties[SvcFieldToken] = token
 	properties[SvcFieldRevision] = revision
 
-	err := ss.handler.UpdateValue(ServiceStoreType, serviceID, properties)
+	err := ss.handler.UpdateValue(tblNameService, serviceID, properties)
 
 	return store.Error(err)
 }
@@ -219,9 +217,9 @@ func (ss *serviceStore) GetServices(serviceFilters, serviceMetas map[string]stri
 // GetServicesCount get the total number of all services
 func (ss *serviceStore) GetServicesCount() (uint32, error) {
 
-	count, err := ss.handler.CountValues(ServiceStoreType)
+	count, err := ss.handler.CountValues(tblNameService)
 	if err != nil {
-		log.Errorf("load service from kv error %v", err)
+		log.Errorf("[Store][boltdb] load service from kv error %v", err)
 		return 0, err
 	}
 
@@ -237,7 +235,7 @@ func (ss *serviceStore) GetMoreServices(
 		fields = append(fields, SvcFieldNamespace)
 	}
 	
-	services, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
+	services, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 	func(m map[string]interface{}) bool{
 		if disableBusiness {
 			serviceNs, ok := m[SvcFieldNamespace]
@@ -262,7 +260,7 @@ func (ss *serviceStore) GetMoreServices(
 	})
 
 	if err != nil {
-		log.Errorf("load service from kv error, %v", err)
+		log.Errorf("[Store][boltdb] load service from kv error, %v", err)
 		return nil, err
 	}
 
@@ -287,7 +285,7 @@ func (ss *serviceStore) GetServiceAliases(
 	}
 
 	referenceService := make(map[string]bool)
-	services, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
+	services, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 	func(m map[string]interface{}) bool{
 		// judge whether it is alias by whether there is a reference
 		reference, err := m[SvcFieldReference]
@@ -351,7 +349,7 @@ func (ss *serviceStore) GetServiceAliases(
 		return true
 	})
 	if err != nil {
-		log.Errorf("load service from kv error, %v", err)
+		log.Errorf("[Store][boltdb] load service from kv error, %v", err)
 		return 0, nil, err
 	}
 	if len(services) == 0 {
@@ -363,7 +361,7 @@ func (ss *serviceStore) GetServiceAliases(
 	// find source service for every alias
 	fields = []string{SvcFieldID}
 
-	refServices, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
+	refServices, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 	func(m map[string]interface{}) bool{
 		_, ok := referenceService[m[SvcFieldID].(string)]
 		if !ok {
@@ -399,7 +397,7 @@ func (ss *serviceStore) GetSystemServices() ([]*model.Service, error) {
 
 	fields := []string{SvcFieldNamespace}
 
-	services, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
+	services, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 	func(m map[string]interface{}) bool{
 		svcNamespace, ok := m[SvcFieldNamespace]
 		if !ok {
@@ -411,7 +409,7 @@ func (ss *serviceStore) GetSystemServices() ([]*model.Service, error) {
 		return false
 	})
 	if err != nil {
-		log.Errorf("load service from kv error, %v", err)
+		log.Errorf("[Store][boltdb] load service from kv error, %v", err)
 		return nil, err
 	}
 
@@ -433,7 +431,7 @@ func (ss *serviceStore) GetServicesBatch(services []*model.Service) ([]*model.Se
 		serviceInfo[service.Name] = service.Namespace
 	}
 
-	svcs, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
+	svcs, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool{
 
 			svcName, ok := m[SvcFieldName]
@@ -457,7 +455,7 @@ func (ss *serviceStore) GetServicesBatch(services []*model.Service) ([]*model.Se
 			return true
 		})
 	if err != nil {
-		log.Errorf("load service from kv error, %v", err)
+		log.Errorf("[Store][boltdb] load service from kv error, %v", err)
 		return nil, err
 	}
 
@@ -471,7 +469,7 @@ func GetServiceByNameAndNs(name string, namespace string,
 
 	fields := []string{SvcFieldName, SvcFieldNamespace}
 
-	svc, err := handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
+	svc, err := handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool{
 
 			svcName, ok := m[SvcFieldName]
@@ -493,7 +491,7 @@ func GetServiceByNameAndNs(name string, namespace string,
 	}
 
 	if len(svc) > 1 {
-		log.Errorf("multiple services found %v", svc)
+		log.Errorf("[Store][boltdb] multiple services found %v", svc)
 		return nil, MultipleSvcFound
 	}
 
@@ -510,7 +508,7 @@ func (ss *serviceStore) getServiceByID(id string) (*model.Service, error) {
 
 	fields := []string{SvcFieldID}
 
-	svc, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
+	svc, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool{
 			svcId, ok := m[SvcFieldID]
 			if !ok {
@@ -526,7 +524,7 @@ func (ss *serviceStore) getServiceByID(id string) (*model.Service, error) {
 	}
 
 	if len(svc) > 1 {
-		log.Errorf("multiple services found %v", svc)
+		log.Errorf("[Store][boltdb] multiple services found %v", svc)
 		return nil, MultipleSvcFound
 	}
 
@@ -554,7 +552,7 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 		// get the filtered list of serviceIDs from instanceFilters
 		filter := []string{insFieldProto}
 
-		inss, err := ss.handler.LoadValuesByFilter(InstanceStoreType, filter, &model.Instance{},
+		inss, err := ss.handler.LoadValuesByFilter(tblNameInstance, filter, &model.Instance{},
 			func(m map[string]interface{}) bool{
 				insPorto, ok := m[insFieldProto]
 				if !ok {
@@ -591,7 +589,7 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				return true
 		})
 		if err != nil {
-			log.Errorf("load instance from kv error %v", err)
+			log.Errorf("[Store][boltdb] load instance from kv error %v", err)
 			return 0, nil, err
 		}
 		for _, i := range inss {
@@ -610,7 +608,7 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 	department, isDepartment := serviceFilters["department"]
 	business, isBusiness := serviceFilters["business"]
 
-	svcs, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
+	svcs, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 	func(m map[string]interface{}) bool{
 		// filter by id
 		if len(insFiltersIds) > 0 {
@@ -670,7 +668,7 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 		return true
 	})
 	if err != nil {
-		log.Errorf("load service from kv error %v", err)
+		log.Errorf("[Store][boltdb] load service from kv error %v", err)
 		return 0, nil, err
 	}
 	totalCount := len(svcs)
