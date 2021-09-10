@@ -103,7 +103,7 @@ func (i *instanceStore) UpdateInstance(instance *model.Instance) error {
 func (i *instanceStore) DeleteInstance(instanceID string) error {
 
 	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}); err != nil{
-		log.Errorf("[Store][boltdb] update instance to kv error, %v", err)
+		log.Errorf("[Store][boltdb] delete instance from kv error, %v", err)
 		return err
 	}
 
@@ -117,14 +117,14 @@ func (i *instanceStore) BatchDeleteInstances(ids []interface{}) error {
 		return nil
 	}
 
-	var realIds []string
+	var realIDs []string
 
 	for _, id := range ids {
-		realIds = append(realIds, id.(string))
+		realIDs = append(realIDs, id.(string))
 	}
 
-	if err := i.handler.DeleteValues(tblNameInstance, realIds); err != nil{
-		log.Errorf("[Store][boltdb] update instance to kv error, %v", err)
+	if err := i.handler.DeleteValues(tblNameInstance, realIDs); err != nil{
+		log.Errorf("[Store][boltdb] batch delete instance from kv error, %v", err)
 		return err
 	}
 	return nil
@@ -133,7 +133,7 @@ func (i *instanceStore) BatchDeleteInstances(ids []interface{}) error {
 // CleanInstance Delete an instance
 func (i *instanceStore) CleanInstance(instanceID string) error {
 	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}); err != nil{
-		log.Errorf("[Store][boltdb] update instance to kv error, %v", err)
+		log.Errorf("[Store][boltdb] delete instance from kv error, %v", err)
 		return err
 	}
 	return nil
@@ -262,8 +262,11 @@ func (i *instanceStore) GetInstance(instanceID string) (*model.Instance, error) 
 		log.Errorf("[Store][boltdb] load instance from kv error, %v", err)
 		return nil, err
 	}
-	instance := ins[instanceID].(*model.Instance)
-	return instance, nil
+	instance, ok := ins[instanceID]
+	if !ok {
+		return nil, nil
+	}
+	return instance.(*model.Instance), nil
 }
 
 // GetInstancesCount Get the total number of instances
@@ -422,9 +425,11 @@ func (i *instanceStore) GetMoreInstances(
 				return false
 			}
 
-			_, ok = svcIdMap[serviceId]
-			if !ok {
-				return false
+			if len(svcIdMap) > 0 {
+				_, ok = svcIdMap[serviceId]
+				if !ok {
+					return false
+				}
 			}
 
 			return true
@@ -480,7 +485,8 @@ func (i *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, rev
 	ins.Proto.Revision.Value = revision
 
 	properties := make(map[string]interface{})
-	err = i.handler.UpdateValue(tblNameInstance, insFieldProto, properties)
+	properties[insFieldProto] = ins.Proto
+	err = i.handler.UpdateValue(tblNameInstance, instanceID, properties)
 	if err != nil {
 		log.Errorf("[Store][boltdb] update instance error %v", err)
 		return err

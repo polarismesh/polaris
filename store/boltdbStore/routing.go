@@ -134,10 +134,14 @@ func (r *routingStore) GetRoutingConfigWithService(name string, namespace string
 	}
 
 	// get service first
-	service, err := ss.getServiceByNameAndNs(name, name)
+	service, err := ss.getServiceByNameAndNs(name, namespace)
 	if err != nil {
 		log.Errorf("[Store][boltdb] get service in route conf error, %v", err)
 		return nil, err
+	}
+
+	if service == nil {
+		return nil, nil
 	}
 
 	routeC, err := r.getWithID(service.ID)

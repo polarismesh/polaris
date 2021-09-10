@@ -154,9 +154,31 @@ func TestRoutingStore_GetRoutingConfigsForCache(t *testing.T){
 }
 
 func TestRoutingStore_GetRoutingConfigWithService(t *testing.T){
-	// todo service first
 
+	// find service
+	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
+	if nil != err {
+		t.Fatal(err)
+	}
 
+	defer handler.Close()
+
+	sStore := &serviceStore{handler: handler}
+	err = sStore.AddService(&model.Service{
+		ID: "testid3",
+		Name: "test-svc-name",
+		Namespace: "test-svc-namespace",
+		Owner: "test-owner",
+		Token: "test-token",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rStore := &routingStore{handler: handler}
+	rc, err := rStore.GetRoutingConfigWithService("test-svc-name", "test-svc-namespace")
+
+	fmt.Printf("get routing config with service %+v", rc)
 }
 
 func TestRoutingStore_GetRoutingConfigWithID(t *testing.T){
