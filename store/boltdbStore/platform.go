@@ -17,39 +17,148 @@
 
 package boltdbStore
 
-import "github.com/polarismesh/polaris-server/common/model"
+import (
+	"errors"
+	"math"
+	"reflect"
+	"sort"
+	"strings"
+	"time"
+
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/store"
+)
+
+const (
+	tblPlatform string = "platform"
+)
 
 type platformStore struct {
 	handler BoltHandler
 }
 
-// 新增平台信息
+// CreatePlatform 新增平台信息
 func (p *platformStore) CreatePlatform(platform *model.Platform) error {
-	//TODO
+	if platform.ID == "" {
+		return errors.New("create platform missing id")
+	}
+
+	tNow := time.Now()
+
+	platformKey := platform.ID
+	platform.CreateTime = tNow
+	platform.ModifyTime = tNow
+
+	dbOp := p.handler
+
+	if old, _ := p.GetPlatformById(platformKey); old != nil {
+		log.Errorf("[Store][platform] create platform(%s) duplicate", platform.ID)
+		return errors.New("Create Platform duplicate")
+	}
+
+	if err := dbOp.SaveValue(tblPlatform, platformKey, platform); err != nil {
+		log.Errorf("[Store][platform] create platform(%s) err: %s", platform.ID, err.Error())
+		return store.Error(err)
+	}
+
 	return nil
 }
 
-// 更新平台信息
+// UpdatePlatform 更新平台信息
 func (p *platformStore) UpdatePlatform(platform *model.Platform) error {
-	//TODO
+	if platform.ID == "" {
+		return errors.New("create platform missing id")
+	}
+
+	platformKey := platform.ID
+	platform.ModifyTime = time.Now()
+
+	dbOp := p.handler
+
+	if err := dbOp.SaveValue(tblPlatform, platformKey, platform); err != nil {
+		log.Errorf("[Store][platform] update platform(%+v) err: %s", platform, err.Error())
+		return store.Error(err)
+	}
+
 	return nil
 }
 
-// 删除平台信息
+// DeletePlatform 删除平台信息
 func (p *platformStore) DeletePlatform(id string) error {
-	//TODO
+	if strings.Compare(id, "") == 0 {
+		return errors.New("delete platform missing id")
+	}
+
+	platformKey := id
+
+	dbOp := p.handler
+
+	if err := dbOp.DeleteValues(tblPlatform, []string{platformKey}); err != nil {
+		log.Errorf("[Store][platform] delete platform(%s) err: %s", id, err.Error())
+		return store.Error(err)
+	}
+
 	return nil
 }
 
-// 查询平台信息
+// GetPlatformById 查询平台信息
 func (p *platformStore) GetPlatformById(id string) (*model.Platform, error) {
-	//TODO
-	return nil, nil
+	if strings.Compare(id, "") == 0 {
+		return nil, errors.New("GetPlatformById platform missing id")
+	}
+
+	platformKey := id
+
+	dbOp := p.handler
+
+	result, err := dbOp.LoadValues(tblPlatform, []string{platformKey}, &model.Platform{})
+	if err != nil {
+		log.Errorf("[Store][platform] get platform by id(%s) err: %s", id, err.Error())
+		return nil, store.Error(err)
+	}
+
+	val := result[platformKey]
+	if val == nil {
+		return nil, nil
+	}
+
+	return val.(*model.Platform), nil
 }
 
-// 根据过滤条件查询平台信息
+// GetPlatforms 根据过滤条件查询平台信息
 func (p *platformStore) GetPlatforms(
 	query map[string]string, offset uint32, limit uint32) (uint32, []*model.Platform, error) {
-	//TODO
-	return 0, nil, nil
+
+	dbOp := p.handler
+
+	result, err := dbOp.LoadValuesByFilter(tblPlatform, utils.CollectFilterFields(query), &model.Platform{}, func(m map[string]interface{}) bool {
+		for k, v := range query {
+			qV := m[k]
+			if !reflect.DeepEqual(qV, v) {
+				return false
+			}
+		}
+		return true
+	})
+	if err != nil {
+		log.Errorf("[Store][platform] get platform by query(%#v) err: %s", query, err.Error())
+		return 0, nil, store.Error(err)
+	}
+
+	total := len(result)
+
+	platformSlice := make([]*model.Platform, 0)
+	for _, v := range result {
+		platformSlice = append(platformSlice, v.(*model.Platform))
+	}
+
+	sort.Slice(platformSlice, func(i, j int) bool {
+		a := platformSlice[i]
+		b := platformSlice[j]
+		return a.ModifyTime.After(b.ModifyTime)
+	})
+
+	return uint32(total), platformSlice[offset:int(math.Min(float64(offset+limit), float64(total)))], nil
 }

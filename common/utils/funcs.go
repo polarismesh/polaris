@@ -19,10 +19,11 @@ package utils
 
 import (
 	"encoding/hex"
+	"strings"
+
 	uuid "github.com/google/uuid"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
-	"strings"
 )
 
 // 创建存储层服务实例模型
@@ -87,4 +88,31 @@ func CreateInstanceModel(serviceID string, req *api.Instance) *model.Instance {
 
 	instance.Proto = protoIns
 	return instance
+}
+
+// ConvertFilter map[string]string to  map[string][]string
+func ConvertFilter(filters map[string]string) map[string][]string {
+	newFilters := make(map[string][]string)
+
+	for k, v := range filters {
+		val := make([]string, 0)
+		val = append(val, v)
+		newFilters[k] = val
+	}
+
+	return newFilters
+}
+
+// CollectFilterFields collect filters key to slice
+func CollectFilterFields(filters map[string]string) []string {
+	fields := make([]string, len(filters))
+
+	pos := 0
+
+	for k := range filters {
+		fields[pos] = k
+		pos++
+	}
+
+	return fields
 }
