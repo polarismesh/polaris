@@ -274,7 +274,7 @@ func acquireLocalhost(ctx context.Context, polarisService *config.PolarisService
 	}
 	log.Infof("[Bootstrap] get local host: %s", localHost)
 	LocalHost = localHost
-	utils.WithLocalhost(ctx, localHost)
+
 	return utils.WithLocalhost(ctx, localHost), nil
 }
 
