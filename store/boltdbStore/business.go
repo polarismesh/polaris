@@ -190,7 +190,7 @@ func (bs *businessStore) listAllBusiness() ([]*model.Business, error) {
 
 	dbOp := bs.handler
 
-	result, err := dbOp.LoadValues(tblBusiness, []string{}, &model.Business{})
+	result, err := dbOp.LoadValuesAll(tblBusiness, &model.Business{})
 	if err != nil {
 		log.Errorf("[Store][business] list business by owner err : %s", err)
 		return nil, store.Error(err)

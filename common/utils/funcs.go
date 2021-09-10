@@ -90,6 +90,7 @@ func CreateInstanceModel(serviceID string, req *api.Instance) *model.Instance {
 	return instance
 }
 
+// ConvertFilter map[string]string to  map[string][]string
 func ConvertFilter(filters map[string]string) map[string][]string {
 	newFilters := make(map[string][]string)
 
@@ -102,6 +103,7 @@ func ConvertFilter(filters map[string]string) map[string][]string {
 	return newFilters
 }
 
+// CollectFilterFields collect filters key to slice
 func CollectFilterFields(filters map[string]string) []string {
 	fields := make([]string, len(filters))
 
