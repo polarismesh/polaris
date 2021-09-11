@@ -19,19 +19,20 @@ package httpserver
 
 import (
 	"encoding/json"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/connlimit"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/emicklei/go-restful"
 	"net/http"
 	"runtime/debug"
 	"strconv"
 	"time"
+
+	"github.com/emicklei/go-restful"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/connlimit"
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
-// 运维接口
-func (h *Httpserver) GetMaintainAccessServer() *restful.WebService {
+// GetMaintainAccessServer 运维接口
+func (h *HTTPServer) GetMaintainAccessServer() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.Path("/maintain/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
 
@@ -44,10 +45,10 @@ func (h *Httpserver) GetMaintainAccessServer() *restful.WebService {
 	return ws
 }
 
-// 查看server的连接数
+// GetServerConnections 查看server的连接数
 // query参数：protocol，必须，查看指定协议server
 //           host，可选，查看指定host
-func (h *Httpserver) GetServerConnections(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) GetServerConnections(req *restful.Request, rsp *restful.Response) {
 	params := parseQueryParams(req)
 	protocol := params["protocol"]
 	host := params["host"]
@@ -83,8 +84,8 @@ func (h *Httpserver) GetServerConnections(req *restful.Request, rsp *restful.Res
 	_ = rsp.WriteEntity(out)
 }
 
-// 获取连接缓存里面的统计信息
-func (h *Httpserver) GetServerConnStats(req *restful.Request, rsp *restful.Response) {
+// GetServerConnStats 获取连接缓存里面的统计信息
+func (h *HTTPServer) GetServerConnStats(req *restful.Request, rsp *restful.Response) {
 	params := parseQueryParams(req)
 	protocol := params["protocol"]
 	host := params["host"]
@@ -130,8 +131,8 @@ func (h *Httpserver) GetServerConnStats(req *restful.Request, rsp *restful.Respo
 	_ = rsp.WriteAsJson(out)
 }
 
-// 关闭指定client ip的连接
-func (h *Httpserver) CloseConnections(req *restful.Request, rsp *restful.Response) {
+// CloseConnections 关闭指定client ip的连接
+func (h *HTTPServer) CloseConnections(req *restful.Request, rsp *restful.Response) {
 	log.Info("[HTTP] Start doing close connections")
 	var body []struct {
 		Protocol string
@@ -181,8 +182,8 @@ func (h *Httpserver) CloseConnections(req *restful.Request, rsp *restful.Respons
 	}
 }
 
-// 增加一个释放系统内存的接口
-func (h *Httpserver) FreeOSMemory(req *restful.Request, rsp *restful.Response) {
+// FreeOSMemory 增加一个释放系统内存的接口
+func (h *HTTPServer) FreeOSMemory(_ *restful.Request, _ *restful.Response) {
 	log.Info("[HTTP] start doing free os memory")
 	// 防止并发释放
 	start := time.Now()
@@ -192,25 +193,23 @@ func (h *Httpserver) FreeOSMemory(req *restful.Request, rsp *restful.Response) {
 	log.Infof("[HTTP] finish doing free os memory, used time: %v", time.Now().Sub(start))
 }
 
-// 彻底清理flag=1的实例运维接口
+// CleanInstance 彻底清理flag=1的实例运维接口
 // 支持一个个清理
-func (h *Httpserver) CleanInstance(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) CleanInstance(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	instance := &api.Instance{}
 	ctx, err := handler.Parse(instance)
-	if ctx == nil {
-		ret := api.NewResponseWithMsg(api.ParseException, err.Error())
-		handler.WriteHeaderAndProto(ret)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
 		return
 	}
 
-	ret := h.namingServer.CleanInstance(ctx, instance)
-	handler.WriteHeaderAndProto(ret)
+	handler.WriteHeaderAndProto(h.namingServer.CleanInstance(ctx, instance))
 }
 
-// 获取实例，上一次心跳的时间
-func (h *Httpserver) GetLastHeartbeat(req *restful.Request, rsp *restful.Response) {
+// GetLastHeartbeat 获取实例，上一次心跳的时间
+func (h *HTTPServer) GetLastHeartbeat(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 	params := parseQueryParams(req)
 	instance := &api.Instance{}

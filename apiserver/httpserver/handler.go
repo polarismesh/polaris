@@ -20,19 +20,20 @@ package httpserver
 import (
 	"context"
 	"fmt"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/utils"
+	"net/http"
+	"strings"
+
 	"github.com/emicklei/go-restful"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"go.uber.org/zap"
-	"net/http"
-	"strings"
 )
 
 /**
- * @brief HTTP请求/回复处理器
+ * Handler HTTP请求/回复处理器
  */
 type Handler struct {
 	*restful.Request
@@ -40,7 +41,7 @@ type Handler struct {
 }
 
 /**
- * @brief 解析请求
+ * Parse 解析请求
  */
 func (h *Handler) Parse(message proto.Message) (context.Context, error) {
 	requestID := h.Request.HeaderParameter("Request-Id")
@@ -78,7 +79,7 @@ func (h *Handler) Parse(message proto.Message) (context.Context, error) {
 }
 
 /**
- * @brief 仅返回Code
+ * WriteHeader 仅返回Code
  */
 func (h *Handler) WriteHeader(polarisCode uint32, httpStatus int) {
 	requestID := h.Request.HeaderParameter(utils.PolarisRequestID)
@@ -94,7 +95,7 @@ func (h *Handler) WriteHeader(polarisCode uint32, httpStatus int) {
 }
 
 /**
- * @brief 返回Code和Proto
+ * WriteHeaderAndProto 返回Code和Proto
  */
 func (h *Handler) WriteHeaderAndProto(obj api.ResponseMessage) {
 	requestID := h.Request.HeaderParameter(utils.PolarisRequestID)
@@ -119,7 +120,7 @@ func (h *Handler) WriteHeaderAndProto(obj api.ResponseMessage) {
 	}
 }
 
-// http答复简单封装
+// HTTPResponse http答复简单封装
 func HTTPResponse(req *restful.Request, rsp *restful.Response, code uint32) {
 	handler := &Handler{req, rsp}
 	resp := api.NewResponse(code)

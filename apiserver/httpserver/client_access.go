@@ -20,17 +20,17 @@ package httpserver
 import (
 	"fmt"
 
+	"github.com/emicklei/go-restful"
 	"github.com/polarismesh/polaris-server/apiserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/emicklei/go-restful"
 	"go.uber.org/zap"
 )
 
 /**
- * @brief 注册客户端接口
+ * GetClientAccessServer get client access server
  */
-func (h *Httpserver) GetClientAccessServer(include []string) (*restful.WebService, error) {
+func (h *HTTPServer) GetClientAccessServer(include []string) (*restful.WebService, error) {
 	clientAccess := []string{apiserver.DiscoverAccess, apiserver.RegisterAccess, apiserver.HealthcheckAccess}
 
 	ws := new(restful.WebService)
@@ -63,7 +63,7 @@ func (h *Httpserver) GetClientAccessServer(include []string) (*restful.WebServic
 /**
  * @brief 增加服务发现接口
  */
-func (h *Httpserver) addDiscoverAccess(ws *restful.WebService) {
+func (h *HTTPServer) addDiscoverAccess(ws *restful.WebService) {
 	ws.Route(ws.POST("/ReportClient").To(h.ReportClient))
 	ws.Route(ws.POST("/Discover").To(h.Discover))
 }
@@ -71,7 +71,7 @@ func (h *Httpserver) addDiscoverAccess(ws *restful.WebService) {
 /**
  * @brief 增加注册/反注册接口
  */
-func (h *Httpserver) addRegisterAccess(ws *restful.WebService) {
+func (h *HTTPServer) addRegisterAccess(ws *restful.WebService) {
 	ws.Route(ws.POST("/RegisterInstance").To(h.RegisterInstance))
 	ws.Route(ws.POST("/DeregisterInstance").To(h.DeregisterInstance))
 }
@@ -79,75 +79,67 @@ func (h *Httpserver) addRegisterAccess(ws *restful.WebService) {
 /**
  * @brief 增加健康检查接口
  */
-func (h *Httpserver) addHealthCheckAccess(ws *restful.WebService) {
+func (h *HTTPServer) addHealthCheckAccess(ws *restful.WebService) {
 	ws.Route(ws.POST("/Heartbeat").To(h.Heartbeat))
 }
 
 /**
- * @brief 客户端上报信息
+ * ReportClient 客户端上报信息
  */
-func (h *Httpserver) ReportClient(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) ReportClient(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
-
 	client := &api.Client{}
-	context, err := handler.Parse(client)
-	if context == nil {
-		ret := api.NewResponseWithMsg(api.ParseException, err.Error())
-		handler.WriteHeaderAndProto(ret)
+	ctx, err := handler.Parse(client)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
 		return
 	}
 
-	ret := h.namingServer.ReportClient(context, client)
-	handler.WriteHeaderAndProto(ret)
+	handler.WriteHeaderAndProto(h.namingServer.ReportClient(ctx, client))
 }
 
 /**
- * @brief 注册服务实例
+ * RegisterInstance 注册服务实例
  */
-func (h *Httpserver) RegisterInstance(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) RegisterInstance(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	instance := &api.Instance{}
-	context, err := handler.Parse(instance)
-	if context == nil {
-		ret := api.NewResponseWithMsg(api.ParseException, err.Error())
-		handler.WriteHeaderAndProto(ret)
+	ctx, err := handler.Parse(instance)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
 		return
 	}
 
-	ret := h.namingServer.CreateInstance(context, instance)
-	handler.WriteHeaderAndProto(ret)
+	handler.WriteHeaderAndProto(h.namingServer.CreateInstance(ctx, instance))
 }
 
 /**
- * @brief 反注册服务实例
+ * DeregisterInstance 反注册服务实例
  */
-func (h *Httpserver) DeregisterInstance(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) DeregisterInstance(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	instance := &api.Instance{}
-	context, err := handler.Parse(instance)
-	if context == nil {
-		ret := api.NewResponseWithMsg(api.ParseException, err.Error())
-		handler.WriteHeaderAndProto(ret)
+	ctx, err := handler.Parse(instance)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
 		return
 	}
 
-	ret := h.namingServer.DeleteInstance(context, instance)
-	handler.WriteHeaderAndProto(ret)
+	handler.WriteHeaderAndProto(h.namingServer.DeleteInstance(ctx, instance))
 }
 
 /**
- * @brief 统一发现接口
+ * Discover 统一发现接口
  */
-func (h *Httpserver) Discover(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) Discover(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	discoverRequest := &api.DiscoverRequest{}
-	context, err := handler.Parse(discoverRequest)
-	if context == nil {
-		ret := api.NewResponseWithMsg(api.ParseException, err.Error())
-		handler.WriteHeaderAndProto(ret)
+	ctx, err := handler.Parse(discoverRequest)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
 		return
 	}
 
@@ -163,15 +155,15 @@ func (h *Httpserver) Discover(req *restful.Request, rsp *restful.Response) {
 	var ret *api.DiscoverResponse
 	switch discoverRequest.Type {
 	case api.DiscoverRequest_INSTANCE:
-		ret = h.namingServer.ServiceInstancesCache(context, discoverRequest.Service)
+		ret = h.namingServer.ServiceInstancesCache(ctx, discoverRequest.Service)
 	case api.DiscoverRequest_ROUTING:
-		ret = h.namingServer.GetRoutingConfigWithCache(context, discoverRequest.Service)
+		ret = h.namingServer.GetRoutingConfigWithCache(ctx, discoverRequest.Service)
 	case api.DiscoverRequest_RATE_LIMIT:
-		ret = h.namingServer.GetRateLimitWithCache(context, discoverRequest.Service)
+		ret = h.namingServer.GetRateLimitWithCache(ctx, discoverRequest.Service)
 	case api.DiscoverRequest_CIRCUIT_BREAKER:
-		ret = h.namingServer.GetCircuitBreakerWithCache(context, discoverRequest.Service)
+		ret = h.namingServer.GetCircuitBreakerWithCache(ctx, discoverRequest.Service)
 	case api.DiscoverRequest_SERVICES:
-		ret = h.namingServer.GetServiceWithCache(context, discoverRequest.Service)
+		ret = h.namingServer.GetServiceWithCache(ctx, discoverRequest.Service)
 	default:
 		ret = api.NewDiscoverRoutingResponse(api.InvalidDiscoverResource, discoverRequest.Service)
 	}
@@ -180,19 +172,17 @@ func (h *Httpserver) Discover(req *restful.Request, rsp *restful.Response) {
 }
 
 /**
- * @brief 服务实例心跳
+ * Heartbeat 服务实例心跳
  */
-func (h *Httpserver) Heartbeat(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) Heartbeat(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	instance := &api.Instance{}
-	context, err := handler.Parse(instance)
-	if context == nil {
-		ret := api.NewResponseWithMsg(api.ParseException, err.Error())
-		handler.WriteHeaderAndProto(ret)
+	ctx, err := handler.Parse(instance)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
 		return
 	}
 
-	ret := h.namingServer.Heartbeat(context, instance)
-	handler.WriteHeaderAndProto(ret)
+	handler.WriteHeaderAndProto(h.namingServer.Heartbeat(ctx, instance))
 }
