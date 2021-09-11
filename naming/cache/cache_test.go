@@ -23,15 +23,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	v1 "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store/mock"
-	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-// 测试cache函数是否正常
+// TestNamingCache_Start 测试cache函数是否正常
 func TestNamingCache_Start(t *testing.T) {
 	ctl := gomock.NewController(t)
 	storage := mock.NewMockStore(ctl)
@@ -97,7 +97,7 @@ func TestNamingCache_Start(t *testing.T) {
 	})
 }
 
-// 测试revision的管道是否正常
+// TestRevisionWorker 测试revision的管道是否正常
 func TestRevisionWorker(t *testing.T) {
 	ctl := gomock.NewController(t)
 	storage := mock.NewMockStore(ctl)
@@ -152,7 +152,7 @@ func TestRevisionWorker(t *testing.T) {
 	})
 }
 
-// 测试计算revision的函数
+// TestComputeRevision 测试计算revision的函数
 func TestComputeRevision(t *testing.T) {
 	Convey("instances为空，可以正常计算", t, func() {
 		out, err := ComputeRevision("123", nil)

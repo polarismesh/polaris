@@ -22,7 +22,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"sort"
 	"sync"
 	"time"
@@ -37,8 +36,8 @@ var (
 )
 
 const (
-	//CacheNamespace int = iota
-	//CacheBusiness
+	// CacheNamespace int = iota
+	// CacheBusiness
 	CacheService int = iota
 	CacheInstance
 	CacheRoutingConfig
@@ -49,11 +48,12 @@ const (
 )
 
 const (
+	// DefaultTimeDiff default time diff
 	DefaultTimeDiff = -1 * time.Second * 5
 )
 
 /**
- * @brief 缓存接口
+ * Cache 缓存接口
  */
 type Cache interface {
 	initialize(c map[string]interface{}) error
@@ -63,14 +63,14 @@ type Cache interface {
 }
 
 const (
-	// 缓存更新时间间隔
+	// UpdateCacheInterval 缓存更新时间间隔
 	UpdateCacheInterval = time.Second
 )
 
 const (
-	// Revision计算的并发线程数
+	// RevisionConcurrenceCount Revision计算的并发线程数
 	RevisionConcurrenceCount = 64
-	// 存储revision计算的通知管道，可以稍微设置大一点
+	// RevisionChanCount 存储revision计算的通知管道，可以稍微设置大一点
 	RevisionChanCount = 10240
 )
 
@@ -89,7 +89,7 @@ func newRevisionNotify(serviceID string, valid bool) *revisionNotify {
 }
 
 /**
- * @brief 名字服务缓存
+ * NamingCache 名字服务缓存
  */
 type NamingCache struct {
 	storage store.Store
@@ -100,7 +100,7 @@ type NamingCache struct {
 }
 
 /**
- * @brief 新建一个缓存对象
+ * NewNamingCache 新建一个缓存对象
  */
 func NewNamingCache(storage store.Store) (*NamingCache, error) {
 	nc := &NamingCache{
@@ -132,7 +132,7 @@ func NewNamingCache(storage store.Store) (*NamingCache, error) {
 }
 
 /**
- * @brief 缓存对象初始化
+ * initialize 缓存对象初始化
  */
 func (nc *NamingCache) initialize() error {
 	for _, obj := range nc.caches {
@@ -152,7 +152,7 @@ func (nc *NamingCache) initialize() error {
 }
 
 /**
- * @brief 缓存更新
+ * update 缓存更新
  */
 func (nc *NamingCache) update() error {
 	var wg sync.WaitGroup
@@ -173,7 +173,7 @@ func (nc *NamingCache) update() error {
 }
 
 /**
- * @brief 清除caches的所有缓存数据
+ * clear 清除caches的所有缓存数据
  */
 func (nc *NamingCache) clear() error {
 	for _, obj := range nc.caches {
@@ -186,7 +186,7 @@ func (nc *NamingCache) clear() error {
 }
 
 /**
- * @brief 缓存对象启动协程，定时更新缓存
+ * Start 缓存对象启动协程，定时更新缓存
  */
 func (nc *NamingCache) Start(ctx context.Context) error {
 	log.Infof("[Cache] cache goroutine start")
@@ -204,6 +204,7 @@ func (nc *NamingCache) Start(ctx context.Context) error {
 	go func() {
 		ticker := time.NewTicker(nc.GetUpdateCacheInterval())
 		defer ticker.Stop()
+
 		for {
 			select {
 			case <-ticker.C:
@@ -218,7 +219,7 @@ func (nc *NamingCache) Start(ctx context.Context) error {
 }
 
 /**
- * @brief 主动清除缓存数据
+ * Clear 主动清除缓存数据
  */
 func (nc *NamingCache) Clear() error {
 	nc.revisions = new(sync.Map)
@@ -226,7 +227,7 @@ func (nc *NamingCache) Clear() error {
 }
 
 /**
- * @brief Cache中计算服务实例revision的worker
+ * revisionWorker Cache中计算服务实例revision的worker
  */
 func (nc *NamingCache) revisionWorker(ctx context.Context) {
 	log.Infof("[Cache] compute revision worker start")
@@ -267,14 +268,14 @@ func (nc *NamingCache) processRevisionWorker(req *revisionNotify) bool {
 	}
 
 	if req.valid == false {
-		//log.Infof("[Cache][Revision] service(%s) revision has all been removed", req.serviceID)
+		// log.Infof("[Cache][Revision] service(%s) revision has all been removed", req.serviceID)
 		nc.revisions.Delete(req.serviceID)
 		return true
 	}
 
 	service := nc.Service().GetServiceByID(req.serviceID)
 	if service == nil {
-		//log.Errorf("[Cache][Revision] can not found service id(%s)", req.serviceID)
+		// log.Errorf("[Cache][Revision] can not found service id(%s)", req.serviceID)
 		return false
 	}
 
@@ -288,13 +289,13 @@ func (nc *NamingCache) processRevisionWorker(req *revisionNotify) bool {
 	return true
 }
 
-// 获取当前cache的更新间隔
+// GetUpdateCacheInterval 获取当前cache的更新间隔
 func (nc *NamingCache) GetUpdateCacheInterval() time.Duration {
 	return UpdateCacheInterval
 }
 
 /**
- * @brief 获取服务实例计算之后的revision
+ * GetServiceInstanceRevision 获取服务实例计算之后的revision
  */
 func (nc *NamingCache) GetServiceInstanceRevision(serviceID string) string {
 	value, ok := nc.revisions.Load(serviceID)
@@ -306,7 +307,7 @@ func (nc *NamingCache) GetServiceInstanceRevision(serviceID string) string {
 }
 
 /**
- * @brief 计算一下缓存中的revision的个数
+ * GetServiceRevisionCount 计算一下缓存中的revision的个数
  */
 func (nc *NamingCache) GetServiceRevisionCount() int {
 	count := 0
@@ -319,51 +320,51 @@ func (nc *NamingCache) GetServiceRevisionCount() int {
 }
 
 /**
- * @brief 获取Service缓存信息
+ * Service 获取Service缓存信息
  */
 func (nc *NamingCache) Service() ServiceCache {
 	return nc.caches[CacheService].(ServiceCache)
 }
 
 /**
- * @brief 获取Instance缓存信息
+ * Instance 获取Instance缓存信息
  */
 func (nc *NamingCache) Instance() InstanceCache {
 	return nc.caches[CacheInstance].(InstanceCache)
 }
 
 /**
- * @brief 获取路由配置的缓存信息
+ * RoutingConfig 获取路由配置的缓存信息
  */
 func (nc *NamingCache) RoutingConfig() RoutingConfigCache {
 	return nc.caches[CacheRoutingConfig].(RoutingConfigCache)
 }
 
 /**
- * @brief 获取l5缓存信息
+ * CL5 获取l5缓存信息
  */
 func (nc *NamingCache) CL5() L5Cache {
 	return nc.caches[CacheCL5].(L5Cache)
 }
 
 /**
- * @brief 获取限流规则缓存信息
+ * RateLimit 获取限流规则缓存信息
  */
 func (nc *NamingCache) RateLimit() RateLimitCache {
 	return nc.caches[CacheRateLimit].(RateLimitCache)
 }
 
 /**
- * @brief 获取熔断规则缓存信息
+ * CircuitBreaker 获取熔断规则缓存信息
  */
 func (nc *NamingCache) CircuitBreaker() CircuitBreakerCache {
 	return nc.caches[CacheCircuitBreaker].(CircuitBreakerCache)
 }
 
-//
+// ComputeRevision
 func ComputeRevision(serviceRevision string, instances []*model.Instance) (string, error) {
 	h := sha1.New()
-	if _, err := io.WriteString(h, serviceRevision); err != nil {
+	if _, err := h.Write([]byte(serviceRevision)); err != nil {
 		return "", err
 	}
 
@@ -373,21 +374,20 @@ func ComputeRevision(serviceRevision string, instances []*model.Instance) (strin
 	}
 	slice.Sort()
 	for _, revision := range slice {
-		if _, err := io.WriteString(h, revision); err != nil {
+		if _, err := h.Write([]byte(revision)); err != nil {
 			return "", err
 		}
 	}
 
-	out := hex.EncodeToString(h.Sum(nil))
-	return out, nil
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
 /**
- * @brief 注册缓存资源
+ * RegisterCache 注册缓存资源
  */
 func RegisterCache(name string, index int) {
 	if _, exist := cacheSet[name]; exist {
-		panic(fmt.Sprintf("existed cache resource: name = %v", name))
+		panic(fmt.Sprintf("existed cache resource: name = %s", name))
 	}
 
 	cacheSet[name] = index

@@ -18,18 +18,20 @@
 package cache
 
 import (
+	"sync"
+	"time"
+
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
-	"sync"
-	"time"
 )
 
 const (
+	// RoutingConfigName router config name
 	RoutingConfigName = "routingConfig"
 )
 
-// routing配置的cache接口
+// RoutingConfigCache routing配置的cache接口
 type RoutingConfigCache interface {
 	Cache
 
@@ -46,6 +48,13 @@ type routingConfigCache struct {
 	ids         *sync.Map
 	lastMtime   time.Time
 	firstUpdate bool
+}
+
+/**
+ * @brief 自注册到缓存列表
+ */
+func init() {
+	RegisterCache(RoutingConfigName, CacheRoutingConfig)
 }
 
 // 返回一个操作RoutingConfigCache的对象
@@ -140,11 +149,4 @@ func (rc *routingConfigCache) setRoutingConfig(cs []*model.RoutingConfig) error 
 		rc.lastMtime = time.Unix(lastMtime, 0)
 	}
 	return nil
-}
-
-/**
- * @brief 自注册到缓存列表
- */
-func init() {
-	RegisterCache(RoutingConfigName, CacheRoutingConfig)
 }

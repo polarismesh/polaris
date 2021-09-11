@@ -18,22 +18,24 @@
 package cache
 
 import (
+	"sync"
+	"time"
+
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
-	"sync"
-	"time"
 )
 
 const (
+	// CircuitBreakerName circuit breaker config name
 	CircuitBreakerName = "circuitBreakerConfig"
 )
 
-// circuitBreaker配置的cache接口
+// CircuitBreakerCache  circuitBreaker配置的cache接口
 type CircuitBreakerCache interface {
 	Cache
 
-	// 根据ServiceID获取熔断配置
+	// GetCircuitBreakerConfig 根据ServiceID获取熔断配置
 	GetCircuitBreakerConfig(id string) *model.ServiceWithCircuitBreaker
 }
 
@@ -45,6 +47,13 @@ type circuitBreakerCache struct {
 	ids         *sync.Map
 	lastTime    time.Time
 	firstUpdate bool
+}
+
+/**
+ * @brief 自注册到缓存列表
+ */
+func init() {
+	RegisterCache(CircuitBreakerName, CacheCircuitBreaker)
 }
 
 /**
@@ -100,7 +109,7 @@ func (cbc *circuitBreakerCache) name() string {
 }
 
 /**
- * @brief 根据serviceID获取熔断规则
+ * GetCircuitBreakerConfig 根据serviceID获取熔断规则
  */
 func (cbc *circuitBreakerCache) GetCircuitBreakerConfig(id string) *model.ServiceWithCircuitBreaker {
 	if id == "" {
@@ -148,15 +157,8 @@ func (cbc *circuitBreakerCache) setCircuitBreaker(cb []*model.ServiceWithCircuit
 }
 
 /**
- * @brief 获取熔断规则总数
+ * GetCircuitBreakerCount 获取熔断规则总数
  */
 func (cbc *circuitBreakerCache) GetCircuitBreakerCount(f func(k, v interface{}) bool) {
 	cbc.ids.Range(f)
-}
-
-/**
- * @brief 自注册到缓存列表
- */
-func init() {
-	RegisterCache(CircuitBreakerName, CacheCircuitBreaker)
 }

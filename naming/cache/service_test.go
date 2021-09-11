@@ -19,11 +19,12 @@ package cache
 
 import (
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/store/mock"
-	"github.com/golang/mock/gomock"
 	"testing"
 	"time"
+
+	"github.com/golang/mock/gomock"
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/store/mock"
 )
 
 // 生成一个测试的serviceCache和对应的mock对象
@@ -68,7 +69,7 @@ func genModelService(total int) map[string]*model.Service {
 	return out
 }
 
-// 测试缓存更新函数
+// TestServiceUpdate 测试缓存更新函数
 func TestServiceUpdate(t *testing.T) {
 	ctl, storage, sc := newTestServiceCache(t)
 	defer ctl.Finish()
@@ -128,7 +129,7 @@ func TestServiceUpdate(t *testing.T) {
 	})
 }
 
-// 测试缓存更新函数1
+// TestServiceUpdate1 测试缓存更新函数1
 func TestServiceUpdate1(t *testing.T) {
 	ctl, storage, sc := newTestServiceCache(t)
 	defer ctl.Finish()
@@ -180,7 +181,7 @@ func TestServiceUpdate1(t *testing.T) {
 	})
 }
 
-// 测试缓存更新
+// TestServiceUpdate2 测试缓存更新
 func TestServiceUpdate2(t *testing.T) {
 	ctl, storage, sc := newTestServiceCache(t)
 	defer ctl.Finish()
@@ -200,7 +201,7 @@ func TestServiceUpdate2(t *testing.T) {
 	})
 }
 
-// 根据服务名获取服务缓存信息
+// TestGetServiceByName 根据服务名获取服务缓存信息
 func TestGetServiceByName(t *testing.T) {
 	ctl, _, sc := newTestServiceCache(t)
 	defer ctl.Finish()
@@ -226,7 +227,7 @@ func TestGetServiceByName(t *testing.T) {
 	})
 }
 
-// 根据服务ID获取服务缓存信息
+// TestServiceCache_GetServiceByID 根据服务ID获取服务缓存信息
 func TestServiceCache_GetServiceByID(t *testing.T) {
 	ctl, _, sc := newTestServiceCache(t)
 	defer ctl.Finish()

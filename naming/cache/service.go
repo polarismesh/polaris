@@ -18,12 +18,13 @@
 package cache
 
 import (
+	"sync"
+	"time"
+
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
-	"sync"
-	"time"
 )
 
 const (
@@ -31,12 +32,12 @@ const (
 )
 
 /**
- * @brief 迭代回调函数
+ * ServiceIterProc 迭代回调函数
  */
 type ServiceIterProc func(key string, value *model.Service) (bool, error)
 
 /**
- * @brief 服务数据缓存接口
+ * ServiceCache 服务数据缓存接口
  */
 type ServiceCache interface {
 	Cache
@@ -71,6 +72,13 @@ type serviceCache struct {
 	revisionCh      chan *revisionNotify
 	disableBusiness bool
 	needMeta        bool
+}
+
+/**
+ * @brief 自注册到缓存列表
+ */
+func init() {
+	RegisterCache(ServiceName, CacheService)
 }
 
 /**
@@ -143,7 +151,7 @@ func (sc *serviceCache) name() string {
 }
 
 /**
- * @brief 根据服务ID获取服务数据
+ * GetServiceByID 根据服务ID获取服务数据
  */
 func (sc *serviceCache) GetServiceByID(id string) *model.Service {
 	if id == "" {
@@ -159,7 +167,7 @@ func (sc *serviceCache) GetServiceByID(id string) *model.Service {
 }
 
 /**
- * @brief 根据服务名获取服务数据
+ * GetServiceByName 根据服务名获取服务数据
  */
 func (sc *serviceCache) GetServiceByName(name string, namespace string) *model.Service {
 	if name == "" || namespace == "" {
@@ -179,11 +187,14 @@ func (sc *serviceCache) GetServiceByName(name string, namespace string) *model.S
 }
 
 /**
- * @brief 对缓存中的服务进行迭代
+ * IteratorServices 对缓存中的服务进行迭代
  */
 func (sc *serviceCache) IteratorServices(iterProc ServiceIterProc) error {
-	var cont bool
-	var err error
+	var (
+		cont bool
+		err  error
+	)
+
 	proc := func(k interface{}, v interface{}) bool {
 		cont, err = iterProc(k.(string), v.(*model.Service))
 		if err != nil {
@@ -195,7 +206,7 @@ func (sc *serviceCache) IteratorServices(iterProc ServiceIterProc) error {
 	return err
 }
 
-// 获取缓存中服务的个数
+// GetServicesCount 获取缓存中服务的个数
 func (sc *serviceCache) GetServicesCount() int {
 	count := 0
 	sc.ids.Range(func(key, value interface{}) bool {
@@ -206,7 +217,7 @@ func (sc *serviceCache) GetServicesCount() int {
 	return count
 }
 
-// 根据cl5Name获取对应的sid
+// GetServiceByCl5Name 根据cl5Name获取对应的sid
 func (sc *serviceCache) GetServiceByCl5Name(cl5Name string) *model.Service {
 	value, ok := sc.cl5Names.Load(genCl5Name(cl5Name))
 	if !ok {
@@ -318,11 +329,4 @@ func (sc *serviceCache) updateCl5SidAndNames(service *model.Service) {
 // 部分cl5Name与已有服务名存在冲突，因此给cl5Name加上一个前缀
 func genCl5Name(name string) string {
 	return "cl5." + name
-}
-
-/**
- * @brief 自注册到缓存列表
- */
-func init() {
-	RegisterCache(ServiceName, CacheService)
 }
