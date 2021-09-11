@@ -17,7 +17,7 @@
 
 package store
 
-// 用于通过服务实例查询服务的参数
+// InstanceArgs 用于通过服务实例查询服务的参数
 type InstanceArgs struct {
 	Hosts []string
 	Ports []uint32
