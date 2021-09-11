@@ -363,7 +363,6 @@ func (l *Listener) descConnCount() {
 // 判断host是否在白名单中
 // 如果host在白名单中，则忽略host连接限制
 func (l *Listener) ignoreHostConnLimit(host string) bool {
-	// if l.whiteList is nil map,find value is also right.
 	_, ok := l.whiteList[host]
 	return ok
 }
