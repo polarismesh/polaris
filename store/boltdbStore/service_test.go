@@ -19,18 +19,19 @@ package boltdbStore
 
 import (
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/model"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 const (
 	serviceCount = 5
-	aliasCount = 3
+	aliasCount   = 3
 )
 
-func TestServiceStore_AddService(t *testing.T){
+func TestServiceStore_AddService(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -42,22 +43,22 @@ func TestServiceStore_AddService(t *testing.T){
 
 	for i := 0; i < serviceCount; i++ {
 		err := sStore.AddService(&model.Service{
-			ID: "svcid"+strconv.Itoa(i),
-			Name: "svcname"+strconv.Itoa(i),
+			ID:        "svcid" + strconv.Itoa(i),
+			Name:      "svcname" + strconv.Itoa(i),
 			Namespace: "testsvc",
-			Business: "testbuss",
-			Ports: "8080",
+			Business:  "testbuss",
+			Ports:     "8080",
 			Meta: map[string]string{
 				"k1": "v1",
 				"k2": "v2",
 			},
-			Comment: "testcomment",
+			Comment:    "testcomment",
 			Department: "testdepart",
-			Token: "testtoken",
-			Owner: "testowner",
-			Revision: "testrevision"+strconv.Itoa(i),
-			Reference: "",
-			Valid: true,
+			Token:      "testtoken",
+			Owner:      "testowner",
+			Revision:   "testrevision" + strconv.Itoa(i),
+			Reference:  "",
+			Valid:      true,
 			CreateTime: time.Now(),
 			ModifyTime: time.Now(),
 		})
@@ -68,22 +69,22 @@ func TestServiceStore_AddService(t *testing.T){
 
 	for i := 0; i < aliasCount; i++ {
 		err := sStore.AddService(&model.Service{
-			ID: "aliasid" + strconv.Itoa(i),
-			Name: "aliasname " + strconv.Itoa(i),
+			ID:        "aliasid" + strconv.Itoa(i),
+			Name:      "aliasname " + strconv.Itoa(i),
 			Namespace: "testsvc",
-			Business: "testbuss",
-			Ports: "8080",
+			Business:  "testbuss",
+			Ports:     "8080",
 			Meta: map[string]string{
 				"k1": "v1",
 				"k2": "v2",
 			},
-			Comment: "testcomment",
+			Comment:    "testcomment",
 			Department: "testdepart",
-			Token: "testtoken",
-			Owner: "testowner",
-			Revision: "testrevision"+strconv.Itoa(i),
-			Reference: "svcid"+strconv.Itoa(i),
-			Valid: true,
+			Token:      "testtoken",
+			Owner:      "testowner",
+			Revision:   "testrevision" + strconv.Itoa(i),
+			Reference:  "svcid" + strconv.Itoa(i),
+			Valid:      true,
 			CreateTime: time.Now(),
 			ModifyTime: time.Now(),
 		})
@@ -93,7 +94,7 @@ func TestServiceStore_AddService(t *testing.T){
 	}
 }
 
-func TestServiceStore_GetServices(t *testing.T){
+func TestServiceStore_GetServices(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -112,7 +113,7 @@ func TestServiceStore_GetServices(t *testing.T){
 	}
 }
 
-func TestServiceStore_GetServicesBatch(t *testing.T){
+func TestServiceStore_GetServicesBatch(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -125,7 +126,7 @@ func TestServiceStore_GetServicesBatch(t *testing.T){
 	sArg := make([]*model.Service, 2)
 	for i := 0; i < 2; i++ {
 		sArg[i] = &model.Service{
-			Name: "svcname"+strconv.Itoa(i),
+			Name:      "svcname" + strconv.Itoa(i),
 			Namespace: "testsvc",
 		}
 	}
@@ -140,7 +141,7 @@ func TestServiceStore_GetServicesBatch(t *testing.T){
 	}
 }
 
-func TestServiceStore_GetServiceByID(t *testing.T){
+func TestServiceStore_GetServiceByID(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -158,7 +159,7 @@ func TestServiceStore_GetServiceByID(t *testing.T){
 	fmt.Printf("get service by id: %+v\n", ss)
 }
 
-func TestServiceStore_UpdateService(t *testing.T){
+func TestServiceStore_UpdateService(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -169,13 +170,12 @@ func TestServiceStore_UpdateService(t *testing.T){
 	sStore := &serviceStore{handler: handler}
 
 	err = sStore.UpdateService(&model.Service{
-		ID: "svcid1",
-		Name: "modifyName1",
+		ID:        "svcid1",
+		Name:      "modifyName1",
 		Namespace: "modifyNamespace1",
-		Token: "modifyToken1",
-		Owner: "modifyOwner1",
-		Revision: "modifyRevision1",
-
+		Token:     "modifyToken1",
+		Owner:     "modifyOwner1",
+		Revision:  "modifyRevision1",
 	}, true)
 	if err != nil {
 		t.Fatal(err)
@@ -199,7 +199,7 @@ func TestServiceStore_UpdateService(t *testing.T){
 	}
 }
 
-func TestServiceStore_UpdateServiceToken(t *testing.T){
+func TestServiceStore_UpdateServiceToken(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -232,7 +232,7 @@ func TestServiceStore_UpdateServiceToken(t *testing.T){
 	}
 }
 
-func TestServiceStore_GetSourceServiceToken(t *testing.T){
+func TestServiceStore_GetSourceServiceToken(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -250,7 +250,7 @@ func TestServiceStore_GetSourceServiceToken(t *testing.T){
 	fmt.Printf("get service token: %+v\n", ss)
 }
 
-func TestServiceStore_GetService(t *testing.T){
+func TestServiceStore_GetService(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -268,7 +268,7 @@ func TestServiceStore_GetService(t *testing.T){
 	fmt.Printf("get service by name and namespace: %+v\n", ss)
 }
 
-func TestServiceStore_GetServiceAliases(t *testing.T){
+func TestServiceStore_GetServiceAliases(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -294,7 +294,7 @@ func TestServiceStore_GetServiceAliases(t *testing.T){
 	}
 }
 
-func TestServiceStore_GetServicesCount(t *testing.T){
+func TestServiceStore_GetServicesCount(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -310,8 +310,7 @@ func TestServiceStore_GetServicesCount(t *testing.T){
 	}
 }
 
-
-func TestServiceStore_GetMoreServices(t *testing.T){
+func TestServiceStore_GetMoreServices(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -331,13 +330,12 @@ func TestServiceStore_GetMoreServices(t *testing.T){
 		t.Fatal(err)
 	}
 
-	if len(sss) != routeCount + aliasCount - 3 {
-		t.Fatal(fmt.Sprintf("get service count error, except %d, got %d", routeCount + aliasCount - 3, len(sss)))
+	if len(sss) != routeCount+aliasCount-3 {
+		t.Fatal(fmt.Sprintf("get service count error, except %d, got %d", routeCount+aliasCount-3, len(sss)))
 	}
 }
 
-
-func TestServiceStore_UpdateServiceAlias(t *testing.T){
+func TestServiceStore_UpdateServiceAlias(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -348,14 +346,13 @@ func TestServiceStore_UpdateServiceAlias(t *testing.T){
 	sStore := &serviceStore{handler: handler}
 
 	err = sStore.UpdateServiceAlias(&model.Service{
-		ID: "svcid2",
-		Name: "modifyName2",
+		ID:        "svcid2",
+		Name:      "modifyName2",
 		Namespace: "modifyNamespace2",
-		Token: "modifyToken2",
-		Owner: "modifyOwner2",
-		Revision: "modifyRevision2",
+		Token:     "modifyToken2",
+		Owner:     "modifyOwner2",
+		Revision:  "modifyRevision2",
 		Reference: "1",
-
 	}, true)
 	if err != nil {
 		t.Fatal(err)
@@ -379,8 +376,7 @@ func TestServiceStore_UpdateServiceAlias(t *testing.T){
 	}
 }
 
-
-func TestServiceStore_DeleteServiceAlias(t *testing.T){
+func TestServiceStore_DeleteServiceAlias(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -396,7 +392,7 @@ func TestServiceStore_DeleteServiceAlias(t *testing.T){
 	}
 }
 
-func TestServiceStore_DeleteService(t *testing.T){
+func TestServiceStore_DeleteService(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -414,7 +410,7 @@ func TestServiceStore_DeleteService(t *testing.T){
 	for _, s := range ss {
 		fmt.Printf("get service %+v\n", s)
 		err := sStore.DeleteService(s.ID, "", "")
-		if err != nil{
+		if err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -425,6 +421,3 @@ func TestServiceStore_DeleteService(t *testing.T){
 		t.Fatal(fmt.Sprintf("delete service not success"))
 	}
 }
-
-
-

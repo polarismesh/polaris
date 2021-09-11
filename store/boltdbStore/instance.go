@@ -20,13 +20,14 @@ package boltdbStore
 import (
 	"errors"
 	"fmt"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/model"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 type instanceStore struct {
@@ -49,7 +50,7 @@ func (i *instanceStore) AddInstance(instance *model.Instance) error {
 		return err
 	}
 
-	if err := i.handler.SaveValue(tblNameInstance, instance.ID(), instance); err != nil{
+	if err := i.handler.SaveValue(tblNameInstance, instance.ID(), instance); err != nil {
 		log.Errorf("[Store][boltdb] save instance to kv error, %v", err)
 		return err
 	}
@@ -70,13 +71,13 @@ func (i *instanceStore) BatchAddInstances(instances []*model.Instance) error {
 	}
 
 	// clear old instances
-	if err := i.handler.DeleteValues(tblNameInstance, insIds); err != nil{
+	if err := i.handler.DeleteValues(tblNameInstance, insIds); err != nil {
 		log.Errorf("[Store][boltdb] save instance to kv error, %v", err)
 		return err
 	}
 
 	for _, instance := range instances {
-		if err := i.handler.SaveValue(tblNameInstance, instance.ID(), instance); err != nil{
+		if err := i.handler.SaveValue(tblNameInstance, instance.ID(), instance); err != nil {
 			log.Errorf("[Store][boltdb] save instance to kv error, %v", err)
 			return err
 		}
@@ -91,7 +92,7 @@ func (i *instanceStore) UpdateInstance(instance *model.Instance) error {
 	properties := make(map[string]interface{})
 	properties[insFieldProto] = instance.Proto
 
-	if err := i.handler.UpdateValue(tblNameInstance, instance.ID(), properties); err != nil{
+	if err := i.handler.UpdateValue(tblNameInstance, instance.ID(), properties); err != nil {
 		log.Errorf("[Store][boltdb] update instance to kv error, %v", err)
 		return err
 	}
@@ -102,7 +103,7 @@ func (i *instanceStore) UpdateInstance(instance *model.Instance) error {
 // DeleteInstance Delete an instance
 func (i *instanceStore) DeleteInstance(instanceID string) error {
 
-	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}); err != nil{
+	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}); err != nil {
 		log.Errorf("[Store][boltdb] delete instance from kv error, %v", err)
 		return err
 	}
@@ -123,7 +124,7 @@ func (i *instanceStore) BatchDeleteInstances(ids []interface{}) error {
 		realIDs = append(realIDs, id.(string))
 	}
 
-	if err := i.handler.DeleteValues(tblNameInstance, realIDs); err != nil{
+	if err := i.handler.DeleteValues(tblNameInstance, realIDs); err != nil {
 		log.Errorf("[Store][boltdb] batch delete instance from kv error, %v", err)
 		return err
 	}
@@ -132,7 +133,7 @@ func (i *instanceStore) BatchDeleteInstances(ids []interface{}) error {
 
 // CleanInstance Delete an instance
 func (i *instanceStore) CleanInstance(instanceID string) error {
-	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}); err != nil{
+	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}); err != nil {
 		log.Errorf("[Store][boltdb] delete instance from kv error, %v", err)
 		return err
 	}
@@ -146,7 +147,7 @@ func (i *instanceStore) CheckInstancesExisted(ids map[string]bool) (map[string]b
 		return nil, nil
 	}
 
-	err := i.handler.IterateFields(tblNameInstance, insFieldProto, &model.Instance{}, func(ins interface{}){
+	err := i.handler.IterateFields(tblNameInstance, insFieldProto, &model.Instance{}, func(ins interface{}) {
 		instance := ins.(*api.Instance)
 
 		_, ok := ids[instance.GetId().GetValue()]
@@ -174,7 +175,7 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 
 	// find all instances with given ids
 	inss, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
-		func(m map[string]interface{}) bool{
+		func(m map[string]interface{}) bool {
 			insProto, ok := m[insFieldProto]
 			if !ok {
 				return false
@@ -200,7 +201,7 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 
 	fields = []string{SvcFieldID}
 	services, err := i.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
-		func(m map[string]interface{}) bool{
+		func(m map[string]interface{}) bool {
 			svcId, ok := m[SvcFieldID]
 			if !ok {
 				return false
@@ -247,7 +248,7 @@ func (i *instanceStore) GetInstance(instanceID string) (*model.Instance, error) 
 	fields := []string{insFieldProto}
 
 	ins, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
-		func(m map[string]interface{}) bool{
+		func(m map[string]interface{}) bool {
 			insProto, ok := m[insFieldProto]
 			if !ok {
 				return false
@@ -288,7 +289,7 @@ func (i *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*mo
 	fields := []string{insFieldServiceID, insFieldProto}
 
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
-		func(m map[string]interface{}) bool{
+		func(m map[string]interface{}) bool {
 			sId, ok := m[insFieldServiceID]
 			if !ok {
 				return false
@@ -326,62 +327,62 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 	fields := []string{insFieldProto}
 
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
-	func(m map[string]interface{}) bool{
-		insProto, ok := m[insFieldProto]
-		if !ok {
-			return false
-		}
-		ins := insProto.(*api.Instance)
-		namespace, isNamespace := filter["namespace"]
-		service, isService := filter["service"]
-		host, isHost := filter["host"]
-		port, isPort := filter["port"]
-		protocol, isProtocol := filter["protocol"]
-		version, isVersion := filter["version"]
-		healthy, isHealthy := filter["healthy"]
-		isolate, isIsolate := filter["isolate"]
-
-		if isNamespace && namespace != ins.GetNamespace().GetValue() {
-			return false
-		}
-		if isService && service != ins.GetService().GetValue() {
-			return false
-		}
-		if isHost && host != ins.GetHost().GetValue() {
-			return false
-		}
-		if isPort && port != strconv.Itoa(int(ins.GetPort().GetValue())) {
-			return false
-		}
-		if isProtocol && protocol != ins.GetProtocol().GetValue() {
-			return false
-		}
-		if isVersion && version != ins.GetVersion().GetValue() {
-			return false
-		}
-		if isHealthy && healthy != strconv.FormatBool(ins.GetHealthy().GetValue()) {
-			return false
-		}
-		if isIsolate && isolate != strconv.FormatBool(ins.GetIsolate().GetValue()) {
-			return false
-		}
-		// filter metadata
-		if len(metaFilter) > 0 {
-			var key, value string
-			for k, v := range metaFilter {
-				key = k
-				value = v
-				break
-			}
-
-			insV, ok := ins.GetMetadata()[key]
-			if !ok || insV != value {
+		func(m map[string]interface{}) bool {
+			insProto, ok := m[insFieldProto]
+			if !ok {
 				return false
 			}
-		}
+			ins := insProto.(*api.Instance)
+			namespace, isNamespace := filter["namespace"]
+			service, isService := filter["service"]
+			host, isHost := filter["host"]
+			port, isPort := filter["port"]
+			protocol, isProtocol := filter["protocol"]
+			version, isVersion := filter["version"]
+			healthy, isHealthy := filter["healthy"]
+			isolate, isIsolate := filter["isolate"]
 
-		return true
-	})
+			if isNamespace && namespace != ins.GetNamespace().GetValue() {
+				return false
+			}
+			if isService && service != ins.GetService().GetValue() {
+				return false
+			}
+			if isHost && host != ins.GetHost().GetValue() {
+				return false
+			}
+			if isPort && port != strconv.Itoa(int(ins.GetPort().GetValue())) {
+				return false
+			}
+			if isProtocol && protocol != ins.GetProtocol().GetValue() {
+				return false
+			}
+			if isVersion && version != ins.GetVersion().GetValue() {
+				return false
+			}
+			if isHealthy && healthy != strconv.FormatBool(ins.GetHealthy().GetValue()) {
+				return false
+			}
+			if isIsolate && isolate != strconv.FormatBool(ins.GetIsolate().GetValue()) {
+				return false
+			}
+			// filter metadata
+			if len(metaFilter) > 0 {
+				var key, value string
+				for k, v := range metaFilter {
+					key = k
+					value = v
+					break
+				}
+
+				insV, ok := ins.GetMetadata()[key]
+				if !ok || insV != value {
+					return false
+				}
+			}
+
+			return true
+		})
 	if err != nil {
 		log.Errorf("[Store][boltdb] load instance from kv error, %v", err)
 		return 0, nil, err
@@ -403,7 +404,7 @@ func (i *instanceStore) GetMoreInstances(
 	}
 
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
-		func(m map[string]interface{}) bool{
+		func(m map[string]interface{}) bool {
 			insProto, ok := m[insFieldProto]
 			if !ok {
 				return false
@@ -450,7 +451,7 @@ func (i *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, rev
 	fields := []string{insFieldProto}
 
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
-		func(m map[string]interface{}) bool{
+		func(m map[string]interface{}) bool {
 			insProto, ok := m[insFieldProto]
 			if !ok {
 				return false
@@ -505,7 +506,7 @@ func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, 
 	var isolateStatus bool
 	if isolate == 0 {
 		isolateStatus = false
-	}else {
+	} else {
 		isolateStatus = true
 	}
 
@@ -513,7 +514,7 @@ func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, 
 
 	// get all instance by given ids
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
-		func(m map[string]interface{}) bool{
+		func(m map[string]interface{}) bool {
 			proto, ok := m[insFieldProto]
 			if !ok {
 				return false
@@ -554,7 +555,6 @@ func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, 
 	return nil
 }
 
-
 func toInstance(m map[string]interface{}) map[string]*model.Instance {
 	insMap := make(map[string]*model.Instance)
 	for k, v := range m {
@@ -587,13 +587,13 @@ func getRealInstancesList(originServices map[string]interface{}, offset, limit u
 		instances = append(instances, s.(*model.Instance))
 	}
 
-	sort.Slice(instances, func (i, j int) bool{
+	sort.Slice(instances, func(i, j int) bool {
 		// sort by modify time
 		if instances[i].ModifyTime.After(instances[j].ModifyTime) {
 			return true
-		} else if instances[i].ModifyTime.Before(instances[j].ModifyTime){
+		} else if instances[i].ModifyTime.Before(instances[j].ModifyTime) {
 			return false
-		}else{
+		} else {
 			return strings.Compare(instances[i].ID(), instances[j].ID()) < 0
 		}
 	})

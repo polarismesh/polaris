@@ -19,12 +19,13 @@ package boltdbStore
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/golang/protobuf/ptypes/wrappers"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 const (
@@ -44,27 +45,26 @@ func TestInstanceStore_AddInstance(t *testing.T) {
 
 		err = insStore.AddInstance(&model.Instance{
 			Proto: &api.Instance{
-				Id: &wrappers.StringValue{Value: "insid"+strconv.Itoa(i)},
-				Host: &wrappers.StringValue{Value: "1.1.1."+strconv.Itoa(i)},
-				Port: &wrappers.UInt32Value{Value: uint32(i + 1)},
-				Protocol: &wrappers.StringValue{Value: "grpc"},
-				Weight: &wrappers.UInt32Value{Value: uint32(i + 1)},
+				Id:                &wrappers.StringValue{Value: "insid" + strconv.Itoa(i)},
+				Host:              &wrappers.StringValue{Value: "1.1.1." + strconv.Itoa(i)},
+				Port:              &wrappers.UInt32Value{Value: uint32(i + 1)},
+				Protocol:          &wrappers.StringValue{Value: "grpc"},
+				Weight:            &wrappers.UInt32Value{Value: uint32(i + 1)},
 				EnableHealthCheck: &wrappers.BoolValue{Value: true},
-				Healthy: &wrappers.BoolValue{Value: true},
-				Isolate: &wrappers.BoolValue{Value: true},
+				Healthy:           &wrappers.BoolValue{Value: true},
+				Isolate:           &wrappers.BoolValue{Value: true},
 				Metadata: map[string]string{
 					"insk1": "insv1",
 					"insk2": "insv2",
 				},
-				Ctime: &wrappers.StringValue{Value: nowt},
-				Mtime: &wrappers.StringValue{Value: nowt},
-				Revision: &wrappers.StringValue{Value: "revision"+strconv.Itoa(i)},
+				Ctime:    &wrappers.StringValue{Value: nowt},
+				Mtime:    &wrappers.StringValue{Value: nowt},
+				Revision: &wrappers.StringValue{Value: "revision" + strconv.Itoa(i)},
 			},
-			ServiceID: "svcid1",
+			ServiceID:         "svcid1",
 			ServicePlatformID: "svcPlatId1",
-			Valid: true,
-			ModifyTime: time.Now(),
-
+			Valid:             true,
+			ModifyTime:        time.Now(),
 		})
 		if nil != err {
 			t.Fatal(err)
@@ -81,32 +81,32 @@ func TestInstanceStore_BatchAddInstances(t *testing.T) {
 	insStore := &instanceStore{handler: handler}
 
 	instances := make([]*model.Instance, 0)
-	for i := insCount; i < insCount + 5; i++ {
+	for i := insCount; i < insCount+5; i++ {
 
 		nowt := time.Now().Format("2006-01-02 15:04:05")
 
 		ins := &model.Instance{
 			Proto: &api.Instance{
-				Id: &wrappers.StringValue{Value: "insid"+strconv.Itoa(i)},
-				Host: &wrappers.StringValue{Value: "1.1.1."+strconv.Itoa(i)},
-				Port: &wrappers.UInt32Value{Value: uint32(i)},
-				Protocol: &wrappers.StringValue{Value: "grpc"},
-				Weight: &wrappers.UInt32Value{Value: uint32(i)},
+				Id:                &wrappers.StringValue{Value: "insid" + strconv.Itoa(i)},
+				Host:              &wrappers.StringValue{Value: "1.1.1." + strconv.Itoa(i)},
+				Port:              &wrappers.UInt32Value{Value: uint32(i)},
+				Protocol:          &wrappers.StringValue{Value: "grpc"},
+				Weight:            &wrappers.UInt32Value{Value: uint32(i)},
 				EnableHealthCheck: &wrappers.BoolValue{Value: true},
-				Healthy: &wrappers.BoolValue{Value: true},
-				Isolate: &wrappers.BoolValue{Value: true},
+				Healthy:           &wrappers.BoolValue{Value: true},
+				Isolate:           &wrappers.BoolValue{Value: true},
 				Metadata: map[string]string{
 					"insk1": "insv1",
 					"insk2": "insv2",
 				},
-				Ctime: &wrappers.StringValue{Value: nowt},
-				Mtime: &wrappers.StringValue{Value: nowt},
-				Revision: &wrappers.StringValue{Value: "revision"+strconv.Itoa(i)},
+				Ctime:    &wrappers.StringValue{Value: nowt},
+				Mtime:    &wrappers.StringValue{Value: nowt},
+				Revision: &wrappers.StringValue{Value: "revision" + strconv.Itoa(i)},
 			},
-			ServiceID: "svcid2",
+			ServiceID:         "svcid2",
 			ServicePlatformID: "svcPlatId1",
-			Valid: true,
-			ModifyTime: time.Now(),
+			Valid:             true,
+			ModifyTime:        time.Now(),
 		}
 
 		instances = append(instances, ins)
@@ -242,25 +242,25 @@ func TestInstanceStore_UpdateInstance(t *testing.T) {
 
 	insM := &model.Instance{
 		Proto: &api.Instance{
-			Id: &wrappers.StringValue{Value: "insid"+strconv.Itoa(0)},
-			Service: &wrappers.StringValue{Value: "svcid1"},
-			Namespace: &wrappers.StringValue{Value: "testns"},
-			Host: &wrappers.StringValue{Value: "1.2.3."+strconv.Itoa(0)},
-			Port: &wrappers.UInt32Value{Value: uint32(8080)},
-			Protocol: &wrappers.StringValue{Value: "trpc"},
-			Weight: &wrappers.UInt32Value{Value: uint32(0)},
+			Id:                &wrappers.StringValue{Value: "insid" + strconv.Itoa(0)},
+			Service:           &wrappers.StringValue{Value: "svcid1"},
+			Namespace:         &wrappers.StringValue{Value: "testns"},
+			Host:              &wrappers.StringValue{Value: "1.2.3." + strconv.Itoa(0)},
+			Port:              &wrappers.UInt32Value{Value: uint32(8080)},
+			Protocol:          &wrappers.StringValue{Value: "trpc"},
+			Weight:            &wrappers.UInt32Value{Value: uint32(0)},
 			EnableHealthCheck: &wrappers.BoolValue{Value: true},
-			Healthy: &wrappers.BoolValue{Value: true},
-			Isolate: &wrappers.BoolValue{Value: true},
+			Healthy:           &wrappers.BoolValue{Value: true},
+			Isolate:           &wrappers.BoolValue{Value: true},
 			Metadata: map[string]string{
 				"modifyK1": "modifyV1",
 				"modifyK2": "modifyV1",
 			},
 		},
-		ServiceID: "svcid1",
+		ServiceID:         "svcid1",
 		ServicePlatformID: "svcPlatId1",
-		Valid: true,
-		ModifyTime: time.Now(),
+		Valid:             true,
+		ModifyTime:        time.Now(),
 	}
 
 	err = insStore.UpdateInstance(insM)
@@ -275,11 +275,10 @@ func TestInstanceStore_UpdateInstance(t *testing.T) {
 	}
 
 	if ins.Proto.GetHost().GetValue() != "1.2.3.0" ||
-		ins.Proto.GetPort().GetValue() != 8080{
+		ins.Proto.GetPort().GetValue() != 8080 {
 		t.Fatal(fmt.Sprintf("udpate instance error"))
 	}
 }
-
 
 func TestInstanceStore_GetInstancesBrief(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
@@ -291,22 +290,22 @@ func TestInstanceStore_GetInstancesBrief(t *testing.T) {
 	sStore := &serviceStore{handler: handler}
 
 	err = sStore.AddService(&model.Service{
-		ID: "svcid1",
-		Name: "svcname1",
+		ID:        "svcid1",
+		Name:      "svcname1",
 		Namespace: "testsvc",
-		Business: "testbuss",
-		Ports: "8080",
+		Business:  "testbuss",
+		Ports:     "8080",
 		Meta: map[string]string{
 			"k1": "v1",
 			"k2": "v2",
 		},
-		Comment: "testcomment",
+		Comment:    "testcomment",
 		Department: "testdepart",
-		Token: "testtoken1",
-		Owner: "testowner",
-		Revision: "testrevision1",
-		Reference: "",
-		Valid: true,
+		Token:      "testtoken1",
+		Owner:      "testowner",
+		Revision:   "testrevision1",
+		Reference:  "",
+		Valid:      true,
 		CreateTime: time.Now(),
 		ModifyTime: time.Now(),
 	})
@@ -315,22 +314,22 @@ func TestInstanceStore_GetInstancesBrief(t *testing.T) {
 	}
 
 	err = sStore.AddService(&model.Service{
-		ID: "svcid2",
-		Name: "svcname2",
+		ID:        "svcid2",
+		Name:      "svcname2",
 		Namespace: "testsvc",
-		Business: "testbuss",
-		Ports: "8080",
+		Business:  "testbuss",
+		Ports:     "8080",
 		Meta: map[string]string{
 			"k1": "v1",
 			"k2": "v2",
 		},
-		Comment: "testcomment",
+		Comment:    "testcomment",
 		Department: "testdepart",
-		Token: "testtoken2",
-		Owner: "testowner",
-		Revision: "testrevision2",
-		Reference: "",
-		Valid: true,
+		Token:      "testtoken2",
+		Owner:      "testowner",
+		Revision:   "testrevision2",
+		Reference:  "",
+		Valid:      true,
 		CreateTime: time.Now(),
 		ModifyTime: time.Now(),
 	})
@@ -341,7 +340,7 @@ func TestInstanceStore_GetInstancesBrief(t *testing.T) {
 	m, err := insStore.GetInstancesBrief(map[string]bool{
 		"insid1": true,
 		"insid8": true,
- 	})
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -377,13 +376,10 @@ func TestInstanceStore_GetInstancesCount(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if c != routeCount * 2 {
+	if c != routeCount*2 {
 		t.Fatal("get instance count error")
 	}
 }
-
-
-
 
 func TestInstanceStore_CheckInstancesExisted(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
@@ -394,9 +390,9 @@ func TestInstanceStore_CheckInstancesExisted(t *testing.T) {
 	insStore := &instanceStore{handler: handler}
 
 	m := map[string]bool{
-		"insid1": false,
-		"insid2": false,
-		"test-not-exist": false,
+		"insid1":          false,
+		"insid2":          false,
+		"test-not-exist":  false,
 		"test-not-exist1": false,
 	}
 
@@ -409,7 +405,6 @@ func TestInstanceStore_CheckInstancesExisted(t *testing.T) {
 		t.Fatal("check instance existed error")
 	}
 }
-
 
 func TestInstanceStore_DeleteInstance(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})

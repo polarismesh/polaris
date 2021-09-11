@@ -19,17 +19,18 @@ package boltdbStore
 
 import (
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/model"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 const (
 	routeCount = 5
 )
 
-func TestRoutingStore_CreateRoutingConfig(t *testing.T){
+func TestRoutingStore_CreateRoutingConfig(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -41,11 +42,11 @@ func TestRoutingStore_CreateRoutingConfig(t *testing.T){
 
 	for i := 0; i < routeCount; i++ {
 		rStore.CreateRoutingConfig(&model.RoutingConfig{
-			ID: "testid" + strconv.Itoa(i),
-			InBounds: "v1" + strconv.Itoa(i),
-			OutBounds: "v2" + strconv.Itoa(i),
-			Revision: "revision" + strconv.Itoa(i) ,
-			Valid: true,
+			ID:         "testid" + strconv.Itoa(i),
+			InBounds:   "v1" + strconv.Itoa(i),
+			OutBounds:  "v2" + strconv.Itoa(i),
+			Revision:   "revision" + strconv.Itoa(i),
+			Valid:      true,
 			CreateTime: time.Now(),
 			ModifyTime: time.Now(),
 		})
@@ -56,7 +57,7 @@ func TestRoutingStore_CreateRoutingConfig(t *testing.T){
 	}
 }
 
-func TestRoutingStore_GetRoutingConfigs(t *testing.T){
+func TestRoutingStore_GetRoutingConfigs(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -81,7 +82,7 @@ func TestRoutingStore_GetRoutingConfigs(t *testing.T){
 	}
 }
 
-func TestRoutingStore_UpdateRoutingConfig(t *testing.T){
+func TestRoutingStore_UpdateRoutingConfig(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -94,10 +95,10 @@ func TestRoutingStore_UpdateRoutingConfig(t *testing.T){
 	for i := 0; i < routeCount; i++ {
 
 		conf := &model.RoutingConfig{
-			ID: "testid" + strconv.Itoa(i),
-			InBounds: "vv1" + strconv.Itoa(i),
+			ID:        "testid" + strconv.Itoa(i),
+			InBounds:  "vv1" + strconv.Itoa(i),
 			OutBounds: "vv2" + strconv.Itoa(i),
-			Revision: "revi" + strconv.Itoa(i),
+			Revision:  "revi" + strconv.Itoa(i),
 		}
 
 		err := rStore.UpdateRoutingConfig(conf)
@@ -122,7 +123,7 @@ func TestRoutingStore_UpdateRoutingConfig(t *testing.T){
 	}
 }
 
-func TestRoutingStore_GetRoutingConfigsForCache(t *testing.T){
+func TestRoutingStore_GetRoutingConfigsForCache(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -148,12 +149,12 @@ func TestRoutingStore_GetRoutingConfigsForCache(t *testing.T){
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(rss) != routeCount - 2 {
-		t.Fatal(fmt.Sprintf("routing config count mismatch, except %d, got %d", routeCount - 2, len(rss)))
+	if len(rss) != routeCount-2 {
+		t.Fatal(fmt.Sprintf("routing config count mismatch, except %d, got %d", routeCount-2, len(rss)))
 	}
 }
 
-func TestRoutingStore_GetRoutingConfigWithService(t *testing.T){
+func TestRoutingStore_GetRoutingConfigWithService(t *testing.T) {
 
 	// find service
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
@@ -165,11 +166,11 @@ func TestRoutingStore_GetRoutingConfigWithService(t *testing.T){
 
 	sStore := &serviceStore{handler: handler}
 	err = sStore.AddService(&model.Service{
-		ID: "testid3",
-		Name: "test-svc-name",
+		ID:        "testid3",
+		Name:      "test-svc-name",
 		Namespace: "test-svc-namespace",
-		Owner: "test-owner",
-		Token: "test-token",
+		Owner:     "test-owner",
+		Token:     "test-token",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -181,7 +182,7 @@ func TestRoutingStore_GetRoutingConfigWithService(t *testing.T){
 	fmt.Printf("get routing config with service %+v", rc)
 }
 
-func TestRoutingStore_GetRoutingConfigWithID(t *testing.T){
+func TestRoutingStore_GetRoutingConfigWithID(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -198,8 +199,7 @@ func TestRoutingStore_GetRoutingConfigWithID(t *testing.T){
 	fmt.Printf("get routing conf %+v\n", rc)
 }
 
-
-func TestRoutingStore_DeleteRoutingConfig(t *testing.T){
+func TestRoutingStore_DeleteRoutingConfig(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -212,9 +212,3 @@ func TestRoutingStore_DeleteRoutingConfig(t *testing.T){
 		rStore.DeleteRoutingConfig("testid" + strconv.Itoa(i))
 	}
 }
-
-
-
-
-
-

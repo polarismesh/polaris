@@ -20,14 +20,15 @@ package boltdbStore
 import (
 	"database/sql"
 	"errors"
+	"sort"
+	"strconv"
+	"time"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
 	"github.com/polarismesh/polaris-server/store/defaultStore"
-	"sort"
-	"strconv"
-	"time"
 )
 
 type serviceStore struct {
@@ -50,9 +51,9 @@ const (
 	SvcFieldDepartment = "Department"
 	SvcFieldModifyTime = "ModifyTime"
 	SvcFieldToken      = "Token"
-	SvcFieldOwner = "Owner"
-	SvcFieldRevision = "Revision"
-	SvcFieldReference = "Reference"
+	SvcFieldOwner      = "Owner"
+	SvcFieldRevision   = "Revision"
+	SvcFieldReference  = "Reference"
 )
 
 // AddService save a service
@@ -89,13 +90,12 @@ func (ss *serviceStore) DeleteServiceAlias(name string, namespace string) error 
 	}
 
 	err = ss.handler.DeleteValues(tblNameService, []string{svc.ID})
-	if err != nil  {
+	if err != nil {
 		log.Errorf("[Store][boltdb] delete service alias error, %v", err)
 	}
 
 	return store.Error(err)
 }
-
 
 // UpdateServiceAlias update service alias
 func (ss *serviceStore) UpdateServiceAlias(alias *model.Service, needUpdateOwner bool) error {
@@ -178,7 +178,7 @@ func (ss *serviceStore) GetSourceServiceToken(name string, namespace string) (*m
 func (ss *serviceStore) GetService(name string, namespace string) (*model.Service, error) {
 	s, err := ss.getServiceByNameAndNs(name, namespace)
 
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 	if s != nil && !s.Valid {
@@ -200,13 +200,11 @@ func (ss *serviceStore) GetServiceByID(id string) (*model.Service, error) {
 	return service, nil
 }
 
-
-
 // GetServices query corresponding services and numbers according to relevant conditions
 func (ss *serviceStore) GetServices(serviceFilters, serviceMetas map[string]string,
 	instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.Service, error) {
 
-	totalCount, services, err := ss.getServices(serviceFilters, serviceMetas, instanceFilters,offset, limit)
+	totalCount, services, err := ss.getServices(serviceFilters, serviceMetas, instanceFilters, offset, limit)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -234,30 +232,30 @@ func (ss *serviceStore) GetMoreServices(
 	if disableBusiness {
 		fields = append(fields, SvcFieldNamespace)
 	}
-	
+
 	services, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
-	func(m map[string]interface{}) bool{
-		if disableBusiness {
-			serviceNs, ok := m[SvcFieldNamespace]
+		func(m map[string]interface{}) bool {
+			if disableBusiness {
+				serviceNs, ok := m[SvcFieldNamespace]
+				if !ok {
+					return false
+				}
+				if serviceNs.(string) != defaultStore.SystemNamespace {
+					return false
+				}
+			}
+
+			svcMTime, ok := m[SvcFieldModifyTime]
 			if !ok {
 				return false
 			}
-			if serviceNs.(string) != defaultStore.SystemNamespace {
+
+			serviceMtime := svcMTime.(time.Time)
+			if serviceMtime.Before(mtime) {
 				return false
 			}
-		}
-
-		svcMTime, ok := m[SvcFieldModifyTime]
-		if !ok {
-			return false
-		}
-
-		serviceMtime := svcMTime.(time.Time)
-		if serviceMtime.Before(mtime) {
-			return false
-		}
-		return true
-	})
+			return true
+		})
 
 	if err != nil {
 		log.Errorf("[Store][boltdb] load service from kv error, %v", err)
@@ -286,68 +284,68 @@ func (ss *serviceStore) GetServiceAliases(
 
 	referenceService := make(map[string]bool)
 	services, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
-	func(m map[string]interface{}) bool{
-		// judge whether it is alias by whether there is a reference
-		reference, err := m[SvcFieldReference]
-		if !err {
-			return false
-		}
-		if reference.(string) == "" {
-			return false
-		}
+		func(m map[string]interface{}) bool {
+			// judge whether it is alias by whether there is a reference
+			reference, err := m[SvcFieldReference]
+			if !err {
+				return false
+			}
+			if reference.(string) == "" {
+				return false
+			}
 
-		name, isName := filter["name"]
-		keys, isKeys := filter["keys"]
-		values, isValues := filter["values"]
-		department, isDepartment := filter["department"]
-		business, isBusiness := filter["business"]
+			name, isName := filter["name"]
+			keys, isKeys := filter["keys"]
+			values, isValues := filter["values"]
+			department, isDepartment := filter["department"]
+			business, isBusiness := filter["business"]
 
-		// filter by other
-		if isName {
-			svcName, ok := m[SvcFieldName]
-			if !ok {
-				return false
+			// filter by other
+			if isName {
+				svcName, ok := m[SvcFieldName]
+				if !ok {
+					return false
+				}
+				if svcName.(string) != name {
+					return false
+				}
 			}
-			if svcName.(string) != name {
-				return false
-			}
-		}
 
-		if isKeys {
-			svcMeta, ok := m[SvcFieldMeta]
-			if !ok {
-				return false
+			if isKeys {
+				svcMeta, ok := m[SvcFieldMeta]
+				if !ok {
+					return false
+				}
+				metaValue, ok := svcMeta.(map[string]string)[keys]
+				if !ok {
+					return false
+				}
+				if isValues && values != metaValue {
+					return false
+				}
 			}
-			metaValue, ok := svcMeta.(map[string]string)[keys]
-			if !ok {
-				return false
-			}
-			if isValues && values != metaValue {
-				return false
-			}
-		}
 
-		if isDepartment {
-			svcDepartment, ok := m[SvcFieldDepartment]
-			if !ok {
-				return false
+			if isDepartment {
+				svcDepartment, ok := m[SvcFieldDepartment]
+				if !ok {
+					return false
+				}
+				if department != svcDepartment.(string) {
+					return false
+				}
 			}
-			if department != svcDepartment.(string) {
-				return false
+			if isBusiness && business != m[SvcFieldBusiness].(string) {
+				svcBusiness, ok := m[SvcFieldBusiness]
+				if !ok {
+					return false
+				}
+				if business != svcBusiness.(string) {
+					return false
+				}
 			}
-		}
-		if isBusiness && business != m[SvcFieldBusiness].(string) {
-			svcBusiness, ok := m[SvcFieldBusiness]
-			if !ok {
-				return false
-			}
-			if business != svcBusiness.(string) {
-				return false
-			}
-		}
-		referenceService[m[SvcFieldReference].(string)] = true
-		return true
-	})
+			referenceService[m[SvcFieldReference].(string)] = true
+			return true
+		})
 	if err != nil {
 		log.Errorf("[Store][boltdb] load service from kv error, %v", err)
 		return 0, nil, err
@@ -362,13 +360,13 @@ func (ss *serviceStore) GetServiceAliases(
 	fields = []string{SvcFieldID}
 
 	refServices, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
-	func(m map[string]interface{}) bool{
-		_, ok := referenceService[m[SvcFieldID].(string)]
-		if !ok {
-			return false
-		}
-		return true
-	})
+		func(m map[string]interface{}) bool {
+			_, ok := referenceService[m[SvcFieldID].(string)]
+			if !ok {
+				return false
+			}
+			return true
+		})
 
 	// sort and limit
 	s := getRealServicesList(services, offset, limit)
@@ -398,16 +396,16 @@ func (ss *serviceStore) GetSystemServices() ([]*model.Service, error) {
 	fields := []string{SvcFieldNamespace}
 
 	services, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
-	func(m map[string]interface{}) bool{
-		svcNamespace, ok := m[SvcFieldNamespace]
-		if !ok {
+		func(m map[string]interface{}) bool {
+			svcNamespace, ok := m[SvcFieldNamespace]
+			if !ok {
+				return false
+			}
+			if svcNamespace.(string) == defaultStore.SystemNamespace {
+				return true
+			}
 			return false
-		}
-		if svcNamespace.(string) == defaultStore.SystemNamespace {
-			return true
-		}
-		return false
-	})
+		})
 	if err != nil {
 		log.Errorf("[Store][boltdb] load service from kv error, %v", err)
 		return nil, err
@@ -432,7 +430,7 @@ func (ss *serviceStore) GetServicesBatch(services []*model.Service) ([]*model.Se
 	}
 
 	svcs, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
-		func(m map[string]interface{}) bool{
+		func(m map[string]interface{}) bool {
 
 			svcName, ok := m[SvcFieldName]
 			if !ok {
@@ -462,14 +460,13 @@ func (ss *serviceStore) GetServicesBatch(services []*model.Service) ([]*model.Se
 	return getRealServicesList(svcs, 0, uint32(len(services))), nil
 }
 
-
 func (ss *serviceStore) getServiceByNameAndNs(name string, namespace string) (*model.Service, error) {
 	var out *model.Service
 
 	fields := []string{SvcFieldName, SvcFieldNamespace}
 
 	svc, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
-		func(m map[string]interface{}) bool{
+		func(m map[string]interface{}) bool {
 
 			svcName, ok := m[SvcFieldName]
 			if !ok {
@@ -508,7 +505,7 @@ func (ss *serviceStore) getServiceByID(id string) (*model.Service, error) {
 	fields := []string{SvcFieldID}
 
 	svc, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
-		func(m map[string]interface{}) bool{
+		func(m map[string]interface{}) bool {
 			svcId, ok := m[SvcFieldID]
 			if !ok {
 				return false
@@ -535,7 +532,6 @@ func (ss *serviceStore) getServiceByID(id string) (*model.Service, error) {
 	return out, err
 }
 
-
 func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]string,
 	instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.Service, error) {
 
@@ -552,7 +548,7 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 		filter := []string{insFieldProto}
 
 		inss, err := ss.handler.LoadValuesByFilter(tblNameInstance, filter, &model.Instance{},
-			func(m map[string]interface{}) bool{
+			func(m map[string]interface{}) bool {
 				insPorto, ok := m[insFieldProto]
 				if !ok {
 					return false
@@ -586,7 +582,7 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 					}
 				}
 				return true
-		})
+			})
 		if err != nil {
 			log.Errorf("[Store][boltdb] load instance from kv error %v", err)
 			return 0, nil, err
@@ -608,64 +604,64 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 	business, isBusiness := serviceFilters["business"]
 
 	svcs, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
-	func(m map[string]interface{}) bool{
-		// filter by id
-		if len(insFiltersIds) > 0 {
-			svcId, ok := m[SvcFieldID]
-			if !ok {
-				return false
+		func(m map[string]interface{}) bool {
+			// filter by id
+			if len(insFiltersIds) > 0 {
+				svcId, ok := m[SvcFieldID]
+				if !ok {
+					return false
+				}
+				_, ok = insFiltersIds[svcId.(string)]
+				if !ok {
+					return false
+				}
 			}
-			_, ok = insFiltersIds[svcId.(string)]
-			if !ok {
-				return false
+			// filter by other
+			if isName {
+				svcName, ok := m[SvcFieldName]
+				if !ok {
+					return false
+				}
+				if svcName.(string) != name {
+					return false
+				}
 			}
-		}
-		// filter by other
-		if isName {
-			svcName, ok := m[SvcFieldName]
-			if !ok {
-				return false
-			}
-			if svcName.(string) != name {
-				return false
-			}
-		}
 
-		if isKeys {
-			svcMeta, ok := m[SvcFieldMeta]
-			if !ok {
-				return false
+			if isKeys {
+				svcMeta, ok := m[SvcFieldMeta]
+				if !ok {
+					return false
+				}
+				metaValue, ok := svcMeta.(map[string]string)[keys]
+				if !ok {
+					return false
+				}
+				if isValues && values != metaValue {
+					return false
+				}
 			}
-			metaValue, ok := svcMeta.(map[string]string)[keys]
-			if !ok {
-				return false
-			}
-			if isValues && values != metaValue {
-				return false
-			}
-		}
 
-		if isDepartment && department != m[SvcFieldDepartment].(string) {
-			svcDepartment, ok := m[SvcFieldDepartment]
-			if !ok {
-				return false
+			if isDepartment && department != m[SvcFieldDepartment].(string) {
+				svcDepartment, ok := m[SvcFieldDepartment]
+				if !ok {
+					return false
+				}
+				if svcDepartment.(string) != department {
+					return false
+				}
 			}
-			if svcDepartment.(string) != department {
-				return false
+			if isBusiness && business != m[SvcFieldBusiness].(string) {
+				svcBusiness, ok := m[SvcFieldBusiness]
+				if !ok {
+					return false
+				}
+				if svcBusiness.(string) != business {
+					return false
+				}
 			}
-		}
-		if isBusiness && business != m[SvcFieldBusiness].(string) {
-			svcBusiness, ok := m[SvcFieldBusiness]
-			if !ok {
-				return false
-			}
-			if svcBusiness.(string) != business {
-				return false
-			}
-		}
 
-		return true
-	})
+			return true
+		})
 	if err != nil {
 		log.Errorf("[Store][boltdb] load service from kv error %v", err)
 		return 0, nil, err
@@ -697,13 +693,13 @@ func getRealServicesList(originServices map[string]interface{}, offset, limit ui
 		services = append(services, s.(*model.Service))
 	}
 
-	sort.Slice(services, func (i, j int) bool{
+	sort.Slice(services, func(i, j int) bool {
 		// sort by modifyTime
 		if services[i].ModifyTime.After(services[j].ModifyTime) {
 			return true
-		} else if services[i].ModifyTime.Before(services[j].ModifyTime){
+		} else if services[i].ModifyTime.Before(services[j].ModifyTime) {
 			return false
-		}else{
+		} else {
 			// compare id if modifyTime is the same
 			return services[i].ID < services[j].ID
 		}

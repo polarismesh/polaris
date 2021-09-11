@@ -18,12 +18,13 @@
 package boltdbStore
 
 import (
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/store"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/store"
 )
 
 type routingStore struct {
@@ -105,7 +106,7 @@ func (r *routingStore) GetRoutingConfigsForCache(mtime time.Time, firstUpdate bo
 	fields := []string{routingFieldModifyTime}
 
 	routes, err := r.handler.LoadValuesByFilter(tblNameRouting, fields, &model.RoutingConfig{},
-		func(m map[string]interface{}) bool{
+		func(m map[string]interface{}) bool {
 			rMtime, ok := m[routingFieldModifyTime]
 			if !ok {
 				return false
@@ -159,7 +160,7 @@ func (r *routingStore) GetRoutingConfigWithID(id string) (*model.RoutingConfig, 
 func (r *routingStore) getWithID(id string) (*model.RoutingConfig, error) {
 	fields := []string{routingFieldID}
 	routeConf, err := r.handler.LoadValuesByFilter(tblNameRouting, fields, &model.RoutingConfig{},
-		func(m map[string]interface{}) bool{
+		func(m map[string]interface{}) bool {
 			if id != m[routingFieldID].(string) {
 				return false
 			}
@@ -190,7 +191,7 @@ func (r *routingStore) GetRoutingConfigs(
 	revision, isRevision := filter["revision"]
 
 	routeConf, err := r.handler.LoadValuesByFilter(tblNameRouting, fields, &model.RoutingConfig{},
-		func(m map[string]interface{}) bool{
+		func(m map[string]interface{}) bool {
 			if isInBounds {
 				rIn, ok := m[routingFieldInBounds]
 				if !ok {
@@ -238,7 +239,7 @@ func (r *routingStore) GetRoutingConfigs(
 	fields = []string{routingFieldID}
 
 	services, err := r.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
-		func(m map[string]interface{}) bool{
+		func(m map[string]interface{}) bool {
 			rId, ok := m[routingFieldID]
 			if !ok {
 				return false
@@ -298,13 +299,13 @@ func getRealRouteConfList(routeConf []*model.ExtendRoutingConfig, offset, limit 
 		endIndex = totalCount
 	}
 
-	sort.Slice(routeConf, func (i, j int) bool{
+	sort.Slice(routeConf, func(i, j int) bool {
 		// sort by modify time
 		if routeConf[i].Config.ModifyTime.After(routeConf[j].Config.ModifyTime) {
 			return true
-		} else if routeConf[i].Config.ModifyTime.Before(routeConf[j].Config.ModifyTime){
+		} else if routeConf[i].Config.ModifyTime.Before(routeConf[j].Config.ModifyTime) {
 			return false
-		}else{
+		} else {
 			return strings.Compare(routeConf[i].Config.ID, routeConf[j].Config.ID) < 0
 		}
 	})
