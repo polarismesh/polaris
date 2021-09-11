@@ -19,7 +19,7 @@ package connlimit
 
 import "time"
 
-// 连接的统计信息
+// HostConnStat 连接的统计信息
 type HostConnStat struct {
 	Host       string
 	Amount     int32
