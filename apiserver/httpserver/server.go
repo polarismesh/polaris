@@ -20,8 +20,6 @@ package httpserver
 import (
 	"context"
 	"fmt"
-	"github.com/polarismesh/polaris-server/apiserver"
-	"github.com/polarismesh/polaris-server/common/utils"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -29,20 +27,22 @@ import (
 	"sync"
 	"time"
 
+	"github.com/emicklei/go-restful"
+	"github.com/pkg/errors"
+	"github.com/polarismesh/polaris-server/apiserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
 	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/naming"
 	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/emicklei/go-restful"
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
 /**
- * @brief HTTP API服务器
+ * HTTPServer HTTP API服务器
  */
-type Httpserver struct {
+type HTTPServer struct {
 	listenIP        string
 	listenPort      uint32
 	connLimitConfig *connlimit.Config
@@ -64,27 +64,28 @@ type Httpserver struct {
 }
 
 const (
+	// Discover discover string
 	Discover string = "Discover"
 )
 
 /**
- * @brief 获取端口
+ * GetPort 获取端口
  */
-func (h *Httpserver) GetPort() uint32 {
+func (h *HTTPServer) GetPort() uint32 {
 	return h.listenPort
 }
 
 /**
- * @brief 获取Server的协议
+ * GetProtocol 获取Server的协议
  */
-func (h *Httpserver) GetProtocol() string {
+func (h *HTTPServer) GetProtocol() string {
 	return "http"
 }
 
 /**
- * @brief 初始化HTTP API服务器
+ * Initialize 初始化HTTP API服务器
  */
-func (h *Httpserver) Initialize(ctx context.Context, option map[string]interface{},
+func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{},
 	api map[string]apiserver.APIConfig) error {
 	h.option = option
 	h.openAPI = api
@@ -115,11 +116,11 @@ func (h *Httpserver) Initialize(ctx context.Context, option map[string]interface
 }
 
 /**
- * @brief 启动HTTP API服务器
+ * Run 启动HTTP API服务器
  */
-func (h *Httpserver) Run(errCh chan error) {
+func (h *HTTPServer) Run(errCh chan error) {
 	log.Infof("start httpserver")
-	h.exitCh = make(chan struct{})
+	h.exitCh = make(chan struct{}, 1)
 	h.start = true
 	defer func() {
 		close(h.exitCh)
@@ -139,20 +140,22 @@ func (h *Httpserver) Run(errCh chan error) {
 	// 初始化http server
 	address := fmt.Sprintf("%v:%v", h.listenIP, h.listenPort)
 
-	wsContainer, err := h.createRestfulContainer()
+	var wsContainer *restful.Container
+	wsContainer, err = h.createRestfulContainer()
 	if err != nil {
 		errCh <- err
 		return
 	}
 
 	server := http.Server{Addr: address, Handler: wsContainer, WriteTimeout: 1 * time.Minute}
-
-	ln, err := net.Listen("tcp", address)
+	var ln net.Listener
+	ln, err = net.Listen("tcp", address)
 	if err != nil {
 		log.Errorf("net listen(%s) err: %s", address, err.Error())
 		errCh <- err
 		return
 	}
+
 	ln = &tcpKeepAliveListener{ln.(*net.TCPListener)}
 	// 开启最大连接数限制
 	if h.connLimitConfig != nil && h.connLimitConfig.OpenConnLimit {
@@ -168,7 +171,8 @@ func (h *Httpserver) Run(errCh chan error) {
 	h.server = &server
 
 	// 开始对外服务
-	if err := server.Serve(ln); err != nil {
+	err = server.Serve(ln)
+	if err != nil {
 		log.Errorf("%+v", err)
 		if !h.restart {
 			log.Infof("not in restart progress, broadcast error")
@@ -181,8 +185,8 @@ func (h *Httpserver) Run(errCh chan error) {
 	log.Infof("httpserver stop")
 }
 
-// shutdown server
-func (h *Httpserver) Stop() {
+// Stop shutdown server
+func (h *HTTPServer) Stop() {
 	// 释放connLimit的数据，如果没有开启，也需要执行一下
 	// 目的：防止restart的时候，connLimit冲突
 	connlimit.RemoteLimitListener(h.GetProtocol())
@@ -191,8 +195,8 @@ func (h *Httpserver) Stop() {
 	}
 }
 
-// restart server
-func (h *Httpserver) Restart(option map[string]interface{}, api map[string]apiserver.APIConfig,
+// Restart restart server
+func (h *HTTPServer) Restart(option map[string]interface{}, api map[string]apiserver.APIConfig,
 	errCh chan error) error {
 	log.Infof("restart httpserver new config: %+v", option)
 	// 备份一下option
@@ -211,9 +215,10 @@ func (h *Httpserver) Restart(option map[string]interface{}, api map[string]apise
 
 	log.Infof("old httpserver has stopped, begin restart httpserver")
 
-	if err := h.Initialize(context.Background(), option, api); err != nil {
+	ctx := context.Background()
+	if err := h.Initialize(ctx, option, api); err != nil {
 		h.restart = false
-		if initErr := h.Initialize(context.Background(), backupOption, backupAPI); initErr != nil {
+		if initErr := h.Initialize(ctx, backupOption, backupAPI); initErr != nil {
 			log.Errorf("start httpserver with backup cfg err: %s", initErr.Error())
 			return initErr
 		}
@@ -230,7 +235,7 @@ func (h *Httpserver) Restart(option map[string]interface{}, api map[string]apise
 }
 
 // 创建handler
-func (h *Httpserver) createRestfulContainer() (*restful.Container, error) {
+func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 	wsContainer := restful.NewContainer()
 
 	// 增加CORS TODO
@@ -283,7 +288,7 @@ func (h *Httpserver) createRestfulContainer() (*restful.Container, error) {
 }
 
 // 开启pprof接口
-func (h *Httpserver) enablePprofAccess(wsContainer *restful.Container) {
+func (h *HTTPServer) enablePprofAccess(wsContainer *restful.Container) {
 	wsContainer.Handle("/debug/pprof/", http.HandlerFunc(pprof.Index))
 	wsContainer.Handle("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
 	wsContainer.Handle("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
@@ -293,7 +298,7 @@ func (h *Httpserver) enablePprofAccess(wsContainer *restful.Container) {
 /**
  * @brief 在接收和回复时统一处理请求
  */
-func (h *Httpserver) process(req *restful.Request, rsp *restful.Response, chain *restful.FilterChain) {
+func (h *HTTPServer) process(req *restful.Request, rsp *restful.Response, chain *restful.FilterChain) {
 	func() {
 		if err := h.preprocess(req, rsp); err != nil {
 			return
@@ -302,13 +307,13 @@ func (h *Httpserver) process(req *restful.Request, rsp *restful.Response, chain 
 		chain.ProcessFilter(req, rsp)
 	}()
 
-	h.postproccess(req, rsp)
+	h.postProcess(req, rsp)
 }
 
 /**
  * @brief 请求预处理
  */
-func (h *Httpserver) preprocess(req *restful.Request, rsp *restful.Response) error {
+func (h *HTTPServer) preprocess(req *restful.Request, rsp *restful.Response) error {
 	// 设置开始时间
 	req.SetAttribute("start-time", time.Now())
 
@@ -317,9 +322,10 @@ func (h *Httpserver) preprocess(req *restful.Request, rsp *restful.Response) err
 	if requestID == "" {
 		// TODO: 设置请求ID
 	}
-	platformID := req.HeaderParameter("Platform-Id")
 
-	if !strings.Contains(req.Request.URL.String(), Discover) {
+	platformID := req.HeaderParameter("Platform-Id")
+	requestURL := req.Request.URL.String()
+	if !strings.Contains(requestURL, Discover) {
 		// 打印请求
 		log.Info("receive request",
 			zap.String("client-address", req.Request.RemoteAddr),
@@ -327,12 +333,12 @@ func (h *Httpserver) preprocess(req *restful.Request, rsp *restful.Response) err
 			zap.String("request-id", requestID),
 			zap.String("platform-id", platformID),
 			zap.String("method", req.Request.Method),
-			zap.String("url", req.Request.URL.String()),
+			zap.String("url", requestURL),
 		)
 	}
 
 	// 管理端接口访问鉴权
-	if strings.Contains(req.Request.URL.String(), "naming") {
+	if strings.Contains(requestURL, "naming") {
 		if err := h.enterAuth(req, rsp); err != nil {
 			return err
 		}
@@ -347,9 +353,9 @@ func (h *Httpserver) preprocess(req *restful.Request, rsp *restful.Response) err
 }
 
 /**
- * @brief 请求后处理：统计
+ * postProcess 请求后处理：统计
  */
-func (h *Httpserver) postproccess(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 	now := time.Now()
 
 	// 接口调用统计
@@ -384,7 +390,7 @@ func (h *Httpserver) postproccess(req *restful.Request, rsp *restful.Response) {
 /**
  * @brief 访问鉴权
  */
-func (h *Httpserver) enterAuth(req *restful.Request, rsp *restful.Response) error {
+func (h *HTTPServer) enterAuth(req *restful.Request, rsp *restful.Response) error {
 	// 判断鉴权插件是否开启
 	if h.auth == nil {
 		return nil
@@ -413,7 +419,7 @@ func (h *Httpserver) enterAuth(req *restful.Request, rsp *restful.Response) erro
 }
 
 // 访问限制
-func (h *Httpserver) enterRateLimit(req *restful.Request, rsp *restful.Response) error {
+func (h *HTTPServer) enterRateLimit(req *restful.Request, rsp *restful.Response) error {
 	// 检查限流插件是否开启
 	if h.rateLimit == nil {
 		return nil
@@ -456,13 +462,23 @@ type tcpKeepAliveListener struct {
 	*net.TCPListener
 }
 
-// 来自于net/http
+var defaultAlivePeriodTime = 3 * time.Minute
+
+// Accept 来自于net/http
 func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
 	tc, err := ln.AcceptTCP()
 	if err != nil {
 		return nil, err
 	}
-	tc.SetKeepAlive(true)
-	tc.SetKeepAlivePeriod(3 * time.Minute)
+	err = tc.SetKeepAlive(true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tc.SetKeepAlivePeriod(defaultAlivePeriodTime)
+	if err != nil {
+		return nil, err
+	}
+
 	return tc, nil
 }
