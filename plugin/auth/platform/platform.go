@@ -20,16 +20,19 @@ package platform
 import (
 	"database/sql"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/plugin"
 	"go.uber.org/zap"
-	"sync"
-	"time"
 )
 
 const (
-	PluginName      = "platform"
+	// PluginName plugin name
+	PluginName = "platform"
+	// DefaultTimeDiff default time diff
 	DefaultTimeDiff = -1 * time.Second * 5
 )
 
@@ -41,7 +44,7 @@ func init() {
 }
 
 /**
- * @brief 鉴权插件
+ * Auth 鉴权插件
  */
 type Auth struct {
 	dbType       string
@@ -54,14 +57,14 @@ type Auth struct {
 }
 
 /**
- * @brief 返回插件名字
+ * Name 返回插件名字
  */
 func (a *Auth) Name() string {
 	return PluginName
 }
 
 /**
- * @brief 初始化鉴权插件
+ * Initialize 初始化鉴权插件
  */
 func (a *Auth) Initialize(conf *plugin.ConfigEntry) error {
 	dbType, _ := conf.Option["dbType"].(string)
@@ -97,14 +100,14 @@ func (a *Auth) Initialize(conf *plugin.ConfigEntry) error {
 }
 
 /**
- * @brief 销毁插件
+ * Destroy 销毁插件
  */
 func (a *Auth) Destroy() error {
 	return nil
 }
 
 /**
- * @brief 判断请求是否允许通过
+ * Allow 判断请求是否允许通过
  */
 func (a *Auth) Allow(platformID, platformToken string) bool {
 	if platformID == "" || platformToken == "" {
@@ -116,11 +119,7 @@ func (a *Auth) Allow(platformID, platformToken string) bool {
 		return false
 	}
 
-	if platform.Token == platformToken {
-		return true
-	}
-
-	return false
+	return platform.Token == platformToken
 }
 
 /**
@@ -130,10 +129,8 @@ func (a *Auth) IsWhiteList(ip string) bool {
 	if ip == "" || a.whiteList == "" {
 		return false
 	}
-	if ip == a.whiteList {
-		return true
-	}
-	return false
+
+	return ip == a.whiteList
 }
 
 /**
@@ -146,7 +143,7 @@ func (a *Auth) run() {
 	for {
 		select {
 		case <-ticker.C:
-			a.update()
+			_ = a.update()
 		}
 	}
 }

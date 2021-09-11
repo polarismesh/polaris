@@ -18,13 +18,14 @@
 package plugin
 
 import (
+	"os"
+
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
-	"os"
 )
 
 /**
- * @brief CMDB插件接口
+ * CMDB CMDB插件接口
  */
 type CMDB interface {
 	Plugin
@@ -45,7 +46,7 @@ type CMDB interface {
 }
 
 /**
- * @brief 获取CMDB插件
+ * GetCMDB 获取CMDB插件
  */
 func GetCMDB() CMDB {
 	c := &config.CMDB

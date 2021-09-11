@@ -29,7 +29,7 @@ var (
 )
 
 /**
- * @brief 统计插件接口
+ * Statis 统计插件接口
  */
 type Statis interface {
 	Plugin
@@ -38,7 +38,7 @@ type Statis interface {
 }
 
 /**
- * @brief 获取统计插件
+ * GetStatis 获取统计插件
  */
 func GetStatis() Statis {
 	c := &config.Statis
