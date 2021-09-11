@@ -63,8 +63,8 @@ func SetLimitListener(lis *Listener) error {
 	return nil
 }
 
-// RemoteLimitListener 清理对应协议的链接计数
-func RemoteLimitListener(protocol string) {
+// RemoveLimitListener 清理对应协议的链接计数
+func RemoveLimitListener(protocol string) {
 	limitEntry.mu.Lock()
 	defer limitEntry.mu.Unlock()
 

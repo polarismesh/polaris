@@ -20,8 +20,6 @@ package httpserver
 import (
 	"context"
 	"fmt"
-	"github.com/polarismesh/polaris-server/apiserver"
-	"github.com/polarismesh/polaris-server/common/utils"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -29,13 +27,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/emicklei/go-restful"
+	"github.com/pkg/errors"
+	"github.com/polarismesh/polaris-server/apiserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
 	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/naming"
 	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/emicklei/go-restful"
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -185,7 +185,7 @@ func (h *Httpserver) Run(errCh chan error) {
 func (h *Httpserver) Stop() {
 	// 释放connLimit的数据，如果没有开启，也需要执行一下
 	// 目的：防止restart的时候，connLimit冲突
-	connlimit.RemoteLimitListener(h.GetProtocol())
+	connlimit.RemoveLimitListener(h.GetProtocol())
 	if h.server != nil {
 		_ = h.server.Close()
 	}

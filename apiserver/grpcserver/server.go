@@ -26,17 +26,16 @@ import (
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/peer"
-
 	"github.com/polarismesh/polaris-server/apiserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/naming"
 	"github.com/polarismesh/polaris-server/plugin"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 )
 
 /**
@@ -176,7 +175,7 @@ func (g *GRPCServer) Run(errCh chan error) {
 
 // 关闭GRPC
 func (g *GRPCServer) Stop() {
-	connlimit.RemoteLimitListener(g.GetProtocol())
+	connlimit.RemoveLimitListener(g.GetProtocol())
 	if g.server != nil {
 		g.server.Stop()
 	}
@@ -270,9 +269,9 @@ func newVirtualStream(ctx context.Context, method string, stream grpc.ServerStre
 	var userAgent string
 	var requestID string
 
-	peer, exist := peer.FromContext(ctx)
+	p, exist := peer.FromContext(ctx)
 	if exist {
-		clientAddress = peer.Addr.String()
+		clientAddress = p.Addr.String()
 		// 解析获取clientIP
 		items := strings.Split(clientAddress, ":")
 		if len(items) == 2 {
