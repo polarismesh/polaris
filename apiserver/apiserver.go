@@ -19,10 +19,10 @@ package apiserver
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/log"
 	"strings"
+
+	"github.com/polarismesh/polaris-server/common/log"
 )
 
 const (
@@ -69,8 +69,7 @@ var (
  */
 func Register(name string, server Apiserver) error {
 	if _, exist := Slots[name]; exist {
-		err := errors.New("apiserver name exist")
-		return err
+		return fmt.Errorf("apiserver name:%s exist", name)
 	}
 
 	Slots[name] = server

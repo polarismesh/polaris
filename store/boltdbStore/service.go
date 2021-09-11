@@ -357,11 +357,11 @@ func (ss *serviceStore) GetServicesBatch(services []*model.Service) ([]*model.Se
 
 
 func (ss *serviceStore) getServiceByNameAndNs(name string, namespace string) (*model.Service, error) {
-	var out model.Service
+	var out *model.Service
 
 	fields := []string{"name", "namespace"}
 
-	svc, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, model.Service{},
+	svc, err := ss.handler.LoadValuesByFilter(ServiceStoreType, fields, &model.Service{},
 		func(m map[string]interface{}) bool{
 			if m["name"].(string) == name && m["namespace"].(string) == namespace {
 				return true
@@ -379,10 +379,10 @@ func (ss *serviceStore) getServiceByNameAndNs(name string, namespace string) (*m
 
 	// 应该只能找到一个 service
 	for _, v := range svc {
-		out = v.(model.Service)
+		out = v.(*model.Service)
 	}
 
-	return &out, err
+	return out, err
 }
 
 func (ss *serviceStore) getServiceByID(id string) (*model.Service, error) {
