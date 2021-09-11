@@ -36,7 +36,7 @@ jobs:
           set -e
           cd standalone
           POLARIS_GIT_PATH=https://github.com/andrewshan
-          DIR_NAME=polaris-server-release_${SERVER_VERSION}.${GOOS}.${GOARCH}
+          DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}.${GOARCH}
           mkdir ${DIR_NAME}
           pushd ${DIR_NAME}
           SERVER_PKG_NAME=polaris-server-release_${SERVER_VERSION}.${GOOS}.${GOARCH}.zip
