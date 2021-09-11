@@ -18,8 +18,8 @@ pids=$(ps -e -o pid,cmd | grep -w "$cmdline" | grep -v "grep" | awk '{print $1}'
 array=($pids)
 if [ "${#array[@]}" == "0" ]; then
     start
-    add_cron
 fi
+add_cron
 
 #------------------------------------------------------
 

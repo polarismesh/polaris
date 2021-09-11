@@ -57,11 +57,11 @@ func (m *boltStore) Initialize(c *store.Config) error {
 	if nil != err {
 		return err
 	}
+	m.handler = handler
 	if err = m.newStore(); nil != err {
 		_ = handler.Close()
 		return err
 	}
-	m.handler = handler
 	m.start = true
 	return nil
 }
