@@ -19,17 +19,18 @@ package utils
 
 import "context"
 
+// StringContext
 type StringContext string
 
-// 存储localhost的ctx
+// localhostCtx 存储localhost的ctx
 type localhostCtx struct{}
 
-// 存储localhost
+// WithLocalhost 存储localhost
 func WithLocalhost(ctx context.Context, localhost string) context.Context {
 	return context.WithValue(ctx, localhostCtx{}, localhost)
 }
 
-// 获取localhost
+// ValueLocalhost 获取localhost
 func ValueLocalhost(ctx context.Context) string {
 	if ctx == nil {
 		return ""

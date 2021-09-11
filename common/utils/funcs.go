@@ -26,7 +26,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
-// 创建存储层服务实例模型
+// CreateInstanceModel 创建存储层服务实例模型
 func CreateInstanceModel(serviceID string, req *api.Instance) *model.Instance {
 	// 默认为健康的
 	healthy := true
@@ -105,13 +105,9 @@ func ConvertFilter(filters map[string]string) map[string][]string {
 
 // CollectFilterFields collect filters key to slice
 func CollectFilterFields(filters map[string]string) []string {
-	fields := make([]string, len(filters))
-
-	pos := 0
-
+	fields := make([]string, 0, len(filters))
 	for k := range filters {
-		fields[pos] = k
-		pos++
+		fields = append(fields, k)
 	}
 
 	return fields
