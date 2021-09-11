@@ -95,7 +95,7 @@ func (t *transaction) loadService(name string, namespace string) (*model.Service
 	}
 	values := make(map[string]interface{})
 	err := loadValuesByFilter(
-		t.tx, ServiceStoreType, []string{svcFieldName, svcFieldNamespace}, &model.Service{}, filter, values)
+		t.tx, tblNameService, []string{svcFieldName, svcFieldNamespace}, &model.Service{}, filter, values)
 	if nil != err {
 		return nil, err
 	}

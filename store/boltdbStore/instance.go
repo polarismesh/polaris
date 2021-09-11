@@ -19,38 +19,48 @@ package boltdbStore
 
 import (
 	"errors"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/model"
+	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 type instanceStore struct {
 	handler BoltHandler
 }
 
-// 增加一个实例
+const (
+	tblNameInstance    = "instance"
+	insFieldProto      = "Proto"
+	insFieldServiceID  = "ServiceID"
+	insFieldModifyTime = "ModifyTime"
+)
+
+// AddInstance add an instance
 func (i *instanceStore) AddInstance(instance *model.Instance) error {
 
-	// 新增数据之前，必须先清理老数据
-	if err := i.handler.DeleteValues(InstanceStoreType, []string{instance.ID()}); err != nil {
-		log.Errorf("delete instance to kv error, %v", err)
+	// Before adding new data, you must clean up the old data
+	if err := i.handler.DeleteValues(tblNameInstance, []string{instance.ID()}); err != nil {
+		log.Errorf("[Store][boltdb] delete instance to kv error, %v", err)
 		return err
 	}
 
-	if err := i.handler.SaveValue(InstanceStoreType, instance.ID(), instance); err != nil{
-		log.Errorf("save instance to kv error, %v", err)
+	if err := i.handler.SaveValue(tblNameInstance, instance.ID(), instance); err != nil {
+		log.Errorf("[Store][boltdb] save instance to kv error, %v", err)
 		return err
 	}
 
 	return nil
 }
 
-// 增加多个实例
+// BatchAddInstances Add multiple instances
 func (i *instanceStore) BatchAddInstances(instances []*model.Instance) error {
 
-	// 得到 id list
 	if len(instances) == 0 {
 		return nil
 	}
@@ -60,16 +70,15 @@ func (i *instanceStore) BatchAddInstances(instances []*model.Instance) error {
 		insIds = append(insIds, instance.ID())
 	}
 
-	// 直接清理所有的老数据
-	if err := i.handler.DeleteValues(InstanceStoreType, insIds); err != nil{
-		log.Errorf("save instance to kv error, %v", err)
+	// clear old instances
+	if err := i.handler.DeleteValues(tblNameInstance, insIds); err != nil {
+		log.Errorf("[Store][boltdb] save instance to kv error, %v", err)
 		return err
 	}
 
 	for _, instance := range instances {
-		if err := i.handler.SaveValue(InstanceStoreType, instance.ID(), instance); err != nil{
-			// 遇到错误就中断，返回错误
-			log.Errorf("save instance to kv error, %v", err)
+		if err := i.handler.SaveValue(tblNameInstance, instance.ID(), instance); err != nil {
+			log.Errorf("[Store][boltdb] save instance to kv error, %v", err)
 			return err
 		}
 	}
@@ -77,136 +86,148 @@ func (i *instanceStore) BatchAddInstances(instances []*model.Instance) error {
 	return nil
 }
 
-// 更新实例
+// UpdateInstance Update instance
 func (i *instanceStore) UpdateInstance(instance *model.Instance) error {
 
-	if err := i.handler.SaveValue(InstanceStoreType, instance.ID(), instance); err != nil{
-		log.Errorf("update instance to kv error, %v", err)
+	properties := make(map[string]interface{})
+	properties[insFieldProto] = instance.Proto
+
+	if err := i.handler.UpdateValue(tblNameInstance, instance.ID(), properties); err != nil {
+		log.Errorf("[Store][boltdb] update instance to kv error, %v", err)
 		return err
 	}
 
 	return nil
 }
 
-// 删除一个实例，实际是把valid置为false
+// DeleteInstance Delete an instance
 func (i *instanceStore) DeleteInstance(instanceID string) error {
 
-	if err := i.handler.DeleteValues(InstanceStoreType, []string{instanceID}); err != nil{
-		log.Errorf("update instance to kv error, %v", err)
+	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}); err != nil {
+		log.Errorf("[Store][boltdb] delete instance from kv error, %v", err)
 		return err
 	}
 
 	return nil
 }
 
-// 批量删除实例，flag=1
+// BatchDeleteInstances Delete instances in batch
 func (i *instanceStore) BatchDeleteInstances(ids []interface{}) error {
 
 	if len(ids) == 0 {
 		return nil
 	}
 
-	var realIds []string
+	var realIDs []string
 
 	for _, id := range ids {
-		realIds = append(realIds, id.(string))
+		realIDs = append(realIDs, id.(string))
 	}
 
-	if err := i.handler.DeleteValues(InstanceStoreType, realIds); err != nil{
-		log.Errorf("update instance to kv error, %v", err)
+	if err := i.handler.DeleteValues(tblNameInstance, realIDs); err != nil {
+		log.Errorf("[Store][boltdb] batch delete instance from kv error, %v", err)
 		return err
 	}
 	return nil
 }
 
-// 清空一个实例，真正删除
+// CleanInstance Delete an instance
 func (i *instanceStore) CleanInstance(instanceID string) error {
-	if err := i.handler.DeleteValues(InstanceStoreType, []string{instanceID}); err != nil{
-		log.Errorf("update instance to kv error, %v", err)
+	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}); err != nil {
+		log.Errorf("[Store][boltdb] delete instance from kv error, %v", err)
 		return err
 	}
 	return nil
 }
 
-// 检查ID是否存在，并且返回所有ID的查询结果
+// CheckInstancesExisted Check whether the ID exists, and return the query results of all IDs
 func (i *instanceStore) CheckInstancesExisted(ids map[string]bool) (map[string]bool, error) {
 
 	if len(ids) == 0 {
 		return nil, nil
 	}
 
-	//err := i.handler.IterateFields(InstanceStoreType, "id", func(ins interface{}){
-	//	instance := ins.(model.Instance)
-	//
-	//	_, ok := ids[instance.ID()]
-	//	if ok {
-	//		ids[instance.ID()] = true
-	//	}
-	//})
-	//
-	//if err != nil {
-	//	log.Errorf("list instance in kv error, %v", err)
-	//	return nil, err
-	//}
+	err := i.handler.IterateFields(tblNameInstance, insFieldProto, &model.Instance{}, func(ins interface{}) {
+		instance := ins.(*api.Instance)
+
+		_, ok := ids[instance.GetId().GetValue()]
+		if ok {
+			ids[instance.GetId().GetValue()] = true
+		}
+	})
+
+	if err != nil {
+		log.Errorf("[Store][boltdb] list instance in kv error, %v", err)
+		return nil, err
+	}
 
 	return ids, nil
 }
 
-// 获取实例关联的token
+// GetInstancesBrief Get the token associated with the instance
 func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*model.Instance, error) {
 
 	if len(ids) == 0 {
 		return nil, nil
 	}
 
-	fields := []string{"id"}
+	fields := []string{insFieldProto}
 
-	// 找到全部的实例
-	inss, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, model.Instance{},
-		func(m map[string]interface{}) bool{
-			id := m["id"].(string)
-			_, ok := ids[id]
-			if ok {
-				return true
+	// find all instances with given ids
+	inss, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
+		func(m map[string]interface{}) bool {
+			insProto, ok := m[insFieldProto]
+			if !ok {
+				return false
 			}
-			return false
+			id := insProto.(*api.Instance).GetId().GetValue()
+			_, ok = ids[id]
+			if !ok {
+				return false
+			}
+			return true
 		})
 	if err != nil {
-		log.Errorf("load instance error, %v", err)
+		log.Errorf("[Store][boltdb] load instance error, %v", err)
 		return nil, err
 	}
 
-	// 找到实例对应的 service，得到 serviceToken
+	// find the service corresponding to the instance and get the serviceToken
 	serviceIDs := make(map[string]bool)
 	for _, ins := range inss {
-		serviceID := ins.(model.Instance).ServiceID
+		serviceID := ins.(*model.Instance).ServiceID
 		serviceIDs[serviceID] = true
 	}
 
-	services, err := i.handler.LoadValuesByFilter(ServiceStoreType, fields, model.Service{},
-		func(m map[string]interface{}) bool{
-			id := m["id"].(string)
-			_, ok := serviceIDs[id]
-			if ok {
-				return true
+	fields = []string{SvcFieldID}
+	services, err := i.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
+		func(m map[string]interface{}) bool {
+			svcId, ok := m[SvcFieldID]
+			if !ok {
+				return false
 			}
-			return false
+			id := svcId.(string)
+			_, ok = serviceIDs[id]
+			if !ok {
+				return false
+			}
+			return true
 		})
 
-	// 组合数据
+	// assemble return data
 	out := make(map[string]*model.Instance, len(ids))
 	var item model.ExpandInstanceStore
 	var instance model.InstanceStore
 	item.ServiceInstance = &instance
 
 	for _, ins := range inss {
-		tempIns := ins.(model.Instance)
+		tempIns := ins.(*model.Instance)
 		svc, ok := services[tempIns.ServiceID]
 		if !ok {
-			log.Errorf("can not find instance service , instanceId is %s", tempIns.ID())
+			log.Errorf("[Store][boltdb] can not find instance service , instanceId is %s", tempIns.ID())
 			return nil, errors.New("can not find instance service")
 		}
-		tempService := svc.(model.Service)
+		tempService := svc.(*model.Service)
 		instance.ID = tempIns.ID()
 		instance.Host = tempIns.Host()
 		instance.Port = tempIns.Port()
@@ -218,53 +239,68 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 		out[instance.ID] = model.ExpandStore2Instance(&item)
 	}
 
-
 	return out, nil
 }
 
-// 查询一个实例的详情，只返回有效的数据
+// GetInstance Query the details of an instance
 func (i *instanceStore) GetInstance(instanceID string) (*model.Instance, error) {
 
-	fields := []string{"id"}
+	fields := []string{insFieldProto}
 
-	ins, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, model.Instance{},
-		func(m map[string]interface{}) bool{
-			id := m["id"].(string)
+	ins, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
+		func(m map[string]interface{}) bool {
+			insProto, ok := m[insFieldProto]
+			if !ok {
+				return false
+			}
+			id := insProto.(*api.Instance).GetId().GetValue()
 			if id == instanceID {
 				return true
 			}
 			return false
 		})
 	if err != nil {
-		log.Errorf("load instance from kv error, %v", err)
+		log.Errorf("[Store][boltdb] load instance from kv error, %v", err)
 		return nil, err
 	}
-	instance := ins[instanceID].(model.Instance)
-	return &instance, nil
+	instance, ok := ins[instanceID]
+	if !ok {
+		return nil, nil
+	}
+	return instance.(*model.Instance), nil
 }
 
-// 获取有效的实例总数
+// GetInstancesCount Get the total number of instances
 func (i *instanceStore) GetInstancesCount() (uint32, error) {
 
-	count, err := i.handler.CountValues(InstanceStoreType)
+	count, err := i.handler.CountValues(tblNameInstance)
 	if err != nil {
-		log.Errorf("get instance count error, %v", err)
+		log.Errorf("[Store][boltdb] get instance count error, %v", err)
 		return 0, err
 	}
 
 	return uint32(count), nil
 }
 
-// 根据服务和Host获取实例（不包括metadata）
+// GetInstancesMainByService Get instances based on service and Host
 func (i *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*model.Instance, error) {
 
 	// select by service_id and host
-	fields := []string{"service_id", "host"}
+	fields := []string{insFieldServiceID, insFieldProto}
 
-	instances, err := i.handler.LoadValuesByFilter(InstanceStoreType, fields, model.Instance{},
-		func(m map[string]interface{}) bool{
-			svcId := m["service_id"].(string)
-			h := m["host"].(string)
+	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
+		func(m map[string]interface{}) bool {
+			sId, ok := m[insFieldServiceID]
+			if !ok {
+				return false
+			}
+			insProto, ok := m[insFieldProto]
+			if !ok {
+				return false
+			}
+
+			svcId := sId.(string)
+			h := insProto.(*api.Instance).GetHost().GetValue()
 			if svcId != serviceID {
 				return false
 			}
@@ -274,47 +310,266 @@ func (i *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*mo
 			return true
 		})
 	if err != nil {
-		log.Errorf("load instance from kv error, %v", err)
+		log.Errorf("[Store][boltdb] load instance from kv error, %v", err)
 		return nil, err
 	}
 
 	return getRealInstancesList(instances, 0, uint32(len(instances))), nil
 }
 
-// 根据过滤条件查看实例详情及对应数目
+// GetExpandInstances View instance details and corresponding number according to filter conditions
 func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 	offset uint32, limit uint32) (uint32, []*model.Instance, error) {
-	//TODO
-	return 0, nil, nil
+	if limit == 0 {
+		return 0, make([]*model.Instance, 0), nil
+	}
+
+	fields := []string{insFieldProto}
+
+	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
+		func(m map[string]interface{}) bool {
+			insProto, ok := m[insFieldProto]
+			if !ok {
+				return false
+			}
+			ins := insProto.(*api.Instance)
+			namespace, isNamespace := filter["namespace"]
+			service, isService := filter["service"]
+			host, isHost := filter["host"]
+			port, isPort := filter["port"]
+			protocol, isProtocol := filter["protocol"]
+			version, isVersion := filter["version"]
+			healthy, isHealthy := filter["healthy"]
+			isolate, isIsolate := filter["isolate"]
+
+			if isNamespace && namespace != ins.GetNamespace().GetValue() {
+				return false
+			}
+			if isService && service != ins.GetService().GetValue() {
+				return false
+			}
+			if isHost && host != ins.GetHost().GetValue() {
+				return false
+			}
+			if isPort && port != strconv.Itoa(int(ins.GetPort().GetValue())) {
+				return false
+			}
+			if isProtocol && protocol != ins.GetProtocol().GetValue() {
+				return false
+			}
+			if isVersion && version != ins.GetVersion().GetValue() {
+				return false
+			}
+			if isHealthy && healthy != strconv.FormatBool(ins.GetHealthy().GetValue()) {
+				return false
+			}
+			if isIsolate && isolate != strconv.FormatBool(ins.GetIsolate().GetValue()) {
+				return false
+			}
+			// filter metadata
+			if len(metaFilter) > 0 {
+				var key, value string
+				for k, v := range metaFilter {
+					key = k
+					value = v
+					break
+				}
+
+				insV, ok := ins.GetMetadata()[key]
+				if !ok || insV != value {
+					return false
+				}
+			}
+
+			return true
+		})
+	if err != nil {
+		log.Errorf("[Store][boltdb] load instance from kv error, %v", err)
+		return 0, nil, err
+	}
+
+	totalCount := uint32(len(instances))
+
+	return totalCount, getRealInstancesList(instances, offset, limit), nil
 }
 
-// 根据mtime获取增量instances，返回所有store的变更信息
+// GetMoreInstances Get incremental instances according to mtime
 func (i *instanceStore) GetMoreInstances(
 	mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (map[string]*model.Instance, error) {
-	//TODO
-	return nil, nil
+
+	fields := []string{insFieldProto, insFieldServiceID}
+	svcIdMap := make(map[string]bool)
+	for _, s := range serviceID {
+		svcIdMap[s] = true
+	}
+
+	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
+		func(m map[string]interface{}) bool {
+			insProto, ok := m[insFieldProto]
+			if !ok {
+				return false
+			}
+			svcId, ok := m[insFieldServiceID]
+			if !ok {
+				return false
+			}
+			ins := insProto.(*api.Instance)
+			serviceId := svcId.(string)
+
+			insMtime, err := time.Parse("2006-01-02 15:04:05", ins.GetMtime().GetValue())
+			if err != nil {
+				log.Errorf("[Store][boltdb] parse instance mtime error, %v", err)
+				return false
+			}
+
+			if insMtime.Before(mtime) {
+				return false
+			}
+
+			if len(svcIdMap) > 0 {
+				_, ok = svcIdMap[serviceId]
+				if !ok {
+					return false
+				}
+			}
+
+			return true
+		})
+
+	if err != nil {
+		log.Errorf("[Store][boltdb] load instance from kv error, %v", err)
+		return nil, err
+	}
+
+	return toInstance(instances), nil
 }
 
-// 设置实例的健康状态
+// SetInstanceHealthStatus Set the health status of the instance
 func (i *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, revision string) error {
-	//TODO
+
+	// get instance
+	fields := []string{insFieldProto}
+
+	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
+		func(m map[string]interface{}) bool {
+			insProto, ok := m[insFieldProto]
+			if !ok {
+				return false
+			}
+			insId := insProto.(*api.Instance).GetId().GetValue()
+
+			if insId != instanceID {
+				return false
+			}
+
+			return true
+		})
+	if err != nil {
+		log.Errorf("[Store][boltdb] load instance from kv error, %v", err)
+		return err
+	}
+	if len(instances) == 0 {
+		msg := fmt.Sprintf("cant not find instance in kv, %s", instanceID)
+		log.Errorf(msg)
+		return nil
+	}
+
+	// set status
+	ins := instances[instanceID].(*model.Instance)
+	var healthy bool
+	if flag == 0 {
+		healthy = false
+	} else {
+		healthy = true
+	}
+	ins.Proto.Healthy.Value = healthy
+	ins.Proto.Revision.Value = revision
+
+	properties := make(map[string]interface{})
+	properties[insFieldProto] = ins.Proto
+	err = i.handler.UpdateValue(tblNameInstance, instanceID, properties)
+	if err != nil {
+		log.Errorf("[Store][boltdb] update instance error %v", err)
+		return err
+	}
+
 	return nil
 }
 
-// 批量修改实例的隔离状态
+// BatchSetInstanceIsolate Modify the isolation status of instances in batches
 func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, revision string) error {
-	//TODO
+
+	insIds := make(map[string]bool)
+	for _, id := range ids {
+		insIds[id.(string)] = true
+	}
+	var isolateStatus bool
+	if isolate == 0 {
+		isolateStatus = false
+	} else {
+		isolateStatus = true
+	}
+
+	fields := []string{insFieldProto}
+
+	// get all instance by given ids
+	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
+		func(m map[string]interface{}) bool {
+			proto, ok := m[insFieldProto]
+			if !ok {
+				return false
+			}
+			insId := proto.(*api.Instance).GetId().GetValue()
+
+			_, ok = insIds[insId]
+			if !ok {
+				return false
+			}
+
+			return true
+		})
+	if err != nil {
+		log.Errorf("[Store][boltdb] get instance from kv error, %v", err)
+		return err
+	}
+	if len(instances) == 0 {
+		msg := fmt.Sprintf("cant not find instance in kv, %v", ids)
+		log.Errorf(msg)
+		return nil
+	}
+
+	for id, ins := range instances {
+		instance := ins.(*model.Instance).Proto
+		instance.Isolate.Value = isolateStatus
+		instance.Revision.Value = revision
+
+		properties := make(map[string]interface{})
+		properties[insFieldProto] = instance
+		err = i.handler.UpdateValue(tblNameInstance, id, properties)
+		if err != nil {
+			log.Errorf("[Store][boltdb] update instance in set instance isolate error, %v", err)
+			return err
+		}
+	}
+
 	return nil
 }
 
+func toInstance(m map[string]interface{}) map[string]*model.Instance {
+	insMap := make(map[string]*model.Instance)
+	for k, v := range m {
+		insMap[k] = v.(*model.Instance)
+	}
 
-// 将下层返回的全量的 service map 转为有序的 list，并根据 offset/limit 返回结果
+	return insMap
+}
+
 func getRealInstancesList(originServices map[string]interface{}, offset, limit uint32) []*model.Instance {
 	instances := make([]*model.Instance, 0)
 	beginIndex := offset
 	endIndex := beginIndex + limit
 	totalCount := uint32(len(originServices))
-	// 处理异常的 offset、 limit
+	// handle invalid limit offset
 	if totalCount == 0 {
 		return instances
 	}
@@ -332,14 +587,13 @@ func getRealInstancesList(originServices map[string]interface{}, offset, limit u
 		instances = append(instances, s.(*model.Instance))
 	}
 
-	sort.Slice(instances, func (i, j int) bool{
-		// modifyTime 由近到远排序
+	sort.Slice(instances, func(i, j int) bool {
+		// sort by modify time
 		if instances[i].ModifyTime.After(instances[j].ModifyTime) {
 			return true
-		} else if instances[i].ModifyTime.Before(instances[j].ModifyTime){
+		} else if instances[i].ModifyTime.Before(instances[j].ModifyTime) {
 			return false
-		}else{
-			// modifyTime 相同则比较id
+		} else {
 			return strings.Compare(instances[i].ID(), instances[j].ID()) < 0
 		}
 	})

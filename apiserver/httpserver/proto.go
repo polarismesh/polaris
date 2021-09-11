@@ -18,118 +18,118 @@
 package httpserver
 
 import (
-	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/golang/protobuf/proto"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 /**
- * @brief 命名空间数组定义
+ * NamespaceArr 命名空间数组定义
  */
 type NamespaceArr []*api.Namespace
 
-//
+// Reset
 func (m *NamespaceArr) Reset() { *m = NamespaceArr{} }
 
-//
+// String return string
 func (m *NamespaceArr) String() string { return proto.CompactTextString(m) }
 
-//
+// ProtoMessage
 func (*NamespaceArr) ProtoMessage() {}
 
 /**
- * @brief 服务数组定义
+ * ServiceArr 服务数组定义
  */
 type ServiceArr []*api.Service
 
-//
+// Reset
 func (m *ServiceArr) Reset() { *m = ServiceArr{} }
 
-//
+// String
 func (m *ServiceArr) String() string { return proto.CompactTextString(m) }
 
-//
+// ProtoMessage
 func (*ServiceArr) ProtoMessage() {}
 
 /**
- * @brief 服务实例数组定义
+ * InstanceArr 服务实例数组定义
  */
 type InstanceArr []*api.Instance
 
-//
+// Reset
 func (m *InstanceArr) Reset() { *m = InstanceArr{} }
 
-//
+// String
 func (m *InstanceArr) String() string { return proto.CompactTextString(m) }
 
-//
+// ProtoMessage
 func (*InstanceArr) ProtoMessage() {}
 
 /**
- * @brief 路由规则数组定义
+ * RoutingArr 路由规则数组定义
  */
 type RoutingArr []*api.Routing
 
-//
+// Reset
 func (m *RoutingArr) Reset() { *m = RoutingArr{} }
 
-//
+// String
 func (m *RoutingArr) String() string { return proto.CompactTextString(m) }
 
-//
+// ProtoMessage
 func (*RoutingArr) ProtoMessage() {}
 
 /**
- * @brief 限流规则数组定义
+ * RateLimitArr 限流规则数组定义
  */
 type RateLimitArr []*api.Rule
 
-//
+// Reset
 func (m *RateLimitArr) Reset() { *m = RateLimitArr{} }
 
-//
+// String
 func (m *RateLimitArr) String() string { return proto.CompactTextString(m) }
 
-//
+// ProtoMessage
 func (*RateLimitArr) ProtoMessage() {}
 
 /**
- * @brief 熔断规则数组定义
+ * CircuitBreakerArr 熔断规则数组定义
  */
 type CircuitBreakerArr []*api.CircuitBreaker
 
-//
+// Reset
 func (m *CircuitBreakerArr) Reset() { *m = CircuitBreakerArr{} }
 
-//
+// String
 func (m *CircuitBreakerArr) String() string { return proto.CompactTextString(m) }
 
-//
+// ProtoMessage
 func (*CircuitBreakerArr) ProtoMessage() {}
 
 /**
- * @brief 发布规则数组定义
+ * ConfigReleaseArr 发布规则数组定义
  */
 type ConfigReleaseArr []*api.ConfigRelease
 
-//
+// Reset
 func (m *ConfigReleaseArr) Reset() { *m = ConfigReleaseArr{} }
 
-//
+// String
 func (m *ConfigReleaseArr) String() string { return proto.CompactTextString(m) }
 
-//
+// ProtoMessage
 func (*ConfigReleaseArr) ProtoMessage() {}
 
 /*
- * @brief 平台数组定义
+ * PlatformArr 平台数组定义
  */
 type PlatformArr []*api.Platform
 
-// proto reset
+// Reset proto reset
 func (m *PlatformArr) Reset() { *m = PlatformArr{} }
 
-// proto string
+// String proto string
 func (m *PlatformArr) String() string { return proto.CompactTextString(m) }
 
-// proto message
+// ProtoMessage proto message
 func (m *PlatformArr) ProtoMessage() {}

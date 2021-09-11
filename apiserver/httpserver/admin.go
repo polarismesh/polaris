@@ -19,13 +19,12 @@ package httpserver
 
 import (
 	"github.com/emicklei/go-restful"
-	"io"
 )
 
 /**
- * @brief 注册接口
+ * GetAdminServer get admin server
  */
-func (h *Httpserver) GetAdminServer() *restful.WebService {
+func (h *HTTPServer) GetAdminServer() *restful.WebService {
 	ws := new(restful.WebService)
 
 	ws.Route(ws.GET("/").To(h.index))
@@ -34,8 +33,8 @@ func (h *Httpserver) GetAdminServer() *restful.WebService {
 }
 
 /**
- * @brief URL: "/"
+ * index  URL: "/"
  */
-func (h *Httpserver) index(req *restful.Request, rsp *restful.Response) {
-	io.WriteString(rsp, "Polaris Server")
+func (h *HTTPServer) index(_ *restful.Request, rsp *restful.Response) {
+	rsp.Write([]byte("Polaris Server"))
 }
