@@ -18,12 +18,13 @@
 package model
 
 import (
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"time"
+
+	"github.com/golang/protobuf/ptypes/wrappers"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
-// 组合了api的Instance对象
+// Instance 组合了api的Instance对象
 type Instance struct {
 	Proto             *api.Instance
 	ServiceID         string
@@ -32,7 +33,7 @@ type Instance struct {
 	ModifyTime        time.Time
 }
 
-// get id
+// ID get id
 func (i *Instance) ID() string {
 	if i.Proto == nil {
 		return ""
@@ -40,7 +41,7 @@ func (i *Instance) ID() string {
 	return i.Proto.GetId().GetValue()
 }
 
-// get service
+// Service get service
 func (i *Instance) Service() string {
 	if i.Proto == nil {
 		return ""
@@ -48,7 +49,7 @@ func (i *Instance) Service() string {
 	return i.Proto.GetService().GetValue()
 }
 
-// get namespace
+// Namespace get namespace
 func (i *Instance) Namespace() string {
 	if i.Proto == nil {
 		return ""
@@ -56,7 +57,7 @@ func (i *Instance) Namespace() string {
 	return i.Proto.GetNamespace().GetValue()
 }
 
-// get vpcid
+// VpcID get vpcid
 func (i *Instance) VpcID() string {
 	if i.Proto == nil {
 		return ""
@@ -64,7 +65,7 @@ func (i *Instance) VpcID() string {
 	return i.Proto.GetVpcId().GetValue()
 }
 
-// get host
+// Host get host
 func (i *Instance) Host() string {
 	if i.Proto == nil {
 		return ""
@@ -72,7 +73,7 @@ func (i *Instance) Host() string {
 	return i.Proto.GetHost().GetValue()
 }
 
-// get port
+// Port get port
 func (i *Instance) Port() uint32 {
 	if i.Proto == nil {
 		return 0
@@ -80,7 +81,7 @@ func (i *Instance) Port() uint32 {
 	return i.Proto.GetPort().GetValue()
 }
 
-// get protocol
+// Protocol get protocol
 func (i *Instance) Protocol() string {
 	if i.Proto == nil {
 		return ""
@@ -88,7 +89,7 @@ func (i *Instance) Protocol() string {
 	return i.Proto.GetProtocol().GetValue()
 }
 
-// get version
+// Version get version
 func (i *Instance) Version() string {
 	if i.Proto == nil {
 		return ""
@@ -96,7 +97,7 @@ func (i *Instance) Version() string {
 	return i.Proto.GetVersion().GetValue()
 }
 
-// get priority
+// Priority get priority
 func (i *Instance) Priority() uint32 {
 	if i.Proto == nil {
 		return 0
@@ -104,7 +105,7 @@ func (i *Instance) Priority() uint32 {
 	return i.Proto.GetPriority().GetValue()
 }
 
-// get weight
+// Weight get weight
 func (i *Instance) Weight() uint32 {
 	if i.Proto == nil {
 		return 0
@@ -112,7 +113,7 @@ func (i *Instance) Weight() uint32 {
 	return i.Proto.GetWeight().GetValue()
 }
 
-// get enable health check
+// EnableHealthCheck get enable health check
 func (i *Instance) EnableHealthCheck() bool {
 	if i.Proto == nil {
 		return false
@@ -120,7 +121,7 @@ func (i *Instance) EnableHealthCheck() bool {
 	return i.Proto.GetEnableHealthCheck().GetValue()
 }
 
-// get health check
+// HealthCheck get health check
 func (i *Instance) HealthCheck() *api.HealthCheck {
 	if i.Proto == nil {
 		return nil
@@ -128,7 +129,7 @@ func (i *Instance) HealthCheck() *api.HealthCheck {
 	return i.Proto.GetHealthCheck()
 }
 
-// get healthy
+// Healthy get healthy
 func (i *Instance) Healthy() bool {
 	if i.Proto == nil {
 		return false
@@ -136,7 +137,7 @@ func (i *Instance) Healthy() bool {
 	return i.Proto.GetHealthy().GetValue()
 }
 
-// get isolate
+// Isolate get isolate
 func (i *Instance) Isolate() bool {
 	if i.Proto == nil {
 		return false
@@ -144,7 +145,7 @@ func (i *Instance) Isolate() bool {
 	return i.Proto.GetIsolate().GetValue()
 }
 
-// get location
+// Location get location
 func (i *Instance) Location() *api.Location {
 	if i.Proto == nil {
 		return nil
@@ -152,7 +153,7 @@ func (i *Instance) Location() *api.Location {
 	return i.Proto.GetLocation()
 }
 
-// get metadata
+// Metadata get metadata
 func (i *Instance) Metadata() map[string]string {
 	if i.Proto == nil {
 		return nil
@@ -160,7 +161,7 @@ func (i *Instance) Metadata() map[string]string {
 	return i.Proto.GetMetadata()
 }
 
-// get logic set
+// LogicSet get logic set
 func (i *Instance) LogicSet() string {
 	if i.Proto == nil {
 		return ""
@@ -168,7 +169,7 @@ func (i *Instance) LogicSet() string {
 	return i.Proto.GetLogicSet().GetValue()
 }
 
-// get ctime
+// Ctime get ctime
 func (i *Instance) Ctime() string {
 	if i.Proto == nil {
 		return ""
@@ -176,7 +177,7 @@ func (i *Instance) Ctime() string {
 	return i.Proto.GetCtime().GetValue()
 }
 
-// get mtime
+// Mtime get mtime
 func (i *Instance) Mtime() string {
 	if i.Proto == nil {
 		return ""
@@ -184,7 +185,7 @@ func (i *Instance) Mtime() string {
 	return i.Proto.GetMtime().GetValue()
 }
 
-// get revision
+// Revision get revision
 func (i *Instance) Revision() string {
 	if i.Proto == nil {
 		return ""
@@ -192,7 +193,7 @@ func (i *Instance) Revision() string {
 	return i.Proto.GetRevision().GetValue()
 }
 
-// get service token
+// ServiceToken get service token
 func (i *Instance) ServiceToken() string {
 	if i.Proto == nil {
 		return ""
@@ -200,14 +201,14 @@ func (i *Instance) ServiceToken() string {
 	return i.Proto.GetServiceToken().GetValue()
 }
 
-// malloc proto if proto is null
+// MallocProto malloc proto if proto is null
 func (i *Instance) MallocProto() {
 	if i.Proto == nil {
 		i.Proto = &api.Instance{}
 	}
 }
 
-// 对应store层（database）的对象
+// InstanceStore 对应store层（database）的对象
 type InstanceStore struct {
 	ID                string
 	ServiceID         string
@@ -234,7 +235,7 @@ type InstanceStore struct {
 	ModifyTime        int64
 }
 
-// 包含服务名的store信息
+// ExpandInstanceStore 包含服务名的store信息
 type ExpandInstanceStore struct {
 	ServiceName       string
 	Namespace         string
@@ -243,7 +244,7 @@ type ExpandInstanceStore struct {
 	ServiceInstance   *InstanceStore
 }
 
-// store的数据转换为组合了api的数据结构
+// Store2Instance store的数据转换为组合了api的数据结构
 func Store2Instance(is *InstanceStore) *Instance {
 	ins := &Instance{
 		Proto: &api.Instance{
@@ -289,7 +290,7 @@ func Store2Instance(is *InstanceStore) *Instance {
 	return ins
 }
 
-// 扩展store转换
+// ExpandStore2Instance 扩展store转换
 func ExpandStore2Instance(es *ExpandInstanceStore) *Instance {
 	out := Store2Instance(es.ServiceInstance)
 	out.Proto.Service = &wrappers.StringValue{Value: es.ServiceName}
