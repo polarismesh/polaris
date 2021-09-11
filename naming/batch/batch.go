@@ -19,6 +19,7 @@ package batch
 
 import (
 	"context"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/naming/auth"
@@ -26,13 +27,13 @@ import (
 	"github.com/polarismesh/polaris-server/store"
 )
 
-// 批量控制器
+// Controller 批量控制器
 type Controller struct {
 	register   *InstanceCtrl
 	deregister *InstanceCtrl
 }
 
-// 根据配置文件创建一个批量控制器
+// NewBatchCtrlWithConfig 根据配置文件创建一个批量控制器
 func NewBatchCtrlWithConfig(storage store.Store, authority auth.Authority, auth plugin.Auth,
 	config *Config) (*Controller, error) {
 	if config == nil {
@@ -44,7 +45,9 @@ func NewBatchCtrlWithConfig(storage store.Store, authority auth.Authority, auth 
 		log.Errorf("[Batch] new batch register instance ctrl err: %s", err.Error())
 		return nil, err
 	}
-	deregister, err := NewBatchDeregisterCtrl(storage, authority, auth, config.Deregister)
+
+	var deregister *InstanceCtrl
+	deregister, err = NewBatchDeregisterCtrl(storage, authority, auth, config.Deregister)
 	if err != nil {
 		log.Errorf("[Batch] new batch deregister instance ctrl err: %s", err.Error())
 		return nil, err
@@ -57,7 +60,7 @@ func NewBatchCtrlWithConfig(storage store.Store, authority auth.Authority, auth 
 	return bc, nil
 }
 
-// 开启批量控制器
+// Start 开启批量控制器
 // 启动多个协程，接受外部create/delete请求
 func (bc *Controller) Start(ctx context.Context) {
 	if bc.CreateInstanceOpen() {
@@ -68,29 +71,21 @@ func (bc *Controller) Start(ctx context.Context) {
 	}
 }
 
-// 创建是否开启
+// CreateInstanceOpen 创建是否开启
 func (bc *Controller) CreateInstanceOpen() bool {
-	if bc.register != nil {
-		return true
-	}
-
-	return false
+	return bc.register != nil
 }
 
-// 删除实例是否开启
+// DeleteInstanceOpen 删除实例是否开启
 func (bc *Controller) DeleteInstanceOpen() bool {
-	if bc.deregister != nil {
-		return true
-	}
-
-	return false
+	return bc.deregister != nil
 }
 
-// 异步创建实例，返回一个future，根据future获取创建结果
+// AsyncCreateInstance 异步创建实例，返回一个future，根据future获取创建结果
 func (bc *Controller) AsyncCreateInstance(instance *api.Instance, platformID, platformToken string) *InstanceFuture {
 	future := &InstanceFuture{
 		request:       instance,
-		result:        make(chan error),
+		result:        make(chan error, 1),
 		platformID:    platformID,
 		platformToken: platformToken,
 	}
@@ -100,11 +95,11 @@ func (bc *Controller) AsyncCreateInstance(instance *api.Instance, platformID, pl
 	return future
 }
 
-// 异步合并反注册
+// AsyncDeleteInstance 异步合并反注册
 func (bc *Controller) AsyncDeleteInstance(instance *api.Instance, platformID, platformToken string) *InstanceFuture {
 	future := &InstanceFuture{
 		request:       instance,
-		result:        make(chan error),
+		result:        make(chan error, 1),
 		platformID:    platformID,
 		platformToken: platformToken,
 	}

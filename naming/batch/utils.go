@@ -22,29 +22,25 @@ import (
 	"github.com/polarismesh/polaris-server/store"
 )
 
-// store code 2 api code
+var storeCodeAPICodeMap = map[store.StatusCode]uint32{
+	store.EmptyParamsErr:             api.InvalidParameter,
+	store.OutOfRangeErr:              api.InvalidParameter,
+	store.DataConflictErr:            api.DataConflict,
+	store.NotFoundNamespace:          api.NotFoundNamespace,
+	store.NotFoundService:            api.NotFoundService,
+	store.NotFoundMasterConfig:       api.NotFoundMasterConfig,
+	store.NotFoundTagConfigOrService: api.NotFoundTagConfigOrService,
+	store.ExistReleasedConfig:        api.ExistReleasedConfig,
+	store.DuplicateEntryErr:          api.ExistedResource,
+}
+
+// StoreCode2APICode store code to api code
 func StoreCode2APICode(err error) uint32 {
 	code := store.Code(err)
-	switch {
-	case code == store.EmptyParamsErr:
-		return api.InvalidParameter
-	case code == store.OutOfRangeErr:
-		return api.InvalidParameter
-	case code == store.DataConflictErr:
-		return api.DataConflict
-	case code == store.NotFoundNamespace:
-		return api.NotFoundNamespace
-	case code == store.NotFoundService:
-		return api.NotFoundService
-	case code == store.NotFoundMasterConfig:
-		return api.NotFoundMasterConfig
-	case code == store.NotFoundTagConfigOrService:
-		return api.NotFoundTagConfigOrService
-	case code == store.ExistReleasedConfig:
-		return api.ExistReleasedConfig
-	case code == store.DuplicateEntryErr:
-		return api.ExistedResource
-	default:
-		return api.StoreLayerException
+	apiCode, ok := storeCodeAPICodeMap[code]
+	if ok {
+		return apiCode
 	}
+
+	return api.StoreLayerException
 }
