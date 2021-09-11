@@ -20,19 +20,19 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/polarismesh/polaris-server/apiserver"
-	"github.com/polarismesh/polaris-server/naming"
-	"github.com/polarismesh/polaris-server/naming/cache"
 	"os"
 
+	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/naming"
+	"github.com/polarismesh/polaris-server/naming/cache"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
 	yaml "gopkg.in/yaml.v2"
 )
 
 /**
- * @brief 配置
+ * Config 配置
  */
 type Config struct {
 	Bootstrap  Bootstrap          `yaml:"bootstrap"`
@@ -44,7 +44,7 @@ type Config struct {
 }
 
 /**
- * @brief 启动引导配置
+ * Bootstrap 启动引导配置
  */
 type Bootstrap struct {
 	Logger         log.Options
@@ -53,7 +53,7 @@ type Bootstrap struct {
 }
 
 /**
- * @brief polaris-server的自注册配置
+ * PolarisService polaris-server的自注册配置
  */
 type PolarisService struct {
 	EnableRegister bool       `yaml:"enable_register"`
@@ -63,7 +63,7 @@ type PolarisService struct {
 }
 
 /**
- * @brief 服务的自注册的配置
+ * Service 服务的自注册的配置
  */
 type Service struct {
 	Name      string   `yaml:"name"`
@@ -72,7 +72,7 @@ type Service struct {
 }
 
 /**
- * @brief 对外提供的apiServers
+ * APIEntries 对外提供的apiServers
  */
 type APIEntries struct {
 	Name      string   `yaml:"name"`
@@ -80,13 +80,16 @@ type APIEntries struct {
 }
 
 const (
-	DefaultPolarisName      = "polaris-server"
+	// DefaultPolarisName default polaris name
+	DefaultPolarisName = "polaris-server"
+	// DefaultPolarisNamespace default namespace
 	DefaultPolarisNamespace = "Polaris"
-	DefaultFilePath         = "polaris-server.yaml"
+	// DefaultFilePath default file path
+	DefaultFilePath = "polaris-server.yaml"
 )
 
 /**
- * @brief 加载配置
+ * Load 加载配置
  */
 func Load(filePath string) (*Config, error) {
 	if filePath == "" {
