@@ -19,25 +19,29 @@ package redispool
 
 import (
 	"fmt"
-	"github.com/gomodule/redigo/redis"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/model"
 	"hash/crc32"
 	"math/rand"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/gomodule/redigo/redis"
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 const (
-	Get = 0
-	Set = 1
-	Del = 2
+	// Get get method define
+	Get = iota
+	// Set set method define
+	Set
+	// Del del method define
+	Del
 )
 
 /**
- * @brief ckv任务请求结构体
+ * Task ckv任务请求结构体
  */
 type Task struct {
 	taskType int
@@ -48,7 +52,7 @@ type Task struct {
 }
 
 /**
- * @brief ckv任务结果
+ * Resp ckv任务结果
  */
 type Resp struct {
 	Value string
@@ -57,7 +61,7 @@ type Resp struct {
 }
 
 /**
- * @brief ckv连接池元数据
+ * MetaData ckv连接池元数据
  */
 type MetaData struct {
 	insConnNum  int
@@ -68,19 +72,18 @@ type MetaData struct {
 }
 
 /**
- * @brief ckv节点结构体
+ * Instance ckv节点结构体
  */
 type Instance struct {
-	// 节点在连接池中的序号
-	index     uint32
+	index     uint32 // 节点在连接池中的序号
 	addr      string
 	redisPool *redis.Pool
 	ch        []chan *Task
-	stopCh    chan bool
+	stopCh    chan struct{}
 }
 
 /**
- * @brief ckv连接池结构体
+ * Pool ckv连接池结构体
  */
 type Pool struct {
 	mu          sync.Mutex
@@ -90,7 +93,7 @@ type Pool struct {
 }
 
 /**
- * @brief 初始化一个redis连接池实例
+ * NewPool 初始化一个redis连接池实例
  */
 func NewPool(insConnNum int, kvPasswd, localHost string, redisInstances []*model.Instance,
 	maxIdle, idleTimeout int) (*Pool, error) {
@@ -99,7 +102,7 @@ func NewPool(insConnNum int, kvPasswd, localHost string, redisInstances []*model
 		for _, instance := range redisInstances {
 			instance := &Instance{
 				redisPool: genRedisPool(insConnNum, kvPasswd, instance, maxIdle, idleTimeout),
-				stopCh:    make(chan bool),
+				stopCh:    make(chan struct{}, 1),
 			}
 			instance.ch = make([]chan *Task, 0, 100*insConnNum)
 			for i := 0; i < 100*insConnNum; i++ {
@@ -150,7 +153,7 @@ func genRedisPool(insConnNum int, kvPasswd string, instance *model.Instance, max
 }
 
 /**
- * @brief 更新ckv连接池中的节点
+ * Update 更新ckv连接池中的节点
  * 重新建立ckv连接
  * 对业务无影响
  */
@@ -166,7 +169,7 @@ func (p *Pool) Update(newKvInstances []*model.Instance) error {
 	for _, instance := range newKvInstances {
 		instance := &Instance{
 			redisPool: genRedisPool(p.meta.insConnNum, p.meta.kvPasswd, instance, p.meta.MaxIdle, p.meta.IdleTimeout),
-			stopCh:    make(chan bool),
+			stopCh:    make(chan struct{}, 1),
 		}
 		instance.ch = make([]chan *Task, 0, 100*p.meta.insConnNum)
 		for i := 0; i < 100*p.meta.insConnNum; i++ {
@@ -206,7 +209,7 @@ func (p *Pool) Update(newKvInstances []*model.Instance) error {
 }
 
 func (p *Pool) checkHasKvInstances(ch chan *Resp) bool {
-	if atomic.LoadInt32(&p.instanceNum) ==  0 {
+	if atomic.LoadInt32(&p.instanceNum) == 0 {
 		go func() {
 			ch <- &Resp{
 				Local: true,
@@ -218,7 +221,7 @@ func (p *Pool) checkHasKvInstances(ch chan *Resp) bool {
 }
 
 /**
- * @brief 使用连接池，向redis发起Get请求
+ * Get 使用连接池，向redis发起Get请求
  */
 func (p *Pool) Get(id string, ch chan *Resp) { // nolint
 	if p.checkHasKvInstances(ch) {
@@ -235,7 +238,7 @@ func (p *Pool) Get(id string, ch chan *Resp) { // nolint
 }
 
 /**
- * @brief 使用连接池，向redis发起Set请求
+ * Set 使用连接池，向redis发起Set请求
  */
 func (p *Pool) Set(id string, status int, beatTime int64, ch chan *Resp) { // nolint
 	if p.checkHasKvInstances(ch) {
@@ -254,7 +257,7 @@ func (p *Pool) Set(id string, status int, beatTime int64, ch chan *Resp) { // no
 }
 
 /**
- * @brief 使用连接池，向redis发起Del请求
+ * Del 使用连接池，向redis发起Del请求
  */
 func (p *Pool) Del(id string, ch chan *Resp) { // nolint
 	task := &Task{
@@ -268,7 +271,7 @@ func (p *Pool) Del(id string, ch chan *Resp) { // nolint
 }
 
 /**
- * @brief 生成index公共方法
+ * genInsChIndex 生成index公共方法
  */
 func (p *Pool) genInsChIndex(id string) (int, uint32) {
 	insIndex := String(id) % int(atomic.LoadInt32(&p.instanceNum))
@@ -278,21 +281,22 @@ func (p *Pool) genInsChIndex(id string) (int, uint32) {
 }
 
 /**
- * @brief 启动ckv连接池工作
+ * Start 启动ckv连接池工作
  */
 func (p *Pool) Start() {
 	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	for i := 0; i < len(p.instances); i++ {
 		for k := 0; k < len(p.instances[i].ch); k++ {
 			go p.worker(i, k)
 		}
 	}
-	p.mu.Unlock()
 	log.Infof("[redis] redis pool start")
 }
 
 /**
- * @brief 接收任务worker
+ * worker 接收任务worker
  */
 func (p *Pool) worker(instanceIndex, chIndex int) {
 	for {
@@ -306,7 +310,7 @@ func (p *Pool) worker(instanceIndex, chIndex int) {
 }
 
 /**
- * @brief 任务处理函数
+ * handleTask 任务处理函数
  */
 func (p *Pool) handleTask(task *Task, index int) {
 	if task == nil {
@@ -315,35 +319,25 @@ func (p *Pool) handleTask(task *Task, index int) {
 	}
 	con := p.instances[index].redisPool.Get()
 	defer con.Close()
+
 	var resp Resp
 	switch task.taskType {
 	case Get:
-		value, err := redis.String(con.Do("GET", task.id))
-		if err != nil {
-			resp.Err = err
-		} else {
-			resp.Value = value
-		}
+		resp.Value, resp.Err = redis.String(con.Do("GET", task.id))
 		task.respCh <- &resp
 	case Set:
 		value := fmt.Sprintf("%d:%d:%s", task.status, task.beatTime, p.meta.localHost)
-		_, err := con.Do("SET", task.id, value)
-		if err != nil {
-			resp.Err = err
-		}
+		_, resp.Err = con.Do("SET", task.id, value)
 		task.respCh <- &resp
 	case Del:
-		_, err := con.Do("DEL", task.id)
-		if err != nil {
-			resp.Err = err
-		}
+		_, resp.Err = con.Do("DEL", task.id)
 		task.respCh <- &resp
 	default:
 		log.Errorf("[ckv] set key:%s type:%d wrong", task.id, task.taskType)
 	}
 }
 
-// 字符串转hash值
+// String 字符串转hash值
 func String(s string) int {
 	v := int(crc32.ChecksumIEEE([]byte(s)))
 	if v >= 0 {
