@@ -23,26 +23,31 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/naming/batch"
-	"github.com/polarismesh/polaris-server/store"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	"go.uber.org/zap"
 	"io"
 	"regexp"
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/golang/protobuf/ptypes/wrappers"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/naming/batch"
+	"github.com/polarismesh/polaris-server/store"
+	"go.uber.org/zap"
 )
 
+// some options config
 const (
+	// QueryDefaultOffset default query offset
 	QueryDefaultOffset = 0
-
+	// QueryDefaultLimit default query limit
 	QueryDefaultLimit = 100
-	QueryMaxLimit     = 100
+	// QueryMaxLimit default query max
+	QueryMaxLimit = 100
 
+	// MaxMetadataLength metadata max length
 	MaxMetadataLength = 64
 
 	MaxBusinessLength   = 64
@@ -81,7 +86,6 @@ const (
 	MaxPlatformNameLength   = 128
 	MaxPlatformDomainLength = 1024
 	MaxPlatformQPS          = 65535
-
 )
 
 /*
@@ -276,12 +280,12 @@ func CalculateInstanceID(namespace string, service string, vpcID string, host st
 	return out, nil
 }
 
-// 计算规则ID
+// CalculateRuleID 计算规则ID
 func CalculateRuleID(name, namespace string) string {
 	return name + "." + namespace
 }
 
-// 格式化处理offset参数
+// ParseQueryOffset 格式化处理offset参数
 func ParseQueryOffset(offset string) (uint32, error) {
 	if offset == "" {
 		return QueryDefaultOffset, nil
@@ -297,7 +301,7 @@ func ParseQueryOffset(offset string) (uint32, error) {
 	return uint32(tmp), nil
 }
 
-// 格式化处理limit参数
+// ParseQueryLimit 格式化处理limit参数
 func ParseQueryLimit(limit string) (uint32, error) {
 	if limit == "" {
 		return QueryDefaultLimit, nil
@@ -316,7 +320,7 @@ func ParseQueryLimit(limit string) (uint32, error) {
 	return uint32(tmp), nil
 }
 
-// 统一格式化处理Offset和limit参数
+// ParseOffsetAndLimit 统一格式化处理Offset和limit参数
 func ParseOffsetAndLimit(query map[string]string) (uint32, uint32, error) {
 	ofs, err := ParseQueryOffset(query["offset"])
 	if err != nil {
@@ -324,7 +328,8 @@ func ParseOffsetAndLimit(query map[string]string) (uint32, uint32, error) {
 	}
 	delete(query, "offset")
 
-	lmt, err := ParseQueryLimit(query["limit"])
+	var lmt uint32
+	lmt, err = ParseQueryLimit(query["limit"])
 	if err != nil {
 		return 0, 0, err
 	}
@@ -333,8 +338,7 @@ func ParseOffsetAndLimit(query map[string]string) (uint32, uint32, error) {
 	return ofs, lmt, nil
 }
 
-
-// 解析服务实例的 ip 和 port 查询参数
+// ParseInstanceArgs 解析服务实例的 ip 和 port 查询参数
 func ParseInstanceArgs(query map[string]string) (*store.InstanceArgs, error) {
 	if len(query) == 0 {
 		return nil, nil
@@ -349,9 +353,10 @@ func ParseInstanceArgs(query map[string]string) (*store.InstanceArgs, error) {
 	if !ok {
 		return res, nil
 	}
-	portStrs := strings.Split(ports,",")
-	for _, portStr := range portStrs {
-		port, err := strconv.ParseUint(portStr,10, 32)
+
+	portSlices := strings.Split(ports, ",")
+	for _, portStr := range portSlices {
+		port, err := strconv.ParseUint(portStr, 10, 32)
 		if err != nil {
 			return nil, fmt.Errorf("%s can not parse as uint, err is %s", portStr, err.Error())
 		}
@@ -360,7 +365,7 @@ func ParseInstanceArgs(query map[string]string) (*store.InstanceArgs, error) {
 	return res, nil
 }
 
-// 从ctx中获取Request-ID
+// ParseRequestID 从ctx中获取Request-ID
 func ParseRequestID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -369,7 +374,7 @@ func ParseRequestID(ctx context.Context) string {
 	return rid
 }
 
-// 从ctx中获取token
+// ParseToken 从ctx中获取token
 func ParseToken(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -379,7 +384,7 @@ func ParseToken(ctx context.Context) string {
 	return token
 }
 
-// 从ctx中获取operator
+// ParseOperator 从ctx中获取operator
 func ParseOperator(ctx context.Context) string {
 	defaultOperator := "Polaris"
 	if ctx == nil {
@@ -394,7 +399,7 @@ func ParseOperator(ctx context.Context) string {
 }
 
 /**
- * @brief 从ctx中获取Platform-Id
+ * ParsePlatformID 从ctx中获取Platform-Id
  */
 func ParsePlatformID(ctx context.Context) string {
 	if ctx == nil {
@@ -405,7 +410,7 @@ func ParsePlatformID(ctx context.Context) string {
 }
 
 /**
- * @brief 从ctx中获取Platform-Token
+ * ParsePlatformToken 从ctx中获取Platform-Token
  */
 func ParsePlatformToken(ctx context.Context) string {
 	if ctx == nil {
@@ -415,17 +420,17 @@ func ParsePlatformToken(ctx context.Context) string {
 	return pToken
 }
 
-// 生成Request-ID的日志描述
+// ZapRequestID 生成Request-ID的日志描述
 func ZapRequestID(id string) zap.Field {
 	return zap.String("request-id", id)
 }
 
-// 生成Platform-ID的日志描述
+// ZapPlatformID 生成Platform-ID的日志描述
 func ZapPlatformID(id string) zap.Field {
 	return zap.String("platform-id", id)
 }
 
-// 检查name字段是否超过DB中对应字段的最大字符长度限制
+// CheckDbStrFieldLen 检查name字段是否超过DB中对应字段的最大字符长度限制
 func CheckDbStrFieldLen(param *wrappers.StringValue, dbLen int) error {
 	if param.GetValue() != "" && utf8.RuneCountInString(param.GetValue()) > dbLen {
 		errMsg := fmt.Sprintf("length of %s is over %d", param.GetValue(), dbLen)
@@ -434,7 +439,7 @@ func CheckDbStrFieldLen(param *wrappers.StringValue, dbLen int) error {
 	return nil
 }
 
-// 检查metadata的K,V是否超过DB中对应字段的最大字符长度限制
+// CheckDbMetaDataFieldLen 检查metadata的K,V是否超过DB中对应字段的最大字符长度限制
 func CheckDbMetaDataFieldLen(metaData map[string]string) error {
 	for k, v := range metaData {
 		if utf8.RuneCountInString(k) > 128 || utf8.RuneCountInString(v) > 4096 {

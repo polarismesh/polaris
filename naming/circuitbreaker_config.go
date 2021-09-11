@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -29,14 +30,20 @@ import (
 )
 
 const (
-	Master    = "master"
-	Service   = "service"
+	// Master is
+	Master = "master"
+	// Service is
+	Service = "service"
+	// Namespace namespace string
 	Namespace = "namespace"
-	ID        = "id"
-	Version   = "version"
+	// ID id
+	ID = "id"
+	// Version version
+	Version = "version"
 )
 
 var (
+	// MasterCircuitBreakers master circuit breakers
 	MasterCircuitBreakers = map[string]bool{
 		"id":         true,
 		"namespace":  true,
@@ -48,6 +55,7 @@ var (
 		"limit":      true,
 	}
 
+	// ReleaseCircuitBreakers release circuit breakers
 	ReleaseCircuitBreakers = map[string]bool{
 		"id":      true, // 必填参数
 		"version": true,
@@ -55,6 +63,7 @@ var (
 		"limit":   true,
 	}
 
+	// ServiceParams service params
 	ServiceParams = map[string]bool{
 		Service:   true,
 		Namespace: true,
@@ -62,7 +71,7 @@ var (
 )
 
 /**
- * @brief 批量创建熔断规则
+ * CreateCircuitBreakers 批量创建熔断规则
  */
 func (s *Server) CreateCircuitBreakers(ctx context.Context, req []*api.CircuitBreaker) *api.BatchWriteResponse {
 	if checkErr := checkBatchCircuitBreakers(req); checkErr != nil {
@@ -78,7 +87,7 @@ func (s *Server) CreateCircuitBreakers(ctx context.Context, req []*api.CircuitBr
 }
 
 /**
- * @brief 创建单个熔断规则
+ * CreateCircuitBreaker 创建单个熔断规则
  */
 func (s *Server) CreateCircuitBreaker(ctx context.Context, req *api.CircuitBreaker) *api.Response {
 	requestID := ParseRequestID(ctx)
@@ -105,8 +114,8 @@ func (s *Server) CreateCircuitBreaker(ctx context.Context, req *api.CircuitBreak
 
 	// 构造底层数据结构
 	token := NewUUID()
-
-	data, err := api2CircuitBreaker(req, id, token, version)
+	var data *model.CircuitBreaker
+	data, err = api2CircuitBreaker(req, id, token, version)
 	if err != nil {
 		log.Error(err.Error(), ZapRequestID(requestID))
 		return api.NewCircuitBreakerResponse(api.ParseCircuitBreakerException, req)
@@ -133,7 +142,7 @@ func (s *Server) CreateCircuitBreaker(ctx context.Context, req *api.CircuitBreak
 }
 
 /**
- * @brief 批量创建熔断规则版本
+ * CreateCircuitBreakerVersions 批量创建熔断规则版本
  */
 func (s *Server) CreateCircuitBreakerVersions(ctx context.Context, req []*api.CircuitBreaker) *api.BatchWriteResponse {
 	if checkErr := checkBatchCircuitBreakers(req); checkErr != nil {
@@ -149,7 +158,7 @@ func (s *Server) CreateCircuitBreakerVersions(ctx context.Context, req []*api.Ci
 }
 
 /**
- * @brief 创建单个熔断规则版本
+ * CreateCircuitBreakerVersion 创建单个熔断规则版本
  */
 func (s *Server) CreateCircuitBreakerVersion(ctx context.Context, req *api.CircuitBreaker) *api.Response {
 	requestID := ParseRequestID(ctx)
@@ -199,7 +208,8 @@ func (s *Server) CreateCircuitBreakerVersion(ctx context.Context, req *api.Circu
 		Department: utils.NewStringValue(circuitBreaker.Department),
 	}
 
-	data, err := api2CircuitBreaker(newReq, circuitBreaker.ID, circuitBreaker.Token, req.GetVersion().GetValue())
+	var data *model.CircuitBreaker
+	data, err = api2CircuitBreaker(newReq, circuitBreaker.ID, circuitBreaker.Token, req.GetVersion().GetValue())
 	if err != nil {
 		log.Error(err.Error(), ZapRequestID(requestID))
 		return api.NewCircuitBreakerResponse(api.ParseCircuitBreakerException, req)
@@ -221,7 +231,7 @@ func (s *Server) CreateCircuitBreakerVersion(ctx context.Context, req *api.Circu
 }
 
 /**
- * @brief 批量删除熔断规则
+ * DeleteCircuitBreakers 批量删除熔断规则
  */
 func (s *Server) DeleteCircuitBreakers(ctx context.Context, req []*api.CircuitBreaker) *api.BatchWriteResponse {
 	if checkErr := checkBatchCircuitBreakers(req); checkErr != nil {
@@ -237,7 +247,7 @@ func (s *Server) DeleteCircuitBreakers(ctx context.Context, req []*api.CircuitBr
 }
 
 /**
- * @brief 删除单个熔断规则
+ * DeleteCircuitBreaker 删除单个熔断规则
  */
 func (s *Server) DeleteCircuitBreaker(ctx context.Context, req *api.CircuitBreaker) *api.Response {
 	requestID := ParseRequestID(ctx)
@@ -324,7 +334,7 @@ func (s *Server) deleteTagCircuitBreaker(requestID string, id string, req *api.C
 }
 
 /**
- * @brief 批量修改熔断规则
+ * UpdateCircuitBreakers 批量修改熔断规则
  */
 func (s *Server) UpdateCircuitBreakers(ctx context.Context, req []*api.CircuitBreaker) *api.BatchWriteResponse {
 	if checkErr := checkBatchCircuitBreakers(req); checkErr != nil {
@@ -340,7 +350,7 @@ func (s *Server) UpdateCircuitBreakers(ctx context.Context, req []*api.CircuitBr
 }
 
 /**
- * @brief 修改单个熔断规则
+ * UpdateCircuitBreaker 修改单个熔断规则
  */
 func (s *Server) UpdateCircuitBreaker(ctx context.Context, req *api.CircuitBreaker) *api.Response {
 	requestID := ParseRequestID(ctx)
@@ -393,7 +403,7 @@ func (s *Server) UpdateCircuitBreaker(ctx context.Context, req *api.CircuitBreak
  */
 func (s *Server) updateCircuitBreakerAttribute(req *api.CircuitBreaker, circuitBreaker *model.CircuitBreaker) (
 	*api.Response, bool) {
-	needUpdate := false
+	var needUpdate bool
 	if req.GetOwners() != nil {
 		if req.GetOwners().GetValue() == "" {
 			return api.NewCircuitBreakerResponse(api.InvalidCircuitBreakerOwners, req), needUpdate
@@ -442,23 +452,22 @@ func (s *Server) updateCircuitBreakerAttribute(req *api.CircuitBreaker, circuitB
 }
 
 /**
- * @brief 批量发布熔断规则
+ * ReleaseCircuitBreakers 批量发布熔断规则
  */
 func (s *Server) ReleaseCircuitBreakers(ctx context.Context, req []*api.ConfigRelease) *api.BatchWriteResponse {
 	if checkErr := checkBatchConfigRelease(req); checkErr != nil {
 		return checkErr
 	}
 
-	resps := api.NewBatchWriteResponse(api.ExecuteSuccess)
+	resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
 	for _, configRelease := range req {
-		resp := s.ReleaseCircuitBreaker(ctx, configRelease)
-		resps.Collect(resp)
+		resp.Collect(s.ReleaseCircuitBreaker(ctx, configRelease))
 	}
-	return api.FormatBatchWriteResponse(resps)
+	return api.FormatBatchWriteResponse(resp)
 }
 
 /**
- * @brief 发布单个熔断规则
+ * ReleaseCircuitBreaker 发布单个熔断规则
  */
 func (s *Server) ReleaseCircuitBreaker(ctx context.Context, req *api.ConfigRelease) *api.Response {
 	requestID := ParseRequestID(ctx)
@@ -469,7 +478,7 @@ func (s *Server) ReleaseCircuitBreaker(ctx context.Context, req *api.ConfigRelea
 		return resp
 	}
 
-	//检查规则所属命名空间和服务所属命名空间是否一致
+	// 检查规则所属命名空间和服务所属命名空间是否一致
 	if req.GetService().GetNamespace().GetValue() != req.GetCircuitBreaker().GetNamespace().GetValue() {
 		return api.NewConfigResponse(api.NotAllowDifferentNamespaceBindRule, req)
 	}
@@ -522,7 +531,7 @@ func (s *Server) ReleaseCircuitBreaker(ctx context.Context, req *api.ConfigRelea
 }
 
 /**
- * @brief 批量解绑熔断规则
+ * UnBindCircuitBreakers 批量解绑熔断规则
  */
 func (s *Server) UnBindCircuitBreakers(ctx context.Context, req []*api.ConfigRelease) *api.BatchWriteResponse {
 	if checkErr := checkBatchConfigRelease(req); checkErr != nil {
@@ -537,7 +546,7 @@ func (s *Server) UnBindCircuitBreakers(ctx context.Context, req []*api.ConfigRel
 }
 
 /**
- * @brief 解绑单个熔断规则
+ * UnBindCircuitBreaker 解绑单个熔断规则
  */
 func (s *Server) UnBindCircuitBreaker(ctx context.Context, req *api.ConfigRelease) *api.Response {
 	requestID := ParseRequestID(ctx)
@@ -593,7 +602,7 @@ func (s *Server) UnBindCircuitBreaker(ctx context.Context, req *api.ConfigReleas
 }
 
 /**
- * @brief 根据id和version查询熔断规则
+ * GetCircuitBreaker 根据id和version查询熔断规则
  */
 func (s *Server) GetCircuitBreaker(query map[string]string) *api.BatchQueryResponse {
 	// 必填参数：id和version
@@ -612,7 +621,8 @@ func (s *Server) GetCircuitBreaker(query map[string]string) *api.BatchQueryRespo
 		return api.NewBatchQueryResponse(api.StoreLayerException)
 	}
 
-	breaker, err := circuitBreaker2API(circuitBreaker)
+	var breaker *api.CircuitBreaker
+	breaker, err = circuitBreaker2API(circuitBreaker)
 	if err != nil {
 		log.Errorf("get circuit breaker err: %s", err.Error())
 		return api.NewBatchQueryResponse(api.ParseCircuitBreakerException)
@@ -639,7 +649,7 @@ func (s *Server) GetCircuitBreaker(query map[string]string) *api.BatchQueryRespo
 }
 
 /**
- * @brief 根据id查询熔断规则所有版本
+ * GetCircuitBreakerVersions 根据id查询熔断规则所有版本
  */
 func (s *Server) GetCircuitBreakerVersions(query map[string]string) *api.BatchQueryResponse {
 	// 必填参数：id
@@ -668,7 +678,7 @@ func (s *Server) GetCircuitBreakerVersions(query map[string]string) *api.BatchQu
 }
 
 /**
- * @brief 查询master熔断规则
+ * GetMasterCircuitBreakers 查询master熔断规则
  */
 func (s *Server) GetMasterCircuitBreakers(query map[string]string) *api.BatchQueryResponse {
 	for key := range query {
@@ -694,7 +704,7 @@ func (s *Server) GetMasterCircuitBreakers(query map[string]string) *api.BatchQue
 }
 
 /**
- * @brief 根据规则id查询已发布规则
+ * GetReleaseCircuitBreakers 根据规则id查询已发布规则
  */
 func (s *Server) GetReleaseCircuitBreakers(query map[string]string) *api.BatchQueryResponse {
 	// 必须参数：id
@@ -710,7 +720,7 @@ func (s *Server) GetReleaseCircuitBreakers(query map[string]string) *api.BatchQu
 		}
 	}
 
-	//id转化为rule_id
+	// id转化为rule_id
 	if ruleID, ok := query[ID]; ok {
 		query["rule_id"] = ruleID
 		delete(query, ID)
@@ -756,7 +766,7 @@ func genCircuitBreakersResult(c *model.CircuitBreakerDetail) *api.BatchQueryResp
 }
 
 /**
- * @brief 根据服务查询绑定熔断规则
+ * GetCircuitBreakerByService 根据服务查询绑定熔断规则
  */
 func (s *Server) GetCircuitBreakerByService(query map[string]string) *api.BatchQueryResponse {
 	// 必须参数：service和namespace
@@ -801,7 +811,7 @@ func (s *Server) GetCircuitBreakerByService(query map[string]string) *api.BatchQ
 }
 
 /**
-* @brief 查询熔断规则的token
+* GetCircuitBreakerToken 查询熔断规则的token
  */
 func (s *Server) GetCircuitBreakerToken(ctx context.Context, req *api.CircuitBreaker) *api.Response {
 	id, resp := checkReviseCircuitBreaker(ctx, req)
@@ -825,7 +835,7 @@ func (s *Server) GetCircuitBreakerToken(ctx context.Context, req *api.CircuitBre
 }
 
 /*
- * @brief 检查熔断规则批量请求
+ * checkBatchCircuitBreakers 检查熔断规则批量请求
  */
 func checkBatchCircuitBreakers(req []*api.CircuitBreaker) *api.BatchWriteResponse {
 	if len(req) == 0 {
@@ -866,7 +876,7 @@ func checkCreateCircuitBreaker(req *api.CircuitBreaker) (string, *api.Response) 
 		return "", api.NewCircuitBreakerResponse(api.InvalidCircuitBreakerOwners, req)
 	}
 	// 检查字段长度是否大于DB中对应字段长
-	err, notOk := CheckDbCircuitbreakerFieldLen(req)
+	err, notOk := CheckDbCircuitBreakerFieldLen(req)
 	if notOk {
 		return "", err
 	}
@@ -896,7 +906,7 @@ func checkReviseCircuitBreaker(ctx context.Context, req *api.CircuitBreaker) (st
 		return req.GetId().GetValue(), nil
 	}
 	// 检查字段长度是否大于DB中对应字段长
-	err, notOk := CheckDbCircuitbreakerFieldLen(req)
+	err, notOk := CheckDbCircuitBreakerFieldLen(req)
 	if notOk {
 		return "", err
 	}
@@ -1243,8 +1253,8 @@ func wrapperConfigStoreResponse(configRelease *api.ConfigRelease, err error) *ap
 	return resp
 }
 
-// 检查DB中circuitbreaker表对应的入参字段合法性
-func CheckDbCircuitbreakerFieldLen(req *api.CircuitBreaker) (*api.Response, bool) {
+// CheckDbCircuitBreakerFieldLen 检查DB中circuitBreaker表对应的入参字段合法性
+func CheckDbCircuitBreakerFieldLen(req *api.CircuitBreaker) (*api.Response, bool) {
 	if err := CheckDbStrFieldLen(req.GetName(), MaxDbCircuitbreakerName); err != nil {
 		return api.NewCircuitBreakerResponse(api.InvalidCircuitBreakerName, req), true
 	}

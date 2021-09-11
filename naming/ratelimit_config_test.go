@@ -19,27 +19,28 @@ package naming
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"testing"
 )
 
 func TestServer_CreateRateLimitJson(t *testing.T) {
-	rule := &api.Rule {
+	rule := &api.Rule{
 		Namespace: &wrappers.StringValue{Value: "Test"},
-		Service: &wrappers.StringValue{Value: "TestService1"},
-		Resource: api.Rule_QPS,
-		Type: api.Rule_LOCAL,
+		Service:   &wrappers.StringValue{Value: "TestService1"},
+		Resource:  api.Rule_QPS,
+		Type:      api.Rule_LOCAL,
 		Method: &api.MatchString{
-			Type:                 0,
-			Value:                &wrappers.StringValue{Value: "/info"},
+			Type:  0,
+			Value: &wrappers.StringValue{Value: "/info"},
 		},
 		Labels: map[string]*api.MatchString{
 			"uin": &api.MatchString{
-				Type:                 0,
-				Value:                &wrappers.StringValue{Value: "109870111"},
+				Type:  0,
+				Value: &wrappers.StringValue{Value: "109870111"},
 			},
 		},
 		AmountMode: api.Rule_GLOBAL_TOTAL,
@@ -51,9 +52,9 @@ func TestServer_CreateRateLimitJson(t *testing.T) {
 				},
 			},
 		},
-		Action: &wrappers.StringValue{Value: "reject"},
+		Action:   &wrappers.StringValue{Value: "reject"},
 		Failover: api.Rule_FAILOVER_LOCAL,
-		Disable: &wrappers.BoolValue{Value: false},
+		Disable:  &wrappers.BoolValue{Value: false},
 	}
 	marshaler := &jsonpb.Marshaler{}
 	ruleStr, err := marshaler.MarshalToString(rule)

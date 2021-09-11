@@ -20,9 +20,6 @@ package naming
 import (
 	"context"
 	"errors"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/common/redispool"
-	"go.uber.org/zap"
 	"strconv"
 	"strings"
 	"sync"
@@ -30,12 +27,15 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/redispool"
 	"github.com/polarismesh/polaris-server/common/timewheel"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"go.uber.org/zap"
 )
 
 /**
- * @brief 健康检查配置
+ * HealthCheckConfig 健康检查配置
  */
 type HealthCheckConfig struct {
 	Open          bool   `yaml:"open"`
@@ -50,7 +50,7 @@ type HealthCheckConfig struct {
 }
 
 /**
- * @brief 记录实例心跳信息
+ * HbInfo 记录实例心跳信息
  */
 type HbInfo struct {
 	id       string
@@ -60,7 +60,7 @@ type HbInfo struct {
 }
 
 /**
- * @brief 心跳管理器结构体
+ * HeartBeatMgr 心跳管理器结构体
  * 包括时间轮、ckv连接池、存储实例心跳信息的map
  */
 type HeartBeatMgr struct {
@@ -69,12 +69,12 @@ type HeartBeatMgr struct {
 	hbMap map[string]*HbInfo
 	ckvTw *timewheel.TimeWheel
 	dbTw  *timewheel.TimeWheel
-	//ckvPool   *ckv.Pool
+	// ckvPool   *ckv.Pool
 	redisPool *redispool.Pool
 }
 
 /**
- * @brief 时间轮任务结构体
+ * TimeWheelTask 时间轮任务结构体
  */
 type TimeWheelTask struct {
 	lastBeatTime int64
@@ -204,14 +204,14 @@ var (
 )
 
 /**
-* @brief 设置健康检查配置
+* SetHealthCheckConfig 设置健康检查配置
  */
 func SetHealthCheckConfig(conf *HealthCheckConfig) {
 	healthCheckConf = conf
 }
 
 /**
- * @brief 初始化心跳管理器
+ * NewHeartBeatMgr 初始化心跳管理器
  */
 func NewHeartBeatMgr(ctx context.Context) (*HeartBeatMgr, error) {
 	kvService := server.caches.Service().
@@ -221,9 +221,9 @@ func NewHeartBeatMgr(ctx context.Context) (*HeartBeatMgr, error) {
 	if kvService != nil {
 		kvInstances = server.caches.Instance().GetInstancesByServiceID(kvService.ID)
 	}
-	//if len(kvInstances) == 0 {
+	// if len(kvInstances) == 0 {
 	//	return nil, fmt.Errorf("no available ckv instance, serviceId:%s", kvService.ID)
-	//}
+	// }
 
 	redisPool, err := redispool.NewPool(healthCheckConf.KvConnNum, healthCheckConf.KvPasswd,
 		healthCheckConf.LocalHost, kvInstances, healthCheckConf.MaxIdle, healthCheckConf.IdleTimeout)
@@ -245,7 +245,7 @@ func NewHeartBeatMgr(ctx context.Context) (*HeartBeatMgr, error) {
 }
 
 /**
- * @brief 启动心跳管理器，启动健康检查功能
+ * Start 启动心跳管理器，启动健康检查功能
  */
 func (hb *HeartBeatMgr) Start() {
 	hb.redisPool.Start()

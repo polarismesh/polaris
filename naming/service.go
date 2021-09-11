@@ -29,7 +29,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// *model.service转换为*api.service
+// Service2Api *model.service转换为*api.service
 type Service2Api func(service *model.Service) *api.Service
 
 var (
@@ -56,7 +56,7 @@ var (
 )
 
 /**
- * @brief 批量创建服务
+ * CreateServices 批量创建服务
  */
 func (s *Server) CreateServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse {
 	if checkError := checkBatchService(req); checkError != nil {
@@ -73,7 +73,7 @@ func (s *Server) CreateServices(ctx context.Context, req []*api.Service) *api.Ba
 }
 
 /**
- * @brief 创建单个服务
+ * CreateService 创建单个服务
  */
 func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Response {
 	requestID := ParseRequestID(ctx)
@@ -126,7 +126,7 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 }
 
 /**
- * @brief 批量删除服务
+ * DeleteServices 批量删除服务
  */
 func (s *Server) DeleteServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse {
 	if checkError := checkBatchService(req); checkError != nil {
@@ -143,7 +143,7 @@ func (s *Server) DeleteServices(ctx context.Context, req []*api.Service) *api.Ba
 }
 
 /**
- * @brief 删除单个服务
+ * DeleteService 删除单个服务
  *        删除操作需要对服务进行加锁操作，
  *        防止有与服务关联的实例或者配置有新增的操作
  */
@@ -192,7 +192,7 @@ func (s *Server) DeleteService(ctx context.Context, req *api.Service) *api.Respo
 }
 
 /**
- * @brief 批量修改服务
+ * UpdateServices 批量修改服务
  */
 func (s *Server) UpdateServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse {
 	if checkError := checkBatchService(req); checkError != nil {
@@ -209,7 +209,7 @@ func (s *Server) UpdateServices(ctx context.Context, req []*api.Service) *api.Ba
 }
 
 /**
- * @brief 修改单个服务
+ * UpdateService 修改单个服务
  */
 func (s *Server) UpdateService(ctx context.Context, req *api.Service) *api.Response {
 	requestID := ParseRequestID(ctx)
@@ -257,7 +257,7 @@ func (s *Server) UpdateService(ctx context.Context, req *api.Service) *api.Respo
 	return api.NewServiceResponse(api.ExecuteSuccess, req)
 }
 
-// 更新服务token
+// UpdateServiceToken 更新服务token
 func (s *Server) UpdateServiceToken(ctx context.Context, req *api.Service) *api.Response {
 	// 校验参数合法性
 	if resp := checkReviseService(req); resp != nil {
@@ -298,7 +298,7 @@ func (s *Server) UpdateServiceToken(ctx context.Context, req *api.Service) *api.
 }
 
 /**
- * @brief 查询服务
+ * GetServices 查询服务
  *        注意：不包括别名
  */
 func (s *Server) GetServices(query map[string]string) *api.BatchQueryResponse {
@@ -363,7 +363,7 @@ func (s *Server) GetServices(query map[string]string) *api.BatchQueryResponse {
 }
 
 /**
- * @brief 查询服务总数
+ * GetServicesCount 查询服务总数
  */
 func (s *Server) GetServicesCount() *api.BatchQueryResponse {
 	count, err := s.storage.GetServicesCount()
@@ -378,7 +378,7 @@ func (s *Server) GetServicesCount() *api.BatchQueryResponse {
 	return out
 }
 
-// 查询Service的token
+// GetServiceToken 查询Service的token
 func (s *Server) GetServiceToken(ctx context.Context, req *api.Service) *api.Response {
 	// 校验参数合法性
 	if resp := checkReviseService(req); resp != nil {
@@ -391,7 +391,7 @@ func (s *Server) GetServiceToken(ctx context.Context, req *api.Service) *api.Res
 		return resp
 	}
 
-	//s.RecordHistory(serviceRecordEntry(ctx, req, model.OGetToken))
+	// s.RecordHistory(serviceRecordEntry(ctx, req, model.OGetToken))
 	out := api.NewResponse(api.ExecuteSuccess)
 	out.Service = &api.Service{
 		Name:      req.GetName(),
@@ -402,7 +402,7 @@ func (s *Server) GetServiceToken(ctx context.Context, req *api.Service) *api.Res
 }
 
 /**
- * @brief 查询服务负责人
+ * GetServiceOwner 查询服务负责人
  */
 func (s *Server) GetServiceOwner(ctx context.Context, req []*api.Service) *api.BatchQueryResponse {
 	requestID := ParseRequestID(ctx)
@@ -951,7 +951,7 @@ func serviceRecordEntry(ctx context.Context, req *api.Service, md *model.Service
 	return entry
 }
 
-// 检查DB中service表对应的入参字段合法性
+// CheckDbServiceFieldLen 检查DB中service表对应的入参字段合法性
 func CheckDbServiceFieldLen(req *api.Service) (*api.Response, bool) {
 	if err := CheckDbStrFieldLen(req.GetName(), MaxDbServiceNameLength); err != nil {
 		return api.NewServiceResponse(api.InvalidServiceName, req), true

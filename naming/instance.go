@@ -30,7 +30,7 @@ import (
 )
 
 var (
-	// 查询实例支持的过滤字段
+	// InstanceFilterAttributes 查询实例支持的过滤字段
 	InstanceFilterAttributes = map[string]bool{
 		"service":       true, // 服务name
 		"namespace":     true, // 服务namespace
@@ -52,20 +52,20 @@ var (
 		"offset":        true,
 		"limit":         true,
 	}
-	// 查询字段转为存储层的属性值，映射表
+	// InsFilter2toreAttr 查询字段转为存储层的属性值，映射表
 	InsFilter2toreAttr = map[string]string{
 		"service": "name",
 		"healthy": "health_status",
 	}
-	// 不属于 instance 表属性的字段
-	NotInsFilterAttr = map[string]bool {
-		"keys": true,
+	// NotInsFilterAttr 不属于 instance 表属性的字段
+	NotInsFilterAttr = map[string]bool{
+		"keys":   true,
 		"values": true,
 	}
 )
 
 /**
- * @brief 批量创建服务实例
+ * CreateInstances 批量创建服务实例
  */
 func (s *Server) CreateInstances(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse {
 	if checkError := checkBatchInstance(reqs); checkError != nil {
@@ -76,7 +76,7 @@ func (s *Server) CreateInstances(ctx context.Context, reqs []*api.Instance) *api
 }
 
 /**
- * @brief 创建单个服务实例
+ * CreateInstance 创建单个服务实例
  * 注意：创建实例需要对服务进行加锁保护服务不被删除
  */
 func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Response {
@@ -196,7 +196,7 @@ func (s *Server) serialCreateInstance(ctx context.Context, req *api.Instance, in
 }
 
 /**
- * @brief 批量删除服务实例
+ * DeleteInstances 批量删除服务实例
  */
 func (s *Server) DeleteInstances(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse {
 	if checkError := checkBatchInstance(req); checkError != nil {
@@ -207,7 +207,7 @@ func (s *Server) DeleteInstances(ctx context.Context, req []*api.Instance) *api.
 }
 
 /**
- * @brief 删除单个服务实例
+ * DeleteInstance 删除单个服务实例
  */
 func (s *Server) DeleteInstance(ctx context.Context, req *api.Instance) *api.Response {
 	rid := ParseRequestID(ctx)
@@ -305,7 +305,7 @@ func (s *Server) asyncDeleteInstance(ctx context.Context, req *api.Instance, ins
 }
 
 /**
- * @brief 根据host批量删除服务实例
+ * DeleteInstancesByHost 根据host批量删除服务实例
  */
 func (s *Server) DeleteInstancesByHost(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse {
 	if checkError := checkBatchInstance(req); checkError != nil {
@@ -316,7 +316,7 @@ func (s *Server) DeleteInstancesByHost(ctx context.Context, req []*api.Instance)
 }
 
 /**
- * @brief 根据host删除服务实例
+ * DeleteInstanceByHost 根据host删除服务实例
  */
 func (s *Server) DeleteInstanceByHost(ctx context.Context, req *api.Instance) *api.Response {
 	requestID := ParseRequestID(ctx)
@@ -358,7 +358,7 @@ func (s *Server) DeleteInstanceByHost(ctx context.Context, req *api.Instance) *a
 }
 
 /**
- * @brief 批量修改服务实例
+ * UpdateInstances 批量修改服务实例
  */
 func (s *Server) UpdateInstances(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse {
 	if checkError := checkBatchInstance(req); checkError != nil {
@@ -369,7 +369,7 @@ func (s *Server) UpdateInstances(ctx context.Context, req []*api.Instance) *api.
 }
 
 /**
- * @brief 修改单个服务实例
+ * UpdateInstance 修改单个服务实例
  */
 func (s *Server) UpdateInstance(ctx context.Context, req *api.Instance) *api.Response {
 	service, instance, preErr := s.execInstancePreStep(ctx, req)
@@ -406,7 +406,7 @@ func (s *Server) UpdateInstance(ctx context.Context, req *api.Instance) *api.Res
 }
 
 /**
- * @brief 批量修改服务实例隔离状态
+ * UpdateInstancesIsolate 批量修改服务实例隔离状态
  * @note 必填参数为service+namespace+host
  */
 func (s *Server) UpdateInstancesIsolate(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse {
@@ -418,7 +418,7 @@ func (s *Server) UpdateInstancesIsolate(ctx context.Context, req []*api.Instance
 }
 
 /**
- * @brief 修改服务实例隔离状态
+ * UpdateInstanceIsolate 修改服务实例隔离状态
  * @note 必填参数为service+namespace+ip
  */
 func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *api.Response {
@@ -650,7 +650,7 @@ func updateHealthCheck(req *api.Instance, instance *model.Instance) bool {
 }
 
 /**
- * @brief 查询服务实例
+ * GetInstances 查询服务实例
  */
 func (s *Server) GetInstances(query map[string]string) *api.BatchQueryResponse {
 	// 对数据先进行提前处理一下
@@ -686,7 +686,7 @@ func (s *Server) GetInstances(query map[string]string) *api.BatchQueryResponse {
 }
 
 /**
- * @brief 查询总的服务实例，不带过滤条件的
+ * GetInstancesCount 查询总的服务实例，不带过滤条件的
  */
 func (s *Server) GetInstancesCount() *api.BatchQueryResponse {
 	count, err := s.storage.GetInstancesCount()
@@ -701,7 +701,7 @@ func (s *Server) GetInstancesCount() *api.BatchQueryResponse {
 	return out
 }
 
-// 清理无效的实例(flag == 1)
+// CleanInstance 清理无效的实例(flag == 1)
 func (s *Server) CleanInstance(ctx context.Context, req *api.Instance) *api.Response {
 	// 无效数据，不需要鉴权，直接删除
 	getInstanceID := func() (string, *api.Response) {
@@ -727,7 +727,7 @@ func (s *Server) CleanInstance(ctx context.Context, req *api.Instance) *api.Resp
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
 }
 
-// 获取上一次心跳的时间
+// GetLastHeartbeat 获取上一次心跳的时间
 func (s *Server) GetLastHeartbeat(req *api.Instance) *api.Response {
 	if s.hbMgr == nil {
 		return api.NewInstanceResponse(api.HealthCheckNotOpen, req)
@@ -857,7 +857,7 @@ func (s *Server) getInstance(service *api.Service, instance *api.Instance) *api.
 		Location:          instance.GetLocation(),
 		Metadata:          instance.GetMetadata(),
 		LogicSet:          instance.GetLogicSet(),
-		//Ctime:             instance.GetCtime(),
+		// Ctime:             instance.GetCtime(),
 		Mtime:    instance.GetMtime(),
 		Revision: instance.GetRevision(),
 	}
@@ -1023,7 +1023,7 @@ func preGetInstances(query map[string]string) (map[string]string, map[string]str
 			api.InvalidQueryInsParameter, "instance metadata key and value must be both provided")
 	}
 	if metaKeyAvail {
-		metaFilter = map[string]string{metaKey:metaValue}
+		metaFilter = map[string]string{metaKey: metaValue}
 	}
 
 	// 以healthy为准
@@ -1060,7 +1060,7 @@ func preGetInstances(query map[string]string) (map[string]string, map[string]str
 		if value == "" {
 			log.Errorf("[Server][Instance][Query] attribute(%s: %s) is not allowed empty", key, value)
 			return nil, metaFilter,
-			api.NewBatchQueryResponseWithMsg(api.InvalidParameter, "the value for "+key+" is empty")
+				api.NewBatchQueryResponseWithMsg(api.InvalidParameter, "the value for "+key+" is empty")
 		}
 		if attr, ok := InsFilter2toreAttr[key]; ok {
 			key = attr
@@ -1172,7 +1172,7 @@ func instanceRecordEntry(ctx context.Context, service *model.Service, ins *model
 	return entry
 }
 
-// 检查DB中service表对应的入参字段合法性
+// CheckDbInstanceFieldLen 检查DB中service表对应的入参字段合法性
 func CheckDbInstanceFieldLen(req *api.Instance) (*api.Response, bool) {
 	if err := CheckDbStrFieldLen(req.GetService(), MaxDbServiceNameLength); err != nil {
 		return api.NewInstanceResponse(api.InvalidServiceName, req), true
