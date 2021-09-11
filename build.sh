@@ -5,14 +5,18 @@ set -e
 workdir=$(dirname $(realpath $0))
 version=$(cat version 2>/dev/null)
 bin_name="polaris-server"
-GOOS=`go env GOOS`
-GOARCH=`go env GOARCH`
+if [ ${GOOS} -eq "" ];then
+  GOOS=`go env GOOS`
+fi
+if [ ${GOARCH} -eq "" ];then
+  GOARCH=`go env GOARCH`
+fi
 folder_name="polaris-server-release_${version}.${GOOS}.${GOARCH}"
 pkg_name="${folder_name}.zip"
 if [ ${GOOS} -eq "windows" ];then
   bin_name="polaris-server.exe"
 fi
-echo "binary name is ${bin_name}"
+echo "GOOS is ${GOOS}, binary name is ${bin_name}"
 
 cd $workdir
 
