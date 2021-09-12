@@ -24,7 +24,7 @@ function uninstallPolarisServer() {
   fi
   pushd ${polaris_server_dirname}
   echo -e "start to execute polaris-server uninstall script"
-  /bin/bash ./tool/uninstall.sh
+  /bin/bash ./tool/stop.sh
   popd
   echo -e "start to remove ${polaris_server_dirname}"
   rm -rf ${polaris_server_dirname}
@@ -40,7 +40,7 @@ function uninstallPolarisConsole() {
   fi
   pushd ${polaris_console_dirname}
   echo -e "start to execute polaris-console uninstall script"
-  /bin/bash ./tool/uninstall.sh
+  /bin/bash ./tool/stop.sh
   popd
    echo -e "start to remove ${polaris_console_dirname}"
   rm -rf ${polaris_console_dirname}

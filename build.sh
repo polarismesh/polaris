@@ -2,11 +2,10 @@
 
 set -e
 
-#workdir=$(dirname $(realpath $0))
-workdir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
+workdir=$(dirname $(realpath $0))
 version=$(cat version 2>/dev/null)
-GOOS=$(go env GOOS)
-GOARCH=$(go env GOARCH)
+GOOS=`go env GOOS`
+GOARCH=`go env GOARCH`
 folder_name="polaris-server-release_${version}.${GOOS}.${GOARCH}"
 pkg_name="${folder_name}.tar.gz"
 
@@ -29,9 +28,4 @@ mv polaris-server ${folder_name}
 cp polaris-server.yaml ${folder_name}
 cp -r tool ${folder_name}/
 tar -czvf "${pkg_name}" ${folder_name}
-
-if [[ $(uname -a | grep "Darwin" | wc -l) -eq 1 ]]; then
-  md5 ${pkg_name} >"${pkg_name}.md5sum"
-else
-  md5sum ${pkg_name} >"${pkg_name}.md5sum"
-fi
+md5sum ${pkg_name} > "${pkg_name}.md5sum"

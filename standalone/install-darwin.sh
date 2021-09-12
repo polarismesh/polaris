@@ -31,7 +31,7 @@ function installPolarisServer() {
     echo -e "polaris-server-release.tar.gz has been decompressed, skip."
   fi
 
-  /bin/bash ./tool/install.sh
+  /bin/bash ./tool/start.sh
   echo -e "install polaris server finish."
   cd $install_path
 }
@@ -59,7 +59,7 @@ function installPolarisConsole() {
   fi
 
   cd $polaris_console_dirname
-  /bin/bash ./tool/install.sh
+  /bin/bash ./tool/start.sh
   echo -e "install polaris console finish."
   cd $install_path
 }
