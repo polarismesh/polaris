@@ -18,6 +18,7 @@
 package boltdbStore
 
 import (
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -65,15 +66,16 @@ func createTestPlatform(id string, createId bool) *model.Platform {
 }
 
 func CreatePlatformDBHandlerAndRun(t *testing.T, tf func(t *testing.T, handler BoltHandler)) {
-	_ = os.Remove(filepath.Join(t.TempDir(), "test_platform.bolt"))
-	handler, err := NewBoltHandler(&BoltConfig{FileName: filepath.Join(t.TempDir(), "test_platform.bolt")})
+	tempDir, _ := ioutil.TempDir("", "test_platform")
+	_ = os.Remove(filepath.Join(tempDir, "test_platform.bolt"))
+	handler, err := NewBoltHandler(&BoltConfig{FileName: filepath.Join(tempDir, "test_platform.bolt")})
 	if nil != err {
 		t.Fatal(err)
 	}
 
 	defer func() {
-		handler.Close()
-		_ = os.Remove(filepath.Join(t.TempDir(), "test_platform.bolt"))
+		_ = handler.Close()
+		_ = os.Remove(filepath.Join(tempDir, "test_platform.bolt"))
 	}()
 	tf(t, handler)
 }

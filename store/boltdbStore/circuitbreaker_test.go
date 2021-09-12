@@ -18,6 +18,7 @@
 package boltdbStore
 
 import (
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -118,15 +119,16 @@ func createTestService(id, name, namespace string, create bool) *model.Service {
 }
 
 func CreateCircuitbreakerDBHandlerAndRun(t *testing.T, tf func(t *testing.T, handler BoltHandler)) {
-	_ = os.Remove(filepath.Join(t.TempDir(), "test_circuitbreaker.bolt"))
-	handler, err := NewBoltHandler(&BoltConfig{FileName: filepath.Join(t.TempDir(), "test_circuitbreaker.bolt")})
+	tempDir, _ := ioutil.TempDir("", "test_circuitbreaker")
+	_ = os.Remove(filepath.Join(tempDir, "test_circuitbreaker.bolt"))
+	handler, err := NewBoltHandler(&BoltConfig{FileName: filepath.Join(tempDir, "test_circuitbreaker.bolt")})
 	if nil != err {
 		t.Fatal(err)
 	}
 
 	defer func() {
-		handler.Close()
-		_ = os.Remove(filepath.Join(t.TempDir(), "test_circuitbreaker.bolt"))
+		_ = handler.Close()
+		_ = os.Remove(filepath.Join(tempDir, "test_circuitbreaker.bolt"))
 	}()
 	tf(t, handler)
 }
@@ -1106,9 +1108,15 @@ func Test_circuitBreakerStore_GetCircuitBreakersByService(t *testing.T) {
 			args    args
 			want    *model.CircuitBreaker
 			wantErr bool
+			preEnv  func(args struct {
+				name    string
+				fields  fields
+				args    args
+				want    *model.CircuitBreaker
+			})
 		}{
 			{
-				name: "",
+				name: "Test all data is normal",
 				fields: fields{
 					handler: handler,
 				},
@@ -1118,6 +1126,61 @@ func Test_circuitBreakerStore_GetCircuitBreakersByService(t *testing.T) {
 				},
 				want:    createTestCircuitbreaker("", true),
 				wantErr: false,
+				preEnv: func(args struct {
+					name    string
+					fields  fields
+					args    args
+					want    *model.CircuitBreaker
+				}) {
+					c := &circuitBreakerStore{
+						handler: args.fields.handler,
+					}
+
+					s := &serviceStore{
+						handler: handler,
+					}
+
+					service := createTestService("", args.args.name, args.args.namespace, true)
+
+					// first, create one service
+					if err := s.AddService(service); err != nil {
+						t.Fatal(err)
+					}
+
+					// second, create circuitbreaker
+					if err := c.CreateCircuitBreaker(args.want); err != nil {
+						t.Fatal(err)
+					}
+
+					// third, create circuitbreaker relation
+					crb := createTestCircuitbreakerRelation(args.want.ID, false)
+					crb.ServiceID = service.ID
+					crb.RuleVersion = args.want.Version
+
+					if err := c.releaseCircuitBreaker(crb); err != nil {
+						t.Fatal(err)
+					}
+				},
+			},
+			{
+				name: "Test when service not found",
+				fields: fields{
+					handler: handler,
+				},
+				args: args{
+					name:      RandStringRunes(6),
+					namespace: RandStringRunes(10),
+				},
+				want:    nil,
+				wantErr: true,
+				preEnv: func(args struct {
+					name    string
+					fields  fields
+					args    args
+					want    *model.CircuitBreaker
+				}) {
+				//	do nothing
+				},
 			},
 		}
 		for _, tt := range tests {
@@ -1126,35 +1189,26 @@ func Test_circuitBreakerStore_GetCircuitBreakersByService(t *testing.T) {
 					handler: tt.fields.handler,
 				}
 
-				s := &serviceStore{
-					handler: tt.fields.handler,
-				}
-
-				service := createTestService("", tt.args.name, tt.args.namespace, true)
-
-				// first, create one service
-				if err := s.AddService(service); err != nil {
-					t.Fatal(err)
-				}
-
-				// second, create circuitbreaker
-				if err := c.CreateCircuitBreaker(tt.want); err != nil {
-					t.Fatal(err)
-				}
-
-				// third, create circuitbreaker relation
-				crb := createTestCircuitbreakerRelation(tt.want.ID, false)
-				crb.ServiceID = service.ID
-				crb.RuleVersion = tt.want.Version
-
-				if err := c.releaseCircuitBreaker(crb); err != nil {
-					t.Fatal(err)
-				}
+				tt.preEnv(struct {
+					name    string
+					fields  fields
+					args    args
+					want    *model.CircuitBreaker
+				}{name: tt.name, fields: tt.fields, args: tt.args, want: tt.want })
 
 				got, err := c.GetCircuitBreakersByService(tt.args.name, tt.args.namespace)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("circuitBreakerStore.GetCircuitBreakersByService() error = %v, wantErr %v", err, tt.wantErr)
 					return
+				}
+
+				if got == nil {
+					if tt.want == nil  {
+						return
+					} else {
+						t.Errorf("circuitBreakerStore.GetCircuitBreakersByService() expect : %#v, actual is nil", tt.want)
+						return
+					}
 				}
 
 				tN := time.Now()

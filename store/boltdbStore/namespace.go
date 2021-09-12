@@ -20,10 +20,11 @@ package boltdbStore
 import (
 	"errors"
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/model"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 const tblNameNamespace = "namespace"
@@ -134,9 +135,6 @@ func (n *namespaceStore) GetNamespace(name string) (*model.Namespace, error) {
 		return nil, nil
 	}
 	ns := nsValue.(*model.Namespace)
-	if !ns.Valid {
-		return nil, nil
-	}
 	return ns, nil
 }
 
