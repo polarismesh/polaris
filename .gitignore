@@ -12,3 +12,4 @@ polaris-server-release.tar.gz
 *.code-workspace
 
 .vscode/*
+*.bolt

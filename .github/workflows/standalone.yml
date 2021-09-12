@@ -16,8 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [linux]
-        goarch: [amd64]
+        goos: [linux, windows]
+        goarch: [amd64, 386]
 
     steps:
       - name: Checkout code
@@ -35,19 +35,30 @@ jobs:
         run: |
           set -e
           cd standalone
-          mkdir route-rule
-          mv rule.yaml route-rule/
-          mkdir database
-          mv ../store/defaultStore/polaris_server.sql database/
-          SERVER_PKG_NAME=polaris-server-release_${SERVER_VERSION}.${GOOS}.${GOARCH}.tar.gz
-          wget -T10 -t3 https://github.com/PolarisMesh/polaris/releases/download/${SERVER_VERSION}/${SERVER_PKG_NAME} --no-check-certificate
-          CONSOLE_PKG_NAME=polaris-console-release_${CONSOLE_VERSION}.${GOOS}.${GOARCH}.tar.gz
-          wget -T10 -t3 https://github.com/PolarisMesh/polaris-console/releases/download/${CONSOLE_VERSION}/${CONSOLE_PKG_NAME} --no-check-certificate
-          PACKAGE_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}.${GOARCH}.tar.gz
-          wget -T10 -t3 https://repo.mysql.com/mysql57-community-release-el7-11.noarch.rpm
+          POLARIS_GIT_PATH=https://github.com/andrewshan
+          DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}.${GOARCH}
+          mkdir ${DIR_NAME}
+          pushd ${DIR_NAME}
+          SERVER_PKG_NAME=polaris-server-release_${SERVER_VERSION}.${GOOS}.${GOARCH}.zip
+          wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris/releases/download/${SERVER_VERSION}/${SERVER_PKG_NAME} --no-check-certificate
+          CONSOLE_PKG_NAME=polaris-console-release_${CONSOLE_VERSION}.${GOOS}.${GOARCH}.zip
+          wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris-console/releases/download/${CONSOLE_VERSION}/${CONSOLE_PKG_NAME} --no-check-certificate
+          if [ ${GOOS} == "windows" ];then
+          wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.zip
+          wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${GOOS}-${GOARCH}.zip
+          mv ../install/install-windows.bat ./install.bat
+          mv ../install/install-windows.ps1 ./install-windows.ps1
+          mv ../install/uninstall-windows.bat ./uninstall.bat
+          mv ../install/uninstall-windows.ps1 ./uninstall-windows.ps1
+          else
           wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz
           wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${GOOS}-${GOARCH}.tar.gz
-          tar czf ${PACKAGE_NAME} *
+          mv ../install/install-${GOOS}.sh ./install.sh
+          mv ../install/uninstall-${GOOS}.sh ./uninstall.sh
+          fi
+          popd
+          PACKAGE_NAME=${DIR_NAME}.zip
+          zip -r ${PACKAGE_NAME} ${DIR_NAME}
           mv ${PACKAGE_NAME} ../
           echo ::set-output name=name::${PACKAGE_NAME}
 

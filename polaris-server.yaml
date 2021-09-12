@@ -6,14 +6,14 @@ bootstrap:
     RotationMaxSize: 500
     RotationMaxAge: 30
     RotationMaxBackups: 100
-    level: info
+    level: debug
   # 按顺序启动server
   startInOrder:
     open: true # 是否开启，默认是关闭
     key: sz # 全局锁
   # 注册为北极星服务
   polaris_service:
-    probe_address: ##DB_ADDR##
+#    probe_address: ##DB_ADDR##
     enable_register: false
     isolated: true
     services:
@@ -29,7 +29,7 @@ apiservers:
     option:
       listenIP: "0.0.0.0"
       listenPort: 8090
-      enablePprof: false # debug pprof
+      enablePprof: true # debug pprof
       connLimit:
         openConnLimit: false
         maxConnPerHost: 128
@@ -111,18 +111,23 @@ cache:
     - name: l5 # 加载l5数据
 # 存储配置
 store:
-  name: defaultStore
+# 单机文件存储插件
+  name: boltdbStore
   option:
-    master:
-      dbType: mysql
-      dbUser: ##DB_USER##
-      dbPwd: ##DB_PWD##
-      dbAddr: ##DB_ADDR##
-      dbName: ##DB_NAME##
-      maxOpenConns: -1
-      maxIdleConns: -1
-      connMaxLifetime: 300 # 单位秒
-      txIsolationLevel: 2 #LevelReadCommitted
+    path: ./polaris.bolt
+# 数据库存储插件
+#  name: defaultStore
+#  option:
+#    master:
+#      dbType: mysql
+#      dbUser: ##DB_USER##
+#      dbPwd: ##DB_PWD##
+#      dbAddr: ##DB_ADDR##
+#      dbName: ##DB_NAME##
+#      maxOpenConns: -1
+#      maxIdleConns: -1
+#      connMaxLifetime: 300 # 单位秒
+#      txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置
 plugin:
   history:
