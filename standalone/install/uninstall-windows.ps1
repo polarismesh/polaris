@@ -24,7 +24,7 @@ function uninstallPolarisServer {
     if ($exists) {
         Push-Location $polaris_server_dirname/tool
         Write-Output "start to execute polaris-server uninstall script"
-        Start-Process stop.bat -NoNewWindow -Wait
+        Start-Process -FilePath ".\\stop.bat" -NoNewWindow -Wait
         Pop-Location
         $cur_path=(Get-Location)
         Write-Output "cur path is $cur_path"
@@ -41,7 +41,7 @@ function uninstallPolarisConsole {
     if ($exists) {
         Push-Location $polaris_console_dirname/tool
         Write-Output "start to execute polaris-console uninstall script"
-        Start-Process stop.bat -NoNewWindow -Wait
+        Start-Process -FilePath ".\\stop.bat" -NoNewWindow -Wait
         Pop-Location
         Write-Output "start to remove $polaris_console_dirname"
         Remove-Item ${polaris_console_dirname} -Recurse
@@ -52,9 +52,10 @@ function uninstallPolarisConsole {
 function uninstallPrometheus {
     Write-Output "uninstall prometheus ... "
     Get-Process | ForEach-Object($_.name) {
-        if($_.name -eq "prometheus.exe"){
-            Write-Output "start to kill prometheus process $_.ID"
-            Stop-Process -Id $_.ID
+        if($_.name -eq "prometheus"){
+            $process_pid = $_.Id
+            Write-Output "start to kill prometheus process $process_pid"
+            Stop-Process -Id $process_pid -Force
         }
     }
     $prometheus_dirname =  (Get-ChildItem "prometheus*")[0].Name
@@ -68,9 +69,10 @@ function uninstallPrometheus {
 function uninstallPushGateway {
     Write-Output "uninstall pushgateway ... "
     Get-Process | ForEach-Object($_.name) {
-        if($_.name -eq "pushgateway.exe"){
-            Write-Output "start to kill pushgateway process $_.ID"
-            Stop-Process -Id $_.ID
+        if($_.name -eq "pushgateway"){
+            $process_pid = $_.Id
+            Write-Output "start to kill pushgateway process $process_pid"
+            Stop-Process -Id $process_pid -Force
         }
     }
     $pwg_dirname =  (Get-ChildItem "pushgateway*")[0].Name
