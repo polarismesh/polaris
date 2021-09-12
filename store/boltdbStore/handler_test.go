@@ -122,6 +122,14 @@ func TestBoltHandler_Service(t *testing.T) {
 	if svcValue.Name != targetSvc.Name || len(svcValue.Meta) != len(targetSvc.Meta) {
 		fmt.Printf("name not equals\n")
 	}
+	fmt.Printf("trget meta is %v\n", targetSvc.Meta)
+
+	_, _ = handler.LoadValuesByFilter("service", []string{"Meta"}, &model.Service{}, func(m map[string]interface{}) bool {
+		values := m["Meta"]
+		fmt.Printf("values are %v\n", values)
+		return true
+	})
+
 	err = handler.DeleteValues("service", []string{svcValue.ID})
 	if nil != err {
 		t.Fatal(err)

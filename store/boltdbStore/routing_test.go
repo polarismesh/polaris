@@ -178,7 +178,9 @@ func TestRoutingStore_GetRoutingConfigWithService(t *testing.T) {
 
 	rStore := &routingStore{handler: handler}
 	rc, err := rStore.GetRoutingConfigWithService("test-svc-name", "test-svc-namespace")
-
+	if err != nil {
+		t.Fatal(err)
+	}
 	fmt.Printf("get routing config with service %+v", rc)
 }
 

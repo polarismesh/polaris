@@ -17,7 +17,7 @@
 
 function uninstallPolarisServer() {
   echo -e "uninstall polaris server ... "
-  local polaris_server_dirname=$(find . -name "polaris-server-release*" | awk 'NR==1{print}')
+  local polaris_server_dirname=$(find . -name "polaris-server-release*" | grep -v "zip" | awk 'NR==1{print}')
   if [ ! -e ${polaris_server_dirname} ]; then
      echo -e "${polaris_server_dirname} not exists, skip"
      return
@@ -33,7 +33,7 @@ function uninstallPolarisServer() {
 
 function uninstallPolarisConsole() {
   echo -e "uninstall polaris console ... "
-  local polaris_console_dirname=$(find . -name "polaris-console-release*" | awk 'NR==1{print}')
+  local polaris_console_dirname=$(find . -name "polaris-console-release*" | grep -v "zip" | awk 'NR==1{print}')
   if [ ! -e ${polaris_console_dirname} ]; then
      echo -e "${polaris_console_dirname} not exists, skip"
      return

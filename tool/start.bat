@@ -49,7 +49,7 @@ if not "%SERVER_PROCESS%" equ ""  (
 )
 
 pushd %POLARIS_HOME%
-"%EXECUTABLE%" start
+start "" "%EXECUTABLE%" start
 popd
 goto end
 

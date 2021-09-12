@@ -237,11 +237,27 @@ func reflectProtoMsg(typObject interface{}, fieldName string) (proto.Message, er
 	return reflect.New(rawFieldType.Elem()).Interface().(proto.Message), nil
 }
 
+func reflectMapMsg(bucket *bolt.Bucket, bucketField string) (map[string]string, error) {
+	subBucket := bucket.Bucket([]byte(bucketField))
+	if nil == subBucket {
+		return nil, nil
+	}
+	values := make(map[string]string)
+	err := subBucket.ForEach(func(k, v []byte) error {
+		values[string(k)] = string(v)
+		return nil
+	})
+	if nil != err {
+		return nil, err
+	}
+	return values, nil
+}
+
 func getFieldObject(bucket *bolt.Bucket, typObject interface{}, field string) (interface{}, error) {
 	bucketField := toBucketField(field)
 	valueBytes := bucket.Get([]byte(bucketField))
 	if len(valueBytes) == 0 {
-		return nil, nil
+		return reflectMapMsg(bucket, bucketField)
 	}
 	typByte := valueBytes[0]
 	switch typByte {

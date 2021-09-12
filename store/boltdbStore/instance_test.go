@@ -361,6 +361,10 @@ func TestInstanceStore_GetInstancesBrief(t *testing.T) {
 	for _, instance := range m {
 		fmt.Printf("get instance from brief %+v\n", instance)
 	}
+
+	// delete services
+	sStore.DeleteService("svcid1", "", "")
+	sStore.DeleteService("svcid2", "", "")
 }
 
 func TestInstanceStore_GetInstancesCount(t *testing.T) {

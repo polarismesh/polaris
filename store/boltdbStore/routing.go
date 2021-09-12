@@ -51,6 +51,8 @@ func (r *routingStore) CreateRoutingConfig(conf *model.RoutingConfig) error {
 		return store.NewStatusError(store.EmptyParamsErr, "missing some params")
 	}
 
+	initRouting(conf)
+
 	err := r.handler.SaveValue(tblNameRouting, conf.ID, conf)
 	if err != nil {
 		log.Errorf("add routing config to kv error, %v", err)
@@ -75,6 +77,7 @@ func (r *routingStore) UpdateRoutingConfig(conf *model.RoutingConfig) error {
 	properties[routingFieldInBounds] = conf.InBounds
 	properties[routingFieldOutBounds] = conf.OutBounds
 	properties[routingFieldRevision] = conf.Revision
+	properties[routingFieldModifyTime] = time.Now()
 
 	err := r.handler.UpdateValue(tblNameRouting, conf.ID, properties)
 	if err != nil {
@@ -311,4 +314,10 @@ func getRealRouteConfList(routeConf []*model.ExtendRoutingConfig, offset, limit 
 	})
 
 	return routeConf[beginIndex:endIndex]
+}
+
+func initRouting(r *model.RoutingConfig) {
+	currTime := time.Now()
+	r.CreateTime = currTime
+	r.ModifyTime = currTime
 }
