@@ -58,6 +58,9 @@ const (
 
 // AddService save a service
 func (ss *serviceStore) AddService(s *model.Service) error {
+
+	initService(s)
+
 	if s.ID == "" || s.Name == "" || s.Namespace == "" ||
 		s.Owner == "" || s.Token == "" {
 		return store.NewStatusError(store.EmptyParamsErr, "add Service missing some params")
@@ -106,13 +109,17 @@ func (ss *serviceStore) UpdateServiceAlias(alias *model.Service, needUpdateOwner
 	}
 
 	properties := make(map[string]interface{})
-	properties[SvcFieldID] = alias.ID
 	properties[SvcFieldName] = alias.Name
 	properties[SvcFieldNamespace] = alias.Namespace
+	properties[SvcFieldDepartment] = alias.Department
+	properties[SvcFieldBusiness] = alias.Business
+	properties[SvcFieldMeta] = alias.Meta
+	properties[SvcFieldComment] = alias.Comment
+	properties[SvcFieldRevision] = alias.Revision
 	properties[SvcFieldToken] = alias.Token
 	properties[SvcFieldOwner] = alias.Owner
-	properties[SvcFieldRevision] = alias.Revision
 	properties[SvcFieldReference] = alias.Reference
+	properties[SvcFieldModifyTime] = time.Now()
 
 	err := ss.handler.UpdateValue(tblNameService, alias.ID, properties)
 
@@ -127,12 +134,17 @@ func (ss *serviceStore) UpdateService(service *model.Service, needUpdateOwner bo
 	}
 
 	properties := make(map[string]interface{})
-	properties[SvcFieldID] = service.ID
-	properties[svcFieldName] = service.Name
-	properties[svcFieldNamespace] = service.Namespace
+
+	properties[SvcFieldName] = service.Name
+	properties[SvcFieldNamespace] = service.Namespace
+	properties[SvcFieldDepartment] = service.Department
+	properties[SvcFieldBusiness] = service.Business
+	properties[SvcFieldMeta] = service.Meta
+	properties[SvcFieldComment] = service.Comment
+	properties[SvcFieldRevision] = service.Revision
 	properties[SvcFieldToken] = service.Token
 	properties[SvcFieldOwner] = service.Owner
-	properties[SvcFieldRevision] = service.Revision
+	properties[SvcFieldModifyTime] = time.Now()
 
 	err := ss.handler.UpdateValue(tblNameService, service.ID, properties)
 
@@ -149,6 +161,7 @@ func (ss *serviceStore) UpdateServiceToken(serviceID string, token string, revis
 	properties := make(map[string]interface{})
 	properties[SvcFieldToken] = token
 	properties[SvcFieldRevision] = revision
+	properties[SvcFieldModifyTime] = time.Now()
 
 	err := ss.handler.UpdateValue(tblNameService, serviceID, properties)
 
@@ -177,12 +190,8 @@ func (ss *serviceStore) GetSourceServiceToken(name string, namespace string) (*m
 // GetService get service details based on service name and namespace
 func (ss *serviceStore) GetService(name string, namespace string) (*model.Service, error) {
 	s, err := ss.getServiceByNameAndNs(name, namespace)
-
 	if err != nil {
 		return nil, err
-	}
-	if s != nil && !s.Valid {
-		return nil, nil
 	}
 	return s, nil
 }
@@ -192,9 +201,6 @@ func (ss *serviceStore) GetServiceByID(id string) (*model.Service, error) {
 	service, err := ss.getServiceByID(id)
 	if err != nil {
 		return nil, err
-	}
-	if service != nil && !service.Valid {
-		return nil, nil
 	}
 
 	return service, nil
@@ -500,7 +506,6 @@ func (ss *serviceStore) getServiceByNameAndNs(name string, namespace string) (*m
 }
 
 func (ss *serviceStore) getServiceByID(id string) (*model.Service, error) {
-	var out *model.Service
 
 	fields := []string{SvcFieldID}
 
@@ -510,10 +515,10 @@ func (ss *serviceStore) getServiceByID(id string) (*model.Service, error) {
 			if !ok {
 				return false
 			}
-			if svcId.(string) == id {
-				return true
+			if svcId.(string) != id {
+				return false
 			}
-			return false
+			return true
 		})
 	if err != nil {
 		return nil, err
@@ -524,12 +529,7 @@ func (ss *serviceStore) getServiceByID(id string) (*model.Service, error) {
 		return nil, MultipleSvcFound
 	}
 
-	// should only find one service
-	for _, v := range svc {
-		out = v.(*model.Service)
-	}
-
-	return out, err
+	return svc[id].(*model.Service), err
 }
 
 func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]string,
@@ -597,9 +597,26 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 		fields = append(fields, SvcFieldID)
 	}
 
+	isKeys := true
+	isValues := true
+	var keys string
+	var values string
+
+	if len(serviceMetas) == 0 {
+		isKeys = false
+		isValues = false
+	} else {
+		for k, v := range serviceMetas {
+			keys = k
+			values = v
+			if values == "" {
+				isValues = false
+			}
+			break
+		}
+	}
+
 	name, isName := serviceFilters["name"]
-	keys, isKeys := serviceFilters["keys"]
-	values, isValues := serviceFilters["values"]
 	department, isDepartment := serviceFilters["department"]
 	business, isBusiness := serviceFilters["business"]
 
@@ -706,4 +723,12 @@ func getRealServicesList(originServices map[string]interface{}, offset, limit ui
 	})
 
 	return services[beginIndex:endIndex]
+}
+
+func initService(s *model.Service) {
+	current := time.Now()
+	if s != nil {
+		s.CreateTime = current
+		s.ModifyTime = current
+	}
 }

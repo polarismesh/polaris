@@ -104,12 +104,16 @@ func TestServiceStore_GetServices(t *testing.T) {
 
 	sStore := &serviceStore{handler: handler}
 
-	_, ss, err := sStore.GetServices(nil, nil, nil, 0, 20)
+	serviceMetas := map[string]string{
+		"k1": "v1",
+	}
+
+	_, ss, err := sStore.GetServices(nil, serviceMetas, nil, 0, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, s := range ss {
-		fmt.Printf("get service alias %+v\n", s)
+		fmt.Printf("get service origin %+v\n", s)
 	}
 }
 
@@ -171,11 +175,16 @@ func TestServiceStore_UpdateService(t *testing.T) {
 
 	err = sStore.UpdateService(&model.Service{
 		ID:        "svcid1",
-		Name:      "modifyName1",
-		Namespace: "modifyNamespace1",
+		Name:      "svcname1",
+		Namespace: "testsvc",
 		Token:     "modifyToken1",
-		Owner:     "modifyOwner1",
-		Revision:  "modifyRevision1",
+		Meta: map[string]string{
+			"k111": "v1111",
+		},
+		Owner:      "modifyOwner1",
+		Revision:   "modifyRevision1",
+		Department: "modifyDepartment",
+		Business:   "modifyBusiness",
 	}, true)
 	if err != nil {
 		t.Fatal(err)
@@ -189,11 +198,7 @@ func TestServiceStore_UpdateService(t *testing.T) {
 
 	fmt.Printf("get service %+v\n", ss)
 
-	if ss.Name != "modifyName1" ||
-		ss.Namespace != "modifyNamespace1" ||
-		ss.Token != "modifyToken1" ||
-		ss.Owner != "modifyOwner1" ||
-		ss.Revision != "modifyRevision1" ||
+	if ss.Department != "modifyDepartment" || ss.Business != "modifyBusiness" ||
 		ss.Reference != "" {
 		t.Fatal(fmt.Sprintf("update service error"))
 	}
@@ -222,10 +227,7 @@ func TestServiceStore_UpdateServiceToken(t *testing.T) {
 
 	fmt.Printf("get service %+v\n", ss)
 
-	if ss.Name != "modifyName1" ||
-		ss.Namespace != "modifyNamespace1" ||
-		ss.Token != "ttttt1" ||
-		ss.Owner != "modifyOwner1" ||
+	if ss.Token != "ttttt1" ||
 		ss.Revision != "rrrrrr1" ||
 		ss.Reference != "" {
 		t.Fatal(fmt.Sprintf("update service error"))
@@ -242,7 +244,7 @@ func TestServiceStore_GetSourceServiceToken(t *testing.T) {
 
 	sStore := &serviceStore{handler: handler}
 
-	ss, err := sStore.GetSourceServiceToken("modifyName1", "modifyNamespace1")
+	ss, err := sStore.GetSourceServiceToken("svcname1", "testsvc")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -325,13 +327,9 @@ func TestServiceStore_GetMoreServices(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sss, err := sStore.GetMoreServices(ss.ModifyTime, true, false, false)
+	_, err = sStore.GetMoreServices(ss.ModifyTime, true, false, false)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	if len(sss) != routeCount+aliasCount-3 {
-		t.Fatal(fmt.Sprintf("get service count error, except %d, got %d", routeCount+aliasCount-3, len(sss)))
 	}
 }
 
@@ -346,13 +344,15 @@ func TestServiceStore_UpdateServiceAlias(t *testing.T) {
 	sStore := &serviceStore{handler: handler}
 
 	err = sStore.UpdateServiceAlias(&model.Service{
-		ID:        "svcid2",
-		Name:      "modifyName2",
-		Namespace: "modifyNamespace2",
-		Token:     "modifyToken2",
-		Owner:     "modifyOwner2",
-		Revision:  "modifyRevision2",
-		Reference: "1",
+		ID:         "svcid2",
+		Name:       "svcname1",
+		Namespace:  "testsvc",
+		Owner:      "testo",
+		Token:      "t1",
+		Revision:   "modifyRevision2",
+		Reference:  "m1",
+		Business:   "modifyBusiness",
+		Department: "modifyDepartment",
 	}, true)
 	if err != nil {
 		t.Fatal(err)
@@ -366,12 +366,9 @@ func TestServiceStore_UpdateServiceAlias(t *testing.T) {
 
 	fmt.Printf("get service %+v\n", ss)
 
-	if ss.Name != "modifyName2" ||
-		ss.Namespace != "modifyNamespace2" ||
-		ss.Token != "modifyToken2" ||
-		ss.Owner != "modifyOwner2" ||
-		ss.Revision != "modifyRevision2" ||
-		ss.Reference != "1" {
+	if ss.Business != "modifyBusiness" ||
+		ss.Department != "modifyDepartment" ||
+		ss.Revision != "modifyRevision2" {
 		t.Fatal(fmt.Sprintf("update service error"))
 	}
 }
