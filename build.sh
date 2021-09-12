@@ -37,4 +37,10 @@ mv ${bin_name} ${folder_name}
 cp polaris-server.yaml ${folder_name}
 cp -r tool ${folder_name}/
 zip -r "${pkg_name}" ${folder_name}
-md5sum ${pkg_name} > "${pkg_name}.md5sum"
+#md5sum ${pkg_name} > "${pkg_name}.md5sum"
+
+if [[ $(uname -a | grep "Darwin" | wc -l) -eq 1 ]]; then
+  md5 ${pkg_name} >"${pkg_name}.md5sum"
+else
+  md5sum ${pkg_name} >"${pkg_name}.md5sum"
+fi
