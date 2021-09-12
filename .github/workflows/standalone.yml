@@ -16,8 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [linux, windows]
+        goos: [linux, windows, darwin]
         goarch: [amd64, 386]
+        exclude:
+          - goos: darwin
+            goarch: 386
 
     steps:
       - name: Checkout code
