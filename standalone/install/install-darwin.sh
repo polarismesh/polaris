@@ -24,16 +24,17 @@ function installPolarisServer() {
   fi
 
   local polaris_server_tarname=$(find . -name "polaris-server-release*.zip")
-  local polaris_server_dirname=$(basename ${polaris_server_tarname} .tar.gz)
+  local polaris_server_dirname=$(basename ${polaris_server_tarname} .zip)
   if [ ! -e $polaris_server_dirname ]; then
-    unzip -l $polaris_server_tarname
+    unzip $polaris_server_tarname
   else
     echo -e "polaris-server-release.tar.gz has been decompressed, skip."
   fi
 
+  cd ${polaris_server_dirname} || (echo "no such directory ${polaris_server_dirname}"; exit 1)
   /bin/bash ./tool/start.sh
   echo -e "install polaris server finish."
-  cd $install_path
+  cd ${install_path} || (echo "no such directory ${install_path}"; exit 1)
 }
 
 function installPolarisConsole() {
@@ -51,17 +52,17 @@ function installPolarisConsole() {
   fi
 
   local polaris_console_tarname=$(find . -name "polaris-console-release*.zip")
-  local polaris_console_dirname=$(basename ${polaris_console_tarname} .tar.gz)
+  local polaris_console_dirname=$(basename ${polaris_console_tarname} .zip)
   if [ ! -e $polaris_console_dirname ]; then
-    unzip -l $polaris_console_tarname
+    unzip $polaris_console_tarname
   else
     echo -e "polaris-console-release.tar.gz has been decompressed, skip."
   fi
 
-  cd $polaris_console_dirname
+  cd ${polaris_console_dirname} || (echo "no such directory ${polaris_console_dirname}"; exit 1)
   /bin/bash ./tool/start.sh
   echo -e "install polaris console finish."
-  cd $install_path
+  cd ${install_path} || (echo "no such directory ${install_path}"; exit 1)
 }
 
 function installPrometheus() {
@@ -96,7 +97,7 @@ function installPrometheus() {
   nohup ./prometheus --web.enable-lifecycle --web.enable-admin-api >>prometheus.out 2>&1 &
 
   echo "install prometheus success."
-  cd $install_path
+  cd ${install_path} || (echo "no such directory ${install_path}"; exit 1)
 }
 
 function installPushGateway() {
@@ -123,7 +124,7 @@ function installPushGateway() {
   nohup ./pushgateway --web.enable-lifecycle --web.enable-admin-api >>pgw.out 2>&1 &
 
   echo "install pushgateway success."
-  cd $install_path
+  cd ${install_path} || (echo "no such directory ${install_path}"; exit 1)
 }
 
 function checkPort() {
