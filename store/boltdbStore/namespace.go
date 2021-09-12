@@ -32,6 +32,47 @@ type namespaceStore struct {
 	handler BoltHandler
 }
 
+const (
+	defaultNamespace = "default"
+	polarisNamespace = "Polaris"
+)
+
+var (
+	namespaceToToken = map[string]string {
+		defaultNamespace: "e2e473081d3d4306b52264e49f7ce227",
+		polarisNamespace: "2d1bfe5d12e04d54b8ee69e62494c7fd",
+	}
+	namespaceToComment = map[string]string {
+		defaultNamespace: "Default Environment",
+		polarisNamespace: "Polaris-server",
+	}
+)
+
+func (n *namespaceStore) InitData() error {
+	namespaces := []string{defaultNamespace, polarisNamespace}
+	for _, namespace := range namespaces {
+		ns, err := n.GetNamespace(defaultNamespace)
+		if nil != err {
+			return err
+		}
+		if nil == ns {
+			err = n.AddNamespace(&model.Namespace{
+				Name:       namespace,
+				Comment:    namespaceToComment[namespace],
+				Token:      namespaceToToken[namespace],
+				Owner:      "polaris",
+				Valid:      true,
+				CreateTime: time.Now(),
+				ModifyTime: time.Now(),
+			})
+			if nil != err {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // AddNamespace 保存一个命名空间
 func (n *namespaceStore) AddNamespace(namespace *model.Namespace) error {
 	if namespace.Name == "" || namespace.Owner == "" || namespace.Token == "" {
