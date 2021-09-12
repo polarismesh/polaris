@@ -51,7 +51,7 @@ var (
 func (n *namespaceStore) InitData() error {
 	namespaces := []string{defaultNamespace, polarisNamespace}
 	for _, namespace := range namespaces {
-		ns, err := n.GetNamespace(defaultNamespace)
+		ns, err := n.GetNamespace(namespace)
 		if nil != err {
 			return err
 		}
