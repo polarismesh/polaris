@@ -28,6 +28,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/naming"
 	"github.com/polarismesh/polaris-server/store"
 )
 
@@ -47,6 +48,26 @@ type circuitBreakerStore struct {
 // CreateCircuitBreaker 新增熔断规则
 func (c *circuitBreakerStore) CreateCircuitBreaker(cb *model.CircuitBreaker) error {
 	dbOp := c.handler
+
+	//err := dbOp.ExecuteHandler(true, func(tx *HandlerTx) error {
+	//	key := c.buildKey(cb.ID, cb.Version)
+	//
+	//	result, err := tx.LoadValue(tblCircuitBreaker, []string{key}, &model.CircuitBreaker{})
+	//	if err != nil {
+	//		return err
+	//	}
+	//
+	//	if len(result) != 0 {
+	//		return store.NewStatusError(store.DuplicateEntryErr, fmt.Sprintf("exist CircuitBreaker(id=%s)", key))
+	//	}
+	//
+	//	return tx.SaveValue(tblCircuitBreaker, key, cb)
+	//})
+	//if err != nil {
+	//	log.Errorf("[Store][circuitBreaker] create circuit breaker(%s, %s, %s) err: %s",
+	//		cb.ID, cb.Name, cb.Version, err.Error())
+	//	return store.Error(err)
+	//}
 
 	if err := dbOp.SaveValue(tblCircuitBreaker, c.buildKey(cb.ID, cb.Version), cb); err != nil {
 		log.Errorf("[Store][circuitBreaker] create circuit breaker(%s, %s, %s) err: %s",
@@ -70,15 +91,20 @@ func (c *circuitBreakerStore) TagCircuitBreaker(cb *model.CircuitBreaker) error 
 
 // tagCircuitBreaker
 func (c *circuitBreakerStore) tagCircuitBreaker(cb *model.CircuitBreaker) error {
-	// first : Ensure that the master rule exists
 
 	dbOp := c.handler
 	key := c.buildKey(cb.ID, cb.Version)
 
-	_, err := c.GetCircuitBreaker(cb.ID, VersionForMaster)
+	// first : Ensure that the master rule exists
+	result, err := c.GetCircuitBreaker(cb.ID, VersionForMaster)
 	if err != nil {
 		log.Errorf("[Store][CircuitBreaker] get tag rule id(%s) version(%s) err : %s", cb.ID, VersionForMaster, err.Error())
 		return store.Error(err)
+	}
+
+	if result == nil {
+		return store.NewStatusError(store.NotFoundCircuitBreaker, fmt.Sprintf("not exist for CircuitBreaker(id=%s, " +
+			"version=%s)", key, VersionForMaster))
 	}
 
 	tNow := time.Now()
@@ -191,8 +217,14 @@ func (c *circuitBreakerStore) GetCircuitBreaker(id, version string) (*model.Circ
 		return nil, store.Error(err)
 	}
 
-	if len(result) != 1 {
-		return nil, store.NewStatusError(store.NotFoundMasterConfig, "not found tag config")
+	if len(result) > 1 {
+		return nil, fmt.Errorf("[Store][CircuitBreaker] rule(id=%s, version=%s) expect get one, " +
+			"but actual more then one, impossible",
+			id, version)
+	}
+
+	if len(result) == 0 {
+		return nil, nil
 	}
 	return result[cbKey].(*model.CircuitBreaker), nil
 }
@@ -234,24 +266,16 @@ func (c *circuitBreakerStore) GetCircuitBreakerRelation(
 	dbOp := c.handler
 
 	// first: get rule_id => service_ids
-	serviceIds, err := c.getRuleToServiceMap(ruleID)
+	serviceIds, err := c.getServiceIDS(ruleID)
 	if err != nil {
 		log.Errorf("[Store][CircuitBreaker] get rule_id(%s) links service_ids err : %s", ruleID, err.Error())
 		return nil, store.Error(err)
 	}
 
-	// second: get uniq keys
-	ids := make([]string, len(serviceIds))
-	pos := 0
-	for serviceId := range serviceIds {
-		ids[pos] = serviceId
-		pos++
-	}
-
-	// third: batch get relation records
+	// second: batch get relation records
 	relations := make([]*model.CircuitBreakerRelation, 0)
 
-	results, err := dbOp.LoadValues(tblCircuitBreakerRelation, ids, &model.CircuitBreakerRelation{})
+	results, err := dbOp.LoadValues(tblCircuitBreakerRelation, serviceIds, &model.CircuitBreakerRelation{})
 	if err != nil {
 		log.Errorf("[Store][CircuitBreaker] get rule_id(%s) relations err : %s", ruleID, err.Error())
 		return nil, store.Error(err)
@@ -337,7 +361,7 @@ func (c *circuitBreakerStore) ListMasterCircuitBreakers(
 		return nil, store.Error(err)
 	}
 
-	// 内存中进行排序分页
+	// sort paging in memory
 	cbSlice := make([]*model.CircuitBreakerInfo, 0)
 	for _, v := range results {
 		record := v.(*model.CircuitBreaker)
@@ -350,6 +374,12 @@ func (c *circuitBreakerStore) ListMasterCircuitBreakers(
 		return a.CircuitBreaker.ModifyTime.Before(b.CircuitBreaker.ModifyTime)
 	})
 
+	// if offset >= len(results), we return all record to client
+	if offset >= uint32(len(results)) {
+		offset = 0
+		limit = math.MaxUint32
+	}
+
 	out := &model.CircuitBreakerDetail{
 		Total:               uint32(len(results)),
 		CircuitBreakerInfos: cbSlice[offset:int(math.Min(float64(offset+limit), float64(len(results))))],
@@ -358,12 +388,22 @@ func (c *circuitBreakerStore) ListMasterCircuitBreakers(
 	return out, nil
 }
 
-// 获取已发布规则
+// ListReleaseCircuitBreakers 获取已发布规则
 func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 	filters map[string]string, offset, limit uint32) (*model.CircuitBreakerDetail, error) {
 
-	// 内存中进行分页
 	dbOp := c.handler
+
+	// converted key : rule_id => id, rule_version => version
+	if ruleID, ok := filters["rule_id"]; ok {
+		filters[naming.ID] = ruleID
+		delete(filters, "rule_id")
+	}
+
+	if ruleVersion, ok := filters["rule_version"]; ok {
+		filters[naming.Version] = ruleVersion
+		delete(filters, "rule_version")
+	}
 
 	results, err := dbOp.LoadValuesByFilter(tblCircuitBreaker, utils.CollectFilterFields(filters), &model.CircuitBreaker{}, func(m map[string]interface{}) bool {
 		for k, v := range filters {
@@ -378,7 +418,6 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 		return nil, store.Error(err)
 	}
 
-	// 内存中进行排序分页
 	cbSlice := make([]*model.CircuitBreakerInfo, 0)
 	for _, v := range results {
 		record := v.(*model.CircuitBreaker)
@@ -391,6 +430,11 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 		return a.CircuitBreaker.ModifyTime.Before(b.CircuitBreaker.ModifyTime)
 	})
 
+	if offset >= uint32(len(cbSlice)) {
+		offset = 0
+		limit = math.MaxUint32
+	}
+
 	out := &model.CircuitBreakerDetail{
 		Total:               uint32(len(results)),
 		CircuitBreakerInfos: cbSlice[offset:int(math.Min(float64(offset+limit), float64(len(results))))],
@@ -399,7 +443,7 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 	return out, nil
 }
 
-// 根据服务获取熔断规则
+// GetCircuitBreakersByService 根据服务获取熔断规则
 func (c *circuitBreakerStore) GetCircuitBreakersByService(
 	name string, namespace string) (*model.CircuitBreaker, error) {
 
@@ -414,11 +458,20 @@ func (c *circuitBreakerStore) GetCircuitBreakersByService(
 		return nil, store.Error(err)
 	}
 
+	if service == nil {
+		return nil, store.NewStatusError(store.NotFoundService, fmt.Sprintf("service(namespace=%s, name=%s)", name, namespace))
+	}
+
 	serviceId := service.ID
 
 	relation, err := c.getCircuitBreakerRelationByServiceId(serviceId)
 	if err != nil {
 		return nil, store.Error(err)
+	}
+
+	if relation == nil {
+		log.Warnf("[Store][CircuitBreaker] get release(service-id=%s) not found", serviceId)
+		return nil, nil
 	}
 
 	return c.GetCircuitBreaker(relation.RuleID, relation.RuleVersion)
@@ -434,7 +487,7 @@ func (c *circuitBreakerStore) getCircuitBreakerRelationByServiceId(serviceID str
 	}
 
 	if len(result) == 0 {
-		return nil, fmt.Errorf("[Store][CircuitBreaker] relation(service_id=%s) not found", serviceID)
+		return nil, nil
 	}
 
 	if len(result) != 1 {
@@ -444,11 +497,10 @@ func (c *circuitBreakerStore) getCircuitBreakerRelationByServiceId(serviceID str
 	return result[serviceID].(*model.CircuitBreakerRelation), nil
 }
 
-func (c *circuitBreakerStore) getRuleToServiceMap(ruleID string) (map[string]struct{}, error) {
+func (c *circuitBreakerStore) getServiceIDS(ruleID string) ([]string, error) {
 
 	dbOp := c.handler
 
-	mapKey := c.buildMapKey(ruleID)
 	result, err := dbOp.LoadValuesByFilter(tblCircuitBreakerRelation, []string{"RuleID"}, &model.CircuitBreaker{}, func(m map[string]interface{}) bool {
 		id := m["RuleID"].(string)
 		return strings.Compare(id, ruleID) == 0
@@ -458,13 +510,18 @@ func (c *circuitBreakerStore) getRuleToServiceMap(ruleID string) (map[string]str
 		return nil, store.Error(err)
 	}
 
-	if len(result) != 1 {
-		return nil, store.NewStatusError(store.NotFoundMasterConfig, "not found tag config")
+	if len(result) == 0 {
+		return nil, nil
 	}
 
-	ruleSerMap := result[mapKey].(map[string]struct{})
+	ids := make([]string, len(result))
+	pos := 0
+	for serviceId := range result {
+		ids[pos] = serviceId
+		pos++
+	}
 
-	return ruleSerMap, nil
+	return ids, nil
 }
 
 func (c *circuitBreakerStore) buildKey(id, version string) string {
