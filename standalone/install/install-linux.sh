@@ -26,7 +26,7 @@ function installPolarisServer() {
   local polaris_server_pkg_num=$(find . -name "polaris-server-release*.zip" | wc -l)
   if [ ${polaris_server_pkg_num} != 1 ]; then
     echo -e "number of polaris server package not equals to 1, exit"
-    exit -1
+    exit 1
   fi
   
   local target_polaris_server_pkg=$(find . -name "polaris-server-release*.zip")
@@ -55,7 +55,7 @@ function installPolarisConsole() {
   local polaris_console_pkg_num=$(find . -name "polaris-console-release*.zip" | wc -l)
   if [ ${polaris_console_pkg_num} != 1 ]; then
     echo -e "number of polaris console package not equals to 1, exit"
-    exit -1
+    exit 1
   fi
 
   local target_polaris_console_pkg=$(find . -name "polaris-console-release*.zip")
@@ -85,7 +85,7 @@ function installPrometheus() {
   local prometheus_pkg_num=$(find . -name "prometheus-*.tar.gz" | wc -l)
   if [ ${polaris_console_pkg_num} != 1 ]; then
     echo -e "number of prometheus package not equals to 1, exit"
-    exit -1
+    exit 1
   fi
 
   local target_prometheus_pkg=$(find . -name "prometheus-*.tar.gz")
@@ -119,7 +119,7 @@ function installPushGateway() {
   local pgw_pkg_num=$(find . -name "pushgateway-*.tar.gz" | wc -l)
   if [ $pgw_pkg_num != 1 ]; then
     echo -e "number of pushgateway package not equals to 1, exit"
-    exit -1
+    exit 1
   fi
 
   local target_pgw_pkg=$(find . -name "pushgateway-*.tar.gz")
@@ -145,7 +145,7 @@ function checkPort() {
     if [ "${pid}" != "" ];
     then
       echo "port ${port} has been used, exit"
-      exit -1
+      exit 1
     fi
    done
 }
