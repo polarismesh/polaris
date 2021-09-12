@@ -36,10 +36,10 @@ function installPolarisServer() {
     echo -e "${polaris_server_dirname} has exists, now remove it"
     rm -rf ${polaris_server_dirname}
   fi
-  unzip -l ${target_polaris_server_pkg}
+  unzip ${target_polaris_server_pkg}
 
   pushd ${polaris_server_dirname}
-  /bin/bash ./tool/install.sh
+  /bin/bash ./tool/start.sh
   echo -e "install polaris server success"
   popd
 }
@@ -65,7 +65,7 @@ function installPolarisConsole() {
     echo -e "${polaris_console_dirname} has exists, now remove it"
     rm -rf ${polaris_console_dirname}
   fi
-  unzip -l ${target_polaris_console_pkg}
+  unzip ${target_polaris_console_pkg}
 
   pushd ${polaris_console_dirname}
   /bin/bash ./tool/start.sh
@@ -83,7 +83,7 @@ function installPrometheus() {
   fi
 
   local prometheus_pkg_num=$(find . -name "prometheus-*.tar.gz" | wc -l)
-  if [ ${polaris_console_pkg_num} != 1 ]; then
+  if [ ${prometheus_pkg_num} != 1 ]; then
     echo -e "number of prometheus package not equals to 1, exit"
     exit 1
   fi
@@ -95,7 +95,7 @@ function installPrometheus() {
     echo -e "${prometheus_dirname} has exists, now remove it"
     rm -rf ${prometheus_dirname}
   fi
-  tar -xf ${target_prometheus}
+  tar -xf ${target_prometheus_pkg}
 
   pushd ${prometheus_dirname}
   echo "" >> prometheus.yml
