@@ -25,6 +25,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -44,6 +46,7 @@ const (
 // AddInstance add an instance
 func (i *instanceStore) AddInstance(instance *model.Instance) error {
 
+	initInstance([]*model.Instance{instance})
 	// Before adding new data, you must clean up the old data
 	if err := i.handler.DeleteValues(tblNameInstance, []string{instance.ID()}); err != nil {
 		log.Errorf("[Store][boltdb] delete instance to kv error, %v", err)
@@ -76,6 +79,7 @@ func (i *instanceStore) BatchAddInstances(instances []*model.Instance) error {
 		return err
 	}
 
+	initInstance(instances)
 	for _, instance := range instances {
 		if err := i.handler.SaveValue(tblNameInstance, instance.ID(), instance); err != nil {
 			log.Errorf("[Store][boltdb] save instance to kv error, %v", err)
@@ -91,6 +95,9 @@ func (i *instanceStore) UpdateInstance(instance *model.Instance) error {
 
 	properties := make(map[string]interface{})
 	properties[insFieldProto] = instance.Proto
+	curr := time.Now()
+	properties[insFieldModifyTime] = curr
+	instance.Proto.Mtime = &wrappers.StringValue{Value: curr.Format("2006-01-02 15:04:05")}
 
 	if err := i.handler.UpdateValue(tblNameInstance, instance.ID(), properties); err != nil {
 		log.Errorf("[Store][boltdb] update instance to kv error, %v", err)
@@ -320,11 +327,28 @@ func (i *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*mo
 // GetExpandInstances View instance details and corresponding number according to filter conditions
 func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 	offset uint32, limit uint32) (uint32, []*model.Instance, error) {
+
+	log.Infof("get GetExpandInstances request %+v", filter)
+
 	if limit == 0 {
 		return 0, make([]*model.Instance, 0), nil
 	}
 
-	fields := []string{insFieldProto}
+	// find service
+	name, isServiceName := filter["name"]
+	namespace, isNamespace := filter["namespace"]
+
+	if isServiceName && isNamespace {
+		sStore := serviceStore{handler: i.handler}
+		svc, err := sStore.getServiceByNameAndNs(name, namespace)
+		if err != nil {
+			log.Errorf("[Store][boltdb] find service error, %v", err)
+			return 0, nil, err
+		}
+		filter["serviceID"] = svc.ID
+	}
+
+	fields := []string{insFieldProto, insFieldServiceID}
 
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
@@ -333,21 +357,14 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 				return false
 			}
 			ins := insProto.(*api.Instance)
-			namespace, isNamespace := filter["namespace"]
-			service, isService := filter["service"]
 			host, isHost := filter["host"]
 			port, isPort := filter["port"]
 			protocol, isProtocol := filter["protocol"]
 			version, isVersion := filter["version"]
-			healthy, isHealthy := filter["healthy"]
+			healthy, isHealthy := filter["health_status"]
 			isolate, isIsolate := filter["isolate"]
+			svcID, isSvcID := filter["serviceID"]
 
-			if isNamespace && namespace != ins.GetNamespace().GetValue() {
-				return false
-			}
-			if isService && service != ins.GetService().GetValue() {
-				return false
-			}
 			if isHost && host != ins.GetHost().GetValue() {
 				return false
 			}
@@ -360,11 +377,20 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 			if isVersion && version != ins.GetVersion().GetValue() {
 				return false
 			}
-			if isHealthy && healthy != strconv.FormatBool(ins.GetHealthy().GetValue()) {
+			if isHealthy && compareParam2BoolNotEqual(healthy, ins.GetHealthy().GetValue()) {
 				return false
 			}
-			if isIsolate && isolate != strconv.FormatBool(ins.GetIsolate().GetValue()) {
+			if isIsolate && compareParam2BoolNotEqual(isolate, ins.GetIsolate().GetValue()) {
 				return false
+			}
+			if isSvcID {
+				sID, ok := m["ServiceID"]
+				if !ok {
+					return false
+				}
+				if sID != svcID {
+					return false
+				}
 			}
 			// filter metadata
 			if len(metaFilter) > 0 {
@@ -487,6 +513,10 @@ func (i *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, rev
 
 	properties := make(map[string]interface{})
 	properties[insFieldProto] = ins.Proto
+	curr := time.Now()
+	properties[insFieldModifyTime] = curr
+	ins.Proto.Mtime = &wrappers.StringValue{Value: curr.Format("2006-01-02 15:04:05")}
+
 	err = i.handler.UpdateValue(tblNameInstance, instanceID, properties)
 	if err != nil {
 		log.Errorf("[Store][boltdb] update instance error %v", err)
@@ -545,6 +575,9 @@ func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, 
 
 		properties := make(map[string]interface{})
 		properties[insFieldProto] = instance
+		curr := time.Now()
+		properties[insFieldModifyTime] = curr
+		instance.Mtime = &wrappers.StringValue{Value: curr.Format("2006-01-02 15:04:05")}
 		err = i.handler.UpdateValue(tblNameInstance, id, properties)
 		if err != nil {
 			log.Errorf("[Store][boltdb] update instance in set instance isolate error, %v", err)
@@ -599,4 +632,38 @@ func getRealInstancesList(originServices map[string]interface{}, offset, limit u
 	})
 
 	return instances[beginIndex:endIndex]
+}
+
+func initInstance(instance []*model.Instance) {
+
+	if len(instance) == 0 {
+		return
+	}
+
+	for _, ins := range instance {
+		if ins != nil {
+			currT := time.Now()
+			timeStamp := currT.Format("2006-01-02 15:04:05")
+			if ins.Proto != nil {
+
+				if ins.Proto.GetMtime().GetValue() == "" {
+					ins.Proto.Mtime = &wrappers.StringValue{Value: timeStamp}
+				}
+				if ins.Proto.GetCtime().GetValue() == "" {
+					ins.Proto.Ctime = &wrappers.StringValue{Value: timeStamp}
+				}
+			}
+			ins.ModifyTime = currT
+		}
+	}
+}
+
+func compareParam2BoolNotEqual(param string, b bool) bool {
+	if param == "0" && b == false {
+		return false
+	}
+	if param == "1" && b == true {
+		return false
+	}
+	return true
 }
