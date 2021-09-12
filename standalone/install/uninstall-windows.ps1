@@ -24,8 +24,10 @@ function uninstallPolarisServer {
     if ($exists) {
         Push-Location $polaris_server_dirname/tool
         Write-Output "start to execute polaris-server uninstall script"
-        Start-Process stop.bat
+        Start-Process stop.bat -NoNewWindow -Wait
         Pop-Location
+        $cur_path=(Get-Location)
+        Write-Output "cur path is $cur_path"
         Write-Output "start to remove $polaris_server_dirname"
         Remove-Item ".\\${polaris_server_dirname}" -Recurse
     }
@@ -39,7 +41,7 @@ function uninstallPolarisConsole {
     if ($exists) {
         Push-Location $polaris_console_dirname/tool
         Write-Output "start to execute polaris-console uninstall script"
-        Start-Process stop.bat
+        Start-Process stop.bat -NoNewWindow -Wait
         Pop-Location
         Write-Output "start to remove $polaris_console_dirname"
         Remove-Item ${polaris_console_dirname} -Recurse
