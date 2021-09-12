@@ -181,9 +181,7 @@ func (ss *serviceStore) GetService(name string, namespace string) (*model.Servic
 	if err != nil {
 		return nil, err
 	}
-	if s != nil && !s.Valid {
-		return nil, nil
-	}
+
 	return s, nil
 }
 
