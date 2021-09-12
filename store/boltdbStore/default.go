@@ -74,7 +74,9 @@ func (m *boltStore) newStore() error {
 	}
 
 	m.namespaceStore = &namespaceStore{handler: m.handler}
-
+	if err := m.namespaceStore.InitData(); nil != err {
+		return err
+	}
 	m.businessStore = &businessStore{handler: m.handler}
 
 	m.serviceStore = &serviceStore{handler: m.handler}
