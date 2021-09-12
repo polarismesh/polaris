@@ -15,7 +15,7 @@
 
 function uninstallPolarisServer {
     Write-Output "uninstall polaris server ... "
-    $polaris_server_dirname =  (Get-ChildItem "polaris-server-release*").Name[0]
+    $polaris_server_dirname =  (Get-ChildItem "polaris-server-release*")[0].Name
     if (not Test-Path $polaris_server_dirname) {
         Write-Output "$polaris_server_dirname not exists, skip"
         return
@@ -31,7 +31,7 @@ function uninstallPolarisServer {
 
 function uninstallPolarisConsole {
     Write-Output "uninstall polaris console ... "
-    $polaris_console_dirname =  (Get-ChildItem "polaris-console-release*").Name[0]
+    $polaris_console_dirname =  (Get-ChildItem "polaris-console-release*")[0].Name
     if (not Test-Path $polaris_console_dirname) {
         Write-Output "$polaris_console_dirname not exists, skip"
         return

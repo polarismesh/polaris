@@ -13,6 +13,8 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+$ErrorActionPreference = "Stop"
+
 function installPolarisServer() {
     Write-Output "install polaris server ... "
     $polaris_server_num = (Get-Process | findstr "polaris-server" | Measure-Object -Line).Lines
@@ -25,13 +27,13 @@ function installPolarisServer() {
         Write-Output "number of polaris server package not equals to 1, exit"
         exit -1
     }
-    $target_polaris_server_pkg =  (Get-ChildItem "polaris-server-release*.zip").Name[0]
+    $target_polaris_server_pkg = (Get-ChildItem "polaris-server-release*.zip")[0].Name
     $polaris_server_dirname = ([io.fileinfo]$target_polaris_server_pkg).basename
     if (Test-Path $polaris_server_dirname) {
         Write-Output "$polaris_server_dirname has exists, now remove it"
         Remove-Item $polaris_server_dirname -Recurse
     }
-    Expand-Archive -Path $target_polaris_server_pkg
+    Expand-Archive -Path $target_polaris_server_pkg -DestinationPath .
     Push-Location $polaris_server_dirname/tool
     Start-Process start.bat
     Write-Output "install polaris server success"
@@ -51,15 +53,15 @@ function installPolarisConsole() {
         Write-Output "number of polaris console package not equals to 1, exit"
         exit -1
     }
-    $target_polaris_console_pkg =  (Get-ChildItem "polaris-console-release*.zip").Name[0]
-    $polaris_console_dirname = ([io.fileinfo]$target_console_server_pkg).basename
+    $target_polaris_console_pkg = (Get-ChildItem "polaris-console-release*.zip")[0].Name
+    $polaris_console_dirname = ([io.fileinfo]$target_polaris_console_pkg).basename
     if (Test-Path $polaris_console_dirname) {
         Write-Output "$polaris_console_dirname has exists, now remove it"
         Remove-Item $polaris_console_dirname -Recurse
     }
-    Expand-Archive -Path $target_polaris_console_pkg
+    Expand-Archive -Path $target_polaris_console_pkg -DestinationPath .
     Push-Location $polaris_console_dirname/tool
-    Start-Process start.ps1
+    Start-Process start.bat
     Write-Output "install polaris console success"
     Pop-Location
 }
@@ -76,20 +78,21 @@ function installPrometheus() {
         Write-Output "number of prometheus package not equals to 1, exit"
         exit -1
     }
-    $target_prometheus_pkg =  (Get-ChildItem "prometheus-*.zip").Name[0]
+    $target_prometheus_pkg =  (Get-ChildItem "prometheus-*.zip")[0].Name
     $prometheus_dirname = ([io.fileinfo]$target_prometheus_pkg).basename
     if (Test-Path $prometheus_dirname) {
         Write-Output "$prometheus_dirname has exists, now remove it"
         Remove-Item $prometheus_dirname -Recurse
     }
-    Expand-Archive -Path $target_prometheus_pkg
+    Expand-Archive -Path $target_prometheus_pkg -DestinationPath .
     Push-Location $prometheus_dirname
-    Write-Output "" >> prometheus.yml
-    Write-Output "  - job_name: 'push-metrics'" >> prometheus.yml
-    Write-Output "    static_configs:" >> prometheus.yml
-    Write-Output "    - targets: ['localhost:9091']" >> prometheus.yml
-    Write-Output "    honor_labels: true" >> prometheus.yml
-    Start-Process "./prometheus.exe  --web.enable-lifecycle --web.enable-admin-api >> prometheus.out 2>&1" -WindowStyle Hidden
+    Add-Content prometheus.yml ""
+    Add-Content prometheus.yml "  - job_name: 'push-metrics'"
+    Add-Content prometheus.yml "    static_configs:"
+    Add-Content prometheus.yml "    - targets: ['localhost:9091']"
+    Add-Content prometheus.yml "    honor_labels: true"
+    Start-Process -FilePath ".\\prometheus.exe" -ArgumentList ('--web.enable-lifecycle', '--web.enable-admin-api') -RedirectStandardOutput prometheus.out -RedirectStandardError prometheus.err
+    Write-Output "install prometheus success"
     Pop-Location
 }
 
@@ -105,15 +108,16 @@ function installPushGateway() {
         Write-Output "number of pushgateway package not equals to 1, exit"
         exit -1
     }
-    $target_pgw_pkg =  (Get-ChildItem "pushgateway-*.zip").Name[0]
+    $target_pgw_pkg =  (Get-ChildItem "pushgateway-*.zip")[0].Name
     $pgw_dirname = ([io.fileinfo]$target_pgw_pkg).basename
     if (Test-Path $pgw_dirname) {
         Write-Output "$pgw_dirname has exists, now remove it"
         Remove-Item $pgw_dirname -Recurse
     }
-    Expand-Archive -Path $target_pgw_pkg
+    Expand-Archive -Path $target_pgw_pkg -DestinationPath .
     Push-Location $pgw_dirname
-    Start-Process "./pushgateway.exe --web.enable-lifecycle --web.enable-admin-api >> pgw.out 2>&1" -WindowStyle Hidden
+    Start-Process -FilePath ".\\pushgateway.exe" -ArgumentList ('--web.enable-lifecycle', '--web.enable-admin-api') -RedirectStandardOutput pgw.out -RedirectStandardError pgw.err
+    Write-Output "install pushgateway success"
     Pop-Location
 }
 
