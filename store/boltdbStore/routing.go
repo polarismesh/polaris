@@ -18,53 +18,297 @@
 package boltdbStore
 
 import (
-	"github.com/polarismesh/polaris-server/common/model"
+	"sort"
+	"strings"
 	"time"
+
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/store"
 )
 
 type routingStore struct {
 	handler BoltHandler
 }
 
-// 新增一个路由配置
+const (
+	tblNameRouting         = "routing"
+	routingFieldID         = "ID"
+	routingFieldInBounds   = "InBounds"
+	routingFieldOutBounds  = "OutBounds"
+	routingFieldRevision   = "Revision"
+	routingFieldModifyTime = "ModifyTime"
+)
+
+// CreateRoutingConfig Add a routing configuration
 func (r *routingStore) CreateRoutingConfig(conf *model.RoutingConfig) error {
-	//TODO
+	if conf.ID == "" || conf.Revision == "" {
+		log.Errorf("[Store][boltdb] create routing config missing service id or revision")
+		return store.NewStatusError(store.EmptyParamsErr, "missing service id or revision")
+	}
+	if conf.InBounds == "" || conf.OutBounds == "" {
+		log.Errorf("[Store][boltdb] create routing config missing params")
+		return store.NewStatusError(store.EmptyParamsErr, "missing some params")
+	}
+
+	err := r.handler.SaveValue(tblNameRouting, conf.ID, conf)
+	if err != nil {
+		log.Errorf("add routing config to kv error, %v", err)
+		return err
+	}
 	return nil
 }
 
-// 更新一个路由配置
+// UpdateRoutingConfig Update a routing configuration
 func (r *routingStore) UpdateRoutingConfig(conf *model.RoutingConfig) error {
-	//TODO
+
+	if conf.ID == "" || conf.Revision == "" {
+		log.Errorf("[Store][boltdb] update routing config missing service id or revision")
+		return store.NewStatusError(store.EmptyParamsErr, "missing service id or revision")
+	}
+	if conf.InBounds == "" || conf.OutBounds == "" {
+		log.Errorf("[Store][boltdb] update routing config missing params")
+		return store.NewStatusError(store.EmptyParamsErr, "missing some params")
+	}
+
+	properties := make(map[string]interface{})
+	properties[routingFieldInBounds] = conf.InBounds
+	properties[routingFieldOutBounds] = conf.OutBounds
+	properties[routingFieldRevision] = conf.Revision
+
+	err := r.handler.UpdateValue(tblNameRouting, conf.ID, properties)
+	if err != nil {
+		log.Errorf("[Store][boltdb] update route config to kv error, %v", err)
+		return err
+	}
 	return nil
 }
 
-// 删除一个路由配置
+// DeleteRoutingConfig Delete a routing configuration
 func (r *routingStore) DeleteRoutingConfig(serviceID string) error {
-	//TODO
+	if serviceID == "" {
+		log.Errorf("[Store][boltdb] delete routing config missing service id")
+		return store.NewStatusError(store.EmptyParamsErr, "missing service id")
+	}
+
+	err := r.handler.DeleteValues(tblNameRouting, []string{serviceID})
+	if err != nil {
+		log.Errorf("[Store][boltdb] delete route config to kv error, %v", err)
+		return err
+	}
+
 	return nil
 }
 
-// 通过mtime拉取增量的路由配置信息
+// GetRoutingConfigsForCache Get incremental routing configuration information through mtime
 func (r *routingStore) GetRoutingConfigsForCache(mtime time.Time, firstUpdate bool) ([]*model.RoutingConfig, error) {
-	//TODO
-	return nil, nil
+
+	fields := []string{routingFieldModifyTime}
+
+	routes, err := r.handler.LoadValuesByFilter(tblNameRouting, fields, &model.RoutingConfig{},
+		func(m map[string]interface{}) bool {
+			rMtime, ok := m[routingFieldModifyTime]
+			if !ok {
+				return false
+			}
+			routeMtime := rMtime.(time.Time)
+			if routeMtime.Before(mtime) {
+				return false
+			}
+
+			return true
+		})
+	if err != nil {
+		log.Errorf("[Store][boltdb] load route config from kv error, %v", err)
+		return nil, err
+	}
+
+	return toRouteConf(routes), nil
 }
 
-// 根据服务名和命名空间拉取路由配置
+// GetRoutingConfigWithService Get routing configuration based on service name and namespace
 func (r *routingStore) GetRoutingConfigWithService(name string, namespace string) (*model.RoutingConfig, error) {
-	//TODO
-	return nil, nil
+
+	dbOp := r.handler
+	ss := &serviceStore{
+		handler: dbOp,
+	}
+
+	// get service first
+	service, err := ss.getServiceByNameAndNs(name, namespace)
+	if err != nil {
+		log.Errorf("[Store][boltdb] get service in route conf error, %v", err)
+		return nil, err
+	}
+
+	if service == nil {
+		return nil, nil
+	}
+
+	routeC, err := r.getWithID(service.ID)
+	if err != nil {
+		return nil, err
+	}
+	return routeC, nil
 }
 
-// 根据服务ID拉取路由配置
+// GetRoutingConfigWithID Get routing configuration based on service ID
 func (r *routingStore) GetRoutingConfigWithID(id string) (*model.RoutingConfig, error) {
-	//TODO
-	return nil, nil
+	return r.getWithID(id)
 }
 
-// 查询路由配置列表
+func (r *routingStore) getWithID(id string) (*model.RoutingConfig, error) {
+	fields := []string{routingFieldID}
+	routeConf, err := r.handler.LoadValuesByFilter(tblNameRouting, fields, &model.RoutingConfig{},
+		func(m map[string]interface{}) bool {
+			if id != m[routingFieldID].(string) {
+				return false
+			}
+
+			return true
+		})
+	if err != nil {
+		log.Errorf("[Store][boltdb] load route config from kv error, %v", err)
+		return nil, err
+	}
+
+	routeC, ok := routeConf[id].(*model.RoutingConfig)
+	if !ok {
+		return nil, nil
+	}
+	return routeC, nil
+}
+
+// GetRoutingConfigs Get routing configuration list
 func (r *routingStore) GetRoutingConfigs(
 	filter map[string]string, offset uint32, limit uint32) (uint32, []*model.ExtendRoutingConfig, error) {
-	//TODO
-	return 0, nil, nil
+
+	// get all route config
+	fields := []string{routingFieldInBounds, routingFieldOutBounds, routingFieldRevision}
+
+	inBounds, isInBounds := filter["inBounds"]
+	outBounds, isOutBounds := filter["outBounds"]
+	revision, isRevision := filter["revision"]
+
+	routeConf, err := r.handler.LoadValuesByFilter(tblNameRouting, fields, &model.RoutingConfig{},
+		func(m map[string]interface{}) bool {
+			if isInBounds {
+				rIn, ok := m[routingFieldInBounds]
+				if !ok {
+					return false
+				}
+				if inBounds != rIn.(string) {
+					return false
+				}
+			}
+			if isOutBounds {
+				rOut, ok := m[routingFieldOutBounds]
+				if !ok {
+					return false
+				}
+				if outBounds != rOut.(string) {
+					return false
+				}
+			}
+			if isRevision {
+				rRe, ok := m[routingFieldRevision]
+				if !ok {
+					return false
+				}
+				if revision != rRe.(string) {
+					return false
+				}
+			}
+			return true
+		})
+	if err != nil {
+		log.Errorf("[Store][boltdb] load route config from kv error, %v", err)
+		return 0, nil, err
+	}
+
+	if len(routeConf) == 0 {
+		return 0, nil, nil
+	}
+
+	// get service
+	svcIds := make(map[string]bool)
+	for k, _ := range routeConf {
+		svcIds[k] = true
+	}
+
+	fields = []string{routingFieldID}
+
+	services, err := r.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
+		func(m map[string]interface{}) bool {
+			rId, ok := m[routingFieldID]
+			if !ok {
+				return false
+			}
+			id := rId.(string)
+			_, ok = svcIds[id]
+			if !ok {
+				return false
+			}
+			return true
+		})
+
+	var out []*model.ExtendRoutingConfig
+
+	for id, r := range routeConf {
+		var temp model.ExtendRoutingConfig
+		svc, ok := services[id].(*model.Service)
+		if ok {
+			temp.ServiceName = svc.Name
+			temp.NamespaceName = svc.Namespace
+		} else {
+			log.Warnf("[Store][boltdb] get service in route conf error, service is nil, id: %s", id)
+		}
+		temp.Config = r.(*model.RoutingConfig)
+
+		out = append(out, &temp)
+	}
+
+	return uint32(len(routeConf)), getRealRouteConfList(out, offset, limit), nil
+}
+
+func toRouteConf(m map[string]interface{}) []*model.RoutingConfig {
+	var routeConf []*model.RoutingConfig
+	for _, r := range m {
+		routeConf = append(routeConf, r.(*model.RoutingConfig))
+	}
+
+	return routeConf
+}
+
+func getRealRouteConfList(routeConf []*model.ExtendRoutingConfig, offset, limit uint32) []*model.ExtendRoutingConfig {
+
+	beginIndex := offset
+	endIndex := beginIndex + limit
+	totalCount := uint32(len(routeConf))
+	// handle invalid offset, limit
+	if totalCount == 0 {
+		return routeConf
+	}
+	if beginIndex >= endIndex {
+		return routeConf
+	}
+	if beginIndex >= totalCount {
+		return routeConf
+	}
+	if endIndex > totalCount {
+		endIndex = totalCount
+	}
+
+	sort.Slice(routeConf, func(i, j int) bool {
+		// sort by modify time
+		if routeConf[i].Config.ModifyTime.After(routeConf[j].Config.ModifyTime) {
+			return true
+		} else if routeConf[i].Config.ModifyTime.Before(routeConf[j].Config.ModifyTime) {
+			return false
+		} else {
+			return strings.Compare(routeConf[i].Config.ID, routeConf[j].Config.ID) < 0
+		}
+	})
+
+	return routeConf[beginIndex:endIndex]
 }

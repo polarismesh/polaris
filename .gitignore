@@ -2,11 +2,13 @@ polaris-server
 polaris-server-release
 polaris-server-release.tar.gz
 
-log
-statis
+/log/
+/statis/
 
 .idea
 .DS_Store
 
 *.swp
 *.code-workspace
+
+.vscode/*
