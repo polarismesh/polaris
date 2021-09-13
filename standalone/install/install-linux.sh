@@ -36,7 +36,7 @@ function installPolarisServer() {
     echo -e "${polaris_server_dirname} has exists, now remove it"
     rm -rf ${polaris_server_dirname}
   fi
-  unzip ${target_polaris_server_pkg}
+  unzip ${target_polaris_server_pkg} > /dev/null
 
   pushd ${polaris_server_dirname}
   /bin/bash ./tool/start.sh
@@ -65,7 +65,7 @@ function installPolarisConsole() {
     echo -e "${polaris_console_dirname} has exists, now remove it"
     rm -rf ${polaris_console_dirname}
   fi
-  unzip ${target_polaris_console_pkg}
+  unzip ${target_polaris_console_pkg} > /dev/null
 
   pushd ${polaris_console_dirname}
   /bin/bash ./tool/start.sh
@@ -95,7 +95,7 @@ function installPrometheus() {
     echo -e "${prometheus_dirname} has exists, now remove it"
     rm -rf ${prometheus_dirname}
   fi
-  tar -xf ${target_prometheus_pkg}
+  tar -xf ${target_prometheus_pkg} > /dev/null
 
   pushd ${prometheus_dirname}
   echo "" >> prometheus.yml
@@ -129,7 +129,7 @@ function installPushGateway() {
     echo -e "${pgw_dirname} has exists, now remove it"
     rm -rf ${pgw_dirname}
   fi
-  tar -xf ${target_pgw_pkg}
+  tar -xf ${target_pgw_pkg} > /dev/null
 
   pushd ${pgw_dirname}
   nohup ./pushgateway --web.enable-lifecycle --web.enable-admin-api >> pgw.out 2>&1 &

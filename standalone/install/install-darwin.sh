@@ -1,5 +1,10 @@
 #!/bin/bash
 
+echo "To allow polaris to be installed on your Mac, we need to open the install from anywhere 'sudo spctl
+--master-disable'"
+
+sudo spctl --master-disable > /dev/null
+
 if [ "${0:0:1}" == "/" ]; then
   install_path=$(dirname "$0")
 else
@@ -26,7 +31,7 @@ function installPolarisServer() {
   local polaris_server_tarname=$(find . -name "polaris-server-release*.zip")
   local polaris_server_dirname=$(basename ${polaris_server_tarname} .zip)
   if [ ! -e $polaris_server_dirname ]; then
-    unzip $polaris_server_tarname
+    unzip $polaris_server_tarname > /dev/null
   else
     echo -e "polaris-server-release.tar.gz has been decompressed, skip."
   fi
@@ -54,7 +59,7 @@ function installPolarisConsole() {
   local polaris_console_tarname=$(find . -name "polaris-console-release*.zip")
   local polaris_console_dirname=$(basename ${polaris_console_tarname} .zip)
   if [ ! -e $polaris_console_dirname ]; then
-    unzip $polaris_console_tarname
+    unzip $polaris_console_tarname > /dev/null
   else
     echo -e "polaris-console-release.tar.gz has been decompressed, skip."
   fi
@@ -87,7 +92,7 @@ function installPrometheus() {
     echo -e "${prometheus_dirname} has exists, now remove it"
     rm -rf ${prometheus_dirname}
   fi
-  tar -xf ${target_prometheus_pkg}
+  tar -xf ${target_prometheus_pkg} > /dev/null
 
   pushd ${prometheus_dirname}
   echo "" >> prometheus.yml
@@ -121,7 +126,7 @@ function installPushGateway() {
     echo -e "${pgw_dirname} has exists, now remove it"
     rm -rf ${pgw_dirname}
   fi
-  tar -xf ${target_pgw_pkg}
+  tar -xf ${target_pgw_pkg} > /dev/null
 
   pushd ${pgw_dirname}
   nohup ./pushgateway --web.enable-lifecycle --web.enable-admin-api >> pgw.out 2>&1 &
@@ -149,3 +154,7 @@ installPolarisConsole
 installPrometheus
 # 安装PushGateWay
 installPushGateway
+
+echo "now, we finish install polaris in your mac, we will exec rollback 'sudo spctl --master-enable'"
+
+sudo spctl --master-enable
