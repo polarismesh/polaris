@@ -18,7 +18,10 @@
 package utils
 
 const (
-	PolarisCode      = "X-Polaris-Code"
-	PolarisMessage   = "X-Polaris-Message"
+	// PolarisCode polaris code
+	PolarisCode = "X-Polaris-Code"
+	// PolarisMessage polaris message
+	PolarisMessage = "X-Polaris-Message"
+	// PolarisRequestID request_id
 	PolarisRequestID = "Request-Id"
 )

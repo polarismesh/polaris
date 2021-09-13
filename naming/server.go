@@ -21,29 +21,34 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
-	"github.com/polarismesh/polaris-server/naming/batch"
-	"go.uber.org/zap"
 	"sync"
 	"time"
 
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/naming/auth"
+	"github.com/polarismesh/polaris-server/naming/batch"
 	"github.com/polarismesh/polaris-server/naming/cache"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
+	"go.uber.org/zap"
 )
 
 const (
+	// MaxBatchSize max batch size
 	MaxBatchSize = 100
+	// MaxQuerySize max query size
 	MaxQuerySize = 100
 )
 
 const (
-	SystemNamespace  = "Polaris"
+	// SystemNamespace polaris system namespace
+	SystemNamespace = "Polaris"
+	// DefaultNamespace default namespace
 	DefaultNamespace = "default"
-	DefaultTLL       = 5
+	// DefaultTLL default ttl
+	DefaultTLL = 5
 )
 
 var (
@@ -53,7 +58,7 @@ var (
 )
 
 /**
- * @brief 核心逻辑层配置
+ * Config 核心逻辑层配置
  */
 type Config struct {
 	Auth        map[string]interface{} `yaml:"auth"`
@@ -62,7 +67,7 @@ type Config struct {
 }
 
 /**
- * @brief 对接API层的server层，用以处理业务逻辑
+ * Server 对接API层的server层，用以处理业务逻辑
  */
 type Server struct {
 	storage store.Store
@@ -82,7 +87,7 @@ type Server struct {
 }
 
 /**
- * @brief 初始化
+ * Initialize 初始化
  */
 func Initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config) error {
 	var err error
@@ -98,30 +103,30 @@ func Initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config) 
 	return nil
 }
 
-// 获取已经初始化好的Server
+// GetServer 获取已经初始化好的Server
 func GetServer() (*Server, error) {
 	if !finishInit {
-		return nil, errors.New("Server has not done InitializeServer")
+		return nil, errors.New("server has not done InitializeServer")
 	}
 
 	return server, nil
 }
 
 /**
- * @brief 返回鉴权对象，获取鉴权信息
+ * Authority 返回鉴权对象，获取鉴权信息
  */
 func (s *Server) Authority() auth.Authority {
 	return s.authority
 }
 
 /**
- * @brief 返回Cache
+ * Cache 返回Cache
  */
 func (s *Server) Cache() *cache.NamingCache {
 	return s.caches
 }
 
-// server对外提供history插件的简单封装
+// RecordHistory server对外提供history插件的简单封装
 func (s *Server) RecordHistory(entry *model.RecordEntry) {
 	// 如果插件没有初始化，那么不记录history
 	if s.history == nil {
@@ -137,17 +142,17 @@ func (s *Server) RecordHistory(entry *model.RecordEntry) {
 }
 
 /**
- * @brief 打印服务发现统计
+ * RecordDiscoverStatis 打印服务发现统计
  */
 func (s *Server) RecordDiscoverStatis(service, namespace string) {
 	if s.discoverStatis == nil {
 		return
 	}
 
-	s.discoverStatis.AddDiscoverCall(service, namespace, time.Now())
+	_ = s.discoverStatis.AddDiscoverCall(service, namespace, time.Now())
 }
 
-// 获取服务实例的revision
+// GetServiceInstanceRevision 获取服务实例的revision
 func (s *Server) GetServiceInstanceRevision(serviceID string, instances []*model.Instance) (string, error) {
 	revision := s.caches.GetServiceInstanceRevision(serviceID)
 	if revision != "" {
@@ -299,7 +304,7 @@ func pluginInitialize() {
 }
 
 /**
- * @brief 返回一个随机的UUID
+ * NewUUID 返回一个随机的UUID
  */
 func NewUUID() string {
 	uuidBytes := uuid.New()

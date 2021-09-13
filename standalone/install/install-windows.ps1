@@ -34,8 +34,8 @@ function installPolarisServer() {
         Remove-Item $polaris_server_dirname -Recurse
     }
     Expand-Archive -Path $target_polaris_server_pkg -DestinationPath .
-    Push-Location $polaris_server_dirname/tool
-    Start-Process -FilePath ".\\start.bat" -NoNewWindow
+    Push-Location $polaris_server_dirname
+    Start-Process -FilePath ".\\polaris-server.exe" -ArgumentList ('start') -WindowStyle Hidden
     Write-Output "install polaris server success"
     Pop-Location
 }
@@ -60,8 +60,8 @@ function installPolarisConsole() {
         Remove-Item $polaris_console_dirname -Recurse
     }
     Expand-Archive -Path $target_polaris_console_pkg -DestinationPath .
-    Push-Location $polaris_console_dirname/tool
-    Start-Process -FilePath ".\\start.bat" -NoNewWindow
+    Push-Location $polaris_console_dirname
+    Start-Process -FilePath ".\\polaris-console.exe" -ArgumentList ('start') -WindowStyle Hidden
     Write-Output "install polaris console success"
     Pop-Location
 }
@@ -91,7 +91,7 @@ function installPrometheus() {
     Add-Content prometheus.yml "    static_configs:"
     Add-Content prometheus.yml "    - targets: ['localhost:9091']"
     Add-Content prometheus.yml "    honor_labels: true"
-    Start-Process -FilePath ".\\prometheus.exe" -ArgumentList ('--web.enable-lifecycle', '--web.enable-admin-api') -RedirectStandardOutput prometheus.out -RedirectStandardError prometheus.err
+    Start-Process -FilePath ".\\prometheus.exe" -ArgumentList ('--web.enable-lifecycle', '--web.enable-admin-api') -RedirectStandardOutput prometheus.out -RedirectStandardError prometheus.err -WindowStyle Hidden
     Write-Output "install prometheus success"
     Pop-Location
 }
@@ -116,7 +116,7 @@ function installPushGateway() {
     }
     Expand-Archive -Path $target_pgw_pkg -DestinationPath .
     Push-Location $pgw_dirname
-    Start-Process -FilePath ".\\pushgateway.exe" -ArgumentList ('--web.enable-lifecycle', '--web.enable-admin-api') -RedirectStandardOutput pgw.out -RedirectStandardError pgw.err
+    Start-Process -FilePath ".\\pushgateway.exe" -ArgumentList ('--web.enable-lifecycle', '--web.enable-admin-api') -RedirectStandardOutput pgw.out -RedirectStandardError pgw.err -WindowStyle Hidden
     Write-Output "install pushgateway success"
     Pop-Location
 }

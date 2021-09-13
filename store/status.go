@@ -21,7 +21,7 @@ import (
 	"strings"
 )
 
-// 存储层的状态码
+// StatusCode 存储层的状态码
 type StatusCode uint32
 
 // 状态码定义
@@ -46,7 +46,7 @@ const (
 	Unknown
 )
 
-// 普通error转StatusError
+// Error 普通error转StatusError
 func Error(err error) error {
 	if err == nil {
 		return nil
@@ -73,7 +73,7 @@ func Error(err error) error {
 	return s
 }
 
-// 根据code和message创建StatusError
+// NewStatusError 根据code和message创建StatusError
 func NewStatusError(code StatusCode, message string) error {
 	return &StatusError{
 		code:    code,
@@ -81,7 +81,7 @@ func NewStatusError(code StatusCode, message string) error {
 	}
 }
 
-// 根据error接口，获取状态码
+// Code 根据error接口，获取状态码
 func Code(err error) StatusCode {
 	if err == nil {
 		return Ok
@@ -95,13 +95,13 @@ func Code(err error) StatusCode {
 	return Unknown
 }
 
-// 包括了状态码的error接口
+// StatusError 包括了状态码的error接口
 type StatusError struct {
 	code    StatusCode
 	message string
 }
 
-// 实现error接口
+// Error 实现error接口
 func (s *StatusError) Error() string {
 	if s == nil {
 		return ""

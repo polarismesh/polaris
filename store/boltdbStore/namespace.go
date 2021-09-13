@@ -39,11 +39,11 @@ const (
 )
 
 var (
-	namespaceToToken = map[string]string {
+	namespaceToToken = map[string]string{
 		defaultNamespace: "e2e473081d3d4306b52264e49f7ce227",
 		polarisNamespace: "2d1bfe5d12e04d54b8ee69e62494c7fd",
 	}
-	namespaceToComment = map[string]string {
+	namespaceToComment = map[string]string{
 		defaultNamespace: "Default Environment",
 		polarisNamespace: "Polaris-server",
 	}
@@ -74,7 +74,7 @@ func (n *namespaceStore) InitData() error {
 	return nil
 }
 
-// AddNamespace 保存一个命名空间
+// AddNamespace add a namespace
 func (n *namespaceStore) AddNamespace(namespace *model.Namespace) error {
 	if namespace.Name == "" || namespace.Owner == "" || namespace.Token == "" {
 		return errors.New("store add namespace some param are empty")
@@ -82,7 +82,7 @@ func (n *namespaceStore) AddNamespace(namespace *model.Namespace) error {
 	return n.handler.SaveValue(tblNameNamespace, namespace.Name, namespace)
 }
 
-// UpdateNamespace 更新命名空间
+// UpdateNamespace update a namespace
 func (n *namespaceStore) UpdateNamespace(namespace *model.Namespace) error {
 	if namespace.Name == "" || namespace.Owner == "" {
 		return errors.New("store update namespace some param are empty")
@@ -94,10 +94,10 @@ func (n *namespaceStore) UpdateNamespace(namespace *model.Namespace) error {
 	return n.handler.UpdateValue(tblNameNamespace, namespace.Name, properties)
 }
 
-// UpdateNamespaceToken 更新命名空间token
+// UpdateNamespaceToken update the token of a namespace
 func (n *namespaceStore) UpdateNamespaceToken(name string, token string) error {
 	if name == "" || token == "" {
-		return fmt.Errorf("Update Namespace Token missing some params")
+		return fmt.Errorf("update Namespace Token missing some params")
 	}
 	properties := make(map[string]interface{})
 	properties["Token"] = token
@@ -105,7 +105,7 @@ func (n *namespaceStore) UpdateNamespaceToken(name string, token string) error {
 	return n.handler.UpdateValue(tblNameNamespace, name, properties)
 }
 
-// ListNamespaces 查询owner下所有的命名空间
+// ListNamespaces query all namespaces by owner
 func (n *namespaceStore) ListNamespaces(owner string) ([]*model.Namespace, error) {
 	if owner == "" {
 		return nil, errors.New("store lst namespaces owner is empty")
@@ -124,7 +124,7 @@ func (n *namespaceStore) ListNamespaces(owner string) ([]*model.Namespace, error
 	return toNamespaces(values), nil
 }
 
-// GetNamespace 根据name获取命名空间的详情
+// GetNamespace query namespace by name
 func (n *namespaceStore) GetNamespace(name string) (*model.Namespace, error) {
 	values, err := n.handler.LoadValues(tblNameNamespace, []string{name}, &model.Namespace{})
 	if nil != err {
@@ -140,22 +140,22 @@ func (n *namespaceStore) GetNamespace(name string) (*model.Namespace, error) {
 
 type NamespaceSlice []*model.Namespace
 
-// Len 命名空间列表长度
+// Len length of namespace slice
 func (ns NamespaceSlice) Len() int {
 	return len(ns)
 }
 
-// Less 比较大小
+// Less compare namespace
 func (ns NamespaceSlice) Less(i, j int) bool {
 	return ns[i].ModifyTime.Before(ns[j].ModifyTime)
 }
 
-// Swap 交换元素的位置
+// Swap swap elements
 func (ns NamespaceSlice) Swap(i, j int) {
 	ns[i], ns[j] = ns[j], ns[i]
 }
 
-// GetNamespaces 从数据库查询命名空间
+// GetNamespaces get namespaces by offset and limit
 func (n *namespaceStore) GetNamespaces(
 	filter map[string][]string, offset, limit int) ([]*model.Namespace, uint32, error) {
 	values, err := n.handler.LoadValuesAll(tblNameNamespace, &model.Namespace{})
@@ -183,7 +183,7 @@ func toNamespaces(values map[string]interface{}) []*model.Namespace {
 	return namespaces
 }
 
-// GetMoreNamespaces 获取增量数据
+// GetMoreNamespaces get the latest updated namespaces
 func (n *namespaceStore) GetMoreNamespaces(mtime time.Time) ([]*model.Namespace, error) {
 	values, err := n.handler.LoadValuesByFilter(
 		tblNameNamespace, []string{"ModifyTime"}, &model.Namespace{}, func(value map[string]interface{}) bool {

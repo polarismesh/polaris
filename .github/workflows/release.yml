@@ -11,17 +11,27 @@ jobs:
     strategy:
       matrix:
         goos: [linux, windows, darwin]
-        goarch: [386, amd64]
+        goarch: [386, amd64, arm64]
         exclude:
           - goos: darwin
             goarch: 386
-        
+          - goos: windows
+            goarch: 386
+          - goos: windows
+            goarch: arm64
+          - goos: linux
+            goarch: arm64
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          go-version: 1.16.5
 
       - name: Set up Go
         uses: actions/setup-go@v2
+        with:
+          go-version: 1.16.5
 
       - name: Build
         id: build
@@ -32,7 +42,7 @@ jobs:
           bash build.sh
           PACKAGE_NAME=$(ls | grep polaris-server-release*.zip | sed -n '1p')
           echo ::set-output name=name::${PACKAGE_NAME}
-       
+
       - name: Upload asset
         uses: actions/upload-release-asset@v1
         env:

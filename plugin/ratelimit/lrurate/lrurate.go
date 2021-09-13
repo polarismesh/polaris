@@ -19,20 +19,22 @@ package lrurate
 
 import (
 	"errors"
+
 	"github.com/polarismesh/polaris-server/plugin"
 )
 
 const (
+	// PluginName lru rate plugin
 	PluginName = "lrurate"
 )
 
 var (
-	ratelimitIPLruSize      int
-	ratelimitIPRate         int
-	ratelimitIPBurst        int
-	ratelimitServiceLruSize int
-	ratelimitServiceRate    int
-	ratelimitServiceBurst   int
+	rateLimitIPLruSize      int
+	rateLimitIPRate         int
+	rateLimitIPBurst        int
+	rateLimitServiceLruSize int
+	rateLimitServiceRate    int
+	rateLimitServiceBurst   int
 )
 
 // 自注册到插件列表
@@ -41,15 +43,14 @@ func init() {
 }
 
 // LRURate Ratelimit
-type LRURate struct {
-}
+type LRURate struct{}
 
-// 返回插件名
+// Name 返回插件名
 func (m *LRURate) Name() string {
 	return PluginName
 }
 
-// 初始化函数
+// Initialize 初始化函数
 func (m *LRURate) Initialize(c *plugin.ConfigEntry) error {
 	if err := parseRateLimitIPOption(c.Option); err != nil {
 		return err
@@ -70,28 +71,28 @@ func parseRateLimitIPOption(opt map[string]interface{}) error {
 	var ok bool
 	var val interface{}
 
-	if val = opt["ratelimitIPLruSize"]; val == nil {
-		return errors.New("not found ratelimit::lrurate::ratelimitIPLruSize")
+	if val = opt["rateLimitIPLruSize"]; val == nil {
+		return errors.New("not found ratelimit::lrurate::rateLimitIPLruSize")
 	}
 
-	if ratelimitIPLruSize, ok = val.(int); !ok || ratelimitIPLruSize <= 0 {
-		return errors.New("invalid ratelimit::lrurate::ratelimitIPLruSize, must be int and > 0")
+	if rateLimitIPLruSize, ok = val.(int); !ok || rateLimitIPLruSize <= 0 {
+		return errors.New("invalid ratelimit::lrurate::rateLimitIPLruSize, must be int and > 0")
 	}
 
-	if val = opt["ratelimitIPRate"]; val == nil {
-		return errors.New("not found ratelimit::lrurate::ratelimitIPRate")
+	if val = opt["rateLimitIPRate"]; val == nil {
+		return errors.New("not found ratelimit::lrurate::rateLimitIPRate")
 	}
 
-	if ratelimitIPRate, ok = val.(int); !ok || ratelimitIPRate <= 0 {
-		return errors.New("invalid ratelimit::lrurate::ratelimitIPRate, must be int and > 0")
+	if rateLimitIPRate, ok = val.(int); !ok || rateLimitIPRate <= 0 {
+		return errors.New("invalid ratelimit::lrurate::rateLimitIPRate, must be int and > 0")
 	}
 
-	if val = opt["ratelimitIPBurst"]; val == nil {
-		return errors.New("not found ratelimit::lrurate::ratelimitIPBurst")
+	if val = opt["rateLimitIPBurst"]; val == nil {
+		return errors.New("not found ratelimit::lrurate::rateLimitIPBurst")
 	}
 
-	if ratelimitIPBurst, ok = val.(int); !ok || ratelimitIPBurst <= 0 {
-		return errors.New("invalid ratelimit::lrurate::ratelimitIPBurst, must be int and > 0")
+	if rateLimitIPBurst, ok = val.(int); !ok || rateLimitIPBurst <= 0 {
+		return errors.New("invalid ratelimit::lrurate::rateLimitIPBurst, must be int and > 0")
 	}
 
 	return nil
@@ -102,39 +103,39 @@ func parseRateLimitServiceOption(opt map[string]interface{}) error {
 	var ok bool
 	var val interface{}
 
-	if val = opt["ratelimitServiceLruSize"]; val == nil {
-		return errors.New("not found ratelimit::lrurate::ratelimitServiceLruSize")
+	if val = opt["rateLimitServiceLruSize"]; val == nil {
+		return errors.New("not found ratelimit::lrurate::rateLimitServiceLruSize")
 	}
 
-	if ratelimitServiceLruSize, ok = val.(int); !ok || ratelimitServiceLruSize <= 0 {
-		return errors.New("invalid ratelimit::lrurate::ratelimitServiceLruSize, must be int and > 0")
+	if rateLimitServiceLruSize, ok = val.(int); !ok || rateLimitServiceLruSize <= 0 {
+		return errors.New("invalid ratelimit::lrurate::rateLimitServiceLruSize, must be int and > 0")
 	}
 
-	if val = opt["ratelimitServiceRate"]; val == nil {
-		return errors.New("not found ratelimit::lrurate::ratelimitServiceRate")
+	if val = opt["rateLimitServiceRate"]; val == nil {
+		return errors.New("not found ratelimit::lrurate::rateLimitServiceRate")
 	}
 
-	if ratelimitServiceRate, ok = val.(int); !ok || ratelimitServiceRate <= 0 {
-		return errors.New("invalid ratelimit::lrurate::ratelimitServiceRate, must be int and > 0")
+	if rateLimitServiceRate, ok = val.(int); !ok || rateLimitServiceRate <= 0 {
+		return errors.New("invalid ratelimit::lrurate::rateLimitServiceRate, must be int and > 0")
 	}
 
-	if val = opt["ratelimitServiceBurst"]; val == nil {
-		return errors.New("not found ratelimit::lrurate::ratelimitServiceBurst")
+	if val = opt["rateLimitServiceBurst"]; val == nil {
+		return errors.New("not found ratelimit::lrurate::rateLimitServiceBurst")
 	}
 
-	if ratelimitServiceBurst, ok = val.(int); !ok || ratelimitServiceBurst <= 0 {
-		return errors.New("invalid ratelimit::lrurate::ratelimitServiceBurst, must be int and > 0")
+	if rateLimitServiceBurst, ok = val.(int); !ok || rateLimitServiceBurst <= 0 {
+		return errors.New("invalid ratelimit::lrurate::rateLimitServiceBurst, must be int and > 0")
 	}
 
 	return nil
 }
 
-// 销毁函数
+// Destroy 销毁函数
 func (m *LRURate) Destroy() error {
 	return nil
 }
 
-// 实现CMDB插件接口
+// Allow 实现CMDB插件接口
 func (m *LRURate) Allow(rateType plugin.RatelimitType, id string) bool {
 	switch plugin.RatelimitType(rateType) {
 	case plugin.IPRatelimit:

@@ -29,7 +29,7 @@ import (
 func newLogger(file string) *zap.Logger {
 	encCfg := zapcore.EncoderConfig{
 		MessageKey: "msg",
-		//LevelKey:       "level",
+		// LevelKey:       "level",
 		TimeKey:        "time",
 		NameKey:        "name",
 		CallerKey:      "caller",

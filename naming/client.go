@@ -28,7 +28,7 @@ import (
 )
 
 /**
- * @brief 客户端上报信息
+ * ReportClient 客户端上报信息
  */
 func (s *Server) ReportClient(ctx context.Context, req *api.Client) *api.Response {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
@@ -60,7 +60,7 @@ func (s *Server) ReportClient(ctx context.Context, req *api.Client) *api.Respons
 }
 
 /**
- * @brief 服务实例上报心跳
+ * Heartbeat 服务实例上报心跳
  */
 func (s *Server) Heartbeat(ctx context.Context, req *api.Instance) *api.Response {
 	if s.caches == nil {
@@ -74,7 +74,7 @@ func (s *Server) Heartbeat(ctx context.Context, req *api.Instance) *api.Response
 }
 
 /**
- * @brief 根据元数据查询服务
+ * GetServiceWithCache 根据元数据查询服务
  */
 func (s *Server) GetServiceWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
 	if s.caches == nil {
@@ -84,7 +84,7 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *api.Service) *api
 	if req == nil {
 		return api.NewDiscoverServiceResponse(api.EmptyRequest, req)
 	}
-	//可根据business查询服务
+	// 可根据business查询服务
 	if len(req.GetMetadata()) == 0 && len(req.Business.GetValue()) == 0 {
 		return api.NewDiscoverServiceResponse(api.InvalidServiceMetadata, req)
 	}
@@ -134,7 +134,7 @@ func checkServiceMetadata(requestMeta map[string]string, service *model.Service,
 }
 
 /**
- * @brief 根据服务名查询服务实例列表
+ * ServiceInstancesCache 根据服务名查询服务实例列表
  */
 func (s *Server) ServiceInstancesCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
 	if req == nil {
@@ -200,7 +200,7 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *api.Service) *a
 	return resp
 }
 
-// 获取缓存中的路由配置信息
+// GetRoutingConfigWithCache 获取缓存中的路由配置信息
 func (s *Server) GetRoutingConfigWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
 	if s.caches == nil {
 		return api.NewDiscoverRoutingResponse(api.ClientAPINotOpen, req)
@@ -251,7 +251,7 @@ func (s *Server) GetRoutingConfigWithCache(ctx context.Context, req *api.Service
 	return resp
 }
 
-// 获取缓存中的限流规则信息
+// GetRateLimitWithCache 获取缓存中的限流规则信息
 func (s *Server) GetRateLimitWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
 	if s.caches == nil {
 		return api.NewDiscoverRoutingResponse(api.ClientAPINotOpen, req)
@@ -321,7 +321,7 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *api.Service) *a
 	return resp
 }
 
-// 获取缓存中的熔断规则信息
+// GetCircuitBreakerWithCache 获取缓存中的熔断规则信息
 func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
 	if s.caches == nil {
 		return api.NewDiscoverCircuitBreakerResponse(api.ClientAPINotOpen, req)

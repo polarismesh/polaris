@@ -20,12 +20,12 @@ package model
 import (
 	"time"
 
-	v1 "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	v1 "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 /**
- * @brief 命名空间结构体
+ * Namespace 命名空间结构体
  */
 type Namespace struct {
 	Name       string
@@ -38,7 +38,7 @@ type Namespace struct {
 }
 
 /**
- * @brief 业务集
+ * Business 业务集
  */
 type Business struct {
 	ID         string
@@ -51,7 +51,7 @@ type Business struct {
 }
 
 /**
- * @brief 服务数据
+ * Service 服务数据
  */
 type Service struct {
 	ID          string
@@ -77,14 +77,14 @@ type Service struct {
 }
 
 /**
- * @brief 服务名
+ * ServiceKey 服务名
  */
 type ServiceKey struct {
 	Namespace string
 	Name      string
 }
 
-// 便捷函数封装
+// IsAlias 便捷函数封装
 func (s *Service) IsAlias() bool {
 	if s.Reference != "" {
 		return true
@@ -93,7 +93,7 @@ func (s *Service) IsAlias() bool {
 	return false
 }
 
-// 服务别名结构体
+// ServiceAlias 服务别名结构体
 type ServiceAlias struct {
 	ID         string
 	Alias      string
@@ -107,30 +107,32 @@ type ServiceAlias struct {
 }
 
 /**
- * @brief 服务下实例的权重类型
+ * WeightType 服务下实例的权重类型
  */
 type WeightType uint32
 
 const (
-	// 动态权重
-	WEIGHTDYNAMIC WeightType = 0
+	// WEIGHTDYNAMIC 动态权重
+	WEIGHTDYNAMIC WeightType = iota
 
-	// 静态权重
-	WEIGHTSTATIC WeightType = 1
+	// WEIGHTSTATIC 静态权重
+	WEIGHTSTATIC
 )
 
+// WeightString weight string map
 var WeightString = map[WeightType]string{
 	WEIGHTDYNAMIC: "dynamic",
 	WEIGHTSTATIC:  "static",
 }
 
+// WeightEnum weight enum map
 var WeightEnum = map[string]WeightType{
 	"dynamic": WEIGHTDYNAMIC,
 	"static":  WEIGHTSTATIC,
 }
 
 /**
- * @brief 地域信息，对应数据库字段
+ * LocationStore 地域信息，对应数据库字段
  */
 type LocationStore struct {
 	IP         string
@@ -144,7 +146,7 @@ type LocationStore struct {
 	ModifyTime int64
 }
 
-// cmdb信息，对应内存结构体
+// Location cmdb信息，对应内存结构体
 type Location struct {
 	Proto    *v1.Location
 	RegionID uint32
@@ -153,7 +155,7 @@ type Location struct {
 	Valid    bool
 }
 
-// 转成内存数据结构
+// Store2Location 转成内存数据结构
 func Store2Location(s *LocationStore) *Location {
 	return &Location{
 		Proto: &v1.Location{
@@ -169,7 +171,7 @@ func Store2Location(s *LocationStore) *Location {
 }
 
 /**
- * @brief 客户端上报信息表
+ * Client 客户端上报信息表
  */
 type Client struct {
 	VpcID      string
@@ -181,7 +183,7 @@ type Client struct {
 }
 
 /**
- * @brief 路由配置
+ * RoutingConfig 路由配置
  */
 type RoutingConfig struct {
 	ID         string
@@ -194,7 +196,7 @@ type RoutingConfig struct {
 }
 
 /**
- * @brief 路由配置的扩展结构体
+ * ExtendRoutingConfig 路由配置的扩展结构体
  */
 type ExtendRoutingConfig struct {
 	ServiceName   string
@@ -203,7 +205,7 @@ type ExtendRoutingConfig struct {
 }
 
 /**
- * @brief 限流规则
+ * RateLimit 限流规则
  */
 type RateLimit struct {
 	ID         string
@@ -219,7 +221,7 @@ type RateLimit struct {
 }
 
 /**
- * @brief 包含服务信息的限流规则
+ * ExtendRateLimit 包含服务信息的限流规则
  */
 type ExtendRateLimit struct {
 	ServiceName   string
@@ -228,7 +230,7 @@ type ExtendRateLimit struct {
 }
 
 /**
- * @brief 包含最新版本号的限流规则
+ * RateLimitRevision 包含最新版本号的限流规则
  */
 type RateLimitRevision struct {
 	ServiceID    string
@@ -236,7 +238,7 @@ type RateLimitRevision struct {
 }
 
 /**
- * @brief 熔断规则
+ * CircuitBreaker 熔断规则
  */
 type CircuitBreaker struct {
 	ID         string
@@ -257,7 +259,7 @@ type CircuitBreaker struct {
 }
 
 /**
- * @brief 与服务关系绑定的熔断规则
+ * ServiceWithCircuitBreaker 与服务关系绑定的熔断规则
  */
 type ServiceWithCircuitBreaker struct {
 	ServiceID      string
@@ -268,7 +270,7 @@ type ServiceWithCircuitBreaker struct {
 }
 
 /**
- * @brief 熔断规则绑定关系
+ * CircuitBreakerRelation 熔断规则绑定关系
  */
 type CircuitBreakerRelation struct {
 	ServiceID   string
@@ -280,7 +282,7 @@ type CircuitBreakerRelation struct {
 }
 
 /**
- * @brief 返回给控制台的熔断规则及服务数据
+ * CircuitBreakerDetail 返回给控制台的熔断规则及服务数据
  */
 type CircuitBreakerDetail struct {
 	Total               uint32
@@ -288,7 +290,7 @@ type CircuitBreakerDetail struct {
 }
 
 /**
- * @brief 熔断规则及绑定服务
+ * CircuitBreakerInfo 熔断规则及绑定服务
  */
 type CircuitBreakerInfo struct {
 	CircuitBreaker *CircuitBreaker
@@ -296,7 +298,7 @@ type CircuitBreakerInfo struct {
 }
 
 /**
- * @brief 平台信息
+ * Platform 平台信息
  */
 type Platform struct {
 	ID         string
@@ -312,7 +314,7 @@ type Platform struct {
 	ModifyTime time.Time
 }
 
-// 整数转换为bool值
+// int2bool 整数转换为bool值
 func int2bool(entry int) bool {
 	if entry == 0 {
 		return false
@@ -330,36 +332,36 @@ func flag2valid(flag int) bool {
 
 }
 
-// int64的时间戳转为字符串时间
+// int64Time2String int64的时间戳转为字符串时间
 func int64Time2String(t int64) string {
 	return time.Unix(t, 0).Format("2006-01-02 15:04:05")
 }
 
-// 操作类型
+// OperationType 操作类型
 type OperationType string
 
 // 定义包含的操作类型
 const (
-	// 新建
+	// OCreate 新建
 	OCreate OperationType = "Create"
 
-	// 删除
+	// ODelete 删除
 	ODelete OperationType = "Delete"
 
-	// 更新
+	// OUpdate 更新
 	OUpdate OperationType = "Update"
 
-	// 更新隔离状态
+	// OUpdateIsolate 更新隔离状态
 	OUpdateIsolate OperationType = "UpdateIsolate"
 
-	// 查看token
+	// OGetToken 查看token
 	OGetToken OperationType = "GetToken" // nolint
 
-	// 更新token
+	// OUpdateToken 更新token
 	OUpdateToken OperationType = "UpdateToken" // nolint
 )
 
-// 操作资源
+// Resource 操作资源
 type Resource string
 
 // 定义包含的资源类型
@@ -375,16 +377,17 @@ const (
 	RFluxRateLimit Resource = "FluxRateLimit"
 )
 
-// 资源类型
+// ResourceType 资源类型
 type ResourceType int
 
 const (
-	// 网格类型资源
-	MeshType ResourceType = 0
-	// 北极星服务类型资源
-	ServiceType ResourceType = 1
+	// MeshType 网格类型资源
+	MeshType ResourceType = iota
+	// ServiceType 北极星服务类型资源
+	ServiceType
 )
 
+// ResourceTypeMap resource type map
 var ResourceTypeMap = map[Resource]ResourceType{
 	RNamespace:    ServiceType,
 	RService:      ServiceType,
@@ -396,12 +399,12 @@ var ResourceTypeMap = map[Resource]ResourceType{
 	RMeshService:  MeshType,
 }
 
-// 获取资源的大类型
+// GetResourceType 获取资源的大类型
 func GetResourceType(r Resource) ResourceType {
 	return ResourceTypeMap[r]
 }
 
-// 操作记录entry
+// RecordEntry 操作记录entry
 type RecordEntry struct {
 	ResourceType  Resource
 	OperationType OperationType

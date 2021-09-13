@@ -17,10 +17,16 @@ jobs:
     strategy:
       matrix:
         goos: [linux, windows, darwin]
-        goarch: [amd64, 386]
+        goarch: [amd64, 386, arm64]
         exclude:
           - goos: darwin
             goarch: 386
+          - goos: windows
+            goarch: 386
+          - goos: windows
+            goarch: arm64
+          - goos: linux
+            goarch: arm64
 
     steps:
       - name: Checkout code
@@ -38,7 +44,7 @@ jobs:
         run: |
           set -e
           cd standalone
-          POLARIS_GIT_PATH=https://github.com/andrewshan
+          POLARIS_GIT_PATH=https://github.com/polarismesh
           DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}.${GOARCH}
           mkdir ${DIR_NAME}
           pushd ${DIR_NAME}

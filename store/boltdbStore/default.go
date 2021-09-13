@@ -41,12 +41,12 @@ type boltStore struct {
 	start   bool
 }
 
-// 存储层的名字
+// Name store name
 func (m *boltStore) Name() string {
 	return storeName
 }
 
-// 存储的初始化函数
+// Initialize init store
 func (m *boltStore) Initialize(c *store.Config) error {
 	if m.start {
 		return errors.New("store has been Initialize")
@@ -66,7 +66,6 @@ func (m *boltStore) Initialize(c *store.Config) error {
 	return nil
 }
 
-// 初始化子类
 func (m *boltStore) newStore() error {
 	m.l5Store = &l5Store{handler: m.handler}
 	if err := m.l5Store.InitL5Data(); nil != err {
@@ -94,7 +93,7 @@ func (m *boltStore) newStore() error {
 	return nil
 }
 
-// 存储的析构函数
+// Destroy destroy store
 func (m *boltStore) Destroy() error {
 	if nil != m.handler {
 		return m.handler.Close()
@@ -102,6 +101,7 @@ func (m *boltStore) Destroy() error {
 	return nil
 }
 
+//CreateTransaction create store transaction
 func (m *boltStore) CreateTransaction() (store.Transaction, error) {
 	tx, err := m.handler.Transaction()
 	if nil != err {
@@ -110,9 +110,6 @@ func (m *boltStore) CreateTransaction() (store.Transaction, error) {
 	return &transaction{tx: tx}, nil
 }
 
-/**
- * @brief 自动引入包初始化函数
- */
 func init() {
 	s := &boltStore{}
 	_ = store.RegisterStore(s)

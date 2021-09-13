@@ -31,38 +31,38 @@ import (
 // BoltHandler encapsulate operations around boltdb
 type BoltHandler interface {
 
-	// SaveValue 插入数据对象，每个数据对象都需要一个唯一主键来标识
+	// SaveValue insert data object, each data object should be identified by unique key
 	SaveValue(typ string, key string, object interface{}) error
 
-	// DeleteValue 根据主键删除数据对象
+	// DeleteValue delete data object by unique key
 	DeleteValues(typ string, key []string) error
 
-	// UpdateValue 更新数据对象的属性值
+	// UpdateValue update properties of data object
 	UpdateValue(typ string, key string, properties map[string]interface{}) error
 
-	// LoadValues 根据主键列表获取数据对象，返回值为'主键->对象'的Map
+	// LoadValues load data objects by unique keys, return value is 'key->object' map
 	LoadValues(typ string, keys []string, typObject interface{}) (map[string]interface{}, error)
 
-	// LoadValuesByFilter 根据条件过滤并返回数据对象，返回值为'主键->对象'的Map
+	// LoadValuesByFilter filter data objects by condition, return value is 'key->object' map
 	LoadValuesByFilter(typ string, fields []string,
 		typObject interface{}, filter func(map[string]interface{}) bool) (map[string]interface{}, error)
 
-	// LoadValues 加载所有的数据对象，返回值为'主键->对象'的Map
+	// LoadValues load all saved data objects, return value is 'key->object' map
 	LoadValuesAll(typ string, typObject interface{}) (map[string]interface{}, error)
 
-	// IterateFields 遍历所有的数对象
+	// IterateFields iterate all saved data objects
 	IterateFields(typ string, field string, typObject interface{}, process func(interface{})) error
 
-	// CountValues 计算数据对象的总数
+	// CountValues count all data objects
 	CountValues(typ string) (int, error)
 
-	// Execute 直接执行一段语句
+	// Execute execute scripts directly
 	Execute(writable bool, process func(tx *bolt.Tx) error) error
 
-	// BeginTransaction 启动事务，供使用者单独管理事务的写入和提交等操作
+	// BeginTransaction begin boltdb transaction
 	Transaction() (*bolt.Tx, error)
 
-	// Close 关闭内存数据库
+	// Close close boltdb
 	Close() error
 }
 
@@ -109,7 +109,7 @@ func openBoltDB(path string) (*bolt.DB, error) {
 	})
 }
 
-// SaveValue 插入数据对象，每个数据对象都需要一个唯一主键来标识
+// SaveValue insert data object, each data object should be identified by unique key
 func (b *boltHandler) SaveValue(typ string, key string, value interface{}) error {
 	return b.db.Update(func(tx *bolt.Tx) error {
 		var typBucket *bolt.Bucket
@@ -149,7 +149,7 @@ func (b *boltHandler) SaveValue(typ string, key string, value interface{}) error
 	})
 }
 
-// LoadValues 根据主键列表获取数据对象，返回值为'主键->对象'的Map
+// LoadValues load data objects by unique keys, return value is 'key->object' map
 func (b *boltHandler) LoadValues(typ string, keys []string, typObject interface{}) (map[string]interface{}, error) {
 	var values = make(map[string]interface{})
 	if len(keys) == 0 {
@@ -176,7 +176,7 @@ func loadValues(tx *bolt.Tx, typ string, keys []string, typObject interface{}, v
 	return nil
 }
 
-// LoadValuesByFilter 根据条件过滤并返回数据对象，返回值为'主键->对象'的Map
+// LoadValuesByFilter filter data objects by condition, return value is 'key->object' map
 func (b *boltHandler) LoadValuesByFilter(typ string, fields []string,
 	typObject interface{}, filter func(map[string]interface{}) bool) (map[string]interface{}, error) {
 	values := make(map[string]interface{})
@@ -315,7 +315,7 @@ func matchObject(bucket *bolt.Bucket,
 	return filter(fieldValues), nil
 }
 
-// IterateFields 遍历所有的数对象
+// IterateFields iterate all saved data objects
 func (b *boltHandler) IterateFields(typ string, field string, typObject interface{}, filter func(interface{})) error {
 	if nil == filter {
 		return nil
@@ -349,7 +349,7 @@ func (b *boltHandler) IterateFields(typ string, field string, typObject interfac
 	})
 }
 
-// Close 关闭内存数据库
+// Close close boltdb
 func (b *boltHandler) Close() error {
 	if nil != b.db {
 		return b.db.Close()
@@ -357,7 +357,7 @@ func (b *boltHandler) Close() error {
 	return nil
 }
 
-// DeleteValue 根据主键删除数据对象
+// DeleteValue delete data object by unique key
 func (b *boltHandler) DeleteValues(typ string, keys []string) error {
 	if len(keys) == 0 {
 		return nil
@@ -433,7 +433,7 @@ func getKeys(bucket *bolt.Bucket) ([]string, error) {
 	return keys, err
 }
 
-// CountValues 计算数据对象的总数
+// CountValues count all data objects
 func (b *boltHandler) CountValues(typ string) (int, error) {
 	var count int
 	err := b.db.View(func(tx *bolt.Tx) error {
@@ -449,7 +449,7 @@ func (b *boltHandler) CountValues(typ string) (int, error) {
 	return count, err
 }
 
-// UpdateValue 更新数据对象的属性值
+// UpdateValue update properties of data object
 func (b *boltHandler) UpdateValue(typ string, key string, properties map[string]interface{}) error {
 	return b.db.Update(func(tx *bolt.Tx) error {
 		var err error
@@ -505,7 +505,7 @@ func (b *boltHandler) UpdateValue(typ string, key string, properties map[string]
 	})
 }
 
-// LoadValues 加载所有的数据对象，返回值为'主键->对象'的Map
+// LoadValues load all saved data objects, return value is 'key->object' map
 func (b *boltHandler) LoadValuesAll(typ string, typObject interface{}) (map[string]interface{}, error) {
 	values := make(map[string]interface{})
 	err := b.db.View(func(tx *bolt.Tx) error {
@@ -538,7 +538,7 @@ func (b *boltHandler) LoadValuesAll(typ string, typObject interface{}) (map[stri
 	return values, err
 }
 
-// Execute 直接执行一段语句
+// Execute execute scripts directly
 func (b *boltHandler) Execute(writable bool, process func(tx *bolt.Tx) error) error {
 	if writable {
 		return b.db.Update(process)
@@ -546,7 +546,7 @@ func (b *boltHandler) Execute(writable bool, process func(tx *bolt.Tx) error) er
 	return b.db.View(process)
 }
 
-// BeginTransaction 启动事务，供使用者单独管理事务的写入和提交等操作
+// BeginTransaction begin boltdb transaction
 func (b *boltHandler) Transaction() (*bolt.Tx, error) {
 	return b.db.Begin(true)
 }
