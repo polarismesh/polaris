@@ -20,28 +20,29 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/model"
 	"strconv"
 	"strings"
+
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
-// cl5集群的ctx的key
+// Cl5ServerCluster cl5集群的ctx的key
 type Cl5ServerCluster struct{}
 
-// cl5.server的协议ctx
+// Cl5ServerProtocol cl5.server的协议ctx
 type Cl5ServerProtocol struct{}
 
-// Sid结构体，序列化转为sid字符串
+// MarshalSid Sid结构体，序列化转为sid字符串
 func MarshalSid(sid *model.Sid) string {
 	return fmt.Sprintf("%d:%d", sid.ModID, sid.CmdID)
 }
 
-// mod cmd转为sid
+// MarshalModCmd mod cmd转为sid
 func MarshalModCmd(modID uint32, cmdID uint32) string {
 	return fmt.Sprintf("%d:%d", modID, cmdID)
 }
 
-// 把sid字符串反序列化为结构体Sid
+// UnmarshalSid 把sid字符串反序列化为结构体Sid
 func UnmarshalSid(sidStr string) (*model.Sid, error) {
 	items := strings.Split(sidStr, ":")
 	if len(items) != 2 {
@@ -52,7 +53,9 @@ func UnmarshalSid(sidStr string) (*model.Sid, error) {
 	if err != nil {
 		return nil, err
 	}
-	cmdID, err := strconv.ParseUint(items[1], 10, 32)
+
+	var cmdID uint64
+	cmdID, err = strconv.ParseUint(items[1], 10, 32)
 	if err != nil {
 		return nil, err
 	}
