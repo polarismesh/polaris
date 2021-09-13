@@ -5,8 +5,9 @@
 package mock
 
 import (
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockAuthority is a mock of Authority interface
@@ -43,7 +44,8 @@ func (m *MockAuthority) VerifyToken(actualToken string) bool {
 // VerifyToken indicates an expected call of VerifyToken
 func (mr *MockAuthorityMockRecorder) VerifyToken(actualToken interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyToken", reflect.TypeOf((*MockAuthority)(nil).VerifyToken), actualToken)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyToken",
+		reflect.TypeOf((*MockAuthority)(nil).VerifyToken), actualToken)
 }
 
 // VerifyNamespace mocks base method
@@ -57,7 +59,8 @@ func (m *MockAuthority) VerifyNamespace(expectToken, actualToken string) bool {
 // VerifyNamespace indicates an expected call of VerifyNamespace
 func (mr *MockAuthorityMockRecorder) VerifyNamespace(expectToken, actualToken interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyNamespace", reflect.TypeOf((*MockAuthority)(nil).VerifyNamespace), expectToken, actualToken)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyNamespace",
+		reflect.TypeOf((*MockAuthority)(nil).VerifyNamespace), expectToken, actualToken)
 }
 
 // VerifyService mocks base method
@@ -71,7 +74,8 @@ func (m *MockAuthority) VerifyService(expectToken, actualToken string) bool {
 // VerifyService indicates an expected call of VerifyService
 func (mr *MockAuthorityMockRecorder) VerifyService(expectToken, actualToken interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyService", reflect.TypeOf((*MockAuthority)(nil).VerifyService), expectToken, actualToken)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyService",
+		reflect.TypeOf((*MockAuthority)(nil).VerifyService), expectToken, actualToken)
 }
 
 // VerifyInstance mocks base method
@@ -85,7 +89,8 @@ func (m *MockAuthority) VerifyInstance(expectToken, actualToken string) bool {
 // VerifyInstance indicates an expected call of VerifyInstance
 func (mr *MockAuthorityMockRecorder) VerifyInstance(expectToken, actualToken interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyInstance", reflect.TypeOf((*MockAuthority)(nil).VerifyInstance), expectToken, actualToken)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyInstance",
+		reflect.TypeOf((*MockAuthority)(nil).VerifyInstance), expectToken, actualToken)
 }
 
 // VerifyRule mocks base method
@@ -99,7 +104,8 @@ func (m *MockAuthority) VerifyRule(expectToken, actualToken string) bool {
 // VerifyRule indicates an expected call of VerifyRule
 func (mr *MockAuthorityMockRecorder) VerifyRule(expectToken, actualToken interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyRule", reflect.TypeOf((*MockAuthority)(nil).VerifyRule), expectToken, actualToken)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyRule",
+		reflect.TypeOf((*MockAuthority)(nil).VerifyRule), expectToken, actualToken)
 }
 
 // VerifyPlatform mocks base method
@@ -113,7 +119,8 @@ func (m *MockAuthority) VerifyPlatform(expectToken, actualToken string) bool {
 // VerifyPlatform indicates an expected call of VerifyPlatform
 func (mr *MockAuthorityMockRecorder) VerifyPlatform(expectToken, actualToken interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyPlatform", reflect.TypeOf((*MockAuthority)(nil).VerifyPlatform), expectToken, actualToken)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyPlatform",
+		reflect.TypeOf((*MockAuthority)(nil).VerifyPlatform), expectToken, actualToken)
 }
 
 // VerifyMesh mocks base method
@@ -127,5 +134,6 @@ func (m *MockAuthority) VerifyMesh(expectToken, actualToken string) bool {
 // VerifyMesh indicates an expected call of VerifyMesh
 func (mr *MockAuthorityMockRecorder) VerifyMesh(expectToken, actualToken interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyMesh", reflect.TypeOf((*MockAuthority)(nil).VerifyMesh), expectToken, actualToken)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyMesh",
+		reflect.TypeOf((*MockAuthority)(nil).VerifyMesh), expectToken, actualToken)
 }
