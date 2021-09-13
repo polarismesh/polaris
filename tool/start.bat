@@ -25,7 +25,7 @@ cd ..
 set "POLARIS_HOME=%cd%"
 cd "%CURRENT_DIR%"
 :gotHome
-if exist "%POLARIS_HOME%\polaris-server.exe" goto okHome
+if exist "%POLARIS_HOME%\%SERVER_NAME%" goto okHome
 echo The POLARIS_HOME environment variable is not defined correctly
 echo This environment variable is needed to run this program
 goto end

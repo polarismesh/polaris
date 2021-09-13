@@ -36,7 +36,8 @@ function uninstallPolarisServer {
 
 function uninstallPolarisConsole {
     Write-Output "uninstall polaris console ... "
-    $polaris_console_dirname =  (Get-ChildItem "polaris-console-release*")[0].Name
+    $target_polaris_console_pkg =  (Get-ChildItem "polaris-console-release*.zip")[0].Name
+    $polaris_console_dirname = ([io.fileinfo]$target_polaris_console_pkg).basename
     $exists = (Test-Path $polaris_console_dirname)
     if ($exists) {
         Push-Location $polaris_console_dirname/tool
@@ -58,9 +59,11 @@ function uninstallPrometheus {
             Stop-Process -Id $process_pid -Force
         }
     }
-    $prometheus_dirname =  (Get-ChildItem "prometheus*")[0].Name
+    $target_prometheus_pkg =  (Get-ChildItem "prometheus-*.zip")[0].Name
+    $prometheus_dirname = ([io.fileinfo]$target_prometheus_pkg).basename
     $exists = (Test-Path $prometheus_dirname)
     if ($exists) {
+        Start-Sleep -Seconds 2
         Remove-Item ${prometheus_dirname} -Recurse
     }
     Write-Output "uninstall prometheus success"
@@ -75,10 +78,12 @@ function uninstallPushGateway {
             Stop-Process -Id $process_pid -Force
         }
     }
-    $pwg_dirname =  (Get-ChildItem "pushgateway*")[0].Name
-    $exists = (Test-Path $pwg_dirname)
+    $target_pgw_pkg =  (Get-ChildItem "pushgateway-*.zip")[0].Name
+    $pgw_dirname = ([io.fileinfo]$target_pgw_pkg).basename
+    $exists = (Test-Path $pgw_dirname)
     if ($exists) {
-        Remove-Item ${pwg_dirname} -Recurse
+        Start-Sleep -Seconds 2
+        Remove-Item ${pgw_dirname} -Recurse
         return
     }
     Write-Output "uninstall pushgateway success"

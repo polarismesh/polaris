@@ -34,8 +34,8 @@ function installPolarisServer() {
         Remove-Item $polaris_server_dirname -Recurse
     }
     Expand-Archive -Path $target_polaris_server_pkg -DestinationPath .
-    Push-Location $polaris_server_dirname/tool
-    Start-Process -FilePath ".\\start.bat" -NoNewWindow
+    Push-Location $polaris_server_dirname
+    Start-Process -FilePath ".\\polaris-server.exe" -ArgumentList ('start')
     Write-Output "install polaris server success"
     Pop-Location
 }
@@ -60,8 +60,8 @@ function installPolarisConsole() {
         Remove-Item $polaris_console_dirname -Recurse
     }
     Expand-Archive -Path $target_polaris_console_pkg -DestinationPath .
-    Push-Location $polaris_console_dirname/tool
-    Start-Process -FilePath ".\\start.bat" -NoNewWindow
+    Push-Location $polaris_console_dirname
+    Start-Process -FilePath ".\\polaris-console.exe" -ArgumentList ('start')
     Write-Output "install polaris console success"
     Pop-Location
 }
