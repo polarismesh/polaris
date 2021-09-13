@@ -18,7 +18,7 @@
 package model
 
 /**
- * @brief 访问关系
+ * Route 访问关系
  */
 type Route struct {
 	IP    uint32
@@ -30,7 +30,7 @@ type Route struct {
 }
 
 /**
- * @brief 有状态规则路由策略信息
+ * Policy 有状态规则路由策略信息
  */
 type Policy struct {
 	ModID uint32
@@ -41,7 +41,7 @@ type Policy struct {
 }
 
 /**
- * @brief 有状态规则路由分段信息
+ * Section 有状态规则路由分段信息
  */
 type Section struct {
 	ModID uint32
@@ -53,7 +53,7 @@ type Section struct {
 }
 
 /**
- * @brief IP的区域信息
+ * IPConfig IP的区域信息
  */
 type IPConfig struct {
 	IP     uint32
@@ -65,7 +65,7 @@ type IPConfig struct {
 }
 
 /**
- * @brief sid信息
+ * Sid sid信息
  */
 type Sid struct {
 	ModID uint32
@@ -73,7 +73,7 @@ type Sid struct {
 }
 
 /**
- * @brief 被调信息，对应t_server+t_ip_config
+ * Callee 被调信息，对应t_server+t_ip_config
  */
 type Callee struct {
 	ModID    uint32
@@ -89,7 +89,7 @@ type Callee struct {
 }
 
 /**
- * @brief sid信息，对应t_sid表
+ *SidConfig sid信息，对应t_sid表
  */
 type SidConfig struct {
 	ModID  uint32
