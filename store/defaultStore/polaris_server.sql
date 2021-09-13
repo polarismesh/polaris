@@ -220,6 +220,17 @@ CREATE TABLE `service` (
 -- --------------------------------------------------------
 
 --
+-- 转存表中的数据 `service`
+--
+
+INSERT INTO `service` (`id`, `name`, `namespace`, `comment`, `token`, `revision`, `owner`, `flag`, `ctime`, `mtime`) VALUES
+('5d0e7ed4c771483a88541529333127c0', 'polaris.discover', 'Polaris', 'polaris discover service', '40c3acb5dbc6472982fbe91b011eddc0', '1c9b5059adf04f709370a827d3fa5290', 'polaris', 0, '2021-09-06 07:55:07', '2021-09-06 07:55:07'),
+('fe7cac0a2fb84fce85940125c9c5a32f', 'polaris.healthcheck', 'Polaris', 'polaris healthcheck service', '40c3acb5dbc6472982fbe91b011eddc0', '3fa6ef85feba48a48c6acc091a1d8e9e', 'polaris', 0, '2021-09-06 07:55:07', '2021-09-06 07:55:09'),
+('3987abdde91e4f19b482b40a2c5e66bd', 'polaris.redis', 'Polaris', 'polaris redis service', '1d622250c8cd49e996522bdf16b4eaf8', 'e0d3293b5f3749818358033f1c879a62', 'polaris', 0, '2021-09-06 07:55:07', '2021-09-06 07:55:10');
+
+-- --------------------------------------------------------
+
+--
 -- 表的结构 `service_metadata`
 --
 
