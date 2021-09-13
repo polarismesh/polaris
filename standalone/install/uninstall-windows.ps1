@@ -56,7 +56,7 @@ function uninstallPrometheus {
         if($_.name -eq "prometheus"){
             $process_pid = $_.Id
             Write-Output "start to kill prometheus process $process_pid"
-            Stop-Process -Id $process_pid -Force
+            Stop-Process -Id $process_pid
         }
     }
     $target_prometheus_pkg =  (Get-ChildItem "prometheus-*.zip")[0].Name
@@ -75,7 +75,7 @@ function uninstallPushGateway {
         if($_.name -eq "pushgateway"){
             $process_pid = $_.Id
             Write-Output "start to kill pushgateway process $process_pid"
-            Stop-Process -Id $process_pid -Force
+            Stop-Process -Id $process_pid
         }
     }
     $target_pgw_pkg =  (Get-ChildItem "pushgateway-*.zip")[0].Name
