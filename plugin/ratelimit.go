@@ -18,11 +18,13 @@
 package plugin
 
 import (
-	"github.com/polarismesh/polaris-server/common/log"
 	"os"
 	"sync"
+
+	"github.com/polarismesh/polaris-server/common/log"
 )
 
+// RatelimitType rate limit type
 type RatelimitType int
 
 const (
@@ -39,6 +41,7 @@ const (
 	InstanceRatelimit
 )
 
+// RatelimitStr rate limit string map
 var RatelimitStr = map[RatelimitType]string{
 	IPRatelimit:       "ip-limit",
 	APIRatelimit:      "api-limit",
@@ -47,11 +50,11 @@ var RatelimitStr = map[RatelimitType]string{
 }
 
 var (
-	ratelimitOnce = sync.Once{}
+	rateLimitOnce = sync.Once{}
 )
 
 /**
- * @brief Ratelimit插件接口
+ * Ratelimit Ratelimit插件接口
  */
 type Ratelimit interface {
 	Plugin
@@ -63,7 +66,7 @@ type Ratelimit interface {
 }
 
 /**
- * @brief 获取RateLimit插件
+ * GetRatelimit 获取RateLimit插件
  */
 func GetRatelimit() Ratelimit {
 	c := &config.RateLimit
@@ -73,7 +76,7 @@ func GetRatelimit() Ratelimit {
 		return nil
 	}
 
-	ratelimitOnce.Do(func() {
+	rateLimitOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
 			log.Errorf("plugin init err: %s", err.Error())
 			os.Exit(-1)

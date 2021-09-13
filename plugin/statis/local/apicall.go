@@ -24,7 +24,7 @@ import (
 )
 
 /**
- * @brief 接口调用
+ * APICall 接口调用
  */
 type APICall struct {
 	api      string
@@ -33,7 +33,7 @@ type APICall struct {
 }
 
 /**
- * @brief 接口调用统计条目
+ * APICallStatisItem 接口调用统计条目
  */
 type APICallStatisItem struct {
 	api     string
@@ -45,7 +45,7 @@ type APICallStatisItem struct {
 }
 
 /**
- * @brief 接口调用统计
+ * APICallStatis 接口调用统计
  */
 type APICallStatis struct {
 	statis map[string]*APICallStatisItem

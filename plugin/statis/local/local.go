@@ -32,7 +32,7 @@ func init() {
 }
 
 /**
- * @brief 本地统计插件
+ * StatisWorker 本地统计插件
  */
 type StatisWorker struct {
 	interval time.Duration
@@ -42,14 +42,14 @@ type StatisWorker struct {
 }
 
 /**
- * @brief 获取统计插件名称
+ * Name 获取统计插件名称
  */
 func (s *StatisWorker) Name() string {
 	return "local"
 }
 
 /**
- * @brief 初始化统计插件
+ * Initialize 初始化统计插件
  */
 func (s *StatisWorker) Initialize(conf *plugin.ConfigEntry) error {
 	// 设置统计打印周期
@@ -71,14 +71,14 @@ func (s *StatisWorker) Initialize(conf *plugin.ConfigEntry) error {
 }
 
 /**
- * @brief 销毁统计插件
+ * Destroy 销毁统计插件
  */
 func (s *StatisWorker) Destroy() error {
 	return nil
 }
 
 /**
- * @brief 上报请求
+ * AddAPICall 上报请求
  */
 func (s *StatisWorker) AddAPICall(api string, code int, duration int64) error {
 	s.acc <- &APICall{
@@ -91,7 +91,7 @@ func (s *StatisWorker) AddAPICall(api string, code int, duration int64) error {
 }
 
 /**
- * @brief 主流程
+ * Run 主流程
  */
 func (s *StatisWorker) Run() {
 	ticker := time.NewTicker(s.interval)

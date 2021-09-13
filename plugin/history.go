@@ -18,10 +18,11 @@
 package plugin
 
 import (
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/model"
 	"os"
 	"sync"
+
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 var (
@@ -29,13 +30,13 @@ var (
 	historyOnce = &sync.Once{}
 )
 
-// 历史记录插件
+// History 历史记录插件
 type History interface {
 	Plugin
 	Record(entry *model.RecordEntry)
 }
 
-// 获取历史记录插件
+// GetHistory 获取历史记录插件
 func GetHistory() History {
 	c := &config.History
 	plugin, exist := pluginSet[c.Name]

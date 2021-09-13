@@ -29,7 +29,7 @@ var (
 )
 
 /**
- * @brief 注册插件
+ * RegisterPlugin 注册插件
  */
 func RegisterPlugin(name string, plugin Plugin) {
 	if _, exist := pluginSet[name]; exist {
@@ -40,14 +40,14 @@ func RegisterPlugin(name string, plugin Plugin) {
 }
 
 /**
- * @brief 设置插件配置
+ * SetPluginConfig 设置插件配置
  */
 func SetPluginConfig(c *Config) {
 	config = c
 }
 
 /**
- * @brief 通用插件接口
+ * Plugin 通用插件接口
  */
 type Plugin interface {
 	Name() string
@@ -56,7 +56,7 @@ type Plugin interface {
 }
 
 /**
- * @brief 单个插件配置
+ * ConfigEntry 单个插件配置
  */
 type ConfigEntry struct {
 	Name   string                 `yaml:"name"`
@@ -64,7 +64,7 @@ type ConfigEntry struct {
 }
 
 /**
- * @brief 插件配置
+ * Config 插件配置
  */
 type Config struct {
 	CMDB                 ConfigEntry `yaml:"cmdb"`

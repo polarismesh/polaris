@@ -18,10 +18,11 @@
 package plugin
 
 import (
-	"github.com/polarismesh/polaris-server/common/log"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/polarismesh/polaris-server/common/log"
 )
 
 var (
@@ -29,7 +30,7 @@ var (
 )
 
 /**
- * @brief 服务发现统计插件接口
+ * DiscoverStatis 服务发现统计插件接口
  */
 type DiscoverStatis interface {
 	Plugin
@@ -38,7 +39,7 @@ type DiscoverStatis interface {
 }
 
 /**
- * @brief 获取服务发现统计插件
+ * GetDiscoverStatis 获取服务发现统计插件
  */
 func GetDiscoverStatis() DiscoverStatis {
 	c := &config.DiscoverStatis

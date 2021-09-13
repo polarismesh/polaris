@@ -18,9 +18,10 @@
 package lrurate
 
 import (
-	"github.com/hashicorp/golang-lru"
-	"golang.org/x/time/rate"
 	"hash/crc32"
+
+	lru "github.com/hashicorp/golang-lru"
+	"golang.org/x/time/rate"
 )
 
 var (
@@ -32,12 +33,12 @@ var (
 func initEnv() error {
 	var err error
 
-	ipLruCache, err = lru.New(ratelimitIPLruSize)
+	ipLruCache, err = lru.New(rateLimitIPLruSize)
 	if err != nil {
 		return err
 	}
 
-	serviceLruCache, err = lru.New(ratelimitServiceLruSize)
+	serviceLruCache, err = lru.New(rateLimitServiceLruSize)
 	if err != nil {
 		return err
 	}
@@ -54,7 +55,7 @@ func hash(str string) uint32 {
 func allowIP(id string) bool {
 	key := hash(id)
 
-	ipLruCache.ContainsOrAdd(key, rate.NewLimiter(rate.Limit(ratelimitIPRate), ratelimitIPBurst))
+	ipLruCache.ContainsOrAdd(key, rate.NewLimiter(rate.Limit(rateLimitIPRate), rateLimitIPBurst))
 
 	value, ok := ipLruCache.Get(key)
 	if ok {
@@ -68,7 +69,7 @@ func allowIP(id string) bool {
 func allowService(id string) bool {
 	key := hash(id)
 
-	serviceLruCache.ContainsOrAdd(key, rate.NewLimiter(rate.Limit(ratelimitServiceRate), ratelimitServiceBurst))
+	serviceLruCache.ContainsOrAdd(key, rate.NewLimiter(rate.Limit(rateLimitServiceRate), rateLimitServiceBurst))
 
 	value, ok := serviceLruCache.Get(key)
 	if ok {
