@@ -315,24 +315,6 @@ func matchObject(bucket *bolt.Bucket,
 	return filter(fieldValues), nil
 }
 
-type HandlerTx struct {
-	tx *bolt.Tx
-	handler BoltHandler
-}
-
-func (tx *HandlerTx) LoadValue(typ string, keys []string, typObject interface{}) (map[string]interface{}, error) {
-	var values = make(map[string]interface{})
-	if len(keys) == 0 {
-		return values, nil
-	}
-	err := loadValues(tx.tx, typ, keys, typObject, values)
-	return values, err
-}
-
-func (tx *HandlerTx) SaveValue()  {
-
-}
-
 // IterateFields 遍历所有的数对象
 func (b *boltHandler) IterateFields(typ string, field string, typObject interface{}, filter func(interface{})) error {
 	if nil == filter {
