@@ -17,17 +17,18 @@ $ErrorActionPreference = "Stop"
 
 function uninstallPolarisServer {
     Write-Output "uninstall polaris server ... "
+    Get-Process | ForEach-Object($_.name) {
+        if($_.name -eq "polaris-server") {
+            $process_pid = $_.Id
+            Write-Output "start to kill polaris-server process $process_pid"
+            Stop-Process -Id $process_pid
+            Start-Sleep -Seconds 2
+        }
+    }
     $target_polaris_server_pkg = (Get-ChildItem "polaris-server-release*.zip")[0].Name
     $polaris_server_dirname = ([io.fileinfo]$target_polaris_server_pkg).basename
     $exists = (Test-Path ".\\$polaris_server_dirname")
-    Write-Output "exists $exists"
     if ($exists) {
-        Push-Location $polaris_server_dirname/tool
-        Write-Output "start to execute polaris-server uninstall script"
-        Start-Process -FilePath ".\\stop.bat" -NoNewWindow -Wait
-        Pop-Location
-        $cur_path=(Get-Location)
-        Write-Output "cur path is $cur_path"
         Write-Output "start to remove $polaris_server_dirname"
         Remove-Item ".\\${polaris_server_dirname}" -Recurse
     }
@@ -35,17 +36,21 @@ function uninstallPolarisServer {
 }
 
 function uninstallPolarisConsole {
-    Write-Output "uninstall polaris console ... "
+    Write-Output "uninstall polaris-console ... "
+    Get-Process | ForEach-Object($_.name) {
+        if($_.name -eq "polaris-console") {
+            $process_pid = $_.Id
+            Write-Output "start to kill polaris-console process $process_pid"
+            Stop-Process -Id $process_pid
+            Start-Sleep -Seconds 2
+        }
+    }
     $target_polaris_console_pkg =  (Get-ChildItem "polaris-console-release*.zip")[0].Name
     $polaris_console_dirname = ([io.fileinfo]$target_polaris_console_pkg).basename
     $exists = (Test-Path $polaris_console_dirname)
     if ($exists) {
-        Push-Location $polaris_console_dirname/tool
-        Write-Output "start to execute polaris-console uninstall script"
-        Start-Process -FilePath ".\\stop.bat" -NoNewWindow -Wait
-        Pop-Location
         Write-Output "start to remove $polaris_console_dirname"
-        Remove-Item ${polaris_console_dirname} -Recurse
+        Remove-Item ".\\${polaris_console_dirname}" -Recurse
     }
     Write-Output "uninstall polaris console success"
 }
@@ -53,18 +58,19 @@ function uninstallPolarisConsole {
 function uninstallPrometheus {
     Write-Output "uninstall prometheus ... "
     Get-Process | ForEach-Object($_.name) {
-        if($_.name -eq "prometheus"){
+        if($_.name -eq "prometheus") {
             $process_pid = $_.Id
             Write-Output "start to kill prometheus process $process_pid"
             Stop-Process -Id $process_pid
+            Start-Sleep -Seconds 2
         }
     }
     $target_prometheus_pkg =  (Get-ChildItem "prometheus-*.zip")[0].Name
     $prometheus_dirname = ([io.fileinfo]$target_prometheus_pkg).basename
     $exists = (Test-Path $prometheus_dirname)
     if ($exists) {
-        Start-Sleep -Seconds 2
-        Remove-Item ${prometheus_dirname} -Recurse
+        Write-Output "start to remove $prometheus_dirname"
+        Remove-Item ".\\${prometheus_dirname}" -Recurse
     }
     Write-Output "uninstall prometheus success"
 }
@@ -72,18 +78,19 @@ function uninstallPrometheus {
 function uninstallPushGateway {
     Write-Output "uninstall pushgateway ... "
     Get-Process | ForEach-Object($_.name) {
-        if($_.name -eq "pushgateway"){
+        if($_.name -eq "pushgateway") {
             $process_pid = $_.Id
             Write-Output "start to kill pushgateway process $process_pid"
             Stop-Process -Id $process_pid
+            Start-Sleep -Seconds 2
         }
     }
     $target_pgw_pkg =  (Get-ChildItem "pushgateway-*.zip")[0].Name
     $pgw_dirname = ([io.fileinfo]$target_pgw_pkg).basename
     $exists = (Test-Path $pgw_dirname)
     if ($exists) {
-        Start-Sleep -Seconds 2
-        Remove-Item ${pgw_dirname} -Recurse
+        Write-Output "start to remove $pgw_dirname"
+        Remove-Item ".\\${pgw_dirname}" -Recurse
         return
     }
     Write-Output "uninstall pushgateway success"
