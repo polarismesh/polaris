@@ -38,7 +38,7 @@ jobs:
         run: |
           set -e
           cd standalone
-          POLARIS_GIT_PATH=https://github.com/andrewshan
+          POLARIS_GIT_PATH=https://github.com/polarismesh
           DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}.${GOARCH}
           mkdir ${DIR_NAME}
           pushd ${DIR_NAME}
