@@ -19,3 +19,5 @@ powershell -c "Set-ExecutionPolicy RemoteSigned"
 echo allowed to use powershell
 powershell -File %CURRENT_DIR%\uninstall-windows.ps1
 endlocal
+
+pause
