@@ -17,7 +17,6 @@
 
 function uninstallPolarisServer() {
   echo -e "uninstall polaris server ... "
-  local target_polaris_server_pkg=$(find . -name "polaris-server-release*.zip")
   local polaris_server_dirname=$(find . -name "polaris-server-release*" -type d | awk 'NR==1{print}')
   if [ ! -e ${polaris_server_dirname} ]; then
      echo -e "${polaris_server_dirname} not exists, skip"
@@ -29,13 +28,11 @@ function uninstallPolarisServer() {
   popd
   echo -e "start to remove ${polaris_server_dirname}"
   rm -rf ${polaris_server_dirname}
-  rm ${target_polaris_server_pkg}
   echo -e "uninstall polaris server success"
 }
 
 function uninstallPolarisConsole() {
   echo -e "uninstall polaris console ... "
-  local target_polaris_console_pkg=$(find . -name "polaris-console-release*.zip")
   local polaris_console_dirname=$(find . -name "polaris-console-release*" -type d | awk 'NR==1{print}')
   if [ ! -e ${polaris_console_dirname} ]; then
      echo -e "${polaris_console_dirname} not exists, skip"
@@ -47,14 +44,12 @@ function uninstallPolarisConsole() {
   popd
   echo -e "start to remove ${polaris_console_dirname}"
   rm -rf ${polaris_console_dirname}
-  rm -rf ${target_polaris_console_pkg}
   echo -e "uninstall polaris console success"
 }
 
 function uninstallPrometheus() {
   echo -e "uninstall prometheus ... "
   local pid=$(ps -ef | grep prometheus | grep -v grep | awk '{print $2}')
-  local target_prometheus_pkg=$(find . -name "prometheus-*.tar.gz")
   if [ "${pid}" != "" ]; then
     echo -e "start to kill prometheus process ${pid}"
     kill ${pid}
@@ -63,7 +58,6 @@ function uninstallPrometheus() {
   if [ -e ${prometheus_dirname} ]; then
     echo -e "start to remove ${prometheus_dirname}"
     rm -rf ${prometheus_dirname}
-    rm ${target_prometheus_pkg}
   fi
   echo -e "uninstall prometheus success"
 }
@@ -71,7 +65,6 @@ function uninstallPrometheus() {
 function uninstallPushGateway() {
   echo -e "uninstall pushgateway ... "
   local pid=$(ps -ef | grep pushgateway | grep -v grep | awk '{print $2}')
-  local target_pgw_pkg=$(find . -name "pushgateway-*.tar.gz")
   if [ "${pid}" != "" ]; then
     echo -e "start to kill pushgateway process ${pid}"
     kill ${pid}
@@ -80,7 +73,6 @@ function uninstallPushGateway() {
   if [ -e ${pushgateway_dirname} ]; then
     echo -e "start to remove ${pushgateway_dirname}"
     rm -rf ${pushgateway_dirname}
-    rm ${target_pgw_pkg}
   fi
   echo -e "uninstall pushgateway success"
 }
