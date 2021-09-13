@@ -85,16 +85,19 @@ function installPrometheus() {
   if [ -e ${prometheus_dirname} ]
   then
     echo -e "${prometheus_dirname} has exists, now remove it"
-    rm -rf ${prometheus_dirname}
+  else
+    tar -xf ${target_prometheus_pkg}
   fi
-  tar -xf ${target_prometheus_pkg}
 
   pushd ${prometheus_dirname}
+  local push_count=$(cat prometheus.yml | grep "push-metrics" | wc -l)
+  if [ $push_count -eq 0 ];then
   echo "" >> prometheus.yml
   echo "  - job_name: 'push-metrics'" >> prometheus.yml
   echo "    static_configs:" >> prometheus.yml
   echo "    - targets: ['localhost:9091']" >> prometheus.yml
   echo "    honor_labels: true" >> prometheus.yml
+  fi
   nohup ./prometheus --web.enable-lifecycle --web.enable-admin-api >> prometheus.out 2>&1 &
   echo "install prometheus success"
   popd
@@ -116,12 +119,12 @@ function installPushGateway() {
 
   local target_pgw_pkg=$(find . -name "pushgateway-*.tar.gz")
   local pgw_dirname=$(basename ${target_pgw_pkg} .tar.gz)
- if [ -e ${pgw_dirname} ]
+  if [ -e ${pgw_dirname} ]
   then
     echo -e "${pgw_dirname} has exists, now remove it"
-    rm -rf ${pgw_dirname}
+  else
+    tar -xf ${target_pgw_pkg}
   fi
-  tar -xf ${target_pgw_pkg}
 
   pushd ${pgw_dirname}
   nohup ./pushgateway --web.enable-lifecycle --web.enable-admin-api >> pgw.out 2>&1 &
