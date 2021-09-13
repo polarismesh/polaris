@@ -68,63 +68,65 @@ function installPolarisConsole() {
 function installPrometheus() {
   echo -e "install prometheus ... "
   local prometheus_num=$(ps -ef | grep prometheus | grep -v grep | wc -l)
-  if [ $prometheus_num -ge 1 ]; then
-    echo -e "prometheus is running, skip."
-    return
+  if [ ${prometheus_num} -ge 1 ]
+  then
+    echo -e "prometheus is running, exit"
+    return 1
   fi
 
-  local target_prometheus="prometheus-2.28.0.darwin-amd64.tar.gz"
-  local target_prometheus_dir="prometheus-2.28.0.darwin-amd64"
-  if [[ "$UNAME_MACHINE" == "arm64" ]]; then
-    target_prometheus="prometheus-2.28.0.darwin-arm64.tar.gz"
-    target_prometheus_dir="prometheus-2.28.0.darwin-arm64"
-  fi
-
-  if [ ! -f $target_prometheus ]; then
-    echo "file ${target_prometheus} not exists, exit."
-  fi
-
-  tar -xf $target_prometheus
-  cd ${target_prometheus_dir} || (
-    echo "not such directory ${target_prometheus_dir}"
+  local prometheus_pkg_num=$(find . -name "prometheus-*.tar.gz" | wc -l)
+  if [ ${prometheus_pkg_num} != 1 ]; then
+    echo -e "number of prometheus package not equals to 1, exit"
     exit 1
-  )
-  echo "" >>prometheus.yml
-  echo "  - job_name: 'push-metrics'" >>prometheus.yml
-  echo "    static_configs:" >>prometheus.yml
-  echo "    - targets: ['localhost:9091']" >>prometheus.yml
-  echo "    honor_labels: true" >>prometheus.yml
-  nohup ./prometheus --web.enable-lifecycle --web.enable-admin-api >>prometheus.out 2>&1 &
+  fi
 
-  echo "install prometheus success."
-  cd ${install_path} || (echo "no such directory ${install_path}"; exit 1)
+  local target_prometheus_pkg=$(find . -name "prometheus-*.tar.gz")
+  local prometheus_dirname=$(basename ${target_prometheus_pkg} .tar.gz)
+  if [ -e ${prometheus_dirname} ]
+  then
+    echo -e "${prometheus_dirname} has exists, now remove it"
+    rm -rf ${prometheus_dirname}
+  fi
+  tar -xf ${target_prometheus_pkg}
+
+  pushd ${prometheus_dirname}
+  echo "" >> prometheus.yml
+  echo "  - job_name: 'push-metrics'" >> prometheus.yml
+  echo "    static_configs:" >> prometheus.yml
+  echo "    - targets: ['localhost:9091']" >> prometheus.yml
+  echo "    honor_labels: true" >> prometheus.yml
+  nohup ./prometheus --web.enable-lifecycle --web.enable-admin-api >> prometheus.out 2>&1 &
+  echo "install prometheus success"
+  popd
 }
 
 function installPushGateway() {
   echo -e "install pushgateway ... "
   local pgw_num=$(ps -ef | grep pushgateway | grep -v grep | wc -l)
   if [ $pgw_num -ge 1 ]; then
-    echo -e "pushgateway is running, skip."
-    return
+    echo -e "pushgateway is running, exit"
+    return 1
   fi
 
-  local target_pgw="pushgateway-1.4.1.darwin-amd64.tar.gz"
-  local target_pgw_dir="pushgateway-1.4.1.darwin-amd64"
-  if [[ "$UNAME_MACHINE" == "arm64" ]]; then
-    target_pgw="pushgateway-1.4.1.darwin-arm64.tar.gz"
-    target_pgw_dir="pushgateway-1.4.1.darwin-arm64"
+  local pgw_pkg_num=$(find . -name "pushgateway-*.tar.gz" | wc -l)
+  if [ $pgw_pkg_num != 1 ]; then
+    echo -e "number of pushgateway package not equals to 1, exit"
+    exit 1
   fi
 
-  if [ ! -f "$target_pgw" ]; then
-    echo "file ${target_pgw} not exists, exit."
+  local target_pgw_pkg=$(find . -name "pushgateway-*.tar.gz")
+  local pgw_dirname=$(basename ${target_pgw_pkg} .tar.gz)
+ if [ -e ${pgw_dirname} ]
+  then
+    echo -e "${pgw_dirname} has exists, now remove it"
+    rm -rf ${pgw_dirname}
   fi
+  tar -xf ${target_pgw_pkg}
 
-  tar -xf $target_pgw
-  cd ${target_pgw_dir} || (echo "not such directory ${target_pgw_dir}"; exit 1)
-  nohup ./pushgateway --web.enable-lifecycle --web.enable-admin-api >>pgw.out 2>&1 &
-
-  echo "install pushgateway success."
-  cd ${install_path} || (echo "no such directory ${install_path}"; exit 1)
+  pushd ${pgw_dirname}
+  nohup ./pushgateway --web.enable-lifecycle --web.enable-admin-api >> pgw.out 2>&1 &
+  echo "install pushgateway success"
+  popd
 }
 
 function checkPort() {

@@ -15,14 +15,19 @@ bootstrap:
   polaris_service:
 #    probe_address: ##DB_ADDR##
     enable_register: false
-    isolated: true
+    isolated: false
     services:
-      - name: polaris-server
+      - name: polaris.discover
         namespace: Polaris
         protocols:
           - grpcserver
           - httpserver
           - l5pbserver
+      - name: polaris.healthcheck
+        namespace: Polaris
+        protocols:
+          - grpcserver
+          - httpserver
 # apiserver配置
 apiservers:
   - name: httpserver # 协议名，全局唯一
@@ -73,9 +78,9 @@ naming:
   healthcheck:
     open: true
 #    kvConnNum: 50
-#    kvServiceName: polarisHeartbeatCkv
+#    kvServiceName: polaris.redis
 #    kvNamespace: Polaris
-#    kvPasswd: polaris@2021
+#    kvPasswd: ##REDIS_PWD##
     slotNum: 30
     maxIdle: 20
     idleTimeout: 120
