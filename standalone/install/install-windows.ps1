@@ -19,8 +19,8 @@ function installPolarisServer() {
     Write-Output "install polaris server ... "
     $polaris_server_num = (Get-Process | findstr "polaris-server" | Measure-Object -Line).Lines
     if ($polaris_server_num -gt 0) {
-        Write-Output "polaris-server is running, exit"
-        exit -1
+        Write-Output "polaris-server is running, skip"
+        return
     }
     $polaris_server_pkg_num = (Get-ChildItem "polaris-server-release*.zip" | Measure-Object -Line).Lines
     if ($polaris_server_pkg_num -ne 1) {
@@ -45,8 +45,8 @@ function installPolarisConsole() {
     Write-Output "install polaris console ... "
     $polaris_console_num = (Get-Process | findstr "polaris-console" | Measure-Object -Line).Lines
     if ($polaris_console_num -gt 0) {
-        Write-Output "polaris-console is running, exit"
-        exit -1
+        Write-Output "polaris-console is running, skip"
+        return
     }
     $polaris_console_pkg_num = (Get-ChildItem "polaris-console-release*.zip" | Measure-Object -Line).Lines
     if ($polaris_console_pkg_num -ne 1) {
@@ -70,8 +70,8 @@ function installPrometheus() {
     Write-Output "install prometheus ... "
     $prometheus_num = (Get-Process | findstr "prometheus" | Measure-Object -Line).Lines
     if ($prometheus_num -gt 0) {
-        Write-Output "prometheus is running, exit"
-        exit -1
+        Write-Output "prometheus is running, skip"
+        return
     }
     $prometheus_pkg_num = (Get-ChildItem "prometheus-*.zip" | Measure-Object -Line).Lines
     if ($prometheus_pkg_num -ne 1) {
@@ -100,8 +100,8 @@ function installPushGateway() {
     Write-Output "install pushgateway ... "
     $pgw_num = (Get-Process | findstr "pushgateway" | Measure-Object -Line).Lines
     if ($pgw_num -gt 0) {
-        Write-Output "pushgateway is running, exit"
-        exit -1
+        Write-Output "pushgateway is running, skip"
+        return
     }
     $pgw_pkg_num = (Get-ChildItem "pushgateway-*.zip" | Measure-Object -Line).Lines
     if ($pgw_pkg_num -ne 1) {
