@@ -20,16 +20,17 @@ package naming
 import (
 	"context"
 	"fmt"
+	"time"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"go.uber.org/zap"
-	"time"
 )
 
 /**
- * @brief 批量创建命名空间
+ * CreateNamespaces 批量创建命名空间
  */
 func (s *Server) CreateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
 	if checkError := checkBatchNamespace(req); checkError != nil {
@@ -46,7 +47,7 @@ func (s *Server) CreateNamespaces(ctx context.Context, req []*api.Namespace) *ap
 }
 
 /**
- * @brief 创建单个命名空间
+ * CreateNamespace 创建单个命名空间
  */
 func (s *Server) CreateNamespace(ctx context.Context, req *api.Namespace) *api.Response {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
@@ -104,7 +105,7 @@ func (s *Server) createNamespaceModel(req *api.Namespace) *model.Namespace {
 }
 
 /**
- * @brief 批量删除命名空间
+ * DeleteNamespaces 批量删除命名空间
  */
 func (s *Server) DeleteNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
 	if checkError := checkBatchNamespace(req); checkError != nil {
@@ -121,7 +122,7 @@ func (s *Server) DeleteNamespaces(ctx context.Context, req []*api.Namespace) *ap
 }
 
 /**
- * @brief 删除单个命名空间
+ * DeleteNamespace 删除单个命名空间
  */
 func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.Response {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
@@ -193,7 +194,7 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 }
 
 /**
- * @brief 批量修改命名空间
+ * UpdateNamespaces 批量修改命名空间
  */
 func (s *Server) UpdateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
 	if checkError := checkBatchNamespace(req); checkError != nil {
@@ -210,7 +211,7 @@ func (s *Server) UpdateNamespaces(ctx context.Context, req []*api.Namespace) *ap
 }
 
 /**
- * @brief 修改单个命名空间
+ * UpdateNamespace 修改单个命名空间
  */
 func (s *Server) UpdateNamespace(ctx context.Context, req *api.Namespace) *api.Response {
 	// 参数检查
@@ -255,7 +256,7 @@ func (s *Server) updateNamespaceAttribute(req *api.Namespace, namespace *model.N
 }
 
 /**
- * @brief 更新命名空间token
+ * UpdateNamespaceToken 更新命名空间token
  */
 func (s *Server) UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response {
 	if resp := checkReviseNamespace(ctx, req); resp != nil {
@@ -289,7 +290,7 @@ func (s *Server) UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *
 }
 
 /**
- * @brief 查询命名空间
+ * GetNamespaces 查询命名空间
  */
 func (s *Server) GetNamespaces(query map[string][]string) *api.BatchQueryResponse {
 	filter, offset, limit, checkError := checkGetNamespace(query)
@@ -318,7 +319,7 @@ func (s *Server) GetNamespaces(query map[string][]string) *api.BatchQueryRespons
 	return out
 }
 
-// 获取命名空间的token
+// GetNamespaceToken 获取命名空间的token
 func (s *Server) GetNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response {
 	if resp := checkReviseNamespace(ctx, req); resp != nil {
 		return resp
@@ -329,7 +330,7 @@ func (s *Server) GetNamespaceToken(ctx context.Context, req *api.Namespace) *api
 		return resp
 	}
 
-	//s.RecordHistory(namespaceRecordEntry(ctx, req, model.OGetToken))
+	// s.RecordHistory(namespaceRecordEntry(ctx, req, model.OGetToken))
 	// 构造返回数据
 	out := &api.Namespace{
 		Name:  req.GetName(),

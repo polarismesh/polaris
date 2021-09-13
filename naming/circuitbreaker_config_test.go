@@ -19,11 +19,12 @@ package naming
 
 import (
 	"fmt"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"testing"
+
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"testing"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 func TestServer_CreateCircuitBreakerJson(t *testing.T) {
@@ -38,12 +39,12 @@ func TestServer_CreateCircuitBreakerJson(t *testing.T) {
 		{
 			Sources: []*api.SourceMatcher{
 				{
-					Service: &wrappers.StringValue{Value: "*"},
+					Service:   &wrappers.StringValue{Value: "*"},
 					Namespace: &wrappers.StringValue{Value: "*"},
 					Labels: map[string]*api.MatchString{
 						"user": &api.MatchString{
-							Type:                 0,
-							Value:                &wrappers.StringValue{Value: "vip"},
+							Type:  0,
+							Value: &wrappers.StringValue{Value: "vip"},
 						},
 					},
 				},
@@ -51,33 +52,33 @@ func TestServer_CreateCircuitBreakerJson(t *testing.T) {
 			Destinations: []*api.DestinationSet{
 				{
 					Method: &api.MatchString{
-						Type:                 0,
-						Value:                &wrappers.StringValue{Value: "/info"},
+						Type:  0,
+						Value: &wrappers.StringValue{Value: "/info"},
 					},
 					Resource: api.DestinationSet_INSTANCE,
-					Type: api.DestinationSet_LOCAL,
-					Scope: api.DestinationSet_CURRENT,
+					Type:     api.DestinationSet_LOCAL,
+					Scope:    api.DestinationSet_CURRENT,
 					Policy: &api.CbPolicy{
 						ErrorRate: &api.CbPolicy_ErrRateConfig{
-							Enable: &wrappers.BoolValue{Value: true},
+							Enable:                 &wrappers.BoolValue{Value: true},
 							RequestVolumeThreshold: &wrappers.UInt32Value{Value: 10},
-							ErrorRateToOpen: &wrappers.UInt32Value{Value: 50},
+							ErrorRateToOpen:        &wrappers.UInt32Value{Value: 50},
 						},
 						Consecutive: &api.CbPolicy_ConsecutiveErrConfig{
-							Enable:                      &wrappers.BoolValue{Value: true},
-							ConsecutiveErrorToOpen:      &wrappers.UInt32Value{Value: 10},
+							Enable:                 &wrappers.BoolValue{Value: true},
+							ConsecutiveErrorToOpen: &wrappers.UInt32Value{Value: 10},
 						},
 						SlowRate: &api.CbPolicy_SlowRateConfig{
-							Enable:               &wrappers.BoolValue{Value: true},
-							MaxRt:                &duration.Duration{Seconds: 1},
-							SlowRateToOpen:       &wrappers.UInt32Value{Value: 80},
+							Enable:         &wrappers.BoolValue{Value: true},
+							MaxRt:          &duration.Duration{Seconds: 1},
+							SlowRateToOpen: &wrappers.UInt32Value{Value: 80},
 						},
 					},
 					Recover: &api.RecoverConfig{
-						SleepWindow:               &duration.Duration{
+						SleepWindow: &duration.Duration{
 							Seconds: 1,
 						},
-						OutlierDetectWhen:         api.RecoverConfig_ON_RECOVER,
+						OutlierDetectWhen: api.RecoverConfig_ON_RECOVER,
 					},
 				},
 			},
@@ -89,8 +90,8 @@ func TestServer_CreateCircuitBreakerJson(t *testing.T) {
 				{
 					Labels: map[string]*api.MatchString{
 						"callerName": &api.MatchString{
-							Type:                 0,
-							Value:                &wrappers.StringValue{Value: "xyz"},
+							Type:  0,
+							Value: &wrappers.StringValue{Value: "xyz"},
 						},
 					},
 				},
@@ -98,35 +99,35 @@ func TestServer_CreateCircuitBreakerJson(t *testing.T) {
 			Destinations: []*api.DestinationSet{
 				{
 					Namespace: &wrappers.StringValue{Value: "Test"},
-					Service: &wrappers.StringValue{Value: "TestService1"},
+					Service:   &wrappers.StringValue{Value: "TestService1"},
 					Method: &api.MatchString{
-						Type:                 0,
-						Value:                &wrappers.StringValue{Value: "/info"},
+						Type:  0,
+						Value: &wrappers.StringValue{Value: "/info"},
 					},
 					Resource: api.DestinationSet_INSTANCE,
-					Type: api.DestinationSet_LOCAL,
-					Scope: api.DestinationSet_CURRENT,
+					Type:     api.DestinationSet_LOCAL,
+					Scope:    api.DestinationSet_CURRENT,
 					Policy: &api.CbPolicy{
 						ErrorRate: &api.CbPolicy_ErrRateConfig{
-							Enable: &wrappers.BoolValue{Value: true},
+							Enable:                 &wrappers.BoolValue{Value: true},
 							RequestVolumeThreshold: &wrappers.UInt32Value{Value: 10},
-							ErrorRateToOpen: &wrappers.UInt32Value{Value: 50},
+							ErrorRateToOpen:        &wrappers.UInt32Value{Value: 50},
 						},
 						Consecutive: &api.CbPolicy_ConsecutiveErrConfig{
-							Enable:                      &wrappers.BoolValue{Value: true},
-							ConsecutiveErrorToOpen:      &wrappers.UInt32Value{Value: 10},
+							Enable:                 &wrappers.BoolValue{Value: true},
+							ConsecutiveErrorToOpen: &wrappers.UInt32Value{Value: 10},
 						},
 						SlowRate: &api.CbPolicy_SlowRateConfig{
-							Enable:               &wrappers.BoolValue{Value: true},
-							MaxRt:                &duration.Duration{Seconds: 1},
-							SlowRateToOpen:       &wrappers.UInt32Value{Value: 80},
+							Enable:         &wrappers.BoolValue{Value: true},
+							MaxRt:          &duration.Duration{Seconds: 1},
+							SlowRateToOpen: &wrappers.UInt32Value{Value: 80},
 						},
 					},
 					Recover: &api.RecoverConfig{
-						SleepWindow:               &duration.Duration{
+						SleepWindow: &duration.Duration{
 							Seconds: 1,
 						},
-						OutlierDetectWhen:         api.RecoverConfig_ON_RECOVER,
+						OutlierDetectWhen: api.RecoverConfig_ON_RECOVER,
 					},
 				},
 			},

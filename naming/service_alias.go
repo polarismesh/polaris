@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -30,6 +31,7 @@ import (
 )
 
 var (
+	// AliasFilterAttributes filer attrs alias
 	AliasFilterAttributes = map[string]bool{
 		"alias":     true,
 		"namespace": true,
@@ -40,7 +42,7 @@ var (
 	}
 )
 
-// 创建服务别名
+// CreateServiceAlias 创建服务别名
 func (s *Server) CreateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
 	if resp := checkServiceAliasReq(ctx, req); resp != nil {
 		return resp
@@ -104,7 +106,7 @@ func (s *Server) CreateServiceAlias(ctx context.Context, req *api.ServiceAlias) 
 }
 
 /**
- * @brief 创建服务别名
+ * CreateServiceAliasNoAuth 创建服务别名
  */
 func (s *Server) CreateServiceAliasNoAuth(ctx context.Context, req *api.ServiceAlias) *api.Response {
 	rid := ParseRequestID(ctx)
@@ -183,7 +185,7 @@ func (s *Server) checkPointServiceAlias(
 }
 
 /**
- * @brief 删除服务别名
+ * DeleteServiceAlias 删除服务别名
  * @note 需要带上源服务name，namespace，token
  * @note 另外一种删除别名的方式，是直接调用删除服务的接口，也是可行的
  */
@@ -218,7 +220,7 @@ func (s *Server) DeleteServiceAlias(ctx context.Context, req *api.ServiceAlias) 
 }
 
 /**
- * @brief 修改服务别名
+ * UpdateServiceAlias 修改服务别名
  */
 func (s *Server) UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
 	rid := ParseRequestID(ctx)
@@ -291,7 +293,7 @@ func (s *Server) UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) 
 }
 
 /**
- * @brief 查找服务别名
+ * GetServiceAliases 查找服务别名
  */
 func (s *Server) GetServiceAliases(query map[string]string) *api.BatchQueryResponse {
 	// 先处理offset和limit
@@ -439,8 +441,10 @@ func checkReviseServiceAliasReq(ctx context.Context, req *api.ServiceAlias) *api
  */
 func (s *Server) updateServiceAliasAttribute(req *api.ServiceAlias, alias *model.Service, serviceID string) (
 	*api.Response, bool, bool) {
-	needUpdate := false
-	needUpdateOwner := false
+	var (
+		needUpdate      bool
+		needUpdateOwner bool
+	)
 
 	// 获取当前指向服务
 	service, err := s.storage.GetServiceByID(alias.Reference)
@@ -535,7 +539,7 @@ func wrapperServiceAliasResponse(alias *api.ServiceAlias, err error) *api.Respon
 	return resp
 }
 
-// 检查DB中service表对应的入参字段合法性
+// CheckDbServiceAliasFieldLen 检查DB中service表对应的入参字段合法性
 func CheckDbServiceAliasFieldLen(req *api.ServiceAlias) (*api.Response, bool) {
 	if err := CheckDbStrFieldLen(req.GetService(), MaxDbServiceNameLength); err != nil {
 		return api.NewServiceAliasResponse(api.InvalidServiceName, req), true

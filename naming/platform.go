@@ -21,14 +21,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
+	"unicode/utf8"
+
 	"github.com/golang/protobuf/ptypes/wrappers"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"go.uber.org/zap"
-	"regexp"
-	"unicode/utf8"
 )
 
 var (
@@ -43,7 +44,7 @@ var (
 )
 
 /**
- * @brief 批量创建平台信息
+ * CreatePlatforms 批量创建平台信息
  */
 func (s *Server) CreatePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse {
 	if checkErr := checkBatchPlatform(req); checkErr != nil {
@@ -60,7 +61,7 @@ func (s *Server) CreatePlatforms(ctx context.Context, req []*api.Platform) *api.
 }
 
 /**
- * @brief 创建单个平台
+ * CreatePlatform 创建单个平台
  */
 func (s *Server) CreatePlatform(ctx context.Context, req *api.Platform) *api.Response {
 	requestID := ParseRequestID(ctx)
@@ -100,7 +101,7 @@ func (s *Server) CreatePlatform(ctx context.Context, req *api.Platform) *api.Res
 }
 
 /**
- * @brief 批量修改平台
+ * UpdatePlatforms 批量修改平台
  */
 func (s *Server) UpdatePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse {
 	if checkErr := checkBatchPlatform(req); checkErr != nil {
@@ -117,7 +118,7 @@ func (s *Server) UpdatePlatforms(ctx context.Context, req []*api.Platform) *api.
 }
 
 /**
- * @brief 修改平台信息
+ * UpdatePlatform 修改平台信息
  */
 func (s *Server) UpdatePlatform(ctx context.Context, req *api.Platform) *api.Response {
 	requestID := ParseRequestID(ctx)
@@ -158,7 +159,7 @@ func (s *Server) UpdatePlatform(ctx context.Context, req *api.Platform) *api.Res
 }
 
 /**
- * @brief 批量删除平台信息
+ * DeletePlatforms 批量删除平台信息
  */
 func (s *Server) DeletePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse {
 	if checkErr := checkBatchPlatform(req); checkErr != nil {
@@ -175,7 +176,7 @@ func (s *Server) DeletePlatforms(ctx context.Context, req []*api.Platform) *api.
 }
 
 /**
- * @brief 删除平台信息
+ * DeletePlatform 删除平台信息
  */
 func (s *Server) DeletePlatform(ctx context.Context, req *api.Platform) *api.Response {
 	requestID := ParseRequestID(ctx)
@@ -208,7 +209,7 @@ func (s *Server) DeletePlatform(ctx context.Context, req *api.Platform) *api.Res
 }
 
 /**
- * @brief 查询平台信息
+ * GetPlatforms 查询平台信息
  */
 func (s *Server) GetPlatforms(query map[string]string) *api.BatchQueryResponse {
 	for key := range query {
@@ -238,7 +239,7 @@ func (s *Server) GetPlatforms(query map[string]string) *api.BatchQueryResponse {
 }
 
 /**
- * @brief 查询平台Token
+ * GetPlatformToken 查询平台Token
  */
 func (s *Server) GetPlatformToken(ctx context.Context, req *api.Platform) *api.Response {
 	// 参数检查

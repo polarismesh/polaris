@@ -21,15 +21,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
+	"github.com/golang/protobuf/ptypes"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/golang/protobuf/ptypes"
-	"time"
 )
 
 var (
+	// RateLimitFilters rate limit filters
 	RateLimitFilters = map[string]bool{
 		"service":   true,
 		"namespace": true,
@@ -40,7 +42,7 @@ var (
 )
 
 /**
- * @brief 批量创建限流规则
+ * CreateRateLimits 批量创建限流规则
  */
 func (s *Server) CreateRateLimits(ctx context.Context, request []*api.Rule) *api.BatchWriteResponse {
 	if err := checkBatchRateLimits(request); err != nil {
@@ -56,7 +58,7 @@ func (s *Server) CreateRateLimits(ctx context.Context, request []*api.Rule) *api
 }
 
 /**
- * @brief 创建限流规则
+ * CreateRateLimit 创建限流规则
  */
 func (s *Server) CreateRateLimit(ctx context.Context, req *api.Rule) *api.Response {
 	requestID := ParseRequestID(ctx)
@@ -124,7 +126,7 @@ func (s *Server) CreateRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 }
 
 /**
- * @brief 批量删除限流规则
+ * DeleteRateLimits 批量删除限流规则
  */
 func (s *Server) DeleteRateLimits(ctx context.Context, request []*api.Rule) *api.BatchWriteResponse {
 	if err := checkBatchRateLimits(request); err != nil {
@@ -140,7 +142,7 @@ func (s *Server) DeleteRateLimits(ctx context.Context, request []*api.Rule) *api
 }
 
 /**
- * @brief 删除单个限流规则
+ * DeleteRateLimit 删除单个限流规则
  */
 func (s *Server) DeleteRateLimit(ctx context.Context, req *api.Rule) *api.Response {
 	requestID := ParseRequestID(ctx)
@@ -184,7 +186,7 @@ func (s *Server) DeleteRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 }
 
 /**
- * @brief 批量更新限流规则
+ * UpdateRateLimits 批量更新限流规则
  */
 func (s *Server) UpdateRateLimits(ctx context.Context, request []*api.Rule) *api.BatchWriteResponse {
 	if err := checkBatchRateLimits(request); err != nil {
@@ -200,7 +202,7 @@ func (s *Server) UpdateRateLimits(ctx context.Context, request []*api.Rule) *api
 }
 
 /**
- * @brief 更新限流规则
+ * UpdateRateLimit 更新限流规则
  */
 func (s *Server) UpdateRateLimit(ctx context.Context, req *api.Rule) *api.Response {
 	requestID := ParseRequestID(ctx)
@@ -251,7 +253,7 @@ func (s *Server) UpdateRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 }
 
 /**
- * @brief 查询限流规则
+ * GetRateLimits 查询限流规则
  */
 func (s *Server) GetRateLimits(query map[string]string) *api.BatchQueryResponse {
 	for key := range query {
