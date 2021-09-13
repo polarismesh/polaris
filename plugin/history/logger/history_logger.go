@@ -19,15 +19,17 @@ package logger
 
 import (
 	"fmt"
+
+	"github.com/natefinch/lumberjack"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 // 把操作记录记录到日志文件中
 const (
+	// PluginName plugin name
 	PluginName = "HistoryLogger"
 )
 
@@ -36,22 +38,22 @@ func init() {
 	plugin.RegisterPlugin(PluginName, &HistoryLogger{})
 }
 
-// 历史记录logger
+// HistoryLogger 历史记录logger
 type HistoryLogger struct {
 	logger *zap.Logger
 }
 
-// 返回插件名字
+// Name 返回插件名字
 func (h *HistoryLogger) Name() string {
 	return PluginName
 }
 
-// 销毁插件
+// Destroy 销毁插件
 func (h *HistoryLogger) Destroy() error {
 	return h.logger.Sync()
 }
 
-// 插件初始化
+// Initialize 插件初始化
 func (h *HistoryLogger) Initialize(c *plugin.ConfigEntry) error {
 	// 日志的encode
 	encCfg := zapcore.EncoderConfig{
@@ -85,7 +87,7 @@ func (h *HistoryLogger) Initialize(c *plugin.ConfigEntry) error {
 	return nil
 }
 
-// 记录操作记录到日志中
+// Record 记录操作记录到日志中
 func (h *HistoryLogger) Record(entry *model.RecordEntry) {
 	var str string
 	switch model.GetResourceType(entry.ResourceType) {

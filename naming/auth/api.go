@@ -18,29 +18,30 @@
 package auth
 
 /**
-* @brief 内部鉴权接口
+* Authority 内部鉴权接口
 *
 * @note 内部鉴权分为两大类：命名空间和服务的资源鉴权；请求鉴权，
 *       比如对于OSS操作，需要全局放通
  */
 type Authority interface {
-	//检查Token格式是否合法
+	// VerifyToken 检查Token格式是否合法
 	VerifyToken(actualToken string) bool
-	// 校验命名空间是否合法
+
+	// VerifyNamespace 校验命名空间是否合法
 	VerifyNamespace(expectToken string, actualToken string) bool
 
-	// 校验服务是否合法
+	// VerifyService 校验服务是否合法
 	VerifyService(expectToken string, actualToken string) bool
 
-	// 校验实例是否合法
+	// VerifyInstance 校验实例是否合法
 	VerifyInstance(expectToken string, actualToken string) bool
 
-	// 校验规则是否合法
+	// VerifyRule 校验规则是否合法
 	VerifyRule(expectToken string, actualToken string) bool
 
-	// 校验平台是否合法
+	// VerifyPlatform 校验平台是否合法
 	VerifyPlatform(expectToken string, actualToken string) bool
 
-	// 校验网格权限是否合法
+	// VerifyMesh 校验网格权限是否合法
 	VerifyMesh(expectToken string, actualToken string) bool
 }

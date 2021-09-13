@@ -23,6 +23,7 @@ import (
 )
 
 const (
+	// PluginName plugin name
 	PluginName = "memory"
 )
 
@@ -31,17 +32,17 @@ func init() {
 	plugin.RegisterPlugin(PluginName, &Memory{})
 }
 
-// 定义MemoryCMDB类
+// Memory 定义MemoryCMDB类
 type Memory struct {
 	key string
 }
 
-// 返回插件名
+// Name 返回插件名
 func (m *Memory) Name() string {
 	return PluginName
 }
 
-// 初始化函数
+// Initialize 初始化函数
 func (m *Memory) Initialize(c *plugin.ConfigEntry) error {
 	option := c.Option
 	m.key = option["key"].(string)
@@ -49,17 +50,17 @@ func (m *Memory) Initialize(c *plugin.ConfigEntry) error {
 	return nil
 }
 
-// 销毁函数
+// Destroy 销毁函数
 func (m *Memory) Destroy() error {
 	return nil
 }
 
-// 实现CMDB插件接口
+// GetLocation 实现CMDB插件接口
 func (m *Memory) GetLocation(host string) (*model.Location, error) {
 	return nil, nil
 }
 
-// 实现CMDB插件接口
+// Range 实现CMDB插件接口
 func (m *Memory) Range(handler func(host string, location *model.Location) (bool, error)) error {
 	cont, err := handler("", nil)
 	if err != nil {
@@ -72,7 +73,7 @@ func (m *Memory) Range(handler func(host string, location *model.Location) (bool
 	return nil
 }
 
-// 实现CMDB插件接口
+// Size 实现CMDB插件接口
 func (m *Memory) Size() int32 {
 	return 0
 }

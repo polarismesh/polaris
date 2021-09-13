@@ -21,17 +21,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"sync/atomic"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/polarismesh/polaris-server/common/api/l5"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"strconv"
-	"strings"
-	"sync/atomic"
 )
 
 var (
+	// Namespace2SidLayoutID namespace to sid layout id
 	Namespace2SidLayoutID = map[string]uint32{
 		"Production":  1,
 		"Development": 2,
@@ -41,6 +43,7 @@ var (
 		"default":     6,
 	}
 
+	// SidLayoutID2Namespace sid layout id to namespace
 	SidLayoutID2Namespace = map[uint32]string{
 		1: "Production",
 		2: "Development",
@@ -57,7 +60,7 @@ type l5service struct {
 	discoverClusterCount uint32
 }
 
-// 根据sid获取路由信息
+// SyncByAgentCmd 根据sid获取路由信息
 // 老函数：
 // Stat::instance()->inc_sync_req_cnt();
 // 保存client的IP，该函数只是存储到本地的缓存中
@@ -211,7 +214,7 @@ func (s *Server) getPolicysAndSections(modIDList map[uint32]bool) ([]*model.Poli
 	return policys, sections
 }
 
-// 根据名字获取sid信息
+// RegisterByNameCmd 根据名字获取sid信息
 func (s *Server) RegisterByNameCmd(rbnc *l5.Cl5RegisterByNameCmd) (*l5.Cl5RegisterByNameAckCmd, error) {
 	// Stat::instance()->inc_regist_req_cnt(); TODO
 
@@ -223,12 +226,12 @@ func (s *Server) RegisterByNameCmd(rbnc *l5.Cl5RegisterByNameCmd) (*l5.Cl5Regist
 		}
 	}
 
-	rbnac := &l5.Cl5RegisterByNameAckCmd{
+	cl5RegisterAckCmd := &l5.Cl5RegisterByNameAckCmd{
 		CallerIp: proto.Int32(rbnc.GetCallerIp()),
 	}
 
-	rbnac.SidList = CreateCl5SidList(sidConfigs)
-	return rbnac, nil
+	cl5RegisterAckCmd.SidList = CreateCl5SidList(sidConfigs)
+	return cl5RegisterAckCmd, nil
 }
 
 // 根据访问关系获取所有符合的被调信息
@@ -478,7 +481,7 @@ func (s *Server) getCl5DiscoverService(clusterName string, clientIP uint32) *mod
 
 	subIndex := clientIP%uint32(clusterCount) + 1
 	subClusterName := fmt.Sprintf("%s.%d", clusterName, subIndex)
-	//log.Infof("[Cl5] ip(%d), clusterCount(%d), name(%s)", clientIP, clusterCount, subClusterName) // TODO
+	// log.Infof("[Cl5] ip(%d), clusterCount(%d), name(%s)", clientIP, clusterCount, subClusterName) // TODO
 	subService := s.getServiceCache(subClusterName, "Polaris")
 	if subService == nil {
 		log.Errorf("[Cl5] not found server cluster for ip(%d), cluster count(%d), cluster name(%s)",
@@ -489,7 +492,7 @@ func (s *Server) getCl5DiscoverService(clusterName string, clientIP uint32) *mod
 	return subService
 }
 
-// 构造sidConfigs
+// CreateCl5SidList 构造sidConfigs
 func CreateCl5SidList(sidConfigs []*model.SidConfig) *l5.Cl5SidList {
 	if len(sidConfigs) == 0 {
 		return nil
@@ -511,14 +514,13 @@ func CreateCl5SidList(sidConfigs []*model.SidConfig) *l5.Cl5SidList {
 	return sidList
 }
 
-// 解析metadata保存的setID字符串
+// ParseSetID 解析metadata保存的setID字符串
 func ParseSetID(str string) []string {
 	if str == "" {
 		return nil
 	}
 
-	out := strings.Split(str, ",")
-	return out
+	return strings.Split(str, ",")
 }
 
 // 解析metadata保存的weight字符串
@@ -545,7 +547,7 @@ func ParseWeight(str string) []uint32 {
 	return out
 }
 
-// 字符串IP转为uint32
+// ParseIPStr2Int 字符串IP转为uint32
 // 转换失败的，需要明确错误
 func ParseIPStr2Int(ip string) (uint32, error) {
 	ips := strings.Split(ip, ".")
@@ -568,7 +570,7 @@ func ParseIPStr2Int(ip string) (uint32, error) {
 	return out, nil
 }
 
-// 字符串IP转为Int，V2
+// ParseIPStr2IntV2 字符串IP转为Int，V2
 func ParseIPStr2IntV2(ip string) uint32 {
 	item := 0
 	var sum uint32
@@ -587,7 +589,7 @@ func ParseIPStr2IntV2(ip string) uint32 {
 	return sum
 }
 
-// uint32的IP转换为字符串型
+// ParseIPInt2Str uint32的IP转换为字符串型
 func ParseIPInt2Str(ip uint32) string {
 	ipStr := make([]uint32, 4)
 	for i := 0; i < 4; i++ {
@@ -597,7 +599,7 @@ func ParseIPInt2Str(ip uint32) string {
 	return str
 }
 
-// 根据SID分析，返回其对应的namespace
+// ComputeNamespace 根据SID分析，返回其对应的namespace
 func ComputeNamespace(modID uint32, cmdID uint32) string {
 	// 为了兼容老的sid，只对新的别名sid才生效
 	// 老的sid都属于生产环境的

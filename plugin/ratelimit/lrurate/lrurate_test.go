@@ -18,8 +18,9 @@
 package lrurate
 
 import (
-	"github.com/polarismesh/polaris-server/plugin"
 	"testing"
+
+	"github.com/polarismesh/polaris-server/plugin"
 )
 
 /**
@@ -29,12 +30,12 @@ func getEntry() *plugin.ConfigEntry {
 	entry := plugin.ConfigEntry{
 		Option: make(map[string]interface{}),
 	}
-	entry.Option["ratelimitIPLruSize"] = 10
-	entry.Option["ratelimitIPRate"] = 10
-	entry.Option["ratelimitIPBurst"] = 10
-	entry.Option["ratelimitServiceLruSize"] = 10
-	entry.Option["ratelimitServiceRate"] = 10
-	entry.Option["ratelimitServiceBurst"] = 10
+	entry.Option["rateLimitIPLruSize"] = 10
+	entry.Option["rateLimitIPRate"] = 10
+	entry.Option["rateLimitIPBurst"] = 10
+	entry.Option["rateLimitServiceLruSize"] = 10
+	entry.Option["rateLimitServiceRate"] = 10
+	entry.Option["rateLimitServiceBurst"] = 10
 
 	return &entry
 }
@@ -62,67 +63,67 @@ func TestInvalidConfig(t *testing.T) {
 			t.Errorf("failed, shouldn't Initialize")
 		}
 
-		entry.Option["ratelimitIPLruSize"] = 0
+		entry.Option["rateLimitIPLruSize"] = 0
 		if err := s.Initialize(entry); err == nil {
 			t.Errorf("failed, shouldn't Initialize")
 		}
 	})
 
 	t.Run("InvalidIPLruRate", func(t *testing.T) {
-		entry.Option["ratelimitIPLruSize"] = 10
+		entry.Option["rateLimitIPLruSize"] = 10
 		if err := s.Initialize(entry); err == nil {
 			t.Errorf("failed, shouldn't Initialize")
 		}
 
-		entry.Option["ratelimitIPRate"] = 0
+		entry.Option["rateLimitIPRate"] = 0
 		if err := s.Initialize(entry); err == nil {
 			t.Errorf("failed, shouldn't Initialize")
 		}
 	})
 
 	t.Run("InvalidIPLruBurst", func(t *testing.T) {
-		entry.Option["ratelimitIPRate"] = 10
+		entry.Option["rateLimitIPRate"] = 10
 		if err := s.Initialize(entry); err == nil {
 			t.Errorf("failed, shouldn't Initialize")
 		}
 
-		entry.Option["ratelimitIPBurst"] = 0
+		entry.Option["rateLimitIPBurst"] = 0
 		if err := s.Initialize(entry); err == nil {
 			t.Errorf("failed, shouldn't Initialize")
 		}
 	})
 
 	t.Run("InvalidServiceLruSize", func(t *testing.T) {
-		entry.Option["ratelimitIPBurst"] = 10
+		entry.Option["rateLimitIPBurst"] = 10
 		if err := s.Initialize(entry); err == nil {
 			t.Errorf("failed, shouldn't Initialize")
 		}
 
-		entry.Option["ratelimitServiceLruSize"] = 0
+		entry.Option["rateLimitServiceLruSize"] = 0
 		if err := s.Initialize(entry); err == nil {
 			t.Errorf("failed, shouldn't Initialize")
 		}
 	})
 
 	t.Run("InvalidServiceLruRate", func(t *testing.T) {
-		entry.Option["ratelimitServiceLruSize"] = 10
+		entry.Option["rateLimitServiceLruSize"] = 10
 		if err := s.Initialize(entry); err == nil {
 			t.Errorf("failed, shouldn't Initialize")
 		}
 
-		entry.Option["ratelimitServiceRate"] = 0
+		entry.Option["rateLimitServiceRate"] = 0
 		if err := s.Initialize(entry); err == nil {
 			t.Errorf("failed, shouldn't Initialize")
 		}
 	})
 
 	t.Run("InvalidServiceLruBurst", func(t *testing.T) {
-		entry.Option["ratelimitServiceRate"] = 10
+		entry.Option["rateLimitServiceRate"] = 10
 		if err := s.Initialize(entry); err == nil {
 			t.Errorf("failed, shouldn't Initialize")
 		}
 
-		entry.Option["ratelimitServiceBurst"] = 0
+		entry.Option["rateLimitServiceBurst"] = 0
 		if err := s.Initialize(entry); err == nil {
 			t.Errorf("failed, shouldn't Initialize")
 		}
@@ -188,12 +189,12 @@ func TestRateLimit(t *testing.T) {
 	entry := plugin.ConfigEntry{
 		Option: make(map[string]interface{}),
 	}
-	entry.Option["ratelimitIPLruSize"] = ipLruSize
-	entry.Option["ratelimitIPRate"] = ipRate
-	entry.Option["ratelimitIPBurst"] = ipBurst
-	entry.Option["ratelimitServiceLruSize"] = serviceLruSize
-	entry.Option["ratelimitServiceRate"] = serviceRate
-	entry.Option["ratelimitServiceBurst"] = serviceBurst
+	entry.Option["rateLimitIPLruSize"] = ipLruSize
+	entry.Option["rateLimitIPRate"] = ipRate
+	entry.Option["rateLimitIPBurst"] = ipBurst
+	entry.Option["rateLimitServiceLruSize"] = serviceLruSize
+	entry.Option["rateLimitServiceRate"] = serviceRate
+	entry.Option["rateLimitServiceBurst"] = serviceBurst
 
 	s := LRURate{}
 	if err := s.Initialize(&entry); err != nil {

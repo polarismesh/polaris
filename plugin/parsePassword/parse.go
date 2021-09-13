@@ -28,26 +28,25 @@ func init() {
 	plugin.RegisterPlugin(PluginName, &Password{})
 }
 
-// 密码插件
-type Password struct {
-}
+// Password密码插件
+type Password struct{}
 
-// 返回插件名字
+// Name 返回插件名字
 func (p *Password) Name() string {
 	return PluginName
 }
 
-// 销毁插件
+// Destroy 销毁插件
 func (p *Password) Destroy() error {
 	return nil
 }
 
-// 插件初始化
+// Initialize 插件初始化
 func (p *Password) Initialize(c *plugin.ConfigEntry) error {
 	return nil
 }
 
-// 解析密码
+// ParsePassword 解析密码
 func (p *Password) ParsePassword(cipher string) (string, error) {
 	return "", nil
 }

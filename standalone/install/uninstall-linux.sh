@@ -17,7 +17,7 @@
 
 function uninstallPolarisServer() {
   echo -e "uninstall polaris server ... "
-  local polaris_server_dirname=$(find . -name "polaris-server-release*" | awk 'NR==1{print}')
+  local polaris_server_dirname=$(find . -name "polaris-server-release*" -type d | awk 'NR==1{print}')
   if [ ! -e ${polaris_server_dirname} ]; then
      echo -e "${polaris_server_dirname} not exists, skip"
      return
@@ -33,7 +33,7 @@ function uninstallPolarisServer() {
 
 function uninstallPolarisConsole() {
   echo -e "uninstall polaris console ... "
-  local polaris_console_dirname=$(find . -name "polaris-console-release*" | awk 'NR==1{print}')
+  local polaris_console_dirname=$(find . -name "polaris-console-release*" -type d | awk 'NR==1{print}')
   if [ ! -e ${polaris_console_dirname} ]; then
      echo -e "${polaris_console_dirname} not exists, skip"
      return
@@ -54,7 +54,7 @@ function uninstallPrometheus() {
     echo -e "start to kill prometheus process ${pid}"
     kill ${pid}
   fi
-  local prometheus_dirname=$(find . -name "prometheus*" | awk 'NR==1{print}')
+  local prometheus_dirname=$(find . -name "prometheus*" -type d | awk 'NR==1{print}')
   if [ -e ${prometheus_dirname} ]; then
     echo -e "start to remove ${prometheus_dirname}"
     rm -rf ${prometheus_dirname}
@@ -69,7 +69,7 @@ function uninstallPushGateway() {
     echo -e "start to kill pushgateway process ${pid}"
     kill ${pid}
   fi
-  local pushgateway_dirname=$(find . -name "pushgateway*" | awk 'NR==1{print}')
+  local pushgateway_dirname=$(find . -name "pushgateway*" -type d | awk 'NR==1{print}')
   if [ -e ${pushgateway_dirname} ]; then
     echo -e "start to remove ${pushgateway_dirname}"
     rm -rf ${pushgateway_dirname}

@@ -25,7 +25,7 @@ import (
 )
 
 /**
- * @brief Store的通用配置
+ * Config Store的通用配置
  */
 type Config struct {
 	Name   string
@@ -33,18 +33,20 @@ type Config struct {
 }
 
 var (
+	// StoreSlots store slots
 	StoreSlots = make(map[string]Store)
-	once       = &sync.Once{}
-	config     = &Config{}
+
+	once   = &sync.Once{}
+	config = &Config{}
 )
 
 /**
- * @brief 注册一个新的Store
+ * RegisterStore 注册一个新的Store
  */
 func RegisterStore(s Store) error {
 	name := s.Name()
 	if _, ok := StoreSlots[name]; ok {
-		return errors.New("Store name is exist")
+		return errors.New("store name is exist")
 	}
 
 	StoreSlots[name] = s
@@ -52,17 +54,17 @@ func RegisterStore(s Store) error {
 }
 
 /**
- * @brief 获取Store
+ * GetStore 获取Store
  */
 func GetStore() (Store, error) {
 	name := config.Name
 	if name == "" {
-		return nil, errors.New("Store Name is empty")
+		return nil, errors.New("store Name is empty")
 	}
 
 	store, ok := StoreSlots[name]
 	if !ok {
-		return nil, errors.New("No such name Store")
+		return nil, errors.New("no such name Store")
 	}
 
 	initialize(store)
@@ -70,7 +72,7 @@ func GetStore() (Store, error) {
 }
 
 /**
- * @brief 设置store的conf
+ * SetStoreConfig 设置store的conf
  */
 func SetStoreConfig(conf *Config) {
 	config = conf

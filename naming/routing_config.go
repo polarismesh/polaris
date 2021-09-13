@@ -21,14 +21,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"time"
 )
 
 var (
+	// RoutingConfigFilterAttrs router config filter attrs
 	RoutingConfigFilterAttrs = map[string]bool{
 		"service":   true,
 		"namespace": true,
@@ -37,22 +39,21 @@ var (
 	}
 )
 
-// 批量创建路由配置
+// CreateRoutingConfigs 批量创建路由配置
 func (s *Server) CreateRoutingConfigs(ctx context.Context, req []*api.Routing) *api.BatchWriteResponse {
 	if err := checkBatchRoutingConfig(req); err != nil {
 		return err
 	}
 
-	resps := api.NewBatchWriteResponse(api.ExecuteSuccess)
+	resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
 	for _, entry := range req {
-		resp := s.CreateRoutingConfig(ctx, entry)
-		resps.Collect(resp)
+		resp.Collect(s.CreateRoutingConfig(ctx, entry))
 	}
 
-	return api.FormatBatchWriteResponse(resps)
+	return api.FormatBatchWriteResponse(resp)
 }
 
-// 创建一个路由配置
+// CreateRoutingConfig 创建一个路由配置
 // 创建路由配置需要锁住服务，防止服务被删除
 func (s *Server) CreateRoutingConfig(ctx context.Context, req *api.Routing) *api.Response {
 	rid := ParseRequestID(ctx)
@@ -112,7 +113,7 @@ func (s *Server) CreateRoutingConfig(ctx context.Context, req *api.Routing) *api
 	return api.NewRoutingResponse(api.ExecuteSuccess, req)
 }
 
-// 批量删除路由配置
+// DeleteRoutingConfigs 批量删除路由配置
 func (s *Server) DeleteRoutingConfigs(ctx context.Context, req []*api.Routing) *api.BatchWriteResponse {
 	if err := checkBatchRoutingConfig(req); err != nil {
 		return err
@@ -127,7 +128,7 @@ func (s *Server) DeleteRoutingConfigs(ctx context.Context, req []*api.Routing) *
 	return api.FormatBatchWriteResponse(out)
 }
 
-// 删除一个路由配置
+// DeleteRoutingConfig 删除一个路由配置
 func (s *Server) DeleteRoutingConfig(ctx context.Context, req *api.Routing) *api.Response {
 	rid := ParseRequestID(ctx)
 	pid := ParsePlatformID(ctx)
@@ -146,7 +147,7 @@ func (s *Server) DeleteRoutingConfig(ctx context.Context, req *api.Routing) *api
 	return api.NewRoutingResponse(api.ExecuteSuccess, req)
 }
 
-// 批量更新路由配置
+// UpdateRoutingConfigs 批量更新路由配置
 func (s *Server) UpdateRoutingConfigs(ctx context.Context, req []*api.Routing) *api.BatchWriteResponse {
 	if err := checkBatchRoutingConfig(req); err != nil {
 		return err
@@ -161,7 +162,7 @@ func (s *Server) UpdateRoutingConfigs(ctx context.Context, req []*api.Routing) *
 	return api.FormatBatchWriteResponse(out)
 }
 
-// 更新单个路由配置
+// UpdateRoutingConfig 更新单个路由配置
 func (s *Server) UpdateRoutingConfig(ctx context.Context, req *api.Routing) *api.Response {
 	rid := ParseRequestID(ctx)
 	pid := ParsePlatformID(ctx)
@@ -196,7 +197,7 @@ func (s *Server) UpdateRoutingConfig(ctx context.Context, req *api.Routing) *api
 	return api.NewRoutingResponse(api.ExecuteSuccess, req)
 }
 
-// 提供给OSS的查询路由配置的接口
+// GetRoutingConfigs 提供给OSS的查询路由配置的接口
 func (s *Server) GetRoutingConfigs(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	rid := ParseRequestID(ctx)
 	pid := ParsePlatformID(ctx)

@@ -18,9 +18,10 @@
 package plugin
 
 import (
-	"github.com/polarismesh/polaris-server/common/log"
 	"os"
 	"sync"
+
+	"github.com/polarismesh/polaris-server/common/log"
 )
 
 var (
@@ -29,7 +30,7 @@ var (
 )
 
 /**
- * @brief AUTH插件接口
+ * Auth AUTH插件接口
  */
 type Auth interface {
 	Plugin
@@ -40,7 +41,7 @@ type Auth interface {
 }
 
 /**
- * @brief 获取Auth插件
+ * GetAuth 获取Auth插件
  */
 func GetAuth() Auth {
 	c := &config.Auth
