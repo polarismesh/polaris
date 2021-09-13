@@ -158,12 +158,8 @@ installPolarisConsole
 # 安装Prometheus
 installPrometheus
 # 安装PushGateWay
-<<<<<<< HEAD
 installPushGateway
 
 echo "now, we finish install polaris in your mac, we will exec rollback 'sudo spctl --master-enable'"
 
 sudo spctl --master-enable
-=======
-installPushGateway
->>>>>>> e1d1f32e5fee2e53751860b01dd58c6d6597d51d
