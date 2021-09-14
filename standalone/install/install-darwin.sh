@@ -145,7 +145,7 @@ function checkPort() {
     pid=$(/usr/sbin/lsof -i :${port} | grep LISTEN | awk '{print $1 " " $2}')
     if [ "${pid}" != "" ]; then
       echo "port ${port} has been used, exit."
-      exit -1:
+      exit -1
     fi
   done
 }
