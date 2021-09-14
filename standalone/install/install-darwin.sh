@@ -75,8 +75,8 @@ function installPrometheus() {
   local prometheus_num=$(ps -ef | grep prometheus | grep -v grep | wc -l)
   if [ ${prometheus_num} -ge 1 ]
   then
-    echo -e "prometheus is running, exit"
-    return 1
+    echo -e "prometheus is running, skip"
+    return
   fi
 
   local prometheus_pkg_num=$(find . -name "prometheus-*.tar.gz" | wc -l)
@@ -113,8 +113,8 @@ function installPushGateway() {
   echo -e "install pushgateway ... "
   local pgw_num=$(ps -ef | grep pushgateway | grep -v grep | wc -l)
   if [ $pgw_num -ge 1 ]; then
-    echo -e "pushgateway is running, exit"
-    return 1
+    echo -e "pushgateway is running, skip"
+    return
   fi
 
   local pgw_pkg_num=$(find . -name "pushgateway-*.tar.gz" | wc -l)
@@ -145,6 +145,7 @@ function checkPort() {
     pid=$(/usr/sbin/lsof -i :${port} | awk '{print $1 " " $2}')
     if [ "${pid}" != "" ]; then
       echo "port ${port} has been used, exit."
+      exit 1
     fi
   done
 }
