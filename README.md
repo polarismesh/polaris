@@ -107,7 +107,7 @@ After unzipped, vi polaris-server.yaml, replace DB configuration's variable to r
 ````shell script
 chmod +x ./tool/*.sh
 # install
-./tool/install.sh
+./tool/start.sh
 # test whether the process is successful 
 ./tool/p.sh
 ````
