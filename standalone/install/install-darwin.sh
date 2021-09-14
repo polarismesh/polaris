@@ -142,9 +142,10 @@ function installPushGateway() {
 function checkPort() {
   ports=(8080 8090 8091 7779)
   for port in ${ports[@]}; do
-    pid=$(/usr/sbin/lsof -i :${port} | awk '{print $1 " " $2}')
+    pid=$(/usr/sbin/lsof -i :${port} | grep LISTEN | awk '{print $1 " " $2}')
     if [ "${pid}" != "" ]; then
       echo "port ${port} has been used, exit."
+      exit -1
     fi
   done
 }
