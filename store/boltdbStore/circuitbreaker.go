@@ -45,29 +45,9 @@ type circuitBreakerStore struct {
 	handler BoltHandler
 }
 
-// CreateCircuitBreaker 新增熔断规则
+// CreateCircuitBreaker create circuit breaker rule
 func (c *circuitBreakerStore) CreateCircuitBreaker(cb *model.CircuitBreaker) error {
 	dbOp := c.handler
-
-	//err := dbOp.ExecuteHandler(true, func(tx *HandlerTx) error {
-	//	key := c.buildKey(cb.ID, cb.Version)
-	//
-	//	result, err := tx.LoadValue(tblCircuitBreaker, []string{key}, &model.CircuitBreaker{})
-	//	if err != nil {
-	//		return err
-	//	}
-	//
-	//	if len(result) != 0 {
-	//		return store.NewStatusError(store.DuplicateEntryErr, fmt.Sprintf("exist CircuitBreaker(id=%s)", key))
-	//	}
-	//
-	//	return tx.SaveValue(tblCircuitBreaker, key, cb)
-	//})
-	//if err != nil {
-	//	log.Errorf("[Store][circuitBreaker] create circuit breaker(%s, %s, %s) err: %s",
-	//		cb.ID, cb.Name, cb.Version, err.Error())
-	//	return store.Error(err)
-	//}
 
 	if err := dbOp.SaveValue(tblCircuitBreaker, c.buildKey(cb.ID, cb.Version), cb); err != nil {
 		log.Errorf("[Store][circuitBreaker] create circuit breaker(%s, %s, %s) err: %s",
