@@ -19,11 +19,12 @@ package cache
 
 import (
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/store/mock"
-	"github.com/golang/mock/gomock"
 	"testing"
 	"time"
+
+	"github.com/golang/mock/gomock"
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/store/mock"
 )
 
 /**
@@ -82,7 +83,7 @@ func getRateLimitsCount(serviceID string, rlc *rateLimitCache) int {
 }
 
 /**
- * @brief 测试更新缓存操作
+ * TestRateLimitUpdate 测试更新缓存操作
  */
 func TestRateLimitUpdate(t *testing.T) {
 	ctl, storage, rlc := newTestRateLimitCache(t)
@@ -173,7 +174,7 @@ func TestRateLimitUpdate(t *testing.T) {
 }
 
 /**
- * @brief 统计缓存中的限流数据
+ * TestRateLimitUpdate2 统计缓存中的限流数据
  */
 func TestRateLimitUpdate2(t *testing.T) {
 	ctl, storage, rlc := newTestRateLimitCache(t)
@@ -236,7 +237,7 @@ func TestRateLimitUpdate2(t *testing.T) {
 }
 
 /**
- * @brief 根据服务id获取限流数据和revision
+ * TestGetRateLimitsByServiceID 根据服务id获取限流数据和revision
  */
 func TestGetRateLimitsByServiceID(t *testing.T) {
 	ctl, storage, rlc := newTestRateLimitCache(t)

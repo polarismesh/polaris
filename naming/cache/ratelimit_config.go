@@ -27,18 +27,20 @@ import (
 )
 
 const (
+	// RateLimitConfigName rate limit config name
 	RateLimitConfigName = "rateLimitConfig"
 )
 
+// RateLimitIterProc rate limit iter func
 type RateLimitIterProc func(id string, rateLimit *model.RateLimit) (bool, error)
 
 /**
- * @brief rateLimit的cache接口
+ * RateLimitCache rateLimit的cache接口
  */
 type RateLimitCache interface {
 	Cache
 
-	//根据serviceID进行迭代回调
+	// 根据serviceID进行迭代回调
 	GetRateLimit(serviceID string, rateLimitIterProc RateLimitIterProc) error
 
 	// 根据serviceID获取最新revision
@@ -63,6 +65,13 @@ type rateLimitCache struct {
 	revisions   *sync.Map
 	lastTime    time.Time
 	firstUpdate bool
+}
+
+/**
+ * @brief 自注册到缓存列表
+ */
+func init() {
+	RegisterCache(RateLimitConfigName, CacheRateLimit)
 }
 
 /**
@@ -164,7 +173,7 @@ func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit,
 }
 
 /**
- * @brief 根据serviceID进行迭代回调
+ * GetRateLimit 根据serviceID进行迭代回调
  */
 func (rlc *rateLimitCache) GetRateLimit(serviceID string, rateLimitIterProc RateLimitIterProc) error {
 	if serviceID == "" {
@@ -190,7 +199,7 @@ func (rlc *rateLimitCache) GetRateLimit(serviceID string, rateLimitIterProc Rate
 }
 
 /**
- * @brief 根据serviceID获取最新revision
+ * GetLastRevision 根据serviceID获取最新revision
  */
 func (rlc *rateLimitCache) GetLastRevision(serviceID string) string {
 	if serviceID == "" {
@@ -204,7 +213,7 @@ func (rlc *rateLimitCache) GetLastRevision(serviceID string) string {
 }
 
 /**
- * @brief 根据serviceID获取限流数据
+ * GetRateLimitByServiceID 根据serviceID获取限流数据
  */
 func (rlc *rateLimitCache) GetRateLimitByServiceID(serviceID string) []*model.RateLimit {
 	if serviceID == "" {
@@ -225,7 +234,7 @@ func (rlc *rateLimitCache) GetRateLimitByServiceID(serviceID string) []*model.Ra
 }
 
 /**
- * @brief 获取revisions总数
+ * GetRevisionsCount 获取revisions总数
  */
 func (rlc *rateLimitCache) GetRevisionsCount() int {
 	count := 0
@@ -237,7 +246,7 @@ func (rlc *rateLimitCache) GetRevisionsCount() int {
 }
 
 /**
- * @brief 获取限流规则总数
+ * GetRateLimitsCount 获取限流规则总数
  */
 func (rlc *rateLimitCache) GetRateLimitsCount() int {
 	count := 0
@@ -251,11 +260,4 @@ func (rlc *rateLimitCache) GetRateLimitsCount() int {
 		return true
 	})
 	return count
-}
-
-/**
- * @brief 自注册到缓存列表
- */
-func init() {
-	RegisterCache(RateLimitConfigName, CacheRateLimit)
 }

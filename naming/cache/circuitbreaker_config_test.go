@@ -19,11 +19,12 @@ package cache
 
 import (
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/store/mock"
-	"github.com/golang/mock/gomock"
 	"testing"
 	"time"
+
+	"github.com/golang/mock/gomock"
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/store/mock"
 )
 
 /**
@@ -74,7 +75,7 @@ func getCircuitBreakerCount(cbc *circuitBreakerCache) int {
 }
 
 /**
- * @brief 生成熔断规则测试数据
+ * TestCircuitBreakersUpdate 生成熔断规则测试数据
  */
 func TestCircuitBreakersUpdate(t *testing.T) {
 	ctl, storage, cbc := newTestCircuitBreakerCache(t)
@@ -146,7 +147,7 @@ func TestCircuitBreakersUpdate(t *testing.T) {
 }
 
 /**
- * @brief 统计缓存中的熔断规则数据
+ * TestCircuitBreakerUpdate2 统计缓存中的熔断规则数据
  */
 func TestCircuitBreakerUpdate2(t *testing.T) {
 	ctl, storage, cbc := newTestCircuitBreakerCache(t)
@@ -207,7 +208,7 @@ func TestCircuitBreakerUpdate2(t *testing.T) {
 }
 
 /**
- * @brief 根据服务id获取熔断规则数据
+ * TestGetCircuitBreakerByServiceID 根据服务id获取熔断规则数据
  */
 func TestGetCircuitBreakerByServiceID(t *testing.T) {
 	ctl, storage, cbc := newTestCircuitBreakerCache(t)

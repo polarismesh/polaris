@@ -19,20 +19,21 @@ package cache
 
 import (
 	"container/list"
-	"github.com/polarismesh/polaris-server/common/utils"
 	"sync"
 
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 )
 
 const (
+	// L5Name l5 name
 	L5Name = "l5"
 )
 
 /**
- * @brief L5的cache接口
+ * L5Cache L5的cache接口
  */
 type L5Cache interface {
 	Cache
@@ -72,6 +73,13 @@ type l5Cache struct {
 	// instances的信息
 	ic *instanceCache
 	sc *serviceCache
+}
+
+/**
+ * @brief 自注册到缓存列表
+ */
+func init() {
+	RegisterCache(L5Name, CacheCL5)
 }
 
 /**
@@ -133,7 +141,7 @@ func (lc *l5Cache) name() string {
 	return L5Name
 }
 
-// 根据Ip获取访问关系
+// GetRouteByIP 根据Ip获取访问关系
 func (lc *l5Cache) GetRouteByIP(ip uint32) []*model.Route {
 	out := make([]*model.Route, 0)
 	value, ok := lc.routeList.Load(ip)
@@ -163,7 +171,7 @@ func (lc *l5Cache) GetRouteByIP(ip uint32) []*model.Route {
 	return out
 }
 
-// 检查访问关系是否存在
+// CheckRouteExisted 检查访问关系是否存在
 func (lc *l5Cache) CheckRouteExisted(ip uint32, modID uint32, cmdID uint32) bool {
 	value, ok := lc.routeList.Load(ip)
 	if !ok {
@@ -190,7 +198,7 @@ func (lc *l5Cache) CheckRouteExisted(ip uint32, modID uint32, cmdID uint32) bool
 	return found
 }
 
-// 根据modID获取policy信息
+// GetPolicy 根据modID获取policy信息
 func (lc *l5Cache) GetPolicy(modID uint32) *model.Policy {
 	value, ok := lc.policyList.Load(modID)
 	if !ok {
@@ -200,7 +208,7 @@ func (lc *l5Cache) GetPolicy(modID uint32) *model.Policy {
 	return value.(*model.Policy)
 }
 
-// 根据modID获取section信息
+// GetSection 根据modID获取section信息
 func (lc *l5Cache) GetSection(modeID uint32) []*model.Section {
 	value, ok := lc.sectionList.Load(modeID)
 	if !ok {
@@ -216,7 +224,7 @@ func (lc *l5Cache) GetSection(modeID uint32) []*model.Section {
 	return out
 }
 
-// 根据IP获取ipConfig
+// GetIPConfig 根据IP获取ipConfig
 func (lc *l5Cache) GetIPConfig(ip uint32) *model.IPConfig {
 	value, ok := lc.ipConfigList.Load(ip)
 	if !ok {
@@ -424,11 +432,4 @@ func (lc *l5Cache) setCL5IPConfig(ipConfigs []*model.IPConfig) error {
 	}
 
 	return nil
-}
-
-/**
- * @brief 自注册到缓存列表
- */
-func init() {
-	RegisterCache(L5Name, CacheCL5)
 }

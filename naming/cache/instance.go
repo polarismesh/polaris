@@ -18,22 +18,25 @@
 package cache
 
 import (
+	"sync"
+	"time"
+
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
-	"sync"
-	"time"
 )
 
 const (
+	// InstanceName instance name
 	InstanceName = "instance"
 )
 
+// InstanceIterProc instance iter proc func
 type InstanceIterProc func(key string, value *model.Instance) (bool, error)
 
 /**
- * @brief 实例相关的缓存接口
+ * InstanceCache 实例相关的缓存接口
  */
 type InstanceCache interface {
 	Cache
@@ -61,6 +64,13 @@ type instanceCache struct {
 	disableBusiness bool
 	needMeta        bool
 	systemServiceID []string
+}
+
+/**
+ * @brief 自注册到缓存列表
+ */
+func init() {
+	RegisterCache(InstanceName, CacheInstance)
 }
 
 // 新建一个instanceCache
@@ -220,7 +230,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 }
 
 /**
- * @brief 根据实例ID获取实例数据
+ * GetInstance 根据实例ID获取实例数据
  */
 func (ic *instanceCache) GetInstance(instanceID string) *model.Instance {
 	if instanceID == "" {
@@ -236,7 +246,7 @@ func (ic *instanceCache) GetInstance(instanceID string) *model.Instance {
 }
 
 /**
- * @brief 根据ServiceID获取实例数据
+ * GetInstancesByServiceID 根据ServiceID获取实例数据
  */
 func (ic *instanceCache) GetInstancesByServiceID(serviceID string) []*model.Instance {
 	if serviceID == "" {
@@ -258,13 +268,13 @@ func (ic *instanceCache) GetInstancesByServiceID(serviceID string) []*model.Inst
 }
 
 /**
- * @brief 迭代所有的instance的函数
+ * IteratorInstances 迭代所有的instance的函数
  */
 func (ic *instanceCache) IteratorInstances(iterProc InstanceIterProc) error {
 	return iteratorInstancesProc(ic.ids, iterProc)
 }
 
-// 根据服务ID进行迭代回调
+// IteratorInstancesWithService 根据服务ID进行迭代回调
 func (ic *instanceCache) IteratorInstancesWithService(serviceID string, iterProc InstanceIterProc) error {
 	if serviceID == "" {
 		return nil
@@ -277,7 +287,7 @@ func (ic *instanceCache) IteratorInstancesWithService(serviceID string, iterProc
 	return iteratorInstancesProc(value.(*sync.Map), iterProc)
 }
 
-// 获取实例的个数
+// GetInstancesCount 获取实例的个数
 func (ic *instanceCache) GetInstancesCount() int {
 	count := 0
 	ic.ids.Range(func(key, value interface{}) bool {
@@ -302,11 +312,4 @@ func iteratorInstancesProc(data *sync.Map, iterProc InstanceIterProc) error {
 
 	data.Range(proc)
 	return err
-}
-
-/**
- * @brief 自注册到缓存列表
- */
-func init() {
-	RegisterCache(InstanceName, CacheInstance)
 }

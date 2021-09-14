@@ -19,13 +19,14 @@ package cache
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
+	"github.com/golang/mock/gomock"
 	v1 "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store/mock"
-	"github.com/golang/mock/gomock"
-	"testing"
-	"time"
 )
 
 // 创建一个测试mock instanceCache
@@ -78,7 +79,7 @@ func iteratorInstances(ic *instanceCache) (int, int) {
 	return len(services), instancesCount
 }
 
-// 测试正常的更新缓存操作
+// TestInstanceCache_Update 测试正常的更新缓存操作
 func TestInstanceCache_Update(t *testing.T) {
 	ctl, storage, ic := newTestInstanceCache(t)
 	defer ctl.Finish()
@@ -144,7 +145,7 @@ func TestInstanceCache_Update(t *testing.T) {
 	})
 }
 
-// 异常场景下的update测试
+// TestInstanceCache_Update2 异常场景下的update测试
 func TestInstanceCache_Update2(t *testing.T) {
 	ctl, storage, ic := newTestInstanceCache(t)
 	defer ctl.Finish()
@@ -214,7 +215,7 @@ func TestInstanceCache_GetInstance(t *testing.T) {
 	})
 }
 
-// 根据ServiceID获取缓存内容
+// TestGetInstancesByServiceID 根据ServiceID获取缓存内容
 func TestGetInstancesByServiceID(t *testing.T) {
 	ctl, storage, ic := newTestInstanceCache(t)
 	defer ctl.Finish()
@@ -239,7 +240,8 @@ func TestGetInstancesByServiceID(t *testing.T) {
 			t.Fatalf("error: %s", err.Error())
 		}
 
-		if instances := ic.GetInstancesByServiceID(instances2[fmt.Sprintf("instanceID-%s-%d", "my-services-a", 1)].ServiceID); instances != nil {
+		key := fmt.Sprintf("instanceID-%s-%d", "my-services-a", 1)
+		if instances := ic.GetInstancesByServiceID(instances2[key].ServiceID); instances != nil {
 			if len(instances) == 30 {
 				t.Logf("pass")
 			} else {
