@@ -25,7 +25,7 @@ function installPolarisServer() {
   local polaris_server_tarnum=$(find . -name "polaris-server-release*.zip" | wc -l)
   if [ $polaris_server_tarnum != 1 ]; then
     echo -e "number of polaris server tar not equal 1, exit."
-    exit 1
+    exit -1
   fi
 
   local polaris_server_tarname=$(find . -name "polaris-server-release*.zip")
@@ -36,10 +36,10 @@ function installPolarisServer() {
     echo -e "polaris-server-release.tar.gz has been decompressed, skip."
   fi
 
-  cd ${polaris_server_dirname} || (echo "no such directory ${polaris_server_dirname}"; exit 1)
+  cd ${polaris_server_dirname} || (echo "no such directory ${polaris_server_dirname}"; exit -1)
   /bin/bash ./tool/start.sh
   echo -e "install polaris server finish."
-  cd ${install_path} || (echo "no such directory ${install_path}"; exit 1)
+  cd ${install_path} || (echo "no such directory ${install_path}"; exit -1)
 }
 
 function installPolarisConsole() {
@@ -53,7 +53,7 @@ function installPolarisConsole() {
   local polaris_console_tarnum=$(find . -name "polaris-console-release*.zip" | wc -l)
   if [ $polaris_console_tarnum != 1 ]; then
     echo -e "number of polaris console tar not equal 1, exit."
-    exit 1
+    exit -1
   fi
 
   local polaris_console_tarname=$(find . -name "polaris-console-release*.zip")
@@ -64,10 +64,10 @@ function installPolarisConsole() {
     echo -e "polaris-console-release.tar.gz has been decompressed, skip."
   fi
 
-  cd ${polaris_console_dirname} || (echo "no such directory ${polaris_console_dirname}"; exit 1)
+  cd ${polaris_console_dirname} || (echo "no such directory ${polaris_console_dirname}"; exit -1)
   /bin/bash ./tool/start.sh
   echo -e "install polaris console finish."
-  cd ${install_path} || (echo "no such directory ${install_path}"; exit 1)
+  cd ${install_path} || (echo "no such directory ${install_path}"; exit -1)
 }
 
 function installPrometheus() {
@@ -75,14 +75,14 @@ function installPrometheus() {
   local prometheus_num=$(ps -ef | grep prometheus | grep -v grep | wc -l)
   if [ ${prometheus_num} -ge 1 ]
   then
-    echo -e "prometheus is running, exit"
-    return 1
+    echo -e "prometheus is running, skip"
+    return
   fi
 
   local prometheus_pkg_num=$(find . -name "prometheus-*.tar.gz" | wc -l)
   if [ ${prometheus_pkg_num} != 1 ]; then
     echo -e "number of prometheus package not equals to 1, exit"
-    exit 1
+    exit -1
   fi
 
   local target_prometheus_pkg=$(find . -name "prometheus-*.tar.gz")
@@ -113,14 +113,14 @@ function installPushGateway() {
   echo -e "install pushgateway ... "
   local pgw_num=$(ps -ef | grep pushgateway | grep -v grep | wc -l)
   if [ $pgw_num -ge 1 ]; then
-    echo -e "pushgateway is running, exit"
-    return 1
+    echo -e "pushgateway is running, skip"
+    return
   fi
 
   local pgw_pkg_num=$(find . -name "pushgateway-*.tar.gz" | wc -l)
   if [ $pgw_pkg_num != 1 ]; then
     echo -e "number of pushgateway package not equals to 1, exit"
-    exit 1
+    exit -1
   fi
 
   local target_pgw_pkg=$(find . -name "pushgateway-*.tar.gz")
@@ -142,9 +142,10 @@ function installPushGateway() {
 function checkPort() {
   ports=(8080 8090 8091 7779)
   for port in ${ports[@]}; do
-    pid=$(/usr/sbin/lsof -i :${port} | awk '{print $1 " " $2}')
+    pid=$(/usr/sbin/lsof -i :${port} | grep LISTEN | awk '{print $1 " " $2}')
     if [ "${pid}" != "" ]; then
       echo "port ${port} has been used, exit."
+      exit -1
     fi
   done
 }
