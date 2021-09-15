@@ -144,7 +144,7 @@ func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit,
 		}
 
 		// 待删除的rateLimit
-		if item.Valid == false {
+		if !item.Valid {
 			value, ok := rlc.ids.Load(item.ServiceID)
 			if !ok {
 				continue

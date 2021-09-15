@@ -190,7 +190,7 @@ func (h *HTTPServer) FreeOSMemory(_ *restful.Request, _ *restful.Response) {
 	h.freeMemMu.Lock()
 	debug.FreeOSMemory()
 	h.freeMemMu.Unlock()
-	log.Infof("[HTTP] finish doing free os memory, used time: %v", time.Now().Sub(start))
+	log.Infof("[HTTP] finish doing free os memory, used time: %v", time.Since(start))
 }
 
 // CleanInstance 彻底清理flag=1的实例运维接口
@@ -229,5 +229,4 @@ func (h *HTTPServer) GetLastHeartbeat(req *restful.Request, rsp *restful.Respons
 
 	ret := h.namingServer.GetLastHeartbeat(instance)
 	handler.WriteHeaderAndProto(ret)
-	return
 }
