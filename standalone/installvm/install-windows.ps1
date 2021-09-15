@@ -122,7 +122,7 @@ function installPushGateway() {
 }
 
 function checkPort() {
-    $ports = "8080", "8090", "8091", "7779", "9090", "9091"
+    $ports = "8080", "8090", "8091", "9090", "9091"
     foreach ($port in $ports)
     {
         $processInfo = netstat -ano | findstr "LISTENING" | findstr $port
