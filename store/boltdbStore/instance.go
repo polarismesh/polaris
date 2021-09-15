@@ -645,7 +645,6 @@ func initInstance(instance []*model.Instance) {
 			currT := time.Now()
 			timeStamp := currT.Format("2006-01-02 15:04:05")
 			if ins.Proto != nil {
-
 				if ins.Proto.GetMtime().GetValue() == "" {
 					ins.Proto.Mtime = &wrappers.StringValue{Value: timeStamp}
 				}
@@ -653,6 +652,7 @@ func initInstance(instance []*model.Instance) {
 					ins.Proto.Ctime = &wrappers.StringValue{Value: timeStamp}
 				}
 			}
+			ins.Valid = true
 			ins.ModifyTime = currT
 		}
 	}

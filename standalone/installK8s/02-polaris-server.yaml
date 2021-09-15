@@ -1,0 +1,81 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: polaris
+  labels:
+    app: polaris
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 8090
+      name: http-server
+      targetPort: 8090
+    - port: 8091
+      name: grpc-server
+      targetPort: 8091
+    - port: 8080
+      name: web-server
+      targetPort: 8080
+  selector:
+    app: polaris
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: polaris
+  name: polaris
+spec:
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  selector:
+    matchLabels:
+      app: polaris
+  serviceName: polaris
+  template:
+    metadata:
+      labels:
+        app: polaris
+    spec:
+      containers:
+      - image: ccr.ccs.tencentyun.com/polaris_mesh/polaris-server:latest
+        imagePullPolicy: Always
+        name: polaris-server
+        resources:
+          limits:
+            cpu: "500m"
+            memory: 1000Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /root/polaris-server.yaml
+          name: polaris-server-config
+          subPath: polaris-server.yaml
+      - image: ccr.ccs.tencentyun.com/polaris_mesh/polaris-console:latest
+        imagePullPolicy: Always
+        name: polaris-console
+        resources:
+          limits:
+            cpu: "500m"
+            memory: 1000Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /root/polaris-console.yaml
+          name: polaris-console-config
+          subPath: polaris-console.yaml
+      restartPolicy: Always
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: polaris-console-config
+        name: polaris-console-config
+      - configMap:
+          defaultMode: 420
+          name: polaris-server-config
+        name: polaris-server-config
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate
