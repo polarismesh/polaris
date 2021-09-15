@@ -23,6 +23,8 @@ jobs:
             goarch: arm64
           - goos: linux
             goarch: arm64
+          - goos: kubernetes
+            goarch: arm64
 
     steps:
       - name: Checkout code
@@ -41,7 +43,7 @@ jobs:
           if [ ${GOOS} == "kubernetes" ];then
             set -e
             cd standalone
-            DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}.${GOARCH}
+            DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}
             mkdir ${DIR_NAME}
             pushd ${DIR_NAME}
             cp ../installk8s/* ./
