@@ -22,7 +22,7 @@ bootstrap:
         protocols:
           - grpcserver
           - httpserver
-          - l5pbserver
+#          - l5pbserver
       - name: polaris.healthcheck
         namespace: Polaris
         protocols:
@@ -63,11 +63,11 @@ apiservers:
       client:
         enable: true
         include: [discover, register, healthcheck]
-  - name: l5pbserver
-    option:
-      listenIP: 0.0.0.0
-      listenPort: 7779
-      clusterName: cl5.discover
+#  - name: l5pbserver
+#    option:
+#      listenIP: 0.0.0.0
+#      listenPort: 7779
+#      clusterName: cl5.discover
 # 核心逻辑的配置
 naming:
   # 鉴权配置
@@ -113,7 +113,7 @@ cache:
     - name: routingConfig # 加载路由数据
     - name: rateLimitConfig # 加载限流数据
     - name: circuitBreakerConfig # 加载熔断数据
-    - name: l5 # 加载l5数据
+#    - name: l5 # 加载l5数据
 # 存储配置
 store:
 # 单机文件存储插件

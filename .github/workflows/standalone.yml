@@ -51,15 +51,15 @@ jobs:
           if [ ${GOOS} == "windows" ];then
           wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.zip
           wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${GOOS}-${GOARCH}.zip
-          mv ../install/install-windows.bat ./install.bat
-          mv ../install/install-windows.ps1 ./install-windows.ps1
-          mv ../install/uninstall-windows.bat ./uninstall.bat
-          mv ../install/uninstall-windows.ps1 ./uninstall-windows.ps1
+          mv ../installVm/install-windows.bat ./install.bat
+          mv ../installVm/install-windows.ps1 ./install-windows.ps1
+          mv ../installVm/uninstall-windows.bat ./uninstall.bat
+          mv ../installVm/uninstall-windows.ps1 ./uninstall-windows.ps1
           else
           wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz
           wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${GOOS}-${GOARCH}.tar.gz
-          mv ../install/install-${GOOS}.sh ./install.sh
-          mv ../install/uninstall-${GOOS}.sh ./uninstall.sh
+          mv ../installVm/install-${GOOS}.sh ./install.sh
+          mv ../installVm/uninstall-${GOOS}.sh ./uninstall.sh
           fi
           popd
           PACKAGE_NAME=${DIR_NAME}.zip
