@@ -76,12 +76,12 @@ type Options struct {
 	// OutputPaths is a list of file system paths to write the log data to.
 	// The special values stdout and stderr can be used to output to the
 	// standard I/O streams. This defaults to stdout.
-	OutputPaths []string
+	OutputPaths []string `yaml:"OutputPaths"`
 
 	// ErrorOutputPaths is a list of file system paths to write logger errors to.
 	// The special values stdout and stderr can be used to output to the
 	// standard I/O streams. This defaults to stderr.
-	ErrorOutputPaths []string
+	ErrorOutputPaths []string `yaml:"ErrorOutputPaths"`
 
 	// RotateOutputPath is the path to a rotating log file. This file should
 	// be automatically rotated over time, based on the rotation parameters such
