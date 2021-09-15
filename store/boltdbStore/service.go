@@ -730,5 +730,6 @@ func initService(s *model.Service) {
 	if s != nil {
 		s.CreateTime = current
 		s.ModifyTime = current
+		s.Valid = true
 	}
 }
