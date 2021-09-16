@@ -48,10 +48,6 @@ jobs:
             pushd ${DIR_NAME}
             cp ../installk8s/* ./
             popd
-            PACKAGE_NAME=${DIR_NAME}.zip
-            zip -r ${PACKAGE_NAME} ${DIR_NAME}
-            mv ${PACKAGE_NAME} ../
-            echo ::set-output name=name::${PACKAGE_NAME}
           else
             set -e
             cd standalone
@@ -77,11 +73,11 @@ jobs:
             mv ../installvm/uninstall-${GOOS}.sh ./uninstall.sh
             fi
             popd
-            PACKAGE_NAME=${DIR_NAME}.zip
-            zip -r ${PACKAGE_NAME} ${DIR_NAME}
-            mv ${PACKAGE_NAME} ../
-            echo ::set-output name=name::${PACKAGE_NAME}
           fi
+          PACKAGE_NAME=${DIR_NAME}.zip
+          zip -r ${PACKAGE_NAME} ${DIR_NAME}
+          mv ${PACKAGE_NAME} ../
+          echo ::set-output name=name::${PACKAGE_NAME}
 
 
       - name: Get Release by Tag
