@@ -19,17 +19,18 @@ package batch
 
 import (
 	"errors"
-	"github.com/polarismesh/polaris-server/common/log"
+
 	"github.com/mitchellh/mapstructure"
+	"github.com/polarismesh/polaris-server/common/log"
 )
 
-// 批量配置，控制最大的条目，批量等待时间等
+// Config 批量配置，控制最大的条目，批量等待时间等
 type Config struct {
 	Register   *CtrlConfig `mapstructure:"register"`
 	Deregister *CtrlConfig `mapstructure:"deregister"`
 }
 
-// batch控制配置项
+// CtrlConfig batch控制配置项
 type CtrlConfig struct {
 	// 是否开启Batch工作模式
 	Open bool `mapstructure:"open"`
@@ -43,7 +44,7 @@ type CtrlConfig struct {
 	Concurrency int `mapstructure:"concurrency"`
 }
 
-// 解析配置文件为config
+// ParseBatchConfig 解析配置文件为config
 func ParseBatchConfig(opt map[string]interface{}) (*Config, error) {
 	if opt == nil {
 		return nil, nil
