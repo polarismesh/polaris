@@ -18,13 +18,14 @@
 package connlimit
 
 import (
-	"github.com/polarismesh/polaris-server/common/log"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/polarismesh/polaris-server/common/log"
 )
 
-// 包装net.Conn
+// Conn 包装net.Conn
 // 目的：拦截Close操作，用于listener计数的Release以及activeConns的删除
 type Conn struct {
 	net.Conn
@@ -36,7 +37,7 @@ type Conn struct {
 	listener    *Listener
 }
 
-// 包装net.Conn.Close, 用于连接计数
+// Close 包装net.Conn.Close, 用于连接计数
 func (c *Conn) Close() error {
 	if c.closed {
 		return nil
@@ -52,7 +53,7 @@ func (c *Conn) Close() error {
 	return err
 }
 
-// 封装net.Conn Read方法，处理readTimeout的场景
+// Read 封装net.Conn Read方法，处理readTimeout的场景
 func (c *Conn) Read(b []byte) (int, error) {
 	if c.listener.readTimeout <= 0 {
 		return c.Conn.Read(b)
@@ -69,7 +70,7 @@ func (c *Conn) Read(b []byte) (int, error) {
 	}
 
 	if e, ok := err.(net.Error); ok && e.Timeout() {
-		if time.Now().Sub(c.lastAccess) >= c.listener.readTimeout {
+		if time.Since(c.lastAccess) >= c.listener.readTimeout {
 			log.Errorf("[connLimit][%s] read timeout(%v): %s, connection(%s) will be closed by server",
 				c.listener.protocol, c.listener.readTimeout, err.Error(), c.address)
 		}

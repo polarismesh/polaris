@@ -19,22 +19,28 @@ package connlimit
 
 import (
 	"errors"
-	"github.com/polarismesh/polaris-server/common/log"
 	"sync"
+
+	"github.com/polarismesh/polaris-server/common/log"
 )
+
+// limitListener limit obj for Listener
+type limitListener struct {
+	listenerMap map[string]*Listener // 对象索引
+	mu          sync.RWMutex         // 对象锁
+}
 
 var (
-	// 全局对象索引
-	connLimitObj = make(map[string]*Listener)
-	// 全局对象锁
-	connLimitMu = new(sync.Mutex)
+	limitEntry = limitListener{
+		listenerMap: make(map[string]*Listener),
+	}
 )
 
-// 获取当前的listener
+// GetLimitListener 获取当前的listener
 func GetLimitListener(protocol string) *Listener {
-	connLimitMu.Lock()
-	defer connLimitMu.Unlock()
-	obj, ok := connLimitObj[protocol]
+	limitEntry.mu.RLock()
+	defer limitEntry.mu.RUnlock()
+	obj, ok := limitEntry.listenerMap[protocol]
 	if !ok {
 		return nil
 	}
@@ -42,24 +48,25 @@ func GetLimitListener(protocol string) *Listener {
 	return obj
 }
 
-// 设置当前的listener
+// SetLimitListener 设置当前的listener
 // 注意：Listener.protocol不能重复
 func SetLimitListener(lis *Listener) error {
-	connLimitMu.Lock()
-	defer connLimitMu.Unlock()
+	limitEntry.mu.Lock()
+	defer limitEntry.mu.Unlock()
 
-	if _, ok := connLimitObj[lis.protocol]; ok {
+	if _, ok := limitEntry.listenerMap[lis.protocol]; ok {
 		log.Errorf("[ConnLimit] protocol(%s) is existed", lis.protocol)
 		return errors.New("protocol is existed")
 	}
 
-	connLimitObj[lis.protocol] = lis
+	limitEntry.listenerMap[lis.protocol] = lis
 	return nil
 }
 
-// 清理对应协议的链接计数
-func RemoteLimitListener(protocol string) {
-	connLimitMu.Lock()
-	defer connLimitMu.Unlock()
-	delete(connLimitObj, protocol)
+// RemoveLimitListener 清理对应协议的链接计数
+func RemoveLimitListener(protocol string) {
+	limitEntry.mu.Lock()
+	defer limitEntry.mu.Unlock()
+
+	delete(limitEntry.listenerMap, protocol)
 }

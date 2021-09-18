@@ -20,18 +20,19 @@ package connlimit
 import (
 	"context"
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/connlimit/mock_net"
-	"github.com/golang/mock/gomock"
-	. "github.com/smartystreets/goconvey/convey"
 	"math/rand"
 	"net"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/golang/mock/gomock"
+	"github.com/polarismesh/polaris-server/common/connlimit/mock_net"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
-// 模拟一下连接限制
+// TestConnLimit 模拟一下连接限制
 func TestConnLimit(t *testing.T) {
 	addr := "127.0.0.1:44444"
 	host := "127.0.0.1"
@@ -95,7 +96,7 @@ func TestConnLimit(t *testing.T) {
 	}
 
 	// 等待连接全部关闭
-	//time.Sleep(5 * time.Second)
+	// time.Sleep(5 * time.Second)
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	for {
@@ -174,7 +175,7 @@ func TestConnLimit(t *testing.T) {
 	time.Sleep(time.Second)
 }*/
 
-// test invalid conn limit param
+// TestInvalidParams test invalid conn limit param
 func TestInvalidParams(t *testing.T) {
 	lis, err := net.Listen("tcp", "127.0.0.1:44445")
 	if err != nil {
@@ -217,7 +218,7 @@ func TestInvalidParams(t *testing.T) {
 	})
 }
 
-// 测试accept
+// TestListener_Accept 测试accept
 func TestListener_Accept(t *testing.T) {
 	Convey("正常accept", t, func() {
 		ctrl := gomock.NewController(t)
@@ -232,7 +233,7 @@ func TestListener_Accept(t *testing.T) {
 	})
 }
 
-// 测试acquire
+// TestLimitListener_Acquire 测试acquire
 func TestLimitListener_Acquire(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -269,7 +270,7 @@ func TestLimitListener_Acquire(t *testing.T) {
 	})
 }
 
-// release
+// TestLimitListener_ReLease release
 func TestLimitListener_ReLease(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -313,7 +314,7 @@ func TestLimitListener_ReLease(t *testing.T) {
 	})
 }
 
-// 白名单测试
+// TestWhiteList 白名单测试
 func TestWhiteList(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -335,7 +336,7 @@ func TestWhiteList(t *testing.T) {
 	})
 }
 
-// 测试activeConns
+// TestActiveConns 测试activeConns
 func TestActiveConns(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -386,7 +387,7 @@ func TestActiveConns(t *testing.T) {
 	})
 }
 
-// 测试回收过期Counter函数
+// TestPurgeExpireCounterHandler 测试回收过期Counter函数
 func TestPurgeExpireCounterHandler(t *testing.T) {
 	Convey("可以正常purge", t, func() {
 		listener := NewTestLimitListener(1024, 16)
@@ -436,12 +437,11 @@ func TestPurgeExpireCounterHandler(t *testing.T) {
 	})
 }
 
-// 返回一个测试listener
+// NewTestLimitListener 返回一个测试listener
 func NewTestLimitListener(maxLimit int32, hostLimit int32) *Listener {
 	return &Listener{
 		maxConnLimit:         maxLimit,
 		maxConnPerHost:       hostLimit,
-		conns:                new(sync.Map),
 		purgeCounterInterval: time.Hour,
 		purgeCounterExpire:   300,
 	}

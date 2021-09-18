@@ -18,12 +18,13 @@
 package connlimit
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
-// 可以正常解析配置测试
+// TestParseConnLimitConfig 可以正常解析配置测试
 func TestParseConnLimitConfig(t *testing.T) {
 	Convey("可以正常解析配置", t, func() {
 		options := map[interface{}]interface{}{
