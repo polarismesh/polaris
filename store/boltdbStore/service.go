@@ -20,6 +20,7 @@ package boltdbStore
 import (
 	"database/sql"
 	"errors"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"sort"
 	"strconv"
 	"strings"
@@ -640,7 +641,7 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				if !ok {
 					return false
 				}
-				if isWildName(name) {
+				if utils.IsWildName(name) {
 					return strings.Contains(svcName.(string), name[0:len(name)-1])
 				} else {
 					if svcName.(string) != name {
@@ -668,7 +669,7 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				if !ok {
 					return false
 				}
-				if isWildName(department) {
+				if utils.IsWildName(department) {
 					return strings.Contains(svcDepartment.(string), department[0:len(department)-1])
 				} else {
 					if svcDepartment.(string) != department {
@@ -682,7 +683,7 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				if !ok {
 					return false
 				}
-				if isWildName(business) {
+				if utils.IsWildName(business) {
 					return strings.Contains(svcBusiness.(string), business[0:len(business)-1])
 				} else {
 					if svcBusiness.(string) != business {
@@ -746,9 +747,4 @@ func initService(s *model.Service) {
 		s.ModifyTime = current
 		s.Valid = true
 	}
-}
-
-func isWildName(name string) bool {
-	length := len(name)
-	return length >= 1 && name[length-1:length] == "*"
 }
