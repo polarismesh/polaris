@@ -30,7 +30,7 @@ import (
 // not support update/delete
 
 /**
- * @brief 时间轮结构体
+ * TimeWheel 时间轮结构体
  */
 type TimeWheel struct {
 	name       string
@@ -40,16 +40,16 @@ type TimeWheel struct {
 	slots      []*list.List
 	locks      []sync.Mutex
 	slotNum    int
-	stopCh     chan bool
+	stopCh     chan struct{}
 }
 
 /**
- * @brief 时间轮回调函数定义
+ * Callback 时间轮回调函数定义
  */
 type Callback func(interface{})
 
 /**
- * @brief 时间轮任务结构体
+ * Task 时间轮任务结构体
  */
 type Task struct {
 	delayTime time.Duration
@@ -59,32 +59,32 @@ type Task struct {
 }
 
 /**
- * @brief 初始化时间轮
+ * New 初始化时间轮
  */
 func New(interval time.Duration, slotNum int, name string) *TimeWheel {
 	if interval <= 0 || slotNum <= 0 {
 		return nil
 	}
 
-	timewheel := &TimeWheel{
+	timeWheel := &TimeWheel{
 		name:       name,
 		interval:   interval,
 		slots:      make([]*list.List, slotNum),
 		locks:      make([]sync.Mutex, slotNum),
 		currentPos: 0,
 		slotNum:    slotNum,
-		stopCh:     make(chan bool),
+		stopCh:     make(chan struct{}, 1),
 	}
 
 	for i := 0; i < slotNum; i++ {
-		timewheel.slots[i] = list.New()
+		timeWheel.slots[i] = list.New()
 	}
 
-	return timewheel
+	return timeWheel
 }
 
 /**
- * @brief 启动时间轮
+ * Start 启动时间轮
  */
 func (tw *TimeWheel) Start() {
 	tw.ticker = time.NewTicker(tw.interval)
@@ -92,14 +92,14 @@ func (tw *TimeWheel) Start() {
 }
 
 /**
- * @brief 停止时间轮
+ * Stop 停止时间轮
  */
 func (tw *TimeWheel) Stop() {
-	tw.stopCh <- true
+	close(tw.stopCh)
 }
 
 /**
- * @brief 时间轮运转函数
+ * start 时间轮运转函数
  */
 func (tw *TimeWheel) start() {
 	for {
@@ -114,7 +114,7 @@ func (tw *TimeWheel) start() {
 }
 
 /**
- * @brief 时间轮到期处理函数
+ * taskRunner 时间轮到期处理函数
  */
 func (tw *TimeWheel) taskRunner() {
 	now := time.Now()
@@ -124,17 +124,17 @@ func (tw *TimeWheel) taskRunner() {
 	execNum := tw.scanAddRunTask(l)
 	tw.locks[tw.currentPos].Unlock()
 
-	duration := time.Now().Sub(now)
-	log.Debugf("%s task start time:%d, use time:%v, exec num:%d", tw.name, now.Unix(), duration, execNum)
+	log.Debugf("%s task start time:%d, use time:%v, exec num:%d", tw.name, now.Unix(), time.Since(now), execNum)
 	if tw.currentPos == tw.slotNum-1 {
 		tw.currentPos = 0
-	} else {
-		tw.currentPos++
+		return
 	}
+
+	tw.currentPos++
 }
 
 /**
- * @brief 新增时间轮任务
+ * AddTask 新增时间轮任务
  */
 func (tw *TimeWheel) AddTask(delayTime time.Duration, data interface{}, cb Callback) error {
 	if delayTime <= 0 {
@@ -153,7 +153,7 @@ func (tw *TimeWheel) AddTask(delayTime time.Duration, data interface{}, cb Callb
 }
 
 /**
- * @brief 运行时间轮任务
+ * scanAddRunTask 运行时间轮任务
  */
 func (tw *TimeWheel) scanAddRunTask(l *list.List) int {
 	if l == nil {
@@ -180,7 +180,7 @@ func (tw *TimeWheel) scanAddRunTask(l *list.List) int {
 }
 
 /**
- * @brief 获取当前时间轮位置
+ * getSlots 获取当前时间轮位置
  */
 func (tw *TimeWheel) getSlots(d time.Duration) (pos int, circle int) {
 	delayTime := int(d.Seconds())
