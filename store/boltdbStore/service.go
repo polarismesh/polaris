@@ -22,6 +22,7 @@ import (
 	"errors"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -639,8 +640,12 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				if !ok {
 					return false
 				}
-				if svcName.(string) != name {
-					return false
+				if isWildName(name) {
+					return strings.Contains(svcName.(string), name[0:len(name)-1])
+				} else {
+					if svcName.(string) != name {
+						return false
+					}
 				}
 			}
 
@@ -732,4 +737,9 @@ func initService(s *model.Service) {
 		s.ModifyTime = current
 		s.Valid = true
 	}
+}
+
+func isWildName(name string) bool {
+	length := len(name)
+	return length >= 1 && name[length-1:length] == "*"
 }
