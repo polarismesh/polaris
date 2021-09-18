@@ -18,12 +18,13 @@
 package connlimit
 
 import (
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/mitchellh/mapstructure"
 	"time"
+
+	"github.com/mitchellh/mapstructure"
+	"github.com/polarismesh/polaris-server/common/log"
 )
 
-// 连接限制配置
+// Config 连接限制配置
 type Config struct {
 	// 开启连接限制
 	OpenConnLimit bool `mapstructure:"openConnLimit"`
@@ -48,16 +49,16 @@ type Config struct {
 	PurgeCounterExpire time.Duration `mapstructure:"purgeCounterExpire"`
 }
 
-// 解析配置
+// ParseConnLimitConfig 解析配置
 func ParseConnLimitConfig(raw map[interface{}]interface{}) (*Config, error) {
 	if raw == nil {
 		return nil, nil
 	}
 
-	var config Config
+	config := &Config{}
 	decodeConfig := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
-		Result:     &config,
+		Result:     config,
 	}
 	decoder, err := mapstructure.NewDecoder(decodeConfig)
 	if err != nil {
@@ -65,10 +66,11 @@ func ParseConnLimitConfig(raw map[interface{}]interface{}) (*Config, error) {
 		return nil, err
 	}
 
-	if err := decoder.Decode(raw); err != nil {
+	err = decoder.Decode(raw)
+	if err != nil {
 		log.Errorf("parse conn limit config(%+v) err: %s", raw, err.Error())
 		return nil, err
 	}
 
-	return &config, nil
+	return config, nil
 }

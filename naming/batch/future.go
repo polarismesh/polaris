@@ -23,7 +23,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
-// 创建实例的异步结构体
+// InstanceFuture 创建实例的异步结构体
 type InstanceFuture struct {
 	request       *api.Instance   // api请求对象
 	instance      *model.Instance // 从数据库中读取到的model信息
@@ -33,7 +33,7 @@ type InstanceFuture struct {
 	platformToken string          // 平台Token
 }
 
-// future的应答
+// Reply future的应答
 func (future *InstanceFuture) Reply(code uint32, result error) {
 	future.code = code
 
@@ -46,27 +46,27 @@ func (future *InstanceFuture) Reply(code uint32, result error) {
 	return
 }
 
-// 外部调用者，需要调用Wait等待执行结果
+// Wait 外部调用者，需要调用Wait等待执行结果
 func (future *InstanceFuture) Wait() error {
 	return <-future.result
 }
 
-// 设置ins
+// SetInstance 设置ins
 func (future *InstanceFuture) SetInstance(instance *model.Instance) {
 	future.instance = instance
 }
 
-// 获取ins
+// Instance 获取ins
 func (future *InstanceFuture) Instance() *model.Instance {
 	return future.instance
 }
 
-// 获取code
+// Code 获取code
 func (future *InstanceFuture) Code() uint32 {
 	return future.code
 }
 
-// 批量答复futures
+// SendReply 批量答复futures
 func SendReply(futures interface{}, code uint32, result error) {
 	switch futures.(type) {
 	case []*InstanceFuture:

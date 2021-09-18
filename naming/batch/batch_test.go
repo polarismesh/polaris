@@ -20,18 +20,19 @@ package batch
 import (
 	"context"
 	"fmt"
+	"sync"
+	"testing"
+
+	"github.com/golang/mock/gomock"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	amock "github.com/polarismesh/polaris-server/naming/auth/mock"
 	smock "github.com/polarismesh/polaris-server/store/mock"
-	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
-	"sync"
-	"testing"
 )
 
-// 测试New
+// TestNewBatchCtrlWithConfig 测试New
 func TestNewBatchCtrlWithConfig(t *testing.T) {
 	Convey("正常新建", t, func() {
 		ctrlConfig := &CtrlConfig{
@@ -123,7 +124,7 @@ func sendAsyncCreateInstance(bc *Controller) error {
 	return nil
 }
 
-// test AsyncCreateInstance
+// TestAsyncCreateInstance test AsyncCreateInstance
 func TestAsyncCreateInstance(t *testing.T) {
 	Convey("正常创建实例", t, func() {
 		bc, storage, authority, cancel := newCreateInstanceController(t)
@@ -148,7 +149,7 @@ func TestAsyncCreateInstance(t *testing.T) {
 	})
 }
 
-// 测试reply
+// TestSendReply 测试reply
 func TestSendReply(t *testing.T) {
 	Convey("可以正常获取类型", t, func() {
 		SendReply(make([]*InstanceFuture, 0, 10), 1, nil)

@@ -189,7 +189,7 @@ func (h *HTTPServer) Run(errCh chan error) {
 func (h *HTTPServer) Stop() {
 	// 释放connLimit的数据，如果没有开启，也需要执行一下
 	// 目的：防止restart的时候，connLimit冲突
-	connlimit.RemoteLimitListener(h.GetProtocol())
+	connlimit.RemoveLimitListener(h.GetProtocol())
 	if h.server != nil {
 		_ = h.server.Close()
 	}

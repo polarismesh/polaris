@@ -22,17 +22,16 @@ import (
 )
 
 /**
- * @brief ckv连接结构体
+ * Conn ckv连接结构体
  */
 type Conn struct {
-	// conn在连接池的序号
-	index int
+	index int // conn在连接池的序号
 	addr  string
 	conn  redis.Conn
 }
 
 /**
- * @brief 新建ckv连接
+ * newConn 新建ckv连接
  */
 func newConn(index int, addr, passwd string) (*Conn, error) {
 	c, err := redis.Dial("tcp", addr, redis.DialPassword(passwd))
@@ -44,21 +43,21 @@ func newConn(index int, addr, passwd string) (*Conn, error) {
 }
 
 /**
- * @brief 返回ckv地址
+ * Addr 返回ckv地址
  */
 func (c *Conn) Addr() string {
 	return c.addr
 }
 
 /**
- * @brief Get请求
+ *Get Get请求
  */
 func (c *Conn) Get(key string) (string, error) {
 	return redis.String(c.conn.Do("GET", key))
 }
 
 /**
- * @brief Set请求
+ * Set Set请求
  */
 func (c *Conn) Set(key, value string) (err error) {
 	_, err = c.conn.Do("SET", key, value)
@@ -66,7 +65,7 @@ func (c *Conn) Set(key, value string) (err error) {
 }
 
 /**
- * @brief Del请求
+ * Del Del请求
  */
 func (c *Conn) Del(key string) (err error) {
 	_, err = c.conn.Do("DEL", key)

@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -43,13 +42,16 @@ import (
  */
 
 const (
-	Get = 0
-	Set = 1
-	Del = 2
+	// Get get method define
+	Get = iota
+	// Set set method define
+	Set
+	// Del del method define
+	Del
 )
 
 /**
- * @brief ckv任务请求结构体
+ * Task ckv任务请求结构体
  */
 type Task struct {
 	taskType int
@@ -60,7 +62,7 @@ type Task struct {
 }
 
 /**
- * @brief ckv任务结果
+ * Resp ckv任务结果
  */
 type Resp struct {
 	Value string
@@ -68,7 +70,7 @@ type Resp struct {
 }
 
 /**
- * @brief ckv连接池元数据
+ * MetaData ckv连接池元数据
  */
 type MetaData struct {
 	insConnNum int
@@ -77,19 +79,18 @@ type MetaData struct {
 }
 
 /**
- * @brief ckv节点结构体
+ * Node ckv节点结构体
  */
 type Node struct {
-	// 节点在连接池中的序号
-	index    int
+	index    int // 节点在连接池中的序号
 	addr     string
 	conns    []*Conn
-	stopCh   chan bool
-	changeCh chan bool
+	stopCh   chan struct{}
+	changeCh chan struct{}
 }
 
 /**
- * @brief ckv连接池结构体
+ * Pool ckv连接池结构体
  */
 type Pool struct {
 	mu       sync.Mutex
@@ -101,20 +102,22 @@ type Pool struct {
 }
 
 /**
- * @brief 初始化一个ckv节点实例
+ * newNode 初始化一个ckv节点实例
  */
 func newNode(index, connNum int, kvPasswd string, ins *model.Instance) *Node {
-	node := &Node{
-		index:    index,
-		addr:     ins.Host() + ":" + strconv.Itoa(int(ins.Port())),
-		stopCh:   make(chan bool),
-		changeCh: make(chan bool),
-	}
-	log.Infof("[ckv] instance:%s connect, conn num:%d", node.addr, connNum)
-
 	// 计算连接的序号，即连接要与序号为index的chan绑定
 	connIndexStart := index * connNum
 	connIndexEnd := (index + 1) * connNum
+
+	node := &Node{
+		index:    index,
+		addr:     fmt.Sprintf("%s:%d", ins.Host(), ins.Port()),
+		stopCh:   make(chan struct{}, 1),
+		changeCh: make(chan struct{}, 1),
+		conns:    make([]*Conn, 0, connIndexEnd), // pre-allocated in advance
+	}
+
+	log.Infof("[ckv] instance:%s connect, conn num:%d", node.addr, connNum)
 	for i := connIndexStart; i < connIndexEnd; i++ {
 		conn, err := newConn(i, node.addr, kvPasswd)
 		if err != nil {
@@ -127,7 +130,7 @@ func newNode(index, connNum int, kvPasswd string, ins *model.Instance) *Node {
 }
 
 /**
- * @brief 初始化一个ckv连接池实例
+ * NewPool 初始化一个ckv连接池实例
  */
 func NewPool(insConnNum int, kvPasswd, localHost string, kvInstances []*model.Instance) (*Pool, error) {
 	kvPool := &Pool{
@@ -151,21 +154,22 @@ func NewPool(insConnNum int, kvPasswd, localHost string, kvInstances []*model.In
 }
 
 /**
- * @brief 启动ckv连接池工作
+ * Start 启动ckv连接池工作
  */
 func (p *Pool) Start() {
 	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	for _, node := range p.nodes {
 		for _, conn := range node.conns {
 			go p.worker(conn, node.changeCh, node.stopCh)
 		}
 	}
-	p.mu.Unlock()
 	log.Infof("[ckv] ckv pool start")
 }
 
 /**
- * @brief 更新ckv连接池中的节点
+ * Update 更新ckv连接池中的节点
  * 重新建立ckv连接
  * 对业务无影响
  */
@@ -190,7 +194,7 @@ func (p *Pool) Update(newKvInstances []*model.Instance) error {
 		p.connSize = uint32(newConnSize)
 	}
 
-	var newNodes []*Node
+	newNodes := make([]*Node, 0, len(newKvInstances))
 	for index, ins := range newKvInstances {
 		// 建立新连接
 		node := newNode(index, p.meta.insConnNum, p.meta.kvPasswd, ins)
@@ -229,7 +233,7 @@ func (p *Pool) Update(newKvInstances []*model.Instance) error {
 }
 
 /**
- * @brief 建立连接
+ * connect 建立连接
  */
 func (p *Pool) connect(kvInstances []*model.Instance) error {
 	p.mu.Lock()
@@ -249,7 +253,7 @@ func (p *Pool) connect(kvInstances []*model.Instance) error {
 }
 
 /**
- * @brief 使用连接池，向ckv发起Get请求
+ * Get 使用连接池，向ckv发起Get请求
  */
 func (p *Pool) Get(id string, ch chan *Resp) { // nolint
 	task := &Task{
@@ -263,7 +267,7 @@ func (p *Pool) Get(id string, ch chan *Resp) { // nolint
 }
 
 /**
- * @brief 使用连接池，向ckv发起Set请求
+ * Set 使用连接池，向ckv发起Set请求
  */
 func (p *Pool) Set(id string, status int, beatTime int64, ch chan *Resp) { // nolint
 	task := &Task{
@@ -279,7 +283,7 @@ func (p *Pool) Set(id string, status int, beatTime int64, ch chan *Resp) { // no
 }
 
 /**
- * @brief 使用连接池，向ckv发起Del请求
+ * Del 使用连接池，向ckv发起Del请求
  */
 func (p *Pool) Del(id string, ch chan *Resp) { // nolint
 	task := &Task{
@@ -293,10 +297,12 @@ func (p *Pool) Del(id string, ch chan *Resp) { // nolint
 }
 
 /**
- * @brief 接收任务worker
+ * worker 接收任务worker
  */
-func (p *Pool) worker(conn *Conn, changeCh, stopCh chan bool) {
+func (p *Pool) worker(conn *Conn, changeCh, stopCh chan struct{}) {
 	ch := p.chs[conn.index]
+	defer conn.conn.Close()
+
 	for {
 		select {
 		case task := <-ch:
@@ -307,12 +313,11 @@ func (p *Pool) worker(conn *Conn, changeCh, stopCh chan bool) {
 			for task := range ch {
 				p.handleTask(conn, task)
 			}
-			conn.conn.Close()
+
 			log.Infof("[ckv] instance:%s chan:%d close", conn.addr, conn.index)
 			return
 		case <-changeCh:
 			// 发现ckv+节点变动，更新chan绑定的连接
-			conn.conn.Close()
 			log.Infof("[ckv] instance:%s chan:%d change", conn.addr, conn.index)
 			return
 		}
@@ -320,7 +325,7 @@ func (p *Pool) worker(conn *Conn, changeCh, stopCh chan bool) {
 }
 
 /**
- * @brief 任务处理函数
+ * handleTask 任务处理函数
  */
 func (p *Pool) handleTask(conn *Conn, task *Task) {
 	if task == nil {
@@ -331,25 +336,14 @@ func (p *Pool) handleTask(conn *Conn, task *Task) {
 	var resp Resp
 	switch task.taskType {
 	case Get:
-		value, err := conn.Get(task.id)
-		if err != nil {
-			resp.Err = err
-		} else {
-			resp.Value = value
-		}
+		resp.Value, resp.Err = conn.Get(task.id)
 		task.respCh <- &resp
 	case Set:
 		value := fmt.Sprintf("%d:%d:%s", task.status, task.beatTime, p.meta.localHost)
-		err := conn.Set(task.id, value)
-		if err != nil {
-			resp.Err = err
-		}
+		resp.Err = conn.Set(task.id, value)
 		task.respCh <- &resp
 	case Del:
-		err := conn.Del(task.id)
-		if err != nil {
-			resp.Err = err
-		}
+		resp.Err = conn.Del(task.id)
 		task.respCh <- &resp
 	default:
 		log.Errorf("[ckv] set key:%s type:%d wrong", task.id, task.taskType)

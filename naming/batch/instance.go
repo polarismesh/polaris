@@ -21,6 +21,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -28,10 +30,9 @@ import (
 	"github.com/polarismesh/polaris-server/naming/auth"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
-	"time"
 )
 
-// 批量操作实例的类
+// InstanceCtrl 批量操作实例的类
 type InstanceCtrl struct {
 	config          *CtrlConfig
 	storage         store.Store
@@ -43,7 +44,7 @@ type InstanceCtrl struct {
 	waitDuration    time.Duration
 	queue           chan *InstanceFuture // 请求接受协程
 	label           string
-	hbOpen          bool				//是否开启了心跳上报功能
+	hbOpen          bool // 是否开启了心跳上报功能
 }
 
 // 注册实例批量操作对象
