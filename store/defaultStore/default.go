@@ -156,7 +156,7 @@ func parseStoreConfig(opts interface{}) (*dbConfig, error) {
 	dbPwd, _ := obj["dbPwd"].(string)
 	dbAddr, _ := obj["dbAddr"].(string)
 	dbName, _ := obj["dbName"].(string)
-	if dbType == "" || dbUser == "" || dbPwd == "" || dbAddr == "" || dbName == "" {
+	if dbType == "" || dbUser == "" || dbAddr == "" || dbName == "" {
 		return nil, fmt.Errorf("Config Plugin %s missing database param", STORENAME)
 	}
 
