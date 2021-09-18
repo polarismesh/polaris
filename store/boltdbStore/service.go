@@ -663,22 +663,31 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				}
 			}
 
-			if isDepartment && department != m[SvcFieldDepartment].(string) {
+			if isDepartment {
 				svcDepartment, ok := m[SvcFieldDepartment]
 				if !ok {
 					return false
 				}
-				if svcDepartment.(string) != department {
-					return false
+				if isWildName(department) {
+					return strings.Contains(svcDepartment.(string), department[0:len(department)-1])
+				} else {
+					if svcDepartment.(string) != department {
+						return false
+					}
 				}
 			}
-			if isBusiness && business != m[SvcFieldBusiness].(string) {
+
+			if isBusiness {
 				svcBusiness, ok := m[SvcFieldBusiness]
 				if !ok {
 					return false
 				}
-				if svcBusiness.(string) != business {
-					return false
+				if isWildName(business) {
+					return strings.Contains(svcBusiness.(string), business[0:len(business)-1])
+				} else {
+					if svcBusiness.(string) != business {
+						return false
+					}
 				}
 			}
 
