@@ -20,7 +20,6 @@ package defaultStore
 import (
 	"fmt"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/store"
 	"strconv"
 	"strings"
 )
@@ -114,7 +113,7 @@ func genServiceFilterSQL(filter map[string]string) (string, []interface{}) {
 		} else if key == "business" {
 			str += fmt.Sprintf(" %s like ?", key)
 			value = "%" + value + "%"
-		} else if key == "name" && isWildName(value) {
+		} else if key == "name" && utils.IsWildName(value) {
 			str += " name like ?"
 			value = "%" + value[0:len(value)-1] + "%"
 		} else {
