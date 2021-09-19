@@ -173,7 +173,7 @@ func (ss *serviceStore) GetSourceServiceToken(name string, namespace string) (*m
 	var out model.Service
 	s, err := ss.getServiceByNameAndNs(name, namespace)
 	switch {
-	case err == sql.ErrNoRows:
+	case err == sql.ErrNoRows, s == nil:
 		return nil, nil
 	case err != nil:
 		return nil, err
@@ -284,7 +284,7 @@ func (ss *serviceStore) GetServiceAliases(
 
 	// find all alias service with filters
 	fields := []string{SvcFieldReference, SvcFieldMeta, SvcFieldDepartment, SvcFieldBusiness}
-	for k, _ := range filter {
+	for k := range filter {
 		fields = append(fields, k)
 	}
 
