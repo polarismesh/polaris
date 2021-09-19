@@ -4,6 +4,7 @@ polaris-server-release.tar.gz
 
 /log/
 /statis/
+/discover-statis/
 
 .idea
 .DS_Store
