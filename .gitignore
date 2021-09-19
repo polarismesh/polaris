@@ -13,3 +13,5 @@ polaris-server-release.tar.gz
 
 .vscode/*
 *.bolt
+
+/vendor
