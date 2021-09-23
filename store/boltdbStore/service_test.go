@@ -312,6 +312,84 @@ func TestServiceStore_GetServicesCount(t *testing.T) {
 	}
 }
 
+func TestServiceStore_FuzzyGetService(t *testing.T) {
+	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
+	if nil != err {
+		t.Fatal(err)
+	}
+	defer handler.Close()
+
+	sStore := &serviceStore{handler: handler}
+
+	for i := 0; i < serviceCount; i++ {
+		err := sStore.AddService(&model.Service{
+			ID:        "svcid" + strconv.Itoa(i),
+			Name:      "svcname" + strconv.Itoa(i),
+			Namespace: "testsvc",
+			Business:  "testbuss",
+			Ports:     "8080",
+			Meta: map[string]string{
+				"k1": "v1",
+				"k2": "v2",
+			},
+			Comment:    "testcomment",
+			Department: "testdepart",
+			Token:      "testtoken",
+			Owner:      "testowner",
+			Revision:   "testrevision" + strconv.Itoa(i),
+			Reference:  "",
+			Valid:      true,
+			CreateTime: time.Now(),
+			ModifyTime: time.Now(),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	serviceFilters := make(map[string]string)
+	serviceFilters["name"] = "svcname*"
+
+	count, _, err := sStore.GetServices(serviceFilters, nil, nil, 0, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != serviceCount {
+		t.Fatal(fmt.Sprintf("fuzzy query error"))
+	}
+
+	serviceFilters["name"] = "svcname"
+	count, _, err = sStore.GetServices(serviceFilters, nil, nil, 0, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatal(fmt.Sprintf("fuzzy query error"))
+	}
+
+	serviceFilters = make(map[string]string)
+	serviceFilters["department"] = "test*"
+
+	count, _, err = sStore.GetServices(serviceFilters, nil, nil, 0, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 5 {
+		t.Fatal(fmt.Sprintf("fuzzy query error"))
+	}
+
+	serviceFilters = make(map[string]string)
+	serviceFilters["business"] = "test*"
+
+	count, _, err = sStore.GetServices(serviceFilters, nil, nil, 0, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 5 {
+		t.Fatal(fmt.Sprintf("fuzzy query error"))
+	}
+
+}
+
 func TestServiceStore_GetMoreServices(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
