@@ -112,3 +112,11 @@ func CollectFilterFields(filters map[string]string) []string {
 
 	return fields
 }
+
+/**
+ * @brief 判断名字是否为通配名字，只支持前缀索引(名字最后为*)
+ */
+func IsWildName(name string) bool {
+	length := len(name)
+	return length >= 1 && name[length-1:length] == "*"
+}

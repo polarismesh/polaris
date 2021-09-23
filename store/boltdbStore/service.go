@@ -20,8 +20,10 @@ package boltdbStore
 import (
 	"database/sql"
 	"errors"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -639,8 +641,12 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				if !ok {
 					return false
 				}
-				if svcName.(string) != name {
-					return false
+				if utils.IsWildName(name) {
+					return strings.Contains(svcName.(string), name[0:len(name)-1])
+				} else {
+					if svcName.(string) != name {
+						return false
+					}
 				}
 			}
 
@@ -658,22 +664,31 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				}
 			}
 
-			if isDepartment && department != m[SvcFieldDepartment].(string) {
+			if isDepartment {
 				svcDepartment, ok := m[SvcFieldDepartment]
 				if !ok {
 					return false
 				}
-				if svcDepartment.(string) != department {
-					return false
+				if utils.IsWildName(department) {
+					return strings.Contains(svcDepartment.(string), department[0:len(department)-1])
+				} else {
+					if svcDepartment.(string) != department {
+						return false
+					}
 				}
 			}
-			if isBusiness && business != m[SvcFieldBusiness].(string) {
+
+			if isBusiness {
 				svcBusiness, ok := m[SvcFieldBusiness]
 				if !ok {
 					return false
 				}
-				if svcBusiness.(string) != business {
-					return false
+				if utils.IsWildName(business) {
+					return strings.Contains(svcBusiness.(string), business[0:len(business)-1])
+				} else {
+					if svcBusiness.(string) != business {
+						return false
+					}
 				}
 			}
 
