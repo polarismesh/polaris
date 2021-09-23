@@ -42,8 +42,6 @@ func (future *InstanceFuture) Reply(code uint32, result error) {
 	default:
 		log.Warnf("[Batch] instance(%s) future is not captured", future.request.GetId().GetValue())
 	}
-
-	return
 }
 
 // Wait 外部调用者，需要调用Wait等待执行结果
