@@ -23,11 +23,11 @@ bootstrap:
           - grpcserver
           - httpserver
 #          - l5pbserver
-      - name: polaris.healthcheck
-        namespace: Polaris
-        protocols:
-          - grpcserver
-          - httpserver
+#      - name: polaris.healthcheck
+#        namespace: Polaris
+#        protocols:
+#          - grpcserver
+#          - httpserver
 # apiserver配置
 apiservers:
   - name: httpserver # 协议名，全局唯一
