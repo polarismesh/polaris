@@ -19,6 +19,7 @@ package defaultStore
 
 import (
 	"fmt"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"strconv"
 	"strings"
 )
@@ -38,14 +39,6 @@ type Order struct {
 type Page struct {
 	Offset uint32
 	Limit  uint32
-}
-
-/**
- * @brief 判断名字是否为通配名字，只支持前缀索引(名字最后为*)
- */
-func isWildName(name string) bool {
-	length := len(name)
-	return length >= 1 && name[length-1:length] == "*"
 }
 
 func boolToInt(v bool) int {
@@ -73,7 +66,7 @@ func genFilterSQL(filter map[string]string) (string, []interface{}) {
 		if key == OwnerAttribute || key == "alias."+OwnerAttribute || key == "business" {
 			str += fmt.Sprintf(" %s like ?", key)
 			value = "%" + value + "%"
-		} else if key == "name" && isWildName(value) {
+		} else if key == "name" && utils.IsWildName(value) {
 			str += " name like ?"
 			value = "%" + value[0:len(value)-1] + "%"
 		} else if key == "host" {
@@ -120,7 +113,7 @@ func genServiceFilterSQL(filter map[string]string) (string, []interface{}) {
 		} else if key == "business" {
 			str += fmt.Sprintf(" %s like ?", key)
 			value = "%" + value + "%"
-		} else if key == "name" && isWildName(value) {
+		} else if key == "name" && utils.IsWildName(value) {
 			str += " name like ?"
 			value = "%" + value[0:len(value)-1] + "%"
 		} else {
@@ -292,7 +285,6 @@ func filterMetadataWithTable(table string, metas map[string]string) (string, []i
 
 	return str, args
 }
-
 
 // 构造多个占位符
 func PlaceholdersN(size int) string {

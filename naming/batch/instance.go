@@ -101,7 +101,7 @@ func (ctrl *InstanceCtrl) Start(ctx context.Context) {
 // 创建批量控制instance的对象
 func newBatchInstanceCtrl(storage store.Store, authority auth.Authority, auth plugin.Auth,
 	config *CtrlConfig) (*InstanceCtrl, error) {
-	if config == nil || config.Open == false {
+	if config == nil || !config.Open {
 		return nil, nil
 	}
 
@@ -144,7 +144,6 @@ func (ctrl *InstanceCtrl) mainLoop(ctx context.Context) {
 		ctrl.storeThreadCh[idleIdx] <- data
 		futures = make([]*InstanceFuture, 0, ctrl.config.MaxBatchCount)
 		idx = 0
-		return
 	}
 	// 启动接受注册请求的协程
 	go func() {

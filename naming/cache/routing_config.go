@@ -137,7 +137,7 @@ func (rc *routingConfigCache) setRoutingConfig(cs []*model.RoutingConfig) error 
 			lastMtime = entry.ModifyTime.Unix()
 		}
 
-		if entry.Valid == false {
+		if !entry.Valid {
 			rc.ids.Delete(entry.ID)
 			continue
 		}

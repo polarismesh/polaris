@@ -142,7 +142,7 @@ func (cbc *circuitBreakerCache) setCircuitBreaker(cb []*model.ServiceWithCircuit
 			lastTime = entry.ModifyTime.Unix()
 		}
 
-		if entry.Valid == false {
+		if !entry.Valid {
 			cbc.ids.Delete(entry.ServiceID)
 			continue
 		}

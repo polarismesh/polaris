@@ -267,7 +267,7 @@ func (nc *NamingCache) processRevisionWorker(req *revisionNotify) bool {
 		return false
 	}
 
-	if req.valid == false {
+	if !req.valid {
 		// log.Infof("[Cache][Revision] service(%s) revision has all been removed", req.serviceID)
 		nc.revisions.Delete(req.serviceID)
 		return true
