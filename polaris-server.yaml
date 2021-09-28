@@ -125,10 +125,10 @@ store:
 #  option:
 #    master:
 #      dbType: mysql
+#      dbName: polaris_server
 #      dbUser: ##DB_USER##
 #      dbPwd: ##DB_PWD##
 #      dbAddr: ##DB_ADDR##
-#      dbName: ##DB_NAME##
 #      maxOpenConns: -1
 #      maxIdleConns: -1
 #      connMaxLifetime: 300 # 单位秒
