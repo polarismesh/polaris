@@ -42,15 +42,15 @@ jobs:
         run: |
           if [ ${GOOS} == "kubernetes" ];then
             set -e
-            cd standalone
+            cd deploy/standalone
             DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}
             mkdir ${DIR_NAME}
             pushd ${DIR_NAME}
-            cp ../installk8s/* ./
+            cp ../k8s/* ./
             popd
           else
             set -e
-            cd standalone
+            cd deploy/standalone
             POLARIS_GIT_PATH=https://github.com/polarismesh
             DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}.${GOARCH}
             mkdir ${DIR_NAME}
@@ -62,15 +62,15 @@ jobs:
             if [ ${GOOS} == "windows" ];then
             wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.zip
             wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${GOOS}-${GOARCH}.zip
-            mv ../installvm/install-windows.bat ./install.bat
-            mv ../installvm/install-windows.ps1 ./install-windows.ps1
-            mv ../installvm/uninstall-windows.bat ./uninstall.bat
-            mv ../installvm/uninstall-windows.ps1 ./uninstall-windows.ps1
+            mv ../vm/install-windows.bat ./install.bat
+            mv ../vm/install-windows.ps1 ./install-windows.ps1
+            mv ../vm/uninstall-windows.bat ./uninstall.bat
+            mv ../vm/uninstall-windows.ps1 ./uninstall-windows.ps1
             else
             wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz
             wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${GOOS}-${GOARCH}.tar.gz
-            mv ../installvm/install-${GOOS}.sh ./install.sh
-            mv ../installvm/uninstall-${GOOS}.sh ./uninstall.sh
+            mv ../vm/install-${GOOS}.sh ./install.sh
+            mv ../vm/uninstall-${GOOS}.sh ./uninstall.sh
             fi
             popd
           fi
