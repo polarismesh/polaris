@@ -322,9 +322,10 @@ func TestServiceStore_FuzzyGetService(t *testing.T) {
 	sStore := &serviceStore{handler: handler}
 
 	for i := 0; i < serviceCount; i++ {
+		idxStr := strconv.Itoa(i)
 		err := sStore.AddService(&model.Service{
-			ID:        "svcid" + strconv.Itoa(i),
-			Name:      "svcname" + strconv.Itoa(i),
+			ID:        "fuzzsvcid" + idxStr,
+			Name:      "fuzzsvcname" + idxStr,
 			Namespace: "testsvc",
 			Business:  "testbuss",
 			Ports:     "8080",
@@ -336,7 +337,7 @@ func TestServiceStore_FuzzyGetService(t *testing.T) {
 			Department: "testdepart",
 			Token:      "testtoken",
 			Owner:      "testowner",
-			Revision:   "testrevision" + strconv.Itoa(i),
+			Revision:   "testrevision" + idxStr,
 			Reference:  "",
 			Valid:      true,
 			CreateTime: time.Now(),
@@ -346,24 +347,30 @@ func TestServiceStore_FuzzyGetService(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	defer func() {
+		for i := 0; i < serviceCount; i++ {
+			idxStr := strconv.Itoa(i)
+			sStore.DeleteService("fuzzsvcid"+idxStr, "fuzzsvcname"+idxStr, "testsvc")
+		}
+	}()
 	serviceFilters := make(map[string]string)
-	serviceFilters["name"] = "svcname*"
+	serviceFilters["name"] = "fuzzsvcname*"
 
 	count, _, err := sStore.GetServices(serviceFilters, nil, nil, 0, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if count != serviceCount {
-		t.Fatal(fmt.Sprintf("fuzzy query error"))
+		t.Fatal(fmt.Sprintf("fuzzy query error, expect %d, actual %d", serviceCount, count))
 	}
 
-	serviceFilters["name"] = "svcname"
+	serviceFilters["name"] = "fuzzsvcname"
 	count, _, err = sStore.GetServices(serviceFilters, nil, nil, 0, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if count != 0 {
-		t.Fatal(fmt.Sprintf("fuzzy query error"))
+		t.Fatal(fmt.Sprintf("fuzzy query error, expect %d, actual %d", 0, count))
 	}
 
 	serviceFilters = make(map[string]string)
@@ -373,8 +380,8 @@ func TestServiceStore_FuzzyGetService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if count != 5 {
-		t.Fatal(fmt.Sprintf("fuzzy query error"))
+	if count != serviceCount {
+		t.Fatal(fmt.Sprintf("fuzzy query error, expect %d, actual %d", serviceCount, count))
 	}
 
 	serviceFilters = make(map[string]string)
@@ -384,8 +391,8 @@ func TestServiceStore_FuzzyGetService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if count != 5 {
-		t.Fatal(fmt.Sprintf("fuzzy query error"))
+	if count != serviceCount {
+		t.Fatal(fmt.Sprintf("fuzzy query error, expect %d, actual %d", serviceCount, count))
 	}
 
 }
