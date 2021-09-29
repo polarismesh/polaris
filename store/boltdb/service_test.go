@@ -327,14 +327,14 @@ func TestServiceStore_FuzzyGetService(t *testing.T) {
 			ID:        "fuzzsvcid" + idxStr,
 			Name:      "fuzzsvcname" + idxStr,
 			Namespace: "testsvc",
-			Business:  "testbuss",
+			Business:  "fuzztestbuss",
 			Ports:     "8080",
 			Meta: map[string]string{
 				"k1": "v1",
 				"k2": "v2",
 			},
-			Comment:    "testcomment",
-			Department: "testdepart",
+			Comment:    "fuzztestcomment",
+			Department: "fuzztestdepart",
 			Token:      "testtoken",
 			Owner:      "testowner",
 			Revision:   "testrevision" + idxStr,
@@ -374,7 +374,7 @@ func TestServiceStore_FuzzyGetService(t *testing.T) {
 	}
 
 	serviceFilters = make(map[string]string)
-	serviceFilters["department"] = "test*"
+	serviceFilters["department"] = "fuzztest*"
 
 	count, _, err = sStore.GetServices(serviceFilters, nil, nil, 0, 10)
 	if err != nil {
@@ -385,7 +385,7 @@ func TestServiceStore_FuzzyGetService(t *testing.T) {
 	}
 
 	serviceFilters = make(map[string]string)
-	serviceFilters["business"] = "test*"
+	serviceFilters["business"] = "fuzztest*"
 
 	count, _, err = sStore.GetServices(serviceFilters, nil, nil, 0, 10)
 	if err != nil {
