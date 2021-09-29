@@ -36,9 +36,9 @@ import (
 
 	// 使用mysql库
 
-	_ "github.com/polarismesh/polaris-server/store/defaultStore"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	_ "github.com/polarismesh/polaris-server/store/sqldb"
 	"github.com/stretchr/testify/assert"
 )
 

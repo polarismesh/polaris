@@ -41,10 +41,13 @@ jobs:
           pushd ./naming/cache
           go test -v
           popd
-          pushd ./plugin/ratelimit/tokenBucket
+          pushd ./plugin/ratelimit/tokenbucket
           go test -v
           popd
-          pushd ./store/defaultStore
+          pushd ./store/sqldb
+          go test -v
+          popd
+          pushd ./store/boltdb
           go test -v
           popd
           
