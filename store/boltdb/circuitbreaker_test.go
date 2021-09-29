@@ -18,6 +18,7 @@
 package boltdb
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -516,62 +517,67 @@ func Test_circuitBreakerStore_DeleteTagCircuitBreaker(t *testing.T) {
 	})
 }
 
-//func Test_circuitBreakerStore_UpdateCircuitBreaker(t *testing.T) {
-//	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
-//		type fields struct {
-//			handler      BoltHandler
-//			ruleLock     *sync.RWMutex
-//			relationLock *sync.RWMutex
-//		}
-//		type args struct {
-//			cb *model.CircuitBreaker
-//		}
-//		tests := []struct {
-//			name    string
-//			fields  fields
-//			args    args
-//			wantErr bool
-//		}{
-//			{
-//				name: "",
-//				fields: fields{
-//					handler:      handler,
-//					ruleLock:     &sync.RWMutex{},
-//					relationLock: &sync.RWMutex{},
-//				},
-//				args: args{
-//					cb: createTestCircuitbreaker("", true),
-//				},
-//				wantErr: false,
-//			},
-//		}
-//		for _, tt := range tests {
-//			t.Run(tt.name, func(t *testing.T) {
-//				c := &circuitBreakerStore{
-//					handler: tt.fields.handler,
-//				}
-//
-//				old := createTestCircuitbreaker(tt.args.cb.ID, false)
-//				if err := c.CreateCircuitBreaker(old); err != nil {
-//					t.Fatal(err)
-//				}
-//
-//				if err := c.UpdateCircuitBreaker(tt.args.cb); (err != nil) != tt.wantErr {
-//					t.Errorf("circuitBreakerStore.UpdateCircuitBreaker() error = %v, wantErr %v", err, tt.wantErr)
-//				}
-//
-//				newCb, err := c.GetCircuitBreaker(tt.args.cb.ID, tt.args.cb.Version)
-//				if err != nil {
-//					t.Fatal(err)
-//				}
-//
-//				if !reflect.DeepEqual(newCb, tt.args.cb) {
-//					t.Fatalf("circuitBreakerStore.UpdateCircuitBreaker() expect : %#v, actual : %#v", tt.args.cb, newCb)
-//				}
-//			})
-//		}
-//	})
-//}
+func Test_circuitBreakerStore_UpdateCircuitBreaker(t *testing.T) {
+	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+		type fields struct {
+			handler      BoltHandler
+			ruleLock     *sync.RWMutex
+			relationLock *sync.RWMutex
+		}
+		type args struct {
+			cb *model.CircuitBreaker
+		}
+		tests := []struct {
+			name    string
+			fields  fields
+			args    args
+			wantErr bool
+		}{
+			{
+				name: "",
+				fields: fields{
+					handler:      handler,
+					ruleLock:     &sync.RWMutex{},
+					relationLock: &sync.RWMutex{},
+				},
+				args: args{
+					cb: createTestCircuitbreaker("", true),
+				},
+				wantErr: false,
+			},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				c := &circuitBreakerStore{
+					handler: tt.fields.handler,
+				}
+
+				old := createTestCircuitbreaker(tt.args.cb.ID, false)
+				if err := c.CreateCircuitBreaker(old); err != nil {
+					t.Fatal(err)
+				}
+
+				if err := c.UpdateCircuitBreaker(tt.args.cb); (err != nil) != tt.wantErr {
+					t.Errorf("circuitBreakerStore.UpdateCircuitBreaker() error = %v, wantErr %v", err, tt.wantErr)
+				}
+
+				newCb, err := c.GetCircuitBreaker(tt.args.cb.ID, tt.args.cb.Version)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				t.Logf("use time.Time to deep equal : %t", reflect.DeepEqual(newCb, tt.args.cb))
+
+				newCbJson, _ := json.Marshal(newCb)
+				wantCbJson, _ := json.Marshal(tt.args.cb)
+
+				if !reflect.DeepEqual(newCbJson, wantCbJson) {
+					t.Errorf("circuitBreakerStore.UpdateCircuitBreaker() expect : %s, actual : %s", wantCbJson, newCbJson)
+				}
+			})
+		}
+	})
+}
 
 func Test_circuitBreakerStore_GetCircuitBreaker(t *testing.T) {
 	type fields struct {
