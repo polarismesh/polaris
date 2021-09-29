@@ -49,7 +49,7 @@ type Store interface {
 	// InstanceStore 实例接口
 	InstanceStore
 
-	// 路由配置接口
+	// RoutingConfigStore 路由配置接口
 	RoutingConfigStore
 
 	// L5Store L5扩展接口
