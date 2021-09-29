@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -277,6 +278,9 @@ func Test_platformStore_GetPlatforms(t *testing.T) {
 		}
 
 		platNames := []string{"polaris_1", "polaris_2", "polaris_3"}
+		wantResSlice := make([][]*model.Platform, 2)
+		wantResSlice[0] = make([]*model.Platform, 0)
+		wantResSlice[1] = make([]*model.Platform, 0)
 
 		// create 20 and save
 		platforms := make([]*model.Platform, 20)
@@ -297,11 +301,13 @@ func Test_platformStore_GetPlatforms(t *testing.T) {
 
 			if strings.Compare(platforms[i].Name, platNames[0]) == 0 {
 				platformsOne = append(platformsOne, platforms[i])
+				wantResSlice[0] = append(wantResSlice[0], platforms[i])
 			}
-			if strings.Compare(platforms[i].Name, platNames[0]) == 0 {
+			if strings.Compare(platforms[i].Name, platNames[1]) == 0 {
 				platformsTwo = append(platformsTwo, platforms[i])
+				wantResSlice[1] = append(wantResSlice[1], platforms[i])
 			}
-			if strings.Compare(platforms[i].Name, platNames[0]) == 0 {
+			if strings.Compare(platforms[i].Name, platNames[2]) == 0 {
 				platformsThree = append(platformsThree, platforms[i])
 			}
 		}
@@ -320,7 +326,7 @@ func Test_platformStore_GetPlatforms(t *testing.T) {
 			fields  fields
 			args    args
 			want    uint32
-			want1   []*model.Platform
+			wantRes []*model.Platform
 			wantErr bool
 		}{
 			{
@@ -335,8 +341,8 @@ func Test_platformStore_GetPlatforms(t *testing.T) {
 					offset: 0,
 					limit:  20,
 				},
-				want:    0,
-				want1:   []*model.Platform{},
+				want:    uint32(len(wantResSlice[0])),
+				wantRes: wantResSlice[0],
 				wantErr: false,
 			},
 			{
@@ -351,8 +357,8 @@ func Test_platformStore_GetPlatforms(t *testing.T) {
 					offset: 0,
 					limit:  20,
 				},
-				want:    0,
-				want1:   []*model.Platform{},
+				want:    uint32(len(wantResSlice[1])),
+				wantRes: wantResSlice[1],
 				wantErr: false,
 			},
 		}
@@ -369,8 +375,27 @@ func Test_platformStore_GetPlatforms(t *testing.T) {
 				if got != tt.want {
 					t.Errorf("platformStore.GetPlatforms() got = %v, want %v", got, tt.want)
 				}
-				if !reflect.DeepEqual(got1, tt.want1) {
-					t.Errorf("platformStore.GetPlatforms() got1 = %v, want %v", got1, tt.want1)
+
+				// The effect of shielding time on results
+				tN := time.Now()
+
+				sort.Slice(got1, func(i, j int) bool {
+					got1[i].CreateTime = tN
+					got1[i].ModifyTime = tN
+					got1[j].CreateTime = tN
+					got1[j].ModifyTime = tN
+					return strings.Compare(got1[i].ID, got1[j].ID) < 0
+				})
+				sort.Slice(tt.wantRes, func(i, j int) bool {
+					tt.wantRes[i].CreateTime = tN
+					tt.wantRes[i].ModifyTime = tN
+					tt.wantRes[j].CreateTime = tN
+					tt.wantRes[j].ModifyTime = tN
+					return strings.Compare(tt.wantRes[i].ID, tt.wantRes[j].ID) < 0
+				})
+
+				if !reflect.DeepEqual(got1, tt.wantRes) {
+					t.Errorf("platformStore.GetPlatforms() got1 = %v, want %v", got1, tt.wantRes)
 				}
 			})
 		}

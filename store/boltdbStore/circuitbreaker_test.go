@@ -18,6 +18,7 @@
 package boltdbStore
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -500,7 +501,7 @@ func Test_circuitBreakerStore_DeleteTagCircuitBreaker(t *testing.T) {
 					t.Errorf("circuitBreakerStore.DeleteTagCircuitBreaker() error = %v, wantErr %v", err, tt.wantErr)
 				}
 
-				_, err := c.GetCircuitBreaker(tt.args.id, tt.args.version)
+				saved, err := c.GetCircuitBreaker(tt.args.id, tt.args.version)
 				if err != nil {
 					if strings.Contains(err.Error(), "not found tag config") {
 						return
@@ -508,7 +509,9 @@ func Test_circuitBreakerStore_DeleteTagCircuitBreaker(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				t.Fatal("circuitBreakerStore.DeleteTagCircuitBreaker() expect delete, but still exist")
+				if saved != nil {
+					t.Fatal("circuitBreakerStore.DeleteTagCircuitBreaker() expect delete, but still exist")
+				}
 			})
 		}
 	})
@@ -517,9 +520,7 @@ func Test_circuitBreakerStore_DeleteTagCircuitBreaker(t *testing.T) {
 func Test_circuitBreakerStore_UpdateCircuitBreaker(t *testing.T) {
 	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
 		type fields struct {
-			handler      BoltHandler
-			ruleLock     *sync.RWMutex
-			relationLock *sync.RWMutex
+			handler BoltHandler
 		}
 		type args struct {
 			cb *model.CircuitBreaker
@@ -533,9 +534,7 @@ func Test_circuitBreakerStore_UpdateCircuitBreaker(t *testing.T) {
 			{
 				name: "",
 				fields: fields{
-					handler:      handler,
-					ruleLock:     &sync.RWMutex{},
-					relationLock: &sync.RWMutex{},
+					handler: handler,
 				},
 				args: args{
 					cb: createTestCircuitbreaker("", true),
@@ -550,6 +549,8 @@ func Test_circuitBreakerStore_UpdateCircuitBreaker(t *testing.T) {
 				}
 
 				old := createTestCircuitbreaker(tt.args.cb.ID, false)
+				oldJson, _ := json.Marshal(old)
+				t.Logf("old cb : %s", oldJson)
 				if err := c.CreateCircuitBreaker(old); err != nil {
 					t.Fatal(err)
 				}
@@ -563,8 +564,17 @@ func Test_circuitBreakerStore_UpdateCircuitBreaker(t *testing.T) {
 					t.Fatal(err)
 				}
 
+				// The effect of shielding time on results
+				tN := time.Now()
+				newCb.CreateTime = tN
+				newCb.ModifyTime = tN
+				tt.args.cb.CreateTime = tN
+				tt.args.cb.ModifyTime = tN
+
 				if !reflect.DeepEqual(newCb, tt.args.cb) {
-					t.Fatalf("circuitBreakerStore.UpdateCircuitBreaker() expect : %#v, actual : %#v", tt.args.cb, newCb)
+					expectJson, _ := json.Marshal(tt.args.cb)
+					newCbJson, _ := json.Marshal(newCb)
+					t.Fatalf("circuitBreakerStore.UpdateCircuitBreaker() expect : %s, actual : %s", string(expectJson), string(newCbJson))
 				}
 			})
 		}
@@ -1109,10 +1119,10 @@ func Test_circuitBreakerStore_GetCircuitBreakersByService(t *testing.T) {
 			want    *model.CircuitBreaker
 			wantErr bool
 			preEnv  func(args struct {
-				name    string
-				fields  fields
-				args    args
-				want    *model.CircuitBreaker
+				name   string
+				fields fields
+				args   args
+				want   *model.CircuitBreaker
 			})
 		}{
 			{
@@ -1127,10 +1137,10 @@ func Test_circuitBreakerStore_GetCircuitBreakersByService(t *testing.T) {
 				want:    createTestCircuitbreaker("", true),
 				wantErr: false,
 				preEnv: func(args struct {
-					name    string
-					fields  fields
-					args    args
-					want    *model.CircuitBreaker
+					name   string
+					fields fields
+					args   args
+					want   *model.CircuitBreaker
 				}) {
 					c := &circuitBreakerStore{
 						handler: args.fields.handler,
@@ -1174,12 +1184,12 @@ func Test_circuitBreakerStore_GetCircuitBreakersByService(t *testing.T) {
 				want:    nil,
 				wantErr: true,
 				preEnv: func(args struct {
-					name    string
-					fields  fields
-					args    args
-					want    *model.CircuitBreaker
+					name   string
+					fields fields
+					args   args
+					want   *model.CircuitBreaker
 				}) {
-				//	do nothing
+					//	do nothing
 				},
 			},
 		}
@@ -1190,11 +1200,11 @@ func Test_circuitBreakerStore_GetCircuitBreakersByService(t *testing.T) {
 				}
 
 				tt.preEnv(struct {
-					name    string
-					fields  fields
-					args    args
-					want    *model.CircuitBreaker
-				}{name: tt.name, fields: tt.fields, args: tt.args, want: tt.want })
+					name   string
+					fields fields
+					args   args
+					want   *model.CircuitBreaker
+				}{name: tt.name, fields: tt.fields, args: tt.args, want: tt.want})
 
 				got, err := c.GetCircuitBreakersByService(tt.args.name, tt.args.namespace)
 				if (err != nil) != tt.wantErr {
@@ -1203,7 +1213,7 @@ func Test_circuitBreakerStore_GetCircuitBreakersByService(t *testing.T) {
 				}
 
 				if got == nil {
-					if tt.want == nil  {
+					if tt.want == nil {
 						return
 					} else {
 						t.Errorf("circuitBreakerStore.GetCircuitBreakersByService() expect : %#v, actual is nil", tt.want)
