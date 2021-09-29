@@ -8,7 +8,7 @@ Fixes #
 - [ ] Installation
 - [ ] Performance and Scalability
 - [ ] Naming
-- [ ] HealthChecking
+- [ ] HealthCheck
 - [ ] Test and Release
 
 **Please check any characteristics that apply to this pull request.**

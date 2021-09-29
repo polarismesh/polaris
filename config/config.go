@@ -31,9 +31,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-/**
- * Config 配置
- */
+// Config 配置
 type Config struct {
 	Bootstrap  Bootstrap          `yaml:"bootstrap"`
 	APIServers []apiserver.Config `yaml:"apiservers"`
@@ -43,18 +41,14 @@ type Config struct {
 	Plugin     plugin.Config      `yaml:"plugin"`
 }
 
-/**
- * Bootstrap 启动引导配置
- */
+// Bootstrap 启动引导配置
 type Bootstrap struct {
 	Logger         log.Options
 	StartInOrder   map[string]interface{} `yaml:"startInOrder"`
 	PolarisService PolarisService         `yaml:"polaris_service"`
 }
 
-/**
- * PolarisService polaris-server的自注册配置
- */
+// PolarisService polaris-server的自注册配置
 type PolarisService struct {
 	EnableRegister bool       `yaml:"enable_register"`
 	ProbeAddress   string     `yaml:"probe_address"`
@@ -62,18 +56,14 @@ type PolarisService struct {
 	Services       []*Service `yaml:"services"`
 }
 
-/**
- * Service 服务的自注册的配置
- */
+// Service 服务的自注册的配置
 type Service struct {
 	Name      string   `yaml:"name"`
 	Namespace string   `yaml:"namespace"`
 	Protocols []string `yaml:"protocols"`
 }
 
-/**
- * APIEntries 对外提供的apiServers
- */
+// APIEntries 对外提供的apiServers
 type APIEntries struct {
 	Name      string   `yaml:"name"`
 	Protocols []string `yaml:"protocols"`
@@ -88,9 +78,7 @@ const (
 	DefaultFilePath = "polaris-server.yaml"
 )
 
-/**
- * Load 加载配置
- */
+// Load 加载配置
 func Load(filePath string) (*Config, error) {
 	if filePath == "" {
 		err := errors.New("invalid config file path")

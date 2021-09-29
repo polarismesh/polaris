@@ -31,26 +31,20 @@ const (
 	HealthcheckAccess string = "healthcheck"
 )
 
-/**
- * @brief API服务器配置
- */
+// Config API服务器配置
 type Config struct {
 	Name   string
 	Option map[string]interface{}
 	API    map[string]APIConfig
 }
 
-/**
- * @brief API配置
- */
+// APIConfig API配置
 type APIConfig struct {
 	Enable  bool
 	Include []string
 }
 
-/**
- * @brief API服务器接口
- */
+// Apiserver API服务器接口
 type Apiserver interface {
 	GetProtocol() string
 	GetPort() uint32
@@ -64,9 +58,7 @@ var (
 	Slots = make(map[string]Apiserver)
 )
 
-/**
- * @brief 注册API服务器
- */
+// Register 注册API服务器
 func Register(name string, server Apiserver) error {
 	if _, exist := Slots[name]; exist {
 		return fmt.Errorf("apiserver name:%s exist", name)
@@ -77,9 +69,7 @@ func Register(name string, server Apiserver) error {
 	return nil
 }
 
-/**
- * @brief 获取客户端openMethod
- */
+// GetClientOpenMethod 获取客户端openMethod
 func GetClientOpenMethod(include []string, protocol string) (map[string]bool, error) {
 	clientAccess := make(map[string][]string)
 	clientAccess[DiscoverAccess] = []string{"Discover", "ReportClient"}
