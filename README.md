@@ -122,9 +122,9 @@ Return text is 'Polaris Server', proof features run smoothly
 
 ## Chat group
 
-Welcome to scan the code and add the group for communication. If the communication group is full of 500 people, please add the wechat of ```midwareQmei``` , and send "polaris" to wait for the verification reply.
+Welcome to scan the QR code to follow our official account. Please add the wechat account of **midwareQmei** to join the chat group, and send "polaris" to wait for the verification reply.
 
-<img src="https://main.qcloudimg.com/raw/336e18b778f6c538d6f1e4ceeab31bf9.jpg" width="30%" height="30%" />
+<img src="https://main.qcloudimg.com/raw/e5a51696ae7c01e8bc9097fa0c7e426d.png" width="30%" height="30%" />
 
 ## Contribution
 

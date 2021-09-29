@@ -121,9 +121,9 @@ curl http://127.0.0.1:8090
 
 ## 交流群
 
-欢迎大家扫码加群交流，如果交流群已满 500 人，请加中间件小Q妹微信（微信号：midwareQmei），并发送入群暗号“polaris”，等待验证回复。
+欢迎扫码关注官方账号，进入交流群请添加「中间件小Q妹」微信（微信号：midwareQmei），并发送“polaris”等待验证回复。
 
-<img src="https://main.qcloudimg.com/raw/336e18b778f6c538d6f1e4ceeab31bf9.jpg" width="30%" height="30%" />
+<img src="https://main.qcloudimg.com/raw/e5a51696ae7c01e8bc9097fa0c7e426d.png" width="30%" height="30%" />
 
 ## 参与贡献
 
