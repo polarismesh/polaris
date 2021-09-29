@@ -76,7 +76,7 @@ jobs:
           fi
           PACKAGE_NAME=${DIR_NAME}.zip
           zip -r ${PACKAGE_NAME} ${DIR_NAME}
-          mv ${PACKAGE_NAME} ../
+          mv ${PACKAGE_NAME} ../../
           echo ::set-output name=name::${PACKAGE_NAME}
 
 
