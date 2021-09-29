@@ -500,7 +500,7 @@ func Test_circuitBreakerStore_DeleteTagCircuitBreaker(t *testing.T) {
 					t.Errorf("circuitBreakerStore.DeleteTagCircuitBreaker() error = %v, wantErr %v", err, tt.wantErr)
 				}
 
-				_, err := c.GetCircuitBreaker(tt.args.id, tt.args.version)
+				result, err := c.GetCircuitBreaker(tt.args.id, tt.args.version)
 				if err != nil {
 					if strings.Contains(err.Error(), "not found tag config") {
 						return
@@ -508,7 +508,9 @@ func Test_circuitBreakerStore_DeleteTagCircuitBreaker(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				t.Fatal("circuitBreakerStore.DeleteTagCircuitBreaker() expect delete, but still exist")
+				if nil != result {
+					t.Fatal("circuitBreakerStore.DeleteTagCircuitBreaker() expect delete, but still exist")
+				}
 			})
 		}
 	})
