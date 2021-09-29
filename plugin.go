@@ -23,16 +23,16 @@ import (
 	_ "github.com/polarismesh/polaris-server/apiserver/l5pbserver"
 
 	_ "github.com/polarismesh/polaris-server/naming/cache"
-	_ "github.com/polarismesh/polaris-server/store/boltdbStore"
-	_ "github.com/polarismesh/polaris-server/store/defaultStore"
+	_ "github.com/polarismesh/polaris-server/store/boltdb"
+	_ "github.com/polarismesh/polaris-server/store/sqldb"
 
 	_ "github.com/polarismesh/polaris-server/plugin/cmdb/memory"
 
 	_ "github.com/polarismesh/polaris-server/plugin/auth/platform"
-	_ "github.com/polarismesh/polaris-server/plugin/discoverStatis/discoverLocal"
+	_ "github.com/polarismesh/polaris-server/plugin/discoverstatis/discoverlocal"
 	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
-	_ "github.com/polarismesh/polaris-server/plugin/parsePassword"
+	_ "github.com/polarismesh/polaris-server/plugin/password"
 	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/lrurate"
-	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/tokenBucket"
+	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/tokenbucket"
 	_ "github.com/polarismesh/polaris-server/plugin/statis/local"
 )

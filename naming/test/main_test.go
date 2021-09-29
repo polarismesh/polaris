@@ -42,8 +42,8 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
-	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/tokenBucket"
-	_ "github.com/polarismesh/polaris-server/store/defaultStore"
+	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/tokenbucket"
+	_ "github.com/polarismesh/polaris-server/store/sqldb"
 	"gopkg.in/yaml.v2"
 )
 
