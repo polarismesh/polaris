@@ -121,7 +121,7 @@ curl http://127.0.0.1:8080
 
 ## 交流群
 
-欢迎扫码关注官方账号，进入交流群请添加「中间件小Q妹」微信，并发送“polaris”等待验证回复。
+欢迎扫码关注官方账号，进入交流群请添加「中间件小Q妹」微信（微信号：midwareQmei），并发送“polaris”等待验证回复。
 
 <img src="https://main.qcloudimg.com/raw/e5a51696ae7c01e8bc9097fa0c7e426d.png" width="30%" height="30%" />
 
