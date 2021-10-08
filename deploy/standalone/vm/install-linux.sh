@@ -141,7 +141,7 @@ function checkPort() {
    ports=("8080" "8090" "8091" "9090" "9091")
    for port in ${ports[@]}
    do
-    pid=`/usr/sbin/lsof -i :${port} | awk '{print $1 " " $2}'`
+    pid=`lsof -i :${port} | awk '{print $1 " " $2}'`
     if [ "${pid}" != "" ];
     then
       echo "port ${port} has been used, exit"
