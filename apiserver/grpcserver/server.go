@@ -108,6 +108,17 @@ func (g *GRPCServer) Run(errCh chan error) {
 		g.start = false
 	}()
 
+	var err error
+	// 引入功能模块和插件
+	g.namingServer, err = naming.GetServer()
+	if err != nil {
+		log.Errorf("%v", err)
+		errCh <- err
+		return
+	}
+	g.statis = plugin.GetStatis()
+
+	//初始化grpc server
 	address := fmt.Sprintf("%v:%v", g.listenIP, g.listenPort)
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
@@ -154,15 +165,6 @@ func (g *GRPCServer) Run(errCh chan error) {
 		}
 	}
 	g.server = server
-
-	// 引入功能模块和插件
-	g.namingServer, err = naming.GetServer()
-	if err != nil {
-		log.Errorf("%v", err)
-		errCh <- err
-		return
-	}
-	g.statis = plugin.GetStatis()
 
 	if err := server.Serve(listener); err != nil {
 		log.Errorf("%v", err)
