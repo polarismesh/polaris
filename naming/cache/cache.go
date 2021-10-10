@@ -96,7 +96,7 @@ type NamingCache struct {
 	caches  []Cache
 
 	comRevisionCh chan *revisionNotify
-	revisions     *sync.Map
+	revisions     *sync.Map // service id -> reversion (所有instance reversion 的累计计算值)
 }
 
 /**
