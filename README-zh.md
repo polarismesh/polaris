@@ -121,7 +121,11 @@ curl http://127.0.0.1:8090
 
 ## 交流群
 
-欢迎扫码关注官方账号，进入交流群请添加「中间件小Q妹」微信（微信号：midwareQmei），并发送“polaris”等待验证回复。
+扫码下方二维码进入北极星PolarisMesh交流2群。
+
+<img src="https://main.qcloudimg.com/raw/bff4285d70498058caa212805b83a620.jpg" width="30%" height="30%" />
+
+欢迎扫码关注官方账号，我们将为大家分享最新的实践案例和PolarisMesh的更新动态。
 
 <img src="https://main.qcloudimg.com/raw/e5a51696ae7c01e8bc9097fa0c7e426d.png" width="30%" height="30%" />
 
