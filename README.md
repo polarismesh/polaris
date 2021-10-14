@@ -122,9 +122,15 @@ Return text is 'Polaris Server', proof features run smoothly
 
 ## Chat group
 
-Welcome to scan the QR code to follow our official account. Please add the wechat account of **midwareQmei** to join the chat group, and send "polaris" to wait for the verification reply.
+Please scan the QR code to join the chat group.
+
+<img src="https://main.qcloudimg.com/raw/bff4285d70498058caa212805b83a620.jpg" width="30%" height="30%" />
+
+Welcome to scan the QR code to follow our official account, we will share the latest application cases and updates of PolarisMesh.
 
 <img src="https://main.qcloudimg.com/raw/e5a51696ae7c01e8bc9097fa0c7e426d.png" width="30%" height="30%" />
+
+
 
 ## Contribution
 
