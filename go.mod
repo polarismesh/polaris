@@ -8,7 +8,7 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/mock v1.6.0
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.4.3
 	github.com/gomodule/redigo v1.8.5
 	github.com/google/uuid v1.2.0
 	github.com/hashicorp/golang-lru v0.5.3
@@ -31,6 +31,8 @@ require (
 	google.golang.org/grpc v1.36.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8
+	github.com/envoyproxy/go-control-plane v0.9.9
+
 )
 
 replace gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.2
