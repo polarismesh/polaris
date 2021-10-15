@@ -19,9 +19,11 @@ package resource
 
 import (
 	"fmt"
+
+	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/golang/protobuf/ptypes/duration"
 )
 
 const (
@@ -124,8 +126,28 @@ func CreateCircuitBreakers(namespace *api.Namespace) []*api.CircuitBreaker {
  */
 func UpdateCircuitBreakers(circuitBreakers []*api.CircuitBreaker) {
 	for _, item := range circuitBreakers {
-		item.Inbounds = []*api.CbRule{}
-		item.Outbounds = []*api.CbRule{}
+		item.Inbounds = []*api.CbRule{
+			{
+				Sources: []*api.SourceMatcher{
+					{
+						Service: &wrappers.StringValue{
+							Value: "testSvc",
+						},
+					},
+				},
+			},
+		}
+		item.Outbounds = []*api.CbRule{
+			{
+				Sources: []*api.SourceMatcher{
+					{
+						Service: &wrappers.StringValue{
+							Value: "testSvc1",
+						},
+					},
+				},
+			},
+		}
 	}
 }
 
