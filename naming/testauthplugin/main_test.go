@@ -79,8 +79,7 @@ func initialize() error {
 		// 初始化naming server
 		ctx := context.Background()
 
-		naming.SetHealthCheckConfig(&cfg.Naming.HealthCheck)
-		if err := naming.Initialize(ctx, &cfg.Naming, &cfg.Cache); err != nil {
+		if err := naming.Initialize(ctx, &cfg.Naming, &cfg.Cache, nil); err != nil {
 			panic(err)
 		}
 
