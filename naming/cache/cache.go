@@ -52,9 +52,7 @@ const (
 	DefaultTimeDiff = -1 * time.Second * 5
 )
 
-/**
- * Cache 缓存接口
- */
+// Cache 缓存接口
 type Cache interface {
 	initialize(c map[string]interface{}) error
 	update() error
@@ -88,9 +86,7 @@ func newRevisionNotify(serviceID string, valid bool) *revisionNotify {
 	}
 }
 
-/**
- * NamingCache 名字服务缓存
- */
+// NamingCache 名字服务缓存
 type NamingCache struct {
 	storage store.Store
 	caches  []Cache
@@ -99,9 +95,7 @@ type NamingCache struct {
 	revisions     *sync.Map
 }
 
-/**
- * NewNamingCache 新建一个缓存对象
- */
+// NewNamingCache 新建一个缓存对象
 func NewNamingCache(storage store.Store) (*NamingCache, error) {
 	nc := &NamingCache{
 		storage:       storage,
@@ -131,9 +125,7 @@ func NewNamingCache(storage store.Store) (*NamingCache, error) {
 	return nc, nil
 }
 
-/**
- * initialize 缓存对象初始化
- */
+// initialize 缓存对象初始化
 func (nc *NamingCache) initialize() error {
 	for _, obj := range nc.caches {
 		var option map[string]interface{}
@@ -151,9 +143,7 @@ func (nc *NamingCache) initialize() error {
 	return nil
 }
 
-/**
- * update 缓存更新
- */
+// update 缓存更新
 func (nc *NamingCache) update() error {
 	var wg sync.WaitGroup
 	for _, entry := range config.Resources {
@@ -172,9 +162,7 @@ func (nc *NamingCache) update() error {
 	return nil
 }
 
-/**
- * clear 清除caches的所有缓存数据
- */
+// clear 清除caches的所有缓存数据
 func (nc *NamingCache) clear() error {
 	for _, obj := range nc.caches {
 		if err := obj.clear(); err != nil {
@@ -185,9 +173,7 @@ func (nc *NamingCache) clear() error {
 	return nil
 }
 
-/**
- * Start 缓存对象启动协程，定时更新缓存
- */
+// Start 缓存对象启动协程，定时更新缓存
 func (nc *NamingCache) Start(ctx context.Context) error {
 	log.Infof("[Cache] cache goroutine start")
 	// 先启动revision计算协程
@@ -218,17 +204,13 @@ func (nc *NamingCache) Start(ctx context.Context) error {
 	return nil
 }
 
-/**
- * Clear 主动清除缓存数据
- */
+// Clear 主动清除缓存数据
 func (nc *NamingCache) Clear() error {
 	nc.revisions = new(sync.Map)
 	return nc.clear()
 }
 
-/**
- * revisionWorker Cache中计算服务实例revision的worker
- */
+// revisionWorker Cache中计算服务实例revision的worker
 func (nc *NamingCache) revisionWorker(ctx context.Context) {
 	log.Infof("[Cache] compute revision worker start")
 	defer log.Infof("[Cache] compute revision worker done")
@@ -294,9 +276,7 @@ func (nc *NamingCache) GetUpdateCacheInterval() time.Duration {
 	return UpdateCacheInterval
 }
 
-/**
- * GetServiceInstanceRevision 获取服务实例计算之后的revision
- */
+// GetServiceInstanceRevision 获取服务实例计算之后的revision
 func (nc *NamingCache) GetServiceInstanceRevision(serviceID string) string {
 	value, ok := nc.revisions.Load(serviceID)
 	if !ok {
@@ -306,9 +286,7 @@ func (nc *NamingCache) GetServiceInstanceRevision(serviceID string) string {
 	return value.(string)
 }
 
-/**
- * GetServiceRevisionCount 计算一下缓存中的revision的个数
- */
+// GetServiceRevisionCount 计算一下缓存中的revision的个数
 func (nc *NamingCache) GetServiceRevisionCount() int {
 	count := 0
 	nc.revisions.Range(func(key, value interface{}) bool {
@@ -319,49 +297,37 @@ func (nc *NamingCache) GetServiceRevisionCount() int {
 	return count
 }
 
-/**
- * Service 获取Service缓存信息
- */
+// Service 获取Service缓存信息
 func (nc *NamingCache) Service() ServiceCache {
 	return nc.caches[CacheService].(ServiceCache)
 }
 
-/**
- * Instance 获取Instance缓存信息
- */
+// Instance 获取Instance缓存信息
 func (nc *NamingCache) Instance() InstanceCache {
 	return nc.caches[CacheInstance].(InstanceCache)
 }
 
-/**
- * RoutingConfig 获取路由配置的缓存信息
- */
+// RoutingConfig 获取路由配置的缓存信息
 func (nc *NamingCache) RoutingConfig() RoutingConfigCache {
 	return nc.caches[CacheRoutingConfig].(RoutingConfigCache)
 }
 
-/**
- * CL5 获取l5缓存信息
- */
+// CL5 获取l5缓存信息
 func (nc *NamingCache) CL5() L5Cache {
 	return nc.caches[CacheCL5].(L5Cache)
 }
 
-/**
- * RateLimit 获取限流规则缓存信息
- */
+// RateLimit 获取限流规则缓存信息
 func (nc *NamingCache) RateLimit() RateLimitCache {
 	return nc.caches[CacheRateLimit].(RateLimitCache)
 }
 
-/**
- * CircuitBreaker 获取熔断规则缓存信息
- */
+// CircuitBreaker 获取熔断规则缓存信息
 func (nc *NamingCache) CircuitBreaker() CircuitBreakerCache {
 	return nc.caches[CacheCircuitBreaker].(CircuitBreakerCache)
 }
 
-// ComputeRevision
+// ComputeRevision 计算唯一的版本标识
 func ComputeRevision(serviceRevision string, instances []*model.Instance) (string, error) {
 	h := sha1.New()
 	if _, err := h.Write([]byte(serviceRevision)); err != nil {
@@ -382,9 +348,7 @@ func ComputeRevision(serviceRevision string, instances []*model.Instance) (strin
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-/**
- * RegisterCache 注册缓存资源
- */
+// RegisterCache 注册缓存资源
 func RegisterCache(name string, index int) {
 	if _, exist := cacheSet[name]; exist {
 		panic(fmt.Sprintf("existed cache resource: name = %s", name))

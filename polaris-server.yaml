@@ -6,7 +6,7 @@ bootstrap:
     RotationMaxSize: 500
     RotationMaxAge: 30
     RotationMaxBackups: 100
-    level: debug
+    level: info
   # 按顺序启动server
   startInOrder:
     open: true # 是否开启，默认是关闭
@@ -14,20 +14,13 @@ bootstrap:
   # 注册为北极星服务
   polaris_service:
 #    probe_address: ##DB_ADDR##
+    probe_address: 9.134.15.118:3306
     enable_register: false
     isolated: false
     services:
-      - name: polaris.discover
-        namespace: Polaris
+      - name: polaris.checker
         protocols:
           - grpcserver
-          - httpserver
-#          - l5pbserver
-      - name: polaris.healthcheck
-        namespace: Polaris
-        protocols:
-          - grpcserver
-          - httpserver
 # apiserver配置
 apiservers:
   - name: httpserver # 协议名，全局唯一
@@ -70,20 +63,8 @@ apiservers:
 #      clusterName: cl5.discover
 # 核心逻辑的配置
 naming:
-  # 鉴权配置
   auth:
-    # 是否开启鉴权
     open: false
-  # 健康检查
-  healthcheck:
-    open: true
-#    kvConnNum: 50
-#    kvServiceName: polaris.redis
-#    kvNamespace: Polaris
-#    kvPasswd: ##REDIS_PWD##
-    slotNum: 30
-    maxIdle: 20
-    idleTimeout: 120
   # 批量控制器
   batch:
     register:
@@ -98,6 +79,23 @@ naming:
       waitTime: 32ms
       maxBatchCount: 32
       concurrency: 64
+# 健康检查的配置
+healthcheck:
+  open: true
+  service: polaris.checker
+  slotNum: 30
+  checkers:
+  - name: heartbeatMemory
+#  - name: heartbeatRedis
+#    option:
+#      kvAddr: ##REDIS_ADDR##
+#      kvPasswd: ##REDIS_PWD##
+#      slotNum: 30
+#      maxIdle: 200
+#      idleTimeout: 120s
+#      connectTimeout: 20s
+#      msgTimeout: 5s
+#      concurrency: 200
 # 缓存配置
 cache:
   open: true

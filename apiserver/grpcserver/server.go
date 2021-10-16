@@ -20,6 +20,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"github.com/polarismesh/polaris-server/healthcheck"
 	"io"
 	"net"
 	"net/http"
@@ -38,9 +39,7 @@ import (
 	"google.golang.org/grpc/peer"
 )
 
-/**
- * @brief GRPC API服务器
- */
+// GRPCServer GRPC API服务器
 type GRPCServer struct {
 	listenIP        string
 	listenPort      uint32
@@ -49,32 +48,27 @@ type GRPCServer struct {
 	restart         bool
 	exitCh          chan struct{}
 
-	server       *grpc.Server
-	namingServer *naming.Server
-	statis       plugin.Statis
-	ratelimit    plugin.Ratelimit
+	server            *grpc.Server
+	namingServer      *naming.Server
+	healthCheckServer *healthcheck.Server
+	statis            plugin.Statis
+	ratelimit         plugin.Ratelimit
 
 	openAPI    map[string]apiserver.APIConfig
 	openMethod map[string]bool
 }
 
-/**
- * @brief 获取端口
- */
+// GetPort 获取端口
 func (g *GRPCServer) GetPort() uint32 {
 	return g.listenPort
 }
 
-/**
- * @brief 获取Server的协议
- */
+// GetProtocol 获取Server的协议
 func (g *GRPCServer) GetProtocol() string {
 	return "grpc"
 }
 
-/**
- * Initialize 初始化GRPC API服务器
- */
+// Initialize 初始化GRPC API服务器
 func (g *GRPCServer) Initialize(_ context.Context, option map[string]interface{},
 	api map[string]apiserver.APIConfig) error {
 	g.listenIP = option["listenIP"].(string)
@@ -96,9 +90,7 @@ func (g *GRPCServer) Initialize(_ context.Context, option map[string]interface{}
 	return nil
 }
 
-/**
- * @brief 启动GRPC API服务器
- */
+// Run 启动GRPC API服务器
 func (g *GRPCServer) Run(errCh chan error) {
 	log.Infof("start grpcserver")
 	g.exitCh = make(chan struct{})
@@ -162,6 +154,14 @@ func (g *GRPCServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
+	g.healthCheckServer, err = healthcheck.GetServer()
+	if err != nil {
+		log.Errorf("%v", err)
+		errCh <- err
+		return
+	}
+	g.namingServer.Cache().Instance().AddListener(g.healthCheckServer.CacheProvider())
+
 	g.statis = plugin.GetStatis()
 
 	if err := server.Serve(listener); err != nil {
@@ -173,7 +173,7 @@ func (g *GRPCServer) Run(errCh chan error) {
 	log.Infof("grpcserver stop")
 }
 
-// 关闭GRPC
+// Stop 关闭GRPC
 func (g *GRPCServer) Stop() {
 	connlimit.RemoveLimitListener(g.GetProtocol())
 	if g.server != nil {
@@ -181,7 +181,7 @@ func (g *GRPCServer) Stop() {
 	}
 }
 
-// restart
+// Restart 重启Server
 func (g *GRPCServer) Restart(option map[string]interface{}, api map[string]apiserver.APIConfig,
 	errCh chan error) error {
 	log.Infof("restart grpc server with new config: %+v", option)
@@ -205,10 +205,7 @@ func (g *GRPCServer) Restart(option map[string]interface{}, api map[string]apise
 	return nil
 }
 
-/**
- * @brief 虚拟Stream
- * @note 继承ServerStream
- */
+// VirtualStream 虚拟Stream
 type VirtualStream struct {
 	Method        string
 	ClientAddress string
@@ -225,10 +222,7 @@ type VirtualStream struct {
 	StartTime time.Time
 }
 
-/**
- * @brief VirtualStream接收消息函数
- * @note 拦截ServerSteam接收消息函数
- */
+// RecvMsg VirtualStream接收消息函数
 func (v *VirtualStream) RecvMsg(m interface{}) error {
 	err := v.ServerStream.RecvMsg(m)
 	if err == io.EOF {
@@ -244,10 +238,7 @@ func (v *VirtualStream) RecvMsg(m interface{}) error {
 	return err
 }
 
-/**
- * @brief VirtualStream发送消息函数
- * @note 拦截ServerSteam发送消息函数
- */
+// SendMsg VirtualStream发送消息函数
 func (v *VirtualStream) SendMsg(m interface{}) error {
 	v.postprocess(v, m)
 
@@ -259,9 +250,6 @@ func (v *VirtualStream) SendMsg(m interface{}) error {
 	return err
 }
 
-/**
- * @brief 创建VirtualStream
- */
 func newVirtualStream(ctx context.Context, method string, stream grpc.ServerStream,
 	preprocess PreProcessFunc, postprocess PostProcessFunc) *VirtualStream {
 	var clientAddress string
@@ -305,16 +293,15 @@ func newVirtualStream(ctx context.Context, method string, stream grpc.ServerStre
 	}
 }
 
-/**
- * unaryInterceptor 在接收和回复请求时统一处理
- */
+// unaryInterceptor 在接收和回复请求时统一处理
 func (g *GRPCServer) unaryInterceptor(ctx context.Context, req interface{},
 	info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (rsp interface{}, err error) {
 
 	stream := newVirtualStream(ctx, info.FullMethod, nil, g.preprocess, g.postprocess)
 
 	func() {
-		if err := g.preprocess(stream, true); err != nil {
+		var isPrint = !strings.Contains(info.FullMethod, "Heartbeat")
+		if err := g.preprocess(stream, isPrint); err != nil {
 			return
 		}
 
@@ -337,9 +324,7 @@ func (g *GRPCServer) unaryInterceptor(ctx context.Context, req interface{},
 	return
 }
 
-/**
- * streamInterceptor 在接收和回复请求时统一处理
- */
+// streamInterceptor 在接收和回复请求时统一处理
 func (g *GRPCServer) streamInterceptor(srv interface{}, ss grpc.ServerStream,
 	info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
 
@@ -360,12 +345,10 @@ func (g *GRPCServer) streamInterceptor(srv interface{}, ss grpc.ServerStream,
 	return
 }
 
-// 请求预处理函数定义
+// PreProcessFunc 请求预处理函数定义
 type PreProcessFunc func(stream *VirtualStream, isPrint bool) error
 
-/**
- * @brief 请求预处理
- */
+// preprocess 请求预处理
 func (g *GRPCServer) preprocess(stream *VirtualStream, isPrint bool) error {
 	// 设置开始时间
 	stream.StartTime = time.Now()
@@ -383,12 +366,10 @@ func (g *GRPCServer) preprocess(stream *VirtualStream, isPrint bool) error {
 	return nil
 }
 
-// 请求后处理函数定义
+// PostProcessFunc 请求后处理函数定义
 type PostProcessFunc func(stream *VirtualStream, m interface{})
 
-/**
- * @brief 请求后处理
- */
+// postprocess 请求后处理
 func (g *GRPCServer) postprocess(stream *VirtualStream, m interface{}) {
 	response := m.(api.ResponseMessage)
 	code := api.CalcCode(response)
@@ -421,7 +402,7 @@ func (g *GRPCServer) postprocess(stream *VirtualStream, m interface{}) {
 	_ = g.statis.AddAPICall(stream.Method, int(response.GetCode().GetValue()), diff.Nanoseconds())
 }
 
-// 限流
+// enterRateLimit 限流
 func (g *GRPCServer) enterRateLimit(ip string, method string) uint32 {
 	if g.ratelimit == nil {
 		return api.ExecuteSuccess
@@ -443,7 +424,7 @@ func (g *GRPCServer) enterRateLimit(ip string, method string) uint32 {
 	return api.ExecuteSuccess
 }
 
-// 限制访问
+// allowAccess 限制访问
 func (g *GRPCServer) allowAccess(method string) bool {
 	_, ok := g.openMethod[method]
 	return ok

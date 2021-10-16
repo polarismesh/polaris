@@ -21,6 +21,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/healthcheck"
 	"net"
 	"strings"
 	"time"
@@ -105,9 +107,20 @@ func Start(configFilePath string) {
 		return
 	}
 
-	cfg.Naming.HealthCheck.LocalHost = LocalHost // 补充healthCheck的配置
-	naming.SetHealthCheckConfig(&cfg.Naming.HealthCheck)
-	err = naming.Initialize(ctx, &cfg.Naming, &cfg.Cache)
+	if len(cfg.HealthChecks.LocalHost) == 0 {
+		cfg.HealthChecks.LocalHost = LocalHost // 补充healthCheck的配置
+	}
+	err = healthcheck.Initialize(ctx, &cfg.HealthChecks, cfg.Cache.Open)
+	if err != nil {
+		fmt.Printf("[ERROR] %v\n", err)
+		return
+	}
+	healthCheckServer, err := healthcheck.GetServer()
+	if err != nil {
+		fmt.Printf("[ERROR] %v\n", err)
+		return
+	}
+	err = naming.Initialize(ctx, &cfg.Naming, &cfg.Cache, healthCheckServer.CacheProvider())
 	if err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
 		return
@@ -361,7 +374,8 @@ func selfRegister(host string, port uint32, protocol string, isolated bool, pola
 		Version:      utils.NewStringValue(version.Get()),
 		Isolate:      utils.NewBoolValue(isolated), // 自注册，默认是隔离的
 		Metadata: map[string]string{
-			"build-revision": version.GetRevision(),
+			model.MetaKeyBuildRevision:  version.GetRevision(),
+			model.MetaKeyPolarisService: name,
 		},
 	}
 

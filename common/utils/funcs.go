@@ -82,8 +82,6 @@ func CreateInstanceModel(serviceID string, req *api.Instance) *model.Instance {
 			}
 			protoIns.HealthCheck.Heartbeat.Ttl.Value = 5
 		}
-		// 开启健康检查，且没有代入健康状态，则健康状态默认都是false
-		protoIns.Healthy.Value = false
 	}
 
 	instance.Proto = protoIns

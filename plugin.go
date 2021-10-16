@@ -35,4 +35,7 @@ import (
 	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/lrurate"
 	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/tokenbucket"
 	_ "github.com/polarismesh/polaris-server/plugin/statis/local"
+
+	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatmemory"
+	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatredis"
 )

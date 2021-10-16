@@ -215,7 +215,7 @@ func (h *HTTPServer) GetLastHeartbeat(req *restful.Request, rsp *restful.Respons
 	instance := &api.Instance{}
 	if id, ok := params["id"]; ok && id != "" {
 		instance.Id = utils.NewStringValue(id)
-		ret := h.namingServer.GetLastHeartbeat(instance)
+		ret := h.healthCheckServer.GetLastHeartbeat(instance)
 		handler.WriteHeaderAndProto(ret)
 		return
 	}
@@ -227,6 +227,6 @@ func (h *HTTPServer) GetLastHeartbeat(req *restful.Request, rsp *restful.Respons
 	port, _ := strconv.Atoi(params["port"])
 	instance.Port = utils.NewUInt32Value(uint32(port))
 
-	ret := h.namingServer.GetLastHeartbeat(instance)
+	ret := h.healthCheckServer.GetLastHeartbeat(instance)
 	handler.WriteHeaderAndProto(ret)
 }

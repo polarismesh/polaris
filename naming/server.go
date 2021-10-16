@@ -57,24 +57,18 @@ var (
 	finishInit = false
 )
 
-/**
- * Config 核心逻辑层配置
- */
+// Config 核心逻辑层配置
 type Config struct {
-	Auth        map[string]interface{} `yaml:"auth"`
-	HealthCheck HealthCheckConfig      `yaml:"healthcheck"`
-	Batch       map[string]interface{} `yaml:"batch"`
+	Auth  map[string]interface{} `yaml:"auth"`
+	Batch map[string]interface{} `yaml:"batch"`
 }
 
-/**
- * Server 对接API层的server层，用以处理业务逻辑
- */
+// Server 对接API层的server层，用以处理业务逻辑
 type Server struct {
 	storage store.Store
 
 	caches    *cache.NamingCache
 	authority auth.Authority
-	hbMgr     *HeartBeatMgr
 	bc        *batch.Controller
 
 	cmdb           plugin.CMDB
@@ -86,13 +80,11 @@ type Server struct {
 	l5service *l5service
 }
 
-/**
- * Initialize 初始化
- */
-func Initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config) error {
+// Initialize 初始化
+func Initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, listener cache.Listener) error {
 	var err error
 	once.Do(func() {
-		err = initialize(ctx, namingOpt, cacheOpt)
+		err = initialize(ctx, namingOpt, cacheOpt, listener)
 	})
 
 	if err != nil {
@@ -112,16 +104,12 @@ func GetServer() (*Server, error) {
 	return server, nil
 }
 
-/**
- * Authority 返回鉴权对象，获取鉴权信息
- */
+// Authority 返回鉴权对象，获取鉴权信息
 func (s *Server) Authority() auth.Authority {
 	return s.authority
 }
 
-/**
- * Cache 返回Cache
- */
+// Cache 返回Cache
 func (s *Server) Cache() *cache.NamingCache {
 	return s.caches
 }
@@ -141,9 +129,7 @@ func (s *Server) RecordHistory(entry *model.RecordEntry) {
 	s.history.Record(entry)
 }
 
-/**
- * RecordDiscoverStatis 打印服务发现统计
- */
+// RecordDiscoverStatis 打印服务发现统计
 func (s *Server) RecordDiscoverStatis(service, namespace string) {
 	if s.discoverStatis == nil {
 		return
@@ -197,7 +183,7 @@ func (s *Server) allowInstanceAccess(instanceID string) bool {
 }
 
 // 内部初始化函数
-func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config) error {
+func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, listener cache.Listener) error {
 	// 获取存储层对象
 	s, err := store.GetStore()
 	if err != nil {
@@ -228,6 +214,9 @@ func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config) 
 			log.Errorf("[Naming][Server] new naming cache err: %s", cacheErr.Error())
 			return cacheErr
 		}
+		if nil != listener {
+			caches.Instance().AddListener(listener)
+		}
 		server.caches = caches
 		if startErr := server.caches.Start(ctx); startErr != nil {
 			log.Errorf("[Naming][Server] start naming cache err: %s", startErr.Error())
@@ -235,17 +224,6 @@ func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config) 
 		}
 	}
 
-	// 启动健康检查
-	if healthCheckConf.Open {
-		hbMgr, err = NewHeartBeatMgr(ctx)
-		if err != nil {
-			log.Errorf("[Naming][Server] new heartbeat mgr failed: %s", err.Error())
-			return err
-		}
-
-		server.hbMgr = hbMgr
-		server.hbMgr.Start()
-	}
 	// 批量控制器
 	batchConfig, err := batch.ParseBatchConfig(namingOpt.Batch)
 	if err != nil {
@@ -303,9 +281,7 @@ func pluginInitialize() {
 	}
 }
 
-/**
- * NewUUID 返回一个随机的UUID
- */
+// NewUUID 返回一个随机的UUID
 func NewUUID() string {
 	uuidBytes := uuid.New()
 	return hex.EncodeToString(uuidBytes[:])

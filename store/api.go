@@ -63,6 +63,9 @@ type Store interface {
 
 	// PlatformStore 平台信息接口
 	PlatformStore
+
+	// ToolStore 函数及工具接口
+	ToolStore
 }
 
 // NamespaceStore 命名空间存储接口
@@ -370,4 +373,10 @@ type Transaction interface {
 
 	// RLockService 共享锁service
 	RLockService(name string, namespace string) (*model.Service, error)
+}
+
+// ToolStore 存储相关的函数及工具接口
+type ToolStore interface {
+	// GetNow 获取当前时间
+	GetNow() (int64, error)
 }

@@ -60,20 +60,6 @@ func (s *Server) ReportClient(ctx context.Context, req *api.Client) *api.Respons
 }
 
 /**
- * Heartbeat 服务实例上报心跳
- */
-func (s *Server) Heartbeat(ctx context.Context, req *api.Instance) *api.Response {
-	if s.caches == nil {
-		return api.NewResponse(api.ClientAPINotOpen)
-	}
-
-	if s.hbMgr == nil {
-		return api.NewInstanceResponse(api.HealthCheckNotOpen, req)
-	}
-	return s.hbMgr.healthCheck(ctx, req)
-}
-
-/**
  * GetServiceWithCache 根据元数据查询服务
  */
 func (s *Server) GetServiceWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {

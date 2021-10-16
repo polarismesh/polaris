@@ -24,7 +24,6 @@ import (
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 const (
@@ -116,7 +115,7 @@ func (sc *serviceCache) initialize(opt map[string]interface{}) error {
  */
 func (sc *serviceCache) update() error {
 	// 获取几秒前的全部数据
-	start := time.Now()
+	//start := time.Now()
 	services, err := sc.storage.GetMoreServices(sc.lastMtime.Add(DefaultTimeDiff),
 		sc.firstUpdate, sc.disableBusiness, sc.needMeta)
 	if err != nil {
@@ -125,9 +124,10 @@ func (sc *serviceCache) update() error {
 	}
 
 	sc.firstUpdate = false
-	update, del := sc.setServices(services)
-	log.Info("[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
-		zap.Time("last", sc.lastMtime), zap.Duration("used", time.Now().Sub(start)))
+	//update, del := sc.setServices(services)
+	sc.setServices(services)
+	//log.Debugf("[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
+	//	zap.Time("last", sc.lastMtime), zap.Duration("used", time.Now().Sub(start)))
 	return nil
 }
 

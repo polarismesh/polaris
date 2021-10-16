@@ -20,6 +20,7 @@ package httpserver
 import (
 	"context"
 	"fmt"
+	"github.com/polarismesh/polaris-server/healthcheck"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -56,11 +57,12 @@ type HTTPServer struct {
 
 	freeMemMu *sync.Mutex
 
-	server       *http.Server
-	namingServer *naming.Server
-	rateLimit    plugin.Ratelimit
-	statis       plugin.Statis
-	auth         plugin.Auth
+	server            *http.Server
+	namingServer      *naming.Server
+	healthCheckServer *healthcheck.Server
+	rateLimit         plugin.Ratelimit
+	statis            plugin.Statis
+	auth              plugin.Auth
 }
 
 const (
@@ -130,6 +132,12 @@ func (h *HTTPServer) Run(errCh chan error) {
 	var err error
 	// 引入功能模块和插件
 	h.namingServer, err = naming.GetServer()
+	if err != nil {
+		log.Errorf("%v", err)
+		errCh <- err
+		return
+	}
+	h.healthCheckServer, err = healthcheck.GetServer()
 	if err != nil {
 		log.Errorf("%v", err)
 		errCh <- err

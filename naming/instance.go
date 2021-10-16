@@ -130,7 +130,6 @@ func (s *Server) createInstance(ctx context.Context, req *api.Instance, ins *api
 	if server.bc == nil || !server.bc.CreateInstanceOpen() {
 		return s.serialCreateInstance(ctx, req, ins) // 单个同步
 	}
-
 	return s.asyncCreateInstance(ctx, req, ins) // 批量异步
 }
 
@@ -711,7 +710,7 @@ func (s *Server) CleanInstance(ctx context.Context, req *api.Instance) *api.Resp
 			}
 			return req.GetId().GetValue(), nil
 		}
-		return checkInstanceTetrad(req)
+		return CheckInstanceTetrad(req)
 	}
 
 	instanceID, resp := getInstanceID()
@@ -724,49 +723,6 @@ func (s *Server) CleanInstance(ctx context.Context, req *api.Instance) *api.Resp
 	}
 
 	log.Info("Clean instance", ZapRequestID(ParseRequestID(ctx)), zap.String("instanceID", instanceID))
-	return api.NewInstanceResponse(api.ExecuteSuccess, req)
-}
-
-// GetLastHeartbeat 获取上一次心跳的时间
-func (s *Server) GetLastHeartbeat(req *api.Instance) *api.Response {
-	if s.hbMgr == nil {
-		return api.NewInstanceResponse(api.HealthCheckNotOpen, req)
-	}
-	if s.caches == nil || s.caches.Instance() == nil || s.caches.Service() == nil {
-		return api.NewInstanceResponse(api.ClientAPINotOpen, req)
-	}
-
-	id := req.GetId().GetValue()
-	if id == "" {
-		tmpID, resp := checkInstanceTetrad(req)
-		if resp != nil {
-			return resp
-		}
-		id = tmpID
-	}
-	if id == "" {
-		return api.NewInstanceResponse(api.InvalidInstanceID, req)
-	}
-	req.Id = utils.NewStringValue(id)
-
-	instance := s.caches.Instance().GetInstance(id)
-	if instance == nil {
-		return api.NewInstanceResponse(api.NotFoundInstance, req)
-	}
-	service := s.caches.Service().GetServiceByID(instance.ServiceID)
-	if service == nil {
-		return api.NewInstanceResponse(api.NotFoundService, req)
-	}
-
-	if err := s.hbMgr.acquireLastHeartbeat(req); err != nil {
-		return api.NewInstanceRespWithError(api.ExecuteException, err, req)
-	}
-	req.Service = utils.NewStringValue(service.Name)
-	req.Namespace = utils.NewStringValue(service.Namespace)
-	req.Host = instance.Proto.GetHost()
-	req.Port = instance.Proto.GetPort()
-	req.VpcId = instance.Proto.GetVpcId()
-	req.HealthCheck = instance.HealthCheck()
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
 }
 
@@ -915,7 +871,7 @@ func checkCreateInstance(req *api.Instance) (string, *api.Response) {
 		return "", err
 	}
 
-	return checkInstanceTetrad(req)
+	return CheckInstanceTetrad(req)
 }
 
 /*
@@ -939,7 +895,7 @@ func checkReviseInstance(req *api.Instance) (string, *api.Response) {
 		return "", err
 	}
 
-	return checkInstanceTetrad(req)
+	return CheckInstanceTetrad(req)
 }
 
 /*
@@ -957,13 +913,11 @@ func checkHeartbeatInstance(req *api.Instance) (string, *api.Response) {
 		}
 		return req.GetId().GetValue(), nil
 	}
-	return checkInstanceTetrad(req)
+	return CheckInstanceTetrad(req)
 }
 
-/*
- * @brief 根据服务实例四元组计算ID
- */
-func checkInstanceTetrad(req *api.Instance) (string, *api.Response) {
+// CheckInstanceTetrad 根据服务实例四元组计算ID
+func CheckInstanceTetrad(req *api.Instance) (string, *api.Response) {
 	if err := checkResourceName(req.GetService()); err != nil {
 		return "", api.NewInstanceResponse(api.InvalidServiceName, req)
 	}
