@@ -80,7 +80,7 @@ func compareAndStoreServiceInstance(
 	value, ok := values.Load(instanceId)
 	if !ok {
 		log.Infof("[Health Check][Cache]create service instance is %s:%d",
-			instanceWithChecker.instance.GetHost(), instanceWithChecker.instance.GetPort())
+			instanceWithChecker.instance.GetHost().GetValue(), instanceWithChecker.instance.GetPort().GetValue())
 		values.Store(instanceId, instanceWithChecker)
 		return true
 	}
@@ -89,7 +89,7 @@ func compareAndStoreServiceInstance(
 		return false
 	}
 	log.Infof("[Health Check][Cache]update service instance is %s:%d",
-		instanceWithChecker.instance.GetHost(), instanceWithChecker.instance.GetPort())
+		instanceWithChecker.instance.GetHost().GetValue(), instanceWithChecker.instance.GetPort().GetValue())
 	values.Store(instanceId, instanceWithChecker)
 	return true
 }
@@ -98,7 +98,7 @@ func storeServiceInstance(instanceWithChecker *InstanceWithChecker, mutex *sync.
 	mutex.Lock()
 	defer mutex.Unlock()
 	log.Infof("[Health Check][Cache]create service instance is %s:%d",
-		instanceWithChecker.instance.GetHost(), instanceWithChecker.instance.GetPort())
+		instanceWithChecker.instance.GetHost().GetValue(), instanceWithChecker.instance.GetPort().GetValue())
 	instanceId := instanceWithChecker.instance.GetId().GetValue()
 	values.Store(instanceId, instanceWithChecker)
 	return true
@@ -111,7 +111,7 @@ func deleteServiceInstance(instance *api.Instance, mutex *sync.Mutex, values *sy
 	_, ok := values.Load(instanceId)
 	if ok {
 		log.Infof("[Health Check][Cache]delete service instance is %s:%d",
-			instance.GetHost(), instance.GetPort())
+			instance.GetHost().GetValue(), instance.GetPort().GetValue())
 		values.Delete(instanceId)
 	}
 	return true
@@ -175,7 +175,7 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 				return
 			}
 			log.Infof("[Health Check][Cache]delete service instance is %s:%d for health check disabled",
-				instance.GetHost(), instance.GetPort())
+				instance.GetHost().GetValue(), instance.GetPort().GetValue())
 			c.healthCheckInstances.Delete(instance.GetId().GetValue())
 			c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 			return
@@ -187,7 +187,7 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 		}
 		if !noChanged {
 			log.Infof("[Health Check][Cache]update service instance is %s:%d",
-				instance.GetHost(), instance.GetPort())
+				instance.GetHost().GetValue(), instance.GetPort().GetValue())
 			c.healthCheckInstances.Store(instance.GetId().GetValue(), &InstanceWithChecker{
 				instance: instance,
 				checker:  checker,
