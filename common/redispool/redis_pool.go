@@ -50,11 +50,6 @@ func toRedisKey(instanceId string) string {
 	return fmt.Sprintf("%s%s", keyPrefix, instanceId)
 }
 
-type Event struct {
-	EventType int
-	Id        string
-}
-
 // Task ckv任务请求结构体
 type Task struct {
 	taskType int

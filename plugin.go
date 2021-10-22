@@ -29,11 +29,11 @@ import (
 	_ "github.com/polarismesh/polaris-server/plugin/cmdb/memory"
 
 	_ "github.com/polarismesh/polaris-server/plugin/auth/platform"
-	_ "github.com/polarismesh/polaris-server/plugin/discoverstatis/discoverlocal"
+	_ "github.com/polarismesh/polaris-server/plugin/discoverstat/discoverlocal"
 	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
 	_ "github.com/polarismesh/polaris-server/plugin/password"
 	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/lrurate"
-	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/tokenbucket"
+	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/token"
 	_ "github.com/polarismesh/polaris-server/plugin/statis/local"
 
 	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatmemory"

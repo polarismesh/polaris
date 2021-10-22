@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"github.com/modern-go/reflect2"
 	"sync"
 	"time"
 
@@ -209,13 +210,14 @@ func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, 
 	if cacheOpt.Open {
 		cache.SetCacheConfig(cacheOpt)
 		log.Infof("cache is open, can access the client api function")
-		caches, cacheErr := cache.NewNamingCache(s)
+		var listeners []cache.Listener
+		if !reflect2.IsNil(listener) {
+			listeners = append(listeners, listener)
+		}
+		caches, cacheErr := cache.NewNamingCache(s, listeners)
 		if cacheErr != nil {
 			log.Errorf("[Naming][Server] new naming cache err: %s", cacheErr.Error())
 			return cacheErr
-		}
-		if nil != listener {
-			caches.Instance().AddListener(listener)
 		}
 		server.caches = caches
 		if startErr := server.caches.Start(ctx); startErr != nil {

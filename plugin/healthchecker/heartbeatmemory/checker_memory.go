@@ -39,15 +39,18 @@ type MemoryHealthChecker struct {
 	hbRecords *sync.Map
 }
 
+// Name
 func (r *MemoryHealthChecker) Name() string {
 	return PluginName
 }
 
+// Initialize
 func (r *MemoryHealthChecker) Initialize(c *plugin.ConfigEntry) error {
 	r.hbRecords = &sync.Map{}
 	return nil
 }
 
+// Destroy
 func (r *MemoryHealthChecker) Destroy() error {
 	return nil
 }

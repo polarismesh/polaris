@@ -96,7 +96,7 @@ type NamingCache struct {
 }
 
 // NewNamingCache 新建一个缓存对象
-func NewNamingCache(storage store.Store) (*NamingCache, error) {
+func NewNamingCache(storage store.Store, listeners []Listener) (*NamingCache, error) {
 	nc := &NamingCache{
 		storage:       storage,
 		caches:        make([]Cache, CacheLast),
@@ -105,7 +105,7 @@ func NewNamingCache(storage store.Store) (*NamingCache, error) {
 	}
 
 	sc := newServiceCache(storage, nc.comRevisionCh)
-	ic := newInstanceCache(storage, nc.comRevisionCh)
+	ic := newInstanceCache(storage, nc.comRevisionCh, listeners)
 
 	nc.caches[CacheService] = sc
 	nc.caches[CacheInstance] = ic

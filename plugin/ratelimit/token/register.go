@@ -15,9 +15,15 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tokenbucket
+package token
 
-// 限制器
-type limiter interface {
-	allow(key string) bool
+import "github.com/polarismesh/polaris-server/plugin"
+
+const (
+	PluginName = "token-bucket"
+)
+
+// 插件入口注册函数
+func init() {
+	plugin.RegisterPlugin(PluginName, &tokenBucket{})
 }

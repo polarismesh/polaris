@@ -15,15 +15,18 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tokenbucket
+package utils
 
-import "github.com/polarismesh/polaris-server/plugin"
-
-const (
-	PluginName = "token-bucket"
+import (
+	"syscall"
+	"time"
 )
 
-// 插件入口注册函数
-func init() {
-	plugin.RegisterPlugin(PluginName, &tokenBucket{})
+//获取低精度的微秒时间
+func CurrentMillisecond() int64 {
+	var tv syscall.Timeval
+	if err := syscall.Gettimeofday(&tv); err != nil {
+		return time.Now().UnixNano() / 1e6
+	}
+	return int64(tv.Sec)*1e3 + int64(tv.Usec)/1e3
 }

@@ -44,6 +44,7 @@ type RedisHealthChecker struct {
 	respChan  chan *redispool.Resp
 }
 
+// Name
 func (r *RedisHealthChecker) Name() string {
 	return PluginName
 }
@@ -62,6 +63,7 @@ func (r *RedisHealthChecker) processRedisResp(ctx context.Context) {
 	}
 }
 
+// Initialize
 func (r *RedisHealthChecker) Initialize(c *plugin.ConfigEntry) error {
 	redisBytes, err := json.Marshal(c.Option)
 	if nil != err {
@@ -80,6 +82,7 @@ func (r *RedisHealthChecker) Initialize(c *plugin.ConfigEntry) error {
 	return nil
 }
 
+// Destroy
 func (r *RedisHealthChecker) Destroy() error {
 	r.cancel()
 	return nil

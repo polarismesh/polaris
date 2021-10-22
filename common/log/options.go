@@ -176,7 +176,27 @@ func (o *Options) SetOutputLevel(scope, level string) error {
 
 // GetOutputLevel returns the minimum log output level for a given scope.
 func (o *Options) GetOutputLevel(scope string) (Level, error) {
-	return o.GetStackTraceLevel(scope)
+	levels := strings.Split(o.outputLevels, ",")
+
+	if scope == DefaultScopeName {
+		// see if we have an entry without a scope prefix (which represents the default scope)
+		for _, ol := range levels {
+			if !strings.Contains(ol, ":") {
+				_, l, err := convertScopedLevel(ol)
+				return l, err
+			}
+		}
+	}
+
+	prefix := scope + ":"
+	for _, ol := range levels {
+		if strings.HasPrefix(ol, prefix) {
+			_, l, err := convertScopedLevel(ol)
+			return l, err
+		}
+	}
+
+	return NoneLevel, fmt.Errorf("no level defined for scope '%s'", scope)
 }
 
 // SetStackTraceLevel sets the minimum stack tracing level for a given scope.

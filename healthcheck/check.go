@@ -23,7 +23,6 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/common/redispool"
 	"github.com/polarismesh/polaris-server/common/srand"
 	"github.com/polarismesh/polaris-server/common/timewheel"
 	"github.com/polarismesh/polaris-server/common/utils"
@@ -49,7 +48,6 @@ type CheckScheduler struct {
 	scheduledInstances map[string]*instanceValue
 
 	timeWheel *timewheel.TimeWheel
-	eventChan chan redispool.Event
 }
 
 type instanceValue struct {
@@ -75,7 +73,6 @@ func newCheckScheduler(ctx context.Context, slotNum int) *CheckScheduler {
 		rwMutex:            &sync.RWMutex{},
 		scheduledInstances: make(map[string]*instanceValue),
 		timeWheel:          timewheel.New(time.Second, slotNum, "[Health Check]interval-check"),
-		eventChan:          make(chan redispool.Event),
 	}
 	go scheduler.startRoutines(ctx)
 	return scheduler

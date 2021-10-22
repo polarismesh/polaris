@@ -48,16 +48,11 @@ type listenerManager struct {
 	listeners []Listener
 }
 
-func newListenerManager() *listenerManager {
+func newListenerManager(listeners []Listener) *listenerManager {
 	return &listenerManager{
-		rwMutex: &sync.RWMutex{},
+		rwMutex:   &sync.RWMutex{},
+		listeners: listeners,
 	}
-}
-
-func (l *listenerManager) addListener(listener Listener) {
-	l.rwMutex.Lock()
-	defer l.rwMutex.Unlock()
-	l.listeners = append(l.listeners, listener)
 }
 
 func (l *listenerManager) onEvent(value interface{}, event EventType) {

@@ -18,12 +18,12 @@
 package cache
 
 import (
-	"sync"
-	"time"
-
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
+	"go.uber.org/zap"
+	"sync"
+	"time"
 )
 
 const (
@@ -48,8 +48,6 @@ type InstanceCache interface {
 	IteratorInstancesWithService(serviceID string, iterProc InstanceIterProc) error
 	// GetInstancesCount 获取instance的个数
 	GetInstancesCount() int
-	// AddListener 增加实例监听器
-	AddListener(listener Listener)
 }
 
 // instanceCache 实例缓存的类
@@ -71,11 +69,11 @@ func init() {
 }
 
 // newInstanceCache 新建一个instanceCache
-func newInstanceCache(storage store.Store, ch chan *revisionNotify) *instanceCache {
+func newInstanceCache(storage store.Store, ch chan *revisionNotify, listeners []Listener) *instanceCache {
 	return &instanceCache{
 		storage:    storage,
 		revisionCh: ch,
-		manager:    newListenerManager(),
+		manager:    newListenerManager(listeners),
 	}
 }
 
@@ -110,7 +108,7 @@ func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 // update 更新缓存函数
 func (ic *instanceCache) update() error {
 	// 拉取diff前的所有数据
-	//start := time.Now()
+	start := time.Now()
 	instances, err := ic.storage.GetMoreInstances(ic.lastMtime.Add(DefaultTimeDiff),
 		ic.firstUpdate, ic.needMeta, ic.systemServiceID)
 	if err != nil {
@@ -119,10 +117,9 @@ func (ic *instanceCache) update() error {
 	}
 
 	ic.firstUpdate = false
-	//update, del := ic.setInstances(instances)
-	ic.setInstances(instances)
-	//log.Debugf("[Cache][Instance] get more instances", zap.Int("update", update), zap.Int("delete", del),
-	//	zap.Time("last", ic.lastMtime), zap.Duration("used", time.Now().Sub(start)))
+	update, del := ic.setInstances(instances)
+	log.Debug("[Cache][Instance] get more instances", zap.Int("update", update), zap.Int("delete", del),
+		zap.Time("last", ic.lastMtime), zap.Duration("used", time.Now().Sub(start)))
 	return nil
 }
 
@@ -283,11 +280,6 @@ func (ic *instanceCache) GetInstancesCount() int {
 	})
 
 	return count
-}
-
-// AddListener 添加监听器
-func (ic *instanceCache) AddListener(listener Listener) {
-	ic.manager.addListener(listener)
 }
 
 // 迭代指定的instance数据，id->instance

@@ -934,16 +934,20 @@ func CheckInstanceTetrad(req *api.Instance) (string, *api.Response) {
 		return "", api.NewInstanceResponse(api.InvalidInstancePort, req)
 	}
 
-	id, err := CalculateInstanceID(req.GetNamespace().GetValue(), req.GetService().GetValue(),
-		req.GetVpcId().GetValue(),
-		req.GetHost().GetValue(),
-		req.GetPort().GetValue(),
-	)
-	if err != nil {
-		return "", api.NewInstanceResponse(api.ExecuteException, req)
+	var instId string
+	instId = req.GetId().GetValue()
+	if len(instId) == 0 {
+		id, err := CalculateInstanceID(req.GetNamespace().GetValue(), req.GetService().GetValue(),
+			req.GetVpcId().GetValue(),
+			req.GetHost().GetValue(),
+			req.GetPort().GetValue(),
+		)
+		if err != nil {
+			return "", api.NewInstanceResponse(api.ExecuteException, req)
+		}
+		instId = id
 	}
-
-	return id, nil
+	return instId, nil
 }
 
 // 获取instance请求的token信息

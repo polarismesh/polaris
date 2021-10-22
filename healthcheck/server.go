@@ -109,8 +109,11 @@ func GetServer() (*Server, error) {
 }
 
 // CacheProvider get cache provider
-func (s *Server) CacheProvider() *CacheProvider {
-	return s.cacheProvider
+func (s *Server) CacheProvider() (*CacheProvider, error) {
+	if !finishInit {
+		return nil, errors.New("cache provider has not done InitializeServer")
+	}
+	return s.cacheProvider, nil
 }
 
 // RecordHistory server对外提供history插件的简单封装
