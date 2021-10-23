@@ -86,7 +86,7 @@ func (PolarisNodeHash) ID(node *envoy_config_core_v3.Node) string {
 
 // GetProtocol 服务注册到北极星中的协议
 func (x *XDSServer) GetProtocol() string {
-	return "xds"
+	return "xdsv3"
 }
 
 // GetPort 服务注册到北极星中的端口

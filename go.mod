@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/boltdb/bolt v1.3.1
 	github.com/emicklei/go-restful v2.9.6+incompatible
+	github.com/envoyproxy/go-control-plane v0.9.9
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/mock v1.6.0
@@ -22,7 +23,7 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.5.1
-	go.uber.org/atomic v1.5.1 // indirect
+	go.uber.org/atomic v1.5.1
 	go.uber.org/multierr v1.4.0 // indirect
 	go.uber.org/zap v1.14.0
 	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f // indirect
@@ -31,7 +32,6 @@ require (
 	google.golang.org/grpc v1.36.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8
-	github.com/envoyproxy/go-control-plane v0.9.9
 
 )
 
