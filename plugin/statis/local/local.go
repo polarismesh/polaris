@@ -52,6 +52,7 @@ func (s *StatisWorker) Name() string {
  * Initialize 初始化统计插件
  */
 func (s *StatisWorker) Initialize(conf *plugin.ConfigEntry) error {
+
 	// 设置统计打印周期
 	interval := conf.Option["interval"].(int)
 	s.interval = time.Duration(interval) * time.Second
@@ -80,10 +81,11 @@ func (s *StatisWorker) Destroy() error {
 /**
  * AddAPICall 上报请求
  */
-func (s *StatisWorker) AddAPICall(api string, code int, duration int64) error {
+func (s *StatisWorker) AddAPICall(api, protocol string, code int, duration int64) error {
 	s.acc <- &APICall{
 		api:      api,
-		code:     code,
+		code:     uint32(code),
+		protocol: protocol,
 		duration: duration,
 	}
 
@@ -102,6 +104,7 @@ func (s *StatisWorker) Run() {
 		case <-ticker.C:
 			s.acs.log()
 		case ac := <-s.acc:
+			// Local APICall observation data printing
 			s.acs.add(ac)
 		}
 	}

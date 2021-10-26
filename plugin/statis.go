@@ -34,7 +34,7 @@ var (
 type Statis interface {
 	Plugin
 
-	AddAPICall(api string, code int, duration int64) error
+	AddAPICall(api, protocol string, code int, duration int64) error
 }
 
 /**

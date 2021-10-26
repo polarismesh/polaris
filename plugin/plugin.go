@@ -23,9 +23,10 @@ import (
 )
 
 var (
-	pluginSet = make(map[string]Plugin)
-	config    = &Config{}
-	once      = &sync.Once{}
+	pluginSet        = make(map[string]Plugin)
+	config           = &Config{}
+	once             = &sync.Once{}
+	LocalHost string = "127.0.0.1"
 )
 
 /**
@@ -44,6 +45,10 @@ func RegisterPlugin(name string, plugin Plugin) {
  */
 func SetPluginConfig(c *Config) {
 	config = c
+}
+
+func SetLocalHost(local string) {
+	LocalHost = local
 }
 
 /**

@@ -13,7 +13,7 @@ bootstrap:
     key: sz # 全局锁
   # 注册为北极星服务
   polaris_service:
-#    probe_address: ##DB_ADDR##
+    #    probe_address: ##DB_ADDR##
     enable_register: false
     isolated: false
     services:
@@ -22,7 +22,7 @@ bootstrap:
         protocols:
           - grpcserver
           - httpserver
-#          - l5pbserver
+      #          - l5pbserver
       - name: polaris.healthcheck
         namespace: Polaris
         protocols:
@@ -77,10 +77,10 @@ naming:
   # 健康检查
   healthcheck:
     open: true
-#    kvConnNum: 50
-#    kvServiceName: polaris.redis
-#    kvNamespace: Polaris
-#    kvPasswd: ##REDIS_PWD##
+    #    kvConnNum: 50
+    #    kvServiceName: polaris.redis
+    #    kvNamespace: Polaris
+    #    kvPasswd: ##REDIS_PWD##
     slotNum: 30
     maxIdle: 20
     idleTimeout: 120
@@ -116,7 +116,7 @@ cache:
 #    - name: l5 # 加载l5数据
 # 存储配置
 store:
-# 单机文件存储插件
+  # 单机文件存储插件
   name: boltdbStore
   option:
     path: ./polaris.bolt
@@ -147,6 +147,10 @@ plugin:
     option:
       interval: 60 # 统计间隔，单位为秒
       outputPath: ./statis
+    # api 调用指标数据计算上报到 prometheus
+    # name: prometheus
+    # option:
+    #   interval: 10 # 统计间隔，单位为秒
   ratelimit:
     name: token-bucket
     option:

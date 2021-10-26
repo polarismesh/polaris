@@ -86,6 +86,7 @@ func Start(configFilePath string) {
 
 	// 设置插件配置
 	plugin.SetPluginConfig(&cfg.Plugin)
+	plugin.SetLocalHost(LocalHost)
 
 	// 初始化存储层
 	store.SetStoreConfig(&cfg.Store)
