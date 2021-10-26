@@ -802,7 +802,7 @@ func (x *XDSServer) Run(errCh chan error) {
 		return
 	}
 
-	log.Infof("xds server stop")
+	log.Info("xds server stop")
 }
 
 func registerServer(grpcServer *grpc.Server, server serverv3.Server) {
@@ -827,7 +827,7 @@ func (x *XDSServer) Stop() {
 // Restart
 func (x *XDSServer) Restart(option map[string]interface{}, api map[string]apiserver.APIConfig, errCh chan error) error {
 
-	log.Infof("restart xds server with new config: +v", option)
+	log.Infof("restart xds server with new config: +%v", option)
 
 	x.restart = true
 	x.Stop()
@@ -835,13 +835,13 @@ func (x *XDSServer) Restart(option map[string]interface{}, api map[string]apiser
 		<-x.exitCh
 	}
 
-	log.Infof("old xds server has stopped, begin restarting it")
+	log.Info("old xds server has stopped, begin restarting it")
 	if err := x.Initialize(context.Background(), option, api); err != nil {
 		log.Errorf("restart grpc server err: %s", err.Error())
 		return err
 	}
 
-	log.Infof("init grpc server successfully, restart it")
+	log.Info("init grpc server successfully, restart it")
 	x.restart = false
 	go x.Run(errCh)
 
