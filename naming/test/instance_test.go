@@ -20,16 +20,17 @@ package test
 import (
 	"context"
 	"fmt"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/naming"
-	. "github.com/smartystreets/goconvey/convey"
 	"math/rand"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/naming"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 // 测试新建实例
@@ -172,6 +173,7 @@ func TestCreateInstance2(t *testing.T) {
 		total := 1024
 		var wg sync.WaitGroup
 		start := time.Now()
+		errs := make(chan error)
 		for i := 0; i < total; i++ {
 			wg.Add(1)
 			go func(index int) {
@@ -181,7 +183,8 @@ func TestCreateInstance2(t *testing.T) {
 				req, resp = createCommonInstance(t, serviceResps[index%10], index)
 				for c := 0; c < 10; c++ {
 					if updateResp := server.UpdateInstance(defaultCtx, req); !respSuccess(updateResp) {
-						t.Fatalf("error: %+v", updateResp)
+						errs <- fmt.Errorf("error: %+v", updateResp)
+						return
 					}
 				}
 				removeCommonInstance(t, serviceResps[index%10], resp.GetId().GetValue())
@@ -189,7 +192,16 @@ func TestCreateInstance2(t *testing.T) {
 			}(i)
 		}
 
-		wg.Wait()
+		go func() {
+			wg.Wait()
+			close(errs)
+		}()
+
+		for err := range errs {
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
 		t.Logf("consume: %v", time.Now().Sub(start))
 	})
 }
@@ -203,6 +215,7 @@ func TestUpdateInstanceManyTimes(t *testing.T) {
 	defer cleanInstance(instanceResp.GetId().GetValue())
 
 	var wg sync.WaitGroup
+	errs := make(chan error)
 	for i := 0; i < 64; i++ {
 		wg.Add(1)
 		go func(index int) {
@@ -210,12 +223,22 @@ func TestUpdateInstanceManyTimes(t *testing.T) {
 			for c := 0; c < 16; c++ {
 				instanceReq.Weight.Value = uint32(rand.Int() % 32767)
 				if updateResp := server.UpdateInstance(defaultCtx, instanceReq); !respSuccess(updateResp) {
-					t.Fatalf("error: %+v", updateResp)
+					errs <- fmt.Errorf("error: %+v", updateResp)
+					return
 				}
 			}
 		}(i)
 	}
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(errs)
+	}()
+
+	for err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 }
 
 // 测试获取实例
@@ -576,7 +599,7 @@ func TestListInstances1(t *testing.T) {
 		query = map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
-			"values":      "internal-personal-xxx",
+			"values":    "internal-personal-xxx",
 		}
 		resp = server.GetInstances(query)
 		if resp.GetCode().GetValue() != api.InvalidQueryInsParameter {
@@ -831,6 +854,7 @@ func TestUpdateIsolate(t *testing.T) {
 		defer cleanInstance(instanceResp.GetId().GetValue())
 
 		var wg sync.WaitGroup
+		errs := make(chan error)
 		for i := 0; i < 64; i++ {
 			wg.Add(1)
 			go func(index int) {
@@ -838,12 +862,22 @@ func TestUpdateIsolate(t *testing.T) {
 				for c := 0; c < 16; c++ {
 					instanceReq.Isolate = utils.NewBoolValue(true)
 					if resp := server.UpdateInstanceIsolate(defaultCtx, instanceReq); !respSuccess(resp) {
-						t.Fatalf("error: %+v", resp)
+						errs <- fmt.Errorf("error: %+v", resp)
+						return
 					}
 				}
 			}(i)
 		}
-		wg.Wait()
+		go func() {
+			wg.Wait()
+			close(errs)
+		}()
+
+		for err := range errs {
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
 		t.Log("pass")
 	})
 
@@ -1168,6 +1202,7 @@ func TestBatchDeleteInstances(t *testing.T) {
 	t.Run("测试batch删除实例，单个接口", func(t *testing.T) {
 		_, resps := createInstances(t)
 		var wg sync.WaitGroup
+		errs := make(chan error)
 		for _, resp := range resps.GetResponses() {
 			wg.Add(1)
 			go func(instance *api.Instance) {
@@ -1177,11 +1212,21 @@ func TestBatchDeleteInstances(t *testing.T) {
 				}()
 				req := &api.Instance{Id: instance.Id, ServiceToken: service.Token}
 				if out := server.DeleteInstance(defaultCtx, req); !respSuccess(out) {
-					t.Fatalf("error: %+v", out)
+					errs <- fmt.Errorf("error: %+v", out)
+					return
 				}
 			}(resp.GetInstance())
 		}
-		wg.Wait()
+		go func() {
+			wg.Wait()
+			close(errs)
+		}()
+
+		for err := range errs {
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
 	})
 	t.Run("测试batch删除实例，批量接口", func(t *testing.T) {
 		instances, instancesResp := createInstances(t)
