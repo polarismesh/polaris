@@ -67,7 +67,7 @@ apiservers:
   - name: xdsserverv3
     option:
       listenIP: "0.0.0.0"
-      listenPort: 18000
+      listenPort: 15010
       connLimit:
         openConnLimit: false
         maxConnPerHost: 128
