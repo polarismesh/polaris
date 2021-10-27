@@ -65,8 +65,8 @@ type serviceCache struct {
 	storage         store.Store
 	lastMtime       time.Time
 	firstUpdate     bool
-	ids             *sync.Map
-	names           *sync.Map
+	ids             *sync.Map // id -> service
+	names           *sync.Map // space -> [serviceName -> service]
 	cl5Sid2Name     *sync.Map // 兼容Cl5，sid -> name
 	cl5Names        *sync.Map // 兼容Cl5，name -> service
 	revisionCh      chan *revisionNotify

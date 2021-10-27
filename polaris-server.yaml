@@ -198,4 +198,3 @@ plugin:
             rule: store-read
           - name: "GET:/v1/naming/services/count"
             rule: store-read
-          - name: ""

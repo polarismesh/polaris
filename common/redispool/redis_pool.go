@@ -142,7 +142,7 @@ func genRedisPool(insConnNum int, kvPasswd string, instance *model.Instance, max
 				log.Infof("ERROR: fail init redis: %s", err.Error())
 				return nil, err
 			}
-			return conn, err
+			return conn, nil
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
 			_, err := c.Do("PING")
