@@ -23,6 +23,7 @@ import (
 	"net/http"
 
 	"github.com/emicklei/go-restful"
+	"github.com/golang/protobuf/proto"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
@@ -177,7 +178,11 @@ func (h *HTTPServer) CreateNamespaces(req *restful.Request, rsp *restful.Respons
 	handler := &Handler{req, rsp}
 
 	var namespaces NamespaceArr
-	ctx, err := handler.Parse(&namespaces)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Namespace{}
+		namespaces = append(namespaces, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -193,7 +198,11 @@ func (h *HTTPServer) DeleteNamespaces(req *restful.Request, rsp *restful.Respons
 	handler := &Handler{req, rsp}
 
 	var namespaces NamespaceArr
-	ctx, err := handler.Parse(&namespaces)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Namespace{}
+		namespaces = append(namespaces, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -215,7 +224,11 @@ func (h *HTTPServer) UpdateNamespaces(req *restful.Request, rsp *restful.Respons
 	handler := &Handler{req, rsp}
 
 	var namespaces NamespaceArr
-	ctx, err := handler.Parse(&namespaces)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Namespace{}
+		namespaces = append(namespaces, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -279,7 +292,11 @@ func (h *HTTPServer) CreateServices(req *restful.Request, rsp *restful.Response)
 	handler := &Handler{req, rsp}
 
 	var services ServiceArr
-	ctx, err := handler.Parse(&services)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Service{}
+		services = append(services, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -295,7 +312,11 @@ func (h *HTTPServer) DeleteServices(req *restful.Request, rsp *restful.Response)
 	handler := &Handler{req, rsp}
 
 	var services ServiceArr
-	ctx, err := handler.Parse(&services)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Service{}
+		services = append(services, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -317,7 +338,11 @@ func (h *HTTPServer) UpdateServices(req *restful.Request, rsp *restful.Response)
 	handler := &Handler{req, rsp}
 
 	var services ServiceArr
-	ctx, err := handler.Parse(&services)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Service{}
+		services = append(services, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -449,7 +474,11 @@ func (h *HTTPServer) CreateInstances(req *restful.Request, rsp *restful.Response
 	handler := &Handler{req, rsp}
 
 	var instances InstanceArr
-	ctx, err := handler.Parse(&instances)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Instance{}
+		instances = append(instances, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -465,7 +494,11 @@ func (h *HTTPServer) DeleteInstances(req *restful.Request, rsp *restful.Response
 	handler := &Handler{req, rsp}
 
 	var instances InstanceArr
-	ctx, err := handler.Parse(&instances)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Instance{}
+		instances = append(instances, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -487,7 +520,11 @@ func (h *HTTPServer) DeleteInstancesByHost(req *restful.Request, rsp *restful.Re
 	handler := &Handler{req, rsp}
 
 	var instances InstanceArr
-	ctx, err := handler.Parse(&instances)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Instance{}
+		instances = append(instances, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -509,7 +546,11 @@ func (h *HTTPServer) UpdateInstances(req *restful.Request, rsp *restful.Response
 	handler := &Handler{req, rsp}
 
 	var instances InstanceArr
-	ctx, err := handler.Parse(&instances)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Instance{}
+		instances = append(instances, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -531,7 +572,11 @@ func (h *HTTPServer) UpdateInstancesIsolate(req *restful.Request, rsp *restful.R
 	handler := &Handler{req, rsp}
 
 	var instances InstanceArr
-	ctx, err := handler.Parse(&instances)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Instance{}
+		instances = append(instances, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -573,14 +618,18 @@ func (h *HTTPServer) GetInstancesCount(req *restful.Request, rsp *restful.Respon
 func (h *HTTPServer) CreateRoutings(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	var routeAddr RoutingArr
-	ctx, err := handler.Parse(&routeAddr)
+	var routings RoutingArr
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Routing{}
+		routings = append(routings, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
 	}
 
-	ret := h.namingServer.CreateRoutingConfigs(ctx, routeAddr)
+	ret := h.namingServer.CreateRoutingConfigs(ctx, routings)
 	handler.WriteHeaderAndProto(ret)
 }
 
@@ -590,14 +639,18 @@ func (h *HTTPServer) CreateRoutings(req *restful.Request, rsp *restful.Response)
 func (h *HTTPServer) DeleteRoutings(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	var routeAddr RoutingArr
-	ctx, err := handler.Parse(&routeAddr)
+	var routings RoutingArr
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Routing{}
+		routings = append(routings, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
 	}
 
-	ret := h.namingServer.DeleteRoutingConfigs(ctx, routeAddr)
+	ret := h.namingServer.DeleteRoutingConfigs(ctx, routings)
 	if code := api.CalcCode(ret); code != http.StatusOK {
 		handler.WriteHeaderAndProto(ret)
 		return
@@ -612,14 +665,18 @@ func (h *HTTPServer) DeleteRoutings(req *restful.Request, rsp *restful.Response)
 func (h *HTTPServer) UpdateRoutings(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	var routeAddr RoutingArr
-	ctx, err := handler.Parse(&routeAddr)
+	var routings RoutingArr
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Routing{}
+		routings = append(routings, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
 	}
 
-	ret := h.namingServer.UpdateRoutingConfigs(ctx, routeAddr)
+	ret := h.namingServer.UpdateRoutingConfigs(ctx, routings)
 	if code := api.CalcCode(ret); code != http.StatusOK {
 		handler.WriteHeaderAndProto(ret)
 		return
@@ -646,7 +703,11 @@ func (h *HTTPServer) CreateRateLimits(req *restful.Request, rsp *restful.Respons
 	handler := &Handler{req, rsp}
 
 	var rateLimits RateLimitArr
-	ctx, err := handler.Parse(&rateLimits)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Rule{}
+		rateLimits = append(rateLimits, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -662,7 +723,11 @@ func (h *HTTPServer) DeleteRateLimits(req *restful.Request, rsp *restful.Respons
 	handler := &Handler{req, rsp}
 
 	var rateLimits RateLimitArr
-	ctx, err := handler.Parse(&rateLimits)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Rule{}
+		rateLimits = append(rateLimits, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -683,7 +748,11 @@ func (h *HTTPServer) UpdateRateLimits(req *restful.Request, rsp *restful.Respons
 	handler := &Handler{req, rsp}
 
 	var rateLimits RateLimitArr
-	ctx, err := handler.Parse(&rateLimits)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Rule{}
+		rateLimits = append(rateLimits, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -716,7 +785,11 @@ func (h *HTTPServer) CreateCircuitBreakers(req *restful.Request, rsp *restful.Re
 	handler := &Handler{req, rsp}
 
 	var circuitBreakers CircuitBreakerArr
-	ctx, err := handler.Parse(&circuitBreakers)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.CircuitBreaker{}
+		circuitBreakers = append(circuitBreakers, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -733,7 +806,11 @@ func (h *HTTPServer) CreateCircuitBreakerVersions(req *restful.Request, rsp *res
 	handler := &Handler{req, rsp}
 
 	var circuitBreakers CircuitBreakerArr
-	ctx, err := handler.Parse(&circuitBreakers)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.CircuitBreaker{}
+		circuitBreakers = append(circuitBreakers, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchQueryResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -749,7 +826,11 @@ func (h *HTTPServer) DeleteCircuitBreakers(req *restful.Request, rsp *restful.Re
 	handler := &Handler{req, rsp}
 
 	var circuitBreakers CircuitBreakerArr
-	ctx, err := handler.Parse(&circuitBreakers)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.CircuitBreaker{}
+		circuitBreakers = append(circuitBreakers, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -770,7 +851,11 @@ func (h *HTTPServer) UpdateCircuitBreakers(req *restful.Request, rsp *restful.Re
 	handler := &Handler{req, rsp}
 
 	var circuitBreakers CircuitBreakerArr
-	ctx, err := handler.Parse(&circuitBreakers)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.CircuitBreaker{}
+		circuitBreakers = append(circuitBreakers, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -791,7 +876,11 @@ func (h *HTTPServer) ReleaseCircuitBreakers(req *restful.Request, rsp *restful.R
 	handler := &Handler{req, rsp}
 
 	var configRelease ConfigReleaseArr
-	ctx, err := handler.Parse(&configRelease)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.ConfigRelease{}
+		configRelease = append(configRelease, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -812,7 +901,11 @@ func (h *HTTPServer) UnBindCircuitBreakers(req *restful.Request, rsp *restful.Re
 	handler := &Handler{req, rsp}
 
 	var configRelease ConfigReleaseArr
-	ctx, err := handler.Parse(&configRelease)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.ConfigRelease{}
+		configRelease = append(configRelease, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -888,7 +981,11 @@ func (h *HTTPServer) GetServiceOwner(req *restful.Request, rsp *restful.Response
 	handler := &Handler{req, rsp}
 
 	var services ServiceArr
-	ctx, err := handler.Parse(&services)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Service{}
+		services = append(services, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -922,7 +1019,11 @@ func (h *HTTPServer) CreatePlatforms(req *restful.Request, rsp *restful.Response
 	handler := &Handler{req, rsp}
 
 	var platforms PlatformArr
-	ctx, err := handler.Parse(&platforms)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Platform{}
+		platforms = append(platforms, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -938,7 +1039,11 @@ func (h *HTTPServer) UpdatePlatforms(req *restful.Request, rsp *restful.Response
 	handler := &Handler{req, rsp}
 
 	var platforms PlatformArr
-	ctx, err := handler.Parse(&platforms)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Platform{}
+		platforms = append(platforms, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
@@ -960,7 +1065,11 @@ func (h *HTTPServer) DeletePlatforms(req *restful.Request, rsp *restful.Response
 	handler := &Handler{req, rsp}
 
 	var platforms PlatformArr
-	ctx, err := handler.Parse(&platforms)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Platform{}
+		platforms = append(platforms, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchQueryResponseWithMsg(api.ParseException, err.Error()))
 		return

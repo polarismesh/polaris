@@ -362,7 +362,7 @@ func checkRateLimitParams(req *api.Rule) *api.Response {
 func checkRateLimitRuleParams(requestID string, req *api.Rule) *api.Response {
 	// 检查业务维度标签
 	if req.GetLabels() == nil {
-		return api.NewRateLimitResponse(api.InvalidRateLimitLabels, req)
+		req.Labels = map[string]*api.MatchString{}
 	}
 	// 检查amounts是否有重复周期
 	amounts := req.GetAmounts()

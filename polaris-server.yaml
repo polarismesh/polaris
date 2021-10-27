@@ -22,6 +22,7 @@ bootstrap:
         protocols:
           - grpcserver
           - httpserver
+          - xdsserverv3
 #          - l5pbserver
       - name: polaris.healthcheck
         namespace: Polaris
@@ -63,6 +64,14 @@ apiservers:
       client:
         enable: true
         include: [discover, register, healthcheck]
+  - name: xdsserverv3
+    option:
+      listenIP: "0.0.0.0"
+      listenPort: 15010
+      connLimit:
+        openConnLimit: false
+        maxConnPerHost: 128
+        maxConnLimit: 10240
 #  - name: l5pbserver
 #    option:
 #      listenIP: 0.0.0.0
