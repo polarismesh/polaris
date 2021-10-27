@@ -104,7 +104,6 @@ func (s *StatisWorker) Run() {
 		case <-ticker.C:
 			s.acs.log()
 		case ac := <-s.acc:
-			// Local APICall observation data printing
 			s.acs.add(ac)
 		}
 	}
