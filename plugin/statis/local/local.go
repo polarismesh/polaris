@@ -84,7 +84,7 @@ func (s *StatisWorker) Destroy() error {
 func (s *StatisWorker) AddAPICall(api, protocol string, code int, duration int64) error {
 	s.acc <- &APICall{
 		api:      api,
-		code:     uint32(code),
+		code:     code,
 		protocol: protocol,
 		duration: duration,
 	}

@@ -28,7 +28,7 @@ import (
  */
 type APICall struct {
 	api      string
-	code     uint32
+	code     int
 	duration int64
 	protocol string
 }
@@ -38,7 +38,7 @@ type APICall struct {
  */
 type APICallStatisItem struct {
 	api     string
-	code    uint32
+	code    int
 	count   int64
 	accTime int64
 	minTime int64
