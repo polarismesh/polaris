@@ -62,6 +62,7 @@ misspell -error .
 for MOD_FILE in $(find . -name 'go.mod'); do
   MOD_DIR=$(dirname ${MOD_FILE})
   pushd ${MOD_DIR}
+  echo "deal ${MOD_DIR}"
   go vet -all ./... | fail_on_output
   #gofmt -s -d -l . 2>&1 | fail_on_output
   #goimports -l . 2>&1 | not grep -vE "\.pb\.go"
