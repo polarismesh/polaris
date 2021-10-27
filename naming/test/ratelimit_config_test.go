@@ -20,12 +20,14 @@ package test
 import (
 	"context"
 	"encoding/json"
-	"github.com/golang/protobuf/ptypes/duration"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/golang/protobuf/ptypes/duration"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 /**
@@ -294,6 +296,7 @@ func TestUpdateRateLimit(t *testing.T) {
 
 	t.Run("并发更新限流规则时，可以正常更新", func(t *testing.T) {
 		var wg sync.WaitGroup
+		errs := make(chan error)
 		for i := 1; i <= 500; i++ {
 			wg.Add(1)
 			go func(index int) {
@@ -311,12 +314,22 @@ func TestUpdateRateLimit(t *testing.T) {
 				}
 				resp := server.GetRateLimits(filters)
 				if !respSuccess(resp) {
-					t.Fatalf("error")
+					errs <- fmt.Errorf("error : %v", resp)
 				}
 				checkRateLimit(t, rateLimitResp, resp.GetRateLimits()[0])
 			}(i)
 		}
-		wg.Wait()
+		go func() {
+			wg.Wait()
+			close(errs)
+		}()
+
+		for err := range errs {
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
 		t.Log("pass")
 	})
 }
