@@ -19,9 +19,12 @@ package resource
 
 import (
 	"fmt"
+
+	"github.com/golang/protobuf/ptypes/wrappers"
+
+	"github.com/golang/protobuf/ptypes/duration"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/golang/protobuf/ptypes/duration"
 )
 
 /**
@@ -109,6 +112,11 @@ func CreateRateLimits(services []*api.Service) []*api.Rule {
  */
 func UpdateRateLimits(rateLimits []*api.Rule) {
 	for _, rateLimit := range rateLimits {
-		rateLimit.Labels = map[string]*api.MatchString{}
+		rateLimit.Labels = map[string]*api.MatchString{
+			"key1": &api.MatchString{
+				Type:  api.MatchString_EXACT,
+				Value: &wrappers.StringValue{Value: "value1"},
+			},
+		}
 	}
 }

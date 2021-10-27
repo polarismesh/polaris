@@ -19,6 +19,7 @@ package httpserver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -45,15 +46,38 @@ type Handler struct {
  */
 func (h *Handler) Parse(message proto.Message) (context.Context, error) {
 	requestID := h.Request.HeaderParameter("Request-Id")
-	platformID := h.Request.HeaderParameter("Platform-Id")
-	platformToken := h.Request.HeaderParameter("Platform-Token")
-	token := h.Request.HeaderParameter("Polaris-Token")
-
 	if err := jsonpb.Unmarshal(h.Request.Request.Body, message); err != nil {
 		log.Error(err.Error(), zap.String("request-id", requestID))
 		return nil, err
 	}
+	return h.postParseMessage(requestID)
+}
 
+func (h *Handler) ParseArray(createMessage func() proto.Message) (context.Context, error) {
+	requestID := h.Request.HeaderParameter("Request-Id")
+
+	jsonDecoder := json.NewDecoder(h.Request.Request.Body)
+	// read open bracket
+	_, err := jsonDecoder.Token()
+	if err != nil {
+		log.Error(err.Error(), zap.String("request-id", requestID))
+		return nil, err
+	}
+	for jsonDecoder.More() {
+		protoMessage := createMessage()
+		err := jsonpb.UnmarshalNext(jsonDecoder, protoMessage)
+		if err != nil {
+			log.Error(err.Error(), zap.String("request-id", requestID))
+			return nil, err
+		}
+	}
+	return h.postParseMessage(requestID)
+}
+
+func (h *Handler) postParseMessage(requestID string) (context.Context, error) {
+	platformID := h.Request.HeaderParameter("Platform-Id")
+	platformToken := h.Request.HeaderParameter("Platform-Token")
+	token := h.Request.HeaderParameter("Polaris-Token")
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, utils.StringContext("request-id"), requestID)
 	ctx = context.WithValue(ctx, utils.StringContext("platform-id"), platformID)

@@ -97,15 +97,7 @@ func (l *L5pbserver) Initialize(_ context.Context, option map[string]interface{}
 func (l *L5pbserver) Run(errCh chan error) {
 	log.Infof("start l5pbserver")
 
-	address := fmt.Sprintf("%v:%v", l.listenIP, l.listenPort)
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		log.Errorf("listen error: %v", err)
-		errCh <- err
-		return
-	}
-	l.listener = listener
-
+	var err error
 	// 引入功能模块和插件
 	l.namingServer, err = naming.GetServer()
 	if err != nil {
@@ -114,6 +106,16 @@ func (l *L5pbserver) Run(errCh chan error) {
 		return
 	}
 	l.statis = plugin.GetStatis()
+
+	// 初始化 l5pb server
+	address := fmt.Sprintf("%v:%v", l.listenIP, l.listenPort)
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		log.Errorf("listen error: %v", err)
+		errCh <- err
+		return
+	}
+	l.listener = listener
 
 	for {
 		conn, err := listener.Accept()

@@ -59,7 +59,7 @@ type instanceCache struct {
 	lastMtime       time.Time
 	firstUpdate     bool
 	ids             *sync.Map // id -> instance
-	services        *sync.Map // service id -> [instances]
+	services        *sync.Map // service id -> [instance id -> instance]
 	revisionCh      chan *revisionNotify
 	disableBusiness bool
 	needMeta        bool
