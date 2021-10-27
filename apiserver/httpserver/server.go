@@ -36,6 +36,8 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/naming"
 	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris-server/plugin/statis/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
 
@@ -157,6 +159,7 @@ func (h *HTTPServer) Run(errCh chan error) {
 	}
 
 	ln = &tcpKeepAliveListener{ln.(*net.TCPListener)}
+
 	// 开启最大连接数限制
 	if h.connLimitConfig != nil && h.connLimitConfig.OpenConnLimit {
 		log.Infof("http server use max connection limit per ip: %d, http max limit: %d",
@@ -284,15 +287,31 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 	if h.enablePprof {
 		h.enablePprofAccess(wsContainer)
 	}
+
+	statis := plugin.GetStatis()
+	if _, ok := statis.(*prometheus.PrometheusStatis); ok {
+		h.enablePrometheusAccess(wsContainer)
+	}
+
 	return wsContainer, nil
 }
 
 // 开启pprof接口
 func (h *HTTPServer) enablePprofAccess(wsContainer *restful.Container) {
+	log.Infof("open http access for pprof")
 	wsContainer.Handle("/debug/pprof/", http.HandlerFunc(pprof.Index))
 	wsContainer.Handle("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
 	wsContainer.Handle("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
 	wsContainer.Handle("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
+}
+
+// 开启 Prometheus 接口
+func (h *HTTPServer) enablePrometheusAccess(wsContainer *restful.Container) {
+	log.Infof("open http access for prometheus")
+	wsContainer.Handle("/metrics", promhttp.HandlerFor(
+		plugin.GetStatis().(*prometheus.PrometheusStatis).GetRegistry(),
+		promhttp.HandlerOpts{},
+	))
 }
 
 /**
@@ -384,7 +403,7 @@ func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 		)
 	}
 
-	_ = h.statis.AddAPICall(method, int(code), diff.Nanoseconds())
+	_ = h.statis.AddAPICall(method, "HTTP", int(code), diff.Nanoseconds())
 }
 
 /**

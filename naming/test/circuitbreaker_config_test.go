@@ -19,12 +19,13 @@ package test
 
 import (
 	"fmt"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/naming"
 	"sync"
 	"testing"
 	"time"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/naming"
 )
 
 /**
@@ -575,6 +576,7 @@ func TestUpdateCircuitBreaker(t *testing.T) {
 
 	t.Run("并发更新熔断规则时,可以正常更新", func(t *testing.T) {
 		var wg sync.WaitGroup
+		errs := make(chan error)
 		for i := 1; i <= 500; i++ {
 			wg.Add(1)
 			go func(index int) {
@@ -594,12 +596,21 @@ func TestUpdateCircuitBreaker(t *testing.T) {
 				}
 				resp := server.GetCircuitBreaker(filters)
 				if !respSuccess(resp) {
-					t.Fatal("error")
+					errs <- fmt.Errorf("error : %v", resp)
 				}
 				checkCircuitBreaker(t, cbResp, cbResp, resp.GetConfigWithServices()[0].GetCircuitBreaker())
 			}(i)
 		}
-		wg.Wait()
+		go func() {
+			wg.Wait()
+			close(errs)
+		}()
+
+		for err := range errs {
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
 	})
 }
 

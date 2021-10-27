@@ -30,6 +30,7 @@ type APICall struct {
 	api      string
 	code     int
 	duration int64
+	protocol string
 }
 
 /**

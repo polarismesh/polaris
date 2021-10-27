@@ -356,7 +356,7 @@ func (g *GRPCServer) streamInterceptor(srv interface{}, ss grpc.ServerStream,
 			zap.String("method", stream.Method),
 		)
 
-		g.statis.AddAPICall(stream.Method, stream.Code, 0)
+		g.statis.AddAPICall(stream.Method, "gRPC", stream.Code, 0)
 	}
 
 	return
@@ -420,7 +420,7 @@ func (g *GRPCServer) postprocess(stream *VirtualStream, m interface{}) {
 		)
 	}
 
-	_ = g.statis.AddAPICall(stream.Method, int(response.GetCode().GetValue()), diff.Nanoseconds())
+	_ = g.statis.AddAPICall(stream.Method, "gRPC", int(response.GetCode().GetValue()), diff.Nanoseconds())
 }
 
 // 限流

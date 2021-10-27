@@ -1,7 +1,7 @@
 #!/bin/bash
 
-set -ex  # Exit on error; debugging enabled.
-set -o pipefail  # Fail a pipe if any sub-command fails.
+set -ex         # Exit on error; debugging enabled.
+set -o pipefail # Fail a pipe if any sub-command fails.
 
 # not makes sure the command passed to it does not exit with a return code of 0.
 not() {
@@ -68,8 +68,12 @@ for MOD_FILE in $(find . -name 'go.mod'); do
   #golint ./... 2>&1 | not grep -vE "\.pb\.go"
 
   go mod tidy
-  git status --porcelain 2>&1 | fail_on_output || \
-    (git status; git --no-pager diff; exit 1)
+  git status --porcelain 2>&1 | fail_on_output ||
+    (
+      git status
+      git --no-pager diff
+      exit 1
+    )
   popd
 done
 

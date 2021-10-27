@@ -175,6 +175,6 @@ func (l *L5pbserver) PostProcess(req *cl5Request) {
 			zap.Duration("handling-time", diff),
 		)
 	}
-	_ = l.statis.AddAPICall(cmdStr, int(req.code), diff.Nanoseconds())
+	_ = l.statis.AddAPICall(cmdStr, "HTTP", int(req.code), diff.Nanoseconds())
 	// 告警
 }
