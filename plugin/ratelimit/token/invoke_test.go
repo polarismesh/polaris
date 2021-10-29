@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tokenbucket
+package token
 
 import (
 	"github.com/polarismesh/polaris-server/plugin"

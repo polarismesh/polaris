@@ -15,9 +15,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tokenbucket
+package model
 
-// 限制器
-type limiter interface {
-	allow(key string) bool
-}
+const (
+	// MetaKeyPolarisService service identifier by self registration
+	MetaKeyPolarisService = "polaris_service"
+
+	// MetaKeyBuildRevision build revision for server
+	MetaKeyBuildRevision = "build-revision"
+)

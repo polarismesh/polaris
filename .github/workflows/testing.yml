@@ -41,7 +41,7 @@ jobs:
           pushd ./naming/cache
           go test -v
           popd
-          pushd ./plugin/ratelimit/tokenbucket
+          pushd ./plugin/ratelimit/token
           go test -v
           popd
           pushd ./store/sqldb

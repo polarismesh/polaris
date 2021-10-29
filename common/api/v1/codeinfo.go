@@ -61,6 +61,7 @@ const (
 	HealthCheckNotOpen                     = 400140
 	HeartbeatOnDisabledIns                 = 400141
 	HeartbeatExceedLimit                   = 400142
+	HeartbeatTypeNotFound                  = 400143
 	InvalidMetadata                        = 400150
 	InvalidRateLimitID                     = 400151
 	InvalidRateLimitLabels                 = 400152

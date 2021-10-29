@@ -20,6 +20,7 @@ package httpserver
 import (
 	"context"
 	"fmt"
+	"github.com/polarismesh/polaris-server/healthcheck"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -58,11 +59,12 @@ type HTTPServer struct {
 
 	freeMemMu *sync.Mutex
 
-	server       *http.Server
-	namingServer *naming.Server
-	rateLimit    plugin.Ratelimit
-	statis       plugin.Statis
-	auth         plugin.Auth
+	server            *http.Server
+	namingServer      *naming.Server
+	healthCheckServer *healthcheck.Server
+	rateLimit         plugin.Ratelimit
+	statis            plugin.Statis
+	auth              plugin.Auth
 }
 
 const (
@@ -137,6 +139,12 @@ func (h *HTTPServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
+	h.healthCheckServer, err = healthcheck.GetServer()
+	if err != nil {
+		log.Errorf("%v", err)
+		errCh <- err
+		return
+	}
 	h.statis = plugin.GetStatis()
 
 	// 初始化http server
@@ -159,7 +167,6 @@ func (h *HTTPServer) Run(errCh chan error) {
 	}
 
 	ln = &tcpKeepAliveListener{ln.(*net.TCPListener)}
-
 	// 开启最大连接数限制
 	if h.connLimitConfig != nil && h.connLimitConfig.OpenConnLimit {
 		log.Infof("http server use max connection limit per ip: %d, http max limit: %d",
