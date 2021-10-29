@@ -114,7 +114,7 @@ func (m *MockStore) UpdateNamespace(namespace *model.Namespace) error {
 	return ret0
 }
 
-// GetNow 获取当前时间
+// GetNow
 func (m *MockStore) GetNow() (int64, error) {
 	return time.Now().Unix(), nil
 }
