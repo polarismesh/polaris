@@ -36,6 +36,7 @@ type boltStore struct {
 	*rateLimitStore
 	*platformStore
 	*circuitBreakerStore
+	*toolStore
 
 	handler BoltHandler
 	start   bool

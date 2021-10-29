@@ -184,5 +184,5 @@ func (h *HTTPServer) Heartbeat(req *restful.Request, rsp *restful.Response) {
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.namingServer.Heartbeat(ctx, instance))
+	handler.WriteHeaderAndProto(h.healthCheckServer.Report(ctx, instance))
 }

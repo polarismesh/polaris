@@ -5,9 +5,9 @@
 package mock
 
 import (
+	gomock "github.com/golang/mock/gomock"
 	model "github.com/polarismesh/polaris-server/common/model"
 	store "github.com/polarismesh/polaris-server/store"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 	time "time"
 )
@@ -112,6 +112,11 @@ func (m *MockStore) UpdateNamespace(namespace *model.Namespace) error {
 	ret := m.ctrl.Call(m, "UpdateNamespace", namespace)
 	ret0, _ := ret[0].(error)
 	return ret0
+}
+
+// GetNow
+func (m *MockStore) GetNow() (int64, error) {
+	return time.Now().Unix(), nil
 }
 
 // UpdateNamespace indicates an expected call of UpdateNamespace

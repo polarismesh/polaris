@@ -115,7 +115,7 @@ func newBatchInstanceCtrl(storage store.Store, authority auth.Authority, auth pl
 		return nil, errors.New("config waitTime is invalid")
 	}
 
-	instanceCtrl := &InstanceCtrl{
+	instance := &InstanceCtrl{
 		config:          config,
 		storage:         storage,
 		authority:       authority,
@@ -125,7 +125,7 @@ func newBatchInstanceCtrl(storage store.Store, authority auth.Authority, auth pl
 		queue:           make(chan *InstanceFuture, config.QueueSize),
 		waitDuration:    duration,
 	}
-	return instanceCtrl, nil
+	return instance, nil
 }
 
 // 注册主协程

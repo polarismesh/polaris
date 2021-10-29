@@ -58,6 +58,7 @@ type stableStore struct {
 	*rateLimitStore
 	*circuitBreakerStore
 	*platformStore
+	*toolStore
 
 	// 主数据库，可以进行读写
 	master *BaseDB
@@ -222,6 +223,7 @@ func (s *stableStore) CreateTransaction() (store.Transaction, error) {
 // 初始化子类
 func (s *stableStore) newStore() {
 	s.namespaceStore = &namespaceStore{db: s.master}
+
 	s.businessStore = &businessStore{db: s.master}
 
 	s.serviceStore = &serviceStore{master: s.master, slave: s.slave}
@@ -237,6 +239,8 @@ func (s *stableStore) newStore() {
 	s.circuitBreakerStore = &circuitBreakerStore{master: s.master, slave: s.slave}
 
 	s.platformStore = &platformStore{master: s.master}
+
+	s.toolStore = &toolStore{db: s.master}
 }
 
 // time.Time转为字符串时间

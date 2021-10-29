@@ -18,13 +18,12 @@
 package cache
 
 import (
-	"sync"
-	"time"
-
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
+	"sync"
+	"time"
 )
 
 const (
@@ -126,7 +125,7 @@ func (sc *serviceCache) update() error {
 
 	sc.firstUpdate = false
 	update, del := sc.setServices(services)
-	log.Info("[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
+	log.Debug("[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
 		zap.Time("last", sc.lastMtime), zap.Duration("used", time.Now().Sub(start)))
 	return nil
 }

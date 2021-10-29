@@ -33,26 +33,13 @@ import (
 	"go.uber.org/zap"
 )
 
-/**
- * Handler HTTP请求/回复处理器
- */
+// Handler HTTP请求/回复处理器
 type Handler struct {
 	*restful.Request
 	*restful.Response
 }
 
-/**
- * Parse 解析请求
- */
-func (h *Handler) Parse(message proto.Message) (context.Context, error) {
-	requestID := h.Request.HeaderParameter("Request-Id")
-	if err := jsonpb.Unmarshal(h.Request.Request.Body, message); err != nil {
-		log.Error(err.Error(), zap.String("request-id", requestID))
-		return nil, err
-	}
-	return h.postParseMessage(requestID)
-}
-
+// ParseArray 解析PB数组对象
 func (h *Handler) ParseArray(createMessage func() proto.Message) (context.Context, error) {
 	requestID := h.Request.HeaderParameter("Request-Id")
 
@@ -102,9 +89,17 @@ func (h *Handler) postParseMessage(requestID string) (context.Context, error) {
 	return ctx, nil
 }
 
-/**
- * WriteHeader 仅返回Code
- */
+// Parse 解析请求
+func (h *Handler) Parse(message proto.Message) (context.Context, error) {
+	requestID := h.Request.HeaderParameter("Request-Id")
+	if err := jsonpb.Unmarshal(h.Request.Request.Body, message); err != nil {
+		log.Error(err.Error(), zap.String("request-id", requestID))
+		return nil, err
+	}
+	return h.postParseMessage(requestID)
+}
+
+// WriteHeader 仅返回Code
 func (h *Handler) WriteHeader(polarisCode uint32, httpStatus int) {
 	requestID := h.Request.HeaderParameter(utils.PolarisRequestID)
 	h.Request.SetAttribute(utils.PolarisCode, polarisCode) // api统计的时候，用该code
@@ -118,9 +113,7 @@ func (h *Handler) WriteHeader(polarisCode uint32, httpStatus int) {
 	h.Response.WriteHeader(httpStatus)
 }
 
-/**
- * WriteHeaderAndProto 返回Code和Proto
- */
+// WriteHeaderAndProto 返回Code和Proto
 func (h *Handler) WriteHeaderAndProto(obj api.ResponseMessage) {
 	requestID := h.Request.HeaderParameter(utils.PolarisRequestID)
 	h.Request.SetAttribute(utils.PolarisCode, obj.GetCode().GetValue())

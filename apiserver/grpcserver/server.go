@@ -20,6 +20,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"github.com/polarismesh/polaris-server/healthcheck"
 	"io"
 	"net"
 	"net/http"
@@ -49,32 +50,27 @@ type GRPCServer struct {
 	restart         bool
 	exitCh          chan struct{}
 
-	server       *grpc.Server
-	namingServer *naming.Server
-	statis       plugin.Statis
-	ratelimit    plugin.Ratelimit
+	server            *grpc.Server
+	namingServer      *naming.Server
+	healthCheckServer *healthcheck.Server
+	statis            plugin.Statis
+	ratelimit         plugin.Ratelimit
 
 	openAPI    map[string]apiserver.APIConfig
 	openMethod map[string]bool
 }
 
-/**
- * @brief 获取端口
- */
+// GetPort 获取端口
 func (g *GRPCServer) GetPort() uint32 {
 	return g.listenPort
 }
 
-/**
- * @brief 获取Server的协议
- */
+// GetProtocol 获取Server的协议
 func (g *GRPCServer) GetProtocol() string {
 	return "grpc"
 }
 
-/**
- * Initialize 初始化GRPC API服务器
- */
+// Initialize 初始化GRPC API服务器
 func (g *GRPCServer) Initialize(_ context.Context, option map[string]interface{},
 	api map[string]apiserver.APIConfig) error {
 	g.listenIP = option["listenIP"].(string)
@@ -110,6 +106,12 @@ func (g *GRPCServer) Run(errCh chan error) {
 
 	var err error
 	// 引入功能模块和插件
+	g.healthCheckServer, err = healthcheck.GetServer()
+	if err != nil {
+		log.Errorf("%v", err)
+		errCh <- err
+		return
+	}
 	g.namingServer, err = naming.GetServer()
 	if err != nil {
 		log.Errorf("%v", err)

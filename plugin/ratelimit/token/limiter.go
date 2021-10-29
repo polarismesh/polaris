@@ -15,34 +15,9 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tokenbucket
+package token
 
-import (
-	"github.com/polarismesh/polaris-server/plugin"
-)
-
-// 实现Plugin接口
-type tokenBucket struct {
-	config   *Config
-	limiters map[plugin.RatelimitType]limiter
-}
-
-// 实现Plugin接口，Name方法
-func (tb *tokenBucket) Name() string {
-	return PluginName
-}
-
-// 实现Plugin接口，Initialize方法
-func (tb *tokenBucket) Initialize(c *plugin.ConfigEntry) error {
-	return tb.initialize(c)
-}
-
-// 实现Plugin接口，Destroy方法
-func (tb *tokenBucket) Destroy() error {
-	return nil
-}
-
-// 限流接口实现
-func (tb *tokenBucket) Allow(typ plugin.RatelimitType, key string) bool {
-	return tb.allow(typ, key)
+// 限制器
+type limiter interface {
+	allow(key string) bool
 }

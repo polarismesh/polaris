@@ -20,12 +20,12 @@ package httpserver
 import (
 	"context"
 	"fmt"
+	proto "github.com/golang/protobuf/proto"
+	"github.com/polarismesh/polaris-server/common/log"
 	"net/http"
 
 	"github.com/emicklei/go-restful"
-	"github.com/golang/protobuf/proto"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
@@ -34,9 +34,7 @@ const (
 	defaultAccess     string = "default"
 )
 
-/**
- * GetConsoleAccessServer 注册管理端接口
- */
+// GetConsoleAccessServer 注册管理端接口
 func (h *HTTPServer) GetConsoleAccessServer(include []string) (*restful.WebService, error) {
 	consoleAccess := []string{defaultAccess}
 
@@ -72,9 +70,7 @@ func (h *HTTPServer) GetConsoleAccessServer(include []string) (*restful.WebServi
 	return ws, nil
 }
 
-/**
- * addDefaultReadAccess 增加默认读接口
- */
+// addDefaultReadAccess 增加默认读接口
 func (h *HTTPServer) addDefaultReadAccess(ws *restful.WebService) {
 	// 管理端接口：只包含读接口
 	ws.Route(ws.GET("/namespaces").To(h.GetNamespaces))
@@ -107,9 +103,7 @@ func (h *HTTPServer) addDefaultReadAccess(ws *restful.WebService) {
 	ws.Route(ws.GET("/platform/token").To(h.GetPlatformToken))
 }
 
-/**
- * addDefaultAccess 增加默认接口
- */
+// addDefaultAccess 增加默认接口
 func (h *HTTPServer) addDefaultAccess(ws *restful.WebService) {
 	// 管理端接口：增删改查请求全部操作存储层
 	ws.Route(ws.POST("/namespaces").To(h.CreateNamespaces))
