@@ -116,6 +116,7 @@ func (m *boltStore) initStoreData() error {
 			return err
 		}
 	}
+	return nil
 }
 
 func (m *boltStore) newStore() error {
