@@ -38,7 +38,6 @@ import (
 
 var (
 	SelfServiceInstance = make([]*api.Instance, 0)
-	LocalHost           = "127.0.0.1"
 	ConfigFilePath      = ""
 )
 
@@ -86,7 +85,6 @@ func Start(configFilePath string) {
 
 	// 设置插件配置
 	plugin.SetPluginConfig(&cfg.Plugin)
-	plugin.SetLocalHost(LocalHost)
 
 	// 初始化存储层
 	store.SetStoreConfig(&cfg.Store)
@@ -106,7 +104,7 @@ func Start(configFilePath string) {
 		return
 	}
 
-	cfg.Naming.HealthCheck.LocalHost = LocalHost // 补充healthCheck的配置
+	cfg.Naming.HealthCheck.LocalHost = utils.LocalHost // 补充healthCheck的配置
 	naming.SetHealthCheckConfig(&cfg.Naming.HealthCheck)
 	err = naming.Initialize(ctx, &cfg.Naming, &cfg.Cache)
 	if err != nil {
@@ -232,7 +230,7 @@ func StartBootstrapOrder(s store.Store, c *config.Config) (store.Transaction, er
 			return nil, err
 		}
 		// 这里可能会出现锁超时，超时则重试
-		if err := tx.LockBootstrap(key, LocalHost); err != nil {
+		if err := tx.LockBootstrap(key, utils.LocalHost); err != nil {
 			log.Errorf("lock bootstrap err: %s", err.Error())
 			_ = tx.Commit()
 			continue
@@ -274,7 +272,7 @@ func acquireLocalhost(ctx context.Context, polarisService *config.PolarisService
 		return nil, err
 	}
 	log.Infof("[Bootstrap] get local host: %s", localHost)
-	LocalHost = localHost
+	utils.LocalHost = localHost
 
 	return utils.WithLocalhost(ctx, localHost), nil
 }
@@ -309,7 +307,7 @@ func polarisServiceRegister(polarisService *config.PolarisService, apiServers []
 			if !exist {
 				return fmt.Errorf("not exist the server(%s)", name)
 			}
-			host := LocalHost
+			host := utils.LocalHost
 			port := slot.GetPort()
 			protocol := slot.GetProtocol()
 			if err := selfRegister(host, port, protocol, polarisService.Isolated, service); err != nil {

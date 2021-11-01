@@ -152,14 +152,14 @@ plugin:
       interval: 60 # 统计间隔，单位为秒
       outputPath: ./discover-statis
   statis:
-    name: local
-    option:
-      interval: 60 # 统计间隔，单位为秒
-      outputPath: ./statis
-    # api 调用指标数据计算上报到 prometheus
-    # name: prometheus
+    # name: local
     # option:
-    #   interval: 10 # 统计间隔，单位为秒
+    #   interval: 60 # 统计间隔，单位为秒
+    #   outputPath: ./statis
+    # api 调用指标数据计算上报到 prometheus
+    name: prometheus
+    option:
+      interval: 10 # 统计间隔，单位为秒
   ratelimit:
     name: token-bucket
     option:
