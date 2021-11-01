@@ -118,3 +118,9 @@ func IsWildName(name string) bool {
 	length := len(name)
 	return length >= 1 && name[length-1:length] == "*"
 }
+
+// NewUUID 返回一个随机的UUID
+func NewUUID() string {
+	uuidBytes := uuid.New()
+	return hex.EncodeToString(uuidBytes[:])
+}

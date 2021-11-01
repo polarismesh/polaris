@@ -20,7 +20,7 @@ package sqldb
 import (
 	"database/sql"
 	"errors"
-	"github.com/polarismesh/polaris-server/naming"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 	"strings"
 	"time"
@@ -1244,7 +1244,7 @@ func addOwnerServiceMap(tx *BaseTx, service, namespace, owner string) error {
 	if len(owners) >= 1 {
 		for i := 0; i < len(owners); i++ {
 			addSql += "(?,?,?,?),"
-			args = append(args, naming.NewUUID(), owners[i], service, namespace)
+			args = append(args, utils.NewUUID(), owners[i], service, namespace)
 		}
 		if len(args) != 0 {
 			addSql = strings.TrimSuffix(addSql, ",")
