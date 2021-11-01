@@ -18,13 +18,12 @@
 package cache
 
 import (
-	"sync"
-	"time"
-
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
+	"sync"
+	"time"
 )
 
 const (
@@ -35,55 +34,50 @@ const (
 // InstanceIterProc instance iter proc func
 type InstanceIterProc func(key string, value *model.Instance) (bool, error)
 
-/**
- * InstanceCache 实例相关的缓存接口
- */
+// InstanceCache 实例相关的缓存接口
 type InstanceCache interface {
+	// Cache 公共缓存接口
 	Cache
+	// GetInstance 根据实例ID获取实例数据
 	GetInstance(instanceID string) *model.Instance
-	// 根据服务名获取实例，先查找服务名对应的服务ID，再找实例列表
+	// GetInstancesByServiceID 根据服务名获取实例，先查找服务名对应的服务ID，再找实例列表
 	GetInstancesByServiceID(serviceID string) []*model.Instance
-	// 迭代
+	// IteratorInstances 迭代
 	IteratorInstances(iterProc InstanceIterProc) error
-	// 根据服务ID进行迭代
+	// IteratorInstancesWithService 根据服务ID进行迭代
 	IteratorInstancesWithService(serviceID string, iterProc InstanceIterProc) error
-	// 获取instance的个数
+	// GetInstancesCount 获取instance的个数
 	GetInstancesCount() int
 }
 
-/**
- * @brief 实例缓存的类
- */
+// instanceCache 实例缓存的类
 type instanceCache struct {
 	storage         store.Store
 	lastMtime       time.Time
 	firstUpdate     bool
 	ids             *sync.Map // id -> instance
-	services        *sync.Map // service id -> [instance id -> instance]
+	services        *sync.Map // service id -> [instances]
 	revisionCh      chan *revisionNotify
 	disableBusiness bool
 	needMeta        bool
 	systemServiceID []string
+	manager         *listenerManager
 }
 
-/**
- * @brief 自注册到缓存列表
- */
 func init() {
 	RegisterCache(InstanceName, CacheInstance)
 }
 
-// 新建一个instanceCache
-func newInstanceCache(storage store.Store, ch chan *revisionNotify) *instanceCache {
+// newInstanceCache 新建一个instanceCache
+func newInstanceCache(storage store.Store, ch chan *revisionNotify, listeners []Listener) *instanceCache {
 	return &instanceCache{
 		storage:    storage,
 		revisionCh: ch,
+		manager:    newListenerManager(listeners),
 	}
 }
 
-/**
- * @brief 初始化函数
- */
+// initialize 初始化函数
 func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 	ic.ids = new(sync.Map)
 	ic.services = new(sync.Map)
@@ -111,9 +105,7 @@ func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 	return nil
 }
 
-/**
- * @brief 更新缓存函数
- */
+// update 更新缓存函数
 func (ic *instanceCache) update() error {
 	// 拉取diff前的所有数据
 	start := time.Now()
@@ -126,14 +118,12 @@ func (ic *instanceCache) update() error {
 
 	ic.firstUpdate = false
 	update, del := ic.setInstances(instances)
-	log.Info("[Cache][Instance] get more instances", zap.Int("update", update), zap.Int("delete", del),
+	log.Debug("[Cache][Instance] get more instances", zap.Int("update", update), zap.Int("delete", del),
 		zap.Time("last", ic.lastMtime), zap.Duration("used", time.Now().Sub(start)))
 	return nil
 }
 
-/**
- * @brief 清理内部缓存数据
- */
+// clear 清理内部缓存数据
 func (ic *instanceCache) clear() error {
 	ic.ids = new(sync.Map)
 	ic.services = new(sync.Map)
@@ -141,16 +131,12 @@ func (ic *instanceCache) clear() error {
 	return nil
 }
 
-/**
- * @brief 获取资源名称
- */
+// name 获取资源名称
 func (ic *instanceCache) name() string {
 	return InstanceName
 }
 
-/**
- * @brief 获取系统服务ID
- */
+// getSystemServices 获取系统服务ID
 func (ic *instanceCache) getSystemServices() ([]*model.Service, error) {
 	services, err := ic.storage.GetSystemServices()
 	if err != nil {
@@ -187,6 +173,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 		if !item.Valid {
 			del++
 			ic.ids.Delete(item.ID())
+			ic.manager.onEvent(item.Proto, EventDeleted)
 			value, ok := ic.services.Load(item.ServiceID)
 			if !ok {
 				continue
@@ -209,6 +196,9 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 		if !ok {
 			value = new(sync.Map)
 			ic.services.Store(item.ServiceID, value)
+			ic.manager.onEvent(item.Proto, EventCreated)
+		} else {
+			ic.manager.onEvent(item.Proto, EventUpdated)
 		}
 		value.(*sync.Map).Store(item.ID(), item)
 	}
@@ -229,9 +219,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 	return update, del
 }
 
-/**
- * GetInstance 根据实例ID获取实例数据
- */
+// GetInstance 根据实例ID获取实例数据
 func (ic *instanceCache) GetInstance(instanceID string) *model.Instance {
 	if instanceID == "" {
 		return nil
@@ -245,9 +233,7 @@ func (ic *instanceCache) GetInstance(instanceID string) *model.Instance {
 	return value.(*model.Instance)
 }
 
-/**
- * GetInstancesByServiceID 根据ServiceID获取实例数据
- */
+// GetInstancesByServiceID 根据ServiceID获取实例数据
 func (ic *instanceCache) GetInstancesByServiceID(serviceID string) []*model.Instance {
 	if serviceID == "" {
 		return nil
@@ -267,9 +253,7 @@ func (ic *instanceCache) GetInstancesByServiceID(serviceID string) []*model.Inst
 	return out
 }
 
-/**
- * IteratorInstances 迭代所有的instance的函数
- */
+// IteratorInstances 迭代所有的instance的函数
 func (ic *instanceCache) IteratorInstances(iterProc InstanceIterProc) error {
 	return iteratorInstancesProc(ic.ids, iterProc)
 }

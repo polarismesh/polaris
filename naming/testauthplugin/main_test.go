@@ -36,7 +36,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/polarismesh/polaris-server/plugin/auth/platform"
 	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
-	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/tokenbucket"
+	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/token"
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
 )
 
@@ -79,8 +79,7 @@ func initialize() error {
 		// 初始化naming server
 		ctx := context.Background()
 
-		naming.SetHealthCheckConfig(&cfg.Naming.HealthCheck)
-		if err := naming.Initialize(ctx, &cfg.Naming, &cfg.Cache); err != nil {
+		if err := naming.Initialize(ctx, &cfg.Naming, &cfg.Cache, nil); err != nil {
 			panic(err)
 		}
 

@@ -14,13 +14,13 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/mitchellh/mapstructure v1.1.2
+	github.com/modern-go/reflect2 v1.0.1
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
 	github.com/smartystreets/goconvey v0.0.0-20190710185942-9d28bd7c0945
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/testify v1.5.1
 	go.uber.org/atomic v1.5.1
 	go.uber.org/multierr v1.4.0 // indirect
 	go.uber.org/zap v1.14.0

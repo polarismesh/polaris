@@ -25,6 +25,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/healthcheck"
+
 	"github.com/polarismesh/polaris-server/apiserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
@@ -103,15 +106,11 @@ func Start(configFilePath string) {
 		fmt.Printf("[ERROR] %v\n", err)
 		return
 	}
-
-	cfg.Naming.HealthCheck.LocalHost = utils.LocalHost // 补充healthCheck的配置
-	naming.SetHealthCheckConfig(&cfg.Naming.HealthCheck)
-	err = naming.Initialize(ctx, &cfg.Naming, &cfg.Cache)
+	err = StartComponents(ctx, cfg)
 	if err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
 		return
 	}
-
 	errCh := make(chan error, len(cfg.APIServers))
 	servers, err := StartServers(ctx, cfg, errCh)
 	if err != nil {
@@ -128,7 +127,32 @@ func Start(configFilePath string) {
 	RunMainLoop(servers, errCh)
 }
 
-// 启动server
+// StartComponents start healthcheck and naming components
+func StartComponents(ctx context.Context, cfg *config.Config) error {
+	var err error
+	if len(cfg.HealthChecks.LocalHost) == 0 {
+		cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
+	}
+	err = healthcheck.Initialize(ctx, &cfg.HealthChecks, cfg.Cache.Open)
+	if err != nil {
+		return err
+	}
+	healthCheckServer, err := healthcheck.GetServer()
+	if err != nil {
+		return err
+	}
+	cacheProvider, err := healthCheckServer.CacheProvider()
+	if err != nil {
+		return err
+	}
+	err = naming.Initialize(ctx, &cfg.Naming, &cfg.Cache, cacheProvider)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// StartServers 启动server
 func StartServers(ctx context.Context, cfg *config.Config, errCh chan error) (
 	[]apiserver.Apiserver, error) {
 	// 启动API服务器
@@ -360,7 +384,8 @@ func selfRegister(host string, port uint32, protocol string, isolated bool, pola
 		Version:      utils.NewStringValue(version.Get()),
 		Isolate:      utils.NewBoolValue(isolated), // 自注册，默认是隔离的
 		Metadata: map[string]string{
-			"build-revision": version.GetRevision(),
+			model.MetaKeyBuildRevision:  version.GetRevision(),
+			model.MetaKeyPolarisService: name,
 		},
 	}
 

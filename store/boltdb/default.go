@@ -19,7 +19,10 @@ package boltdb
 
 import (
 	"errors"
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
+	"time"
 )
 
 const (
@@ -36,6 +39,7 @@ type boltStore struct {
 	*rateLimitStore
 	*platformStore
 	*circuitBreakerStore
+	*toolStore
 
 	handler BoltHandler
 	start   bool
@@ -62,7 +66,56 @@ func (m *boltStore) Initialize(c *store.Config) error {
 		_ = handler.Close()
 		return err
 	}
+	if err = m.initStoreData(); nil != err {
+		_ = handler.Close()
+		return err
+	}
 	m.start = true
+	return nil
+}
+
+const (
+	namespacePolaris = "Polaris"
+	ownerToInit      = "polaris"
+)
+
+var (
+	namespacesToInit = []string{"default", namespacePolaris}
+	servicesToInit   = []string{"polaris.checker", "polaris.monitor"}
+)
+
+func (m *boltStore) initStoreData() error {
+	for _, namespace := range namespacesToInit {
+		curTime := time.Now()
+		err := m.AddNamespace(&model.Namespace{
+			Name:       namespace,
+			Token:      utils.NewUUID(),
+			Owner:      ownerToInit,
+			Valid:      true,
+			CreateTime: curTime,
+			ModifyTime: curTime,
+		})
+		if nil != err {
+			return err
+		}
+	}
+	for _, svc := range servicesToInit {
+		curTime := time.Now()
+		err := m.AddService(&model.Service{
+			ID:         utils.NewUUID(),
+			Name:       svc,
+			Namespace:  namespacePolaris,
+			Token:      utils.NewUUID(),
+			Owner:      ownerToInit,
+			Revision:   utils.NewUUID(),
+			Valid:      true,
+			CreateTime: curTime,
+			ModifyTime: curTime,
+		})
+		if nil != err {
+			return err
+		}
+	}
 	return nil
 }
 

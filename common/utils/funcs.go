@@ -82,8 +82,6 @@ func CreateInstanceModel(serviceID string, req *api.Instance) *model.Instance {
 			}
 			protoIns.HealthCheck.Heartbeat.Ttl.Value = 5
 		}
-		// 开启健康检查，且没有代入健康状态，则健康状态默认都是false
-		protoIns.Healthy.Value = false
 	}
 
 	instance.Proto = protoIns
@@ -119,4 +117,10 @@ func CollectFilterFields(filters map[string]string) []string {
 func IsWildName(name string) bool {
 	length := len(name)
 	return length >= 1 && name[length-1:length] == "*"
+}
+
+// NewUUID 返回一个随机的UUID
+func NewUUID() string {
+	uuidBytes := uuid.New()
+	return hex.EncodeToString(uuidBytes[:])
 }

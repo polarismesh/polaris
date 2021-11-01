@@ -138,7 +138,7 @@ func (g *GRPCServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
  * @brief 上报心跳
  */
 func (g *GRPCServer) Heartbeat(ctx context.Context, in *api.Instance) (*api.Response, error) {
-	out := g.namingServer.Heartbeat(convertContext(ctx), in)
+	out := g.healthCheckServer.Report(convertContext(ctx), in)
 	return out, nil
 }
 
