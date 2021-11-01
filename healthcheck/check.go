@@ -26,7 +26,6 @@ import (
 	"github.com/polarismesh/polaris-server/common/srand"
 	"github.com/polarismesh/polaris-server/common/timewheel"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/naming"
 	"github.com/polarismesh/polaris-server/plugin"
 	"sync"
 	"sync/atomic"
@@ -276,7 +275,7 @@ func setInsDbStatus(instance *api.Instance, status int) error {
 	host := instance.GetHost().GetValue()
 	port := instance.GetPort().GetValue()
 	log.Infof("[Health Check][Check]addr:%s:%d id:%s set db status %d", host, port, id, status)
-	err := server.storage.SetInstanceHealthStatus(id, status, naming.NewUUID())
+	err := server.storage.SetInstanceHealthStatus(id, status, utils.NewUUID())
 	if err != nil {
 		log.Errorf("[Health Check][Check]id: %s set db status err:%s", id, err)
 		return err

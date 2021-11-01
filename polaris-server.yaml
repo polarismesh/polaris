@@ -14,21 +14,12 @@ bootstrap:
   # 注册为北极星服务
   polaris_service:
 #    probe_address: ##DB_ADDR##
-    enable_register: false
+    enable_register: true
     isolated: false
     services:
-      - name: polaris.discover
-        namespace: Polaris
+      - name: polaris.checker
         protocols:
           - grpcserver
-          - httpserver
-          - xdsserverv3
-#          - l5pbserver
-      - name: polaris.healthcheck
-        namespace: Polaris
-        protocols:
-          - grpcserver
-          - httpserver
 # apiserver配置
 apiservers:
   - name: httpserver # 协议名，全局唯一
