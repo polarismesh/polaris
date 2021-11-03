@@ -13,7 +13,7 @@ bootstrap:
     key: sz # 全局锁
   # 注册为北极星服务
   polaris_service:
-#    probe_address: ##DB_ADDR##
+    #    probe_address: ##DB_ADDR##
     enable_register: true
     isolated: false
     services:
@@ -92,7 +92,7 @@ healthcheck:
   service: polaris.checker
   slotNum: 30
   checkers:
-  - name: heartbeatMemory
+    - name: heartbeatMemory
 #  - name: heartbeatRedis
 #    option:
 #      kvAddr: ##REDIS_ADDR##
@@ -121,7 +121,7 @@ cache:
 #    - name: l5 # 加载l5数据
 # 存储配置
 store:
-# 单机文件存储插件
+  # 单机文件存储插件
   name: boltdbStore
   option:
     path: ./polaris.bolt

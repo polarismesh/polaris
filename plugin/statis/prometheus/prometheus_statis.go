@@ -26,6 +26,7 @@ import (
 	"time"
 
 	v1 "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -179,7 +180,7 @@ func (statis *PrometheusStatis) collectMetricData(statInfos ...*MetricData) {
 		}
 
 		// Set a public label information: Polaris node information
-		statInfo.Labels[LabelForPolarisServerInstance] = plugin.LocalHost
+		statInfo.Labels[LabelForPolarisServerInstance] = utils.LocalHost
 		metricVec := statis.metricVecCaches[statInfo.Name]
 
 		if metricVec == nil {
