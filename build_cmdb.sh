@@ -16,6 +16,8 @@ rm -f polaris-cmdb-syncer
 
 build_date=$(date "+%Y%m%d.%H%M%S")
 package="github.com/polarismesh/polaris-server/common/version"
+
+
 go build -mod=vendor -o polaris-cmdb-syncer -ldflags="-X ${package}.Version=${version} -X ${package}.BuildDate=${build_date}"
 
 # 打包
