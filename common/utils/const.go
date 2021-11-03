@@ -25,3 +25,7 @@ const (
 	// PolarisRequestID request_id
 	PolarisRequestID = "Request-Id"
 )
+
+var (
+	LocalHost string = "127.0.0.1"
+)

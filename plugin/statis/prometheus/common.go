@@ -129,7 +129,7 @@ var (
 		},
 		{
 			Name:       MetricForClientRqTimeoutP99,
-			Help:       "total latency of client requests",
+			Help:       "P99 latency of client requests",
 			MetricType: TypeForGaugeVec,
 			LabelNames: []string{
 				LabelForPolarisServerInstance,
