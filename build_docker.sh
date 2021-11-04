@@ -10,34 +10,11 @@ docker_tag=$2
 
 echo "docker repository : ${docker_repository}, tag : ${docker_tag}"
 
-set -e
+bash build.sh
 
-workdir=$(dirname $(realpath $0))
-version=$(cat version 2>/dev/null)
-bin_name="polaris-server"
-if [ "${GOOS}" == "" ]; then
-    GOOS=$(go env GOOS)
-fi
-if [ "${GOARCH}" == "" ]; then
-    GOARCH=$(go env GOARCH)
-fi
-
-if [ "${GOOS}" == "windows" ]; then
-    echo "need to run on linux os"
+if [ $? != 0 ]; then
+    echo "build polaris-server failed"
     exit 1
 fi
-echo "GOOS is ${GOOS}, binary name is ${bin_name}"
 
-cd $workdir
-
-# 编译
-rm -f ${bin_name}
-
-# 禁止 CGO_ENABLED 参数打开
-export CGO_ENABLED=0
-
-build_date=$(date "+%Y%m%d.%H%M%S")
-package="github.com/polarismesh/polaris-server/common/version"
-go build -o ${bin_name} -ldflags="-X ${package}.Version=${version} -X ${package}.BuildDate=${build_date}"
-
-docker build ${docker_repository}:${docker_tag} ./
+docker build --network=host -t ${docker_repository}:${docker_tag} ./
