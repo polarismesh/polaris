@@ -14,6 +14,7 @@ bash build.sh
 
 if [ $? != 0 ]; then
     echo "build polaris-server failed"
+    exit 1
 fi
 
-docker build ${docker_repository}:${docker_tag} ./
+docker build --network=host -t ${docker_repository}:${docker_tag} ./
