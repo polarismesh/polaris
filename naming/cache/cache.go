@@ -104,8 +104,8 @@ func NewNamingCache(storage store.Store, listeners []Listener) (*NamingCache, er
 		revisions:     new(sync.Map),
 	}
 
-	sc := newServiceCache(storage, nc.comRevisionCh)
 	ic := newInstanceCache(storage, nc.comRevisionCh, listeners)
+	sc := newServiceCache(storage, nc.comRevisionCh, ic)
 
 	nc.caches[CacheService] = sc
 	nc.caches[CacheInstance] = ic

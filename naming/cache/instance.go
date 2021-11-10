@@ -22,6 +22,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 	"sync"
 	"time"
 )
@@ -33,6 +34,14 @@ const (
 
 // InstanceIterProc instance iter proc func
 type InstanceIterProc func(key string, value *model.Instance) (bool, error)
+
+// InstancesDetail 服务实例列表及详情
+type InstanceCount struct {
+	// HealthyInstanceCount 健康实例数
+	HealthyInstanceCount uint32
+	// TotalInstanceCount 总实例数
+	TotalInstanceCount uint32
+}
 
 // InstanceCache 实例相关的缓存接口
 type InstanceCache interface {
@@ -48,6 +57,8 @@ type InstanceCache interface {
 	IteratorInstancesWithService(serviceID string, iterProc InstanceIterProc) error
 	// GetInstancesCount 获取instance的个数
 	GetInstancesCount() int
+	// GetInstancesCountByServiceID 根据服务ID获取实例数
+	GetInstancesCountByServiceID(serviceID string) InstanceCount
 }
 
 // instanceCache 实例缓存的类
@@ -57,11 +68,13 @@ type instanceCache struct {
 	firstUpdate     bool
 	ids             *sync.Map // id -> instance
 	services        *sync.Map // service id -> [instances]
+	instanceCounts  *sync.Map // service id -> [instanceCount]
 	revisionCh      chan *revisionNotify
 	disableBusiness bool
 	needMeta        bool
 	systemServiceID []string
 	manager         *listenerManager
+	singleFlight    *singleflight.Group
 }
 
 func init() {
@@ -79,8 +92,10 @@ func newInstanceCache(storage store.Store, ch chan *revisionNotify, listeners []
 
 // initialize 初始化函数
 func (ic *instanceCache) initialize(opt map[string]interface{}) error {
+	ic.singleFlight = new(singleflight.Group)
 	ic.ids = new(sync.Map)
 	ic.services = new(sync.Map)
+	ic.instanceCounts = new(sync.Map)
 	ic.lastMtime = time.Unix(0, 0)
 	ic.firstUpdate = true
 	if opt == nil {
@@ -107,6 +122,14 @@ func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 
 // update 更新缓存函数
 func (ic *instanceCache) update() error {
+	// 多个线程竞争，只有一个线程进行更新
+	_, err, _ := ic.singleFlight.Do(InstanceName, func() (interface{}, error) {
+		return nil, ic.realUpdate()
+	})
+	return err
+}
+
+func (ic *instanceCache) realUpdate() error {
 	// 拉取diff前的所有数据
 	start := time.Now()
 	instances, err := ic.storage.GetMoreInstances(ic.lastMtime.Add(DefaultTimeDiff),
@@ -127,6 +150,7 @@ func (ic *instanceCache) update() error {
 func (ic *instanceCache) clear() error {
 	ic.ids = new(sync.Map)
 	ic.services = new(sync.Map)
+	ic.instanceCounts = new(sync.Map)
 	ic.lastMtime = time.Unix(0, 0)
 	return nil
 }
@@ -207,16 +231,43 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 		ic.lastMtime = time.Unix(lastMtime, 0)
 	}
 
-	progress = 0
+	ic.postProcessUpdatedServices(affect)
+	return update, del
+}
+
+func (ic *instanceCache) postProcessUpdatedServices(affect map[string]bool) {
+	progress := 0
 	for serviceID := range affect {
 		ic.revisionCh <- newRevisionNotify(serviceID, true)
 		progress++
 		if progress%10000 == 0 {
 			log.Infof("[Cache][Instance] revision notify progress(%d / %d)", progress, len(affect))
 		}
+		//构建服务数量统计
+		value, ok := ic.services.Load(serviceID)
+		if !ok {
+			ic.instanceCounts.Delete(serviceID)
+			continue
+		}
+		count := &InstanceCount{}
+		value.(*sync.Map).Range(func(key, item interface{}) bool {
+			count.TotalInstanceCount++
+			instance := item.(*model.Instance)
+			if isInstanceHealthy(instance) {
+				count.HealthyInstanceCount++
+			}
+			return true
+		})
+		if count.TotalInstanceCount == 0 {
+			ic.instanceCounts.Delete(serviceID)
+			continue
+		}
+		ic.instanceCounts.Store(serviceID, count)
 	}
+}
 
-	return update, del
+func isInstanceHealthy(instance *model.Instance) bool {
+	return instance.Proto.GetHealthy().GetValue() && !instance.Proto.GetIsolate().GetValue()
 }
 
 // GetInstance 根据实例ID获取实例数据
@@ -251,6 +302,19 @@ func (ic *instanceCache) GetInstancesByServiceID(serviceID string) []*model.Inst
 	})
 
 	return out
+}
+
+// GetInstancesCountByServiceID 根据服务ID获取实例数
+func (ic *instanceCache) GetInstancesCountByServiceID(serviceID string) InstanceCount {
+	if serviceID == "" {
+		return InstanceCount{}
+	}
+
+	value, ok := ic.instanceCounts.Load(serviceID)
+	if !ok {
+		return InstanceCount{}
+	}
+	return *(value.(*InstanceCount))
 }
 
 // IteratorInstances 迭代所有的instance的函数

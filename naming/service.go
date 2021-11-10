@@ -20,6 +20,9 @@ package naming
 import (
 	"context"
 	"fmt"
+	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/polarismesh/polaris-server/naming/cache"
+	"github.com/polarismesh/polaris-server/store"
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -301,7 +304,7 @@ func (s *Server) UpdateServiceToken(ctx context.Context, req *api.Service) *api.
  * GetServices 查询服务
  *        注意：不包括别名
  */
-func (s *Server) GetServices(query map[string]string) *api.BatchQueryResponse {
+func (s *Server) GetServices(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	serviceFilters := make(map[string]string)
 	instanceFilters := make(map[string]string)
 	var metaKeys, metaValues string
@@ -348,8 +351,8 @@ func (s *Server) GetServices(query map[string]string) *api.BatchQueryResponse {
 		return api.NewBatchQueryResponse(api.InvalidParameter)
 	}
 
-	total, services, err := s.storage.GetServices(serviceFilters, serviceMetas, instanceArgs,
-		offset, limit)
+	serviceArgs := parseServiceArgs(serviceFilters, serviceMetas, ctx)
+	total, services, err := s.caches.Service().GetServicesByFilter(serviceArgs, instanceArgs, offset, limit)
 	if err != nil {
 		log.Errorf("[Server][Service][Query] req(%+v) store err: %s", query, err.Error())
 		return api.NewBatchQueryResponse(api.StoreLayerException)
@@ -358,8 +361,40 @@ func (s *Server) GetServices(query map[string]string) *api.BatchQueryResponse {
 	resp := api.NewBatchQueryResponse(api.ExecuteSuccess)
 	resp.Amount = utils.NewUInt32Value(total)
 	resp.Size = utils.NewUInt32Value(uint32(len(services)))
-	resp.Services = services2Api(services, service2Api)
+	resp.Services = enhancedServices2Api(services, service2Api)
 	return resp
+}
+
+// 解析服务的查询条件
+func parseServiceArgs(filter map[string]string, metaFilter map[string]string, ctx context.Context) *cache.ServiceArgs {
+	res := &cache.ServiceArgs{
+		Filter:    filter,
+		Metadata:  metaFilter,
+		Namespace: filter["namespace"],
+	}
+	var ok bool
+	if res.Name, ok = filter["name"]; ok && store.IsWildName(res.Name) {
+		log.Infof("[Server][Service][Query] fuzzy search with name %s", res.Name)
+		res.FuzzyName = true
+	}
+	if business, ok := filter["business"]; ok {
+		log.Infof("[Server][Service][Query] fuzzy search with business %s, operator %s",
+			business, ParseOperator(ctx))
+		res.FuzzyBusiness = true
+	}
+	// 如果元数据条件是空的话，判断是否是空条件匹配
+	if len(metaFilter) == 0 {
+		// 如果没有匹配条件，那么就是空条件匹配
+		if len(filter) == 0 {
+			res.EmptyCondition = true
+		}
+		// 只有一个命名空间条件，也是在这个命名空间下面的空条件匹配
+		if len(filter) == 1 && res.Namespace != "" {
+			res.EmptyCondition = true
+		}
+	}
+	log.Infof("[Server][Service][Query] service query args: %+v", res)
+	return res
 }
 
 /**
@@ -746,6 +781,19 @@ func services2Api(services []*model.Service, handler Service2Api) []*api.Service
 	out := make([]*api.Service, 0, len(services))
 	for _, entry := range services {
 		out = append(out, handler(entry))
+	}
+
+	return out
+}
+
+// service数组转为[]*api.Service
+func enhancedServices2Api(services []*model.EnhancedService, handler Service2Api) []*api.Service {
+	out := make([]*api.Service, 0, len(services))
+	for _, entry := range services {
+		outSvc := handler(entry.Service)
+		outSvc.HealthyInstanceCount = &wrappers.UInt32Value{Value: entry.HealthyInstanceCount}
+		outSvc.TotalInstanceCount = &wrappers.UInt32Value{Value: entry.TotalInstanceCount}
+		out = append(out, outSvc)
 	}
 
 	return out

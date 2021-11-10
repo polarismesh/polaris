@@ -172,6 +172,7 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *api.Service) *a
 	resp := api.NewDiscoverInstanceResponse(api.ExecuteSuccess, service2Api(service))
 	// 填充新的revision TODO
 	resp.Service.Revision.Value = revision
+	resp.Service.Namespace = req.GetNamespace()
 	resp.Service.Name = req.GetName() // 别名场景，response需要保持和request的服务名一致
 	// 填充instance数据
 	resp.Instances = make([]*api.Instance, 0) // TODO

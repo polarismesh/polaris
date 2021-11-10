@@ -37,7 +37,7 @@ func TestNamespace(t *testing.T) {
 	// 创建命名空间
 	ret, err := client.CreateNamespaces(namespaces)
 	if err != nil {
-		t.Fatalf("create namespaces fail")
+		t.Fatalf("create namespaces fail: %s", err.Error())
 	}
 	for index, item := range ret.GetResponses() {
 		namespaces[index].Token = item.GetNamespace().GetToken()
@@ -47,7 +47,7 @@ func TestNamespace(t *testing.T) {
 	// 查询命名空间
 	err = client.GetNamespaces(namespaces)
 	if err != nil {
-		t.Fatalf("get namespaces fail")
+		t.Fatalf("get namespaces fail: %s", err.Error())
 	}
 	t.Log("get namespaces success")
 
@@ -56,21 +56,21 @@ func TestNamespace(t *testing.T) {
 
 	err = client.UpdateNamesapces(namespaces)
 	if err != nil {
-		t.Fatalf("update namespaces fail")
+		t.Fatalf("update namespaces fail: %s", err.Error())
 	}
 	t.Log("update namespaces success")
 
 	// 查询命名空间
 	err = client.GetNamespaces(namespaces)
 	if err != nil {
-		t.Fatalf("get namespaces fail")
+		t.Fatalf("get namespaces fail: %s", err.Error())
 	}
 	t.Log("get namespaces success")
 
 	// 删除命名空间
 	err = client.DeleteNamespaces(namespaces)
 	if err != nil {
-		t.Fatalf("delete namespaces fail")
+		t.Fatalf("delete namespaces fail: %s", err.Error())
 	}
 	t.Log("delete namepsaces success")
 }

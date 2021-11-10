@@ -32,7 +32,9 @@ func newTestServiceCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *se
 	ctl := gomock.NewController(t)
 
 	storage := mock.NewMockStore(ctl)
-	sc := newServiceCache(storage, make(chan *revisionNotify, 1024))
+	notifier := make(chan *revisionNotify, 1024)
+	ic := newInstanceCache(storage, notifier, nil)
+	sc := newServiceCache(storage, notifier, ic)
 	opt := map[string]interface{}{
 		"disableBusiness": false,
 		"needMeta":        true,

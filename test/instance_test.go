@@ -38,7 +38,7 @@ func TestInstance(t *testing.T) {
 	// 创建命名空间
 	ret, err := client.CreateNamespaces(namespaces)
 	if err != nil {
-		t.Fatalf("create namespaces fail")
+		t.Fatalf("create namespaces fail: %s", err.Error())
 	}
 	for index, item := range ret.GetResponses() {
 		namespaces[index].Token = item.GetNamespace().GetToken()
@@ -48,7 +48,7 @@ func TestInstance(t *testing.T) {
 	// 创建服务
 	ret, err = client.CreateServices(services)
 	if err != nil {
-		t.Fatalf("create services fail")
+		t.Fatalf("create services fail: %s", err.Error())
 	}
 	for index, item := range ret.GetResponses() {
 		services[index].Token = item.GetService().GetToken()
@@ -62,7 +62,7 @@ func TestInstance(t *testing.T) {
 	// 创建实例
 	ret, err = client.CreateInstances(instances)
 	if err != nil {
-		t.Fatalf("create instances fail")
+		t.Fatalf("create instances fail: %s", err.Error())
 	}
 	for index, item := range ret.GetResponses() {
 		instances[index].Id = item.GetInstance().GetId()
@@ -72,7 +72,7 @@ func TestInstance(t *testing.T) {
 	// 查询实例
 	err = client.GetInstances(instances)
 	if err != nil {
-		t.Fatalf("get instances fail")
+		t.Fatalf("get instances fail: %s", err.Error())
 	}
 	t.Log("get instances success")
 
@@ -81,21 +81,21 @@ func TestInstance(t *testing.T) {
 
 	err = client.UpdateInstances(instances)
 	if err != nil {
-		t.Fatalf("update instances fail")
+		t.Fatalf("update instances fail: %s", err.Error())
 	}
 	t.Log("update instances success")
 
 	// 查询实例
 	err = client.GetInstances(instances)
 	if err != nil {
-		t.Fatalf("get instances fail")
+		t.Fatalf("get instances fail: %s", err.Error())
 	}
 	t.Log("get instances success")
 
 	// 删除实例
 	err = client.DeleteInstances(instances)
 	if err != nil {
-		t.Fatalf("delete instances fail")
+		t.Fatalf("delete instances fail: %s", err.Error())
 	}
 	t.Log("delete instances success")
 
@@ -104,14 +104,14 @@ func TestInstance(t *testing.T) {
 	// 删除服务
 	err = client.DeleteServices(services)
 	if err != nil {
-		t.Fatalf("delete services fail")
+		t.Fatalf("delete services fail: %s", err.Error())
 	}
 	t.Log("delete services success")
 
 	// 删除命名空间
 	err = client.DeleteNamespaces(namespaces)
 	if err != nil {
-		t.Fatalf("delete namespaces fail")
+		t.Fatalf("delete namespaces fail: %s", err.Error())
 	}
 	t.Log("delete namepsaces success")
 }

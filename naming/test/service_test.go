@@ -231,9 +231,9 @@ func TestDeleteService2(t *testing.T) {
 		serviceReq, serviceResp := createCommonService(t, 20)
 		defer cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 
-		aliasResp1 := createCommonAlias(serviceResp, "", api.AliasType_CL5SID)
+		aliasResp1 := createCommonAlias(serviceResp, "", defaultAliasNs, api.AliasType_CL5SID)
 		defer cleanServiceName(aliasResp1.Alias.Alias.Value, serviceResp.Namespace.Value)
-		aliasResp2 := createCommonAlias(serviceResp, "", api.AliasType_CL5SID)
+		aliasResp2 := createCommonAlias(serviceResp, "", defaultAliasNs, api.AliasType_CL5SID)
 		defer cleanServiceName(aliasResp2.Alias.Alias.Value, serviceResp.Namespace.Value)
 
 		// 删除服务
@@ -341,7 +341,7 @@ func TestGetService(t *testing.T) {
 		for i := 0; i < total; i++ {
 			_, serviceResp := createCommonService(t, i+102)
 			defer cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
-			aliasResp := createCommonAlias(serviceResp, "", api.AliasType_CL5SID)
+			aliasResp := createCommonAlias(serviceResp, "", defaultAliasNs, api.AliasType_CL5SID)
 			defer cleanServiceName(aliasResp.Alias.Alias.Value, serviceResp.Namespace.Value)
 		}
 		resp := server.GetServices(map[string]string{"owner": "service-owner-102"})
@@ -420,7 +420,7 @@ func TestGetServices2(t *testing.T) {
 		}
 	})
 	t.Run("查询服务列表，port参数有误，返回错误", func(t *testing.T) {
-		filters := map[string]string{"port": "p100", "host":"127.0.0.1"}
+		filters := map[string]string{"port": "p100", "host": "127.0.0.1"}
 		resp := server.GetServices(filters)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.Info.GetValue())
@@ -616,15 +616,15 @@ func TestGetServices5(t *testing.T) {
 		_, instanceResp4 := addHostPortInstance(t, serviceResp4, host2, port2)
 		defer cleanInstance(instanceResp4.GetId().GetValue())
 
-		query := map[string]string {
+		query := map[string]string{
 			"host": host1,
 			"port": strconv.Itoa(int(port1)),
 		}
-		Convey("check-1-1", func() {getServiceCheck(server.GetServices(query), 1, 1)})
-		query["host"] = host1+","+host2
-		Convey("check-2-1", func() {getServiceCheck(server.GetServices(query), 2, 2)})
+		Convey("check-1-1", func() { getServiceCheck(server.GetServices(query), 1, 1) })
+		query["host"] = host1 + "," + host2
+		Convey("check-2-1", func() { getServiceCheck(server.GetServices(query), 2, 2) })
 		query["port"] = fmt.Sprintf("%d,%d", port1, port2)
-		Convey("check-2-2", func() {getServiceCheck(server.GetServices(query), 4, 4)})
+		Convey("check-2-2", func() { getServiceCheck(server.GetServices(query), 4, 4) })
 	})
 	Convey("多个服务，对应同个host，返回多个服务", t, func() {
 		count := 10
@@ -714,7 +714,7 @@ func TestUpdateService(t *testing.T) {
 		}
 	})
 	t.Run("更新服务，不允许更新别名", func(t *testing.T) {
-		aliasResp := createCommonAlias(serviceResp, "update.service.alias.xxx", api.AliasType_DEFAULT)
+		aliasResp := createCommonAlias(serviceResp, "update.service.alias.xxx", defaultAliasNs, api.AliasType_DEFAULT)
 		defer cleanServiceName(aliasResp.Alias.Alias.Value, serviceResp.Namespace.Value)
 
 		aliasService := &api.Service{
@@ -847,7 +847,7 @@ func TestServiceToken(t *testing.T) {
 	})
 
 	t.Run("获取别名的token，返回源服务的token", func(t *testing.T) {
-		aliasResp := createCommonAlias(serviceResp, "get.token.xxx", api.AliasType_DEFAULT)
+		aliasResp := createCommonAlias(serviceResp, "get.token.xxx", defaultAliasNs, api.AliasType_DEFAULT)
 		defer cleanServiceName(aliasResp.Alias.Alias.Value, serviceResp.Namespace.Value)
 		t.Logf("%+v", aliasResp)
 
@@ -877,7 +877,7 @@ func TestServiceToken(t *testing.T) {
 	})
 
 	t.Run("alias不允许更新token", func(t *testing.T) {
-		aliasResp := createCommonAlias(serviceResp, "update.token.xxx", api.AliasType_DEFAULT)
+		aliasResp := createCommonAlias(serviceResp, "update.token.xxx", defaultAliasNs, api.AliasType_DEFAULT)
 		defer cleanServiceName(aliasResp.Alias.Alias.Value, serviceResp.Namespace.Value)
 
 		req := &api.Service{
