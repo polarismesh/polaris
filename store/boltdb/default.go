@@ -19,10 +19,11 @@ package boltdb
 
 import (
 	"errors"
+	"time"
+
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
-	"time"
 )
 
 const (
@@ -81,7 +82,7 @@ const (
 
 var (
 	namespacesToInit = []string{"default", namespacePolaris}
-	servicesToInit   = []string{"polaris.checker", "polaris.monitor"}
+	servicesToInit   = map[string]string{"polaris.checker": "fbca9bfa04ae4ead86e1ecf5811e32a9", "polaris.monitor": "bbfdda174ea64e11ac862adf14593c03"}
 )
 
 func (m *boltStore) initStoreData() error {
@@ -99,10 +100,10 @@ func (m *boltStore) initStoreData() error {
 			return err
 		}
 	}
-	for _, svc := range servicesToInit {
+	for svc, id := range servicesToInit {
 		curTime := time.Now()
 		err := m.AddService(&model.Service{
-			ID:         utils.NewUUID(),
+			ID:         id,
 			Name:       svc,
 			Namespace:  namespacePolaris,
 			Token:      utils.NewUUID(),

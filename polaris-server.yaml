@@ -14,7 +14,7 @@ bootstrap:
   # 注册为北极星服务
   polaris_service:
     #    probe_address: ##DB_ADDR##
-    enable_register: true
+    enable_register: false
     isolated: false
     services:
       - name: polaris.checker

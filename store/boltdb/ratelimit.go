@@ -18,33 +18,48 @@
 package boltdb
 
 import (
-	"github.com/polarismesh/polaris-server/common/model"
+	"errors"
+	"fmt"
 	"time"
+
+	"github.com/boltdb/bolt"
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/store"
+)
+
+const (
+	// rule 相关信息以及映射
+	tblRateLimitConfig   string = "ratelimit_config"
+	tblRateLimitRevision string = "ratelimit_revision"
 )
 
 type rateLimitStore struct {
 	handler BoltHandler
 }
 
-// 新增限流规则
-func (r *rateLimitStore) CreateRateLimit(limiting *model.RateLimit) error {
-	//TODO
-	return nil
+// CreateRateLimit 新增限流规则
+func (r *rateLimitStore) CreateRateLimit(limit *model.RateLimit) error {
+	if limit.ID == "" || limit.ServiceID == "" || limit.Revision == "" {
+		return errors.New("[Store][database] create rate limit missing some params")
+	}
+
+	return r.createRateLimit(limit)
 }
 
-// 更新限流规则
+// UpdateRateLimit 更新限流规则
 func (r *rateLimitStore) UpdateRateLimit(limiting *model.RateLimit) error {
 	//TODO
 	return nil
 }
 
-// 删除限流规则
+// DeleteRateLimit 删除限流规则
 func (r *rateLimitStore) DeleteRateLimit(limiting *model.RateLimit) error {
 	//TODO
 	return nil
 }
 
-// 根据过滤条件拉取限流规则
+// GetExtendRateLimits 根据过滤条件拉取限流规则
 func (r *rateLimitStore) GetExtendRateLimits(
 	query map[string]string, offset uint32, limit uint32) (uint32, []*model.ExtendRateLimit, error) {
 	//TODO
@@ -61,4 +76,70 @@ func (r *rateLimitStore) GetRateLimitWithID(id string) (*model.RateLimit, error)
 func (r *rateLimitStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, []*model.RateLimitRevision, error) {
 	//TODO
 	return nil, nil, nil
+}
+
+// createRateLimit save model.RateLimit and model.RateLimitRevision
+//  @receiver r *rateLimitStore
+//  @param limit current limiting configuration data to be saved
+//  @return error
+func (r *rateLimitStore) createRateLimit(limit *model.RateLimit) error {
+	handler := r.handler
+	return handler.Execute(true, func(tx *bolt.Tx) error {
+		// create ratelimit_config
+		if err := saveValue(tx, tblRateLimitConfig, limit.ID, limit); err != nil {
+			log.Errorf("[Store][RateLimit] create rate_limit(%s, %s) err: %s",
+				limit.ID, limit.ServiceID, err.Error())
+			return store.Error(err)
+		}
+
+		// create ratelimit_version
+		lastVer := &model.RateLimitRevision{
+			ServiceID:    limit.ServiceID,
+			LastRevision: limit.Revision,
+			ModifyTime:   time.Now(),
+		}
+
+		recordKey := fmt.Sprintf("%s@%s", lastVer.ServiceID, lastVer.LastRevision)
+
+		if err := saveValue(tx, tblRateLimitRevision, recordKey, lastVer); err != nil {
+			log.Errorf("[Store][RateLimit] create ratelimit_revision(%s, %s) err: %s",
+				limit.ID, limit.ServiceID, err.Error())
+			return store.Error(err)
+		}
+
+		return nil
+	})
+
+}
+
+func (r *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
+	handler := r.handler
+	return handler.Execute(true, func(tx *bolt.Tx) error {
+
+		limit.ModifyTime = time.Now()
+		// create ratelimit_config
+		if err := saveValue(tx, tblRateLimitConfig, limit.ID, limit); err != nil {
+			log.Errorf("[Store][RateLimit] create rate_limit(%s, %s) err: %s",
+				limit.ID, limit.ServiceID, err.Error())
+			return store.Error(err)
+		}
+
+		// create ratelimit_version
+		lastVer := &model.RateLimitRevision{
+			ServiceID:    limit.ServiceID,
+			LastRevision: limit.Revision,
+			ModifyTime:   time.Now(),
+		}
+
+		recordKey := fmt.Sprintf("%s@%s", lastVer.ServiceID, lastVer.LastRevision)
+
+		if err := saveValue(tx, tblRateLimitRevision, recordKey, lastVer); err != nil {
+			log.Errorf("[Store][RateLimit] create ratelimit_revision(%s, %s) err: %s",
+				limit.ID, limit.ServiceID, err.Error())
+			return store.Error(err)
+		}
+
+		return nil
+	})
+
 }
