@@ -18,24 +18,15 @@
 package boltdb
 
 import (
-	"github.com/boltdb/bolt"
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
 type transaction struct {
-	tx  *bolt.Tx
-	err error
+	handler BoltHandler
 }
 
 // Commit 提交事务
 func (t *transaction) Commit() error {
-	if nil != t.err {
-		return t.tx.Rollback()
-	}
-	err := t.tx.Commit()
-	if nil != err {
-		return t.tx.Rollback()
-	}
 	return nil
 }
 
@@ -50,10 +41,9 @@ func (t *transaction) LockNamespace(name string) (*model.Namespace, error) {
 }
 
 func (t *transaction) loadNamespace(name string) (*model.Namespace, error) {
-	var values = make(map[string]interface{})
-	t.err = loadValues(t.tx, tblNameNamespace, []string{name}, &model.Namespace{}, values)
-	if nil != t.err {
-		return nil, t.err
+	values, err := t.handler.LoadValues(tblNameNamespace, []string{name}, &model.Namespace{})
+	if nil != err {
+		return nil, err
 	}
 	value, ok := values[name]
 	if !ok {
@@ -69,11 +59,7 @@ func (t *transaction) RLockNamespace(name string) (*model.Namespace, error) {
 
 // DeleteNamespace 删除namespace
 func (t *transaction) DeleteNamespace(name string) error {
-	t.err = deleteValues(t.tx, tblNameNamespace, []string{name})
-	if nil != t.err {
-		return t.err
-	}
-	return nil
+	return t.handler.DeleteValues(tblNameNamespace, []string{name})
 }
 
 const (
@@ -93,9 +79,8 @@ func (t *transaction) loadService(name string, namespace string) (*model.Service
 		}
 		return nameValue.(string) == name && namespaceValue.(string) == namespace
 	}
-	values := make(map[string]interface{})
-	err := loadValuesByFilter(
-		t.tx, tblNameService, []string{svcFieldName, svcFieldNamespace}, &model.Service{}, filter, values)
+	values, err := t.handler.LoadValuesByFilter(
+		tblNameService, []string{svcFieldName, svcFieldNamespace}, &model.Service{}, filter)
 	if nil != err {
 		return nil, err
 	}
