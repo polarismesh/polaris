@@ -276,6 +276,13 @@ func removeCommonServices(t *testing.T, req []*api.Service) {
 	}
 }
 
+// removeCommonService
+func removeCommonServiceAliases(t *testing.T, req []*api.ServiceAlias) {
+	if resp := server.DeleteServiceAliases(defaultCtx, req); !respSuccess(resp) {
+		t.Fatalf("error: %s", resp.GetInfo().GetValue())
+	}
+}
+
 // 新增一个实例
 func createCommonInstance(t *testing.T, service *api.Service, id int) (
 	*api.Instance, *api.Instance) {

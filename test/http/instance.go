@@ -24,8 +24,8 @@ import (
 	"io"
 	"reflect"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/golang/protobuf/jsonpb"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 /**
@@ -155,8 +155,8 @@ func (c *Client) GetInstances(instances []*api.Instance) error {
 	url := fmt.Sprintf("http://%v/naming/%v/instances", c.Address, c.Version)
 
 	params := map[string][]interface{}{
-		"service": {instances[0].GetService().GetValue()},
-		"namespace" :{instances[0].GetNamespace().GetValue()},
+		"service":   {instances[0].GetService().GetValue()},
+		"namespace": {instances[0].GetNamespace().GetValue()},
 	}
 
 	url = c.CompleteURL(url, params)
@@ -178,7 +178,7 @@ func (c *Client) GetInstances(instances []*api.Instance) error {
 	instancesSize := len(instances)
 
 	if ret.GetAmount() == nil || ret.GetAmount().GetValue() != uint32(instancesSize) {
-		return errors.New("invalid batch amount")
+		return errors.New(fmt.Sprintf("invalid batch amount, expect %d, obtain %v", instancesSize, ret.GetAmount()))
 	}
 
 	if ret.GetSize() == nil || ret.GetSize().GetValue() != uint32(instancesSize) {

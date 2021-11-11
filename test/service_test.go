@@ -37,7 +37,7 @@ func TestService(t *testing.T) {
 	// 创建命名空间
 	ret, err := client.CreateNamespaces(namespaces)
 	if err != nil {
-		t.Fatalf("create namespaces fail")
+		t.Fatalf("create namespaces fail, err is %v", err)
 	}
 	for index, item := range ret.GetResponses() {
 		namespaces[index].Token = item.GetNamespace().GetToken()
@@ -51,7 +51,7 @@ func TestService(t *testing.T) {
 	// 创建服务
 	ret, err = client.CreateServices(services)
 	if err != nil {
-		t.Fatalf("create services fail")
+		t.Fatalf("create services fail, err is %v", err)
 	}
 	for index, item := range ret.GetResponses() {
 		services[index].Token = item.GetService().GetToken()
@@ -61,7 +61,7 @@ func TestService(t *testing.T) {
 	// 查询服务
 	err = client.GetServices(services)
 	if err != nil {
-		t.Fatalf("get services fail")
+		t.Fatalf("get services fail, err is %v", err)
 	}
 	t.Log("get services success")
 
@@ -70,21 +70,21 @@ func TestService(t *testing.T) {
 
 	err = client.UpdateServices(services)
 	if err != nil {
-		t.Fatalf("update services fail")
+		t.Fatalf("update services fail, err is %v", err)
 	}
 	t.Log("update services success")
 
 	// 查询服务
 	err = client.GetServices(services)
 	if err != nil {
-		t.Fatalf("get services fail")
+		t.Fatalf("get services fail, err is %v", err)
 	}
 	t.Log("get services success")
 
 	// 删除服务
 	err = client.DeleteServices(services)
 	if err != nil {
-		t.Fatalf("delete services fail")
+		t.Fatalf("delete services fail, err is %v", err)
 	}
 	t.Log("delete services success")
 
@@ -93,7 +93,7 @@ func TestService(t *testing.T) {
 	// 删除命名空间
 	err = client.DeleteNamespaces(namespaces)
 	if err != nil {
-		t.Fatalf("delete namespaces fail")
+		t.Fatalf("delete namespaces fail, err is %v", err)
 	}
 	t.Log("delete namepsaces success")
 }

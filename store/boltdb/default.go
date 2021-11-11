@@ -157,11 +157,7 @@ func (m *boltStore) Destroy() error {
 
 //CreateTransaction create store transaction
 func (m *boltStore) CreateTransaction() (store.Transaction, error) {
-	tx, err := m.handler.Transaction()
-	if nil != err {
-		return nil, err
-	}
-	return &transaction{tx: tx}, nil
+	return &transaction{handler: m.handler}, nil
 }
 
 func init() {

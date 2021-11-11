@@ -121,9 +121,9 @@ func (h *HTTPServer) addDefaultAccess(ws *restful.WebService) {
 	ws.Route(ws.GET("/service/token").To(h.GetServiceToken))
 	ws.Route(ws.PUT("/service/token").To(h.UpdateServiceToken))
 	ws.Route(ws.POST("/service/alias").To(h.CreateServiceAlias))
-	ws.Route(ws.POST("/service/alias/no-auth").To(h.CreateServiceAliasNoAuth))
 	ws.Route(ws.PUT("/service/alias").To(h.UpdateServiceAlias))
 	ws.Route(ws.GET("/service/aliases").To(h.GetServiceAliases))
+	ws.Route(ws.POST("/service/aliases/delete").To(h.DeleteServiceAliases))
 	ws.Route(ws.GET("/service/circuitbreaker").To(h.GetCircuitBreakerByService))
 	ws.Route(ws.POST("/service/owner").To(h.GetServiceOwner))
 
@@ -357,7 +357,8 @@ func (h *HTTPServer) GetServices(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
-	ret := h.namingServer.GetServices(queryParams)
+	ctx := handler.ParseHeaderContext()
+	ret := h.namingServer.GetServices(ctx, queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
 
@@ -415,23 +416,6 @@ func (h *HTTPServer) CreateServiceAlias(req *restful.Request, rsp *restful.Respo
 	handler.WriteHeaderAndProto(h.namingServer.CreateServiceAlias(ctx, &alias))
 }
 
-/**
- * CreateServiceAliasNoAuth 创建服务别名
- * @note 不需要鉴权
- */
-func (h *HTTPServer) CreateServiceAliasNoAuth(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
-
-	var alias api.ServiceAlias
-	ctx, err := handler.Parse(&alias)
-	if err != nil {
-		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
-		return
-	}
-
-	handler.WriteHeaderAndProto(h.namingServer.CreateServiceAliasNoAuth(ctx, &alias))
-}
-
 // UpdateServiceAlias 修改服务别名
 func (h *HTTPServer) UpdateServiceAlias(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
@@ -444,6 +428,29 @@ func (h *HTTPServer) UpdateServiceAlias(req *restful.Request, rsp *restful.Respo
 	}
 
 	ret := h.namingServer.UpdateServiceAlias(ctx, &alias)
+	if code := api.CalcCode(ret); code != http.StatusOK {
+		handler.WriteHeaderAndProto(ret)
+		return
+	}
+
+	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+}
+
+// DeleteServiceAlias 删除服务别名
+func (h *HTTPServer) DeleteServiceAliases(req *restful.Request, rsp *restful.Response) {
+	handler := &Handler{req, rsp}
+
+	var aliases ServiceAliasArr
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.ServiceAlias{}
+		aliases = append(aliases, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		return
+	}
+	ret := h.namingServer.DeleteServiceAliases(ctx, aliases)
 	if code := api.CalcCode(ret); code != http.StatusOK {
 		handler.WriteHeaderAndProto(ret)
 		return

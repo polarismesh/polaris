@@ -18,7 +18,7 @@
 package test
 
 const (
-	httpserverAddress = "127.0.0.1:8090"
 	httpserverVersion = "v1"
+	httpserverAddress = "127.0.0.1:8090"
 	grpcserverAddress = "127.0.0.1:8091"
 )

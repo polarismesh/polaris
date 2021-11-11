@@ -133,3 +133,17 @@ func (m *PlatformArr) String() string { return proto.CompactTextString(m) }
 
 // ProtoMessage proto message
 func (m *PlatformArr) ProtoMessage() {}
+
+/**
+ * InstanceArr 服务实例数组定义
+ */
+type ServiceAliasArr []*api.ServiceAlias
+
+// Reset
+func (m *ServiceAliasArr) Reset() { *m = ServiceAliasArr{} }
+
+// String
+func (m *ServiceAliasArr) String() string { return proto.CompactTextString(m) }
+
+// ProtoMessage
+func (*ServiceAliasArr) ProtoMessage() {}

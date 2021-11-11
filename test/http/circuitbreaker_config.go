@@ -130,9 +130,7 @@ func (c *Client) CreateCircuitBreakerVersions(circuitBreakers []*api.CircuitBrea
 	return checkCreateCircuitBreakersResponse(ret, circuitBreakers)
 }
 
-/**
- * @brief 更新熔断规则
- */
+// 更新熔断规则
 func (c *Client) UpdateCircuitBreakers(circuitBreakers []*api.CircuitBreaker) error {
 	fmt.Printf("\nupdate circuit breakers\n")
 

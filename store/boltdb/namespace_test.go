@@ -181,11 +181,7 @@ func TestTransaction_LockNamespace(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer handler.Close()
-	tx, err := handler.Transaction()
-	if nil != err {
-		t.Fatal(err)
-	}
-	trans := &transaction{tx: tx}
+	trans := &transaction{handler: handler}
 	defer trans.Commit()
 	for i := 0; i < nsCount; i++ {
 		name := "default" + strconv.Itoa(i)
@@ -205,11 +201,7 @@ func TestTransaction_DeleteNamespace(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer handler.Close()
-	tx, err := handler.Transaction()
-	if nil != err {
-		t.Fatal(err)
-	}
-	trans := &transaction{tx: tx}
+	trans := &transaction{handler: handler}
 	for i := 0; i < nsCount; i++ {
 		name := "default" + strconv.Itoa(i)
 		err := trans.DeleteNamespace(name)

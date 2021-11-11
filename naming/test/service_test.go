@@ -18,11 +18,12 @@
 package test
 
 import (
+	"context"
 	"fmt"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/naming"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/smartystreets/goconvey/convey"
 	"strconv"
 	"sync"
 	"testing"
@@ -130,7 +131,7 @@ func TestRemoveServices(t *testing.T) {
 		// wait for data cache
 		time.Sleep(time.Second * 2)
 		removeCommonServices(t, []*api.Service{req})
-		out := server.GetServices(map[string]string{"name": req.GetName().GetValue()})
+		out := server.GetServices(context.Background(), map[string]string{"name": req.GetName().GetValue()})
 		if !respSuccess(out) {
 			t.Fatalf(out.GetInfo().GetValue())
 		}
@@ -231,9 +232,9 @@ func TestDeleteService2(t *testing.T) {
 		serviceReq, serviceResp := createCommonService(t, 20)
 		defer cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 
-		aliasResp1 := createCommonAlias(serviceResp, "", api.AliasType_CL5SID)
+		aliasResp1 := createCommonAlias(serviceResp, "", defaultAliasNs, api.AliasType_CL5SID)
 		defer cleanServiceName(aliasResp1.Alias.Alias.Value, serviceResp.Namespace.Value)
-		aliasResp2 := createCommonAlias(serviceResp, "", api.AliasType_CL5SID)
+		aliasResp2 := createCommonAlias(serviceResp, "", defaultAliasNs, api.AliasType_CL5SID)
 		defer cleanServiceName(aliasResp2.Alias.Alias.Value, serviceResp.Namespace.Value)
 
 		// 删除服务
@@ -291,7 +292,7 @@ func TestGetServiceOwner(t *testing.T) {
 // 测试获取服务函数
 func TestGetService(t *testing.T) {
 	t.Run("查询服务列表，可以正常返回", func(t *testing.T) {
-		resp := server.GetServices(map[string]string{})
+		resp := server.GetServices(context.Background(), map[string]string{})
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.Info.GetValue())
 		}
@@ -307,7 +308,7 @@ func TestGetService(t *testing.T) {
 
 		// 创建完，直接查询
 		filters := map[string]string{"offset": "0", "limit": "100"}
-		resp := server.GetServices(filters)
+		resp := server.GetServices(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.Info.GetValue())
 		}
@@ -326,7 +327,7 @@ func TestGetService(t *testing.T) {
 			defer cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 		}
 
-		resp := server.GetServices(map[string]string{})
+		resp := server.GetServices(context.Background(), map[string]string{})
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.Info.GetValue())
 		}
@@ -341,10 +342,10 @@ func TestGetService(t *testing.T) {
 		for i := 0; i < total; i++ {
 			_, serviceResp := createCommonService(t, i+102)
 			defer cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
-			aliasResp := createCommonAlias(serviceResp, "", api.AliasType_CL5SID)
+			aliasResp := createCommonAlias(serviceResp, "", defaultAliasNs, api.AliasType_CL5SID)
 			defer cleanServiceName(aliasResp.Alias.Alias.Value, serviceResp.Namespace.Value)
 		}
-		resp := server.GetServices(map[string]string{"owner": "service-owner-102"})
+		resp := server.GetServices(context.Background(), map[string]string{"owner": "service-owner-102"})
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.Info.GetValue())
 		}
@@ -364,7 +365,7 @@ func TestGetServices2(t *testing.T) {
 		}
 
 		filters := map[string]string{"offset": "0", "limit": "600"}
-		resp := server.GetServices(filters)
+		resp := server.GetServices(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.Info.GetValue())
 		}
@@ -376,7 +377,7 @@ func TestGetServices2(t *testing.T) {
 	})
 	t.Run("查询服务列表，offset参数不为int，返回错误", func(t *testing.T) {
 		filters := map[string]string{"offset": "abc", "limit": "200"}
-		resp := server.GetServices(filters)
+		resp := server.GetServices(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.Info.GetValue())
 		} else {
@@ -385,7 +386,7 @@ func TestGetServices2(t *testing.T) {
 	})
 	t.Run("查询服务列表，limit参数不为int，返回错误", func(t *testing.T) {
 		filters := map[string]string{"offset": "0", "limit": "ss"}
-		resp := server.GetServices(filters)
+		resp := server.GetServices(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.Info.GetValue())
 		} else {
@@ -394,7 +395,7 @@ func TestGetServices2(t *testing.T) {
 	})
 	t.Run("查询服务列表，offset参数为负数，返回错误", func(t *testing.T) {
 		filters := map[string]string{"offset": "-100", "limit": "10"}
-		resp := server.GetServices(filters)
+		resp := server.GetServices(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.Info.GetValue())
 		} else {
@@ -403,7 +404,7 @@ func TestGetServices2(t *testing.T) {
 	})
 	t.Run("查询服务列表，limit参数为负数，返回错误", func(t *testing.T) {
 		filters := map[string]string{"offset": "100", "limit": "-10"}
-		resp := server.GetServices(filters)
+		resp := server.GetServices(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.Info.GetValue())
 		} else {
@@ -412,7 +413,7 @@ func TestGetServices2(t *testing.T) {
 	})
 	t.Run("查询服务列表，单独提供port参数，返回错误", func(t *testing.T) {
 		filters := map[string]string{"port": "100"}
-		resp := server.GetServices(filters)
+		resp := server.GetServices(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.Info.GetValue())
 		} else {
@@ -420,8 +421,8 @@ func TestGetServices2(t *testing.T) {
 		}
 	})
 	t.Run("查询服务列表，port参数有误，返回错误", func(t *testing.T) {
-		filters := map[string]string{"port": "p100", "host":"127.0.0.1"}
-		resp := server.GetServices(filters)
+		filters := map[string]string{"port": "p100", "host": "127.0.0.1"}
+		resp := server.GetServices(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.Info.GetValue())
 		} else {
@@ -450,7 +451,7 @@ func TestGetService3(t *testing.T) {
 
 		name := serviceReq.GetName().GetValue()
 		filters := map[string]string{"offset": "0", "limit": "10", "name": name}
-		resp := server.GetServices(filters)
+		resp := server.GetServices(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -471,7 +472,7 @@ func TestGetService3(t *testing.T) {
 			}
 		}
 		filters := map[string]string{"offset": "0", "limit": "10", "name": name, "namespace": namespace}
-		resp := server.GetServices(filters)
+		resp := server.GetServices(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -488,7 +489,7 @@ func TestGetService3(t *testing.T) {
 		}
 
 		filters := map[string]string{"offset": "0", "limit": "100", "owner": "service-owner-10"}
-		resp := server.GetServices(filters)
+		resp := server.GetServices(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -515,7 +516,7 @@ func TestGetServices4(t *testing.T) {
 			"limit":  "100",
 			"name":   "test-service-*",
 		}
-		resp := server.GetServices(query)
+		resp := server.GetServices(context.Background(), query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.Info.GetValue())
 		}
@@ -547,19 +548,19 @@ func TestGetServices4(t *testing.T) {
 		defer cleanServiceName(service2.GetName().GetValue(), service2.GetNamespace().GetValue())
 		defer cleanServiceName(service3.GetName().GetValue(), service3.GetNamespace().GetValue())
 
-		resps := server.GetServices(map[string]string{"keys": "key3", "values": "value3"})
+		resps := server.GetServices(context.Background(), map[string]string{"keys": "key3", "values": "value3"})
 		if len(resps.GetServices()) != 3 && resps.GetAmount().GetValue() != 3 {
 			t.Fatalf("error: %d", len(resps.GetServices()))
 		}
-		resps = server.GetServices(map[string]string{"keys": "key2", "values": "value2"})
+		resps = server.GetServices(context.Background(), map[string]string{"keys": "key2", "values": "value2"})
 		if len(resps.GetServices()) != 2 && resps.GetAmount().GetValue() != 2 {
 			t.Fatalf("error: %d", len(resps.GetServices()))
 		}
-		resps = server.GetServices(map[string]string{"keys": "key1", "values": "value1"})
+		resps = server.GetServices(context.Background(), map[string]string{"keys": "key1", "values": "value1"})
 		if len(resps.GetServices()) != 1 && resps.GetAmount().GetValue() != 1 {
 			t.Fatalf("error: %d", len(resps.GetServices()))
 		}
-		resps = server.GetServices(map[string]string{"keys": "key1", "values": "value2"})
+		resps = server.GetServices(context.Background(), map[string]string{"keys": "key1", "values": "value2"})
 		if len(resps.GetServices()) != 0 && resps.GetAmount().GetValue() != 0 {
 			t.Fatalf("error: %d", len(resps.GetServices()))
 		}
@@ -570,11 +571,11 @@ func TestGetServices4(t *testing.T) {
 func TestGetServices5(t *testing.T) {
 	getServiceCheck := func(resp *api.BatchQueryResponse, amount, size uint32) {
 		t.Logf("gocheck resp: %v", resp)
-		So(respSuccess(resp), ShouldEqual, true)
-		So(resp.GetAmount().GetValue(), ShouldEqual, amount)
-		So(resp.GetSize().GetValue(), ShouldEqual, size)
+		convey.So(respSuccess(resp), convey.ShouldEqual, true)
+		convey.So(resp.GetAmount().GetValue(), convey.ShouldEqual, amount)
+		convey.So(resp.GetSize().GetValue(), convey.ShouldEqual, size)
 	}
-	Convey("支持host查询到服务", t, func() {
+	convey.Convey("支持host查询到服务", t, func() {
 		_, serviceResp := createCommonService(t, 200)
 		defer cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		instanceReq, instanceResp := createCommonInstance(t, serviceResp, 100)
@@ -585,16 +586,16 @@ func TestGetServices5(t *testing.T) {
 			"owner": "service-owner-200",
 			"host":  instanceReq.GetHost().GetValue(),
 		}
-		Convey("check-1", func() { getServiceCheck(server.GetServices(query), 1, 1) })
+		convey.Convey("check-1", func() { getServiceCheck(server.GetServices(context.Background(), query), 1, 1) })
 
 		// 同host的实例，对应一个服务，那么返回值也是一个
 		instanceReq.Port.Value = 999
 		resp := server.CreateInstance(defaultCtx, instanceReq)
-		So(respSuccess(resp), ShouldEqual, true)
+		convey.So(respSuccess(resp), convey.ShouldEqual, true)
 		defer cleanInstance(resp.Instance.GetId().GetValue())
-		Convey("check-2", func() { getServiceCheck(server.GetServices(query), 1, 1) })
+		convey.Convey("check-2", func() { getServiceCheck(server.GetServices(context.Background(), query), 1, 1) })
 	})
-	Convey("支持host和port配合查询服务", t, func() {
+	convey.Convey("支持host和port配合查询服务", t, func() {
 		host1 := "127.0.0.1"
 		port1 := uint32(8081)
 		host2 := "127.0.0.2"
@@ -616,17 +617,26 @@ func TestGetServices5(t *testing.T) {
 		_, instanceResp4 := addHostPortInstance(t, serviceResp4, host2, port2)
 		defer cleanInstance(instanceResp4.GetId().GetValue())
 
-		query := map[string]string {
+		query := map[string]string{
 			"host": host1,
 			"port": strconv.Itoa(int(port1)),
 		}
-		Convey("check-1-1", func() {getServiceCheck(server.GetServices(query), 1, 1)})
-		query["host"] = host1+","+host2
-		Convey("check-2-1", func() {getServiceCheck(server.GetServices(query), 2, 2)})
+		convey.Convey("check-1-1", func() {
+			getServiceCheck(
+				server.GetServices(context.Background(), query), 1, 1)
+		})
+		query["host"] = host1 + "," + host2
+		convey.Convey("check-2-1", func() {
+			getServiceCheck(
+				server.GetServices(context.Background(), query), 2, 2)
+		})
 		query["port"] = fmt.Sprintf("%d,%d", port1, port2)
-		Convey("check-2-2", func() {getServiceCheck(server.GetServices(query), 4, 4)})
+		convey.Convey("check-2-2", func() {
+			getServiceCheck(
+				server.GetServices(context.Background(), query), 4, 4)
+		})
 	})
-	Convey("多个服务，对应同个host，返回多个服务", t, func() {
+	convey.Convey("多个服务，对应同个host，返回多个服务", t, func() {
 		count := 10
 		var instance *api.Instance
 		for i := 0; i < count; i++ {
@@ -642,7 +652,10 @@ func TestGetServices5(t *testing.T) {
 			"host":  instance.GetHost().GetValue(),
 			"limit": "5",
 		}
-		Convey("check-1", func() { getServiceCheck(server.GetServices(query), uint32(count), 5) })
+		convey.Convey("check-1", func() {
+			getServiceCheck(
+				server.GetServices(context.Background(), query), uint32(count), 5)
+		})
 	})
 }
 
@@ -679,7 +692,7 @@ func TestUpdateService(t *testing.T) {
 			"name":      updateReq.GetName().GetValue(),
 			"namespace": updateReq.GetNamespace().GetValue(),
 		}
-		services := server.GetServices(query)
+		services := server.GetServices(context.Background(), query)
 		if !respSuccess(services) {
 			t.Fatalf("error: %s", services.GetInfo().GetValue())
 		}
@@ -705,7 +718,7 @@ func TestUpdateService(t *testing.T) {
 		if resp := server.UpdateService(defaultCtx, serviceResp); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
-		getResp := server.GetServices(map[string]string{"name": serviceResp.Name.Value})
+		getResp := server.GetServices(context.Background(), map[string]string{"name": serviceResp.Name.Value})
 		if !respSuccess(getResp) {
 			t.Fatalf("error: %s", getResp.GetInfo().GetValue())
 		}
@@ -714,7 +727,7 @@ func TestUpdateService(t *testing.T) {
 		}
 	})
 	t.Run("更新服务，不允许更新别名", func(t *testing.T) {
-		aliasResp := createCommonAlias(serviceResp, "update.service.alias.xxx", api.AliasType_DEFAULT)
+		aliasResp := createCommonAlias(serviceResp, "update.service.alias.xxx", defaultAliasNs, api.AliasType_DEFAULT)
 		defer cleanServiceName(aliasResp.Alias.Alias.Value, serviceResp.Namespace.Value)
 
 		aliasService := &api.Service{
@@ -847,7 +860,7 @@ func TestServiceToken(t *testing.T) {
 	})
 
 	t.Run("获取别名的token，返回源服务的token", func(t *testing.T) {
-		aliasResp := createCommonAlias(serviceResp, "get.token.xxx", api.AliasType_DEFAULT)
+		aliasResp := createCommonAlias(serviceResp, "get.token.xxx", defaultAliasNs, api.AliasType_DEFAULT)
 		defer cleanServiceName(aliasResp.Alias.Alias.Value, serviceResp.Namespace.Value)
 		t.Logf("%+v", aliasResp)
 
@@ -877,7 +890,7 @@ func TestServiceToken(t *testing.T) {
 	})
 
 	t.Run("alias不允许更新token", func(t *testing.T) {
-		aliasResp := createCommonAlias(serviceResp, "update.token.xxx", api.AliasType_DEFAULT)
+		aliasResp := createCommonAlias(serviceResp, "update.token.xxx", defaultAliasNs, api.AliasType_DEFAULT)
 		defer cleanServiceName(aliasResp.Alias.Alias.Value, serviceResp.Namespace.Value)
 
 		req := &api.Service{

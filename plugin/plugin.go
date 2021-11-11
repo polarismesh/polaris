@@ -23,9 +23,9 @@ import (
 )
 
 var (
-	pluginSet        = make(map[string]Plugin)
-	config           = &Config{}
-	once             = &sync.Once{}
+	pluginSet = make(map[string]Plugin)
+	config    = &Config{}
+	once      = &sync.Once{}
 )
 
 /**

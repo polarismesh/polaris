@@ -74,6 +74,15 @@ type Service struct {
 	Valid       bool
 	CreateTime  time.Time
 	ModifyTime  time.Time
+	Mtime       int64
+	Ctime       int64
+}
+
+// EnhancedService 服务增强数据
+type EnhancedService struct {
+	*Service
+	TotalInstanceCount   uint32
+	HealthyInstanceCount uint32
 }
 
 /**
@@ -95,15 +104,16 @@ func (s *Service) IsAlias() bool {
 
 // ServiceAlias 服务别名结构体
 type ServiceAlias struct {
-	ID         string
-	Alias      string
-	ServiceID  string
-	Service    string
-	Namespace  string
-	Owner      string
-	Comment    string
-	CreateTime time.Time
-	ModifyTime time.Time
+	ID             string
+	Alias          string
+	AliasNamespace string
+	ServiceID      string
+	Service        string
+	Namespace      string
+	Owner          string
+	Comment        string
+	CreateTime     time.Time
+	ModifyTime     time.Time
 }
 
 /**
