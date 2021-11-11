@@ -436,7 +436,7 @@ func TestDeleteServiceAlias(t *testing.T) {
 		removeCommonServiceAliases(t, []*api.ServiceAlias{resp.Alias})
 
 		query := map[string]string{"name": resp.Alias.Alias.Value}
-		queryResp := server.GetServices(query)
+		queryResp := server.GetServices(context.Background(), query)
 		So(respSuccess(queryResp), ShouldEqual, true)
 		So(len(queryResp.Services), ShouldEqual, 0)
 	})
