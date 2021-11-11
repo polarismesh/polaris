@@ -59,9 +59,6 @@ type BoltHandler interface {
 	// Execute execute scripts directly
 	Execute(writable bool, process func(tx *bolt.Tx) error) error
 
-	// BeginTransaction begin boltdb transaction
-	Transaction() (*bolt.Tx, error)
-
 	// Close close boltdb
 	Close() error
 }
@@ -544,9 +541,4 @@ func (b *boltHandler) Execute(writable bool, process func(tx *bolt.Tx) error) er
 		return b.db.Update(process)
 	}
 	return b.db.View(process)
-}
-
-// BeginTransaction begin boltdb transaction
-func (b *boltHandler) Transaction() (*bolt.Tx, error) {
-	return b.db.Begin(true)
 }
