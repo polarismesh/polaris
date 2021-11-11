@@ -21,10 +21,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/gogo/protobuf/proto"
 	"github.com/polarismesh/polaris-server/common/api/l5"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/gogo/protobuf/proto"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
@@ -276,7 +276,7 @@ func TestCl5AliasSyncCmd(t *testing.T) {
 			serviceResp := resp.Service
 			defer cleanServiceName(serviceResp.Name.Value, serviceResp.Namespace.Value)
 
-			resp = createCommonAlias(serviceResp, "", api.AliasType_CL5SID)
+			resp = createCommonAlias(serviceResp, "", serviceResp.Namespace.GetValue(), api.AliasType_CL5SID)
 			So(respSuccess(resp), ShouldEqual, true)
 			defer cleanServiceName(resp.Alias.Alias.Value, serviceResp.Namespace.Value)
 			modID, cmdID := parseStr2Sid(resp.Alias.Alias.Value)

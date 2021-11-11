@@ -99,6 +99,38 @@ func (h *Handler) Parse(message proto.Message) (context.Context, error) {
 	return h.postParseMessage(requestID)
 }
 
+/**
+ * @brief 将http请求header中携带的用户信息提取出来
+ */
+func (h *Handler) ParseHeaderContext() context.Context {
+	requestID := h.Request.HeaderParameter("Request-Id")
+	platformID := h.Request.HeaderParameter("Platform-Id")
+	platformToken := h.Request.HeaderParameter("Platform-Token")
+	token := h.Request.HeaderParameter("Polaris-Token")
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, utils.StringContext("request-id"), requestID)
+	ctx = context.WithValue(ctx, utils.StringContext("platform-id"), platformID)
+	ctx = context.WithValue(ctx, utils.StringContext("platform-token"), platformToken)
+	if token != "" {
+		ctx = context.WithValue(ctx, utils.StringContext("polaris-token"), token)
+	}
+
+	var operator string
+	addrSlice := strings.Split(h.Request.Request.RemoteAddr, ":")
+	if len(addrSlice) == 2 {
+		operator = "HTTP:" + addrSlice[0]
+		if platformID != "" {
+			operator += "(" + platformID + ")"
+		}
+	}
+	if staffName := h.Request.HeaderParameter("Staffname"); staffName != "" {
+		operator = staffName
+	}
+	ctx = context.WithValue(ctx, utils.StringContext("operator"), operator)
+
+	return ctx
+}
+
 // WriteHeader 仅返回Code
 func (h *Handler) WriteHeader(polarisCode uint32, httpStatus int) {
 	requestID := h.Request.HeaderParameter(utils.PolarisRequestID)

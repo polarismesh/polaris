@@ -2,6 +2,8 @@ bootstrap:
   logger:
     level: debug
 naming:
+  auth:
+    open: true
   batch:
     register:
       open: true
@@ -15,13 +17,13 @@ naming:
       waitTime: 32ms
       maxBatchCount: 32
       concurrency: 16
-  healthcheck:
-    open: true
-    kvConnNum: 50
-    kvServiceName: polarisHeartbeatCkv
-    kvNamespace: Polaris
-    kvPasswd: polaris@2021
-    slotNum: 30
+# 健康检查的配置
+healthcheck:
+  open: true
+  service: polaris.checker
+  slotNum: 30
+  checkers:
+    - name: heartbeatMemory
 cache:
   open: true
   resources:
@@ -36,10 +38,7 @@ cache:
     - name: routingConfig # 加载路由数据
     - name: rateLimitConfig # 加载限流数据
     - name: circuitBreakerConfig # 加载熔断数据
-    - name: meshConfig # 加载网格数据
     - name: l5 # 加载l5数据
-    - name: mesh
-    - name: meshService
 store:
   name: defaultStore
   option:

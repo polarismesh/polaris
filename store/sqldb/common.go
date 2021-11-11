@@ -112,10 +112,11 @@ func queryEntryCount(conn *BaseDB, str string, args []interface{}) (uint32, erro
 
 // 别名查询转换
 var aliasFilter2Where = map[string]string{
-	"service":   "source.name",
-	"namespace": "source.namespace",
-	"alias":     "alias.name",
-	"owner":     "alias.owner",
+	"service":         "source.name",
+	"namespace":       "source.namespace",
+	"alias":           "alias.name",
+	"alias_namespace": "alias.namespace",
+	"owner":           "alias.owner",
 }
 
 // 别名查询字段转换函数

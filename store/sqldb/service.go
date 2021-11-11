@@ -174,10 +174,9 @@ func (ss *serviceStore) DeleteServiceAlias(name string, namespace string) error 
 // 更新服务别名
 func (ss *serviceStore) UpdateServiceAlias(alias *model.Service, needUpdateOwner bool) error {
 	if alias.ID == "" || alias.Name == "" || alias.Namespace == "" ||
-		alias.Token == "" || alias.Owner == "" || alias.Revision == "" || alias.Reference == "" {
+		alias.Token == "" || alias.Revision == "" || alias.Reference == "" || (needUpdateOwner && alias.Owner == "") {
 		return store.NewStatusError(store.EmptyParamsErr, "Update Service Alias missing some params")
 	}
-
 	if err := ss.updateServiceAlias(alias, needUpdateOwner); err != nil {
 		log.Errorf("[Store][ServiceAlias] update service alias err: %s", err.Error())
 		return store.Error(err)
@@ -463,7 +462,7 @@ func (ss *serviceStore) getServiceAliasesInfo(filter map[string]string, offset u
 		return make([]*model.ServiceAlias, 0), nil
 	}
 
-	baseStr := `select alias.id, alias.name, UNIX_TIMESTAMP(alias.ctime), UNIX_TIMESTAMP(alias.mtime), 
+	baseStr := `select alias.id, alias.name, alias.namespace, UNIX_TIMESTAMP(alias.ctime), UNIX_TIMESTAMP(alias.mtime), 
 			alias.comment, source.id as sourceID, source.name as sourceName, source.namespace, alias.owner 
 			from service as alias inner join service as source 
 			on alias.reference = source.id and alias.flag != 1 `
@@ -481,8 +480,8 @@ func (ss *serviceStore) getServiceAliasesInfo(filter map[string]string, offset u
 	var ctime, mtime int64
 	for rows.Next() {
 		var entry model.ServiceAlias
-		err := rows.Scan(&entry.ID, &entry.Alias, &ctime, &mtime, &entry.Comment, &entry.ServiceID,
-			&entry.Service, &entry.Namespace, &entry.Owner)
+		err := rows.Scan(&entry.ID, &entry.Alias, &entry.AliasNamespace, &ctime, &mtime, &entry.Comment,
+			&entry.ServiceID, &entry.Service, &entry.Namespace, &entry.Owner)
 		if err != nil {
 			log.Errorf("[Store][database] get service alias rows scan err: %s", err.Error())
 			return nil, err
@@ -789,7 +788,6 @@ func fetchServiceWithMetaRows(rows *sql.Rows) (map[string]*model.Service, error)
 	defer rows.Close()
 
 	out := make(map[string]*model.Service)
-	var ctime, mtime int64
 	var id, mKey, mValue string
 	var flag int
 	progress := 0
@@ -801,14 +799,14 @@ func fetchServiceWithMetaRows(rows *sql.Rows) (map[string]*model.Service, error)
 
 		var item model.Service
 		if err := rows.Scan(&item.ID, &item.Name, &item.Namespace, &item.Business, &item.Comment,
-			&item.Token, &item.Revision, &item.Owner, &flag, &ctime, &mtime, &item.Ports,
+			&item.Token, &item.Revision, &item.Owner, &flag, &item.Ctime, &item.Mtime, &item.Ports,
 			&item.Department, &item.CmdbMod1, &item.CmdbMod2, &item.CmdbMod3,
 			&item.Reference, &item.ReferFilter, &item.PlatformID, &id, &mKey, &mValue); err != nil {
 			log.Errorf("[Store][database] fetch service+meta rows scan err: %s", err.Error())
 			return nil, err
 		}
-		item.CreateTime = time.Unix(ctime, 0)
-		item.ModifyTime = time.Unix(mtime, 0)
+		item.CreateTime = time.Unix(item.Ctime, 0)
+		item.ModifyTime = time.Unix(item.Mtime, 0)
 		item.Valid = true
 		if flag == 1 {
 			item.Valid = false

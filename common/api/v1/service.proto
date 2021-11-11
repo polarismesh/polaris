@@ -34,6 +34,9 @@ message Service {
 	google.protobuf.StringValue mtime = 14;
 	google.protobuf.StringValue revision = 15;
 	google.protobuf.StringValue platform_id = 16 [json_name="platform_id"];
+
+	google.protobuf.UInt32Value total_instance_count = 17 [json_name="total_instance_count"];
+	google.protobuf.UInt32Value healthy_instance_count = 18 [json_name="healthy_instance_count"];
 }
 
 enum AliasType {
@@ -45,13 +48,14 @@ message ServiceAlias {
     google.protobuf.StringValue service = 1;
     google.protobuf.StringValue namespace = 2;
     google.protobuf.StringValue alias = 3;
-    AliasType type = 4;
-    google.protobuf.StringValue owners = 8;
-	google.protobuf.StringValue comment = 9;
-    google.protobuf.StringValue service_token = 5 [json_name="service_token"];
+		google.protobuf.StringValue alias_namespace = 4 [json_name="alias_namespace"];
+    AliasType type = 5;
+    google.protobuf.StringValue owners = 6;
+	  google.protobuf.StringValue comment = 7;
+    google.protobuf.StringValue service_token = 8 [json_name="service_token"];
 
-    google.protobuf.StringValue ctime = 6;
-    google.protobuf.StringValue mtime = 7;
+    google.protobuf.StringValue ctime = 9;
+    google.protobuf.StringValue mtime = 10;
 }
 
 message Instance {

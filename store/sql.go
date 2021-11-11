@@ -22,3 +22,9 @@ type InstanceArgs struct {
 	Hosts []string
 	Ports []uint32
 }
+
+// IsWildName 判断名字是否为通配名字，只支持前缀索引(名字最后为*)
+func IsWildName(name string) bool {
+	length := len(name)
+	return length >= 1 && name[length-1:length] == "*"
+}

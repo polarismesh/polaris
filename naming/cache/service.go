@@ -22,6 +22,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 	"sync"
 	"time"
 )
@@ -41,20 +42,27 @@ type ServiceIterProc func(key string, value *model.Service) (bool, error)
 type ServiceCache interface {
 	Cache
 
-	// 根据ID查询服务信息
+	// GetAllNamespaces 返回所有命名空间
+	GetAllNamespaces() []string
+
+	// GetServiceByID 根据ID查询服务信息
 	GetServiceByID(id string) *model.Service
 
-	// 根据服务名查询服务信息
+	// GetServiceByName 根据服务名查询服务信息
 	GetServiceByName(name string, namespace string) *model.Service
 
-	// 迭代缓存的服务信息
+	// IteratorServices 迭代缓存的服务信息
 	IteratorServices(iterProc ServiceIterProc) error
 
-	// 获取缓存中服务的个数
+	// GetServicesCount 获取缓存中服务的个数
 	GetServicesCount() int
 
-	// 根据cl5Name获取对应的sid
+	// GetServiceByCl5Name 根据cl5Name获取对应的sid
 	GetServiceByCl5Name(cl5Name string) *model.Service
+
+	// GetServiceByFilter 通过filter在缓存中进行服务过滤
+	GetServicesByFilter(serviceFilters *ServiceArgs,
+		instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error)
 }
 
 /**
@@ -71,6 +79,8 @@ type serviceCache struct {
 	revisionCh      chan *revisionNotify
 	disableBusiness bool
 	needMeta        bool
+	singleFlight    *singleflight.Group
+	instCache       InstanceCache
 }
 
 /**
@@ -83,10 +93,11 @@ func init() {
 /**
  * @brief 返回一个serviceCache
  */
-func newServiceCache(storage store.Store, ch chan *revisionNotify) *serviceCache {
+func newServiceCache(storage store.Store, ch chan *revisionNotify, instCache InstanceCache) *serviceCache {
 	return &serviceCache{
 		storage:    storage,
 		revisionCh: ch,
+		instCache:  instCache,
 	}
 }
 
@@ -94,6 +105,7 @@ func newServiceCache(storage store.Store, ch chan *revisionNotify) *serviceCache
  * @brief 缓存对象初始化
  */
 func (sc *serviceCache) initialize(opt map[string]interface{}) error {
+	sc.singleFlight = new(singleflight.Group)
 	sc.lastMtime = time.Unix(0, 0)
 	sc.ids = new(sync.Map)
 	sc.names = new(sync.Map)
@@ -114,6 +126,14 @@ func (sc *serviceCache) initialize(opt map[string]interface{}) error {
  * @note  service + service_metadata作为一个整体获取
  */
 func (sc *serviceCache) update() error {
+	// 多个线程竞争，只有一个线程进行更新
+	_, err, _ := sc.singleFlight.Do(ServiceName, func() (interface{}, error) {
+		return nil, sc.realUpdate()
+	})
+	return err
+}
+
+func (sc *serviceCache) realUpdate() error {
 	// 获取几秒前的全部数据
 	start := time.Now()
 	services, err := sc.storage.GetMoreServices(sc.lastMtime.Add(DefaultTimeDiff),
