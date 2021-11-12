@@ -78,7 +78,7 @@ func (r *MemoryHealthChecker) Query(request *plugin.QueryRequest) (*plugin.Query
 			LastHeartbeatSec: 0,
 		}, nil
 	}
-	record := recordValue.(*HeartbeatRecord)
+	record := recordValue.(HeartbeatRecord)
 	return &plugin.QueryResponse{
 		Server:           record.Server,
 		LastHeartbeatSec: record.CurTimeSec,
