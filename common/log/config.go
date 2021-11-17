@@ -125,7 +125,10 @@ func prepZap(options *Options) (zapcore.Core, zapcore.Core, zapcore.WriteSyncer,
 		})
 	}
 
-	createPathIfNotExist(options.ErrorOutputPaths...)
+	err := createPathIfNotExist(options.ErrorOutputPaths...)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	errSink, closeErrorSink, err := zap.Open(options.ErrorOutputPaths...)
 	if err != nil {
 		return nil, nil, nil, err
@@ -133,7 +136,10 @@ func prepZap(options *Options) (zapcore.Core, zapcore.Core, zapcore.WriteSyncer,
 
 	var outputSink zapcore.WriteSyncer
 	if len(options.OutputPaths) > 0 {
-		createPathIfNotExist(options.OutputPaths...)
+		err := createPathIfNotExist(options.OutputPaths...)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 		outputSink, _, err = zap.Open(options.OutputPaths...)
 		if err != nil {
 			closeErrorSink()
@@ -340,18 +346,19 @@ func Sync() error {
 }
 
 // createPathIfNotExist 如果判断为本地文件，检查目录是否存在，不存在创建父级目录
-func createPathIfNotExist(paths ...string) {
+func createPathIfNotExist(paths ...string) error {
 	for _, path := range paths {
 		u, err := url.Parse(path)
 		if err != nil {
-			panic(fmt.Sprintf("can't parse %q as a URL: %v", path, err))
+			return fmt.Errorf("can't parse %q as a URL: %v", path, err)
 		}
 		if (u.Scheme == "" || u.Scheme == "file") && u.Path != "stdout" && u.Path != "stderr" {
 			dir := filepath.Dir(u.Path)
 			err := os.MkdirAll(dir, os.ModePerm)
 			if err != nil {
-				panic(fmt.Sprintf("can't create a path: %s", dir))
+				return fmt.Errorf("can't create %q directory: %v", dir, err)
 			}
 		}
 	}
+	return nil
 }
