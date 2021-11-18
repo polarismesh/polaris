@@ -50,7 +50,7 @@ package log
 
 import (
 	"fmt"
-	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -139,7 +139,7 @@ func prepZap(options *Options) (map[string]zapcore.Core, zapcore.Core, zapcore.W
 				MaxAge:     options.RotationMaxAge,
 			})
 		} else {
-			writeSyncer = zapcore.AddSync(io.Discard)
+			writeSyncer = zapcore.AddSync(ioutil.Discard)
 		}
 		if outputSink != nil {
 			writeSyncer = zapcore.NewMultiWriteSyncer(writeSyncer, outputSink)
