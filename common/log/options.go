@@ -83,6 +83,17 @@ type Options struct {
 	// standard I/O streams. This defaults to stderr.
 	ErrorOutputPaths []string `yaml:"ErrorOutputPaths"`
 
+	// RotateOutputPath is the path to a rotating log file. This file should
+	// be automatically rotated over time, based on the rotation parameters such
+	// as RotationMaxSize and RotationMaxAge. The default is to not rotate.
+	//
+	// This path is used as a foundational path. This is where log output is normally
+	// saved. When a rotation needs to take place because the file got too big or too
+	// old, then the file is renamed by appending a timestamp to the name. Such renamed
+	// files are called backups. Once a backup has been created,
+	// output resumes to this path.
+	RotateOutputPath string `yaml:"RotateOutputPath"`
+
 	Path map[string]string `yaml:"path"`
 
 	// RotationMaxSize is the maximum size in megabytes of a log file before it gets

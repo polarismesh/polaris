@@ -50,7 +50,6 @@ package log
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -139,7 +138,16 @@ func prepZap(options *Options) (map[string]zapcore.Core, zapcore.Core, zapcore.W
 				MaxAge:     options.RotationMaxAge,
 			})
 		} else {
-			writeSyncer = zapcore.AddSync(ioutil.Discard)
+			if options.RotateOutputPath == "" {
+				writeSyncer = zapcore.AddSync(os.Stdout)
+			} else {
+				writeSyncer = zapcore.AddSync(&lumberjack.Logger{
+					Filename:   options.RotateOutputPath,
+					MaxSize:    options.RotationMaxSize,
+					MaxBackups: options.RotationMaxBackups,
+					MaxAge:     options.RotationMaxAge,
+				})
+			}
 		}
 		if outputSink != nil {
 			writeSyncer = zapcore.NewMultiWriteSyncer(writeSyncer, outputSink)
