@@ -31,11 +31,13 @@ const (
 	ServerLoggerName = "server"
 )
 
-var healthCheckLogger = RegisterScope(HealthCheckLoggerName, "health check logging messages.", 0)
-var storeLogger = RegisterScope(StoreLoggerName, "storage logging messages.", 0)
-var namingLogger = RegisterScope(NamingLoggerName, "naming logging messages.", 0)
-var pluginLogger = RegisterScope(PluginLoggerName, "plugin logging messages.", 0)
-var serverLogger = RegisterScope(ServerLoggerName, "api server logging messages.", 0)
+var (
+	healthCheckLogger = RegisterScope(HealthCheckLoggerName, "health check logging messages.", 0)
+	storeLogger       = RegisterScope(StoreLoggerName, "storage logging messages.", 0)
+	namingLogger      = RegisterScope(NamingLoggerName, "naming logging messages.", 0)
+	pluginLogger      = RegisterScope(PluginLoggerName, "plugin logging messages.", 0)
+	serverLogger      = RegisterScope(ServerLoggerName, "api server logging messages.", 0)
+)
 
 func GetDefaultLogger() *Scope {
 	return defaultScope
