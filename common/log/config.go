@@ -50,9 +50,9 @@ package log
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/natefinch/lumberjack"
@@ -82,16 +82,13 @@ type patchTable struct {
 	errorSink   zapcore.WriteSyncer
 }
 
-// function table that can be replaced by tests
-var funcs = &atomic.Value{}
-
 func init() {
 	// use our defaults for starters so that logging works even before everything is fully configured
 	_ = Configure(DefaultOptions())
 }
 
 // prepZap is a utility function used by the Configure function.
-func prepZap(options *Options) (zapcore.Core, zapcore.Core, zapcore.WriteSyncer, error) {
+func prepZap(options *Options) (map[string]zapcore.Core, zapcore.Core, zapcore.WriteSyncer, error) {
 	encCfg := zapcore.EncoderConfig{
 		TimeKey:        "time",
 		LevelKey:       "level",
@@ -113,16 +110,6 @@ func prepZap(options *Options) (zapcore.Core, zapcore.Core, zapcore.WriteSyncer,
 		enc = zapcore.NewConsoleEncoder(encCfg)
 	}
 
-	var rotaterSink zapcore.WriteSyncer
-	if options.RotateOutputPath != "" {
-		rotaterSink = zapcore.AddSync(&lumberjack.Logger{
-			Filename:   options.RotateOutputPath,
-			MaxSize:    options.RotationMaxSize,
-			MaxBackups: options.RotationMaxBackups,
-			MaxAge:     options.RotationMaxAge,
-		})
-	}
-
 	errSink, closeErrorSink, err := zap.Open(options.ErrorOutputPaths...)
 	if err != nil {
 		return nil, nil, nil, err
@@ -138,12 +125,29 @@ func prepZap(options *Options) (zapcore.Core, zapcore.Core, zapcore.WriteSyncer,
 	}
 
 	var sink zapcore.WriteSyncer
-	if rotaterSink != nil && outputSink != nil {
-		sink = zapcore.NewMultiWriteSyncer(outputSink, rotaterSink)
-	} else if rotaterSink != nil {
-		sink = rotaterSink
-	} else {
-		sink = outputSink
+
+	cores := make(map[string]zapcore.Core)
+	allScopes := Scopes()
+	for scopeName := range allScopes {
+		path, exist := options.Path[scopeName]
+		var writeSyncer zapcore.WriteSyncer
+		if exist {
+			writeSyncer = zapcore.AddSync(&lumberjack.Logger{
+				Filename:   path,
+				MaxSize:    options.RotationMaxSize,
+				MaxBackups: options.RotationMaxBackups,
+				MaxAge:     options.RotationMaxAge,
+			})
+		} else {
+			writeSyncer = zapcore.AddSync(io.Discard)
+		}
+		if outputSink != nil {
+			writeSyncer = zapcore.NewMultiWriteSyncer(writeSyncer, outputSink)
+		}
+		if scopeName == DefaultScopeName {
+			sink = writeSyncer
+		}
+		cores[scopeName] = zapcore.NewCore(enc, writeSyncer, zap.NewAtomicLevelAt(zapcore.DebugLevel))
 	}
 
 	var enabler zap.LevelEnablerFunc = func(lvl zapcore.Level) bool {
@@ -158,7 +162,7 @@ func prepZap(options *Options) (zapcore.Core, zapcore.Core, zapcore.WriteSyncer,
 		return defaultScope.DebugEnabled()
 	}
 
-	return zapcore.NewCore(enc, sink, zap.NewAtomicLevelAt(zapcore.DebugLevel)),
+	return cores,
 		zapcore.NewCore(enc, sink, enabler),
 		errSink, nil
 }
@@ -202,7 +206,7 @@ func formatDate(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 	enc.AppendString(string(buf))
 }
 
-func updateScopes(options *Options) error {
+func updateScopes(options *Options, cores map[string]zapcore.Core, errSink zapcore.WriteSyncer) error {
 	// snapshot what's there
 	allScopes := Scopes()
 
@@ -215,6 +219,28 @@ func updateScopes(options *Options) error {
 	if err := processLevels(
 		allScopes, options.stackTraceLevels, func(s *Scope, l Level) { s.SetStackTraceLevel(l) }); err != nil {
 		return err
+	}
+
+	// update patchTable
+	for scopeName, scope := range allScopes {
+		core := cores[scopeName]
+		if core == nil {
+			continue
+		}
+		pt := patchTable{
+			write: func(ent zapcore.Entry, fields []zapcore.Field) error {
+				err := core.Write(ent, fields)
+				if ent.Level == zapcore.FatalLevel {
+					scope.getPt().exitProcess(1)
+				}
+
+				return err
+			},
+			sync:        core.Sync,
+			exitProcess: os.Exit,
+			errorSink:   errSink,
+		}
+		scope.pt.Store(&pt)
 	}
 
 	// update the caller location setting of all listed scopes
@@ -275,29 +301,14 @@ func processLevels(allScopes map[string]*Scope, arg string, setter func(*Scope, 
 // Once this call returns, the logging system is ready to accept data.
 // nolint: staticcheck
 func Configure(options *Options) error {
-	core, captureCore, errSink, err := prepZap(options)
+	cores, captureCore, errSink, err := prepZap(options)
 	if err != nil {
 		return err
 	}
 
-	if err = updateScopes(options); err != nil {
+	if err = updateScopes(options, cores, errSink); err != nil {
 		return err
 	}
-
-	pt := patchTable{
-		write: func(ent zapcore.Entry, fields []zapcore.Field) error {
-			err := core.Write(ent, fields)
-			if ent.Level == zapcore.FatalLevel {
-				funcs.Load().(patchTable).exitProcess(1)
-			}
-
-			return err
-		},
-		sync:        core.Sync,
-		exitProcess: os.Exit,
-		errorSink:   errSink,
-	}
-	funcs.Store(pt)
 
 	opts := []zap.Option{
 		zap.ErrorOutput(errSink),
@@ -332,5 +343,5 @@ func Configure(options *Options) error {
 // Sync flushes any buffered log entries.
 // Processes should normally take care to call Sync before exiting.
 func Sync() error {
-	return funcs.Load().(patchTable).sync()
+	return defaultScope.pt.Load().(patchTable).sync()
 }

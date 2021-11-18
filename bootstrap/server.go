@@ -67,7 +67,7 @@ func Start(configFilePath string) {
 
 	cfg.Bootstrap.Logger.SetStackTraceLevel(log.DefaultScopeName, "none")
 
-	cfg.Bootstrap.Logger.SetLogCallers(log.DefaultScopeName, true)
+	cfg.Bootstrap.Logger.SetLogCallers(log.OverrideScopeName, true)
 
 	err = log.Configure(&cfg.Bootstrap.Logger)
 	if err != nil {

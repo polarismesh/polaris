@@ -2,7 +2,14 @@
 bootstrap:
   # 全局日志
   logger:
-    RotateOutputPath: log/polaris-server.log
+    path:
+      naming: log/polaris-naming.log
+      health-check: log/polaris-health-check.log
+      store: log/polaris-store.log
+      plugin: log/polaris-plugin.log
+      server: log/polaris-server.log
+      # 默认日志路径
+      default: log/polaris-default.log
     RotationMaxSize: 500
     RotationMaxAge: 30
     RotationMaxBackups: 100

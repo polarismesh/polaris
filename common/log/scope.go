@@ -42,6 +42,7 @@ type Scope struct {
 	outputLevel     atomic.Value
 	stackTraceLevel atomic.Value
 	logCallers      atomic.Value
+	pt              atomic.Value
 }
 
 var scopes = make(map[string]*Scope)
@@ -262,6 +263,14 @@ func (s *Scope) Description() string {
 	return s.description
 }
 
+func (s *Scope) getPt() *patchTable {
+	val := s.pt.Load()
+	if val == nil {
+		return nil
+	}
+	return val.(*patchTable)
+}
+
 const callerSkipOffset = 2
 
 func (s *Scope) emit(level zapcore.Level, dumpStack bool, msg string, fields []zapcore.Field) {
@@ -280,8 +289,8 @@ func (s *Scope) emit(level zapcore.Level, dumpStack bool, msg string, fields []z
 		e.Stack = zap.Stack("").String
 	}
 
-	pt := funcs.Load().(patchTable)
-	if pt.write != nil {
+	pt := s.getPt()
+	if pt != nil && pt.write != nil {
 		if err := pt.write(e, fields); err != nil {
 			_, _ = fmt.Fprintf(pt.errorSink, "%v log write error: %v\n", time.Now(), err)
 			_ = pt.errorSink.Sync()
