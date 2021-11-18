@@ -17,17 +17,17 @@
 
 package log
 
-//日志类型
+// logger type
 const (
-	// HealthCheckLoggerName 健康检查日志对象
+	// HealthCheckLoggerName health-check logger name, can use FindScope function to get the logger
 	HealthCheckLoggerName = "health-check"
-	// StoreLoggerName 存储日志对象
+	// StoreLoggerName storage logger name, can use FindScope function to get the logger
 	StoreLoggerName = "store"
-	// NamingLoggerName 注册日志对象
+	// NamingLoggerName naming logger name, can use FindScope function to get the logger
 	NamingLoggerName = "naming"
-	// PluginLoggerName 插件日志对象
+	// PluginLoggerName plugin logger name, can use FindScope function to get the logger
 	PluginLoggerName = "plugin"
-	// ServerLoggerName 接口日志对象
+	// ServerLoggerName api server logger name, can use FindScope function to get the logger
 	ServerLoggerName = "server"
 )
 
