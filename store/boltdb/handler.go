@@ -40,6 +40,9 @@ type BoltHandler interface {
 	// UpdateValue update properties of data object
 	UpdateValue(typ string, key string, properties map[string]interface{}) error
 
+	// UpdateValues update properties of data object
+	UpdateValues(typ string, key []string, properties map[string]interface{}) error
+
 	// LoadValues load data objects by unique keys, return value is 'key->object' map
 	LoadValues(typ string, keys []string, typObject interface{}) (map[string]interface{}, error)
 
@@ -448,54 +451,62 @@ func (b *boltHandler) CountValues(typ string) (int, error) {
 
 // UpdateValue update properties of data object
 func (b *boltHandler) UpdateValue(typ string, key string, properties map[string]interface{}) error {
+	return b.UpdateValues(typ, []string{key}, properties)
+}
+
+// UpdateValues update properties of data object
+func (b *boltHandler) UpdateValues(typ string, keys []string, properties map[string]interface{}) error {
 	return b.db.Update(func(tx *bolt.Tx) error {
 		var err error
 		typeBucket := tx.Bucket([]byte(typ))
 		if nil == typeBucket {
 			return nil
 		}
-		bucket := typeBucket.Bucket([]byte(key))
-		if nil == bucket {
-			return nil
-		}
-		if len(properties) == 0 {
-			return nil
-		}
-		for propKey, propValue := range properties {
-			bucketKey := toBucketField(propKey)
-			propType := reflect.TypeOf(propValue)
-			kind := propType.Kind()
-			switch kind {
-			case reflect.String:
-				err = bucket.Put([]byte(bucketKey), encodeStringBuffer(propValue.(string)))
-			case reflect.Bool:
-				err = bucket.Put([]byte(bucketKey), encodeBoolBuffer(propValue.(bool)))
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				err = bucket.Put([]byte(bucketKey),
-					encodeIntBuffer(convertInt64Value(propValue, kind), numberKindToType[kind]))
-			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				err = bucket.Put([]byte(bucketKey),
-					encodeUintBuffer(convertUint64Value(propValue, kind), numberKindToType[kind]))
-			case reflect.Map:
-				err = encodeRawMap(bucket, bucketKey, propValue.(map[string]string))
-			case reflect.Ptr:
-				if propType.Implements(messageType) {
-					//protobuf类型
-					var msgBuf []byte
-					msgBuf, err = encodeMessageBuffer(propValue.(proto.Message))
-					if nil != err {
-						return err
-					}
-					err = bucket.Put([]byte(bucketKey), msgBuf)
-				}
-			case reflect.Struct:
-				if propType.AssignableTo(timeType) {
-					//时间类型
-					err = bucket.Put([]byte(bucketKey), encodeTimeBuffer(propValue.(time.Time)))
-				}
+
+		for _, key := range keys {
+			bucket := typeBucket.Bucket([]byte(key))
+			if nil == bucket {
+				continue
 			}
-			if nil != err {
-				return err
+			if len(properties) == 0 {
+				continue
+			}
+			for propKey, propValue := range properties {
+				bucketKey := toBucketField(propKey)
+				propType := reflect.TypeOf(propValue)
+				kind := propType.Kind()
+				switch kind {
+				case reflect.String:
+					err = bucket.Put([]byte(bucketKey), encodeStringBuffer(propValue.(string)))
+				case reflect.Bool:
+					err = bucket.Put([]byte(bucketKey), encodeBoolBuffer(propValue.(bool)))
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					err = bucket.Put([]byte(bucketKey),
+						encodeIntBuffer(convertInt64Value(propValue, kind), numberKindToType[kind]))
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					err = bucket.Put([]byte(bucketKey),
+						encodeUintBuffer(convertUint64Value(propValue, kind), numberKindToType[kind]))
+				case reflect.Map:
+					err = encodeRawMap(bucket, bucketKey, propValue.(map[string]string))
+				case reflect.Ptr:
+					if propType.Implements(messageType) {
+						//protobuf类型
+						var msgBuf []byte
+						msgBuf, err = encodeMessageBuffer(propValue.(proto.Message))
+						if nil != err {
+							return err
+						}
+						err = bucket.Put([]byte(bucketKey), msgBuf)
+					}
+				case reflect.Struct:
+					if propType.AssignableTo(timeType) {
+						//时间类型
+						err = bucket.Put([]byte(bucketKey), encodeTimeBuffer(propValue.(time.Time)))
+					}
+				}
+				if nil != err {
+					return err
+				}
 			}
 		}
 		return nil

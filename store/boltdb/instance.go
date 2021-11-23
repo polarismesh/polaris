@@ -41,6 +41,7 @@ const (
 	insFieldProto      = "Proto"
 	insFieldServiceID  = "ServiceID"
 	insFieldModifyTime = "ModifyTime"
+	insFieldValid      = "Valid"
 )
 
 // AddInstance add an instance
@@ -109,8 +110,11 @@ func (i *instanceStore) UpdateInstance(instance *model.Instance) error {
 
 // DeleteInstance Delete an instance
 func (i *instanceStore) DeleteInstance(instanceID string) error {
-
-	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}); err != nil {
+	properties := make(map[string]interface{})
+	properties[insFieldValid] = false
+	curr := time.Now()
+	properties[insFieldModifyTime] = curr
+	if err := i.handler.UpdateValue(tblNameInstance, instanceID, properties); err != nil {
 		log.Errorf("[Store][boltdb] delete instance from kv error, %v", err)
 		return err
 	}
@@ -130,8 +134,11 @@ func (i *instanceStore) BatchDeleteInstances(ids []interface{}) error {
 	for _, id := range ids {
 		realIDs = append(realIDs, id.(string))
 	}
-
-	if err := i.handler.DeleteValues(tblNameInstance, realIDs); err != nil {
+	properties := make(map[string]interface{})
+	properties[insFieldValid] = false
+	curr := time.Now()
+	properties[insFieldModifyTime] = curr
+	if err := i.handler.UpdateValues(tblNameInstance, realIDs, properties); err != nil {
 		log.Errorf("[Store][boltdb] batch delete instance from kv error, %v", err)
 		return err
 	}
@@ -154,14 +161,26 @@ func (i *instanceStore) CheckInstancesExisted(ids map[string]bool) (map[string]b
 		return nil, nil
 	}
 
-	err := i.handler.IterateFields(tblNameInstance, insFieldProto, &model.Instance{}, func(ins interface{}) {
-		instance := ins.(*api.Instance)
+	fields := []string{insFieldProto, insFieldValid}
 
-		_, ok := ids[instance.GetId().GetValue()]
-		if ok {
-			ids[instance.GetId().GetValue()] = true
-		}
-	})
+	// find all instances with given ids
+	_, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
+		func(m map[string]interface{}) bool {
+			insValid, ok := m[insFieldValid]
+			if ok && !insValid.(bool) {
+				return false
+			}
+			insProto, ok := m[insFieldProto]
+			if !ok {
+				return false
+			}
+			id := insProto.(*api.Instance).GetId().GetValue()
+			_, ok = ids[id]
+			if ok {
+				ids[id] = true
+			}
+			return false
+		})
 
 	if err != nil {
 		log.Errorf("[Store][boltdb] list instance in kv error, %v", err)
@@ -178,11 +197,15 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 		return nil, nil
 	}
 
-	fields := []string{insFieldProto}
+	fields := []string{insFieldProto, insFieldValid}
 
 	// find all instances with given ids
 	inss, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
+			insValid, ok := m[insFieldValid]
+			if ok && !insValid.(bool) {
+				return false
+			}
 			insProto, ok := m[insFieldProto]
 			if !ok {
 				return false
@@ -252,10 +275,14 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 // GetInstance Query the details of an instance
 func (i *instanceStore) GetInstance(instanceID string) (*model.Instance, error) {
 
-	fields := []string{insFieldProto}
+	fields := []string{insFieldProto, insFieldValid}
 
 	ins, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
+			insValid, ok := m[insFieldValid]
+			if ok && !insValid.(bool) {
+				return false
+			}
 			insProto, ok := m[insFieldProto]
 			if !ok {
 				return false
@@ -280,11 +307,21 @@ func (i *instanceStore) GetInstance(instanceID string) (*model.Instance, error) 
 // GetInstancesCount Get the total number of instances
 func (i *instanceStore) GetInstancesCount() (uint32, error) {
 
-	count, err := i.handler.CountValues(tblNameInstance)
+	fields := []string{insFieldValid}
+
+	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
+		func(m map[string]interface{}) bool {
+			insValid, ok := m[insFieldValid]
+			if ok && !insValid.(bool) {
+				return false
+			}
+			return true
+		})
 	if err != nil {
 		log.Errorf("[Store][boltdb] get instance count error, %v", err)
 		return 0, err
 	}
+	count := len(instances)
 
 	return uint32(count), nil
 }
@@ -293,10 +330,14 @@ func (i *instanceStore) GetInstancesCount() (uint32, error) {
 func (i *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*model.Instance, error) {
 
 	// select by service_id and host
-	fields := []string{insFieldServiceID, insFieldProto}
+	fields := []string{insFieldServiceID, insFieldProto, insFieldValid}
 
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
+			insValid, ok := m[insFieldValid]
+			if ok && !insValid.(bool) {
+				return false
+			}
 			sId, ok := m[insFieldServiceID]
 			if !ok {
 				return false
@@ -348,10 +389,14 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 		filter["serviceID"] = svc.ID
 	}
 
-	fields := []string{insFieldProto, insFieldServiceID}
+	fields := []string{insFieldProto, insFieldServiceID, insFieldValid}
 
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
+			insValid, ok := m[insFieldValid]
+			if ok && !insValid.(bool) {
+				return false
+			}
 			insProto, ok := m[insFieldProto]
 			if !ok {
 				return false
