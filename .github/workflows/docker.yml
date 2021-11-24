@@ -6,8 +6,8 @@ on:
       docker_repository:
         description: 'docker repository for polaris'
         required: true
-      docker_tag:
-        description: 'docker image tag for polaris'
+      polaris_tag:
+        description: 'tag for polaris'
         required: true
       docker_username:
         description: 'docker username for login'
@@ -31,7 +31,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
         with:
-          go-version: 1.16.5
+          ref: ${{ github.event.inputs.polaris_tag }}
 
       - name: Set up Go
         uses: actions/setup-go@v2
@@ -44,7 +44,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           DOCKER_REPOSITORY: ${{ github.event.inputs.docker_repository }}
-          DOCKER_TAG: ${{ github.event.inputs.docker_tag }}
+          DOCKER_TAG: ${{ github.event.inputs.polaris_tag }}
           DOCKER_USER: ${{ github.event.inputs.docker_username }}
           DOCKER_PASS: ${{ github.event.inputs.docker_password }}
         run: |
