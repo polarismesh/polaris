@@ -24,9 +24,6 @@ jobs:
       matrix:
         goos: [linux]
         goarch: [amd64]
-        exclude:
-          - goos: linux
-            goarch: arm64
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -48,4 +45,5 @@ jobs:
           DOCKER_USER: ${{ github.event.inputs.docker_username }}
           DOCKER_PASS: ${{ github.event.inputs.docker_password }}
         run: |
+          ls -lstrh
           bash build_docker.sh ${DOCKER_REPOSITORY} ${DOCKER_TAG} ${DOCKER_USER} ${DOCKER_PASS}
