@@ -31,6 +31,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/naming"
 	. "github.com/smartystreets/goconvey/convey"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // 测试新建实例
@@ -38,7 +39,28 @@ func TestCreateInstance(t *testing.T) {
 	_, serviceResp := createCommonService(t, 100)
 	defer cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-	t.Run("正常创建实例", func(t *testing.T) {
+	t.Run("正常创建实例-服务没有提前创建", func(t *testing.T) {
+		instanceReq, instanceResp := createCommonInstance(t, &api.Service{
+			Name:      wrapperspb.String("test-nocreate-service"),
+			Namespace: utils.NewStringValue(naming.DefaultNamespace),
+		}, 1000)
+		defer cleanInstance(instanceResp.GetId().GetValue())
+
+		if instanceResp.GetId().GetValue() != "" {
+			t.Logf("pass: %s", instanceResp.GetId().GetValue())
+		} else {
+			t.Fatalf("error")
+		}
+
+		if instanceResp.GetNamespace().GetValue() == instanceReq.GetNamespace().GetValue() &&
+			instanceResp.GetService().GetValue() == instanceReq.GetService().GetValue() {
+			t.Logf("pass")
+		} else {
+			t.Fatalf("error: %+v", instanceResp)
+		}
+	})
+
+	t.Run("正常创建实例-服务已创建", func(t *testing.T) {
 		instanceReq, instanceResp := createCommonInstance(t, serviceResp, 1000)
 		defer cleanInstance(instanceResp.GetId().GetValue())
 

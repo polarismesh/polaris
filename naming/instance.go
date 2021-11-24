@@ -506,7 +506,9 @@ func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instan
 
 	resp := ret.(*api.Response)
 
-	if resp.GetCode().GetValue() != api.ExecuteSuccess {
+	retCode := resp.GetCode().GetValue()
+
+	if retCode != api.ExecuteSuccess || retCode != api.ExistedResource {
 		return resp.Code.GetValue(), errors.New(resp.GetInfo().GetValue())
 	}
 
