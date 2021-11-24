@@ -133,7 +133,7 @@ func (p *platformStore) GetPlatforms(
 
 	dbOp := p.handler
 
-	result, err := dbOp.LoadValuesByFilter(tblPlatform, utils.CollectFilterFields(query), &model.Platform{}, func(m map[string]interface{}) bool {
+	result, err := dbOp.LoadValuesByFilter(tblPlatform, utils.CollectMapKeys(query), &model.Platform{}, func(m map[string]interface{}) bool {
 		for k, v := range query {
 			qV := m[k]
 			if !reflect.DeepEqual(qV, v) {
