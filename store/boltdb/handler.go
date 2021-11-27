@@ -40,6 +40,9 @@ type BoltHandler interface {
 	// UpdateValue update properties of data object
 	UpdateValue(typ string, key string, properties map[string]interface{}) error
 
+	// UpdateValues update properties of data object
+	UpdateValues(typ string, key []string, properties []map[string]interface{}) error
+
 	// LoadValues load data objects by unique keys, return value is 'key->object' map
 	LoadValues(typ string, keys []string, typObject interface{}) (map[string]interface{}, error)
 
@@ -458,8 +461,27 @@ func (b *boltHandler) CountValues(typ string) (int, error) {
 
 // UpdateValue update properties of data object
 func (b *boltHandler) UpdateValue(typ string, key string, properties map[string]interface{}) error {
+	return b.UpdateValues(typ, []string{key}, []map[string]interface{}{properties})
+}
+
+// UpdateValues update properties of data object
+func (b *boltHandler) UpdateValues(typ string, keys []string, propertiesList []map[string]interface{}) error {
+
+	if len(keys) != len(propertiesList) {
+		return errors.New("len(keys) != len(propertiesList)")
+	}
+
 	return b.db.Update(func(tx *bolt.Tx) error {
-		return updateValue(tx, typ, key, properties)
+		cnt := len(keys)
+		for i := 0; i < cnt; i++ {
+			key := keys[i]
+			properties := propertiesList[i]
+			if err := updateValue(tx, typ, key, properties); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	})
 }
 
