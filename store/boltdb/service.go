@@ -20,11 +20,12 @@ package boltdb
 import (
 	"database/sql"
 	"errors"
-	"github.com/polarismesh/polaris-server/common/utils"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/polarismesh/polaris-server/common/utils"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
@@ -56,6 +57,9 @@ const (
 	SvcFieldOwner      = "Owner"
 	SvcFieldRevision   = "Revision"
 	SvcFieldReference  = "Reference"
+	SvcFieldCmdbMod1   = "CmdbMod1"
+	SvcFieldCmdbMod2   = "CmdbMod2"
+	SvcFieldCmdbMod3   = "CmdbMod3"
 )
 
 // AddService save a service
@@ -146,6 +150,11 @@ func (ss *serviceStore) UpdateService(service *model.Service, needUpdateOwner bo
 	properties[SvcFieldRevision] = service.Revision
 	properties[SvcFieldToken] = service.Token
 	properties[SvcFieldOwner] = service.Owner
+	properties[SvcFieldPorts] = service.Ports
+	properties[SvcFieldReference] = service.Reference
+	properties[SvcFieldCmdbMod1] = service.CmdbMod1
+	properties[SvcFieldCmdbMod2] = service.CmdbMod2
+	properties[SvcFieldCmdbMod3] = service.CmdbMod3
 	properties[SvcFieldModifyTime] = time.Now()
 
 	err := ss.handler.UpdateValue(tblNameService, service.ID, properties)

@@ -21,9 +21,11 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
-	"github.com/modern-go/reflect2"
 	"sync"
 	"time"
+
+	"github.com/modern-go/reflect2"
+	"golang.org/x/sync/singleflight"
 
 	"github.com/google/uuid"
 	"github.com/polarismesh/polaris-server/common/log"
@@ -79,6 +81,8 @@ type Server struct {
 	auth           plugin.Auth
 
 	l5service *l5service
+
+	creareServiceSingle *singleflight.Group
 }
 
 // Initialize 初始化
@@ -243,6 +247,8 @@ func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, 
 
 	// l5service
 	server.l5service = &l5service{}
+
+	server.creareServiceSingle = &singleflight.Group{}
 
 	// 插件初始化
 	pluginInitialize()
