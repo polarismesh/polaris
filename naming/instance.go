@@ -133,7 +133,7 @@ func (s *Server) createInstance(ctx context.Context, req *api.Instance, ins *api
 	// create service if absent
 	code, err := s.createServiceIfAbsent(ctx, req)
 
-	if err != nil || code != api.ExecuteSuccess {
+	if err != nil {
 		return nil, api.NewInstanceResponse(code, req)
 	}
 
@@ -509,10 +509,10 @@ func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instan
 	retCode := resp.GetCode().GetValue()
 
 	if retCode != api.ExecuteSuccess && retCode != api.ExistedResource {
-		return resp.Code.GetValue(), errors.New(resp.GetInfo().GetValue())
+		return retCode, errors.New(resp.GetInfo().GetValue())
 	}
 
-	return api.ExecuteSuccess, nil
+	return retCode, nil
 }
 
 /**
