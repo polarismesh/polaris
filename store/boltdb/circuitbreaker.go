@@ -321,7 +321,7 @@ func (c *circuitBreakerStore) ListMasterCircuitBreakers(
 
 	dbOp := c.handler
 
-	fields := utils.CollectFilterFields(filters)
+	fields := utils.CollectMapKeys(filters)
 	fields = append(fields, "Version")
 
 	results, err := dbOp.LoadValuesByFilter(tblCircuitBreaker, fields, &model.CircuitBreaker{}, func(m map[string]interface{}) bool {
@@ -385,7 +385,7 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 		delete(filters, "rule_version")
 	}
 
-	results, err := dbOp.LoadValuesByFilter(tblCircuitBreaker, utils.CollectFilterFields(filters), &model.CircuitBreaker{}, func(m map[string]interface{}) bool {
+	results, err := dbOp.LoadValuesByFilter(tblCircuitBreaker, utils.CollectMapKeys(filters), &model.CircuitBreaker{}, func(m map[string]interface{}) bool {
 		for k, v := range filters {
 			qV := m[k]
 			if !reflect.DeepEqual(qV, v) {
