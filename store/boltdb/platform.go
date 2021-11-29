@@ -50,6 +50,7 @@ func (p *platformStore) CreatePlatform(platform *model.Platform) error {
 	platformKey := platform.ID
 	platform.CreateTime = tNow
 	platform.ModifyTime = tNow
+	platform.Valid = true
 
 	dbOp := p.handler
 
@@ -74,6 +75,7 @@ func (p *platformStore) UpdatePlatform(platform *model.Platform) error {
 
 	platformKey := platform.ID
 	platform.ModifyTime = time.Now()
+	platform.Valid = true
 
 	dbOp := p.handler
 
@@ -95,7 +97,7 @@ func (p *platformStore) DeletePlatform(id string) error {
 
 	dbOp := p.handler
 
-	if err := dbOp.DeleteValues(tblPlatform, []string{platformKey}); err != nil {
+	if err := dbOp.DeleteValues(tblPlatform, []string{platformKey}, false); err != nil {
 		log.Errorf("[Store][platform] delete platform(%s) err: %s", id, err.Error())
 		return store.Error(err)
 	}

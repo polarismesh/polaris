@@ -14,7 +14,7 @@ bootstrap:
   # 注册为北极星服务
   polaris_service:
     #    probe_address: ##DB_ADDR##
-    enable_register: true
+    enable_register: false
     isolated: false
     services:
       - name: polaris.checker
@@ -122,22 +122,22 @@ cache:
 # 存储配置
 store:
   # 单机文件存储插件
-  name: boltdbStore
-  option:
-    path: ./polaris.bolt
+  # name: boltdbStore
+  # option:
+  #   path: ./polaris.bolt
 # 数据库存储插件
-#  name: defaultStore
-#  option:
-#    master:
-#      dbType: mysql
-#      dbName: polaris_server
-#      dbUser: ##DB_USER##
-#      dbPwd: ##DB_PWD##
-#      dbAddr: ##DB_ADDR##
-#      maxOpenConns: -1
-#      maxIdleConns: -1
-#      connMaxLifetime: 300 # 单位秒
-#      txIsolationLevel: 2 #LevelReadCommitted
+ name: defaultStore
+ option:
+   master:
+     dbType: mysql
+     dbName: polaris_server
+     dbUser: root ##DB_USER##
+     dbPwd: 528LcT528 ##DB_PWD##
+     dbAddr: gz-cdb-a2opd07d.sql.tencentcdb.com:58041 ##DB_ADDR##
+     maxOpenConns: -1
+     maxIdleConns: -1
+     connMaxLifetime: 300 # 单位秒
+     txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置
 plugin:
   history:

@@ -48,6 +48,7 @@ type circuitBreakerStore struct {
 // CreateCircuitBreaker create circuit breaker rule
 func (c *circuitBreakerStore) CreateCircuitBreaker(cb *model.CircuitBreaker) error {
 	dbOp := c.handler
+	cb.Valid = true
 
 	if err := dbOp.SaveValue(tblCircuitBreaker, c.buildKey(cb.ID, cb.Version), cb); err != nil {
 		log.Errorf("[Store][circuitBreaker] create circuit breaker(%s, %s, %s) err: %s",
@@ -91,6 +92,7 @@ func (c *circuitBreakerStore) tagCircuitBreaker(cb *model.CircuitBreaker) error 
 
 	cb.CreateTime = tNow
 	cb.ModifyTime = tNow
+	cb.Valid = true
 
 	if err := dbOp.SaveValue(tblCircuitBreaker, key, cb); err != nil {
 		log.Errorf("[Store][circuitBreaker] tag rule breaker(%s, %s, %s) err: %s",
@@ -130,6 +132,8 @@ func (c *circuitBreakerStore) releaseCircuitBreaker(cbr *model.CircuitBreakerRel
 		return store.NewStatusError(store.NotFoundMasterConfig, "not found tag config")
 	}
 
+	cbr.Valid = true
+
 	// 如果之前存在，就直接覆盖上一次的 release 信息
 	if err := dbOp.SaveValue(tblCircuitBreakerRelation, cbr.ServiceID, cbr); err != nil {
 		log.Errorf("[Store][circuitBreaker] tag rule relation(%s, %s, %s) err: %s",
@@ -146,7 +150,7 @@ func (c *circuitBreakerStore) UnbindCircuitBreaker(serviceID, ruleID, ruleVersio
 
 	// 删除某个服务的熔断规则
 
-	if err := dbOp.DeleteValues(tblCircuitBreakerRelation, []string{serviceID}); err != nil {
+	if err := dbOp.DeleteValues(tblCircuitBreakerRelation, []string{serviceID}, true); err != nil {
 		log.Errorf("[Store][circuitBreaker] tag rule relation(%s, %s, %s) err: %s",
 			serviceID, ruleID, ruleVersion, err.Error())
 		return store.Error(err)
@@ -159,7 +163,7 @@ func (c *circuitBreakerStore) DeleteTagCircuitBreaker(id string, version string)
 
 	dbOp := c.handler
 
-	if err := dbOp.DeleteValues(tblCircuitBreaker, []string{c.buildKey(id, version)}); err != nil {
+	if err := dbOp.DeleteValues(tblCircuitBreaker, []string{c.buildKey(id, version)}, true); err != nil {
 		log.Errorf("[Store][circuitBreaker] delete tag rule(%s, %s) err: %s", id, version, err.Error())
 		return store.Error(err)
 	}
@@ -176,6 +180,7 @@ func (c *circuitBreakerStore) DeleteMasterCircuitBreaker(id string) error {
 func (c *circuitBreakerStore) UpdateCircuitBreaker(cb *model.CircuitBreaker) error {
 
 	dbOp := c.handler
+	cb.Valid = true
 
 	if err := dbOp.SaveValue(tblCircuitBreaker, c.buildKey(cb.ID, cb.Version), cb); err != nil {
 		log.Errorf("[Store][CircuitBreaker] update rule(%s,%s) exec err: %s", cb.ID, cb.Version, err.Error())

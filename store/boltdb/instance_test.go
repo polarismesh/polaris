@@ -19,6 +19,7 @@ package boltdb
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -37,8 +38,15 @@ func TestInstanceStore_AddInstance(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
+	
+}
+
+func batchAddInstances(t *testing.T) {
 	for i := 0; i < insCount; i++ {
 
 		nowt := time.Now().Format("2006-01-02 15:04:05")
@@ -77,7 +85,10 @@ func TestInstanceStore_BatchAddInstances(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
 
 	instances := make([]*model.Instance, 0)
@@ -219,7 +230,10 @@ func TestInstanceStore_GetInstancesMainByService(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
 
 	ii, err := insStore.GetInstancesMainByService("svcid1", "1.1.1.1")
@@ -237,7 +251,10 @@ func TestInstanceStore_UpdateInstance(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
 
 	insM := &model.Instance{
@@ -285,7 +302,10 @@ func TestInstanceStore_GetInstancesBrief(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
 	sStore := &serviceStore{handler: handler}
 
@@ -429,7 +449,7 @@ func TestInstanceStore_DeleteInstance(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if ins != nil {
+	if !ins.Valid {
 		t.Fatal(fmt.Sprintf("delete instance error"))
 	}
 }
@@ -453,7 +473,7 @@ func TestInstanceStore_BatchDeleteInstances(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if ins != nil {
+	if !ins.Valid {
 		t.Fatal(fmt.Sprintf("delete instance error"))
 	}
 
@@ -462,7 +482,7 @@ func TestInstanceStore_BatchDeleteInstances(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if ins != nil {
+	if !ins.Valid {
 		t.Fatal(fmt.Sprintf("delete instance error"))
 	}
 }

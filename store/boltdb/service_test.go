@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -472,6 +473,11 @@ func TestServiceStore_DeleteServiceAlias(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	svc, err := sStore.getServiceByNameAndNs("svcname0", "testsvc")
+	assert.Nil(t, err, "error must be nil")
+
+	assert.True(t, svc.Valid, "delete service alias failed")
 }
 
 func TestServiceStore_DeleteService(t *testing.T) {
@@ -484,7 +490,7 @@ func TestServiceStore_DeleteService(t *testing.T) {
 
 	sStore := &serviceStore{handler: handler}
 
-	total, ss, err := sStore.GetServices(nil, nil, nil, 0, 20)
+	_, ss, err := sStore.GetServices(nil, nil, nil, 0, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -498,8 +504,16 @@ func TestServiceStore_DeleteService(t *testing.T) {
 	}
 
 	// check delete res
-	total, s, _ := sStore.GetServices(nil, nil, nil, 0, 20)
-	if total != 0 || len(s) != 0 {
-		t.Fatal(fmt.Sprintf("delete service not success"))
+	total, s, err := sStore.GetServices(nil, nil, nil, 0, 20)
+	if err != nil {
+		t.Fatal(err)
 	}
+	if total == 0 {
+		t.Fatal("need to run logic delete")
+	}
+
+	for _, val := range s {
+		assert.True(t, val.Valid, "delete service not effect")
+	}
+
 }

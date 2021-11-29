@@ -59,6 +59,7 @@ func (r *rateLimitStore) CreateRateLimit(limit *model.RateLimit) error {
 
 	limit.CreateTime = tNow
 	limit.ModifyTime = tNow
+	limit.Valid = true
 
 	return r.createRateLimit(limit)
 }
@@ -285,6 +286,7 @@ func (r *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 		tNow := time.Now()
 
 		limit.ModifyTime = tNow
+		limit.Valid = true
 
 		// create ratelimit_config
 		if err := saveValue(tx, tblRateLimitConfig, limit.ID, limit); err != nil {
@@ -320,13 +322,13 @@ func (r *rateLimitStore) deleteRateLimit(limit *model.RateLimit) error {
 
 	return handler.Execute(true, func(tx *bolt.Tx) error {
 
-		if err := deleteValues(tx, tblRateLimitConfig, []string{limit.ID}); err != nil {
+		if err := deleteValues(tx, tblRateLimitConfig, []string{limit.ID}, true); err != nil {
 			log.Errorf("[Store][RateLimit] delete rate_limit(%s, %s) err: %s",
 				limit.ID, limit.ServiceID, err.Error())
 			return err
 		}
 
-		if err := deleteValues(tx, tblRateLimitRevision, []string{limit.ID}); err != nil {
+		if err := deleteValues(tx, tblRateLimitRevision, []string{limit.ID}, true); err != nil {
 			log.Errorf("[Store][RateLimit] delete ratelimit_version(%s, %s) err: %s",
 				limit.ID, limit.ServiceID, err.Error())
 			return err

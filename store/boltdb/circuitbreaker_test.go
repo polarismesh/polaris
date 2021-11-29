@@ -445,7 +445,12 @@ func Test_circuitBreakerStore_UnbindCircuitBreaker(t *testing.T) {
 				}
 
 				val := result[tt.args.serviceID]
-				if val != nil {
+				if val == nil {
+					t.Fatalf("result[%s] is nil", tt.args.serviceID)
+				}
+
+				relation := val.(*model.CircuitBreakerRelation)
+				if !relation.Valid {
 					t.Fatalf("circuitBreakerStore.ReleaseCircuitBreaker() expect delete, but still exist")
 				}
 			})
@@ -509,7 +514,7 @@ func Test_circuitBreakerStore_DeleteTagCircuitBreaker(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				if nil != result {
+				if !result.Valid {
 					t.Fatal("circuitBreakerStore.DeleteTagCircuitBreaker() expect delete, but still exist")
 				}
 			})

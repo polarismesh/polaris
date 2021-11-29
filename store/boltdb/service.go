@@ -20,11 +20,12 @@ package boltdb
 import (
 	"database/sql"
 	"errors"
-	"github.com/polarismesh/polaris-server/common/utils"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/polarismesh/polaris-server/common/utils"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
@@ -56,6 +57,7 @@ const (
 	SvcFieldOwner      = "Owner"
 	SvcFieldRevision   = "Revision"
 	SvcFieldReference  = "Reference"
+	SvcFieldVaild      = "Valid"
 )
 
 // AddService save a service
@@ -78,7 +80,7 @@ func (ss *serviceStore) DeleteService(id, serviceName, namespaceName string) err
 	if id == "" {
 		return store.NewStatusError(store.EmptyParamsErr, "delete Service missing some params")
 	}
-	err := ss.handler.DeleteValues(tblNameService, []string{id})
+	err := ss.handler.DeleteValues(tblNameService, []string{id}, true)
 	return store.Error(err)
 }
 
@@ -94,7 +96,7 @@ func (ss *serviceStore) DeleteServiceAlias(name string, namespace string) error 
 		return err
 	}
 
-	err = ss.handler.DeleteValues(tblNameService, []string{svc.ID})
+	err = ss.handler.DeleteValues(tblNameService, []string{svc.ID}, true)
 	if err != nil {
 		log.Errorf("[Store][boltdb] delete service alias error, %v", err)
 	}

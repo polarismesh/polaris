@@ -19,10 +19,11 @@ package boltdb
 
 import (
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/model"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 const (
@@ -221,7 +222,7 @@ func TestTransaction_DeleteNamespace(t *testing.T) {
 		if nil != err {
 			t.Fatal(err)
 		}
-		if nil != ns {
+		if ns != nil {
 			t.Fatal(fmt.Sprintf("namespace %s exists, delete fail", name))
 		}
 	}

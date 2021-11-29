@@ -47,6 +47,7 @@ func (bs *businessStore) AddBusiness(b *model.Business) error {
 	tNow := time.Now()
 	b.CreateTime = tNow
 	b.ModifyTime = tNow
+	b.Valid = true
 
 	if err := dbOp.SaveValue(tblBusiness, b.ID, b); err != nil {
 		log.Errorf("[Store][business] add business err : %s", err.Error())
@@ -65,7 +66,7 @@ func (bs *businessStore) DeleteBusiness(bid string) error {
 
 	dbOp := bs.handler
 
-	if err := dbOp.DeleteValues(tblBusiness, []string{bid}); err != nil {
+	if err := dbOp.DeleteValues(tblBusiness, []string{bid}, false); err != nil {
 		log.Errorf("[Store][business] delete business err : %s", err.Error())
 		return store.Error(err)
 	}

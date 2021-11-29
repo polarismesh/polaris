@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -211,6 +212,7 @@ func TestRoutingStore_DeleteRoutingConfig(t *testing.T) {
 
 	rStore := &routingStore{handler: handler}
 	for i := 0; i < routeCount; i++ {
-		rStore.DeleteRoutingConfig("testid" + strconv.Itoa(i))
+		err := rStore.DeleteRoutingConfig("testid" + strconv.Itoa(i))
+		assert.Nil(t, err, "err must nil")
 	}
 }
