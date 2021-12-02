@@ -36,9 +36,9 @@ type businessStore struct {
  * @brief 增加业务集
  */
 func (bs *businessStore) AddBusiness(b *model.Business) error {
-	if b.ID == "" || b.Name == "" || b.Token == "" || b.Owner == "" {
+	if b.ID == "" || b.Name == "" {
 		log.Errorf("[Store][database] add business missing some params: %+v", b)
-		return fmt.Errorf("Add Business missing some params")
+		return fmt.Errorf("add Business missing some params, id %s, name %s", b.ID, b.Name)
 	}
 
 	str := `insert into business(id, name, token, owner, ctime, mtime) 
@@ -54,7 +54,7 @@ func (bs *businessStore) AddBusiness(b *model.Business) error {
 func (bs *businessStore) DeleteBusiness(bid string) error {
 	if bid == "" {
 		log.Errorf("[Store][database] delete business missing id")
-		return fmt.Errorf("Add Business missing some params")
+		return fmt.Errorf("add Business missing some params, bid %s", bid)
 	}
 
 	// 删除操作把对应的数据flag修改
@@ -68,9 +68,9 @@ func (bs *businessStore) DeleteBusiness(bid string) error {
  * @brief 更新业务集
  */
 func (bs *businessStore) UpdateBusiness(b *model.Business) error {
-	if b.ID == "" || b.Name == "" || b.Owner == "" {
+	if b.ID == "" || b.Name == "" {
 		log.Errorf("[Store][database] update business missing some params")
-		return fmt.Errorf("Update Business missing some params")
+		return fmt.Errorf("update Business missing some params, id %s, name %s", b.ID, b.Name)
 	}
 
 	str := "update business set name = ?, owner = ?, mtime = sysdate() where id = ?"
@@ -85,7 +85,7 @@ func (bs *businessStore) UpdateBusiness(b *model.Business) error {
 func (bs *businessStore) UpdateBusinessToken(bid string, token string) error {
 	if bid == "" || token == "" {
 		log.Errorf("[Store][business] update business token missing some params")
-		return fmt.Errorf("Update Business Token missing some params")
+		return fmt.Errorf("update Business Token missing some params, bid %s, token %s", bid, token)
 	}
 
 	str := "update business set token = ?, mtime = sysdate() where id = ?"
@@ -100,7 +100,7 @@ func (bs *businessStore) UpdateBusinessToken(bid string, token string) error {
 func (bs *businessStore) ListBusiness(owner string) ([]*model.Business, error) {
 	if owner == "" {
 		log.Errorf("[Store][business] list business missing owner")
-		return nil, fmt.Errorf("List Business Mising param owner")
+		return nil, fmt.Errorf("list Business Mising param owner")
 	}
 
 	str := genBusinessSelectSQL() + " where owner like '%?%'"
@@ -120,7 +120,7 @@ func (bs *businessStore) ListBusiness(owner string) ([]*model.Business, error) {
 func (bs *businessStore) GetBusinessByID(id string) (*model.Business, error) {
 	if id == "" {
 		log.Errorf("[Store][business] get business missing id")
-		return nil, fmt.Errorf("Get Business missing param id")
+		return nil, fmt.Errorf("get Business missing param id")
 	}
 
 	str := genBusinessSelectSQL() + " where id = ?"
