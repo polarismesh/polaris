@@ -39,7 +39,7 @@ spec:
         app: polaris
     spec:
       containers:
-      - image: ccr.ccs.tencentyun.com/polaris_mesh/polaris-server:latest
+      - image: polarismesh/polaris-server:latest
         imagePullPolicy: Always
         name: polaris-server
         resources:
