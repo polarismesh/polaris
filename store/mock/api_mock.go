@@ -114,11 +114,6 @@ func (m *MockStore) UpdateNamespace(namespace *model.Namespace) error {
 	return ret0
 }
 
-// GetNow
-func (m *MockStore) GetNow() (int64, error) {
-	return time.Now().Unix(), nil
-}
-
 // UpdateNamespace indicates an expected call of UpdateNamespace
 func (mr *MockStoreMockRecorder) UpdateNamespace(namespace interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
@@ -724,6 +719,20 @@ func (m *MockStore) SetInstanceHealthStatus(instanceID string, flag int, revisio
 func (mr *MockStoreMockRecorder) SetInstanceHealthStatus(instanceID, flag, revision interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetInstanceHealthStatus", reflect.TypeOf((*MockStore)(nil).SetInstanceHealthStatus), instanceID, flag, revision)
+}
+
+// BatchSetInstanceHealthStatus mocks base method
+func (m *MockStore) BatchSetInstanceHealthStatus(ids []interface{}, healthy int, revision string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchSetInstanceHealthStatus", ids, healthy, revision)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BatchSetInstanceHealthStatus indicates an expected call of BatchSetInstanceHealthStatus
+func (mr *MockStoreMockRecorder) BatchSetInstanceHealthStatus(ids, healthy, revision interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchSetInstanceHealthStatus", reflect.TypeOf((*MockStore)(nil).BatchSetInstanceHealthStatus), ids, healthy, revision)
 }
 
 // BatchSetInstanceIsolate mocks base method
@@ -1341,6 +1350,21 @@ func (m *MockStore) GetPlatforms(query map[string]string, offset, limit uint32) 
 func (mr *MockStoreMockRecorder) GetPlatforms(query, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlatforms", reflect.TypeOf((*MockStore)(nil).GetPlatforms), query, offset, limit)
+}
+
+// GetNow mocks base method
+func (m *MockStore) GetNow() (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNow")
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNow indicates an expected call of GetNow
+func (mr *MockStoreMockRecorder) GetNow() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNow", reflect.TypeOf((*MockStore)(nil).GetNow))
 }
 
 // MockNamespaceStore is a mock of NamespaceStore interface
@@ -2062,6 +2086,20 @@ func (m *MockInstanceStore) SetInstanceHealthStatus(instanceID string, flag int,
 func (mr *MockInstanceStoreMockRecorder) SetInstanceHealthStatus(instanceID, flag, revision interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetInstanceHealthStatus", reflect.TypeOf((*MockInstanceStore)(nil).SetInstanceHealthStatus), instanceID, flag, revision)
+}
+
+// BatchSetInstanceHealthStatus mocks base method
+func (m *MockInstanceStore) BatchSetInstanceHealthStatus(ids []interface{}, healthy int, revision string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchSetInstanceHealthStatus", ids, healthy, revision)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BatchSetInstanceHealthStatus indicates an expected call of BatchSetInstanceHealthStatus
+func (mr *MockInstanceStoreMockRecorder) BatchSetInstanceHealthStatus(ids, healthy, revision interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchSetInstanceHealthStatus", reflect.TypeOf((*MockInstanceStore)(nil).BatchSetInstanceHealthStatus), ids, healthy, revision)
 }
 
 // BatchSetInstanceIsolate mocks base method
@@ -2862,21 +2900,6 @@ func (mr *MockTransactionMockRecorder) LockNamespace(name interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LockNamespace", reflect.TypeOf((*MockTransaction)(nil).LockNamespace), name)
 }
 
-// RLockNamespace mocks base method
-func (m *MockTransaction) RLockNamespace(name string) (*model.Namespace, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RLockNamespace", name)
-	ret0, _ := ret[0].(*model.Namespace)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RLockNamespace indicates an expected call of RLockNamespace
-func (mr *MockTransactionMockRecorder) RLockNamespace(name interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RLockNamespace", reflect.TypeOf((*MockTransaction)(nil).RLockNamespace), name)
-}
-
 // DeleteNamespace mocks base method
 func (m *MockTransaction) DeleteNamespace(name string) error {
 	m.ctrl.T.Helper()
@@ -2921,45 +2944,40 @@ func (mr *MockTransactionMockRecorder) RLockService(name, namespace interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RLockService", reflect.TypeOf((*MockTransaction)(nil).RLockService), name, namespace)
 }
 
-// BatchRLockServices mocks base method
-func (m *MockTransaction) BatchRLockServices(ids map[string]bool) (map[string]bool, error) {
+// MockToolStore is a mock of ToolStore interface
+type MockToolStore struct {
+	ctrl     *gomock.Controller
+	recorder *MockToolStoreMockRecorder
+}
+
+// MockToolStoreMockRecorder is the mock recorder for MockToolStore
+type MockToolStoreMockRecorder struct {
+	mock *MockToolStore
+}
+
+// NewMockToolStore creates a new mock instance
+func NewMockToolStore(ctrl *gomock.Controller) *MockToolStore {
+	mock := &MockToolStore{ctrl: ctrl}
+	mock.recorder = &MockToolStoreMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use
+func (m *MockToolStore) EXPECT() *MockToolStoreMockRecorder {
+	return m.recorder
+}
+
+// GetNow mocks base method
+func (m *MockToolStore) GetNow() (int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BatchRLockServices", ids)
-	ret0, _ := ret[0].(map[string]bool)
+	ret := m.ctrl.Call(m, "GetNow")
+	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// BatchRLockServices indicates an expected call of BatchRLockServices
-func (mr *MockTransactionMockRecorder) BatchRLockServices(ids interface{}) *gomock.Call {
+// GetNow indicates an expected call of GetNow
+func (mr *MockToolStoreMockRecorder) GetNow() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchRLockServices", reflect.TypeOf((*MockTransaction)(nil).BatchRLockServices), ids)
-}
-
-// DeleteService mocks base method
-func (m *MockTransaction) DeleteService(name, namespace string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteService", name, namespace)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteService indicates an expected call of DeleteService
-func (mr *MockTransactionMockRecorder) DeleteService(name, namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteService", reflect.TypeOf((*MockTransaction)(nil).DeleteService), name, namespace)
-}
-
-// DeleteAliasWithSourceID mocks base method
-func (m *MockTransaction) DeleteAliasWithSourceID(sourceServiceID string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAliasWithSourceID", sourceServiceID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteAliasWithSourceID indicates an expected call of DeleteAliasWithSourceID
-func (mr *MockTransactionMockRecorder) DeleteAliasWithSourceID(sourceServiceID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAliasWithSourceID", reflect.TypeOf((*MockTransaction)(nil).DeleteAliasWithSourceID), sourceServiceID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNow", reflect.TypeOf((*MockToolStore)(nil).GetNow))
 }
