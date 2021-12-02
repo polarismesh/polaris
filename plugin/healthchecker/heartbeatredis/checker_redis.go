@@ -200,7 +200,7 @@ func (r *RedisHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckR
 		var timePass = time.Since(startTime)
 		if timePass >= maxCheckDuration {
 			log.Warnf("[Health Check][RedisCheck]check %s cost %s duration, greater than max %s duration",
-				timePass, maxCheckDuration)
+				request.InstanceId, timePass, maxCheckDuration)
 		}
 	}()
 	queryResp, err := r.Query(&request.QueryRequest)
