@@ -27,6 +27,7 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/spf13/cobra v1.2.1
+	github.com/stretchr/testify v1.7.0
 	go.uber.org/atomic v1.9.0
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.19.1
@@ -38,6 +39,7 @@ require (
 	golang.org/x/tools v0.1.7 // indirect
 	google.golang.org/genproto v0.0.0-20211129164237-f09f9a12af12 // indirect
 	google.golang.org/grpc v1.42.0
+	google.golang.org/protobuf v1.27.1
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 
