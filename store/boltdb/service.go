@@ -108,10 +108,9 @@ func (ss *serviceStore) DeleteServiceAlias(name string, namespace string) error 
 
 // UpdateServiceAlias update service alias
 func (ss *serviceStore) UpdateServiceAlias(alias *model.Service, needUpdateOwner bool) error {
-
 	if alias.ID == "" || alias.Name == "" || alias.Namespace == "" ||
-		alias.Token == "" || alias.Owner == "" || alias.Revision == "" || alias.Reference == "" {
-		return store.NewStatusError(store.EmptyParamsErr, "Update Service Alias missing some params")
+		alias.Revision == "" || alias.Reference == "" || (needUpdateOwner && alias.Owner == "") {
+		return store.NewStatusError(store.EmptyParamsErr, "update Service Alias missing some params")
 	}
 
 	properties := make(map[string]interface{})

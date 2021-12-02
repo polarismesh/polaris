@@ -76,8 +76,8 @@ func (n *namespaceStore) InitData() error {
 
 // AddNamespace add a namespace
 func (n *namespaceStore) AddNamespace(namespace *model.Namespace) error {
-	if namespace.Name == "" || namespace.Owner == "" || namespace.Token == "" {
-		return errors.New("store add namespace some param are empty")
+	if namespace.Name == "" {
+		return errors.New("store add namespace name is empty")
 	}
 	namespace.Valid = true
 	return n.handler.SaveValue(tblNameNamespace, namespace.Name, namespace)
@@ -85,8 +85,8 @@ func (n *namespaceStore) AddNamespace(namespace *model.Namespace) error {
 
 // UpdateNamespace update a namespace
 func (n *namespaceStore) UpdateNamespace(namespace *model.Namespace) error {
-	if namespace.Name == "" || namespace.Owner == "" {
-		return errors.New("store update namespace some param are empty")
+	if namespace.Name == "" {
+		return errors.New("store update namespace name is empty")
 	}
 	properties := make(map[string]interface{})
 	properties["Owner"] = namespace.Owner
@@ -98,7 +98,8 @@ func (n *namespaceStore) UpdateNamespace(namespace *model.Namespace) error {
 // UpdateNamespaceToken update the token of a namespace
 func (n *namespaceStore) UpdateNamespaceToken(name string, token string) error {
 	if name == "" || token == "" {
-		return fmt.Errorf("update Namespace Token missing some params")
+		return fmt.Errorf(
+			"store update namespace token some param are empty, name is %s, token is %s", name, token)
 	}
 	properties := make(map[string]interface{})
 	properties["Token"] = token

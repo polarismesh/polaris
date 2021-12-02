@@ -39,8 +39,8 @@ type namespaceStore struct {
  * @brief 添加命名空间
  */
 func (ns *namespaceStore) AddNamespace(namespace *model.Namespace) error {
-	if namespace.Name == "" || namespace.Owner == "" || namespace.Token == "" {
-		return errors.New("store add namespace some param are empty")
+	if namespace.Name == "" {
+		return errors.New("store add namespace name is empty")
 	}
 
 	// 先删除无效数据，再添加新数据
@@ -57,8 +57,8 @@ func (ns *namespaceStore) AddNamespace(namespace *model.Namespace) error {
  * @brief 更新命名空间，目前只更新owner
  */
 func (ns *namespaceStore) UpdateNamespace(namespace *model.Namespace) error {
-	if namespace.Name == "" || namespace.Owner == "" {
-		return errors.New("store update namespace some param are empty")
+	if namespace.Name == "" {
+		return errors.New("store update namespace name is empty")
 	}
 
 	str := "update namespace set owner = ?, comment = ?,mtime = sysdate() where name = ?"
@@ -71,7 +71,8 @@ func (ns *namespaceStore) UpdateNamespace(namespace *model.Namespace) error {
  */
 func (ns *namespaceStore) UpdateNamespaceToken(name string, token string) error {
 	if name == "" || token == "" {
-		return fmt.Errorf("Update Namespace Token missing some params")
+		return fmt.Errorf(
+			"store update namespace token some param are empty, name is %s, token is %s", name, token)
 	}
 
 	str := "update namespace set token = ?, mtime = sysdate() where name = ?"
@@ -84,7 +85,7 @@ func (ns *namespaceStore) UpdateNamespaceToken(name string, token string) error 
  */
 func (ns *namespaceStore) ListNamespaces(owner string) ([]*model.Namespace, error) {
 	if owner == "" {
-		return nil, errors.New("store lst namespaces owner is empty")
+		return nil, errors.New("store list namespaces owner is empty")
 	}
 
 	str := genNamespaceSelectSQL() + " where owner like '%?%'"
