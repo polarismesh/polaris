@@ -19,6 +19,11 @@ package local
 
 import (
 	"fmt"
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/plugin"
+	"math"
+	"sync"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -27,40 +32,52 @@ import (
  * APICall 接口调用
  */
 type APICall struct {
-	api      string
-	code     int
-	duration int64
-	protocol string
+	api       string
+	code      int
+	duration  int64
+	protocol  string
+	component string
 }
 
 /**
  * APICallStatisItem 接口调用统计条目
  */
 type APICallStatisItem struct {
-	api     string
-	code    int
-	count   int64
-	accTime int64
-	minTime int64
-	maxTime int64
+	api          string
+	code         int
+	count        int64
+	accTime      int64
+	minTime      int64
+	maxTime      int64
+	protocol     string
+	zeroDuration int64 // 没有请求持续的时间，持续时间长超过阈值从 prometheus 中移除掉
 }
 
-/**
- * APICallStatis 接口调用统计
- */
-type APICallStatis struct {
+// ComponentStatics statics components
+type ComponentStatics struct {
+	mutex *sync.Mutex
+
 	statis map[string]*APICallStatisItem
 
 	logger *zap.Logger
+
+	apiCallStatis *APICallStatis
 }
 
-/**
- * @brief 添加接口调用数据
- */
-func (a *APICallStatis) add(ac *APICall) {
-	index := fmt.Sprintf("%v-%v", ac.api, ac.code)
+func newComponentStatics(outputPath string, component string, statis *APICallStatis) *ComponentStatics {
+	fileName := "apicall.log"
+	fileName = fmt.Sprintf("%s-%s", component, fileName)
+	return &ComponentStatics{
+		mutex:         &sync.Mutex{},
+		statis:        make(map[string]*APICallStatisItem),
+		logger:        newLogger(outputPath + "/" + fileName),
+		apiCallStatis: statis,
+	}
+}
 
-	item, exist := a.statis[index]
+func (c *ComponentStatics) add(ac *APICall) {
+	index := fmt.Sprintf("%v-%v", ac.api, ac.code)
+	item, exist := c.statis[index]
 	if exist {
 		item.count++
 
@@ -72,31 +89,30 @@ func (a *APICallStatis) add(ac *APICall) {
 			item.maxTime = ac.duration
 		}
 	} else {
-		a.statis[index] = &APICallStatisItem{
-			api:     ac.api,
-			code:    ac.code,
-			count:   1,
-			accTime: ac.duration,
-			minTime: ac.duration,
-			maxTime: ac.duration,
+		c.statis[index] = &APICallStatisItem{
+			api:      ac.api,
+			code:     ac.code,
+			count:    1,
+			accTime:  ac.duration,
+			minTime:  ac.duration,
+			maxTime:  ac.duration,
+			protocol: ac.protocol,
 		}
 	}
 }
 
-/**
- * @brief 打印接口调用统计
- */
-func (a *APICallStatis) log() {
-	if len(a.statis) == 0 {
-		a.logger.Info("Statis: No API Call\n")
-		return
-	}
+func (c *ComponentStatics) printStatics(staticsSlice []*APICallStatisItem, startStr string) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	msg := fmt.Sprintf("Statis %s:\n", startStr)
 
-	msg := "Statis:\n"
+	msg += fmt.Sprintf(
+		"%-48v|%12v|%12v|%12v|%12v|%12v|\n", "", "Code", "Count", "Min(ms)", "Max(ms)", "Avg(ms)")
 
-	msg += fmt.Sprintf("%-48v|%12v|%12v|%12v|%12v|%12v|\n", "", "Code", "Count", "Min(ms)", "Max(ms)", "Avg(ms)")
-
-	for _, item := range a.statis {
+	for _, item := range staticsSlice {
+		if item.count == 0 {
+			continue
+		}
 		msg += fmt.Sprintf("%-48v|%12v|%12v|%12.3f|%12.3f|%12.3f|\n",
 			item.api, item.code, item.count,
 			float32(item.minTime)/1e6,
@@ -104,8 +120,129 @@ func (a *APICallStatis) log() {
 			float32(item.accTime)/float32(item.count)/1e6,
 		)
 	}
+	c.logger.Info(msg)
+}
 
-	a.logger.Info(msg)
+// log and print the statics messages
+func (c *ComponentStatics) log() {
+	startTime := time.Now()
+	startStr := startTime.Format("2006-01-02 15:04:05")
+	if len(c.statis) == 0 {
+		c.logger.Info(fmt.Sprintf("Statis %s: No API Call\n", startStr))
+		return
+	}
+	defer func() {
+		passDuration := time.Since(startTime)
+		if passDuration >= maxLogWaitDuration {
+			log.Warnf("[APICall]api static log duration %s, pass max %s", passDuration, maxLogWaitDuration)
+		}
+	}()
 
-	a.statis = make(map[string]*APICallStatisItem)
+	duplicateStatis := make([]*APICallStatisItem, 0, len(c.statis))
+	for _, item := range c.statis {
+		duplicateStatis = append(duplicateStatis, item)
+	}
+	c.statis = make(map[string]*APICallStatisItem)
+
+	go c.printStatics(duplicateStatis, startStr)
+}
+
+// log and print the statics messages
+func (c *ComponentStatics) collect() {
+	startTime := time.Now()
+	startStr := startTime.Format("2006-01-02 15:04:05")
+	if len(c.statis) == 0 {
+		c.logger.Info(fmt.Sprintf("Statis %s: No API Call\n", startStr))
+		return
+	}
+	defer func() {
+		passDuration := time.Since(startTime)
+		if passDuration >= maxLogWaitDuration {
+			log.Warnf("[APICall]api static log duration %s, pass max %s", passDuration, maxLogWaitDuration)
+		}
+	}()
+
+	duplicateStatis := make([]*APICallStatisItem, 0, len(c.statis))
+	currStatis := c.statis
+	c.statis = make(map[string]*APICallStatisItem)
+	for key, item := range currStatis {
+		duplicateStatis = append(duplicateStatis, item)
+		if item.count == 0 {
+			item.zeroDuration++
+			item.minTime = 0
+		} else {
+			item.zeroDuration = 0
+		}
+
+		if item.zeroDuration <= maxZeroDuration {
+			c.statis[key] = &APICallStatisItem{
+				api:          item.api,
+				code:         item.code,
+				count:        0,
+				protocol:     item.protocol,
+				accTime:      0,
+				minTime:      math.MaxInt64,
+				maxTime:      0,
+				zeroDuration: item.zeroDuration,
+			}
+		}
+	}
+
+	go c.apiCallStatis.collectMetricData(duplicateStatis)
+	go c.printStatics(duplicateStatis, startStr)
+}
+
+/**
+ * APICallStatis 接口调用统计
+ */
+type APICallStatis struct {
+	components       map[string]*ComponentStatics
+	prometheusStatis *PrometheusStatis
+}
+
+func newAPICallStatis(outputPath string) (*APICallStatis, error) {
+	value := &APICallStatis{
+		components: make(map[string]*ComponentStatics),
+	}
+	componentNames := []string{plugin.ComponentServer, plugin.ComponentRedis}
+	for _, componentName := range componentNames {
+		value.components[componentName] = newComponentStatics(outputPath, componentName, value)
+	}
+
+	// 初始化 prometheus 输出
+	prometheusStatis, err := NewPrometheusStatis()
+	if err != nil {
+		return nil, err
+	}
+	value.prometheusStatis = prometheusStatis
+
+	return value, nil
+}
+
+/**
+ * @brief 添加接口调用数据
+ */
+func (a *APICallStatis) add(ac *APICall) {
+	a.components[ac.component].add(ac)
+}
+
+const (
+	maxLogWaitDuration = 800 * time.Millisecond
+	maxZeroDuration    = 3
+	metricsNumber      = 4
+)
+
+/**
+ * @brief 打印接口调用统计
+ */
+func (a *APICallStatis) log() {
+	for name, component := range a.components {
+		// server 的请求指标，同时输出到日志和 prometheus
+		if name == plugin.ComponentServer {
+			component.collect()
+		} else {
+			component.log()
+		}
+
+	}
 }

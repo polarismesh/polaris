@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/polarismesh/polaris-server/healthcheck"
+	"github.com/polarismesh/polaris-server/plugin/statis/local"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -37,8 +38,6 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/naming"
 	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/plugin/statis/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
 
@@ -296,7 +295,7 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 	}
 
 	statis := plugin.GetStatis()
-	if _, ok := statis.(*prometheus.PrometheusStatis); ok {
+	if _, ok := statis.(*local.StatisWorker); ok {
 		h.enablePrometheusAccess(wsContainer)
 	}
 
@@ -315,10 +314,10 @@ func (h *HTTPServer) enablePprofAccess(wsContainer *restful.Container) {
 // 开启 Prometheus 接口
 func (h *HTTPServer) enablePrometheusAccess(wsContainer *restful.Container) {
 	log.Infof("open http access for prometheus")
-	wsContainer.Handle("/metrics", promhttp.HandlerFor(
-		plugin.GetStatis().(*prometheus.PrometheusStatis).GetRegistry(),
-		promhttp.HandlerOpts{},
-	))
+
+	statis := plugin.GetStatis().(*local.StatisWorker)
+
+	wsContainer.Handle("/metrics", statis.GetPrometheusHandler())
 }
 
 /**

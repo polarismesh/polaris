@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/redispool"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
 	"strconv"
 	"strings"
@@ -35,32 +36,23 @@ const (
 	PluginName = "heartbeatRedis"
 	// Sep separator to divide id and timestamp
 	Sep = ":"
+	// Servers key to manage hb servers
+	Servers = "servers"
 )
 
 // RedisHealthChecker
 type RedisHealthChecker struct {
-	redisPool *redispool.Pool
+	//用于写入心跳数据的池
+	hbPool *redispool.Pool
+	//用于检查回调的池
+	checkPool *redispool.Pool
 	cancel    context.CancelFunc
-	respChan  chan *redispool.Resp
+	statis    plugin.Statis
 }
 
 // Name
 func (r *RedisHealthChecker) Name() string {
 	return PluginName
-}
-
-func (r *RedisHealthChecker) processRedisResp(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case resp := <-r.respChan:
-			if resp.Err != nil {
-				log.Errorf("[Health Check][RedisCheck]id:%s set redis err:%s",
-					resp.Value, resp.Err)
-			}
-		}
-	}
 }
 
 // Initialize
@@ -73,13 +65,23 @@ func (r *RedisHealthChecker) Initialize(c *plugin.ConfigEntry) error {
 	if err = json.Unmarshal(redisBytes, config); nil != err {
 		return fmt.Errorf("fail to unmarshal %s config entry, err is %v", PluginName, err)
 	}
-	r.respChan = make(chan *redispool.Resp)
+	r.statis = plugin.GetStatis()
 	var ctx context.Context
 	ctx, r.cancel = context.WithCancel(context.Background())
-	go r.processRedisResp(ctx)
-	r.redisPool = redispool.NewPool(ctx, config)
-	r.redisPool.Start()
+	r.hbPool = redispool.NewPool(ctx, config, r.statis)
+	r.hbPool.Start()
+	r.checkPool = redispool.NewPool(ctx, config, r.statis)
+	r.checkPool.Start()
+	if err = r.registerSelf(); nil != err {
+		return fmt.Errorf("fail to register %s to redis, err is %v", utils.LocalHost, err)
+	}
 	return nil
+}
+
+func (r *RedisHealthChecker) registerSelf() error {
+	localhost := utils.LocalHost
+	resp := r.checkPool.Sdd(Servers, []string{localhost})
+	return resp.Err
 }
 
 // Destroy
@@ -93,21 +95,78 @@ func (r *RedisHealthChecker) Type() plugin.HealthCheckType {
 	return plugin.HealthCheckerHeartbeat
 }
 
+// HeathCheckRecord 心跳记录
+type HeathCheckRecord struct {
+	LocalHost  string
+	CurTimeSec int64
+}
+
+// IsEmpty 是否空对象
+func (h *HeathCheckRecord) IsEmpty() bool {
+	return len(h.LocalHost) == 0 && h.CurTimeSec == 0
+}
+
+// Serialize 序列化成字符串
+func (h *HeathCheckRecord) Serialize(compatible bool) string {
+	if compatible {
+		return fmt.Sprintf("1%s%d%s%s", Sep, h.CurTimeSec, Sep, h.LocalHost)
+	}
+	return fmt.Sprintf("%d%s%s", h.CurTimeSec, Sep, h.LocalHost)
+}
+
+func parseHeartbeatValue(value string, startIdx int) (host string, curTimeSec int64, err error) {
+	tokens := strings.Split(value, Sep)
+	if len(tokens) != startIdx+2 {
+		return "", 0, fmt.Errorf("invalid redis value %s", value)
+	}
+	lastHeartbeatTimeStr := tokens[startIdx]
+	lastHeartbeatTime, err := strconv.ParseInt(lastHeartbeatTimeStr, 10, 64)
+	if err != nil {
+		return "", 0, err
+	}
+	host = tokens[startIdx+1]
+	curTimeSec = lastHeartbeatTime
+	return host, curTimeSec, nil
+}
+
+// Deserialize 反序列为对象
+func (h *HeathCheckRecord) Deserialize(value string, compatible bool) error {
+	if len(value) == 0 {
+		return nil
+	}
+	var err error
+	if compatible {
+		h.LocalHost, h.CurTimeSec, err = parseHeartbeatValue(value, 1)
+	} else {
+		h.LocalHost, h.CurTimeSec, err = parseHeartbeatValue(value, 0)
+	}
+	return err
+}
+
+// String
+func (h HeathCheckRecord) String() string {
+	return fmt.Sprintf("{LocalHost=%s, CurTimeSec=%d}", h.LocalHost, h.CurTimeSec)
+}
+
 // Report process heartbeat info report
 func (r *RedisHealthChecker) Report(request *plugin.ReportRequest) error {
-	value := fmt.Sprintf("%d%s%s", request.CurTimeSec, Sep, request.LocalHost)
-	log.Debugf("[Health Check][RedisCheck]redis set key is %s, value is %s", request.InstanceId, value)
-	return r.redisPool.Set(request.InstanceId, value, r.respChan)
+	value := &HeathCheckRecord{
+		LocalHost:  request.LocalHost,
+		CurTimeSec: request.CurTimeSec,
+	}
+	log.Debugf("[Health Check][RedisCheck]redis set key is %s, value is %s", request.InstanceId, *value)
+	resp := r.hbPool.Set(request.InstanceId, value)
+	if resp.Err != nil {
+		log.Errorf("[Health Check][RedisCheck]addr:%s:%d, id:%s, set redis err:%s",
+			request.Host, request.Port, request.InstanceId, resp.Err)
+		return resp.Err
+	}
+	return nil
 }
 
 // Query query the heartbeat time
 func (r *RedisHealthChecker) Query(request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
-	respCh := make(chan *redispool.Resp)
-	err := r.redisPool.Get(request.InstanceId, respCh)
-	if nil != err {
-		return nil, err
-	}
-	resp := <-respCh
+	resp := r.checkPool.Get(request.InstanceId)
 	if resp.Err != nil {
 		log.Errorf("[Health Check][RedisCheck]addr:%s:%d, id:%s, get redis err:%s",
 			request.Host, request.Port, request.InstanceId, resp.Err)
@@ -120,26 +179,30 @@ func (r *RedisHealthChecker) Query(request *plugin.QueryRequest) (*plugin.QueryR
 	if len(value) == 0 {
 		return queryResp, nil
 	}
-	tokens := strings.Split(value, Sep)
-	if len(tokens) != 2 {
-		log.Errorf("[Health Check][RedisCheck]addr:%s:%d, id:%s, invalid redis value:%s",
-			request.Host, request.Port, request.InstanceId, value)
-		return nil, fmt.Errorf("invalid redis value %s", value)
+	heathCheckRecord := &HeathCheckRecord{}
+	err := heathCheckRecord.Deserialize(value, resp.Compatible)
+	if err != nil {
+		log.Errorf("[Health Check][RedisCheck]addr is %s:%d, id is %s, parse %s err:%v",
+			request.Host, request.Port, request.InstanceId, value, err)
+		return nil, err
 	}
-	lastHeartbeatTimeStr := tokens[0]
-	lastHeartbeatTime, err := strconv.ParseInt(lastHeartbeatTimeStr, 10, 64)
-	if resp.Err != nil {
-		log.Errorf("[Health Check][RedisCheck]addr is %s:%d, id is %s, parse heartbeatTime %s err:%v",
-			request.Host, request.Port, request.InstanceId, lastHeartbeatTimeStr, err)
-		return nil, resp.Err
-	}
-	queryResp.Server = tokens[1]
-	queryResp.LastHeartbeatSec = lastHeartbeatTime
+	queryResp.Server = heathCheckRecord.LocalHost
+	queryResp.LastHeartbeatSec = heathCheckRecord.CurTimeSec
 	return queryResp, nil
 }
 
+const maxCheckDuration = 500 * time.Second
+
 // Report process the instance check
 func (r *RedisHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckResponse, error) {
+	var startTime = time.Now()
+	defer func() {
+		var timePass = time.Since(startTime)
+		if timePass >= maxCheckDuration {
+			log.Warnf("[Health Check][RedisCheck]check %s cost %s duration, greater than max %s duration",
+				request.InstanceId, timePass, maxCheckDuration)
+		}
+	}()
 	queryResp, err := r.Query(&request.QueryRequest)
 	if nil != err {
 		return nil, err
@@ -148,39 +211,81 @@ func (r *RedisHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckR
 	checkResp := &plugin.CheckResponse{
 		LastHeartbeatTimeSec: lastHeartbeatTime,
 	}
-	recoverTimeSec := r.redisPool.RecoverTimeSec()
+	recoverTimeSec := r.checkPool.RecoverTimeSec()
 	localCurTimeSec := time.Now().Unix()
+	//redis恢复期，不做变更
 	if localCurTimeSec >= recoverTimeSec && localCurTimeSec-recoverTimeSec < int64(request.ExpireDurationSec) {
-		checkResp.OnRecover = true
+		log.Infof("[Health Check][RedisCheck]health check redis on recover, "+
+			"recoverTimeSec is %d, localCurTimeSec is %d, expireDurationSec is %d, id %s",
+			recoverTimeSec, localCurTimeSec, request.ExpireDurationSec, request.InstanceId)
+		checkResp.StayUnchanged = true
+		return checkResp, nil
 	}
-	if request.CurTimeSec > lastHeartbeatTime {
-		if request.CurTimeSec-lastHeartbeatTime >= int64(request.ExpireDurationSec) {
-			//心跳超时
-			checkResp.Healthy = false
-			if request.Healthy {
-				log.Infof("[Health Check][RedisCheck]health check expired, "+
-					"last hb timestamp is %d, curTimeSec is %d, expireDurationSec is %d instanceId %s",
-					lastHeartbeatTime, request.CurTimeSec, request.ExpireDurationSec, request.InstanceId)
+	curTimeSec := request.CurTimeSec()
+	//出现时间倒退，不对心跳状态做变更
+	if curTimeSec < lastHeartbeatTime {
+		log.Infof("[Health Check][RedisCheck]time reverse, curTime is %d, last heartbeat time is %d, id %s",
+			curTimeSec, lastHeartbeatTime, request.InstanceId)
+		checkResp.StayUnchanged = true
+		return checkResp, nil
+	}
+	//正常进行心跳中
+	checkResp.Regular = true
+	if curTimeSec-lastHeartbeatTime >= int64(request.ExpireDurationSec) {
+		//心跳超时
+		checkResp.Healthy = false
+		if request.Healthy {
+			log.Infof("[Health Check][RedisCheck]health check expired, "+
+				"last hb timestamp is %d, curTimeSec is %d, expireDurationSec is %d instanceId %s",
+				lastHeartbeatTime, curTimeSec, request.ExpireDurationSec, request.InstanceId)
+		} else {
+			checkResp.StayUnchanged = true
+		}
+		if queryResp.Exists {
+			err := r.Delete(request.InstanceId)
+			if err != nil {
+				log.Errorf("[Health Check][RedisCheck]addr is %s:%d, id is %s, delete redis err is %s",
+					request.Host, request.Port, request.InstanceId, err)
+				return nil, err
 			}
-			if queryResp.Exists {
-				respCh := make(chan *redispool.Resp)
-				err = r.redisPool.Del(request.InstanceId, respCh)
-				if nil != err {
-					return nil, err
-				}
-				resp := <-respCh
-				if resp.Err != nil {
-					log.Errorf("[Health Check][RedisCheck]addr is %s:%d, id is %s, delete redis err is %s",
-						request.Host, request.Port, request.InstanceId, resp.Err)
-					return nil, resp.Err
-				}
-			}
-			return checkResp, nil
+		}
+	} else {
+		//心跳恢复
+		checkResp.Healthy = true
+		if !request.Healthy {
+			log.Infof("[Health Check][RedisCheck]health check resumed, "+
+				"last hb timestamp is %d, curTimeSec is %d, expireDurationSec is %d instanceId %s",
+				lastHeartbeatTime, curTimeSec, request.ExpireDurationSec, request.InstanceId)
+		} else {
+			checkResp.StayUnchanged = true
 		}
 	}
-	checkResp.Healthy = true
 	log.Debugf("[Health Check][RedisCheck]instanceId is %s, healthy is %v", request.InstanceId, checkResp.Healthy)
 	return checkResp, nil
+}
+
+// AddToCheck add the instances to check procedure
+func (r *RedisHealthChecker) AddToCheck(request *plugin.AddCheckRequest) error {
+	if len(request.Instances) == 0 {
+		return nil
+	}
+	resp := r.checkPool.Sdd(request.LocalHost, request.Instances)
+	return resp.Err
+}
+
+// AddToCheck add the instances to check procedure
+func (r *RedisHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) error {
+	if len(request.Instances) == 0 {
+		return nil
+	}
+	resp := r.checkPool.Srem(request.LocalHost, request.Instances)
+	return resp.Err
+}
+
+// Delete delete the target id
+func (r *RedisHealthChecker) Delete(id string) error {
+	resp := r.checkPool.Del(id)
+	return resp.Err
 }
 
 func init() {

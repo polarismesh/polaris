@@ -527,15 +527,16 @@ func (x *XDSServer) pushRegistryInfoToXDSCache(registryInfo map[string][]*Servic
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
 
 	for ns, _ := range registryInfo {
-		snapshot := cachev3.NewSnapshot(
-			versionLocal,
-			makeEndpoints(registryInfo[ns]),
-			makeClusters(registryInfo[ns]),
-			makeVirtualHosts(registryInfo[ns]),
-			makeListeners(),
-			[]types.Resource{},
-			[]types.Resource{})
-
+		resources := make(map[resource.Type][]types.Resource)
+		resources[resource.EndpointType] = makeEndpoints(registryInfo[ns])
+		resources[resource.ClusterType] = makeClusters(registryInfo[ns])
+		resources[resource.RouteType] = makeVirtualHosts(registryInfo[ns])
+		resources[resource.ListenerType] = makeListeners()
+		snapshot, err := cachev3.NewSnapshot(versionLocal, resources)
+		if nil != err {
+			log.Errorf("fail to create snapshot for %s, err is %v", ns, err)
+			return err
+		}
 		// 检查 snapshot 一致性
 		if err := snapshot.Consistent(); err != nil {
 			log.Errorf("snapshot inconsistency: %v, err is %v", snapshot, err)
@@ -545,7 +546,7 @@ func (x *XDSServer) pushRegistryInfoToXDSCache(registryInfo map[string][]*Servic
 		log.Infof("will serve ns: %s ,snapshot: %+v", ns, snapshot)
 
 		// 为每个 ns 刷写 cache ，推送 xds 更新
-		if err := x.cache.SetSnapshot(ns, snapshot); err != nil {
+		if err := x.cache.SetSnapshot(context.Background(), ns, snapshot); err != nil {
 			log.Errorf("snapshot error %q for %+v", err, snapshot)
 			return err
 		}

@@ -22,8 +22,10 @@ import (
 	"errors"
 	"fmt"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/naming/batch"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
 	"strconv"
@@ -47,6 +49,7 @@ type Server struct {
 	checkScheduler *CheckScheduler
 	history        plugin.History
 	localHost      string
+	bc             *batch.Controller
 }
 
 // Initialize 初始化
@@ -71,6 +74,7 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool) error {
 	if !cacheOpen {
 		return fmt.Errorf("[healthcheck]cache not open")
 	}
+	hcOpt.SetDefault()
 	if len(hcOpt.Checkers) > 0 {
 		server.checkers = make(map[int32]plugin.HealthChecker, len(hcOpt.Checkers))
 		for _, entry := range hcOpt.Checkers {
@@ -85,11 +89,25 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool) error {
 	if server.storage, err = store.GetStore(); nil != err {
 		return err
 	}
+	// 批量控制器
+	batchConfig, err := batch.ParseBatchConfig(hcOpt.Batch)
+	if err != nil {
+		return err
+	}
+	bc, err := batch.NewBatchCtrlWithConfig(server.storage, nil, plugin.GetAuth(), batchConfig)
+	if err != nil {
+		log.Errorf("new batch ctrl with config err: %s", err.Error())
+		return err
+	}
+	server.bc = bc
+	if server.bc != nil {
+		server.bc.Start(ctx)
+	}
 	server.localHost = hcOpt.LocalHost
 	server.history = plugin.GetHistory()
 	server.cacheProvider = newCacheProvider(hcOpt.Service)
 	server.timeAdjuster = newTimeAdjuster(ctx)
-	server.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum)
+	server.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval, hcOpt.MaxCheckInterval)
 	server.dispatcher = newDispatcher(ctx)
 	return nil
 }

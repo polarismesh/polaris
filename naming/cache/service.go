@@ -63,6 +63,9 @@ type ServiceCache interface {
 	// GetServiceByFilter 通过filter在缓存中进行服务过滤
 	GetServicesByFilter(serviceFilters *ServiceArgs,
 		instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error)
+
+	// Update 查询触发更新接口
+	Update() error
 }
 
 /**
@@ -70,7 +73,8 @@ type ServiceCache interface {
  */
 type serviceCache struct {
 	storage         store.Store
-	lastMtime       time.Time
+	lastMtime       int64
+	lastMtimeLogged int64
 	firstUpdate     bool
 	ids             *sync.Map // id -> service
 	names           *sync.Map // space -> [serviceName -> service]
@@ -106,7 +110,7 @@ func newServiceCache(storage store.Store, ch chan *revisionNotify, instCache Ins
  */
 func (sc *serviceCache) initialize(opt map[string]interface{}) error {
 	sc.singleFlight = new(singleflight.Group)
-	sc.lastMtime = time.Unix(0, 0)
+	sc.lastMtime = 0
 	sc.ids = new(sync.Map)
 	sc.names = new(sync.Map)
 	sc.cl5Sid2Name = new(sync.Map)
@@ -120,6 +124,11 @@ func (sc *serviceCache) initialize(opt map[string]interface{}) error {
 	return nil
 }
 
+// LastMtime 最后一次更新时间
+func (sc *serviceCache) LastMtime() time.Time {
+	return time.Unix(sc.lastMtime, 0)
+}
+
 /**
  * @brief Service缓存更新函数
  *
@@ -128,6 +137,9 @@ func (sc *serviceCache) initialize(opt map[string]interface{}) error {
 func (sc *serviceCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := sc.singleFlight.Do(ServiceName, func() (interface{}, error) {
+		defer func() {
+			sc.lastMtimeLogged = logLastMtime(sc.lastMtimeLogged, sc.lastMtime, "Service")
+		}()
 		return nil, sc.realUpdate()
 	})
 	return err
@@ -136,7 +148,8 @@ func (sc *serviceCache) update() error {
 func (sc *serviceCache) realUpdate() error {
 	// 获取几秒前的全部数据
 	start := time.Now()
-	services, err := sc.storage.GetMoreServices(sc.lastMtime.Add(DefaultTimeDiff),
+	lastMtime := sc.LastMtime()
+	services, err := sc.storage.GetMoreServices(lastMtime.Add(DefaultTimeDiff),
 		sc.firstUpdate, sc.disableBusiness, sc.needMeta)
 	if err != nil {
 		log.Errorf("[Cache][Service] update services err: %s", err.Error())
@@ -146,7 +159,7 @@ func (sc *serviceCache) realUpdate() error {
 	sc.firstUpdate = false
 	update, del := sc.setServices(services)
 	log.Debug("[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
-		zap.Time("last", sc.lastMtime), zap.Duration("used", time.Now().Sub(start)))
+		zap.Time("last", lastMtime), zap.Duration("used", time.Now().Sub(start)))
 	return nil
 }
 
@@ -158,7 +171,7 @@ func (sc *serviceCache) clear() error {
 	sc.names = new(sync.Map)
 	sc.cl5Sid2Name = new(sync.Map)
 	sc.cl5Names = new(sync.Map)
-	sc.lastMtime = time.Unix(0, 0)
+	sc.lastMtime = 0
 	return nil
 }
 
@@ -275,7 +288,7 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 	progress := 0
 	update := 0
 	del := 0
-	lastMtime := sc.lastMtime.Unix()
+	lastMtime := sc.lastMtime
 	for _, service := range services {
 		progress++
 		if progress%20000 == 0 {
@@ -310,8 +323,8 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 		/******兼容cl5******/
 	}
 
-	if sc.lastMtime.Unix() < lastMtime {
-		sc.lastMtime = time.Unix(lastMtime, 0)
+	if sc.lastMtime < lastMtime {
+		sc.lastMtime = lastMtime
 	}
 
 	return update, del

@@ -17,23 +17,35 @@
 
 package sqldb
 
-import "github.com/polarismesh/polaris-server/common/log"
+import (
+	"github.com/polarismesh/polaris-server/common/log"
+	"time"
+)
 
 // toolStore 实现了ToolStoreStore
 type toolStore struct {
 	db *BaseDB
 }
 
-const nowSql = `select UNIX_TIMESTAMP(SYSDATE())`
+const (
+	nowSql           = `select UNIX_TIMESTAMP(SYSDATE())`
+	maxQueryInterval = time.Second
+)
 
 // GetNow 获取当前时间，单位秒
 func (t *toolStore) GetNow() (int64, error) {
+	startTime := time.Now()
 	rows, err := t.db.Query(nowSql)
 	if err != nil {
 		log.Errorf("[Store][database] query now err: %s", err.Error())
 		return 0, err
 	}
 	defer rows.Close()
+	timePass := time.Since(startTime)
+	if timePass > maxQueryInterval {
+		log.Infof("[Store][database] query now spend %s, exceed %s, skip", timePass, maxQueryInterval)
+		return 0, nil
+	}
 	var value int64
 	for rows.Next() {
 		if err := rows.Scan(&value); err != nil {

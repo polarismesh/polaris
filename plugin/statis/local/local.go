@@ -18,6 +18,9 @@
 package local
 
 import (
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/store"
+	"net/http"
 	"time"
 
 	"github.com/polarismesh/polaris-server/plugin"
@@ -52,8 +55,8 @@ func (s *StatisWorker) Name() string {
  * Initialize 初始化统计插件
  */
 func (s *StatisWorker) Initialize(conf *plugin.ConfigEntry) error {
-
 	// 设置统计打印周期
+	var err error
 	interval := conf.Option["interval"].(int)
 	s.interval = time.Duration(interval) * time.Second
 
@@ -61,11 +64,10 @@ func (s *StatisWorker) Initialize(conf *plugin.ConfigEntry) error {
 
 	// 初始化接口调用统计
 	s.acc = make(chan *APICall, 1024)
-	s.acs = &APICallStatis{
-		statis: make(map[string]*APICallStatisItem),
-		logger: newLogger(outputPath + "/" + "apicall.log"),
+	s.acs, err = newAPICallStatis(outputPath)
+	if err != nil {
+		return err
 	}
-
 	go s.Run()
 
 	return nil
@@ -78,24 +80,71 @@ func (s *StatisWorker) Destroy() error {
 	return nil
 }
 
+const maxAddDuration = 800 * time.Millisecond
+
 /**
  * AddAPICall 上报请求
  */
-func (s *StatisWorker) AddAPICall(api, protocol string, code int, duration int64) error {
+func (s *StatisWorker) AddAPICall(api string, protocol string, code int, duration int64) error {
+	startTime := time.Now()
 	s.acc <- &APICall{
-		api:      api,
-		code:     code,
-		protocol: protocol,
-		duration: duration,
+		api:       api,
+		protocol:  protocol,
+		code:      code,
+		duration:  duration,
+		component: plugin.ComponentServer,
 	}
-
+	passDuration := time.Since(startTime)
+	if passDuration >= maxAddDuration {
+		log.Warnf("[APICall]add api call cost %s, exceed max %s", passDuration, maxAddDuration)
+	}
 	return nil
+}
+
+// AddRedisCall
+func (s *StatisWorker) AddRedisCall(api string, code int, duration int64) error {
+	s.acc <- &APICall{
+		api:       api,
+		code:      code,
+		duration:  duration,
+		component: plugin.ComponentRedis,
+	}
+	return nil
+}
+
+// GetPrometheusHandler 获取 prometheus http handler
+func (s *StatisWorker) GetPrometheusHandler() http.Handler {
+	return s.acs.prometheusStatis.GetHttpHandler()
 }
 
 /**
  * Run 主流程
  */
 func (s *StatisWorker) Run() {
+
+	store, err := store.GetStore()
+	if nil != err {
+		log.Errorf("[APICall] get store error, %v", err)
+		return
+	}
+
+	nowSeconds, err := store.GetNow()
+	if nil != err {
+		log.Errorf("[APICall] get now second from store error, %v", err)
+		return
+	}
+	if nowSeconds == 0 {
+		nowSeconds = time.Now().Unix()
+	}
+	dest := nowSeconds
+	dest += 60
+	dest = dest - (dest % 60)
+	diff := dest - nowSeconds
+
+	log.Infof("[APICall] prometheus stats need sleep %ds", diff)
+
+	time.Sleep(time.Duration(diff) * time.Second)
+
 	ticker := time.NewTicker(s.interval)
 	defer ticker.Stop()
 

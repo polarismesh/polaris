@@ -43,35 +43,34 @@ type ServiceArgs struct {
 	EmptyCondition bool
 }
 
+// Update 更新配置
+func (sc *serviceCache) Update() error {
+	var err error
+	if err = sc.update(); nil != err {
+		return err
+	}
+	if err = sc.instCache.update(); nil != err {
+		return err
+	}
+	return nil
+}
+
 // GetServiceByFilter 通过filter在缓存中进行服务过滤
 func (sc *serviceCache) GetServicesByFilter(serviceFilters *ServiceArgs,
 	instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error) {
-	var err error
-	if err = sc.update(); nil != err {
-		return 0, nil, err
-	}
-	if err = sc.instCache.update(); nil != err {
-		return 0, nil, err
-	}
-
 	var amount uint32
+	var err error
 	var services []*model.Service
 	// 如果具有名字条件，并且不是模糊查询，直接获取对应命名空间下面的服务，并检查是否匹配所有条件
 	if serviceFilters.Name != "" && !serviceFilters.FuzzyName {
-		amount, services, err = sc.getServicesFromCacheByName(serviceFilters, offset, limit)
+		amount, services, err = sc.getServicesFromCacheByName(serviceFilters, instanceFilters, offset, limit)
 	} else {
-		amount, services, err = sc.getServicesByIteratingCache(serviceFilters, offset, limit)
+		amount, services, err = sc.getServicesByIteratingCache(serviceFilters, instanceFilters, offset, limit)
 	}
 	var enhancedServices []*model.EnhancedService
 	if amount > 0 {
 		enhancedServices = make([]*model.EnhancedService, 0, len(services))
 		for _, service := range services {
-			if hasInstanceFilter(instanceFilters) {
-				instances := sc.instCache.GetInstancesByServiceID(service.ID)
-				if !sc.matchInstanceFilter(instances, instanceFilters) {
-					continue
-				}
-			}
 			count := sc.instCache.GetInstancesCountByServiceID(service.ID)
 			enhancedService := &model.EnhancedService{
 				Service:              service,
@@ -91,7 +90,7 @@ func hasInstanceFilter(instanceFilters *store.InstanceArgs) bool {
 	return true
 }
 
-func (sc *serviceCache) matchInstanceFilter(instances []*model.Instance, instanceFilters *store.InstanceArgs) bool {
+func (sc *serviceCache) matchInstances(instances []*model.Instance, instanceFilters *store.InstanceArgs) bool {
 	if len(instances) == 0 {
 		return false
 	}
@@ -142,18 +141,20 @@ func (sc *serviceCache) GetAllNamespaces() []string {
 }
 
 // 通过具体的名字来进行查询服务
-func (sc *serviceCache) getServicesFromCacheByName(svcArgs *ServiceArgs,
+func (sc *serviceCache) getServicesFromCacheByName(svcArgs *ServiceArgs, instArgs *store.InstanceArgs,
 	offset, limit uint32) (uint32, []*model.Service, error) {
 	var res []*model.Service
 	if svcArgs.Namespace != "" {
 		svc := sc.GetServiceByName(svcArgs.Name, svcArgs.Namespace)
-		if svc != nil && !svc.IsAlias() && matchService(svc, svcArgs.Filter, svcArgs.Metadata, false) {
+		if svc != nil && !svc.IsAlias() && matchService(svc, svcArgs.Filter, svcArgs.Metadata, false) &&
+			sc.matchInstance(svc, instArgs) {
 			res = append(res, svc)
 		}
 	} else {
 		for _, namespace := range sc.GetAllNamespaces() {
 			svc := sc.GetServiceByName(svcArgs.Name, namespace)
-			if svc != nil && !svc.IsAlias() && matchService(svc, svcArgs.Filter, svcArgs.Metadata, false) {
+			if svc != nil && !svc.IsAlias() && matchService(svc, svcArgs.Filter, svcArgs.Metadata, false) &&
+				sc.matchInstance(svc, instArgs) {
 				res = append(res, svc)
 			}
 		}
@@ -247,9 +248,19 @@ func matchMetadata(svc *model.Service, metaFilter map[string]string) bool {
 	return true
 }
 
+func (sc *serviceCache) matchInstance(svc *model.Service, instArgs *store.InstanceArgs) bool {
+	if hasInstanceFilter(instArgs) {
+		instances := sc.instCache.GetInstancesByServiceID(svc.ID)
+		if !sc.matchInstances(instances, instArgs) {
+			return false
+		}
+	}
+	return true
+}
+
 // 通过遍历缓存中的服务
 func (sc *serviceCache) getServicesByIteratingCache(
-	svcArgs *ServiceArgs, offset, limit uint32) (uint32, []*model.Service, error) {
+	svcArgs *ServiceArgs, instArgs *store.InstanceArgs, offset, limit uint32) (uint32, []*model.Service, error) {
 	var res []*model.Service
 	var process = func(svc *model.Service) {
 		// 如果是别名，直接略过
@@ -260,6 +271,9 @@ func (sc *serviceCache) getServicesByIteratingCache(
 			if !matchService(svc, svcArgs.Filter, svcArgs.Metadata, true) {
 				return
 			}
+		}
+		if !sc.matchInstance(svc, instArgs) {
+			return
 		}
 		res = append(res, svc)
 	}

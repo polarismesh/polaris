@@ -105,12 +105,10 @@ func New(buckets map[Bucket]bool) *Continuum {
 }
 
 // Hash hash string to lookup node
-func (c *Continuum) Hash(thing string) string {
+func (c *Continuum) Hash(h uint) string {
 	if len(c.ring) == 0 {
 		return ""
 	}
-
-	h := hashString(thing)
 
 	// the above md5 is way more expensive than this branch
 	var i uint

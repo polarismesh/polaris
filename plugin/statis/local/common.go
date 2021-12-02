@@ -14,19 +14,17 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-//
-//@Author: springliao
-//@Description:
-//@Time: 2021/10/26 17:40
 
-package prometheus
+package local
 
 import "fmt"
 
+// MetricData metric 结构体
 type MetricData struct {
-	Name   string
-	Data   float64
-	Labels map[string]string
+	Name       string
+	Data       float64
+	Labels     map[string]string
+	DeleteFlag bool
 }
 
 type metricDesc struct {
@@ -38,13 +36,13 @@ type metricDesc struct {
 
 const (
 	// metric name
-	MetricForClientRqTotal      string = "client_rq_total"
-	MetricForClientRqFailure    string = "client_rq_failure"
-	MetricForClientRqTimeout    string = "client_rq_timeout"
-	MetricForClientRqTimeoutMin string = "client_rq_timeout_min"
-	MetricForClientRqTimeoutAvg string = "client_rq_timeout_avg"
-	MetricForClientRqTimeoutMax string = "client_rq_timeout_max"
-	MetricForClientRqTimeoutP99 string = "client_rq_timeout_p99"
+	MetricForClientRqTotal         string = "client_rq_total"
+	MetricForClientRqFailure       string = "client_rq_failure"
+	MetricForClientRqTimeout       string = "client_rq_timeout"
+	MetricForClientRqIntervalCount string = "client_rq_interval_count"
+	MetricForClientRqTimeoutAvg    string = "client_rq_timeout_avg"
+	MetricForClientRqTimeoutMax    string = "client_rq_timeout_max"
+	MetricForClientRqTimeoutP99    string = "client_rq_timeout_p99"
 
 	// metric label
 	LabelForPolarisServerInstance string = "polaris_server_instance"
@@ -95,8 +93,8 @@ var (
 			},
 		},
 		{
-			Name:       MetricForClientRqTimeoutMin,
-			Help:       "min latency of client requests",
+			Name:       MetricForClientRqIntervalCount,
+			Help:       "total number of client request in current interval",
 			MetricType: TypeForGaugeVec,
 			LabelNames: []string{
 				LabelForPolarisServerInstance,

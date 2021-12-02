@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"time"
 
 	"github.com/golang/protobuf/jsonpb"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -157,7 +158,7 @@ func (c *Client) GetServices(services []*api.Service) error {
 	params := map[string][]interface{}{
 		"namespace": {services[0].GetNamespace().GetValue()},
 	}
-
+	time.Sleep(2 * time.Second)
 	url = c.CompleteURL(url, params)
 	response, err := c.SendRequest("GET", url, nil)
 	if err != nil {

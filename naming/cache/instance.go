@@ -30,6 +30,8 @@ import (
 const (
 	// InstanceName instance name
 	InstanceName = "instance"
+	// 定时全量对账
+	checkAllIntervalSec = 60
 )
 
 // InstanceIterProc instance iter proc func
@@ -63,18 +65,21 @@ type InstanceCache interface {
 
 // instanceCache 实例缓存的类
 type instanceCache struct {
-	storage         store.Store
-	lastMtime       time.Time
-	firstUpdate     bool
-	ids             *sync.Map // id -> instance
-	services        *sync.Map // service id -> [instances]
-	instanceCounts  *sync.Map // service id -> [instanceCount]
-	revisionCh      chan *revisionNotify
-	disableBusiness bool
-	needMeta        bool
-	systemServiceID []string
-	manager         *listenerManager
-	singleFlight    *singleflight.Group
+	storage          store.Store
+	lastMtime        int64
+	lastMtimeLogged  int64
+	firstUpdate      bool
+	ids              *sync.Map // id -> instance
+	services         *sync.Map // service id -> [instances]
+	instanceCounts   *sync.Map // service id -> [instanceCount]
+	revisionCh       chan *revisionNotify
+	disableBusiness  bool
+	needMeta         bool
+	systemServiceID  []string
+	manager          *listenerManager
+	singleFlight     *singleflight.Group
+	instanceCount    int64
+	lastCheckAllTime int64
 }
 
 func init() {
@@ -96,7 +101,7 @@ func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 	ic.ids = new(sync.Map)
 	ic.services = new(sync.Map)
 	ic.instanceCounts = new(sync.Map)
-	ic.lastMtime = time.Unix(0, 0)
+	ic.lastMtime = 0
 	ic.firstUpdate = true
 	if opt == nil {
 		return nil
@@ -124,15 +129,43 @@ func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 func (ic *instanceCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := ic.singleFlight.Do(InstanceName, func() (interface{}, error) {
+		defer func() {
+			ic.lastMtimeLogged = logLastMtime(ic.lastMtimeLogged, ic.lastMtime, "Instance")
+			ic.checkAll()
+		}()
 		return nil, ic.realUpdate()
 	})
 	return err
 }
 
+func (ic *instanceCache) checkAll() {
+	curTimeSec := time.Now().Unix()
+	if curTimeSec-ic.lastCheckAllTime < checkAllIntervalSec {
+		return
+	}
+	defer func() {
+		ic.lastCheckAllTime = curTimeSec
+	}()
+	count, err := ic.storage.GetInstancesCount()
+	if err != nil {
+		log.Errorf("[Cache][Instance] get instance count from storage err: %s", err.Error())
+		return
+	}
+	if ic.instanceCount == int64(count) {
+		return
+	}
+	log.Infof("[Cache][Instance] instance count not match, expect %d, actual %d, fallback to load all",
+		count, ic.instanceCount)
+	ic.lastMtime = 0
+}
+
+const maxLoadTimeDuration = 1 * time.Second
+
 func (ic *instanceCache) realUpdate() error {
 	// 拉取diff前的所有数据
 	start := time.Now()
-	instances, err := ic.storage.GetMoreInstances(ic.lastMtime.Add(DefaultTimeDiff),
+	lastMtime := ic.LastMtime()
+	instances, err := ic.storage.GetMoreInstances(lastMtime.Add(DefaultTimeDiff),
 		ic.firstUpdate, ic.needMeta, ic.systemServiceID)
 	if err != nil {
 		log.Errorf("[Cache][Instance] update get storage more err: %s", err.Error())
@@ -141,8 +174,11 @@ func (ic *instanceCache) realUpdate() error {
 
 	ic.firstUpdate = false
 	update, del := ic.setInstances(instances)
-	log.Debug("[Cache][Instance] get more instances", zap.Int("update", update), zap.Int("delete", del),
-		zap.Time("last", ic.lastMtime), zap.Duration("used", time.Now().Sub(start)))
+	timeDiff := time.Now().Sub(start)
+	if timeDiff > 1*time.Second {
+		log.Info("[Cache][Instance] get more instances", zap.Int("update", update), zap.Int("delete", del),
+			zap.Time("last", lastMtime), zap.Duration("used", time.Now().Sub(start)))
+	}
 	return nil
 }
 
@@ -151,13 +187,18 @@ func (ic *instanceCache) clear() error {
 	ic.ids = new(sync.Map)
 	ic.services = new(sync.Map)
 	ic.instanceCounts = new(sync.Map)
-	ic.lastMtime = time.Unix(0, 0)
+	ic.lastMtime = 0
 	return nil
 }
 
 // name 获取资源名称
 func (ic *instanceCache) name() string {
 	return InstanceName
+}
+
+// LastMtime 最后一次更新时间
+func (ic *instanceCache) LastMtime() time.Time {
+	return time.Unix(ic.lastMtime, 0)
 }
 
 // getSystemServices 获取系统服务ID
@@ -177,11 +218,12 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 		return 0, 0
 	}
 
-	lastMtime := ic.lastMtime.Unix()
+	lastMtime := ic.lastMtime
 	update := 0
 	del := 0
 	affect := make(map[string]bool)
 	progress := 0
+	instanceCount := ic.instanceCount
 	for _, item := range ins {
 		progress++
 		if progress%50000 == 0 {
@@ -192,12 +234,15 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 			lastMtime = modifyTime
 		}
 		affect[item.ServiceID] = true
-
+		_, itemExist := ic.ids.Load(item.ID())
 		// 待删除的instance
 		if !item.Valid {
 			del++
 			ic.ids.Delete(item.ID())
-			ic.manager.onEvent(item.Proto, EventDeleted)
+			if itemExist {
+				ic.manager.onEvent(item.Proto, EventDeleted)
+				instanceCount--
+			}
 			value, ok := ic.services.Load(item.ServiceID)
 			if !ok {
 				continue
@@ -206,31 +251,40 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 			value.(*sync.Map).Delete(item.ID())
 			continue
 		}
-
 		// 有修改或者新增的数据
-		// 缓存的instance map增加一个version和protocol字段
 		update++
+		// 缓存的instance map增加一个version和protocol字段
 		if item.Proto.Metadata == nil {
 			item.Proto.Metadata = make(map[string]string)
 		}
 		item.Proto.Metadata["version"] = item.Version()
 		item.Proto.Metadata["protocol"] = item.Protocol()
+
 		ic.ids.Store(item.ID(), item)
-		value, ok := ic.services.Load(item.ServiceID)
-		if !ok {
-			value = new(sync.Map)
-			ic.services.Store(item.ServiceID, value)
+		if !itemExist {
+			instanceCount++
 			ic.manager.onEvent(item.Proto, EventCreated)
 		} else {
 			ic.manager.onEvent(item.Proto, EventUpdated)
 		}
+		value, ok := ic.services.Load(item.ServiceID)
+		if !ok {
+			value = new(sync.Map)
+			ic.services.Store(item.ServiceID, value)
+		}
 		value.(*sync.Map).Store(item.ID(), item)
 	}
 
-	if ic.lastMtime.Unix() < lastMtime {
-		ic.lastMtime = time.Unix(lastMtime, 0)
+	if ic.lastMtime != lastMtime {
+		log.Infof("[Cache][Instance] instance lastMtime update from %s to %s",
+			time.Unix(ic.lastMtime, 0), time.Unix(lastMtime, 0))
+		ic.lastMtime = lastMtime
 	}
-
+	if ic.instanceCount != instanceCount {
+		log.Infof("[Cache][Instance] instance count update from %d to %d",
+			ic.instanceCount, instanceCount)
+		ic.instanceCount = instanceCount
+	}
 	ic.postProcessUpdatedServices(affect)
 	return update, del
 }
