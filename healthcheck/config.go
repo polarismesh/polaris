@@ -17,13 +17,44 @@
 
 package healthcheck
 
-import "github.com/polarismesh/polaris-server/plugin"
+import (
+	"github.com/polarismesh/polaris-server/plugin"
+	"time"
+)
 
 // Config 健康检查配置
 type Config struct {
-	Open      bool                 `yaml:"open"`
-	Service   string               `yaml:"service"`
-	SlotNum   int                  `yaml:"slotNum"`
-	LocalHost string               `yaml:"localHost"`
-	Checkers  []plugin.ConfigEntry `yaml:"checkers"`
+	Open             bool                   `yaml:"open"`
+	Service          string                 `yaml:"service"`
+	SlotNum          int                    `yaml:"slotNum"`
+	LocalHost        string                 `yaml:"localHost"`
+	MinCheckInterval time.Duration          `yaml:"minCheckInterval"`
+	MaxCheckInterval time.Duration          `yaml:"maxCheckInterval"`
+	Checkers         []plugin.ConfigEntry   `yaml:"checkers"`
+	Batch            map[string]interface{} `yaml:"batch"`
+}
+
+const (
+	minCheckInterval = 1 * time.Second
+	maxCheckInterval = 30 * time.Second
+)
+
+// SetDefault 设置默认值
+func (c *Config) SetDefault() {
+	if len(c.Service) == 0 {
+		c.Service = "polaris.checker"
+	}
+	if c.SlotNum == 0 {
+		c.SlotNum = 30
+	}
+	if c.MinCheckInterval == 0 {
+		c.MinCheckInterval = minCheckInterval
+	}
+	if c.MaxCheckInterval == 0 {
+		c.MaxCheckInterval = maxCheckInterval
+	}
+	if c.MinCheckInterval > c.MaxCheckInterval {
+		c.MinCheckInterval = minCheckInterval
+		c.MaxCheckInterval = maxCheckInterval
+	}
 }

@@ -95,15 +95,33 @@ func (r *MemoryHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 	checkResp := &plugin.CheckResponse{
 		LastHeartbeatTimeSec: lastHeartbeatTime,
 	}
-	if request.CurTimeSec > lastHeartbeatTime {
-		if request.CurTimeSec-lastHeartbeatTime >= int64(request.ExpireDurationSec) {
+	curTimeSec := request.CurTimeSec()
+	if curTimeSec > lastHeartbeatTime {
+		if curTimeSec-lastHeartbeatTime >= int64(request.ExpireDurationSec) {
 			//心跳超时
 			checkResp.Healthy = false
+			_ = r.Delete(request.InstanceId)
 			return checkResp, nil
 		}
 	}
 	checkResp.Healthy = true
 	return checkResp, nil
+}
+
+// AddToCheck add the instances to check procedure
+func (r *MemoryHealthChecker) AddToCheck(request *plugin.AddCheckRequest) error {
+	return nil
+}
+
+// AddToCheck add the instances to check procedure
+func (r *MemoryHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) error {
+	return nil
+}
+
+// Delete delete the id
+func (r *MemoryHealthChecker) Delete(id string) error {
+	r.hbRecords.Delete(id)
+	return nil
 }
 
 func init() {

@@ -332,6 +332,14 @@ func int2bool(entry int) bool {
 	return true
 }
 
+// StatusBoolToInt 状态bool转int
+func StatusBoolToInt(value bool) int {
+	if value {
+		return 1
+	}
+	return 0
+}
+
 // store的flag转换为valid
 // flag==1为无效，其他情况为有效
 func flag2valid(flag int) bool {

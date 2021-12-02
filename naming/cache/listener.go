@@ -17,10 +17,6 @@
 
 package cache
 
-import (
-	"sync"
-)
-
 // Listener listener for value changes
 type Listener interface {
 	// OnCreated callback when cache value created
@@ -44,20 +40,16 @@ const (
 )
 
 type listenerManager struct {
-	rwMutex   *sync.RWMutex
 	listeners []Listener
 }
 
 func newListenerManager(listeners []Listener) *listenerManager {
 	return &listenerManager{
-		rwMutex:   &sync.RWMutex{},
 		listeners: listeners,
 	}
 }
 
 func (l *listenerManager) onEvent(value interface{}, event EventType) {
-	l.rwMutex.RLock()
-	defer l.rwMutex.RUnlock()
 	if len(l.listeners) == 0 {
 		return
 	}

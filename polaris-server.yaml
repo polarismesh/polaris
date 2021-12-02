@@ -13,7 +13,7 @@ bootstrap:
     key: sz # 全局锁
   # 注册为北极星服务
   polaris_service:
-    #    probe_address: ##DB_ADDR##
+#    probe_address: ##DB_ADDR##
     enable_register: true
     isolated: false
     services:
@@ -91,17 +91,25 @@ healthcheck:
   open: true
   service: polaris.checker
   slotNum: 30
+  minCheckInterval: 1s
+  maxCheckInterval: 30s
+  batch:
+    heartbeat:
+      open: true
+      queueSize: 10240
+      waitTime: 32ms
+      maxBatchCount: 32
+      concurrency: 64
   checkers:
     - name: heartbeatMemory
 #  - name: heartbeatRedis
 #    option:
 #      kvAddr: ##REDIS_ADDR##
 #      kvPasswd: ##REDIS_PWD##
-#      slotNum: 30
 #      maxIdle: 200
 #      idleTimeout: 120s
-#      connectTimeout: 20s
-#      msgTimeout: 5s
+#      connectTimeout: 200ms
+#      msgTimeout: 200ms
 #      concurrency: 200
 # 缓存配置
 cache:
@@ -125,7 +133,7 @@ store:
   name: boltdbStore
   option:
     path: ./polaris.bolt
-# 数据库存储插件
+## 数据库存储插件
 #  name: defaultStore
 #  option:
 #    master:
@@ -155,7 +163,7 @@ plugin:
     # api 调用指标数据计算上报到 prometheus
     # name: prometheus
     # option:
-    #   interval: 10 # 统计间隔，单位为秒
+    #   interval: 60 # 统计间隔，单位为秒
   ratelimit:
     name: token-bucket
     option:

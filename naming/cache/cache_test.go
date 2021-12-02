@@ -82,6 +82,7 @@ func TestNamingCache_Start(t *testing.T) {
 		storage.EXPECT().GetRateLimitsForCache(beg, false).Return(nil, nil, nil).MaxTimes(3)
 		storage.EXPECT().GetCircuitBreakerForCache(beg, true).Return(nil, nil).MaxTimes(1)
 		storage.EXPECT().GetCircuitBreakerForCache(beg, false).Return(nil, nil).MaxTimes(3)
+		storage.EXPECT().GetInstancesCount().Return(uint32(0), nil).MaxTimes(1)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()

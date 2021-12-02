@@ -46,7 +46,7 @@ CREATE TABLE `business` (
 --
 
 CREATE TABLE `instance` (
-  `id` varchar(40) COLLATE utf8_bin NOT NULL,
+  `id` varchar(128) COLLATE utf8_bin NOT NULL,
   `service_id` varchar(32) COLLATE utf8_bin NOT NULL,
   `vpc_id` varchar(64) COLLATE utf8_bin DEFAULT NULL,
   `host` varchar(128) COLLATE utf8_bin NOT NULL,
@@ -79,7 +79,7 @@ CREATE TABLE `instance` (
 --
 
 CREATE TABLE `health_check` (
-  `id` varchar(40) COLLATE utf8_bin NOT NULL,
+  `id` varchar(128) COLLATE utf8_bin NOT NULL,
   `type` tinyint(4) NOT NULL DEFAULT '0',
   `ttl` int(11) NOT NULL,
   PRIMARY KEY (`id`),
@@ -93,7 +93,7 @@ CREATE TABLE `health_check` (
 --
 
 CREATE TABLE `instance_metadata` (
-  `id` varchar(40) COLLATE utf8_bin NOT NULL,
+  `id` varchar(128) COLLATE utf8_bin NOT NULL,
   `mkey` varchar(128) COLLATE utf8_bin NOT NULL,
   `mvalue` varchar(4096) COLLATE utf8_bin NOT NULL,
   `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,

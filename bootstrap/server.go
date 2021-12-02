@@ -427,6 +427,9 @@ func SelfDeregister() {
 
 // 获取本地IP地址
 func getLocalHost(vip string) (string, error) {
+	if len(vip) == 0 {
+		return "127.0.0.1", nil
+	}
 	conn, err := net.Dial("tcp", vip)
 	if err != nil {
 		return "", err

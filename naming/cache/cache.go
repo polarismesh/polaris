@@ -49,7 +49,7 @@ const (
 
 const (
 	// DefaultTimeDiff default time diff
-	DefaultTimeDiff = -1 * time.Second * 5
+	DefaultTimeDiff = -1 * time.Second * 10
 )
 
 // Cache 缓存接口
@@ -62,14 +62,14 @@ type Cache interface {
 
 const (
 	// UpdateCacheInterval 缓存更新时间间隔
-	UpdateCacheInterval = time.Second
+	UpdateCacheInterval = 1 * time.Second
 )
 
 const (
 	// RevisionConcurrenceCount Revision计算的并发线程数
 	RevisionConcurrenceCount = 64
 	// RevisionChanCount 存储revision计算的通知管道，可以稍微设置大一点
-	RevisionChanCount = 10240
+	RevisionChanCount = 102400
 )
 
 // 更新revision的结构体
@@ -355,4 +355,16 @@ func RegisterCache(name string, index int) {
 	}
 
 	cacheSet[name] = index
+}
+
+const mtimeLogIntervalSec = 120
+
+// logLastMtime 定时打印mtime更新结果
+func logLastMtime(lastMtimeLogged int64, lastMtime int64, prefix string) int64 {
+	curTimeSec := time.Now().Unix()
+	if lastMtimeLogged == 0 || curTimeSec-lastMtimeLogged >= mtimeLogIntervalSec {
+		lastMtimeLogged = curTimeSec
+		log.Infof("[Cache][%s] current lastMtime is %s", prefix, time.Unix(lastMtime, 0))
+	}
+	return lastMtimeLogged
 }

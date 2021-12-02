@@ -210,6 +210,9 @@ type InstanceStore interface {
 	// SetInstanceHealthStatus 设置实例的健康状态
 	SetInstanceHealthStatus(instanceID string, flag int, revision string) error
 
+	// BatchSetInstanceHealthStatus 批量设置实例的健康状态
+	BatchSetInstanceHealthStatus(ids []interface{}, healthy int, revision string) error
+
 	// BatchSetInstanceIsolate 批量修改实例的隔离状态
 	BatchSetInstanceIsolate(ids []interface{}, isolate int, revision string) error
 }

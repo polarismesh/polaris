@@ -31,6 +31,7 @@ type InstanceFuture struct {
 	result        chan error      // 执行成功/失败的应答chan
 	platformID    string          // 平台id
 	platformToken string          // 平台Token
+	healthy       bool            // 健康与否
 }
 
 // Reply future的应答

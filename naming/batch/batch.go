@@ -31,6 +31,7 @@ import (
 type Controller struct {
 	register   *InstanceCtrl
 	deregister *InstanceCtrl
+	heartbeat  *InstanceCtrl
 }
 
 // NewBatchCtrlWithConfig 根据配置文件创建一个批量控制器
@@ -40,7 +41,9 @@ func NewBatchCtrlWithConfig(storage store.Store, authority auth.Authority, auth 
 		return nil, nil
 	}
 
-	register, err := NewBatchRegisterCtrl(storage, authority, auth, config.Register)
+	var err error
+	var register *InstanceCtrl
+	register, err = NewBatchRegisterCtrl(storage, authority, auth, config.Register)
 	if err != nil {
 		log.Errorf("[Batch] new batch register instance ctrl err: %s", err.Error())
 		return nil, err
@@ -53,9 +56,17 @@ func NewBatchCtrlWithConfig(storage store.Store, authority auth.Authority, auth 
 		return nil, err
 	}
 
+	var heartbeat *InstanceCtrl
+	heartbeat, err = NewBatchHeartbeatCtrl(storage, authority, auth, config.Heartbeat)
+	if err != nil {
+		log.Errorf("[Batch] new batch heartbeat instance ctrl err: %s", err.Error())
+		return nil, err
+	}
+
 	bc := &Controller{
 		register:   register,
 		deregister: deregister,
+		heartbeat:  heartbeat,
 	}
 	return bc, nil
 }
@@ -69,6 +80,9 @@ func (bc *Controller) Start(ctx context.Context) {
 	if bc.DeleteInstanceOpen() {
 		bc.deregister.Start(ctx)
 	}
+	if bc.HeartbeatOpen() {
+		bc.heartbeat.Start(ctx)
+	}
 }
 
 // CreateInstanceOpen 创建是否开启
@@ -79,6 +93,11 @@ func (bc *Controller) CreateInstanceOpen() bool {
 // DeleteInstanceOpen 删除实例是否开启
 func (bc *Controller) DeleteInstanceOpen() bool {
 	return bc.deregister != nil
+}
+
+// DeleteInstanceOpen 删除实例是否开启
+func (bc *Controller) HeartbeatOpen() bool {
+	return bc.heartbeat != nil
 }
 
 // AsyncCreateInstance 异步创建实例，返回一个future，根据future获取创建结果
@@ -105,5 +124,17 @@ func (bc *Controller) AsyncDeleteInstance(instance *api.Instance, platformID, pl
 	}
 
 	bc.deregister.queue <- future
+	return future
+}
+
+// AsyncDeleteInstance 异步合并反注册
+func (bc *Controller) AsyncHeartbeat(instance *api.Instance, healthy bool) *InstanceFuture {
+	future := &InstanceFuture{
+		request: instance,
+		result:  make(chan error, 1),
+		healthy: healthy,
+	}
+
+	bc.heartbeat.queue <- future
 	return future
 }

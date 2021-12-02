@@ -28,6 +28,7 @@ import (
 type Config struct {
 	Register   *CtrlConfig `mapstructure:"register"`
 	Deregister *CtrlConfig `mapstructure:"deregister"`
+	Heartbeat  *CtrlConfig `mapstructure:"heartbeat"`
 }
 
 // CtrlConfig batch控制配置项
@@ -65,7 +66,10 @@ func ParseBatchConfig(opt map[string]interface{}) (*Config, error) {
 		log.Errorf("[Controller] batch deregister config is invalid: %+v", config)
 		return nil, errors.New("batch deregister config is invalid")
 	}
-
+	if !checkCtrlConfig(config.Heartbeat) {
+		log.Errorf("[Controller] batch heartbeat config is invalid: %+v", config)
+		return nil, errors.New("batch deregister config is invalid")
+	}
 	return &config, nil
 }
 

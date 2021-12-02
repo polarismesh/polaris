@@ -21,6 +21,7 @@ import (
 	"context"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -40,32 +41,27 @@ type Dispatcher struct {
 
 	selfServiceBuckets map[Bucket]bool
 	continuum          *Continuum
+	mutex              *sync.Mutex
 }
 
 func newDispatcher(ctx context.Context) *Dispatcher {
-	dispatcher := &Dispatcher{}
-	dispatcher.startCacheEventJob(ctx)
+	dispatcher := &Dispatcher{
+		mutex: &sync.Mutex{},
+	}
 	dispatcher.startDispatchingJob(ctx)
 	return dispatcher
 }
 
-// startCacheEventJob receive cache events and process
-func (d *Dispatcher) startCacheEventJob(ctx context.Context) {
-	go func() {
-		for {
-			select {
-			case event := <-server.cacheProvider.CacheEvents():
-				if event.selfServiceInstancesChanged {
-					atomic.StoreUint32(&d.selfServiceInstancesChanged, 1)
-				}
-				if event.healthCheckInstancesChanged {
-					atomic.StoreUint32(&d.healthCheckInstancesChanged, 1)
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
+// UpdateStatusByEvent 更新变更状态
+func (d *Dispatcher) UpdateStatusByEvent(event CacheEvent) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	if event.selfServiceInstancesChanged {
+		atomic.StoreUint32(&d.selfServiceInstancesChanged, 1)
+	}
+	if event.healthCheckInstancesChanged {
+		atomic.StoreUint32(&d.healthCheckInstancesChanged, 1)
+	}
 }
 
 // startDispatchingJob start job to dispatch instances
@@ -133,7 +129,7 @@ func (d *Dispatcher) reloadManagedInstances() {
 	if nil != d.continuum {
 		server.cacheProvider.RangeHealthCheckInstances(func(instance *InstanceWithChecker) {
 			instanceId := instance.instance.GetId().GetValue()
-			host := d.continuum.Hash(instanceId)
+			host := d.continuum.Hash(instance.hashValue)
 			if host == server.localHost {
 				nextInstances[instanceId] = instance
 			}

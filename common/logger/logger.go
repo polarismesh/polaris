@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package prometheus
+package logger
 
 import (
 	"github.com/natefinch/lumberjack"
@@ -26,10 +26,10 @@ import (
 /**
  * @brief 创建日志打印器
  */
-func newLogger(file string) *zap.Logger {
+func Logger(file string) *zap.Logger {
 	encCfg := zapcore.EncoderConfig{
-		MessageKey: "msg",
-		// LevelKey:       "level",
+		MessageKey:     "msg",
+		LevelKey:       "level",
 		TimeKey:        "time",
 		NameKey:        "name",
 		CallerKey:      "caller",

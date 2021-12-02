@@ -24,7 +24,7 @@ import (
 	"time"
 )
 
-const adjustInterval = 10 * time.Second
+const adjustInterval = 60 * time.Second
 
 // TimeAdjuster adjust the seconds from database
 type TimeAdjuster struct {
@@ -58,8 +58,12 @@ func (t *TimeAdjuster) calcDiff() {
 		log.Errorf("[healthcheck]fail to get now from store, err is %s", err.Error())
 		return
 	}
+	if curTimeSecond == 0 {
+		return
+	}
 	sysNow := time.Now().Unix()
 	diff := sysNow - curTimeSecond
+	log.Infof("[healthcheck]time diff from now is %d", diff)
 	atomic.StoreInt64(&t.diff, diff)
 }
 

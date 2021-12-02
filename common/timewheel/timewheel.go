@@ -19,7 +19,6 @@ package timewheel
 
 import (
 	"container/list"
-	"errors"
 	"sync"
 	"time"
 
@@ -136,11 +135,8 @@ func (tw *TimeWheel) taskRunner() {
 /**
  * AddTask 新增时间轮任务
  */
-func (tw *TimeWheel) AddTask(delayTime time.Duration, data interface{}, cb Callback) error {
-	if delayTime <= 0 {
-		return errors.New("illegal task delayTime")
-	}
-
+func (tw *TimeWheel) AddTask(delayMilli uint32, data interface{}, cb Callback) {
+	delayTime := time.Duration(delayMilli) * time.Millisecond
 	task := &Task{delayTime: delayTime, taskData: data, callback: cb}
 	pos, circle := tw.getSlots(task.delayTime)
 	task.circle = circle
@@ -148,8 +144,6 @@ func (tw *TimeWheel) AddTask(delayTime time.Duration, data interface{}, cb Callb
 	tw.locks[pos].Lock()
 	tw.slots[pos].PushBack(task)
 	tw.locks[pos].Unlock()
-
-	return nil
 }
 
 /**

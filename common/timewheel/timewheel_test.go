@@ -34,21 +34,21 @@ func TestTaskRun1(t *testing.T) {
 
 	t.Logf("add task time:%d", time.Now().Unix())
 	for i := 0; i < 10; i++ {
-		tw.AddTask(time.Second, "polaris 1s "+strconv.Itoa(i), callback)
+		tw.AddTask(1000, "polaris 1s "+strconv.Itoa(i), callback)
 	}
 	t.Logf("add task time end:%d", time.Now().Unix())
 
 	time.Sleep(2 * time.Second)
 	t.Logf("add task time:%d", time.Now().Unix())
 	for i := 0; i < 10; i++ {
-		tw.AddTask(3*time.Second, "polaris 3s "+strconv.Itoa(i), callback)
+		tw.AddTask(3000, "polaris 3s "+strconv.Itoa(i), callback)
 	}
 	t.Logf("add task time end:%d", time.Now().Unix())
 
 	time.Sleep(5 * time.Second)
 	t.Logf("add task time:%d", time.Now().Unix())
 	for i := 0; i < 10; i++ {
-		tw.AddTask(10*time.Second, "polaris 10s "+strconv.Itoa(i), callback)
+		tw.AddTask(10000, "polaris 10s "+strconv.Itoa(i), callback)
 	}
 	t.Logf("add task time end:%d", time.Now().Unix())
 	time.Sleep(15 * time.Second)
@@ -71,10 +71,10 @@ func TestTaskRun2(t *testing.T) {
 
 	t.Logf("add task time:%d", time.Now().Unix())
 	for i := 0; i < 50000; i++ {
-		tw.AddTask(3*time.Second, "polaris 3s "+strconv.Itoa(i), callback)
+		tw.AddTask(3000, "polaris 3s "+strconv.Itoa(i), callback)
 	}
 	t.Logf("add task time end:%d", time.Now().Unix())
-	time.Sleep(8 * time.Second)
+	time.Sleep(8)
 
 	tw.Stop()
 }
@@ -88,9 +88,9 @@ func TestTaskRunBoth(t *testing.T) {
 	}
 
 	for i := 0; i < 10; i++ {
-		go tw.AddTask(time.Second, "polaris 1s_"+strconv.Itoa(i), callback)
-		go tw.AddTask(3*time.Second, "polaris 3s_"+strconv.Itoa(i), callback)
-		go tw.AddTask(7*time.Second, "polaris 10s_"+strconv.Itoa(i), callback)
+		go tw.AddTask(1000, "polaris 1s_"+strconv.Itoa(i), callback)
+		go tw.AddTask(3000, "polaris 3s_"+strconv.Itoa(i), callback)
+		go tw.AddTask(7000, "polaris 10s_"+strconv.Itoa(i), callback)
 	}
 	time.Sleep(12 * time.Second)
 	tw.Stop()
@@ -123,7 +123,7 @@ func BenchmarkAddTask1(t *testing.B) {
 	t.SetParallelism(10000)
 	t.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			tw.AddTask(2*time.Second, info, callback)
+			tw.AddTask(2000, info, callback)
 		}
 	})
 }
@@ -148,8 +148,8 @@ func BenchmarkAddTask2(t *testing.B) {
 	t.SetParallelism(10000)
 	t.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			tw.AddTask(2*time.Second, info, callback)
-			tw.AddTask(3*time.Second, info, callback)
+			tw.AddTask(2000, info, callback)
+			tw.AddTask(3000, info, callback)
 		}
 	})
 }
@@ -176,8 +176,8 @@ func BenchmarkAddTask3(t *testing.B) {
 	t.SetParallelism(10000)
 	t.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			tw.AddTask(2*time.Second, info, callback)
-			tw2.AddTask(2*time.Second, info, callback)
+			tw.AddTask(2000, info, callback)
+			tw2.AddTask(2000, info, callback)
 		}
 	})
 }
