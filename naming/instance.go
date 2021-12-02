@@ -19,6 +19,7 @@ package naming
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var (
@@ -127,6 +129,14 @@ func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Res
 // store operate
 func (s *Server) createInstance(ctx context.Context, req *api.Instance, ins *api.Instance) (
 	*model.Instance, *api.Response) {
+
+	// create service if absent
+	code, err := s.createServiceIfAbsent(ctx, req)
+
+	if err != nil {
+		return nil, api.NewInstanceResponse(code, req)
+	}
+
 	if server.bc == nil || !server.bc.CreateInstanceOpen() {
 		return s.serialCreateInstance(ctx, req, ins) // 单个同步
 	}
@@ -177,9 +187,9 @@ func (s *Server) serialCreateInstance(ctx context.Context, req *api.Instance, in
 		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
 		return nil, api.NewInstanceResponse(api.StoreLayerException, req)
 	}
-	if service == nil {
-		return nil, api.NewInstanceResponse(api.NotFoundResource, req)
-	}
+	// if service == nil {
+	// return nil, api.NewInstanceResponse(api.NotFoundResource, req)
+	// }
 	if err := s.verifyInstanceAuth(ctx, service, req); err != nil {
 		return nil, err
 	}
@@ -478,6 +488,31 @@ func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *
 	}
 
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
+}
+
+// createServiceIfAbsent
+func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instance) (uint32, error) {
+
+	simpleService := &api.Service{
+		Name:      wrapperspb.String(instance.GetService().GetValue()),
+		Namespace: wrapperspb.String(instance.GetNamespace().GetValue()),
+		Owners:    wrapperspb.String("Polaris"),
+	}
+
+	ret, _, _ := s.creareServiceSingle.Do(fmt.Sprintf("%s:%s", simpleService.Namespace, simpleService.Name), func() (interface{}, error) {
+		resp := s.CreateService(ctx, simpleService)
+		return resp, nil
+	})
+
+	resp := ret.(*api.Response)
+
+	retCode := resp.GetCode().GetValue()
+
+	if retCode != api.ExecuteSuccess && retCode != api.ExistedResource {
+		return retCode, errors.New(resp.GetInfo().GetValue())
+	}
+
+	return retCode, nil
 }
 
 /**

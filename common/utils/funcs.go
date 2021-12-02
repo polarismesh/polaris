@@ -101,8 +101,8 @@ func ConvertFilter(filters map[string]string) map[string][]string {
 	return newFilters
 }
 
-// CollectFilterFields collect filters key to slice
-func CollectFilterFields(filters map[string]string) []string {
+// CollectMapKeys collect filters key to slice
+func CollectMapKeys(filters map[string]string) []string {
 	fields := make([]string, 0, len(filters))
 	for k := range filters {
 		fields = append(fields, k)

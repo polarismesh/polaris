@@ -245,6 +245,7 @@ type ExtendRateLimit struct {
 type RateLimitRevision struct {
 	ServiceID    string
 	LastRevision string
+	ModifyTime   time.Time
 }
 
 /**
