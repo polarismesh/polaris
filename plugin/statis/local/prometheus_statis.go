@@ -68,7 +68,7 @@ func (statis *PrometheusStatis) registerMetrics() error {
 
 		err := statis.registry.Register(collector)
 		if err != nil {
-			log.Errorf("[APICall] register pormetheus collector error, %v", err)
+			log.Errorf("[APICall] register prometheus collector error, %v", err)
 			return err
 		}
 		statis.metricVecCaches[desc.Name] = collector
