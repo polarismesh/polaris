@@ -34,14 +34,15 @@ type ReportRequest struct {
 type CheckRequest struct {
 	QueryRequest
 	ExpireDurationSec uint32
-	CurTimeSec        int64
+	CurTimeSec        func() int64
 }
 
 // CheckResponse
 type CheckResponse struct {
 	Healthy              bool
 	LastHeartbeatTimeSec int64
-	OnRecover            bool
+	StayUnchanged        bool
+	Regular              bool
 }
 
 // QueryRequest
@@ -57,6 +58,12 @@ type QueryResponse struct {
 	Server           string
 	Exists           bool
 	LastHeartbeatSec int64
+}
+
+// CheckingRequest
+type AddCheckRequest struct {
+	Instances []string
+	LocalHost string
 }
 
 type HealthCheckType int32
@@ -80,6 +87,12 @@ type HealthChecker interface {
 	Check(request *CheckRequest) (*CheckResponse, error)
 	// Query query the heartbeat time
 	Query(request *QueryRequest) (*QueryResponse, error)
+	// AddToCheck add the instances to check procedure
+	AddToCheck(request *AddCheckRequest) error
+	// AddToCheck add the instances to check procedure
+	RemoveFromCheck(request *AddCheckRequest) error
+	// Delete delete the id
+	Delete(id string) error
 }
 
 // GetHealthChecker get the health checker by name

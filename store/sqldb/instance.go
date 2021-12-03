@@ -531,6 +531,23 @@ func (ins *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, r
 	return store.Error(err)
 }
 
+// 批量设置健康状态
+func (ins *instanceStore) BatchSetInstanceHealthStatus(ids []interface{}, isolate int, revision string) error {
+	return BatchOperation("set-instance-healthy", ids, func(objects []interface{}) error {
+		if len(objects) == 0 {
+			return nil
+		}
+		str := "update instance set health_status = ?, revision = ?, mtime = sysdate() where id in "
+		str += "(" + PlaceholdersN(len(objects)) + ")"
+		args := make([]interface{}, 0, len(objects)+2)
+		args = append(args, isolate)
+		args = append(args, revision)
+		args = append(args, objects...)
+		_, err := ins.master.Exec(str, args...)
+		return store.Error(err)
+	})
+}
+
 /**
  * @brief 批量设置实例隔离状态
  */

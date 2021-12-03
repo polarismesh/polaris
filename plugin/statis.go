@@ -28,13 +28,20 @@ var (
 	statisOnce = &sync.Once{}
 )
 
+const (
+	ComponentServer = "server"
+	ComponentRedis  = "redis"
+)
+
 /**
  * Statis 统计插件接口
  */
 type Statis interface {
 	Plugin
 
-	AddAPICall(api, protocol string, code int, duration int64) error
+	AddAPICall(api string, protocol string, code int, duration int64) error
+
+	AddRedisCall(api string, code int, duration int64) error
 }
 
 /**

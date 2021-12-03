@@ -58,6 +58,9 @@ const (
 	SvcFieldRevision   = "Revision"
 	SvcFieldReference  = "Reference"
 	SvcFieldVaild      = "Valid"
+	SvcFieldCmdbMod1   = "CmdbMod1"
+	SvcFieldCmdbMod2   = "CmdbMod2"
+	SvcFieldCmdbMod3   = "CmdbMod3"
 )
 
 // AddService save a service
@@ -106,10 +109,9 @@ func (ss *serviceStore) DeleteServiceAlias(name string, namespace string) error 
 
 // UpdateServiceAlias update service alias
 func (ss *serviceStore) UpdateServiceAlias(alias *model.Service, needUpdateOwner bool) error {
-
 	if alias.ID == "" || alias.Name == "" || alias.Namespace == "" ||
-		alias.Token == "" || alias.Owner == "" || alias.Revision == "" || alias.Reference == "" {
-		return store.NewStatusError(store.EmptyParamsErr, "Update Service Alias missing some params")
+		alias.Revision == "" || alias.Reference == "" || (needUpdateOwner && alias.Owner == "") {
+		return store.NewStatusError(store.EmptyParamsErr, "update Service Alias missing some params")
 	}
 
 	properties := make(map[string]interface{})
@@ -148,6 +150,11 @@ func (ss *serviceStore) UpdateService(service *model.Service, needUpdateOwner bo
 	properties[SvcFieldRevision] = service.Revision
 	properties[SvcFieldToken] = service.Token
 	properties[SvcFieldOwner] = service.Owner
+	properties[SvcFieldPorts] = service.Ports
+	properties[SvcFieldReference] = service.Reference
+	properties[SvcFieldCmdbMod1] = service.CmdbMod1
+	properties[SvcFieldCmdbMod2] = service.CmdbMod2
+	properties[SvcFieldCmdbMod3] = service.CmdbMod3
 	properties[SvcFieldModifyTime] = time.Now()
 
 	err := ss.handler.UpdateValue(tblNameService, service.ID, properties)

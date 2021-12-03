@@ -20,6 +20,7 @@ package sqldb
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 	"strings"
@@ -41,9 +42,9 @@ type serviceStore struct {
  * @brief 增加服务
  */
 func (ss *serviceStore) AddService(s *model.Service) error {
-	if s.ID == "" || s.Name == "" || s.Namespace == "" ||
-		s.Owner == "" || s.Token == "" {
-		return store.NewStatusError(store.EmptyParamsErr, "add Service missing some params")
+	if s.ID == "" || s.Name == "" || s.Namespace == "" {
+		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
+			"add service missing some params, id is %s, name is %s, namespace is %s", s.ID, s.Name, s.Namespace))
 	}
 
 	// 先清理无效数据
@@ -174,8 +175,8 @@ func (ss *serviceStore) DeleteServiceAlias(name string, namespace string) error 
 // 更新服务别名
 func (ss *serviceStore) UpdateServiceAlias(alias *model.Service, needUpdateOwner bool) error {
 	if alias.ID == "" || alias.Name == "" || alias.Namespace == "" ||
-		alias.Token == "" || alias.Revision == "" || alias.Reference == "" || (needUpdateOwner && alias.Owner == "") {
-		return store.NewStatusError(store.EmptyParamsErr, "Update Service Alias missing some params")
+		alias.Revision == "" || alias.Reference == "" || (needUpdateOwner && alias.Owner == "") {
+		return store.NewStatusError(store.EmptyParamsErr, "update Service Alias missing some params")
 	}
 	if err := ss.updateServiceAlias(alias, needUpdateOwner); err != nil {
 		log.Errorf("[Store][ServiceAlias] update service alias err: %s", err.Error())
@@ -247,8 +248,7 @@ func checkServiceAffectedRows(result sql.Result, count int64) error {
  * @brief 更新完整的服务信息
  */
 func (ss *serviceStore) UpdateService(service *model.Service, needUpdateOwner bool) error {
-	if service.ID == "" || service.Name == "" || service.Namespace == "" ||
-		service.Token == "" || service.Owner == "" || service.Revision == "" {
+	if service.ID == "" || service.Name == "" || service.Namespace == "" || service.Revision == "" {
 		return store.NewStatusError(store.EmptyParamsErr, "Update Service missing some params")
 	}
 
@@ -652,7 +652,8 @@ func (ss *serviceStore) getServiceMeta(id string) (map[string]string, error) {
 // 获取service内部函数
 func (ss *serviceStore) getService(name string, namespace string) (*model.Service, error) {
 	if name == "" || namespace == "" {
-		return nil, errors.New("Get Service missing some params")
+		return nil, errors.New(
+			fmt.Sprintf("get Service missing some params, name is %s, namespace is %s", name, namespace))
 	}
 
 	out, err := ss.getServiceMain(name, namespace)

@@ -510,6 +510,16 @@ func (i *instanceStore) GetMoreInstances(
 	return toInstance(instances), nil
 }
 
+// BatchSetInstanceHealthStatus 批量设置实例的健康状态
+func (i *instanceStore) BatchSetInstanceHealthStatus(ids []interface{}, healthy int, revision string) error {
+	for _, id := range ids {
+		if err := i.SetInstanceHealthStatus(id.(string), healthy, revision); nil != err {
+			return err
+		}
+	}
+	return nil
+}
+
 // SetInstanceHealthStatus Set the health status of the instance
 func (i *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, revision string) error {
 

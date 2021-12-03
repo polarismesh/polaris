@@ -19,6 +19,7 @@ package boltdb
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -200,7 +201,10 @@ func TestBoltHandler_CountValues(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	for id, svc := range idToServices {
 		err = handler.SaveValue(tblService, id, svc)
 		if nil != err {
@@ -219,7 +223,7 @@ func TestBoltHandler_CountValues(t *testing.T) {
 		t.Fatal(err)
 	}
 	if nCount != count {
-		t.Fatal("count not match")
+		t.Fatalf("count not match, expect cnt=%d, actual cnt=%d", count, nCount)
 	}
 	err = handler.DeleteValues("service", ids, false)
 	if nil != err {
@@ -251,7 +255,10 @@ func TestBoltHandler_LoadValuesByFilter(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	for id, svc := range idToServices {
 		err = handler.SaveValue(tblService, id, svc)
 		if nil != err {
@@ -299,7 +306,10 @@ func TestBoltHandler_IterateFields(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	for id, svc := range idToServices {
 		err = handler.SaveValue(tblService, id, svc)
 		if nil != err {
@@ -346,7 +356,10 @@ func TestBoltHandler_UpdateValue(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	for id, svc := range idToServices {
 		err = handler.SaveValue(tblService, id, svc)
 		if nil != err {

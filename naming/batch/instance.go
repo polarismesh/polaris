@@ -82,6 +82,24 @@ func NewBatchDeregisterCtrl(storage store.Store, authority auth.Authority, auth 
 	return deregister, nil
 }
 
+// 实例心跳的操作对象
+func NewBatchHeartbeatCtrl(storage store.Store, authority auth.Authority, auth plugin.Auth, config *CtrlConfig) (
+	*InstanceCtrl, error) {
+	heartbeat, err := newBatchInstanceCtrl(storage, authority, auth, config)
+	if err != nil {
+		return nil, err
+	}
+	if heartbeat == nil {
+		return nil, nil
+	}
+
+	log.Infof("[Batch] open batch heartbeat")
+	heartbeat.label = "heartbeat"
+	heartbeat.instanceHandler = heartbeat.heartbeatHandler
+
+	return heartbeat, nil
+}
+
 // 开始启动批量操作实例的相关协程
 func (ctrl *InstanceCtrl) Start(ctx context.Context) {
 	log.Infof("[Batch] Start batch instance, config: %+v", ctrl.config)
@@ -252,6 +270,46 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 	}
 
 	SendReply(remains, api.ExecuteSuccess, nil)
+	return nil
+}
+
+// heartbeatHandler 心跳状态变更处理函数
+func (ctrl *InstanceCtrl) heartbeatHandler(futures []*InstanceFuture) error {
+	if len(futures) == 0 {
+		return nil
+	}
+	log.Infof("[Batch] start batch heartbeat instances count: %d", len(futures))
+	ids := make(map[string]bool, len(futures))
+	statusToIds := map[bool]map[string]bool{
+		true:  make(map[string]bool, len(futures)),
+		false: make(map[string]bool, len(futures)),
+	}
+	for _, entry := range futures {
+		//多个记录，只有后面的一个生效
+		id := entry.request.GetId().GetValue()
+		if _, ok := ids[id]; ok {
+			values := statusToIds[!entry.healthy]
+			delete(values, id)
+		}
+		ids[id] = false
+		statusToIds[entry.healthy][id] = true
+	}
+	for healthy, values := range statusToIds {
+		if len(values) == 0 {
+			continue
+		}
+		idValues := make([]interface{}, 0, len(values))
+		for id := range values {
+			idValues = append(idValues, id)
+		}
+		err := ctrl.storage.BatchSetInstanceHealthStatus(idValues, model.StatusBoolToInt(healthy), utils.NewUUID())
+		if nil != err {
+			log.Errorf("[Batch] batch healthy check instances err: %s", err.Error())
+			SendReply(futures, api.StoreLayerException, err)
+			return err
+		}
+	}
+	SendReply(futures, api.ExecuteSuccess, nil)
 	return nil
 }
 
@@ -426,6 +484,9 @@ func (ctrl *InstanceCtrl) batchVerifyInstances(futures map[string]*InstanceFutur
  */
 func (ctrl *InstanceCtrl) verifyInstanceAuth(platformID, platformToken, expectServiceToken, sPlatformID string,
 	req *api.Instance) (bool, uint32) {
+	if nil == ctrl.authority {
+		return true, 0
+	}
 	if ok := ctrl.verifyAuthByPlatform(platformID, platformToken, sPlatformID); !ok {
 		// 检查token是否存在
 		actualServiceToken := req.GetServiceToken().GetValue()

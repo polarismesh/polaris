@@ -352,6 +352,11 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *api.
 	}
 
 	serviceArgs := parseServiceArgs(serviceFilters, serviceMetas, ctx)
+	err = s.caches.Service().Update()
+	if err != nil {
+		log.Errorf("[Server][Service][Query] req(%+v) update store err: %s", query, err.Error())
+		return api.NewBatchQueryResponse(api.StoreLayerException)
+	}
 	total, services, err := s.caches.Service().GetServicesByFilter(serviceArgs, instanceArgs, offset, limit)
 	if err != nil {
 		log.Errorf("[Server][Service][Query] req(%+v) store err: %s", query, err.Error())
@@ -365,7 +370,7 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *api.
 	return resp
 }
 
-// 解析服务的查询条件
+// parseServiceArgs 解析服务的查询条件
 func parseServiceArgs(filter map[string]string, metaFilter map[string]string, ctx context.Context) *cache.ServiceArgs {
 	res := &cache.ServiceArgs{
 		Filter:    filter,
