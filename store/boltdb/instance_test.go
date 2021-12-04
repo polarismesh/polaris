@@ -19,6 +19,7 @@ package boltdb
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -37,13 +38,20 @@ func TestInstanceStore_AddInstance(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
+	batchAddInstances(t, insStore, "svcid1", insCount)
+}
+
+func batchAddInstances(t *testing.T, insStore *instanceStore, svcId string, insCount int) {
 	for i := 0; i < insCount; i++ {
 
 		nowt := time.Now().Format("2006-01-02 15:04:05")
 
-		err = insStore.AddInstance(&model.Instance{
+		err := insStore.AddInstance(&model.Instance{
 			Proto: &api.Instance{
 				Id:                &wrappers.StringValue{Value: "insid" + strconv.Itoa(i)},
 				Host:              &wrappers.StringValue{Value: "1.1.1." + strconv.Itoa(i)},
@@ -61,7 +69,7 @@ func TestInstanceStore_AddInstance(t *testing.T) {
 				Mtime:    &wrappers.StringValue{Value: nowt},
 				Revision: &wrappers.StringValue{Value: "revision" + strconv.Itoa(i)},
 			},
-			ServiceID:         "svcid1",
+			ServiceID:         svcId,
 			ServicePlatformID: "svcPlatId1",
 			Valid:             true,
 			ModifyTime:        time.Now(),
@@ -77,7 +85,10 @@ func TestInstanceStore_BatchAddInstances(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
 
 	instances := make([]*model.Instance, 0)
@@ -123,8 +134,12 @@ func TestInstanceStore_GetExpandInstances(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
+	batchAddInstances(t, insStore, "svcid1", insCount)
 
 	_, ii, err := insStore.GetExpandInstances(nil, nil, 0, 20)
 	if nil != err {
@@ -141,8 +156,12 @@ func TestInstanceStore_GetMoreInstances(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
+	batchAddInstances(t, insStore, "svcid2", insCount)
 
 	tt, _ := time.Parse("2006-01-02 15:04:05", "2021-01-02 15:04:05")
 	m, err := insStore.GetMoreInstances(tt, false, false, []string{"svcid2"})
@@ -161,8 +180,12 @@ func TestInstanceStore_SetInstanceHealthStatus(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
+	batchAddInstances(t, insStore, "svcid1", 8)
 
 	err = insStore.SetInstanceHealthStatus("insid7", 0, "rev-no-healthy")
 	if err != nil {
@@ -185,8 +208,12 @@ func TestInstanceStore_BatchSetInstanceIsolate(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
+	batchAddInstances(t, insStore, "svcid1", 10)
 
 	err = insStore.BatchSetInstanceIsolate([]interface{}{"insid7", "insid1"}, 0, "rev-no-Isolate")
 	if err != nil {
@@ -219,8 +246,12 @@ func TestInstanceStore_GetInstancesMainByService(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
+	batchAddInstances(t, insStore, "svcid1", insCount)
 
 	ii, err := insStore.GetInstancesMainByService("svcid1", "1.1.1.1")
 	if nil != err {
@@ -237,8 +268,12 @@ func TestInstanceStore_UpdateInstance(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
+	batchAddInstances(t, insStore, "svcid1", insCount)
 
 	insM := &model.Instance{
 		Proto: &api.Instance{
@@ -285,8 +320,13 @@ func TestInstanceStore_GetInstancesBrief(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
+	batchAddInstances(t, insStore, "svcid2", 10)
+	batchAddInstances(t, insStore, "svcid1", 5)
 	sStore := &serviceStore{handler: handler}
 
 	err = sStore.AddService(&model.Service{
@@ -372,15 +412,19 @@ func TestInstanceStore_GetInstancesCount(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
+	batchAddInstances(t, insStore, "svcid1", insCount)
 
 	c, err := insStore.GetInstancesCount()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if c != routeCount*2 {
+	if c != insCount {
 		t.Fatal("get instance count error")
 	}
 }
@@ -390,8 +434,12 @@ func TestInstanceStore_CheckInstancesExisted(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
+	batchAddInstances(t, insStore, "svcid1", insCount)
 
 	m := map[string]bool{
 		"insid1":          false,
@@ -415,8 +463,12 @@ func TestInstanceStore_DeleteInstance(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
+	batchAddInstances(t, insStore, "svcid1", insCount)
 
 	err = insStore.DeleteInstance("insid1")
 	if err != nil {
@@ -429,7 +481,7 @@ func TestInstanceStore_DeleteInstance(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if ins != nil {
+	if !ins.Valid {
 		t.Fatal(fmt.Sprintf("delete instance error"))
 	}
 }
@@ -439,8 +491,12 @@ func TestInstanceStore_BatchDeleteInstances(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	insStore := &instanceStore{handler: handler}
+	batchAddInstances(t, insStore, "svcid1", insCount)
 
 	err = insStore.BatchDeleteInstances([]interface{}{"insid2", "insid3"})
 	if err != nil {
@@ -453,7 +509,7 @@ func TestInstanceStore_BatchDeleteInstances(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if ins != nil {
+	if !ins.Valid {
 		t.Fatal(fmt.Sprintf("delete instance error"))
 	}
 
@@ -462,7 +518,7 @@ func TestInstanceStore_BatchDeleteInstances(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if ins != nil {
+	if !ins.Valid {
 		t.Fatal(fmt.Sprintf("delete instance error"))
 	}
 }

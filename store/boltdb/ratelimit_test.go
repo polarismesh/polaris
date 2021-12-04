@@ -173,7 +173,7 @@ func Test_rateLimitStore_DeleteRateLimit(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		assert.Nil(t, saveVal, "delete failed")
+		assert.True(t, saveVal.Valid, "delete failed")
 	})
 }
 

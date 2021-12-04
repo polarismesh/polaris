@@ -41,14 +41,14 @@ const (
 	insFieldProto      = "Proto"
 	insFieldServiceID  = "ServiceID"
 	insFieldModifyTime = "ModifyTime"
+	insFieldVaild      = "Valid"
 )
 
 // AddInstance add an instance
 func (i *instanceStore) AddInstance(instance *model.Instance) error {
-
 	initInstance([]*model.Instance{instance})
 	// Before adding new data, you must clean up the old data
-	if err := i.handler.DeleteValues(tblNameInstance, []string{instance.ID()}); err != nil {
+	if err := i.handler.DeleteValues(tblNameInstance, []string{instance.ID()}, true); err != nil {
 		log.Errorf("[Store][boltdb] delete instance to kv error, %v", err)
 		return err
 	}
@@ -74,7 +74,7 @@ func (i *instanceStore) BatchAddInstances(instances []*model.Instance) error {
 	}
 
 	// clear old instances
-	if err := i.handler.DeleteValues(tblNameInstance, insIds); err != nil {
+	if err := i.handler.DeleteValues(tblNameInstance, insIds, true); err != nil {
 		log.Errorf("[Store][boltdb] save instance to kv error, %v", err)
 		return err
 	}
@@ -110,7 +110,7 @@ func (i *instanceStore) UpdateInstance(instance *model.Instance) error {
 // DeleteInstance Delete an instance
 func (i *instanceStore) DeleteInstance(instanceID string) error {
 
-	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}); err != nil {
+	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}, true); err != nil {
 		log.Errorf("[Store][boltdb] delete instance from kv error, %v", err)
 		return err
 	}
@@ -131,7 +131,7 @@ func (i *instanceStore) BatchDeleteInstances(ids []interface{}) error {
 		realIDs = append(realIDs, id.(string))
 	}
 
-	if err := i.handler.DeleteValues(tblNameInstance, realIDs); err != nil {
+	if err := i.handler.DeleteValues(tblNameInstance, realIDs, true); err != nil {
 		log.Errorf("[Store][boltdb] batch delete instance from kv error, %v", err)
 		return err
 	}
@@ -140,7 +140,7 @@ func (i *instanceStore) BatchDeleteInstances(ids []interface{}) error {
 
 // CleanInstance Delete an instance
 func (i *instanceStore) CleanInstance(instanceID string) error {
-	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}); err != nil {
+	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}, true); err != nil {
 		log.Errorf("[Store][boltdb] delete instance from kv error, %v", err)
 		return err
 	}
@@ -154,18 +154,30 @@ func (i *instanceStore) CheckInstancesExisted(ids map[string]bool) (map[string]b
 		return nil, nil
 	}
 
-	err := i.handler.IterateFields(tblNameInstance, insFieldProto, &model.Instance{}, func(ins interface{}) {
-		instance := ins.(*api.Instance)
+	keys := make([]string, len(ids))
+	pos := 0
+	for k := range ids {
+		keys[pos] = k
+		pos++
+	}
 
-		_, ok := ids[instance.GetId().GetValue()]
-		if ok {
-			ids[instance.GetId().GetValue()] = true
-		}
-	})
-
+	result, err := i.handler.LoadValues(tblNameInstance, keys, &model.Instance{})
 	if err != nil {
 		log.Errorf("[Store][boltdb] list instance in kv error, %v", err)
 		return nil, err
+	}
+
+	if len(result) == 0 {
+		return ids, nil
+	}
+
+	for id, val := range result {
+		ins := val.(*model.Instance)
+		if !ins.Valid {
+			continue
+		}
+
+		ids[id] = true
 	}
 
 	return ids, nil
@@ -178,11 +190,16 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 		return nil, nil
 	}
 
-	fields := []string{insFieldProto}
+	fields := []string{insFieldProto, insFieldVaild}
 
 	// find all instances with given ids
 	inss, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
+			vaild, ok := m[insFieldVaild]
+			if ok && !vaild.(bool) {
+				return false
+			}
+
 			insProto, ok := m[insFieldProto]
 			if !ok {
 				return false
@@ -206,9 +223,14 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 		serviceIDs[serviceID] = true
 	}
 
-	fields = []string{SvcFieldID}
+	fields = []string{SvcFieldID, SvcFieldVaild}
 	services, err := i.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
+			vaild, ok := m[insFieldVaild]
+			if ok && !vaild.(bool) {
+				return false
+			}
+
 			svcId, ok := m[SvcFieldID]
 			if !ok {
 				return false
@@ -293,10 +315,15 @@ func (i *instanceStore) GetInstancesCount() (uint32, error) {
 func (i *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*model.Instance, error) {
 
 	// select by service_id and host
-	fields := []string{insFieldServiceID, insFieldProto}
+	fields := []string{insFieldServiceID, insFieldProto, insFieldVaild}
 
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
+			vaild, ok := m[insFieldVaild]
+			if ok && !vaild.(bool) {
+				return false
+			}
+
 			sId, ok := m[insFieldServiceID]
 			if !ok {
 				return false
@@ -348,10 +375,15 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 		filter["serviceID"] = svc.ID
 	}
 
-	fields := []string{insFieldProto, insFieldServiceID}
+	fields := []string{insFieldProto, insFieldServiceID, insFieldVaild}
 
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
+			vaild, ok := m[insFieldVaild]
+			if ok && !vaild.(bool) {
+				return false
+			}
+
 			insProto, ok := m[insFieldProto]
 			if !ok {
 				return false
@@ -423,7 +455,7 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 func (i *instanceStore) GetMoreInstances(
 	mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (map[string]*model.Instance, error) {
 
-	fields := []string{insFieldProto, insFieldServiceID}
+	fields := []string{insFieldProto, insFieldServiceID, insFieldVaild}
 	svcIdMap := make(map[string]bool)
 	for _, s := range serviceID {
 		svcIdMap[s] = true
@@ -431,6 +463,14 @@ func (i *instanceStore) GetMoreInstances(
 
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
+
+			if firstUpdate {
+				vaild, ok := m[insFieldVaild]
+				if ok && !vaild.(bool) {
+					return false
+				}
+			}
+
 			insProto, ok := m[insFieldProto]
 			if !ok {
 				return false
