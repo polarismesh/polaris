@@ -39,6 +39,10 @@ var (
 	serverLogger      = RegisterScope(ServerLoggerName, "api server logging messages.", 0)
 )
 
+func allLoggerType() []string {
+	return []string{HealthCheckLoggerName, StoreLoggerName, NamingLoggerName, PluginLoggerName, ServerLoggerName, DefaultLoggerName}
+}
+
 func GetDefaultLogger() *Scope {
 	return defaultScope
 }

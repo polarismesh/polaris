@@ -2,18 +2,24 @@
 bootstrap:
   # 全局日志
   logger:
-    path:
-      naming: log/polaris-naming.log
-      health-check: log/polaris-health-check.log
-      store: log/polaris-store.log
-      plugin: log/polaris-plugin.log
-      server: log/polaris-server.log
-      # 默认日志路径
-      default: log/polaris-default.log
-    RotationMaxSize: 500
-    RotationMaxAge: 30
-    RotationMaxBackups: 100
-    level: debug
+    naming:
+      rotateOutputPath: log/polaris-naming.log
+      # 以下参数不指定或者为零值时，默认值如下
+#      rotationMaxSize: 500
+#      rotationMaxAge: 30
+#      rotationMaxBackups: 100
+#      outputLevel: debug
+#      stackTraceLevel: none
+    health-check:
+      rotateOutputPath: log/polaris-health-check.log
+    store:
+      rotateOutputPath: log/polaris-store.log
+    plugin:
+      rotateOutputPath: log/polaris-plugin.log
+    server:
+      rotateOutputPath: log/polaris-server.log
+    default:
+      rotateOutputPath: log/polaris-default.log
   # 按顺序启动server
   startInOrder:
     open: true # 是否开启，默认是关闭

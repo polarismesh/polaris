@@ -71,7 +71,7 @@ func RegisterScope(name string, description string, callerSkip int) *Scope {
 		s.SetStackTraceLevel(NoneLevel)
 		s.SetLogCallers(false)
 
-		if name != DefaultScopeName {
+		if name != DefaultLoggerName {
 			s.nameToEmit = name
 		}
 

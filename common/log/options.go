@@ -19,13 +19,10 @@ package log
 
 import (
 	"errors"
-	"fmt"
-	"strings"
 )
 
 const (
-	DefaultScopeName          = "default"
-	OverrideScopeName         = "all"
+	DefaultLoggerName         = "default"
 	defaultOutputLevel        = InfoLevel
 	defaultStackTraceLevel    = NoneLevel
 	defaultOutputPath         = "stdout"
@@ -76,12 +73,12 @@ type Options struct {
 	// OutputPaths is a list of file system paths to write the log data to.
 	// The special values stdout and stderr can be used to output to the
 	// standard I/O streams. This defaults to stdout.
-	OutputPaths []string `yaml:"OutputPaths"`
+	OutputPaths []string `yaml:"outputPaths"`
 
 	// ErrorOutputPaths is a list of file system paths to write logger errors to.
 	// The special values stdout and stderr can be used to output to the
 	// standard I/O streams. This defaults to stderr.
-	ErrorOutputPaths []string `yaml:"ErrorOutputPaths"`
+	ErrorOutputPaths []string `yaml:"errorOutputPaths"`
 
 	// RotateOutputPath is the path to a rotating log file. This file should
 	// be automatically rotated over time, based on the rotation parameters such
@@ -92,209 +89,80 @@ type Options struct {
 	// old, then the file is renamed by appending a timestamp to the name. Such renamed
 	// files are called backups. Once a backup has been created,
 	// output resumes to this path.
-	RotateOutputPath string `yaml:"RotateOutputPath"`
-
-	Path map[string]string `yaml:"path"`
+	RotateOutputPath string `yaml:"rotateOutputPath"`
 
 	// RotationMaxSize is the maximum size in megabytes of a log file before it gets
 	// rotated. It defaults to 100 megabytes.
-	RotationMaxSize int `yaml:"RotationMaxSize"`
+	RotationMaxSize int `yaml:"rotationMaxSize"`
 
 	// RotationMaxAge is the maximum number of days to retain old log files based on the
 	// timestamp encoded in their filename. Note that a day is defined as 24
 	// hours and may not exactly correspond to calendar days due to daylight
 	// savings, leap seconds, etc. The default is to remove log files
 	// older than 30 days.
-	RotationMaxAge int `yaml:"RotationMaxAge"`
+	RotationMaxAge int `yaml:"rotationMaxAge"`
 
 	// RotationMaxBackups is the maximum number of old log files to retain.  The default
 	// is to retain at most 1000 logs.
-	RotationMaxBackups int `yaml:"RotationMaxBackups"`
+	RotationMaxBackups int `yaml:"rotationMaxBackups"`
 
 	// JSONEncoding controls whether the log is formatted as JSON.
-	JSONEncoding bool
+	JSONEncoding bool `yaml:"jsonEncoding"`
 
 	// LogGrpc indicates that Grpc logs should be captured. The default is true.
 	// This is not exposed through the command-line flags, as this flag is mainly useful for testing: Grpc
 	// stack will hold on to the logger even though it gets closed. This causes data races.
 	LogGrpc bool
 
-	Level string
-
-	outputLevels     string
-	logCallers       string
-	stackTraceLevels string
+	OutputLevel     string `yaml:"outputLevel"`
+	StackTraceLevel string `yaml:"stackTraceLevel"`
+	LogCaller       bool   `yaml:"logCaller"`
 }
 
 // DefaultOptions returns a new set of options, initialized to the defaults
-func DefaultOptions() *Options {
-	return &Options{
-		OutputPaths:        []string{defaultOutputPath},
-		ErrorOutputPaths:   []string{defaultErrorOutputPath},
-		RotationMaxSize:    defaultRotationMaxSize,
-		RotationMaxAge:     defaultRotationMaxAge,
-		RotationMaxBackups: defaultRotationMaxBackups,
-		outputLevels:       DefaultScopeName + ":" + levelToString[defaultOutputLevel],
-		stackTraceLevels:   DefaultScopeName + ":" + levelToString[defaultStackTraceLevel],
-		LogGrpc:            false,
+func DefaultOptions() map[string]*Options {
+	optionsMap := make(map[string]*Options)
+	for _, typeName := range allLoggerType() {
+		optionsMap[typeName] = &Options{
+			OutputPaths:        []string{defaultOutputPath},
+			ErrorOutputPaths:   []string{defaultErrorOutputPath},
+			RotationMaxSize:    defaultRotationMaxSize,
+			RotationMaxAge:     defaultRotationMaxAge,
+			RotationMaxBackups: defaultRotationMaxBackups,
+			OutputLevel:        levelToString[defaultOutputLevel],
+			StackTraceLevel:    levelToString[defaultStackTraceLevel],
+			LogGrpc:            false,
+		}
 	}
+	return optionsMap
 }
 
 // SetOutputLevel sets the minimum log output level for a given scope.
-func (o *Options) SetOutputLevel(scope, level string) error {
+func (o *Options) SetOutputLevel(level string) error {
 	_, exist := stringToLevel[level]
 	if !exist {
 		return errors.New("invalid log level")
 	}
-	sl := scope + ":" + level
-
-	levels := strings.Split(o.outputLevels, ",")
-
-	if scope == DefaultScopeName {
-		// see if we have an entry without a scope prefix (which represents the default scope)
-		for i, ol := range levels {
-			if !strings.Contains(ol, ":") {
-				levels[i] = sl
-				o.outputLevels = strings.Join(levels, ",")
-				return nil
-			}
-		}
-	}
-
-	prefix := scope + ":"
-	for i, ol := range levels {
-		if strings.HasPrefix(ol, prefix) {
-			levels[i] = sl
-			o.outputLevels = strings.Join(levels, ",")
-			return nil
-		}
-	}
-
-	levels = append(levels, sl)
-	o.outputLevels = strings.Join(levels, ",")
-
+	o.OutputLevel = level
 	return nil
 }
 
 // GetOutputLevel returns the minimum log output level for a given scope.
-func (o *Options) GetOutputLevel(scope string) (Level, error) {
-	return o.GetStackTraceLevel(scope)
+func (o *Options) GetOutputLevel() Level {
+	return stringToLevel[o.OutputLevel]
 }
 
 // SetStackTraceLevel sets the minimum stack tracing level for a given scope.
-func (o *Options) SetStackTraceLevel(scope, level string) {
-	sl := scope + ":" + level
-
-	levels := strings.Split(o.stackTraceLevels, ",")
-
-	if scope == DefaultScopeName {
-		// see if we have an entry without a scope prefix (which represents the default scope)
-		for i, ol := range levels {
-			if !strings.Contains(ol, ":") {
-				levels[i] = sl
-				o.stackTraceLevels = strings.Join(levels, ",")
-				return
-			}
-		}
+func (o *Options) SetStackTraceLevel(level string) error {
+	_, exist := stringToLevel[level]
+	if !exist {
+		return errors.New("invalid stack trace level")
 	}
-
-	prefix := scope + ":"
-	for i, ol := range levels {
-		if strings.HasPrefix(ol, prefix) {
-			levels[i] = sl
-			o.stackTraceLevels = strings.Join(levels, ",")
-			return
-		}
-	}
-
-	levels = append(levels, sl)
-	o.stackTraceLevels = strings.Join(levels, ",")
+	o.StackTraceLevel = level
+	return nil
 }
 
 // GetStackTraceLevel returns the minimum stack tracing level for a given scope.
-func (o *Options) GetStackTraceLevel(scope string) (Level, error) {
-	levels := strings.Split(o.stackTraceLevels, ",")
-
-	if scope == DefaultScopeName {
-		// see if we have an entry without a scope prefix (which represents the default scope)
-		for _, ol := range levels {
-			if !strings.Contains(ol, ":") {
-				_, l, err := convertScopedLevel(ol)
-				return l, err
-			}
-		}
-	}
-
-	prefix := scope + ":"
-	for _, ol := range levels {
-		if strings.HasPrefix(ol, prefix) {
-			_, l, err := convertScopedLevel(ol)
-			return l, err
-		}
-	}
-
-	return NoneLevel, fmt.Errorf("no level defined for scope '%s'", scope)
-}
-
-// SetLogCallers sets whether to output the caller's source code location for a given scope.
-func (o *Options) SetLogCallers(scope string, include bool) {
-	scopes := strings.Split(o.logCallers, ",")
-
-	// remove any occurrence of the scope
-	for i, s := range scopes {
-		if s == scope {
-			scopes[i] = ""
-		}
-	}
-
-	if include {
-		// find a free slot if there is one
-		for i, s := range scopes {
-			if s == "" {
-				scopes[i] = scope
-				o.logCallers = strings.Join(scopes, ",")
-				return
-			}
-		}
-
-		scopes = append(scopes, scope)
-	}
-
-	o.logCallers = strings.Join(scopes, ",")
-}
-
-// GetLogCallers returns whether the caller's source code location is output for a given scope.
-func (o *Options) GetLogCallers(scope string) bool {
-	scopes := strings.Split(o.logCallers, ",")
-
-	for _, s := range scopes {
-		if s == scope {
-			return true
-		}
-	}
-
-	return false
-}
-
-func convertScopedLevel(sl string) (string, Level, error) {
-	var s string
-	var l string
-
-	pieces := strings.Split(sl, ":")
-	if len(pieces) == 1 {
-		s = DefaultScopeName
-		l = pieces[0]
-	} else if len(pieces) == 2 {
-		s = pieces[0]
-		l = pieces[1]
-	} else {
-		return "", NoneLevel, fmt.Errorf("invalid output level format '%s'", sl)
-	}
-
-	level, ok := stringToLevel[l]
-	if !ok {
-		return "", NoneLevel, fmt.Errorf("invalid output level '%s'", sl)
-	}
-
-	return s, level, nil
+func (o *Options) GetStackTraceLevel() Level {
+	return stringToLevel[o.StackTraceLevel]
 }

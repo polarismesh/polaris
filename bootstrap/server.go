@@ -59,17 +59,7 @@ func Start(configFilePath string) {
 	fmt.Printf("%+v\n", *cfg)
 
 	// 初始化日志打印
-	err = cfg.Bootstrap.Logger.SetOutputLevel(log.DefaultScopeName, cfg.Bootstrap.Logger.Level)
-	if err != nil {
-		fmt.Printf("[ERROR] %v\n", err)
-		return
-	}
-
-	cfg.Bootstrap.Logger.SetStackTraceLevel(log.DefaultScopeName, "none")
-
-	cfg.Bootstrap.Logger.SetLogCallers(log.OverrideScopeName, true)
-
-	err = log.Configure(&cfg.Bootstrap.Logger)
+	err = log.Configure(cfg.Bootstrap.Logger)
 	if err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
 		return
