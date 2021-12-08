@@ -19,6 +19,7 @@ package main
 
 import (
 	"github.com/polarismesh/polaris-server/cmd"
+	_ "go.uber.org/automaxprocs"
 )
 
 /**
