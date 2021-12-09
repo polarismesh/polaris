@@ -18,11 +18,12 @@
 package healthcheck
 
 import (
+	"sync"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/plugin"
-	"sync"
 )
 
 // CacheProvider provider health check objects for service cache
@@ -198,16 +199,16 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 
 // OnDeleted callback when cache value deleted
 func (c *CacheProvider) OnDeleted(value interface{}) {
-	if instance, ok := value.(*api.Instance); ok {
-		if c.isSelfServiceInstance(instance) {
-			deleteServiceInstance(instance, c.selfServiceMutex, c.selfServiceInstances)
+	if instance, ok := value.(*model.Instance); ok {
+		if c.isSelfServiceInstance(instance.Proto) {
+			deleteServiceInstance(instance.Proto, c.selfServiceMutex, c.selfServiceInstances)
 			c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
 			return
 		}
-		if !instance.GetEnableHealthCheck().GetValue() || nil == instance.GetHealthCheck() {
+		if !instance.EnableHealthCheck() || nil == instance.HealthCheck() {
 			return
 		}
-		deleteServiceInstance(instance, c.healthCheckMutex, c.healthCheckInstances)
+		deleteServiceInstance(instance.Proto, c.healthCheckMutex, c.healthCheckInstances)
 		c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 	}
 }

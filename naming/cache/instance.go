@@ -233,7 +233,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 			del++
 			ic.ids.Delete(item.ID())
 			if itemExist {
-				ic.manager.onEvent(item.Proto, EventDeleted)
+				ic.manager.onEvent(item, EventDeleted)
 				instanceCount--
 			}
 			value, ok := ic.services.Load(item.ServiceID)
@@ -256,9 +256,9 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 		ic.ids.Store(item.ID(), item)
 		if !itemExist {
 			instanceCount++
-			ic.manager.onEvent(item.Proto, EventCreated)
+			ic.manager.onEvent(item, EventCreated)
 		} else {
-			ic.manager.onEvent(item.Proto, EventUpdated)
+			ic.manager.onEvent(item, EventUpdated)
 		}
 		value, ok := ic.services.Load(item.ServiceID)
 		if !ok {
