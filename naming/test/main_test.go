@@ -86,7 +86,6 @@ func respSuccess(resp api.ResponseMessage) bool {
 // 内部初始化函数
 func initialize() error {
 	options := log.DefaultOptions()
-	options.SetLogCallers(log.DefaultScopeName, true)
 	_ = log.Configure(options)
 	var err error
 	once.Do(func() {

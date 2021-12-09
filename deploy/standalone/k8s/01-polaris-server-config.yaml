@@ -5,11 +5,36 @@ data:
     bootstrap:
       # 全局日志
       logger:
-        OutputPaths:
-          - stdout
-        ErrorOutputPaths:
-          - stderr 
-        level: debug
+        naming:
+          outputPaths:
+            - stdout
+          errorOutputPaths:
+            - stderr
+        health-check:
+          outputPaths:
+            - stdout
+          errorOutputPaths:
+            - stderr
+        store:
+          outputPaths:
+            - stdout
+          errorOutputPaths:
+            - stderr
+        plugin:
+          outputPaths:
+            - stdout
+          errorOutputPaths:
+            - stderr
+        server:
+          outputPaths:
+            - stdout
+          errorOutputPaths:
+            - stderr
+        default:
+          outputPaths:
+            - stdout
+          errorOutputPaths:
+            - stderr
       # 按顺序启动server
       startInOrder:
         open: true # 是否开启，默认是关闭
