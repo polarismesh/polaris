@@ -75,4 +75,5 @@ type Config struct {
 	ParsePassword        ConfigEntry `yaml:"parsePassword"`
 	Auth                 ConfigEntry `yaml:"auth"`
 	MeshResourceValidate ConfigEntry `yaml:"meshResourceValidate"`
+	DiscoverEvent        ConfigEntry `yaml:"discoverEvent"`
 }

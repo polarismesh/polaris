@@ -283,6 +283,11 @@ func (s *Server) serialDeleteInstance(ctx context.Context, req *api.Instance, in
 	log.Info(msg, ZapRequestID(rid), ZapPlatformID(pid), zap.Duration("cost", time.Now().Sub(start)))
 	s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.ODelete))
 
+	s.sendDiscoverEvent(model.EventInstanceOffline, service.Namespace,
+		service.Name,
+		instance.Host(),
+		int(instance.Port()))
+
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
 }
 
@@ -309,6 +314,9 @@ func (s *Server) asyncDeleteInstance(ctx context.Context, req *api.Instance, ins
 	log.Info(msg, ZapRequestID(rid), ZapPlatformID(pid), zap.Duration("cost", time.Now().Sub(start)))
 	service := &model.Service{Name: instance.Service(), Namespace: instance.Namespace()}
 	s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.ODelete))
+
+	s.sendDiscoverEvent(model.EventInstanceOffline, service.Namespace, service.Name, instance.Host(),
+		int(instance.Port()))
 
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
 }
@@ -361,6 +369,11 @@ func (s *Server) DeleteInstanceByHost(ctx context.Context, req *api.Instance) *a
 			instance.ID(), service.Namespace, service.Name, instance.Host(), instance.Port())
 		log.Info(msg, ZapRequestID(requestID), ZapPlatformID(platformID))
 		s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.ODelete))
+
+		s.sendDiscoverEvent(model.EventInstanceOffline, instance.Namespace(),
+			instance.Service(),
+			instance.Host(),
+			int(instance.Port()))
 	}
 
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
@@ -394,6 +407,9 @@ func (s *Server) UpdateInstance(ctx context.Context, req *api.Instance) *api.Res
 	platformID := ParsePlatformID(ctx)
 	log.Info(fmt.Sprintf("old instance: %+v", instance), ZapRequestID(requestID), ZapPlatformID(platformID))
 
+	// 比对下更新前后的 isolate 状态
+	eventTypes := diffInstanceEvent(req, instance)
+
 	// 存储层操作
 	if needUpdate := s.updateInstanceAttribute(req, instance); !needUpdate {
 		log.Info("update instance no data change, no need update",
@@ -410,6 +426,10 @@ func (s *Server) UpdateInstance(ctx context.Context, req *api.Instance) *api.Res
 		instance.Port(), instance.Healthy())
 	log.Info(msg, ZapRequestID(requestID), ZapPlatformID(platformID))
 	s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.OUpdate))
+
+	for i := range eventTypes {
+		s.sendDiscoverEvent(eventTypes[i], service.Namespace, service.Name, instance.Host(), int(instance.Port()))
+	}
 
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
 }
@@ -485,6 +505,16 @@ func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *
 			instance.ID(), service.Namespace, service.Name, instance.Host(), instance.Port(), instance.Isolate())
 		log.Info(msg, ZapRequestID(requestID), ZapPlatformID(platformID))
 		s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.OUpdateIsolate))
+
+		// 比对下更新前后的 isolate 状态
+		if req.Isolate != nil && instance.Isolate() != req.Isolate.GetValue() {
+			eventType := model.EventInstanceCloseIsolate
+			if req.Isolate.GetValue() {
+				eventType = model.EventInstanceOpenIsolate
+			}
+			s.sendDiscoverEvent(eventType, req.Namespace.GetValue(), req.Service.GetValue(), req.Host.GetValue(),
+				int(req.Port.GetValue()))
+		}
 	}
 
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
@@ -513,6 +543,19 @@ func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instan
 	}
 
 	return retCode, nil
+}
+
+func (s *Server) sendDiscoverEvent(eventType model.DiscoverEventType, namespace, service, host string, port int) {
+	// 发布隔离状态变化事件
+	event := model.DiscoverEvent{
+		Namespace: namespace,
+		Service:   service,
+		Host:      host,
+		Port:      port,
+		EType:     eventType,
+	}
+
+	s.PublishDiscoverEvent(event)
 }
 
 /**
@@ -1196,4 +1239,27 @@ func CheckDbInstanceFieldLen(req *api.Instance) (*api.Response, bool) {
 		return api.NewInstanceResponse(api.InvalidParameter, req), true
 	}
 	return nil, false
+}
+
+// diffInstanceEvent
+func diffInstanceEvent(req *api.Instance, save *model.Instance) []model.DiscoverEventType {
+	eventTypes := make([]model.DiscoverEventType, 0)
+
+	if req.Isolate != nil && save.Isolate() != req.Isolate.GetValue() {
+		if req.Isolate.GetValue() {
+			eventTypes = append(eventTypes, model.EventInstanceOpenIsolate)
+		} else {
+			eventTypes = append(eventTypes, model.EventInstanceCloseIsolate)
+		}
+	}
+
+	if req.Healthy != nil && save.Healthy() != req.Healthy.GetValue() {
+		if req.Healthy.GetValue() {
+			eventTypes = append(eventTypes, model.EventInstanceTurnHealth)
+		} else {
+			eventTypes = append(eventTypes, model.EventInstanceTurnUnHealth)
+		}
+	}
+
+	return eventTypes
 }

@@ -18,13 +18,14 @@
 package cache
 
 import (
+	"sync"
+	"time"
+
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
-	"sync"
-	"time"
 )
 
 const (
@@ -36,14 +37,6 @@ const (
 
 // InstanceIterProc instance iter proc func
 type InstanceIterProc func(key string, value *model.Instance) (bool, error)
-
-// InstancesDetail 服务实例列表及详情
-type InstanceCount struct {
-	// HealthyInstanceCount 健康实例数
-	HealthyInstanceCount uint32
-	// TotalInstanceCount 总实例数
-	TotalInstanceCount uint32
-}
 
 // InstanceCache 实例相关的缓存接口
 type InstanceCache interface {
@@ -60,7 +53,7 @@ type InstanceCache interface {
 	// GetInstancesCount 获取instance的个数
 	GetInstancesCount() int
 	// GetInstancesCountByServiceID 根据服务ID获取实例数
-	GetInstancesCountByServiceID(serviceID string) InstanceCount
+	GetInstancesCountByServiceID(serviceID string) model.InstanceCount
 }
 
 // instanceCache 实例缓存的类
@@ -303,7 +296,7 @@ func (ic *instanceCache) postProcessUpdatedServices(affect map[string]bool) {
 			ic.instanceCounts.Delete(serviceID)
 			continue
 		}
-		count := &InstanceCount{}
+		count := &model.InstanceCount{}
 		value.(*sync.Map).Range(func(key, item interface{}) bool {
 			count.TotalInstanceCount++
 			instance := item.(*model.Instance)
@@ -359,16 +352,16 @@ func (ic *instanceCache) GetInstancesByServiceID(serviceID string) []*model.Inst
 }
 
 // GetInstancesCountByServiceID 根据服务ID获取实例数
-func (ic *instanceCache) GetInstancesCountByServiceID(serviceID string) InstanceCount {
+func (ic *instanceCache) GetInstancesCountByServiceID(serviceID string) model.InstanceCount {
 	if serviceID == "" {
-		return InstanceCount{}
+		return model.InstanceCount{}
 	}
 
 	value, ok := ic.instanceCounts.Load(serviceID)
 	if !ok {
-		return InstanceCount{}
+		return model.InstanceCount{}
 	}
-	return *(value.(*InstanceCount))
+	return *(value.(*model.InstanceCount))
 }
 
 // IteratorInstances 迭代所有的instance的函数

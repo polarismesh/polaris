@@ -56,15 +56,15 @@ func (s *Server) doReport(ctx context.Context, instance *api.Instance) *api.Resp
 	if insCache == nil {
 		return api.NewInstanceResponse(api.HeartbeatOnDisabledIns, instance)
 	}
-	checker, ok := s.checkers[int32(insCache.GetHealthCheck().GetType())]
+	checker, ok := s.checkers[int32(insCache.HealthCheck().GetType())]
 	if !ok {
 		return api.NewInstanceResponse(api.HeartbeatTypeNotFound, instance)
 	}
 	request := &plugin.ReportRequest{
 		QueryRequest: plugin.QueryRequest{
 			InstanceId: id,
-			Host:       insCache.GetHost().GetValue(),
-			Port:       insCache.GetPort().GetValue(),
+			Host:       insCache.Host(),
+			Port:       insCache.Port(),
 		},
 		LocalHost:  s.localHost,
 		CurTimeSec: time.Now().Unix() - s.timeAdjuster.GetDiff(),
@@ -72,7 +72,7 @@ func (s *Server) doReport(ctx context.Context, instance *api.Instance) *api.Resp
 	err := checker.Report(request)
 	if nil != err {
 		log.Errorf("[Heartbeat][Server]fail to do report for %s:%d, id is %s, err is %v",
-			insCache.GetHost().GetValue(), insCache.GetPort().GetValue(), id, err)
+			insCache.Host(), insCache.Port(), id, err)
 		return api.NewInstanceResponse(api.HeartbeatException, instance)
 	}
 	return api.NewInstanceResponse(api.ExecuteSuccess, instance)

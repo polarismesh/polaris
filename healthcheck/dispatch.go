@@ -128,7 +128,7 @@ func (d *Dispatcher) reloadManagedInstances() {
 	var totalCount int
 	if nil != d.continuum {
 		server.cacheProvider.RangeHealthCheckInstances(func(instance *InstanceWithChecker) {
-			instanceId := instance.instance.GetId().GetValue()
+			instanceId := instance.instance.ID()
 			host := d.continuum.Hash(instance.hashValue)
 			if host == server.localHost {
 				nextInstances[instanceId] = instance
