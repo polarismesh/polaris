@@ -116,6 +116,10 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool) error {
 	server.timeAdjuster = newTimeAdjuster(ctx)
 	server.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval, hcOpt.MaxCheckInterval)
 	server.dispatcher = newDispatcher(ctx)
+
+	server.discoverCh = make(chan eventWrapper, 32)
+	go server.receiveEventAndPush()
+
 	return nil
 }
 
@@ -180,12 +184,9 @@ func (s *Server) receiveEventAndPush() {
 	for {
 		select {
 		case wrapper := <-s.discoverCh:
-
 			svcId := wrapper.ServiceID
 			event := wrapper.Event
-
 			var service *model.Service
-
 			for {
 				service = s.serviceCache.GetServiceByID(svcId)
 				if service == nil {
