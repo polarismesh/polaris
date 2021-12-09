@@ -263,7 +263,7 @@ func (s *Scope) Description() string {
 	return s.description
 }
 
-func (s *Scope) getPt() *patchTable {
+func (s *Scope) getPathTable() *patchTable {
 	val := s.pt.Load()
 	if val == nil {
 		return nil
@@ -289,7 +289,7 @@ func (s *Scope) emit(level zapcore.Level, dumpStack bool, msg string, fields []z
 		e.Stack = zap.Stack("").String
 	}
 
-	pt := s.getPt()
+	pt := s.getPathTable()
 	if pt != nil && pt.write != nil {
 		if err := pt.write(e, fields); err != nil {
 			_, _ = fmt.Fprintf(pt.errorSink, "%v log write error: %v\n", time.Now(), err)

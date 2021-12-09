@@ -234,7 +234,7 @@ func updateScopes(typeName string, options *Options, core zapcore.Core, errSink 
 		write: func(ent zapcore.Entry, fields []zapcore.Field) error {
 			err := core.Write(ent, fields)
 			if ent.Level == zapcore.FatalLevel {
-				scope.getPt().exitProcess(1)
+				scope.getPathTable().exitProcess(1)
 			}
 
 			return err
@@ -258,7 +258,7 @@ func updateScopes(typeName string, options *Options, core zapcore.Core, errSink 
 // nolint: staticcheck
 func Configure(optionsMap map[string]*Options) error {
 	for typeName, options := range optionsMap {
-		defaultOption(options)
+		setDefaultOption(options)
 		core, captureCore, errSink, err := prepZap(options)
 		if err != nil {
 			return err
@@ -301,8 +301,8 @@ func Configure(optionsMap map[string]*Options) error {
 	return nil
 }
 
-// defaultOption 设置日志配置的默认值
-func defaultOption(options *Options) {
+// setDefaultOption 设置日志配置的默认值
+func setDefaultOption(options *Options) {
 	if options.RotationMaxSize == 0 {
 		options.RotationMaxSize = defaultRotationMaxSize
 	}
@@ -325,7 +325,7 @@ func defaultOption(options *Options) {
 // Sync flushes any buffered log entries.
 // Processes should normally take care to call Sync before exiting.
 func Sync() error {
-	return defaultScope.pt.Load().(patchTable).sync()
+	return defaultScope.getPathTable().sync()
 }
 
 // createPathIfNotExist 如果判断为本地文件，检查目录是否存在，不存在创建父级目录
