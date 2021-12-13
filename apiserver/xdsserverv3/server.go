@@ -171,7 +171,6 @@ func makeOutlierDetection(conf *model.ServiceWithCircuitBreaker) *cluster.Outlie
 			return nil
 		}
 
-		// 取第一条 连续错误数 和 错误率 的策略
 		var consecutiveErrConfig *api.CbPolicy_ConsecutiveErrConfig
 		var errorRateConfig *api.CbPolicy_ErrRateConfig
 
@@ -198,15 +197,12 @@ func makeOutlierDetection(conf *model.ServiceWithCircuitBreaker) *cluster.Outlie
 		}
 
 		if consecutiveErrConfig != nil {
-			// 连续错误数
 			outlierDetection.Consecutive_5Xx =
 				&wrappers.UInt32Value{Value: consecutiveErrConfig.ConsecutiveErrorToOpen.Value}
 		}
 		if errorRateConfig != nil {
-			// 最小请求数阈值
 			outlierDetection.FailurePercentageRequestVolume =
 				&wrappers.UInt32Value{Value: errorRateConfig.RequestVolumeThreshold.Value}
-			// 错误率阈值
 			outlierDetection.FailurePercentageThreshold =
 				&wrappers.UInt32Value{Value: errorRateConfig.ErrorRateToOpen.Value}
 		}
