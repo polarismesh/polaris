@@ -22,8 +22,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"google.golang.org/protobuf/types/known/durationpb"
-
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -167,34 +165,22 @@ func makeOutlierDetection(conf *model.ServiceWithCircuitBreaker) *cluster.Outlie
 			return nil
 		}
 
-		if len(inBounds) == 0 {
+		if len(inBounds) == 0 || len(inBounds[0].GetDestinations()) == 0 ||
+			inBounds[0].GetDestinations()[0].Policy == nil {
 			return nil
 		}
 
 		var consecutiveErrConfig *api.CbPolicy_ConsecutiveErrConfig
 		var errorRateConfig *api.CbPolicy_ErrRateConfig
+		var policy *api.CbPolicy
+		var dest *api.DestinationSet
 
-		for _, set := range inBounds[0].GetDestinations() {
+		dest = inBounds[0].GetDestinations()[0]
+		policy = dest.Policy
+		consecutiveErrConfig = policy.Consecutive
+		errorRateConfig = policy.ErrorRate
 
-			if consecutiveErrConfig == nil && set.Policy.Consecutive != nil &&
-				set.Policy.Consecutive.Enable.Value == true {
-				consecutiveErrConfig = set.Policy.Consecutive
-			}
-			if errorRateConfig == nil && set.Policy.ErrorRate != nil &&
-				set.Policy.ErrorRate.Enable.Value == true {
-				errorRateConfig = set.Policy.ErrorRate
-			}
-			if errorRateConfig != nil && consecutiveErrConfig != nil {
-				break
-			}
-		}
-
-		outlierDetection := &cluster.OutlierDetection{
-			Interval:           durationpb.New(60 * time.Second),
-			BaseEjectionTime:   durationpb.New(600 * time.Second),
-			MaxEjectionTime:    durationpb.New(600 * time.Second),
-			MaxEjectionPercent: &wrappers.UInt32Value{Value: 50},
-		}
+		outlierDetection := &cluster.OutlierDetection{}
 
 		if consecutiveErrConfig != nil {
 			outlierDetection.Consecutive_5Xx =
