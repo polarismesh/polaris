@@ -40,7 +40,7 @@ const (
 type counter struct {
 	size       int32
 	actives    map[string]*Conn // 活跃的连接
-	mu         sync.RWMutex
+	mu         *sync.RWMutex
 	lastAccess int64
 }
 
@@ -49,7 +49,7 @@ func newCounter() *counter {
 	return &counter{
 		size:       1,
 		actives:    make(map[string]*Conn),
-		mu:         sync.RWMutex{},
+		mu:         &sync.RWMutex{},
 		lastAccess: time.Now().Unix(),
 	}
 }
