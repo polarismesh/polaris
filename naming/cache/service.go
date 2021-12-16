@@ -54,6 +54,9 @@ type ServiceCache interface {
 	// IteratorServices 迭代缓存的服务信息
 	IteratorServices(iterProc ServiceIterProc) error
 
+	// GetServicesNames 获取所有服务缓存
+	GetServicesCache() *sync.Map
+
 	// GetServicesCount 获取缓存中服务的个数
 	GetServicesCount() int
 
@@ -216,6 +219,14 @@ func (sc *serviceCache) GetServiceByName(name string, namespace string) *model.S
 	}
 
 	return value.(*model.Service)
+}
+
+/**
+ * GetServicesCache 获取所有服务的缓存
+ */
+func (sc *serviceCache) GetServicesCache() *sync.Map {
+
+	return sc.names
 }
 
 /**
