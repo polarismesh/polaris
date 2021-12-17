@@ -186,8 +186,6 @@ func (el *discoverEventLocal) Run() {
 		case <-syncInterval.C:
 			go el.writeToFile(el.curEventBuffer)
 			el.switchEventBuffer()
-		default:
-			// do nothing
 		}
 	}
 }
