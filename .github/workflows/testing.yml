@@ -59,11 +59,11 @@ jobs:
           cd $work_dir
           ls -alR
           chmod +x ./tool/*.sh
-          ./tool/install.sh
+          ./tool/start.sh
           cd ..
           pushd ./test
           go test -count=1 -v
           popd
           cd $work_dir
-          ./tool/uninstall.sh
+          ./tool/stop.sh
           cd ..
