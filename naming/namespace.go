@@ -186,7 +186,7 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 		return api.NewNamespaceResponse(api.StoreLayerException, req)
 	}
 
-	s.deleteServiceCache(namespace.Name)
+	s.caches.Service().CleanNamespace(namespace.Name)
 
 	msg := fmt.Sprintf("delete namepsace: name=%v", namespace.Name)
 	log.Info(msg, zap.String("request-id", requestID))
@@ -383,13 +383,6 @@ func (s *Server) checkNamespaceAuthority(ctx context.Context, req *api.Namespace
 	}
 
 	return namespace, nil
-}
-
-// 删除namespace对应的serviceche
-func (s *Server) deleteServiceCache(namespace string) {
-
-	 s.caches.Service().CleanNamespace(namespace)
-
 }
 
 /*
