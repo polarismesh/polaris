@@ -387,8 +387,9 @@ func (s *Server) checkNamespaceAuthority(ctx context.Context, req *api.Namespace
 
 // 删除namespace对应的serviceche
 func (s *Server) deleteServiceCache(namespace string) {
-	ServicesCache:=s.caches.Service().GetServicesCache()
-	ServicesCache.Delete(namespace)
+
+	 s.caches.Service().CleanNamespace(namespace)
+
 }
 
 /*

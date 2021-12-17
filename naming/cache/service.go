@@ -54,8 +54,8 @@ type ServiceCache interface {
 	// IteratorServices 迭代缓存的服务信息
 	IteratorServices(iterProc ServiceIterProc) error
 
-	// GetServicesNames 获取所有服务缓存
-	GetServicesCache() *sync.Map
+	// CleanNamespace 清除Namespace对应服务的缓存
+	CleanNamespace(namespace string)
 
 	// GetServicesCount 获取缓存中服务的个数
 	GetServicesCount() int
@@ -222,11 +222,11 @@ func (sc *serviceCache) GetServiceByName(name string, namespace string) *model.S
 }
 
 /**
- * GetServicesCache 获取所有服务的缓存
+ * CleanNamespace 清除Namespace对应的服务缓存
  */
-func (sc *serviceCache) GetServicesCache() *sync.Map {
+func (sc *serviceCache) CleanNamespace(namespace string) {
 
-	return sc.names
+	 sc.names.Delete(namespace)
 }
 
 /**
