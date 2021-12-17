@@ -20,7 +20,6 @@ package naming
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -186,7 +185,9 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 		log.Error(err.Error(), zap.String("request-id", requestID))
 		return api.NewNamespaceResponse(api.StoreLayerException, req)
 	}
-	s.caches.Service().GetServicesCache().Store(namespace.Name, new(sync.Map))
+
+	s.deleteservicecache(namespace.Name)
+
 	msg := fmt.Sprintf("delete namepsace: name=%v", namespace.Name)
 	log.Info(msg, zap.String("request-id", requestID))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.ODelete))
@@ -382,6 +383,12 @@ func (s *Server) checkNamespaceAuthority(ctx context.Context, req *api.Namespace
 	}
 
 	return namespace, nil
+}
+
+// 删除namespace对应的serviceche
+func (s *Server) deleteservicecache(namespace string) {
+	ServicesCache:=s.caches.Service().GetServicesCache()
+	ServicesCache.Delete(namespace)
 }
 
 /*
