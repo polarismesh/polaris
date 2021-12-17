@@ -27,7 +27,11 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
-const tblNameNamespace = "namespace"
+const (
+	tblNameNamespace string = "namespace"
+	OwnerAttribute   string = "owner"
+	NameAttribute    string = "name"
+)
 
 type namespaceStore struct {
 	handler BoltHandler
@@ -165,6 +169,38 @@ func (n *namespaceStore) GetNamespaces(
 		return nil, 0, err
 	}
 	namespaces := NamespaceSlice(toNamespaces(values))
+
+	ret := make([]*model.Namespace, 0)
+	for i := range namespaces {
+		ns := namespaces[i]
+		if !ns.Valid {
+			continue
+		}
+		for index, value := range filter {
+			isFind := false
+			compare := func(s string) bool {
+				for _, v := range value {
+					if strings.Contains(s, v) {
+						return true
+					}
+				}
+				return false
+			}
+
+			if index == OwnerAttribute {
+				isFind = compare(ns.Owner)
+			}
+			if index == NameAttribute {
+				isFind = compare(ns.Name)
+			}
+
+			if isFind {
+				ret = append(ret, ns)
+			}
+		}
+	}
+	namespaces = ret
+
 	sort.Sort(sort.Reverse(namespaces))
 	startIdx := offset * limit
 	if startIdx >= len(namespaces) {
@@ -174,7 +210,8 @@ func (n *namespaceStore) GetNamespaces(
 	if endIdx > len(namespaces) {
 		endIdx = len(namespaces)
 	}
-	return namespaces[startIdx:endIdx], 0, nil
+	ret = namespaces[startIdx:endIdx]
+	return ret, uint32(len(ret)), nil
 }
 
 func toNamespaces(values map[string]interface{}) []*model.Namespace {

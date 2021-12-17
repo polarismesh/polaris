@@ -84,7 +84,7 @@ func SetStoreConfig(conf *Config) {
 func initialize(s Store) {
 	once.Do(func() {
 		if err := s.Initialize(config); err != nil {
-			fmt.Printf("err: %s", err.Error())
+			fmt.Printf("store do initialize err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})

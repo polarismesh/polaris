@@ -161,7 +161,7 @@ func saveValue(tx *bolt.Tx, typ string, key string, value interface{}) error {
 				return err
 			}
 		}
-		bucket.Put([]byte(DataVaildFieldName), encodeBoolBuffer(true))
+		bucket.Put([]byte(toBucketField(DataVaildFieldName)), encodeBoolBuffer(true))
 	}
 	return err
 }
@@ -395,9 +395,9 @@ func deleteValues(tx *bolt.Tx, typ string, keys []string, logicDelete bool) erro
 	}
 	for _, key := range keys {
 		keyBytes := []byte(key)
-		if nil != typeBucket.Bucket(keyBytes) {
+		if subBucket := typeBucket.Bucket(keyBytes); subBucket != nil {
 			if logicDelete {
-				if err := typeBucket.Put([]byte(DataVaildFieldName), encodeBoolBuffer(false)); err != nil {
+				if err := subBucket.Put([]byte(toBucketField(DataVaildFieldName)), encodeBoolBuffer(false)); err != nil {
 					return err
 				}
 			} else {

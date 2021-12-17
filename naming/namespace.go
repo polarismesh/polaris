@@ -315,7 +315,6 @@ func (s *Server) GetNamespaces(query map[string][]string) *api.BatchQueryRespons
 			Mtime:   utils.NewStringValue(time2String(namespace.ModifyTime)),
 		})
 	}
-
 	return out
 }
 

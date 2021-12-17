@@ -477,7 +477,7 @@ func TestServiceStore_DeleteServiceAlias(t *testing.T) {
 	svc, err := sStore.getServiceByNameAndNs("svcname0", "testsvc")
 	assert.Nil(t, err, "error must be nil")
 
-	assert.True(t, svc.Valid, "delete service alias failed")
+	assert.False(t, svc.Valid, "delete service alias failed")
 }
 
 func TestServiceStore_DeleteService(t *testing.T) {
@@ -508,12 +508,12 @@ func TestServiceStore_DeleteService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if total == 0 {
-		t.Fatal("need to run logic delete")
+	if total != 0 {
+		t.Fatal("delete service not effect")
 	}
 
 	for _, val := range s {
-		assert.True(t, val.Valid, "delete service not effect")
+		assert.False(t, val.Valid, "delete service not effect")
 	}
 
 }

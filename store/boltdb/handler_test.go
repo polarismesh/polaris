@@ -178,6 +178,10 @@ const (
 )
 
 func TestBoltHandler_CountValues(t *testing.T) {
+
+	// 删除之前测试的遗留文件
+	_ = os.RemoveAll("./table.bolt")
+
 	count := 5
 	var idToServices = make(map[string]*model.Service)
 	var ids = make([]string, 0)
