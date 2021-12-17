@@ -23,8 +23,8 @@ CREATE TABLE `business` (
     `token` varchar(64) COLLATE utf8_bin NOT NULL comment 'Token ID of the business',
     `owner` varchar(1024) COLLATE utf8_bin NOT NULL comment 'The business is responsible for Owner',
     `flag` tinyint(4) NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
@@ -51,8 +51,8 @@ CREATE TABLE `instance` (
     `priority` tinyint(4) NOT NULL DEFAULT '0' comment 'Example priority, currently useless',
     `revision` varchar(32) COLLATE utf8_bin NOT NULL comment 'Instance version information',
     `flag` tinyint(4) NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`),
     KEY `service_id` (`service_id`),
     KEY `mtime` (`mtime`),
@@ -66,7 +66,7 @@ CREATE TABLE `instance` (
 CREATE TABLE `health_check` (
     `id` varchar(128) COLLATE utf8_bin NOT NULL comment 'Instance ID',
     `type` tinyint(4) NOT NULL DEFAULT '0' comment 'Instance health check type',
-    `ttl` int(11) NOT NULL comment '心跳的TTL时间',
+    `ttl` int(11) NOT NULL comment 'TTL time jumping',
     PRIMARY KEY (`id`),
     CONSTRAINT `health_check_ibfk_1` FOREIGN KEY (`id`) REFERENCES `instance` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
@@ -79,8 +79,8 @@ CREATE TABLE `instance_metadata` (
     `id` varchar(128) COLLATE utf8_bin NOT NULL comment 'Instance ID',
     `mkey` varchar(128) COLLATE utf8_bin NOT NULL comment 'instance label of Key',
     `mvalue` varchar(4096) COLLATE utf8_bin NOT NULL comment 'instance label Value',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`, `mkey`),
     KEY `mkey` (`mkey`),
     CONSTRAINT `instance_metadata_ibfk_1` FOREIGN KEY (`id`) REFERENCES `instance` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
@@ -96,8 +96,8 @@ CREATE TABLE `namespace` (
     `token` varchar(64) COLLATE utf8_bin NOT NULL comment 'TOKEN named space for write operation check',
     `owner` varchar(1024) COLLATE utf8_bin NOT NULL comment 'Responsible for named space Owner',
     `flag` tinyint(4) NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`name`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
@@ -144,8 +144,8 @@ CREATE TABLE `routing_config` (
     `out_bounds` text COLLATE utf8_bin comment 'Service main routing rules',
     `revision` varchar(40) COLLATE utf8_bin NOT NULL comment 'Routing rule version',
     `flag` tinyint(4) NOT NULL DEFAULT '0' comment  'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`),
     KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
@@ -163,8 +163,8 @@ CREATE TABLE `ratelimit_config` (
     `rule` text COLLATE utf8_bin NOT NULL comment 'Current limiting rules',
     `revision` varchar(32) COLLATE utf8_bin NOT NULL comment 'Limiting version',
     `flag` tinyint(4) NOT NULL DEFAULT '0' comment  'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`),
     KEY `mtime` (`mtime`),
     KEY `service_id` (`service_id`)
@@ -177,7 +177,7 @@ CREATE TABLE `ratelimit_config` (
 CREATE TABLE `ratelimit_revision` (
     `service_id` varchar(32) COLLATE utf8_bin NOT NULL comment 'Service ID',
     `last_revision` varchar(40) COLLATE utf8_bin NOT NULL comment 'The latest limited limiting rule version of the corresponding service',
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`service_id`),
     KEY `service_id` (`service_id`),
     KEY `mtime` (`mtime`)
@@ -205,8 +205,8 @@ CREATE TABLE `service` (
     `reference` varchar(32) COLLATE utf8_bin DEFAULT NULL comment 'Service alias, what is the actual service name that the service is actually pointed out?',
     `refer_filter` varchar(1024) COLLATE utf8_bin DEFAULT NULL comment '',
     `platform_id` varchar(32) COLLATE utf8_bin DEFAULT '' comment 'The platform ID to which the service belongs',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`),
     UNIQUE KEY `name` (`name`, `namespace`),
     KEY `namespace` (`namespace`),
@@ -269,8 +269,8 @@ CREATE TABLE `service_metadata` (
     `id` varchar(32) COLLATE utf8_bin NOT NULL comment 'Service ID',
     `mkey` varchar(128) COLLATE utf8_bin NOT NULL comment 'Service label key',
     `mvalue` varchar(4096) COLLATE utf8_bin NOT NULL comment 'Service label Value',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`, `mkey`),
     KEY `mkey` (`mkey`),
     CONSTRAINT `service_metadata_ibfk_1` FOREIGN KEY (`id`) REFERENCES `service` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
@@ -284,7 +284,7 @@ CREATE TABLE `owner_service_map` (
     `id` varchar(32) COLLATE utf8_bin NOT NULL comment '',
     `owner` varchar(32) COLLATE utf8_bin NOT NULL comment 'Service Owner',
     `service` varchar(128) COLLATE utf8_bin NOT NULL comment 'service name',
-    `namespace` varchar(64) COLLATE utf8_bin NOT NULL,
+    `namespace` varchar(64) COLLATE utf8_bin NOT NULL comment 'namespace name',
     PRIMARY KEY (`id`),
     KEY `owner` (`owner`),
     KEY `name` (`service`, `namespace`)
@@ -308,8 +308,8 @@ CREATE TABLE `circuitbreaker_rule` (
     `owner` varchar(1024) COLLATE utf8_bin NOT NULL comment 'Melting rule Owner information',
     `revision` varchar(32) COLLATE utf8_bin NOT NULL comment 'Melt rule version information',
     `flag` tinyint(4) NOT NULL DEFAULT '0' comment  'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`, `version`),
     UNIQUE KEY `name` (`name`, `namespace`, `version`),
     KEY `mtime` (`mtime`)
@@ -324,8 +324,8 @@ CREATE TABLE `circuitbreaker_rule_relation` (
     `rule_id` varchar(97) COLLATE utf8_bin NOT NULL comment 'Melting rule ID',
     `rule_version` varchar(32) COLLATE utf8_bin NOT NULL comment 'Melting rule version',
     `flag` tinyint(4) NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`service_id`),
     KEY `mtime` (`mtime`),
     KEY `rule_id` (`rule_id`),
@@ -346,8 +346,8 @@ CREATE TABLE `platform` (
     `department` varchar(1024) COLLATE utf8_bin DEFAULT NULL comment 'Platform department',
     `comment` varchar(1024) COLLATE utf8_bin DEFAULT NULL comment 'Platform description',
     `flag` tinyint(4) NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`),
     KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
@@ -442,7 +442,7 @@ CREATE TABLE `cl5_module` (
     `module_id` int(11) NOT NULL COMMENT 'Module ID',
     `interface_id` int(11) NOT NULL COMMENT 'Interface ID',
     `range_num` int(11) NOT NULL,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`module_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin COMMENT = 'To generate SID';
 
@@ -471,8 +471,8 @@ CREATE TABLE `mesh` (
     `token` varchar(32) COLLATE utf8_bin NOT NULL COMMENT 'Rule Authentication Token',
     `owner` varchar(1024) COLLATE utf8_bin NOT NULL COMMENT 'Rule owner',
     `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`),
     KEY `name` (`name`),
     KEY `mtime` (`mtime`)
@@ -494,8 +494,8 @@ CREATE TABLE `mesh_service` (
     `export_to` varchar(1024) COLLATE utf8_bin NOT NULL COMMENT 'What is the service you can be seen by the namespace',
     `revision` varchar(32) COLLATE utf8_bin NOT NULL COMMENT 'Rule version number',
     `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`),
     UNIQUE KEY `relation` (`mesh_id`, `mesh_namespace`, `mesh_service`),
     KEY `namespace`(`namespace`),
@@ -513,8 +513,8 @@ CREATE TABLE `mesh_service` (
 CREATE TABLE `mesh_service_revision` (
     `mesh_id` varchar(32) COLLATE utf8_bin NOT NULL COMMENT 'mesh name',
     `revision` varchar(32) COLLATE utf8_bin NOT NULL COMMENT 'Rule version number',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`mesh_id`),
     KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
@@ -532,8 +532,8 @@ CREATE TABLE `mesh_resource` (
     `revision` varchar(32) COLLATE utf8_bin NOT NULL COMMENT 'Rule version number',
     `body` text  COMMENT 'Rule content, JSON format string',
     `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`),
     UNIQUE KEY `name`(`mesh_id`, `name`, `mesh_namespace`, `type_url`),
     KEY `mtime` (`mtime`)
@@ -546,8 +546,8 @@ CREATE TABLE `mesh_resource_revision` (
     `mesh_id` varchar(32) COLLATE utf8_bin NOT NULL COMMENT 'Rules, mesh ID',
     `type_url` varchar(96) COLLATE utf8_bin NOT NULL COMMENT 'Rule type, such as VirtualService',
     `revision` varchar(32) COLLATE utf8_bin NOT NULL COMMENT 'The version number of the rules collection, the overall version number of all rule collections below the same mesh',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`mesh_id`, `type_url`),
     KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
@@ -578,8 +578,8 @@ CREATE TABLE `ratelimit_flux_rule_config` (
     `updater` varchar(32) COLLATE utf8_bin NOT NULL DEFAULT '',
     `status` tinyint(4) NOT NULL DEFAULT '0',
     `flag` tinyint(4) NOT NULL DEFAULT '0',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     `flux_server_id` varchar(32) COLLATE utf8_bin NOT NULL DEFAULT '',
     `monitor_server_id` varchar(32) COLLATE utf8_bin NOT NULL DEFAULT '',
     PRIMARY KEY (`id`),
@@ -601,7 +601,7 @@ CREATE TABLE `ratelimit_flux_rule_config` (
 CREATE TABLE `ratelimit_flux_rule_revision` (
     `service_id` varchar(32) COLLATE utf8_bin NOT NULL comment 'Service ID',
     `last_revision` varchar(40) COLLATE utf8_bin NOT NULL comment 'Latest version of the FLUX rule',
-    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`service_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
