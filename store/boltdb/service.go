@@ -39,28 +39,28 @@ type serviceStore struct {
 }
 
 var (
-	MultipleSvcFound = errors.New("multiple service find")
+	MultipleSvcFound error = errors.New("multiple service find")
 )
 
 const (
-	tblNameService     = "service"
-	SvcFieldID         = "ID"
-	SvcFieldName       = "Name"
-	SvcFieldNamespace  = "Namespace"
-	SvcFieldBusiness   = "Business"
-	SvcFieldPorts      = "Ports"
-	SvcFieldMeta       = "Meta"
-	SvcFieldComment    = "Comment"
-	SvcFieldDepartment = "Department"
-	SvcFieldModifyTime = "ModifyTime"
-	SvcFieldToken      = "Token"
-	SvcFieldOwner      = "Owner"
-	SvcFieldRevision   = "Revision"
-	SvcFieldReference  = "Reference"
-	SvcFieldVaild      = "Valid"
-	SvcFieldCmdbMod1   = "CmdbMod1"
-	SvcFieldCmdbMod2   = "CmdbMod2"
-	SvcFieldCmdbMod3   = "CmdbMod3"
+	tblNameService     string = "service"
+	SvcFieldID         string = "ID"
+	SvcFieldName       string = "Name"
+	SvcFieldNamespace  string = "Namespace"
+	SvcFieldBusiness   string = "Business"
+	SvcFieldPorts      string = "Ports"
+	SvcFieldMeta       string = "Meta"
+	SvcFieldComment    string = "Comment"
+	SvcFieldDepartment string = "Department"
+	SvcFieldModifyTime string = "ModifyTime"
+	SvcFieldToken      string = "Token"
+	SvcFieldOwner      string = "Owner"
+	SvcFieldRevision   string = "Revision"
+	SvcFieldReference  string = "Reference"
+	SvcFieldVaild      string = "Valid"
+	SvcFieldCmdbMod1   string = "CmdbMod1"
+	SvcFieldCmdbMod2   string = "CmdbMod2"
+	SvcFieldCmdbMod3   string = "CmdbMod3"
 )
 
 // AddService save a service
@@ -245,7 +245,7 @@ func (ss *serviceStore) GetServicesCount() (uint32, error) {
 func (ss *serviceStore) GetMoreServices(
 	mtime time.Time, firstUpdate, disableBusiness, needMeta bool) (map[string]*model.Service, error) {
 
-	fields := []string{SvcFieldModifyTime}
+	fields := []string{SvcFieldModifyTime, SvcFieldVaild}
 	if disableBusiness {
 		fields = append(fields, SvcFieldNamespace)
 	}
@@ -484,6 +484,10 @@ func (ss *serviceStore) getServiceByNameAndNs(name string, namespace string) (*m
 
 	svc, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
+			vaild, ok := m[SvcFieldVaild]
+			if ok && !vaild.(bool) {
+				return false
+			}
 
 			svcName, ok := m[SvcFieldName]
 			if !ok {
@@ -540,7 +544,12 @@ func (ss *serviceStore) getServiceByID(id string) (*model.Service, error) {
 		return nil, MultipleSvcFound
 	}
 
-	return svc[id].(*model.Service), err
+	svcRet := svc[id].(*model.Service)
+	if svcRet.Valid {
+		return svcRet, nil
+	}
+
+	return nil, err
 }
 
 func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]string,
@@ -556,10 +565,14 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 		}
 
 		// get the filtered list of serviceIDs from instanceFilters
-		filter := []string{insFieldProto}
+		filter := []string{insFieldProto, insFieldVaild}
 
 		inss, err := ss.handler.LoadValuesByFilter(tblNameInstance, filter, &model.Instance{},
 			func(m map[string]interface{}) bool {
+				vaild, ok := m[SvcFieldVaild]
+				if ok && !vaild.(bool) {
+					return false
+				}
 				insPorto, ok := m[insFieldProto]
 				if !ok {
 					return false
@@ -603,7 +616,7 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 		}
 	}
 
-	fields := []string{SvcFieldName, SvcFieldMeta, SvcFieldDepartment, SvcFieldBusiness}
+	fields := []string{SvcFieldVaild, SvcFieldNamespace, SvcFieldName, SvcFieldMeta, SvcFieldDepartment, SvcFieldBusiness, SvcFieldReference}
 	if len(insFiltersIds) > 0 {
 		fields = append(fields, SvcFieldID)
 	}
@@ -630,9 +643,14 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 	name, isName := serviceFilters["name"]
 	department, isDepartment := serviceFilters["department"]
 	business, isBusiness := serviceFilters["business"]
+	namespace, isNamespace := serviceFilters["namespace"]
 
 	svcs, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
+			vaild, ok := m[SvcFieldVaild]
+			if ok && !vaild.(bool) {
+				return false
+			}
 			// filter by id
 			if len(insFiltersIds) > 0 {
 				svcId, ok := m[SvcFieldID]
@@ -644,8 +662,23 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 					return false
 				}
 			}
+
+			if isNamespace && namespace != "" {
+				svcNs, ok := m[SvcFieldNamespace]
+				if !ok {
+					return false
+				}
+				if utils.IsWildName(namespace) {
+					return strings.Contains(svcNs.(string), namespace[0:len(namespace)-1])
+				} else {
+					if svcNs.(string) != namespace {
+						return false
+					}
+				}
+			}
+
 			// filter by other
-			if isName {
+			if isName && name != "" {
 				svcName, ok := m[SvcFieldName]
 				if !ok {
 					return false
@@ -673,7 +706,7 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				}
 			}
 
-			if isDepartment {
+			if isDepartment && department != "" {
 				svcDepartment, ok := m[SvcFieldDepartment]
 				if !ok {
 					return false
@@ -687,7 +720,7 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				}
 			}
 
-			if isBusiness {
+			if isBusiness && business != "" {
 				svcBusiness, ok := m[SvcFieldBusiness]
 				if !ok {
 					return false

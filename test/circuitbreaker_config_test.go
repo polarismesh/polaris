@@ -18,9 +18,10 @@
 package test
 
 import (
+	"testing"
+
 	"github.com/polarismesh/polaris-server/test/http"
 	"github.com/polarismesh/polaris-server/test/resource"
-	"testing"
 )
 
 /**
@@ -142,9 +143,9 @@ func TestCircuitBreaker(t *testing.T) {
 	circuitBreakers = append(circuitBreakers, newCircuitBreakers...)
 	err = client.DeleteCircuitBreakers(circuitBreakers)
 	if err != nil {
-		t.Fatalf("delete rate limits fail，error: %s", err.Error())
+		t.Fatalf("delete circuitbreaker fail，error: %s", err.Error())
 	}
-	t.Log("delete rate limits success")
+	t.Log("delete circuitbreaker success")
 
 	//-------------------------------------------------------
 

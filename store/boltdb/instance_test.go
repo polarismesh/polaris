@@ -47,6 +47,19 @@ func TestInstanceStore_AddInstance(t *testing.T) {
 }
 
 func batchAddInstances(t *testing.T, insStore *instanceStore, svcId string, insCount int) {
+	sStore := &serviceStore{
+		handler: insStore.handler,
+	}
+
+	sStore.AddService(&model.Service{
+		ID:        svcId,
+		Name:      svcId,
+		Namespace: svcId,
+		Token:     svcId,
+		Owner:     svcId,
+		Valid:     true,
+	})
+
 	for i := 0; i < insCount; i++ {
 
 		nowt := time.Now().Format("2006-01-02 15:04:05")
@@ -130,6 +143,7 @@ func TestInstanceStore_BatchAddInstances(t *testing.T) {
 }
 
 func TestInstanceStore_GetExpandInstances(t *testing.T) {
+	_ = os.RemoveAll("./table.bolt")
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if nil != err {
 		t.Fatal(err)
@@ -481,7 +495,7 @@ func TestInstanceStore_DeleteInstance(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !ins.Valid {
+	if ins != nil && !ins.Valid {
 		t.Fatal(fmt.Sprintf("delete instance error"))
 	}
 }
@@ -509,7 +523,7 @@ func TestInstanceStore_BatchDeleteInstances(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !ins.Valid {
+	if ins != nil && !ins.Valid {
 		t.Fatal(fmt.Sprintf("delete instance error"))
 	}
 
@@ -518,7 +532,7 @@ func TestInstanceStore_BatchDeleteInstances(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !ins.Valid {
+	if ins != nil && !ins.Valid {
 		t.Fatal(fmt.Sprintf("delete instance error"))
 	}
 }

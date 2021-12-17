@@ -18,11 +18,12 @@
 package cache
 
 import (
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/store"
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/store"
 )
 
 // ServiceArgs 服务查询条件
@@ -206,15 +207,17 @@ func matchServiceFilter(svc *model.Service, svcFilter map[string]string, matchNa
 		}
 	}
 	if value, exist = svcFilter["business"]; exist {
-		// 如果忽略大小写为 false，那么直接进行匹配
-		if svcFilter["business_ci"] == "false" && !strings.Contains(svc.Business, value) {
+		ciVal, ok := svcFilter["business_ci"]
+		// 如果忽略大小写为 false 或者没有设置改参数，那么直接进行匹配
+		if (!ok || ciVal == "false") && !strings.Contains(svc.Business, value) {
 			return false
 		}
 		// 如果忽略大小写为 true，那么都转化为小写再匹配
-		if svcFilter["business_ci"] == "true" &&
+		if ciVal == "true" &&
 			!strings.Contains(strings.ToLower(svc.Business), strings.ToLower(value)) {
 			return false
 		}
+
 	}
 	if value, exist = svcFilter["department"]; exist && svc.Department != value {
 		return false

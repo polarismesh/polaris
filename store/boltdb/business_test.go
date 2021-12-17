@@ -54,7 +54,7 @@ func createTestBusiness(id string, createId bool) *model.Business {
 		Name:       str,
 		Token:      str,
 		Owner:      "polaris",
-		Valid:      false,
+		Valid:      true,
 		CreateTime: time.Now(),
 		ModifyTime: time.Now(),
 	}

@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
@@ -274,10 +275,14 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 // GetInstance Query the details of an instance
 func (i *instanceStore) GetInstance(instanceID string) (*model.Instance, error) {
 
-	fields := []string{insFieldProto}
+	fields := []string{insFieldProto, insFieldVaild}
 
 	ins, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
+			insValid, ok := m[insFieldVaild]
+			if ok && !insValid.(bool) {
+				return false
+			}
 			insProto, ok := m[insFieldProto]
 			if !ok {
 				return false
@@ -375,6 +380,8 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 		filter["serviceID"] = svc.ID
 	}
 
+	svcIdsTmp := make(map[string]struct{})
+
 	fields := []string{insFieldProto, insFieldServiceID, insFieldVaild}
 
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
@@ -438,12 +445,35 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 					return false
 				}
 			}
-
+			svcIdsTmp[m["ServiceID"].(string)] = struct{}{}
 			return true
 		})
 	if err != nil {
 		log.Errorf("[Store][boltdb] load instance from kv error, %v", err)
 		return 0, nil, err
+	}
+
+	svcIds := make([]string, len(svcIdsTmp))
+	pos := 0
+	for k := range svcIdsTmp {
+		svcIds[pos] = k
+		pos++
+	}
+	svcRets, err := i.handler.LoadValues(tblNameService, svcIds, &model.Service{})
+	svcRets, err = i.handler.LoadValuesAll(tblNameService, &model.Service{})
+	if err != nil {
+		log.Errorf("[Store][boltdb] load service from kv error, %v", err)
+		return 0, nil, err
+	}
+	for _, v := range instances {
+		ins := v.(*model.Instance)
+		service, ok := svcRets[ins.ServiceID]
+		if !ok {
+			log.Errorf("[Store][boltdb] no found instance relate service, instance-id: %s, service-id: %s", ins.ID(), ins.ServiceID)
+			return 0, nil, errors.New("no found instance relate service")
+		}
+		ins.Proto.Service = wrapperspb.String(service.(*model.Service).Name)
+		ins.Proto.Namespace = wrapperspb.String(service.(*model.Service).Namespace)
 	}
 
 	totalCount := uint32(len(instances))

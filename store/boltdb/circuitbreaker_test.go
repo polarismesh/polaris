@@ -450,7 +450,7 @@ func Test_circuitBreakerStore_UnbindCircuitBreaker(t *testing.T) {
 				}
 
 				relation := val.(*model.CircuitBreakerRelation)
-				if !relation.Valid {
+				if relation.Valid {
 					t.Fatalf("circuitBreakerStore.ReleaseCircuitBreaker() expect delete, but still exist")
 				}
 			})
@@ -514,7 +514,7 @@ func Test_circuitBreakerStore_DeleteTagCircuitBreaker(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				if !result.Valid {
+				if result != nil && !result.Valid {
 					t.Fatal("circuitBreakerStore.DeleteTagCircuitBreaker() expect delete, but still exist")
 				}
 			})
