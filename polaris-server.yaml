@@ -26,7 +26,7 @@ bootstrap:
     key: sz # 全局锁
   # 注册为北极星服务
   polaris_service:
-#    probe_address: ##DB_ADDR##
+    #    probe_address: ##DB_ADDR##
     enable_register: true
     isolated: false
     services:
@@ -163,6 +163,14 @@ store:
 plugin:
   history:
     name: HistoryLogger
+  discoverEvent:
+    name: discoverEventLocal
+    # option:
+    #   queueSize: 1024
+    #   outputPath: ./discover-event
+    #   rotationMaxSize: 500
+    #   rotationMaxAge: 8
+    #   rotationMaxBackups: 100
   discoverStatis:
     name: discoverLocal
     option:

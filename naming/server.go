@@ -78,6 +78,7 @@ type Server struct {
 	history        plugin.History
 	ratelimit      plugin.Ratelimit
 	discoverStatis plugin.DiscoverStatis
+	discoverEvent  plugin.DiscoverChannel
 	auth           plugin.Auth
 
 	l5service *l5service
@@ -141,6 +142,15 @@ func (s *Server) RecordDiscoverStatis(service, namespace string) {
 	}
 
 	_ = s.discoverStatis.AddDiscoverCall(service, namespace, time.Now())
+}
+
+// PublishDiscoverEvent 发布服务事件
+func (s *Server) PublishDiscoverEvent(event model.DiscoverEvent) {
+	if s.discoverEvent == nil {
+		return
+	}
+
+	s.discoverEvent.PublishEvent(event)
 }
 
 // GetServiceInstanceRevision 获取服务实例的revision
@@ -280,6 +290,12 @@ func pluginInitialize() {
 	server.discoverStatis = plugin.GetDiscoverStatis()
 	if server.discoverStatis == nil {
 		log.Warnf("Not Found Discover Statis Plugin")
+	}
+
+	// 获取服务事件插件
+	server.discoverEvent = plugin.GetDiscoverEvent()
+	if server.discoverEvent == nil {
+		log.Warnf("Not found DiscoverEvent Plugin")
 	}
 
 	// 获取鉴权插件

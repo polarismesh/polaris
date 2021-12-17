@@ -139,6 +139,12 @@ func StartComponents(ctx context.Context, cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
+
+	namingSvr, err := naming.GetServer()
+	if err != nil {
+		return err
+	}
+	healthCheckServer.SetServiceCache(namingSvr.Cache().Service())
 	return nil
 }
 

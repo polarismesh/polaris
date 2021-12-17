@@ -20,6 +20,9 @@ package healthcheck
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -27,8 +30,6 @@ import (
 	"github.com/polarismesh/polaris-server/common/timewheel"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
-	"sync"
-	"time"
 )
 
 const (
@@ -203,19 +204,19 @@ func (c *CheckScheduler) putIfAbsent(instanceWithChecker *InstanceWithChecker) (
 	instance := instanceWithChecker.instance
 	var instValue *instanceValue
 	var ok bool
-	if instValue, ok = c.scheduledInstances[instance.GetId().GetValue()]; ok {
+	if instValue, ok = c.scheduledInstances[instance.ID()]; ok {
 		return true, instValue
 	}
 	instValue = &instanceValue{
 		mutex:             &sync.Mutex{},
-		host:              instance.GetHost().GetValue(),
-		port:              instance.GetPort().GetValue(),
-		id:                instance.GetId().GetValue(),
-		expireDurationSec: getExpireDurationSec(instance),
+		host:              instance.Host(),
+		port:              instance.Port(),
+		id:                instance.ID(),
+		expireDurationSec: getExpireDurationSec(instance.Proto),
 		checker:           instanceWithChecker.checker,
-		ttlDurationSec:    instance.GetHealthCheck().GetHeartbeat().GetTtl().GetValue(),
+		ttlDurationSec:    instance.HealthCheck().GetHeartbeat().GetTtl().GetValue(),
 	}
-	c.scheduledInstances[instance.GetId().GetValue()] = instValue
+	c.scheduledInstances[instance.ID()] = instValue
 	return false, instValue
 }
 
@@ -235,7 +236,7 @@ func (c *CheckScheduler) AddInstance(instanceWithChecker *InstanceWithChecker) {
 	c.addAdopting(instValue.id, instValue.checker)
 	instance := instanceWithChecker.instance
 	log.Infof("[Health Check][Check]add check instance is %s, host is %s:%d",
-		instance.GetId().GetValue(), instance.GetHost().GetValue(), instance.GetPort().GetValue())
+		instance.ID(), instance.Host(), instance.Port())
 	c.addUnHealthyCallback(instValue, true)
 }
 
@@ -321,7 +322,7 @@ func (c *CheckScheduler) checkCallback(value interface{}) {
 			InstanceId: instanceValue.id,
 			Host:       instanceValue.host,
 			Port:       instanceValue.port,
-			Healthy:    cachedInstance.GetHealthy().GetValue(),
+			Healthy:    cachedInstance.Healthy(),
 		},
 		CurTimeSec:        currentTimeSec,
 		ExpireDurationSec: instanceValue.expireDurationSec,
@@ -357,10 +358,10 @@ func (c *CheckScheduler) checkCallback(value interface{}) {
 // DelInstance del instance from check
 func (c *CheckScheduler) DelInstance(instanceWithChecker *InstanceWithChecker) {
 	instance := instanceWithChecker.instance
-	instanceId := instance.GetId().GetValue()
+	instanceId := instance.ID()
 	exists := c.delIfPresent(instanceId)
 	log.Infof("[Health Check][Check]remove check instance is %s:%d, id is %s, exists is %v",
-		instance.GetHost().GetValue(), instance.GetPort().GetValue(), instanceId, exists)
+		instance.Host(), instance.Port(), instanceId, exists)
 	if exists {
 		c.removeAdopting(instanceId, instanceWithChecker.checker)
 	}
@@ -375,30 +376,50 @@ func (c *CheckScheduler) delIfPresent(instanceId string) bool {
 }
 
 // setInsDbStatus 修改实例状态, 需要打印操作记录
-func setInsDbStatus(instance *api.Instance, healthStatus bool) uint32 {
-	id := instance.GetId().GetValue()
-	host := instance.GetHost().GetValue()
-	port := instance.GetPort().GetValue()
+func setInsDbStatus(instance *model.Instance, healthStatus bool) uint32 {
+	id := instance.ID()
+	host := instance.Host()
+	port := instance.Port()
 	log.Infof("[Health Check][Check]addr:%s:%d id:%s set db status %v", host, port, id, healthStatus)
 
 	var code uint32
 	if server.bc.HeartbeatOpen() {
-		code = server.asyncSetInsDbStatus(instance, healthStatus)
+		code = server.asyncSetInsDbStatus(instance.Proto, healthStatus)
 	} else {
-		code = server.serialSetInsDbStatus(instance, healthStatus)
+		code = server.serialSetInsDbStatus(instance.Proto, healthStatus)
 	}
 	if code != api.ExecuteSuccess {
 		return code
 	}
 	recordInstance := &model.Instance{
 		Proto: &api.Instance{
-			Host:     instance.GetHost(),
-			Port:     instance.GetPort(),
-			Priority: instance.GetPriority(),
-			Weight:   instance.GetWeight(),
+			Host:     instance.Proto.GetId(),
+			Port:     instance.Proto.GetPort(),
+			Priority: instance.Proto.GetPriority(),
+			Weight:   instance.Proto.GetWeight(),
 			Healthy:  utils.NewBoolValue(healthStatus),
-			Isolate:  instance.GetIsolate(),
+			Isolate:  instance.Proto.GetIsolate(),
 		},
+	}
+
+	// 这里为了避免多次发送重复的事件，对实例原本的health 状态以及 healthStatus 状态进行对比，不一致才
+	// 发布服务实例变更事件
+	if instance.Healthy() != healthStatus {
+		event := model.DiscoverEvent{
+			Namespace: instance.Namespace(),
+			Service:   instance.Service(),
+			Host:      instance.Host(),
+			Port:      int(instance.Port()),
+		}
+
+		// 实例状态变化进行 DiscoverEvent 输出
+		if healthStatus {
+			event.EType = model.EventInstanceTurnHealth
+		} else {
+			event.EType = model.EventInstanceTurnUnHealth
+		}
+
+		server.PublishDiscoverEvent(instance.ServiceID, event)
 	}
 
 	server.RecordHistory(instanceRecordEntry(recordInstance, model.OUpdate))

@@ -436,3 +436,47 @@ type RecordEntry struct {
 	Revision      string
 	CreateTime    time.Time
 }
+
+// DiscoverEventType
+type DiscoverEventType string
+
+const (
+	// empty discover event
+	EventDiscoverNone DiscoverEventType = "EventDiscoverNone"
+	// Instance becomes unhealthy
+	EventInstanceTurnUnHealth DiscoverEventType = "InstanceTurnUnHealth"
+	// Instance becomes healthy
+	EventInstanceTurnHealth DiscoverEventType = "InstanceTurnHealth"
+	// Instance is in isolation
+	EventInstanceOpenIsolate DiscoverEventType = "InstanceOpenIsolate"
+	// Instance shutdown isolation state
+	EventInstanceCloseIsolate DiscoverEventType = "InstanceCloseIsolate"
+	// Instance offline
+	EventInstanceOffline DiscoverEventType = "InstanceOffline"
+)
+
+// DiscoverEvent 服务发现事件
+type DiscoverEvent struct {
+	Namespace     string
+	Service       string
+	Host          string
+	Port          int
+	EType         DiscoverEventType
+	CreateTimeSec int64
+}
+
+// InstancesDetail Service instance list and details
+type InstanceCount struct {
+	// HealthyInstanceCount 健康实例数
+	HealthyInstanceCount uint32
+	// TotalInstanceCount 总实例数
+	TotalInstanceCount uint32
+}
+
+// NamespaceServiceCount Namespace service data
+type NamespaceServiceCount struct {
+	// ServiceCount 服务数量
+	ServiceCount uint32
+	// InstanceCnt 实例健康数/实例总数
+	InstanceCnt *InstanceCount
+}
