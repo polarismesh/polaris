@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/polarismesh/polaris-server/common/time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
@@ -1116,8 +1117,8 @@ func circuitBreaker2API(req *model.CircuitBreaker) (*api.CircuitBreaker, error) 
 		Namespace:  utils.NewStringValue(req.Namespace),
 		Owners:     utils.NewStringValue(req.Owner),
 		Comment:    utils.NewStringValue(req.Comment),
-		Ctime:      utils.NewStringValue(utils.Time2String(req.CreateTime)),
-		Mtime:      utils.NewStringValue(utils.Time2String(req.ModifyTime)),
+		Ctime:      utils.NewStringValue(time.Time2String(req.CreateTime)),
+		Mtime:      utils.NewStringValue(time.Time2String(req.ModifyTime)),
 		Revision:   utils.NewStringValue(req.Revision),
 		Business:   utils.NewStringValue(req.Business),
 		Department: utils.NewStringValue(req.Department),
@@ -1205,8 +1206,8 @@ func serviceRelatedRules2API(service *model.Service) *api.Service {
 		Name:      utils.NewStringValue(service.Name),
 		Namespace: utils.NewStringValue(service.Namespace),
 		Owners:    utils.NewStringValue(service.Owner),
-		Ctime:     utils.NewStringValue(utils.Time2String(service.CreateTime)),
-		Mtime:     utils.NewStringValue(utils.Time2String(service.ModifyTime)),
+		Ctime:     utils.NewStringValue(time.Time2String(service.CreateTime)),
+		Mtime:     utils.NewStringValue(time.Time2String(service.ModifyTime)),
 	}
 
 	return out

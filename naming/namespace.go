@@ -20,6 +20,7 @@ package naming
 import (
 	"context"
 	"fmt"
+	time2 "github.com/polarismesh/polaris-server/common/time"
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -313,8 +314,8 @@ func (s *Server) GetNamespaces(query map[string][]string) *api.BatchQueryRespons
 			Name:    utils.NewStringValue(namespace.Name),
 			Comment: utils.NewStringValue(namespace.Comment),
 			Owners:  utils.NewStringValue(namespace.Owner),
-			Ctime:   utils.NewStringValue(utils.Time2String(namespace.CreateTime)),
-			Mtime:   utils.NewStringValue(utils.Time2String(namespace.ModifyTime)),
+			Ctime:   utils.NewStringValue(time2.Time2String(namespace.CreateTime)),
+			Mtime:   utils.NewStringValue(time2.Time2String(namespace.ModifyTime)),
 		})
 	}
 	return out

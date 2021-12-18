@@ -18,7 +18,7 @@
 package model
 
 import (
-	"github.com/polarismesh/polaris-server/common/utils"
+	time2 "github.com/polarismesh/polaris-server/common/time"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -262,8 +262,8 @@ func Store2Instance(is *InstanceStore) *Instance {
 			Isolate:           &wrappers.BoolValue{Value: int2bool(is.Isolate)},
 			Metadata:          is.Meta,
 			LogicSet:          &wrappers.StringValue{Value: is.LogicSet},
-			Ctime:             &wrappers.StringValue{Value: utils.Int64Time2String(is.CreateTime)},
-			Mtime:             &wrappers.StringValue{Value: utils.Int64Time2String(is.ModifyTime)},
+			Ctime:             &wrappers.StringValue{Value: time2.Int64Time2String(is.CreateTime)},
+			Mtime:             &wrappers.StringValue{Value: time2.Int64Time2String(is.ModifyTime)},
 			Revision:          &wrappers.StringValue{Value: is.Revision},
 		},
 		ServiceID:  is.ServiceID,

@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/polarismesh/polaris-server/common/time"
 	"regexp"
 	"unicode/utf8"
 
@@ -503,8 +504,8 @@ func platform2Api(platform *model.Platform) *api.Platform {
 		Owner:      utils.NewStringValue(platform.Owner),
 		Department: utils.NewStringValue(platform.Department),
 		Comment:    utils.NewStringValue(platform.Comment),
-		Ctime:      utils.NewStringValue(utils.Time2String(platform.CreateTime)),
-		Mtime:      utils.NewStringValue(utils.Time2String(platform.ModifyTime)),
+		Ctime:      utils.NewStringValue(time.Time2String(platform.CreateTime)),
+		Mtime:      utils.NewStringValue(time.Time2String(platform.ModifyTime)),
 	}
 
 	return out

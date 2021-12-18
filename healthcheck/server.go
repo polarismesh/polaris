@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	time2 "github.com/polarismesh/polaris-server/common/time"
 	"strconv"
 	"sync"
 	"time"
@@ -238,8 +239,8 @@ func (s *Server) GetLastHeartbeat(req *api.Instance) *api.Response {
 	req.VpcId = insCache.Proto.GetVpcId()
 	req.HealthCheck = insCache.Proto.GetHealthCheck()
 	req.Metadata["last-heartbeat-timestamp"] = strconv.Itoa(int(queryResp.LastHeartbeatSec))
-	req.Metadata["last-heartbeat-time"] = utils.Time2String(time.Unix(queryResp.LastHeartbeatSec, 0))
-	req.Metadata["system-time"] = utils.Time2String(time.Unix(currentTimeSec(), 0))
+	req.Metadata["last-heartbeat-time"] = time2.Time2String(time.Unix(queryResp.LastHeartbeatSec, 0))
+	req.Metadata["system-time"] = time2.Time2String(time.Unix(currentTimeSec(), 0))
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
 }
 

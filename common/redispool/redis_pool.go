@@ -21,7 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/utils"
+	time2 "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/plugin"
 	"math"
 	"sync"
@@ -96,28 +96,28 @@ type Config struct {
 	KvAddr         string         `json:"kvAddr"`
 	KvPasswd       string         `json:"kvPasswd"`
 	MaxIdle        int            `json:"maxIdle"`
-	IdleTimeout    utils.Duration `json:"idleTimeout"`
-	ConnectTimeout utils.Duration `json:"connectTimeout"`
-	MsgTimeout     utils.Duration `json:"msgTimeout"`
+	IdleTimeout    time2.Duration `json:"idleTimeout"`
+	ConnectTimeout time2.Duration `json:"connectTimeout"`
+	MsgTimeout     time2.Duration `json:"msgTimeout"`
 	Concurrency    int            `json:"concurrency"`
 	Compatible     bool           `json:"compatible"`
 	MaxRetry       int            `json:"maxRetry"`
 	MinBatchCount  int            `json:"minBatchCount"`
-	WaitTime       utils.Duration `json:"waitTime"`
+	WaitTime       time2.Duration `json:"waitTime"`
 }
 
 // DefaultConfig redis pool configuration with default values
 func DefaultConfig() *Config {
 	return &Config{
 		MaxIdle:        200,
-		IdleTimeout:    utils.Duration(120 * time.Second),
-		ConnectTimeout: utils.Duration(300 * time.Millisecond),
-		MsgTimeout:     utils.Duration(300 * time.Millisecond),
+		IdleTimeout:    time2.Duration(120 * time.Second),
+		ConnectTimeout: time2.Duration(300 * time.Millisecond),
+		MsgTimeout:     time2.Duration(300 * time.Millisecond),
 		Concurrency:    200,
 		Compatible:     false,
 		MaxRetry:       2,
 		MinBatchCount:  10,
-		WaitTime:       utils.Duration(50 * time.Millisecond),
+		WaitTime:       time2.Duration(50 * time.Millisecond),
 	}
 }
 

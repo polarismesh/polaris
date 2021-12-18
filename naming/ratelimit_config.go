@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	time2 "github.com/polarismesh/polaris-server/common/time"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -494,8 +495,8 @@ func rateLimit2api(service string, namespace string, rateLimit *model.RateLimit)
 	rule.Namespace = utils.NewStringValue(namespace)
 	rule.Priority = utils.NewUInt32Value(rateLimit.Priority)
 	rule.Labels = labels
-	rule.Ctime = utils.NewStringValue(utils.Time2String(rateLimit.CreateTime))
-	rule.Mtime = utils.NewStringValue(utils.Time2String(rateLimit.ModifyTime))
+	rule.Ctime = utils.NewStringValue(time2.Time2String(rateLimit.CreateTime))
+	rule.Mtime = utils.NewStringValue(time2.Time2String(rateLimit.ModifyTime))
 	rule.Revision = utils.NewStringValue(rateLimit.Revision)
 
 	return rule, nil
