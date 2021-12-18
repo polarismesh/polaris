@@ -186,6 +186,8 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 		return api.NewNamespaceResponse(api.StoreLayerException, req)
 	}
 
+	s.caches.Service().CleanNamespace(namespace.Name)
+
 	msg := fmt.Sprintf("delete namepsace: name=%v", namespace.Name)
 	log.Info(msg, zap.String("request-id", requestID))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.ODelete))
