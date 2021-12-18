@@ -1116,8 +1116,8 @@ func circuitBreaker2API(req *model.CircuitBreaker) (*api.CircuitBreaker, error) 
 		Namespace:  utils.NewStringValue(req.Namespace),
 		Owners:     utils.NewStringValue(req.Owner),
 		Comment:    utils.NewStringValue(req.Comment),
-		Ctime:      utils.NewStringValue(time2String(req.CreateTime)),
-		Mtime:      utils.NewStringValue(time2String(req.ModifyTime)),
+		Ctime:      utils.NewStringValue(utils.Time2String(req.CreateTime)),
+		Mtime:      utils.NewStringValue(utils.Time2String(req.ModifyTime)),
 		Revision:   utils.NewStringValue(req.Revision),
 		Business:   utils.NewStringValue(req.Business),
 		Department: utils.NewStringValue(req.Department),
@@ -1205,8 +1205,8 @@ func serviceRelatedRules2API(service *model.Service) *api.Service {
 		Name:      utils.NewStringValue(service.Name),
 		Namespace: utils.NewStringValue(service.Namespace),
 		Owners:    utils.NewStringValue(service.Owner),
-		Ctime:     utils.NewStringValue(time2String(service.CreateTime)),
-		Mtime:     utils.NewStringValue(time2String(service.ModifyTime)),
+		Ctime:     utils.NewStringValue(utils.Time2String(service.CreateTime)),
+		Mtime:     utils.NewStringValue(utils.Time2String(service.ModifyTime)),
 	}
 
 	return out

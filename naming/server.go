@@ -310,8 +310,3 @@ func NewUUID() string {
 	uuidBytes := uuid.New()
 	return hex.EncodeToString(uuidBytes[:])
 }
-
-// time.Time转为字符串时间
-func time2String(t time.Time) string {
-	return t.Format("2006-01-02 15:04:05")
-}

@@ -494,8 +494,8 @@ func rateLimit2api(service string, namespace string, rateLimit *model.RateLimit)
 	rule.Namespace = utils.NewStringValue(namespace)
 	rule.Priority = utils.NewUInt32Value(rateLimit.Priority)
 	rule.Labels = labels
-	rule.Ctime = utils.NewStringValue(time2String(rateLimit.CreateTime))
-	rule.Mtime = utils.NewStringValue(time2String(rateLimit.ModifyTime))
+	rule.Ctime = utils.NewStringValue(utils.Time2String(rateLimit.CreateTime))
+	rule.Mtime = utils.NewStringValue(utils.Time2String(rateLimit.ModifyTime))
 	rule.Revision = utils.NewStringValue(rateLimit.Revision)
 
 	return rule, nil

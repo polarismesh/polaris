@@ -313,8 +313,8 @@ func (s *Server) GetNamespaces(query map[string][]string) *api.BatchQueryRespons
 			Name:    utils.NewStringValue(namespace.Name),
 			Comment: utils.NewStringValue(namespace.Comment),
 			Owners:  utils.NewStringValue(namespace.Owner),
-			Ctime:   utils.NewStringValue(time2String(namespace.CreateTime)),
-			Mtime:   utils.NewStringValue(time2String(namespace.ModifyTime)),
+			Ctime:   utils.NewStringValue(utils.Time2String(namespace.CreateTime)),
+			Mtime:   utils.NewStringValue(utils.Time2String(namespace.ModifyTime)),
 		})
 	}
 	return out

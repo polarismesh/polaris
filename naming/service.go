@@ -758,8 +758,8 @@ func service2Api(service *model.Service) *api.Service {
 		Owners:     utils.NewStringValue(service.Owner),
 		Revision:   utils.NewStringValue(service.Revision),
 		PlatformId: utils.NewStringValue(service.PlatformID),
-		Ctime:      utils.NewStringValue(time2String(service.CreateTime)),
-		Mtime:      utils.NewStringValue(time2String(service.ModifyTime)),
+		Ctime:      utils.NewStringValue(utils.Time2String(service.CreateTime)),
+		Mtime:      utils.NewStringValue(utils.Time2String(service.ModifyTime)),
 	}
 
 	return out

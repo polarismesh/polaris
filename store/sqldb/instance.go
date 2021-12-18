@@ -21,6 +21,7 @@ import (
 	"database/sql"
 	"errors"
 	v1 "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 	"time"
 
@@ -625,7 +626,7 @@ func (ins *instanceStore) getMoreInstancesMainWithMeta(mtime time.Time, firstUpd
 	// 非首次拉取
 	str := genCompleteInstanceSelectSQL() + " where instance.mtime >= ?"
 	args := make([]interface{}, 0, len(serviceID)+1)
-	args = append(args, time2String(mtime))
+	args = append(args, utils.Time2String(mtime))
 
 	if len(serviceID) > 0 {
 		str += " and service_id in (" + PlaceholdersN(len(serviceID))
@@ -693,7 +694,7 @@ func (ins *instanceStore) getMoreInstancesMain(mtime time.Time, firstUpdate bool
 	map[string]*model.Instance, error) {
 	str := genInstanceSelectSQL() + " where instance.mtime >= ?"
 	args := make([]interface{}, 0, len(serviceID)+1)
-	args = append(args, time2String(mtime))
+	args = append(args, utils.Time2String(mtime))
 
 	if firstUpdate {
 		str += " and flag != 1" // nolint

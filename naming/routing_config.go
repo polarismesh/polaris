@@ -337,8 +337,8 @@ func routingConfig2API(req *model.RoutingConfig, service string, namespace strin
 		Service:   utils.NewStringValue(service),
 		Namespace: utils.NewStringValue(namespace),
 		Revision:  utils.NewStringValue(req.Revision),
-		Ctime:     utils.NewStringValue(time2String(req.CreateTime)),
-		Mtime:     utils.NewStringValue(time2String(req.ModifyTime)),
+		Ctime:     utils.NewStringValue(utils.Time2String(req.CreateTime)),
+		Mtime:     utils.NewStringValue(utils.Time2String(req.ModifyTime)),
 	}
 
 	if req.InBounds != "" {

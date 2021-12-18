@@ -19,6 +19,7 @@ package discoverlocal
 
 import (
 	"bytes"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"go.uber.org/zap"
 	"time"
 )
@@ -78,7 +79,7 @@ func (d *DiscoverCallStatis) log() {
 		buffer.WriteString(service.namespace)
 		buffer.WriteString(";")
 		buffer.WriteString("visitTime=")
-		buffer.WriteString(time.Format("2006-01-02 15:04:05"))
+		buffer.WriteString(utils.Time2String(time))
 		buffer.WriteString("\n")
 	}
 

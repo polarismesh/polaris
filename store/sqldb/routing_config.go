@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 	"time"
 )
@@ -104,7 +105,7 @@ func (rs *routingConfigStore) GetRoutingConfigsForCache(
 	if firstUpdate {
 		str += " and flag != 1" // nolint
 	}
-	rows, err := rs.slave.Query(str, time2String(mtime))
+	rows, err := rs.slave.Query(str, utils.Time2String(mtime))
 	if err != nil {
 		log.Errorf("[Store][database] query routing configs with mtime err: %s", err.Error())
 		return nil, err

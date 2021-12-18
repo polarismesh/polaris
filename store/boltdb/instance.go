@@ -20,6 +20,7 @@ package boltdb
 import (
 	"errors"
 	"fmt"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"sort"
 	"strconv"
 	"strings"
@@ -98,7 +99,7 @@ func (i *instanceStore) UpdateInstance(instance *model.Instance) error {
 	properties[insFieldProto] = instance.Proto
 	curr := time.Now()
 	properties[insFieldModifyTime] = curr
-	instance.Proto.Mtime = &wrappers.StringValue{Value: curr.Format("2006-01-02 15:04:05")}
+	instance.Proto.Mtime = &wrappers.StringValue{Value: utils.Time2String(curr)}
 
 	if err := i.handler.UpdateValue(tblNameInstance, instance.ID(), properties); err != nil {
 		log.Errorf("[Store][boltdb] update instance to kv error, %v", err)
@@ -595,7 +596,7 @@ func (i *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, rev
 	properties[insFieldProto] = ins.Proto
 	curr := time.Now()
 	properties[insFieldModifyTime] = curr
-	ins.Proto.Mtime = &wrappers.StringValue{Value: curr.Format("2006-01-02 15:04:05")}
+	ins.Proto.Mtime = &wrappers.StringValue{Value: utils.Time2String(curr)}
 
 	err = i.handler.UpdateValue(tblNameInstance, instanceID, properties)
 	if err != nil {
@@ -657,7 +658,7 @@ func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, 
 		properties[insFieldProto] = instance
 		curr := time.Now()
 		properties[insFieldModifyTime] = curr
-		instance.Mtime = &wrappers.StringValue{Value: curr.Format("2006-01-02 15:04:05")}
+		instance.Mtime = &wrappers.StringValue{Value: utils.Time2String(curr)}
 		err = i.handler.UpdateValue(tblNameInstance, id, properties)
 		if err != nil {
 			log.Errorf("[Store][boltdb] update instance in set instance isolate error, %v", err)
@@ -723,7 +724,7 @@ func initInstance(instance []*model.Instance) {
 	for _, ins := range instance {
 		if ins != nil {
 			currT := time.Now()
-			timeStamp := currT.Format("2006-01-02 15:04:05")
+			timeStamp := utils.Time2String(currT)
 			if ins.Proto != nil {
 				if ins.Proto.GetMtime().GetValue() == "" {
 					ins.Proto.Mtime = &wrappers.StringValue{Value: timeStamp}

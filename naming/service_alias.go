@@ -294,8 +294,8 @@ func (s *Server) GetServiceAliases(query map[string]string) *api.BatchQueryRespo
 			AliasNamespace: utils.NewStringValue(entry.AliasNamespace),
 			Owners:         utils.NewStringValue(entry.Owner),
 			Comment:        utils.NewStringValue(entry.Comment),
-			Ctime:          utils.NewStringValue(time2String(entry.CreateTime)),
-			Mtime:          utils.NewStringValue(time2String(entry.ModifyTime)),
+			Ctime:          utils.NewStringValue(utils.Time2String(entry.CreateTime)),
+			Mtime:          utils.NewStringValue(utils.Time2String(entry.ModifyTime)),
 		}
 		resp.Aliases = append(resp.Aliases, item)
 	}
