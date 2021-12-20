@@ -48,7 +48,7 @@ client:
 - [polaris-java](https://github.com/PolarisMesh/polaris-java): Java Client
 - [polaris-go](https://github.com/PolarisMesh/polaris-go): Go Client
 - [polaris-cpp](https://github.com/PolarisMesh/polaris-cpp): C++ Client
-- [polaris-nodejs](https://github.com/PolarisMesh/polaris-nodejs): NodeJS Client
+- [polaris-php](https://github.com/polarismesh/polaris-php): PHP Client
 - [polaris-sidecar](https://github.com/PolarisMesh/polaris-sidecar): Envoy based Sidecar
 
 ecosystem:
@@ -57,7 +57,6 @@ ecosystem:
 - [spring-cloud-polaris](https://github.com/PolarisMesh/spring-cloud-polaris): spring cloud integrates with polaris-java
 - [grpc-java-polaris](https://github.com/PolarisMesh/grpc-java-polaris): grpc-java integrates with polaris-java
 - [grpc-go-polaris](https://github.com/PolarisMesh/grpc-go-polaris): grpc-go integrates with polaris-go
-- [grpc-cpp-polaris](https://github.com/PolarisMesh/grpc-cpp-polaris): grpc integrates with polaris-cpp
 - [dubbo3/dubbo-go](https://github.com/polarismesh/examples/tree/main/dubbo3/dubbogo): dubbo-go integrates with polaris-go
 - [nginx-polaris](https://github.com/PolarisMesh/nginx-polaris): nginx integrates with polaris-cpp
 
