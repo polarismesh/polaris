@@ -42,6 +42,7 @@ const (
 
 	RateConfFieldMtime     string = "ModifyTime"
 	RateConfFieldServiceID string = "ServiceID"
+	RateConfFieldValid     string = "Valid"
 )
 
 type rateLimitStore struct {
@@ -59,6 +60,7 @@ func (r *rateLimitStore) CreateRateLimit(limit *model.RateLimit) error {
 
 	limit.CreateTime = tNow
 	limit.ModifyTime = tNow
+	limit.Valid = true
 
 	return r.createRateLimit(limit)
 }
@@ -86,17 +88,21 @@ func (r *rateLimitStore) DeleteRateLimit(limit *model.RateLimit) error {
 // GetExtendRateLimits 根据过滤条件拉取限流规则
 func (r *rateLimitStore) GetExtendRateLimits(
 	query map[string]string, offset uint32, limit uint32) (uint32, []*model.ExtendRateLimit, error) {
-
 	handler := r.handler
-
-	fields := []string{strings.ToLower(SvcFieldName), strings.ToLower(svcFieldNamespace)}
+	fields := []string{SvcFieldName, SvcFieldNamespace, SvcFieldVaild}
 	services, err := r.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
-			for _, key := range fields {
-				qV := query[key]
-				if qV != m[key].(string) {
-					return false
-				}
+			validVal, ok := m[SvcFieldVaild]
+			if ok && !validVal.(bool) {
+				return false
+			}
+			svcName, ok := query["name"]
+			if ok && svcName != m[SvcFieldName].(string) {
+				return false
+			}
+			svcNs, ok := query["namespace"]
+			if ok && svcNs != m[SvcFieldNamespace].(string) {
+				return false
 			}
 			return true
 		})
@@ -105,14 +111,20 @@ func (r *rateLimitStore) GetExtendRateLimits(
 	delete(query, strings.ToLower(SvcFieldName))
 	delete(query, strings.ToLower(svcFieldNamespace))
 
-	fields = append(utils.CollectMapKeys(query), RateConfFieldServiceID)
+	fields = append(utils.CollectMapKeys(query), RateConfFieldServiceID, RateConfFieldValid)
 
 	result, err := handler.LoadValuesByFilter(tblRateLimitConfig, fields, &model.RateLimit{},
 		func(m map[string]interface{}) bool {
+			validVal, ok := m[RateConfFieldValid]
+			if ok && !validVal.(bool) {
+				return false
+			}
 			rSvcId := m[RateConfFieldServiceID]
 			if _, ok := services[rSvcId.(string)]; !ok {
 				return false
 			}
+
+			delete(m, RateConfFieldValid)
 
 			for k, v := range query {
 				if k == "labels" {
@@ -178,7 +190,12 @@ func (r *rateLimitStore) GetRateLimitWithID(id string) (*model.RateLimit, error)
 		return nil, nil
 	}
 
-	return result[id].(*model.RateLimit), nil
+	rateLimitRet := result[id].(*model.RateLimit)
+	if rateLimitRet.Valid {
+		return rateLimitRet, nil
+	}
+
+	return nil, nil
 }
 
 // 根据修改时间拉取增量限流规则及最新版本号
@@ -285,6 +302,7 @@ func (r *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 		tNow := time.Now()
 
 		limit.ModifyTime = tNow
+		limit.Valid = true
 
 		// create ratelimit_config
 		if err := saveValue(tx, tblRateLimitConfig, limit.ID, limit); err != nil {
@@ -320,13 +338,13 @@ func (r *rateLimitStore) deleteRateLimit(limit *model.RateLimit) error {
 
 	return handler.Execute(true, func(tx *bolt.Tx) error {
 
-		if err := deleteValues(tx, tblRateLimitConfig, []string{limit.ID}); err != nil {
+		if err := deleteValues(tx, tblRateLimitConfig, []string{limit.ID}, true); err != nil {
 			log.Errorf("[Store][RateLimit] delete rate_limit(%s, %s) err: %s",
 				limit.ID, limit.ServiceID, err.Error())
 			return err
 		}
 
-		if err := deleteValues(tx, tblRateLimitRevision, []string{limit.ID}); err != nil {
+		if err := deleteValues(tx, tblRateLimitRevision, []string{limit.ID}, true); err != nil {
 			log.Errorf("[Store][RateLimit] delete ratelimit_version(%s, %s) err: %s",
 				limit.ID, limit.ServiceID, err.Error())
 			return err

@@ -19,12 +19,14 @@ package boltdb
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	v1 "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
+	"os"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/golang/protobuf/ptypes/wrappers"
+	v1 "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 func TestBoltHandler_SaveNamespace(t *testing.T) {
@@ -84,7 +86,7 @@ func TestBoltHandler_DeleteNamespace(t *testing.T) {
 	nsValue := &model.Namespace{
 		Name: "Test",
 	}
-	err = handler.DeleteValues(tblNameNamespace, []string{nsValue.Name})
+	err = handler.DeleteValues(tblNameNamespace, []string{nsValue.Name}, false)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -130,7 +132,7 @@ func TestBoltHandler_Service(t *testing.T) {
 		return true
 	})
 
-	err = handler.DeleteValues("service", []string{svcValue.ID})
+	err = handler.DeleteValues("service", []string{svcValue.ID}, false)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -165,7 +167,7 @@ func TestBoltHandler_Location(t *testing.T) {
 	targetLocValue := locValues[id]
 	targetLoc := targetLocValue.(*model.Location)
 	fmt.Printf("loaded loc is %+v\n", targetLoc)
-	err = handler.DeleteValues("location", []string{id})
+	err = handler.DeleteValues("location", []string{id}, false)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -176,6 +178,10 @@ const (
 )
 
 func TestBoltHandler_CountValues(t *testing.T) {
+
+	// 删除之前测试的遗留文件
+	_ = os.RemoveAll("./table.bolt")
+
 	count := 5
 	var idToServices = make(map[string]*model.Service)
 	var ids = make([]string, 0)
@@ -199,7 +205,10 @@ func TestBoltHandler_CountValues(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	for id, svc := range idToServices {
 		err = handler.SaveValue(tblService, id, svc)
 		if nil != err {
@@ -218,9 +227,9 @@ func TestBoltHandler_CountValues(t *testing.T) {
 		t.Fatal(err)
 	}
 	if nCount != count {
-		t.Fatal("count not match")
+		t.Fatalf("count not match, expect cnt=%d, actual cnt=%d", count, nCount)
 	}
-	err = handler.DeleteValues("service", ids)
+	err = handler.DeleteValues("service", ids, false)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -250,7 +259,10 @@ func TestBoltHandler_LoadValuesByFilter(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	for id, svc := range idToServices {
 		err = handler.SaveValue(tblService, id, svc)
 		if nil != err {
@@ -268,7 +280,7 @@ func TestBoltHandler_LoadValuesByFilter(t *testing.T) {
 	if len(values) != 2 {
 		t.Fatal("filter count not match 2")
 	}
-	err = handler.DeleteValues("service", ids)
+	err = handler.DeleteValues("service", ids, false)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -298,7 +310,10 @@ func TestBoltHandler_IterateFields(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	for id, svc := range idToServices {
 		err = handler.SaveValue(tblService, id, svc)
 		if nil != err {
@@ -315,7 +330,7 @@ func TestBoltHandler_IterateFields(t *testing.T) {
 	if len(names) != count {
 		t.Fatalf("iterate count not match %d", count)
 	}
-	err = handler.DeleteValues("service", ids)
+	err = handler.DeleteValues("service", ids, false)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -345,7 +360,10 @@ func TestBoltHandler_UpdateValue(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
 	for id, svc := range idToServices {
 		err = handler.SaveValue(tblService, id, svc)
 		if nil != err {

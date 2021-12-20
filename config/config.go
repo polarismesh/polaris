@@ -45,7 +45,7 @@ type Config struct {
 
 // Bootstrap 启动引导配置
 type Bootstrap struct {
-	Logger         log.Options
+	Logger         map[string]*log.Options
 	StartInOrder   map[string]interface{} `yaml:"startInOrder"`
 	PolarisService PolarisService         `yaml:"polaris_service"`
 }

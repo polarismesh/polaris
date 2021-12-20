@@ -76,7 +76,7 @@ README：
 
 #### 导入数据库建表脚本
 
-建表脚本为./store/defaultStore/polaris_server.sql，可通过mysql命令或者admin客户端进行导入
+建表脚本为./store/sqldb/polaris_server.sql，可通过mysql命令或者admin客户端进行导入
 
 #### 准备golang编译环境
 

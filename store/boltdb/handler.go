@@ -28,6 +28,15 @@ import (
 	"github.com/polarismesh/polaris-server/common/log"
 )
 
+const (
+	DeleteFlagValue    byte   = 1
+	DataVaildFieldName string = "Valid"
+)
+
+var (
+	ErrorValueInvisible = errors.New("value is Invisible")
+)
+
 // BoltHandler encapsulate operations around boltdb
 type BoltHandler interface {
 
@@ -35,7 +44,7 @@ type BoltHandler interface {
 	SaveValue(typ string, key string, object interface{}) error
 
 	// DeleteValue delete data object by unique key
-	DeleteValues(typ string, key []string) error
+	DeleteValues(typ string, key []string, logicDelete bool) error
 
 	// UpdateValue update properties of data object
 	UpdateValue(typ string, key string, properties map[string]interface{}) error
@@ -152,6 +161,7 @@ func saveValue(tx *bolt.Tx, typ string, key string, value interface{}) error {
 				return err
 			}
 		}
+		bucket.Put([]byte(toBucketField(DataVaildFieldName)), encodeBoolBuffer(true))
 	}
 	return err
 }
@@ -212,6 +222,7 @@ func loadValuesByFilter(tx *bolt.Tx, typ string, fields []string, typObject inte
 			log.Warnf("[BlobStore] bucket not found for key %s, type %s", key, typ)
 			continue
 		}
+
 		var matchResult bool
 		matchResult, err = matchObject(bucket, fields, typObject, filter)
 		if nil != err {
@@ -312,6 +323,9 @@ func matchObject(bucket *bolt.Bucket,
 	for _, field := range fields {
 		value, err := getFieldObject(bucket, typObject, field)
 		if nil != err {
+			if errors.Is(err, ErrorValueInvisible) {
+				continue
+			}
 			return false, err
 		}
 		if nil == value {
@@ -365,26 +379,31 @@ func (b *boltHandler) Close() error {
 }
 
 // DeleteValue delete data object by unique key
-func (b *boltHandler) DeleteValues(typ string, keys []string) error {
+func (b *boltHandler) DeleteValues(typ string, keys []string, logicDelete bool) error {
 	if len(keys) == 0 {
 		return nil
 	}
 	return b.db.Update(func(tx *bolt.Tx) error {
-		return deleteValues(tx, typ, keys)
+		return deleteValues(tx, typ, keys, logicDelete)
 	})
 }
 
-func deleteValues(tx *bolt.Tx, typ string, keys []string) error {
+func deleteValues(tx *bolt.Tx, typ string, keys []string, logicDelete bool) error {
 	typeBucket := tx.Bucket([]byte(typ))
 	if nil == typeBucket {
 		return nil
 	}
 	for _, key := range keys {
 		keyBytes := []byte(key)
-		if nil != typeBucket.Bucket(keyBytes) {
-			err := typeBucket.DeleteBucket(keyBytes)
-			if nil != err {
-				return err
+		if subBucket := typeBucket.Bucket(keyBytes); subBucket != nil {
+			if logicDelete {
+				if err := subBucket.Put([]byte(toBucketField(DataVaildFieldName)), encodeBoolBuffer(false)); err != nil {
+					return err
+				}
+			} else {
+				if err := typeBucket.DeleteBucket(keyBytes); nil != err {
+					return err
+				}
 			}
 		}
 	}
@@ -449,7 +468,25 @@ func (b *boltHandler) CountValues(typ string) (int, error) {
 			return nil
 		}
 		return typeBucket.ForEach(func(k, v []byte) error {
-			count++
+			subBucket := typeBucket.Bucket(k)
+			canCount := true
+
+			if subBucket != nil {
+				data := subBucket.Get([]byte(DataVaildFieldName))
+				if data == nil || len(data) == 0 {
+					canCount = true
+				} else {
+					val, err := decodeBoolBuffer(DataVaildFieldName, data)
+					if err != nil {
+						return err
+					}
+					canCount = val
+				}
+			}
+			if canCount {
+				count++
+			}
+
 			return nil
 		})
 	})

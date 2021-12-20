@@ -22,9 +22,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/golang/protobuf/jsonpb"
 	"io"
+
+	"github.com/golang/protobuf/jsonpb"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 /**
@@ -342,7 +343,7 @@ func (c *Client) GetCircuitBreakersRelease(circuitBreaker *api.CircuitBreaker, c
 	size := 1
 
 	if ret.GetAmount() == nil || ret.GetAmount().GetValue() != uint32(size) {
-		return errors.New("invalid batch amount")
+		return fmt.Errorf("invalid batch amount, expect : %d, actual : %d", size, ret.GetAmount().GetValue())
 	}
 
 	if ret.GetSize() == nil || ret.GetSize().GetValue() != uint32(size) {

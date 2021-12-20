@@ -77,7 +77,7 @@ https://dev.mysql.com/downloads/mysql/5.7.html
 
 #### Import SQL script
 
-Point Script: ./store/defaultStore/polaris_server.sql, one can import through mysql admin or console.
+Point Script: ./store/sqldb/polaris_server.sql, one can import through mysql admin or console.
 
 #### Prepare golang compile environment
 

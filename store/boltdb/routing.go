@@ -94,7 +94,7 @@ func (r *routingStore) DeleteRoutingConfig(serviceID string) error {
 		return store.NewStatusError(store.EmptyParamsErr, "missing service id")
 	}
 
-	err := r.handler.DeleteValues(tblNameRouting, []string{serviceID})
+	err := r.handler.DeleteValues(tblNameRouting, []string{serviceID}, true)
 	if err != nil {
 		log.Errorf("[Store][boltdb] delete route config to kv error, %v", err)
 		return err
@@ -235,7 +235,7 @@ func (r *routingStore) GetRoutingConfigs(
 
 	// get service
 	svcIds := make(map[string]bool)
-	for k, _ := range routeConf {
+	for k := range routeConf {
 		svcIds[k] = true
 	}
 
@@ -320,4 +320,5 @@ func initRouting(r *model.RoutingConfig) {
 	currTime := time.Now()
 	r.CreateTime = currTime
 	r.ModifyTime = currTime
+	r.Valid = true
 }

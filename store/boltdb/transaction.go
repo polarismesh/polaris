@@ -59,16 +59,21 @@ func (t *transaction) RLockNamespace(name string) (*model.Namespace, error) {
 
 // DeleteNamespace 删除namespace
 func (t *transaction) DeleteNamespace(name string) error {
-	return t.handler.DeleteValues(tblNameNamespace, []string{name})
+	return t.handler.DeleteValues(tblNameNamespace, []string{name}, false)
 }
 
 const (
-	svcFieldName      = "Name"
-	svcFieldNamespace = "Namespace"
+	svcFieldName      string = "Name"
+	svcFieldNamespace string = "Namespace"
+	svcFieldValid     string = "Valid"
 )
 
 func (t *transaction) loadService(name string, namespace string) (*model.Service, error) {
 	filter := func(m map[string]interface{}) bool {
+		validVal, ok := m[svcFieldValid]
+		if ok && !validVal.(bool) {
+			return false
+		}
 		nameValue, ok := m[svcFieldName]
 		if !ok {
 			return false
@@ -80,7 +85,7 @@ func (t *transaction) loadService(name string, namespace string) (*model.Service
 		return nameValue.(string) == name && namespaceValue.(string) == namespace
 	}
 	values, err := t.handler.LoadValuesByFilter(
-		tblNameService, []string{svcFieldName, svcFieldNamespace}, &model.Service{}, filter)
+		tblNameService, []string{svcFieldName, svcFieldNamespace, svcFieldValid}, &model.Service{}, filter)
 	if nil != err {
 		return nil, err
 	}

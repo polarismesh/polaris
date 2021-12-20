@@ -2,18 +2,31 @@
 bootstrap:
   # 全局日志
   logger:
-    RotateOutputPath: log/polaris-server.log
-    RotationMaxSize: 500
-    RotationMaxAge: 30
-    RotationMaxBackups: 100
-    level: debug
+    naming:
+      rotateOutputPath: log/polaris-naming.log
+      # 以下参数不指定或者为零值时，默认值如下
+#      rotationMaxSize: 500
+#      rotationMaxAge: 30
+#      rotationMaxBackups: 100
+#      outputLevel: debug
+#      stackTraceLevel: none
+    health-check:
+      rotateOutputPath: log/polaris-health-check.log
+    store:
+      rotateOutputPath: log/polaris-store.log
+    plugin:
+      rotateOutputPath: log/polaris-plugin.log
+    server:
+      rotateOutputPath: log/polaris-server.log
+    default:
+      rotateOutputPath: log/polaris-default.log
   # 按顺序启动server
   startInOrder:
     open: true # 是否开启，默认是关闭
     key: sz # 全局锁
   # 注册为北极星服务
   polaris_service:
-#    probe_address: ##DB_ADDR##
+    #    probe_address: ##DB_ADDR##
     enable_register: true
     isolated: false
     services:
@@ -150,6 +163,14 @@ store:
 plugin:
   history:
     name: HistoryLogger
+  discoverEvent:
+    name: discoverEventLocal
+    # option:
+    #   queueSize: 1024
+    #   outputPath: ./discover-event
+    #   rotationMaxSize: 500
+    #   rotationMaxAge: 8
+    #   rotationMaxBackups: 100
   discoverStatis:
     name: discoverLocal
     option:

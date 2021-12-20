@@ -342,6 +342,7 @@ func Test_rateLimitStore_GetRateLimitsForCache(t *testing.T) {
 
 		for i := 0; i < 10; i++ {
 			testVal := createTestRateLimit(uuid.NewString(), false)
+			testVal.Valid = true
 			testVal.ModifyTime = tN.Add(time.Duration(i+20) * time.Minute)
 			vals = append(vals, testVal)
 			if err := r.createRateLimit(testVal); err != nil {

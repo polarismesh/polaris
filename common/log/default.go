@@ -23,7 +23,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-var defaultScope = RegisterScope(DefaultScopeName, "Unscoped logging messages.", 0)
+var defaultScope = RegisterScope(DefaultLoggerName, "Unscoped logging messages.", 0)
 
 // Fatal outputs a message at fatal level.
 func Fatal(msg string, fields ...zapcore.Field) {

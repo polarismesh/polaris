@@ -15,16 +15,45 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package main
+package plugin
 
 import (
-	"github.com/polarismesh/polaris-server/cmd"
-	_ "go.uber.org/automaxprocs"
+	"os"
+	"sync"
+
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
+var (
+	discoverEventOnce = &sync.Once{}
+)
+
+// DiscoverChannel
+type DiscoverChannel interface {
+	Plugin
+	// PublishEvent 发布一个服务事件
+	//  @param event 服务事件信息
+	PublishEvent(event model.DiscoverEvent)
+}
+
 /**
- * @brief 主函数
+ * GetDiscoverEvent 获取服务发现事件插件
  */
-func main() {
-	cmd.Execute()
+func GetDiscoverEvent() DiscoverChannel {
+	c := &config.DiscoverEvent
+
+	plugin, exist := pluginSet[c.Name]
+	if !exist {
+		return nil
+	}
+
+	discoverEventOnce.Do(func() {
+		if err := plugin.Initialize(c); err != nil {
+			log.Errorf("plugin init err: %s", err.Error())
+			os.Exit(-1)
+		}
+	})
+
+	return plugin.(DiscoverChannel)
 }

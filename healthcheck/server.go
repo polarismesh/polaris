@@ -21,16 +21,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"sync"
+	"time"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/naming/batch"
+	"github.com/polarismesh/polaris-server/naming/cache"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
-	"strconv"
-	"sync"
-	"time"
 )
 
 var (
@@ -48,8 +50,11 @@ type Server struct {
 	dispatcher     *Dispatcher
 	checkScheduler *CheckScheduler
 	history        plugin.History
+	discoverEvent  plugin.DiscoverChannel
 	localHost      string
+	discoverCh     chan eventWrapper
 	bc             *batch.Controller
+	serviceCache   cache.ServiceCache
 }
 
 // Initialize 初始化
@@ -105,10 +110,16 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool) error {
 	}
 	server.localHost = hcOpt.LocalHost
 	server.history = plugin.GetHistory()
+	server.discoverEvent = plugin.GetDiscoverEvent()
+
 	server.cacheProvider = newCacheProvider(hcOpt.Service)
 	server.timeAdjuster = newTimeAdjuster(ctx)
 	server.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval, hcOpt.MaxCheckInterval)
 	server.dispatcher = newDispatcher(ctx)
+
+	server.discoverCh = make(chan eventWrapper, 32)
+	go server.receiveEventAndPush()
+
 	return nil
 }
 
@@ -124,6 +135,11 @@ func GetServer() (*Server, error) {
 	}
 
 	return server, nil
+}
+
+// SetServiceCache 设置服务缓存
+func (s *Server) SetServiceCache(serviceÇache cache.ServiceCache) {
+	s.serviceCache = serviceÇache
 }
 
 // CacheProvider get cache provider
@@ -149,6 +165,46 @@ func (s *Server) RecordHistory(entry *model.RecordEntry) {
 	s.history.Record(entry)
 }
 
+// PublishDiscoverEvent 发布服务事件
+func (s *Server) PublishDiscoverEvent(serviceId string, event model.DiscoverEvent) {
+	if s.discoverEvent == nil {
+		return
+	}
+	s.discoverCh <- eventWrapper{
+		ServiceID: serviceId,
+		Event:     event,
+	}
+}
+
+func (s *Server) receiveEventAndPush() {
+	if s.discoverEvent == nil {
+		return
+	}
+
+	for {
+		select {
+		case wrapper := <-s.discoverCh:
+			svcId := wrapper.ServiceID
+			event := wrapper.Event
+			var service *model.Service
+			for {
+				service = s.serviceCache.GetServiceByID(svcId)
+				if service == nil {
+					time.Sleep(time.Duration(500 * time.Millisecond))
+					continue
+				}
+				break
+			}
+
+			event.Namespace = service.Namespace
+			event.Service = service.Name
+
+			s.discoverEvent.PublishEvent(event)
+		}
+	}
+
+}
+
 // GetLastHeartbeat 获取上一次心跳的时间
 func (s *Server) GetLastHeartbeat(req *api.Instance) *api.Response {
 	if len(s.checkers) == 0 {
@@ -163,24 +219,24 @@ func (s *Server) GetLastHeartbeat(req *api.Instance) *api.Response {
 	if insCache == nil {
 		return api.NewInstanceResponse(api.NotFoundResource, req)
 	}
-	checker, ok := s.checkers[int32(insCache.GetHealthCheck().GetType())]
+	checker, ok := s.checkers[int32(insCache.HealthCheck().GetType())]
 	if !ok {
 		return api.NewInstanceResponse(api.HeartbeatTypeNotFound, req)
 	}
 	queryResp, err := checker.Query(&plugin.QueryRequest{
-		InstanceId: insCache.GetId().GetValue(),
-		Host:       insCache.GetHost().GetValue(),
-		Port:       insCache.GetPort().GetValue(),
+		InstanceId: insCache.ID(),
+		Host:       insCache.Host(),
+		Port:       insCache.Port(),
 	})
 	if err != nil {
 		return api.NewInstanceRespWithError(api.ExecuteException, err, req)
 	}
-	req.Service = insCache.GetService()
-	req.Namespace = insCache.GetNamespace()
-	req.Host = insCache.GetHost()
-	req.Port = insCache.GetPort()
-	req.VpcId = insCache.GetVpcId()
-	req.HealthCheck = insCache.GetHealthCheck()
+	req.Service = insCache.Proto.GetService()
+	req.Namespace = insCache.Proto.GetNamespace()
+	req.Host = insCache.Proto.GetHost()
+	req.Port = insCache.Proto.Port
+	req.VpcId = insCache.Proto.GetVpcId()
+	req.HealthCheck = insCache.Proto.GetHealthCheck()
 	req.Metadata["last-heartbeat-timestamp"] = strconv.Itoa(int(queryResp.LastHeartbeatSec))
 	req.Metadata["last-heartbeat-time"] = time2String(time.Unix(queryResp.LastHeartbeatSec, 0))
 	req.Metadata["system-time"] = time2String(time.Unix(currentTimeSec(), 0))
@@ -194,4 +250,9 @@ func time2String(t time.Time) string {
 
 func currentTimeSec() int64 {
 	return time.Now().Unix() - server.timeAdjuster.GetDiff()
+}
+
+type eventWrapper struct {
+	ServiceID string
+	Event     model.DiscoverEvent
 }
