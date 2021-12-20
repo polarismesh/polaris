@@ -58,7 +58,7 @@ README：
 - [grpc-java-polaris](https://github.com/PolarisMesh/grpc-java-polaris): grpc-java集成polaris-java
 - [grpc-go-polaris](https://github.com/PolarisMesh/grpc-go-polaris): grpc-go集成polaris-go
 - [grpc-cpp-polaris](https://github.com/PolarisMesh/grpc-cpp-polaris): grpc集成polaris-cpp
-- [grpc-nodejs-polaris](https://github.com/PolarisMesh/grpc-nodejs-polaris): grpc-node集成polaris-nodejs
+- [dubbo3/dubbo-go](https://github.com/polarismesh/examples/tree/main/dubbo3/dubbogo): dubbo-go集成polaris-go
 - [nginx-polaris](https://github.com/PolarisMesh/nginx-polaris): nginx集成polaris-cpp
 
 其他:
