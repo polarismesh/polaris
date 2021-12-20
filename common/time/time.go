@@ -63,12 +63,12 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 	}
 }
 
-// time.Time转为字符串时间
+// Time2String  Convert time.Time to string time
 func Time2String(t time.Time) string {
 	return t.Format("2006-01-02 15:04:05")
 }
 
-// Int64Time2String int64的时间戳转为字符串时间
+// Int64Time2String  Convert time stamp of Int64 to string time
 func Int64Time2String(t int64) string {
 	return time.Unix(t, 0).Format("2006-01-02 15:04:05")
 }

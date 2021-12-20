@@ -20,7 +20,7 @@ package local
 import (
 	"fmt"
 	"github.com/polarismesh/polaris-server/common/log"
-	time2 "github.com/polarismesh/polaris-server/common/time"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/plugin"
 	"math"
 	"sync"
@@ -127,7 +127,7 @@ func (c *ComponentStatics) printStatics(staticsSlice []*APICallStatisItem, start
 // log and print the statics messages
 func (c *ComponentStatics) log() {
 	startTime := time.Now()
-	startStr := time2.Time2String(startTime)
+	startStr := commontime.Time2String(startTime)
 	if len(c.statis) == 0 {
 		c.logger.Info(fmt.Sprintf("Statis %s: No API Call\n", startStr))
 		return
@@ -151,7 +151,7 @@ func (c *ComponentStatics) log() {
 // log and print the statics messages
 func (c *ComponentStatics) collect() {
 	startTime := time.Now()
-	startStr := time2.Time2String(startTime)
+	startStr := commontime.Time2String(startTime)
 	if len(c.statis) == 0 {
 		c.logger.Info(fmt.Sprintf("Statis %s: No API Call\n", startStr))
 		return

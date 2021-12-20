@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"github.com/natefinch/lumberjack"
 	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/common/time"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/plugin"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -94,12 +94,12 @@ func (h *HistoryLogger) Record(entry *model.RecordEntry) {
 	case model.ServiceType:
 		str = fmt.Sprintf("resource_type=%s;operation_type=%s;namespace=%s;service=%s;context=%s;operator=%s;ctime=%s",
 			string(entry.ResourceType), string(entry.OperationType), entry.Namespace, entry.Service,
-			entry.Context, entry.Operator, time.Time2String(entry.CreateTime))
+			entry.Context, entry.Operator, commontime.Time2String(entry.CreateTime))
 	case model.MeshType:
 		str = fmt.Sprintf(
 			"resource_type=%s;operation_type=%s;mesh_id=%s;revision=%s;context=%s;operator=%s;ctime=%s",
 			string(entry.ResourceType), string(entry.OperationType), entry.MeshID, entry.Revision,
-			entry.Context, entry.Operator, time.Time2String(entry.CreateTime))
+			entry.Context, entry.Operator, commontime.Time2String(entry.CreateTime))
 	}
 	h.logger.Info(str)
 }

@@ -21,7 +21,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	time2 "github.com/polarismesh/polaris-server/common/time"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/naming/cache"
 	"github.com/polarismesh/polaris-server/store"
 	"time"
@@ -759,8 +759,8 @@ func service2Api(service *model.Service) *api.Service {
 		Owners:     utils.NewStringValue(service.Owner),
 		Revision:   utils.NewStringValue(service.Revision),
 		PlatformId: utils.NewStringValue(service.PlatformID),
-		Ctime:      utils.NewStringValue(time2.Time2String(service.CreateTime)),
-		Mtime:      utils.NewStringValue(time2.Time2String(service.ModifyTime)),
+		Ctime:      utils.NewStringValue(commontime.Time2String(service.CreateTime)),
+		Mtime:      utils.NewStringValue(commontime.Time2String(service.ModifyTime)),
 	}
 
 	return out
