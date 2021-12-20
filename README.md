@@ -58,7 +58,7 @@ ecosystem:
 - [grpc-java-polaris](https://github.com/PolarisMesh/grpc-java-polaris): grpc-java integrates with polaris-java
 - [grpc-go-polaris](https://github.com/PolarisMesh/grpc-go-polaris): grpc-go integrates with polaris-go
 - [grpc-cpp-polaris](https://github.com/PolarisMesh/grpc-cpp-polaris): grpc integrates with polaris-cpp
-- [grpc-nodejs-polaris](https://github.com/PolarisMesh/grpc-nodejs-polaris): grpc-node integrates with polaris-nodejs
+- [dubbo3/dubbo-go](https://github.com/polarismesh/examples/tree/main/dubbo3/dubbogo): dubbo-go integrates with polaris-go
 - [nginx-polaris](https://github.com/PolarisMesh/nginx-polaris): nginx integrates with polaris-cpp
 
 others:
