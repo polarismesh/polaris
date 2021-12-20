@@ -48,7 +48,7 @@ README：
 - [polaris-java](https://github.com/PolarisMesh/polaris-java): Java客户端
 - [polaris-go](https://github.com/PolarisMesh/polaris-go): Go客户端
 - [polaris-cpp](https://github.com/PolarisMesh/polaris-cpp): C++客户端
-- [polaris-nodejs](https://github.com/PolarisMesh/polaris-nodejs): NodeJS客户端
+- [polaris-php](https://github.com/polarismesh/polaris-php): PHP客户端
 - [polaris-sidecar](https://github.com/PolarisMesh/polaris-sidecar): 基于Envoy的Sidecar
 
 生态组件:
@@ -57,7 +57,6 @@ README：
 - [spring-cloud-polaris](https://github.com/PolarisMesh/spring-cloud-polaris): spring cloud集成polaris-java
 - [grpc-java-polaris](https://github.com/PolarisMesh/grpc-java-polaris): grpc-java集成polaris-java
 - [grpc-go-polaris](https://github.com/PolarisMesh/grpc-go-polaris): grpc-go集成polaris-go
-- [grpc-cpp-polaris](https://github.com/PolarisMesh/grpc-cpp-polaris): grpc集成polaris-cpp
 - [dubbo3/dubbo-go](https://github.com/polarismesh/examples/tree/main/dubbo3/dubbogo): dubbo-go集成polaris-go
 - [nginx-polaris](https://github.com/PolarisMesh/nginx-polaris): nginx集成polaris-cpp
 
