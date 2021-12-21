@@ -37,7 +37,16 @@
 
 ### 实例注册
 
-测试命令：ghz xxxx
+- 测试接口：
+``````
+package v1;
+
+service PolarisGRPC {
+	// 被调方注册服务实例
+	rpc RegisterInstance(Instance) returns(Response) {}
+}
+``````
+- 测试命令：ghz xxxx
 
 #### 规格1
 
@@ -57,25 +66,50 @@
 |             |        |        |      |        |            |            |             |            |           |
 |             |        |        |      |        |            |            |             |            |           |
 
-
-
 ### 实例心跳上报
 
-测试命令：
+- 测试接口：
+``````
+package v1;
 
+service PolarisGRPC {
+	// 被调方上报心跳
+	rpc Heartbeat(Instance) returns(Response) {}
+}
+``````
 
+- 测试命令：
 
 
 
 ### 实例查询
 
-测试命令：
+- 测试接口：
+``````
+package v1;
+
+service PolarisGRPC {
+    // 统一发现接口
+	rpc Discover(stream DiscoverRequest) returns(stream DiscoverResponse) {}
+}
+``````
+- 测试命令：
 
 
 
 ### 实例反注册
 
-测试命令：
+- 测试接口：
+``````
+package v1;
+
+service PolarisGRPC {
+	// 被调方反注册服务实例
+    rpc DeregisterInstance(Instance) returns(Response) {}
+}
+``````
+
+- 测试命令：
 
 
 
