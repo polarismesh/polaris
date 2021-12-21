@@ -28,6 +28,7 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"go.uber.org/zap"
 )
@@ -503,8 +504,8 @@ func platform2Api(platform *model.Platform) *api.Platform {
 		Owner:      utils.NewStringValue(platform.Owner),
 		Department: utils.NewStringValue(platform.Department),
 		Comment:    utils.NewStringValue(platform.Comment),
-		Ctime:      utils.NewStringValue(time2String(platform.CreateTime)),
-		Mtime:      utils.NewStringValue(time2String(platform.ModifyTime)),
+		Ctime:      utils.NewStringValue(commontime.Time2String(platform.CreateTime)),
+		Mtime:      utils.NewStringValue(commontime.Time2String(platform.ModifyTime)),
 	}
 
 	return out

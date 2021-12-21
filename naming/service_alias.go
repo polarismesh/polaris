@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
@@ -294,8 +295,8 @@ func (s *Server) GetServiceAliases(query map[string]string) *api.BatchQueryRespo
 			AliasNamespace: utils.NewStringValue(entry.AliasNamespace),
 			Owners:         utils.NewStringValue(entry.Owner),
 			Comment:        utils.NewStringValue(entry.Comment),
-			Ctime:          utils.NewStringValue(time2String(entry.CreateTime)),
-			Mtime:          utils.NewStringValue(time2String(entry.ModifyTime)),
+			Ctime:          utils.NewStringValue(commontime.Time2String(entry.CreateTime)),
+			Mtime:          utils.NewStringValue(commontime.Time2String(entry.ModifyTime)),
 		}
 		resp.Aliases = append(resp.Aliases, item)
 	}

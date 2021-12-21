@@ -351,11 +351,6 @@ func flag2valid(flag int) bool {
 
 }
 
-// int64Time2String int64的时间戳转为字符串时间
-func int64Time2String(t int64) string {
-	return time.Unix(t, 0).Format("2006-01-02 15:04:05")
-}
-
 // OperationType 操作类型
 type OperationType string
 

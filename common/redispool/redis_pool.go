@@ -21,7 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/utils"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/plugin"
 	"math"
 	"sync"
@@ -93,31 +93,31 @@ type Resp struct {
 
 // Config redis pool configuration
 type Config struct {
-	KvAddr         string         `json:"kvAddr"`
-	KvPasswd       string         `json:"kvPasswd"`
-	MaxIdle        int            `json:"maxIdle"`
-	IdleTimeout    utils.Duration `json:"idleTimeout"`
-	ConnectTimeout utils.Duration `json:"connectTimeout"`
-	MsgTimeout     utils.Duration `json:"msgTimeout"`
-	Concurrency    int            `json:"concurrency"`
-	Compatible     bool           `json:"compatible"`
-	MaxRetry       int            `json:"maxRetry"`
-	MinBatchCount  int            `json:"minBatchCount"`
-	WaitTime       utils.Duration `json:"waitTime"`
+	KvAddr         string              `json:"kvAddr"`
+	KvPasswd       string              `json:"kvPasswd"`
+	MaxIdle        int                 `json:"maxIdle"`
+	IdleTimeout    commontime.Duration `json:"idleTimeout"`
+	ConnectTimeout commontime.Duration `json:"connectTimeout"`
+	MsgTimeout     commontime.Duration `json:"msgTimeout"`
+	Concurrency    int                 `json:"concurrency"`
+	Compatible     bool                `json:"compatible"`
+	MaxRetry       int                 `json:"maxRetry"`
+	MinBatchCount  int                 `json:"minBatchCount"`
+	WaitTime       commontime.Duration `json:"waitTime"`
 }
 
 // DefaultConfig redis pool configuration with default values
 func DefaultConfig() *Config {
 	return &Config{
 		MaxIdle:        200,
-		IdleTimeout:    utils.Duration(120 * time.Second),
-		ConnectTimeout: utils.Duration(300 * time.Millisecond),
-		MsgTimeout:     utils.Duration(300 * time.Millisecond),
+		IdleTimeout:    commontime.Duration(120 * time.Second),
+		ConnectTimeout: commontime.Duration(300 * time.Millisecond),
+		MsgTimeout:     commontime.Duration(300 * time.Millisecond),
 		Concurrency:    200,
 		Compatible:     false,
 		MaxRetry:       2,
 		MinBatchCount:  10,
-		WaitTime:       utils.Duration(50 * time.Millisecond),
+		WaitTime:       commontime.Duration(50 * time.Millisecond),
 	}
 }
 

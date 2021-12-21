@@ -19,6 +19,7 @@ package boltdb
 
 import (
 	"fmt"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 	"os"
 	"strconv"
 	"testing"
@@ -62,7 +63,7 @@ func batchAddInstances(t *testing.T, insStore *instanceStore, svcId string, insC
 
 	for i := 0; i < insCount; i++ {
 
-		nowt := time.Now().Format("2006-01-02 15:04:05")
+		nowt := commontime.Time2String(time.Now())
 
 		err := insStore.AddInstance(&model.Instance{
 			Proto: &api.Instance{
@@ -107,7 +108,7 @@ func TestInstanceStore_BatchAddInstances(t *testing.T) {
 	instances := make([]*model.Instance, 0)
 	for i := insCount; i < insCount+5; i++ {
 
-		nowt := time.Now().Format("2006-01-02 15:04:05")
+		nowt := commontime.Time2String(time.Now())
 
 		ins := &model.Instance{
 			Proto: &api.Instance{
