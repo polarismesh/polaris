@@ -555,7 +555,7 @@ func (s *Server) sendDiscoverEvent(eventType model.DiscoverEventType, namespace,
 		EType:     eventType,
 	}
 
-	s.PublishDiscoverEvent(event)
+	s.publishDiscoverEvent(event)
 }
 
 /**
