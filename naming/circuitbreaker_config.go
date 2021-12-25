@@ -114,7 +114,7 @@ func (s *Server) CreateCircuitBreaker(ctx context.Context, req *api.CircuitBreak
 	}
 
 	// 构造底层数据结构
-	token := NewUUID()
+	token := utils.NewUUID()
 	var data *model.CircuitBreaker
 	data, err = api2CircuitBreaker(req, id, token, version)
 	if err != nil {
@@ -446,7 +446,7 @@ func (s *Server) updateCircuitBreakerAttribute(req *api.CircuitBreaker, circuitB
 	}
 
 	if needUpdate {
-		circuitBreaker.Revision = NewUUID()
+		circuitBreaker.Revision = utils.NewUUID()
 	}
 
 	return nil, needUpdate
@@ -1067,7 +1067,7 @@ func api2CircuitBreaker(req *api.CircuitBreaker, id, token, version string) (*mo
 		Outbounds:  outbounds,
 		Token:      token,
 		Owner:      req.GetOwners().GetValue(),
-		Revision:   NewUUID(),
+		Revision:   utils.NewUUID(),
 	}
 
 	return circuitBreaker, nil

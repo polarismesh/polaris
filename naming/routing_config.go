@@ -322,7 +322,7 @@ func api2RoutingConfig(serviceID string, req *api.Routing) (*model.RoutingConfig
 		ID:        serviceID,
 		InBounds:  string(inBounds),
 		OutBounds: string(outBounds),
-		Revision:  NewUUID(),
+		Revision:  utils.NewUUID(),
 	}
 
 	return out, nil
