@@ -20,4 +20,4 @@ ${PROTOC}/bin/protoc \
 --proto_path=${PROTOC}/include \
 --proto_path=. \
 model.proto client.proto service.proto routing.proto ratelimit.proto circuitbreaker.proto configrelease.proto \
-platform.proto request.proto response.proto grpcapi.proto
+platform.proto request.proto response.proto grpcapi.proto auth.proto

@@ -117,6 +117,42 @@ func NewNamespaceResponse(code uint32, namespace *Namespace) *Response {
 	}
 }
 
+// NewUserResponse 创建回复带用户信息
+func NewUserResponse(code uint32, user *User) *Response {
+	return &Response{
+		Code: &wrappers.UInt32Value{Value: code},
+		Info: &wrappers.StringValue{Value: code2info[code]},
+		User: user,
+	}
+}
+
+// NewUserGroupResponse 创建回复带用户组信息
+func NewUserGroupResponse(code uint32, user *UserGroup) *Response {
+	return &Response{
+		Code:      &wrappers.UInt32Value{Value: code},
+		Info:      &wrappers.StringValue{Value: code2info[code]},
+		UserGroup: user,
+	}
+}
+
+// NewUserGroupRelationResponse
+func NewUserGroupRelationResponse(code uint32, relation *UserGroupRelation) *Response {
+	return &Response{
+		Code:     &wrappers.UInt32Value{Value: code},
+		Info:     &wrappers.StringValue{Value: code2info[code]},
+		Relation: relation,
+	}
+}
+
+// NewAuthStrategyResponse
+func NewAuthStrategyResponse(code uint32, req *AuthStrategy) *Response {
+	return &Response{
+		Code:         &wrappers.UInt32Value{Value: code},
+		Info:         &wrappers.StringValue{Value: code2info[code]},
+		AuthStrategy: req,
+	}
+}
+
 /**
  * @brief 创建回复带服务信息
  */

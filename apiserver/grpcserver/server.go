@@ -20,12 +20,13 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	"github.com/polarismesh/polaris-server/healthcheck"
 	"io"
 	"net"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/polarismesh/polaris-server/healthcheck"
 
 	"github.com/polarismesh/polaris-server/apiserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -51,7 +52,7 @@ type GRPCServer struct {
 	exitCh          chan struct{}
 
 	server            *grpc.Server
-	namingServer      *naming.Server
+	namingServer      naming.DiscoverServer
 	healthCheckServer *healthcheck.Server
 	statis            plugin.Statis
 	ratelimit         plugin.Ratelimit

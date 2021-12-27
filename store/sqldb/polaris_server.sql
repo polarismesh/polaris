@@ -1,16 +1,26 @@
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-SET time_zone = "+00:00";
+SET
+    SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 
+SET
+    time_zone = "+00:00";
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */
+;
+
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */
+;
+
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */
+;
+
+/*!40101 SET NAMES utf8mb4 */
+;
 
 --
 -- Database: `polaris_server`
 --
 CREATE DATABASE IF NOT EXISTS `polaris_server` DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;
+
 USE `polaris_server`;
 
 -- --------------------------------------------------------
@@ -143,7 +153,7 @@ CREATE TABLE `routing_config` (
     `in_bounds` text COLLATE utf8_bin comment 'Service is routing rules',
     `out_bounds` text COLLATE utf8_bin comment 'Service main routing rules',
     `revision` varchar(40) COLLATE utf8_bin NOT NULL comment 'Routing rule version',
-    `flag` tinyint(4) NOT NULL DEFAULT '0' comment  'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
+    `flag` tinyint(4) NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`),
@@ -162,7 +172,7 @@ CREATE TABLE `ratelimit_config` (
     `priority` smallint(6) NOT NULL DEFAULT '0' comment 'ratelimit rule priority',
     `rule` text COLLATE utf8_bin NOT NULL comment 'Current limiting rules',
     `revision` varchar(32) COLLATE utf8_bin NOT NULL comment 'Limiting version',
-    `flag` tinyint(4) NOT NULL DEFAULT '0' comment  'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
+    `flag` tinyint(4) NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`),
@@ -201,7 +211,7 @@ CREATE TABLE `service` (
     `token` varchar(2048) COLLATE utf8_bin NOT NULL comment 'Service token, used to handle all the services involved in the service',
     `revision` varchar(32) COLLATE utf8_bin NOT NULL comment 'Service version information',
     `owner` varchar(1024) COLLATE utf8_bin NOT NULL comment 'Owner information belonging to the service',
-    `flag` tinyint(4) NOT NULL DEFAULT '0'  comment  'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
+    `flag` tinyint(4) NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
     `reference` varchar(32) COLLATE utf8_bin DEFAULT NULL comment 'Service alias, what is the actual service name that the service is actually pointed out?',
     `refer_filter` varchar(1024) COLLATE utf8_bin DEFAULT NULL comment '',
     `platform_id` varchar(32) COLLATE utf8_bin DEFAULT '' comment 'The platform ID to which the service belongs',
@@ -307,7 +317,7 @@ CREATE TABLE `circuitbreaker_rule` (
     `token` varchar(32) COLLATE utf8_bin NOT NULL comment 'Token, which is fucking, mainly for writing operation check',
     `owner` varchar(1024) COLLATE utf8_bin NOT NULL comment 'Melting rule Owner information',
     `revision` varchar(32) COLLATE utf8_bin NOT NULL comment 'Melt rule version information',
-    `flag` tinyint(4) NOT NULL DEFAULT '0' comment  'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
+    `flag` tinyint(4) NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`, `version`),
@@ -452,7 +462,7 @@ CREATE TABLE `cl5_module` (
 insert into
     cl5_module(module_id, interface_id, range_num)
 values
-(3000001, 1, 0);
+    (3000001, 1, 0);
 
 -- --------------------------------------------------------
 --
@@ -530,7 +540,7 @@ CREATE TABLE `mesh_resource` (
     `mesh_namespace` varchar(64) COLLATE utf8_bin NOT NULL COMMENT 'mesh namespace where the rules are located',
     `type_url` varchar(96) COLLATE utf8_bin NOT NULL COMMENT 'Rule type, such as VirtualService',
     `revision` varchar(32) COLLATE utf8_bin NOT NULL COMMENT 'Rule version number',
-    `body` text  COMMENT 'Rule content, JSON format string',
+    `body` text COMMENT 'Rule content, JSON format string',
     `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
@@ -605,7 +615,68 @@ CREATE TABLE `ratelimit_flux_rule_revision` (
     PRIMARY KEY (`service_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
+CREATE TABLE `user` (
+    `id` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '用户ID',
+    `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '用户名称',
+    `password` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '用户密码',
+    `owner` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '主账户ID',
+    `source` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '账户来源',
+    `token` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '账户所拥有的 token 信息，可用于SDK访问鉴权',
+     `token_enable`  tinyint(4) NOT NULL DEFAULT '0' ,
+    `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '描述',
+    `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
+
+CREATE TABLE `user_group` (
+    `id` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '用户组ID',
+    `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '用户组名称',
+    `owner` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '用户组所属的主账户ID',
+    `token` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '该用户组的 token 信息',
+    `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '描述信息',
+    `token_enable`  tinyint(4) NOT NULL DEFAULT '0' ,
+    `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
+
+CREATE TABLE `user_group_relation` (
+    `user_id` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '用户ID',
+    `group_id` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '用户组ID',
+    `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
+
+CREATE TABLE `auth_strategy` (
+    `id` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '策略ID',
+    `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '策略名称',
+    `principal` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '用户ID表达式',
+    `action` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '该策略的读写权限',
+    `owner` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '该策略所属的账号ID',
+    `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '描述',
+    `default`  tinyint(4) NOT NULL DEFAULT '0' ,
+    `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
+
+CREATE TABLE `auth_strategy_resource` (
+    `strategy_id` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '策略ID',
+    `res_type` int COLLATE utf8_bin NOT NULL comment '资源类型',
+    `res_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '资源ID',
+    `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
+
 -- --------------------------------------------------------
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */
+;
+
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */
+;
+
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */
+;

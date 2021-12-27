@@ -10,6 +10,7 @@ import "ratelimit.proto";
 import "circuitbreaker.proto";
 import "configrelease.proto";
 import "platform.proto";
+import "auth.proto";
 
 message SimpleResponse {
 	google.protobuf.UInt32Value code = 1;
@@ -29,6 +30,10 @@ message Response {
 	CircuitBreaker circuitBreaker = 10;
 	ConfigRelease configRelease = 11;
 	Platform platform = 15;
+	User user = 19;
+	UserGroup userGroup = 20;
+	AuthStrategy authStrategy = 21;
+	UserGroupRelation relation = 22;
 	reserved 12 to 14, 16 to 18;
 }
 
@@ -52,6 +57,9 @@ message BatchQueryResponse {
 	repeated Rule rateLimits = 10;
 	repeated ConfigWithService configWithServices = 11;
 	repeated Platform platforms = 15;
+	repeated User users = 18;
+	repeated UserGroup userGroups = 19;
+	repeated AuthStrategy authStrategy = 20;
 	reserved 12 to 14, 16;
 }
 

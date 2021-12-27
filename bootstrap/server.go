@@ -123,6 +123,7 @@ func StartComponents(ctx context.Context, cfg *config.Config) error {
 	if len(cfg.HealthChecks.LocalHost) == 0 {
 		cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
 	}
+
 	err = healthcheck.Initialize(ctx, &cfg.HealthChecks, cfg.Cache.Open)
 	if err != nil {
 		return err

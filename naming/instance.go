@@ -137,7 +137,7 @@ func (s *Server) createInstance(ctx context.Context, req *api.Instance, ins *api
 		return nil, api.NewInstanceResponse(code, req)
 	}
 
-	if server.bc == nil || !server.bc.CreateInstanceOpen() {
+	if namingServer.bc == nil || !namingServer.bc.CreateInstanceOpen() {
 		return s.serialCreateInstance(ctx, req, ins) // 单个同步
 	}
 	return s.asyncCreateInstance(ctx, req, ins) // 批量异步

@@ -97,6 +97,10 @@ const (
 	InvalidFluxRateLimitQps    = 400191
 	InvalidFluxRateLimitSetKey = 400192
 
+	InvalidUserOwners         = 400410
+	InvalidUserGroupOwners    = 400420
+	InvalidAuthStrategyOwners = 400430
+
 	ExistedResource                    = 400201
 	NotFoundResource                   = 400202
 	NamespaceExistedServices           = 400203

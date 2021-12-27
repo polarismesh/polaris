@@ -124,3 +124,21 @@ func NewUUID() string {
 	uuidBytes := uuid.New()
 	return hex.EncodeToString(uuidBytes[:])
 }
+
+var emptyVal = struct{}{}
+
+// StringSliceDeDuplication
+func StringSliceDeDuplication(ss []string) []string {
+	tmp := make(map[string]struct{}, len(ss))
+
+	for i := range ss {
+		tmp[ss[i]] = emptyVal
+	}
+
+	ret := make([]string, 0, len(tmp))
+	for k := range tmp {
+		ret = append(ret, k)
+	}
+
+	return ret
+}

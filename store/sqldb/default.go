@@ -20,6 +20,7 @@ package sqldb
 import (
 	"errors"
 	"fmt"
+
 	"github.com/polarismesh/polaris-server/plugin"
 
 	"github.com/polarismesh/polaris-server/common/log"
@@ -57,6 +58,8 @@ type stableStore struct {
 	*circuitBreakerStore
 	*platformStore
 	*toolStore
+	*userStore
+	*strategyStore
 
 	// 主数据库，可以进行读写
 	master *BaseDB
@@ -239,4 +242,8 @@ func (s *stableStore) newStore() {
 	s.platformStore = &platformStore{master: s.master}
 
 	s.toolStore = &toolStore{db: s.master}
+
+	s.userStore = &userStore{master: s.master, slave: s.slave}
+
+	s.strategyStore = &strategyStore{master: s.master, slave: s.slave}
 }

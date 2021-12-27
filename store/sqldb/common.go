@@ -19,6 +19,7 @@ package sqldb
 
 import (
 	"database/sql"
+
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/store"
 )
@@ -90,7 +91,12 @@ func BatchOperation(label string, data []interface{}, handler BatchHandler) erro
 	return nil
 }
 
-// 单独查询count个数的执行函数
+// queryEntryCount  单独查询count个数的执行函数
+//  @param conn 数据库连接
+//  @param str	sql语句
+//  @param args sql参数
+//  @return uint32 count 的结果
+//  @return error 错误
 func queryEntryCount(conn *BaseDB, str string, args []interface{}) (uint32, error) {
 	var count uint32
 	var err error

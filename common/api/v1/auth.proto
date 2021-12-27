@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package v1;
+
+import "google/protobuf/wrappers.proto";
+
+message User {
+  google.protobuf.StringValue id = 1;
+  google.protobuf.StringValue name = 2;
+  google.protobuf.StringValue password = 3;
+  google.protobuf.StringValue owner = 4;
+  google.protobuf.StringValue source = 5;
+  google.protobuf.StringValue auth_token = 6;
+  google.protobuf.StringValue comment = 7;
+  google.protobuf.StringValue ctime = 8;
+  google.protobuf.StringValue mtime = 9;
+}
+
+message UserToken {
+  google.protobuf.StringValue user_id = 1;
+  google.protobuf.StringValue auth_token = 2;
+}
+
+message UserGroup {
+  google.protobuf.StringValue id = 1;
+  google.protobuf.StringValue name = 2;
+  google.protobuf.StringValue owner = 3;
+  google.protobuf.StringValue auth_token = 4;
+  google.protobuf.StringValue comment = 5;
+  google.protobuf.StringValue ctime = 6;
+  google.protobuf.StringValue mtime = 7;
+}
+
+message UserGroupRelation {
+  google.protobuf.StringValue group_id = 1;
+  repeated google.protobuf.StringValue user_ids = 2;
+  google.protobuf.BoolValue join = 3;
+}
+
+message Principal {
+  repeated google.protobuf.StringValue users = 1;
+  repeated google.protobuf.StringValue groups = 2;
+}
+
+message Resource {
+  repeated google.protobuf.StringValue namespaces = 1;
+  repeated google.protobuf.StringValue services = 2;
+  repeated google.protobuf.StringValue config_groups = 3;
+}
+
+enum AuthAction {
+  ONLY_ERAD = 0;
+  READ_WRITE = 1;
+}
+
+message AuthStrategy {
+  google.protobuf.StringValue id = 1;
+  google.protobuf.StringValue name = 2;
+  Principal principal = 3;
+  Resource resource = 4;
+  AuthAction action = 5;
+  google.protobuf.StringValue comment = 6;
+  google.protobuf.StringValue owner = 7;
+  google.protobuf.StringValue ctime = 8;
+  google.protobuf.StringValue mtime = 9;
+}
+
+enum ResourceType {
+  Namespaces = 0;
+  Services = 1;
+  ConfigGroups = 2;
+}

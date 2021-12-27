@@ -21,16 +21,17 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/plugin"
 	"strings"
 	"time"
+
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/plugin"
 )
 
 // db抛出的异常，需要重试的字符串组
 var errMsg = []string{"Deadlock", "bad connection", "invalid connection"}
 
-// 对sql.DB的封装
+// BaseDB 对sql.DB的封装
 type BaseDB struct {
 	*sql.DB
 	cfg            *dbConfig
@@ -181,7 +182,7 @@ func Retry(label string, handle func() error) {
 	}
 }
 
-// 事务重试
+// RetryTransaction 事务重试
 func RetryTransaction(label string, handle func() error) error {
 	var err error
 	Retry(label, func() error {

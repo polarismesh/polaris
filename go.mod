@@ -32,6 +32,7 @@ require (
 	go.uber.org/automaxprocs v1.4.0
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.19.1
+	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
 	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/net v0.0.0-20211201190559-0a0e4e1bb54c
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c

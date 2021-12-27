@@ -57,7 +57,7 @@ type L5pbserver struct {
 	clusterName string // 集群名
 
 	listener     net.Listener
-	namingServer *naming.Server
+	namingServer naming.DiscoverServer
 	statis       plugin.Statis
 }
 

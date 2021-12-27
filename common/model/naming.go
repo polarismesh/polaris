@@ -380,15 +380,19 @@ type Resource string
 
 // 定义包含的资源类型
 const (
-	RNamespace     Resource = "Namespace"
-	RService       Resource = "Service"
-	RRouting       Resource = "Routing"
-	RInstance      Resource = "Instance"
-	RRateLimit     Resource = "RateLimit"
-	RMeshResource  Resource = "MeshResource"
-	RMesh          Resource = "Mesh"
-	RMeshService   Resource = "MeshService"
-	RFluxRateLimit Resource = "FluxRateLimit"
+	RNamespace         Resource = "Namespace"
+	RService           Resource = "Service"
+	RRouting           Resource = "Routing"
+	RInstance          Resource = "Instance"
+	RRateLimit         Resource = "RateLimit"
+	RMeshResource      Resource = "MeshResource"
+	RMesh              Resource = "Mesh"
+	RMeshService       Resource = "MeshService"
+	RFluxRateLimit     Resource = "FluxRateLimit"
+	RUser              Resource = "User"
+	RUserGroup         Resource = "UserGroup"
+	RUserGroupRelation Resource = "UserGroupRelation"
+	RAuthStrategy      Resource = "AuthStrategy"
 )
 
 // ResourceType 资源类型
@@ -429,6 +433,9 @@ type RecordEntry struct {
 	Context       string
 	Operator      string
 	Revision      string
+	Username      string
+	UserGroup     string
+	StrategyName  string
 	CreateTime    time.Time
 }
 

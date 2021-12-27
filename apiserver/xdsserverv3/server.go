@@ -76,7 +76,7 @@ type XDSServer struct {
 	start           bool
 	restart         bool
 	exitCh          chan struct{}
-	namingServer    *naming.Server
+	namingServer    naming.DiscoverServer
 	cache           cachev3.SnapshotCache
 	versionNum      *atomic.Uint64
 	server          *grpc.Server
