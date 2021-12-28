@@ -123,7 +123,7 @@ func (svr *authStrategyServer) UpdateStrategy(ctx context.Context, req *api.Auth
 	}
 
 	data := createAuthStrategyModel(req)
-	if err := svr.storage.AddStrategy(data); err != nil {
+	if err := svr.storage.UpdateStrategyMain(data); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
@@ -201,6 +201,16 @@ func (svr *authStrategyServer) ListStrategy(ctx context.Context, query map[strin
 	resp.Size = utils.NewUInt32Value(uint32(len(strategies)))
 	resp.AuthStrategy = enhancedAuthStrategy2Api(strategies, authStrategy2Api)
 	return resp
+}
+
+// AddStrategyResources
+func (svr *authStrategyServer) AddStrategyResources(ctx context.Context, req []*api.Resource) *api.BatchWriteResponse {
+	return nil
+}
+
+// DeleteStrategyResources
+func (svr *authStrategyServer) DeleteStrategyResources(ctx context.Context, req []*api.Resource) *api.BatchWriteResponse {
+	return nil
 }
 
 // RecordHistory server对外提供history插件的简单封装

@@ -30,9 +30,10 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/core/auth"
+	"github.com/polarismesh/polaris-server/core/auth/defaultauth/cache"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -43,23 +44,25 @@ type (
 
 var (
 	UserFilterAttributes = map[string]int{
-		"username":  1,
-		"groupname": 1,
-		"owner":     1,
-		"id":        1,
+		"id":     1,
+		"name":   1,
+		"owner":  1,
+		"source": 1,
 	}
 )
 
 // UserServer 用户数据管理 server
 type userServer struct {
-	storage store.Store
-	history plugin.History
+	storage   store.Store
+	history   plugin.History
+	userCache cache.UserCache
 }
 
 // newUserServer
-func newUserServer(s store.Store) (*userServer, error) {
+func newUserServer(s store.Store, userCache cache.UserCache) (*userServer, error) {
 	svr := &userServer{
-		storage: s,
+		storage:   s,
+		userCache: userCache,
 	}
 
 	return svr, svr.initialize()
@@ -104,22 +107,18 @@ func (svr *userServer) createUser(ctx context.Context, req *api.User) *api.Respo
 	if err != nil {
 		return api.NewResponseWithMsg(api.ParseException, err.Error())
 	}
+
+	newToken, err := CreateToken(data.ID, "")
+	if err != nil {
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		return api.NewResponseWithMsg(api.ExecuteException, err.Error())
+	}
+
+	data.Token = newToken
+
 	if err := svr.storage.AddUser(data); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
-	}
-
-	// 创建该用户的默认权限策略
-	defaultStrategy := &model.StrategyDetail{
-		ID:        utils.NewUUID(),
-		Name:      fmt.Sprintf("%s%s", auth.DefaultStrategyPrefix, data.ID),
-		Principal: fmt.Sprintf("uid/%s", data.ID),
-		Action:    api.AuthAction_READ_WRITE.String(),
-		Comment:   "default user auth_strategy",
-		Default:   true,
-		Owner:     req.Owner.GetValue(),
-		Resources: []model.StrategyResource{},
-		Valid:     true,
 	}
 
 	msg := fmt.Sprintf("create user: name=%v", req.Name)
@@ -139,6 +138,8 @@ func (svr *userServer) createUser(ctx context.Context, req *api.User) *api.Respo
 func (svr *userServer) UpdateUser(ctx context.Context, req *api.User) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
+	isOwner := utils.ParseIsOwner(ctx)
+	userId := utils.ParseUserID(ctx)
 
 	if checkErrResp := checkUpdateUser(req); checkErrResp != nil {
 		return checkErrResp
@@ -153,28 +154,35 @@ func (svr *userServer) UpdateUser(ctx context.Context, req *api.User) *api.Respo
 		return api.NewUserResponse(api.NotFoundResource, req)
 	}
 
-	needUpdate, err := diffUserInfo(user, req)
-	if err != nil {
-		return api.NewUserResponse(api.ParseException, req)
+	if userId != user.ID {
+		if !isOwner || (user.Owner != userId) {
+			return api.NewResponse(api.NotAllowedAccess)
+		}
+	}
+
+	errResp, needUpdate := diffUserInfo(user, req)
+	if errResp != nil {
+		return errResp
 	}
 
 	if !needUpdate {
+		log.Info("update user data no change, no need update",
+			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.String("user", req.String()))
 		return api.NewUserResponse(api.NoNeedUpdate, req)
 	}
 
-	data, _ := createUserModel(req)
-	if err := svr.storage.UpdateUser(data); err != nil {
+	if err := svr.storage.UpdateUser(user); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
 	msg := fmt.Sprintf("update user: name=%v", req.Name)
 	log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-	svr.RecordHistory(userRecordEntry(ctx, req, data, model.OUpdate))
+	svr.RecordHistory(userRecordEntry(ctx, req, user, model.OUpdate))
 
 	out := &api.User{
-		Name:      req.GetName(),
-		AuthToken: utils.NewStringValue(data.Token),
+		Id:   utils.NewStringValue(user.ID),
+		Name: req.GetName(),
 	}
 
 	return api.NewUserResponse(api.ExecuteSuccess, out)
@@ -184,6 +192,8 @@ func (svr *userServer) UpdateUser(ctx context.Context, req *api.User) *api.Respo
 func (svr *userServer) DeleteUser(ctx context.Context, req *api.User) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
+	isOwner := utils.ParseIsOwner(ctx)
+	userId := utils.ParseUserID(ctx)
 
 	if checkErrResp := checkUpdateUser(req); checkErrResp != nil {
 		return checkErrResp
@@ -196,6 +206,12 @@ func (svr *userServer) DeleteUser(ctx context.Context, req *api.User) *api.Respo
 	}
 	if user == nil {
 		return api.NewUserResponse(api.ExecuteSuccess, req)
+	}
+
+	if userId != user.ID {
+		if !isOwner || (user.Owner != userId) {
+			return api.NewResponse(api.NotAllowedAccess)
+		}
 	}
 
 	if err := svr.storage.DeleteUser(user.ID); err != nil {
@@ -216,22 +232,34 @@ func (svr *userServer) DeleteUser(ctx context.Context, req *api.User) *api.Respo
 
 // ListUsers
 func (svr *userServer) ListUsers(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
-	// 可筛选的条件类型
-	// 1. 用户名模糊搜索
-	// 2. 用户组名称模糊搜索
-
 	searchFilters := make(map[string]string)
-	for key, value := range query {
-		if _, ok := UserFilterAttributes[key]; !ok {
-			log.Errorf("[Auth][User][Query] attribute(%s) it not allowed", key)
-			return api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
-		}
-		searchFilters[key] = value
-	}
+	var (
+		offset, limit uint32
+		err           error
+	)
 
-	offset, limit, err := utils.ParseOffsetAndLimit(searchFilters)
-	if err != nil {
-		return api.NewBatchQueryResponse(api.InvalidParameter)
+	isOwner := utils.ParseIsOwner(ctx)
+	userId := utils.ParseUserID(ctx)
+
+	if !isOwner {
+		// 就只查询当前该操作者信息
+		searchFilters["id"] = userId
+		offset = 0
+		limit = 1
+	} else {
+		searchFilters["owmer"] = userId
+		for key, value := range query {
+			if _, ok := UserFilterAttributes[key]; !ok {
+				log.Errorf("[Auth][User][Query] attribute(%s) it not allowed", key)
+				return api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
+			}
+			searchFilters[key] = value
+		}
+
+		offset, limit, err = utils.ParseOffsetAndLimit(searchFilters)
+		if err != nil {
+			return api.NewBatchQueryResponse(api.InvalidParameter)
+		}
 	}
 
 	total, users, err := svr.storage.ListUsers(searchFilters, offset, limit)
@@ -251,6 +279,8 @@ func (svr *userServer) ListUsers(ctx context.Context, query map[string]string) *
 func (svr *userServer) GetUserToken(ctx context.Context, req *api.User) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
+	isOwner := utils.ParseIsOwner(ctx)
+	userId := utils.ParseUserID(ctx)
 
 	if checkErrResp := checkCreateUser(req); checkErrResp != nil {
 		return checkErrResp
@@ -265,10 +295,129 @@ func (svr *userServer) GetUserToken(ctx context.Context, req *api.User) *api.Res
 		return api.NewUserResponse(api.NotFoundResource, req)
 	}
 
+	if userId != user.ID {
+		if !isOwner || (user.Owner != userId) {
+			return api.NewResponse(api.NotAllowedAccess)
+		}
+	}
+
+	if userId != user.ID {
+		if !isOwner || (user.Owner != userId) {
+			return api.NewResponse(api.NotAllowedAccess)
+		}
+	}
+
 	out := &api.User{
 		Id:        utils.NewStringValue(user.ID),
 		Name:      utils.NewStringValue(user.Name),
 		AuthToken: utils.NewStringValue(user.Token),
+	}
+
+	return api.NewUserResponse(api.ExecuteSuccess, out)
+}
+
+// DisableUserToken
+func (svr *userServer) DisableUserToken(ctx context.Context, req *api.User) *api.Response {
+
+	return svr.changeUserTokenEnable(ctx, req, true)
+}
+
+// EnableUserToken
+func (svr *userServer) EnableUserToken(ctx context.Context, req *api.User) *api.Response {
+
+	return svr.changeUserTokenEnable(ctx, req, false)
+}
+
+// changeUserTokenEnable
+func (svr *userServer) changeUserTokenEnable(ctx context.Context, req *api.User, disable bool) *api.Response {
+	requestID := utils.ParseRequestID(ctx)
+	platformID := utils.ParsePlatformID(ctx)
+	isOwner := utils.ParseIsOwner(ctx)
+	userId := utils.ParseUserID(ctx)
+
+	if checkErrResp := checkUpdateUser(req); checkErrResp != nil {
+		return checkErrResp
+	}
+
+	user, err := svr.storage.GetUserByName(req.Name.GetValue())
+	if err != nil {
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		return api.NewUserResponse(api.StoreLayerException, req)
+	}
+	if user == nil {
+		return api.NewUserResponse(api.NotFoundResource, req)
+	}
+
+	if userId != user.ID {
+		if !isOwner || (user.Owner != userId) {
+			return api.NewResponse(api.NotAllowedAccess)
+		}
+	}
+
+	user.TokenEnable = disable
+
+	if err := svr.storage.UpdateUser(user); err != nil {
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
+	}
+
+	msg := fmt.Sprintf("disable user: name=%v token", req.Name)
+	log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+	svr.RecordHistory(userRecordEntry(ctx, req, user, model.OUpdate))
+
+	out := &api.User{
+		Id:   utils.NewStringValue(user.ID),
+		Name: req.GetName(),
+	}
+
+	return api.NewUserResponse(api.ExecuteSuccess, out)
+}
+
+// RefreshUserToken
+func (svr *userServer) RefreshUserToken(ctx context.Context, req *api.User) *api.Response {
+	requestID := utils.ParseRequestID(ctx)
+	platformID := utils.ParsePlatformID(ctx)
+	isOwner := utils.ParseIsOwner(ctx)
+	userId := utils.ParseUserID(ctx)
+
+	if checkErrResp := checkUpdateUser(req); checkErrResp != nil {
+		return checkErrResp
+	}
+
+	user, err := svr.storage.GetUserByName(req.Name.GetValue())
+	if err != nil {
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		return api.NewUserResponse(api.StoreLayerException, req)
+	}
+	if user == nil {
+		return api.NewUserResponse(api.NotFoundResource, req)
+	}
+	if userId != user.ID {
+		if !isOwner || (user.Owner != userId) {
+			return api.NewResponse(api.NotAllowedAccess)
+		}
+	}
+
+	newToken, err := CreateToken(user.ID, "")
+	if err != nil {
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		return api.NewResponseWithMsg(api.ExecuteException, err.Error())
+	}
+
+	user.Token = newToken
+
+	if err := svr.storage.UpdateUser(user); err != nil {
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
+	}
+
+	msg := fmt.Sprintf("disable user: name=%v token", req.Name)
+	log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+	svr.RecordHistory(userRecordEntry(ctx, req, user, model.OUpdate))
+
+	out := &api.User{
+		Id:   utils.NewStringValue(user.ID),
+		Name: req.GetName(),
 	}
 
 	return api.NewUserResponse(api.ExecuteSuccess, out)
@@ -283,16 +432,30 @@ func (svr *userServer) CreateUserGroup(ctx context.Context, req *api.UserGroup) 
 		return checkErrResp
 	}
 
-	user, err := svr.storage.GetUserByName(req.Name.GetValue())
+	group, err := svr.storage.GetUserByName(req.Name.GetValue())
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewUserGroupResponse(api.StoreLayerException, req)
 	}
-	if user != nil {
+	if group != nil {
 		return api.NewUserGroupResponse(api.ExistedResource, req)
 	}
 
+	isOwner := utils.ParseIsOwner(ctx)
+	userId := utils.ParseUserID(ctx)
+	if !isOwner || (group.Owner != userId) {
+		return api.NewResponse(api.NotAllowedAccess)
+	}
+
 	data := createUserGroupModel(req)
+	newToken, err := CreateToken(data.ID, "")
+	if err != nil {
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		return api.NewResponseWithMsg(api.ExecuteException, err.Error())
+	}
+
+	data.Token = newToken
+
 	if err := svr.storage.AddUserGroup(data); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
@@ -320,16 +483,27 @@ func (svr *userServer) UpdateUserGroup(ctx context.Context, req *api.UserGroup) 
 		return checkErrResp
 	}
 
-	user, err := svr.storage.GetUserByName(req.Name.GetValue())
-	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		return api.NewUserGroupResponse(api.StoreLayerException, req)
-	}
-	if user == nil {
-		return api.NewUserGroupResponse(api.NotFoundResource, req)
+	data, errResp := svr.getUserGroupMustExist(requestID, platformID, req)
+	if errResp != nil {
+		return errResp
 	}
 
-	data := createUserGroupModel(req)
+	isOwner := utils.ParseIsOwner(ctx)
+	userId := utils.ParseUserID(ctx)
+	if !isOwner || (data.Owner != userId) {
+		return api.NewResponse(api.NotAllowedAccess)
+	}
+
+	errResp, needUpdate := diffUserGroupInfo(data, req)
+	if errResp != nil {
+		return errResp
+	}
+	if !needUpdate {
+		log.Info("update usergroup data no change, no need update",
+			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.String("usergroup", req.String()))
+		return api.NewUserGroupResponse(api.NoNeedUpdate, req)
+	}
+
 	if err := svr.storage.UpdateUserGroup(data); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
@@ -365,6 +539,12 @@ func (svr *userServer) DeleteUserGroup(ctx context.Context, req *api.UserGroup) 
 		return api.NewUserGroupResponse(api.ExecuteSuccess, req)
 	}
 
+	isOwner := utils.ParseIsOwner(ctx)
+	userId := utils.ParseUserID(ctx)
+	if !isOwner || (group.Owner != userId) {
+		return api.NewResponse(api.NotAllowedAccess)
+	}
+
 	if err := svr.storage.DeleteUserGroup(group.ID); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
@@ -384,17 +564,30 @@ func (svr *userServer) DeleteUserGroup(ctx context.Context, req *api.UserGroup) 
 // ListUserGroups
 func (svr *userServer) ListUserGroups(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	searchFilters := make(map[string]string)
-	for key, value := range query {
-		if _, ok := UserFilterAttributes[key]; !ok {
-			log.Errorf("[Auth][UserGroup][Query] attribute(%s) it not allowed", key)
-			return api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
-		}
-		searchFilters[key] = value
-	}
+	var (
+		offset, limit uint32
+		err           error
+	)
+	isOwner := utils.ParseIsOwner(ctx)
+	userId := utils.ParseUserID(ctx)
 
-	offset, limit, err := utils.ParseOffsetAndLimit(searchFilters)
-	if err != nil {
-		return api.NewBatchQueryResponse(api.InvalidParameter)
+	if isOwner {
+		searchFilters["owner"] = userId
+		for key, value := range query {
+			if _, ok := UserFilterAttributes[key]; !ok {
+				log.Errorf("[Auth][UserGroup][Query] attribute(%s) it not allowed", key)
+				return api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
+			}
+			searchFilters[key] = value
+		}
+
+		offset, limit, err = utils.ParseOffsetAndLimit(searchFilters)
+		if err != nil {
+			return api.NewBatchQueryResponse(api.InvalidParameter)
+		}
+
+	} else {
+
 	}
 
 	total, users, err := svr.storage.ListUserGroups(searchFilters, offset, limit)
@@ -412,6 +605,56 @@ func (svr *userServer) ListUserGroups(ctx context.Context, query map[string]stri
 
 // GetUserGroupToken
 func (svr *userServer) GetUserGroupToken(ctx context.Context, req *api.UserGroup) *api.Response {
+	if checkErrResp := checkUpdateUserGroup(req); checkErrResp != nil {
+		return checkErrResp
+	}
+
+	groupCache, err := svr.getUserGroupFromCache(req)
+	if err != nil {
+		return err
+	}
+
+	isOwner := utils.ParseIsOwner(ctx)
+	userId := utils.ParseUserID(ctx)
+	if !isOwner {
+		find := false
+		for i := range groupCache.UserIDs {
+			if userId == groupCache.UserIDs[i] {
+				find = true
+			}
+		}
+		if !find {
+			return api.NewResponse(api.NotAllowedAccess)
+		}
+	} else {
+		if groupCache.Owner != userId {
+			return api.NewResponse(api.NotAllowedAccess)
+		}
+	}
+
+	out := &api.UserGroup{
+		Id:        utils.NewStringValue(groupCache.ID),
+		Name:      utils.NewStringValue(groupCache.Name),
+		AuthToken: utils.NewStringValue(groupCache.Token),
+	}
+
+	return api.NewUserGroupResponse(api.ExecuteSuccess, out)
+}
+
+// DisableUserGroupToken
+func (svr *userServer) DisableUserGroupToken(ctx context.Context, req *api.UserGroup) *api.Response {
+
+	return svr.changeUserGroupTokenEnable(ctx, req, true)
+}
+
+// EnableUserGroupToken
+func (svr *userServer) EnableUserGroupToken(ctx context.Context, req *api.UserGroup) *api.Response {
+
+	return svr.changeUserGroupTokenEnable(ctx, req, false)
+}
+
+// changeUserGroupTokenEnable
+func (svr *userServer) changeUserGroupTokenEnable(ctx context.Context, req *api.UserGroup, disable bool) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
 
@@ -419,73 +662,171 @@ func (svr *userServer) GetUserGroupToken(ctx context.Context, req *api.UserGroup
 		return checkErrResp
 	}
 
-	group, err := svr.storage.GetUserGroup(req.GetId().GetValue())
+	group, err := svr.getUserGroupMustExist(requestID, platformID, req)
+	if err != nil {
+		return err
+	}
+
+	isOwner := utils.ParseIsOwner(ctx)
+	userId := utils.ParseUserID(ctx)
+	if !isOwner || (group.Owner != userId) {
+		return api.NewResponse(api.NotAllowedAccess)
+	}
+
+	group.TokenEnable = disable
+
+	if err := svr.storage.UpdateUserGroup(group); err != nil {
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
+	}
+
+	msg := fmt.Sprintf("disable usergroup: name=%v token", req.Name)
+	log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+	svr.RecordHistory(userGroupRecordEntry(ctx, req, group, model.OUpdate))
+
+	out := &api.User{
+		Id:   utils.NewStringValue(group.ID),
+		Name: req.GetName(),
+	}
+
+	return api.NewUserResponse(api.ExecuteSuccess, out)
+}
+
+// RefreshUserGroupToken
+func (svr *userServer) RefreshUserGroupToken(ctx context.Context, req *api.UserGroup) *api.Response {
+	requestID := utils.ParseRequestID(ctx)
+	platformID := utils.ParsePlatformID(ctx)
+
+	if checkErrResp := checkUpdateUserGroup(req); checkErrResp != nil {
+		return checkErrResp
+	}
+
+	group, errResp := svr.getUserGroupMustExist(requestID, platformID, req)
+	if errResp != nil {
+		return errResp
+	}
+
+	isOwner := utils.ParseIsOwner(ctx)
+	userId := utils.ParseUserID(ctx)
+	if !isOwner || (group.Owner != userId) {
+		return api.NewResponse(api.NotAllowedAccess)
+	}
+
+	newToken, err := CreateToken("", group.ID)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		return api.NewUserGroupResponse(api.StoreLayerException, req)
-	}
-	if group == nil {
-		return api.NewUserGroupResponse(api.NotFoundResource, req)
+		return api.NewResponseWithMsg(api.ExecuteException, err.Error())
 	}
 
-	out := &api.UserGroup{
-		Id:        utils.NewStringValue(group.ID),
-		Name:      utils.NewStringValue(group.Name),
-		AuthToken: utils.NewStringValue(group.Token),
+	group.Token = newToken
+
+	if err := svr.storage.UpdateUserGroup(group); err != nil {
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	return api.NewUserGroupResponse(api.ExecuteSuccess, out)
+	msg := fmt.Sprintf("refresh usergroup: name=%v token", req.Name)
+	log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+	svr.RecordHistory(userGroupRecordEntry(ctx, req, group, model.OUpdate))
+
+	out := &api.User{
+		Id:   utils.NewStringValue(group.ID),
+		Name: req.GetName(),
+	}
+
+	return api.NewUserResponse(api.ExecuteSuccess, out)
 }
 
 // BatchAddUserToGroup
 func (svr *userServer) BatchAddUserToGroup(ctx context.Context, req *api.UserGroupRelation) *api.BatchWriteResponse {
+
+	return svr.batchOperateUserFromGroup(ctx, req, false)
+}
+
+// BatchRemoveUserFromGroup
+func (svr *userServer) BatchRemoveUserFromGroup(ctx context.Context, req *api.UserGroupRelation) *api.BatchWriteResponse {
+
+	return svr.batchOperateUserFromGroup(ctx, req, true)
+}
+
+func (svr *userServer) batchOperateUserFromGroup(ctx context.Context, req *api.UserGroupRelation, remove bool) *api.BatchWriteResponse {
+	resps := api.NewBatchWriteResponse(api.ExecuteSuccess)
+
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
+	isOwner := utils.ParseIsOwner(ctx)
+	ownerId := utils.ParseUserID(ctx)
+
+	if !isOwner {
+		resps.Collect(api.NewResponse(api.NotAllowedAccess))
+		return resps
+	}
 
 	if checkErrResp := svr.preCheckGroupRelation(req); checkErrResp != nil {
 		return checkErrResp
 	}
 
-	resps := api.NewBatchWriteResponse(api.ExecuteSuccess)
+	userIds := req.UserIds
+	for i := range userIds {
+		userId := userIds[i]
+		user := svr.userCache.GetUser(userId.GetValue())
+		if user == nil {
+			resps.Collect(api.NewUserGroupRelationResponse(api.NotFoundResource, req))
+			return resps
+		}
+
+		if user.Owner != ownerId {
+			resps.Collect(api.NewResponse(api.NotAllowedAccess))
+			return resps
+		}
+	}
 
 	data := createUserGroupRelationModel(req)
 
-	if err := svr.storage.AddUserGroupRelation(data); err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		resps.Collect(api.NewResponseWithMsg(StoreCode2APICode(err), err.Error()))
-		return resps
-	}
+	if remove {
+		if err := svr.storage.RemoveUserGroupRelation(data); err != nil {
+			log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+			resps.Collect(api.NewResponseWithMsg(StoreCode2APICode(err), err.Error()))
+			return resps
+		}
 
-	msg := fmt.Sprintf("batch add user to group: req(%+v)", req)
-	log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		msg := fmt.Sprintf("batch remove user to group: req(%+v)", req)
+		log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+	} else {
+		if err := svr.storage.AddUserGroupRelation(data); err != nil {
+			log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+			resps.Collect(api.NewResponseWithMsg(StoreCode2APICode(err), err.Error()))
+			return resps
+		}
+
+		msg := fmt.Sprintf("batch add user to group: req(%+v)", req)
+		log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+	}
 
 	resps.Collect(api.NewUserGroupRelationResponse(api.ExecuteSuccess, req))
 	return resps
 }
 
-// BatchRemoveUserToGroup
-func (svr *userServer) BatchRemoveUserToGroup(ctx context.Context, req *api.UserGroupRelation) *api.BatchWriteResponse {
-	requestID := utils.ParseRequestID(ctx)
-	platformID := utils.ParsePlatformID(ctx)
-
-	if checkErrResp := svr.preCheckGroupRelation(req); checkErrResp != nil {
-		return checkErrResp
-	}
-	resps := api.NewBatchWriteResponse(api.ExecuteSuccess)
-
-	data := createUserGroupRelationModel(req)
-
-	if err := svr.storage.RemoveUserGroupRelation(data); err != nil {
+func (svr *userServer) getUserGroupMustExist(requestID, platformID string, req *api.UserGroup) (*model.UserGroup, *api.Response) {
+	group, err := svr.storage.GetUserGroup(req.Id.GetValue())
+	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		resps.Collect(api.NewResponseWithMsg(StoreCode2APICode(err), err.Error()))
-		return resps
+		return nil, api.NewUserGroupResponse(api.StoreLayerException, req)
+	}
+	if group == nil {
+		return nil, api.NewUserGroupResponse(api.NotFoundResource, req)
 	}
 
-	msg := fmt.Sprintf("batch remove user to group: req(%+v)", req)
-	log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+	return group, nil
+}
 
-	resps.Collect(api.NewUserGroupRelationResponse(api.ExecuteSuccess, req))
-	return resps
+func (svr *userServer) getUserGroupFromCache(req *api.UserGroup) (*model.UserGroupDetail, *api.Response) {
+	group := svr.userCache.GetUserGroup(req.Id.GetValue())
+	if group == nil {
+		return nil, api.NewUserGroupResponse(api.NotFoundResource, req)
+	}
+
+	return group, nil
 }
 
 func (svr *userServer) preCheckGroupRelation(req *api.UserGroupRelation) *api.BatchWriteResponse {
@@ -665,36 +1006,39 @@ func checkUpdateUser(req *api.User) *api.Response {
 	if req == nil {
 		return api.NewUserResponse(api.EmptyRequest, req)
 	}
+
+	if req.GetId() == nil || req.GetId().GetValue() == "" {
+		return api.NewUserResponse(api.BadRequest, req)
+	}
+
 	return nil
 }
 
-func diffUserInfo(old *model.User, newUser *api.User) (bool, error) {
-	if old.Comment != newUser.Comment.GetValue() {
-		return true, nil
-	}
+func diffUserInfo(old *model.User, newUser *api.User) (*api.Response, bool) {
+	var needUpdate bool = true
 
 	pwd, err := bcrypt.GenerateFromPassword([]byte(newUser.GetPassword().GetValue()), bcrypt.DefaultCost)
 	if err != nil {
-		return false, err
+		return api.NewResponseWithMsg(api.ExecuteException, err.Error()), false
+	}
+
+	if old.Comment != newUser.Comment.GetValue() {
+		needUpdate = true
 	}
 
 	if string(pwd) != old.Password {
-		return true, nil
+		needUpdate = true
+		old.Password = string(pwd)
 	}
 
-	return false, nil
+	return nil, needUpdate
 }
 
 func createUserModel(req *api.User) (*model.User, error) {
-	encryPwd, err := bcrypt.GenerateFromPassword([]byte(req.GetPassword().GetValue()), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
-	}
-
 	return &model.User{
-		ID:         req.GetId().GetValue(),
+		ID:         utils.NewUUID(),
 		Name:       req.GetName().GetValue(),
-		Password:   string(encryPwd),
+		Password:   req.GetPassword().GetValue(),
 		Owner:      req.GetOwner().GetValue(),
 		Source:     req.GetSource().GetValue(),
 		Valid:      true,
@@ -705,6 +1049,16 @@ func createUserModel(req *api.User) (*model.User, error) {
 }
 
 // ============ user group ============
+
+func diffUserGroupInfo(old *model.UserGroup, newUser *api.UserGroup) (*api.Response, bool) {
+	var needUpdate bool = true
+
+	if old.Comment != newUser.Comment.GetValue() {
+		needUpdate = true
+	}
+
+	return nil, needUpdate
+}
 
 // checkCreateUserGroup
 func checkCreateUserGroup(req *api.UserGroup) *api.Response {
@@ -723,6 +1077,11 @@ func checkUpdateUserGroup(req *api.UserGroup) *api.Response {
 	if req == nil {
 		return api.NewUserGroupResponse(api.EmptyRequest, req)
 	}
+
+	if req.Id == nil || req.Id.GetValue() == "" {
+		return api.NewUserGroupResponse(api.InvalidUserGroupID, req)
+	}
+
 	return nil
 }
 

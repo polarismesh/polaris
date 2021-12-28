@@ -65,12 +65,16 @@ func (h *Handler) postParseMessage(requestID string) (context.Context, error) {
 	platformID := h.Request.HeaderParameter("Platform-Id")
 	platformToken := h.Request.HeaderParameter("Platform-Token")
 	token := h.Request.HeaderParameter("Polaris-Token")
+	authToken := h.Request.HeaderParameter("Auth-Token")
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, utils.StringContext("request-id"), requestID)
 	ctx = context.WithValue(ctx, utils.StringContext("platform-id"), platformID)
 	ctx = context.WithValue(ctx, utils.StringContext("platform-token"), platformToken)
 	if token != "" {
 		ctx = context.WithValue(ctx, utils.StringContext("polaris-token"), token)
+	}
+	if authToken != "" {
+		ctx = context.WithValue(ctx, utils.StringContext("auth-token"), token)
 	}
 
 	var operator string

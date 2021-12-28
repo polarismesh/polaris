@@ -25,47 +25,42 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/google/uuid"
+	"github.com/polarismesh/polaris-server/core/auth"
 )
+
+type TokenInfo struct {
+	Origin  string
+	RandStr string
+	Role    string
+	ID      string
+	IsOwner bool
+}
 
 const (
 	// 随机字符串::{salt}::[uid/xxx | groupid/xxx]
-	TokenPattern string = "%s::%s::%s"
+	TokenPattern string = "%s::%s"
 	TokenSplit   string = "::"
 )
 
 // CreateToken
-func CreateToken(salt, uid, gid string) (string, error) {
+func CreateToken(uid, gid string) (string, error) {
 	if uid == "" && gid == "" {
 		return "", errors.New("uid and groupid not be empty at the same time")
 	}
 	var val string
 	if uid == "" {
-		val = fmt.Sprintf("groupid/%s", gid)
+		val = fmt.Sprintf("%s/%s", auth.RoleForUserGroup, gid)
 	} else {
-		val = fmt.Sprintf("uid/%s", gid)
+		val = fmt.Sprintf("%s/%s", auth.RoleForUser, gid)
 	}
 
-	token := fmt.Sprintf(TokenPattern, uuid.NewString(), salt, val)
-	return encryptMessage([]byte(salt), token)
+	token := fmt.Sprintf(TokenPattern, uuid.NewString(), val)
+	return encryptMessage([]byte(AuthOption.Salt), token)
 }
 
-// ParseToken
-func ParseToken(salt, t string) ([]string, error) {
-	ret, err := decryptMessage([]byte(salt), t)
-	if err != nil {
-		return nil, err
-	}
-	tokenDetails := strings.Split(ret, TokenSplit)
-	if len(tokenDetails) != 3 || tokenDetails[1] != salt {
-		return nil, errors.New("illegal token")
-	}
-
-	return tokenDetails, nil
-}
-
+// encryptMessage
 func encryptMessage(key []byte, message string) (string, error) {
 	byteMsg := []byte(message)
 	block, err := aes.NewCipher(key)
@@ -85,6 +80,7 @@ func encryptMessage(key []byte, message string) (string, error) {
 	return base64.StdEncoding.EncodeToString(cipherText), nil
 }
 
+// decryptMessage
 func decryptMessage(key []byte, message string) (string, error) {
 	cipherText, err := base64.StdEncoding.DecodeString(message)
 	if err != nil {

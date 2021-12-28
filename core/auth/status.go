@@ -25,27 +25,12 @@ const (
 	CloseAuthService
 )
 
-type ResourceOperation int16
-
-const (
-	Read ResourceOperation = iota
-	Write
-	Delete
-)
-
-type BzModule int16
-
-const (
-	DiscoverModule BzModule = iota
-	ConfigModule
-)
-
 const (
 	// 用户 or 用户组
 	OperatoRoleKey   string = "operator_role"
 	OperatorIDKey    string = "operator_id"
 	OperatorOwnerKey string = "operator_owner"
 
-	// 默认策略的名称前缀
-	DefaultStrategyPrefix string = "__default__"
+	RoleForUser      string = "uid"
+	RoleForUserGroup string = "groupid"
 )

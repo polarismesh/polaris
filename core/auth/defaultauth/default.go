@@ -24,7 +24,12 @@ import (
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/core/auth"
 	"github.com/polarismesh/polaris-server/core/auth/defaultauth/cache"
+	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
+)
+
+var (
+	AuthOption *AuthConfig
 )
 
 const (
@@ -32,7 +37,7 @@ const (
 )
 
 func init() {
-	s := &polarisAuthManager{}
+	s := &defaultAuthManager{}
 	_ = auth.RegisterAuthManager(s)
 }
 
@@ -47,15 +52,16 @@ func DefaultAuthConfig() *AuthConfig {
 	}
 }
 
-type polarisAuthManager struct {
-	opt         AuthConfig
+// defaultAuthManager 
+type defaultAuthManager struct {
 	userSvr     *userServer
 	strategySvr *authStrategyServer
 	cache       *cache.AuthCache
+	authPlugin  plugin.Auth
 }
 
 // Initialize 执行初始化动作
-func (authMgn *polarisAuthManager) Initialize(options *auth.Config) error {
+func (authMgn *defaultAuthManager) Initialize(options *auth.Config) error {
 	contentBytes, err := json.Marshal(options.Option)
 	if err != nil {
 		return err
@@ -65,6 +71,8 @@ func (authMgn *polarisAuthManager) Initialize(options *auth.Config) error {
 	if err := json.Unmarshal(contentBytes, cfg); err != nil {
 		return err
 	}
+
+	AuthOption = cfg
 
 	// 获取存储层对象
 	s, err := store.GetStore()
@@ -77,7 +85,12 @@ func (authMgn *polarisAuthManager) Initialize(options *auth.Config) error {
 		return errors.New("store is null")
 	}
 
-	userSvr, err := newUserServer(s)
+	authCache, err := cache.NewAuthCache(s)
+	if err != nil {
+		return err
+	}
+
+	userSvr, err := newUserServer(s, authCache.UserCache())
 	if err != nil {
 		return err
 	}
@@ -87,9 +100,9 @@ func (authMgn *polarisAuthManager) Initialize(options *auth.Config) error {
 		return err
 	}
 
-	authCache, err := cache.NewAuthCache(s)
-	if err != nil {
-		return err
+	authPlugin := plugin.GetAuth()
+	if authPlugin == nil {
+		return errors.New("AuthManager needs to configure plugin.Auth plug-in for permission calculation")
 	}
 
 	authMgn.userSvr = userSvr
@@ -100,16 +113,16 @@ func (authMgn *polarisAuthManager) Initialize(options *auth.Config) error {
 }
 
 // Name
-func (authMgn *polarisAuthManager) Name() string {
+func (authMgn *defaultAuthManager) Name() string {
 	return authName
 }
 
 // GetUserServer
-func (authMgn *polarisAuthManager) GetUserServer() auth.UserServer {
-	return authMgn.userSvr
+func (authMgn *defaultAuthManager) GetUserServer() auth.UserServer {
+	return newUserServerWithAuth(authMgn, authMgn.userSvr)
 }
 
 // GetAuthStrategyServer
-func (authMgn *polarisAuthManager) GetAuthStrategyServer() auth.AuthStrategyServer {
-	return authMgn.strategySvr
+func (authMgn *defaultAuthManager) GetAuthStrategyServer() auth.AuthStrategyServer {
+	return newStrategyServerWithAuth(authMgn, authMgn.strategySvr)
 }

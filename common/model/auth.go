@@ -17,7 +17,51 @@
 
 package model
 
-import "time"
+import (
+	"time"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+)
+
+const (
+
+	// 默认策略的名称前缀
+	DefaultStrategyPrefix string = "__default__"
+)
+
+type ResourceOperation int16
+
+const (
+	Read ResourceOperation = iota
+	Write
+	Delete
+)
+
+type BzModule int16
+
+const (
+	DiscoverModule BzModule = iota
+	ConfigModule
+)
+
+// AcquireContext 每次鉴权请求上下文信息
+type AcquireContext struct {
+
+	// Token 本次请求的访问凭据
+	Token string
+
+	// Module 来自那个业务层（服务注册与服务治理、配置模块）
+	Module BzModule
+
+	// Operation 本次操作涉及的动作
+	Operation ResourceOperation
+
+	// Resources 本次
+	Resources map[api.ResourceType][]string
+
+	// Attachment 携带信息，用于操作完权限检查和资源操作的后置处理逻辑，解决信息需要二次查询问题
+	Attachment map[string]interface{}
+}
 
 // User
 type User struct {

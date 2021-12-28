@@ -27,6 +27,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/polarismesh/polaris-server/core/auth"
 	"github.com/polarismesh/polaris-server/healthcheck"
 	"github.com/polarismesh/polaris-server/plugin/statis/local"
 
@@ -60,6 +61,8 @@ type HTTPServer struct {
 	freeMemMu *sync.Mutex
 
 	server            *http.Server
+	userServer        auth.UserServer
+	strategyServer    auth.AuthStrategyServer
 	namingServer      naming.DiscoverServer
 	healthCheckServer *healthcheck.Server
 	rateLimit         plugin.Ratelimit
@@ -139,6 +142,16 @@ func (h *HTTPServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
+
+	authMgn, err := auth.GetAuthManager()
+	if err != nil {
+		log.Errorf("%v", err)
+		errCh <- err
+		return
+	}
+	h.userServer = authMgn.GetUserServer()
+	h.strategyServer = authMgn.GetAuthStrategyServer()
+
 	h.healthCheckServer, err = healthcheck.GetServer()
 	if err != nil {
 		log.Errorf("%v", err)

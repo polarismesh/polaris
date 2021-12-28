@@ -377,6 +377,25 @@ func ParseAuthToken(ctx context.Context) string {
 	return token
 }
 
+// ParseIsOwner 从ctx中获取token
+func ParseIsOwner(ctx context.Context) bool {
+	if ctx == nil {
+		return false
+	}
+
+	isOwner, _ := ctx.Value(StringContext("is-owner")).(bool)
+	return isOwner
+}
+
+func ParseUserID(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+
+	token, _ := ctx.Value(StringContext("user-id")).(string)
+	return token
+}
+
 // ParseToken 从ctx中获取token
 func ParseToken(ctx context.Context) string {
 	if ctx == nil {

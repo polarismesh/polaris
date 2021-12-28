@@ -35,6 +35,7 @@ message UserGroupRelation {
   google.protobuf.StringValue group_id = 1;
   repeated google.protobuf.StringValue user_ids = 2;
   google.protobuf.BoolValue join = 3;
+  google.protobuf.StringValue auth_token = 4;
 }
 
 message Principal {
@@ -63,6 +64,7 @@ message AuthStrategy {
   google.protobuf.StringValue owner = 7;
   google.protobuf.StringValue ctime = 8;
   google.protobuf.StringValue mtime = 9;
+  google.protobuf.StringValue auth_token = 10;
 }
 
 enum ResourceType {

@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"time"
 
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
@@ -82,6 +83,11 @@ func (u *userStore) addUser(user *model.User) error {
 	if err != nil {
 		return err
 	}
+
+	if err := u.createDefaultStrategy(tx, fmt.Sprintf("uid/%s", user.ID), user.ID, user.Owner); err != nil {
+		return store.Error(err)
+	}
+
 	if err := tx.Commit(); err != nil {
 		log.Errorf("[Store][database] add user tx commit err: %s", err.Error())
 		return err
@@ -260,9 +266,16 @@ func (u *userStore) ListUsers(filters map[string]string, offset uint32, limit ui
 				getSql += " AND "
 				countSql += " AND "
 			}
-			getSql += (" " + k + " = ? ")
-			countSql += (" " + k + " = ? ")
-			args = append(args, v)
+			if k == "name" {
+				getSql += (" " + k + " like ? ")
+				countSql += (" " + k + " like ? ")
+				args = append(args, v+"%")
+			} else {
+				getSql += (" " + k + " = ? ")
+				countSql += (" " + k + " = ? ")
+				args = append(args, v)
+			}
+
 		}
 	}
 
@@ -365,6 +378,10 @@ func (u *userStore) addUserGroup(group *model.UserGroup) error {
 
 	if err != nil {
 		return err
+	}
+
+	if err := u.createDefaultStrategy(tx, fmt.Sprintf("groupid/%s", group.ID), group.ID, group.Owner); err != nil {
+		return store.Error(err)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -677,6 +694,31 @@ func (u *userStore) GetUserGroupsForCache(mtime time.Time, firstUpdate bool) ([]
 	}
 
 	return ret, nil
+}
+
+func (u *userStore) createDefaultStrategy(tx *BaseTx, principal, id, owner string) error {
+	// 创建该用户的默认权限策略
+	strategy := &model.StrategyDetail{
+		ID:        utils.NewUUID(),
+		Name:      fmt.Sprintf("%s%s", model.DefaultStrategyPrefix, id),
+		Principal: principal,
+		Action:    api.AuthAction_READ_WRITE.String(),
+		Comment:   "default user auth_strategy",
+		Default:   true,
+		Owner:     owner,
+		Resources: []model.StrategyResource{},
+		Valid:     true,
+	}
+
+	// 保存策略主信息
+	saveMainSql := "INSERT INTO auth_strategy(id, name, principal, action, owner, comment, flag, default) VALUES (?,?,?,?,?,?,?)"
+	_, err := tx.Exec(saveMainSql, []interface{}{strategy.ID, strategy.Name, strategy.Principal, strategy.Action, strategy.Owner, strategy.Comment, 0, strategy.Default}...)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func fetchRown2User(rows *sql.Rows) (*model.User, error) {

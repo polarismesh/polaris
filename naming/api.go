@@ -258,4 +258,5 @@ type DiscoverServer interface {
 	PlatformOperateServer
 	//
 	L5OperateServer
+	// 
 }

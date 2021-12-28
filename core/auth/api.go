@@ -21,26 +21,8 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
 )
-
-// AcquireContext 每次鉴权请求上下文信息
-type AcquireContext struct {
-
-	// Token 本次请求的访问凭据
-	Token string
-
-	// Module 来自那个业务层（服务注册与服务治理、配置模块）
-	Module BzModule
-
-	// Operation 本次操作涉及的动作
-	Operation ResourceOperation
-
-	// Resources 本次
-	Resources map[api.ResourceType][]string
-
-	// Attachment 携带信息，用于操作完权限检查和资源操作的后置处理逻辑，解决信息需要二次查询问题
-	Attachment map[string]interface{}
-}
 
 // AuthManager 权限管理通用接口定义
 type AuthManager interface {
@@ -51,7 +33,7 @@ type AuthManager interface {
 	Login(name, password string) (string, error)
 
 	// HasPermission 执行检查动作判断是否有权限
-	HasPermission(preCtx *AcquireContext) (bool, error)
+	HasPermission(preCtx *model.AcquireContext) (bool, error)
 
 	// ChangeOpenStatus 修改权限功能的开关状态，用于动态变更
 	ChangeOpenStatus(status AuthStatus) bool
@@ -69,46 +51,64 @@ type AuthManager interface {
 	GetAuthStrategyServer() AuthStrategyServer
 
 	// AfterResourceOperation 操作完资源的后置处理逻辑
-	AfterResourceOperation(afterCtx *AcquireContext)
+	AfterResourceOperation(afterCtx *model.AcquireContext)
 }
 
 // UserServer 用户数据管理 server
 type UserServer interface {
-	// CreateUser
+	// CreateUser 创建用户
 	CreateUser(ctx context.Context, user *api.User) *api.Response
 
-	// UpdateUser
+	// UpdateUser 更新用户信息
 	UpdateUser(ctx context.Context, user *api.User) *api.Response
 
-	// DeleteUser
+	// DeleteUser 删除用户
 	DeleteUser(ctx context.Context, user *api.User) *api.Response
 
-	// ListUsers
+	// ListUsers 查询用户列表
 	ListUsers(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
-	// GetUserToken
+	// GetUserToken 获取用户的 token
 	GetUserToken(ctx context.Context, user *api.User) *api.Response
 
-	// CreateUserGroup
+	// DisableUserToken 禁止用户的token使用
+	DisableUserToken(ctx context.Context, user *api.User) *api.Response
+
+	// EnableUserToken 允许用户的token使用
+	EnableUserToken(ctx context.Context, user *api.User) *api.Response
+
+	// RefreshUserToken 重置用户的token
+	RefreshUserToken(ctx context.Context, user *api.User) *api.Response
+
+	// CreateUserGroup 创建用户组
 	CreateUserGroup(ctx context.Context, group *api.UserGroup) *api.Response
 
-	// UpdateUserGroup
+	// UpdateUserGroup 更新用户组
 	UpdateUserGroup(ctx context.Context, group *api.UserGroup) *api.Response
 
-	// DeleteUserGroup
+	// DeleteUserGroup 删除用户组
 	DeleteUserGroup(ctx context.Context, group *api.UserGroup) *api.Response
 
-	// ListUserGroups
+	// ListUserGroups 查询用户组列表（不带用户详细信息）
 	ListUserGroups(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
-	// GetUserGroupToken
+	// GetUserGroupToken 获取用户组的 token
 	GetUserGroupToken(ctx context.Context, group *api.UserGroup) *api.Response
 
-	// BatchAddUserToGroup
+	// DisableUserGroupToken 取消用户组的 token 使用
+	DisableUserGroupToken(ctx context.Context, group *api.UserGroup) *api.Response
+
+	// EnableUserGroupToken 允许用户组 token 的使用
+	EnableUserGroupToken(ctx context.Context, group *api.UserGroup) *api.Response
+
+	// RefreshUserGroupToken 重置用户组的 token
+	RefreshUserGroupToken(ctx context.Context, group *api.UserGroup) *api.Response
+
+	// BatchAddUserToGroup 批量将用户加入用户组
 	BatchAddUserToGroup(ctx context.Context, relation *api.UserGroupRelation) *api.BatchWriteResponse
 
-	// BatchRemoveUserToGroup
-	BatchRemoveUserToGroup(ctx context.Context, relation *api.UserGroupRelation) *api.BatchWriteResponse
+	// BatchRemoveUserFromGroup 批量将用户从用户组移除
+	BatchRemoveUserFromGroup(ctx context.Context, relation *api.UserGroupRelation) *api.BatchWriteResponse
 }
 
 type AuthStrategyServer interface {
@@ -124,4 +124,10 @@ type AuthStrategyServer interface {
 
 	// ListStrategy
 	ListStrategy(ctx context.Context, query map[string]string) *api.BatchQueryResponse
+
+	// AddStrategyResources
+	AddStrategyResources(ctx context.Context, resources []*api.Resource) *api.BatchWriteResponse
+
+	// DeleteStrategyResources
+	DeleteStrategyResources(ctx context.Context, resources []*api.Resource) *api.BatchWriteResponse
 }

@@ -19,44 +19,54 @@ package defaultauth
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
+	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/core/auth"
-
-	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 var (
 	emptyVal = struct{}{}
 	passAll  = true
+
+	ErrorNoUser        error = errors.New("invalid token, no such user")
+	ErrorNoUserGroup   error = errors.New("invalid token, no such group")
+	ErrorInvalidToken  error = errors.New("invalid token, token not exist")
+	ErrorTokenDisabled error = errors.New("token already disabled")
 )
 
 // Login 登陆动作
-func (authMgn *polarisAuthManager) Login(name, password string) (string, error) {
+func (authMgn *defaultAuthManager) Login(name, password string) (string, error) {
 	return "", nil
 }
 
 // HasPermission 执行检查动作判断是否有权限
 // 如果当前的接口访问凭据token，操作者类型需要分两种情况进行考虑
 // Case 1:
-// 	如果当前token凭据是以用户的身份角色，则需要按找如下规则进行拉取涉及的权限
+// 	如果当前token凭据是以用户的身份角色，则需要按如下规则进行拉取涉及的权限
 // 		a: 查询该用户所在的所有用户组信息（子用户可以获得所在的用户分组的所有资源写权限）
-// 		b: 根据用户ID，查询所有该用户可能涉及的所有资源策略
+// 		b: 根据用户ID，查询该用户可能涉及的所有资源策略
 // Case 2:
-// 	如果当前token凭据是以用户组的省份角色，则需要按照如下规则进行策略拉取
+// 	如果当前token凭据是以用户组的身份角色，则需要按照如下规则进行策略拉取
 // 		a: 根据用户组ID查询所有涉及该用户组的策略列表
-func (authMgn *polarisAuthManager) HasPermission(ctx *auth.AcquireContext) (bool, error) {
+func (authMgn *defaultAuthManager) HasPermission(ctx *model.AcquireContext) (bool, error) {
 	if !authMgn.IsOpenAuth() {
 		return true, nil
 	}
-	tokenInfo, err := ParseToken(authMgn.opt.Salt, ctx.Token)
+
+	// 随机字符串::[uid/xxx | groupid/xxx]
+	tokenInfo, err := authMgn.ParseToken(ctx.Token)
 	if err != nil {
 		return false, err
 	}
-	ut, id, err := authMgn.checkToken(tokenInfo[2])
-	if err != nil {
+	if err := authMgn.checkToken(tokenInfo); err != nil {
 		return false, err
+	}
+
+	if tokenInfo.IsOwner {
+		return true, nil
 	}
 
 	var (
@@ -64,88 +74,89 @@ func (authMgn *polarisAuthManager) HasPermission(ctx *auth.AcquireContext) (bool
 		ownerId   string
 	)
 
-	if ut == "uid" {
-		strategys = authMgn.findStrategiesByUserID(id)
+	if tokenInfo.Role == auth.RoleForUser {
+		strategys = authMgn.findStrategiesByUserID(tokenInfo.ID)
 		// 获取主账户的 id 信息
-		user := authMgn.cache.UserCache().GetUser(id)
+		user := authMgn.cache.UserCache().GetUser(tokenInfo.ID)
 		if user == nil {
 			return false, errors.New("user not found")
 		}
 		ownerId = user.Owner
 	} else {
-		strategys = authMgn.findStrategiesByGroupID(id)
+		strategys = authMgn.findStrategiesByGroupID(tokenInfo.ID)
 		// 获取主账户的 id 信息
-		group := authMgn.cache.UserCache().GetUserGroup(id)
+		group := authMgn.cache.UserCache().GetUserGroup(tokenInfo.ID)
 		if group == nil {
 			return false, errors.New("usergroup not found")
 		}
 		ownerId = group.Owner
 	}
 
-	ctx.Attachment[auth.OperatoRoleKey] = ut
-	ctx.Attachment[auth.OperatorIDKey] = id
+	ctx.Attachment[auth.OperatoRoleKey] = tokenInfo.Role
+	ctx.Attachment[auth.OperatorIDKey] = tokenInfo.ID
 	ctx.Attachment[auth.OperatorOwnerKey] = ownerId
 
-	return authMgn.hasPermission(ctx, strategys)
+	return authMgn.authPlugin.CheckPermission(ctx, strategys)
 }
 
 // ChangeOpenStatus 修改权限功能的开关状态
-func (authMgn *polarisAuthManager) ChangeOpenStatus(status auth.AuthStatus) bool {
-	authMgn.opt.Open = (status == auth.OpenAuthService)
+func (authMgn *defaultAuthManager) ChangeOpenStatus(status auth.AuthStatus) bool {
+	AuthOption.Open = (status == auth.OpenAuthService)
 	return false
 }
 
 // IsOpenAuth 返回是否开启了操作鉴权
-func (authMgn *polarisAuthManager) IsOpenAuth() bool {
-	return authMgn.opt.Open
+func (authMgn *defaultAuthManager) IsOpenAuth() bool {
+	return AuthOption.Open
 }
 
 // AfterResourceOperation 对于资源的添加删除操作，需要执行后置逻辑
-// 1、每个资源都属于所创建的主用户，每个主账号只能看到自己的资源，跨主账号资源不可见；
-// 2、同一主用户下的所有子用户，对主账号的资源都默认具备读权限；
-// 3、所有子用户或者用户分组，都默认获得对所创建的资源的写权限
-// 4、子用户可以获得所在的用户分组的所有资源写权限
-func (authMgn *polarisAuthManager) AfterResourceOperation(afterCtx *auth.AcquireContext) {
-	//TODO 需要仔细考虑，这个地方很重要！！！
-}
+// 所有子用户或者用户分组，都默认获得对所创建的资源的写权限
+func (authMgn *defaultAuthManager) AfterResourceOperation(afterCtx *model.AcquireContext) {
+	roleId := afterCtx.Attachment[auth.OperatorIDKey].(string)
+	name := fmt.Sprintf("%s%s", model.DefaultStrategyPrefix, roleId)
 
-func (authMgn *polarisAuthManager) hasPermission(ctx *auth.AcquireContext, strategys []*model.StrategyDetail) (bool, error) {
-	reqRes := ctx.Resources
-	var (
-		checkNamespace   bool = false
-		checkService     bool = true
-		checkConfigGroup bool = true
-	)
+	// 获取默认的策略规则
+	strategy, err := authMgn.strategySvr.storage.GetStrategyDetailByName(name)
+	if err != nil {
+		log.Errorf("[Auth][Server] get default strategy by name(%s)", name)
+		return
+	}
 
-	for sPos := range strategys {
-		rule := strategys[sPos]
-		if !authMgn.checkAction(rule.Action, ctx.Operation) {
-			continue
-		}
-		searchMaps := buildSearchMap(rule.Resources)
+	strategyResource := make([]*model.StrategyResource, 0)
 
-		// 检查 namespace
-		checkNamespace = checkAnyElementExist(reqRes[api.ResourceType_Namespaces], searchMaps[0])
-		// 检查 service
-		if ctx.Module == auth.DiscoverModule {
-			checkService = checkAnyElementExist(reqRes[api.ResourceType_Services], searchMaps[1])
-		}
-		// 检查 config_group
-		if ctx.Module == auth.ConfigModule {
-			checkConfigGroup = checkAnyElementExist(reqRes[api.ResourceType_ConfigGroups], searchMaps[2])
+	resources := afterCtx.Resources
+	for rType, rIds := range resources {
+		for i := range rIds {
+			id := rIds[i]
+			strategyResource = append(strategyResource, &model.StrategyResource{
+				StrategyID: strategy.ID,
+				ResType:    int32(rType),
+				ResID:      id,
+			})
 		}
 	}
 
-	if checkNamespace && checkService && checkConfigGroup {
-		return true, nil
+	if afterCtx.Operation == model.Write {
+		// 如果是写操作，那么采用松添加操作进行新增资源的添加操作
+		err = authMgn.strategySvr.storage.LooseAddStrategyResources(strategyResource)
+		if err != nil {
+			log.Errorf("[Auth][Server] update default strategy by name(%s)", name)
+			return
+		}
+	} else {
+		err = authMgn.strategySvr.storage.DeleteStrategyResources(strategyResource)
+		if err != nil {
+			log.Errorf("[Auth][Server] remove default strategy by name(%s)", name)
+			return
+		}
 	}
 
-	return false, errors.New("permission check failed, operation is forbidden")
 }
 
 // findStrategiesByUserID
-func (authMgn *polarisAuthManager) findStrategiesByUserID(id string) []*model.StrategyDetail {
-	// 第一步，先拉去这个用户自己涉及的所有策略信息
+func (authMgn *defaultAuthManager) findStrategiesByUserID(id string) []*model.StrategyDetail {
+	// 第一步，先拉取这个用户自己涉及的所有策略信息
 	rules := authMgn.cache.StrategyCache().GetStrategyDetailsByUID(id)
 
 	// 第二步，拉取这个用户所属的 group 信息
@@ -172,97 +183,73 @@ func (authMgn *polarisAuthManager) findStrategiesByUserID(id string) []*model.St
 }
 
 // findStrategiesByGroupID
-func (authMgn *polarisAuthManager) findStrategiesByGroupID(id string) []*model.StrategyDetail {
+func (authMgn *defaultAuthManager) findStrategiesByGroupID(id string) []*model.StrategyDetail {
+
 	return authMgn.cache.StrategyCache().GetStrategyDetailsByGroupID(id)
 }
 
-// checkAction 检查操作是否和策略匹配
-func (authMgn *polarisAuthManager) checkAction(expect string, actual auth.ResourceOperation) bool {
-	return true
-}
-
 // checkToken 对 token 进行检查
-func (authMgn *polarisAuthManager) checkToken(tokenUserInfo string) (string, string, error) {
-	detail := strings.Split(tokenUserInfo, "/")
-	if len(detail) != 2 {
-		return "", "", errors.New("illegal token")
-	}
+func (authMgn *defaultAuthManager) checkToken(tokenUserInfo TokenInfo) error {
 
-	infoType := detail[0]
-	id := detail[1]
-	if infoType == "uid" {
+	infoType := tokenUserInfo.Role
+	id := tokenUserInfo.ID
+	if infoType == auth.RoleForUser {
 		user := authMgn.cache.UserCache().GetUser(id)
 		if user == nil {
-			return "", "", errors.New("invalid token, no such user")
+			return ErrorNoUser
 		}
-		return detail[0], detail[1], nil
+		if tokenUserInfo.Origin != user.Token {
+			return ErrorInvalidToken
+		}
+
+		if !user.TokenEnable {
+			return ErrorTokenDisabled
+		}
+
+		return nil
 	}
 
-	if infoType == "groupid" {
+	if infoType == auth.RoleForUserGroup {
 		group := authMgn.cache.UserCache().GetUserGroup(id)
 		if group == nil {
-			return "", "", errors.New("invalid token, no such group")
+			return ErrorNoUserGroup
 		}
-		return detail[0], detail[1], nil
+		if tokenUserInfo.Origin != group.Token {
+			return ErrorInvalidToken
+		}
+
+		if !group.TokenEnable {
+			return ErrorTokenDisabled
+		}
+		return nil
 	}
 
-	return "", "", errors.New("invalid token, unknown operator role type")
+	return errors.New("invalid token, unknown operator role type")
 }
 
-// checkAnyElementExist
-func checkAnyElementExist(waitSearch []string, searchMaps *SearchMap) bool {
-	if searchMaps.passAll {
-		return true
+// ParseToken
+func (authMgn *defaultAuthManager) ParseToken(t string) (TokenInfo, error) {
+	ret, err := decryptMessage([]byte(AuthOption.Salt), t)
+	if err != nil {
+		return TokenInfo{}, err
+	}
+	tokenDetails := strings.Split(ret, TokenSplit)
+	if len(tokenDetails) != 2 {
+		return TokenInfo{}, errors.New("illegal token")
 	}
 
-	for i := range waitSearch {
-		ns := waitSearch[i]
-		if _, ok := searchMaps.items[ns]; ok {
-			return true
-		}
+	detail := strings.Split(tokenDetails[1], "/")
+	if len(detail) != 2 {
+		return TokenInfo{}, errors.New("illegal token")
 	}
 
-	return false
-}
-
-// buildSearchMap
-func buildSearchMap(ss []model.StrategyResource) []*SearchMap {
-	nsSearchMaps := &SearchMap{
-		items:   make(map[string]interface{}),
-		passAll: false,
-	}
-	svcSearchMaps := &SearchMap{
-		items:   make(map[string]interface{}),
-		passAll: false,
-	}
-	cfgSearchMaps := &SearchMap{
-		items:   make(map[string]interface{}),
-		passAll: false,
+	tokenInfo := TokenInfo{
+		Origin:  t,
+		RandStr: tokenDetails[0],
+		Role:    detail[0],
+		ID:      detail[1],
+		IsOwner: authMgn.cache.UserCache().IsOwner(detail[1]),
 	}
 
-	for i := range ss {
-		val := ss[i]
-		if val.ResType == int32(api.ResourceType_Namespaces) {
-			nsSearchMaps.items[val.ResID] = emptyVal
-			nsSearchMaps.passAll = (val.ResID == "*")
-			continue
-		}
-		if val.ResType == int32(api.ResourceType_Services) {
-			svcSearchMaps.items[val.ResID] = emptyVal
-			svcSearchMaps.passAll = (val.ResID == "*")
-			continue
-		}
-		if val.ResType == int32(api.ResourceType_ConfigGroups) {
-			cfgSearchMaps.items[val.ResID] = emptyVal
-			cfgSearchMaps.passAll = (val.ResID == "*")
-			continue
-		}
-	}
-
-	return []*SearchMap{nsSearchMaps, svcSearchMaps, cfgSearchMaps}
-}
-
-type SearchMap struct {
-	items   map[string]interface{}
-	passAll bool
+	return tokenInfo, nil
 }

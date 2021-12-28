@@ -147,3 +147,18 @@ func (m *ServiceAliasArr) String() string { return proto.CompactTextString(m) }
 
 // ProtoMessage
 func (*ServiceAliasArr) ProtoMessage() {}
+
+
+/**
+ * AuthResourceArr 命名空间数组定义
+ */
+ type AuthResourceArr []*api.Resource
+
+ // Reset
+ func (m *AuthResourceArr) Reset() { *m = AuthResourceArr{} }
+ 
+ // String return string
+ func (m *AuthResourceArr) String() string { return proto.CompactTextString(m) }
+ 
+ // ProtoMessage
+ func (*AuthResourceArr) ProtoMessage() {}

@@ -363,109 +363,109 @@ type PlatformStore interface {
 	GetPlatforms(query map[string]string, offset uint32, limit uint32) (uint32, []*model.Platform, error)
 }
 
-// UserStore 
+// UserStore
 type UserStore interface {
 
-	// AddUser 
-	//  @param user 
-	//  @return error 
+	// AddUser
+	//  @param user
+	//  @return error
 	AddUser(user *model.User) error
 
-	// UpdateUser 
-	//  @param user 
-	//  @return error 
+	// UpdateUser
+	//  @param user
+	//  @return error
 	UpdateUser(user *model.User) error
 
-	// DeleteUser 
-	//  @param id 
-	//  @return error 
+	// DeleteUser
+	//  @param id
+	//  @return error
 	DeleteUser(id string) error
 
-	// GetUser 
-	//  @param id 
-	//  @return *model.User 
-	//  @return error 
+	// GetUser
+	//  @param id
+	//  @return *model.User
+	//  @return error
 	GetUser(id string) (*model.User, error)
 
-	// GetUserByName 
-	//  @param name 
-	//  @return *model.User 
-	//  @return error 
+	// GetUserByName
+	//  @param name
+	//  @return *model.User
+	//  @return error
 	GetUserByName(name string) (*model.User, error)
 
-	// GetUserByIDS 
-	//  @param ids 
-	//  @return []*model.User 
-	//  @return error 
+	// GetUserByIDS
+	//  @param ids
+	//  @return []*model.User
+	//  @return error
 	GetUserByIDS(ids []string) ([]*model.User, error)
 
-	// ListUsers 
-	//  @param filters 
-	//  @param offset 
-	//  @param limit 
-	//  @return uint32 
-	//  @return []*model.User 
-	//  @return error 
+	// ListUsers
+	//  @param filters
+	//  @param offset
+	//  @param limit
+	//  @return uint32
+	//  @return []*model.User
+	//  @return error
 	ListUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error)
 
-	// GetUsersForCache 
-	//  @param mtime 
-	//  @param firstUpdate 
-	//  @return []*model.User 
-	//  @return error 
+	// GetUsersForCache
+	//  @param mtime
+	//  @param firstUpdate
+	//  @return []*model.User
+	//  @return error
 	GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*model.User, error)
 
-	// AddUserGroup 
-	//  @param group 
-	//  @return error 
+	// AddUserGroup
+	//  @param group
+	//  @return error
 	AddUserGroup(group *model.UserGroup) error
 
-	// UpdateUserGroup 
-	//  @param group 
-	//  @return error 
+	// UpdateUserGroup
+	//  @param group
+	//  @return error
 	UpdateUserGroup(group *model.UserGroup) error
 
-	// DeleteUserGroup 
-	//  @param id 
-	//  @return error 
+	// DeleteUserGroup
+	//  @param id
+	//  @return error
 	DeleteUserGroup(id string) error
 
-	// AddUserGroupRelation 
-	//  @param relations 
-	//  @return error 
+	// AddUserGroupRelation
+	//  @param relations
+	//  @return error
 	AddUserGroupRelation(relations *model.UserGroupRelation) error
 
-	// RemoveUserGroupRelation 
-	//  @param relations 
-	//  @return error 
+	// RemoveUserGroupRelation
+	//  @param relations
+	//  @return error
 	RemoveUserGroupRelation(relations *model.UserGroupRelation) error
 
-	// GetUserGroup 
-	//  @param id 
-	//  @return *model.UserGroup 
-	//  @return error 
+	// GetUserGroup
+	//  @param id
+	//  @return *model.UserGroup
+	//  @return error
 	GetUserGroup(id string) (*model.UserGroup, error)
 
-	// GetUserGroupByName 
-	//  @param name 
-	//  @return *model.UserGroup 
-	//  @return error 
+	// GetUserGroupByName
+	//  @param name
+	//  @return *model.UserGroup
+	//  @return error
 	GetUserGroupByName(name string) (*model.UserGroup, error)
 
-	// ListUserGroups 
-	//  @param filters 
-	//  @param offset 
-	//  @param limit 
-	//  @return uint32 
-	//  @return []*model.UserGroup 
-	//  @return error 
+	// ListUserGroups
+	//  @param filters
+	//  @param offset
+	//  @param limit
+	//  @return uint32
+	//  @return []*model.UserGroup
+	//  @return error
 	ListUserGroups(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error)
 
-	// GetUserGroupsForCache 
-	//  @param mtime 
-	//  @param firstUpdate 
-	//  @return []*model.UserGroupDetail 
-	//  @return error 
+	// GetUserGroupsForCache
+	//  @param mtime
+	//  @param firstUpdate
+	//  @return []*model.UserGroupDetail
+	//  @return error
 	GetUserGroupsForCache(mtime time.Time, firstUpdate bool) ([]*model.UserGroupDetail, error)
 }
 
@@ -475,52 +475,57 @@ type StrategyStore interface {
 	// AddStrategy
 	AddStrategy(strategy *model.StrategyDetail) error
 
-	// UpdateStrategy 
-	//  @param strategy 
-	//  @return error 
-	UpdateStrategy(strategy *model.StrategyDetail) error
+	// UpdateStrategy
+	//  @param strategy
+	//  @return error
+	UpdateStrategyMain(strategy *model.StrategyDetail) error
 
-	// DeleteStrategy 
-	//  @param id 
-	//  @return error 
+	// DeleteStrategy
+	//  @param id
+	//  @return error
 	DeleteStrategy(id string) error
 
-	// AddStrategyResources 
-	//  @param resources 
-	//  @return error 
+	// AddStrategyResources
+	//  @param resources
+	//  @return error
 	AddStrategyResources(resources []*model.StrategyResource) error
 
-	// DeleteStrategyResources 
-	//  @param resources 
-	//  @return error 
+	// DeleteStrategyResources
+	//  @param resources
+	//  @return error
 	DeleteStrategyResources(resources []*model.StrategyResource) error
 
-	// GetStrategyDetail 
-	//  @param id 
-	//  @return *model.StrategyDetail 
-	//  @return error 
+	// LooseAddStrategyResources 松要求的添加鉴权策略的资源，允许忽略主键冲突的问题
+	//  @param resources
+	//  @return error
+	LooseAddStrategyResources(resources []*model.StrategyResource) error
+
+	// GetStrategyDetail
+	//  @param id
+	//  @return *model.StrategyDetail
+	//  @return error
 	GetStrategyDetail(id string) (*model.StrategyDetail, error)
 
-	// GetStrategyDetailByName 
-	//  @param name 
-	//  @return *model.StrategyDetail 
-	//  @return error 
+	// GetStrategyDetailByName
+	//  @param name
+	//  @return *model.StrategyDetail
+	//  @return error
 	GetStrategyDetailByName(name string) (*model.StrategyDetail, error)
 
-	// ListStrategyDetails 
-	//  @param filters 
-	//  @param offset 
-	//  @param limit 
-	//  @return uint32 
-	//  @return []*model.StrategyDetail 
-	//  @return error 
+	// ListStrategyDetails
+	//  @param filters
+	//  @param offset
+	//  @param limit
+	//  @return uint32
+	//  @return []*model.StrategyDetail
+	//  @return error
 	ListStrategyDetails(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.StrategyDetail, error)
 
-	// GetStrategyDetailsForCache 
-	//  @param mtime 
-	//  @param firstUpdate 
-	//  @return []*model.StrategyDetail 
-	//  @return error 
+	// GetStrategyDetailsForCache
+	//  @param mtime
+	//  @param firstUpdate
+	//  @return []*model.StrategyDetail
+	//  @return error
 	GetStrategyDetailsForCache(mtime time.Time, firstUpdate bool) ([]*model.StrategyDetail, error)
 }
 

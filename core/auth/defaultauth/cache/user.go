@@ -29,7 +29,9 @@ type UserCache interface {
 
 	GetUser(id string) *model.User
 
-	GetUserGroup(id string) *model.UserGroup
+	GetUserGroup(id string) *model.UserGroupDetail
+
+	IsOwner(id string) bool
 }
 
 type userCache struct {
@@ -63,6 +65,10 @@ func (uc *userCache) clear() error {
 
 func (uc *userCache) name() string {
 	return CacheForUser
+}
+
+func (uc *userCache) IsOwner(id string) bool {
+	return false
 }
 
 func (uc *userCache) GetUser(id string) *model.User {

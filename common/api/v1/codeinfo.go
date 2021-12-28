@@ -98,8 +98,11 @@ const (
 	InvalidFluxRateLimitSetKey = 400192
 
 	InvalidUserOwners         = 400410
+	InvalidUserID             = 400411
 	InvalidUserGroupOwners    = 400420
+	InvalidUserGroupID        = 400421
 	InvalidAuthStrategyOwners = 400430
+	InvalidAuthStrategyID     = 400431
 
 	ExistedResource                    = 400201
 	NotFoundResource                   = 400202

@@ -100,19 +100,19 @@ func (s *strategyStore) addStrategy(strategy *model.StrategyDetail) error {
 	return nil
 }
 
-func (s *strategyStore) UpdateStrategy(strategy *model.StrategyDetail) error {
+func (s *strategyStore) UpdateStrategyMain(strategy *model.StrategyDetail) error {
 	if strategy.ID == "" || strategy.Name == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"update auth_strategy missing some params, id is %s, name is %s, ", strategy.ID, strategy.Name))
 	}
 
 	err := RetryTransaction("updateStrategy", func() error {
-		return s.updateStrategy(strategy)
+		return s.updateStrategyMain(strategy)
 	})
 	return store.Error(err)
 }
 
-func (s *strategyStore) updateStrategy(strategy *model.StrategyDetail) error {
+func (s *strategyStore) updateStrategyMain(strategy *model.StrategyDetail) error {
 
 	tx, err := s.master.Begin()
 	if err != nil {
@@ -221,6 +221,41 @@ func (s *strategyStore) DeleteStrategyResources(resources []*model.StrategyResou
 		args = append(args, resource.ResID, resource.ResID, resource.ResType)
 		_, err = tx.Exec(saveResSql, args...)
 		if err != nil {
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Errorf("[Store][database] add auth_strategy tx commit err: %s", err.Error())
+		return err
+	}
+
+	return nil
+}
+
+// LooseAddStrategyResources
+//  @param resources
+//  @return error
+func (s *strategyStore) LooseAddStrategyResources(resources []*model.StrategyResource) error {
+	tx, err := s.master.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// 保存策略的资源信息
+	for i := range resources {
+		saveResSql := "INSERT INTO auth_strategy_resource(strategy_id, res_type, res_id) VALUES (?,?,?)"
+		args := make([]interface{}, 0)
+		resource := resources[i]
+		args = append(args, resource.ResID, resource.ResType, resource.ResID)
+
+		_, err = tx.Exec(saveResSql, args...)
+		if err != nil {
+			err = store.Error(err)
+			if store.Code(err) == store.DuplicateEntryErr {
+				continue
+			}
 			return err
 		}
 	}
