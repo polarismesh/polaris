@@ -19,7 +19,6 @@ package naming
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"sync"
 	"time"
@@ -27,7 +26,6 @@ import (
 	"github.com/modern-go/reflect2"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/google/uuid"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/naming/auth"
@@ -303,10 +301,4 @@ func pluginInitialize() {
 	if server.auth == nil {
 		log.Warnf("Not found Auth Plugin")
 	}
-}
-
-// NewUUID 返回一个随机的UUID
-func NewUUID() string {
-	uuidBytes := uuid.New()
-	return hex.EncodeToString(uuidBytes[:])
 }

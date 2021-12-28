@@ -21,7 +21,7 @@ import (
 	"context"
 	"fmt"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/naming"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"google.golang.org/grpc/metadata"
 	"io"
 	"time"
@@ -33,7 +33,7 @@ import (
 func (c *Client) Discover(drt api.DiscoverRequest_DiscoverRequestType, service *api.Service) error {
 	fmt.Printf("\ndiscover\n")
 
-	md := metadata.Pairs("request-id", naming.NewUUID())
+	md := metadata.Pairs("request-id", utils.NewUUID())
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
@@ -76,7 +76,7 @@ func (c *Client) Discover(drt api.DiscoverRequest_DiscoverRequestType, service *
 func (c *Client) DiscoverRequest(request *api.DiscoverRequest) (*api.DiscoverResponse, error) {
 	fmt.Printf("\ndiscover\n")
 
-	md := metadata.Pairs("request-id", naming.NewUUID())
+	md := metadata.Pairs("request-id", utils.NewUUID())
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
