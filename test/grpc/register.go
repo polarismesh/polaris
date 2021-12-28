@@ -20,10 +20,10 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/naming"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -33,7 +33,7 @@ import (
 func (c *Client) RegisterInstance(instance *api.Instance) error {
 	fmt.Printf("\nregister instance\n")
 
-	md := metadata.Pairs("request-id", naming.NewUUID())
+	md := metadata.Pairs("request-id", utils.NewUUID())
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
@@ -56,7 +56,7 @@ func (c *Client) RegisterInstance(instance *api.Instance) error {
 func (c *Client) DeregisterInstance(instance *api.Instance) error {
 	fmt.Printf("\nderegister instance\n")
 
-	md := metadata.Pairs("request-id", naming.NewUUID())
+	md := metadata.Pairs("request-id", utils.NewUUID())
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second)

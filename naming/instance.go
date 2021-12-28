@@ -495,7 +495,7 @@ func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *
 		ids = append(ids, instance.ID())
 	}
 
-	if err := s.storage.BatchSetInstanceIsolate(ids, isolate, NewUUID()); err != nil {
+	if err := s.storage.BatchSetInstanceIsolate(ids, isolate, utils.NewUUID()); err != nil {
 		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
 		return wrapperInstanceStoreResponse(req, err)
 	}
@@ -668,7 +668,7 @@ func (s *Server) updateInstanceAttribute(req *api.Instance, instance *model.Inst
 
 	// 每次更改，都要生成一个新的uuid
 	if needUpdate {
-		insProto.Revision = utils.NewStringValue(NewUUID())
+		insProto.Revision = utils.NewStringValue(utils.NewUUID())
 	}
 
 	return needUpdate

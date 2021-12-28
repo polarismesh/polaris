@@ -466,7 +466,7 @@ func createPlatformModel(req *api.Platform) *model.Platform {
 		Name:       req.GetName().GetValue(),
 		Domain:     req.GetDomain().GetValue(),
 		QPS:        req.GetQps().GetValue(),
-		Token:      NewUUID(),
+		Token:      utils.NewUUID(),
 		Owner:      req.GetOwner().GetValue(),
 		Department: req.GetDepartment().GetValue(),
 		Comment:    req.GetComment().GetValue(),

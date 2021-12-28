@@ -99,7 +99,7 @@ func (s *Server) createNamespaceModel(req *api.Namespace) *model.Namespace {
 		Name:    req.GetName().GetValue(),
 		Comment: req.GetComment().GetValue(),
 		Owner:   req.GetOwners().GetValue(),
-		Token:   NewUUID(),
+		Token:   utils.NewUUID(),
 	}
 
 	return namespace
@@ -272,7 +272,7 @@ func (s *Server) UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *
 
 	rid := ParseRequestID(ctx)
 	// 生成token
-	token := NewUUID()
+	token := utils.NewUUID()
 
 	// 存储层操作
 	if err := s.storage.UpdateNamespaceToken(namespace.Name, token); err != nil {
