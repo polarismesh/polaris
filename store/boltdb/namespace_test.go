@@ -149,7 +149,6 @@ func TestNamespaceStore_GetNamespaces(t *testing.T) {
 		t.Fatalf("len(ret) must be 1 and retCnt must be %d", nsCount)
 	}
 
-
 	ret, retCnt, err = nsStore.GetNamespaces(map[string][]string{
 		OwnerAttribute: {nsOwner},
 	}, 3, 1)
@@ -158,6 +157,17 @@ func TestNamespaceStore_GetNamespaces(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !(len(ret) == 1 && nsCount == int(retCnt)) {
+		t.Fatalf("len(ret) must be 1 and retCnt must be %d", nsCount)
+	}
+
+	ret, retCnt, err = nsStore.GetNamespaces(map[string][]string{
+		OwnerAttribute: {nsOwner},
+	}, 3, 10)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !(len(ret) == 2 && nsCount == int(retCnt)) {
 		t.Fatalf("len(ret) must be 1 and retCnt must be %d", nsCount)
 	}
 
