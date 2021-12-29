@@ -127,8 +127,21 @@ func TestNamespaceStore_GetNamespaces(t *testing.T) {
 		t.Fatal("len(ret) need equal int(retCnt)")
 	}
 
+	// 只要有一个条件不满足，则对应的条目就不应该查出来
 	ret, retCnt, err = nsStore.GetNamespaces(map[string][]string{
 		OwnerAttribute: {"springliao"},
+	}, 0, nsCount)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ret) != 0 {
+		t.Fatal("len(ret) must be zero")
+	}
+
+	ret, retCnt, err = nsStore.GetNamespaces(map[string][]string{
+		OwnerAttribute: {nsOwner},
+		NameAttribute:  {"springliao"},
 	}, 0, nsCount)
 
 	if err != nil {
@@ -147,6 +160,18 @@ func TestNamespaceStore_GetNamespaces(t *testing.T) {
 	}
 	if !(len(ret) == 1 && nsCount == int(retCnt)) {
 		t.Fatalf("len(ret) must be 1 and retCnt must be %d", nsCount)
+	}
+
+	ret, retCnt, err = nsStore.GetNamespaces(map[string][]string{
+		OwnerAttribute: {nsOwner},
+		NameAttribute:  {"default1"},
+	}, 0, 1)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !(len(ret) == 1 && retCnt == 1) {
+		t.Fatalf("len(ret) must be 1 and retCnt must be 1, acutal len(ret) %d, retCnt : %d", len(ret), retCnt)
 	}
 
 	ret, retCnt, err = nsStore.GetNamespaces(map[string][]string{

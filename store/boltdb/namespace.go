@@ -188,10 +188,15 @@ func (n *namespaceStore) GetNamespaces(
 			}
 
 			if index == OwnerAttribute {
-				isFind = compare(ns.Owner)
+				if isFind = compare(ns.Owner); !isFind {
+					break
+				}
+
 			}
 			if index == NameAttribute {
-				isFind = compare(ns.Name)
+				if isFind = compare(ns.Name); !isFind {
+					break
+				}
 			}
 		}
 		if isFind {
