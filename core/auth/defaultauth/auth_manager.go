@@ -25,21 +25,37 @@ import (
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/core/auth"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
 	emptyVal = struct{}{}
 	passAll  = true
 
-	ErrorNoUser        error = errors.New("invalid token, no such user")
-	ErrorNoUserGroup   error = errors.New("invalid token, no such group")
-	ErrorInvalidToken  error = errors.New("invalid token, token not exist")
-	ErrorTokenDisabled error = errors.New("token already disabled")
+	ErrorNoUser                  error = errors.New("no such user")
+	ErrorNoUserGroup             error = errors.New("no such group")
+	ErrorWrongUsernameOrPassword error = errors.New("name or password is wrong")
+	ErrorInvalidToken            error = errors.New("invalid token, token not exist")
+	ErrorTokenDisabled           error = errors.New("token already disabled")
 )
 
 // Login 登陆动作
 func (authMgn *defaultAuthManager) Login(name, password string) (string, error) {
-	return "", nil
+	user := authMgn.cache.UserCache().GetUserByName(name)
+
+	if user == nil {
+		return "", ErrorNoUser
+	}
+
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return "", ErrorWrongUsernameOrPassword
+		}
+		return "", err
+	}
+
+	return user.Token, nil
 }
 
 // HasPermission 执行检查动作判断是否有权限

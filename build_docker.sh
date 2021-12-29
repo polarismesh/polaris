@@ -28,3 +28,4 @@ if [[ $? != 0 ]]; then
 fi
 
 docker push ${docker_repository}:${docker_tag}
+docker tag -f ${docker_repository}:${docker_tag}${docker_repository}:latest

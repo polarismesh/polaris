@@ -24,14 +24,22 @@ import (
 	"github.com/polarismesh/polaris-server/store"
 )
 
+// StrategyCache
 type StrategyCache interface {
 	Cache
 
+	// GetStrategyDetailsByUID 
+	//  @param uid 
+	//  @return []*model.StrategyDetail 
 	GetStrategyDetailsByUID(uid string) []*model.StrategyDetail
 
+	// GetStrategyDetailsByGroupID 
+	//  @param uid 
+	//  @return []*model.StrategyDetail 
 	GetStrategyDetailsByGroupID(uid string) []*model.StrategyDetail
 }
 
+// strategyCache 
 type strategyCache struct {
 	storage          store.Store
 	strategys        *sync.Map
@@ -39,7 +47,16 @@ type strategyCache struct {
 	groupid2Strategy *sync.Map
 }
 
-func (sc *strategyCache) initialize(c map[string]interface{}) error {
+// newStrategyCache 
+//  @param storage 
+//  @return StrategyCache 
+func newStrategyCache(storage store.Store) StrategyCache {
+	return &strategyCache{
+		storage: storage,
+	}
+}
+
+func (sc *strategyCache) initialize() error {
 	return nil
 }
 
