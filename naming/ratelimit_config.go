@@ -107,7 +107,7 @@ func (s *Server) CreateRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 		log.Error(err.Error(), ZapRequestID(requestID))
 		return api.NewRateLimitResponse(api.ParseRateLimitException, req)
 	}
-	data.ID = NewUUID()
+	data.ID = utils.NewUUID()
 
 	// 存储层操作
 	if err := s.storage.CreateRateLimit(data); err != nil {
@@ -170,7 +170,7 @@ func (s *Server) DeleteRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 	}
 
 	// 生成新的revision
-	rateLimit.Revision = NewUUID()
+	rateLimit.Revision = utils.NewUUID()
 
 	// 存储层操作
 	if err := s.storage.DeleteRateLimit(rateLimit); err != nil {
@@ -256,7 +256,7 @@ func (s *Server) UpdateRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 /**
  * GetRateLimits 查询限流规则
  */
-func (s *Server) GetRateLimits(query map[string]string) *api.BatchQueryResponse {
+func (s *Server) GetRateLimits(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	for key := range query {
 		if _, ok := RateLimitFilters[key]; !ok {
 			log.Errorf("params %s is not allowed in querying rate limits", key)
@@ -462,7 +462,7 @@ func api2RateLimit(serviceID string, clusterID string, req *api.Rule) (*model.Ra
 		Labels:    labels,
 		Priority:  req.GetPriority().GetValue(),
 		Rule:      rule,
-		Revision:  NewUUID(),
+		Revision:  utils.NewUUID(),
 	}
 	return out, nil
 }

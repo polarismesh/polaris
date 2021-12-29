@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/golang/protobuf/ptypes/wrappers"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 
@@ -260,7 +261,7 @@ func (s *Server) UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) 
 /**
  * GetServiceAliases 查找服务别名
  */
-func (s *Server) GetServiceAliases(query map[string]string) *api.BatchQueryResponse {
+func (s *Server) GetServiceAliases(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	// 先处理offset和limit
 	offset, limit, err := ParseOffsetAndLimit(query)
 	if err != nil {
@@ -428,7 +429,7 @@ func (s *Server) updateServiceAliasAttribute(req *api.ServiceAlias, alias *model
 	}
 
 	if needUpdate {
-		alias.Revision = NewUUID()
+		alias.Revision = utils.NewUUID()
 	}
 
 	return nil, needUpdate, needUpdateOwner
@@ -440,14 +441,14 @@ func (s *Server) updateServiceAliasAttribute(req *api.ServiceAlias, alias *model
 func (s *Server) createServiceAliasModel(req *api.ServiceAlias, svcId string) (
 	*model.Service, *api.Response) {
 	out := &model.Service{
-		ID:        NewUUID(),
+		ID:        utils.NewUUID(),
 		Name:      req.GetAlias().GetValue(),
 		Namespace: req.GetAliasNamespace().GetValue(),
 		Reference: svcId,
-		Token:     NewUUID(),
+		Token:     utils.NewUUID(),
 		Owner:     req.GetOwners().GetValue(),
 		Comment:   req.GetComment().GetValue(),
-		Revision:  NewUUID(),
+		Revision:  utils.NewUUID(),
 	}
 
 	// sid类型，则创建SID

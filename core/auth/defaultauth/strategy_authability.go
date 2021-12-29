@@ -102,7 +102,7 @@ func (svr *strategyServerAuth) ListStrategy(ctx context.Context, query map[strin
 }
 
 // AddStrategyResources
-func (svr *strategyServerAuth) AddStrategyResources(ctx context.Context, resources []*api.Resource) *api.BatchWriteResponse {
+func (svr *strategyServerAuth) AddStrategyResources(ctx context.Context, resources *api.StrategyResource) *api.BatchWriteResponse {
 	authToken := utils.ParseAuthToken(ctx)
 	if authToken == "" {
 		return api.NewBatchWriteResponse(api.NotAllowedAccess)
@@ -117,7 +117,7 @@ func (svr *strategyServerAuth) AddStrategyResources(ctx context.Context, resourc
 }
 
 // DeleteStrategyResources
-func (svr *strategyServerAuth) DeleteStrategyResources(ctx context.Context, resources []*api.Resource) *api.BatchWriteResponse {
+func (svr *strategyServerAuth) DeleteStrategyResources(ctx context.Context, resources *api.StrategyResource) *api.BatchWriteResponse {
 	authToken := utils.ParseAuthToken(ctx)
 	if authToken == "" {
 		return api.NewBatchWriteResponse(api.NotAllowedAccess)

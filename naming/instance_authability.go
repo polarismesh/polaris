@@ -21,56 +21,75 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 func (svr *serverAuthAbility) CreateInstances(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse {
+	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Create)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	return svr.targetServer.CreateInstances(ctx, reqs)
 }
 
-func (svr *serverAuthAbility) CreateInstance(ctx context.Context, req *api.Instance) *api.Response {
+func (svr *serverAuthAbility) DeleteInstances(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse {
+	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Delete)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	return svr.targetServer.DeleteInstances(ctx, reqs)
 }
 
-func (svr *serverAuthAbility) DeleteInstances(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse {
+func (svr *serverAuthAbility) DeleteInstancesByHost(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse {
+	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Delete)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	return svr.targetServer.DeleteInstancesByHost(ctx, reqs)
 }
 
-func (svr *serverAuthAbility) DeleteInstance(ctx context.Context, req *api.Instance) *api.Response {
+func (svr *serverAuthAbility) UpdateInstances(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse {
+	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Modify)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	return svr.targetServer.UpdateInstances(ctx, reqs)
 }
 
-func (svr *serverAuthAbility) DeleteInstancesByHost(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse {
+func (svr *serverAuthAbility) UpdateInstancesIsolate(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse {
+	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Modify)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	return svr.targetServer.UpdateInstancesIsolate(ctx, reqs)
 }
 
-func (svr *serverAuthAbility) DeleteInstanceByHost(ctx context.Context, req *api.Instance) *api.Response {
+func (svr *serverAuthAbility) GetInstances(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 
-}
-
-func (svr *serverAuthAbility) UpdateInstances(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse {
-
-}
-
-func (svr *serverAuthAbility) UpdateInstance(ctx context.Context, req *api.Instance) *api.Response {
-
-}
-
-func (svr *serverAuthAbility) UpdateInstancesIsolate(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse {
-
-}
-
-func (svr *serverAuthAbility) UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *api.Response {
-
-}
-
-func (svr *serverAuthAbility) GetInstances(query map[string]string) *api.BatchQueryResponse {
-
+	return svr.targetServer.GetInstances(ctx, query)
 }
 
 func (svr *serverAuthAbility) GetInstancesCount() *api.BatchQueryResponse {
 
+	return svr.targetServer.GetInstancesCount()
 }
 
 func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *api.Instance) *api.Response {
 
+	return svr.targetServer.CleanInstance(ctx, req)
 }

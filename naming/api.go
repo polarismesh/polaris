@@ -29,37 +29,25 @@ import (
 type CircuitBreakerOperateServer interface {
 	CreateCircuitBreakers(ctx context.Context, req []*api.CircuitBreaker) *api.BatchWriteResponse
 
-	CreateCircuitBreaker(ctx context.Context, req *api.CircuitBreaker) *api.Response
-
 	CreateCircuitBreakerVersions(ctx context.Context, req []*api.CircuitBreaker) *api.BatchWriteResponse
-
-	CreateCircuitBreakerVersion(ctx context.Context, req *api.CircuitBreaker) *api.Response
 
 	DeleteCircuitBreakers(ctx context.Context, req []*api.CircuitBreaker) *api.BatchWriteResponse
 
-	DeleteCircuitBreaker(ctx context.Context, req *api.CircuitBreaker) *api.Response
-
 	UpdateCircuitBreakers(ctx context.Context, req []*api.CircuitBreaker) *api.BatchWriteResponse
-
-	UpdateCircuitBreaker(ctx context.Context, req *api.CircuitBreaker) *api.Response
 
 	ReleaseCircuitBreakers(ctx context.Context, req []*api.ConfigRelease) *api.BatchWriteResponse
 
-	ReleaseCircuitBreaker(ctx context.Context, req *api.ConfigRelease) *api.Response
-
 	UnBindCircuitBreakers(ctx context.Context, req []*api.ConfigRelease) *api.BatchWriteResponse
 
-	UnBindCircuitBreaker(ctx context.Context, req *api.ConfigRelease) *api.Response
+	GetCircuitBreaker(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
-	GetCircuitBreaker(query map[string]string) *api.BatchQueryResponse
+	GetCircuitBreakerVersions(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
-	GetCircuitBreakerVersions(query map[string]string) *api.BatchQueryResponse
+	GetMasterCircuitBreakers(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
-	GetMasterCircuitBreakers(query map[string]string) *api.BatchQueryResponse
+	GetReleaseCircuitBreakers(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
-	GetReleaseCircuitBreakers(query map[string]string) *api.BatchQueryResponse
-
-	GetCircuitBreakerByService(query map[string]string) *api.BatchQueryResponse
+	GetCircuitBreakerByService(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
 	GetCircuitBreakerToken(ctx context.Context, req *api.CircuitBreaker) *api.Response
 }
@@ -67,31 +55,19 @@ type CircuitBreakerOperateServer interface {
 type RateLimitOperateServer interface {
 	CreateRateLimits(ctx context.Context, request []*api.Rule) *api.BatchWriteResponse
 
-	CreateRateLimit(ctx context.Context, req *api.Rule) *api.Response
-
 	DeleteRateLimits(ctx context.Context, request []*api.Rule) *api.BatchWriteResponse
-
-	DeleteRateLimit(ctx context.Context, req *api.Rule) *api.Response
 
 	UpdateRateLimits(ctx context.Context, request []*api.Rule) *api.BatchWriteResponse
 
-	UpdateRateLimit(ctx context.Context, req *api.Rule) *api.Response
-
-	GetRateLimits(query map[string]string) *api.BatchQueryResponse
+	GetRateLimits(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 }
 
 type RouteRuleOperateServer interface {
 	CreateRoutingConfigs(ctx context.Context, req []*api.Routing) *api.BatchWriteResponse
 
-	CreateRoutingConfig(ctx context.Context, req *api.Routing) *api.Response
-
 	DeleteRoutingConfigs(ctx context.Context, req []*api.Routing) *api.BatchWriteResponse
 
-	DeleteRoutingConfig(ctx context.Context, req *api.Routing) *api.Response
-
 	UpdateRoutingConfigs(ctx context.Context, req []*api.Routing) *api.BatchWriteResponse
-
-	UpdateRoutingConfig(ctx context.Context, req *api.Routing) *api.Response
 
 	GetRoutingConfigs(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 }
@@ -99,138 +75,255 @@ type RouteRuleOperateServer interface {
 type ServiceOperateServer interface {
 
 	// CreateServices 批量创建服务
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.BatchWriteResponse 
 	CreateServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse
 
-	// CreateService 创建单个服务
-	CreateService(ctx context.Context, req *api.Service) *api.Response
-
 	// DeleteServices 批量删除服务
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.BatchWriteResponse 
 	DeleteServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse
 
-	// DeleteService Delete a single service, the delete operation needs to lock the service
-	// 	to prevent the instance of the service associated with the service or a new operation.
-	DeleteService(ctx context.Context, req *api.Service) *api.Response
-
+	// UpdateServices 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.BatchWriteResponse 
 	UpdateServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse
 
-	UpdateService(ctx context.Context, req *api.Service) *api.Response
-
+	// UpdateServiceToken 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.Response 
 	UpdateServiceToken(ctx context.Context, req *api.Service) *api.Response
 
+	// GetServices 
+	//  @param ctx 
+	//  @param query 
+	//  @return *api.BatchQueryResponse 
 	GetServices(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
+	// GetServicesCount 
+	//  @return *api.BatchQueryResponse 
 	GetServicesCount() *api.BatchQueryResponse
 
+	// GetServiceToken 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.Response 
 	GetServiceToken(ctx context.Context, req *api.Service) *api.Response
 
+	// GetServiceOwner 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.BatchQueryResponse 
 	GetServiceOwner(ctx context.Context, req []*api.Service) *api.BatchQueryResponse
 }
 
+// ServiceAliasOperateServer 
 type ServiceAliasOperateServer interface {
+
+	// CreateServiceAlias 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.Response 
 	CreateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response
 
-	DeleteServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response
-
+	// DeleteServiceAliases 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.BatchWriteResponse 
 	DeleteServiceAliases(ctx context.Context, req []*api.ServiceAlias) *api.BatchWriteResponse
 
+	// UpdateServiceAlias 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.Response 
 	UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response
 
-	GetServiceAliases(query map[string]string) *api.BatchQueryResponse
+	// GetServiceAliases 
+	//  @param query 
+	//  @return *api.BatchQueryResponse 
+	GetServiceAliases(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 }
 
+// InstanceOperateServer 
 type InstanceOperateServer interface {
+
+	// CreateInstances 
+	//  @param ctx 
+	//  @param reqs 
+	//  @return *api.BatchWriteResponse 
 	CreateInstances(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse
 
-	CreateInstance(ctx context.Context, req *api.Instance) *api.Response
-
+	// DeleteInstances 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.BatchWriteResponse 
 	DeleteInstances(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse
 
-	DeleteInstance(ctx context.Context, req *api.Instance) *api.Response
-
+	// DeleteInstancesByHost 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.BatchWriteResponse 
 	DeleteInstancesByHost(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse
 
-	DeleteInstanceByHost(ctx context.Context, req *api.Instance) *api.Response
-
+	// UpdateInstances 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.BatchWriteResponse 
 	UpdateInstances(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse
 
-	UpdateInstance(ctx context.Context, req *api.Instance) *api.Response
-
+	// UpdateInstancesIsolate 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.BatchWriteResponse 
 	UpdateInstancesIsolate(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse
 
-	UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *api.Response
+	// GetInstances 
+	//  @param query 
+	//  @return *api.BatchQueryResponse 
+	GetInstances(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
-	GetInstances(query map[string]string) *api.BatchQueryResponse
-
+	// GetInstancesCount 
+	//  @return *api.BatchQueryResponse 
 	GetInstancesCount() *api.BatchQueryResponse
 
+	// CleanInstance 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.Response 
 	CleanInstance(ctx context.Context, req *api.Instance) *api.Response
 }
 
+// NamespaceOperateServer 
 type NamespaceOperateServer interface {
+
+	// CreateNamespaces 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.BatchWriteResponse 
 	CreateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse
 
-	CreateNamespace(ctx context.Context, req *api.Namespace) *api.Response
-
+	// DeleteNamespaces 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.BatchWriteResponse 
 	DeleteNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse
 
-	DeleteNamespace(ctx context.Context, req *api.Namespace) *api.Response
-
+	// UpdateNamespaces 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.BatchWriteResponse 
 	UpdateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse
 
-	UpdateNamespace(ctx context.Context, req *api.Namespace) *api.Response
-
+	// UpdateNamespaceToken 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.Response 
 	UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response
 
-	GetNamespaces(query map[string][]string) *api.BatchQueryResponse
+	// GetNamespaces 
+	//  @param ctx 
+	//  @param query 
+	//  @return *api.BatchQueryResponse 
+	GetNamespaces(ctx context.Context, query map[string][]string) *api.BatchQueryResponse
 
+	// GetNamespaceToken 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.Response 
 	GetNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response
 }
 
 // Client operation interface definition
 type ClientServer interface {
 
-	// ReportClient
+	// ReportClient 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.Response 
 	ReportClient(ctx context.Context, req *api.Client) *api.Response
 
-	// GetServiceWithCache
+	// GetServiceWithCache 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.DiscoverResponse 
 	GetServiceWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse
 
-	// ServiceInstancesCache
+	// ServiceInstancesCache 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.DiscoverResponse 
 	ServiceInstancesCache(ctx context.Context, req *api.Service) *api.DiscoverResponse
 
-	// GetRoutingConfigWithCache
+	// GetRoutingConfigWithCache 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.DiscoverResponse 
 	GetRoutingConfigWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse
 
-	// GetRateLimitWithCache
+	// GetRateLimitWithCache 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.DiscoverResponse 
 	GetRateLimitWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse
 
-	// GetCircuitBreakerWithCache
+	// GetCircuitBreakerWithCache 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.DiscoverResponse 
 	GetCircuitBreakerWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse
 }
 
+// PlatformOperateServer 
 type PlatformOperateServer interface {
-	//
+
+	// CreatePlatforms 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.BatchWriteResponse 
 	CreatePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse
-	//
-	CreatePlatform(ctx context.Context, req *api.Platform) *api.Response
-	//
+
+	// UpdatePlatforms 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.BatchWriteResponse 
 	UpdatePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse
-	//
-	UpdatePlatform(ctx context.Context, req *api.Platform) *api.Response
-	//
+
+	// DeletePlatforms 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.BatchWriteResponse 
 	DeletePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse
-	//
-	DeletePlatform(ctx context.Context, req *api.Platform) *api.Response
-	//
-	GetPlatforms(query map[string]string) *api.BatchQueryResponse
-	//
+
+	// GetPlatforms 
+	//  @param query 
+	//  @return *api.BatchQueryResponse 
+	GetPlatforms(ctx context.Context, query map[string]string) *api.BatchQueryResponse
+
+	// GetPlatformToken 
+	//  @param ctx 
+	//  @param req 
+	//  @return *api.Response 
 	GetPlatformToken(ctx context.Context, req *api.Platform) *api.Response
 }
 
+// L5OperateServer 
 type L5OperateServer interface {
-	//
+
+	// SyncByAgentCmd 
+	//  @param ctx 
+	//  @param sbac 
+	//  @return *l5.Cl5SyncByAgentAckCmd 
+	//  @return error 
 	SyncByAgentCmd(ctx context.Context, sbac *l5.Cl5SyncByAgentCmd) (*l5.Cl5SyncByAgentAckCmd, error)
-	//
+
+	// RegisterByNameCmd 
+	//  @param rbnc 
+	//  @return *l5.Cl5RegisterByNameAckCmd 
+	//  @return error 
 	RegisterByNameCmd(rbnc *l5.Cl5RegisterByNameCmd) (*l5.Cl5RegisterByNameAckCmd, error)
 }
 

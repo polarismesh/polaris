@@ -152,7 +152,7 @@ func (*ServiceAliasArr) ProtoMessage() {}
 /**
  * AuthResourceArr 命名空间数组定义
  */
- type AuthResourceArr []*api.Resource
+ type AuthResourceArr []*api.StrategyResource
 
  // Reset
  func (m *AuthResourceArr) Reset() { *m = AuthResourceArr{} }

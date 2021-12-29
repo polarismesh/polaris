@@ -495,7 +495,7 @@ func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *
 		ids = append(ids, instance.ID())
 	}
 
-	if err := s.storage.BatchSetInstanceIsolate(ids, isolate, NewUUID()); err != nil {
+	if err := s.storage.BatchSetInstanceIsolate(ids, isolate, utils.NewUUID()); err != nil {
 		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
 		return wrapperInstanceStoreResponse(req, err)
 	}
@@ -555,7 +555,7 @@ func (s *Server) sendDiscoverEvent(eventType model.DiscoverEventType, namespace,
 		EType:     eventType,
 	}
 
-	s.publishDiscoverEvent(event)
+	s.PublishDiscoverEvent(event)
 }
 
 /**
@@ -668,7 +668,7 @@ func (s *Server) updateInstanceAttribute(req *api.Instance, instance *model.Inst
 
 	// 每次更改，都要生成一个新的uuid
 	if needUpdate {
-		insProto.Revision = utils.NewStringValue(NewUUID())
+		insProto.Revision = utils.NewStringValue(utils.NewUUID())
 	}
 
 	return needUpdate
@@ -729,7 +729,7 @@ func updateHealthCheck(req *api.Instance, instance *model.Instance) bool {
 /**
  * GetInstances 查询服务实例
  */
-func (s *Server) GetInstances(query map[string]string) *api.BatchQueryResponse {
+func (s *Server) GetInstances(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	// 对数据先进行提前处理一下
 	filters, metaFilter, batchErr := preGetInstances(query)
 	if batchErr != nil {

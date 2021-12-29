@@ -43,10 +43,11 @@ message Principal {
   repeated google.protobuf.StringValue groups = 2;
 }
 
-message Resource {
-  repeated google.protobuf.StringValue namespaces = 1;
-  repeated google.protobuf.StringValue services = 2;
-  repeated google.protobuf.StringValue config_groups = 3;
+message StrategyResource {
+  google.protobuf.StringValue strategy_id = 1;
+  repeated google.protobuf.StringValue namespaces = 2;
+  repeated google.protobuf.StringValue services = 3;
+  repeated google.protobuf.StringValue config_groups = 4;
 }
 
 enum AuthAction {
@@ -58,7 +59,7 @@ message AuthStrategy {
   google.protobuf.StringValue id = 1;
   google.protobuf.StringValue name = 2;
   Principal principal = 3;
-  Resource resource = 4;
+  StrategyResource resource = 4;
   AuthAction action = 5;
   google.protobuf.StringValue comment = 6;
   google.protobuf.StringValue owner = 7;

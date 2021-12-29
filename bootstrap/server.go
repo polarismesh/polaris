@@ -386,14 +386,14 @@ func selfRegister(host string, port uint32, protocol string, isolated bool, pola
 		},
 	}
 
-	resp := server.CreateInstance(genContext(), req)
+	resp := server.CreateInstances(genContext(), []*api.Instance{req})
 	if api.CalcCode(resp) != 200 {
 		// 如果self之前注册过，那么可以忽略
 		if resp.GetCode().GetValue() != api.ExistedResource {
 			return fmt.Errorf("%s", resp.GetInfo().GetValue())
 		}
 
-		resp = server.UpdateInstance(genContext(), req)
+		resp = server.UpdateInstances(genContext(), []*api.Instance{req})
 		if api.CalcCode(resp) != 200 {
 			return fmt.Errorf("%s", resp.GetInfo().GetValue())
 		}
@@ -413,7 +413,7 @@ func SelfDeregister() {
 	}
 	for _, req := range SelfServiceInstance {
 		log.Infof("Deregister the instance(%+v)", req)
-		if resp := namingServer.DeleteInstance(genContext(), req); api.CalcCode(resp) != 200 {
+		if resp := namingServer.DeleteInstances(genContext(), []*api.Instance{req}); api.CalcCode(resp) != 200 {
 			// 遇到失败，继续反注册其他的实例
 			log.Errorf("Deregister instance error: %s", resp.GetInfo().GetValue())
 		}

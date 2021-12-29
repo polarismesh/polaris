@@ -21,40 +21,94 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
+// CreateNamespaces 创建命名空间，只需要要后置鉴权，将数据添加到资源策略中
+//  @receiver svr
+//  @param ctx
+//  @param req
+//  @return *api.BatchWriteResponse
 func (svr *serverAuthAbility) CreateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
-
+	authCtx := svr.collectNamespaceAuthContext(ctx, req, model.Create)
+	resp := svr.targetServer.CreateNamespaces(ctx, req)
+	if resp.Code.Value == api.ExecuteSuccess {
+		svr.authMgn.AfterResourceOperation(authCtx)
+	}
+	return resp
 }
 
-func (svr *serverAuthAbility) CreateNamespace(ctx context.Context, req *api.Namespace) *api.Response {
-
-}
-
+// DeleteNamespaces 删除命名空间，需要先走权限检查
+//  @receiver svr
+//  @param ctx
+//  @param req
+//  @return *api.BatchWriteResponse
 func (svr *serverAuthAbility) DeleteNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
+	authCtx := svr.collectNamespaceAuthContext(ctx, req, model.Delete)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	resp := svr.targetServer.DeleteNamespaces(ctx, req)
+	if resp.Code.Value == api.ExecuteSuccess {
+		svr.authMgn.AfterResourceOperation(authCtx)
+	}
+	return resp
 }
 
-func (svr *serverAuthAbility) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.Response {
-
-}
-
+// UpdateNamespaces 更新命名空间，需要先走权限检查
+//  @receiver svr
+//  @param ctx
+//  @param req
+//  @return *api.BatchWriteResponse
 func (svr *serverAuthAbility) UpdateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
+	authCtx := svr.collectNamespaceAuthContext(ctx, req, model.Modify)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	resp := svr.targetServer.DeleteNamespaces(ctx, req)
+	return resp
 }
 
-func (svr *serverAuthAbility) UpdateNamespace(ctx context.Context, req *api.Namespace) *api.Response {
-
-}
-
+// UpdateNamespaceToken 更新命名空间的token信息，需要先走权限检查
+//  @receiver svr
+//  @param ctx
+//  @param req
+//  @return *api.Response
 func (svr *serverAuthAbility) UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response {
+	authCtx := svr.collectNamespaceAuthContext(ctx, []*api.Namespace{req}, model.Modify)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	resp := svr.targetServer.UpdateNamespaceToken(ctx, req)
+	if resp.Code.Value == api.ExecuteSuccess {
+		svr.authMgn.AfterResourceOperation(authCtx)
+	}
+	return resp
 }
 
-func (svr *serverAuthAbility) GetNamespaces(query map[string][]string) *api.BatchQueryResponse {
-
+// GetNamespaces 获取命名空间列表信息，暂时不走权限检查
+//  @receiver svr
+//  @param ctx
+//  @param query
+//  @return *api.BatchQueryResponse
+func (svr *serverAuthAbility) GetNamespaces(ctx context.Context, query map[string][]string) *api.BatchQueryResponse {
+	return svr.targetServer.GetNamespaces(ctx, query)
 }
 
+// GetNamespaceToken 获取命名空间的token信息，暂时不走权限检查
+//  @receiver svr
+//  @param ctx
+//  @param req
+//  @return *api.Response
 func (svr *serverAuthAbility) GetNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response {
-
+	return svr.targetServer.GetNamespaceToken(ctx, req)
 }

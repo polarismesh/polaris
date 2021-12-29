@@ -20,9 +20,10 @@ package httpserver
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	proto "github.com/golang/protobuf/proto"
 	"github.com/polarismesh/polaris-server/common/log"
-	"net/http"
 
 	"github.com/emicklei/go-restful"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -243,7 +244,7 @@ func (h *HTTPServer) UpdateNamespaces(req *restful.Request, rsp *restful.Respons
 func (h *HTTPServer) GetNamespaces(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	ret := h.namingServer.GetNamespaces(req.Request.URL.Query())
+	ret := h.namingServer.GetNamespaces(handler.ParseHeaderContext(), req.Request.URL.Query())
 	handler.WriteHeaderAndProto(ret)
 }
 
@@ -464,7 +465,7 @@ func (h *HTTPServer) GetServiceAliases(req *restful.Request, rsp *restful.Respon
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
-	ret := h.namingServer.GetServiceAliases(queryParams)
+	ret := h.namingServer.GetServiceAliases(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
 
@@ -599,7 +600,7 @@ func (h *HTTPServer) GetInstances(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
-	ret := h.namingServer.GetInstances(queryParams)
+	ret := h.namingServer.GetInstances(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
 
@@ -775,7 +776,7 @@ func (h *HTTPServer) GetRateLimits(req *restful.Request, rsp *restful.Response) 
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
-	ret := h.namingServer.GetRateLimits(queryParams)
+	ret := h.namingServer.GetRateLimits(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
 
@@ -927,7 +928,7 @@ func (h *HTTPServer) GetCircuitBreaker(req *restful.Request, rsp *restful.Respon
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
-	ret := h.namingServer.GetCircuitBreaker(queryParams)
+	ret := h.namingServer.GetCircuitBreaker(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
 
@@ -938,7 +939,7 @@ func (h *HTTPServer) GetCircuitBreakerVersions(req *restful.Request, rsp *restfu
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
-	ret := h.namingServer.GetCircuitBreakerVersions(queryParams)
+	ret := h.namingServer.GetCircuitBreakerVersions(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
 
@@ -949,7 +950,7 @@ func (h *HTTPServer) GetMasterCircuitBreakers(req *restful.Request, rsp *restful
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
-	ret := h.namingServer.GetMasterCircuitBreakers(queryParams)
+	ret := h.namingServer.GetMasterCircuitBreakers(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
 
@@ -960,7 +961,7 @@ func (h *HTTPServer) GetReleaseCircuitBreakers(req *restful.Request, rsp *restfu
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
-	ret := h.namingServer.GetReleaseCircuitBreakers(queryParams)
+	ret := h.namingServer.GetReleaseCircuitBreakers(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
 
@@ -971,7 +972,7 @@ func (h *HTTPServer) GetCircuitBreakerByService(req *restful.Request, rsp *restf
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
-	ret := h.namingServer.GetCircuitBreakerByService(queryParams)
+	ret := h.namingServer.GetCircuitBreakerByService(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
 
@@ -1091,7 +1092,7 @@ func (h *HTTPServer) GetPlatforms(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
-	ret := h.namingServer.GetPlatforms(queryParams)
+	ret := h.namingServer.GetPlatforms(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
 

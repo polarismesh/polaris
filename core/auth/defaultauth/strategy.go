@@ -204,12 +204,12 @@ func (svr *authStrategyServer) ListStrategy(ctx context.Context, query map[strin
 }
 
 // AddStrategyResources
-func (svr *authStrategyServer) AddStrategyResources(ctx context.Context, req []*api.Resource) *api.BatchWriteResponse {
+func (svr *authStrategyServer) AddStrategyResources(ctx context.Context, req *api.StrategyResource) *api.BatchWriteResponse {
 	return nil
 }
 
 // DeleteStrategyResources
-func (svr *authStrategyServer) DeleteStrategyResources(ctx context.Context, req []*api.Resource) *api.BatchWriteResponse {
+func (svr *authStrategyServer) DeleteStrategyResources(ctx context.Context, req *api.StrategyResource) *api.BatchWriteResponse {
 	return nil
 }
 

@@ -21,32 +21,43 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
-func (svr *serverAuthAbility) CreateRoutingConfigs(ctx context.Context, req []*api.Routing) *api.BatchWriteResponse {
+func (svr *serverAuthAbility) CreateRoutingConfigs(ctx context.Context, reqs []*api.Routing) *api.BatchWriteResponse {
+	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Create)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	return svr.targetServer.CreateRoutingConfigs(ctx, reqs)
 }
 
-func (svr *serverAuthAbility) CreateRoutingConfig(ctx context.Context, req *api.Routing) *api.Response {
+func (svr *serverAuthAbility) DeleteRoutingConfigs(ctx context.Context, reqs []*api.Routing) *api.BatchWriteResponse {
+	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Delete)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	return svr.targetServer.DeleteRoutingConfigs(ctx, reqs)
 }
 
-func (svr *serverAuthAbility) DeleteRoutingConfigs(ctx context.Context, req []*api.Routing) *api.BatchWriteResponse {
+func (svr *serverAuthAbility) UpdateRoutingConfigs(ctx context.Context, reqs []*api.Routing) *api.BatchWriteResponse {
+	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Create)
 
-}
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
 
-func (svr *serverAuthAbility) DeleteRoutingConfig(ctx context.Context, req *api.Routing) *api.Response {
-
-}
-
-func (svr *serverAuthAbility) UpdateRoutingConfigs(ctx context.Context, req []*api.Routing) *api.BatchWriteResponse {
-
-}
-
-func (svr *serverAuthAbility) UpdateRoutingConfig(ctx context.Context, req *api.Routing) *api.Response {
-
+	return svr.targetServer.UpdateRoutingConfigs(ctx, reqs)
 }
 
 func (svr *serverAuthAbility) GetRoutingConfigs(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 
+	return svr.targetServer.GetRoutingConfigs(ctx, query)
 }

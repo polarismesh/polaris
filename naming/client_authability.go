@@ -23,32 +23,56 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
-// ReportClient
+// ReportClient 
+//  @receiver svr 
+//  @param ctx 
+//  @param req 
+//  @return *api.Response 
 func (svr *serverAuthAbility) ReportClient(ctx context.Context, req *api.Client) *api.Response {
-
+	return svr.targetServer.ReportClient(ctx, req)
 }
 
-// GetServiceWithCache
+// GetServiceWithCache 
+//  @receiver svr 
+//  @param ctx 
+//  @param req 
+//  @return *api.DiscoverResponse 
 func (svr *serverAuthAbility) GetServiceWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
-
+	return svr.targetServer.GetServiceWithCache(ctx, req)
 }
 
-// ServiceInstancesCache
+// ServiceInstancesCache 
+//  @receiver svr 
+//  @param ctx 
+//  @param req 
+//  @return *api.DiscoverResponse 
 func (svr *serverAuthAbility) ServiceInstancesCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
-
+	return svr.targetServer.ServiceInstancesCache(ctx, req)
 }
 
-// GetRoutingConfigWithCache
+// GetRoutingConfigWithCache 
+//  @receiver svr 
+//  @param ctx 
+//  @param req 
+//  @return *api.DiscoverResponse 
 func (svr *serverAuthAbility) GetRoutingConfigWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
-
+	return svr.targetServer.GetRoutingConfigWithCache(ctx, req)
 }
 
-// GetRateLimitWithCache
+// GetRateLimitWithCache 
+//  @receiver svr 
+//  @param ctx 
+//  @param req 
+//  @return *api.DiscoverResponse 
 func (svr *serverAuthAbility) GetRateLimitWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
-
+	return svr.targetServer.GetRateLimitWithCache(ctx, req)
 }
 
-// GetCircuitBreakerWithCache
+// GetCircuitBreakerWithCache 
+//  @receiver svr 
+//  @param ctx 
+//  @param req 
+//  @return *api.DiscoverResponse 
 func (svr *serverAuthAbility) GetCircuitBreakerWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
-
+	return svr.targetServer.GetCircuitBreakerWithCache(ctx, req)
 }

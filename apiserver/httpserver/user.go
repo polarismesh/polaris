@@ -20,6 +20,7 @@ package httpserver
 import (
 	"github.com/emicklei/go-restful"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 // GetMaintainAccessServer 运维接口
@@ -28,6 +29,7 @@ func (h *HTTPServer) GetUserAccessServer() *restful.WebService {
 	ws.Path("/core/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
 
 	//
+	ws.Route(ws.POST("/user/login").To(h.Login))
 	ws.Route(ws.POST("/user").To(h.CreateUser))
 	ws.Route(ws.PUT("/user").To(h.UpdateUser))
 	ws.Route(ws.POST("/user/delete").To(h.DeleteUser))
@@ -49,6 +51,31 @@ func (h *HTTPServer) GetUserAccessServer() *restful.WebService {
 	ws.Route(ws.PUT("/usergroup/token/enable").To(h.EnableUserGroupToken))
 	ws.Route(ws.PUT("/usergroup/token/refresh").To(h.RefreshUserGroupToken))
 	return ws
+}
+
+func (h *HTTPServer) Login(req *restful.Request, rsp *restful.Response) {
+	handler := &Handler{req, rsp}
+
+	user := &api.User{}
+
+	_, err := handler.Parse(user)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		return
+	}
+
+	resp := api.NewResponse(api.ExecuteSuccess)
+
+	token, err := h.authMgn.Login(user.GetName().GetValue(), user.GetPassword().GetValue())
+	if err != nil {
+		resp = api.NewResponseWithMsg(api.ExecuteException, err.Error())
+	} else {
+		resp.User = &api.User{
+			AuthToken: utils.NewStringValue(token),
+		}
+	}
+
+	handler.WriteHeaderAndProto(resp)
 }
 
 func (h *HTTPServer) CreateUser(req *restful.Request, rsp *restful.Response) {

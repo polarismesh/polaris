@@ -48,8 +48,8 @@ func (g *GRPCServer) RegisterInstance(ctx context.Context, in *api.Instance) (*a
 	rCtx := convertContext(ctx)
 	operator := ParseGrpcOperator(ctx)
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), operator)
-	out := g.namingServer.CreateInstance(rCtx, in)
-	return out, nil
+	out := g.namingServer.CreateInstances(rCtx, []*api.Instance{in})
+	return out.Responses[0], nil
 }
 
 /**
@@ -60,8 +60,8 @@ func (g *GRPCServer) DeregisterInstance(ctx context.Context, in *api.Instance) (
 	rCtx := convertContext(ctx)
 	operator := ParseGrpcOperator(ctx)
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), operator)
-	out := g.namingServer.DeleteInstance(rCtx, in)
-	return out, nil
+	out := g.namingServer.DeleteInstances(rCtx, []*api.Instance{in})
+	return out.Responses[0], nil
 }
 
 /**

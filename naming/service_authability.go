@@ -21,53 +21,71 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 // CreateServices 批量创建服务
-func (svr *serverAuthAbility) CreateServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse {
+func (svr *serverAuthAbility) CreateServices(ctx context.Context, reqs []*api.Service) *api.BatchWriteResponse {
+	authCtx := svr.collectServiceAuthContext(ctx, reqs, model.Create)
 
-}
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
 
-// CreateService 创建单个服务
-func (svr *serverAuthAbility) CreateService(ctx context.Context, req *api.Service) *api.Response {
-
+	return svr.targetServer.CreateServices(ctx, reqs)
 }
 
 // DeleteServices 批量删除服务
-func (svr *serverAuthAbility) DeleteServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse {
+func (svr *serverAuthAbility) DeleteServices(ctx context.Context, reqs []*api.Service) *api.BatchWriteResponse {
+	authCtx := svr.collectServiceAuthContext(ctx, reqs, model.Delete)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	return svr.targetServer.CreateServices(ctx, reqs)
 }
 
-// DeleteService Delete a single service, the delete operation needs to lock the service
-// 	to prevent the instance of the service associated with the service or a new operation.
-func (svr *serverAuthAbility) DeleteService(ctx context.Context, req *api.Service) *api.Response {
+func (svr *serverAuthAbility) UpdateServices(ctx context.Context, reqs []*api.Service) *api.BatchWriteResponse {
+	authCtx := svr.collectServiceAuthContext(ctx, reqs, model.Modify)
 
-}
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
 
-func (svr *serverAuthAbility) UpdateServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse {
-
-}
-
-func (svr *serverAuthAbility) UpdateService(ctx context.Context, req *api.Service) *api.Response {
-
+	return svr.targetServer.UpdateServices(ctx, reqs)
 }
 
 func (svr *serverAuthAbility) UpdateServiceToken(ctx context.Context, req *api.Service) *api.Response {
+	authCtx := svr.collectServiceAuthContext(ctx, []*api.Service{req}, model.Create)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	return svr.targetServer.UpdateServiceToken(ctx, req)
 }
 
 func (svr *serverAuthAbility) GetServices(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 
+	return svr.targetServer.GetServices(ctx, query)
 }
 
 func (svr *serverAuthAbility) GetServicesCount() *api.BatchQueryResponse {
 
+	return svr.targetServer.GetServicesCount()
 }
 
 func (svr *serverAuthAbility) GetServiceToken(ctx context.Context, req *api.Service) *api.Response {
 
+	return svr.targetServer.GetServiceToken(ctx, req)
 }
 
 func (svr *serverAuthAbility) GetServiceOwner(ctx context.Context, req []*api.Service) *api.BatchQueryResponse {
 
+	return svr.targetServer.GetServiceOwner(ctx, req)
 }

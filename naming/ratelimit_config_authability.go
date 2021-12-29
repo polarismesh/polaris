@@ -21,32 +21,43 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
-func (svr *serverAuthAbility) CreateRateLimits(ctx context.Context, request []*api.Rule) *api.BatchWriteResponse {
+func (svr *serverAuthAbility) CreateRateLimits(ctx context.Context, reqs []*api.Rule) *api.BatchWriteResponse {
+	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Create)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	return svr.targetServer.CreateRateLimits(ctx, reqs)
 }
 
-func (svr *serverAuthAbility) CreateRateLimit(ctx context.Context, req *api.Rule) *api.Response {
+func (svr *serverAuthAbility) DeleteRateLimits(ctx context.Context, reqs []*api.Rule) *api.BatchWriteResponse {
+	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Delete)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	return svr.targetServer.DeleteRateLimits(ctx, reqs)
 }
 
-func (svr *serverAuthAbility) DeleteRateLimits(ctx context.Context, request []*api.Rule) *api.BatchWriteResponse {
+func (svr *serverAuthAbility) UpdateRateLimits(ctx context.Context, reqs []*api.Rule) *api.BatchWriteResponse {
+	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Modify)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	return svr.targetServer.UpdateRateLimits(ctx, reqs)
 }
 
-func (svr *serverAuthAbility) DeleteRateLimit(ctx context.Context, req *api.Rule) *api.Response {
+func (svr *serverAuthAbility) GetRateLimits(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 
-}
-
-func (svr *serverAuthAbility) UpdateRateLimits(ctx context.Context, request []*api.Rule) *api.BatchWriteResponse {
-
-}
-
-func (svr *serverAuthAbility) UpdateRateLimit(ctx context.Context, req *api.Rule) *api.Response {
-
-}
-
-func (svr *serverAuthAbility) GetRateLimits(query map[string]string) *api.BatchQueryResponse {
-
+	return svr.targetServer.GetRateLimits(ctx, query)
 }

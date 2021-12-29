@@ -111,7 +111,7 @@ func (h *HTTPServer) RegisterInstance(req *restful.Request, rsp *restful.Respons
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.namingServer.CreateInstance(ctx, instance))
+	handler.WriteHeaderAndProto(h.namingServer.CreateInstances(ctx, []*api.Instance{instance}))
 }
 
 /**
@@ -127,7 +127,7 @@ func (h *HTTPServer) DeregisterInstance(req *restful.Request, rsp *restful.Respo
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.namingServer.DeleteInstance(ctx, instance))
+	handler.WriteHeaderAndProto(h.namingServer.DeleteInstances(ctx, []*api.Instance{instance}))
 }
 
 /**

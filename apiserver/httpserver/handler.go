@@ -115,8 +115,12 @@ func (h *Handler) ParseHeaderContext() context.Context {
 	ctx = context.WithValue(ctx, utils.StringContext("request-id"), requestID)
 	ctx = context.WithValue(ctx, utils.StringContext("platform-id"), platformID)
 	ctx = context.WithValue(ctx, utils.StringContext("platform-token"), platformToken)
+	authToken := h.Request.HeaderParameter("Auth-Token")
 	if token != "" {
 		ctx = context.WithValue(ctx, utils.StringContext("polaris-token"), token)
+	}
+	if authToken != "" {
+		ctx = context.WithValue(ctx, utils.StringContext("auth-token"), token)
 	}
 
 	var operator string

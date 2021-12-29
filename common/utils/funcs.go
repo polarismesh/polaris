@@ -21,7 +21,7 @@ import (
 	"encoding/hex"
 	"strings"
 
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 )
@@ -49,7 +49,7 @@ func CreateInstanceModel(serviceID string, req *api.Instance) *model.Instance {
 	instance := &model.Instance{
 		ServiceID: serviceID,
 	}
-	uuidBytes := uuid.New()
+
 	protoIns := &api.Instance{
 		Id:       req.GetId(),
 		Host:     NewStringValue(strings.TrimSpace(req.GetHost().GetValue())),
@@ -64,7 +64,7 @@ func CreateInstanceModel(serviceID string, req *api.Instance) *model.Instance {
 		Location: req.Location,
 		Metadata: req.Metadata,
 		LogicSet: req.GetLogicSet(),
-		Revision: NewStringValue(hex.EncodeToString(uuidBytes[:])), // 更新版本号
+		Revision: NewStringValue(NewUUID()), // 更新版本号
 	}
 
 	// health Check，healthCheck不能为空，且没有显示把enable_health_check置为false

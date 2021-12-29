@@ -68,6 +68,7 @@ type HTTPServer struct {
 	rateLimit         plugin.Ratelimit
 	statis            plugin.Statis
 	auth              plugin.Auth
+	authMgn           auth.AuthManager
 }
 
 const (
@@ -149,6 +150,8 @@ func (h *HTTPServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
+
+	h.authMgn = authMgn
 	h.userServer = authMgn.GetUserServer()
 	h.strategyServer = authMgn.GetAuthStrategyServer()
 

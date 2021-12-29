@@ -18,6 +18,7 @@
 package model
 
 import (
+	"context"
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -32,20 +33,25 @@ const (
 type ResourceOperation int16
 
 const (
-	Read ResourceOperation = iota
-	Write
-	Delete
+	Read   ResourceOperation = 10
+	Create ResourceOperation = 20
+	Modify ResourceOperation = 30
+	Delete ResourceOperation = 40
 )
 
 type BzModule int16
 
 const (
-	DiscoverModule BzModule = iota
+	CoreModule BzModule = iota
+	DiscoverModule
 	ConfigModule
 )
 
 // AcquireContext 每次鉴权请求上下文信息
 type AcquireContext struct {
+	
+	// RequestContext 请求上下文
+	RequestContext context.Context
 
 	// Token 本次请求的访问凭据
 	Token string

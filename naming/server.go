@@ -87,7 +87,7 @@ func (s *Server) RecordDiscoverStatis(service, namespace string) {
 }
 
 // PublishDiscoverEvent 发布服务事件
-func (s *Server) publishDiscoverEvent(event model.DiscoverEvent) {
+func (s *Server) PublishDiscoverEvent(event model.DiscoverEvent) {
 	if s.discoverEvent == nil {
 		return
 	}

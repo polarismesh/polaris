@@ -212,7 +212,7 @@ func (s *Server) DeletePlatform(ctx context.Context, req *api.Platform) *api.Res
 /**
  * GetPlatforms 查询平台信息
  */
-func (s *Server) GetPlatforms(query map[string]string) *api.BatchQueryResponse {
+func (s *Server) GetPlatforms(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	for key := range query {
 		if _, ok := platformFilterAttributes[key]; !ok {
 			log.Errorf("get platforms attribute(%s) is not allowed", key)
@@ -466,7 +466,7 @@ func createPlatformModel(req *api.Platform) *model.Platform {
 		Name:       req.GetName().GetValue(),
 		Domain:     req.GetDomain().GetValue(),
 		QPS:        req.GetQps().GetValue(),
-		Token:      NewUUID(),
+		Token:      utils.NewUUID(),
 		Owner:      req.GetOwner().GetValue(),
 		Department: req.GetDepartment().GetValue(),
 		Comment:    req.GetComment().GetValue(),

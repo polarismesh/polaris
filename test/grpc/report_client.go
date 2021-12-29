@@ -20,10 +20,10 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/naming"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -33,7 +33,7 @@ import (
 func (c *Client) ReportClient(client *api.Client) error {
 	fmt.Printf("\nreport client\n")
 
-	md := metadata.Pairs("request-id", naming.NewUUID())
+	md := metadata.Pairs("request-id", utils.NewUUID())
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second)

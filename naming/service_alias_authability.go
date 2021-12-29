@@ -21,24 +21,63 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
+// CreateServiceAlias
+//  @receiver svr
+//  @param ctx
+//  @param req
+//  @return *api.Response
 func (svr *serverAuthAbility) CreateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
+	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Create)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	return svr.targetServer.CreateServiceAlias(ctx, req)
 }
 
-func (svr *serverAuthAbility) DeleteServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
+// DeleteServiceAliases
+//  @receiver svr
+//  @param ctx
+//  @param req
+//  @return *api.BatchWriteResponse
+func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context, reqs []*api.ServiceAlias) *api.BatchWriteResponse {
+	authCtx := svr.collectServiceAliasAuthContext(ctx, reqs, model.Modify)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	return svr.targetServer.DeleteServiceAliases(ctx, reqs)
 }
 
-func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context, req []*api.ServiceAlias) *api.BatchWriteResponse {
-
-}
-
+// UpdateServiceAlias
+//  @receiver svr
+//  @param ctx
+//  @param req
+//  @return *api.Response
 func (svr *serverAuthAbility) UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
+	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Create)
 
+	_, err := svr.authMgn.HasPermission(authCtx)
+	if err != nil {
+		return api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	return svr.targetServer.UpdateServiceAlias(ctx, req)
 }
 
-func (svr *serverAuthAbility) GetServiceAliases(query map[string]string) *api.BatchQueryResponse {
+// GetServiceAliases
+//  @receiver svr
+//  @param ctx
+//  @param query
+//  @return *api.BatchQueryResponse
+func (svr *serverAuthAbility) GetServiceAliases(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 
+	return svr.targetServer.GetServiceAliases(ctx, query)
 }

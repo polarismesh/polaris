@@ -54,8 +54,8 @@ func (svr *serverAuthAbility) DeletePlatform(ctx context.Context, req *api.Platf
 }
 
 //
-func (svr *serverAuthAbility) GetPlatforms(query map[string]string) *api.BatchQueryResponse {
-	return svr.GetPlatforms(query)
+func (svr *serverAuthAbility) GetPlatforms(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+	return svr.targetServer.GetPlatforms(ctx, query)
 }
 
 //

@@ -153,7 +153,7 @@ func (authMgn *defaultAuthManager) AfterResourceOperation(afterCtx *model.Acquir
 		}
 	}
 
-	if afterCtx.Operation == model.Write {
+	if afterCtx.Operation == model.Create {
 		// 如果是写操作，那么采用松添加操作进行新增资源的添加操作
 		err = authMgn.strategySvr.storage.LooseAddStrategyResources(strategyResource)
 		if err != nil {
