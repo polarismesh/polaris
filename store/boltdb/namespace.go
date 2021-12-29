@@ -176,8 +176,8 @@ func (n *namespaceStore) GetNamespaces(
 		if !ns.Valid {
 			continue
 		}
+		isFind := true
 		for index, value := range filter {
-			isFind := false
 			compare := func(s string) bool {
 				for _, v := range value {
 					if strings.Contains(s, v) {
@@ -188,21 +188,25 @@ func (n *namespaceStore) GetNamespaces(
 			}
 
 			if index == OwnerAttribute {
-				isFind = compare(ns.Owner)
+				if isFind = compare(ns.Owner); !isFind {
+					break
+				}
+
 			}
 			if index == NameAttribute {
-				isFind = compare(ns.Name)
+				if isFind = compare(ns.Name); !isFind {
+					break
+				}
 			}
-
-			if isFind {
-				ret = append(ret, ns)
-			}
+		}
+		if isFind {
+			ret = append(ret, ns)
 		}
 	}
 	namespaces = ret
 
 	sort.Sort(sort.Reverse(namespaces))
-	startIdx := offset * limit
+	startIdx := offset
 	if startIdx >= len(namespaces) {
 		return nil, 0, nil
 	}
@@ -211,7 +215,7 @@ func (n *namespaceStore) GetNamespaces(
 		endIdx = len(namespaces)
 	}
 	ret = namespaces[startIdx:endIdx]
-	return ret, uint32(len(ret)), nil
+	return ret, uint32(len(namespaces)), nil
 }
 
 func toNamespaces(values map[string]interface{}) []*model.Namespace {
