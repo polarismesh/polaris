@@ -27,6 +27,9 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v2
 
+      - name: typos-action
+        uses: crate-ci/typos@v1.2.1
+
       # Execute vert check
       - name: Vert check
         run: bash vert.sh -install && bash vert.sh
