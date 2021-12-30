@@ -60,7 +60,7 @@ func (l *L5pbserver) handleConnection(conn net.Conn) {
 	bufRead := bufio.NewReader(conn)
 	for {
 		if _, err := io.ReadFull(bufRead, header); err != nil {
-			// end fo the reader
+			// end of the reader
 			if err == io.EOF {
 				return
 			}

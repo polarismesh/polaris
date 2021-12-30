@@ -44,7 +44,7 @@ func TestInstance(t *testing.T) {
 	for index, item := range ret.GetResponses() {
 		namespaces[index].Token = item.GetNamespace().GetToken()
 	}
-	t.Log("create namepsaces success")
+	t.Log("create namespaces success")
 
 	// 创建服务
 	ret, err = client.CreateServices(services)
@@ -114,7 +114,7 @@ func TestInstance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("delete namespaces fail: %s", err.Error())
 	}
-	t.Log("delete namepsaces success")
+	t.Log("delete namespaces success")
 }
 
 // TestInstanceWithoutService 测试注册实例的时候，没有创建服务时可以自动创建服务出来
@@ -138,7 +138,7 @@ func TestInstanceWithoutService(t *testing.T) {
 	for index, item := range ret.GetResponses() {
 		namespaces[index].Token = item.GetNamespace().GetToken()
 	}
-	t.Log("create namepsaces success")
+	t.Log("create namespaces success")
 
 	//-------------------------------------------------------
 
@@ -198,5 +198,5 @@ func TestInstanceWithoutService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("delete namespaces fail: %s", err.Error())
 	}
-	t.Log("delete namepsaces success")
+	t.Log("delete namespaces success")
 }

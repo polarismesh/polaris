@@ -89,10 +89,10 @@ func (r *rateLimitStore) DeleteRateLimit(limit *model.RateLimit) error {
 func (r *rateLimitStore) GetExtendRateLimits(
 	query map[string]string, offset uint32, limit uint32) (uint32, []*model.ExtendRateLimit, error) {
 	handler := r.handler
-	fields := []string{SvcFieldName, SvcFieldNamespace, SvcFieldVaild}
+	fields := []string{SvcFieldName, SvcFieldNamespace, SvcFieldValid}
 	services, err := r.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
-			validVal, ok := m[SvcFieldVaild]
+			validVal, ok := m[SvcFieldValid]
 			if ok && !validVal.(bool) {
 				return false
 			}
