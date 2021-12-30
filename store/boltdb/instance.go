@@ -197,8 +197,8 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 	// find all instances with given ids
 	inss, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
-			vaild, ok := m[insFieldValid]
-			if ok && !vaild.(bool) {
+			valid, ok := m[insFieldValid]
+			if ok && !valid.(bool) {
 				return false
 			}
 
@@ -228,8 +228,8 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 	fields = []string{SvcFieldID, SvcFieldValid}
 	services, err := i.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
-			vaild, ok := m[insFieldValid]
-			if ok && !vaild.(bool) {
+			valid, ok := m[insFieldValid]
+			if ok && !valid.(bool) {
 				return false
 			}
 
@@ -325,8 +325,8 @@ func (i *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*mo
 
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
-			vaild, ok := m[insFieldValid]
-			if ok && !vaild.(bool) {
+			valid, ok := m[insFieldValid]
+			if ok && !valid.(bool) {
 				return false
 			}
 
@@ -387,8 +387,8 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
-			vaild, ok := m[insFieldValid]
-			if ok && !vaild.(bool) {
+			valid, ok := m[insFieldValid]
+			if ok && !valid.(bool) {
 				return false
 			}
 
@@ -496,8 +496,8 @@ func (i *instanceStore) GetMoreInstances(
 		func(m map[string]interface{}) bool {
 
 			if firstUpdate {
-				vaild, ok := m[insFieldValid]
-				if ok && !vaild.(bool) {
+				valid, ok := m[insFieldValid]
+				if ok && !valid.(bool) {
 					return false
 				}
 			}
