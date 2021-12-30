@@ -42,7 +42,7 @@ func TestCircuitBreaker(t *testing.T) {
 	for index, item := range ret.GetResponses() {
 		namespaces[index].Token = item.GetNamespace().GetToken()
 	}
-	t.Log("create namepsaces success")
+	t.Log("create namespaces success")
 
 	circuitBreakers := resource.CreateCircuitBreakers(namespaces[0])
 
@@ -161,5 +161,5 @@ func TestCircuitBreaker(t *testing.T) {
 	if err != nil {
 		t.Fatalf("delete namespaces fail，error: %s", err.Error())
 	}
-	t.Log("delete namepsaces success")
+	t.Log("delete namespaces success")
 }

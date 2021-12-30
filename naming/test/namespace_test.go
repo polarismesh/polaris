@@ -41,7 +41,7 @@ func createCommonNamespace(t *testing.T, id int) (*api.Namespace, *api.Namespace
 
 	if resp.GetNamespace().GetToken().GetValue() == "" ||
 		req.GetName().GetValue() != resp.GetNamespace().GetName().GetValue() {
-		t.Fatalf("erros: %+v", resp)
+		t.Fatalf("errors: %+v", resp)
 	}
 
 	return req, resp.GetNamespace()
