@@ -1,4 +1,4 @@
 # Typo check: https://github.com/crate-ci/typos
 
 [files]
-extend-exclude = ["go.sum"]
+extend-exclude = ["go.sum","logo.svg"]
