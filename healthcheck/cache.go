@@ -22,13 +22,22 @@ import (
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/plugin"
+	"runtime"
 )
+
+var ShardSize uint32
+
+func init() {
+	ShardSize = uint32(runtime.GOMAXPROCS(0) * 16)
+	// Different machines can adjust this parameter of 16.In more cases, 16 is suitable ,
+	// can test it in shardmap_test.go
+}
 
 // CacheProvider provider health check objects for service cache
 type CacheProvider struct {
-	healthCheckInstances *SharedMap
+	healthCheckInstances *ShardMap
 	selfService          string
-	selfServiceInstances *SharedMap
+	selfServiceInstances *ShardMap
 }
 
 // CacheEvent provide the event for cache changes
@@ -39,8 +48,8 @@ type CacheEvent struct {
 
 func newCacheProvider(selfService string) *CacheProvider {
 	return &CacheProvider{
-		healthCheckInstances: NewSharedMap(128),
-		selfServiceInstances: NewSharedMap(128),
+		healthCheckInstances: NewShardMap(ShardSize),
+		selfServiceInstances: NewShardMap(ShardSize),
 		selfService:          selfService,
 	}
 }
@@ -57,7 +66,7 @@ func (c *CacheProvider) sendEvent(event CacheEvent) {
 	server.dispatcher.UpdateStatusByEvent(event)
 }
 
-func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, values *SharedMap) bool {
+func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, values *ShardMap) bool {
 	instanceId := instanceWithChecker.instance.ID()
 	value, ok := values.Load(instanceId)
 	if !ok {
@@ -77,8 +86,7 @@ func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, va
 	return true
 }
 
-func storeServiceInstance(instanceWithChecker *InstanceWithChecker, values *SharedMap) bool {
-
+func storeServiceInstance(instanceWithChecker *InstanceWithChecker, values *ShardMap) bool {
 	log.Infof("[Health Check][Cache]create service instance is %s:%d, id is %s",
 		instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(),
 		instanceWithChecker.instance.ID())
@@ -87,10 +95,14 @@ func storeServiceInstance(instanceWithChecker *InstanceWithChecker, values *Shar
 	return true
 }
 
-func deleteServiceInstance(instance *api.Instance, values *SharedMap) bool {
+func deleteServiceInstance(instance *api.Instance, values *ShardMap) bool {
 	instanceId := instance.GetId().GetValue()
-
-	values.Delete(instanceId)
+	_, ok := values.Load(instanceId)
+	if ok {
+		log.Infof("[Health Check][Cache]delete service instance is %s:%d, id is %s",
+			instance.GetHost().GetValue(), instance.GetPort().GetValue(), instanceId)
+		values.Delete(instanceId)
+	}
 
 	return true
 }
@@ -144,8 +156,7 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 	if instance, ok := value.(*model.Instance); ok {
 		instProto := instance.Proto
 		if c.isSelfServiceInstance(instProto) {
-			if compareAndStoreServiceInstance(
-				newInstanceWithChecker(instance, nil), c.selfServiceInstances) {
+			if compareAndStoreServiceInstance(newInstanceWithChecker(instance, nil), c.selfServiceInstances) {
 				c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
 			}
 			return
@@ -206,15 +217,15 @@ func (c *CacheProvider) RangeHealthCheckInstances(check func(instance *InstanceW
 // RangeSelfServiceInstances range loop selfServiceInstances
 func (c *CacheProvider) RangeSelfServiceInstances(check func(instance *api.Instance)) {
 
-	c.selfServiceInstances.RangeMap(func(instanceId string, healthCheckInstance *InstanceWithChecker) {
-		check(healthCheckInstance.instance.Proto)
+	c.selfServiceInstances.RangeMap(func(instanceId string, selfServiceInstance *InstanceWithChecker) {
+		check(selfServiceInstance.instance.Proto)
 	})
 }
 
 // GetInstance get instance by id
-func (c *CacheProvider) GetInstance(id string) *model.Instance {
+func (c *CacheProvider) GetInstance(instanceId string) *model.Instance {
 
-	value, ok := c.healthCheckInstances.Load(id)
+	value, ok := c.healthCheckInstances.Load(instanceId)
 	if !ok {
 		return nil
 	}

@@ -21,27 +21,26 @@ import (
 	"sync"
 )
 
-type SharedMap struct {
+// A Concurrent safe ShardMap for healthCheckInstances
+// To avoid lock bottlenecks this map is dived to several (ShardSize) Concurrent map.
+type ShardMap struct {
 	size   uint32
-	Shared []*Shared
+	Shards []*Shard
 }
 
-type Shared struct {
+type Shard struct {
 	healthCheckInstances map[string]*InstanceWithChecker
 	healthCheckMutex     *sync.RWMutex
 }
 
-func (m *SharedMap) getShard(instanceId string) *Shared {
-	return m.Shared[fnv32(instanceId)&(m.size-1)]
-}
-
-func NewSharedMap(size uint32) *SharedMap {
-	m := &SharedMap{
+// Creates a new ShardMap
+func NewShardMap(size uint32) *ShardMap {
+	m := &ShardMap{
 		size:   size,
-		Shared: make([]*Shared, size),
+		Shards: make([]*Shard, size),
 	}
-	for i := range m.Shared {
-		m.Shared[i] = &Shared{
+	for i := range m.Shards {
+		m.Shards[i] = &Shard{
 			healthCheckInstances: make(map[string]*InstanceWithChecker),
 			healthCheckMutex:     &sync.RWMutex{},
 		}
@@ -49,7 +48,13 @@ func NewSharedMap(size uint32) *SharedMap {
 	return m
 }
 
-func (m *SharedMap) Store(instanceId string, healthCheckInstance *InstanceWithChecker) {
+// getShard returns shard under given instanceId
+func (m *ShardMap) getShard(instanceId string) *Shard {
+	return m.Shards[fnv32(instanceId)%m.size]
+}
+
+// Store stores healthCheckInstances under given instanceId.
+func (m *ShardMap) Store(instanceId string, healthCheckInstance *InstanceWithChecker) {
 	if len(instanceId) == 0 {
 		return
 	}
@@ -59,7 +64,8 @@ func (m *SharedMap) Store(instanceId string, healthCheckInstance *InstanceWithCh
 	shard.healthCheckMutex.Unlock()
 }
 
-func (m *SharedMap) Load(instanceId string) (healthCheckInstance *InstanceWithChecker, ok bool) {
+// Load loads the healthCheckInstances under the instanceId.
+func (m *ShardMap) Load(instanceId string) (healthCheckInstance *InstanceWithChecker, ok bool) {
 	if len(instanceId) == 0 {
 		return nil, false
 	}
@@ -70,7 +76,8 @@ func (m *SharedMap) Load(instanceId string) (healthCheckInstance *InstanceWithCh
 	return healthCheckInstance, ok
 }
 
-func (m *SharedMap) Delete(instanceId string) {
+// Delete deletes the healthCheckInstances under the given instanceId.
+func (m *ShardMap) Delete(instanceId string) {
 	if len(instanceId) == 0 {
 		return
 	}
@@ -80,14 +87,27 @@ func (m *SharedMap) Delete(instanceId string) {
 	shard.healthCheckMutex.Unlock()
 }
 
-func (m *SharedMap) RangeMap(fn func(instanceId string, healthCheckInstance *InstanceWithChecker)) {
-	for _, shard := range m.Shared {
+// RangeMap iterates over the ShardMap.
+func (m *ShardMap) RangeMap(fn func(instanceId string, healthCheckInstance *InstanceWithChecker)) {
+	for _, shard := range m.Shards {
 		shard.healthCheckMutex.Lock()
 		for k, v := range shard.healthCheckInstances {
 			fn(k, v)
 		}
 		shard.healthCheckMutex.Unlock()
 	}
+}
+
+// Count returns the number of elements within the map.
+func (m *ShardMap) Count() int {
+	count := 0
+	for i := 0; i < int(m.size); i++ {
+		shard := m.Shards[i]
+		shard.healthCheckMutex.RLock()
+		count += len(shard.healthCheckInstances)
+		shard.healthCheckMutex.RUnlock()
+	}
+	return count
 }
 
 // FNV hash
