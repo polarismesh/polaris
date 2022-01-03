@@ -15,10 +15,9 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package sharedmap
+package healthcheck
 
 import (
-	"github.com/polarismesh/polaris-server/healthcheck"
 	"sync"
 )
 
@@ -28,7 +27,7 @@ type SharedMap struct {
 }
 
 type Shared struct {
-	healthCheckInstances map[string]*healthcheck.InstanceWithChecker
+	healthCheckInstances map[string]*InstanceWithChecker
 	healthCheckMutex     *sync.RWMutex
 }
 
@@ -43,14 +42,14 @@ func NewSharedMap(size uint32) *SharedMap {
 	}
 	for i := range m.Shared {
 		m.Shared[i] = &Shared{
-			healthCheckInstances: make(map[string]*healthcheck.InstanceWithChecker),
+			healthCheckInstances: make(map[string]*InstanceWithChecker),
 			healthCheckMutex:     &sync.RWMutex{},
 		}
 	}
 	return m
 }
 
-func (m *SharedMap) Store(instanceId string, healthCheckInstance *healthcheck.InstanceWithChecker) {
+func (m *SharedMap) Store(instanceId string, healthCheckInstance *InstanceWithChecker) {
 	if len(instanceId) == 0 {
 		return
 	}
@@ -60,7 +59,7 @@ func (m *SharedMap) Store(instanceId string, healthCheckInstance *healthcheck.In
 	shard.healthCheckMutex.Unlock()
 }
 
-func (m *SharedMap) Load(instanceId string) (healthCheckInstance *healthcheck.InstanceWithChecker, ok bool) {
+func (m *SharedMap) Load(instanceId string) (healthCheckInstance *InstanceWithChecker, ok bool) {
 	if len(instanceId) == 0 {
 		return nil, false
 	}
@@ -81,7 +80,7 @@ func (m *SharedMap) Delete(instanceId string) {
 	shard.healthCheckMutex.Unlock()
 }
 
-func (m *SharedMap) RangeMap(fn func(instanceId string, healthCheckInstance *healthcheck.InstanceWithChecker)) {
+func (m *SharedMap) RangeMap(fn func(instanceId string, healthCheckInstance *InstanceWithChecker)) {
 	for _, shard := range m.Shared {
 		shard.healthCheckMutex.Lock()
 		for k, v := range shard.healthCheckInstances {
