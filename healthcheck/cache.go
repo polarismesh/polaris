@@ -58,8 +58,8 @@ func (c *CacheProvider) sendEvent(event CacheEvent) {
 	server.dispatcher.UpdateStatusByEvent(event)
 }
 
-func compareAndStoreServiceInstance(
-	instanceWithChecker *InstanceWithChecker, values *sharedmap.SharedMap) bool {
+//  先进行读操作，然后再写
+func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, values *sharedmap.SharedMap) bool {
 	instanceId := instanceWithChecker.instance.ID()
 	value, ok := values.Load(instanceId)
 	if !ok {
@@ -79,8 +79,7 @@ func compareAndStoreServiceInstance(
 	return true
 }
 
-func storeServiceInstance(
-	instanceWithChecker *InstanceWithChecker, values *sharedmap.SharedMap) bool {
+func storeServiceInstance(instanceWithChecker *InstanceWithChecker, values *sharedmap.SharedMap) bool {
 
 	log.Infof("[Health Check][Cache]create service instance is %s:%d, id is %s",
 		instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(),
@@ -99,6 +98,7 @@ func deleteServiceInstance(instance *api.Instance, values *sharedmap.SharedMap) 
 	//		instance.GetHost().GetValue(), instance.GetPort().GetValue(), instanceId)
 	//	delete(values, instanceId)
 	//}
+	// 这里需要先 读一次吗，读存在的时候再去删除
 	return true
 }
 
@@ -122,8 +122,7 @@ func (c *CacheProvider) OnCreated(value interface{}) {
 	if instance, ok := value.(*model.Instance); ok {
 		instProto := instance.Proto
 		if c.isSelfServiceInstance(instProto) {
-			storeServiceInstance(
-				newInstanceWithChecker(instance, nil), c.selfServiceInstances)
+			storeServiceInstance(newInstanceWithChecker(instance, nil), c.selfServiceInstances)
 			c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
 			return
 		}
@@ -136,6 +135,7 @@ func (c *CacheProvider) OnCreated(value interface{}) {
 	}
 }
 
+// 无需变动
 func isHealthCheckEnable(instance *api.Instance) (bool, plugin.HealthChecker) {
 	if !instance.GetEnableHealthCheck().GetValue() || nil == instance.GetHealthCheck() {
 		return false, nil
@@ -170,7 +170,7 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 			}
 			log.Infof("[Health Check][Cache]delete health check disabled instance is %s:%d, id is %s",
 				instance.Host(), instance.Port(), instanceId)
-			c.healthCheckInstances.Delete(instanceId)
+			c.healthCheckInstances.Delete(instanceId) //  是直接删除还是需要返回
 			c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 			return
 		}
@@ -207,8 +207,10 @@ func (c *CacheProvider) OnDeleted(value interface{}) {
 
 // RangeHealthCheckInstances range loop healthCheckInstances
 func (c *CacheProvider) RangeHealthCheckInstances(check func(instance *InstanceWithChecker)) {
-	//c.healthCheckMutex.RLock()
-	//defer c.healthCheckMutex.RUnlock()
+
+	c.healthCheckInstances.RangeMap(func(instanceId string, healthCheckInstance *InstanceWithChecker) {
+		check(healthCheckInstance)
+	})
 	//for _, value := range c.healthCheckInstances {
 	//	check(value)
 	//}
@@ -216,11 +218,13 @@ func (c *CacheProvider) RangeHealthCheckInstances(check func(instance *InstanceW
 
 // RangeSelfServiceInstances range loop selfServiceInstances
 func (c *CacheProvider) RangeSelfServiceInstances(check func(instance *api.Instance)) {
-	//c.selfServiceMutex.RLock()
-	//defer c.selfServiceMutex.RUnlock()
+
 	//for _, value := range c.selfServiceInstances {
 	//	check(value.instance.Proto)
 	//}
+	c.selfServiceInstances.RangeMap(func(instanceId string, healthCheckInstance *InstanceWithChecker) {
+		check(healthCheckInstance.instance.Proto)
+	})
 }
 
 // GetInstance get instance by id
