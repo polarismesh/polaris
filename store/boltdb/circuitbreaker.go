@@ -347,8 +347,8 @@ func (c *circuitBreakerStore) ListMasterCircuitBreakers(
 
 	results, err := dbOp.LoadValuesByFilter(tblCircuitBreaker, fields, &model.CircuitBreaker{},
 		func(m map[string]interface{}) bool {
-			vaild, ok := m[CBFieldNameValid]
-			if ok && !vaild.(bool) {
+			valid, ok := m[CBFieldNameValid]
+			if ok && !valid.(bool) {
 				return false
 			}
 			delete(m, CBFieldNameValid)

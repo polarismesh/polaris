@@ -216,7 +216,7 @@ func (s *Server) getPolicysAndSections(modIDList map[uint32]bool) ([]*model.Poli
 
 // RegisterByNameCmd 根据名字获取sid信息
 func (s *Server) RegisterByNameCmd(rbnc *l5.Cl5RegisterByNameCmd) (*l5.Cl5RegisterByNameAckCmd, error) {
-	// Stat::instance()->inc_regist_req_cnt(); TODO
+	// Stat::instance()->inc_register_req_cnt(); TODO
 
 	nameList := rbnc.GetNameList()
 	sidConfigs := make([]*model.SidConfig, 0)

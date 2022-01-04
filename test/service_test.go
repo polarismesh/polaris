@@ -42,7 +42,7 @@ func TestService(t *testing.T) {
 	for index, item := range ret.GetResponses() {
 		namespaces[index].Token = item.GetNamespace().GetToken()
 	}
-	t.Log("create namepsaces success")
+	t.Log("create namespaces success")
 
 	//-------------------------------------------------------
 
@@ -95,5 +95,5 @@ func TestService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("delete namespaces fail, err is %v", err)
 	}
-	t.Log("delete namepsaces success")
+	t.Log("delete namespaces success")
 }

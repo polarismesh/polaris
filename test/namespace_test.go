@@ -28,7 +28,7 @@ import (
  * @brief 测试增删改查命名空间
  */
 func TestNamespace(t *testing.T) {
-	t.Log("test namepsace interface")
+	t.Log("test namespace interface")
 
 	client := http.NewClient(httpserverAddress, httpserverVersion)
 
@@ -42,7 +42,7 @@ func TestNamespace(t *testing.T) {
 	for index, item := range ret.GetResponses() {
 		namespaces[index].Token = item.GetNamespace().GetToken()
 	}
-	t.Log("create namepsaces success")
+	t.Log("create namespaces success")
 
 	// 查询命名空间
 	err = client.GetNamespaces(namespaces)
@@ -72,5 +72,5 @@ func TestNamespace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("delete namespaces fail: %s", err.Error())
 	}
-	t.Log("delete namepsaces success")
+	t.Log("delete namespaces success")
 }
