@@ -50,8 +50,8 @@ import (
 	"github.com/polarismesh/polaris-server/common/connlimit"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/naming"
-	"github.com/polarismesh/polaris-server/naming/cache"
+	"github.com/polarismesh/polaris-server/service"
+	"github.com/polarismesh/polaris-server/service/cache"
 
 	"github.com/golang/protobuf/ptypes"
 
@@ -76,7 +76,7 @@ type XDSServer struct {
 	start           bool
 	restart         bool
 	exitCh          chan struct{}
-	namingServer    *naming.Server
+	namingServer    *service.Server
 	cache           cachev3.SnapshotCache
 	versionNum      *atomic.Uint64
 	server          *grpc.Server
@@ -702,7 +702,7 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 	x.versionNum = atomic.NewUint64(0)
 	var err error
 
-	x.namingServer, err = naming.GetServer()
+	x.namingServer, err = service.GetServer()
 	if err != nil {
 		log.Errorf("%v", err)
 		return err

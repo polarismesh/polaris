@@ -30,8 +30,8 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/naming/batch"
-	"github.com/polarismesh/polaris-server/naming/cache"
+	"github.com/polarismesh/polaris-server/service/batch"
+	"github.com/polarismesh/polaris-server/service/cache"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
 )

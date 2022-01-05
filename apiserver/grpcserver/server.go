@@ -31,7 +31,7 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
 	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/naming"
+	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/plugin"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -51,7 +51,7 @@ type GRPCServer struct {
 	exitCh          chan struct{}
 
 	server            *grpc.Server
-	namingServer      *naming.Server
+	namingServer      *service.Server
 	healthCheckServer *healthcheck.Server
 	statis            plugin.Statis
 	ratelimit         plugin.Ratelimit
@@ -112,7 +112,7 @@ func (g *GRPCServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
-	g.namingServer, err = naming.GetServer()
+	g.namingServer, err = service.GetServer()
 	if err != nil {
 		log.Errorf("%v", err)
 		errCh <- err

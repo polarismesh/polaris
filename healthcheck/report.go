@@ -22,7 +22,7 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/naming"
+	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/plugin"
 	"time"
 )
@@ -40,7 +40,7 @@ func checkHeartbeatInstance(req *api.Instance) (string, *api.Response) {
 		}
 		return req.GetId().GetValue(), nil
 	}
-	return naming.CheckInstanceTetrad(req)
+	return service.CheckInstanceTetrad(req)
 }
 
 func (s *Server) doReport(ctx context.Context, instance *api.Instance) *api.Response {

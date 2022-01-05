@@ -23,7 +23,7 @@ import (
 	_ "github.com/polarismesh/polaris-server/apiserver/l5pbserver"
 	_ "github.com/polarismesh/polaris-server/apiserver/xdsserverv3"
 
-	_ "github.com/polarismesh/polaris-server/naming/cache"
+	_ "github.com/polarismesh/polaris-server/service/cache"
 	_ "github.com/polarismesh/polaris-server/store/boltdb"
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
 
