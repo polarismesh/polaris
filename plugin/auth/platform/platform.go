@@ -20,6 +20,7 @@ package platform
 import (
 	"database/sql"
 	"fmt"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 	"sync"
 	"time"
 
@@ -179,7 +180,7 @@ func (a *Auth) getPlatforms() ([]*model.Platform, error) {
 	if a.firstUpdate {
 		str += " and flag != 1" // nolint
 	}
-	rows, err := db.Query(str, a.lastMtime.Add(DefaultTimeDiff).Format("2006-01-02 15:04:05"))
+	rows, err := db.Query(str, commontime.Time2String(a.lastMtime.Add(DefaultTimeDiff)))
 	if err != nil {
 		log.Errorf("[Store][platform] query platform with mtime err: %s", err.Error())
 		return nil, err

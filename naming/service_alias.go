@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
@@ -294,8 +295,8 @@ func (s *Server) GetServiceAliases(query map[string]string) *api.BatchQueryRespo
 			AliasNamespace: utils.NewStringValue(entry.AliasNamespace),
 			Owners:         utils.NewStringValue(entry.Owner),
 			Comment:        utils.NewStringValue(entry.Comment),
-			Ctime:          utils.NewStringValue(time2String(entry.CreateTime)),
-			Mtime:          utils.NewStringValue(time2String(entry.ModifyTime)),
+			Ctime:          utils.NewStringValue(commontime.Time2String(entry.CreateTime)),
+			Mtime:          utils.NewStringValue(commontime.Time2String(entry.ModifyTime)),
 		}
 		resp.Aliases = append(resp.Aliases, item)
 	}
@@ -427,7 +428,7 @@ func (s *Server) updateServiceAliasAttribute(req *api.ServiceAlias, alias *model
 	}
 
 	if needUpdate {
-		alias.Revision = NewUUID()
+		alias.Revision = utils.NewUUID()
 	}
 
 	return nil, needUpdate, needUpdateOwner
@@ -439,14 +440,14 @@ func (s *Server) updateServiceAliasAttribute(req *api.ServiceAlias, alias *model
 func (s *Server) createServiceAliasModel(req *api.ServiceAlias, svcId string) (
 	*model.Service, *api.Response) {
 	out := &model.Service{
-		ID:        NewUUID(),
+		ID:        utils.NewUUID(),
 		Name:      req.GetAlias().GetValue(),
 		Namespace: req.GetAliasNamespace().GetValue(),
 		Reference: svcId,
-		Token:     NewUUID(),
+		Token:     utils.NewUUID(),
 		Owner:     req.GetOwners().GetValue(),
 		Comment:   req.GetComment().GetValue(),
-		Revision:  NewUUID(),
+		Revision:  utils.NewUUID(),
 	}
 
 	// sid类型，则创建SID

@@ -20,6 +20,7 @@ package naming
 import (
 	"context"
 	"fmt"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -78,7 +79,7 @@ func (s *Server) CreateNamespace(ctx context.Context, req *api.Namespace) *api.R
 		return api.NewNamespaceResponse(api.StoreLayerException, req)
 	}
 
-	msg := fmt.Sprintf("create namepsace: name=%v", namespaceName)
+	msg := fmt.Sprintf("create namespace: name=%s", namespaceName)
 	log.Info(msg, zap.String("request-id", requestID))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.OCreate))
 
@@ -98,7 +99,7 @@ func (s *Server) createNamespaceModel(req *api.Namespace) *model.Namespace {
 		Name:    req.GetName().GetValue(),
 		Comment: req.GetComment().GetValue(),
 		Owner:   req.GetOwners().GetValue(),
-		Token:   NewUUID(),
+		Token:   utils.NewUUID(),
 	}
 
 	return namespace
@@ -188,7 +189,7 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 
 	s.caches.Service().CleanNamespace(namespace.Name)
 
-	msg := fmt.Sprintf("delete namepsace: name=%v", namespace.Name)
+	msg := fmt.Sprintf("delete namespace: name=%s", namespace.Name)
 	log.Info(msg, zap.String("request-id", requestID))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.ODelete))
 
@@ -237,7 +238,7 @@ func (s *Server) UpdateNamespace(ctx context.Context, req *api.Namespace) *api.R
 		return api.NewNamespaceResponse(api.StoreLayerException, req)
 	}
 
-	msg := fmt.Sprintf("update namepsace: name=%v", namespace.Name)
+	msg := fmt.Sprintf("update namespace: name=%s", namespace.Name)
 	log.Info(msg, zap.String("request-id", rid))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.OUpdate))
 
@@ -271,7 +272,7 @@ func (s *Server) UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *
 
 	rid := ParseRequestID(ctx)
 	// 生成token
-	token := NewUUID()
+	token := utils.NewUUID()
 
 	// 存储层操作
 	if err := s.storage.UpdateNamespaceToken(namespace.Name, token); err != nil {
@@ -279,7 +280,7 @@ func (s *Server) UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *
 		return api.NewNamespaceResponse(api.StoreLayerException, req)
 	}
 
-	msg := fmt.Sprintf("update namepsace token: name=%v", namespace.Name)
+	msg := fmt.Sprintf("update namespace token: name=%s", namespace.Name)
 	log.Info(msg, zap.String("request-id", rid))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.OUpdateToken))
 
@@ -313,8 +314,8 @@ func (s *Server) GetNamespaces(query map[string][]string) *api.BatchQueryRespons
 			Name:    utils.NewStringValue(namespace.Name),
 			Comment: utils.NewStringValue(namespace.Comment),
 			Owners:  utils.NewStringValue(namespace.Owner),
-			Ctime:   utils.NewStringValue(time2String(namespace.CreateTime)),
-			Mtime:   utils.NewStringValue(time2String(namespace.ModifyTime)),
+			Ctime:   utils.NewStringValue(commontime.Time2String(namespace.CreateTime)),
+			Mtime:   utils.NewStringValue(commontime.Time2String(namespace.ModifyTime)),
 		})
 	}
 	return out

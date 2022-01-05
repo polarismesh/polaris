@@ -1376,11 +1376,6 @@ func cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
 //	t.Log("check success")
 //}
 
-// 时间转化为可读字符串
-func time2String(t time.Time) string {
-	return t.Format("2006-01-02 15:04:05")
-}
-
 // 获取指定长度str
 func genSpecialStr(n int) string {
 	str := ""

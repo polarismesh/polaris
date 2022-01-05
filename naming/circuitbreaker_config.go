@@ -25,6 +25,7 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"go.uber.org/zap"
 )
@@ -113,7 +114,7 @@ func (s *Server) CreateCircuitBreaker(ctx context.Context, req *api.CircuitBreak
 	}
 
 	// 构造底层数据结构
-	token := NewUUID()
+	token := utils.NewUUID()
 	var data *model.CircuitBreaker
 	data, err = api2CircuitBreaker(req, id, token, version)
 	if err != nil {
@@ -445,7 +446,7 @@ func (s *Server) updateCircuitBreakerAttribute(req *api.CircuitBreaker, circuitB
 	}
 
 	if needUpdate {
-		circuitBreaker.Revision = NewUUID()
+		circuitBreaker.Revision = utils.NewUUID()
 	}
 
 	return nil, needUpdate
@@ -1066,7 +1067,7 @@ func api2CircuitBreaker(req *api.CircuitBreaker, id, token, version string) (*mo
 		Outbounds:  outbounds,
 		Token:      token,
 		Owner:      req.GetOwners().GetValue(),
-		Revision:   NewUUID(),
+		Revision:   utils.NewUUID(),
 	}
 
 	return circuitBreaker, nil
@@ -1116,8 +1117,8 @@ func circuitBreaker2API(req *model.CircuitBreaker) (*api.CircuitBreaker, error) 
 		Namespace:  utils.NewStringValue(req.Namespace),
 		Owners:     utils.NewStringValue(req.Owner),
 		Comment:    utils.NewStringValue(req.Comment),
-		Ctime:      utils.NewStringValue(time2String(req.CreateTime)),
-		Mtime:      utils.NewStringValue(time2String(req.ModifyTime)),
+		Ctime:      utils.NewStringValue(commontime.Time2String(req.CreateTime)),
+		Mtime:      utils.NewStringValue(commontime.Time2String(req.ModifyTime)),
 		Revision:   utils.NewStringValue(req.Revision),
 		Business:   utils.NewStringValue(req.Business),
 		Department: utils.NewStringValue(req.Department),
@@ -1205,8 +1206,8 @@ func serviceRelatedRules2API(service *model.Service) *api.Service {
 		Name:      utils.NewStringValue(service.Name),
 		Namespace: utils.NewStringValue(service.Namespace),
 		Owners:    utils.NewStringValue(service.Owner),
-		Ctime:     utils.NewStringValue(time2String(service.CreateTime)),
-		Mtime:     utils.NewStringValue(time2String(service.ModifyTime)),
+		Ctime:     utils.NewStringValue(commontime.Time2String(service.CreateTime)),
+		Mtime:     utils.NewStringValue(commontime.Time2String(service.ModifyTime)),
 	}
 
 	return out

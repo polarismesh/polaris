@@ -43,7 +43,7 @@ func getEntry() *plugin.ConfigEntry {
 /**
  * @brief 获取未初始化的entry
  */
-func getUninitalizedEntry() *plugin.ConfigEntry {
+func getUninitializedEntry() *plugin.ConfigEntry {
 	entry := plugin.ConfigEntry{
 		Option: make(map[string]interface{}),
 	}
@@ -55,7 +55,7 @@ func getUninitalizedEntry() *plugin.ConfigEntry {
  * @brief 测试错误配置
  */
 func TestInvalidConfig(t *testing.T) {
-	entry := getUninitalizedEntry()
+	entry := getUninitializedEntry()
 	s := &LRURate{}
 
 	t.Run("InvalidIPLruSize", func(t *testing.T) {

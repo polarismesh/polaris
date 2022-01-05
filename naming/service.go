@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/naming/cache"
 	"github.com/polarismesh/polaris-server/store"
 	"time"
@@ -279,8 +280,8 @@ func (s *Server) UpdateServiceToken(ctx context.Context, req *api.Service) *api.
 	pid := ParsePlatformID(ctx)
 
 	// 生成一个新的token和revision
-	service.Token = NewUUID()
-	service.Revision = NewUUID()
+	service.Token = utils.NewUUID()
+	service.Revision = utils.NewUUID()
 	// 更新数据库
 	if err := s.storage.UpdateServiceToken(service.ID, service.Token, service.Revision); err != nil {
 		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
@@ -470,7 +471,7 @@ func (s *Server) GetServiceOwner(ctx context.Context, req []*api.Service) *api.B
  */
 func (s *Server) createServiceModel(req *api.Service) *model.Service {
 	service := &model.Service{
-		ID:         NewUUID(),
+		ID:         utils.NewUUID(),
 		Name:       req.GetName().GetValue(),
 		Namespace:  req.GetNamespace().GetValue(),
 		Meta:       req.GetMetadata(),
@@ -483,8 +484,8 @@ func (s *Server) createServiceModel(req *api.Service) *model.Service {
 		Comment:    req.GetComment().GetValue(),
 		Owner:      req.GetOwners().GetValue(),
 		PlatformID: req.GetPlatformId().GetValue(),
-		Token:      NewUUID(),
-		Revision:   NewUUID(),
+		Token:      utils.NewUUID(),
+		Revision:   utils.NewUUID(),
 	}
 
 	return service
@@ -559,7 +560,7 @@ func (s *Server) updateServiceAttribute(req *api.Service, service *model.Service
 	}
 
 	if needNewRevision {
-		service.Revision = NewUUID()
+		service.Revision = utils.NewUUID()
 	}
 
 	return nil, needUpdate, needUpdateOwner
@@ -758,8 +759,8 @@ func service2Api(service *model.Service) *api.Service {
 		Owners:     utils.NewStringValue(service.Owner),
 		Revision:   utils.NewStringValue(service.Revision),
 		PlatformId: utils.NewStringValue(service.PlatformID),
-		Ctime:      utils.NewStringValue(time2String(service.CreateTime)),
-		Mtime:      utils.NewStringValue(time2String(service.ModifyTime)),
+		Ctime:      utils.NewStringValue(commontime.Time2String(service.CreateTime)),
+		Mtime:      utils.NewStringValue(commontime.Time2String(service.ModifyTime)),
 	}
 
 	return out

@@ -20,6 +20,7 @@ package boltdb
 import (
 	"errors"
 	"fmt"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 	"sort"
 	"strconv"
 	"strings"
@@ -42,7 +43,7 @@ const (
 	insFieldProto      = "Proto"
 	insFieldServiceID  = "ServiceID"
 	insFieldModifyTime = "ModifyTime"
-	insFieldVaild      = "Valid"
+	insFieldValid      = "Valid"
 )
 
 // AddInstance add an instance
@@ -98,7 +99,7 @@ func (i *instanceStore) UpdateInstance(instance *model.Instance) error {
 	properties[insFieldProto] = instance.Proto
 	curr := time.Now()
 	properties[insFieldModifyTime] = curr
-	instance.Proto.Mtime = &wrappers.StringValue{Value: curr.Format("2006-01-02 15:04:05")}
+	instance.Proto.Mtime = &wrappers.StringValue{Value: commontime.Time2String(curr)}
 
 	if err := i.handler.UpdateValue(tblNameInstance, instance.ID(), properties); err != nil {
 		log.Errorf("[Store][boltdb] update instance to kv error, %v", err)
@@ -191,13 +192,13 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 		return nil, nil
 	}
 
-	fields := []string{insFieldProto, insFieldVaild}
+	fields := []string{insFieldProto, insFieldValid}
 
 	// find all instances with given ids
 	inss, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
-			vaild, ok := m[insFieldVaild]
-			if ok && !vaild.(bool) {
+			valid, ok := m[insFieldValid]
+			if ok && !valid.(bool) {
 				return false
 			}
 
@@ -224,11 +225,11 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 		serviceIDs[serviceID] = true
 	}
 
-	fields = []string{SvcFieldID, SvcFieldVaild}
+	fields = []string{SvcFieldID, SvcFieldValid}
 	services, err := i.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
-			vaild, ok := m[insFieldVaild]
-			if ok && !vaild.(bool) {
+			valid, ok := m[insFieldValid]
+			if ok && !valid.(bool) {
 				return false
 			}
 
@@ -275,11 +276,11 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 // GetInstance Query the details of an instance
 func (i *instanceStore) GetInstance(instanceID string) (*model.Instance, error) {
 
-	fields := []string{insFieldProto, insFieldVaild}
+	fields := []string{insFieldProto, insFieldValid}
 
 	ins, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
-			insValid, ok := m[insFieldVaild]
+			insValid, ok := m[insFieldValid]
 			if ok && !insValid.(bool) {
 				return false
 			}
@@ -320,12 +321,12 @@ func (i *instanceStore) GetInstancesCount() (uint32, error) {
 func (i *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*model.Instance, error) {
 
 	// select by service_id and host
-	fields := []string{insFieldServiceID, insFieldProto, insFieldVaild}
+	fields := []string{insFieldServiceID, insFieldProto, insFieldValid}
 
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
-			vaild, ok := m[insFieldVaild]
-			if ok && !vaild.(bool) {
+			valid, ok := m[insFieldValid]
+			if ok && !valid.(bool) {
 				return false
 			}
 
@@ -382,12 +383,12 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 
 	svcIdsTmp := make(map[string]struct{})
 
-	fields := []string{insFieldProto, insFieldServiceID, insFieldVaild}
+	fields := []string{insFieldProto, insFieldServiceID, insFieldValid}
 
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
-			vaild, ok := m[insFieldVaild]
-			if ok && !vaild.(bool) {
+			valid, ok := m[insFieldValid]
+			if ok && !valid.(bool) {
 				return false
 			}
 
@@ -485,7 +486,7 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 func (i *instanceStore) GetMoreInstances(
 	mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (map[string]*model.Instance, error) {
 
-	fields := []string{insFieldProto, insFieldServiceID, insFieldVaild}
+	fields := []string{insFieldProto, insFieldServiceID, insFieldValid}
 	svcIdMap := make(map[string]bool)
 	for _, s := range serviceID {
 		svcIdMap[s] = true
@@ -495,8 +496,8 @@ func (i *instanceStore) GetMoreInstances(
 		func(m map[string]interface{}) bool {
 
 			if firstUpdate {
-				vaild, ok := m[insFieldVaild]
-				if ok && !vaild.(bool) {
+				valid, ok := m[insFieldValid]
+				if ok && !valid.(bool) {
 					return false
 				}
 			}
@@ -595,7 +596,7 @@ func (i *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, rev
 	properties[insFieldProto] = ins.Proto
 	curr := time.Now()
 	properties[insFieldModifyTime] = curr
-	ins.Proto.Mtime = &wrappers.StringValue{Value: curr.Format("2006-01-02 15:04:05")}
+	ins.Proto.Mtime = &wrappers.StringValue{Value: commontime.Time2String(curr)}
 
 	err = i.handler.UpdateValue(tblNameInstance, instanceID, properties)
 	if err != nil {
@@ -657,7 +658,7 @@ func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, 
 		properties[insFieldProto] = instance
 		curr := time.Now()
 		properties[insFieldModifyTime] = curr
-		instance.Mtime = &wrappers.StringValue{Value: curr.Format("2006-01-02 15:04:05")}
+		instance.Mtime = &wrappers.StringValue{Value: commontime.Time2String(curr)}
 		err = i.handler.UpdateValue(tblNameInstance, id, properties)
 		if err != nil {
 			log.Errorf("[Store][boltdb] update instance in set instance isolate error, %v", err)
@@ -723,7 +724,7 @@ func initInstance(instance []*model.Instance) {
 	for _, ins := range instance {
 		if ins != nil {
 			currT := time.Now()
-			timeStamp := currT.Format("2006-01-02 15:04:05")
+			timeStamp := commontime.Time2String(currT)
 			if ins.Proto != nil {
 				if ins.Proto.GetMtime().GetValue() == "" {
 					ins.Proto.Mtime = &wrappers.StringValue{Value: timeStamp}

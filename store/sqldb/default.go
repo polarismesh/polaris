@@ -20,8 +20,6 @@ package sqldb
 import (
 	"errors"
 	"fmt"
-	"time"
-
 	"github.com/polarismesh/polaris-server/plugin"
 
 	"github.com/polarismesh/polaris-server/common/log"
@@ -241,9 +239,4 @@ func (s *stableStore) newStore() {
 	s.platformStore = &platformStore{master: s.master}
 
 	s.toolStore = &toolStore{db: s.master}
-}
-
-// time.Time转为字符串时间
-func time2String(t time.Time) string {
-	return t.Format("2006-01-02 15:04:05")
 }

@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -321,7 +322,7 @@ func api2RoutingConfig(serviceID string, req *api.Routing) (*model.RoutingConfig
 		ID:        serviceID,
 		InBounds:  string(inBounds),
 		OutBounds: string(outBounds),
-		Revision:  NewUUID(),
+		Revision:  utils.NewUUID(),
 	}
 
 	return out, nil
@@ -337,8 +338,8 @@ func routingConfig2API(req *model.RoutingConfig, service string, namespace strin
 		Service:   utils.NewStringValue(service),
 		Namespace: utils.NewStringValue(namespace),
 		Revision:  utils.NewStringValue(req.Revision),
-		Ctime:     utils.NewStringValue(time2String(req.CreateTime)),
-		Mtime:     utils.NewStringValue(time2String(req.ModifyTime)),
+		Ctime:     utils.NewStringValue(commontime.Time2String(req.CreateTime)),
+		Mtime:     utils.NewStringValue(commontime.Time2String(req.ModifyTime)),
 	}
 
 	if req.InBounds != "" {

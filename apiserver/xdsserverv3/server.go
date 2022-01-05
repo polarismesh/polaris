@@ -14,10 +14,12 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
+
 package xdsserverv3
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -149,7 +151,54 @@ func makeLbSubsetConfig(serviceInfo *ServiceInfo) *cluster.Cluster_LbSubsetConfi
 	return nil
 }
 
-func makeClusters(services []*ServiceInfo) []types.Resource {
+// Translate the circuit breaker configuration of Polaris into OutlierDetection
+func makeOutlierDetection(conf *model.ServiceWithCircuitBreaker) *cluster.OutlierDetection {
+	if conf != nil {
+		cbRules := conf.CircuitBreaker.Inbounds
+		if cbRules == "" {
+			return nil
+		}
+
+		var inBounds []*api.CbRule
+		if err := json.Unmarshal([]byte(cbRules), &inBounds); err != nil {
+			log.Errorf("unmarshal inbounds circuitBreaker rule error, %v", err)
+			return nil
+		}
+
+		if len(inBounds) == 0 || len(inBounds[0].GetDestinations()) == 0 ||
+			inBounds[0].GetDestinations()[0].Policy == nil {
+			return nil
+		}
+
+		var consecutiveErrConfig *api.CbPolicy_ConsecutiveErrConfig
+		var errorRateConfig *api.CbPolicy_ErrRateConfig
+		var policy *api.CbPolicy
+		var dest *api.DestinationSet
+
+		dest = inBounds[0].GetDestinations()[0]
+		policy = dest.Policy
+		consecutiveErrConfig = policy.Consecutive
+		errorRateConfig = policy.ErrorRate
+
+		outlierDetection := &cluster.OutlierDetection{}
+
+		if consecutiveErrConfig != nil {
+			outlierDetection.Consecutive_5Xx =
+				&wrappers.UInt32Value{Value: consecutiveErrConfig.ConsecutiveErrorToOpen.Value}
+		}
+		if errorRateConfig != nil {
+			outlierDetection.FailurePercentageRequestVolume =
+				&wrappers.UInt32Value{Value: errorRateConfig.RequestVolumeThreshold.Value}
+			outlierDetection.FailurePercentageThreshold =
+				&wrappers.UInt32Value{Value: errorRateConfig.ErrorRateToOpen.Value}
+		}
+
+		return outlierDetection
+	}
+	return nil
+}
+
+func (x *XDSServer) makeClusters(services []*ServiceInfo) []types.Resource {
 	var clusters []types.Resource
 
 	// 默认 passthrough cluster
@@ -174,6 +223,7 @@ func makeClusters(services []*ServiceInfo) []types.Resource {
 
 	// 每一个 polaris service 对应一个 envoy cluster
 	for _, service := range services {
+		circuitBreakerConf := x.namingServer.Cache().CircuitBreaker().GetCircuitBreakerConfig(service.ID)
 		cluster := &cluster.Cluster{
 			Name:                 service.Name,
 			ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
@@ -187,7 +237,8 @@ func makeClusters(services []*ServiceInfo) []types.Resource {
 					},
 				},
 			},
-			LbSubsetConfig: makeLbSubsetConfig(service),
+			LbSubsetConfig:   makeLbSubsetConfig(service),
+			OutlierDetection: makeOutlierDetection(circuitBreakerConf),
 		}
 
 		clusters = append(clusters, cluster)
@@ -529,7 +580,7 @@ func (x *XDSServer) pushRegistryInfoToXDSCache(registryInfo map[string][]*Servic
 	for ns, _ := range registryInfo {
 		resources := make(map[resource.Type][]types.Resource)
 		resources[resource.EndpointType] = makeEndpoints(registryInfo[ns])
-		resources[resource.ClusterType] = makeClusters(registryInfo[ns])
+		resources[resource.ClusterType] = x.makeClusters(registryInfo[ns])
 		resources[resource.RouteType] = makeVirtualHosts(registryInfo[ns])
 		resources[resource.ListenerType] = makeListeners()
 		snapshot, err := cachev3.NewSnapshot(versionLocal, resources)
