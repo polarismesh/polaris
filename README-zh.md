@@ -104,7 +104,7 @@ chmod +x build.sh
 ````shell script
 chmod +x ./tool/*.sh
 #进行安装
-./tool/install.sh
+./tool/start.sh
 #测试进程是否启动成功
 ./tool/p.sh
 ````
