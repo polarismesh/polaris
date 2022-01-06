@@ -24,10 +24,10 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	amock "github.com/polarismesh/polaris-server/auth/mock"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-	amock "github.com/polarismesh/polaris-server/service/auth/mock"
 	smock "github.com/polarismesh/polaris-server/store/mock"
 	. "github.com/smartystreets/goconvey/convey"
 )

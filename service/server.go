@@ -26,12 +26,12 @@ import (
 	"github.com/modern-go/reflect2"
 	"golang.org/x/sync/singleflight"
 
+	"github.com/polarismesh/polaris-server/auth"
+	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/service/auth"
-	"github.com/polarismesh/polaris-server/service/batch"
-	"github.com/polarismesh/polaris-server/service/cache"
 	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
 )
