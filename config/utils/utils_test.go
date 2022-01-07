@@ -1,4 +1,4 @@
-/**
+/*
  * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -18,25 +18,13 @@
 package utils
 
 import (
-	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
-// NewStringValue
-func NewStringValue(value string) *wrappers.StringValue {
-	return &wrappers.StringValue{Value: value}
-}
+func TestCalMd5(t *testing.T) {
+	assert.Equal(t, "d41d8cd98f00b204e9800998ecf8427e", CalMd5(""))
+	assert.Equal(t, "acbd18db4cc2f85cedef654fccc4a4d8", CalMd5("foo"))
+	assert.Equal(t, "02f463eb799797e2a978fb1a2ae2991e", CalMd5("38c5ee9532f037a20b93d0f804cf111fca4003e451d09a692d9dea8032308d9c64eda9047fcd5e850284a49b1a0cfb2ecd45"))
 
-// NewUInt32Value
-func NewUInt32Value(value uint32) *wrappers.UInt32Value {
-	return &wrappers.UInt32Value{Value: value}
-}
-
-// NewUInt64Value
-func NewUInt64Value(value uint64) *wrappers.UInt64Value {
-	return &wrappers.UInt64Value{Value: value}
-}
-
-// NewBoolValue
-func NewBoolValue(value bool) *wrappers.BoolValue {
-	return &wrappers.BoolValue{Value: value}
 }

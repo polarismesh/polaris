@@ -37,6 +37,14 @@ type Store interface {
 	// CreateTransaction 创建事务对象
 	CreateTransaction() (Transaction, error)
 
+	//NamingModuleStore 服务注册发现模块存储接口
+	NamingModuleStore
+
+	//ConfigFileModuleStore 配置中心模块存储接口
+	ConfigFileModuleStore
+}
+
+type NamingModuleStore interface {
 	// NamespaceStore 服务命名空间接口
 	NamespaceStore
 

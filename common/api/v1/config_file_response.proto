@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package v1;
+
+import "google/protobuf/wrappers.proto";
+import "config_file.proto";
+
+option go_package="/v1";
+
+message ConfigSimpleResponse {
+  google.protobuf.UInt32Value code = 1;
+  google.protobuf.StringValue info = 2;
+}
+
+message ConfigResponse {
+  google.protobuf.UInt32Value code = 1;
+  google.protobuf.StringValue info = 2;
+
+  ConfigFileGroup configFileGroup = 3;
+  ConfigFile configFile = 4;
+  ConfigFileRelease configFileRelease = 5;
+  ConfigFileReleaseHistory configFileReleaseHistory = 6;
+}
+
+message ConfigBatchWriteResponse {
+  google.protobuf.UInt32Value code = 1;
+  google.protobuf.StringValue info = 2;
+  google.protobuf.UInt32Value total = 3;
+
+  repeated ConfigResponse responses = 4;
+}
+
+message ConfigBatchQueryResponse {
+  google.protobuf.UInt32Value code = 1;
+  google.protobuf.StringValue info = 2;
+  google.protobuf.UInt32Value total = 3;
+  repeated ConfigFileGroup configFileGroups = 4;
+  repeated ConfigFile configFiles = 5;
+  repeated ConfigFileRelease configFileReleases = 6;
+  repeated ConfigFileReleaseHistory configFileReleaseHistories = 7;
+}

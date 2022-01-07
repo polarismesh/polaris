@@ -57,6 +57,13 @@ type stableStore struct {
 	*platformStore
 	*toolStore
 
+	//配置中心stores
+	*configFileGroupStore
+	*configFileStore
+	*configFileReleaseStore
+	*configFileReleaseHistoryStore
+	*configFileTagStore
+
 	// 主数据库，可以进行读写
 	master *BaseDB
 	// 对主数据库的事务操作，可读写
@@ -238,4 +245,14 @@ func (s *stableStore) newStore() {
 	s.platformStore = &platformStore{master: s.master}
 
 	s.toolStore = &toolStore{db: s.master}
+
+	s.configFileGroupStore = &configFileGroupStore{db: s.master}
+
+	s.configFileStore = &configFileStore{db: s.master}
+
+	s.configFileReleaseStore = &configFileReleaseStore{db: s.master}
+
+	s.configFileReleaseHistoryStore = &configFileReleaseHistoryStore{db: s.master}
+
+	s.configFileTagStore = &configFileTagStore{db: s.master}
 }

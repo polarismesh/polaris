@@ -42,6 +42,13 @@ type boltStore struct {
 	*circuitBreakerStore
 	*toolStore
 
+	//配置中心stores
+	*configFileGroupStore
+	*configFileStore
+	*configFileReleaseStore
+	*configFileReleaseHistoryStore
+	*configFileTagStore
+
 	handler BoltHandler
 	start   bool
 }
