@@ -194,7 +194,7 @@ func TestDeleteRateLimit(t *testing.T) {
 			"service":   service.GetName().GetValue(),
 			"namespace": service.GetNamespace().GetValue(),
 		}
-		resp := server.GetRateLimits(filters)
+		resp := server.GetRateLimits(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error")
 		}
@@ -269,7 +269,7 @@ func TestUpdateRateLimit(t *testing.T) {
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
 		}
-		resp := server.GetRateLimits(filters)
+		resp := server.GetRateLimits(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error")
 		}
@@ -312,7 +312,7 @@ func TestUpdateRateLimit(t *testing.T) {
 					"service":   serviceResp.GetName().GetValue(),
 					"namespace": serviceResp.GetNamespace().GetValue(),
 				}
-				resp := server.GetRateLimits(filters)
+				resp := server.GetRateLimits(context.Background(), filters)
 				if !respSuccess(resp) {
 					errs <- fmt.Errorf("error : %v", resp)
 				}
@@ -369,7 +369,7 @@ func TestGetRateLimit(t *testing.T) {
 		filters := map[string]string{
 			"service": serviceName,
 		}
-		resp := server.GetRateLimits(filters)
+		resp := server.GetRateLimits(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -383,7 +383,7 @@ func TestGetRateLimit(t *testing.T) {
 		filters := map[string]string{
 			"namespace": namespaceName,
 		}
-		resp := server.GetRateLimits(filters)
+		resp := server.GetRateLimits(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -397,7 +397,7 @@ func TestGetRateLimit(t *testing.T) {
 		filters := map[string]string{
 			"namespace": "Development",
 		}
-		resp := server.GetRateLimits(filters)
+		resp := server.GetRateLimits(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -412,7 +412,7 @@ func TestGetRateLimit(t *testing.T) {
 			"service":   serviceName,
 			"namespace": namespaceName,
 		}
-		resp := server.GetRateLimits(filters)
+		resp := server.GetRateLimits(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -427,7 +427,7 @@ func TestGetRateLimit(t *testing.T) {
 			"offset": "1",
 			"limit":  "5",
 		}
-		resp := server.GetRateLimits(filters)
+		resp := server.GetRateLimits(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -441,7 +441,7 @@ func TestGetRateLimit(t *testing.T) {
 		filters := map[string]string{
 			"labels": labelsKey,
 		}
-		resp := server.GetRateLimits(filters)
+		resp := server.GetRateLimits(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -454,7 +454,7 @@ func TestGetRateLimit(t *testing.T) {
 		filters := map[string]string{
 			"labels": labelsValue.GetValue().GetValue(),
 		}
-		resp := server.GetRateLimits(filters)
+		resp := server.GetRateLimits(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -471,7 +471,7 @@ func TestGetRateLimit(t *testing.T) {
 		filters := map[string]string{
 			"labels": string(labelsString),
 		}
-		resp := server.GetRateLimits(filters)
+		resp := server.GetRateLimits(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -486,7 +486,7 @@ func TestGetRateLimit(t *testing.T) {
 			"namespace": namespaceName,
 			"offset":    "-5",
 		}
-		resp := server.GetRateLimits(filters)
+		resp := server.GetRateLimits(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
@@ -500,7 +500,7 @@ func TestGetRateLimit(t *testing.T) {
 			"namespace": namespaceName,
 			"limit":     "-5",
 		}
-		resp := server.GetRateLimits(filters)
+		resp := server.GetRateLimits(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {

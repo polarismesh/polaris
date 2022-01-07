@@ -18,9 +18,11 @@
 package cache
 
 import (
+	"context"
 	"sync"
 	"time"
 
+	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/store"
 )
 
@@ -73,7 +75,7 @@ func NewAuthCache(s store.Store) (*AuthCache, error) {
 	authCache.caches[CacheForUser] = newUserCache(s)
 	authCache.caches[CacheForStrategy] = newStrategyCache(s)
 
-	return nil, nil
+	return authCache, authCache.initialize()
 }
 
 func (ac *AuthCache) initialize() error {
@@ -82,6 +84,35 @@ func (ac *AuthCache) initialize() error {
 			return err
 		}
 	}
+
+	return nil
+}
+
+// Start 缓存对象启动协程，定时更新缓存
+func (ac *AuthCache) Start(ctx context.Context) error {
+	log.Infof("[AuthCache] cache goroutine start")
+
+	// 启动的时候，先更新一版缓存
+	log.Infof("[AuthCache] cache update now first time")
+	if err := ac.update(); err != nil {
+		return err
+	}
+	log.Infof("[AuthCache] cache update done")
+
+	// 启动协程，开始定时更新缓存数据
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				_ = ac.update()
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 
 	return nil
 }

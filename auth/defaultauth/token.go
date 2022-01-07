@@ -27,7 +27,7 @@ import (
 	"io"
 
 	"github.com/google/uuid"
-	"github.com/polarismesh/polaris-server/core/auth"
+	"github.com/polarismesh/polaris-server/auth"
 )
 
 type TokenInfo struct {
@@ -53,10 +53,10 @@ func CreateToken(uid, gid string) (string, error) {
 	if uid == "" {
 		val = fmt.Sprintf("%s/%s", auth.RoleForUserGroup, gid)
 	} else {
-		val = fmt.Sprintf("%s/%s", auth.RoleForUser, gid)
+		val = fmt.Sprintf("%s/%s", auth.RoleForUser, uid)
 	}
 
-	token := fmt.Sprintf(TokenPattern, uuid.NewString(), val)
+	token := fmt.Sprintf(TokenPattern, uuid.NewString()[8:16], val)
 	return encryptMessage([]byte(AuthOption.Salt), token)
 }
 

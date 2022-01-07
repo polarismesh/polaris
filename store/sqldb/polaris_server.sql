@@ -616,60 +616,99 @@ CREATE TABLE `ratelimit_flux_rule_revision` (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
 CREATE TABLE `user` (
-    `id` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '用户ID',
+    `id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '用户ID',
     `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '用户名称',
     `password` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '用户密码',
-    `owner` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '主账户ID',
+    `owner` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '主账户ID',
     `source` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '账户来源',
     `token` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '账户所拥有的 token 信息，可用于SDK访问鉴权',
-     `token_enable`  tinyint(4) NOT NULL DEFAULT '0' ,
+    `token_enable` tinyint(4) NOT NULL DEFAULT 1,
     `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '描述',
     `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY (`name`, `owner`),
+    KEY `owner` (`owner`),
+    KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
 CREATE TABLE `user_group` (
-    `id` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '用户组ID',
+    `id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '用户组ID',
     `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '用户组名称',
-    `owner` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '用户组所属的主账户ID',
+    `owner` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '用户组所属的主账户ID',
     `token` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '该用户组的 token 信息',
     `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '描述信息',
-    `token_enable`  tinyint(4) NOT NULL DEFAULT '0' ,
+    `token_enable` tinyint(4) NOT NULL DEFAULT 1,
     `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY (`name`, `owner`),
+    KEY `owner` (`owner`),
+    KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
 CREATE TABLE `user_group_relation` (
-    `user_id` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '用户ID',
-    `group_id` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '用户组ID',
+    `user_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '用户ID',
+    `group_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '用户组ID',
     `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    PRIMARY KEY (`user_id`, `group_id`),
+    KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
 CREATE TABLE `auth_strategy` (
-    `id` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '策略ID',
+    `id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '策略ID',
     `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '策略名称',
     `principal` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '用户ID表达式',
     `action` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '该策略的读写权限',
-    `owner` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '该策略所属的账号ID',
+    `owner` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '该策略所属的账号ID',
     `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '描述',
-    `default`  tinyint(4) NOT NULL DEFAULT '0' ,
+    `default` tinyint(4) NOT NULL DEFAULT '0',
     `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY (`name`, `owner`),
+    KEY `owner` (`owner`),
+    KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
 CREATE TABLE `auth_strategy_resource` (
-    `strategy_id` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '策略ID',
+    `strategy_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '策略ID',
     `res_type` int COLLATE utf8_bin NOT NULL comment '资源类型',
     `res_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '资源ID',
     `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    PRIMARY KEY (`strategy_id`, `res_type`, `res_id`),
+    KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
+
+INSERT INTO
+    `user` (
+        `id`,
+        `name`,
+        `password`,
+        `owner`,
+        `source`,
+        `token`,
+        `token_enable`,
+        `comment`
+    )
+VALUES
+    (
+        '53447575-ef47-4f45-a005-8246c79dae7f',
+        'polarisadmin',
+        '$2a$10$5XMjs.oqo4PnpbTGy9dQqewL4eb4yoA7b/6ZKL33IPhFyIxzj4lRy',
+        '',
+        'Polaris',
+        'a4Nt+Do4PXLGg+RVIjfOpd6ZiqEjZ4vVia0pLQUd/2a0c1zcwgVkyCcM4n35IhveU7SMEE1qL0LFhp1n/VvHGwYV',
+        1,
+        'default polaris admin account'
+    );
 
 -- --------------------------------------------------------
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */

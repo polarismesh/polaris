@@ -93,8 +93,8 @@ func (uc *userCache) initialize() error {
 	uc.name2Groups = new(sync.Map)
 	uc.user2Groups = new(sync.Map)
 
-	uc.userCacheFirstUpdate = false
-	uc.groupCacheFirstUpdate = false
+	uc.userCacheFirstUpdate = true
+	uc.groupCacheFirstUpdate = true
 	uc.lastUserCacheUpdateTime = 0
 	uc.lastGroupCacheUpdateTime = 0
 
@@ -136,6 +136,31 @@ func (uc *userCache) realUpdate() error {
 }
 
 func (uc *userCache) setUserAndGroups(users []*model.User, groups []*model.UserGroupDetail) (int, int) {
+	// 更新 users 缓存
+	for i := range users {
+		user := users[i]
+		uc.users.Store(user.ID, user)
+		uc.name2Users.Store(user.Name, user)
+	}
+
+	// 更新 groups 数据信息
+	for i := range groups {
+		group := groups[i]
+
+		uc.groups.Store(group.ID, group)
+		uc.name2Groups.Store(group.Name, group)
+
+		for j := range group.UserIDs {
+			uid := group.UserIDs[j]
+			uc.user2Groups.LoadOrStore(uid, make([]string, 0))
+
+			val, _ := uc.user2Groups.Load(uid)
+			gids := val.([]string)
+
+			uc.user2Groups.Store(uid, append(gids, group.ID))
+		}
+	}
+
 	return 0, 0
 }
 

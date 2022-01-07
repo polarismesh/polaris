@@ -20,8 +20,10 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/polarismesh/polaris-server/healthcheck"
 	"os"
+
+	"github.com/polarismesh/polaris-server/auth"
+	"github.com/polarismesh/polaris-server/healthcheck"
 
 	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/common/log"
@@ -41,6 +43,7 @@ type Config struct {
 	HealthChecks healthcheck.Config `yaml:"healthcheck"`
 	Store        store.Config       `yaml:"store"`
 	Plugin       plugin.Config      `yaml:"plugin"`
+	Auth         auth.Config        `yaml:"auth"`
 }
 
 // Bootstrap 启动引导配置

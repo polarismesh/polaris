@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/core/auth"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -33,7 +33,7 @@ var (
 	passAll  = true
 
 	ErrorNoUser                  error = errors.New("no such user")
-	ErrorNoUserGroup             error = errors.New("no such group")
+	ErrorNoUserGroup             error = errors.New("no such user group")
 	ErrorWrongUsernameOrPassword error = errors.New("name or password is wrong")
 	ErrorInvalidToken            error = errors.New("invalid token, token not exist")
 	ErrorTokenDisabled           error = errors.New("token already disabled")
@@ -59,14 +59,6 @@ func (authMgn *defaultAuthManager) Login(name, password string) (string, error) 
 }
 
 // HasPermission 执行检查动作判断是否有权限
-// 如果当前的接口访问凭据token，操作者类型需要分两种情况进行考虑
-// Case 1:
-// 	如果当前token凭据是以用户的身份角色，则需要按如下规则进行拉取涉及的权限
-// 		a: 查询该用户所在的所有用户组信息（子用户可以获得所在的用户分组的所有资源写权限）
-// 		b: 根据用户ID，查询该用户可能涉及的所有资源策略
-// Case 2:
-// 	如果当前token凭据是以用户组的身份角色，则需要按照如下规则进行策略拉取
-// 		a: 根据用户组ID查询所有涉及该用户组的策略列表
 func (authMgn *defaultAuthManager) HasPermission(ctx *model.AcquireContext) (bool, error) {
 	if !authMgn.IsOpenAuth() {
 		return true, nil
@@ -85,6 +77,20 @@ func (authMgn *defaultAuthManager) HasPermission(ctx *model.AcquireContext) (boo
 		return true, nil
 	}
 
+	strategys, ownerId, err := authMgn.findStrategies(tokenInfo)
+	if err != nil {
+		return false, err
+	}
+
+	ctx.Attachment[auth.OperatoRoleKey] = tokenInfo.Role
+	ctx.Attachment[auth.OperatorIDKey] = tokenInfo.ID
+	ctx.Attachment[auth.OperatorOwnerKey] = ownerId
+
+	return authMgn.authPlugin.CheckPermission(ctx, strategys)
+}
+
+// findStrategies
+func (authMgn *defaultAuthManager) findStrategies(tokenInfo TokenInfo) ([]*model.StrategyDetail, string, error) {
 	var (
 		strategys []*model.StrategyDetail
 		ownerId   string
@@ -95,7 +101,7 @@ func (authMgn *defaultAuthManager) HasPermission(ctx *model.AcquireContext) (boo
 		// 获取主账户的 id 信息
 		user := authMgn.cache.UserCache().GetUser(tokenInfo.ID)
 		if user == nil {
-			return false, errors.New("user not found")
+			return nil, "", errors.New("user not found")
 		}
 		ownerId = user.Owner
 	} else {
@@ -103,16 +109,12 @@ func (authMgn *defaultAuthManager) HasPermission(ctx *model.AcquireContext) (boo
 		// 获取主账户的 id 信息
 		group := authMgn.cache.UserCache().GetUserGroup(tokenInfo.ID)
 		if group == nil {
-			return false, errors.New("usergroup not found")
+			return nil, "", errors.New("usergroup not found")
 		}
 		ownerId = group.Owner
 	}
 
-	ctx.Attachment[auth.OperatoRoleKey] = tokenInfo.Role
-	ctx.Attachment[auth.OperatorIDKey] = tokenInfo.ID
-	ctx.Attachment[auth.OperatorOwnerKey] = ownerId
-
-	return authMgn.authPlugin.CheckPermission(ctx, strategys)
+	return strategys, ownerId, nil
 }
 
 // ChangeOpenStatus 修改权限功能的开关状态

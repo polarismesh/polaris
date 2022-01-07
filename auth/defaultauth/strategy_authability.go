@@ -22,7 +22,7 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/core/auth"
+	"github.com/polarismesh/polaris-server/auth"
 )
 
 // strategyServerAuth 用户数据管理 server
@@ -45,7 +45,7 @@ func (svr *strategyServerAuth) CreateStrategy(ctx context.Context, strategy *api
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	_, errResp := verifyAuth(ctx, svr.authMgn, strategy.AuthToken.GetValue(), true)
+	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, strategy.AuthToken.GetValue(), true)
 	if errResp != nil {
 		errResp.AuthStrategy = strategy
 		return errResp
@@ -61,7 +61,7 @@ func (svr *strategyServerAuth) UpdateStrategy(ctx context.Context, strategy *api
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	_, errResp := verifyAuth(ctx, svr.authMgn, strategy.AuthToken.GetValue(), true)
+	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, strategy.AuthToken.GetValue(), true)
 	if errResp != nil {
 		errResp.AuthStrategy = strategy
 		return errResp
@@ -77,7 +77,7 @@ func (svr *strategyServerAuth) DeleteStrategy(ctx context.Context, strategy *api
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	_, errResp := verifyAuth(ctx, svr.authMgn, strategy.AuthToken.GetValue(), true)
+	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, strategy.AuthToken.GetValue(), true)
 	if errResp != nil {
 		errResp.AuthStrategy = strategy
 		return errResp
@@ -93,7 +93,7 @@ func (svr *strategyServerAuth) ListStrategy(ctx context.Context, query map[strin
 		return api.NewBatchQueryResponse(api.NotAllowedAccess)
 	}
 
-	_, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
 	if errResp != nil {
 		return api.NewBatchQueryResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
 	}
@@ -108,7 +108,7 @@ func (svr *strategyServerAuth) AddStrategyResources(ctx context.Context, resourc
 		return api.NewBatchWriteResponse(api.NotAllowedAccess)
 	}
 
-	_, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
 	if errResp != nil {
 		return api.NewBatchWriteResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
 	}
@@ -123,7 +123,7 @@ func (svr *strategyServerAuth) DeleteStrategyResources(ctx context.Context, reso
 		return api.NewBatchWriteResponse(api.NotAllowedAccess)
 	}
 
-	_, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
 	if errResp != nil {
 		return api.NewBatchWriteResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
 	}

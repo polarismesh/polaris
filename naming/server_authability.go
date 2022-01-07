@@ -20,9 +20,9 @@ package naming
 import (
 	"context"
 
+	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/core/auth"
 	"github.com/polarismesh/polaris-server/naming/cache"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -197,12 +197,12 @@ func (svr *serverAuthAbility) collectCircuitBreakerAuthContext(ctx context.Conte
 	return authCtx
 }
 
-// collectCircuitBreakerReleaseAuthContext 
-//  @receiver svr 
-//  @param ctx 
-//  @param req 
-//  @param resourceOp 
-//  @return *model.AcquireContext 
+// collectCircuitBreakerReleaseAuthContext
+//  @receiver svr
+//  @param ctx
+//  @param req
+//  @param resourceOp
+//  @return *model.AcquireContext
 func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx context.Context, req []*api.ConfigRelease, resourceOp model.ResourceOperation) *model.AcquireContext {
 	authToken := utils.ParseAuthToken(ctx)
 

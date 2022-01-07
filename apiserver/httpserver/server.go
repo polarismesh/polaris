@@ -27,7 +27,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/polarismesh/polaris-server/core/auth"
+	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/healthcheck"
 	"github.com/polarismesh/polaris-server/plugin/statis/local"
 
@@ -60,15 +60,17 @@ type HTTPServer struct {
 
 	freeMemMu *sync.Mutex
 
-	server            *http.Server
-	userServer        auth.UserServer
-	strategyServer    auth.AuthStrategyServer
+	server *http.Server
+
 	namingServer      naming.DiscoverServer
 	healthCheckServer *healthcheck.Server
 	rateLimit         plugin.Ratelimit
 	statis            plugin.Statis
 	auth              plugin.Auth
-	authMgn           auth.AuthManager
+
+	userServer     auth.UserServer
+	strategyServer auth.AuthStrategyServer
+	authMgn        auth.AuthManager
 }
 
 const (
@@ -291,7 +293,9 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 				if err != nil {
 					return nil, err
 				}
+
 				wsContainer.Add(service)
+				wsContainer.Add(h.GetAuthServer())
 			}
 		case "client":
 			if config.Enable {

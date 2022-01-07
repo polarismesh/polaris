@@ -74,7 +74,7 @@ func (h *Handler) postParseMessage(requestID string) (context.Context, error) {
 		ctx = context.WithValue(ctx, utils.StringContext("polaris-token"), token)
 	}
 	if authToken != "" {
-		ctx = context.WithValue(ctx, utils.StringContext("auth-token"), token)
+		ctx = context.WithValue(ctx, utils.StringContext("auth-token"), authToken)
 	}
 
 	var operator string
@@ -111,16 +111,17 @@ func (h *Handler) ParseHeaderContext() context.Context {
 	platformID := h.Request.HeaderParameter("Platform-Id")
 	platformToken := h.Request.HeaderParameter("Platform-Token")
 	token := h.Request.HeaderParameter("Polaris-Token")
+	authToken := h.Request.HeaderParameter("Auth-Token")
+
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, utils.StringContext("request-id"), requestID)
 	ctx = context.WithValue(ctx, utils.StringContext("platform-id"), platformID)
 	ctx = context.WithValue(ctx, utils.StringContext("platform-token"), platformToken)
-	authToken := h.Request.HeaderParameter("Auth-Token")
 	if token != "" {
 		ctx = context.WithValue(ctx, utils.StringContext("polaris-token"), token)
 	}
 	if authToken != "" {
-		ctx = context.WithValue(ctx, utils.StringContext("auth-token"), token)
+		ctx = context.WithValue(ctx, utils.StringContext("auth-token"), authToken)
 	}
 
 	var operator string

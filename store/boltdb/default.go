@@ -41,6 +41,8 @@ type boltStore struct {
 	*platformStore
 	*circuitBreakerStore
 	*toolStore
+	*userStore
+	*strategyStore
 
 	handler BoltHandler
 	start   bool
@@ -143,6 +145,10 @@ func (m *boltStore) newStore() error {
 	m.circuitBreakerStore = &circuitBreakerStore{handler: m.handler}
 
 	m.platformStore = &platformStore{handler: m.handler}
+
+	m.userStore = &userStore{handler: m.handler}
+
+	m.serviceStore = &serviceStore{handler: m.handler}
 
 	return nil
 }

@@ -136,7 +136,7 @@ func TestCreateInstance(t *testing.T) {
 		if !respSuccess(resp) {
 			t.Fatalf("error: %+v", resp)
 		}
-		getResp := server.GetInstances(map[string]string{"host": instanceReq.GetHost().GetValue()})
+		getResp := server.GetInstances(context.Background(), map[string]string{"host": instanceReq.GetHost().GetValue()})
 		t.Logf("%+v", getResp)
 		if getResp.GetInstances()[0].HealthCheck.Type != api.HealthCheck_HEARTBEAT {
 			t.Fatalf("error")
@@ -433,7 +433,7 @@ func TestListInstances(t *testing.T) {
 		query := map[string]string{"offset": "0", "limit": "100"}
 		query["host"] = instanceReq.GetHost().GetValue()
 		query["port"] = strconv.FormatUint(uint64(instanceReq.GetPort().GetValue()), 10)
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -455,7 +455,7 @@ func TestListInstances(t *testing.T) {
 		}
 
 		query := map[string]string{"offset": "10", "limit": "20", "host": "127.0.0.1"}
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -482,7 +482,7 @@ func TestListInstances(t *testing.T) {
 		host := instance.GetHost().GetValue()
 		port := strconv.FormatUint(uint64(instance.GetPort().GetValue()), 10)
 		query := map[string]string{"limit": "20", "host": host, "port": port}
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -523,7 +523,7 @@ func TestListInstances1(t *testing.T) {
 			"namespace": serviceResp.GetNamespace().GetValue(),
 		}
 
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		checkAmountAndSize(t, resp, total, 100)
 	})
 
@@ -541,7 +541,7 @@ func TestListInstances1(t *testing.T) {
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
 		}
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		checkAmountAndSize(t, resp, total/2, total/2)
 
 	})
@@ -555,28 +555,28 @@ func TestListInstances1(t *testing.T) {
 			"isolate":   "false",
 			"healthy":   "false",
 		}
-		checkAmountAndSize(t, server.GetInstances(query), 1, 1)
+		checkAmountAndSize(t, server.GetInstances(context.Background(), query), 1, 1)
 
 		query["isolate"] = "true"
-		checkAmountAndSize(t, server.GetInstances(query), 0, 0)
+		checkAmountAndSize(t, server.GetInstances(context.Background(), query), 0, 0)
 
 		query["isolate"] = "false"
 		query["healthy"] = "true"
-		checkAmountAndSize(t, server.GetInstances(query), 0, 0)
+		checkAmountAndSize(t, server.GetInstances(context.Background(), query), 0, 0)
 
 		query["isolate"] = "0"
 		query["healthy"] = "0"
-		checkAmountAndSize(t, server.GetInstances(query), 1, 1)
+		checkAmountAndSize(t, server.GetInstances(context.Background(), query), 1, 1)
 
 		query["health_status"] = "1"
-		checkAmountAndSize(t, server.GetInstances(query), 1, 1)
+		checkAmountAndSize(t, server.GetInstances(context.Background(), query), 1, 1)
 
 		query["health_status"] = "0"
 		delete(query, "healthy")
-		checkAmountAndSize(t, server.GetInstances(query), 1, 1)
+		checkAmountAndSize(t, server.GetInstances(context.Background(), query), 1, 1)
 
 		query["health_status"] = "1"
-		checkAmountAndSize(t, server.GetInstances(query), 0, 0)
+		checkAmountAndSize(t, server.GetInstances(context.Background(), query), 0, 0)
 	})
 	t.Run("metadata条件测试", func(t *testing.T) {
 		_, instanceResp1 := createCommonInstance(t, serviceResp, 10)
@@ -590,7 +590,7 @@ func TestListInstances1(t *testing.T) {
 			"keys":      "internal-personal-xxx",
 			"values":    "internal-personal-xxx_10",
 		}
-		checkAmountAndSize(t, server.GetInstances(query), 1, 1)
+		checkAmountAndSize(t, server.GetInstances(context.Background(), query), 1, 1)
 		//使用共同的元数据查询，返回两个实例
 		query = map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
@@ -598,7 +598,7 @@ func TestListInstances1(t *testing.T) {
 			"keys":      "my-meta-a1",
 			"values":    "1111",
 		}
-		checkAmountAndSize(t, server.GetInstances(query), 2, 2)
+		checkAmountAndSize(t, server.GetInstances(context.Background(), query), 2, 2)
 		//使用不存在的元数据查询，返回零个实例
 		query = map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
@@ -606,7 +606,7 @@ func TestListInstances1(t *testing.T) {
 			"keys":      "nokey",
 			"values":    "novalue",
 		}
-		checkAmountAndSize(t, server.GetInstances(query), 0, 0)
+		checkAmountAndSize(t, server.GetInstances(context.Background(), query), 0, 0)
 	})
 	t.Run("metadata只有key或者value，返回错误", func(t *testing.T) {
 		query := map[string]string{
@@ -614,7 +614,7 @@ func TestListInstances1(t *testing.T) {
 			"namespace": serviceResp.GetNamespace().GetValue(),
 			"keys":      "internal-personal-xxx",
 		}
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if resp.GetCode().GetValue() != api.InvalidQueryInsParameter {
 			t.Fatalf("resp is %v, not InvalidQueryInsParameter", resp)
 		}
@@ -623,7 +623,7 @@ func TestListInstances1(t *testing.T) {
 			"namespace": serviceResp.GetNamespace().GetValue(),
 			"values":    "internal-personal-xxx",
 		}
-		resp = server.GetInstances(query)
+		resp = server.GetInstances(context.Background(), query)
 		if resp.GetCode().GetValue() != api.InvalidQueryInsParameter {
 			t.Fatalf("resp is %v, not InvalidQueryInsParameter", resp)
 		}
@@ -665,7 +665,7 @@ func TestInstancesContainLocation(t *testing.T) {
 	}
 	defer cleanInstance(resp.GetInstance().GetId().GetValue())
 
-	getResp := server.GetInstances(map[string]string{
+	getResp := server.GetInstances(context.Background(), map[string]string{
 		"service": instance.GetService().GetValue(), "namespace": instance.GetNamespace().GetValue(),
 	})
 	if !respSuccess(getResp) {
@@ -725,7 +725,7 @@ func TestUpdateInstance(t *testing.T) {
 			"host": instanceReq.GetHost().GetValue(),
 			"port": strconv.FormatUint(uint64(instanceReq.GetPort().GetValue()), 10),
 		}
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -851,7 +851,7 @@ func TestUpdateIsolate(t *testing.T) {
 				"host":      fmt.Sprintf("%d.%d.%d.%d", i, i, i, i),
 			}
 
-			resp := server.GetInstances(filter)
+			resp := server.GetInstances(context.Background(), filter)
 			if !respSuccess(resp) {
 				t.Fatalf("error: %s", resp.GetInfo().GetValue())
 			}
@@ -993,7 +993,7 @@ func TestUpdateHealthCheck(t *testing.T) {
 			"host": req.GetHost().GetValue(),
 			"port": strconv.FormatUint(uint64(req.GetPort().GetValue()), 10),
 		}
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -1072,7 +1072,7 @@ func TestDeleteInstance(t *testing.T) {
 
 	getInstance := func(t *testing.T, s *api.Service, expect int) []*api.Instance {
 		filters := map[string]string{"service": s.GetName().GetValue(), "namespace": s.GetNamespace().GetValue()}
-		getResp := server.GetInstances(filters)
+		getResp := server.GetInstances(context.Background(), filters)
 		if !respSuccess(getResp) {
 			t.Fatalf("error")
 		}
@@ -1263,7 +1263,7 @@ func TestBatchDeleteInstances(t *testing.T) {
 		} else {
 			t.Logf("%+v", out)
 		}
-		resps := server.GetInstances(map[string]string{
+		resps := server.GetInstances(context.Background(), map[string]string{
 			"service":   service.GetName().GetValue(),
 			"namespace": service.GetNamespace().GetValue(),
 		})
@@ -1461,7 +1461,7 @@ func TestUpdateInstanceFiled(t *testing.T) {
 
 		instanceReq.EnableHealthCheck = utils.NewBoolValue(false)
 		So(server.UpdateInstance(defaultCtx, instanceReq).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
-		newInstanceResp := server.GetInstances(map[string]string{
+		newInstanceResp := server.GetInstances(context.Background(), map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
 		})
@@ -1499,7 +1499,7 @@ func TestUpdateInstanceFiled(t *testing.T) {
 		instanceReq.LogicSet.Value = "new-logic-set-1"
 		So(server.UpdateInstance(defaultCtx, instanceReq).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
-		newInstanceResp := server.GetInstances(map[string]string{
+		newInstanceResp := server.GetInstances(context.Background(), map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
 		})
@@ -1513,7 +1513,7 @@ func getInstancesWithService(t *testing.T, name string, namespace string, expect
 		"service":   name,
 		"namespace": namespace,
 	}
-	resp := server.GetInstances(query)
+	resp := server.GetInstances(context.Background(), query)
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
@@ -1650,7 +1650,7 @@ func TestCheckInstanceParam(t *testing.T) {
 	t.Run("只传service", func(t *testing.T) {
 		query := map[string]string{}
 		query["service"] = "test"
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if resp.Code.Value != api.InvalidQueryInsParameter {
 			t.Fatalf("%+v", resp)
 		}
@@ -1658,7 +1658,7 @@ func TestCheckInstanceParam(t *testing.T) {
 	t.Run("只传namespace", func(t *testing.T) {
 		query := map[string]string{}
 		query["namespace"] = "test"
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if resp.Code.Value != api.InvalidQueryInsParameter {
 			t.Fatalf("%+v", resp)
 		}
@@ -1666,7 +1666,7 @@ func TestCheckInstanceParam(t *testing.T) {
 	t.Run("只传port", func(t *testing.T) {
 		query := map[string]string{}
 		query["port"] = "123"
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if resp.Code.Value != api.InvalidQueryInsParameter {
 			t.Fatalf("%+v", resp)
 		}
@@ -1674,7 +1674,7 @@ func TestCheckInstanceParam(t *testing.T) {
 	t.Run("只传version", func(t *testing.T) {
 		query := map[string]string{}
 		query["version"] = "123"
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if resp.Code.Value != api.InvalidQueryInsParameter {
 			t.Fatalf("%+v", resp)
 		}
@@ -1682,7 +1682,7 @@ func TestCheckInstanceParam(t *testing.T) {
 	t.Run("只传protocol", func(t *testing.T) {
 		query := map[string]string{}
 		query["protocol"] = "http"
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if resp.Code.Value != api.InvalidQueryInsParameter {
 			t.Fatalf("%+v", resp)
 		}
@@ -1691,7 +1691,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query := map[string]string{}
 		query["service"] = "test"
 		query["port"] = "123"
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if resp.Code.Value != api.InvalidQueryInsParameter {
 			t.Fatalf("%+v", resp)
 		}
@@ -1700,7 +1700,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query := map[string]string{}
 		query["namespace"] = "test"
 		query["port"] = "123"
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if resp.Code.Value != api.InvalidQueryInsParameter {
 			t.Fatalf("%+v", resp)
 		}
@@ -1709,7 +1709,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query := map[string]string{}
 		query["service"] = instanceReq.GetService().Value
 		query["namespace"] = instanceReq.GetNamespace().Value
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
@@ -1719,7 +1719,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query["service"] = instanceReq.GetService().Value
 		query["namespace"] = instanceReq.GetNamespace().Value
 		query["host"] = instanceReq.GetHost().Value
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
@@ -1729,7 +1729,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query["service"] = instanceReq.GetService().Value
 		query["namespace"] = instanceReq.GetNamespace().Value
 		query["port"] = strconv.Itoa(int(instanceReq.GetPort().Value))
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
@@ -1737,7 +1737,7 @@ func TestCheckInstanceParam(t *testing.T) {
 	t.Run("传host", func(t *testing.T) {
 		query := map[string]string{}
 		query["host"] = instanceReq.GetHost().Value
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
@@ -1746,7 +1746,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query := map[string]string{}
 		query["host"] = instanceReq.GetHost().Value
 		query["namespace"] = instanceReq.GetNamespace().Value
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
@@ -1755,7 +1755,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query := map[string]string{}
 		query["host"] = instanceReq.GetHost().Value
 		query["port"] = strconv.Itoa(int(instanceReq.GetPort().Value))
-		resp := server.GetInstances(query)
+		resp := server.GetInstances(context.Background(), query)
 		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}

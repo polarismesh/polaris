@@ -5,11 +5,11 @@ bootstrap:
     naming:
       rotateOutputPath: log/polaris-naming.log
       # 以下参数不指定或者为零值时，默认值如下
-#      rotationMaxSize: 500
-#      rotationMaxAge: 30
-#      rotationMaxBackups: 100
-#      outputLevel: debug
-#      stackTraceLevel: none
+    #      rotationMaxSize: 500
+    #      rotationMaxAge: 30
+    #      rotationMaxBackups: 100
+    #      outputLevel: debug
+    #      stackTraceLevel: none
     health-check:
       rotateOutputPath: log/polaris-health-check.log
     store:
@@ -26,7 +26,7 @@ bootstrap:
     key: sz # 全局锁
   # 注册为北极星服务
   polaris_service:
-    #    probe_address: ##DB_ADDR##
+    probe_address: 127.0.0.1:3306
     enable_register: true
     isolated: false
     services:
@@ -82,6 +82,11 @@ apiservers:
 #      listenPort: 7779
 #      clusterName: cl5.discover
 # 核心逻辑的配置
+auth:
+  name: defaultAuth
+  option:
+    salt: polarismesh@2021
+    open: true
 naming:
   auth:
     open: false
@@ -143,22 +148,22 @@ cache:
 # 存储配置
 store:
   # 单机文件存储插件
-  name: boltdbStore
+  # name: boltdbStore
+  # option:
+  #   path: ./polaris.bolt
+  ## 数据库存储插件
+  name: defaultStore
   option:
-    path: ./polaris.bolt
-## 数据库存储插件
-#  name: defaultStore
-#  option:
-#    master:
-#      dbType: mysql
-#      dbName: polaris_server
-#      dbUser: ##DB_USER##
-#      dbPwd: ##DB_PWD##
-#      dbAddr: ##DB_ADDR##
-#      maxOpenConns: -1
-#      maxIdleConns: -1
-#      connMaxLifetime: 300 # 单位秒
-#      txIsolationLevel: 2 #LevelReadCommitted
+    master:
+      dbType: mysql
+      dbName: polaris_server
+      dbUser: root
+      dbPwd: "123456"
+      dbAddr: 127.0.0.1:3306
+      maxOpenConns: -1
+      maxIdleConns: -1
+      connMaxLifetime: 300 # 单位秒
+      txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置
 plugin:
   history:
@@ -185,6 +190,8 @@ plugin:
     # name: prometheus
     # option:
     #   interval: 60 # 统计间隔，单位为秒
+  auth:
+    name: defaultAuth
   ratelimit:
     name: token-bucket
     option:

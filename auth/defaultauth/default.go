@@ -18,12 +18,13 @@
 package defaultauth
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 
 	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/core/auth"
-	"github.com/polarismesh/polaris-server/core/auth/defaultauth/cache"
+	"github.com/polarismesh/polaris-server/auth"
+	"github.com/polarismesh/polaris-server/auth/defaultauth/cache"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
 )
@@ -49,10 +50,11 @@ type AuthConfig struct {
 func DefaultAuthConfig() *AuthConfig {
 	return &AuthConfig{
 		Open: false,
+		Salt: "polarismesh@2021",
 	}
 }
 
-// defaultAuthManager 
+// defaultAuthManager
 type defaultAuthManager struct {
 	userSvr     *userServer
 	strategySvr *authStrategyServer
@@ -100,9 +102,13 @@ func (authMgn *defaultAuthManager) Initialize(options *auth.Config) error {
 		return err
 	}
 
+	if err := authCache.Start(context.Background()); err != nil {
+		return err
+	}
+
 	authPlugin := plugin.GetAuth()
 	if authPlugin == nil {
-		return errors.New("AuthManager needs to configure plugin.Auth plug-in for permission calculation")
+		return errors.New("AuthManager needs to configure plugin.Auth plugin for permission calculation")
 	}
 
 	authMgn.userSvr = userSvr

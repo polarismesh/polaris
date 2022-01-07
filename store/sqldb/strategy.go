@@ -65,7 +65,7 @@ func (s *strategyStore) addStrategy(strategy *model.StrategyDetail) error {
 	}
 
 	// 保存策略主信息
-	saveMainSql := "INSERT INTO auth_strategy(id, name, principal, action, owner, comment, flag, default) VALUES (?,?,?,?,?,?,?)"
+	saveMainSql := "INSERT INTO auth_strategy(`id`, `name`, `principal`, `action`, `owner`, `comment`, `flag`, `default`) VALUES (?,?,?,?,?,?,?,?)"
 	_, err = tx.Exec(saveMainSql, []interface{}{strategy.ID, strategy.Name, strategy.Principal, strategy.Action, strategy.Owner, strategy.Comment, 0, isDefault}...)
 
 	if err != nil {
@@ -290,9 +290,9 @@ func (s *strategyStore) getStrategyDetailByIDOrName(id, name string) (*model.Str
 	}
 
 	arg := id
-	querySql := "SELECT id, name, principal, action, owner, default, comment, ctime, mtime FROM auth_strategy WHERE flag = 0 AND id = ?"
+	querySql := "SELECT id, name, principal, action, owner, default, comment, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM auth_strategy WHERE flag = 0 AND id = ?"
 	if id == "" {
-		querySql = "SELECT id, name, principal, action, owner, default, comment, ctime, mtime FROM auth_strategy WHERE flag = 0 AND name = ?"
+		querySql = "SELECT id, name, principal, action, owner, default, comment, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM auth_strategy WHERE flag = 0 AND name = ?"
 		arg = name
 	}
 
@@ -316,7 +316,7 @@ func (s *strategyStore) getStrategyDetailByIDOrName(id, name string) (*model.Str
 	}
 
 	// query all link resource
-	queryResSql := "SELECT res_type, res_id, ctime, mtime FROM auth_strategy_resource WHERE flag = 0 AND strategy_id = ?"
+	queryResSql := "SELECT res_type, res_id, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM auth_strategy_resource WHERE flag = 0 AND strategy_id = ?"
 	rows, err := tx.Query(queryResSql, ret.ID)
 
 	resources := make([]model.StrategyResource, 0)
@@ -343,7 +343,7 @@ func (s *strategyStore) ListStrategyDetails(filters map[string]string, offset ui
 
 	defer func() { _ = tx.Commit() }()
 
-	querySql := "SELECT id, name, principal, action, owner, comment, default, ctime, mtime FROM auth_strategy"
+	querySql := "SELECT id, name, principal, action, owner, comment, default, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM auth_strategy"
 	countSql := "SELECT COUNT(*) FROM auth_strategy"
 
 	if len(filters) != 0 {
@@ -412,7 +412,7 @@ func (s *strategyStore) GetStrategyDetailsForCache(mtime time.Time, firstUpdate 
 
 	defer func() { _ = tx.Commit() }()
 
-	querySql := "SELECT id, name, principal, action, owner, comment, default, ctime, mtime FROM auth_strategy"
+	querySql := "SELECT id, name, principal, action, owner, comment, default, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM auth_strategy"
 	if !firstUpdate {
 		querySql += " WHERE mtime >= ?"
 		args = append(args, commontime.Time2String(mtime))

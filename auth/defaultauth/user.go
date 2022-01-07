@@ -25,12 +25,12 @@ import (
 	"unicode/utf8"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/polarismesh/polaris-server/auth/defaultauth/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/core/auth/defaultauth/cache"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
@@ -80,9 +80,25 @@ func (svr *userServer) initialize() error {
 }
 
 // CreateUser
+func (svr *userServer) CreateUsers(ctx context.Context, req []*api.User) *api.BatchWriteResponse {
+	batchResp := api.NewBatchWriteResponse(api.ExecuteSuccess)
+
+	for i := range req {
+		user := req[i]
+		resp := svr.CreateUser(ctx, user)
+		batchResp.Collect(resp)
+	}
+
+	return batchResp
+}
+
+// CreateUser
 func (svr *userServer) CreateUser(ctx context.Context, req *api.User) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
+	ownerId := utils.ParseUserID(ctx)
+
+	req.Owner = utils.NewStringValue(ownerId)
 
 	if checkErrResp := checkCreateUser(req); checkErrResp != nil {
 		return checkErrResp
@@ -126,9 +142,9 @@ func (svr *userServer) createUser(ctx context.Context, req *api.User) *api.Respo
 	svr.RecordHistory(userRecordEntry(ctx, req, data, model.OCreate))
 
 	out := &api.User{
-		Id:        utils.NewStringValue(data.Name),
-		Name:      req.GetName(),
-		AuthToken: utils.NewStringValue(data.Token),
+		Id:    utils.NewStringValue(data.ID),
+		Name:  req.GetName(),
+		Owner: utils.NewStringValue(data.Owner),
 	}
 
 	return api.NewUserResponse(api.ExecuteSuccess, out)
@@ -1035,10 +1051,15 @@ func diffUserInfo(old *model.User, newUser *api.User) (*api.Response, bool) {
 }
 
 func createUserModel(req *api.User) (*model.User, error) {
+	pwd, err := bcrypt.GenerateFromPassword([]byte(req.GetPassword().GetValue()), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+
 	return &model.User{
 		ID:         utils.NewUUID(),
 		Name:       req.GetName().GetValue(),
-		Password:   req.GetPassword().GetValue(),
+		Password:   string(pwd),
 		Owner:      req.GetOwner().GetValue(),
 		Source:     req.GetSource().GetValue(),
 		Valid:      true,

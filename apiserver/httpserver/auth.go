@@ -19,18 +19,19 @@ package httpserver
 
 import (
 	"github.com/emicklei/go-restful"
+	proto "github.com/golang/protobuf/proto"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
-// GetMaintainAccessServer 运维接口
-func (h *HTTPServer) GetUserAccessServer() *restful.WebService {
+// GetAuthServer 运维接口
+func (h *HTTPServer) GetAuthServer() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.Path("/core/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
 
 	//
 	ws.Route(ws.POST("/user/login").To(h.Login))
-	ws.Route(ws.POST("/user").To(h.CreateUser))
+	ws.Route(ws.POST("/users").To(h.CreateUsers))
 	ws.Route(ws.PUT("/user").To(h.UpdateUser))
 	ws.Route(ws.POST("/user/delete").To(h.DeleteUser))
 	ws.Route(ws.GET("/users").To(h.ListUsers))
@@ -50,6 +51,14 @@ func (h *HTTPServer) GetUserAccessServer() *restful.WebService {
 	ws.Route(ws.PUT("/usergroup/token/disable").To(h.DisableUserGroupToken))
 	ws.Route(ws.PUT("/usergroup/token/enable").To(h.EnableUserGroupToken))
 	ws.Route(ws.PUT("/usergroup/token/refresh").To(h.RefreshUserGroupToken))
+
+	ws.Route(ws.POST("/auth/strategy").To(h.CreateAuthStrategy))
+	ws.Route(ws.PUT("/auth/strategy").To(h.UpdateAuthStrategy))
+	ws.Route(ws.POST("/auth/strategies/delete").To(h.DeleteStrategy))
+	ws.Route(ws.GET("/auth/strategies").To(h.ListStrategy))
+	ws.Route(ws.POST("/auth/strategy/resource").To(h.AddStrategyResources))
+	ws.Route(ws.POST("/auth/strategy/resource/delete").To(h.DeleteStrategyResources))
+
 	return ws
 }
 
@@ -78,18 +87,22 @@ func (h *HTTPServer) Login(req *restful.Request, rsp *restful.Response) {
 	handler.WriteHeaderAndProto(resp)
 }
 
-func (h *HTTPServer) CreateUser(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) CreateUsers(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	user := &api.User{}
+	var users UserArr
 
-	ctx, err := handler.Parse(user)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.User{}
+		users = append(users, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.userServer.CreateUser(ctx, user))
+	handler.WriteHeaderAndProto(h.userServer.CreateUsers(ctx, users))
 }
 
 func (h *HTTPServer) UpdateUser(req *restful.Request, rsp *restful.Response) {
@@ -318,4 +331,83 @@ func (h *HTTPServer) BatchRemoveUserFromGroup(req *restful.Request, rsp *restful
 	}
 
 	handler.WriteHeaderAndProto(h.userServer.BatchRemoveUserFromGroup(ctx, group))
+}
+
+func (h *HTTPServer) CreateAuthStrategy(req *restful.Request, rsp *restful.Response) {
+	handler := &Handler{req, rsp}
+
+	strategy := &api.AuthStrategy{}
+
+	ctx, err := handler.Parse(strategy)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		return
+	}
+
+	handler.WriteHeaderAndProto(h.strategyServer.CreateStrategy(ctx, strategy))
+}
+
+func (h *HTTPServer) UpdateAuthStrategy(req *restful.Request, rsp *restful.Response) {
+	handler := &Handler{req, rsp}
+
+	strategy := &api.AuthStrategy{}
+
+	ctx, err := handler.Parse(strategy)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		return
+	}
+
+	handler.WriteHeaderAndProto(h.strategyServer.UpdateStrategy(ctx, strategy))
+}
+
+func (h *HTTPServer) DeleteStrategy(req *restful.Request, rsp *restful.Response) {
+	handler := &Handler{req, rsp}
+
+	strategy := &api.AuthStrategy{}
+
+	ctx, err := handler.Parse(strategy)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		return
+	}
+
+	handler.WriteHeaderAndProto(h.strategyServer.DeleteStrategy(ctx, strategy))
+}
+
+func (h *HTTPServer) ListStrategy(req *restful.Request, rsp *restful.Response) {
+	handler := &Handler{req, rsp}
+
+	queryParams := parseQueryParams(req)
+	ctx := handler.ParseHeaderContext()
+
+	handler.WriteHeaderAndProto(h.strategyServer.ListStrategy(ctx, queryParams))
+}
+
+func (h *HTTPServer) AddStrategyResources(req *restful.Request, rsp *restful.Response) {
+	handler := &Handler{req, rsp}
+
+	resources := &api.StrategyResource{}
+
+	ctx, err := handler.Parse(resources)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		return
+	}
+
+	handler.WriteHeaderAndProto(h.strategyServer.AddStrategyResources(ctx, resources))
+}
+
+func (h *HTTPServer) DeleteStrategyResources(req *restful.Request, rsp *restful.Response) {
+	handler := &Handler{req, rsp}
+
+	resources := &api.StrategyResource{}
+
+	ctx, err := handler.Parse(resources)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		return
+	}
+
+	handler.WriteHeaderAndProto(h.strategyServer.DeleteStrategyResources(ctx, resources))
 }

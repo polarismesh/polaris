@@ -150,6 +150,20 @@ func (*ServiceAliasArr) ProtoMessage() {}
 
 
 /**
+ * UserArr 命名空间数组定义
+ */
+ type UserArr []*api.User
+
+ // Reset
+ func (m *UserArr) Reset() { *m = UserArr{} }
+ 
+ // String return string
+ func (m *UserArr) String() string { return proto.CompactTextString(m) }
+ 
+ // ProtoMessage
+ func (*UserArr) ProtoMessage() {}
+
+/**
  * AuthResourceArr 命名空间数组定义
  */
  type AuthResourceArr []*api.StrategyResource

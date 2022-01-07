@@ -22,13 +22,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/duration"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/plugin"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/plugin"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
@@ -114,10 +115,12 @@ func initialize() error {
 			panic(err)
 		}
 
-		server, err = naming.GetServer()
+		val, err := naming.GetOriginServer()
 		if err != nil {
 			panic(err)
 		}
+
+		server = val.(*naming.Server)
 
 		masterEntry := cfg.Store.Option["master"]
 		masterConfig, ok := masterEntry.(map[interface{}]interface{})

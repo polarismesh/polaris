@@ -75,255 +75,267 @@ type RouteRuleOperateServer interface {
 type ServiceOperateServer interface {
 
 	// CreateServices 批量创建服务
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.BatchWriteResponse 
+	//  @param ctx
+	//  @param req
+	//  @return *api.BatchWriteResponse
 	CreateServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse
 
 	// DeleteServices 批量删除服务
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.BatchWriteResponse 
+	//  @param ctx
+	//  @param req
+	//  @return *api.BatchWriteResponse
 	DeleteServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse
 
-	// UpdateServices 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.BatchWriteResponse 
+	// UpdateServices
+	//  @param ctx
+	//  @param req
+	//  @return *api.BatchWriteResponse
 	UpdateServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse
 
-	// UpdateServiceToken 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.Response 
+	// UpdateServiceToken
+	//  @param ctx
+	//  @param req
+	//  @return *api.Response
 	UpdateServiceToken(ctx context.Context, req *api.Service) *api.Response
 
-	// GetServices 
-	//  @param ctx 
-	//  @param query 
-	//  @return *api.BatchQueryResponse 
+	// GetServices
+	//  @param ctx
+	//  @param query
+	//  @return *api.BatchQueryResponse
 	GetServices(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
-	// GetServicesCount 
-	//  @return *api.BatchQueryResponse 
+	// GetServicesCount
+	//  @return *api.BatchQueryResponse
 	GetServicesCount() *api.BatchQueryResponse
 
-	// GetServiceToken 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.Response 
+	// GetServiceToken
+	//  @param ctx
+	//  @param req
+	//  @return *api.Response
 	GetServiceToken(ctx context.Context, req *api.Service) *api.Response
 
-	// GetServiceOwner 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.BatchQueryResponse 
+	// GetServiceOwner
+	//  @param ctx
+	//  @param req
+	//  @return *api.BatchQueryResponse
 	GetServiceOwner(ctx context.Context, req []*api.Service) *api.BatchQueryResponse
 }
 
-// ServiceAliasOperateServer 
+// ServiceAliasOperateServer
 type ServiceAliasOperateServer interface {
 
-	// CreateServiceAlias 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.Response 
+	// CreateServiceAlias
+	//  @param ctx
+	//  @param req
+	//  @return *api.Response
 	CreateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response
 
-	// DeleteServiceAliases 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.BatchWriteResponse 
+	// DeleteServiceAliases
+	//  @param ctx
+	//  @param req
+	//  @return *api.BatchWriteResponse
 	DeleteServiceAliases(ctx context.Context, req []*api.ServiceAlias) *api.BatchWriteResponse
 
-	// UpdateServiceAlias 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.Response 
+	// UpdateServiceAlias
+	//  @param ctx
+	//  @param req
+	//  @return *api.Response
 	UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response
 
-	// GetServiceAliases 
-	//  @param query 
-	//  @return *api.BatchQueryResponse 
+	// GetServiceAliases
+	//  @param query
+	//  @return *api.BatchQueryResponse
 	GetServiceAliases(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 }
 
-// InstanceOperateServer 
+// InstanceOperateServer
 type InstanceOperateServer interface {
 
-	// CreateInstances 
-	//  @param ctx 
-	//  @param reqs 
-	//  @return *api.BatchWriteResponse 
+	// CreateInstances
+	//  @param ctx
+	//  @param reqs
+	//  @return *api.BatchWriteResponse
 	CreateInstances(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse
 
-	// DeleteInstances 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.BatchWriteResponse 
+	// CreateInstance
+	//  @param ctx
+	//  @param reqs
+	//  @return *api.BatchWriteResponse
+	CreateInstance(ctx context.Context, req *api.Instance) *api.Response
+
+	// DeleteInstances
+	//  @param ctx
+	//  @param req
+	//  @return *api.BatchWriteResponse
 	DeleteInstances(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse
 
-	// DeleteInstancesByHost 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.BatchWriteResponse 
+	// DeleteInstancesByHost
+	//  @param ctx
+	//  @param req
+	//  @return *api.BatchWriteResponse
 	DeleteInstancesByHost(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse
 
-	// UpdateInstances 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.BatchWriteResponse 
+	// UpdateInstances
+	//  @param ctx
+	//  @param req
+	//  @return *api.BatchWriteResponse
 	UpdateInstances(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse
 
-	// UpdateInstancesIsolate 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.BatchWriteResponse 
+	// UpdateInstance
+	//  @param ctx
+	//  @param req
+	//  @return *api.BatchWriteResponse
+	UpdateInstance(ctx context.Context, req *api.Instance) *api.Response
+
+	// UpdateInstancesIsolate
+	//  @param ctx
+	//  @param req
+	//  @return *api.BatchWriteResponse
 	UpdateInstancesIsolate(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse
 
-	// GetInstances 
-	//  @param query 
-	//  @return *api.BatchQueryResponse 
+	// GetInstances
+	//  @param query
+	//  @return *api.BatchQueryResponse
 	GetInstances(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
-	// GetInstancesCount 
-	//  @return *api.BatchQueryResponse 
+	// GetInstancesCount
+	//  @return *api.BatchQueryResponse
 	GetInstancesCount() *api.BatchQueryResponse
 
-	// CleanInstance 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.Response 
+	// CleanInstance
+	//  @param ctx
+	//  @param req
+	//  @return *api.Response
 	CleanInstance(ctx context.Context, req *api.Instance) *api.Response
 }
 
-// NamespaceOperateServer 
+// NamespaceOperateServer
 type NamespaceOperateServer interface {
 
-	// CreateNamespaces 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.BatchWriteResponse 
+	// CreateNamespaces
+	//  @param ctx
+	//  @param req
+	//  @return *api.BatchWriteResponse
 	CreateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse
 
-	// DeleteNamespaces 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.BatchWriteResponse 
+	// DeleteNamespaces
+	//  @param ctx
+	//  @param req
+	//  @return *api.BatchWriteResponse
 	DeleteNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse
 
-	// UpdateNamespaces 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.BatchWriteResponse 
+	// UpdateNamespaces
+	//  @param ctx
+	//  @param req
+	//  @return *api.BatchWriteResponse
 	UpdateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse
 
-	// UpdateNamespaceToken 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.Response 
+	// UpdateNamespaceToken
+	//  @param ctx
+	//  @param req
+	//  @return *api.Response
 	UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response
 
-	// GetNamespaces 
-	//  @param ctx 
-	//  @param query 
-	//  @return *api.BatchQueryResponse 
+	// GetNamespaces
+	//  @param ctx
+	//  @param query
+	//  @return *api.BatchQueryResponse
 	GetNamespaces(ctx context.Context, query map[string][]string) *api.BatchQueryResponse
 
-	// GetNamespaceToken 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.Response 
+	// GetNamespaceToken
+	//  @param ctx
+	//  @param req
+	//  @return *api.Response
 	GetNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response
 }
 
 // Client operation interface definition
 type ClientServer interface {
 
-	// ReportClient 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.Response 
+	// ReportClient
+	//  @param ctx
+	//  @param req
+	//  @return *api.Response
 	ReportClient(ctx context.Context, req *api.Client) *api.Response
 
-	// GetServiceWithCache 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.DiscoverResponse 
+	// GetServiceWithCache
+	//  @param ctx
+	//  @param req
+	//  @return *api.DiscoverResponse
 	GetServiceWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse
 
-	// ServiceInstancesCache 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.DiscoverResponse 
+	// ServiceInstancesCache
+	//  @param ctx
+	//  @param req
+	//  @return *api.DiscoverResponse
 	ServiceInstancesCache(ctx context.Context, req *api.Service) *api.DiscoverResponse
 
-	// GetRoutingConfigWithCache 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.DiscoverResponse 
+	// GetRoutingConfigWithCache
+	//  @param ctx
+	//  @param req
+	//  @return *api.DiscoverResponse
 	GetRoutingConfigWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse
 
-	// GetRateLimitWithCache 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.DiscoverResponse 
+	// GetRateLimitWithCache
+	//  @param ctx
+	//  @param req
+	//  @return *api.DiscoverResponse
 	GetRateLimitWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse
 
-	// GetCircuitBreakerWithCache 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.DiscoverResponse 
+	// GetCircuitBreakerWithCache
+	//  @param ctx
+	//  @param req
+	//  @return *api.DiscoverResponse
 	GetCircuitBreakerWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse
 }
 
-// PlatformOperateServer 
+// PlatformOperateServer
 type PlatformOperateServer interface {
 
-	// CreatePlatforms 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.BatchWriteResponse 
+	// CreatePlatforms
+	//  @param ctx
+	//  @param req
+	//  @return *api.BatchWriteResponse
 	CreatePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse
 
-	// UpdatePlatforms 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.BatchWriteResponse 
+	// UpdatePlatforms
+	//  @param ctx
+	//  @param req
+	//  @return *api.BatchWriteResponse
 	UpdatePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse
 
-	// DeletePlatforms 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.BatchWriteResponse 
+	// DeletePlatforms
+	//  @param ctx
+	//  @param req
+	//  @return *api.BatchWriteResponse
 	DeletePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse
 
-	// GetPlatforms 
-	//  @param query 
-	//  @return *api.BatchQueryResponse 
+	// GetPlatforms
+	//  @param query
+	//  @return *api.BatchQueryResponse
 	GetPlatforms(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
-	// GetPlatformToken 
-	//  @param ctx 
-	//  @param req 
-	//  @return *api.Response 
+	// GetPlatformToken
+	//  @param ctx
+	//  @param req
+	//  @return *api.Response
 	GetPlatformToken(ctx context.Context, req *api.Platform) *api.Response
 }
 
-// L5OperateServer 
+// L5OperateServer
 type L5OperateServer interface {
 
-	// SyncByAgentCmd 
-	//  @param ctx 
-	//  @param sbac 
-	//  @return *l5.Cl5SyncByAgentAckCmd 
-	//  @return error 
+	// SyncByAgentCmd
+	//  @param ctx
+	//  @param sbac
+	//  @return *l5.Cl5SyncByAgentAckCmd
+	//  @return error
 	SyncByAgentCmd(ctx context.Context, sbac *l5.Cl5SyncByAgentCmd) (*l5.Cl5SyncByAgentAckCmd, error)
 
-	// RegisterByNameCmd 
-	//  @param rbnc 
-	//  @return *l5.Cl5RegisterByNameAckCmd 
-	//  @return error 
+	// RegisterByNameCmd
+	//  @param rbnc
+	//  @return *l5.Cl5RegisterByNameAckCmd
+	//  @return error
 	RegisterByNameCmd(rbnc *l5.Cl5RegisterByNameCmd) (*l5.Cl5RegisterByNameAckCmd, error)
 }
 
@@ -351,5 +363,5 @@ type DiscoverServer interface {
 	PlatformOperateServer
 	//
 	L5OperateServer
-	// 
+	//
 }

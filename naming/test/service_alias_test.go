@@ -346,7 +346,7 @@ func TestUpdateServiceAlias(t *testing.T) {
 			"alias":     req.GetAlias().GetValue(),
 			"namespace": req.GetNamespace().GetValue(),
 		}
-		aliasResponse := server.GetServiceAliases(query)
+		aliasResponse := server.GetServiceAliases(context.Background(), query)
 		// 判断负责人是否一致
 		So(aliasResponse.GetAliases()[0].GetOwners().GetValue(), ShouldEqual, "alias-owner-new")
 		t.Logf("pass, owner is %v", aliasResponse.GetAliases()[0].GetOwners().GetValue())
@@ -379,7 +379,7 @@ func TestUpdateServiceAlias(t *testing.T) {
 			"alias":     req.GetAlias().GetValue(),
 			"namespace": req.GetNamespace().GetValue(),
 		}
-		aliasResponse := server.GetServiceAliases(query)
+		aliasResponse := server.GetServiceAliases(context.Background(), query)
 		// 判断指向服务是否一致
 		So(aliasResponse.GetAliases()[0].GetService().GetValue(), ShouldEqual, serviceResp2.GetName().GetValue())
 		t.Logf("pass, service is %v", aliasResponse.GetAliases()[0].GetService().GetValue())
@@ -526,27 +526,27 @@ func TestGetServiceAliases(t *testing.T) {
 	}
 
 	Convey("可以查询到全量别名", t, func() {
-		resp := server.GetServiceAliases(nil)
+		resp := server.GetServiceAliases(context.Background(), nil)
 		So(respSuccess(resp), ShouldEqual, true)
 		So(len(resp.Aliases), ShouldBeGreaterThanOrEqualTo, count)
 		So(resp.Amount.Value, ShouldBeGreaterThanOrEqualTo, count)
 	})
 	Convey("offset,limit测试", t, func() {
 		query := map[string]string{"offset": "0", "limit": "100"}
-		resp := server.GetServiceAliases(query)
+		resp := server.GetServiceAliases(context.Background(), query)
 		So(respSuccess(resp), ShouldEqual, true)
 		So(len(resp.Aliases), ShouldBeGreaterThanOrEqualTo, count)
 		So(resp.Amount.Value, ShouldBeGreaterThanOrEqualTo, count)
 
 		query["limit"] = "0"
-		resp = server.GetServiceAliases(query)
+		resp = server.GetServiceAliases(context.Background(), query)
 		So(respSuccess(resp), ShouldEqual, true)
 		So(len(resp.Aliases), ShouldEqual, 0)
 		So(resp.Amount.Value, ShouldBeGreaterThanOrEqualTo, count)
 	})
 	Convey("不合法的过滤条件", t, func() {
 		query := map[string]string{"xxx": "1", "limit": "100"}
-		resp := server.GetServiceAliases(query)
+		resp := server.GetServiceAliases(context.Background(), query)
 		So(respSuccess(resp), ShouldEqual, false)
 	})
 	Convey("过滤条件可以生效", t, func() {
@@ -555,21 +555,21 @@ func TestGetServiceAliases(t *testing.T) {
 			"service":   serviceResp.Name.Value,
 			"namespace": serviceResp.Namespace.Value,
 		}
-		resp := server.GetServiceAliases(query)
+		resp := server.GetServiceAliases(context.Background(), query)
 		So(respSuccess(resp), ShouldEqual, true)
 		So(len(resp.Aliases), ShouldEqual, 1)
 		So(resp.Amount.Value, ShouldEqual, 1)
 	})
 	Convey("找不到别名", t, func() {
 		query := map[string]string{"alias": "x1.1.x2.x3"}
-		resp := server.GetServiceAliases(query)
+		resp := server.GetServiceAliases(context.Background(), query)
 		So(respSuccess(resp), ShouldEqual, true)
 		So(len(resp.Aliases), ShouldEqual, 0)
 		So(resp.Amount.Value, ShouldEqual, 0)
 	})
 	Convey("支持owner过滤", t, func() {
 		query := map[string]string{"owner": "service-owner-203"}
-		resp := server.GetServiceAliases(query)
+		resp := server.GetServiceAliases(context.Background(), query)
 		So(respSuccess(resp), ShouldEqual, true)
 		So(len(resp.Aliases), ShouldEqual, count)
 		So(resp.Amount.Value, ShouldEqual, count)

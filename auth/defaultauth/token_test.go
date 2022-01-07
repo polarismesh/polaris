@@ -15,19 +15,33 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package sqldb
+package defaultauth
 
 import (
+	"fmt"
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
-// 构造占位符的测试
-func TestPlaceholdersN(t *testing.B) {
-	Convey("可以正常输出", t, func() {
-		So(PlaceholdersN(-1), ShouldBeEmpty)
-		So(PlaceholdersN(1), ShouldEqual, "?")
-		So(PlaceholdersN(3), ShouldEqual, "?,?,?")
-	})
+func TestCreateToken(t *testing.T) {
+	AuthOption = DefaultAuthConfig()
+
+	uid := uuid.NewString()
+	fmt.Printf("uid=%s\n", uid)
+
+	token, err := CreateToken(uid, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Printf("token=%s\n", token)
+
+	password, err := bcrypt.GenerateFromPassword([]byte("polarismesh@2021"), bcrypt.DefaultCost)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Printf("password=%s\n", string(password))
 }

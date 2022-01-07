@@ -18,6 +18,7 @@
 package test
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"testing"
@@ -267,7 +268,7 @@ func TestDeleteCircuitBreaker(t *testing.T) {
 		filters := map[string]string{
 			"id": id,
 		}
-		resp := server.GetCircuitBreakerVersions(filters)
+		resp := server.GetCircuitBreakerVersions(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatal("error")
 		}
@@ -499,7 +500,7 @@ func TestUpdateCircuitBreaker(t *testing.T) {
 			"version": cbResp.GetVersion().GetValue(),
 		}
 
-		resp := server.GetCircuitBreaker(filters)
+		resp := server.GetCircuitBreaker(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatal("error")
 		}
@@ -594,7 +595,7 @@ func TestUpdateCircuitBreaker(t *testing.T) {
 					"id":      cbResp.GetId().GetValue(),
 					"version": cbResp.GetVersion().GetValue(),
 				}
-				resp := server.GetCircuitBreaker(filters)
+				resp := server.GetCircuitBreaker(context.Background(), filters)
 				if !respSuccess(resp) {
 					errs <- fmt.Errorf("error : %v", resp)
 				}
@@ -1032,7 +1033,7 @@ func TestGetCircuitBreaker(t *testing.T) {
 			"id": cbResp.GetId().GetValue(),
 		}
 
-		resp := server.GetCircuitBreakerVersions(filters)
+		resp := server.GetCircuitBreakerVersions(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -1049,7 +1050,7 @@ func TestGetCircuitBreaker(t *testing.T) {
 			"id": cbResp.GetId().GetValue(),
 		}
 
-		resp := server.GetReleaseCircuitBreakers(filters)
+		resp := server.GetReleaseCircuitBreakers(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -1067,7 +1068,7 @@ func TestGetCircuitBreaker(t *testing.T) {
 			"version": releaseVersion.GetVersion().GetValue(),
 		}
 
-		resp := server.GetCircuitBreaker(filters)
+		resp := server.GetCircuitBreaker(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -1080,7 +1081,7 @@ func TestGetCircuitBreaker(t *testing.T) {
 			"namespace": service.GetNamespace().GetValue(),
 		}
 
-		resp := server.GetCircuitBreakerByService(filters)
+		resp := server.GetCircuitBreakerByService(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -1105,7 +1106,7 @@ func TestGetCircuitBreaker2(t *testing.T) {
 			"id": cbResp.GetId().GetValue(),
 		}
 
-		resp := server.GetCircuitBreakerVersions(filters)
+		resp := server.GetCircuitBreakerVersions(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -1122,7 +1123,7 @@ func TestGetCircuitBreaker2(t *testing.T) {
 			"id": cbResp.GetId().GetValue(),
 		}
 
-		resp := server.GetReleaseCircuitBreakers(filters)
+		resp := server.GetReleaseCircuitBreakers(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -1140,7 +1141,7 @@ func TestGetCircuitBreaker2(t *testing.T) {
 			"version": cbResp.GetVersion().GetValue(),
 		}
 
-		resp := server.GetCircuitBreaker(filters)
+		resp := server.GetCircuitBreaker(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -1158,7 +1159,7 @@ func TestGetCircuitBreaker2(t *testing.T) {
 			"namespace": serviceResp.GetNamespace().GetValue(),
 		}
 
-		resp := server.GetCircuitBreakerByService(filters)
+		resp := server.GetCircuitBreakerByService(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}

@@ -62,12 +62,7 @@ func (u *userStore) addUser(user *model.User) error {
 
 	defer func() { _ = tx.Rollback() }()
 
-	addSql := "INSERT INTO user(id, name, password, owner, source, token, comment, flag) VALUES (?,?,?,?,?,?,?,?)"
-
-	var flag int = 0
-	if !user.Valid {
-		flag = 1
-	}
+	addSql := "INSERT INTO user(`id`, `name`, `password`, `owner`, `source`, `token`, `comment`, `flag`) VALUES (?,?,?,?,?,?,?,?)"
 
 	_, err = tx.Exec(addSql, []interface{}{
 		user.ID,
@@ -77,7 +72,7 @@ func (u *userStore) addUser(user *model.User) error {
 		user.Source,
 		user.Token,
 		user.Comment,
-		flag,
+		0,
 	}...)
 
 	if err != nil {
@@ -202,16 +197,24 @@ func (u *userStore) GetUser(id string) (*model.User, error) {
 
 func (u *userStore) GetUserByName(name string) (*model.User, error) {
 	getSql := "SELECT u.id, u.name, u.password, u.owner, u.source, u.token FROM user as u WHERE u.flag = 0 AND u.name = ?"
-	row := u.master.QueryRow(getSql, name)
-	user := new(model.User)
-	err := row.Scan(&user.ID, &user.Name, &user.Password, &user.Owner, &user.Source,
-		&user.Token)
-
+	rows, err := u.master.Query(getSql, name)
 	if err != nil {
 		return nil, err
 	}
 
-	return user, nil
+	if rows.Next() {
+		user := new(model.User)
+		err := rows.Scan(&user.ID, &user.Name, &user.Password, &user.Owner, &user.Source,
+			&user.Token)
+		if err != nil {
+			return nil, store.Error(err)
+		}
+
+		return user, nil
+	}
+
+	return nil, nil
+
 }
 
 func (u *userStore) GetUserByIDS(ids []string) ([]*model.User, error) {
@@ -309,7 +312,7 @@ func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mode
 
 	args := make([]interface{}, 0)
 
-	querySql := "SELECT u.id, u.name, u.password, u.owner, u.source, u.token, u.ctime, u.mtime, u.flag FROM user "
+	querySql := "SELECT u.id, u.name, u.password, u.owner, u.source, u.token, u.token_enable, UNIX_TIMESTAMP(u.ctime), UNIX_TIMESTAMP(u.mtime), u.flag FROM user AS u"
 
 	if !firstUpdate {
 		querySql += " WHERE u.mtime >= ? "
@@ -480,7 +483,7 @@ func (u *userStore) GetUserGroup(id string) (*model.UserGroup, error) {
 
 	var ctime, mtime int64
 
-	getSql := "SELECT id, name, owner, token, ctime, mtime FROM user_group WHERE u.flag = 0 AND u.id = ?"
+	getSql := "SELECT id, name, owner, token, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM user_group WHERE flag = 0 AND id = ?"
 	row := u.master.QueryRow(getSql, id)
 
 	group := new(model.UserGroup)
@@ -501,7 +504,7 @@ func (u *userStore) GetUserGroupByName(name string) (*model.UserGroup, error) {
 
 	var ctime, mtime int64
 
-	getSql := "SELECT id, name, owner, token, ctime, mtime FROM user_group WHERE u.flag = 0 AND u.name = ?"
+	getSql := "SELECT id, name, owner, token, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM user_group WHERE flag = 0 AND name = ?"
 	row := u.master.QueryRow(getSql, name)
 
 	group := new(model.UserGroup)
@@ -521,7 +524,7 @@ func (u *userStore) GetUserGroupByName(name string) (*model.UserGroup, error) {
 func (u *userStore) ListUserGroups(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error) {
 
 	countSql := "SELECT COUNT(*) FROM user_group WHERE flag = 0 "
-	getSql := "SELECT id, name, owner, token, ctime, mtime FROM user_group WHERE flag = 0 "
+	getSql := "SELECT id, name, owner, token, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM user_group WHERE flag = 0 "
 
 	args := make([]interface{}, 0)
 
@@ -655,13 +658,13 @@ func (u *userStore) GetUserGroupsForCache(mtime time.Time, firstUpdate bool) ([]
 
 	defer func() { _ = tx.Commit() }()
 
-	querySql := "SELECT id, name, owner, token, ctime, mtime, flag FROM user_group "
+	querySql := "SELECT id, name, owner, token, token_enable, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime), flag FROM user_group "
 	if !firstUpdate {
 		querySql += " WHERE mtime >= ?"
 		args = append(args, commontime.Time2String(mtime))
 	}
 
-	rows, err := tx.Query(querySql, args)
+	rows, err := tx.Query(querySql, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -711,7 +714,7 @@ func (u *userStore) createDefaultStrategy(tx *BaseTx, principal, id, owner strin
 	}
 
 	// 保存策略主信息
-	saveMainSql := "INSERT INTO auth_strategy(id, name, principal, action, owner, comment, flag, default) VALUES (?,?,?,?,?,?,?)"
+	saveMainSql := "INSERT INTO auth_strategy(`id`, `name`, `principal`, `action`, `owner`, `comment`, `flag`, `default`) VALUES (?,?,?,?,?,?,?,?)"
 	_, err := tx.Exec(saveMainSql, []interface{}{strategy.ID, strategy.Name, strategy.Principal, strategy.Action, strategy.Owner, strategy.Comment, 0, strategy.Default}...)
 
 	if err != nil {
@@ -723,9 +726,9 @@ func (u *userStore) createDefaultStrategy(tx *BaseTx, principal, id, owner strin
 
 func fetchRown2User(rows *sql.Rows) (*model.User, error) {
 	var ctime, mtime int64
-	var flag int
+	var flag, tokenEnable int
 	user := new(model.User)
-	err := rows.Scan(&user.ID, &user.Name, &user.Password, &user.Owner, &user.Source, &user.Token, &ctime, &mtime, &flag)
+	err := rows.Scan(&user.ID, &user.Name, &user.Password, &user.Owner, &user.Source, &user.Token, &tokenEnable, &ctime, &mtime, &flag)
 
 	if err != nil {
 		return nil, err
@@ -733,6 +736,9 @@ func fetchRown2User(rows *sql.Rows) (*model.User, error) {
 
 	if flag == 1 {
 		user.Valid = false
+	}
+	if tokenEnable == 1 {
+		user.TokenEnable = true
 	}
 
 	user.CreateTime = time.Unix(ctime, 0)
@@ -743,9 +749,9 @@ func fetchRown2User(rows *sql.Rows) (*model.User, error) {
 
 func fetchRown2UserGroup(rows *sql.Rows) (*model.UserGroup, error) {
 	var ctime, mtime int64
-	var flag int
+	var flag, tokenEnable int
 	group := new(model.UserGroup)
-	err := rows.Scan(&group.ID, &group.Name, &group.Owner, &group.Token, &ctime, &mtime, &flag)
+	err := rows.Scan(&group.ID, &group.Name, &group.Owner, &group.Token, &tokenEnable, &ctime, &mtime, &flag)
 
 	if err != nil {
 		return nil, err
@@ -753,6 +759,9 @@ func fetchRown2UserGroup(rows *sql.Rows) (*model.UserGroup, error) {
 
 	if flag == 1 {
 		group.Valid = false
+	}
+	if tokenEnable == 1 {
+		group.TokenEnable = true
 	}
 
 	group.CreateTime = time.Unix(ctime, 0)

@@ -35,6 +35,15 @@ func (svr *serverAuthAbility) CreateInstances(ctx context.Context, reqs []*api.I
 	return svr.targetServer.CreateInstances(ctx, reqs)
 }
 
+// CreateInstance
+//  @param ctx
+//  @param reqs
+//  @return *api.BatchWriteResponse
+func (svr *serverAuthAbility) CreateInstance(ctx context.Context, req *api.Instance) *api.Response {
+
+	return svr.targetServer.CreateInstance(ctx, req)
+}
+
 func (svr *serverAuthAbility) DeleteInstances(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Delete)
 
@@ -66,6 +75,11 @@ func (svr *serverAuthAbility) UpdateInstances(ctx context.Context, reqs []*api.I
 	}
 
 	return svr.targetServer.UpdateInstances(ctx, reqs)
+}
+
+func (svr *serverAuthAbility) UpdateInstance(ctx context.Context, req *api.Instance) *api.Response {
+
+	return svr.targetServer.UpdateInstance(ctx, req)
 }
 
 func (svr *serverAuthAbility) UpdateInstancesIsolate(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse {

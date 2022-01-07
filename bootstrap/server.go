@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/healthcheck"
 
 	"github.com/polarismesh/polaris-server/apiserver"
@@ -85,6 +86,14 @@ func Start(configFilePath string) {
 	s, err = store.GetStore()
 	if err != nil {
 		fmt.Printf("get store error:%s", err.Error())
+		return
+	}
+
+	// 初始化鉴权层
+	auth.SetAuthConfig(&cfg.Auth)
+	_, err = auth.GetAuthManager()
+	if err != nil {
+		fmt.Printf("get AuthManager error:%s", err.Error())
 		return
 	}
 
@@ -386,14 +395,14 @@ func selfRegister(host string, port uint32, protocol string, isolated bool, pola
 		},
 	}
 
-	resp := server.CreateInstances(genContext(), []*api.Instance{req})
+	resp := server.CreateInstance(genContext(), req)
 	if api.CalcCode(resp) != 200 {
 		// 如果self之前注册过，那么可以忽略
 		if resp.GetCode().GetValue() != api.ExistedResource {
 			return fmt.Errorf("%s", resp.GetInfo().GetValue())
 		}
 
-		resp = server.UpdateInstances(genContext(), []*api.Instance{req})
+		resp = server.UpdateInstance(genContext(), req)
 		if api.CalcCode(resp) != 200 {
 			return fmt.Errorf("%s", resp.GetInfo().GetValue())
 		}

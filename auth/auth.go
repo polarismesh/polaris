@@ -24,6 +24,7 @@ import (
 	"sync"
 )
 
+// Config 鉴权能力的相关配置参数
 type Config struct {
 	Name   string
 	Option map[string]interface{}
@@ -68,9 +69,9 @@ func GetAuthManager() (AuthManager, error) {
 }
 
 /**
- * SetStoreConfig 设置store的conf
+ * SetAuthConfig 设置store的conf
  */
-func SetStoreConfig(conf *Config) {
+func SetAuthConfig(conf *Config) {
 	config = conf
 }
 

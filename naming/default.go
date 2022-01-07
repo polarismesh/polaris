@@ -26,7 +26,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/modern-go/reflect2"
 	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/core/auth"
+	"github.com/polarismesh/polaris-server/auth"
 	oldAuth "github.com/polarismesh/polaris-server/naming/auth"
 	"github.com/polarismesh/polaris-server/naming/batch"
 	"github.com/polarismesh/polaris-server/naming/cache"

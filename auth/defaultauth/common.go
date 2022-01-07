@@ -22,30 +22,30 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/core/auth"
+	"github.com/polarismesh/polaris-server/auth"
 )
 
 // verifyAuth token
-func verifyAuth(ctx context.Context, authMgn *defaultAuthManager, token string, needOwner bool) (TokenInfo, *api.Response) {
+func verifyAuth(ctx context.Context, authMgn *defaultAuthManager, token string, needOwner bool) (context.Context, TokenInfo, *api.Response) {
 	tokenInfo, err := authMgn.ParseToken(token)
 	if err != nil {
-		return tokenInfo, api.NewResponseWithMsg(api.ExecuteException, err.Error())
+		return ctx, tokenInfo, api.NewResponseWithMsg(api.ExecuteException, err.Error())
 	}
 
 	if tokenInfo.Role == auth.RoleForUserGroup {
-		return tokenInfo, api.NewResponseWithMsg(api.NotAllowedAccess, "only user can access this API")
+		return ctx, tokenInfo, api.NewResponseWithMsg(api.NotAllowedAccess, "only user can access this API")
 	}
 
 	if err = authMgn.checkToken(tokenInfo); err != nil {
-		return tokenInfo, api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return ctx, tokenInfo, api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
 
 	if needOwner && !tokenInfo.IsOwner {
-		return tokenInfo, api.NewResponseWithMsg(api.NotAllowedAccess, "only main account can access this API")
+		return ctx, tokenInfo, api.NewResponseWithMsg(api.NotAllowedAccess, "only main account can access this API")
 	}
 
 	ctx = context.WithValue(ctx, utils.StringContext("is-owner"), tokenInfo.IsOwner)
 	ctx = context.WithValue(ctx, utils.StringContext("user-id"), tokenInfo.ID)
 
-	return tokenInfo, nil
+	return ctx, tokenInfo, nil
 }
