@@ -26,7 +26,7 @@ import (
 	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/common/api/l5"
 	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/naming"
+	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/plugin"
 	"go.uber.org/zap"
 )
@@ -57,7 +57,7 @@ type L5pbserver struct {
 	clusterName string // 集群名
 
 	listener     net.Listener
-	namingServer *naming.Server
+	namingServer *service.Server
 	statis       plugin.Statis
 }
 
@@ -99,7 +99,7 @@ func (l *L5pbserver) Run(errCh chan error) {
 
 	var err error
 	// 引入功能模块和插件
-	l.namingServer, err = naming.GetServer()
+	l.namingServer, err = service.GetServer()
 	if err != nil {
 		log.Errorf("%v", err)
 		errCh <- err

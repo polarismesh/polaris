@@ -29,12 +29,12 @@ import (
 	"github.com/polarismesh/polaris-server/healthcheck"
 
 	"github.com/polarismesh/polaris-server/apiserver"
+	"github.com/polarismesh/polaris-server/bootstrap/config"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/common/version"
-	"github.com/polarismesh/polaris-server/config"
-	"github.com/polarismesh/polaris-server/naming"
+	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
 )
@@ -135,12 +135,12 @@ func StartComponents(ctx context.Context, cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
-	err = naming.Initialize(ctx, &cfg.Naming, &cfg.Cache, cacheProvider)
+	err = service.Initialize(ctx, &cfg.Naming, &cfg.Cache, cacheProvider)
 	if err != nil {
 		return err
 	}
 
-	namingSvr, err := naming.GetServer()
+	namingSvr, err := service.GetServer()
 	if err != nil {
 		return err
 	}
@@ -342,7 +342,7 @@ func polarisServiceRegister(polarisService *config.PolarisService, apiServers []
 
 // 服务自注册
 func selfRegister(host string, port uint32, protocol string, isolated bool, polarisService *config.Service) error {
-	server, err := naming.GetServer()
+	server, err := service.GetServer()
 	if err != nil {
 		return err
 	}
@@ -405,7 +405,7 @@ func selfRegister(host string, port uint32, protocol string, isolated bool, pola
 
 // SelfDeregister Server退出的时候，自动反注册
 func SelfDeregister() {
-	namingServer, err := naming.GetServer()
+	namingServer, err := service.GetServer()
 	if err != nil {
 		log.Errorf("get naming server obj err: %s", err.Error())
 		return
