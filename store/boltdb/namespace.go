@@ -83,6 +83,8 @@ func (n *namespaceStore) AddNamespace(namespace *model.Namespace) error {
 	if namespace.Name == "" {
 		return errors.New("store add namespace name is empty")
 	}
+	namespace.CreateTime = time.Now()
+	namespace.ModifyTime = time.Now()
 	namespace.Valid = true
 	return n.handler.SaveValue(tblNameNamespace, namespace.Name, namespace)
 }
