@@ -37,6 +37,9 @@ type Store interface {
 	// CreateTransaction 创建事务对象
 	CreateTransaction() (Transaction, error)
 
+	// StartTx 开启一个原子事务
+	StartTx() (Tx, error)
+
 	//NamingModuleStore 服务注册发现模块存储接口
 	NamingModuleStore
 
@@ -384,6 +387,16 @@ type Transaction interface {
 
 	// RLockService 共享锁service
 	RLockService(name string, namespace string) (*model.Service, error)
+}
+
+// Tx 原子事务，不带任何业务属性。不同的存储类型事务的抽象
+type Tx interface {
+	// Commit 提交事务
+	Commit() error
+	// Rollback 回滚事务
+	Rollback() error
+	// GetDelegateTx 获取原始的代理事务对象。不同的存储类型有不通的事务实现
+	GetDelegateTx() interface{}
 }
 
 // ToolStore 存储相关的函数及工具接口

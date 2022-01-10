@@ -18,8 +18,8 @@
 package boltdb
 
 import (
-	"database/sql"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/store"
 	"time"
 )
 
@@ -28,29 +28,29 @@ type configFileReleaseStore struct {
 }
 
 // CreateConfigFileRelease 新建配置文件发布
-func (cfr *configFileReleaseStore) CreateConfigFileRelease(tx *sql.Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
+func (cfr *configFileReleaseStore) CreateConfigFileRelease(tx store.Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
 	return nil, nil
 }
 
 // UpdateConfigFileRelease 更新配置文件发布
-func (cfr *configFileReleaseStore) UpdateConfigFileRelease(tx *sql.Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
+func (cfr *configFileReleaseStore) UpdateConfigFileRelease(tx store.Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
 	return nil, nil
 }
 
 // GetConfigFileRelease 获取配置文件发布，只返回 flag=0 的记录
-func (cfr *configFileReleaseStore) GetConfigFileRelease(tx *sql.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
+func (cfr *configFileReleaseStore) GetConfigFileRelease(tx store.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
 	return nil, nil
 }
 
-func (cfr *configFileReleaseStore) GetConfigFileReleaseWithAllFlag(tx *sql.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
+func (cfr *configFileReleaseStore) GetConfigFileReleaseWithAllFlag(tx store.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
 	return nil, nil
 }
 
-func (cfr *configFileReleaseStore) getConfigFileReleaseByFlag(tx *sql.Tx, namespace, group, fileName string, withAllFlag bool) (*model.ConfigFileRelease, error) {
+func (cfr *configFileReleaseStore) getConfigFileReleaseByFlag(tx store.Tx, namespace, group, fileName string, withAllFlag bool) (*model.ConfigFileRelease, error) {
 	return nil, nil
 }
 
-func (cfr *configFileReleaseStore) DeleteConfigFileRelease(tx *sql.Tx, namespace, group, fileName, deleteBy string) error {
+func (cfr *configFileReleaseStore) DeleteConfigFileRelease(tx store.Tx, namespace, group, fileName, deleteBy string) error {
 	return nil
 }
 

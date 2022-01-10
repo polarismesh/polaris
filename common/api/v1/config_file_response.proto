@@ -39,3 +39,10 @@ message ConfigBatchQueryResponse {
   repeated ConfigFileRelease configFileReleases = 6;
   repeated ConfigFileReleaseHistory configFileReleaseHistories = 7;
 }
+
+message ConfigClientResponse {
+  google.protobuf.UInt32Value code = 1;
+  google.protobuf.StringValue info = 2;
+
+  ClientConfigFileInfo configFile = 3;
+}

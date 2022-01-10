@@ -78,7 +78,7 @@ message ClientConfigFileInfo {
   google.protobuf.StringValue group = 2;
   google.protobuf.StringValue file_name = 3;
   google.protobuf.StringValue content = 4;
-  google.protobuf.StringValue md5 = 5;
+  google.protobuf.UInt64Value version = 5;
 }
 
 message ClientWatchConfigFileRequest {

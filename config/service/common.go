@@ -19,10 +19,10 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
 )
 
@@ -63,15 +63,15 @@ func (cs *Impl) CreateNamespaceIfAbsent(namespaceName, operator, requestId strin
 	return nil
 }
 
-func (cs *Impl) StartTxAndSetToContext(ctx context.Context) (*sql.Tx, context.Context, error) {
+func (cs *Impl) StartTxAndSetToContext(ctx context.Context) (store.Tx, context.Context, error) {
 	tx, err := cs.storage.StartTx()
 	return tx, context.WithValue(ctx, ContextTxKey, tx), err
 }
 
-func (cs *Impl) getTx(ctx context.Context) *sql.Tx {
+func (cs *Impl) getTx(ctx context.Context) store.Tx {
 	tx := ctx.Value(ContextTxKey)
 	if tx == nil {
 		return nil
 	}
-	return tx.(*sql.Tx)
+	return tx.(store.Tx)
 }

@@ -18,8 +18,8 @@
 package boltdb
 
 import (
-	"database/sql"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/store"
 )
 
 type configFileTagStore struct {
@@ -27,7 +27,7 @@ type configFileTagStore struct {
 }
 
 // CreateConfigFileTag 创建配置文件标签
-func (t *configFileTagStore) CreateConfigFileTag(tx *sql.Tx, fileTag *model.ConfigFileTag) error {
+func (t *configFileTagStore) CreateConfigFileTag(tx store.Tx, fileTag *model.ConfigFileTag) error {
 	return nil
 }
 
@@ -42,11 +42,11 @@ func (t *configFileTagStore) QueryTagByConfigFile(namespace, group, fileName str
 }
 
 // DeleteConfigFileTag 删除配置文件标签
-func (t *configFileTagStore) DeleteConfigFileTag(tx *sql.Tx, namespace, group, fileName, key, value string) error {
+func (t *configFileTagStore) DeleteConfigFileTag(tx store.Tx, namespace, group, fileName, key, value string) error {
 	return nil
 }
 
 // DeleteTagByConfigFile 删除配置文件的标签
-func (t *configFileTagStore) DeleteTagByConfigFile(tx *sql.Tx, namespace, group, fileName string) error {
+func (t *configFileTagStore) DeleteTagByConfigFile(tx store.Tx, namespace, group, fileName string) error {
 	return nil
 }

@@ -18,25 +18,25 @@
 package boltdb
 
 import (
-	"database/sql"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/store"
 )
 
 type configFileStore struct {
 	handler BoltHandler
 }
 
-func (cf *configFileStore) StartTx() (*sql.Tx, error) {
+func (cf *configFileStore) StartTx() (store.Tx, error) {
 	return nil, nil
 }
 
 // CreateConfigFile 创建配置文件
-func (cf *configFileStore) CreateConfigFile(tx *sql.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
+func (cf *configFileStore) CreateConfigFile(tx store.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
 	return nil, nil
 }
 
 // GetConfigFile 获取配置文件
-func (cf *configFileStore) GetConfigFile(tx *sql.Tx, namespace, group, name string) (*model.ConfigFile, error) {
+func (cf *configFileStore) GetConfigFile(tx store.Tx, namespace, group, name string) (*model.ConfigFile, error) {
 	return nil, nil
 }
 
@@ -47,11 +47,11 @@ func (cf *configFileStore) QueryConfigFiles(namespace, group, name string, offse
 }
 
 // UpdateConfigFile 更新配置文件
-func (cf *configFileStore) UpdateConfigFile(tx *sql.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
+func (cf *configFileStore) UpdateConfigFile(tx store.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
 	return nil, nil
 }
 
 // DeleteConfigFile 删除配置文件
-func (cf *configFileStore) DeleteConfigFile(tx *sql.Tx, namespace, group, name string) error {
+func (cf *configFileStore) DeleteConfigFile(tx store.Tx, namespace, group, name string) error {
 	return nil
 }

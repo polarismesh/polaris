@@ -19,6 +19,14 @@ package v1
 
 import "github.com/golang/protobuf/ptypes/wrappers"
 
+func NewConfigClientResponse(code uint32, configFile *ClientConfigFileInfo) *ConfigClientResponse {
+	return &ConfigClientResponse{
+		Code:       &wrappers.UInt32Value{Value: code},
+		Info:       &wrappers.StringValue{Value: code2info[code]},
+		ConfigFile: configFile,
+	}
+}
+
 func NewConfigFileGroupResponse(code uint32, configFileGroup *ConfigFileGroup) *ConfigResponse {
 	return &ConfigResponse{
 		Code:            &wrappers.UInt32Value{Value: code},

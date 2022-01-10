@@ -19,7 +19,6 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
@@ -31,7 +30,7 @@ const (
 
 type API interface {
 	// StartTxAndSetToContext 创建一个事务并放到 context 里
-	StartTxAndSetToContext(ctx context.Context) (*sql.Tx, context.Context, error)
+	StartTxAndSetToContext(ctx context.Context) (store.Tx, context.Context, error)
 
 	ConfigFileGroupAPI
 	ConfigFileAPI

@@ -29,12 +29,12 @@ type configFileReleaseHistoryStore struct {
 }
 
 // CreateConfigFileReleaseHistory 创建配置文件发布历史记录
-func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(tx *sql.Tx, fileReleaseHistory *model.ConfigFileReleaseHistory) error {
+func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(tx store.Tx, fileReleaseHistory *model.ConfigFileReleaseHistory) error {
 	sql := "insert into config_file_release_history(name, namespace, `group`, file_name, content, comment, md5, type, status, create_time, create_by, modify_time, modify_by) values " +
 		"(?,?,?,?,?,?,?,?,?,sysdate(),?,sysdate(),?)"
 	var err error
 	if tx != nil {
-		_, err = tx.Exec(sql, fileReleaseHistory.Name, fileReleaseHistory.Namespace, fileReleaseHistory.Group,
+		_, err = tx.GetDelegateTx().(*BaseTx).Exec(sql, fileReleaseHistory.Name, fileReleaseHistory.Namespace, fileReleaseHistory.Group,
 			fileReleaseHistory.FileName, fileReleaseHistory.Content, fileReleaseHistory.Comment, fileReleaseHistory.Md5,
 			fileReleaseHistory.Type, fileReleaseHistory.Status, fileReleaseHistory.CreateBy, fileReleaseHistory.ModifyBy)
 	} else {

@@ -167,6 +167,10 @@ func (m *boltStore) CreateTransaction() (store.Transaction, error) {
 	return &transaction{handler: m.handler}, nil
 }
 
+func (m *boltStore) StartTx() (store.Tx, error) {
+	return m.handler.StartTx()
+}
+
 func init() {
 	s := &boltStore{}
 	_ = store.RegisterStore(s)

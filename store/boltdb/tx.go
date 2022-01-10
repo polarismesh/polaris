@@ -18,24 +18,28 @@
 package boltdb
 
 import (
-	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/boltdb/bolt"
 	"github.com/polarismesh/polaris-server/store"
 )
 
-type configFileReleaseHistoryStore struct {
-	handler BoltHandler
+type Tx struct {
+	delegateTx *bolt.Tx
 }
 
-// CreateConfigFileReleaseHistory 创建配置文件发布历史记录
-func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(tx store.Tx, fileReleaseHistory *model.ConfigFileReleaseHistory) error {
-	return nil
+func NewBoltTx(delegateTx *bolt.Tx) store.Tx {
+	return &Tx{
+		delegateTx: delegateTx,
+	}
 }
 
-// QueryConfigFileReleaseHistories 获取配置文件的发布历史记录
-func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespace, group, fileName string, offset, limit uint32) (uint32, []*model.ConfigFileReleaseHistory, error) {
-	return 0, nil, nil
+func (t *Tx) Commit() error {
+	return t.delegateTx.Commit()
 }
 
-func (rh *configFileReleaseHistoryStore) GetLatestConfigFileReleaseHistory(namespace, group, fileName string) (*model.ConfigFileReleaseHistory, error) {
-	return nil, nil
+func (t *Tx) Rollback() error {
+	return t.delegateTx.Rollback()
+}
+
+func (t *Tx) GetDelegateTx() interface{} {
+	return t.delegateTx
 }

@@ -18,7 +18,6 @@
 package httpserver
 
 import (
-	"github.com/emicklei/go-restful"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
@@ -29,9 +28,9 @@ import (
 )
 
 type watchContext struct {
-	FinishChan chan interface{}
-	Response   *restful.Response
-	ClientMd5  string
+	FinishChan    chan interface{}
+	handler       *Handler
+	ClientVersion uint64
 }
 
 var (
@@ -52,7 +51,7 @@ func (h *HTTPServer) initWatchCenter() {
 }
 
 func (h *HTTPServer) addWatcher(clientId string, watchConfigFiles []*api.ClientConfigFileInfo,
-	rsp *restful.Response, finishChan chan interface{}) {
+	handler *Handler, finishChan chan interface{}) {
 	if len(watchConfigFiles) == 0 {
 		return
 	}
@@ -66,9 +65,9 @@ func (h *HTTPServer) addWatcher(clientId string, watchConfigFiles []*api.ClientC
 			if !ok {
 				w := new(sync.Map)
 				w.Store(clientId, &watchContext{
-					FinishChan: finishChan,
-					Response:   rsp,
-					ClientMd5:  file.Md5.GetValue(),
+					FinishChan:    finishChan,
+					handler:       handler,
+					ClientVersion: file.Version.GetValue(),
 				})
 				configFileWatchers.Store(watchFileId, w)
 			}
@@ -78,9 +77,9 @@ func (h *HTTPServer) addWatcher(clientId string, watchConfigFiles []*api.ClientC
 
 		w := watchers.(*sync.Map)
 		w.Store(clientId, &watchContext{
-			FinishChan: finishChan,
-			Response:   rsp,
-			ClientMd5:  file.Md5.GetValue(),
+			FinishChan:    finishChan,
+			handler:       handler,
+			ClientVersion: file.Version.GetValue(),
 		})
 	}
 }
@@ -104,32 +103,25 @@ func (h *HTTPServer) removeWatcher(clientId string, watchConfigFiles []*api.Clie
 func (h *HTTPServer) notifyToClients(publishConfigFile *model.ConfigFileRelease) {
 	watchFileId := cache.GenFileId(publishConfigFile.Namespace, publishConfigFile.Group, publishConfigFile.FileName)
 
-	log.GetConfigLogger().Info("[Nacos] received config file publish event.", zap.String("file", watchFileId))
+	log.GetConfigLogger().Info("[Config][HttpServer] received config file publish event.", zap.String("file", watchFileId))
 
 	watchers, ok := configFileWatchers.Load(watchFileId)
 	if !ok {
 		return
 	}
 
-	response := genConfigFileChangeResponse(publishConfigFile.Namespace, publishConfigFile.Group,
-		publishConfigFile.FileName, publishConfigFile.Md5)
+	response := genConfigFileResponse(publishConfigFile.Namespace, publishConfigFile.Group,
+		publishConfigFile.FileName, "", publishConfigFile.Version)
 
 	w := watchers.(*sync.Map)
 	w.Range(func(clientId, context interface{}) bool {
-		log.GetConfigLogger().Info("[Nacos] notify to client.",
+		log.GetConfigLogger().Info("[Config][HttpServer] notify to client.",
 			zap.String("file", watchFileId),
 			zap.String("clientId", clientId.(string)))
 
 		c := context.(*watchContext)
-		if c.ClientMd5 != publishConfigFile.Md5 {
-			err := writeResponse(response, c.Response)
-			if err != nil {
-				//请求响应的时候，可能客户端已经断开链接，属于可预见的情况，所以打印 warn 日志
-				log.GetConfigLogger().Warn("[Nacos] response long polling error.",
-					zap.String("file", publishConfigFile.FileName),
-					zap.String("clientId", clientId.(string)),
-					zap.Error(err))
-			}
+		if c.ClientVersion < publishConfigFile.Version {
+			c.handler.WriteHeaderAndProto(response)
 			c.FinishChan <- new(interface{})
 		}
 		return true

@@ -29,13 +29,8 @@ type configFileStore struct {
 	db *BaseDB
 }
 
-func (cf *configFileStore) StartTx() (*sql.Tx, error) {
-	tx, err := cf.db.Begin()
-	return tx.Tx, err
-}
-
 // CreateConfigFile 创建配置文件
-func (cf *configFileStore) CreateConfigFile(tx *sql.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
+func (cf *configFileStore) CreateConfigFile(tx store.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
 	err := cf.hardDeleteConfigFile(file.Namespace, file.Group, file.Name)
 	if err != nil {
 		return nil, err
@@ -44,7 +39,7 @@ func (cf *configFileStore) CreateConfigFile(tx *sql.Tx, file *model.ConfigFile) 
 	createSql := "insert into config_file(name,namespace,`group`,content,comment,format,create_time,create_by,modify_time,modify_by) values " +
 		"(?,?,?,?,?,?,sysdate(),?,sysdate(),?)"
 	if tx != nil {
-		_, err = tx.Exec(createSql, file.Name, file.Namespace, file.Group, file.Content, file.Comment, file.Format, file.CreateBy, file.ModifyBy)
+		_, err = tx.GetDelegateTx().(*BaseTx).Exec(createSql, file.Name, file.Namespace, file.Group, file.Content, file.Comment, file.Format, file.CreateBy, file.ModifyBy)
 	} else {
 		_, err = cf.db.Exec(createSql, file.Name, file.Namespace, file.Group, file.Content, file.Comment, file.Format, file.CreateBy, file.ModifyBy)
 	}
@@ -56,12 +51,12 @@ func (cf *configFileStore) CreateConfigFile(tx *sql.Tx, file *model.ConfigFile) 
 }
 
 // GetConfigFile 获取配置文件
-func (cf *configFileStore) GetConfigFile(tx *sql.Tx, namespace, group, name string) (*model.ConfigFile, error) {
+func (cf *configFileStore) GetConfigFile(tx store.Tx, namespace, group, name string) (*model.ConfigFile, error) {
 	querySql := cf.baseSelectConfigFileSql() + "where namespace = ? and `group` = ? and name = ? and flag = 0"
 	var rows *sql.Rows
 	var err error
 	if tx != nil {
-		rows, err = tx.Query(querySql, namespace, group, name)
+		rows, err = tx.GetDelegateTx().(*BaseTx).Query(querySql, namespace, group, name)
 	} else {
 		rows, err = cf.db.Query(querySql, namespace, group, name)
 	}
@@ -107,11 +102,11 @@ func (cf *configFileStore) QueryConfigFiles(namespace, group, name string, offse
 }
 
 // UpdateConfigFile 更新配置文件
-func (cf *configFileStore) UpdateConfigFile(tx *sql.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
+func (cf *configFileStore) UpdateConfigFile(tx store.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
 	updateSql := "update config_file set content = ? , comment = ?, format = ?, modify_time = sysdate(), modify_by = ? where namespace = ? and `group` = ? and name = ?"
 	var err error
 	if tx != nil {
-		_, err = tx.Exec(updateSql, file.Content, file.Comment, file.Format, file.ModifyBy, file.Namespace, file.Group, file.Name)
+		_, err = tx.GetDelegateTx().(*BaseTx).Exec(updateSql, file.Content, file.Comment, file.Format, file.ModifyBy, file.Namespace, file.Group, file.Name)
 	} else {
 		_, err = cf.db.Exec(updateSql, file.Content, file.Comment, file.Format, file.ModifyBy, file.Namespace, file.Group, file.Name)
 	}
@@ -122,11 +117,11 @@ func (cf *configFileStore) UpdateConfigFile(tx *sql.Tx, file *model.ConfigFile) 
 }
 
 // DeleteConfigFile 删除配置文件
-func (cf *configFileStore) DeleteConfigFile(tx *sql.Tx, namespace, group, name string) error {
+func (cf *configFileStore) DeleteConfigFile(tx store.Tx, namespace, group, name string) error {
 	deleteSql := "update config_file set flag = 1 where namespace = ? and `group` = ? and name = ?"
 	var err error
 	if tx != nil {
-		_, err = tx.Exec(deleteSql, namespace, group, name)
+		_, err = tx.GetDelegateTx().(*BaseTx).Exec(deleteSql, namespace, group, name)
 	} else {
 		_, err = cf.db.Exec(deleteSql, namespace, group, name)
 	}

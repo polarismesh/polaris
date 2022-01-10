@@ -18,13 +18,11 @@
 package store
 
 import (
-	"database/sql"
 	"github.com/polarismesh/polaris-server/common/model"
 	"time"
 )
 
 type ConfigFileModuleStore interface {
-	StartTx() (*sql.Tx, error)
 	ConfigFileGroupStore
 	ConfigFileStore
 	ConfigFileReleaseStore
@@ -55,38 +53,38 @@ type ConfigFileGroupStore interface {
 type ConfigFileStore interface {
 
 	// CreateConfigFile 创建配置文件
-	CreateConfigFile(tx *sql.Tx, file *model.ConfigFile) (*model.ConfigFile, error)
+	CreateConfigFile(tx Tx, file *model.ConfigFile) (*model.ConfigFile, error)
 
 	// GetConfigFile 获取配置文件
-	GetConfigFile(tx *sql.Tx, namespace, group, name string) (*model.ConfigFile, error)
+	GetConfigFile(tx Tx, namespace, group, name string) (*model.ConfigFile, error)
 
 	// QueryConfigFiles 翻页查询配置文件，group、name可为模糊匹配
 	QueryConfigFiles(namespace, group, name string, offset, limit int) (uint32, []*model.ConfigFile, error)
 
 	// UpdateConfigFile 更新配置文件
-	UpdateConfigFile(tx *sql.Tx, file *model.ConfigFile) (*model.ConfigFile, error)
+	UpdateConfigFile(tx Tx, file *model.ConfigFile) (*model.ConfigFile, error)
 
 	// DeleteConfigFile 删除配置文件
-	DeleteConfigFile(tx *sql.Tx, namespace, group, name string) error
+	DeleteConfigFile(tx Tx, namespace, group, name string) error
 }
 
 // ConfigFileReleaseStore 配置文件发布存储接口
 type ConfigFileReleaseStore interface {
 
 	// CreateConfigFileRelease 创建配置文件发布
-	CreateConfigFileRelease(tx *sql.Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error)
+	CreateConfigFileRelease(tx Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error)
 
 	// UpdateConfigFileRelease 更新配置文件发布
-	UpdateConfigFileRelease(tx *sql.Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error)
+	UpdateConfigFileRelease(tx Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error)
 
 	// GetConfigFileRelease 获取配置文件发布内容，只获取 flag=0 的记录
-	GetConfigFileRelease(tx *sql.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error)
+	GetConfigFileRelease(tx Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error)
 
 	// GetConfigFileReleaseWithAllFlag 获取配置文件发布内容，返回所有 flag 的记录
-	GetConfigFileReleaseWithAllFlag(tx *sql.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error)
+	GetConfigFileReleaseWithAllFlag(tx Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error)
 
 	// DeleteConfigFileRelease 删除配置文件发布内容
-	DeleteConfigFileRelease(tx *sql.Tx, namespace, group, fileName, deleteBy string) error
+	DeleteConfigFileRelease(tx Tx, namespace, group, fileName, deleteBy string) error
 
 	// FindConfigFileReleaseByModifyTimeAfter 获取最近更新的配置文件发布
 	FindConfigFileReleaseByModifyTimeAfter(modifyTime time.Time) ([]*model.ConfigFileRelease, error)
@@ -96,7 +94,7 @@ type ConfigFileReleaseStore interface {
 type ConfigFileReleaseHistoryStore interface {
 
 	// CreateConfigFileReleaseHistory 创建配置文件发布历史记录
-	CreateConfigFileReleaseHistory(tx *sql.Tx, fileReleaseHistory *model.ConfigFileReleaseHistory) error
+	CreateConfigFileReleaseHistory(tx Tx, fileReleaseHistory *model.ConfigFileReleaseHistory) error
 
 	// QueryConfigFileReleaseHistories 获取配置文件的发布历史记录
 	QueryConfigFileReleaseHistories(namespace, group, fileName string, offset, limit uint32) (uint32, []*model.ConfigFileReleaseHistory, error)
@@ -108,7 +106,7 @@ type ConfigFileReleaseHistoryStore interface {
 type ConfigFileTagStore interface {
 
 	// CreateConfigFileTag 创建配置文件标签
-	CreateConfigFileTag(tx *sql.Tx, fileTag *model.ConfigFileTag) error
+	CreateConfigFileTag(tx Tx, fileTag *model.ConfigFileTag) error
 
 	// QueryConfigFileByTag 通过标签查询配置文件
 	QueryConfigFileByTag(namespace, group, fileName string, tags ...string) ([]*model.ConfigFileTag, error)
@@ -117,8 +115,8 @@ type ConfigFileTagStore interface {
 	QueryTagByConfigFile(namespace, group, fileName string) ([]*model.ConfigFileTag, error)
 
 	// DeleteConfigFileTag 删除配置文件标签
-	DeleteConfigFileTag(tx *sql.Tx, namespace, group, fileName, key, value string) error
+	DeleteConfigFileTag(tx Tx, namespace, group, fileName, key, value string) error
 
 	// DeleteTagByConfigFile 删除配置文件标签
-	DeleteTagByConfigFile(tx *sql.Tx, namespace, group, fileName string) error
+	DeleteTagByConfigFile(tx Tx, namespace, group, fileName string) error
 }

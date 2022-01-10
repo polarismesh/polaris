@@ -154,6 +154,7 @@ const (
 	InvalidConfigFileFormat        = 400804
 	InvalidConfigFileTags          = 400805
 	InvalidWatchConfigFileFormat   = 400806
+	NotFoundResourceConfigFile     = 400807
 )
 
 // code to string
@@ -281,6 +282,7 @@ var code2info = map[uint32]string{
 	InvalidConfigFileFormat:        "invalid config file format, support json,xml,html,properties,text,yaml",
 	InvalidConfigFileTags:          "invalid config file tags, tags should be pair, like key1,value1,key2,value2. and key,value should not blank",
 	InvalidWatchConfigFileFormat:   "invalid watch config file format",
+	NotFoundResourceConfigFile:     "config file not existed",
 }
 
 // code to info

@@ -157,6 +157,12 @@ func (fc *FileCache) Remove(namespace, group, fileName string) {
 	fc.files.Delete(fileId)
 }
 
+// ReLoad 重新加载缓存
+func (fc *FileCache) ReLoad(namespace, group, fileName string) (*Entry, error) {
+	fc.Remove(namespace, group, fileName)
+	return fc.GetOrLoadIfAbsent(namespace, group, fileName)
+}
+
 func newEntry(content, md5 string, version uint64) *Entry {
 	return &Entry{
 		Content:    content,

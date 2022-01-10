@@ -30,13 +30,13 @@ type configFileTagStore struct {
 }
 
 // CreateConfigFileTag 创建配置文件标签
-func (t *configFileTagStore) CreateConfigFileTag(tx *sql.Tx, fileTag *model.ConfigFileTag) error {
+func (t *configFileTagStore) CreateConfigFileTag(tx store.Tx, fileTag *model.ConfigFileTag) error {
 	insertSql := "insert into config_file_tag(`key`,`value`,namespace,`group`,file_name,create_time,create_by,modify_time,modify_by)" +
 		"values(?,?,?,?,?,sysdate(),?,sysdate(),?)"
 
 	var err error
 	if tx != nil {
-		_, err = tx.Exec(insertSql, fileTag.Key, fileTag.Value, fileTag.Namespace, fileTag.Group, fileTag.FileName, fileTag.CreateBy, fileTag.ModifyBy)
+		_, err = tx.GetDelegateTx().(*BaseTx).Exec(insertSql, fileTag.Key, fileTag.Value, fileTag.Namespace, fileTag.Group, fileTag.FileName, fileTag.CreateBy, fileTag.ModifyBy)
 	} else {
 		_, err = t.db.Exec(insertSql, fileTag.Key, fileTag.Value, fileTag.Namespace, fileTag.Group, fileTag.FileName, fileTag.CreateBy, fileTag.ModifyBy)
 	}
@@ -91,11 +91,11 @@ func (t *configFileTagStore) QueryTagByConfigFile(namespace, group, fileName str
 }
 
 // DeleteConfigFileTag 删除配置文件标签
-func (t *configFileTagStore) DeleteConfigFileTag(tx *sql.Tx, namespace, group, fileName, key, value string) error {
+func (t *configFileTagStore) DeleteConfigFileTag(tx store.Tx, namespace, group, fileName, key, value string) error {
 	deleteSql := "delete from config_file_tag where `key` = ? and `value` = ? and namespace = ? and `group` = ? and file_name = ?"
 	var err error
 	if tx != nil {
-		_, err = tx.Exec(deleteSql, key, value, namespace, group, fileName)
+		_, err = tx.GetDelegateTx().(*BaseTx).Exec(deleteSql, key, value, namespace, group, fileName)
 	} else {
 		_, err = t.db.Exec(deleteSql, key, value, namespace, group, fileName)
 	}
@@ -106,11 +106,11 @@ func (t *configFileTagStore) DeleteConfigFileTag(tx *sql.Tx, namespace, group, f
 }
 
 // DeleteTagByConfigFile 删除配置文件的标签
-func (t *configFileTagStore) DeleteTagByConfigFile(tx *sql.Tx, namespace, group, fileName string) error {
+func (t *configFileTagStore) DeleteTagByConfigFile(tx store.Tx, namespace, group, fileName string) error {
 	deleteSql := "delete from config_file_tag where namespace = ? and `group` = ? and file_name = ?"
 	var err error
 	if tx != nil {
-		_, err = tx.Exec(deleteSql, namespace, group, fileName)
+		_, err = tx.GetDelegateTx().(*BaseTx).Exec(deleteSql, namespace, group, fileName)
 	} else {
 		_, err = t.db.Exec(deleteSql, namespace, group, fileName)
 	}

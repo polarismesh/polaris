@@ -224,6 +224,14 @@ func (s *stableStore) CreateTransaction() (store.Transaction, error) {
 	return nt, nil
 }
 
+func (s *stableStore) StartTx() (store.Tx, error) {
+	tx, err := s.masterTx.Begin()
+	if err != nil {
+		return nil, err
+	}
+	return NewSqlDBTx(tx), nil
+}
+
 // 初始化子类
 func (s *stableStore) newStore() {
 	s.namespaceStore = &namespaceStore{db: s.master}

@@ -329,6 +329,69 @@ func (x *ConfigBatchQueryResponse) GetConfigFileReleaseHistories() []*ConfigFile
 	return nil
 }
 
+type ConfigClientResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Code       *wrappers.UInt32Value `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	Info       *wrappers.StringValue `protobuf:"bytes,2,opt,name=info,proto3" json:"info,omitempty"`
+	ConfigFile *ClientConfigFileInfo `protobuf:"bytes,3,opt,name=configFile,proto3" json:"configFile,omitempty"`
+}
+
+func (x *ConfigClientResponse) Reset() {
+	*x = ConfigClientResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_config_file_response_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ConfigClientResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfigClientResponse) ProtoMessage() {}
+
+func (x *ConfigClientResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_config_file_response_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfigClientResponse.ProtoReflect.Descriptor instead.
+func (*ConfigClientResponse) Descriptor() ([]byte, []int) {
+	return file_config_file_response_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ConfigClientResponse) GetCode() *wrappers.UInt32Value {
+	if x != nil {
+		return x.Code
+	}
+	return nil
+}
+
+func (x *ConfigClientResponse) GetInfo() *wrappers.StringValue {
+	if x != nil {
+		return x.Info
+	}
+	return nil
+}
+
+func (x *ConfigClientResponse) GetConfigFile() *ClientConfigFileInfo {
+	if x != nil {
+		return x.ConfigFile
+	}
+	return nil
+}
+
 var File_config_file_response_proto protoreflect.FileDescriptor
 
 var file_config_file_response_proto_rawDesc = []byte{
@@ -412,8 +475,19 @@ var file_config_file_response_proto_rawDesc = []byte{
 	0x2e, 0x76, 0x31, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x46, 0x69, 0x6c, 0x65, 0x52, 0x65,
 	0x6c, 0x65, 0x61, 0x73, 0x65, 0x48, 0x69, 0x73, 0x74, 0x6f, 0x72, 0x79, 0x52, 0x1a, 0x63, 0x6f,
 	0x6e, 0x66, 0x69, 0x67, 0x46, 0x69, 0x6c, 0x65, 0x52, 0x65, 0x6c, 0x65, 0x61, 0x73, 0x65, 0x48,
-	0x69, 0x73, 0x74, 0x6f, 0x72, 0x69, 0x65, 0x73, 0x42, 0x05, 0x5a, 0x03, 0x2f, 0x76, 0x31, 0x62,
-	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x69, 0x73, 0x74, 0x6f, 0x72, 0x69, 0x65, 0x73, 0x22, 0xb4, 0x01, 0x0a, 0x14, 0x43, 0x6f, 0x6e,
+	0x66, 0x69, 0x67, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x12, 0x30, 0x0a, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x1c, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75,
+	0x66, 0x2e, 0x55, 0x49, 0x6e, 0x74, 0x33, 0x32, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x52, 0x04, 0x63,
+	0x6f, 0x64, 0x65, 0x12, 0x30, 0x0a, 0x04, 0x69, 0x6e, 0x66, 0x6f, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x1c, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x62, 0x75, 0x66, 0x2e, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x52,
+	0x04, 0x69, 0x6e, 0x66, 0x6f, 0x12, 0x38, 0x0a, 0x0a, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x46,
+	0x69, 0x6c, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x18, 0x2e, 0x76, 0x31, 0x2e, 0x43,
+	0x6c, 0x69, 0x65, 0x6e, 0x74, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x46, 0x69, 0x6c, 0x65, 0x49,
+	0x6e, 0x66, 0x6f, 0x52, 0x0a, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x46, 0x69, 0x6c, 0x65, 0x42,
+	0x05, 0x5a, 0x03, 0x2f, 0x76, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -428,44 +502,49 @@ func file_config_file_response_proto_rawDescGZIP() []byte {
 	return file_config_file_response_proto_rawDescData
 }
 
-var file_config_file_response_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_config_file_response_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_config_file_response_proto_goTypes = []interface{}{
 	(*ConfigSimpleResponse)(nil),     // 0: v1.ConfigSimpleResponse
 	(*ConfigResponse)(nil),           // 1: v1.ConfigResponse
 	(*ConfigBatchWriteResponse)(nil), // 2: v1.ConfigBatchWriteResponse
 	(*ConfigBatchQueryResponse)(nil), // 3: v1.ConfigBatchQueryResponse
-	(*wrappers.UInt32Value)(nil),     // 4: google.protobuf.UInt32Value
-	(*wrappers.StringValue)(nil),     // 5: google.protobuf.StringValue
-	(*ConfigFileGroup)(nil),          // 6: v1.ConfigFileGroup
-	(*ConfigFile)(nil),               // 7: v1.ConfigFile
-	(*ConfigFileRelease)(nil),        // 8: v1.ConfigFileRelease
-	(*ConfigFileReleaseHistory)(nil), // 9: v1.ConfigFileReleaseHistory
+	(*ConfigClientResponse)(nil),     // 4: v1.ConfigClientResponse
+	(*wrappers.UInt32Value)(nil),     // 5: google.protobuf.UInt32Value
+	(*wrappers.StringValue)(nil),     // 6: google.protobuf.StringValue
+	(*ConfigFileGroup)(nil),          // 7: v1.ConfigFileGroup
+	(*ConfigFile)(nil),               // 8: v1.ConfigFile
+	(*ConfigFileRelease)(nil),        // 9: v1.ConfigFileRelease
+	(*ConfigFileReleaseHistory)(nil), // 10: v1.ConfigFileReleaseHistory
+	(*ClientConfigFileInfo)(nil),     // 11: v1.ClientConfigFileInfo
 }
 var file_config_file_response_proto_depIdxs = []int32{
-	4,  // 0: v1.ConfigSimpleResponse.code:type_name -> google.protobuf.UInt32Value
-	5,  // 1: v1.ConfigSimpleResponse.info:type_name -> google.protobuf.StringValue
-	4,  // 2: v1.ConfigResponse.code:type_name -> google.protobuf.UInt32Value
-	5,  // 3: v1.ConfigResponse.info:type_name -> google.protobuf.StringValue
-	6,  // 4: v1.ConfigResponse.configFileGroup:type_name -> v1.ConfigFileGroup
-	7,  // 5: v1.ConfigResponse.configFile:type_name -> v1.ConfigFile
-	8,  // 6: v1.ConfigResponse.configFileRelease:type_name -> v1.ConfigFileRelease
-	9,  // 7: v1.ConfigResponse.configFileReleaseHistory:type_name -> v1.ConfigFileReleaseHistory
-	4,  // 8: v1.ConfigBatchWriteResponse.code:type_name -> google.protobuf.UInt32Value
-	5,  // 9: v1.ConfigBatchWriteResponse.info:type_name -> google.protobuf.StringValue
-	4,  // 10: v1.ConfigBatchWriteResponse.total:type_name -> google.protobuf.UInt32Value
+	5,  // 0: v1.ConfigSimpleResponse.code:type_name -> google.protobuf.UInt32Value
+	6,  // 1: v1.ConfigSimpleResponse.info:type_name -> google.protobuf.StringValue
+	5,  // 2: v1.ConfigResponse.code:type_name -> google.protobuf.UInt32Value
+	6,  // 3: v1.ConfigResponse.info:type_name -> google.protobuf.StringValue
+	7,  // 4: v1.ConfigResponse.configFileGroup:type_name -> v1.ConfigFileGroup
+	8,  // 5: v1.ConfigResponse.configFile:type_name -> v1.ConfigFile
+	9,  // 6: v1.ConfigResponse.configFileRelease:type_name -> v1.ConfigFileRelease
+	10, // 7: v1.ConfigResponse.configFileReleaseHistory:type_name -> v1.ConfigFileReleaseHistory
+	5,  // 8: v1.ConfigBatchWriteResponse.code:type_name -> google.protobuf.UInt32Value
+	6,  // 9: v1.ConfigBatchWriteResponse.info:type_name -> google.protobuf.StringValue
+	5,  // 10: v1.ConfigBatchWriteResponse.total:type_name -> google.protobuf.UInt32Value
 	1,  // 11: v1.ConfigBatchWriteResponse.responses:type_name -> v1.ConfigResponse
-	4,  // 12: v1.ConfigBatchQueryResponse.code:type_name -> google.protobuf.UInt32Value
-	5,  // 13: v1.ConfigBatchQueryResponse.info:type_name -> google.protobuf.StringValue
-	4,  // 14: v1.ConfigBatchQueryResponse.total:type_name -> google.protobuf.UInt32Value
-	6,  // 15: v1.ConfigBatchQueryResponse.configFileGroups:type_name -> v1.ConfigFileGroup
-	7,  // 16: v1.ConfigBatchQueryResponse.configFiles:type_name -> v1.ConfigFile
-	8,  // 17: v1.ConfigBatchQueryResponse.configFileReleases:type_name -> v1.ConfigFileRelease
-	9,  // 18: v1.ConfigBatchQueryResponse.configFileReleaseHistories:type_name -> v1.ConfigFileReleaseHistory
-	19, // [19:19] is the sub-list for method output_type
-	19, // [19:19] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	5,  // 12: v1.ConfigBatchQueryResponse.code:type_name -> google.protobuf.UInt32Value
+	6,  // 13: v1.ConfigBatchQueryResponse.info:type_name -> google.protobuf.StringValue
+	5,  // 14: v1.ConfigBatchQueryResponse.total:type_name -> google.protobuf.UInt32Value
+	7,  // 15: v1.ConfigBatchQueryResponse.configFileGroups:type_name -> v1.ConfigFileGroup
+	8,  // 16: v1.ConfigBatchQueryResponse.configFiles:type_name -> v1.ConfigFile
+	9,  // 17: v1.ConfigBatchQueryResponse.configFileReleases:type_name -> v1.ConfigFileRelease
+	10, // 18: v1.ConfigBatchQueryResponse.configFileReleaseHistories:type_name -> v1.ConfigFileReleaseHistory
+	5,  // 19: v1.ConfigClientResponse.code:type_name -> google.protobuf.UInt32Value
+	6,  // 20: v1.ConfigClientResponse.info:type_name -> google.protobuf.StringValue
+	11, // 21: v1.ConfigClientResponse.configFile:type_name -> v1.ClientConfigFileInfo
+	22, // [22:22] is the sub-list for method output_type
+	22, // [22:22] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_config_file_response_proto_init() }
@@ -523,6 +602,18 @@ func file_config_file_response_proto_init() {
 				return nil
 			}
 		}
+		file_config_file_response_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ConfigClientResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -530,7 +621,7 @@ func file_config_file_response_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_config_file_response_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
