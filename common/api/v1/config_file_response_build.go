@@ -27,6 +27,13 @@ func NewConfigClientResponse(code uint32, configFile *ClientConfigFileInfo) *Con
 	}
 }
 
+func NewConfigClientResponseWithMessage(code uint32, message string) *ConfigClientResponse {
+	return &ConfigClientResponse{
+		Code: &wrappers.UInt32Value{Value: code},
+		Info: &wrappers.StringValue{Value: message},
+	}
+}
+
 func NewConfigFileGroupResponse(code uint32, configFileGroup *ConfigFileGroup) *ConfigResponse {
 	return &ConfigResponse{
 		Code:            &wrappers.UInt32Value{Value: code},

@@ -20,12 +20,17 @@ package config
 import (
 	"errors"
 	"github.com/polarismesh/polaris-server/cache"
+	"github.com/polarismesh/polaris-server/common/event"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/config/service"
 	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
 	"sync"
 	"time"
+)
+
+const (
+	EventTypePublishConfigFile = "PublishConfigFile"
 )
 
 var (
@@ -44,7 +49,7 @@ type Server struct {
 	storage     store.Store
 	cache       *cache.FileCache
 	service     service.API
-	eventCenter *Center
+	watchCenter *watchCenter
 }
 
 // InitConfigModule 初始化配置中心模块
@@ -80,17 +85,17 @@ func doInit() error {
 	}
 	server.storage = s
 
-	//2. 初始化 service 模块
-	serviceImpl := service.NewServiceImpl(s)
-	server.service = serviceImpl
-
-	//3. 初始化缓存模块
+	//2. 初始化缓存模块
 	fileCache := cache.NewFileCache(s)
 	server.cache = fileCache
 
+	//3. 初始化 service 模块
+	serviceImpl := service.NewServiceImpl(s, fileCache)
+	server.service = serviceImpl
+
 	//4. 初始化事件中心
-	eventCenter := NewEventCenter()
-	server.eventCenter = eventCenter
+	eventCenter := event.NewEventCenter()
+	server.watchCenter = NewWatchCenter(eventCenter)
 
 	//5. 初始化发布事件扫描器
 	err = initReleaseMessageScanner(s, fileCache, eventCenter, time.Second)
@@ -113,9 +118,9 @@ func GetConfigServer() (*Server, error) {
 	return server, nil
 }
 
-// WatchPublishConfigEvent 监听配置文件发布时间
-func (cs *Server) WatchPublishConfigEvent(handler func(event Event) bool) {
-	cs.eventCenter.WatchEvent(EventTypePublishConfigFile, handler)
+// WatchCenter 获取监听事件中心
+func (cs *Server) WatchCenter() *watchCenter {
+	return cs.watchCenter
 }
 
 // Service 获取配置中心核心服务模块

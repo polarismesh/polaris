@@ -17,6 +17,8 @@
 
 package utils
 
+import "strings"
+
 const (
 	// ReleaseTypeNormal 发布类型，全量发布
 	ReleaseTypeNormal = "normal"
@@ -37,9 +39,22 @@ const (
 	FileFormatJson       = "json"
 	FileFormatHtml       = "html"
 	FileFormatProperties = "properties"
+
+	FileIdSeparator = "+"
 )
 
 func IsValidFileFormat(format string) bool {
 	return format == FileFormatText || format == FileFormatYaml || format == FileFormatXml ||
 		format == FileFormatJson || format == FileFormatHtml || format == FileFormatProperties
+}
+
+// GenFileId 生成文件 Id
+func GenFileId(namespace, group, fileName string) string {
+	return namespace + FileIdSeparator + group + FileIdSeparator + fileName
+}
+
+// ParseFileId 解析文件 Id
+func ParseFileId(fileId string) (namespace, group, fileName string) {
+	fileInfo := strings.Split(fileId, FileIdSeparator)
+	return fileInfo[0], fileInfo[1], fileInfo[2]
 }

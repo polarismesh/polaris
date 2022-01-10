@@ -19,6 +19,7 @@ package config
 
 import (
 	"github.com/polarismesh/polaris-server/cache"
+	"github.com/polarismesh/polaris-server/common/event"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
@@ -41,10 +42,10 @@ type releaseMessageScanner struct {
 
 	fileCache *cache.FileCache
 
-	eventCenter *Center
+	eventCenter *event.Center
 }
 
-func initReleaseMessageScanner(storage store.Store, fileCache *cache.FileCache, eventCenter *Center, scanInterval time.Duration) error {
+func initReleaseMessageScanner(storage store.Store, fileCache *cache.FileCache, eventCenter *event.Center, scanInterval time.Duration) error {
 	scanner := &releaseMessageScanner{
 		storage:      storage,
 		fileCache:    fileCache,
@@ -142,7 +143,7 @@ func (s *releaseMessageScanner) handlerReleases(firstTime bool, releases []*mode
 			}
 
 			if !firstTime && !isExpireMessage(release) {
-				s.eventCenter.FireEvent(Event{
+				s.eventCenter.FireEvent(event.Event{
 					EventType: EventTypePublishConfigFile,
 					Message:   release,
 				})

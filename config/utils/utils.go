@@ -22,6 +22,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"io"
 	"regexp"
 	"strconv"
@@ -66,4 +68,15 @@ func CheckContentLength(content string) error {
 		return errors.New("content length too long. max length =" + strconv.Itoa(FileContentMaxLength))
 	}
 	return nil
+}
+
+func GenConfigFileResponse(namespace, group, fileName, content string, version uint64) *api.ConfigClientResponse {
+	configFile := &api.ClientConfigFileInfo{
+		Namespace: utils.NewStringValue(namespace),
+		Group:     utils.NewStringValue(group),
+		FileName:  utils.NewStringValue(fileName),
+		Content:   utils.NewStringValue(content),
+		Version:   utils.NewUInt64Value(version),
+	}
+	return api.NewConfigClientResponse(api.ExecuteSuccess, configFile)
 }

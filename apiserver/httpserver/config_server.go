@@ -55,9 +55,6 @@ func (h *HTTPServer) GetConfigAccessServer(include []string) (*restful.WebServic
 		}
 	}
 
-	//初始化订阅中心
-	h.initWatchCenter()
-
 	return ws, nil
 }
 

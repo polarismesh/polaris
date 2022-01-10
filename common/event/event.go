@@ -15,15 +15,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package config
+package event
 
 import (
 	"github.com/polarismesh/polaris-server/common/log"
 	"sync"
-)
-
-const (
-	EventTypePublishConfigFile = "PublishConfigFile"
 )
 
 // Event 事件对象，包含类型和事件消息

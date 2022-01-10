@@ -20,6 +20,7 @@ package cache
 import (
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
 	"math/rand"
@@ -29,7 +30,7 @@ import (
 
 const (
 	BaseExpireTimeAfterWrite = 60 * 60 // expire after 1 hour
-	FileIdSeparator          = "+"
+
 )
 
 var (
@@ -40,7 +41,7 @@ var (
 	expireCnt = 0
 )
 
-// FileCache 文件缓存，使用 loading cache 懒加载策略。同时使用写入一段时间后失效策略
+// FileCache 文件缓存，使用 loading cache 懒加载策略。同时写入时设置过期时间，定时刷新过期的缓存。
 type FileCache struct {
 	storage store.Store
 	//fileId -> Entry
@@ -76,7 +77,7 @@ func NewFileCache(storage store.Store) *FileCache {
 // Put 写入缓存对象
 func (fc *FileCache) Put(file *model.ConfigFileRelease) {
 	putCnt++
-	fileId := GenFileId(file.Namespace, file.Group, file.FileName)
+	fileId := utils.GenFileId(file.Namespace, file.Group, file.FileName)
 
 	storedEntry, ok := fc.Get(file.Namespace, file.Group, file.FileName)
 	//幂等判断，只能存入版本号更大的
@@ -88,7 +89,7 @@ func (fc *FileCache) Put(file *model.ConfigFileRelease) {
 
 // Get 一般用于内部服务调用，所以不计入 metrics
 func (fc *FileCache) Get(namespace, group, fileName string) (*Entry, bool) {
-	fileId := GenFileId(namespace, group, fileName)
+	fileId := utils.GenFileId(namespace, group, fileName)
 	storedEntry, ok := fc.files.Load(fileId)
 	if ok {
 		entry := storedEntry.(*Entry)
@@ -101,7 +102,7 @@ func (fc *FileCache) Get(namespace, group, fileName string) (*Entry, bool) {
 func (fc *FileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entry, error) {
 	getCnt++
 
-	fileId := GenFileId(namespace, group, fileName)
+	fileId := utils.GenFileId(namespace, group, fileName)
 	storedEntry, ok := fc.files.Load(fileId)
 	if ok {
 		entry := storedEntry.(*Entry)
@@ -153,7 +154,7 @@ func (fc *FileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 // Remove 删除缓存对象
 func (fc *FileCache) Remove(namespace, group, fileName string) {
 	removeCnt++
-	fileId := GenFileId(namespace, group, fileName)
+	fileId := utils.GenFileId(namespace, group, fileName)
 	fc.files.Delete(fileId)
 }
 
@@ -173,18 +174,13 @@ func newEntry(content, md5 string, version uint64) *Entry {
 	}
 }
 
-// GenFileId 生成文件对象 Id
-func GenFileId(namespace, group, fileName string) string {
-	return namespace + FileIdSeparator + group + FileIdSeparator + fileName
-}
-
 //缓存过期时间，为了避免集中失效，加上随机数。[60 ~ 70]分钟内随机失效
 func getExpireTime() time.Time {
 	randTime := rand.Intn(10*60) + BaseExpireTimeAfterWrite
 	return time.Now().Add(time.Duration(randTime) * time.Second)
 }
 
-//定时清理过期的缓存
+//定时刷新过期的缓存
 func (fc *FileCache) startClearExpireEntryTask() {
 	t := time.NewTicker(time.Minute)
 	go func() {
@@ -194,7 +190,19 @@ func (fc *FileCache) startClearExpireEntryTask() {
 				curExpiredFileCnt := 0
 				fc.files.Range(func(fileId, entry interface{}) bool {
 					if time.Now().After(entry.(*Entry).ExpireTime) {
-						fc.files.Delete(fileId)
+						namespace, group, fileName := utils.ParseFileId(fileId.(string))
+						//先从数据库获取最新的数据，如果获取失败则不更新缓存
+						file, err := fc.storage.GetConfigFileRelease(nil, namespace, group, fileName)
+						if err != nil {
+							log.GetConfigLogger().Error("[Config][Cache] load config file release error when refresh cache.",
+								zap.String("namespace", namespace),
+								zap.String("group", group),
+								zap.String("fileName", fileName),
+								zap.Error(err))
+							return true
+						}
+						//数据库加载成功，更新缓存
+						fc.Put(file)
 						curExpiredFileCnt++
 					}
 					return true

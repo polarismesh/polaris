@@ -19,6 +19,7 @@ package service
 
 import (
 	"context"
+	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
@@ -36,6 +37,7 @@ type API interface {
 	ConfigFileAPI
 	ConfigFileReleaseAPI
 	ConfigFileReleaseHistoryAPI
+	ConfigFileClientAPI
 }
 
 type ConfigFileGroupAPI interface {
@@ -114,13 +116,23 @@ type ConfigFileTagAPI interface {
 	DeleteTagByConfigFile(ctx context.Context, namespace, group, fileName string) error
 }
 
+type ConfigFileClientAPI interface {
+	// CheckClientConfigFile 检查客户端版本是否落后
+	CheckClientConfigFile(ctx context.Context, configFiles []*api.ClientConfigFileInfo) *api.ConfigClientResponse
+
+	// GetConfigFileForClient 获取配置文件
+	GetConfigFileForClient(ctx context.Context, namespace, group, fileName string, clientVersion uint64) *api.ConfigClientResponse
+}
+
 type Impl struct {
 	API
 	storage store.Store
+	cache   *cache.FileCache
 }
 
-func NewServiceImpl(storage store.Store) API {
+func NewServiceImpl(storage store.Store, cache *cache.FileCache) API {
 	return &Impl{
 		storage: storage,
+		cache:   cache,
 	}
 }

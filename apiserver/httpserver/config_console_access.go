@@ -33,8 +33,8 @@ func (h *HTTPServer) CreateConfigFileGroup(req *restful.Request, rsp *restful.Re
 	handler := &Handler{req, rsp}
 
 	configFileGroup := &api.ConfigFileGroup{}
-	context, err := handler.Parse(configFileGroup)
-	requestId := context.Value(utils.StringContext("request-id"))
+	ctx, err := handler.Parse(configFileGroup)
+	requestId := ctx.Value(utils.StringContext("request-id"))
 
 	if err != nil {
 		log.GetConfigLogger().Error("[Config][HttpServer] parse config file group from request error.",
@@ -44,7 +44,7 @@ func (h *HTTPServer) CreateConfigFileGroup(req *restful.Request, rsp *restful.Re
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.configServer.Service().CreateConfigFileGroup(context, configFileGroup))
+	handler.WriteHeaderAndProto(h.configServer.Service().CreateConfigFileGroup(ctx, configFileGroup))
 }
 
 // QueryConfigFileGroups 查询配置文件组，group 模糊搜索
@@ -78,8 +78,8 @@ func (h *HTTPServer) UpdateConfigFileGroup(req *restful.Request, rsp *restful.Re
 	handler := &Handler{req, rsp}
 
 	configFileGroup := &api.ConfigFileGroup{}
-	context, err := handler.Parse(configFileGroup)
-	requestId := context.Value(utils.StringContext("request-id"))
+	ctx, err := handler.Parse(configFileGroup)
+	requestId := ctx.Value(utils.StringContext("request-id"))
 
 	if err != nil {
 		log.GetConfigLogger().Error("[Config][HttpServer] parse config file group from request error.",
@@ -89,7 +89,7 @@ func (h *HTTPServer) UpdateConfigFileGroup(req *restful.Request, rsp *restful.Re
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.configServer.Service().UpdateConfigFileGroup(context, configFileGroup))
+	handler.WriteHeaderAndProto(h.configServer.Service().UpdateConfigFileGroup(ctx, configFileGroup))
 }
 
 //配置文件
@@ -99,8 +99,8 @@ func (h *HTTPServer) CreateConfigFile(req *restful.Request, rsp *restful.Respons
 	handler := &Handler{req, rsp}
 
 	configFile := &api.ConfigFile{}
-	context, err := handler.Parse(configFile)
-	requestId := context.Value(utils.StringContext("request-id"))
+	ctx, err := handler.Parse(configFile)
+	requestId := ctx.Value(utils.StringContext("request-id"))
 
 	if err != nil {
 		log.GetConfigLogger().Error("[Config][HttpServer] parse config file from request error.",
@@ -110,7 +110,7 @@ func (h *HTTPServer) CreateConfigFile(req *restful.Request, rsp *restful.Respons
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.configServer.Service().CreateConfigFile(context, configFile))
+	handler.WriteHeaderAndProto(h.configServer.Service().CreateConfigFile(ctx, configFile))
 }
 
 // GetConfigFile 获取单个配置文件
@@ -147,8 +147,8 @@ func (h *HTTPServer) UpdateConfigFile(req *restful.Request, rsp *restful.Respons
 	handler := &Handler{req, rsp}
 
 	configFile := &api.ConfigFile{}
-	context, err := handler.Parse(configFile)
-	requestId := context.Value(utils.StringContext("request-id"))
+	ctx, err := handler.Parse(configFile)
+	requestId := ctx.Value(utils.StringContext("request-id"))
 	if err != nil {
 		log.GetConfigLogger().Error("[Config][HttpServer] parse config file from request error.",
 			zap.String("requestId", requestId.(string)),
@@ -157,7 +157,7 @@ func (h *HTTPServer) UpdateConfigFile(req *restful.Request, rsp *restful.Respons
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.configServer.Service().UpdateConfigFile(context, configFile))
+	handler.WriteHeaderAndProto(h.configServer.Service().UpdateConfigFile(ctx, configFile))
 }
 
 // DeleteConfigFile 删除单个配置文件，删除配置文件也会删除配置文件发布内容，客户端将获取不到配置文件
@@ -180,8 +180,8 @@ func (h *HTTPServer) PublishConfigFile(req *restful.Request, rsp *restful.Respon
 	handler := &Handler{req, rsp}
 
 	configFile := &api.ConfigFileRelease{}
-	context, err := handler.Parse(configFile)
-	requestId := context.Value(utils.StringContext("request-id"))
+	ctx, err := handler.Parse(configFile)
+	requestId := ctx.Value(utils.StringContext("request-id"))
 
 	if err != nil {
 		log.GetConfigLogger().Error("[Config][HttpServer] parse config file release from request error.",
@@ -191,7 +191,7 @@ func (h *HTTPServer) PublishConfigFile(req *restful.Request, rsp *restful.Respon
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.configServer.Service().PublishConfigFile(context, configFile))
+	handler.WriteHeaderAndProto(h.configServer.Service().PublishConfigFile(ctx, configFile))
 }
 
 // GetConfigFileRelease 获取配置文件最后一次发布内容
