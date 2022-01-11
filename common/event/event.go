@@ -19,7 +19,12 @@ package event
 
 import (
 	"github.com/polarismesh/polaris-server/common/log"
+	"go.uber.org/zap"
 	"sync"
+)
+
+const (
+	QueueSize = 10240
 )
 
 // Event 事件对象，包含类型和事件消息
@@ -28,52 +33,74 @@ type Event struct {
 	Message   interface{}
 }
 
+type Callback func(event Event) bool
+
 // Center 事件中心
 type Center struct {
 	watchers *sync.Map
 	lock     *sync.Mutex
+	queue    chan Event
 }
 
 // NewEventCenter 新建事件中心
 func NewEventCenter() *Center {
-	return &Center{
+	center := &Center{
 		watchers: new(sync.Map),
 		lock:     new(sync.Mutex),
+		queue:    make(chan Event, QueueSize),
 	}
+
+	go func() {
+		center.handlerEvent()
+	}()
+
+	return center
 }
 
 // FireEvent 发布一个事件
 func (c *Center) FireEvent(event Event) {
-	log.GetConfigLogger().Infof("[Config][Event] fire event.")
+	log.GetDefaultLogger().Infof("[Common][Event] fire event.", event.EventType)
 
-	handlers, ok := c.watchers.Load(event.EventType)
-	if !ok {
+	select {
+	case c.queue <- event:
 		return
-	}
-
-	handlerArr := handlers.([]func(event Event) bool)
-	for _, handler := range handlerArr {
-		h := handler
-		go func() {
-			ok := h(event)
-			if !ok {
-				log.GetConfigLogger().Errorf("[Config][Event] handler message error. event = %+v", event)
-			}
-		}()
 	}
 }
 
 // WatchEvent 监听事件
-func (c *Center) WatchEvent(eventType string, handler func(event Event) bool) {
+func (c *Center) WatchEvent(eventType string, cb Callback) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	handlers, ok := c.watchers.Load(eventType)
+	cbs, ok := c.watchers.Load(eventType)
 	if !ok {
-		handlers = []func(event Event) bool{handler}
-		c.watchers.Store(eventType, handlers)
+		cbs = []Callback{cb}
+		c.watchers.Store(eventType, cbs)
 	} else {
-		handlerArr := handlers.([]func(event Event) bool)
-		handlerArr = append(handlerArr, handler)
+		cbArr := cbs.([]Callback)
+		cbArr = append(cbArr, cb)
+	}
+}
+
+func (c *Center) handlerEvent() {
+	defer func() {
+		if err := recover(); err != nil {
+			log.GetDefaultLogger().Error("[Common][Event] handler event error.", zap.Any("error", err))
+		}
+	}()
+
+	for e := range c.queue {
+		cbs, ok := c.watchers.Load(e.EventType)
+		if !ok {
+			continue
+		}
+
+		cbArr := cbs.([]Callback)
+		for _, cb := range cbArr {
+			ok := cb(e)
+			if !ok {
+				log.GetDefaultLogger().Errorf("[Common][Event] cb message error. event = %+v", e)
+			}
+		}
 	}
 }
