@@ -23,8 +23,8 @@ import (
 	"fmt"
 	"io"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/golang/protobuf/jsonpb"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 /**
@@ -149,7 +149,7 @@ func (c *Client) UpdateNamesapces(namespaces []*api.Namespace) error {
 /**
  * @brief 查询命名空间
  */
-func (c *Client) GetNamespaces(namespaces []*api.Namespace) error {
+func (c *Client) GetNamespaces(namespaces []*api.Namespace) ([]*api.Namespace, error) {
 	fmt.Printf("\nget namespaces\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/namespaces", c.Address, c.Version)
@@ -161,27 +161,27 @@ func (c *Client) GetNamespaces(namespaces []*api.Namespace) error {
 	url = c.CompleteURL(url, params)
 	response, err := c.SendRequest("GET", url, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	ret, err := GetBatchQueryResponse(response)
 	if err != nil {
 		fmt.Printf("%v\n", err)
-		return err
+		return nil, err
 	}
 
 	if ret.GetCode() == nil || ret.GetCode().GetValue() != api.ExecuteSuccess {
-		return errors.New("invalid batch code")
+		return nil, errors.New("invalid batch code")
 	}
 
 	namespacesSize := len(namespaces)
 
 	if ret.GetAmount() == nil || ret.GetAmount().GetValue() != uint32(namespacesSize) {
-		return errors.New("invalid batch amount")
+		return nil, errors.New("invalid batch amount")
 	}
 
 	if ret.GetSize() == nil || ret.GetSize().GetValue() != uint32(namespacesSize) {
-		return errors.New("invalid batch size")
+		return nil, errors.New("invalid batch size")
 	}
 
 	collection := make(map[string]*api.Namespace)
@@ -191,19 +191,19 @@ func (c *Client) GetNamespaces(namespaces []*api.Namespace) error {
 
 	items := ret.GetNamespaces()
 	if items == nil || len(items) != namespacesSize {
-		return errors.New("invalid batch namespaces")
+		return nil, errors.New("invalid batch namespaces")
 	}
 
 	for _, item := range items {
 		if correctItem, ok := collection[item.GetName().GetValue()]; ok {
 			if result := compareNamespace(correctItem, item); !result {
-				return errors.New("invalid namespace")
+				return nil, errors.New("invalid namespace")
 			}
 		} else {
-			return errors.New("invalid namespace")
+			return nil, errors.New("invalid namespace")
 		}
 	}
-	return nil
+	return items, nil
 }
 
 /**

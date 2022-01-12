@@ -45,7 +45,7 @@ func TestNamespace(t *testing.T) {
 	t.Log("create namespaces success")
 
 	// 查询命名空间
-	err = client.GetNamespaces(namespaces)
+	_, err = client.GetNamespaces(namespaces)
 	if err != nil {
 		t.Fatalf("get namespaces fail: %s", err.Error())
 	}
@@ -61,7 +61,7 @@ func TestNamespace(t *testing.T) {
 	t.Log("update namespaces success")
 
 	// 查询命名空间
-	err = client.GetNamespaces(namespaces)
+	_, err = client.GetNamespaces(namespaces)
 	if err != nil {
 		t.Fatalf("get namespaces fail: %s", err.Error())
 	}

@@ -40,6 +40,7 @@ const (
 	MetricForClientRqFailure       string = "client_rq_failure"
 	MetricForClientRqTimeout       string = "client_rq_timeout"
 	MetricForClientRqIntervalCount string = "client_rq_interval_count"
+	MetricForClientRqTimeoutMin    string = "client_rq_timeout_min"
 	MetricForClientRqTimeoutAvg    string = "client_rq_timeout_avg"
 	MetricForClientRqTimeoutMax    string = "client_rq_timeout_max"
 	MetricForClientRqTimeoutP99    string = "client_rq_timeout_p99"
@@ -106,6 +107,17 @@ var (
 		{
 			Name:       MetricForClientRqTimeoutMax,
 			Help:       "max latency of client requests",
+			MetricType: TypeForGaugeVec,
+			LabelNames: []string{
+				LabelForPolarisServerInstance,
+				LabelForApi,
+				LabelForProtocol,
+				LabelForErrCode,
+			},
+		},
+		{
+			Name:       MetricForClientRqTimeoutMin,
+			Help:       "min latency of client requests",
 			MetricType: TypeForGaugeVec,
 			LabelNames: []string{
 				LabelForPolarisServerInstance,

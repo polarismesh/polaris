@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"time"
 
 	"github.com/polarismesh/polaris-server/auth"
@@ -229,12 +230,13 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 		remains[entry.request.GetId().GetValue()] = entry
 	}
 
-	// 统一判断实例是否存在
-	remains, err := ctrl.batchCheckInstancesExisted(remains)
+	// 统一判断实例是否存在，存在则需要更新部分数据
+	err := ctrl.batchRestoreInstanceIsolate(remains)
 	if err != nil {
 		log.Errorf("[Batch] batch check instances existed err: %s", err.Error())
 	}
-	// 这里可能全部都重复了
+
+	// 判断入参数组是否为0
 	if len(remains) == 0 {
 		log.Infof("[Batch] all instances is existed, return create instances process")
 		return nil
@@ -385,12 +387,11 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 	return nil
 }
 
-// 批量检查实例是否存在
-func (ctrl *InstanceCtrl) batchCheckInstancesExisted(futures map[string]*InstanceFuture) (
-	map[string]*InstanceFuture, error) {
+// 批量恢复实例的隔离状态，以请求为准，请求如果不存在，就以数据库为准
+func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*InstanceFuture) error {
 
 	if len(futures) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	// 初始化所有的id都是不存在的
@@ -398,29 +399,21 @@ func (ctrl *InstanceCtrl) batchCheckInstancesExisted(futures map[string]*Instanc
 	for _, entry := range futures {
 		ids[entry.request.GetId().GetValue()] = false
 	}
-	if _, err := ctrl.storage.CheckInstancesExisted(ids); err != nil {
+	var id2Isolate map[string]bool
+	var err error
+	if id2Isolate, err = ctrl.storage.BatchGetInstanceIsolate(ids); err != nil {
 		log.Errorf("[Batch] check instances existed storage err: %s", err.Error())
 		SendReply(futures, api.StoreLayerException, err)
-		return nil, err
+		return err
 	}
-
-	for id, existed := range ids {
-		if !existed {
-			continue
+	if len(id2Isolate) > 0 {
+		for id, isolate := range id2Isolate {
+			if future, ok := futures[id]; ok && future.request.Isolate == nil {
+				future.request.Isolate = &wrappers.BoolValue{Value: isolate}
+			}
 		}
-
-		entry, ok := futures[id]
-		if !ok {
-			// 返回了没有查询的id，告警
-			log.Warnf("[Batch] check instances existed get not track id : %s", id)
-			continue
-		}
-
-		entry.Reply(api.ExistedResource, fmt.Errorf("instance(%s) is existed", entry.request.GetId().GetValue()))
-		delete(futures, id)
 	}
-
-	return futures, nil
+	return nil
 }
 
 // 对请求futures进行统一的鉴权

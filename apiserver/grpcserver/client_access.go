@@ -36,7 +36,7 @@ import (
  * @brief 客户端上报
  */
 func (g *GRPCServer) ReportClient(ctx context.Context, in *api.Client) (*api.Response, error) {
-	out := g.namingServer.ReportClient(convertContext(ctx), in)
+	out := g.namingServer.ReportClient(ConvertContext(ctx), in)
 	return out, nil
 }
 
@@ -45,7 +45,7 @@ func (g *GRPCServer) ReportClient(ctx context.Context, in *api.Client) (*api.Res
  */
 func (g *GRPCServer) RegisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
-	rCtx := convertContext(ctx)
+	rCtx := ConvertContext(ctx)
 	operator := ParseGrpcOperator(ctx)
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), operator)
 	out := g.namingServer.CreateInstance(rCtx, in)
@@ -57,7 +57,7 @@ func (g *GRPCServer) RegisterInstance(ctx context.Context, in *api.Instance) (*a
  */
 func (g *GRPCServer) DeregisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
-	rCtx := convertContext(ctx)
+	rCtx := ConvertContext(ctx)
 	operator := ParseGrpcOperator(ctx)
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), operator)
 	out := g.namingServer.DeleteInstance(rCtx, in)
@@ -68,7 +68,7 @@ func (g *GRPCServer) DeregisterInstance(ctx context.Context, in *api.Instance) (
  * @brief 统一发现接口
  */
 func (g *GRPCServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
-	ctx := convertContext(server.Context())
+	ctx := ConvertContext(server.Context())
 	clientIP, _ := ctx.Value(utils.StringContext("client-ip")).(string)
 	clientAddress, _ := ctx.Value(utils.StringContext("client-address")).(string)
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
@@ -138,7 +138,7 @@ func (g *GRPCServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
  * @brief 上报心跳
  */
 func (g *GRPCServer) Heartbeat(ctx context.Context, in *api.Instance) (*api.Response, error) {
-	out := g.healthCheckServer.Report(convertContext(ctx), in)
+	out := g.healthCheckServer.Report(ConvertContext(ctx), in)
 	return out, nil
 }
 

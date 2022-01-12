@@ -150,7 +150,7 @@ func (i *instanceStore) CleanInstance(instanceID string) error {
 }
 
 // CheckInstancesExisted Check whether the ID exists, and return the query results of all IDs
-func (i *instanceStore) CheckInstancesExisted(ids map[string]bool) (map[string]bool, error) {
+func (i *instanceStore) BatchGetInstanceIsolate(ids map[string]bool) (map[string]bool, error) {
 
 	if len(ids) == 0 {
 		return nil, nil
@@ -179,7 +179,7 @@ func (i *instanceStore) CheckInstancesExisted(ids map[string]bool) (map[string]b
 			continue
 		}
 
-		ids[id] = true
+		ids[id] = ins.Proto.GetIsolate().GetValue()
 	}
 
 	return ids, nil

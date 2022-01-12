@@ -86,13 +86,14 @@ func (a *APICallStatis) collectMetricData(staticsSlice []*APICallStatisItem) {
 
 	for _, item := range staticsSlice {
 
-		var maxTime, avgTime, rqTime, rqCount float64
+		var maxTime, avgTime, rqTime, rqCount, minTime float64
 		var deleteFlag bool
 
 		if item.count == 0 && item.zeroDuration > maxZeroDuration {
 			deleteFlag = true
 		} else {
 			maxTime = float64(item.maxTime) / 1e6
+			minTime = float64(item.minTime) / 1e6
 			rqTime = float64(item.accTime) / 1e6
 			rqCount = float64(item.count)
 			if item.count > 0 {
@@ -119,6 +120,11 @@ func (a *APICallStatis) collectMetricData(staticsSlice []*APICallStatisItem) {
 		}, &MetricData{
 			Name:       MetricForClientRqIntervalCount,
 			Data:       rqCount,
+			Labels:     buildMetricLabels(nil, item),
+			DeleteFlag: deleteFlag,
+		}, &MetricData{
+			Name:       MetricForClientRqTimeoutMin,
+			Data:       minTime,
 			Labels:     buildMetricLabels(nil, item),
 			DeleteFlag: deleteFlag,
 		},
