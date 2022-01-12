@@ -20,7 +20,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	"github.com/polarismesh/polaris-server/healthcheck"
+	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"io"
 	"net"
 	"net/http"
@@ -31,8 +31,8 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
 	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris-server/service"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"

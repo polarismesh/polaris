@@ -20,7 +20,7 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/polarismesh/polaris-server/healthcheck"
+	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"os"
 
 	"github.com/polarismesh/polaris-server/apiserver"
