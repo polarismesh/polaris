@@ -230,7 +230,7 @@ func (a *APICallStatis) add(ac *APICall) {
 const (
 	maxLogWaitDuration = 800 * time.Millisecond
 	maxZeroDuration    = 3
-	metricsNumber      = 4
+	metricsNumber      = 5
 )
 
 /**

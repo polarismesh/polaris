@@ -601,19 +601,19 @@ func (mr *MockStoreMockRecorder) CleanInstance(instanceID interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanInstance", reflect.TypeOf((*MockStore)(nil).CleanInstance), instanceID)
 }
 
-// CheckInstancesExisted mocks base method
-func (m *MockStore) CheckInstancesExisted(ids map[string]bool) (map[string]bool, error) {
+// BatchGetInstanceIsolate mocks base method
+func (m *MockStore) BatchGetInstanceIsolate(ids map[string]bool) (map[string]bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckInstancesExisted", ids)
+	ret := m.ctrl.Call(m, "BatchGetInstanceIsolate", ids)
 	ret0, _ := ret[0].(map[string]bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// CheckInstancesExisted indicates an expected call of CheckInstancesExisted
-func (mr *MockStoreMockRecorder) CheckInstancesExisted(ids interface{}) *gomock.Call {
+// BatchGetInstanceIsolate indicates an expected call of BatchGetInstanceIsolate
+func (mr *MockStoreMockRecorder) BatchGetInstanceIsolate(ids interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckInstancesExisted", reflect.TypeOf((*MockStore)(nil).CheckInstancesExisted), ids)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchGetInstanceIsolate", reflect.TypeOf((*MockStore)(nil).BatchGetInstanceIsolate), ids)
 }
 
 // GetInstancesBrief mocks base method
@@ -1968,19 +1968,19 @@ func (mr *MockInstanceStoreMockRecorder) CleanInstance(instanceID interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanInstance", reflect.TypeOf((*MockInstanceStore)(nil).CleanInstance), instanceID)
 }
 
-// CheckInstancesExisted mocks base method
-func (m *MockInstanceStore) CheckInstancesExisted(ids map[string]bool) (map[string]bool, error) {
+// BatchGetInstanceIsolate mocks base method
+func (m *MockInstanceStore) BatchGetInstanceIsolate(ids map[string]bool) (map[string]bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckInstancesExisted", ids)
+	ret := m.ctrl.Call(m, "BatchGetInstanceIsolate", ids)
 	ret0, _ := ret[0].(map[string]bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// CheckInstancesExisted indicates an expected call of CheckInstancesExisted
-func (mr *MockInstanceStoreMockRecorder) CheckInstancesExisted(ids interface{}) *gomock.Call {
+// BatchGetInstanceIsolate indicates an expected call of BatchGetInstanceIsolate
+func (mr *MockInstanceStoreMockRecorder) BatchGetInstanceIsolate(ids interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckInstancesExisted", reflect.TypeOf((*MockInstanceStore)(nil).CheckInstancesExisted), ids)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchGetInstanceIsolate", reflect.TypeOf((*MockInstanceStore)(nil).BatchGetInstanceIsolate), ids)
 }
 
 // GetInstancesBrief mocks base method

@@ -185,8 +185,8 @@ type InstanceStore interface {
 	// CleanInstance 清空一个实例，真正删除
 	CleanInstance(instanceID string) error
 
-	// CheckInstancesExisted 检查ID是否存在，并且返回所有ID的查询结果
-	CheckInstancesExisted(ids map[string]bool) (map[string]bool, error)
+	// BatchGetInstanceIsolate 检查ID是否存在，并且返回存在的ID，以及ID的隔离状态
+	BatchGetInstanceIsolate(ids map[string]bool) (map[string]bool, error)
 
 	// GetInstancesBrief 获取实例关联的token
 	GetInstancesBrief(ids map[string]bool) (map[string]*model.Instance, error)
