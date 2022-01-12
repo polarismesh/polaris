@@ -20,8 +20,8 @@ package httpserver
 import (
 	"context"
 	"fmt"
-	"github.com/polarismesh/polaris-server/healthcheck"
 	"github.com/polarismesh/polaris-server/plugin/statis/local"
+	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -36,8 +36,8 @@ import (
 	"github.com/polarismesh/polaris-server/common/connlimit"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris-server/service"
 	"go.uber.org/zap"
 )
 

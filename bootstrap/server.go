@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/healthcheck"
+	"github.com/polarismesh/polaris-server/service/healthcheck"
 
 	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/bootstrap/config"
@@ -34,8 +34,8 @@ import (
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/common/version"
-	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/store"
 )
 
