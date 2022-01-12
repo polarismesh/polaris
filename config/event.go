@@ -15,16 +15,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package event
+package config
 
 import (
 	"github.com/polarismesh/polaris-server/common/log"
 	"go.uber.org/zap"
 	"sync"
-)
-
-const (
-	QueueSize = 10240
 )
 
 // Event 事件对象，包含类型和事件消息
@@ -39,7 +35,6 @@ type Callback func(event Event) bool
 type Center struct {
 	watchers *sync.Map
 	lock     *sync.Mutex
-	queue    chan Event
 }
 
 // NewEventCenter 新建事件中心
@@ -47,24 +42,9 @@ func NewEventCenter() *Center {
 	center := &Center{
 		watchers: new(sync.Map),
 		lock:     new(sync.Mutex),
-		queue:    make(chan Event, QueueSize),
 	}
-
-	go func() {
-		center.handlerEvent()
-	}()
 
 	return center
-}
-
-// FireEvent 发布一个事件
-func (c *Center) FireEvent(event Event) {
-	log.GetDefaultLogger().Infof("[Common][Event] fire event.", event.EventType)
-
-	select {
-	case c.queue <- event:
-		return
-	}
 }
 
 // WatchEvent 监听事件
@@ -82,25 +62,23 @@ func (c *Center) WatchEvent(eventType string, cb Callback) {
 	}
 }
 
-func (c *Center) handlerEvent() {
+func (c *Center) handlerEvent(e Event) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.GetDefaultLogger().Error("[Common][Event] handler event error.", zap.Any("error", err))
 		}
 	}()
 
-	for e := range c.queue {
-		cbs, ok := c.watchers.Load(e.EventType)
-		if !ok {
-			continue
-		}
+	cbs, ok := c.watchers.Load(e.EventType)
+	if !ok {
+		return
+	}
 
-		cbArr := cbs.([]Callback)
-		for _, cb := range cbArr {
-			ok := cb(e)
-			if !ok {
-				log.GetDefaultLogger().Errorf("[Common][Event] cb message error. event = %+v", e)
-			}
+	cbArr := cbs.([]Callback)
+	for _, cb := range cbArr {
+		ok := cb(e)
+		if !ok {
+			log.GetDefaultLogger().Errorf("[Common][Event] cb message error. event = %+v", e)
 		}
 	}
 }

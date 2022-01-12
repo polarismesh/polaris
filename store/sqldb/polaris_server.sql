@@ -610,7 +610,7 @@ CREATE TABLE `ratelimit_flux_rule_revision` (
 -- Table structure `config_file`
 --
 CREATE TABLE `config_file` (
-    `id`          int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
     `namespace`   varchar(64) COLLATE utf8_bin  NOT NULL COMMENT '所属的namespace',
     `group`       varchar(128) COLLATE utf8_bin NOT NULL DEFAULT '' COMMENT '所属的文件组',
     `name`        varchar(128) COLLATE utf8_bin NOT NULL COMMENT '配置文件名',
@@ -648,7 +648,7 @@ CREATE TABLE `config_file` (
 -- Table structure `config_file_group`
 --
 CREATE TABLE `config_file_group`(
-    `id`          int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
     `name`        varchar(128) COLLATE utf8_bin NOT NULL COMMENT '配置文件分组名',
     `namespace`   varchar(64) COLLATE utf8_bin  NOT NULL COMMENT '所属的namespace',
     `comment`     varchar(512) COLLATE utf8_bin          DEFAULT NULL COMMENT '备注信息',
@@ -665,7 +665,7 @@ CREATE TABLE `config_file_group`(
 -- Table structure `config_file_release`
 --
 CREATE TABLE `config_file_release`(
-    `id`          int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
     `name`        varchar(128) COLLATE utf8_bin          DEFAULT NULL COMMENT '发布标题',
     `namespace`   varchar(64) COLLATE utf8_bin  NOT NULL COMMENT '所属的namespace',
     `group`       varchar(128) COLLATE utf8_bin NOT NULL COMMENT '所属的文件组',
@@ -689,7 +689,7 @@ CREATE TABLE `config_file_release`(
 -- Table structure `config_file_release_history`
 --
 CREATE TABLE `config_file_release_history`(
-    `id`          int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
     `name`        varchar(64) COLLATE utf8_bin           DEFAULT '' COMMENT '发布名称',
     `namespace`   varchar(64) COLLATE utf8_bin  NOT NULL COMMENT '所属的namespace',
     `group`       varchar(128) COLLATE utf8_bin NOT NULL COMMENT '所属的文件组',
@@ -712,7 +712,7 @@ CREATE TABLE `config_file_release_history`(
 -- Table structure `config_file_tag`
 --
 CREATE TABLE `config_file_tag`(
-    `id`          int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
     `key`         varchar(128) COLLATE utf8_bin NOT NULL COMMENT 'tag 的键',
     `Value`       varchar(128) COLLATE utf8_bin NOT NULL COMMENT 'tag 的值',
     `namespace`   varchar(64) COLLATE utf8_bin  NOT NULL COMMENT '所属的namespace',

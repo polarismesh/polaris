@@ -70,13 +70,14 @@ func CheckContentLength(content string) error {
 	return nil
 }
 
-func GenConfigFileResponse(namespace, group, fileName, content string, version uint64) *api.ConfigClientResponse {
+func GenConfigFileResponse(namespace, group, fileName, content, md5 string, version uint64) *api.ConfigClientResponse {
 	configFile := &api.ClientConfigFileInfo{
 		Namespace: utils.NewStringValue(namespace),
 		Group:     utils.NewStringValue(group),
 		FileName:  utils.NewStringValue(fileName),
 		Content:   utils.NewStringValue(content),
 		Version:   utils.NewUInt64Value(version),
+		Md5:       utils.NewStringValue(md5),
 	}
 	return api.NewConfigClientResponse(api.ExecuteSuccess, configFile)
 }

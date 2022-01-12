@@ -20,7 +20,6 @@ package config
 import (
 	"errors"
 	"github.com/polarismesh/polaris-server/cache"
-	"github.com/polarismesh/polaris-server/common/event"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/config/service"
 	"github.com/polarismesh/polaris-server/store"
@@ -94,7 +93,7 @@ func doInit() error {
 	server.service = serviceImpl
 
 	//4. 初始化事件中心
-	eventCenter := event.NewEventCenter()
+	eventCenter := NewEventCenter()
 	server.watchCenter = NewWatchCenter(eventCenter)
 
 	//5. 初始化发布事件扫描器

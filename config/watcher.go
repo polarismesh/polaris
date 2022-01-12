@@ -19,7 +19,6 @@ package config
 
 import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/event"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
@@ -28,28 +27,38 @@ import (
 	"sync"
 )
 
+const (
+	QueueSize = 10240
+)
+
 type watchContext struct {
 	fileReleaseCb func(clientId string, rsp *api.ConfigClientResponse) bool
 	ClientVersion uint64
 }
 
 type watchCenter struct {
-	eventCenter        *event.Center
-	configFileWatchers *sync.Map //fileId -> clientId -> watchContext
-	lock               *sync.Mutex
+	eventCenter         *Center
+	configFileWatchers  *sync.Map //fileId -> clientId -> watchContext
+	lock                *sync.Mutex
+	releaseMessageQueue chan *model.ConfigFileRelease
 }
 
-// NewWatchCenter 创建一个订阅中心
-func NewWatchCenter(eventCenter *event.Center) *watchCenter {
+// NewWatchCenter 创建一个客户端监听配置发布的处理中心
+func NewWatchCenter(eventCenter *Center) *watchCenter {
 	wc := &watchCenter{
-		eventCenter:        eventCenter,
-		configFileWatchers: new(sync.Map),
-		lock:               new(sync.Mutex),
+		eventCenter:         eventCenter,
+		configFileWatchers:  new(sync.Map),
+		lock:                new(sync.Mutex),
+		releaseMessageQueue: make(chan *model.ConfigFileRelease, QueueSize),
 	}
-	eventCenter.WatchEvent(EventTypePublishConfigFile, func(event event.Event) bool {
-		wc.notifyToWatchers(event.Message.(*model.ConfigFileRelease))
+
+	eventCenter.WatchEvent(EventTypePublishConfigFile, func(event Event) bool {
+		wc.releaseMessageQueue <- event.Message.(*model.ConfigFileRelease)
 		return true
 	})
+
+	wc.handlerMessage()
+
 	return wc
 }
 
@@ -103,10 +112,24 @@ func (wc *watchCenter) RemoveWatcher(clientId string, watchConfigFiles []*api.Cl
 	}
 }
 
+func (wc *watchCenter) handlerMessage() {
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				log.GetDefaultLogger().Error("[Config][Watcher] handler config release message error.", zap.Any("error", err))
+			}
+		}()
+
+		for message := range wc.releaseMessageQueue {
+			wc.notifyToWatchers(message)
+		}
+	}()
+}
+
 func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.ConfigFileRelease) {
 	watchFileId := utils.GenFileId(publishConfigFile.Namespace, publishConfigFile.Group, publishConfigFile.FileName)
 
-	log.GetConfigLogger().Info("[Config][Watcher] received config file publish event.", zap.String("file", watchFileId))
+	log.GetConfigLogger().Info("[Config][Watcher] received config file publish message.", zap.String("file", watchFileId))
 
 	watchers, ok := wc.configFileWatchers.Load(watchFileId)
 	if !ok {
@@ -114,7 +137,7 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.ConfigFileRelea
 	}
 
 	response := utils2.GenConfigFileResponse(publishConfigFile.Namespace, publishConfigFile.Group,
-		publishConfigFile.FileName, "", publishConfigFile.Version)
+		publishConfigFile.FileName, "", publishConfigFile.Md5, publishConfigFile.Version)
 
 	watcherMap := watchers.(*sync.Map)
 	watcherMap.Range(func(clientId, watchCtx interface{}) bool {

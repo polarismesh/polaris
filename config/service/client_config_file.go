@@ -53,7 +53,7 @@ func (cs *Impl) CheckClientConfigFile(ctx context.Context, configFiles []*api.Cl
 		}
 
 		if !entry.Empty && clientVersion < entry.Version {
-			return utils2.GenConfigFileResponse(namespace, group, fileName, "", entry.Version)
+			return utils2.GenConfigFileResponse(namespace, group, fileName, "", entry.Md5, entry.Version)
 		}
 	}
 
@@ -95,5 +95,5 @@ func (cs *Impl) GetConfigFileForClient(ctx context.Context, namespace, group, fi
 		}
 	}
 
-	return utils2.GenConfigFileResponse(namespace, group, fileName, entry.Content, entry.Version)
+	return utils2.GenConfigFileResponse(namespace, group, fileName, entry.Content, entry.Md5, entry.Version)
 }
