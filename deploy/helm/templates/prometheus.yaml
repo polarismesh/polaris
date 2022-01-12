@@ -10,9 +10,9 @@ spec:
       protocol: TCP
       targetPort: 9090
     - name: polaris-pushgateway
-      port: 9091
+      port: {{ .Values.monitor.port }}
       protocol: TCP
-      targetPort: 9091
+      targetPort: {{ .Values.monitor.port }}
   selector:
     app: polaris-prometheus
   type: LoadBalancer
