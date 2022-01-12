@@ -142,7 +142,7 @@ func (s *releaseMessageScanner) handlerReleases(firstTime bool, releases []*mode
 			}
 
 			if !firstTime && !isExpireMessage(release) {
-				s.eventCenter.handlerEvent(Event{
+				s.eventCenter.handleEvent(Event{
 					EventType: EventTypePublishConfigFile,
 					Message:   release,
 				})

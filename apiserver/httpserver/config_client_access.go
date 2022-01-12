@@ -88,7 +88,7 @@ func (h *HTTPServer) WatchConfigFile(req *restful.Request, rsp *restful.Response
 	//3. 监听配置变更，hold 请求 30s，30s 内如果有配置发布，则响应请求
 	id, _ := uuid.NewUUID()
 	clientId := clientAddr + "@" + id.String()[0:8]
-	finishChan := make(chan interface{})
+	finishChan := make(chan struct{})
 
 	h.addConn(clientId, watchFiles, handler, finishChan)
 

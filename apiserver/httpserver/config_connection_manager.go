@@ -23,7 +23,7 @@ import (
 )
 
 type connection struct {
-	finishChan chan interface{}
+	finishChan chan struct{}
 	handler    *Handler
 }
 
@@ -31,7 +31,7 @@ type connection struct {
 var conns = new(sync.Map)
 
 func (h *HTTPServer) addConn(clientId string, watchConfigFiles []*api.ClientConfigFileInfo,
-	handler *Handler, finishChan chan interface{}) {
+	handler *Handler, finishChan chan struct{}) {
 	conns.Store(clientId, &connection{
 		finishChan: finishChan,
 		handler:    handler,
@@ -42,7 +42,7 @@ func (h *HTTPServer) addConn(clientId string, watchConfigFiles []*api.ClientConf
 		if ok {
 			c := conn.(*connection)
 			c.handler.WriteHeaderAndProto(rsp)
-			c.finishChan <- new(interface{})
+			c.finishChan <- struct{}{}
 		}
 		return true
 	})

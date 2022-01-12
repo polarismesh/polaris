@@ -62,7 +62,7 @@ func (c *Center) WatchEvent(eventType string, cb Callback) {
 	}
 }
 
-func (c *Center) handlerEvent(e Event) {
+func (c *Center) handleEvent(e Event) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.GetDefaultLogger().Error("[Common][Event] handler event error.", zap.Any("error", err))
