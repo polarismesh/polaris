@@ -463,7 +463,7 @@ func TestInstanceStore_CheckInstancesExisted(t *testing.T) {
 		"test-not-exist1": false,
 	}
 
-	mm, err := insStore.CheckInstancesExisted(m)
+	mm, err := insStore.BatchGetInstanceIsolate(m)
 	if err != nil {
 		t.Fatal(err)
 	}
