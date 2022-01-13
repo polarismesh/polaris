@@ -59,10 +59,12 @@ func (us *userStore) GetUser(id string) (*model.User, error) {
 }
 
 // GetUserByName
+//  @receiver us
 //  @param name
+//  @param ownerId
 //  @return *model.User
 //  @return error
-func (us *userStore) GetUserByName(name string) (*model.User, error) {
+func (us *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
 	return nil, errors.New("implement me")
 }
 
@@ -97,14 +99,14 @@ func (us *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mod
 // AddUserGroup
 //  @param group
 //  @return error
-func (us *userStore) AddUserGroup(group *model.UserGroup) error {
+func (us *userStore) AddUserGroup(group *model.UserGroupDetail) error {
 	return errors.New("implement me")
 }
 
 // UpdateUserGroup
 //  @param group
 //  @return error
-func (us *userStore) UpdateUserGroup(group *model.UserGroup) error {
+func (us *userStore) UpdateUserGroup(group *model.ModifyUserGroup) error {
 	return errors.New("implement me")
 }
 
@@ -153,6 +155,18 @@ func (us *userStore) GetUserGroupByName(name string) (*model.UserGroup, error) {
 //  @return []*model.UserGroup
 //  @return error
 func (us *userStore) ListUserGroups(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error) {
+	return 0, nil, errors.New("implement me")
+}
+
+// ListUserByGroup
+//  @receiver us
+//  @param filters
+//  @param offset
+//  @param limit
+//  @return uint32
+//  @return []*model.UserGroup
+//  @return error
+func (us *userStore) ListUserByGroup(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error) {
 	return 0, nil, errors.New("implement me")
 }
 

@@ -53,6 +53,12 @@ func (da *defaultAuth) Allow(platformID, platformToken string) bool {
 	return true
 }
 
+// CheckPermission 
+//  @receiver da 
+//  @param reqCtx 
+//  @param authRule 
+//  @return bool 
+//  @return error 
 func (da *defaultAuth) CheckPermission(reqCtx interface{}, authRule interface{}) (bool, error) {
 
 	ctx, ok := reqCtx.(*model.AcquireContext)
@@ -60,6 +66,7 @@ func (da *defaultAuth) CheckPermission(reqCtx interface{}, authRule interface{})
 		return false, errors.New("invalid parameter")
 	}
 
+	ownerId := ctx.Attachment[model.OperatorIDKey].(string)
 	strategys, ok := authRule.([]*model.StrategyDetail)
 
 	reqRes := ctx.Resources
@@ -69,28 +76,28 @@ func (da *defaultAuth) CheckPermission(reqCtx interface{}, authRule interface{})
 		checkConfigGroup bool = true
 	)
 
-	for sPos := range strategys {
-		rule := strategys[sPos]
+	for index := range strategys {
+		rule := strategys[index]
+
 		if !da.checkAction(rule.Action, ctx.Operation) {
 			continue
 		}
 		searchMaps := buildSearchMap(rule.Resources)
 
 		// 检查 namespace
-		checkNamespace = checkAnyElementExist(reqRes[api.ResourceType_Namespaces], searchMaps[0])
-
+		checkNamespace = checkAnyElementExist(ownerId, reqRes[api.ResourceType_Namespaces], searchMaps[0])
 		// 检查 service
 		if ctx.Module == model.DiscoverModule {
-			checkService = checkAnyElementExist(reqRes[api.ResourceType_Services], searchMaps[1])
+			checkService = checkAnyElementExist(ownerId, reqRes[api.ResourceType_Services], searchMaps[1])
 		}
 		// 检查 config_group
 		if ctx.Module == model.ConfigModule {
-			checkConfigGroup = checkAnyElementExist(reqRes[api.ResourceType_ConfigGroups], searchMaps[2])
+			checkConfigGroup = checkAnyElementExist(ownerId, reqRes[api.ResourceType_ConfigGroups], searchMaps[2])
 		}
-	}
 
-	if checkNamespace && checkService && checkConfigGroup {
-		return true, nil
+		if checkNamespace && (checkService || checkConfigGroup) {
+			return true, nil
+		}
 	}
 
 	return false, errors.New("permission check failed, operation is forbidden")
@@ -109,20 +116,31 @@ func (da *defaultAuth) checkAction(expect string, actual model.ResourceOperation
 	return true
 }
 
-// checkAnyElementExist
-func checkAnyElementExist(waitSearch []string, searchMaps *SearchMap) bool {
+// checkAnyElementExist 检查待操作的资源是否符合鉴权资源列表的配置
+//  @param userId 当前的用户信息
+//  @param waitSearch 访问的资源
+//  @param searchMaps 鉴权策略中某一类型的资源列表信息
+//  @return bool 是否可以操作本次被访问的所有资源
+func checkAnyElementExist(userId string, waitSearch []model.ResourceEntry, searchMaps *SearchMap) bool {
+	if len(waitSearch) == 0 {
+		return true
+	}
+
 	if searchMaps.passAll {
 		return true
 	}
 
 	for i := range waitSearch {
-		ns := waitSearch[i]
-		if _, ok := searchMaps.items[ns]; ok {
-			return true
+		entry := waitSearch[i]
+		if entry.Owner == userId {
+			continue
+		}
+		if _, ok := searchMaps.items[entry.ID]; !ok {
+			return false
 		}
 	}
 
-	return false
+	return true
 }
 
 // buildSearchMap

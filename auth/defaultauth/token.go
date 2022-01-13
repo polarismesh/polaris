@@ -27,15 +27,20 @@ import (
 	"io"
 
 	"github.com/google/uuid"
-	"github.com/polarismesh/polaris-server/auth"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 type TokenInfo struct {
-	Origin  string
-	RandStr string
-	Role    string
-	ID      string
-	IsOwner bool
+	Origin      string
+	RandStr     string
+	OperatorID  string
+	OwnerID     string
+	Role        model.UserRoleType
+	IsUserToken bool
+}
+
+func (t TokenInfo) IsSubAccount() bool {
+	return t.Role == model.SubAccountUserRole
 }
 
 const (
@@ -44,16 +49,32 @@ const (
 	TokenSplit   string = "::"
 )
 
-// CreateToken
-func CreateToken(uid, gid string) (string, error) {
+// CreateUserToken Create a user token
+//  @param uid
+//  @return string
+//  @return error
+func CreateUserToken(uid string) (string, error) {
+	return createToken(uid, "")
+}
+
+// CreateUserGroupToken Create user group token
+//  @param gid
+//  @return string
+//  @return error
+func CreateUserGroupToken(gid string) (string, error) {
+	return createToken("", gid)
+}
+
+// createToken Determine what type of Token created according to the incoming parameters
+func createToken(uid, gid string) (string, error) {
 	if uid == "" && gid == "" {
 		return "", errors.New("uid and groupid not be empty at the same time")
 	}
 	var val string
 	if uid == "" {
-		val = fmt.Sprintf("%s/%s", auth.RoleForUserGroup, gid)
+		val = fmt.Sprintf("%s/%s", model.TokenForUserGroup, gid)
 	} else {
-		val = fmt.Sprintf("%s/%s", auth.RoleForUser, uid)
+		val = fmt.Sprintf("%s/%s", model.TokenForUser, uid)
 	}
 
 	token := fmt.Sprintf(TokenPattern, uuid.NewString()[8:16], val)
@@ -61,6 +82,10 @@ func CreateToken(uid, gid string) (string, error) {
 }
 
 // encryptMessage
+//  @param key
+//  @param message
+//  @return string
+//  @return error
 func encryptMessage(key []byte, message string) (string, error) {
 	byteMsg := []byte(message)
 	block, err := aes.NewCipher(key)
@@ -81,6 +106,10 @@ func encryptMessage(key []byte, message string) (string, error) {
 }
 
 // decryptMessage
+//  @param key
+//  @param message
+//  @return string
+//  @return error
 func decryptMessage(key []byte, message string) (string, error) {
 	cipherText, err := base64.StdEncoding.DecodeString(message)
 	if err != nil {

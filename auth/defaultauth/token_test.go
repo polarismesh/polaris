@@ -31,7 +31,7 @@ func TestCreateToken(t *testing.T) {
 	uid := uuid.NewString()
 	fmt.Printf("uid=%s\n", uid)
 
-	token, err := CreateToken(uid, "")
+	token, err := createToken(uid, "")
 	if err != nil {
 		t.Fatal(err)
 	}

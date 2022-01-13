@@ -37,7 +37,7 @@ func (ss *strategyStore) AddStrategy(strategy *model.StrategyDetail) error {
 // UpdateStrategy
 //  @param strategy
 //  @return error
-func (ss *strategyStore) UpdateStrategyMain(strategy *model.StrategyDetail) error {
+func (ss *strategyStore) UpdateStrategy(strategy *model.ModifyStrategyDetail) error {
 	return errors.New("implement me")
 }
 
@@ -51,21 +51,21 @@ func (ss *strategyStore) DeleteStrategy(id string) error {
 // AddStrategyResources
 //  @param resources
 //  @return error
-func (ss *strategyStore) AddStrategyResources(resources []*model.StrategyResource) error {
+func (ss *strategyStore) AddStrategyResources(resources []model.StrategyResource) error {
 	return errors.New("implement me")
 }
 
-// DeleteStrategyResources
+// RemoveStrategyResources
 //  @param resources
 //  @return error
-func (ss *strategyStore) DeleteStrategyResources(resources []*model.StrategyResource) error {
+func (ss *strategyStore) RemoveStrategyResources(resources []model.StrategyResource) error {
 	return errors.New("implement me")
 }
 
 // LooseAddStrategyResources 松要求的添加鉴权策略的资源，允许忽略主键冲突的问题
 //  @param resources
 //  @return error
-func (ss *strategyStore) LooseAddStrategyResources(resources []*model.StrategyResource) error {
+func (ss *strategyStore) LooseAddStrategyResources(resources []model.StrategyResource) error {
 	return errors.New("implement me")
 }
 
@@ -78,10 +78,22 @@ func (ss *strategyStore) GetStrategyDetail(id string) (*model.StrategyDetail, er
 }
 
 // GetStrategyDetailByName
+//  @receiver ss
+//  @param owner
 //  @param name
 //  @return *model.StrategyDetail
 //  @return error
-func (ss *strategyStore) GetStrategyDetailByName(name string) (*model.StrategyDetail, error) {
+func (ss *strategyStore) GetStrategyDetailByName(owner, name string) (*model.StrategyDetail, error) {
+	return nil, errors.New("implement me")
+}
+
+// GetStrategySimpleByName
+//  @receiver ss
+//  @param owner
+//  @param name
+//  @return *model.Strategy
+//  @return error
+func (ss *strategyStore) GetStrategySimpleByName(owner, name string) (*model.Strategy, error) {
 	return nil, errors.New("implement me")
 }
 
@@ -92,7 +104,7 @@ func (ss *strategyStore) GetStrategyDetailByName(name string) (*model.StrategyDe
 //  @return uint32
 //  @return []*model.StrategyDetail
 //  @return error
-func (ss *strategyStore) ListStrategyDetails(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.StrategyDetail, error) {
+func (ss *strategyStore) ListStrategySimple(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.StrategyDetail, error) {
 	return 0, nil, errors.New("implement me")
 }
 

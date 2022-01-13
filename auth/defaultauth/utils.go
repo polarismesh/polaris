@@ -18,7 +18,13 @@
 package defaultauth
 
 import (
+	"errors"
+	"regexp"
+	"unicode/utf8"
+
+	"github.com/golang/protobuf/ptypes/wrappers"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 )
 
@@ -43,4 +49,42 @@ func StoreCode2APICode(err error) uint32 {
 	}
 
 	return api.StoreLayerException
+}
+
+// ============ common ============
+func checkName(name *wrappers.StringValue) error {
+	if name == nil {
+		return errors.New("nil")
+	}
+
+	if name.GetValue() == "" {
+		return errors.New("empty")
+	}
+
+	regStr := "^[0-9A-Za-z-.:_]+$"
+	ok, err := regexp.MatchString(regStr, name.GetValue())
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.New("name contains invalid character")
+	}
+
+	return nil
+}
+
+func checkOwner(owner *wrappers.StringValue) error {
+	if owner == nil {
+		return errors.New("nil")
+	}
+
+	if owner.GetValue() == "" {
+		return errors.New("empty")
+	}
+
+	if utf8.RuneCountInString(owner.GetValue()) > utils.MaxOwnersLength {
+		return errors.New("owners too long")
+	}
+
+	return nil
 }

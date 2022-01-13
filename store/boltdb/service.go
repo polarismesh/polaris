@@ -57,7 +57,7 @@ const (
 	SvcFieldOwner      string = "Owner"
 	SvcFieldRevision   string = "Revision"
 	SvcFieldReference  string = "Reference"
-	SvcFieldVaild      string = "Valid"
+	SvcFieldValid      string = "Valid"
 	SvcFieldCmdbMod1   string = "CmdbMod1"
 	SvcFieldCmdbMod2   string = "CmdbMod2"
 	SvcFieldCmdbMod3   string = "CmdbMod3"
@@ -245,7 +245,7 @@ func (ss *serviceStore) GetServicesCount() (uint32, error) {
 func (ss *serviceStore) GetMoreServices(
 	mtime time.Time, firstUpdate, disableBusiness, needMeta bool) (map[string]*model.Service, error) {
 
-	fields := []string{SvcFieldModifyTime, SvcFieldVaild}
+	fields := []string{SvcFieldModifyTime, SvcFieldValid}
 	if disableBusiness {
 		fields = append(fields, SvcFieldNamespace)
 	}
@@ -484,8 +484,8 @@ func (ss *serviceStore) getServiceByNameAndNs(name string, namespace string) (*m
 
 	svc, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
-			vaild, ok := m[SvcFieldVaild]
-			if ok && !vaild.(bool) {
+			valid, ok := m[SvcFieldValid]
+			if ok && !valid.(bool) {
 				return false
 			}
 
@@ -565,12 +565,12 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 		}
 
 		// get the filtered list of serviceIDs from instanceFilters
-		filter := []string{insFieldProto, insFieldVaild}
+		filter := []string{insFieldProto, insFieldValid}
 
 		inss, err := ss.handler.LoadValuesByFilter(tblNameInstance, filter, &model.Instance{},
 			func(m map[string]interface{}) bool {
-				vaild, ok := m[SvcFieldVaild]
-				if ok && !vaild.(bool) {
+				valid, ok := m[SvcFieldValid]
+				if ok && !valid.(bool) {
 					return false
 				}
 				insPorto, ok := m[insFieldProto]
@@ -616,7 +616,7 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 		}
 	}
 
-	fields := []string{SvcFieldVaild, SvcFieldNamespace, SvcFieldName, SvcFieldMeta, SvcFieldDepartment, SvcFieldBusiness, SvcFieldReference}
+	fields := []string{SvcFieldValid, SvcFieldNamespace, SvcFieldName, SvcFieldMeta, SvcFieldDepartment, SvcFieldBusiness, SvcFieldReference}
 	if len(insFiltersIds) > 0 {
 		fields = append(fields, SvcFieldID)
 	}
@@ -647,8 +647,8 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 
 	svcs, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
-			vaild, ok := m[SvcFieldVaild]
-			if ok && !vaild.(bool) {
+			valid, ok := m[SvcFieldValid]
+			if ok && !valid.(bool) {
 				return false
 			}
 			// filter by id

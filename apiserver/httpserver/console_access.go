@@ -209,7 +209,7 @@ func (h *HTTPServer) DeleteNamespaces(req *restful.Request, rsp *restful.Respons
 		return
 	}
 
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**
@@ -235,7 +235,7 @@ func (h *HTTPServer) UpdateNamespaces(req *restful.Request, rsp *restful.Respons
 		return
 	}
 
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**
@@ -323,7 +323,7 @@ func (h *HTTPServer) DeleteServices(req *restful.Request, rsp *restful.Response)
 		return
 	}
 
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**
@@ -348,7 +348,7 @@ func (h *HTTPServer) UpdateServices(req *restful.Request, rsp *restful.Response)
 		handler.WriteHeaderAndProto(ret)
 		return
 	}
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**
@@ -434,7 +434,7 @@ func (h *HTTPServer) UpdateServiceAlias(req *restful.Request, rsp *restful.Respo
 		return
 	}
 
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 // DeleteServiceAlias 删除服务别名
@@ -457,7 +457,7 @@ func (h *HTTPServer) DeleteServiceAliases(req *restful.Request, rsp *restful.Res
 		return
 	}
 
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 // GetServiceAliases 根据源服务获取服务别名
@@ -512,7 +512,7 @@ func (h *HTTPServer) DeleteInstances(req *restful.Request, rsp *restful.Response
 		return
 	}
 
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**
@@ -538,7 +538,7 @@ func (h *HTTPServer) DeleteInstancesByHost(req *restful.Request, rsp *restful.Re
 		return
 	}
 
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**
@@ -564,7 +564,7 @@ func (h *HTTPServer) UpdateInstances(req *restful.Request, rsp *restful.Response
 		return
 	}
 
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**
@@ -590,7 +590,7 @@ func (h *HTTPServer) UpdateInstancesIsolate(req *restful.Request, rsp *restful.R
 		return
 	}
 
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**
@@ -658,7 +658,7 @@ func (h *HTTPServer) DeleteRoutings(req *restful.Request, rsp *restful.Response)
 		return
 	}
 
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**
@@ -684,7 +684,7 @@ func (h *HTTPServer) UpdateRoutings(req *restful.Request, rsp *restful.Response)
 		return
 	}
 
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**
@@ -740,7 +740,7 @@ func (h *HTTPServer) DeleteRateLimits(req *restful.Request, rsp *restful.Respons
 		handler.WriteHeaderAndProto(ret)
 		return
 	}
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**
@@ -766,7 +766,7 @@ func (h *HTTPServer) UpdateRateLimits(req *restful.Request, rsp *restful.Respons
 		return
 	}
 
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**
@@ -843,7 +843,7 @@ func (h *HTTPServer) DeleteCircuitBreakers(req *restful.Request, rsp *restful.Re
 		handler.WriteHeaderAndProto(ret)
 		return
 	}
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**
@@ -868,7 +868,7 @@ func (h *HTTPServer) UpdateCircuitBreakers(req *restful.Request, rsp *restful.Re
 		handler.WriteHeaderAndProto(ret)
 		return
 	}
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**
@@ -893,7 +893,7 @@ func (h *HTTPServer) ReleaseCircuitBreakers(req *restful.Request, rsp *restful.R
 		handler.WriteHeaderAndProto(ret)
 		return
 	}
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**
@@ -918,7 +918,7 @@ func (h *HTTPServer) UnBindCircuitBreakers(req *restful.Request, rsp *restful.Re
 		handler.WriteHeaderAndProto(ret)
 		return
 	}
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**
@@ -1057,7 +1057,7 @@ func (h *HTTPServer) UpdatePlatforms(req *restful.Request, rsp *restful.Response
 		return
 	}
 
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**
@@ -1082,7 +1082,7 @@ func (h *HTTPServer) DeletePlatforms(req *restful.Request, rsp *restful.Response
 		return
 	}
 
-	handler.WriteHeader(ret.GetCode().GetValue(), http.StatusOK)
+	handler.WriteHeaderAndProto(ret)
 }
 
 /**

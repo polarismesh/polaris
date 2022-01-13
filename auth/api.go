@@ -20,6 +20,7 @@ package auth
 import (
 	"context"
 
+	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 )
@@ -30,14 +31,14 @@ type AuthManager interface {
 	// Initialize 执行初始化动作
 	//  @param options
 	//  @return error
-	Initialize(options *Config) error
+	Initialize(options *Config, cacheMgn *cache.NamingCache) error
 
 	// Login 登陆动作
 	//  @param name
 	//  @param password
 	//  @return string
 	//  @return error
-	Login(name, password string) (string, error)
+	Login(req *api.LoginRequest) *api.Response
 
 	// HasPermission 执行检查动作判断是否有权限
 	//  @param preCtx
@@ -102,19 +103,13 @@ type UserServer interface {
 	//  @param ctx
 	//  @param user
 	//  @return *api.Response
-	GetUserToken(ctx context.Context, user *api.User) *api.Response
+	GetUserToken(ctx context.Context, filter map[string]string) *api.Response
 
-	// DisableUserToken 禁止用户的token使用
+	// ChangeUserTokenStatus 禁止用户的token使用
 	//  @param ctx
 	//  @param user
 	//  @return *api.Response
-	DisableUserToken(ctx context.Context, user *api.User) *api.Response
-
-	// EnableUserToken 允许用户的token使用
-	//  @param ctx
-	//  @param user
-	//  @return *api.Response
-	EnableUserToken(ctx context.Context, user *api.User) *api.Response
+	ChangeUserTokenStatus(ctx context.Context, user *api.User) *api.Response
 
 	// RefreshUserToken 重置用户的token
 	//  @param ctx
@@ -132,7 +127,7 @@ type UserServer interface {
 	//  @param ctx
 	//  @param group
 	//  @return *api.Response
-	UpdateUserGroup(ctx context.Context, group *api.UserGroup) *api.Response
+	UpdateUserGroup(ctx context.Context, group *api.ModifyUserGroup) *api.Response
 
 	// DeleteUserGroup 删除用户组
 	//  @param ctx
@@ -146,41 +141,29 @@ type UserServer interface {
 	//  @return *api.BatchQueryResponse
 	ListUserGroups(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
+	// ListUserByGroup 根据用户组信息，查询该用户组下的用户相信
+	//  @param ctx
+	//  @param query
+	//  @return *api.BatchQueryResponse
+	ListUserByGroup(ctx context.Context, query map[string]string) *api.BatchQueryResponse
+
 	// GetUserGroupToken 获取用户组的 token
 	//  @param ctx
 	//  @param group
 	//  @return *api.Response
-	GetUserGroupToken(ctx context.Context, group *api.UserGroup) *api.Response
+	GetUserGroupToken(ctx context.Context, filter map[string]string) *api.Response
 
-	// DisableUserGroupToken 取消用户组的 token 使用
+	// ChangeUserGroupTokenStatus 取消用户组的 token 使用
 	//  @param ctx
 	//  @param group
 	//  @return *api.Response
-	DisableUserGroupToken(ctx context.Context, group *api.UserGroup) *api.Response
-
-	// EnableUserGroupToken 允许用户组 token 的使用
-	//  @param ctx
-	//  @param group
-	//  @return *api.Response
-	EnableUserGroupToken(ctx context.Context, group *api.UserGroup) *api.Response
+	ChangeUserGroupTokenStatus(ctx context.Context, group *api.UserGroup) *api.Response
 
 	// RefreshUserGroupToken 重置用户组的 token
 	//  @param ctx
 	//  @param group
 	//  @return *api.Response
 	RefreshUserGroupToken(ctx context.Context, group *api.UserGroup) *api.Response
-
-	// BatchAddUserToGroup 批量将用户加入用户组
-	//  @param ctx
-	//  @param relation
-	//  @return *api.BatchWriteResponse
-	BatchAddUserToGroup(ctx context.Context, relation *api.UserGroupRelation) *api.BatchWriteResponse
-
-	// BatchRemoveUserFromGroup 批量将用户从用户组移除
-	//  @param ctx
-	//  @param relation
-	//  @return *api.BatchWriteResponse
-	BatchRemoveUserFromGroup(ctx context.Context, relation *api.UserGroupRelation) *api.BatchWriteResponse
 }
 
 type AuthStrategyServer interface {
@@ -195,7 +178,7 @@ type AuthStrategyServer interface {
 	//  @param ctx
 	//  @param strategy
 	//  @return *api.Response
-	UpdateStrategy(ctx context.Context, strategy *api.AuthStrategy) *api.Response
+	UpdateStrategy(ctx context.Context, strategy *api.ModifyAuthStrategy) *api.Response
 
 	// DeleteStrategy
 	//  @param ctx
@@ -209,15 +192,32 @@ type AuthStrategyServer interface {
 	//  @return *api.BatchQueryResponse
 	ListStrategy(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
-	// AddStrategyResources
-	//  @param ctx
-	//  @param resources
-	//  @return *api.BatchWriteResponse
-	AddStrategyResources(ctx context.Context, resources *api.StrategyResource) *api.BatchWriteResponse
+	// GetStrategy 
+	//  @param ctx 
+	//  @param query 
+	//  @return *api.Response 
+	GetStrategy(ctx context.Context, query map[string]string) *api.Response
+}
 
-	// DeleteStrategyResources
-	//  @param ctx
-	//  @param resources
-	//  @return *api.BatchWriteResponse
-	DeleteStrategyResources(ctx context.Context, resources *api.StrategyResource) *api.BatchWriteResponse
+type Authority interface {
+	// VerifyToken 检查Token格式是否合法
+	VerifyToken(actualToken string) bool
+
+	// VerifyNamespace 校验命名空间是否合法
+	VerifyNamespace(expectToken string, actualToken string) bool
+
+	// VerifyService 校验服务是否合法
+	VerifyService(expectToken string, actualToken string) bool
+
+	// VerifyInstance 校验实例是否合法
+	VerifyInstance(expectToken string, actualToken string) bool
+
+	// VerifyRule 校验规则是否合法
+	VerifyRule(expectToken string, actualToken string) bool
+
+	// VerifyPlatform 校验平台是否合法
+	VerifyPlatform(expectToken string, actualToken string) bool
+
+	// VerifyMesh 校验网格权限是否合法
+	VerifyMesh(expectToken string, actualToken string) bool
 }

@@ -38,7 +38,7 @@ jobs:
       # Run unit tests
       - name: run tests
         run: |
-          pushd ./naming/cache
+          pushd ./cache
           go test -v
           popd
           pushd ./plugin/ratelimit/token

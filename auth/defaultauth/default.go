@@ -18,18 +18,19 @@
 package defaultauth
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/auth"
-	"github.com/polarismesh/polaris-server/auth/defaultauth/cache"
+	"github.com/polarismesh/polaris-server/cache"
+	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
 )
 
 var (
+
+	// AuthOption 鉴权的配置信息
 	AuthOption *AuthConfig
 )
 
@@ -58,12 +59,12 @@ func DefaultAuthConfig() *AuthConfig {
 type defaultAuthManager struct {
 	userSvr     *userServer
 	strategySvr *authStrategyServer
-	cache       *cache.AuthCache
+	cacheMgn    *cache.NamingCache
 	authPlugin  plugin.Auth
 }
 
 // Initialize 执行初始化动作
-func (authMgn *defaultAuthManager) Initialize(options *auth.Config) error {
+func (authMgn *defaultAuthManager) Initialize(options *auth.Config, cacheMgn *cache.NamingCache) error {
 	contentBytes, err := json.Marshal(options.Option)
 	if err != nil {
 		return err
@@ -79,30 +80,21 @@ func (authMgn *defaultAuthManager) Initialize(options *auth.Config) error {
 	// 获取存储层对象
 	s, err := store.GetStore()
 	if err != nil {
-		log.Errorf("[Auth][Server] can not get store, err: %s", err.Error())
+		log.GetAuthLogger().Errorf("[Auth][Server] can not get store, err: %s", err.Error())
 		return errors.New("can not get store")
 	}
 	if s == nil {
-		log.Errorf("[Auth][Server] store is null")
+		log.GetAuthLogger().Errorf("[Auth][Server] store is null")
 		return errors.New("store is null")
 	}
 
-	authCache, err := cache.NewAuthCache(s)
+	userSvr, err := newUserServer(s, cacheMgn.User())
 	if err != nil {
 		return err
 	}
 
-	userSvr, err := newUserServer(s, authCache.UserCache())
+	strategySvr, err := newAthStrategyServer(s, cacheMgn)
 	if err != nil {
-		return err
-	}
-
-	strategySvr, err := newAthStrategyServer(s)
-	if err != nil {
-		return err
-	}
-
-	if err := authCache.Start(context.Background()); err != nil {
 		return err
 	}
 
@@ -113,7 +105,8 @@ func (authMgn *defaultAuthManager) Initialize(options *auth.Config) error {
 
 	authMgn.userSvr = userSvr
 	authMgn.strategySvr = strategySvr
-	authMgn.cache = authCache
+	authMgn.cacheMgn = cacheMgn
+	authMgn.authPlugin = authPlugin
 
 	return nil
 }
@@ -131,4 +124,8 @@ func (authMgn *defaultAuthManager) GetUserServer() auth.UserServer {
 // GetAuthStrategyServer
 func (authMgn *defaultAuthManager) GetAuthStrategyServer() auth.AuthStrategyServer {
 	return newStrategyServerWithAuth(authMgn, authMgn.strategySvr)
+}
+
+func (authMgn *defaultAuthManager) Cache() *cache.NamingCache {
+	return authMgn.cacheMgn
 }

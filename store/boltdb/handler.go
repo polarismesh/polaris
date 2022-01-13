@@ -30,7 +30,7 @@ import (
 
 const (
 	DeleteFlagValue    byte   = 1
-	DataVaildFieldName string = "Valid"
+	DataValidFieldName string = "Valid"
 )
 
 var (
@@ -161,7 +161,7 @@ func saveValue(tx *bolt.Tx, typ string, key string, value interface{}) error {
 				return err
 			}
 		}
-		bucket.Put([]byte(toBucketField(DataVaildFieldName)), encodeBoolBuffer(true))
+		bucket.Put([]byte(toBucketField(DataValidFieldName)), encodeBoolBuffer(true))
 	}
 	return err
 }
@@ -397,7 +397,7 @@ func deleteValues(tx *bolt.Tx, typ string, keys []string, logicDelete bool) erro
 		keyBytes := []byte(key)
 		if subBucket := typeBucket.Bucket(keyBytes); subBucket != nil {
 			if logicDelete {
-				if err := subBucket.Put([]byte(toBucketField(DataVaildFieldName)), encodeBoolBuffer(false)); err != nil {
+				if err := subBucket.Put([]byte(toBucketField(DataValidFieldName)), encodeBoolBuffer(false)); err != nil {
 					return err
 				}
 			} else {
@@ -472,11 +472,11 @@ func (b *boltHandler) CountValues(typ string) (int, error) {
 			canCount := true
 
 			if subBucket != nil {
-				data := subBucket.Get([]byte(DataVaildFieldName))
+				data := subBucket.Get([]byte(DataValidFieldName))
 				if data == nil || len(data) == 0 {
 					canCount = true
 				} else {
-					val, err := decodeBoolBuffer(DataVaildFieldName, data)
+					val, err := decodeBoolBuffer(DataValidFieldName, data)
 					if err != nil {
 						return err
 					}

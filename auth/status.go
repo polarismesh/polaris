@@ -24,13 +24,3 @@ const (
 	OpenAuthService AuthStatus = iota
 	CloseAuthService
 )
-
-const (
-	// 用户 or 用户组
-	OperatoRoleKey   string = "operator_role"
-	OperatorIDKey    string = "operator_id"
-	OperatorOwnerKey string = "operator_owner"
-
-	RoleForUser      string = "uid"
-	RoleForUserGroup string = "groupid"
-)

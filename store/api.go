@@ -389,9 +389,10 @@ type UserStore interface {
 
 	// GetUserByName
 	//  @param name
+	//  @param ownerId
 	//  @return *model.User
 	//  @return error
-	GetUserByName(name string) (*model.User, error)
+	GetUserByName(name, ownerId string) (*model.User, error)
 
 	// GetUserByIDS
 	//  @param ids
@@ -418,27 +419,17 @@ type UserStore interface {
 	// AddUserGroup
 	//  @param group
 	//  @return error
-	AddUserGroup(group *model.UserGroup) error
+	AddUserGroup(group *model.UserGroupDetail) error
 
 	// UpdateUserGroup
 	//  @param group
 	//  @return error
-	UpdateUserGroup(group *model.UserGroup) error
+	UpdateUserGroup(group *model.ModifyUserGroup) error
 
 	// DeleteUserGroup
 	//  @param id
 	//  @return error
 	DeleteUserGroup(id string) error
-
-	// AddUserGroupRelation
-	//  @param relations
-	//  @return error
-	AddUserGroupRelation(relations *model.UserGroupRelation) error
-
-	// RemoveUserGroupRelation
-	//  @param relations
-	//  @return error
-	RemoveUserGroupRelation(relations *model.UserGroupRelation) error
 
 	// GetUserGroup
 	//  @param id
@@ -467,6 +458,15 @@ type UserStore interface {
 	//  @return []*model.UserGroupDetail
 	//  @return error
 	GetUserGroupsForCache(mtime time.Time, firstUpdate bool) ([]*model.UserGroupDetail, error)
+
+	// ListUserByGroup 
+	//  @param filters 
+	//  @param offset 
+	//  @param limit 
+	//  @return uint32 
+	//  @return []*model.User 
+	//  @return error 
+	ListUserByGroup(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error)
 }
 
 // StrategyStore
@@ -478,27 +478,22 @@ type StrategyStore interface {
 	// UpdateStrategy
 	//  @param strategy
 	//  @return error
-	UpdateStrategyMain(strategy *model.StrategyDetail) error
+	UpdateStrategy(strategy *model.ModifyStrategyDetail) error
 
 	// DeleteStrategy
 	//  @param id
 	//  @return error
 	DeleteStrategy(id string) error
 
-	// AddStrategyResources
-	//  @param resources
-	//  @return error
-	AddStrategyResources(resources []*model.StrategyResource) error
-
-	// DeleteStrategyResources
-	//  @param resources
-	//  @return error
-	DeleteStrategyResources(resources []*model.StrategyResource) error
-
 	// LooseAddStrategyResources 松要求的添加鉴权策略的资源，允许忽略主键冲突的问题
 	//  @param resources
 	//  @return error
-	LooseAddStrategyResources(resources []*model.StrategyResource) error
+	LooseAddStrategyResources(resources []model.StrategyResource) error
+
+	// RemoveStrategyResources 松要求的添加鉴权策略的资源，允许忽略主键冲突的问题
+	//  @param resources
+	//  @return error
+	RemoveStrategyResources(resources []model.StrategyResource) error
 
 	// GetStrategyDetail
 	//  @param id
@@ -506,20 +501,28 @@ type StrategyStore interface {
 	//  @return error
 	GetStrategyDetail(id string) (*model.StrategyDetail, error)
 
-	// GetStrategyDetailByName
-	//  @param name
-	//  @return *model.StrategyDetail
-	//  @return error
-	GetStrategyDetailByName(name string) (*model.StrategyDetail, error)
+	// GetStrategyDetailByName 
+	//  @param owner 
+	//  @param name 
+	//  @return *model.StrategyDetail 
+	//  @return error 
+	GetStrategyDetailByName(owner, name string) (*model.StrategyDetail, error)
 
-	// ListStrategyDetails
+	// GetStrategySimpleByName
+	//  @param owner
+	//  @param name
+	//  @return *model.Strategy
+	//  @return error
+	GetStrategySimpleByName(owner, name string) (*model.Strategy, error)
+
+	// ListStrategySimple
 	//  @param filters
 	//  @param offset
 	//  @param limit
 	//  @return uint32
 	//  @return []*model.StrategyDetail
 	//  @return error
-	ListStrategyDetails(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.StrategyDetail, error)
+	ListStrategySimple(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.StrategyDetail, error)
 
 	// GetStrategyDetailsForCache
 	//  @param mtime

@@ -18,10 +18,12 @@
 package defaultauth
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
+	"unsafe"
 
-	"github.com/polarismesh/polaris-server/auth/defaultauth/cache"
+	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/plugin"
 )
 
@@ -29,7 +31,7 @@ func Test_defaultAuthManager_ParseToken(t *testing.T) {
 	type fields struct {
 		userSvr     *userServer
 		strategySvr *authStrategyServer
-		cache       *cache.AuthCache
+		cacheMgn    *cache.NamingCache
 		authPlugin  plugin.Auth
 	}
 	type args struct {
@@ -49,7 +51,7 @@ func Test_defaultAuthManager_ParseToken(t *testing.T) {
 			authMgn := &defaultAuthManager{
 				userSvr:     tt.fields.userSvr,
 				strategySvr: tt.fields.strategySvr,
-				cache:       tt.fields.cache,
+				cacheMgn:    tt.fields.cacheMgn,
 				authPlugin:  tt.fields.authPlugin,
 			}
 			got, err := authMgn.ParseToken(tt.args.t)
@@ -62,4 +64,12 @@ func Test_defaultAuthManager_ParseToken(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_SiezOfInerface(t *testing.T) {
+
+	a := unsafe.Sizeof(new(interface{}))
+
+	t.Log(a)
+	fmt.Println(unsafe.Sizeof(new(interface{})))
 }

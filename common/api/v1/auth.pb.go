@@ -39,7 +39,7 @@ func (x AuthAction) String() string {
 	return proto.EnumName(AuthAction_name, int32(x))
 }
 func (AuthAction) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_auth_37a29dfdd122469b, []int{0}
+	return fileDescriptor_auth_c78e35b81cd83f20, []int{0}
 }
 
 type ResourceType int32
@@ -65,7 +65,115 @@ func (x ResourceType) String() string {
 	return proto.EnumName(ResourceType_name, int32(x))
 }
 func (ResourceType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_auth_37a29dfdd122469b, []int{1}
+	return fileDescriptor_auth_c78e35b81cd83f20, []int{1}
+}
+
+type LoginRequest struct {
+	Owner                *wrappers.StringValue `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
+	Name                 *wrappers.StringValue `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Password             *wrappers.StringValue `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
+	XXX_unrecognized     []byte                `json:"-"`
+	XXX_sizecache        int32                 `json:"-"`
+}
+
+func (m *LoginRequest) Reset()         { *m = LoginRequest{} }
+func (m *LoginRequest) String() string { return proto.CompactTextString(m) }
+func (*LoginRequest) ProtoMessage()    {}
+func (*LoginRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_auth_c78e35b81cd83f20, []int{0}
+}
+func (m *LoginRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_LoginRequest.Unmarshal(m, b)
+}
+func (m *LoginRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_LoginRequest.Marshal(b, m, deterministic)
+}
+func (dst *LoginRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LoginRequest.Merge(dst, src)
+}
+func (m *LoginRequest) XXX_Size() int {
+	return xxx_messageInfo_LoginRequest.Size(m)
+}
+func (m *LoginRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_LoginRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_LoginRequest proto.InternalMessageInfo
+
+func (m *LoginRequest) GetOwner() *wrappers.StringValue {
+	if m != nil {
+		return m.Owner
+	}
+	return nil
+}
+
+func (m *LoginRequest) GetName() *wrappers.StringValue {
+	if m != nil {
+		return m.Name
+	}
+	return nil
+}
+
+func (m *LoginRequest) GetPassword() *wrappers.StringValue {
+	if m != nil {
+		return m.Password
+	}
+	return nil
+}
+
+type LoginResponse struct {
+	Token                *wrappers.StringValue `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Name                 *wrappers.StringValue `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Role                 *wrappers.StringValue `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
+	XXX_unrecognized     []byte                `json:"-"`
+	XXX_sizecache        int32                 `json:"-"`
+}
+
+func (m *LoginResponse) Reset()         { *m = LoginResponse{} }
+func (m *LoginResponse) String() string { return proto.CompactTextString(m) }
+func (*LoginResponse) ProtoMessage()    {}
+func (*LoginResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_auth_c78e35b81cd83f20, []int{1}
+}
+func (m *LoginResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_LoginResponse.Unmarshal(m, b)
+}
+func (m *LoginResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_LoginResponse.Marshal(b, m, deterministic)
+}
+func (dst *LoginResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LoginResponse.Merge(dst, src)
+}
+func (m *LoginResponse) XXX_Size() int {
+	return xxx_messageInfo_LoginResponse.Size(m)
+}
+func (m *LoginResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_LoginResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_LoginResponse proto.InternalMessageInfo
+
+func (m *LoginResponse) GetToken() *wrappers.StringValue {
+	if m != nil {
+		return m.Token
+	}
+	return nil
+}
+
+func (m *LoginResponse) GetName() *wrappers.StringValue {
+	if m != nil {
+		return m.Name
+	}
+	return nil
+}
+
+func (m *LoginResponse) GetRole() *wrappers.StringValue {
+	if m != nil {
+		return m.Role
+	}
+	return nil
 }
 
 type User struct {
@@ -75,9 +183,11 @@ type User struct {
 	Owner                *wrappers.StringValue `protobuf:"bytes,4,opt,name=owner,proto3" json:"owner,omitempty"`
 	Source               *wrappers.StringValue `protobuf:"bytes,5,opt,name=source,proto3" json:"source,omitempty"`
 	AuthToken            *wrappers.StringValue `protobuf:"bytes,6,opt,name=auth_token,json=authToken,proto3" json:"auth_token,omitempty"`
-	Comment              *wrappers.StringValue `protobuf:"bytes,7,opt,name=comment,proto3" json:"comment,omitempty"`
-	Ctime                *wrappers.StringValue `protobuf:"bytes,8,opt,name=ctime,proto3" json:"ctime,omitempty"`
-	Mtime                *wrappers.StringValue `protobuf:"bytes,9,opt,name=mtime,proto3" json:"mtime,omitempty"`
+	TokenEnable          *wrappers.BoolValue   `protobuf:"bytes,7,opt,name=token_enable,json=tokenEnable,proto3" json:"token_enable,omitempty"`
+	Comment              *wrappers.StringValue `protobuf:"bytes,8,opt,name=comment,proto3" json:"comment,omitempty"`
+	Ctime                *wrappers.StringValue `protobuf:"bytes,9,opt,name=ctime,proto3" json:"ctime,omitempty"`
+	Mtime                *wrappers.StringValue `protobuf:"bytes,10,opt,name=mtime,proto3" json:"mtime,omitempty"`
+	UserType             *wrappers.StringValue `protobuf:"bytes,11,opt,name=user_type,json=userType,proto3" json:"user_type,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -87,7 +197,7 @@ func (m *User) Reset()         { *m = User{} }
 func (m *User) String() string { return proto.CompactTextString(m) }
 func (*User) ProtoMessage()    {}
 func (*User) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_37a29dfdd122469b, []int{0}
+	return fileDescriptor_auth_c78e35b81cd83f20, []int{2}
 }
 func (m *User) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_User.Unmarshal(m, b)
@@ -149,6 +259,13 @@ func (m *User) GetAuthToken() *wrappers.StringValue {
 	return nil
 }
 
+func (m *User) GetTokenEnable() *wrappers.BoolValue {
+	if m != nil {
+		return m.TokenEnable
+	}
+	return nil
+}
+
 func (m *User) GetComment() *wrappers.StringValue {
 	if m != nil {
 		return m.Comment
@@ -170,6 +287,13 @@ func (m *User) GetMtime() *wrappers.StringValue {
 	return nil
 }
 
+func (m *User) GetUserType() *wrappers.StringValue {
+	if m != nil {
+		return m.UserType
+	}
+	return nil
+}
+
 type UserToken struct {
 	UserId               *wrappers.StringValue `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	AuthToken            *wrappers.StringValue `protobuf:"bytes,2,opt,name=auth_token,json=authToken,proto3" json:"auth_token,omitempty"`
@@ -182,7 +306,7 @@ func (m *UserToken) Reset()         { *m = UserToken{} }
 func (m *UserToken) String() string { return proto.CompactTextString(m) }
 func (*UserToken) ProtoMessage()    {}
 func (*UserToken) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_37a29dfdd122469b, []int{1}
+	return fileDescriptor_auth_c78e35b81cd83f20, []int{3}
 }
 func (m *UserToken) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UserToken.Unmarshal(m, b)
@@ -216,14 +340,62 @@ func (m *UserToken) GetAuthToken() *wrappers.StringValue {
 	return nil
 }
 
+type UserGroupRelation struct {
+	GroupId              *wrappers.StringValue   `protobuf:"bytes,1,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
+	UserIds              []*wrappers.StringValue `protobuf:"bytes,2,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
+	XXX_unrecognized     []byte                  `json:"-"`
+	XXX_sizecache        int32                   `json:"-"`
+}
+
+func (m *UserGroupRelation) Reset()         { *m = UserGroupRelation{} }
+func (m *UserGroupRelation) String() string { return proto.CompactTextString(m) }
+func (*UserGroupRelation) ProtoMessage()    {}
+func (*UserGroupRelation) Descriptor() ([]byte, []int) {
+	return fileDescriptor_auth_c78e35b81cd83f20, []int{4}
+}
+func (m *UserGroupRelation) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_UserGroupRelation.Unmarshal(m, b)
+}
+func (m *UserGroupRelation) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_UserGroupRelation.Marshal(b, m, deterministic)
+}
+func (dst *UserGroupRelation) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UserGroupRelation.Merge(dst, src)
+}
+func (m *UserGroupRelation) XXX_Size() int {
+	return xxx_messageInfo_UserGroupRelation.Size(m)
+}
+func (m *UserGroupRelation) XXX_DiscardUnknown() {
+	xxx_messageInfo_UserGroupRelation.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_UserGroupRelation proto.InternalMessageInfo
+
+func (m *UserGroupRelation) GetGroupId() *wrappers.StringValue {
+	if m != nil {
+		return m.GroupId
+	}
+	return nil
+}
+
+func (m *UserGroupRelation) GetUserIds() []*wrappers.StringValue {
+	if m != nil {
+		return m.UserIds
+	}
+	return nil
+}
+
 type UserGroup struct {
 	Id                   *wrappers.StringValue `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name                 *wrappers.StringValue `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Owner                *wrappers.StringValue `protobuf:"bytes,3,opt,name=owner,proto3" json:"owner,omitempty"`
 	AuthToken            *wrappers.StringValue `protobuf:"bytes,4,opt,name=auth_token,json=authToken,proto3" json:"auth_token,omitempty"`
-	Comment              *wrappers.StringValue `protobuf:"bytes,5,opt,name=comment,proto3" json:"comment,omitempty"`
-	Ctime                *wrappers.StringValue `protobuf:"bytes,6,opt,name=ctime,proto3" json:"ctime,omitempty"`
-	Mtime                *wrappers.StringValue `protobuf:"bytes,7,opt,name=mtime,proto3" json:"mtime,omitempty"`
+	TokenEnable          *wrappers.BoolValue   `protobuf:"bytes,5,opt,name=token_enable,json=tokenEnable,proto3" json:"token_enable,omitempty"`
+	Comment              *wrappers.StringValue `protobuf:"bytes,6,opt,name=comment,proto3" json:"comment,omitempty"`
+	Ctime                *wrappers.StringValue `protobuf:"bytes,7,opt,name=ctime,proto3" json:"ctime,omitempty"`
+	Mtime                *wrappers.StringValue `protobuf:"bytes,8,opt,name=mtime,proto3" json:"mtime,omitempty"`
+	Relation             *UserGroupRelation    `protobuf:"bytes,9,opt,name=relation,proto3" json:"relation,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -233,7 +405,7 @@ func (m *UserGroup) Reset()         { *m = UserGroup{} }
 func (m *UserGroup) String() string { return proto.CompactTextString(m) }
 func (*UserGroup) ProtoMessage()    {}
 func (*UserGroup) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_37a29dfdd122469b, []int{2}
+	return fileDescriptor_auth_c78e35b81cd83f20, []int{5}
 }
 func (m *UserGroup) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UserGroup.Unmarshal(m, b)
@@ -281,6 +453,13 @@ func (m *UserGroup) GetAuthToken() *wrappers.StringValue {
 	return nil
 }
 
+func (m *UserGroup) GetTokenEnable() *wrappers.BoolValue {
+	if m != nil {
+		return m.TokenEnable
+	}
+	return nil
+}
+
 func (m *UserGroup) GetComment() *wrappers.StringValue {
 	if m != nil {
 		return m.Comment
@@ -302,64 +481,119 @@ func (m *UserGroup) GetMtime() *wrappers.StringValue {
 	return nil
 }
 
-type UserGroupRelation struct {
-	GroupId              *wrappers.StringValue   `protobuf:"bytes,1,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
-	UserIds              []*wrappers.StringValue `protobuf:"bytes,2,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
-	Join                 *wrappers.BoolValue     `protobuf:"bytes,3,opt,name=join,proto3" json:"join,omitempty"`
-	AuthToken            *wrappers.StringValue   `protobuf:"bytes,4,opt,name=auth_token,json=authToken,proto3" json:"auth_token,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
-	XXX_unrecognized     []byte                  `json:"-"`
-	XXX_sizecache        int32                   `json:"-"`
-}
-
-func (m *UserGroupRelation) Reset()         { *m = UserGroupRelation{} }
-func (m *UserGroupRelation) String() string { return proto.CompactTextString(m) }
-func (*UserGroupRelation) ProtoMessage()    {}
-func (*UserGroupRelation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_37a29dfdd122469b, []int{3}
-}
-func (m *UserGroupRelation) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_UserGroupRelation.Unmarshal(m, b)
-}
-func (m *UserGroupRelation) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_UserGroupRelation.Marshal(b, m, deterministic)
-}
-func (dst *UserGroupRelation) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_UserGroupRelation.Merge(dst, src)
-}
-func (m *UserGroupRelation) XXX_Size() int {
-	return xxx_messageInfo_UserGroupRelation.Size(m)
-}
-func (m *UserGroupRelation) XXX_DiscardUnknown() {
-	xxx_messageInfo_UserGroupRelation.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_UserGroupRelation proto.InternalMessageInfo
-
-func (m *UserGroupRelation) GetGroupId() *wrappers.StringValue {
+func (m *UserGroup) GetRelation() *UserGroupRelation {
 	if m != nil {
-		return m.GroupId
+		return m.Relation
 	}
 	return nil
 }
 
-func (m *UserGroupRelation) GetUserIds() []*wrappers.StringValue {
+type ModifyUserGroup struct {
+	Id                   *wrappers.StringValue `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name                 *wrappers.StringValue `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Owner                *wrappers.StringValue `protobuf:"bytes,3,opt,name=owner,proto3" json:"owner,omitempty"`
+	AuthToken            *wrappers.StringValue `protobuf:"bytes,4,opt,name=auth_token,json=authToken,proto3" json:"auth_token,omitempty"`
+	TokenEnable          *wrappers.BoolValue   `protobuf:"bytes,5,opt,name=token_enable,json=tokenEnable,proto3" json:"token_enable,omitempty"`
+	Comment              *wrappers.StringValue `protobuf:"bytes,6,opt,name=comment,proto3" json:"comment,omitempty"`
+	Ctime                *wrappers.StringValue `protobuf:"bytes,7,opt,name=ctime,proto3" json:"ctime,omitempty"`
+	Mtime                *wrappers.StringValue `protobuf:"bytes,8,opt,name=mtime,proto3" json:"mtime,omitempty"`
+	AddRelation          *UserGroupRelation    `protobuf:"bytes,9,opt,name=add_relation,json=addRelation,proto3" json:"add_relation,omitempty"`
+	RemoveRelation       *UserGroupRelation    `protobuf:"bytes,10,opt,name=remove_relation,json=removeRelation,proto3" json:"remove_relation,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
+	XXX_unrecognized     []byte                `json:"-"`
+	XXX_sizecache        int32                 `json:"-"`
+}
+
+func (m *ModifyUserGroup) Reset()         { *m = ModifyUserGroup{} }
+func (m *ModifyUserGroup) String() string { return proto.CompactTextString(m) }
+func (*ModifyUserGroup) ProtoMessage()    {}
+func (*ModifyUserGroup) Descriptor() ([]byte, []int) {
+	return fileDescriptor_auth_c78e35b81cd83f20, []int{6}
+}
+func (m *ModifyUserGroup) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ModifyUserGroup.Unmarshal(m, b)
+}
+func (m *ModifyUserGroup) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ModifyUserGroup.Marshal(b, m, deterministic)
+}
+func (dst *ModifyUserGroup) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ModifyUserGroup.Merge(dst, src)
+}
+func (m *ModifyUserGroup) XXX_Size() int {
+	return xxx_messageInfo_ModifyUserGroup.Size(m)
+}
+func (m *ModifyUserGroup) XXX_DiscardUnknown() {
+	xxx_messageInfo_ModifyUserGroup.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ModifyUserGroup proto.InternalMessageInfo
+
+func (m *ModifyUserGroup) GetId() *wrappers.StringValue {
 	if m != nil {
-		return m.UserIds
+		return m.Id
 	}
 	return nil
 }
 
-func (m *UserGroupRelation) GetJoin() *wrappers.BoolValue {
+func (m *ModifyUserGroup) GetName() *wrappers.StringValue {
 	if m != nil {
-		return m.Join
+		return m.Name
 	}
 	return nil
 }
 
-func (m *UserGroupRelation) GetAuthToken() *wrappers.StringValue {
+func (m *ModifyUserGroup) GetOwner() *wrappers.StringValue {
+	if m != nil {
+		return m.Owner
+	}
+	return nil
+}
+
+func (m *ModifyUserGroup) GetAuthToken() *wrappers.StringValue {
 	if m != nil {
 		return m.AuthToken
+	}
+	return nil
+}
+
+func (m *ModifyUserGroup) GetTokenEnable() *wrappers.BoolValue {
+	if m != nil {
+		return m.TokenEnable
+	}
+	return nil
+}
+
+func (m *ModifyUserGroup) GetComment() *wrappers.StringValue {
+	if m != nil {
+		return m.Comment
+	}
+	return nil
+}
+
+func (m *ModifyUserGroup) GetCtime() *wrappers.StringValue {
+	if m != nil {
+		return m.Ctime
+	}
+	return nil
+}
+
+func (m *ModifyUserGroup) GetMtime() *wrappers.StringValue {
+	if m != nil {
+		return m.Mtime
+	}
+	return nil
+}
+
+func (m *ModifyUserGroup) GetAddRelation() *UserGroupRelation {
+	if m != nil {
+		return m.AddRelation
+	}
+	return nil
+}
+
+func (m *ModifyUserGroup) GetRemoveRelation() *UserGroupRelation {
+	if m != nil {
+		return m.RemoveRelation
 	}
 	return nil
 }
@@ -376,7 +610,7 @@ func (m *Principal) Reset()         { *m = Principal{} }
 func (m *Principal) String() string { return proto.CompactTextString(m) }
 func (*Principal) ProtoMessage()    {}
 func (*Principal) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_37a29dfdd122469b, []int{4}
+	return fileDescriptor_auth_c78e35b81cd83f20, []int{7}
 }
 func (m *Principal) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Principal.Unmarshal(m, b)
@@ -424,7 +658,7 @@ func (m *StrategyResource) Reset()         { *m = StrategyResource{} }
 func (m *StrategyResource) String() string { return proto.CompactTextString(m) }
 func (*StrategyResource) ProtoMessage()    {}
 func (*StrategyResource) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_37a29dfdd122469b, []int{5}
+	return fileDescriptor_auth_c78e35b81cd83f20, []int{8}
 }
 func (m *StrategyResource) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StrategyResource.Unmarshal(m, b)
@@ -492,7 +726,7 @@ func (m *AuthStrategy) Reset()         { *m = AuthStrategy{} }
 func (m *AuthStrategy) String() string { return proto.CompactTextString(m) }
 func (*AuthStrategy) ProtoMessage()    {}
 func (*AuthStrategy) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_37a29dfdd122469b, []int{6}
+	return fileDescriptor_auth_c78e35b81cd83f20, []int{9}
 }
 func (m *AuthStrategy) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AuthStrategy.Unmarshal(m, b)
@@ -582,59 +816,204 @@ func (m *AuthStrategy) GetAuthToken() *wrappers.StringValue {
 	return nil
 }
 
+type ModifyAuthStrategy struct {
+	Id                   *wrappers.StringValue `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name                 *wrappers.StringValue `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	AddPrincipal         *Principal            `protobuf:"bytes,3,opt,name=add_principal,json=addPrincipal,proto3" json:"add_principal,omitempty"`
+	RemovePrincipal      *Principal            `protobuf:"bytes,4,opt,name=remove_principal,json=removePrincipal,proto3" json:"remove_principal,omitempty"`
+	AddResource          *StrategyResource     `protobuf:"bytes,5,opt,name=add_resource,json=addResource,proto3" json:"add_resource,omitempty"`
+	RemoveResource       *StrategyResource     `protobuf:"bytes,6,opt,name=remove_resource,json=removeResource,proto3" json:"remove_resource,omitempty"`
+	Action               AuthAction            `protobuf:"varint,7,opt,name=action,proto3,enum=v1.AuthAction" json:"action,omitempty"`
+	Comment              *wrappers.StringValue `protobuf:"bytes,8,opt,name=comment,proto3" json:"comment,omitempty"`
+	Owner                *wrappers.StringValue `protobuf:"bytes,9,opt,name=owner,proto3" json:"owner,omitempty"`
+	Ctime                *wrappers.StringValue `protobuf:"bytes,10,opt,name=ctime,proto3" json:"ctime,omitempty"`
+	Mtime                *wrappers.StringValue `protobuf:"bytes,11,opt,name=mtime,proto3" json:"mtime,omitempty"`
+	AuthToken            *wrappers.StringValue `protobuf:"bytes,12,opt,name=auth_token,json=authToken,proto3" json:"auth_token,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
+	XXX_unrecognized     []byte                `json:"-"`
+	XXX_sizecache        int32                 `json:"-"`
+}
+
+func (m *ModifyAuthStrategy) Reset()         { *m = ModifyAuthStrategy{} }
+func (m *ModifyAuthStrategy) String() string { return proto.CompactTextString(m) }
+func (*ModifyAuthStrategy) ProtoMessage()    {}
+func (*ModifyAuthStrategy) Descriptor() ([]byte, []int) {
+	return fileDescriptor_auth_c78e35b81cd83f20, []int{10}
+}
+func (m *ModifyAuthStrategy) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ModifyAuthStrategy.Unmarshal(m, b)
+}
+func (m *ModifyAuthStrategy) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ModifyAuthStrategy.Marshal(b, m, deterministic)
+}
+func (dst *ModifyAuthStrategy) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ModifyAuthStrategy.Merge(dst, src)
+}
+func (m *ModifyAuthStrategy) XXX_Size() int {
+	return xxx_messageInfo_ModifyAuthStrategy.Size(m)
+}
+func (m *ModifyAuthStrategy) XXX_DiscardUnknown() {
+	xxx_messageInfo_ModifyAuthStrategy.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ModifyAuthStrategy proto.InternalMessageInfo
+
+func (m *ModifyAuthStrategy) GetId() *wrappers.StringValue {
+	if m != nil {
+		return m.Id
+	}
+	return nil
+}
+
+func (m *ModifyAuthStrategy) GetName() *wrappers.StringValue {
+	if m != nil {
+		return m.Name
+	}
+	return nil
+}
+
+func (m *ModifyAuthStrategy) GetAddPrincipal() *Principal {
+	if m != nil {
+		return m.AddPrincipal
+	}
+	return nil
+}
+
+func (m *ModifyAuthStrategy) GetRemovePrincipal() *Principal {
+	if m != nil {
+		return m.RemovePrincipal
+	}
+	return nil
+}
+
+func (m *ModifyAuthStrategy) GetAddResource() *StrategyResource {
+	if m != nil {
+		return m.AddResource
+	}
+	return nil
+}
+
+func (m *ModifyAuthStrategy) GetRemoveResource() *StrategyResource {
+	if m != nil {
+		return m.RemoveResource
+	}
+	return nil
+}
+
+func (m *ModifyAuthStrategy) GetAction() AuthAction {
+	if m != nil {
+		return m.Action
+	}
+	return AuthAction_ONLY_ERAD
+}
+
+func (m *ModifyAuthStrategy) GetComment() *wrappers.StringValue {
+	if m != nil {
+		return m.Comment
+	}
+	return nil
+}
+
+func (m *ModifyAuthStrategy) GetOwner() *wrappers.StringValue {
+	if m != nil {
+		return m.Owner
+	}
+	return nil
+}
+
+func (m *ModifyAuthStrategy) GetCtime() *wrappers.StringValue {
+	if m != nil {
+		return m.Ctime
+	}
+	return nil
+}
+
+func (m *ModifyAuthStrategy) GetMtime() *wrappers.StringValue {
+	if m != nil {
+		return m.Mtime
+	}
+	return nil
+}
+
+func (m *ModifyAuthStrategy) GetAuthToken() *wrappers.StringValue {
+	if m != nil {
+		return m.AuthToken
+	}
+	return nil
+}
+
 func init() {
+	proto.RegisterType((*LoginRequest)(nil), "v1.LoginRequest")
+	proto.RegisterType((*LoginResponse)(nil), "v1.LoginResponse")
 	proto.RegisterType((*User)(nil), "v1.User")
 	proto.RegisterType((*UserToken)(nil), "v1.UserToken")
-	proto.RegisterType((*UserGroup)(nil), "v1.UserGroup")
 	proto.RegisterType((*UserGroupRelation)(nil), "v1.UserGroupRelation")
+	proto.RegisterType((*UserGroup)(nil), "v1.UserGroup")
+	proto.RegisterType((*ModifyUserGroup)(nil), "v1.ModifyUserGroup")
 	proto.RegisterType((*Principal)(nil), "v1.Principal")
 	proto.RegisterType((*StrategyResource)(nil), "v1.StrategyResource")
 	proto.RegisterType((*AuthStrategy)(nil), "v1.AuthStrategy")
+	proto.RegisterType((*ModifyAuthStrategy)(nil), "v1.ModifyAuthStrategy")
 	proto.RegisterEnum("v1.AuthAction", AuthAction_name, AuthAction_value)
 	proto.RegisterEnum("v1.ResourceType", ResourceType_name, ResourceType_value)
 }
 
-func init() { proto.RegisterFile("auth.proto", fileDescriptor_auth_37a29dfdd122469b) }
+func init() { proto.RegisterFile("auth.proto", fileDescriptor_auth_c78e35b81cd83f20) }
 
-var fileDescriptor_auth_37a29dfdd122469b = []byte{
-	// 620 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x95, 0xcd, 0x6f, 0xd3, 0x30,
-	0x18, 0xc6, 0x97, 0x34, 0x4b, 0x9a, 0x77, 0x5d, 0x15, 0x2c, 0x0e, 0xd1, 0x84, 0xd0, 0xd4, 0x03,
-	0x42, 0x1b, 0xca, 0xb6, 0xf2, 0x29, 0xf1, 0x21, 0x15, 0x56, 0x4d, 0x95, 0xd0, 0x40, 0x69, 0x01,
-	0x71, 0xaa, 0xb2, 0xc4, 0xcb, 0x02, 0x6d, 0x1c, 0xd9, 0x49, 0xab, 0x9d, 0xb8, 0x71, 0xe2, 0xff,
-	0xe4, 0xce, 0x99, 0x03, 0x72, 0xec, 0x64, 0xa5, 0x1c, 0x70, 0x8b, 0xc6, 0xd5, 0xf9, 0x3d, 0x92,
-	0xdf, 0xe7, 0x79, 0xfc, 0x06, 0x20, 0x28, 0xf2, 0x0b, 0x2f, 0xa3, 0x24, 0x27, 0x48, 0x9f, 0x1d,
-	0xed, 0xdc, 0x8e, 0x09, 0x89, 0x27, 0xf8, 0xa0, 0x3c, 0x39, 0x2b, 0xce, 0x0f, 0xe6, 0x34, 0xc8,
-	0x32, 0x4c, 0x99, 0x60, 0x3a, 0xdf, 0x1b, 0x60, 0xbc, 0x63, 0x98, 0xa2, 0x7b, 0xa0, 0x27, 0x91,
-	0xab, 0xed, 0x6a, 0x77, 0xb7, 0xba, 0xb7, 0x3c, 0xa1, 0xf2, 0x2a, 0x95, 0x37, 0xcc, 0x69, 0x92,
-	0xc6, 0xef, 0x83, 0x49, 0x81, 0x7d, 0x3d, 0x89, 0xd0, 0x21, 0x18, 0x69, 0x30, 0xc5, 0xae, 0xae,
-	0xc0, 0x97, 0x24, 0x7a, 0x02, 0xcd, 0x2c, 0x60, 0x6c, 0x4e, 0x68, 0xe4, 0x36, 0x14, 0x54, 0x35,
-	0x8d, 0xba, 0xb0, 0x49, 0xe6, 0x29, 0xa6, 0xae, 0xa1, 0x20, 0x13, 0x28, 0x7a, 0x00, 0x26, 0x23,
-	0x05, 0x0d, 0xb1, 0xbb, 0xa9, 0x20, 0x92, 0x2c, 0x7a, 0x2a, 0xec, 0x1b, 0xe7, 0xe4, 0x33, 0x4e,
-	0x5d, 0x53, 0x41, 0x69, 0x73, 0x7e, 0xc4, 0x71, 0xf4, 0x08, 0xac, 0x90, 0x4c, 0xa7, 0x38, 0xcd,
-	0x5d, 0x4b, 0x41, 0x59, 0xc1, 0x7c, 0xbc, 0x30, 0x4f, 0xa6, 0xd8, 0x6d, 0xaa, 0x8c, 0x57, 0xa2,
-	0x5c, 0x33, 0x2d, 0x35, 0xb6, 0x8a, 0xa6, 0x44, 0x3b, 0x5f, 0xc0, 0xe6, 0x41, 0x8b, 0xcb, 0x3e,
-	0x04, 0xab, 0x60, 0x98, 0x8e, 0x15, 0x23, 0x37, 0x39, 0x3c, 0x88, 0x96, 0x0c, 0xd2, 0x57, 0x32,
-	0xa8, 0xf3, 0x53, 0x17, 0x37, 0x38, 0xa1, 0xa4, 0xc8, 0xae, 0xbd, 0x6f, 0x75, 0x6b, 0x1a, 0xea,
-	0xad, 0xf9, 0x7d, 0x3c, 0x63, 0xed, 0xfc, 0x37, 0xd7, 0xca, 0xdf, 0x5c, 0x23, 0x7f, 0x4b, 0x3d,
-	0xff, 0x1f, 0x1a, 0xdc, 0xa8, 0xed, 0xf7, 0xf1, 0x24, 0xc8, 0x13, 0x92, 0xa2, 0xc7, 0xd0, 0x8c,
-	0xf9, 0x81, 0x6a, 0x13, 0xac, 0x92, 0x1e, 0x44, 0x5c, 0x28, 0x1b, 0xc4, 0x5c, 0x7d, 0xb7, 0xf1,
-	0x77, 0xa1, 0xa8, 0x10, 0x43, 0x1e, 0x18, 0x9f, 0x48, 0x92, 0xca, 0x5c, 0x76, 0xfe, 0x10, 0xbd,
-	0x24, 0x64, 0x22, 0x83, 0xe4, 0xdc, 0x3f, 0x85, 0xd2, 0x29, 0xc0, 0x7e, 0x4b, 0x93, 0x34, 0x4c,
-	0xb2, 0x60, 0xc2, 0x5d, 0xe3, 0x97, 0x60, 0xae, 0xa6, 0x70, 0x5f, 0x81, 0xf2, 0x45, 0x52, 0x4e,
-	0xac, 0x36, 0xa4, 0x64, 0x3b, 0xdf, 0x74, 0x70, 0x86, 0x39, 0x0d, 0x72, 0x1c, 0x5f, 0xfa, 0x58,
-	0x6e, 0x97, 0xe7, 0xb0, 0xc5, 0xe4, 0x99, 0xaa, 0xdb, 0x50, 0x09, 0x06, 0x11, 0x7a, 0x06, 0xc0,
-	0x8b, 0xcd, 0xb2, 0x20, 0xc4, 0x6a, 0xb7, 0x59, 0xe0, 0xf9, 0xfa, 0x65, 0x98, 0xce, 0x12, 0xae,
-	0x6d, 0x28, 0x68, 0x6b, 0x1a, 0xf5, 0x60, 0x3b, 0x24, 0xe9, 0x79, 0x12, 0x8f, 0xa5, 0x11, 0x86,
-	0x82, 0xbc, 0x25, 0x24, 0x27, 0xc2, 0x8e, 0xaf, 0x06, 0xb4, 0x7a, 0x45, 0x7e, 0x51, 0x59, 0x72,
-	0xed, 0x8f, 0x7f, 0x1f, 0xec, 0xac, 0x8a, 0x5d, 0x16, 0x6d, 0xdb, 0x9b, 0x1d, 0x79, 0x75, 0x17,
-	0xfc, 0xab, 0xef, 0xe8, 0x10, 0x9a, 0x54, 0x66, 0x24, 0xeb, 0x75, 0x93, 0xb3, 0xcb, 0xf9, 0xf9,
-	0x35, 0x85, 0xee, 0x80, 0x19, 0x84, 0xfc, 0xf9, 0x94, 0x2f, 0xbd, 0xdd, 0x6d, 0x73, 0x9e, 0x0f,
-	0xd8, 0x2b, 0x4f, 0x7d, 0xf9, 0x75, 0x71, 0x25, 0x98, 0x2b, 0xae, 0x04, 0xb1, 0xbb, 0x2c, 0xf5,
-	0xdd, 0xf5, 0x9f, 0x7e, 0x23, 0x4b, 0xcf, 0x11, 0x56, 0x7a, 0x8e, 0x7b, 0xfb, 0x00, 0x57, 0x36,
-	0xa1, 0x6d, 0xb0, 0xdf, 0x9c, 0xbe, 0xfe, 0x38, 0xee, 0xfb, 0xbd, 0x63, 0x67, 0x03, 0xb5, 0x01,
-	0xfc, 0x7e, 0xef, 0x78, 0xfc, 0xc1, 0x1f, 0x8c, 0xfa, 0x8e, 0xb6, 0xf7, 0x02, 0x5a, 0x95, 0xf7,
-	0xa3, 0xcb, 0x0c, 0xf3, 0xef, 0xa7, 0x75, 0xa1, 0x9d, 0x0d, 0xd4, 0x82, 0xe6, 0x50, 0x96, 0xd4,
-	0xd1, 0x90, 0x03, 0xad, 0x57, 0x0b, 0x9d, 0x73, 0xf4, 0x33, 0xb3, 0xbc, 0xcd, 0xfd, 0x5f, 0x01,
-	0x00, 0x00, 0xff, 0xff, 0x1d, 0x95, 0x0f, 0x31, 0x13, 0x09, 0x00, 0x00,
+var fileDescriptor_auth_c78e35b81cd83f20 = []byte{
+	// 856 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x56, 0xcd, 0x6e, 0xeb, 0x44,
+	0x18, 0xbd, 0x76, 0x9c, 0xc4, 0xfe, 0xe2, 0xe4, 0x9a, 0x11, 0x48, 0xd6, 0x15, 0x42, 0x57, 0x5e,
+	0x20, 0xd4, 0xa2, 0xb4, 0x0d, 0x3f, 0x2d, 0x82, 0x56, 0x0a, 0x34, 0xaa, 0x22, 0x95, 0x82, 0xdc,
+	0x02, 0x62, 0x15, 0xb9, 0xf1, 0x34, 0xb5, 0x48, 0x3c, 0x66, 0x6c, 0xa7, 0xca, 0x8a, 0x15, 0xac,
+	0xd8, 0xf1, 0x10, 0xec, 0x78, 0x01, 0x9e, 0x86, 0x17, 0xe0, 0x19, 0xd0, 0xfc, 0xd8, 0xee, 0x9f,
+	0xda, 0xa9, 0xab, 0x56, 0x42, 0xba, 0xcb, 0xcc, 0x9c, 0x33, 0xf9, 0xe6, 0xfb, 0xce, 0x39, 0x1e,
+	0x80, 0x20, 0xcf, 0xce, 0xfb, 0x09, 0x25, 0x19, 0x41, 0xfa, 0x72, 0xeb, 0xd5, 0x7b, 0x33, 0x42,
+	0x66, 0x73, 0xbc, 0xc1, 0x57, 0x4e, 0xf3, 0xb3, 0x8d, 0x0b, 0x1a, 0x24, 0x09, 0xa6, 0xa9, 0xc0,
+	0x78, 0x7f, 0x69, 0x60, 0x1f, 0x92, 0x59, 0x14, 0xfb, 0xf8, 0xe7, 0x1c, 0xa7, 0x19, 0x1a, 0x40,
+	0x93, 0x5c, 0xc4, 0x98, 0xba, 0xda, 0x6b, 0xed, 0x83, 0xce, 0xe0, 0xdd, 0xbe, 0x38, 0xa0, 0x5f,
+	0x1c, 0xd0, 0x3f, 0xce, 0x68, 0x14, 0xcf, 0xbe, 0x0f, 0xe6, 0x39, 0xf6, 0x05, 0x14, 0x6d, 0x82,
+	0x11, 0x07, 0x0b, 0xec, 0xea, 0x0a, 0x14, 0x8e, 0x44, 0x3b, 0x60, 0x26, 0x41, 0x9a, 0x5e, 0x10,
+	0x1a, 0xba, 0x0d, 0x05, 0x56, 0x89, 0xf6, 0xfe, 0xd4, 0xa0, 0x2b, 0x0b, 0x4e, 0x13, 0x12, 0xa7,
+	0x98, 0x55, 0x9c, 0x91, 0x9f, 0x70, 0xac, 0x56, 0x31, 0x87, 0xd6, 0xa8, 0x78, 0x13, 0x0c, 0x4a,
+	0xe6, 0x58, 0xa9, 0x5a, 0x8e, 0xf4, 0xfe, 0x31, 0xc0, 0xf8, 0x2e, 0xc5, 0x14, 0x7d, 0x08, 0x7a,
+	0x14, 0x2a, 0x55, 0xa7, 0x47, 0xe1, 0x73, 0x36, 0xb3, 0x1a, 0xb6, 0xa1, 0x3e, 0xec, 0x8f, 0xa1,
+	0x95, 0x92, 0x9c, 0x4e, 0xb1, 0xdb, 0x54, 0x20, 0x49, 0x2c, 0xfa, 0x5c, 0x28, 0x73, 0x22, 0x26,
+	0xd5, 0x52, 0x60, 0x5a, 0x0c, 0x7f, 0xc2, 0xa7, 0xb5, 0x0b, 0x36, 0xe7, 0x4d, 0x70, 0x1c, 0x9c,
+	0xce, 0xb1, 0xdb, 0xe6, 0xf4, 0x57, 0x37, 0xe8, 0x5f, 0x12, 0x32, 0x17, 0xe4, 0x0e, 0xc7, 0x8f,
+	0x38, 0x1c, 0x7d, 0x0a, 0xed, 0x29, 0x59, 0x2c, 0x70, 0x9c, 0xb9, 0xa6, 0xc2, 0x1f, 0x17, 0x60,
+	0xd6, 0x9d, 0x69, 0x16, 0x2d, 0xb0, 0x6b, 0xa9, 0x74, 0x87, 0x43, 0x19, 0x67, 0xc1, 0x39, 0xa0,
+	0xc2, 0xe1, 0x50, 0xf4, 0x19, 0x58, 0x79, 0x8a, 0xe9, 0x24, 0x5b, 0x25, 0xd8, 0xed, 0xa8, 0x0c,
+	0x90, 0xc1, 0x4f, 0x56, 0x09, 0xf6, 0x7e, 0x01, 0x8b, 0x49, 0x4c, 0xb4, 0xe9, 0x13, 0x68, 0xf3,
+	0x73, 0x14, 0xc5, 0xd6, 0x62, 0xe0, 0x71, 0x78, 0x6d, 0x34, 0xfa, 0x83, 0x46, 0xe3, 0xfd, 0xaa,
+	0xc1, 0x5b, 0xac, 0x82, 0x03, 0x4a, 0xf2, 0xc4, 0xc7, 0xf3, 0x20, 0x8b, 0x48, 0x8c, 0xb6, 0xc1,
+	0x9c, 0xb1, 0x05, 0xd5, 0x52, 0xda, 0x1c, 0x3d, 0x0e, 0x19, 0x51, 0x5e, 0x21, 0x75, 0xf5, 0xd7,
+	0x8d, 0xfb, 0x89, 0xe2, 0x0e, 0xa9, 0xf7, 0x6f, 0x43, 0x74, 0x82, 0xd7, 0xf1, 0xe4, 0x8e, 0x2b,
+	0x7d, 0xd3, 0x50, 0xf7, 0xcd, 0xd5, 0x36, 0x1b, 0x8f, 0x73, 0x40, 0xb3, 0xb6, 0x03, 0x5a, 0xb5,
+	0x1c, 0xd0, 0xae, 0xe1, 0x00, 0x53, 0xdd, 0x01, 0x5b, 0x60, 0x52, 0xa9, 0x1d, 0x69, 0xb6, 0x77,
+	0xfa, 0xcb, 0xad, 0xfe, 0x0d, 0x61, 0xf9, 0x25, 0xcc, 0xfb, 0xdb, 0x80, 0x97, 0x5f, 0x93, 0x30,
+	0x3a, 0x5b, 0xbd, 0x19, 0xfb, 0xff, 0x75, 0xec, 0x3b, 0x60, 0x07, 0x61, 0x38, 0x51, 0x1b, 0x7d,
+	0x27, 0x08, 0xc3, 0x32, 0x60, 0xf6, 0xe0, 0x25, 0xc5, 0x0b, 0xb2, 0xc4, 0x15, 0x19, 0xee, 0x22,
+	0xf7, 0x04, 0xba, 0xf8, 0xed, 0xe5, 0x60, 0x7d, 0x4b, 0xa3, 0x78, 0x1a, 0x25, 0xc1, 0x9c, 0x95,
+	0xce, 0x62, 0x24, 0x75, 0x35, 0x85, 0xc4, 0x11, 0x50, 0xf6, 0x15, 0xe4, 0x99, 0xa5, 0x16, 0x53,
+	0x12, 0xeb, 0xfd, 0xae, 0x83, 0x73, 0x9c, 0xd1, 0x20, 0xc3, 0xb3, 0x95, 0x8f, 0xe5, 0xa7, 0x71,
+	0x17, 0x3a, 0xa9, 0x5c, 0x53, 0xcd, 0x4b, 0x28, 0x08, 0xe3, 0x10, 0x7d, 0x01, 0xc0, 0xc4, 0x99,
+	0x26, 0xc1, 0x14, 0xab, 0x55, 0x73, 0x09, 0xcf, 0xde, 0x0e, 0x29, 0xa6, 0xcb, 0x88, 0x71, 0x1b,
+	0x0a, 0xdc, 0x12, 0x8d, 0x86, 0xd0, 0x9d, 0x92, 0xf8, 0x2c, 0x9a, 0x4d, 0x64, 0x23, 0x0c, 0x05,
+	0xba, 0x2d, 0x28, 0x07, 0xa2, 0x1d, 0xbf, 0x19, 0x60, 0x0f, 0xf3, 0xec, 0xbc, 0x68, 0xc9, 0x93,
+	0x1b, 0x78, 0x1d, 0xac, 0xa4, 0x18, 0xbb, 0x34, 0x71, 0x97, 0x09, 0xa6, 0xd4, 0x82, 0x5f, 0xed,
+	0xa3, 0x4d, 0x16, 0x4a, 0xf2, 0xa9, 0x23, 0x7c, 0xfb, 0x36, 0xc3, 0x5e, 0x9f, 0x9f, 0x5f, 0xa2,
+	0xd0, 0xfb, 0xd0, 0x0a, 0xa6, 0x5c, 0x8c, 0xcc, 0xa8, 0xbd, 0x41, 0x8f, 0xe1, 0xd9, 0x05, 0x87,
+	0x7c, 0xd5, 0x97, 0xbb, 0x8f, 0xf1, 0xa5, 0xc8, 0x9f, 0xb6, 0x7a, 0xfe, 0x94, 0x5e, 0x36, 0x6b,
+	0x78, 0xd9, 0x52, 0xf7, 0xf2, 0xd5, 0x9c, 0x83, 0x87, 0xbd, 0x22, 0xfe, 0x68, 0x02, 0x12, 0x61,
+	0xfe, 0xac, 0x72, 0x18, 0x40, 0x97, 0xe5, 0xcf, 0x3d, 0x92, 0x60, 0x19, 0x55, 0x85, 0xc5, 0x0e,
+	0x38, 0x32, 0x79, 0x2a, 0x9a, 0x71, 0x1b, 0x4d, 0x06, 0x54, 0xc5, 0xdc, 0x2e, 0xd2, 0xee, 0xca,
+	0xf3, 0xf9, 0x76, 0x4d, 0x89, 0xb0, 0x2b, 0x03, 0xa2, 0x0a, 0x3b, 0xc9, 0x6d, 0xdd, 0xc1, 0x2d,
+	0xb3, 0xee, 0x86, 0x2a, 0xdb, 0xaa, 0xaa, 0x34, 0x6b, 0xa9, 0xd2, 0xaa, 0xa1, 0x4a, 0xa8, 0xa1,
+	0xca, 0x4e, 0x5d, 0x55, 0xda, 0x0f, 0x52, 0xe5, 0xda, 0x3a, 0x40, 0xd5, 0x26, 0xd4, 0x05, 0xeb,
+	0x9b, 0xa3, 0xc3, 0x1f, 0x27, 0x23, 0x7f, 0xb8, 0xef, 0xbc, 0x40, 0x3d, 0x00, 0x7f, 0x34, 0xdc,
+	0x9f, 0xfc, 0xe0, 0x8f, 0x4f, 0x46, 0x8e, 0xb6, 0xb6, 0x07, 0x76, 0xd1, 0x71, 0xf6, 0x32, 0x67,
+	0xfb, 0x47, 0x65, 0xcc, 0x3a, 0x2f, 0x90, 0x0d, 0xe6, 0xb1, 0x8c, 0x4e, 0x47, 0x43, 0x0e, 0xd8,
+	0x5f, 0x5d, 0x4a, 0x42, 0x47, 0x3f, 0x6d, 0xf1, 0x6a, 0x3e, 0xfa, 0x2f, 0x00, 0x00, 0xff, 0xff,
+	0x7f, 0xd5, 0x2f, 0x22, 0xc1, 0x0f, 0x00, 0x00,
 }

@@ -46,12 +46,12 @@ import (
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/polarismesh/polaris-server/apiserver"
+	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/naming"
-	"github.com/polarismesh/polaris-server/naming/cache"
+	"github.com/polarismesh/polaris-server/service"
 
 	"github.com/golang/protobuf/ptypes"
 
@@ -76,7 +76,7 @@ type XDSServer struct {
 	start           bool
 	restart         bool
 	exitCh          chan struct{}
-	namingServer    naming.DiscoverServer
+	namingServer    service.DiscoverServer
 	cache           cachev3.SnapshotCache
 	versionNum      *atomic.Uint64
 	server          *grpc.Server
@@ -135,7 +135,7 @@ func makeLbSubsetConfig(serviceInfo *ServiceInfo) *cluster.Cluster_LbSubsetConfi
 			// 对每一个 destination 产生一个 subset
 			for _, destination := range inbound.Destinations {
 				var keys []string
-				for s, _ := range destination.Metadata {
+				for s := range destination.Metadata {
 					keys = append(keys, s)
 				}
 				subsetSelectors = append(subsetSelectors, &cluster.Cluster_LbSubsetConfig_LbSubsetSelector{
@@ -577,7 +577,7 @@ func makeListeners() []types.Resource {
 func (x *XDSServer) pushRegistryInfoToXDSCache(registryInfo map[string][]*ServiceInfo) error {
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
 
-	for ns, _ := range registryInfo {
+	for ns := range registryInfo {
 		resources := make(map[resource.Type][]types.Resource)
 		resources[resource.EndpointType] = makeEndpoints(registryInfo[ns])
 		resources[resource.ClusterType] = x.makeClusters(registryInfo[ns])
@@ -702,7 +702,7 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 	x.versionNum = atomic.NewUint64(0)
 	var err error
 
-	x.namingServer, err = naming.GetServer()
+	x.namingServer, err = service.GetServer()
 	if err != nil {
 		log.Errorf("%v", err)
 		return err

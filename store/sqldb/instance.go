@@ -20,10 +20,11 @@ package sqldb
 import (
 	"database/sql"
 	"errors"
+	"time"
+
 	v1 "github.com/polarismesh/polaris-server/common/api/v1"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/store"
-	"time"
 
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -322,6 +323,7 @@ func (ins *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mo
 		log.Errorf("[Store][database] get instances service token query err: %s", err.Error())
 		return nil, err
 	}
+	defer rows.Close()
 
 	out := make(map[string]*model.Instance, len(ids))
 	var item model.ExpandInstanceStore

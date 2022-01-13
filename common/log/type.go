@@ -29,6 +29,10 @@ const (
 	PluginLoggerName = "plugin"
 	// ServerLoggerName api server logger name, can use FindScope function to get the logger
 	ServerLoggerName = "server"
+	// AuthLoggerName auth manager logger name, can use FindScope function to get the logger
+	AuthLoggerName = "auth"
+	// CacheLoggerName cache logger name, can use FindScope founction to set the logger
+	CacheLoggerName = "cache"
 )
 
 var (
@@ -37,10 +41,21 @@ var (
 	namingLogger      = RegisterScope(NamingLoggerName, "naming logging messages.", 0)
 	pluginLogger      = RegisterScope(PluginLoggerName, "plugin logging messages.", 0)
 	serverLogger      = RegisterScope(ServerLoggerName, "api server logging messages.", 0)
+	authLogger        = RegisterScope(AuthLoggerName, "auth manager logging messages.", 0)
+	cacheLogger       = RegisterScope(CacheLoggerName, "cache logging messages.", 0)
 )
 
 func allLoggerType() []string {
-	return []string{HealthCheckLoggerName, StoreLoggerName, NamingLoggerName, PluginLoggerName, ServerLoggerName, DefaultLoggerName}
+	return []string{
+		HealthCheckLoggerName,
+		StoreLoggerName,
+		NamingLoggerName,
+		PluginLoggerName,
+		ServerLoggerName,
+		DefaultLoggerName,
+		AuthLoggerName,
+		CacheLoggerName,
+	}
 }
 
 func GetDefaultLogger() *Scope {
@@ -65,4 +80,12 @@ func GetPluginLogger() *Scope {
 
 func GetServerLogger() *Scope {
 	return serverLogger
+}
+
+func GetAuthLogger() *Scope {
+	return authLogger
+}
+
+func GetCacheLogger() *Scope {
+	return cacheLogger
 }

@@ -102,7 +102,8 @@ const (
 	InvalidUserGroupOwners    = 400420
 	InvalidUserGroupID        = 400421
 	InvalidAuthStrategyOwners = 400430
-	InvalidAuthStrategyID     = 400431
+	InvalidAuthStrategyName   = 400431
+	InvalidAuthStrategyID     = 400432
 
 	ExistedResource                    = 400201
 	NotFoundResource                   = 400202
@@ -118,6 +119,9 @@ const (
 	NamespaceExistedCircuitBreakers    = 400212
 	ServiceSubscribedByMeshes          = 400213
 	ServiceExistedFluxRateLimits       = 400214
+	UserExisted                        = 400215
+	UserGroupExisted                   = 400216
+	AuthStrategyRuleExisted            = 400217
 	NotFoundService                    = 400301
 	NotFoundRouting                    = 400302
 	NotFoundInstance                   = 400303
@@ -129,6 +133,9 @@ const (
 	NotFoundMasterConfig               = 400309
 	NotFoundTagConfig                  = 400310
 	NotFoundTagConfigOrService         = 400311
+	NotFoundUser                       = 400312
+	NotFoundUserGroup                  = 400313
+	NotFoundAuthStrategyRule           = 400314
 	ClientAPINotOpen                   = 400401
 	NotAllowBusinessService            = 400402
 	NotAllowAliasUpdate                = 400501
@@ -272,6 +279,15 @@ var code2info = map[uint32]string{
 	InvalidFluxRateLimitId:             "invalid flux ratelimit id",
 	InvalidFluxRateLimitQps:            "invalid flux ratelimit qps",
 	InvalidFluxRateLimitSetKey:         "invalid flux ratelimit key",
+	NotFoundUser:                       "not found user",
+	NotFoundUserGroup:                  "not found usergroup",
+	NotFoundAuthStrategyRule:           "not found auth strategy rule",
+	UserExisted:                        "exist user",
+	UserGroupExisted:                   "exist usergroup",
+	AuthStrategyRuleExisted:            "exist auth strategy rule",
+	InvalidUserGroupOwners:             "invalid usergroup owner attribute",
+	InvalidAuthStrategyName:            "invalid auth strategy rule name",
+	InvalidAuthStrategyOwners:          "invalid auth strategy rule owner",
 }
 
 // code to info

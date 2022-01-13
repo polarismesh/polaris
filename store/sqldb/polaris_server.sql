@@ -623,6 +623,7 @@ CREATE TABLE `user` (
     `source` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '账户来源',
     `token` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '账户所拥有的 token 信息，可用于SDK访问鉴权',
     `token_enable` tinyint(4) NOT NULL DEFAULT 1,
+    `user_type` int NOT NULL DEFAULT 20 comment 'Account type, 0 is the admin super account, 20 is the primary account, 50 for the child account',
     `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '描述',
     `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
@@ -662,11 +663,11 @@ CREATE TABLE `user_group_relation` (
 CREATE TABLE `auth_strategy` (
     `id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '策略ID',
     `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '策略名称',
-    `principal` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '用户ID表达式',
     `action` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '该策略的读写权限',
     `owner` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '该策略所属的账号ID',
     `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '描述',
     `default` tinyint(4) NOT NULL DEFAULT '0',
+    `revision` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '鉴权规则版本',
     `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
@@ -674,6 +675,13 @@ CREATE TABLE `auth_strategy` (
     UNIQUE KEY (`name`, `owner`),
     KEY `owner` (`owner`),
     KEY `mtime` (`mtime`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
+
+CREATE TABLE `auth_principal` (
+    `strategy_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '策略ID',
+    `principal_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'principal的ID',
+    `principal_role` int NOT NULL comment 'principal的类型, 1 为 User、2 为 Group',
+    PRIMARY KEY (`strategy_id`, `principal_id`, `principal_role`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
 CREATE TABLE `auth_strategy_resource` (
@@ -696,6 +704,7 @@ INSERT INTO
         `source`,
         `token`,
         `token_enable`,
+        `user_type`,
         `comment`
     )
 VALUES
@@ -707,6 +716,7 @@ VALUES
         'Polaris',
         'a4Nt+Do4PXLGg+RVIjfOpd6ZiqEjZ4vVia0pLQUd/2a0c1zcwgVkyCcM4n35IhveU7SMEE1qL0LFhp1n/VvHGwYV',
         1,
+        0,
         'default polaris admin account'
     );
 

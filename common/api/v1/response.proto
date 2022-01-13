@@ -34,6 +34,9 @@ message Response {
 	UserGroup userGroup = 20;
 	AuthStrategy authStrategy = 21;
 	UserGroupRelation relation = 22;
+	LoginResponse loginResponse = 23;
+	ModifyAuthStrategy modifyAuthStrategy = 24;
+	ModifyUserGroup modifyUserGroup = 25;
 	reserved 12 to 14, 16 to 18;
 }
 

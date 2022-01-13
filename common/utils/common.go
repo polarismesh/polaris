@@ -31,6 +31,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
 )
@@ -373,7 +374,7 @@ func ParseAuthToken(ctx context.Context) string {
 		return ""
 	}
 
-	token, _ := ctx.Value(StringContext("auth-token")).(string)
+	token, _ := ctx.Value(ContextAuthTokenKey).(string)
 	return token
 }
 
@@ -383,8 +384,17 @@ func ParseIsOwner(ctx context.Context) bool {
 		return false
 	}
 
-	isOwner, _ := ctx.Value(StringContext("is-owner")).(bool)
+	isOwner, _ := ctx.Value(ContextIsOwnerKey).(bool)
 	return isOwner
+}
+
+func ParseUserRole(ctx context.Context) model.UserRoleType {
+	if ctx == nil {
+		return model.SubAccountUserRole
+	}
+
+	role, _ := ctx.Value(ContextUserRoleIDKey).(model.UserRoleType)
+	return role
 }
 
 func ParseUserID(ctx context.Context) string {
@@ -392,8 +402,17 @@ func ParseUserID(ctx context.Context) string {
 		return ""
 	}
 
-	token, _ := ctx.Value(StringContext("user-id")).(string)
-	return token
+	userID, _ := ctx.Value(ContextUserIDKey).(string)
+	return userID
+}
+
+func ParseOwnerID(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+
+	ownerID, _ := ctx.Value(ContextOwnerIDKey).(string)
+	return ownerID
 }
 
 // ParseToken 从ctx中获取token

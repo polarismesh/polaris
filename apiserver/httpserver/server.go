@@ -38,8 +38,8 @@ import (
 	"github.com/polarismesh/polaris-server/common/connlimit"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/naming"
 	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris-server/service"
 	"go.uber.org/zap"
 )
 
@@ -62,7 +62,7 @@ type HTTPServer struct {
 
 	server *http.Server
 
-	namingServer      naming.DiscoverServer
+	namingServer      service.DiscoverServer
 	healthCheckServer *healthcheck.Server
 	rateLimit         plugin.Ratelimit
 	statis            plugin.Statis
@@ -139,7 +139,7 @@ func (h *HTTPServer) Run(errCh chan error) {
 
 	var err error
 	// 引入功能模块和插件
-	h.namingServer, err = naming.GetServer()
+	h.namingServer, err = service.GetServer()
 	if err != nil {
 		log.Errorf("%v", err)
 		errCh <- err

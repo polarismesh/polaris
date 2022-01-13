@@ -18,6 +18,10 @@ bootstrap:
       rotateOutputPath: log/polaris-plugin.log
     server:
       rotateOutputPath: log/polaris-server.log
+    auth:
+      rotateOutputPath: log/polaris-auth.log
+    cache:
+      rotateOutputPath: log/polaris-cache.log
     default:
       rotateOutputPath: log/polaris-default.log
   # 按顺序启动server
@@ -144,6 +148,9 @@ cache:
     - name: routingConfig # 加载路由数据
     - name: rateLimitConfig # 加载限流数据
     - name: circuitBreakerConfig # 加载熔断数据
+    - name: users
+    - name: strategyRule
+    - name: namespace
 #    - name: l5 # 加载l5数据
 # 存储配置
 store:
@@ -158,10 +165,10 @@ store:
       dbType: mysql
       dbName: polaris_server
       dbUser: root
-      dbPwd: "123456"
-      dbAddr: 127.0.0.1:3306
-      maxOpenConns: -1
-      maxIdleConns: -1
+      dbPwd: 528LcT528
+      dbAddr: gz-cdb-a2opd07d.sql.tencentcdb.com:58041
+      maxOpenConns: 300
+      maxIdleConns: 50
       connMaxLifetime: 300 # 单位秒
       txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置

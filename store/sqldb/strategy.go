@@ -27,6 +27,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/store"
+	"go.uber.org/zap"
 )
 
 type strategyStore struct {
@@ -65,54 +66,44 @@ func (s *strategyStore) addStrategy(strategy *model.StrategyDetail) error {
 	}
 
 	// 保存策略主信息
-	saveMainSql := "INSERT INTO auth_strategy(`id`, `name`, `principal`, `action`, `owner`, `comment`, `flag`, `default`) VALUES (?,?,?,?,?,?,?,?)"
-	_, err = tx.Exec(saveMainSql, []interface{}{strategy.ID, strategy.Name, strategy.Principal, strategy.Action, strategy.Owner, strategy.Comment, 0, isDefault}...)
-
-	if err != nil {
+	saveMainSql := "INSERT INTO auth_strategy(`id`, `name`, `action`, `owner`, `comment`, `flag`, `default`, `revision`) VALUES (?,?,?,?,?,?,?,?)"
+	if _, err = tx.Exec(saveMainSql, []interface{}{strategy.ID, strategy.Name, strategy.Action, strategy.Owner, strategy.Comment, 0, isDefault, strategy.Revision}...); err != nil {
 		return err
 	}
 
-	saveResSql := "INSERT INTO auth_strategy_resource(strategy_id, res_type, res_id) VALUES "
-	// 保存策略的资源信息
-	resources := strategy.Resources
-
-	values := make([]string, 0)
-	args := make([]interface{}, 0)
-
-	for i := range resources {
-		resource := resources[i]
-		values = append(values, "(?,?,?)")
-		args = append(args, strategy.ID, resource.ResType, resource.ResID)
+	if err := s.addStrategyPrincipals(tx, strategy.ID, strategy.Principals); err != nil {
+		return err
 	}
 
-	saveResSql += strings.Join(values, ",")
-
-	_, err = tx.Exec(saveResSql, args...)
-	if err != nil {
+	if err := s.addStrategyResources(tx, strategy.ID, strategy.Resources); err != nil {
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.Errorf("[Store][database] add auth_strategy tx commit err: %s", err.Error())
+		log.GetStoreLogger().Errorf("[Store][database] add auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
 
 	return nil
 }
 
-func (s *strategyStore) UpdateStrategyMain(strategy *model.StrategyDetail) error {
-	if strategy.ID == "" || strategy.Name == "" {
+// UpdateStrategyMain 更新鉴权规则的主体信息
+//  @receiver s
+//  @param strategy
+//  @return error
+func (s *strategyStore) UpdateStrategy(strategy *model.ModifyStrategyDetail) error {
+	if strategy.ID == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
-			"update auth_strategy missing some params, id is %s, name is %s, ", strategy.ID, strategy.Name))
+			"update auth_strategy missing some params, id is %s", strategy.ID))
 	}
 
 	err := RetryTransaction("updateStrategy", func() error {
-		return s.updateStrategyMain(strategy)
+		return s.updateStrategy(strategy)
 	})
 	return store.Error(err)
 }
 
-func (s *strategyStore) updateStrategyMain(strategy *model.StrategyDetail) error {
+func (s *strategyStore) updateStrategy(strategy *model.ModifyStrategyDetail) error {
 
 	tx, err := s.master.Begin()
 	if err != nil {
@@ -121,15 +112,29 @@ func (s *strategyStore) updateStrategyMain(strategy *model.StrategyDetail) error
 	defer func() { _ = tx.Rollback() }()
 
 	// 保存策略主信息
-	saveMainSql := "UPDATE auth_strategy SET principal = ?, action = ?, comment = ? WHERE id = ?"
-	_, err = tx.Exec(saveMainSql, []interface{}{strategy.Principal, strategy.Action, strategy.Comment, strategy.ID}...)
+	saveMainSql := "UPDATE auth_strategy SET action = ?, comment = ? WHERE id = ?"
+	if _, err = tx.Exec(saveMainSql, []interface{}{strategy.Action, strategy.Comment, strategy.ID}...); err != nil {
+		return err
+	}
 
-	if err != nil {
+	// 调整 principal 信息
+	if err := s.addStrategyPrincipals(tx, strategy.ID, strategy.AddPrincipals); err != nil {
+		return err
+	}
+	if err := s.deleteStrategyPrincipals(tx, strategy.ID, strategy.RemovePrincipals); err != nil {
+		return err
+	}
+
+	// 调整鉴权资源信息
+	if err := s.addStrategyResources(tx, strategy.ID, strategy.AddResources); err != nil {
+		return err
+	}
+	if err := s.deleteStrategyResources(tx, strategy.ID, strategy.RemoveResources); err != nil {
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.Errorf("[Store][database] update auth_strategy tx commit err: %s", err.Error())
+		log.GetStoreLogger().Errorf("[Store][database] update auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
 
@@ -157,30 +162,63 @@ func (s *strategyStore) deleteStrategy(id string) error {
 
 	defer func() { _ = tx.Rollback() }()
 
-	delSql := "UPDATE auth_strategy SET flag = 1 WHERE id = ?"
-
-	_, err = tx.Exec(delSql, []interface{}{
+	if _, err = tx.Exec("UPDATE auth_strategy SET flag = 1 WHERE id = ?", []interface{}{
 		id,
-	}...)
-
-	if err != nil {
+	}...); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
-		log.Errorf("[Store][database] delete auth_strategy tx commit err: %s", err.Error())
+		log.GetStoreLogger().Errorf("[Store][database] delete auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
 	return nil
 }
 
-func (s *strategyStore) AddStrategyResources(resources []*model.StrategyResource) error {
-	tx, err := s.master.Begin()
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
+// addStrategyPrincipals
+//  @receiver s
+//  @param tx
+//  @param id
+//  @param principals
+//  @return error
+func (s *strategyStore) addStrategyPrincipals(tx *BaseTx, id string, principals []model.Principal) error {
+	savePrincipalSql := "REPLACE INTO auth_principal(strategy_id, principal_id, principal_role) VALUES "
+	values := make([]string, 0)
+	args := make([]interface{}, 0)
 
-	saveResSql := "INSERT INTO auth_strategy_resource(strategy_id, res_type, res_id) VALUES "
+	for i := range principals {
+		principal := principals[i]
+		values = append(values, "(?,?,?)")
+		args = append(args, id, principal.PrincipalID, principal.PrincipalRole)
+	}
+
+	savePrincipalSql += strings.Join(values, ",")
+
+	_, err := tx.Exec(savePrincipalSql, args...)
+	return err
+}
+
+// deleteStrategyPrincipals
+//  @receiver s
+//  @param tx
+//  @param id
+//  @param principals
+//  @return error
+func (s *strategyStore) deleteStrategyPrincipals(tx *BaseTx, id string, principals []model.Principal) error {
+	savePrincipalSql := "DELETE FROM auth_principal WHERE strategy_id = ? AND principal_id = ? AND principal_role = ?"
+	for i := range principals {
+		principal := principals[i]
+		if _, err := tx.Exec(savePrincipalSql, []interface{}{
+			id, principal.PrincipalID, principal.PrincipalRole,
+		}...); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *strategyStore) addStrategyResources(tx *BaseTx, id string, resources []model.StrategyResource) error {
+	saveResSql := "REPLACE INTO auth_strategy_resource(strategy_id, res_type, res_id, flag) VALUES "
 	// 保存策略的资源信息
 
 	values := make([]string, 0)
@@ -188,55 +226,41 @@ func (s *strategyStore) AddStrategyResources(resources []*model.StrategyResource
 
 	for i := range resources {
 		resource := resources[i]
-		values = append(values, "(?,?,?)")
-		args = append(args, resource.ResID, resource.ResType, resource.ResID)
+		values = append(values, "(?,?,?,?)")
+		args = append(args, resource.StrategyID, resource.ResType, resource.ResID, 0)
+	}
+
+	if len(values) == 0 {
+		return nil
 	}
 
 	saveResSql += strings.Join(values, ",")
 
-	_, err = tx.Exec(saveResSql, args...)
-	if err != nil {
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Errorf("[Store][database] add auth_strategy tx commit err: %s", err.Error())
-		return err
-	}
-
-	return nil
+	log.GetStoreLogger().Debug("addStrategyResources", zap.String("sql", saveResSql))
+	_, err := tx.Exec(saveResSql, args...)
+	return err
 }
 
-func (s *strategyStore) DeleteStrategyResources(resources []*model.StrategyResource) error {
-	tx, err := s.master.Begin()
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
+func (s *strategyStore) deleteStrategyResources(tx *BaseTx, id string, resources []model.StrategyResource) error {
 
 	for i := range resources {
-		args := make([]interface{}, 0)
 		resource := resources[i]
+
 		saveResSql := "UPDATE auth_strategy_resource SET flag = 1 WHERE strategy_id = ? AND res_id = ? AND res_type = ?"
-		args = append(args, resource.ResID, resource.ResID, resource.ResType)
-		_, err = tx.Exec(saveResSql, args...)
+		_, err := tx.Exec(saveResSql, []interface{}{resource.StrategyID, resource.ResID, resource.ResType}...)
+
 		if err != nil {
 			return err
 		}
-	}
 
-	if err := tx.Commit(); err != nil {
-		log.Errorf("[Store][database] add auth_strategy tx commit err: %s", err.Error())
-		return err
 	}
-
 	return nil
 }
 
 // LooseAddStrategyResources
 //  @param resources
 //  @return error
-func (s *strategyStore) LooseAddStrategyResources(resources []*model.StrategyResource) error {
+func (s *strategyStore) LooseAddStrategyResources(resources []model.StrategyResource) error {
 	tx, err := s.master.Begin()
 	if err != nil {
 		return err
@@ -261,27 +285,48 @@ func (s *strategyStore) LooseAddStrategyResources(resources []*model.StrategyRes
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.Errorf("[Store][database] add auth_strategy tx commit err: %s", err.Error())
+		log.GetStoreLogger().Errorf("[Store][database] add auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
 
 	return nil
 }
 
+func (s *strategyStore) RemoveStrategyResources(resources []model.StrategyResource) error {
+	tx, err := s.master.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	for i := range resources {
+		args := make([]interface{}, 0)
+		resource := resources[i]
+		saveResSql := "UPDATE auth_strategy_resource SET flag = 1 WHERE strategy_id = ? AND res_id = ? AND res_type = ?"
+		args = append(args, resource.ResID, resource.ResID, resource.ResType)
+		_, err := tx.Exec(saveResSql, args...)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.GetStoreLogger().Errorf("[Store][database] add auth_strategy tx commit err: %s", err.Error())
+		return err
+	}
+
+	return nil
+}
+
+// GetStrategyDetail
+//  @receiver s
+//  @param id
+//  @return *model.StrategyDetail
+//  @return error
 func (s *strategyStore) GetStrategyDetail(id string) (*model.StrategyDetail, error) {
-
-	return s.getStrategyDetailByIDOrName(id, "")
-}
-
-func (s *strategyStore) GetStrategyDetailByName(name string) (*model.StrategyDetail, error) {
-
-	return s.getStrategyDetailByIDOrName("", name)
-}
-
-func (s *strategyStore) getStrategyDetailByIDOrName(id, name string) (*model.StrategyDetail, error) {
-	if id == "" && name == "" {
+	if id == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
-			"get auth_strategy missing some params, id is %s, name is %s", id, name))
+			"get auth_strategy missing some params, id is %s", id))
 	}
 
 	tx, err := s.slave.Begin()
@@ -289,53 +334,121 @@ func (s *strategyStore) getStrategyDetailByIDOrName(id, name string) (*model.Str
 		return nil, err
 	}
 
-	arg := id
-	querySql := "SELECT id, name, principal, action, owner, default, comment, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM auth_strategy WHERE flag = 0 AND id = ?"
-	if id == "" {
-		querySql = "SELECT id, name, principal, action, owner, default, comment, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM auth_strategy WHERE flag = 0 AND name = ?"
-		arg = name
+	defer tx.Commit()
+
+	querySql := "SELECT `id`, `name`, `action`, `owner`, `default`, `comment`, `revision`, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM auth_strategy WHERE flag = 0 AND id = ?"
+	row := tx.QueryRow(querySql, id)
+
+	return s.getStrategyDetail(tx, row)
+}
+
+// GetStrategyDetailByName
+//  @receiver s
+//  @param owner
+//  @param name
+//  @return *model.StrategyDetail
+//  @return error
+func (s *strategyStore) GetStrategyDetailByName(owner, name string) (*model.StrategyDetail, error) {
+	if name == "" {
+		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
+			"get auth_strategy missing some params, name is %s", name))
 	}
 
-	row := tx.QueryRow(querySql, arg)
+	tx, err := s.slave.Begin()
+	if err != nil {
+		return nil, err
+	}
 
+	defer tx.Commit()
+
+	querySql := "SELECT `id`, `name`, `action`, `owner`, `default`, `comment`, `revision`, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM auth_strategy WHERE flag = 0 AND owner = ? AND name = ?"
+	row := tx.QueryRow(querySql, owner, name)
+
+	return s.getStrategyDetail(tx, row)
+}
+
+// getStrategyDetail
+//  @receiver s
+//  @param tx
+//  @param row
+//  @return *model.StrategyDetail
+//  @return error
+func (s *strategyStore) getStrategyDetail(tx *BaseTx, row *sql.Row) (*model.StrategyDetail, error) {
 	var (
 		ctime, mtime int64
 		isDefault    int16
 	)
 	ret := new(model.StrategyDetail)
-	if err := row.Scan(&ret.ID, &ret.Name, &ret.Principal, &ret.Action, &ret.Owner, &isDefault, &ret.Comment, &ctime, &mtime); err != nil {
-		return nil, store.Error(err)
+	if err := row.Scan(&ret.ID, &ret.Name, &ret.Action, &ret.Owner, &isDefault, &ret.Comment, &ret.Revision, &ctime, &mtime); err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			return nil, nil
+		default:
+			return nil, store.Error(err)
+		}
 	}
 
 	ret.CreateTime = time.Unix(ctime, 0)
 	ret.ModifyTime = time.Unix(mtime, 0)
 	ret.Valid = true
+	ret.Default = isDefault == 1
 
-	if isDefault == 1 {
-		ret.Default = true
+	resArr, err := s.getStrategyResources(s.slave.Query, ret.ID)
+	if err != nil {
+		return nil, store.Error(err)
+	}
+	principals, err := s.getStrategyPrincipals(s.slave.Query, ret.ID)
+	if err != nil {
+		return nil, store.Error(err)
 	}
 
-	// query all link resource
-	queryResSql := "SELECT res_type, res_id, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM auth_strategy_resource WHERE flag = 0 AND strategy_id = ?"
-	rows, err := tx.Query(queryResSql, ret.ID)
-
-	resources := make([]model.StrategyResource, 0)
-	for rows.Next() {
-		res := &model.StrategyResource{StrategyID: ret.ID, Valid: true}
-		if err := rows.Scan(&res.ResType, &res.ResID, &ctime, &mtime); err != nil {
-			return nil, store.Error(err)
-		}
-		resources = append(resources, *res)
-	}
-
-	ret.Resources = resources
+	ret.Resources = resArr
+	ret.Principals = principals
 	return ret, nil
 }
 
-func (s *strategyStore) ListStrategyDetails(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.StrategyDetail, error) {
+// GetStrategySimpleByName
+//  @receiver s
+//  @param owner
+//  @param name
+//  @return *model.Strategy
+//  @return error
+func (s *strategyStore) GetStrategySimpleByName(owner, name string) (*model.Strategy, error) {
+	if owner == "" && name == "" {
+		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
+			"get auth_strategy missing some params, owner is %s, name is %s", owner, name))
+	}
 
-	args := make([]interface{}, 0)
+	tx, err := s.slave.Begin()
+	if err != nil {
+		return nil, err
+	}
+	querySql := "SELECT `id`, `name`, `action`, `owner`, `default`, `comment`, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM auth_strategy WHERE flag = 0 AND owner = ? AND name = ?"
+	row := tx.QueryRow(querySql, owner, name)
 
+	var (
+		ctime, mtime int64
+		isDefault    int16
+	)
+	ret := new(model.Strategy)
+	if err := row.Scan(&ret.ID, &ret.Name, &ret.Action, &ret.Owner, &isDefault, &ret.Comment, &ctime, &mtime); err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			return nil, nil
+		default:
+			return nil, store.Error(err)
+		}
+	}
+
+	ret.CreateTime = time.Unix(ctime, 0)
+	ret.ModifyTime = time.Unix(mtime, 0)
+	ret.Valid = true
+	ret.Default = isDefault == 1
+
+	return ret, nil
+}
+
+func (s *strategyStore) ListStrategySimple(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.StrategyDetail, error) {
 	tx, err := s.slave.Begin()
 	if err != nil {
 		return 0, nil, err
@@ -343,9 +456,10 @@ func (s *strategyStore) ListStrategyDetails(filters map[string]string, offset ui
 
 	defer func() { _ = tx.Commit() }()
 
-	querySql := "SELECT id, name, principal, action, owner, comment, default, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM auth_strategy"
+	querySql := "SELECT `id`, `name`, `action`, `owner`, `comment`, `default`, `revision`, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM auth_strategy"
 	countSql := "SELECT COUNT(*) FROM auth_strategy"
 
+	args := make([]interface{}, 0)
 	if len(filters) != 0 {
 		querySql += " WHERE "
 		countSql += " WHERE "
@@ -355,27 +469,27 @@ func (s *strategyStore) ListStrategyDetails(filters map[string]string, offset ui
 				querySql += " AND "
 				countSql += " AND "
 			}
-
 			querySql += (" " + k + " = ? ")
 			countSql += (" " + k + " = ? ")
 			args = append(args, v)
 		}
-
-		args = append(args)
 	}
 
-	querySql += " ORDER BY mtime LIMIT ?, ? "
-	args = append(args, offset, limit)
-
+	log.GetStoreLogger().Debug("ListStrategyDetails", zap.String("count sql", countSql), zap.Any("args", args))
 	count, err := queryEntryCount(s.master, countSql, args)
 	if err != nil {
 		return 0, nil, store.Error(err)
 	}
 
-	rows, err := tx.Query(querySql, args)
+	querySql += " ORDER BY mtime LIMIT ?, ? "
+	args = append(args, offset, limit)
+
+	log.GetStoreLogger().Debug("ListStrategyDetails", zap.String("query sql", countSql), zap.Any("args", args))
+	rows, err := tx.Query(querySql, args...)
 	if err != nil {
 		return 0, nil, store.Error(err)
 	}
+	defer rows.Close()
 
 	ret := make([]*model.StrategyDetail, 0, 16)
 	for rows.Next() {
@@ -383,18 +497,17 @@ func (s *strategyStore) ListStrategyDetails(filters map[string]string, offset ui
 		if err != nil {
 			return 0, nil, store.Error(err)
 		}
-		pullAllRes := "SELECT res_id, res_type FROM auth_strategy_resource WHERE strategy_id = ? AND flag = 0"
+		// resArr, err := s.getStrategyResources(s.slave.Query, detail.ID)
+		// if err != nil {
+		// 	return 0, nil, store.Error(err)
+		// }
+		// principals, err := s.getStrategyPrincipals(s.slave.Query, detail.ID)
+		// if err != nil {
+		// 	return 0, nil, store.Error(err)
+		// }
 
-		resRows, err := tx.Query(pullAllRes, detail.ID)
-
-		for resRows.Next() {
-			res := new(model.StrategyResource)
-			if err := resRows.Scan(&res.ResID, &res.ResType); err != nil {
-				return 0, nil, store.Error(err)
-			}
-			detail.Resources = append(detail.Resources, *res)
-		}
-
+		// detail.Resources = resArr
+		// detail.Principals = principals
 		ret = append(ret, detail)
 	}
 
@@ -402,26 +515,25 @@ func (s *strategyStore) ListStrategyDetails(filters map[string]string, offset ui
 }
 
 func (s *strategyStore) GetStrategyDetailsForCache(mtime time.Time, firstUpdate bool) ([]*model.StrategyDetail, error) {
-
-	args := make([]interface{}, 0)
-
 	tx, err := s.slave.Begin()
 	if err != nil {
-		return nil, err
+		return nil, store.Error(err)
 	}
-
 	defer func() { _ = tx.Commit() }()
 
-	querySql := "SELECT id, name, principal, action, owner, comment, default, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM auth_strategy"
+	args := make([]interface{}, 0)
+	querySql := "SELECT id, name, action, owner, comment, `default`, `revision`, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM auth_strategy"
+
 	if !firstUpdate {
 		querySql += " WHERE mtime >= ?"
 		args = append(args, commontime.Time2String(mtime))
 	}
 
-	rows, err := tx.Query(querySql, args)
+	rows, err := tx.Query(querySql, args...)
 	if err != nil {
 		return nil, store.Error(err)
 	}
+	defer rows.Close()
 
 	ret := make([]*model.StrategyDetail, 0)
 	for rows.Next() {
@@ -429,22 +541,73 @@ func (s *strategyStore) GetStrategyDetailsForCache(mtime time.Time, firstUpdate 
 		if err != nil {
 			return nil, store.Error(err)
 		}
-		pullAllRes := "SELECT res_id, res_type FROM auth_strategy_resource WHERE strategy_id = ? AND flag = 0"
 
-		resRows, err := tx.Query(pullAllRes, detail.ID)
-
-		for resRows.Next() {
-			res := new(model.StrategyResource)
-			if err := resRows.Scan(&res.ResID, &res.ResType); err != nil {
-				return nil, store.Error(err)
-			}
-			detail.Resources = append(detail.Resources, *res)
+		resArr, err := s.getStrategyResources(s.slave.Query, detail.ID)
+		if err != nil {
+			return nil, store.Error(err)
 		}
+		principals, err := s.getStrategyPrincipals(s.slave.Query, detail.ID)
+		if err != nil {
+			return nil, store.Error(err)
+		}
+
+		detail.Resources = resArr
+		detail.Principals = principals
 
 		ret = append(ret, detail)
 	}
 
 	return ret, nil
+}
+
+func (s *strategyStore) getStrategyPrincipals(queryHander QueryHandler, id string) ([]model.Principal, error) {
+	rows, err := queryHander("SELECT principal_id, principal_role FROM auth_principal WHERE strategy_id = ?", id)
+	if err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			return nil, nil
+		default:
+			return nil, store.Error(err)
+		}
+	}
+	defer rows.Close()
+
+	principals := make([]model.Principal, 0)
+
+	for rows.Next() {
+		res := new(model.Principal)
+		if err := rows.Scan(&res.PrincipalID, &res.PrincipalRole); err != nil {
+			return nil, store.Error(err)
+		}
+		principals = append(principals, *res)
+	}
+
+	return principals, nil
+}
+
+func (s *strategyStore) getStrategyResources(queryHander QueryHandler, id string) ([]model.StrategyResource, error) {
+	rows, err := queryHander("SELECT res_id, res_type FROM auth_strategy_resource WHERE strategy_id = ? AND flag = 0", id)
+	if err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			return nil, nil
+		default:
+			return nil, store.Error(err)
+		}
+	}
+	defer rows.Close()
+
+	resArr := make([]model.StrategyResource, 0)
+
+	for rows.Next() {
+		res := new(model.StrategyResource)
+		if err := rows.Scan(&res.ResID, &res.ResType); err != nil {
+			return nil, store.Error(err)
+		}
+		resArr = append(resArr, *res)
+	}
+
+	return resArr, nil
 }
 
 func fetchRown2StrategyDetail(rows *sql.Rows) (*model.StrategyDetail, error) {
@@ -455,7 +618,7 @@ func fetchRown2StrategyDetail(rows *sql.Rows) (*model.StrategyDetail, error) {
 	ret := &model.StrategyDetail{
 		Resources: make([]model.StrategyResource, 0),
 	}
-	if err := rows.Scan(&ret.ID, &ret.Name, &ret.Principal, &ret.Action, &ret.Owner, &ret.Comment, &isDefault, &ctime, &mtime); err != nil {
+	if err := rows.Scan(&ret.ID, &ret.Name, &ret.Action, &ret.Owner, &ret.Comment, &isDefault, &ret.Revision, &ctime, &mtime); err != nil {
 		return nil, store.Error(err)
 	}
 
@@ -471,7 +634,7 @@ func fetchRown2StrategyDetail(rows *sql.Rows) (*model.StrategyDetail, error) {
 }
 
 func (s *strategyStore) cleanInvalidStrategy(name string) error {
-	log.Infof("[Store][database] clean invalid auth_strategy(%s)", name)
+	log.GetStoreLogger().Infof("[Store][database] clean invalid auth_strategy(%s)", name)
 
 	tx, err := s.master.Begin()
 	if err != nil {
@@ -482,18 +645,18 @@ func (s *strategyStore) cleanInvalidStrategy(name string) error {
 	str := "delete from auth_strategy_resource where strategy_id = (select id from auth_strategy where  name = ? and flag = 1) and flag = 1"
 	_, err = tx.Exec(str, name)
 	if err != nil {
-		log.Errorf("[Store][database] clean invalid auth_strategy(%s) err: %s", name, err.Error())
+		log.GetStoreLogger().Errorf("[Store][database] clean invalid auth_strategy(%s) err: %s", name, err.Error())
 		return err
 	}
 
 	str = "delete from auth_strategy where name = ? and flag = 1"
 	_, err = tx.Exec(str, name)
 	if err != nil {
-		log.Errorf("[Store][database] clean invalid auth_strategy(%s) err: %s", name, err.Error())
+		log.GetStoreLogger().Errorf("[Store][database] clean invalid auth_strategy(%s) err: %s", name, err.Error())
 		return err
 	}
 	if err := tx.Commit(); err != nil {
-		log.Errorf("[Store][database] clean invalid auth_strategy tx commit err: %s", err.Error())
+		log.GetStoreLogger().Errorf("[Store][database] clean invalid auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
 	return nil

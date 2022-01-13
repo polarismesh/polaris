@@ -18,10 +18,13 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"sync"
+
+	"github.com/polarismesh/polaris-server/cache"
 )
 
 // Config 鉴权能力的相关配置参数
@@ -31,10 +34,11 @@ type Config struct {
 }
 
 var (
-	// AuthManagerSlots store slots
-	AuthManagerSlots = make(map[string]AuthManager)
-	once             = &sync.Once{}
-	config           = &Config{}
+	// Slots store slots
+	Slots      = make(map[string]AuthManager)
+	once       = &sync.Once{}
+	authMgn    AuthManager
+	finishInit bool = false
 )
 
 /**
@@ -42,11 +46,11 @@ var (
  */
 func RegisterAuthManager(s AuthManager) error {
 	name := s.Name()
-	if _, ok := AuthManagerSlots[name]; ok {
+	if _, ok := Slots[name]; ok {
 		return errors.New("auth manager name is exist")
 	}
 
-	AuthManagerSlots[name] = s
+	Slots[name] = s
 	return nil
 }
 
@@ -54,35 +58,46 @@ func RegisterAuthManager(s AuthManager) error {
  * GetStore 获取Store
  */
 func GetAuthManager() (AuthManager, error) {
-	name := config.Name
-	if name == "" {
-		return nil, errors.New("auth manager Name is empty")
+	if !finishInit {
+		return nil, errors.New("AuthManager has not done Initialize")
 	}
-
-	authMgn, ok := AuthManagerSlots[name]
-	if !ok {
-		return nil, errors.New("no such name AuthManager")
-	}
-
-	initialize(authMgn)
 	return authMgn, nil
 }
 
-/**
- * SetAuthConfig 设置store的conf
- */
-func SetAuthConfig(conf *Config) {
-	config = conf
+// Initialize 初始化
+func Initialize(ctx context.Context, authOpt *Config, cacheMgn *cache.NamingCache) error {
+	var err error
+	once.Do(func() {
+		err = initialize(ctx, authOpt, cacheMgn)
+	})
+
+	if err != nil {
+		return err
+	}
+
+	finishInit = true
+	return nil
 }
 
 /**
  * @brief 包裹了初始化函数，在GetStore的时候会在自动调用，全局初始化一次
  */
-func initialize(authMgn AuthManager) {
-	once.Do(func() {
-		if err := authMgn.Initialize(config); err != nil {
-			fmt.Printf("auth manager do initialize err: %s", err.Error())
-			os.Exit(-1)
-		}
-	})
+func initialize(ctx context.Context, authOpt *Config, cacheMgn *cache.NamingCache) error {
+	name := authOpt.Name
+	if name == "" {
+		return errors.New("auth manager Name is empty")
+	}
+
+	mgn, ok := Slots[name]
+	if !ok {
+		return errors.New("no such name AuthManager")
+	}
+
+	authMgn = mgn
+
+	if err := authMgn.Initialize(authOpt, cacheMgn); err != nil {
+		fmt.Printf("auth manager do initialize err: %s", err.Error())
+		os.Exit(-1)
+	}
+	return nil
 }

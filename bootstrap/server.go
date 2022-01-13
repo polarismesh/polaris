@@ -25,18 +25,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/auth"
+	"github.com/polarismesh/polaris-server/cache"
+	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/healthcheck"
 
 	"github.com/polarismesh/polaris-server/apiserver"
+	"github.com/polarismesh/polaris-server/bootstrap/config"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/common/version"
-	"github.com/polarismesh/polaris-server/config"
-	"github.com/polarismesh/polaris-server/naming"
 	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/store"
 )
 
@@ -89,14 +90,6 @@ func Start(configFilePath string) {
 		return
 	}
 
-	// 初始化鉴权层
-	auth.SetAuthConfig(&cfg.Auth)
-	_, err = auth.GetAuthManager()
-	if err != nil {
-		fmt.Printf("get AuthManager error:%s", err.Error())
-		return
-	}
-
 	// 开启进入启动流程，初始化插件，加载数据等
 	var tx store.Transaction
 	tx, err = StartBootstrapOrder(s, cfg)
@@ -129,28 +122,51 @@ func Start(configFilePath string) {
 // StartComponents start healthcheck and naming components
 func StartComponents(ctx context.Context, cfg *config.Config) error {
 	var err error
+
+	// 获取存储层对象
+	s, err := store.GetStore()
+	if err != nil {
+		log.Errorf("[Naming][Server] can not get store, err: %s", err.Error())
+		return errors.New("can not get store")
+	}
+
 	if len(cfg.HealthChecks.LocalHost) == 0 {
 		cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
 	}
 
-	err = healthcheck.Initialize(ctx, &cfg.HealthChecks, cfg.Cache.Open)
-	if err != nil {
+	if err = healthcheck.Initialize(ctx, &cfg.HealthChecks, cfg.Cache.Open); err != nil {
 		return err
 	}
+
 	healthCheckServer, err := healthcheck.GetServer()
 	if err != nil {
 		return err
 	}
+
 	cacheProvider, err := healthCheckServer.CacheProvider()
 	if err != nil {
 		return err
 	}
-	err = naming.Initialize(ctx, &cfg.Naming, &cfg.Cache, cacheProvider)
+
+	if err := cache.Initialize(ctx, &cfg.Cache, s, []cache.Listener{cacheProvider}); err != nil {
+		return err
+	}
+
+	cacheMgn, err := cache.GetCacheManager()
 	if err != nil {
 		return err
 	}
 
-	namingSvr, err := naming.GetServer()
+	// 初始化鉴权层
+	if err = auth.Initialize(ctx, &cfg.Auth, cacheMgn); err != nil {
+		return err
+	}
+
+	if err = service.Initialize(ctx, &cfg.Naming, &cfg.Cache, cacheProvider); err != nil {
+		return err
+	}
+
+	namingSvr, err := service.GetServer()
 	if err != nil {
 		return err
 	}
@@ -352,7 +368,7 @@ func polarisServiceRegister(polarisService *config.PolarisService, apiServers []
 
 // 服务自注册
 func selfRegister(host string, port uint32, protocol string, isolated bool, polarisService *config.Service) error {
-	server, err := naming.GetServer()
+	server, err := service.GetServer()
 	if err != nil {
 		return err
 	}
@@ -415,7 +431,7 @@ func selfRegister(host string, port uint32, protocol string, isolated bool, pola
 
 // SelfDeregister Server退出的时候，自动反注册
 func SelfDeregister() {
-	namingServer, err := naming.GetServer()
+	namingServer, err := service.GetServer()
 	if err != nil {
 		log.Errorf("get naming server obj err: %s", err.Error())
 		return

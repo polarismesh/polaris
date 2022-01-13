@@ -19,14 +19,27 @@ package sqldb
 
 import (
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/utils"
 	"strconv"
 	"strings"
+
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 const (
-	OwnerAttribute = "owner"
-	And            = " and"
+
+	// OwnerAttribute
+	OwnerAttribute string = "owner"
+
+	// NameAttribute
+	NameAttribute string = "name"
+
+	// FlagAttribute
+	FlagAttribute string = "flag"
+
+	// And
+	And string = " and"
+
+	GroupIDAttribute string = "group_id"
 )
 
 // 排序结构体
