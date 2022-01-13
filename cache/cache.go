@@ -104,6 +104,14 @@ func NewNamingCache(storage store.Store, listeners []Listener) (*NamingCache, er
 		revisions:     new(sync.Map),
 	}
 
+	listeners = append(listeners, &WatchInstanceReload{
+		Handler: func(val interface{}) {
+			if svcIds, ok := val.(map[string]bool); ok {
+				nc.caches[CacheService].(*serviceCache).notifyServiceCountReload(svcIds)
+			}
+		},
+	})
+
 	ic := newInstanceCache(storage, nc.comRevisionCh, listeners)
 	sc := newServiceCache(storage, nc.comRevisionCh, ic)
 

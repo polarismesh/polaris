@@ -18,18 +18,56 @@
 package cache
 
 import (
+	"context"
+	"sync"
+	"time"
+
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
-	"sync"
-	"time"
 )
 
 const (
 	ServiceName = "service"
 )
+
+// WatchInstanceReload Listener 的一个简单实现
+type WatchInstanceReload struct {
+	// 实际的处理方法
+	Handler func(val interface{})
+}
+
+// OnCreated callback when cache value created
+func (fc *WatchInstanceReload) OnCreated(value interface{}) {
+
+}
+
+// OnUpdated callback when cache value updated
+func (fc *WatchInstanceReload) OnUpdated(value interface{}) {
+
+}
+
+// OnDeleted callback when cache value deleted
+func (fc *WatchInstanceReload) OnDeleted(value interface{}) {
+
+}
+
+// OnBatchCreated callback when cache value created
+func (fc *WatchInstanceReload) OnBatchCreated(value interface{}) {
+
+}
+
+// OnBatchUpdated callback when cache value updated
+func (fc *WatchInstanceReload) OnBatchUpdated(value interface{}) {
+	fc.Handler(value)
+}
+
+// OnBatchDeleted callback when cache value deleted
+func (fc *WatchInstanceReload) OnBatchDeleted(value interface{}) {
+
+}
 
 /**
  * ServiceIterProc 迭代回调函数
@@ -42,32 +80,36 @@ type ServiceIterProc func(key string, value *model.Service) (bool, error)
 type ServiceCache interface {
 	Cache
 
-	// GetAllNamespaces 返回所有命名空间
+	// GetNamesapceCntInfo Return to the service statistics according to the namespace,
+	// 	the count statistics and health instance statistics
+	GetNamesapceCntInfo(namespace string) model.NamespaceServiceCount
+
+	// GetAllNamespaces Return all namespaces
 	GetAllNamespaces() []string
 
-	// GetServiceByID 根据ID查询服务信息
+	// GetServiceByID According to ID query service information
 	GetServiceByID(id string) *model.Service
 
-	// GetServiceByName 根据服务名查询服务信息
+	// GetServiceByName Inquiry service information according to service name
 	GetServiceByName(name string, namespace string) *model.Service
 
-	// IteratorServices 迭代缓存的服务信息
+	// IteratorServices Iterative Cache Service Information
 	IteratorServices(iterProc ServiceIterProc) error
 
-	// CleanNamespace 清除Namespace对应服务的缓存
+	// CleanNamespace Clear the cache of NameSpace
 	CleanNamespace(namespace string)
 
-	// GetServicesCount 获取缓存中服务的个数
+	// GetServicesCount Get the number of services in the cache
 	GetServicesCount() int
 
-	// GetServiceByCl5Name 根据cl5Name获取对应的sid
+	// GetServiceByCl5Name Get the corresponding SID according to CL5name
 	GetServiceByCl5Name(cl5Name string) *model.Service
 
-	// GetServiceByFilter 通过filter在缓存中进行服务过滤
+	// GetServiceByFilter Serving the service filtering in the cache through Filter
 	GetServicesByFilter(serviceFilters *ServiceArgs,
 		instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error)
 
-	// Update 查询触发更新接口
+	// Update Query trigger update interface
 	Update() error
 }
 
@@ -75,19 +117,23 @@ type ServiceCache interface {
  * @brief 服务数据缓存实现类
  */
 type serviceCache struct {
-	storage         store.Store
-	lastMtime       int64
-	lastMtimeLogged int64
-	firstUpdate     bool
-	ids             *sync.Map // serviceid -> service
-	names           *sync.Map // spacename -> [serviceName -> service]
-	cl5Sid2Name     *sync.Map // 兼容Cl5，sid -> name
-	cl5Names        *sync.Map // 兼容Cl5，name -> service
-	revisionCh      chan *revisionNotify
-	disableBusiness bool
-	needMeta        bool
-	singleFlight    *singleflight.Group
-	instCache       InstanceCache
+	storage             store.Store
+	lastMtime           int64
+	lastMtimeLogged     int64
+	firstUpdate         bool
+	ids                 *sync.Map // serviceid -> service
+	names               *sync.Map // spacename -> [serviceName -> service]
+	cl5Sid2Name         *sync.Map // 兼容Cl5，sid -> name
+	cl5Names            *sync.Map // 兼容Cl5，name -> service
+	revisionCh          chan *revisionNotify
+	disableBusiness     bool
+	needMeta            bool
+	singleFlight        *singleflight.Group
+	instCache           InstanceCache
+	countChangeCh       chan map[string]bool //计数信息需要变动的事件通道
+	pendingServices     map[string]int8
+	namespaceServiceCnt *sync.Map // namespce -> model.NamespaceServiceCount
+	cancel              context.CancelFunc
 }
 
 /**
@@ -119,9 +165,18 @@ func (sc *serviceCache) initialize(opt map[string]interface{}) error {
 	sc.cl5Sid2Name = new(sync.Map)
 	sc.cl5Names = new(sync.Map)
 	sc.firstUpdate = true
+
+	sc.countChangeCh = make(chan map[string]bool, 1024)
+	sc.namespaceServiceCnt = new(sync.Map)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	sc.cancel = cancel
+	go sc.watchCountChangeCh(ctx)
+
 	if opt == nil {
 		return nil
 	}
+
 	sc.disableBusiness, _ = opt["disableBusiness"].(bool)
 	sc.needMeta, _ = opt["needMeta"].(bool)
 	return nil
@@ -174,6 +229,8 @@ func (sc *serviceCache) clear() error {
 	sc.names = new(sync.Map)
 	sc.cl5Sid2Name = new(sync.Map)
 	sc.cl5Names = new(sync.Map)
+	sc.namespaceServiceCnt = new(sync.Map)
+	sc.pendingServices = make(map[string]int8)
 	sc.lastMtime = 0
 	return nil
 }
@@ -226,7 +283,7 @@ func (sc *serviceCache) GetServiceByName(name string, namespace string) *model.S
  */
 func (sc *serviceCache) CleanNamespace(namespace string) {
 
-	 sc.names.Delete(namespace)
+	sc.names.Delete(namespace)
 }
 
 /**
@@ -247,6 +304,18 @@ func (sc *serviceCache) IteratorServices(iterProc ServiceIterProc) error {
 	}
 	sc.ids.Range(proc)
 	return err
+}
+
+// GetNamesapceCntInfo GetNamesapceCntInfo 根据命名空间返回服务统计数、实例总统计数以及健康实例统计数
+func (sc *serviceCache) GetNamesapceCntInfo(namespace string) model.NamespaceServiceCount {
+	val, _ := sc.namespaceServiceCnt.Load(namespace)
+	if val == nil {
+		return model.NamespaceServiceCount{
+			InstanceCnt: &model.InstanceCount{},
+		}
+	}
+
+	return *val.(*model.NamespaceServiceCount)
 }
 
 // GetServicesCount 获取缓存中服务的个数
@@ -299,6 +368,9 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 	progress := 0
 	update := 0
 	del := 0
+
+	svcIds := make(map[string]bool)
+
 	lastMtime := sc.lastMtime
 	for _, service := range services {
 		progress++
@@ -309,6 +381,9 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 		if lastMtime < serviceMtime {
 			lastMtime = serviceMtime
 		}
+
+		svcIds[service.ID] = true
+
 		spaceName := service.Namespace
 		// 发现有删除操作
 		if !service.Valid {
@@ -338,7 +413,99 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 		sc.lastMtime = lastMtime
 	}
 
+	sc.notifyServiceCountReload(svcIds)
+
 	return update, del
+}
+
+func (sc *serviceCache) notifyServiceCountReload(svcIds map[string]bool) {
+	sc.countChangeCh <- svcIds
+}
+
+/*
+ 两种时序
+ Case One:
+	1. T1时刻，serviceCache 拉取到了全部的 service 信息
+	2. T2时刻，instaneCache 拉取并更新了实例计数信息，此时通知 serviceCache 进行命名空间计数 reload
+	这种情况，instanceCache 通知 serviceCache 的话，serviceCache 是可以正常完成计数更新的
+
+Case Two:
+	1. T1时刻，instaneCache 拉取并更新了实例计数信息，此时通知 serviceCache 进行命名空间计数 reload
+	2. T2时刻，serviceCache 拉取到了全部的 service 信息
+	这种情况，serviceCache 无法正常更新计数，因为可能对应的 service 对象还没有被缓存，需要放到一个 pendingService 里面等待
+	因为在这个Case下，watchCountChangeCh 是先处理来自 instaneCache 的 reload 通知，处理完了才处理 serviceCache 的 reload 通知
+	因此，对于 instanceCache 的 reload 通知，需要把不存在的 svcId 记录在 pending 列表中标记待处理；等待 serviceCache 的 reload 通知
+	到达之后，需要一并处理上次遗留的 pending 计算任务
+*/
+func (sc *serviceCache) watchCountChangeCh(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case event := <-sc.countChangeCh:
+			affect := make(map[string]bool, 0)
+
+			// 上一次来自 instanceCache 的 reload 通知，但是 serviceCache 没有对应数据的暂存任务
+			if len(sc.pendingServices) != 0 {
+				for svcId := range sc.pendingServices {
+					svc, ok := sc.ids.Load(svcId)
+					if !ok {
+						log.Debugf("[Cache][Service] service-id : %s still no found when reload namespace count", svcId)
+						continue
+					}
+					affect[svc.(*model.Service).Namespace] = true
+				}
+			}
+
+			// 新记录一份可能需要等待下一次变更的 service 信息
+			newPendingServices := make(map[string]int8, 0)
+			for svcId := range event {
+				svc, ok := sc.ids.Load(svcId)
+				if !ok {
+					newPendingServices[svcId] = 0
+					continue
+				}
+				affect[svc.(*model.Service).Namespace] = true
+			}
+
+			sc.postProcessUpdatedServices(affect)
+			// 更新最新的 pending 状态的 service
+			sc.pendingServices = newPendingServices
+		}
+	}
+}
+
+func (sc *serviceCache) postProcessUpdatedServices(affect map[string]bool) {
+
+	progress := 0
+	for namespace := range affect {
+		progress++
+		if progress%10000 == 0 {
+			log.Infof("[Cache][Service] namespace service detail count progress(%d / %d)", progress, len(affect))
+		}
+		//构建服务数量统计
+		value, ok := sc.names.Load(namespace)
+		if !ok {
+			sc.namespaceServiceCnt.Delete(namespace)
+			continue
+		}
+
+		newVal, _ := sc.namespaceServiceCnt.LoadOrStore(namespace, &model.NamespaceServiceCount{})
+		count := newVal.(*model.NamespaceServiceCount)
+
+		// 对于涉及变更的 namespace 下的计数信息，需要重新来过一遍
+		count.ServiceCount = 0
+		count.InstanceCnt = &model.InstanceCount{}
+
+		value.(*sync.Map).Range(func(key, item interface{}) bool {
+			count.ServiceCount++
+			service := item.(*model.Service)
+			insCnt := sc.instCache.GetInstancesCountByServiceID(service.ID)
+			count.InstanceCnt.TotalInstanceCount += insCnt.TotalInstanceCount
+			count.InstanceCnt.HealthyInstanceCount += insCnt.HealthyInstanceCount
+			return true
+		})
+	}
 }
 
 // 更新cl5的服务数据
