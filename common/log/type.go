@@ -19,50 +19,57 @@ package log
 
 // logger type
 const (
-	// HealthCheckLoggerName health-check logger name, can use FindScope function to get the logger
-	HealthCheckLoggerName = "health-check"
-	// StoreLoggerName storage logger name, can use FindScope function to get the logger
-	StoreLoggerName = "store"
 	// NamingLoggerName naming logger name, can use FindScope function to get the logger
 	NamingLoggerName = "naming"
-	// PluginLoggerName plugin logger name, can use FindScope function to get the logger
-	PluginLoggerName = "plugin"
-	// ServerLoggerName api server logger name, can use FindScope function to get the logger
-	ServerLoggerName = "server"
+	// ConfigLoggerName config logger name, can use FindScope function to get the logger
+	ConfigLoggerName = "config"
+	// CacheLoggerName cache logger name, can use FindScope function to get the logger
+	CacheLoggerName = "cache"
+	// AuthLoggerName auth logger name, can use FindScope function to get the logger
+	AuthLoggerName = "auth"
+	// StoreLoggerName store logger name, can use FindScope function to get the logger
+	StoreLoggerName = "store"
 )
 
 var (
-	healthCheckLogger = RegisterScope(HealthCheckLoggerName, "health check logging messages.", 0)
-	storeLogger       = RegisterScope(StoreLoggerName, "storage logging messages.", 0)
-	namingLogger      = RegisterScope(NamingLoggerName, "naming logging messages.", 0)
-	pluginLogger      = RegisterScope(PluginLoggerName, "plugin logging messages.", 0)
-	serverLogger      = RegisterScope(ServerLoggerName, "api server logging messages.", 0)
+	namingScope = RegisterScope(NamingLoggerName, "naming logging messages.", 0)
+	configScope = RegisterScope(ConfigLoggerName, "naming logging messages.", 0)
+	cacheScope  = RegisterScope(CacheLoggerName, "naming logging messages.", 0)
+	authScope   = RegisterScope(AuthLoggerName, "naming logging messages.", 0)
+	storeScope  = RegisterScope(StoreLoggerName, "store logging messages.", 0)
 )
 
-func allLoggerType() []string {
-	return []string{HealthCheckLoggerName, StoreLoggerName, NamingLoggerName, PluginLoggerName, ServerLoggerName, DefaultLoggerName}
+func allLoggerTypes() []string {
+	return []string{NamingLoggerName, ConfigLoggerName, CacheLoggerName,
+		AuthLoggerName, StoreLoggerName, DefaultLoggerName}
 }
 
-func GetDefaultLogger() *Scope {
+// DefaultScope default logging scope handler
+func DefaultScope() *Scope {
 	return defaultScope
 }
 
-func GetHealthCheckLogger() *Scope {
-	return healthCheckLogger
+// NamingScope naming logging scope handler
+func NamingScope() *Scope {
+	return namingScope
 }
 
-func GetStoreLogger() *Scope {
-	return storeLogger
+// ConfigScope config logging scope handler
+func ConfigScope() *Scope {
+	return configScope
 }
 
-func GetNamingLogger() *Scope {
-	return namingLogger
+// CacheScope cache logging scope handler
+func CacheScope() *Scope {
+	return cacheScope
 }
 
-func GetPluginLogger() *Scope {
-	return pluginLogger
+// AuthScope auth logging scope handler
+func AuthScope() *Scope {
+	return authScope
 }
 
-func GetServerLogger() *Scope {
-	return serverLogger
+// HealthCheckScope health check logging scope handler
+func StoreScope() *Scope {
+	return storeScope
 }

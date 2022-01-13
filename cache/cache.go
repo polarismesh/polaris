@@ -175,16 +175,16 @@ func (nc *NamingCache) clear() error {
 
 // Start 缓存对象启动协程，定时更新缓存
 func (nc *NamingCache) Start(ctx context.Context) error {
-	log.Infof("[Cache] cache goroutine start")
+	log.CacheScope().Infof("[Cache] cache goroutine start")
 	// 先启动revision计算协程
 	go nc.revisionWorker(ctx)
 
 	// 启动的时候，先更新一版缓存
-	log.Infof("[Cache] cache update now first time")
+	log.CacheScope().Infof("[Cache] cache update now first time")
 	if err := nc.update(); err != nil {
 		return err
 	}
-	log.Infof("[Cache] cache update done")
+	log.CacheScope().Infof("[Cache] cache update done")
 
 	// 启动协程，开始定时更新缓存数据
 	go func() {
@@ -212,8 +212,8 @@ func (nc *NamingCache) Clear() error {
 
 // revisionWorker Cache中计算服务实例revision的worker
 func (nc *NamingCache) revisionWorker(ctx context.Context) {
-	log.Infof("[Cache] compute revision worker start")
-	defer log.Infof("[Cache] compute revision worker done")
+	log.CacheScope().Infof("[Cache] compute revision worker start")
+	defer log.CacheScope().Infof("[Cache] compute revision worker done")
 
 	processFn := func() {
 		for {
@@ -240,17 +240,17 @@ func (nc *NamingCache) revisionWorker(ctx context.Context) {
 // 处理revision计算的函数
 func (nc *NamingCache) processRevisionWorker(req *revisionNotify) bool {
 	if req == nil {
-		log.Errorf("[Cache][Revision] get null revision request")
+		log.CacheScope().Errorf("[Cache][Revision] get null revision request")
 		return false
 	}
 
 	if req.serviceID == "" {
-		log.Errorf("[Cache][Revision] get request service ID is empty")
+		log.CacheScope().Errorf("[Cache][Revision] get request service ID is empty")
 		return false
 	}
 
 	if !req.valid {
-		// log.Infof("[Cache][Revision] service(%s) revision has all been removed", req.serviceID)
+		log.CacheScope().Infof("[Cache][Revision] service(%s) revision has all been removed", req.serviceID)
 		nc.revisions.Delete(req.serviceID)
 		return true
 	}
@@ -264,7 +264,8 @@ func (nc *NamingCache) processRevisionWorker(req *revisionNotify) bool {
 	instances := nc.Instance().GetInstancesByServiceID(req.serviceID)
 	revision, err := ComputeRevision(service.Revision, instances)
 	if err != nil {
-		log.Errorf("[Cache] compute service id(%s) instances revision err: %s", req.serviceID, err.Error())
+		log.CacheScope().Errorf(
+			"[Cache] compute service id(%s) instances revision err: %s", req.serviceID, err.Error())
 		return false
 	}
 	nc.revisions.Store(req.serviceID, revision) // string -> string
@@ -338,7 +339,9 @@ func ComputeRevision(serviceRevision string, instances []*model.Instance) (strin
 	for _, item := range instances {
 		slice = append(slice, item.Revision())
 	}
-	slice.Sort()
+	if len(slice) > 0 {
+		slice.Sort()
+	}
 	for _, revision := range slice {
 		if _, err := h.Write([]byte(revision)); err != nil {
 			return "", err
@@ -364,7 +367,7 @@ func logLastMtime(lastMtimeLogged int64, lastMtime int64, prefix string) int64 {
 	curTimeSec := time.Now().Unix()
 	if lastMtimeLogged == 0 || curTimeSec-lastMtimeLogged >= mtimeLogIntervalSec {
 		lastMtimeLogged = curTimeSec
-		log.Infof("[Cache][%s] current lastMtime is %s", prefix, time.Unix(lastMtime, 0))
+		log.CacheScope().Infof("[Cache][%s] current lastMtime is %s", prefix, time.Unix(lastMtime, 0))
 	}
 	return lastMtimeLogged
 }

@@ -20,7 +20,6 @@ package sqldb
 import (
 	"database/sql"
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"time"
 )

@@ -15,41 +15,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-//
-// The package provides direct integration with the Cobra command-line processor which makes it
-// easy to build programs that use a consistent interface for logging. Here's an example
-// of a simple Cobra-based program using this log package:
-//
-//		func main() {
-//			// get the default logging options
-//			options := log.DefaultOptions()
-//
-//			rootCmd := &cobra.Command{
-//				Run: func(cmd *cobra.Command, args []string) {
-//
-//					// configure the logging system
-//					if err := log.Configure(options); err != nil {
-//                      // print an error and quit
-//                  }
-//
-//					// output some logs
-//					log.Info("Hello")
-//					log.Sync()
-//				},
-//			}
-//
-//			// add logging-specific flags to the cobra command
-//			options.AttachCobraFlags(rootCmd)
-//			rootCmd.SetArgs(os.Args[1:])
-//			rootCmd.Execute()
-//		}
-//
 // Once configured, this package intercepts the output of the standard golang "log" package as well as anything
 // sent to the global zap logger (zap.L()).
 package log
 
 import (
 	"fmt"
+	"github.com/hashicorp/go-multierror"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -88,7 +60,7 @@ func init() {
 }
 
 // prepZap is a utility function used by the Configure function.
-func prepZap(options *Options) (zapcore.Core, zapcore.Core, zapcore.WriteSyncer, error) {
+func prepZap(options *Options) ([]zapcore.Core, zapcore.Core, zapcore.WriteSyncer, error) {
 	encCfg := zapcore.EncoderConfig{
 		TimeKey:        "time",
 		LevelKey:       "level",
@@ -110,9 +82,9 @@ func prepZap(options *Options) (zapcore.Core, zapcore.Core, zapcore.WriteSyncer,
 		enc = zapcore.NewConsoleEncoder(encCfg)
 	}
 
-	var rotaterSink zapcore.WriteSyncer
-	if options.RotateOutputPath != "" {
-		rotaterSink = zapcore.AddSync(&lumberjack.Logger{
+	var rotateSink zapcore.WriteSyncer
+	if len(options.RotateOutputPath) > 0 {
+		rotateSink = zapcore.AddSync(&lumberjack.Logger{
 			Filename:   options.RotateOutputPath,
 			MaxSize:    options.RotationMaxSize,
 			MaxBackups: options.RotationMaxBackups,
@@ -143,10 +115,10 @@ func prepZap(options *Options) (zapcore.Core, zapcore.Core, zapcore.WriteSyncer,
 	}
 
 	var sink zapcore.WriteSyncer
-	if rotaterSink != nil && outputSink != nil {
-		sink = zapcore.NewMultiWriteSyncer(outputSink, rotaterSink)
-	} else if rotaterSink != nil {
-		sink = rotaterSink
+	if rotateSink != nil && outputSink != nil {
+		sink = zapcore.NewMultiWriteSyncer(outputSink, rotateSink)
+	} else if rotateSink != nil {
+		sink = rotateSink
 	} else if outputSink != nil {
 		sink = outputSink
 	} else {
@@ -155,6 +127,8 @@ func prepZap(options *Options) (zapcore.Core, zapcore.Core, zapcore.WriteSyncer,
 
 	var enabler zap.LevelEnablerFunc = func(lvl zapcore.Level) bool {
 		switch lvl {
+		case zapcore.FatalLevel:
+			return defaultScope.FatalEnabled()
 		case zapcore.ErrorLevel:
 			return defaultScope.ErrorEnabled()
 		case zapcore.WarnLevel:
@@ -165,9 +139,23 @@ func prepZap(options *Options) (zapcore.Core, zapcore.Core, zapcore.WriteSyncer,
 		return defaultScope.DebugEnabled()
 	}
 
-	return zapcore.NewCore(enc, sink, zap.NewAtomicLevelAt(zapcore.DebugLevel)),
-		zapcore.NewCore(enc, sink, enabler),
-		errSink, nil
+	var errCore zapcore.Core
+	if len(options.ErrorRotateOutputPath) > 0 {
+		errRotateSink := zapcore.AddSync(&lumberjack.Logger{
+			Filename:   options.ErrorRotateOutputPath,
+			MaxSize:    options.RotationMaxSize,
+			MaxBackups: options.RotationMaxBackups,
+			MaxAge:     options.RotationMaxAge,
+		})
+		errCore = zapcore.NewCore(enc, errRotateSink, zap.NewAtomicLevelAt(zapcore.ErrorLevel))
+	}
+
+	cores := make([]zapcore.Core, 0)
+	cores = append(cores, zapcore.NewCore(enc, sink, zap.NewAtomicLevelAt(zapcore.DebugLevel)))
+	if nil != errCore {
+		cores = append(cores, errCore)
+	}
+	return cores, zapcore.NewCore(enc, sink, enabler), errSink, nil
 }
 
 func formatDate(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
@@ -209,7 +197,7 @@ func formatDate(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 	enc.AppendString(string(buf))
 }
 
-func updateScopes(typeName string, options *Options, core zapcore.Core, errSink zapcore.WriteSyncer) error {
+func updateScopes(typeName string, options *Options, cores []zapcore.Core, errSink zapcore.WriteSyncer) error {
 	scope := FindScope(typeName)
 	if scope == nil {
 		return fmt.Errorf("unknown logger name '%s' specified", typeName)
@@ -232,14 +220,29 @@ func updateScopes(typeName string, options *Options, core zapcore.Core, errSink 
 	// update patchTable
 	pt := patchTable{
 		write: func(ent zapcore.Entry, fields []zapcore.Field) error {
-			err := core.Write(ent, fields)
+			var errs error
+			for _, core := range cores {
+				if core.Enabled(ent.Level) {
+					if err := core.Write(ent, fields); nil != err {
+						errs = multierror.Append(errs, err)
+					}
+				}
+			}
 			if ent.Level == zapcore.FatalLevel {
 				scope.getPathTable().exitProcess(1)
 			}
 
-			return err
+			return errs
 		},
-		sync:        core.Sync,
+		sync: func() error {
+			var errs error
+			for _, core := range cores {
+				if err := core.Sync(); nil != err {
+					errs = multierror.Append(errs, err)
+				}
+			}
+			return errs
+		},
 		exitProcess: os.Exit,
 		errorSink:   errSink,
 	}
@@ -251,20 +254,18 @@ func updateScopes(typeName string, options *Options, core zapcore.Core, errSink 
 	return nil
 }
 
-// Configure initializes Istio's logging subsystem.
-//
-// You typically call this once at process startup.
-// Once this call returns, the logging system is ready to accept data.
 // nolint: staticcheck
+// You typically call this once at process startup.
+// Configure Once this call returns, the logging system is ready to accept data.
 func Configure(optionsMap map[string]*Options) error {
 	for typeName, options := range optionsMap {
 		setDefaultOption(options)
-		core, captureCore, errSink, err := prepZap(options)
+		cores, captureCore, errSink, err := prepZap(options)
 		if err != nil {
 			return err
 		}
 
-		if err = updateScopes(typeName, options, core, errSink); err != nil {
+		if err = updateScopes(typeName, options, cores, errSink); err != nil {
 			return err
 		}
 
@@ -313,7 +314,7 @@ func setDefaultOption(options *Options) {
 		options.RotationMaxBackups = defaultRotationMaxBackups
 	}
 	if options.OutputLevel == "" {
-		options.OutputLevel = "debug"
+		options.OutputLevel = levelToString[defaultOutputLevel]
 	}
 	if options.StackTraceLevel == "" {
 		options.StackTraceLevel = levelToString[defaultStackTraceLevel]

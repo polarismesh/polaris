@@ -27,9 +27,9 @@ const (
 	defaultStackTraceLevel    = NoneLevel
 	defaultOutputPath         = "stdout"
 	defaultErrorOutputPath    = "stderr"
-	defaultRotationMaxAge     = 30
-	defaultRotationMaxSize    = 100 * 1024 * 1024
-	defaultRotationMaxBackups = 1000
+	defaultRotationMaxAge     = 7
+	defaultRotationMaxSize    = 100
+	defaultRotationMaxBackups = 10
 )
 
 // Level is an enumeration of all supported log levels.
@@ -91,6 +91,17 @@ type Options struct {
 	// output resumes to this path.
 	RotateOutputPath string `yaml:"rotateOutputPath"`
 
+	// RotateOutputPath is the path to a rotating error log file. This file should
+	// be automatically rotated over time, based on the rotation parameters such
+	// as RotationMaxSize and RotationMaxAge. The default is to not rotate.
+	//
+	// This path is used as a foundational path. This is where log output is normally
+	// saved. When a rotation needs to take place because the file got too big or too
+	// old, then the file is renamed by appending a timestamp to the name. Such renamed
+	// files are called backups. Once a backup has been created,
+	// output resumes to this path.
+	ErrorRotateOutputPath string `yaml:"errorRotateOutputPath"`
+
 	// RotationMaxSize is the maximum size in megabytes of a log file before it gets
 	// rotated. It defaults to 100 megabytes.
 	RotationMaxSize int `yaml:"rotationMaxSize"`
@@ -122,7 +133,7 @@ type Options struct {
 // DefaultOptions returns a new set of options, initialized to the defaults
 func DefaultOptions() map[string]*Options {
 	optionsMap := make(map[string]*Options)
-	for _, typeName := range allLoggerType() {
+	for _, typeName := range allLoggerTypes() {
 		optionsMap[typeName] = &Options{
 			OutputPaths:        []string{defaultOutputPath},
 			ErrorOutputPaths:   []string{defaultErrorOutputPath},

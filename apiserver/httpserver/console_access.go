@@ -21,7 +21,6 @@ import (
 	"context"
 	"fmt"
 	proto "github.com/golang/protobuf/proto"
-	"github.com/polarismesh/polaris-server/common/log"
 	"net/http"
 
 	"github.com/emicklei/go-restful"

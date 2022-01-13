@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"github.com/polarismesh/polaris-server/apiserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"google.golang.org/grpc"
@@ -31,9 +30,9 @@ import (
 // GRPCServer GRPC API服务器
 type GRPCServer struct {
 	BaseGrpcServer
-	namingServer *service.Server
+	namingServer      *service.Server
 	healthCheckServer *healthcheck.Server
-	openAPI      map[string]apiserver.APIConfig
+	openAPI           map[string]apiserver.APIConfig
 }
 
 // GetPort 获取端口

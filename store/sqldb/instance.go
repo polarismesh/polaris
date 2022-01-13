@@ -26,7 +26,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 )
 

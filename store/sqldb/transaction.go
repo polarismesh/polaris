@@ -20,7 +20,6 @@ package sqldb
 import (
 	"crypto/rand"
 	"github.com/pkg/errors"
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"math/big"
 )

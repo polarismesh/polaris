@@ -15,15 +15,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package eurekaserver
+package boltdb
 
 import (
-	"github.com/polarismesh/polaris-server/apiserver"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
 )
 
-/**
- * @brief 自注册到API服务器插槽
- */
-func init() {
-	_ = apiserver.Register("eurekaserver", &EurekaServer{})
-}
+var log = commonlog.StoreScope()

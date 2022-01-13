@@ -21,8 +21,6 @@ import (
 	"container/list"
 	"sync"
 	"time"
-
-	"github.com/polarismesh/polaris-server/common/log"
 )
 
 // a simple routine-safe timewheel, can only add task
@@ -116,14 +114,13 @@ func (tw *TimeWheel) start() {
  * taskRunner 时间轮到期处理函数
  */
 func (tw *TimeWheel) taskRunner() {
-	now := time.Now()
-
 	l := tw.slots[tw.currentPos]
 	tw.locks[tw.currentPos].Lock()
-	execNum := tw.scanAddRunTask(l)
+	//execNum := tw.scanAddRunTask(l)
+	_ = tw.scanAddRunTask(l)
 	tw.locks[tw.currentPos].Unlock()
 
-	log.Debugf("%s task start time:%d, use time:%v, exec num:%d", tw.name, now.Unix(), time.Since(now), execNum)
+	//log.Debugf("%s task start time:%d, use time:%v, exec num:%d", tw.name, now.Unix(), time.Since(now), execNum)
 	if tw.currentPos == tw.slotNum-1 {
 		tw.currentPos = 0
 		return

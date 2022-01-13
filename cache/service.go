@@ -155,13 +155,14 @@ func (sc *serviceCache) realUpdate() error {
 	services, err := sc.storage.GetMoreServices(lastMtime.Add(DefaultTimeDiff),
 		sc.firstUpdate, sc.disableBusiness, sc.needMeta)
 	if err != nil {
-		log.Errorf("[Cache][Service] update services err: %s", err.Error())
+		log.CacheScope().Errorf("[Cache][Service] update services err: %s", err.Error())
 		return err
 	}
 
 	sc.firstUpdate = false
 	update, del := sc.setServices(services)
-	log.Debug("[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
+	log.CacheScope().Info(
+		"[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
 		zap.Time("last", lastMtime), zap.Duration("used", time.Now().Sub(start)))
 	return nil
 }
@@ -226,7 +227,7 @@ func (sc *serviceCache) GetServiceByName(name string, namespace string) *model.S
  */
 func (sc *serviceCache) CleanNamespace(namespace string) {
 
-	 sc.names.Delete(namespace)
+	sc.names.Delete(namespace)
 }
 
 /**
@@ -303,7 +304,8 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 	for _, service := range services {
 		progress++
 		if progress%20000 == 0 {
-			log.Infof("[Cache][Service] update service item progress(%d / %d)", progress, len(services))
+			log.CacheScope().Infof(
+				"[Cache][Service] update service item progress(%d / %d)", progress, len(services))
 		}
 		serviceMtime := service.ModifyTime.Unix()
 		if lastMtime < serviceMtime {
