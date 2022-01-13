@@ -22,8 +22,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/polarismesh/polaris-server/service/healthcheck"
+
 	"github.com/polarismesh/polaris-server/auth"
-	"github.com/polarismesh/polaris-server/healthcheck"
 
 	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/cache"

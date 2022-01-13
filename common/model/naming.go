@@ -325,8 +325,8 @@ type Platform struct {
 	ModifyTime time.Time
 }
 
-// int2bool 整数转换为bool值
-func int2bool(entry int) bool {
+// Int2bool 整数转换为bool值
+func Int2bool(entry int) bool {
 	if entry == 0 {
 		return false
 	}

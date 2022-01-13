@@ -175,6 +175,20 @@ func (l *L5pbserver) PostProcess(req *cl5Request) {
 			zap.Duration("handling-time", diff),
 		)
 	}
-	_ = l.statis.AddAPICall(cmdStr, "HTTP", int(req.code), diff.Nanoseconds())
+	code := calL5Code(req.code)
+	_ = l.statis.AddAPICall(cmdStr, "HTTP", code, diff.Nanoseconds())
 	// 告警
+}
+
+func calL5Code(code l5Code) int {
+	switch code {
+	case l5Success:
+		return 200
+	case l5ResponseFailed:
+		return -1
+	case l5UnmarshalPacketFailed:
+		return 400
+	default:
+		return 500
+	}
 }

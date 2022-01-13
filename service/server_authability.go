@@ -50,6 +50,10 @@ func (svr *serverAuthAbility) Cache() *cache.NamingCache {
 	return svr.targetServer.Cache()
 }
 
+func (svr *serverAuthAbility) GetServiceInstanceRevision(serviceID string, instances []*model.Instance) (string, error) {
+	return svr.targetServer.GetServiceInstanceRevision(serviceID, instances)
+}
+
 // collectNamespaceAuthContext 对于命名空间的处理，收集所有的与鉴权的相关信息
 //  @receiver svr serverAuthAbility
 //  @param ctx 请求上下文 ctx

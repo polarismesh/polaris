@@ -27,8 +27,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/polarismesh/polaris-server/service/healthcheck"
+
 	"github.com/polarismesh/polaris-server/auth"
-	"github.com/polarismesh/polaris-server/healthcheck"
 	"github.com/polarismesh/polaris-server/plugin/statis/local"
 
 	"github.com/emicklei/go-restful"

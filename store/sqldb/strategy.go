@@ -484,7 +484,7 @@ func (s *strategyStore) ListStrategySimple(filters map[string]string, offset uin
 	querySql += " ORDER BY mtime LIMIT ?, ? "
 	args = append(args, offset, limit)
 
-	log.GetStoreLogger().Debug("ListStrategyDetails", zap.String("query sql", countSql), zap.Any("args", args))
+	log.GetStoreLogger().Debug("ListStrategyDetails", zap.String("query sql", querySql), zap.Any("args", args))
 	rows, err := tx.Query(querySql, args...)
 	if err != nil {
 		return 0, nil, store.Error(err)

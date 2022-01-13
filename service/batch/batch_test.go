@@ -129,7 +129,7 @@ func TestAsyncCreateInstance(t *testing.T) {
 	Convey("正常创建实例", t, func() {
 		bc, storage, authority, cancel := newCreateInstanceController(t)
 		defer cancel()
-		storage.EXPECT().CheckInstancesExisted(gomock.Any()).Return(nil, nil).AnyTimes()
+		storage.EXPECT().BatchGetInstanceIsolate(gomock.Any()).Return(nil, nil).AnyTimes()
 		storage.EXPECT().GetSourceServiceToken(gomock.Any(), gomock.Any()).
 			Return(&model.Service{ID: "1"}, nil).AnyTimes()
 		authority.EXPECT().VerifyInstance(gomock.Any(), gomock.Any()).Return(true).AnyTimes()
@@ -139,7 +139,7 @@ func TestAsyncCreateInstance(t *testing.T) {
 	Convey("鉴权失败", t, func() {
 		bc, storage, authority, cancel := newCreateInstanceController(t)
 		defer cancel()
-		storage.EXPECT().CheckInstancesExisted(gomock.Any()).Return(nil, nil).AnyTimes()
+		storage.EXPECT().BatchGetInstanceIsolate(gomock.Any()).Return(nil, nil).AnyTimes()
 		storage.EXPECT().GetSourceServiceToken(gomock.Any(), gomock.Any()).
 			Return(&model.Service{ID: "1"}, nil).AnyTimes()
 		authority.EXPECT().VerifyInstance(gomock.Any(), gomock.Any()).Return(false).AnyTimes()

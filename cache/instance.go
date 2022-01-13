@@ -180,6 +180,7 @@ func (ic *instanceCache) clear() error {
 	ic.ids = new(sync.Map)
 	ic.services = new(sync.Map)
 	ic.instanceCounts = new(sync.Map)
+	ic.instanceCount = 0
 	ic.lastMtime = 0
 	return nil
 }

@@ -78,17 +78,18 @@ type Task struct {
 
 // String
 func (t Task) String() string {
-	return fmt.Sprintf("{taskType: %s, id: %s", typeToCommand[t.taskType], t.id)
+	return fmt.Sprintf("{taskType: %s, id: %s}", typeToCommand[t.taskType], t.id)
 }
 
 /**
  * Resp ckv任务结果
  */
 type Resp struct {
-	Value      string
-	Err        error
-	Exists     bool
-	Compatible bool
+	Value       string
+	Err         error
+	Exists      bool
+	Compatible  bool
+	shouldRetry bool
 }
 
 // Config redis pool configuration
@@ -166,7 +167,7 @@ func NewPool(ctx context.Context, config *Config, statis plugin.Statis) *Pool {
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:         config.KvAddr,
 		Password:     config.KvPasswd,
-		MaxRetries:   config.MaxRetry,
+		MaxRetries:   -1,
 		DialTimeout:  time.Duration(config.ConnectTimeout),
 		ReadTimeout:  time.Duration(config.MsgTimeout),
 		WriteTimeout: time.Duration(config.MsgTimeout),
@@ -210,7 +211,7 @@ func (p *Pool) Sdd(id string, members []string) *Resp { // nolint
 		id:       id,
 		members:  members,
 	}
-	return p.handleTask(task)
+	return p.handleTaskWithRetries(task)
 }
 
 // Get 使用连接池，向redis发起Srem请求
@@ -223,7 +224,7 @@ func (p *Pool) Srem(id string, members []string) *Resp { // nolint
 		id:       id,
 		members:  members,
 	}
-	return p.handleTask(task)
+	return p.handleTaskWithRetries(task)
 }
 
 // RedisObject 序列化对象
@@ -244,7 +245,7 @@ func (p *Pool) Set(id string, redisObj RedisObject) *Resp { // nolint
 		id:       id,
 		value:    redisObj.Serialize(p.config.Compatible),
 	}
-	return p.handleTask(task)
+	return p.handleTaskWithRetries(task)
 }
 
 // Del 使用连接池，向redis发起Del请求
@@ -256,7 +257,7 @@ func (p *Pool) Del(id string) *Resp { // nolint
 		taskType: Del,
 		id:       id,
 	}
-	return p.handleTask(task)
+	return p.handleTaskWithRetries(task)
 }
 
 func (p *Pool) checkRedisDead() error {
@@ -346,7 +347,17 @@ const (
 	redisCheckInterval = 1 * time.Second
 	errCountThreshold  = 2
 	maxCheckCount      = 3
+	retryBackoff       = 30 * time.Millisecond
 )
+
+func sleep(dur time.Duration) {
+	t := time.NewTimer(dur)
+	defer t.Stop()
+
+	select {
+	case <-t.C:
+	}
+}
 
 // checkRedis check redis alive
 func (p *Pool) checkRedis(wg *sync.WaitGroup) {
@@ -407,6 +418,26 @@ func nextIndex() int64 {
 	return value
 }
 
+// handleTaskWithRetries 任务重试执行
+func (p *Pool) handleTaskWithRetries(task *Task) *Resp {
+	var count = 1
+	if p.config.MaxRetry > 0 {
+		count += p.config.MaxRetry
+	}
+	var resp *Resp
+	for i := 0; i < count; i++ {
+		if i == 0 {
+			sleep(retryBackoff)
+		}
+		resp = p.handleTask(task)
+		if nil == resp.Err || !resp.shouldRetry {
+			break
+		}
+		log.Errorf("[RedisPool] fail to handle task %s, retry count %d, err is %v", *task, i, resp.Err)
+	}
+	return resp
+}
+
 // handleTask 任务处理函数
 func (p *Pool) handleTask(task *Task) *Resp {
 	var startTime = time.Now()
@@ -416,16 +447,17 @@ func (p *Pool) handleTask(task *Task) *Resp {
 	case p.taskChans[idx] <- task:
 	case <-p.ctx.Done():
 		return &Resp{Err: fmt.Errorf("worker has been stopped while sheduling task %s", *task),
-			Compatible: p.config.Compatible}
+			Compatible: p.config.Compatible, shouldRetry: false}
 	}
 	var resp *Resp
 	select {
 	case resp = <-task.respChan:
 	case <-p.ctx.Done():
 		return &Resp{Err: fmt.Errorf("worker has been stopped while fetching resp for task %s", *task),
-			Compatible: p.config.Compatible}
+			Compatible: p.config.Compatible, shouldRetry: false}
 	}
 	resp.Compatible = p.config.Compatible
+	resp.shouldRetry = true
 	p.afterHandleTask(startTime, typeToCommand[task.taskType], task, resp)
 	return resp
 }

@@ -45,6 +45,8 @@ const (
 	SystemNamespace = "Polaris"
 	// DefaultNamespace default namespace
 	DefaultNamespace = "default"
+	// ProductionNamespace default namespace
+	ProductionNamespace = "Production"
 	// DefaultTLL default ttl
 	DefaultTLL = 5
 )

@@ -23,6 +23,7 @@ import (
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/api/l5"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 // CircuitBreakerServer
@@ -364,4 +365,6 @@ type DiscoverServer interface {
 	//
 	L5OperateServer
 	//
+
+	GetServiceInstanceRevision(serviceID string, instances []*model.Instance) (string, error) 
 }

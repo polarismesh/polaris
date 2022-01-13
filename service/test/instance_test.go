@@ -31,7 +31,6 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/service"
 	. "github.com/smartystreets/goconvey/convey"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // 测试新建实例
@@ -41,7 +40,7 @@ func TestCreateInstance(t *testing.T) {
 
 	t.Run("正常创建实例-服务没有提前创建", func(t *testing.T) {
 		instanceReq, instanceResp := createCommonInstance(t, &api.Service{
-			Name:      wrapperspb.String("test-nocreate-service"),
+			Name:      utils.NewStringValue("test-nocreate-service"),
 			Namespace: utils.NewStringValue(service.DefaultNamespace),
 		}, 1000)
 		defer cleanInstance(instanceResp.GetId().GetValue())

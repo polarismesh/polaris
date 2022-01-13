@@ -234,18 +234,27 @@ func (s *Server) RegisterByNameCmd(rbnc *l5.Cl5RegisterByNameCmd) (*l5.Cl5Regist
 	return cl5RegisterAckCmd, nil
 }
 
+func (s *Server) computeService(modID uint32, cmdID uint32) *model.Service {
+	sidStr := utils.MarshalModCmd(modID, cmdID)
+	// 根据sid找到所述命名空间
+	namespaces := ComputeNamespace(modID, cmdID)
+	for _, namespace := range namespaces {
+		// 根据sid找到polaris服务，这里是源服务
+		service := s.getServiceCache(sidStr, namespace)
+		if service != nil {
+			return service
+		}
+	}
+	return nil
+}
+
 // 根据访问关系获取所有符合的被调信息
 func (s *Server) getCalleeByRoute(route *model.Route) []*model.Callee {
 	out := make([]*model.Callee, 0)
 	if route == nil {
 		return nil
 	}
-
-	sidStr := utils.MarshalModCmd(route.ModID, route.CmdID)
-	// 根据sid找到所述命名空间
-	namespace := ComputeNamespace(route.ModID, route.CmdID)
-	// 根据sid找到polaris服务，这里是源服务
-	service := s.getServiceCache(sidStr, namespace)
+	service := s.computeService(route.ModID, route.CmdID)
 	if service == nil {
 		return nil
 	}
@@ -327,12 +336,18 @@ func (s *Server) getSidConfig(modID uint32, cmdID uint32) *model.SidConfig {
 	sidStr := utils.MarshalSid(sid)
 
 	// 先获取一下namespace
-	namespace := ComputeNamespace(modID, cmdID)
-	sidService := s.caches.Service().GetServiceByName(sidStr, namespace)
+	namespaces := ComputeNamespace(modID, cmdID)
+
+	var sidService *model.Service
+	for _, namespace := range namespaces {
+		sidService = s.caches.Service().GetServiceByName(sidStr, namespace)
+		if sidService != nil {
+			break
+		}
+	}
 	if sidService == nil {
 		return nil
 	}
-
 	sidConfig := s.getRealSidConfigMeta(sidService)
 	if sidConfig == nil {
 		return nil
@@ -600,12 +615,12 @@ func ParseIPInt2Str(ip uint32) string {
 }
 
 // ComputeNamespace 根据SID分析，返回其对应的namespace
-func ComputeNamespace(modID uint32, cmdID uint32) string {
+func ComputeNamespace(modID uint32, cmdID uint32) []string {
 	// 为了兼容老的sid，只对新的别名sid才生效
 	// 老的sid都属于生产环境的
 	// 3000001是新的moduleID的开始值
 	if moduleID := modID >> 6; moduleID < 3000001 {
-		return DefaultNamespace
+		return []string{DefaultNamespace, ProductionNamespace}
 	}
 
 	layoutID := modID & 63 // 63 -> 111111
@@ -614,10 +629,10 @@ func ComputeNamespace(modID uint32, cmdID uint32) string {
 		// 找不到命名空间的，全部返回默认的，也就是Production
 		log.Warnf("sid(%d:%d) found the layoutID is(%d), not match the namespace list",
 			modID, cmdID, layoutID)
-		return DefaultNamespace
+		return []string{DefaultNamespace}
 	}
 
 	log.Infof("Sid(%d:%d) layoutID(%d), the namespace is: %s",
 		modID, cmdID, layoutID, namespace)
-	return namespace
+	return []string{namespace}
 }

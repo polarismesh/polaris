@@ -41,9 +41,11 @@ type (
 
 var (
 	StrategyFilterAttributes = map[string]int{
-		"id":    1,
-		"name":  1,
-		"owner": 1,
+		"id":     1,
+		"name":   1,
+		"owner":  1,
+		"offset": 1,
+		"limit":  1,
 	}
 )
 

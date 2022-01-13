@@ -46,6 +46,8 @@ var (
 		"owner":    1,
 		"source":   1,
 		"group_id": 1,
+		"offset":   1,
+		"limit":    1,
 	}
 )
 

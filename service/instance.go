@@ -28,7 +28,6 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var (
@@ -168,18 +167,8 @@ func (s *Server) asyncCreateInstance(ctx context.Context, req *api.Instance, ins
 // ins包括了req的内容，并且填充了instanceID与serviceToken
 func (s *Server) serialCreateInstance(ctx context.Context, req *api.Instance, ins *api.Instance) (
 	*model.Instance, *api.Response) {
-	// 检查服务实例是否存在
 	rid := ParseRequestID(ctx)
 	pid := ParsePlatformID(ctx)
-	instance, err := s.storage.GetInstance(ins.GetId().GetValue())
-	if err != nil {
-		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
-		return nil, api.NewInstanceResponse(api.StoreLayerException, req)
-	}
-	if instance != nil {
-		req.Id = utils.NewStringValue(ins.GetId().GetValue())
-		return nil, api.NewInstanceResponse(api.ExistedResource, req)
-	}
 
 	// 鉴权，这里拿的源服务的，如果是别名，service=nil
 	service, err := s.storage.GetSourceServiceToken(req.GetService().GetValue(), req.GetNamespace().GetValue())
@@ -187,13 +176,22 @@ func (s *Server) serialCreateInstance(ctx context.Context, req *api.Instance, in
 		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
 		return nil, api.NewInstanceResponse(api.StoreLayerException, req)
 	}
-	// if service == nil {
-	// return nil, api.NewInstanceResponse(api.NotFoundResource, req)
-	// }
+	if service == nil {
+		return nil, api.NewInstanceResponse(api.NotFoundResource, req)
+	}
 	if err := s.verifyInstanceAuth(ctx, service, req); err != nil {
 		return nil, err
 	}
 
+	instance, err := s.storage.GetInstance(ins.GetId().GetValue())
+	if err != nil {
+		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
+		return nil, api.NewInstanceResponse(api.StoreLayerException, req)
+	}
+	//如果存在，则替换实例的属性数据，但是需要保留用户设置的隔离状态，以免出现关键状态丢失
+	if instance != nil && ins.Isolate == nil {
+		ins.Isolate = instance.Proto.Isolate
+	}
 	// 直接同步创建服务实例
 	data := utils.CreateInstanceModel(service.ID, ins)
 	if err := s.storage.AddInstance(data); err != nil {
@@ -374,6 +372,7 @@ func (s *Server) DeleteInstanceByHost(ctx context.Context, req *api.Instance) *a
 			instance.Service(),
 			instance.Host(),
 			int(instance.Port()))
+
 	}
 
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
@@ -474,7 +473,7 @@ func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *
 	// 判断是否需要更新
 	needUpdate := false
 	for _, instance := range instances {
-		if instance.Isolate() != req.GetIsolate().GetValue() {
+		if req.Isolate != nil && instance.Isolate() != req.GetIsolate().GetValue() {
 			needUpdate = true
 			break
 		}
@@ -518,44 +517,6 @@ func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *
 	}
 
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
-}
-
-// createServiceIfAbsent
-func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instance) (uint32, error) {
-
-	simpleService := &api.Service{
-		Name:      wrapperspb.String(instance.GetService().GetValue()),
-		Namespace: wrapperspb.String(instance.GetNamespace().GetValue()),
-		Owners:    wrapperspb.String("Polaris"),
-	}
-
-	ret, _, _ := s.creareServiceSingle.Do(fmt.Sprintf("%s:%s", simpleService.Namespace, simpleService.Name), func() (interface{}, error) {
-		resp := s.CreateService(ctx, simpleService)
-		return resp, nil
-	})
-
-	resp := ret.(*api.Response)
-
-	retCode := resp.GetCode().GetValue()
-
-	if retCode != api.ExecuteSuccess && retCode != api.ExistedResource {
-		return retCode, errors.New(resp.GetInfo().GetValue())
-	}
-
-	return retCode, nil
-}
-
-func (s *Server) sendDiscoverEvent(eventType model.DiscoverEventType, namespace, service, host string, port int) {
-	// 发布隔离状态变化事件
-	event := model.DiscoverEvent{
-		Namespace: namespace,
-		Service:   service,
-		Host:      host,
-		Port:      port,
-		EType:     eventType,
-	}
-
-	s.PublishDiscoverEvent(event)
 }
 
 /**
@@ -916,6 +877,46 @@ func (s *Server) packCmdb(instance *api.Instance) {
 	return
 }
 
+func (s *Server) sendDiscoverEvent(eventType model.DiscoverEventType, namespace, service, host string, port int) {
+	// 发布隔离状态变化事件
+	event := model.DiscoverEvent{
+		Namespace: namespace,
+		Service:   service,
+		Host:      host,
+		Port:      port,
+		EType:     eventType,
+	}
+
+	s.PublishDiscoverEvent(event)
+}
+
+// createServiceIfAbsent
+func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instance) (uint32, error) {
+
+	simpleService := &api.Service{
+		Name:      utils.NewStringValue(instance.GetService().GetValue()),
+		Namespace: utils.NewStringValue(instance.GetNamespace().GetValue()),
+		Owners:    utils.NewStringValue("Polaris"),
+	}
+
+	key := fmt.Sprintf("%s:%s", simpleService.Namespace, simpleService.Name)
+
+	ret, _, _ := s.creareServiceSingle.Do(key, func() (interface{}, error) {
+		resp := s.CreateService(ctx, simpleService)
+		return resp, nil
+	})
+
+	resp := ret.(*api.Response)
+
+	retCode := resp.GetCode().GetValue()
+
+	if retCode != api.ExecuteSuccess && retCode != api.ExistedResource {
+		return retCode, errors.New(resp.GetInfo().GetValue())
+	}
+
+	return retCode, nil
+}
+
 /*
  * @brief 检查批量请求
  */
@@ -1241,7 +1242,6 @@ func CheckDbInstanceFieldLen(req *api.Instance) (*api.Response, bool) {
 	return nil, false
 }
 
-// diffInstanceEvent
 func diffInstanceEvent(req *api.Instance, save *model.Instance) []model.DiscoverEventType {
 	eventTypes := make([]model.DiscoverEventType, 0)
 
