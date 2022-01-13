@@ -130,7 +130,7 @@ type serviceCache struct {
 	needMeta            bool
 	singleFlight        *singleflight.Group
 	instCache           InstanceCache
-	countChangeCh       chan map[string]bool //计数信息需要变动的事件通道
+	countChangeCh       chan map[string]bool //Counting information requires a change event channel
 	pendingServices     map[string]int8
 	namespaceServiceCnt *sync.Map // namespce -> model.NamespaceServiceCount
 	cancel              context.CancelFunc
@@ -306,7 +306,8 @@ func (sc *serviceCache) IteratorServices(iterProc ServiceIterProc) error {
 	return err
 }
 
-// GetNamesapceCntInfo GetNamesapceCntInfo 根据命名空间返回服务统计数、实例总统计数以及健康实例统计数
+// GetNamesapceCntInfo Return to the service statistics according to the namespace,
+// 	the count statistics and health instance statistics
 func (sc *serviceCache) GetNamesapceCntInfo(namespace string) model.NamespaceServiceCount {
 	val, _ := sc.namespaceServiceCnt.Load(namespace)
 	if val == nil {
@@ -423,19 +424,22 @@ func (sc *serviceCache) notifyServiceCountReload(svcIds map[string]bool) {
 }
 
 /*
- 两种时序
- Case One:
-	1. T1时刻，serviceCache 拉取到了全部的 service 信息
-	2. T2时刻，instaneCache 拉取并更新了实例计数信息，此时通知 serviceCache 进行命名空间计数 reload
-	这种情况，instanceCache 通知 serviceCache 的话，serviceCache 是可以正常完成计数更新的
+Two Case
 
-Case Two:
-	1. T1时刻，instaneCache 拉取并更新了实例计数信息，此时通知 serviceCache 进行命名空间计数 reload
-	2. T2时刻，serviceCache 拉取到了全部的 service 信息
-	这种情况，serviceCache 无法正常更新计数，因为可能对应的 service 对象还没有被缓存，需要放到一个 pendingService 里面等待
-	因为在这个Case下，watchCountChangeCh 是先处理来自 instaneCache 的 reload 通知，处理完了才处理 serviceCache 的 reload 通知
-	因此，对于 instanceCache 的 reload 通知，需要把不存在的 svcId 记录在 pending 列表中标记待处理；等待 serviceCache 的 reload 通知
-	到达之后，需要一并处理上次遗留的 pending 计算任务
+Case ONE:
+1. T1, ServiceCache pulls all of the service information
+2. T2 time, instanecache pulls and updates the instance count information, and notify ServiceCache to count the namespace count Reload
+
+- In this case, the instancecache notifies the servicecache, ServiceCache is a fixed count update.
+
+Case TWO:
+1. T1, instanecache pulls and updates the instance count information, and notify ServiceCache to make a namespace count Reload
+2. T2 moments, ServiceCache pulls all of the service information
+
+- This situation, ServiceCache does not update the count, because the corresponding service object has not been cached, you need to put it in a PendingService waiting
+- Because under this case, WatchCountChangech is the first RELOAD notification from Instanecache, handled the reload notification of ServiceCache.
+- Therefore, for the reload notification of instancecache, you need to record the non-existing SVCID record in the Pending list;
+   wait for the servicecache's Reload notification. after arriving, need to handle the last legacy PENDING calculation task.
 */
 func (sc *serviceCache) watchCountChangeCh(ctx context.Context) {
 	for {
@@ -445,7 +449,7 @@ func (sc *serviceCache) watchCountChangeCh(ctx context.Context) {
 		case event := <-sc.countChangeCh:
 			affect := make(map[string]bool, 0)
 
-			// 上一次来自 instanceCache 的 reload 通知，但是 serviceCache 没有对应数据的暂存任务
+			// The last Reload notification from InstanceCache, but ServiceCache has no statutory task corresponding to data.
 			if len(sc.pendingServices) != 0 {
 				for svcId := range sc.pendingServices {
 					svc, ok := sc.ids.Load(svcId)
@@ -457,7 +461,6 @@ func (sc *serviceCache) watchCountChangeCh(ctx context.Context) {
 				}
 			}
 
-			// 新记录一份可能需要等待下一次变更的 service 信息
 			newPendingServices := make(map[string]int8, 0)
 			for svcId := range event {
 				svc, ok := sc.ids.Load(svcId)
@@ -469,7 +472,6 @@ func (sc *serviceCache) watchCountChangeCh(ctx context.Context) {
 			}
 
 			sc.postProcessUpdatedServices(affect)
-			// 更新最新的 pending 状态的 service
 			sc.pendingServices = newPendingServices
 		}
 	}
@@ -483,7 +485,7 @@ func (sc *serviceCache) postProcessUpdatedServices(affect map[string]bool) {
 		if progress%10000 == 0 {
 			log.Infof("[Cache][Service] namespace service detail count progress(%d / %d)", progress, len(affect))
 		}
-		//构建服务数量统计
+		//Construction of service quantity statistics
 		value, ok := sc.names.Load(namespace)
 		if !ok {
 			sc.namespaceServiceCnt.Delete(namespace)
@@ -493,7 +495,7 @@ func (sc *serviceCache) postProcessUpdatedServices(affect map[string]bool) {
 		newVal, _ := sc.namespaceServiceCnt.LoadOrStore(namespace, &model.NamespaceServiceCount{})
 		count := newVal.(*model.NamespaceServiceCount)
 
-		// 对于涉及变更的 namespace 下的计数信息，需要重新来过一遍
+		// For count information under the Namespace involved in the change, it is necessary to re-come over.
 		count.ServiceCount = 0
 		count.InstanceCnt = &model.InstanceCount{}
 
