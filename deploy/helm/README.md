@@ -67,7 +67,7 @@ $ helm uninstall `${release_name}`
 ## Configuration
 The currently supported configurations are as follows:
 
-| 参数名                                | 参数解释                              |
+| Parameter                            | Description                              |
 |--------------------------------------|--------------------------------------|
 |global.mode                           | Cluster type, supports `cluter` and `standalone` , indicating cluster version and stand-alone version|
 |polaris.image.repository              | polaris-server image repository address|

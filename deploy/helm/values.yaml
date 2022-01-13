@@ -9,15 +9,15 @@ global:
 polaris:
   image:
     repository: polarismesh/polaris-server
-    tag: latest
+    tag: v1.4.0
     pullPolicy: Always
   limit:
     cpu: "500m"
     memory: "1000Mi"
   console:
     image:
-      repository: ccr.ccs.tencentyun.com/polaris_mesh/polaris-console
-      tag: latest
+      repository: polarismesh/polaris-console
+      tag: v1.3.1
       pullPolicy: Always
     limit:
       cpu: "500m"
