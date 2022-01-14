@@ -417,6 +417,11 @@ func checkCreateNamespace(req *api.Namespace) *api.Response {
 	if err := checkResourceName(req.GetName()); err != nil {
 		return api.NewNamespaceResponse(api.InvalidNamespaceName, req)
 	}
+
+	if err := checkResourceOwners(req.GetOwners()); err != nil {
+		return api.NewNamespaceResponse(api.InvalidNamespaceOwners, req)
+	}
+
 	return nil
 }
 

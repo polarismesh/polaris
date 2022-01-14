@@ -426,7 +426,7 @@ func (p *Pool) handleTaskWithRetries(task *Task) *Resp {
 	}
 	var resp *Resp
 	for i := 0; i < count; i++ {
-		if i == 0 {
+		if i > 0 {
 			sleep(retryBackoff)
 		}
 		resp = p.handleTask(task)
