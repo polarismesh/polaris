@@ -84,7 +84,7 @@ func (cbc *circuitBreakerCache) initialize(opt map[string]interface{}) error {
 func (cbc *circuitBreakerCache) update() error {
 	out, err := cbc.storage.GetCircuitBreakerForCache(cbc.lastTime.Add(DefaultTimeDiff), cbc.firstUpdate)
 	if err != nil {
-		log.Errorf("[Cache] circuit breaker config cache update err:%s", err.Error())
+		log.CacheScope().Errorf("[Cache] circuit breaker config cache update err:%s", err.Error())
 		return err
 	}
 

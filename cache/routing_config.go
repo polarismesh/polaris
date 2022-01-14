@@ -79,7 +79,7 @@ func (rc *routingConfigCache) initialize(opt map[string]interface{}) error {
 func (rc *routingConfigCache) update() error {
 	out, err := rc.storage.GetRoutingConfigsForCache(rc.lastMtime.Add(DefaultTimeDiff), rc.firstUpdate)
 	if err != nil {
-		log.Errorf("[Cache] routing config cache update err: %s", err.Error())
+		log.CacheScope().Errorf("[Cache] routing config cache update err: %s", err.Error())
 		return err
 	}
 

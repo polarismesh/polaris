@@ -21,7 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/log"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/redispool"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
@@ -29,6 +29,8 @@ import (
 	"strings"
 	"time"
 )
+
+var log = commonlog.NamingScope()
 
 // 把操作记录记录到日志文件中
 const (

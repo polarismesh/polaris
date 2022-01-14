@@ -18,7 +18,6 @@
 package sqldb
 
 import (
-	"github.com/polarismesh/polaris-server/common/log"
 	"time"
 )
 

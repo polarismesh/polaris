@@ -20,7 +20,6 @@ package healthcheck
 import (
 	"context"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -114,7 +113,7 @@ func (d *Dispatcher) reloadSelfContinuum() bool {
 		}] = true
 	})
 	originBucket := d.selfServiceBuckets
-	log.Infof("[Health Check][Dispatcher]reload continuum by %v, origin is %v", nextBuckets, originBucket)
+	log.Debugf("[Health Check][Dispatcher]reload continuum by %v, origin is %v", nextBuckets, originBucket)
 	if compareBuckets(originBucket, nextBuckets) {
 		return false
 	}

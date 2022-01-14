@@ -470,7 +470,7 @@ const (
 func (p *Pool) afterHandleTask(startTime time.Time, command string, task *Task, resp *Resp) {
 	costDuration := time.Since(startTime)
 	if costDuration >= maxProcessDuration && task.taskType != Get {
-		log.Warnf("[Health Check][RedisCheck]to slow to process task %s, "+
+		log.Warnf("[RedisPool] too slow to process task %s, "+
 			"duration %s, greater than %s", task.String(), costDuration, maxProcessDuration)
 	}
 	code := callResultOk
