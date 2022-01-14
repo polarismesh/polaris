@@ -170,7 +170,7 @@ func (ic *instanceCache) realUpdate() error {
 	update, del := ic.setInstances(instances)
 	timeDiff := time.Now().Sub(start)
 	if timeDiff > 1*time.Second {
-		log.CacheScope().Infof("[Cache][Instance] get more instances",
+		log.CacheScope().Info("[Cache][Instance] get more instances",
 			zap.Int("update", update), zap.Int("delete", del),
 			zap.Time("last", lastMtime), zap.Duration("used", time.Now().Sub(start)))
 	}
