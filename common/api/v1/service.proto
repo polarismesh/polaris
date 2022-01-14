@@ -12,6 +12,10 @@ message Namespace {
 	google.protobuf.StringValue token = 4;
 	google.protobuf.StringValue ctime = 5;
 	google.protobuf.StringValue mtime = 6;
+
+	google.protobuf.UInt32Value total_service_count = 7 [json_name="total_service_count"];
+	google.protobuf.UInt32Value total_health_instance_count = 8 [json_name="total_health_instance_count"];
+	google.protobuf.UInt32Value total_instance_count = 9 [json_name="total_instance_count"];
 }
 
 message Service {
