@@ -282,6 +282,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 		ic.instanceCount = instanceCount
 	}
 	ic.postProcessUpdatedServices(affect)
+	ic.manager.onEvent(affect, EventInstanceReload)
 	return update, del
 }
 

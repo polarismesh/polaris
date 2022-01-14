@@ -213,6 +213,21 @@ func (c *CacheProvider) OnDeleted(value interface{}) {
 	}
 }
 
+// OnBatchCreated callback when cache value created
+func (c *CacheProvider) OnBatchCreated(value interface{}) {
+
+}
+
+// OnBatchUpdated callback when cache value updated
+func (c *CacheProvider) OnBatchUpdated(value interface{}) {
+
+}
+
+// OnBatchDeleted callback when cache value deleted
+func (c *CacheProvider) OnBatchDeleted(value interface{}) {
+
+}
+
 // RangeHealthCheckInstances range loop healthCheckInstances
 func (c *CacheProvider) RangeHealthCheckInstances(check func(instance *InstanceWithChecker)) {
 	c.healthCheckMutex.RLock()

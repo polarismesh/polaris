@@ -20,8 +20,9 @@ package service
 import (
 	"context"
 	"fmt"
-	commontime "github.com/polarismesh/polaris-server/common/time"
 	"time"
+
+	commontime "github.com/polarismesh/polaris-server/common/time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -309,12 +310,18 @@ func (s *Server) GetNamespaces(query map[string][]string) *api.BatchQueryRespons
 	out.Amount = utils.NewUInt32Value(amount)
 	out.Size = utils.NewUInt32Value(uint32(len(namespaces)))
 	for _, namespace := range namespaces {
+
+		nsCntInfo := s.caches.Service().GetNamesapceCntInfo(namespace.Name)
+
 		out.AddNamespace(&api.Namespace{
-			Name:    utils.NewStringValue(namespace.Name),
-			Comment: utils.NewStringValue(namespace.Comment),
-			Owners:  utils.NewStringValue(namespace.Owner),
-			Ctime:   utils.NewStringValue(commontime.Time2String(namespace.CreateTime)),
-			Mtime:   utils.NewStringValue(commontime.Time2String(namespace.ModifyTime)),
+			Name:                     utils.NewStringValue(namespace.Name),
+			Comment:                  utils.NewStringValue(namespace.Comment),
+			Owners:                   utils.NewStringValue(namespace.Owner),
+			Ctime:                    utils.NewStringValue(commontime.Time2String(namespace.CreateTime)),
+			Mtime:                    utils.NewStringValue(commontime.Time2String(namespace.ModifyTime)),
+			TotalServiceCount:        utils.NewUInt32Value(nsCntInfo.ServiceCount),
+			TotalInstanceCount:       utils.NewUInt32Value(nsCntInfo.InstanceCnt.TotalInstanceCount),
+			TotalHealthInstanceCount: utils.NewUInt32Value(nsCntInfo.InstanceCnt.HealthyInstanceCount),
 		})
 	}
 	return out

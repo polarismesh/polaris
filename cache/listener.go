@@ -25,6 +25,12 @@ type Listener interface {
 	OnUpdated(value interface{})
 	// OnDeleted callback when cache value deleted
 	OnDeleted(value interface{})
+	// OnBatchCreated callback when cache value created
+	OnBatchCreated(value interface{})
+	// OnBatchUpdated callback when cache value updated
+	OnBatchUpdated(value interface{})
+	// OnBatchDeleted callback when cache value deleted
+	OnBatchDeleted(value interface{})
 }
 
 // EventType common event type
@@ -37,6 +43,8 @@ const (
 	EventUpdated
 	// EventDeleted value delete event
 	EventDeleted
+	// EventInstanceReload value instances reload
+	EventInstanceReload
 )
 
 type listenerManager struct {
@@ -61,6 +69,8 @@ func (l *listenerManager) onEvent(value interface{}, event EventType) {
 			listener.OnUpdated(value)
 		case EventDeleted:
 			listener.OnDeleted(value)
+		case EventInstanceReload:
+			listener.OnBatchUpdated(value)
 		}
 	}
 }
