@@ -459,14 +459,23 @@ type UserStore interface {
 	//  @return error
 	GetUserGroupsForCache(mtime time.Time, firstUpdate bool) ([]*model.UserGroupDetail, error)
 
-	// ListUserByGroup 
+	// ListUserByGroup
+	//  @param filters
+	//  @param offset
+	//  @param limit
+	//  @return uint32
+	//  @return []*model.User
+	//  @return error
+	ListUserByGroup(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error)
+
+	// ListGroupByUser 
 	//  @param filters 
 	//  @param offset 
 	//  @param limit 
 	//  @return uint32 
-	//  @return []*model.User 
+	//  @return []*model.UserGroup 
 	//  @return error 
-	ListUserByGroup(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error)
+	ListGroupByUser(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error)
 }
 
 // StrategyStore
@@ -501,11 +510,11 @@ type StrategyStore interface {
 	//  @return error
 	GetStrategyDetail(id string) (*model.StrategyDetail, error)
 
-	// GetStrategyDetailByName 
-	//  @param owner 
-	//  @param name 
-	//  @return *model.StrategyDetail 
-	//  @return error 
+	// GetStrategyDetailByName
+	//  @param owner
+	//  @param name
+	//  @return *model.StrategyDetail
+	//  @return error
 	GetStrategyDetailByName(owner, name string) (*model.StrategyDetail, error)
 
 	// GetStrategySimpleByName
@@ -514,6 +523,15 @@ type StrategyStore interface {
 	//  @return *model.Strategy
 	//  @return error
 	GetStrategySimpleByName(owner, name string) (*model.Strategy, error)
+
+	// ListStrategySimpleByUserId
+	//  @param filters
+	//  @param offset
+	//  @param limit
+	//  @return uint32
+	//  @return []*model.StrategyDetail
+	//  @return error
+	ListStrategySimpleByUserId(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.StrategyDetail, error)
 
 	// ListStrategySimple
 	//  @param filters

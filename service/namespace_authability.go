@@ -30,12 +30,19 @@ import (
 //  @param ctx
 //  @param req
 //  @return *api.BatchWriteResponse
-func (svr *serverAuthAbility) CreateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
-	authCtx := svr.collectNamespaceAuthContext(ctx, req, model.Create)
+func (svr *serverAuthAbility) CreateNamespaces(ctx context.Context, reqs []*api.Namespace) *api.BatchWriteResponse {
+	authCtx := svr.collectNamespaceAuthContext(ctx, reqs, model.Create)
 
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	resp := svr.targetServer.CreateNamespaces(ctx, req)
+	// 填充 ownerId 信息数据
+	ownerId := utils.ParseOwnerID(ctx)
+	for index := range reqs {
+		req := reqs[index]
+		req.Owners = utils.NewStringValue(ownerId)
+	}
+
+	resp := svr.targetServer.CreateNamespaces(ctx, reqs)
 	return resp
 }
 
@@ -47,7 +54,7 @@ func (svr *serverAuthAbility) CreateNamespaces(ctx context.Context, req []*api.N
 func (svr *serverAuthAbility) DeleteNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
 	authCtx := svr.collectNamespaceAuthContext(ctx, req, model.Delete)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -65,7 +72,7 @@ func (svr *serverAuthAbility) DeleteNamespaces(ctx context.Context, req []*api.N
 func (svr *serverAuthAbility) UpdateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
 	authCtx := svr.collectNamespaceAuthContext(ctx, req, model.Modify)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -82,7 +89,7 @@ func (svr *serverAuthAbility) UpdateNamespaces(ctx context.Context, req []*api.N
 func (svr *serverAuthAbility) UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response {
 	authCtx := svr.collectNamespaceAuthContext(ctx, []*api.Namespace{req}, model.Modify)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}

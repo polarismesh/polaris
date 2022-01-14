@@ -45,7 +45,7 @@ func (svr *strategyServerAuth) CreateStrategy(ctx context.Context, strategy *api
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
 	if errResp != nil {
 		errResp.AuthStrategy = strategy
 		return errResp
@@ -61,7 +61,7 @@ func (svr *strategyServerAuth) UpdateStrategy(ctx context.Context, strategy *api
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
 	if errResp != nil {
 		errResp.ModifyAuthStrategy = strategy
 		return errResp
@@ -77,7 +77,7 @@ func (svr *strategyServerAuth) DeleteStrategy(ctx context.Context, strategy *api
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
 	if errResp != nil {
 		errResp.AuthStrategy = strategy
 		return errResp
@@ -93,12 +93,30 @@ func (svr *strategyServerAuth) ListStrategy(ctx context.Context, query map[strin
 		return api.NewBatchQueryResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
 	if errResp != nil {
 		return api.NewBatchQueryResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
 	}
 
 	return svr.target.ListStrategy(ctx, query)
+}
+
+// ListStrategyByUserID
+//  @param ctx
+//  @param query
+//  @return *api.BatchQueryResponse
+func (svr *strategyServerAuth) ListStrategyByUserID(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+	authToken := utils.ParseAuthToken(ctx)
+	if authToken == "" {
+		return api.NewBatchQueryResponse(api.NotAllowedAccess)
+	}
+
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	if errResp != nil {
+		return api.NewBatchQueryResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
+	}
+
+	return svr.target.ListStrategyByUserID(ctx, query)
 }
 
 func (svr *strategyServerAuth) GetStrategy(ctx context.Context, query map[string]string) *api.Response {
@@ -107,7 +125,7 @@ func (svr *strategyServerAuth) GetStrategy(ctx context.Context, query map[string
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
 	if errResp != nil {
 		return api.NewResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
 	}

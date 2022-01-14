@@ -31,10 +31,10 @@ var (
 )
 
 const (
-	HeaderAuthTokenKey string = "Auth-Token"
-	HeaderIsOwnerKey   string = "is-owner"
-	HeaderUserIDKey    string = "user-id"
-	HeaderOwnerIDKey   string = "owner-id"
+	HeaderAuthTokenKey string = "X-Polaris-Token"
+	HeaderIsOwnerKey   string = "Is-Owner"
+	HeaderUserIDKey    string = "User-ID"
+	HeaderOwnerIDKey   string = "Owner-ID"
 	HeaderUserRoleKey  string = "X-Polaris-User-Role"
 
 	ContextAuthTokenKey   StringContext = StringContext(HeaderAuthTokenKey)

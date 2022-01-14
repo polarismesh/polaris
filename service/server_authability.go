@@ -29,6 +29,7 @@ import (
 )
 
 // serverAuthAbility 带有鉴权能力的 discoverServer
+//  该层会对请求参数做一些调整，根据具体的请求发起人，设置为数据对应的 owner，不可为为别人进行创建资源
 type serverAuthAbility struct {
 	targetServer *Server
 	authMgn      auth.AuthManager
@@ -62,14 +63,14 @@ func (svr *serverAuthAbility) GetServiceInstanceRevision(serviceID string, insta
 //  @return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectNamespaceAuthContext(ctx context.Context, req []*api.Namespace, resourceOp model.ResourceOperation) *model.AcquireContext {
 	authToken := utils.ParseAuthToken(ctx)
-	authCtx := &model.AcquireContext{
-		RequestContext: ctx,
-		Token:          authToken,
-		Module:         model.CoreModule,
-		Operation:      resourceOp,
-		Resources:      svr.queryNamespaceResource(req),
-		Attachment:     make(map[string]interface{}),
-	}
+
+	authCtx := model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithOperation(resourceOp),
+		model.WithToken(authToken),
+		model.WithModule(model.CoreModule),
+		model.WithAccessResources(svr.queryNamespaceResource(req)),
+	)
 
 	return authCtx
 }
@@ -91,14 +92,13 @@ func (svr *serverAuthAbility) collectServiceAuthContext(ctx context.Context, req
 		serviceNames = append(serviceNames, service.GetName().GetValue())
 	}
 
-	authCtx := &model.AcquireContext{
-		RequestContext: ctx,
-		Token:          authToken,
-		Module:         model.CoreModule,
-		Operation:      resourceOp,
-		Resources:      svr.queryServiceResource(req),
-		Attachment:     make(map[string]interface{}),
-	}
+	authCtx := model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithOperation(resourceOp),
+		model.WithToken(authToken),
+		model.WithModule(model.CoreModule),
+		model.WithAccessResources(svr.queryServiceResource(req)),
+	)
 
 	return authCtx
 }
@@ -121,14 +121,13 @@ func (svr *serverAuthAbility) collectServiceAliasAuthContext(ctx context.Context
 		serviceNames = append(serviceNames, service.GetService().GetValue())
 	}
 
-	authCtx := &model.AcquireContext{
-		RequestContext: ctx,
-		Token:          authToken,
-		Module:         model.CoreModule,
-		Operation:      resourceOp,
-		Resources:      svr.queryServiceAliasResource(req),
-		Attachment:     make(map[string]interface{}),
-	}
+	authCtx := model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithOperation(resourceOp),
+		model.WithToken(authToken),
+		model.WithModule(model.CoreModule),
+		model.WithAccessResources(svr.queryServiceAliasResource(req)),
+	)
 
 	return authCtx
 }
@@ -150,14 +149,13 @@ func (svr *serverAuthAbility) collectInstanceAuthContext(ctx context.Context, re
 		serviceNames = append(serviceNames, ns.GetService().GetValue())
 	}
 
-	authCtx := &model.AcquireContext{
-		RequestContext: ctx,
-		Token:          authToken,
-		Module:         model.CoreModule,
-		Operation:      resourceOp,
-		Resources:      svr.queryInstanceResource(req),
-		Attachment:     make(map[string]interface{}),
-	}
+	authCtx := model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithOperation(resourceOp),
+		model.WithToken(authToken),
+		model.WithModule(model.DiscoverModule),
+		model.WithAccessResources(svr.queryInstanceResource(req)),
+	)
 
 	return authCtx
 }
@@ -179,14 +177,13 @@ func (svr *serverAuthAbility) collectCircuitBreakerAuthContext(ctx context.Conte
 		serviceNames = append(serviceNames, ns.GetService().GetValue())
 	}
 
-	authCtx := &model.AcquireContext{
-		RequestContext: ctx,
-		Token:          authToken,
-		Module:         model.CoreModule,
-		Operation:      resourceOp,
-		Resources:      svr.queryCircuitBreakerResource(req),
-		Attachment:     make(map[string]interface{}),
-	}
+	authCtx := model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithOperation(resourceOp),
+		model.WithToken(authToken),
+		model.WithModule(model.DiscoverModule),
+		model.WithAccessResources(svr.queryCircuitBreakerResource(req)),
+	)
 
 	return authCtx
 }
@@ -208,14 +205,13 @@ func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx contex
 		serviceNames = append(serviceNames, cfg.GetCircuitBreaker().GetService().GetValue())
 	}
 
-	authCtx := &model.AcquireContext{
-		RequestContext: ctx,
-		Token:          authToken,
-		Module:         model.CoreModule,
-		Operation:      resourceOp,
-		Resources:      svr.queryCircuitBreakerReleaseResource(req),
-		Attachment:     make(map[string]interface{}),
-	}
+	authCtx := model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithOperation(resourceOp),
+		model.WithToken(authToken),
+		model.WithModule(model.DiscoverModule),
+		model.WithAccessResources(svr.queryCircuitBreakerReleaseResource(req)),
+	)
 
 	return authCtx
 }
@@ -237,14 +233,13 @@ func (svr *serverAuthAbility) collectRouteRuleAuthContext(ctx context.Context, r
 		serviceNames = append(serviceNames, ns.GetService().GetValue())
 	}
 
-	authCtx := &model.AcquireContext{
-		RequestContext: ctx,
-		Token:          authToken,
-		Module:         model.CoreModule,
-		Operation:      resourceOp,
-		Resources:      svr.queryRouteRuleResource(req),
-		Attachment:     make(map[string]interface{}),
-	}
+	authCtx := model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithOperation(resourceOp),
+		model.WithToken(authToken),
+		model.WithModule(model.DiscoverModule),
+		model.WithAccessResources(svr.queryRouteRuleResource(req)),
+	)
 
 	return authCtx
 }
@@ -266,14 +261,13 @@ func (svr *serverAuthAbility) collectRateLimitAuthContext(ctx context.Context, r
 		serviceNames = append(serviceNames, ns.GetService().GetValue())
 	}
 
-	authCtx := &model.AcquireContext{
-		RequestContext: ctx,
-		Token:          authToken,
-		Module:         model.CoreModule,
-		Operation:      resourceOp,
-		Resources:      svr.queryRateLimitConfigResource(req),
-		Attachment:     make(map[string]interface{}),
-	}
+	authCtx := model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithOperation(resourceOp),
+		model.WithToken(authToken),
+		model.WithModule(model.DiscoverModule),
+		model.WithAccessResources(svr.queryRateLimitConfigResource(req)),
+	)
 
 	return authCtx
 }

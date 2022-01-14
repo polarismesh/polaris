@@ -30,6 +30,13 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	RuleLinkUserFilters map[string]string = map[string]string{
+		"id":   "ap.principal_id",
+		"type": "ap.principal_role",
+	}
+)
+
 type strategyStore struct {
 	master *BaseDB
 	slave  *BaseDB
@@ -80,7 +87,7 @@ func (s *strategyStore) addStrategy(strategy *model.StrategyDetail) error {
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.GetStoreLogger().Errorf("[Store][database] add auth_strategy tx commit err: %s", err.Error())
+		log.GetAuthLogger().Errorf("[Store][database] add auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
 
@@ -134,7 +141,7 @@ func (s *strategyStore) updateStrategy(strategy *model.ModifyStrategyDetail) err
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.GetStoreLogger().Errorf("[Store][database] update auth_strategy tx commit err: %s", err.Error())
+		log.GetAuthLogger().Errorf("[Store][database] update auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
 
@@ -168,7 +175,7 @@ func (s *strategyStore) deleteStrategy(id string) error {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
-		log.GetStoreLogger().Errorf("[Store][database] delete auth_strategy tx commit err: %s", err.Error())
+		log.GetAuthLogger().Errorf("[Store][database] delete auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
 	return nil
@@ -236,7 +243,7 @@ func (s *strategyStore) addStrategyResources(tx *BaseTx, id string, resources []
 
 	saveResSql += strings.Join(values, ",")
 
-	log.GetStoreLogger().Debug("addStrategyResources", zap.String("sql", saveResSql))
+	log.GetAuthLogger().Debug("addStrategyResources", zap.String("sql", saveResSql))
 	_, err := tx.Exec(saveResSql, args...)
 	return err
 }
@@ -269,10 +276,10 @@ func (s *strategyStore) LooseAddStrategyResources(resources []model.StrategyReso
 
 	// 保存策略的资源信息
 	for i := range resources {
-		saveResSql := "INSERT INTO auth_strategy_resource(strategy_id, res_type, res_id) VALUES (?,?,?)"
+		saveResSql := "INSERT INTO auth_strategy_resource(strategy_id, res_type, res_id, flag) VALUES (?,?,?,?)"
 		args := make([]interface{}, 0)
 		resource := resources[i]
-		args = append(args, resource.ResID, resource.ResType, resource.ResID)
+		args = append(args, resource.StrategyID, resource.ResType, resource.ResID, 0)
 
 		_, err = tx.Exec(saveResSql, args...)
 		if err != nil {
@@ -285,7 +292,7 @@ func (s *strategyStore) LooseAddStrategyResources(resources []model.StrategyReso
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.GetStoreLogger().Errorf("[Store][database] add auth_strategy tx commit err: %s", err.Error())
+		log.GetAuthLogger().Errorf("[Store][database] add auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
 
@@ -311,7 +318,7 @@ func (s *strategyStore) RemoveStrategyResources(resources []model.StrategyResour
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.GetStoreLogger().Errorf("[Store][database] add auth_strategy tx commit err: %s", err.Error())
+		log.GetAuthLogger().Errorf("[Store][database] add auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
 
@@ -475,7 +482,7 @@ func (s *strategyStore) ListStrategySimple(filters map[string]string, offset uin
 		}
 	}
 
-	log.GetStoreLogger().Debug("ListStrategyDetails", zap.String("count sql", countSql), zap.Any("args", args))
+	log.GetAuthLogger().Debug("ListStrategyDetails", zap.String("count sql", countSql), zap.Any("args", args))
 	count, err := queryEntryCount(s.master, countSql, args)
 	if err != nil {
 		return 0, nil, store.Error(err)
@@ -484,7 +491,7 @@ func (s *strategyStore) ListStrategySimple(filters map[string]string, offset uin
 	querySql += " ORDER BY mtime LIMIT ?, ? "
 	args = append(args, offset, limit)
 
-	log.GetStoreLogger().Debug("ListStrategyDetails", zap.String("query sql", querySql), zap.Any("args", args))
+	log.GetAuthLogger().Debug("ListStrategyDetails", zap.String("query sql", querySql), zap.Any("args", args))
 	rows, err := tx.Query(querySql, args...)
 	if err != nil {
 		return 0, nil, store.Error(err)
@@ -497,17 +504,75 @@ func (s *strategyStore) ListStrategySimple(filters map[string]string, offset uin
 		if err != nil {
 			return 0, nil, store.Error(err)
 		}
-		// resArr, err := s.getStrategyResources(s.slave.Query, detail.ID)
-		// if err != nil {
-		// 	return 0, nil, store.Error(err)
-		// }
-		// principals, err := s.getStrategyPrincipals(s.slave.Query, detail.ID)
-		// if err != nil {
-		// 	return 0, nil, store.Error(err)
-		// }
+		ret = append(ret, detail)
+	}
 
-		// detail.Resources = resArr
-		// detail.Principals = principals
+	return count, ret, nil
+}
+
+// ListStrategySimpleByUserId
+//  @receiver s
+//  @param filters
+//  @param offset
+//  @param limit
+//  @return uint32
+//  @return []*model.StrategyDetail
+//  @return error
+func (s *strategyStore) ListStrategySimpleByUserId(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.StrategyDetail, error) {
+	tx, err := s.slave.Begin()
+	if err != nil {
+		return 0, nil, err
+	}
+
+	defer func() { _ = tx.Commit() }()
+
+	querySql := "SELECT `id`, `name`, `action`, `owner`, `comment`, `default`, `revision`, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM auth_principal ap LEFT JOIN auth_strategy ag ON ap.strategy_id = ag.id "
+	countSql := "SELECT COUNT(*) FROM  auth_principal ap LEFT JOIN auth_strategy ag ON ap.strategy_id = ag.id "
+
+	args := make([]interface{}, 0)
+	if len(filters) != 0 {
+		querySql += " WHERE "
+		countSql += " WHERE "
+		firstIndex := true
+		for k, v := range filters {
+			if !firstIndex {
+				querySql += " AND "
+				countSql += " AND "
+			}
+			firstIndex = false
+
+			if val, ok := RuleLinkUserFilters[k]; ok {
+				k = val
+			}
+
+			querySql += (" " + k + " = ? ")
+			countSql += (" " + k + " = ? ")
+			args = append(args, v)
+		}
+	}
+
+	log.GetAuthLogger().Debug("ListStrategySimpleByUserId", zap.String("count sql", countSql), zap.Any("args", args))
+	count, err := queryEntryCount(s.master, countSql, args)
+	if err != nil {
+		return 0, nil, store.Error(err)
+	}
+
+	querySql += " ORDER BY ag.mtime LIMIT ?, ? "
+	args = append(args, offset, limit)
+
+	log.GetAuthLogger().Debug("ListStrategySimpleByUserId", zap.String("query sql", querySql), zap.Any("args", args))
+	rows, err := tx.Query(querySql, args...)
+	if err != nil {
+		return 0, nil, store.Error(err)
+	}
+	defer rows.Close()
+
+	ret := make([]*model.StrategyDetail, 0, 16)
+	for rows.Next() {
+		detail, err := fetchRown2StrategyDetail(rows)
+		if err != nil {
+			return 0, nil, store.Error(err)
+		}
 		ret = append(ret, detail)
 	}
 
@@ -634,7 +699,7 @@ func fetchRown2StrategyDetail(rows *sql.Rows) (*model.StrategyDetail, error) {
 }
 
 func (s *strategyStore) cleanInvalidStrategy(name string) error {
-	log.GetStoreLogger().Infof("[Store][database] clean invalid auth_strategy(%s)", name)
+	log.GetAuthLogger().Infof("[Store][database] clean invalid auth_strategy(%s)", name)
 
 	tx, err := s.master.Begin()
 	if err != nil {
@@ -645,18 +710,18 @@ func (s *strategyStore) cleanInvalidStrategy(name string) error {
 	str := "delete from auth_strategy_resource where strategy_id = (select id from auth_strategy where  name = ? and flag = 1) and flag = 1"
 	_, err = tx.Exec(str, name)
 	if err != nil {
-		log.GetStoreLogger().Errorf("[Store][database] clean invalid auth_strategy(%s) err: %s", name, err.Error())
+		log.GetAuthLogger().Errorf("[Store][database] clean invalid auth_strategy(%s) err: %s", name, err.Error())
 		return err
 	}
 
 	str = "delete from auth_strategy where name = ? and flag = 1"
 	_, err = tx.Exec(str, name)
 	if err != nil {
-		log.GetStoreLogger().Errorf("[Store][database] clean invalid auth_strategy(%s) err: %s", name, err.Error())
+		log.GetAuthLogger().Errorf("[Store][database] clean invalid auth_strategy(%s) err: %s", name, err.Error())
 		return err
 	}
 	if err := tx.Commit(); err != nil {
-		log.GetStoreLogger().Errorf("[Store][database] clean invalid auth_strategy tx commit err: %s", err.Error())
+		log.GetAuthLogger().Errorf("[Store][database] clean invalid auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
 	return nil

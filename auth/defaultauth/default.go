@@ -31,7 +31,7 @@ import (
 var (
 
 	// AuthOption 鉴权的配置信息
-	AuthOption *AuthConfig
+	AuthOption *AuthConfig = DefaultAuthConfig()
 )
 
 const (

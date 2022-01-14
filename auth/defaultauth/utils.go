@@ -18,6 +18,7 @@
 package defaultauth
 
 import (
+	"context"
 	"errors"
 	"regexp"
 	"unicode/utf8"
@@ -73,6 +74,29 @@ func checkName(name *wrappers.StringValue) error {
 	return nil
 }
 
+func checkPassword(password *wrappers.StringValue) error {
+	
+	if password == nil {
+		return errors.New("nil")
+	}
+
+	if password.GetValue() == "" {
+		return errors.New("empty")
+	}
+
+	regStr := "^[a-zA-Z]\\w{5,17}$"
+	ok, err := regexp.MatchString(regStr, password.GetValue())
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.New("password contains invalid character")
+	}
+
+	return nil
+}
+
+// checkOwner 检查用户的 owner 信息
 func checkOwner(owner *wrappers.StringValue) error {
 	if owner == nil {
 		return errors.New("nil")
@@ -87,4 +111,23 @@ func checkOwner(owner *wrappers.StringValue) error {
 	}
 
 	return nil
+}
+
+// verifyAuth token
+func verifyAuth(ctx context.Context, authMgn *defaultAuthManager, token string, needOwner bool) (context.Context, *api.Response) {
+	ctx, tokenInfo, err := authMgn.verifyToken(ctx, token)
+
+	if err != nil {
+		return nil, api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	if !tokenInfo.IsUserToken {
+		return nil, api.NewResponseWithMsg(api.NotAllowedAccess, "only user role can access this API")
+	}
+
+	if needOwner && tokenInfo.IsSubAccount() {
+		return nil, api.NewResponseWithMsg(api.NotAllowedAccess, "only admin/owner account can access this API")
+	}
+
+	return ctx, nil
 }

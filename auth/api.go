@@ -40,11 +40,11 @@ type AuthManager interface {
 	//  @return error
 	Login(req *api.LoginRequest) *api.Response
 
-	// HasPermission 执行检查动作判断是否有权限
+	// CheckPermission 执行检查动作判断是否有权限，并且将 RequestContext 进行插入一些新的数据
 	//  @param preCtx
 	//  @return bool
 	//  @return error
-	HasPermission(preCtx *model.AcquireContext) (bool, error)
+	CheckPermission(preCtx *model.AcquireContext) (bool, error)
 
 	// ChangeOpenStatus 修改权限功能的开关状态，用于动态变更
 	//  @param status
@@ -99,6 +99,12 @@ type UserServer interface {
 	//  @return *api.BatchQueryResponse
 	ListUsers(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
+	// ListUserLinkGroups 查询这个用户所关联的用户组信息
+	//  @param ctx
+	//  @param query
+	//  @return *api.BatchQueryResponse
+	ListUserLinkGroups(ctx context.Context, query map[string]string) *api.BatchQueryResponse
+
 	// GetUserToken 获取用户的 token
 	//  @param ctx
 	//  @param user
@@ -135,11 +141,11 @@ type UserServer interface {
 	//  @return *api.Response
 	DeleteUserGroup(ctx context.Context, group *api.UserGroup) *api.Response
 
-	// ListUserGroups 查询用户组列表（不带用户详细信息）
+	// ListGroups 查询用户组列表（不带用户详细信息）
 	//  @param ctx
 	//  @param query
 	//  @return *api.BatchQueryResponse
-	ListUserGroups(ctx context.Context, query map[string]string) *api.BatchQueryResponse
+	ListGroups(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
 	// ListUserByGroup 根据用户组信息，查询该用户组下的用户相信
 	//  @param ctx
@@ -192,10 +198,16 @@ type AuthStrategyServer interface {
 	//  @return *api.BatchQueryResponse
 	ListStrategy(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
-	// GetStrategy 
-	//  @param ctx 
-	//  @param query 
-	//  @return *api.Response 
+	// ListStrategyByUserID
+	//  @param ctx
+	//  @param query
+	//  @return *api.BatchQueryResponse
+	ListStrategyByUserID(ctx context.Context, query map[string]string) *api.BatchQueryResponse
+
+	// GetStrategy
+	//  @param ctx
+	//  @param query
+	//  @return *api.Response
 	GetStrategy(ctx context.Context, query map[string]string) *api.Response
 }
 

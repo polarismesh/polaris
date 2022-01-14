@@ -66,10 +66,10 @@ func (da *defaultAuth) CheckPermission(reqCtx interface{}, authRule interface{})
 		return false, errors.New("invalid parameter")
 	}
 
-	ownerId := ctx.Attachment[model.OperatorIDKey].(string)
+	ownerId := ctx.GetAttachment()[model.OperatorIDKey].(string)
 	strategys, ok := authRule.([]*model.StrategyDetail)
 
-	reqRes := ctx.Resources
+	reqRes := ctx.GetAccessResources()
 	var (
 		checkNamespace   bool = false
 		checkService     bool = true
@@ -79,7 +79,7 @@ func (da *defaultAuth) CheckPermission(reqCtx interface{}, authRule interface{})
 	for index := range strategys {
 		rule := strategys[index]
 
-		if !da.checkAction(rule.Action, ctx.Operation) {
+		if !da.checkAction(rule.Action, ctx.GetOperation()) {
 			continue
 		}
 		searchMaps := buildSearchMap(rule.Resources)
@@ -87,11 +87,11 @@ func (da *defaultAuth) CheckPermission(reqCtx interface{}, authRule interface{})
 		// 检查 namespace
 		checkNamespace = checkAnyElementExist(ownerId, reqRes[api.ResourceType_Namespaces], searchMaps[0])
 		// 检查 service
-		if ctx.Module == model.DiscoverModule {
+		if ctx.GetModule() == model.DiscoverModule {
 			checkService = checkAnyElementExist(ownerId, reqRes[api.ResourceType_Services], searchMaps[1])
 		}
 		// 检查 config_group
-		if ctx.Module == model.ConfigModule {
+		if ctx.GetModule() == model.ConfigModule {
 			checkConfigGroup = checkAnyElementExist(ownerId, reqRes[api.ResourceType_ConfigGroups], searchMaps[2])
 		}
 

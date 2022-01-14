@@ -29,12 +29,21 @@ import (
 func (svr *serverAuthAbility) CreateServices(ctx context.Context, reqs []*api.Service) *api.BatchWriteResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, reqs, model.Create)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
 
+	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	// 填充 ownerId 信息数据
+	ownerId := utils.ParseOwnerID(ctx)
+	for index := range reqs {
+		req := reqs[index]
+		req.Owners = utils.NewStringValue(ownerId)
+	}
+
 	resp := svr.targetServer.CreateServices(ctx, reqs)
 
 	return resp
@@ -44,7 +53,7 @@ func (svr *serverAuthAbility) CreateServices(ctx context.Context, reqs []*api.Se
 func (svr *serverAuthAbility) DeleteServices(ctx context.Context, reqs []*api.Service) *api.BatchWriteResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, reqs, model.Delete)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -57,7 +66,7 @@ func (svr *serverAuthAbility) DeleteServices(ctx context.Context, reqs []*api.Se
 func (svr *serverAuthAbility) UpdateServices(ctx context.Context, reqs []*api.Service) *api.BatchWriteResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, reqs, model.Modify)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -68,7 +77,7 @@ func (svr *serverAuthAbility) UpdateServices(ctx context.Context, reqs []*api.Se
 func (svr *serverAuthAbility) UpdateServiceToken(ctx context.Context, req *api.Service) *api.Response {
 	authCtx := svr.collectServiceAuthContext(ctx, []*api.Service{req}, model.Create)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}

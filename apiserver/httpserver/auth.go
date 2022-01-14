@@ -34,6 +34,7 @@ func (h *HTTPServer) GetAuthServer() *restful.WebService {
 	ws.Route(ws.PUT("/user").To(h.UpdateUser))
 	ws.Route(ws.POST("/user/delete").To(h.DeleteUser))
 	ws.Route(ws.GET("/users").To(h.ListUsers))
+	ws.Route(ws.GET("/user/groups").To(h.ListUserLinkGroups))
 	ws.Route(ws.GET("/user/token").To(h.GetUserToken))
 	ws.Route(ws.PUT("/user/token/status").To(h.ChangeUserTokenStatus))
 	ws.Route(ws.PUT("/user/token/refresh").To(h.RefreshUserToken))
@@ -42,7 +43,7 @@ func (h *HTTPServer) GetAuthServer() *restful.WebService {
 	ws.Route(ws.POST("/usergroup").To(h.CreateUserGroup))
 	ws.Route(ws.PUT("/usergroup").To(h.UpdateUserGroup))
 	ws.Route(ws.POST("/usergroup/delete").To(h.DeleteUserGroup))
-	ws.Route(ws.GET("/usergroups").To(h.ListUserGroups))
+	ws.Route(ws.GET("/usergroups").To(h.ListGroups))
 	ws.Route(ws.GET("/usergroup/users").To(h.ListUserByGroup))
 	ws.Route(ws.GET("/usergroup/token").To(h.GetUserGroupToken))
 	ws.Route(ws.PUT("/usergroup/token/status").To(h.ChangeUserGroupTokenStatus))
@@ -52,6 +53,7 @@ func (h *HTTPServer) GetAuthServer() *restful.WebService {
 	ws.Route(ws.PUT("/auth/strategy").To(h.UpdateAuthStrategy))
 	ws.Route(ws.POST("/auth/strategy/delete").To(h.DeleteStrategy))
 	ws.Route(ws.GET("/auth/strategies").To(h.ListStrategy))
+	ws.Route(ws.GET("/auth/user/strategies").To(h.ListStrategyByUserID))
 	ws.Route(ws.GET("/auth/strategy/detail").To(h.GetStrategy))
 
 	return ws
@@ -146,7 +148,16 @@ func (h *HTTPServer) ListUsers(req *restful.Request, rsp *restful.Response) {
 	handler.WriteHeaderAndProto(h.userServer.ListUsers(ctx, queryParams))
 }
 
-// GetUserToken
+func (h *HTTPServer) ListUserLinkGroups(req *restful.Request, rsp *restful.Response) {
+	handler := &Handler{req, rsp}
+
+	queryParams := parseQueryParams(req)
+	ctx := handler.ParseHeaderContext()
+
+	handler.WriteHeaderAndProto(h.userServer.ListUserLinkGroups(ctx, queryParams))
+}
+
+// GetUserToken 获取这个用户所关联的所有用户组列表信息，支持翻页
 //  @receiver h
 //  @param req
 //  @param rsp
@@ -247,17 +258,17 @@ func (h *HTTPServer) DeleteUserGroup(req *restful.Request, rsp *restful.Response
 	handler.WriteHeaderAndProto(h.userServer.DeleteUserGroup(ctx, group))
 }
 
-// ListUserGroups
+// ListGroups
 //  @receiver h
 //  @param req
 //  @param rsp
-func (h *HTTPServer) ListUserGroups(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) ListGroups(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
-	handler.WriteHeaderAndProto(h.userServer.ListUserGroups(ctx, queryParams))
+	handler.WriteHeaderAndProto(h.userServer.ListGroups(ctx, queryParams))
 }
 
 // ListUserByGroup
@@ -387,6 +398,19 @@ func (h *HTTPServer) ListStrategy(req *restful.Request, rsp *restful.Response) {
 	ctx := handler.ParseHeaderContext()
 
 	handler.WriteHeaderAndProto(h.strategyServer.ListStrategy(ctx, queryParams))
+}
+
+// ListStrategyByUserID
+//  @receiver h
+//  @param req
+//  @param rsp
+func (h *HTTPServer) ListStrategyByUserID(req *restful.Request, rsp *restful.Response) {
+	handler := &Handler{req, rsp}
+
+	queryParams := parseQueryParams(req)
+	ctx := handler.ParseHeaderContext()
+
+	handler.WriteHeaderAndProto(h.strategyServer.ListStrategyByUserID(ctx, queryParams))
 }
 
 func (h *HTTPServer) GetStrategy(req *restful.Request, rsp *restful.Response) {

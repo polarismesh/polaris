@@ -108,6 +108,18 @@ func (ss *strategyStore) ListStrategySimple(filters map[string]string, offset ui
 	return 0, nil, errors.New("implement me")
 }
 
+// ListStrategySimpleByUserId 
+//  @receiver ss 
+//  @param filters 
+//  @param offset 
+//  @param limit 
+//  @return uint32 
+//  @return []*model.StrategyDetail 
+//  @return error 
+func (ss *strategyStore) ListStrategySimpleByUserId(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.StrategyDetail, error) {
+	return 0, nil, errors.New("implement me")
+}
+
 // GetStrategyDetailsForCache
 //  @param mtime
 //  @param firstUpdate

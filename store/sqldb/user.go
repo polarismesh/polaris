@@ -37,6 +37,11 @@ var (
 		NameAttribute:    "u.name",
 		GroupIDAttribute: "group_id",
 	}
+
+	userLinkGroupAttributeMapping map[string]string = map[string]string{
+		"id":          "ul.user_id",
+		NameAttribute: "ug.name",
+	}
 )
 
 type userStore struct {
@@ -95,7 +100,7 @@ func (u *userStore) addUser(user *model.User) error {
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.GetStoreLogger().Errorf("[Store][User] add user tx commit err: %s", err.Error())
+		log.GetAuthLogger().Errorf("[Store][User] add user tx commit err: %s", err.Error())
 		return err
 	}
 	return nil
@@ -143,7 +148,7 @@ func (u *userStore) updateUser(user *model.User) error {
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.GetStoreLogger().Errorf("[Store][User] update user tx commit err: %s", err.Error())
+		log.GetAuthLogger().Errorf("[Store][User] update user tx commit err: %s", err.Error())
 		return err
 	}
 
@@ -178,26 +183,12 @@ func (u *userStore) deleteUser(id string) error {
 		return err
 	}
 
-	if _, err = tx.Exec("UPDATE auth_strategy SET flag = 1 WHERE name = ?", []interface{}{
-		model.BuildDefaultStrategyName(id, model.PrincipalUserGroup),
-	}...); err != nil {
-		return err
-	}
-
-	if _, err = tx.Exec("DELETE FROM auth_strategy_resource WHERE strategy_id = (SELECT id FROM auth_strategy WHERE name = ?)", []interface{}{
-		model.BuildDefaultStrategyName(id, model.PrincipalUserGroup),
-	}...); err != nil {
-		return err
-	}
-
-	if _, err = tx.Exec("DELETE FROM auth_principal WHERE strategy_id = (SELECT id FROM auth_strategy WHERE name = ?)", []interface{}{
-		model.BuildDefaultStrategyName(id, model.PrincipalUserGroup),
-	}...); err != nil {
+	if err := u.cleanLinkStrategy(tx, model.PrincipalUser, id); err != nil {
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.GetStoreLogger().Errorf("[Store][User] delete user tx commit err: %s", err.Error())
+		log.GetAuthLogger().Errorf("[Store][User] delete user tx commit err: %s", err.Error())
 		return err
 	}
 	return nil
@@ -207,7 +198,13 @@ func (u *userStore) GetUser(id string) (*model.User, error) {
 
 	user := new(model.User)
 	var tokenEnable, userType int
-	getSql := "SELECT u.id, u.name, u.password, u.owner, u.source, u.token, u.token_enable, u.user_type FROM user as u WHERE u.flag = 0 AND u.id = ?"
+	getSql := `
+	SELECT u.id, u.name, u.password, u.owner, u.source
+		, u.token, u.token_enable, u.user_type
+	FROM user u
+	WHERE u.flag = 0
+		AND u.id = ?
+	`
 	row := u.master.QueryRow(getSql, id)
 	if err := row.Scan(&user.ID, &user.Name, &user.Password, &user.Owner, &user.Source,
 		&user.Token, &tokenEnable, &userType); err != nil {
@@ -226,7 +223,14 @@ func (u *userStore) GetUser(id string) (*model.User, error) {
 }
 
 func (u *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
-	getSql := "SELECT u.id, u.name, u.password, u.owner, u.source, u.token, u.token_enable, u.user_type FROM user as u WHERE u.flag = 0 AND u.name = ? AND u.owner = ?"
+	getSql := `
+	SELECT u.id, u.name, u.password, u.owner, u.source
+		, u.token, u.token_enable, u.user_type
+	FROM user u
+	WHERE u.flag = 0
+		AND u.name = ?
+		AND u.owner = ?
+	`
 
 	user := new(model.User)
 	var tokenEnable, userType int
@@ -259,7 +263,14 @@ func (u *userStore) GetUserByIDS(ids []string) ([]*model.User, error) {
 		return nil, nil
 	}
 
-	getSql := "SELECT u.id, u.name, u.password, u.owner, u.source, u.token, u.token_enable, u.user_type, UNIX_TIMESTAMP(u.ctime), UNIX_TIMESTAMP(u.mtime), u.flag FROM user as u WHERE u.flag = 0 AND u.id in ("
+	getSql := `
+	SELECT u.id, u.name, u.password, u.owner, u.source
+		, u.token, u.token_enable, u.user_type, UNIX_TIMESTAMP(u.ctime)
+		, UNIX_TIMESTAMP(u.mtime), u.flag
+	FROM user u
+	WHERE u.flag = 0
+		AND u.id IN (
+	`
 
 	for i := range ids {
 		getSql += " ? "
@@ -284,7 +295,7 @@ func (u *userStore) GetUserByIDS(ids []string) ([]*model.User, error) {
 	for rows.Next() {
 		user, err := fetchRown2User(rows)
 		if err != nil {
-			log.GetStoreLogger().Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
+			log.GetAuthLogger().Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
 			return nil, err
 		}
 		users = append(users, user)
@@ -332,8 +343,8 @@ func (u *userStore) ListUsers(filters map[string]string, offset uint32, limit ui
 	getSql += " ORDER BY mtime LIMIT ? , ?"
 	getArgs := append(args, offset, limit)
 
-	log.GetStoreLogger().Debug("list user ", zap.String("sql", getSql), zap.Any("args", getArgs))
-	log.GetStoreLogger().Debug("count list user", zap.String("sql", countSql), zap.Any("args", args))
+	log.GetAuthLogger().Debug("list user ", zap.String("sql", getSql), zap.Any("args", getArgs))
+	log.GetAuthLogger().Debug("count list user", zap.String("sql", countSql), zap.Any("args", args))
 
 	count, err := queryEntryCount(u.master, countSql, args)
 	if err != nil {
@@ -350,7 +361,7 @@ func (u *userStore) ListUsers(filters map[string]string, offset uint32, limit ui
 	for rows.Next() {
 		user, err := fetchRown2User(rows)
 		if err != nil {
-			log.GetStoreLogger().Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
+			log.GetAuthLogger().Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
 			return 0, nil, err
 		}
 		users = append(users, user)
@@ -387,7 +398,7 @@ func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mode
 	for rows.Next() {
 		user, err := fetchRown2User(rows)
 		if err != nil {
-			log.GetStoreLogger().Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
+			log.GetAuthLogger().Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
 			return nil, err
 		}
 		users = append(users, user)
@@ -454,7 +465,7 @@ func (u *userStore) addUserGroup(group *model.UserGroupDetail) error {
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.GetStoreLogger().Errorf("[Store][User] add usergroup tx commit err: %s", err.Error())
+		log.GetAuthLogger().Errorf("[Store][User] add usergroup tx commit err: %s", err.Error())
 		return err
 	}
 	return nil
@@ -516,13 +527,16 @@ func (u *userStore) updateUserGroup(group *model.ModifyUserGroup) error {
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.GetStoreLogger().Errorf("[Store][User] delete usergroup tx commit err: %s", err.Error())
+		log.GetAuthLogger().Errorf("[Store][User] delete usergroup tx commit err: %s", err.Error())
 		return err
 	}
 
 	return nil
 }
 
+// DeleteUserGroup 删除用户组
+//  @param id 用户组ID
+//  @return error
 func (u *userStore) DeleteUserGroup(id string) error {
 	err := RetryTransaction("deleteUserGroup", func() error {
 		return u.deleteUserGroup(id)
@@ -552,26 +566,12 @@ func (u *userStore) deleteUserGroup(id string) error {
 		return err
 	}
 
-	if _, err = tx.Exec("UPDATE auth_strategy SET flag = 1 WHERE name = ?", []interface{}{
-		model.BuildDefaultStrategyName(id, model.PrincipalUserGroup),
-	}...); err != nil {
-		return err
-	}
-
-	if _, err = tx.Exec("DELETE FROM auth_strategy_resource WHERE strategy_id = (SELECT id FROM auth_strategy WHERE name = ?)", []interface{}{
-		model.BuildDefaultStrategyName(id, model.PrincipalUserGroup),
-	}...); err != nil {
-		return err
-	}
-
-	if _, err = tx.Exec("DELETE FROM auth_principal WHERE strategy_id = (SELECT id FROM auth_strategy WHERE name = ?)", []interface{}{
-		model.BuildDefaultStrategyName(id, model.PrincipalUserGroup),
-	}...); err != nil {
+	if err := u.cleanLinkStrategy(tx, model.PrincipalUserGroup, id); err != nil {
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.GetStoreLogger().Errorf("[Store][User] delete usergroupr tx commit err: %s", err.Error())
+		log.GetAuthLogger().Errorf("[Store][User] delete usergroupr tx commit err: %s", err.Error())
 		return err
 	}
 	return nil
@@ -662,7 +662,53 @@ func (u *userStore) ListUserGroups(filters map[string]string, offset uint32, lim
 	for rows.Next() {
 		group, err := fetchRown2UserGroup(rows)
 		if err != nil {
-			log.GetStoreLogger().Errorf("[Store][User] fetch usergroup rows scan err: %s", err.Error())
+			log.GetAuthLogger().Errorf("[Store][User] fetch usergroup rows scan err: %s", err.Error())
+			return 0, nil, err
+		}
+		groups = append(groups, group)
+	}
+
+	return count, groups, nil
+}
+
+func (u *userStore) ListGroupByUser(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error) {
+	countSql := "SELECT COUNT(*) FROM user_group_relation ul LEFT JOIN user_group ug ON ul.group_id = ug.id WHERE ug.flag = 0  "
+	getSql := "SELECT ug.id, ug.name, ug.owner, ug.token, ug.token_enable, UNIX_TIMESTAMP(ug.ctime), UNIX_TIMESTAMP(ug.mtime), ug.flag " +
+		" FROM user_group_relation ul LEFT JOIN user_group ug ON ul.group_id = ug.id WHERE ug.flag = 0 "
+
+	args := make([]interface{}, 0)
+
+	if len(filters) != 0 {
+		for k, v := range filters {
+			if _, ok := userLinkGroupAttributeMapping[k]; ok {
+				k = userLinkGroupAttributeMapping[k]
+			}
+			getSql += " AND  " + k + " = ? "
+			countSql += " AND  " + k + " = ? "
+			args = append(args, v)
+		}
+	}
+
+	log.GetAuthLogger().Debug("ListGroupByUser", zap.String("count sql", countSql), zap.Any("args", args))
+	count, err := queryEntryCount(u.master, countSql, args)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	getSql += " ORDER BY ug.mtime LIMIT ? , ?"
+	args = append(args, offset, limit)
+	log.GetAuthLogger().Debug("ListGroupByUser", zap.String("query sql", getSql), zap.Any("args", args))
+	rows, err := u.master.Query(getSql, args...)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer rows.Close()
+
+	groups := make([]*model.UserGroup, 0)
+	for rows.Next() {
+		group, err := fetchRown2UserGroup(rows)
+		if err != nil {
+			log.GetAuthLogger().Errorf("[Store][UserGroup][ListGroupByUser] fetch rows scan err: %s", err.Error())
 			return 0, nil, err
 		}
 		groups = append(groups, group)
@@ -803,7 +849,7 @@ func (u *userStore) ListUserByGroup(filters map[string]string, offset uint32, li
 	}
 
 	count, err := queryEntryCount(u.slave, countSql, args)
-	log.GetStoreLogger().Debug("count list user", zap.String("sql", countSql), zap.Any("args", args))
+	log.GetAuthLogger().Debug("count list user", zap.String("sql", countSql), zap.Any("args", args))
 
 	if err != nil {
 		return 0, nil, err
@@ -811,7 +857,7 @@ func (u *userStore) ListUserByGroup(filters map[string]string, offset uint32, li
 
 	querySql += " ORDER BY u.mtime LIMIT ? , ?"
 	args = append(args, offset, limit)
-	log.GetStoreLogger().Debug("list user by group", zap.String("sql", querySql), zap.Any("args", args))
+	log.GetAuthLogger().Debug("list user by group", zap.String("sql", querySql), zap.Any("args", args))
 
 	rows, err := u.slave.Query(querySql, args...)
 	if err != nil {
@@ -823,7 +869,7 @@ func (u *userStore) ListUserByGroup(filters map[string]string, offset uint32, li
 	for rows.Next() {
 		user, err := fetchRown2User(rows)
 		if err != nil {
-			log.GetStoreLogger().Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
+			log.GetAuthLogger().Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
 			return 0, nil, err
 		}
 		users = append(users, user)
@@ -886,6 +932,41 @@ func (u *userStore) createDefaultStrategy(tx *BaseTx, role model.PrincipalType, 
 	return nil
 }
 
+func (u *userStore) cleanLinkStrategy(tx *BaseTx, role model.PrincipalType, id string) error {
+
+	var err error
+
+	// 清理默认策略
+	if _, err = tx.Exec("UPDATE auth_strategy SET flag = 1 WHERE name = ?", []interface{}{
+		model.BuildDefaultStrategyName(id, model.PrincipalUserGroup),
+	}...); err != nil {
+		return err
+	}
+
+	// 清理默认策略对应的所有鉴权关联资源
+	if _, err = tx.Exec("DELETE FROM auth_strategy_resource WHERE strategy_id = (SELECT id FROM auth_strategy WHERE name = ?)", []interface{}{
+		model.BuildDefaultStrategyName(id, model.PrincipalUserGroup),
+	}...); err != nil {
+		return err
+	}
+
+	// 清理默认鉴权策略涉及的所有关联人员信息
+	if _, err = tx.Exec("DELETE FROM auth_principal WHERE strategy_id = (SELECT id FROM auth_strategy WHERE name = ?)", []interface{}{
+		model.BuildDefaultStrategyName(id, model.PrincipalUserGroup),
+	}...); err != nil {
+		return err
+	}
+
+	// 清理所在的所有鉴权principal
+	if _, err = tx.Exec("DELETE FROM auth_principal WHERE principa_id = ? AND principal_role = ?", []interface{}{
+		id, model.PrincipalUserGroup,
+	}...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func fetchRown2User(rows *sql.Rows) (*model.User, error) {
 	var ctime, mtime int64
 	var flag, tokenEnable, userType int
@@ -925,11 +1006,11 @@ func fetchRown2UserGroup(rows *sql.Rows) (*model.UserGroup, error) {
 }
 
 func (u *userStore) cleanInValidUser(name string) error {
-	log.GetStoreLogger().Infof("[Store][User] clean user(%s)", name)
+	log.GetAuthLogger().Infof("[Store][User] clean user(%s)", name)
 	str := "delete from user where name = ? and flag = 1"
 	_, err := u.master.Exec(str, name)
 	if err != nil {
-		log.GetStoreLogger().Errorf("[Store][User] clean user(%s) err: %s", name, err.Error())
+		log.GetAuthLogger().Errorf("[Store][User] clean user(%s) err: %s", name, err.Error())
 		return err
 	}
 
@@ -937,18 +1018,18 @@ func (u *userStore) cleanInValidUser(name string) error {
 }
 
 func (u *userStore) cleanInValidUserGroup(name, owner string) error {
-	log.GetStoreLogger().Infof("[Store][User] clean usergroup(%s)", name)
+	log.GetAuthLogger().Infof("[Store][User] clean usergroup(%s)", name)
 	str := "delete from user_group_relation where group_id = (select id from user_group where name = ? and owner = ? and flag = 1) and flag = 1"
 	_, err := u.master.Exec(str, name, owner)
 	if err != nil {
-		log.GetStoreLogger().Errorf("[Store][User] clean usergroup(%s) err: %s", name, err.Error())
+		log.GetAuthLogger().Errorf("[Store][User] clean usergroup(%s) err: %s", name, err.Error())
 		return err
 	}
 
 	str = "delete from user_group where name = ? and flag = 1"
 	_, err = u.master.Exec(str, name)
 	if err != nil {
-		log.GetStoreLogger().Errorf("[Store][User] clean usergroup(%s) err: %s", name, err.Error())
+		log.GetAuthLogger().Errorf("[Store][User] clean usergroup(%s) err: %s", name, err.Error())
 		return err
 	}
 
@@ -956,11 +1037,11 @@ func (u *userStore) cleanInValidUserGroup(name, owner string) error {
 }
 
 func (u *userStore) cleanInValidUserGroupRelation(id string) error {
-	log.GetStoreLogger().Infof("[Store][User] clean usergroup(%s)", id)
+	log.GetAuthLogger().Infof("[Store][User] clean usergroup(%s)", id)
 	str := "delete from user_group_relation where group_id = ? and flag = 1"
 	_, err := u.master.Exec(str, id)
 	if err != nil {
-		log.GetStoreLogger().Errorf("[Store][User] clean usergroup(%s) err: %s", id, err.Error())
+		log.GetAuthLogger().Errorf("[Store][User] clean usergroup(%s) err: %s", id, err.Error())
 		return err
 	}
 	return nil
@@ -969,13 +1050,13 @@ func (u *userStore) cleanInValidUserGroupRelation(id string) error {
 func checkAffectedRows(label string, result sql.Result, count int64) error {
 	n, err := result.RowsAffected()
 	if err != nil {
-		log.GetStoreLogger().Errorf("[Store][%s] get rows affected err: %s", label, err.Error())
+		log.GetAuthLogger().Errorf("[Store][%s] get rows affected err: %s", label, err.Error())
 		return err
 	}
 
 	if n == count {
 		return nil
 	}
-	log.GetStoreLogger().Errorf("[Store][%s] get rows affected result(%d) is not match expect(%d)", label, n, count)
+	log.GetAuthLogger().Errorf("[Store][%s] get rows affected result(%d) is not match expect(%d)", label, n, count)
 	return store.NewStatusError(store.AffectedRowsNotMatch, "affected rows not match")
 }

@@ -40,14 +40,14 @@ const (
 	NameLinkOwnerTemp string = "%s@%s"
 )
 
-// UserCache
+// UserCache User information cache
 type UserCache interface {
 	Cache
 
-	// GetUser
+	// GetUserByID
 	//  @param id
 	//  @return *model.User
-	GetUser(id string) *model.User
+	GetUserByID(id string) *model.User
 
 	// GetUserByName
 	//  @param name
@@ -233,7 +233,7 @@ func (uc *userCache) IsUserInGroup(userId, groupId string) bool {
 	return exist
 }
 
-func (uc *userCache) GetUser(id string) *model.User {
+func (uc *userCache) GetUserByID(id string) *model.User {
 	if id == "" {
 		return nil
 	}

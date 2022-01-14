@@ -99,6 +99,7 @@ const (
 
 	InvalidUserOwners         = 400410
 	InvalidUserID             = 400411
+	InvalidUserPassword       = 400412
 	InvalidUserGroupOwners    = 400420
 	InvalidUserGroupID        = 400421
 	InvalidAuthStrategyOwners = 400430
@@ -288,6 +289,7 @@ var code2info = map[uint32]string{
 	InvalidUserGroupOwners:             "invalid usergroup owner attribute",
 	InvalidAuthStrategyName:            "invalid auth strategy rule name",
 	InvalidAuthStrategyOwners:          "invalid auth strategy rule owner",
+	InvalidUserPassword:                "invalid user password",
 }
 
 // code to info

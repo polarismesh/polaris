@@ -158,6 +158,18 @@ func (us *userStore) ListUserGroups(filters map[string]string, offset uint32, li
 	return 0, nil, errors.New("implement me")
 }
 
+// ListGroupByUser 
+//  @receiver us 
+//  @param filters 
+//  @param offset 
+//  @param limit 
+//  @return uint32 
+//  @return []*model.UserGroup 
+//  @return error 
+func (us *userStore) ListGroupByUser(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error) {
+	return 0, nil, errors.New("implement me")
+}
+
 // ListUserByGroup
 //  @receiver us
 //  @param filters

@@ -18,11 +18,8 @@
 package model
 
 import (
-	"context"
 	"fmt"
 	"time"
-
-	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 const (
@@ -33,6 +30,8 @@ const (
 
 	TokenForUser      string = "uid"
 	TokenForUserGroup string = "groupid"
+
+	ResourceAttachmentKey string = "resource_attachment"
 )
 
 type PrincipalType int
@@ -108,28 +107,6 @@ var (
 	}
 )
 
-// AcquireContext 每次鉴权请求上下文信息
-type AcquireContext struct {
-
-	// RequestContext 请求上下文
-	RequestContext context.Context
-
-	// Token 本次请求的访问凭据
-	Token string
-
-	// Module 来自那个业务层（服务注册与服务治理、配置模块）
-	Module BzModule
-
-	// Operation 本次操作涉及的动作
-	Operation ResourceOperation
-
-	// Resources 本次
-	Resources map[api.ResourceType][]ResourceEntry
-
-	// Attachment 携带信息，用于操作完权限检查和资源操作的后置处理逻辑，解决信息需要二次查询问题
-	Attachment map[string]interface{}
-}
-
 type ResourceEntry struct {
 	ID    string
 	Owner string
@@ -180,11 +157,9 @@ type UserGroup struct {
 
 type ModifyUserGroup struct {
 	ID            string
-	Name          string
 	Owner         string
 	Token         string
 	TokenEnable   bool
-	Valid         bool
 	Comment       string
 	AddUserIds    []string
 	RemoveUserIds []string

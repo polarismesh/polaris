@@ -28,7 +28,7 @@ import (
 func (svr *serverAuthAbility) CreateInstances(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Create)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -49,7 +49,7 @@ func (svr *serverAuthAbility) CreateInstance(ctx context.Context, req *api.Insta
 func (svr *serverAuthAbility) DeleteInstances(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Delete)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -60,7 +60,7 @@ func (svr *serverAuthAbility) DeleteInstances(ctx context.Context, reqs []*api.I
 func (svr *serverAuthAbility) DeleteInstancesByHost(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Delete)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -71,7 +71,7 @@ func (svr *serverAuthAbility) DeleteInstancesByHost(ctx context.Context, reqs []
 func (svr *serverAuthAbility) UpdateInstances(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Modify)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -87,7 +87,7 @@ func (svr *serverAuthAbility) UpdateInstance(ctx context.Context, req *api.Insta
 func (svr *serverAuthAbility) UpdateInstancesIsolate(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Modify)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}

@@ -127,7 +127,7 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 		Token:     utils.NewStringValue(data.Token),
 	}
 
-	s.afterServiceResource(ctx, []*api.Service{req}, false)
+	s.afterServiceResource(ctx, []*model.Service{data}, false)
 
 	return api.NewServiceResponse(api.ExecuteSuccess, out)
 }
@@ -195,7 +195,7 @@ func (s *Server) DeleteService(ctx context.Context, req *api.Service) *api.Respo
 	log.Info(msg, ZapRequestID(requestID), ZapPlatformID(platformID))
 	s.RecordHistory(serviceRecordEntry(ctx, req, nil, model.ODelete))
 
-	s.afterServiceResource(ctx, []*api.Service{req}, true)
+	s.afterServiceResource(ctx, []*model.Service{service}, true)
 	return api.NewServiceResponse(api.ExecuteSuccess, req)
 }
 

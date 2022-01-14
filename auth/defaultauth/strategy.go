@@ -20,6 +20,7 @@ package defaultauth
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -47,6 +48,13 @@ var (
 		"offset": 1,
 		"limit":  1,
 	}
+
+	StrategyLinkUserFilterAttributes = map[string]int{
+		"id":     1,
+		"type":   1,
+		"offset": 1,
+		"limit":  1,
+	}
 )
 
 type authStrategyServer struct {
@@ -55,7 +63,7 @@ type authStrategyServer struct {
 	cacheMgn *cache.NamingCache
 }
 
-// newAthStrategyServer
+// newAthStrategyServer 构建一个带鉴权检查的 StrategyServer, 无论鉴权逻辑是否开启，这里的操作都必须经过用户角色检查
 func newAthStrategyServer(s store.Store, cacheMgn *cache.NamingCache) (*authStrategyServer, error) {
 	svr := &authStrategyServer{
 		storage:  s,
@@ -75,7 +83,7 @@ func (svr *authStrategyServer) initialize() error {
 	return nil
 }
 
-// CreateStrategy
+// CreateStrategy 创建鉴权策略
 func (svr *authStrategyServer) CreateStrategy(ctx context.Context, req *api.AuthStrategy) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
@@ -208,6 +216,46 @@ func (svr *authStrategyServer) ListStrategy(ctx context.Context, query map[strin
 	total, strategies, err := svr.storage.ListStrategySimple(searchFilters, offset, limit)
 	if err != nil {
 		log.GetAuthLogger().Errorf("[Auth][AuthStrategy][ListStrategy] req(%+v) store err: %s", query, err.Error())
+		return api.NewBatchQueryResponse(api.StoreLayerException)
+	}
+
+	resp := api.NewBatchQueryResponse(api.ExecuteSuccess)
+	resp.Amount = utils.NewUInt32Value(total)
+	resp.Size = utils.NewUInt32Value(uint32(len(strategies)))
+	resp.AuthStrategy = enhancedAuthStrategy2Api(strategies, authStrategy2Api)
+	return resp
+}
+
+// ListStrategyByUserID
+//  @param ctx
+//  @param query
+//  @return *api.BatchQueryResponse
+func (svr *authStrategyServer) ListStrategyByUserID(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+
+	searchFilters := make(map[string]string)
+	for key, value := range query {
+		if _, ok := StrategyLinkUserFilterAttributes[key]; !ok {
+			log.GetAuthLogger().Errorf("[Auth][AuthStrategy][ListStrategyByUserID] attribute(%s) it not allowed", key)
+			return api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
+		}
+		if key == "type" {
+			if value == model.PrincipalNames[model.PrincipalUser] {
+				value = strconv.Itoa(int(model.PrincipalUser))
+			} else {
+				value = strconv.Itoa(int(model.PrincipalUserGroup))
+			}
+		}
+		searchFilters[key] = value
+	}
+
+	offset, limit, err := utils.ParseOffsetAndLimit(searchFilters)
+	if err != nil {
+		return api.NewBatchQueryResponse(api.InvalidParameter)
+	}
+
+	total, strategies, err := svr.storage.ListStrategySimpleByUserId(searchFilters, offset, limit)
+	if err != nil {
+		log.GetAuthLogger().Errorf("[Auth][AuthStrategy][ListStrategyByUserID] req(%+v) store err: %s", query, err.Error())
 		return api.NewBatchQueryResponse(api.StoreLayerException)
 	}
 
@@ -613,7 +661,7 @@ func (svr *authStrategyServer) checkUserExist(users []*wrappers.StringValue) err
 	userCache := svr.cacheMgn.User()
 
 	for index := range users {
-		if val := userCache.GetUser(users[index].GetValue()); val == nil {
+		if val := userCache.GetUserByID(users[index].GetValue()); val == nil {
 			return ErrorNoUser
 		}
 	}

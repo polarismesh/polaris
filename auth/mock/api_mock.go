@@ -65,19 +65,19 @@ func (mr *MockAuthManagerMockRecorder) Login(req interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockAuthManager)(nil).Login), req)
 }
 
-// HasPermission mocks base method
-func (m *MockAuthManager) HasPermission(preCtx *model.AcquireContext) (bool, error) {
+// CheckPermission mocks base method
+func (m *MockAuthManager) CheckPermission(preCtx *model.AcquireContext) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasPermission", preCtx)
+	ret := m.ctrl.Call(m, "CheckPermission", preCtx)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// HasPermission indicates an expected call of HasPermission
-func (mr *MockAuthManagerMockRecorder) HasPermission(preCtx interface{}) *gomock.Call {
+// CheckPermission indicates an expected call of CheckPermission
+func (mr *MockAuthManagerMockRecorder) CheckPermission(preCtx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasPermission", reflect.TypeOf((*MockAuthManager)(nil).HasPermission), preCtx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckPermission", reflect.TypeOf((*MockAuthManager)(nil).CheckPermission), preCtx)
 }
 
 // ChangeOpenStatus mocks base method

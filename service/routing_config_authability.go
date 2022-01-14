@@ -27,7 +27,7 @@ import (
 func (svr *serverAuthAbility) CreateRoutingConfigs(ctx context.Context, reqs []*api.Routing) *api.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Create)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -38,7 +38,7 @@ func (svr *serverAuthAbility) CreateRoutingConfigs(ctx context.Context, reqs []*
 func (svr *serverAuthAbility) DeleteRoutingConfigs(ctx context.Context, reqs []*api.Routing) *api.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Delete)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -49,7 +49,7 @@ func (svr *serverAuthAbility) DeleteRoutingConfigs(ctx context.Context, reqs []*
 func (svr *serverAuthAbility) UpdateRoutingConfigs(ctx context.Context, reqs []*api.Routing) *api.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Create)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}

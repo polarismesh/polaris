@@ -27,6 +27,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -68,38 +69,34 @@ func (authMgn *defaultAuthManager) Login(req *api.LoginRequest) *api.Response {
 	})
 }
 
-// HasPermission 执行检查动作判断是否有权限
-func (authMgn *defaultAuthManager) HasPermission(ctx *model.AcquireContext) (bool, error) {
+// CheckPermission 执行检查动作判断是否有权限
+func (authMgn *defaultAuthManager) CheckPermission(authCtx *model.AcquireContext) (bool, error) {
 	if !authMgn.IsOpenAuth() {
 		return true, nil
 	}
 
-	// 随机字符串::[uid/xxx | groupid/xxx]
-	tokenInfo, err := authMgn.ParseToken(ctx.Token)
+	ctx, tokenInfo, err := authMgn.verifyToken(authCtx.GetRequestContext(), authCtx.GetToken())
 	if err != nil {
 		return false, err
 	}
-
-	if _, err := authMgn.checkToken(tokenInfo); err != nil {
-		return false, err
-	}
+	authCtx.SetRequestContext(ctx)
 
 	strategys, ownerId, err := authMgn.findStrategies(tokenInfo)
 	if err != nil {
 		return false, err
 	}
 
-	ctx.Attachment[model.OperatorRoleKey] = tokenInfo.Role
-	ctx.Attachment[model.OperatorPrincipalType] = func() model.PrincipalType {
+	authCtx.GetAttachment()[model.OperatorRoleKey] = tokenInfo.Role
+	authCtx.GetAttachment()[model.OperatorPrincipalType] = func() model.PrincipalType {
 		if tokenInfo.IsUserToken {
 			return model.PrincipalUser
 		}
 		return model.PrincipalUserGroup
 	}()
-	ctx.Attachment[model.OperatorIDKey] = tokenInfo.OperatorID
-	ctx.Attachment[model.OperatorOwnerKey] = ownerId
+	authCtx.GetAttachment()[model.OperatorIDKey] = tokenInfo.OperatorID
+	authCtx.GetAttachment()[model.OperatorOwnerKey] = ownerId
 
-	return authMgn.authPlugin.CheckPermission(ctx, strategys)
+	return authMgn.authPlugin.CheckPermission(authCtx, strategys)
 }
 
 // findStrategies Inquire about TOKEN information, the actual all-associated authentication strategy
@@ -111,7 +108,7 @@ func (authMgn *defaultAuthManager) findStrategies(tokenInfo TokenInfo) ([]*model
 
 	if tokenInfo.IsUserToken {
 		strategys = authMgn.findStrategiesByUserID(tokenInfo.OperatorID)
-		user := authMgn.cacheMgn.User().GetUser(tokenInfo.OperatorID)
+		user := authMgn.cacheMgn.User().GetUserByID(tokenInfo.OperatorID)
 		if user == nil {
 			return nil, "", ErrorNoUser
 		}
@@ -142,22 +139,23 @@ func (authMgn *defaultAuthManager) IsOpenAuth() bool {
 // AfterResourceOperation 对于资源的添加删除操作，需要执行后置逻辑
 // 所有子用户或者用户分组，都默认获得对所创建的资源的写权限
 func (authMgn *defaultAuthManager) AfterResourceOperation(afterCtx *model.AcquireContext) {
-	operatorId := afterCtx.Attachment[model.OperatorIDKey].(string)
-	principalType := afterCtx.Attachment[model.OperatorPrincipalType].(model.PrincipalType)
+	operatorId := afterCtx.GetAttachment()[model.OperatorIDKey].(string)
+	principalType := afterCtx.GetAttachment()[model.OperatorPrincipalType].(model.PrincipalType)
 
 	// 获取该用户的默认策略信息
 	name := model.BuildDefaultStrategyName(operatorId, principalType)
-	ownerId := afterCtx.Attachment[model.OperatorOwnerKey].(string)
+	ownerId := afterCtx.GetAttachment()[model.OperatorOwnerKey].(string)
 	// Get the default policy rules
 	strategy, err := authMgn.strategySvr.storage.GetStrategyDetailByName(ownerId, name)
 	if err != nil {
-		log.GetAuthLogger().Errorf("[Auth][Server] get default strategy by name(%s)", name)
+		log.GetAuthLogger().Error("[Auth][Server] get default strategy",
+			zap.String("owner", ownerId), zap.String("name", name), zap.Error(err))
 		return
 	}
 
 	strategyResource := make([]model.StrategyResource, 0)
+	resources := afterCtx.GetAttachment()[model.ResourceAttachmentKey].(map[api.ResourceType][]model.ResourceEntry)
 
-	resources := afterCtx.Resources
 	for rType, rIds := range resources {
 		for i := range rIds {
 			id := rIds[i]
@@ -169,24 +167,27 @@ func (authMgn *defaultAuthManager) AfterResourceOperation(afterCtx *model.Acquir
 		}
 	}
 
-	if afterCtx.Operation == model.Create {
+	if afterCtx.GetOperation() == model.Create {
 		// 如果是写操作，那么采用松添加操作进行新增资源的添加操作(仅忽略主键冲突的错误)
 		err = authMgn.strategySvr.storage.LooseAddStrategyResources(strategyResource)
 		if err != nil {
-			log.GetAuthLogger().Errorf("[Auth][Server] update default strategy by name(%s)", name)
+			log.GetAuthLogger().Error("[Auth][Server] update default strategy resource",
+				zap.String("owner", ownerId), zap.String("name", name), zap.Error(err))
 			return
 		}
-	} else {
+	}
+	if afterCtx.GetOperation() == model.Delete {
 		err = authMgn.strategySvr.storage.RemoveStrategyResources(strategyResource)
 		if err != nil {
-			log.GetAuthLogger().Errorf("[Auth][Server] remove default strategy by name(%s)", name)
+			log.GetAuthLogger().Error("[Auth][Server] remove default strategy resource",
+				zap.String("owner", ownerId), zap.String("name", name), zap.Error(err))
 			return
 		}
 	}
 
 }
 
-// findStrategiesByUserID
+// findStrategiesByUserID 根据 user-id 查找相关联的鉴权策略（用户自己的 + 用户所在用户组的）
 func (authMgn *defaultAuthManager) findStrategiesByUserID(id string) []*model.StrategyDetail {
 	// The first step, first pull all the strategy information involved in this user.
 	rules := authMgn.cacheMgn.AuthStrategy().GetStrategyDetailsByUID(id)
@@ -211,10 +212,10 @@ func (authMgn *defaultAuthManager) findStrategiesByUserID(id string) []*model.St
 		ret = append(ret, val)
 	}
 
-	return ret
+	return rules
 }
 
-// findStrategiesByGroupID
+// findStrategiesByGroupID 根据 group-id 查找相关联的鉴权策略
 func (authMgn *defaultAuthManager) findStrategiesByGroupID(id string) []*model.StrategyDetail {
 
 	return authMgn.cacheMgn.AuthStrategy().GetStrategyDetailsByGroupID(id)
@@ -225,7 +226,7 @@ func (authMgn *defaultAuthManager) checkToken(tokenUserInfo TokenInfo) (string, 
 
 	id := tokenUserInfo.OperatorID
 	if tokenUserInfo.IsUserToken {
-		user := authMgn.Cache().User().GetUser(id)
+		user := authMgn.Cache().User().GetUserByID(id)
 		if user == nil {
 			return "", ErrorNoUser
 		}
@@ -254,8 +255,28 @@ func (authMgn *defaultAuthManager) checkToken(tokenUserInfo TokenInfo) (string, 
 	}
 }
 
-// ParseToken
-func (authMgn *defaultAuthManager) ParseToken(t string) (TokenInfo, error) {
+// verifyAuth token
+func (authMgn *defaultAuthManager) verifyToken(ctx context.Context, token string) (context.Context, TokenInfo, error) {
+	tokenInfo, err := authMgn.DecodeToken(token)
+	if err != nil {
+		return nil, TokenInfo{}, err
+	}
+
+	owner, err := authMgn.checkToken(tokenInfo)
+	if err != nil {
+		return nil, TokenInfo{}, err
+	}
+
+	ctx = context.WithValue(ctx, utils.ContextIsOwnerKey, tokenInfo.Role != model.SubAccountUserRole)
+	ctx = context.WithValue(ctx, utils.ContextUserIDKey, tokenInfo.OperatorID)
+	ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, tokenInfo.Role)
+	ctx = context.WithValue(ctx, utils.ContextOwnerIDKey, owner)
+
+	return ctx, tokenInfo, nil
+}
+
+// DecodeToken
+func (authMgn *defaultAuthManager) DecodeToken(t string) (TokenInfo, error) {
 	ret, err := decryptMessage([]byte(AuthOption.Salt), t)
 	if err != nil {
 		return TokenInfo{}, err
@@ -278,32 +299,4 @@ func (authMgn *defaultAuthManager) ParseToken(t string) (TokenInfo, error) {
 	}
 
 	return tokenInfo, nil
-}
-
-// verifyAuth token
-func verifyAuth(ctx context.Context, authMgn *defaultAuthManager, token string, needOwner bool) (context.Context, TokenInfo, *api.Response) {
-	tokenInfo, err := authMgn.ParseToken(token)
-	if err != nil {
-		return ctx, tokenInfo, api.NewResponseWithMsg(api.ExecuteException, err.Error())
-	}
-
-	if !tokenInfo.IsUserToken {
-		return ctx, tokenInfo, api.NewResponseWithMsg(api.NotAllowedAccess, "only allow user access")
-	}
-
-	owner, err := authMgn.checkToken(tokenInfo)
-	if err != nil {
-		return ctx, tokenInfo, api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
-	}
-
-	if needOwner && tokenInfo.IsSubAccount() {
-		return ctx, tokenInfo, api.NewResponseWithMsg(api.NotAllowedAccess, "only admin/owner account can access this API")
-	}
-
-	ctx = context.WithValue(ctx, utils.ContextIsOwnerKey, tokenInfo.Role != model.SubAccountUserRole)
-	ctx = context.WithValue(ctx, utils.ContextUserIDKey, tokenInfo.OperatorID)
-	ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, tokenInfo.Role)
-	ctx = context.WithValue(ctx, utils.ContextOwnerIDKey, owner)
-
-	return ctx, tokenInfo, nil
 }

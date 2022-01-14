@@ -1486,7 +1486,7 @@ func (mr *MockStoreMockRecorder) GetUsersForCache(mtime, firstUpdate interface{}
 }
 
 // AddUserGroup mocks base method
-func (m *MockStore) AddUserGroup(group *model.UserGroup) error {
+func (m *MockStore) AddUserGroup(group *model.UserGroupDetail) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddUserGroup", group)
 	ret0, _ := ret[0].(error)
@@ -1500,7 +1500,7 @@ func (mr *MockStoreMockRecorder) AddUserGroup(group interface{}) *gomock.Call {
 }
 
 // UpdateUserGroup mocks base method
-func (m *MockStore) UpdateUserGroup(group *model.UserGroup) error {
+func (m *MockStore) UpdateUserGroup(group *model.ModifyUserGroup) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUserGroup", group)
 	ret0, _ := ret[0].(error)
@@ -1525,34 +1525,6 @@ func (m *MockStore) DeleteUserGroup(id string) error {
 func (mr *MockStoreMockRecorder) DeleteUserGroup(id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUserGroup", reflect.TypeOf((*MockStore)(nil).DeleteUserGroup), id)
-}
-
-// AddUserGroupRelation mocks base method
-func (m *MockStore) AddUserGroupRelation(relations *model.UserGroupRelation) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddUserGroupRelation", relations)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddUserGroupRelation indicates an expected call of AddUserGroupRelation
-func (mr *MockStoreMockRecorder) AddUserGroupRelation(relations interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddUserGroupRelation", reflect.TypeOf((*MockStore)(nil).AddUserGroupRelation), relations)
-}
-
-// RemoveUserGroupRelation mocks base method
-func (m *MockStore) RemoveUserGroupRelation(relations *model.UserGroupRelation) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveUserGroupRelation", relations)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RemoveUserGroupRelation indicates an expected call of RemoveUserGroupRelation
-func (mr *MockStoreMockRecorder) RemoveUserGroupRelation(relations interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveUserGroupRelation", reflect.TypeOf((*MockStore)(nil).RemoveUserGroupRelation), relations)
 }
 
 // GetUserGroup mocks base method
@@ -1616,6 +1588,38 @@ func (mr *MockStoreMockRecorder) GetUserGroupsForCache(mtime, firstUpdate interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserGroupsForCache", reflect.TypeOf((*MockStore)(nil).GetUserGroupsForCache), mtime, firstUpdate)
 }
 
+// ListUserByGroup mocks base method
+func (m *MockStore) ListUserByGroup(filters map[string]string, offset, limit uint32) (uint32, []*model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListUserByGroup", filters, offset, limit)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.User)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListUserByGroup indicates an expected call of ListUserByGroup
+func (mr *MockStoreMockRecorder) ListUserByGroup(filters, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUserByGroup", reflect.TypeOf((*MockStore)(nil).ListUserByGroup), filters, offset, limit)
+}
+
+// ListGroupByUser mocks base method
+func (m *MockStore) ListGroupByUser(filters map[string]string, offset, limit uint32) (uint32, []*model.UserGroup, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListGroupByUser", filters, offset, limit)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.UserGroup)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListGroupByUser indicates an expected call of ListGroupByUser
+func (mr *MockStoreMockRecorder) ListGroupByUser(filters, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListGroupByUser", reflect.TypeOf((*MockStore)(nil).ListGroupByUser), filters, offset, limit)
+}
+
 // AddStrategy mocks base method
 func (m *MockStore) AddStrategy(strategy *model.StrategyDetail) error {
 	m.ctrl.T.Helper()
@@ -1630,18 +1634,18 @@ func (mr *MockStoreMockRecorder) AddStrategy(strategy interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddStrategy", reflect.TypeOf((*MockStore)(nil).AddStrategy), strategy)
 }
 
-// UpdateStrategyMain mocks base method
-func (m *MockStore) UpdateStrategyMain(strategy *model.StrategyDetail) error {
+// UpdateStrategy mocks base method
+func (m *MockStore) UpdateStrategy(strategy *model.ModifyStrategyDetail) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateStrategyMain", strategy)
+	ret := m.ctrl.Call(m, "UpdateStrategy", strategy)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// UpdateStrategyMain indicates an expected call of UpdateStrategyMain
-func (mr *MockStoreMockRecorder) UpdateStrategyMain(strategy interface{}) *gomock.Call {
+// UpdateStrategy indicates an expected call of UpdateStrategy
+func (mr *MockStoreMockRecorder) UpdateStrategy(strategy interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStrategyMain", reflect.TypeOf((*MockStore)(nil).UpdateStrategyMain), strategy)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStrategy", reflect.TypeOf((*MockStore)(nil).UpdateStrategy), strategy)
 }
 
 // DeleteStrategy mocks base method
@@ -1702,18 +1706,18 @@ func (mr *MockStoreMockRecorder) GetStrategyDetail(id interface{}) *gomock.Call 
 }
 
 // GetStrategyDetailByName mocks base method
-func (m *MockStore) GetStrategyDetailByName(name string) (*model.StrategyDetail, error) {
+func (m *MockStore) GetStrategyDetailByName(owner, name string) (*model.StrategyDetail, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStrategyDetailByName", name)
+	ret := m.ctrl.Call(m, "GetStrategyDetailByName", owner, name)
 	ret0, _ := ret[0].(*model.StrategyDetail)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStrategyDetailByName indicates an expected call of GetStrategyDetailByName
-func (mr *MockStoreMockRecorder) GetStrategyDetailByName(name interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) GetStrategyDetailByName(owner, name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategyDetailByName", reflect.TypeOf((*MockStore)(nil).GetStrategyDetailByName), name)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategyDetailByName", reflect.TypeOf((*MockStore)(nil).GetStrategyDetailByName), owner, name)
 }
 
 // GetStrategySimpleByName mocks base method
@@ -1731,20 +1735,36 @@ func (mr *MockStoreMockRecorder) GetStrategySimpleByName(owner, name interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategySimpleByName", reflect.TypeOf((*MockStore)(nil).GetStrategySimpleByName), owner, name)
 }
 
-// ListStrategyDetails mocks base method
-func (m *MockStore) ListStrategyDetails(filters map[string]string, offset, limit uint32) (uint32, []*model.StrategyDetail, error) {
+// ListStrategySimpleByUserId mocks base method
+func (m *MockStore) ListStrategySimpleByUserId(filters map[string]string, offset, limit uint32) (uint32, []*model.StrategyDetail, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListStrategyDetails", filters, offset, limit)
+	ret := m.ctrl.Call(m, "ListStrategySimpleByUserId", filters, offset, limit)
 	ret0, _ := ret[0].(uint32)
 	ret1, _ := ret[1].([]*model.StrategyDetail)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
 
-// ListStrategyDetails indicates an expected call of ListStrategyDetails
-func (mr *MockStoreMockRecorder) ListStrategyDetails(filters, offset, limit interface{}) *gomock.Call {
+// ListStrategySimpleByUserId indicates an expected call of ListStrategySimpleByUserId
+func (mr *MockStoreMockRecorder) ListStrategySimpleByUserId(filters, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStrategyDetails", reflect.TypeOf((*MockStore)(nil).ListStrategyDetails), filters, offset, limit)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStrategySimpleByUserId", reflect.TypeOf((*MockStore)(nil).ListStrategySimpleByUserId), filters, offset, limit)
+}
+
+// ListStrategySimple mocks base method
+func (m *MockStore) ListStrategySimple(filters map[string]string, offset, limit uint32) (uint32, []*model.StrategyDetail, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListStrategySimple", filters, offset, limit)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.StrategyDetail)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListStrategySimple indicates an expected call of ListStrategySimple
+func (mr *MockStoreMockRecorder) ListStrategySimple(filters, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStrategySimple", reflect.TypeOf((*MockStore)(nil).ListStrategySimple), filters, offset, limit)
 }
 
 // GetStrategyDetailsForCache mocks base method
@@ -3371,7 +3391,7 @@ func (mr *MockUserStoreMockRecorder) GetUsersForCache(mtime, firstUpdate interfa
 }
 
 // AddUserGroup mocks base method
-func (m *MockUserStore) AddUserGroup(group *model.UserGroup) error {
+func (m *MockUserStore) AddUserGroup(group *model.UserGroupDetail) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddUserGroup", group)
 	ret0, _ := ret[0].(error)
@@ -3385,7 +3405,7 @@ func (mr *MockUserStoreMockRecorder) AddUserGroup(group interface{}) *gomock.Cal
 }
 
 // UpdateUserGroup mocks base method
-func (m *MockUserStore) UpdateUserGroup(group *model.UserGroup) error {
+func (m *MockUserStore) UpdateUserGroup(group *model.ModifyUserGroup) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUserGroup", group)
 	ret0, _ := ret[0].(error)
@@ -3410,34 +3430,6 @@ func (m *MockUserStore) DeleteUserGroup(id string) error {
 func (mr *MockUserStoreMockRecorder) DeleteUserGroup(id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUserGroup", reflect.TypeOf((*MockUserStore)(nil).DeleteUserGroup), id)
-}
-
-// AddUserGroupRelation mocks base method
-func (m *MockUserStore) AddUserGroupRelation(relations *model.UserGroupRelation) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddUserGroupRelation", relations)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddUserGroupRelation indicates an expected call of AddUserGroupRelation
-func (mr *MockUserStoreMockRecorder) AddUserGroupRelation(relations interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddUserGroupRelation", reflect.TypeOf((*MockUserStore)(nil).AddUserGroupRelation), relations)
-}
-
-// RemoveUserGroupRelation mocks base method
-func (m *MockUserStore) RemoveUserGroupRelation(relations *model.UserGroupRelation) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveUserGroupRelation", relations)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RemoveUserGroupRelation indicates an expected call of RemoveUserGroupRelation
-func (mr *MockUserStoreMockRecorder) RemoveUserGroupRelation(relations interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveUserGroupRelation", reflect.TypeOf((*MockUserStore)(nil).RemoveUserGroupRelation), relations)
 }
 
 // GetUserGroup mocks base method
@@ -3501,6 +3493,38 @@ func (mr *MockUserStoreMockRecorder) GetUserGroupsForCache(mtime, firstUpdate in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserGroupsForCache", reflect.TypeOf((*MockUserStore)(nil).GetUserGroupsForCache), mtime, firstUpdate)
 }
 
+// ListUserByGroup mocks base method
+func (m *MockUserStore) ListUserByGroup(filters map[string]string, offset, limit uint32) (uint32, []*model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListUserByGroup", filters, offset, limit)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.User)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListUserByGroup indicates an expected call of ListUserByGroup
+func (mr *MockUserStoreMockRecorder) ListUserByGroup(filters, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUserByGroup", reflect.TypeOf((*MockUserStore)(nil).ListUserByGroup), filters, offset, limit)
+}
+
+// ListGroupByUser mocks base method
+func (m *MockUserStore) ListGroupByUser(filters map[string]string, offset, limit uint32) (uint32, []*model.UserGroup, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListGroupByUser", filters, offset, limit)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.UserGroup)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListGroupByUser indicates an expected call of ListGroupByUser
+func (mr *MockUserStoreMockRecorder) ListGroupByUser(filters, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListGroupByUser", reflect.TypeOf((*MockUserStore)(nil).ListGroupByUser), filters, offset, limit)
+}
+
 // MockStrategyStore is a mock of StrategyStore interface
 type MockStrategyStore struct {
 	ctrl     *gomock.Controller
@@ -3538,18 +3562,18 @@ func (mr *MockStrategyStoreMockRecorder) AddStrategy(strategy interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddStrategy", reflect.TypeOf((*MockStrategyStore)(nil).AddStrategy), strategy)
 }
 
-// UpdateStrategyMain mocks base method
-func (m *MockStrategyStore) UpdateStrategyMain(strategy *model.StrategyDetail) error {
+// UpdateStrategy mocks base method
+func (m *MockStrategyStore) UpdateStrategy(strategy *model.ModifyStrategyDetail) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateStrategyMain", strategy)
+	ret := m.ctrl.Call(m, "UpdateStrategy", strategy)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// UpdateStrategyMain indicates an expected call of UpdateStrategyMain
-func (mr *MockStrategyStoreMockRecorder) UpdateStrategyMain(strategy interface{}) *gomock.Call {
+// UpdateStrategy indicates an expected call of UpdateStrategy
+func (mr *MockStrategyStoreMockRecorder) UpdateStrategy(strategy interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStrategyMain", reflect.TypeOf((*MockStrategyStore)(nil).UpdateStrategyMain), strategy)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStrategy", reflect.TypeOf((*MockStrategyStore)(nil).UpdateStrategy), strategy)
 }
 
 // DeleteStrategy mocks base method
@@ -3610,18 +3634,18 @@ func (mr *MockStrategyStoreMockRecorder) GetStrategyDetail(id interface{}) *gomo
 }
 
 // GetStrategyDetailByName mocks base method
-func (m *MockStrategyStore) GetStrategyDetailByName(name string) (*model.StrategyDetail, error) {
+func (m *MockStrategyStore) GetStrategyDetailByName(owner, name string) (*model.StrategyDetail, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStrategyDetailByName", name)
+	ret := m.ctrl.Call(m, "GetStrategyDetailByName", owner, name)
 	ret0, _ := ret[0].(*model.StrategyDetail)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStrategyDetailByName indicates an expected call of GetStrategyDetailByName
-func (mr *MockStrategyStoreMockRecorder) GetStrategyDetailByName(name interface{}) *gomock.Call {
+func (mr *MockStrategyStoreMockRecorder) GetStrategyDetailByName(owner, name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategyDetailByName", reflect.TypeOf((*MockStrategyStore)(nil).GetStrategyDetailByName), name)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategyDetailByName", reflect.TypeOf((*MockStrategyStore)(nil).GetStrategyDetailByName), owner, name)
 }
 
 // GetStrategySimpleByName mocks base method
@@ -3639,20 +3663,36 @@ func (mr *MockStrategyStoreMockRecorder) GetStrategySimpleByName(owner, name int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategySimpleByName", reflect.TypeOf((*MockStrategyStore)(nil).GetStrategySimpleByName), owner, name)
 }
 
-// ListStrategyDetails mocks base method
-func (m *MockStrategyStore) ListStrategyDetails(filters map[string]string, offset, limit uint32) (uint32, []*model.StrategyDetail, error) {
+// ListStrategySimpleByUserId mocks base method
+func (m *MockStrategyStore) ListStrategySimpleByUserId(filters map[string]string, offset, limit uint32) (uint32, []*model.StrategyDetail, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListStrategyDetails", filters, offset, limit)
+	ret := m.ctrl.Call(m, "ListStrategySimpleByUserId", filters, offset, limit)
 	ret0, _ := ret[0].(uint32)
 	ret1, _ := ret[1].([]*model.StrategyDetail)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
 
-// ListStrategyDetails indicates an expected call of ListStrategyDetails
-func (mr *MockStrategyStoreMockRecorder) ListStrategyDetails(filters, offset, limit interface{}) *gomock.Call {
+// ListStrategySimpleByUserId indicates an expected call of ListStrategySimpleByUserId
+func (mr *MockStrategyStoreMockRecorder) ListStrategySimpleByUserId(filters, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStrategyDetails", reflect.TypeOf((*MockStrategyStore)(nil).ListStrategyDetails), filters, offset, limit)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStrategySimpleByUserId", reflect.TypeOf((*MockStrategyStore)(nil).ListStrategySimpleByUserId), filters, offset, limit)
+}
+
+// ListStrategySimple mocks base method
+func (m *MockStrategyStore) ListStrategySimple(filters map[string]string, offset, limit uint32) (uint32, []*model.StrategyDetail, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListStrategySimple", filters, offset, limit)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.StrategyDetail)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListStrategySimple indicates an expected call of ListStrategySimple
+func (mr *MockStrategyStoreMockRecorder) ListStrategySimple(filters, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStrategySimple", reflect.TypeOf((*MockStrategyStore)(nil).ListStrategySimple), filters, offset, limit)
 }
 
 // GetStrategyDetailsForCache mocks base method

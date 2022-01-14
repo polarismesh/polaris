@@ -663,7 +663,7 @@ CREATE TABLE `user_group_relation` (
 CREATE TABLE `auth_strategy` (
     `id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '策略ID',
     `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '策略名称',
-    `action` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '该策略的读写权限',
+    `action` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '该策略的读写权限, only_read = 0, read_write = 1',
     `owner` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '该策略所属的账号ID',
     `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '描述',
     `default` tinyint(4) NOT NULL DEFAULT '0',
@@ -686,7 +686,7 @@ CREATE TABLE `auth_principal` (
 
 CREATE TABLE `auth_strategy_resource` (
     `strategy_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '策略ID',
-    `res_type` int COLLATE utf8_bin NOT NULL comment '资源类型',
+    `res_type` int COLLATE utf8_bin NOT NULL comment '资源类型, Namespaces = 0, Sevice = 1, ConfigGroups = 2',
     `res_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '资源ID',
     `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
@@ -695,6 +695,7 @@ CREATE TABLE `auth_strategy_resource` (
     KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
+-- 创建默认的超级账户，密码为 polarismesh@2021
 INSERT INTO
     `user` (
         `id`,
@@ -709,23 +710,68 @@ INSERT INTO
     )
 VALUES
     (
-        '53447575-ef47-4f45-a005-8246c79dae7f',
+        '65e4789a6d5b49669adf1e9e8387549c',
         'polarisadmin',
         '$2a$10$5XMjs.oqo4PnpbTGy9dQqewL4eb4yoA7b/6ZKL33IPhFyIxzj4lRy',
         '',
         'Polaris',
-        'a4Nt+Do4PXLGg+RVIjfOpd6ZiqEjZ4vVia0pLQUd/2a0c1zcwgVkyCcM4n35IhveU7SMEE1qL0LFhp1n/VvHGwYV',
+        'nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=',
         1,
         0,
         'default polaris admin account'
     );
 
--- --------------------------------------------------------
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */
-;
+-- 插入polaris-admin的权限策略
+INSERT INTO
+    `auth_strategy`(
+        `id`,
+        `name`,
+        `action`,
+        `owner`,
+        `comment`,
+        `default`,
+        `revision`,
+        `flag`,
+        `ctime`,
+        `mtime`
+    )
+VALUES
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        '__default__user_65e4789a6d5b49669adf1e9e8387549c',
+        1,
+        'default admin',
+        '65e4789a6d5b49669adf1e9e8387549c',
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        0,
+        sysdate(),
+        sysdate()
+    );
 
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */
-;
+-- 插入 polaris-admin 可以访问的资源规则
+INSERT INTO
+    `auth_strategy_resource`(
+        `strategy_id`,
+        `res_type`,
+        `res_id`,
+        `flag`,
+        `ctime`,
+        `mtime`
+    )
+VALUES
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        0,
+        '*',
+        0,
+        sysdate(),
+        sysdate()
+    );
 
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */
-;
+-- 插入权限策略和polaris-admin账户的关联关系
+INSERT INTO
+    auth_principal(`strategy_id`, `principal_id`, `principal_role`) VALUE (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        '65e4789a6d5b49669adf1e9e8387549c',
+        1
+    );

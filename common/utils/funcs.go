@@ -127,7 +127,7 @@ func NewUUID() string {
 
 var emptyVal = struct{}{}
 
-// StringSliceDeDuplication
+// StringSliceDeDuplication 字符切片去重
 func StringSliceDeDuplication(ss []string) []string {
 	tmp := make(map[string]struct{}, len(ss))
 

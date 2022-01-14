@@ -15,32 +15,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package utils
 
-import (
-	"fmt"
-	"testing"
+import "testing"
 
-	"golang.org/x/crypto/bcrypt"
-)
-
-func TestCreateToken(t *testing.T) {
-	AuthOption = DefaultAuthConfig()
-
-	uid := "65e4789a6d5b49669adf1e9e8387549c"
-	fmt.Printf("uid=%s\n", uid)
-
-	token, err := createToken(uid, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	fmt.Printf("token=%s\n", token)
-
-	password, err := bcrypt.GenerateFromPassword([]byte("polarismesh@2021"), bcrypt.DefaultCost)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	fmt.Printf("password=%s\n", string(password))
+func TestNewUUID(t *testing.T) {
+	val := NewUUID()
+	t.Log(val)
 }

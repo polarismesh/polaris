@@ -20,6 +20,7 @@ package service
 import (
 	"context"
 
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
@@ -40,8 +41,9 @@ type ResourceHook interface {
 }
 
 type ResourceEvent struct {
-	Origin   interface{}
-	IsRemove bool
+	Namespaces []*model.Namespace
+	Services   []*model.Service
+	IsRemove   bool
 }
 
 // Before
@@ -64,30 +66,66 @@ func (svr *serverAuthAbility) After(ctx context.Context, resourceType model.Reso
 	}
 }
 
-// onNamespaceResource 
-//  @receiver svr 
-//  @param ctx 
-//  @param res 
+// onNamespaceResource
+//  @receiver svr
+//  @param ctx
+//  @param res
 func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *ResourceEvent) {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
+	ownerId := utils.ParseOwnerID(ctx)
 
+	accessRes := make(map[api.ResourceType][]model.ResourceEntry)
+	accessNs := accessRes[api.ResourceType_Namespaces]
+	for index := range res.Namespaces {
+		ns := res.Namespaces[index]
+		accessNs = append(accessNs, model.ResourceEntry{
+			ID:    ns.Name,
+			Owner: ownerId,
+		})
+	}
+
+	authCtx.GetAttachment()[model.ResourceAttachmentKey] = accessRes
 	svr.authMgn.AfterResourceOperation(authCtx)
 }
 
-// onServiceResource 
-//  @receiver svr 
-//  @param ctx 
-//  @param res 
+// onServiceResource
+//  @receiver svr
+//  @param ctx
+//  @param res
 func (svr *serverAuthAbility) onServiceResource(ctx context.Context, res *ResourceEvent) {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
+	ownerId := utils.ParseOwnerID(ctx)
+
+	accessNs := make([]model.ResourceEntry, 0)
+	for index := range res.Namespaces {
+		ns := res.Namespaces[index]
+		accessNs = append(accessNs, model.ResourceEntry{
+			ID:    ns.Name,
+			Owner: ownerId,
+		})
+	}
+
+	accessSvc := make([]model.ResourceEntry, 0)
+	for index := range res.Services {
+		svc := res.Services[index]
+		accessSvc = append(accessSvc, model.ResourceEntry{
+			ID:    svc.ID,
+			Owner: ownerId,
+		})
+	}
+
+	authCtx.GetAttachment()[model.ResourceAttachmentKey] = map[api.ResourceType][]model.ResourceEntry{
+		api.ResourceType_Namespaces: accessNs,
+		api.ResourceType_Services:   accessSvc,
+	}
 
 	svr.authMgn.AfterResourceOperation(authCtx)
 }
 
-// onConfigGroupResource 
-//  @receiver svr 
-//  @param ctx 
-//  @param res 
+// onConfigGroupResource
+//  @receiver svr
+//  @param ctx
+//  @param res
 func (svr *serverAuthAbility) onConfigGroupResource(ctx context.Context, res *ResourceEvent) {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
 

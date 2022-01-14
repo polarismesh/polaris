@@ -32,7 +32,7 @@ import (
 func (svr *serverAuthAbility) CreateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Create)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -48,7 +48,7 @@ func (svr *serverAuthAbility) CreateServiceAlias(ctx context.Context, req *api.S
 func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context, reqs []*api.ServiceAlias) *api.BatchWriteResponse {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, reqs, model.Modify)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -64,7 +64,7 @@ func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context, reqs []*
 func (svr *serverAuthAbility) UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Create)
 
-	_, err := svr.authMgn.HasPermission(authCtx)
+	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
 		return api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}

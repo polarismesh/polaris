@@ -31,6 +31,7 @@ type userServerAuth struct {
 	target  auth.UserServer
 }
 
+// newUserServerWithAuth 构建一个带鉴权检查的 UserServer, 无论鉴权逻辑是否开启，这里的操作都必须经过用户角色检查
 func newUserServerWithAuth(authMgn *defaultAuthManager, target auth.UserServer) auth.UserServer {
 	return &userServerAuth{
 		authMgn: authMgn,
@@ -45,7 +46,7 @@ func (svr *userServerAuth) CreateUsers(ctx context.Context, req []*api.User) *ap
 		return api.NewBatchWriteResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
 	if errResp != nil {
 		resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
 		resp.Collect(errResp)
@@ -62,7 +63,7 @@ func (svr *userServerAuth) UpdateUser(ctx context.Context, user *api.User) *api.
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
 	if errResp != nil {
 		errResp.User = user
 		return errResp
@@ -78,7 +79,7 @@ func (svr *userServerAuth) DeleteUser(ctx context.Context, user *api.User) *api.
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
 	if errResp != nil {
 		errResp.User = user
 		return errResp
@@ -94,7 +95,7 @@ func (svr *userServerAuth) ListUsers(ctx context.Context, query map[string]strin
 		return api.NewBatchQueryResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
 	if errResp != nil {
 		return api.NewBatchQueryResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
 	}
@@ -109,7 +110,7 @@ func (svr *userServerAuth) GetUserToken(ctx context.Context, filter map[string]s
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
 	if errResp != nil {
 		return errResp
 	}
@@ -124,7 +125,7 @@ func (svr *userServerAuth) ChangeUserTokenStatus(ctx context.Context, user *api.
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
 	if errResp != nil {
 		errResp.User = user
 		return errResp
@@ -140,7 +141,7 @@ func (svr *userServerAuth) RefreshUserToken(ctx context.Context, user *api.User)
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
 	if errResp != nil {
 		errResp.User = user
 		return errResp
@@ -156,7 +157,7 @@ func (svr *userServerAuth) CreateUserGroup(ctx context.Context, group *api.UserG
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
 	if errResp != nil {
 		errResp.UserGroup = group
 		return errResp
@@ -172,7 +173,7 @@ func (svr *userServerAuth) UpdateUserGroup(ctx context.Context, group *api.Modif
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
 	if errResp != nil {
 		errResp.ModifyUserGroup = group
 		return errResp
@@ -188,7 +189,7 @@ func (svr *userServerAuth) DeleteUserGroup(ctx context.Context, group *api.UserG
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
 	if errResp != nil {
 		errResp.UserGroup = group
 		return errResp
@@ -197,33 +198,49 @@ func (svr *userServerAuth) DeleteUserGroup(ctx context.Context, group *api.UserG
 	return svr.target.DeleteUserGroup(ctx, group)
 }
 
-// ListUserGroups
-func (svr *userServerAuth) ListUserGroups(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+// ListGroups 查看用户组
+func (svr *userServerAuth) ListGroups(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	authToken := utils.ParseAuthToken(ctx)
 	if authToken == "" {
 		return api.NewBatchQueryResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
 	if errResp != nil {
 		return api.NewBatchQueryResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
 	}
 
-	return svr.target.ListUserGroups(ctx, query)
+	return svr.target.ListGroups(ctx, query)
 }
 
+// ListUserByGroup
 func (svr *userServerAuth) ListUserByGroup(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	authToken := utils.ParseAuthToken(ctx)
 	if authToken == "" {
 		return api.NewBatchQueryResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
 	if errResp != nil {
 		return api.NewBatchQueryResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
 	}
 
 	return svr.target.ListUserByGroup(ctx, query)
+}
+
+// ListUserLinkGroups
+func (svr *userServerAuth) ListUserLinkGroups(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+	authToken := utils.ParseAuthToken(ctx)
+	if authToken == "" {
+		return api.NewBatchQueryResponse(api.NotAllowedAccess)
+	}
+
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	if errResp != nil {
+		return api.NewBatchQueryResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
+	}
+
+	return svr.target.ListUserLinkGroups(ctx, query)
 }
 
 // GetUserGroupToken
@@ -233,7 +250,7 @@ func (svr *userServerAuth) GetUserGroupToken(ctx context.Context, filter map[str
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
 	if errResp != nil {
 		return errResp
 	}
@@ -248,7 +265,7 @@ func (svr *userServerAuth) ChangeUserGroupTokenStatus(ctx context.Context, group
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
 	if errResp != nil {
 		errResp.UserGroup = group
 		return errResp
@@ -264,7 +281,7 @@ func (svr *userServerAuth) RefreshUserGroupToken(ctx context.Context, group *api
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ctx, _, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
 	if errResp != nil {
 		errResp.UserGroup = group
 		return errResp

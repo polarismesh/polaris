@@ -19,51 +19,22 @@ package defaultauth
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 	"unsafe"
-
-	"github.com/polarismesh/polaris-server/cache"
-	"github.com/polarismesh/polaris-server/plugin"
 )
 
 func Test_defaultAuthManager_ParseToken(t *testing.T) {
-	type fields struct {
-		userSvr     *userServer
-		strategySvr *authStrategyServer
-		cacheMgn    *cache.NamingCache
-		authPlugin  plugin.Auth
+	token := "/my+ddY86rEMpxGQBfMoGR3p1JtZAuQdYVBm01sK5fhGFhXjQoIl/ktZtcAiO+EuxGjE53WvnZKRiFa/7y4="
+
+	authMgn := &defaultAuthManager{}
+
+	tokenInfo, err := authMgn.DecodeToken(token)
+
+	if err != nil {
+		t.Fatal(err)
 	}
-	type args struct {
-		t string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    TokenInfo
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			authMgn := &defaultAuthManager{
-				userSvr:     tt.fields.userSvr,
-				strategySvr: tt.fields.strategySvr,
-				cacheMgn:    tt.fields.cacheMgn,
-				authPlugin:  tt.fields.authPlugin,
-			}
-			got, err := authMgn.ParseToken(tt.args.t)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("defaultAuthManager.ParseToken() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("defaultAuthManager.ParseToken() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+
+	t.Logf("%#v", tokenInfo)
 }
 
 func Test_SiezOfInerface(t *testing.T) {
