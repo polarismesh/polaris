@@ -924,10 +924,6 @@ func checkCreateService(req *api.Service) *api.Response {
 		return api.NewServiceResponse(api.InvalidNamespaceName, req)
 	}
 
-	if err := checkResourceOwners(req.GetOwners()); err != nil {
-		return api.NewServiceResponse(api.InvalidServiceOwners, req)
-	}
-
 	if err := checkMetadata(req.GetMetadata()); err != nil {
 		return api.NewServiceResponse(api.InvalidMetadata, req)
 	}
