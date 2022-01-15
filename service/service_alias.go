@@ -334,10 +334,6 @@ func preCheckAlias(req *api.ServiceAlias) (*api.Response, bool) {
 		return api.NewServiceAliasResponse(api.InvalidNamespaceWithAlias, req), true
 	}
 
-	if err := checkResourceOwners(req.GetOwners()); err != nil {
-		return api.NewServiceAliasResponse(api.InvalidServiceOwners, req), true
-	}
-
 	// 默认类型，需要检查alias是否为空
 	if req.GetType() == api.AliasType_DEFAULT {
 		if err := checkResourceName(req.GetAlias()); err != nil {
