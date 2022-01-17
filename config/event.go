@@ -29,6 +29,7 @@ type Event struct {
 	Message   interface{}
 }
 
+// Callback 事件回调
 type Callback func(event Event) bool
 
 // Center 事件中心
@@ -65,7 +66,7 @@ func (c *Center) WatchEvent(eventType string, cb Callback) {
 func (c *Center) handleEvent(e Event) {
 	defer func() {
 		if err := recover(); err != nil {
-			log.GetDefaultLogger().Error("[Common][Event] handler event error.", zap.Any("error", err))
+			log.ConfigScope().Error("[Common][Event] handler event error.", zap.Any("error", err))
 		}
 	}()
 
@@ -78,7 +79,7 @@ func (c *Center) handleEvent(e Event) {
 	for _, cb := range cbArr {
 		ok := cb(e)
 		if !ok {
-			log.GetDefaultLogger().Errorf("[Common][Event] cb message error. event = %+v", e)
+			log.ConfigScope().Errorf("[Common][Event] cb message error. event = %+v", e)
 		}
 	}
 }

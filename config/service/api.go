@@ -29,6 +29,7 @@ const (
 	MaxPageSize = 100
 )
 
+// API 配置模块服务接口
 type API interface {
 	// StartTxAndSetToContext 创建一个事务并放到 context 里
 	StartTxAndSetToContext(ctx context.Context) (store.Tx, context.Context, error)
@@ -40,6 +41,7 @@ type API interface {
 	ConfigFileClientAPI
 }
 
+// ConfigFileGroupAPI 配置文件组接口
 type ConfigFileGroupAPI interface {
 	// CreateConfigFileGroup 创建配置文件组
 	CreateConfigFileGroup(ctx context.Context, configFileGroup *api.ConfigFileGroup) *api.ConfigResponse
@@ -57,6 +59,7 @@ type ConfigFileGroupAPI interface {
 	UpdateConfigFileGroup(ctx context.Context, configFileGroup *api.ConfigFileGroup) *api.ConfigResponse
 }
 
+// ConfigFileAPI 配置文件接口
 type ConfigFileAPI interface {
 	// CreateConfigFile 创建配置文件
 	CreateConfigFile(ctx context.Context, configFile *api.ConfigFile) *api.ConfigResponse
@@ -77,6 +80,7 @@ type ConfigFileAPI interface {
 	DeleteConfigFile(ctx context.Context, namespace, group, name, deleteBy string) *api.ConfigResponse
 }
 
+// ConfigFileReleaseAPI 配置文件发布接口
 type ConfigFileReleaseAPI interface {
 	// PublishConfigFile 发布配置文件
 	PublishConfigFile(ctx context.Context, configFileRelease *api.ConfigFileRelease) *api.ConfigResponse
@@ -88,6 +92,7 @@ type ConfigFileReleaseAPI interface {
 	DeleteConfigFileRelease(ctx context.Context, namespace, group, fileName, deleteBy string) *api.ConfigResponse
 }
 
+// ConfigFileReleaseHistoryAPI 配置文件发布历史接口
 type ConfigFileReleaseHistoryAPI interface {
 	// RecordConfigFileReleaseHistory 记录发布
 	RecordConfigFileReleaseHistory(ctx context.Context, fileRelease *model.ConfigFileRelease, releaseType, status string)
@@ -99,6 +104,7 @@ type ConfigFileReleaseHistoryAPI interface {
 	GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group, fileName string) *api.ConfigResponse
 }
 
+// ConfigFileTagAPI 配置文件标签相关的接口
 type ConfigFileTagAPI interface {
 	// CreateConfigFileTags 创建配置文件标签，tags 格式：k1,v1,k2,v2,k3,v3...
 	CreateConfigFileTags(ctx context.Context, namespace, group, fileName, operator string, tags ...string) error
@@ -116,6 +122,7 @@ type ConfigFileTagAPI interface {
 	DeleteTagByConfigFile(ctx context.Context, namespace, group, fileName string) error
 }
 
+// ConfigFileClientAPI 给客户端提供服务接口，不同的上层协议抽象的公共服务逻辑
 type ConfigFileClientAPI interface {
 	// CheckClientConfigFile 检查客户端版本是否落后
 	CheckClientConfigFile(ctx context.Context, configFiles []*api.ClientConfigFileInfo) *api.ConfigClientResponse
@@ -124,12 +131,14 @@ type ConfigFileClientAPI interface {
 	GetConfigFileForClient(ctx context.Context, namespace, group, fileName string, clientVersion uint64) *api.ConfigClientResponse
 }
 
+// Impl 服务接口实现类
 type Impl struct {
 	API
 	storage store.Store
 	cache   *cache.FileCache
 }
 
+// NewServiceImpl 新建配置中心服务实现类
 func NewServiceImpl(storage store.Store, cache *cache.FileCache) API {
 	return &Impl{
 		storage: storage,

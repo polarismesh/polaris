@@ -18,6 +18,7 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/log"
@@ -29,7 +30,9 @@ import (
 )
 
 const (
-	EventTypePublishConfigFile = "PublishConfigFile"
+	eventTypePublishConfigFile = "PublishConfigFile"
+
+	defaultExpireTimeAfterWrite = 60 * 60 // expire after 1 hour
 )
 
 var (
@@ -40,7 +43,8 @@ var (
 
 // StartupConfig 配置中心模块启动参数
 type StartupConfig struct {
-	Open bool `yaml:"open"`
+	Open  bool                   `yaml:"open"`
+	Cache map[string]interface{} `yaml:"cache"`
 }
 
 // Server 配置中心核心服务
@@ -52,15 +56,15 @@ type Server struct {
 }
 
 // InitConfigModule 初始化配置中心模块
-func InitConfigModule(open bool) error {
-	if !open {
+func InitConfigModule(ctx context.Context, config StartupConfig) error {
+	if !config.Open {
 		initialized = true
 		return nil
 	}
 
 	var err error
 	once.Do(func() {
-		err = doInit()
+		err = doInit(ctx, config)
 	})
 
 	if err != nil {
@@ -71,25 +75,33 @@ func InitConfigModule(open bool) error {
 	return nil
 }
 
-func doInit() error {
+func doInit(ctx context.Context, config StartupConfig) error {
 	//1. 初始化存储模块
-	s, err := store.GetStore()
+	storage, err := store.GetStore()
 	if err != nil {
-		log.GetConfigLogger().Errorf("[Config][Server] can not get store, err: %s", err.Error())
+		log.ConfigScope().Errorf("[Config][Server] can not get store, err: %s", err.Error())
 		return errors.New("can not get store")
 	}
-	if s == nil {
-		log.GetConfigLogger().Errorf("[Config][Server] store is null")
+	if storage == nil {
+		log.ConfigScope().Errorf("[Config][Server] store is null")
 		return errors.New("store is null")
 	}
-	server.storage = s
+	server.storage = storage
 
 	//2. 初始化缓存模块
-	fileCache := cache.NewFileCache(s)
+	expireTimeAfterWrite, ok := config.Cache["expireTimeAfterWrite"]
+	if !ok {
+		expireTimeAfterWrite = defaultExpireTimeAfterWrite
+	}
+
+	cacheParam := cache.FileCacheParam{
+		ExpireTimeAfterWrite: expireTimeAfterWrite.(int),
+	}
+	fileCache := cache.NewFileCache(ctx, storage, cacheParam)
 	server.cache = fileCache
 
 	//3. 初始化 service 模块
-	serviceImpl := service.NewServiceImpl(s, fileCache)
+	serviceImpl := service.NewServiceImpl(storage, fileCache)
 	server.service = serviceImpl
 
 	//4. 初始化事件中心
@@ -97,13 +109,13 @@ func doInit() error {
 	server.watchCenter = NewWatchCenter(eventCenter)
 
 	//5. 初始化发布事件扫描器
-	err = initReleaseMessageScanner(s, fileCache, eventCenter, time.Second)
+	err = initReleaseMessageScanner(ctx, storage, fileCache, eventCenter, time.Second)
 	if err != nil {
-		log.GetConfigLogger().Error("[Config][Server] init release message scanner error. ", zap.Error(err))
+		log.ConfigScope().Error("[Config][Server] init release message scanner error. ", zap.Error(err))
 		return errors.New("init config module error")
 	}
 
-	log.GetConfigLogger().Infof("[Config][Server] startup config module success.")
+	log.ConfigScope().Infof("[Config][Server] startup config module success.")
 
 	return nil
 }

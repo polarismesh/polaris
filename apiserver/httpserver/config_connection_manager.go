@@ -18,27 +18,51 @@
 package httpserver
 
 import (
+	"context"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"sync"
+	"time"
+)
+
+const (
+	defaultLongPollingTimeout = 30000 * time.Millisecond
 )
 
 type connection struct {
+	finishTime time.Time
 	finishChan chan struct{}
 	handler    *Handler
 }
 
-//client -> connection
-var conns = new(sync.Map)
+type connManager struct {
+	conns          *sync.Map //client -> connection
+	stopWorkerFunc context.CancelFunc
+}
+
+var cm *connManager
+
+// initConnManager 初始化连接管理器，定时响应超时的请求
+func initConnManager() {
+	cm = &connManager{
+		conns: new(sync.Map),
+	}
+
+	var ctx context.Context
+	ctx, cm.stopWorkerFunc = context.WithCancel(context.Background())
+
+	go startHandleTimeoutRequestWorker(ctx)
+}
 
 func (h *HTTPServer) addConn(clientId string, watchConfigFiles []*api.ClientConfigFileInfo,
 	handler *Handler, finishChan chan struct{}) {
-	conns.Store(clientId, &connection{
+	cm.conns.Store(clientId, &connection{
+		finishTime: time.Now().Add(defaultLongPollingTimeout),
 		finishChan: finishChan,
 		handler:    handler,
 	})
 
 	h.configServer.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *api.ConfigClientResponse) bool {
-		conn, ok := conns.Load(clientId)
+		conn, ok := cm.conns.Load(clientId)
 		if ok {
 			c := conn.(*connection)
 			c.handler.WriteHeaderAndProto(rsp)
@@ -49,6 +73,29 @@ func (h *HTTPServer) addConn(clientId string, watchConfigFiles []*api.ClientConf
 }
 
 func (h *HTTPServer) removeConn(clientId string, watchConfigFiles []*api.ClientConfigFileInfo) {
-	conns.Delete(clientId)
+	cm.conns.Delete(clientId)
 	h.configServer.WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
+}
+
+func startHandleTimeoutRequestWorker(ctx context.Context) {
+	t := time.NewTicker(time.Second)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			cm.conns.Range(func(client, conn interface{}) bool {
+				connCtx := conn.(*connection)
+				if time.Now().After(connCtx.finishTime) {
+					connCtx.finishChan <- struct{}{}
+				}
+				return true
+			})
+		}
+	}
+}
+
+func stopHandleTimeoutRequestWorker() {
+	cm.stopWorkerFunc()
 }

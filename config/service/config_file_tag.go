@@ -38,7 +38,7 @@ func (cs *Impl) CreateConfigFileTags(ctx context.Context, namespace, group, file
 	//1. 获取已存储的 tags
 	storedTags, err := cs.QueryTagsByConfigFile(ctx, namespace, group, fileName)
 	if err != nil {
-		log.GetConfigLogger().Error("[Config][Service] query config file tags error.",
+		log.ConfigScope().Error("[Config][Service] query config file tags error.",
 			zap.String("request-id", requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
@@ -141,7 +141,7 @@ func (cs *Impl) QueryConfigFileByTags(ctx context.Context, namespace, group, fil
 
 	files, err := cs.storage.QueryConfigFileByTag(namespace, group, fileName, tags...)
 	if err != nil {
-		log.GetConfigLogger().Error("[Config][Service] query config file by tags error.",
+		log.ConfigScope().Error("[Config][Service] query config file by tags error.",
 			zap.String("request-id", requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
@@ -219,7 +219,7 @@ func (cs *Impl) QueryTagsByConfigFileWithAPIModels(ctx context.Context, namespac
 func (cs *Impl) DeleteTagByConfigFile(ctx context.Context, namespace, group, fileName string) error {
 	if err := cs.storage.DeleteTagByConfigFile(cs.getTx(ctx), namespace, group, fileName); err != nil {
 		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
-		log.GetConfigLogger().Error("[Config][Service] query config file tags error.",
+		log.ConfigScope().Error("[Config][Service] query config file tags error.",
 			zap.String("request-id", requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
@@ -252,7 +252,7 @@ func (cs *Impl) doCreateConfigFileTags(ctx context.Context, namespace, group, fi
 				ModifyBy:  operator,
 			})
 			if err != nil {
-				log.GetConfigLogger().Error("[Config][Service] create config file tag error.",
+				log.ConfigScope().Error("[Config][Service] create config file tag error.",
 					zap.String("request-id", requestID),
 					zap.String("namespace", namespace),
 					zap.String("group", group),
@@ -279,7 +279,7 @@ func (cs *Impl) doDeleteConfigFileTags(ctx context.Context, namespace, group, fi
 		} else {
 			err := cs.storage.DeleteConfigFileTag(cs.getTx(ctx), namespace, group, fileName, key, t)
 			if err != nil {
-				log.GetConfigLogger().Error("[Config][Service] delete config file tag error.",
+				log.ConfigScope().Error("[Config][Service] delete config file tag error.",
 					zap.String("request-id", requestID),
 					zap.String("namespace", namespace),
 					zap.String("group", group),

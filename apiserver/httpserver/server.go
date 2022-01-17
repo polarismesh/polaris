@@ -211,6 +211,8 @@ func (h *HTTPServer) Stop() {
 	if h.server != nil {
 		_ = h.server.Close()
 	}
+
+	h.StopConfigServer()
 }
 
 // Restart restart server

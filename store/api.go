@@ -47,6 +47,7 @@ type Store interface {
 	ConfigFileModuleStore
 }
 
+// NamingModuleStore 配置中心模块存储接口
 type NamingModuleStore interface {
 	// NamespaceStore 服务命名空间接口
 	NamespaceStore

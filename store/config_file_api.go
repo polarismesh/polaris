@@ -22,6 +22,7 @@ import (
 	"time"
 )
 
+// ConfigFileModuleStore 配置中心模块存储接口
 type ConfigFileModuleStore interface {
 	ConfigFileGroupStore
 	ConfigFileStore

@@ -22,3 +22,4 @@ import (
 )
 
 var log = commonlog.NamingScope()
+var configLog = commonlog.ConfigScope()

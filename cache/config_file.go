@@ -18,6 +18,7 @@
 package cache
 
 import (
+	"context"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
@@ -27,11 +28,6 @@ import (
 	"time"
 )
 
-const (
-	BaseExpireTimeAfterWrite = 60 * 60 // expire after 1 hour
-
-)
-
 var (
 	loadCnt   = 0
 	getCnt    = 0
@@ -39,8 +35,13 @@ var (
 	expireCnt = 0
 )
 
+type FileCacheParam struct {
+	ExpireTimeAfterWrite int
+}
+
 // FileCache 文件缓存，使用 loading cache 懒加载策略。同时写入时设置过期时间，定时清理过期的缓存。
 type FileCache struct {
+	params  FileCacheParam
 	storage store.Store
 	//fileId -> Entry
 	files *sync.Map
@@ -59,15 +60,16 @@ type Entry struct {
 	Empty bool
 }
 
-func NewFileCache(storage store.Store) *FileCache {
+func NewFileCache(ctx context.Context, storage store.Store, param FileCacheParam) *FileCache {
 	cache := &FileCache{
+		params:        param,
 		storage:       storage,
 		files:         new(sync.Map),
 		fileLoadLocks: new(sync.Map),
 	}
 
-	cache.startClearExpireEntryTask()
-	cache.startLogStatusTask()
+	go cache.startClearExpireEntryTask(ctx)
+	go cache.startLogStatusTask(ctx)
 
 	return cache
 }
@@ -112,7 +114,7 @@ func (fc *FileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 
 	file, err := fc.storage.GetConfigFileRelease(nil, namespace, group, fileName)
 	if err != nil {
-		log.GetConfigLogger().Error("[Config][Cache] load config file release error.",
+		log.ConfigScope().Error("[Config][Cache] load config file release error.",
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -123,7 +125,7 @@ func (fc *FileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 	//数据库中没有该对象, 为了避免对象不存在时，一直击穿数据库，所以缓存空对象
 	if file == nil {
 		emptyEntry := &Entry{
-			ExpireTime: getExpireTime(),
+			ExpireTime: fc.getExpireTime(),
 			Empty:      true,
 		}
 		fc.files.Store(fileId, emptyEntry)
@@ -135,7 +137,7 @@ func (fc *FileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 		Content:    file.Content,
 		Md5:        file.Md5,
 		Version:    file.Version,
-		ExpireTime: getExpireTime(),
+		ExpireTime: fc.getExpireTime(),
 		Empty:      false,
 	}
 
@@ -168,50 +170,52 @@ func (fc *FileCache) ReLoad(namespace, group, fileName string) (*Entry, error) {
 }
 
 //缓存过期时间，为了避免集中失效，加上随机数。[60 ~ 70]分钟内随机失效
-func getExpireTime() time.Time {
-	randTime := rand.Intn(10*60) + BaseExpireTimeAfterWrite
+func (fc *FileCache) getExpireTime() time.Time {
+	randTime := rand.Intn(10*60) + fc.params.ExpireTimeAfterWrite
 	return time.Now().Add(time.Duration(randTime) * time.Second)
 }
 
 //定时清理过期的缓存
-func (fc *FileCache) startClearExpireEntryTask() {
+func (fc *FileCache) startClearExpireEntryTask(ctx context.Context) {
 	t := time.NewTicker(time.Minute)
-	go func() {
-		for {
-			select {
-			case <-t.C:
-				curExpiredFileCnt := 0
-				fc.files.Range(func(fileId, entry interface{}) bool {
-					if time.Now().After(entry.(*Entry).ExpireTime) {
-						fc.files.Delete(fileId)
-						curExpiredFileCnt++
-					}
-					return true
-				})
-
-				if curExpiredFileCnt > 0 {
-					log.GetConfigLogger().Info("[Config][Cache] clear expired file cache.", zap.Int("count", curExpiredFileCnt))
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			curExpiredFileCnt := 0
+			fc.files.Range(func(fileId, entry interface{}) bool {
+				if time.Now().After(entry.(*Entry).ExpireTime) {
+					fc.files.Delete(fileId)
+					curExpiredFileCnt++
 				}
+				return true
+			})
 
-				expireCnt += curExpiredFileCnt
+			if curExpiredFileCnt > 0 {
+				log.ConfigScope().Info("[Config][Cache] clear expired file cache.", zap.Int("count", curExpiredFileCnt))
 			}
+
+			expireCnt += curExpiredFileCnt
 		}
-	}()
+	}
 }
 
 //print cache status at fix rate
-func (fc *FileCache) startLogStatusTask() {
+func (fc *FileCache) startLogStatusTask(ctx context.Context) {
 	t := time.NewTicker(time.Minute)
-	go func() {
-		for {
-			select {
-			case <-t.C:
-				log.GetConfigLogger().Info("[Config][Cache] cache status:",
-					zap.Int("getCnt", getCnt),
-					zap.Int("loadCnt", loadCnt),
-					zap.Int("removeCnt", removeCnt),
-					zap.Int("expireCnt", expireCnt))
-			}
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			log.ConfigScope().Info("[Config][Cache] cache status:",
+				zap.Int("getCnt", getCnt),
+				zap.Int("loadCnt", loadCnt),
+				zap.Int("removeCnt", removeCnt),
+				zap.Int("expireCnt", expireCnt))
 		}
-	}()
+	}
 }

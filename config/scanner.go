@@ -18,6 +18,7 @@
 package config
 
 import (
+	"context"
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -32,6 +33,7 @@ const (
 	MessageExpireTime     = -5 * time.Second
 )
 
+// releaseMessageScanner 发布事件扫描器，根据发布时间获取发布事件，并通过 EventCenter 广播事件
 type releaseMessageScanner struct {
 	storage store.Store
 
@@ -44,7 +46,8 @@ type releaseMessageScanner struct {
 	eventCenter *Center
 }
 
-func initReleaseMessageScanner(storage store.Store, fileCache *cache.FileCache, eventCenter *Center, scanInterval time.Duration) error {
+func initReleaseMessageScanner(ctx context.Context, storage store.Store, fileCache *cache.FileCache,
+	eventCenter *Center, scanInterval time.Duration) error {
 	scanner := &releaseMessageScanner{
 		storage:      storage,
 		fileCache:    fileCache,
@@ -57,7 +60,7 @@ func initReleaseMessageScanner(storage store.Store, fileCache *cache.FileCache, 
 		return err
 	}
 
-	scanner.startScannerTask()
+	go scanner.startScanTask(ctx)
 
 	return nil
 }
@@ -68,7 +71,7 @@ func (s *releaseMessageScanner) scanAtFirstTime() error {
 
 	releases, err := s.storage.FindConfigFileReleaseByModifyTimeAfter(t)
 	if err != nil {
-		log.GetConfigLogger().Error("[Config][Scanner] scan config file release error.", zap.Error(err))
+		log.ConfigScope().Error("[Config][Scanner] scan config file release error.", zap.Error(err))
 		return err
 	}
 
@@ -76,39 +79,40 @@ func (s *releaseMessageScanner) scanAtFirstTime() error {
 		return nil
 	}
 
-	log.GetConfigLogger().Info("[Config][Scanner] scan config file release count at first time. ", zap.Int("count", len(releases)))
+	log.ConfigScope().Info("[Config][Scanner] scan config file release count at first time. ", zap.Int("count", len(releases)))
 
 	err = s.handlerReleases(true, releases)
 	if err != nil {
-		log.GetConfigLogger().Error("[Config][Scanner] handler release message error.", zap.Error(err))
+		log.ConfigScope().Error("[Config][Scanner] handler release message error.", zap.Error(err))
 		return err
 	}
 
 	return nil
 }
 
-func (s *releaseMessageScanner) startScannerTask() {
+func (s *releaseMessageScanner) startScanTask(ctx context.Context) {
 	t := time.NewTicker(s.scanInterval)
-	go func() {
-		for {
-			select {
-			case <-t.C:
-				//为了避免丢失消息，扫描发布消息的时间点往前拨10s。因为处理消息是幂等的，所以即使捞出重复消息也能够正常处理
-				scanIdx := s.lastScannerTime.Add(DefaultScanTimeOffset)
-				releases, err := s.storage.FindConfigFileReleaseByModifyTimeAfter(scanIdx)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			//为了避免丢失消息，扫描发布消息的时间点往前拨10s。因为处理消息是幂等的，所以即使捞出重复消息也能够正常处理
+			scanIdx := s.lastScannerTime.Add(DefaultScanTimeOffset)
+			releases, err := s.storage.FindConfigFileReleaseByModifyTimeAfter(scanIdx)
 
-				if err != nil {
-					log.GetConfigLogger().Error("[Config][Scanner] scan config file release error.", zap.Error(err))
-					continue
-				}
+			if err != nil {
+				log.ConfigScope().Error("[Config][Scanner] scan config file release error.", zap.Error(err))
+				continue
+			}
 
-				err = s.handlerReleases(false, releases)
-				if err != nil {
-					log.GetConfigLogger().Error("[Config][Scanner] handler release message error.", zap.Error(err))
-				}
+			err = s.handlerReleases(false, releases)
+			if err != nil {
+				log.ConfigScope().Error("[Config][Scanner] handler release message error.", zap.Error(err))
 			}
 		}
-	}()
+	}
 }
 
 func (s *releaseMessageScanner) handlerReleases(firstTime bool, releases []*model.ConfigFileRelease) error {
@@ -143,7 +147,7 @@ func (s *releaseMessageScanner) handlerReleases(firstTime bool, releases []*mode
 
 			if !firstTime && !isExpireMessage(release) {
 				s.eventCenter.handleEvent(Event{
-					EventType: EventTypePublishConfigFile,
+					EventType: eventTypePublishConfigFile,
 					Message:   release,
 				})
 			}
@@ -153,7 +157,7 @@ func (s *releaseMessageScanner) handlerReleases(firstTime bool, releases []*mode
 	s.lastScannerTime = maxModifyTime
 
 	if newReleaseCnt > 0 {
-		log.GetConfigLogger().Info("[Config][Scanner] scan config file release count. ", zap.Int("count", len(releases)))
+		log.ConfigScope().Info("[Config][Scanner] scan config file release count. ", zap.Int("count", len(releases)))
 	}
 
 	return nil

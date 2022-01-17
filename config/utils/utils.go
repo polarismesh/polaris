@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	FileContentMaxLength = 20000
+	fileContentMaxLength = 20000 // 文件内容限制为 2w 个字符
 )
 
 // CheckResourceName 检查资源名称
@@ -64,12 +64,13 @@ func CalMd5(content string) string {
 
 // CheckContentLength 校验文件内容长度
 func CheckContentLength(content string) error {
-	if len(content) > FileContentMaxLength {
-		return errors.New("content length too long. max length =" + strconv.Itoa(FileContentMaxLength))
+	if len(content) > fileContentMaxLength {
+		return errors.New("content length too long. max length =" + strconv.Itoa(fileContentMaxLength))
 	}
 	return nil
 }
 
+// GenConfigFileResponse 为客户端生成响应对象
 func GenConfigFileResponse(namespace, group, fileName, content, md5 string, version uint64) *api.ConfigClientResponse {
 	configFile := &api.ClientConfigFileInfo{
 		Namespace: utils.NewStringValue(namespace),

@@ -49,7 +49,7 @@ func (cs *Impl) RecordConfigFileReleaseHistory(ctx context.Context, fileRelease 
 	err := cs.storage.CreateConfigFileReleaseHistory(cs.getTx(ctx), releaseHistory)
 
 	if err != nil {
-		log.GetConfigLogger().Error("[Config][Service] create config file release history error.",
+		log.ConfigScope().Error("[Config][Service] create config file release history error.",
 			zap.String("request-id", requestID),
 			zap.String("namespace", fileRelease.Namespace),
 			zap.String("group", fileRelease.Group),
@@ -80,7 +80,7 @@ func (cs *Impl) GetConfigFileReleaseHistory(ctx context.Context, namespace, grou
 
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 	if err != nil {
-		log.GetConfigLogger().Error("[Config][Service] get config file release history error.",
+		log.ConfigScope().Error("[Config][Service] get config file release history error.",
 			zap.String("request-id", requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
@@ -96,7 +96,7 @@ func (cs *Impl) GetConfigFileReleaseHistory(ctx context.Context, namespace, grou
 	//获取配置文件标签
 	tags, err := cs.QueryTagsByConfigFileWithAPIModels(ctx, namespace, group, fileName)
 	if err != nil {
-		log.GetConfigLogger().Error("[Config][Service] create config file error.",
+		log.ConfigScope().Error("[Config][Service] create config file error.",
 			zap.String("request-id", requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
@@ -115,6 +115,7 @@ func (cs *Impl) GetConfigFileReleaseHistory(ctx context.Context, namespace, grou
 	return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.ExecuteSuccess, count, apiReleaseHistory)
 }
 
+// GetConfigFileLatestReleaseHistory 获取配置文件最后一次发布记录
 func (cs *Impl) GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group, fileName string) *api.ConfigResponse {
 	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileReleaseHistoryResponse(api.InvalidNamespaceName, nil)
@@ -133,7 +134,7 @@ func (cs *Impl) GetConfigFileLatestReleaseHistory(ctx context.Context, namespace
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
 	if err != nil {
-		log.GetConfigLogger().Error("[Config][Service] get latest config file release error",
+		log.ConfigScope().Error("[Config][Service] get latest config file release error",
 			zap.String("request-id", requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),

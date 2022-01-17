@@ -20,13 +20,10 @@ package httpserver
 import (
 	"github.com/emicklei/go-restful"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"go.uber.org/zap"
 	"strconv"
 )
-
-//配置文件组
 
 // CreateConfigFileGroup 创建配置文件组
 func (h *HTTPServer) CreateConfigFileGroup(req *restful.Request, rsp *restful.Response) {
@@ -37,7 +34,7 @@ func (h *HTTPServer) CreateConfigFileGroup(req *restful.Request, rsp *restful.Re
 	requestId := ctx.Value(utils.StringContext("request-id"))
 
 	if err != nil {
-		log.GetConfigLogger().Error("[Config][HttpServer] parse config file group from request error.",
+		configLog.Error("[Config][HttpServer] parse config file group from request error.",
 			zap.String("requestId", requestId.(string)),
 			zap.String("error", err.Error()))
 		handler.WriteHeaderAndProto(api.NewConfigFileGroupResponseWithMessage(api.ParseException, err.Error()))
@@ -82,7 +79,7 @@ func (h *HTTPServer) UpdateConfigFileGroup(req *restful.Request, rsp *restful.Re
 	requestId := ctx.Value(utils.StringContext("request-id"))
 
 	if err != nil {
-		log.GetConfigLogger().Error("[Config][HttpServer] parse config file group from request error.",
+		configLog.Error("[Config][HttpServer] parse config file group from request error.",
 			zap.String("requestId", requestId.(string)),
 			zap.String("error", err.Error()))
 		handler.WriteHeaderAndProto(api.NewConfigFileGroupResponseWithMessage(api.ParseException, err.Error()))
@@ -103,7 +100,7 @@ func (h *HTTPServer) CreateConfigFile(req *restful.Request, rsp *restful.Respons
 	requestId := ctx.Value(utils.StringContext("request-id"))
 
 	if err != nil {
-		log.GetConfigLogger().Error("[Config][HttpServer] parse config file from request error.",
+		configLog.Error("[Config][HttpServer] parse config file from request error.",
 			zap.String("requestId", requestId.(string)),
 			zap.String("error", err.Error()))
 		handler.WriteHeaderAndProto(api.NewConfigFileResponseWithMessage(api.ParseException, err.Error()))
@@ -150,7 +147,7 @@ func (h *HTTPServer) UpdateConfigFile(req *restful.Request, rsp *restful.Respons
 	ctx, err := handler.Parse(configFile)
 	requestId := ctx.Value(utils.StringContext("request-id"))
 	if err != nil {
-		log.GetConfigLogger().Error("[Config][HttpServer] parse config file from request error.",
+		configLog.Error("[Config][HttpServer] parse config file from request error.",
 			zap.String("requestId", requestId.(string)),
 			zap.String("error", err.Error()))
 		handler.WriteHeaderAndProto(api.NewConfigFileResponseWithMessage(api.ParseException, err.Error()))
@@ -184,7 +181,7 @@ func (h *HTTPServer) PublishConfigFile(req *restful.Request, rsp *restful.Respon
 	requestId := ctx.Value(utils.StringContext("request-id"))
 
 	if err != nil {
-		log.GetConfigLogger().Error("[Config][HttpServer] parse config file release from request error.",
+		configLog.Error("[Config][HttpServer] parse config file release from request error.",
 			zap.String("requestId", requestId.(string)),
 			zap.String("error", err.Error()))
 		handler.WriteHeaderAndProto(api.NewConfigFileReleaseResponseWithMessage(api.ParseException, err.Error()))

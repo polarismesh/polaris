@@ -40,11 +40,19 @@ func (cs *Impl) CheckClientConfigFile(ctx context.Context, configFiles []*api.Cl
 		fileName := configFile.FileName.GetValue()
 		clientVersion := configFile.Version.GetValue()
 
+		if namespace == "" || group == "" || fileName == "" {
+			return api.NewConfigClientResponseWithMessage(api.BadRequest, "namespace & group & fileName can not be empty")
+		}
+
+		if clientVersion < 0 {
+			return api.NewConfigClientResponseWithMessage(api.BadRequest, "client version must greater than or equal to 0")
+		}
+
 		//从缓存中获取最新的配置文件信息
 		entry, err := cs.cache.GetOrLoadIfAbsent(namespace, group, fileName)
 
 		if err != nil {
-			log.GetConfigLogger().Error("[Config][Service] get or load config file from cache error.",
+			log.ConfigScope().Error("[Config][Service] get or load config file from cache error.",
 				zap.String("requestId", requestID),
 				zap.String("fileName", fileName),
 				zap.Error(err))
@@ -72,7 +80,7 @@ func (cs *Impl) GetConfigFileForClient(ctx context.Context, namespace, group, fi
 	entry, err := cs.cache.GetOrLoadIfAbsent(namespace, group, fileName)
 
 	if err != nil {
-		log.GetConfigLogger().Error("[Config][Service] get or load config file from cache error.",
+		log.ConfigScope().Error("[Config][Service] get or load config file from cache error.",
 			zap.String("requestId", requestID),
 			zap.Error(err))
 
@@ -87,7 +95,7 @@ func (cs *Impl) GetConfigFileForClient(ctx context.Context, namespace, group, fi
 	if clientVersion > entry.Version {
 		entry, err = cs.cache.ReLoad(namespace, group, fileName)
 		if err != nil {
-			log.GetConfigLogger().Error("[Config][Service] reload config file error.",
+			log.ConfigScope().Error("[Config][Service] reload config file error.",
 				zap.String("requestId", requestID),
 				zap.Error(err))
 

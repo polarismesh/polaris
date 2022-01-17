@@ -19,7 +19,6 @@ package sqldb
 
 import (
 	"database/sql"
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
 	"time"
@@ -136,7 +135,7 @@ func (cf *configFileStore) baseSelectConfigFileSql() string {
 }
 
 func (cf *configFileStore) hardDeleteConfigFile(namespace, group, name string) error {
-	log.GetConfigLogger().Infof("[Config][Storage] delete config file. namespace = %s, group = %s, name = %s", namespace, group, name)
+	log.Infof("[Config][Storage] delete config file. namespace = %s, group = %s, name = %s", namespace, group, name)
 
 	deleteSql := "delete from config_file where namespace = ? and `group` = ? and name = ? and flag = 1"
 

@@ -20,7 +20,6 @@ package httpserver
 import (
 	"fmt"
 	"github.com/emicklei/go-restful"
-	"github.com/polarismesh/polaris-server/common/log"
 )
 
 const (
@@ -55,6 +54,8 @@ func (h *HTTPServer) GetConfigAccessServer(include []string) (*restful.WebServic
 		}
 	}
 
+	initConnManager()
+
 	return ws, nil
 }
 
@@ -83,5 +84,10 @@ func (h *HTTPServer) bindConfigConsoleEndpoint(ws *restful.WebService) {
 
 func (h *HTTPServer) bindConfigClientEndpoint(ws *restful.WebService) {
 	ws.Route(ws.GET("/GetConfigFile").To(h.getConfigFile))
-	ws.Route(ws.POST("/WatchConfigFile").To(h.WatchConfigFile))
+	ws.Route(ws.POST("/WatchConfigFile").To(h.watchConfigFile))
+}
+
+// StopConfigServer 停止配置中心模块
+func (h *HTTPServer) StopConfigServer() {
+	stopHandleTimeoutRequestWorker()
 }

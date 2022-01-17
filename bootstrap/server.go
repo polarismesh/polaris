@@ -102,7 +102,7 @@ func Start(configFilePath string) {
 		fmt.Printf("[ERROR] %v\n", err)
 		return
 	}
-	err = StartConfigModule(cfg)
+	err = StartConfigModule(ctx, cfg)
 	if err != nil {
 		fmt.Printf("[ERROR] Start config module error. %v\n", err)
 	}
@@ -153,8 +153,9 @@ func StartComponents(ctx context.Context, cfg *config.Config) error {
 	return nil
 }
 
-func StartConfigModule(cfg *config.Config) error {
-	return config2.InitConfigModule(cfg.ConfigFile.Open)
+// StartConfigModule 启动配置中心模块
+func StartConfigModule(ctx context.Context, cfg *config.Config) error {
+	return config2.InitConfigModule(ctx, cfg.ConfigFile)
 }
 
 // StartServers 启动server

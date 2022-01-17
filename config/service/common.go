@@ -30,15 +30,30 @@ const (
 	ContextTxKey = utils.StringContext("Config-Tx")
 )
 
+// StartTxAndSetToContext 开启一个事务，并放入到上下文里
+func (cs *Impl) StartTxAndSetToContext(ctx context.Context) (store.Tx, context.Context, error) {
+	tx, err := cs.storage.StartTx()
+	return tx, context.WithValue(ctx, ContextTxKey, tx), err
+}
+
+// getTx 从上下文里获取事务对象
+func (cs *Impl) getTx(ctx context.Context) store.Tx {
+	tx := ctx.Value(ContextTxKey)
+	if tx == nil {
+		return nil
+	}
+	return tx.(store.Tx)
+}
+
 func (cs *Impl) checkNamespaceExisted(namespaceName string) bool {
 	namespace, _ := cs.storage.GetNamespace(namespaceName)
 	return namespace != nil
 }
 
-func (cs *Impl) CreateNamespaceIfAbsent(namespaceName, operator, requestId string) error {
+func (cs *Impl) createNamespaceIfAbsent(namespaceName, operator, requestId string) error {
 	namespace, err := cs.storage.GetNamespace(namespaceName)
 	if err != nil {
-		log.GetConfigLogger().Error("[Config][Service] get namespace error.", zap.Error(err))
+		log.ConfigScope().Error("[Config][Service] get namespace error.", zap.Error(err))
 		return err
 	}
 	if namespace != nil {
@@ -53,7 +68,7 @@ func (cs *Impl) CreateNamespaceIfAbsent(namespaceName, operator, requestId strin
 	}
 
 	if err := cs.storage.AddNamespace(namespace); err != nil {
-		log.GetConfigLogger().Error("[Config][Service] create namespace error.",
+		log.ConfigScope().Error("[Config][Service] create namespace error.",
 			zap.String("namespace", namespaceName),
 			zap.String("requestId", requestId),
 			zap.Error(err))
@@ -61,17 +76,4 @@ func (cs *Impl) CreateNamespaceIfAbsent(namespaceName, operator, requestId strin
 	}
 
 	return nil
-}
-
-func (cs *Impl) StartTxAndSetToContext(ctx context.Context) (store.Tx, context.Context, error) {
-	tx, err := cs.storage.StartTx()
-	return tx, context.WithValue(ctx, ContextTxKey, tx), err
-}
-
-func (cs *Impl) getTx(ctx context.Context) store.Tx {
-	tx := ctx.Value(ContextTxKey)
-	if tx == nil {
-		return nil
-	}
-	return tx.(store.Tx)
 }

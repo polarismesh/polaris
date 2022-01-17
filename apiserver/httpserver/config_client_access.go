@@ -21,14 +21,8 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/google/uuid"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
 	"go.uber.org/zap"
 	"strconv"
-	"time"
-)
-
-const (
-	DefaultLongPollingTimeout = 30000 * time.Millisecond
 )
 
 func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) {
@@ -47,7 +41,7 @@ func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) 
 
 	response := h.configServer.Service().GetConfigFileForClient(handler.ParseHeaderContext(), namespace, group, fileName, clientVersion)
 
-	log.GetConfigLogger().Info("[Config][Client] client get config file success.",
+	configLog.Info("[Config][Client] client get config file success.",
 		zap.String("requestId", requestId),
 		zap.String("client", req.Request.RemoteAddr),
 		zap.String("file", fileName))
@@ -55,13 +49,13 @@ func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) 
 	handler.WriteHeaderAndProto(response)
 }
 
-func (h *HTTPServer) WatchConfigFile(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) watchConfigFile(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	requestId := req.HeaderParameter("Request-Id")
 	clientAddr := req.Request.RemoteAddr
 
-	log.GetConfigLogger().Debug("[Config][Client] received client listener request.",
+	configLog.Debug("[Config][Client] received client listener request.",
 		zap.String("requestId", requestId),
 		zap.String("client", clientAddr))
 
@@ -69,7 +63,7 @@ func (h *HTTPServer) WatchConfigFile(req *restful.Request, rsp *restful.Response
 	watchConfigFileRequest := &api.ClientWatchConfigFileRequest{}
 	_, err := handler.Parse(watchConfigFileRequest)
 	if err != nil {
-		log.GetConfigLogger().Warn("[Config][Client] parse client watch request error.",
+		configLog.Warn("[Config][Client] parse client watch request error.",
 			zap.String("requestId", requestId),
 			zap.String("client", req.Request.RemoteAddr))
 
@@ -92,15 +86,9 @@ func (h *HTTPServer) WatchConfigFile(req *restful.Request, rsp *restful.Response
 
 	h.addConn(clientId, watchFiles, handler, finishChan)
 
-	timer := time.NewTimer(DefaultLongPollingTimeout)
-	for {
-		select {
-		case <-timer.C:
-			h.removeConn(clientId, watchFiles)
-			return
-		case <-finishChan:
-			h.removeConn(clientId, watchFiles)
-			return
-		}
+	select {
+	case <-finishChan:
+		h.removeConn(clientId, watchFiles)
+		return
 	}
 }
