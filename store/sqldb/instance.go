@@ -28,7 +28,6 @@ import (
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/store"
 
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 )
 

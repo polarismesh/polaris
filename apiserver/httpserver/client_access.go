@@ -23,7 +23,6 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/polarismesh/polaris-server/apiserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
 	"go.uber.org/zap"
 )
 

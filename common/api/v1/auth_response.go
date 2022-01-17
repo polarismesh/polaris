@@ -72,11 +72,11 @@ func NewAuthStrategyResponse(code uint32, req *AuthStrategy) *Response {
 	}
 }
 
-// NewAuthStrategyResponseWithMsg 
-//  @param code 
-//  @param msg 
-//  @param req 
-//  @return *Response 
+// NewAuthStrategyResponseWithMsg
+//  @param code
+//  @param msg
+//  @param req
+//  @return *Response
 func NewAuthStrategyResponseWithMsg(code uint32, msg string, req *AuthStrategy) *Response {
 	return &Response{
 		Code:         &wrappers.UInt32Value{Value: code},

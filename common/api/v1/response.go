@@ -117,7 +117,6 @@ func NewNamespaceResponse(code uint32, namespace *Namespace) *Response {
 	}
 }
 
-
 /**
  * @brief 创建回复带服务信息
  */

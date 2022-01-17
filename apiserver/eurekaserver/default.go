@@ -17,7 +17,9 @@
 
 package eurekaserver
 
-import "github.com/polarismesh/polaris-server/apiserver"
+import (
+	"github.com/polarismesh/polaris-server/apiserver"
+)
 
 /**
  * @brief 自注册到API服务器插槽

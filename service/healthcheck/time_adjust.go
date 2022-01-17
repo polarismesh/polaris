@@ -19,7 +19,6 @@ package healthcheck
 
 import (
 	"context"
-	"github.com/polarismesh/polaris-server/common/log"
 	"sync/atomic"
 	"time"
 )
@@ -44,7 +43,7 @@ func (t *TimeAdjuster) doTimeAdjust(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Infof("[healthcheck]time adjuster has been stopped")
+			log.Infof("[Health Check] time adjuster has been stopped")
 			return
 		case <-ticker.C:
 			t.calcDiff()
@@ -55,7 +54,7 @@ func (t *TimeAdjuster) doTimeAdjust(ctx context.Context) {
 func (t *TimeAdjuster) calcDiff() {
 	curTimeSecond, err := server.storage.GetNow()
 	if nil != err {
-		log.Errorf("[healthcheck]fail to get now from store, err is %s", err.Error())
+		log.Errorf("[Health Check] fail to get now from store, err is %s", err.Error())
 		return
 	}
 	if curTimeSecond == 0 {
@@ -63,7 +62,9 @@ func (t *TimeAdjuster) calcDiff() {
 	}
 	sysNow := time.Now().Unix()
 	diff := sysNow - curTimeSecond
-	log.Infof("[healthcheck]time diff from now is %d", diff)
+	if diff != 0 {
+		log.Infof("[Health Check] time diff from now is %d", diff)
+	}
 	atomic.StoreInt64(&t.diff, diff)
 }
 

@@ -27,11 +27,11 @@ rm -f "${pkg_name}"
 # 编译
 rm -f ${bin_name}
 
-build_date=$(date "+%Y%m%d.%H%M%S")
-package="github.com/polarismesh/polaris-server/common/version"
-
+# 禁止 CGO_ENABLED 参数打开
 export CGO_ENABLED=0
 
+build_date=$(date "+%Y%m%d.%H%M%S")
+package="github.com/polarismesh/polaris-server/common/version"
 go build -o ${bin_name} -ldflags="-X ${package}.Version=${version} -X ${package}.BuildDate=${build_date}"
 
 # 打包

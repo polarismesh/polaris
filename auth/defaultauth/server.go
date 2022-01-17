@@ -94,7 +94,7 @@ func (svr *server) AfterResourceOperation(afterCtx *model.AcquireContext) {
 	// Get the default policy rules
 	strategy, err := svr.storage.GetStrategyDetailByName(ownerId, name)
 	if err != nil {
-		log.GetAuthLogger().Error("[Auth][Server] get default strategy",
+		log.AuthScope().Error("[Auth][Server] get default strategy",
 			zap.String("owner", ownerId), zap.String("name", name), zap.Error(err))
 		return
 	}
@@ -117,7 +117,7 @@ func (svr *server) AfterResourceOperation(afterCtx *model.AcquireContext) {
 		// 如果是写操作，那么采用松添加操作进行新增资源的添加操作(仅忽略主键冲突的错误)
 		err = svr.storage.LooseAddStrategyResources(strategyResource)
 		if err != nil {
-			log.GetAuthLogger().Error("[Auth][Server] update default strategy resource",
+			log.AuthScope().Error("[Auth][Server] update default strategy resource",
 				zap.String("owner", ownerId), zap.String("name", name), zap.Error(err))
 			return
 		}
@@ -125,7 +125,7 @@ func (svr *server) AfterResourceOperation(afterCtx *model.AcquireContext) {
 	if afterCtx.GetOperation() == model.Delete {
 		err = svr.storage.RemoveStrategyResources(strategyResource)
 		if err != nil {
-			log.GetAuthLogger().Error("[Auth][Server] remove default strategy resource",
+			log.AuthScope().Error("[Auth][Server] remove default strategy resource",
 				zap.String("owner", ownerId), zap.String("name", name), zap.Error(err))
 			return
 		}

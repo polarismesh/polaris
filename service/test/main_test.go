@@ -285,12 +285,12 @@ func removeCommonServiceAliases(t *testing.T, req []*api.ServiceAlias) {
 }
 
 // 新增一个实例
-func createCommonInstance(t *testing.T, service *api.Service, id int) (
+func createCommonInstance(t *testing.T, svc *api.Service, id int) (
 	*api.Instance, *api.Instance) {
 	instanceReq := &api.Instance{
-		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
-		Service:      utils.NewStringValue(service.GetName().GetValue()),
-		Namespace:    utils.NewStringValue(service.GetNamespace().GetValue()),
+		ServiceToken: utils.NewStringValue(svc.GetToken().GetValue()),
+		Service:      utils.NewStringValue(svc.GetName().GetValue()),
+		Namespace:    utils.NewStringValue(svc.GetNamespace().GetValue()),
 		VpcId:        utils.NewStringValue(fmt.Sprintf("vpcid-%d", id)),
 		Host:         utils.NewStringValue(fmt.Sprintf("9.9.9.%d", id)),
 		Port:         utils.NewUInt32Value(8000 + uint32(id)),

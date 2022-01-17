@@ -39,12 +39,13 @@ type TokenInfo struct {
 	IsUserToken bool
 }
 
+// IsSubAccount 当前 token 对应的账户类型
 func (t TokenInfo) IsSubAccount() bool {
 	return t.Role == model.SubAccountUserRole
 }
 
 const (
-	// 随机字符串::{salt}::[uid/xxx | groupid/xxx]
+	// 随机字符串::[uid/xxx | groupid/xxx]
 	TokenPattern string = "%s::%s"
 	TokenSplit   string = "::"
 )
@@ -75,11 +76,7 @@ func createToken(uid, gid string) (string, error) {
 	return encryptMessage([]byte(AuthOption.Salt), token)
 }
 
-// encryptMessage
-//  @param key
-//  @param message
-//  @return string
-//  @return error
+// encryptMessage 对消息进行加密
 func encryptMessage(key []byte, message string) (string, error) {
 	byteMsg := []byte(message)
 	block, err := aes.NewCipher(key)
@@ -99,11 +96,7 @@ func encryptMessage(key []byte, message string) (string, error) {
 	return base64.StdEncoding.EncodeToString(cipherText), nil
 }
 
-// decryptMessage
-//  @param key
-//  @param message
-//  @return string
-//  @return error
+// decryptMessage 对消息进行解密
 func decryptMessage(key []byte, message string) (string, error) {
 	cipherText, err := base64.StdEncoding.DecodeString(message)
 	if err != nil {

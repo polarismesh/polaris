@@ -51,11 +51,11 @@ func (authMgn *defaultAuthManager) Initialize(options *auth.Config, cacheMgn *ca
 	// 获取存储层对象
 	s, err := store.GetStore()
 	if err != nil {
-		log.GetAuthLogger().Errorf("[Auth][Server] can not get store, err: %s", err.Error())
+		log.AuthScope().Errorf("[Auth][Server] can not get store, err: %s", err.Error())
 		return errors.New("auth-manager can not get store")
 	}
 	if s == nil {
-		log.GetAuthLogger().Errorf("[Auth][Server] store is null")
+		log.AuthScope().Errorf("[Auth][Server] store is null")
 		return errors.New("store is null")
 	}
 

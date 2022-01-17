@@ -23,7 +23,7 @@ import (
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
+	logger "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
@@ -104,7 +104,7 @@ func (u *userStore) addUser(user *model.User) error {
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.GetAuthLogger().Errorf("[Store][User] add user tx commit err: %s", err.Error())
+		logger.AuthScope().Errorf("[Store][User] add user tx commit err: %s", err.Error())
 		return err
 	}
 	return nil
@@ -153,7 +153,7 @@ func (u *userStore) updateUser(user *model.User) error {
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.GetAuthLogger().Errorf("[Store][User] update user tx commit err: %s", err.Error())
+		logger.AuthScope().Errorf("[Store][User] update user tx commit err: %s", err.Error())
 		return err
 	}
 
@@ -199,7 +199,7 @@ func (u *userStore) deleteUser(id string) error {
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.GetAuthLogger().Errorf("[Store][User] delete user tx commit err: %s", err.Error())
+		logger.AuthScope().Errorf("[Store][User] delete user tx commit err: %s", err.Error())
 		return err
 	}
 	return nil
@@ -305,7 +305,7 @@ func (u *userStore) GetUserByIDS(ids []string) ([]*model.User, error) {
 	for rows.Next() {
 		user, err := fetchRown2User(rows)
 		if err != nil {
-			log.GetAuthLogger().Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
+			logger.AuthScope().Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
 			return nil, store.Error(err)
 		}
 		users = append(users, user)
@@ -366,7 +366,7 @@ func (u *userStore) listUsers(filters map[string]string, offset uint32, limit ui
 		}
 	}
 
-	log.GetAuthLogger().Debug("[Store][User] list user", zap.String("count sql", countSql), zap.Any("args", args))
+	logger.AuthScope().Debug("[Store][User] list user", zap.String("count sql", countSql), zap.Any("args", args))
 
 	count, err := queryEntryCount(u.master, countSql, args)
 	if err != nil {
@@ -376,7 +376,7 @@ func (u *userStore) listUsers(filters map[string]string, offset uint32, limit ui
 	getSql += " ORDER BY mtime LIMIT ? , ?"
 	getArgs := append(args, offset, limit)
 
-	users, err := u.collectUsers(u.master.Query, getSql, getArgs)
+	users, err := u.collectUsers(u.master.Query, getSql, getArgs, logger.AuthScope())
 	if err != nil {
 		return 0, nil, err
 	}
@@ -423,7 +423,7 @@ func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, lim
 	}
 
 	count, err := queryEntryCount(u.slave, countSql, args)
-	log.GetAuthLogger().Debug("count list user", zap.String("sql", countSql), zap.Any("args", args))
+	logger.AuthScope().Debug("count list user", zap.String("sql", countSql), zap.Any("args", args))
 
 	if err != nil {
 		return 0, nil, err
@@ -432,7 +432,7 @@ func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, lim
 	querySql += " ORDER BY u.mtime LIMIT ? , ?"
 	args = append(args, offset, limit)
 
-	users, err := u.collectUsers(u.master.Query, querySql, args)
+	users, err := u.collectUsers(u.master.Query, querySql, args, logger.AuthScope())
 	if err != nil {
 		return 0, nil, err
 	}
@@ -457,7 +457,7 @@ func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mode
 		args = append(args, commontime.Time2String(mtime))
 	}
 
-	users, err := u.collectUsers(u.master.Query, querySql, args)
+	users, err := u.collectUsers(u.master.Query, querySql, args, logger.CacheScope())
 	if err != nil {
 		return nil, err
 	}
@@ -466,9 +466,9 @@ func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mode
 }
 
 // collectUsers 通用的查询用户列表的操作
-func (u *userStore) collectUsers(handler QueryHandler, querySql string, args []interface{}) ([]*model.User, error) {
+func (u *userStore) collectUsers(handler QueryHandler, querySql string, args []interface{}, scope *logger.Scope) ([]*model.User, error) {
 
-	log.GetStoreLogger().Debug("[Store][User] list user ", zap.String("query sql", querySql), zap.Any("args", args))
+	scope.Debug("[Store][User] list user ", zap.String("query sql", querySql), zap.Any("args", args))
 	rows, err := u.master.Query(querySql, args...)
 	if err != nil {
 		return nil, store.Error(err)
@@ -479,7 +479,7 @@ func (u *userStore) collectUsers(handler QueryHandler, querySql string, args []i
 	for rows.Next() {
 		user, err := fetchRown2User(rows)
 		if err != nil {
-			log.GetStoreLogger().Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
+			scope.Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
 			return nil, store.Error(err)
 		}
 		users = append(users, user)
@@ -578,11 +578,11 @@ func fetchRown2User(rows *sql.Rows) (*model.User, error) {
 }
 
 func (u *userStore) cleanInValidUser(name string) error {
-	log.GetAuthLogger().Infof("[Store][User] clean user(%s)", name)
+	logger.AuthScope().Infof("[Store][User] clean user(%s)", name)
 	str := "delete from user where name = ? and flag = 1"
 	_, err := u.master.Exec(str, name)
 	if err != nil {
-		log.GetAuthLogger().Errorf("[Store][User] clean user(%s) err: %s", name, err.Error())
+		logger.AuthScope().Errorf("[Store][User] clean user(%s) err: %s", name, err.Error())
 		return err
 	}
 
@@ -592,13 +592,13 @@ func (u *userStore) cleanInValidUser(name string) error {
 func checkAffectedRows(label string, result sql.Result, count int64) error {
 	n, err := result.RowsAffected()
 	if err != nil {
-		log.GetAuthLogger().Errorf("[Store][%s] get rows affected err: %s", label, err.Error())
+		logger.AuthScope().Errorf("[Store][%s] get rows affected err: %s", label, err.Error())
 		return err
 	}
 
 	if n == count {
 		return nil
 	}
-	log.GetAuthLogger().Errorf("[Store][%s] get rows affected result(%d) is not match expect(%d)", label, n, count)
+	logger.AuthScope().Errorf("[Store][%s] get rows affected result(%d) is not match expect(%d)", label, n, count)
 	return store.NewStatusError(store.AffectedRowsNotMatch, "affected rows not match")
 }

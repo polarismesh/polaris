@@ -16,10 +16,10 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.3.0
+	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mitchellh/mapstructure v1.4.3
-	github.com/modern-go/reflect2 v1.0.2
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0

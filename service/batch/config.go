@@ -21,7 +21,6 @@ import (
 	"errors"
 
 	"github.com/mitchellh/mapstructure"
-	"github.com/polarismesh/polaris-server/common/log"
 )
 
 // Config 批量配置，控制最大的条目，批量等待时间等

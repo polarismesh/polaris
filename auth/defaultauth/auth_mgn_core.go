@@ -31,14 +31,30 @@ import (
 )
 
 var (
-	ErrorNoUser                  error = errors.New("no such user")
-	ErrorNoUserGroup             error = errors.New("no such user group")
-	ErrorNoNamespace             error = errors.New("no such namespace")
-	ErrorNoService               error = errors.New("no such service")
+
+	// ErrorNoUser 没有找到对应的用户
+	ErrorNoUser error = errors.New("no such user")
+
+	// ErrorNoUserGroup 没有找到对应的用户组
+	ErrorNoUserGroup error = errors.New("no such user group")
+
+	// ErrorNoNamespace 没有找到对应的命名空间
+	ErrorNoNamespace error = errors.New("no such namespace")
+
+	// ErrorNoService 没有找到对应的服务
+	ErrorNoService error = errors.New("no such service")
+
+	// ErrorWrongUsernameOrPassword 用户或者密码错误
 	ErrorWrongUsernameOrPassword error = errors.New("name or password is wrong")
-	ErrorTokenNotExist           error = errors.New("token not exist")
-	ErrorTokenInvalid            error = errors.New("invalid token")
-	ErrorTokenDisabled           error = errors.New("token already disabled")
+
+	// ErrorTokenNotExist token 不存在
+	ErrorTokenNotExist error = errors.New("token not exist")
+
+	// ErrorTokenInvalid 非法的 token
+	ErrorTokenInvalid error = errors.New("invalid token")
+
+	// ErrorTokenDisabled token 已经被禁用
+	ErrorTokenDisabled error = errors.New("token already disabled")
 )
 
 // CheckPermission 执行检查动作判断是否有权限
@@ -97,7 +113,7 @@ func (authMgn *defaultAuthManager) findStrategies(tokenInfo TokenInfo) ([]*model
 		ownerId = user.Owner
 	} else {
 		strategys = authMgn.findStrategiesByGroupID(tokenInfo.OperatorID)
-		group := authMgn.cacheMgn.User().GetUserGroup(tokenInfo.OperatorID)
+		group := authMgn.cacheMgn.User().GetGroup(tokenInfo.OperatorID)
 		if group == nil {
 			return nil, "", ErrorNoUserGroup
 		}
@@ -124,7 +140,7 @@ func (authMgn *defaultAuthManager) findStrategiesByUserID(id string) []*model.St
 	rules := authMgn.cacheMgn.AuthStrategy().GetStrategyDetailsByUID(id)
 
 	// Step 2, pull the Group information to which this user belongs
-	groupIds := authMgn.cacheMgn.User().ListUserBelongGroupIDS(id)
+	groupIds := authMgn.cacheMgn.User().GetUserLinkGroupIds(id)
 	for i := range groupIds {
 		rules := authMgn.findStrategiesByGroupID(groupIds[i])
 		rules = append(rules, rules...)
@@ -172,7 +188,7 @@ func (authMgn *defaultAuthManager) checkToken(tokenUserInfo TokenInfo) (string, 
 		}
 		return user.Owner, nil
 	} else {
-		group := authMgn.Cache().User().GetUserGroup(id)
+		group := authMgn.Cache().User().GetGroup(id)
 		if group == nil {
 			return "", ErrorNoUserGroup
 		}
@@ -278,7 +294,7 @@ func (authMgn *defaultAuthManager) removeNoOwnerResources(authCtx *model.Acquire
 		newAccessRes[api.ResourceType_ConfigGroups] = newCfgRes
 	}
 
-	log.GetAuthLogger().Info("remove no owner resource", zap.Any("access resource", newAccessRes))
+	log.AuthScope().Info("remove no owner resource", zap.Any("access resource", newAccessRes))
 
 	authCtx.SetAccessResources(newAccessRes)
 

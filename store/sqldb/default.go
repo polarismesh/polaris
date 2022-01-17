@@ -23,7 +23,6 @@ import (
 
 	"github.com/polarismesh/polaris-server/plugin"
 
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/store"
 
 	// 使用mysql库

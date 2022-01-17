@@ -26,7 +26,6 @@ import (
 	commontime "github.com/polarismesh/polaris-server/common/time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
@@ -334,10 +333,6 @@ func preCheckAlias(req *api.ServiceAlias) (*api.Response, bool) {
 
 	if err := checkResourceName(req.GetAliasNamespace()); err != nil {
 		return api.NewServiceAliasResponse(api.InvalidNamespaceWithAlias, req), true
-	}
-
-	if err := checkResourceOwners(req.GetOwners()); err != nil {
-		return api.NewServiceAliasResponse(api.InvalidServiceOwners, req), true
 	}
 
 	// 默认类型，需要检查alias是否为空

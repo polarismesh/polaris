@@ -100,7 +100,7 @@ func (nsCache *namespaceCache) realUpdate() error {
 
 	ret, err := nsCache.storage.GetMoreNamespaces(lastMtime)
 	if err != nil {
-		log.GetCacheLogger().Error("[Cache][Namespace] get storage more", zap.Error(err))
+		log.CacheScope().Error("[Cache][Namespace] get storage more", zap.Error(err))
 		return err
 	}
 	nsCache.firstUpdate = false

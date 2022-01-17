@@ -47,12 +47,7 @@ func Initialize(ctx context.Context, cacheOpt *Config, storage store.Store, list
 	return nil
 }
 
-// initialize
-//  @param ctx
-//  @param cacheOpt
-//  @param storage
-//  @param listeners
-//  @return error
+// initialize cache 初始化
 func initialize(ctx context.Context, cacheOpt *Config, storage store.Store, listeners []Listener) error {
 
 	if !cacheOpt.Open {
@@ -68,6 +63,14 @@ func initialize(ctx context.Context, cacheOpt *Config, storage store.Store, list
 		revisions:     new(sync.Map),
 	}
 
+	listeners = append(listeners, &WatchInstanceReload{
+		Handler: func(val interface{}) {
+			if svcIds, ok := val.(map[string]bool); ok {
+				cacheMgn.caches[CacheService].(*serviceCache).notifyServiceCountReload(svcIds)
+			}
+		},
+	})
+
 	ic := newInstanceCache(storage, cacheMgn.comRevisionCh, listeners)
 	sc := newServiceCache(storage, cacheMgn.comRevisionCh, ic)
 
@@ -81,8 +84,11 @@ func initialize(ctx context.Context, cacheOpt *Config, storage store.Store, list
 	}
 	cacheMgn.caches[CacheRateLimit] = newRateLimitCache(storage)
 	cacheMgn.caches[CacheCircuitBreaker] = newCircuitBreakerCache(storage)
-	cacheMgn.caches[CacheUser] = newUserCache(storage)
-	cacheMgn.caches[CacheAuthStrategy] = newStrategyCache(storage)
+
+	strategyCache := newStrategyCache(storage)
+
+	cacheMgn.caches[CacheAuthStrategy] = strategyCache
+	cacheMgn.caches[CacheUser] = newUserCache(storage, strategyCache)
 	cacheMgn.caches[CacheNamespace] = newNamespaceCache(storage)
 
 	if err := cacheMgn.initialize(); err != nil {
@@ -90,7 +96,7 @@ func initialize(ctx context.Context, cacheOpt *Config, storage store.Store, list
 	}
 
 	if startErr := cacheMgn.Start(ctx); startErr != nil {
-		log.GetCacheLogger().Errorf("[Cache][Server] start cache err: %s", startErr.Error())
+		log.CacheScope().Errorf("[Cache][Server] start cache err: %s", startErr.Error())
 		return startErr
 	}
 

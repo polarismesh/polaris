@@ -61,7 +61,7 @@ func (svr *server) CreateGroup(ctx context.Context, req *api.UserGroup) *api.Res
 	// 根据 owner + groupname 确定唯一的用户组信息
 	group, err := svr.storage.GetUserByName(req.Name.GetValue(), ownerId)
 	if err != nil {
-		log.GetAuthLogger().Error("get group when create", utils.ZapRequestID(requestID),
+		log.AuthScope().Error("get group when create", utils.ZapRequestID(requestID),
 			utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewGroupResponse(api.StoreLayerException, req)
 	}
@@ -71,17 +71,17 @@ func (svr *server) CreateGroup(ctx context.Context, req *api.UserGroup) *api.Res
 
 	data, err := createGroupModel(req)
 	if err != nil {
-		log.GetAuthLogger().Error("create group model", utils.ZapRequestID(requestID),
+		log.AuthScope().Error("create group model", utils.ZapRequestID(requestID),
 			utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewResponseWithMsg(api.ExecuteException, err.Error())
 	}
 
 	if err := svr.storage.AddGroup(data); err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.GetAuthLogger().Info("create group", zap.String("name", req.Name.GetValue()), utils.ZapRequestID(requestID),
+	log.AuthScope().Info("create group", zap.String("name", req.Name.GetValue()), utils.ZapRequestID(requestID),
 		utils.ZapPlatformID(platformID))
 	svr.RecordHistory(userGroupRecordEntry(ctx, req, data.UserGroup, model.OCreate))
 
@@ -105,17 +105,17 @@ func (svr *server) UpdateGroup(ctx context.Context, req *api.ModifyUserGroup) *a
 	modifyReq, needUpdate := updateGroupAttribute(ctx, data, req)
 
 	if !needUpdate {
-		log.GetAuthLogger().Info("update group data no change, no need update",
+		log.AuthScope().Info("update group data no change, no need update",
 			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.String("group", req.String()))
 		return api.NewModifyGroupResponse(api.NoNeedUpdate, req)
 	}
 
 	if err := svr.storage.UpdateGroup(modifyReq); err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.GetAuthLogger().Info("update group", zap.String("name", data.Name), utils.ZapRequestID(requestID),
+	log.AuthScope().Info("update group", zap.String("name", data.Name), utils.ZapRequestID(requestID),
 		utils.ZapPlatformID(platformID))
 	svr.RecordHistory(modifyUserGroupRecordEntry(ctx, req, data, model.OUpdateUserGroup))
 
@@ -144,7 +144,7 @@ func (svr *server) DeleteGroup(ctx context.Context, req *api.UserGroup) *api.Res
 
 	group, err := svr.storage.GetGroup(req.GetId().GetValue())
 	if err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewGroupResponse(api.StoreLayerException, req)
 	}
 	if group == nil {
@@ -156,11 +156,11 @@ func (svr *server) DeleteGroup(ctx context.Context, req *api.UserGroup) *api.Res
 	}
 
 	if err := svr.storage.DeleteGroup(group.ID); err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.GetAuthLogger().Info("delete group", zap.String("name", req.Name.GetValue()), utils.ZapRequestID(requestID),
+	log.AuthScope().Info("delete group", zap.String("name", req.Name.GetValue()), utils.ZapRequestID(requestID),
 		utils.ZapPlatformID(platformID))
 	svr.RecordHistory(userGroupRecordEntry(ctx, req, group, model.ODelete))
 
@@ -177,7 +177,7 @@ func (svr *server) GetGroups(ctx context.Context, query map[string]string) *api.
 
 	for key, value := range query {
 		if _, ok := UserLinkGroupAttributes[key]; !ok {
-			log.GetAuthLogger().Errorf("[Auth][Group] get groups attribute(%s) it not allowed", key)
+			log.AuthScope().Errorf("[Auth][Group] get groups attribute(%s) it not allowed", key)
 			return api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
 		}
 		searchFilters[key] = value
@@ -190,7 +190,7 @@ func (svr *server) GetGroups(ctx context.Context, query map[string]string) *api.
 
 	total, users, err := svr.storage.GetGroups(searchFilters, offset, limit)
 	if err != nil {
-		log.GetAuthLogger().Errorf("[Auth][Group] get groups req(%+v) store err: %s", query, err.Error())
+		log.AuthScope().Errorf("[Auth][Group] get groups req(%+v) store err: %s", query, err.Error())
 		return api.NewBatchQueryResponse(api.StoreLayerException)
 	}
 
@@ -211,7 +211,7 @@ func (svr *server) GetGroupUsers(ctx context.Context, query map[string]string) *
 
 	for key, value := range query {
 		if _, ok := UserLinkGroupAttributes[key]; !ok {
-			log.GetAuthLogger().Errorf("[Auth][Group] get group users attribute(%s) it not allowed", key)
+			log.AuthScope().Errorf("[Auth][Group] get group users attribute(%s) it not allowed", key)
 			return api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
 		}
 		searchFilters[key] = value
@@ -223,7 +223,7 @@ func (svr *server) GetGroupUsers(ctx context.Context, query map[string]string) *
 
 	total, users, err := svr.storage.GetUsers(searchFilters, offset, limit)
 	if err != nil {
-		log.GetAuthLogger().Errorf("[Auth][Group] get group users req(%+v) store err: %s", query, err.Error())
+		log.AuthScope().Errorf("[Auth][Group] get group users req(%+v) store err: %s", query, err.Error())
 		return api.NewBatchQueryResponse(api.StoreLayerException)
 	}
 
@@ -291,11 +291,11 @@ func (svr *server) UpdateGroupToken(ctx context.Context, req *api.UserGroup) *ap
 	}
 
 	if err := svr.storage.UpdateGroup(modifyReq); err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.GetAuthLogger().Info("update group token", zap.String("id", req.Id.GetValue()),
+	log.AuthScope().Info("update group token", zap.String("id", req.Id.GetValue()),
 		zap.Bool("enable", group.TokenEnable), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 	svr.RecordHistory(userGroupRecordEntry(ctx, req, group, model.OUpdateToken))
 
@@ -320,7 +320,7 @@ func (svr *server) ResetGroupToken(ctx context.Context, req *api.UserGroup) *api
 
 	newToken, err := createGroupToken(group.ID)
 	if err != nil {
-		log.GetAuthLogger().Error("reset group token", utils.ZapRequestID(requestID),
+		log.AuthScope().Error("reset group token", utils.ZapRequestID(requestID),
 			utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewResponseWithMsg(api.ExecuteException, err.Error())
 	}
@@ -335,11 +335,11 @@ func (svr *server) ResetGroupToken(ctx context.Context, req *api.UserGroup) *api
 	}
 
 	if err := svr.storage.UpdateGroup(modifyReq); err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.GetAuthLogger().Info("reset group token", zap.String("group-id", req.Id.GetValue()),
+	log.AuthScope().Info("reset group token", zap.String("group-id", req.Id.GetValue()),
 		utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 	svr.RecordHistory(userGroupRecordEntry(ctx, req, group, model.OUpdate))
 
@@ -364,7 +364,7 @@ func (svr *server) getGroupFromDB(requestID, platformID string, id string) (*mod
 
 // getGroupFromCache 从缓存中获取用户组信息数据
 func (svr *server) getGroupFromCache(req *api.UserGroup) (*model.UserGroupDetail, *api.Response) {
-	group := svr.cacheMgn.User().GetUserGroup(req.Id.GetValue())
+	group := svr.cacheMgn.User().GetGroup(req.Id.GetValue())
 	if group == nil {
 		return nil, api.NewGroupResponse(api.NotFoundUserGroup, req)
 	}
@@ -374,7 +374,7 @@ func (svr *server) getGroupFromCache(req *api.UserGroup) (*model.UserGroupDetail
 
 // preCheckGroupRelation 检查用户-用户组关联关系中，对应的用户信息是否存在，即不能添加一个不存在的用户到用户组
 func (svr *server) preCheckGroupRelation(groupId string, req *api.UserGroupRelation) (*model.UserGroupDetail, *api.Response) {
-	group := svr.cacheMgn.User().GetUserGroup(groupId)
+	group := svr.cacheMgn.User().GetGroup(groupId)
 	if group == nil {
 		return nil, api.NewResponse(api.NotFoundUserGroup)
 	}

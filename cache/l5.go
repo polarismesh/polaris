@@ -106,15 +106,15 @@ func (lc *l5Cache) initialize(opt map[string]interface{}) error {
 func (lc *l5Cache) update() error {
 	err := lc.updateCL5Route()
 	if err != nil {
-		log.Errorf("[Cache][CL5] update l5 route cache err: %s", err.Error())
+		log.CacheScope().Errorf("[Cache][CL5] update l5 route cache err: %s", err.Error())
 	}
 	err = lc.updateCL5Policy()
 	if err != nil {
-		log.Errorf("[Cache][CL5] update l5 policy cache err: %s", err.Error())
+		log.CacheScope().Errorf("[Cache][CL5] update l5 policy cache err: %s", err.Error())
 	}
 	err = lc.updateCL5Section()
 	if err != nil {
-		log.Errorf("[Cache][CL5] update l5 section cache err: %s", err.Error())
+		log.CacheScope().Errorf("[Cache][CL5] update l5 section cache err: %s", err.Error())
 	}
 	return err
 }
@@ -240,7 +240,7 @@ func (lc *l5Cache) GetIPConfig(ip uint32) *model.IPConfig {
 func (lc *l5Cache) updateCL5Route() error {
 	routes, err := lc.storage.GetMoreL5Routes(lc.lastRouteFlow)
 	if err != nil {
-		log.Errorf("[Cache][CL5] get l5 route from storage err: %s", err.Error())
+		log.CacheScope().Errorf("[Cache][CL5] get l5 route from storage err: %s", err.Error())
 		return err
 	}
 
@@ -253,7 +253,7 @@ func (lc *l5Cache) updateCL5Route() error {
 func (lc *l5Cache) updateCL5Policy() error {
 	policies, err := lc.storage.GetMoreL5Policies(lc.lastPolicyFlow)
 	if err != nil {
-		log.Errorf("[Cache][CL5] get l5 policy from storage err: %s", err.Error())
+		log.CacheScope().Errorf("[Cache][CL5] get l5 policy from storage err: %s", err.Error())
 		return err
 	}
 
@@ -266,7 +266,7 @@ func (lc *l5Cache) updateCL5Policy() error {
 func (lc *l5Cache) updateCL5Section() error {
 	sections, err := lc.storage.GetMoreL5Sections(lc.lastSectionFlow)
 	if err != nil {
-		log.Errorf("[Cache][CL5] get l5 section from storage err: %s", err.Error())
+		log.CacheScope().Errorf("[Cache][CL5] get l5 section from storage err: %s", err.Error())
 		return err
 	}
 
@@ -279,7 +279,7 @@ func (lc *l5Cache) updateCL5Section() error {
 func (lc *l5Cache) updateCL5IPConfig() error {
 	ipConfigs, err := lc.storage.GetMoreL5IPConfigs(lc.lastIPConfigFlow)
 	if err != nil {
-		log.Errorf("[Cache][CL5] get l5 ip config from storage err: %s", err.Error())
+		log.CacheScope().Errorf("[Cache][CL5] get l5 ip config from storage err: %s", err.Error())
 		return err
 	}
 

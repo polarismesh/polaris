@@ -104,7 +104,7 @@ func (rlc *rateLimitCache) update() error {
 	rateLimits, revisions, err := rlc.storage.GetRateLimitsForCache(rlc.lastTime.Add(DefaultTimeDiff),
 		rlc.firstUpdate)
 	if err != nil {
-		log.Errorf("[Cache] rate limit cache update err: %s", err.Error())
+		log.CacheScope().Errorf("[Cache] rate limit cache update err: %s", err.Error())
 		return err
 	}
 	rlc.firstUpdate = false

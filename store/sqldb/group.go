@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/polarismesh/polaris-server/common/log"
+	logger "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
@@ -78,22 +78,22 @@ func (u *groupStore) addGroup(group *model.UserGroupDetail) error {
 		group.Comment,
 		0,
 	}...); err != nil {
-		log.GetAuthLogger().Errorf("[Store][Group] add usergroup err: %s", err.Error())
+		logger.AuthScope().Errorf("[Store][Group] add usergroup err: %s", err.Error())
 		return err
 	}
 
 	if err := u.addGroupRelation(tx, group.ID, group.ToUserIdSlice()); err != nil {
-		log.GetAuthLogger().Errorf("[Store][Group] add usergroup relation err: %s", err.Error())
+		logger.AuthScope().Errorf("[Store][Group] add usergroup relation err: %s", err.Error())
 		return err
 	}
 
 	if err := createDefaultStrategy(tx, model.PrincipalUserGroup, group.ID, group.Owner); err != nil {
-		log.GetAuthLogger().Errorf("[Store][Group] add usergroup default strategy err: %s", err.Error())
+		logger.AuthScope().Errorf("[Store][Group] add usergroup default strategy err: %s", err.Error())
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.GetAuthLogger().Errorf("[Store][Group] add usergroup tx commit err: %s", err.Error())
+		logger.AuthScope().Errorf("[Store][Group] add usergroup tx commit err: %s", err.Error())
 		return err
 	}
 	return nil
@@ -139,27 +139,27 @@ func (u *groupStore) updateGroup(group *model.ModifyUserGroup) error {
 		tokenEnable,
 		group.ID,
 	}...); err != nil {
-		log.GetAuthLogger().Errorf("[Store][Group] update usergroup main err: %s", err.Error())
+		logger.AuthScope().Errorf("[Store][Group] update usergroup main err: %s", err.Error())
 		return err
 	}
 
 	// 更新用户-用户组关联数据
 	if len(group.AddUserIds) != 0 {
 		if err := u.addGroupRelation(tx, group.ID, group.AddUserIds); err != nil {
-			log.GetAuthLogger().Errorf("[Store][Group] add usergroup relation err: %s", err.Error())
+			logger.AuthScope().Errorf("[Store][Group] add usergroup relation err: %s", err.Error())
 			return err
 		}
 	}
 
 	if len(group.RemoveUserIds) != 0 {
 		if err := u.removeGroupRelation(tx, group.ID, group.RemoveUserIds); err != nil {
-			log.GetAuthLogger().Errorf("[Store][Group] remove usergroup relation err: %s", err.Error())
+			logger.AuthScope().Errorf("[Store][Group] remove usergroup relation err: %s", err.Error())
 			return err
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.GetAuthLogger().Errorf("[Store][Group] update usergroup tx commit err: %s", err.Error())
+		logger.AuthScope().Errorf("[Store][Group] update usergroup tx commit err: %s", err.Error())
 		return err
 	}
 
@@ -192,24 +192,24 @@ func (u *groupStore) deleteUserGroup(id string) error {
 	if _, err = tx.Exec("UPDATE user_group SET flag = 1 WHERE id = ?", []interface{}{
 		id,
 	}...); err != nil {
-		log.GetAuthLogger().Errorf("[Store][Group] remove usergroup err: %s", err.Error())
+		logger.AuthScope().Errorf("[Store][Group] remove usergroup err: %s", err.Error())
 		return err
 	}
 
 	if _, err = tx.Exec("UPDATE user_group_relation SET flag = 1 WHERE group_id = ?", []interface{}{
 		id,
 	}...); err != nil {
-		log.GetAuthLogger().Errorf("[Store][Group] clean usergroup relation err: %s", err.Error())
+		logger.AuthScope().Errorf("[Store][Group] clean usergroup relation err: %s", err.Error())
 		return err
 	}
 
 	if err := cleanLinkStrategy(tx, model.PrincipalUserGroup, id); err != nil {
-		log.GetAuthLogger().Errorf("[Store][Group] clean usergroup default strategy err: %s", err.Error())
+		logger.AuthScope().Errorf("[Store][Group] clean usergroup default strategy err: %s", err.Error())
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.GetAuthLogger().Errorf("[Store][Group] delete usergroupr tx commit err: %s", err.Error())
+		logger.AuthScope().Errorf("[Store][Group] delete usergroupr tx commit err: %s", err.Error())
 		return err
 	}
 	return nil
@@ -363,7 +363,7 @@ func (u *groupStore) listGroupByUser(filters map[string]string, offset uint32, l
 		}
 	}
 
-	log.GetAuthLogger().Debug("[Store][Group] list group by user", zap.String("count sql", countSql), zap.Any("args", args))
+	logger.AuthScope().Debug("[Store][Group] list group by user", zap.String("count sql", countSql), zap.Any("args", args))
 	count, err := queryEntryCount(u.master, countSql, args)
 	if err != nil {
 		return 0, nil, err
@@ -383,7 +383,7 @@ func (u *groupStore) listGroupByUser(filters map[string]string, offset uint32, l
 // collectGroupsFromRows 查询用户组列表
 func (u *groupStore) collectGroupsFromRows(handler QueryHandler, querySql string, args []interface{}) ([]*model.UserGroup, error) {
 
-	log.GetAuthLogger().Debug("[Store][Group] list group", zap.String("query sql", querySql), zap.Any("args", args))
+	logger.AuthScope().Debug("[Store][Group] list group", zap.String("query sql", querySql), zap.Any("args", args))
 
 	rows, err := u.master.Query(querySql, args...)
 	if err != nil {
@@ -395,7 +395,7 @@ func (u *groupStore) collectGroupsFromRows(handler QueryHandler, querySql string
 	for rows.Next() {
 		group, err := fetchRown2UserGroup(rows)
 		if err != nil {
-			log.GetAuthLogger().Errorf("[Store][Group] list group by user fetch rows scan err: %s", err.Error())
+			logger.AuthScope().Errorf("[Store][Group] list group by user fetch rows scan err: %s", err.Error())
 			return nil, err
 		}
 		groups = append(groups, group)
@@ -538,18 +538,18 @@ func fetchRown2UserGroup(rows *sql.Rows) (*model.UserGroup, error) {
 
 // cleanInValidUserGroup 清理无效的用户组数据
 func (u *groupStore) cleanInValidGroup(name, owner string) error {
-	log.GetAuthLogger().Infof("[Store][User] clean usergroup(%s)", name)
+	logger.AuthScope().Infof("[Store][User] clean usergroup(%s)", name)
 	str := "delete from user_group_relation where group_id = (select id from user_group where name = ? and owner = ? and flag = 1) and flag = 1"
 	_, err := u.master.Exec(str, name, owner)
 	if err != nil {
-		log.GetAuthLogger().Errorf("[Store][User] clean usergroup(%s) err: %s", name, err.Error())
+		logger.AuthScope().Errorf("[Store][User] clean usergroup(%s) err: %s", name, err.Error())
 		return err
 	}
 
 	str = "delete from user_group where name = ? and flag = 1"
 	_, err = u.master.Exec(str, name)
 	if err != nil {
-		log.GetAuthLogger().Errorf("[Store][User] clean usergroup(%s) err: %s", name, err.Error())
+		logger.AuthScope().Errorf("[Store][User] clean usergroup(%s) err: %s", name, err.Error())
 		return err
 	}
 
@@ -558,11 +558,11 @@ func (u *groupStore) cleanInValidGroup(name, owner string) error {
 
 // cleanInValidUserGroupRelation 清理无效的用户-用户组关联数据
 func (u *groupStore) cleanInValidGroupRelation(id string) error {
-	log.GetAuthLogger().Infof("[Store][User] clean usergroup(%s)", id)
+	logger.AuthScope().Infof("[Store][User] clean usergroup(%s)", id)
 	str := "delete from user_group_relation where group_id = ? and flag = 1"
 	_, err := u.master.Exec(str, id)
 	if err != nil {
-		log.GetAuthLogger().Errorf("[Store][User] clean usergroup(%s) err: %s", id, err.Error())
+		logger.AuthScope().Errorf("[Store][User] clean usergroup(%s) err: %s", id, err.Error())
 		return err
 	}
 	return nil

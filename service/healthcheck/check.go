@@ -24,7 +24,6 @@ import (
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/srand"
 	"github.com/polarismesh/polaris-server/common/timewheel"
@@ -78,7 +77,7 @@ func newCheckScheduler(ctx context.Context, slotNum int,
 	scheduler := &CheckScheduler{
 		rwMutex:             &sync.RWMutex{},
 		scheduledInstances:  make(map[string]*instanceValue),
-		timeWheel:           timewheel.New(time.Second, slotNum, "[Health Check]interval-check"),
+		timeWheel:           timewheel.New(time.Second, slotNum, "health-interval-check"),
 		minCheckIntervalSec: int64(minCheckInterval.Seconds()),
 		maxCheckIntervalSec: int64(maxCheckInterval.Seconds()),
 		adoptInstancesChan:  make(chan AdoptEvent, 1024),
@@ -237,7 +236,7 @@ func (c *CheckScheduler) AddInstance(instanceWithChecker *InstanceWithChecker) {
 	instance := instanceWithChecker.instance
 	log.Infof("[Health Check][Check]add check instance is %s, host is %s:%d",
 		instance.ID(), instance.Host(), instance.Port())
-	c.addUnHealthyCallback(instValue, true)
+	c.addUnHealthyCallback(instValue)
 }
 
 func getExpireDurationSec(instance *api.Instance) uint32 {
@@ -275,7 +274,7 @@ func (c *CheckScheduler) addHealthyCallback(instance *instanceValue, lastHeartbe
 	c.timeWheel.AddTask(delayMilli, instanceId, c.checkCallback)
 }
 
-func (c *CheckScheduler) addUnHealthyCallback(instance *instanceValue, first bool) {
+func (c *CheckScheduler) addUnHealthyCallback(instance *instanceValue) {
 	delaySec := instance.expireDurationSec
 	if c.maxCheckIntervalSec > 0 && int64(delaySec) > c.maxCheckIntervalSec {
 		delaySec = uint32(c.maxCheckIntervalSec)
@@ -284,13 +283,8 @@ func (c *CheckScheduler) addUnHealthyCallback(instance *instanceValue, first boo
 	port := instance.port
 	instanceId := instance.id
 	delayMilli := delaySec*1000 + getRandDelayMilli()
-	if first {
-		log.Infof("[Health Check][Check]add first callback, instance is %s:%d, id is %s, delay is %d(ms)",
-			host, port, instanceId, delayMilli)
-	} else {
-		log.Debugf("[Health Check][Check]add unhealthy callback, instance is %s:%d, id is %s, delay is %d(ms)",
-			host, port, instanceId, delayMilli)
-	}
+	log.Debugf("[Health Check][Check]add unhealthy callback, instance is %s:%d, id is %s, delay is %d(ms)",
+		host, port, instanceId, delayMilli)
 	c.timeWheel.AddTask(delayMilli, instanceId, c.checkCallback)
 }
 
@@ -309,7 +303,7 @@ func (c *CheckScheduler) checkCallback(value interface{}) {
 		if nil != checkResp && checkResp.Regular && checkResp.Healthy {
 			c.addHealthyCallback(instanceValue, checkResp.LastHeartbeatTimeSec)
 		} else {
-			c.addUnHealthyCallback(instanceValue, false)
+			c.addUnHealthyCallback(instanceValue)
 		}
 	}()
 	cachedInstance := server.cacheProvider.GetInstance(instanceId)

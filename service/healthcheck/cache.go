@@ -21,7 +21,6 @@ import (
 	"sync"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/plugin"
 )
@@ -212,6 +211,21 @@ func (c *CacheProvider) OnDeleted(value interface{}) {
 		deleteServiceInstance(instProto, c.healthCheckMutex, c.healthCheckInstances)
 		c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 	}
+}
+
+// OnBatchCreated callback when cache value created
+func (c *CacheProvider) OnBatchCreated(value interface{}) {
+
+}
+
+// OnBatchUpdated callback when cache value updated
+func (c *CacheProvider) OnBatchUpdated(value interface{}) {
+
+}
+
+// OnBatchDeleted callback when cache value deleted
+func (c *CacheProvider) OnBatchDeleted(value interface{}) {
+
 }
 
 // RangeHealthCheckInstances range loop healthCheckInstances

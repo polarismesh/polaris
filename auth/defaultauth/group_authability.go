@@ -57,7 +57,7 @@ func (svr *serverAuthAbility) UpdateGroup(ctx context.Context, group *api.Modify
 }
 
 // DeleteGroup
-func (svr *serverAuthAbility) DeleteGroups(ctx context.Context, reqs []*api.UserGroup) *api.BatchWriteResponse  {
+func (svr *serverAuthAbility) DeleteGroups(ctx context.Context, reqs []*api.UserGroup) *api.BatchWriteResponse {
 	authToken := utils.ParseAuthToken(ctx)
 	if authToken == "" {
 		return api.NewBatchWriteResponse(api.NotAllowedAccess)

@@ -19,7 +19,6 @@ package sqldb
 
 import (
 	"errors"
-	"github.com/polarismesh/polaris-server/common/log"
 	"sync"
 	"time"
 

@@ -179,16 +179,16 @@ func (*GroupArr) ProtoMessage() {}
 /**
  * GroupArr 命名空间数组定义
  */
- type StrategyArr []*api.AuthStrategy
+type StrategyArr []*api.AuthStrategy
 
- // Reset
- func (m *StrategyArr) Reset() { *m = StrategyArr{} }
- 
- // String return string
- func (m *StrategyArr) String() string { return proto.CompactTextString(m) }
- 
- // ProtoMessage
- func (*StrategyArr) ProtoMessage() {}
+// Reset
+func (m *StrategyArr) Reset() { *m = StrategyArr{} }
+
+// String return string
+func (m *StrategyArr) String() string { return proto.CompactTextString(m) }
+
+// ProtoMessage
+func (*StrategyArr) ProtoMessage() {}
 
 /**
  * AuthResourceArr 命名空间数组定义

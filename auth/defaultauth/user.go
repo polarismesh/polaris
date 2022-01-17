@@ -51,7 +51,7 @@ func (svr *server) initialize() error {
 	// 获取History插件，注意：插件的配置在bootstrap已经设置好
 	svr.history = plugin.GetHistory()
 	if svr.history == nil {
-		log.GetAuthLogger().Warnf("Not Found History Log Plugin")
+		log.AuthScope().Warnf("Not Found History Log Plugin")
 	}
 
 	return nil
@@ -108,17 +108,17 @@ func (svr *server) createUser(ctx context.Context, req *api.User) *api.Response 
 	data, err := createUserModel(req, role)
 
 	if err != nil {
-		log.GetAuthLogger().Error("create user model", utils.ZapRequestID(requestID),
+		log.AuthScope().Error("create user model", utils.ZapRequestID(requestID),
 			utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewResponseWithMsg(api.ExecuteException, err.Error())
 	}
 
 	if err := svr.storage.AddUser(data); err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.GetAuthLogger().Info("create user", zap.String("name", req.Name.GetValue()), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+	log.AuthScope().Info("create user", zap.String("name", req.Name.GetValue()), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 	svr.RecordHistory(userRecordEntry(ctx, req, data, model.OCreate))
 
 	// 去除 owner 信息
@@ -140,7 +140,7 @@ func (svr *server) UpdateUser(ctx context.Context, req *api.User) *api.Response 
 
 	user, err := svr.storage.GetUser(req.Id.GetValue())
 	if err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewUserResponse(api.StoreLayerException, req)
 	}
 	if user == nil {
@@ -157,17 +157,17 @@ func (svr *server) UpdateUser(ctx context.Context, req *api.User) *api.Response 
 	}
 
 	if !needUpdate {
-		log.GetAuthLogger().Info("update user data no change, no need update",
+		log.AuthScope().Info("update user data no change, no need update",
 			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.String("user", req.String()))
 		return api.NewUserResponse(api.NoNeedUpdate, req)
 	}
 
 	if err := svr.storage.UpdateUser(data); err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.GetAuthLogger().Info("update user", zap.String("name", req.Name.GetValue()), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+	log.AuthScope().Info("update user", zap.String("name", req.Name.GetValue()), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 	svr.RecordHistory(userRecordEntry(ctx, req, user, model.OUpdate))
 
 	return api.NewUserResponse(api.ExecuteSuccess, req)
@@ -200,7 +200,7 @@ func (svr *server) DeleteUser(ctx context.Context, req *api.User) *api.Response 
 
 	user, err := svr.storage.GetUser(req.Id.GetValue())
 	if err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewUserResponse(api.StoreLayerException, req)
 	}
 	if user == nil {
@@ -212,11 +212,11 @@ func (svr *server) DeleteUser(ctx context.Context, req *api.User) *api.Response 
 	}
 
 	if err := svr.storage.DeleteUser(user.ID); err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.GetAuthLogger().Info("delete user", zap.String("name", req.Name.GetValue()), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+	log.AuthScope().Info("delete user", zap.String("name", req.Name.GetValue()), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 	svr.RecordHistory(userRecordEntry(ctx, req, user, model.ODelete))
 
 	return api.NewUserResponse(api.ExecuteSuccess, req)
@@ -251,7 +251,7 @@ func (svr *server) GetUsers(ctx context.Context, query map[string]string) *api.B
 
 	total, users, err := svr.storage.GetUsers(searchFilters, offset, limit)
 	if err != nil {
-		log.GetAuthLogger().Error("[Auth][User][Query] ", zap.Any("req", query), zap.String("store err", err.Error()))
+		log.AuthScope().Error("[Auth][User][Query] ", zap.Any("req", query), zap.String("store err", err.Error()))
 		return api.NewBatchQueryResponse(api.StoreLayerException)
 	}
 
@@ -306,7 +306,7 @@ func (svr *server) UpdateUserToken(ctx context.Context, req *api.User) *api.Resp
 
 	user, err := svr.storage.GetUser(req.Id.GetValue())
 	if err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewUserResponse(api.StoreLayerException, req)
 	}
 	if user == nil {
@@ -320,11 +320,11 @@ func (svr *server) UpdateUserToken(ctx context.Context, req *api.User) *api.Resp
 	user.TokenEnable = req.TokenEnable.GetValue()
 
 	if err := svr.storage.UpdateUser(user); err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.GetAuthLogger().Info("update user token", zap.String("id", req.Id.GetValue()), zap.Bool("enable", req.TokenEnable.GetValue()),
+	log.AuthScope().Info("update user token", zap.String("id", req.Id.GetValue()), zap.Bool("enable", req.TokenEnable.GetValue()),
 		utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 	svr.RecordHistory(userRecordEntry(ctx, req, user, model.OUpdate))
 
@@ -345,7 +345,7 @@ func (svr *server) ResetUserToken(ctx context.Context, req *api.User) *api.Respo
 
 	user, err := svr.storage.GetUser(req.Id.GetValue())
 	if err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewUserResponse(api.StoreLayerException, req)
 	}
 	if user == nil {
@@ -357,7 +357,7 @@ func (svr *server) ResetUserToken(ctx context.Context, req *api.User) *api.Respo
 
 	newToken, err := createUserToken(user.ID)
 	if err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(api.ExecuteException, err.Error())
 	}
 
@@ -365,11 +365,11 @@ func (svr *server) ResetUserToken(ctx context.Context, req *api.User) *api.Respo
 	user.TokenEnable = true
 
 	if err := svr.storage.UpdateUser(user); err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.GetAuthLogger().Info("reset user token", zap.String("id", req.Id.GetValue()),
+	log.AuthScope().Info("reset user token", zap.String("id", req.Id.GetValue()),
 		utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 	svr.RecordHistory(userRecordEntry(ctx, req, user, model.OUpdate))
 

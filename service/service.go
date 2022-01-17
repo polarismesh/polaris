@@ -28,7 +28,6 @@ import (
 	"github.com/polarismesh/polaris-server/store"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"go.uber.org/zap"
@@ -927,10 +926,6 @@ func checkCreateService(req *api.Service) *api.Response {
 
 	if err := checkResourceName(req.GetNamespace()); err != nil {
 		return api.NewServiceResponse(api.InvalidNamespaceName, req)
-	}
-
-	if err := checkResourceOwners(req.GetOwners()); err != nil {
-		return api.NewServiceResponse(api.InvalidServiceOwners, req)
 	}
 
 	if err := checkMetadata(req.GetMetadata()); err != nil {

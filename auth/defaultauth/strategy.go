@@ -70,7 +70,7 @@ func (svr *server) CreateStrategy(ctx context.Context, req *api.AuthStrategy) *a
 	// 鉴权策略， name + owner 才能确定唯一记录
 	strategy, err := svr.storage.GetStrategySimpleByName(ownerId, req.GetName().GetValue())
 	if err != nil {
-		log.GetAuthLogger().Error("[Auth][Strategy] storage get strategy by name", utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
+		log.AuthScope().Error("[Auth][Strategy] storage get strategy by name", utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewAuthStrategyResponse(api.StoreLayerException, req)
 	}
 
@@ -82,12 +82,12 @@ func (svr *server) CreateStrategy(ctx context.Context, req *api.AuthStrategy) *a
 
 	data := createAuthStrategyModel(req)
 	if err := svr.storage.AddStrategy(data); err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
 	msg := fmt.Sprintf("[Auth][Strategy] create strategy: name=%v", req.GetName().GetValue())
-	log.GetAuthLogger().Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+	log.AuthScope().Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 	svr.RecordHistory(authStrategyRecordEntry(ctx, req, data, model.OCreate))
 
 	return api.NewAuthStrategyResponse(api.ExecuteSuccess, req)
@@ -107,7 +107,7 @@ func (svr *server) UpdateStrategy(ctx context.Context, req *api.ModifyAuthStrate
 
 	strategy, err := svr.storage.GetStrategyDetail(req.GetId().GetValue())
 	if err != nil {
-		log.GetAuthLogger().Error("[Auth][Strategy] storage get strategy",
+		log.AuthScope().Error("[Auth][Strategy] storage get strategy",
 			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewModifyAuthStrategyResponse(api.StoreLayerException, req)
 	}
@@ -122,12 +122,12 @@ func (svr *server) UpdateStrategy(ctx context.Context, req *api.ModifyAuthStrate
 		return api.NewModifyAuthStrategyResponse(api.NoNeedUpdate, req)
 	}
 	if err := svr.storage.UpdateStrategy(data); err != nil {
-		log.GetAuthLogger().Error("[Auth][Strategy] storage update strategy",
+		log.AuthScope().Error("[Auth][Strategy] storage update strategy",
 			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.GetAuthLogger().Info("[Auth][Strategy] update strategy",
+	log.AuthScope().Info("[Auth][Strategy] update strategy",
 		zap.String("name", strategy.Name), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 	svr.RecordHistory(authModifyStrategyRecordEntry(ctx, req, data, model.OUpdate))
 
@@ -154,7 +154,7 @@ func (svr *server) DeleteStrategy(ctx context.Context, req *api.AuthStrategy) *a
 
 	strategy, err := svr.storage.GetStrategyDetail(req.GetId().GetValue())
 	if err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewAuthStrategyResponse(api.StoreLayerException, req)
 	}
 
@@ -167,13 +167,13 @@ func (svr *server) DeleteStrategy(ctx context.Context, req *api.AuthStrategy) *a
 	}
 
 	if err := svr.storage.DeleteStrategy(req.GetId().GetValue()); err != nil {
-		log.GetAuthLogger().Error("[Auth][Strategy] storage delete strategy",
+		log.AuthScope().Error("[Auth][Strategy] storage delete strategy",
 			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
 	msg := fmt.Sprintf("[Auth][Strategy] delete strategy: name=%v", req.GetName().GetValue())
-	log.GetAuthLogger().Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+	log.AuthScope().Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 	svr.RecordHistory(authStrategyRecordEntry(ctx, req, strategy, model.ODelete))
 
 	return api.NewAuthStrategyResponse(api.ExecuteSuccess, req)
@@ -184,7 +184,7 @@ func (svr *server) GetStrategies(ctx context.Context, query map[string]string) *
 	searchFilters := make(map[string]string)
 	for key, value := range query {
 		if _, ok := StrategyFilterAttributes[key]; !ok {
-			log.GetAuthLogger().Errorf("[Auth][Strategy] get strategies attribute(%s) it not allowed", key)
+			log.AuthScope().Errorf("[Auth][Strategy] get strategies attribute(%s) it not allowed", key)
 			return api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
 		}
 		searchFilters[key] = value
@@ -202,7 +202,7 @@ func (svr *server) GetStrategies(ctx context.Context, query map[string]string) *
 
 	total, strategies, err := svr.storage.GetSimpleStrategies(searchFilters, offset, limit)
 	if err != nil {
-		log.GetAuthLogger().Errorf("[Auth][Strategy] get strategies req(%+v) store err: %s", query, err.Error())
+		log.AuthScope().Errorf("[Auth][Strategy] get strategies req(%+v) store err: %s", query, err.Error())
 		return api.NewBatchQueryResponse(api.StoreLayerException)
 	}
 
@@ -498,7 +498,7 @@ func (svr *server) checkCreateStrategy(req *api.AuthStrategy) *api.Response {
 	}
 
 	// 检查用户组是否存在
-	if err := svr.checkUserGroupExist(req.GetPrincipal().GetGroups()); err != nil {
+	if err := svr.checkGroupExist(req.GetPrincipal().GetGroups()); err != nil {
 		return api.NewAuthStrategyResponse(api.NotFoundUserGroup, req)
 	}
 
@@ -519,7 +519,7 @@ func (svr *server) checkUpdateStrategy(req *api.ModifyAuthStrategy) *api.Respons
 	}
 
 	// 检查用户组是否存在
-	if err := svr.checkUserGroupExist(req.GetAddPrincipal().GetGroups()); err != nil {
+	if err := svr.checkGroupExist(req.GetAddPrincipal().GetGroups()); err != nil {
 		return api.NewModifyAuthStrategyResponse(api.NotFoundUserGroup, req)
 	}
 
@@ -531,17 +531,12 @@ func (svr *server) checkUpdateStrategy(req *api.ModifyAuthStrategy) *api.Respons
 	return nil
 }
 
-// authStrategyRecordEntry
-//  @param ctx
-//  @param req
-//  @param md
-//  @param operationType
-//  @return *model.RecordEntry
+// authStrategyRecordEntry 转换为鉴权策略的记录结构体
 func authStrategyRecordEntry(ctx context.Context, req *api.AuthStrategy, md *model.StrategyDetail,
 	operationType model.OperationType) *model.RecordEntry {
 	entry := &model.RecordEntry{
 		ResourceType:  model.RAuthStrategy,
-		UserGroup:     md.Name,
+		StrategyName:  md.Name,
 		OperationType: operationType,
 		Operator:      utils.ParseOperator(ctx),
 		CreateTime:    time.Now(),
@@ -551,15 +546,11 @@ func authStrategyRecordEntry(ctx context.Context, req *api.AuthStrategy, md *mod
 }
 
 // authModifyStrategyRecordEntry
-//  @param ctx
-//  @param req
-//  @param md
-//  @param operationType
-//  @return *model.RecordEntry
 func authModifyStrategyRecordEntry(ctx context.Context, req *api.ModifyAuthStrategy, md *model.ModifyStrategyDetail,
 	operationType model.OperationType) *model.RecordEntry {
 	entry := &model.RecordEntry{
 		ResourceType:  model.RAuthStrategy,
+		StrategyName:  md.ID,
 		OperationType: operationType,
 		Operator:      utils.ParseOperator(ctx),
 		CreateTime:    time.Now(),
@@ -586,14 +577,14 @@ func (svr *server) checkUserExist(users []*wrappers.StringValue) error {
 }
 
 // checkUserGroupExist 检查用户组是否存在
-func (svr *server) checkUserGroupExist(groups []*wrappers.StringValue) error {
+func (svr *server) checkGroupExist(groups []*wrappers.StringValue) error {
 	if len(groups) == 0 {
 		return nil
 	}
 	userCache := svr.cacheMgn.User()
 
 	for index := range groups {
-		if val := userCache.GetUserGroup(groups[index].GetValue()); val == nil {
+		if val := userCache.GetGroup(groups[index].GetValue()); val == nil {
 			return ErrorNoUserGroup
 		}
 	}

@@ -204,22 +204,16 @@ func matchServiceFilter(svc *model.Service, svcFilter map[string]string, matchNa
 	var exist bool
 	if matchName {
 		// 走到这一步，一定是模糊匹配
-		if value, exist = svcFilter["name"]; exist && !strings.Contains(svc.Name, value[0:len(value)-1]) {
-			return false
+		if value, exist = svcFilter["name"]; exist {
+			searchVal := value[0 : len(value)-1]
+			if !strings.Contains(strings.ToLower(svc.Name), strings.ToLower(searchVal)) {
+				return false
+			}
 		}
 	}
-	if value, exist = svcFilter["business"]; exist {
-		ciVal, ok := svcFilter["business_ci"]
-		// 如果忽略大小写为 false 或者没有设置改参数，那么直接进行匹配
-		if (!ok || ciVal == "false") && !strings.Contains(svc.Business, value) {
-			return false
-		}
-		// 如果忽略大小写为 true，那么都转化为小写再匹配
-		if ciVal == "true" &&
-			!strings.Contains(strings.ToLower(svc.Business), strings.ToLower(value)) {
-			return false
-		}
-
+	if value, exist = svcFilter["business"]; exist &&
+		!strings.Contains(strings.ToLower(svc.Business), strings.ToLower(value)) {
+		return false
 	}
 	if value, exist = svcFilter["department"]; exist && svc.Department != value {
 		return false

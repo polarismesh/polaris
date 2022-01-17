@@ -23,7 +23,6 @@ import (
 	"net/http"
 
 	proto "github.com/golang/protobuf/proto"
-	"github.com/polarismesh/polaris-server/common/log"
 
 	"github.com/emicklei/go-restful"
 	api "github.com/polarismesh/polaris-server/common/api/v1"

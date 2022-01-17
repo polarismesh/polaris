@@ -25,7 +25,6 @@ import (
 
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service/batch"

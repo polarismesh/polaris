@@ -23,7 +23,6 @@ import (
 
 	"github.com/polarismesh/polaris-server/apiserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"google.golang.org/grpc"

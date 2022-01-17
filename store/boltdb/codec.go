@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/golang/protobuf/proto"
-	"github.com/polarismesh/polaris-server/common/log"
 	"reflect"
 	"strings"
 	"time"

@@ -19,7 +19,10 @@ package test
 
 import (
 	"testing"
+	"time"
 
+	v1 "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/test/http"
 	"github.com/polarismesh/polaris-server/test/resource"
 )
@@ -73,4 +76,81 @@ func TestNamespace(t *testing.T) {
 		t.Fatalf("delete namespaces fail: %s", err.Error())
 	}
 	t.Log("delete namespaces success")
+}
+
+// TestCountNamespaceService 统计命名空间下的服务数以及实例数
+func TestCountNamespaceService(t *testing.T) {
+	t.Log("test namepsace interface")
+	client := http.NewClient(httpserverAddress, httpserverVersion)
+
+	namespaces := resource.CreateNamespaces()
+
+	// 创建命名空间
+	ret, err := client.CreateNamespaces(namespaces)
+	if err != nil {
+		t.Fatalf("create namespaces fail: %s", err.Error())
+	}
+	for index, item := range ret.GetResponses() {
+		namespaces[index].Token = item.GetNamespace().GetToken()
+	}
+	t.Log("create namepsaces success")
+
+	expectRes := make(map[string]model.NamespaceServiceCount)
+
+	for _, namespace := range ret.Responses {
+		createServiceAndInstance(t, &expectRes, client, namespace.Namespace)
+	}
+
+	//
+	time.Sleep(time.Duration(5) * time.Second)
+
+	// 获取namespace info 列表
+
+	resp, err := client.GetNamespaces(namespaces)
+
+	for _, namespace := range resp {
+		expectVal := expectRes[namespace.GetName().GetValue()]
+
+		if expectVal.ServiceCount == namespace.TotalServiceCount.GetValue() && expectVal.InstanceCnt.TotalInstanceCount == namespace.TotalInstanceCount.Value {
+			continue
+		} else {
+			t.Fatalf("namespace %s cnt info not expect", namespace.Name.GetValue())
+		}
+	}
+
+	t.Logf("TestNamespaceServiceCnt success")
+
+	// 开始清理所有的数据
+
+}
+
+func createServiceAndInstance(t *testing.T, expectRes *map[string]model.NamespaceServiceCount, client *http.Client, namespace *v1.Namespace) ([]*v1.Service, []*v1.Instance) {
+	services := resource.CreateServices(namespace)
+
+	_, err := client.CreateServices(services)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cntVal := &model.NamespaceServiceCount{
+		ServiceCount: uint32(len(services)),
+		InstanceCnt:  &model.InstanceCount{},
+	}
+
+	finalInstances := make([]*v1.Instance, 0)
+
+	for _, service := range services {
+		instances := resource.CreateInstances(service)
+		if _, err := client.CreateInstances(instances); err != nil {
+			t.Fatal(err)
+		}
+
+		finalInstances = append(finalInstances, instances...)
+		cntVal.InstanceCnt.TotalInstanceCount += uint32(len(instances))
+	}
+
+	(*expectRes)[namespace.GetName().GetValue()] = *cntVal
+
+	return services, finalInstances
 }

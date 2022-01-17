@@ -34,13 +34,14 @@ func init() {
 }
 
 const (
-	DefaultStrategyOffset time.Duration = time.Duration(-10 * time.Second)
-	StrategyRuleName      string        = "strategyRule"
+	StrategyRuleName string = "strategyRule"
 )
 
 // StrategyCache
 type StrategyCache interface {
 	Cache
+
+	Listener
 
 	// GetStrategyDetailsByUID
 	//  @param uid
@@ -64,6 +65,8 @@ type strategyCache struct {
 	lastUpdateTime int64
 
 	singleFlight *singleflight.Group
+
+	principalCh chan interface{}
 }
 
 // newStrategyCache
@@ -80,6 +83,7 @@ func (sc *strategyCache) initialize(c map[string]interface{}) error {
 	sc.uid2Strategy = new(sync.Map)
 	sc.groupid2Strategy = new(sync.Map)
 
+	sc.principalCh = make(chan interface{}, 32)
 	sc.singleFlight = new(singleflight.Group)
 	sc.firstUpdate = true
 	sc.lastUpdateTime = 0
@@ -97,16 +101,16 @@ func (sc *strategyCache) update() error {
 func (sc *strategyCache) realUpdate() error {
 	// 获取几秒前的全部数据
 	start := time.Now()
-	lastMtime := time.Unix(sc.lastUpdateTime, 0).Add(DefaultStrategyOffset)
+	lastMtime := time.Unix(sc.lastUpdateTime, 0)
 	strategys, err := sc.storage.GetStrategyDetailsForCache(lastMtime.Add(DefaultTimeDiff), sc.firstUpdate)
 	if err != nil {
-		log.GetCacheLogger().Errorf("[Cache][AuthStrategy] refresh auth strategy cache err: %s", err.Error())
+		log.CacheScope().Errorf("[Cache][AuthStrategy] refresh auth strategy cache err: %s", err.Error())
 		return err
 	}
 
 	sc.firstUpdate = false
 	add, update, del := sc.setStrategys(strategys)
-	log.GetCacheLogger().Debug("[Cache][AuthStrategy] get more auth strategy", zap.Int("add", add), zap.Int("update", update), zap.Int("delete", del),
+	log.CacheScope().Debug("[Cache][AuthStrategy] get more auth strategy", zap.Int("add", add), zap.Int("update", update), zap.Int("delete", del),
 		zap.Time("last", lastMtime), zap.Duration("used", time.Now().Sub(start)))
 	return nil
 }
@@ -124,6 +128,22 @@ func (sc *strategyCache) setStrategys(strategys []*model.StrategyDetail) (int, i
 		if !rule.Valid {
 			sc.strategys.Delete(rule.ID)
 			remove++
+
+			principals := rule.Principals
+			for pos := range principals {
+				principal := principals[pos]
+
+				if principal.PrincipalRole == model.PrincipalUser {
+					if val, ok := sc.uid2Strategy.Load(principal.PrincipalID); ok {
+						val.(*sync.Map).Delete(rule.ID)
+					}
+				} else {
+					if val, ok := sc.groupid2Strategy.Load(principal.PrincipalID); ok {
+						val.(*sync.Map).Delete(rule.ID)
+					}
+				}
+			}
+
 		} else {
 			_, ok := sc.strategys.Load(rule.ID)
 			if !ok {
@@ -154,12 +174,30 @@ func (sc *strategyCache) setStrategys(strategys []*model.StrategyDetail) (int, i
 
 				rulesMap.Store(rule.ID, rule)
 			}
-
-			// 计算 groupid -> auth rule
 		}
 	}
 
+	sc.postProcessPrincipalCh()
+
 	return add, update, remove
+}
+
+func (sc *strategyCache) postProcessPrincipalCh() {
+	select {
+	case event := <-sc.principalCh:
+		principals := event.([]model.Principal)
+		for index := range principals {
+			principal := principals[index]
+
+			if principal.PrincipalRole == model.PrincipalUser {
+				sc.uid2Strategy.Delete(principal.PrincipalID)
+			} else {
+				sc.groupid2Strategy.Delete(principal.PrincipalID)
+			}
+		}
+	case <-time.After(time.Duration(100 * time.Millisecond)):
+		return
+	}
 }
 
 func (sc *strategyCache) clear() error {
@@ -216,4 +254,34 @@ func (sc *strategyCache) getStrategyDetails(uid string, gid string) []*model.Str
 	}
 
 	return nil
+}
+
+// OnCreated callback when cache value created
+func (sc *strategyCache) OnCreated(value interface{}) {
+
+}
+
+// OnUpdated callback when cache value updated
+func (sc *strategyCache) OnUpdated(value interface{}) {
+
+}
+
+// OnDeleted callback when cache value deleted
+func (sc *strategyCache) OnDeleted(value interface{}) {
+
+}
+
+// OnBatchCreated callback when cache value created
+func (sc *strategyCache) OnBatchCreated(value interface{}) {
+
+}
+
+// OnBatchUpdated callback when cache value updated
+func (sc *strategyCache) OnBatchUpdated(value interface{}) {
+
+}
+
+// OnBatchDeleted callback when cache value deleted
+func (sc *strategyCache) OnBatchDeleted(value interface{}) {
+	sc.principalCh <- value
 }

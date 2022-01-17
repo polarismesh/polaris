@@ -1,0 +1,43 @@
+# Default values for polaris.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  mode: standalone
+#  mode: cluster
+
+polaris:
+  image:
+    repository: polarismesh/polaris-server
+    tag: v1.4.0
+    pullPolicy: Always
+  limit:
+    cpu: "500m"
+    memory: "1000Mi"
+  console:
+    image:
+      repository: polarismesh/polaris-console
+      tag: v1.3.1
+      pullPolicy: Always
+    limit:
+      cpu: "500m"
+      memory: "1000Mi"
+  replicaCount: 1
+  storage:
+    db:
+      address: localhost:3306
+      name: polaris_server
+      user: root
+      password: polaris@123456
+    redis:
+      address: localhost:6379
+      password: polaris@123456
+
+service:
+  type: LoadBalancer
+  httpPort: 8090
+  grpcPort: 8091
+  webPort: 8080
+
+monitor:
+  port: 9091

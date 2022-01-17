@@ -24,7 +24,6 @@ import (
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"go.uber.org/zap"
@@ -897,7 +896,7 @@ func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instan
 	simpleService := &api.Service{
 		Name:      utils.NewStringValue(instance.GetService().GetValue()),
 		Namespace: utils.NewStringValue(instance.GetNamespace().GetValue()),
-		Owners:    func() *wrapperspb.StringValue {
+		Owners: func() *wrapperspb.StringValue {
 			owner := utils.ParseOwnerID(ctx)
 			if owner == "" {
 				return utils.NewStringValue("Polaris")
