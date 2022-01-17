@@ -95,6 +95,7 @@ const (
 type UserRoleType int
 
 const (
+	UnknownUserRole    UserRoleType = -1
 	AdminUserRole      UserRoleType = 0
 	OwnerUserRole      UserRoleType = 20
 	SubAccountUserRole UserRoleType = 50

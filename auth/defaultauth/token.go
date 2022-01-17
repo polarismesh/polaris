@@ -30,12 +30,25 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
+// TokenInfo 根据 token 解析出来的具体额外信息
 type TokenInfo struct {
-	Origin      string
-	RandStr     string
-	OperatorID  string
-	OwnerID     string
-	Role        model.UserRoleType
+
+	// Origin 原始 token 字符串
+	Origin string
+
+	// RandStr 随机字符串
+	RandStr string
+
+	// OperatorID 当前 token 绑定的 用户/用户组 ID
+	OperatorID string
+
+	// OwnerID 当前用户/用户组对应的 owner
+	OwnerID string
+
+	// Role 如果当前是 user token 的话，该值才能有信息
+	Role model.UserRoleType
+
+	// IsUserToken 当前 token 是否是 user 的 token
 	IsUserToken bool
 }
 
@@ -45,9 +58,10 @@ func (t TokenInfo) IsSubAccount() bool {
 }
 
 const (
-	// 随机字符串::[uid/xxx | groupid/xxx]
+	// TokenPattern token 的格式 随机字符串::[uid/xxx | groupid/xxx]
 	TokenPattern string = "%s::%s"
-	TokenSplit   string = "::"
+	// TokenSplit token 的分隔符
+	TokenSplit string = "::"
 )
 
 // createUserToken Create a user token

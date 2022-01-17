@@ -22,7 +22,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/polarismesh/polaris-server/auth"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -75,7 +74,7 @@ func (authMgn *defaultAuthManager) CheckPermission(authCtx *model.AcquireContext
 	// 重新设置 RequestContext
 	authCtx.SetRequestContext(ctx)
 
-	// TODO 如果访问的资源，其 owner 找不到对应的用户，则认为是可以被随意操作的资源
+	// 如果访问的资源，其 owner 找不到对应的用户，则认为是可以被随意操作的资源
 	authMgn.removeNoOwnerResources(authCtx)
 
 	strategys, ownerId, err := authMgn.findStrategies(tokenInfo)
@@ -121,12 +120,6 @@ func (authMgn *defaultAuthManager) findStrategies(tokenInfo TokenInfo) ([]*model
 	}
 
 	return strategys, ownerId, nil
-}
-
-// ChangeOpenStatus 修改权限功能的开关状态
-func (authMgn *defaultAuthManager) ChangeOpenStatus(status auth.AuthStatus) bool {
-	AuthOption.Open = (status == auth.OpenAuthService)
-	return true
 }
 
 // IsOpenAuth 返回是否开启了操作鉴权
@@ -202,7 +195,7 @@ func (authMgn *defaultAuthManager) checkToken(tokenUserInfo TokenInfo) (string, 
 	}
 }
 
-// verifyAuth token
+// verifyToken 对 token 进行检查验证
 func (authMgn *defaultAuthManager) verifyToken(ctx context.Context, token string) (context.Context, TokenInfo, error) {
 	tokenInfo, err := authMgn.DecodeToken(token)
 	if err != nil {
@@ -227,7 +220,7 @@ func (authMgn *defaultAuthManager) verifyToken(ctx context.Context, token string
 	return ctx, tokenInfo, nil
 }
 
-// DecodeToken
+// DecodeToken 解析 token 信息
 func (authMgn *defaultAuthManager) DecodeToken(t string) (TokenInfo, error) {
 	ret, err := decryptMessage([]byte(AuthOption.Salt), t)
 	if err != nil {
@@ -248,11 +241,13 @@ func (authMgn *defaultAuthManager) DecodeToken(t string) (TokenInfo, error) {
 		RandStr:     tokenDetails[0],
 		IsUserToken: detail[0] == model.TokenForUser,
 		OperatorID:  detail[1],
+		Role:        model.UnknownUserRole,
 	}
 
 	return tokenInfo, nil
 }
 
+// removeNoOwnerResources 移除 owner 找不到的资源
 func (authMgn *defaultAuthManager) removeNoOwnerResources(authCtx *model.AcquireContext) {
 	resources := authCtx.GetAccessResources()
 

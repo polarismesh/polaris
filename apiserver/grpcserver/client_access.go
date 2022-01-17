@@ -47,6 +47,12 @@ func (g *GRPCServer) RegisterInstance(ctx context.Context, in *api.Instance) (*a
 	rCtx := ConvertContext(ctx)
 	operator := ParseGrpcOperator(ctx)
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), operator)
+
+	// 客户端请求中带了 token 的，优先已请求中的为准
+	if in.GetServiceToken().GetValue() != "" {
+		rCtx = context.WithValue(rCtx, utils.ContextAuthTokenKey, in.GetServiceToken().GetValue())
+	}
+
 	out := g.namingServer.CreateInstances(rCtx, []*api.Instance{in})
 	return out.Responses[0], nil
 }
@@ -59,6 +65,13 @@ func (g *GRPCServer) DeregisterInstance(ctx context.Context, in *api.Instance) (
 	rCtx := ConvertContext(ctx)
 	operator := ParseGrpcOperator(ctx)
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), operator)
+
+	// 客户端请求中带了 token 的，优先已请求中的为准
+	if in.GetServiceToken().GetValue() != "" {
+		rCtx = context.WithValue(rCtx, utils.ContextAuthTokenKey, in.GetServiceToken().GetValue())
+	}
+
+
 	out := g.namingServer.DeleteInstances(rCtx, []*api.Instance{in})
 	return out.Responses[0], nil
 }

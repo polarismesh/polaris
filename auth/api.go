@@ -26,7 +26,9 @@ import (
 	"github.com/polarismesh/polaris-server/store"
 )
 
+// AuthServer 鉴权 Server
 type AuthServer interface {
+	// Initialize
 	Initialize(authOpt *Config, storage store.Store, cacheMgn *cache.NamingCache) error
 
 	// Name
@@ -55,23 +57,12 @@ type AuthServer interface {
 type AuthManager interface {
 
 	// Initialize 执行初始化动作
-	//  @param options
-	//  @return error
 	Initialize(options *Config, cacheMgn *cache.NamingCache) error
 
 	// CheckPermission 执行检查动作判断是否有权限，并且将 RequestContext 进行插入一些新的数据
-	//  @param preCtx
-	//  @return bool
-	//  @return error
 	CheckPermission(preCtx *model.AcquireContext) (bool, error)
 
-	// ChangeOpenStatus 修改权限功能的开关状态，用于动态变更
-	//  @param status
-	//  @return bool
-	ChangeOpenStatus(status AuthStatus) bool
-
 	// IsOpenAuth 返回是否开启了操作鉴权，可以用于前端查询
-	//  @return bool
 	IsOpenAuth() bool
 }
 
