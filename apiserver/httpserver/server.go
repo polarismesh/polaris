@@ -69,9 +69,7 @@ type HTTPServer struct {
 	statis            plugin.Statis
 	auth              plugin.Auth
 
-	userServer     auth.UserServer
-	strategyServer auth.AuthStrategyServer
-	authMgn        auth.AuthManager
+	authServer auth.AuthServer
 }
 
 const (
@@ -147,16 +145,14 @@ func (h *HTTPServer) Run(errCh chan error) {
 		return
 	}
 
-	authMgn, err := auth.GetAuthManager()
+	authSvr, err := auth.GetAuthServer()
 	if err != nil {
 		log.Errorf("%v", err)
 		errCh <- err
 		return
 	}
 
-	h.authMgn = authMgn
-	h.userServer = authMgn.GetUserServer()
-	h.strategyServer = authMgn.GetAuthStrategyServer()
+	h.authServer = authSvr
 
 	h.healthCheckServer, err = healthcheck.GetServer()
 	if err != nil {

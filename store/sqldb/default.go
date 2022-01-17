@@ -59,6 +59,7 @@ type stableStore struct {
 	*platformStore
 	*toolStore
 	*userStore
+	*groupStore
 	*strategyStore
 
 	// 主数据库，可以进行读写
@@ -162,12 +163,15 @@ func parseStoreConfig(opts interface{}) (*dbConfig, error) {
 		return nil, fmt.Errorf("Config Plugin %s missing database param", STORENAME)
 	}
 
+	externalUrlParam, _ := obj["externalUrlParams"].(string)
+
 	c := &dbConfig{
-		dbType: dbType,
-		dbUser: dbUser,
-		dbPwd:  dbPwd,
-		dbAddr: dbAddr,
-		dbName: dbName,
+		dbType:            dbType,
+		dbUser:            dbUser,
+		dbPwd:             dbPwd,
+		dbAddr:            dbAddr,
+		dbName:            dbName,
+		externalUrlParams: externalUrlParam,
 	}
 	if maxOpenConns, _ := obj["maxOpenConns"].(int); maxOpenConns > 0 {
 		c.maxOpenConns = maxOpenConns
@@ -244,6 +248,8 @@ func (s *stableStore) newStore() {
 	s.toolStore = &toolStore{db: s.master}
 
 	s.userStore = &userStore{master: s.master, slave: s.slave}
+
+	s.groupStore = &groupStore{master: s.master, slave: s.slave}
 
 	s.strategyStore = &strategyStore{master: s.master, slave: s.slave}
 }

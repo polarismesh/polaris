@@ -26,6 +26,8 @@ import (
 )
 
 const (
+	// IDAttribute
+	IDAttribute string = "id"
 
 	// OwnerAttribute
 	OwnerAttribute string = "owner"

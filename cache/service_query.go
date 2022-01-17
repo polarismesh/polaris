@@ -32,6 +32,8 @@ type ServiceArgs struct {
 	Filter map[string]string
 	// Metadata 元数据条件
 	Metadata map[string]string
+	// SvcIds 是否按照服务的ID进行等值查询
+	SvcIds map[string]struct{}
 	// FuzzyName 是否进行名字的模糊匹配
 	FuzzyName bool
 	// FuzzyBusiness 是否进行业务的模糊匹配

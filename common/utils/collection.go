@@ -48,7 +48,7 @@ func (set *stringSet) Remove(val string) {
 }
 
 func (set *stringSet) ToSlice() []string {
-	ret := make([]string, len(set.container))
+	ret := make([]string, 0, len(set.container))
 
 	for k := range set.container {
 		ret = append(ret, k)
@@ -65,6 +65,42 @@ func (set *stringSet) Range(fn func(val string) bool) {
 		}
 	}
 
+}
+
+type NamespaceSet struct {
+	container map[string]*model.Namespace
+}
+
+func NewNamespaceSet() *NamespaceSet {
+	return &NamespaceSet{
+		container: make(map[string]*model.Namespace),
+	}
+}
+
+func (set *NamespaceSet) Add(val *model.Namespace) {
+	set.container[val.Name] = val
+}
+
+func (set *NamespaceSet) Remove(val *model.Namespace) {
+	delete(set.container, val.Name)
+}
+
+func (set *NamespaceSet) ToSlice() []*model.Namespace {
+	ret := make([]*model.Namespace, 0, len(set.container))
+
+	for _, v := range set.container {
+		ret = append(ret, v)
+	}
+
+	return ret
+}
+
+func (set *NamespaceSet) Range(fn func(val *model.Namespace) bool) {
+	for _, v := range set.container {
+		if !fn(v) {
+			break
+		}
+	}
 }
 
 type ServiceSet struct {
@@ -86,7 +122,7 @@ func (set *ServiceSet) Remove(val *model.Service) {
 }
 
 func (set *ServiceSet) ToSlice() []*model.Service {
-	ret := make([]*model.Service, len(set.container))
+	ret := make([]*model.Service, 0, len(set.container))
 
 	for _, v := range set.container {
 		ret = append(ret, v)

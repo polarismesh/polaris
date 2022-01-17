@@ -27,6 +27,7 @@ const (
 	OperatorPrincipalType string = "operator_principal"
 	OperatorIDKey         string = "operator_id"
 	OperatorOwnerKey      string = "operator_owner"
+	OperatorLinkStrategy  string = "operator_link_strategy"
 
 	TokenForUser      string = "uid"
 	TokenForUserGroup string = "groupid"
@@ -142,6 +143,15 @@ type UserGroupDetail struct {
 	UserIDs map[string]struct{}
 }
 
+func (ugd *UserGroupDetail) ToUserIdSlice() []string {
+	uids := make([]string, 0, len(ugd.UserIDs))
+	for uid := range ugd.UserIDs {
+		uids = append(uids, uid)
+	}
+
+	return uids
+}
+
 // UserGroup
 type UserGroup struct {
 	ID          string
@@ -163,8 +173,6 @@ type ModifyUserGroup struct {
 	Comment       string
 	AddUserIds    []string
 	RemoveUserIds []string
-	CreateTime    time.Time
-	ModifyTime    time.Time
 }
 
 // UserGroupRelation

@@ -410,7 +410,7 @@ func parseServiceArgs(filter map[string]string, metaFilter map[string]string, ct
 /**
  * GetServicesCount 查询服务总数
  */
-func (s *Server) GetServicesCount() *api.BatchQueryResponse {
+func (s *Server) GetServicesCount(ctx context.Context) *api.BatchQueryResponse {
 	count, err := s.storage.GetServicesCount()
 	if err != nil {
 		log.Errorf("[Server][Service][Count] get service count storage err: %s", err.Error())

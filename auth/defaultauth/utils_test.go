@@ -34,56 +34,60 @@ func Test_checkPassword(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "TEST_1",
 			args: args{
 				password: utils.NewStringValue("1234"),
 			},
 			wantErr: true,
 		},
 		{
-			name: "TEST_1",
 			args: args{
 				password: utils.NewStringValue("123456"),
 			},
 			wantErr: true,
 		},
 		{
-			name: "TEST_1",
 			args: args{
 				password: utils.NewStringValue("abc45"),
 			},
 			wantErr: true,
 		},
 		{
-			name: "TEST_1",
 			args: args{
-				password: utils.NewStringValue("abc456"),
+				password: utils.NewStringValue("Aabc456"),
 			},
 			wantErr: false,
 		},
 		{
-			name: "TEST_1",
+			args: args{
+				password: utils.NewStringValue("Aa@@bc456"),
+			},
+			wantErr: false,
+		},
+		{
+			args: args{
+				password: utils.NewStringValue("Aa@@bc45~6"),
+			},
+			wantErr: false,
+		},
+		{
 			args: args{
 				password: utils.NewStringValue("abc456abc4565612"),
 			},
 			wantErr: false,
 		},
 		{
-			name: "TEST_1",
 			args: args{
 				password: utils.NewStringValue("abc456abc456abc456"),
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 		{
-			name: "TEST_1",
 			args: args{
 				password: utils.NewStringValue("123456123456123456"),
 			},
 			wantErr: true,
 		},
 		{
-			name: "TEST_1",
 			args: args{
 				password: utils.NewStringValue("abc456abc456abc45612"),
 			},
@@ -93,7 +97,7 @@ func Test_checkPassword(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := checkPassword(tt.args.password); (err != nil) != tt.wantErr {
-				t.Errorf("checkPassword() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("checkPassword() error = %v, wantErr %v, args = %#v", err, tt.wantErr, tt.args.password.GetValue())
 			}
 		})
 	}

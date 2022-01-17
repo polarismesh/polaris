@@ -368,7 +368,7 @@ func (h *HTTPServer) GetServices(req *restful.Request, rsp *restful.Response) {
  */
 func (h *HTTPServer) GetServicesCount(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
-	ret := h.namingServer.GetServicesCount()
+	ret := h.namingServer.GetServicesCount(handler.ParseHeaderContext())
 	handler.WriteHeaderAndProto(ret)
 }
 
@@ -610,7 +610,7 @@ func (h *HTTPServer) GetInstances(req *restful.Request, rsp *restful.Response) {
 func (h *HTTPServer) GetInstancesCount(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	ret := h.namingServer.GetInstancesCount()
+	ret := h.namingServer.GetInstancesCount(handler.ParseHeaderContext())
 	handler.WriteHeaderAndProto(ret)
 }
 

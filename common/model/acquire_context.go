@@ -123,6 +123,10 @@ func (authCtx *AcquireContext) GetAccessResources() map[api.ResourceType][]Resou
 	return authCtx.accessResources
 }
 
+func (authCtx *AcquireContext) SetAccessResources(accessRes map[api.ResourceType][]ResourceEntry) {
+	authCtx.accessResources = accessRes
+}
+
 func (authCtx *AcquireContext) GetAttachment() map[string]interface{} {
 	return authCtx.attachment
 }

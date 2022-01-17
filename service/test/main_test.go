@@ -27,16 +27,12 @@ import (
 	"testing"
 	"time"
 
-<<<<<<< HEAD:naming/test/main_test.go
 	"github.com/golang/protobuf/ptypes/duration"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/plugin"
-
-=======
 	"github.com/polarismesh/polaris-server/bootstrap/config"
->>>>>>> 03a07defdf093e9cd7e9779db603f847c307aed7:service/test/main_test.go
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/store"
 
@@ -118,16 +114,12 @@ func initialize() error {
 			panic(err)
 		}
 
-<<<<<<< HEAD:naming/test/main_test.go
-		val, err := naming.GetOriginServer()
-=======
-		server, err = service.GetServer()
->>>>>>> 03a07defdf093e9cd7e9779db603f847c307aed7:service/test/main_test.go
+		val, err := service.GetOriginServer()
 		if err != nil {
 			panic(err)
 		}
 
-		server = val.(*naming.Server)
+		server = val
 
 		masterEntry := cfg.Store.Option["master"]
 		masterConfig, ok := masterEntry.(map[interface{}]interface{})

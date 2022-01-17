@@ -30,16 +30,10 @@ message User {
   google.protobuf.StringValue user_type = 11;
 }
 
-message UserToken {
-  google.protobuf.StringValue user_id = 1;
-  google.protobuf.StringValue auth_token = 2;
-}
-
 message UserGroupRelation {
   google.protobuf.StringValue group_id = 1;
   repeated google.protobuf.StringValue user_ids = 2;
 }
-
 
 message UserGroup {
   google.protobuf.StringValue id = 1;
@@ -55,15 +49,12 @@ message UserGroup {
 
 message ModifyUserGroup {
   google.protobuf.StringValue id = 1;
-  google.protobuf.StringValue name = 2;
-  google.protobuf.StringValue owner = 3;
-  google.protobuf.StringValue auth_token = 4;
-  google.protobuf.BoolValue token_enable = 5;
-  google.protobuf.StringValue comment = 6;
-  google.protobuf.StringValue ctime = 7;
-  google.protobuf.StringValue mtime = 8;
-  UserGroupRelation add_relation = 9;
-  UserGroupRelation remove_relation = 10;
+  google.protobuf.StringValue owner = 2;
+  google.protobuf.StringValue auth_token = 3;
+  google.protobuf.BoolValue token_enable = 4;
+  google.protobuf.StringValue comment = 5;
+  UserGroupRelation add_relation = 6;
+  UserGroupRelation remove_relation = 7;
 }
 
 message Principal {
@@ -79,7 +70,7 @@ message StrategyResource {
 }
 
 enum AuthAction {
-  ONLY_ERAD = 0;
+  ONLY_READ = 0;
   READ_WRITE = 1;
 }
 
@@ -98,19 +89,14 @@ message AuthStrategy {
 
 message ModifyAuthStrategy {
   google.protobuf.StringValue id = 1;
-  google.protobuf.StringValue name = 2;
-  Principal add_principal = 3;
-  Principal remove_principal = 4;
-  StrategyResource add_resource = 5;
-  StrategyResource remove_resource = 6;
-  AuthAction action = 7;
-  google.protobuf.StringValue comment = 8;
-  google.protobuf.StringValue owner = 9;
-  google.protobuf.StringValue ctime = 10;
-  google.protobuf.StringValue mtime = 11;
-  google.protobuf.StringValue auth_token = 12;
+  Principal add_principal = 2;
+  Principal remove_principal = 3;
+  StrategyResource add_resource = 4;
+  StrategyResource remove_resource = 5;
+  AuthAction action = 6;
+  google.protobuf.StringValue comment = 7;
+  google.protobuf.StringValue owner = 8;
 }
-
 
 enum ResourceType {
   Namespaces = 0;

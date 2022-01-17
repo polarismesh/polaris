@@ -43,15 +43,16 @@ type BaseDB struct {
  * @brief store的配置
  */
 type dbConfig struct {
-	dbType           string
-	dbUser           string
-	dbPwd            string
-	dbAddr           string
-	dbName           string
-	maxOpenConns     int
-	maxIdleConns     int
-	connMaxLifetime  int
-	txIsolationLevel int
+	dbType            string
+	dbUser            string
+	dbPwd             string
+	dbAddr            string
+	dbName            string
+	maxOpenConns      int
+	maxIdleConns      int
+	connMaxLifetime   int
+	txIsolationLevel  int
+	externalUrlParams string
 }
 
 // 新建一个BaseDB
@@ -84,6 +85,10 @@ func (b *BaseDB) openDatabase() error {
 	}
 
 	dns := fmt.Sprintf("%s:%s@tcp(%s)/%s", c.dbUser, c.dbPwd, c.dbAddr, c.dbName)
+	if len(b.cfg.externalUrlParams) > 0 {
+		dns = fmt.Sprintf("%s:%s@tcp(%s)/%s?%s", c.dbUser, c.dbPwd, c.dbAddr, c.dbName, c.externalUrlParams)
+	}
+
 	db, err := sql.Open(c.dbType, dns)
 	if err != nil {
 		log.Errorf("[Store][database] sql open err: %s", err.Error())

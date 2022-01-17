@@ -107,7 +107,7 @@ type ServiceOperateServer interface {
 
 	// GetServicesCount
 	//  @return *api.BatchQueryResponse
-	GetServicesCount() *api.BatchQueryResponse
+	GetServicesCount(ctx context.Context) *api.BatchQueryResponse
 
 	// GetServiceToken
 	//  @param ctx
@@ -158,12 +158,6 @@ type InstanceOperateServer interface {
 	//  @return *api.BatchWriteResponse
 	CreateInstances(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse
 
-	// CreateInstance
-	//  @param ctx
-	//  @param reqs
-	//  @return *api.BatchWriteResponse
-	CreateInstance(ctx context.Context, req *api.Instance) *api.Response
-
 	// DeleteInstances
 	//  @param ctx
 	//  @param req
@@ -182,12 +176,6 @@ type InstanceOperateServer interface {
 	//  @return *api.BatchWriteResponse
 	UpdateInstances(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse
 
-	// UpdateInstance
-	//  @param ctx
-	//  @param req
-	//  @return *api.BatchWriteResponse
-	UpdateInstance(ctx context.Context, req *api.Instance) *api.Response
-
 	// UpdateInstancesIsolate
 	//  @param ctx
 	//  @param req
@@ -201,7 +189,7 @@ type InstanceOperateServer interface {
 
 	// GetInstancesCount
 	//  @return *api.BatchQueryResponse
-	GetInstancesCount() *api.BatchQueryResponse
+	GetInstancesCount(ctx context.Context) *api.BatchQueryResponse
 
 	// CleanInstance
 	//  @param ctx
@@ -366,5 +354,5 @@ type DiscoverServer interface {
 	L5OperateServer
 	//
 
-	GetServiceInstanceRevision(serviceID string, instances []*model.Instance) (string, error) 
+	GetServiceInstanceRevision(serviceID string, instances []*model.Instance) (string, error)
 }

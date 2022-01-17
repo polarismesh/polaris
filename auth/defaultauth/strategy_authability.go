@@ -20,26 +20,12 @@ package defaultauth
 import (
 	"context"
 
-	"github.com/polarismesh/polaris-server/auth"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
-// strategyServerAuth 用户数据管理 server
-type strategyServerAuth struct {
-	authMgn *defaultAuthManager
-	target  auth.AuthStrategyServer
-}
-
-func newStrategyServerWithAuth(authMgn *defaultAuthManager, target auth.AuthStrategyServer) auth.AuthStrategyServer {
-	return &strategyServerAuth{
-		authMgn: authMgn,
-		target:  target,
-	}
-}
-
 // CreateStrategy
-func (svr *strategyServerAuth) CreateStrategy(ctx context.Context, strategy *api.AuthStrategy) *api.Response {
+func (svr *serverAuthAbility) CreateStrategy(ctx context.Context, strategy *api.AuthStrategy) *api.Response {
 	authToken := utils.ParseAuthToken(ctx)
 	if authToken == "" {
 		return api.NewResponse(api.NotAllowedAccess)
@@ -55,7 +41,7 @@ func (svr *strategyServerAuth) CreateStrategy(ctx context.Context, strategy *api
 }
 
 // UpdateStrategy
-func (svr *strategyServerAuth) UpdateStrategy(ctx context.Context, strategy *api.ModifyAuthStrategy) *api.Response {
+func (svr *serverAuthAbility) UpdateStrategy(ctx context.Context, strategy *api.ModifyAuthStrategy) *api.Response {
 	authToken := utils.ParseAuthToken(ctx)
 	if authToken == "" {
 		return api.NewResponse(api.NotAllowedAccess)
@@ -71,23 +57,24 @@ func (svr *strategyServerAuth) UpdateStrategy(ctx context.Context, strategy *api
 }
 
 // DeleteStrategy
-func (svr *strategyServerAuth) DeleteStrategy(ctx context.Context, strategy *api.AuthStrategy) *api.Response {
+func (svr *serverAuthAbility) DeleteStrategies(ctx context.Context, reqs []*api.AuthStrategy) *api.BatchWriteResponse {
 	authToken := utils.ParseAuthToken(ctx)
 	if authToken == "" {
-		return api.NewResponse(api.NotAllowedAccess)
+		return api.NewBatchWriteResponse(api.NotAllowedAccess)
 	}
 
 	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
 	if errResp != nil {
-		errResp.AuthStrategy = strategy
-		return errResp
+		resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
+		resp.Collect(errResp)
+		return resp
 	}
 
-	return svr.target.DeleteStrategy(ctx, strategy)
+	return svr.target.DeleteStrategies(ctx, reqs)
 }
 
-// ListStrategy
-func (svr *strategyServerAuth) ListStrategy(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+// GetStrategies
+func (svr *serverAuthAbility) GetStrategies(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	authToken := utils.ParseAuthToken(ctx)
 	if authToken == "" {
 		return api.NewBatchQueryResponse(api.NotAllowedAccess)
@@ -98,28 +85,10 @@ func (svr *strategyServerAuth) ListStrategy(ctx context.Context, query map[strin
 		return api.NewBatchQueryResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
 	}
 
-	return svr.target.ListStrategy(ctx, query)
+	return svr.target.GetStrategies(ctx, query)
 }
 
-// ListStrategyByUserID
-//  @param ctx
-//  @param query
-//  @return *api.BatchQueryResponse
-func (svr *strategyServerAuth) ListStrategyByUserID(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewBatchQueryResponse(api.NotAllowedAccess)
-	}
-
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
-	if errResp != nil {
-		return api.NewBatchQueryResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
-	}
-
-	return svr.target.ListStrategyByUserID(ctx, query)
-}
-
-func (svr *strategyServerAuth) GetStrategy(ctx context.Context, query map[string]string) *api.Response {
+func (svr *serverAuthAbility) GetStrategy(ctx context.Context, strategy *api.AuthStrategy) *api.Response {
 	authToken := utils.ParseAuthToken(ctx)
 	if authToken == "" {
 		return api.NewResponse(api.NotAllowedAccess)
@@ -130,5 +99,5 @@ func (svr *strategyServerAuth) GetStrategy(ctx context.Context, query map[string
 		return api.NewResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
 	}
 
-	return svr.target.GetStrategy(ctx, query)
+	return svr.target.GetStrategy(ctx, strategy)
 }

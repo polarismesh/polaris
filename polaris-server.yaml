@@ -165,12 +165,13 @@ store:
       dbType: mysql
       dbName: polaris_server
       dbUser: root
-      dbPwd: 528LcT528
-      dbAddr: gz-cdb-a2opd07d.sql.tencentcdb.com:58041
+      dbPwd: "123456"
+      dbAddr: 127.0.0.1:3306
       maxOpenConns: 300
       maxIdleConns: 50
       connMaxLifetime: 300 # 单位秒
       txIsolationLevel: 2 #LevelReadCommitted
+      externalUrlParams: loc=Asia%2FShanghai
 # 插件配置
 plugin:
   history:

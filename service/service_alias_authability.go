@@ -22,13 +22,10 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 // CreateServiceAlias
-//  @receiver svr
-//  @param ctx
-//  @param req
-//  @return *api.Response
 func (svr *serverAuthAbility) CreateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Create)
 
@@ -37,14 +34,19 @@ func (svr *serverAuthAbility) CreateServiceAlias(ctx context.Context, req *api.S
 		return api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
 
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	// 填充 ownerId 信息数据
+	ownerId := utils.ParseOwnerID(ctx)
+	if len(ownerId) > 0 {
+		req.Owners = utils.NewStringValue(ownerId)
+	}
+
 	return svr.targetServer.CreateServiceAlias(ctx, req)
 }
 
 // DeleteServiceAliases
-//  @receiver svr
-//  @param ctx
-//  @param req
-//  @return *api.BatchWriteResponse
 func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context, reqs []*api.ServiceAlias) *api.BatchWriteResponse {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, reqs, model.Modify)
 
@@ -53,14 +55,13 @@ func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context, reqs []*
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
 
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.DeleteServiceAliases(ctx, reqs)
 }
 
 // UpdateServiceAlias
-//  @receiver svr
-//  @param ctx
-//  @param req
-//  @return *api.Response
 func (svr *serverAuthAbility) UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Create)
 
@@ -69,15 +70,23 @@ func (svr *serverAuthAbility) UpdateServiceAlias(ctx context.Context, req *api.S
 		return api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
 
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.UpdateServiceAlias(ctx, req)
 }
 
 // GetServiceAliases
-//  @receiver svr
-//  @param ctx
-//  @param query
-//  @return *api.BatchQueryResponse
 func (svr *serverAuthAbility) GetServiceAliases(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+	authCtx := svr.collectServiceAliasAuthContext(ctx, nil, model.Create)
+
+	_, err := svr.authMgn.CheckPermission(authCtx)
+	if err != nil {
+		return api.NewBatchQueryResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return svr.targetServer.GetServiceAliases(ctx, query)
 }

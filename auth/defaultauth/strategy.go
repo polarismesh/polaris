@@ -20,19 +20,15 @@ package defaultauth
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
 )
 
@@ -42,11 +38,13 @@ type (
 
 var (
 	StrategyFilterAttributes = map[string]int{
-		"id":     1,
-		"name":   1,
-		"owner":  1,
-		"offset": 1,
-		"limit":  1,
+		"id":             1,
+		"name":           1,
+		"owner":          1,
+		"offset":         1,
+		"limit":          1,
+		"principal_id":   1,
+		"principal_type": 1,
 	}
 
 	StrategyLinkUserFilterAttributes = map[string]int{
@@ -57,34 +55,8 @@ var (
 	}
 )
 
-type authStrategyServer struct {
-	storage  store.Store
-	history  plugin.History
-	cacheMgn *cache.NamingCache
-}
-
-// newAthStrategyServer 构建一个带鉴权检查的 StrategyServer, 无论鉴权逻辑是否开启，这里的操作都必须经过用户角色检查
-func newAthStrategyServer(s store.Store, cacheMgn *cache.NamingCache) (*authStrategyServer, error) {
-	svr := &authStrategyServer{
-		storage:  s,
-		cacheMgn: cacheMgn,
-	}
-
-	return svr, svr.initialize()
-}
-
-func (svr *authStrategyServer) initialize() error {
-	// 获取History插件，注意：插件的配置在bootstrap已经设置好
-	svr.history = plugin.GetHistory()
-	if svr.history == nil {
-		log.GetAuthLogger().Warnf("Not Found History Log Plugin")
-	}
-
-	return nil
-}
-
 // CreateStrategy 创建鉴权策略
-func (svr *authStrategyServer) CreateStrategy(ctx context.Context, req *api.AuthStrategy) *api.Response {
+func (svr *server) CreateStrategy(ctx context.Context, req *api.AuthStrategy) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
 	ownerId := utils.ParseOwnerID(ctx)
@@ -95,9 +67,10 @@ func (svr *authStrategyServer) CreateStrategy(ctx context.Context, req *api.Auth
 		return checkErrResp
 	}
 
+	// 鉴权策略， name + owner 才能确定唯一记录
 	strategy, err := svr.storage.GetStrategySimpleByName(ownerId, req.GetName().GetValue())
 	if err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.GetAuthLogger().Error("[Auth][Strategy] storage get strategy by name", utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewAuthStrategyResponse(api.StoreLayerException, req)
 	}
 
@@ -113,19 +86,15 @@ func (svr *authStrategyServer) CreateStrategy(ctx context.Context, req *api.Auth
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	msg := fmt.Sprintf("create auth strategy: name=%v", req.GetName().GetValue())
+	msg := fmt.Sprintf("[Auth][Strategy] create strategy: name=%v", req.GetName().GetValue())
 	log.GetAuthLogger().Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 	svr.RecordHistory(authStrategyRecordEntry(ctx, req, data, model.OCreate))
 
-	out := &api.AuthStrategy{
-		Name: req.GetName(),
-	}
-
-	return api.NewAuthStrategyResponse(api.ExecuteSuccess, out)
+	return api.NewAuthStrategyResponse(api.ExecuteSuccess, req)
 }
 
 // UpdateStrategy 实现鉴权策略的增量变更
-func (svr *authStrategyServer) UpdateStrategy(ctx context.Context, req *api.ModifyAuthStrategy) *api.Response {
+func (svr *server) UpdateStrategy(ctx context.Context, req *api.ModifyAuthStrategy) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
 	ownerId := utils.ParseOwnerID(ctx)
@@ -138,7 +107,8 @@ func (svr *authStrategyServer) UpdateStrategy(ctx context.Context, req *api.Modi
 
 	strategy, err := svr.storage.GetStrategyDetail(req.GetId().GetValue())
 	if err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.GetAuthLogger().Error("[Auth][Strategy] storage get strategy",
+			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewModifyAuthStrategyResponse(api.StoreLayerException, req)
 	}
 
@@ -152,18 +122,33 @@ func (svr *authStrategyServer) UpdateStrategy(ctx context.Context, req *api.Modi
 		return api.NewModifyAuthStrategyResponse(api.NoNeedUpdate, req)
 	}
 	if err := svr.storage.UpdateStrategy(data); err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.GetAuthLogger().Error("[Auth][Strategy] storage update strategy",
+			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.GetAuthLogger().Info("update auth strategy", zap.String("name", req.GetName().GetValue()), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+	log.GetAuthLogger().Info("[Auth][Strategy] update strategy",
+		zap.String("name", strategy.Name), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 	svr.RecordHistory(authModifyStrategyRecordEntry(ctx, req, data, model.OUpdate))
 
 	return api.NewModifyAuthStrategyResponse(api.ExecuteSuccess, req)
 }
 
-// DeleteStrategy
-func (svr *authStrategyServer) DeleteStrategy(ctx context.Context, req *api.AuthStrategy) *api.Response {
+// DeleteStrategies 批量删除鉴权策略
+func (svr *server) DeleteStrategies(ctx context.Context, reqs []*api.AuthStrategy) *api.BatchWriteResponse {
+
+	resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
+
+	for index := range reqs {
+		ret := svr.DeleteStrategy(ctx, reqs[index])
+		resp.Collect(ret)
+	}
+
+	return resp
+}
+
+// DeleteStrategy 删除鉴权策略
+func (svr *server) DeleteStrategy(ctx context.Context, req *api.AuthStrategy) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
 
@@ -178,34 +163,36 @@ func (svr *authStrategyServer) DeleteStrategy(ctx context.Context, req *api.Auth
 	}
 
 	if strings.HasPrefix(strategy.Name, model.DefaultStrategyPrefix) {
-		return api.NewAuthStrategyResponseWithMsg(api.BadRequest, "default auth strategy can't delete", req)
+		return api.NewAuthStrategyResponseWithMsg(api.BadRequest, "default strategy can't delete", req)
 	}
 
 	if err := svr.storage.DeleteStrategy(req.GetId().GetValue()); err != nil {
-		log.GetAuthLogger().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.GetAuthLogger().Error("[Auth][Strategy] storage delete strategy",
+			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	msg := fmt.Sprintf("delete auth strategy: name=%v", req.GetName().GetValue())
+	msg := fmt.Sprintf("[Auth][Strategy] delete strategy: name=%v", req.GetName().GetValue())
 	log.GetAuthLogger().Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 	svr.RecordHistory(authStrategyRecordEntry(ctx, req, strategy, model.ODelete))
 
-	out := &api.AuthStrategy{
-		Name: req.GetName(),
-	}
-
-	return api.NewAuthStrategyResponse(api.ExecuteSuccess, out)
+	return api.NewAuthStrategyResponse(api.ExecuteSuccess, req)
 }
 
-// ListStrategy
-func (svr *authStrategyServer) ListStrategy(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+// GetStrategies 查询鉴权策略列表
+func (svr *server) GetStrategies(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	searchFilters := make(map[string]string)
 	for key, value := range query {
 		if _, ok := StrategyFilterAttributes[key]; !ok {
-			log.GetAuthLogger().Errorf("[Auth][AuthStrategy][ListStrategy] attribute(%s) it not allowed", key)
+			log.GetAuthLogger().Errorf("[Auth][Strategy] get strategies attribute(%s) it not allowed", key)
 			return api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
 		}
 		searchFilters[key] = value
+	}
+	// 如果不是超级管理员，查看数据有限制
+	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+		// 设置 owner 参数，只能查看对应 owner 下的用户
+		searchFilters["owner"] = utils.ParseOwnerID(ctx)
 	}
 
 	offset, limit, err := utils.ParseOffsetAndLimit(searchFilters)
@@ -213,9 +200,9 @@ func (svr *authStrategyServer) ListStrategy(ctx context.Context, query map[strin
 		return api.NewBatchQueryResponse(api.InvalidParameter)
 	}
 
-	total, strategies, err := svr.storage.ListStrategySimple(searchFilters, offset, limit)
+	total, strategies, err := svr.storage.GetSimpleStrategies(searchFilters, offset, limit)
 	if err != nil {
-		log.GetAuthLogger().Errorf("[Auth][AuthStrategy][ListStrategy] req(%+v) store err: %s", query, err.Error())
+		log.GetAuthLogger().Errorf("[Auth][Strategy] get strategies req(%+v) store err: %s", query, err.Error())
 		return api.NewBatchQueryResponse(api.StoreLayerException)
 	}
 
@@ -226,67 +213,29 @@ func (svr *authStrategyServer) ListStrategy(ctx context.Context, query map[strin
 	return resp
 }
 
-// ListStrategyByUserID
-//  @param ctx
-//  @param query
-//  @return *api.BatchQueryResponse
-func (svr *authStrategyServer) ListStrategyByUserID(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
-
-	searchFilters := make(map[string]string)
-	for key, value := range query {
-		if _, ok := StrategyLinkUserFilterAttributes[key]; !ok {
-			log.GetAuthLogger().Errorf("[Auth][AuthStrategy][ListStrategyByUserID] attribute(%s) it not allowed", key)
-			return api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
-		}
-		if key == "type" {
-			if value == model.PrincipalNames[model.PrincipalUser] {
-				value = strconv.Itoa(int(model.PrincipalUser))
-			} else {
-				value = strconv.Itoa(int(model.PrincipalUserGroup))
-			}
-		}
-		searchFilters[key] = value
-	}
-
-	offset, limit, err := utils.ParseOffsetAndLimit(searchFilters)
-	if err != nil {
-		return api.NewBatchQueryResponse(api.InvalidParameter)
-	}
-
-	total, strategies, err := svr.storage.ListStrategySimpleByUserId(searchFilters, offset, limit)
-	if err != nil {
-		log.GetAuthLogger().Errorf("[Auth][AuthStrategy][ListStrategyByUserID] req(%+v) store err: %s", query, err.Error())
-		return api.NewBatchQueryResponse(api.StoreLayerException)
-	}
-
-	resp := api.NewBatchQueryResponse(api.ExecuteSuccess)
-	resp.Amount = utils.NewUInt32Value(total)
-	resp.Size = utils.NewUInt32Value(uint32(len(strategies)))
-	resp.AuthStrategy = enhancedAuthStrategy2Api(strategies, authStrategy2Api)
-	return resp
-}
-
-// GetStrategy
-//  @receiver svr
-//  @param ctx
-//  @param query
-//  @return *api.Response
-func (svr *authStrategyServer) GetStrategy(ctx context.Context, query map[string]string) *api.Response {
+// GetStrategy 根据策略ID获取详细的鉴权策略
+// Case 1 如果当前操作者是该策略 principal 中的一员，则可以查看
+// Case 2 如果当前操作者是owner角色，并且是该策略的 owner，则可以查看
+// Case 3 如果当前操作者是admin角色，直接查看
+func (svr *server) GetStrategy(ctx context.Context, req *api.AuthStrategy) *api.Response {
 	userId := utils.ParseUserID(ctx)
 	isOwner := utils.ParseIsOwner(ctx)
 
-	ruleId, ok := query["id"]
-	if !ok || ruleId == "" {
+	if req.GetId().GetValue() == "" {
 		return api.NewResponse(api.EmptyQueryParameter)
 	}
 
-	ret, err := svr.storage.GetStrategyDetail(ruleId)
+	ret, err := svr.storage.GetStrategyDetail(req.GetId().GetValue())
 	if err != nil {
 		return api.NewResponseWithMsg(api.StoreLayerException, err.Error())
 	}
 
-	if !isOwner {
-		canView := false
+	canView := false
+
+	if isOwner {
+		// 是否是本鉴权策略的 owner 账户, 或者是否是超级管理员
+		canView = ((ret.Owner == userId) || utils.ParseUserRole(ctx) == model.AdminUserRole)
+	} else {
 		for index := range ret.Principals {
 			principal := ret.Principals[index]
 			if principal.PrincipalRole == model.PrincipalUser && principal.PrincipalID == userId {
@@ -300,27 +249,12 @@ func (svr *authStrategyServer) GetStrategy(ctx context.Context, query map[string
 				}
 			}
 		}
-		if !canView {
-			return api.NewResponse(api.NotAllowedAccess)
-		}
 	}
 
+	if !canView {
+		return api.NewResponse(api.NotAllowedAccess)
+	}
 	return api.NewAuthStrategyResponse(api.ExecuteSuccess, authStrategy2Api(ret))
-}
-
-// RecordHistory server对外提供history插件的简单封装
-func (svr *authStrategyServer) RecordHistory(entry *model.RecordEntry) {
-	// 如果插件没有初始化，那么不记录history
-	if svr.history == nil {
-		return
-	}
-	// 如果数据为空，则不需要打印了
-	if entry == nil {
-		return
-	}
-
-	// 调用插件记录history
-	svr.history.Record(entry)
 }
 
 // enhancedAuthStrategy2Api
@@ -380,6 +314,7 @@ func authStrategy2Api(data *model.StrategyDetail) *api.AuthStrategy {
 			Users:  users,
 			Groups: groups,
 		},
+		Action: api.AuthAction(api.AuthAction_value[data.Action]),
 		Resource: &api.StrategyResource{
 			StrategyId:   utils.NewStringValue(data.ID),
 			Namespaces:   namespaces,
@@ -391,7 +326,7 @@ func authStrategy2Api(data *model.StrategyDetail) *api.AuthStrategy {
 	return out
 }
 
-// createAuthStrategyModel
+// createAuthStrategyModel 创建鉴权策略的存储模型
 func createAuthStrategyModel(strategy *api.AuthStrategy) *model.StrategyDetail {
 
 	ret := &model.StrategyDetail{
@@ -406,11 +341,13 @@ func createAuthStrategyModel(strategy *api.AuthStrategy) *model.StrategyDetail {
 		ModifyTime: time.Now(),
 	}
 
+	// 收集涉及的资源信息
 	resEntry := make([]model.StrategyResource, 0)
 	resEntry = append(resEntry, collectResEntry(ret.ID, api.ResourceType_Namespaces, strategy.GetResource().GetNamespaces())...)
 	resEntry = append(resEntry, collectResEntry(ret.ID, api.ResourceType_Services, strategy.GetResource().GetServices())...)
 	resEntry = append(resEntry, collectResEntry(ret.ID, api.ResourceType_ConfigGroups, strategy.GetResource().GetConfigGroups())...)
 
+	// 收集涉及的 principal 信息
 	principals := make([]model.Principal, 0)
 	principals = append(principals, collectPrincipalEntry(ret.ID, model.PrincipalUser, strategy.Principal.Users)...)
 	principals = append(principals, collectPrincipalEntry(ret.ID, model.PrincipalUserGroup, strategy.Principal.Groups)...)
@@ -421,11 +358,7 @@ func createAuthStrategyModel(strategy *api.AuthStrategy) *model.StrategyDetail {
 	return ret
 }
 
-// updateAuthStrategyAttribute
-//  @param strategy
-//  @param saved
-//  @return *model.ModifyStrategyDetail
-//  @return bool
+// updateAuthStrategyAttribute 更新计算鉴权策略的属性
 func updateAuthStrategyAttribute(strategy *api.ModifyAuthStrategy, saved *model.StrategyDetail) (*model.ModifyStrategyDetail, bool) {
 
 	needUpdate := false
@@ -440,16 +373,17 @@ func updateAuthStrategyAttribute(strategy *api.ModifyAuthStrategy, saved *model.
 		ret.Comment = strategy.GetComment().GetValue()
 	}
 
-	needUpdate = computeResourceChange(ret, strategy)
-	needUpdate = computePrincipalChange(ret, strategy)
+	if computeResourceChange(ret, strategy) {
+		needUpdate = true
+	}
+	if computePrincipalChange(ret, strategy) {
+		needUpdate = true
+	}
 
 	return ret, needUpdate
 }
 
-// computeResourceChange
-//  @param modify
-//  @param strategy
-//  @return bool
+// computeResourceChange 计算资源的变化情况，判断是否涉及变更
 func computeResourceChange(modify *model.ModifyStrategyDetail, strategy *api.ModifyAuthStrategy) bool {
 
 	needUpdate := false
@@ -477,10 +411,7 @@ func computeResourceChange(modify *model.ModifyStrategyDetail, strategy *api.Mod
 	return needUpdate
 }
 
-// computePrincipalChange
-//  @param modify
-//  @param strategy
-//  @return bool
+// computePrincipalChange 计算 principal 的变化情况，判断是否涉及变更
 func computePrincipalChange(modify *model.ModifyStrategyDetail, strategy *api.ModifyAuthStrategy) bool {
 
 	needUpdate := false
@@ -506,10 +437,7 @@ func computePrincipalChange(modify *model.ModifyStrategyDetail, strategy *api.Mo
 	return needUpdate
 }
 
-// collectResEntry
-//  @param ruleId
-//  @param res
-//  @return []model.StrategyResource
+// collectResEntry 将资源ID转换为对应的 []model.StrategyResource 数组
 func collectResEntry(ruleId string, resType api.ResourceType, res []*wrappers.StringValue) []model.StrategyResource {
 	if len(res) == 0 {
 		return make([]model.StrategyResource, 0)
@@ -530,11 +458,7 @@ func collectResEntry(ruleId string, resType api.ResourceType, res []*wrappers.St
 	return resEntry
 }
 
-// collectPrincipalEntry
-//  @param ruleId
-//  @param uType
-//  @param res
-//  @return []model.Principal
+// collectPrincipalEntry 将 Principal 转换为对应的 []model.Principal 数组
 func collectPrincipalEntry(ruleId string, uType model.PrincipalType, res []*wrappers.StringValue) []model.Principal {
 	if len(res) == 0 {
 		return make([]model.Principal, 0)
@@ -552,11 +476,8 @@ func collectPrincipalEntry(ruleId string, uType model.PrincipalType, res []*wrap
 	return principals
 }
 
-// checkCreateStrategy
-//  @receiver svr
-//  @param req
-//  @return *api.Response
-func (svr *authStrategyServer) checkCreateStrategy(req *api.AuthStrategy) *api.Response {
+// checkCreateStrategy 检查创建鉴权策略的请求
+func (svr *server) checkCreateStrategy(req *api.AuthStrategy) *api.Response {
 	// 检查名称信息
 	if err := checkName(req.GetName()); err != nil {
 		return api.NewAuthStrategyResponse(api.InvalidUserName, req)
@@ -566,6 +487,7 @@ func (svr *authStrategyServer) checkCreateStrategy(req *api.AuthStrategy) *api.R
 		return api.NewAuthStrategyResponse(api.BadRequest, req)
 	}
 
+	// 检查 owner 信息
 	if err := checkOwner(req.GetOwner()); err != nil {
 		return api.NewAuthStrategyResponse(api.InvalidAuthStrategyOwners, req)
 	}
@@ -588,11 +510,8 @@ func (svr *authStrategyServer) checkCreateStrategy(req *api.AuthStrategy) *api.R
 	return nil
 }
 
-// checkUpdateStrategy
-//  @receiver svr
-//  @param req
-//  @return *api.Response
-func (svr *authStrategyServer) checkUpdateStrategy(req *api.ModifyAuthStrategy) *api.Response {
+// checkUpdateStrategy 检查更新鉴权策略的请求
+func (svr *server) checkUpdateStrategy(req *api.ModifyAuthStrategy) *api.Response {
 
 	// 检查用户是否存在
 	if err := svr.checkUserExist(req.GetAddPrincipal().GetUsers()); err != nil {
@@ -649,11 +568,8 @@ func authModifyStrategyRecordEntry(ctx context.Context, req *api.ModifyAuthStrat
 	return entry
 }
 
-// checkUserExist
-//  @receiver svr
-//  @param users
-//  @return error
-func (svr *authStrategyServer) checkUserExist(users []*wrappers.StringValue) error {
+// checkUserExist 检查用户是否存在
+func (svr *server) checkUserExist(users []*wrappers.StringValue) error {
 	if len(users) == 0 {
 		return nil
 	}
@@ -669,11 +585,8 @@ func (svr *authStrategyServer) checkUserExist(users []*wrappers.StringValue) err
 	return nil
 }
 
-// checkUserGroupExist
-//  @receiver svr
-//  @param groups
-//  @return error
-func (svr *authStrategyServer) checkUserGroupExist(groups []*wrappers.StringValue) error {
+// checkUserGroupExist 检查用户组是否存在
+func (svr *server) checkUserGroupExist(groups []*wrappers.StringValue) error {
 	if len(groups) == 0 {
 		return nil
 	}
@@ -687,11 +600,8 @@ func (svr *authStrategyServer) checkUserGroupExist(groups []*wrappers.StringValu
 	return nil
 }
 
-// checkResourceExist
-//  @receiver svr
-//  @param resources
-//  @return *api.Response
-func (svr *authStrategyServer) checkResourceExist(resources *api.StrategyResource) *api.Response {
+// checkResourceExist 检查资源是否存在
+func (svr *server) checkResourceExist(resources *api.StrategyResource) *api.Response {
 	namespaces := resources.GetNamespaces()
 
 	nsCache := svr.cacheMgn.Namespace()
@@ -722,11 +632,9 @@ func (svr *authStrategyServer) checkResourceExist(resources *api.StrategyResourc
 	return nil
 }
 
-// normalizeResource
-//  @receiver svr
-//  @param resources
-//  @return *api.StrategyResource
-func (svr *authStrategyServer) normalizeResource(resources *api.StrategyResource) *api.StrategyResource {
+// normalizeResource 对于资源进行归一化处理
+//  如果出现 * 的话，则该资源访问策略就是 *
+func (svr *server) normalizeResource(resources *api.StrategyResource) *api.StrategyResource {
 	namespaces := resources.GetNamespaces()
 	for index := range namespaces {
 		val := namespaces[index]

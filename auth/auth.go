@@ -25,6 +25,7 @@ import (
 	"sync"
 
 	"github.com/polarismesh/polaris-server/cache"
+	"github.com/polarismesh/polaris-server/store"
 )
 
 // Config 鉴权能力的相关配置参数
@@ -35,16 +36,14 @@ type Config struct {
 
 var (
 	// Slots store slots
-	Slots      = make(map[string]AuthManager)
+	Slots      = make(map[string]AuthServer)
 	once       = &sync.Once{}
-	authMgn    AuthManager
+	authSvr    AuthServer
 	finishInit bool = false
 )
 
-/**
- * RegisterAuthManager 注册一个新的Store
- */
-func RegisterAuthManager(s AuthManager) error {
+// RegisterAuthServer 注册一个新的 AuthManager
+func RegisterAuthServer(s AuthServer) error {
 	name := s.Name()
 	if _, ok := Slots[name]; ok {
 		return errors.New("auth manager name is exist")
@@ -54,21 +53,19 @@ func RegisterAuthManager(s AuthManager) error {
 	return nil
 }
 
-/**
- * GetStore 获取Store
- */
-func GetAuthManager() (AuthManager, error) {
+// GetAuthManager 获取一个 AuthManager
+func GetAuthServer() (AuthServer, error) {
 	if !finishInit {
-		return nil, errors.New("AuthManager has not done Initialize")
+		return nil, errors.New("AuthServer has not done Initialize")
 	}
-	return authMgn, nil
+	return authSvr, nil
 }
 
 // Initialize 初始化
-func Initialize(ctx context.Context, authOpt *Config, cacheMgn *cache.NamingCache) error {
+func Initialize(ctx context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.NamingCache) error {
 	var err error
 	once.Do(func() {
-		err = initialize(ctx, authOpt, cacheMgn)
+		err = initialize(ctx, authOpt, storage, cacheMgn)
 	})
 
 	if err != nil {
@@ -79,10 +76,8 @@ func Initialize(ctx context.Context, authOpt *Config, cacheMgn *cache.NamingCach
 	return nil
 }
 
-/**
- * @brief 包裹了初始化函数，在GetStore的时候会在自动调用，全局初始化一次
- */
-func initialize(ctx context.Context, authOpt *Config, cacheMgn *cache.NamingCache) error {
+// initialize 包裹了初始化函数，在 Initialize 的时候会在自动调用，全局初始化一次
+func initialize(ctx context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.NamingCache) error {
 	name := authOpt.Name
 	if name == "" {
 		return errors.New("auth manager Name is empty")
@@ -93,9 +88,9 @@ func initialize(ctx context.Context, authOpt *Config, cacheMgn *cache.NamingCach
 		return errors.New("no such name AuthManager")
 	}
 
-	authMgn = mgn
+	authSvr = mgn
 
-	if err := authMgn.Initialize(authOpt, cacheMgn); err != nil {
+	if err := authSvr.Initialize(authOpt, storage, cacheMgn); err != nil {
 		fmt.Printf("auth manager do initialize err: %s", err.Error())
 		os.Exit(-1)
 	}

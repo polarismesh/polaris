@@ -18,114 +18,13 @@
 package defaultauth
 
 import (
-	"encoding/json"
-	"errors"
-
 	"github.com/polarismesh/polaris-server/auth"
-	"github.com/polarismesh/polaris-server/cache"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/store"
-)
-
-var (
-
-	// AuthOption 鉴权的配置信息
-	AuthOption *AuthConfig = DefaultAuthConfig()
 )
 
 const (
-	authName = "defaultAuth"
+	PluginName = "defaultAuth"
 )
 
 func init() {
-	s := &defaultAuthManager{}
-	_ = auth.RegisterAuthManager(s)
-}
-
-type AuthConfig struct {
-	Open bool   `json:"open" xml:"open"`
-	Salt string `json:"salt" xml:"salt"`
-}
-
-func DefaultAuthConfig() *AuthConfig {
-	return &AuthConfig{
-		Open: false,
-		Salt: "polarismesh@2021",
-	}
-}
-
-// defaultAuthManager
-type defaultAuthManager struct {
-	userSvr     *userServer
-	strategySvr *authStrategyServer
-	cacheMgn    *cache.NamingCache
-	authPlugin  plugin.Auth
-}
-
-// Initialize 执行初始化动作
-func (authMgn *defaultAuthManager) Initialize(options *auth.Config, cacheMgn *cache.NamingCache) error {
-	contentBytes, err := json.Marshal(options.Option)
-	if err != nil {
-		return err
-	}
-
-	cfg := DefaultAuthConfig()
-	if err := json.Unmarshal(contentBytes, cfg); err != nil {
-		return err
-	}
-
-	AuthOption = cfg
-
-	// 获取存储层对象
-	s, err := store.GetStore()
-	if err != nil {
-		log.GetAuthLogger().Errorf("[Auth][Server] can not get store, err: %s", err.Error())
-		return errors.New("can not get store")
-	}
-	if s == nil {
-		log.GetAuthLogger().Errorf("[Auth][Server] store is null")
-		return errors.New("store is null")
-	}
-
-	userSvr, err := newUserServer(s, cacheMgn.User())
-	if err != nil {
-		return err
-	}
-
-	strategySvr, err := newAthStrategyServer(s, cacheMgn)
-	if err != nil {
-		return err
-	}
-
-	authPlugin := plugin.GetAuth()
-	if authPlugin == nil {
-		return errors.New("AuthManager needs to configure plugin.Auth plugin for permission calculation")
-	}
-
-	authMgn.userSvr = userSvr
-	authMgn.strategySvr = strategySvr
-	authMgn.cacheMgn = cacheMgn
-	authMgn.authPlugin = authPlugin
-
-	return nil
-}
-
-// Name
-func (authMgn *defaultAuthManager) Name() string {
-	return authName
-}
-
-// GetUserServer
-func (authMgn *defaultAuthManager) GetUserServer() auth.UserServer {
-	return newUserServerWithAuth(authMgn, authMgn.userSvr)
-}
-
-// GetAuthStrategyServer
-func (authMgn *defaultAuthManager) GetAuthStrategyServer() auth.AuthStrategyServer {
-	return newStrategyServerWithAuth(authMgn, authMgn.strategySvr)
-}
-
-func (authMgn *defaultAuthManager) Cache() *cache.NamingCache {
-	return authMgn.cacheMgn
+	_ = auth.RegisterAuthServer(&serverAuthAbility{})
 }

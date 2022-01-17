@@ -32,13 +32,15 @@ import (
 //  该层会对请求参数做一些调整，根据具体的请求发起人，设置为数据对应的 owner，不可为为别人进行创建资源
 type serverAuthAbility struct {
 	targetServer *Server
+	authSvr      auth.AuthServer
 	authMgn      auth.AuthManager
 }
 
-func newServerAuthAbility(targetServer *Server, authMgn auth.AuthManager) DiscoverServer {
+func newServerAuthAbility(targetServer *Server, authSvr auth.AuthServer) DiscoverServer {
 	proxy := &serverAuthAbility{
 		targetServer: targetServer,
-		authMgn:      authMgn,
+		authSvr:      authSvr,
+		authMgn:      authSvr.GetAuthManager(),
 	}
 
 	targetServer.SetResourceHook([]ResourceHook{proxy})
@@ -56,11 +58,6 @@ func (svr *serverAuthAbility) GetServiceInstanceRevision(serviceID string, insta
 }
 
 // collectNamespaceAuthContext 对于命名空间的处理，收集所有的与鉴权的相关信息
-//  @receiver svr serverAuthAbility
-//  @param ctx 请求上下文 ctx
-//  @param req 实际请求对象
-//  @param resourceOp 该接口的数据操作类型
-//  @return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectNamespaceAuthContext(ctx context.Context, req []*api.Namespace, resourceOp model.ResourceOperation) *model.AcquireContext {
 	authToken := utils.ParseAuthToken(ctx)
 
@@ -84,14 +81,6 @@ func (svr *serverAuthAbility) collectNamespaceAuthContext(ctx context.Context, r
 func (svr *serverAuthAbility) collectServiceAuthContext(ctx context.Context, req []*api.Service, resourceOp model.ResourceOperation) *model.AcquireContext {
 	authToken := utils.ParseAuthToken(ctx)
 
-	namespaceNames := make([]string, 0)
-	serviceNames := make([]string, 0, len(req))
-	for i := range req {
-		service := req[i]
-		namespaceNames = append(namespaceNames, service.GetNamespace().GetValue())
-		serviceNames = append(serviceNames, service.GetName().GetValue())
-	}
-
 	authCtx := model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
@@ -111,15 +100,6 @@ func (svr *serverAuthAbility) collectServiceAuthContext(ctx context.Context, req
 //  @return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectServiceAliasAuthContext(ctx context.Context, req []*api.ServiceAlias, resourceOp model.ResourceOperation) *model.AcquireContext {
 	authToken := utils.ParseAuthToken(ctx)
-
-	namespaceNames := make([]string, 0)
-	serviceNames := make([]string, 0, len(req))
-	for i := range req {
-		service := req[i]
-		namespaceNames = append(namespaceNames, service.GetNamespace().GetValue())
-		serviceNames = append(serviceNames, service.GetAlias().GetValue())
-		serviceNames = append(serviceNames, service.GetService().GetValue())
-	}
 
 	authCtx := model.NewAcquireContext(
 		model.WithRequestContext(ctx),
@@ -141,14 +121,6 @@ func (svr *serverAuthAbility) collectServiceAliasAuthContext(ctx context.Context
 func (svr *serverAuthAbility) collectInstanceAuthContext(ctx context.Context, req []*api.Instance, resourceOp model.ResourceOperation) *model.AcquireContext {
 	authToken := utils.ParseAuthToken(ctx)
 
-	namespaceNames := make([]string, 0)
-	serviceNames := make([]string, 0, len(req))
-	for i := range req {
-		ns := req[i]
-		namespaceNames = append(namespaceNames, ns.GetNamespace().GetValue())
-		serviceNames = append(serviceNames, ns.GetService().GetValue())
-	}
-
 	authCtx := model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
@@ -168,14 +140,6 @@ func (svr *serverAuthAbility) collectInstanceAuthContext(ctx context.Context, re
 //  @return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectCircuitBreakerAuthContext(ctx context.Context, req []*api.CircuitBreaker, resourceOp model.ResourceOperation) *model.AcquireContext {
 	authToken := utils.ParseAuthToken(ctx)
-
-	namespaceNames := make([]string, 0)
-	serviceNames := make([]string, 0, len(req))
-	for i := range req {
-		ns := req[i]
-		namespaceNames = append(namespaceNames, ns.GetNamespace().GetValue())
-		serviceNames = append(serviceNames, ns.GetService().GetValue())
-	}
 
 	authCtx := model.NewAcquireContext(
 		model.WithRequestContext(ctx),
@@ -197,14 +161,6 @@ func (svr *serverAuthAbility) collectCircuitBreakerAuthContext(ctx context.Conte
 func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx context.Context, req []*api.ConfigRelease, resourceOp model.ResourceOperation) *model.AcquireContext {
 	authToken := utils.ParseAuthToken(ctx)
 
-	namespaceNames := make([]string, 0)
-	serviceNames := make([]string, 0, len(req))
-	for i := range req {
-		cfg := req[i]
-		namespaceNames = append(namespaceNames, cfg.GetCircuitBreaker().GetNamespace().GetValue())
-		serviceNames = append(serviceNames, cfg.GetCircuitBreaker().GetService().GetValue())
-	}
-
 	authCtx := model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
@@ -225,14 +181,6 @@ func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx contex
 func (svr *serverAuthAbility) collectRouteRuleAuthContext(ctx context.Context, req []*api.Routing, resourceOp model.ResourceOperation) *model.AcquireContext {
 	authToken := utils.ParseAuthToken(ctx)
 
-	namespaceNames := make([]string, 0)
-	serviceNames := make([]string, 0, len(req))
-	for i := range req {
-		ns := req[i]
-		namespaceNames = append(namespaceNames, ns.GetNamespace().GetValue())
-		serviceNames = append(serviceNames, ns.GetService().GetValue())
-	}
-
 	authCtx := model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
@@ -252,14 +200,6 @@ func (svr *serverAuthAbility) collectRouteRuleAuthContext(ctx context.Context, r
 //  @return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectRateLimitAuthContext(ctx context.Context, req []*api.Rule, resourceOp model.ResourceOperation) *model.AcquireContext {
 	authToken := utils.ParseAuthToken(ctx)
-
-	namespaceNames := make([]string, 0)
-	serviceNames := make([]string, 0, len(req))
-	for i := range req {
-		ns := req[i]
-		namespaceNames = append(namespaceNames, ns.GetNamespace().GetValue())
-		serviceNames = append(serviceNames, ns.GetService().GetValue())
-	}
 
 	authCtx := model.NewAcquireContext(
 		model.WithRequestContext(ctx),
@@ -305,6 +245,9 @@ func (svr *serverAuthAbility) queryNamespaceResource(req []*api.Namespace) map[a
 //  @param req
 //  @return map
 func (svr *serverAuthAbility) queryServiceResource(req []*api.Service) map[api.ResourceType][]model.ResourceEntry {
+	if len(req) == 0 {
+		return make(map[api.ResourceType][]model.ResourceEntry)
+	}
 
 	names := utils.NewStringSet()
 	svcSet := utils.NewServiceSet()
@@ -325,6 +268,10 @@ func (svr *serverAuthAbility) queryServiceResource(req []*api.Service) map[api.R
 //  @param req
 //  @return map
 func (svr *serverAuthAbility) queryServiceAliasResource(req []*api.ServiceAlias) map[api.ResourceType][]model.ResourceEntry {
+	if len(req) == 0 {
+		return make(map[api.ResourceType][]model.ResourceEntry)
+	}
+
 	names := utils.NewStringSet()
 	svcSet := utils.NewServiceSet()
 
@@ -344,6 +291,9 @@ func (svr *serverAuthAbility) queryServiceAliasResource(req []*api.ServiceAlias)
 //  @param req
 //  @return map
 func (svr *serverAuthAbility) queryInstanceResource(req []*api.Instance) map[api.ResourceType][]model.ResourceEntry {
+	if len(req) == 0 {
+		return make(map[api.ResourceType][]model.ResourceEntry)
+	}
 
 	names := utils.NewStringSet()
 	svcSet := utils.NewServiceSet()
@@ -365,6 +315,10 @@ func (svr *serverAuthAbility) queryInstanceResource(req []*api.Instance) map[api
 //  @param req
 //  @return map
 func (svr *serverAuthAbility) queryCircuitBreakerResource(req []*api.CircuitBreaker) map[api.ResourceType][]model.ResourceEntry {
+	if len(req) == 0 {
+		return make(map[api.ResourceType][]model.ResourceEntry)
+	}
+
 	names := utils.NewStringSet()
 	svcSet := utils.NewServiceSet()
 
@@ -383,6 +337,10 @@ func (svr *serverAuthAbility) queryCircuitBreakerResource(req []*api.CircuitBrea
 //  @param req
 //  @return map
 func (svr *serverAuthAbility) queryCircuitBreakerReleaseResource(req []*api.ConfigRelease) map[api.ResourceType][]model.ResourceEntry {
+	if len(req) == 0 {
+		return make(map[api.ResourceType][]model.ResourceEntry)
+	}
+
 	names := utils.NewStringSet()
 	svcSet := utils.NewServiceSet()
 
@@ -402,6 +360,10 @@ func (svr *serverAuthAbility) queryCircuitBreakerReleaseResource(req []*api.Conf
 //  @param req
 //  @return map
 func (svr *serverAuthAbility) queryRouteRuleResource(req []*api.Routing) map[api.ResourceType][]model.ResourceEntry {
+	if len(req) == 0 {
+		return make(map[api.ResourceType][]model.ResourceEntry)
+	}
+
 	names := utils.NewStringSet()
 	svcSet := utils.NewServiceSet()
 
@@ -421,6 +383,10 @@ func (svr *serverAuthAbility) queryRouteRuleResource(req []*api.Routing) map[api
 //  @param req
 //  @return map
 func (svr *serverAuthAbility) queryRateLimitConfigResource(req []*api.Rule) map[api.ResourceType][]model.ResourceEntry {
+	if len(req) == 0 {
+		return make(map[api.ResourceType][]model.ResourceEntry)
+	}
+
 	names := utils.NewStringSet()
 	svcSet := utils.NewServiceSet()
 
@@ -440,14 +406,15 @@ func (svr *serverAuthAbility) queryRateLimitConfigResource(req []*api.Rule) map[
 //  @param nsSet
 //  @param svcSet
 //  @return map
-func (svr *serverAuthAbility) convertToDiscoverResourceEntryMaps(nsSet utils.StringSet, svcSet *utils.ServiceSet) map[api.ResourceType][]model.ResourceEntry {
+func (svr *serverAuthAbility) convertToDiscoverResourceEntryMaps(nsSet utils.StringSet,
+	svcSet *utils.ServiceSet) map[api.ResourceType][]model.ResourceEntry {
 	param := nsSet.ToSlice()
 	nsArr := svr.Cache().Namespace().GetNamespacesByName(param)
 
-	ret := make([]model.ResourceEntry, 0, len(nsArr))
+	nsRet := make([]model.ResourceEntry, 0, len(nsArr))
 	for index := range nsArr {
 		ns := nsArr[index]
-		ret = append(ret, model.ResourceEntry{
+		nsRet = append(nsRet, model.ResourceEntry{
 			ID:    ns.Name,
 			Owner: ns.Owner,
 		})
@@ -455,16 +422,16 @@ func (svr *serverAuthAbility) convertToDiscoverResourceEntryMaps(nsSet utils.Str
 
 	svcParam := svcSet.ToSlice()
 	svcRet := make([]model.ResourceEntry, 0, len(svcParam))
-	for index := range svcRet {
-		svc := nsArr[index]
-		ret = append(ret, model.ResourceEntry{
-			ID:    svc.Name,
+	for index := range svcParam {
+		svc := svcParam[index]
+		svcRet = append(svcRet, model.ResourceEntry{
+			ID:    svc.ID,
 			Owner: svc.Owner,
 		})
 	}
 
 	return map[api.ResourceType][]model.ResourceEntry{
-		api.ResourceType_Namespaces: ret,
+		api.ResourceType_Namespaces: nsRet,
 		api.ResourceType_Services:   svcRet,
 	}
 }

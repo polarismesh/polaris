@@ -21,19 +21,16 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-<<<<<<< HEAD:naming/testauthplugin/main_test.go
 	"os"
 	"sync"
 	"time"
 
-=======
 	"github.com/polarismesh/polaris-server/bootstrap/config"
->>>>>>> 03a07defdf093e9cd7e9779db603f847c307aed7:service/testauthplugin/main_test.go
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/store"
 	"gopkg.in/yaml.v2"
 
@@ -86,15 +83,11 @@ func initialize() error {
 			panic(err)
 		}
 
-<<<<<<< HEAD:naming/testauthplugin/main_test.go
-		svr, err := naming.GetOriginServer()
-=======
-		server, err = service.GetServer()
->>>>>>> 03a07defdf093e9cd7e9779db603f847c307aed7:service/testauthplugin/main_test.go
+		svr, err := service.GetOriginServer()
 		if err != nil {
 			panic(err)
 		}
-		server = svr.(*naming.Server)
+		server = svr
 
 		entry := cfg.Store.Option["master"]
 		config, ok := entry.(map[interface{}]interface{})

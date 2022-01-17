@@ -22,6 +22,7 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 func (svr *serverAuthAbility) CreateRateLimits(ctx context.Context, reqs []*api.Rule) *api.BatchWriteResponse {
@@ -31,6 +32,9 @@ func (svr *serverAuthAbility) CreateRateLimits(ctx context.Context, reqs []*api.
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return svr.targetServer.CreateRateLimits(ctx, reqs)
 }
@@ -43,6 +47,9 @@ func (svr *serverAuthAbility) DeleteRateLimits(ctx context.Context, reqs []*api.
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
 
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.DeleteRateLimits(ctx, reqs)
 }
 
@@ -54,10 +61,22 @@ func (svr *serverAuthAbility) UpdateRateLimits(ctx context.Context, reqs []*api.
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
 
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.UpdateRateLimits(ctx, reqs)
 }
 
 func (svr *serverAuthAbility) GetRateLimits(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+	authCtx := svr.collectRateLimitAuthContext(ctx, nil, model.Modify)
+
+	_, err := svr.authMgn.CheckPermission(authCtx)
+	if err != nil {
+		return api.NewBatchQueryResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return svr.targetServer.GetRateLimits(ctx, query)
 }

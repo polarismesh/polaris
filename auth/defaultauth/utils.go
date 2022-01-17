@@ -21,6 +21,8 @@ import (
 	"context"
 	"errors"
 	"regexp"
+	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -52,7 +54,6 @@ func StoreCode2APICode(err error) uint32 {
 	return api.StoreLayerException
 }
 
-// ============ common ============
 func checkName(name *wrappers.StringValue) error {
 	if name == nil {
 		return errors.New("nil")
@@ -75,7 +76,6 @@ func checkName(name *wrappers.StringValue) error {
 }
 
 func checkPassword(password *wrappers.StringValue) error {
-	
 	if password == nil {
 		return errors.New("nil")
 	}
@@ -84,13 +84,32 @@ func checkPassword(password *wrappers.StringValue) error {
 		return errors.New("empty")
 	}
 
-	regStr := "^[a-zA-Z]\\w{5,17}$"
-	ok, err := regexp.MatchString(regStr, password.GetValue())
-	if err != nil {
-		return err
+	if len(password.GetValue()) < 6 || len(password.GetValue()) > 17 {
+		return errors.New("password len need 6 ~ 17")
 	}
-	if !ok {
-		return errors.New("password contains invalid character")
+
+	spcChar := "!@#$%&*"
+	flag := make([]string, len(password.GetValue()))
+	for k, v := range []rune(password.GetValue()) {
+		if unicode.IsDigit(v) {
+			flag[k] = "Number"
+		} else if unicode.IsLower(v) {
+			flag[k] = "LowerCaseLetter"
+		} else if unicode.IsUpper(v) {
+			flag[k] = "UpperCaseLetter"
+		} else if strings.Contains(spcChar, string(v)) {
+			flag[k] = "SpecialCharacter"
+		} else {
+			flag[k] = "OtherCharacter"
+		}
+	}
+
+	cpx := make(map[string]bool)
+	for _, v := range flag {
+		cpx[v] = true
+	}
+	if len(cpx) < 2 {
+		return errors.New("password security is so low")
 	}
 
 	return nil

@@ -139,9 +139,9 @@ func (uc *userCache) realUpdate() error {
 	}
 
 	grouplastMtime := time.Unix(uc.lastGroupCacheUpdateTime, 0)
-	groups, err := uc.storage.GetUserGroupsForCache(grouplastMtime, uc.groupCacheFirstUpdate)
+	groups, err := uc.storage.GetGroupsForCache(grouplastMtime.Add(DefaultTimeDiff), uc.groupCacheFirstUpdate)
 	if err != nil {
-		log.GetCacheLogger().Errorf("[Cache][User] update group err: %s", err.Error())
+		log.GetCacheLogger().Errorf("[Cache][Group] update group err: %s", err.Error())
 		return err
 	}
 
@@ -154,30 +154,33 @@ func (uc *userCache) realUpdate() error {
 }
 
 func (uc *userCache) setUserAndGroups(users []*model.User, groups []*model.UserGroupDetail) (int, int) {
-	// 更新 users 缓存
-	for i := range users {
-		user := users[i]
-		if !user.Valid {
-			uc.users.Delete(user.ID)
-			uc.name2Users.Delete(fmt.Sprintf(NameLinkOwnerTemp, user.Owner, user.Name))
-		} else {
-			uc.users.Store(user.ID, user)
-			uc.name2Users.Store(fmt.Sprintf(NameLinkOwnerTemp, user.Owner, user.Name), user)
 
-			uc.lastUserCacheUpdateTime = int64(math.Max(float64(user.ModifyTime.Unix()), float64(uc.lastUserCacheUpdateTime)))
-		}
-	}
+	// 更新 users 缓存
+	// step 1. 先更新 owner 用户
+	uc.handlerUserCacheUpdate(users, func(user *model.User) bool {
+		return (user.ID == user.Owner || user.Owner == "")
+	}, func(user *model.User) *model.User {
+		return user
+	})
+
+	// step 2. 更新非 owner 用户
+	uc.handlerUserCacheUpdate(users, func(user *model.User) bool {
+		return (user.Owner != "")
+	}, func(user *model.User) *model.User {
+		owner, _ := uc.users.Load(user.Owner)
+		return owner.(*model.User)
+	})
 
 	// 更新 groups 数据信息
 	for i := range groups {
 		group := groups[i]
-
+		owner, _ := uc.users.Load(group.Owner)
 		if !group.Valid {
 			uc.groups.Delete(group.ID)
-			uc.name2Groups.Delete(fmt.Sprintf(NameLinkOwnerTemp, group.Owner, group.Name))
+			uc.name2Groups.Delete(fmt.Sprintf(NameLinkOwnerTemp, owner.(*model.User).Name, group.Name))
 		} else {
 			uc.groups.Store(group.ID, group)
-			uc.name2Groups.Store(fmt.Sprintf(NameLinkOwnerTemp, group.Owner, group.Name), group)
+			uc.name2Groups.Store(fmt.Sprintf(NameLinkOwnerTemp, owner.(*model.User).Name, group.Name), group)
 
 			for j := range group.UserIDs {
 				uid := group.UserIDs[j]
@@ -189,11 +192,31 @@ func (uc *userCache) setUserAndGroups(users []*model.User, groups []*model.UserG
 				uc.user2Groups.Store(uid, append(gids, group.ID))
 			}
 
-			uc.lastUserCacheUpdateTime = int64(math.Max(float64(group.ModifyTime.Unix()), float64(uc.lastUserCacheUpdateTime)))
+			uc.lastGroupCacheUpdateTime = int64(math.Max(float64(group.ModifyTime.Unix()), float64(uc.lastGroupCacheUpdateTime)))
 		}
 	}
 
 	return 0, 0
+}
+
+// handlerUserCacheUpdate 处理用户信息更新
+func (uc *userCache) handlerUserCacheUpdate(users []*model.User, filter func(user *model.User) bool, ownerSupplier func(user *model.User) *model.User) {
+	for i := range users {
+		user := users[i]
+		if !filter(user) {
+			continue
+		}
+		owner := ownerSupplier(user)
+		if !user.Valid {
+			uc.users.Delete(user.ID)
+			uc.name2Users.Delete(fmt.Sprintf(NameLinkOwnerTemp, owner.Name, user.Name))
+		} else {
+			uc.users.Store(user.ID, user)
+			uc.name2Users.Store(fmt.Sprintf(NameLinkOwnerTemp, owner.Name, user.Name), user)
+
+			uc.lastUserCacheUpdateTime = int64(math.Max(float64(user.ModifyTime.Unix()), float64(uc.lastUserCacheUpdateTime)))
+		}
+	}
 }
 
 func (uc *userCache) clear() error {

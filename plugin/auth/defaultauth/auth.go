@@ -53,12 +53,7 @@ func (da *defaultAuth) Allow(platformID, platformToken string) bool {
 	return true
 }
 
-// CheckPermission 
-//  @receiver da 
-//  @param reqCtx 
-//  @param authRule 
-//  @return bool 
-//  @return error 
+// CheckPermission
 func (da *defaultAuth) CheckPermission(reqCtx interface{}, authRule interface{}) (bool, error) {
 
 	ctx, ok := reqCtx.(*model.AcquireContext)
@@ -66,7 +61,11 @@ func (da *defaultAuth) CheckPermission(reqCtx interface{}, authRule interface{})
 		return false, errors.New("invalid parameter")
 	}
 
-	ownerId := ctx.GetAttachment()[model.OperatorIDKey].(string)
+	if ctx.GetOperation() == model.Read {
+		return true, nil
+	}
+
+	ownerId := ctx.GetAttachment()[model.OperatorOwnerKey].(string)
 	strategys, ok := authRule.([]*model.StrategyDetail)
 
 	reqRes := ctx.GetAccessResources()
@@ -95,7 +94,7 @@ func (da *defaultAuth) CheckPermission(reqCtx interface{}, authRule interface{})
 			checkConfigGroup = checkAnyElementExist(ownerId, reqRes[api.ResourceType_ConfigGroups], searchMaps[2])
 		}
 
-		if checkNamespace && (checkService || checkConfigGroup) {
+		if checkNamespace && (checkService && checkConfigGroup) {
 			return true, nil
 		}
 	}

@@ -148,31 +148,58 @@ func (m *ServiceAliasArr) String() string { return proto.CompactTextString(m) }
 // ProtoMessage
 func (*ServiceAliasArr) ProtoMessage() {}
 
-
 /**
  * UserArr 命名空间数组定义
  */
- type UserArr []*api.User
+type UserArr []*api.User
+
+// Reset
+func (m *UserArr) Reset() { *m = UserArr{} }
+
+// String return string
+func (m *UserArr) String() string { return proto.CompactTextString(m) }
+
+// ProtoMessage
+func (*UserArr) ProtoMessage() {}
+
+/**
+ * GroupArr 命名空间数组定义
+ */
+type GroupArr []*api.UserGroup
+
+// Reset
+func (m *GroupArr) Reset() { *m = GroupArr{} }
+
+// String return string
+func (m *GroupArr) String() string { return proto.CompactTextString(m) }
+
+// ProtoMessage
+func (*GroupArr) ProtoMessage() {}
+
+/**
+ * GroupArr 命名空间数组定义
+ */
+ type StrategyArr []*api.AuthStrategy
 
  // Reset
- func (m *UserArr) Reset() { *m = UserArr{} }
+ func (m *StrategyArr) Reset() { *m = StrategyArr{} }
  
  // String return string
- func (m *UserArr) String() string { return proto.CompactTextString(m) }
+ func (m *StrategyArr) String() string { return proto.CompactTextString(m) }
  
  // ProtoMessage
- func (*UserArr) ProtoMessage() {}
+ func (*StrategyArr) ProtoMessage() {}
 
 /**
  * AuthResourceArr 命名空间数组定义
  */
- type AuthResourceArr []*api.StrategyResource
+type AuthResourceArr []*api.StrategyResource
 
- // Reset
- func (m *AuthResourceArr) Reset() { *m = AuthResourceArr{} }
- 
- // String return string
- func (m *AuthResourceArr) String() string { return proto.CompactTextString(m) }
- 
- // ProtoMessage
- func (*AuthResourceArr) ProtoMessage() {}
+// Reset
+func (m *AuthResourceArr) Reset() { *m = AuthResourceArr{} }
+
+// String return string
+func (m *AuthResourceArr) String() string { return proto.CompactTextString(m) }
+
+// ProtoMessage
+func (*AuthResourceArr) ProtoMessage() {}

@@ -158,7 +158,7 @@ func StartComponents(ctx context.Context, cfg *config.Config) error {
 	}
 
 	// 初始化鉴权层
-	if err = auth.Initialize(ctx, &cfg.Auth, cacheMgn); err != nil {
+	if err = auth.Initialize(ctx, &cfg.Auth, s, cacheMgn); err != nil {
 		return err
 	}
 
@@ -368,7 +368,7 @@ func polarisServiceRegister(polarisService *config.PolarisService, apiServers []
 
 // 服务自注册
 func selfRegister(host string, port uint32, protocol string, isolated bool, polarisService *config.Service) error {
-	server, err := service.GetServer()
+	server, err := service.GetOriginServer()
 	if err != nil {
 		return err
 	}
@@ -431,14 +431,14 @@ func selfRegister(host string, port uint32, protocol string, isolated bool, pola
 
 // SelfDeregister Server退出的时候，自动反注册
 func SelfDeregister() {
-	namingServer, err := service.GetServer()
+	namingServer, err := service.GetOriginServer()
 	if err != nil {
 		log.Errorf("get naming server obj err: %s", err.Error())
 		return
 	}
 	for _, req := range SelfServiceInstance {
 		log.Infof("Deregister the instance(%+v)", req)
-		if resp := namingServer.DeleteInstances(genContext(), []*api.Instance{req}); api.CalcCode(resp) != 200 {
+		if resp := namingServer.DeleteInstance(genContext(), req); api.CalcCode(resp) != 200 {
 			// 遇到失败，继续反注册其他的实例
 			log.Errorf("Deregister instance error: %s", resp.GetInfo().GetValue())
 		}

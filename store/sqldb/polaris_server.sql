@@ -701,24 +701,24 @@ INSERT INTO
         `id`,
         `name`,
         `password`,
-        `owner`,
         `source`,
         `token`,
         `token_enable`,
         `user_type`,
-        `comment`
+        `comment`,
+        `owner`
     )
 VALUES
     (
         '65e4789a6d5b49669adf1e9e8387549c',
         'polarisadmin',
         '$2a$10$5XMjs.oqo4PnpbTGy9dQqewL4eb4yoA7b/6ZKL33IPhFyIxzj4lRy',
-        '',
         'Polaris',
         'nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=',
         1,
         0,
-        'default polaris admin account'
+        'default polaris admin account',
+        '65e4789a6d5b49669adf1e9e8387549c'
     );
 
 -- 插入polaris-admin的权限策略
@@ -739,9 +739,10 @@ VALUES
     (
         'fbca9bfa04ae4ead86e1ecf5811e32a9',
         '__default__user_65e4789a6d5b49669adf1e9e8387549c',
-        1,
-        'default admin',
+        'READ_WRITE',
         '65e4789a6d5b49669adf1e9e8387549c',
+        'default admin',
+        1,
         'fbca9bfa04ae4ead86e1ecf5811e32a9',
         0,
         sysdate(),

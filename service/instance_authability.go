@@ -33,17 +33,10 @@ func (svr *serverAuthAbility) CreateInstances(ctx context.Context, reqs []*api.I
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
 
+	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.CreateInstances(ctx, reqs)
-}
-
-// CreateInstance
-//  @param ctx
-//  @param reqs
-//  @return *api.BatchWriteResponse
-func (svr *serverAuthAbility) CreateInstance(ctx context.Context, req *api.Instance) *api.Response {
-
-	return svr.targetServer.CreateInstance(ctx, req)
 }
 
 func (svr *serverAuthAbility) DeleteInstances(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse {
@@ -53,6 +46,9 @@ func (svr *serverAuthAbility) DeleteInstances(ctx context.Context, reqs []*api.I
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return svr.targetServer.DeleteInstances(ctx, reqs)
 }
@@ -65,6 +61,9 @@ func (svr *serverAuthAbility) DeleteInstancesByHost(ctx context.Context, reqs []
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
 
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.DeleteInstancesByHost(ctx, reqs)
 }
 
@@ -76,12 +75,10 @@ func (svr *serverAuthAbility) UpdateInstances(ctx context.Context, reqs []*api.I
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
 
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.UpdateInstances(ctx, reqs)
-}
-
-func (svr *serverAuthAbility) UpdateInstance(ctx context.Context, req *api.Instance) *api.Response {
-
-	return svr.targetServer.UpdateInstance(ctx, req)
 }
 
 func (svr *serverAuthAbility) UpdateInstancesIsolate(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse {
@@ -92,20 +89,48 @@ func (svr *serverAuthAbility) UpdateInstancesIsolate(ctx context.Context, reqs [
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
 
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.UpdateInstancesIsolate(ctx, reqs)
 }
 
 func (svr *serverAuthAbility) GetInstances(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Modify)
+
+	_, err := svr.authMgn.CheckPermission(authCtx)
+	if err != nil {
+		return api.NewBatchQueryResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return svr.targetServer.GetInstances(ctx, query)
 }
 
-func (svr *serverAuthAbility) GetInstancesCount() *api.BatchQueryResponse {
+func (svr *serverAuthAbility) GetInstancesCount(ctx context.Context) *api.BatchQueryResponse {
+	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Modify)
 
-	return svr.targetServer.GetInstancesCount()
+	_, err := svr.authMgn.CheckPermission(authCtx)
+	if err != nil {
+		return api.NewBatchQueryResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.targetServer.GetInstancesCount(ctx)
 }
 
 func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *api.Instance) *api.Response {
+	authCtx := svr.collectInstanceAuthContext(ctx, []*api.Instance{req}, model.Delete)
+
+	_, err := svr.authMgn.CheckPermission(authCtx)
+	if err != nil {
+		return api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return svr.targetServer.CleanInstance(ctx, req)
 }

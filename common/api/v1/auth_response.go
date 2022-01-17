@@ -37,8 +37,8 @@ func NewUserResponseWithMsg(code uint32, info string, user *User) *Response {
 	}
 }
 
-// NewUserGroupResponse 创建回复带用户组信息
-func NewUserGroupResponse(code uint32, user *UserGroup) *Response {
+// NewGroupResponse 创建回复带用户组信息
+func NewGroupResponse(code uint32, user *UserGroup) *Response {
 	return &Response{
 		Code:      &wrappers.UInt32Value{Value: code},
 		Info:      &wrappers.StringValue{Value: code2info[code]},
@@ -46,7 +46,7 @@ func NewUserGroupResponse(code uint32, user *UserGroup) *Response {
 	}
 }
 
-func NewModifyUserGroupResponse(code uint32, group *ModifyUserGroup) *Response {
+func NewModifyGroupResponse(code uint32, group *ModifyUserGroup) *Response {
 	return &Response{
 		Code:            &wrappers.UInt32Value{Value: code},
 		Info:            &wrappers.StringValue{Value: code2info[code]},
@@ -54,8 +54,8 @@ func NewModifyUserGroupResponse(code uint32, group *ModifyUserGroup) *Response {
 	}
 }
 
-// NewUserGroupRelationResponse
-func NewUserGroupRelationResponse(code uint32, relation *UserGroupRelation) *Response {
+// NewGroupRelationResponse
+func NewGroupRelationResponse(code uint32, relation *UserGroupRelation) *Response {
 	return &Response{
 		Code:     &wrappers.UInt32Value{Value: code},
 		Info:     &wrappers.StringValue{Value: code2info[code]},

@@ -673,7 +673,13 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 }
 
 func (x *XDSServer) initRegistryInfo() error {
-	resp := x.namingServer.GetNamespaces(context.Background(), make(map[string][]string))
+
+	namingServer, err := service.GetOriginServer()
+	if err != nil {
+		return err
+	}
+
+	resp := namingServer.GetNamespaces(context.Background(), make(map[string][]string))
 	if resp.Code.Value != api.ExecuteSuccess {
 		return fmt.Errorf("error to init registry info %s", resp.Code)
 	}

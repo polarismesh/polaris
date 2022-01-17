@@ -28,6 +28,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var (
@@ -726,7 +727,7 @@ func (s *Server) GetInstances(ctx context.Context, query map[string]string) *api
 /**
  * GetInstancesCount 查询总的服务实例，不带过滤条件的
  */
-func (s *Server) GetInstancesCount() *api.BatchQueryResponse {
+func (s *Server) GetInstancesCount(ctx context.Context) *api.BatchQueryResponse {
 	count, err := s.storage.GetInstancesCount()
 	if err != nil {
 		log.Errorf("[Server][Instance][Count] storage get err: %s", err.Error())
@@ -896,7 +897,14 @@ func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instan
 	simpleService := &api.Service{
 		Name:      utils.NewStringValue(instance.GetService().GetValue()),
 		Namespace: utils.NewStringValue(instance.GetNamespace().GetValue()),
-		Owners:    utils.NewStringValue("Polaris"),
+		Owners:    func() *wrapperspb.StringValue {
+			owner := utils.ParseOwnerID(ctx)
+			if owner == "" {
+				return utils.NewStringValue("Polaris")
+			} else {
+				return utils.NewStringValue(owner)
+			}
+		}(),
 	}
 
 	key := fmt.Sprintf("%s:%s", simpleService.Namespace, simpleService.Name)

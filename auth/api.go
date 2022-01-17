@@ -23,7 +23,33 @@ import (
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/store"
 )
+
+type AuthServer interface {
+	Initialize(authOpt *Config, storage store.Store, cacheMgn *cache.NamingCache) error
+
+	// Name
+	Name() string
+
+	// GetAuthManager
+	GetAuthManager() AuthManager
+
+	// AfterResourceOperation 操作完资源的后置处理逻辑
+	AfterResourceOperation(afterCtx *model.AcquireContext)
+
+	// Login 登陆动作
+	Login(req *api.LoginRequest) *api.Response
+
+	// UserOperator
+	UserOperator
+
+	// GroupOperator
+	GroupOperator
+
+	// StrategyOperator
+	StrategyOperator
+}
 
 // AuthManager 权限管理通用接口定义
 type AuthManager interface {
@@ -32,13 +58,6 @@ type AuthManager interface {
 	//  @param options
 	//  @return error
 	Initialize(options *Config, cacheMgn *cache.NamingCache) error
-
-	// Login 登陆动作
-	//  @param name
-	//  @param password
-	//  @return string
-	//  @return error
-	Login(req *api.LoginRequest) *api.Response
 
 	// CheckPermission 执行检查动作判断是否有权限，并且将 RequestContext 进行插入一些新的数据
 	//  @param preCtx
@@ -54,161 +73,79 @@ type AuthManager interface {
 	// IsOpenAuth 返回是否开启了操作鉴权，可以用于前端查询
 	//  @return bool
 	IsOpenAuth() bool
-
-	// Name
-	//  @return string
-	Name() string
-
-	// GetUserServer
-	//  @return UserServer
-	GetUserServer() UserServer
-
-	// GetAuthStrategyServer
-	//  @return AuthStrategyServer
-	GetAuthStrategyServer() AuthStrategyServer
-
-	// AfterResourceOperation 操作完资源的后置处理逻辑
-	//  @param afterCtx
-	AfterResourceOperation(afterCtx *model.AcquireContext)
 }
 
 // UserServer 用户数据管理 server
-type UserServer interface {
+type UserOperator interface {
 
 	// CreateUsers 批量创建用户
-	//  @param ctx
-	//  @param user
-	//  @return *api.Response
 	CreateUsers(ctx context.Context, users []*api.User) *api.BatchWriteResponse
 
 	// UpdateUser 更新用户信息
-	//  @param ctx
-	//  @param user
-	//  @return *api.Response
 	UpdateUser(ctx context.Context, user *api.User) *api.Response
 
 	// DeleteUser 删除用户
-	//  @param ctx
-	//  @param user
-	//  @return *api.Response
-	DeleteUser(ctx context.Context, user *api.User) *api.Response
+	DeleteUsers(ctx context.Context, users []*api.User) *api.BatchWriteResponse
 
-	// ListUsers 查询用户列表
-	//  @param ctx
-	//  @param query
-	//  @return *api.BatchQueryResponse
-	ListUsers(ctx context.Context, query map[string]string) *api.BatchQueryResponse
-
-	// ListUserLinkGroups 查询这个用户所关联的用户组信息
-	//  @param ctx
-	//  @param query
-	//  @return *api.BatchQueryResponse
-	ListUserLinkGroups(ctx context.Context, query map[string]string) *api.BatchQueryResponse
+	// GetUsers 查询用户列表
+	GetUsers(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
 	// GetUserToken 获取用户的 token
-	//  @param ctx
-	//  @param user
-	//  @return *api.Response
-	GetUserToken(ctx context.Context, filter map[string]string) *api.Response
+	GetUserToken(ctx context.Context, user *api.User) *api.Response
 
-	// ChangeUserTokenStatus 禁止用户的token使用
-	//  @param ctx
-	//  @param user
-	//  @return *api.Response
-	ChangeUserTokenStatus(ctx context.Context, user *api.User) *api.Response
+	// UpdateUserToken 禁止用户的token使用
+	UpdateUserToken(ctx context.Context, user *api.User) *api.Response
 
-	// RefreshUserToken 重置用户的token
-	//  @param ctx
-	//  @param user
-	//  @return *api.Response
-	RefreshUserToken(ctx context.Context, user *api.User) *api.Response
-
-	// CreateUserGroup 创建用户组
-	//  @param ctx
-	//  @param group
-	//  @return *api.Response
-	CreateUserGroup(ctx context.Context, group *api.UserGroup) *api.Response
-
-	// UpdateUserGroup 更新用户组
-	//  @param ctx
-	//  @param group
-	//  @return *api.Response
-	UpdateUserGroup(ctx context.Context, group *api.ModifyUserGroup) *api.Response
-
-	// DeleteUserGroup 删除用户组
-	//  @param ctx
-	//  @param group
-	//  @return *api.Response
-	DeleteUserGroup(ctx context.Context, group *api.UserGroup) *api.Response
-
-	// ListGroups 查询用户组列表（不带用户详细信息）
-	//  @param ctx
-	//  @param query
-	//  @return *api.BatchQueryResponse
-	ListGroups(ctx context.Context, query map[string]string) *api.BatchQueryResponse
-
-	// ListUserByGroup 根据用户组信息，查询该用户组下的用户相信
-	//  @param ctx
-	//  @param query
-	//  @return *api.BatchQueryResponse
-	ListUserByGroup(ctx context.Context, query map[string]string) *api.BatchQueryResponse
-
-	// GetUserGroupToken 获取用户组的 token
-	//  @param ctx
-	//  @param group
-	//  @return *api.Response
-	GetUserGroupToken(ctx context.Context, filter map[string]string) *api.Response
-
-	// ChangeUserGroupTokenStatus 取消用户组的 token 使用
-	//  @param ctx
-	//  @param group
-	//  @return *api.Response
-	ChangeUserGroupTokenStatus(ctx context.Context, group *api.UserGroup) *api.Response
-
-	// RefreshUserGroupToken 重置用户组的 token
-	//  @param ctx
-	//  @param group
-	//  @return *api.Response
-	RefreshUserGroupToken(ctx context.Context, group *api.UserGroup) *api.Response
+	// ResetUserToken 重置用户的token
+	ResetUserToken(ctx context.Context, user *api.User) *api.Response
 }
 
-type AuthStrategyServer interface {
+// GroupOperator 用户组相关操作
+type GroupOperator interface {
+	// CreateGroup 创建用户组
+	CreateGroup(ctx context.Context, group *api.UserGroup) *api.Response
 
-	// CreateStrategy
-	//  @param ctx
-	//  @param strategy
-	//  @return *api.Response
+	// UpdateGroup 更新用户组
+	UpdateGroup(ctx context.Context, group *api.ModifyUserGroup) *api.Response
+
+	// DeleteUserGroup 删除用户组
+	DeleteGroups(ctx context.Context, group []*api.UserGroup) *api.BatchWriteResponse
+
+	// GetGroups 查询用户组列表（不带用户详细信息）
+	GetGroups(ctx context.Context, query map[string]string) *api.BatchQueryResponse
+
+	// GetGroupUsers 根据用户组信息，查询该用户组下的用户相信
+	GetGroupUsers(ctx context.Context, query map[string]string) *api.BatchQueryResponse
+
+	// GetGroupToken 获取用户组的 token
+	GetGroupToken(ctx context.Context, group *api.UserGroup) *api.Response
+
+	// UpdateGroupToken 取消用户组的 token 使用
+	UpdateGroupToken(ctx context.Context, group *api.UserGroup) *api.Response
+
+	// ResetGroupToken 重置用户组的 token
+	ResetGroupToken(ctx context.Context, group *api.UserGroup) *api.Response
+}
+
+// StrategyOperator 策略相关操作
+type StrategyOperator interface {
+
+	// CreateStrategy 创建策略
 	CreateStrategy(ctx context.Context, strategy *api.AuthStrategy) *api.Response
 
-	// UpdateStrategy
-	//  @param ctx
-	//  @param strategy
-	//  @return *api.Response
+	// UpdateStrategy 更新策略
 	UpdateStrategy(ctx context.Context, strategy *api.ModifyAuthStrategy) *api.Response
 
-	// DeleteStrategy
-	//  @param ctx
-	//  @param strategy
-	//  @return *api.Response
-	DeleteStrategy(ctx context.Context, strategy *api.AuthStrategy) *api.Response
+	// DeleteStrategies 删除策略
+	DeleteStrategies(ctx context.Context, reqs []*api.AuthStrategy) *api.BatchWriteResponse
 
-	// ListStrategy
-	//  @param ctx
-	//  @param query
-	//  @return *api.BatchQueryResponse
-	ListStrategy(ctx context.Context, query map[string]string) *api.BatchQueryResponse
+	// GetStrategies 获取资源列表
+	// support 1. 支持按照 principal-id + principal-role 进行查询
+	// support 2. 支持普通的鉴权策略查询
+	GetStrategies(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
-	// ListStrategyByUserID
-	//  @param ctx
-	//  @param query
-	//  @return *api.BatchQueryResponse
-	ListStrategyByUserID(ctx context.Context, query map[string]string) *api.BatchQueryResponse
-
-	// GetStrategy
-	//  @param ctx
-	//  @param query
-	//  @return *api.Response
-	GetStrategy(ctx context.Context, query map[string]string) *api.Response
+	// GetStrategy 获取策略详细
+	GetStrategy(ctx context.Context, strategy *api.AuthStrategy) *api.Response
 }
 
 type Authority interface {

@@ -22,6 +22,7 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 func (svr *serverAuthAbility) CreateRoutingConfigs(ctx context.Context, reqs []*api.Routing) *api.BatchWriteResponse {
@@ -31,6 +32,9 @@ func (svr *serverAuthAbility) CreateRoutingConfigs(ctx context.Context, reqs []*
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return svr.targetServer.CreateRoutingConfigs(ctx, reqs)
 }
@@ -43,6 +47,9 @@ func (svr *serverAuthAbility) DeleteRoutingConfigs(ctx context.Context, reqs []*
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
 
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.DeleteRoutingConfigs(ctx, reqs)
 }
 
@@ -54,10 +61,22 @@ func (svr *serverAuthAbility) UpdateRoutingConfigs(ctx context.Context, reqs []*
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
 
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.UpdateRoutingConfigs(ctx, reqs)
 }
 
 func (svr *serverAuthAbility) GetRoutingConfigs(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+	authCtx := svr.collectRouteRuleAuthContext(ctx, nil, model.Create)
+
+	_, err := svr.authMgn.CheckPermission(authCtx)
+	if err != nil {
+		return api.NewBatchQueryResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return svr.targetServer.GetRoutingConfigs(ctx, query)
 }

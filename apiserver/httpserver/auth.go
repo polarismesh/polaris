@@ -21,6 +21,7 @@ import (
 	"github.com/emicklei/go-restful"
 	proto "github.com/golang/protobuf/proto"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 // GetAuthServer 运维接口
@@ -30,31 +31,29 @@ func (h *HTTPServer) GetAuthServer() *restful.WebService {
 
 	//
 	ws.Route(ws.POST("/user/login").To(h.Login))
+	ws.Route(ws.GET("/users").To(h.GetUsers))
 	ws.Route(ws.POST("/users").To(h.CreateUsers))
+	ws.Route(ws.POST("/users/delete").To(h.DeleteUsers))
 	ws.Route(ws.PUT("/user").To(h.UpdateUser))
-	ws.Route(ws.POST("/user/delete").To(h.DeleteUser))
-	ws.Route(ws.GET("/users").To(h.ListUsers))
-	ws.Route(ws.GET("/user/groups").To(h.ListUserLinkGroups))
 	ws.Route(ws.GET("/user/token").To(h.GetUserToken))
-	ws.Route(ws.PUT("/user/token/status").To(h.ChangeUserTokenStatus))
-	ws.Route(ws.PUT("/user/token/refresh").To(h.RefreshUserToken))
+	ws.Route(ws.PUT("/user/token/status").To(h.UpdateUserToken))
+	ws.Route(ws.PUT("/user/token/refresh").To(h.ResetUserToken))
 
 	//
-	ws.Route(ws.POST("/usergroup").To(h.CreateUserGroup))
-	ws.Route(ws.PUT("/usergroup").To(h.UpdateUserGroup))
-	ws.Route(ws.POST("/usergroup/delete").To(h.DeleteUserGroup))
-	ws.Route(ws.GET("/usergroups").To(h.ListGroups))
-	ws.Route(ws.GET("/usergroup/users").To(h.ListUserByGroup))
-	ws.Route(ws.GET("/usergroup/token").To(h.GetUserGroupToken))
-	ws.Route(ws.PUT("/usergroup/token/status").To(h.ChangeUserGroupTokenStatus))
-	ws.Route(ws.PUT("/usergroup/token/refresh").To(h.RefreshUserGroupToken))
+	ws.Route(ws.POST("/usergroup").To(h.CreateGroup))
+	ws.Route(ws.PUT("/usergroup").To(h.UpdateGroup))
+	ws.Route(ws.POST("/usergroups/delete").To(h.DeleteGroups))
+	ws.Route(ws.GET("/usergroups").To(h.GetGroups))
+	ws.Route(ws.GET("/usergroup/users").To(h.GetGroupUsers))
+	ws.Route(ws.GET("/usergroup/token").To(h.GetGroupToken))
+	ws.Route(ws.PUT("/usergroup/token/status").To(h.UpdateGroupToken))
+	ws.Route(ws.PUT("/usergroup/token/refresh").To(h.ResetGroupToken))
 
-	ws.Route(ws.POST("/auth/strategy").To(h.CreateAuthStrategy))
-	ws.Route(ws.PUT("/auth/strategy").To(h.UpdateAuthStrategy))
-	ws.Route(ws.POST("/auth/strategy/delete").To(h.DeleteStrategy))
-	ws.Route(ws.GET("/auth/strategies").To(h.ListStrategy))
-	ws.Route(ws.GET("/auth/user/strategies").To(h.ListStrategyByUserID))
+	ws.Route(ws.POST("/auth/strategy").To(h.CreateStrategy))
+	ws.Route(ws.PUT("/auth/strategy").To(h.UpdateStrategy))
 	ws.Route(ws.GET("/auth/strategy/detail").To(h.GetStrategy))
+	ws.Route(ws.POST("/auth/strategies/delete").To(h.DeleteStrategies))
+	ws.Route(ws.GET("/auth/strategies").To(h.GetStrategies))
 
 	return ws
 }
@@ -74,7 +73,7 @@ func (h *HTTPServer) Login(req *restful.Request, rsp *restful.Response) {
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.authMgn.Login(loginReq))
+	handler.WriteHeaderAndProto(h.authServer.Login(loginReq))
 }
 
 // CreateUsers
@@ -96,7 +95,7 @@ func (h *HTTPServer) CreateUsers(req *restful.Request, rsp *restful.Response) {
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.userServer.CreateUsers(ctx, users))
+	handler.WriteHeaderAndProto(h.authServer.CreateUsers(ctx, users))
 }
 
 // UpdateUser
@@ -114,47 +113,42 @@ func (h *HTTPServer) UpdateUser(req *restful.Request, rsp *restful.Response) {
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.userServer.UpdateUser(ctx, user))
+	handler.WriteHeaderAndProto(h.authServer.UpdateUser(ctx, user))
 }
 
-// DeleteUser
+// DeleteUsers
 //  @receiver h
 //  @param req
 //  @param rsp
-func (h *HTTPServer) DeleteUser(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) DeleteUsers(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	user := &api.User{}
+	var users UserArr
 
-	ctx, err := handler.Parse(user)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.User{}
+		users = append(users, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.userServer.DeleteUser(ctx, user))
+	handler.WriteHeaderAndProto(h.authServer.DeleteUsers(ctx, users))
 }
 
-// ListUsers
+// GetUsers
 //  @receiver h
 //  @param req
 //  @param rsp
-func (h *HTTPServer) ListUsers(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) GetUsers(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
-	handler.WriteHeaderAndProto(h.userServer.ListUsers(ctx, queryParams))
-}
-
-func (h *HTTPServer) ListUserLinkGroups(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
-
-	queryParams := parseQueryParams(req)
-	ctx := handler.ParseHeaderContext()
-
-	handler.WriteHeaderAndProto(h.userServer.ListUserLinkGroups(ctx, queryParams))
+	handler.WriteHeaderAndProto(h.authServer.GetUsers(ctx, queryParams))
 }
 
 // GetUserToken 获取这个用户所关联的所有用户组列表信息，支持翻页
@@ -165,14 +159,18 @@ func (h *HTTPServer) GetUserToken(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 	queryParams := parseQueryParams(req)
 
-	handler.WriteHeaderAndProto(h.userServer.GetUserToken(handler.ParseHeaderContext(), queryParams))
+	user := &api.User{
+		Id: utils.NewStringValue(queryParams["id"]),
+	}
+
+	handler.WriteHeaderAndProto(h.authServer.GetUserToken(handler.ParseHeaderContext(), user))
 }
 
 // ChangeUserTokenStatus
 //  @receiver h
 //  @param req
 //  @param rsp
-func (h *HTTPServer) ChangeUserTokenStatus(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) UpdateUserToken(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	user := &api.User{}
@@ -183,14 +181,14 @@ func (h *HTTPServer) ChangeUserTokenStatus(req *restful.Request, rsp *restful.Re
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.userServer.ChangeUserTokenStatus(ctx, user))
+	handler.WriteHeaderAndProto(h.authServer.UpdateUserToken(ctx, user))
 }
 
-// RefreshUserToken
+// ResetUserToken
 //  @receiver h
 //  @param req
 //  @param rsp
-func (h *HTTPServer) RefreshUserToken(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) ResetUserToken(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	user := &api.User{}
@@ -201,14 +199,14 @@ func (h *HTTPServer) RefreshUserToken(req *restful.Request, rsp *restful.Respons
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.userServer.RefreshUserToken(ctx, user))
+	handler.WriteHeaderAndProto(h.authServer.ResetUserToken(ctx, user))
 }
 
 // CreateUserGroup
 //  @receiver h
 //  @param req
 //  @param rsp
-func (h *HTTPServer) CreateUserGroup(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) CreateGroup(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	group := &api.UserGroup{}
@@ -219,14 +217,14 @@ func (h *HTTPServer) CreateUserGroup(req *restful.Request, rsp *restful.Response
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.userServer.CreateUserGroup(ctx, group))
+	handler.WriteHeaderAndProto(h.authServer.CreateGroup(ctx, group))
 }
 
-// UpdateUserGroup
+// UpdateGroup
 //  @receiver h
 //  @param req
 //  @param rsp
-func (h *HTTPServer) UpdateUserGroup(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) UpdateGroup(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	group := &api.ModifyUserGroup{}
@@ -237,71 +235,76 @@ func (h *HTTPServer) UpdateUserGroup(req *restful.Request, rsp *restful.Response
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.userServer.UpdateUserGroup(ctx, group))
+	handler.WriteHeaderAndProto(h.authServer.UpdateGroup(ctx, group))
 }
 
 // DeleteUserGroup
 //  @receiver h
 //  @param req
 //  @param rsp
-func (h *HTTPServer) DeleteUserGroup(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) DeleteGroups(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	group := &api.UserGroup{}
+	var groups GroupArr
 
-	ctx, err := handler.Parse(group)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.UserGroup{}
+		groups = append(groups, msg)
+		return msg
+	})
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.userServer.DeleteUserGroup(ctx, group))
+	handler.WriteHeaderAndProto(h.authServer.DeleteGroups(ctx, groups))
 }
 
-// ListGroups
+// GetGroups
 //  @receiver h
 //  @param req
 //  @param rsp
-func (h *HTTPServer) ListGroups(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) GetGroups(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
-	handler.WriteHeaderAndProto(h.userServer.ListGroups(ctx, queryParams))
+	handler.WriteHeaderAndProto(h.authServer.GetGroups(ctx, queryParams))
 }
 
-// ListUserByGroup
-//  @receiver h
-//  @param req
-//  @param rsp
-func (h *HTTPServer) ListUserByGroup(req *restful.Request, rsp *restful.Response) {
+// GetGroupUsers
+func (h *HTTPServer) GetGroupUsers(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
-	handler.WriteHeaderAndProto(h.userServer.ListUserByGroup(ctx, queryParams))
+	handler.WriteHeaderAndProto(h.authServer.GetGroupUsers(ctx, queryParams))
 }
 
 // GetUserGroupToken
 //  @receiver h
 //  @param req
 //  @param rsp
-func (h *HTTPServer) GetUserGroupToken(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) GetGroupToken(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
-	handler.WriteHeaderAndProto(h.userServer.GetUserGroupToken(ctx, queryParams))
+	group := &api.UserGroup{
+		Id: utils.NewStringValue(queryParams["id"]),
+	}
+
+	handler.WriteHeaderAndProto(h.authServer.GetGroupToken(ctx, group))
 }
 
-// ChangeUserGroupTokenStatus
+// UpdateGroupToken
 //  @receiver h
 //  @param req
 //  @param rsp
-func (h *HTTPServer) ChangeUserGroupTokenStatus(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) UpdateGroupToken(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	group := &api.UserGroup{}
@@ -312,14 +315,14 @@ func (h *HTTPServer) ChangeUserGroupTokenStatus(req *restful.Request, rsp *restf
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.userServer.ChangeUserGroupTokenStatus(ctx, group))
+	handler.WriteHeaderAndProto(h.authServer.UpdateGroupToken(ctx, group))
 }
 
-// RefreshUserGroupToken
+// ResetGroupToken
 //  @receiver h
 //  @param req
 //  @param rsp
-func (h *HTTPServer) RefreshUserGroupToken(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) ResetGroupToken(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	group := &api.UserGroup{}
@@ -330,14 +333,14 @@ func (h *HTTPServer) RefreshUserGroupToken(req *restful.Request, rsp *restful.Re
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.userServer.RefreshUserGroupToken(ctx, group))
+	handler.WriteHeaderAndProto(h.authServer.ResetGroupToken(ctx, group))
 }
 
-// CreateAuthStrategy
+// CreateStrategy
 //  @receiver h
 //  @param req
 //  @param rsp
-func (h *HTTPServer) CreateAuthStrategy(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) CreateStrategy(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	strategy := &api.AuthStrategy{}
@@ -348,14 +351,14 @@ func (h *HTTPServer) CreateAuthStrategy(req *restful.Request, rsp *restful.Respo
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.strategyServer.CreateStrategy(ctx, strategy))
+	handler.WriteHeaderAndProto(h.authServer.CreateStrategy(ctx, strategy))
 }
 
-// UpdateAuthStrategy
+// UpdateStrategy
 //  @receiver h
 //  @param req
 //  @param rsp
-func (h *HTTPServer) UpdateAuthStrategy(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) UpdateStrategy(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	strategy := &api.ModifyAuthStrategy{}
@@ -366,51 +369,39 @@ func (h *HTTPServer) UpdateAuthStrategy(req *restful.Request, rsp *restful.Respo
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.strategyServer.UpdateStrategy(ctx, strategy))
+	handler.WriteHeaderAndProto(h.authServer.UpdateStrategy(ctx, strategy))
 }
 
-// DeleteStrategy
-//  @receiver h
-//  @param req
-//  @param rsp
-func (h *HTTPServer) DeleteStrategy(req *restful.Request, rsp *restful.Response) {
+// DeleteStrategies
+func (h *HTTPServer) DeleteStrategies(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	strategy := &api.AuthStrategy{}
+	var strategies StrategyArr
 
-	ctx, err := handler.Parse(strategy)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.AuthStrategy{}
+		strategies = append(strategies, msg)
+		return msg
+	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.strategyServer.DeleteStrategy(ctx, strategy))
+	handler.WriteHeaderAndProto(h.authServer.DeleteStrategies(ctx, strategies))
 }
 
-// ListStrategy
+// GetStrategies
 //  @receiver h
 //  @param req
 //  @param rsp
-func (h *HTTPServer) ListStrategy(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) GetStrategies(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
-	handler.WriteHeaderAndProto(h.strategyServer.ListStrategy(ctx, queryParams))
-}
-
-// ListStrategyByUserID
-//  @receiver h
-//  @param req
-//  @param rsp
-func (h *HTTPServer) ListStrategyByUserID(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
-
-	queryParams := parseQueryParams(req)
-	ctx := handler.ParseHeaderContext()
-
-	handler.WriteHeaderAndProto(h.strategyServer.ListStrategyByUserID(ctx, queryParams))
+	handler.WriteHeaderAndProto(h.authServer.GetStrategies(ctx, queryParams))
 }
 
 func (h *HTTPServer) GetStrategy(req *restful.Request, rsp *restful.Response) {
@@ -419,5 +410,9 @@ func (h *HTTPServer) GetStrategy(req *restful.Request, rsp *restful.Response) {
 	queryParams := parseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
-	handler.WriteHeaderAndProto(h.strategyServer.GetStrategy(ctx, queryParams))
+	strategy := &api.AuthStrategy{
+		Id: utils.NewStringValue(queryParams["id"]),
+	}
+
+	handler.WriteHeaderAndProto(h.authServer.GetStrategy(ctx, strategy))
 }

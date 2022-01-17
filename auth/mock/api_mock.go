@@ -11,8 +11,408 @@ import (
 	cache "github.com/polarismesh/polaris-server/cache"
 	v1 "github.com/polarismesh/polaris-server/common/api/v1"
 	model "github.com/polarismesh/polaris-server/common/model"
+	store "github.com/polarismesh/polaris-server/store"
 	reflect "reflect"
 )
+
+// MockAuthServer is a mock of AuthServer interface
+type MockAuthServer struct {
+	ctrl     *gomock.Controller
+	recorder *MockAuthServerMockRecorder
+}
+
+// MockAuthServerMockRecorder is the mock recorder for MockAuthServer
+type MockAuthServerMockRecorder struct {
+	mock *MockAuthServer
+}
+
+// NewMockAuthServer creates a new mock instance
+func NewMockAuthServer(ctrl *gomock.Controller) *MockAuthServer {
+	mock := &MockAuthServer{ctrl: ctrl}
+	mock.recorder = &MockAuthServerMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use
+func (m *MockAuthServer) EXPECT() *MockAuthServerMockRecorder {
+	return m.recorder
+}
+
+// Initialize mocks base method
+func (m *MockAuthServer) Initialize(authOpt *auth.Config, storage store.Store, cacheMgn *cache.NamingCache) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Initialize", authOpt, storage, cacheMgn)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Initialize indicates an expected call of Initialize
+func (mr *MockAuthServerMockRecorder) Initialize(authOpt, storage, cacheMgn interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockAuthServer)(nil).Initialize), authOpt, storage, cacheMgn)
+}
+
+// Name mocks base method
+func (m *MockAuthServer) Name() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Name indicates an expected call of Name
+func (mr *MockAuthServerMockRecorder) Name() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockAuthServer)(nil).Name))
+}
+
+// GetAuthManager mocks base method
+func (m *MockAuthServer) GetAuthManager() auth.AuthManager {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAuthManager")
+	ret0, _ := ret[0].(auth.AuthManager)
+	return ret0
+}
+
+// GetAuthManager indicates an expected call of GetAuthManager
+func (mr *MockAuthServerMockRecorder) GetAuthManager() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthManager", reflect.TypeOf((*MockAuthServer)(nil).GetAuthManager))
+}
+
+// AfterResourceOperation mocks base method
+func (m *MockAuthServer) AfterResourceOperation(afterCtx *model.AcquireContext) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "AfterResourceOperation", afterCtx)
+}
+
+// AfterResourceOperation indicates an expected call of AfterResourceOperation
+func (mr *MockAuthServerMockRecorder) AfterResourceOperation(afterCtx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AfterResourceOperation", reflect.TypeOf((*MockAuthServer)(nil).AfterResourceOperation), afterCtx)
+}
+
+// Login mocks base method
+func (m *MockAuthServer) Login(req *v1.LoginRequest) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Login", req)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// Login indicates an expected call of Login
+func (mr *MockAuthServerMockRecorder) Login(req interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockAuthServer)(nil).Login), req)
+}
+
+// CreateUsers mocks base method
+func (m *MockAuthServer) CreateUsers(ctx context.Context, users []*v1.User) *v1.BatchWriteResponse {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateUsers", ctx, users)
+	ret0, _ := ret[0].(*v1.BatchWriteResponse)
+	return ret0
+}
+
+// CreateUsers indicates an expected call of CreateUsers
+func (mr *MockAuthServerMockRecorder) CreateUsers(ctx, users interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUsers", reflect.TypeOf((*MockAuthServer)(nil).CreateUsers), ctx, users)
+}
+
+// UpdateUser mocks base method
+func (m *MockAuthServer) UpdateUser(ctx context.Context, user *v1.User) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateUser", ctx, user)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// UpdateUser indicates an expected call of UpdateUser
+func (mr *MockAuthServerMockRecorder) UpdateUser(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockAuthServer)(nil).UpdateUser), ctx, user)
+}
+
+// DeleteUser mocks base method
+func (m *MockAuthServer) DeleteUser(ctx context.Context, user *v1.User) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteUser", ctx, user)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// DeleteUser indicates an expected call of DeleteUser
+func (mr *MockAuthServerMockRecorder) DeleteUser(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockAuthServer)(nil).DeleteUser), ctx, user)
+}
+
+// ListUsers mocks base method
+func (m *MockAuthServer) ListUsers(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListUsers", ctx, query)
+	ret0, _ := ret[0].(*v1.BatchQueryResponse)
+	return ret0
+}
+
+// ListUsers indicates an expected call of ListUsers
+func (mr *MockAuthServerMockRecorder) ListUsers(ctx, query interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUsers", reflect.TypeOf((*MockAuthServer)(nil).ListUsers), ctx, query)
+}
+
+// ListUserLinkGroups mocks base method
+func (m *MockAuthServer) ListUserLinkGroups(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListUserLinkGroups", ctx, query)
+	ret0, _ := ret[0].(*v1.BatchQueryResponse)
+	return ret0
+}
+
+// ListUserLinkGroups indicates an expected call of ListUserLinkGroups
+func (mr *MockAuthServerMockRecorder) ListUserLinkGroups(ctx, query interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUserLinkGroups", reflect.TypeOf((*MockAuthServer)(nil).ListUserLinkGroups), ctx, query)
+}
+
+// GetUserToken mocks base method
+func (m *MockAuthServer) GetUserToken(ctx context.Context, filter map[string]string) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserToken", ctx, filter)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// GetUserToken indicates an expected call of GetUserToken
+func (mr *MockAuthServerMockRecorder) GetUserToken(ctx, filter interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserToken", reflect.TypeOf((*MockAuthServer)(nil).GetUserToken), ctx, filter)
+}
+
+// ChangeUserTokenStatus mocks base method
+func (m *MockAuthServer) ChangeUserTokenStatus(ctx context.Context, user *v1.User) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ChangeUserTokenStatus", ctx, user)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// ChangeUserTokenStatus indicates an expected call of ChangeUserTokenStatus
+func (mr *MockAuthServerMockRecorder) ChangeUserTokenStatus(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangeUserTokenStatus", reflect.TypeOf((*MockAuthServer)(nil).ChangeUserTokenStatus), ctx, user)
+}
+
+// RefreshUserToken mocks base method
+func (m *MockAuthServer) RefreshUserToken(ctx context.Context, user *v1.User) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshUserToken", ctx, user)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// RefreshUserToken indicates an expected call of RefreshUserToken
+func (mr *MockAuthServerMockRecorder) RefreshUserToken(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshUserToken", reflect.TypeOf((*MockAuthServer)(nil).RefreshUserToken), ctx, user)
+}
+
+// CreateUserGroup mocks base method
+func (m *MockAuthServer) CreateUserGroup(ctx context.Context, group *v1.UserGroup) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateUserGroup", ctx, group)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// CreateUserGroup indicates an expected call of CreateUserGroup
+func (mr *MockAuthServerMockRecorder) CreateUserGroup(ctx, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUserGroup", reflect.TypeOf((*MockAuthServer)(nil).CreateUserGroup), ctx, group)
+}
+
+// UpdateUserGroup mocks base method
+func (m *MockAuthServer) UpdateUserGroup(ctx context.Context, group *v1.ModifyUserGroup) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateUserGroup", ctx, group)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// UpdateUserGroup indicates an expected call of UpdateUserGroup
+func (mr *MockAuthServerMockRecorder) UpdateUserGroup(ctx, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserGroup", reflect.TypeOf((*MockAuthServer)(nil).UpdateUserGroup), ctx, group)
+}
+
+// DeleteUserGroup mocks base method
+func (m *MockAuthServer) DeleteUserGroup(ctx context.Context, group *v1.UserGroup) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteUserGroup", ctx, group)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// DeleteUserGroup indicates an expected call of DeleteUserGroup
+func (mr *MockAuthServerMockRecorder) DeleteUserGroup(ctx, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUserGroup", reflect.TypeOf((*MockAuthServer)(nil).DeleteUserGroup), ctx, group)
+}
+
+// ListGroups mocks base method
+func (m *MockAuthServer) ListGroups(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListGroups", ctx, query)
+	ret0, _ := ret[0].(*v1.BatchQueryResponse)
+	return ret0
+}
+
+// ListGroups indicates an expected call of ListGroups
+func (mr *MockAuthServerMockRecorder) ListGroups(ctx, query interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListGroups", reflect.TypeOf((*MockAuthServer)(nil).ListGroups), ctx, query)
+}
+
+// ListUserByGroup mocks base method
+func (m *MockAuthServer) ListUserByGroup(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListUserByGroup", ctx, query)
+	ret0, _ := ret[0].(*v1.BatchQueryResponse)
+	return ret0
+}
+
+// ListUserByGroup indicates an expected call of ListUserByGroup
+func (mr *MockAuthServerMockRecorder) ListUserByGroup(ctx, query interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUserByGroup", reflect.TypeOf((*MockAuthServer)(nil).ListUserByGroup), ctx, query)
+}
+
+// GetUserGroupToken mocks base method
+func (m *MockAuthServer) GetUserGroupToken(ctx context.Context, filter map[string]string) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserGroupToken", ctx, filter)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// GetUserGroupToken indicates an expected call of GetUserGroupToken
+func (mr *MockAuthServerMockRecorder) GetUserGroupToken(ctx, filter interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserGroupToken", reflect.TypeOf((*MockAuthServer)(nil).GetUserGroupToken), ctx, filter)
+}
+
+// ChangeUserGroupTokenStatus mocks base method
+func (m *MockAuthServer) ChangeUserGroupTokenStatus(ctx context.Context, group *v1.UserGroup) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ChangeUserGroupTokenStatus", ctx, group)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// ChangeUserGroupTokenStatus indicates an expected call of ChangeUserGroupTokenStatus
+func (mr *MockAuthServerMockRecorder) ChangeUserGroupTokenStatus(ctx, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangeUserGroupTokenStatus", reflect.TypeOf((*MockAuthServer)(nil).ChangeUserGroupTokenStatus), ctx, group)
+}
+
+// RefreshUserGroupToken mocks base method
+func (m *MockAuthServer) RefreshUserGroupToken(ctx context.Context, group *v1.UserGroup) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshUserGroupToken", ctx, group)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// RefreshUserGroupToken indicates an expected call of RefreshUserGroupToken
+func (mr *MockAuthServerMockRecorder) RefreshUserGroupToken(ctx, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshUserGroupToken", reflect.TypeOf((*MockAuthServer)(nil).RefreshUserGroupToken), ctx, group)
+}
+
+// CreateStrategy mocks base method
+func (m *MockAuthServer) CreateStrategy(ctx context.Context, strategy *v1.AuthStrategy) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateStrategy", ctx, strategy)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// CreateStrategy indicates an expected call of CreateStrategy
+func (mr *MockAuthServerMockRecorder) CreateStrategy(ctx, strategy interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateStrategy", reflect.TypeOf((*MockAuthServer)(nil).CreateStrategy), ctx, strategy)
+}
+
+// UpdateStrategy mocks base method
+func (m *MockAuthServer) UpdateStrategy(ctx context.Context, strategy *v1.ModifyAuthStrategy) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateStrategy", ctx, strategy)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// UpdateStrategy indicates an expected call of UpdateStrategy
+func (mr *MockAuthServerMockRecorder) UpdateStrategy(ctx, strategy interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStrategy", reflect.TypeOf((*MockAuthServer)(nil).UpdateStrategy), ctx, strategy)
+}
+
+// DeleteStrategy mocks base method
+func (m *MockAuthServer) DeleteStrategy(ctx context.Context, strategy *v1.AuthStrategy) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteStrategy", ctx, strategy)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// DeleteStrategy indicates an expected call of DeleteStrategy
+func (mr *MockAuthServerMockRecorder) DeleteStrategy(ctx, strategy interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteStrategy", reflect.TypeOf((*MockAuthServer)(nil).DeleteStrategy), ctx, strategy)
+}
+
+// ListStrategy mocks base method
+func (m *MockAuthServer) ListStrategy(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListStrategy", ctx, query)
+	ret0, _ := ret[0].(*v1.BatchQueryResponse)
+	return ret0
+}
+
+// ListStrategy indicates an expected call of ListStrategy
+func (mr *MockAuthServerMockRecorder) ListStrategy(ctx, query interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStrategy", reflect.TypeOf((*MockAuthServer)(nil).ListStrategy), ctx, query)
+}
+
+// ListStrategyByUserID mocks base method
+func (m *MockAuthServer) ListStrategyByUserID(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListStrategyByUserID", ctx, query)
+	ret0, _ := ret[0].(*v1.BatchQueryResponse)
+	return ret0
+}
+
+// ListStrategyByUserID indicates an expected call of ListStrategyByUserID
+func (mr *MockAuthServerMockRecorder) ListStrategyByUserID(ctx, query interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStrategyByUserID", reflect.TypeOf((*MockAuthServer)(nil).ListStrategyByUserID), ctx, query)
+}
+
+// GetStrategy mocks base method
+func (m *MockAuthServer) GetStrategy(ctx context.Context, query map[string]string) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetStrategy", ctx, query)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// GetStrategy indicates an expected call of GetStrategy
+func (mr *MockAuthServerMockRecorder) GetStrategy(ctx, query interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategy", reflect.TypeOf((*MockAuthServer)(nil).GetStrategy), ctx, query)
+}
 
 // MockAuthManager is a mock of AuthManager interface
 type MockAuthManager struct {
@@ -49,20 +449,6 @@ func (m *MockAuthManager) Initialize(options *auth.Config, cacheMgn *cache.Namin
 func (mr *MockAuthManagerMockRecorder) Initialize(options, cacheMgn interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockAuthManager)(nil).Initialize), options, cacheMgn)
-}
-
-// Login mocks base method
-func (m *MockAuthManager) Login(req *v1.LoginRequest) *v1.Response {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Login", req)
-	ret0, _ := ret[0].(*v1.Response)
-	return ret0
-}
-
-// Login indicates an expected call of Login
-func (mr *MockAuthManagerMockRecorder) Login(req interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockAuthManager)(nil).Login), req)
 }
 
 // CheckPermission mocks base method
@@ -108,85 +494,31 @@ func (mr *MockAuthManagerMockRecorder) IsOpenAuth() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsOpenAuth", reflect.TypeOf((*MockAuthManager)(nil).IsOpenAuth))
 }
 
-// Name mocks base method
-func (m *MockAuthManager) Name() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Name")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// Name indicates an expected call of Name
-func (mr *MockAuthManagerMockRecorder) Name() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockAuthManager)(nil).Name))
-}
-
-// GetUserServer mocks base method
-func (m *MockAuthManager) GetUserServer() auth.UserServer {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserServer")
-	ret0, _ := ret[0].(auth.UserServer)
-	return ret0
-}
-
-// GetUserServer indicates an expected call of GetUserServer
-func (mr *MockAuthManagerMockRecorder) GetUserServer() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserServer", reflect.TypeOf((*MockAuthManager)(nil).GetUserServer))
-}
-
-// GetAuthStrategyServer mocks base method
-func (m *MockAuthManager) GetAuthStrategyServer() auth.AuthStrategyServer {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAuthStrategyServer")
-	ret0, _ := ret[0].(auth.AuthStrategyServer)
-	return ret0
-}
-
-// GetAuthStrategyServer indicates an expected call of GetAuthStrategyServer
-func (mr *MockAuthManagerMockRecorder) GetAuthStrategyServer() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthStrategyServer", reflect.TypeOf((*MockAuthManager)(nil).GetAuthStrategyServer))
-}
-
-// AfterResourceOperation mocks base method
-func (m *MockAuthManager) AfterResourceOperation(afterCtx *model.AcquireContext) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AfterResourceOperation", afterCtx)
-}
-
-// AfterResourceOperation indicates an expected call of AfterResourceOperation
-func (mr *MockAuthManagerMockRecorder) AfterResourceOperation(afterCtx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AfterResourceOperation", reflect.TypeOf((*MockAuthManager)(nil).AfterResourceOperation), afterCtx)
-}
-
-// MockUserServer is a mock of UserServer interface
-type MockUserServer struct {
+// MockUserOperator is a mock of UserOperator interface
+type MockUserOperator struct {
 	ctrl     *gomock.Controller
-	recorder *MockUserServerMockRecorder
+	recorder *MockUserOperatorMockRecorder
 }
 
-// MockUserServerMockRecorder is the mock recorder for MockUserServer
-type MockUserServerMockRecorder struct {
-	mock *MockUserServer
+// MockUserOperatorMockRecorder is the mock recorder for MockUserOperator
+type MockUserOperatorMockRecorder struct {
+	mock *MockUserOperator
 }
 
-// NewMockUserServer creates a new mock instance
-func NewMockUserServer(ctrl *gomock.Controller) *MockUserServer {
-	mock := &MockUserServer{ctrl: ctrl}
-	mock.recorder = &MockUserServerMockRecorder{mock}
+// NewMockUserOperator creates a new mock instance
+func NewMockUserOperator(ctrl *gomock.Controller) *MockUserOperator {
+	mock := &MockUserOperator{ctrl: ctrl}
+	mock.recorder = &MockUserOperatorMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use
-func (m *MockUserServer) EXPECT() *MockUserServerMockRecorder {
+func (m *MockUserOperator) EXPECT() *MockUserOperatorMockRecorder {
 	return m.recorder
 }
 
 // CreateUsers mocks base method
-func (m *MockUserServer) CreateUsers(ctx context.Context, users []*v1.User) *v1.BatchWriteResponse {
+func (m *MockUserOperator) CreateUsers(ctx context.Context, users []*v1.User) *v1.BatchWriteResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateUsers", ctx, users)
 	ret0, _ := ret[0].(*v1.BatchWriteResponse)
@@ -194,13 +526,13 @@ func (m *MockUserServer) CreateUsers(ctx context.Context, users []*v1.User) *v1.
 }
 
 // CreateUsers indicates an expected call of CreateUsers
-func (mr *MockUserServerMockRecorder) CreateUsers(ctx, users interface{}) *gomock.Call {
+func (mr *MockUserOperatorMockRecorder) CreateUsers(ctx, users interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUsers", reflect.TypeOf((*MockUserServer)(nil).CreateUsers), ctx, users)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUsers", reflect.TypeOf((*MockUserOperator)(nil).CreateUsers), ctx, users)
 }
 
 // UpdateUser mocks base method
-func (m *MockUserServer) UpdateUser(ctx context.Context, user *v1.User) *v1.Response {
+func (m *MockUserOperator) UpdateUser(ctx context.Context, user *v1.User) *v1.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUser", ctx, user)
 	ret0, _ := ret[0].(*v1.Response)
@@ -208,13 +540,13 @@ func (m *MockUserServer) UpdateUser(ctx context.Context, user *v1.User) *v1.Resp
 }
 
 // UpdateUser indicates an expected call of UpdateUser
-func (mr *MockUserServerMockRecorder) UpdateUser(ctx, user interface{}) *gomock.Call {
+func (mr *MockUserOperatorMockRecorder) UpdateUser(ctx, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockUserServer)(nil).UpdateUser), ctx, user)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockUserOperator)(nil).UpdateUser), ctx, user)
 }
 
 // DeleteUser mocks base method
-func (m *MockUserServer) DeleteUser(ctx context.Context, user *v1.User) *v1.Response {
+func (m *MockUserOperator) DeleteUser(ctx context.Context, user *v1.User) *v1.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteUser", ctx, user)
 	ret0, _ := ret[0].(*v1.Response)
@@ -222,13 +554,13 @@ func (m *MockUserServer) DeleteUser(ctx context.Context, user *v1.User) *v1.Resp
 }
 
 // DeleteUser indicates an expected call of DeleteUser
-func (mr *MockUserServerMockRecorder) DeleteUser(ctx, user interface{}) *gomock.Call {
+func (mr *MockUserOperatorMockRecorder) DeleteUser(ctx, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockUserServer)(nil).DeleteUser), ctx, user)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockUserOperator)(nil).DeleteUser), ctx, user)
 }
 
 // ListUsers mocks base method
-func (m *MockUserServer) ListUsers(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+func (m *MockUserOperator) ListUsers(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListUsers", ctx, query)
 	ret0, _ := ret[0].(*v1.BatchQueryResponse)
@@ -236,13 +568,27 @@ func (m *MockUserServer) ListUsers(ctx context.Context, query map[string]string)
 }
 
 // ListUsers indicates an expected call of ListUsers
-func (mr *MockUserServerMockRecorder) ListUsers(ctx, query interface{}) *gomock.Call {
+func (mr *MockUserOperatorMockRecorder) ListUsers(ctx, query interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUsers", reflect.TypeOf((*MockUserServer)(nil).ListUsers), ctx, query)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUsers", reflect.TypeOf((*MockUserOperator)(nil).ListUsers), ctx, query)
+}
+
+// ListUserLinkGroups mocks base method
+func (m *MockUserOperator) ListUserLinkGroups(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListUserLinkGroups", ctx, query)
+	ret0, _ := ret[0].(*v1.BatchQueryResponse)
+	return ret0
+}
+
+// ListUserLinkGroups indicates an expected call of ListUserLinkGroups
+func (mr *MockUserOperatorMockRecorder) ListUserLinkGroups(ctx, query interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUserLinkGroups", reflect.TypeOf((*MockUserOperator)(nil).ListUserLinkGroups), ctx, query)
 }
 
 // GetUserToken mocks base method
-func (m *MockUserServer) GetUserToken(ctx context.Context, filter map[string]string) *v1.Response {
+func (m *MockUserOperator) GetUserToken(ctx context.Context, filter map[string]string) *v1.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserToken", ctx, filter)
 	ret0, _ := ret[0].(*v1.Response)
@@ -250,13 +596,13 @@ func (m *MockUserServer) GetUserToken(ctx context.Context, filter map[string]str
 }
 
 // GetUserToken indicates an expected call of GetUserToken
-func (mr *MockUserServerMockRecorder) GetUserToken(ctx, filter interface{}) *gomock.Call {
+func (mr *MockUserOperatorMockRecorder) GetUserToken(ctx, filter interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserToken", reflect.TypeOf((*MockUserServer)(nil).GetUserToken), ctx, filter)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserToken", reflect.TypeOf((*MockUserOperator)(nil).GetUserToken), ctx, filter)
 }
 
 // ChangeUserTokenStatus mocks base method
-func (m *MockUserServer) ChangeUserTokenStatus(ctx context.Context, user *v1.User) *v1.Response {
+func (m *MockUserOperator) ChangeUserTokenStatus(ctx context.Context, user *v1.User) *v1.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ChangeUserTokenStatus", ctx, user)
 	ret0, _ := ret[0].(*v1.Response)
@@ -264,13 +610,13 @@ func (m *MockUserServer) ChangeUserTokenStatus(ctx context.Context, user *v1.Use
 }
 
 // ChangeUserTokenStatus indicates an expected call of ChangeUserTokenStatus
-func (mr *MockUserServerMockRecorder) ChangeUserTokenStatus(ctx, user interface{}) *gomock.Call {
+func (mr *MockUserOperatorMockRecorder) ChangeUserTokenStatus(ctx, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangeUserTokenStatus", reflect.TypeOf((*MockUserServer)(nil).ChangeUserTokenStatus), ctx, user)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangeUserTokenStatus", reflect.TypeOf((*MockUserOperator)(nil).ChangeUserTokenStatus), ctx, user)
 }
 
 // RefreshUserToken mocks base method
-func (m *MockUserServer) RefreshUserToken(ctx context.Context, user *v1.User) *v1.Response {
+func (m *MockUserOperator) RefreshUserToken(ctx context.Context, user *v1.User) *v1.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RefreshUserToken", ctx, user)
 	ret0, _ := ret[0].(*v1.Response)
@@ -278,13 +624,13 @@ func (m *MockUserServer) RefreshUserToken(ctx context.Context, user *v1.User) *v
 }
 
 // RefreshUserToken indicates an expected call of RefreshUserToken
-func (mr *MockUserServerMockRecorder) RefreshUserToken(ctx, user interface{}) *gomock.Call {
+func (mr *MockUserOperatorMockRecorder) RefreshUserToken(ctx, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshUserToken", reflect.TypeOf((*MockUserServer)(nil).RefreshUserToken), ctx, user)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshUserToken", reflect.TypeOf((*MockUserOperator)(nil).RefreshUserToken), ctx, user)
 }
 
 // CreateUserGroup mocks base method
-func (m *MockUserServer) CreateUserGroup(ctx context.Context, group *v1.UserGroup) *v1.Response {
+func (m *MockUserOperator) CreateUserGroup(ctx context.Context, group *v1.UserGroup) *v1.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateUserGroup", ctx, group)
 	ret0, _ := ret[0].(*v1.Response)
@@ -292,13 +638,13 @@ func (m *MockUserServer) CreateUserGroup(ctx context.Context, group *v1.UserGrou
 }
 
 // CreateUserGroup indicates an expected call of CreateUserGroup
-func (mr *MockUserServerMockRecorder) CreateUserGroup(ctx, group interface{}) *gomock.Call {
+func (mr *MockUserOperatorMockRecorder) CreateUserGroup(ctx, group interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUserGroup", reflect.TypeOf((*MockUserServer)(nil).CreateUserGroup), ctx, group)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUserGroup", reflect.TypeOf((*MockUserOperator)(nil).CreateUserGroup), ctx, group)
 }
 
 // UpdateUserGroup mocks base method
-func (m *MockUserServer) UpdateUserGroup(ctx context.Context, group *v1.UserGroup) *v1.Response {
+func (m *MockUserOperator) UpdateUserGroup(ctx context.Context, group *v1.ModifyUserGroup) *v1.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUserGroup", ctx, group)
 	ret0, _ := ret[0].(*v1.Response)
@@ -306,13 +652,13 @@ func (m *MockUserServer) UpdateUserGroup(ctx context.Context, group *v1.UserGrou
 }
 
 // UpdateUserGroup indicates an expected call of UpdateUserGroup
-func (mr *MockUserServerMockRecorder) UpdateUserGroup(ctx, group interface{}) *gomock.Call {
+func (mr *MockUserOperatorMockRecorder) UpdateUserGroup(ctx, group interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserGroup", reflect.TypeOf((*MockUserServer)(nil).UpdateUserGroup), ctx, group)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserGroup", reflect.TypeOf((*MockUserOperator)(nil).UpdateUserGroup), ctx, group)
 }
 
 // DeleteUserGroup mocks base method
-func (m *MockUserServer) DeleteUserGroup(ctx context.Context, group *v1.UserGroup) *v1.Response {
+func (m *MockUserOperator) DeleteUserGroup(ctx context.Context, group *v1.UserGroup) *v1.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteUserGroup", ctx, group)
 	ret0, _ := ret[0].(*v1.Response)
@@ -320,27 +666,41 @@ func (m *MockUserServer) DeleteUserGroup(ctx context.Context, group *v1.UserGrou
 }
 
 // DeleteUserGroup indicates an expected call of DeleteUserGroup
-func (mr *MockUserServerMockRecorder) DeleteUserGroup(ctx, group interface{}) *gomock.Call {
+func (mr *MockUserOperatorMockRecorder) DeleteUserGroup(ctx, group interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUserGroup", reflect.TypeOf((*MockUserServer)(nil).DeleteUserGroup), ctx, group)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUserGroup", reflect.TypeOf((*MockUserOperator)(nil).DeleteUserGroup), ctx, group)
 }
 
-// ListUserGroups mocks base method
-func (m *MockUserServer) ListUserGroups(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+// ListGroups mocks base method
+func (m *MockUserOperator) ListGroups(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListUserGroups", ctx, query)
+	ret := m.ctrl.Call(m, "ListGroups", ctx, query)
 	ret0, _ := ret[0].(*v1.BatchQueryResponse)
 	return ret0
 }
 
-// ListUserGroups indicates an expected call of ListUserGroups
-func (mr *MockUserServerMockRecorder) ListUserGroups(ctx, query interface{}) *gomock.Call {
+// ListGroups indicates an expected call of ListGroups
+func (mr *MockUserOperatorMockRecorder) ListGroups(ctx, query interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUserGroups", reflect.TypeOf((*MockUserServer)(nil).ListUserGroups), ctx, query)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListGroups", reflect.TypeOf((*MockUserOperator)(nil).ListGroups), ctx, query)
+}
+
+// ListUserByGroup mocks base method
+func (m *MockUserOperator) ListUserByGroup(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListUserByGroup", ctx, query)
+	ret0, _ := ret[0].(*v1.BatchQueryResponse)
+	return ret0
+}
+
+// ListUserByGroup indicates an expected call of ListUserByGroup
+func (mr *MockUserOperatorMockRecorder) ListUserByGroup(ctx, query interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUserByGroup", reflect.TypeOf((*MockUserOperator)(nil).ListUserByGroup), ctx, query)
 }
 
 // GetUserGroupToken mocks base method
-func (m *MockUserServer) GetUserGroupToken(ctx context.Context, filter map[string]string) *v1.Response {
+func (m *MockUserOperator) GetUserGroupToken(ctx context.Context, filter map[string]string) *v1.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserGroupToken", ctx, filter)
 	ret0, _ := ret[0].(*v1.Response)
@@ -348,13 +708,13 @@ func (m *MockUserServer) GetUserGroupToken(ctx context.Context, filter map[strin
 }
 
 // GetUserGroupToken indicates an expected call of GetUserGroupToken
-func (mr *MockUserServerMockRecorder) GetUserGroupToken(ctx, filter interface{}) *gomock.Call {
+func (mr *MockUserOperatorMockRecorder) GetUserGroupToken(ctx, filter interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserGroupToken", reflect.TypeOf((*MockUserServer)(nil).GetUserGroupToken), ctx, filter)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserGroupToken", reflect.TypeOf((*MockUserOperator)(nil).GetUserGroupToken), ctx, filter)
 }
 
 // ChangeUserGroupTokenStatus mocks base method
-func (m *MockUserServer) ChangeUserGroupTokenStatus(ctx context.Context, group *v1.UserGroup) *v1.Response {
+func (m *MockUserOperator) ChangeUserGroupTokenStatus(ctx context.Context, group *v1.UserGroup) *v1.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ChangeUserGroupTokenStatus", ctx, group)
 	ret0, _ := ret[0].(*v1.Response)
@@ -362,13 +722,13 @@ func (m *MockUserServer) ChangeUserGroupTokenStatus(ctx context.Context, group *
 }
 
 // ChangeUserGroupTokenStatus indicates an expected call of ChangeUserGroupTokenStatus
-func (mr *MockUserServerMockRecorder) ChangeUserGroupTokenStatus(ctx, group interface{}) *gomock.Call {
+func (mr *MockUserOperatorMockRecorder) ChangeUserGroupTokenStatus(ctx, group interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangeUserGroupTokenStatus", reflect.TypeOf((*MockUserServer)(nil).ChangeUserGroupTokenStatus), ctx, group)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangeUserGroupTokenStatus", reflect.TypeOf((*MockUserOperator)(nil).ChangeUserGroupTokenStatus), ctx, group)
 }
 
 // RefreshUserGroupToken mocks base method
-func (m *MockUserServer) RefreshUserGroupToken(ctx context.Context, group *v1.UserGroup) *v1.Response {
+func (m *MockUserOperator) RefreshUserGroupToken(ctx context.Context, group *v1.UserGroup) *v1.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RefreshUserGroupToken", ctx, group)
 	ret0, _ := ret[0].(*v1.Response)
@@ -376,64 +736,36 @@ func (m *MockUserServer) RefreshUserGroupToken(ctx context.Context, group *v1.Us
 }
 
 // RefreshUserGroupToken indicates an expected call of RefreshUserGroupToken
-func (mr *MockUserServerMockRecorder) RefreshUserGroupToken(ctx, group interface{}) *gomock.Call {
+func (mr *MockUserOperatorMockRecorder) RefreshUserGroupToken(ctx, group interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshUserGroupToken", reflect.TypeOf((*MockUserServer)(nil).RefreshUserGroupToken), ctx, group)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshUserGroupToken", reflect.TypeOf((*MockUserOperator)(nil).RefreshUserGroupToken), ctx, group)
 }
 
-// BatchAddUserToGroup mocks base method
-func (m *MockUserServer) BatchAddUserToGroup(ctx context.Context, relation *v1.UserGroupRelation) *v1.BatchWriteResponse {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BatchAddUserToGroup", ctx, relation)
-	ret0, _ := ret[0].(*v1.BatchWriteResponse)
-	return ret0
-}
-
-// BatchAddUserToGroup indicates an expected call of BatchAddUserToGroup
-func (mr *MockUserServerMockRecorder) BatchAddUserToGroup(ctx, relation interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchAddUserToGroup", reflect.TypeOf((*MockUserServer)(nil).BatchAddUserToGroup), ctx, relation)
-}
-
-// BatchRemoveUserFromGroup mocks base method
-func (m *MockUserServer) BatchRemoveUserFromGroup(ctx context.Context, relation *v1.UserGroupRelation) *v1.BatchWriteResponse {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BatchRemoveUserFromGroup", ctx, relation)
-	ret0, _ := ret[0].(*v1.BatchWriteResponse)
-	return ret0
-}
-
-// BatchRemoveUserFromGroup indicates an expected call of BatchRemoveUserFromGroup
-func (mr *MockUserServerMockRecorder) BatchRemoveUserFromGroup(ctx, relation interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchRemoveUserFromGroup", reflect.TypeOf((*MockUserServer)(nil).BatchRemoveUserFromGroup), ctx, relation)
-}
-
-// MockAuthStrategyServer is a mock of AuthStrategyServer interface
-type MockAuthStrategyServer struct {
+// MockStrategyOperator is a mock of StrategyOperator interface
+type MockStrategyOperator struct {
 	ctrl     *gomock.Controller
-	recorder *MockAuthStrategyServerMockRecorder
+	recorder *MockStrategyOperatorMockRecorder
 }
 
-// MockAuthStrategyServerMockRecorder is the mock recorder for MockAuthStrategyServer
-type MockAuthStrategyServerMockRecorder struct {
-	mock *MockAuthStrategyServer
+// MockStrategyOperatorMockRecorder is the mock recorder for MockStrategyOperator
+type MockStrategyOperatorMockRecorder struct {
+	mock *MockStrategyOperator
 }
 
-// NewMockAuthStrategyServer creates a new mock instance
-func NewMockAuthStrategyServer(ctrl *gomock.Controller) *MockAuthStrategyServer {
-	mock := &MockAuthStrategyServer{ctrl: ctrl}
-	mock.recorder = &MockAuthStrategyServerMockRecorder{mock}
+// NewMockStrategyOperator creates a new mock instance
+func NewMockStrategyOperator(ctrl *gomock.Controller) *MockStrategyOperator {
+	mock := &MockStrategyOperator{ctrl: ctrl}
+	mock.recorder = &MockStrategyOperatorMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use
-func (m *MockAuthStrategyServer) EXPECT() *MockAuthStrategyServerMockRecorder {
+func (m *MockStrategyOperator) EXPECT() *MockStrategyOperatorMockRecorder {
 	return m.recorder
 }
 
 // CreateStrategy mocks base method
-func (m *MockAuthStrategyServer) CreateStrategy(ctx context.Context, strategy *v1.AuthStrategy) *v1.Response {
+func (m *MockStrategyOperator) CreateStrategy(ctx context.Context, strategy *v1.AuthStrategy) *v1.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateStrategy", ctx, strategy)
 	ret0, _ := ret[0].(*v1.Response)
@@ -441,13 +773,13 @@ func (m *MockAuthStrategyServer) CreateStrategy(ctx context.Context, strategy *v
 }
 
 // CreateStrategy indicates an expected call of CreateStrategy
-func (mr *MockAuthStrategyServerMockRecorder) CreateStrategy(ctx, strategy interface{}) *gomock.Call {
+func (mr *MockStrategyOperatorMockRecorder) CreateStrategy(ctx, strategy interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateStrategy", reflect.TypeOf((*MockAuthStrategyServer)(nil).CreateStrategy), ctx, strategy)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateStrategy", reflect.TypeOf((*MockStrategyOperator)(nil).CreateStrategy), ctx, strategy)
 }
 
 // UpdateStrategy mocks base method
-func (m *MockAuthStrategyServer) UpdateStrategy(ctx context.Context, strategy *v1.ModifyAuthStrategy) *v1.Response {
+func (m *MockStrategyOperator) UpdateStrategy(ctx context.Context, strategy *v1.ModifyAuthStrategy) *v1.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateStrategy", ctx, strategy)
 	ret0, _ := ret[0].(*v1.Response)
@@ -455,13 +787,13 @@ func (m *MockAuthStrategyServer) UpdateStrategy(ctx context.Context, strategy *v
 }
 
 // UpdateStrategy indicates an expected call of UpdateStrategy
-func (mr *MockAuthStrategyServerMockRecorder) UpdateStrategy(ctx, strategy interface{}) *gomock.Call {
+func (mr *MockStrategyOperatorMockRecorder) UpdateStrategy(ctx, strategy interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStrategy", reflect.TypeOf((*MockAuthStrategyServer)(nil).UpdateStrategy), ctx, strategy)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStrategy", reflect.TypeOf((*MockStrategyOperator)(nil).UpdateStrategy), ctx, strategy)
 }
 
 // DeleteStrategy mocks base method
-func (m *MockAuthStrategyServer) DeleteStrategy(ctx context.Context, strategy *v1.AuthStrategy) *v1.Response {
+func (m *MockStrategyOperator) DeleteStrategy(ctx context.Context, strategy *v1.AuthStrategy) *v1.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteStrategy", ctx, strategy)
 	ret0, _ := ret[0].(*v1.Response)
@@ -469,13 +801,13 @@ func (m *MockAuthStrategyServer) DeleteStrategy(ctx context.Context, strategy *v
 }
 
 // DeleteStrategy indicates an expected call of DeleteStrategy
-func (mr *MockAuthStrategyServerMockRecorder) DeleteStrategy(ctx, strategy interface{}) *gomock.Call {
+func (mr *MockStrategyOperatorMockRecorder) DeleteStrategy(ctx, strategy interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteStrategy", reflect.TypeOf((*MockAuthStrategyServer)(nil).DeleteStrategy), ctx, strategy)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteStrategy", reflect.TypeOf((*MockStrategyOperator)(nil).DeleteStrategy), ctx, strategy)
 }
 
 // ListStrategy mocks base method
-func (m *MockAuthStrategyServer) ListStrategy(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+func (m *MockStrategyOperator) ListStrategy(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListStrategy", ctx, query)
 	ret0, _ := ret[0].(*v1.BatchQueryResponse)
@@ -483,9 +815,37 @@ func (m *MockAuthStrategyServer) ListStrategy(ctx context.Context, query map[str
 }
 
 // ListStrategy indicates an expected call of ListStrategy
-func (mr *MockAuthStrategyServerMockRecorder) ListStrategy(ctx, query interface{}) *gomock.Call {
+func (mr *MockStrategyOperatorMockRecorder) ListStrategy(ctx, query interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStrategy", reflect.TypeOf((*MockAuthStrategyServer)(nil).ListStrategy), ctx, query)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStrategy", reflect.TypeOf((*MockStrategyOperator)(nil).ListStrategy), ctx, query)
+}
+
+// ListStrategyByUserID mocks base method
+func (m *MockStrategyOperator) ListStrategyByUserID(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListStrategyByUserID", ctx, query)
+	ret0, _ := ret[0].(*v1.BatchQueryResponse)
+	return ret0
+}
+
+// ListStrategyByUserID indicates an expected call of ListStrategyByUserID
+func (mr *MockStrategyOperatorMockRecorder) ListStrategyByUserID(ctx, query interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStrategyByUserID", reflect.TypeOf((*MockStrategyOperator)(nil).ListStrategyByUserID), ctx, query)
+}
+
+// GetStrategy mocks base method
+func (m *MockStrategyOperator) GetStrategy(ctx context.Context, query map[string]string) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetStrategy", ctx, query)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// GetStrategy indicates an expected call of GetStrategy
+func (mr *MockStrategyOperatorMockRecorder) GetStrategy(ctx, query interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategy", reflect.TypeOf((*MockStrategyOperator)(nil).GetStrategy), ctx, query)
 }
 
 // MockAuthority is a mock of Authority interface

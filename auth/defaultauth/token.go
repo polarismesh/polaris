@@ -49,19 +49,13 @@ const (
 	TokenSplit   string = "::"
 )
 
-// CreateUserToken Create a user token
-//  @param uid
-//  @return string
-//  @return error
-func CreateUserToken(uid string) (string, error) {
+// createUserToken Create a user token
+func createUserToken(uid string) (string, error) {
 	return createToken(uid, "")
 }
 
-// CreateUserGroupToken Create user group token
-//  @param gid
-//  @return string
-//  @return error
-func CreateUserGroupToken(gid string) (string, error) {
+// createGroupToken Create user group token
+func createGroupToken(gid string) (string, error) {
 	return createToken("", gid)
 }
 

@@ -26,10 +26,6 @@ import (
 )
 
 // CreateNamespaces 创建命名空间，只需要要后置鉴权，将数据添加到资源策略中
-//  @receiver svr
-//  @param ctx
-//  @param req
-//  @return *api.BatchWriteResponse
 func (svr *serverAuthAbility) CreateNamespaces(ctx context.Context, reqs []*api.Namespace) *api.BatchWriteResponse {
 	authCtx := svr.collectNamespaceAuthContext(ctx, reqs, model.Create)
 
@@ -37,9 +33,11 @@ func (svr *serverAuthAbility) CreateNamespaces(ctx context.Context, reqs []*api.
 
 	// 填充 ownerId 信息数据
 	ownerId := utils.ParseOwnerID(ctx)
-	for index := range reqs {
-		req := reqs[index]
-		req.Owners = utils.NewStringValue(ownerId)
+	if len(ownerId) > 0 {
+		for index := range reqs {
+			req := reqs[index]
+			req.Owners = utils.NewStringValue(ownerId)
+		}
 	}
 
 	resp := svr.targetServer.CreateNamespaces(ctx, reqs)
@@ -47,10 +45,6 @@ func (svr *serverAuthAbility) CreateNamespaces(ctx context.Context, reqs []*api.
 }
 
 // DeleteNamespaces 删除命名空间，需要先走权限检查
-//  @receiver svr
-//  @param ctx
-//  @param req
-//  @return *api.BatchWriteResponse
 func (svr *serverAuthAbility) DeleteNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
 	authCtx := svr.collectNamespaceAuthContext(ctx, req, model.Delete)
 
@@ -58,17 +52,15 @@ func (svr *serverAuthAbility) DeleteNamespaces(ctx context.Context, req []*api.N
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	resp := svr.targetServer.DeleteNamespaces(ctx, req)
 
-	return resp
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.targetServer.DeleteNamespaces(ctx, req)
 }
 
 // UpdateNamespaces 更新命名空间，需要先走权限检查
-//  @receiver svr
-//  @param ctx
-//  @param req
-//  @return *api.BatchWriteResponse
 func (svr *serverAuthAbility) UpdateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
 	authCtx := svr.collectNamespaceAuthContext(ctx, req, model.Modify)
 
@@ -77,15 +69,13 @@ func (svr *serverAuthAbility) UpdateNamespaces(ctx context.Context, req []*api.N
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
 
-	resp := svr.targetServer.DeleteNamespaces(ctx, req)
-	return resp
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.targetServer.DeleteNamespaces(ctx, req)
 }
 
 // UpdateNamespaceToken 更新命名空间的token信息，需要先走权限检查
-//  @receiver svr
-//  @param ctx
-//  @param req
-//  @return *api.Response
 func (svr *serverAuthAbility) UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response {
 	authCtx := svr.collectNamespaceAuthContext(ctx, []*api.Namespace{req}, model.Modify)
 
@@ -93,25 +83,41 @@ func (svr *serverAuthAbility) UpdateNamespaceToken(ctx context.Context, req *api
 	if err != nil {
 		return api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
-	resp := svr.targetServer.UpdateNamespaceToken(ctx, req)
 
-	return resp
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.targetServer.UpdateNamespaceToken(ctx, req)
 }
 
 // GetNamespaces 获取命名空间列表信息，暂时不走权限检查
-//  @receiver svr
-//  @param ctx
-//  @param query
-//  @return *api.BatchQueryResponse
 func (svr *serverAuthAbility) GetNamespaces(ctx context.Context, query map[string][]string) *api.BatchQueryResponse {
+
+	authCtx := svr.collectNamespaceAuthContext(ctx, nil, model.Modify)
+
+	_, err := svr.authMgn.CheckPermission(authCtx)
+	if err != nil {
+		return api.NewBatchQueryResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.GetNamespaces(ctx, query)
 }
 
 // GetNamespaceToken 获取命名空间的token信息，暂时不走权限检查
-//  @receiver svr
-//  @param ctx
-//  @param req
-//  @return *api.Response
 func (svr *serverAuthAbility) GetNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response {
+
+	authCtx := svr.collectNamespaceAuthContext(ctx, nil, model.Modify)
+
+	_, err := svr.authMgn.CheckPermission(authCtx)
+	if err != nil {
+		return api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.GetNamespaceToken(ctx, req)
 }

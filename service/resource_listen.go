@@ -85,7 +85,7 @@ func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *Reso
 	}
 
 	authCtx.GetAttachment()[model.ResourceAttachmentKey] = accessRes
-	svr.authMgn.AfterResourceOperation(authCtx)
+	svr.authSvr.AfterResourceOperation(authCtx)
 }
 
 // onServiceResource
@@ -119,7 +119,7 @@ func (svr *serverAuthAbility) onServiceResource(ctx context.Context, res *Resour
 		api.ResourceType_Services:   accessSvc,
 	}
 
-	svr.authMgn.AfterResourceOperation(authCtx)
+	svr.authSvr.AfterResourceOperation(authCtx)
 }
 
 // onConfigGroupResource
@@ -129,5 +129,5 @@ func (svr *serverAuthAbility) onServiceResource(ctx context.Context, res *Resour
 func (svr *serverAuthAbility) onConfigGroupResource(ctx context.Context, res *ResourceEvent) {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
 
-	svr.authMgn.AfterResourceOperation(authCtx)
+	svr.authSvr.AfterResourceOperation(authCtx)
 }
