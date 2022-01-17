@@ -686,7 +686,7 @@ CREATE TABLE `auth_principal` (
 
 CREATE TABLE `auth_strategy_resource` (
     `strategy_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '策略ID',
-    `res_type` int COLLATE utf8_bin NOT NULL comment '资源类型, Namespaces = 0, Sevice = 1, ConfigGroups = 2',
+    `res_type` int COLLATE utf8_bin NOT NULL comment '资源类型, Namespaces = 0, Service = 1, ConfigGroups = 2',
     `res_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '资源ID',
     `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
