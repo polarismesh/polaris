@@ -26,10 +26,6 @@ type configFileStore struct {
 	handler BoltHandler
 }
 
-func (cf *configFileStore) StartTx() (store.Tx, error) {
-	return nil, nil
-}
-
 // CreateConfigFile 创建配置文件
 func (cf *configFileStore) CreateConfigFile(tx store.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
 	return nil, nil

@@ -42,14 +42,17 @@ func (cfr *configFileReleaseStore) GetConfigFileRelease(tx store.Tx, namespace, 
 	return nil, nil
 }
 
+// GetConfigFileReleaseWithAllFlag 获取所有发布数据，包含删除的
 func (cfr *configFileReleaseStore) GetConfigFileReleaseWithAllFlag(tx store.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
 	return nil, nil
 }
 
+// getConfigFileReleaseByFlag 通过 flag 获取发布数据
 func (cfr *configFileReleaseStore) getConfigFileReleaseByFlag(tx store.Tx, namespace, group, fileName string, withAllFlag bool) (*model.ConfigFileRelease, error) {
 	return nil, nil
 }
 
+// DeleteConfigFileRelease 删除发布数据
 func (cfr *configFileReleaseStore) DeleteConfigFileRelease(tx store.Tx, namespace, group, fileName, deleteBy string) error {
 	return nil
 }

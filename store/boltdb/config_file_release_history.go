@@ -36,6 +36,7 @@ func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespa
 	return 0, nil, nil
 }
 
+// GetLatestConfigFileReleaseHistory 获取最后一次发布记录
 func (rh *configFileReleaseHistoryStore) GetLatestConfigFileReleaseHistory(namespace, group, fileName string) (*model.ConfigFileReleaseHistory, error) {
 	return nil, nil
 }
