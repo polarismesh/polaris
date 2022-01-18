@@ -60,7 +60,7 @@ func NewWatchCenter(eventCenter *Center) *watchCenter {
 		return true
 	})
 
-	wc.handlerMessage()
+	wc.handleMessage()
 
 	return wc
 }
@@ -115,7 +115,7 @@ func (wc *watchCenter) RemoveWatcher(clientId string, watchConfigFiles []*api.Cl
 	}
 }
 
-func (wc *watchCenter) handlerMessage() {
+func (wc *watchCenter) handleMessage() {
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
