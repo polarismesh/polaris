@@ -20,6 +20,7 @@ package boltdb
 import (
 	"errors"
 	"fmt"
+	"github.com/polarismesh/polaris-server/store"
 	"reflect"
 	"time"
 
@@ -66,6 +67,9 @@ type BoltHandler interface {
 
 	// Execute execute scripts directly
 	Execute(writable bool, process func(tx *bolt.Tx) error) error
+
+	// StartTx start new tx
+	StartTx() (store.Tx, error)
 
 	// Close close boltdb
 	Close() error
@@ -591,4 +595,13 @@ func (b *boltHandler) Execute(writable bool, process func(tx *bolt.Tx) error) er
 		return b.db.Update(process)
 	}
 	return b.db.View(process)
+}
+
+// StartTx start a new tx
+func (b *boltHandler) StartTx() (store.Tx, error) {
+	tx, err := b.db.Begin(true)
+	if err != nil {
+		return nil, err
+	}
+	return NewBoltTx(tx), nil
 }

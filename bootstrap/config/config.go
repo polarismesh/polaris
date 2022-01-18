@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
+	"github.com/polarismesh/polaris-server/config"
 	"os"
 
 	"github.com/polarismesh/polaris-server/apiserver"
@@ -34,13 +35,14 @@ import (
 
 // Config 配置
 type Config struct {
-	Bootstrap    Bootstrap          `yaml:"bootstrap"`
-	APIServers   []apiserver.Config `yaml:"apiservers"`
-	Cache        cache.Config       `yaml:"cache"`
-	Naming       service.Config     `yaml:"naming"`
-	HealthChecks healthcheck.Config `yaml:"healthcheck"`
-	Store        store.Config       `yaml:"store"`
-	Plugin       plugin.Config      `yaml:"plugin"`
+	Bootstrap    Bootstrap            `yaml:"bootstrap"`
+	APIServers   []apiserver.Config   `yaml:"apiservers"`
+	Cache        cache.Config         `yaml:"cache"`
+	Naming       service.Config       `yaml:"naming"`
+	ConfigFile   config.StartupConfig `yaml:"config_file"`
+	HealthChecks healthcheck.Config   `yaml:"healthcheck"`
+	Store        store.Config         `yaml:"store"`
+	Plugin       plugin.Config        `yaml:"plugin"`
 }
 
 // Bootstrap 启动引导配置

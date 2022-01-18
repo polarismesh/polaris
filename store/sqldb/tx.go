@@ -1,4 +1,4 @@
-/**
+/*
  * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -15,11 +15,28 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package httpserver
+package sqldb
 
-import (
-	commonlog "github.com/polarismesh/polaris-server/common/log"
-)
+import "github.com/polarismesh/polaris-server/store"
 
-var log = commonlog.NamingScope()
-var configLog = commonlog.ConfigScope()
+type Tx struct {
+	delegateTx *BaseTx
+}
+
+func NewSqlDBTx(delegateTx *BaseTx) store.Tx {
+	return &Tx{
+		delegateTx: delegateTx,
+	}
+}
+
+func (t *Tx) Commit() error {
+	return t.delegateTx.Commit()
+}
+
+func (t *Tx) Rollback() error {
+	return t.delegateTx.Rollback()
+}
+
+func (t *Tx) GetDelegateTx() interface{} {
+	return t.delegateTx
+}

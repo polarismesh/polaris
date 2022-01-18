@@ -20,6 +20,7 @@ package httpserver
 import (
 	"context"
 	"fmt"
+	"github.com/polarismesh/polaris-server/config"
 	"github.com/polarismesh/polaris-server/plugin/statis/local"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"net"
@@ -59,6 +60,7 @@ type HTTPServer struct {
 
 	server            *http.Server
 	namingServer      *service.Server
+	configServer      *config.Server
 	healthCheckServer *healthcheck.Server
 	rateLimit         plugin.Ratelimit
 	statis            plugin.Statis
@@ -145,6 +147,14 @@ func (h *HTTPServer) Run(errCh chan error) {
 	}
 	h.statis = plugin.GetStatis()
 
+	//初始化配置中心模块
+	h.configServer, err = config.GetConfigServer()
+	if err != nil {
+		log.Errorf("set config server to http server error. %v", err)
+		errCh <- err
+		return
+	}
+
 	// 初始化http server
 	address := fmt.Sprintf("%v:%v", h.listenIP, h.listenPort)
 
@@ -201,6 +211,8 @@ func (h *HTTPServer) Stop() {
 	if h.server != nil {
 		_ = h.server.Close()
 	}
+
+	h.StopConfigServer()
 }
 
 // Restart restart server
@@ -269,11 +281,16 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 			}
 		case "console":
 			if config.Enable {
-				service, err := h.GetConsoleAccessServer(config.Include)
+				namingService, err := h.GetNamingConsoleAccessServer(config.Include)
 				if err != nil {
 					return nil, err
 				}
-				wsContainer.Add(service)
+				wsContainer.Add(namingService)
+				coreService, err := h.GetCoreConsoleAccessServer(config.Include)
+				if err != nil {
+					return nil, err
+				}
+				wsContainer.Add(coreService)
 			}
 		case "client":
 			if config.Enable {
@@ -282,6 +299,14 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 					return nil, err
 				}
 				wsContainer.Add(service)
+			}
+		case "config":
+			if config.Enable {
+				consoleService, err := h.GetConfigAccessServer(config.Include)
+				if err != nil {
+					return nil, err
+				}
+				wsContainer.Add(consoleService)
 			}
 		default:
 			log.Errorf("api %s does not exist in httpserver", name)

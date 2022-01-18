@@ -42,6 +42,13 @@ type boltStore struct {
 	*circuitBreakerStore
 	*toolStore
 
+	//配置中心stores
+	*configFileGroupStore
+	*configFileStore
+	*configFileReleaseStore
+	*configFileReleaseHistoryStore
+	*configFileTagStore
+
 	handler BoltHandler
 	start   bool
 }
@@ -158,6 +165,10 @@ func (m *boltStore) Destroy() error {
 //CreateTransaction create store transaction
 func (m *boltStore) CreateTransaction() (store.Transaction, error) {
 	return &transaction{handler: m.handler}, nil
+}
+
+func (m *boltStore) StartTx() (store.Tx, error) {
+	return m.handler.StartTx()
 }
 
 func init() {

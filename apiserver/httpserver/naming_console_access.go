@@ -33,8 +33,8 @@ const (
 	defaultAccess     string = "default"
 )
 
-// GetConsoleAccessServer 注册管理端接口
-func (h *HTTPServer) GetConsoleAccessServer(include []string) (*restful.WebService, error) {
+// GetNamingConsoleAccessServer 注册管理端接口
+func (h *HTTPServer) GetNamingConsoleAccessServer(include []string) (*restful.WebService, error) {
 	consoleAccess := []string{defaultAccess}
 
 	ws := new(restful.WebService)

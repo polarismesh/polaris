@@ -1,4 +1,4 @@
-/**
+/*
  * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -15,11 +15,31 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package httpserver
+package boltdb
 
 import (
-	commonlog "github.com/polarismesh/polaris-server/common/log"
+	"github.com/boltdb/bolt"
+	"github.com/polarismesh/polaris-server/store"
 )
 
-var log = commonlog.NamingScope()
-var configLog = commonlog.ConfigScope()
+type Tx struct {
+	delegateTx *bolt.Tx
+}
+
+func NewBoltTx(delegateTx *bolt.Tx) store.Tx {
+	return &Tx{
+		delegateTx: delegateTx,
+	}
+}
+
+func (t *Tx) Commit() error {
+	return t.delegateTx.Commit()
+}
+
+func (t *Tx) Rollback() error {
+	return t.delegateTx.Rollback()
+}
+
+func (t *Tx) GetDelegateTx() interface{} {
+	return t.delegateTx
+}

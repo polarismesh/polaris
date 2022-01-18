@@ -34,6 +34,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/common/version"
+	config2 "github.com/polarismesh/polaris-server/config"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/store"
@@ -101,6 +102,10 @@ func Start(configFilePath string) {
 		fmt.Printf("[ERROR] %v\n", err)
 		return
 	}
+	err = StartConfigModule(ctx, cfg)
+	if err != nil {
+		fmt.Printf("[ERROR] Start config module error. %v\n", err)
+	}
 	errCh := make(chan error, len(cfg.APIServers))
 	servers, err := StartServers(ctx, cfg, errCh)
 	if err != nil {
@@ -146,6 +151,11 @@ func StartComponents(ctx context.Context, cfg *config.Config) error {
 	}
 	healthCheckServer.SetServiceCache(namingSvr.Cache().Service())
 	return nil
+}
+
+// StartConfigModule 启动配置中心模块
+func StartConfigModule(ctx context.Context, cfg *config.Config) error {
+	return config2.InitConfigModule(ctx, cfg.ConfigFile)
 }
 
 // StartServers 启动server
