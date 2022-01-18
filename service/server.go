@@ -25,6 +25,7 @@ import (
 
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service/batch"
@@ -145,10 +146,11 @@ func (s *Server) SetResourceHook(hooks []ResourceHook) {
 	s.hooks = hooks
 }
 
-func (s *Server) afterNamespaceResource(ctx context.Context, req []*model.Namespace, remove bool) {
+func (s *Server) afterNamespaceResource(ctx context.Context, req *api.Namespace, save *model.Namespace, remove bool) {
 	event := &ResourceEvent{
-		Namespaces: req,
-		IsRemove:   remove,
+		ReqNamespace: req,
+		Namespace:    save,
+		IsRemove:     remove,
 	}
 
 	for index := range s.hooks {
@@ -157,10 +159,11 @@ func (s *Server) afterNamespaceResource(ctx context.Context, req []*model.Namesp
 	}
 }
 
-func (s *Server) afterServiceResource(ctx context.Context, req []*model.Service, remove bool) {
+func (s *Server) afterServiceResource(ctx context.Context, req *api.Service, save *model.Service, remove bool) {
 	event := &ResourceEvent{
-		Services: req,
-		IsRemove: remove,
+		ReqService: req,
+		Service:    save,
+		IsRemove:   remove,
 	}
 
 	for index := range s.hooks {

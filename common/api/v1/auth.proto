@@ -4,6 +4,17 @@ package v1;
 
 import "google/protobuf/wrappers.proto";
 
+enum AuthAction {
+  ONLY_READ = 0;
+  READ_WRITE = 1;
+}
+
+enum ResourceType {
+  Namespaces = 0;
+  Services = 1;
+  ConfigGroups = 2;
+}
+
 message LoginRequest {
   google.protobuf.StringValue owner = 1;
   google.protobuf.StringValue name = 2;
@@ -32,7 +43,7 @@ message User {
 
 message UserGroupRelation {
   google.protobuf.StringValue group_id = 1;
-  repeated google.protobuf.StringValue user_ids = 2;
+  repeated User users = 2;
 }
 
 message UserGroup {
@@ -53,32 +64,38 @@ message ModifyUserGroup {
   google.protobuf.StringValue auth_token = 3;
   google.protobuf.BoolValue token_enable = 4;
   google.protobuf.StringValue comment = 5;
-  UserGroupRelation add_relation = 6;
-  UserGroupRelation remove_relation = 7;
+  UserGroupRelation add_relations = 6;
+  UserGroupRelation remove_relations = 7;
 }
 
 message Principal {
-  repeated google.protobuf.StringValue users = 1;
-  repeated google.protobuf.StringValue groups = 2;
+  google.protobuf.StringValue id = 1;
+  google.protobuf.StringValue name = 2;
 }
 
-message StrategyResource {
+message Principals {
+  repeated Principal users = 1;
+  repeated Principal groups = 2;
+}
+
+message StrategyResourceEntry {
+  google.protobuf.StringValue id = 1;
+  google.protobuf.StringValue namespace = 2;
+  google.protobuf.StringValue name = 3;
+}
+
+message StrategyResources {
   google.protobuf.StringValue strategy_id = 1;
-  repeated google.protobuf.StringValue namespaces = 2;
-  repeated google.protobuf.StringValue services = 3;
-  repeated google.protobuf.StringValue config_groups = 4;
-}
-
-enum AuthAction {
-  ONLY_READ = 0;
-  READ_WRITE = 1;
+  repeated StrategyResourceEntry namespaces = 2;
+  repeated StrategyResourceEntry services = 3;
+  repeated StrategyResourceEntry config_groups = 4;
 }
 
 message AuthStrategy {
   google.protobuf.StringValue id = 1;
   google.protobuf.StringValue name = 2;
-  Principal principal = 3;
-  StrategyResource resource = 4;
+  Principals principals = 3;
+  StrategyResources resources = 4;
   AuthAction action = 5;
   google.protobuf.StringValue comment = 6;
   google.protobuf.StringValue owner = 7;
@@ -89,17 +106,11 @@ message AuthStrategy {
 
 message ModifyAuthStrategy {
   google.protobuf.StringValue id = 1;
-  Principal add_principal = 2;
-  Principal remove_principal = 3;
-  StrategyResource add_resource = 4;
-  StrategyResource remove_resource = 5;
+  Principals add_principals = 2;
+  Principals remove_principals = 3;
+  StrategyResources add_resources = 4;
+  StrategyResources remove_resources = 5;
   AuthAction action = 6;
   google.protobuf.StringValue comment = 7;
   google.protobuf.StringValue owner = 8;
-}
-
-enum ResourceType {
-  Namespaces = 0;
-  Services = 1;
-  ConfigGroups = 2;
 }

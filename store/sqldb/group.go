@@ -216,7 +216,7 @@ func (u *groupStore) deleteUserGroup(id string) error {
 }
 
 // GetGroup 根据用户组ID获取用户组
-func (u *groupStore) GetGroup(groupId string) (*model.UserGroup, error) {
+func (u *groupStore) GetGroup(groupId string) (*model.UserGroupDetail, error) {
 	if groupId == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"get usergroup missing some params, groupId is %s", groupId))
@@ -231,7 +231,9 @@ func (u *groupStore) GetGroup(groupId string) (*model.UserGroup, error) {
 	`
 	row := u.master.QueryRow(getSql, groupId)
 
-	group := new(model.UserGroup)
+	group := &model.UserGroupDetail{
+		UserGroup: &model.UserGroup{},
+	}
 	var (
 		ctime, mtime int64
 		tokenEnable  int
@@ -245,7 +247,12 @@ func (u *groupStore) GetGroup(groupId string) (*model.UserGroup, error) {
 			return nil, store.Error(err)
 		}
 	}
+	uids, err := u.getGroupLinkUserIds(group.ID)
+	if err != nil {
+		return nil, store.Error(err)
+	}
 
+	group.UserIds = uids
 	group.TokenEnable = (tokenEnable == 1)
 	group.CreateTime = time.Unix(ctime, 0)
 	group.ModifyTime = time.Unix(mtime, 0)
@@ -428,7 +435,7 @@ func (u *groupStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*mo
 	ret := make([]*model.UserGroupDetail, 0)
 	for rows.Next() {
 		detail := &model.UserGroupDetail{
-			UserIDs: make(map[string]struct{}, 0),
+			UserIds: make(map[string]struct{}, 0),
 		}
 		group, err := fetchRown2UserGroup(rows)
 		if err != nil {
@@ -439,7 +446,7 @@ func (u *groupStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*mo
 			return nil, store.Error(err)
 		}
 
-		detail.UserIDs = uids
+		detail.UserIds = uids
 		detail.UserGroup = group
 
 		ret = append(ret, detail)

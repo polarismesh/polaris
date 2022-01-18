@@ -88,7 +88,7 @@ func (s *Server) CreateNamespace(ctx context.Context, req *api.Namespace) *api.R
 		Token: utils.NewStringValue(data.Token),
 	}
 
-	s.afterNamespaceResource(ctx, []*model.Namespace{data}, false)
+	s.afterNamespaceResource(ctx, req, data, false)
 
 	return api.NewNamespaceResponse(api.ExecuteSuccess, out)
 }
@@ -195,7 +195,7 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 	log.Info(msg, zap.String("request-id", requestID))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.ODelete))
 
-	s.afterNamespaceResource(ctx, []*model.Namespace{&model.Namespace{Name: req.GetName().GetValue()}}, true)
+	s.afterNamespaceResource(ctx, req, &model.Namespace{Name: req.GetName().GetValue()}, true)
 
 	return api.NewNamespaceResponse(api.ExecuteSuccess, req)
 }

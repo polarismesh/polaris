@@ -66,16 +66,15 @@ func (authMgn *defaultAuthManager) CheckPermission(authCtx *model.AcquireContext
 		return true, nil
 	}
 
-	ctx, tokenInfo, err := authMgn.verifyToken(authCtx.GetRequestContext(), authCtx.GetToken())
+	err := authMgn.VerifyToken(authCtx)
 	if err != nil {
 		return false, err
 	}
 
-	// 重新设置 RequestContext
-	authCtx.SetRequestContext(ctx)
+	tokenInfo := authCtx.GetAttachment()[model.TokenDetailInfoKey].(TokenInfo)
 
 	// 如果访问的资源，其 owner 找不到对应的用户，则认为是可以被随意操作的资源
-	authMgn.removeNoOwnerResources(authCtx)
+	authMgn.removeNoStrategyResources(authCtx)
 
 	strategys, ownerId, err := authMgn.findStrategies(tokenInfo)
 	if err != nil {
@@ -196,15 +195,18 @@ func (authMgn *defaultAuthManager) checkToken(tokenUserInfo TokenInfo) (string, 
 }
 
 // verifyToken 对 token 进行检查验证
-func (authMgn *defaultAuthManager) verifyToken(ctx context.Context, token string) (context.Context, TokenInfo, error) {
-	tokenInfo, err := authMgn.DecodeToken(token)
+func (authMgn *defaultAuthManager) VerifyToken(authCtx *model.AcquireContext) error {
+
+	ctx := authCtx.GetRequestContext()
+
+	tokenInfo, err := authMgn.DecodeToken(authCtx.GetToken())
 	if err != nil {
-		return nil, TokenInfo{}, err
+		return err
 	}
 
 	owner, err := authMgn.checkToken(tokenInfo)
 	if err != nil {
-		return nil, TokenInfo{}, err
+		return err
 	}
 
 	ctx = context.WithValue(ctx, utils.ContextIsOwnerKey, tokenInfo.Role != model.SubAccountUserRole)
@@ -217,7 +219,10 @@ func (authMgn *defaultAuthManager) verifyToken(ctx context.Context, token string
 		ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, user.Type)
 	}
 
-	return ctx, tokenInfo, nil
+	authCtx.SetRequestContext(ctx)
+	authCtx.GetAttachment()[model.TokenDetailInfoKey] = tokenInfo
+
+	return nil
 }
 
 // DecodeToken 解析 token 信息
@@ -247,8 +252,8 @@ func (authMgn *defaultAuthManager) DecodeToken(t string) (TokenInfo, error) {
 	return tokenInfo, nil
 }
 
-// removeNoOwnerResources 移除 owner 找不到的资源
-func (authMgn *defaultAuthManager) removeNoOwnerResources(authCtx *model.AcquireContext) {
+// removeNoStrategyResources 移除 owner 找不到的资源
+func (authMgn *defaultAuthManager) removeNoStrategyResources(authCtx *model.AcquireContext) {
 	resources := authCtx.GetAccessResources()
 
 	cacheMgn := authMgn.Cache()
@@ -259,18 +264,18 @@ func (authMgn *defaultAuthManager) removeNoOwnerResources(authCtx *model.Acquire
 	nsRes := resources[api.ResourceType_Namespaces]
 	newNsRes := make([]model.ResourceEntry, 0)
 	for index := range nsRes {
-		if val := cacheMgn.User().GetUserByID(nsRes[index].Owner); val != nil {
+		if cacheMgn.AuthStrategy().IsResourceLinkStrategy(api.ResourceType_Namespaces, nsRes[index].ID) {
 			newNsRes = append(newNsRes, nsRes[index])
 		}
 	}
 	newAccessRes[api.ResourceType_Namespaces] = newNsRes
 
 	if authCtx.GetModule() == model.DiscoverModule {
-		// 检查命名空间
+		// 检查服务
 		svcRes := resources[api.ResourceType_Services]
 		newSvcRes := make([]model.ResourceEntry, 0)
 		for index := range svcRes {
-			if val := cacheMgn.User().GetUserByID(svcRes[index].Owner); val != nil {
+			if cacheMgn.AuthStrategy().IsResourceLinkStrategy(api.ResourceType_Services, svcRes[index].ID) {
 				newSvcRes = append(newSvcRes, svcRes[index])
 			}
 		}
@@ -278,18 +283,18 @@ func (authMgn *defaultAuthManager) removeNoOwnerResources(authCtx *model.Acquire
 	}
 
 	if authCtx.GetModule() == model.ConfigModule {
-		// 检查命名空间
+		// 检查配置空间
 		cfgRes := resources[api.ResourceType_ConfigGroups]
 		newCfgRes := make([]model.ResourceEntry, 0)
 		for index := range cfgRes {
-			if val := cacheMgn.User().GetUserByID(cfgRes[index].Owner); val != nil {
+			if cacheMgn.AuthStrategy().IsResourceLinkStrategy(api.ResourceType_ConfigGroups, cfgRes[index].ID) {
 				newCfgRes = append(newCfgRes, cfgRes[index])
 			}
 		}
 		newAccessRes[api.ResourceType_ConfigGroups] = newCfgRes
 	}
 
-	log.AuthScope().Info("remove no owner resource", zap.Any("access resource", newAccessRes))
+	log.AuthScope().Info("remove no link strategy resource", zap.Any("new access resource", newAccessRes))
 
 	authCtx.SetAccessResources(newAccessRes)
 

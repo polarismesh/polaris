@@ -28,14 +28,13 @@ import (
 	"github.com/polarismesh/polaris-server/store"
 )
 
+// serverAuthAbility 带鉴权能力的 server
 type serverAuthAbility struct {
 	authMgn *defaultAuthManager
 	target  *server
 }
 
 // Initialize 执行初始化动作
-//  @param options
-//  @return error
 func (svr *serverAuthAbility) Initialize(authOpt *auth.Config, storage store.Store, cacheMgn *cache.NamingCache) error {
 
 	history := plugin.GetHistory()
@@ -61,28 +60,21 @@ func (svr *serverAuthAbility) Initialize(authOpt *auth.Config, storage store.Sto
 }
 
 // Login
-//  @receiver svr
-//  @param req
-//  @return *api.Response
 func (svr *serverAuthAbility) Login(req *api.LoginRequest) *api.Response {
 	return svr.target.Login(req)
 }
 
 // AfterResourceOperation
-//  @receiver svr
-//  @param afterCtx
 func (svr *serverAuthAbility) AfterResourceOperation(afterCtx *model.AcquireContext) {
 	svr.target.AfterResourceOperation(afterCtx)
 }
 
 // GetAuthManager
-//  @return AuthManager
 func (svr *serverAuthAbility) GetAuthManager() auth.AuthManager {
 	return svr.authMgn
 }
 
 // Name
-//  @return string
 func (svr *serverAuthAbility) Name() string {
 	return PluginName
 }

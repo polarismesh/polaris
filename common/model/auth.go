@@ -28,9 +28,12 @@ const (
 	OperatorIDKey         string = "operator_id"
 	OperatorOwnerKey      string = "operator_owner"
 	OperatorLinkStrategy  string = "operator_link_strategy"
+	LinkUsersKey          string = "link_users"
+	LinkGroupsKey         string = "link_groups"
 
-	TokenForUser      string = "uid"
-	TokenForUserGroup string = "groupid"
+	TokenDetailInfoKey string = "TokenInfo"
+	TokenForUser       string = "uid"
+	TokenForUserGroup  string = "groupid"
 
 	ResourceAttachmentKey string = "resource_attachment"
 )
@@ -140,13 +143,13 @@ type ExpandUser struct {
 type UserGroupDetail struct {
 	*UserGroup
 
-	// UserIDs TODO 后续改为 map 的形式，加速下查询
-	UserIDs map[string]struct{}
+	// UserIds TODO 后续改为 map 的形式，加速下查询
+	UserIds map[string]struct{}
 }
 
 func (ugd *UserGroupDetail) ToUserIdSlice() []string {
-	uids := make([]string, 0, len(ugd.UserIDs))
-	for uid := range ugd.UserIDs {
+	uids := make([]string, 0, len(ugd.UserIds))
+	for uid := range ugd.UserIds {
 		uids = append(uids, uid)
 	}
 

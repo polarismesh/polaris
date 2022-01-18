@@ -19,6 +19,7 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -40,23 +41,21 @@ type ResourceHook interface {
 	After(ctx context.Context, resourceType model.Resource, res *ResourceEvent)
 }
 
+// ResourceEvent
 type ResourceEvent struct {
-	Namespaces []*model.Namespace
-	Services   []*model.Service
-	IsRemove   bool
+	ReqNamespace *api.Namespace
+	Namespace    *model.Namespace
+	ReqService   *api.Service
+	Service      *model.Service
+	IsRemove     bool
 }
 
 // Before
-//  @param ctx
-//  @param resourceType
 func (svr *serverAuthAbility) Before(ctx context.Context, resourceType model.Resource) {
 	// do nothing
 }
 
 // After
-//  @param ctx
-//  @param resourceType
-//  @param res
 func (svr *serverAuthAbility) After(ctx context.Context, resourceType model.Resource, res *ResourceEvent) {
 	switch resourceType {
 	case model.RNamespace:
@@ -67,65 +66,98 @@ func (svr *serverAuthAbility) After(ctx context.Context, resourceType model.Reso
 }
 
 // onNamespaceResource
-//  @receiver svr
-//  @param ctx
-//  @param res
 func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *ResourceEvent) {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
 	ownerId := utils.ParseOwnerID(ctx)
 
-	accessRes := make(map[api.ResourceType][]model.ResourceEntry)
-	accessNs := accessRes[api.ResourceType_Namespaces]
-	for index := range res.Namespaces {
-		ns := res.Namespaces[index]
-		accessNs = append(accessNs, model.ResourceEntry{
-			ID:    ns.Name,
-			Owner: ownerId,
-		})
+	ns := res.Namespace
+	authCtx.GetAttachment()[model.ResourceAttachmentKey] = map[api.ResourceType][]model.ResourceEntry{
+		api.ResourceType_Namespaces: {
+			{
+				ID:    ns.Name,
+				Owner: ownerId,
+			},
+		},
 	}
 
-	authCtx.GetAttachment()[model.ResourceAttachmentKey] = accessRes
+	users := make([]string, 0, 4)
+	if len(res.ReqNamespace.UserIds) > 0 {
+		for index := range res.ReqNamespace.UserIds {
+			id := res.ReqNamespace.UserIds[index]
+			if strings.TrimSpace(id.GetValue()) == "" {
+				continue
+			}
+			users = append(users, id.GetValue())
+		}
+	}
+
+	groups := make([]string, 0, 4)
+	if len(res.ReqNamespace.GroupIds) > 0 {
+		for index := range res.ReqNamespace.GroupIds {
+			id := res.ReqNamespace.GroupIds[index]
+			if strings.TrimSpace(id.GetValue()) == "" {
+				continue
+			}
+			groups = append(groups, id.GetValue())
+		}
+	}
+
+	authCtx.GetAttachment()[model.LinkUsersKey] = utils.StringSliceDeDuplication(append(users, utils.ParseUserID(ctx)))
+	authCtx.GetAttachment()[model.LinkGroupsKey] = utils.StringSliceDeDuplication(groups)
+
 	svr.authSvr.AfterResourceOperation(authCtx)
+
 }
 
 // onServiceResource
-//  @receiver svr
-//  @param ctx
-//  @param res
 func (svr *serverAuthAbility) onServiceResource(ctx context.Context, res *ResourceEvent) {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
 	ownerId := utils.ParseOwnerID(ctx)
 
-	accessNs := make([]model.ResourceEntry, 0)
-	for index := range res.Namespaces {
-		ns := res.Namespaces[index]
-		accessNs = append(accessNs, model.ResourceEntry{
-			ID:    ns.Name,
-			Owner: ownerId,
-		})
-	}
-
-	accessSvc := make([]model.ResourceEntry, 0)
-	for index := range res.Services {
-		svc := res.Services[index]
-		accessSvc = append(accessSvc, model.ResourceEntry{
-			ID:    svc.ID,
-			Owner: ownerId,
-		})
-	}
-
 	authCtx.GetAttachment()[model.ResourceAttachmentKey] = map[api.ResourceType][]model.ResourceEntry{
-		api.ResourceType_Namespaces: accessNs,
-		api.ResourceType_Services:   accessSvc,
+		api.ResourceType_Namespaces: {
+			{
+				ID:    res.Namespace.Name,
+				Owner: ownerId,
+			},
+		},
+		api.ResourceType_Services: {
+			{
+				ID:    res.Service.ID,
+				Owner: ownerId,
+			},
+		},
 	}
+
+	users := make([]string, 0, 4)
+	if len(res.ReqService.UserIds) > 0 {
+		for index := range res.ReqService.UserIds {
+			id := res.ReqService.UserIds[index]
+			if strings.TrimSpace(id.GetValue()) == "" {
+				continue
+			}
+			users = append(users, id.GetValue())
+		}
+	}
+
+	groups := make([]string, 0, 4)
+	if len(res.ReqService.GroupIds) > 0 {
+		for index := range res.ReqService.GroupIds {
+			id := res.ReqService.GroupIds[index]
+			if strings.TrimSpace(id.GetValue()) == "" {
+				continue
+			}
+			groups = append(groups, id.GetValue())
+		}
+	}
+
+	authCtx.GetAttachment()[model.LinkUsersKey] = utils.StringSliceDeDuplication(append(users, utils.ParseUserID(ctx)))
+	authCtx.GetAttachment()[model.LinkGroupsKey] = utils.StringSliceDeDuplication(groups)
 
 	svr.authSvr.AfterResourceOperation(authCtx)
 }
 
 // onConfigGroupResource
-//  @receiver svr
-//  @param ctx
-//  @param res
 func (svr *serverAuthAbility) onConfigGroupResource(ctx context.Context, res *ResourceEvent) {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
 

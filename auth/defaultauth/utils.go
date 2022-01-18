@@ -27,6 +27,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 )
@@ -61,6 +62,10 @@ func checkName(name *wrappers.StringValue) error {
 
 	if name.GetValue() == "" {
 		return errors.New("empty")
+	}
+
+	if name.GetValue() == "polariadmin" {
+		return errors.New("illegal username")
 	}
 
 	regStr := "^[0-9A-Za-z-.:_]+$"
@@ -134,11 +139,18 @@ func checkOwner(owner *wrappers.StringValue) error {
 
 // verifyAuth token
 func verifyAuth(ctx context.Context, authMgn *defaultAuthManager, token string, needOwner bool) (context.Context, *api.Response) {
-	ctx, tokenInfo, err := authMgn.verifyToken(ctx, token)
+	authCtx := model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithToken(token),
+	)
+
+	err := authMgn.VerifyToken(authCtx)
 
 	if err != nil {
 		return nil, api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
+
+	tokenInfo := authCtx.GetAttachment()[model.TokenDetailInfoKey].(TokenInfo)
 
 	if !tokenInfo.IsUserToken {
 		return nil, api.NewResponseWithMsg(api.NotAllowedAccess, "only user role can access this API")
@@ -148,5 +160,5 @@ func verifyAuth(ctx context.Context, authMgn *defaultAuthManager, token string, 
 		return nil, api.NewResponseWithMsg(api.NotAllowedAccess, "only admin/owner account can access this API")
 	}
 
-	return ctx, nil
+	return authCtx.GetRequestContext(), nil
 }

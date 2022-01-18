@@ -29,6 +29,12 @@ import (
 func (svr *serverAuthAbility) CreateNamespaces(ctx context.Context, reqs []*api.Namespace) *api.BatchWriteResponse {
 	authCtx := svr.collectNamespaceAuthContext(ctx, reqs, model.Create)
 
+	// 验证 token 信息
+	if err := svr.authMgn.VerifyToken(authCtx); err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	// 填充 ownerId 信息数据
@@ -40,8 +46,7 @@ func (svr *serverAuthAbility) CreateNamespaces(ctx context.Context, reqs []*api.
 		}
 	}
 
-	resp := svr.targetServer.CreateNamespaces(ctx, reqs)
-	return resp
+	return svr.targetServer.CreateNamespaces(ctx, reqs)
 }
 
 // DeleteNamespaces 删除命名空间，需要先走权限检查

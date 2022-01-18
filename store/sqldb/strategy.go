@@ -312,6 +312,7 @@ func (s *strategyStore) LooseAddStrategyResources(resources []model.StrategyReso
 	return nil
 }
 
+// RemoveStrategyResources 
 func (s *strategyStore) RemoveStrategyResources(resources []model.StrategyResource) error {
 	tx, err := s.master.Begin()
 	if err != nil {
@@ -323,7 +324,11 @@ func (s *strategyStore) RemoveStrategyResources(resources []model.StrategyResour
 		args := make([]interface{}, 0)
 		resource := resources[i]
 		saveResSql := "UPDATE auth_strategy_resource SET flag = 1 WHERE strategy_id = ? AND res_id = ? AND res_type = ?"
-		args = append(args, resource.ResID, resource.ResID, resource.ResType)
+		args = append(args, resource.StrategyID, resource.ResID, resource.ResType)
+		if resource.StrategyID == "" {
+			saveResSql = "UPDATE auth_strategy_resource SET flag = 1 WHERE res_id = ? AND res_type = ?"
+			args = append(args, resource.ResID, resource.ResType)
+		}
 		_, err := tx.Exec(saveResSql, args...)
 		if err != nil {
 			return err

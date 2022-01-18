@@ -37,12 +37,13 @@ type (
 
 var (
 	UserFilterAttributes = map[string]int{
-		"id":     1,
-		"name":   1,
-		"owner":  1,
-		"source": 1,
-		"offset": 1,
-		"limit":  1,
+		"id":       1,
+		"name":     1,
+		"owner":    1,
+		"source":   1,
+		"offset":   1,
+		"group_id": 1,
+		"limit":    1,
 	}
 )
 
@@ -492,8 +493,13 @@ func createUserModel(req *api.User, role model.UserRoleType) (*model.User, error
 		return nil, err
 	}
 
+	id := utils.NewUUID()
+	if req.GetId().GetValue() != "" {
+		id = req.GetId().GetValue()
+	}
+
 	user := &model.User{
-		ID:         utils.NewUUID(),
+		ID:         id,
 		Name:       req.GetName().GetValue(),
 		Password:   string(pwd),
 		Owner:      req.GetOwner().GetValue(),

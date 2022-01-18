@@ -24,93 +24,89 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
+var (
+	MultipleGroupFound error = errors.New("multiple group found")
+)
+
+const (
+	tblGroup string = "group"
+
+	GroupFieldModifyTime string = "ModifyTime"
+)
+
 // groupStore
 type groupStore struct {
 	handler BoltHandler
 }
 
 // AddUserGroup
-//  @param group
-//  @return error
 func (us *groupStore) AddGroup(group *model.UserGroupDetail) error {
-	return errors.New("implement me")
+	return nil
 }
 
 // UpdateUserGroup
-//  @param group
-//  @return error
 func (us *groupStore) UpdateGroup(group *model.ModifyUserGroup) error {
-	return errors.New("implement me")
+	return nil
 }
 
 // DeleteUserGroup
-//  @param id
-//  @return error
 func (us *groupStore) DeleteGroup(id string) error {
-	return errors.New("implement me")
+	return nil
 }
 
 // AddUserGroupRelation
-//  @param relations
-//  @return error
 func (us *groupStore) AddGroupRelation(relations *model.UserGroupRelation) error {
-	return errors.New("implement me")
+	return nil
 }
 
 // RemoveUserGroupRelation
-//  @param relations
-//  @return error
 func (us *groupStore) RemoveGroupRelation(relations *model.UserGroupRelation) error {
-	return errors.New("implement me")
+	return nil
 }
 
 // GetUserGroup
-//  @param id
-//  @return *model.UserGroup
-//  @return error
-func (us *groupStore) GetGroup(id string) (*model.UserGroup, error) {
-	return nil, errors.New("implement me")
+func (us *groupStore) GetGroup(id string) (*model.UserGroupDetail, error) {
+	return nil, nil
 }
 
 // GetGroupByName
 func (us *groupStore) GetGroupByName(name, owner string) (*model.UserGroup, error) {
-	return nil, errors.New("implement me")
+	return nil, nil
 }
 
 // GetGroups
 func (us *groupStore) GetGroups(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error) {
-	return 0, nil, errors.New("implement me")
+	return 0, nil, nil
 }
 
 // ListGroupByUser
-//  @receiver us
-//  @param filters
-//  @param offset
-//  @param limit
-//  @return uint32
-//  @return []*model.UserGroup
-//  @return error
 func (us *groupStore) ListGroupByUser(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error) {
-	return 0, nil, errors.New("implement me")
+	return 0, nil, nil
 }
 
 // ListUserByGroup
-//  @receiver us
-//  @param filters
-//  @param offset
-//  @param limit
-//  @return uint32
-//  @return []*model.UserGroup
-//  @return error
 func (us *groupStore) ListUserByGroup(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error) {
-	return 0, nil, errors.New("implement me")
+	return 0, nil, nil
 }
 
 // GetUserGroupsForCache
-//  @param mtime
-//  @param firstUpdate
-//  @return []*model.UserGroupDetail
-//  @return error
 func (us *groupStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*model.UserGroupDetail, error) {
-	return nil, errors.New("implement me")
+	ret, err := us.handler.LoadValuesByFilter(tblGroup, []string{GroupFieldModifyTime}, &model.UserGroupDetail{},
+		func(m map[string]interface{}) bool {
+			mt := m[GroupFieldModifyTime].(time.Time)
+			isAfter := mt.After(mtime)
+			return isAfter
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	groups := make([]*model.UserGroupDetail, 0, len(ret))
+
+	for k := range ret {
+		val := ret[k]
+		groups = append(groups, val.(*model.UserGroupDetail))
+	}
+
+	return groups, nil
 }

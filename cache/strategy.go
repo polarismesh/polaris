@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
@@ -52,6 +53,9 @@ type StrategyCache interface {
 	//  @param uid
 	//  @return []*model.StrategyDetail
 	GetStrategyDetailsByGroupID(uid string) []*model.StrategyDetail
+
+	// IsResourceLinkStrategy 该资源是否关联了鉴权策略
+	IsResourceLinkStrategy(resType api.ResourceType, resId string) bool
 }
 
 // strategyCache
@@ -60,6 +64,10 @@ type strategyCache struct {
 	strategys        *sync.Map
 	uid2Strategy     *sync.Map
 	groupid2Strategy *sync.Map
+
+	namespace2Strategy   *sync.Map
+	service2Strategy     *sync.Map
+	configGroup2Strategy *sync.Map
 
 	firstUpdate    bool
 	lastUpdateTime int64
@@ -82,6 +90,10 @@ func (sc *strategyCache) initialize(c map[string]interface{}) error {
 	sc.strategys = new(sync.Map)
 	sc.uid2Strategy = new(sync.Map)
 	sc.groupid2Strategy = new(sync.Map)
+
+	sc.namespace2Strategy = new(sync.Map)
+	sc.service2Strategy = new(sync.Map)
+	sc.configGroup2Strategy = new(sync.Map)
 
 	sc.principalCh = make(chan interface{}, 32)
 	sc.singleFlight = new(singleflight.Group)
@@ -115,7 +127,7 @@ func (sc *strategyCache) realUpdate() error {
 	return nil
 }
 
-func (sc *strategyCache) setStrategys(strategys []*model.StrategyDetail) (int, int, int) {
+func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (int, int, int) {
 
 	var (
 		add    int
@@ -123,8 +135,8 @@ func (sc *strategyCache) setStrategys(strategys []*model.StrategyDetail) (int, i
 		update int
 	)
 
-	for index := range strategys {
-		rule := strategys[index]
+	for index := range strategies {
+		rule := strategies[index]
 		if !rule.Valid {
 			sc.strategys.Delete(rule.ID)
 			remove++
@@ -154,7 +166,46 @@ func (sc *strategyCache) setStrategys(strategys []*model.StrategyDetail) (int, i
 			sc.strategys.Store(rule.ID, rule)
 
 			sc.lastUpdateTime = int64(math.Max(float64(sc.lastUpdateTime), float64(rule.ModifyTime.Unix())))
+		}
+	}
 
+	sc.handlerResourceStrategy(strategies)
+	sc.handlerPrincipalStrategy(strategies)
+	sc.postProcessPrincipalCh()
+
+	return add, update, remove
+}
+
+// handlerResourceStrategy
+func (sc *strategyCache) handlerResourceStrategy(strategies []*model.StrategyDetail) {
+	for index := range strategies {
+		rule := strategies[index]
+		if rule.Valid {
+			resources := rule.Resources
+			for index := range resources {
+				resource := resources[index]
+
+				switch resource.ResType {
+				case int32(api.ResourceType_Namespaces):
+					val, _ := sc.namespace2Strategy.LoadOrStore(resource.ResID, new(sync.Map))
+					val.(*sync.Map).Store(rule.ID, struct{}{})
+				case int32(api.ResourceType_Services):
+					val, _ := sc.service2Strategy.LoadOrStore(resource.ResID, new(sync.Map))
+					val.(*sync.Map).Store(rule.ID, struct{}{})
+				case int32(api.ResourceType_ConfigGroups):
+					val, _ := sc.configGroup2Strategy.LoadOrStore(resource.ResID, new(sync.Map))
+					val.(*sync.Map).Store(rule.ID, struct{}{})
+				}
+			}
+		}
+	}
+}
+
+// handlerPrincipalStrategy
+func (sc *strategyCache) handlerPrincipalStrategy(strategies []*model.StrategyDetail) {
+	for index := range strategies {
+		rule := strategies[index]
+		if rule.Valid {
 			// 计算 uid -> auth rule
 			principals := rule.Principals
 			for pos := range principals {
@@ -176,10 +227,6 @@ func (sc *strategyCache) setStrategys(strategys []*model.StrategyDetail) (int, i
 			}
 		}
 	}
-
-	sc.postProcessPrincipalCh()
-
-	return add, update, remove
 }
 
 func (sc *strategyCache) postProcessPrincipalCh() {
@@ -204,6 +251,10 @@ func (sc *strategyCache) clear() error {
 	sc.strategys = new(sync.Map)
 	sc.uid2Strategy = new(sync.Map)
 	sc.groupid2Strategy = new(sync.Map)
+
+	sc.namespace2Strategy = new(sync.Map)
+	sc.service2Strategy = new(sync.Map)
+	sc.configGroup2Strategy = new(sync.Map)
 
 	sc.firstUpdate = true
 	sc.lastUpdateTime = 0
@@ -256,6 +307,23 @@ func (sc *strategyCache) getStrategyDetails(uid string, gid string) []*model.Str
 	return nil
 }
 
+// IsResourceLinkStrategy
+func (sc *strategyCache) IsResourceLinkStrategy(resType api.ResourceType, resId string) bool {
+	switch resType {
+	case api.ResourceType_Namespaces:
+		_, ok := sc.namespace2Strategy.Load(resId)
+		return ok
+	case api.ResourceType_Services:
+		_, ok := sc.service2Strategy.Load(resId)
+		return ok
+	case api.ResourceType_ConfigGroups:
+		_, ok := sc.configGroup2Strategy.Load(resId)
+		return ok
+	default:
+		return true
+	}
+}
+
 // OnCreated callback when cache value created
 func (sc *strategyCache) OnCreated(value interface{}) {
 
@@ -283,5 +351,7 @@ func (sc *strategyCache) OnBatchUpdated(value interface{}) {
 
 // OnBatchDeleted callback when cache value deleted
 func (sc *strategyCache) OnBatchDeleted(value interface{}) {
-	sc.principalCh <- value
+	if principals, ok := value.([]model.Principal); ok {
+		sc.principalCh <- principals
+	}
 }

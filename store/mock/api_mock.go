@@ -1528,10 +1528,10 @@ func (mr *MockStoreMockRecorder) DeleteGroup(id interface{}) *gomock.Call {
 }
 
 // GetGroup mocks base method
-func (m *MockStore) GetGroup(id string) (*model.UserGroup, error) {
+func (m *MockStore) GetGroup(id string) (*model.UserGroupDetail, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroup", id)
-	ret0, _ := ret[0].(*model.UserGroup)
+	ret0, _ := ret[0].(*model.UserGroupDetail)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -3408,10 +3408,10 @@ func (mr *MockGroupStoreMockRecorder) DeleteGroup(id interface{}) *gomock.Call {
 }
 
 // GetGroup mocks base method
-func (m *MockGroupStore) GetGroup(id string) (*model.UserGroup, error) {
+func (m *MockGroupStore) GetGroup(id string) (*model.UserGroupDetail, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroup", id)
-	ret0, _ := ret[0].(*model.UserGroup)
+	ret0, _ := ret[0].(*model.UserGroupDetail)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

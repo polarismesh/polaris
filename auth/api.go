@@ -59,6 +59,9 @@ type AuthManager interface {
 	// Initialize 执行初始化动作
 	Initialize(options *Config, cacheMgn *cache.NamingCache) error
 
+	// VerifyToken
+	VerifyToken(preCtx *model.AcquireContext) error
+
 	// CheckPermission 执行检查动作判断是否有权限，并且将 RequestContext 进行插入一些新的数据
 	CheckPermission(preCtx *model.AcquireContext) (bool, error)
 
@@ -105,8 +108,8 @@ type GroupOperator interface {
 	// GetGroups 查询用户组列表（不带用户详细信息）
 	GetGroups(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
-	// GetGroupUsers 根据用户组信息，查询该用户组下的用户相信
-	GetGroupUsers(ctx context.Context, query map[string]string) *api.BatchQueryResponse
+	// GetGroup 根据用户组信息，查询该用户组下的用户相信
+	GetGroup(ctx context.Context, req *api.UserGroup) *api.Response
 
 	// GetGroupToken 获取用户组的 token
 	GetGroupToken(ctx context.Context, group *api.UserGroup) *api.Response

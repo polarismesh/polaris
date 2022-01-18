@@ -213,7 +213,7 @@ func (u *userStore) GetUser(id string) (*model.User, error) {
 	SELECT u.id, u.name, u.password, u.owner, u.source
 		, u.token, u.token_enable, u.user_type
 	FROM user u
-	WHERE u.flag = 0
+	WHERE u.flag = 0 AND u.name != 'polariadmin' 
 		AND u.id = ? 
 	`
 	row := u.master.QueryRow(getSql, id)
@@ -242,6 +242,7 @@ func (u *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
 		, u.token, u.token_enable, u.user_type
 	FROM user u
 	WHERE u.flag = 0
+		AND u.name != 'polariadmin' 
 		AND u.name = ?
 		AND u.owner = ? 
 	`
@@ -278,7 +279,7 @@ func (u *userStore) GetUserByIDS(ids []string) ([]*model.User, error) {
 		, u.token, u.token_enable, u.user_type, UNIX_TIMESTAMP(u.ctime)
 		, UNIX_TIMESTAMP(u.mtime), u.flag
 	FROM user u
-	WHERE u.flag = 0
+	WHERE u.flag = 0  AND u.name != 'polarisadmin' 
 		AND u.id IN ( 
 	`
 
@@ -334,7 +335,7 @@ func (u *userStore) listUsers(filters map[string]string, offset uint32, limit ui
 		, token, token_enable, user_type, UNIX_TIMESTAMP(ctime)
 		, UNIX_TIMESTAMP(mtime), flag
 	FROM user
-	WHERE flag = 0 
+	WHERE flag = 0  AND name != 'polarisadmin' 
 	`
 
 	args := make([]interface{}, 0)
@@ -398,13 +399,13 @@ func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, lim
 			, UNIX_TIMESTAMP(u.mtime), u.flag
 		FROM user_group_relation ug
 			LEFT JOIN user u ON ug.user_id = u.id AND u.flag = 0 AND ug.flag = 0
-		WHERE 1=1
+		WHERE 1=1 AND u.name != 'polarisadmin' 
 	`
 	countSql := `
 		SELECT COUNT(*)
 		FROM user_group_relation ug
 			LEFT JOIN user u ON ug.user_id = u.id AND u.flag = 0 AND ug.flag = 0
-		WHERE 1=1
+		WHERE 1=1 AND u.name != 'polarisadmin' 
 	`
 
 	for k, v := range filters {

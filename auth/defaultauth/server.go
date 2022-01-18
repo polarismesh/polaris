@@ -85,12 +85,28 @@ func (svr *server) RecordHistory(entry *model.RecordEntry) {
 // AfterResourceOperation 对于资源的添加删除操作，需要执行后置逻辑
 // 所有子用户或者用户分组，都默认获得对所创建的资源的写权限
 func (svr *server) AfterResourceOperation(afterCtx *model.AcquireContext) {
-	operatorId := afterCtx.GetAttachment()[model.OperatorIDKey].(string)
-	principalType := afterCtx.GetAttachment()[model.OperatorPrincipalType].(model.PrincipalType)
-
-	// 获取该用户的默认策略信息
-	name := model.BuildDefaultStrategyName(operatorId, principalType)
 	ownerId := afterCtx.GetAttachment()[model.OperatorOwnerKey].(string)
+
+	userIds := afterCtx.GetAttachment()[model.LinkUsersKey].([]string)
+
+	for index := range userIds {
+		userId := userIds[index]
+		name := model.BuildDefaultStrategyName(userId, model.PrincipalUser)
+		svr.handlerModifyDefaultStrategy(name, ownerId, afterCtx)
+	}
+
+	groupIds := afterCtx.GetAttachment()[model.LinkGroupsKey].([]string)
+
+	for index := range groupIds {
+		groupId := groupIds[index]
+		name := model.BuildDefaultStrategyName(groupId, model.PrincipalUserGroup)
+		svr.handlerModifyDefaultStrategy(name, ownerId, afterCtx)
+	}
+
+}
+
+// handlerModifyDefaultStrategy 处理默认策略的修改
+func (svr *server) handlerModifyDefaultStrategy(name, ownerId string, afterCtx *model.AcquireContext) {
 	// Get the default policy rules
 	strategy, err := svr.storage.GetStrategyDetailByName(ownerId, name)
 	if err != nil {
@@ -102,11 +118,18 @@ func (svr *server) AfterResourceOperation(afterCtx *model.AcquireContext) {
 	strategyResource := make([]model.StrategyResource, 0)
 	resources := afterCtx.GetAttachment()[model.ResourceAttachmentKey].(map[api.ResourceType][]model.ResourceEntry)
 
+	strategyId := strategy.ID
+
+	// 资源删除时，清理该资源与所有策略的关联关系
+	if afterCtx.GetOperation() == model.Delete {
+		strategyId = ""
+	}
+
 	for rType, rIds := range resources {
 		for i := range rIds {
 			id := rIds[i]
 			strategyResource = append(strategyResource, model.StrategyResource{
-				StrategyID: strategy.ID,
+				StrategyID: strategyId,
 				ResType:    int32(rType),
 				ResID:      id.ID,
 			})

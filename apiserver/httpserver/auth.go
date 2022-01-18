@@ -44,7 +44,7 @@ func (h *HTTPServer) GetAuthServer() *restful.WebService {
 	ws.Route(ws.PUT("/usergroup").To(h.UpdateGroup))
 	ws.Route(ws.POST("/usergroups/delete").To(h.DeleteGroups))
 	ws.Route(ws.GET("/usergroups").To(h.GetGroups))
-	ws.Route(ws.GET("/usergroup/users").To(h.GetGroupUsers))
+	ws.Route(ws.GET("/usergroup/detail").To(h.GetGroup))
 	ws.Route(ws.GET("/usergroup/token").To(h.GetGroupToken))
 	ws.Route(ws.PUT("/usergroup/token/status").To(h.UpdateGroupToken))
 	ws.Route(ws.PUT("/usergroup/token/refresh").To(h.ResetGroupToken))
@@ -274,13 +274,17 @@ func (h *HTTPServer) GetGroups(req *restful.Request, rsp *restful.Response) {
 }
 
 // GetGroupUsers
-func (h *HTTPServer) GetGroupUsers(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) GetGroup(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
-	handler.WriteHeaderAndProto(h.authServer.GetGroupUsers(ctx, queryParams))
+	group := &api.UserGroup{
+		Id: utils.NewStringValue(queryParams["id"]),
+	}
+
+	handler.WriteHeaderAndProto(h.authServer.GetGroup(ctx, group))
 }
 
 // GetUserGroupToken

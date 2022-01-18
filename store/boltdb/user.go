@@ -19,9 +19,33 @@ package boltdb
 
 import (
 	"errors"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/store"
+)
+
+const (
+	tblUser              string = "user"
+	UserFieldID          string = "ID"
+	UserFieldName        string = "Name"
+	UserFieldPassword    string = "Password"
+	UserFieldOwner       string = "Owner"
+	UserFieldSource      string = "Source"
+	UserFieldType        string = "Type"
+	UserFieldToken       string = "Token"
+	UserFieldTokenEnable string = "TokenEnable"
+	UserFieldValid       string = "Valid"
+	UserFieldComment     string = "Comment"
+	UserFieldCreateTime  string = "CreateTime"
+	UserFieldModifyTime  string = "ModifyTime"
+)
+
+var (
+	MultipleUserFound error = errors.New("multiple user found")
 )
 
 // userStore
@@ -30,62 +54,312 @@ type userStore struct {
 }
 
 // AddUser
-//  @param user
-//  @return error
 func (us *userStore) AddUser(user *model.User) error {
-	return errors.New("implement me")
+
+	initUser(user)
+
+	if user.ID == "" || user.Name == "" || user.Source == "" ||
+		user.Owner == "" || user.Token == "" {
+		return store.NewStatusError(store.EmptyParamsErr, "add user missing some params")
+	}
+
+	return us.handler.SaveValue(tblUser, user.ID, user)
 }
 
 // UpdateUser
-//  @param user
-//  @return error
 func (us *userStore) UpdateUser(user *model.User) error {
-	return errors.New("implement me")
+	if user.ID == "" || user.Token == "" {
+		return store.NewStatusError(store.EmptyParamsErr, "update user missing some params")
+	}
+
+	properties := make(map[string]interface{})
+	properties[UserFieldComment] = user.Comment
+	properties[UserFieldToken] = user.Token
+	properties[UserFieldTokenEnable] = user.TokenEnable
+	properties[UserFieldPassword] = user.Password
+	properties[UserFieldModifyTime] = time.Now()
+
+	return us.handler.UpdateValue(tblUser, user.ID, properties)
 }
 
 // DeleteUser
-//  @param id
-//  @return error
 func (us *userStore) DeleteUser(id string) error {
-	return errors.New("implement me")
+	if id == "" {
+		return store.NewStatusError(store.EmptyParamsErr, "delete user missing some params")
+	}
+
+	return us.handler.DeleteValues(tblUser, []string{id}, true)
 }
 
 // GetUser
-//  @param id
-//  @return *model.User
-//  @return error
 func (us *userStore) GetUser(id string) (*model.User, error) {
-	return nil, errors.New("implement me")
+
+	if id == "" {
+		return nil, store.NewStatusError(store.EmptyParamsErr, "get user missing some params")
+	}
+
+	ret, err := us.handler.LoadValues(tblUser, []string{id}, &model.User{})
+	if err != nil {
+		return nil, err
+	}
+	if len(ret) == 0 {
+		return nil, nil
+	}
+	if len(ret) > 1 {
+		return nil, MultipleUserFound
+	}
+
+	return ret[id].(*model.User), errors.New("implement me")
 }
 
 // GetUserByName
-//  @receiver us
-//  @param name
-//  @param ownerId
-//  @return *model.User
-//  @return error
 func (us *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
-	return nil, errors.New("implement me")
+	if name == "" {
+		return nil, store.NewStatusError(store.EmptyParamsErr, "get user missing some params")
+	}
+
+	ret, err := us.handler.LoadValuesByFilter(tblUser, []string{UserFieldName, UserFieldOwner}, &model.User{}, func(m map[string]interface{}) bool {
+
+		saveName, _ := m[UserFieldName].(string)
+		saveOwner, _ := m[UserFieldOwner].(string)
+
+		return saveName == name && saveOwner == ownerId
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(ret) == 0 {
+		return nil, nil
+	}
+	if len(ret) > 0 {
+		return nil, MultipleUserFound
+	}
+
+	var id string
+	for k := range ret {
+		id = k
+		break
+	}
+
+	return ret[id].(*model.User), nil
 }
 
 // GetUserByIDS
-//  @param ids
-//  @return []*model.User
-//  @return error
 func (us *userStore) GetUserByIDS(ids []string) ([]*model.User, error) {
-	return nil, errors.New("implement me")
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	ret, err := us.handler.LoadValues(tblUser, ids, &model.User{})
+	if err != nil {
+		return nil, err
+	}
+	if len(ret) == 0 {
+		return nil, nil
+	}
+
+	users := make([]*model.User, 0, len(ids))
+
+	for k := range ret {
+		users = append(users, ret[k].(*model.User))
+	}
+
+	return users, nil
 }
 
 // GetUsers
 func (us *userStore) GetUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error) {
-	return 0, nil, errors.New("implement me")
+
+	if _, ok := filters["group_id"]; ok {
+		return us.getGroupUsers(filters, offset, limit)
+	}
+
+	return us.getUsers(filters, offset, limit)
+}
+
+// getUsers
+// "name":   1,
+// "owner":  1,
+// "source": 1,
+func (us *userStore) getUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error) {
+
+	fields := []string{UserFieldName, UserFieldOwner, UserFieldSource, UserFieldValid}
+
+	ret, err := us.handler.LoadValuesByFilter(tblUser, fields, &model.User{},
+		func(m map[string]interface{}) bool {
+
+			valid, ok := m[UserFieldValid].(bool)
+			if ok && !valid {
+				return false
+			}
+
+			saveName, _ := m[UserFieldName].(string)
+			saveOwner, _ := m[UserFieldOwner].(string)
+			saveSource, _ := m[UserFieldSource].(string)
+
+			if name, ok := filters["name"]; ok {
+				if utils.IsWildName(name) {
+					if !strings.Contains(saveName, name[:len(name)-1]) {
+						return false
+					}
+				} else {
+					if saveName != name {
+						return false
+					}
+				}
+			}
+
+			if owner, ok := filters["owner"]; ok {
+				if owner != saveOwner {
+					return false
+				}
+			}
+
+			if source, ok := filters["source"]; ok {
+				if source != saveSource {
+					return false
+				}
+			}
+
+			return true
+		})
+
+	if err != nil {
+		return 0, nil, err
+	}
+	if len(ret) == 0 {
+		return 0, nil, nil
+	}
+
+	return uint32(len(ret)), doPage(ret, offset, limit), nil
+
+}
+
+func (us *userStore) getGroupUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error) {
+
+	groupId := filters["group_id"]
+	delete(filters, "group_id")
+
+	ret, err := us.handler.LoadValues(tblGroup, []string{groupId}, &model.UserGroupDetail{})
+	if err != nil {
+		return 0, nil, err
+	}
+	if len(ret) == 0 {
+		return 0, nil, nil
+	}
+	if len(ret) > 1 {
+		return 0, nil, MultipleGroupFound
+	}
+	group := ret[groupId].(*model.UserGroupDetail)
+
+	userIds := make([]string, 0, len(group.UserIds))
+	for k := range group.UserIds {
+		userIds = append(userIds, k)
+	}
+
+	ret, err = us.handler.LoadValues(tblUser, userIds, &model.User{})
+	if err != nil {
+		return 0, nil, err
+	}
+
+	predicate := func(user *model.User) bool {
+		if name, ok := filters["name"]; ok {
+			if utils.IsWildName(name) {
+				if !strings.Contains(user.Name, name[:len(name)-1]) {
+					return false
+				}
+			} else {
+				if user.Name != name {
+					return false
+				}
+			}
+		}
+
+		if owner, ok := filters["owner"]; ok {
+			if owner != user.Owner {
+				return false
+			}
+		}
+
+		if source, ok := filters["source"]; ok {
+			if source != user.Source {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	users := make(map[string]interface{})
+	for k := range ret {
+		val := ret[k]
+		if predicate(val.(*model.User)) {
+			users[k] = val.(*model.User)
+		}
+	}
+
+	return uint32(len(ret)), doPage(users, offset, limit), err
 }
 
 // GetUsersForCache
-//  @param mtime
-//  @param firstUpdate
-//  @return []*model.User
-//  @return error
 func (us *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*model.User, error) {
-	return nil, errors.New("implement me")
+	ret, err := us.handler.LoadValuesByFilter(tblUser, []string{UserFieldModifyTime}, &model.User{},
+		func(m map[string]interface{}) bool {
+			mt := m[UserFieldModifyTime].(time.Time)
+			isAfter := mt.After(mtime)
+			return isAfter
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	users := make([]*model.User, 0, len(ret))
+
+	for k := range ret {
+		val := ret[k]
+		users = append(users, val.(*model.User))
+	}
+
+	return users, nil
+}
+
+// doPage 进行分页
+func doPage(ret map[string]interface{}, offset, limit uint32) []*model.User {
+
+	users := make([]*model.User, 0, len(ret))
+
+	beginIndex := offset
+	endIndex := beginIndex + limit
+	totalCount := uint32(len(ret))
+
+	if totalCount == 0 {
+		return users
+	}
+	if beginIndex >= endIndex {
+		return users
+	}
+	if beginIndex >= totalCount {
+		return users
+	}
+	if endIndex > totalCount {
+		endIndex = totalCount
+	}
+	for k := range ret {
+		users = append(users, ret[k].(*model.User))
+	}
+
+	sort.Slice(users, func(i, j int) bool {
+		return users[i].ModifyTime.After(users[j].ModifyTime)
+	})
+
+	return users[beginIndex:endIndex]
+
+}
+
+func initUser(user *model.User) {
+	if user != nil {
+		user.Valid = true
+		user.CreateTime = time.Now()
+		user.ModifyTime = time.Now()
+	}
 }

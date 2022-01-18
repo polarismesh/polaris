@@ -406,7 +406,7 @@ type GroupStore interface {
 	DeleteGroup(id string) error
 
 	// GetGroup
-	GetGroup(id string) (*model.UserGroup, error)
+	GetGroup(id string) (*model.UserGroupDetail, error)
 
 	// GetGroupByName
 	GetGroupByName(name, owner string) (*model.UserGroup, error)

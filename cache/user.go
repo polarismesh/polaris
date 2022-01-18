@@ -245,8 +245,8 @@ func (uc *userCache) handlerGroupCacheUpdate(ret *userAndGroupCacheRefreshResult
 			uc.groups.Store(group.ID, group)
 			uc.name2Groups.Store(fmt.Sprintf(NameLinkOwnerTemp, owner.(*model.User).Name, group.Name), group)
 
-			for j := range group.UserIDs {
-				uid := group.UserIDs[j]
+			for j := range group.UserIds {
+				uid := group.UserIds[j]
 				uc.user2Groups.LoadOrStore(uid, make([]string, 0))
 
 				val, _ := uc.user2Groups.Load(uid)
@@ -294,7 +294,7 @@ func (uc *userCache) IsUserInGroup(userId, groupId string) bool {
 		return false
 	}
 
-	_, exist := group.UserIDs[userId]
+	_, exist := group.UserIds[userId]
 	return exist
 }
 

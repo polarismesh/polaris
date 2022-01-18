@@ -16,6 +16,9 @@ message Namespace {
 	google.protobuf.UInt32Value total_service_count = 7 [json_name="total_service_count"];
 	google.protobuf.UInt32Value total_health_instance_count = 8 [json_name="total_health_instance_count"];
 	google.protobuf.UInt32Value total_instance_count = 9 [json_name="total_instance_count"];
+
+	repeated google.protobuf.StringValue user_ids = 10;
+	repeated google.protobuf.StringValue group_ids = 11;
 }
 
 message Service {
@@ -41,6 +44,9 @@ message Service {
 
 	google.protobuf.UInt32Value total_instance_count = 17 [json_name="total_instance_count"];
 	google.protobuf.UInt32Value healthy_instance_count = 18 [json_name="healthy_instance_count"];
+
+	repeated google.protobuf.StringValue user_ids = 19;
+	repeated google.protobuf.StringValue group_ids = 20;
 }
 
 enum AliasType {

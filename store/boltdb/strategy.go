@@ -18,10 +18,15 @@
 package boltdb
 
 import (
-	"errors"
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/model"
+)
+
+const (
+	tblStrategy string = "strategy"
+
+	StrategyFieldModifyTime string = "ModifyTime"
 )
 
 // StrategyStore
@@ -31,88 +36,72 @@ type strategyStore struct {
 
 // AddStrategy
 func (ss *strategyStore) AddStrategy(strategy *model.StrategyDetail) error {
-	return errors.New("implement me")
+	return nil
 }
 
 // UpdateStrategy
-//  @param strategy
-//  @return error
 func (ss *strategyStore) UpdateStrategy(strategy *model.ModifyStrategyDetail) error {
-	return errors.New("implement me")
+	return nil
 }
 
 // DeleteStrategy
-//  @param id
-//  @return error
 func (ss *strategyStore) DeleteStrategy(id string) error {
-	return errors.New("implement me")
+	return nil
 }
 
 // AddStrategyResources
-//  @param resources
-//  @return error
 func (ss *strategyStore) AddStrategyResources(resources []model.StrategyResource) error {
-	return errors.New("implement me")
+	return nil
 }
 
 // RemoveStrategyResources
-//  @param resources
-//  @return error
 func (ss *strategyStore) RemoveStrategyResources(resources []model.StrategyResource) error {
-	return errors.New("implement me")
+	return nil
 }
 
 // LooseAddStrategyResources 松要求的添加鉴权策略的资源，允许忽略主键冲突的问题
-//  @param resources
-//  @return error
 func (ss *strategyStore) LooseAddStrategyResources(resources []model.StrategyResource) error {
-	return errors.New("implement me")
+	return nil
 }
 
 // GetStrategyDetail
-//  @param id
-//  @return *model.StrategyDetail
-//  @return error
 func (ss *strategyStore) GetStrategyDetail(id string) (*model.StrategyDetail, error) {
-	return nil, errors.New("implement me")
+	return nil, nil
 }
 
 // GetStrategyDetailByName
-//  @receiver ss
-//  @param owner
-//  @param name
-//  @return *model.StrategyDetail
-//  @return error
 func (ss *strategyStore) GetStrategyDetailByName(owner, name string) (*model.StrategyDetail, error) {
-	return nil, errors.New("implement me")
+	return nil, nil
 }
 
 // GetStrategySimpleByName
-//  @receiver ss
-//  @param owner
-//  @param name
-//  @return *model.Strategy
-//  @return error
 func (ss *strategyStore) GetStrategySimpleByName(owner, name string) (*model.Strategy, error) {
-	return nil, errors.New("implement me")
+	return nil, nil
 }
 
 // GetSimpleStrategies
-//  @param filters
-//  @param offset
-//  @param limit
-//  @return uint32
-//  @return []*model.StrategyDetail
-//  @return error
 func (ss *strategyStore) GetSimpleStrategies(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.StrategyDetail, error) {
-	return 0, nil, errors.New("implement me")
+	return 0, nil, nil
 }
 
 // GetStrategyDetailsForCache
-//  @param mtime
-//  @param firstUpdate
-//  @return []*model.StrategyDetail
-//  @return error
 func (ss *strategyStore) GetStrategyDetailsForCache(mtime time.Time, firstUpdate bool) ([]*model.StrategyDetail, error) {
-	return nil, errors.New("implement me")
+	ret, err := ss.handler.LoadValuesByFilter(tblStrategy, []string{StrategyFieldModifyTime}, &model.StrategyDetail{},
+		func(m map[string]interface{}) bool {
+			mt := m[StrategyFieldModifyTime].(time.Time)
+			isAfter := mt.After(mtime)
+			return isAfter
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	strategies := make([]*model.StrategyDetail, 0, len(ret))
+
+	for k := range ret {
+		val := ret[k]
+		strategies = append(strategies, val.(*model.StrategyDetail))
+	}
+
+	return strategies, nil
 }

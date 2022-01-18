@@ -89,18 +89,18 @@ func (svr *serverAuthAbility) GetGroups(ctx context.Context, query map[string]st
 }
 
 // GetGroupUsers
-func (svr *serverAuthAbility) GetGroupUsers(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+func (svr *serverAuthAbility) GetGroup(ctx context.Context, req *api.UserGroup) *api.Response {
 	authToken := utils.ParseAuthToken(ctx)
 	if authToken == "" {
-		return api.NewBatchQueryResponse(api.NotAllowedAccess)
+		return api.NewResponse(api.NotAllowedAccess)
 	}
 
 	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
 	if errResp != nil {
-		return api.NewBatchQueryResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
+		return api.NewResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
 	}
 
-	return svr.target.GetGroupUsers(ctx, query)
+	return svr.target.GetGroup(ctx, req)
 }
 
 // GetUserGroupToken
