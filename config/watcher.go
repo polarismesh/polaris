@@ -146,7 +146,8 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.ConfigFileRelea
 	watcherMap.Range(func(clientId, watchCtx interface{}) bool {
 		log.ConfigScope().Info("[Config][Watcher] notify to client.",
 			zap.String("file", watchFileId),
-			zap.String("clientId", clientId.(string)))
+			zap.String("clientId", clientId.(string)),
+			zap.Uint64("version", publishConfigFile.Version))
 
 		c := watchCtx.(*watchContext)
 		if c.ClientVersion < publishConfigFile.Version {

@@ -22,14 +22,31 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 	utils2 "github.com/polarismesh/polaris-server/config/utils"
 )
 
-// CheckClientConfigFile 检查客户端使用的配置文件是否版本落后
-func (cs *Impl) CheckClientConfigFile(ctx context.Context, configFiles []*api.ClientConfigFileInfo) *api.ConfigClientResponse {
+type checkFunc func(clientConfigFile *api.ClientConfigFileInfo, cacheEntry *cache.Entry) bool
+
+// CheckClientConfigFileByVersion 通过比较版本号检查客户端使用的配置文件是否版本落后
+func (cs *Impl) CheckClientConfigFileByVersion(ctx context.Context, configFiles []*api.ClientConfigFileInfo) *api.ConfigClientResponse {
+	return cs.doCheckClientConfigFile(ctx, configFiles, func(clientConfigFile *api.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
+		return !cacheEntry.Empty && clientConfigFile.Version.GetValue() < cacheEntry.Version
+	})
+}
+
+// CheckClientConfigFileByMd5 通过比较md5检查客户端使用的配置文件是否版本落后
+func (cs *Impl) CheckClientConfigFileByMd5(ctx context.Context, configFiles []*api.ClientConfigFileInfo) *api.ConfigClientResponse {
+	return cs.doCheckClientConfigFile(ctx, configFiles, func(clientConfigFile *api.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
+		return clientConfigFile.Md5.GetValue() != cacheEntry.Md5
+	})
+}
+
+func (cs *Impl) doCheckClientConfigFile(ctx context.Context, configFiles []*api.ClientConfigFileInfo,
+	checkFunc checkFunc) *api.ConfigClientResponse {
 	if len(configFiles) == 0 {
 		return api.NewConfigClientResponse(api.InvalidWatchConfigFileFormat, nil)
 	}
@@ -40,14 +57,9 @@ func (cs *Impl) CheckClientConfigFile(ctx context.Context, configFiles []*api.Cl
 		namespace := configFile.Namespace.GetValue()
 		group := configFile.Group.GetValue()
 		fileName := configFile.FileName.GetValue()
-		clientVersion := configFile.Version.GetValue()
 
 		if namespace == "" || group == "" || fileName == "" {
 			return api.NewConfigClientResponseWithMessage(api.BadRequest, "namespace & group & fileName can not be empty")
-		}
-
-		if clientVersion < 0 {
-			return api.NewConfigClientResponseWithMessage(api.BadRequest, "client version must greater than or equal to 0")
 		}
 
 		//从缓存中获取最新的配置文件信息
@@ -62,7 +74,7 @@ func (cs *Impl) CheckClientConfigFile(ctx context.Context, configFiles []*api.Cl
 			return api.NewConfigClientResponse(api.ExecuteException, nil)
 		}
 
-		if !entry.Empty && clientVersion < entry.Version {
+		if checkFunc(configFile, entry) {
 			return utils2.GenConfigFileResponse(namespace, group, fileName, "", entry.Md5, entry.Version)
 		}
 	}

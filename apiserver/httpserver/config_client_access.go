@@ -46,7 +46,8 @@ func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) 
 	configLog.Info("[Config][Client] client get config file success.",
 		zap.String("requestId", requestId),
 		zap.String("client", req.Request.RemoteAddr),
-		zap.String("file", fileName))
+		zap.String("file", fileName),
+		zap.Uint64("version", response.ConfigFile.Version.GetValue()))
 
 	handler.WriteHeaderAndProto(response)
 }
@@ -75,7 +76,7 @@ func (h *HTTPServer) watchConfigFile(req *restful.Request, rsp *restful.Response
 
 	watchFiles := watchConfigFileRequest.WatchFiles
 	//2. 检查客户端是否有版本落后
-	response := h.configServer.Service().CheckClientConfigFile(handler.ParseHeaderContext(), watchFiles)
+	response := h.configServer.Service().CheckClientConfigFileByVersion(handler.ParseHeaderContext(), watchFiles)
 	if response != nil {
 		handler.WriteHeaderAndProto(response)
 		return
