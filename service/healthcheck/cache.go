@@ -72,7 +72,7 @@ func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, va
 		log.Infof("[Health Check][Cache]create service instance is %s:%d, id is %s",
 			instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(),
 			instanceId)
-		//  key相同的时候，value不存在 ，只存储一次
+		//  并发场景下 key相同的时候，value不存在，只存储一次
 		values.PutIfAbsent(instanceId, instanceWithChecker)
 		return true
 	}
@@ -82,7 +82,7 @@ func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, va
 	}
 	log.Infof("[Health Check][Cache]update service instance is %s:%d, id is %s",
 		instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(), instanceId)
-	// key 相同，version 不同，这时候的存储是需要更新的
+	// 并发场景下 key 相同，version 不同， 直接更新
 	values.Store(instanceId, instanceWithChecker)
 	return true
 }
@@ -179,14 +179,14 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 		}
 		var noChanged bool
 		if exists {
-			// 健康，存在，版本号一致 不需要改变
+			// 健康，存在，版本号一致，无需改变
 			healthCheckInstance := healthCheckInstanceValue.instance
 			noChanged = healthCheckInstance.Revision() == instance.Revision()
 		}
 		if !noChanged {
 			log.Infof("[Health Check][Cache]update service instance is %s:%d, id is %s",
 				instance.Host(), instance.Port(), instanceId)
-			//   并发场景下，同一健康实例更新版本号一致,同时到这里，会存储两次
+			//   并发场景下，同一健康实例更新版本号一致,同时执行这里，存储两次
 			c.healthCheckInstances.Store(instanceId, newInstanceWithChecker(instance, checker))
 			c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 		}
