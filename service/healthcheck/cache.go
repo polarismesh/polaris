@@ -18,20 +18,25 @@
 package healthcheck
 
 import (
-	"sync"
-
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/plugin"
+	"runtime"
 )
+
+var ShardSize uint32
+
+func init() {
+	ShardSize = uint32(runtime.GOMAXPROCS(0) * 16)
+	// Different machines can adjust this parameter of 16.In more cases, 16 is suitable ,
+	// can test it in shardmap_test.go
+}
 
 // CacheProvider provider health check objects for service cache
 type CacheProvider struct {
-	healthCheckInstances map[string]*InstanceWithChecker
-	healthCheckMutex     *sync.RWMutex
+	healthCheckInstances *ShardMap
+	selfServiceInstances *ShardMap
 	selfService          string
-	selfServiceInstances map[string]*InstanceWithChecker
-	selfServiceMutex     *sync.RWMutex
 }
 
 // CacheEvent provide the event for cache changes
@@ -42,10 +47,8 @@ type CacheEvent struct {
 
 func newCacheProvider(selfService string) *CacheProvider {
 	return &CacheProvider{
-		healthCheckInstances: make(map[string]*InstanceWithChecker),
-		healthCheckMutex:     &sync.RWMutex{},
-		selfServiceInstances: make(map[string]*InstanceWithChecker),
-		selfServiceMutex:     &sync.RWMutex{},
+		healthCheckInstances: NewShardMap(ShardSize),
+		selfServiceInstances: NewShardMap(1),
 		selfService:          selfService,
 	}
 }
@@ -62,17 +65,15 @@ func (c *CacheProvider) sendEvent(event CacheEvent) {
 	server.dispatcher.UpdateStatusByEvent(event)
 }
 
-func compareAndStoreServiceInstance(
-	instanceWithChecker *InstanceWithChecker, mutex *sync.RWMutex, values map[string]*InstanceWithChecker) bool {
-	mutex.Lock()
-	defer mutex.Unlock()
+func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, values *ShardMap) bool {
 	instanceId := instanceWithChecker.instance.ID()
-	value, ok := values[instanceId]
+	value, ok := values.Load(instanceId)
 	if !ok {
 		log.Infof("[Health Check][Cache]create service instance is %s:%d, id is %s",
 			instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(),
 			instanceId)
-		values[instanceId] = instanceWithChecker
+		//  key相同的时候，value不存在 ，只存储一次
+		values.PutIfAbsent(instanceId, instanceWithChecker)
 		return true
 	}
 	lastInstance := value.instance
@@ -81,31 +82,27 @@ func compareAndStoreServiceInstance(
 	}
 	log.Infof("[Health Check][Cache]update service instance is %s:%d, id is %s",
 		instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(), instanceId)
-	values[instanceId] = instanceWithChecker
+	// key 相同，version 不同，这时候的存储是需要更新的
+	values.Store(instanceId, instanceWithChecker)
 	return true
 }
 
-func storeServiceInstance(
-	instanceWithChecker *InstanceWithChecker, mutex *sync.RWMutex, values map[string]*InstanceWithChecker) bool {
-	mutex.Lock()
-	defer mutex.Unlock()
+func storeServiceInstance(instanceWithChecker *InstanceWithChecker, values *ShardMap) bool {
 	log.Infof("[Health Check][Cache]create service instance is %s:%d, id is %s",
 		instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(),
 		instanceWithChecker.instance.ID())
 	instanceId := instanceWithChecker.instance.ID()
-	values[instanceId] = instanceWithChecker
+	values.Store(instanceId, instanceWithChecker)
 	return true
 }
 
-func deleteServiceInstance(instance *api.Instance, mutex *sync.RWMutex, values map[string]*InstanceWithChecker) bool {
-	mutex.Lock()
-	defer mutex.Unlock()
+func deleteServiceInstance(instance *api.Instance, values *ShardMap) bool {
 	instanceId := instance.GetId().GetValue()
-	_, ok := values[instanceId]
+	_, ok := values.Load(instanceId)
 	if ok {
 		log.Infof("[Health Check][Cache]delete service instance is %s:%d, id is %s",
 			instance.GetHost().GetValue(), instance.GetPort().GetValue(), instanceId)
-		delete(values, instanceId)
+		values.Delete(instanceId)
 	}
 	return true
 }
@@ -130,8 +127,7 @@ func (c *CacheProvider) OnCreated(value interface{}) {
 	if instance, ok := value.(*model.Instance); ok {
 		instProto := instance.Proto
 		if c.isSelfServiceInstance(instProto) {
-			storeServiceInstance(
-				newInstanceWithChecker(instance, nil), c.selfServiceMutex, c.selfServiceInstances)
+			storeServiceInstance(newInstanceWithChecker(instance, nil), c.selfServiceInstances)
 			c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
 			return
 		}
@@ -139,7 +135,7 @@ func (c *CacheProvider) OnCreated(value interface{}) {
 		if !hcEnable {
 			return
 		}
-		storeServiceInstance(newInstanceWithChecker(instance, checker), c.healthCheckMutex, c.healthCheckInstances)
+		storeServiceInstance(newInstanceWithChecker(instance, checker), c.healthCheckInstances)
 		c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 	}
 }
@@ -160,37 +156,38 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 	if instance, ok := value.(*model.Instance); ok {
 		instProto := instance.Proto
 		if c.isSelfServiceInstance(instProto) {
-			if compareAndStoreServiceInstance(
-				newInstanceWithChecker(instance, nil), c.selfServiceMutex, c.selfServiceInstances) {
+			if compareAndStoreServiceInstance(newInstanceWithChecker(instance, nil), c.selfServiceInstances) {
 				c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
 			}
 			return
 		}
 		//check exists
-		c.healthCheckMutex.Lock()
-		defer c.healthCheckMutex.Unlock()
 		instanceId := instance.ID()
-		healthCheckInstanceValue, exists := c.healthCheckInstances[instanceId]
+		healthCheckInstanceValue, exists := c.healthCheckInstances.Load(instanceId)
 		hcEnable, checker := isHealthCheckEnable(instProto)
 		if !hcEnable {
 			if !exists {
+				// 不健康,不存在,直接返回
 				return
 			}
 			log.Infof("[Health Check][Cache]delete health check disabled instance is %s:%d, id is %s",
 				instance.Host(), instance.Port(), instanceId)
-			delete(c.healthCheckInstances, instanceId)
+			// 不健康，存在的，删除
+			c.healthCheckInstances.Delete(instanceId)
 			c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 			return
 		}
 		var noChanged bool
 		if exists {
+			// 健康，存在，版本号一致 不需要改变
 			healthCheckInstance := healthCheckInstanceValue.instance
 			noChanged = healthCheckInstance.Revision() == instance.Revision()
 		}
 		if !noChanged {
 			log.Infof("[Health Check][Cache]update service instance is %s:%d, id is %s",
 				instance.Host(), instance.Port(), instanceId)
-			c.healthCheckInstances[instanceId] = newInstanceWithChecker(instance, checker)
+			//   并发场景下，同一健康实例更新版本号一致,同时到这里，会存储两次
+			c.healthCheckInstances.Store(instanceId, newInstanceWithChecker(instance, checker))
 			c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 		}
 	}
@@ -201,14 +198,14 @@ func (c *CacheProvider) OnDeleted(value interface{}) {
 	if instance, ok := value.(*model.Instance); ok {
 		instProto := instance.Proto
 		if c.isSelfServiceInstance(instProto) {
-			deleteServiceInstance(instProto, c.selfServiceMutex, c.selfServiceInstances)
+			deleteServiceInstance(instProto, c.selfServiceInstances)
 			c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
 			return
 		}
 		if !instProto.GetEnableHealthCheck().GetValue() || nil == instProto.GetHealthCheck() {
 			return
 		}
-		deleteServiceInstance(instProto, c.healthCheckMutex, c.healthCheckInstances)
+		deleteServiceInstance(instProto, c.healthCheckInstances)
 		c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 	}
 }
@@ -230,27 +227,24 @@ func (c *CacheProvider) OnBatchDeleted(value interface{}) {
 
 // RangeHealthCheckInstances range loop healthCheckInstances
 func (c *CacheProvider) RangeHealthCheckInstances(check func(instance *InstanceWithChecker)) {
-	c.healthCheckMutex.RLock()
-	defer c.healthCheckMutex.RUnlock()
-	for _, value := range c.healthCheckInstances {
-		check(value)
-	}
+
+	c.healthCheckInstances.RangeMap(func(instanceId string, healthCheckInstance *InstanceWithChecker) {
+		check(healthCheckInstance)
+	})
 }
 
 // RangeSelfServiceInstances range loop selfServiceInstances
 func (c *CacheProvider) RangeSelfServiceInstances(check func(instance *api.Instance)) {
-	c.selfServiceMutex.RLock()
-	defer c.selfServiceMutex.RUnlock()
-	for _, value := range c.selfServiceInstances {
-		check(value.instance.Proto)
-	}
+
+	c.selfServiceInstances.RangeMap(func(instanceId string, selfServiceInstance *InstanceWithChecker) {
+		check(selfServiceInstance.instance.Proto)
+	})
 }
 
 // GetInstance get instance by id
-func (c *CacheProvider) GetInstance(id string) *model.Instance {
-	c.healthCheckMutex.RLock()
-	defer c.healthCheckMutex.RUnlock()
-	value, ok := c.healthCheckInstances[id]
+func (c *CacheProvider) GetInstance(instanceId string) *model.Instance {
+
+	value, ok := c.healthCheckInstances.Load(instanceId)
 	if !ok {
 		return nil
 	}
