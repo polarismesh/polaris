@@ -6,6 +6,10 @@ if [[ $(uname) == 'Darwin' ]]; then
   realpath() {
     [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"
   }
+
+  md5sum() {
+    md5 $*
+  }
 fi
 
 workdir=$(dirname $(realpath $0))
@@ -46,10 +50,4 @@ cp ${bin_name} ${folder_name}
 cp polaris-server.yaml ${folder_name}
 cp -r tool ${folder_name}/
 zip -r "${pkg_name}" ${folder_name}
-#md5sum ${pkg_name} > "${pkg_name}.md5sum"
-
-if [[ $(uname -a | grep "Darwin" | wc -l) -eq 1 ]]; then
-  md5 ${pkg_name} >"${pkg_name}.md5sum"
-else
-  md5sum ${pkg_name} >"${pkg_name}.md5sum"
-fi
+md5sum ${pkg_name} >"${pkg_name}.md5sum"
