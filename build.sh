@@ -2,6 +2,12 @@
 
 set -e
 
+if [[ $(uname) == 'Darwin' ]]; then
+  realpath() {
+    [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"
+  }
+fi
+
 workdir=$(dirname $(realpath $0))
 version=$(cat version 2>/dev/null)
 bin_name="polaris-server"
