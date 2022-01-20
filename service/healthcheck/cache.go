@@ -34,8 +34,8 @@ func init() {
 
 // CacheProvider provider health check objects for service cache
 type CacheProvider struct {
-	healthCheckInstances *ShardMap
-	selfServiceInstances *ShardMap
+	healthCheckInstances *shardMap
+	selfServiceInstances *shardMap
 	selfService          string
 }
 
@@ -65,7 +65,7 @@ func (c *CacheProvider) sendEvent(event CacheEvent) {
 	server.dispatcher.UpdateStatusByEvent(event)
 }
 
-func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, values *ShardMap) bool {
+func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, values *shardMap) bool {
 	instanceId := instanceWithChecker.instance.ID()
 	value, isNew := values.PutIfAbsent(instanceId, instanceWithChecker)
 	if value == nil {
@@ -88,7 +88,7 @@ func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, va
 	return true
 }
 
-func storeServiceInstance(instanceWithChecker *InstanceWithChecker, values *ShardMap) bool {
+func storeServiceInstance(instanceWithChecker *InstanceWithChecker, values *shardMap) bool {
 	log.Infof("[Health Check][Cache]create service instance is %s:%d, id is %s",
 		instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(),
 		instanceWithChecker.instance.ID())
@@ -97,7 +97,7 @@ func storeServiceInstance(instanceWithChecker *InstanceWithChecker, values *Shar
 	return true
 }
 
-func deleteServiceInstance(instance *api.Instance, values *ShardMap) bool {
+func deleteServiceInstance(instance *api.Instance, values *shardMap) bool {
 	instanceId := instance.GetId().GetValue()
 	ok := values.DeleteIfExist(instanceId)
 	if ok {
