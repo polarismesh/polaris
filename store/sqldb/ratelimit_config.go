@@ -21,22 +21,19 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/store"
-	"time"
 )
 
-/**
- * @brief RateLimitStore的实现
- */
+// rateLimitStore RateLimitStore的实现
 type rateLimitStore struct {
 	db *BaseDB
 }
 
-/*
- * @brief 新建限流规则
- */
+// CreateRateLimit 新建限流规则
 func (rls *rateLimitStore) CreateRateLimit(limit *model.RateLimit) error {
 	if limit.ID == "" || limit.ServiceID == "" || limit.Revision == "" {
 		return errors.New("[Store][database] create rate limit missing some params")
@@ -86,9 +83,7 @@ func (rls *rateLimitStore) createRateLimit(limit *model.RateLimit) error {
 	return nil
 }
 
-/*
- * @brief 更新限流规则
- */
+// UpdateRateLimit 更新限流规则
 func (rls *rateLimitStore) UpdateRateLimit(limit *model.RateLimit) error {
 	if limit.ID == "" || limit.ServiceID == "" || limit.Revision == "" {
 		return errors.New("[Store][database] update rate limit missing some params")
@@ -132,9 +127,7 @@ func (rls *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 	return nil
 }
 
-/**
- * @brief 删除限流规则
- */
+// DeleteRateLimit 删除限流规则
 func (rls *rateLimitStore) DeleteRateLimit(limit *model.RateLimit) error {
 	if limit.ID == "" || limit.ServiceID == "" || limit.Revision == "" {
 		return errors.New("[Store][database] delete rate limit missing some params")
@@ -178,9 +171,7 @@ func (rls *rateLimitStore) deleteRateLimit(limit *model.RateLimit) error {
 	return nil
 }
 
-/**
- * @brief 根据限流规则ID获取限流规则
- */
+// GetRateLimitWithID 根据限流规则ID获取限流规则
 func (rls *rateLimitStore) GetRateLimitWithID(id string) (*model.RateLimit, error) {
 	if id == "" {
 		log.Errorf("[Store][database] get rate limit missing some params")
@@ -206,9 +197,7 @@ func (rls *rateLimitStore) GetRateLimitWithID(id string) (*model.RateLimit, erro
 	return out[0], nil
 }
 
-/**
- * @brief 根据过滤条件获取限流规则及数目
- */
+// GetExtendRateLimits根据过滤条件获取限流规则及数目
 func (rls *rateLimitStore) GetExtendRateLimits(filter map[string]string, offset uint32, limit uint32) (
 	uint32, []*model.ExtendRateLimit, error) {
 	out, err := rls.getExpandRateLimits(filter, offset, limit)
@@ -222,9 +211,7 @@ func (rls *rateLimitStore) GetExtendRateLimits(filter map[string]string, offset 
 	return num, out, nil
 }
 
-/**
- * @brief 根据修改时间拉取增量限流规则及最新版本号
- */
+// GetRateLimitsForCache 根据修改时间拉取增量限流规则及最新版本号
 func (rls *rateLimitStore) GetRateLimitsForCache(mtime time.Time,
 	firstUpdate bool) ([]*model.RateLimit, []*model.RateLimitRevision, error) {
 	str := `select id, ratelimit_config.service_id, cluster_id, labels, priority, rule, revision, flag, 
@@ -246,9 +233,7 @@ func (rls *rateLimitStore) GetRateLimitsForCache(mtime time.Time,
 	return rateLimits, revisions, nil
 }
 
-/**
- * @brief 根据过滤条件获取限流规则
- */
+// getExpandRateLimits 根据过滤条件获取限流规则
 func (rls *rateLimitStore) getExpandRateLimits(filter map[string]string, offset uint32, limit uint32) (
 	[]*model.ExtendRateLimit, error) {
 	str := `select name, namespace, ratelimit_config.id, service_id, cluster_id, labels, priority, rule, 
@@ -272,9 +257,7 @@ func (rls *rateLimitStore) getExpandRateLimits(filter map[string]string, offset 
 	return out, nil
 }
 
-/**
- * @brief 根据过滤条件获取限流规则数目
- */
+// getExpandRateLimitsCount 根据过滤条件获取限流规则数目
 func (rls *rateLimitStore) getExpandRateLimitsCount(filter map[string]string) (uint32, error) {
 	str := `select count(*) from ratelimit_config, service 
 			where service_id = service.id and ratelimit_config.flag = 0`
@@ -294,9 +277,7 @@ func (rls *rateLimitStore) getExpandRateLimitsCount(filter map[string]string) (u
 	return total, nil
 }
 
-/**
- *@brief 生成查询语句的过滤语句
- */
+// genFilterRateLimitSQL 生成查询语句的过滤语句
 func genFilterRateLimitSQL(query map[string]string) (string, []interface{}) {
 	str := ""
 	args := make([]interface{}, 0, len(query))
@@ -312,9 +293,7 @@ func genFilterRateLimitSQL(query map[string]string) (string, []interface{}) {
 	return str, args
 }
 
-/**
- * @brief 读取限流数据
- */
+// fetchRateLimitRows 读取限流数据
 func fetchRateLimitRows(rows *sql.Rows) ([]*model.RateLimit, error) {
 	defer rows.Close()
 	var out []*model.RateLimit
@@ -343,9 +322,7 @@ func fetchRateLimitRows(rows *sql.Rows) ([]*model.RateLimit, error) {
 	return out, nil
 }
 
-/**
- * @brief 读取包含服务信息的限流数据
- */
+// fetchExpandRateLimitRows 读取包含服务信息的限流数据
 func fetchExpandRateLimitRows(rows *sql.Rows) ([]*model.ExtendRateLimit, error) {
 	defer rows.Close()
 	var out []*model.ExtendRateLimit
@@ -371,9 +348,7 @@ func fetchExpandRateLimitRows(rows *sql.Rows) ([]*model.ExtendRateLimit, error) 
 	return out, nil
 }
 
-/**
- * @brief 读取限流数据以及最新版本号
- */
+// fetchRateLimitCacheRows 读取限流数据以及最新版本号
 func fetchRateLimitCacheRows(rows *sql.Rows) ([]*model.RateLimit, []*model.RateLimitRevision, error) {
 	defer rows.Close()
 
@@ -412,9 +387,7 @@ func fetchRateLimitCacheRows(rows *sql.Rows) ([]*model.RateLimit, []*model.RateL
 	return rateLimits, revisions, nil
 }
 
-/*
- * @brief 从数据库清除限流规则数据
- */
+// cleanRateLimit 从数据库清除限流规则数据
 func (rls *rateLimitStore) cleanRateLimit(id string) error {
 	str := `delete from ratelimit_config where id = ? and flag = 1`
 	if _, err := rls.db.Exec(str, id); err != nil {
@@ -424,9 +397,7 @@ func (rls *rateLimitStore) cleanRateLimit(id string) error {
 	return nil
 }
 
-/**
- * @brief 更新last_revision
- */
+// updateLastRevision 更新last_revision
 func (rls *rateLimitStore) updateLastRevision(tx *BaseTx, serviceID string, revision string) error {
 	str := `update ratelimit_revision set last_revision = ?, mtime = sysdate() where service_id = ?`
 	if _, err := tx.Exec(str, revision, serviceID); err != nil {

@@ -22,11 +22,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/boltdb/bolt"
-	"github.com/golang/protobuf/proto"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/boltdb/bolt"
+	"github.com/golang/protobuf/proto"
 )
 
 const (

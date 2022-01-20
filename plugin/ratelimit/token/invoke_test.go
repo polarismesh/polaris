@@ -18,12 +18,13 @@
 package token
 
 import (
+	"testing"
+
 	"github.com/polarismesh/polaris-server/plugin"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 )
 
-// 返回一个基础的正常option配置
+// baseConfigOption 返回一个基础的正常option配置
 func baseConfigOption() map[string]interface{} {
 	return map[string]interface{}{
 		"ip-limit": &ResourceLimitConfig{
@@ -42,7 +43,7 @@ func baseConfigOption() map[string]interface{} {
 	}
 }
 
-// 对插件名字接口实现的测试
+// TestTokenBucket_Name 对插件名字接口实现的测试
 func TestTokenBucket_Name(t *testing.T) {
 	tb := &tokenBucket{}
 	Convey("返回插件名服务预期", t, func() {
@@ -50,7 +51,7 @@ func TestTokenBucket_Name(t *testing.T) {
 	})
 }
 
-// 测试初始化函数
+// TestTokenBucket_Initialize 测试初始化函数
 func TestTokenBucket_Initialize(t *testing.T) {
 	configEntry := &plugin.ConfigEntry{Name: PluginName}
 	tb := &tokenBucket{}
@@ -85,7 +86,7 @@ func TestTokenBucket_Initialize(t *testing.T) {
 	})
 }
 
-// 测试Allow函数
+// TestTokenBucket_Allow 测试Allow函数
 func TestTokenBucket_Allow(t *testing.T) {
 	configEntry := &plugin.ConfigEntry{Name: PluginName}
 	configEntry.Option = baseConfigOption()

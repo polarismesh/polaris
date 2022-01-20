@@ -20,14 +20,15 @@ package platform
 import (
 	"database/sql"
 	"fmt"
-	commontime "github.com/polarismesh/polaris-server/common/time"
 	"sync"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/plugin"
-	"go.uber.org/zap"
 )
 
 const (
@@ -37,16 +38,12 @@ const (
 	DefaultTimeDiff = -1 * time.Second * 5
 )
 
-/**
- * @brief 初始化注册函数
- */
+// init 初始化注册函数
 func init() {
 	plugin.RegisterPlugin(PluginName, &Auth{})
 }
 
-/**
- * Auth 鉴权插件
- */
+// Auth 鉴权插件
 type Auth struct {
 	dbType       string
 	dbSourceName string
@@ -57,16 +54,12 @@ type Auth struct {
 	ids          *sync.Map
 }
 
-/**
- * Name 返回插件名字
- */
+// Name 返回插件名字
 func (a *Auth) Name() string {
 	return PluginName
 }
 
-/**
- * Initialize 初始化鉴权插件
- */
+// Initialize 初始化鉴权插件
 func (a *Auth) Initialize(conf *plugin.ConfigEntry) error {
 	dbType, _ := conf.Option["dbType"].(string)
 	dbAddr, _ := conf.Option["dbAddr"].(string)
@@ -75,7 +68,7 @@ func (a *Auth) Initialize(conf *plugin.ConfigEntry) error {
 	whiteList, _ := conf.Option["white-list"].(string)
 
 	if dbType == "" || dbAddr == "" || dbName == "" {
-		return fmt.Errorf("Config Plugin %s missing database params", PluginName)
+		return fmt.Errorf("config Plugin %s missing database params", PluginName)
 	}
 
 	if interval == 0 {
@@ -100,16 +93,12 @@ func (a *Auth) Initialize(conf *plugin.ConfigEntry) error {
 	return nil
 }
 
-/**
- * Destroy 销毁插件
- */
+// Destroy 销毁插件
 func (a *Auth) Destroy() error {
 	return nil
 }
 
-/**
- * Allow 判断请求是否允许通过
- */
+// Allow 判断请求是否允许通过
 func (a *Auth) Allow(platformID, platformToken string) bool {
 	if platformID == "" || platformToken == "" {
 		return false
@@ -123,9 +112,7 @@ func (a *Auth) Allow(platformID, platformToken string) bool {
 	return platform.Token == platformToken
 }
 
-/**
- * @brief 判断请求ip是否属于白名单
- */
+// IsWhiteList 判断请求ip是否属于白名单
 func (a *Auth) IsWhiteList(ip string) bool {
 	if ip == "" || a.whiteList == "" {
 		return false
@@ -134,9 +121,6 @@ func (a *Auth) IsWhiteList(ip string) bool {
 	return ip == a.whiteList
 }
 
-/**
- * @brief 主流程
- */
 func (a *Auth) run() {
 	ticker := time.NewTicker(a.interval)
 	defer ticker.Stop()
@@ -149,9 +133,7 @@ func (a *Auth) run() {
 	}
 }
 
-/**
- * @brief 更新数据
- */
+// update 更新数据
 func (a *Auth) update() error {
 	start := time.Now()
 	out, err := a.getPlatforms()
@@ -165,9 +147,7 @@ func (a *Auth) update() error {
 	return nil
 }
 
-/**
- * @brief 从数据库中拉取增量数据
- */
+// getPlatforms 从数据库中拉取增量数据
 func (a *Auth) getPlatforms() ([]*model.Platform, error) {
 	// 每次采用短连接的方式，重新连接mysql
 	db, err := sql.Open(a.dbType, a.dbSourceName)
@@ -193,9 +173,7 @@ func (a *Auth) getPlatforms() ([]*model.Platform, error) {
 	return out, nil
 }
 
-/**
- * @brief 读取平台信息数据
- */
+// fetchPlatformRows 读取平台信息数据
 func fetchPlatformRows(rows *sql.Rows) ([]*model.Platform, error) {
 	defer rows.Close()
 	var out []*model.Platform
@@ -222,9 +200,7 @@ func fetchPlatformRows(rows *sql.Rows) ([]*model.Platform, error) {
 	return out, nil
 }
 
-/**
- * @brief 更新数据到缓存
- */
+// setPlatform 更新数据到缓存
 func (a *Auth) setPlatform(platforms []*model.Platform) (int, int) {
 	if len(platforms) == 0 {
 		return 0, 0
@@ -242,7 +218,7 @@ func (a *Auth) setPlatform(platforms []*model.Platform) (int, int) {
 			lastMtime = entry.ModifyTime.Unix()
 		}
 
-		if entry.Valid == false {
+		if !entry.Valid {
 			del++
 			a.ids.Delete(entry.ID)
 			continue
@@ -258,10 +234,7 @@ func (a *Auth) setPlatform(platforms []*model.Platform) (int, int) {
 	return update, del
 }
 
-/**
- * @brief 根据平台ID获取平台信息
- */
-
+// getPlatformByID 根据平台ID获取平台信息
 func (a *Auth) getPlatformByID(id string) *model.Platform {
 	if id == "" {
 		return nil

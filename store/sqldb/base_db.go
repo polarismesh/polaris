@@ -21,15 +21,16 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/polarismesh/polaris-server/plugin"
 	"strings"
 	"time"
+
+	"github.com/polarismesh/polaris-server/plugin"
 )
 
 // db抛出的异常，需要重试的字符串组
 var errMsg = []string{"Deadlock", "bad connection", "invalid connection"}
 
-// 对sql.DB的封装
+// BaseDB 对sql.DB的封装
 type BaseDB struct {
 	*sql.DB
 	cfg            *dbConfig
@@ -37,9 +38,7 @@ type BaseDB struct {
 	parsePwd       plugin.ParsePassword
 }
 
-/**
- * @brief store的配置
- */
+// dbConfig store的配置
 type dbConfig struct {
 	dbType           string
 	dbUser           string
@@ -52,7 +51,7 @@ type dbConfig struct {
 	txIsolationLevel int
 }
 
-// 新建一个BaseDB
+// NewBaseDB 新建一个BaseDB
 func NewBaseDB(cfg *dbConfig, parsePwd plugin.ParsePassword) (*BaseDB, error) {
 	baseDb := &BaseDB{cfg: cfg, parsePwd: parsePwd}
 	if cfg.txIsolationLevel > 0 {
@@ -67,7 +66,7 @@ func NewBaseDB(cfg *dbConfig, parsePwd plugin.ParsePassword) (*BaseDB, error) {
 	return baseDb, nil
 }
 
-// 与数据库进行连接
+// openDatabase 与数据库进行连接
 func (b *BaseDB) openDatabase() error {
 	c := b.cfg
 
@@ -108,8 +107,7 @@ func (b *BaseDB) openDatabase() error {
 	return nil
 }
 
-// 重写db.Exec函数
-// 提供重试功能
+// Exec 重写db.Exec函数 提供重试功能
 func (b *BaseDB) Exec(query string, args ...interface{}) (sql.Result, error) {
 	var result sql.Result
 	var err error
@@ -121,7 +119,7 @@ func (b *BaseDB) Exec(query string, args ...interface{}) (sql.Result, error) {
 	return result, err
 }
 
-// 重写db.Query函数
+// Query 重写db.Query函数
 func (b *BaseDB) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	var rows *sql.Rows
 	var err error
@@ -133,7 +131,7 @@ func (b *BaseDB) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return rows, err
 }
 
-// 重写db.Begin
+// Begin 重写db.Begin
 func (b *BaseDB) Begin() (*BaseTx, error) {
 	var tx *sql.Tx
 	var err error
@@ -149,12 +147,12 @@ func (b *BaseDB) Begin() (*BaseTx, error) {
 	return &BaseTx{Tx: tx}, err
 }
 
-// 对sql.Tx的封装
+// BaseTx 对sql.Tx的封装
 type BaseTx struct {
 	*sql.Tx
 }
 
-// 重试主函数
+// Retry 重试主函数
 // 最多重试20次，每次等待5ms*重试次数
 func Retry(label string, handle func() error) {
 	var err error
@@ -180,7 +178,7 @@ func Retry(label string, handle func() error) {
 	}
 }
 
-// 事务重试
+// RetryTransaction 事务重试
 func RetryTransaction(label string, handle func() error) error {
 	var err error
 	Retry(label, func() error {

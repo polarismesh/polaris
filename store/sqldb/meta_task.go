@@ -18,24 +18,23 @@
 package sqldb
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"time"
-
-	"context"
 )
 
-// 用户处理函数
+// Handler 用户处理函数
 type Handler func(item interface{}) error
 
-// 任务传输结构体
+// Future 任务传输结构体
 type Future struct {
 	item    interface{}     // 需要处理的参数
 	handler Handler         // 处理函数
 	resp    *ResponseFuture // 任务返回future
 }
 
-// 处理任务返回的结构体
+// ResponseFuture 处理任务返回的结构体
 type ResponseFuture struct {
 	finishCh  chan struct{} // 任务执行成功的反馈chan
 	errCh     chan error    // 任务执行失败的反馈chan
@@ -45,7 +44,7 @@ type ResponseFuture struct {
 	notifyCnt int           // 记录分发了多少个task
 }
 
-// 等待任务执行
+// wait 等待任务执行
 func (r *ResponseFuture) wait() error {
 	//defer log.Infof("[TaskManager][%s] finish all task(%d)", r.label, r.total)
 
@@ -70,7 +69,7 @@ func (r *ResponseFuture) wait() error {
 	}
 }
 
-// 返回函数
+// reply 返回函数
 func (r *ResponseFuture) reply(err error) {
 	if err != nil {
 		r.errCh <- err
@@ -79,7 +78,7 @@ func (r *ResponseFuture) reply(err error) {
 	}
 }
 
-// 每个任务集需要释放资源
+// release 每个任务集需要释放资源
 func (r *ResponseFuture) release() {
 	// 如果收到回复的个数==任务分发的个数，那么可以退出
 	if r.doneCnt >= r.notifyCnt {
@@ -109,14 +108,14 @@ func (r *ResponseFuture) release() {
 	}
 }
 
-// 任务管理器，全局可以有多个，不过尽量全局只有一个
+// TaskManager 任务管理器，全局可以有多个，不过尽量全局只有一个
 type TaskManager struct {
 	recvCh      chan *Future
 	concurrence int
 	exitCh      chan struct{}
 }
 
-// 新建任务管理器
+// NewTaskManager 新建任务管理器
 func NewTaskManager(concurrence int) (*TaskManager, error) {
 	if concurrence <= 0 {
 		return nil, errors.New("max channel count is error")
@@ -131,7 +130,7 @@ func NewTaskManager(concurrence int) (*TaskManager, error) {
 	return t, nil
 }
 
-// 执行任务集
+// Do 执行任务集
 func (t *TaskManager) Do(label string, data []interface{}, handler Handler) error {
 	if len(data) == 0 {
 		return nil
@@ -194,7 +193,7 @@ func (t *TaskManager) Do(label string, data []interface{}, handler Handler) erro
 	return err
 }
 
-// 开启运行任务管理器
+// Start 开启运行任务管理器
 func (t *TaskManager) Start() {
 	log.Infof("[TaskManager] goroutine count(%d) will start", t.concurrence)
 	for i := 0; i < t.concurrence; i++ {
@@ -202,12 +201,12 @@ func (t *TaskManager) Start() {
 	}
 }
 
-// 回收任务管理的资源，销毁任务管理器
+// Release 回收任务管理的资源，销毁任务管理器
 func (t *TaskManager) Release() {
 	close(t.exitCh)
 }
 
-// 任务管理器的工作协程
+// worker 任务管理器的工作协程
 func (t *TaskManager) worker(index int) {
 	//log.Infof("[TaskManager] reading metadata worker(%d) running", index)
 	defer log.Infof("[TaskManager] reading metadata worker(%d) exit", index)

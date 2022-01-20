@@ -20,26 +20,22 @@ package sqldb
 import (
 	"database/sql"
 	"errors"
-	v1 "github.com/polarismesh/polaris-server/common/api/v1"
-	commontime "github.com/polarismesh/polaris-server/common/time"
-	"github.com/polarismesh/polaris-server/store"
 	"strings"
 	"time"
 
+	v1 "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	commontime "github.com/polarismesh/polaris-server/common/time"
+	"github.com/polarismesh/polaris-server/store"
 )
 
-/**
- * @brief 实现了InstanceStore接口
- */
+// instanceStore 实现了InstanceStore接口
 type instanceStore struct {
 	master *BaseDB // 大部分操作都用主数据库
 	slave  *BaseDB // 缓存相关的读取，请求到slave
 }
 
-/**
- * @brief 添加实例
- */
+// AddInstance 添加实例
 func (ins *instanceStore) AddInstance(instance *model.Instance) error {
 	// 新增数据之前，必须先清理老数据
 	if err := ins.CleanInstance(instance.ID()); err != nil {
@@ -94,7 +90,7 @@ func (ins *instanceStore) addInstance(instance *model.Instance) error {
 	return nil
 }
 
-// 批量增加实例
+// BatchAddInstances 批量增加实例
 func (ins *instanceStore) BatchAddInstances(instances []*model.Instance) error {
 	// 直接清理所有的老数据
 	if err := ins.BatchClearInstances(instances); err != nil {
@@ -108,7 +104,7 @@ func (ins *instanceStore) BatchAddInstances(instances []*model.Instance) error {
 	return store.Error(err)
 }
 
-// batch add instances
+// batchAddInstances batch add instances
 func (ins *instanceStore) batchAddInstances(instances []*model.Instance) error {
 	tx, err := ins.master.Begin()
 	if err != nil {
@@ -142,7 +138,7 @@ func (ins *instanceStore) batchAddInstances(instances []*model.Instance) error {
 	return nil
 }
 
-// 批量清理实例信息
+// BatchClearInstances 批量清理实例信息
 // 注意：依赖instance表修改结果，id外键修改为删除级联
 func (ins *instanceStore) BatchClearInstances(instances []*model.Instance) error {
 	if len(instances) == 0 {
@@ -173,9 +169,7 @@ func (ins *instanceStore) BatchClearInstances(instances []*model.Instance) error
 	return nil
 }
 
-/**
- * @brief 更新实例
- */
+// UpdateInstance 更新实例
 func (ins *instanceStore) UpdateInstance(instance *model.Instance) error {
 	err := RetryTransaction("updateInstance", func() error {
 		return ins.updateInstance(instance)
@@ -191,7 +185,7 @@ func (ins *instanceStore) UpdateInstance(instance *model.Instance) error {
 	return serr
 }
 
-// update instance
+// updateInstance update instance
 func (ins *instanceStore) updateInstance(instance *model.Instance) error {
 	tx, err := ins.master.Begin()
 	if err != nil {
@@ -224,8 +218,8 @@ func (ins *instanceStore) updateInstance(instance *model.Instance) error {
 	return nil
 }
 
-// 清理数据
-// 后续修改instance表，id外键删除级联，那么可以执行一次delete操作
+// CleanInstance 清理数据
+// TODO 后续修改instance表，id外键删除级联，那么可以执行一次delete操作
 func (ins *instanceStore) CleanInstance(instanceID string) error {
 	log.Infof("[Store][database] clean instance(%s)", instanceID)
 	mainStr := "delete from instance where id = ? and flag = 1"
@@ -236,9 +230,7 @@ func (ins *instanceStore) CleanInstance(instanceID string) error {
 	return nil
 }
 
-/**
- * @brief 删除一个实例，删除实例实际上是把flag置为1
- */
+// DeleteInstance 删除一个实例，删除实例实际上是把flag置为1
 func (ins *instanceStore) DeleteInstance(instanceID string) error {
 	if instanceID == "" {
 		return errors.New("Delete Instance Missing instance id")
@@ -249,7 +241,7 @@ func (ins *instanceStore) DeleteInstance(instanceID string) error {
 	return store.Error(err)
 }
 
-// 批量删除实例
+// BatchDeleteInstances 批量删除实例
 func (ins *instanceStore) BatchDeleteInstances(ids []interface{}) error {
 	return BatchOperation("delete-instance", ids, func(objects []interface{}) error {
 		if len(objects) == 0 {
@@ -261,9 +253,7 @@ func (ins *instanceStore) BatchDeleteInstances(ids []interface{}) error {
 	})
 }
 
-/**
- * @brief 获取单个实例详情，只返回有效的数据
- */
+// GetInstance 获取单个实例详情，只返回有效的数据
 func (ins *instanceStore) GetInstance(instanceID string) (*model.Instance, error) {
 	instance, err := ins.getInstance(instanceID)
 	if err != nil {
@@ -278,7 +268,7 @@ func (ins *instanceStore) GetInstance(instanceID string) (*model.Instance, error
 	return instance, nil
 }
 
-// 检查实例是否存在
+// BatchGetInstanceIsolate 检查实例是否存在
 func (ins *instanceStore) BatchGetInstanceIsolate(ids map[string]bool) (map[string]bool, error) {
 	if len(ids) == 0 {
 		return nil, nil
@@ -308,7 +298,7 @@ func (ins *instanceStore) BatchGetInstanceIsolate(ids map[string]bool) (map[stri
 	return instanceIsolate, nil
 }
 
-// 批量获取实例的serviceID
+// GetInstancesBrief 批量获取实例的serviceID
 func (ins *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*model.Instance, error) {
 	if len(ids) == 0 {
 		return nil, nil
@@ -345,7 +335,7 @@ func (ins *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mo
 	return out, nil
 }
 
-// 获取有效的实例总数
+// GetInstancesCount 获取有效的实例总数
 func (ins *instanceStore) GetInstancesCount() (uint32, error) {
 	countStr := "select count(*) from instance where flag = 0"
 	var count uint32
@@ -366,10 +356,8 @@ func (ins *instanceStore) GetInstancesCount() (uint32, error) {
 	return count, nil
 }
 
-/**
- * @brief 根据服务和host获取实例
- * @note 不包括metadata
- */
+// GetInstancesMainByService 根据服务和host获取实例
+// @note 不包括metadata
 func (ins *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*model.Instance, error) {
 	// 只查询有效的服务实例
 	str := genInstanceSelectSQL() + " where service_id = ? and host = ? and flag = 0"
@@ -392,9 +380,7 @@ func (ins *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*
 	return out, nil
 }
 
-/**
- * @brief 根据过滤条件查看对应服务实例及数目
- */
+// GetExpandInstances 根据过滤条件查看对应服务实例及数目
 func (ins *instanceStore) GetExpandInstances(filter, metaFilter map[string]string, offset uint32,
 	limit uint32) (uint32, []*model.Instance, error) {
 	// 只查询有效的实例列表
@@ -412,9 +398,7 @@ func (ins *instanceStore) GetExpandInstances(filter, metaFilter map[string]strin
 	return num, out, err
 }
 
-/**
- * @brief 根据过滤条件查看对应服务实例
- */
+// getExpandInstances 根据过滤条件查看对应服务实例
 func (ins *instanceStore) getExpandInstances(filter, metaFilter map[string]string, offset uint32,
 	limit uint32) ([]*model.Instance, error) {
 	// 这种情况意味着，不需要详细的数据，可以不用query了
@@ -445,9 +429,7 @@ func (ins *instanceStore) getExpandInstances(filter, metaFilter map[string]strin
 	return out, nil
 }
 
-/**
- * @brief 根据过滤条件查看对应服务实例的数目
- */
+// getExpandInstancesCount 根据过滤条件查看对应服务实例的数目
 func (ins *instanceStore) getExpandInstancesCount(filter, metaFilter map[string]string) (uint32, error) {
 	str := `select count(*) from instance `
 	// 查询条件是否有service表中的字段
@@ -476,11 +458,9 @@ func (ins *instanceStore) getExpandInstancesCount(filter, metaFilter map[string]
 	}
 }
 
-/**
- * @brief 根据mtime获取增量修改数据
-*         这里会返回所有的数据的，包括valid=false的数据
-*         对于首次拉取，firstUpdate=true，只会拉取flag!=1的数据
-*/
+// GetMoreInstances 根据mtime获取增量修改数据
+// 这里会返回所有的数据的，包括valid=false的数据
+// 对于首次拉取，firstUpdate=true，只会拉取flag!=1的数据
 func (ins *instanceStore) GetMoreInstances(mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (
 	map[string]*model.Instance, error) {
 	if needMeta {
@@ -498,9 +478,7 @@ func (ins *instanceStore) GetMoreInstances(mtime time.Time, firstUpdate, needMet
 	}
 }
 
-/**
- * @brief 根据实例ID获取实例的metadata
- */
+// GetInstanceMeta 根据实例ID获取实例的metadata
 func (ins *instanceStore) GetInstanceMeta(instanceID string) (map[string]string, error) {
 	str := "select `mkey`, `mvalue` from instance_metadata where id = ?"
 	rows, err := ins.master.Query(str, instanceID)
@@ -528,16 +506,14 @@ func (ins *instanceStore) GetInstanceMeta(instanceID string) (map[string]string,
 	return out, nil
 }
 
-/**
- * @brief 设置实例健康状态
- */
+// SetInstanceHealthStatus 设置实例健康状态
 func (ins *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, revision string) error {
 	str := "update instance set health_status = ?, revision = ?, mtime = sysdate() where `id` = ?"
 	_, err := ins.master.Exec(str, flag, revision, instanceID)
 	return store.Error(err)
 }
 
-// 批量设置健康状态
+// BatchSetInstanceHealthStatus 批量设置健康状态
 func (ins *instanceStore) BatchSetInstanceHealthStatus(ids []interface{}, isolate int, revision string) error {
 	return BatchOperation("set-instance-healthy", ids, func(objects []interface{}) error {
 		if len(objects) == 0 {
@@ -554,9 +530,7 @@ func (ins *instanceStore) BatchSetInstanceHealthStatus(ids []interface{}, isolat
 	})
 }
 
-/**
- * @brief 批量设置实例隔离状态
- */
+// BatchSetInstanceIsolate 批量设置实例隔离状态
 func (ins *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, revision string) error {
 	return BatchOperation("set-instance-isolate", ids, func(objects []interface{}) error {
 		if len(objects) == 0 {
@@ -573,7 +547,7 @@ func (ins *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int
 	})
 }
 
-// 内部获取instance函数，根据instanceID，直接读取元数据，不做其他过滤
+// getInstance 内部获取instance函数，根据instanceID，直接读取元数据，不做其他过滤
 func (ins *instanceStore) getInstance(instanceID string) (*model.Instance, error) {
 	str := genInstanceSelectSQL() + " where instance.id = ?"
 	rows, err := ins.master.Query(str, instanceID)
@@ -601,10 +575,8 @@ func (ins *instanceStore) getInstance(instanceID string) (*model.Instance, error
 	return out[0], nil
 }
 
-/**
- * @brief 获取增量instance+healthcheck+meta内容
- * @note ro库有多个实例，且主库到ro库各实例的同步时间不一致。为避免获取不到meta，需要采用一条sql语句获取全部数据
- */
+// getMoreInstancesMainWithMeta 获取增量instance+healthcheck+meta内容
+// @note ro库有多个实例，且主库到ro库各实例的同步时间不一致。为避免获取不到meta，需要采用一条sql语句获取全部数据
 func (ins *instanceStore) getMoreInstancesMainWithMeta(mtime time.Time, firstUpdate bool, serviceID []string) (
 	map[string]*model.Instance, error) {
 	// 首次拉取
@@ -649,9 +621,7 @@ func (ins *instanceStore) getMoreInstancesMainWithMeta(mtime time.Time, firstUpd
 	return fetchInstanceWithMetaRows(rows)
 }
 
-/**
- * @brief 获取instance main+health_check+instance_metadata rows里面的数据
- */
+// fetchInstanceWithMetaRows 获取instance main+health_check+instance_metadata rows里面的数据
 func fetchInstanceWithMetaRows(rows *sql.Rows) (map[string]*model.Instance, error) {
 	if rows == nil {
 		return nil, nil
@@ -694,7 +664,7 @@ func fetchInstanceWithMetaRows(rows *sql.Rows) (map[string]*model.Instance, erro
 	return out, nil
 }
 
-// 获取增量instances 主表内容，health_check内容
+// getMoreInstancesMain 获取增量instances 主表内容，health_check内容
 func (ins *instanceStore) getMoreInstancesMain(mtime time.Time, firstUpdate bool, serviceID []string) (
 	map[string]*model.Instance, error) {
 	str := genInstanceSelectSQL() + " where instance.mtime >= ?"
@@ -732,7 +702,7 @@ func (ins *instanceStore) getMoreInstancesMain(mtime time.Time, firstUpdate bool
 	return out, nil
 }
 
-// 根据rows获取对应expandInstance
+// getRowExpandInstances 根据rows获取对应expandInstance
 func (ins *instanceStore) getRowExpandInstances(rows *sql.Rows) ([]*model.Instance, error) {
 	out, err := fetchExpandInstanceRows(rows)
 	if err != nil {
@@ -755,7 +725,7 @@ func (ins *instanceStore) getRowExpandInstances(rows *sql.Rows) ([]*model.Instan
 	return out, nil
 }
 
-// 批量获取instance的metadata信息
+// batchAcquireInstanceMetadata 批量获取instance的metadata信息
 // web端获取实例的数据的时候使用
 func (ins *instanceStore) batchAcquireInstanceMetadata(instances []interface{}) error {
 	rows, err := batchQueryMetadata(ins.master.Query, instances)
@@ -798,7 +768,7 @@ func (ins *instanceStore) batchAcquireInstanceMetadata(instances []interface{}) 
 	return nil
 }
 
-// 批量查找metadata
+// batchQueryMetadata 批量查找metadata
 func batchQueryMetadata(queryHandler QueryHandler, instances []interface{}) (*sql.Rows, error) {
 	if len(instances) == 0 {
 		return nil, nil
@@ -827,7 +797,7 @@ func batchQueryMetadata(queryHandler QueryHandler, instances []interface{}) (*sq
 	return rows, nil
 }
 
-// 往instance主表中增加数据
+// addMainInstance 往instance主表中增加数据
 func addMainInstance(tx *BaseTx, instance *model.Instance) error {
 	// #lizard forgives
 	str := `replace into instance(id, service_id, vpc_id, host, port, protocol, version, health_status, isolate, 
@@ -841,7 +811,7 @@ func addMainInstance(tx *BaseTx, instance *model.Instance) error {
 	return err
 }
 
-// 批量增加main instance数据
+// batchAddMainInstances 批量增加main instance数据
 func batchAddMainInstances(tx *BaseTx, instances []*model.Instance) error {
 	str := `replace into instance(id, service_id, vpc_id, host, port, protocol, version, health_status, isolate, 
 		 weight, enable_health_check, logic_set, cmdb_region, cmdb_zone, cmdb_idc, priority, revision, ctime, mtime) 
@@ -865,7 +835,7 @@ func batchAddMainInstances(tx *BaseTx, instances []*model.Instance) error {
 	return err
 }
 
-// 往health_check加入健康检查信息
+// addInstanceCheck 往health_check加入健康检查信息
 func addInstanceCheck(tx *BaseTx, instance *model.Instance) error {
 	check := instance.HealthCheck()
 	if check == nil {
@@ -878,7 +848,7 @@ func addInstanceCheck(tx *BaseTx, instance *model.Instance) error {
 	return err
 }
 
-// 批量增加healthCheck数据
+// batchAddInstanceCheck 批量增加healthCheck数据
 func batchAddInstanceCheck(tx *BaseTx, instances []*model.Instance) error {
 	str := "replace into health_check(`id`, `type`, `ttl`) values"
 	first := true
@@ -904,7 +874,7 @@ func batchAddInstanceCheck(tx *BaseTx, instances []*model.Instance) error {
 
 }
 
-// 往表中加入instance meta数据
+// addInstanceMeta 往表中加入instance meta数据
 func addInstanceMeta(tx *BaseTx, id string, meta map[string]string) error {
 	if len(meta) == 0 {
 		return nil
@@ -930,7 +900,7 @@ func addInstanceMeta(tx *BaseTx, id string, meta map[string]string) error {
 	return err
 }
 
-// 批量删除metadata数据
+// batchDeleteInstanceMeta 批量删除metadata数据
 func batchDeleteInstanceMeta(tx *BaseTx, instances []*model.Instance) error {
 	ids := make([]interface{}, 0, len(instances))
 	builder := strings.Builder{}
@@ -946,7 +916,7 @@ func batchDeleteInstanceMeta(tx *BaseTx, instances []*model.Instance) error {
 	return err
 }
 
-// 批量增加metadata数据
+// batchAddInstanceMeta 批量增加metadata数据
 func batchAddInstanceMeta(tx *BaseTx, instances []*model.Instance) error {
 	str := "insert into instance_metadata(`id`, `mkey`, `mvalue`, `ctime`, `mtime`) values"
 	args := make([]interface{}, 0)
@@ -974,7 +944,7 @@ func batchAddInstanceMeta(tx *BaseTx, instances []*model.Instance) error {
 	return err
 }
 
-// 更新instance的meta表
+// updateInstanceMeta 更新instance的meta表
 func updateInstanceMeta(tx *BaseTx, instance *model.Instance) error {
 	// 只有metadata为nil的时候，则不用处理。
 	// 如果metadata不为nil，但是len(metadata) == 0，则代表删除metadata
@@ -990,7 +960,7 @@ func updateInstanceMeta(tx *BaseTx, instance *model.Instance) error {
 	return addInstanceMeta(tx, instance.ID(), meta)
 }
 
-// 更新instance的check表
+// updateInstanceCheck 更新instance的check表
 func updateInstanceCheck(tx *BaseTx, instance *model.Instance) error {
 	// healthCheck为空，则删除
 	check := instance.HealthCheck()
@@ -1004,7 +974,7 @@ func updateInstanceCheck(tx *BaseTx, instance *model.Instance) error {
 	return err
 }
 
-// 更新instance主表
+// updateInstanceMain 更新instance主表
 func updateInstanceMain(tx *BaseTx, instance *model.Instance) error {
 	str := `update instance set protocol = ?, 
 	 version = ?, health_status = ?, isolate = ?, weight = ?, enable_health_check = ?, logic_set = ?,
@@ -1019,14 +989,14 @@ func updateInstanceMain(tx *BaseTx, instance *model.Instance) error {
 	return err
 }
 
-// 删除healthCheck数据
+// deleteInstanceCheck 删除healthCheck数据
 func deleteInstanceCheck(tx *BaseTx, id string) error {
 	str := "delete from health_check where id = ?"
 	_, err := tx.Exec(str, id)
 	return err
 }
 
-// 获取instance rows的内容
+// fetchInstanceRows 获取instance rows的内容
 func fetchInstanceRows(rows *sql.Rows) ([]*model.Instance, error) {
 	var out []*model.Instance
 	err := callFetchInstanceRows(rows, func(entry *model.InstanceStore) (b bool, e error) {
@@ -1041,7 +1011,7 @@ func fetchInstanceRows(rows *sql.Rows) ([]*model.Instance, error) {
 	return out, nil
 }
 
-// 带回调的fetch instance
+// callFetchInstanceRows 带回调的fetch instance
 func callFetchInstanceRows(rows *sql.Rows, callback func(entry *model.InstanceStore) (bool, error)) error {
 	if rows == nil {
 		return nil
@@ -1078,7 +1048,7 @@ func callFetchInstanceRows(rows *sql.Rows, callback func(entry *model.InstanceSt
 	return nil
 }
 
-// 获取expandInstance rows的内容
+// fetchExpandInstanceRows 获取expandInstance rows的内容
 func fetchExpandInstanceRows(rows *sql.Rows) ([]*model.Instance, error) {
 	if rows == nil {
 		return nil, nil
@@ -1116,7 +1086,7 @@ func fetchExpandInstanceRows(rows *sql.Rows) ([]*model.Instance, error) {
 	return out, nil
 }
 
-// 解析获取instance metadata
+// fetchInstanceMetaRows 解析获取instance metadata
 func fetchInstanceMetaRows(instances map[string]*model.Instance, rows *sql.Rows) error {
 	if rows == nil {
 		return nil
@@ -1151,7 +1121,7 @@ func fetchInstanceMetaRows(instances map[string]*model.Instance, rows *sql.Rows)
 
 }
 
-// 生成instance的select sql语句
+// genInstanceSelectSQL 生成instance的select sql语句
 func genInstanceSelectSQL() string {
 	str := `select instance.id, service_id, IFNULL(vpc_id,""), host, port, IFNULL(protocol, ""), IFNULL(version, ""),
 			 health_status, isolate, weight, enable_health_check, IFNULL(logic_set, ""), IFNULL(cmdb_region, ""), 
@@ -1162,7 +1132,7 @@ func genInstanceSelectSQL() string {
 	return str
 }
 
-// 生成完整instance(主表+health_check+metadata)的sql语句
+// genCompleteInstanceSelectSQL 生成完整instance(主表+health_check+metadata)的sql语句
 func genCompleteInstanceSelectSQL() string {
 	str := `select instance.id, service_id, IFNULL(vpc_id,""), host, port, IFNULL(protocol, ""), IFNULL(version, ""),
 		 health_status, isolate, weight, enable_health_check, IFNULL(logic_set, ""), IFNULL(cmdb_region, ""),
@@ -1175,7 +1145,7 @@ func genCompleteInstanceSelectSQL() string {
 	return str
 }
 
-// 生成expandInstance的select sql语句
+// genExpandInstanceSelectSQL 生成expandInstance的select sql语句
 func genExpandInstanceSelectSQL(needForceIndex bool) string {
 	str := `select instance.id, service_id, IFNULL(vpc_id,""), host, port, IFNULL(protocol, ""), IFNULL(version, ""), 
 					 health_status, isolate, weight, enable_health_check, IFNULL(logic_set, ""), IFNULL(cmdb_region, ""), 

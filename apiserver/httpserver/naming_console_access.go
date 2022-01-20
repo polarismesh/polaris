@@ -20,10 +20,11 @@ package httpserver
 import (
 	"context"
 	"fmt"
-	proto "github.com/golang/protobuf/proto"
 	"net/http"
 
 	"github.com/emicklei/go-restful"
+	proto "github.com/golang/protobuf/proto"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 )

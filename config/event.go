@@ -1,4 +1,4 @@
-/*
+/**
  * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -18,9 +18,11 @@
 package config
 
 import (
-	"github.com/polarismesh/polaris-server/common/log"
-	"go.uber.org/zap"
 	"sync"
+
+	"go.uber.org/zap"
+
+	"github.com/polarismesh/polaris-server/common/log"
 )
 
 // Event 事件对象，包含类型和事件消息

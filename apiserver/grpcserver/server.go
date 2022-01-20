@@ -20,11 +20,13 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+
+	"google.golang.org/grpc"
+
 	"github.com/polarismesh/polaris-server/apiserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
-	"google.golang.org/grpc"
 )
 
 // GRPCServer GRPC API服务器

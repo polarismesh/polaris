@@ -19,10 +19,11 @@ package healthcheck
 
 import (
 	"context"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 const (

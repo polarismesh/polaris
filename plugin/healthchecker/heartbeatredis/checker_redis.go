@@ -21,13 +21,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/redispool"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
-	"strconv"
-	"strings"
-	"time"
 )
 
 var log = commonlog.NamingScope()
@@ -195,7 +196,7 @@ func (r *RedisHealthChecker) Query(request *plugin.QueryRequest) (*plugin.QueryR
 
 const maxCheckDuration = 500 * time.Second
 
-// Report process the instance check
+// Check Report process the instance check
 func (r *RedisHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckResponse, error) {
 	var startTime = time.Now()
 	defer func() {
@@ -275,7 +276,7 @@ func (r *RedisHealthChecker) AddToCheck(request *plugin.AddCheckRequest) error {
 	return resp.Err
 }
 
-// AddToCheck add the instances to check procedure
+// RemoveFromCheck AddToCheck add the instances to check procedure
 func (r *RedisHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) error {
 	if len(request.Instances) == 0 {
 		return nil

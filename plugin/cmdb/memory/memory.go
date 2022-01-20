@@ -27,7 +27,7 @@ const (
 	PluginName = "memory"
 )
 
-// 自注册到插件列表
+// init 自注册到插件列表
 func init() {
 	plugin.RegisterPlugin(PluginName, &Memory{})
 }

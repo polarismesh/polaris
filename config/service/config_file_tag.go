@@ -1,4 +1,4 @@
-/*
+/**
  * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -20,11 +20,13 @@ package service
 import (
 	"context"
 	"errors"
+
+	"go.uber.org/zap"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"go.uber.org/zap"
 )
 
 // CreateConfigFileTags 创建配置文件标签，tags 格式：k1,v1,k2,v2,k3,v3...

@@ -24,9 +24,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
-/**
- * CMDB CMDB插件接口
- */
+// CMDB CMDB插件接口
 type CMDB interface {
 	Plugin
 
@@ -45,9 +43,7 @@ type CMDB interface {
 	Size() int32
 }
 
-/**
- * GetCMDB 获取CMDB插件
- */
+// GetCMDB 获取CMDB插件
 func GetCMDB() CMDB {
 	c := &config.CMDB
 

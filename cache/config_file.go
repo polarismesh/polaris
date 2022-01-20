@@ -1,4 +1,4 @@
-/*
+/**
  * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -19,13 +19,15 @@ package cache
 
 import (
 	"context"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 	"math/rand"
 	"sync"
 	"time"
+
+	"go.uber.org/zap"
+
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/store"
 )
 
 var (

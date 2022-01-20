@@ -1,4 +1,4 @@
-/*
+/**
  * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -21,12 +21,14 @@ import (
 	"crypto/md5"
 	"errors"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
 	"io"
 	"regexp"
 	"strconv"
+
+	"github.com/golang/protobuf/ptypes/wrappers"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 const (

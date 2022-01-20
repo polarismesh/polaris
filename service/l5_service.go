@@ -321,7 +321,7 @@ func (s *Server) getCalleeByRoute(route *model.Route) []*model.Callee {
 			return true, nil
 		})
 
-	if hasInstance == false {
+	if !hasInstance {
 		return nil
 	}
 

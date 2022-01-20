@@ -19,11 +19,12 @@ package healthcheck
 
 import (
 	"context"
+	"time"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service"
-	"time"
 )
 
 // checkHeartbeatInstance 检查心跳实例请求参数

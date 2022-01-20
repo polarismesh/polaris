@@ -20,17 +20,18 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/polarismesh/polaris-server/service/healthcheck"
-	"github.com/polarismesh/polaris-server/config"
 	"os"
+
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/config"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service"
+	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"github.com/polarismesh/polaris-server/store"
-	yaml "gopkg.in/yaml.v2"
 )
 
 // Config 配置

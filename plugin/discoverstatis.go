@@ -29,18 +29,14 @@ var (
 	discoverStatisOnce = &sync.Once{}
 )
 
-/**
- * DiscoverStatis 服务发现统计插件接口
- */
+// DiscoverStatis 服务发现统计插件接口
 type DiscoverStatis interface {
 	Plugin
 
 	AddDiscoverCall(service, namespace string, time time.Time) error
 }
 
-/**
- * GetDiscoverStatis 获取服务发现统计插件
- */
+// GetDiscoverStatis 获取服务发现统计插件
 func GetDiscoverStatis() DiscoverStatis {
 	c := &config.DiscoverStatis
 

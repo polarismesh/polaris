@@ -30,11 +30,12 @@ import (
 	"unicode/utf8"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"go.uber.org/zap"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 // some options config

@@ -25,28 +25,22 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
-/**
- * @brief 实现了L5Store
- */
+// l5Store 实现了L5Store
 type l5Store struct {
 	db *BaseDB
 }
 
-/**
- * @brief 获取L5扩展数据
- */
+// GetL5Extend 获取L5扩展数据
 func (l5 *l5Store) GetL5Extend(serviceID string) (map[string]interface{}, error) {
 	return nil, nil
 }
 
-/**
- * @brief 保存L5扩展数据
- */
+// SetL5Extend 保存L5扩展数据
 func (l5 *l5Store) SetL5Extend(serviceID string, meta map[string]interface{}) (map[string]interface{}, error) {
 	return nil, nil
 }
 
-// 获取下一个sid
+// GenNextL5Sid 获取下一个sid
 func (l5 *l5Store) GenNextL5Sid(layoutID uint32) (string, error) {
 	var sid string
 	var err error
@@ -102,16 +96,12 @@ func (l5 *l5Store) genNextL5Sid(layoutID uint32) (string, error) {
 	return fmt.Sprintf("%d:%d", modID, cmdID), nil
 }
 
-/**
- * @brief 获取更多的增量数据
- */
+// GetMoreL5Extend 获取更多的增量数据
 func (l5 *l5Store) GetMoreL5Extend(mtime time.Time) (map[string]map[string]interface{}, error) {
 	return nil, nil
 }
 
-/**
- * @brief 获取更多的L5 Route信息
- */
+// GetMoreL5Routes 获取更多的L5 Route信息
 func (l5 *l5Store) GetMoreL5Routes(flow uint32) ([]*model.Route, error) {
 	str := getL5RouteSelectSQL() + " where Fflow > ?"
 	rows, err := l5.db.Query(str, flow)
@@ -123,9 +113,7 @@ func (l5 *l5Store) GetMoreL5Routes(flow uint32) ([]*model.Route, error) {
 	return l5RouteFetchRows(rows)
 }
 
-/**
- * @brief 获取更多的L5 Policy信息
- */
+// GetMoreL5Policies 获取更多的L5 Policy信息
 func (l5 *l5Store) GetMoreL5Policies(flow uint32) ([]*model.Policy, error) {
 	str := getL5PolicySelectSQL() + " where Fflow > ?"
 	rows, err := l5.db.Query(str, flow)
@@ -137,9 +125,7 @@ func (l5 *l5Store) GetMoreL5Policies(flow uint32) ([]*model.Policy, error) {
 	return l5PolicyFetchRows(rows)
 }
 
-/**
- * @brief 获取更多的L5 Section信息
- */
+// GetMoreL5Sections 获取更多的L5 Section信息
 func (l5 *l5Store) GetMoreL5Sections(flow uint32) ([]*model.Section, error) {
 	str := getL5SectionSelectSQL() + " where Fflow > ?"
 	rows, err := l5.db.Query(str, flow)
@@ -151,9 +137,7 @@ func (l5 *l5Store) GetMoreL5Sections(flow uint32) ([]*model.Section, error) {
 	return l5SectionFetchRows(rows)
 }
 
-/**
- * @brief 获取更多的L5 IPConfig信息
- */
+// GetMoreL5IPConfigs 获取更多的L5 IPConfig信息
 func (l5 *l5Store) GetMoreL5IPConfigs(flow uint32) ([]*model.IPConfig, error) {
 	str := getL5IPConfigSelectSQL() + " where Fflow > ?"
 	rows, err := l5.db.Query(str, flow)
@@ -165,41 +149,31 @@ func (l5 *l5Store) GetMoreL5IPConfigs(flow uint32) ([]*model.IPConfig, error) {
 	return l5IPConfigFetchRows(rows)
 }
 
-/**
- * @brief 生成L5 Route的select sql语句
- */
+// getL5RouteSelectSQL 生成L5 Route的select sql语句
 func getL5RouteSelectSQL() string {
 	str := `select Fip, FmodId, FcmdId, FsetId, IFNULL(Fflag, 0), Fflow from t_route`
 	return str
 }
 
-/**
- * @brief 生成L5 Policy的select sql语句
- */
+// getL5PolicySelectSQL 生成L5 Policy的select sql语句
 func getL5PolicySelectSQL() string {
 	str := `select FmodId, Fdiv, Fmod, IFNULL(Fflag, 0), Fflow from t_policy`
 	return str
 }
 
-/**
- * @brief 生成L5 Section的select sql语句
- */
+// getL5SectionSelectSQL 生成L5 Section的select sql语句
 func getL5SectionSelectSQL() string {
 	str := `select FmodId, Ffrom, Fto, Fxid, IFNULL(Fflag, 0), Fflow from t_section`
 	return str
 }
 
-/**
- * @brief 生成L5 IPConfig的select sql语句
- */
+// getL5IPConfigSelectSQL 生成L5 IPConfig的select sql语句
 func getL5IPConfigSelectSQL() string {
 	str := `select Fip, FareaId, FcityId, FidcId, IFNULL(Fflag, 0), Fflow from t_ip_config`
 	return str
 }
 
-/**
- * @brief 从route中取出rows的数据
- */
+// l5RouteFetchRows 从route中取出rows的数据
 func l5RouteFetchRows(rows *sql.Rows) ([]*model.Route, error) {
 	if rows == nil {
 		return nil, nil
@@ -243,9 +217,7 @@ func l5RouteFetchRows(rows *sql.Rows) ([]*model.Route, error) {
 	return out, nil
 }
 
-/**
- * @brief 从policy中取出rows的数据
- */
+// l5PolicyFetchRows 从policy中取出rows的数据
 func l5PolicyFetchRows(rows *sql.Rows) ([]*model.Policy, error) {
 	if rows == nil {
 		return nil, nil
@@ -282,9 +254,7 @@ func l5PolicyFetchRows(rows *sql.Rows) ([]*model.Policy, error) {
 	return out, nil
 }
 
-/**
- * @brief 从section中取出rows的数据
- */
+// l5SectionFetchRows 从section中取出rows的数据
 func l5SectionFetchRows(rows *sql.Rows) ([]*model.Section, error) {
 	if rows == nil {
 		return nil, nil
@@ -323,9 +293,7 @@ func l5SectionFetchRows(rows *sql.Rows) ([]*model.Section, error) {
 	return out, nil
 }
 
-/**
- * @brief 从ip config中取出rows的数据
- */
+// l5IPConfigFetchRows 从ip config中取出rows的数据
 func l5IPConfigFetchRows(rows *sql.Rows) ([]*model.IPConfig, error) {
 	if rows == nil {
 		return nil, nil

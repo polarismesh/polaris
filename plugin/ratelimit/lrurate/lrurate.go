@@ -37,7 +37,7 @@ var (
 	rateLimitServiceBurst   int
 )
 
-// 自注册到插件列表
+// init 自注册到插件列表
 func init() {
 	plugin.RegisterPlugin(PluginName, &LRURate{})
 }
@@ -66,7 +66,7 @@ func (m *LRURate) Initialize(c *plugin.ConfigEntry) error {
 	return nil
 }
 
-// 获取IP相关的参数
+// parseRateLimitIPOption 获取IP相关的参数
 func parseRateLimitIPOption(opt map[string]interface{}) error {
 	var ok bool
 	var val interface{}
@@ -98,7 +98,7 @@ func parseRateLimitIPOption(opt map[string]interface{}) error {
 	return nil
 }
 
-// 获取service相关的参数
+// parseRateLimitServiceOption 获取service相关的参数
 func parseRateLimitServiceOption(opt map[string]interface{}) error {
 	var ok bool
 	var val interface{}

@@ -1,4 +1,4 @@
-/*
+/**
  * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -18,11 +18,13 @@
 package httpserver
 
 import (
+	"strconv"
+
 	"github.com/emicklei/go-restful"
 	"github.com/google/uuid"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"go.uber.org/zap"
-	"strconv"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) {

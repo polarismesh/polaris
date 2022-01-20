@@ -18,8 +18,9 @@
 package store
 
 import (
-	"github.com/polarismesh/polaris-server/common/model"
 	"time"
+
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 // ConfigFileModuleStore 配置中心模块存储接口

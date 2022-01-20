@@ -19,12 +19,14 @@ package logger
 
 import (
 	"fmt"
+
 	"github.com/natefinch/lumberjack"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/plugin"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 // 把操作记录记录到日志文件中
@@ -33,7 +35,7 @@ const (
 	PluginName = "HistoryLogger"
 )
 
-// 初始化注册函数
+// init 初始化注册函数
 func init() {
 	plugin.RegisterPlugin(PluginName, &HistoryLogger{})
 }

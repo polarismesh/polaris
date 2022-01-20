@@ -1,4 +1,4 @@
-/*
+/**
  * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -20,18 +20,19 @@ package config
 import (
 	"context"
 	"errors"
+	"sync"
+	"time"
+
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/config/service"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
-	"sync"
-	"time"
 )
 
 const (
-	eventTypePublishConfigFile = "PublishConfigFile"
-
+	eventTypePublishConfigFile  = "PublishConfigFile"
 	defaultExpireTimeAfterWrite = 60 * 60 // expire after 1 hour
 )
 

@@ -20,7 +20,6 @@ package boltdb
 import (
 	"errors"
 	"fmt"
-	commontime "github.com/polarismesh/polaris-server/common/time"
 	"sort"
 	"strconv"
 	"strings"
@@ -31,6 +30,7 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 )
 
 type instanceStore struct {
@@ -207,10 +207,7 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 			}
 			id := insProto.(*api.Instance).GetId().GetValue()
 			_, ok = ids[id]
-			if !ok {
-				return false
-			}
-			return true
+			return ok
 		})
 	if err != nil {
 		log.Errorf("[Store][boltdb] load instance error, %v", err)
@@ -238,10 +235,7 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 			}
 			id := svcId.(string)
 			_, ok = serviceIDs[id]
-			if !ok {
-				return false
-			}
-			return true
+			return ok
 		})
 
 	// assemble return data
@@ -288,10 +282,7 @@ func (i *instanceStore) GetInstance(instanceID string) (*model.Instance, error) 
 				return false
 			}
 			id := insProto.(*api.Instance).GetId().GetValue()
-			if id == instanceID {
-				return true
-			}
-			return false
+			return id == instanceID
 		})
 	if err != nil {
 		log.Errorf("[Store][boltdb] load instance from kv error, %v", err)
@@ -564,11 +555,7 @@ func (i *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, rev
 			}
 			insId := insProto.(*api.Instance).GetId().GetValue()
 
-			if insId != instanceID {
-				return false
-			}
-
-			return true
+			return insId == instanceID
 		})
 	if err != nil {
 		log.Errorf("[Store][boltdb] load instance from kv error, %v", err)
@@ -632,11 +619,7 @@ func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, 
 			insId := proto.(*api.Instance).GetId().GetValue()
 
 			_, ok = insIds[insId]
-			if !ok {
-				return false
-			}
-
-			return true
+			return ok
 		})
 	if err != nil {
 		log.Errorf("[Store][boltdb] get instance from kv error, %v", err)
@@ -739,10 +722,10 @@ func initInstance(instance []*model.Instance) {
 }
 
 func compareParam2BoolNotEqual(param string, b bool) bool {
-	if param == "0" && b == false {
+	if param == "0" && !b {
 		return false
 	}
-	if param == "1" && b == true {
+	if param == "1" && b {
 		return false
 	}
 	return true

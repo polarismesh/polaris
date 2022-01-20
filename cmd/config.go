@@ -19,9 +19,7 @@ package cmd
 
 import "github.com/polarismesh/polaris-server/plugin"
 
-/**
- * @brief 启动配置
- */
+// Config 启动配置
 type Config struct {
 	Plugin *plugin.Config
 }

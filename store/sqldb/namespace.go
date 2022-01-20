@@ -21,22 +21,18 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/polarismesh/polaris-server/store"
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/store"
 )
 
-/**
- * @brief 实现了NamespaceStore
- */
+// namespaceStore 实现了NamespaceStore
 type namespaceStore struct {
 	db *BaseDB
 }
 
-/**
- * @brief 添加命名空间
- */
+// AddNamespace 添加命名空间
 func (ns *namespaceStore) AddNamespace(namespace *model.Namespace) error {
 	if namespace.Name == "" {
 		return errors.New("store add namespace name is empty")
@@ -52,9 +48,7 @@ func (ns *namespaceStore) AddNamespace(namespace *model.Namespace) error {
 	return store.Error(err)
 }
 
-/**
- * @brief 更新命名空间，目前只更新owner
- */
+// UpdateNamespace 更新命名空间，目前只更新owner
 func (ns *namespaceStore) UpdateNamespace(namespace *model.Namespace) error {
 	if namespace.Name == "" {
 		return errors.New("store update namespace name is empty")
@@ -65,9 +59,7 @@ func (ns *namespaceStore) UpdateNamespace(namespace *model.Namespace) error {
 	return store.Error(err)
 }
 
-/**
- * @brief 更新命名空间token
- */
+// UpdateNamespaceToken 更新命名空间token
 func (ns *namespaceStore) UpdateNamespaceToken(name string, token string) error {
 	if name == "" || token == "" {
 		return fmt.Errorf(
@@ -79,9 +71,7 @@ func (ns *namespaceStore) UpdateNamespaceToken(name string, token string) error 
 	return store.Error(err)
 }
 
-/**
- * @brief 展示owner下所有的命名空间 TODO
- */
+// ListNamespaces 展示owner下所有的命名空间 TODO
 func (ns *namespaceStore) ListNamespaces(owner string) ([]*model.Namespace, error) {
 	if owner == "" {
 		return nil, errors.New("store list namespaces owner is empty")
@@ -96,9 +86,7 @@ func (ns *namespaceStore) ListNamespaces(owner string) ([]*model.Namespace, erro
 	return namespaceFetchRows(rows)
 }
 
-/**
- * @brief 根据名字获取命名空间详情，只返回有效的
- */
+// GetNamespace 根据名字获取命名空间详情，只返回有效的
 func (ns *namespaceStore) GetNamespace(name string) (*model.Namespace, error) {
 	namespace, err := ns.getNamespace(name)
 	if err != nil {
@@ -112,9 +100,7 @@ func (ns *namespaceStore) GetNamespace(name string) (*model.Namespace, error) {
 	return namespace, nil
 }
 
-/**
- * @brief 根据过滤条件查询命名空间及数目
- */
+// GetNamespaces 根据过滤条件查询命名空间及数目
 func (ns *namespaceStore) GetNamespaces(filter map[string][]string, offset, limit int) (
 	[]*model.Namespace, uint32, error) {
 	// 只查询有效数据
@@ -133,9 +119,7 @@ func (ns *namespaceStore) GetNamespaces(filter map[string][]string, offset, limi
 	return out, num, nil
 }
 
-/**
- * @brief 根据mtime获取命名空间
- */
+// GetMoreNamespaces 根据mtime获取命名空间
 func (ns *namespaceStore) GetMoreNamespaces(mtime time.Time) ([]*model.Namespace, error) {
 	str := genNamespaceSelectSQL() + " where UNIX_TIMESTAMP(mtime) >= ?"
 	rows, err := ns.db.Query(str, mtime.Unix())
@@ -147,9 +131,7 @@ func (ns *namespaceStore) GetMoreNamespaces(mtime time.Time) ([]*model.Namespace
 	return namespaceFetchRows(rows)
 }
 
-/**
- * @brief 根据相关条件查询对应命名空间数目
- */
+// getNamespacesCount根据相关条件查询对应命名空间数目
 func (ns *namespaceStore) getNamespacesCount(filter map[string][]string) (uint32, error) {
 	str := `select count(*) from namespace `
 	str, args := genNamespaceWhereSQLAndArgs(str, filter, nil, 0, 1)
@@ -168,9 +150,7 @@ func (ns *namespaceStore) getNamespacesCount(filter map[string][]string) (uint32
 	}
 }
 
-/**
- * @brief 根据相关条件查询对应命名空间
- */
+// getNamespaces 根据相关条件查询对应命名空间
 func (ns *namespaceStore) getNamespaces(filter map[string][]string, offset, limit int) ([]*model.Namespace, error) {
 	str := genNamespaceSelectSQL()
 	order := &Order{"mtime", "desc"}
@@ -185,7 +165,7 @@ func (ns *namespaceStore) getNamespaces(filter map[string][]string, offset, limi
 	return namespaceFetchRows(rows)
 }
 
-// 获取namespace的内部函数，从数据库中拉取数据
+// getNamespace 获取namespace的内部函数，从数据库中拉取数据
 func (ns *namespaceStore) getNamespace(name string) (*model.Namespace, error) {
 	if name == "" {
 		return nil, errors.New("store get namespace name is empty")
@@ -222,7 +202,7 @@ func (ns *namespaceStore) cleanNamespace(name string) error {
 	return nil
 }
 
-// rlock namespace
+// rlockNamespace rlock namespace
 func rlockNamespace(queryRow func(query string, args ...interface{}) *sql.Row, namespace string) (
 	string, error) {
 	str := "select name  from namespace where name = ? and flag != 1 lock in share mode"
@@ -239,16 +219,14 @@ func rlockNamespace(queryRow func(query string, args ...interface{}) *sql.Row, n
 	}
 }
 
-// 生成namespace的查询语句
+// genNamespaceSelectSQL 生成namespace的查询语句
 func genNamespaceSelectSQL() string {
 	str := `select name, IFNULL(comment, ""), token, owner, flag, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) 
 			from namespace `
 	return str
 }
 
-/**
- * @brief 取出rows的数据
- */
+// namespaceFetchRows 取出rows的数据
 func namespaceFetchRows(rows *sql.Rows) ([]*model.Namespace, error) {
 	if rows == nil {
 		return nil, nil

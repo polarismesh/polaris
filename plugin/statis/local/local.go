@@ -18,25 +18,21 @@
 package local
 
 import (
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/store"
 	"net/http"
 	"time"
 
+	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris-server/store"
 )
 
-/**
- * @brief 注册统计插件
- */
+// init 注册统计插件
 func init() {
 	s := &StatisWorker{}
 	plugin.RegisterPlugin(s.Name(), s)
 }
 
-/**
- * StatisWorker 本地统计插件
- */
+// StatisWorker 本地统计插件
 type StatisWorker struct {
 	interval time.Duration
 
@@ -44,16 +40,12 @@ type StatisWorker struct {
 	acs *APICallStatis
 }
 
-/**
- * Name 获取统计插件名称
- */
+// Name 获取统计插件名称
 func (s *StatisWorker) Name() string {
 	return "local"
 }
 
-/**
- * Initialize 初始化统计插件
- */
+// Initialize 初始化统计插件
 func (s *StatisWorker) Initialize(conf *plugin.ConfigEntry) error {
 	// 设置统计打印周期
 	var err error
@@ -73,18 +65,14 @@ func (s *StatisWorker) Initialize(conf *plugin.ConfigEntry) error {
 	return nil
 }
 
-/**
- * Destroy 销毁统计插件
- */
+// Destroy 销毁统计插件
 func (s *StatisWorker) Destroy() error {
 	return nil
 }
 
 const maxAddDuration = 800 * time.Millisecond
 
-/**
- * AddAPICall 上报请求
- */
+// AddAPICall 上报请求
 func (s *StatisWorker) AddAPICall(api string, protocol string, code int, duration int64) error {
 	startTime := time.Now()
 	s.acc <- &APICall{
@@ -117,9 +105,7 @@ func (s *StatisWorker) GetPrometheusHandler() http.Handler {
 	return s.acs.prometheusStatis.GetHttpHandler()
 }
 
-/**
- * Run 主流程
- */
+// Run 主流程
 func (s *StatisWorker) Run() {
 
 	store, err := store.GetStore()

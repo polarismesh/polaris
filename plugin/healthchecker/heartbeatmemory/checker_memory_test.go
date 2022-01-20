@@ -18,9 +18,10 @@
 package heartbeatmemory
 
 import (
-	"github.com/polarismesh/polaris-server/plugin"
 	"sync"
 	"testing"
+
+	"github.com/polarismesh/polaris-server/plugin"
 )
 
 func TestMemoryHealthChecker_Query(t *testing.T) {
@@ -49,5 +50,4 @@ func TestMemoryHealthChecker_Query(t *testing.T) {
 	if qr.LastHeartbeatSec != 1 {
 		t.Error()
 	}
-
 }

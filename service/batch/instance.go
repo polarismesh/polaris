@@ -21,8 +21,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"time"
+
+	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/polarismesh/polaris-server/auth"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -47,7 +48,7 @@ type InstanceCtrl struct {
 	hbOpen          bool // 是否开启了心跳上报功能
 }
 
-// 注册实例批量操作对象
+// NewBatchRegisterCtrl 注册实例批量操作对象
 func NewBatchRegisterCtrl(storage store.Store, authority auth.Authority, auth plugin.Auth,
 	config *CtrlConfig) (*InstanceCtrl, error) {
 	register, err := newBatchInstanceCtrl(storage, authority, auth, config)
@@ -64,7 +65,7 @@ func NewBatchRegisterCtrl(storage store.Store, authority auth.Authority, auth pl
 	return register, nil
 }
 
-// 实例反注册的操作对象
+// NewBatchDeregisterCtrl 实例反注册的操作对象
 func NewBatchDeregisterCtrl(storage store.Store, authority auth.Authority, auth plugin.Auth, config *CtrlConfig) (
 	*InstanceCtrl, error) {
 	deregister, err := newBatchInstanceCtrl(storage, authority, auth, config)
@@ -82,7 +83,7 @@ func NewBatchDeregisterCtrl(storage store.Store, authority auth.Authority, auth 
 	return deregister, nil
 }
 
-// 实例心跳的操作对象
+// NewBatchHeartbeatCtrl 实例心跳的操作对象
 func NewBatchHeartbeatCtrl(storage store.Store, authority auth.Authority, auth plugin.Auth, config *CtrlConfig) (
 	*InstanceCtrl, error) {
 	heartbeat, err := newBatchInstanceCtrl(storage, authority, auth, config)
@@ -100,7 +101,7 @@ func NewBatchHeartbeatCtrl(storage store.Store, authority auth.Authority, auth p
 	return heartbeat, nil
 }
 
-// 开始启动批量操作实例的相关协程
+// Start 开始启动批量操作实例的相关协程
 func (ctrl *InstanceCtrl) Start(ctx context.Context) {
 	log.Infof("[Batch] Start batch instance, config: %+v", ctrl.config)
 
@@ -116,7 +117,7 @@ func (ctrl *InstanceCtrl) Start(ctx context.Context) {
 	ctrl.mainLoop(ctx)
 }
 
-// 创建批量控制instance的对象
+// newBatchInstanceCtrl 创建批量控制instance的对象
 func newBatchInstanceCtrl(storage store.Store, authority auth.Authority, auth plugin.Auth,
 	config *CtrlConfig) (*InstanceCtrl, error) {
 	if config == nil || !config.Open {
@@ -146,7 +147,7 @@ func newBatchInstanceCtrl(storage store.Store, authority auth.Authority, auth pl
 	return instance, nil
 }
 
-// 注册主协程
+// mainLoop 注册主协程
 // 从注册队列中获取注册请求，当达到b.config.MaxBatchCount，
 // 或当到了一个超时时间b.waitDuration，则发起一个写请求
 // 写请求发送到store协程，规则：从空闲的管道idleStoreThread中挑选一个
@@ -185,7 +186,7 @@ func (ctrl *InstanceCtrl) mainLoop(ctx context.Context) {
 	}()
 }
 
-// store写协程的主循环
+// storeWorker store写协程的主循环
 // 从chan中获取数据，直接写数据库
 // 每次写完，设置协程为空闲
 func (ctrl *InstanceCtrl) storeWorker(ctx context.Context, index int) {
@@ -209,7 +210,7 @@ func (ctrl *InstanceCtrl) storeWorker(ctx context.Context, index int) {
 	}
 }
 
-// 外部应该把鉴权完成
+// registerHandler 外部应该把鉴权完成
 // 判断实例是否存在，也可以提前判断，减少batch复杂度
 // 提前通过token判断，再进入batch操作
 // batch操作，只是写操作
@@ -314,7 +315,7 @@ func (ctrl *InstanceCtrl) heartbeatHandler(futures []*InstanceFuture) error {
 	return nil
 }
 
-// 反注册处理函数
+// deregisterHandler 反注册处理函数
 // 步骤：
 // - 从数据库中批量读取实例ID对应的实例简要信息：
 //   包括：ID，host，port，serviceName，serviceNamespace，serviceToken
@@ -386,7 +387,7 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 	return nil
 }
 
-// 批量恢复实例的隔离状态，以请求为准，请求如果不存在，就以数据库为准
+// batchRestoreInstanceIsolate 批量恢复实例的隔离状态，以请求为准，请求如果不存在，就以数据库为准
 func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*InstanceFuture) error {
 
 	if len(futures) == 0 {
@@ -415,7 +416,7 @@ func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*Instan
 	return nil
 }
 
-// 对请求futures进行统一的鉴权
+// batchVerifyInstances 对请求futures进行统一的鉴权
 // 目的：遇到同名的服务，可以减少getService的次数
 // 返回：过滤后的futures, 实例ID->ServiceID, error
 func (ctrl *InstanceCtrl) batchVerifyInstances(futures map[string]*InstanceFuture) (
@@ -471,9 +472,7 @@ func (ctrl *InstanceCtrl) batchVerifyInstances(futures map[string]*InstanceFutur
 	return futures, serviceIDs, nil
 }
 
-/**
- * @brief 实例鉴权
- */
+// verifyInstanceAuth 实例鉴权
 func (ctrl *InstanceCtrl) verifyInstanceAuth(platformID, platformToken, expectServiceToken, sPlatformID string,
 	req *api.Instance) (bool, uint32) {
 	if nil == ctrl.authority {
@@ -494,9 +493,7 @@ func (ctrl *InstanceCtrl) verifyInstanceAuth(platformID, platformToken, expectSe
 	return true, 0
 }
 
-/**
- * @brief 使用平台ID鉴权
- */
+// verifyAuthByPlatform 使用平台ID鉴权
 func (ctrl *InstanceCtrl) verifyAuthByPlatform(platformID, platformToken, sPlatformID string) bool {
 	if ctrl.auth == nil {
 		return false
