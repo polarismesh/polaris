@@ -73,19 +73,22 @@ func (m *ShardMap) Store(instanceId string, healthCheckInstance *InstanceWithChe
 	shard.healthCheckMutex.Unlock()
 }
 
-//PutIfAbsent to avoid storing twice when  key is the same in the concurrent scenario
-func (m *ShardMap) PutIfAbsent(instanceId string, healthCheckInstance *InstanceWithChecker) {
+//PutIfAbsent to avoid storing twice when key is the same in the concurrent scenario。
+func (m *ShardMap) PutIfAbsent(instanceId string, healthCheckInstance *InstanceWithChecker) (*InstanceWithChecker, bool) {
 	if len(instanceId) == 0 {
-		return
+		return nil, false
 	}
 	shard := m.getShard(instanceId)
 	shard.healthCheckMutex.Lock()
-	_, ok := shard.healthCheckInstances[instanceId]
-	if !ok {
+	value, has := shard.healthCheckInstances[instanceId]
+	if !has {
 		shard.healthCheckInstances[instanceId] = healthCheckInstance
+		shard.healthCheckMutex.Unlock()
 		atomic.AddInt32(&m.Len, 1)
+		return healthCheckInstance, true
 	}
 	shard.healthCheckMutex.Unlock()
+	return value, false
 }
 
 // Load loads the healthCheckInstances under the instanceId.
@@ -115,8 +118,26 @@ func (m *ShardMap) Delete(instanceId string) {
 	shard.healthCheckMutex.Unlock()
 }
 
-// RangeMap iterates over the ShardMap.
-func (m *ShardMap) RangeMap(fn func(instanceId string, healthCheckInstance *InstanceWithChecker)) {
+//DeleteIfExist to avoid deleting twice when key is the same in the concurrent scenario。
+func (m *ShardMap) DeleteIfExist(instanceId string) bool {
+	if len(instanceId) == 0 {
+		return false
+	}
+	shard := m.getShard(instanceId)
+	shard.healthCheckMutex.Lock()
+	_, ok := shard.healthCheckInstances[instanceId]
+	if ok {
+		delete(shard.healthCheckInstances, instanceId)
+		atomic.AddInt32(&m.Len, -1)
+		shard.healthCheckMutex.Unlock()
+		return true
+	}
+	shard.healthCheckMutex.Unlock()
+	return false
+}
+
+// Range iterates over the ShardMap.
+func (m *ShardMap) Range(fn func(instanceId string, healthCheckInstance *InstanceWithChecker)) {
 	for _, shard := range m.Shards {
 		shard.healthCheckMutex.RLock()
 		for k, v := range shard.healthCheckInstances {

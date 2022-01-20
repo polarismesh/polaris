@@ -135,7 +135,7 @@ func (d *Dispatcher) reloadManagedInstances() {
 		})
 	}
 	log.Infof("[Health Check][Dispatcher]count %d instances has been dispatched to %s, total is %d",
-		len(nextInstances), server.localHost, server.cacheProvider.healthCheckInstances.Len)
+		len(nextInstances), server.localHost, server.cacheProvider.healthCheckInstances.Count())
 	originInstances := d.managedInstances
 	d.managedInstances = nextInstances
 	if len(nextInstances) > 0 {

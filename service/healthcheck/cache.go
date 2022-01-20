@@ -24,10 +24,10 @@ import (
 	"runtime"
 )
 
-var ShardSize uint32
+var DefaultShardSize uint32
 
 func init() {
-	ShardSize = uint32(runtime.GOMAXPROCS(0) * 16)
+	DefaultShardSize = uint32(runtime.GOMAXPROCS(0) * 16)
 	// Different machines can adjust this parameter of 16.In more cases, 16 is suitable ,
 	// can test it in shardmap_test.go
 }
@@ -47,7 +47,7 @@ type CacheEvent struct {
 
 func newCacheProvider(selfService string) *CacheProvider {
 	return &CacheProvider{
-		healthCheckInstances: NewShardMap(ShardSize),
+		healthCheckInstances: NewShardMap(DefaultShardSize),
 		selfServiceInstances: NewShardMap(1),
 		selfService:          selfService,
 	}
@@ -67,13 +67,14 @@ func (c *CacheProvider) sendEvent(event CacheEvent) {
 
 func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, values *ShardMap) bool {
 	instanceId := instanceWithChecker.instance.ID()
-	value, ok := values.Load(instanceId)
-	if !ok {
+	value, isNew := values.PutIfAbsent(instanceId, instanceWithChecker)
+	if value == nil {
+		return false
+	}
+	if isNew {
 		log.Infof("[Health Check][Cache]create service instance is %s:%d, id is %s",
 			instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(),
 			instanceId)
-		//  并发场景下 key相同的时候，value不存在，只存储一次
-		values.PutIfAbsent(instanceId, instanceWithChecker)
 		return true
 	}
 	lastInstance := value.instance
@@ -82,7 +83,7 @@ func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, va
 	}
 	log.Infof("[Health Check][Cache]update service instance is %s:%d, id is %s",
 		instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(), instanceId)
-	// 并发场景下 key 相同，version 不同， 直接更新
+	// 并发场景下 key 相同，version 相同,同时到达这里,会存多次
 	values.Store(instanceId, instanceWithChecker)
 	return true
 }
@@ -98,11 +99,10 @@ func storeServiceInstance(instanceWithChecker *InstanceWithChecker, values *Shar
 
 func deleteServiceInstance(instance *api.Instance, values *ShardMap) bool {
 	instanceId := instance.GetId().GetValue()
-	_, ok := values.Load(instanceId)
+	ok := values.DeleteIfExist(instanceId)
 	if ok {
 		log.Infof("[Health Check][Cache]delete service instance is %s:%d, id is %s",
 			instance.GetHost().GetValue(), instance.GetPort().GetValue(), instanceId)
-		values.Delete(instanceId)
 	}
 	return true
 }
@@ -172,9 +172,11 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 			}
 			log.Infof("[Health Check][Cache]delete health check disabled instance is %s:%d, id is %s",
 				instance.Host(), instance.Port(), instanceId)
-			// 不健康，存在的，删除
-			c.healthCheckInstances.Delete(instanceId)
-			c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
+			// 不健康，存在，删除
+			ok := c.healthCheckInstances.DeleteIfExist(instanceId)
+			if ok {
+				c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
+			}
 			return
 		}
 		var noChanged bool
@@ -186,7 +188,7 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 		if !noChanged {
 			log.Infof("[Health Check][Cache]update service instance is %s:%d, id is %s",
 				instance.Host(), instance.Port(), instanceId)
-			//   并发场景下，同一健康实例更新版本号一致,同时执行这里，存储两次
+			//   并发场景下，同一健康实例更新版本号一致,同时到达这里,会存多次
 			c.healthCheckInstances.Store(instanceId, newInstanceWithChecker(instance, checker))
 			c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 		}
@@ -228,7 +230,7 @@ func (c *CacheProvider) OnBatchDeleted(value interface{}) {
 // RangeHealthCheckInstances range loop healthCheckInstances
 func (c *CacheProvider) RangeHealthCheckInstances(check func(instance *InstanceWithChecker)) {
 
-	c.healthCheckInstances.RangeMap(func(instanceId string, healthCheckInstance *InstanceWithChecker) {
+	c.healthCheckInstances.Range(func(instanceId string, healthCheckInstance *InstanceWithChecker) {
 		check(healthCheckInstance)
 	})
 }
@@ -236,7 +238,7 @@ func (c *CacheProvider) RangeHealthCheckInstances(check func(instance *InstanceW
 // RangeSelfServiceInstances range loop selfServiceInstances
 func (c *CacheProvider) RangeSelfServiceInstances(check func(instance *api.Instance)) {
 
-	c.selfServiceInstances.RangeMap(func(instanceId string, selfServiceInstance *InstanceWithChecker) {
+	c.selfServiceInstances.Range(func(instanceId string, selfServiceInstance *InstanceWithChecker) {
 		check(selfServiceInstance.instance.Proto)
 	})
 }
