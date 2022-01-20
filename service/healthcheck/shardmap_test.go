@@ -24,7 +24,6 @@ import (
 	"testing"
 )
 
-const MapLen = 10000     //  Used to represent the amount of  InstanceWithChecker
 const Parallelism = 1024 //  Used to represent the amount of  Concurrency
 
 type MutexMap struct {
@@ -69,7 +68,7 @@ func BenchmarkSyncMap(b *testing.B) {
 }
 
 func BenchmarkMutexMap(b *testing.B) {
-	mutexMap := MutexMap{m: make(map[string]*InstanceWithChecker, MapLen)}
+	mutexMap := MutexMap{m: make(map[string]*InstanceWithChecker, 10000)}
 	var key uint32
 	b.ReportAllocs()
 	b.StartTimer()
