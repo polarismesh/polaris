@@ -83,7 +83,8 @@ func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, va
 	}
 	log.Infof("[Health Check][Cache]update service instance is %s:%d, id is %s",
 		instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(), instanceId)
-	// 并发场景下 key 相同，version 相同,同时到达这里,会存多次
+	// In the concurrent scenario, the key and version are the same.
+	// If they arrive here at the same time, they will be saved multiple times.
 	values.Store(instanceId, instanceWithChecker)
 	return true
 }
@@ -167,12 +168,12 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 		hcEnable, checker := isHealthCheckEnable(instProto)
 		if !hcEnable {
 			if !exists {
-				// 不健康,不存在,直接返回
+				// instance is unhealthy, not exist, just return.
 				return
 			}
 			log.Infof("[Health Check][Cache]delete health check disabled instance is %s:%d, id is %s",
 				instance.Host(), instance.Port(), instanceId)
-			// 不健康，存在，删除
+			// instance is unhealthy, but exist, delete it.
 			ok := c.healthCheckInstances.DeleteIfExist(instanceId)
 			if ok {
 				c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
@@ -181,14 +182,15 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 		}
 		var noChanged bool
 		if exists {
-			// 健康，存在，版本号一致，无需改变
+			//instance is healthy, exists, consistent healthCheckInstance.Revision(), no need to change。
 			healthCheckInstance := healthCheckInstanceValue.instance
 			noChanged = healthCheckInstance.Revision() == instance.Revision()
 		}
 		if !noChanged {
 			log.Infof("[Health Check][Cache]update service instance is %s:%d, id is %s",
 				instance.Host(), instance.Port(), instanceId)
-			//   并发场景下，同一健康实例更新版本号一致,同时到达这里,会存多次
+			//   In the concurrent scenario, the healthCheckInstance.Revision() of the same health instance is the same.
+			//   If it arrives here at the same time, it will be saved multiple times
 			c.healthCheckInstances.Store(instanceId, newInstanceWithChecker(instance, checker))
 			c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 		}
