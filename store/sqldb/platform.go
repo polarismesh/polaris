@@ -20,21 +20,18 @@ package sqldb
 import (
 	"database/sql"
 	"errors"
+	"time"
+
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
-	"time"
 )
 
-/**
- * @brief platformStore的实现
- */
+// platformStore 的实现
 type platformStore struct {
 	master *BaseDB
 }
 
-/**
- * @brief 创建平台
- */
+// CreatePlatform 创建平台
 func (p *platformStore) CreatePlatform(platform *model.Platform) error {
 	if platform.ID == "" {
 		return errors.New("create platform missing id")
@@ -56,9 +53,7 @@ func (p *platformStore) CreatePlatform(platform *model.Platform) error {
 	return nil
 }
 
-/**
- * @brief 删除平台信息
- */
+// DeletePlatform 删除平台信息
 func (p *platformStore) DeletePlatform(id string) error {
 	if id == "" {
 		return errors.New("delete platform missing id")
@@ -73,9 +68,7 @@ func (p *platformStore) DeletePlatform(id string) error {
 	return nil
 }
 
-/**
- * @brief 修改平台信息
- */
+// UpdatePlatform 修改平台信息
 func (p *platformStore) UpdatePlatform(platform *model.Platform) error {
 	str := `update platform set name = ?, domain = ?, qps = ?, token = ?, owner = ?, department = ?, comment = ?, 
 			mtime = sysdate() where id = ?`
@@ -87,9 +80,7 @@ func (p *platformStore) UpdatePlatform(platform *model.Platform) error {
 	return nil
 }
 
-/**
- * @brief 查询平台信息
- */
+// GetPlatformById 查询平台信息
 func (p *platformStore) GetPlatformById(id string) (*model.Platform, error) {
 	if id == "" {
 		return nil, errors.New("get platform by id missing id")
@@ -113,9 +104,7 @@ func (p *platformStore) GetPlatformById(id string) (*model.Platform, error) {
 	return out[0], nil
 }
 
-/**
- * @brief 根据过滤条件查询平台信息及总数
- */
+// GetPlatforms 根据过滤条件查询平台信息及总数
 func (p *platformStore) GetPlatforms(filter map[string]string, offset uint32, limit uint32) (
 	uint32, []*model.Platform, error) {
 	out, err := p.getPlatforms(filter, offset, limit)
@@ -129,9 +118,7 @@ func (p *platformStore) GetPlatforms(filter map[string]string, offset uint32, li
 	return num, out, nil
 }
 
-/**
- * @brief 根据过滤条件查询平台信息
- */
+// getPlatforms 根据过滤条件查询平台信息
 func (p *platformStore) getPlatforms(filter map[string]string, offset uint32, limit uint32) (
 	[]*model.Platform, error) {
 	// 不查询任何内容，直接返回空数组
@@ -165,9 +152,7 @@ func (p *platformStore) getPlatforms(filter map[string]string, offset uint32, li
 	return out, nil
 }
 
-/**
- * @brief 根据过滤条件获取平台总数
- */
+// getPlatformsCount 根据过滤条件获取平台总数
 func (p *platformStore) getPlatformsCount(filter map[string]string) (uint32, error) {
 	str := `select count(*) from platform where flag = 0 `
 	filterStr, args := genFilterSQL(filter)
@@ -177,9 +162,7 @@ func (p *platformStore) getPlatformsCount(filter map[string]string) (uint32, err
 	return queryEntryCount(p.master, str, args)
 }
 
-/**
- * @brief 读取平台信息数据
- */
+// fetchPlatformRows 读取平台信息数据
 func fetchPlatformRows(rows *sql.Rows) ([]*model.Platform, error) {
 	defer rows.Close()
 	var out []*model.Platform
@@ -208,9 +191,7 @@ func fetchPlatformRows(rows *sql.Rows) ([]*model.Platform, error) {
 	return out, nil
 }
 
-/**
- * @brief 彻底删除平台信息
- */
+// cleanPlatform 彻底删除平台信息
 func (p *platformStore) cleanPlatform(id string) error {
 	str := `delete from platform where id = ? and flag = 1`
 	if _, err := p.master.Exec(str, id); err != nil {
@@ -220,9 +201,7 @@ func (p *platformStore) cleanPlatform(id string) error {
 	return nil
 }
 
-/**
- * @brief 查询平台信息sql
- */
+// genSelectPlatformSQL 查询平台信息sql
 func genSelectPlatformSQL() string {
 	str := `select id, name, domain, qps, token, owner, IFNULL(department, ""), IFNULL(comment, ""), flag, 
 			unix_timestamp(ctime), unix_timestamp(mtime) from platform `

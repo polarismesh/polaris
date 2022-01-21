@@ -1,4 +1,4 @@
-/*
+/**
  * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -19,9 +19,10 @@ package sqldb
 
 import (
 	"database/sql"
+	"time"
+
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
-	"time"
 )
 
 type configFileGroupStore struct {

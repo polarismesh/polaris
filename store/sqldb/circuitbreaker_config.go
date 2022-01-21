@@ -20,23 +20,20 @@ package sqldb
 import (
 	"database/sql"
 	"fmt"
+	"time"
+
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/store"
-	"time"
 )
 
-/**
- * @brief CircuitBreakerStore的实现
- */
+// circuitBreakerStore 的实现
 type circuitBreakerStore struct {
 	master *BaseDB
 	slave  *BaseDB
 }
 
-/**
- * @brief 创建一个新的熔断规则
- */
+// CreateCircuitBreaker 创建一个新的熔断规则
 func (c *circuitBreakerStore) CreateCircuitBreaker(cb *model.CircuitBreaker) error {
 	if err := c.cleanCircuitBreaker(cb.ID, cb.Version); err != nil {
 		log.Errorf("[Store][circuitBreaker] clean master for circuit breaker(%s, %s) err: %s",
@@ -58,9 +55,7 @@ func (c *circuitBreakerStore) CreateCircuitBreaker(cb *model.CircuitBreaker) err
 	return nil
 }
 
-/**
- * @brief 给master熔断规则打一个version tag
- */
+// TagCircuitBreaker 给master熔断规则打一个version tag
 func (c *circuitBreakerStore) TagCircuitBreaker(cb *model.CircuitBreaker) error {
 	if err := c.cleanCircuitBreaker(cb.ID, cb.Version); err != nil {
 		log.Errorf("[Store][circuitBreaker] clean tag for circuit breaker(%s, %s) err: %s",
@@ -77,9 +72,7 @@ func (c *circuitBreakerStore) TagCircuitBreaker(cb *model.CircuitBreaker) error 
 	return nil
 }
 
-/**
- * @brief 给master熔断规则打一个version tag的内部函数
- */
+// tagCircuitBreaker 给master熔断规则打一个version tag的内部函数
 func (c *circuitBreakerStore) tagCircuitBreaker(cb *model.CircuitBreaker) error {
 	// 需要保证master规则存在
 	str := `insert into circuitbreaker_rule
@@ -107,9 +100,7 @@ func (c *circuitBreakerStore) tagCircuitBreaker(cb *model.CircuitBreaker) error 
 	return nil
 }
 
-/**
- * @brief 发布熔断规则
- */
+// ReleaseCircuitBreaker 发布熔断规则
 func (c *circuitBreakerStore) ReleaseCircuitBreaker(cbr *model.CircuitBreakerRelation) error {
 	if err := c.cleanCircuitBreakerRelation(cbr); err != nil {
 		return store.Error(err)
@@ -123,10 +114,8 @@ func (c *circuitBreakerStore) ReleaseCircuitBreaker(cbr *model.CircuitBreakerRel
 	return nil
 }
 
-/**
- * @brief 发布熔断规则的内部函数
- * @note 可能存在服务的规则，由旧的更新到新的场景
- */
+// releaseCircuitBreaker 发布熔断规则的内部函数
+// @note 可能存在服务的规则，由旧的更新到新的场景
 func (c *circuitBreakerStore) releaseCircuitBreaker(cbr *model.CircuitBreakerRelation) error {
 	// 发布规则时，需要保证规则已经被标记
 	str := `insert into circuitbreaker_rule_relation(service_id, rule_id, rule_version, flag, ctime, mtime) 
@@ -154,9 +143,7 @@ func (c *circuitBreakerStore) releaseCircuitBreaker(cbr *model.CircuitBreakerRel
 	return nil
 }
 
-/**
- * @brief 解绑熔断规则
- */
+// UnbindCircuitBreaker 解绑熔断规则
 func (c *circuitBreakerStore) UnbindCircuitBreaker(serviceID, ruleID, ruleVersion string) error {
 	str := `update circuitbreaker_rule_relation set flag = 1, mtime = sysdate() where service_id = ? and rule_id = ? 
 					and rule_version = ?`
@@ -168,9 +155,7 @@ func (c *circuitBreakerStore) UnbindCircuitBreaker(serviceID, ruleID, ruleVersio
 	return nil
 }
 
-/**
- * @brief 删除非master熔断规则
- */
+// DeleteTagCircuitBreaker 删除非master熔断规则
 func (c *circuitBreakerStore) DeleteTagCircuitBreaker(id string, version string) error {
 	// 需要保证规则无绑定服务
 	str := `update circuitbreaker_rule set flag = 1, mtime = sysdate()
@@ -187,9 +172,7 @@ func (c *circuitBreakerStore) DeleteTagCircuitBreaker(id string, version string)
 	return nil
 }
 
-/**
- * @brief 删除master熔断规则
- */
+// DeleteMasterCircuitBreaker 删除master熔断规则
 func (c *circuitBreakerStore) DeleteMasterCircuitBreaker(id string) error {
 	// 需要保证所有已标记的规则无绑定服务
 	str := `update circuitbreaker_rule set flag = 1, mtime = sysdate() 
@@ -206,10 +189,8 @@ func (c *circuitBreakerStore) DeleteMasterCircuitBreaker(id string) error {
 	return nil
 }
 
-/**
- * @brief 修改熔断规则
- * @note 只允许修改master熔断规则
- */
+// UpdateCircuitBreaker 修改熔断规则
+// @note 只允许修改master熔断规则
 func (c *circuitBreakerStore) UpdateCircuitBreaker(cb *model.CircuitBreaker) error {
 	str := `update circuitbreaker_rule set business = ?, department = ?, comment = ?, 
 			inbounds = ?, outbounds = ?, token = ?, owner = ?, revision = ?, mtime = sysdate() 
@@ -224,9 +205,7 @@ func (c *circuitBreakerStore) UpdateCircuitBreaker(cb *model.CircuitBreaker) err
 	return nil
 }
 
-/**
- * @brief 获取熔断规则
- */
+// GetCircuitBreaker 获取熔断规则
 func (c *circuitBreakerStore) GetCircuitBreaker(id, version string) (*model.CircuitBreaker, error) {
 	str := `select id, version, name, namespace, IFNULL(business, ""), IFNULL(department, ""), IFNULL(comment, ""), 
 			inbounds, outbounds, token, owner, revision, flag, unix_timestamp(ctime), unix_timestamp(mtime) 
@@ -251,9 +230,7 @@ func (c *circuitBreakerStore) GetCircuitBreaker(id, version string) (*model.Circ
 	return out[0], nil
 }
 
-/**
- * @brief 获取已标记熔断规则的绑定关系
- */
+// GetCircuitBreakerRelation 获取已标记熔断规则的绑定关系
 func (c *circuitBreakerStore) GetCircuitBreakerRelation(ruleID, ruleVersion string) (
 	[]*model.CircuitBreakerRelation, error) {
 	str := genQueryCircuitBreakerRelation()
@@ -274,9 +251,7 @@ func (c *circuitBreakerStore) GetCircuitBreakerRelation(ruleID, ruleVersion stri
 	return out, nil
 }
 
-/**
- * @brief 获取熔断规则master版本的绑定关系
- */
+// GetCircuitBreakerMasterRelation 获取熔断规则master版本的绑定关系
 func (c *circuitBreakerStore) GetCircuitBreakerMasterRelation(ruleID string) (
 	[]*model.CircuitBreakerRelation, error) {
 	str := genQueryCircuitBreakerRelation()
@@ -296,9 +271,7 @@ func (c *circuitBreakerStore) GetCircuitBreakerMasterRelation(ruleID string) (
 	return out, nil
 }
 
-/**
- * @brief 根据修改时间拉取增量熔断规则
- */
+// GetCircuitBreakerForCache 根据修改时间拉取增量熔断规则
 func (c *circuitBreakerStore) GetCircuitBreakerForCache(mtime time.Time, firstUpdate bool) (
 	[]*model.ServiceWithCircuitBreaker, error) {
 	str := genQueryCircuitBreakerWithServiceID()
@@ -320,9 +293,7 @@ func (c *circuitBreakerStore) GetCircuitBreakerForCache(mtime time.Time, firstUp
 	return circuitBreakers, nil
 }
 
-/**
- * @brief 获取熔断规则的所有版本
- */
+// GetCircuitBreakerVersions 获取熔断规则的所有版本
 func (c *circuitBreakerStore) GetCircuitBreakerVersions(id string) ([]string, error) {
 	str := `select version from circuitbreaker_rule where id = ? and flag = 0 order by mtime desc`
 	rows, err := c.master.Query(str, id)
@@ -349,9 +320,7 @@ func (c *circuitBreakerStore) GetCircuitBreakerVersions(id string) ([]string, er
 	return versions, nil
 }
 
-/**
- * @brief 获取master熔断规则
- */
+// ListMasterCircuitBreakers 获取master熔断规则
 func (c *circuitBreakerStore) ListMasterCircuitBreakers(filters map[string]string, offset uint32, limit uint32) (
 	*model.CircuitBreakerDetail, error) {
 	// 获取master熔断规则
@@ -419,9 +388,7 @@ func (c *circuitBreakerStore) ListMasterCircuitBreakers(filters map[string]strin
 	return out, nil
 }
 
-/**
- * @brief 获取已发布规则及服务
- */
+// ListReleaseCircuitBreakers 获取已发布规则及服务
 func (c *circuitBreakerStore) ListReleaseCircuitBreakers(filters map[string]string, offset, limit uint32) (
 	*model.CircuitBreakerDetail, error) {
 	selectStr := `select rule_id, rule_version, unix_timestamp(relation.ctime), unix_timestamp(relation.mtime), 
@@ -492,9 +459,7 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(filters map[string]stri
 	return out, nil
 }
 
-/**
- * @brief 根据服务获取熔断规则
- */
+// GetCircuitBreakersByService 根据服务获取熔断规则
 func (c *circuitBreakerStore) GetCircuitBreakersByService(name string, namespace string) (
 	*model.CircuitBreaker, error) {
 	str := `select rule.id, rule.version, rule.name, rule.namespace, IFNULL(rule.business, ""), 
@@ -525,9 +490,7 @@ func (c *circuitBreakerStore) GetCircuitBreakersByService(name string, namespace
 	}
 }
 
-/**
- * @brief 清理无效的熔断规则关系
- */
+// cleanCircuitBreakerRelation 清理无效的熔断规则关系
 func (c *circuitBreakerStore) cleanCircuitBreakerRelation(cbr *model.CircuitBreakerRelation) error {
 	log.Infof("[Store][CircuitBreaker] clean relation for service(%s)", cbr.ServiceID)
 	str := `delete from circuitbreaker_rule_relation where service_id = ? and flag = 1`
@@ -540,9 +503,7 @@ func (c *circuitBreakerStore) cleanCircuitBreakerRelation(cbr *model.CircuitBrea
 	return nil
 }
 
-/**
- * @brief 彻底清理熔断规则
- */
+// cleanCircuitBreaker 彻底清理熔断规则
 func (c *circuitBreakerStore) cleanCircuitBreaker(id string, version string) error {
 	str := `delete from circuitbreaker_rule where id = ? and version = ? and flag = 1`
 	if _, err := c.master.Exec(str, id, version); err != nil {
@@ -552,9 +513,7 @@ func (c *circuitBreakerStore) cleanCircuitBreaker(id string, version string) err
 	return nil
 }
 
-/**
- * @brief 读取circuitbreaker_rule的数据
- */
+// fetchCircuitBreakerRows 读取circuitbreaker_rule的数据
 func fetchCircuitBreakerRows(rows *sql.Rows) ([]*model.CircuitBreaker, error) {
 	defer rows.Close()
 	var out []*model.CircuitBreaker
@@ -587,9 +546,7 @@ func fetchCircuitBreakerRows(rows *sql.Rows) ([]*model.CircuitBreaker, error) {
 	return out, nil
 }
 
-/**
- * @brief 读取circuitbreaker_rule_relation的数据
- */
+// fetchCircuitBreakerRelationRows 读取circuitbreaker_rule_relation的数据
 func fetchCircuitBreakerRelationRows(rows *sql.Rows) ([]*model.CircuitBreakerRelation, error) {
 	defer rows.Close()
 	var out []*model.CircuitBreakerRelation
@@ -621,9 +578,7 @@ func fetchCircuitBreakerRelationRows(rows *sql.Rows) ([]*model.CircuitBreakerRel
 	return out, nil
 }
 
-/**
- * @brief 读取circuitbreaker_rule和circuitbreaker_rule_relation的数据
- */
+// fetchCircuitBreakerAndServiceRows 读取circuitbreaker_rule和circuitbreaker_rule_relation的数据
 func fetchCircuitBreakerAndServiceRows(rows *sql.Rows) ([]*model.ServiceWithCircuitBreaker, error) {
 	defer rows.Close()
 	var out []*model.ServiceWithCircuitBreaker
@@ -663,18 +618,14 @@ func fetchCircuitBreakerAndServiceRows(rows *sql.Rows) ([]*model.ServiceWithCirc
 	return out, nil
 }
 
-/**
- * @brief 查询熔断规则绑定关系表的语句
- */
+// genQueryCircuitBreakerRelation 查询熔断规则绑定关系表的语句
 func genQueryCircuitBreakerRelation() string {
 	str := `select service_id, rule_id, rule_version, flag, unix_timestamp(ctime), unix_timestamp(mtime) 
 			from circuitbreaker_rule_relation `
 	return str
 }
 
-/**
- * @brief 根据服务id查询熔断规则的查询语句
- */
+// genQueryCircuitBreakerWithServiceID 根据服务id查询熔断规则的查询语句
 func genQueryCircuitBreakerWithServiceID() string {
 	str := `select service_id, rule_id, rule_version, circuitbreaker_rule_relation.flag, 
 			unix_timestamp(circuitbreaker_rule_relation.ctime), unix_timestamp(circuitbreaker_rule_relation.mtime), 

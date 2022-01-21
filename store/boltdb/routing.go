@@ -114,11 +114,7 @@ func (r *routingStore) GetRoutingConfigsForCache(mtime time.Time, firstUpdate bo
 				return false
 			}
 			routeMtime := rMtime.(time.Time)
-			if routeMtime.Before(mtime) {
-				return false
-			}
-
-			return true
+			return !routeMtime.Before(mtime)
 		})
 	if err != nil {
 		log.Errorf("[Store][boltdb] load route config from kv error, %v", err)
@@ -248,10 +244,7 @@ func (r *routingStore) GetRoutingConfigs(
 			}
 			id := rId.(string)
 			_, ok = svcIds[id]
-			if !ok {
-				return false
-			}
-			return true
+			return ok
 		})
 
 	var out []*model.ExtendRoutingConfig

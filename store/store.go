@@ -24,9 +24,7 @@ import (
 	"sync"
 )
 
-/**
- * Config Store的通用配置
- */
+// Config Store的通用配置
 type Config struct {
 	Name   string
 	Option map[string]interface{}
@@ -40,9 +38,7 @@ var (
 	config = &Config{}
 )
 
-/**
- * RegisterStore 注册一个新的Store
- */
+// RegisterStore 注册一个新的Store
 func RegisterStore(s Store) error {
 	name := s.Name()
 	if _, ok := StoreSlots[name]; ok {
@@ -53,9 +49,7 @@ func RegisterStore(s Store) error {
 	return nil
 }
 
-/**
- * GetStore 获取Store
- */
+// GetStore 获取Store
 func GetStore() (Store, error) {
 	name := config.Name
 	if name == "" {
@@ -71,16 +65,12 @@ func GetStore() (Store, error) {
 	return store, nil
 }
 
-/**
- * SetStoreConfig 设置store的conf
- */
+// SetStoreConfig 设置store的conf
 func SetStoreConfig(conf *Config) {
 	config = conf
 }
 
-/**
- * @brief 包裹了初始化函数，在GetStore的时候会在自动调用，全局初始化一次
- */
+// @brief 包裹了初始化函数，在GetStore的时候会在自动调用，全局初始化一次
 func initialize(s Store) {
 	once.Do(func() {
 		if err := s.Initialize(config); err != nil {

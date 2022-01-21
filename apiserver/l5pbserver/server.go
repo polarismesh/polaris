@@ -23,11 +23,12 @@ import (
 	"net"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/common/api/l5"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service"
-	"go.uber.org/zap"
 )
 
 const (

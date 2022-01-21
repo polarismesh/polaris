@@ -19,40 +19,34 @@ package discoverlocal
 
 import (
 	"bytes"
-	commontime "github.com/polarismesh/polaris-server/common/time"
-	"go.uber.org/zap"
 	"time"
+
+	"go.uber.org/zap"
+
+	commontime "github.com/polarismesh/polaris-server/common/time"
 )
 
-/**
- * @brief 服务发现统计
- */
+// DiscoverCall 服务发现统计
 type DiscoverCall struct {
 	service   string
 	namespace string
 	time      time.Time
 }
 
-/**
- * @brief 服务
- */
+// Service 服务
 type Service struct {
 	name      string
 	namespace string
 }
 
-/**
- * @brief 服务发现统计条目
- */
+// DiscoverCallStatis 服务发现统计条目
 type DiscoverCallStatis struct {
 	statis map[Service]time.Time
 
 	logger *zap.Logger
 }
 
-/**
- * @brief 添加服务发现统计数据
- */
+// add 添加服务发现统计数据
 func (d *DiscoverCallStatis) add(dc *DiscoverCall) {
 	service := Service{
 		name:      dc.service,
@@ -62,9 +56,7 @@ func (d *DiscoverCallStatis) add(dc *DiscoverCall) {
 	d.statis[service] = dc.time
 }
 
-/**
- * @brief 打印服务发现统计
- */
+// log 打印服务发现统计
 func (d *DiscoverCallStatis) log() {
 	if len(d.statis) == 0 {
 		return

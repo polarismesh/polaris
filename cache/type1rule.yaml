@@ -23,4 +23,3 @@ spec:
         - destination:
             host: reviews.prod.svc.cluster.local
             subset: v1
-

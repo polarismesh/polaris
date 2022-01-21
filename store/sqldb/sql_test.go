@@ -18,11 +18,12 @@
 package sqldb
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
-// 构造占位符的测试
+// TestPlaceholdersN 构造占位符的测试
 func TestPlaceholdersN(t *testing.T) {
 	Convey("可以正常输出", t, func() {
 		So(PlaceholdersN(-1), ShouldBeEmpty)

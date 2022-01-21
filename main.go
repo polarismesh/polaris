@@ -22,9 +22,6 @@ import (
 	_ "go.uber.org/automaxprocs"
 )
 
-/**
- * @brief 主函数
- */
 func main() {
 	cmd.Execute()
 }

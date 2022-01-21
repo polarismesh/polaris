@@ -20,11 +20,10 @@ package sqldb
 import (
 	"errors"
 	"fmt"
-	"github.com/polarismesh/polaris-server/plugin"
 
+	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
 
-	// 使用mysql库
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -34,17 +33,13 @@ const (
 	DefaultConnMaxLifetime = 60 * 30 // 默认是30分钟
 )
 
-/**
- * @brief 自动引入包初始化函数
- */
+// init 自动引入包初始化函数
 func init() {
 	s := &stableStore{}
 	_ = store.RegisterStore(s)
 }
 
-/**
- * @brief 实现了Store接口
- */
+// stableStore 实现了Store接口
 type stableStore struct {
 	*namespaceStore
 	*businessStore
@@ -74,16 +69,12 @@ type stableStore struct {
 	metaTask *TaskManager
 }
 
-/**
- * @brief 实现Name函数
- */
+// Name 实现Name函数
 func (s *stableStore) Name() string {
 	return STORENAME
 }
 
-/**
- * @brief 初始化函数
- */
+// Initialize 初始化函数
 func (s *stableStore) Initialize(conf *store.Config) error {
 	if s.start {
 		return errors.New("store has been Initialize")
@@ -125,7 +116,7 @@ func (s *stableStore) Initialize(conf *store.Config) error {
 	return nil
 }
 
-// return slave, master, error
+// parseDatabaseConf return slave, master, error
 func parseDatabaseConf(opt map[string]interface{}) (*dbConfig, *dbConfig, error) {
 	// 必填
 	masterEnter, ok := opt["master"]
@@ -150,7 +141,7 @@ func parseDatabaseConf(opt map[string]interface{}) (*dbConfig, *dbConfig, error)
 	return masterConfig, slaveConfig, nil
 }
 
-// 解析store的配置
+// parseStoreConfig 解析store的配置
 func parseStoreConfig(opts interface{}) (*dbConfig, error) {
 	obj, ok := opts.(map[interface{}]interface{})
 	if !ok {
@@ -162,7 +153,7 @@ func parseStoreConfig(opts interface{}) (*dbConfig, error) {
 	dbAddr, _ := obj["dbAddr"].(string)
 	dbName, _ := obj["dbName"].(string)
 	if dbType == "" || dbUser == "" || dbPwd == "" || dbAddr == "" || dbName == "" {
-		return nil, fmt.Errorf("Config Plugin %s missing database param", STORENAME)
+		return nil, fmt.Errorf("config Plugin %s missing database param", STORENAME)
 	}
 
 	c := &dbConfig{
@@ -189,9 +180,7 @@ func parseStoreConfig(opts interface{}) (*dbConfig, error) {
 	return c, nil
 }
 
-/**
- * @brief 退出函数
- */
+// Destroy 退出函数
 func (s *stableStore) Destroy() error {
 	if s.master != nil {
 		_ = s.master.Close()
@@ -206,9 +195,7 @@ func (s *stableStore) Destroy() error {
 	return nil
 }
 
-/**
- * @brief 创建一个事务
- */
+// CreateTransaction 创建一个事务
 func (s *stableStore) CreateTransaction() (store.Transaction, error) {
 	// 每次创建事务前，还是需要ping一下
 	_ = s.masterTx.Ping()
@@ -232,7 +219,7 @@ func (s *stableStore) StartTx() (store.Tx, error) {
 	return NewSqlDBTx(tx), nil
 }
 
-// 初始化子类
+// newStore 初始化子类
 func (s *stableStore) newStore() {
 	s.namespaceStore = &namespaceStore{db: s.master}
 

@@ -19,19 +19,18 @@ package local
 
 import (
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/log"
-	commontime "github.com/polarismesh/polaris-server/common/time"
-	"github.com/polarismesh/polaris-server/plugin"
 	"math"
 	"sync"
 	"time"
 
 	"go.uber.org/zap"
+
+	"github.com/polarismesh/polaris-server/common/log"
+	commontime "github.com/polarismesh/polaris-server/common/time"
+	"github.com/polarismesh/polaris-server/plugin"
 )
 
-/**
- * APICall 接口调用
- */
+// APICall 接口调用
 type APICall struct {
 	api       string
 	code      int
@@ -40,9 +39,7 @@ type APICall struct {
 	component string
 }
 
-/**
- * APICallStatisItem 接口调用统计条目
- */
+// APICallStatisItem 接口调用统计条目
 type APICallStatisItem struct {
 	api          string
 	code         int
@@ -148,7 +145,7 @@ func (c *ComponentStatics) log() {
 	go c.printStatics(duplicateStatis, startStr)
 }
 
-// log and print the statics messages
+// collect log and print the statics messages
 func (c *ComponentStatics) collect() {
 	startTime := time.Now()
 	startStr := commontime.Time2String(startTime)
@@ -193,9 +190,7 @@ func (c *ComponentStatics) collect() {
 	go c.printStatics(duplicateStatis, startStr)
 }
 
-/**
- * APICallStatis 接口调用统计
- */
+// APICallStatis 接口调用统计
 type APICallStatis struct {
 	components       map[string]*ComponentStatics
 	prometheusStatis *PrometheusStatis
@@ -220,9 +215,7 @@ func newAPICallStatis(outputPath string) (*APICallStatis, error) {
 	return value, nil
 }
 
-/**
- * @brief 添加接口调用数据
- */
+// add 添加接口调用数据
 func (a *APICallStatis) add(ac *APICall) {
 	a.components[ac.component].add(ac)
 }
@@ -233,9 +226,7 @@ const (
 	metricsNumber      = 5
 )
 
-/**
- * @brief 打印接口调用统计
- */
+// log 打印接口调用统计
 func (a *APICallStatis) log() {
 	for name, component := range a.components {
 		// server 的请求指标，同时输出到日志和 prometheus

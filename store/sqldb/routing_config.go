@@ -20,10 +20,11 @@ package sqldb
 import (
 	"database/sql"
 	"fmt"
+	"time"
+
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/store"
-	"time"
 )
 
 // RoutingConfigStore的实现
@@ -59,7 +60,7 @@ func (rs *routingConfigStore) CreateRoutingConfig(conf *model.RoutingConfig) err
 	return nil
 }
 
-// 更新
+// UpdateRoutingConfig 更新
 func (rs *routingConfigStore) UpdateRoutingConfig(conf *model.RoutingConfig) error {
 	if conf.ID == "" || conf.Revision == "" {
 		log.Errorf("[Store][database] update routing config missing service id or revision")
@@ -79,7 +80,7 @@ func (rs *routingConfigStore) UpdateRoutingConfig(conf *model.RoutingConfig) err
 	return nil
 }
 
-// 删除
+// DeleteRoutingConfig 删除
 func (rs *routingConfigStore) DeleteRoutingConfig(serviceID string) error {
 	if serviceID == "" {
 		log.Errorf("[Store][database] delete routing config missing service id")
@@ -95,7 +96,7 @@ func (rs *routingConfigStore) DeleteRoutingConfig(serviceID string) error {
 	return nil
 }
 
-// 缓存增量拉取
+// GetRoutingConfigsForCache 缓存增量拉取
 func (rs *routingConfigStore) GetRoutingConfigsForCache(
 	mtime time.Time, firstUpdate bool) ([]*model.RoutingConfig, error) {
 	str := `select id, in_bounds, out_bounds, revision, 
@@ -117,7 +118,7 @@ func (rs *routingConfigStore) GetRoutingConfigsForCache(
 	return out, nil
 }
 
-// 根据服务名+namespace获取对应的配置
+// GetRoutingConfigWithService 根据服务名+namespace获取对应的配置
 func (rs *routingConfigStore) GetRoutingConfigWithService(
 	name string, namespace string) (*model.RoutingConfig, error) {
 	// 只查询到flag=0的数据
@@ -144,7 +145,7 @@ func (rs *routingConfigStore) GetRoutingConfigWithService(
 	return out[0], nil
 }
 
-// 根据服务ID获取对应的配置
+// GetRoutingConfigWithID 根据服务ID获取对应的配置
 func (rs *routingConfigStore) GetRoutingConfigWithID(id string) (*model.RoutingConfig, error) {
 	str := `select routing_config.id, in_bounds, out_bounds, revision, flag, 
 			unix_timestamp(ctime), unix_timestamp(mtime)
@@ -168,7 +169,7 @@ func (rs *routingConfigStore) GetRoutingConfigWithID(id string) (*model.RoutingC
 	return out[0], nil
 }
 
-// 获取路由配置列表
+// GetRoutingConfigs 获取路由配置列表
 func (rs *routingConfigStore) GetRoutingConfigs(filter map[string]string,
 	offset uint32, limit uint32) (uint32, []*model.ExtendRoutingConfig, error) {
 
@@ -219,7 +220,7 @@ func (rs *routingConfigStore) GetRoutingConfigs(filter map[string]string,
 	return total, out, nil
 }
 
-// 从数据库彻底清理路由配置
+// cleanRoutingConfig 从数据库彻底清理路由配置
 func (rs *routingConfigStore) cleanRoutingConfig(serviceID string) error {
 	str := `delete from routing_config where id = ? and flag = 1`
 	if _, err := rs.master.Exec(str, serviceID); err != nil {
@@ -230,7 +231,7 @@ func (rs *routingConfigStore) cleanRoutingConfig(serviceID string) error {
 	return nil
 }
 
-// 读取数据库的数据，并且释放rows
+// fetchRoutingConfigRows 读取数据库的数据，并且释放rows
 func fetchRoutingConfigRows(rows *sql.Rows) ([]*model.RoutingConfig, error) {
 	defer rows.Close()
 	var out []*model.RoutingConfig
@@ -262,7 +263,7 @@ func fetchRoutingConfigRows(rows *sql.Rows) ([]*model.RoutingConfig, error) {
 	return out, nil
 }
 
-// 查询路由配置的语句
+// genQueryRoutingConfigSQL 查询路由配置的语句
 func genQueryRoutingConfigSQL() string {
 	str := `select name, namespace, routing_config.id, in_bounds, out_bounds, 
 			unix_timestamp(routing_config.ctime), unix_timestamp(routing_config.mtime)  
@@ -272,7 +273,7 @@ func genQueryRoutingConfigSQL() string {
 	return str
 }
 
-// 获取路由配置指定过滤条件下的总条目数
+// genQueryRoutingConfigCountSQL 获取路由配置指定过滤条件下的总条目数
 func genQueryRoutingConfigCountSQL() string {
 	str := `select count(*) from routing_config, service 
 			where routing_config.id = service.id 
@@ -280,7 +281,7 @@ func genQueryRoutingConfigCountSQL() string {
 	return str
 }
 
-// 生成过滤语句
+// genFilterRoutingConfigSQL 生成过滤语句
 func genFilterRoutingConfigSQL(filters map[string]string) (string, []interface{}) {
 	str := ""
 	args := make([]interface{}, 0, len(filters))

@@ -53,9 +53,7 @@ var (
 	rateLimitOnce = sync.Once{}
 )
 
-/**
- * Ratelimit Ratelimit插件接口
- */
+// Ratelimit Ratelimit插件接口
 type Ratelimit interface {
 	Plugin
 
@@ -65,9 +63,7 @@ type Ratelimit interface {
 	Allow(typ RatelimitType, key string) bool
 }
 
-/**
- * GetRatelimit 获取RateLimit插件
- */
+// GetRatelimit 获取RateLimit插件
 func GetRatelimit() Ratelimit {
 	c := &config.RateLimit
 

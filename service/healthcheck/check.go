@@ -420,7 +420,7 @@ func setInsDbStatus(instance *model.Instance, healthStatus bool) uint32 {
 	return code
 }
 
-// 异步新建实例
+// asyncSetInsDbStatus 异步新建实例
 // 底层函数会合并create请求，增加并发创建的吞吐
 // req 原始请求
 // ins 包含了req数据与instanceID，serviceToken
@@ -432,7 +432,7 @@ func (s *Server) asyncSetInsDbStatus(ins *api.Instance, healthStatus bool) uint3
 	return future.Code()
 }
 
-// 同步串行创建实例
+// serialSetInsDbStatus 同步串行创建实例
 // req为原始的请求体
 // ins包括了req的内容，并且填充了instanceID与serviceToken
 func (s *Server) serialSetInsDbStatus(ins *api.Instance, healthStatus bool) uint32 {

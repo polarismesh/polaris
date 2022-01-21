@@ -20,20 +20,17 @@ package sqldb
 import (
 	"database/sql"
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/model"
 	"time"
+
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
-/**
- * @brief 实现BusinessStore接口
- */
+// businessStore 实现BusinessStore接口
 type businessStore struct {
 	db *BaseDB
 }
 
-/**
- * @brief 增加业务集
- */
+// AddBusiness 增加业务集
 func (bs *businessStore) AddBusiness(b *model.Business) error {
 	if b.ID == "" || b.Name == "" {
 		log.Errorf("[Store][database] add business missing some params: %+v", b)
@@ -47,9 +44,7 @@ func (bs *businessStore) AddBusiness(b *model.Business) error {
 	return err
 }
 
-/**
- * @brief 删除业务集
- */
+// DeleteBusiness 删除业务集
 func (bs *businessStore) DeleteBusiness(bid string) error {
 	if bid == "" {
 		log.Errorf("[Store][database] delete business missing id")
@@ -63,9 +58,7 @@ func (bs *businessStore) DeleteBusiness(bid string) error {
 	return err
 }
 
-/**
- * @brief 更新业务集
- */
+// UpdateBusiness 更新业务集
 func (bs *businessStore) UpdateBusiness(b *model.Business) error {
 	if b.ID == "" || b.Name == "" {
 		log.Errorf("[Store][database] update business missing some params")
@@ -78,9 +71,7 @@ func (bs *businessStore) UpdateBusiness(b *model.Business) error {
 	return err
 }
 
-/**
- * @brief 更新业务集token
- */
+// UpdateBusinessToken 更新业务集token
 func (bs *businessStore) UpdateBusinessToken(bid string, token string) error {
 	if bid == "" || token == "" {
 		log.Errorf("[Store][business] update business token missing some params")
@@ -93,9 +84,7 @@ func (bs *businessStore) UpdateBusinessToken(bid string, token string) error {
 	return err
 }
 
-/**
- * @brief 获取owner下所有的业务集
- */
+// ListBusiness 获取owner下所有的业务集
 func (bs *businessStore) ListBusiness(owner string) ([]*model.Business, error) {
 	if owner == "" {
 		log.Errorf("[Store][business] list business missing owner")
@@ -113,9 +102,7 @@ func (bs *businessStore) ListBusiness(owner string) ([]*model.Business, error) {
 
 }
 
-/**
- * @brief 根据业务集ID获取业务集详情
- */
+// GetBusinessByID 根据业务集ID获取业务集详情
 func (bs *businessStore) GetBusinessByID(id string) (*model.Business, error) {
 	if id == "" {
 		log.Errorf("[Store][business] get business missing id")
@@ -140,9 +127,7 @@ func (bs *businessStore) GetBusinessByID(id string) (*model.Business, error) {
 	return out[0], nil
 }
 
-/**
- * @brief 根据mtime获取增量数据
- */
+// GetMoreBusiness 根据mtime获取增量数据
 func (bs *businessStore) GetMoreBusiness(mtime time.Time) ([]*model.Business, error) {
 	str := genBusinessSelectSQL() + " where UNIX_TIMESTAMP(mtime) >= ?"
 	rows, err := bs.db.Query(str, mtime.Unix())
@@ -154,7 +139,7 @@ func (bs *businessStore) GetMoreBusiness(mtime time.Time) ([]*model.Business, er
 	return businessFetchRows(rows)
 }
 
-// 生成business查询语句
+// genBusinessSelectSQL 生成business查询语句
 func genBusinessSelectSQL() string {
 	str := `select id, name, token, owner, flag, 
 			UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) 
@@ -162,9 +147,7 @@ func genBusinessSelectSQL() string {
 	return str
 }
 
-/**
- * @brief 取出rows的数据
- */
+// businessFetchRows 取出rows的数据
 func businessFetchRows(rows *sql.Rows) ([]*model.Business, error) {
 	if rows == nil {
 		return nil, nil

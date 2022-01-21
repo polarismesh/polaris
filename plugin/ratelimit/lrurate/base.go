@@ -29,7 +29,7 @@ var (
 	serviceLruCache *lru.Cache
 )
 
-// 初始化lru组件
+// initEnv 初始化lru组件
 func initEnv() error {
 	var err error
 
@@ -46,12 +46,12 @@ func initEnv() error {
 	return nil
 }
 
-// crc32取字符串hash值
+// hash crc32取字符串hash值
 func hash(str string) uint32 {
 	return crc32.ChecksumIEEE([]byte(str))
 }
 
-// ip限流
+// allowIP ip限流
 func allowIP(id string) bool {
 	key := hash(id)
 
@@ -65,7 +65,7 @@ func allowIP(id string) bool {
 	return true
 }
 
-// service限流
+// allowService service限流
 func allowService(id string) bool {
 	key := hash(id)
 
