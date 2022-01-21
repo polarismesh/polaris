@@ -83,8 +83,8 @@ func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, va
 	}
 	log.Infof("[Health Check][Cache]update service instance is %s:%d, id is %s",
 		instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(), instanceId)
-	// In the concurrent scenario, the key and version are the same.
-	// If they arrive here at the same time, they will be saved multiple times.
+	// In the concurrent scenario, when the key and version are the same,
+	// if they arrive here at the same time, they will be saved multiple times.
 	values.Store(instanceId, instanceWithChecker)
 	return true
 }
@@ -189,8 +189,8 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 		if !noChanged {
 			log.Infof("[Health Check][Cache]update service instance is %s:%d, id is %s",
 				instance.Host(), instance.Port(), instanceId)
-			//   In the concurrent scenario, the healthCheckInstance.Revision() of the same health instance is the same.
-			//   If it arrives here at the same time, it will be saved multiple times
+			//   In the concurrent scenario, when the healthCheckInstance.Revision() of the same health instance is the same,
+			//   if it arrives here at the same time, it will be saved multiple times
 			c.healthCheckInstances.Store(instanceId, newInstanceWithChecker(instance, checker))
 			c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 		}
