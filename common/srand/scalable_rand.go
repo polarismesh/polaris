@@ -79,7 +79,7 @@ func (s *ScalableRand) Intn(n int) int {
 	return randValue
 }
 
-//全局随机种子
+// 全局随机种子
 var globalRand *ScalableRand
 
 // Intn 返回全局随机数
@@ -87,7 +87,7 @@ func Intn(n int) int {
 	return globalRand.Intn(n)
 }
 
-//初始化全局随机种子
+// init 初始化全局随机种子
 func init() {
 	globalRand = NewScalableRand()
 }

@@ -84,10 +84,11 @@ Polaris server end needs golang compile environment, version number needs >=1.12
 
 ### Build
 
-````shell script
+```shell script
 chmod +x build.sh
 ./build.sh
-````
+```
+
 After built, one can see 'polaris-server-release_${version}.tar.gz' package from the list. 
 
 ### Installation
@@ -103,20 +104,22 @@ After unzipped, vi polaris-server.yaml, replace DB configuration's variable to r
 
 #### Execute Installation Script
 
-````shell script
+```shell script
 chmod +x ./tool/*.sh
 # install
 ./tool/start.sh
 # test whether the process is successful 
 ./tool/p.sh
-````
+```
+
 After all, run ./p.sh, prompt Polaris Server, proof the installation is successful 
 
 #### Verify installation
 
-````shell script
+```shell script
 curl http://127.0.0.1:8090
-```` 
+```
+
 Return text is 'Polaris Server', proof features run smoothly 
 
 ## Chat group
@@ -128,8 +131,6 @@ Please scan the QR code to join the chat group.
 Welcome to scan the QR code to follow our official account, we will share the latest application cases and updates of PolarisMesh.
 
 <img src="https://main.qcloudimg.com/raw/e5a51696ae7c01e8bc9097fa0c7e426d.png" width="30%" height="30%" />
-
-
 
 ## Contribution
 

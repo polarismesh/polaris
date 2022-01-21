@@ -17,12 +17,9 @@
 
 package auth
 
-/**
-* Authority 内部鉴权接口
-*
-* @note 内部鉴权分为两大类：命名空间和服务的资源鉴权；请求鉴权，
-*       比如对于OSS操作，需要全局放通
- */
+// Authority 内部鉴权接口
+// 内部鉴权分为两大类：命名空间和服务的资源鉴权；请求鉴权，
+// 比如对于OSS操作，需要全局放通
 type Authority interface {
 	// VerifyToken 检查Token格式是否合法
 	VerifyToken(actualToken string) bool

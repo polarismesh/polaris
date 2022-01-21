@@ -21,12 +21,12 @@ package log
 
 import (
 	"fmt"
-	"github.com/hashicorp/go-multierror"
 	"net/url"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

@@ -39,9 +39,7 @@ type CircuitBreakerCache interface {
 	GetCircuitBreakerConfig(id string) *model.ServiceWithCircuitBreaker
 }
 
-/**
- * @brief circuitBreaker的实现
- */
+// circuitBreaker的实现
 type circuitBreakerCache struct {
 	storage     store.Store
 	ids         *sync.Map
@@ -49,25 +47,19 @@ type circuitBreakerCache struct {
 	firstUpdate bool
 }
 
-/**
- * @brief 自注册到缓存列表
- */
+// init 自注册到缓存列表
 func init() {
 	RegisterCache(CircuitBreakerName, CacheCircuitBreaker)
 }
 
-/**
- * @brief 返回一个操作CircuitBreakerCache的对象
- */
+// newCircuitBreakerCache 返回一个操作CircuitBreakerCache的对象
 func newCircuitBreakerCache(s store.Store) *circuitBreakerCache {
 	return &circuitBreakerCache{
 		storage: s,
 	}
 }
 
-/**
- * @brief 实现Cache接口的函数
- */
+// initialize 实现Cache接口的函数
 func (cbc *circuitBreakerCache) initialize(opt map[string]interface{}) error {
 	cbc.ids = new(sync.Map)
 	cbc.lastTime = time.Unix(0, 0)
@@ -78,9 +70,7 @@ func (cbc *circuitBreakerCache) initialize(opt map[string]interface{}) error {
 	return nil
 }
 
-/**
- * @brief 实现Cache接口的函数
- */
+// update 实现Cache接口的函数
 func (cbc *circuitBreakerCache) update() error {
 	out, err := cbc.storage.GetCircuitBreakerForCache(cbc.lastTime.Add(DefaultTimeDiff), cbc.firstUpdate)
 	if err != nil {
@@ -92,25 +82,19 @@ func (cbc *circuitBreakerCache) update() error {
 	return cbc.setCircuitBreaker(out)
 }
 
-/**
- * @brief 实现Cache接口的函数
- */
+// clear 实现Cache接口的函数
 func (cbc *circuitBreakerCache) clear() error {
 	cbc.ids = new(sync.Map)
 	cbc.lastTime = time.Unix(0, 0)
 	return nil
 }
 
-/**
- * @brief 实现资源名称
- */
+// name 实现资源名称
 func (cbc *circuitBreakerCache) name() string {
 	return CircuitBreakerName
 }
 
-/**
- * GetCircuitBreakerConfig 根据serviceID获取熔断规则
- */
+// GetCircuitBreakerConfig 根据serviceID获取熔断规则
 func (cbc *circuitBreakerCache) GetCircuitBreakerConfig(id string) *model.ServiceWithCircuitBreaker {
 	if id == "" {
 		return nil
@@ -124,9 +108,7 @@ func (cbc *circuitBreakerCache) GetCircuitBreakerConfig(id string) *model.Servic
 	return value.(*model.ServiceWithCircuitBreaker)
 }
 
-/**
- * @brief 更新store的数据到cache中
- */
+// setCircuitBreaker 更新store的数据到cache中
 func (cbc *circuitBreakerCache) setCircuitBreaker(cb []*model.ServiceWithCircuitBreaker) error {
 	if len(cb) == 0 {
 		return nil
@@ -156,9 +138,7 @@ func (cbc *circuitBreakerCache) setCircuitBreaker(cb []*model.ServiceWithCircuit
 	return nil
 }
 
-/**
- * GetCircuitBreakerCount 获取熔断规则总数
- */
+// GetCircuitBreakerCount 获取熔断规则总数
 func (cbc *circuitBreakerCache) GetCircuitBreakerCount(f func(k, v interface{}) bool) {
 	cbc.ids.Range(f)
 }

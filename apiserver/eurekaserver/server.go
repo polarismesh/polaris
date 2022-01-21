@@ -113,46 +113,38 @@ var (
 
 // EurekaServer主结构体
 type EurekaServer struct {
-	server            *http.Server
-	namingServer      *service.Server
-	healthCheckServer *healthcheck.Server
-	connLimitConfig   *connlimit.Config
-	option            map[string]interface{}
-	openAPI           map[string]apiserver.APIConfig
-	worker            *ApplicationsWorker
-	listenPort        uint32
-	listenIP          string
-	exitCh            chan struct{}
-	start             bool
-	restart           bool
-	rateLimit         plugin.Ratelimit
-	statis            plugin.Statis
-	namespace         string
-	owner             string
-	refreshInterval   time.Duration
-
-	deltaExpireInterval time.Duration
-
+	server                  *http.Server
+	namingServer            *service.Server
+	healthCheckServer       *healthcheck.Server
+	connLimitConfig         *connlimit.Config
+	option                  map[string]interface{}
+	openAPI                 map[string]apiserver.APIConfig
+	worker                  *ApplicationsWorker
+	listenPort              uint32
+	listenIP                string
+	exitCh                  chan struct{}
+	start                   bool
+	restart                 bool
+	rateLimit               plugin.Ratelimit
+	statis                  plugin.Statis
+	namespace               string
+	owner                   string
+	refreshInterval         time.Duration
+	deltaExpireInterval     time.Duration
 	unhealthyExpireInterval time.Duration
 }
 
-/**
- * @brief 获取端口
- */
+// GetPort 获取端口
 func (h *EurekaServer) GetPort() uint32 {
 	return h.listenPort
 }
 
-/**
- * @brief 获取Server的协议
- */
+// GetProtocol 获取Server的协议
 func (h *EurekaServer) GetProtocol() string {
 	return ServerEureka
 }
 
-/**
- * @brief 初始化HTTP API服务器
- */
+// Initialize 初始化HTTP API服务器
 func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interface{},
 	api map[string]apiserver.APIConfig) error {
 	h.listenIP = option["listenIP"].(string)
@@ -219,9 +211,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 	return nil
 }
 
-/**
- * @brief 启动HTTP API服务器
- */
+// Run 启动HTTP API服务器
 func (h *EurekaServer) Run(errCh chan error) {
 	log.Infof("start eurekaserver")
 	h.exitCh = make(chan struct{})
@@ -292,7 +282,7 @@ func (h *EurekaServer) Run(errCh chan error) {
 	log.Infof("eurekaserver stop")
 }
 
-// 创建handler
+// createRestfulContainer 创建handler
 func (h *EurekaServer) createRestfulContainer() (*restful.Container, error) {
 	wsContainer := restful.NewContainer()
 	//cors := restful.CrossOriginResourceSharing{
@@ -307,9 +297,7 @@ func (h *EurekaServer) createRestfulContainer() (*restful.Container, error) {
 	return wsContainer, nil
 }
 
-/**
- * @brief 在接收和回复时统一处理请求
- */
+// process 在接收和回复时统一处理请求
 func (h *EurekaServer) process(req *restful.Request, rsp *restful.Response, chain *restful.FilterChain) {
 	func() {
 		if err := h.preprocess(req, rsp); err != nil {
@@ -333,9 +321,7 @@ func isImportantRequest(req *restful.Request) bool {
 	return false
 }
 
-/**
- * @brief 请求预处理
- */
+// preprocess 请求预处理
 func (h *EurekaServer) preprocess(req *restful.Request, rsp *restful.Response) error {
 	// 设置开始时间
 	req.SetAttribute("start-time", time.Now())
@@ -357,7 +343,7 @@ func (h *EurekaServer) preprocess(req *restful.Request, rsp *restful.Response) e
 	return nil
 }
 
-// 访问限制
+// enterRateLimit 访问限制
 func (h *EurekaServer) enterRateLimit(req *restful.Request, rsp *restful.Response) error {
 	// 检查限流插件是否开启
 	if h.rateLimit == nil {
@@ -388,15 +374,13 @@ func (h *EurekaServer) enterRateLimit(req *restful.Request, rsp *restful.Respons
 	return nil
 }
 
-// http答复简单封装
+// RateLimitResponse http答复简单封装
 func RateLimitResponse(rsp *restful.Response) {
 	rsp.WriteHeader(http.StatusTooManyRequests)
 	rsp.Header().Add(restful.HEADER_ContentType, restful.MIME_JSON)
 }
 
-/**
- * @brief 请求后处理：统计
- */
+// postproccess 请求后处理：统计
 func (h *EurekaServer) postproccess(req *restful.Request, rsp *restful.Response) {
 	now := time.Now()
 	// 接口调用统计
@@ -477,7 +461,7 @@ func getEurekaApi(method, path string) string {
 	return method + ":" + path
 }
 
-//结束eurekaServer的运行
+// Stop 结束eurekaServer的运行
 func (h *EurekaServer) Stop() {
 	// 释放connLimit的数据，如果没有开启，也需要执行一下
 	// 目的：防止restart的时候，connLimit冲突
@@ -488,7 +472,7 @@ func (h *EurekaServer) Stop() {
 	h.worker.Stop()
 }
 
-//重启eurekaServer
+// Restart 重启eurekaServer
 func (h *EurekaServer) Restart(
 	option map[string]interface{}, api map[string]apiserver.APIConfig, errCh chan error) error {
 	log.Infof("restart httpserver new config: %+v", option)
@@ -535,7 +519,7 @@ type tcpKeepAliveListener struct {
 	*net.TCPListener
 }
 
-// 来自于net/http
+// Accept 来自于net/http
 func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
 	tc, err := ln.AcceptTCP()
 	if err != nil {

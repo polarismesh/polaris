@@ -18,8 +18,9 @@
 package cmd
 
 import (
-	"github.com/polarismesh/polaris-server/bootstrap"
 	"github.com/spf13/cobra"
+
+	"github.com/polarismesh/polaris-server/bootstrap"
 )
 
 var (

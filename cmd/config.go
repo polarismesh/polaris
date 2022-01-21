@@ -17,7 +17,9 @@
 
 package cmd
 
-import "github.com/polarismesh/polaris-server/plugin"
+import (
+	"github.com/polarismesh/polaris-server/plugin"
+)
 
 // Config 启动配置
 type Config struct {

@@ -245,7 +245,7 @@ func (nc *NamingCache) revisionWorker(ctx context.Context) {
 	}
 }
 
-// 处理revision计算的函数
+// processRevisionWorker 处理revision计算的函数
 func (nc *NamingCache) processRevisionWorker(req *revisionNotify) bool {
 	if req == nil {
 		log.CacheScope().Errorf("[Cache][Revision] get null revision request")

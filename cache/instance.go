@@ -208,7 +208,7 @@ func (ic *instanceCache) getSystemServices() ([]*model.Service, error) {
 	return services, nil
 }
 
-// 保存instance到内存中
+// setInstances 保存instance到内存中
 // 返回：更新个数，删除个数
 func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int) {
 	if len(ins) == 0 {
@@ -398,7 +398,7 @@ func (ic *instanceCache) GetInstancesCount() int {
 	return count
 }
 
-// 迭代指定的instance数据，id->instance
+// iteratorInstancesProc 迭代指定的instance数据，id->instance
 func iteratorInstancesProc(data *sync.Map, iterProc InstanceIterProc) error {
 	var cont bool
 	var err error
