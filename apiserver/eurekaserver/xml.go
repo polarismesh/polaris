@@ -146,7 +146,7 @@ func xmlToMapParser(skey string, a []xml.Attr, p *xml.Decoder, r bool) (map[stri
 
 var castNanInf bool
 
-// Cast "Nan", "Inf", "-Inf" XML values to 'float64'.
+// CastNanInf Cast "Nan", "Inf", "-Inf" XML values to 'float64'.
 // By default, these values will be decoded as 'string'.
 func CastNanInf(b bool) {
 	castNanInf = b

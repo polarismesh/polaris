@@ -82,9 +82,7 @@ func (t Task) String() string {
 	return fmt.Sprintf("{taskType: %s, id: %s}", typeToCommand[t.taskType], t.id)
 }
 
-/**
- * Resp ckv任务结果
- */
+// Resp ckv任务结果
 type Resp struct {
 	Value       string
 	Err         error

@@ -21,9 +21,7 @@ import (
 	"github.com/emicklei/go-restful"
 )
 
-/**
- * GetAdminServer get admin server
- */
+// GetAdminServer get admin server
 func (h *HTTPServer) GetAdminServer() *restful.WebService {
 	ws := new(restful.WebService)
 
@@ -32,9 +30,7 @@ func (h *HTTPServer) GetAdminServer() *restful.WebService {
 	return ws
 }
 
-/**
- * index  URL: "/"
- */
+// index  URL: "/"
 func (h *HTTPServer) index(_ *restful.Request, rsp *restful.Response) {
 	rsp.Write([]byte("Polaris Server"))
 }

@@ -23,9 +23,7 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
-/**
- * NamespaceArr 命名空间数组定义
- */
+// NamespaceArr 命名空间数组定义
 type NamespaceArr []*api.Namespace
 
 // Reset
@@ -37,9 +35,7 @@ func (m *NamespaceArr) String() string { return proto.CompactTextString(m) }
 // ProtoMessage
 func (*NamespaceArr) ProtoMessage() {}
 
-/**
- * ServiceArr 服务数组定义
- */
+// ServiceArr 服务数组定义
 type ServiceArr []*api.Service
 
 // Reset
@@ -51,9 +47,7 @@ func (m *ServiceArr) String() string { return proto.CompactTextString(m) }
 // ProtoMessage
 func (*ServiceArr) ProtoMessage() {}
 
-/**
- * InstanceArr 服务实例数组定义
- */
+// InstanceArr 服务实例数组定义
 type InstanceArr []*api.Instance
 
 // Reset
@@ -65,9 +59,7 @@ func (m *InstanceArr) String() string { return proto.CompactTextString(m) }
 // ProtoMessage
 func (*InstanceArr) ProtoMessage() {}
 
-/**
- * RoutingArr 路由规则数组定义
- */
+// RoutingArr 路由规则数组定义
 type RoutingArr []*api.Routing
 
 // Reset
@@ -79,9 +71,7 @@ func (m *RoutingArr) String() string { return proto.CompactTextString(m) }
 // ProtoMessage
 func (*RoutingArr) ProtoMessage() {}
 
-/**
- * RateLimitArr 限流规则数组定义
- */
+// RateLimitArr 限流规则数组定义
 type RateLimitArr []*api.Rule
 
 // Reset
@@ -93,9 +83,7 @@ func (m *RateLimitArr) String() string { return proto.CompactTextString(m) }
 // ProtoMessage
 func (*RateLimitArr) ProtoMessage() {}
 
-/**
- * CircuitBreakerArr 熔断规则数组定义
- */
+// CircuitBreakerArr 熔断规则数组定义
 type CircuitBreakerArr []*api.CircuitBreaker
 
 // Reset
@@ -107,9 +95,7 @@ func (m *CircuitBreakerArr) String() string { return proto.CompactTextString(m) 
 // ProtoMessage
 func (*CircuitBreakerArr) ProtoMessage() {}
 
-/**
- * ConfigReleaseArr 发布规则数组定义
- */
+// ConfigReleaseArr 发布规则数组定义
 type ConfigReleaseArr []*api.ConfigRelease
 
 // Reset
@@ -121,9 +107,7 @@ func (m *ConfigReleaseArr) String() string { return proto.CompactTextString(m) }
 // ProtoMessage
 func (*ConfigReleaseArr) ProtoMessage() {}
 
-/*
- * PlatformArr 平台数组定义
- */
+// PlatformArr 平台数组定义
 type PlatformArr []*api.Platform
 
 // Reset proto reset
@@ -135,9 +119,7 @@ func (m *PlatformArr) String() string { return proto.CompactTextString(m) }
 // ProtoMessage proto message
 func (m *PlatformArr) ProtoMessage() {}
 
-/**
- * InstanceArr 服务实例数组定义
- */
+// InstanceArr 服务实例数组定义
 type ServiceAliasArr []*api.ServiceAlias
 
 // Reset

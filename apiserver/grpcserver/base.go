@@ -140,10 +140,7 @@ func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer func(
 	log.Infof("%s server stop", protocol)
 }
 
-/**
- * @brief 虚拟Stream
- * @note 继承ServerStream
- */
+// VirtualStream 虚拟Stream 继承ServerStream
 type VirtualStream struct {
 	Method        string
 	ClientAddress string
@@ -413,9 +410,7 @@ func (b *BaseGrpcServer) AllowAccess(method string) bool {
 	return ok
 }
 
-/**
- * ConvertContext 将GRPC上下文转换成内部上下文
- */
+// ConvertContext 将GRPC上下文转换成内部上下文
 func ConvertContext(ctx context.Context) context.Context {
 	requestID := ""
 	userAgent := ""

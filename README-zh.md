@@ -83,10 +83,11 @@ README：
 
 ### 编译构建
 
-````shell script
+```shell
 chmod +x build.sh
 ./build.sh
-````
+```
+
 构建完后，可以在当前目录看到polaris-server-release_${version}.tar.gz的软件包。
 
 ### 安装
@@ -101,20 +102,22 @@ chmod +x build.sh
 
 #### 执行安装脚本
 
-````shell script
+```shell
 chmod +x ./tool/*.sh
 #进行安装
 ./tool/start.sh
 #测试进程是否启动成功
 ./tool/p.sh
-````
+```
+
 最后一步运行p.sh后，返回Polaris Server，证明启动成功。
 
 #### 验证安装
 
-````shell script
+```shell
 curl http://127.0.0.1:8090
-```` 
+```
+
 返回Polaris Server，证明功能正常
 
 

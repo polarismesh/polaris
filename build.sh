@@ -15,17 +15,21 @@ fi
 workdir=$(dirname $(realpath $0))
 version=$(cat version 2>/dev/null)
 bin_name="polaris-server"
-if [ "${GOOS}" == "" ]; then
-  GOOS=$(go env GOOS)
-fi
-if [ "${GOARCH}" == "" ]; then
-  GOARCH=$(go env GOARCH)
-fi
-folder_name="polaris-server-release_${version}.${GOOS}.${GOARCH}"
-pkg_name="${folder_name}.zip"
+
 if [ "${GOOS}" == "windows" ]; then
   bin_name="polaris-server.exe"
 fi
+
+if [ "${GOOS}" == "" ]; then
+  GOOS=$(go env GOOS)
+fi
+
+if [ "${GOARCH}" == "" ]; then
+  GOARCH=$(go env GOARCH)
+fi
+
+folder_name="polaris-server-release_${version}.${GOOS}.${GOARCH}"
+pkg_name="${folder_name}.zip"
 echo "GOOS is ${GOOS}, binary name is ${bin_name}"
 
 cd $workdir
@@ -33,8 +37,6 @@ cd $workdir
 # 清理环境
 rm -rf ${folder_name}
 rm -f "${pkg_name}"
-
-# 编译
 rm -f ${bin_name}
 
 # 禁止 CGO_ENABLED 参数打开

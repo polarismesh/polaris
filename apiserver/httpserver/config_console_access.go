@@ -91,8 +91,6 @@ func (h *HTTPServer) UpdateConfigFileGroup(req *restful.Request, rsp *restful.Re
 	handler.WriteHeaderAndProto(h.configServer.Service().UpdateConfigFileGroup(ctx, configFileGroup))
 }
 
-//配置文件
-
 // CreateConfigFile 创建配置文件
 func (h *HTTPServer) CreateConfigFile(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
@@ -172,8 +170,6 @@ func (h *HTTPServer) DeleteConfigFile(req *restful.Request, rsp *restful.Respons
 	handler.WriteHeaderAndProto(response)
 }
 
-//配置文件发布
-
 // PublishConfigFile 发布配置文件
 func (h *HTTPServer) PublishConfigFile(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
@@ -205,8 +201,6 @@ func (h *HTTPServer) GetConfigFileRelease(req *restful.Request, rsp *restful.Res
 
 	handler.WriteHeaderAndProto(response)
 }
-
-//配置文件发布历史
 
 // GetConfigFileReleaseHistory 获取配置文件发布历史，按照发布时间倒序排序
 func (h *HTTPServer) GetConfigFileReleaseHistory(req *restful.Request, rsp *restful.Response) {

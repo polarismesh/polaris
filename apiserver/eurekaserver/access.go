@@ -35,9 +35,7 @@ const (
 	ParamValue  string = "value"
 )
 
-/**
- * @brief 注册管理端接口
- */
+// GetEurekaAccessServer 注册管理端接口
 func (h *EurekaServer) GetEurekaAccessServer() *restful.WebService {
 	ws := new(restful.WebService)
 
@@ -47,9 +45,7 @@ func (h *EurekaServer) GetEurekaAccessServer() *restful.WebService {
 	return ws
 }
 
-/**
- * @brief 增加服务发现接口
- */
+// addDiscoverAccess 增加服务发现接口
 func (h *EurekaServer) addDiscoverAccess(ws *restful.WebService) {
 	// 应用实例注册
 	ws.Route(ws.POST(fmt.Sprintf("/apps/{%s}", ParamAppId)).To(h.RegisterApplication)).
@@ -84,12 +80,12 @@ func (h *EurekaServer) addDiscoverAccess(ws *restful.WebService) {
 		Param(ws.PathParameter(ParamInstId, "instanceId").DataType("string"))
 }
 
-//全量拉取服务实例信息
+// GetAllApplications 全量拉取服务实例信息
 func (h *EurekaServer) GetAllApplications(req *restful.Request, rsp *restful.Response) {
 	appsRespCache := h.worker.GetCachedAppsWithLoad()
 
 	acceptValue := getParamFromEurekaRequestHeader(req, restful.HEADER_Accept)
-	if err := writeResponse(acceptValue, appsRespCache, req, rsp); nil != err {
+	if err := writeResponse(acceptValue, appsRespCache, req, rsp); err != nil {
 		log.Errorf("[EurekaServer]fail to write applications, err is %v", err)
 	}
 }
@@ -119,7 +115,7 @@ func (h *EurekaServer) GetApplication(req *restful.Request, rsp *restful.Respons
 	if len(acceptValue) > 0 && acceptValue == restful.MIME_JSON {
 		output = appResp
 	}
-	if err := writeEurekaResponse(acceptValue, output, req, rsp); nil != err {
+	if err := writeEurekaResponse(acceptValue, output, req, rsp); err != nil {
 		log.Errorf("[EurekaServer]fail to write application, err is %v", err)
 	}
 }
@@ -151,7 +147,7 @@ func (h *EurekaServer) GetInstance(req *restful.Request, rsp *restful.Response) 
 	if len(acceptValue) > 0 && acceptValue == restful.MIME_JSON {
 		output = insResp
 	}
-	if err := writeEurekaResponse(acceptValue, output, req, rsp); nil != err {
+	if err := writeEurekaResponse(acceptValue, output, req, rsp); err != nil {
 		log.Errorf("[EurekaServer]fail to write instance, err is %v", err)
 	}
 }
@@ -191,14 +187,13 @@ func writeResponse(
 			}
 			_, err = rsp.Write(appsRespCache.XmlBytes)
 			return err
-		} else {
-			err = rsp.WriteAsXml(appsRespCache.AppsResp.Applications)
 		}
+		err = rsp.WriteAsXml(appsRespCache.AppsResp.Applications)
 	}
 	return err
 }
 
-//增量拉取服务实例信息
+// GetDeltaApplications 增量拉取服务实例信息
 func (h *EurekaServer) GetDeltaApplications(req *restful.Request, rsp *restful.Response) {
 	appsRespCache := h.worker.GetDeltaApps()
 	if nil == appsRespCache {
@@ -209,7 +204,7 @@ func (h *EurekaServer) GetDeltaApplications(req *restful.Request, rsp *restful.R
 		appsRespCache = h.worker.GetDeltaApps()
 	}
 	acceptValue := getParamFromEurekaRequestHeader(req, restful.HEADER_Accept)
-	if err := writeResponse(acceptValue, appsRespCache, req, rsp); nil != err {
+	if err := writeResponse(acceptValue, appsRespCache, req, rsp); err != nil {
 		log.Errorf("[EurekaServer]fail to write delta applications, err is %v", err)
 	}
 }
@@ -219,7 +214,7 @@ func writeHeader(httpStatus int, rsp *restful.Response) {
 	rsp.WriteHeader(httpStatus)
 }
 
-//服务注册
+// RegisterApplication 服务注册
 func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Response) {
 	appId := strings.ToUpper(req.PathParameter(ParamAppId))
 	if len(appId) == 0 {
@@ -238,7 +233,7 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 	} else {
 		err = req.ReadEntity(registrationRequest)
 	}
-	if nil != err {
+	if err != nil {
 		log.Errorf("[EUREKA-SERVER] fail to parse instance register request, err is %v", err)
 		writePolarisStatusCode(req, api.ParseException)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -251,14 +246,14 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 		return
 	}
 	if nil != registrationRequest.Instance.Port {
-		if err = registrationRequest.Instance.Port.convertPortValue(); nil != err {
+		if err = registrationRequest.Instance.Port.convertPortValue(); err != nil {
 			log.Errorf("[EUREKA-SERVER] fail to parse instance register request from %s, "+
 				"invalid insecure port value, err is %v", remoteAddr, err)
 			writePolarisStatusCode(req, api.InvalidInstancePort)
 			writeHeader(http.StatusBadRequest, rsp)
 			return
 		}
-		if err = registrationRequest.Instance.Port.convertEnableValue(); nil != err {
+		if err = registrationRequest.Instance.Port.convertEnableValue(); err != nil {
 			log.Errorf("[EUREKA-SERVER] fail to parse instance register request from %s, "+
 				"invalid insecure enable value, err is %v", remoteAddr, err)
 			writePolarisStatusCode(req, api.InvalidInstancePort)
@@ -267,14 +262,14 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 		}
 	}
 	if nil != registrationRequest.Instance.SecurePort {
-		if err = registrationRequest.Instance.SecurePort.convertPortValue(); nil != err {
+		if err = registrationRequest.Instance.SecurePort.convertPortValue(); err != nil {
 			log.Errorf("[EUREKA-SERVER] fail to parse instance register request from %s, "+
 				"invalid secure port value, err is %v", remoteAddr, err)
 			writePolarisStatusCode(req, api.InvalidInstancePort)
 			writeHeader(http.StatusBadRequest, rsp)
 			return
 		}
-		if err = registrationRequest.Instance.SecurePort.convertEnableValue(); nil != err {
+		if err = registrationRequest.Instance.SecurePort.convertEnableValue(); err != nil {
 			log.Errorf("[EUREKA-SERVER] fail to parse instance register request from %s, "+
 				"invalid secure enable value, err is %v", remoteAddr, err)
 			writePolarisStatusCode(req, api.InvalidInstancePort)
@@ -298,7 +293,7 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 	writeHeader(int(code/1000), rsp)
 }
 
-//人工进行状态更新
+// UpdateStatus 人工进行状态更新
 func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response) {
 	appId := req.PathParameter(ParamAppId)
 	if len(appId) == 0 {
@@ -338,7 +333,7 @@ func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response)
 	writeHeader(int(code/1000), rsp)
 }
 
-// UpdateStatus 关闭强制隔离
+// DeleteStatus 关闭强制隔离
 func (h *EurekaServer) DeleteStatus(req *restful.Request, rsp *restful.Response) {
 	appId := req.PathParameter(ParamAppId)
 	if len(appId) == 0 {
@@ -373,7 +368,7 @@ func (h *EurekaServer) DeleteStatus(req *restful.Request, rsp *restful.Response)
 	writeHeader(int(code/1000), rsp)
 }
 
-//心跳上报
+// RenewInstance 心跳上报
 func (h *EurekaServer) RenewInstance(req *restful.Request, rsp *restful.Response) {
 	appId := req.PathParameter(ParamAppId)
 	if len(appId) == 0 {
@@ -402,7 +397,7 @@ func (h *EurekaServer) RenewInstance(req *restful.Request, rsp *restful.Response
 	writeHeader(int(code/1000), rsp)
 }
 
-//实例反注册
+// CancelInstance 实例反注册
 func (h *EurekaServer) CancelInstance(req *restful.Request, rsp *restful.Response) {
 	appId := req.PathParameter(ParamAppId)
 	if len(appId) == 0 {
@@ -437,9 +432,8 @@ func getParamFromEurekaRequestHeader(req *restful.Request, headerName string) st
 	headerValue := req.HeaderParameter(headerName)
 	if len(headerValue) > 0 {
 		return headerValue
-	} else {
-		headerValue = req.HeaderParameter(strings.ToLower(headerName))
-		return headerValue
 	}
 
+	headerValue = req.HeaderParameter(strings.ToLower(headerName))
+	return headerValue
 }

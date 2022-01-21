@@ -70,7 +70,7 @@ func SetStoreConfig(conf *Config) {
 	config = conf
 }
 
-// @brief 包裹了初始化函数，在GetStore的时候会在自动调用，全局初始化一次
+// initialize  包裹了初始化函数，在GetStore的时候会在自动调用，全局初始化一次
 func initialize(s Store) {
 	once.Do(func() {
 		if err := s.Initialize(config); err != nil {

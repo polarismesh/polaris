@@ -132,7 +132,7 @@ func makeLbSubsetConfig(serviceInfo *ServiceInfo) *cluster.Cluster_LbSubsetConfi
 			// 对每一个 destination 产生一个 subset
 			for _, destination := range inbound.Destinations {
 				var keys []string
-				for s, _ := range destination.Metadata {
+				for s := range destination.Metadata {
 					keys = append(keys, s)
 				}
 				subsetSelectors = append(subsetSelectors, &cluster.Cluster_LbSubsetConfig_LbSubsetSelector{
