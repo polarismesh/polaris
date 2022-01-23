@@ -80,7 +80,7 @@ func NewListener(l net.Listener, protocol string, config *Config) (net.Listener,
 		log.Errorf("[ConnLimit] listener is missing protocol")
 		return nil, errors.New("listener is missing protocol")
 	}
-	if config == nil || config.OpenConnLimit == false {
+	if config == nil || !config.OpenConnLimit {
 		log.Infof("[ConnLimit][%s] apiserver is not open conn limit", protocol)
 		return l, nil
 	}

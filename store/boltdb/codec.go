@@ -20,7 +20,6 @@ package boltdb
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -82,8 +81,7 @@ func decodeStringBuffer(name string, buf []byte) (string, error) {
 	}
 	byteType := buf[0]
 	if byteType != typeString {
-		return "", errors.New(
-			fmt.Sprintf("invalid type field %s, want string(%v), actual is %v", name, typeString, byteType))
+		return "", fmt.Errorf("invalid type field %s, want string(%v), actual is %v", name, typeString, byteType)
 	}
 	strBytes := buf[1:]
 	return string(strBytes), nil
@@ -113,8 +111,7 @@ func decodeIntBuffer(name string, buf []byte, typeByte byte) (int64, error) {
 	}
 	byteType := buf[0]
 	if byteType != typeByte {
-		return 0, errors.New(
-			fmt.Sprintf("invalid type field %s, want int(%v), actual is %v", name, typeByte, byteType))
+		return 0, fmt.Errorf("invalid type field %s, want int(%v), actual is %v", name, typeByte, byteType)
 	}
 	intBytes := buf[1:]
 	value := binary.LittleEndian.Uint64(intBytes)
@@ -127,8 +124,7 @@ func decodeUintBuffer(name string, buf []byte, typeByte byte) (uint64, error) {
 	}
 	byteType := buf[0]
 	if byteType != typeByte {
-		return 0, errors.New(
-			fmt.Sprintf("invalid type field %s, want uint(%v), actual is %v", name, typeByte, byteType))
+		return 0, fmt.Errorf("invalid type field %s, want uint(%v), actual is %v", name, typeByte, byteType)
 	}
 	intBytes := buf[1:]
 	value := binary.LittleEndian.Uint64(intBytes)
@@ -152,8 +148,7 @@ func decodeBoolBuffer(name string, buf []byte) (bool, error) {
 	}
 	byteType := buf[0]
 	if byteType != typeBool {
-		return false, errors.New(
-			fmt.Sprintf("invalid type field %s, want bool(%v), actual is %v", name, typeBool, byteType))
+		return false, fmt.Errorf("invalid type field %s, want bool(%v), actual is %v", name, typeBool, byteType)
 	}
 	boolByte := buf[1]
 	return boolByte > 0, nil
@@ -244,8 +239,8 @@ func decodeTimeBuffer(name string, buf []byte) (time.Time, error) {
 	}
 	byteType := buf[0]
 	if byteType != typeTime {
-		return time.Unix(0, 0), errors.New(
-			fmt.Sprintf("invalid type field %s, want time(%v), actual is %v", name, typeTime, byteType))
+		return time.Unix(0, 0),
+			fmt.Errorf("invalid type field %s, want time(%v), actual is %v", name, typeTime, byteType)
 	}
 	intBytes := buf[1:]
 	value := binary.LittleEndian.Uint64(intBytes)
@@ -269,8 +264,7 @@ func decodeMessageBuffer(msg proto.Message, name string, buf []byte) (proto.Mess
 	}
 	byteType := buf[0]
 	if byteType != typeProtobuf {
-		return nil, errors.New(
-			fmt.Sprintf("invalid type field %s, want protoBuf(%v), actual is %v", name, typeProtobuf, byteType))
+		return nil, fmt.Errorf("invalid type field %s, want protoBuf(%v), actual is %v", name, typeProtobuf, byteType)
 	}
 	protoBytes := buf[1:]
 	err := proto.Unmarshal(protoBytes, msg)

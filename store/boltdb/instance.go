@@ -235,6 +235,7 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 			}
 			id := svcId.(string)
 			_, ok = serviceIDs[id]
+
 			return ok
 		})
 

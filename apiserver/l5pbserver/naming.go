@@ -125,7 +125,7 @@ func (l *L5pbserver) handleSyncByAgentCmd(conn net.Conn, iPkg *l5.Cl5Pkg) l5Code
 
 	oPkg := &l5.Cl5Pkg{
 		Seqno:             proto.Int32(iPkg.GetSeqno()),
-		Cmd:               proto.Int(int(l5.CL5_CMD_CL5_SYNC_BY_AGENT_ACK_CMD)),
+		Cmd:               proto.Int32(int32(l5.CL5_CMD_CL5_SYNC_BY_AGENT_ACK_CMD)),
 		Result:            proto.Int32(success),
 		Ip:                proto.Int32(iPkg.GetIp()),
 		SyncByAgentAckCmd: syncByAgentAck,
@@ -148,7 +148,7 @@ func (l *L5pbserver) handleRegisterByNameCmd(conn net.Conn, iPkg *l5.Cl5Pkg) l5C
 
 	oPkg := &l5.Cl5Pkg{
 		Seqno:                proto.Int32(iPkg.GetSeqno()),
-		Cmd:                  proto.Int(int(l5.CL5_CMD_CL5_REGISTER_BY_NAME_ACK_CMD)),
+		Cmd:                  proto.Int32(int32(l5.CL5_CMD_CL5_REGISTER_BY_NAME_ACK_CMD)),
 		Result:               proto.Int32(success),
 		Ip:                   proto.Int32(iPkg.GetIp()),
 		RegisterByNameAckCmd: registerByNameAck,
@@ -205,8 +205,5 @@ func response(conn net.Conn, pkg *l5.Cl5Pkg) l5Code {
 func isLittleEndian() bool {
 	a := int16(0x1234)
 	b := int8(a)
-	if 0x34 == b {
-		return true
-	}
-	return false
+	return 0x34 == b
 }

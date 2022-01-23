@@ -114,6 +114,7 @@ func (r *routingStore) GetRoutingConfigsForCache(mtime time.Time, firstUpdate bo
 				return false
 			}
 			routeMtime := rMtime.(time.Time)
+
 			return !routeMtime.Before(mtime)
 		})
 	if err != nil {
@@ -159,11 +160,8 @@ func (r *routingStore) getWithID(id string) (*model.RoutingConfig, error) {
 	fields := []string{routingFieldID}
 	routeConf, err := r.handler.LoadValuesByFilter(tblNameRouting, fields, &model.RoutingConfig{},
 		func(m map[string]interface{}) bool {
-			if id != m[routingFieldID].(string) {
-				return false
-			}
 
-			return true
+			return id != m[routingFieldID].(string)
 		})
 	if err != nil {
 		log.Errorf("[Store][boltdb] load route config from kv error, %v", err)
@@ -244,6 +242,7 @@ func (r *routingStore) GetRoutingConfigs(
 			}
 			id := rId.(string)
 			_, ok = svcIds[id]
+			
 			return ok
 		})
 

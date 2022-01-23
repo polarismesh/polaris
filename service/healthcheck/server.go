@@ -181,28 +181,24 @@ func (s *Server) receiveEventAndPush() {
 		return
 	}
 
-	for {
-		select {
-		case wrapper := <-s.discoverCh:
-			svcId := wrapper.ServiceID
-			event := wrapper.Event
-			var service *model.Service
-			for {
-				service = s.serviceCache.GetServiceByID(svcId)
-				if service == nil {
-					time.Sleep(time.Duration(500 * time.Millisecond))
-					continue
-				}
-				break
+	for wrapper := range s.discoverCh {
+		svcId := wrapper.ServiceID
+		event := wrapper.Event
+		var service *model.Service
+		for {
+			service = s.serviceCache.GetServiceByID(svcId)
+			if service == nil {
+				time.Sleep(time.Duration(500 * time.Millisecond))
+				continue
 			}
-
-			event.Namespace = service.Namespace
-			event.Service = service.Name
-
-			s.discoverEvent.PublishEvent(event)
+			break
 		}
-	}
 
+		event.Namespace = service.Namespace
+		event.Service = service.Name
+
+		s.discoverEvent.PublishEvent(event)
+	}
 }
 
 // GetLastHeartbeat 获取上一次心跳的时间

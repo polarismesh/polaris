@@ -358,5 +358,4 @@ func cleanRoutingConfig(service string, namespace string) {
 	if _, err := db.Exec(str, service, namespace); err != nil {
 		panic(err)
 	}
-	return
 }

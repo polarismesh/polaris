@@ -80,5 +80,5 @@ func (c *Conn) Read(b []byte) (int, error) {
 
 // 判断conn是否还有效
 func (c *Conn) isValid() bool {
-	return c.closed == false
+	return !c.closed
 }

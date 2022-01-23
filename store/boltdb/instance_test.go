@@ -326,7 +326,7 @@ func TestInstanceStore_UpdateInstance(t *testing.T) {
 
 	if ins.Proto.GetHost().GetValue() != "1.2.3.0" ||
 		ins.Proto.GetPort().GetValue() != 8080 {
-		t.Fatal(fmt.Sprintf("udpate instance error"))
+		t.Fatal("udpate instance error")
 	}
 }
 
@@ -497,7 +497,7 @@ func TestInstanceStore_DeleteInstance(t *testing.T) {
 	}
 
 	if ins != nil && !ins.Valid {
-		t.Fatal(fmt.Sprintf("delete instance error"))
+		t.Fatal("delete instance error")
 	}
 }
 
@@ -525,7 +525,7 @@ func TestInstanceStore_BatchDeleteInstances(t *testing.T) {
 	}
 
 	if ins != nil && !ins.Valid {
-		t.Fatal(fmt.Sprintf("delete instance error"))
+		t.Fatal("delete instance error")
 	}
 
 	ins, err = insStore.GetInstance("insid3")
@@ -534,6 +534,6 @@ func TestInstanceStore_BatchDeleteInstances(t *testing.T) {
 	}
 
 	if ins != nil && !ins.Valid {
-		t.Fatal(fmt.Sprintf("delete instance error"))
+		t.Fatal("delete instance error")
 	}
 }

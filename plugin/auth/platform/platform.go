@@ -125,11 +125,8 @@ func (a *Auth) run() {
 	ticker := time.NewTicker(a.interval)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			_ = a.update()
-		}
+	for range ticker.C {
+		_ = a.update()
 	}
 }
 
@@ -143,7 +140,7 @@ func (a *Auth) update() error {
 
 	update, del := a.setPlatform(out)
 	log.Info("[Plugin][platform] get more platforms", zap.Int("update", update), zap.Int("delete", del),
-		zap.Time("last", a.lastMtime), zap.Duration("used", time.Now().Sub(start)))
+		zap.Time("last", a.lastMtime), zap.Duration("used", time.Since(start)))
 	return nil
 }
 

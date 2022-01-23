@@ -249,12 +249,12 @@ func reflectProtoMsg(typObject interface{}, fieldName string) (proto.Message, er
 	intoType := indirectType(reflect.TypeOf(typObject))
 	field, ok := intoType.FieldByName(fieldName)
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("field %s not found in object %v", fieldName, intoType))
+		return nil, fmt.Errorf("field %s not found in object %v", fieldName, intoType)
 	}
 	rawFieldType := field.Type
 	if !rawFieldType.Implements(messageType) {
-		return nil, errors.New(fmt.Sprintf("field %s type not match in object %v, want %v, get %v",
-			fieldName, intoType, messageType, field.Type))
+		return nil, fmt.Errorf("field %s type not match in object %v, want %v, get %v",
+			fieldName, intoType, messageType, field.Type)
 	}
 	return reflect.New(rawFieldType.Elem()).Interface().(proto.Message), nil
 }
@@ -323,7 +323,7 @@ func matchObject(bucket *bolt.Bucket,
 	if nil == filter {
 		return true, nil
 	}
-	fieldValues := make(map[string]interface{}, 0)
+	fieldValues := make(map[string]interface{})
 	for _, field := range fields {
 		value, err := getFieldObject(bucket, typObject, field)
 		if nil != err {
@@ -477,7 +477,7 @@ func (b *boltHandler) CountValues(typ string) (int, error) {
 
 			if subBucket != nil {
 				data := subBucket.Get([]byte(DataValidFieldName))
-				if data == nil || len(data) == 0 {
+				if len(data) == 0 {
 					canCount = true
 				} else {
 					val, err := decodeBoolBuffer(DataValidFieldName, data)

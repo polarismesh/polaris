@@ -266,7 +266,7 @@ func buildHashStr(counts map[string]int) string {
 	for k := range counts {
 		slice = append(slice, k)
 	}
-	sort.Sort(sort.StringSlice(slice))
+	sort.Strings(slice)
 	builder := &strings.Builder{}
 	for _, status := range slice {
 		builder.WriteString(fmt.Sprintf("%s_%d_", status, counts[status]))
@@ -496,8 +496,8 @@ func (a *ApplicationsWorker) constructApplication(app *Application, instances []
 			continue
 		}
 		eurekaInstanceId := instance.Proto.GetId().GetValue()
-		var instanceInfo *InstanceInfo
-		instanceInfo = buildInstance(app, eurekaInstanceId, instance)
+
+		instanceInfo := buildInstance(app, eurekaInstanceId, instance)
 		instanceInfo.RealInstances[instance.Revision()] = instance
 		status := instanceInfo.Status
 		app.StatusCounts[status] = app.StatusCounts[status] + 1

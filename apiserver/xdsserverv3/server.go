@@ -170,9 +170,8 @@ func makeOutlierDetection(conf *model.ServiceWithCircuitBreaker) *cluster.Outlie
 		var consecutiveErrConfig *api.CbPolicy_ConsecutiveErrConfig
 		var errorRateConfig *api.CbPolicy_ErrRateConfig
 		var policy *api.CbPolicy
-		var dest *api.DestinationSet
 
-		dest = inBounds[0].GetDestinations()[0]
+		dest := inBounds[0].GetDestinations()[0]
 		policy = dest.Policy
 		consecutiveErrConfig = policy.Consecutive
 		errorRateConfig = policy.ErrorRate
@@ -574,7 +573,7 @@ func makeListeners() []types.Resource {
 func (x *XDSServer) pushRegistryInfoToXDSCache(registryInfo map[string][]*ServiceInfo) error {
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
 
-	for ns, _ := range registryInfo {
+	for ns := range registryInfo {
 		resources := make(map[resource.Type][]types.Resource)
 		resources[resource.EndpointType] = makeEndpoints(registryInfo[ns])
 		resources[resource.ClusterType] = x.makeClusters(registryInfo[ns])

@@ -107,7 +107,7 @@ func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Res
 	msg := fmt.Sprintf("create instance: id=%v, namespace=%v, service=%v, host=%v, port=%v",
 		ins.GetId().GetValue(), req.GetNamespace().GetValue(), req.GetService().GetValue(),
 		req.GetHost().GetValue(), req.GetPort().GetValue())
-	log.Info(msg, ZapRequestID(rid), ZapPlatformID(pid), zap.Duration("cost", time.Now().Sub(start)))
+	log.Info(msg, ZapRequestID(rid), ZapPlatformID(pid), zap.Duration("cost", time.Since(start)))
 	service := &model.Service{
 		Name:      req.GetService().GetValue(),
 		Namespace: req.GetNamespace().GetValue(),
@@ -277,7 +277,7 @@ func (s *Server) serialDeleteInstance(ctx context.Context, req *api.Instance, in
 
 	msg := fmt.Sprintf("delete instance: id=%v, namespace=%v, service=%v, host=%v, port=%v",
 		instance.ID(), service.Namespace, service.Name, instance.Host(), instance.Port())
-	log.Info(msg, ZapRequestID(rid), ZapPlatformID(pid), zap.Duration("cost", time.Now().Sub(start)))
+	log.Info(msg, ZapRequestID(rid), ZapPlatformID(pid), zap.Duration("cost", time.Since(start)))
 	s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.ODelete))
 
 	s.sendDiscoverEvent(model.EventInstanceOffline, service.Namespace,
@@ -308,7 +308,7 @@ func (s *Server) asyncDeleteInstance(ctx context.Context, req *api.Instance, ins
 	// 打印本地日志与操作记录
 	msg := fmt.Sprintf("delete instance: id=%v, namespace=%v, service=%v, host=%v, port=%v",
 		instance.ID(), instance.Namespace(), instance.Service(), instance.Host(), instance.Port())
-	log.Info(msg, ZapRequestID(rid), ZapPlatformID(pid), zap.Duration("cost", time.Now().Sub(start)))
+	log.Info(msg, ZapRequestID(rid), ZapPlatformID(pid), zap.Duration("cost", time.Since(start)))
 	service := &model.Service{Name: instance.Service(), Namespace: instance.Namespace()}
 	s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.ODelete))
 
@@ -643,7 +643,7 @@ func updateHealthCheck(req *api.Instance, instance *model.Instance) bool {
 		(req.GetEnableHealthCheck() == nil || req.GetEnableHealthCheck().GetValue()) {
 		// 如果数据库中实例原有是不打开健康检查，
 		// 那么一旦打开，status需置为false，等待一次心跳成功才能变成true
-		if instance.EnableHealthCheck() == false {
+		if !instance.EnableHealthCheck() {
 			// 需要重置healthy，则认为有变更
 			insProto.Healthy = utils.NewBoolValue(false)
 			insProto.EnableHealthCheck = utils.NewBoolValue(true)
@@ -671,7 +671,7 @@ func updateHealthCheck(req *api.Instance, instance *model.Instance) bool {
 	}
 
 	// update的时候，修改了enableHealthCheck的值
-	if req.GetEnableHealthCheck() != nil && req.GetEnableHealthCheck().GetValue() == false {
+	if req.GetEnableHealthCheck() != nil && !req.GetEnableHealthCheck().GetValue() {
 		if req.GetEnableHealthCheck().GetValue() != instance.EnableHealthCheck() {
 			needUpdate = true
 		}
@@ -873,7 +873,7 @@ func (s *Server) packCmdb(instance *api.Instance) {
 	if err == nil && location != nil {
 		instance.Location = location.Proto
 	}
-	return
+
 }
 
 func (s *Server) sendDiscoverEvent(eventType model.DiscoverEventType, namespace, service, host string, port int) {

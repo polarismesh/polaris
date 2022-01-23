@@ -99,23 +99,21 @@ func TestConnLimit(t *testing.T) {
 	// time.Sleep(5 * time.Second)
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			if atomic.LoadInt32(&total) != int32(connCount) {
-				t.Logf("connection is not finished")
-				continue
-			}
-			hostCnt := lis.(*Listener).GetHostConnCount(host)
-			lisCnt := lis.(*Listener).GetListenerConnCount()
-			if hostCnt == 0 && lisCnt == 0 {
-				t.Logf("pass")
-				return
-			}
-
-			t.Logf("host conn count:%d: lis conn count:%d", hostCnt, lisCnt)
+	for range ticker.C {
+		if atomic.LoadInt32(&total) != int32(connCount) {
+			t.Logf("connection is not finished")
+			continue
 		}
+		hostCnt := lis.(*Listener).GetHostConnCount(host)
+		lisCnt := lis.(*Listener).GetListenerConnCount()
+		if hostCnt == 0 && lisCnt == 0 {
+			t.Logf("pass")
+			return
+		}
+
+		t.Logf("host conn count:%d: lis conn count:%d", hostCnt, lisCnt)
 	}
+
 }
 
 // test readTimeout场景
