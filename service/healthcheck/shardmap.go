@@ -22,28 +22,28 @@ import (
 	"sync/atomic"
 )
 
-// A Concurrent safe ShardMap for healthCheckInstances
-// To avoid lock bottlenecks this map is dived to several (ShardSize) Concurrent map.
+// A concurrent safe shardMap for healthCheckInstances
+// To avoid lock bottlenecks this map is dived to several (shardSize) concurrent map.
 type shardMap struct {
 	shardSize uint32
-	Shards    []*Shard
+	shards    []*shard
 	size      int32
 }
 
-type Shard struct {
+type shard struct {
 	healthCheckInstances map[string]*InstanceWithChecker
 	healthCheckMutex     *sync.RWMutex
 }
 
-// Creates a new ShardMap
+// NewShardMap creates a new shardMap.
 func NewShardMap(size uint32) *shardMap {
 	m := &shardMap{
 		shardSize: size,
-		Shards:    make([]*Shard, size),
+		shards:    make([]*shard, size),
 		size:      0,
 	}
-	for i := range m.Shards {
-		m.Shards[i] = &Shard{
+	for i := range m.shards {
+		m.shards[i] = &shard{
 			healthCheckInstances: make(map[string]*InstanceWithChecker),
 			healthCheckMutex:     &sync.RWMutex{},
 		}
@@ -51,9 +51,9 @@ func NewShardMap(size uint32) *shardMap {
 	return m
 }
 
-// getShard returns shard under given instanceId
-func (m *shardMap) getShard(instanceId string) *Shard {
-	return m.Shards[fnv32(instanceId)%m.shardSize]
+// getShard returns shard under given instanceId.
+func (m *shardMap) getShard(instanceId string) *shard {
+	return m.shards[fnv32(instanceId)%m.shardSize]
 }
 
 // Store stores healthCheckInstances under given instanceId.
@@ -73,7 +73,7 @@ func (m *shardMap) Store(instanceId string, healthCheckInstance *InstanceWithChe
 	shard.healthCheckMutex.Unlock()
 }
 
-//PutIfAbsent to avoid storing twice when key is the same in the concurrent scenario。
+//PutIfAbsent to avoid storing twice when key is the same in the concurrent scenario.
 func (m *shardMap) PutIfAbsent(instanceId string, healthCheckInstance *InstanceWithChecker) (*InstanceWithChecker, bool) {
 	if len(instanceId) == 0 {
 		return nil, false
@@ -136,9 +136,9 @@ func (m *shardMap) DeleteIfExist(instanceId string) bool {
 	return false
 }
 
-// Range iterates over the ShardMap.
+// Range iterates over the shardMap.
 func (m *shardMap) Range(fn func(instanceId string, healthCheckInstance *InstanceWithChecker)) {
-	for _, shard := range m.Shards {
+	for _, shard := range m.shards {
 		shard.healthCheckMutex.RLock()
 		for k, v := range shard.healthCheckInstances {
 			fn(k, v)
