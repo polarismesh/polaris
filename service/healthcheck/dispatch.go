@@ -125,7 +125,7 @@ func (d *Dispatcher) reloadSelfContinuum() bool {
 
 func (d *Dispatcher) reloadManagedInstances() {
 	nextInstances := make(map[string]*InstanceWithChecker)
-	var totalCount int
+
 	if nil != d.continuum {
 		server.cacheProvider.RangeHealthCheckInstances(func(instance *InstanceWithChecker) {
 			instanceId := instance.instance.ID()
@@ -133,11 +133,10 @@ func (d *Dispatcher) reloadManagedInstances() {
 			if host == server.localHost {
 				nextInstances[instanceId] = instance
 			}
-			totalCount++
 		})
 	}
 	log.Infof("[Health Check][Dispatcher]count %d instances has been dispatched to %s, total is %d",
-		len(nextInstances), server.localHost, totalCount)
+		len(nextInstances), server.localHost, server.cacheProvider.healthCheckInstances.Count())
 	originInstances := d.managedInstances
 	d.managedInstances = nextInstances
 	if len(nextInstances) > 0 {
