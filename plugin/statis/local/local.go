@@ -109,13 +109,13 @@ func (s *StatisWorker) GetPrometheusHandler() http.Handler {
 func (s *StatisWorker) Run() {
 
 	store, err := store.GetStore()
-	if nil != err {
+	if err != nil {
 		log.Errorf("[APICall] get store error, %v", err)
 		return
 	}
 
 	nowSeconds, err := store.GetNow()
-	if nil != err {
+	if err != nil {
 		log.Errorf("[APICall] get now second from store error, %v", err)
 		return
 	}

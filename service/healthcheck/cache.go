@@ -145,7 +145,7 @@ func (c *CacheProvider) OnCreated(value interface{}) {
 }
 
 func isHealthCheckEnable(instance *api.Instance) (bool, plugin.HealthChecker) {
-	if !instance.GetEnableHealthCheck().GetValue() || nil == instance.GetHealthCheck() {
+	if !instance.GetEnableHealthCheck().GetValue() || instance.GetHealthCheck() == nil {
 		return false, nil
 	}
 	checker, ok := server.checkers[int32(instance.GetHealthCheck().GetType())]
@@ -205,7 +205,7 @@ func (c *CacheProvider) OnDeleted(value interface{}) {
 			c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
 			return
 		}
-		if !instProto.GetEnableHealthCheck().GetValue() || nil == instProto.GetHealthCheck() {
+		if !instProto.GetEnableHealthCheck().GetValue() || instProto.GetHealthCheck() == nil {
 			return
 		}
 		deleteServiceInstance(instProto, c.healthCheckMutex, c.healthCheckInstances)

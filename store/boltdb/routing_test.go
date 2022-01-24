@@ -33,7 +33,7 @@ const (
 
 func TestRoutingStore_CreateRoutingConfig(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -60,7 +60,7 @@ func TestRoutingStore_CreateRoutingConfig(t *testing.T) {
 
 func TestRoutingStore_GetRoutingConfigs(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -85,7 +85,7 @@ func TestRoutingStore_GetRoutingConfigs(t *testing.T) {
 
 func TestRoutingStore_UpdateRoutingConfig(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -126,7 +126,7 @@ func TestRoutingStore_UpdateRoutingConfig(t *testing.T) {
 
 func TestRoutingStore_GetRoutingConfigsForCache(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -159,7 +159,7 @@ func TestRoutingStore_GetRoutingConfigWithService(t *testing.T) {
 
 	// find service
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -187,7 +187,7 @@ func TestRoutingStore_GetRoutingConfigWithService(t *testing.T) {
 
 func TestRoutingStore_GetRoutingConfigWithID(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -204,7 +204,7 @@ func TestRoutingStore_GetRoutingConfigWithID(t *testing.T) {
 
 func TestRoutingStore_DeleteRoutingConfig(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 

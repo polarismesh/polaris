@@ -42,7 +42,7 @@ func (t *transaction) LockNamespace(name string) (*model.Namespace, error) {
 
 func (t *transaction) loadNamespace(name string) (*model.Namespace, error) {
 	values, err := t.handler.LoadValues(tblNameNamespace, []string{name}, &model.Namespace{})
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	value, ok := values[name]
@@ -86,7 +86,7 @@ func (t *transaction) loadService(name string, namespace string) (*model.Service
 	}
 	values, err := t.handler.LoadValuesByFilter(
 		tblNameService, []string{svcFieldName, svcFieldNamespace, svcFieldValid}, &model.Service{}, filter)
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	var svc *model.Service

@@ -61,11 +61,11 @@ func (r *RedisHealthChecker) Name() string {
 // Initialize
 func (r *RedisHealthChecker) Initialize(c *plugin.ConfigEntry) error {
 	redisBytes, err := json.Marshal(c.Option)
-	if nil != err {
+	if err != nil {
 		return fmt.Errorf("fail to marshal %s config entry, err is %v", PluginName, err)
 	}
 	config := redispool.DefaultConfig()
-	if err = json.Unmarshal(redisBytes, config); nil != err {
+	if err = json.Unmarshal(redisBytes, config); err != nil {
 		return fmt.Errorf("fail to unmarshal %s config entry, err is %v", PluginName, err)
 	}
 	r.statis = plugin.GetStatis()
@@ -75,7 +75,7 @@ func (r *RedisHealthChecker) Initialize(c *plugin.ConfigEntry) error {
 	r.hbPool.Start()
 	r.checkPool = redispool.NewPool(ctx, config, r.statis)
 	r.checkPool.Start()
-	if err = r.registerSelf(); nil != err {
+	if err = r.registerSelf(); err != nil {
 		return fmt.Errorf("fail to register %s to redis, err is %v", utils.LocalHost, err)
 	}
 	return nil
@@ -207,7 +207,7 @@ func (r *RedisHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckR
 		}
 	}()
 	queryResp, err := r.Query(&request.QueryRequest)
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	lastHeartbeatTime := queryResp.LastHeartbeatSec

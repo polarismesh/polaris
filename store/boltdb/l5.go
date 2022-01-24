@@ -47,16 +47,16 @@ func (l *l5Store) InitL5Data() error {
 		var err error
 		var tblBucket *bolt.Bucket
 		tblBucket, err = tx.CreateBucketIfNotExists([]byte(tblNameL5))
-		if nil != err {
+		if err != nil {
 			return err
 		}
 		rowBucket := tblBucket.Bucket([]byte(rowSidKey))
-		if nil != rowBucket {
+		if rowBucket != nil {
 			//数据已存在，不做处理
 			return nil
 		}
 		rowBucket, err = tblBucket.CreateBucket([]byte(rowSidKey))
-		if nil != err {
+		if err != nil {
 			return err
 		}
 		return updateL5SidTable(rowBucket, 3000001, 1, 0)
@@ -73,13 +73,13 @@ const (
 
 func updateL5SidTable(rowBucket *bolt.Bucket, mid uint64, iid uint64, rnum uint64) error {
 	var err error
-	if err = rowBucket.Put([]byte(colModuleId), encodeUintBuffer(mid, typeUint32)); nil != err {
+	if err = rowBucket.Put([]byte(colModuleId), encodeUintBuffer(mid, typeUint32)); err != nil {
 		return err
 	}
-	if err = rowBucket.Put([]byte(colInterfaceId), encodeUintBuffer(iid, typeUint32)); nil != err {
+	if err = rowBucket.Put([]byte(colInterfaceId), encodeUintBuffer(iid, typeUint32)); err != nil {
 		return err
 	}
-	if err = rowBucket.Put([]byte(colRangeNum), encodeUintBuffer(rnum, typeUint32)); nil != err {
+	if err = rowBucket.Put([]byte(colRangeNum), encodeUintBuffer(rnum, typeUint32)); err != nil {
 		return err
 	}
 	return nil
@@ -92,26 +92,26 @@ func (l *l5Store) GenNextL5Sid(layoutID uint32) (string, error) {
 	var prnum *uint64
 	err := l.handler.Execute(true, func(tx *bolt.Tx) error {
 		tblBucket := tx.Bucket([]byte(tblNameL5))
-		if nil == tblBucket {
+		if tblBucket == nil {
 			return errors.New(fmt.Sprintf("[BlobStore] table bucket %s not exists", tblNameL5))
 		}
 		rowBucket := tblBucket.Bucket([]byte(rowSidKey))
-		if nil == rowBucket {
+		if rowBucket == nil {
 			return errors.New(fmt.Sprintf("[BlobStore] row bucket %s not exists", rowSidKey))
 		}
 		midBytes := rowBucket.Get([]byte(colModuleId))
 		mid, err := decodeUintBuffer(colModuleId, midBytes, typeUint32)
-		if nil != err {
+		if err != nil {
 			return err
 		}
 		iidBytes := rowBucket.Get([]byte(colInterfaceId))
 		iid, err := decodeUintBuffer(colInterfaceId, iidBytes, typeUint32)
-		if nil != err {
+		if err != nil {
 			return err
 		}
 		rnumBytes := rowBucket.Get([]byte(colRangeNum))
 		rnum, err := decodeUintBuffer(colRangeNum, rnumBytes, typeUint32)
-		if nil != err {
+		if err != nil {
 			return err
 		}
 		rnum++
@@ -124,7 +124,7 @@ func (l *l5Store) GenNextL5Sid(layoutID uint32) (string, error) {
 			mid++
 		}
 		err = updateL5SidTable(rowBucket, mid, iid, rnum)
-		if nil != err {
+		if err != nil {
 			return err
 		}
 		pmid = &mid
@@ -132,7 +132,7 @@ func (l *l5Store) GenNextL5Sid(layoutID uint32) (string, error) {
 		prnum = &rnum
 		return nil
 	})
-	if nil != err {
+	if err != nil {
 		return "", err
 	}
 	modID := uint32(*pmid)<<6 + layoutID

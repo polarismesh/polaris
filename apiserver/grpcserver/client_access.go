@@ -69,7 +69,7 @@ func (g *GRPCServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
 
 	for {
 		in, err := server.Recv()
-		if nil != err {
+		if err != nil {
 			if io.EOF == err {
 				return nil
 			}

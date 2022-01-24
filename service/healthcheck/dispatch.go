@@ -126,7 +126,7 @@ func (d *Dispatcher) reloadSelfContinuum() bool {
 func (d *Dispatcher) reloadManagedInstances() {
 	nextInstances := make(map[string]*InstanceWithChecker)
 	var totalCount int
-	if nil != d.continuum {
+	if d.continuum != nil {
 		server.cacheProvider.RangeHealthCheckInstances(func(instance *InstanceWithChecker) {
 			instanceId := instance.instance.ID()
 			host := d.continuum.Hash(instance.hashValue)
