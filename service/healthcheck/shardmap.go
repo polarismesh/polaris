@@ -35,7 +35,7 @@ type shard struct {
 	healthCheckMutex     *sync.RWMutex
 }
 
-// NewShardMap creates a new shardMap.
+// NewShardMap creates a new shardMap and init shardSize.
 func NewShardMap(size uint32) *shardMap {
 	m := &shardMap{
 		shardSize: size,
