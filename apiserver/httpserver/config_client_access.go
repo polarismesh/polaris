@@ -43,11 +43,15 @@ func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) 
 
 	response := h.configServer.Service().GetConfigFileForClient(handler.ParseHeaderContext(), namespace, group, fileName, clientVersion)
 
+	var version uint64 = 0
+	if response.ConfigFile != nil {
+		version = response.ConfigFile.Version.GetValue()
+	}
 	configLog.Info("[Config][Client] client get config file success.",
 		zap.String("requestId", requestId),
 		zap.String("client", req.Request.RemoteAddr),
 		zap.String("file", fileName),
-		zap.Uint64("version", response.ConfigFile.Version.GetValue()))
+		zap.Uint64("version", version))
 
 	handler.WriteHeaderAndProto(response)
 }

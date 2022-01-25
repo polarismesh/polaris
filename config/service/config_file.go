@@ -311,7 +311,10 @@ func (cs *Impl) UpdateConfigFile(ctx context.Context, configFile *api.ConfigFile
 		return response
 	}
 
-	return api.NewConfigFileResponse(api.ExecuteSuccess, transferConfigFileStoreModel2APIModel(updatedFile))
+	baseFile := transferConfigFileStoreModel2APIModel(updatedFile)
+	_ = cs.enrich(ctx, baseFile, requestID)
+
+	return api.NewConfigFileResponse(api.ExecuteSuccess, baseFile)
 }
 
 // DeleteConfigFile 删除配置文件，删除配置文件同时会通知客户端 Not_Found
@@ -511,6 +514,9 @@ func (cs *Impl) enrich(ctx context.Context, baseConfigFile *api.ConfigFile, requ
 		} else {
 			baseConfigFile.Status = utils.NewStringValue(utils.ReleaseStatusToRelease)
 		}
+	} else {
+		//如果从来没有发布过，也是待发布状态
+		baseConfigFile.Status = utils.NewStringValue(utils.ReleaseStatusToRelease)
 	}
 
 	//填充标签信息
