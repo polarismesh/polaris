@@ -69,7 +69,7 @@ func (s *ScalableRand) getAndSetInitSeed(seed int64) bool {
 func (s *ScalableRand) Intn(n int) int {
 	var randSeed *rand.Rand
 	value := s.randPool.Get()
-	if nil != value {
+	if value != nil {
 		randSeed = value.(*rand.Rand)
 	} else {
 		randSeed = rand.New(rand.NewSource(s.getRandSeed()))

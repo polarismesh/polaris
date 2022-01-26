@@ -31,7 +31,7 @@ import (
 
 func TestBoltHandler_SaveNamespace(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer handler.Close()
@@ -45,14 +45,14 @@ func TestBoltHandler_SaveNamespace(t *testing.T) {
 		ModifyTime: time.Now(),
 	}
 	err = handler.SaveValue(tblNameNamespace, nsValue.Name, nsValue)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestBoltHandler_LoadNamespace(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer handler.Close()
@@ -66,7 +66,7 @@ func TestBoltHandler_LoadNamespace(t *testing.T) {
 		ModifyTime: time.Now(),
 	}
 	nsValues, err := handler.LoadValues(tblNameNamespace, []string{nsValue.Name}, &model.Namespace{})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	targetNsValue := nsValues[nsValue.Name]
@@ -79,7 +79,7 @@ func TestBoltHandler_LoadNamespace(t *testing.T) {
 
 func TestBoltHandler_DeleteNamespace(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer handler.Close()
@@ -87,14 +87,14 @@ func TestBoltHandler_DeleteNamespace(t *testing.T) {
 		Name: "Test",
 	}
 	err = handler.DeleteValues(tblNameNamespace, []string{nsValue.Name}, false)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestBoltHandler_Service(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer handler.Close()
@@ -111,11 +111,11 @@ func TestBoltHandler_Service(t *testing.T) {
 		Meta:       map[string]string{"k1": "v1", "k2": "v2", "k3": "v3"},
 	}
 	err = handler.SaveValue("service", svcValue.ID, svcValue)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	nsValues, err := handler.LoadValues("service", []string{svcValue.ID}, &model.Service{})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	targetSvcValue := nsValues[svcValue.ID]
@@ -133,14 +133,14 @@ func TestBoltHandler_Service(t *testing.T) {
 	})
 
 	err = handler.DeleteValues("service", []string{svcValue.ID}, false)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestBoltHandler_Location(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer handler.Close()
@@ -157,18 +157,18 @@ func TestBoltHandler_Location(t *testing.T) {
 		Valid:    true,
 	}
 	err = handler.SaveValue("location", id, locValue)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	locValues, err := handler.LoadValues("location", []string{id}, &model.Location{})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	targetLocValue := locValues[id]
 	targetLoc := targetLocValue.(*model.Location)
 	fmt.Printf("loaded loc is %+v\n", targetLoc)
 	err = handler.DeleteValues("location", []string{id}, false)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 }
@@ -202,7 +202,7 @@ func TestBoltHandler_CountValues(t *testing.T) {
 		ids = append(ids, svcValue.ID)
 	}
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -211,26 +211,26 @@ func TestBoltHandler_CountValues(t *testing.T) {
 	}()
 	for id, svc := range idToServices {
 		err = handler.SaveValue(tblService, id, svc)
-		if nil != err {
+		if err != nil {
 			t.Fatal(err)
 		}
 	}
 	services, err := handler.LoadValues(tblService, ids, &model.Service{})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	if len(services) != count {
 		t.Fatal("load value count not match")
 	}
 	nCount, err := handler.CountValues(tblService)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	if nCount != count {
 		t.Fatalf("count not match, expect cnt=%d, actual cnt=%d", count, nCount)
 	}
 	err = handler.DeleteValues("service", ids, false)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 }
@@ -256,7 +256,7 @@ func TestBoltHandler_LoadValuesByFilter(t *testing.T) {
 		ids = append(ids, svcValue.ID)
 	}
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -265,7 +265,7 @@ func TestBoltHandler_LoadValuesByFilter(t *testing.T) {
 	}()
 	for id, svc := range idToServices {
 		err = handler.SaveValue(tblService, id, svc)
-		if nil != err {
+		if err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -274,14 +274,14 @@ func TestBoltHandler_LoadValuesByFilter(t *testing.T) {
 			owner := props["Owner"].(string)
 			return owner == "user1" || owner == "user2"
 		})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	if len(values) != 2 {
 		t.Fatal("filter count not match 2")
 	}
 	err = handler.DeleteValues("service", ids, false)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 }
@@ -307,7 +307,7 @@ func TestBoltHandler_IterateFields(t *testing.T) {
 		ids = append(ids, svcValue.ID)
 	}
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -316,7 +316,7 @@ func TestBoltHandler_IterateFields(t *testing.T) {
 	}()
 	for id, svc := range idToServices {
 		err = handler.SaveValue(tblService, id, svc)
-		if nil != err {
+		if err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -324,14 +324,14 @@ func TestBoltHandler_IterateFields(t *testing.T) {
 	err = handler.IterateFields(tblService, "Name", &model.Service{}, func(value interface{}) {
 		names = append(names, value.(string))
 	})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	if len(names) != count {
 		t.Fatalf("iterate count not match %d", count)
 	}
 	err = handler.DeleteValues("service", ids, false)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 }
@@ -357,7 +357,7 @@ func TestBoltHandler_UpdateValue(t *testing.T) {
 		ids = append(ids, svcValue.ID)
 	}
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -366,7 +366,7 @@ func TestBoltHandler_UpdateValue(t *testing.T) {
 	}()
 	for id, svc := range idToServices {
 		err = handler.SaveValue(tblService, id, svc)
-		if nil != err {
+		if err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -375,12 +375,12 @@ func TestBoltHandler_UpdateValue(t *testing.T) {
 	err = handler.UpdateValue(tblService, targetId, map[string]interface{}{
 		"Comment": afterComment,
 	})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
 	values, err := handler.LoadValues(tblService, []string{targetId}, &model.Service{})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	value, ok := values[targetId]

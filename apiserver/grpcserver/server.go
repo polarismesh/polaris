@@ -75,12 +75,12 @@ func (g *GRPCServer) Run(errCh chan error) {
 		}
 		// 引入功能模块和插件
 		var err error
-		if g.namingServer, err = service.GetServer(); nil != err {
+		if g.namingServer, err = service.GetServer(); err != nil {
 			log.Errorf("%v", err)
 			return err
 		}
 
-		if g.healthCheckServer, err = healthcheck.GetServer(); nil != err {
+		if g.healthCheckServer, err = healthcheck.GetServer(); err != nil {
 			log.Errorf("%v", err)
 			return err
 		}

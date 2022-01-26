@@ -123,7 +123,7 @@ func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer func(
 		grpc.StreamInterceptor(b.streamInterceptor),
 	)
 
-	if err = initServer(server); nil != err {
+	if err = initServer(server); err != nil {
 		errCh <- err
 		return
 	}

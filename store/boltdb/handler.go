@@ -103,7 +103,7 @@ const (
 // NewBoltHandler create the boltdb handler
 func NewBoltHandler(config *BoltConfig) (BoltHandler, error) {
 	db, err := openBoltDB(config.FileName)
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	return &boltHandler{db: db}, nil
@@ -136,32 +136,32 @@ func saveValue(tx *bolt.Tx, typ string, key string, value interface{}) error {
 	var typBucket *bolt.Bucket
 	var err error
 	typBucket, err = tx.CreateBucketIfNotExists([]byte(typ))
-	if nil != err {
+	if err != nil {
 		return err
 	}
 	keyBuf := []byte(key)
 	var bucket *bolt.Bucket
 	//先清理老数据
 	bucket = typBucket.Bucket(keyBuf)
-	if nil != bucket {
-		if err = typBucket.DeleteBucket(keyBuf); nil != err {
+	if bucket != nil {
+		if err = typBucket.DeleteBucket(keyBuf); err != nil {
 			return err
 		}
 	}
 	//创建全新bucket
 	bucket, err = typBucket.CreateBucket(keyBuf)
-	if nil != err {
+	if err != nil {
 		return err
 	}
 	var buffers map[string][]byte
 	buffers, err = serializeObject(bucket, value)
-	if nil != err {
+	if err != nil {
 		return err
 	}
 	if len(buffers) > 0 {
 		for k, v := range buffers {
 			err = bucket.Put([]byte(k), v)
-			if nil != err {
+			if err != nil {
 				return err
 			}
 		}
@@ -185,11 +185,11 @@ func (b *boltHandler) LoadValues(typ string, keys []string, typObject interface{
 func loadValues(tx *bolt.Tx, typ string, keys []string, typObject interface{}, values map[string]interface{}) error {
 	for _, key := range keys {
 		bucket := getBucket(tx, typ, key)
-		if nil == bucket {
+		if bucket == nil {
 			continue
 		}
 		toObj, err := deserializeObject(bucket, typObject)
-		if nil != err {
+		if err != nil {
 			return err
 		}
 		values[key] = toObj
@@ -210,11 +210,11 @@ func (b *boltHandler) LoadValuesByFilter(typ string, fields []string,
 func loadValuesByFilter(tx *bolt.Tx, typ string, fields []string, typObject interface{},
 	filter func(map[string]interface{}) bool, values map[string]interface{}) error {
 	typeBucket := tx.Bucket([]byte(typ))
-	if nil == typeBucket {
+	if typeBucket == nil {
 		return nil
 	}
 	keys, err := getKeys(typeBucket)
-	if nil != err {
+	if err != nil {
 		return err
 	}
 	if len(keys) == 0 {
@@ -222,14 +222,14 @@ func loadValuesByFilter(tx *bolt.Tx, typ string, fields []string, typObject inte
 	}
 	for _, key := range keys {
 		bucket := typeBucket.Bucket([]byte(key))
-		if nil == bucket {
+		if bucket == nil {
 			log.Warnf("[BlobStore] bucket not found for key %s, type %s", key, typ)
 			continue
 		}
 
 		var matchResult bool
 		matchResult, err = matchObject(bucket, fields, typObject, filter)
-		if nil != err {
+		if err != nil {
 			return err
 		}
 		if !matchResult {
@@ -237,7 +237,7 @@ func loadValuesByFilter(tx *bolt.Tx, typ string, fields []string, typObject inte
 		}
 		var targetObj interface{}
 		targetObj, err = deserializeObject(bucket, typObject)
-		if nil != err {
+		if err != nil {
 			return err
 		}
 		values[key] = targetObj
@@ -261,7 +261,7 @@ func reflectProtoMsg(typObject interface{}, fieldName string) (proto.Message, er
 
 func reflectMapMsg(bucket *bolt.Bucket, bucketField string) (map[string]string, error) {
 	subBucket := bucket.Bucket([]byte(bucketField))
-	if nil == subBucket {
+	if subBucket == nil {
 		return nil, nil
 	}
 	values := make(map[string]string)
@@ -269,7 +269,7 @@ func reflectMapMsg(bucket *bolt.Bucket, bucketField string) (map[string]string, 
 		values[string(k)] = string(v)
 		return nil
 	})
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	return values, nil
@@ -294,11 +294,11 @@ func getFieldObject(bucket *bolt.Bucket, typObject interface{}, field string) (i
 		return value, nil
 	case typeProtobuf:
 		msg, err := reflectProtoMsg(typObject, field)
-		if nil != err {
+		if err != nil {
 			return false, err
 		}
 		value, err := decodeMessageBuffer(msg, field, valueBytes)
-		if nil != err {
+		if err != nil {
 			return false, err
 		}
 		return value, nil
@@ -320,19 +320,19 @@ func matchObject(bucket *bolt.Bucket,
 	if len(fields) == 0 {
 		return true, nil
 	}
-	if nil == filter {
+	if filter == nil {
 		return true, nil
 	}
 	fieldValues := make(map[string]interface{}, 0)
 	for _, field := range fields {
 		value, err := getFieldObject(bucket, typObject, field)
-		if nil != err {
+		if err != nil {
 			if errors.Is(err, ErrorValueInvisible) {
 				continue
 			}
 			return false, err
 		}
-		if nil == value {
+		if value == nil {
 			continue
 		}
 		fieldValues[field] = value
@@ -342,16 +342,16 @@ func matchObject(bucket *bolt.Bucket,
 
 // IterateFields iterate all saved data objects
 func (b *boltHandler) IterateFields(typ string, field string, typObject interface{}, filter func(interface{})) error {
-	if nil == filter {
+	if filter == nil {
 		return nil
 	}
 	return b.db.View(func(tx *bolt.Tx) error {
 		typeBucket := tx.Bucket([]byte(typ))
-		if nil == typeBucket {
+		if typeBucket == nil {
 			return nil
 		}
 		keys, err := getKeys(typeBucket)
-		if nil != err {
+		if err != nil {
 			return err
 		}
 		if len(keys) == 0 {
@@ -359,13 +359,13 @@ func (b *boltHandler) IterateFields(typ string, field string, typObject interfac
 		}
 		for _, key := range keys {
 			bucket := typeBucket.Bucket([]byte(key))
-			if nil == bucket {
+			if bucket == nil {
 				log.Warnf("[BlobStore] bucket not found for key %s, type %s", key, typ)
 				continue
 			}
 			var fieldObj interface{}
 			fieldObj, err = getFieldObject(bucket, typObject, field)
-			if nil != err {
+			if err != nil {
 				return err
 			}
 			filter(fieldObj)
@@ -376,7 +376,7 @@ func (b *boltHandler) IterateFields(typ string, field string, typObject interfac
 
 // Close close boltdb
 func (b *boltHandler) Close() error {
-	if nil != b.db {
+	if b.db != nil {
 		return b.db.Close()
 	}
 	return nil
@@ -394,7 +394,7 @@ func (b *boltHandler) DeleteValues(typ string, keys []string, logicDelete bool) 
 
 func deleteValues(tx *bolt.Tx, typ string, keys []string, logicDelete bool) error {
 	typeBucket := tx.Bucket([]byte(typ))
-	if nil == typeBucket {
+	if typeBucket == nil {
 		return nil
 	}
 	for _, key := range keys {
@@ -405,7 +405,7 @@ func deleteValues(tx *bolt.Tx, typ string, keys []string, logicDelete bool) erro
 					return err
 				}
 			} else {
-				if err := typeBucket.DeleteBucket(keyBytes); nil != err {
+				if err := typeBucket.DeleteBucket(keyBytes); err != nil {
 					return err
 				}
 			}
@@ -416,7 +416,7 @@ func deleteValues(tx *bolt.Tx, typ string, keys []string, logicDelete bool) erro
 
 func getBucket(tx *bolt.Tx, typ string, key string) *bolt.Bucket {
 	bucket := tx.Bucket([]byte(typ))
-	if nil == bucket {
+	if bucket == nil {
 		return nil
 	}
 	return bucket.Bucket([]byte(key))
@@ -468,7 +468,7 @@ func (b *boltHandler) CountValues(typ string) (int, error) {
 	var count int
 	err := b.db.View(func(tx *bolt.Tx) error {
 		typeBucket := tx.Bucket([]byte(typ))
-		if nil == typeBucket {
+		if typeBucket == nil {
 			return nil
 		}
 		return typeBucket.ForEach(func(k, v []byte) error {
@@ -507,11 +507,11 @@ func (b *boltHandler) UpdateValue(typ string, key string, properties map[string]
 func updateValue(tx *bolt.Tx, typ string, key string, properties map[string]interface{}) error {
 	var err error
 	typeBucket := tx.Bucket([]byte(typ))
-	if nil == typeBucket {
+	if typeBucket == nil {
 		return nil
 	}
 	bucket := typeBucket.Bucket([]byte(key))
-	if nil == bucket {
+	if bucket == nil {
 		return nil
 	}
 	if len(properties) == 0 {
@@ -539,7 +539,7 @@ func updateValue(tx *bolt.Tx, typ string, key string, properties map[string]inte
 				//protobuf类型
 				var msgBuf []byte
 				msgBuf, err = encodeMessageBuffer(propValue.(proto.Message))
-				if nil != err {
+				if err != nil {
 					return err
 				}
 				err = bucket.Put([]byte(bucketKey), msgBuf)
@@ -550,7 +550,7 @@ func updateValue(tx *bolt.Tx, typ string, key string, properties map[string]inte
 				err = bucket.Put([]byte(bucketKey), encodeTimeBuffer(propValue.(time.Time)))
 			}
 		}
-		if nil != err {
+		if err != nil {
 			return err
 		}
 	}
@@ -562,11 +562,11 @@ func (b *boltHandler) LoadValuesAll(typ string, typObject interface{}) (map[stri
 	values := make(map[string]interface{})
 	err := b.db.View(func(tx *bolt.Tx) error {
 		typeBucket := tx.Bucket([]byte(typ))
-		if nil == typeBucket {
+		if typeBucket == nil {
 			return nil
 		}
 		keys, err := getKeys(typeBucket)
-		if nil != err {
+		if err != nil {
 			return err
 		}
 		if len(keys) == 0 {
@@ -574,13 +574,13 @@ func (b *boltHandler) LoadValuesAll(typ string, typObject interface{}) (map[stri
 		}
 		for _, key := range keys {
 			bucket := typeBucket.Bucket([]byte(key))
-			if nil == bucket {
+			if bucket == nil {
 				log.Warnf("[BlobStore] bucket not found for key %s, type %s", key, typ)
 				continue
 			}
 			var targetObj interface{}
 			targetObj, err = deserializeObject(bucket, typObject)
-			if nil != err {
+			if err != nil {
 				return err
 			}
 			values[key] = targetObj

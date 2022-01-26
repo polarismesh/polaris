@@ -55,7 +55,7 @@ func CreateRateLimitDBHandlerAndRun(t *testing.T, tf func(t *testing.T, handler 
 	tempDir, _ := ioutil.TempDir("", "test_ratelimit")
 	_ = os.Remove(filepath.Join(tempDir, "test_ratelimit.bolt"))
 	handler, err := NewBoltHandler(&BoltConfig{FileName: filepath.Join(tempDir, "test_ratelimit.bolt")})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
