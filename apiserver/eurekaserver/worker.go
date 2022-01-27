@@ -194,7 +194,7 @@ func (a *ApplicationsWorker) buildAppsCache(oldAppsCache *ApplicationsRespCache)
 				targetApp = oldApp
 			}
 		}
-		if targetApp != nil {
+		if targetApp == nil {
 			//重新构建
 			targetApp = &Application{
 				Name:        svc,
