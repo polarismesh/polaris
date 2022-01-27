@@ -196,9 +196,9 @@ func writeResponse(
 // GetDeltaApplications 增量拉取服务实例信息
 func (h *EurekaServer) GetDeltaApplications(req *restful.Request, rsp *restful.Response) {
 	appsRespCache := h.worker.GetDeltaApps()
-	if nil == appsRespCache {
+	if appsRespCache == nil {
 		ctx := h.worker.StartWorker()
-		if nil != ctx {
+		if ctx != nil {
 			<-ctx.Done()
 		}
 		appsRespCache = h.worker.GetDeltaApps()
@@ -239,13 +239,13 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 		writeHeader(http.StatusBadRequest, rsp)
 		return
 	}
-	if nil == registrationRequest.Instance {
+	if registrationRequest.Instance == nil {
 		log.Errorf("[EUREKA-SERVER] fail to parse instance register request, instance content required")
 		writePolarisStatusCode(req, api.EmptyRequest)
 		writeHeader(http.StatusBadRequest, rsp)
 		return
 	}
-	if nil != registrationRequest.Instance.Port {
+	if registrationRequest.Instance.Port != nil {
 		if err = registrationRequest.Instance.Port.convertPortValue(); err != nil {
 			log.Errorf("[EUREKA-SERVER] fail to parse instance register request from %s, "+
 				"invalid insecure port value, err is %v", remoteAddr, err)
@@ -261,7 +261,7 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 			return
 		}
 	}
-	if nil != registrationRequest.Instance.SecurePort {
+	if registrationRequest.Instance.SecurePort != nil {
 		if err = registrationRequest.Instance.SecurePort.convertPortValue(); err != nil {
 			log.Errorf("[EUREKA-SERVER] fail to parse instance register request from %s, "+
 				"invalid secure port value, err is %v", remoteAddr, err)

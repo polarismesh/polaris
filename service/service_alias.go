@@ -340,7 +340,7 @@ func preCheckAlias(req *api.ServiceAlias) (*api.Response, bool) {
 // checkReviseServiceAliasReq 检查删除、修改别名请求
 func checkReviseServiceAliasReq(ctx context.Context, req *api.ServiceAlias) *api.Response {
 	resp := checkDeleteServiceAliasReq(ctx, req)
-	if nil != resp {
+	if resp != nil {
 		return resp
 	}
 	// 检查服务名

@@ -305,7 +305,7 @@ func (ctrl *InstanceCtrl) heartbeatHandler(futures []*InstanceFuture) error {
 			idValues = append(idValues, id)
 		}
 		err := ctrl.storage.BatchSetInstanceHealthStatus(idValues, model.StatusBoolToInt(healthy), utils.NewUUID())
-		if nil != err {
+		if err != nil {
 			log.Errorf("[Batch] batch healthy check instances err: %s", err.Error())
 			SendReply(futures, api.StoreLayerException, err)
 			return err
@@ -475,7 +475,7 @@ func (ctrl *InstanceCtrl) batchVerifyInstances(futures map[string]*InstanceFutur
 // verifyInstanceAuth 实例鉴权
 func (ctrl *InstanceCtrl) verifyInstanceAuth(platformID, platformToken, expectServiceToken, sPlatformID string,
 	req *api.Instance) (bool, uint32) {
-	if nil == ctrl.authority {
+	if ctrl.authority == nil {
 		return true, 0
 	}
 	if ok := ctrl.verifyAuthByPlatform(platformID, platformToken, sPlatformID); !ok {

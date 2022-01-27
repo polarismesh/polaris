@@ -580,7 +580,7 @@ func (x *XDSServer) pushRegistryInfoToXDSCache(registryInfo map[string][]*Servic
 		resources[resource.RouteType] = makeVirtualHosts(registryInfo[ns])
 		resources[resource.ListenerType] = makeListeners()
 		snapshot, err := cachev3.NewSnapshot(versionLocal, resources)
-		if nil != err {
+		if err != nil {
 			log.Errorf("fail to create snapshot for %s, err is %v", ns, err)
 			return err
 		}

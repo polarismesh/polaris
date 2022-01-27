@@ -70,7 +70,7 @@ func (s *Server) doReport(ctx context.Context, instance *api.Instance) *api.Resp
 		CurTimeSec: time.Now().Unix() - s.timeAdjuster.GetDiff(),
 	}
 	err := checker.Report(request)
-	if nil != err {
+	if err != nil {
 		log.Errorf("[Heartbeat][Server]fail to do report for %s:%d, id is %s, err is %v",
 			insCache.Host(), insCache.Port(), id, err)
 		return api.NewInstanceResponse(api.HeartbeatException, instance)

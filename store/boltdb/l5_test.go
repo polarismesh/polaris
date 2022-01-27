@@ -24,19 +24,19 @@ import (
 
 func TestL5Store_GenNextL5Sid(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer handler.Close()
 
 	l5store := &l5Store{handler: handler}
 
-	if err = l5store.InitL5Data(); nil != err {
+	if err = l5store.InitL5Data(); err != nil {
 		t.Fatal(err)
 	}
 	for i := 0; i < 10; i++ {
 		sid, err := l5store.GenNextL5Sid(uint32(i+1) % 6)
-		if nil != err {
+		if err != nil {
 			t.Fatal(err)
 		}
 		fmt.Printf("sid %d is %s\n", i, sid)

@@ -47,10 +47,10 @@ type ServiceArgs struct {
 // Update 更新配置
 func (sc *serviceCache) Update() error {
 	var err error
-	if err = sc.update(); nil != err {
+	if err = sc.update(); err != nil {
 		return err
 	}
-	if err = sc.instCache.update(); nil != err {
+	if err = sc.instCache.update(); err != nil {
 		return err
 	}
 	return nil
@@ -85,7 +85,7 @@ func (sc *serviceCache) GetServicesByFilter(serviceFilters *ServiceArgs,
 }
 
 func hasInstanceFilter(instanceFilters *store.InstanceArgs) bool {
-	if nil == instanceFilters || (len(instanceFilters.Hosts) == 0 && len(instanceFilters.Ports) == 0) {
+	if instanceFilters == nil || (len(instanceFilters.Hosts) == 0 && len(instanceFilters.Ports) == 0) {
 		return false
 	}
 	return true

@@ -535,7 +535,7 @@ func (i *instanceStore) GetMoreInstances(
 // BatchSetInstanceHealthStatus 批量设置实例的健康状态
 func (i *instanceStore) BatchSetInstanceHealthStatus(ids []interface{}, healthy int, revision string) error {
 	for _, id := range ids {
-		if err := i.SetInstanceHealthStatus(id.(string), healthy, revision); nil != err {
+		if err := i.SetInstanceHealthStatus(id.(string), healthy, revision); err != nil {
 			return err
 		}
 	}

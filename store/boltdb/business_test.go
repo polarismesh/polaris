@@ -64,7 +64,7 @@ func CreateBusinessDBHandlerAndRun(t *testing.T, tf func(t *testing.T, handler B
 	tempDir, _ := ioutil.TempDir("", "test_business")
 	_ = os.Remove(filepath.Join(tempDir, "test_business.bolt"))
 	handler, err := NewBoltHandler(&BoltConfig{FileName: filepath.Join(tempDir, "test_business.bolt")})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 

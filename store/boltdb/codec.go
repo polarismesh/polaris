@@ -158,21 +158,21 @@ func encodeRawMap(parent *bolt.Bucket, name string, values map[string]string) er
 	nameByte := []byte(name)
 	var bucket *bolt.Bucket
 	var err error
-	if bucket = parent.Bucket(nameByte); nil != bucket {
+	if bucket = parent.Bucket(nameByte); bucket != nil {
 		err = parent.DeleteBucket(nameByte)
-		if nil != err {
+		if err != nil {
 			return err
 		}
 	}
 	bucket, err = parent.CreateBucket(nameByte)
-	if nil != err {
+	if err != nil {
 		return err
 	}
 	if len(values) == 0 {
 		return nil
 	}
 	for mapKey, mapValue := range values {
-		if err = bucket.Put([]byte(mapKey), []byte(mapValue)); nil != err {
+		if err = bucket.Put([]byte(mapKey), []byte(mapValue)); err != nil {
 			return err
 		}
 	}
@@ -183,14 +183,14 @@ func encodeMapBuffer(parent *bolt.Bucket, name string, mapKeys []reflect.Value, 
 	nameByte := []byte(name)
 	var bucket *bolt.Bucket
 	var err error
-	if bucket = parent.Bucket(nameByte); nil != bucket {
+	if bucket = parent.Bucket(nameByte); bucket != nil {
 		err = parent.DeleteBucket(nameByte)
-		if nil != err {
+		if err != nil {
 			return err
 		}
 	}
 	bucket, err = parent.CreateBucket(nameByte)
-	if nil != err {
+	if err != nil {
 		return err
 	}
 	if len(mapKeys) == 0 {
@@ -200,7 +200,7 @@ func encodeMapBuffer(parent *bolt.Bucket, name string, mapKeys []reflect.Value, 
 		keyStr := mapKey.String()
 		mapValue := fieldValue.MapIndex(mapKey)
 		valueStr := mapValue.String()
-		if err = bucket.Put([]byte(keyStr), []byte(valueStr)); nil != err {
+		if err = bucket.Put([]byte(keyStr), []byte(valueStr)); err != nil {
 			return err
 		}
 	}
@@ -209,14 +209,14 @@ func encodeMapBuffer(parent *bolt.Bucket, name string, mapKeys []reflect.Value, 
 
 func decodeMapBuffer(bucket *bolt.Bucket) (map[string]string, error) {
 	values := make(map[string]string)
-	if nil == bucket {
+	if bucket == nil {
 		return values, nil
 	}
 	err := bucket.ForEach(func(k, v []byte) error {
 		values[string(k)] = string(v)
 		return nil
 	})
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	return values, nil
@@ -249,7 +249,7 @@ func decodeTimeBuffer(name string, buf []byte) (time.Time, error) {
 
 func encodeMessageBuffer(msg proto.Message) ([]byte, error) {
 	protoBuf, err := proto.Marshal(msg)
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(make([]byte, 0, len(protoBuf)+1))
@@ -268,7 +268,7 @@ func decodeMessageBuffer(msg proto.Message, name string, buf []byte) (proto.Mess
 	}
 	protoBytes := buf[1:]
 	err := proto.Unmarshal(protoBytes, msg)
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	return msg, nil
@@ -324,7 +324,7 @@ func serializeObject(parent *bolt.Bucket, value interface{}) (map[string][]byte,
 		case reflect.Map:
 			mapKeys := fieldValue.MapKeys()
 			err := encodeMapBuffer(parent, name, mapKeys, &fieldValue)
-			if nil != err {
+			if err != nil {
 				return nil, err
 			}
 		case reflect.Ptr:
@@ -332,7 +332,7 @@ func serializeObject(parent *bolt.Bucket, value interface{}) (map[string][]byte,
 				//protobuf类型
 				msgValue := fieldValue.Addr().Elem().Interface().(proto.Message)
 				values[name], err = encodeMessageBuffer(msgValue)
-				if nil != err {
+				if err != nil {
 					return nil, err
 				}
 			}
@@ -392,35 +392,35 @@ func deserializeObject(bucket *bolt.Bucket, value interface{}) (interface{}, err
 		case reflect.String:
 			buf := bucket.Get([]byte(name))
 			value, err := decodeStringBuffer(name, buf)
-			if nil != err {
+			if err != nil {
 				return nil, err
 			}
 			fieldValue.Set(reflect.ValueOf(value))
 		case reflect.Bool:
 			buf := bucket.Get([]byte(name))
 			value, err := decodeBoolBuffer(name, buf)
-			if nil != err {
+			if err != nil {
 				return nil, err
 			}
 			fieldValue.Set(reflect.ValueOf(value))
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			buf := bucket.Get([]byte(name))
 			value, err := decodeIntBuffer(name, buf, numberKindToType[kind])
-			if nil != err {
+			if err != nil {
 				return nil, err
 			}
 			setIntValue(value, &fieldValue, kind)
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			buf := bucket.Get([]byte(name))
 			value, err := decodeUintBuffer(name, buf, numberKindToType[kind])
-			if nil != err {
+			if err != nil {
 				return nil, err
 			}
 			setUintValue(value, &fieldValue, kind)
 		case reflect.Map:
 			subBucket := bucket.Bucket([]byte(name))
 			values, err := decodeMapBuffer(subBucket)
-			if nil != err {
+			if err != nil {
 				return nil, err
 			}
 			fieldValue.Set(reflect.ValueOf(values))
@@ -430,7 +430,7 @@ func deserializeObject(bucket *bolt.Bucket, value interface{}) (interface{}, err
 				buf := bucket.Get([]byte(name))
 				toMsgValue := reflect.New(rawFieldType.Elem()).Interface().(proto.Message)
 				msg, err := decodeMessageBuffer(toMsgValue, name, buf)
-				if nil != err {
+				if err != nil {
 					return nil, err
 				}
 				fieldValue.Set(reflect.ValueOf(msg))
@@ -440,7 +440,7 @@ func deserializeObject(bucket *bolt.Bucket, value interface{}) (interface{}, err
 				//时间类型
 				buf := bucket.Get([]byte(name))
 				value, err := decodeTimeBuffer(name, buf)
-				if nil != err {
+				if err != nil {
 					return nil, err
 				}
 				fieldValue.Set(reflect.ValueOf(value))

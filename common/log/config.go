@@ -152,7 +152,7 @@ func prepZap(options *Options) ([]zapcore.Core, zapcore.Core, zapcore.WriteSynce
 
 	cores := make([]zapcore.Core, 0)
 	cores = append(cores, zapcore.NewCore(enc, sink, zap.NewAtomicLevelAt(zapcore.DebugLevel)))
-	if nil != errCore {
+	if errCore != nil {
 		cores = append(cores, errCore)
 	}
 	return cores, zapcore.NewCore(enc, sink, enabler), errSink, nil
@@ -223,7 +223,7 @@ func updateScopes(typeName string, options *Options, cores []zapcore.Core, errSi
 			var errs error
 			for _, core := range cores {
 				if core.Enabled(ent.Level) {
-					if err := core.Write(ent, fields); nil != err {
+					if err := core.Write(ent, fields); err != nil {
 						errs = multierror.Append(errs, err)
 					}
 				}
@@ -237,7 +237,7 @@ func updateScopes(typeName string, options *Options, cores []zapcore.Core, errSi
 		sync: func() error {
 			var errs error
 			for _, core := range cores {
-				if err := core.Sync(); nil != err {
+				if err := core.Sync(); err != nil {
 					errs = multierror.Append(errs, err)
 				}
 			}

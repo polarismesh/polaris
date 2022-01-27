@@ -165,7 +165,7 @@ func (c *CheckScheduler) processAdoptEvents(
 			LocalHost: server.localHost,
 		})
 	}
-	if nil != err {
+	if err != nil {
 		log.Errorf("[Health Check][Check]fail to do adopt event, instances %v, localhost %s, add %v",
 			instanceIds, server.localHost, add)
 		return instances
@@ -298,14 +298,14 @@ func (c *CheckScheduler) checkCallback(value interface{}) {
 	var checkResp *plugin.CheckResponse
 	var err error
 	defer func() {
-		if nil != checkResp && checkResp.Regular && checkResp.Healthy {
+		if checkResp != nil && checkResp.Regular && checkResp.Healthy {
 			c.addHealthyCallback(instanceValue, checkResp.LastHeartbeatTimeSec)
 		} else {
 			c.addUnHealthyCallback(instanceValue)
 		}
 	}()
 	cachedInstance := server.cacheProvider.GetInstance(instanceId)
-	if nil == cachedInstance {
+	if cachedInstance == nil {
 		log.Infof("[Health Check][Check]instance %s has been deleted", instanceValue.id)
 		return
 	}
@@ -320,7 +320,7 @@ func (c *CheckScheduler) checkCallback(value interface{}) {
 		ExpireDurationSec: instanceValue.expireDurationSec,
 	}
 	checkResp, err = instanceValue.checker.Check(request)
-	if nil != err {
+	if err != nil {
 		log.Errorf("[Health Check][Check]fail to check instance %s:%d, id is %s, err is %v",
 			instanceValue.host, instanceValue.port, instanceValue.id, err)
 		return

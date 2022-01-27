@@ -66,7 +66,7 @@ func (p *PortWrapper) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 func (p *PortWrapper) convertPortValue() error {
 	if jsonNumber, ok := p.Port.(json.Number); ok {
 		realPort, err := jsonNumber.Int64()
-		if nil != err {
+		if err != nil {
 			return err
 		}
 		p.RealPort = int(realPort)
@@ -87,7 +87,7 @@ func (p *PortWrapper) convertPortValue() error {
 func (p *PortWrapper) convertEnableValue() error {
 	if jsonEnableStr, ok := p.Enabled.(string); ok {
 		enableValue, err := strconv.ParseBool(jsonEnableStr)
-		if nil != err {
+		if err != nil {
 			return err
 		}
 		p.RealEnable = enableValue
@@ -165,7 +165,7 @@ func (i *Metadata) UnmarshalJSON(b []byte) error {
 func (i *Metadata) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	i.Meta = make(map[string]string)
 	values, err := xmlToMapParser(start.Name.Local, start.Attr, d, true)
-	if nil != err {
+	if err != nil {
 		return err
 	}
 	var subValues map[string]interface{}

@@ -34,7 +34,7 @@ const (
 
 func TestServiceStore_AddService(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -97,7 +97,7 @@ func TestServiceStore_AddService(t *testing.T) {
 
 func TestServiceStore_GetServices(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -120,7 +120,7 @@ func TestServiceStore_GetServices(t *testing.T) {
 
 func TestServiceStore_GetServicesBatch(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -148,7 +148,7 @@ func TestServiceStore_GetServicesBatch(t *testing.T) {
 
 func TestServiceStore_GetServiceByID(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -166,7 +166,7 @@ func TestServiceStore_GetServiceByID(t *testing.T) {
 
 func TestServiceStore_UpdateService(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -207,7 +207,7 @@ func TestServiceStore_UpdateService(t *testing.T) {
 
 func TestServiceStore_UpdateServiceToken(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -237,7 +237,7 @@ func TestServiceStore_UpdateServiceToken(t *testing.T) {
 
 func TestServiceStore_GetSourceServiceToken(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -255,7 +255,7 @@ func TestServiceStore_GetSourceServiceToken(t *testing.T) {
 
 func TestServiceStore_GetService(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -273,7 +273,7 @@ func TestServiceStore_GetService(t *testing.T) {
 
 func TestServiceStore_GetServiceAliases(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -299,7 +299,7 @@ func TestServiceStore_GetServiceAliases(t *testing.T) {
 
 func TestServiceStore_GetServicesCount(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -315,7 +315,7 @@ func TestServiceStore_GetServicesCount(t *testing.T) {
 
 func TestServiceStore_FuzzyGetService(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer handler.Close()
@@ -400,7 +400,7 @@ func TestServiceStore_FuzzyGetService(t *testing.T) {
 
 func TestServiceStore_GetMoreServices(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -421,7 +421,7 @@ func TestServiceStore_GetMoreServices(t *testing.T) {
 
 func TestServiceStore_UpdateServiceAlias(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -461,7 +461,7 @@ func TestServiceStore_UpdateServiceAlias(t *testing.T) {
 
 func TestServiceStore_DeleteServiceAlias(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -482,7 +482,7 @@ func TestServiceStore_DeleteServiceAlias(t *testing.T) {
 
 func TestServiceStore_DeleteService(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
