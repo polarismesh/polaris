@@ -24,19 +24,18 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/service"
+	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/service"
-	"github.com/polarismesh/polaris-server/service/healthcheck"
 )
 
-// ApplicationsRespCache 全量服务缓存
+//全量服务缓存
 type ApplicationsRespCache struct {
 	AppsResp  *ApplicationsResponse
 	Revision  string
@@ -49,7 +48,7 @@ func sha1s(bytes []byte) string {
 	return hex.EncodeToString(r[:])
 }
 
-// ApplicationsWorker 应用缓存协程
+//应用缓存协程
 type ApplicationsWorker struct {
 	mutex *sync.Mutex
 
@@ -80,7 +79,7 @@ type ApplicationsWorker struct {
 	VersionIncrement int64
 }
 
-// NewApplicationsWorker 构造函数
+//构造函数
 func NewApplicationsWorker(interval time.Duration,
 	deltaExpireInterval time.Duration, unhealthyExpireInterval time.Duration,
 	namingServer *service.Server, healthCheckServer *healthcheck.Server, namespace string) *ApplicationsWorker {
@@ -97,12 +96,12 @@ func NewApplicationsWorker(interval time.Duration,
 	}
 }
 
-// IsStarted 是否已经启动
+//是否已经启动
 func (a *ApplicationsWorker) IsStarted() bool {
 	return atomic.LoadUint32(&a.started) > 0
 }
 
-// GetCachedApps 从缓存获取全量服务数据
+//从缓存获取全量服务数据
 func (a *ApplicationsWorker) GetCachedApps() *ApplicationsRespCache {
 	appsValue := a.appsCache.Load()
 	if appsValue != nil {
@@ -124,7 +123,7 @@ func (a *ApplicationsWorker) GetCachedAppsWithLoad() *ApplicationsRespCache {
 	return appsRespCache
 }
 
-// GetDeltaApps 从缓存获取增量服务数据
+//从缓存获取增量服务数据
 func (a *ApplicationsWorker) GetDeltaApps() *ApplicationsRespCache {
 	appsValue := a.deltaCache.Load()
 	if appsValue != nil {
@@ -471,7 +470,7 @@ func buildLocationInfo(instanceInfo *InstanceInfo, instance *model.Instance) {
 	}
 }
 
-// checkInstanceExpired 假如实例是不健康，而修改周期超过
+//假如实例是不健康，而修改周期超过
 func checkInstanceExpired(instance *model.Instance, unhealthyExpireInterval time.Duration) bool {
 	if instance.Healthy() {
 		return true
@@ -642,7 +641,7 @@ func (a *ApplicationsWorker) buildDeltaApps(
 	return constructResponseCache(newDeltaApps, instCount, true)
 }
 
-// StartWorker 启动缓存构建器
+//启动缓存构建器
 func (a *ApplicationsWorker) StartWorker() context.Context {
 	if a.GetCachedApps() != nil {
 		return nil
@@ -667,7 +666,7 @@ func (a *ApplicationsWorker) StartWorker() context.Context {
 	return nil
 }
 
-// Stop 结束任务
+//结束任务
 func (a *ApplicationsWorker) Stop() {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
