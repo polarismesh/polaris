@@ -39,7 +39,7 @@ func Fatala(args ...interface{}) {
 	}
 }
 
-// Fatalf uses fmt.Sprintf to construct and log a message at fatal level.
+// Fatalf uses fmt.Sprintf to construct and log a MESSAGE at fatal level.
 func Fatalf(template string, args ...interface{}) {
 	if defaultScope.GetOutputLevel() >= FatalLevel {
 		msg := template
