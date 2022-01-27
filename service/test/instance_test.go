@@ -223,7 +223,7 @@ func TestCreateInstance2(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		t.Logf("consume: %v", time.Now().Sub(start))
+		t.Logf("consume: %v", time.Since(start))
 	})
 }
 
@@ -709,7 +709,7 @@ func TestUpdateInstance(t *testing.T) {
 			},
 		}
 		instanceReq.Metadata = map[string]string{
-			"internal-personal-xxx": fmt.Sprintf("internal-personal-xxx_2412323"),
+			"internal-personal-xxx": "internal-personal-xxx_2412323",
 			"tencent":               "1111",
 			"yyyy":                  "2222",
 		}
@@ -1147,12 +1147,9 @@ func TestBatchCreateInstances(t *testing.T) {
 		var deleteCount int32
 		for i := 0; i < n; i++ {
 			go func() {
-				for {
-					select {
-					case id := <-idCh:
-						cleanInstance(id)
-						atomic.AddInt32(&deleteCount, 1)
-					}
+				for id := range idCh {
+					cleanInstance(id)
+					atomic.AddInt32(&deleteCount, 1)
 				}
 			}()
 		}

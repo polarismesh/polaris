@@ -76,11 +76,8 @@ func loadConfig() error {
 
 // 判断一个resp是否执行成功
 func respSuccess(resp api.ResponseMessage) bool {
-	if api.CalcCode(resp) != 200 {
-		return false
-	}
 
-	return true
+	return api.CalcCode(resp) == 200
 }
 
 // 内部初始化函数
@@ -283,12 +280,12 @@ func removeCommonServiceAliases(t *testing.T, req []*api.ServiceAlias) {
 }
 
 // 新增一个实例
-func createCommonInstance(t *testing.T, service *api.Service, id int) (
+func createCommonInstance(t *testing.T, apiService *api.Service, id int) (
 	*api.Instance, *api.Instance) {
 	instanceReq := &api.Instance{
-		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
-		Service:      utils.NewStringValue(service.GetName().GetValue()),
-		Namespace:    utils.NewStringValue(service.GetNamespace().GetValue()),
+		ServiceToken: utils.NewStringValue(apiService.GetToken().GetValue()),
+		Service:      utils.NewStringValue(apiService.GetName().GetValue()),
+		Namespace:    utils.NewStringValue(apiService.GetNamespace().GetValue()),
 		VpcId:        utils.NewStringValue(fmt.Sprintf("vpcid-%d", id)),
 		Host:         utils.NewStringValue(fmt.Sprintf("9.9.9.%d", id)),
 		Port:         utils.NewUInt32Value(8000 + uint32(id)),
@@ -404,7 +401,6 @@ func removeCommonInstance(t *testing.T, service *api.Service, instanceID string)
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 
-	return
 }
 
 // 通过四元组或者五元组删除实例
@@ -420,7 +416,6 @@ func removeInstanceWithAttrs(t *testing.T, service *api.Service, instance *api.I
 	if resp := server.DeleteInstance(defaultCtx, req); !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
-	return
 }
 
 // 创建一个路由配置
@@ -496,7 +491,6 @@ func cleanCommonRoutingConfig(service string, namespace string) {
 	if _, err := db.Exec(str, service, namespace); err != nil {
 		panic(err)
 	}
-	return
 }
 
 //

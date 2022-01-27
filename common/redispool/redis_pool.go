@@ -352,10 +352,7 @@ const (
 func sleep(dur time.Duration) {
 	t := time.NewTimer(dur)
 	defer t.Stop()
-
-	for range t.C {
-		return
-	}
+	<-t.C
 }
 
 // checkRedis check redis alive

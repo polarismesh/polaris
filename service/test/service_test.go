@@ -99,16 +99,16 @@ func TestCreateService(t *testing.T) {
 		t.Logf("pass: %s", resp.GetInfo().GetValue())
 	})
 	t.Run("创建服务，metadata个数太多，报错", func(t *testing.T) {
-		service := &api.Service{
+		apiService := &api.Service{
 			Name:      utils.NewStringValue("999"),
 			Namespace: utils.NewStringValue("Polaris"),
 			Owners:    utils.NewStringValue("my"),
 		}
-		service.Metadata = make(map[string]string)
+		apiService.Metadata = make(map[string]string)
 		for i := 0; i < service.MaxMetadataLength+1; i++ {
-			service.Metadata[fmt.Sprintf("aa-%d", i)] = "value"
+			apiService.Metadata[fmt.Sprintf("aa-%d", i)] = "value"
 		}
-		if resp := server.CreateService(defaultCtx, service); !respSuccess(resp) {
+		if resp := server.CreateService(defaultCtx, apiService); !respSuccess(resp) {
 			t.Logf("%s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatalf("error")
