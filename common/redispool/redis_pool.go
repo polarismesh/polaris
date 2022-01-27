@@ -21,15 +21,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	commontime "github.com/polarismesh/polaris-server/common/time"
-	"github.com/polarismesh/polaris-server/plugin"
 	"math"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/go-redis/redis/v8"
+
 	"github.com/polarismesh/polaris-server/common/log"
+	commontime "github.com/polarismesh/polaris-server/common/time"
+	"github.com/polarismesh/polaris-server/plugin"
 )
 
 const (
@@ -81,9 +82,7 @@ func (t Task) String() string {
 	return fmt.Sprintf("{taskType: %s, id: %s}", typeToCommand[t.taskType], t.id)
 }
 
-/**
- * Resp ckv任务结果
- */
+// Resp ckv任务结果
 type Resp struct {
 	Value       string
 	Err         error
@@ -191,7 +190,7 @@ func NewPool(ctx context.Context, config *Config, statis plugin.Statis) *Pool {
 
 // Get 使用连接池，向redis发起Get请求
 func (p *Pool) Get(id string) *Resp { // nolint
-	if err := p.checkRedisDead(); nil != err {
+	if err := p.checkRedisDead(); err != nil {
 		return &Resp{Err: err}
 	}
 	task := &Task{
@@ -203,7 +202,7 @@ func (p *Pool) Get(id string) *Resp { // nolint
 
 // Get 使用连接池，向redis发起Sdd请求
 func (p *Pool) Sdd(id string, members []string) *Resp { // nolint
-	if err := p.checkRedisDead(); nil != err {
+	if err := p.checkRedisDead(); err != nil {
 		return &Resp{Err: err}
 	}
 	task := &Task{
@@ -216,7 +215,7 @@ func (p *Pool) Sdd(id string, members []string) *Resp { // nolint
 
 // Get 使用连接池，向redis发起Srem请求
 func (p *Pool) Srem(id string, members []string) *Resp { // nolint
-	if err := p.checkRedisDead(); nil != err {
+	if err := p.checkRedisDead(); err != nil {
 		return &Resp{Err: err}
 	}
 	task := &Task{
@@ -237,7 +236,7 @@ type RedisObject interface {
 
 // Set 使用连接池，向redis发起Set请求
 func (p *Pool) Set(id string, redisObj RedisObject) *Resp { // nolint
-	if err := p.checkRedisDead(); nil != err {
+	if err := p.checkRedisDead(); err != nil {
 		return &Resp{Err: err}
 	}
 	task := &Task{
@@ -250,7 +249,7 @@ func (p *Pool) Set(id string, redisObj RedisObject) *Resp { // nolint
 
 // Del 使用连接池，向redis发起Del请求
 func (p *Pool) Del(id string) *Resp { // nolint
-	if err := p.checkRedisDead(); nil != err {
+	if err := p.checkRedisDead(); err != nil {
 		return &Resp{Err: err}
 	}
 	task := &Task{
@@ -430,7 +429,7 @@ func (p *Pool) handleTaskWithRetries(task *Task) *Resp {
 			sleep(retryBackoff)
 		}
 		resp = p.handleTask(task)
-		if nil == resp.Err || !resp.shouldRetry {
+		if resp.Err == nil || !resp.shouldRetry {
 			break
 		}
 		log.Errorf("[RedisPool] fail to handle task %s, retry count %d, err is %v", *task, i, resp.Err)
@@ -474,10 +473,10 @@ func (p *Pool) afterHandleTask(startTime time.Time, command string, task *Task, 
 			"duration %s, greater than %s", task.String(), costDuration, maxProcessDuration)
 	}
 	code := callResultOk
-	if nil != resp.Err {
+	if resp.Err != nil {
 		code = callResultFail
 	}
-	if nil != p.statis {
+	if p.statis != nil {
 		_ = p.statis.AddRedisCall(command, code, costDuration.Nanoseconds())
 	}
 }

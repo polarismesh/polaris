@@ -45,7 +45,7 @@ func InitNamespaceData(nsStore *namespaceStore, nsCount int) error {
 			CreateTime: time.Now(),
 			ModifyTime: time.Now(),
 		})
-		if nil != err {
+		if err != nil {
 			return err
 		}
 	}
@@ -55,7 +55,7 @@ func InitNamespaceData(nsStore *namespaceStore, nsCount int) error {
 func TestNamespaceStore_AddNamespace(t *testing.T) {
 	_ = os.RemoveAll("./table.bolt")
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -72,7 +72,7 @@ func TestNamespaceStore_AddNamespace(t *testing.T) {
 			CreateTime: time.Now(),
 			ModifyTime: time.Now(),
 		})
-		if nil != err {
+		if err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -81,7 +81,7 @@ func TestNamespaceStore_AddNamespace(t *testing.T) {
 func TestNamespaceStore_ListNamespaces(t *testing.T) {
 	_ = os.RemoveAll("./table.bolt")
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer handler.Close()
@@ -92,7 +92,7 @@ func TestNamespaceStore_ListNamespaces(t *testing.T) {
 	}
 
 	namespaces, err := nsStore.ListNamespaces(nsOwner)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	for _, namespace := range namespaces {
@@ -106,7 +106,7 @@ func TestNamespaceStore_ListNamespaces(t *testing.T) {
 func TestNamespaceStore_GetNamespaces(t *testing.T) {
 	_ = os.RemoveAll("./table.bolt")
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer handler.Close()
@@ -201,7 +201,7 @@ func TestNamespaceStore_GetNamespaces(t *testing.T) {
 func TestNamespaceStore_GetNamespace(t *testing.T) {
 	_ = os.RemoveAll("./table.bolt")
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer handler.Close()
@@ -214,10 +214,10 @@ func TestNamespaceStore_GetNamespace(t *testing.T) {
 	for i := 0; i < nsCount; i++ {
 		name := "default" + strconv.Itoa(i)
 		ns, err := nsStore.GetNamespace(name)
-		if nil != err {
+		if err != nil {
 			t.Fatal(err)
 		}
-		if nil == ns {
+		if ns == nil {
 			t.Fatal(fmt.Sprintf("namespace %s not exists", name))
 		}
 	}
@@ -226,7 +226,7 @@ func TestNamespaceStore_GetNamespace(t *testing.T) {
 func TestNamespaceStore_UpdateNamespace(t *testing.T) {
 	_ = os.RemoveAll("./table.bolt")
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer handler.Close()
@@ -243,7 +243,7 @@ func TestNamespaceStore_UpdateNamespace(t *testing.T) {
 			Owner:   nsOwner,
 		}
 		err = nsStore.UpdateNamespace(nsRaw)
-		if nil != err {
+		if err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -251,10 +251,10 @@ func TestNamespaceStore_UpdateNamespace(t *testing.T) {
 	for i := 0; i < nsCount; i++ {
 		name := "default" + strconv.Itoa(i)
 		ns, err := nsStore.GetNamespace(name)
-		if nil != err {
+		if err != nil {
 			t.Fatal(err)
 		}
-		if nil == ns {
+		if ns == nil {
 			t.Fatal(fmt.Sprintf("namespace %s not exists", name))
 		}
 		if ns.Comment != nsComment+strconv.Itoa(i) {
@@ -266,7 +266,7 @@ func TestNamespaceStore_UpdateNamespace(t *testing.T) {
 func TestNamespaceStore_UpdateNamespaceToken(t *testing.T) {
 	_ = os.RemoveAll("./table.bolt")
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer handler.Close()
@@ -280,7 +280,7 @@ func TestNamespaceStore_UpdateNamespaceToken(t *testing.T) {
 		name := "default" + strconv.Itoa(i)
 		token := nsToken + strconv.Itoa(i)
 		err = nsStore.UpdateNamespaceToken(name, token)
-		if nil != err {
+		if err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -288,10 +288,10 @@ func TestNamespaceStore_UpdateNamespaceToken(t *testing.T) {
 	for i := 0; i < nsCount; i++ {
 		name := "default" + strconv.Itoa(i)
 		ns, err := nsStore.GetNamespace(name)
-		if nil != err {
+		if err != nil {
 			t.Fatal(err)
 		}
-		if nil == ns {
+		if ns == nil {
 			t.Fatal(fmt.Sprintf("namespace %s not exists", name))
 		}
 		if ns.Token != nsToken+strconv.Itoa(i) {
@@ -303,7 +303,7 @@ func TestNamespaceStore_UpdateNamespaceToken(t *testing.T) {
 func TestNamespaceStore_GetMoreNamespaces(t *testing.T) {
 	_ = os.RemoveAll("./table.bolt")
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer handler.Close()
@@ -314,7 +314,7 @@ func TestNamespaceStore_GetMoreNamespaces(t *testing.T) {
 
 	before := time.Now().Add(0 - 1*time.Minute)
 	namespaces, err := nsStore.GetMoreNamespaces(before)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	if len(namespaces) != nsCount {
@@ -325,7 +325,7 @@ func TestNamespaceStore_GetMoreNamespaces(t *testing.T) {
 func TestTransaction_LockNamespace(t *testing.T) {
 	_ = os.RemoveAll("./table.bolt")
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer handler.Close()
@@ -339,10 +339,10 @@ func TestTransaction_LockNamespace(t *testing.T) {
 	for i := 0; i < nsCount; i++ {
 		name := "default" + strconv.Itoa(i)
 		namespace, err := trans.LockNamespace(name)
-		if nil != err {
+		if err != nil {
 			t.Fatal(err)
 		}
-		if nil == namespace {
+		if namespace == nil {
 			t.Fatal(fmt.Sprintf("namespace %s not exists", name))
 		}
 	}
@@ -351,7 +351,7 @@ func TestTransaction_LockNamespace(t *testing.T) {
 func TestTransaction_DeleteNamespace(t *testing.T) {
 	_ = os.RemoveAll("./table.bolt")
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer handler.Close()
@@ -365,19 +365,19 @@ func TestTransaction_DeleteNamespace(t *testing.T) {
 	for i := 0; i < nsCount; i++ {
 		name := "default" + strconv.Itoa(i)
 		err := trans.DeleteNamespace(name)
-		if nil != err {
+		if err != nil {
 			trans.Commit()
 			t.Fatal(err)
 		}
 	}
 	err = trans.Commit()
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	for i := 0; i < nsCount; i++ {
 		name := "default" + strconv.Itoa(i)
 		ns, err := nsStore.GetNamespace(name)
-		if nil != err {
+		if err != nil {
 			t.Fatal(err)
 		}
 		if ns != nil {

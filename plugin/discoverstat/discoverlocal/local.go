@@ -19,22 +19,19 @@ package discoverlocal
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/plugin"
-	"time"
 )
 
-/**
- * @brief 注册服务发现统计插件
- */
+// init 注册服务发现统计插件
 func init() {
 	d := &DiscoverStatisWorker{}
 	plugin.RegisterPlugin(d.Name(), d)
 }
 
-/**
- * @brief 服务发现统计插件
- */
+// DiscoverStatisWorker 服务发现统计插件
 type DiscoverStatisWorker struct {
 	interval time.Duration
 
@@ -42,16 +39,12 @@ type DiscoverStatisWorker struct {
 	dcs *DiscoverCallStatis
 }
 
-/**
- * @brief 获取插件名称
- */
+// Name 获取插件名称
 func (d *DiscoverStatisWorker) Name() string {
 	return "discoverLocal"
 }
 
-/**
- * @brief 初始化服务发现统计插件
- */
+// Initialize 初始化服务发现统计插件
 func (d *DiscoverStatisWorker) Initialize(conf *plugin.ConfigEntry) error {
 	// 设置打印周期
 	interval := conf.Option["interval"].(int)
@@ -71,16 +64,12 @@ func (d *DiscoverStatisWorker) Initialize(conf *plugin.ConfigEntry) error {
 	return nil
 }
 
-/**
- * @brief 销毁服务发现统计插件
- */
+// Destroy销毁服务发现统计插件
 func (d *DiscoverStatisWorker) Destroy() error {
 	return nil
 }
 
-/**
- * @brief 上报请求
- */
+// AddDiscoverCall 上报请求
 func (d *DiscoverStatisWorker) AddDiscoverCall(service, namespace string, time time.Time) error {
 	select {
 	case d.dcc <- &DiscoverCall{
@@ -95,9 +84,6 @@ func (d *DiscoverStatisWorker) AddDiscoverCall(service, namespace string, time t
 	return nil
 }
 
-/**
- * @brief 主流程
- */
 func (d *DiscoverStatisWorker) Run() {
 	ticker := time.NewTicker(d.interval)
 	defer ticker.Stop()

@@ -17,17 +17,13 @@
 
 package cache
 
-/**
- * Config 缓存配置
- */
+// Config 缓存配置
 type Config struct {
 	Open      bool `yaml:"open"`
 	Resources []ConfigEntry
 }
 
-/*
- * ConfigEntry 单个缓存资源配置
- */
+// ConfigEntry 单个缓存资源配置
 type ConfigEntry struct {
 	Name   string                 `yaml:"name"`
 	Option map[string]interface{} `yaml:"option"`
@@ -37,9 +33,7 @@ var (
 	config *Config
 )
 
-/**
- * SetCacheConfig 设置缓存配置
- */
+// SetCacheConfig 设置缓存配置
 func SetCacheConfig(conf *Config) {
 	config = conf
 }

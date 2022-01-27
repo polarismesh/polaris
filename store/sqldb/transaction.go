@@ -19,20 +19,20 @@ package sqldb
 
 import (
 	"crypto/rand"
+	"math/big"
+
 	"github.com/pkg/errors"
 	"github.com/polarismesh/polaris-server/common/model"
-	"math/big"
 )
 
-// 事务
-// 不支持多协程并发操作，当前先支持单个协程串行操作
+// transaction 事务; 不支持多协程并发操作，当前先支持单个协程串行操作
 type transaction struct {
 	tx     *BaseTx
 	failed bool // 判断事务执行是否失败
 	commit bool // 判断事务已经提交，如果已经提交，则Commit会立即返回
 }
 
-// 提交事务，释放tx
+// Commit 提交事务，释放tx
 func (t *transaction) Commit() error {
 	if t.commit {
 		return nil
@@ -46,7 +46,7 @@ func (t *transaction) Commit() error {
 	return t.tx.Commit()
 }
 
-// 启动锁，限制Server启动的并发数
+// LockBootstrap 启动锁，限制Server启动的并发数
 func (t *transaction) LockBootstrap(key string, server string) error {
 	countStr := "select count(*) from start_lock where lock_key = ?"
 	var count int
@@ -76,19 +76,19 @@ func (t *transaction) LockBootstrap(key string, server string) error {
 	return nil
 }
 
-// 排它锁，锁住指定命名空间
+// LockNamespace 排它锁，锁住指定命名空间
 func (t *transaction) LockNamespace(name string) (*model.Namespace, error) {
 	str := genNamespaceSelectSQL() + " where name = ? and flag != 1 for update"
 	return t.getValidNamespace(str, name)
 }
 
-// 共享锁，锁住命名空间
+// RLockNamespace 共享锁，锁住命名空间
 func (t *transaction) RLockNamespace(name string) (*model.Namespace, error) {
 	str := genNamespaceSelectSQL() + " where name = ? and flag != 1 lock in share mode"
 	return t.getValidNamespace(str, name)
 }
 
-// 删除命名空间，并且提交事务
+// DeleteNamespace 删除命名空间，并且提交事务
 func (t *transaction) DeleteNamespace(name string) error {
 	if err := t.finish(); err != nil {
 		return err
@@ -102,21 +102,21 @@ func (t *transaction) DeleteNamespace(name string) error {
 	return t.Commit()
 }
 
-// 排它锁，锁住指定服务
+// LockService 排它锁，锁住指定服务
 func (t *transaction) LockService(name string, namespace string) (*model.Service, error) {
 	str := genServiceSelectSQL() +
 		" from service where name = ? and namespace = ? and flag !=1 for update"
 	return t.getValidService(str, name, namespace)
 }
 
-// 共享锁，锁住指定服务
+// RLockService 共享锁，锁住指定服务
 func (t *transaction) RLockService(name string, namespace string) (*model.Service, error) {
 	str := genServiceSelectSQL() +
 		" from service where name = ? and namespace = ? and flag !=1 lock in share mode"
 	return t.getValidService(str, name, namespace)
 }
 
-// 批量锁住服务
+// BatchRLockServices 批量锁住服务
 func (t *transaction) BatchRLockServices(ids map[string]bool) (map[string]bool, error) {
 	str := "select id, flag from service where id in ( "
 	first := true
@@ -162,7 +162,7 @@ func (t *transaction) BatchRLockServices(ids map[string]bool) (map[string]bool, 
 	return out, nil
 }
 
-// 删除服务，并且提交事务
+// DeleteService 删除服务，并且提交事务
 func (t *transaction) DeleteService(name string, namespace string) error {
 	if err := t.finish(); err != nil {
 		return err
@@ -178,7 +178,7 @@ func (t *transaction) DeleteService(name string, namespace string) error {
 	return nil
 }
 
-// 根据源服务的ID，删除其所有的别名
+// DeleteAliasWithSourceID 根据源服务的ID，删除其所有的别名
 func (t *transaction) DeleteAliasWithSourceID(sourceServiceID string) error {
 	if err := t.finish(); err != nil {
 		return err
@@ -194,7 +194,7 @@ func (t *transaction) DeleteAliasWithSourceID(sourceServiceID string) error {
 	return nil
 }
 
-// 判断事务是否已经提交
+// finish 判断事务是否已经提交
 func (t *transaction) finish() error {
 	if t.failed || t.commit {
 		return errors.New("transaction has failed")
@@ -203,7 +203,7 @@ func (t *transaction) finish() error {
 	return nil
 }
 
-// 获取有效的命名空间数据
+// getValidNamespace 获取有效的命名空间数据
 func (t *transaction) getValidNamespace(sql string, name string) (*model.Namespace, error) {
 	if err := t.finish(); err != nil {
 		return nil, err
@@ -227,7 +227,7 @@ func (t *transaction) getValidNamespace(sql string, name string) (*model.Namespa
 	return out[0], nil
 }
 
-// 获取有效的服务数据
+// getValidService 获取有效的服务数据
 // 注意：该函数不会返回service_metadata
 func (t *transaction) getValidService(sql string, name string, namespace string) (*model.Service, error) {
 	if err := t.finish(); err != nil {

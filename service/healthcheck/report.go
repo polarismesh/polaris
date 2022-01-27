@@ -19,11 +19,12 @@ package healthcheck
 
 import (
 	"context"
+	"time"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service"
-	"time"
 )
 
 // checkHeartbeatInstance 检查心跳实例请求参数
@@ -69,7 +70,7 @@ func (s *Server) doReport(ctx context.Context, instance *api.Instance) *api.Resp
 		CurTimeSec: time.Now().Unix() - s.timeAdjuster.GetDiff(),
 	}
 	err := checker.Report(request)
-	if nil != err {
+	if err != nil {
 		log.Errorf("[Heartbeat][Server]fail to do report for %s:%d, id is %s, err is %v",
 			insCache.Host(), insCache.Port(), id, err)
 		return api.NewInstanceResponse(api.HeartbeatException, instance)

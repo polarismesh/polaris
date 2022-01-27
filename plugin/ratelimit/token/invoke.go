@@ -21,28 +21,28 @@ import (
 	"github.com/polarismesh/polaris-server/plugin"
 )
 
-// 实现Plugin接口
+// tokenBucket 实现Plugin接口
 type tokenBucket struct {
 	config   *Config
 	limiters map[plugin.RatelimitType]limiter
 }
 
-// 实现Plugin接口，Name方法
+// Name 实现Plugin接口，Name方法
 func (tb *tokenBucket) Name() string {
 	return PluginName
 }
 
-// 实现Plugin接口，Initialize方法
+// Initialize 实现Plugin接口，Initialize方法
 func (tb *tokenBucket) Initialize(c *plugin.ConfigEntry) error {
 	return tb.initialize(c)
 }
 
-// 实现Plugin接口，Destroy方法
+// Destroy 实现Plugin接口，Destroy方法
 func (tb *tokenBucket) Destroy() error {
 	return nil
 }
 
-// 限流接口实现
+// Allow 限流接口实现
 func (tb *tokenBucket) Allow(typ plugin.RatelimitType, key string) bool {
 	return tb.allow(typ, key)
 }

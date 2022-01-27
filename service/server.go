@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/modern-go/reflect2"
+	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris-server/auth"
@@ -32,7 +33,6 @@ import (
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 const (

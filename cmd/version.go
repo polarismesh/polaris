@@ -19,8 +19,10 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/version"
+
 	"github.com/spf13/cobra"
+
+	"github.com/polarismesh/polaris-server/common/version"
 )
 
 var (

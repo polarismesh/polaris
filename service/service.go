@@ -20,16 +20,17 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/polarismesh/polaris-server/cache"
-	commontime "github.com/polarismesh/polaris-server/common/time"
-	"github.com/polarismesh/polaris-server/store"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
+	"go.uber.org/zap"
+
+	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"go.uber.org/zap"
+	"github.com/polarismesh/polaris-server/store"
 )
 
 // Service2Api *model.service转换为*api.service
@@ -58,9 +59,7 @@ var (
 	}
 )
 
-/**
- * CreateServices 批量创建服务
- */
+// CreateServices 批量创建服务
 func (s *Server) CreateServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse {
 	if checkError := checkBatchService(req); checkError != nil {
 		return checkError
@@ -75,9 +74,7 @@ func (s *Server) CreateServices(ctx context.Context, req []*api.Service) *api.Ba
 	return api.FormatBatchWriteResponse(responses)
 }
 
-/**
- * CreateService 创建单个服务
- */
+// CreateService 创建单个服务
 func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Response {
 	requestID := ParseRequestID(ctx)
 	platformID := ParsePlatformID(ctx)
@@ -128,9 +125,7 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 	return api.NewServiceResponse(api.ExecuteSuccess, out)
 }
 
-/**
- * DeleteServices 批量删除服务
- */
+// DeleteServices 批量删除服务
 func (s *Server) DeleteServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse {
 	if checkError := checkBatchService(req); checkError != nil {
 		return checkError
@@ -145,11 +140,9 @@ func (s *Server) DeleteServices(ctx context.Context, req []*api.Service) *api.Ba
 	return api.FormatBatchWriteResponse(responses)
 }
 
-/**
- * DeleteService 删除单个服务
- *        删除操作需要对服务进行加锁操作，
- *        防止有与服务关联的实例或者配置有新增的操作
- */
+// DeleteService 删除单个服务
+//  删除操作需要对服务进行加锁操作，
+//  防止有与服务关联的实例或者配置有新增的操作
 func (s *Server) DeleteService(ctx context.Context, req *api.Service) *api.Response {
 	requestID := ParseRequestID(ctx)
 	platformID := ParsePlatformID(ctx)
@@ -194,9 +187,7 @@ func (s *Server) DeleteService(ctx context.Context, req *api.Service) *api.Respo
 	return api.NewServiceResponse(api.ExecuteSuccess, req)
 }
 
-/**
- * UpdateServices 批量修改服务
- */
+// UpdateServices 批量修改服务
 func (s *Server) UpdateServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse {
 	if checkError := checkBatchService(req); checkError != nil {
 		return checkError
@@ -211,9 +202,7 @@ func (s *Server) UpdateServices(ctx context.Context, req []*api.Service) *api.Ba
 	return api.FormatBatchWriteResponse(responses)
 }
 
-/**
- * UpdateService 修改单个服务
- */
+// UpdateService 修改单个服务
 func (s *Server) UpdateService(ctx context.Context, req *api.Service) *api.Response {
 	requestID := ParseRequestID(ctx)
 	platformID := ParsePlatformID(ctx)
@@ -300,10 +289,7 @@ func (s *Server) UpdateServiceToken(ctx context.Context, req *api.Service) *api.
 	return api.NewServiceResponse(api.ExecuteSuccess, out)
 }
 
-/**
- * GetServices 查询服务
- *        注意：不包括别名
- */
+// GetServices 查询服务 注意：不包括别名
 func (s *Server) GetServices(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	serviceFilters := make(map[string]string)
 	instanceFilters := make(map[string]string)
@@ -402,9 +388,7 @@ func parseServiceArgs(filter map[string]string, metaFilter map[string]string, ct
 	return res
 }
 
-/**
- * GetServicesCount 查询服务总数
- */
+// GetServicesCount 查询服务总数
 func (s *Server) GetServicesCount() *api.BatchQueryResponse {
 	count, err := s.storage.GetServicesCount()
 	if err != nil {
@@ -441,9 +425,7 @@ func (s *Server) GetServiceToken(ctx context.Context, req *api.Service) *api.Res
 	return out
 }
 
-/**
- * GetServiceOwner 查询服务负责人
- */
+// GetServiceOwner 查询服务负责人
 func (s *Server) GetServiceOwner(ctx context.Context, req []*api.Service) *api.BatchQueryResponse {
 	requestID := ParseRequestID(ctx)
 	platformID := ParseRequestID(ctx)
@@ -465,9 +447,7 @@ func (s *Server) GetServiceOwner(ctx context.Context, req []*api.Service) *api.B
 	return resp
 }
 
-/**
- * @brief 创建存储层服务模型
- */
+// createServiceModel 创建存储层服务模型
 func (s *Server) createServiceModel(req *api.Service) *model.Service {
 	service := &model.Service{
 		ID:         utils.NewUUID(),
@@ -490,9 +470,7 @@ func (s *Server) createServiceModel(req *api.Service) *model.Service {
 	return service
 }
 
-/**
- * @brief 修改服务属性
- */
+// updateServiceAttribute 修改服务属性
 func (s *Server) updateServiceAttribute(req *api.Service, service *model.Service) (*api.Response, bool, bool) {
 	// 待更新的参数检查
 	if err := checkMetadata(req.GetMetadata()); err != nil {
@@ -565,7 +543,7 @@ func (s *Server) updateServiceAttribute(req *api.Service, service *model.Service
 	return nil, needUpdate, needUpdateOwner
 }
 
-// 获取服务下别名的总数
+// getServiceAliasCountWithService 获取服务下别名的总数
 func (s *Server) getServiceAliasCountWithService(name string, namespace string) (uint32, error) {
 	filter := map[string]string{
 		"service":   name,
@@ -578,7 +556,7 @@ func (s *Server) getServiceAliasCountWithService(name string, namespace string) 
 	return total, nil
 }
 
-// 获取服务下实例的总数
+// getInstancesCountWithService 获取服务下实例的总数
 func (s *Server) getInstancesCountWithService(name string, namespace string) (uint32, error) {
 	filter := map[string]string{
 		"name":      name,
@@ -591,7 +569,7 @@ func (s *Server) getInstancesCountWithService(name string, namespace string) (ui
 	return total, nil
 }
 
-// 获取服务下路由配置总数
+// getRoutingCountWithService 获取服务下路由配置总数
 func (s *Server) getRoutingCountWithService(id string) (uint32, error) {
 	routing, err := s.storage.GetRoutingConfigWithID(id)
 	if err != nil {
@@ -604,7 +582,7 @@ func (s *Server) getRoutingCountWithService(id string) (uint32, error) {
 	return 1, nil
 }
 
-// 获取服务下限流规则总数
+// getRateLimitingCountWithService 获取服务下限流规则总数
 func (s *Server) getRateLimitingCountWithService(name string, namespace string) (uint32, error) {
 	filter := map[string]string{
 		"name":      name,
@@ -617,7 +595,7 @@ func (s *Server) getRateLimitingCountWithService(name string, namespace string) 
 	return total, nil
 }
 
-// 获取服务下熔断规则总数
+// getCircuitBreakerCountWithService 获取服务下熔断规则总数
 func (s *Server) getCircuitBreakerCountWithService(name string, namespace string) (uint32, error) {
 	circuitBreaker, err := s.storage.GetCircuitBreakersByService(name, namespace)
 	if err != nil {
@@ -630,7 +608,7 @@ func (s *Server) getCircuitBreakerCountWithService(name string, namespace string
 	return 1, nil
 }
 
-// 检查服务下的资源存在情况，在删除服务的时候需要用到
+// isServiceExistedResource 检查服务下的资源存在情况，在删除服务的时候需要用到
 func (s *Server) isServiceExistedResource(rid, pid string, service *model.Service) *api.Response {
 	// 服务别名，不需要判断
 	if service.IsAlias() {
@@ -689,7 +667,7 @@ func (s *Server) isServiceExistedResource(rid, pid string, service *model.Servic
 	return nil
 }
 
-// 对服务进行鉴权，并且返回model.Service
+// checkServiceAuthority 对服务进行鉴权，并且返回model.Service
 // return service, token, response
 func (s *Server) checkServiceAuthority(ctx context.Context, req *api.Service) (*model.Service,
 	string, *api.Response) {
@@ -716,9 +694,7 @@ func (s *Server) checkServiceAuthority(ctx context.Context, req *api.Service) (*
 	return service, expectToken, nil
 }
 
-/**
- * @brief 服务鉴权
- */
+// verifyServiceAuth 服务鉴权
 func (s *Server) verifyServiceAuth(ctx context.Context, service *model.Service, req *api.Service) *api.Response {
 	// 使用平台id及token鉴权
 	if ok := s.verifyAuthByPlatform(ctx, service.PlatformID); !ok {
@@ -737,7 +713,7 @@ func (s *Server) verifyServiceAuth(ctx context.Context, service *model.Service, 
 	return nil
 }
 
-// model.Service 转为 api.Service
+// service2Api model.Service 转为 api.Service
 func service2Api(service *model.Service) *api.Service {
 	if service == nil {
 		return nil
@@ -765,10 +741,8 @@ func service2Api(service *model.Service) *api.Service {
 	return out
 }
 
-/**
- * @brief model.Service转为api.Service
- * @note 只转name+namespace+owner
- */
+// serviceOwner2Api model.Service转为api.Service
+// 只转name+namespace+owner
 func serviceOwner2Api(service *model.Service) *api.Service {
 	if service == nil {
 		return nil
@@ -781,7 +755,7 @@ func serviceOwner2Api(service *model.Service) *api.Service {
 	return out
 }
 
-// service数组转为[]*api.Service
+// services2Api service数组转为[]*api.Service
 func services2Api(services []*model.Service, handler Service2Api) []*api.Service {
 	out := make([]*api.Service, 0, len(services))
 	for _, entry := range services {
@@ -791,7 +765,7 @@ func services2Api(services []*model.Service, handler Service2Api) []*api.Service
 	return out
 }
 
-// service数组转为[]*api.Service
+// enhancedServices2Api service数组转为[]*api.Service
 func enhancedServices2Api(services []*model.EnhancedService, handler Service2Api) []*api.Service {
 	out := make([]*api.Service, 0, len(services))
 	for _, entry := range services {
@@ -804,9 +778,7 @@ func enhancedServices2Api(services []*model.EnhancedService, handler Service2Api
 	return out
 }
 
-/**
- * @brief api数组转为[]*model.Service
- */
+// apis2ServicesName api数组转为[]*model.Service
 func apis2ServicesName(reqs []*api.Service) []*model.Service {
 	if reqs == nil {
 		return nil
@@ -819,9 +791,7 @@ func apis2ServicesName(reqs []*api.Service) []*model.Service {
 	return out
 }
 
-/**
- * @brief api转为*model.Service
- */
+// api2ServiceName api转为*model.Service
 func api2ServiceName(req *api.Service) *model.Service {
 	if req == nil {
 		return nil
@@ -833,7 +803,7 @@ func api2ServiceName(req *api.Service) *model.Service {
 	return service
 }
 
-// 检查服务metadata是否需要更新
+// serviceMetaNeedUpdate 检查服务metadata是否需要更新
 func serviceMetaNeedUpdate(req *api.Service, service *model.Service) bool {
 	// 收到的请求的metadata为空，则代表metadata不需要更新
 	if req.GetMetadata() == nil {
@@ -878,9 +848,7 @@ func serviceMetaNeedUpdate(req *api.Service, service *model.Service) bool {
 	return needUpdate
 }
 
-/*
- * @brief 检查批量请求
- */
+// checkBatchService检查批量请求
 func checkBatchService(req []*api.Service) *api.BatchWriteResponse {
 	if len(req) == 0 {
 		return api.NewBatchWriteResponse(api.EmptyRequest)
@@ -893,9 +861,7 @@ func checkBatchService(req []*api.Service) *api.BatchWriteResponse {
 	return nil
 }
 
-/**
- * @brief 检查批量读请求
- */
+// checkBatchReadService 检查批量读请求
 func checkBatchReadService(req []*api.Service) *api.BatchQueryResponse {
 	if len(req) == 0 {
 		return api.NewBatchQueryResponse(api.EmptyRequest)
@@ -908,9 +874,7 @@ func checkBatchReadService(req []*api.Service) *api.BatchQueryResponse {
 	return nil
 }
 
-/*
- * @brief 检查创建服务请求参数
- */
+// checkCreateService 检查创建服务请求参数
 func checkCreateService(req *api.Service) *api.Response {
 	if req == nil {
 		return api.NewServiceResponse(api.EmptyRequest, req)
@@ -937,9 +901,7 @@ func checkCreateService(req *api.Service) *api.Response {
 	return nil
 }
 
-/*
- * @brief 检查删除/修改/服务token的服务请求参数
- */
+// checkReviseService 检查删除/修改/服务token的服务请求参数
 func checkReviseService(req *api.Service) *api.Response {
 	if req == nil {
 		return api.NewServiceResponse(api.EmptyRequest, req)
@@ -962,7 +924,7 @@ func checkReviseService(req *api.Service) *api.Response {
 	return nil
 }
 
-// wrapper service error
+// wrapperServiceStoreResponse wrapper service error
 func wrapperServiceStoreResponse(service *api.Service, err error) *api.Response {
 	resp := storeError2Response(err)
 	if resp == nil {
@@ -973,7 +935,7 @@ func wrapperServiceStoreResponse(service *api.Service, err error) *api.Response 
 	return resp
 }
 
-// 从request中获取服务token
+// parseRequestToken 从request中获取服务token
 func parseRequestToken(ctx context.Context, value string) string {
 	if value != "" {
 		return value
@@ -982,7 +944,7 @@ func parseRequestToken(ctx context.Context, value string) string {
 	return ParseToken(ctx)
 }
 
-// 生成服务的记录entry
+// serviceRecordEntry 生成服务的记录entry
 func serviceRecordEntry(ctx context.Context, req *api.Service, md *model.Service,
 	operationType model.OperationType) *model.RecordEntry {
 	entry := &model.RecordEntry{

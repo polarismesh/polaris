@@ -23,7 +23,7 @@ const (
 	PluginName = "token-bucket"
 )
 
-// 插件入口注册函数
+// init 插件入口注册函数
 func init() {
 	plugin.RegisterPlugin(PluginName, &tokenBucket{})
 }

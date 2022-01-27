@@ -31,6 +31,11 @@ func NewUInt32Value(value uint32) *wrappers.UInt32Value {
 	return &wrappers.UInt32Value{Value: value}
 }
 
+// NewUInt64Value
+func NewUInt64Value(value uint64) *wrappers.UInt64Value {
+	return &wrappers.UInt64Value{Value: value}
+}
+
 // NewBoolValue
 func NewBoolValue(value bool) *wrappers.BoolValue {
 	return &wrappers.BoolValue{Value: value}

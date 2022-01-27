@@ -145,6 +145,16 @@ const (
 	ParseRateLimitException            = 500005
 	ParseCircuitBreakerException       = 500006
 	HeartbeatException                 = 500007
+
+	//配置中心模块的错误码
+
+	InvalidConfigFileGroupName     = 400801
+	InvalidConfigFileName          = 400802
+	InvalidConfigFileContentLength = 400803
+	InvalidConfigFileFormat        = 400804
+	InvalidConfigFileTags          = 400805
+	InvalidWatchConfigFileFormat   = 400806
+	NotFoundResourceConfigFile     = 400807
 )
 
 // code to string
@@ -265,6 +275,14 @@ var code2info = map[uint32]string{
 	InvalidFluxRateLimitId:             "invalid flux ratelimit id",
 	InvalidFluxRateLimitQps:            "invalid flux ratelimit qps",
 	InvalidFluxRateLimitSetKey:         "invalid flux ratelimit key",
+	//配置中心的错误信息
+	InvalidConfigFileGroupName:     "invalid config file group name",
+	InvalidConfigFileName:          "invalid config file name",
+	InvalidConfigFileContentLength: "config file content too long",
+	InvalidConfigFileFormat:        "invalid config file format, support json,xml,html,properties,text,yaml",
+	InvalidConfigFileTags:          "invalid config file tags, tags should be pair, like key1,value1,key2,value2. and key,value should not blank",
+	InvalidWatchConfigFileFormat:   "invalid watch config file format",
+	NotFoundResourceConfigFile:     "config file not existed",
 }
 
 // code to info

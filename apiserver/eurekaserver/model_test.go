@@ -103,14 +103,14 @@ const (
 func TestInstanceInfo_UnmarshalXML(t *testing.T) {
 	app := &Application{}
 	err := xml.NewDecoder(strings.NewReader(instanceNoMetaXMLStr)).Decode(app)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	fmt.Printf("app is %+v\n", app.Instance[0].Metadata.Meta)
 
 	builder := &strings.Builder{}
 	err = xml.NewEncoder(builder).Encode(app)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	fmt.Printf("xml values is %s\n", builder.String())

@@ -25,10 +25,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/polarismesh/polaris-server/common/utils"
-
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 	"github.com/polarismesh/polaris-server/store/sqldb"
 )
@@ -267,10 +266,8 @@ func (ss *serviceStore) GetMoreServices(
 			}
 
 			serviceMtime := svcMTime.(time.Time)
-			if serviceMtime.Before(mtime) {
-				return false
-			}
-			return true
+
+			return !serviceMtime.Before(mtime)
 		})
 
 	if err != nil {
@@ -378,10 +375,7 @@ func (ss *serviceStore) GetServiceAliases(
 	refServices, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
 			_, ok := referenceService[m[SvcFieldID].(string)]
-			if !ok {
-				return false
-			}
-			return true
+			return ok
 		})
 
 	// sort and limit

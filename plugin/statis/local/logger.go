@@ -23,9 +23,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-/**
- * @brief 创建日志打印器
- */
+// newLogger 创建日志打印器
 func newLogger(file string) *zap.Logger {
 	encCfg := zapcore.EncoderConfig{
 		MessageKey: "msg",

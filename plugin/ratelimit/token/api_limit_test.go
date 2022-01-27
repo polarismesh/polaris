@@ -18,12 +18,13 @@
 package token
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
-// 校验新建apiRate
+// newAPIRateLimitCheck 校验新建apiRate
 func newAPIRateLimitCheck(t *testing.T, config *APILimitConfig) *apiRatelimit {
 	apiLimit, err := newAPIRatelimit(config)
 	if err != nil {
@@ -32,7 +33,7 @@ func newAPIRateLimitCheck(t *testing.T, config *APILimitConfig) *apiRatelimit {
 	return apiLimit
 }
 
-// 正常场景测试
+// TestAPIRateLimitAllow 正常场景测试
 func TestAPIRateLimitAllow(t *testing.T) {
 	config := &APILimitConfig{
 		Open: true,
@@ -77,7 +78,7 @@ func TestAPIRateLimitAllow(t *testing.T) {
 	})
 }
 
-// 配置校验
+// TestAPILimitConfig 配置校验
 func TestAPILimitConfig(t *testing.T) {
 	Convey("api-limit配置为空，可以正常执行", t, func() {
 		limiter := newAPIRateLimitCheck(t, nil)
@@ -119,7 +120,7 @@ func TestAPILimitConfig(t *testing.T) {
 	})
 }
 
-// api-limit规则配置测试
+// TestAPILimitConfigRule api-limit规则配置测试
 func TestAPILimitConfigRule(t *testing.T) {
 	config := &APILimitConfig{
 		Open: true,
@@ -165,7 +166,7 @@ func TestAPILimitConfigRule(t *testing.T) {
 	})
 }
 
-// apis配置测试
+// TestAPILimitConfigApi apis配置测试
 func TestAPILimitConfigApi(t *testing.T) {
 	config := &APILimitConfig{
 		Open: true,

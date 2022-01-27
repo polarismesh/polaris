@@ -24,7 +24,7 @@ import (
 	"time"
 )
 
-//获取低精度的微秒时间
+// CurrentMillisecond 获取低精度的微秒时间
 func CurrentMillisecond() int64 {
 	var tv syscall.Timeval
 	if err := syscall.Gettimeofday(&tv); err != nil {

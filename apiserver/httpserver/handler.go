@@ -27,9 +27,10 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	"go.uber.org/zap"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"go.uber.org/zap"
 )
 
 // Handler HTTP请求/回复处理器
@@ -98,9 +99,7 @@ func (h *Handler) Parse(message proto.Message) (context.Context, error) {
 	return h.postParseMessage(requestID)
 }
 
-/**
- * @brief 将http请求header中携带的用户信息提取出来
- */
+// ParseHeaderContext 将http请求header中携带的用户信息提取出来
 func (h *Handler) ParseHeaderContext() context.Context {
 	requestID := h.Request.HeaderParameter("Request-Id")
 	platformID := h.Request.HeaderParameter("Platform-Id")

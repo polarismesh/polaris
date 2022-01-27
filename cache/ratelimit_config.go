@@ -34,9 +34,7 @@ const (
 // RateLimitIterProc rate limit iter func
 type RateLimitIterProc func(id string, rateLimit *model.RateLimit) (bool, error)
 
-/**
- * RateLimitCache rateLimit的cache接口
- */
+// RateLimitCache rateLimit的cache接口
 type RateLimitCache interface {
 	Cache
 
@@ -56,9 +54,7 @@ type RateLimitCache interface {
 	GetRateLimitsCount() int
 }
 
-/**
- * @brief rateLimitCache的实现
- */
+// rateLimitCache的实现
 type rateLimitCache struct {
 	storage     store.Store
 	ids         *sync.Map
@@ -67,25 +63,19 @@ type rateLimitCache struct {
 	firstUpdate bool
 }
 
-/**
- * @brief 自注册到缓存列表
- */
+// init 自注册到缓存列表
 func init() {
 	RegisterCache(RateLimitConfigName, CacheRateLimit)
 }
 
-/**
- * @brief 返回一个操作RateLimitCache的对象
- */
+// newRateLimitCache 返回一个操作RateLimitCache的对象
 func newRateLimitCache(s store.Store) *rateLimitCache {
 	return &rateLimitCache{
 		storage: s,
 	}
 }
 
-/**
- * @brief 实现Cache接口的initialize函数
- */
+// initialize 实现Cache接口的initialize函数
 func (rlc *rateLimitCache) initialize(opt map[string]interface{}) error {
 	rlc.ids = new(sync.Map)
 	rlc.revisions = new(sync.Map)
@@ -97,9 +87,7 @@ func (rlc *rateLimitCache) initialize(opt map[string]interface{}) error {
 	return nil
 }
 
-/**
- * @brief 实现Cache接口的update函数
- */
+// update 实现Cache接口的update函数
 func (rlc *rateLimitCache) update() error {
 	rateLimits, revisions, err := rlc.storage.GetRateLimitsForCache(rlc.lastTime.Add(DefaultTimeDiff),
 		rlc.firstUpdate)
@@ -111,16 +99,12 @@ func (rlc *rateLimitCache) update() error {
 	return rlc.setRateLimit(rateLimits, revisions)
 }
 
-/**
- * @brief 获取资源名称
- */
+// name 获取资源名称
 func (rlc *rateLimitCache) name() string {
 	return RateLimitConfigName
 }
 
-/**
- * @brief 实现Cache接口的clear函数
- */
+// clear 实现Cache接口的clear函数
 func (rlc *rateLimitCache) clear() error {
 	rlc.ids = new(sync.Map)
 	rlc.revisions = new(sync.Map)
@@ -128,9 +112,7 @@ func (rlc *rateLimitCache) clear() error {
 	return nil
 }
 
-/**
- * @brief 更新限流规则到缓存中
- */
+// setRateLimit 更新限流规则到缓存中
 func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit,
 	revisions []*model.RateLimitRevision) error {
 	if len(rateLimits) == 0 {
@@ -172,9 +154,7 @@ func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit,
 	return nil
 }
 
-/**
- * GetRateLimit 根据serviceID进行迭代回调
- */
+// GetRateLimit 根据serviceID进行迭代回调
 func (rlc *rateLimitCache) GetRateLimit(serviceID string, rateLimitIterProc RateLimitIterProc) error {
 	if serviceID == "" {
 		return nil
@@ -198,9 +178,7 @@ func (rlc *rateLimitCache) GetRateLimit(serviceID string, rateLimitIterProc Rate
 	return err
 }
 
-/**
- * GetLastRevision 根据serviceID获取最新revision
- */
+// GetLastRevision 根据serviceID获取最新revision
 func (rlc *rateLimitCache) GetLastRevision(serviceID string) string {
 	if serviceID == "" {
 		return ""
@@ -212,9 +190,7 @@ func (rlc *rateLimitCache) GetLastRevision(serviceID string) string {
 	return value.(string)
 }
 
-/**
- * GetRateLimitByServiceID 根据serviceID获取限流数据
- */
+// GetRateLimitByServiceID 根据serviceID获取限流数据
 func (rlc *rateLimitCache) GetRateLimitByServiceID(serviceID string) []*model.RateLimit {
 	if serviceID == "" {
 		return nil
@@ -233,9 +209,7 @@ func (rlc *rateLimitCache) GetRateLimitByServiceID(serviceID string) []*model.Ra
 	return out
 }
 
-/**
- * GetRevisionsCount 获取revisions总数
- */
+// GetRevisionsCount 获取revisions总数
 func (rlc *rateLimitCache) GetRevisionsCount() int {
 	count := 0
 	rlc.revisions.Range(func(k interface{}, v interface{}) bool {
@@ -245,9 +219,7 @@ func (rlc *rateLimitCache) GetRevisionsCount() int {
 	return count
 }
 
-/**
- * GetRateLimitsCount 获取限流规则总数
- */
+// GetRateLimitsCount 获取限流规则总数
 func (rlc *rateLimitCache) GetRateLimitsCount() int {
 	count := 0
 

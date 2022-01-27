@@ -18,8 +18,9 @@
 package heartbeatmemory
 
 import (
-	"github.com/polarismesh/polaris-server/plugin"
 	"sync"
+
+	"github.com/polarismesh/polaris-server/plugin"
 )
 
 // 把操作记录记录到日志文件中
@@ -88,7 +89,7 @@ func (r *MemoryHealthChecker) Query(request *plugin.QueryRequest) (*plugin.Query
 // Report process the instance check
 func (r *MemoryHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckResponse, error) {
 	queryResp, err := r.Query(&request.QueryRequest)
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	lastHeartbeatTime := queryResp.LastHeartbeatSec

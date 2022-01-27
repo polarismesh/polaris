@@ -32,9 +32,7 @@ const (
 	L5Name = "l5"
 )
 
-/**
- * L5Cache L5的cache接口
- */
+// L5Cache L5的cache接口
 type L5Cache interface {
 	Cache
 
@@ -54,9 +52,7 @@ type L5Cache interface {
 	GetIPConfig(ip uint32) *model.IPConfig
 }
 
-/**
- * @brief L5的cache对象
- */
+// l5Cache L5的cache对象
 type l5Cache struct {
 	storage store.Store
 
@@ -75,16 +71,12 @@ type l5Cache struct {
 	sc *serviceCache
 }
 
-/**
- * @brief 自注册到缓存列表
- */
+// init 自注册到缓存列表
 func init() {
 	RegisterCache(L5Name, CacheCL5)
 }
 
-/**
- * @brief 初始化函数
- */
+// initialize 初始化函数
 func (lc *l5Cache) initialize(opt map[string]interface{}) error {
 	lc.lastRouteFlow = 0
 	lc.lastPolicyFlow = 0
@@ -100,9 +92,6 @@ func (lc *l5Cache) initialize(opt map[string]interface{}) error {
 	return nil
 }
 
-/**
- * @brief 更新缓存
- */
 func (lc *l5Cache) update() error {
 	err := lc.updateCL5Route()
 	if err != nil {
@@ -119,9 +108,7 @@ func (lc *l5Cache) update() error {
 	return err
 }
 
-/**
- * @brief 清理内部缓存数据
- */
+// clear 清理内部缓存数据
 func (lc *l5Cache) clear() error {
 	lc.routeList = new(sync.Map)
 	lc.policyList = new(sync.Map)
@@ -134,9 +121,7 @@ func (lc *l5Cache) clear() error {
 	return nil
 }
 
-/**
- * @brief 获取资源名称
- */
+// name 获取资源名称
 func (lc *l5Cache) name() string {
 	return L5Name
 }
@@ -234,9 +219,7 @@ func (lc *l5Cache) GetIPConfig(ip uint32) *model.IPConfig {
 	return value.(*model.IPConfig)
 }
 
-/**
- * @brief 更新l5的route缓存数据
- */
+// updateCL5Route 更新l5的route缓存数据
 func (lc *l5Cache) updateCL5Route() error {
 	routes, err := lc.storage.GetMoreL5Routes(lc.lastRouteFlow)
 	if err != nil {
@@ -247,9 +230,7 @@ func (lc *l5Cache) updateCL5Route() error {
 	return lc.setCL5Route(routes)
 }
 
-/**
- * @brief 更新l5的policy缓存数据
- */
+// updateCL5Policy更新l5的policy缓存数据
 func (lc *l5Cache) updateCL5Policy() error {
 	policies, err := lc.storage.GetMoreL5Policies(lc.lastPolicyFlow)
 	if err != nil {
@@ -260,9 +241,7 @@ func (lc *l5Cache) updateCL5Policy() error {
 	return lc.setCL5Policy(policies)
 }
 
-/**
- * @brief 更新l5的section缓存数据
- */
+// updateCL5Section 更新l5的section缓存数据
 func (lc *l5Cache) updateCL5Section() error {
 	sections, err := lc.storage.GetMoreL5Sections(lc.lastSectionFlow)
 	if err != nil {
@@ -273,9 +252,7 @@ func (lc *l5Cache) updateCL5Section() error {
 	return lc.setCL5Section(sections)
 }
 
-/**
- * @brief 更新l5的ip config缓存数据
- */
+// updateCL5IPConfig 更新l5的ip config缓存数据
 func (lc *l5Cache) updateCL5IPConfig() error {
 	ipConfigs, err := lc.storage.GetMoreL5IPConfigs(lc.lastIPConfigFlow)
 	if err != nil {
@@ -286,9 +263,7 @@ func (lc *l5Cache) updateCL5IPConfig() error {
 	return lc.setCL5IPConfig(ipConfigs)
 }
 
-/**
- * @brief 更新l5 route的本地缓存
- */
+// setCL5Route 更新l5 route的本地缓存
 func (lc *l5Cache) setCL5Route(routes []*model.Route) error {
 	if len(routes) == 0 {
 		return nil
@@ -328,9 +303,7 @@ func (lc *l5Cache) setCL5Route(routes []*model.Route) error {
 	return nil
 }
 
-/**
- * @brief 更新l5 policy的本地缓存
- */
+// setCL5Policy 更新l5 policy的本地缓存
 func (lc *l5Cache) setCL5Policy(policies []*model.Policy) error {
 	if len(policies) == 0 {
 		return nil
@@ -358,9 +331,7 @@ func (lc *l5Cache) setCL5Policy(policies []*model.Policy) error {
 	return nil
 }
 
-/**
- * @brief 更新l5 section的本地缓存
- */
+// setCL5Section 更新l5 section的本地缓存
 func (lc *l5Cache) setCL5Section(sections []*model.Section) error {
 	if len(sections) == 0 {
 		return nil
@@ -404,9 +375,7 @@ func (lc *l5Cache) setCL5Section(sections []*model.Section) error {
 	return nil
 }
 
-/**
- * @brief 更新l5 ipConfig的本地缓存
- */
+// setCL5IPConfig 更新l5 ipConfig的本地缓存
 func (lc *l5Cache) setCL5IPConfig(ipConfigs []*model.IPConfig) error {
 	if len(ipConfigs) == 0 {
 		return nil

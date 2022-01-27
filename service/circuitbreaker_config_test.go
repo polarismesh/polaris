@@ -138,7 +138,7 @@ func TestServer_CreateCircuitBreakerJson(t *testing.T) {
 
 	marshaler := &jsonpb.Marshaler{}
 	ruleStr, err := marshaler.MarshalToString(rule)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	fmt.Printf(ruleStr)

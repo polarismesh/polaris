@@ -20,27 +20,30 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"os"
+
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/config"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service"
+	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"github.com/polarismesh/polaris-server/store"
-	yaml "gopkg.in/yaml.v2"
 )
 
 // Config 配置
 type Config struct {
-	Bootstrap    Bootstrap          `yaml:"bootstrap"`
-	APIServers   []apiserver.Config `yaml:"apiservers"`
-	Cache        cache.Config       `yaml:"cache"`
-	Naming       service.Config     `yaml:"naming"`
-	HealthChecks healthcheck.Config `yaml:"healthcheck"`
-	Store        store.Config       `yaml:"store"`
-	Plugin       plugin.Config      `yaml:"plugin"`
+	Bootstrap    Bootstrap            `yaml:"bootstrap"`
+	APIServers   []apiserver.Config   `yaml:"apiservers"`
+	Cache        cache.Config         `yaml:"cache"`
+	Naming       service.Config       `yaml:"naming"`
+	ConfigFile   config.StartupConfig `yaml:"config_file"`
+	HealthChecks healthcheck.Config   `yaml:"healthcheck"`
+	Store        store.Config         `yaml:"store"`
+	Plugin       plugin.Config        `yaml:"plugin"`
 }
 
 // Bootstrap 启动引导配置

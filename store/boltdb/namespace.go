@@ -57,10 +57,10 @@ func (n *namespaceStore) InitData() error {
 	namespaces := []string{defaultNamespace, polarisNamespace}
 	for _, namespace := range namespaces {
 		ns, err := n.GetNamespace(namespace)
-		if nil != err {
+		if err != nil {
 			return err
 		}
-		if nil == ns {
+		if ns == nil {
 			err = n.AddNamespace(&model.Namespace{
 				Name:       namespace,
 				Comment:    namespaceToComment[namespace],
@@ -70,7 +70,7 @@ func (n *namespaceStore) InitData() error {
 				CreateTime: time.Now(),
 				ModifyTime: time.Now(),
 			})
-			if nil != err {
+			if err != nil {
 				return err
 			}
 		}
@@ -126,7 +126,7 @@ func (n *namespaceStore) ListNamespaces(owner string) ([]*model.Namespace, error
 			}
 			return strings.Contains(ownerValue.(string), owner)
 		})
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	return toNamespaces(values), nil
@@ -135,7 +135,7 @@ func (n *namespaceStore) ListNamespaces(owner string) ([]*model.Namespace, error
 // GetNamespace query namespace by name
 func (n *namespaceStore) GetNamespace(name string) (*model.Namespace, error) {
 	values, err := n.handler.LoadValues(tblNameNamespace, []string{name}, &model.Namespace{})
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	nsValue, ok := values[name]
@@ -167,7 +167,7 @@ func (ns NamespaceSlice) Swap(i, j int) {
 func (n *namespaceStore) GetNamespaces(
 	filter map[string][]string, offset, limit int) ([]*model.Namespace, uint32, error) {
 	values, err := n.handler.LoadValuesAll(tblNameNamespace, &model.Namespace{})
-	if nil != err {
+	if err != nil {
 		return nil, 0, err
 	}
 	namespaces := NamespaceSlice(toNamespaces(values))
@@ -238,7 +238,7 @@ func (n *namespaceStore) GetMoreNamespaces(mtime time.Time) ([]*model.Namespace,
 			}
 			return mTimeValue.(time.Time).After(mtime)
 		})
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	return toNamespaces(values), nil

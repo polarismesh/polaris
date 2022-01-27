@@ -19,13 +19,14 @@ package token
 
 import (
 	"fmt"
-	"github.com/polarismesh/polaris-server/plugin"
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
+
+	"github.com/polarismesh/polaris-server/plugin"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
-// 测试新建
+// TestNewResourceRatelimit 测试新建
 func TestNewResourceRatelimit(t *testing.T) {
 	Convey("测试新建一个资源限制器", t, func() {
 		Convey("config为空", func() {
@@ -95,7 +96,7 @@ func TestNewResourceRatelimit(t *testing.T) {
 	})
 }
 
-// 测试allow
+// TestResourceAllow 测试allow
 func TestResourceAllow(t *testing.T) {
 	Convey("测试allow", t, func() {
 		Convey("正常限流", func() {

@@ -26,9 +26,10 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/common/api/l5"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"go.uber.org/zap"
 )
 
 type l5Code uint32
@@ -43,7 +44,7 @@ const (
 	l5PacketCmdFailed
 )
 
-// 连接处理的协程函数
+// handleConnection 连接处理的协程函数
 // 每个客户端会新建一个协程
 // 使用方法 go handleConnection(conn)
 func (l *L5pbserver) handleConnection(conn net.Conn) {
@@ -85,7 +86,7 @@ func (l *L5pbserver) handleConnection(conn net.Conn) {
 	}
 }
 
-// cl5请求的handle入口
+// handleRequest cl5请求的handle入口
 func (l *L5pbserver) handleRequest(req *cl5Request, requestData []byte) l5Code {
 	req.start = time.Now() // 从解包开始计算开始时间
 	cl5Pkg := &l5.Cl5Pkg{}
@@ -111,7 +112,7 @@ func (l *L5pbserver) handleRequest(req *cl5Request, requestData []byte) l5Code {
 	return req.code
 }
 
-// 根据SID列表获取路由信息
+// handleSyncByAgentCmd 根据SID列表获取路由信息
 func (l *L5pbserver) handleSyncByAgentCmd(conn net.Conn, iPkg *l5.Cl5Pkg) l5Code {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, utils.Cl5ServerCluster{}, l.clusterName)
@@ -137,7 +138,7 @@ func (l *L5pbserver) handleSyncByAgentCmd(conn net.Conn, iPkg *l5.Cl5Pkg) l5Code
 	return response(conn, oPkg)
 }
 
-// 根据服务名列表寻找对应的SID列表
+// handleRegisterByNameCmd 根据服务名列表寻找对应的SID列表
 func (l *L5pbserver) handleRegisterByNameCmd(conn net.Conn, iPkg *l5.Cl5Pkg) l5Code {
 	registerByNameAck, err := l.namingServer.RegisterByNameCmd(iPkg.GetRegisterByNameCmd())
 	if err != nil {
@@ -156,7 +157,7 @@ func (l *L5pbserver) handleRegisterByNameCmd(conn net.Conn, iPkg *l5.Cl5Pkg) l5C
 	return response(conn, oPkg)
 }
 
-// 请求包完整性检查
+// checkRequest 请求包完整性检查
 func checkRequest(buffer []byte) int {
 	var length uint32
 	isLittle := isLittleEndian()
@@ -169,7 +170,6 @@ func checkRequest(buffer []byte) int {
 	return int(length)
 }
 
-// 回复数据
 func response(conn net.Conn, pkg *l5.Cl5Pkg) l5Code {
 	responseData, err := proto.Marshal(pkg)
 	if err != nil {
@@ -201,7 +201,7 @@ func response(conn net.Conn, pkg *l5.Cl5Pkg) l5Code {
 	return l5Success
 }
 
-// 判断系统是大端/小端存储
+// isLittleEndian 判断系统是大端/小端存储
 func isLittleEndian() bool {
 	a := int16(0x1234)
 	b := int8(a)

@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
+
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
@@ -197,7 +198,7 @@ func (r *rateLimitStore) GetRateLimitWithID(id string) (*model.RateLimit, error)
 	return nil, nil
 }
 
-// 根据修改时间拉取增量限流规则及最新版本号
+// GetRateLimitsForCache 根据修改时间拉取增量限流规则及最新版本号
 func (r *rateLimitStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, []*model.RateLimitRevision, error) {
 	handler := r.handler
 

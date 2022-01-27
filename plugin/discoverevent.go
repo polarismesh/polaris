@@ -37,9 +37,7 @@ type DiscoverChannel interface {
 	PublishEvent(event model.DiscoverEvent)
 }
 
-/**
- * GetDiscoverEvent 获取服务发现事件插件
- */
+// GetDiscoverEvent 获取服务发现事件插件
 func GetDiscoverEvent() DiscoverChannel {
 	c := &config.DiscoverEvent
 

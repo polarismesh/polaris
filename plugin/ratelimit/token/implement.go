@@ -22,7 +22,7 @@ import (
 	"github.com/polarismesh/polaris-server/plugin"
 )
 
-// 插件初始化函数
+// initialize 插件初始化函数
 func (tb *tokenBucket) initialize(c *plugin.ConfigEntry) error {
 	config, err := decodeConfig(c.Option)
 	if err != nil {
@@ -57,7 +57,7 @@ func (tb *tokenBucket) initialize(c *plugin.ConfigEntry) error {
 	return nil
 }
 
-// 插件的限流实现函数
+// allow 插件的限流实现函数
 func (tb *tokenBucket) allow(typ plugin.RatelimitType, key string) bool {
 	// key为空，则不作限制
 	if key == "" {

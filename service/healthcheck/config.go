@@ -18,8 +18,9 @@
 package healthcheck
 
 import (
-	"github.com/polarismesh/polaris-server/plugin"
 	"time"
+
+	"github.com/polarismesh/polaris-server/plugin"
 )
 
 // Config 健康检查配置

@@ -32,7 +32,7 @@ import (
 
 const (
 	PluginName        string = "discoverEventLocal"
-	defaultBufferSize        = 1024
+	defaultBufferSize int    = 1024
 )
 
 var (
@@ -219,6 +219,5 @@ func (el *discoverEventLocal) writeToFile(eventHolder *eventBufferHolder) {
 			event.EType,
 			event.CreateTimeSec,
 			utils.LocalHost))
-
 	}
 }

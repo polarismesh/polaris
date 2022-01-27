@@ -42,6 +42,13 @@ type boltStore struct {
 	*circuitBreakerStore
 	*toolStore
 
+	//配置中心stores
+	*configFileGroupStore
+	*configFileStore
+	*configFileReleaseStore
+	*configFileReleaseHistoryStore
+	*configFileTagStore
+
 	handler BoltHandler
 	start   bool
 }
@@ -59,15 +66,15 @@ func (m *boltStore) Initialize(c *store.Config) error {
 	boltConfig := &BoltConfig{}
 	boltConfig.Parse(c.Option)
 	handler, err := NewBoltHandler(boltConfig)
-	if nil != err {
+	if err != nil {
 		return err
 	}
 	m.handler = handler
-	if err = m.newStore(); nil != err {
+	if err = m.newStore(); err != nil {
 		_ = handler.Close()
 		return err
 	}
-	if err = m.initStoreData(); nil != err {
+	if err = m.initStoreData(); err != nil {
 		_ = handler.Close()
 		return err
 	}
@@ -96,7 +103,7 @@ func (m *boltStore) initStoreData() error {
 			CreateTime: curTime,
 			ModifyTime: curTime,
 		})
-		if nil != err {
+		if err != nil {
 			return err
 		}
 	}
@@ -113,7 +120,7 @@ func (m *boltStore) initStoreData() error {
 			CreateTime: curTime,
 			ModifyTime: curTime,
 		})
-		if nil != err {
+		if err != nil {
 			return err
 		}
 	}
@@ -122,12 +129,12 @@ func (m *boltStore) initStoreData() error {
 
 func (m *boltStore) newStore() error {
 	m.l5Store = &l5Store{handler: m.handler}
-	if err := m.l5Store.InitL5Data(); nil != err {
+	if err := m.l5Store.InitL5Data(); err != nil {
 		return err
 	}
 
 	m.namespaceStore = &namespaceStore{handler: m.handler}
-	if err := m.namespaceStore.InitData(); nil != err {
+	if err := m.namespaceStore.InitData(); err != nil {
 		return err
 	}
 	m.businessStore = &businessStore{handler: m.handler}
@@ -149,7 +156,7 @@ func (m *boltStore) newStore() error {
 
 // Destroy destroy store
 func (m *boltStore) Destroy() error {
-	if nil != m.handler {
+	if m.handler != nil {
 		return m.handler.Close()
 	}
 	return nil
@@ -158,6 +165,10 @@ func (m *boltStore) Destroy() error {
 //CreateTransaction create store transaction
 func (m *boltStore) CreateTransaction() (store.Transaction, error) {
 	return &transaction{handler: m.handler}, nil
+}
+
+func (m *boltStore) StartTx() (store.Tx, error) {
+	return m.handler.StartTx()
 }
 
 func init() {

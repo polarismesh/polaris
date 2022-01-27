@@ -19,19 +19,21 @@ package token
 
 import (
 	"errors"
-	"github.com/polarismesh/polaris-server/common/log"
-	"golang.org/x/time/rate"
 	"sync"
+
+	"golang.org/x/time/rate"
+
+	"github.com/polarismesh/polaris-server/common/log"
 )
 
-// 接口限流类
+// apiRatelimit 接口限流类
 type apiRatelimit struct {
 	rules  map[string]*BucketRatelimit // 存储规则
 	apis   *sync.Map                   // 存储api -> apiLimiter
 	config *APILimitConfig
 }
 
-// 新建一个接口限流类
+// newAPIRatelimit 新建一个接口限流类
 func newAPIRatelimit(config *APILimitConfig) (*apiRatelimit, error) {
 	art := &apiRatelimit{}
 	if err := art.initialize(config); err != nil {
@@ -41,7 +43,7 @@ func newAPIRatelimit(config *APILimitConfig) (*apiRatelimit, error) {
 	return art, nil
 }
 
-// 接口限流具体实现
+// initialize 接口限流具体实现
 func (art *apiRatelimit) initialize(config *APILimitConfig) error {
 	art.config = config
 	if config == nil || !config.Open {
@@ -59,7 +61,7 @@ func (art *apiRatelimit) initialize(config *APILimitConfig) error {
 	return nil
 }
 
-// 解析限流规则
+// parseRules 解析限流规则
 func (art *apiRatelimit) parseRules(rules []*RateLimitRule) error {
 	if len(rules) == 0 {
 		return errors.New("invalid api rate limit config, rules are empty")
@@ -82,7 +84,7 @@ func (art *apiRatelimit) parseRules(rules []*RateLimitRule) error {
 	return nil
 }
 
-// 解析每个api的限流
+// parseApis 解析每个api的限流
 func (art *apiRatelimit) parseApis(apis []*APILimitInfo) error {
 	if len(apis) == 0 {
 		return errors.New("invalid api rate limit config, apis are empty")
@@ -106,7 +108,7 @@ func (art *apiRatelimit) parseApis(apis []*APILimitInfo) error {
 	return nil
 }
 
-// 创建一个私有limiter
+// createLimiter 创建一个私有limiter
 func (art *apiRatelimit) createLimiter(name string, limit *BucketRatelimit) *apiLimiter {
 	limiter := newAPILimiter(name, limit.Open, limit.Rate, limit.Bucket)
 	art.apis.Store(name, limiter)
@@ -152,7 +154,7 @@ type apiLimiter struct {
 	*rate.Limiter        // 令牌桶对象
 }
 
-// 新建一个apiLimiter
+// newAPILimiter 新建一个apiLimiter
 func newAPILimiter(name string, open bool, r int, b int) *apiLimiter {
 	limiter := &apiLimiter{
 		open:    false,
@@ -168,7 +170,7 @@ func newAPILimiter(name string, open bool, r int, b int) *apiLimiter {
 	return limiter
 }
 
-// 继承rate.Limiter.Allow函数
+// Allow 继承rate.Limiter.Allow函数
 func (a *apiLimiter) Allow() bool {
 	// 当前接口不开启限流
 	if !a.open {

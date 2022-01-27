@@ -28,9 +28,7 @@ var (
 	once      = &sync.Once{}
 )
 
-/**
- * RegisterPlugin 注册插件
- */
+// RegisterPlugin 注册插件
 func RegisterPlugin(name string, plugin Plugin) {
 	if _, exist := pluginSet[name]; exist {
 		panic(fmt.Sprintf("existed plugin: name=%v", name))
@@ -39,33 +37,25 @@ func RegisterPlugin(name string, plugin Plugin) {
 	pluginSet[name] = plugin
 }
 
-/**
- * SetPluginConfig 设置插件配置
- */
+// SetPluginConfig 设置插件配置
 func SetPluginConfig(c *Config) {
 	config = c
 }
 
-/**
- * Plugin 通用插件接口
- */
+// Plugin 通用插件接口
 type Plugin interface {
 	Name() string
 	Initialize(c *ConfigEntry) error
 	Destroy() error
 }
 
-/**
- * ConfigEntry 单个插件配置
- */
+// ConfigEntry 单个插件配置
 type ConfigEntry struct {
 	Name   string                 `yaml:"name"`
 	Option map[string]interface{} `yaml:"option"`
 }
 
-/**
- * Config 插件配置
- */
+// Config 插件配置
 type Config struct {
 	CMDB                 ConfigEntry `yaml:"cmdb"`
 	RateLimit            ConfigEntry `yaml:"ratelimit"`

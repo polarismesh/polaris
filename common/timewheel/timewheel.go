@@ -26,9 +26,7 @@ import (
 // a simple routine-safe timewheel, can only add task
 // not support update/delete
 
-/**
- * TimeWheel 时间轮结构体
- */
+// TimeWheel 时间轮结构体
 type TimeWheel struct {
 	name       string
 	interval   time.Duration
@@ -40,14 +38,10 @@ type TimeWheel struct {
 	stopCh     chan struct{}
 }
 
-/**
- * Callback 时间轮回调函数定义
- */
+// Callback 时间轮回调函数定义
 type Callback func(interface{})
 
-/**
- * Task 时间轮任务结构体
- */
+// Task 时间轮任务结构体
 type Task struct {
 	delayTime time.Duration
 	circle    int
@@ -55,9 +49,7 @@ type Task struct {
 	taskData  interface{}
 }
 
-/**
- * New 初始化时间轮
- */
+// New 初始化时间轮
 func New(interval time.Duration, slotNum int, name string) *TimeWheel {
 	if interval <= 0 || slotNum <= 0 {
 		return nil
@@ -80,24 +72,18 @@ func New(interval time.Duration, slotNum int, name string) *TimeWheel {
 	return timeWheel
 }
 
-/**
- * Start 启动时间轮
- */
+// Start 启动时间轮
 func (tw *TimeWheel) Start() {
 	tw.ticker = time.NewTicker(tw.interval)
 	go tw.start()
 }
 
-/**
- * Stop 停止时间轮
- */
+// Stop 停止时间轮
 func (tw *TimeWheel) Stop() {
 	close(tw.stopCh)
 }
 
-/**
- * start 时间轮运转函数
- */
+// start 时间轮运转函数
 func (tw *TimeWheel) start() {
 	for {
 		select {
@@ -110,9 +96,7 @@ func (tw *TimeWheel) start() {
 	}
 }
 
-/**
- * taskRunner 时间轮到期处理函数
- */
+// taskRunner 时间轮到期处理函数
 func (tw *TimeWheel) taskRunner() {
 	l := tw.slots[tw.currentPos]
 	tw.locks[tw.currentPos].Lock()
@@ -129,9 +113,7 @@ func (tw *TimeWheel) taskRunner() {
 	tw.currentPos++
 }
 
-/**
- * AddTask 新增时间轮任务
- */
+// AddTask 新增时间轮任务
 func (tw *TimeWheel) AddTask(delayMilli uint32, data interface{}, cb Callback) {
 	delayTime := time.Duration(delayMilli) * time.Millisecond
 	task := &Task{delayTime: delayTime, taskData: data, callback: cb}
@@ -143,9 +125,7 @@ func (tw *TimeWheel) AddTask(delayMilli uint32, data interface{}, cb Callback) {
 	tw.locks[pos].Unlock()
 }
 
-/**
- * scanAddRunTask 运行时间轮任务
- */
+// scanAddRunTask 运行时间轮任务
 func (tw *TimeWheel) scanAddRunTask(l *list.List) int {
 	if l == nil {
 		return 0
@@ -170,9 +150,7 @@ func (tw *TimeWheel) scanAddRunTask(l *list.List) int {
 	return execNum
 }
 
-/**
- * getSlots 获取当前时间轮位置
- */
+// getSlots 获取当前时间轮位置
 func (tw *TimeWheel) getSlots(d time.Duration) (pos int, circle int) {
 	delayTime := int(d.Seconds())
 	interval := int(tw.interval.Seconds())

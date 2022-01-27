@@ -47,10 +47,10 @@ type ServiceArgs struct {
 // Update 更新配置
 func (sc *serviceCache) Update() error {
 	var err error
-	if err = sc.update(); nil != err {
+	if err = sc.update(); err != nil {
 		return err
 	}
-	if err = sc.instCache.update(); nil != err {
+	if err = sc.instCache.update(); err != nil {
 		return err
 	}
 	return nil
@@ -85,7 +85,7 @@ func (sc *serviceCache) GetServicesByFilter(serviceFilters *ServiceArgs,
 }
 
 func hasInstanceFilter(instanceFilters *store.InstanceArgs) bool {
-	if nil == instanceFilters || (len(instanceFilters.Hosts) == 0 && len(instanceFilters.Ports) == 0) {
+	if instanceFilters == nil || (len(instanceFilters.Hosts) == 0 && len(instanceFilters.Ports) == 0) {
 		return false
 	}
 	return true
@@ -129,9 +129,7 @@ func (sc *serviceCache) matchInstances(instances []*model.Instance, instanceFilt
 	return matchedHost && matchedPort
 }
 
-/**
- * @brief 返回所有的命名空间
- */
+// GetAllNamespaces 返回所有的命名空间
 func (sc *serviceCache) GetAllNamespaces() []string {
 	var res []string
 	sc.names.Range(func(k, v interface{}) bool {
@@ -188,7 +186,7 @@ func sortBeforeTrim(services []*model.Service, offset, limit uint32) (uint32, []
 	return amount, services[offset:endIdx]
 }
 
-// 根据查询条件比较一个服务是否符合条件
+// matchService 根据查询条件比较一个服务是否符合条件
 func matchService(svc *model.Service, svcFilter map[string]string, metaFilter map[string]string, matchName bool) bool {
 	if !matchServiceFilter(svc, svcFilter, matchName) {
 		return false
@@ -196,7 +194,7 @@ func matchService(svc *model.Service, svcFilter map[string]string, metaFilter ma
 	return matchMetadata(svc, metaFilter)
 }
 
-// 查询一个服务是否满足服务相关字段的条件
+// matchServiceFilter 查询一个服务是否满足服务相关字段的条件
 func matchServiceFilter(svc *model.Service, svcFilter map[string]string, matchName bool) bool {
 	var value string
 	var exist bool
@@ -234,7 +232,7 @@ func matchServiceFilter(svc *model.Service, svcFilter map[string]string, matchNa
 	return true
 }
 
-// 检查一个服务是否包含有相关的元数据
+// matchMetadata 检查一个服务是否包含有相关的元数据
 func matchMetadata(svc *model.Service, metaFilter map[string]string) bool {
 	for k, v := range metaFilter {
 		value, ok := svc.Meta[k]
@@ -255,7 +253,7 @@ func (sc *serviceCache) matchInstance(svc *model.Service, instArgs *store.Instan
 	return true
 }
 
-// 通过遍历缓存中的服务
+// getServicesByIteratingCache 通过遍历缓存中的服务
 func (sc *serviceCache) getServicesByIteratingCache(
 	svcArgs *ServiceArgs, instArgs *store.InstanceArgs, offset, limit uint32) (uint32, []*model.Service, error) {
 	var res []*model.Service

@@ -20,12 +20,13 @@ package sqldb
 import (
 	"errors"
 	"fmt"
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
-// 测试retry
+// TestRetry 测试retry
 func TestRetry(t *testing.T) {
 	Convey("重试可以成功", t, func() {
 		var err error
@@ -64,7 +65,7 @@ func TestRetry(t *testing.T) {
 	})
 }
 
-// 测试retryTransaction
+// TestRetryTransaction 测试retryTransaction
 func TestRetryTransaction(t *testing.T) {
 	Convey("handle错误可以正常捕获", t, func() {
 		err := RetryTransaction("test-handle", func() error {
@@ -93,7 +94,7 @@ func TestRetryTransaction(t *testing.T) {
 	})
 }
 
-// 测试BatchOperation
+// TestBatchOperation 测试BatchOperation
 func TestBatchOperation(t *testing.T) {
 	Convey("data为nil", t, func() {
 		err := BatchOperation("data为nil", nil, func(objects []interface{}) error {
