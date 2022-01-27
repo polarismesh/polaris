@@ -18,20 +18,25 @@
 package healthcheck
 
 import (
-	"sync"
-
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/plugin"
+	"runtime"
 )
+
+var DefaultShardSize uint32
+
+func init() {
+	DefaultShardSize = uint32(runtime.GOMAXPROCS(0) * 16)
+	// Different machines can adjust this parameter of 16.In more cases, 16 is suitable ,
+	// can test it in shardmap_test.go
+}
 
 // CacheProvider provider health check objects for service cache
 type CacheProvider struct {
-	healthCheckInstances map[string]*InstanceWithChecker
-	healthCheckMutex     *sync.RWMutex
+	healthCheckInstances *shardMap
+	selfServiceInstances *shardMap
 	selfService          string
-	selfServiceInstances map[string]*InstanceWithChecker
-	selfServiceMutex     *sync.RWMutex
 }
 
 // CacheEvent provide the event for cache changes
@@ -42,10 +47,8 @@ type CacheEvent struct {
 
 func newCacheProvider(selfService string) *CacheProvider {
 	return &CacheProvider{
-		healthCheckInstances: make(map[string]*InstanceWithChecker),
-		healthCheckMutex:     &sync.RWMutex{},
-		selfServiceInstances: make(map[string]*InstanceWithChecker),
-		selfServiceMutex:     &sync.RWMutex{},
+		healthCheckInstances: NewShardMap(DefaultShardSize),
+		selfServiceInstances: NewShardMap(1),
 		selfService:          selfService,
 	}
 }
@@ -62,17 +65,16 @@ func (c *CacheProvider) sendEvent(event CacheEvent) {
 	server.dispatcher.UpdateStatusByEvent(event)
 }
 
-func compareAndStoreServiceInstance(
-	instanceWithChecker *InstanceWithChecker, mutex *sync.RWMutex, values map[string]*InstanceWithChecker) bool {
-	mutex.Lock()
-	defer mutex.Unlock()
+func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, values *shardMap) bool {
 	instanceId := instanceWithChecker.instance.ID()
-	value, ok := values[instanceId]
-	if !ok {
+	value, isNew := values.PutIfAbsent(instanceId, instanceWithChecker)
+	if value == nil {
+		return false
+	}
+	if isNew {
 		log.Infof("[Health Check][Cache]create service instance is %s:%d, id is %s",
 			instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(),
 			instanceId)
-		values[instanceId] = instanceWithChecker
 		return true
 	}
 	lastInstance := value.instance
@@ -81,31 +83,27 @@ func compareAndStoreServiceInstance(
 	}
 	log.Infof("[Health Check][Cache]update service instance is %s:%d, id is %s",
 		instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(), instanceId)
-	values[instanceId] = instanceWithChecker
+	// In the concurrent scenario, when the key and version are the same,
+	// if they arrive here at the same time, they will be saved multiple times.
+	values.Store(instanceId, instanceWithChecker)
 	return true
 }
 
-func storeServiceInstance(
-	instanceWithChecker *InstanceWithChecker, mutex *sync.RWMutex, values map[string]*InstanceWithChecker) bool {
-	mutex.Lock()
-	defer mutex.Unlock()
+func storeServiceInstance(instanceWithChecker *InstanceWithChecker, values *shardMap) bool {
 	log.Infof("[Health Check][Cache]create service instance is %s:%d, id is %s",
 		instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(),
 		instanceWithChecker.instance.ID())
 	instanceId := instanceWithChecker.instance.ID()
-	values[instanceId] = instanceWithChecker
+	values.Store(instanceId, instanceWithChecker)
 	return true
 }
 
-func deleteServiceInstance(instance *api.Instance, mutex *sync.RWMutex, values map[string]*InstanceWithChecker) bool {
-	mutex.Lock()
-	defer mutex.Unlock()
+func deleteServiceInstance(instance *api.Instance, values *shardMap) bool {
 	instanceId := instance.GetId().GetValue()
-	_, ok := values[instanceId]
+	ok := values.DeleteIfExist(instanceId)
 	if ok {
 		log.Infof("[Health Check][Cache]delete service instance is %s:%d, id is %s",
 			instance.GetHost().GetValue(), instance.GetPort().GetValue(), instanceId)
-		delete(values, instanceId)
 	}
 	return true
 }
@@ -130,8 +128,7 @@ func (c *CacheProvider) OnCreated(value interface{}) {
 	if instance, ok := value.(*model.Instance); ok {
 		instProto := instance.Proto
 		if c.isSelfServiceInstance(instProto) {
-			storeServiceInstance(
-				newInstanceWithChecker(instance, nil), c.selfServiceMutex, c.selfServiceInstances)
+			storeServiceInstance(newInstanceWithChecker(instance, nil), c.selfServiceInstances)
 			c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
 			return
 		}
@@ -139,7 +136,7 @@ func (c *CacheProvider) OnCreated(value interface{}) {
 		if !hcEnable {
 			return
 		}
-		storeServiceInstance(newInstanceWithChecker(instance, checker), c.healthCheckMutex, c.healthCheckInstances)
+		storeServiceInstance(newInstanceWithChecker(instance, checker), c.healthCheckInstances)
 		c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 	}
 }
@@ -160,37 +157,41 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 	if instance, ok := value.(*model.Instance); ok {
 		instProto := instance.Proto
 		if c.isSelfServiceInstance(instProto) {
-			if compareAndStoreServiceInstance(
-				newInstanceWithChecker(instance, nil), c.selfServiceMutex, c.selfServiceInstances) {
+			if compareAndStoreServiceInstance(newInstanceWithChecker(instance, nil), c.selfServiceInstances) {
 				c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
 			}
 			return
 		}
 		//check exists
-		c.healthCheckMutex.Lock()
-		defer c.healthCheckMutex.Unlock()
 		instanceId := instance.ID()
-		healthCheckInstanceValue, exists := c.healthCheckInstances[instanceId]
+		healthCheckInstanceValue, exists := c.healthCheckInstances.Load(instanceId)
 		hcEnable, checker := isHealthCheckEnable(instProto)
 		if !hcEnable {
 			if !exists {
+				// instance is unhealthy, not exist, just return.
 				return
 			}
 			log.Infof("[Health Check][Cache]delete health check disabled instance is %s:%d, id is %s",
 				instance.Host(), instance.Port(), instanceId)
-			delete(c.healthCheckInstances, instanceId)
-			c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
+			// instance is unhealthy, but exist, delete it.
+			ok := c.healthCheckInstances.DeleteIfExist(instanceId)
+			if ok {
+				c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
+			}
 			return
 		}
 		var noChanged bool
 		if exists {
+			//instance is healthy, exists, consistent healthCheckInstance.Revision(), no need to change。
 			healthCheckInstance := healthCheckInstanceValue.instance
 			noChanged = healthCheckInstance.Revision() == instance.Revision()
 		}
 		if !noChanged {
 			log.Infof("[Health Check][Cache]update service instance is %s:%d, id is %s",
 				instance.Host(), instance.Port(), instanceId)
-			c.healthCheckInstances[instanceId] = newInstanceWithChecker(instance, checker)
+			//   In the concurrent scenario, when the healthCheckInstance.Revision() of the same health instance is the same,
+			//   if it arrives here at the same time, it will be saved multiple times
+			c.healthCheckInstances.Store(instanceId, newInstanceWithChecker(instance, checker))
 			c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 		}
 	}
@@ -201,14 +202,14 @@ func (c *CacheProvider) OnDeleted(value interface{}) {
 	if instance, ok := value.(*model.Instance); ok {
 		instProto := instance.Proto
 		if c.isSelfServiceInstance(instProto) {
-			deleteServiceInstance(instProto, c.selfServiceMutex, c.selfServiceInstances)
+			deleteServiceInstance(instProto, c.selfServiceInstances)
 			c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
 			return
 		}
 		if !instProto.GetEnableHealthCheck().GetValue() || nil == instProto.GetHealthCheck() {
 			return
 		}
-		deleteServiceInstance(instProto, c.healthCheckMutex, c.healthCheckInstances)
+		deleteServiceInstance(instProto, c.healthCheckInstances)
 		c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 	}
 }
@@ -230,27 +231,24 @@ func (c *CacheProvider) OnBatchDeleted(value interface{}) {
 
 // RangeHealthCheckInstances range loop healthCheckInstances
 func (c *CacheProvider) RangeHealthCheckInstances(check func(instance *InstanceWithChecker)) {
-	c.healthCheckMutex.RLock()
-	defer c.healthCheckMutex.RUnlock()
-	for _, value := range c.healthCheckInstances {
-		check(value)
-	}
+
+	c.healthCheckInstances.Range(func(instanceId string, healthCheckInstance *InstanceWithChecker) {
+		check(healthCheckInstance)
+	})
 }
 
 // RangeSelfServiceInstances range loop selfServiceInstances
 func (c *CacheProvider) RangeSelfServiceInstances(check func(instance *api.Instance)) {
-	c.selfServiceMutex.RLock()
-	defer c.selfServiceMutex.RUnlock()
-	for _, value := range c.selfServiceInstances {
-		check(value.instance.Proto)
-	}
+
+	c.selfServiceInstances.Range(func(instanceId string, selfServiceInstance *InstanceWithChecker) {
+		check(selfServiceInstance.instance.Proto)
+	})
 }
 
 // GetInstance get instance by id
-func (c *CacheProvider) GetInstance(id string) *model.Instance {
-	c.healthCheckMutex.RLock()
-	defer c.healthCheckMutex.RUnlock()
-	value, ok := c.healthCheckInstances[id]
+func (c *CacheProvider) GetInstance(instanceId string) *model.Instance {
+
+	value, ok := c.healthCheckInstances.Load(instanceId)
 	if !ok {
 		return nil
 	}
