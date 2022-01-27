@@ -21,7 +21,9 @@ import (
 	"github.com/polarismesh/polaris-server/apiserver"
 )
 
-// init 自注册到API服务器插槽
+/**
+ * @brief 自注册到API服务器插槽
+ */
 func init() {
 	_ = apiserver.Register("eurekaserver", &EurekaServer{})
 }
