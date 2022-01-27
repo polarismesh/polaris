@@ -5,21 +5,69 @@ bootstrap:
     config:
       rotateOutputPath: log/polaris-config.log
       errorRotateOutputPath: log/polaris-config-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      outputPaths:
+      - stdout
+      errorOutputPaths:
+      - stderr
     auth:
       rotateOutputPath: log/polaris-auth.log
       errorRotateOutputPath: log/polaris-auth-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      outputPaths:
+        - stdout
+      errorOutputPaths:
+        - stderr
     store:
       rotateOutputPath: log/polaris-store.log
       errorRotateOutputPath: log/polaris-store-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      outputPaths:
+        - stdout
+      errorOutputPaths:
+        - stderr
     cache:
       rotateOutputPath: log/polaris-cache.log
       errorRotateOutputPath: log/polaris-cache-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      outputPaths:
+        - stdout
+      errorOutputPaths:
+        - stderr
     naming:
       rotateOutputPath: log/polaris-naming.log
       errorRotateOutputPath: log/polaris-naming-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      outputPaths:
+        - stdout
+      errorOutputPaths:
+        - stderr
     default:
       rotateOutputPath: log/polaris-default.log
       errorRotateOutputPath: log/polaris-default-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      outputPaths:
+        - stdout
+      errorOutputPaths:
+        - stderr
   # 按顺序启动server
   startInOrder:
     open: true # 是否开启，默认是关闭
