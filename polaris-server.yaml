@@ -35,6 +35,22 @@ bootstrap:
           - grpcserver
 # apiserver配置
 apiservers:
+  - name: eurekaserver
+    option:
+      listenIP: "0.0.0.0"
+      listenPort: 8761
+      namespace: default
+      owner: polaris
+      refreshInterval: 10
+      deltaExpireInterval: 60
+      unhealthyExpireInterval: 180
+      connLimit:
+        openConnLimit: false
+        maxConnPerHost: 1024
+        maxConnLimit: 10240
+        whiteList: 127.0.0.1
+        purgeCounterInterval: 10s
+        purgeCounterExpired: 5s
   - name: httpserver # 协议名，全局唯一
     option:
       listenIP: "0.0.0.0"
