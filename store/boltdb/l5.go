@@ -91,11 +91,11 @@ func (l *l5Store) GenNextL5Sid(layoutID uint32) (string, error) {
 	var prnum *uint64
 	err := l.handler.Execute(true, func(tx *bolt.Tx) error {
 		tblBucket := tx.Bucket([]byte(tblNameL5))
-		if nil == tblBucket {
+		if tblBucket == nil {
 			return fmt.Errorf("[BlobStore] table bucket %s not exists", tblNameL5)
 		}
 		rowBucket := tblBucket.Bucket([]byte(rowSidKey))
-		if nil == rowBucket {
+		if rowBucket == nil {
 			return fmt.Errorf("[BlobStore] row bucket %s not exists", rowSidKey)
 		}
 		midBytes := rowBucket.Get([]byte(colModuleId))
