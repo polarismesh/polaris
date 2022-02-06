@@ -82,7 +82,7 @@ type Server struct {
 
 	l5service *l5service
 
-	creareServiceSingle *singleflight.Group
+	creatServiceSingle *singleflight.Group
 }
 
 // Initialize 初始化
@@ -257,7 +257,7 @@ func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, 
 	// l5service
 	server.l5service = &l5service{}
 
-	server.creareServiceSingle = &singleflight.Group{}
+	server.creatServiceSingle = &singleflight.Group{}
 
 	// 插件初始化
 	pluginInitialize()

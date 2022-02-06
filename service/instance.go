@@ -900,7 +900,7 @@ func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instan
 
 	key := fmt.Sprintf("%s:%s", simpleService.Namespace, simpleService.Name)
 
-	ret, _, _ := s.creareServiceSingle.Do(key, func() (interface{}, error) {
+	ret, _, _ := s.creatServiceSingle.Do(key, func() (interface{}, error) {
 		resp := s.CreateService(ctx, simpleService)
 		return resp, nil
 	})

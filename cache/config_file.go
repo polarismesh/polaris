@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
@@ -41,33 +42,35 @@ type FileCacheParam struct {
 	ExpireTimeAfterWrite int
 }
 
-// FileCache 文件缓存，使用 loading cache 懒加载策略。同时写入时设置过期时间，定时清理过期的缓存。
+// FileCache use the lazy loading strategy. At the same time,
+// setting the expiration time when creating to clear the expired cache.
 type FileCache struct {
 	params  FileCacheParam
 	storage store.Store
 	//fileId -> Entry
 	files *sync.Map
-	//fileId -> lock
-	fileLoadLocks *sync.Map
+
+	singleFlight *singleflight.Group
 }
 
-// Entry 缓存实体对象
+// Entry is cache entity objects
 type Entry struct {
 	Content string
 	Md5     string
 	Version uint64
-	//创建的时候，设置过期时间
+	//ExpireTime sets the expiration time when creating to clear the expired cache.
 	ExpireTime time.Time
-	//标识是否是空缓存
+	//Empty identifies whether the cache is empty
 	Empty bool
 }
 
+// NewFileCache creates a new FileCache
 func NewFileCache(ctx context.Context, storage store.Store, param FileCacheParam) *FileCache {
 	cache := &FileCache{
-		params:        param,
-		storage:       storage,
-		files:         new(sync.Map),
-		fileLoadLocks: new(sync.Map),
+		params:       param,
+		storage:      storage,
+		files:        new(sync.Map),
+		singleFlight: new(singleflight.Group),
 	}
 
 	go cache.startClearExpireEntryTask(ctx)
@@ -76,7 +79,7 @@ func NewFileCache(ctx context.Context, storage store.Store, param FileCacheParam
 	return cache
 }
 
-// Get 一般用于内部服务调用，所以不计入 metrics
+// Get generally used for internal service calls, so it is not included in metrics
 func (fc *FileCache) Get(namespace, group, fileName string) (*Entry, bool) {
 	fileId := utils.GenFileId(namespace, group, fileName)
 	storedEntry, ok := fc.files.Load(fileId)
@@ -87,7 +90,9 @@ func (fc *FileCache) Get(namespace, group, fileName string) (*Entry, bool) {
 	return nil, false
 }
 
-// GetOrLoadIfAbsent 获取缓存，如果缓存没命中则会从数据库中加载，如果数据库里获取不到数据，则会缓存一个空对象防止缓存一直被击穿
+// GetOrLoadIfAbsent gets fileCache.If the cache misses, it will be loaded from the database.
+// If the data can't be obtained from the database, an empty object will be cached
+// to prevent the cache from being broken down all the time.
 func (fc *FileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entry, error) {
 	getCnt++
 
@@ -96,88 +101,85 @@ func (fc *FileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 	if ok {
 		return storedEntry.(*Entry), nil
 	}
-
-	//缓存未命中，则从数据库里加载数据
-
-	//为了避免在大并发量的情况下，数据库被压垮，所以增加锁。同时为了提高性能，减小锁粒度
-	lockObj, _ := fc.fileLoadLocks.LoadOrStore(fileId, new(sync.Mutex))
-	loadLock := lockObj.(*sync.Mutex)
-	loadLock.Lock()
-	defer loadLock.Unlock()
-
-	//double check
-	storedEntry, ok = fc.files.Load(fileId)
-	if ok {
-		return storedEntry.(*Entry), nil
-	}
-
-	// 从数据库中加载数据
-	loadCnt++
-
-	file, err := fc.storage.GetConfigFileRelease(nil, namespace, group, fileName)
-	if err != nil {
-		log.ConfigScope().Error("[Config][Cache] load config file release error.",
-			zap.String("namespace", namespace),
-			zap.String("group", group),
-			zap.String("fileName", fileName),
-			zap.Error(err))
-		return nil, err
-	}
-
-	//数据库中没有该对象, 为了避免对象不存在时，一直击穿数据库，所以缓存空对象
-	if file == nil {
-		emptyEntry := &Entry{
-			ExpireTime: fc.getExpireTime(),
-			Empty:      true,
+	// Cache miss, load data from database.
+	// To avoid the database being overwhelmed in the case of large concurrency,
+	// use singleFlight to ensure concurrency safety.
+	storedEntry, err, _ := fc.singleFlight.Do(fileId, func() (interface{}, error) {
+		storedEntry, ok = fc.files.Load(fileId)
+		if ok {
+			return storedEntry.(*Entry), nil
 		}
-		fc.files.Store(fileId, emptyEntry)
-		return emptyEntry, nil
-	}
 
-	//数据库中有对象，更新缓存
-	newEntry := &Entry{
-		Content:    file.Content,
-		Md5:        file.Md5,
-		Version:    file.Version,
-		ExpireTime: fc.getExpireTime(),
-		Empty:      false,
-	}
+		loadCnt++
+		// load data from database
+		file, err := fc.storage.GetConfigFileRelease(nil, namespace, group, fileName)
+		if err != nil {
+			log.ConfigScope().Error("[Config][Cache] load config file release error.",
+				zap.String("namespace", namespace),
+				zap.String("group", group),
+				zap.String("fileName", fileName),
+				zap.Error(err))
+			return nil, err
+		}
 
-	//缓存不存在，则直接存入缓存
-	if !ok {
-		fc.files.Store(fileId, newEntry)
+		//data can't be obtained from the database, an empty object will be cached
+		if file == nil {
+			emptyEntry := &Entry{
+				ExpireTime: fc.getExpireTime(),
+				Empty:      true,
+			}
+			fc.files.Store(fileId, emptyEntry)
+			return emptyEntry, nil
+		}
+
+		//data in the database, update the cache
+		newEntry := &Entry{
+			Content:    file.Content,
+			Md5:        file.Md5,
+			Version:    file.Version,
+			ExpireTime: fc.getExpireTime(),
+			Empty:      false,
+		}
+
+		//cache isn't exist, it is directly stored in the cache
+		if !ok {
+			fc.files.Store(fileId, newEntry)
+			return newEntry, nil
+		}
+
+		//cache exists, the idempotent judgment can only be stored in the cache with a larger version number
+		oldEntry := storedEntry.(*Entry)
+		if oldEntry.Empty || newEntry.Version > oldEntry.Version {
+			fc.files.Store(fileId, newEntry)
+		}
 		return newEntry, nil
-	}
+	})
 
-	//缓存存在，幂等判断只能存入版本号更大的
-	oldEntry := storedEntry.(*Entry)
-	if oldEntry.Empty || newEntry.Version > oldEntry.Version {
-		fc.files.Store(fileId, newEntry)
-	}
+	return storedEntry.(*Entry), err
 
-	return newEntry, nil
 }
 
-// Remove 删除缓存对象
+// Remove deletes fileCache
 func (fc *FileCache) Remove(namespace, group, fileName string) {
 	removeCnt++
 	fileId := utils.GenFileId(namespace, group, fileName)
 	fc.files.Delete(fileId)
 }
 
-// ReLoad 重新加载缓存
+// ReLoad reloads fileCache
 func (fc *FileCache) ReLoad(namespace, group, fileName string) (*Entry, error) {
 	fc.Remove(namespace, group, fileName)
 	return fc.GetOrLoadIfAbsent(namespace, group, fileName)
 }
 
-//缓存过期时间，为了避免集中失效，加上随机数。[60 ~ 70]分钟内随机失效
+// getExpireTime sets random expire time to avoid expiring simultaneously.
+// the random expireTime is between 60 minutes and 70 minutes.
 func (fc *FileCache) getExpireTime() time.Time {
 	randTime := rand.Intn(10*60) + fc.params.ExpireTimeAfterWrite
 	return time.Now().Add(time.Duration(randTime) * time.Second)
 }
 
-//定时清理过期的缓存
+// startClearExpireEntryTask regular cleans expired cache.
 func (fc *FileCache) startClearExpireEntryTask(ctx context.Context) {
 	t := time.NewTicker(time.Minute)
 	defer t.Stop()
@@ -204,7 +206,7 @@ func (fc *FileCache) startClearExpireEntryTask(ctx context.Context) {
 	}
 }
 
-//print cache status at fix rate
+// startLogStatusTask prints cache status at fix rate
 func (fc *FileCache) startLogStatusTask(ctx context.Context) {
 	t := time.NewTicker(time.Minute)
 	defer t.Stop()
