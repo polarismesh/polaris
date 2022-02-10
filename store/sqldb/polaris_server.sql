@@ -635,7 +635,7 @@ CREATE TABLE `config_file_group`(
     `name`        varchar(128) COLLATE utf8_bin NOT NULL COMMENT '配置文件分组名',
     `namespace`   varchar(64) COLLATE utf8_bin  NOT NULL COMMENT '所属的namespace',
     `comment`     varchar(512) COLLATE utf8_bin          DEFAULT NULL COMMENT '备注信息',
-    `owner`       varchar(1024) COLLATE utf8_bin NOT NULL COMMENT '负责人',
+    `owner`       varchar(1024) COLLATE utf8_bin DEFAULT NULL COMMENT '负责人',
     `create_time` timestamp                     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `create_by`   varchar(32) COLLATE utf8_bin           DEFAULT NULL COMMENT '创建人',
     `modify_time` timestamp                     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',

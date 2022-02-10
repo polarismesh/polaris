@@ -79,7 +79,7 @@ func (cs *Impl) doCheckClientConfigFile(ctx context.Context, configFiles []*api.
 		}
 	}
 
-	return nil
+	return api.NewConfigClientResponse(api.DataNoChange, nil)
 }
 
 // GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存

@@ -81,7 +81,7 @@ func (h *HTTPServer) watchConfigFile(req *restful.Request, rsp *restful.Response
 	watchFiles := watchConfigFileRequest.WatchFiles
 	//2. 检查客户端是否有版本落后
 	response := h.configServer.Service().CheckClientConfigFileByVersion(handler.ParseHeaderContext(), watchFiles)
-	if response != nil {
+	if response.Code.GetValue() != api.DataNoChange {
 		handler.WriteHeaderAndProto(response)
 		return
 	}
