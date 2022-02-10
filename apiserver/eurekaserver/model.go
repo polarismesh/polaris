@@ -28,7 +28,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
-// PortWrapper 端口包装类
+//端口包装类
 type PortWrapper struct {
 	Port interface{} `json:"$" xml:",chardata"`
 
@@ -66,7 +66,7 @@ func (p *PortWrapper) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 func (p *PortWrapper) convertPortValue() error {
 	if jsonNumber, ok := p.Port.(json.Number); ok {
 		realPort, err := jsonNumber.Int64()
-		if err != nil {
+		if nil != err {
 			return err
 		}
 		p.RealPort = int(realPort)
@@ -87,7 +87,7 @@ func (p *PortWrapper) convertPortValue() error {
 func (p *PortWrapper) convertEnableValue() error {
 	if jsonEnableStr, ok := p.Enabled.(string); ok {
 		enableValue, err := strconv.ParseBool(jsonEnableStr)
-		if err != nil {
+		if nil != err {
 			return err
 		}
 		p.RealEnable = enableValue
@@ -100,41 +100,47 @@ func (p *PortWrapper) convertEnableValue() error {
 	return fmt.Errorf("unknow type of enable value, type is %v", reflect.TypeOf(p.Enabled))
 }
 
-// DataCenterInfo 数据中心信息
+//数据中心信息
 type DataCenterInfo struct {
 	Clazz string `json:"@class" xml:"class,attr"`
-	Name  string `json:"name" xml:"name"`
+
+	Name string `json:"name" xml:"name"`
 }
 
-// LeaseInfo 租约信息
+//租约信息
 type LeaseInfo struct {
+
 	// Client settings
 	RenewalIntervalInSecs int `json:"renewalIntervalInSecs" xml:"renewalIntervalInSecs"`
-	DurationInSecs        int `json:"durationInSecs" xml:"durationInSecs"`
+
+	DurationInSecs int `json:"durationInSecs" xml:"durationInSecs"`
 
 	// Server populated
 	RegistrationTimestamp int `json:"registrationTimestamp" xml:"registrationTimestamp"`
-	LastRenewalTimestamp  int `json:"lastRenewalTimestamp" xml:"lastRenewalTimestamp"`
-	EvictionTimestamp     int `json:"evictionTimestamp" xml:"evictionTimestamp"`
-	ServiceUpTimestamp    int `json:"serviceUpTimestamp" xml:"serviceUpTimestamp"`
+
+	LastRenewalTimestamp int `json:"lastRenewalTimestamp" xml:"lastRenewalTimestamp"`
+
+	EvictionTimestamp int `json:"evictionTimestamp" xml:"evictionTimestamp"`
+
+	ServiceUpTimestamp int `json:"serviceUpTimestamp" xml:"serviceUpTimestamp"`
 }
 
-// RegistrationRequest 实例注册请求
+//实例注册请求
 type RegistrationRequest struct {
 	Instance *InstanceInfo `json:"instance"`
 }
 
-// ApplicationsResponse 服务拉取应答
+//服务拉取应答
 type ApplicationsResponse struct {
 	Applications *Applications `json:"applications"`
 }
 
-// ApplicationResponse 单个服务拉取响应
+//单个服务拉取响应
 type ApplicationResponse struct {
 	Application *Application `json:"application"`
 }
 
-// InstanceResponse 单个服务实例拉取响应
+//单个服务实例拉取响应
 type InstanceResponse struct {
 	InstanceInfo *InstanceInfo `json:"instance" xml:"instance"`
 }
@@ -165,7 +171,7 @@ func (i *Metadata) UnmarshalJSON(b []byte) error {
 func (i *Metadata) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	i.Meta = make(map[string]string)
 	values, err := xmlToMapParser(start.Name.Local, start.Attr, d, true)
-	if err != nil {
+	if nil != err {
 		return err
 	}
 	var subValues map[string]interface{}
@@ -215,7 +221,7 @@ func (i *Metadata) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 				start.Attr = append(start.Attr, startLocalAttribute(key[1:], value))
 				continue
 			}
-			// TODO 兼容，后续去掉
+			//兼容，后续去掉
 			if strings.HasPrefix(key, attributeNotionCross) {
 				start.Attr = append(start.Attr, startLocalAttribute(key[1:], value))
 				continue
@@ -239,39 +245,63 @@ func (i *Metadata) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.Flush()
 }
 
-// InstanceInfo 实例信息
+//实例信息
 type InstanceInfo struct {
-	XMLName                       struct{}        `json:"-" xml:"instance"`
-	InstanceId                    string          `json:"instanceId" xml:"instanceId"`
-	AppName                       string          `json:"app" xml:"app"`
-	AppGroupName                  string          `json:"appGroupName" xml:"appGroupName,omitempty"`
-	IpAddr                        string          `json:"ipAddr" xml:"ipAddr"`
-	Sid                           string          `json:"sid" xml:"sid,omitempty"`
-	Port                          *PortWrapper    `json:"port" xml:"port,omitempty"`
-	SecurePort                    *PortWrapper    `json:"securePort" xml:"securePort,omitempty"`
-	HomePageUrl                   string          `json:"homePageUrl" xml:"homePageUrl,omitempty"`
-	StatusPageUrl                 string          `json:"statusPageUrl" xml:"statusPageUrl,omitempty"`
-	HealthCheckUrl                string          `json:"healthCheckUrl" xml:"healthCheckUrl,omitempty"`
-	SecureHealthCheckUrl          string          `json:"secureHealthCheckUrl" xml:"secureHealthCheckUrl,omitempty"`
-	VipAddress                    string          `json:"vipAddress" xml:"vipAddress,omitempty"`
-	SecureVipAddress              string          `json:"secureVipAddress" xml:"secureVipAddress,omitempty"`
-	CountryId                     int             `json:"countryId" xml:"countryId,omitempty"`
-	DataCenterInfo                *DataCenterInfo `json:"dataCenterInfo" xml:"dataCenterInfo"`
-	HostName                      string          `json:"hostName" xml:"hostName,omitempty"`
-	Status                        string          `json:"status" xml:"status"`
-	OverriddenStatus              string          `json:"overriddenStatus" xml:"overriddenStatus,omitempty"`
-	LeaseInfo                     *LeaseInfo      `json:"leaseInfo" xml:"leaseInfo,omitempty"`
-	IsCoordinatingDiscoveryServer string          `json:"isCoordinatingDiscoveryServer" xml:"isCoordinatingDiscoveryServer,omitempty"`
-	Metadata                      *Metadata       `json:"metadata" xml:"metadata"`
-	LastUpdatedTimestamp          string          `json:"lastUpdatedTimestamp" xml:"lastUpdatedTimestamp,omitempty"`
-	LastDirtyTimestamp            string          `json:"lastDirtyTimestamp" xml:"lastDirtyTimestamp,omitempty"`
-	ActionType                    string          `json:"actionType" xml:"actionType"`
+	XMLName struct{} `json:"-" xml:"instance"`
+
+	InstanceId string `json:"instanceId" xml:"instanceId"`
+
+	AppName string `json:"app" xml:"app"`
+
+	AppGroupName string `json:"appGroupName" xml:"appGroupName,omitempty"`
+
+	IpAddr string `json:"ipAddr" xml:"ipAddr"`
+
+	Sid string `json:"sid" xml:"sid,omitempty"`
+
+	Port *PortWrapper `json:"port" xml:"port,omitempty"`
+
+	SecurePort *PortWrapper `json:"securePort" xml:"securePort,omitempty"`
+
+	HomePageUrl string `json:"homePageUrl" xml:"homePageUrl,omitempty"`
+
+	StatusPageUrl string `json:"statusPageUrl" xml:"statusPageUrl,omitempty"`
+
+	HealthCheckUrl string `json:"healthCheckUrl" xml:"healthCheckUrl,omitempty"`
+
+	SecureHealthCheckUrl string `json:"secureHealthCheckUrl" xml:"secureHealthCheckUrl,omitempty"`
+
+	VipAddress string `json:"vipAddress" xml:"vipAddress,omitempty"`
+
+	SecureVipAddress string `json:"secureVipAddress" xml:"secureVipAddress,omitempty"`
+
+	CountryId int `json:"countryId" xml:"countryId,omitempty"`
+
+	DataCenterInfo *DataCenterInfo `json:"dataCenterInfo" xml:"dataCenterInfo"`
+
+	HostName string `json:"hostName" xml:"hostName,omitempty"`
+
+	Status string `json:"status" xml:"status"`
+
+	OverriddenStatus string `json:"overriddenStatus" xml:"overriddenStatus,omitempty"`
+
+	LeaseInfo *LeaseInfo `json:"leaseInfo" xml:"leaseInfo,omitempty"`
+
+	IsCoordinatingDiscoveryServer string `json:"isCoordinatingDiscoveryServer" xml:"isCoordinatingDiscoveryServer,omitempty"`
+
+	Metadata *Metadata `json:"metadata" xml:"metadata"`
+
+	LastUpdatedTimestamp string `json:"lastUpdatedTimestamp" xml:"lastUpdatedTimestamp,omitempty"`
+
+	LastDirtyTimestamp string `json:"lastDirtyTimestamp" xml:"lastDirtyTimestamp,omitempty"`
+
+	ActionType string `json:"actionType" xml:"actionType"`
 
 	//实际的北极星实例模型, key为revision
 	RealInstances map[string]*model.Instance `json:"-" xml:"-"`
 }
 
-// Clone 对实例进行拷贝
+//对实例进行拷贝
 func (i *InstanceInfo) Clone(actionType string) *InstanceInfo {
 	return &InstanceInfo{
 		InstanceId:                    i.InstanceId,
@@ -301,7 +331,7 @@ func (i *InstanceInfo) Clone(actionType string) *InstanceInfo {
 	}
 }
 
-// Equals 判断实例是否发生变更
+//判断实例是否发生变更
 func (i *InstanceInfo) Equals(another *InstanceInfo) bool {
 	if len(i.RealInstances) != len(another.RealInstances) {
 		return false
@@ -317,17 +347,22 @@ func (i *InstanceInfo) Equals(another *InstanceInfo) bool {
 	return true
 }
 
-// Application 服务数据
+//服务数据
 type Application struct {
-	XMLName      struct{}                 `json:"-" xml:"application"`
-	Name         string                   `json:"name" xml:"name"`
-	Instance     []*InstanceInfo          `json:"instance" xml:"instance"`
-	InstanceMap  map[string]*InstanceInfo `json:"-" xml:"-"`
-	Revision     string                   `json:"-" xml:"-"`
-	StatusCounts map[string]int           `json:"-" xml:"-"`
+	XMLName struct{} `json:"-" xml:"application"`
+
+	Name string `json:"name" xml:"name"`
+
+	Instance []*InstanceInfo `json:"instance" xml:"instance"`
+
+	InstanceMap map[string]*InstanceInfo `json:"-" xml:"-"`
+
+	Revision string `json:"-" xml:"-"`
+
+	StatusCounts map[string]int `json:"-" xml:"-"`
 }
 
-// GetInstance 获取eureka实例
+//获取eureka实例
 func (a *Application) GetInstance(instId string) *InstanceInfo {
 	if len(a.InstanceMap) > 0 {
 		return a.InstanceMap[instId]
@@ -335,16 +370,20 @@ func (a *Application) GetInstance(instId string) *InstanceInfo {
 	return nil
 }
 
-// Applications 服务列表
+//服务列表
 type Applications struct {
-	XMLName        struct{}                `json:"-" xml:"applications"`
-	VersionsDelta  string                  `json:"versions__delta" xml:"versions__delta"`
-	AppsHashCode   string                  `json:"apps__hashcode" xml:"apps__hashcode"`
-	Application    []*Application          `json:"application" xml:"application"`
+	XMLName struct{} `json:"-" xml:"applications"`
+
+	VersionsDelta string `json:"versions__delta" xml:"versions__delta"`
+
+	AppsHashCode string `json:"apps__hashcode" xml:"apps__hashcode"`
+
+	Application []*Application `json:"application" xml:"application"`
+
 	ApplicationMap map[string]*Application `json:"-" xml:"-"`
 }
 
-// GetApplication 获取eureka应用
+//获取eureka应用
 func (a *Applications) GetApplication(appId string) *Application {
 	if len(a.ApplicationMap) > 0 {
 		return a.ApplicationMap[appId]

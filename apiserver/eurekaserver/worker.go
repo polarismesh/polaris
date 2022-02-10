@@ -24,19 +24,18 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/service"
+	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/service"
-	"github.com/polarismesh/polaris-server/service/healthcheck"
 )
 
-// ApplicationsRespCache 全量服务缓存
+//全量服务缓存
 type ApplicationsRespCache struct {
 	AppsResp  *ApplicationsResponse
 	Revision  string
@@ -49,7 +48,7 @@ func sha1s(bytes []byte) string {
 	return hex.EncodeToString(r[:])
 }
 
-// ApplicationsWorker 应用缓存协程
+//应用缓存协程
 type ApplicationsWorker struct {
 	mutex *sync.Mutex
 
@@ -80,7 +79,7 @@ type ApplicationsWorker struct {
 	VersionIncrement int64
 }
 
-// NewApplicationsWorker 构造函数
+//构造函数
 func NewApplicationsWorker(interval time.Duration,
 	deltaExpireInterval time.Duration, unhealthyExpireInterval time.Duration,
 	namingServer *service.Server, healthCheckServer *healthcheck.Server, namespace string) *ApplicationsWorker {
@@ -97,15 +96,15 @@ func NewApplicationsWorker(interval time.Duration,
 	}
 }
 
-// IsStarted 是否已经启动
+//是否已经启动
 func (a *ApplicationsWorker) IsStarted() bool {
 	return atomic.LoadUint32(&a.started) > 0
 }
 
-// GetCachedApps 从缓存获取全量服务数据
+//从缓存获取全量服务数据
 func (a *ApplicationsWorker) GetCachedApps() *ApplicationsRespCache {
 	appsValue := a.appsCache.Load()
-	if appsValue != nil {
+	if nil != appsValue {
 		return appsValue.(*ApplicationsRespCache)
 	}
 	return nil
@@ -114,9 +113,9 @@ func (a *ApplicationsWorker) GetCachedApps() *ApplicationsRespCache {
 // GetCachedAppsWithLoad 从缓存中获取全量服务信息，如果不存在就读取
 func (a *ApplicationsWorker) GetCachedAppsWithLoad() *ApplicationsRespCache {
 	appsRespCache := a.GetCachedApps()
-	if appsRespCache == nil {
+	if nil == appsRespCache {
 		ctx := a.StartWorker()
-		if ctx != nil {
+		if nil != ctx {
 			<-ctx.Done()
 		}
 		appsRespCache = a.GetCachedApps()
@@ -124,10 +123,10 @@ func (a *ApplicationsWorker) GetCachedAppsWithLoad() *ApplicationsRespCache {
 	return appsRespCache
 }
 
-// GetDeltaApps 从缓存获取增量服务数据
+//从缓存获取增量服务数据
 func (a *ApplicationsWorker) GetDeltaApps() *ApplicationsRespCache {
 	appsValue := a.deltaCache.Load()
-	if appsValue != nil {
+	if nil != appsValue {
 		return appsValue.(*ApplicationsRespCache)
 	}
 	return nil
@@ -167,7 +166,7 @@ func (a *ApplicationsWorker) buildAppsCache(oldAppsCache *ApplicationsRespCache)
 				return true, nil
 			})
 		revision, err := a.namingServer.GetServiceInstanceRevision(newService.ID, instances)
-		if err != nil {
+		if nil != err {
 			log.Errorf("[EurekaServer]fail to get revision for service %s, err is %v", newService.Name, err)
 		}
 		// eureka does not return services without instances
@@ -181,20 +180,20 @@ func (a *ApplicationsWorker) buildAppsCache(oldAppsCache *ApplicationsRespCache)
 	hashBuilder := make(map[string]int)
 	newApps := newApplications()
 	var oldApps *Applications
-	if oldAppsCache != nil {
+	if nil != oldAppsCache {
 		oldApps = oldAppsCache.AppsResp.Applications
 	}
 	for svc, instances := range svcToToInstances {
 		var newRevision = svcToRevision[svc]
 		var targetApp *Application
-		if oldApps != nil {
+		if nil != oldApps {
 			oldApp, ok := oldApps.ApplicationMap[svc]
 			if ok && len(oldApp.Revision) > 0 && oldApp.Revision == newRevision {
 				//没有变化
 				targetApp = oldApp
 			}
 		}
-		if targetApp != nil {
+		if nil == targetApp {
 			//重新构建
 			targetApp = &Application{
 				Name:        svc,
@@ -213,7 +212,7 @@ func (a *ApplicationsWorker) buildAppsCache(oldAppsCache *ApplicationsRespCache)
 		newApps.Application = append(newApps.Application, targetApp)
 		newApps.ApplicationMap[targetApp.Name] = targetApp
 	}
-	if oldApps != nil && len(oldApps.Application) != len(newApps.Application) {
+	if nil != oldApps && len(oldApps.Application) != len(newApps.Application) {
 		changed = true
 	}
 	a.buildVersionAndHashCode(changed, hashBuilder, newApps)
@@ -239,13 +238,13 @@ func constructResponseCache(newApps *Applications, instCount int, delta bool) *A
 	}
 	//预先做一次序列化，以免高并发时候序列化会使得内存峰值过高
 	jsonBytes, err := json.MarshalIndent(newAppsCache.AppsResp, "", " ")
-	if err != nil {
+	if nil != err {
 		log.Errorf("[EUREKA_SERVER]fail to marshal apps %s to json, err is %v", appsHashCode, err)
 	} else {
 		newAppsCache.JsonBytes = jsonBytes
 	}
 	xmlBytes, err := xml.MarshalIndent(newAppsCache.AppsResp.Applications, " ", " ")
-	if err != nil {
+	if nil != err {
 		log.Errorf("[EUREKA_SERVER]fail to marshal apps %s to xml, err is %v", appsHashCode, err)
 	} else {
 		newAppsCache.XmlBytes = xmlBytes
@@ -349,7 +348,7 @@ func parseLeaseInfo(leaseInfo *LeaseInfo, instance *model.Instance) {
 	metadata := instance.Proto.GetMetadata()
 	var durationInSec int
 	var renewIntervalSec int
-	if metadata != nil {
+	if nil != metadata {
 		durationInSecStr, ok := metadata[MetadataDuration]
 		if ok {
 			durationInSec, _ = strconv.Atoi(durationInSecStr)
@@ -391,7 +390,7 @@ func buildInstance(app *Application, eurekaInstanceId string, instance *model.In
 	//属于eureka注册的实例
 	instanceInfo.InstanceId = eurekaInstanceId
 	metadata := instance.Metadata()
-	if metadata == nil {
+	if nil == metadata {
 		metadata = map[string]string{}
 	}
 	if hostName, ok := metadata[MetadataHostName]; ok {
@@ -403,7 +402,7 @@ func buildInstance(app *Application, eurekaInstanceId string, instance *model.In
 	parsePortWrapper(instanceInfo, instance)
 	if countryIdStr, ok := metadata[MetadataCountryId]; ok {
 		cId, err := strconv.Atoi(countryIdStr)
-		if err == nil {
+		if nil == err {
 			instanceInfo.CountryId = cId
 		}
 	}
@@ -455,7 +454,7 @@ func buildLocationInfo(instanceInfo *InstanceInfo, instance *model.Instance) {
 	var region string
 	var zone string
 	var campus string
-	if location := instance.Location(); location != nil {
+	if location := instance.Location(); nil != location {
 		region = location.GetRegion().GetValue()
 		zone = location.GetZone().GetValue()
 		campus = location.GetCampus().GetValue()
@@ -471,13 +470,13 @@ func buildLocationInfo(instanceInfo *InstanceInfo, instance *model.Instance) {
 	}
 }
 
-// checkInstanceExpired 假如实例是不健康，而修改周期超过
+//假如实例是不健康，而修改周期超过
 func checkInstanceExpired(instance *model.Instance, unhealthyExpireInterval time.Duration) bool {
 	if instance.Healthy() {
 		return true
 	}
 	healthCheck := instance.HealthCheck()
-	if healthCheck == nil || healthCheck.Heartbeat == nil {
+	if nil == healthCheck || nil == healthCheck.Heartbeat {
 		return true
 	}
 	modifySince := time.Since(instance.ModifyTime)
@@ -538,7 +537,7 @@ func diffApplication(oldApplication *Application, newApplication *Application) *
 	if len(newInstances) > 0 {
 		for _, instance := range newInstances {
 			oldInstance := oldApplication.GetInstance(instance.InstanceId)
-			if oldInstance == nil {
+			if nil == oldInstance {
 				//新增实例
 				diffApplication.Instance = append(diffApplication.Instance, instance)
 				continue
@@ -556,7 +555,7 @@ func diffApplication(oldApplication *Application, newApplication *Application) *
 	if len(oldInstances) > 0 {
 		for _, instance := range oldInstances {
 			newInstance := newApplication.GetInstance(instance.InstanceId)
-			if newInstance == nil {
+			if nil == newInstance {
 				//被删除了
 				//新创建一个instance
 				diffApplication.Instance = append(diffApplication.Instance, instance.Clone(ActionDeleted))
@@ -589,10 +588,10 @@ func (a *ApplicationsWorker) buildDeltaApps(
 	}
 	//2. 拷贝老的delta内容
 	var oldDeltaApps *Applications
-	if oldDeltaAppsCache != nil {
+	if nil != oldDeltaAppsCache {
 		oldDeltaApps = oldDeltaAppsCache.AppsResp.Applications
 	}
-	if oldDeltaApps != nil && len(oldDeltaApps.Application) > 0 {
+	if nil != oldDeltaApps && len(oldDeltaApps.Application) > 0 {
 		for _, app := range oldDeltaApps.Application {
 			newDeltaApps.Application = append(newDeltaApps.Application, app)
 			instCount += len(app.Instance)
@@ -606,7 +605,7 @@ func (a *ApplicationsWorker) buildDeltaApps(
 		if len(applications) > 0 {
 			for _, application := range applications {
 				var oldApplication = oldApps.GetApplication(application.Name)
-				if oldApplication == nil {
+				if nil == oldApplication {
 					//新增，全部加入
 					newDeltaApps.Application = append(newDeltaApps.Application, application)
 					instCount += len(application.Instance)
@@ -614,7 +613,7 @@ func (a *ApplicationsWorker) buildDeltaApps(
 				}
 				//修改，需要比较实例的变更
 				diffApp := diffApplication(oldApplication, application)
-				if diffApp != nil {
+				if nil != diffApp {
 					newDeltaApps.Application = append(newDeltaApps.Application, diffApp)
 					instCount += len(diffApp.Instance)
 				}
@@ -625,7 +624,7 @@ func (a *ApplicationsWorker) buildDeltaApps(
 		if len(oldApplications) > 0 {
 			for _, application := range oldApplications {
 				var newApplication = newApps.GetApplication(application.Name)
-				if newApplication == nil {
+				if nil == newApplication {
 					//删除
 					deletedApplication := &Application{
 						Name: application.Name,
@@ -642,9 +641,9 @@ func (a *ApplicationsWorker) buildDeltaApps(
 	return constructResponseCache(newDeltaApps, instCount, true)
 }
 
-// StartWorker 启动缓存构建器
+//启动缓存构建器
 func (a *ApplicationsWorker) StartWorker() context.Context {
-	if a.GetCachedApps() != nil {
+	if nil != a.GetCachedApps() {
 		return nil
 	}
 	a.mutex.Lock()
@@ -667,7 +666,7 @@ func (a *ApplicationsWorker) StartWorker() context.Context {
 	return nil
 }
 
-// Stop 结束任务
+//结束任务
 func (a *ApplicationsWorker) Stop() {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
