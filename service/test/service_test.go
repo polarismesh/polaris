@@ -20,14 +20,16 @@ package test
 import (
 	"context"
 	"fmt"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/service"
-	"github.com/smartystreets/goconvey/convey"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/smartystreets/goconvey/convey"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/service"
 )
 
 // 测试新增服务
@@ -99,16 +101,16 @@ func TestCreateService(t *testing.T) {
 		t.Logf("pass: %s", resp.GetInfo().GetValue())
 	})
 	t.Run("创建服务，metadata个数太多，报错", func(t *testing.T) {
-		service := &api.Service{
+		svc := &api.Service{
 			Name:      utils.NewStringValue("999"),
 			Namespace: utils.NewStringValue("Polaris"),
 			Owners:    utils.NewStringValue("my"),
 		}
-		service.Metadata = make(map[string]string)
+		svc.Metadata = make(map[string]string)
 		for i := 0; i < service.MaxMetadataLength+1; i++ {
-			service.Metadata[fmt.Sprintf("aa-%d", i)] = "value"
+			svc.Metadata[fmt.Sprintf("aa-%d", i)] = "value"
 		}
-		if resp := server.CreateService(defaultCtx, service); !respSuccess(resp) {
+		if resp := server.CreateService(defaultCtx, svc); !respSuccess(resp) {
 			t.Logf("%s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatalf("error")
