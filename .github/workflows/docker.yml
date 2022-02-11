@@ -33,7 +33,7 @@ jobs:
           go-version: 1.16.5
           
       - name: Build Server
-        id: build
+        id: build-server
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
@@ -46,7 +46,7 @@ jobs:
           bash build_docker.sh ${DOCKER_REPOSITORY} ${DOCKER_TAG} ${DOCKER_USER} ${DOCKER_PASS}
 
       - name: Build Prometheus
-        id: build
+        id: build-prom
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
