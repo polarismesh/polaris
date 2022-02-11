@@ -68,8 +68,8 @@ func (fg *configFileGroupStore) QueryConfigFileGroups(namespace, name string, of
 		return count, nil, err
 	}
 
-	sql := fg.genConfigFileGroupSelectSql() + " where namespace=? and name like ?"
-	rows, err := fg.db.Query(sql, namespace, name)
+	sql := fg.genConfigFileGroupSelectSql() + " where namespace=? and name like ? limit ?,?"
+	rows, err := fg.db.Query(sql, namespace, name, offset, limit)
 	if err != nil {
 		return 0, nil, err
 	}

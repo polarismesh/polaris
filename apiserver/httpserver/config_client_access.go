@@ -43,10 +43,15 @@ func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) 
 
 	response := h.configServer.Service().GetConfigFileForClient(handler.ParseHeaderContext(), namespace, group, fileName, clientVersion)
 
+	var version uint64 = 0
+	if response.ConfigFile != nil {
+		version = response.ConfigFile.Version.GetValue()
+	}
 	configLog.Info("[Config][Client] client get config file success.",
 		zap.String("requestId", requestId),
 		zap.String("client", req.Request.RemoteAddr),
-		zap.String("file", fileName))
+		zap.String("file", fileName),
+		zap.Uint64("version", version))
 
 	handler.WriteHeaderAndProto(response)
 }
@@ -75,8 +80,8 @@ func (h *HTTPServer) watchConfigFile(req *restful.Request, rsp *restful.Response
 
 	watchFiles := watchConfigFileRequest.WatchFiles
 	//2. 检查客户端是否有版本落后
-	response := h.configServer.Service().CheckClientConfigFile(handler.ParseHeaderContext(), watchFiles)
-	if response != nil {
+	response := h.configServer.Service().CheckClientConfigFileByVersion(handler.ParseHeaderContext(), watchFiles)
+	if response.Code.GetValue() != api.DataNoChange {
 		handler.WriteHeaderAndProto(response)
 		return
 	}
@@ -84,13 +89,14 @@ func (h *HTTPServer) watchConfigFile(req *restful.Request, rsp *restful.Response
 	//3. 监听配置变更，hold 请求 30s，30s 内如果有配置发布，则响应请求
 	id, _ := uuid.NewUUID()
 	clientId := clientAddr + "@" + id.String()[0:8]
+
 	finishChan := make(chan struct{})
+	defer close(finishChan)
 
 	h.addConn(clientId, watchFiles, handler, finishChan)
 
-	select {
-	case <-finishChan:
-		h.removeConn(clientId, watchFiles)
-		return
-	}
+	//阻塞等待响应
+	<-finishChan
+
+	h.removeConn(clientId, watchFiles)
 }

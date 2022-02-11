@@ -62,6 +62,7 @@ type Entry struct {
 	Empty bool
 }
 
+// NewFileCache 创建文件缓存
 func NewFileCache(ctx context.Context, storage store.Store, param FileCacheParam) *FileCache {
 	cache := &FileCache{
 		params:        param,
@@ -169,6 +170,14 @@ func (fc *FileCache) Remove(namespace, group, fileName string) {
 func (fc *FileCache) ReLoad(namespace, group, fileName string) (*Entry, error) {
 	fc.Remove(namespace, group, fileName)
 	return fc.GetOrLoadIfAbsent(namespace, group, fileName)
+}
+
+// Clear 清空缓存，仅用于集成测试
+func (fc *FileCache) Clear() {
+	fc.files.Range(func(key, _ interface{}) bool {
+		fc.files.Delete(key)
+		return true
+	})
 }
 
 //缓存过期时间，为了避免集中失效，加上随机数。[60 ~ 70]分钟内随机失效
