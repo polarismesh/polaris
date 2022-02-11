@@ -19,6 +19,7 @@ package utils
 
 import (
 	"crypto/md5"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -83,4 +84,42 @@ func GenConfigFileResponse(namespace, group, fileName, content, md5 string, vers
 		Md5:       utils.NewStringValue(md5),
 	}
 	return api.NewConfigClientResponse(api.ExecuteSuccess, configFile)
+}
+
+type kv struct {
+	Key   string
+	Value string
+}
+
+// ToTagJsonStr 把 Tags 转化成 Json 字符串
+func ToTagJsonStr(tags []*api.ConfigFileTag) string {
+	if len(tags) == 0 {
+		return "[]"
+	}
+	var kvs []kv
+	for _, tag := range tags {
+		kvs = append(kvs, kv{
+			Key:   tag.Key.GetValue(),
+			Value: tag.Value.GetValue(),
+		})
+	}
+	bytes, _ := json.Marshal(kvs)
+	return string(bytes)
+}
+
+// FromTagJson 从 Tags Json 字符串里反序列化出 Tags
+func FromTagJson(tagStr string) []*api.ConfigFileTag {
+	if tagStr == "" {
+		return nil
+	}
+	kvs := &[]kv{}
+	_ = json.Unmarshal([]byte(tagStr), kvs)
+	var tags []*api.ConfigFileTag
+	for _, kv := range *kvs {
+		tags = append(tags, &api.ConfigFileTag{
+			Key:   utils.NewStringValue(kv.Key),
+			Value: utils.NewStringValue(kv.Value),
+		})
+	}
+	return tags
 }

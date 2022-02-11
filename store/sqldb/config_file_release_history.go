@@ -31,17 +31,20 @@ type configFileReleaseHistoryStore struct {
 
 // CreateConfigFileReleaseHistory 创建配置文件发布历史记录
 func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(tx store.Tx, fileReleaseHistory *model.ConfigFileReleaseHistory) error {
-	sql := "insert into config_file_release_history(name, namespace, `group`, file_name, content, comment, md5, type, status, create_time, create_by, modify_time, modify_by) values " +
-		"(?,?,?,?,?,?,?,?,?,sysdate(),?,sysdate(),?)"
+	sql := "insert into config_file_release_history(name, namespace, `group`, file_name, content, comment, md5, type, status, format, tags, " +
+		"create_time, create_by, modify_time, modify_by) values " +
+		"(?,?,?,?,?,?,?,?,?,?,?,sysdate(),?,sysdate(),?)"
 	var err error
 	if tx != nil {
 		_, err = tx.GetDelegateTx().(*BaseTx).Exec(sql, fileReleaseHistory.Name, fileReleaseHistory.Namespace, fileReleaseHistory.Group,
 			fileReleaseHistory.FileName, fileReleaseHistory.Content, fileReleaseHistory.Comment, fileReleaseHistory.Md5,
-			fileReleaseHistory.Type, fileReleaseHistory.Status, fileReleaseHistory.CreateBy, fileReleaseHistory.ModifyBy)
+			fileReleaseHistory.Type, fileReleaseHistory.Status, fileReleaseHistory.Format, fileReleaseHistory.Tags,
+			fileReleaseHistory.CreateBy, fileReleaseHistory.ModifyBy)
 	} else {
 		_, err = rh.db.Exec(sql, fileReleaseHistory.Name, fileReleaseHistory.Namespace, fileReleaseHistory.Group,
 			fileReleaseHistory.FileName, fileReleaseHistory.Content, fileReleaseHistory.Comment, fileReleaseHistory.Md5,
-			fileReleaseHistory.Type, fileReleaseHistory.Status, fileReleaseHistory.CreateBy, fileReleaseHistory.ModifyBy)
+			fileReleaseHistory.Type, fileReleaseHistory.Status, fileReleaseHistory.Format, fileReleaseHistory.Tags,
+			fileReleaseHistory.CreateBy, fileReleaseHistory.ModifyBy)
 	}
 	if err != nil {
 		return store.Error(err)
@@ -51,15 +54,17 @@ func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(tx store
 
 // QueryConfigFileReleaseHistories 获取配置文件的发布历史记录
 func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespace, group, fileName string, offset, limit uint32) (uint32, []*model.ConfigFileReleaseHistory, error) {
-	countSql := "select count(*) from config_file_release_history where namespace = ? and `group` = ? and file_name = ?"
+	countSql := "select count(*) from config_file_release_history where namespace = ? and `group` like ? and file_name like ?"
+	group = "%" + group + "%"
+	fileName = "%" + fileName + "%"
 	var count uint32
 	err := rh.db.QueryRow(countSql, namespace, group, fileName).Scan(&count)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	sql := "select id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), md5, type, status, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), UNIX_TIMESTAMP(modify_time), " +
-		"IFNULL(modify_by, '') from config_file_release_history where namespace = ? and `group` = ? and file_name = ? order by id desc limit ?, ?"
+	sql := "select id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), md5, format, tags, type, status, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), UNIX_TIMESTAMP(modify_time), " +
+		"IFNULL(modify_by, '') from config_file_release_history where namespace = ? and `group` like ? and file_name like ? order by id desc limit ?, ?"
 	rows, err := rh.db.Query(sql, namespace, group, fileName, offset, limit)
 	if err != nil {
 		return 0, nil, err
@@ -75,7 +80,7 @@ func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespa
 }
 
 func (rh *configFileReleaseHistoryStore) GetLatestConfigFileReleaseHistory(namespace, group, fileName string) (*model.ConfigFileReleaseHistory, error) {
-	sql := "select id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), md5, type, status, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), UNIX_TIMESTAMP(modify_time), " +
+	sql := "select id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), md5, format, tags, type, status, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), UNIX_TIMESTAMP(modify_time), " +
 		"IFNULL(modify_by, '') from config_file_release_history where namespace = ? and `group` = ? and file_name = ? order by id desc limit 1"
 
 	rows, err := rh.db.Query(sql, namespace, group, fileName)
@@ -106,8 +111,10 @@ func (rh *configFileReleaseHistoryStore) transferRows(rows *sql.Rows) ([]*model.
 	for rows.Next() {
 		fileReleaseHistory := &model.ConfigFileReleaseHistory{}
 		var ctime, mtime int64
-		err := rows.Scan(&fileReleaseHistory.Id, &fileReleaseHistory.Name, &fileReleaseHistory.Namespace, &fileReleaseHistory.Group, &fileReleaseHistory.FileName, &fileReleaseHistory.Content,
-			&fileReleaseHistory.Comment, &fileReleaseHistory.Md5, &fileReleaseHistory.Type, &fileReleaseHistory.Status,
+		err := rows.Scan(&fileReleaseHistory.Id, &fileReleaseHistory.Name, &fileReleaseHistory.Namespace, &fileReleaseHistory.Group,
+			&fileReleaseHistory.FileName, &fileReleaseHistory.Content,
+			&fileReleaseHistory.Comment, &fileReleaseHistory.Md5, &fileReleaseHistory.Format, &fileReleaseHistory.Tags,
+			&fileReleaseHistory.Type, &fileReleaseHistory.Status,
 			&ctime, &fileReleaseHistory.CreateBy, &mtime, &fileReleaseHistory.ModifyBy)
 		if err != nil {
 			return nil, err
