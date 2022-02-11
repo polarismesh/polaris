@@ -22,29 +22,27 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/duration"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/plugin"
+	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang/protobuf/ptypes/duration"
+	"gopkg.in/yaml.v2"
+
 	"github.com/polarismesh/polaris-server/bootstrap/config"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/service"
-	"github.com/polarismesh/polaris-server/store"
-
-	// 使用mysql库
-	"os"
-	"sync"
-
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/polarismesh/polaris-server/plugin"
 	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
 	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/token"
+	"github.com/polarismesh/polaris-server/service"
+	"github.com/polarismesh/polaris-server/store"
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
-	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -280,12 +278,12 @@ func removeCommonServiceAliases(t *testing.T, req []*api.ServiceAlias) {
 }
 
 // 新增一个实例
-func createCommonInstance(t *testing.T, apiService *api.Service, id int) (
+func createCommonInstance(t *testing.T, svc *api.Service, id int) (
 	*api.Instance, *api.Instance) {
 	instanceReq := &api.Instance{
-		ServiceToken: utils.NewStringValue(apiService.GetToken().GetValue()),
-		Service:      utils.NewStringValue(apiService.GetName().GetValue()),
-		Namespace:    utils.NewStringValue(apiService.GetNamespace().GetValue()),
+		ServiceToken: utils.NewStringValue(svc.GetToken().GetValue()),
+		Service:      utils.NewStringValue(svc.GetName().GetValue()),
+		Namespace:    utils.NewStringValue(svc.GetNamespace().GetValue()),
 		VpcId:        utils.NewStringValue(fmt.Sprintf("vpcid-%d", id)),
 		Host:         utils.NewStringValue(fmt.Sprintf("9.9.9.%d", id)),
 		Port:         utils.NewUInt32Value(8000 + uint32(id)),
