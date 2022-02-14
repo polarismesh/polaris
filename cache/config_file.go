@@ -172,6 +172,14 @@ func (fc *FileCache) ReLoad(namespace, group, fileName string) (*Entry, error) {
 	return fc.GetOrLoadIfAbsent(namespace, group, fileName)
 }
 
+// Clear clears fileCache,only be used in integration testing
+func (fc *FileCache) Clear() {
+	fc.files.Range(func(key, _ interface{}) bool {
+		fc.files.Delete(key)
+		return true
+	})
+}
+
 // getExpireTime sets random expire time to avoid expiring simultaneously.
 // the random expireTime is between 60 minutes and 70 minutes.
 func (fc *FileCache) getExpireTime() time.Time {

@@ -34,12 +34,26 @@ import (
 func (cs *Impl) RecordConfigFileReleaseHistory(ctx context.Context, fileRelease *model.ConfigFileRelease, releaseType, status string) {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
+	namespace, group, fileName := fileRelease.Namespace, fileRelease.Group, fileRelease.FileName
+
+	// 获取 format 信息
+	var format string
+	configFileResponse := cs.GetConfigFileBaseInfo(ctx, namespace, group, fileName)
+	if configFileResponse.ConfigFile != nil {
+		format = configFileResponse.ConfigFile.Format.GetValue()
+	}
+
+	// 获取配置文件标签信息
+	tags, _ := cs.QueryTagsByConfigFileWithAPIModels(ctx, namespace, group, fileName)
+
 	releaseHistory := &model.ConfigFileReleaseHistory{
 		Name:      fileRelease.Name,
-		Namespace: fileRelease.Namespace,
-		Group:     fileRelease.Group,
-		FileName:  fileRelease.FileName,
+		Namespace: namespace,
+		Group:     group,
+		FileName:  fileName,
 		Content:   fileRelease.Content,
+		Format:    format,
+		Tags:      utils2.ToTagJsonStr(tags),
 		Comment:   fileRelease.Comment,
 		Md5:       fileRelease.Md5,
 		Type:      releaseType,
@@ -66,14 +80,6 @@ func (cs *Impl) GetConfigFileReleaseHistory(ctx context.Context, namespace, grou
 		return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.InvalidNamespaceName, 0, nil)
 	}
 
-	if err := utils2.CheckResourceName(utils.NewStringValue(group)); err != nil {
-		return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.InvalidConfigFileGroupName, 0, nil)
-	}
-
-	if err := utils2.CheckResourceName(utils.NewStringValue(fileName)); err != nil {
-		return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.InvalidConfigFileName, 0, nil)
-	}
-
 	if offset < 0 || limit <= 0 || limit > MaxPageSize {
 		return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.InvalidParameter, 0, nil)
 	}
@@ -95,22 +101,9 @@ func (cs *Impl) GetConfigFileReleaseHistory(ctx context.Context, namespace, grou
 		return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.ExecuteSuccess, count, nil)
 	}
 
-	//获取配置文件标签
-	tags, err := cs.QueryTagsByConfigFileWithAPIModels(ctx, namespace, group, fileName)
-	if err != nil {
-		log.ConfigScope().Error("[Config][Service] create config file error.",
-			zap.String("request-id", requestID),
-			zap.String("namespace", namespace),
-			zap.String("group", group),
-			zap.String("fileName", fileName),
-			zap.Error(err))
-		return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.StoreLayerException, count, nil)
-	}
-
 	var apiReleaseHistory []*api.ConfigFileReleaseHistory
 	for _, history := range releaseHistories {
 		historyAPIModel := transferReleaseHistoryStoreModel2APIModel(history)
-		historyAPIModel.Tags = tags
 		apiReleaseHistory = append(apiReleaseHistory, historyAPIModel)
 	}
 
@@ -161,6 +154,8 @@ func transferReleaseHistoryStoreModel2APIModel(releaseHistory *model.ConfigFileR
 		FileName:   utils.NewStringValue(releaseHistory.FileName),
 		Content:    utils.NewStringValue(releaseHistory.Content),
 		Comment:    utils.NewStringValue(releaseHistory.Comment),
+		Format:     utils.NewStringValue(releaseHistory.Format),
+		Tags:       utils2.FromTagJson(releaseHistory.Tags),
 		Md5:        utils.NewStringValue(releaseHistory.Md5),
 		Type:       utils.NewStringValue(releaseHistory.Type),
 		Status:     utils.NewStringValue(releaseHistory.Status),

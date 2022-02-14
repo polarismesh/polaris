@@ -125,8 +125,11 @@ type ConfigFileTagAPI interface {
 
 // ConfigFileClientAPI 给客户端提供服务接口，不同的上层协议抽象的公共服务逻辑
 type ConfigFileClientAPI interface {
-	// CheckClientConfigFile 检查客户端版本是否落后
-	CheckClientConfigFile(ctx context.Context, configFiles []*api.ClientConfigFileInfo) *api.ConfigClientResponse
+	// CheckClientConfigFileByVersion 通过比较版本号来检查客户端版本是否落后
+	CheckClientConfigFileByVersion(ctx context.Context, configFiles []*api.ClientConfigFileInfo) *api.ConfigClientResponse
+
+	// CheckClientConfigFileByMd5 通过比较md5来检查客户端版本是否落后
+	CheckClientConfigFileByMd5(ctx context.Context, configFiles []*api.ClientConfigFileInfo) *api.ConfigClientResponse
 
 	// GetConfigFileForClient 获取配置文件
 	GetConfigFileForClient(ctx context.Context, namespace, group, fileName string, clientVersion uint64) *api.ConfigClientResponse

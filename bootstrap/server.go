@@ -103,6 +103,7 @@ func Start(configFilePath string) {
 	err = StartConfigModule(ctx, cfg)
 	if err != nil {
 		fmt.Printf("[ERROR] Start config module error. %v\n", err)
+		return
 	}
 	errCh := make(chan error, len(cfg.APIServers))
 	servers, err := StartServers(ctx, cfg, errCh)
