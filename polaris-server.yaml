@@ -164,7 +164,7 @@ naming:
       maxBatchCount: 32
       concurrency: 64
 # 配置中心模块启动配置
-config_file:
+config:
   # 是否启动配置模块
   open: true
   cache:
