@@ -40,7 +40,7 @@ type Config struct {
 	APIServers   []apiserver.Config   `yaml:"apiservers"`
 	Cache        cache.Config         `yaml:"cache"`
 	Naming       service.Config       `yaml:"naming"`
-	ConfigFile   config.StartupConfig `yaml:"config_file"`
+	Config       config.StartupConfig `yaml:"config"`
 	HealthChecks healthcheck.Config   `yaml:"healthcheck"`
 	Store        store.Config         `yaml:"store"`
 	Plugin       plugin.Config        `yaml:"plugin"`
