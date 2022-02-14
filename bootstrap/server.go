@@ -154,7 +154,7 @@ func StartComponents(ctx context.Context, cfg *config.Config) error {
 
 // StartConfigModule 启动配置中心模块
 func StartConfigModule(ctx context.Context, cfg *config.Config) error {
-	return config2.InitConfigModule(ctx, cfg.ConfigFile)
+	return config2.InitConfigModule(ctx, cfg.Config)
 }
 
 // StartServers 启动server
