@@ -60,7 +60,7 @@ func NewWatchCenter(eventCenter *Center) *watchCenter {
 		return true
 	})
 
-	wc.handlerMessage()
+	wc.handleMessage()
 
 	return wc
 }
@@ -115,7 +115,7 @@ func (wc *watchCenter) RemoveWatcher(clientId string, watchConfigFiles []*api.Cl
 	}
 }
 
-func (wc *watchCenter) handlerMessage() {
+func (wc *watchCenter) handleMessage() {
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
@@ -146,7 +146,8 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.ConfigFileRelea
 	watcherMap.Range(func(clientId, watchCtx interface{}) bool {
 		log.ConfigScope().Info("[Config][Watcher] notify to client.",
 			zap.String("file", watchFileId),
-			zap.String("clientId", clientId.(string)))
+			zap.String("clientId", clientId.(string)),
+			zap.Uint64("version", publishConfigFile.Version))
 
 		c := watchCtx.(*watchContext)
 		if c.ClientVersion < publishConfigFile.Version {

@@ -310,7 +310,10 @@ func (cs *Impl) UpdateConfigFile(ctx context.Context, configFile *api.ConfigFile
 		return response
 	}
 
-	return api.NewConfigFileResponse(api.ExecuteSuccess, transferConfigFileStoreModel2APIModel(updatedFile))
+	baseFile := transferConfigFileStoreModel2APIModel(updatedFile)
+	_ = cs.enrich(ctx, baseFile, requestID)
+
+	return api.NewConfigFileResponse(api.ExecuteSuccess, baseFile)
 }
 
 // DeleteConfigFile 删除配置文件，删除配置文件同时会通知客户端 Not_Found
@@ -500,16 +503,21 @@ func (cs *Impl) enrich(ctx context.Context, baseConfigFile *api.ConfigFile, requ
 	}
 
 	latestRelease := latestReleaseRsp.ConfigFileReleaseHistory
-	if latestRelease != nil {
+	if latestRelease != nil && latestRelease.Type.GetValue() == utils.ReleaseTypeNormal {
 		baseConfigFile.ReleaseBy = latestRelease.CreateBy
 		baseConfigFile.ReleaseTime = latestRelease.CreateTime
-		//如果最后一次发布的内容和当前文件内容一致，则展示最后一次发布状态。否则说明文件有修改，待发布
 
+		//如果最后一次发布的内容和当前文件内容一致，则展示最后一次发布状态。否则说明文件有修改，待发布
 		if latestRelease.Content.GetValue() == baseConfigFile.Content.GetValue() {
 			baseConfigFile.Status = latestRelease.Status
 		} else {
 			baseConfigFile.Status = utils.NewStringValue(utils.ReleaseStatusToRelease)
 		}
+	} else {
+		//如果从来没有发布过，也是待发布状态
+		baseConfigFile.Status = utils.NewStringValue(utils.ReleaseStatusToRelease)
+		baseConfigFile.ReleaseBy = utils.NewStringValue("")
+		baseConfigFile.ReleaseTime = utils.NewStringValue("")
 	}
 
 	//填充标签信息

@@ -52,7 +52,7 @@ spec:
         - mountPath: /root/polaris-server.yaml
           name: polaris-server-config
           subPath: polaris-server.yaml
-      - image: ccr.ccs.tencentyun.com/polaris_mesh/polaris-console:latest
+      - image: polarismesh/polaris-console:latest
         imagePullPolicy: Always
         name: polaris-console
         resources:

@@ -74,6 +74,8 @@ type ConfigFileReleaseHistory struct {
 	Namespace  string
 	Group      string
 	FileName   string
+	Format     string
+	Tags       string
 	Content    string
 	Comment    string
 	Md5        string
