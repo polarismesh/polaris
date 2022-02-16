@@ -20,4 +20,7 @@ if [[ $? != 0 ]]; then
     echo "docker login failed"
 fi
 
+
 docker push ${docker_repository}:${docker_tag}
+docker tag ${docker_repository}:${docker_tag} ${docker_repository}:latest
+docker push ${docker_repository}:latest
