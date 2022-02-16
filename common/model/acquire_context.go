@@ -130,3 +130,12 @@ func (authCtx *AcquireContext) SetAccessResources(accessRes map[api.ResourceType
 func (authCtx *AcquireContext) GetAttachment() map[string]interface{} {
 	return authCtx.attachment
 }
+
+// IsAccessResourceEmpty
+func (authCtx *AcquireContext) IsAccessResourceEmpty() bool {
+	nsEmpty := len(authCtx.accessResources[api.ResourceType_Namespaces]) == 0
+	svcEmpty := len(authCtx.accessResources[api.ResourceType_Services]) == 0
+	cfgEmpty := len(authCtx.accessResources[api.ResourceType_ConfigGroups]) == 0
+
+	return nsEmpty && svcEmpty && cfgEmpty
+}

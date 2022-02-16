@@ -66,15 +66,16 @@ func (authMgn *defaultAuthManager) CheckPermission(authCtx *model.AcquireContext
 		return true, nil
 	}
 
+	// 如果访问的资源，其 owner 找不到对应的用户，则认为是可以被随意操作的资源
+	authMgn.removeNoStrategyResources(authCtx)
+	
+
 	err := authMgn.VerifyToken(authCtx)
 	if err != nil {
 		return false, err
 	}
 
 	tokenInfo := authCtx.GetAttachment()[model.TokenDetailInfoKey].(TokenInfo)
-
-	// 如果访问的资源，其 owner 找不到对应的用户，则认为是可以被随意操作的资源
-	authMgn.removeNoStrategyResources(authCtx)
 
 	strategys, ownerId, err := authMgn.findStrategies(tokenInfo)
 	if err != nil {
