@@ -3,9 +3,6 @@ name: DockerImage
 on:
   workflow_dispatch:
     inputs:
-      docker_repository:
-        description: 'docker repository for polaris'
-        required: true
       polaris_tag:
         description: 'tag for polaris'
         required: true
@@ -35,15 +32,27 @@ jobs:
         with:
           go-version: 1.16.5
           
-      - name: Build
-        id: build
+      - name: Build Server
+        id: build-server
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-          DOCKER_REPOSITORY: ${{ github.event.inputs.docker_repository }}
           DOCKER_TAG: ${{ github.event.inputs.polaris_tag }}
           DOCKER_USER: ${{ github.event.inputs.docker_username }}
           DOCKER_PASS: ${{ github.event.inputs.docker_password }}
         run: |
           ls -lstrh
-          bash build_docker.sh ${DOCKER_REPOSITORY} ${DOCKER_TAG} ${DOCKER_USER} ${DOCKER_PASS}
+          bash build_docker.sh ${DOCKER_TAG} ${DOCKER_USER} ${DOCKER_PASS}
+
+      - name: Build Prometheus
+        id: build-prom
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          DOCKER_TAG: ${{ github.event.inputs.polaris_tag }}
+          DOCKER_USER: ${{ github.event.inputs.docker_username }}
+          DOCKER_PASS: ${{ github.event.inputs.docker_password }}
+        run: |
+          cd deploy/docker/prometheus
+          ls -lstrh
+          bash build_docker_prom.sh ${DOCKER_TAG} ${DOCKER_USER} ${DOCKER_PASS}

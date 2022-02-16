@@ -17,7 +17,7 @@
 
 package token
 
-// 限制器
+// limiter 限制器
 type limiter interface {
 	allow(key string) bool
 }

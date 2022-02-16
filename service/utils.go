@@ -30,11 +30,12 @@ import (
 	"unicode/utf8"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"go.uber.org/zap"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 // some options config
@@ -87,9 +88,7 @@ const (
 	MaxPlatformQPS          = 65535
 )
 
-/*
- * 检查资源Name
- */
+// checkResourceName 检查资源Name
 func checkResourceName(name *wrappers.StringValue) error {
 	if name == nil {
 		return errors.New("nil")
@@ -111,9 +110,7 @@ func checkResourceName(name *wrappers.StringValue) error {
 	return nil
 }
 
-/*
- * 检查资源Owners
- */
+// checkResourceOwners 检查资源Owners
 func checkResourceOwners(owners *wrappers.StringValue) error {
 	if owners == nil {
 		return errors.New("nil")
@@ -130,9 +127,7 @@ func checkResourceOwners(owners *wrappers.StringValue) error {
 	return nil
 }
 
-/*
- * 检查服务实例Host
- */
+// checkInstanceHost 检查服务实例Host
 func checkInstanceHost(host *wrappers.StringValue) error {
 	if host == nil {
 		return errors.New("nil")
@@ -145,9 +140,7 @@ func checkInstanceHost(host *wrappers.StringValue) error {
 	return nil
 }
 
-/*
- * 检查服务实例Port
- */
+// checkInstancePort 检查服务实例Port
 func checkInstancePort(port *wrappers.UInt32Value) error {
 	if port == nil {
 		return errors.New("nil")
@@ -160,8 +153,7 @@ func checkInstancePort(port *wrappers.UInt32Value) error {
 	return nil
 }
 
-// 检查metadata的个数
-// 最大是64个
+// checkMetadata 检查metadata的个数; 最大是64个
 // key/value是否符合要求
 func checkMetadata(meta map[string]string) error {
 	if meta == nil {
@@ -200,9 +192,7 @@ func checkMetadata(meta map[string]string) error {
 	return nil
 }
 
-/*
- * 检查查询参数Offset
- */
+// checkQueryOffset 检查查询参数Offset
 func checkQueryOffset(offset []string) (int, error) {
 	if len(offset) == 0 {
 		return 0, nil
@@ -224,9 +214,7 @@ func checkQueryOffset(offset []string) (int, error) {
 	return value, nil
 }
 
-/*
- * 检查查询参数Limit
- */
+// checkQueryLimit 检查查询参数Limit
 func checkQueryLimit(limit []string) (int, error) {
 	if len(limit) == 0 {
 		return MaxQuerySize, nil
@@ -252,7 +240,7 @@ func checkQueryLimit(limit []string) (int, error) {
 	return value, nil
 }
 
-// store code
+// storeError2Response store code
 func storeError2Response(err error) *api.Response {
 	if err == nil {
 		return nil
@@ -260,7 +248,7 @@ func storeError2Response(err error) *api.Response {
 	return api.NewResponseWithMsg(batch.StoreCode2APICode(err), err.Error())
 }
 
-// 计算实例ID
+// CalculateInstanceID 计算实例ID
 func CalculateInstanceID(namespace string, service string, vpcID string, host string, port uint32) (string, error) {
 	h := sha1.New()
 	var str string
@@ -397,9 +385,7 @@ func ParseOperator(ctx context.Context) string {
 	return defaultOperator
 }
 
-/**
- * ParsePlatformID 从ctx中获取Platform-Id
- */
+// ParsePlatformID 从ctx中获取Platform-Id
 func ParsePlatformID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -408,9 +394,7 @@ func ParsePlatformID(ctx context.Context) string {
 	return pid
 }
 
-/**
- * ParsePlatformToken 从ctx中获取Platform-Token
- */
+// ParsePlatformToken 从ctx中获取Platform-Token
 func ParsePlatformToken(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -450,9 +434,7 @@ func CheckDbMetaDataFieldLen(metaData map[string]string) error {
 	return nil
 }
 
-/**
- * @brief 使用平台ID鉴权
- */
+// verifyAuthByPlatform 使用平台ID鉴权
 func (s *Server) verifyAuthByPlatform(ctx context.Context, sPlatformID string) bool {
 	// 判断平台鉴权插件是否开启
 	if s.auth == nil {

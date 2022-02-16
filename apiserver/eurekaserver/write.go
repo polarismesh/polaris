@@ -37,7 +37,7 @@ func buildBaseInstance(instance *InstanceInfo, namespace string, appId string) *
 	if DefaultCountryId != instance.CountryId {
 		eurekaMetadata[MetadataCountryId] = strconv.Itoa(instance.CountryId)
 	}
-	if nil != instance.DataCenterInfo {
+	if instance.DataCenterInfo != nil {
 		if DefaultDciClazz != instance.DataCenterInfo.Clazz {
 			eurekaMetadata[MetadataDataCenterInfoClazz] = instance.DataCenterInfo.Clazz
 		}
@@ -95,7 +95,7 @@ func buildHealthCheck(instance *InstanceInfo, targetInstance *api.Instance, eure
 	leaseInfo := instance.LeaseInfo
 	var durationInSecs int
 	var renewalIntervalInSecs int
-	if nil != leaseInfo {
+	if leaseInfo != nil {
 		renewalIntervalInSecs = leaseInfo.RenewalIntervalInSecs
 		durationInSecs = leaseInfo.DurationInSecs
 		if renewalIntervalInSecs == 0 {
@@ -140,7 +140,7 @@ func convertEurekaInstance(instance *InstanceInfo, namespace string, appId strin
 	var insecurePort int
 
 	securePortWrap := instance.SecurePort
-	if nil != securePortWrap {
+	if securePortWrap != nil {
 		secureEnable = securePortWrap.RealEnable
 		securePort = securePortWrap.RealPort
 	} else {
@@ -148,7 +148,7 @@ func convertEurekaInstance(instance *InstanceInfo, namespace string, appId strin
 		securePort = DefaultSSLPort
 	}
 	insecurePortWrap := instance.Port
-	if nil != insecurePortWrap {
+	if insecurePortWrap != nil {
 		insecureEnable = insecurePortWrap.RealEnable
 		insecurePort = insecurePortWrap.RealPort
 	} else {

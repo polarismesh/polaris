@@ -44,13 +44,13 @@ const (
 	GroupIDAttribute string = "group_id"
 )
 
-// 排序结构体
+// Order 排序结构体
 type Order struct {
 	Filed    string
 	Sequence string
 }
 
-// 分页结构体
+// Page 分页结构体
 type Page struct {
 	Offset uint32
 	Limit  uint32
@@ -63,7 +63,7 @@ func boolToInt(v bool) int {
 	return 0
 }
 
-// 根据filter生成where相关的语句
+// genFilterSQL 根据filter生成where相关的语句
 func genFilterSQL(filter map[string]string) (string, []interface{}) {
 	if len(filter) == 0 {
 		return "", nil
@@ -106,7 +106,7 @@ func genFilterSQL(filter map[string]string) (string, []interface{}) {
 	return str, args
 }
 
-// 根据service filter生成where相关的语句
+// genServiceFilterSQL 根据service filter生成where相关的语句
 func genServiceFilterSQL(filter map[string]string) (string, []interface{}) {
 	if len(filter) == 0 {
 		return "", nil
@@ -141,7 +141,7 @@ func genServiceFilterSQL(filter map[string]string) (string, []interface{}) {
 	return str, args
 }
 
-// 根据规则的filter生成where相关的语句
+// genRuleFilterSQL 根据规则的filter生成where相关的语句
 func genRuleFilterSQL(tableName string, filter map[string]string) (string, []interface{}) {
 	if len(filter) == 0 {
 		return "", nil
@@ -169,7 +169,7 @@ func genRuleFilterSQL(tableName string, filter map[string]string) (string, []int
 	return str, args
 }
 
-// 生成order和page相关语句
+// genOrderAndPage 生成order和page相关语句
 func genOrderAndPage(order *Order, page *Page) (string, []interface{}) {
 	var str string
 	var args []interface{}
@@ -184,9 +184,7 @@ func genOrderAndPage(order *Order, page *Page) (string, []interface{}) {
 	return str, args
 }
 
-/**
- * @brief 生成service和instance查询数据的where语句和对应参数
- */
+// genWhereSQLAndArgs 生成service和instance查询数据的where语句和对应参数
 func genWhereSQLAndArgs(str string, filter, metaFilter map[string]string, order *Order, offset uint32, limit uint32) (
 	string, []interface{}) {
 	baseStr := str
@@ -221,9 +219,7 @@ func genInstanceMetadataArgs(metaFilter map[string]string) (string, []interface{
 	return str, args
 }
 
-/**
- * @brief 生成service alias查询数据的where语句和对应参数
- */
+// genServiceAliasWhereSQLAndArgs 生成service alias查询数据的where语句和对应参数
 func genServiceAliasWhereSQLAndArgs(str string, filter map[string]string, order *Order, offset uint32, limit uint32) (
 	string, []interface{}) {
 	baseStr := str
@@ -237,9 +233,7 @@ func genServiceAliasWhereSQLAndArgs(str string, filter map[string]string, order 
 	return baseStr + filterStr + opStr, append(filterArgs, opArgs...)
 }
 
-/**
- * @brief 生成namespace查询数据的where语句和对应参数
- */
+// genNamespaceWhereSQLAndArgs 生成namespace查询数据的where语句和对应参数
 func genNamespaceWhereSQLAndArgs(str string, filter map[string][]string, order *Order, offset, limit int) (
 	string, []interface{}) {
 	num := 0
@@ -287,7 +281,7 @@ func genNamespaceWhereSQLAndArgs(str string, filter map[string][]string, order *
 	return str, args
 }
 
-// 根据metadata属性过滤
+// filterMetadataWithTable 根据metadata属性过滤
 // 生成子查询语句
 // 多个metadata，取交集（and）
 func filterMetadataWithTable(table string, metas map[string]string) (string, []interface{}) {
@@ -301,7 +295,7 @@ func filterMetadataWithTable(table string, metas map[string]string) (string, []i
 	return str, args
 }
 
-// 构造多个占位符
+// PlaceholdersN 构造多个占位符
 func PlaceholdersN(size int) string {
 	if size <= 0 {
 		return ""

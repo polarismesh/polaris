@@ -84,14 +84,14 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool) error {
 		server.checkers = make(map[int32]plugin.HealthChecker, len(hcOpt.Checkers))
 		for _, entry := range hcOpt.Checkers {
 			checker := plugin.GetHealthChecker(entry.Name, &entry)
-			if nil == checker {
+			if checker == nil {
 				return fmt.Errorf("[healthcheck]unknown healthchecker %s", entry.Name)
 			}
 			server.checkers[int32(checker.Type())] = checker
 		}
 	}
 	var err error
-	if server.storage, err = store.GetStore(); nil != err {
+	if server.storage, err = store.GetStore(); err != nil {
 		return err
 	}
 	// 批量控制器

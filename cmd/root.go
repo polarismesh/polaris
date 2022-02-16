@@ -30,18 +30,14 @@ var (
 	}
 )
 
-/**
- * @brief 初始化命令行工具
- */
+// init 初始化命令行工具
 func init() {
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(revisionCmd)
 }
 
-/**
- * @brief 执行命令行解析
- */
+// Execute 执行命令行解析
 func Execute() {
 	rootCmd.Execute()
 }

@@ -21,11 +21,12 @@ import (
 	"context"
 	"fmt"
 
+	"google.golang.org/grpc"
+
 	"github.com/polarismesh/polaris-server/apiserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
-	"google.golang.org/grpc"
 )
 
 // GRPCServer GRPC API服务器
@@ -74,12 +75,12 @@ func (g *GRPCServer) Run(errCh chan error) {
 		}
 		// 引入功能模块和插件
 		var err error
-		if g.namingServer, err = service.GetServer(); nil != err {
+		if g.namingServer, err = service.GetServer(); err != nil {
 			log.Errorf("%v", err)
 			return err
 		}
 
-		if g.healthCheckServer, err = healthcheck.GetServer(); nil != err {
+		if g.healthCheckServer, err = healthcheck.GetServer(); err != nil {
 			log.Errorf("%v", err)
 			return err
 		}

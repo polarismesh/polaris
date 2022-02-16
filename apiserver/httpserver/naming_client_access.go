@@ -21,14 +21,13 @@ import (
 	"fmt"
 
 	"github.com/emicklei/go-restful"
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/apiserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"go.uber.org/zap"
 )
 
-/**
- * GetClientAccessServer get client access server
- */
+// GetClientAccessServer get client access server
 func (h *HTTPServer) GetClientAccessServer(include []string) (*restful.WebService, error) {
 	clientAccess := []string{apiserver.DiscoverAccess, apiserver.RegisterAccess, apiserver.HealthcheckAccess}
 
@@ -59,32 +58,24 @@ func (h *HTTPServer) GetClientAccessServer(include []string) (*restful.WebServic
 	return ws, nil
 }
 
-/**
- * @brief 增加服务发现接口
- */
+// addDiscoverAccess 增加服务发现接口
 func (h *HTTPServer) addDiscoverAccess(ws *restful.WebService) {
 	ws.Route(ws.POST("/ReportClient").To(h.ReportClient))
 	ws.Route(ws.POST("/Discover").To(h.Discover))
 }
 
-/**
- * @brief 增加注册/反注册接口
- */
+// addRegisterAccess 增加注册/反注册接口
 func (h *HTTPServer) addRegisterAccess(ws *restful.WebService) {
 	ws.Route(ws.POST("/RegisterInstance").To(h.RegisterInstance))
 	ws.Route(ws.POST("/DeregisterInstance").To(h.DeregisterInstance))
 }
 
-/**
- * @brief 增加健康检查接口
- */
+// addHealthCheckAccess 增加健康检查接口
 func (h *HTTPServer) addHealthCheckAccess(ws *restful.WebService) {
 	ws.Route(ws.POST("/Heartbeat").To(h.Heartbeat))
 }
 
-/**
- * ReportClient 客户端上报信息
- */
+// ReportClient 客户端上报信息
 func (h *HTTPServer) ReportClient(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 	client := &api.Client{}
@@ -97,9 +88,7 @@ func (h *HTTPServer) ReportClient(req *restful.Request, rsp *restful.Response) {
 	handler.WriteHeaderAndProto(h.namingServer.ReportClient(ctx, client))
 }
 
-/**
- * RegisterInstance 注册服务实例
- */
+// RegisterInstance 注册服务实例
 func (h *HTTPServer) RegisterInstance(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
@@ -113,9 +102,7 @@ func (h *HTTPServer) RegisterInstance(req *restful.Request, rsp *restful.Respons
 	handler.WriteHeaderAndProto(h.namingServer.CreateInstances(ctx, []*api.Instance{instance}))
 }
 
-/**
- * DeregisterInstance 反注册服务实例
- */
+// DeregisterInstance 反注册服务实例
 func (h *HTTPServer) DeregisterInstance(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
@@ -129,9 +116,7 @@ func (h *HTTPServer) DeregisterInstance(req *restful.Request, rsp *restful.Respo
 	handler.WriteHeaderAndProto(h.namingServer.DeleteInstances(ctx, []*api.Instance{instance}))
 }
 
-/**
- * Discover 统一发现接口
- */
+// Discover 统一发现接口
 func (h *HTTPServer) Discover(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
@@ -170,9 +155,7 @@ func (h *HTTPServer) Discover(req *restful.Request, rsp *restful.Response) {
 	handler.WriteHeaderAndProto(ret)
 }
 
-/**
- * Heartbeat 服务实例心跳
- */
+// Heartbeat 服务实例心跳
 func (h *HTTPServer) Heartbeat(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 

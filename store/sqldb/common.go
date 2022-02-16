@@ -19,16 +19,17 @@ package sqldb
 
 import (
 	"database/sql"
+
 	"github.com/polarismesh/polaris-server/store"
 )
 
 // query
 type QueryHandler func(query string, args ...interface{}) (*sql.Rows, error)
 
-// 批量查询数据的回调函数
+// BatchHandler 批量查询数据的回调函数
 type BatchHandler func(objects []interface{}) error
 
-// 批量查询数据的对外接口
+// BatchQuery 批量查询数据的对外接口
 // 每次最多查询200个
 func BatchQuery(label string, data []interface{}, handler BatchHandler) error {
 	//start := time.Now()
@@ -63,10 +64,8 @@ func BatchQuery(label string, data []interface{}, handler BatchHandler) error {
 	return nil
 }
 
-/**
- * @brief 批量操作
- * @note 每次最多操作100个
- */
+// BatchOperation 批量操作
+// @note 每次最多操作100个
 func BatchOperation(label string, data []interface{}, handler BatchHandler) error {
 	if data == nil {
 		return nil
@@ -89,12 +88,7 @@ func BatchOperation(label string, data []interface{}, handler BatchHandler) erro
 	return nil
 }
 
-// queryEntryCount  单独查询count个数的执行函数
-//  @param conn 数据库连接
-//  @param str	sql语句
-//  @param args sql参数
-//  @return uint32 count 的结果
-//  @return error 错误
+// queryEntryCount 单独查询count个数的执行函数
 func queryEntryCount(conn *BaseDB, str string, args []interface{}) (uint32, error) {
 	var count uint32
 	var err error
@@ -114,7 +108,7 @@ func queryEntryCount(conn *BaseDB, str string, args []interface{}) (uint32, erro
 	}
 }
 
-// 别名查询转换
+// aliasFilter2Where 别名查询转换
 var aliasFilter2Where = map[string]string{
 	"service":         "source.name",
 	"namespace":       "source.namespace",
@@ -123,7 +117,7 @@ var aliasFilter2Where = map[string]string{
 	"owner":           "alias.owner",
 }
 
-// 别名查询字段转换函数
+// serviceAliasFilter2Where 别名查询字段转换函数
 func serviceAliasFilter2Where(filter map[string]string) map[string]string {
 	out := make(map[string]string)
 	for k, v := range filter {
@@ -137,9 +131,7 @@ func serviceAliasFilter2Where(filter map[string]string) map[string]string {
 	return out
 }
 
-/**
- * @brief 检查数据库处理返回的行数
- */
+// checkDataBaseAffectedRows 检查数据库处理返回的行数
 func checkDataBaseAffectedRows(result sql.Result, counts ...int64) error {
 	n, err := result.RowsAffected()
 	if err != nil {

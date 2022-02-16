@@ -19,10 +19,11 @@ package healthcheck
 
 import (
 	"context"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 const (
@@ -124,19 +125,18 @@ func (d *Dispatcher) reloadSelfContinuum() bool {
 
 func (d *Dispatcher) reloadManagedInstances() {
 	nextInstances := make(map[string]*InstanceWithChecker)
-	var totalCount int
-	if nil != d.continuum {
+
+	if d.continuum != nil {
 		server.cacheProvider.RangeHealthCheckInstances(func(instance *InstanceWithChecker) {
 			instanceId := instance.instance.ID()
 			host := d.continuum.Hash(instance.hashValue)
 			if host == server.localHost {
 				nextInstances[instanceId] = instance
 			}
-			totalCount++
 		})
 	}
 	log.Infof("[Health Check][Dispatcher]count %d instances has been dispatched to %s, total is %d",
-		len(nextInstances), server.localHost, totalCount)
+		len(nextInstances), server.localHost, server.cacheProvider.healthCheckInstances.Count())
 	originInstances := d.managedInstances
 	d.managedInstances = nextInstances
 	if len(nextInstances) > 0 {

@@ -24,9 +24,7 @@ var (
 	BuildDate string
 )
 
-/**
- * Get 获取版本号
- */
+// Get 获取版本号
 func Get() string {
 	if Version == "" {
 		return "v0.1.0"

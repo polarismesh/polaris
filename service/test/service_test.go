@@ -20,14 +20,16 @@ package test
 import (
 	"context"
 	"fmt"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/service"
-	"github.com/smartystreets/goconvey/convey"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/smartystreets/goconvey/convey"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/service"
 )
 
 // 测试新增服务

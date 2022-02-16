@@ -22,29 +22,27 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/protobuf/ptypes/duration"
+	"gopkg.in/yaml.v2"
+
 	"github.com/polarismesh/polaris-server/bootstrap/config"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/service"
-	"github.com/polarismesh/polaris-server/store"
-
-	// 使用mysql库
-	"os"
-	"sync"
-
-	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
 	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/token"
+	"github.com/polarismesh/polaris-server/service"
+	"github.com/polarismesh/polaris-server/store"
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
-	"gopkg.in/yaml.v2"
 )
 
 var (

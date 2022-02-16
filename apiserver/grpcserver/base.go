@@ -20,20 +20,22 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/connlimit"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/plugin"
-	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/peer"
 	"io"
 	"net"
 	"net/http"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/connlimit"
+	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/plugin"
 )
 
 // BaseGrpcServer base utilities and functions for gRPC Connector
@@ -121,7 +123,7 @@ func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer func(
 		grpc.StreamInterceptor(b.streamInterceptor),
 	)
 
-	if err = initServer(server); nil != err {
+	if err = initServer(server); err != nil {
 		errCh <- err
 		return
 	}
@@ -138,10 +140,7 @@ func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer func(
 	log.Infof("%s server stop", protocol)
 }
 
-/**
- * @brief 虚拟Stream
- * @note 继承ServerStream
- */
+// VirtualStream 虚拟Stream 继承ServerStream
 type VirtualStream struct {
 	Method        string
 	ClientAddress string
@@ -411,9 +410,7 @@ func (b *BaseGrpcServer) AllowAccess(method string) bool {
 	return ok
 }
 
-/**
- * ConvertContext 将GRPC上下文转换成内部上下文
- */
+// ConvertContext 将GRPC上下文转换成内部上下文
 func ConvertContext(ctx context.Context) context.Context {
 	requestID := ""
 	userAgent := ""

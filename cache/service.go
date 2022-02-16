@@ -22,11 +22,12 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
+
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
-	"golang.org/x/sync/singleflight"
 )
 
 const (
@@ -69,14 +70,10 @@ func (fc *WatchInstanceReload) OnBatchDeleted(value interface{}) {
 
 }
 
-/**
- * ServiceIterProc 迭代回调函数
- */
+// ServiceIterProc 迭代回调函数
 type ServiceIterProc func(key string, value *model.Service) (bool, error)
 
-/**
- * ServiceCache 服务数据缓存接口
- */
+// ServiceCache 服务数据缓存接口
 type ServiceCache interface {
 	Cache
 
@@ -113,9 +110,7 @@ type ServiceCache interface {
 	Update() error
 }
 
-/**
- * @brief 服务数据缓存实现类
- */
+// serviceCache 服务数据缓存实现类
 type serviceCache struct {
 	storage             store.Store
 	lastMtime           int64
@@ -136,16 +131,12 @@ type serviceCache struct {
 	cancel              context.CancelFunc
 }
 
-/**
- * @brief 自注册到缓存列表
- */
+// init 自注册到缓存列表
 func init() {
 	RegisterCache(ServiceName, CacheService)
 }
 
-/**
- * @brief 返回一个serviceCache
- */
+// newServiceCache 返回一个serviceCache
 func newServiceCache(storage store.Store, ch chan *revisionNotify, instCache InstanceCache) *serviceCache {
 	return &serviceCache{
 		storage:    storage,
@@ -154,9 +145,7 @@ func newServiceCache(storage store.Store, ch chan *revisionNotify, instCache Ins
 	}
 }
 
-/**
- * @brief 缓存对象初始化
- */
+// initialize 缓存对象初始化
 func (sc *serviceCache) initialize(opt map[string]interface{}) error {
 	sc.singleFlight = new(singleflight.Group)
 	sc.lastMtime = 0
@@ -187,11 +176,8 @@ func (sc *serviceCache) LastMtime() time.Time {
 	return time.Unix(sc.lastMtime, 0)
 }
 
-/**
- * @brief Service缓存更新函数
- *
- * @note  service + service_metadata作为一个整体获取
- */
+// update Service缓存更新函数
+// service + service_metadata作为一个整体获取
 func (sc *serviceCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := sc.singleFlight.Do(ServiceName, func() (interface{}, error) {
@@ -222,9 +208,7 @@ func (sc *serviceCache) realUpdate() error {
 	return nil
 }
 
-/**
- * @brief 清理内部缓存数据
- */
+// clear 清理内部缓存数据
 func (sc *serviceCache) clear() error {
 	sc.ids = new(sync.Map)
 	sc.names = new(sync.Map)
@@ -236,16 +220,12 @@ func (sc *serviceCache) clear() error {
 	return nil
 }
 
-/**
- * @brief 获取资源名称
- */
+// name 获取资源名称
 func (sc *serviceCache) name() string {
 	return ServiceName
 }
 
-/**
- * GetServiceByID 根据服务ID获取服务数据
- */
+// GetServiceByID 根据服务ID获取服务数据
 func (sc *serviceCache) GetServiceByID(id string) *model.Service {
 	if id == "" {
 		return nil
@@ -259,9 +239,7 @@ func (sc *serviceCache) GetServiceByID(id string) *model.Service {
 	return value.(*model.Service)
 }
 
-/**
- * GetServiceByName 根据服务名获取服务数据
- */
+// GetServiceByName 根据服务名获取服务数据
 func (sc *serviceCache) GetServiceByName(name string, namespace string) *model.Service {
 	if name == "" || namespace == "" {
 		return nil
@@ -279,17 +257,13 @@ func (sc *serviceCache) GetServiceByName(name string, namespace string) *model.S
 	return value.(*model.Service)
 }
 
-/**
- * CleanNamespace 清除Namespace对应的服务缓存
- */
+// CleanNamespace 清除Namespace对应的服务缓存
 func (sc *serviceCache) CleanNamespace(namespace string) {
 
 	sc.names.Delete(namespace)
 }
 
-/**
- * IteratorServices 对缓存中的服务进行迭代
- */
+// IteratorServices 对缓存中的服务进行迭代
 func (sc *serviceCache) IteratorServices(iterProc ServiceIterProc) error {
 	var (
 		cont bool
@@ -341,7 +315,7 @@ func (sc *serviceCache) GetServiceByCl5Name(cl5Name string) *model.Service {
 	return value.(*model.Service)
 }
 
-// 从缓存中删除service数据
+// removeServices 从缓存中删除service数据
 func (sc *serviceCache) removeServices(service *model.Service) {
 	// 删除serviceID的索引
 	sc.ids.Delete(service.ID)
@@ -360,7 +334,7 @@ func (sc *serviceCache) removeServices(service *model.Service) {
 	/******兼容cl5******/
 }
 
-// 服务缓存更新
+// setServices 服务缓存更新
 // 返回：更新数量，删除数量
 func (sc *serviceCache) setServices(services map[string]*model.Service) (int, int) {
 	if len(services) == 0 {
@@ -512,7 +486,7 @@ func (sc *serviceCache) postProcessUpdatedServices(affect map[string]bool) {
 	}
 }
 
-// 更新cl5的服务数据
+// updateCl5SidAndNames 更新cl5的服务数据
 func (sc *serviceCache) updateCl5SidAndNames(service *model.Service) {
 	// 不是cl5服务的，不需要更新
 	if _, ok := service.Meta["internal-cl5-sid"]; !ok {
@@ -539,7 +513,7 @@ func (sc *serviceCache) updateCl5SidAndNames(service *model.Service) {
 	return
 }
 
-// 兼容cl5Name
+// genCl5Name 兼容cl5Name
 // 部分cl5Name与已有服务名存在冲突，因此给cl5Name加上一个前缀
 func genCl5Name(name string) string {
 	return "cl5." + name

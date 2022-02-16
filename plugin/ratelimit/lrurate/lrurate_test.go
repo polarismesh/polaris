@@ -23,9 +23,7 @@ import (
 	"github.com/polarismesh/polaris-server/plugin"
 )
 
-/**
- * @brief 获取初始化的entry
- */
+// getEntry 获取初始化的entry
 func getEntry() *plugin.ConfigEntry {
 	entry := plugin.ConfigEntry{
 		Option: make(map[string]interface{}),
@@ -40,9 +38,7 @@ func getEntry() *plugin.ConfigEntry {
 	return &entry
 }
 
-/**
- * @brief 获取未初始化的entry
- */
+// getUninitializedEntry 获取未初始化的entry
 func getUninitializedEntry() *plugin.ConfigEntry {
 	entry := plugin.ConfigEntry{
 		Option: make(map[string]interface{}),
@@ -51,9 +47,7 @@ func getUninitializedEntry() *plugin.ConfigEntry {
 	return &entry
 }
 
-/**
- * @brief 测试错误配置
- */
+// TestInvalidConfig 测试错误配置
 func TestInvalidConfig(t *testing.T) {
 	entry := getUninitializedEntry()
 	s := &LRURate{}
@@ -130,9 +124,7 @@ func TestInvalidConfig(t *testing.T) {
 	})
 }
 
-/**
- * @brief 测试正确配置
- */
+// TestValidConfig 测试正确配置
 func TestValidConfig(t *testing.T) {
 	t.Run("ValidConfig", func(t *testing.T) {
 		entry := getEntry()
@@ -145,9 +137,7 @@ func TestValidConfig(t *testing.T) {
 	})
 }
 
-/**
- * @brief 测试一般函数
- */
+// TestCommon 测试一般函数
 func TestCommon(t *testing.T) {
 	entry := getEntry()
 	s := &LRURate{}
@@ -174,9 +164,7 @@ func TestCommon(t *testing.T) {
 	})
 }
 
-/**
- * @brief 测试限流功能
- */
+// TestRateLimit 测试限流功能
 func TestRateLimit(t *testing.T) {
 	ipLruSize := 10
 	ipRate := 100

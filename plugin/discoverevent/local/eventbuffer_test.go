@@ -63,5 +63,4 @@ func TestEventBufferTest(t *testing.T) {
 		event := bufferHolder.Next()
 		actualCnt += event.CreateTimeSec
 	}
-
 }

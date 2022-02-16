@@ -23,7 +23,7 @@ const (
 	PluginName = "localParse"
 )
 
-// 初始化注册函数
+// init 初始化注册函数
 func init() {
 	plugin.RegisterPlugin(PluginName, &Password{})
 }

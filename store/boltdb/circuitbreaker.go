@@ -125,10 +125,8 @@ func (c *circuitBreakerStore) ReleaseCircuitBreaker(cbr *model.CircuitBreakerRel
 	return nil
 }
 
-/**
- * @brief 发布熔断规则的内部函数
- * @note 可能存在服务的规则，由旧的更新到新的场景
- */
+// releaseCircuitBreaker 发布熔断规则的内部函数
+// @note 可能存在服务的规则，由旧的更新到新的场景
 func (c *circuitBreakerStore) releaseCircuitBreaker(cbr *model.CircuitBreakerRelation) error {
 	// 上层调用者保证 service 是已经存在的
 

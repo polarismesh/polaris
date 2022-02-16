@@ -72,7 +72,7 @@ func ParseBatchConfig(opt map[string]interface{}) (*Config, error) {
 	return &config, nil
 }
 
-// 配置文件校验
+// checkCtrlConfig 配置文件校验
 func checkCtrlConfig(ctrl *CtrlConfig) bool {
 	if ctrl == nil {
 		return true

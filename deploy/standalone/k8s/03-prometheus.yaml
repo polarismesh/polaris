@@ -41,23 +41,14 @@ spec:
         app: polaris-prometheus
     spec:
       containers:
-      - command:
-        - /bin/bash
-        - -c
-        - /root/prometheus/prometheus --config.file=/root/prometheus/prometheus.yml
-          --web.enable-lifecycle --web.enable-admin-api
-        image: ccr.ccs.tencentyun.com/polaris_mesh/polaris-prometheus:1.2
+      - image: polarismesh/prometheus:latest
         imagePullPolicy: Always
         name: polaris-prometheus
         resources:
           limits:
             cpu: "500m"
             memory: 1000Mi
-      - command:
-        - /bin/bash
-        - -c
-        - /root/pushgateway/pushgateway --web.enable-lifecycle --web.enable-admin-api
-        image: ccr.ccs.tencentyun.com/polaris_mesh/polaris-pushgateway:1.1.0
+      - image: prom/pushgateway:latest
         imagePullPolicy: Always
         name: polaris-pushgateway
         resources:

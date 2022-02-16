@@ -615,6 +615,119 @@ CREATE TABLE `ratelimit_flux_rule_revision` (
     PRIMARY KEY (`service_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
+-- --------------------------------------------------------
+--
+-- Table structure `config_file`
+--
+CREATE TABLE `config_file` (
+    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `namespace`   varchar(64) COLLATE utf8_bin  NOT NULL COMMENT '所属的namespace',
+    `group`       varchar(128) COLLATE utf8_bin NOT NULL DEFAULT '' COMMENT '所属的文件组',
+    `name`        varchar(128) COLLATE utf8_bin NOT NULL COMMENT '配置文件名',
+    `content`     longtext COLLATE utf8_bin     NOT NULL COMMENT '文件内容',
+    `format`      varchar(16) COLLATE utf8_bin           DEFAULT 'text' COMMENT '文件格式，枚举值',
+    `comment`     varchar(512) COLLATE utf8_bin          DEFAULT NULL COMMENT '备注信息',
+    `flag`        tinyint(4) NOT NULL DEFAULT '0' COMMENT '软删除标记位',
+    `create_time` timestamp                     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by`   varchar(32) COLLATE utf8_bin           DEFAULT NULL COMMENT '创建人',
+    `modify_time` timestamp                     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    `modify_by`   varchar(32) COLLATE utf8_bin           DEFAULT NULL COMMENT '最后更新人',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_file` (`namespace`,`group`,`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='配置文件表';
+
+-- --------------------------------------------------------
+--
+-- Table structure `config_file_group`
+--
+CREATE TABLE `config_file_group`(
+    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `name`        varchar(128) COLLATE utf8_bin NOT NULL COMMENT '配置文件分组名',
+    `namespace`   varchar(64) COLLATE utf8_bin  NOT NULL COMMENT '所属的namespace',
+    `comment`     varchar(512) COLLATE utf8_bin          DEFAULT NULL COMMENT '备注信息',
+    `owner`       varchar(1024) COLLATE utf8_bin DEFAULT NULL COMMENT '负责人',
+    `create_time` timestamp                     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by`   varchar(32) COLLATE utf8_bin           DEFAULT NULL COMMENT '创建人',
+    `modify_time` timestamp                     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    `modify_by`   varchar(32) COLLATE utf8_bin           DEFAULT NULL COMMENT '最后更新人',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_name` (`namespace`,`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='配置文件组表';
+
+-- --------------------------------------------------------
+--
+-- Table structure `config_file_release`
+--
+CREATE TABLE `config_file_release`(
+    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `name`        varchar(128) COLLATE utf8_bin          DEFAULT NULL COMMENT '发布标题',
+    `namespace`   varchar(64) COLLATE utf8_bin  NOT NULL COMMENT '所属的namespace',
+    `group`       varchar(128) COLLATE utf8_bin NOT NULL COMMENT '所属的文件组',
+    `file_name`   varchar(128) COLLATE utf8_bin NOT NULL COMMENT '配置文件名',
+    `content`     longtext COLLATE utf8_bin     NOT NULL COMMENT '文件内容',
+    `comment`     varchar(512) COLLATE utf8_bin          DEFAULT NULL COMMENT '备注信息',
+    `md5`         varchar(128) COLLATE utf8_bin NOT NULL COMMENT 'content的md5值',
+    `version`     int(11) NOT NULL COMMENT '版本号，每次发布自增1',
+    `flag`        tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否被删除',
+    `create_time` timestamp                     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by`   varchar(32) COLLATE utf8_bin           DEFAULT NULL COMMENT '创建人',
+    `modify_time` timestamp                     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    `modify_by`   varchar(32) COLLATE utf8_bin           DEFAULT NULL COMMENT '最后更新人',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_file` (`namespace`,`group`,`file_name`),
+    KEY           `idx_modify_time` (`modify_time`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='配置文件发布表';
+
+-- --------------------------------------------------------
+--
+-- Table structure `config_file_release_history`
+--
+CREATE TABLE `config_file_release_history`(
+    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `name`        varchar(64) COLLATE utf8_bin           DEFAULT '' COMMENT '发布名称',
+    `namespace`   varchar(64) COLLATE utf8_bin  NOT NULL COMMENT '所属的namespace',
+    `group`       varchar(128) COLLATE utf8_bin NOT NULL COMMENT '所属的文件组',
+    `file_name`   varchar(128) COLLATE utf8_bin NOT NULL COMMENT '配置文件名',
+    `content`     longtext COLLATE utf8_bin     NOT NULL COMMENT '文件内容',
+    `format`      varchar(16) COLLATE utf8_bin DEFAULT 'text' COMMENT '文件格式',
+    `tags`        varchar(2048) COLLATE utf8_bin DEFAULT '' COMMENT '文件标签',
+    `comment`     varchar(512) COLLATE utf8_bin          DEFAULT NULL COMMENT '备注信息',
+    `md5`         varchar(128) COLLATE utf8_bin NOT NULL COMMENT 'content的md5值',
+    `type`        varchar(32) COLLATE utf8_bin  NOT NULL COMMENT '发布类型，例如全量发布、灰度发布',
+    `status`      varchar(16) COLLATE utf8_bin  NOT NULL DEFAULT 'success' COMMENT '发布状态，success表示成功，fail 表示失败',
+    `create_time` timestamp                     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by`   varchar(32) COLLATE utf8_bin           DEFAULT NULL COMMENT '创建人',
+    `modify_time` timestamp                     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    `modify_by`   varchar(32) COLLATE utf8_bin           DEFAULT NULL COMMENT '最后更新人',
+    PRIMARY KEY (`id`),
+    KEY           `idx_file` (`namespace`,`group`,`file_name`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='配置文件发布历史表';
+
+-- --------------------------------------------------------
+--
+-- Table structure `config_file_tag`
+--
+CREATE TABLE `config_file_tag`(
+    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `key`         varchar(128) COLLATE utf8_bin NOT NULL COMMENT 'tag 的键',
+    `Value`       varchar(128) COLLATE utf8_bin NOT NULL COMMENT 'tag 的值',
+    `namespace`   varchar(64) COLLATE utf8_bin  NOT NULL COMMENT '所属的namespace',
+    `group`       varchar(128) COLLATE utf8_bin NOT NULL DEFAULT '' COMMENT '所属的文件组',
+    `file_name`   varchar(128) COLLATE utf8_bin NOT NULL COMMENT '配置文件名',
+    `create_time` timestamp                     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by`   varchar(32) COLLATE utf8_bin           DEFAULT NULL COMMENT '创建人',
+    `modify_time` timestamp                     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    `modify_by`   varchar(32) COLLATE utf8_bin           DEFAULT NULL COMMENT '最后更新人',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_tag` (`key`,`Value`,`namespace`,`group`,`file_name`),
+    KEY           `idx_file` (`namespace`,`group`,`file_name`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='配置文件标签表';
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+
 CREATE TABLE `user` (
     `id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '用户ID',
     `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '用户名称',
@@ -653,7 +766,6 @@ CREATE TABLE `user_group` (
 CREATE TABLE `user_group_relation` (
     `user_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '用户ID',
     `group_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '用户组ID',
-    `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`user_id`, `group_id`),
@@ -688,7 +800,6 @@ CREATE TABLE `auth_strategy_resource` (
     `strategy_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '策略ID',
     `res_type` int COLLATE utf8_bin NOT NULL comment '资源类型, Namespaces = 0, Service = 1, ConfigGroups = 2',
     `res_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '资源ID',
-    `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`strategy_id`, `res_type`, `res_id`),
@@ -755,7 +866,6 @@ INSERT INTO
         `strategy_id`,
         `res_type`,
         `res_id`,
-        `flag`,
         `ctime`,
         `mtime`
     )
@@ -764,7 +874,18 @@ VALUES
         'fbca9bfa04ae4ead86e1ecf5811e32a9',
         0,
         '*',
-        0,
+        sysdate(),
+        sysdate()
+    ), (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        1,
+        '*',
+        sysdate(),
+        sysdate()
+    ), (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        2,
+        '*',
         sysdate(),
         sysdate()
     );

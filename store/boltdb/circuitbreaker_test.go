@@ -123,7 +123,7 @@ func CreateCircuitbreakerDBHandlerAndRun(t *testing.T, tf func(t *testing.T, han
 	tempDir, _ := ioutil.TempDir("", "test_circuitbreaker")
 	_ = os.Remove(filepath.Join(tempDir, "test_circuitbreaker.bolt"))
 	handler, err := NewBoltHandler(&BoltConfig{FileName: filepath.Join(tempDir, "test_circuitbreaker.bolt")})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 

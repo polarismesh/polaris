@@ -23,11 +23,12 @@ import (
 	"net"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/common/api/l5"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service"
-	"go.uber.org/zap"
 )
 
 const (
@@ -38,7 +39,7 @@ const (
 	defaultClusterName string = "cl5.discover"
 )
 
-// 每个链接，封装为一个请求
+// cl5Request 每个链接，封装为一个请求
 type cl5Request struct {
 	conn       net.Conn
 	start      time.Time
@@ -47,9 +48,7 @@ type cl5Request struct {
 	code       l5Code
 }
 
-/**
- * @brief CL5 API服务器
- */
+// L5pbserver CL5 API服务器
 type L5pbserver struct {
 	listenIP    string
 	listenPort  uint32
@@ -60,23 +59,17 @@ type L5pbserver struct {
 	statis       plugin.Statis
 }
 
-/**
- * @brief 获取端口
- */
+// GetPort 获取端口
 func (l *L5pbserver) GetPort() uint32 {
 	return l.listenPort
 }
 
-/**
- * @brief 获取Server的协议
- */
+// GetProtocol 获取Server的协议
 func (l *L5pbserver) GetProtocol() string {
 	return "l5pb"
 }
 
-/**
- * @brief 初始化CL5 API服务器
- */
+// Initialize 初始化CL5 API服务器
 func (l *L5pbserver) Initialize(_ context.Context, option map[string]interface{},
 	_ map[string]apiserver.APIConfig) error {
 	l.listenIP = option["listenIP"].(string)
@@ -90,9 +83,7 @@ func (l *L5pbserver) Initialize(_ context.Context, option map[string]interface{}
 	return nil
 }
 
-/**
- * @brief 启动CL5 API服务器
- */
+// Run 启动CL5 API服务器
 func (l *L5pbserver) Run(errCh chan error) {
 	log.Infof("start l5pbserver")
 
@@ -128,22 +119,20 @@ func (l *L5pbserver) Run(errCh chan error) {
 	}
 }
 
-// stop server
+// Stop stop server
 func (l *L5pbserver) Stop() {
 	if l.listener != nil {
 		_ = l.listener.Close()
 	}
 }
 
-// restart server
+// Restart restart server
 func (l *L5pbserver) Restart(_ map[string]interface{}, _ map[string]apiserver.APIConfig,
 	_ chan error) error {
 	return nil
 }
 
-/**
- * @brief 请求预处理：限频/鉴权
- */
+// PreProcess 请求预处理：限频/鉴权
 func (l *L5pbserver) PreProcess(req *cl5Request) bool {
 	log.Info("[Cl5] handle request", zap.String("ClientAddr", req.clientAddr), zap.Int32("Cmd", req.cmd))
 	var result = true
@@ -154,9 +143,7 @@ func (l *L5pbserver) PreProcess(req *cl5Request) bool {
 	return result
 }
 
-/**
- * @brief 请求后处理：统计/告警
- */
+// PostProcess 请求后处理：统计/告警
 func (l *L5pbserver) PostProcess(req *cl5Request) {
 	now := time.Now()
 	// 统计

@@ -23,25 +23,22 @@ import (
 	"io"
 	"strings"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
-/**
- * @brief 客户端上报
- */
+// ReportClient 客户端上报
 func (g *GRPCServer) ReportClient(ctx context.Context, in *api.Client) (*api.Response, error) {
 	out := g.namingServer.ReportClient(ConvertContext(ctx), in)
 	return out, nil
 }
 
-/**
- * @brief 注册服务实例
- */
+// RegisterInstance 注册服务实例
 func (g *GRPCServer) RegisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
 	rCtx := ConvertContext(ctx)
@@ -57,9 +54,7 @@ func (g *GRPCServer) RegisterInstance(ctx context.Context, in *api.Instance) (*a
 	return out.Responses[0], nil
 }
 
-/**
- * @brief 反注册服务实例
- */
+// DeregisterInstance 反注册服务实例
 func (g *GRPCServer) DeregisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
 	rCtx := ConvertContext(ctx)
@@ -76,9 +71,7 @@ func (g *GRPCServer) DeregisterInstance(ctx context.Context, in *api.Instance) (
 	return out.Responses[0], nil
 }
 
-/**
- * @brief 统一发现接口
- */
+// Discover 统一发现接口
 func (g *GRPCServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
 	ctx := ConvertContext(server.Context())
 	clientIP, _ := ctx.Value(utils.StringContext("client-ip")).(string)
@@ -89,7 +82,7 @@ func (g *GRPCServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
 
 	for {
 		in, err := server.Recv()
-		if nil != err {
+		if err != nil {
 			if io.EOF == err {
 				return nil
 			}
@@ -146,17 +139,13 @@ func (g *GRPCServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
 	}
 }
 
-/**
- * @brief 上报心跳
- */
+// Heartbeat 上报心跳
 func (g *GRPCServer) Heartbeat(ctx context.Context, in *api.Instance) (*api.Response, error) {
 	out := g.healthCheckServer.Report(ConvertContext(ctx), in)
 	return out, nil
 }
 
-/**
- * @brief 将GRPC上下文转换成内部上下文
- */
+// convertContext 将GRPC上下文转换成内部上下文
 func convertContext(ctx context.Context) context.Context {
 	requestID := ""
 	userAgent := ""
@@ -190,7 +179,7 @@ func convertContext(ctx context.Context) context.Context {
 	return ctx
 }
 
-// 构造请求源
+// ParseGrpcOperator 构造请求源
 func ParseGrpcOperator(ctx context.Context) string {
 	// 获取请求源
 	operator := "GRPC"

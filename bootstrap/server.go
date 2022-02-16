@@ -36,6 +36,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/common/version"
+	config2 "github.com/polarismesh/polaris-server/config"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/store"
@@ -46,9 +47,7 @@ var (
 	ConfigFilePath      = ""
 )
 
-/**
- * @brief 启动
- */
+// Start 启动
 func Start(configFilePath string) {
 	// 加载配置
 	ConfigFilePath = configFilePath
@@ -101,6 +100,11 @@ func Start(configFilePath string) {
 	err = StartComponents(ctx, cfg)
 	if err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
+		return
+	}
+	err = StartConfigModule(ctx, cfg)
+	if err != nil {
+		fmt.Printf("[ERROR] Start config module error. %v\n", err)
 		return
 	}
 	errCh := make(chan error, len(cfg.APIServers))
@@ -174,6 +178,11 @@ func StartComponents(ctx context.Context, cfg *config.Config) error {
 	return nil
 }
 
+// StartConfigModule 启动配置中心模块
+func StartConfigModule(ctx context.Context, cfg *config.Config) error {
+	return config2.InitConfigModule(ctx, cfg.Config)
+}
+
 // StartServers 启动server
 func StartServers(ctx context.Context, cfg *config.Config, errCh chan error) (
 	[]apiserver.Apiserver, error) {
@@ -199,7 +208,7 @@ func StartServers(ctx context.Context, cfg *config.Config, errCh chan error) (
 	return servers, nil
 }
 
-// 重启server
+// RestartServers 重启server
 func RestartServers(errCh chan error) error {
 	// 重新加载配置
 	cfg, err := config.Load(ConfigFilePath)
@@ -224,7 +233,7 @@ func RestartServers(errCh chan error) error {
 	return nil
 }
 
-// 接受外部信号，停止server
+// StopServers 接受外部信号，停止server
 func StopServers(servers []apiserver.Apiserver) {
 	// 先反注册所有服务
 	SelfDeregister()
@@ -236,7 +245,7 @@ func StopServers(servers []apiserver.Apiserver) {
 	}
 }
 
-// 开始进入启动加锁
+// StartBootstrapOrder 开始进入启动加锁
 // 原因：Server启动的时候会从数据库拉取大量数据，防止同时启动把DB压死
 // 还有一种场景，server全部宕机批量重启，导致数据库被压死，导致雪崩
 func StartBootstrapOrder(s store.Store, c *config.Config) (store.Transaction, error) {
@@ -298,14 +307,13 @@ func FinishBootstrapOrder(tx store.Transaction) error {
 	return nil
 }
 
-// 生成一个context
 func genContext() context.Context {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, utils.StringContext("request-id"), fmt.Sprintf("self-%d", time.Now().Nanosecond()))
 	return ctx
 }
 
-// 探测获取本机IP地址
+// acquireLocalhost 探测获取本机IP地址
 func acquireLocalhost(ctx context.Context, polarisService *config.PolarisService) (context.Context, error) {
 	if polarisService == nil || !polarisService.EnableRegister {
 		log.Infof("[Bootstrap] not found polaris service config")
@@ -323,7 +331,7 @@ func acquireLocalhost(ctx context.Context, polarisService *config.PolarisService
 	return utils.WithLocalhost(ctx, localHost), nil
 }
 
-// 自注册主函数
+// polarisServiceRegister 自注册主函数
 func polarisServiceRegister(polarisService *config.PolarisService, apiServers []apiserver.Config) error {
 	if polarisService == nil || !polarisService.EnableRegister {
 		log.Infof("[Bootstrap] not enable register the polaris service")
@@ -366,7 +374,7 @@ func polarisServiceRegister(polarisService *config.PolarisService, apiServers []
 	return nil
 }
 
-// 服务自注册
+// selfRegister 服务自注册
 func selfRegister(host string, port uint32, protocol string, isolated bool, polarisService *config.Service) error {
 	server, err := service.GetOriginServer()
 	if err != nil {
@@ -447,7 +455,7 @@ func SelfDeregister() {
 	return
 }
 
-// 获取本地IP地址
+// getLocalHost 获取本地IP地址
 func getLocalHost(vip string) (string, error) {
 	if len(vip) == 0 {
 		return "127.0.0.1", nil

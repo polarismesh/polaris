@@ -1,0 +1,43 @@
+# server启动引导配置
+bootstrap:
+  # 全局日志
+  logger:
+    config:
+      rotateOutputPath: log/polaris-config.log
+      errorRotateOutputPath: log/polaris-config-error.log
+    auth:
+      rotateOutputPath: log/polaris-auth.log
+      errorRotateOutputPath: log/polaris-auth-error.log
+    store:
+      rotateOutputPath: log/polaris-store.log
+      errorRotateOutputPath: log/polaris-store-error.log
+    cache:
+      rotateOutputPath: log/polaris-cache.log
+      errorRotateOutputPath: log/polaris-cache-error.log
+    naming:
+      rotateOutputPath: log/polaris-naming.log
+      errorRotateOutputPath: log/polaris-naming-error.log
+    default:
+      rotateOutputPath: log/polaris-default.log
+      errorRotateOutputPath: log/polaris-default-error.log
+# 配置中心模块启动配置
+config:
+  # 是否启动配置模块
+  open: true
+  cache:
+    #配置文件缓存过期时间，单位s
+    expireTimeAfterWrite: 3600
+# 存储配置
+store:
+  name: defaultStore
+  option:
+    master:
+      dbType: mysql
+      dbName: polaris_server
+      dbUser: # 数据库账号
+      dbPwd: # 数据库密码
+      dbAddr: 127.0.0.1:3306
+      maxOpenConns: -1
+      maxIdleConns: -1
+      connMaxLifetime: 300 # 单位秒
+      txIsolationLevel: 2 #LevelReadCommitted

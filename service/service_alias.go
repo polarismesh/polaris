@@ -23,13 +23,13 @@ import (
 	"fmt"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
-	commontime "github.com/polarismesh/polaris-server/common/time"
+	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 var (
@@ -59,7 +59,7 @@ func (s *Server) CreateServiceAlias(ctx context.Context, req *api.ServiceAlias) 
 	}
 	defer func() { _ = tx.Commit() }()
 
-	service, response, done := s.checkPointServiceAlias(err, tx, req, rid)
+	service, response, done := s.checkPointServiceAlias(tx, req, rid)
 	if done {
 		return response
 	}
@@ -104,8 +104,7 @@ func (s *Server) CreateServiceAlias(ctx context.Context, req *api.ServiceAlias) 
 	return api.NewServiceAliasResponse(api.ExecuteSuccess, out)
 }
 
-func (s *Server) checkPointServiceAlias(
-	err error, tx store.Transaction, req *api.ServiceAlias, rid string) (*model.Service, *api.Response, bool) {
+func (s *Server) checkPointServiceAlias(tx store.Transaction, req *api.ServiceAlias, rid string) (*model.Service, *api.Response, bool) {
 	// 检查指向服务是否存在以及是否为别名
 	service, err := tx.LockService(req.GetService().GetValue(), req.GetNamespace().GetValue())
 	if err != nil {
@@ -122,11 +121,9 @@ func (s *Server) checkPointServiceAlias(
 	return service, nil, false
 }
 
-/**
- * DeleteServiceAlias 删除服务别名
- * @note 需要带上源服务name，namespace，token
- * @note 另外一种删除别名的方式，是直接调用删除服务的接口，也是可行的
- */
+// DeleteServiceAlias 删除服务别名
+//  需要带上源服务name，namespace，token
+//  另外一种删除别名的方式，是直接调用删除服务的接口，也是可行的
 func (s *Server) DeleteServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
 	if resp := checkDeleteServiceAliasReq(ctx, req); resp != nil {
 		return resp
@@ -184,9 +181,7 @@ func (s *Server) DeleteServiceAliases(ctx context.Context, req []*api.ServiceAli
 	return api.FormatBatchWriteResponse(responses)
 }
 
-/**
- * UpdateServiceAlias 修改服务别名
- */
+// UpdateServiceAlias 修改服务别名
 func (s *Server) UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
 	rid := ParseRequestID(ctx)
 
@@ -257,10 +252,8 @@ func (s *Server) UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) 
 	return api.NewServiceAliasResponse(api.ExecuteSuccess, req)
 }
 
-/**
- * GetServiceAliases 查找服务别名
- */
-func (s *Server) GetServiceAliases(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+// GetServiceAliases 查找服务别名
+func (s *Server) GetServiceAliases(query map[string]string) *api.BatchQueryResponse {
 	// 先处理offset和limit
 	offset, limit, err := ParseOffsetAndLimit(query)
 	if err != nil {
@@ -304,7 +297,7 @@ func (s *Server) GetServiceAliases(ctx context.Context, query map[string]string)
 	return resp
 }
 
-// 检查别名请求
+// checkCreateServiceAliasReq 检查别名请求
 func checkCreateServiceAliasReq(ctx context.Context, req *api.ServiceAlias) *api.Response {
 	response, done := preCheckAlias(req)
 	if done {
@@ -344,12 +337,10 @@ func preCheckAlias(req *api.ServiceAlias) (*api.Response, bool) {
 	return nil, false
 }
 
-/**
- * @brief 检查删除、修改别名请求
- */
+// checkReviseServiceAliasReq 检查删除、修改别名请求
 func checkReviseServiceAliasReq(ctx context.Context, req *api.ServiceAlias) *api.Response {
 	resp := checkDeleteServiceAliasReq(ctx, req)
-	if nil != resp {
+	if resp != nil {
 		return resp
 	}
 	// 检查服务名
@@ -364,9 +355,7 @@ func checkReviseServiceAliasReq(ctx context.Context, req *api.ServiceAlias) *api
 	return nil
 }
 
-/**
- * @brief 检查删除、修改别名请求
- */
+// checkDeleteServiceAliasReq 检查删除、修改别名请求
 func checkDeleteServiceAliasReq(ctx context.Context, req *api.ServiceAlias) *api.Response {
 	if req == nil {
 		return api.NewServiceAliasResponse(api.EmptyRequest, req)
@@ -391,9 +380,7 @@ func checkDeleteServiceAliasReq(ctx context.Context, req *api.ServiceAlias) *api
 	return nil
 }
 
-/**
- * @brief 修改服务别名属性
- */
+// updateServiceAliasAttribute 修改服务别名属性
 func (s *Server) updateServiceAliasAttribute(req *api.ServiceAlias, alias *model.Service, serviceID string) (
 	*api.Response, bool, bool) {
 	var (
@@ -430,9 +417,7 @@ func (s *Server) updateServiceAliasAttribute(req *api.ServiceAlias, alias *model
 	return nil, needUpdate, needUpdateOwner
 }
 
-/**
- * @brief 构建存储结构
- */
+// createServiceAliasModel 构建存储结构
 func (s *Server) createServiceAliasModel(req *api.ServiceAlias, svcId string) (
 	*model.Service, *api.Response) {
 	out := &model.Service{
@@ -465,7 +450,7 @@ func (s *Server) createServiceAliasModel(req *api.ServiceAlias, svcId string) (
 	return out, nil
 }
 
-// 根据Reference获取源服务的token
+// getSourceServiceToken 根据Reference获取源服务的token
 func (s *Server) getSourceServiceToken(refer string) (string, uint32, error) {
 	if refer == "" {
 		return "", 0, nil
@@ -481,9 +466,7 @@ func (s *Server) getSourceServiceToken(refer string) (string, uint32, error) {
 	return service.Token, 0, nil
 }
 
-/**
- * @brief wrapper service alias error
- */
+// wrapperServiceAliasResponse wrapper service alias error
 func wrapperServiceAliasResponse(alias *api.ServiceAlias, err error) *api.Response {
 	resp := storeError2Response(err)
 	if resp == nil {

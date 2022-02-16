@@ -36,7 +36,7 @@ const (
 
 func TestInstanceStore_AddInstance(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -88,7 +88,7 @@ func batchAddInstances(t *testing.T, insStore *instanceStore, svcId string, insC
 			Valid:             true,
 			ModifyTime:        time.Now(),
 		})
-		if nil != err {
+		if err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -96,7 +96,7 @@ func batchAddInstances(t *testing.T, insStore *instanceStore, svcId string, insC
 
 func TestInstanceStore_BatchAddInstances(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -146,7 +146,7 @@ func TestInstanceStore_BatchAddInstances(t *testing.T) {
 func TestInstanceStore_GetExpandInstances(t *testing.T) {
 	_ = os.RemoveAll("./table.bolt")
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -157,7 +157,7 @@ func TestInstanceStore_GetExpandInstances(t *testing.T) {
 	batchAddInstances(t, insStore, "svcid1", insCount)
 
 	_, ii, err := insStore.GetExpandInstances(nil, nil, 0, 20)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -168,7 +168,7 @@ func TestInstanceStore_GetExpandInstances(t *testing.T) {
 
 func TestInstanceStore_GetMoreInstances(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -192,7 +192,7 @@ func TestInstanceStore_GetMoreInstances(t *testing.T) {
 
 func TestInstanceStore_SetInstanceHealthStatus(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -220,7 +220,7 @@ func TestInstanceStore_SetInstanceHealthStatus(t *testing.T) {
 
 func TestInstanceStore_BatchSetInstanceIsolate(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -258,7 +258,7 @@ func TestInstanceStore_BatchSetInstanceIsolate(t *testing.T) {
 
 func TestInstanceStore_GetInstancesMainByService(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -269,7 +269,7 @@ func TestInstanceStore_GetInstancesMainByService(t *testing.T) {
 	batchAddInstances(t, insStore, "svcid1", insCount)
 
 	ii, err := insStore.GetInstancesMainByService("svcid1", "1.1.1.1")
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -280,7 +280,7 @@ func TestInstanceStore_GetInstancesMainByService(t *testing.T) {
 
 func TestInstanceStore_UpdateInstance(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -332,7 +332,7 @@ func TestInstanceStore_UpdateInstance(t *testing.T) {
 
 func TestInstanceStore_GetInstancesBrief(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -424,7 +424,7 @@ func TestInstanceStore_GetInstancesBrief(t *testing.T) {
 
 func TestInstanceStore_GetInstancesCount(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -446,7 +446,7 @@ func TestInstanceStore_GetInstancesCount(t *testing.T) {
 
 func TestInstanceStore_CheckInstancesExisted(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -475,7 +475,7 @@ func TestInstanceStore_CheckInstancesExisted(t *testing.T) {
 
 func TestInstanceStore_DeleteInstance(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -503,7 +503,7 @@ func TestInstanceStore_DeleteInstance(t *testing.T) {
 
 func TestInstanceStore_BatchDeleteInstances(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {

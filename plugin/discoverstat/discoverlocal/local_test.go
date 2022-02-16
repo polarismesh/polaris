@@ -23,9 +23,7 @@ import (
 	"time"
 )
 
-/**
- * @brief 测试打印文件所需耗时
- */
+// TestWriteFile 测试打印文件所需耗时
 func TestWriteFile(t *testing.T) {
 	dcs := &DiscoverCallStatis{
 		statis: make(map[Service]time.Time),
@@ -54,9 +52,7 @@ func TestWriteFile(t *testing.T) {
 
 }
 
-/**
- * @brief 测试写入chan的情况
- */
+// TestDiscoverStatisWorker_AddDiscoverCall 测试写入chan的情况
 func TestDiscoverStatisWorker_AddDiscoverCall(t *testing.T) {
 	worker := &DiscoverStatisWorker{
 		interval: 60 * time.Second,

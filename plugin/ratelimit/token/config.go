@@ -19,11 +19,13 @@ package token
 
 import (
 	"fmt"
+
 	"github.com/mitchellh/mapstructure"
+
 	"github.com/polarismesh/polaris-server/common/log"
 )
 
-// 限流配置类
+// Config 限流配置类
 type Config struct {
 	// 是否启用远程配置，默认false。TODO 暂时无远程配置，后续版本补全
 	RemoteConf bool `mapstructure:"remote-conf"`
@@ -38,7 +40,7 @@ type Config struct {
 	InstanceLimitConf *ResourceLimitConfig `mapstructure:"instance-limit"`
 }
 
-// 针对令牌桶的具体配置
+// BucketRatelimit 针对令牌桶的具体配置
 type BucketRatelimit struct {
 	// 是否开启限流
 	Open bool `mapstructure:"open"`
@@ -50,7 +52,7 @@ type BucketRatelimit struct {
 	Rate int `mapstructure:"rate"`
 }
 
-// 基于资源的限流配置
+// ResourceLimitConfig 基于资源的限流配置
 // 资源可以是：IP，实例，服务等
 type ResourceLimitConfig struct {
 	// 是否开启instance限流
@@ -66,7 +68,7 @@ type ResourceLimitConfig struct {
 	WhiteList []string `mapstructure:"white-list"`
 }
 
-// api限流配置
+// APILimitConfig api限流配置
 type APILimitConfig struct {
 	// 系统是否开启API限流
 	Open bool `mapstructure:"open"`
@@ -78,7 +80,7 @@ type APILimitConfig struct {
 	Apis []*APILimitInfo `mapstructure:"apis"`
 }
 
-// 限流规则
+// RateLimitRule 限流规则
 type RateLimitRule struct {
 	// 规则名
 	Name string `mapstructure:"name"`
@@ -87,7 +89,7 @@ type RateLimitRule struct {
 	Limit *BucketRatelimit `mapstructure:"limit"`
 }
 
-// 每个接口的单独配置信息
+// APILimitInfo 每个接口的单独配置信息
 type APILimitInfo struct {
 	// 接口名，比如对于HTTP，就是：方法+URL
 	Name string `mapstructure:"name"`
@@ -96,7 +98,7 @@ type APILimitInfo struct {
 	Rule string `mapstructure:"rule"`
 }
 
-// 把map解码为Config对象
+// decodeConfig 把map解码为Config对象
 func decodeConfig(data map[string]interface{}) (*Config, error) {
 	if data == nil {
 		return nil, fmt.Errorf("plugin(%s) option is empty", PluginName)

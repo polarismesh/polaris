@@ -34,18 +34,20 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/apiserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/config"
 	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris-server/plugin/statis/local"
 	"github.com/polarismesh/polaris-server/service"
-	"go.uber.org/zap"
+	"github.com/polarismesh/polaris-server/service/healthcheck"
 )
 
-/**
- * HTTPServer HTTP API服务器
- */
+// HTTPServer HTTP API服务器
 type HTTPServer struct {
 	listenIP        string
 	listenPort      uint32
@@ -60,9 +62,15 @@ type HTTPServer struct {
 
 	freeMemMu *sync.Mutex
 
+<<<<<<< HEAD
 	server *http.Server
 
 	namingServer      service.DiscoverServer
+=======
+	server            *http.Server
+	namingServer      *service.Server
+	configServer      *config.Server
+>>>>>>> 97ed9f86bd82510bb31511a9923824a8a2e38e1e
 	healthCheckServer *healthcheck.Server
 	rateLimit         plugin.Ratelimit
 	statis            plugin.Statis
@@ -76,23 +84,17 @@ const (
 	Discover string = "Discover"
 )
 
-/**
- * GetPort 获取端口
- */
+// GetPort 获取端口
 func (h *HTTPServer) GetPort() uint32 {
 	return h.listenPort
 }
 
-/**
- * GetProtocol 获取Server的协议
- */
+// GetProtocol 获取Server的协议
 func (h *HTTPServer) GetProtocol() string {
 	return "http"
 }
 
-/**
- * Initialize 初始化HTTP API服务器
- */
+// Initialize 初始化HTTP API服务器
 func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{},
 	api map[string]apiserver.APIConfig) error {
 	h.option = option
@@ -123,9 +125,7 @@ func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{}
 	return nil
 }
 
-/**
- * Run 启动HTTP API服务器
- */
+// Run 启动HTTP API服务器
 func (h *HTTPServer) Run(errCh chan error) {
 	log.Infof("start httpserver")
 	h.exitCh = make(chan struct{}, 1)
@@ -160,6 +160,14 @@ func (h *HTTPServer) Run(errCh chan error) {
 		return
 	}
 	h.statis = plugin.GetStatis()
+
+	//初始化配置中心模块
+	h.configServer, err = config.GetConfigServer()
+	if err != nil {
+		log.Errorf("set config server to http server error. %v", err)
+		errCh <- err
+		return
+	}
 
 	// 初始化http server
 	address := fmt.Sprintf("%v:%v", h.listenIP, h.listenPort)
@@ -217,6 +225,8 @@ func (h *HTTPServer) Stop() {
 	if h.server != nil {
 		_ = h.server.Close()
 	}
+
+	h.StopConfigServer()
 }
 
 // Restart restart server
@@ -258,7 +268,7 @@ func (h *HTTPServer) Restart(option map[string]interface{}, api map[string]apise
 	return nil
 }
 
-// 创建handler
+// createRestfulContainer create handler
 func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 	wsContainer := restful.NewContainer()
 
@@ -285,12 +295,17 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 			}
 		case "console":
 			if config.Enable {
-				service, err := h.GetConsoleAccessServer(config.Include)
+				namingService, err := h.GetNamingConsoleAccessServer(config.Include)
 				if err != nil {
 					return nil, err
 				}
+				wsContainer.Add(namingService)
+				coreService, err := h.GetCoreConsoleAccessServer(config.Include)
+				if err != nil {
+					return nil, err
+				}
+				wsContainer.Add(coreService)
 
-				wsContainer.Add(service)
 				wsContainer.Add(h.GetAuthServer())
 			}
 		case "client":
@@ -300,6 +315,14 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 					return nil, err
 				}
 				wsContainer.Add(service)
+			}
+		case "config":
+			if config.Enable {
+				consoleService, err := h.GetConfigAccessServer(config.Include)
+				if err != nil {
+					return nil, err
+				}
+				wsContainer.Add(consoleService)
 			}
 		default:
 			log.Errorf("api %s does not exist in httpserver", name)
@@ -319,7 +342,7 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 	return wsContainer, nil
 }
 
-// 开启pprof接口
+// enablePprofAccess 开启pprof接口
 func (h *HTTPServer) enablePprofAccess(wsContainer *restful.Container) {
 	log.Infof("open http access for pprof")
 	wsContainer.Handle("/debug/pprof/", http.HandlerFunc(pprof.Index))
@@ -328,7 +351,7 @@ func (h *HTTPServer) enablePprofAccess(wsContainer *restful.Container) {
 	wsContainer.Handle("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
 }
 
-// 开启 Prometheus 接口
+// enablePrometheusAccess 开启 Prometheus 接口
 func (h *HTTPServer) enablePrometheusAccess(wsContainer *restful.Container) {
 	log.Infof("open http access for prometheus")
 
@@ -337,9 +360,7 @@ func (h *HTTPServer) enablePrometheusAccess(wsContainer *restful.Container) {
 	wsContainer.Handle("/metrics", statis.GetPrometheusHandler())
 }
 
-/**
- * @brief 在接收和回复时统一处理请求
- */
+// process 在接收和回复时统一处理请求
 func (h *HTTPServer) process(req *restful.Request, rsp *restful.Response, chain *restful.FilterChain) {
 	func() {
 		if err := h.preprocess(req, rsp); err != nil {
@@ -352,9 +373,7 @@ func (h *HTTPServer) process(req *restful.Request, rsp *restful.Response, chain 
 	h.postProcess(req, rsp)
 }
 
-/**
- * @brief 请求预处理
- */
+// preprocess 请求预处理
 func (h *HTTPServer) preprocess(req *restful.Request, rsp *restful.Response) error {
 	// 设置开始时间
 	req.SetAttribute("start-time", time.Now())
@@ -394,9 +413,7 @@ func (h *HTTPServer) preprocess(req *restful.Request, rsp *restful.Response) err
 	return nil
 }
 
-/**
- * postProcess 请求后处理：统计
- */
+// postProcess 请求后处理：统计
 func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 	now := time.Now()
 
@@ -429,9 +446,7 @@ func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 	_ = h.statis.AddAPICall(method, "HTTP", int(code), diff.Nanoseconds())
 }
 
-/**
- * @brief 访问鉴权
- */
+// enterAuth 访问鉴权
 func (h *HTTPServer) enterAuth(req *restful.Request, rsp *restful.Response) error {
 	// 判断鉴权插件是否开启
 	if h.auth == nil {
@@ -460,7 +475,7 @@ func (h *HTTPServer) enterAuth(req *restful.Request, rsp *restful.Response) erro
 	return nil
 }
 
-// 访问限制
+// enterRateLimit 访问限制
 func (h *HTTPServer) enterRateLimit(req *restful.Request, rsp *restful.Response) error {
 	// 检查限流插件是否开启
 	if h.rateLimit == nil {

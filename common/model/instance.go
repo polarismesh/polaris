@@ -18,11 +18,12 @@
 package model
 
 import (
-	commontime "github.com/polarismesh/polaris-server/common/time"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 )
 
 // Instance 组合了api的Instance对象

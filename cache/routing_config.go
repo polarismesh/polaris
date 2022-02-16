@@ -50,21 +50,19 @@ type routingConfigCache struct {
 	firstUpdate bool
 }
 
-/**
- * @brief 自注册到缓存列表
- */
+// init 自注册到缓存列表
 func init() {
 	RegisterCache(RoutingConfigName, CacheRoutingConfig)
 }
 
-// 返回一个操作RoutingConfigCache的对象
+// newRoutingConfigCache 返回一个操作RoutingConfigCache的对象
 func newRoutingConfigCache(s store.Store) *routingConfigCache {
 	return &routingConfigCache{
 		storage: s,
 	}
 }
 
-// 实现Cache接口的函数
+// initialize 实现Cache接口的函数
 func (rc *routingConfigCache) initialize(opt map[string]interface{}) error {
 	rc.ids = new(sync.Map)
 	rc.lastMtime = time.Unix(0, 0)
@@ -75,7 +73,7 @@ func (rc *routingConfigCache) initialize(opt map[string]interface{}) error {
 	return nil
 }
 
-// 实现Cache接口的函数
+// update 实现Cache接口的函数
 func (rc *routingConfigCache) update() error {
 	out, err := rc.storage.GetRoutingConfigsForCache(rc.lastMtime.Add(DefaultTimeDiff), rc.firstUpdate)
 	if err != nil {
@@ -87,18 +85,19 @@ func (rc *routingConfigCache) update() error {
 	return rc.setRoutingConfig(out)
 }
 
-// 实现Cache接口的函数
+// clear 实现Cache接口的函数
 func (rc *routingConfigCache) clear() error {
 	return nil
 }
 
-// 实现Cache接口的函数
+// name 实现Cache接口的函数
 func (rc *routingConfigCache) name() string {
 	return RoutingConfigName
 }
 
-// 根据ServiceID获取路由配置
+// GetRoutingConfig 根据ServiceID获取路由配置
 func (rc *routingConfigCache) GetRoutingConfig(id string) *model.RoutingConfig {
+	// TODO
 	if id == "" {
 	}
 
@@ -110,7 +109,7 @@ func (rc *routingConfigCache) GetRoutingConfig(id string) *model.RoutingConfig {
 	return value.(*model.RoutingConfig)
 }
 
-// 获取路由配置缓存的总个数
+// GetRoutingConfigCount 获取路由配置缓存的总个数
 func (rc *routingConfigCache) GetRoutingConfigCount() int {
 	count := 0
 	rc.ids.Range(func(key, value interface{}) bool {
@@ -121,7 +120,7 @@ func (rc *routingConfigCache) GetRoutingConfigCount() int {
 	return count
 }
 
-// 内部函数：更新store的数据到cache中
+// setRoutingConfig 更新store的数据到cache中
 func (rc *routingConfigCache) setRoutingConfig(cs []*model.RoutingConfig) error {
 	if len(cs) == 0 {
 		return nil

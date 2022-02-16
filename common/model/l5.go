@@ -17,9 +17,7 @@
 
 package model
 
-/**
- * Route 访问关系
- */
+// Route 访问关系
 type Route struct {
 	IP    uint32
 	ModID uint32
@@ -29,9 +27,7 @@ type Route struct {
 	Flow  uint32
 }
 
-/**
- * Policy 有状态规则路由策略信息
- */
+// Policy 有状态规则路由策略信息
 type Policy struct {
 	ModID uint32
 	Div   uint32
@@ -40,9 +36,7 @@ type Policy struct {
 	Flow  uint32
 }
 
-/**
- * Section 有状态规则路由分段信息
- */
+// Section 有状态规则路由分段信息
 type Section struct {
 	ModID uint32
 	From  uint32
@@ -52,9 +46,7 @@ type Section struct {
 	Flow  uint32
 }
 
-/**
- * IPConfig IP的区域信息
- */
+// IPConfig IP的区域信息
 type IPConfig struct {
 	IP     uint32
 	AreaID uint32
@@ -64,17 +56,13 @@ type IPConfig struct {
 	Flow   uint32
 }
 
-/**
- * Sid sid信息
- */
+// Sid sid信息
 type Sid struct {
 	ModID uint32
 	CmdID uint32
 }
 
-/**
- * Callee 被调信息，对应t_server+t_ip_config
- */
+// Callee 被调信息，对应t_server+t_ip_config
 type Callee struct {
 	ModID    uint32
 	CmdID    uint32
@@ -88,9 +76,7 @@ type Callee struct {
 	//IdcID  uint32
 }
 
-/**
- *SidConfig sid信息，对应t_sid表
- */
+// SidConfig sid信息，对应t_sid表
 type SidConfig struct {
 	ModID  uint32
 	CmdID  uint32
