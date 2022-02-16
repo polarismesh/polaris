@@ -27,5 +27,5 @@ if [[ $? != 0 ]]; then
 fi
 
 docker push polarismesh/polaris-server:${docker_tag}
-# docker tag polarismesh/polaris-server:${docker_tag} polarismesh/polaris-server:latest
-# docker push polarismesh/polaris-server:latest
+docker tag polarismesh/polaris-server:${docker_tag} polarismesh/polaris-server:latest
+docker push polarismesh/polaris-server:latest
