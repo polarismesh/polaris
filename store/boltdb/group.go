@@ -50,7 +50,7 @@ func (us *groupStore) UpdateGroup(group *model.ModifyUserGroup) error {
 }
 
 // DeleteUserGroup
-func (us *groupStore) DeleteGroup(id string) error {
+func (us *groupStore) DeleteGroup(group *model.UserGroupDetail) error {
 	return nil
 }
 

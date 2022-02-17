@@ -21,17 +21,11 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 // CreateStrategy
 func (svr *serverAuthAbility) CreateStrategy(ctx context.Context, strategy *api.AuthStrategy) *api.Response {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewResponse(api.NotAllowedAccess)
-	}
-
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if errResp != nil {
 		errResp.AuthStrategy = strategy
 		return errResp
@@ -40,30 +34,25 @@ func (svr *serverAuthAbility) CreateStrategy(ctx context.Context, strategy *api.
 	return svr.target.CreateStrategy(ctx, strategy)
 }
 
-// UpdateStrategy
-func (svr *serverAuthAbility) UpdateStrategy(ctx context.Context, strategy *api.ModifyAuthStrategy) *api.Response {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewResponse(api.NotAllowedAccess)
-	}
+// UpdateStrategies
+func (svr *serverAuthAbility) UpdateStrategies(ctx context.Context,
+	reqs []*api.ModifyAuthStrategy) *api.BatchWriteResponse {
 
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if errResp != nil {
-		errResp.ModifyAuthStrategy = strategy
-		return errResp
+		resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
+		resp.Collect(errResp)
+		return resp
 	}
 
-	return svr.target.UpdateStrategy(ctx, strategy)
+	return svr.target.UpdateStrategies(ctx, reqs)
 }
 
 // DeleteStrategy
-func (svr *serverAuthAbility) DeleteStrategies(ctx context.Context, reqs []*api.AuthStrategy) *api.BatchWriteResponse {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewBatchWriteResponse(api.NotAllowedAccess)
-	}
+func (svr *serverAuthAbility) DeleteStrategies(ctx context.Context,
+	reqs []*api.AuthStrategy) *api.BatchWriteResponse {
 
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if errResp != nil {
 		resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
 		resp.Collect(errResp)
@@ -74,13 +63,9 @@ func (svr *serverAuthAbility) DeleteStrategies(ctx context.Context, reqs []*api.
 }
 
 // GetStrategies
-func (svr *serverAuthAbility) GetStrategies(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewBatchQueryResponse(api.NotAllowedAccess)
-	}
-
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+func (svr *serverAuthAbility) GetStrategies(ctx context.Context,
+	query map[string]string) *api.BatchQueryResponse {
+	ctx, errResp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if errResp != nil {
 		return api.NewBatchQueryResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
 	}
@@ -88,16 +73,22 @@ func (svr *serverAuthAbility) GetStrategies(ctx context.Context, query map[strin
 	return svr.target.GetStrategies(ctx, query)
 }
 
+// GetStrategy
 func (svr *serverAuthAbility) GetStrategy(ctx context.Context, strategy *api.AuthStrategy) *api.Response {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewResponse(api.NotAllowedAccess)
-	}
-
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	ctx, errResp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if errResp != nil {
-		return api.NewResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
+		return errResp
 	}
 
 	return svr.target.GetStrategy(ctx, strategy)
+}
+
+// GetPrincipalResources
+func (svr *serverAuthAbility) GetPrincipalResources(ctx context.Context, query map[string]string) *api.Response {
+	ctx, errResp := svr.verifyAuth(ctx, ReadOp, NotOwner)
+	if errResp != nil {
+		return errResp
+	}
+
+	return svr.target.GetPrincipalResources(ctx, query)
 }

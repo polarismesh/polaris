@@ -28,14 +28,14 @@ import (
 	"github.com/polarismesh/polaris-server/store"
 )
 
-// defaultAuthManager 北极星自带的默认鉴权中心
-type defaultAuthManager struct {
+// defaultAuthChecker 北极星自带的默认鉴权中心
+type defaultAuthChecker struct {
 	cacheMgn   *cache.NamingCache
 	authPlugin plugin.Auth
 }
 
 // Initialize 执行初始化动作
-func (authMgn *defaultAuthManager) Initialize(options *auth.Config, cacheMgn *cache.NamingCache) error {
+func (authMgn *defaultAuthChecker) Initialize(options *auth.Config, cacheMgn *cache.NamingCache) error {
 	contentBytes, err := json.Marshal(options.Option)
 	if err != nil {
 		return err
@@ -46,13 +46,17 @@ func (authMgn *defaultAuthManager) Initialize(options *auth.Config, cacheMgn *ca
 		return err
 	}
 
+	if err := cfg.Verify(); err != nil {
+		return err
+	}
+
 	AuthOption = cfg
 
 	// 获取存储层对象
 	s, err := store.GetStore()
 	if err != nil {
 		log.AuthScope().Errorf("[Auth][Server] can not get store, err: %s", err.Error())
-		return errors.New("auth-manager can not get store")
+		return errors.New("auth-checker can not get store")
 	}
 	if s == nil {
 		log.AuthScope().Errorf("[Auth][Server] store is null")
@@ -61,7 +65,7 @@ func (authMgn *defaultAuthManager) Initialize(options *auth.Config, cacheMgn *ca
 
 	authPlugin := plugin.GetAuth()
 	if authPlugin == nil {
-		return errors.New("AuthManager needs to configure plugin.Auth plugin for permission calculation")
+		return errors.New("AuthChecker needs to configure plugin.Auth plugin for permission check")
 	}
 
 	authMgn.cacheMgn = cacheMgn
@@ -71,6 +75,6 @@ func (authMgn *defaultAuthManager) Initialize(options *auth.Config, cacheMgn *ca
 }
 
 // Cache 获取缓存统一管理
-func (authMgn *defaultAuthManager) Cache() *cache.NamingCache {
+func (authMgn *defaultAuthChecker) Cache() *cache.NamingCache {
 	return authMgn.cacheMgn
 }

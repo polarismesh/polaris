@@ -25,32 +25,32 @@ import (
 
 //
 func (svr *serverAuthAbility) CreatePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse {
-	return svr.CreatePlatforms(ctx, req)
+	return svr.targetServer.CreatePlatforms(ctx, req)
 }
 
 //
 func (svr *serverAuthAbility) CreatePlatform(ctx context.Context, req *api.Platform) *api.Response {
-	return svr.CreatePlatform(ctx, req)
+	return svr.targetServer.CreatePlatform(ctx, req)
 }
 
 //
 func (svr *serverAuthAbility) UpdatePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse {
-	return svr.UpdatePlatforms(ctx, req)
+	return svr.targetServer.UpdatePlatforms(ctx, req)
 }
 
 //
 func (svr *serverAuthAbility) UpdatePlatform(ctx context.Context, req *api.Platform) *api.Response {
-	return svr.UpdatePlatform(ctx, req)
+	return svr.targetServer.UpdatePlatform(ctx, req)
 }
 
 //
 func (svr *serverAuthAbility) DeletePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse {
-	return svr.DeletePlatforms(ctx, req)
+	return svr.targetServer.DeletePlatforms(ctx, req)
 }
 
 //
 func (svr *serverAuthAbility) DeletePlatform(ctx context.Context, req *api.Platform) *api.Response {
-	return svr.DeletePlatform(ctx, req)
+	return svr.targetServer.DeletePlatform(ctx, req)
 }
 
 //
@@ -60,5 +60,5 @@ func (svr *serverAuthAbility) GetPlatforms(ctx context.Context, query map[string
 
 //
 func (svr *serverAuthAbility) GetPlatformToken(ctx context.Context, req *api.Platform) *api.Response {
-	return svr.GetPlatformToken(ctx, req)
+	return svr.targetServer.GetPlatformToken(ctx, req)
 }

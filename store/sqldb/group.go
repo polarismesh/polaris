@@ -63,11 +63,9 @@ func (u *groupStore) addGroup(group *model.UserGroupDetail) error {
 	defer func() { _ = tx.Rollback() }()
 
 	addSql := `
-	INSERT INTO user_group (id, name, owner, token, token_enable
-		, comment, flag, ctime, mtime)
-	VALUES (?, ?, ?, ?, ?
-		, ?, ?, sysdate(), sysdate())
-	`
+	  INSERT INTO user_group (id, name, owner, token, token_enable, comment, flag, ctime, mtime)
+	  VALUES (?, ?, ?, ?, ?, ?, ?, sysdate(), sysdate())
+	  `
 
 	if _, err = tx.Exec(addSql, []interface{}{
 		group.ID,
@@ -87,7 +85,7 @@ func (u *groupStore) addGroup(group *model.UserGroupDetail) error {
 		return err
 	}
 
-	if err := createDefaultStrategy(tx, model.PrincipalUserGroup, group.ID, group.Owner); err != nil {
+	if err := createDefaultStrategy(tx, model.PrincipalGroup, group.ID, group.Name, group.Owner); err != nil {
 		logger.AuthScope().Errorf("[Store][Group] add usergroup default strategy err: %s", err.Error())
 		return err
 	}
@@ -104,10 +102,6 @@ func (u *groupStore) UpdateGroup(group *model.ModifyUserGroup) error {
 	if group.ID == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"update usergroup missing some params, groupId is %s", group.ID))
-	}
-
-	if err := u.cleanInValidGroupRelation(group.ID); err != nil {
-		return store.Error(err)
 	}
 
 	err := RetryTransaction("updateGroup", func() error {
@@ -131,18 +125,6 @@ func (u *groupStore) updateGroup(group *model.ModifyUserGroup) error {
 		tokenEnable = 0
 	}
 
-	modifySql := "UPDATE user_group SET token = ?, comment = ?, token_enable = ? WHERE id = ? AND flag = 0"
-
-	if _, err = tx.Exec(modifySql, []interface{}{
-		group.Token,
-		group.Comment,
-		tokenEnable,
-		group.ID,
-	}...); err != nil {
-		logger.AuthScope().Errorf("[Store][Group] update usergroup main err: %s", err.Error())
-		return err
-	}
-
 	// 更新用户-用户组关联数据
 	if len(group.AddUserIds) != 0 {
 		if err := u.addGroupRelation(tx, group.ID, group.AddUserIds); err != nil {
@@ -158,6 +140,18 @@ func (u *groupStore) updateGroup(group *model.ModifyUserGroup) error {
 		}
 	}
 
+	modifySql := "UPDATE user_group SET token = ?, comment = ?, token_enable = ?, mtime = sysdate() " +
+		" WHERE id = ? AND flag = 0"
+	if _, err = tx.Exec(modifySql, []interface{}{
+		group.Token,
+		group.Comment,
+		tokenEnable,
+		group.ID,
+	}...); err != nil {
+		logger.AuthScope().Errorf("[Store][Group] update usergroup main err: %s", err.Error())
+		return err
+	}
+
 	if err := tx.Commit(); err != nil {
 		logger.AuthScope().Errorf("[Store][Group] update usergroup tx commit err: %s", err.Error())
 		return err
@@ -167,20 +161,20 @@ func (u *groupStore) updateGroup(group *model.ModifyUserGroup) error {
 }
 
 // DeleteGroup 删除用户组
-func (u *groupStore) DeleteGroup(groupId string) error {
-	if groupId == "" {
+func (u *groupStore) DeleteGroup(group *model.UserGroupDetail) error {
+	if group.ID == "" || group.Name == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
-			"delete usergroup missing some params, groupId is %s", groupId))
+			"delete usergroup missing some params, groupId is %s", group.ID))
 	}
 
 	err := RetryTransaction("deleteUserGroup", func() error {
-		return u.deleteUserGroup(groupId)
+		return u.deleteUserGroup(group)
 	})
 
 	return store.Error(err)
 }
 
-func (u *groupStore) deleteUserGroup(id string) error {
+func (u *groupStore) deleteUserGroup(group *model.UserGroupDetail) error {
 
 	tx, err := u.master.Begin()
 	if err != nil {
@@ -189,21 +183,21 @@ func (u *groupStore) deleteUserGroup(id string) error {
 
 	defer func() { _ = tx.Rollback() }()
 
-	if _, err = tx.Exec("UPDATE user_group SET flag = 1 WHERE id = ?", []interface{}{
-		id,
-	}...); err != nil {
-		logger.AuthScope().Errorf("[Store][Group] remove usergroup err: %s", err.Error())
-		return err
-	}
-
-	if _, err = tx.Exec("UPDATE user_group_relation SET flag = 1 WHERE group_id = ?", []interface{}{
-		id,
+	if _, err = tx.Exec("DELETE FROM user_group_relation WHERE group_id = ?", []interface{}{
+		group.ID,
 	}...); err != nil {
 		logger.AuthScope().Errorf("[Store][Group] clean usergroup relation err: %s", err.Error())
 		return err
 	}
 
-	if err := cleanLinkStrategy(tx, model.PrincipalUserGroup, id); err != nil {
+	if _, err = tx.Exec("UPDATE user_group SET flag = 1, mtime = sysdate() WHERE id = ?", []interface{}{
+		group.ID,
+	}...); err != nil {
+		logger.AuthScope().Errorf("[Store][Group] remove usergroup err: %s", err.Error())
+		return err
+	}
+
+	if err := cleanLinkStrategy(tx, model.PrincipalGroup, group.ID, group.Owner); err != nil {
 		logger.AuthScope().Errorf("[Store][Group] clean usergroup default strategy err: %s", err.Error())
 		return err
 	}
@@ -223,12 +217,12 @@ func (u *groupStore) GetGroup(groupId string) (*model.UserGroupDetail, error) {
 	}
 
 	getSql := `
-	SELECT id, name, owner, token, token_enable
-		, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime)
-	FROM user_group
-	WHERE flag = 0
-		AND id = ? 
-	`
+	  SELECT ug.id, ug.name, ug.owner, ug.comment, ug.token, ug.token_enable
+		  , UNIX_TIMESTAMP(ug.ctime), UNIX_TIMESTAMP(ug.mtime)
+	  FROM user_group ug
+	  WHERE ug.flag = 0
+		  AND ug.id = ? 
+	  `
 	row := u.master.QueryRow(getSql, groupId)
 
 	group := &model.UserGroupDetail{
@@ -239,7 +233,8 @@ func (u *groupStore) GetGroup(groupId string) (*model.UserGroupDetail, error) {
 		tokenEnable  int
 	)
 
-	if err := row.Scan(&group.ID, &group.Name, &group.Owner, &group.Token, &tokenEnable, &ctime, &mtime); err != nil {
+	if err := row.Scan(&group.ID, &group.Name, &group.Owner, &group.Comment, &group.Token, &tokenEnable,
+		&ctime, &mtime); err != nil {
 		switch err {
 		case sql.ErrNoRows:
 			return nil, nil
@@ -266,18 +261,18 @@ func (u *groupStore) GetGroupByName(name, owner string) (*model.UserGroup, error
 	var ctime, mtime int64
 
 	getSql := `
-	SELECT id, name, owner, token
-		, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime)
-	FROM user_group
-	WHERE flag = 0
-		AND name = ?
-		AND owner = ? 
-	`
+	  SELECT ug.id, ug.name, ug.owner, ug.comment, ug.token
+		  , UNIX_TIMESTAMP(ug.ctime), UNIX_TIMESTAMP(ug.mtime)
+	  FROM user_group ug
+	  WHERE ug.flag = 0
+		  AND ug.name = ?
+		  AND ug.owner = ? 
+	  `
 	row := u.master.QueryRow(getSql, name, owner)
 
 	group := new(model.UserGroup)
 
-	if err := row.Scan(&group.ID, &group.Name, &group.Owner, &group.Token, &ctime, &mtime); err != nil {
+	if err := row.Scan(&group.ID, &group.Name, &group.Owner, &group.Comment, &group.Token, &ctime, &mtime); err != nil {
 		switch err {
 		case sql.ErrNoRows:
 			return nil, nil
@@ -293,29 +288,39 @@ func (u *groupStore) GetGroupByName(name, owner string) (*model.UserGroup, error
 }
 
 // GetGroups 根据不同的请求情况进行不同的用户组列表查询
-func (u *groupStore) GetGroups(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error) {
+func (u *groupStore) GetGroups(filters map[string]string, offset uint32, limit uint32) (uint32,
+	[]*model.UserGroup, error) {
 
 	// 如果本次请求参数携带了 user_id，那么就是查询这个用户所关联的所有用户组
 	if _, ok := filters["user_id"]; ok {
 		return u.listGroupByUser(filters, offset, limit)
 	} else {
-
 		// 正常查询用户组信息
 		return u.listSimpleGroups(filters, offset, limit)
 	}
 }
 
 // listSimpleGroups 正常的用户组查询
-func (u *groupStore) listSimpleGroups(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error) {
+func (u *groupStore) listSimpleGroups(filters map[string]string, offset uint32, limit uint32) (uint32,
+	[]*model.UserGroup, error) {
 
-	countSql := "SELECT COUNT(*) FROM user_group WHERE flag = 0 "
+	query := make(map[string]string)
+	if _, ok := filters["id"]; ok {
+		query["id"] = filters["id"]
+	}
+	if _, ok := filters["name"]; ok {
+		query["name"] = filters["name"]
+	}
+	filters = query
+
+	countSql := "SELECT COUNT(*) FROM user_group ug WHERE ug.flag = 0 "
 	getSql := `
-	SELECT id, name, owner, token, token_enable
-		, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime)
-		, flag
-	FROM user_group
-	WHERE flag = 0 
-	`
+	  SELECT ug.id, ug.name, ug.owner, ug.comment, ug.token, ug.token_enable
+		  , UNIX_TIMESTAMP(ug.ctime), UNIX_TIMESTAMP(ug.mtime)
+		  , ug.flag
+	  FROM user_group ug
+	  WHERE ug.flag = 0 
+	  `
 
 	args := make([]interface{}, 0)
 
@@ -323,54 +328,21 @@ func (u *groupStore) listSimpleGroups(filters map[string]string, offset uint32, 
 		for k, v := range filters {
 			getSql += " AND "
 			countSql += " AND "
-			if k == NameAttribute && utils.IsWildName(v) {
+			if newK, ok := groupAttribute[k]; ok {
+				k = newK
+			}
+			if utils.IsWildName(v) {
 				getSql += (" " + k + " like ? ")
 				countSql += (" " + k + " like ? ")
 				args = append(args, v[:len(v)-1]+"%")
-				continue
+			} else {
+				getSql += (" " + k + " = ? ")
+				countSql += (" " + k + " = ? ")
+				args = append(args, v)
 			}
-			getSql += (" " + k + " = ? ")
-			countSql += (" " + k + " = ? ")
-			args = append(args, v)
 		}
 	}
 
-	count, err := queryEntryCount(u.master, countSql, args)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	getSql += " ORDER BY mtime LIMIT ? , ?"
-	args = append(args, offset, limit)
-
-	groups, err := u.collectGroupsFromRows(u.master.Query, getSql, args)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	return count, groups, nil
-}
-
-// listGroupByUser 查询某个用户下所关联的用户组信息
-func (u *groupStore) listGroupByUser(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error) {
-	countSql := "SELECT COUNT(*) FROM user_group_relation ul LEFT JOIN user_group ug ON ul.group_id = ug.id WHERE ug.flag = 0  "
-	getSql := "SELECT ug.id, ug.name, ug.owner, ug.token, ug.token_enable, UNIX_TIMESTAMP(ug.ctime), UNIX_TIMESTAMP(ug.mtime), ug.flag " +
-		" FROM user_group_relation ul LEFT JOIN user_group ug ON ul.group_id = ug.id WHERE ug.flag = 0 "
-
-	args := make([]interface{}, 0)
-
-	if len(filters) != 0 {
-		for k, v := range filters {
-			if _, ok := userLinkGroupAttributeMapping[k]; ok {
-				k = userLinkGroupAttributeMapping[k]
-			}
-			getSql += " AND  " + k + " = ? "
-			countSql += " AND  " + k + " = ? "
-			args = append(args, v)
-		}
-	}
-
-	logger.AuthScope().Debug("[Store][Group] list group by user", zap.String("count sql", countSql), zap.Any("args", args))
 	count, err := queryEntryCount(u.master, countSql, args)
 	if err != nil {
 		return 0, nil, err
@@ -387,13 +359,51 @@ func (u *groupStore) listGroupByUser(filters map[string]string, offset uint32, l
 	return count, groups, nil
 }
 
-// collectGroupsFromRows 查询用户组列表
-func (u *groupStore) collectGroupsFromRows(handler QueryHandler, querySql string, args []interface{}) ([]*model.UserGroup, error) {
+// listGroupByUser 查询某个用户下所关联的用户组信息
+func (u *groupStore) listGroupByUser(filters map[string]string, offset uint32, limit uint32) (uint32,
+	[]*model.UserGroup, error) {
+	countSql := "SELECT COUNT(*) FROM user_group_relation ul LEFT JOIN user_group ug ON " +
+		" ul.group_id = ug.id WHERE ug.flag = 0 "
+	getSql := "SELECT ug.id, ug.name, ug.owner, ug.comment, ug.token, ug.token_enable, UNIX_TIMESTAMP(ug.ctime), " +
+		" UNIX_TIMESTAMP(ug.mtime), ug.flag " +
+		" FROM user_group_relation ul LEFT JOIN user_group ug ON ul.group_id = ug.id WHERE ug.flag = 0 "
 
-	logger.AuthScope().Debug("[Store][Group] list group", zap.String("query sql", querySql), zap.Any("args", args))
+	args := make([]interface{}, 0)
+
+	if len(filters) != 0 {
+		for k, v := range filters {
+			if newK, ok := userLinkGroupAttributeMapping[k]; ok {
+				k = newK
+			}
+			getSql += " AND  " + k + " = ? "
+			countSql += " AND  " + k + " = ? "
+			args = append(args, v)
+		}
+	}
+
+	count, err := queryEntryCount(u.master, countSql, args)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	getSql += " GROUP BY ug.id ORDER BY ug.mtime LIMIT ? , ?"
+	args = append(args, offset, limit)
+
+	groups, err := u.collectGroupsFromRows(u.master.Query, getSql, args)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return count, groups, nil
+}
+
+// collectGroupsFromRows 查询用户组列表
+func (u *groupStore) collectGroupsFromRows(handler QueryHandler, querySql string,
+	args []interface{}) ([]*model.UserGroup, error) {
 
 	rows, err := u.master.Query(querySql, args...)
 	if err != nil {
+		logger.AuthScope().Error("[Store][Group] list group", zap.String("query sql", querySql), zap.Any("args", args))
 		return nil, err
 	}
 	defer rows.Close()
@@ -420,7 +430,8 @@ func (u *groupStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*mo
 	defer func() { _ = tx.Commit() }()
 
 	args := make([]interface{}, 0)
-	querySql := "SELECT id, name, owner, token, token_enable, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime), flag FROM user_group "
+	querySql := "SELECT id, name, owner, comment, token, token_enable, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime), " +
+		" flag FROM user_group "
 	if !firstUpdate {
 		querySql += " WHERE mtime >= ?"
 		args = append(args, commontime.Time2String(mtime))
@@ -467,8 +478,8 @@ func (u *groupStore) addGroupRelation(tx *BaseTx, groupId string, userIds []stri
 
 	for i := range userIds {
 		uid := userIds[i]
-		addSql := "INSERT INTO user_group_relation (group_id, user_id, flag) VALUE (?,?,?)"
-		args := []interface{}{groupId, uid, 0}
+		addSql := "INSERT INTO user_group_relation (group_id, user_id) VALUE (?,?)"
+		args := []interface{}{groupId, uid}
 		_, err := tx.Exec(addSql, args...)
 		if err != nil {
 			err = store.Error(err)
@@ -494,7 +505,7 @@ func (u *groupStore) removeGroupRelation(tx *BaseTx, groupId string, userIds []s
 
 	for i := range userIds {
 		uid := userIds[i]
-		addSql := "UPDATE user_group_relation SET flag = 1 WHERE group_id = ? AND user_id = ?"
+		addSql := "DELETE FROM user_group_relation WHERE group_id = ? AND user_id = ?"
 		args := []interface{}{groupId, uid}
 		if _, err := tx.Exec(addSql, args...); err != nil {
 			return err
@@ -509,7 +520,8 @@ func (u *groupStore) getGroupLinkUserIds(groupId string) (map[string]struct{}, e
 	ids := make(map[string]struct{})
 
 	// 拉取该分组下的所有 user
-	idRows, err := u.slave.Query("SELECT user_id FROM user u JOIN user_group_relation ug ON u.id = ug.user_id AND u.flag = 0 WHERE ug.group_id = ?", groupId)
+	idRows, err := u.slave.Query("SELECT user_id FROM user u JOIN user_group_relation ug ON "+
+		" u.id = ug.user_id WHERE ug.group_id = ?", groupId)
 	if err != nil {
 		return nil, err
 	}
@@ -529,9 +541,8 @@ func fetchRown2UserGroup(rows *sql.Rows) (*model.UserGroup, error) {
 	var ctime, mtime int64
 	var flag, tokenEnable int
 	group := new(model.UserGroup)
-	err := rows.Scan(&group.ID, &group.Name, &group.Owner, &group.Token, &tokenEnable, &ctime, &mtime, &flag)
-
-	if err != nil {
+	if err := rows.Scan(&group.ID, &group.Name, &group.Owner, &group.Comment, &group.Token, &tokenEnable,
+		&ctime, &mtime, &flag); err != nil {
 		return nil, err
 	}
 
@@ -546,31 +557,12 @@ func fetchRown2UserGroup(rows *sql.Rows) (*model.UserGroup, error) {
 // cleanInValidUserGroup 清理无效的用户组数据
 func (u *groupStore) cleanInValidGroup(name, owner string) error {
 	logger.AuthScope().Infof("[Store][User] clean usergroup(%s)", name)
-	str := "delete from user_group_relation where group_id = (select id from user_group where name = ? and owner = ? and flag = 1) and flag = 1"
-	_, err := u.master.Exec(str, name, owner)
-	if err != nil {
+
+	str := "delete from user_group where name = ? and flag = 1"
+	if _, err := u.master.Exec(str, name); err != nil {
 		logger.AuthScope().Errorf("[Store][User] clean usergroup(%s) err: %s", name, err.Error())
 		return err
 	}
 
-	str = "delete from user_group where name = ? and flag = 1"
-	_, err = u.master.Exec(str, name)
-	if err != nil {
-		logger.AuthScope().Errorf("[Store][User] clean usergroup(%s) err: %s", name, err.Error())
-		return err
-	}
-
-	return nil
-}
-
-// cleanInValidUserGroupRelation 清理无效的用户-用户组关联数据
-func (u *groupStore) cleanInValidGroupRelation(id string) error {
-	logger.AuthScope().Infof("[Store][User] clean usergroup(%s)", id)
-	str := "delete from user_group_relation where group_id = ? and flag = 1"
-	_, err := u.master.Exec(str, id)
-	if err != nil {
-		logger.AuthScope().Errorf("[Store][User] clean usergroup(%s) err: %s", id, err.Error())
-		return err
-	}
 	return nil
 }

@@ -36,9 +36,6 @@ type TokenInfo struct {
 	// Origin 原始 token 字符串
 	Origin string
 
-	// RandStr 随机字符串
-	RandStr string
-
 	// OperatorID 当前 token 绑定的 用户/用户组 ID
 	OperatorID string
 
@@ -50,11 +47,19 @@ type TokenInfo struct {
 
 	// IsUserToken 当前 token 是否是 user 的 token
 	IsUserToken bool
+
+	// Disable 标识用户 token 是否被禁用
+	Disable bool
 }
 
 // IsSubAccount 当前 token 对应的账户类型
 func (t TokenInfo) IsSubAccount() bool {
 	return t.Role == model.SubAccountUserRole
+}
+
+// IsEmpty token 是否是一个空类型
+func (t TokenInfo) IsEmpty() bool {
+	return t.Origin == ""
 }
 
 const (

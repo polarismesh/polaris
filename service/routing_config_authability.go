@@ -54,7 +54,7 @@ func (svr *serverAuthAbility) DeleteRoutingConfigs(ctx context.Context, reqs []*
 }
 
 func (svr *serverAuthAbility) UpdateRoutingConfigs(ctx context.Context, reqs []*api.Routing) *api.BatchWriteResponse {
-	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Create)
+	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Modify)
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
@@ -68,7 +68,7 @@ func (svr *serverAuthAbility) UpdateRoutingConfigs(ctx context.Context, reqs []*
 }
 
 func (svr *serverAuthAbility) GetRoutingConfigs(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
-	authCtx := svr.collectRouteRuleAuthContext(ctx, nil, model.Create)
+	authCtx := svr.collectRouteRuleAuthContext(ctx, nil, model.Read)
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {

@@ -23,13 +23,17 @@ import (
 	"github.com/polarismesh/polaris-server/common/api/l5"
 )
 
-//
+// SyncByAgentCmd 根据sid获取路由信息
+// 老函数：
+// Stat::instance()->inc_sync_req_cnt();
+// 保存client的IP，该函数只是存储到本地的缓存中
+// Stat::instance()->add_agent(sbac.agent_ip());
 func (svr *serverAuthAbility) SyncByAgentCmd(ctx context.Context, sbac *l5.Cl5SyncByAgentCmd) (
 	*l5.Cl5SyncByAgentAckCmd, error) {
-	return svr.SyncByAgentCmd(ctx, sbac)
+	return svr.targetServer.SyncByAgentCmd(ctx, sbac)
 }
 
-//
+// RegisterByNameCmd 根据名字获取sid信息
 func (svr *serverAuthAbility) RegisterByNameCmd(rbnc *l5.Cl5RegisterByNameCmd) (*l5.Cl5RegisterByNameAckCmd, error) {
-	return svr.RegisterByNameCmd(rbnc)
+	return svr.targetServer.RegisterByNameCmd(rbnc)
 }

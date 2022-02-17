@@ -24,7 +24,8 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
-func (svr *serverAuthAbility) CreateCircuitBreakers(ctx context.Context, reqs []*api.CircuitBreaker) *api.BatchWriteResponse {
+func (svr *serverAuthAbility) CreateCircuitBreakers(ctx context.Context,
+	reqs []*api.CircuitBreaker) *api.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerAuthContext(ctx, reqs, model.Create)
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
@@ -35,7 +36,8 @@ func (svr *serverAuthAbility) CreateCircuitBreakers(ctx context.Context, reqs []
 	return svr.targetServer.CreateCircuitBreakers(ctx, reqs)
 }
 
-func (svr *serverAuthAbility) CreateCircuitBreakerVersions(ctx context.Context, reqs []*api.CircuitBreaker) *api.BatchWriteResponse {
+func (svr *serverAuthAbility) CreateCircuitBreakerVersions(ctx context.Context,
+	reqs []*api.CircuitBreaker) *api.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerAuthContext(ctx, reqs, model.Create)
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
@@ -46,7 +48,8 @@ func (svr *serverAuthAbility) CreateCircuitBreakerVersions(ctx context.Context, 
 	return svr.targetServer.CreateCircuitBreakerVersions(ctx, reqs)
 }
 
-func (svr *serverAuthAbility) DeleteCircuitBreakers(ctx context.Context, reqs []*api.CircuitBreaker) *api.BatchWriteResponse {
+func (svr *serverAuthAbility) DeleteCircuitBreakers(ctx context.Context,
+	reqs []*api.CircuitBreaker) *api.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerAuthContext(ctx, reqs, model.Delete)
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
@@ -57,7 +60,8 @@ func (svr *serverAuthAbility) DeleteCircuitBreakers(ctx context.Context, reqs []
 	return svr.targetServer.DeleteCircuitBreakers(ctx, reqs)
 }
 
-func (svr *serverAuthAbility) UpdateCircuitBreakers(ctx context.Context, reqs []*api.CircuitBreaker) *api.BatchWriteResponse {
+func (svr *serverAuthAbility) UpdateCircuitBreakers(ctx context.Context,
+	reqs []*api.CircuitBreaker) *api.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerAuthContext(ctx, reqs, model.Modify)
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
@@ -68,8 +72,9 @@ func (svr *serverAuthAbility) UpdateCircuitBreakers(ctx context.Context, reqs []
 	return svr.targetServer.UpdateCircuitBreakers(ctx, reqs)
 }
 
-func (svr *serverAuthAbility) ReleaseCircuitBreakers(ctx context.Context, reqs []*api.ConfigRelease) *api.BatchWriteResponse {
-	authCtx := svr.collectCircuitBreakerReleaseAuthContext(ctx, reqs, model.Modify)
+func (svr *serverAuthAbility) ReleaseCircuitBreakers(ctx context.Context,
+	reqs []*api.ConfigRelease) *api.BatchWriteResponse {
+	authCtx := svr.collectCircuitBreakerReleaseAuthContext(ctx, reqs, model.Create)
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
@@ -79,7 +84,8 @@ func (svr *serverAuthAbility) ReleaseCircuitBreakers(ctx context.Context, reqs [
 	return svr.targetServer.ReleaseCircuitBreakers(ctx, reqs)
 }
 
-func (svr *serverAuthAbility) UnBindCircuitBreakers(ctx context.Context, reqs []*api.ConfigRelease) *api.BatchWriteResponse {
+func (svr *serverAuthAbility) UnBindCircuitBreakers(ctx context.Context,
+	reqs []*api.ConfigRelease) *api.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerReleaseAuthContext(ctx, reqs, model.Modify)
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
@@ -90,27 +96,32 @@ func (svr *serverAuthAbility) UnBindCircuitBreakers(ctx context.Context, reqs []
 	return svr.targetServer.UnBindCircuitBreakers(ctx, reqs)
 }
 
-func (svr *serverAuthAbility) GetCircuitBreaker(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+func (svr *serverAuthAbility) GetCircuitBreaker(ctx context.Context,
+	query map[string]string) *api.BatchQueryResponse {
 
 	return svr.targetServer.GetCircuitBreaker(ctx, query)
 }
 
-func (svr *serverAuthAbility) GetCircuitBreakerVersions(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+func (svr *serverAuthAbility) GetCircuitBreakerVersions(ctx context.Context,
+	query map[string]string) *api.BatchQueryResponse {
 
 	return svr.targetServer.GetCircuitBreakerVersions(ctx, query)
 }
 
-func (svr *serverAuthAbility) GetMasterCircuitBreakers(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+func (svr *serverAuthAbility) GetMasterCircuitBreakers(ctx context.Context,
+	query map[string]string) *api.BatchQueryResponse {
 
 	return svr.targetServer.GetMasterCircuitBreakers(ctx, query)
 }
 
-func (svr *serverAuthAbility) GetReleaseCircuitBreakers(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+func (svr *serverAuthAbility) GetReleaseCircuitBreakers(ctx context.Context,
+	query map[string]string) *api.BatchQueryResponse {
 
 	return svr.targetServer.GetReleaseCircuitBreakers(ctx, query)
 }
 
-func (svr *serverAuthAbility) GetCircuitBreakerByService(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+func (svr *serverAuthAbility) GetCircuitBreakerByService(ctx context.Context,
+	query map[string]string) *api.BatchQueryResponse {
 
 	return svr.targetServer.GetCircuitBreakerByService(ctx, query)
 }

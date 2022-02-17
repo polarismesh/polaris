@@ -66,18 +66,18 @@ func (mr *MockAuthServerMockRecorder) Name() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockAuthServer)(nil).Name))
 }
 
-// GetAuthManager mocks base method
-func (m *MockAuthServer) GetAuthManager() auth.AuthManager {
+// GetAuthChecker mocks base method
+func (m *MockAuthServer) GetAuthChecker() auth.AuthChecker {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAuthManager")
-	ret0, _ := ret[0].(auth.AuthManager)
+	ret := m.ctrl.Call(m, "GetAuthChecker")
+	ret0, _ := ret[0].(auth.AuthChecker)
 	return ret0
 }
 
-// GetAuthManager indicates an expected call of GetAuthManager
-func (mr *MockAuthServerMockRecorder) GetAuthManager() *gomock.Call {
+// GetAuthChecker indicates an expected call of GetAuthChecker
+func (mr *MockAuthServerMockRecorder) GetAuthChecker() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthManager", reflect.TypeOf((*MockAuthServer)(nil).GetAuthManager))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthChecker", reflect.TypeOf((*MockAuthServer)(nil).GetAuthChecker))
 }
 
 // AfterResourceOperation mocks base method
@@ -386,31 +386,31 @@ func (mr *MockAuthServerMockRecorder) GetStrategy(ctx, strategy interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategy", reflect.TypeOf((*MockAuthServer)(nil).GetStrategy), ctx, strategy)
 }
 
-// MockAuthManager is a mock of AuthManager interface
-type MockAuthManager struct {
+// MockAuthChecker is a mock of AuthChecker interface
+type MockAuthChecker struct {
 	ctrl     *gomock.Controller
-	recorder *MockAuthManagerMockRecorder
+	recorder *MockAuthCheckerMockRecorder
 }
 
-// MockAuthManagerMockRecorder is the mock recorder for MockAuthManager
-type MockAuthManagerMockRecorder struct {
-	mock *MockAuthManager
+// MockAuthCheckerMockRecorder is the mock recorder for MockAuthChecker
+type MockAuthCheckerMockRecorder struct {
+	mock *MockAuthChecker
 }
 
-// NewMockAuthManager creates a new mock instance
-func NewMockAuthManager(ctrl *gomock.Controller) *MockAuthManager {
-	mock := &MockAuthManager{ctrl: ctrl}
-	mock.recorder = &MockAuthManagerMockRecorder{mock}
+// NewMockAuthChecker creates a new mock instance
+func NewMockAuthChecker(ctrl *gomock.Controller) *MockAuthChecker {
+	mock := &MockAuthChecker{ctrl: ctrl}
+	mock.recorder = &MockAuthCheckerMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use
-func (m *MockAuthManager) EXPECT() *MockAuthManagerMockRecorder {
+func (m *MockAuthChecker) EXPECT() *MockAuthCheckerMockRecorder {
 	return m.recorder
 }
 
 // Initialize mocks base method
-func (m *MockAuthManager) Initialize(options *auth.Config, cacheMgn *cache.NamingCache) error {
+func (m *MockAuthChecker) Initialize(options *auth.Config, cacheMgn *cache.NamingCache) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize", options, cacheMgn)
 	ret0, _ := ret[0].(error)
@@ -418,13 +418,13 @@ func (m *MockAuthManager) Initialize(options *auth.Config, cacheMgn *cache.Namin
 }
 
 // Initialize indicates an expected call of Initialize
-func (mr *MockAuthManagerMockRecorder) Initialize(options, cacheMgn interface{}) *gomock.Call {
+func (mr *MockAuthCheckerMockRecorder) Initialize(options, cacheMgn interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockAuthManager)(nil).Initialize), options, cacheMgn)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockAuthChecker)(nil).Initialize), options, cacheMgn)
 }
 
 // VerifyToken mocks base method
-func (m *MockAuthManager) VerifyToken(preCtx *model.AcquireContext) error {
+func (m *MockAuthChecker) VerifyToken(preCtx *model.AcquireContext) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "VerifyToken", preCtx)
 	ret0, _ := ret[0].(error)
@@ -432,13 +432,13 @@ func (m *MockAuthManager) VerifyToken(preCtx *model.AcquireContext) error {
 }
 
 // VerifyToken indicates an expected call of VerifyToken
-func (mr *MockAuthManagerMockRecorder) VerifyToken(preCtx interface{}) *gomock.Call {
+func (mr *MockAuthCheckerMockRecorder) VerifyToken(preCtx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyToken", reflect.TypeOf((*MockAuthManager)(nil).VerifyToken), preCtx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyToken", reflect.TypeOf((*MockAuthChecker)(nil).VerifyToken), preCtx)
 }
 
 // CheckPermission mocks base method
-func (m *MockAuthManager) CheckPermission(preCtx *model.AcquireContext) (bool, error) {
+func (m *MockAuthChecker) CheckPermission(preCtx *model.AcquireContext) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CheckPermission", preCtx)
 	ret0, _ := ret[0].(bool)
@@ -447,13 +447,13 @@ func (m *MockAuthManager) CheckPermission(preCtx *model.AcquireContext) (bool, e
 }
 
 // CheckPermission indicates an expected call of CheckPermission
-func (mr *MockAuthManagerMockRecorder) CheckPermission(preCtx interface{}) *gomock.Call {
+func (mr *MockAuthCheckerMockRecorder) CheckPermission(preCtx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckPermission", reflect.TypeOf((*MockAuthManager)(nil).CheckPermission), preCtx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckPermission", reflect.TypeOf((*MockAuthChecker)(nil).CheckPermission), preCtx)
 }
 
 // IsOpenAuth mocks base method
-func (m *MockAuthManager) IsOpenAuth() bool {
+func (m *MockAuthChecker) IsOpenAuth() bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsOpenAuth")
 	ret0, _ := ret[0].(bool)
@@ -461,9 +461,9 @@ func (m *MockAuthManager) IsOpenAuth() bool {
 }
 
 // IsOpenAuth indicates an expected call of IsOpenAuth
-func (mr *MockAuthManagerMockRecorder) IsOpenAuth() *gomock.Call {
+func (mr *MockAuthCheckerMockRecorder) IsOpenAuth() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsOpenAuth", reflect.TypeOf((*MockAuthManager)(nil).IsOpenAuth))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsOpenAuth", reflect.TypeOf((*MockAuthChecker)(nil).IsOpenAuth))
 }
 
 // MockUserOperator is a mock of UserOperator interface

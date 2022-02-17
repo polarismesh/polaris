@@ -150,7 +150,7 @@ auth:
   name: defaultAuth
   option:
     salt: polarismesh@2021
-    open: false
+    open: ##AUTH_OPEN##
 naming:
   auth:
     open: false

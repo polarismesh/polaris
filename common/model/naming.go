@@ -376,7 +376,7 @@ const (
 	OUpdateToken OperationType = "UpdateToken" // nolint
 
 	// OUpdateUserGroup 更新用户-用户组关联关系
-	OUpdateUserGroup OperationType = "UpdateUserGroup"
+	OUpdateGroup OperationType = "UpdateGroup"
 )
 
 // Resource 操作资源

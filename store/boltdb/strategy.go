@@ -65,27 +65,34 @@ func (ss *strategyStore) LooseAddStrategyResources(resources []model.StrategyRes
 }
 
 // GetStrategyDetail
-func (ss *strategyStore) GetStrategyDetail(id string) (*model.StrategyDetail, error) {
+func (ss *strategyStore) GetStrategyDetail(id string, isDefault bool) (*model.StrategyDetail, error) {
 	return nil, nil
 }
 
-// GetStrategyDetailByName
-func (ss *strategyStore) GetStrategyDetailByName(owner, name string) (*model.StrategyDetail, error) {
+// GetStrategyResources
+func (ss *strategyStore) GetStrategyResources(principalId string,
+	principalRole model.PrincipalType) ([]model.StrategyResource, error) {
+
 	return nil, nil
 }
 
-// GetStrategySimpleByName
-func (ss *strategyStore) GetStrategySimpleByName(owner, name string) (*model.Strategy, error) {
+// GetDefaultStrategyDetailByPrincipal
+func (ss *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
+	principalType int) (*model.StrategyDetail, error) {
+
 	return nil, nil
 }
 
-// GetSimpleStrategies
-func (ss *strategyStore) GetSimpleStrategies(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.StrategyDetail, error) {
+// GetStrategies
+func (ss *strategyStore) GetStrategies(filters map[string]string, offset uint32, limit uint32) (uint32,
+	[]*model.StrategyDetail, error) {
 	return 0, nil, nil
 }
 
 // GetStrategyDetailsForCache
-func (ss *strategyStore) GetStrategyDetailsForCache(mtime time.Time, firstUpdate bool) ([]*model.StrategyDetail, error) {
+func (ss *strategyStore) GetStrategyDetailsForCache(mtime time.Time,
+	firstUpdate bool) ([]*model.StrategyDetail, error) {
+
 	ret, err := ss.handler.LoadValuesByFilter(tblStrategy, []string{StrategyFieldModifyTime}, &model.StrategyDetail{},
 		func(m map[string]interface{}) bool {
 			mt := m[StrategyFieldModifyTime].(time.Time)

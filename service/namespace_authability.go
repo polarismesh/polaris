@@ -31,7 +31,7 @@ func (svr *serverAuthAbility) CreateNamespaces(ctx context.Context, reqs []*api.
 
 	// 验证 token 信息
 	if err := svr.authMgn.VerifyToken(authCtx); err != nil {
-		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return api.NewBatchWriteResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -50,19 +50,18 @@ func (svr *serverAuthAbility) CreateNamespaces(ctx context.Context, reqs []*api.
 }
 
 // DeleteNamespaces 删除命名空间，需要先走权限检查
-func (svr *serverAuthAbility) DeleteNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
-	authCtx := svr.collectNamespaceAuthContext(ctx, req, model.Delete)
+func (svr *serverAuthAbility) DeleteNamespaces(ctx context.Context, reqs []*api.Namespace) *api.BatchWriteResponse {
+	authCtx := svr.collectNamespaceAuthContext(ctx, reqs, model.Delete)
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return api.NewBatchWriteResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.DeleteNamespaces(ctx, req)
+	return svr.targetServer.DeleteNamespaces(ctx, reqs)
 }
 
 // UpdateNamespaces 更新命名空间，需要先走权限检查
@@ -71,13 +70,13 @@ func (svr *serverAuthAbility) UpdateNamespaces(ctx context.Context, req []*api.N
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return api.NewBatchWriteResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.DeleteNamespaces(ctx, req)
+	return svr.targetServer.UpdateNamespaces(ctx, req)
 }
 
 // UpdateNamespaceToken 更新命名空间的token信息，需要先走权限检查
@@ -86,7 +85,7 @@ func (svr *serverAuthAbility) UpdateNamespaceToken(ctx context.Context, req *api
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
-		return api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -98,27 +97,46 @@ func (svr *serverAuthAbility) UpdateNamespaceToken(ctx context.Context, req *api
 // GetNamespaces 获取命名空间列表信息，暂时不走权限检查
 func (svr *serverAuthAbility) GetNamespaces(ctx context.Context, query map[string][]string) *api.BatchQueryResponse {
 
-	authCtx := svr.collectNamespaceAuthContext(ctx, nil, model.Modify)
+	authCtx := svr.collectNamespaceAuthContext(ctx, nil, model.Read)
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
-		return api.NewBatchQueryResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return api.NewBatchQueryResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.GetNamespaces(ctx, query)
+	resp := svr.targetServer.GetNamespaces(ctx, query)
+	if len(resp.Namespaces) != 0 {
+
+		principal := model.Principal{
+			PrincipalID:   utils.ParseUserID(ctx),
+			PrincipalRole: model.PrincipalUser,
+		}
+		for index := range resp.Namespaces {
+			ns := resp.Namespaces[index]
+			editable := true
+			// 如果鉴权能力没有开启，那就默认都可以进行编辑
+			if svr.authMgn.IsOpenAuth() {
+				editable = svr.Cache().AuthStrategy().IsResourceEditable(principal,
+					api.ResourceType_Namespaces, ns.Id.GetValue())
+			}
+			ns.Editable = utils.NewBoolValue(editable)
+		}
+	}
+
+	return resp
 }
 
 // GetNamespaceToken 获取命名空间的token信息，暂时不走权限检查
 func (svr *serverAuthAbility) GetNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response {
 
-	authCtx := svr.collectNamespaceAuthContext(ctx, nil, model.Modify)
+	authCtx := svr.collectNamespaceAuthContext(ctx, nil, model.Read)
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
-		return api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()

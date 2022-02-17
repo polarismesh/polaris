@@ -378,91 +378,100 @@ type PlatformStore interface {
 	GetPlatforms(query map[string]string, offset uint32, limit uint32) (uint32, []*model.Platform, error)
 }
 
-// UserStore
+// UserStore 用户相关操作接口
 type UserStore interface {
 
-	// AddUser
+	// AddUser 创建用户
 	AddUser(user *model.User) error
 
-	// UpdateUser
+	// UpdateUser 更新用户
 	UpdateUser(user *model.User) error
 
-	// DeleteUser
-	DeleteUser(id string) error
+	// DeleteUser 删除用户
+	DeleteUser(user *model.User) error
 
-	// GetUser
+	// GetSubCount 获取子账户的个数
+	GetSubCount(user *model.User) (uint32, error)
+
+	// GetUser 获取用户
 	GetUser(id string) (*model.User, error)
 
-	// GetUserByName
+	// GetUserByName 根据 name + owner 获取唯一的用户
 	GetUserByName(name, ownerId string) (*model.User, error)
 
-	// GetUserByIDS
-	GetUserByIDS(ids []string) ([]*model.User, error)
+	// GetUserByIDS 根据 user ids 批量获取用户
+	GetUserByIds(ids []string) ([]*model.User, error)
 
-	// GetUsers
+	// GetUsers 查询用户列表
 	GetUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error)
 
-	// GetUsersForCache
+	// GetUsersForCache 用于刷新用户缓存
 	GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*model.User, error)
+
+	// GetUserRelationGroupCount
+	GetUserRelationGroupCount(userId string) (uint32, error)
 }
 
+// GroupStore 用户组存储操作接口
 type GroupStore interface {
 
-	// AddGroup
+	// AddGroup 添加一个用户组
 	AddGroup(group *model.UserGroupDetail) error
 
-	// UpdateGroup
+	// UpdateGroup 更新用户组
 	UpdateGroup(group *model.ModifyUserGroup) error
 
-	// DeleteGroup
-	DeleteGroup(id string) error
+	// DeleteGroup 删除用户组
+	DeleteGroup(group *model.UserGroupDetail) error
 
-	// GetGroup
+	// GetGroup 获取用户组详细
 	GetGroup(id string) (*model.UserGroupDetail, error)
 
-	// GetGroupByName
+	// GetGroupByName 根据 name + owner 获取用户组
 	GetGroupByName(name, owner string) (*model.UserGroup, error)
 
-	// GetGroups
+	// GetGroups 获取用户组列表
 	GetGroups(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error)
 
-	// GetUserGroupsForCache
+	// GetUserGroupsForCache 用于获取用户组 cache
 	GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*model.UserGroupDetail, error)
 }
 
-// StrategyStore
+// StrategyStore 鉴权策略相关存储操作接口
 type StrategyStore interface {
 
-	// AddStrategy
+	// AddStrategy 创建鉴权策略
 	AddStrategy(strategy *model.StrategyDetail) error
 
-	// UpdateStrategy
+	// UpdateStrategy 更新鉴权策略
 	UpdateStrategy(strategy *model.ModifyStrategyDetail) error
 
-	// DeleteStrategy
+	// DeleteStrategy 删除鉴权策略
 	DeleteStrategy(id string) error
 
 	// LooseAddStrategyResources 松要求的添加鉴权策略的资源，允许忽略主键冲突的问题
 	LooseAddStrategyResources(resources []model.StrategyResource) error
 
-	// RemoveStrategyResources 松要求的添加鉴权策略的资源，允许忽略主键冲突的问题
+	// RemoveStrategyResources 清理对应资源所关联的所有策略
 	RemoveStrategyResources(resources []model.StrategyResource) error
 
-	// GetStrategyDetail
-	GetStrategyDetail(id string) (*model.StrategyDetail, error)
+	// GetStrategyResources 获取某个 principal 对应的可以操作的资源ID数据信息
+	GetStrategyResources(principalId string, principalRole model.PrincipalType) ([]model.StrategyResource, error)
 
-	// GetStrategyDetailByName
-	GetStrategyDetailByName(owner, name string) (*model.StrategyDetail, error)
+	// GetDefaultStrategyDetailByPrincipal
+	GetDefaultStrategyDetailByPrincipal(principalId string, principalType int) (*model.StrategyDetail, error)
 
-	// GetStrategySimpleByName
-	GetStrategySimpleByName(owner, name string) (*model.Strategy, error)
+	// GetStrategyDetail 获取策略详细
+	GetStrategyDetail(id string, isDefault bool) (*model.StrategyDetail, error)
 
-	// GetSimpleStrategies
-	GetSimpleStrategies(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.StrategyDetail, error)
+	// GetStrategies 获取策略列表
+	GetStrategies(filters map[string]string, offset uint32, limit uint32) (uint32,
+		[]*model.StrategyDetail, error)
 
-	// GetStrategyDetailsForCache
+	// GetStrategyDetailsForCache 用于刷新策略缓存
 	GetStrategyDetailsForCache(mtime time.Time, firstUpdate bool) ([]*model.StrategyDetail, error)
 }
+
 
 // Transaction 事务接口，不支持多协程并发操作，当前只支持单个协程串行操作
 type Transaction interface {

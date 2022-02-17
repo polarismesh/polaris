@@ -27,7 +27,7 @@ import (
 func TestCreateToken(t *testing.T) {
 	AuthOption = DefaultAuthConfig()
 
-	uid := "65e4789a6d5b49669adf1e9e8387549c"
+	uid := "d5b49669adf1e9e8387549c65e4789a6"
 	fmt.Printf("uid=%s\n", uid)
 
 	token, err := createToken(uid, "")

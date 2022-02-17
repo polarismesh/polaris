@@ -102,3 +102,52 @@ func Test_checkPassword(t *testing.T) {
 		})
 	}
 }
+
+func Test_checkName(t *testing.T) {
+	type args struct {
+		name *wrappers.StringValue
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			args: args{
+				name: utils.NewStringValue("123123"),
+			},
+			wantErr: false,
+		},
+		{
+			args: args{
+				name: utils.NewStringValue("测试鉴权策略-1"),
+			},
+			wantErr: false,
+		},
+		{
+			args: args{
+				name: utils.NewStringValue("测试鉴-权策略_1"),
+			},
+			wantErr: false,
+		},
+		{
+			args: args{
+				name: utils.NewStringValue("qweqwe-权qweqw策略_1"),
+			},
+			wantErr: false,
+		},
+		{
+			args: args{
+				name: utils.NewStringValue("测试鉴权策略&1"),
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := checkName(tt.args.name); (err != nil) != tt.wantErr {
+				t.Errorf("checkName() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

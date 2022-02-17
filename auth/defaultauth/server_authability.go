@@ -30,12 +30,13 @@ import (
 
 // serverAuthAbility 带鉴权能力的 server
 type serverAuthAbility struct {
-	authMgn *defaultAuthManager
+	authMgn *defaultAuthChecker
 	target  *server
 }
 
 // Initialize 执行初始化动作
-func (svr *serverAuthAbility) Initialize(authOpt *auth.Config, storage store.Store, cacheMgn *cache.NamingCache) error {
+func (svr *serverAuthAbility) Initialize(authOpt *auth.Config, storage store.Store,
+	cacheMgn *cache.NamingCache) error {
 
 	history := plugin.GetHistory()
 
@@ -43,7 +44,7 @@ func (svr *serverAuthAbility) Initialize(authOpt *auth.Config, storage store.Sto
 		return errors.New("RecordPlugin not found")
 	}
 
-	authMgn := &defaultAuthManager{}
+	authMgn := &defaultAuthChecker{}
 	if err := authMgn.Initialize(authOpt, cacheMgn); err != nil {
 		return err
 	}
@@ -54,6 +55,7 @@ func (svr *serverAuthAbility) Initialize(authOpt *auth.Config, storage store.Sto
 		storage:  storage,
 		history:  history,
 		cacheMgn: cacheMgn,
+		authMgn:  authMgn,
 	}
 
 	return nil
@@ -65,12 +67,12 @@ func (svr *serverAuthAbility) Login(req *api.LoginRequest) *api.Response {
 }
 
 // AfterResourceOperation
-func (svr *serverAuthAbility) AfterResourceOperation(afterCtx *model.AcquireContext) {
-	svr.target.AfterResourceOperation(afterCtx)
+func (svr *serverAuthAbility) AfterResourceOperation(afterCtx *model.AcquireContext) error {
+	return svr.target.AfterResourceOperation(afterCtx)
 }
 
-// GetAuthManager
-func (svr *serverAuthAbility) GetAuthManager() auth.AuthManager {
+// GetAuthChecker
+func (svr *serverAuthAbility) GetAuthChecker() auth.AuthChecker {
 	return svr.authMgn
 }
 

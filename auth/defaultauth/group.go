@@ -35,13 +35,13 @@ type (
 
 var (
 	UserLinkGroupAttributes = map[string]int{
-		"id":         1,
-		"user_id":    1,
-		"user_name":  1,
-		"group_id":   1,
-		"group_name": 1,
-		"offset":     1,
-		"limit":      1,
+		"id":        1,
+		"user_id":   1,
+		"user_name": 1,
+		"group_id":  1,
+		"name":      1,
+		"offset":    1,
+		"limit":     1,
 	}
 )
 
@@ -49,10 +49,9 @@ var (
 func (svr *server) CreateGroup(ctx context.Context, req *api.UserGroup) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
-	userId := utils.ParseUserID(ctx)
 	ownerId := utils.ParseOwnerID(ctx)
 
-	req.Owner = utils.NewStringValue(userId)
+	req.Owner = utils.NewStringValue(ownerId)
 
 	if checkErrResp := svr.checkCreateGroup(ctx, req); checkErrResp != nil {
 		return checkErrResp
@@ -88,6 +87,20 @@ func (svr *server) CreateGroup(ctx context.Context, req *api.UserGroup) *api.Res
 	return api.NewGroupResponse(api.ExecuteSuccess, req)
 }
 
+// UpdateGroups 批量修改用户组
+func (svr *server) UpdateGroups(ctx context.Context, groups []*api.ModifyUserGroup) *api.BatchWriteResponse {
+
+	resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
+
+	for index := range groups {
+		req := groups[index]
+		ret := svr.UpdateGroup(ctx, req)
+		resp.Collect(ret)
+	}
+
+	return resp
+}
+
 // UpdateGroup 更新用户组
 func (svr *server) UpdateGroup(ctx context.Context, req *api.ModifyUserGroup) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
@@ -117,7 +130,7 @@ func (svr *server) UpdateGroup(ctx context.Context, req *api.ModifyUserGroup) *a
 
 	log.AuthScope().Info("update group", zap.String("name", data.Name), utils.ZapRequestID(requestID),
 		utils.ZapPlatformID(platformID))
-	svr.RecordHistory(modifyUserGroupRecordEntry(ctx, req, data.UserGroup, model.OUpdateUserGroup))
+	svr.RecordHistory(modifyUserGroupRecordEntry(ctx, req, data.UserGroup, model.OUpdateGroup))
 
 	return api.NewModifyGroupResponse(api.ExecuteSuccess, req)
 }
@@ -138,13 +151,12 @@ func (svr *server) DeleteGroups(ctx context.Context, reqs []*api.UserGroup) *api
 // DeleteGroup 删除用户组
 func (svr *server) DeleteGroup(ctx context.Context, req *api.UserGroup) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
-	platformID := utils.ParsePlatformID(ctx)
 	isOwner := utils.ParseIsOwner(ctx)
 	userId := utils.ParseUserID(ctx)
 
 	group, err := svr.storage.GetGroup(req.GetId().GetValue())
 	if err != nil {
-		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.AuthScope().Error("get group from store", utils.ZapRequestID(requestID), zap.Error(err))
 		return api.NewGroupResponse(api.StoreLayerException, req)
 	}
 	if group == nil {
@@ -155,13 +167,12 @@ func (svr *server) DeleteGroup(ctx context.Context, req *api.UserGroup) *api.Res
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	if err := svr.storage.DeleteGroup(group.ID); err != nil {
-		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+	if err := svr.storage.DeleteGroup(group); err != nil {
+		log.AuthScope().Error("delete group from store", utils.ZapRequestID(requestID), zap.Error(err))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.AuthScope().Info("delete group", zap.String("name", req.Name.GetValue()), utils.ZapRequestID(requestID),
-		utils.ZapPlatformID(platformID))
+	log.AuthScope().Info("delete group", utils.ZapRequestID(requestID), zap.String("name", req.Name.GetValue()))
 	svr.RecordHistory(userGroupRecordEntry(ctx, req, group.UserGroup, model.ODelete))
 
 	return api.NewGroupResponse(api.ExecuteSuccess, req)
@@ -169,6 +180,11 @@ func (svr *server) DeleteGroup(ctx context.Context, req *api.UserGroup) *api.Res
 
 // ListUserGroups 查看用户组
 func (svr *server) GetGroups(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+	requestID := utils.ParseRequestID(ctx)
+
+	log.AuthScope().Info("[Auth][Group] origin get groups query params",
+		utils.ZapRequestID(requestID), zap.Any("query", query))
+
 	searchFilters := make(map[string]string)
 	var (
 		offset, limit uint32
@@ -183,12 +199,17 @@ func (svr *server) GetGroups(ctx context.Context, query map[string]string) *api.
 		searchFilters[key] = value
 	}
 
+	// 如果当前不是 owner 角色的话，只能查询该用户所关联的用户组列表
+	if !utils.ParseIsOwner(ctx) {
+		searchFilters["user_id"] = utils.ParseUserID(ctx)
+	}
+
 	offset, limit, err = utils.ParseOffsetAndLimit(searchFilters)
 	if err != nil {
 		return api.NewBatchQueryResponse(api.InvalidParameter)
 	}
 
-	total, users, err := svr.storage.GetGroups(searchFilters, offset, limit)
+	total, groups, err := svr.storage.GetGroups(searchFilters, offset, limit)
 	if err != nil {
 		log.AuthScope().Errorf("[Auth][Group] get groups req(%+v) store err: %s", query, err.Error())
 		return api.NewBatchQueryResponse(api.StoreLayerException)
@@ -196,8 +217,11 @@ func (svr *server) GetGroups(ctx context.Context, query map[string]string) *api.
 
 	resp := api.NewBatchQueryResponse(api.ExecuteSuccess)
 	resp.Amount = utils.NewUInt32Value(total)
-	resp.Size = utils.NewUInt32Value(uint32(len(users)))
-	resp.UserGroups = enhancedGroups2Api(users, userGroup2Api)
+	resp.Size = utils.NewUInt32Value(uint32(len(groups)))
+	resp.UserGroups = enhancedGroups2Api(groups, userGroup2Api)
+
+	svr.fillGroupUserCount(resp.UserGroups)
+
 	return resp
 }
 
@@ -207,7 +231,7 @@ func (svr *server) GetGroup(ctx context.Context, req *api.UserGroup) *api.Respon
 	userId := utils.ParseUserID(ctx)
 
 	if req.GetId().GetValue() == "" {
-		return api.NewResponse(api.InvalidParameter)
+		return api.NewResponse(api.InvalidUserGroupID)
 	}
 
 	group, errResp := svr.getGroupFromDB(req.Id.Value)
@@ -217,10 +241,14 @@ func (svr *server) GetGroup(ctx context.Context, req *api.UserGroup) *api.Respon
 
 	if !isOwner {
 		if _, find := group.UserIds[userId]; !find {
+			log.AuthScope().Error("not belong this group", zap.String("user", userId),
+				zap.String("group", req.GetId().GetValue()))
 			return api.NewResponse(api.NotAllowedAccess)
 		}
 	} else {
 		if group.Owner != userId && utils.ParseUserRole(ctx) != model.AdminUserRole {
+			log.AuthScope().Error("not this group owner or admin", zap.String("user", userId),
+				zap.String("group", req.GetId().GetValue()))
 			return api.NewResponse(api.NotAllowedAccess)
 		}
 	}
@@ -232,9 +260,8 @@ func (svr *server) GetGroup(ctx context.Context, req *api.UserGroup) *api.Respon
 func (svr *server) GetGroupToken(ctx context.Context, req *api.UserGroup) *api.Response {
 	isOwner := utils.ParseIsOwner(ctx)
 	userId := utils.ParseUserID(ctx)
-	ownerId := utils.ParseOwnerID(ctx)
 	if req.GetId().GetValue() == "" {
-		return api.NewResponse(api.InvalidParameter)
+		return api.NewResponse(api.InvalidUserGroupID)
 	}
 
 	groupCache, errResp := svr.getGroupFromCache(req)
@@ -244,10 +271,14 @@ func (svr *server) GetGroupToken(ctx context.Context, req *api.UserGroup) *api.R
 
 	if !isOwner {
 		if _, find := groupCache.UserIds[userId]; !find {
+			log.AuthScope().Error("not belong this group", zap.String("user", userId),
+				zap.String("group", req.GetId().GetValue()))
 			return api.NewResponse(api.NotAllowedAccess)
 		}
 	} else {
-		if groupCache.Owner != ownerId && utils.ParseUserRole(ctx) != model.AdminUserRole {
+		if groupCache.Owner != userId && utils.ParseUserRole(ctx) != model.AdminUserRole {
+			log.AuthScope().Error("not this group owner or admin", zap.String("user", userId),
+				zap.String("group", req.GetId().GetValue()))
 			return api.NewResponse(api.NotAllowedAccess)
 		}
 	}
@@ -269,8 +300,8 @@ func (svr *server) UpdateGroupToken(ctx context.Context, req *api.UserGroup) *ap
 	}
 
 	isOwner := utils.ParseIsOwner(ctx)
-	ownerId := utils.ParseOwnerID(ctx)
-	if !isOwner || (group.Owner != ownerId) {
+	userId := utils.ParseUserID(ctx)
+	if !isOwner || (group.Owner != userId) {
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
@@ -307,8 +338,8 @@ func (svr *server) ResetGroupToken(ctx context.Context, req *api.UserGroup) *api
 	}
 
 	isOwner := utils.ParseIsOwner(ctx)
-	ownerId := utils.ParseOwnerID(ctx)
-	if !isOwner || (group.Owner != ownerId) {
+	userId := utils.ParseUserID(ctx)
+	if !isOwner || (group.Owner != userId) {
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
@@ -367,7 +398,8 @@ func (svr *server) getGroupFromCache(req *api.UserGroup) (*model.UserGroupDetail
 }
 
 // preCheckGroupRelation 检查用户-用户组关联关系中，对应的用户信息是否存在，即不能添加一个不存在的用户到用户组
-func (svr *server) preCheckGroupRelation(groupId string, req *api.UserGroupRelation) (*model.UserGroupDetail, *api.Response) {
+func (svr *server) preCheckGroupRelation(groupId string, req *api.UserGroupRelation) (*model.UserGroupDetail,
+	*api.Response) {
 	group := svr.cacheMgn.User().GetGroup(groupId)
 	if group == nil {
 		return nil, api.NewResponse(api.NotFoundUserGroup)
@@ -394,12 +426,6 @@ func (svr *server) checkCreateGroup(ctx context.Context, req *api.UserGroup) *ap
 
 	if req == nil {
 		return api.NewGroupResponse(api.EmptyRequest, req)
-	}
-
-	if err := checkOwner(req.Owner); err != nil {
-		resp := api.NewGroupResponse(api.InvalidUserGroupOwners, req)
-		resp.Info = utils.NewStringValue(err.Error())
-		return resp
 	}
 
 	users := req.GetRelation().GetUsers()
@@ -435,7 +461,7 @@ func (svr *server) checkUpdateGroup(ctx context.Context, req *api.ModifyUserGrou
 	// 1. 自己在这个用户组里面
 	// 2. 自己是这个用户组的owner角色
 	_, inGroup := group.UserIds[userId]
-	if !inGroup && (!isOwner || group.Owner != userId) {
+	if !inGroup && group.Owner != userId {
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
@@ -445,6 +471,22 @@ func (svr *server) checkUpdateGroup(ctx context.Context, req *api.ModifyUserGrou
 	}
 
 	return nil
+}
+
+func (svr *server) fillGroupUserCount(groups []*api.UserGroup) {
+	groupCache := svr.cacheMgn.User()
+
+	for index := range groups {
+		group := groups[index]
+		cacheVal := groupCache.GetGroup(group.Id.Value)
+		if cacheVal == nil {
+			group.UserCount = utils.NewUInt32Value(0)
+		} else {
+			group.UserCount = utils.NewUInt32Value(uint32(len(cacheVal.UserIds)))
+		}
+
+	}
+
 }
 
 // updateGroupAttribute 更新计算用户组更新时的结构体数据，并判断是否需要执行更新操作
@@ -514,7 +556,6 @@ func createGroupModel(req *api.UserGroup) (*model.UserGroupDetail, error) {
 			ID:          utils.NewUUID(),
 			Name:        req.GetName().GetValue(),
 			Owner:       req.GetOwner().GetValue(),
-			Token:       utils.NewUUID(),
 			TokenEnable: true,
 			Valid:       true,
 			Comment:     req.GetComment().GetValue(),
@@ -554,7 +595,7 @@ func userGroup2Api(group *model.UserGroup) *api.UserGroup {
 	return out
 }
 
-// model.UserGroupDetail 转为 api.UserGroup
+// model.UserGroupDetail 转为 api.UserGroup，并且主动填充 user 的信息数据
 func (svr *server) userGroupDetail2Api(group *model.UserGroupDetail) *api.UserGroup {
 	if group == nil {
 		return nil
@@ -565,8 +606,13 @@ func (svr *server) userGroupDetail2Api(group *model.UserGroupDetail) *api.UserGr
 	for id := range group.UserIds {
 		user := svr.cacheMgn.User().GetUserByID(id)
 		users = append(users, &api.User{
-			Id:   utils.NewStringValue(user.ID),
-			Name: utils.NewStringValue(user.Name),
+			Id:          utils.NewStringValue(user.ID),
+			Name:        utils.NewStringValue(user.Name),
+			Source:      utils.NewStringValue(user.Source),
+			Comment:     utils.NewStringValue(user.Comment),
+			TokenEnable: utils.NewBoolValue(user.TokenEnable),
+			Ctime:       utils.NewStringValue(commontime.Time2String(user.CreateTime)),
+			Mtime:       utils.NewStringValue(commontime.Time2String(user.ModifyTime)),
 		})
 	}
 

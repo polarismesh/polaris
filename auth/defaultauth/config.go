@@ -17,6 +17,8 @@
 
 package defaultauth
 
+import "errors"
+
 var (
 
 	// AuthOption 鉴权的配置信息
@@ -29,6 +31,19 @@ type AuthConfig struct {
 	Open bool `json:"open" xml:"open"`
 	// Salt 相关密码、token加密的salt
 	Salt string `json:"salt" xml:"salt"`
+}
+
+// Verify 检查配置是否合法
+func (cfg *AuthConfig) Verify() error {
+	k := len(cfg.Salt)
+	switch k {
+	default:
+		return errors.New("[Auth][Config] salt len must 16 | 24 | 32")
+	case 16, 24, 32:
+		break
+	}
+
+	return nil
 }
 
 // DefaultAuthConfig 返回一个默认的鉴权配置

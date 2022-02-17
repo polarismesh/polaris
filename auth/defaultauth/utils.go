@@ -27,11 +27,25 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
+	"go.uber.org/zap"
 )
 
+var (
+	// 必须超级账户 or 主账户
+	MustOwner = true
+	// 任意账户
+	NotOwner  = false
+	// 写操作
+	WriteOp   = true
+	// 读操作
+	ReadOp    = false
+)
+
+// storeCodeAPICodeMap 存储层报错与协议层码的映射
 var storeCodeAPICodeMap = map[store.StatusCode]uint32{
 	store.EmptyParamsErr:             api.InvalidParameter,
 	store.OutOfRangeErr:              api.InvalidParameter,
@@ -55,6 +69,7 @@ func StoreCode2APICode(err error) uint32 {
 	return api.StoreLayerException
 }
 
+// checkName 名称检查
 func checkName(name *wrappers.StringValue) error {
 	if name == nil {
 		return errors.New("nil")
@@ -68,7 +83,11 @@ func checkName(name *wrappers.StringValue) error {
 		return errors.New("illegal username")
 	}
 
-	regStr := "^[0-9A-Za-z-.:_]+$"
+	if utf8.RuneCountInString(name.GetValue()) > utils.MaxNameLength {
+		return errors.New("name too long")
+	}
+
+	regStr := "^[\u4E00-\u9FA5A-Za-z0-9_\\-]+$"
 	ok, err := regexp.MatchString(regStr, name.GetValue())
 	if err != nil {
 		return err
@@ -80,6 +99,7 @@ func checkName(name *wrappers.StringValue) error {
 	return nil
 }
 
+// checkPassword 密码检查
 func checkPassword(password *wrappers.StringValue) error {
 	if password == nil {
 		return errors.New("nil")
@@ -137,27 +157,55 @@ func checkOwner(owner *wrappers.StringValue) error {
 	return nil
 }
 
-// verifyAuth token
-func verifyAuth(ctx context.Context, authMgn *defaultAuthManager, token string, needOwner bool) (context.Context, *api.Response) {
+// verifyAuth 用于 user、group 以及 strategy 模块的鉴权工作检查
+func (svr *serverAuthAbility) verifyAuth(ctx context.Context, isWrite bool,
+	needOwner bool) (context.Context, *api.Response) {
+
+	reqId := utils.ParseRequestID(ctx)
+	authToken := utils.ParseAuthToken(ctx)
+
+	if authToken == "" {
+		log.AuthScope().Error("[Auth][Server] auth token is empty", utils.ZapRequestID(reqId))
+		return nil, api.NewResponse(api.EmptyAutToken)
+	}
+
 	authCtx := model.NewAcquireContext(
 		model.WithRequestContext(ctx),
-		model.WithToken(token),
+		model.WithToken(authToken),
+		model.WithModule(model.AuthModule),
 	)
 
-	err := authMgn.VerifyToken(authCtx)
+	err := svr.authMgn.VerifyToken(authCtx)
+
+	// case 1. 如果 error 不是 token 被禁止的 error，直接返回
+	// case 2. 如果 error 是 token 被禁止，按下面情况判断
+	// 		i. 如果当前只是一个数据的读取操作，则放通
+	// 		ii. 如果当前是一个数据的写操作，则只能允许处于正常的 token 进行操作
 
 	if err != nil {
-		return nil, api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
+		if !errors.Is(err, model.ErrorTokenDisabled) {
+			log.AuthScope().Error("[Auth][Server] verify auth token", utils.ZapRequestID(reqId),
+				zap.Error(err))
+			return nil, api.NewResponse(api.AuthTokenVerifyException)
+		}
+
+		if isWrite {
+			log.AuthScope().Error("[Auth][Server] token is disabled and op is write", utils.ZapRequestID(reqId),
+				zap.Error(err))
+			return nil, api.NewResponse(api.TokenDisabled)
+		}
 	}
 
 	tokenInfo := authCtx.GetAttachment()[model.TokenDetailInfoKey].(TokenInfo)
 
 	if !tokenInfo.IsUserToken {
-		return nil, api.NewResponseWithMsg(api.NotAllowedAccess, "only user role can access this API")
+		log.AuthScope().Error("[Auth][Server] only user role can access this API", utils.ZapRequestID(reqId))
+		return nil, api.NewResponse(api.OperationRoleException)
 	}
 
 	if needOwner && tokenInfo.IsSubAccount() {
-		return nil, api.NewResponseWithMsg(api.NotAllowedAccess, "only admin/owner account can access this API")
+		log.AuthScope().Error("[Auth][Server] only admin/owner account can access this API", utils.ZapRequestID(reqId))
+		return nil, api.NewResponse(api.OperationRoleException)
 	}
 
 	return authCtx.GetRequestContext(), nil

@@ -68,7 +68,7 @@ func (svr *serverAuthAbility) UpdateRateLimits(ctx context.Context, reqs []*api.
 }
 
 func (svr *serverAuthAbility) GetRateLimits(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
-	authCtx := svr.collectRateLimitAuthContext(ctx, nil, model.Modify)
+	authCtx := svr.collectRateLimitAuthContext(ctx, nil, model.Read)
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {

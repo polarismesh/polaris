@@ -34,8 +34,8 @@ type AuthServer interface {
 	// Name
 	Name() string
 
-	// GetAuthManager
-	GetAuthManager() AuthManager
+	// GetAuthChecker
+	GetAuthChecker() AuthChecker
 
 	// AfterResourceOperation 操作完资源的后置处理逻辑
 	AfterResourceOperation(afterCtx *model.AcquireContext)
@@ -53,8 +53,8 @@ type AuthServer interface {
 	StrategyOperator
 }
 
-// AuthManager 权限管理通用接口定义
-type AuthManager interface {
+// AuthChecker 权限管理通用接口定义
+type AuthChecker interface {
 
 	// Initialize 执行初始化动作
 	Initialize(options *Config, cacheMgn *cache.NamingCache) error

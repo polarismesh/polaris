@@ -247,13 +247,12 @@ func (s *stableStore) newStore() {
 
 	s.toolStore = &toolStore{db: s.master}
 
-<<<<<<< HEAD
 	s.userStore = &userStore{master: s.master, slave: s.slave}
 
 	s.groupStore = &groupStore{master: s.master, slave: s.slave}
 
 	s.strategyStore = &strategyStore{master: s.master, slave: s.slave}
-=======
+
 	s.configFileGroupStore = &configFileGroupStore{db: s.master}
 
 	s.configFileStore = &configFileStore{db: s.master}
@@ -263,5 +262,4 @@ func (s *stableStore) newStore() {
 	s.configFileReleaseHistoryStore = &configFileReleaseHistoryStore{db: s.master}
 
 	s.configFileTagStore = &configFileTagStore{db: s.master}
->>>>>>> 97ed9f86bd82510bb31511a9923824a8a2e38e1e
 }

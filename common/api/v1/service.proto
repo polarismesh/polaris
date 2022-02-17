@@ -17,8 +17,15 @@ message Namespace {
 	google.protobuf.UInt32Value total_health_instance_count = 8 [json_name="total_health_instance_count"];
 	google.protobuf.UInt32Value total_instance_count = 9 [json_name="total_instance_count"];
 
-	repeated google.protobuf.StringValue user_ids = 10;
-	repeated google.protobuf.StringValue group_ids = 11;
+	repeated google.protobuf.StringValue user_ids = 10 [json_name="user_ids"];
+	repeated google.protobuf.StringValue group_ids = 11 [json_name="group_ids"];
+
+	repeated google.protobuf.StringValue remove_user_ids = 13 [json_name="remove_user_ids"];
+	repeated google.protobuf.StringValue remove_group_ids = 14 [json_name="remove_group_ids"];
+
+	google.protobuf.StringValue id = 12;
+
+	google.protobuf.BoolValue editable = 15;
 }
 
 message Service {
@@ -45,8 +52,15 @@ message Service {
 	google.protobuf.UInt32Value total_instance_count = 17 [json_name="total_instance_count"];
 	google.protobuf.UInt32Value healthy_instance_count = 18 [json_name="healthy_instance_count"];
 
-	repeated google.protobuf.StringValue user_ids = 19;
-	repeated google.protobuf.StringValue group_ids = 20;
+
+	repeated google.protobuf.StringValue user_ids = 19 [json_name="user_ids"];
+	repeated google.protobuf.StringValue group_ids = 20 [json_name="group_ids"];
+
+	repeated google.protobuf.StringValue remove_user_ids = 22 [json_name="remove_user_ids"];
+	repeated google.protobuf.StringValue remove_group_ids = 23 [json_name="remove_group_ids"];
+
+	google.protobuf.StringValue id = 21;
+	google.protobuf.BoolValue editable = 24;
 }
 
 enum AliasType {
@@ -66,6 +80,9 @@ message ServiceAlias {
 
     google.protobuf.StringValue ctime = 9;
     google.protobuf.StringValue mtime = 10;
+
+	google.protobuf.StringValue id = 11;
+	google.protobuf.BoolValue editable = 12;
 }
 
 message Instance {

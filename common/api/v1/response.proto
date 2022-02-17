@@ -37,6 +37,7 @@ message Response {
 	LoginResponse loginResponse = 23;
 	ModifyAuthStrategy modifyAuthStrategy = 24;
 	ModifyUserGroup modifyUserGroup = 25;
+	StrategyResources resources = 26;
 	reserved 12 to 14, 16 to 18;
 }
 

@@ -21,17 +21,11 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 // CreateGroup
 func (svr *serverAuthAbility) CreateGroup(ctx context.Context, group *api.UserGroup) *api.Response {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewResponse(api.NotAllowedAccess)
-	}
-
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if errResp != nil {
 		errResp.UserGroup = group
 		return errResp
@@ -40,30 +34,25 @@ func (svr *serverAuthAbility) CreateGroup(ctx context.Context, group *api.UserGr
 	return svr.target.CreateGroup(ctx, group)
 }
 
-// UpdateGroup
-func (svr *serverAuthAbility) UpdateGroup(ctx context.Context, group *api.ModifyUserGroup) *api.Response {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewResponse(api.NotAllowedAccess)
-	}
+// UpdateGroups
+func (svr *serverAuthAbility) UpdateGroups(ctx context.Context,
+	reqs []*api.ModifyUserGroup) *api.BatchWriteResponse {
 
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if errResp != nil {
-		errResp.ModifyUserGroup = group
-		return errResp
+		resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
+		resp.Collect(errResp)
+		return resp
 	}
 
-	return svr.target.UpdateGroup(ctx, group)
+	return svr.target.UpdateGroups(ctx, reqs)
 }
 
 // DeleteGroup
-func (svr *serverAuthAbility) DeleteGroups(ctx context.Context, reqs []*api.UserGroup) *api.BatchWriteResponse {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewBatchWriteResponse(api.NotAllowedAccess)
-	}
+func (svr *serverAuthAbility) DeleteGroups(ctx context.Context,
+	reqs []*api.UserGroup) *api.BatchWriteResponse {
 
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if errResp != nil {
 		resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
 		resp.Collect(errResp)
@@ -74,13 +63,10 @@ func (svr *serverAuthAbility) DeleteGroups(ctx context.Context, reqs []*api.User
 }
 
 // GetGroups 查看用户组
-func (svr *serverAuthAbility) GetGroups(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewBatchQueryResponse(api.NotAllowedAccess)
-	}
+func (svr *serverAuthAbility) GetGroups(ctx context.Context,
+	query map[string]string) *api.BatchQueryResponse {
 
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	ctx, errResp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if errResp != nil {
 		return api.NewBatchQueryResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
 	}
@@ -90,14 +76,10 @@ func (svr *serverAuthAbility) GetGroups(ctx context.Context, query map[string]st
 
 // GetGroupUsers
 func (svr *serverAuthAbility) GetGroup(ctx context.Context, req *api.UserGroup) *api.Response {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewResponse(api.NotAllowedAccess)
-	}
 
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	ctx, errResp := svr.verifyAuth(ctx, WriteOp, NotOwner)
 	if errResp != nil {
-		return api.NewResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
+		return errResp
 	}
 
 	return svr.target.GetGroup(ctx, req)
@@ -105,12 +87,8 @@ func (svr *serverAuthAbility) GetGroup(ctx context.Context, req *api.UserGroup) 
 
 // GetUserGroupToken
 func (svr *serverAuthAbility) GetGroupToken(ctx context.Context, req *api.UserGroup) *api.Response {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewResponse(api.NotAllowedAccess)
-	}
 
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	ctx, errResp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if errResp != nil {
 		return errResp
 	}
@@ -120,12 +98,7 @@ func (svr *serverAuthAbility) GetGroupToken(ctx context.Context, req *api.UserGr
 
 // UpdateGroupToken
 func (svr *serverAuthAbility) UpdateGroupToken(ctx context.Context, group *api.UserGroup) *api.Response {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewResponse(api.NotAllowedAccess)
-	}
-
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if errResp != nil {
 		errResp.UserGroup = group
 		return errResp
@@ -136,12 +109,7 @@ func (svr *serverAuthAbility) UpdateGroupToken(ctx context.Context, group *api.U
 
 // ResetGroupToken
 func (svr *serverAuthAbility) ResetGroupToken(ctx context.Context, group *api.UserGroup) *api.Response {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewResponse(api.NotAllowedAccess)
-	}
-
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if errResp != nil {
 		errResp.UserGroup = group
 		return errResp

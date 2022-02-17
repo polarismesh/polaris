@@ -35,6 +35,18 @@ type server struct {
 	storage  store.Store
 	history  plugin.History
 	cacheMgn *cache.NamingCache
+	authMgn  *defaultAuthChecker
+}
+
+// initialize
+func (svr *server) initialize() error {
+	// 获取History插件，注意：插件的配置在bootstrap已经设置好
+	svr.history = plugin.GetHistory()
+	if svr.history == nil {
+		log.AuthScope().Warnf("Not Found History Log Plugin")
+	}
+
+	return nil
 }
 
 // Login 登陆动作
@@ -51,13 +63,12 @@ func (svr *server) Login(req *api.LoginRequest) *api.Response {
 	}
 
 	// TODO AES 解密操作，在进行密码比对计算
-
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.GetPassword().GetValue()))
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return api.NewResponseWithMsg(api.NotAllowedAccess, ErrorWrongUsernameOrPassword.Error())
+			return api.NewResponseWithMsg(api.NotAllowedAccess, model.ErrorWrongUsernameOrPassword.Error())
 		}
-		return api.NewResponseWithMsg(api.ExecuteException, ErrorWrongUsernameOrPassword.Error())
+		return api.NewResponseWithMsg(api.ExecuteException, model.ErrorWrongUsernameOrPassword.Error())
 	}
 
 	return api.NewLoginResponse(api.ExecuteSuccess, &api.LoginResponse{
@@ -84,35 +95,110 @@ func (svr *server) RecordHistory(entry *model.RecordEntry) {
 
 // AfterResourceOperation 对于资源的添加删除操作，需要执行后置逻辑
 // 所有子用户或者用户分组，都默认获得对所创建的资源的写权限
-func (svr *server) AfterResourceOperation(afterCtx *model.AcquireContext) {
-	ownerId := afterCtx.GetAttachment()[model.OperatorOwnerKey].(string)
+func (svr *server) AfterResourceOperation(afterCtx *model.AcquireContext) error {
+	if !svr.authMgn.IsOpenAuth() || afterCtx.GetOperation() == model.Read {
+		return nil
+	}
+	if afterCtx.GetAttachment()[model.TokenDetailInfoKey].(TokenInfo).IsEmpty() {
+		return nil
+	}
 
-	userIds := afterCtx.GetAttachment()[model.LinkUsersKey].([]string)
+	addUserIds := afterCtx.GetAttachment()[model.LinkUsersKey].([]string)
+	addGroupIds := afterCtx.GetAttachment()[model.LinkGroupsKey].([]string)
+	removeUserIds := afterCtx.GetAttachment()[model.RemoveLinkUsersKey].([]string)
+	removeGroupIds := afterCtx.GetAttachment()[model.RemoveLinkGroupsKey].([]string)
 
-	for index := range userIds {
+	// 只有在创建一个资源的时候，才需要把当前的创建者一并加到里面去
+	if afterCtx.GetOperation() == model.Create {
+		tokenInfo := afterCtx.GetAttachment()[model.TokenDetailInfoKey].(TokenInfo)
+		if tokenInfo.IsUserToken {
+			addUserIds = append(addUserIds, tokenInfo.OperatorID)
+		} else {
+			addGroupIds = append(addGroupIds, tokenInfo.OperatorID)
+		}
+	}
+
+	log.AuthScope().Info("[Auth][Server] add resource to principal default strategy",
+		zap.Any("resource", afterCtx.GetAttachment()[model.ResourceAttachmentKey]),
+		zap.Any("add_user", addUserIds), zap.Any("add_group", addGroupIds), zap.Any("remove_user", removeUserIds),
+		zap.Any("remove_group", removeGroupIds),
+	)
+
+	// 添加某些用户、用户组与资源的默认授权关系
+	if err := svr.handleUserStrategy(addUserIds, afterCtx, false); err != nil {
+		log.AuthScope().Error("[Auth][Server] add user link resource", zap.Error(err))
+		return err
+	}
+	if err := svr.handleGroupStrategy(addGroupIds, afterCtx, false); err != nil {
+		log.AuthScope().Error("[Auth][Server] add group link resource", zap.Error(err))
+		return err
+	}
+
+	// 清理某些用户、用户组与资源的默认授权关系
+	if err := svr.handleUserStrategy(removeUserIds, afterCtx, true); err != nil {
+		log.AuthScope().Error("[Auth][Server] remove user link resource", zap.Error(err))
+		return err
+	}
+	if err := svr.handleGroupStrategy(removeGroupIds, afterCtx, true); err != nil {
+		log.AuthScope().Error("[Auth][Server] remove group link resource", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+// handleUserStrategy
+func (svr *server) handleUserStrategy(userIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
+
+	for index := range utils.StringSliceDeDuplication(userIds) {
 		userId := userIds[index]
-		name := model.BuildDefaultStrategyName(userId, model.PrincipalUser)
-		svr.handlerModifyDefaultStrategy(name, ownerId, afterCtx)
+		user := svr.cacheMgn.User().GetUserByID(userId)
+		if user == nil {
+			return errors.New("not found target user")
+		}
+		ownerId := user.Owner
+		if ownerId == "" {
+			ownerId = user.ID
+		}
+		if err := svr.handlerModifyDefaultStrategy(userId, ownerId, model.PrincipalUser,
+			afterCtx, isRemove); err != nil {
+			return err
+		}
 	}
+	return nil
+}
 
-	groupIds := afterCtx.GetAttachment()[model.LinkGroupsKey].([]string)
+// handleGroupStrategy
+func (svr *server) handleGroupStrategy(groupIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
 
-	for index := range groupIds {
+	for index := range utils.StringSliceDeDuplication(groupIds) {
 		groupId := groupIds[index]
-		name := model.BuildDefaultStrategyName(groupId, model.PrincipalUserGroup)
-		svr.handlerModifyDefaultStrategy(name, ownerId, afterCtx)
+		group := svr.cacheMgn.User().GetGroup(groupId)
+		if group == nil {
+			return errors.New("not found target group")
+		}
+		ownerId := group.Owner
+		if err := svr.handlerModifyDefaultStrategy(groupId, ownerId, model.PrincipalGroup,
+			afterCtx, isRemove); err != nil {
+			return err
+		}
 	}
-
+	return nil
 }
 
 // handlerModifyDefaultStrategy 处理默认策略的修改
-func (svr *server) handlerModifyDefaultStrategy(name, ownerId string, afterCtx *model.AcquireContext) {
+// case 1. 如果默认策略是全部放通
+func (svr *server) handlerModifyDefaultStrategy(id, ownerId string, uType model.PrincipalType,
+	afterCtx *model.AcquireContext, cleanRealtion bool) error {
 	// Get the default policy rules
-	strategy, err := svr.storage.GetStrategyDetailByName(ownerId, name)
+	strategy, err := svr.storage.GetDefaultStrategyDetailByPrincipal(id, int(uType))
 	if err != nil {
 		log.AuthScope().Error("[Auth][Server] get default strategy",
-			zap.String("owner", ownerId), zap.String("name", name), zap.Error(err))
-		return
+			zap.String("owner", ownerId), zap.String("id", id), zap.Error(err))
+		return err
+	}
+	if strategy == nil {
+		return errors.New("not found default strategy rule")
 	}
 
 	strategyResource := make([]model.StrategyResource, 0)
@@ -136,21 +222,37 @@ func (svr *server) handlerModifyDefaultStrategy(name, ownerId string, afterCtx *
 		}
 	}
 
-	if afterCtx.GetOperation() == model.Create {
+	isRemove := (afterCtx.GetOperation() == model.Delete || cleanRealtion)
+
+	if isRemove {
+		err = svr.storage.RemoveStrategyResources(strategyResource)
+		if err != nil {
+			log.AuthScope().Error("[Auth][Server] remove default strategy resource",
+				zap.String("owner", ownerId), zap.String("id", id),
+				zap.String("type", model.PrincipalNames[uType]), zap.Error(err))
+			return err
+		}
+		return nil
+	} else {
 		// 如果是写操作，那么采用松添加操作进行新增资源的添加操作(仅忽略主键冲突的错误)
 		err = svr.storage.LooseAddStrategyResources(strategyResource)
 		if err != nil {
 			log.AuthScope().Error("[Auth][Server] update default strategy resource",
-				zap.String("owner", ownerId), zap.String("name", name), zap.Error(err))
-			return
+				zap.String("owner", ownerId), zap.String("id", id), zap.String("id", id),
+				zap.String("type", model.PrincipalNames[uType]), zap.Error(err))
+			return err
 		}
 	}
-	if afterCtx.GetOperation() == model.Delete {
-		err = svr.storage.RemoveStrategyResources(strategyResource)
-		if err != nil {
-			log.AuthScope().Error("[Auth][Server] remove default strategy resource",
-				zap.String("owner", ownerId), zap.String("name", name), zap.Error(err))
-			return
+	return nil
+}
+
+func checkHasPassAll(rule *model.StrategyDetail) bool {
+	for i := range rule.Resources {
+		res := rule.Resources[i]
+		if res.ResID == "*" {
+			return true
 		}
 	}
+
+	return false
 }

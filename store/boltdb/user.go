@@ -83,12 +83,12 @@ func (us *userStore) UpdateUser(user *model.User) error {
 }
 
 // DeleteUser
-func (us *userStore) DeleteUser(id string) error {
-	if id == "" {
+func (us *userStore) DeleteUser(user *model.User) error {
+	if user.ID == "" {
 		return store.NewStatusError(store.EmptyParamsErr, "delete user missing some params")
 	}
 
-	return us.handler.DeleteValues(tblUser, []string{id}, true)
+	return us.handler.DeleteValues(tblUser, []string{user.ID}, true)
 }
 
 // GetUser
@@ -144,8 +144,8 @@ func (us *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
 	return ret[id].(*model.User), nil
 }
 
-// GetUserByIDS
-func (us *userStore) GetUserByIDS(ids []string) ([]*model.User, error) {
+// GetUserByIds
+func (us *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
@@ -165,6 +165,11 @@ func (us *userStore) GetUserByIDS(ids []string) ([]*model.User, error) {
 	}
 
 	return users, nil
+}
+
+// GetSubCount 获取子账户的个数
+func (us *userStore) GetSubCount(user *model.User) (uint32, error) {
+	return 0, nil
 }
 
 // GetUsers
@@ -321,6 +326,11 @@ func (us *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mod
 	}
 
 	return users, nil
+}
+
+// GetUserRelationGroupCount
+func (us *userStore) GetUserRelationGroupCount(userId string) (uint32, error) {
+	return 0, nil
 }
 
 // doPage 进行分页

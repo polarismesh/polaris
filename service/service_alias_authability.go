@@ -26,12 +26,12 @@ import (
 )
 
 // CreateServiceAlias
-func (svr *serverAuthAbility) CreateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
+func (svr *serverAuthAbility) CreateServiceAlias(ctx context.Context,
+	req *api.ServiceAlias) *api.Response {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Create)
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
-	if err != nil {
-		return api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
+	if _, err := svr.authMgn.CheckPermission(authCtx); err != nil {
+		return api.NewServiceAliasResponse(convertToErrCode(err), req)
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -47,12 +47,12 @@ func (svr *serverAuthAbility) CreateServiceAlias(ctx context.Context, req *api.S
 }
 
 // DeleteServiceAliases
-func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context, reqs []*api.ServiceAlias) *api.BatchWriteResponse {
-	authCtx := svr.collectServiceAliasAuthContext(ctx, reqs, model.Modify)
+func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context,
+	reqs []*api.ServiceAlias) *api.BatchWriteResponse {
+	authCtx := svr.collectServiceAliasAuthContext(ctx, reqs, model.Delete)
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
-	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	if _, err := svr.authMgn.CheckPermission(authCtx); err != nil {
+		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -63,11 +63,10 @@ func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context, reqs []*
 
 // UpdateServiceAlias
 func (svr *serverAuthAbility) UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
-	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Create)
+	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Modify)
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
-	if err != nil {
-		return api.NewResponseWithMsg(api.NotAllowedAccess, err.Error())
+	if _, err := svr.authMgn.CheckPermission(authCtx); err != nil {
+		return api.NewServiceAliasResponse(convertToErrCode(err), req)
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -77,16 +76,36 @@ func (svr *serverAuthAbility) UpdateServiceAlias(ctx context.Context, req *api.S
 }
 
 // GetServiceAliases
-func (svr *serverAuthAbility) GetServiceAliases(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
-	authCtx := svr.collectServiceAliasAuthContext(ctx, nil, model.Create)
+func (svr *serverAuthAbility) GetServiceAliases(ctx context.Context,
+	query map[string]string) *api.BatchQueryResponse {
+	authCtx := svr.collectServiceAliasAuthContext(ctx, nil, model.Read)
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
-	if err != nil {
-		return api.NewBatchQueryResponseWithMsg(api.NotAllowedAccess, err.Error())
+	if _, err := svr.authMgn.CheckPermission(authCtx); err != nil {
+		return api.NewBatchQueryResponse(convertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.GetServiceAliases(ctx, query)
+	resp := svr.targetServer.GetServiceAliases(ctx, query)
+	if len(resp.Aliases) != 0 {
+
+		// 对于服务别名，则是参考源服务是否有编辑权限
+		principal := model.Principal{
+			PrincipalID:   utils.ParseUserID(ctx),
+			PrincipalRole: model.PrincipalUser,
+		}
+		for index := range resp.Aliases {
+			alias := resp.Aliases[index]
+			svc := svr.Cache().Service().GetServiceByName(alias.Service.Value, alias.Namespace.Value)
+			editable := true
+			// 如果鉴权能力没有开启，那就默认都可以进行编辑
+			if svr.authMgn.IsOpenAuth() {
+				editable = svr.Cache().AuthStrategy().IsResourceEditable(principal,
+					api.ResourceType_Services, svc.ID)
+			}
+			alias.Editable = utils.NewBoolValue(editable)
+		}
+	}
+	return resp
 }

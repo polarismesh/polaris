@@ -21,17 +21,13 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
 )
 
-// CreateUser
+// CreateUser 创建用户，只能由超级账户 or 主账户调用
+//  case 1. 超级账户调用：创建的是主账户
+//  case 2. 主账户调用：创建的是子账户
 func (svr *serverAuthAbility) CreateUsers(ctx context.Context, req []*api.User) *api.BatchWriteResponse {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewBatchWriteResponse(api.NotAllowedAccess)
-	}
-
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if errResp != nil {
 		resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
 		resp.Collect(errResp)
@@ -41,14 +37,9 @@ func (svr *serverAuthAbility) CreateUsers(ctx context.Context, req []*api.User) 
 	return svr.target.CreateUsers(ctx, req)
 }
 
-// UpdateUser
+// UpdateUser 更新用户，任意账户均可以操作
 func (svr *serverAuthAbility) UpdateUser(ctx context.Context, user *api.User) *api.Response {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewResponse(api.NotAllowedAccess)
-	}
-
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	ctx, errResp := svr.verifyAuth(ctx, WriteOp, NotOwner)
 	if errResp != nil {
 		errResp.User = user
 		return errResp
@@ -57,14 +48,10 @@ func (svr *serverAuthAbility) UpdateUser(ctx context.Context, user *api.User) *a
 	return svr.target.UpdateUser(ctx, user)
 }
 
-// DeleteUsers 批量删除用户
+// DeleteUsers 批量删除用户，只能由超级账户 or 主账户操作
 func (svr *serverAuthAbility) DeleteUsers(ctx context.Context, reqs []*api.User) *api.BatchWriteResponse {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewBatchWriteResponse(api.NotAllowedAccess)
-	}
 
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if errResp != nil {
 		resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
 		resp.Collect(errResp)
@@ -76,12 +63,8 @@ func (svr *serverAuthAbility) DeleteUsers(ctx context.Context, reqs []*api.User)
 
 // DeleteUser
 func (svr *serverAuthAbility) DeleteUser(ctx context.Context, user *api.User) *api.Response {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewResponse(api.NotAllowedAccess)
-	}
 
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if errResp != nil {
 		errResp.User = user
 		return errResp
@@ -92,12 +75,7 @@ func (svr *serverAuthAbility) DeleteUser(ctx context.Context, user *api.User) *a
 
 // GetUsers
 func (svr *serverAuthAbility) GetUsers(ctx context.Context, filter map[string]string) *api.BatchQueryResponse {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewBatchQueryResponse(api.NotAllowedAccess)
-	}
-
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if errResp != nil {
 		return api.NewBatchQueryResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
 	}
@@ -107,12 +85,7 @@ func (svr *serverAuthAbility) GetUsers(ctx context.Context, filter map[string]st
 
 // GetUserToken
 func (svr *serverAuthAbility) GetUserToken(ctx context.Context, user *api.User) *api.Response {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewResponse(api.NotAllowedAccess)
-	}
-
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	ctx, errResp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if errResp != nil {
 		return errResp
 	}
@@ -120,14 +93,9 @@ func (svr *serverAuthAbility) GetUserToken(ctx context.Context, user *api.User) 
 	return svr.target.GetUserToken(ctx, user)
 }
 
-// UpdateUserToken
+// UpdateUserToken 更新用户的 token 状态，只允许超级、主账户进行操作
 func (svr *serverAuthAbility) UpdateUserToken(ctx context.Context, user *api.User) *api.Response {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewResponse(api.NotAllowedAccess)
-	}
-
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, true)
+	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if errResp != nil {
 		errResp.User = user
 		return errResp
@@ -136,14 +104,9 @@ func (svr *serverAuthAbility) UpdateUserToken(ctx context.Context, user *api.Use
 	return svr.target.UpdateUserToken(ctx, user)
 }
 
-// ResetUserToken
+// ResetUserToken 重置用户token，允许子账户进行操作
 func (svr *serverAuthAbility) ResetUserToken(ctx context.Context, user *api.User) *api.Response {
-	authToken := utils.ParseAuthToken(ctx)
-	if authToken == "" {
-		return api.NewResponse(api.NotAllowedAccess)
-	}
-
-	ctx, errResp := verifyAuth(ctx, svr.authMgn, authToken, false)
+	ctx, errResp := svr.verifyAuth(ctx, WriteOp, NotOwner)
 	if errResp != nil {
 		errResp.User = user
 		return errResp
