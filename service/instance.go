@@ -892,6 +892,9 @@ func (s *Server) sendDiscoverEvent(eventType model.DiscoverEventType, namespace,
 // createServiceIfAbsent
 func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instance) (uint32, error) {
 
+	if svc := s.caches.Service().GetServiceByName(instance.GetService().GetValue(), instance.GetNamespace().GetValue()); svc != nil {
+		return api.ExecuteSuccess, nil
+	}
 	simpleService := &api.Service{
 		Name:      utils.NewStringValue(instance.GetService().GetValue()),
 		Namespace: utils.NewStringValue(instance.GetNamespace().GetValue()),
