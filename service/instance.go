@@ -308,7 +308,7 @@ func (s *Server) asyncDeleteInstance(ctx context.Context, req *api.Instance, ins
 	// 打印本地日志与操作记录
 	msg := fmt.Sprintf("delete instance: id=%v, namespace=%v, service=%v, host=%v, port=%v",
 		instance.ID(), instance.Namespace(), instance.Service(), instance.Host(), instance.Port())
-	log.Info(msg, ZapRequestID(rid), ZapPlatformID(pid), zap.Duration("cost", time.Now().Sub(start)))
+	log.Info(msg, ZapRequestID(rid), ZapPlatformID(pid), zap.Duration("cost", time.Since(start)))
 	service := &model.Service{Name: instance.Service(), Namespace: instance.Namespace()}
 	s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.ODelete))
 

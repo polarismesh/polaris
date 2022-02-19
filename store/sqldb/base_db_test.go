@@ -47,7 +47,7 @@ func TestRetry(t *testing.T) {
 			err = nil
 			return nil
 		})
-		sub := time.Now().Sub(start)
+		sub := time.Since(start)
 		So(err, ShouldBeNil)
 		So(sub, ShouldBeGreaterThan, time.Millisecond*100)
 	})
@@ -60,7 +60,7 @@ func TestRetry(t *testing.T) {
 				return err
 			})
 			So(err, ShouldNotBeNil)
-			So(time.Now().Sub(start), ShouldBeGreaterThan, time.Millisecond*100)
+			So(time.Since(start), ShouldBeGreaterThan, time.Millisecond*100)
 		}
 	})
 }
@@ -80,7 +80,7 @@ func TestRetryTransaction(t *testing.T) {
 		})
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldEqual, "Deadlock")
-		sub := time.Now().Sub(start)
+		sub := time.Since(start)
 		t.Logf("%v", sub)
 		So(sub, ShouldBeGreaterThan, time.Millisecond*100)
 
@@ -89,7 +89,7 @@ func TestRetryTransaction(t *testing.T) {
 			return errors.New("other error")
 		})
 		So(err, ShouldNotBeNil)
-		sub = time.Now().Sub(start)
+		sub = time.Since(start)
 		So(sub, ShouldBeLessThan, time.Millisecond*5)
 	})
 }
