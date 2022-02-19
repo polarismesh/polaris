@@ -107,7 +107,7 @@ func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Res
 	msg := fmt.Sprintf("create instance: id=%v, namespace=%v, service=%v, host=%v, port=%v",
 		ins.GetId().GetValue(), req.GetNamespace().GetValue(), req.GetService().GetValue(),
 		req.GetHost().GetValue(), req.GetPort().GetValue())
-	log.Info(msg, ZapRequestID(rid), ZapPlatformID(pid), zap.Duration("cost", time.Now().Sub(start)))
+	log.Info(msg, ZapRequestID(rid), ZapPlatformID(pid), zap.Duration("cost", time.Since(start)))
 	service := &model.Service{
 		Name:      req.GetService().GetValue(),
 		Namespace: req.GetNamespace().GetValue(),
@@ -277,7 +277,7 @@ func (s *Server) serialDeleteInstance(ctx context.Context, req *api.Instance, in
 
 	msg := fmt.Sprintf("delete instance: id=%v, namespace=%v, service=%v, host=%v, port=%v",
 		instance.ID(), service.Namespace, service.Name, instance.Host(), instance.Port())
-	log.Info(msg, ZapRequestID(rid), ZapPlatformID(pid), zap.Duration("cost", time.Now().Sub(start)))
+	log.Info(msg, ZapRequestID(rid), ZapPlatformID(pid), zap.Duration("cost", time.Since(start)))
 	s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.ODelete))
 
 	s.sendDiscoverEvent(model.EventInstanceOffline, service.Namespace,
