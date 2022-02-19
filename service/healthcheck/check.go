@@ -92,13 +92,11 @@ func newCheckScheduler(ctx context.Context, slotNum int,
 func (c *CheckScheduler) doCheck(ctx context.Context) {
 	c.timeWheel.Start()
 	log.Infof("[Health Check][Check]timeWheel has been started")
-	for {
-		select {
-		case <-ctx.Done():
-			c.timeWheel.Stop()
-			log.Infof("[Health Check][Check]timeWheel has been stopped")
-			return
-		}
+
+	for range ctx.Done() {
+		c.timeWheel.Stop()
+		log.Infof("[Health Check][Check]timeWheel has been stopped")
+		return
 	}
 }
 
