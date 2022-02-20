@@ -74,11 +74,8 @@ func loadConfig() error {
 
 // 判断一个resp是否执行成功
 func respSuccess(resp api.ResponseMessage) bool {
-	if api.CalcCode(resp) != 200 {
-		return false
-	}
 
-	return true
+	return api.CalcCode(resp) == 200
 }
 
 // 内部初始化函数

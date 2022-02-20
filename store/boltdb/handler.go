@@ -477,7 +477,7 @@ func (b *boltHandler) CountValues(typ string) (int, error) {
 
 			if subBucket != nil {
 				data := subBucket.Get([]byte(DataValidFieldName))
-				if data == nil || len(data) == 0 {
+				if len(data) == 0 {
 					canCount = true
 				} else {
 					val, err := decodeBoolBuffer(DataValidFieldName, data)

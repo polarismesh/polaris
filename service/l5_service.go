@@ -448,7 +448,7 @@ func (s *Server) getCl5DiscoverList(ctx context.Context, clientIP uint32) *l5.Cl
 			continue
 		}
 		// 过滤掉不健康或者隔离状态的server
-		if entry.Healthy() == false || entry.Isolate() == true {
+		if !entry.Healthy() == false || entry.Isolate() {
 			continue
 		}
 		ip := ParseIPStr2IntV2(entry.Host())

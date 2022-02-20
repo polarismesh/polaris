@@ -25,8 +25,8 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/store"
 	"gopkg.in/yaml.v2"
 	"os"
@@ -139,11 +139,8 @@ func loadConfigWithAuthPlugin() error {
  * @brief 判断请求是否成功
  */
 func respSuccess(resp api.ResponseMessage) bool {
-	if api.CalcCode(resp) != 200 {
-		return false
-	}
 
-	return true
+	return api.CalcCode(resp) == 200
 }
 
 /**
