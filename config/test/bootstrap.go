@@ -87,7 +87,7 @@ func doInitialize() error {
 			}
 		}()
 
-		err = config2.InitConfigModule(ctx, cfg.ConfigFile)
+		err = config2.InitConfigModule(ctx, cfg.Config)
 		if err != nil {
 			return
 		}
