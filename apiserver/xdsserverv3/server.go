@@ -574,7 +574,7 @@ func makeListeners() []types.Resource {
 func (x *XDSServer) pushRegistryInfoToXDSCache(registryInfo map[string][]*ServiceInfo) error {
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
 
-	for ns, _ := range registryInfo {
+	for ns := range registryInfo {
 		resources := make(map[resource.Type][]types.Resource)
 		resources[resource.EndpointType] = makeEndpoints(registryInfo[ns])
 		resources[resource.ClusterType] = x.makeClusters(registryInfo[ns])
