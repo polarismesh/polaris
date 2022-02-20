@@ -402,7 +402,6 @@ func removeCommonInstance(t *testing.T, service *api.Service, instanceID string)
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 
-	return
 }
 
 // 通过四元组或者五元组删除实例
@@ -418,7 +417,6 @@ func removeInstanceWithAttrs(t *testing.T, service *api.Service, instance *api.I
 	if resp := server.DeleteInstance(defaultCtx, req); !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
-	return
 }
 
 // 创建一个路由配置

@@ -124,7 +124,7 @@ func TestBatchOperation(t *testing.T) {
 	})
 
 	Convey("data大小为100", t, func() {
-		data := make([]interface{}, 100, 100)
+		data := make([]interface{}, 100)
 		num := 0
 		err := BatchOperation("data为100", data, func(objects []interface{}) error {
 			num++
@@ -135,7 +135,7 @@ func TestBatchOperation(t *testing.T) {
 	})
 
 	Convey("data大小为0", t, func() {
-		data := make([]interface{}, 0, 0)
+		data := make([]interface{}, 0)
 		num := 0
 		err := BatchOperation("data为100", data, func(objects []interface{}) error {
 			num++

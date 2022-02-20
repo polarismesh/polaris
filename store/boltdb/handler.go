@@ -323,7 +323,7 @@ func matchObject(bucket *bolt.Bucket,
 	if filter == nil {
 		return true, nil
 	}
-	fieldValues := make(map[string]interface{}, 0)
+	fieldValues := make(map[string]interface{})
 	for _, field := range fields {
 		value, err := getFieldObject(bucket, typObject, field)
 		if err != nil {

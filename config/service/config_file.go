@@ -196,8 +196,8 @@ func (cs *Impl) SearchConfigFile(ctx context.Context, namespace, group, name, ta
 	}
 
 	//按tag搜索，内存分页
-	var tagKVs []string
-	tagKVs = strings.Split(tags, ",")
+
+	tagKVs := strings.Split(tags, ",")
 	if len(tagKVs)%2 != 0 {
 		return api.NewConfigFileBatchQueryResponse(api.InvalidConfigFileTags, 0, nil)
 	}
