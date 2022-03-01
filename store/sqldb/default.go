@@ -159,15 +159,12 @@ func parseStoreConfig(opts interface{}) (*dbConfig, error) {
 		return nil, fmt.Errorf("config Plugin %s missing database param", STORENAME)
 	}
 
-	externalUrlParam, _ := obj["externalUrlParams"].(string)
-
 	c := &dbConfig{
 		dbType:            dbType,
 		dbUser:            dbUser,
 		dbPwd:             dbPwd,
 		dbAddr:            dbAddr,
 		dbName:            dbName,
-		externalUrlParams: externalUrlParam,
 	}
 	if maxOpenConns, _ := obj["maxOpenConns"].(int); maxOpenConns > 0 {
 		c.maxOpenConns = maxOpenConns

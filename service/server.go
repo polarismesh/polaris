@@ -21,8 +21,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/modern-go/reflect2"
-	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris-server/auth"
@@ -32,6 +30,7 @@ import (
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/store"
+	"go.uber.org/zap"
 )
 
 // Server 对接API层的server层，用以处理业务逻辑
@@ -51,7 +50,8 @@ type Server struct {
 
 	l5service *l5service
 
-	creareServiceSingle *singleflight.Group
+	createServiceSingle   *singleflight.Group
+	createNamespaceSingle *singleflight.Group
 
 	hooks []ResourceHook
 }
@@ -64,6 +64,11 @@ func (s *Server) Authority() auth.Authority {
 // Cache 返回Cache
 func (s *Server) Cache() *cache.NamingCache {
 	return s.caches
+}
+
+// Cache 返回Cache
+func (s *Server) SetResourceHooks(hooks ...ResourceHook) {
+	s.hooks = hooks
 }
 
 // RecordHistory server对外提供history插件的简单封装
@@ -143,11 +148,9 @@ func (s *Server) allowInstanceAccess(instanceID string) bool {
 
 }
 
-func (s *Server) SetResourceHook(hooks []ResourceHook) {
-	s.hooks = hooks
-}
+func (s *Server) afterNamespaceResource(ctx context.Context, req *api.Namespace, save *model.Namespace,
+	remove bool) error {
 
-func (s *Server) afterNamespaceResource(ctx context.Context, req *api.Namespace, save *model.Namespace, remove bool) {
 	event := &ResourceEvent{
 		ReqNamespace: req,
 		Namespace:    save,
@@ -156,11 +159,17 @@ func (s *Server) afterNamespaceResource(ctx context.Context, req *api.Namespace,
 
 	for index := range s.hooks {
 		hook := s.hooks[index]
-		hook.After(ctx, model.RNamespace, event)
+		if err := hook.After(ctx, model.RNamespace, event); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
-func (s *Server) afterServiceResource(ctx context.Context, req *api.Service, save *model.Service, remove bool) {
+func (s *Server) afterServiceResource(ctx context.Context, req *api.Service, save *model.Service,
+	remove bool) error {
+
 	event := &ResourceEvent{
 		ReqService: req,
 		Service:    save,
@@ -169,6 +178,10 @@ func (s *Server) afterServiceResource(ctx context.Context, req *api.Service, sav
 
 	for index := range s.hooks {
 		hook := s.hooks[index]
-		hook.After(ctx, model.RService, event)
+		if err := hook.After(ctx, model.RService, event); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }

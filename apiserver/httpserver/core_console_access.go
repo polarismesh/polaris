@@ -24,12 +24,8 @@ import (
 )
 
 // GetCoreConsoleAccessServer 增加配置中心模块之后，namespace 作为两个模块的公共模块需要独立， restful path 以 /core 开头
-func (h *HTTPServer) GetCoreConsoleAccessServer(include []string) (*restful.WebService, error) {
+func (h *HTTPServer) GetCoreConsoleAccessServer(ws *restful.WebService, include []string) error {
 	consoleAccess := []string{defaultAccess}
-
-	ws := new(restful.WebService)
-
-	ws.Path("/core/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
 
 	if len(include) == 0 {
 		include = consoleAccess
@@ -52,10 +48,10 @@ func (h *HTTPServer) GetCoreConsoleAccessServer(include []string) (*restful.WebS
 			h.addCoreDefaultAccess(ws)
 		default:
 			log.Errorf("[HttpServer][Core] method %s does not exist in httpserver console access", item)
-			return nil, fmt.Errorf("method %s does not exist in httpserver console access", item)
+			return fmt.Errorf("method %s does not exist in httpserver console access", item)
 		}
 	}
-	return ws, nil
+	return nil
 }
 
 func (h *HTTPServer) addCoreDefaultReadAccess(ws *restful.WebService) {

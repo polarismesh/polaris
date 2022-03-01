@@ -38,7 +38,7 @@ type AuthServer interface {
 	GetAuthChecker() AuthChecker
 
 	// AfterResourceOperation 操作完资源的后置处理逻辑
-	AfterResourceOperation(afterCtx *model.AcquireContext)
+	AfterResourceOperation(afterCtx *model.AcquireContext) error
 
 	// Login 登陆动作
 	Login(req *api.LoginRequest) *api.Response
@@ -78,6 +78,9 @@ type UserOperator interface {
 	// UpdateUser 更新用户信息
 	UpdateUser(ctx context.Context, user *api.User) *api.Response
 
+	// UpdateUserPassword 更新用户密码
+	UpdateUserPassword(ctx context.Context, req *api.ModifyUserPassword) *api.Response
+
 	// DeleteUser 删除用户
 	DeleteUsers(ctx context.Context, users []*api.User) *api.BatchWriteResponse
 
@@ -99,8 +102,8 @@ type GroupOperator interface {
 	// CreateGroup 创建用户组
 	CreateGroup(ctx context.Context, group *api.UserGroup) *api.Response
 
-	// UpdateGroup 更新用户组
-	UpdateGroup(ctx context.Context, group *api.ModifyUserGroup) *api.Response
+	// UpdateGroups 更新用户组
+	UpdateGroups(ctx context.Context, groups []*api.ModifyUserGroup) *api.BatchWriteResponse
 
 	// DeleteUserGroup 删除用户组
 	DeleteGroups(ctx context.Context, group []*api.UserGroup) *api.BatchWriteResponse
@@ -127,8 +130,8 @@ type StrategyOperator interface {
 	// CreateStrategy 创建策略
 	CreateStrategy(ctx context.Context, strategy *api.AuthStrategy) *api.Response
 
-	// UpdateStrategy 更新策略
-	UpdateStrategy(ctx context.Context, strategy *api.ModifyAuthStrategy) *api.Response
+	// UpdateStrategies 批量更新策略
+	UpdateStrategies(ctx context.Context, reqs []*api.ModifyAuthStrategy) *api.BatchWriteResponse
 
 	// DeleteStrategies 删除策略
 	DeleteStrategies(ctx context.Context, reqs []*api.AuthStrategy) *api.BatchWriteResponse

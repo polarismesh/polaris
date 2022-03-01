@@ -56,6 +56,7 @@ const (
 	MaxOwnersLength     = 1024
 	MaxDepartmentLength = 1024
 	MaxCommentLength    = 1024
+	MaxNameLength       = 64
 
 	// service表
 	MaxDbServiceNameLength      = 128

@@ -1515,21 +1515,6 @@ func (mr *MockStoreMockRecorder) GetUsersForCache(mtime, firstUpdate interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsersForCache", reflect.TypeOf((*MockStore)(nil).GetUsersForCache), mtime, firstUpdate)
 }
 
-// GetUserRelationGroupCount mocks base method
-func (m *MockStore) GetUserRelationGroupCount(userId string) (uint32, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserRelationGroupCount", userId)
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUserRelationGroupCount indicates an expected call of GetUserRelationGroupCount
-func (mr *MockStoreMockRecorder) GetUserRelationGroupCount(userId interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserRelationGroupCount", reflect.TypeOf((*MockStore)(nil).GetUserRelationGroupCount), userId)
-}
-
 // AddGroup mocks base method
 func (m *MockStore) AddGroup(group *model.UserGroupDetail) error {
 	m.ctrl.T.Helper()
@@ -1716,6 +1701,21 @@ func (m *MockStore) GetStrategyResources(principalId string, principalRole model
 func (mr *MockStoreMockRecorder) GetStrategyResources(principalId, principalRole interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategyResources", reflect.TypeOf((*MockStore)(nil).GetStrategyResources), principalId, principalRole)
+}
+
+// GetDefaultStrategyDetailByPrincipal mocks base method
+func (m *MockStore) GetDefaultStrategyDetailByPrincipal(principalId string, principalType int) (*model.StrategyDetail, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDefaultStrategyDetailByPrincipal", principalId, principalType)
+	ret0, _ := ret[0].(*model.StrategyDetail)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDefaultStrategyDetailByPrincipal indicates an expected call of GetDefaultStrategyDetailByPrincipal
+func (mr *MockStoreMockRecorder) GetDefaultStrategyDetailByPrincipal(principalId, principalType interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDefaultStrategyDetailByPrincipal", reflect.TypeOf((*MockStore)(nil).GetDefaultStrategyDetailByPrincipal), principalId, principalType)
 }
 
 // GetStrategyDetail mocks base method
@@ -3556,21 +3556,6 @@ func (mr *MockNamingModuleStoreMockRecorder) GetUsersForCache(mtime, firstUpdate
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsersForCache", reflect.TypeOf((*MockNamingModuleStore)(nil).GetUsersForCache), mtime, firstUpdate)
 }
 
-// GetUserRelationGroupCount mocks base method
-func (m *MockNamingModuleStore) GetUserRelationGroupCount(userId string) (uint32, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserRelationGroupCount", userId)
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUserRelationGroupCount indicates an expected call of GetUserRelationGroupCount
-func (mr *MockNamingModuleStoreMockRecorder) GetUserRelationGroupCount(userId interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserRelationGroupCount", reflect.TypeOf((*MockNamingModuleStore)(nil).GetUserRelationGroupCount), userId)
-}
-
 // AddGroup mocks base method
 func (m *MockNamingModuleStore) AddGroup(group *model.UserGroupDetail) error {
 	m.ctrl.T.Helper()
@@ -3757,6 +3742,21 @@ func (m *MockNamingModuleStore) GetStrategyResources(principalId string, princip
 func (mr *MockNamingModuleStoreMockRecorder) GetStrategyResources(principalId, principalRole interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategyResources", reflect.TypeOf((*MockNamingModuleStore)(nil).GetStrategyResources), principalId, principalRole)
+}
+
+// GetDefaultStrategyDetailByPrincipal mocks base method
+func (m *MockNamingModuleStore) GetDefaultStrategyDetailByPrincipal(principalId string, principalType int) (*model.StrategyDetail, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDefaultStrategyDetailByPrincipal", principalId, principalType)
+	ret0, _ := ret[0].(*model.StrategyDetail)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDefaultStrategyDetailByPrincipal indicates an expected call of GetDefaultStrategyDetailByPrincipal
+func (mr *MockNamingModuleStoreMockRecorder) GetDefaultStrategyDetailByPrincipal(principalId, principalType interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDefaultStrategyDetailByPrincipal", reflect.TypeOf((*MockNamingModuleStore)(nil).GetDefaultStrategyDetailByPrincipal), principalId, principalType)
 }
 
 // GetStrategyDetail mocks base method
@@ -5428,21 +5428,6 @@ func (mr *MockUserStoreMockRecorder) GetUsersForCache(mtime, firstUpdate interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsersForCache", reflect.TypeOf((*MockUserStore)(nil).GetUsersForCache), mtime, firstUpdate)
 }
 
-// GetUserRelationGroupCount mocks base method
-func (m *MockUserStore) GetUserRelationGroupCount(userId string) (uint32, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserRelationGroupCount", userId)
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUserRelationGroupCount indicates an expected call of GetUserRelationGroupCount
-func (mr *MockUserStoreMockRecorder) GetUserRelationGroupCount(userId interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserRelationGroupCount", reflect.TypeOf((*MockUserStore)(nil).GetUserRelationGroupCount), userId)
-}
-
 // MockGroupStore is a mock of GroupStore interface
 type MockGroupStore struct {
 	ctrl     *gomock.Controller
@@ -5675,6 +5660,21 @@ func (m *MockStrategyStore) GetStrategyResources(principalId string, principalRo
 func (mr *MockStrategyStoreMockRecorder) GetStrategyResources(principalId, principalRole interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategyResources", reflect.TypeOf((*MockStrategyStore)(nil).GetStrategyResources), principalId, principalRole)
+}
+
+// GetDefaultStrategyDetailByPrincipal mocks base method
+func (m *MockStrategyStore) GetDefaultStrategyDetailByPrincipal(principalId string, principalType int) (*model.StrategyDetail, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDefaultStrategyDetailByPrincipal", principalId, principalType)
+	ret0, _ := ret[0].(*model.StrategyDetail)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDefaultStrategyDetailByPrincipal indicates an expected call of GetDefaultStrategyDetailByPrincipal
+func (mr *MockStrategyStoreMockRecorder) GetDefaultStrategyDetailByPrincipal(principalId, principalType interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDefaultStrategyDetailByPrincipal", reflect.TypeOf((*MockStrategyStore)(nil).GetDefaultStrategyDetailByPrincipal), principalId, principalType)
 }
 
 // GetStrategyDetail mocks base method

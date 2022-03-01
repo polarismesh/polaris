@@ -41,6 +41,10 @@ var (
 		"principal_id":   "ap.principal_id",
 		"principal_type": "ap.principal_role",
 	}
+
+	RuleNeedLikeFilters map[string]struct{} = map[string]struct{}{
+		"name": {},
+	}
 )
 
 type strategyStore struct {
@@ -186,7 +190,7 @@ func (s *strategyStore) deleteStrategy(id string) error {
 
 	defer func() { _ = tx.Rollback() }()
 
-	if _, err = tx.Exec("UPDATE auth_strategy SET flag = 1 WHERE id = ?", []interface{}{
+	if _, err = tx.Exec("UPDATE auth_strategy SET flag = 1, mtime = sysdate() WHERE id = ?", []interface{}{
 		id,
 	}...); err != nil {
 		return err
@@ -389,6 +393,35 @@ func (s *strategyStore) GetStrategyDetail(id string, isDefault bool) (*model.Str
 	return s.getStrategyDetail(row)
 }
 
+// GetDefaultStrategyDetailByPrincipal
+func (s *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
+	principalType int) (*model.StrategyDetail, error) {
+
+	if principalId == "" {
+		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
+			"get auth_strategy missing some params, principal_id is %s", principalId))
+	}
+
+	querySql := `
+	 SELECT ag.id, ag.name, ag.action, ag.owner, ag.default
+		 , ag.comment, ag.revision, ag.flag, UNIX_TIMESTAMP(ag.ctime)
+		 , UNIX_TIMESTAMP(ag.mtime)
+	 FROM auth_strategy ag
+	 WHERE ag.flag = 0
+		 AND ag.default = 1
+		 AND ag.id IN (
+			 SELECT DISTINCT strategy_id
+			 FROM auth_principal
+			 WHERE principal_id = ?
+				 AND principal_role = ?
+		 )
+	 `
+
+	row := s.master.QueryRow(querySql, principalId, principalType)
+
+	return s.getStrategyDetail(row)
+}
+
 // getStrategyDetail
 func (s *strategyStore) getStrategyDetail(row *sql.Row) (*model.StrategyDetail, error) {
 	var (
@@ -490,6 +523,7 @@ func (s *strategyStore) queryStrategies(
 		countSql += " WHERE "
 		firstIndex := true
 		for k, v := range filters {
+			needLike := false
 			if !firstIndex {
 				querySql += " AND "
 				countSql += " AND "
@@ -497,13 +531,23 @@ func (s *strategyStore) queryStrategies(
 			firstIndex = false
 
 			if val, ok := mapping[k]; ok {
+				if _, exist := RuleNeedLikeFilters[k]; exist {
+					needLike = true
+				}
 				k = val
 			}
 
-			if utils.IsWildName(v) {
+			if needLike {
+				if utils.IsWildName(v) {
+					v = v[:len(v)-1]
+				}
 				querySql += (" " + k + " like ? ")
 				countSql += (" " + k + " like ? ")
-				args = append(args, v[:len(v)-1]+"%")
+				args = append(args, "%"+v+"%")
+			} else if k == "ag.owner" {
+				querySql += " (ag.owner = ? OR (ap.principal_id = ? AND ap.principal_role = 1 )) "
+				countSql += " (ag.owner = ? OR (ap.principal_id = ? AND ap.principal_role = 1 )) "
+				args = append(args, v, v)
 			} else {
 				querySql += (" " + k + " = ? ")
 				countSql += (" " + k + " = ? ")
@@ -531,6 +575,9 @@ func (s *strategyStore) queryStrategies(
 // collectStrategies 执行真正的 sql 并从 rows 中获取策略列表
 func (s *strategyStore) collectStrategies(handler QueryHandler, querySql string,
 	args []interface{}, showDetail bool) ([]*model.StrategyDetail, error) {
+
+	logger.AuthScope().Debug("[Store][Strategy] get simple strategies", zap.String("query sql", querySql),
+		zap.Any("args", args))
 
 	rows, err := handler(querySql, args...)
 	if err != nil {
@@ -574,35 +621,6 @@ func (s *strategyStore) collectStrategies(handler QueryHandler, querySql string,
 
 	return ret, nil
 
-}
-
-// GetDefaultStrategyDetailByPrincipal
-func (s *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
-	principalType int) (*model.StrategyDetail, error) {
-
-	if principalId == "" {
-		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
-			"get auth_strategy missing some params, principal_id is %s", principalId))
-	}
-
-	querySql := `
-	SELECT ag.id, ag.name, ag.action, ag.owner, ag.default
-		, ag.comment, ag.revision, ag.flag, UNIX_TIMESTAMP(ag.ctime)
-		, UNIX_TIMESTAMP(ag.mtime)
-	FROM auth_strategy ag
-	WHERE ag.flag = 0
-		AND ag.default = 1
-		AND ag.id IN (
-			SELECT DISTINCT strategy_id
-			FROM auth_principal
-			WHERE principal_id = ?
-				AND principal_role = ?
-		)
-	`
-
-	row := s.master.QueryRow(querySql, principalId, principalType)
-
-	return s.getStrategyDetail(row)
 }
 
 func (s *strategyStore) GetStrategyDetailsForCache(mtime time.Time,

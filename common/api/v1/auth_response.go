@@ -46,6 +46,7 @@ func NewGroupResponse(code uint32, user *UserGroup) *Response {
 	}
 }
 
+//  NewModifyGroupResponse 创建修改用户组的响应信息
 func NewModifyGroupResponse(code uint32, group *ModifyUserGroup) *Response {
 	return &Response{
 		Code:            &wrappers.UInt32Value{Value: code},
@@ -54,7 +55,7 @@ func NewModifyGroupResponse(code uint32, group *ModifyUserGroup) *Response {
 	}
 }
 
-// NewGroupRelationResponse
+// NewGroupRelationResponse 创建用户组关联关系的响应体
 func NewGroupRelationResponse(code uint32, relation *UserGroupRelation) *Response {
 	return &Response{
 		Code:     &wrappers.UInt32Value{Value: code},
@@ -63,7 +64,7 @@ func NewGroupRelationResponse(code uint32, relation *UserGroupRelation) *Respons
 	}
 }
 
-// NewAuthStrategyResponse
+// NewAuthStrategyResponse 创建鉴权策略响应体
 func NewAuthStrategyResponse(code uint32, req *AuthStrategy) *Response {
 	return &Response{
 		Code:         &wrappers.UInt32Value{Value: code},
@@ -72,11 +73,7 @@ func NewAuthStrategyResponse(code uint32, req *AuthStrategy) *Response {
 	}
 }
 
-// NewAuthStrategyResponseWithMsg
-//  @param code
-//  @param msg
-//  @param req
-//  @return *Response
+// NewAuthStrategyResponseWithMsg 创建鉴权策略响应体并自定义Info
 func NewAuthStrategyResponseWithMsg(code uint32, msg string, req *AuthStrategy) *Response {
 	return &Response{
 		Code:         &wrappers.UInt32Value{Value: code},
@@ -85,10 +82,7 @@ func NewAuthStrategyResponseWithMsg(code uint32, msg string, req *AuthStrategy) 
 	}
 }
 
-// NewModifyAuthStrategyResponse
-//  @param code
-//  @param req
-//  @return *Response
+// NewModifyAuthStrategyResponse 创建修改鉴权策略响应体
 func NewModifyAuthStrategyResponse(code uint32, req *ModifyAuthStrategy) *Response {
 	return &Response{
 		Code:               &wrappers.UInt32Value{Value: code},
@@ -97,10 +91,16 @@ func NewModifyAuthStrategyResponse(code uint32, req *ModifyAuthStrategy) *Respon
 	}
 }
 
-// NewLoginResponse
-//  @param code
-//  @param loginResponse
-//  @return *Response
+// NewStrategyResourcesResponse 创建修改鉴权策略响应体
+func NewStrategyResourcesResponse(code uint32, ret *StrategyResources) *Response {
+	return &Response{
+		Code:      &wrappers.UInt32Value{Value: code},
+		Info:      &wrappers.StringValue{Value: code2info[code]},
+		Resources: ret,
+	}
+}
+
+// NewLoginResponse 创建登陆响应体
 func NewLoginResponse(code uint32, loginResponse *LoginResponse) *Response {
 	return &Response{
 		Code:          &wrappers.UInt32Value{Value: code},

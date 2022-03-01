@@ -318,6 +318,7 @@ func (s *Server) GetNamespaces(ctx context.Context, query map[string][]string) *
 		nsCntInfo := s.caches.Service().GetNamesapceCntInfo(namespace.Name)
 
 		out.AddNamespace(&api.Namespace{
+			Id:                       utils.NewStringValue(namespace.Name),
 			Name:                     utils.NewStringValue(namespace.Name),
 			Comment:                  utils.NewStringValue(namespace.Comment),
 			Owners:                   utils.NewStringValue(namespace.Owner),

@@ -62,6 +62,11 @@ func (t TokenInfo) IsEmpty() bool {
 	return t.Origin == ""
 }
 
+func (t TokenInfo) String() string {
+	return fmt.Sprintf("operator-id=%s, owner=%s, role=%d, is-user=%v, disable=%v",
+		t.OperatorID, t.OwnerID, t.Role, t.IsUserToken, t.Disable)
+}
+
 const (
 	// TokenPattern token 的格式 随机字符串::[uid/xxx | groupid/xxx]
 	TokenPattern string = "%s::%s"

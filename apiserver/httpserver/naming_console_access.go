@@ -22,8 +22,6 @@ import (
 	"fmt"
 	"net/http"
 
-	proto "github.com/golang/protobuf/proto"
-
 	"github.com/emicklei/go-restful"
 	proto "github.com/golang/protobuf/proto"
 
@@ -655,7 +653,7 @@ func (h *HTTPServer) GetRoutings(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
 	queryParams := parseQueryParams(req)
-	ret := h.namingServer.GetRoutingConfigs(nil, queryParams)
+	ret := h.namingServer.GetRoutingConfigs(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
 

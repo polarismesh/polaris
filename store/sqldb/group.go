@@ -30,6 +30,27 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	// IDAttribute
+	IDAttribute string = "id"
+
+	// NameAttribute
+	NameAttribute string = "name"
+
+	// FlagAttribute
+	FlagAttribute string = "flag"
+
+	GroupIDAttribute string = "group_id"
+)
+
+var (
+	groupAttribute map[string]string = map[string]string{
+		"name":  "ug.name",
+		"id":    "ug.id",
+		"owner": "ug.owner",
+	}
+)
+
 type groupStore struct {
 	master *BaseDB
 	slave  *BaseDB
@@ -258,6 +279,11 @@ func (u *groupStore) GetGroup(groupId string) (*model.UserGroupDetail, error) {
 // GetGroupByName 根据 owner、name 获取用户组
 func (u *groupStore) GetGroupByName(name, owner string) (*model.UserGroup, error) {
 
+	if name == "" || owner == "" {
+		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
+			"get usergroup missing some params, name=%s, owner=%s", name, owner))
+	}
+
 	var ctime, mtime int64
 
 	getSql := `
@@ -334,7 +360,7 @@ func (u *groupStore) listSimpleGroups(filters map[string]string, offset uint32, 
 			if utils.IsWildName(v) {
 				getSql += (" " + k + " like ? ")
 				countSql += (" " + k + " like ? ")
-				args = append(args, v[:len(v)-1]+"%")
+				args = append(args, "%"+v[:len(v)-1]+"%")
 			} else {
 				getSql += (" " + k + " = ? ")
 				countSql += (" " + k + " = ? ")
@@ -372,12 +398,24 @@ func (u *groupStore) listGroupByUser(filters map[string]string, offset uint32, l
 
 	if len(filters) != 0 {
 		for k, v := range filters {
+			getSql += " AND "
+			countSql += " AND "
 			if newK, ok := userLinkGroupAttributeMapping[k]; ok {
 				k = newK
 			}
-			getSql += " AND  " + k + " = ? "
-			countSql += " AND  " + k + " = ? "
-			args = append(args, v)
+			if utils.IsWildName(v) {
+				getSql += (" " + k + " like ? ")
+				countSql += (" " + k + " like ? ")
+				args = append(args, "%"+v[:len(v)-1]+"%")
+			} else if k == "ug.owner" {
+				getSql += " (ug.owner = ? OR ul.user_id = ? ) "
+				countSql += " (ug.owner = ? OR ul.user_id = ? ) "
+				args = append(args, v, v)
+			} else {
+				getSql += (" " + k + " = ? ")
+				countSql += (" " + k + " = ? ")
+				args = append(args, v)
+			}
 		}
 	}
 

@@ -26,22 +26,12 @@ import (
 )
 
 const (
-	// IDAttribute
-	IDAttribute string = "id"
 
 	// OwnerAttribute
 	OwnerAttribute string = "owner"
 
-	// NameAttribute
-	NameAttribute string = "name"
-
-	// FlagAttribute
-	FlagAttribute string = "flag"
-
 	// And
 	And string = " and"
-
-	GroupIDAttribute string = "group_id"
 )
 
 // Order 排序结构体

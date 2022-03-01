@@ -110,13 +110,13 @@ func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, 
 	}
 	namingServer.storage = s
 
-	// // 初始化鉴权模块
-	// authority, err := auth.NewAuthority(namingOpt.Auth)
-	// if err != nil {
-	// 	log.Errorf("[Naming][Server] new auth err: %s", err.Error())
-	// 	return err
-	// }
-	// namingServer.authority = authority
+	// 初始化鉴权模块
+	authority, err := auth.NewAuthority(namingOpt.Auth)
+	if err != nil {
+		log.Errorf("[Naming][Server] new auth err: %s", err.Error())
+		return err
+	}
+	namingServer.authority = authority
 
 	// cache模块，可以不开启
 	// 对于控制台集群，只访问控制台接口的，可以不开启cache
@@ -148,7 +148,7 @@ func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, 
 	// l5service
 	namingServer.l5service = &l5service{}
 
-	namingServer.creareServiceSingle = &singleflight.Group{}
+	namingServer.createServiceSingle = &singleflight.Group{}
 
 	// 插件初始化
 	pluginInitialize()

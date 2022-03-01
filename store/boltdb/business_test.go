@@ -18,10 +18,7 @@
 package boltdb
 
 import (
-	"io/ioutil"
 	"math/rand"
-	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -60,23 +57,8 @@ func createTestBusiness(id string, createId bool) *model.Business {
 	}
 }
 
-func CreateBusinessDBHandlerAndRun(t *testing.T, tf func(t *testing.T, handler BoltHandler)) {
-	tempDir, _ := ioutil.TempDir("", "test_business")
-	_ = os.Remove(filepath.Join(tempDir, "test_business.bolt"))
-	handler, err := NewBoltHandler(&BoltConfig{FileName: filepath.Join(tempDir, "test_business.bolt")})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer func() {
-		_ = handler.Close()
-		_ = os.Remove(filepath.Join(tempDir, "test_business.bolt"))
-	}()
-	tf(t, handler)
-}
-
 func Test_businessStore_AddBusiness(t *testing.T) {
-	CreateBusinessDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_business", func(t *testing.T, handler BoltHandler) {
 
 		bID := uuid.NewString()
 
@@ -118,7 +100,7 @@ func Test_businessStore_AddBusiness(t *testing.T) {
 }
 
 func Test_businessStore_DeleteBusiness(t *testing.T) {
-	CreateBusinessDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_business", func(t *testing.T, handler BoltHandler) {
 
 		bId := uuid.NewString()
 
@@ -173,7 +155,7 @@ func Test_businessStore_DeleteBusiness(t *testing.T) {
 }
 
 func Test_businessStore_UpdateBusiness(t *testing.T) {
-	CreateBusinessDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_business", func(t *testing.T, handler BoltHandler) {
 
 		bId := uuid.NewString()
 
@@ -240,7 +222,7 @@ func Test_businessStore_UpdateBusiness(t *testing.T) {
 }
 
 func Test_businessStore_UpdateBusinessToken(t *testing.T) {
-	CreateBusinessDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_business", func(t *testing.T, handler BoltHandler) {
 		bId := uuid.NewString()
 
 		bs := &businessStore{
@@ -301,7 +283,7 @@ func Test_businessStore_UpdateBusinessToken(t *testing.T) {
 }
 
 func Test_businessStore_ListBusiness(t *testing.T) {
-	CreateBusinessDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_business", func(t *testing.T, handler BoltHandler) {
 		bs := &businessStore{
 			handler: handler,
 		}
@@ -417,7 +399,7 @@ func Test_businessStore_ListBusiness(t *testing.T) {
 }
 
 func Test_businessStore_GetBusinessByID(t *testing.T) {
-	CreateBusinessDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_business", func(t *testing.T, handler BoltHandler) {
 
 		bus := createTestBusiness("", true)
 

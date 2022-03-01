@@ -48,6 +48,16 @@ func (svr *serverAuthAbility) UpdateUser(ctx context.Context, user *api.User) *a
 	return svr.target.UpdateUser(ctx, user)
 }
 
+// UpdateUserPassword 更新用户信息
+func (svr *serverAuthAbility) UpdateUserPassword(ctx context.Context, req *api.ModifyUserPassword) *api.Response {
+	ctx, errResp := svr.verifyAuth(ctx, WriteOp, NotOwner)
+	if errResp != nil {
+		return errResp
+	}
+
+	return svr.target.UpdateUserPassword(ctx, req)
+}
+
 // DeleteUsers 批量删除用户，只能由超级账户 or 主账户操作
 func (svr *serverAuthAbility) DeleteUsers(ctx context.Context, reqs []*api.User) *api.BatchWriteResponse {
 

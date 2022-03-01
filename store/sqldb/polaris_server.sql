@@ -307,7 +307,7 @@ CREATE TABLE `owner_service_map` (
 CREATE TABLE `circuitbreaker_rule` (
     `id` varchar(97) COLLATE utf8_bin NOT NULL comment 'Melting rule ID',
     `version` varchar(32) COLLATE utf8_bin NOT NULL DEFAULT 'master' comment 'Melting rule version, default is MASTR',
-    `name` varchar(32) COLLATE utf8_bin NOT NULL comment 'Melting rule name',
+    `name` varchar(128) COLLATE utf8_bin NOT NULL comment 'Melting rule name',
     `namespace` varchar(64) COLLATE utf8_bin NOT NULL comment 'Melting rule belongs to name space',
     `business` varchar(64) COLLATE utf8_bin DEFAULT NULL comment 'Business information of fuse regular',
     `department` varchar(1024) COLLATE utf8_bin DEFAULT NULL comment 'Department information to which the fuse regular belongs',
@@ -573,7 +573,7 @@ CREATE TABLE `ratelimit_flux_rule_config` (
     `callee_service_env` varchar(64) COLLATE utf8_bin NOT NULL,
     `callee_service_name` varchar(250) COLLATE utf8_bin NOT NULL DEFAULT '',
     `caller_service_business` varchar(250) COLLATE utf8_bin NOT NULL DEFAULT '',
-    `name` varchar(100) COLLATE utf8_bin NOT NULL DEFAULT '',
+    `name` varchar(128) COLLATE utf8_bin NOT NULL DEFAULT '',
     `description` varchar(500) COLLATE utf8_bin NOT NULL DEFAULT '',
     `type` tinyint(4) NOT NULL DEFAULT '0',
     `set_key` varchar(250) COLLATE utf8_bin NOT NULL DEFAULT '',
@@ -829,7 +829,7 @@ VALUES
         1,
         0,
         'default polaris admin account',
-        '65e4789a6d5b49669adf1e9e8387549c'
+        ''
     );
 
 -- 插入polaris-admin的权限策略
@@ -849,7 +849,7 @@ INSERT INTO
 VALUES
     (
         'fbca9bfa04ae4ead86e1ecf5811e32a9',
-        '__default__user_65e4789a6d5b49669adf1e9e8387549c',
+        '(用户) PolarisAdmin的默认策略',
         'READ_WRITE',
         '65e4789a6d5b49669adf1e9e8387549c',
         'default admin',

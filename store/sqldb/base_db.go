@@ -49,7 +49,6 @@ type dbConfig struct {
 	maxIdleConns      int
 	connMaxLifetime   int
 	txIsolationLevel  int
-	externalUrlParams string
 }
 
 // NewBaseDB 新建一个BaseDB
@@ -82,9 +81,6 @@ func (b *BaseDB) openDatabase() error {
 	}
 
 	dns := fmt.Sprintf("%s:%s@tcp(%s)/%s", c.dbUser, c.dbPwd, c.dbAddr, c.dbName)
-	if len(b.cfg.externalUrlParams) > 0 {
-		dns = fmt.Sprintf("%s:%s@tcp(%s)/%s?%s", c.dbUser, c.dbPwd, c.dbAddr, c.dbName, c.externalUrlParams)
-	}
 
 	db, err := sql.Open(c.dbType, dns)
 	if err != nil {

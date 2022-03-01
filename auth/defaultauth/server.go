@@ -72,9 +72,11 @@ func (svr *server) Login(req *api.LoginRequest) *api.Response {
 	}
 
 	return api.NewLoginResponse(api.ExecuteSuccess, &api.LoginResponse{
-		Token: utils.NewStringValue(user.Token),
-		Name:  utils.NewStringValue(user.Name),
-		Role:  utils.NewStringValue(model.UserRoleNames[user.Type]),
+		UserId:  utils.NewStringValue(user.ID),
+		OwnerId: utils.NewStringValue(user.Owner),
+		Token:   utils.NewStringValue(user.Token),
+		Name:    utils.NewStringValue(user.Name),
+		Role:    utils.NewStringValue(model.UserRoleNames[user.Type]),
 	})
 }
 

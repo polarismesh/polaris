@@ -407,9 +407,6 @@ type UserStore interface {
 
 	// GetUsersForCache 用于刷新用户缓存
 	GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*model.User, error)
-
-	// GetUserRelationGroupCount
-	GetUserRelationGroupCount(userId string) (uint32, error)
 }
 
 // GroupStore 用户组存储操作接口

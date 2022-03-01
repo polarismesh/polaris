@@ -85,10 +85,10 @@ func initialize(ctx context.Context, cacheOpt *Config, storage store.Store, list
 	cacheMgn.caches[CacheRateLimit] = newRateLimitCache(storage)
 	cacheMgn.caches[CacheCircuitBreaker] = newCircuitBreakerCache(storage)
 
-	strategyCache := newStrategyCache(storage)
+	notify := make(chan interface{}, 8)
 
-	cacheMgn.caches[CacheAuthStrategy] = strategyCache
-	cacheMgn.caches[CacheUser] = newUserCache(storage, strategyCache)
+	cacheMgn.caches[CacheUser] = newUserCache(storage, notify)
+	cacheMgn.caches[CacheAuthStrategy] = newStrategyCache(storage, notify, cacheMgn.caches[CacheUser].(UserCache))
 	cacheMgn.caches[CacheNamespace] = newNamespaceCache(storage)
 
 	if err := cacheMgn.initialize(); err != nil {

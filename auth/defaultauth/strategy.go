@@ -206,21 +206,8 @@ func (svr *server) GetStrategies(ctx context.Context, query map[string]string) *
 		}
 		searchFilters[key] = value
 	}
-	// 如果不是超级管理员，查看数据有限制
-	if utils.ParseUserRole(ctx) != model.AdminUserRole {
-		// 设置 owner 参数，只能查看对应 owner 下的用户
-		searchFilters["owner"] = utils.ParseOwnerID(ctx)
-	}
 
-	if !utils.ParseIsOwner(ctx) {
-		// 如果当前账户不是 owner 角色，既不是走资源视角查看，也不是指定principal查看，那么只能查询当前操作用户被关联到的鉴权策略，
-		if _, ok := searchFilters["res_id"]; !ok {
-			if _, ok := searchFilters["principal_id"]; !ok {
-				searchFilters["principal_id"] = utils.ParseUserID(ctx)
-				searchFilters["principal_type"] = strconv.Itoa(int(model.PrincipalUser))
-			}
-		}
-	}
+	searchFilters = parseStrategySearchArgs(ctx, searchFilters)
 
 	offset, limit, err := utils.ParseOffsetAndLimit(searchFilters)
 
@@ -241,12 +228,66 @@ func (svr *server) GetStrategies(ctx context.Context, query map[string]string) *
 
 	if strings.Compare(showDetail, "true") == 0 {
 		log.AuthScope().Info("[Auth][Strategy] fill strategy detail", utils.ZapRequestID(requestID))
-		resp.AuthStrategy = enhancedAuthStrategy2Api(strategies, svr.authStrategyFull2Api)
+		resp.AuthStrategies = enhancedAuthStrategy2Api(strategies, svr.authStrategyFull2Api)
 	} else {
-		resp.AuthStrategy = enhancedAuthStrategy2Api(strategies, svr.authStrategy2Api)
+		resp.AuthStrategies = enhancedAuthStrategy2Api(strategies, svr.authStrategy2Api)
 	}
 
 	return resp
+}
+
+// parseStrategySearchArgs 处理鉴权策略的搜索参数
+func parseStrategySearchArgs(ctx context.Context, searchFilters map[string]string) map[string]string {
+	// 如果不是超级管理员，查看数据有限制
+	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+		// 设置 owner 参数，只能查看对应 owner 下的策略以及与自己有关的
+		searchFilters["owner"] = utils.ParseOwnerID(ctx)
+		searchFilters["principal_id"] = utils.ParseUserID(ctx)
+		searchFilters["principal_type"] = strconv.Itoa(int(model.PrincipalUser))
+	}
+
+	convertResType := func(val string) string {
+		switch val {
+		case "namespace":
+			return "0"
+		case "service":
+			return "1"
+		case "config_group":
+			return "2"
+		default:
+			return "0"
+		}
+	}
+
+	convertPrincipalType := func(val string) string {
+		switch val {
+		case "user":
+			return "1"
+		case "group":
+			return "2"
+		default:
+			return "1"
+		}
+	}
+
+	if val, ok := searchFilters["res_type"]; ok {
+		searchFilters["res_type"] = convertResType(val)
+	}
+	if val, ok := searchFilters["principal_type"]; ok {
+		searchFilters["principal_type"] = convertPrincipalType(val)
+	}
+
+	if !utils.ParseIsOwner(ctx) {
+		// 如果当前账户不是 owner 角色，既不是走资源视角查看，也不是指定principal查看，那么只能查询当前操作用户被关联到的鉴权策略，
+		if _, ok := searchFilters["res_id"]; !ok {
+			if _, ok := searchFilters["principal_id"]; !ok {
+				searchFilters["principal_id"] = utils.ParseUserID(ctx)
+				searchFilters["principal_type"] = strconv.Itoa(int(model.PrincipalUser))
+			}
+		}
+	}
+
+	return searchFilters
 }
 
 // GetStrategy 根据策略ID获取详细的鉴权策略
@@ -275,9 +316,12 @@ func (svr *server) GetStrategy(ctx context.Context, req *api.AuthStrategy) *api.
 	canView := false
 
 	if isOwner {
-		// 是否是本鉴权策略的 owner 账户, 或者是否是超级管理员
+		// 是否是本鉴权策略的 owner 账户, 或者是否是超级管理员, 是的话则快速跳过下面的检查
 		canView = (ret.Owner == userId) || utils.ParseUserRole(ctx) == model.AdminUserRole
-	} else {
+	}
+
+	// 判断是否在该策略所属的成员列表中，如果自己在某个用户组，而该用户组又在这个策略的成员中，则也是可以查看的
+	if !canView {
 		for index := range ret.Principals {
 			principal := ret.Principals[index]
 			if principal.PrincipalRole == model.PrincipalUser && principal.PrincipalID == userId {

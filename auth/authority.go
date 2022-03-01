@@ -17,146 +17,146 @@
 
 package auth
 
-// import (
-// 	"strings"
-// )
+import (
+	"strings"
+)
 
-// // @Desperated
-// // authority 鉴权数据来源类
-// type authority struct {
-// 	global string
-// 	open   bool
-// }
+// @Desperated
+// authority 鉴权数据来源类
+type authority struct {
+	global string
+	open   bool
+}
 
-// const (
-// 	globalToken = "polaris@12345678"
-// 	defaultOpen = true
-// )
+const (
+	globalToken = "polaris@12345678"
+	defaultOpen = true
+)
 
-// // interface impl check
-// var _ Authority = (*authority)(nil)
+// interface impl check
+var _ Authority = (*authority)(nil)
 
-// /**
-// * NewAuthority 新建一个缓存类
-//  */
-// func NewAuthority(opt map[string]interface{}) (Authority, error) {
-// 	global, _ := opt["global-token"].(string)
-// 	if global == "" {
-// 		global = globalToken
-// 	}
-// 	au := &authority{global: global, open: parseOpen(opt)}
-// 	return au, nil
-// }
+/**
+* NewAuthority 新建一个缓存类
+ */
+func NewAuthority(opt map[string]interface{}) (Authority, error) {
+	global, _ := opt["global-token"].(string)
+	if global == "" {
+		global = globalToken
+	}
+	au := &authority{global: global, open: parseOpen(opt)}
+	return au, nil
+}
 
-// /**
-// * parseOpen 解析鉴权功能是否打开的开关
-//  */
-// func parseOpen(opt map[string]interface{}) bool {
-// 	var (
-// 		open bool
-// 		ok   bool
-// 	)
+/**
+* parseOpen 解析鉴权功能是否打开的开关
+ */
+func parseOpen(opt map[string]interface{}) bool {
+	var (
+		open bool
+		ok   bool
+	)
 
-// 	open, ok = opt["open"].(bool)
-// 	if !ok {
-// 		return defaultOpen
-// 	}
-// 	return open
-// }
+	open, ok = opt["open"].(bool)
+	if !ok {
+		return defaultOpen
+	}
+	return open
+}
 
-// // VerifyToken 检查Token格式是否合法
-// func (a *authority) VerifyToken(actualToken string) bool {
-// 	if !a.open {
-// 		return true
-// 	}
-// 	return len(actualToken) > 0
-// }
+// VerifyToken 检查Token格式是否合法
+func (a *authority) VerifyToken(actualToken string) bool {
+	if !a.open {
+		return true
+	}
+	return len(actualToken) > 0
+}
 
-// /**
-// * VerifyNamespace 校验命名空间是否合法
-//  */
-// func (a *authority) VerifyNamespace(expectToken string, actualToken string) bool {
-// 	return (!a.open || a.global == actualToken) || expectToken == actualToken
-// }
+/**
+* VerifyNamespace 校验命名空间是否合法
+ */
+func (a *authority) VerifyNamespace(expectToken string, actualToken string) bool {
+	return (!a.open || a.global == actualToken) || expectToken == actualToken
+}
 
-// /**
-// * VerifyService 校验服务是否合法
-//  */
-// func (a *authority) VerifyService(expectToken string, actualToken string) bool {
-// 	if !a.open || a.global == actualToken {
-// 		return true
-// 	}
+/**
+* VerifyService 校验服务是否合法
+ */
+func (a *authority) VerifyService(expectToken string, actualToken string) bool {
+	if !a.open || a.global == actualToken {
+		return true
+	}
 
-// 	tokens := convertToken(expectToken)
-// 	_, ok := tokens[actualToken]
-// 	return ok
-// }
+	tokens := convertToken(expectToken)
+	_, ok := tokens[actualToken]
+	return ok
+}
 
-// /**
-// * VerifyInstance 校验实例是否合法
-//  */
-// func (a *authority) VerifyInstance(expectToken string, actualToken string) bool {
-// 	if !a.open || a.global == actualToken {
-// 		return true
-// 	}
+/**
+* VerifyInstance 校验实例是否合法
+ */
+func (a *authority) VerifyInstance(expectToken string, actualToken string) bool {
+	if !a.open || a.global == actualToken {
+		return true
+	}
 
-// 	tokens := convertToken(expectToken)
-// 	_, ok := tokens[actualToken]
-// 	return ok
-// }
+	tokens := convertToken(expectToken)
+	_, ok := tokens[actualToken]
+	return ok
+}
 
-// /**
-//  * VerifyRule 校验规则是否合法
-//  */
-// func (a *authority) VerifyRule(expectToken string, actualToken string) bool {
-// 	if !a.open || a.global == actualToken {
-// 		return true
-// 	}
+/**
+ * VerifyRule 校验规则是否合法
+ */
+func (a *authority) VerifyRule(expectToken string, actualToken string) bool {
+	if !a.open || a.global == actualToken {
+		return true
+	}
 
-// 	tokens := convertToken(expectToken)
-// 	_, ok := tokens[actualToken]
-// 	return ok
-// }
+	tokens := convertToken(expectToken)
+	_, ok := tokens[actualToken]
+	return ok
+}
 
-// /**
-//  * VerifyMesh 校验网格规则是否合法
-//  */
-// func (a *authority) VerifyMesh(expectToken string, actualToken string) bool {
-// 	if !a.open || a.global == actualToken {
-// 		return true
-// 	}
+/**
+ * VerifyMesh 校验网格规则是否合法
+ */
+func (a *authority) VerifyMesh(expectToken string, actualToken string) bool {
+	if !a.open || a.global == actualToken {
+		return true
+	}
 
-// 	tokens := convertToken(expectToken)
-// 	_, ok := tokens[actualToken]
-// 	return ok
-// }
+	tokens := convertToken(expectToken)
+	_, ok := tokens[actualToken]
+	return ok
+}
 
-// /**
-//  * VerifyPlatform 校验平台是否合法
-//  */
-// func (a *authority) VerifyPlatform(expectToken string, actualToken string) bool {
-// 	if !a.open || a.global == actualToken {
-// 		return true
-// 	}
+/**
+ * VerifyPlatform 校验平台是否合法
+ */
+func (a *authority) VerifyPlatform(expectToken string, actualToken string) bool {
+	if !a.open || a.global == actualToken {
+		return true
+	}
 
-// 	tokens := convertToken(expectToken)
-// 	_, ok := tokens[actualToken]
-// 	return ok
-// }
+	tokens := convertToken(expectToken)
+	_, ok := tokens[actualToken]
+	return ok
+}
 
-// /**
-// * convertToken 将string类型的token转化为map类型
-//  */
-// func convertToken(token string) map[string]bool {
-// 	if token == "" {
-// 		return nil
-// 	}
+/**
+* convertToken 将string类型的token转化为map类型
+ */
+func convertToken(token string) map[string]bool {
+	if token == "" {
+		return nil
+	}
 
-// 	strSlice := strings.Split(token, ",")
-// 	strMap := make(map[string]bool)
-// 	for _, value := range strSlice {
-// 		strMap[value] = true
-// 	}
+	strSlice := strings.Split(token, ",")
+	strMap := make(map[string]bool)
+	for _, value := range strSlice {
+		strMap[value] = true
+	}
 
-// 	return strMap
-// }
+	return strMap
+}

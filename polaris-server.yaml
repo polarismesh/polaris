@@ -10,9 +10,9 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       outputPaths:
-      - stdout
+        - stdout
       errorOutputPaths:
-      - stderr
+        - stderr
     auth:
       rotateOutputPath: log/polaris-auth.log
       errorRotateOutputPath: log/polaris-auth-error.log
@@ -231,14 +231,13 @@ store:
     master:
       dbType: mysql
       dbName: polaris_server
-      dbUser: root
-      dbPwd: "123456"
-      dbAddr: 127.0.0.1:3306
+      dbUser: ##DB_USER##
+      dbPwd: ##DB_PWD##
+      dbAddr: ##DB_ADDR##
       maxOpenConns: 300
       maxIdleConns: 50
       connMaxLifetime: 300 # 单位秒
       txIsolationLevel: 2 #LevelReadCommitted
-      externalUrlParams: loc=Asia%2FShanghai
 # 插件配置
 plugin:
   history:

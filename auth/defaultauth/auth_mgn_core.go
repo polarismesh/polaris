@@ -69,7 +69,7 @@ func (authMgn *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext
 
 	if err != nil {
 		log.AuthScope().Error("[Auth][Server] find strategies when check permission", utils.ZapRequestID(reqId),
-			zap.Error(err), zap.Any("token", tokenInfo))
+			zap.Error(err), zap.String("token", tokenInfo.String()))
 		return false, err
 	}
 
@@ -139,7 +139,7 @@ func (authMgn *defaultAuthChecker) VerifyToken(authCtx *model.AcquireContext) er
 	authCtx.SetRequestContext(ctx)
 
 	if tokenInfo.Disable {
-		log.AuthScope().Error("[Auth][Server] token already disabled", zap.Any("token", tokenInfo))
+		log.AuthScope().Error("[Auth][Server] token already disabled", zap.String("token", tokenInfo.String()))
 		return model.ErrorTokenDisabled
 	}
 	return nil
@@ -172,7 +172,7 @@ func (authMgn *defaultAuthChecker) DecodeToken(t string) (TokenInfo, error) {
 		Role:        model.UnknownUserRole,
 	}
 
-	log.AuthScope().Info("[Auth][Server] token detail", zap.Any("info", tokenInfo))
+	log.AuthScope().Info("[Auth][Server] token detail", zap.String("info", tokenInfo.String()))
 
 	return tokenInfo, nil
 }

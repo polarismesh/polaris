@@ -92,23 +92,22 @@ type userCache struct {
 	users                    *sync.Map // userid -> user
 	name2Users               *sync.Map // username -> user
 	groups                   *sync.Map // groupid -> group
-	name2Groups              *sync.Map // groupname -> group
 	user2Groups              *sync.Map // userid -> groups
 	userCacheFirstUpdate     bool
 	groupCacheFirstUpdate    bool
 	lastUserCacheUpdateTime  int64
 	lastGroupCacheUpdateTime int64
 
-	listenerMgn *listenerManager
+	notifyCh chan interface{}
 
 	singleFlight *singleflight.Group
 }
 
 // newUserCache
-func newUserCache(storage store.Store, listeners ...Listener) UserCache {
+func newUserCache(storage store.Store, notifyCh chan interface{}) UserCache {
 	return &userCache{
-		storage:     storage,
-		listenerMgn: newListenerManager(listeners),
+		storage:  storage,
+		notifyCh: notifyCh,
 	}
 }
 
@@ -117,7 +116,6 @@ func (uc *userCache) initialize(c map[string]interface{}) error {
 	uc.users = new(sync.Map)
 	uc.groups = new(sync.Map)
 	uc.name2Users = new(sync.Map)
-	uc.name2Groups = new(sync.Map)
 	uc.user2Groups = new(sync.Map)
 
 	uc.userCacheFirstUpdate = true
@@ -157,17 +155,22 @@ func (uc *userCache) realUpdate() error {
 	uc.userCacheFirstUpdate = false
 	uc.groupCacheFirstUpdate = false
 	refreshRet := uc.setUserAndGroups(users, groups)
-	log.CacheScope().Debug("[Cache][User] get more user",
-		zap.Int("add", refreshRet.userAdd), zap.Int("update", refreshRet.userUpdate), zap.Int("delete", refreshRet.userDel),
+	log.CacheScope().Info("[Cache][User] get more user",
+		zap.Int("add", refreshRet.userAdd),
+		zap.Int("update", refreshRet.userUpdate),
+		zap.Int("delete", refreshRet.userDel),
 		zap.Time("last", userlastMtime), zap.Duration("used", time.Now().Sub(start)))
 
-	log.CacheScope().Debug("[Cache][Group] get more group",
-		zap.Int("add", refreshRet.groupAdd), zap.Int("update", refreshRet.groupUpdate), zap.Int("delete", refreshRet.groupDel),
+	log.CacheScope().Info("[Cache][Group] get more group",
+		zap.Int("add", refreshRet.groupAdd),
+		zap.Int("update", refreshRet.groupUpdate),
+		zap.Int("delete", refreshRet.groupDel),
 		zap.Time("last", grouplastMtime), zap.Duration("used", time.Now().Sub(start)))
 	return nil
 }
 
-func (uc *userCache) setUserAndGroups(users []*model.User, groups []*model.UserGroupDetail) userAndGroupCacheRefreshResult {
+func (uc *userCache) setUserAndGroups(users []*model.User,
+	groups []*model.UserGroupDetail) userAndGroupCacheRefreshResult {
 	ret := userAndGroupCacheRefreshResult{}
 
 	// 更新 users 缓存
@@ -194,7 +197,8 @@ func (uc *userCache) setUserAndGroups(users []*model.User, groups []*model.UserG
 }
 
 // handlerUserCacheUpdate 处理用户信息更新
-func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult, users []*model.User, filter func(user *model.User) bool,
+func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult, users []*model.User,
+	filter func(user *model.User) bool,
 	ownerSupplier func(user *model.User) *model.User) {
 
 	for i := range users {
@@ -218,44 +222,58 @@ func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult,
 			uc.users.Store(user.ID, user)
 			uc.name2Users.Store(fmt.Sprintf(NameLinkOwnerTemp, owner.Name, user.Name), user)
 
-			uc.lastUserCacheUpdateTime = int64(math.Max(float64(user.ModifyTime.Unix()), float64(uc.lastUserCacheUpdateTime)))
+			uc.lastUserCacheUpdateTime = int64(math.Max(float64(user.ModifyTime.Unix()),
+				float64(uc.lastUserCacheUpdateTime)))
 		}
 	}
 }
 
 // handlerGroupCacheUpdate 处理用户组信息更新
-func (uc *userCache) handlerGroupCacheUpdate(ret *userAndGroupCacheRefreshResult, groups []*model.UserGroupDetail) {
+func (uc *userCache) handlerGroupCacheUpdate(ret *userAndGroupCacheRefreshResult,
+	groups []*model.UserGroupDetail) {
 
 	// 更新 groups 数据信息
 	for i := range groups {
 		group := groups[i]
-		owner, _ := uc.users.Load(group.Owner)
 		if !group.Valid {
 			uc.groups.Delete(group.ID)
-			uc.name2Groups.Delete(fmt.Sprintf(NameLinkOwnerTemp, owner.(*model.User).Name, group.Name))
-
 			ret.groupDel++
 		} else {
-			if _, ok := uc.groups.Load(group.ID); ok {
+			var oldGroup *model.UserGroupDetail
+			if oldVal, ok := uc.groups.Load(group.ID); ok {
 				ret.groupUpdate++
+				oldGroup = oldVal.(*model.UserGroupDetail)
 			} else {
 				ret.groupAdd++
 			}
-
 			uc.groups.Store(group.ID, group)
-			uc.name2Groups.Store(fmt.Sprintf(NameLinkOwnerTemp, owner.(*model.User).Name, group.Name), group)
 
-			for j := range group.UserIds {
-				uid := group.UserIds[j]
-				uc.user2Groups.LoadOrStore(uid, make([]string, 0))
+			if oldGroup != nil {
+				oldUserIds := oldGroup.UserIds
+				delUserIds := make([]string, 0, 4)
+				for oldUserId := range oldUserIds {
+					if _, ok := group.UserIds[oldUserId]; !ok {
+						delUserIds = append(delUserIds, oldUserId)
+					}
+				}
 
-				val, _ := uc.user2Groups.Load(uid)
-				gids := val.([]string)
-
-				uc.user2Groups.Store(uid, append(gids, group.ID))
+				for di := range delUserIds {
+					waitDel := delUserIds[di]
+					if oldGids, ok := uc.user2Groups.Load(waitDel); ok {
+						oldGids.(*sync.Map).Delete(group.ID)
+					}
+				}
 			}
 
-			uc.lastGroupCacheUpdateTime = int64(math.Max(float64(group.ModifyTime.Unix()), float64(uc.lastGroupCacheUpdateTime)))
+			for uid := range group.UserIds {
+				uc.user2Groups.LoadOrStore(uid, new(sync.Map))
+				val, _ := uc.user2Groups.Load(uid)
+				gids := val.(*sync.Map)
+				gids.Store(group.ID, struct{}{})
+			}
+
+			uc.lastGroupCacheUpdateTime = int64(math.Max(float64(group.ModifyTime.Unix()),
+				float64(uc.lastGroupCacheUpdateTime)))
 		}
 	}
 }
@@ -264,7 +282,6 @@ func (uc *userCache) clear() error {
 	uc.users = new(sync.Map)
 	uc.groups = new(sync.Map)
 	uc.name2Users = new(sync.Map)
-	uc.name2Groups = new(sync.Map)
 	uc.user2Groups = new(sync.Map)
 
 	uc.userCacheFirstUpdate = false
@@ -339,16 +356,23 @@ func (uc *userCache) GetGroup(id string) *model.UserGroupDetail {
 }
 
 // GetUserLinkGroupIds 根据用户ID查询该用户关联的用户组ID列表
-func (uc *userCache) GetUserLinkGroupIds(id string) []string {
-	if id == "" {
+func (uc *userCache) GetUserLinkGroupIds(userId string) []string {
+	if userId == "" {
 		return nil
 	}
-	val, ok := uc.user2Groups.Load(id)
+	val, ok := uc.user2Groups.Load(userId)
 
 	if !ok {
 		return nil
 	}
-	return val.([]string)
+
+	ret := make([]string, 0, 4)
+	val.(*sync.Map).Range(func(key, value interface{}) bool {
+		ret = append(ret, key.(string))
+		return true
+	})
+
+	return ret
 }
 
 func (uc *userCache) postProcess(users []*model.User, groups []*model.UserGroupDetail) {
@@ -390,9 +414,9 @@ func (uc *userCache) onRemove(users []*model.User, groups []*model.UserGroup) {
 
 		principals = append(principals, model.Principal{
 			PrincipalID:   group.ID,
-			PrincipalRole: model.PrincipalUserGroup,
+			PrincipalRole: model.PrincipalGroup,
 		})
 	}
 
-	uc.listenerMgn.onEvent(principals, EventPrincipalRemove)
+	uc.notifyCh <- principals
 }

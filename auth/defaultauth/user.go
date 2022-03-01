@@ -19,6 +19,8 @@ package defaultauth
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -38,13 +40,14 @@ var (
 
 	// UserFilterAttributes 查询用户所能允许的参数查询列表
 	UserFilterAttributes = map[string]int{
-		"id":       1,
-		"name":     1,
-		"owner":    1,
-		"source":   1,
-		"offset":   1,
-		"group_id": 1,
-		"limit":    1,
+		"id":         1,
+		"name":       1,
+		"owner":      1,
+		"source":     1,
+		"offset":     1,
+		"group_id":   1,
+		"limit":      1,
+		"hide_admin": 1,
 	}
 )
 
@@ -110,6 +113,7 @@ func (svr *server) createUser(ctx context.Context, req *api.User) *api.Response 
 
 	// 去除 owner 信息
 	req.Owner = utils.NewStringValue("")
+	req.Id = utils.NewStringValue(data.ID)
 	return api.NewUserResponse(api.ExecuteSuccess, req)
 }
 
@@ -157,6 +161,47 @@ func (svr *server) UpdateUser(ctx context.Context, req *api.User) *api.Response 
 	svr.RecordHistory(userRecordEntry(ctx, req, user, model.OUpdate))
 
 	return api.NewUserResponse(api.ExecuteSuccess, req)
+}
+
+// UpdateUserPassword 更新用户信息
+func (svr *server) UpdateUserPassword(ctx context.Context, req *api.ModifyUserPassword) *api.Response {
+	requestID := utils.ParseRequestID(ctx)
+
+	user, err := svr.storage.GetUser(req.Id.GetValue())
+	if err != nil {
+		log.AuthScope().Error("[Auth][User] get user", utils.ZapRequestID(requestID),
+			zap.String("user-id", req.Id.GetValue()), zap.Error(err))
+		return api.NewResponse(api.StoreLayerException)
+	}
+	if user == nil {
+		return api.NewResponse(api.NotFoundUser)
+	}
+
+	if !checkUserViewPermission(ctx, user) {
+		return api.NewResponse(api.NotAllowedAccess)
+	}
+
+	data, needUpdate, err := updateUserPasswordAttribute(user, req)
+	if err != nil {
+		return api.NewResponseWithMsg(api.ExecuteException, err.Error())
+	}
+
+	if !needUpdate {
+		log.AuthScope().Info("[Auth][User] update user data no change, no need update",
+			utils.ZapRequestID(requestID), zap.String("user", req.String()))
+		return api.NewResponse(api.NoNeedUpdate)
+	}
+
+	if err := svr.storage.UpdateUser(data); err != nil {
+		log.AuthScope().Error("[Auth][User] update user from store", utils.ZapRequestID(requestID),
+			zap.Error(err))
+		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
+	}
+
+	log.AuthScope().Info("[Auth][User] update user", utils.ZapRequestID(requestID),
+		zap.String("user-id", req.Id.GetValue()))
+
+	return api.NewResponse(api.ExecuteSuccess)
 }
 
 // DeleteUsers 批量删除用户
@@ -243,10 +288,10 @@ func (svr *server) GetUsers(ctx context.Context, query map[string]string) *api.B
 	}
 
 	// 如果不是超级管理员，查看数据有限制
-	if utils.ParseUserRole(ctx) != model.AdminUserRole {
-		// 设置 owner 参数，只能查看对应 owner 下的用户
-		searchFilters["owner"] = utils.ParseOwnerID(ctx)
-	}
+	// if utils.ParseUserRole(ctx) != model.AdminUserRole {
+	// 	// 设置 owner 参数，只能查看对应 owner 下的用户
+	// 	searchFilters["owner"] = utils.ParseOwnerID(ctx)
+	// }
 
 	var (
 		total uint32
@@ -493,21 +538,45 @@ func checkUpdateUser(req *api.User) *api.Response {
 func updateUserAttribute(old *model.User, newUser *api.User) (*model.User, bool, error) {
 	var needUpdate bool = true
 
-	if newUser.GetPassword().GetValue() != "" {
-		pwd, err := bcrypt.GenerateFromPassword([]byte(newUser.GetPassword().GetValue()), bcrypt.DefaultCost)
-		if err != nil {
-			return nil, false, err
-		}
-		needUpdate = true
-		old.Password = string(pwd)
-	}
-
 	if newUser.Comment != nil && old.Comment != newUser.Comment.GetValue() {
 		old.Comment = newUser.Comment.GetValue()
 		needUpdate = true
 	}
 
 	return old, needUpdate, nil
+}
+
+// updateUserAttribute 更新用户密码信息，如果用户的密码被更新，则会一并更新用户的toiken字段
+func updateUserPasswordAttribute(user *model.User, req *api.ModifyUserPassword) (*model.User, bool, error) {
+	var needUpdate bool = true
+
+	if req.GetOldPassword().GetValue() == "" {
+		return nil, false, errors.New("original password is empty")
+	}
+
+	oldPwd, err := bcrypt.GenerateFromPassword([]byte(req.GetOldPassword().GetValue()), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, false, err
+	}
+	if strings.Compare(string(oldPwd), user.Password) != 0 {
+		return nil, false, errors.New("original password is incorrect")
+	}
+
+	if req.GetNewPassword().GetValue() != "" {
+		pwd, err := bcrypt.GenerateFromPassword([]byte(req.GetNewPassword().GetValue()), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, false, err
+		}
+		needUpdate = true
+		user.Password = string(pwd)
+		newToken, err := createUserToken(user.ID)
+		if err != nil {
+			return nil, false, err
+		}
+		user.Token = newToken
+	}
+
+	return user, needUpdate, nil
 }
 
 // createUserModel 创建用户模型

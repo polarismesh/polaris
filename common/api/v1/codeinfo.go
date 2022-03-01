@@ -97,32 +97,21 @@ const (
 	InvalidFluxRateLimitQps    = 400191
 	InvalidFluxRateLimitSetKey = 400192
 
-	InvalidUserOwners         = 400410
-	InvalidUserID             = 400411
-	InvalidUserPassword       = 400412
-	InvalidUserGroupOwners    = 400420
-	InvalidUserGroupID        = 400421
-	InvalidAuthStrategyOwners = 400430
-	InvalidAuthStrategyName   = 400431
-	InvalidAuthStrategyID     = 400432
+	ExistedResource                 = 400201
+	NotFoundResource                = 400202
+	NamespaceExistedServices        = 400203
+	ServiceExistedInstances         = 400204
+	ServiceExistedRoutings          = 400205
+	ServiceExistedRateLimits        = 400206
+	ExistReleasedConfig             = 400207
+	SameInstanceRequest             = 400208
+	ServiceExistedCircuitBreakers   = 400209
+	ServiceExistedAlias             = 400210
+	NamespaceExistedMeshResources   = 400211
+	NamespaceExistedCircuitBreakers = 400212
+	ServiceSubscribedByMeshes       = 400213
+	ServiceExistedFluxRateLimits    = 400214
 
-	ExistedResource                    = 400201
-	NotFoundResource                   = 400202
-	NamespaceExistedServices           = 400203
-	ServiceExistedInstances            = 400204
-	ServiceExistedRoutings             = 400205
-	ServiceExistedRateLimits           = 400206
-	ExistReleasedConfig                = 400207
-	SameInstanceRequest                = 400208
-	ServiceExistedCircuitBreakers      = 400209
-	ServiceExistedAlias                = 400210
-	NamespaceExistedMeshResources      = 400211
-	NamespaceExistedCircuitBreakers    = 400212
-	ServiceSubscribedByMeshes          = 400213
-	ServiceExistedFluxRateLimits       = 400214
-	UserExisted                        = 400215
-	UserGroupExisted                   = 400216
-	AuthStrategyRuleExisted            = 400217
 	NotFoundService                    = 400301
 	NotFoundRouting                    = 400302
 	NotFoundInstance                   = 400303
@@ -134,9 +123,6 @@ const (
 	NotFoundMasterConfig               = 400309
 	NotFoundTagConfig                  = 400310
 	NotFoundTagConfigOrService         = 400311
-	NotFoundUser                       = 400312
-	NotFoundUserGroup                  = 400313
-	NotFoundAuthStrategyRule           = 400314
 	ClientAPINotOpen                   = 400401
 	NotAllowBusinessService            = 400402
 	NotAllowAliasUpdate                = 400501
@@ -170,6 +156,33 @@ const (
 	InvalidConfigFileTags          = 400805
 	InvalidWatchConfigFileFormat   = 400806
 	NotFoundResourceConfigFile     = 400807
+
+	// 鉴权相关错误码
+	InvalidUserOwners         = 400410
+	InvalidUserID             = 400411
+	InvalidUserPassword       = 400412
+	InvalidUserGroupOwners    = 400420
+	InvalidUserGroupID        = 400421
+	InvalidAuthStrategyOwners = 400430
+	InvalidAuthStrategyName   = 400431
+	InvalidAuthStrategyID     = 400432
+	InvalidPrincipalType      = 400440
+
+	UserExisted                            = 400215
+	UserGroupExisted                       = 400216
+	AuthStrategyRuleExisted                = 400217
+	SubAccountExisted                      = 400218
+	NotFoundUser                           = 400312
+	NotFoundUserGroup                      = 400313
+	NotFoundAuthStrategyRule               = 400314
+	NotAllowModifyDefaultStrategyPrincipal = 400508
+
+	EmptyAutToken   = 401002
+	TokenDisabled   = 401003
+	TokenNotExisted = 401004
+
+	AuthTokenVerifyException = 500100
+	OperationRoleException   = 500101
 )
 
 // code to string
@@ -300,16 +313,25 @@ var code2info = map[uint32]string{
 	NotFoundResourceConfigFile:     "config file not existed",
 
 	// 鉴权错误
-	NotFoundUser:                       "not found user",
-	NotFoundUserGroup:                  "not found usergroup",
-	NotFoundAuthStrategyRule:           "not found auth strategy rule",
-	UserExisted:                        "exist user",
-	UserGroupExisted:                   "exist usergroup",
-	AuthStrategyRuleExisted:            "exist auth strategy rule",
-	InvalidUserGroupOwners:             "invalid usergroup owner attribute",
-	InvalidAuthStrategyName:            "invalid auth strategy rule name",
-	InvalidAuthStrategyOwners:          "invalid auth strategy rule owner",
-	InvalidUserPassword:                "invalid user password",
+	NotFoundUser:             "not found user",
+	NotFoundUserGroup:        "not found usergroup",
+	NotFoundAuthStrategyRule: "not found auth strategy rule",
+
+	UserExisted:               "exist user",
+	UserGroupExisted:          "exist usergroup",
+	AuthStrategyRuleExisted:   "exist auth strategy rule",
+	InvalidUserGroupOwners:    "invalid usergroup owner attribute",
+	InvalidAuthStrategyName:   "invalid auth strategy rule name",
+	InvalidAuthStrategyOwners: "invalid auth strategy rule owner",
+	InvalidUserPassword:       "invalid user password",
+	InvalidPrincipalType:      "invalid principal type",
+	TokenDisabled:             "token already disabled",
+	AuthTokenVerifyException:  "token verify exception",
+	OperationRoleException:    "operation role exception",
+	EmptyAutToken:             "auth token empty",
+	SubAccountExisted:         "some sub-account existed in owner",
+	InvalidUserID:             "invalid user-id",
+	TokenNotExisted:           "token not existed",
 }
 
 // code to info

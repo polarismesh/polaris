@@ -84,6 +84,8 @@ func (svr *server) CreateGroup(ctx context.Context, req *api.UserGroup) *api.Res
 		utils.ZapPlatformID(platformID))
 	svr.RecordHistory(userGroupRecordEntry(ctx, req, data.UserGroup, model.OCreate))
 
+	req.Id = utils.NewStringValue(data.ID)
+
 	return api.NewGroupResponse(api.ExecuteSuccess, req)
 }
 
@@ -185,28 +187,19 @@ func (svr *server) GetGroups(ctx context.Context, query map[string]string) *api.
 	log.AuthScope().Info("[Auth][Group] origin get groups query params",
 		utils.ZapRequestID(requestID), zap.Any("query", query))
 
-	searchFilters := make(map[string]string)
 	var (
 		offset, limit uint32
 		err           error
 	)
 
-	for key, value := range query {
-		if _, ok := UserLinkGroupAttributes[key]; !ok {
-			log.AuthScope().Errorf("[Auth][Group] get groups attribute(%s) it not allowed", key)
-			return api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
-		}
-		searchFilters[key] = value
-	}
-
-	// 如果当前不是 owner 角色的话，只能查询该用户所关联的用户组列表
-	if !utils.ParseIsOwner(ctx) {
-		searchFilters["user_id"] = utils.ParseUserID(ctx)
-	}
-
-	offset, limit, err = utils.ParseOffsetAndLimit(searchFilters)
+	offset, limit, err = utils.ParseOffsetAndLimit(query)
 	if err != nil {
 		return api.NewBatchQueryResponse(api.InvalidParameter)
+	}
+
+	searchFilters, errResp := parseGroupSearchArgs(ctx, query)
+	if errResp != nil {
+		return errResp
 	}
 
 	total, groups, err := svr.storage.GetGroups(searchFilters, offset, limit)
@@ -223,6 +216,27 @@ func (svr *server) GetGroups(ctx context.Context, query map[string]string) *api.
 	svr.fillGroupUserCount(resp.UserGroups)
 
 	return resp
+}
+
+func parseGroupSearchArgs(ctx context.Context, query map[string]string) (map[string]string, *api.BatchQueryResponse) {
+	searchFilters := make(map[string]string)
+	for key, value := range query {
+		if _, ok := UserLinkGroupAttributes[key]; !ok {
+			log.AuthScope().Errorf("[Auth][Group] get groups attribute(%s) it not allowed", key)
+			return nil, api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
+		}
+		searchFilters[key] = value
+	}
+
+	// 如果当前不是管理员角色的话，只能查询该用户所关联的用户组列表以及自己创建的用户组
+	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+		if utils.ParseIsOwner(ctx) {
+			searchFilters["owner"] = utils.ParseOwnerID(ctx)
+		}
+		searchFilters["user_id"] = utils.ParseUserID(ctx)
+	}
+
+	return searchFilters, nil
 }
 
 // GetGroupUsers 查看对应用户组下的用户信息
@@ -628,6 +642,7 @@ func (svr *server) userGroupDetail2Api(group *model.UserGroupDetail) *api.UserGr
 		Relation: &api.UserGroupRelation{
 			Users: users,
 		},
+		UserCount: utils.NewUInt32Value(uint32(len(users))),
 	}
 
 	return out
