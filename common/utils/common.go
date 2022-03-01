@@ -467,6 +467,12 @@ func ZapRequestID(id string) zap.Field {
 	return zap.String("request-id", id)
 }
 
+func ZapRequestIDByCtx(ctx context.Context) zap.Field {
+	return zap.String("request-id", ParseRequestID(ctx))
+}
+
+
+
 // ZapPlatformID 生成Platform-ID的日志描述
 func ZapPlatformID(id string) zap.Field {
 	return zap.String("platform-id", id)

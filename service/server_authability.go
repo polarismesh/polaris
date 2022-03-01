@@ -63,13 +63,14 @@ func (svr *serverAuthAbility) GetServiceInstanceRevision(serviceID string,
 
 // collectNamespaceAuthContext 对于命名空间的处理，收集所有的与鉴权的相关信息
 func (svr *serverAuthAbility) collectNamespaceAuthContext(ctx context.Context, req []*api.Namespace,
-	resourceOp model.ResourceOperation) *model.AcquireContext {
+	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
 		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.CoreModule),
+		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryNamespaceResource(req)),
 	)
 }
@@ -81,13 +82,14 @@ func (svr *serverAuthAbility) collectNamespaceAuthContext(ctx context.Context, r
 //  @param resourceOp 该接口的数据操作类型
 //  @return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectServiceAuthContext(ctx context.Context, req []*api.Service,
-	resourceOp model.ResourceOperation) *model.AcquireContext {
+	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
 		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
+		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryServiceResource(req)),
 	)
 }
@@ -99,13 +101,14 @@ func (svr *serverAuthAbility) collectServiceAuthContext(ctx context.Context, req
 //  @param resourceOp 该接口的数据操作类型
 //  @return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectServiceAliasAuthContext(ctx context.Context, req []*api.ServiceAlias,
-	resourceOp model.ResourceOperation) *model.AcquireContext {
+	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
 		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
+		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryServiceAliasResource(req)),
 	)
 }
@@ -117,13 +120,14 @@ func (svr *serverAuthAbility) collectServiceAliasAuthContext(ctx context.Context
 //  @param resourceOp 该接口的数据操作类型
 //  @return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectInstanceAuthContext(ctx context.Context, req []*api.Instance,
-	resourceOp model.ResourceOperation) *model.AcquireContext {
+	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
 		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
+		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryInstanceResource(req)),
 	)
 }
@@ -135,13 +139,14 @@ func (svr *serverAuthAbility) collectInstanceAuthContext(ctx context.Context, re
 //  @param resourceOp 该接口的数据操作类型
 //  @return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectCircuitBreakerAuthContext(ctx context.Context, req []*api.CircuitBreaker,
-	resourceOp model.ResourceOperation) *model.AcquireContext {
+	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
 		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
+		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryCircuitBreakerResource(req)),
 	)
 }
@@ -153,13 +158,14 @@ func (svr *serverAuthAbility) collectCircuitBreakerAuthContext(ctx context.Conte
 //  @param resourceOp
 //  @return *model.AcquireContext
 func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx context.Context, req []*api.ConfigRelease,
-	resourceOp model.ResourceOperation) *model.AcquireContext {
+	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
 		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
+		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryCircuitBreakerReleaseResource(req)),
 	)
 }
@@ -171,13 +177,14 @@ func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx contex
 //  @param resourceOp 该接口的数据操作类型
 //  @return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectRouteRuleAuthContext(ctx context.Context, req []*api.Routing,
-	resourceOp model.ResourceOperation) *model.AcquireContext {
+	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
 		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
+		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryRouteRuleResource(req)),
 	)
 }
@@ -189,13 +196,14 @@ func (svr *serverAuthAbility) collectRouteRuleAuthContext(ctx context.Context, r
 //  @param resourceOp 该接口的数据操作类型
 //  @return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectRateLimitAuthContext(ctx context.Context, req []*api.Rule,
-	resourceOp model.ResourceOperation) *model.AcquireContext {
+	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
 		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
+		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryRateLimitConfigResource(req)),
 	)
 }

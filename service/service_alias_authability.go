@@ -28,7 +28,7 @@ import (
 // CreateServiceAlias
 func (svr *serverAuthAbility) CreateServiceAlias(ctx context.Context,
 	req *api.ServiceAlias) *api.Response {
-	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Create)
+	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Create, "CreateServiceAlias")
 
 	if _, err := svr.authMgn.CheckPermission(authCtx); err != nil {
 		return api.NewServiceAliasResponse(convertToErrCode(err), req)
@@ -49,7 +49,7 @@ func (svr *serverAuthAbility) CreateServiceAlias(ctx context.Context,
 // DeleteServiceAliases
 func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context,
 	reqs []*api.ServiceAlias) *api.BatchWriteResponse {
-	authCtx := svr.collectServiceAliasAuthContext(ctx, reqs, model.Delete)
+	authCtx := svr.collectServiceAliasAuthContext(ctx, reqs, model.Delete, "DeleteServiceAliases")
 
 	if _, err := svr.authMgn.CheckPermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
@@ -63,7 +63,7 @@ func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context,
 
 // UpdateServiceAlias
 func (svr *serverAuthAbility) UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
-	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Modify)
+	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Modify, "UpdateServiceAlias")
 
 	if _, err := svr.authMgn.CheckPermission(authCtx); err != nil {
 		return api.NewServiceAliasResponse(convertToErrCode(err), req)
@@ -78,7 +78,7 @@ func (svr *serverAuthAbility) UpdateServiceAlias(ctx context.Context, req *api.S
 // GetServiceAliases
 func (svr *serverAuthAbility) GetServiceAliases(ctx context.Context,
 	query map[string]string) *api.BatchQueryResponse {
-	authCtx := svr.collectServiceAliasAuthContext(ctx, nil, model.Read)
+	authCtx := svr.collectServiceAliasAuthContext(ctx, nil, model.Read, "GetServiceAliases")
 
 	if _, err := svr.authMgn.CheckPermission(authCtx); err != nil {
 		return api.NewBatchQueryResponse(convertToErrCode(err))

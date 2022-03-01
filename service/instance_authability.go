@@ -27,7 +27,7 @@ import (
 
 func (svr *serverAuthAbility) CreateInstances(ctx context.Context,
 	reqs []*api.Instance) *api.BatchWriteResponse {
-	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Create)
+	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Create, "CreateInstances")
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
@@ -42,7 +42,7 @@ func (svr *serverAuthAbility) CreateInstances(ctx context.Context,
 
 func (svr *serverAuthAbility) DeleteInstances(ctx context.Context,
 	reqs []*api.Instance) *api.BatchWriteResponse {
-	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Delete)
+	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Delete, "DeleteInstances")
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
@@ -58,7 +58,7 @@ func (svr *serverAuthAbility) DeleteInstances(ctx context.Context,
 // DeleteInstancesByHost 目前只允许 super account 进行数据删除
 func (svr *serverAuthAbility) DeleteInstancesByHost(ctx context.Context,
 	reqs []*api.Instance) *api.BatchWriteResponse {
-	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Delete)
+	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Delete, "DeleteInstancesByHost")
 
 	if err := svr.authMgn.VerifyToken(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
@@ -76,7 +76,7 @@ func (svr *serverAuthAbility) DeleteInstancesByHost(ctx context.Context,
 
 func (svr *serverAuthAbility) UpdateInstances(ctx context.Context,
 	reqs []*api.Instance) *api.BatchWriteResponse {
-	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Modify)
+	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Modify, "UpdateInstances")
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
@@ -91,7 +91,7 @@ func (svr *serverAuthAbility) UpdateInstances(ctx context.Context,
 
 func (svr *serverAuthAbility) UpdateInstancesIsolate(ctx context.Context,
 	reqs []*api.Instance) *api.BatchWriteResponse {
-	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Modify)
+	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Modify, "UpdateInstancesIsolate")
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
@@ -106,7 +106,7 @@ func (svr *serverAuthAbility) UpdateInstancesIsolate(ctx context.Context,
 
 func (svr *serverAuthAbility) GetInstances(ctx context.Context,
 	query map[string]string) *api.BatchQueryResponse {
-	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read)
+	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read, "GetInstances")
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
@@ -120,7 +120,7 @@ func (svr *serverAuthAbility) GetInstances(ctx context.Context,
 }
 
 func (svr *serverAuthAbility) GetInstancesCount(ctx context.Context) *api.BatchQueryResponse {
-	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read)
+	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read, "GetInstancesCount")
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
@@ -133,7 +133,7 @@ func (svr *serverAuthAbility) GetInstancesCount(ctx context.Context) *api.BatchQ
 }
 
 func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *api.Instance) *api.Response {
-	authCtx := svr.collectInstanceAuthContext(ctx, []*api.Instance{req}, model.Delete)
+	authCtx := svr.collectInstanceAuthContext(ctx, []*api.Instance{req}, model.Delete, "CleanInstance")
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {

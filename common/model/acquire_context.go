@@ -35,6 +35,9 @@ type AcquireContext struct {
 	// Module 来自那个业务层（服务注册与服务治理、配置模块）
 	module BzModule
 
+	// Method 操作函数
+	method string
+
 	// Operation 本次操作涉及的动作
 	operation ResourceOperation
 
@@ -76,6 +79,12 @@ func WithToken(token string) acquireContextOption {
 func WithModule(module BzModule) acquireContextOption {
 	return func(authCtx *AcquireContext) {
 		authCtx.module = module
+	}
+}
+
+func WithMethod(method string) acquireContextOption {
+	return func(authCtx *AcquireContext) {
+		authCtx.method = method
 	}
 }
 
@@ -129,6 +138,10 @@ func (authCtx *AcquireContext) SetAccessResources(accessRes map[api.ResourceType
 
 func (authCtx *AcquireContext) GetAttachment() map[string]interface{} {
 	return authCtx.attachment
+}
+
+func (authCtx *AcquireContext) GetMethod() string {
+	return authCtx.method
 }
 
 // IsAccessResourceEmpty

@@ -81,11 +81,11 @@ func (authMgn *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext
 		return false, errors.New(api.Code2Info(api.NotAllowedAccess))
 	}
 
-	log.AuthScope().Info("[Auth][Server] check permission args", zap.Any("resources", authCtx.GetAccessResources()),
-		zap.Any("strategies", strategies))
-
 	ok, err := authMgn.authPlugin.CheckPermission(authCtx, strategies)
 	if err != nil {
+		log.AuthScope().Error("[Auth][Server] check permission args", utils.ZapRequestID(reqId),
+			zap.String("method", authCtx.GetMethod()), zap.Any("resources", authCtx.GetAccessResources()),
+			zap.Any("strategies", strategies))
 		log.AuthScope().Error("[Auth][Server] check permission when request arrive", utils.ZapRequestID(reqId),
 			zap.Error(err))
 	}
@@ -103,13 +103,15 @@ func (authMgn *defaultAuthChecker) VerifyToken(authCtx *model.AcquireContext) er
 
 	tokenInfo, err := authMgn.DecodeToken(authCtx.GetToken())
 	if err != nil {
-		log.AuthScope().Error("[Auth][Server] decode token", zap.Error(err))
+		log.AuthScope().Error("[Auth][Server] decode token", utils.ZapRequestIDByCtx(authCtx.GetRequestContext()),
+			zap.Error(err))
 		return err
 	}
 
 	ownerId, isOwner, err := authMgn.checkToken(&tokenInfo)
 	if err != nil {
-		log.AuthScope().Error("[Auth][Server] check token", zap.Error(err))
+		log.AuthScope().Error("[Auth][Server] check token", utils.ZapRequestIDByCtx(authCtx.GetRequestContext()),
+			zap.Error(err))
 		return err
 	}
 
@@ -139,7 +141,8 @@ func (authMgn *defaultAuthChecker) VerifyToken(authCtx *model.AcquireContext) er
 	authCtx.SetRequestContext(ctx)
 
 	if tokenInfo.Disable {
-		log.AuthScope().Error("[Auth][Server] token already disabled", zap.String("token", tokenInfo.String()))
+		log.AuthScope().Error("[Auth][Server] token already disabled",
+			utils.ZapRequestIDByCtx(authCtx.GetRequestContext()), zap.String("token", tokenInfo.String()))
 		return model.ErrorTokenDisabled
 	}
 	return nil
@@ -325,7 +328,8 @@ func (authMgn *defaultAuthChecker) removeNoStrategyResources(authCtx *model.Acqu
 		newAccessRes[api.ResourceType_ConfigGroups] = newCfgRes
 	}
 
-	log.AuthScope().Info("[Auth][Server] remove no link strategy resource", zap.Any("resource", newAccessRes))
+	log.AuthScope().Info("[Auth][Server] remove no link strategy resource", utils.ZapRequestID(reqId),
+		zap.Any("resource", newAccessRes))
 
 	authCtx.SetAccessResources(newAccessRes)
 	noResourceNeedCheck := authCtx.IsAccessResourceEmpty()

@@ -27,7 +27,7 @@ import (
 
 // CreateServices 批量创建服务
 func (svr *serverAuthAbility) CreateServices(ctx context.Context, reqs []*api.Service) *api.BatchWriteResponse {
-	authCtx := svr.collectServiceAuthContext(ctx, reqs, model.Create)
+	authCtx := svr.collectServiceAuthContext(ctx, reqs, model.Create, "CreateServices")
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
@@ -53,7 +53,7 @@ func (svr *serverAuthAbility) CreateServices(ctx context.Context, reqs []*api.Se
 
 // DeleteServices 批量删除服务
 func (svr *serverAuthAbility) DeleteServices(ctx context.Context, reqs []*api.Service) *api.BatchWriteResponse {
-	authCtx := svr.collectServiceAuthContext(ctx, reqs, model.Delete)
+	authCtx := svr.collectServiceAuthContext(ctx, reqs, model.Delete, "DeleteServices")
 
 	accessRes := authCtx.GetAccessResources()
 	delete(accessRes, api.ResourceType_Namespaces)
@@ -72,7 +72,7 @@ func (svr *serverAuthAbility) DeleteServices(ctx context.Context, reqs []*api.Se
 
 // UpdateServices 对于服务修改来说，只针对服务本身，而不需要检查命名空间
 func (svr *serverAuthAbility) UpdateServices(ctx context.Context, reqs []*api.Service) *api.BatchWriteResponse {
-	authCtx := svr.collectServiceAuthContext(ctx, reqs, model.Modify)
+	authCtx := svr.collectServiceAuthContext(ctx, reqs, model.Modify, "UpdateServices")
 
 	accessRes := authCtx.GetAccessResources()
 	delete(accessRes, api.ResourceType_Namespaces)
@@ -89,7 +89,7 @@ func (svr *serverAuthAbility) UpdateServices(ctx context.Context, reqs []*api.Se
 }
 
 func (svr *serverAuthAbility) UpdateServiceToken(ctx context.Context, req *api.Service) *api.Response {
-	authCtx := svr.collectServiceAuthContext(ctx, []*api.Service{req}, model.Modify)
+	authCtx := svr.collectServiceAuthContext(ctx, []*api.Service{req}, model.Modify, "UpdateServiceToken")
 
 	accessRes := authCtx.GetAccessResources()
 	delete(accessRes, api.ResourceType_Namespaces)
@@ -107,7 +107,7 @@ func (svr *serverAuthAbility) UpdateServiceToken(ctx context.Context, req *api.S
 }
 
 func (svr *serverAuthAbility) GetServices(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
-	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read)
+	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServices")
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
@@ -139,7 +139,7 @@ func (svr *serverAuthAbility) GetServices(ctx context.Context, query map[string]
 }
 
 func (svr *serverAuthAbility) GetServicesCount(ctx context.Context) *api.BatchQueryResponse {
-	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read)
+	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServicesCount")
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
@@ -153,7 +153,7 @@ func (svr *serverAuthAbility) GetServicesCount(ctx context.Context) *api.BatchQu
 }
 
 func (svr *serverAuthAbility) GetServiceToken(ctx context.Context, req *api.Service) *api.Response {
-	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read)
+	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServiceToken")
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
@@ -167,7 +167,7 @@ func (svr *serverAuthAbility) GetServiceToken(ctx context.Context, req *api.Serv
 }
 
 func (svr *serverAuthAbility) GetServiceOwner(ctx context.Context, req []*api.Service) *api.BatchQueryResponse {
-	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read)
+	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServiceOwner")
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {

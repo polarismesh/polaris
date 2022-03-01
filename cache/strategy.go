@@ -364,8 +364,14 @@ func (sc *strategyCache) name() string {
 func (sc *strategyCache) IsResourceEditable(principal model.Principal, resType api.ResourceType, resId string) bool {
 
 	check := func(val *sync.Map, principal model.Principal) bool {
+
+		// 是否可以编辑
 		editable := false
+
+		// 是否真的包含策略
+		isCheck := false
 		val.Range(func(key, value interface{}) bool {
+			isCheck = true
 			val, ok := sc.strategys.Load(key)
 			if ok {
 				rule := val.(*model.StrategyDetailCache)
@@ -377,6 +383,12 @@ func (sc *strategyCache) IsResourceEditable(principal model.Principal, resType a
 			}
 			return !editable
 		})
+
+		// 如果根本没有遍历过，则表示该资源下没有对应的策略列表，直接返回可编辑状态即可
+		if !isCheck {
+			return true
+		}
+
 		return editable
 	}
 

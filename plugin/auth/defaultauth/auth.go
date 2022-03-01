@@ -23,20 +23,29 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
+)
+
+var (
+
+	// ErrorNotAllowedAccess 鉴权失败
+	ErrorNotAllowedAccess error = errors.New(api.Code2Info(api.NotAllowedAccess))
+
+	// ErrorInvalidParameter 不合法的参数
+	ErrorInvalidParameter error = errors.New(api.Code2Info(api.InvalidParameter))
 )
 
 type defaultAuth struct {
 	whiteList string
 }
 
+// Name 返回当前插件的名称
 func (da *defaultAuth) Name() string {
 	return PluginName
 }
 
-/**
- * Initialize 初始化鉴权插件
- */
+// Initialize 初始化鉴权插件
 func (da *defaultAuth) Initialize(conf *plugin.ConfigEntry) error {
 	whiteList, _ := conf.Option["white-list"].(string)
 	da.whiteList = whiteList
@@ -49,24 +58,25 @@ func (da *defaultAuth) Destroy() error {
 	return nil
 }
 
+// Allow 根据平台信息检查
 func (da *defaultAuth) Allow(platformID, platformToken string) bool {
 	return true
 }
 
-// CheckPermission
+// CheckPermission 权限检查
 func (da *defaultAuth) CheckPermission(reqCtx interface{}, authRule interface{}) (bool, error) {
 
 	ctx, ok := reqCtx.(*model.AcquireContext)
 	if !ok {
-		return false, errors.New("invalid parameter")
+		return false, ErrorInvalidParameter
 	}
 
-	if ctx.GetOperation() == model.Read {
+	userId := utils.ParseUserID(ctx.GetRequestContext())
+	strategies, ok := authRule.([]*model.StrategyDetail)
+
+	if len(strategies) == 0 {
 		return true, nil
 	}
-
-	ownerId := ctx.GetAttachment()[model.OperatorOwnerKey].(string)
-	strategys, ok := authRule.([]*model.StrategyDetail)
 
 	reqRes := ctx.GetAccessResources()
 	var (
@@ -75,8 +85,8 @@ func (da *defaultAuth) CheckPermission(reqCtx interface{}, authRule interface{})
 		checkConfigGroup bool = true
 	)
 
-	for index := range strategys {
-		rule := strategys[index]
+	for index := range strategies {
+		rule := strategies[index]
 
 		if !da.checkAction(rule.Action, ctx.GetOperation()) {
 			continue
@@ -84,14 +94,14 @@ func (da *defaultAuth) CheckPermission(reqCtx interface{}, authRule interface{})
 		searchMaps := buildSearchMap(rule.Resources)
 
 		// 检查 namespace
-		checkNamespace = checkAnyElementExist(ownerId, reqRes[api.ResourceType_Namespaces], searchMaps[0])
+		checkNamespace = checkAnyElementExist(userId, reqRes[api.ResourceType_Namespaces], searchMaps[0])
 		// 检查 service
 		if ctx.GetModule() == model.DiscoverModule {
-			checkService = checkAnyElementExist(ownerId, reqRes[api.ResourceType_Services], searchMaps[1])
+			checkService = checkAnyElementExist(userId, reqRes[api.ResourceType_Services], searchMaps[1])
 		}
 		// 检查 config_group
 		if ctx.GetModule() == model.ConfigModule {
-			checkConfigGroup = checkAnyElementExist(ownerId, reqRes[api.ResourceType_ConfigGroups], searchMaps[2])
+			checkConfigGroup = checkAnyElementExist(userId, reqRes[api.ResourceType_ConfigGroups], searchMaps[2])
 		}
 
 		if checkNamespace && (checkService && checkConfigGroup) {
@@ -99,9 +109,10 @@ func (da *defaultAuth) CheckPermission(reqCtx interface{}, authRule interface{})
 		}
 	}
 
-	return false, errors.New("permission check failed, operation is forbidden")
+	return false, ErrorNotAllowedAccess
 }
 
+// IsWhiteList 判断是否是白名单
 func (da *defaultAuth) IsWhiteList(ip string) bool {
 	if ip == "" || da.whiteList == "" {
 		return false
@@ -124,7 +135,6 @@ func checkAnyElementExist(userId string, waitSearch []model.ResourceEntry, searc
 	if len(waitSearch) == 0 {
 		return true
 	}
-
 	if searchMaps.passAll {
 		return true
 	}
@@ -142,7 +152,7 @@ func checkAnyElementExist(userId string, waitSearch []model.ResourceEntry, searc
 	return true
 }
 
-// buildSearchMap
+// buildSearchMap 构建搜索 map
 func buildSearchMap(ss []model.StrategyResource) []*SearchMap {
 	nsSearchMaps := &SearchMap{
 		items:   make(map[string]interface{}),
