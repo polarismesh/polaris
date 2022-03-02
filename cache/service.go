@@ -423,7 +423,7 @@ func (sc *serviceCache) watchCountChangeCh(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case event := <-sc.countChangeCh:
-			affect := make(map[string]bool, 0)
+			affect := make(map[string]bool)
 
 			// The last Reload notification from InstanceCache, but ServiceCache has no statutory task corresponding to data.
 			if len(sc.pendingServices) != 0 {
@@ -437,7 +437,7 @@ func (sc *serviceCache) watchCountChangeCh(ctx context.Context) {
 				}
 			}
 
-			newPendingServices := make(map[string]int8, 0)
+			newPendingServices := make(map[string]int8)
 			for svcId := range event {
 				svc, ok := sc.ids.Load(svcId)
 				if !ok {
@@ -510,7 +510,7 @@ func (sc *serviceCache) updateCl5SidAndNames(service *model.Service) {
 	cl5Name := genCl5Name(cl5NameMeta)
 	sc.cl5Sid2Name.Store(sid, cl5Name)
 	sc.cl5Names.Store(cl5Name, service)
-	return
+
 }
 
 // genCl5Name 兼容cl5Name

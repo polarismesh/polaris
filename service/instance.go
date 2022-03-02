@@ -873,7 +873,7 @@ func (s *Server) packCmdb(instance *api.Instance) {
 	if err == nil && location != nil {
 		instance.Location = location.Proto
 	}
-	return
+
 }
 
 func (s *Server) sendDiscoverEvent(eventType model.DiscoverEventType, namespace, service, host string, port int) {
