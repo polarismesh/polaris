@@ -643,7 +643,7 @@ func updateHealthCheck(req *api.Instance, instance *model.Instance) bool {
 		(req.GetEnableHealthCheck() == nil || req.GetEnableHealthCheck().GetValue()) {
 		// 如果数据库中实例原有是不打开健康检查，
 		// 那么一旦打开，status需置为false，等待一次心跳成功才能变成true
-		if instance.EnableHealthCheck() == false {
+		if !instance.EnableHealthCheck() {
 			// 需要重置healthy，则认为有变更
 			insProto.Healthy = utils.NewBoolValue(false)
 			insProto.EnableHealthCheck = utils.NewBoolValue(true)
@@ -671,7 +671,7 @@ func updateHealthCheck(req *api.Instance, instance *model.Instance) bool {
 	}
 
 	// update的时候，修改了enableHealthCheck的值
-	if req.GetEnableHealthCheck() != nil && req.GetEnableHealthCheck().GetValue() == false {
+	if req.GetEnableHealthCheck() != nil && !req.GetEnableHealthCheck().GetValue() {
 		if req.GetEnableHealthCheck().GetValue() != instance.EnableHealthCheck() {
 			needUpdate = true
 		}
