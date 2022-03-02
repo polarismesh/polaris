@@ -234,12 +234,12 @@ func (svr *server) DeleteUser(ctx context.Context, req *api.User) *api.Response 
 	}
 
 	if !checkUserViewPermission(ctx, user) {
-		log.AuthScope().Info("[Auth][User] delete user forbiden", utils.ZapRequestID(requestID),
+		log.AuthScope().Info("[Auth][User] delete user forbidden", utils.ZapRequestID(requestID),
 			zap.String("name", req.GetName().GetValue()))
 		return api.NewUserResponse(api.NotAllowedAccess, req)
 	}
 	if user.ID == utils.ParseOwnerID(ctx) {
-		log.AuthScope().Info("[Auth][User] delete user forbiden, can't delete when self is owner",
+		log.AuthScope().Info("[Auth][User] delete user forbidden, can't delete when self is owner",
 			utils.ZapRequestID(requestID), zap.String("name", req.Name.GetValue()))
 		return api.NewUserResponse(api.NotAllowedAccess, req)
 	}
@@ -364,8 +364,10 @@ func (svr *server) UpdateUserToken(ctx context.Context, req *api.User) *api.Resp
 		return api.NewUserResponse(api.NotAllowedAccess, req)
 	}
 
-	if user.Type != model.SubAccountUserRole {
-		return api.NewUserResponseWithMsg(api.NotAllowedAccess, "only disable sub-account token", req)
+	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+		if user.Type != model.SubAccountUserRole {
+			return api.NewUserResponseWithMsg(api.NotAllowedAccess, "only disable sub-account token", req)
+		}
 	}
 
 	user.TokenEnable = req.TokenEnable.GetValue()
