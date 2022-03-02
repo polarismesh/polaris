@@ -223,7 +223,7 @@ func TestCreateInstance2(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		t.Logf("consume: %v", time.Now().Sub(start))
+		t.Logf("consume: %v", time.Since(start))
 	})
 }
 

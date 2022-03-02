@@ -204,7 +204,7 @@ func (sc *serviceCache) realUpdate() error {
 	update, del := sc.setServices(services)
 	log.CacheScope().Info(
 		"[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
-		zap.Time("last", lastMtime), zap.Duration("used", time.Now().Sub(start)))
+		zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
 	return nil
 }
 
