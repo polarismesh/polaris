@@ -210,9 +210,23 @@ func Test_strategyCache_IsResourceEditable_5(t *testing.T) {
 			},
 		},
 	})
+	strategyCache.strategys.Store("rule-2", &model.StrategyDetailCache{
+		StrategyDetail: &model.StrategyDetail{
+			ID:         "rule-2",
+			Name:       "rule-2",
+			Principals: []model.Principal{},
+			Resources:  []model.StrategyResource{},
+		},
+		GroupPrincipal: map[string]model.Principal{
+			"group-2": {
+				PrincipalID: "group-2",
+			},
+		},
+	})
 
 	nsRules := &sync.Map{}
 	nsRules.Store("rule-1", struct{}{})
+	nsRules.Store("rule-2", struct{}{})
 	strategyCache.namespace2Strategy.Store("namespace-1", nsRules)
 
 	ret := strategyCache.IsResourceEditable(model.Principal{
@@ -272,7 +286,7 @@ func Test_strategyCache_IsResourceEditable_6(t *testing.T) {
 		},
 	})
 
-	StrategyDetail := &model.StrategyDetail{
+	strategyDetail := &model.StrategyDetail{
 		ID:   "rule-1",
 		Name: "rule-1",
 		Principals: []model.Principal{
@@ -294,29 +308,32 @@ func Test_strategyCache_IsResourceEditable_6(t *testing.T) {
 			},
 		},
 	}
-	strategyCache.strategys.Store("rule-1", &model.StrategyDetailCache{
-		StrategyDetail: &model.StrategyDetail{
-			ID:   "rule-2",
-			Name: "rule-2",
-			Principals: []model.Principal{
-				{
-					PrincipalID:   "user-1",
-					PrincipalRole: model.PrincipalUser,
-				},
-				{
-					PrincipalID:   "group-1",
-					PrincipalRole: model.PrincipalGroup,
-				},
+
+	strategyDetail2 := &model.StrategyDetail{
+		ID:   "rule-2",
+		Name: "rule-2",
+		Principals: []model.Principal{
+			{
+				PrincipalID:   "user-2",
+				PrincipalRole: model.PrincipalUser,
 			},
-			Valid: true,
-			Resources: []model.StrategyResource{
-				{
-					StrategyID: "rule-2",
-					ResType:    0,
-					ResID:      "namespace-1",
-				},
+			{
+				PrincipalID:   "group-2",
+				PrincipalRole: model.PrincipalGroup,
 			},
 		},
+		Valid: true,
+		Resources: []model.StrategyResource{
+			{
+				StrategyID: "rule-2",
+				ResType:    0,
+				ResID:      "namespace-1",
+			},
+		},
+	}
+
+	strategyCache.strategys.Store("rule-1", &model.StrategyDetailCache{
+		StrategyDetail: strategyDetail,
 		UserPrincipal: map[string]model.Principal{
 			"user-1": {
 				PrincipalID: "user-1",
@@ -329,21 +346,23 @@ func Test_strategyCache_IsResourceEditable_6(t *testing.T) {
 		},
 	})
 	strategyCache.strategys.Store("rule-2", &model.StrategyDetailCache{
-		StrategyDetail: StrategyDetail,
+		StrategyDetail: strategyDetail2,
 		UserPrincipal: map[string]model.Principal{
-			"user-1": {
-				PrincipalID: "user-1",
+			"user-2": {
+				PrincipalID: "user-2",
 			},
 		},
 		GroupPrincipal: map[string]model.Principal{
-			"group-1": {
-				PrincipalID: "group-1",
+			"group-2": {
+				PrincipalID: "group-2",
 			},
 		},
 	})
 
-	strategyCache.handlerPrincipalStrategy([]*model.StrategyDetail{StrategyDetail})
-	strategyCache.handlerResourceStrategy([]*model.StrategyDetail{StrategyDetail})
+	strategyCache.handlerPrincipalStrategy([]*model.StrategyDetail{strategyDetail2})
+	strategyCache.handlerResourceStrategy([]*model.StrategyDetail{strategyDetail2})
+	strategyCache.handlerPrincipalStrategy([]*model.StrategyDetail{strategyDetail})
+	strategyCache.handlerResourceStrategy([]*model.StrategyDetail{strategyDetail})
 	ret := strategyCache.IsResourceEditable(model.Principal{
 		PrincipalID:   "user-1",
 		PrincipalRole: model.PrincipalUser,
@@ -351,9 +370,11 @@ func Test_strategyCache_IsResourceEditable_6(t *testing.T) {
 
 	assert.True(t, ret, "must be true")
 
-	StrategyDetail.Valid = false
-	strategyCache.handlerPrincipalStrategy([]*model.StrategyDetail{StrategyDetail})
-	strategyCache.handlerResourceStrategy([]*model.StrategyDetail{StrategyDetail})
+	strategyDetail.Valid = false
+	
+	strategyCache.handlerPrincipalStrategy([]*model.StrategyDetail{strategyDetail})
+	strategyCache.handlerResourceStrategy([]*model.StrategyDetail{strategyDetail})
+	strategyCache.strategys.Delete(strategyDetail.ID)
 	ret = strategyCache.IsResourceEditable(model.Principal{
 		PrincipalID:   "user-1",
 		PrincipalRole: model.PrincipalUser,

@@ -130,7 +130,7 @@ func (sc *strategyCache) realUpdate() error {
 }
 
 // setStrategys 处理策略的数据更新情况
-// step 1. 先处理resource以及principal的数据更新情况
+// step 1. 先处理resource以及principal的数据更新情况（主要是为了能够获取到新老数据进行对比计算）
 // step 2. 处理真正的 strategy 的缓存更新
 func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (int, int, int) {
 
@@ -359,38 +359,36 @@ func (sc *strategyCache) name() string {
 	return StrategyRuleName
 }
 
+// 对于 check 逻辑，如果是计算 * 策略，则必须要求 * 资源下必须有策略
+// 如果是具体的资源ID，则该资源下不必有策略，如果没有策略就认为这个资源是可以被任何人编辑的
+func (sc *strategyCache) checkResourceEditable(val *sync.Map, principal model.Principal, mustCheck bool) bool {
+	// 是否可以编辑
+	editable := false
+	// 是否真的包含策略
+	isCheck := false
+	val.Range(func(key, _ interface{}) bool {
+		isCheck = true
+		if val, ok := sc.strategys.Load(key); ok {
+			rule := val.(*model.StrategyDetailCache)
+			if principal.PrincipalRole == model.PrincipalUser {
+				_, editable = rule.UserPrincipal[principal.PrincipalID]
+			} else {
+				_, editable = rule.GroupPrincipal[principal.PrincipalID]
+			}
+		}
+		return !editable
+	})
+
+	// 如果根本没有遍历过，则表示该资源下没有对应的策略列表，直接返回可编辑状态即可
+	if !isCheck && !mustCheck {
+		return true
+	}
+	return editable
+}
+
 // IsResourceEditable 判断当前资源是否可以操作
 // 这里需要考虑两种情况，一种是 “ * ” 策略，另一种是明确指出了具体的资源ID的策略
 func (sc *strategyCache) IsResourceEditable(principal model.Principal, resType api.ResourceType, resId string) bool {
-
-	check := func(val *sync.Map, principal model.Principal) bool {
-
-		// 是否可以编辑
-		editable := false
-
-		// 是否真的包含策略
-		isCheck := false
-		val.Range(func(key, value interface{}) bool {
-			isCheck = true
-			val, ok := sc.strategys.Load(key)
-			if ok {
-				rule := val.(*model.StrategyDetailCache)
-				if principal.PrincipalRole == model.PrincipalUser {
-					_, editable = rule.UserPrincipal[principal.PrincipalID]
-				} else {
-					_, editable = rule.GroupPrincipal[principal.PrincipalID]
-				}
-			}
-			return !editable
-		})
-
-		// 如果根本没有遍历过，则表示该资源下没有对应的策略列表，直接返回可编辑状态即可
-		if !isCheck {
-			return true
-		}
-
-		return editable
-	}
 
 	var (
 		valAll, val interface{}
@@ -427,11 +425,11 @@ func (sc *strategyCache) IsResourceEditable(principal model.Principal, resType a
 
 	for i := range principals {
 		item := principals[i]
-		if valAll != nil && check(valAll.(*sync.Map), item) {
+		if valAll != nil && sc.checkResourceEditable(valAll.(*sync.Map), item, true) {
 			return true
 		}
 
-		if check(val.(*sync.Map), item) {
+		if sc.checkResourceEditable(val.(*sync.Map), item, false) {
 			return true
 		}
 	}
