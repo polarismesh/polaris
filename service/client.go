@@ -70,9 +70,9 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *api.Service) *api
 		return api.NewDiscoverServiceResponse(api.EmptyRequest, req)
 	}
 	// 可根据business查询服务
-	if len(req.GetMetadata()) == 0 && len(req.Business.GetValue()) == 0 {
-		return api.NewDiscoverServiceResponse(api.InvalidServiceMetadata, req)
-	}
+	// if len(req.GetMetadata()) == 0 && len(req.Business.GetValue()) == 0 {
+	// 	return api.NewDiscoverServiceResponse(api.InvalidServiceMetadata, req)
+	// }
 
 	requestID := ParseRequestID(ctx)
 
@@ -81,7 +81,7 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *api.Service) *api
 	resp.Services = []*api.Service{}
 
 	serviceIterProc := func(key string, value *model.Service) (bool, error) {
-		if checkServiceMetadata(req.GetMetadata(), value, req.Business.GetValue()) {
+		if checkServiceMetadata(req.GetMetadata(), value, req.Business.GetValue(), req.Namespace.GetValue()) {
 			service := &api.Service{
 				Name:      utils.NewStringValue(value.Name),
 				Namespace: utils.NewStringValue(value.Namespace),
@@ -102,19 +102,27 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *api.Service) *api
 /**
  * @brief 判断请求元数据是否属于服务的元数据
  */
-func checkServiceMetadata(requestMeta map[string]string, service *model.Service, business string) bool {
-	if len(service.Meta) == 0 && len(business) == 0 {
-		return false
-	}
+func checkServiceMetadata(requestMeta map[string]string, service *model.Service, business, namespace string) bool {
+	// if len(service.Meta) == 0 && len(business) == 0 {
+	// 	return false
+	// }
 	if len(business) > 0 && business != service.Business {
 		return false
 	}
-	for key, requestValue := range requestMeta {
-		value, ok := service.Meta[key]
-		if !ok || requestValue != value {
-			return false
+
+	if len(namespace) > 0 && namespace != service.Namespace {
+		return false
+	}
+
+	if len(requestMeta) != 0 {
+		for key, requestValue := range requestMeta {
+			value, ok := service.Meta[key]
+			if !ok || requestValue != value {
+				return false
+			}
 		}
 	}
+
 	return true
 }
 
