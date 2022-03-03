@@ -297,7 +297,7 @@ CREATE TABLE `owner_service_map` (
 CREATE TABLE `circuitbreaker_rule` (
     `id` varchar(97) COLLATE utf8_bin NOT NULL comment 'Melting rule ID',
     `version` varchar(32) COLLATE utf8_bin NOT NULL DEFAULT 'master' comment 'Melting rule version, default is MASTR',
-    `name` varchar(32) COLLATE utf8_bin NOT NULL comment 'Melting rule name',
+    `name` varchar(128) COLLATE utf8_bin NOT NULL comment 'Melting rule name',
     `namespace` varchar(64) COLLATE utf8_bin NOT NULL comment 'Melting rule belongs to name space',
     `business` varchar(64) COLLATE utf8_bin DEFAULT NULL comment 'Business information of fuse regular',
     `department` varchar(1024) COLLATE utf8_bin DEFAULT NULL comment 'Department information to which the fuse regular belongs',
