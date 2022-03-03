@@ -396,10 +396,8 @@ func (p *Pool) RecoverTimeSec() int64 {
 // doCheckRedis test the connection
 func (p *Pool) doCheckRedis() bool {
 	_, err := p.redisClient.Ping(context.Background()).Result()
-	if err != nil {
-		return false
-	}
-	return true
+
+	return err == nil
 }
 
 const (

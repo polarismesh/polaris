@@ -452,7 +452,6 @@ func SelfDeregister() {
 		}
 	}
 
-	return
 }
 
 // getLocalHost 获取本地IP地址

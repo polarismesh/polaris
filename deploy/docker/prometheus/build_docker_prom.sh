@@ -1,14 +1,13 @@
 #!/bin/bash
 
-if [ $# != 4 ]; then
+if [ $# != 3 ]; then
     echo "e.g.: bash $0 v1.0 docker_username docekr_user_password"
     exit 1
 fi
 
-docker_repository=$1
-docker_tag=$2
-docker_username=$3
-docker_password=$4
+docker_tag=$1
+docker_username=$2
+docker_password=$3
 
 echo "docker repository : polarismesh/polaris-prometheus, tag : ${docker_tag}"
 

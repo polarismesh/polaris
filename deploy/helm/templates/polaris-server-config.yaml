@@ -88,6 +88,14 @@ data:
           client:
             enable: true
             include: [discover, register, healthcheck]
+      - name: xdsserverv3
+        option:
+          listenIP: "0.0.0.0"
+          listenPort: {{ .Values.service.xdsv3Port }}
+          connLimit:
+            openConnLimit: false
+            maxConnPerHost: 128
+            maxConnLimit: 10240
     # 核心逻辑的配置
     naming:
       # 鉴权配置

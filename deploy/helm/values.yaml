@@ -38,6 +38,7 @@ service:
   httpPort: 8090
   grpcPort: 8091
   webPort: 8080
+  xdsv3Port: 15010
 
 monitor:
   port: 9091

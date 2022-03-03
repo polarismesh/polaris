@@ -127,8 +127,7 @@ func (h *HTTPServer) Discover(req *restful.Request, rsp *restful.Response) {
 		return
 	}
 
-	var msg string
-	msg = fmt.Sprintf("receive http discover request: %s", discoverRequest.Service.String())
+	msg := fmt.Sprintf("receive http discover request: %s", discoverRequest.Service.String())
 	log.Info(msg,
 		zap.String("type", api.DiscoverRequest_DiscoverRequestType_name[int32(discoverRequest.Type)]),
 		zap.String("client-address", req.Request.RemoteAddr),

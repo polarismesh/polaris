@@ -106,7 +106,6 @@ func checkServiceMetadata(requestMeta map[string]string, service *model.Service,
 	// if len(service.Meta) == 0 && len(business) == 0 {
 	// 	return false
 	// }
-
 	if len(business) > 0 && business != service.Business {
 		return false
 	}
@@ -123,6 +122,7 @@ func checkServiceMetadata(requestMeta map[string]string, service *model.Service,
 			}
 		}
 	}
+
 	return true
 }
 

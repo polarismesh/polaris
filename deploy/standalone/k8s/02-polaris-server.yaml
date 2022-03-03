@@ -17,6 +17,9 @@ spec:
     - port: 8080
       name: web-server
       targetPort: 8080
+    - port: 15010
+      name: xdsv3-server
+      targetPort: 15010
   selector:
     app: polaris
 ---
