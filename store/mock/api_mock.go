@@ -177,6 +177,21 @@ func (mr *MockStoreMockRecorder) CleanInstance(instanceID interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanInstance", reflect.TypeOf((*MockStore)(nil).CleanInstance), instanceID)
 }
 
+// CountByConfigFileGroup mocks base method.
+func (m *MockStore) CountByConfigFileGroup(namespace, group string) (uint64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountByConfigFileGroup", namespace, group)
+	ret0, _ := ret[0].(uint64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountByConfigFileGroup indicates an expected call of CountByConfigFileGroup.
+func (mr *MockStoreMockRecorder) CountByConfigFileGroup(namespace, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountByConfigFileGroup", reflect.TypeOf((*MockStore)(nil).CountByConfigFileGroup), namespace, group)
+}
+
 // CreateCircuitBreaker mocks base method.
 func (m *MockStore) CreateCircuitBreaker(circuitBreaker *model.CircuitBreaker) error {
 	m.ctrl.T.Helper()
@@ -529,6 +544,21 @@ func (m *MockStore) Destroy() error {
 func (mr *MockStoreMockRecorder) Destroy() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Destroy", reflect.TypeOf((*MockStore)(nil).Destroy))
+}
+
+// FindConfigFileGroups mocks base method.
+func (m *MockStore) FindConfigFileGroups(namespace string, names []string) ([]*model.ConfigFileGroup, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindConfigFileGroups", namespace, names)
+	ret0, _ := ret[0].([]*model.ConfigFileGroup)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindConfigFileGroups indicates an expected call of FindConfigFileGroups.
+func (mr *MockStoreMockRecorder) FindConfigFileGroups(namespace, names interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindConfigFileGroups", reflect.TypeOf((*MockStore)(nil).FindConfigFileGroups), namespace, names)
 }
 
 // FindConfigFileReleaseByModifyTimeAfter mocks base method.
@@ -1399,9 +1429,9 @@ func (mr *MockStoreMockRecorder) QueryConfigFileGroups(namespace, name, offset, 
 }
 
 // QueryConfigFileReleaseHistories mocks base method.
-func (m *MockStore) QueryConfigFileReleaseHistories(namespace, group, fileName string, offset, limit uint32) (uint32, []*model.ConfigFileReleaseHistory, error) {
+func (m *MockStore) QueryConfigFileReleaseHistories(namespace, group, fileName string, offset, limit uint32, endId uint64) (uint32, []*model.ConfigFileReleaseHistory, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "QueryConfigFileReleaseHistories", namespace, group, fileName, offset, limit)
+	ret := m.ctrl.Call(m, "QueryConfigFileReleaseHistories", namespace, group, fileName, offset, limit, endId)
 	ret0, _ := ret[0].(uint32)
 	ret1, _ := ret[1].([]*model.ConfigFileReleaseHistory)
 	ret2, _ := ret[2].(error)
@@ -1409,13 +1439,13 @@ func (m *MockStore) QueryConfigFileReleaseHistories(namespace, group, fileName s
 }
 
 // QueryConfigFileReleaseHistories indicates an expected call of QueryConfigFileReleaseHistories.
-func (mr *MockStoreMockRecorder) QueryConfigFileReleaseHistories(namespace, group, fileName, offset, limit interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) QueryConfigFileReleaseHistories(namespace, group, fileName, offset, limit, endId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryConfigFileReleaseHistories", reflect.TypeOf((*MockStore)(nil).QueryConfigFileReleaseHistories), namespace, group, fileName, offset, limit)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryConfigFileReleaseHistories", reflect.TypeOf((*MockStore)(nil).QueryConfigFileReleaseHistories), namespace, group, fileName, offset, limit, endId)
 }
 
 // QueryConfigFiles mocks base method.
-func (m *MockStore) QueryConfigFiles(namespace, group, name string, offset, limit int) (uint32, []*model.ConfigFile, error) {
+func (m *MockStore) QueryConfigFiles(namespace, group, name string, offset, limit uint32) (uint32, []*model.ConfigFile, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "QueryConfigFiles", namespace, group, name, offset, limit)
 	ret0, _ := ret[0].(uint32)

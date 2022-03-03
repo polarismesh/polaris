@@ -37,7 +37,7 @@ func (cf *configFileStore) GetConfigFile(tx store.Tx, namespace, group, name str
 }
 
 // QueryConfigFiles 翻页查询配置文件，group、name可为模糊匹配
-func (cf *configFileStore) QueryConfigFiles(namespace, group, name string, offset, limit int) (uint32, []*model.ConfigFile, error) {
+func (cf *configFileStore) QueryConfigFiles(namespace, group, name string, offset, limit uint32) (uint32, []*model.ConfigFile, error) {
 	return 0, nil, nil
 
 }
@@ -50,4 +50,8 @@ func (cf *configFileStore) UpdateConfigFile(tx store.Tx, file *model.ConfigFile)
 // DeleteConfigFile 删除配置文件
 func (cf *configFileStore) DeleteConfigFile(tx store.Tx, namespace, group, name string) error {
 	return nil
+}
+
+func (cf *configFileStore) CountByConfigFileGroup(namespace, group string) (uint64, error) {
+	return 0, nil
 }

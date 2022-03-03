@@ -75,7 +75,34 @@ func (cf *configFileStore) GetConfigFile(tx store.Tx, namespace, group, name str
 }
 
 // QueryConfigFiles 翻页查询配置文件，group、name可为模糊匹配
-func (cf *configFileStore) QueryConfigFiles(namespace, group, name string, offset, limit int) (uint32, []*model.ConfigFile, error) {
+func (cf *configFileStore) QueryConfigFiles(namespace, group, name string, offset, limit uint32) (uint32, []*model.ConfigFile, error) {
+	// 全部 namespace
+	if namespace == "" {
+		group = "%" + group + "%"
+		name = "%" + name + "%"
+		countSql := "select count(*) from config_file where `group` like ? and name like ? and flag = 0"
+
+		var count uint32
+		err := cf.db.QueryRow(countSql, group, name).Scan(&count)
+		if err != nil {
+			return 0, nil, err
+		}
+
+		querySql := cf.baseSelectConfigFileSql() + "where `group` like ? and name like ? and flag = 0 order by id desc limit ?,?"
+		rows, err := cf.db.Query(querySql, group, name, offset, limit)
+		if err != nil {
+			return 0, nil, err
+		}
+
+		files, err := cf.transferRows(rows)
+		if err != nil {
+			return 0, nil, err
+		}
+
+		return count, files, nil
+	}
+
+	//特定 namespace
 	group = "%" + group + "%"
 	name = "%" + name + "%"
 	countSql := "select count(*) from config_file where namespace = ? and `group` like ? and name like ? and flag = 0"
@@ -86,7 +113,7 @@ func (cf *configFileStore) QueryConfigFiles(namespace, group, name string, offse
 		return 0, nil, err
 	}
 
-	querySql := cf.baseSelectConfigFileSql() + "where namespace = ? and `group` like ? and name like ? and flag = 0 limit ?,?"
+	querySql := cf.baseSelectConfigFileSql() + "where namespace = ? and `group` like ? and name like ? and flag = 0 order by id desc limit ?,?"
 	rows, err := cf.db.Query(querySql, namespace, group, name, offset, limit)
 	if err != nil {
 		return 0, nil, err
@@ -129,6 +156,16 @@ func (cf *configFileStore) DeleteConfigFile(tx store.Tx, namespace, group, name 
 		return store.Error(err)
 	}
 	return nil
+}
+
+func (cf *configFileStore) CountByConfigFileGroup(namespace, group string) (uint64, error) {
+	countSql := "select count(*) from config_file where namespace = ? and `group` = ? and flag = 0"
+	var count uint64
+	err := cf.db.QueryRow(countSql, namespace, group).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func (cf *configFileStore) baseSelectConfigFileSql() string {

@@ -14,6 +14,7 @@ message ConfigFileGroup {
   google.protobuf.StringValue create_by = 6;
   google.protobuf.StringValue modify_time = 7;
   google.protobuf.StringValue modify_by = 8;
+  google.protobuf.UInt64Value fileCount = 9;
 }
 
 message ConfigFile {
