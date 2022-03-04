@@ -17,6 +17,9 @@ spec:
     - port: {{ .Values.service.webPort }}
       name: web-server
       targetPort: {{ .Values.polaris.webPort }}
+    - port: {{ .Values.service.xdsv3Port }}
+      name: xdsv3-server
+      targetPort: {{ .Values.polaris.xdsv3Port }}
   selector:
     app: polaris
 ---

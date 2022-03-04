@@ -143,7 +143,7 @@ func (a *Auth) update() error {
 
 	update, del := a.setPlatform(out)
 	log.Info("[Plugin][platform] get more platforms", zap.Int("update", update), zap.Int("delete", del),
-		zap.Time("last", a.lastMtime), zap.Duration("used", time.Now().Sub(start)))
+		zap.Time("last", a.lastMtime), zap.Duration("used", time.Since(start)))
 	return nil
 }
 

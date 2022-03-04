@@ -74,11 +74,8 @@ func loadConfig() error {
 
 // 判断一个resp是否执行成功
 func respSuccess(resp api.ResponseMessage) bool {
-	if api.CalcCode(resp) != 200 {
-		return false
-	}
 
-	return true
+	return api.CalcCode(resp) == 200
 }
 
 // 内部初始化函数
@@ -402,7 +399,6 @@ func removeCommonInstance(t *testing.T, service *api.Service, instanceID string)
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 
-	return
 }
 
 // 通过四元组或者五元组删除实例
@@ -418,7 +414,6 @@ func removeInstanceWithAttrs(t *testing.T, service *api.Service, instance *api.I
 	if resp := server.DeleteInstance(defaultCtx, req); !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
-	return
 }
 
 // 创建一个路由配置

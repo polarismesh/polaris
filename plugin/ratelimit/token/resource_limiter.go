@@ -46,7 +46,7 @@ func newResourceRatelimit(typ plugin.RatelimitType, config *ResourceLimitConfig)
 // initialize
 func (r *resourceRatelimit) initialize(config *ResourceLimitConfig) error {
 	r.config = config
-	if config == nil || config.Open == false {
+	if config == nil || !config.Open {
 		log.Infof("[Plugin][%s] resource(%s) ratelimit is not open", PluginName, r.typStr)
 		return nil
 	}

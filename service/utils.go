@@ -73,7 +73,7 @@ const (
 	MaxDbInsLogicSetLength = 128
 
 	// circuitbreaker表
-	MaxDbCircuitbreakerName       = 32
+	MaxDbCircuitbreakerName       = 128
 	MaxDbCircuitbreakerNamespace  = 64
 	MaxDbCircuitbreakerBusiness   = 64
 	MaxDbCircuitbreakerDepartment = 1024

@@ -323,7 +323,7 @@ func matchObject(bucket *bolt.Bucket,
 	if filter == nil {
 		return true, nil
 	}
-	fieldValues := make(map[string]interface{}, 0)
+	fieldValues := make(map[string]interface{})
 	for _, field := range fields {
 		value, err := getFieldObject(bucket, typObject, field)
 		if err != nil {
@@ -477,7 +477,7 @@ func (b *boltHandler) CountValues(typ string) (int, error) {
 
 			if subBucket != nil {
 				data := subBucket.Get([]byte(DataValidFieldName))
-				if data == nil || len(data) == 0 {
+				if len(data) == 0 {
 					canCount = true
 				} else {
 					val, err := decodeBoolBuffer(DataValidFieldName, data)

@@ -76,8 +76,7 @@ func (g *GRPCServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
 			return err
 		}
 
-		var msg string
-		msg = fmt.Sprintf("receive grpc discover request: %s", in.Service.String())
+		msg := fmt.Sprintf("receive grpc discover request: %s", in.Service.String())
 		log.Info(msg,
 			zap.String("type", api.DiscoverRequest_DiscoverRequestType_name[int32(in.Type)]),
 			zap.String("client-address", clientAddress),

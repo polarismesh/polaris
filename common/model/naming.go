@@ -96,11 +96,8 @@ type ServiceKey struct {
 
 // IsAlias 便捷函数封装
 func (s *Service) IsAlias() bool {
-	if s.Reference != "" {
-		return true
-	}
 
-	return false
+	return s.Reference != ""
 }
 
 // ServiceAlias 服务别名结构体
@@ -328,10 +325,8 @@ type Platform struct {
 
 // Int2bool 整数转换为bool值
 func Int2bool(entry int) bool {
-	if entry == 0 {
-		return false
-	}
-	return true
+
+	return entry != 0
 }
 
 // StatusBoolToInt 状态bool转int
@@ -345,11 +340,8 @@ func StatusBoolToInt(value bool) int {
 // store的flag转换为valid
 // flag==1为无效，其他情况为有效
 func flag2valid(flag int) bool {
-	if flag == 1 {
-		return false
-	}
-	return true
 
+	return flag != 1
 }
 
 // OperationType 操作类型

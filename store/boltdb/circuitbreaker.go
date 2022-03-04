@@ -305,7 +305,7 @@ func (c *circuitBreakerStore) GetCircuitBreakerForCache(
 		return nil, store.Error(err)
 	}
 
-	serviceToCbKey := make(map[string]string, 0)
+	serviceToCbKey := make(map[string]string)
 
 	cbKeys := make([]string, 0)
 	for k, v := range relations {
@@ -403,11 +403,10 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 	ruleID, isRuleID := filters["rule_id"]
 	ruleVersion, isRuleVer := filters["rule_version"]
 
-	fields := make([]string, 0)
-	ruleVersions := make(map[string]struct{}, 0)
-	svcIds := make(map[string][]string, 0)
+	ruleVersions := make(map[string]struct{})
+	svcIds := make(map[string][]string)
 
-	fields = []string{CBFieldNameValid, CBRFieldNameRuleID, CBRFieldNameRuleVersion, CBRFieldNameServiceID}
+	fields := []string{CBFieldNameValid, CBRFieldNameRuleID, CBRFieldNameRuleVersion, CBRFieldNameServiceID}
 	_, err := dbOp.LoadValuesByFilter(tblCircuitBreakerRelation, fields, &model.CircuitBreakerRelation{},
 		func(m map[string]interface{}) bool {
 			validVal, ok := m[CBFieldNameValid]
