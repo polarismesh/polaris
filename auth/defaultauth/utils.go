@@ -21,8 +21,6 @@ import (
 	"context"
 	"errors"
 	"regexp"
-	"strings"
-	"unicode"
 	"unicode/utf8"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -38,11 +36,11 @@ var (
 	// 必须超级账户 or 主账户
 	MustOwner = true
 	// 任意账户
-	NotOwner  = false
+	NotOwner = false
 	// 写操作
-	WriteOp   = true
+	WriteOp = true
 	// 读操作
-	ReadOp    = false
+	ReadOp = false
 )
 
 // storeCodeAPICodeMap 存储层报错与协议层码的映射
@@ -113,29 +111,29 @@ func checkPassword(password *wrappers.StringValue) error {
 		return errors.New("password len need 6 ~ 17")
 	}
 
-	spcChar := "!@#$%&*"
-	flag := make([]string, len(password.GetValue()))
-	for k, v := range []rune(password.GetValue()) {
-		if unicode.IsDigit(v) {
-			flag[k] = "Number"
-		} else if unicode.IsLower(v) {
-			flag[k] = "LowerCaseLetter"
-		} else if unicode.IsUpper(v) {
-			flag[k] = "UpperCaseLetter"
-		} else if strings.Contains(spcChar, string(v)) {
-			flag[k] = "SpecialCharacter"
-		} else {
-			flag[k] = "OtherCharacter"
-		}
-	}
+	// spcChar := "!@#$%&*"
+	// flag := make([]string, len(password.GetValue()))
+	// for k, v := range []rune(password.GetValue()) {
+	// 	if unicode.IsDigit(v) {
+	// 		flag[k] = "Number"
+	// 	} else if unicode.IsLower(v) {
+	// 		flag[k] = "LowerCaseLetter"
+	// 	} else if unicode.IsUpper(v) {
+	// 		flag[k] = "UpperCaseLetter"
+	// 	} else if strings.Contains(spcChar, string(v)) {
+	// 		flag[k] = "SpecialCharacter"
+	// 	} else {
+	// 		flag[k] = "OtherCharacter"
+	// 	}
+	// }
 
-	cpx := make(map[string]bool)
-	for _, v := range flag {
-		cpx[v] = true
-	}
-	if len(cpx) < 2 {
-		return errors.New("password security is so low")
-	}
+	// cpx := make(map[string]bool)
+	// for _, v := range flag {
+	// 	cpx[v] = true
+	// }
+	// if len(cpx) < 2 {
+	// 	return errors.New("password security is so low")
+	// }
 
 	return nil
 }
@@ -152,6 +150,41 @@ func checkOwner(owner *wrappers.StringValue) error {
 
 	if utf8.RuneCountInString(owner.GetValue()) > utils.MaxOwnersLength {
 		return errors.New("owners too long")
+	}
+
+	return nil
+}
+
+// checkMobile 检查用户的 mobile 信息
+func checkMobile(mobile *wrappers.StringValue) error {
+	if mobile == nil {
+		return nil
+	}
+
+	if mobile.GetValue() == "" {
+		return nil
+	}
+
+	if utf8.RuneCountInString(mobile.GetValue()) != 11 {
+		return errors.New("invalid mobile")
+	}
+
+	return nil
+}
+
+// checkEmail 检查用户的 email 信息
+func checkEmail(email *wrappers.StringValue) error {
+	if email == nil {
+		return nil
+	}
+
+	if email.GetValue() == "" {
+		return nil
+	}
+
+	emailReg := regexp.MustCompile(`^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$`)
+	if !emailReg.Match([]byte(email.GetValue())) {
+		return errors.New("invalid email")
 	}
 
 	return nil

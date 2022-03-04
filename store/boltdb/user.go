@@ -59,6 +59,10 @@ const (
 	UserFieldCreateTime string = "CreateTime"
 	// 用户修改时间字段
 	UserFieldModifyTime string = "ModifyTime"
+	// 用户手机号信息
+	UserFieldMobile string = "Mobile"
+	// 用户邮箱信息
+	UserFieldEmail string = "Email"
 )
 
 var (
@@ -523,6 +527,8 @@ func converToUserStore(user *model.User) *userForStore {
 		Comment:     user.Comment,
 		CreateTime:  user.CreateTime,
 		ModifyTime:  user.ModifyTime,
+		Email:       user.Email,
+		Mobile:      user.Mobile,
 	}
 }
 
@@ -540,6 +546,8 @@ func converToUserModel(user *userForStore) *model.User {
 		Comment:     user.Comment,
 		CreateTime:  user.CreateTime,
 		ModifyTime:  user.ModifyTime,
+		Email:       user.Email,
+		Mobile:      user.Mobile,
 	}
 }
 
@@ -559,6 +567,8 @@ type userForStore struct {
 	Owner       string
 	Source      string
 	Type        int
+	Mobile      string
+	Email       string
 	Token       string
 	TokenEnable bool
 	Valid       bool

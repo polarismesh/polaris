@@ -20,7 +20,6 @@ package defaultauth
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -476,6 +475,8 @@ func user2Api(user *model.User) *api.User {
 		Comment:     utils.NewStringValue(user.Comment),
 		Ctime:       utils.NewStringValue(commontime.Time2String(user.CreateTime)),
 		Mtime:       utils.NewStringValue(commontime.Time2String(user.ModifyTime)),
+		Mobile:      utils.NewStringValue(user.Mobile),
+		Email:       utils.NewStringValue(user.Email),
 	}
 
 	return out
@@ -513,6 +514,14 @@ func checkCreateUser(req *api.User) *api.Response {
 		return api.NewUserResponse(api.InvalidUserOwners, req)
 	}
 
+	if err := checkMobile(req.Mobile); err != nil {
+		return api.NewUserResponse(api.InvalidUserMobile, req)
+	}
+
+	if err := checkEmail(req.Email); err != nil {
+		return api.NewUserResponse(api.InvalidUserEmail, req)
+	}
+
 	return nil
 }
 
@@ -545,6 +554,16 @@ func updateUserAttribute(old *model.User, newUser *api.User) (*model.User, bool,
 		needUpdate = true
 	}
 
+	if newUser.Mobile != nil && old.Mobile != newUser.Mobile.GetValue() {
+		old.Mobile = newUser.Mobile.GetValue()
+		needUpdate = true
+	}
+
+	if newUser.Email != nil && old.Email != newUser.Email.GetValue() {
+		old.Email = newUser.Email.GetValue()
+		needUpdate = true
+	}
+
 	return old, needUpdate, nil
 }
 
@@ -556,12 +575,9 @@ func updateUserPasswordAttribute(user *model.User, req *api.ModifyUserPassword) 
 		return nil, false, errors.New("original password is empty")
 	}
 
-	oldPwd, err := bcrypt.GenerateFromPassword([]byte(req.GetOldPassword().GetValue()), bcrypt.DefaultCost)
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.GetOldPassword().GetValue()))
 	if err != nil {
 		return nil, false, err
-	}
-	if strings.Compare(string(oldPwd), user.Password) != 0 {
-		return nil, false, errors.New("original password is incorrect")
 	}
 
 	if req.GetNewPassword().GetValue() != "" {
@@ -571,11 +587,11 @@ func updateUserPasswordAttribute(user *model.User, req *api.ModifyUserPassword) 
 		}
 		needUpdate = true
 		user.Password = string(pwd)
-		newToken, err := createUserToken(user.ID)
-		if err != nil {
-			return nil, false, err
-		}
-		user.Token = newToken
+		// newToken, err := createUserToken(user.ID)
+		// if err != nil {
+		// 	return nil, false, err
+		// }
+		// user.Token = newToken
 	}
 
 	return user, needUpdate, nil
@@ -599,6 +615,8 @@ func createUserModel(req *api.User, role model.UserRoleType) (*model.User, error
 		Password:   string(pwd),
 		Owner:      req.GetOwner().GetValue(),
 		Source:     req.GetSource().GetValue(),
+		Mobile:     req.GetMobile().GetValue(),
+		Email:      req.GetEmail().GetValue(),
 		Valid:      true,
 		Type:       converCreateUserRole(role),
 		Comment:    req.GetComment().GetValue(),

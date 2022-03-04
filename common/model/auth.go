@@ -173,6 +173,8 @@ type User struct {
 	Password    string
 	Owner       string
 	Source      string
+	Mobile      string
+	Email       string
 	Type        UserRoleType
 	Token       string
 	TokenEnable bool

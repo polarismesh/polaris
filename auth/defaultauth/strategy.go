@@ -784,6 +784,10 @@ func authModifyStrategyRecordEntry(ctx context.Context, req *api.ModifyAuthStrat
 }
 
 func convertPrincipalsToUsers(principals *api.Principals) []*api.User {
+	if principals == nil {
+		return make([]*api.User, 0)
+	}
+
 	users := make([]*api.User, 0, len(principals.Users))
 
 	for index := range principals.GetUsers() {
@@ -798,6 +802,10 @@ func convertPrincipalsToUsers(principals *api.Principals) []*api.User {
 }
 
 func convertPrincipalsToGroups(principals *api.Principals) []*api.UserGroup {
+	if principals == nil {
+		return make([]*api.UserGroup, 0)
+	}
+
 	groups := make([]*api.UserGroup, 0, len(principals.Groups))
 
 	for index := range principals.GetGroups() {

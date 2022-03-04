@@ -84,7 +84,7 @@ func (u *userStore) addUser(user *model.User) error {
 
 	addSql := "INSERT INTO user(`id`, `name`, `password`, `owner`, `source`, `token`, " +
 		" `comment`, `flag`, `user_type`, " +
-		" `ctime`, `mtime`) VALUES (?,?,?,?,?,?,?,?,?,sysdate(),sysdate())"
+		" `ctime`, `mtime`, `mobile`, `email`) VALUES (?,?,?,?,?,?,?,?,?,sysdate(),sysdate(),?,?)"
 
 	_, err = tx.Exec(addSql, []interface{}{
 		user.ID,
@@ -96,6 +96,8 @@ func (u *userStore) addUser(user *model.User) error {
 		user.Comment,
 		0,
 		user.Type,
+		user.Mobile,
+		user.Email,
 	}...)
 
 	if err != nil {
@@ -147,14 +149,16 @@ func (u *userStore) updateUser(user *model.User) error {
 		tokenEnable = 0
 	}
 
-	modifySql := "UPDATE user SET password = ?, token = ?, comment = ?, token_enable = ?, mtime = sysdate() " +
-		" WHERE id = ? AND flag = 0"
+	modifySql := "UPDATE user SET password = ?, token = ?, comment = ?, token_enable = ?, mobile = ?, email = ?, " + 
+	" mtime = sysdate() WHERE id = ? AND flag = 0"
 
 	_, err = tx.Exec(modifySql, []interface{}{
 		user.Password,
 		user.Token,
 		user.Comment,
 		tokenEnable,
+		user.Mobile,
+		user.Email,
 		user.ID,
 	}...)
 
@@ -241,7 +245,8 @@ func (u *userStore) GetUser(id string) (*model.User, error) {
 	var tokenEnable, userType int
 
 	getSql := `
-		 SELECT u.id, u.name, u.password, u.owner, u.comment, u.source, u.token, u.token_enable, u.user_type
+		 SELECT u.id, u.name, u.password, u.owner, u.comment, u.source, u.token, u.token_enable, 
+		 	u.user_type, u.mobile, u.email
 		 FROM user u
 		 WHERE u.flag = 0 AND u.id = ? 
 	  `
@@ -249,7 +254,7 @@ func (u *userStore) GetUser(id string) (*model.User, error) {
 
 	user := new(model.User)
 	if err := row.Scan(&user.ID, &user.Name, &user.Password, &user.Owner, &user.Comment, &user.Source,
-		&user.Token, &tokenEnable, &userType); err != nil {
+		&user.Token, &tokenEnable, &userType, &user.Mobile, &user.Email); err != nil {
 		switch err {
 		case sql.ErrNoRows:
 			return nil, nil
@@ -267,7 +272,8 @@ func (u *userStore) GetUser(id string) (*model.User, error) {
 // GetUserByName 根据用户名、owner 获取用户
 func (u *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
 	getSql := `
-		 SELECT u.id, u.name, u.password, u.owner, u.comment, u.source, u.token, u.token_enable, u.user_type
+		 SELECT u.id, u.name, u.password, u.owner, u.comment, u.source, u.token, u.token_enable, 
+		 	u.user_type, u.mobile, u.email
 		 FROM user u
 		 WHERE u.flag = 0
 			  AND u.name = ?
@@ -280,7 +286,7 @@ func (u *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
 	var tokenEnable, userType int
 
 	if err := row.Scan(&user.ID, &user.Name, &user.Password, &user.Owner, &user.Comment, &user.Source,
-		&user.Token, &tokenEnable, &userType); err != nil {
+		&user.Token, &tokenEnable, &userType, &user.Mobile, &user.Email); err != nil {
 		switch err {
 		case sql.ErrNoRows:
 			return nil, nil
@@ -305,7 +311,7 @@ func (u *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
 	getSql := `
 	  SELECT u.id, u.name, u.password, u.owner, u.comment, u.source
 		  , u.token, u.token_enable, u.user_type, UNIX_TIMESTAMP(u.ctime)
-		  , UNIX_TIMESTAMP(u.mtime), u.flag
+		  , UNIX_TIMESTAMP(u.mtime), u.flag, u.mobile, u.email
 	  FROM user u
 	  WHERE u.flag = 0 
 		  AND u.id IN ( 
@@ -365,7 +371,7 @@ func (u *userStore) listUsers(filters map[string]string, offset uint32, limit ui
 	getSql := `
 	  SELECT id, name, password, owner, comment, source
 		  , token, token_enable, user_type, UNIX_TIMESTAMP(ctime)
-		  , UNIX_TIMESTAMP(mtime), flag
+		  , UNIX_TIMESTAMP(mtime), flag, mobile, email
 	  FROM user
 	  WHERE flag = 0 
 	  `
@@ -429,7 +435,7 @@ func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, lim
 	querySql := `
 		  SELECT u.id, name, password, owner, u.comment, source
 			  , token, token_enable, user_type, UNIX_TIMESTAMP(u.ctime)
-			  , UNIX_TIMESTAMP(u.mtime), u.flag
+			  , UNIX_TIMESTAMP(u.mtime), u.flag, u.mobile, u.email
 		  FROM user_group_relation ug
 			  LEFT JOIN user u ON ug.user_id = u.id AND u.flag = 0
 		  WHERE 1=1 
@@ -485,7 +491,7 @@ func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mode
 	querySql := `
 	  SELECT u.id, u.name, u.password, u.owner, u.comment, u.source
 		  , u.token, u.token_enable, user_type, UNIX_TIMESTAMP(u.ctime)
-		  , UNIX_TIMESTAMP(u.mtime), u.flag
+		  , UNIX_TIMESTAMP(u.mtime), u.flag, u.mobile, u.email
 	  FROM user u 
 	  `
 
@@ -564,7 +570,7 @@ func fetchRown2User(rows *sql.Rows) (*model.User, error) {
 	var flag, tokenEnable, userType int
 	user := new(model.User)
 	err := rows.Scan(&user.ID, &user.Name, &user.Password, &user.Owner, &user.Comment, &user.Source, &user.Token,
-		&tokenEnable, &userType, &ctime, &mtime, &flag)
+		&tokenEnable, &userType, &ctime, &mtime, &flag, &user.Mobile, &user.Email)
 
 	if err != nil {
 		return nil, err

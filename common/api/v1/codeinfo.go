@@ -161,6 +161,8 @@ const (
 	InvalidUserOwners         = 400410
 	InvalidUserID             = 400411
 	InvalidUserPassword       = 400412
+	InvalidUserMobile         = 400413
+	InvalidUserEmail          = 400414
 	InvalidUserGroupOwners    = 400420
 	InvalidUserGroupID        = 400421
 	InvalidAuthStrategyOwners = 400430

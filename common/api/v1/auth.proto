@@ -41,6 +41,8 @@ message User {
   google.protobuf.StringValue ctime = 9;
   google.protobuf.StringValue mtime = 10;
   google.protobuf.StringValue user_type = 11 [json_name="user_type"];
+  google.protobuf.StringValue mobile = 12;
+  google.protobuf.StringValue email = 13;
 }
 
 message ModifyUserPassword {
