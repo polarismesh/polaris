@@ -287,13 +287,13 @@ type InstanceInfo struct {
 
 	LeaseInfo *LeaseInfo `json:"leaseInfo" xml:"leaseInfo,omitempty"`
 
-	IsCoordinatingDiscoveryServer string `json:"isCoordinatingDiscoveryServer" xml:"isCoordinatingDiscoveryServer,omitempty"`
+	IsCoordinatingDiscoveryServer interface{} `json:"isCoordinatingDiscoveryServer" xml:"isCoordinatingDiscoveryServer,omitempty"`
 
 	Metadata *Metadata `json:"metadata" xml:"metadata"`
 
-	LastUpdatedTimestamp string `json:"lastUpdatedTimestamp" xml:"lastUpdatedTimestamp,omitempty"`
+	LastUpdatedTimestamp interface{} `json:"lastUpdatedTimestamp" xml:"lastUpdatedTimestamp,omitempty"`
 
-	LastDirtyTimestamp string `json:"lastDirtyTimestamp" xml:"lastDirtyTimestamp,omitempty"`
+	LastDirtyTimestamp interface{} `json:"lastDirtyTimestamp" xml:"lastDirtyTimestamp,omitempty"`
 
 	ActionType string `json:"actionType" xml:"actionType"`
 
