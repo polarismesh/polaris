@@ -503,6 +503,9 @@ func (a *ApplicationsWorker) constructApplication(app *Application, instances []
 		app.Instance = append(app.Instance, instanceInfo)
 		app.InstanceMap[instanceInfo.InstanceId] = instanceInfo
 	}
+	if nil == app.Instance {
+		app.Instance = []*InstanceInfo{}
+	}
 }
 
 func (a *ApplicationsWorker) timingReloadAppsCache(workerCtx context.Context) {

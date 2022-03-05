@@ -83,12 +83,25 @@ func (h *EurekaServer) addDiscoverAccess(ws *restful.WebService) {
 		Param(ws.PathParameter(ParamInstId, "instanceId").DataType("string"))
 }
 
+func parseAcceptValue(acceptValue string) map[string]bool {
+	var values map[string]bool
+	blankValues := strings.Split(acceptValue, ",")
+	if len(blankValues) > 0 {
+		values = make(map[string]bool, len(blankValues))
+		for _, blankValue := range blankValues {
+			values[strings.TrimSpace(blankValue)] = true
+		}
+	}
+	return values
+}
+
 //全量拉取服务实例信息
 func (h *EurekaServer) GetAllApplications(req *restful.Request, rsp *restful.Response) {
 	appsRespCache := h.worker.GetCachedAppsWithLoad()
 	remoteAddr := req.Request.RemoteAddr
 	acceptValue := getParamFromEurekaRequestHeader(req, restful.HEADER_Accept)
-	if err := writeResponse(acceptValue, appsRespCache, req, rsp); nil != err {
+	log.Infof("accept value is %s", acceptValue)
+	if err := writeResponse(parseAcceptValue(acceptValue), appsRespCache, req, rsp); nil != err {
 		log.Errorf("[EurekaServer]fail to write applications, client: %s, err: %v", remoteAddr, err)
 	}
 }
@@ -170,11 +183,20 @@ func writeEurekaResponse(acceptValue string, output interface{}, req *restful.Re
 	return err
 }
 
-func writeResponse(
-	acceptValue string, appsRespCache *ApplicationsRespCache, req *restful.Request, rsp *restful.Response) error {
+const (
+	MIME_JSON_WILD = "application/*+json"
+)
+
+func hasKey(values map[string]bool, key string) bool {
+	_, ok := values[key]
+	return ok
+}
+
+func writeResponse(acceptValues map[string]bool, appsRespCache *ApplicationsRespCache,
+	req *restful.Request, rsp *restful.Response) error {
 	writePolarisStatusCode(req, api.ExecuteSuccess)
 	var err error
-	if len(acceptValue) > 0 && acceptValue == restful.MIME_JSON {
+	if len(acceptValues) > 0 && (hasKey(acceptValues, restful.MIME_JSON) || hasKey(acceptValues, MIME_JSON_WILD)) {
 		if len(appsRespCache.JsonBytes) > 0 {
 			//直接使用只读缓存返回
 			rsp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
@@ -212,7 +234,7 @@ func (h *EurekaServer) GetDeltaApplications(req *restful.Request, rsp *restful.R
 	}
 	remoteAddr := req.Request.RemoteAddr
 	acceptValue := getParamFromEurekaRequestHeader(req, restful.HEADER_Accept)
-	if err := writeResponse(acceptValue, appsRespCache, req, rsp); nil != err {
+	if err := writeResponse(parseAcceptValue(acceptValue), appsRespCache, req, rsp); nil != err {
 		log.Errorf("[EurekaServer]fail to write delta applications, client: %s, err: %v", remoteAddr, err)
 	}
 }
