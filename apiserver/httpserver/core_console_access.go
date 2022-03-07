@@ -1,4 +1,4 @@
-/**
+/*
  * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -19,7 +19,6 @@ package httpserver
 
 import (
 	"fmt"
-
 	"github.com/emicklei/go-restful"
 )
 
@@ -29,7 +28,7 @@ func (h *HTTPServer) GetCoreConsoleAccessServer(include []string) (*restful.WebS
 
 	ws := new(restful.WebService)
 
-	ws.Path("/core/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
+	ws.Path("/core/v1/namespaces").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
 
 	if len(include) == 0 {
 		include = consoleAccess
@@ -59,15 +58,15 @@ func (h *HTTPServer) GetCoreConsoleAccessServer(include []string) (*restful.WebS
 }
 
 func (h *HTTPServer) addCoreDefaultReadAccess(ws *restful.WebService) {
-	ws.Route(ws.GET("/namespaces").To(h.GetNamespaces))
-	ws.Route(ws.GET("/namespace/token").To(h.GetNamespaceToken))
+	ws.Route(ws.GET("/").To(h.GetNamespaces))
+	ws.Route(ws.GET("/token").To(h.GetNamespaceToken))
 }
 
 func (h *HTTPServer) addCoreDefaultAccess(ws *restful.WebService) {
-	ws.Route(ws.POST("/namespaces").To(h.CreateNamespaces))
-	ws.Route(ws.POST("/namespaces/delete").To(h.DeleteNamespaces))
-	ws.Route(ws.PUT("/namespaces").To(h.UpdateNamespaces))
-	ws.Route(ws.GET("/namespaces").To(h.GetNamespaces))
-	ws.Route(ws.GET("/namespace/token").To(h.GetNamespaceToken))
-	ws.Route(ws.PUT("/namespace/token").To(h.UpdateNamespaceToken))
+	ws.Route(ws.POST("/").To(h.CreateNamespaces))
+	ws.Route(ws.POST("/delete").To(h.DeleteNamespaces))
+	ws.Route(ws.PUT("/").To(h.UpdateNamespaces))
+	ws.Route(ws.GET("/").To(h.GetNamespaces))
+	ws.Route(ws.GET("/token").To(h.GetNamespaceToken))
+	ws.Route(ws.PUT("/token").To(h.UpdateNamespaceToken))
 }

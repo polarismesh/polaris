@@ -49,6 +49,9 @@ type ConfigFileGroupStore interface {
 
 	// UpdateConfigFileGroup 更新配置文件组
 	UpdateConfigFileGroup(fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error)
+
+	// FindConfigFileGroups 获取一组配置文件组信息
+	FindConfigFileGroups(namespace string, names []string) ([]*model.ConfigFileGroup, error)
 }
 
 // ConfigFileStore 配置文件存储接口
@@ -61,13 +64,16 @@ type ConfigFileStore interface {
 	GetConfigFile(tx Tx, namespace, group, name string) (*model.ConfigFile, error)
 
 	// QueryConfigFiles 翻页查询配置文件，group、name可为模糊匹配
-	QueryConfigFiles(namespace, group, name string, offset, limit int) (uint32, []*model.ConfigFile, error)
+	QueryConfigFiles(namespace, group, name string, offset, limit uint32) (uint32, []*model.ConfigFile, error)
 
 	// UpdateConfigFile 更新配置文件
 	UpdateConfigFile(tx Tx, file *model.ConfigFile) (*model.ConfigFile, error)
 
 	// DeleteConfigFile 删除配置文件
 	DeleteConfigFile(tx Tx, namespace, group, name string) error
+
+	// CountByConfigFileGroup 获取一个配置文件组下的文件数量
+	CountByConfigFileGroup(namespace, group string) (uint64, error)
 }
 
 // ConfigFileReleaseStore 配置文件发布存储接口
@@ -99,7 +105,7 @@ type ConfigFileReleaseHistoryStore interface {
 	CreateConfigFileReleaseHistory(tx Tx, fileReleaseHistory *model.ConfigFileReleaseHistory) error
 
 	// QueryConfigFileReleaseHistories 获取配置文件的发布历史记录
-	QueryConfigFileReleaseHistories(namespace, group, fileName string, offset, limit uint32) (uint32, []*model.ConfigFileReleaseHistory, error)
+	QueryConfigFileReleaseHistories(namespace, group, fileName string, offset, limit uint32, endId uint64) (uint32, []*model.ConfigFileReleaseHistory, error)
 
 	// GetLatestConfigFileReleaseHistory 获取配置文件最后一次发布
 	GetLatestConfigFileReleaseHistory(namespace, group, fileName string) (*model.ConfigFileReleaseHistory, error)

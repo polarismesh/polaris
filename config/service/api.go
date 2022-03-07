@@ -50,8 +50,8 @@ type ConfigFileGroupAPI interface {
 	// CreateConfigFileGroupIfAbsent 如果不存在则创建配置文件组
 	CreateConfigFileGroupIfAbsent(ctx context.Context, configFileGroup *api.ConfigFileGroup) *api.ConfigResponse
 
-	// QueryConfigFileGroups 查询配置文件组, namespace 为完全匹配，name 为模糊匹配
-	QueryConfigFileGroups(ctx context.Context, namespace, name string, offset, limit uint32) *api.ConfigBatchQueryResponse
+	// QueryConfigFileGroups 查询配置文件组, namespace 为完全匹配，groupName 为模糊匹配, fileName 为模糊匹配文件名
+	QueryConfigFileGroups(ctx context.Context, namespace, groupName, fileName string, offset, limit uint32) *api.ConfigBatchQueryResponse
 
 	// DeleteConfigFileGroup 删除配置文件组
 	DeleteConfigFileGroup(ctx context.Context, namespace, name string) *api.ConfigResponse
@@ -72,13 +72,16 @@ type ConfigFileAPI interface {
 	GetConfigFileRichInfo(ctx context.Context, namespace, group, name string) *api.ConfigResponse
 
 	// SearchConfigFile 按 group 和 name 模糊搜索配置文件
-	SearchConfigFile(ctx context.Context, namespace, group, name, tags string, offset, limit int) *api.ConfigBatchQueryResponse
+	SearchConfigFile(ctx context.Context, namespace, group, name, tags string, offset, limit uint32) *api.ConfigBatchQueryResponse
 
 	// UpdateConfigFile 更新配置文件
 	UpdateConfigFile(ctx context.Context, configFile *api.ConfigFile) *api.ConfigResponse
 
 	// DeleteConfigFile 删除配置文件
 	DeleteConfigFile(ctx context.Context, namespace, group, name, deleteBy string) *api.ConfigResponse
+
+	// BatchDeleteConfigFile 批量删除配置文件
+	BatchDeleteConfigFile(ctx context.Context, configFiles []*api.ConfigFile, operator string) *api.ConfigResponse
 }
 
 // ConfigFileReleaseAPI 配置文件发布接口
@@ -99,7 +102,7 @@ type ConfigFileReleaseHistoryAPI interface {
 	RecordConfigFileReleaseHistory(ctx context.Context, fileRelease *model.ConfigFileRelease, releaseType, status string)
 
 	// GetConfigFileReleaseHistory 获取配置文件的发布历史
-	GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset, limit uint32) *api.ConfigBatchQueryResponse
+	GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset, limit uint32, endId uint64) *api.ConfigBatchQueryResponse
 
 	// GetConfigFileLatestReleaseHistory 获取最后一次发布记录
 	GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group, fileName string) *api.ConfigResponse
@@ -111,7 +114,7 @@ type ConfigFileTagAPI interface {
 	CreateConfigFileTags(ctx context.Context, namespace, group, fileName, operator string, tags ...string) error
 
 	// QueryConfigFileByTags 通过标签查询配置文件, 多个标签之间或的关系，tags 格式：k1,v1,k2,v2,k3,v3...
-	QueryConfigFileByTags(ctx context.Context, namespace, group, fileName string, offset, limit int, tags ...string) (int, []*model.ConfigFileTag, error)
+	QueryConfigFileByTags(ctx context.Context, namespace, group, fileName string, offset, limit uint32, tags ...string) (int, []*model.ConfigFileTag, error)
 
 	// QueryTagsByConfigFileWithAPIModels 通过标签查询配置文件，返回 APIModel 对象
 	QueryTagsByConfigFileWithAPIModels(ctx context.Context, namespace, group, fileName string) ([]*api.ConfigFileTag, error)

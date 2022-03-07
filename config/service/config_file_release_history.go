@@ -75,16 +75,12 @@ func (cs *Impl) RecordConfigFileReleaseHistory(ctx context.Context, fileRelease 
 }
 
 // GetConfigFileReleaseHistory 获取配置文件发布历史记录
-func (cs *Impl) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset, limit uint32) *api.ConfigBatchQueryResponse {
-	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
-		return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.InvalidNamespaceName, 0, nil)
-	}
-
+func (cs *Impl) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset, limit uint32, endId uint64) *api.ConfigBatchQueryResponse {
 	if offset < 0 || limit <= 0 || limit > MaxPageSize {
 		return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.InvalidParameter, 0, nil)
 	}
 
-	count, releaseHistories, err := cs.storage.QueryConfigFileReleaseHistories(namespace, group, fileName, offset, limit)
+	count, releaseHistories, err := cs.storage.QueryConfigFileReleaseHistories(namespace, group, fileName, offset, limit, endId)
 
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 	if err != nil {
@@ -120,7 +116,7 @@ func (cs *Impl) GetConfigFileLatestReleaseHistory(ctx context.Context, namespace
 		return api.NewConfigFileReleaseHistoryResponse(api.InvalidNamespaceName, nil)
 	}
 
-	if err := utils2.CheckResourceName(utils.NewStringValue(fileName)); err != nil {
+	if err := utils2.CheckFileName(utils.NewStringValue(fileName)); err != nil {
 		return api.NewConfigFileReleaseHistoryResponse(api.InvalidNamespaceName, nil)
 	}
 
