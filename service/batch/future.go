@@ -66,13 +66,13 @@ func (future *InstanceFuture) Code() uint32 {
 
 // SendReply 批量答复futures
 func SendReply(futures interface{}, code uint32, result error) {
-	switch futures.(type) {
+	switch futureType := futures.(type) {
 	case []*InstanceFuture:
-		for _, entry := range futures.([]*InstanceFuture) {
+		for _, entry := range futureType {
 			entry.Reply(code, result)
 		}
 	case map[string]*InstanceFuture:
-		for _, entry := range futures.(map[string]*InstanceFuture) {
+		for _, entry := range futureType {
 			entry.Reply(code, result)
 		}
 	default:
