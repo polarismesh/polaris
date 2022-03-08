@@ -659,7 +659,7 @@ func (svr *server) collectResEntry(ruleId string, resType api.ResourceType,
 }
 
 // collectPrincipalEntry 将 Principal 转换为对应的 []model.Principal 数组
-func collectPrincipalEntry(ruleId string, uType model.PrincipalType, res []*api.Principal) []model.Principal {
+func collectPrincipalEntry(ruleID string, uType model.PrincipalType, res []*api.Principal) []model.Principal {
 	if len(res) == 0 {
 		return make([]model.Principal, 0)
 	}
@@ -667,7 +667,7 @@ func collectPrincipalEntry(ruleId string, uType model.PrincipalType, res []*api.
 	principals := make([]model.Principal, 0)
 	for index := range res {
 		principals = append(principals, model.Principal{
-			StrategyID:    ruleId,
+			StrategyID:    ruleID,
 			PrincipalID:   res[index].GetId().GetValue(),
 			PrincipalRole: uType,
 		})

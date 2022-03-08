@@ -65,8 +65,8 @@ func (svr *server) CreateUsers(ctx context.Context, req []*api.User) *api.BatchW
 // CreateUser 创建用户
 func (svr *server) CreateUser(ctx context.Context, req *api.User) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
-	ownerId := utils.ParseOwnerID(ctx)
-	req.Owner = utils.NewStringValue(ownerId)
+	ownerID := utils.ParseOwnerID(ctx)
+	req.Owner = utils.NewStringValue(ownerID)
 
 	if checkErrResp := checkCreateUser(req); checkErrResp != nil {
 		return checkErrResp
@@ -74,11 +74,11 @@ func (svr *server) CreateUser(ctx context.Context, req *api.User) *api.Response 
 
 	// 如果创建的目标账户类型是非子账户，则 ownerId 需要设置为 “”
 	if converCreateUserRole(utils.ParseUserRole(ctx)) != model.SubAccountUserRole {
-		ownerId = ""
+		ownerID = ""
 	}
 
 	// 只有通过 owner + username 才能唯一确定一个用户
-	user, err := svr.storage.GetUserByName(req.Name.GetValue(), ownerId)
+	user, err := svr.storage.GetUserByName(req.Name.GetValue(), ownerID)
 	if err != nil {
 		log.Error("[Auth][User] get user by name and owner", utils.ZapRequestID(requestID),
 			zap.Error(err), zap.String("name", req.GetName().GetValue()))
