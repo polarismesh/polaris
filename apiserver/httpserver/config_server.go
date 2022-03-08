@@ -73,6 +73,7 @@ func (h *HTTPServer) bindConfigConsoleEndpoint(ws *restful.WebService) {
 	ws.Route(ws.GET("/configfiles/search").To(h.SearchConfigFile))
 	ws.Route(ws.PUT("/configfiles").To(h.UpdateConfigFile))
 	ws.Route(ws.DELETE("/configfiles").To(h.DeleteConfigFile))
+	ws.Route(ws.POST("/configfiles/batchdelete").To(h.BatchDeleteConfigFile))
 
 	//配置文件发布
 	ws.Route(ws.POST("/configfiles/release").To(h.PublishConfigFile))

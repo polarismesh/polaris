@@ -1,4 +1,4 @@
-/**
+/*
  * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -19,7 +19,6 @@ package httpserver
 
 import (
 	"fmt"
-
 	"github.com/emicklei/go-restful"
 )
 
@@ -56,7 +55,7 @@ func (h *HTTPServer) GetCoreConsoleAccessServer(ws *restful.WebService, include 
 
 func (h *HTTPServer) addCoreDefaultReadAccess(ws *restful.WebService) {
 	ws.Route(ws.GET("/namespaces").To(h.GetNamespaces))
-	ws.Route(ws.GET("/namespace/token").To(h.GetNamespaceToken))
+	ws.Route(ws.GET("/namespaces/token").To(h.GetNamespaceToken))
 }
 
 func (h *HTTPServer) addCoreDefaultAccess(ws *restful.WebService) {
@@ -64,6 +63,6 @@ func (h *HTTPServer) addCoreDefaultAccess(ws *restful.WebService) {
 	ws.Route(ws.POST("/namespaces/delete").To(h.DeleteNamespaces))
 	ws.Route(ws.PUT("/namespaces").To(h.UpdateNamespaces))
 	ws.Route(ws.GET("/namespaces").To(h.GetNamespaces))
-	ws.Route(ws.GET("/namespace/token").To(h.GetNamespaceToken))
-	ws.Route(ws.PUT("/namespace/token").To(h.UpdateNamespaceToken))
+	ws.Route(ws.GET("/namespaces/token").To(h.GetNamespaceToken))
+	ws.Route(ws.PUT("/namespaces/token").To(h.UpdateNamespaceToken))
 }
