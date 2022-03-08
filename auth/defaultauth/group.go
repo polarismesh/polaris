@@ -153,7 +153,6 @@ func (svr *server) DeleteGroups(ctx context.Context, reqs []*api.UserGroup) *api
 // DeleteGroup 删除用户组
 func (svr *server) DeleteGroup(ctx context.Context, req *api.UserGroup) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
-	isOwner := utils.ParseIsOwner(ctx)
 	userId := utils.ParseUserID(ctx)
 
 	group, err := svr.storage.GetGroup(req.GetId().GetValue())
@@ -165,8 +164,10 @@ func (svr *server) DeleteGroup(ctx context.Context, req *api.UserGroup) *api.Res
 		return api.NewGroupResponse(api.ExecuteSuccess, req)
 	}
 
-	if !isOwner || (group.Owner != userId) {
-		return api.NewResponse(api.NotAllowedAccess)
+	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+		if group.Owner != userId {
+			return api.NewResponse(api.NotAllowedAccess)
+		}
 	}
 
 	if err := svr.storage.DeleteGroup(group); err != nil {
@@ -241,7 +242,6 @@ func parseGroupSearchArgs(ctx context.Context, query map[string]string) (map[str
 
 // GetGroupUsers 查看对应用户组下的用户信息
 func (svr *server) GetGroup(ctx context.Context, req *api.UserGroup) *api.Response {
-	isOwner := utils.ParseIsOwner(ctx)
 	userId := utils.ParseUserID(ctx)
 
 	if req.GetId().GetValue() == "" {
@@ -253,16 +253,13 @@ func (svr *server) GetGroup(ctx context.Context, req *api.UserGroup) *api.Respon
 		return errResp
 	}
 
-	if !isOwner {
-		if _, find := group.UserIds[userId]; !find {
-			log.AuthScope().Error("not belong this group", zap.String("user", userId),
-				zap.String("group", req.GetId().GetValue()))
-			return api.NewResponse(api.NotAllowedAccess)
-		}
-	} else {
-		if group.Owner != userId && utils.ParseUserRole(ctx) != model.AdminUserRole {
-			log.AuthScope().Error("not this group owner or admin", zap.String("user", userId),
-				zap.String("group", req.GetId().GetValue()))
+	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+		isGroupOwner := group.Owner == userId
+		_, find := group.UserIds[userId]
+		if !isGroupOwner && !find {
+			log.AuthScope().Error("can't see group token", zap.String("user", userId),
+				zap.String("group", req.GetId().GetValue()), zap.Bool("group-owner", isGroupOwner),
+				zap.Bool("in-group", find))
 			return api.NewResponse(api.NotAllowedAccess)
 		}
 	}
@@ -272,7 +269,6 @@ func (svr *server) GetGroup(ctx context.Context, req *api.UserGroup) *api.Respon
 
 // GetGroupToken 查看用户组的token
 func (svr *server) GetGroupToken(ctx context.Context, req *api.UserGroup) *api.Response {
-	isOwner := utils.ParseIsOwner(ctx)
 	userId := utils.ParseUserID(ctx)
 	if req.GetId().GetValue() == "" {
 		return api.NewResponse(api.InvalidUserGroupID)
@@ -283,16 +279,13 @@ func (svr *server) GetGroupToken(ctx context.Context, req *api.UserGroup) *api.R
 		return errResp
 	}
 
-	if !isOwner {
-		if _, find := groupCache.UserIds[userId]; !find {
-			log.AuthScope().Error("not belong this group", zap.String("user", userId),
-				zap.String("group", req.GetId().GetValue()))
-			return api.NewResponse(api.NotAllowedAccess)
-		}
-	} else {
-		if groupCache.Owner != userId && utils.ParseUserRole(ctx) != model.AdminUserRole {
-			log.AuthScope().Error("not this group owner or admin", zap.String("user", userId),
-				zap.String("group", req.GetId().GetValue()))
+	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+		isGroupOwner := groupCache.Owner == userId
+		_, find := groupCache.UserIds[userId]
+		if !isGroupOwner && !find {
+			log.AuthScope().Error("can't see group token", zap.String("user", userId),
+				zap.String("group", req.GetId().GetValue()), zap.Bool("group-owner", isGroupOwner),
+				zap.Bool("in-group", find))
 			return api.NewResponse(api.NotAllowedAccess)
 		}
 	}
@@ -313,10 +306,11 @@ func (svr *server) UpdateGroupToken(ctx context.Context, req *api.UserGroup) *ap
 		return errResp
 	}
 
-	isOwner := utils.ParseIsOwner(ctx)
-	userId := utils.ParseUserID(ctx)
-	if !isOwner || (group.Owner != userId) {
-		return api.NewResponse(api.NotAllowedAccess)
+	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+		userId := utils.ParseUserID(ctx)
+		if group.Owner != userId {
+			return api.NewResponse(api.NotAllowedAccess)
+		}
 	}
 
 	group.TokenEnable = req.TokenEnable.GetValue()
@@ -472,16 +466,19 @@ func (svr *server) checkUpdateGroup(ctx context.Context, req *api.ModifyUserGrou
 	}
 
 	// 满足以下情况才可以进行操作
-	// 1. 自己在这个用户组里面
-	// 2. 自己是这个用户组的owner角色
-	_, inGroup := group.UserIds[userId]
-	if !inGroup && group.Owner != userId {
-		return api.NewResponse(api.NotAllowedAccess)
-	}
+	// 1. 管理员
+	// 2. 自己在这个用户组里面
+	// 3. 自己是这个用户组的owner角色
+	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+		_, inGroup := group.UserIds[userId]
+		if !inGroup && group.Owner != userId {
+			return api.NewResponse(api.NotAllowedAccess)
+		}
 
-	// 如果当前用户只是在这个组里面，但不是该用户组的owner，那只能添加用户，不能删除用户
-	if inGroup && !isOwner && len(req.GetRemoveRelations().GetUsers()) != 0 {
-		return api.NewResponseWithMsg(api.NotAllowedAccess, "only main account can remove user from usergroup")
+		// 如果当前用户只是在这个组里面，但不是该用户组的owner，那只能添加用户，不能删除用户
+		if inGroup && !isOwner && len(req.GetRemoveRelations().GetUsers()) != 0 {
+			return api.NewResponseWithMsg(api.NotAllowedAccess, "only main account can remove user from usergroup")
+		}
 	}
 
 	return nil

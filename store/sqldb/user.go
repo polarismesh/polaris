@@ -533,6 +533,11 @@ func (u *userStore) collectUsers(handler QueryHandler, querySql string, args []i
 }
 
 func createDefaultStrategy(tx *BaseTx, role model.PrincipalType, id, name, owner string) error {
+
+	if strings.Compare(owner, "") == 0 {
+		owner = id
+	}
+
 	// 创建该用户的默认权限策略
 	strategy := &model.StrategyDetail{
 		ID:        utils.NewUUID(),
@@ -544,10 +549,6 @@ func createDefaultStrategy(tx *BaseTx, role model.PrincipalType, id, name, owner
 		Resources: []model.StrategyResource{},
 		Valid:     true,
 		Comment:   "Default Strategy",
-	}
-
-	if strings.Compare(owner, "") == 0 {
-		owner = id
 	}
 
 	// 保存策略主信息

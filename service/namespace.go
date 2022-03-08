@@ -246,6 +246,10 @@ func (s *Server) UpdateNamespace(ctx context.Context, req *api.Namespace) *api.R
 	log.Info(msg, zap.String("request-id", rid))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.OUpdate))
 
+	if err := s.afterNamespaceResource(ctx, req, namespace, false); err != nil {
+		return api.NewNamespaceResponse(api.ExecuteException, req)
+	}
+
 	return api.NewNamespaceResponse(api.ExecuteSuccess, req)
 }
 

@@ -477,6 +477,7 @@ func user2Api(user *model.User) *api.User {
 		Mtime:       utils.NewStringValue(commontime.Time2String(user.ModifyTime)),
 		Mobile:      utils.NewStringValue(user.Mobile),
 		Email:       utils.NewStringValue(user.Email),
+		UserType:    utils.NewStringValue(model.UserRoleNames[user.Type]),
 	}
 
 	return out

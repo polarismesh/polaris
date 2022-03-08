@@ -191,7 +191,9 @@ func (s *Server) DeleteService(ctx context.Context, req *api.Service) *api.Respo
 	log.Info(msg, ZapRequestID(requestID), ZapPlatformID(platformID))
 	s.RecordHistory(serviceRecordEntry(ctx, req, nil, model.ODelete))
 
-	s.afterServiceResource(ctx, req, service, true)
+	if err := s.afterServiceResource(ctx, req, service, true); err != nil {
+		return api.NewServiceResponse(api.ExecuteException, req)
+	}
 	return api.NewServiceResponse(api.ExecuteSuccess, req)
 }
 
@@ -241,6 +243,10 @@ func (s *Server) UpdateService(ctx context.Context, req *api.Service) *api.Respo
 	if !needUpdate {
 		log.Info("update service data no change, no need update",
 			ZapRequestID(requestID), ZapPlatformID(platformID), zap.String("service", req.String()))
+		if err := s.afterServiceResource(ctx, req, service, false); err != nil {
+			return api.NewServiceResponse(api.ExecuteException, req)
+		}
+
 		return api.NewServiceResponse(api.NoNeedUpdate, req)
 	}
 
@@ -253,6 +259,10 @@ func (s *Server) UpdateService(ctx context.Context, req *api.Service) *api.Respo
 	msg := fmt.Sprintf("update service: namespace=%v, name=%v", service.Namespace, service.Name)
 	log.Info(msg, ZapRequestID(requestID), ZapPlatformID(platformID))
 	s.RecordHistory(serviceRecordEntry(ctx, req, service, model.OUpdate))
+
+	if err := s.afterServiceResource(ctx, req, service, false); err != nil {
+		return api.NewServiceResponse(api.ExecuteException, req)
+	}
 
 	return api.NewServiceResponse(api.ExecuteSuccess, req)
 }

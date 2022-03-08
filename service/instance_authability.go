@@ -31,7 +31,10 @@ func (svr *serverAuthAbility) CreateInstances(ctx context.Context,
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(convertToErrCode(err), err.Error())
+		resp := api.NewResponseWithMsg(convertToErrCode(err), err.Error())
+		batchResp := api.NewBatchWriteResponse(api.ExecuteSuccess)
+		batchResp.Collect(resp)
+		return batchResp
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -46,7 +49,10 @@ func (svr *serverAuthAbility) DeleteInstances(ctx context.Context,
 
 	_, err := svr.authMgn.CheckPermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(convertToErrCode(err), err.Error())
+		resp := api.NewResponseWithMsg(convertToErrCode(err), err.Error())
+		batchResp := api.NewBatchWriteResponse(api.ExecuteSuccess)
+		batchResp.Collect(resp)
+		return batchResp
 	}
 
 	ctx = authCtx.GetRequestContext()

@@ -238,25 +238,20 @@ func (svr *server) GetStrategies(ctx context.Context, query map[string]string) *
 
 // parseStrategySearchArgs 处理鉴权策略的搜索参数
 func parseStrategySearchArgs(ctx context.Context, searchFilters map[string]string) map[string]string {
-	// 如果不是超级管理员，查看数据有限制
-	if utils.ParseUserRole(ctx) != model.AdminUserRole {
-		// 设置 owner 参数，只能查看对应 owner 下的策略以及与自己有关的
-		searchFilters["owner"] = utils.ParseOwnerID(ctx)
-		searchFilters["principal_id"] = utils.ParseUserID(ctx)
-		searchFilters["principal_type"] = strconv.Itoa(int(model.PrincipalUser))
-	}
 
-	convertResType := func(val string) string {
-		switch val {
-		case "namespace":
-			return "0"
-		case "service":
-			return "1"
-		case "config_group":
-			return "2"
-		default:
-			return "0"
-		}
+	if val, ok := searchFilters["res_type"]; ok {
+		searchFilters["res_type"] = func(val string) string {
+			switch val {
+			case "namespace":
+				return "0"
+			case "service":
+				return "1"
+			case "config_group":
+				return "2"
+			default:
+				return "0"
+			}
+		}(val)
 	}
 
 	convertPrincipalType := func(val string) string {
@@ -270,16 +265,15 @@ func parseStrategySearchArgs(ctx context.Context, searchFilters map[string]strin
 		}
 	}
 
-	if val, ok := searchFilters["res_type"]; ok {
-		searchFilters["res_type"] = convertResType(val)
-	}
 	if val, ok := searchFilters["principal_type"]; ok {
 		searchFilters["principal_type"] = convertPrincipalType(val)
 	}
 
-	if !utils.ParseIsOwner(ctx) {
+	if utils.ParseUserRole(ctx) != model.AdminUserRole {
 		// 如果当前账户不是 owner 角色，既不是走资源视角查看，也不是指定principal查看，那么只能查询当前操作用户被关联到的鉴权策略，
 		if _, ok := searchFilters["res_id"]; !ok {
+			// 设置 owner 参数，只能查看对应 owner 下的策略以及与自己有关的
+			searchFilters["owner"] = utils.ParseOwnerID(ctx)
 			if _, ok := searchFilters["principal_id"]; !ok {
 				searchFilters["principal_id"] = utils.ParseUserID(ctx)
 				searchFilters["principal_type"] = strconv.Itoa(int(model.PrincipalUser))
@@ -719,13 +713,15 @@ func (svr *server) checkUpdateStrategy(ctx context.Context, req *api.ModifyAuthS
 	saved *model.StrategyDetail) *api.Response {
 
 	userId := utils.ParseUserID(ctx)
-	if !utils.ParseIsOwner(ctx) || userId != saved.Owner {
-		log.AuthScope().Error("[Auth][Strategy] modify strategy denied, current user not owner",
-			utils.ZapRequestID(utils.ParseRequestID(ctx)),
-			zap.String("user", userId),
-			zap.String("owner", saved.Owner),
-			zap.String("strategy", saved.ID))
-		return api.NewModifyAuthStrategyResponse(api.NotAllowedAccess, req)
+	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+		if !utils.ParseIsOwner(ctx) || userId != saved.Owner {
+			log.AuthScope().Error("[Auth][Strategy] modify strategy denied, current user not owner",
+				utils.ZapRequestID(utils.ParseRequestID(ctx)),
+				zap.String("user", userId),
+				zap.String("owner", saved.Owner),
+				zap.String("strategy", saved.ID))
+			return api.NewModifyAuthStrategyResponse(api.NotAllowedAccess, req)
+		}
 	}
 
 	if saved.Default {

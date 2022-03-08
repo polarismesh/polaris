@@ -62,6 +62,8 @@ func (svr *server) Login(req *api.LoginRequest) *api.Response {
 		return api.NewResponse(api.NotFoundUser)
 	}
 
+	ownerId := svr.getOwnerId(user)
+
 	// TODO AES 解密操作，在进行密码比对计算
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.GetPassword().GetValue()))
 	if err != nil {
@@ -73,11 +75,25 @@ func (svr *server) Login(req *api.LoginRequest) *api.Response {
 
 	return api.NewLoginResponse(api.ExecuteSuccess, &api.LoginResponse{
 		UserId:  utils.NewStringValue(user.ID),
-		OwnerId: utils.NewStringValue(user.Owner),
+		OwnerId: utils.NewStringValue(ownerId),
 		Token:   utils.NewStringValue(user.Token),
 		Name:    utils.NewStringValue(user.Name),
 		Role:    utils.NewStringValue(model.UserRoleNames[user.Type]),
 	})
+}
+
+func (svr *server) getOwnerId(user *model.User) string {
+	ownerId := user.Owner
+	if ownerId != "" {
+		return ownerId
+	}
+
+	admin := svr.cacheMgn.User().GetAdmin()
+	if admin == nil {
+		return ""
+	}
+
+	return admin.ID
 }
 
 // RecordHistory server对外提供history插件的简单封装

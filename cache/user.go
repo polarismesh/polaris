@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/log"
@@ -43,6 +44,9 @@ const (
 // UserCache User information cache
 type UserCache interface {
 	Cache
+
+	// GetAdmin 获取管理员信息
+	GetAdmin() *model.User
 
 	// GetUserByID
 	//  @param id
@@ -88,7 +92,9 @@ type userAndGroupCacheRefreshResult struct {
 
 // userCache 用户信息缓存
 type userCache struct {
-	storage                  store.Store
+	storage store.Store
+
+	adminUser                atomic.Value
 	users                    *sync.Map // userid -> user
 	name2Users               *sync.Map // username -> user
 	groups                   *sync.Map // groupid -> group
@@ -117,6 +123,7 @@ func (uc *userCache) initialize(c map[string]interface{}) error {
 	uc.groups = new(sync.Map)
 	uc.name2Users = new(sync.Map)
 	uc.user2Groups = new(sync.Map)
+	uc.adminUser = atomic.Value{}
 
 	uc.userCacheFirstUpdate = true
 	uc.groupCacheFirstUpdate = true
@@ -203,6 +210,10 @@ func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult,
 
 	for i := range users {
 		user := users[i]
+		if user.Type == model.AdminUserRole {
+			uc.adminUser.Store(user)
+		}
+
 		if !filter(user) {
 			continue
 		}
@@ -283,6 +294,7 @@ func (uc *userCache) clear() error {
 	uc.groups = new(sync.Map)
 	uc.name2Users = new(sync.Map)
 	uc.user2Groups = new(sync.Map)
+	uc.adminUser = atomic.Value{}
 
 	uc.userCacheFirstUpdate = false
 	uc.groupCacheFirstUpdate = false
@@ -293,6 +305,16 @@ func (uc *userCache) clear() error {
 
 func (uc *userCache) name() string {
 	return UsersName
+}
+
+// GetAdmin 获取管理员数据信息
+func (uc *userCache) GetAdmin() *model.User {
+	val := uc.adminUser.Load()
+	if val == nil {
+		return nil
+	}
+
+	return val.(*model.User)
 }
 
 // IsOwner 判断当前用户是否是 owner 角色
