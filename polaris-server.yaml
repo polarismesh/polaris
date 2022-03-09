@@ -74,7 +74,7 @@ bootstrap:
     key: sz # 全局锁
   # 注册为北极星服务
   polaris_service:
-    probe_address: 127.0.0.1:3306
+    probe_address: ##DB_ADDR##
     enable_register: true
     isolated: false
     services:
