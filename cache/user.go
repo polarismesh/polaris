@@ -56,7 +56,7 @@ type UserCache interface {
 	// GetUserByName
 	//  @param name
 	//  @return *model.User
-	GetUserByName(name, owner string) *model.User
+	GetUserByName(name, ownerName string) *model.User
 
 	// GetUserGroup
 	//  @param id
@@ -353,8 +353,8 @@ func (uc *userCache) GetUserByID(id string) *model.User {
 }
 
 // GetUserByName 通过用户 name 以及 owner 获取用户缓存对象
-func (uc *userCache) GetUserByName(name, owner string) *model.User {
-	val, ok := uc.name2Users.Load(fmt.Sprintf(NameLinkOwnerTemp, owner, name))
+func (uc *userCache) GetUserByName(name, ownerName string) *model.User {
+	val, ok := uc.name2Users.Load(fmt.Sprintf(NameLinkOwnerTemp, ownerName, name))
 
 	if !ok {
 		return nil

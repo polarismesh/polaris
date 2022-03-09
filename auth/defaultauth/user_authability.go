@@ -38,8 +38,9 @@ func (svr *serverAuthAbility) CreateUsers(ctx context.Context, req []*api.User) 
 }
 
 // UpdateUser 更新用户，任意账户均可以操作
+// 用户token被禁止也只是表示不能对北极星资源执行写操作，但是改用户信息还是可以执行的
 func (svr *serverAuthAbility) UpdateUser(ctx context.Context, user *api.User) *api.Response {
-	ctx, errResp := svr.verifyAuth(ctx, WriteOp, NotOwner)
+	ctx, errResp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if errResp != nil {
 		errResp.User = user
 		return errResp
@@ -50,7 +51,7 @@ func (svr *serverAuthAbility) UpdateUser(ctx context.Context, user *api.User) *a
 
 // UpdateUserPassword 更新用户信息
 func (svr *serverAuthAbility) UpdateUserPassword(ctx context.Context, req *api.ModifyUserPassword) *api.Response {
-	ctx, errResp := svr.verifyAuth(ctx, WriteOp, NotOwner)
+	ctx, errResp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if errResp != nil {
 		return errResp
 	}

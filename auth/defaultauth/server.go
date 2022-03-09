@@ -52,12 +52,11 @@ func (svr *server) initialize() error {
 // Login 登陆动作
 func (svr *server) Login(req *api.LoginRequest) *api.Response {
 	username := req.GetName().GetValue()
-	owner := req.GetOwner().GetValue()
-	if owner == "" {
-		owner = username
+	ownerName := req.GetOwner().GetValue()
+	if ownerName == "" {
+		ownerName = username
 	}
-	user := svr.cacheMgn.User().GetUserByName(username, owner)
-
+	user := svr.cacheMgn.User().GetUserByName(username, ownerName)
 	if user == nil {
 		return api.NewResponse(api.NotFoundUser)
 	}

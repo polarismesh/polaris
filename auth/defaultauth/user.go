@@ -162,7 +162,7 @@ func (svr *server) UpdateUser(ctx context.Context, req *api.User) *api.Response 
 	return api.NewUserResponse(api.ExecuteSuccess, req)
 }
 
-// UpdateUserPassword 更新用户信息
+// UpdateUserPassword 更新用户密码信息
 func (svr *server) UpdateUserPassword(ctx context.Context, req *api.ModifyUserPassword) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 
@@ -180,21 +180,23 @@ func (svr *server) UpdateUserPassword(ctx context.Context, req *api.ModifyUserPa
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	data, needUpdate, err := updateUserPasswordAttribute(user, req)
+	data, needUpdate, err := updateUserPasswordAttribute(utils.ParseUserRole(ctx) == model.AdminUserRole, user, req)
 	if err != nil {
-		return api.NewResponseWithMsg(api.ExecuteException, err.Error())
+		log.AuthScope().Error("[Auth][User] compute user update attribute", zap.Error(err),
+			zap.String("user", req.GetId().GetValue()))
+		return api.NewResponse(api.ExecuteException)
 	}
 
 	if !needUpdate {
-		log.AuthScope().Info("[Auth][User] update user data no change, no need update",
-			utils.ZapRequestID(requestID), zap.String("user", req.String()))
+		log.AuthScope().Info("[Auth][User] update user password no change, no need update",
+			utils.ZapRequestID(requestID), zap.String("user", req.GetId().GetValue()))
 		return api.NewResponse(api.NoNeedUpdate)
 	}
 
 	if err := svr.storage.UpdateUser(data); err != nil {
 		log.AuthScope().Error("[Auth][User] update user from store", utils.ZapRequestID(requestID),
 			zap.Error(err))
-		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
+		return api.NewResponse(StoreCode2APICode(err))
 	}
 
 	log.AuthScope().Info("[Auth][User] update user", utils.ZapRequestID(requestID),
@@ -569,16 +571,18 @@ func updateUserAttribute(old *model.User, newUser *api.User) (*model.User, bool,
 }
 
 // updateUserAttribute 更新用户密码信息，如果用户的密码被更新，则会一并更新用户的toiken字段
-func updateUserPasswordAttribute(user *model.User, req *api.ModifyUserPassword) (*model.User, bool, error) {
-	var needUpdate bool = true
+func updateUserPasswordAttribute(isAdmin bool, user *model.User, req *api.ModifyUserPassword) (*model.User, bool, error) {
+	needUpdate := false
 
-	if req.GetOldPassword().GetValue() == "" {
-		return nil, false, errors.New("original password is empty")
-	}
+	if !isAdmin {
+		if req.GetOldPassword().GetValue() == "" {
+			return nil, false, errors.New("original password is empty")
+		}
 
-	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.GetOldPassword().GetValue()))
-	if err != nil {
-		return nil, false, err
+		err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.GetOldPassword().GetValue()))
+		if err != nil {
+			return nil, false, err
+		}
 	}
 
 	if req.GetNewPassword().GetValue() != "" {

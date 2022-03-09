@@ -175,8 +175,9 @@ const (
 	AuthStrategyRuleExisted                = 400217
 	SubAccountExisted                      = 400218
 	NotFoundUser                           = 400312
-	NotFoundUserGroup                      = 400313
-	NotFoundAuthStrategyRule               = 400314
+	NotFoundOwnerUser                      = 400313
+	NotFoundUserGroup                      = 400314
+	NotFoundAuthStrategyRule               = 400315
 	NotAllowModifyDefaultStrategyPrincipal = 400508
 
 	EmptyAutToken   = 401002
@@ -316,6 +317,7 @@ var code2info = map[uint32]string{
 
 	// 鉴权错误
 	NotFoundUser:             "not found user",
+	NotFoundOwnerUser:        "not found owner user",
 	NotFoundUserGroup:        "not found usergroup",
 	NotFoundAuthStrategyRule: "not found auth strategy rule",
 

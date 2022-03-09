@@ -21,6 +21,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/boltdb/bolt"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
@@ -77,7 +79,7 @@ func (m *boltStore) Initialize(c *store.Config) error {
 		_ = handler.Close()
 		return err
 	}
-	if err = m.initStoreData(); err != nil {
+	if err = m.initNamingStoreData(); err != nil {
 		_ = handler.Close()
 		return err
 	}
@@ -93,9 +95,63 @@ const (
 var (
 	namespacesToInit = []string{"default", namespacePolaris}
 	servicesToInit   = map[string]string{"polaris.checker": "fbca9bfa04ae4ead86e1ecf5811e32a9", "polaris.monitor": "bbfdda174ea64e11ac862adf14593c03"}
+
+	adminUser = &model.User{
+		ID:          "65e4789a6d5b49669adf1e9e8387549c",
+		Name:        "polarisadmin",
+		Password:    "$2a$10$5XMjs.oqo4PnpbTGy9dQqewL4eb4yoA7b/6ZKL33IPhFyIxzj4lRy",
+		Owner:       "",
+		Source:      "Polaris",
+		Mobile:      "",
+		Email:       "",
+		Type:        0,
+		Token:       "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=",
+		TokenEnable: true,
+		Valid:       true,
+		Comment:     "default polaris admin account",
+		CreateTime:  time.Now(),
+		ModifyTime:  time.Now(),
+	}
+
+	adminDefaultStrategy = &model.StrategyDetail{
+		ID:      "fbca9bfa04ae4ead86e1ecf5811e32a9",
+		Name:    "(用户) PolarisAdmin的默认策略",
+		Action:  "READ_WRITE",
+		Comment: "default admin",
+		Principals: []model.Principal{
+			{
+				StrategyID:    "fbca9bfa04ae4ead86e1ecf5811e32a9",
+				PrincipalID:   "65e4789a6d5b49669adf1e9e8387549c",
+				PrincipalRole: model.PrincipalUser,
+			},
+		},
+		Default: true,
+		Owner:   "65e4789a6d5b49669adf1e9e8387549c",
+		Resources: []model.StrategyResource{
+			{
+				StrategyID: "fbca9bfa04ae4ead86e1ecf5811e32a9",
+				ResType:    int32(api.ResourceType_Namespaces),
+				ResID:      "*",
+			},
+			{
+				StrategyID: "fbca9bfa04ae4ead86e1ecf5811e32a9",
+				ResType:    int32(api.ResourceType_Services),
+				ResID:      "*",
+			},
+			{
+				StrategyID: "fbca9bfa04ae4ead86e1ecf5811e32a9",
+				ResType:    int32(api.ResourceType_ConfigGroups),
+				ResID:      "*",
+			},
+		},
+		Valid:      true,
+		Revision:   "fbca9bfa04ae4ead86e1ecf5811e32a9",
+		CreateTime: time.Now(),
+		ModifyTime: time.Now(),
+	}
 )
 
-func (m *boltStore) initStoreData() error {
+func (m *boltStore) initNamingStoreData() error {
 	for _, namespace := range namespacesToInit {
 		curTime := time.Now()
 		err := m.AddNamespace(&model.Namespace{
@@ -126,6 +182,21 @@ func (m *boltStore) initStoreData() error {
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (m *boltStore) initAuthStoreData() error {
+	if err := m.handler.Execute(true, func(tx *bolt.Tx) error {
+		// 添加管理主体信息
+		if err := m.addUserMain(tx, adminUser); err != nil {
+			return err
+		}
+
+		// 添加管理员的默认鉴权策略信息
+		return m.addStrategy(tx, adminDefaultStrategy)
+	}); err != nil {
+		return err
 	}
 	return nil
 }

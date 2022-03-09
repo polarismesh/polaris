@@ -102,8 +102,7 @@ func (us *userStore) addUser(user *model.User) error {
 	}
 
 	// 添加用户信息
-	if err := saveValue(tx, tblUser, user.ID, converToUserStore(user)); err != nil {
-		logger.AuthScope().Error("[Store][User] save user fail", zap.Error(err), zap.String("name", user.Name))
+	if err := us.addUserMain(tx, user); err != nil {
 		return err
 	}
 
@@ -117,6 +116,15 @@ func (us *userStore) addUser(user *model.User) error {
 	if err := tx.Commit(); err != nil {
 		logger.AuthScope().Error("[Store][User] save user tx commit fail", zap.Error(err),
 			zap.String("name", user.Name))
+		return err
+	}
+	return nil
+}
+
+func (us *userStore) addUserMain(tx *bolt.Tx, user *model.User) error {
+	// 添加用户信息
+	if err := saveValue(tx, tblUser, user.ID, converToUserStore(user)); err != nil {
+		logger.AuthScope().Error("[Store][User] save user fail", zap.Error(err), zap.String("name", user.Name))
 		return err
 	}
 	return nil
