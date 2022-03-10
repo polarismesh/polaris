@@ -120,6 +120,9 @@ apiservers:
       client:
         enable: true
         include: [discover, register, healthcheck]
+      config:
+        enable: true
+        include: [default]
   - name: grpcserver
     option:
       listenIP: "0.0.0.0"
