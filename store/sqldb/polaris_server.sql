@@ -808,7 +808,7 @@ CREATE TABLE `auth_strategy_resource` (
     KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
--- 创建默认的超级账户，密码为 polarismesh@2021
+-- 创建默认的主账户，密码为 polarismesh@2021
 INSERT INTO
     `user` (
         `id`,
@@ -824,12 +824,12 @@ INSERT INTO
 VALUES
     (
         '65e4789a6d5b49669adf1e9e8387549c',
-        'polarisadmin',
+        'polaris',
         '$2a$10$5XMjs.oqo4PnpbTGy9dQqewL4eb4yoA7b/6ZKL33IPhFyIxzj4lRy',
         'Polaris',
         'nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=',
         1,
-        0,
+        20,
         'default polaris admin account',
         ''
     );

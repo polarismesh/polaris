@@ -272,11 +272,14 @@ func parseStrategySearchArgs(ctx context.Context, searchFilters map[string]strin
 	if utils.ParseUserRole(ctx) != model.AdminUserRole {
 		// 如果当前账户不是 owner 角色，既不是走资源视角查看，也不是指定principal查看，那么只能查询当前操作用户被关联到的鉴权策略，
 		if _, ok := searchFilters["res_id"]; !ok {
-			// 设置 owner 参数，只能查看对应 owner 下的策略以及与自己有关的
+			// 设置 owner 参数，只能查看对应 owner 下的策略
 			searchFilters["owner"] = utils.ParseOwnerID(ctx)
 			if _, ok := searchFilters["principal_id"]; !ok {
-				searchFilters["principal_id"] = utils.ParseUserID(ctx)
-				searchFilters["principal_type"] = strconv.Itoa(int(model.PrincipalUser))
+				// 如果当前不是 owner 角色，那么只能查询与自己有关的策略
+				if !utils.ParseIsOwner(ctx) {
+					searchFilters["principal_id"] = utils.ParseUserID(ctx)
+					searchFilters["principal_type"] = strconv.Itoa(int(model.PrincipalUser))
+				}
 			}
 		}
 	}

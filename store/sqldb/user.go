@@ -149,8 +149,8 @@ func (u *userStore) updateUser(user *model.User) error {
 		tokenEnable = 0
 	}
 
-	modifySql := "UPDATE user SET password = ?, token = ?, comment = ?, token_enable = ?, mobile = ?, email = ?, " + 
-	" mtime = sysdate() WHERE id = ? AND flag = 0"
+	modifySql := "UPDATE user SET password = ?, token = ?, comment = ?, token_enable = ?, mobile = ?, email = ?, " +
+		" mtime = sysdate() WHERE id = ? AND flag = 0"
 
 	_, err = tx.Exec(modifySql, []interface{}{
 		user.Password,
@@ -377,6 +377,8 @@ func (u *userStore) listUsers(filters map[string]string, offset uint32, limit ui
 	  `
 
 	if val, ok := filters["hide_admin"]; ok && val == "true" {
+		delete(filters, "hide_admin")
+		countSql += "  AND user_type != 0 "
 		getSql += "  AND user_type != 0 "
 	}
 
@@ -448,6 +450,7 @@ func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, lim
 	  `
 
 	if val, ok := filters["hide_admin"]; ok && val == "true" {
+		delete(filters, "hide_admin")
 		countSql += " AND u.user_type != 0 "
 		querySql += " AND u.user_type != 0 "
 	}

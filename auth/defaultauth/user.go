@@ -20,6 +20,7 @@ package defaultauth
 import (
 	"context"
 	"errors"
+	"strconv"
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -288,11 +289,13 @@ func (svr *server) GetUsers(ctx context.Context, query map[string]string) *api.B
 		searchFilters[key] = value
 	}
 
+	searchFilters["hide_admin"] = strconv.FormatBool(true)
+
 	// 如果不是超级管理员，查看数据有限制
-	// if utils.ParseUserRole(ctx) != model.AdminUserRole {
-	// 	// 设置 owner 参数，只能查看对应 owner 下的用户
-	// 	searchFilters["owner"] = utils.ParseOwnerID(ctx)
-	// }
+	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+		// 设置 owner 参数，只能查看对应 owner 下的用户
+		searchFilters["owner"] = utils.ParseOwnerID(ctx)
+	}
 
 	var (
 		total uint32

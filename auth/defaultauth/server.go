@@ -61,8 +61,6 @@ func (svr *server) Login(req *api.LoginRequest) *api.Response {
 		return api.NewResponse(api.NotFoundUser)
 	}
 
-	ownerId := svr.getOwnerId(user)
-
 	// TODO AES 解密操作，在进行密码比对计算
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.GetPassword().GetValue()))
 	if err != nil {
@@ -74,7 +72,7 @@ func (svr *server) Login(req *api.LoginRequest) *api.Response {
 
 	return api.NewLoginResponse(api.ExecuteSuccess, &api.LoginResponse{
 		UserId:  utils.NewStringValue(user.ID),
-		OwnerId: utils.NewStringValue(ownerId),
+		OwnerId: utils.NewStringValue(user.Owner),
 		Token:   utils.NewStringValue(user.Token),
 		Name:    utils.NewStringValue(user.Name),
 		Role:    utils.NewStringValue(model.UserRoleNames[user.Type]),
