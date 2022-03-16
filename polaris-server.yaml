@@ -150,9 +150,12 @@ apiservers:
 #      clusterName: cl5.discover
 # 核心逻辑的配置
 auth:
+  # 鉴权插件
   name: defaultAuth
   option:
+    # token 加密的 salt
     salt: polarismesh@2021
+    # 鉴权能力开关
     open: ##AUTH_OPEN##
 naming:
   auth:
