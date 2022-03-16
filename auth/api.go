@@ -143,6 +143,9 @@ type StrategyOperator interface {
 
 	// GetStrategy 获取策略详细
 	GetStrategy(ctx context.Context, strategy *api.AuthStrategy) *api.Response
+
+	// GetPrincipalResources 获取某个 principal 的所有可操作资源列表
+	GetPrincipalResources(ctx context.Context, query map[string]string) *api.Response
 }
 
 type Authority interface {

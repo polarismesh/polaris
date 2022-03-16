@@ -79,19 +79,6 @@ func (svr *server) Login(req *api.LoginRequest) *api.Response {
 	})
 }
 
-func (svr *server) getOwnerId(user *model.User) string {
-	ownerId := user.Owner
-	if ownerId != "" {
-		return ownerId
-	}
-
-	admin := svr.cacheMgn.User().GetAdmin()
-	if admin == nil {
-		return ""
-	}
-
-	return admin.ID
-}
 
 // RecordHistory server对外提供history插件的简单封装
 func (svr *server) RecordHistory(entry *model.RecordEntry) {

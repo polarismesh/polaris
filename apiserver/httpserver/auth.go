@@ -57,6 +57,7 @@ func (h *HTTPServer) GetAuthServer(ws *restful.WebService) error {
 	ws.Route(ws.PUT("/auth/strategies").To(h.UpdateStrategies))
 	ws.Route(ws.POST("/auth/strategies/delete").To(h.DeleteStrategies))
 	ws.Route(ws.GET("/auth/strategies").To(h.GetStrategies))
+	ws.Route(ws.GET("/auth/principal/resources").To(h.GetPrincipalResources))
 
 	return nil
 }
@@ -408,4 +409,14 @@ func (h *HTTPServer) GetStrategy(req *restful.Request, rsp *restful.Response) {
 	}
 
 	handler.WriteHeaderAndProto(h.authServer.GetStrategy(ctx, strategy))
+}
+
+// GetStrategy 获取鉴权策略详细
+func (h *HTTPServer) GetPrincipalResources(req *restful.Request, rsp *restful.Response) {
+	handler := &Handler{req, rsp}
+
+	queryParams := parseQueryParams(req)
+	ctx := handler.ParseHeaderContext()
+
+	handler.WriteHeaderAndProto(h.authServer.GetPrincipalResources(ctx, queryParams))
 }

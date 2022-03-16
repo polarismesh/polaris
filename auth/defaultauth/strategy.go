@@ -358,7 +358,19 @@ func (svr *server) GetPrincipalResources(ctx context.Context, query map[string]s
 	if principalId == "" {
 		return api.NewResponse(api.EmptyQueryParameter)
 	}
-	principalRole, _ := strconv.ParseInt(query["principal_type"], 10, 64)
+
+	convertPrincipalType := func(val string) string {
+		switch val {
+		case "user":
+			return "1"
+		case "group":
+			return "2"
+		default:
+			return "1"
+		}
+	}
+
+	principalRole, _ := strconv.ParseInt(convertPrincipalType(query["principal_type"]), 10, 64)
 	if err := model.CheckPrincipalType(int(principalRole)); err != nil {
 		return api.NewResponse(api.InvalidPrincipalType)
 	}
@@ -390,33 +402,19 @@ func (svr *server) GetPrincipalResources(ctx context.Context, query map[string]s
 		return api.NewResponse(api.StoreLayerException)
 	}
 
-	ns := make([]*api.StrategyResourceEntry, 0, 4)
-	svc := make([]*api.StrategyResourceEntry, 0, 4)
-	cfg := make([]*api.StrategyResourceEntry, 0, 4)
-	for index := range resources {
-		item := resources[index]
-		switch item.ResType {
-		case int32(api.ResourceType_Namespaces):
-			ns = append(ns, &api.StrategyResourceEntry{
-				Id: utils.NewStringValue(item.ResID),
-			})
-		case int32(api.ResourceType_Services):
-			svc = append(svc, &api.StrategyResourceEntry{
-				Id: utils.NewStringValue(item.ResID),
-			})
-		case int32(api.ResourceType_ConfigGroups):
-			cfg = append(cfg, &api.StrategyResourceEntry{
-				Id: utils.NewStringValue(item.ResID),
-			})
-		}
-	}
-	strategyResources := &api.StrategyResources{
-		Namespaces:   ns,
-		Services:     svc,
-		ConfigGroups: cfg,
+	tmp := &api.AuthStrategy{
+		Resources: &api.StrategyResources{
+			Namespaces:   make([]*api.StrategyResourceEntry, 0),
+			Services:     make([]*api.StrategyResourceEntry, 0),
+			ConfigGroups: make([]*api.StrategyResourceEntry, 0),
+		},
 	}
 
-	return api.NewStrategyResourcesResponse(api.ExecuteSuccess, strategyResources)
+	svr.fillResourceInfo(tmp, &model.StrategyDetail{
+		Resources: resources,
+	})
+
+	return api.NewStrategyResourcesResponse(api.ExecuteSuccess, tmp.Resources)
 
 }
 
