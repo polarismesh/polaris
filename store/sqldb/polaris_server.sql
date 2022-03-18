@@ -729,17 +729,17 @@ CREATE TABLE `config_file_tag`(
 
 
 CREATE TABLE `user` (
-    `id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '用户ID',
-    `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '用户名称',
-    `password` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '用户密码',
-    `owner` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '主账户ID',
-    `source` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '账户来源',
-    `mobile` VARCHAR(12) COLLATE utf8_bin NOT NULL comment '账户手机号',
-    `email` VARCHAR(64) COLLATE utf8_bin NOT NULL comment '账户邮箱',
-    `token` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '账户所拥有的 token 信息, 可用于SDK访问鉴权',
+    `id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'User ID',
+    `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment 'user name',
+    `password` VARCHAR(100) COLLATE utf8_bin NOT NULL comment 'user password',
+    `owner` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'Main account ID',
+    `source` VARCHAR(32) COLLATE utf8_bin NOT NULL comment 'Account source',
+    `mobile` VARCHAR(12) COLLATE utf8_bin NOT NULL comment 'Account mobile phone number',
+    `email` VARCHAR(64) COLLATE utf8_bin NOT NULL comment 'Account mailbox',
+    `token` VARCHAR(255) COLLATE utf8_bin NOT NULL comment 'The token information owned by the account can be used for SDK access authentication',
     `token_enable` tinyint(4) NOT NULL DEFAULT 1,
     `user_type` int NOT NULL DEFAULT 20 comment 'Account type, 0 is the admin super account, 20 is the primary account, 50 for the child account',
-    `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '描述',
+    `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment 'describe',
     `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
@@ -750,11 +750,11 @@ CREATE TABLE `user` (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
 CREATE TABLE `user_group` (
-    `id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '用户组ID',
-    `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '用户组名称',
-    `owner` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '用户组所属的主账户ID',
-    `token` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '该用户组的 token 信息',
-    `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '描述信息',
+    `id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'User group ID',
+    `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment 'User group name',
+    `owner` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'The main account ID of the user group',
+    `token` VARCHAR(255) COLLATE utf8_bin NOT NULL comment 'TOKEN information of this user group',
+    `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment 'Description',
     `token_enable` tinyint(4) NOT NULL DEFAULT 1,
     `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
@@ -766,8 +766,8 @@ CREATE TABLE `user_group` (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
 CREATE TABLE `user_group_relation` (
-    `user_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '用户ID',
-    `group_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '用户组ID',
+    `user_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'User ID',
+    `group_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'User group ID',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`user_id`, `group_id`),
@@ -775,13 +775,13 @@ CREATE TABLE `user_group_relation` (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
 CREATE TABLE `auth_strategy` (
-    `id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '策略ID',
-    `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment '策略名称',
-    `action` VARCHAR(32) COLLATE utf8_bin NOT NULL comment '该策略的读写权限, only_read = 0, read_write = 1',
-    `owner` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '该策略所属的账号ID',
-    `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment '描述',
+    `id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'Strategy ID',
+    `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment 'Policy name',
+    `action` VARCHAR(32) COLLATE utf8_bin NOT NULL comment 'Read and write permission for this policy, only_read = 0, read_write = 1',
+    `owner` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'The account ID to which this policy is',
+    `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment 'describe',
     `default` tinyint(4) NOT NULL DEFAULT '0',
-    `revision` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '鉴权规则版本',
+    `revision` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'Authentication rule version',
     `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
@@ -792,23 +792,23 @@ CREATE TABLE `auth_strategy` (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
 CREATE TABLE `auth_principal` (
-    `strategy_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '策略ID',
-    `principal_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'principal的ID',
-    `principal_role` int NOT NULL comment 'principal的类型, 1 为 User、2 为 Group',
+    `strategy_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'Strategy ID',
+    `principal_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'Principal ID',
+    `principal_role` int NOT NULL comment 'PRINCIPAL type, 1 is User, 2 is Group',
     PRIMARY KEY (`strategy_id`, `principal_id`, `principal_role`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
 CREATE TABLE `auth_strategy_resource` (
-    `strategy_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '策略ID',
-    `res_type` int COLLATE utf8_bin NOT NULL comment '资源类型, Namespaces = 0, Service = 1, ConfigGroups = 2',
-    `res_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment '资源ID',
+    `strategy_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'Strategy ID',
+    `res_type` int COLLATE utf8_bin NOT NULL comment 'Resource Type, Namespaces = 0, Service = 1, configgroups = 2',
+    `res_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'Resource ID',
     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`strategy_id`, `res_type`, `res_id`),
     KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
 
--- 创建默认的主账户，密码为 polarismesh@2021
+-- Create a default master account, password is Polarismesh @ 2021
 INSERT INTO
     `user` (
         `id`,
@@ -834,7 +834,7 @@ VALUES
         ''
     );
 
--- 插入polaris-admin的权限策略
+-- Permissions policy inserted into Polaris-Admin
 INSERT INTO
     `auth_strategy`(
         `id`,
@@ -862,7 +862,7 @@ VALUES
         sysdate()
     );
 
--- 插入 polaris-admin 可以访问的资源规则
+-- Sport rules inserted into Polaris-Admin to access
 INSERT INTO
     `auth_strategy_resource`(
         `strategy_id`,
@@ -892,7 +892,7 @@ VALUES
         sysdate()
     );
 
--- 插入权限策略和polaris-admin账户的关联关系
+-- Insert permission policies and association relationships for Polaris-Admin accounts
 INSERT INTO
     auth_principal(`strategy_id`, `principal_id`, `principal_role`) VALUE (
         'fbca9bfa04ae4ead86e1ecf5811e32a9',
