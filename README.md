@@ -128,10 +128,6 @@ Please scan the QR code to join the chat group.
 
 <img src="https://main.qcloudimg.com/raw/bff4285d70498058caa212805b83a620.jpg" width="30%" height="30%" />
 
-Welcome to scan the QR code to follow our official account, we will share the latest application cases and updates of PolarisMesh.
-
-<img src="https://main.qcloudimg.com/raw/e5a51696ae7c01e8bc9097fa0c7e426d.png" width="30%" height="30%" />
-
 ## Contribution
 
 If you have good comments or suggestions, please give us Issues or Pull Requests to contribute to  improve the development experience of Polaris Mesh.
