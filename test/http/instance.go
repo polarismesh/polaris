@@ -178,7 +178,7 @@ func (c *Client) GetInstances(instances []*api.Instance) error {
 	instancesSize := len(instances)
 
 	if ret.GetAmount() == nil || ret.GetAmount().GetValue() != uint32(instancesSize) {
-		return errors.New(fmt.Sprintf("invalid batch amount, expect %d, obtain %v", instancesSize, ret.GetAmount()))
+		return fmt.Errorf("invalid batch amount, expect %d, obtain %v", instancesSize, ret.GetAmount())
 	}
 
 	if ret.GetSize() == nil || ret.GetSize().GetValue() != uint32(instancesSize) {

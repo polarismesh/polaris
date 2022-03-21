@@ -178,7 +178,7 @@ func (c *Client) GetServices(services []*api.Service) error {
 	servicesSize := len(services)
 
 	if ret.GetAmount() == nil || ret.GetAmount().GetValue() != uint32(servicesSize) {
-		return errors.New(fmt.Sprintf("invalid batch amount, expect %d, actual is %v", servicesSize, ret.GetAmount()))
+		return fmt.Errorf("invalid batch amount, expect %d, actual is %v", servicesSize, ret.GetAmount())
 	}
 
 	if ret.GetSize() == nil || ret.GetSize().GetValue() != uint32(servicesSize) {

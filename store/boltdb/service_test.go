@@ -201,7 +201,7 @@ func TestServiceStore_UpdateService(t *testing.T) {
 
 	if ss.Department != "modifyDepartment" || ss.Business != "modifyBusiness" ||
 		ss.Reference != "" {
-		t.Fatal(fmt.Sprintf("update service error"))
+		t.Fatal("update service error")
 	}
 }
 
@@ -231,7 +231,7 @@ func TestServiceStore_UpdateServiceToken(t *testing.T) {
 	if ss.Token != "ttttt1" ||
 		ss.Revision != "rrrrrr1" ||
 		ss.Reference != "" {
-		t.Fatal(fmt.Sprintf("update service error"))
+		t.Fatal("update service error")
 	}
 }
 
@@ -455,7 +455,7 @@ func TestServiceStore_UpdateServiceAlias(t *testing.T) {
 	if ss.Business != "modifyBusiness" ||
 		ss.Department != "modifyDepartment" ||
 		ss.Revision != "modifyRevision2" {
-		t.Fatal(fmt.Sprintf("update service error"))
+		t.Fatal("update service error")
 	}
 }
 
