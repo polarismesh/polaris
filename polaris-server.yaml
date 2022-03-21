@@ -81,6 +81,9 @@ bootstrap:
       - name: polaris.checker
         protocols:
           - grpcserver
+      - name: polaris.config
+        protocols:
+          - configgrpcserver
 # apiserver配置
 apiservers:
   - name: eurekaserver
@@ -135,6 +138,17 @@ apiservers:
       client:
         enable: true
         include: [discover, register, healthcheck]
+  - name: configgrpcserver
+    option:
+      listenIP: "0.0.0.0"
+      listenPort: 8093
+      connLimit:
+        openConnLimit: false
+        maxConnPerHost: 128
+        maxConnLimit: 5120
+    api:
+      configClient:
+        enable: true
   - name: xdsserverv3
     option:
       listenIP: "0.0.0.0"

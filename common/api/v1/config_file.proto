@@ -85,5 +85,7 @@ message ClientConfigFileInfo {
 }
 
 message ClientWatchConfigFileRequest {
-  repeated ClientConfigFileInfo watch_files = 1;
+  google.protobuf.StringValue client_ip = 1;
+  google.protobuf.StringValue service_name = 2;
+  repeated ClientConfigFileInfo watch_files = 3;
 }

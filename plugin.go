@@ -20,6 +20,7 @@ package main
 import (
 	_ "github.com/polarismesh/polaris-server/apiserver/eurekaserver"
 	_ "github.com/polarismesh/polaris-server/apiserver/grpcserver"
+	_ "github.com/polarismesh/polaris-server/apiserver/grpcserver/config"
 	_ "github.com/polarismesh/polaris-server/apiserver/httpserver"
 	_ "github.com/polarismesh/polaris-server/apiserver/l5pbserver"
 	_ "github.com/polarismesh/polaris-server/apiserver/xdsserverv3"
