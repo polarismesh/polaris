@@ -125,11 +125,8 @@ func (a *Auth) run() {
 	ticker := time.NewTicker(a.interval)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			_ = a.update()
-		}
+	for range ticker.C {
+		_ = a.update()
 	}
 }
 

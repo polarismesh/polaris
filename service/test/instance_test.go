@@ -1147,12 +1147,9 @@ func TestBatchCreateInstances(t *testing.T) {
 		var deleteCount int32
 		for i := 0; i < n; i++ {
 			go func() {
-				for {
-					select {
-					case id := <-idCh:
-						cleanInstance(id)
-						atomic.AddInt32(&deleteCount, 1)
-					}
+				for id := range idCh {
+					cleanInstance(id)
+					atomic.AddInt32(&deleteCount, 1)
 				}
 			}()
 		}
