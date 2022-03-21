@@ -353,9 +353,7 @@ func sleep(dur time.Duration) {
 	t := time.NewTimer(dur)
 	defer t.Stop()
 
-	select {
-	case <-t.C:
-	}
+	<-t.C
 }
 
 // checkRedis check redis alive
