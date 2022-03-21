@@ -54,6 +54,7 @@ type Server struct {
 	cache       *cache.FileCache
 	service     service.API
 	watchCenter *watchCenter
+	connManager *connManager
 }
 
 // InitConfigModule 初始化配置中心模块
@@ -109,7 +110,11 @@ func doInit(ctx context.Context, config StartupConfig) error {
 	eventCenter := NewEventCenter()
 	server.watchCenter = NewWatchCenter(eventCenter)
 
-	//5. 初始化发布事件扫描器
+	//5. 初始化连接管理器
+	connMng := NewConfigConnManager(ctx, server.watchCenter)
+	server.connManager = connMng
+
+	//6. 初始化发布事件扫描器
 	err = initReleaseMessageScanner(ctx, storage, fileCache, eventCenter, time.Second)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Server] init release message scanner error. ", zap.Error(err))
@@ -143,4 +148,8 @@ func (cs *Server) Service() service.API {
 // Cache 获取配置中心缓存模块
 func (cs *Server) Cache() *cache.FileCache {
 	return cs.cache
+}
+
+func (cs *Server) ConnManager() *connManager {
+	return cs.connManager
 }

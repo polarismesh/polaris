@@ -33,7 +33,7 @@ func TestClientSetupAndFileNotExisted(t *testing.T) {
 		t.FailNow()
 	}
 	rsp := configService.Service().GetConfigFileForClient(defaultCtx, testNamespace, testGroup, testFile, 0)
-	assert.Equal(t, uint32(api.NotFoundResourceConfigFile), rsp.Code.GetValue())
+	assert.Equal(t, uint32(api.NotFoundResource), rsp.Code.GetValue())
 
 	rsp2 := configService.Service().CheckClientConfigFileByVersion(defaultCtx, assembleDefaultClientConfigFile(0))
 	assert.Equal(t, uint32(api.DataNoChange), rsp2.Code.GetValue())
@@ -263,5 +263,5 @@ func TestDeleteConfigFile(t *testing.T) {
 
 	//重新拉取配置，获取不到配置文件
 	rsp4 := configService.Service().GetConfigFileForClient(defaultCtx, testNamespace, testGroup, testFile, 2)
-	assert.Equal(t, uint32(api.NotFoundResourceConfigFile), rsp4.Code.GetValue())
+	assert.Equal(t, uint32(api.NotFoundResource), rsp4.Code.GetValue())
 }
