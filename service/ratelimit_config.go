@@ -255,7 +255,7 @@ func (s *Server) UpdateRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 /**
  * GetRateLimits 查询限流规则
  */
-func (s *Server) GetRateLimits(query map[string]string) *api.BatchQueryResponse {
+func (s *Server) GetRateLimits(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	for key := range query {
 		if _, ok := RateLimitFilters[key]; !ok {
 			log.Errorf("params %s is not allowed in querying rate limits", key)

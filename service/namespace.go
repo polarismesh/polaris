@@ -88,6 +88,8 @@ func (s *Server) CreateNamespace(ctx context.Context, req *api.Namespace) *api.R
 		Token: utils.NewStringValue(data.Token),
 	}
 
+	s.afterNamespaceResource(ctx, req, data, false)
+
 	return api.NewNamespaceResponse(api.ExecuteSuccess, out)
 }
 
@@ -193,6 +195,8 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 	log.Info(msg, zap.String("request-id", requestID))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.ODelete))
 
+	s.afterNamespaceResource(ctx, req, &model.Namespace{Name: req.GetName().GetValue()}, true)
+
 	return api.NewNamespaceResponse(api.ExecuteSuccess, req)
 }
 
@@ -241,6 +245,10 @@ func (s *Server) UpdateNamespace(ctx context.Context, req *api.Namespace) *api.R
 	msg := fmt.Sprintf("update namespace: name=%s", namespace.Name)
 	log.Info(msg, zap.String("request-id", rid))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.OUpdate))
+
+	if err := s.afterNamespaceResource(ctx, req, namespace, false); err != nil {
+		return api.NewNamespaceResponse(api.ExecuteException, req)
+	}
 
 	return api.NewNamespaceResponse(api.ExecuteSuccess, req)
 }
@@ -295,7 +303,7 @@ func (s *Server) UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *
 /**
  * GetNamespaces 查询命名空间
  */
-func (s *Server) GetNamespaces(query map[string][]string) *api.BatchQueryResponse {
+func (s *Server) GetNamespaces(ctx context.Context, query map[string][]string) *api.BatchQueryResponse {
 	filter, offset, limit, checkError := checkGetNamespace(query)
 	if checkError != nil {
 		return checkError
@@ -314,6 +322,7 @@ func (s *Server) GetNamespaces(query map[string][]string) *api.BatchQueryRespons
 		nsCntInfo := s.caches.Service().GetNamesapceCntInfo(namespace.Name)
 
 		out.AddNamespace(&api.Namespace{
+			Id:                       utils.NewStringValue(namespace.Name),
 			Name:                     utils.NewStringValue(namespace.Name),
 			Comment:                  utils.NewStringValue(namespace.Comment),
 			Owners:                   utils.NewStringValue(namespace.Owner),

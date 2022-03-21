@@ -23,12 +23,8 @@ import (
 )
 
 // GetCoreConsoleAccessServer 增加配置中心模块之后，namespace 作为两个模块的公共模块需要独立， restful path 以 /core 开头
-func (h *HTTPServer) GetCoreConsoleAccessServer(include []string) (*restful.WebService, error) {
+func (h *HTTPServer) GetCoreConsoleAccessServer(ws *restful.WebService, include []string) error {
 	consoleAccess := []string{defaultAccess}
-
-	ws := new(restful.WebService)
-
-	ws.Path("/core/v1/namespaces").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
 
 	if len(include) == 0 {
 		include = consoleAccess
@@ -51,22 +47,22 @@ func (h *HTTPServer) GetCoreConsoleAccessServer(include []string) (*restful.WebS
 			h.addCoreDefaultAccess(ws)
 		default:
 			log.Errorf("[HttpServer][Core] method %s does not exist in httpserver console access", item)
-			return nil, fmt.Errorf("method %s does not exist in httpserver console access", item)
+			return fmt.Errorf("method %s does not exist in httpserver console access", item)
 		}
 	}
-	return ws, nil
+	return nil
 }
 
 func (h *HTTPServer) addCoreDefaultReadAccess(ws *restful.WebService) {
-	ws.Route(ws.GET("/").To(h.GetNamespaces))
-	ws.Route(ws.GET("/token").To(h.GetNamespaceToken))
+	ws.Route(ws.GET("/namespaces").To(h.GetNamespaces))
+	ws.Route(ws.GET("/namespaces/token").To(h.GetNamespaceToken))
 }
 
 func (h *HTTPServer) addCoreDefaultAccess(ws *restful.WebService) {
-	ws.Route(ws.POST("/").To(h.CreateNamespaces))
-	ws.Route(ws.POST("/delete").To(h.DeleteNamespaces))
-	ws.Route(ws.PUT("/").To(h.UpdateNamespaces))
-	ws.Route(ws.GET("/").To(h.GetNamespaces))
-	ws.Route(ws.GET("/token").To(h.GetNamespaceToken))
-	ws.Route(ws.PUT("/token").To(h.UpdateNamespaceToken))
+	ws.Route(ws.POST("/namespaces").To(h.CreateNamespaces))
+	ws.Route(ws.POST("/namespaces/delete").To(h.DeleteNamespaces))
+	ws.Route(ws.PUT("/namespaces").To(h.UpdateNamespaces))
+	ws.Route(ws.GET("/namespaces").To(h.GetNamespaces))
+	ws.Route(ws.GET("/namespaces/token").To(h.GetNamespaceToken))
+	ws.Route(ws.PUT("/namespaces/token").To(h.UpdateNamespaceToken))
 }

@@ -19,6 +19,7 @@ package eurekaserver
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/xml"
 	"fmt"
 	"net/http"
@@ -26,6 +27,7 @@ import (
 
 	"github.com/emicklei/go-restful"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 const (
@@ -272,14 +274,14 @@ func checkRegisterRequest(registrationRequest *RegistrationRequest, req *restful
 	}
 	if nil != registrationRequest.Instance.SecurePort {
 		if err = registrationRequest.Instance.SecurePort.convertPortValue(); nil != err {
-			log.Errorf("[EUREKA-SERVER] fail to parse instance register request, " +
+			log.Errorf("[EUREKA-SERVER] fail to parse instance register request, "+
 				"invalid secure port value, client: %s, err: %v", remoteAddr, err)
 			writePolarisStatusCode(req, api.InvalidInstancePort)
 			writeHeader(http.StatusBadRequest, rsp)
 			return false
 		}
 		if err = registrationRequest.Instance.SecurePort.convertEnableValue(); nil != err {
-			log.Errorf("[EUREKA-SERVER] fail to parse instance register request, " +
+			log.Errorf("[EUREKA-SERVER] fail to parse instance register request, "+
 				"invalid secure enable value, client: %s, err: %v", remoteAddr, err)
 			writePolarisStatusCode(req, api.InvalidInstancePort)
 			writeHeader(http.StatusBadRequest, rsp)
@@ -320,9 +322,21 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 	if !checkRegisterRequest(registrationRequest, req, rsp) {
 		return
 	}
+
+	token, err := getAuthFromEurekaRequestHeader(req)
+	if err != nil {
+		log.Infof("[EUREKA-SERVER]instance (instId=%s, appId=%s) get basic auth info fail, code is %d",
+			registrationRequest.Instance.InstanceId, appId, api.ExecuteException)
+		writePolarisStatusCode(req, api.ExecuteException)
+		writeHeader(http.StatusUnauthorized, rsp)
+		return
+	}
+
+	ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, token)
+
 	log.Infof("[EUREKA-SERVER]received instance register request, client: %s, instId: %s, appId: %s, ipAddr: %s",
 		remoteAddr, registrationRequest.Instance.InstanceId, appId, registrationRequest.Instance.IpAddr)
-	code := h.registerInstances(context.Background(), appId, registrationRequest.Instance)
+	code := h.registerInstances(ctx, appId, registrationRequest.Instance)
 	if code == api.ExecuteSuccess || code == api.ExistedResource || code == api.SameInstanceRequest {
 		log.Infof("[EUREKA-SERVER]instance (instId=%s, appId=%s) has been registered successfully, code is %d",
 			registrationRequest.Instance.InstanceId, appId, code)
@@ -497,4 +511,18 @@ func getParamFromEurekaRequestHeader(req *restful.Request, headerName string) st
 		return headerValue
 	}
 
+}
+
+func getAuthFromEurekaRequestHeader(req *restful.Request) (string, error) {
+	token := ""
+	basicInfo := strings.TrimPrefix(req.Request.Header.Get("Authorization"), "Basic ")
+	if len(basicInfo) != 0 {
+		ret, err := base64.StdEncoding.DecodeString(basicInfo)
+		if err != nil {
+			return "", err
+		}
+		info := string(ret)
+		token = strings.Split(info, ":")[1]
+	}
+	return token, nil
 }

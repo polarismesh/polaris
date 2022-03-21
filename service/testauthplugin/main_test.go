@@ -21,6 +21,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
+	"sync"
+	"time"
+
 	"github.com/polarismesh/polaris-server/bootstrap/config"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
@@ -29,12 +33,9 @@ import (
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/store"
 	"gopkg.in/yaml.v2"
-	"os"
-	"sync"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/polarismesh/polaris-server/plugin/auth/platform"
+	_ "github.com/polarismesh/polaris-server/plugin/auth/defaultauth"
 	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
 	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/token"
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
@@ -82,10 +83,11 @@ func initialize() error {
 			panic(err)
 		}
 
-		server, err = service.GetServer()
+		svr, err := service.GetOriginServer()
 		if err != nil {
 			panic(err)
 		}
+		server = svr
 
 		entry := cfg.Store.Option["master"]
 		config, ok := entry.(map[interface{}]interface{})

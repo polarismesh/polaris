@@ -73,7 +73,7 @@ type XDSServer struct {
 	start           bool
 	restart         bool
 	exitCh          chan struct{}
-	namingServer    *service.Server
+	namingServer    service.DiscoverServer
 	cache           cachev3.SnapshotCache
 	versionNum      *atomic.Uint64
 	server          *grpc.Server
@@ -670,7 +670,13 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 }
 
 func (x *XDSServer) initRegistryInfo() error {
-	resp := x.namingServer.GetNamespaces(make(map[string][]string))
+
+	namingServer, err := service.GetOriginServer()
+	if err != nil {
+		return err
+	}
+
+	resp := namingServer.GetNamespaces(context.Background(), make(map[string][]string))
 	if resp.Code.Value != api.ExecuteSuccess {
 		return fmt.Errorf("error to init registry info %s", resp.Code)
 	}

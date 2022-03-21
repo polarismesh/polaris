@@ -43,3 +43,184 @@ VALUES
         '2021-09-06 07:55:07',
         '2021-09-06 07:55:11'
     );
+
+
+-- Support polarismesh Authentication Ability
+
+-- User data
+CREATE TABLE `user` (
+    `id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'User ID',
+    `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment 'user name',
+    `password` VARCHAR(100) COLLATE utf8_bin NOT NULL comment 'user password',
+    `owner` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'Main account ID',
+    `source` VARCHAR(32) COLLATE utf8_bin NOT NULL comment 'Account source',
+    `mobile` VARCHAR(12) COLLATE utf8_bin NOT NULL comment 'Account mobile phone number',
+    `email` VARCHAR(64) COLLATE utf8_bin NOT NULL comment 'Account mailbox',
+    `token` VARCHAR(255) COLLATE utf8_bin NOT NULL comment 'The token information owned by the account can be used for SDK access authentication',
+    `token_enable` tinyint(4) NOT NULL DEFAULT 1,
+    `user_type` int NOT NULL DEFAULT 20 comment 'Account type, 0 is the admin super account, 20 is the primary account, 50 for the child account',
+    `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment 'describe',
+    `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY (`name`, `owner`),
+    KEY `owner` (`owner`),
+    KEY `mtime` (`mtime`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
+
+-- user group
+CREATE TABLE `user_group` (
+    `id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'User group ID',
+    `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment 'User group name',
+    `owner` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'The main account ID of the user group',
+    `token` VARCHAR(255) COLLATE utf8_bin NOT NULL comment 'TOKEN information of this user group',
+    `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment 'Description',
+    `token_enable` tinyint(4) NOT NULL DEFAULT 1,
+    `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY (`name`, `owner`),
+    KEY `owner` (`owner`),
+    KEY `mtime` (`mtime`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
+
+-- Users of users and user groups
+CREATE TABLE `user_group_relation` (
+    `user_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'User ID',
+    `group_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'User group ID',
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    PRIMARY KEY (`user_id`, `group_id`),
+    KEY `mtime` (`mtime`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
+
+-- Subject information of authentication strategy
+CREATE TABLE `auth_strategy` (
+    `id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'Strategy ID',
+    `name` VARCHAR(100) COLLATE utf8_bin NOT NULL comment 'Policy name',
+    `action` VARCHAR(32) COLLATE utf8_bin NOT NULL comment 'Read and write permission for this policy, only_read = 0, read_write = 1',
+    `owner` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'The account ID to which this policy is',
+    `comment` VARCHAR(255) COLLATE utf8_bin NOT NULL comment 'describe',
+    `default` tinyint(4) NOT NULL DEFAULT '0',
+    `revision` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'Authentication rule version',
+    `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY (`name`, `owner`),
+    KEY `owner` (`owner`),
+    KEY `mtime` (`mtime`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
+
+-- Member information, users and user groups in authentication strategies
+CREATE TABLE `auth_principal` (
+    `strategy_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'Strategy ID',
+    `principal_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'Principal ID',
+    `principal_role` int NOT NULL comment 'PRINCIPAL type, 1 is User, 2 is Group',
+    PRIMARY KEY (`strategy_id`, `principal_id`, `principal_role`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
+
+-- Resource information record involved in the authentication strategy
+CREATE TABLE `auth_strategy_resource` (
+    `strategy_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'Strategy ID',
+    `res_type` int COLLATE utf8_bin NOT NULL comment 'Resource Type, Namespaces = 0, Service = 1, configgroups = 2',
+    `res_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'Resource ID',
+    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    PRIMARY KEY (`strategy_id`, `res_type`, `res_id`),
+    KEY `mtime` (`mtime`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
+
+-- Create a default master account, password is Polarismesh @ 2021
+INSERT INTO
+    `user` (
+        `id`,
+        `name`,
+        `password`,
+        `source`,
+        `token`,
+        `token_enable`,
+        `user_type`,
+        `comment`,
+        `owner`
+    )
+VALUES
+    (
+        '65e4789a6d5b49669adf1e9e8387549c',
+        'polaris',
+        '$2a$10$5XMjs.oqo4PnpbTGy9dQqewL4eb4yoA7b/6ZKL33IPhFyIxzj4lRy',
+        'Polaris',
+        'nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=',
+        1,
+        20,
+        'default polaris admin account',
+        ''
+    );
+
+-- Permissions policy inserted into Polaris-Admin
+INSERT INTO
+    `auth_strategy`(
+        `id`,
+        `name`,
+        `action`,
+        `owner`,
+        `comment`,
+        `default`,
+        `revision`,
+        `flag`,
+        `ctime`,
+        `mtime`
+    )
+VALUES
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        '(用户) PolarisAdmin的默认策略',
+        'READ_WRITE',
+        '65e4789a6d5b49669adf1e9e8387549c',
+        'default admin',
+        1,
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        0,
+        sysdate(),
+        sysdate()
+    );
+
+-- Sport rules inserted into Polaris-Admin to access
+INSERT INTO
+    `auth_strategy_resource`(
+        `strategy_id`,
+        `res_type`,
+        `res_id`,
+        `ctime`,
+        `mtime`
+    )
+VALUES
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        0,
+        '*',
+        sysdate(),
+        sysdate()
+    ), (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        1,
+        '*',
+        sysdate(),
+        sysdate()
+    ), (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        2,
+        '*',
+        sysdate(),
+        sysdate()
+    );
+
+-- Insert permission policies and association relationships for Polaris-Admin accounts
+INSERT INTO
+    auth_principal(`strategy_id`, `principal_id`, `principal_role`) VALUE (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        '65e4789a6d5b49669adf1e9e8387549c',
+        1
+    );

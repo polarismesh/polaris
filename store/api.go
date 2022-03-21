@@ -78,6 +78,15 @@ type NamingModuleStore interface {
 
 	// ToolStore 函数及工具接口
 	ToolStore
+
+	// UserStore 用户接口
+	UserStore
+
+	// GroupStore 用户组接口
+	GroupStore
+
+	// StrategyStore 鉴权策略接口
+	StrategyStore
 }
 
 // NamespaceStore 命名空间存储接口
@@ -368,6 +377,98 @@ type PlatformStore interface {
 	// GetPlatforms 根据过滤条件查询平台信息
 	GetPlatforms(query map[string]string, offset uint32, limit uint32) (uint32, []*model.Platform, error)
 }
+
+// UserStore 用户相关操作接口
+type UserStore interface {
+
+	// AddUser 创建用户
+	AddUser(user *model.User) error
+
+	// UpdateUser 更新用户
+	UpdateUser(user *model.User) error
+
+	// DeleteUser 删除用户
+	DeleteUser(user *model.User) error
+
+	// GetSubCount 获取子账户的个数
+	GetSubCount(user *model.User) (uint32, error)
+
+	// GetUser 获取用户
+	GetUser(id string) (*model.User, error)
+
+	// GetUserByName 根据 name + owner 获取唯一的用户
+	GetUserByName(name, ownerId string) (*model.User, error)
+
+	// GetUserByIDS 根据 user ids 批量获取用户
+	GetUserByIds(ids []string) ([]*model.User, error)
+
+	// GetUsers 查询用户列表
+	GetUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error)
+
+	// GetUsersForCache 用于刷新用户缓存
+	GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*model.User, error)
+}
+
+// GroupStore 用户组存储操作接口
+type GroupStore interface {
+
+	// AddGroup 添加一个用户组
+	AddGroup(group *model.UserGroupDetail) error
+
+	// UpdateGroup 更新用户组
+	UpdateGroup(group *model.ModifyUserGroup) error
+
+	// DeleteGroup 删除用户组
+	DeleteGroup(group *model.UserGroupDetail) error
+
+	// GetGroup 获取用户组详细
+	GetGroup(id string) (*model.UserGroupDetail, error)
+
+	// GetGroupByName 根据 name + owner 获取用户组
+	GetGroupByName(name, owner string) (*model.UserGroup, error)
+
+	// GetGroups 获取用户组列表
+	GetGroups(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error)
+
+	// GetUserGroupsForCache 用于获取用户组 cache
+	GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*model.UserGroupDetail, error)
+}
+
+// StrategyStore 鉴权策略相关存储操作接口
+type StrategyStore interface {
+
+	// AddStrategy 创建鉴权策略
+	AddStrategy(strategy *model.StrategyDetail) error
+
+	// UpdateStrategy 更新鉴权策略
+	UpdateStrategy(strategy *model.ModifyStrategyDetail) error
+
+	// DeleteStrategy 删除鉴权策略
+	DeleteStrategy(id string) error
+
+	// LooseAddStrategyResources 松要求的添加鉴权策略的资源，允许忽略主键冲突的问题
+	LooseAddStrategyResources(resources []model.StrategyResource) error
+
+	// RemoveStrategyResources 清理对应资源所关联的所有策略
+	RemoveStrategyResources(resources []model.StrategyResource) error
+
+	// GetStrategyResources 获取某个 principal 对应的可以操作的资源ID数据信息
+	GetStrategyResources(principalId string, principalRole model.PrincipalType) ([]model.StrategyResource, error)
+
+	// GetDefaultStrategyDetailByPrincipal
+	GetDefaultStrategyDetailByPrincipal(principalId string, principalType int) (*model.StrategyDetail, error)
+
+	// GetStrategyDetail 获取策略详细
+	GetStrategyDetail(id string, isDefault bool) (*model.StrategyDetail, error)
+
+	// GetStrategies 获取策略列表
+	GetStrategies(filters map[string]string, offset uint32, limit uint32) (uint32,
+		[]*model.StrategyDetail, error)
+
+	// GetStrategyDetailsForCache 用于刷新策略缓存
+	GetStrategyDetailsForCache(mtime time.Time, firstUpdate bool) ([]*model.StrategyDetail, error)
+}
+
 
 // Transaction 事务接口，不支持多协程并发操作，当前只支持单个协程串行操作
 type Transaction interface {

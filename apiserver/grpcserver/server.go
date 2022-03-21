@@ -32,7 +32,7 @@ import (
 // GRPCServer GRPC API服务器
 type GRPCServer struct {
 	BaseGrpcServer
-	namingServer      *service.Server
+	namingServer      service.DiscoverServer
 	healthCheckServer *healthcheck.Server
 	openAPI           map[string]apiserver.APIConfig
 }

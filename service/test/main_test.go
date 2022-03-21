@@ -109,10 +109,12 @@ func initialize() error {
 			panic(err)
 		}
 
-		server, err = service.GetServer()
+		val, err := service.GetOriginServer()
 		if err != nil {
 			panic(err)
 		}
+
+		server = val
 
 		masterEntry := cfg.Store.Option["master"]
 		masterConfig, ok := masterEntry.(map[interface{}]interface{})

@@ -279,8 +279,8 @@ func TestGetRoutings(t *testing.T) {
 func TestCheckRoutingFieldLen(t *testing.T) {
 	req := &api.Routing{
 		ServiceToken: utils.NewStringValue("test"),
-		Service: utils.NewStringValue("test"),
-		Namespace: utils.NewStringValue("default"),
+		Service:      utils.NewStringValue("test"),
+		Namespace:    utils.NewStringValue("default"),
 	}
 
 	t.Run("创建路由规则，服务名超长", func(t *testing.T) {

@@ -25,10 +25,12 @@ import (
 	_ "github.com/polarismesh/polaris-server/apiserver/l5pbserver"
 	_ "github.com/polarismesh/polaris-server/apiserver/xdsserverv3"
 
+	_ "github.com/polarismesh/polaris-server/auth/defaultauth"
 	_ "github.com/polarismesh/polaris-server/cache"
 	_ "github.com/polarismesh/polaris-server/store/boltdb"
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
 
+	_ "github.com/polarismesh/polaris-server/plugin/auth/defaultauth"
 	_ "github.com/polarismesh/polaris-server/plugin/cmdb/memory"
 
 	_ "github.com/polarismesh/polaris-server/plugin/auth/platform"

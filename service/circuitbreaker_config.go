@@ -604,7 +604,7 @@ func (s *Server) UnBindCircuitBreaker(ctx context.Context, req *api.ConfigReleas
 /**
  * GetCircuitBreaker 根据id和version查询熔断规则
  */
-func (s *Server) GetCircuitBreaker(query map[string]string) *api.BatchQueryResponse {
+func (s *Server) GetCircuitBreaker(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	// 必填参数：id和version
 	if _, ok := query[ID]; !ok {
 		log.Errorf("params %s is not in querying circuit breaker", ID)
@@ -651,7 +651,7 @@ func (s *Server) GetCircuitBreaker(query map[string]string) *api.BatchQueryRespo
 /**
  * GetCircuitBreakerVersions 根据id查询熔断规则所有版本
  */
-func (s *Server) GetCircuitBreakerVersions(query map[string]string) *api.BatchQueryResponse {
+func (s *Server) GetCircuitBreakerVersions(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	// 必填参数：id
 	if _, ok := query[ID]; !ok {
 		log.Errorf("params %s is not in querying circuit breaker", ID)
@@ -680,7 +680,7 @@ func (s *Server) GetCircuitBreakerVersions(query map[string]string) *api.BatchQu
 /**
  * GetMasterCircuitBreakers 查询master熔断规则
  */
-func (s *Server) GetMasterCircuitBreakers(query map[string]string) *api.BatchQueryResponse {
+func (s *Server) GetMasterCircuitBreakers(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	for key := range query {
 		if _, ok := MasterCircuitBreakers[key]; !ok {
 			log.Errorf("params %s is not allowed in querying master circuit breakers", key)
@@ -706,7 +706,7 @@ func (s *Server) GetMasterCircuitBreakers(query map[string]string) *api.BatchQue
 /**
  * GetReleaseCircuitBreakers 根据规则id查询已发布规则
  */
-func (s *Server) GetReleaseCircuitBreakers(query map[string]string) *api.BatchQueryResponse {
+func (s *Server) GetReleaseCircuitBreakers(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	// 必须参数：id
 	if _, ok := query[ID]; !ok {
 		log.Errorf("params %s is not in querying release circuit breakers", ID)
@@ -768,7 +768,7 @@ func genCircuitBreakersResult(c *model.CircuitBreakerDetail) *api.BatchQueryResp
 /**
  * GetCircuitBreakerByService 根据服务查询绑定熔断规则
  */
-func (s *Server) GetCircuitBreakerByService(query map[string]string) *api.BatchQueryResponse {
+func (s *Server) GetCircuitBreakerByService(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	// 必须参数：service和namespace
 	for key := range ServiceParams {
 		if _, ok := query[key]; !ok {

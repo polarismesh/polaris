@@ -317,6 +317,7 @@ func (ins *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mo
 		log.Errorf("[Store][database] get instances service token query err: %s", err.Error())
 		return nil, err
 	}
+	defer rows.Close()
 
 	out := make(map[string]*model.Instance, len(ids))
 	var item model.ExpandInstanceStore

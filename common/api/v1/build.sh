@@ -21,4 +21,4 @@ ${PROTOC}/bin/protoc \
 --proto_path=. \
 model.proto client.proto service.proto routing.proto ratelimit.proto circuitbreaker.proto configrelease.proto \
 platform.proto request.proto response.proto grpcapi.proto config_file.proto config_file_response.proto \
-grpc_config_api.proto
+grpc_config_api.proto  auth.proto

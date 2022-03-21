@@ -253,7 +253,7 @@ func (s *Server) UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) 
 }
 
 // GetServiceAliases 查找服务别名
-func (s *Server) GetServiceAliases(query map[string]string) *api.BatchQueryResponse {
+func (s *Server) GetServiceAliases(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	// 先处理offset和limit
 	offset, limit, err := ParseOffsetAndLimit(query)
 	if err != nil {
@@ -282,6 +282,7 @@ func (s *Server) GetServiceAliases(query map[string]string) *api.BatchQueryRespo
 	resp.Aliases = make([]*api.ServiceAlias, 0, len(aliases))
 	for _, entry := range aliases {
 		item := &api.ServiceAlias{
+			Id:             utils.NewStringValue(entry.ID),
 			Service:        utils.NewStringValue(entry.Service),
 			Namespace:      utils.NewStringValue(entry.Namespace),
 			Alias:          utils.NewStringValue(entry.Alias),

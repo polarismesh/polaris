@@ -21,6 +21,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
+	"sync"
+
 	"github.com/polarismesh/polaris-server/bootstrap/config"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
@@ -28,8 +31,6 @@ import (
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
 	"gopkg.in/yaml.v2"
-	"os"
-	"sync"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
