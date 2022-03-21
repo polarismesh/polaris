@@ -44,7 +44,7 @@ type Config struct {
 	Config       config.StartupConfig `yaml:"config"`
 	HealthChecks healthcheck.Config   `yaml:"healthcheck"`
 	Store        store.Config         `yaml:"store"`
-	Auth         auth.Config        `yaml:"auth"`
+	Auth         auth.Config          `yaml:"auth"`
 	Plugin       plugin.Config        `yaml:"plugin"`
 }
 

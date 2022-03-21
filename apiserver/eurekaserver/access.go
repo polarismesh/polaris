@@ -323,7 +323,6 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 		return
 	}
 
-	// r.Header.Set("Authorization", "Basic "+basicAuth(username, password))
 	token, err := getAuthFromEurekaRequestHeader(req)
 	if err != nil {
 		log.Infof("[EUREKA-SERVER]instance (instId=%s, appId=%s) get basic auth info fail, code is %d",
