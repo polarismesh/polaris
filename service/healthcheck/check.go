@@ -93,11 +93,9 @@ func (c *CheckScheduler) doCheck(ctx context.Context) {
 	c.timeWheel.Start()
 	log.Infof("[Health Check][Check]timeWheel has been started")
 
-	for range ctx.Done() {
-		c.timeWheel.Stop()
-		log.Infof("[Health Check][Check]timeWheel has been stopped")
-		return
-	}
+	<-ctx.Done()
+	c.timeWheel.Stop()
+	log.Infof("[Health Check][Check]timeWheel has been stopped")
 }
 
 const (
