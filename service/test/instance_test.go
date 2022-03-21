@@ -709,7 +709,7 @@ func TestUpdateInstance(t *testing.T) {
 			},
 		}
 		instanceReq.Metadata = map[string]string{
-			"internal-personal-xxx": fmt.Sprintf("internal-personal-xxx_2412323"),
+			"internal-personal-xxx": "internal-personal-xxx_2412323",
 			"tencent":               "1111",
 			"yyyy":                  "2222",
 		}

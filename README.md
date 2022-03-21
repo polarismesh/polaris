@@ -76,7 +76,7 @@ https://dev.mysql.com/downloads/mysql/5.7.html
 
 #### Import SQL script
 
-Point Script: ./store/sqldb/polaris_server.sql, one can import through mysql admin or console.
+Point Script: ./store/sqldb/scripts/polaris_server.sql, one can import through mysql admin or console.
 
 #### Prepare golang compile environment
 
@@ -127,10 +127,6 @@ Return text is 'Polaris Server', proof features run smoothly
 Please scan the QR code to join the chat group.
 
 <img src="https://main.qcloudimg.com/raw/bff4285d70498058caa212805b83a620.jpg" width="30%" height="30%" />
-
-Welcome to scan the QR code to follow our official account, we will share the latest application cases and updates of PolarisMesh.
-
-<img src="https://main.qcloudimg.com/raw/e5a51696ae7c01e8bc9097fa0c7e426d.png" width="30%" height="30%" />
 
 ## Contribution
 

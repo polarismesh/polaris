@@ -168,7 +168,7 @@ func TestSyncByAgentCmd(t *testing.T) {
 			}
 
 			// SET_X weight=0
-			addL5Route(t, reqCmd.GetAgentIp(), modID, cmdID, fmt.Sprintf("SET_X"))
+			addL5Route(t, reqCmd.GetAgentIp(), modID, cmdID, "SET_X")
 			ack, _ = safeSyncByAgentCmd(defaultCtx, reqCmd)
 			So(len(ack.GetServList().GetServ()), ShouldEqual, 0)
 

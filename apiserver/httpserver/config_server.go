@@ -55,8 +55,6 @@ func (h *HTTPServer) GetConfigAccessServer(include []string) (*restful.WebServic
 		}
 	}
 
-	initConnManager()
-
 	return ws, nil
 }
 
@@ -91,5 +89,4 @@ func (h *HTTPServer) bindConfigClientEndpoint(ws *restful.WebService) {
 
 // StopConfigServer 停止配置中心模块
 func (h *HTTPServer) StopConfigServer() {
-	stopHandleTimeoutRequestWorker()
 }

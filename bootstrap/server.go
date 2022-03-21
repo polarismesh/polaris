@@ -368,6 +368,9 @@ func polarisServiceRegister(polarisService *config.PolarisService, apiServers []
 				log.Errorf("self register err: %s", err.Error())
 				return err
 			}
+
+			log.Infof("self register success. host = %s, port = %s, protocol = %s, service = %s",
+				host, port, protocol, service)
 		}
 	}
 

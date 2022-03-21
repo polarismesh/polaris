@@ -249,12 +249,12 @@ func reflectProtoMsg(typObject interface{}, fieldName string) (proto.Message, er
 	intoType := indirectType(reflect.TypeOf(typObject))
 	field, ok := intoType.FieldByName(fieldName)
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("field %s not found in object %v", fieldName, intoType))
+		return nil, fmt.Errorf("field %s not found in object %v", fieldName, intoType)
 	}
 	rawFieldType := field.Type
 	if !rawFieldType.Implements(messageType) {
-		return nil, errors.New(fmt.Sprintf("field %s type not match in object %v, want %v, get %v",
-			fieldName, intoType, messageType, field.Type))
+		return nil, fmt.Errorf("field %s type not match in object %v, want %v, get %v",
+			fieldName, intoType, messageType, field.Type)
 	}
 	return reflect.New(rawFieldType.Elem()).Interface().(proto.Message), nil
 }
