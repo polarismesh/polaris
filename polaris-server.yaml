@@ -10,9 +10,9 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       outputPaths:
-      - stdout
+        - stdout
       errorOutputPaths:
-      - stderr
+        - stderr
     auth:
       rotateOutputPath: log/polaris-auth.log
       errorRotateOutputPath: log/polaris-auth-error.log
@@ -74,13 +74,16 @@ bootstrap:
     key: sz # 全局锁
   # 注册为北极星服务
   polaris_service:
-    #    probe_address: ##DB_ADDR##
+    # probe_address: ##DB_ADDR##
     enable_register: true
     isolated: false
     services:
       - name: polaris.checker
         protocols:
           - grpcserver
+      - name: polaris.config
+        protocols:
+          - configgrpcserver
 # apiserver配置
 apiservers:
   - name: eurekaserver
@@ -120,6 +123,9 @@ apiservers:
       client:
         enable: true
         include: [discover, register, healthcheck]
+      config:
+        enable: true
+        include: [default]
   - name: grpcserver
     option:
       listenIP: "0.0.0.0"
@@ -132,6 +138,17 @@ apiservers:
       client:
         enable: true
         include: [discover, register, healthcheck]
+  - name: configgrpcserver
+    option:
+      listenIP: "0.0.0.0"
+      listenPort: 8093
+      connLimit:
+        openConnLimit: false
+        maxConnPerHost: 128
+        maxConnLimit: 5120
+    api:
+      configClient:
+        enable: true
   - name: xdsserverv3
     option:
       listenIP: "0.0.0.0"
@@ -146,6 +163,14 @@ apiservers:
 #      listenPort: 7779
 #      clusterName: cl5.discover
 # 核心逻辑的配置
+auth:
+  # 鉴权插件
+  name: defaultAuth
+  option:
+    # token 加密的 salt
+    salt: polarismesh@2021
+    # 鉴权能力开关
+    open: ##AUTH_OPEN##
 naming:
   auth:
     open: false
@@ -210,6 +235,9 @@ cache:
     - name: routingConfig # 加载路由数据
     - name: rateLimitConfig # 加载限流数据
     - name: circuitBreakerConfig # 加载熔断数据
+    - name: users # 加载用户、用户组数据
+    - name: strategyRule # 加载鉴权规则数据
+    - name: namespace # 加载命名空间数据
 #    - name: l5 # 加载l5数据
 # 存储配置
 store:
@@ -217,19 +245,19 @@ store:
   name: boltdbStore
   option:
     path: ./polaris.bolt
-## 数据库存储插件
-#  name: defaultStore
-#  option:
-#    master:
-#      dbType: mysql
-#      dbName: polaris_server
-#      dbUser: ##DB_USER##
-#      dbPwd: ##DB_PWD##
-#      dbAddr: ##DB_ADDR##
-#      maxOpenConns: -1
-#      maxIdleConns: -1
-#      connMaxLifetime: 300 # 单位秒
-#      txIsolationLevel: 2 #LevelReadCommitted
+  ## 数据库存储插件
+  # name: defaultStore
+  # option:
+  #   master:
+  #     dbType: mysql
+  #     dbName: polaris_server
+  #     dbUser: ##DB_USER##
+  #     dbPwd: ##DB_PWD##
+  #     dbAddr: ##DB_ADDR##
+  #     maxOpenConns: 300
+  #     maxIdleConns: 50
+  #     connMaxLifetime: 300 # 单位秒
+  #     txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置
 plugin:
   history:
@@ -256,6 +284,8 @@ plugin:
     # name: prometheus
     # option:
     #   interval: 60 # 统计间隔，单位为秒
+  auth:
+    name: defaultAuth
   ratelimit:
     name: token-bucket
     option:

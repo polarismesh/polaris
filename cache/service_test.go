@@ -153,7 +153,6 @@ func genModelServiceByNamespaces(total int, namespace []string) map[string]*mode
 	return out
 }
 
-
 // TestServiceUpdate 测试缓存更新函数
 func TestServiceUpdate(t *testing.T) {
 	ctl, storage, sc, _ := newTestServiceCache(t)

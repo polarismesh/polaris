@@ -32,7 +32,7 @@ func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(tx store
 }
 
 // QueryConfigFileReleaseHistories 获取配置文件的发布历史记录
-func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespace, group, fileName string, offset, limit uint32) (uint32, []*model.ConfigFileReleaseHistory, error) {
+func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespace, group, fileName string, offset, limit uint32, endId uint64) (uint32, []*model.ConfigFileReleaseHistory, error) {
 	return 0, nil, nil
 }
 

@@ -1,4 +1,4 @@
-/**
+/*
  * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -22,14 +22,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/golang/protobuf/ptypes/wrappers"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"io"
 	"regexp"
 	"strconv"
-
-	"github.com/golang/protobuf/ptypes/wrappers"
-
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
+	"strings"
 )
 
 const (
@@ -47,6 +46,28 @@ func CheckResourceName(name *wrappers.StringValue) error {
 	}
 
 	regStr := "^[0-9A-Za-z-.:_]+$"
+	ok, err := regexp.MatchString(regStr, name.GetValue())
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.New("name contains invalid character")
+	}
+
+	return nil
+}
+
+// CheckFileName 校验文件名
+func CheckFileName(name *wrappers.StringValue) error {
+	if name == nil {
+		return errors.New("nil")
+	}
+
+	if name.GetValue() == "" {
+		return errors.New("empty")
+	}
+
+	regStr := "^[0-9A-Za-z-./:_]+$"
 	ok, err := regexp.MatchString(regStr, name.GetValue())
 	if err != nil {
 		return err
@@ -122,4 +143,30 @@ func FromTagJson(tagStr string) []*api.ConfigFileTag {
 		})
 	}
 	return tags
+}
+
+// GenReleaseName 生成发布名称，规则是 filename-${三位自增长序列}
+func GenReleaseName(oldReleaseName, fileName string) string {
+	if oldReleaseName == "" {
+		return fileName + "-001"
+	}
+
+	nameInfo := strings.Split(oldReleaseName, "-")
+	if len(nameInfo) != 2 {
+		return oldReleaseName
+	}
+
+	olNumStr := nameInfo[1]
+
+	if fileName != nameInfo[0] {
+		return oldReleaseName
+	}
+
+	num, err := strconv.ParseInt(olNumStr, 10, 64)
+	if err != nil {
+		return oldReleaseName
+	}
+
+	num += 1
+	return fileName + "-" + strings.ReplaceAll(fmt.Sprintf("%3d", num), " ", "0")
 }

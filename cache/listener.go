@@ -45,6 +45,8 @@ const (
 	EventDeleted
 	// EventInstanceReload value instances reload
 	EventInstanceReload
+	// EventPrincipalRemove value principal batch remove
+	EventPrincipalRemove
 )
 
 type listenerManager struct {
@@ -71,6 +73,8 @@ func (l *listenerManager) onEvent(value interface{}, event EventType) {
 			listener.OnDeleted(value)
 		case EventInstanceReload:
 			listener.OnBatchUpdated(value)
+		case EventPrincipalRemove:
+			listener.OnBatchDeleted(value)
 		}
 	}
 }

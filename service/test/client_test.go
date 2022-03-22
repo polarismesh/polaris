@@ -298,5 +298,3 @@ func TestDiscoverService2(t *testing.T) {
 		})
 	})
 }
-
-

@@ -21,11 +21,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
+	"testing"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"sync"
-	"testing"
 )
 
 /**
@@ -207,7 +208,7 @@ func TestDeletePlatform(t *testing.T) {
 		filter := map[string]string{
 			"id": id,
 		}
-		resp := server.GetPlatforms(filter)
+		resp := server.GetPlatforms(context.Background(), filter)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -315,7 +316,7 @@ func TestUpdatePlatform(t *testing.T) {
 		filter := map[string]string{
 			"id": req.GetId().GetValue(),
 		}
-		resp := server.GetPlatforms(filter)
+		resp := server.GetPlatforms(context.Background(), filter)
 		if !respSuccess(resp) {
 			t.Fatal("error")
 		}
@@ -378,7 +379,7 @@ func TestGetPlatform(t *testing.T) {
 		filter := map[string]string{
 			"id": fmt.Sprintf("id-%d", platformNum),
 		}
-		resp := server.GetPlatforms(filter)
+		resp := server.GetPlatforms(context.Background(), filter)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -392,7 +393,7 @@ func TestGetPlatform(t *testing.T) {
 		filter := map[string]string{
 			"name": platformName,
 		}
-		resp := server.GetPlatforms(filter)
+		resp := server.GetPlatforms(context.Background(), filter)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -407,7 +408,7 @@ func TestGetPlatform(t *testing.T) {
 			"name":  platformName,
 			"owner": fmt.Sprintf("owner-%d", platformNum),
 		}
-		resp := server.GetPlatforms(filter)
+		resp := server.GetPlatforms(context.Background(), filter)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -421,7 +422,7 @@ func TestGetPlatform(t *testing.T) {
 		filter := map[string]string{
 			"name": "not exist",
 		}
-		resp := server.GetPlatforms(filter)
+		resp := server.GetPlatforms(context.Background(), filter)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -435,7 +436,7 @@ func TestGetPlatform(t *testing.T) {
 		filter := map[string]string{
 			"domain": "test",
 		}
-		resp := server.GetPlatforms(filter)
+		resp := server.GetPlatforms(context.Background(), filter)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
@@ -447,7 +448,7 @@ func TestGetPlatform(t *testing.T) {
 		filter := map[string]string{
 			"offset": "-3",
 		}
-		resp := server.GetPlatforms(filter)
+		resp := server.GetPlatforms(context.Background(), filter)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {

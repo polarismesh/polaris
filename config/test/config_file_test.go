@@ -101,24 +101,30 @@ func TestConfigFileCRUD(t *testing.T) {
 	})
 
 	t.Run("step4-delete", func(t *testing.T) {
-		deleteBy := "ledou2"
-		rsp := configService.Service().DeleteConfigFile(defaultCtx, testNamespace, testGroup, testFile, deleteBy)
+		//删除前先发布一次
+		configFile := assembleConfigFile()
+		configFileRelease := assembleConfigFileRelease(configFile)
+		rsp := configService.Service().PublishConfigFile(defaultCtx, configFileRelease)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 
+		deleteBy := "ledou2"
+		rsp2 := configService.Service().DeleteConfigFile(defaultCtx, testNamespace, testGroup, testFile, deleteBy)
+		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
+
 		//删除后，查询不到
-		rsp2 := configService.Service().GetConfigFileBaseInfo(defaultCtx, testNamespace, testGroup, testFile)
-		assert.Equal(t, uint32(api.NotFoundResource), rsp2.Code.GetValue())
+		rsp3 := configService.Service().GetConfigFileBaseInfo(defaultCtx, testNamespace, testGroup, testFile)
+		assert.Equal(t, uint32(api.NotFoundResource), rsp3.Code.GetValue())
 		assert.Nil(t, rsp2.ConfigFile)
 
 		//删除会创建一条删除的历史记录
-		rsp3 := configService.Service().GetConfigFileReleaseHistory(defaultCtx, testNamespace, testGroup, testFile, 0, 2)
-		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
-		assert.Equal(t, uint32(1), rsp3.Total.GetValue())
-		assert.Equal(t, utils.ReleaseTypeDelete, rsp3.ConfigFileReleaseHistories[0].Type.GetValue())
-		assert.Equal(t, utils.ReleaseStatusSuccess, rsp3.ConfigFileReleaseHistories[0].Status.GetValue())
-		assert.Equal(t, deleteBy, rsp3.ConfigFileReleaseHistories[0].CreateBy.GetValue())
-		assert.Equal(t, deleteBy, rsp3.ConfigFileReleaseHistories[0].ModifyBy.GetValue())
-		assert.Equal(t, "", rsp3.ConfigFileReleaseHistories[0].Content.GetValue())
+		rsp4 := configService.Service().GetConfigFileReleaseHistory(defaultCtx, testNamespace, testGroup, testFile, 0, 2, 0)
+		assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
+		assert.Equal(t, uint32(2), rsp4.Total.GetValue())
+		assert.Equal(t, utils.ReleaseTypeDelete, rsp4.ConfigFileReleaseHistories[0].Type.GetValue())
+		assert.Equal(t, utils.ReleaseStatusSuccess, rsp4.ConfigFileReleaseHistories[0].Status.GetValue())
+		assert.Equal(t, deleteBy, rsp4.ConfigFileReleaseHistories[0].CreateBy.GetValue())
+		assert.Equal(t, deleteBy, rsp4.ConfigFileReleaseHistories[0].ModifyBy.GetValue())
+		assert.Equal(t, "", rsp4.ConfigFileReleaseHistories[0].Content.GetValue())
 	})
 
 	t.Run("step5-search-by-group", func(t *testing.T) {
@@ -262,7 +268,7 @@ func TestPublishConfigFile(t *testing.T) {
 	assert.Equal(t, configFileRelease.CreateBy.GetValue(), rsp8.ConfigFileReleaseHistory.ModifyBy.GetValue())
 	assert.Equal(t, configFileRelease.CreateBy.GetValue(), rsp8.ConfigFileReleaseHistory.CreateBy.GetValue())
 
-	rsp9 := configService.Service().GetConfigFileReleaseHistory(defaultCtx, testNamespace, testGroup, testFile, 0, 10)
+	rsp9 := configService.Service().GetConfigFileReleaseHistory(defaultCtx, testNamespace, testGroup, testFile, 0, 10, 0)
 	assert.Equal(t, api.ExecuteSuccess, rsp9.Code.GetValue())
 	assert.Equal(t, 2, len(rsp9.ConfigFileReleaseHistories))
 

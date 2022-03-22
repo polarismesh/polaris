@@ -19,7 +19,9 @@ package boltdb
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
@@ -28,6 +30,22 @@ import (
 	v1 "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 )
+
+
+func CreateTableDBHandlerAndRun(t *testing.T, tableName string, tf func(t *testing.T, handler BoltHandler)) {
+	tempDir, _ := ioutil.TempDir("", tableName)
+	_ = os.Remove(filepath.Join(tempDir, fmt.Sprintf("%s.bolt", tableName)))
+	handler, err := NewBoltHandler(&BoltConfig{FileName: filepath.Join(tempDir, fmt.Sprintf("%s.bolt", tableName))})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		_ = handler.Close()
+		_ = os.Remove(filepath.Join(tempDir, fmt.Sprintf("%s.bolt", tableName)))
+	}()
+	tf(t, handler)
+}
 
 func TestBoltHandler_SaveNamespace(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})

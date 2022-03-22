@@ -51,6 +51,9 @@ type stableStore struct {
 	*circuitBreakerStore
 	*platformStore
 	*toolStore
+	*userStore
+	*groupStore
+	*strategyStore
 
 	//配置中心stores
 	*configFileGroupStore
@@ -157,11 +160,11 @@ func parseStoreConfig(opts interface{}) (*dbConfig, error) {
 	}
 
 	c := &dbConfig{
-		dbType: dbType,
-		dbUser: dbUser,
-		dbPwd:  dbPwd,
-		dbAddr: dbAddr,
-		dbName: dbName,
+		dbType:            dbType,
+		dbUser:            dbUser,
+		dbPwd:             dbPwd,
+		dbAddr:            dbAddr,
+		dbName:            dbName,
 	}
 	if maxOpenConns, _ := obj["maxOpenConns"].(int); maxOpenConns > 0 {
 		c.maxOpenConns = maxOpenConns
@@ -240,6 +243,12 @@ func (s *stableStore) newStore() {
 	s.platformStore = &platformStore{master: s.master}
 
 	s.toolStore = &toolStore{db: s.master}
+
+	s.userStore = &userStore{master: s.master, slave: s.slave}
+
+	s.groupStore = &groupStore{master: s.master, slave: s.slave}
+
+	s.strategyStore = &strategyStore{master: s.master, slave: s.slave}
 
 	s.configFileGroupStore = &configFileGroupStore{db: s.master}
 

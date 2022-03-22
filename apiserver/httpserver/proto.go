@@ -130,3 +130,15 @@ func (m *ServiceAliasArr) String() string { return proto.CompactTextString(m) }
 
 // ProtoMessage
 func (*ServiceAliasArr) ProtoMessage() {}
+
+// ConfigFileArr 配置文件数组定义
+type ConfigFileArr []*api.ConfigFile
+
+// Reset
+func (m *ConfigFileArr) Reset() { *m = ConfigFileArr{} }
+
+// String
+func (m *ConfigFileArr) String() string { return proto.CompactTextString(m) }
+
+// ProtoMessage
+func (*ConfigFileArr) ProtoMessage() {}

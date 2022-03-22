@@ -27,6 +27,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/polarismesh/polaris-server/auth"
+	"github.com/polarismesh/polaris-server/plugin/statis/local"
+
 	"github.com/emicklei/go-restful"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -37,7 +40,6 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/config"
 	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/plugin/statis/local"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 )
@@ -58,12 +60,14 @@ type HTTPServer struct {
 	freeMemMu *sync.Mutex
 
 	server            *http.Server
-	namingServer      *service.Server
+	namingServer      service.DiscoverServer
 	configServer      *config.Server
 	healthCheckServer *healthcheck.Server
 	rateLimit         plugin.Ratelimit
 	statis            plugin.Statis
 	auth              plugin.Auth
+
+	authServer auth.AuthServer
 }
 
 const (
@@ -130,6 +134,16 @@ func (h *HTTPServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
+
+	authSvr, err := auth.GetAuthServer()
+	if err != nil {
+		log.Errorf("%v", err)
+		errCh <- err
+		return
+	}
+
+	h.authServer = authSvr
+
 	h.healthCheckServer, err = healthcheck.GetServer()
 	if err != nil {
 		log.Errorf("%v", err)
@@ -277,11 +291,18 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 					return nil, err
 				}
 				wsContainer.Add(namingService)
-				coreService, err := h.GetCoreConsoleAccessServer(config.Include)
-				if err != nil {
+
+				ws := new(restful.WebService)
+				ws.Path("/core/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
+
+				if err := h.GetCoreConsoleAccessServer(ws, config.Include); err != nil {
 					return nil, err
 				}
-				wsContainer.Add(coreService)
+				if err := h.GetAuthServer(ws); err != nil {
+					return nil, err
+				}
+
+				wsContainer.Add(ws)
 			}
 		case "client":
 			if config.Enable {

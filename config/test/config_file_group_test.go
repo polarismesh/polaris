@@ -36,7 +36,7 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 
 	// 查询不存在的 group
 	t.Run("step1-query-none", func(t *testing.T) {
-		rsp := configService.Service().QueryConfigFileGroups(defaultCtx, testNamespace, testGroup, 0, 1)
+		rsp := configService.Service().QueryConfigFileGroups(defaultCtx, testNamespace, testGroup, "", 0, 1)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 		assert.Equal(t, 0, len(rsp.ConfigFileGroups))
 	})
@@ -54,9 +54,19 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 
 	// 再次查询 group，能查询到上一步创建的 group
 	t.Run("step3-query-existed", func(t *testing.T) {
-		rsp := configService.Service().QueryConfigFileGroups(defaultCtx, testNamespace, testGroup, 0, 1)
+		rsp := configService.Service().QueryConfigFileGroups(defaultCtx, testNamespace, testGroup, "", 0, 1)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 		assert.Equal(t, 1, len(rsp.ConfigFileGroups))
+	})
+
+	// 创建配置文件
+	t.Run("create-config-files", func(t *testing.T) {
+		rsp := configService.Service().CreateConfigFile(defaultCtx, assembleConfigFile())
+		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
+
+		rsp2 := configService.Service().SearchConfigFile(defaultCtx, testNamespace, testGroup, "", "", uint32(0), uint32(10))
+		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
+		assert.Equal(t, uint32(1), rsp2.Total.GetValue())
 	})
 
 	// 删除 group
@@ -64,11 +74,14 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 		rsp := configService.Service().DeleteConfigFileGroup(defaultCtx, testNamespace, testGroup)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 
+		rsp2 := configService.Service().SearchConfigFile(defaultCtx, testNamespace, testGroup, "", "", uint32(0), uint32(10))
+		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
+		assert.Equal(t, uint32(0), rsp2.Total.GetValue())
 	})
 
 	// 再次查询group，由于被删除，所以查不到
 	t.Run("step5-query-none", func(t *testing.T) {
-		rsp := configService.Service().QueryConfigFileGroups(defaultCtx, testNamespace, testGroup, 0, 1)
+		rsp := configService.Service().QueryConfigFileGroups(defaultCtx, testNamespace, testGroup, "", 0, 1)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 		assert.Equal(t, 0, len(rsp.ConfigFileGroups))
 	})
@@ -89,7 +102,7 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 
 	// 模糊查询
 	t.Run("step7-query-random", func(t *testing.T) {
-		rsp := configService.Service().QueryConfigFileGroups(defaultCtx, testNamespace, randomGroupPrefix, 0, 2)
+		rsp := configService.Service().QueryConfigFileGroups(defaultCtx, testNamespace, randomGroupPrefix, "", 0, 2)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 		assert.Equal(t, 2, len(rsp.ConfigFileGroups))
 		assert.Equal(t, randomGroupSize, rsp.Total.GetValue())
@@ -98,13 +111,13 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 	//测试翻页
 	t.Run("step8-query-by-page", func(t *testing.T) {
 		//最后一页
-		rsp := configService.Service().QueryConfigFileGroups(defaultCtx, testNamespace, randomGroupPrefix, 6, 2)
+		rsp := configService.Service().QueryConfigFileGroups(defaultCtx, testNamespace, randomGroupPrefix, "", 6, 2)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 		assert.Equal(t, 1, len(rsp.ConfigFileGroups))
 		assert.Equal(t, randomGroupSize, rsp.Total.GetValue())
 
 		//超出页范围
-		rsp2 := configService.Service().QueryConfigFileGroups(defaultCtx, testNamespace, randomGroupPrefix, 8, 2)
+		rsp2 := configService.Service().QueryConfigFileGroups(defaultCtx, testNamespace, randomGroupPrefix, "", 8, 2)
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 		assert.Equal(t, 0, len(rsp2.ConfigFileGroups))
 		assert.Equal(t, randomGroupSize, rsp2.Total.GetValue())

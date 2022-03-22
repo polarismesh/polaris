@@ -19,10 +19,7 @@ package boltdb
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"math/rand"
-	"os"
-	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
@@ -119,23 +116,8 @@ func createTestService(id, name, namespace string, create bool) *model.Service {
 	}
 }
 
-func CreateCircuitbreakerDBHandlerAndRun(t *testing.T, tf func(t *testing.T, handler BoltHandler)) {
-	tempDir, _ := ioutil.TempDir("", "test_circuitbreaker")
-	_ = os.Remove(filepath.Join(tempDir, "test_circuitbreaker.bolt"))
-	handler, err := NewBoltHandler(&BoltConfig{FileName: filepath.Join(tempDir, "test_circuitbreaker.bolt")})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer func() {
-		_ = handler.Close()
-		_ = os.Remove(filepath.Join(tempDir, "test_circuitbreaker.bolt"))
-	}()
-	tf(t, handler)
-}
-
 func Test_circuitBreakerStore_CreateCircuitBreaker(t *testing.T) {
-	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_circuitbreaker", func(t *testing.T, handler BoltHandler) {
 		type fields struct {
 			handler      BoltHandler
 			ruleLock     *sync.RWMutex
@@ -238,7 +220,7 @@ func Test_circuitBreakerStore_CreateCircuitBreaker(t *testing.T) {
 }
 
 func Test_circuitBreakerStore_TagCircuitBreaker(t *testing.T) {
-	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_circuitbreaker", func(t *testing.T, handler BoltHandler) {
 		type fields struct {
 			handler      BoltHandler
 			ruleLock     *sync.RWMutex
@@ -308,7 +290,7 @@ func Test_circuitBreakerStore_TagCircuitBreaker(t *testing.T) {
 }
 
 func Test_circuitBreakerStore_ReleaseCircuitBreaker(t *testing.T) {
-	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_circuitbreaker", func(t *testing.T, handler BoltHandler) {
 		type fields struct {
 			handler      BoltHandler
 			ruleLock     *sync.RWMutex
@@ -383,7 +365,7 @@ func Test_circuitBreakerStore_ReleaseCircuitBreaker(t *testing.T) {
 }
 
 func Test_circuitBreakerStore_UnbindCircuitBreaker(t *testing.T) {
-	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_circuitbreaker", func(t *testing.T, handler BoltHandler) {
 
 		tCbR := createTestCircuitbreakerRelation("", false)
 
@@ -459,7 +441,7 @@ func Test_circuitBreakerStore_UnbindCircuitBreaker(t *testing.T) {
 }
 
 func Test_circuitBreakerStore_DeleteTagCircuitBreaker(t *testing.T) {
-	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_circuitbreaker", func(t *testing.T, handler BoltHandler) {
 
 		cb := createTestCircuitbreaker("", true)
 
@@ -523,7 +505,7 @@ func Test_circuitBreakerStore_DeleteTagCircuitBreaker(t *testing.T) {
 }
 
 func Test_circuitBreakerStore_UpdateCircuitBreaker(t *testing.T) {
-	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_circuitbreaker", func(t *testing.T, handler BoltHandler) {
 		type fields struct {
 			handler      BoltHandler
 			ruleLock     *sync.RWMutex
@@ -621,7 +603,7 @@ func Test_circuitBreakerStore_GetCircuitBreaker(t *testing.T) {
 }
 
 func Test_circuitBreakerStore_GetCircuitBreakerVersions(t *testing.T) {
-	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_circuitbreaker", func(t *testing.T, handler BoltHandler) {
 
 		c := &circuitBreakerStore{
 			handler: handler,
@@ -733,7 +715,7 @@ func Test_circuitBreakerStore_GetCircuitBreakerVersions(t *testing.T) {
 }
 
 func Test_circuitBreakerStore_ListMasterCircuitBreakers(t *testing.T) {
-	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_circuitbreaker", func(t *testing.T, handler BoltHandler) {
 
 		c := &circuitBreakerStore{
 			handler: handler,
@@ -884,7 +866,7 @@ func Test_circuitBreakerStore_ListMasterCircuitBreakers(t *testing.T) {
 }
 
 func Test_circuitBreakerStore_ListReleaseCircuitBreakers(t *testing.T) {
-	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_circuitbreaker", func(t *testing.T, handler BoltHandler) {
 
 		c := &circuitBreakerStore{
 			handler: handler,
@@ -971,7 +953,7 @@ func Test_circuitBreakerStore_ListReleaseCircuitBreakers(t *testing.T) {
 
 func Test_circuitBreakerStore_GetCircuitBreakerForCache(t *testing.T) {
 
-	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_circuitbreaker", func(t *testing.T, handler BoltHandler) {
 		c := &circuitBreakerStore{
 			handler: handler,
 		}
@@ -1107,7 +1089,7 @@ func Test_circuitBreakerStore_GetCircuitBreakerForCache(t *testing.T) {
 }
 
 func Test_circuitBreakerStore_GetCircuitBreakersByService(t *testing.T) {
-	CreateCircuitbreakerDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_circuitbreaker", func(t *testing.T, handler BoltHandler) {
 		type fields struct {
 			handler BoltHandler
 		}

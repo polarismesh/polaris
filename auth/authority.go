@@ -21,6 +21,7 @@ import (
 	"strings"
 )
 
+// @Desperated
 // authority 鉴权数据来源类
 type authority struct {
 	global string
@@ -35,7 +36,9 @@ const (
 // interface impl check
 var _ Authority = (*authority)(nil)
 
-// NewAuthority 新建一个缓存类
+/**
+* NewAuthority 新建一个缓存类
+ */
 func NewAuthority(opt map[string]interface{}) (Authority, error) {
 	global, _ := opt["global-token"].(string)
 	if global == "" {
@@ -45,7 +48,9 @@ func NewAuthority(opt map[string]interface{}) (Authority, error) {
 	return au, nil
 }
 
-// parseOpen 解析鉴权功能是否打开的开关
+/**
+* parseOpen 解析鉴权功能是否打开的开关
+ */
 func parseOpen(opt map[string]interface{}) bool {
 	var (
 		open bool
@@ -67,12 +72,16 @@ func (a *authority) VerifyToken(actualToken string) bool {
 	return len(actualToken) > 0
 }
 
-// VerifyNamespace 校验命名空间是否合法
+/**
+* VerifyNamespace 校验命名空间是否合法
+ */
 func (a *authority) VerifyNamespace(expectToken string, actualToken string) bool {
 	return (!a.open || a.global == actualToken) || expectToken == actualToken
 }
 
-// VerifyService 校验服务是否合法
+/**
+* VerifyService 校验服务是否合法
+ */
 func (a *authority) VerifyService(expectToken string, actualToken string) bool {
 	if !a.open || a.global == actualToken {
 		return true
@@ -83,7 +92,9 @@ func (a *authority) VerifyService(expectToken string, actualToken string) bool {
 	return ok
 }
 
-// VerifyInstance 校验实例是否合法
+/**
+* VerifyInstance 校验实例是否合法
+ */
 func (a *authority) VerifyInstance(expectToken string, actualToken string) bool {
 	if !a.open || a.global == actualToken {
 		return true
@@ -94,7 +105,9 @@ func (a *authority) VerifyInstance(expectToken string, actualToken string) bool 
 	return ok
 }
 
-// VerifyRule 校验规则是否合法
+/**
+ * VerifyRule 校验规则是否合法
+ */
 func (a *authority) VerifyRule(expectToken string, actualToken string) bool {
 	if !a.open || a.global == actualToken {
 		return true
@@ -105,7 +118,9 @@ func (a *authority) VerifyRule(expectToken string, actualToken string) bool {
 	return ok
 }
 
-// VerifyMesh 校验网格规则是否合法
+/**
+ * VerifyMesh 校验网格规则是否合法
+ */
 func (a *authority) VerifyMesh(expectToken string, actualToken string) bool {
 	if !a.open || a.global == actualToken {
 		return true
@@ -116,7 +131,9 @@ func (a *authority) VerifyMesh(expectToken string, actualToken string) bool {
 	return ok
 }
 
-// VerifyPlatform 校验平台是否合法
+/**
+ * VerifyPlatform 校验平台是否合法
+ */
 func (a *authority) VerifyPlatform(expectToken string, actualToken string) bool {
 	if !a.open || a.global == actualToken {
 		return true
@@ -127,7 +144,9 @@ func (a *authority) VerifyPlatform(expectToken string, actualToken string) bool 
 	return ok
 }
 
-// convertToken 将string类型的token转化为map类型
+/**
+* convertToken 将string类型的token转化为map类型
+ */
 func convertToken(token string) map[string]bool {
 	if token == "" {
 		return nil

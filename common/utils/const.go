@@ -29,3 +29,18 @@ const (
 var (
 	LocalHost string = "127.0.0.1"
 )
+
+const (
+	HeaderAuthTokenKey string = "X-Polaris-Token"
+	HeaderIsOwnerKey   string = "X-Is-Owner"
+	HeaderUserIDKey    string = "X-User-ID"
+	HeaderOwnerIDKey   string = "X-Owner-ID"
+	HeaderUserRoleKey  string = "X-Polaris-User-Role"
+
+	ContextAuthTokenKey   StringContext = StringContext(HeaderAuthTokenKey)
+	ContextIsOwnerKey     StringContext = StringContext(HeaderIsOwnerKey)
+	ContextUserIDKey      StringContext = StringContext(HeaderUserIDKey)
+	ContextOwnerIDKey     StringContext = StringContext(HeaderOwnerIDKey)
+	ContextUserRoleIDKey  StringContext = StringContext(HeaderUserRoleKey)
+	ContextAuthContextKey StringContext = StringContext("X-Polaris-AuthContext")
+)

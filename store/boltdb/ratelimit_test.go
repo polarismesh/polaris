@@ -18,9 +18,6 @@
 package boltdb
 
 import (
-	"io/ioutil"
-	"os"
-	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
@@ -51,23 +48,8 @@ func createTestRateLimit(id string, createId bool) *model.RateLimit {
 	}
 }
 
-func CreateRateLimitDBHandlerAndRun(t *testing.T, tf func(t *testing.T, handler BoltHandler)) {
-	tempDir, _ := ioutil.TempDir("", "test_ratelimit")
-	_ = os.Remove(filepath.Join(tempDir, "test_ratelimit.bolt"))
-	handler, err := NewBoltHandler(&BoltConfig{FileName: filepath.Join(tempDir, "test_ratelimit.bolt")})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer func() {
-		_ = handler.Close()
-		_ = os.Remove(filepath.Join(tempDir, "test_ratelimit.bolt"))
-	}()
-	tf(t, handler)
-}
-
 func Test_rateLimitStore_CreateRateLimit(t *testing.T) {
-	CreateRateLimitDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_ratelimit", func(t *testing.T, handler BoltHandler) {
 
 		testVal := createTestRateLimit("", true)
 
@@ -97,7 +79,7 @@ func Test_rateLimitStore_CreateRateLimit(t *testing.T) {
 }
 
 func Test_rateLimitStore_CreateRateLimitWithBadParam(t *testing.T) {
-	CreateRateLimitDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_ratelimit", func(t *testing.T, handler BoltHandler) {
 
 		testVal := createTestRateLimit("", false)
 
@@ -115,7 +97,7 @@ func Test_rateLimitStore_CreateRateLimitWithBadParam(t *testing.T) {
 }
 
 func Test_rateLimitStore_UpdateRateLimit(t *testing.T) {
-	CreateRateLimitDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_ratelimit", func(t *testing.T, handler BoltHandler) {
 		r := &rateLimitStore{
 			handler: handler,
 		}
@@ -153,7 +135,7 @@ func Test_rateLimitStore_UpdateRateLimit(t *testing.T) {
 }
 
 func Test_rateLimitStore_DeleteRateLimit(t *testing.T) {
-	CreateRateLimitDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_ratelimit", func(t *testing.T, handler BoltHandler) {
 		r := &rateLimitStore{
 			handler: handler,
 		}
@@ -178,7 +160,7 @@ func Test_rateLimitStore_DeleteRateLimit(t *testing.T) {
 }
 
 func Test_rateLimitStore_GetExtendRateLimits(t *testing.T) {
-	CreateRateLimitDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_ratelimit", func(t *testing.T, handler BoltHandler) {
 		r := &rateLimitStore{
 			handler: handler,
 		}
@@ -304,7 +286,7 @@ func Test_rateLimitStore_GetExtendRateLimits(t *testing.T) {
 }
 
 func Test_rateLimitStore_GetRateLimitWithID(t *testing.T) {
-	CreateRateLimitDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_ratelimit", func(t *testing.T, handler BoltHandler) {
 		r := &rateLimitStore{
 			handler: handler,
 		}
@@ -331,7 +313,7 @@ func Test_rateLimitStore_GetRateLimitWithID(t *testing.T) {
 }
 
 func Test_rateLimitStore_GetRateLimitsForCache(t *testing.T) {
-	CreateRateLimitDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_ratelimit", func(t *testing.T, handler BoltHandler) {
 		r := &rateLimitStore{
 			handler: handler,
 		}

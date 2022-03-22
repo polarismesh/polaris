@@ -19,6 +19,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -83,6 +84,10 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 		return checkError
 	}
 
+	if code, err := s.createNamespaceIfAbsent(ctx, req); err != nil {
+		return api.NewServiceResponse(code, req)
+	}
+
 	namespaceName := req.GetNamespace().GetValue()
 	serviceName := req.GetName().GetValue()
 	// 检查命名空间是否存在
@@ -121,6 +126,8 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 		Namespace: req.GetNamespace(),
 		Token:     utils.NewStringValue(data.Token),
 	}
+
+	s.afterServiceResource(ctx, req, data, false)
 
 	return api.NewServiceResponse(api.ExecuteSuccess, out)
 }
@@ -184,6 +191,9 @@ func (s *Server) DeleteService(ctx context.Context, req *api.Service) *api.Respo
 	log.Info(msg, ZapRequestID(requestID), ZapPlatformID(platformID))
 	s.RecordHistory(serviceRecordEntry(ctx, req, nil, model.ODelete))
 
+	if err := s.afterServiceResource(ctx, req, service, true); err != nil {
+		return api.NewServiceResponse(api.ExecuteException, req)
+	}
 	return api.NewServiceResponse(api.ExecuteSuccess, req)
 }
 
@@ -233,6 +243,10 @@ func (s *Server) UpdateService(ctx context.Context, req *api.Service) *api.Respo
 	if !needUpdate {
 		log.Info("update service data no change, no need update",
 			ZapRequestID(requestID), ZapPlatformID(platformID), zap.String("service", req.String()))
+		if err := s.afterServiceResource(ctx, req, service, false); err != nil {
+			return api.NewServiceResponse(api.ExecuteException, req)
+		}
+
 		return api.NewServiceResponse(api.NoNeedUpdate, req)
 	}
 
@@ -245,6 +259,10 @@ func (s *Server) UpdateService(ctx context.Context, req *api.Service) *api.Respo
 	msg := fmt.Sprintf("update service: namespace=%v, name=%v", service.Namespace, service.Name)
 	log.Info(msg, ZapRequestID(requestID), ZapPlatformID(platformID))
 	s.RecordHistory(serviceRecordEntry(ctx, req, service, model.OUpdate))
+
+	if err := s.afterServiceResource(ctx, req, service, false); err != nil {
+		return api.NewServiceResponse(api.ExecuteException, req)
+	}
 
 	return api.NewServiceResponse(api.ExecuteSuccess, req)
 }
@@ -389,7 +407,7 @@ func parseServiceArgs(filter map[string]string, metaFilter map[string]string, ct
 }
 
 // GetServicesCount 查询服务总数
-func (s *Server) GetServicesCount() *api.BatchQueryResponse {
+func (s *Server) GetServicesCount(ctx context.Context) *api.BatchQueryResponse {
 	count, err := s.storage.GetServicesCount()
 	if err != nil {
 		log.Errorf("[Server][Service][Count] get service count storage err: %s", err.Error())
@@ -445,6 +463,34 @@ func (s *Server) GetServiceOwner(ctx context.Context, req []*api.Service) *api.B
 	resp.Size = utils.NewUInt32Value(uint32(len(services)))
 	resp.Services = services2Api(services, serviceOwner2Api)
 	return resp
+}
+
+// createNamespaceIfAbsent Automatically create namespaces
+func (s *Server) createNamespaceIfAbsent(ctx context.Context, svc *api.Service) (uint32, error) {
+
+	if ns := s.caches.Namespace().GetNamespace(svc.GetNamespace().GetValue()); ns != nil {
+		return api.ExecuteSuccess, nil
+	}
+
+	apiNamespace := &api.Namespace{
+		Name:   utils.NewStringValue(svc.GetNamespace().GetValue()),
+		Owners: svc.Owners,
+	}
+
+	key := fmt.Sprintf("%s", svc.Namespace)
+
+	ret, err, _ := s.createNamespaceSingle.Do(key, func() (interface{}, error) {
+		resp := s.CreateNamespace(ctx, apiNamespace)
+
+		retCode := resp.GetCode().GetValue()
+		if retCode != api.ExecuteSuccess && retCode != api.ExistedResource {
+			return retCode, errors.New(resp.GetInfo().GetValue())
+		}
+
+		return retCode, nil
+	})
+
+	return ret.(uint32), err
 }
 
 // createServiceModel 创建存储层服务模型
@@ -721,6 +767,7 @@ func service2Api(service *model.Service) *api.Service {
 
 	// note: 不包括token，token比较特殊
 	out := &api.Service{
+		Id:         utils.NewStringValue(service.ID),
 		Name:       utils.NewStringValue(service.Name),
 		Namespace:  utils.NewStringValue(service.Namespace),
 		Metadata:   service.Meta,

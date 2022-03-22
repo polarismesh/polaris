@@ -26,3 +26,8 @@ message MatchString {
 	google.protobuf.StringValue value = 2;
 	ValueType value_type = 3;
 }
+
+
+message OptionSwitch {
+	map<string, string> options = 1;
+}

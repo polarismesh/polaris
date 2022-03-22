@@ -35,6 +35,8 @@ type Auth interface {
 
 	Allow(platformID, platformToken string) bool
 
+	CheckPermission(reqCtx interface{}, authRule interface{}) (bool, error)
+
 	IsWhiteList(ip string) bool
 }
 
