@@ -100,7 +100,6 @@ func (h *EurekaServer) GetAllApplications(req *restful.Request, rsp *restful.Res
 	appsRespCache := h.worker.GetCachedAppsWithLoad()
 	remoteAddr := req.Request.RemoteAddr
 	acceptValue := getParamFromEurekaRequestHeader(req, restful.HEADER_Accept)
-	log.Infof("accept value is %s", acceptValue)
 	if err := writeResponse(parseAcceptValue(acceptValue), appsRespCache, req, rsp); nil != err {
 		log.Errorf("[EurekaServer]fail to write applications, client: %s, err: %v", remoteAddr, err)
 	}

@@ -122,6 +122,33 @@ curl http://127.0.0.1:8090
 
 Return text is 'Polaris Server', proof features run smoothly 
 
+## How to access
+
+Polaris supports microservices built with multi-language, multi-framework, multi-mode (proxyless / proxy)  to access。
+
+(1) multi-language access guide：
+
+- [Java QuickStart Example](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/quickstart-example)
+- [Go QuickStart Example](https://github.com/polarismesh/polaris-go/tree/main/examples/quickstart)
+- [C++ QuickStart Example](https://github.com/polarismesh/polaris-cpp/tree/main/examples/quickstart)
+
+(2) multi-framework access guide:
+
+- [Spring Cloud Examples](https://github.com/Tencent/spring-cloud-tencent/tree/main/spring-cloud-tencent-examples)
+- [Spring Boot QuickStart Example](https://github.com/polarismesh/spring-boot-polaris/tree/main/spring-boot-polaris-examples/quickstart-example)
+- [gRPC-Go QuickStart Example](https://github.com/polarismesh/grpc-go-polaris/tree/main/examples/quickstart)
+- [gRPC-Java QuickStart Example](https://github.com/polarismesh/grpc-java-polaris/tree/main/grpc-java-polaris-examples/quickstart-example)
+
+(3) proxy mode access guide：
+
+- [Envoy QuickStart Example](https://github.com/polarismesh/examples/tree/main/servicemesh/extended-bookinfo)
+
+More access guide：[Doc](https://polarismesh.cn/zh/doc/快速入门/使用SDK接入.html#使用-sdk%20接入)
+
+## User manual
+
+Polaris function guide can refer：[Manual](https://polarismesh.cn/zh/doc/使用指南/基本原理.html#基本原理)
+
 ## Chat group
 
 Please scan the QR code to join the chat group.
