@@ -495,8 +495,11 @@ func (a *ApplicationsWorker) constructApplication(app *Application, instances []
 			// 不返回不健康太久的数据
 			continue
 		}
-		eurekaInstanceId := instance.Proto.GetId().GetValue()
-		var instanceInfo *InstanceInfo
+
+		var (
+			instanceInfo     *InstanceInfo
+			eurekaInstanceId = instance.Proto.GetId().GetValue()
+		)
 		instanceInfo = buildInstance(app, eurekaInstanceId, instance)
 		instanceInfo.RealInstances[instance.Revision()] = instance
 		status := instanceInfo.Status

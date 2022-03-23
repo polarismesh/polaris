@@ -222,7 +222,7 @@ func Test10000ClientWatchConfigFile(t *testing.T) {
 	}
 
 	// 为了避免影响其它case，删除订阅
-	for clientId, _ := range received {
+	for clientId := range received {
 		configService.WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
 	}
 }

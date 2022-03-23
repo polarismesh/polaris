@@ -167,10 +167,12 @@ func makeOutlierDetection(conf *model.ServiceWithCircuitBreaker) *cluster.Outlie
 			return nil
 		}
 
-		var consecutiveErrConfig *api.CbPolicy_ConsecutiveErrConfig
-		var errorRateConfig *api.CbPolicy_ErrRateConfig
-		var policy *api.CbPolicy
-		var dest *api.DestinationSet
+		var (
+			consecutiveErrConfig *api.CbPolicy_ConsecutiveErrConfig
+			errorRateConfig      *api.CbPolicy_ErrRateConfig
+			policy               *api.CbPolicy
+			dest                 *api.DestinationSet
+		)
 
 		dest = inBounds[0].GetDestinations()[0]
 		policy = dest.Policy
