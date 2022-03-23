@@ -20,6 +20,9 @@ package defaultauth
 import (
 	"errors"
 
+	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
@@ -27,8 +30,6 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type server struct {
@@ -78,7 +79,6 @@ func (svr *server) Login(req *api.LoginRequest) *api.Response {
 		Role:    utils.NewStringValue(model.UserRoleNames[user.Type]),
 	})
 }
-
 
 // RecordHistory server对外提供history插件的简单封装
 func (svr *server) RecordHistory(entry *model.RecordEntry) {

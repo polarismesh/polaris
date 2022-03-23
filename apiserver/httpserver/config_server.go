@@ -59,13 +59,13 @@ func (h *HTTPServer) GetConfigAccessServer(include []string) (*restful.WebServic
 }
 
 func (h *HTTPServer) bindConfigConsoleEndpoint(ws *restful.WebService) {
-	//配置文件组
+	// 配置文件组
 	ws.Route(ws.POST("/configfilegroups").To(h.CreateConfigFileGroup))
 	ws.Route(ws.GET("/configfilegroups").To(h.QueryConfigFileGroups))
 	ws.Route(ws.DELETE("/configfilegroups").To(h.DeleteConfigFileGroup))
 	ws.Route(ws.PUT("/configfilegroups").To(h.UpdateConfigFileGroup))
 
-	//配置文件
+	// 配置文件
 	ws.Route(ws.POST("/configfiles").To(h.CreateConfigFile))
 	ws.Route(ws.GET("/configfiles").To(h.GetConfigFile))
 	ws.Route(ws.GET("/configfiles/search").To(h.SearchConfigFile))
@@ -73,11 +73,11 @@ func (h *HTTPServer) bindConfigConsoleEndpoint(ws *restful.WebService) {
 	ws.Route(ws.DELETE("/configfiles").To(h.DeleteConfigFile))
 	ws.Route(ws.POST("/configfiles/batchdelete").To(h.BatchDeleteConfigFile))
 
-	//配置文件发布
+	// 配置文件发布
 	ws.Route(ws.POST("/configfiles/release").To(h.PublishConfigFile))
 	ws.Route(ws.GET("/configfiles/release").To(h.GetConfigFileRelease))
 
-	//配置文件发布历史
+	// 配置文件发布历史
 	ws.Route(ws.GET("/configfiles/releasehistory").To(h.GetConfigFileReleaseHistory))
 
 }

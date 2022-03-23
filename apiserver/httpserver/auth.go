@@ -21,7 +21,8 @@ import (
 	"strconv"
 
 	"github.com/emicklei/go-restful"
-	proto "github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/proto"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 )

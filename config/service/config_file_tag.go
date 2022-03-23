@@ -37,7 +37,7 @@ func (cs *Impl) CreateConfigFileTags(ctx context.Context, namespace, group, file
 		return errors.New("tags param must be key,value pair, like key1,value1,key2,value2")
 	}
 
-	//1. 获取已存储的 tags
+	// 1. 获取已存储的 tags
 	storedTags, err := cs.QueryTagsByConfigFile(ctx, namespace, group, fileName)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] query config file tags error.",
@@ -53,7 +53,7 @@ func (cs *Impl) CreateConfigFileTags(ctx context.Context, namespace, group, file
 		return cs.doCreateConfigFileTags(ctx, namespace, group, fileName, operator, tags...)
 	}
 
-	//2. 新增 tag，一个 key 可以有多个的 value
+	// 2. 新增 tag，一个 key 可以有多个的 value
 	storedTagMap := make(map[string][]string, len(storedTags))
 	for _, tag := range storedTags {
 		if storedTagMap[tag.Key] == nil {
@@ -102,7 +102,7 @@ func (cs *Impl) CreateConfigFileTags(ctx context.Context, namespace, group, file
 		return err
 	}
 
-	//3. 删除 tag
+	// 3. 删除 tag
 	var toDeleteTags []string
 	for key, storedTagValues := range storedTagMap {
 		newTagValues := newTagMap[key]
@@ -154,7 +154,7 @@ func (cs *Impl) QueryConfigFileByTags(ctx context.Context, namespace, group, fil
 		return 0, nil, nil
 	}
 
-	//去重
+	// 去重
 	var distinctFiles []*model.ConfigFileTag
 	for _, file := range files {
 		if distinctFiles == nil {
@@ -173,7 +173,7 @@ func (cs *Impl) QueryConfigFileByTags(ctx context.Context, namespace, group, fil
 		}
 	}
 
-	//内存分页
+	// 内存分页
 	fileCount := len(distinctFiles)
 	if int(offset) >= fileCount {
 		return fileCount, nil, nil

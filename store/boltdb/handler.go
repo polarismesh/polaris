@@ -141,14 +141,14 @@ func saveValue(tx *bolt.Tx, typ string, key string, value interface{}) error {
 	}
 	keyBuf := []byte(key)
 	var bucket *bolt.Bucket
-	//先清理老数据
+	// 先清理老数据
 	bucket = typBucket.Bucket(keyBuf)
 	if bucket != nil {
 		if err = typBucket.DeleteBucket(keyBuf); err != nil {
 			return err
 		}
 	}
-	//创建全新bucket
+	// 创建全新bucket
 	bucket, err = typBucket.CreateBucket(keyBuf)
 	if err != nil {
 		return err
@@ -536,7 +536,7 @@ func updateValue(tx *bolt.Tx, typ string, key string, properties map[string]inte
 			err = encodeRawMap(bucket, bucketKey, propValue.(map[string]string))
 		case reflect.Ptr:
 			if propType.Implements(messageType) {
-				//protobuf类型
+				// protobuf类型
 				var msgBuf []byte
 				msgBuf, err = encodeMessageBuffer(propValue.(proto.Message))
 				if err != nil {
@@ -546,7 +546,7 @@ func updateValue(tx *bolt.Tx, typ string, key string, properties map[string]inte
 			}
 		case reflect.Struct:
 			if propType.AssignableTo(timeType) {
-				//时间类型
+				// 时间类型
 				err = bucket.Put([]byte(bucketKey), encodeTimeBuffer(propValue.(time.Time)))
 			}
 		}

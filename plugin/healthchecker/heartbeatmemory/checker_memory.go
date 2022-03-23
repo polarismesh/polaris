@@ -99,7 +99,7 @@ func (r *MemoryHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 	curTimeSec := request.CurTimeSec()
 	if curTimeSec > lastHeartbeatTime {
 		if curTimeSec-lastHeartbeatTime >= int64(request.ExpireDurationSec) {
-			//心跳超时
+			// 心跳超时
 			checkResp.Healthy = false
 			_ = r.Delete(request.InstanceId)
 			return checkResp, nil

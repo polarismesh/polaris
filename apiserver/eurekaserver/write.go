@@ -23,6 +23,7 @@ import (
 	"strconv"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
@@ -122,7 +123,7 @@ func buildHealthCheck(instance *InstanceInfo, targetInstance *api.Instance, eure
 }
 
 func buildStatus(instance *InstanceInfo, targetInstance *api.Instance) {
-	//由于eureka的实例都会自动报心跳，心跳由北极星接管，因此客户端报上来的人工状态OUT_OF_SERVICE，通过isolate来进行代替
+	// 由于eureka的实例都会自动报心跳，心跳由北极星接管，因此客户端报上来的人工状态OUT_OF_SERVICE，通过isolate来进行代替
 	status := instance.Status
 	if status == "OUT_OF_SERVICE" {
 		targetInstance.Isolate = &wrappers.BoolValue{Value: true}
@@ -158,7 +159,7 @@ func convertEurekaInstance(instance *InstanceInfo, namespace string, appId strin
 
 	targetInstance := buildBaseInstance(instance, namespace, appId)
 
-	//同时打开2个端口，通过medata保存http端口
+	// 同时打开2个端口，通过medata保存http端口
 	targetInstance.Protocol = &wrappers.StringValue{Value: InsecureProtocol}
 	targetInstance.Port = &wrappers.UInt32Value{Value: uint32(insecurePort)}
 	targetInstance.Metadata[MetadataInsecurePort] = strconv.Itoa(insecurePort)
@@ -169,15 +170,15 @@ func convertEurekaInstance(instance *InstanceInfo, namespace string, appId strin
 }
 
 func (h *EurekaServer) registerInstances(ctx context.Context, appId string, instance *InstanceInfo) uint32 {
-	//1. 先转换数据结构
+	// 1. 先转换数据结构
 	totalInstance := convertEurekaInstance(instance, h.namespace, appId)
-	//3. 注册实例
+	// 3. 注册实例
 	resp := h.namingServer.CreateInstances(ctx, []*api.Instance{totalInstance})
-	//4. 注册成功，则返回
+	// 4. 注册成功，则返回
 	if resp.GetCode().GetValue() == api.ExecuteSuccess || resp.GetCode().GetValue() == api.ExistedResource {
 		return api.ExecuteSuccess
 	}
-	//5. 如果报服务不存在，对服务进行注册
+	// 5. 如果报服务不存在，对服务进行注册
 	if resp.Code.Value == api.NotFoundResource {
 		svc := &api.Service{}
 		svc.Namespace = &wrappers.StringValue{Value: h.namespace}
@@ -188,7 +189,7 @@ func (h *EurekaServer) registerInstances(ctx context.Context, appId string, inst
 		if svcCreateCode != api.ExecuteSuccess && svcCreateCode != api.ExistedResource {
 			return svcCreateCode
 		}
-		//6. 再重试注册实例列表
+		// 6. 再重试注册实例列表
 		resp = h.namingServer.CreateInstances(ctx, []*api.Instance{totalInstance})
 		return resp.GetCode().GetValue()
 	}

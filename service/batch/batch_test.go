@@ -24,12 +24,13 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	. "github.com/smartystreets/goconvey/convey"
+
 	amock "github.com/polarismesh/polaris-server/auth/mock"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	smock "github.com/polarismesh/polaris-server/store/mock"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 // TestNewBatchCtrlWithConfig 测试New
@@ -91,7 +92,7 @@ func newCreateInstanceController(t *testing.T) (*Controller, *smock.MockStore, *
 	ctx, cancel := context.WithCancel(context.Background())
 	bc.Start(ctx)
 	return bc, storage, authority, cancel
-	//defer cancel()
+	// defer cancel()
 }
 
 func sendAsyncCreateInstance(bc *Controller) error {

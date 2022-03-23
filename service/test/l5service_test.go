@@ -21,13 +21,15 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/gogo/protobuf/proto"
+	. "github.com/smartystreets/goconvey/convey"
+
 	"github.com/polarismesh/polaris-server/common/api/l5"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
-	. "github.com/smartystreets/goconvey/convey"
-	"testing"
-	"time"
 )
 
 // safe get cache data

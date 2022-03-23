@@ -78,7 +78,7 @@ func InitConfigModule(ctx context.Context, config StartupConfig) error {
 }
 
 func doInit(ctx context.Context, config StartupConfig) error {
-	//1. 初始化存储模块
+	// 1. 初始化存储模块
 	storage, err := store.GetStore()
 	if err != nil {
 		log.ConfigScope().Errorf("[Config][Server] can not get store, err: %s", err.Error())
@@ -90,7 +90,7 @@ func doInit(ctx context.Context, config StartupConfig) error {
 	}
 	server.storage = storage
 
-	//2. 初始化缓存模块
+	// 2. 初始化缓存模块
 	expireTimeAfterWrite, ok := config.Cache["expireTimeAfterWrite"]
 	if !ok {
 		expireTimeAfterWrite = defaultExpireTimeAfterWrite
@@ -102,19 +102,19 @@ func doInit(ctx context.Context, config StartupConfig) error {
 	fileCache := cache.NewFileCache(ctx, storage, cacheParam)
 	server.cache = fileCache
 
-	//3. 初始化 service 模块
+	// 3. 初始化 service 模块
 	serviceImpl := service.NewServiceImpl(storage, fileCache)
 	server.service = serviceImpl
 
-	//4. 初始化事件中心
+	// 4. 初始化事件中心
 	eventCenter := NewEventCenter()
 	server.watchCenter = NewWatchCenter(eventCenter)
 
-	//5. 初始化连接管理器
+	// 5. 初始化连接管理器
 	connMng := NewConfigConnManager(ctx, server.watchCenter)
 	server.connManager = connMng
 
-	//6. 初始化发布事件扫描器
+	// 6. 初始化发布事件扫描器
 	err = initReleaseMessageScanner(ctx, storage, fileCache, eventCenter, time.Second)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Server] init release message scanner error. ", zap.Error(err))

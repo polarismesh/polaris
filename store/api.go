@@ -40,10 +40,10 @@ type Store interface {
 	// StartTx 开启一个原子事务
 	StartTx() (Tx, error)
 
-	//NamingModuleStore 服务注册发现模块存储接口
+	// NamingModuleStore 服务注册发现模块存储接口
 	NamingModuleStore
 
-	//ConfigFileModuleStore 配置中心模块存储接口
+	// ConfigFileModuleStore 配置中心模块存储接口
 	ConfigFileModuleStore
 }
 
@@ -468,7 +468,6 @@ type StrategyStore interface {
 	// GetStrategyDetailsForCache 用于刷新策略缓存
 	GetStrategyDetailsForCache(mtime time.Time, firstUpdate bool) ([]*model.StrategyDetail, error)
 }
-
 
 // Transaction 事务接口，不支持多协程并发操作，当前只支持单个协程串行操作
 type Transaction interface {

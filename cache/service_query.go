@@ -275,7 +275,7 @@ func (sc *serviceCache) getServicesByIteratingCache(
 		res = append(res, svc)
 	}
 	if len(svcArgs.Namespace) > 0 {
-		//从命名空间来找
+		// 从命名空间来找
 		spaces, ok := sc.names.Load(svcArgs.Namespace)
 		if !ok {
 			return 0, nil, nil
@@ -285,7 +285,7 @@ func (sc *serviceCache) getServicesByIteratingCache(
 			return true
 		})
 	} else {
-		//直接名字匹配
+		// 直接名字匹配
 		_ = sc.IteratorServices(func(key string, svc *model.Service) (bool, error) {
 			process(svc)
 			return true, nil

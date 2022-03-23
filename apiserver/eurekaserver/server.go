@@ -21,18 +21,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/emicklei/go-restful"
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/common/connlimit"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
-	"go.uber.org/zap"
-	"net"
-	"net/http"
-	"strings"
-	"time"
 )
 
 const (
@@ -207,10 +209,10 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 		}
 		h.connLimitConfig = connLimitConfig
 	}
-	//if rateLimit := plugin.GetRatelimit(); rateLimit != nil {
+	// if rateLimit := plugin.GetRatelimit(); rateLimit != nil {
 	//	log.Infof("http server open the ratelimit")
 	//	h.rateLimit = rateLimit
-	//}
+	// }
 	h.refreshInterval = time.Duration(refreshInterval) * time.Second
 	h.deltaExpireInterval = time.Duration(deltaExpireInterval) * time.Second
 	h.unhealthyExpireInterval = time.Duration(unhealthyExpireInterval) * time.Second
@@ -293,11 +295,11 @@ func (h *EurekaServer) Run(errCh chan error) {
 // 创建handler
 func (h *EurekaServer) createRestfulContainer() (*restful.Container, error) {
 	wsContainer := restful.NewContainer()
-	//cors := restful.CrossOriginResourceSharing{
+	// cors := restful.CrossOriginResourceSharing{
 	//	AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 	//	CookiesAllowed: false,
 	//	Container:      wsContainer}
-	//wsContainer.Filter(cors.Filter)
+	// wsContainer.Filter(cors.Filter)
 
 	wsContainer.Filter(h.process)
 
@@ -475,7 +477,7 @@ func getEurekaApi(method, path string) string {
 	return method + ":" + path
 }
 
-//结束eurekaServer的运行
+// 结束eurekaServer的运行
 func (h *EurekaServer) Stop() {
 	// 释放connLimit的数据，如果没有开启，也需要执行一下
 	// 目的：防止restart的时候，connLimit冲突
@@ -486,7 +488,7 @@ func (h *EurekaServer) Stop() {
 	h.worker.Stop()
 }
 
-//重启eurekaServer
+// 重启eurekaServer
 func (h *EurekaServer) Restart(
 	option map[string]interface{}, api map[string]apiserver.APIConfig, errCh chan error) error {
 	log.Infof("restart httpserver new config: %+v", option)

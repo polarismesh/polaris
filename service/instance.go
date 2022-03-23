@@ -23,11 +23,12 @@ import (
 	"fmt"
 	"time"
 
+	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"go.uber.org/zap"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var (
@@ -188,7 +189,7 @@ func (s *Server) serialCreateInstance(ctx context.Context, req *api.Instance, in
 		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
 		return nil, api.NewInstanceResponse(api.StoreLayerException, req)
 	}
-	//如果存在，则替换实例的属性数据，但是需要保留用户设置的隔离状态，以免出现关键状态丢失
+	// 如果存在，则替换实例的属性数据，但是需要保留用户设置的隔离状态，以免出现关键状态丢失
 	if instance != nil && ins.Isolate == nil {
 		ins.Isolate = instance.Proto.Isolate
 	}

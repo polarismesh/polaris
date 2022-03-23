@@ -58,7 +58,7 @@ func (rls *rateLimitStore) createRateLimit(limit *model.RateLimit) error {
 	}()
 
 	// 新建限流规则
-	str := `insert into ratelimit_config(id, service_id, cluster_id, labels, priority, rule, revision, ctime, mtime) 
+	str := `insert into ratelimit_config(id, service_id, cluster_id, labels, priority, rule, revision, ctime, mtime)
 			values(?,?,?,?,?,?,?,sysdate(),sysdate())`
 	if _, err := tx.Exec(str, limit.ID, limit.ServiceID, limit.ClusterID, limit.Labels, limit.Priority, limit.Rule,
 		limit.Revision); err != nil {
@@ -67,7 +67,7 @@ func (rls *rateLimitStore) createRateLimit(limit *model.RateLimit) error {
 	}
 
 	// 更新last_revision
-	str = `insert into ratelimit_revision(service_id,last_revision,mtime) values(?,?,sysdate()) on duplicate key update 
+	str = `insert into ratelimit_revision(service_id,last_revision,mtime) values(?,?,sysdate()) on duplicate key update
 			last_revision = ?`
 	if _, err := tx.Exec(str, limit.ServiceID, limit.Revision, limit.Revision); err != nil {
 		log.Errorf("[Store][database][Create] update rate limit revision with service id(%s) err: %s",
@@ -178,7 +178,7 @@ func (rls *rateLimitStore) GetRateLimitWithID(id string) (*model.RateLimit, erro
 		return nil, errors.New("get rate limit missing some params")
 	}
 
-	str := `select id, service_id, cluster_id, labels, priority, rule, revision, flag, 
+	str := `select id, service_id, cluster_id, labels, priority, rule, revision, flag,
 			unix_timestamp(ctime), unix_timestamp(mtime) 
 			from ratelimit_config 
 			where id = ? and flag = 0`
@@ -214,7 +214,7 @@ func (rls *rateLimitStore) GetExtendRateLimits(filter map[string]string, offset 
 // GetRateLimitsForCache 根据修改时间拉取增量限流规则及最新版本号
 func (rls *rateLimitStore) GetRateLimitsForCache(mtime time.Time,
 	firstUpdate bool) ([]*model.RateLimit, []*model.RateLimitRevision, error) {
-	str := `select id, ratelimit_config.service_id, cluster_id, labels, priority, rule, revision, flag, 
+	str := `select id, ratelimit_config.service_id, cluster_id, labels, priority, rule, revision, flag,
 			unix_timestamp(ratelimit_config.ctime), unix_timestamp(ratelimit_config.mtime), last_revision 
 			from ratelimit_config, ratelimit_revision 
 			where ratelimit_config.mtime > ? and ratelimit_config.service_id = ratelimit_revision.service_id`
@@ -236,7 +236,7 @@ func (rls *rateLimitStore) GetRateLimitsForCache(mtime time.Time,
 // getExpandRateLimits 根据过滤条件获取限流规则
 func (rls *rateLimitStore) getExpandRateLimits(filter map[string]string, offset uint32, limit uint32) (
 	[]*model.ExtendRateLimit, error) {
-	str := `select name, namespace, ratelimit_config.id, service_id, cluster_id, labels, priority, rule, 
+	str := `select name, namespace, ratelimit_config.id, service_id, cluster_id, labels, priority, rule,
 			ratelimit_config.revision, unix_timestamp(ratelimit_config.ctime), unix_timestamp(ratelimit_config.mtime) 
 			from ratelimit_config, service 
 			where service_id = service.id and ratelimit_config.flag = 0`
@@ -259,7 +259,7 @@ func (rls *rateLimitStore) getExpandRateLimits(filter map[string]string, offset 
 
 // getExpandRateLimitsCount 根据过滤条件获取限流规则数目
 func (rls *rateLimitStore) getExpandRateLimitsCount(filter map[string]string) (uint32, error) {
-	str := `select count(*) from ratelimit_config, service 
+	str := `select count(*) from ratelimit_config, service
 			where service_id = service.id and ratelimit_config.flag = 0`
 
 	queryStr, args := genFilterRateLimitSQL(filter)

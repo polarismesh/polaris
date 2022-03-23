@@ -18,12 +18,12 @@
 package httpserver
 
 import (
-	"github.com/golang/protobuf/proto"
 	"strconv"
 
+	"github.com/emicklei/go-restful"
+	"github.com/golang/protobuf/proto"
 	"go.uber.org/zap"
 
-	"github.com/emicklei/go-restful"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 )

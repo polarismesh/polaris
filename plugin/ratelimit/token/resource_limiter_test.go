@@ -22,8 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/polarismesh/polaris-server/plugin"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"github.com/polarismesh/polaris-server/plugin"
 )
 
 // TestNewResourceRatelimit 测试新建

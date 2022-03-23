@@ -21,14 +21,14 @@ import (
 	"context"
 	"errors"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"go.uber.org/zap"
-
-	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 // serverAuthAbility 带有鉴权能力的 discoverServer
@@ -51,11 +51,12 @@ func newServerAuthAbility(targetServer *Server, authSvr auth.AuthServer) Discove
 	return proxy
 }
 
-// Get cache management
+// Cache Get cache management
 func (svr *serverAuthAbility) Cache() *cache.NamingCache {
 	return svr.targetServer.Cache()
 }
 
+// GetServiceInstanceRevision 获取服务实例的版本号
 func (svr *serverAuthAbility) GetServiceInstanceRevision(serviceID string,
 	instances []*model.Instance) (string, error) {
 	return svr.targetServer.GetServiceInstanceRevision(serviceID, instances)

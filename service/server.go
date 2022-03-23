@@ -23,6 +23,8 @@ import (
 
 	"golang.org/x/sync/singleflight"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -30,7 +32,6 @@ import (
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 // Server 对接API层的server层，用以处理业务逻辑

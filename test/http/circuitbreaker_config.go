@@ -25,12 +25,11 @@ import (
 	"io"
 
 	"github.com/golang/protobuf/jsonpb"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
-/**
- * @brief 熔断规则数组转JSON
- */
+// JSONFromCircuitBreakers marshals a slice of circuit breakers to JSON. 熔断规则数组转JSON
 func JSONFromCircuitBreakers(circuitBreakers []*api.CircuitBreaker) (*bytes.Buffer, error) {
 	m := jsonpb.Marshaler{Indent: " "}
 
@@ -51,9 +50,7 @@ func JSONFromCircuitBreakers(circuitBreakers []*api.CircuitBreaker) (*bytes.Buff
 	return buffer, nil
 }
 
-/**
- * @brief 发布规则转JSON
- */
+// JSONFromConfigReleases marshals a slice of config releases to JSON. 配置发布规则数组转JSON
 func JSONFromConfigReleases(configReleases []*api.ConfigRelease) (*bytes.Buffer, error) {
 	m := jsonpb.Marshaler{Indent: " "}
 
@@ -74,9 +71,7 @@ func JSONFromConfigReleases(configReleases []*api.ConfigRelease) (*bytes.Buffer,
 	return buffer, nil
 }
 
-/**
- * @brief 创建熔断规则
- */
+// CreateCircuitBreakers creates a slice of circuit breakers from JSON. 创建熔断规则
 func (c *Client) CreateCircuitBreakers(circuitBreakers []*api.CircuitBreaker) (*api.BatchWriteResponse, error) {
 	fmt.Printf("\ncreate circuit breakers\n")
 
@@ -103,9 +98,7 @@ func (c *Client) CreateCircuitBreakers(circuitBreakers []*api.CircuitBreaker) (*
 	return checkCreateCircuitBreakersResponse(ret, circuitBreakers)
 }
 
-/**
- * @brief 创建熔断规则版本
- */
+// CreateCircuitBreakerVersions creates a slice of circuit breakers from JSON. 创建熔断规则版本
 func (c *Client) CreateCircuitBreakerVersions(circuitBreakers []*api.CircuitBreaker) (*api.BatchWriteResponse, error) {
 	fmt.Printf("\ncreate circuit breaker versions\n")
 
@@ -131,7 +124,7 @@ func (c *Client) CreateCircuitBreakerVersions(circuitBreakers []*api.CircuitBrea
 	return checkCreateCircuitBreakersResponse(ret, circuitBreakers)
 }
 
-// 更新熔断规则
+// UpdateCircuitBreakers 更新熔断规则
 func (c *Client) UpdateCircuitBreakers(circuitBreakers []*api.CircuitBreaker) error {
 	fmt.Printf("\nupdate circuit breakers\n")
 

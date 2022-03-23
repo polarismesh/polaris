@@ -20,10 +20,11 @@ package configgrpcserver
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/config"
-	"strings"
 
 	"google.golang.org/grpc"
 

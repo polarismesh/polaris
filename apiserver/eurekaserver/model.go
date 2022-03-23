@@ -28,7 +28,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
-//端口包装类
+// 端口包装类
 type PortWrapper struct {
 	Port interface{} `json:"$" xml:",chardata"`
 
@@ -100,14 +100,14 @@ func (p *PortWrapper) convertEnableValue() error {
 	return fmt.Errorf("unknow type of enable value, type is %v", reflect.TypeOf(p.Enabled))
 }
 
-//数据中心信息
+// 数据中心信息
 type DataCenterInfo struct {
 	Clazz string `json:"@class" xml:"class,attr"`
 
 	Name string `json:"name" xml:"name"`
 }
 
-//租约信息
+// 租约信息
 type LeaseInfo struct {
 
 	// Client settings
@@ -125,22 +125,22 @@ type LeaseInfo struct {
 	ServiceUpTimestamp int `json:"serviceUpTimestamp" xml:"serviceUpTimestamp"`
 }
 
-//实例注册请求
+// 实例注册请求
 type RegistrationRequest struct {
 	Instance *InstanceInfo `json:"instance"`
 }
 
-//服务拉取应答
+// 服务拉取应答
 type ApplicationsResponse struct {
 	Applications *Applications `json:"applications"`
 }
 
-//单个服务拉取响应
+// 单个服务拉取响应
 type ApplicationResponse struct {
 	Application *Application `json:"application"`
 }
 
-//单个服务实例拉取响应
+// 单个服务实例拉取响应
 type InstanceResponse struct {
 	InstanceInfo *InstanceInfo `json:"instance" xml:"instance"`
 }
@@ -221,7 +221,7 @@ func (i *Metadata) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 				start.Attr = append(start.Attr, startLocalAttribute(key[1:], value))
 				continue
 			}
-			//兼容，后续去掉
+			// 兼容，后续去掉
 			if strings.HasPrefix(key, attributeNotionCross) {
 				start.Attr = append(start.Attr, startLocalAttribute(key[1:], value))
 				continue
@@ -245,7 +245,7 @@ func (i *Metadata) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.Flush()
 }
 
-//实例信息
+// 实例信息
 type InstanceInfo struct {
 	XMLName struct{} `json:"-" xml:"instance"`
 
@@ -297,11 +297,11 @@ type InstanceInfo struct {
 
 	ActionType string `json:"actionType" xml:"actionType"`
 
-	//实际的北极星实例模型, key为revision
+	// 实际的北极星实例模型, key为revision
 	RealInstances map[string]*model.Instance `json:"-" xml:"-"`
 }
 
-//对实例进行拷贝
+// 对实例进行拷贝
 func (i *InstanceInfo) Clone(actionType string) *InstanceInfo {
 	return &InstanceInfo{
 		InstanceId:                    i.InstanceId,
@@ -331,7 +331,7 @@ func (i *InstanceInfo) Clone(actionType string) *InstanceInfo {
 	}
 }
 
-//判断实例是否发生变更
+// 判断实例是否发生变更
 func (i *InstanceInfo) Equals(another *InstanceInfo) bool {
 	if len(i.RealInstances) != len(another.RealInstances) {
 		return false
@@ -347,7 +347,7 @@ func (i *InstanceInfo) Equals(another *InstanceInfo) bool {
 	return true
 }
 
-//服务数据
+// 服务数据
 type Application struct {
 	XMLName struct{} `json:"-" xml:"application"`
 
@@ -362,7 +362,7 @@ type Application struct {
 	StatusCounts map[string]int `json:"-" xml:"-"`
 }
 
-//获取eureka实例
+// 获取eureka实例
 func (a *Application) GetInstance(instId string) *InstanceInfo {
 	if len(a.InstanceMap) > 0 {
 		return a.InstanceMap[instId]
@@ -370,7 +370,7 @@ func (a *Application) GetInstance(instId string) *InstanceInfo {
 	return nil
 }
 
-//服务列表
+// 服务列表
 type Applications struct {
 	XMLName struct{} `json:"-" xml:"applications"`
 
@@ -383,7 +383,7 @@ type Applications struct {
 	ApplicationMap map[string]*Application `json:"-" xml:"-"`
 }
 
-//获取eureka应用
+// 获取eureka应用
 func (a *Applications) GetApplication(appId string) *Application {
 	if len(a.ApplicationMap) > 0 {
 		return a.ApplicationMap[appId]

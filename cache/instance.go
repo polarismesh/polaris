@@ -295,7 +295,7 @@ func (ic *instanceCache) postProcessUpdatedServices(affect map[string]bool) {
 		if progress%10000 == 0 {
 			log.CacheScope().Infof("[Cache][Instance] revision notify progress(%d / %d)", progress, len(affect))
 		}
-		//构建服务数量统计
+		// 构建服务数量统计
 		value, ok := ic.services.Load(serviceID)
 		if !ok {
 			ic.instanceCounts.Delete(serviceID)

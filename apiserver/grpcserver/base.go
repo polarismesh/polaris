@@ -385,7 +385,7 @@ func (b *BaseGrpcServer) EnterRatelimit(ip string, method string) uint32 {
 		return api.ExecuteSuccess
 	}
 
-	//ipRatelimit
+	// ipRatelimit
 	if ok := b.ratelimit.Allow(plugin.IPRatelimit, ip); !ok {
 		log.Error("[grpc] ip ratelimit is not allow", zap.String("client-ip", ip),
 			zap.String("method", method))

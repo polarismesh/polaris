@@ -287,7 +287,7 @@ func (ctrl *InstanceCtrl) heartbeatHandler(futures []*InstanceFuture) error {
 		false: make(map[string]bool, len(futures)),
 	}
 	for _, entry := range futures {
-		//多个记录，只有后面的一个生效
+		// 多个记录，只有后面的一个生效
 		id := entry.request.GetId().GetValue()
 		if _, ok := ids[id]; ok {
 			values := statusToIds[!entry.healthy]

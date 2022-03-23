@@ -165,29 +165,29 @@ func checkMetadata(meta map[string]string) error {
 	}
 
 	/*regStr := "^[0-9A-Za-z-._*]+$"
-	matchFunc := func(str string) error {
-		if str == "" {
-			return nil
-		}
-		ok, err := regexp.MatchString(regStr, str)
-		if err != nil {
-			log.Errorf("regexp match string(%s) err: %s", str, err.Error())
-			return err
-		}
-		if !ok {
-			log.Errorf("metadata string(%s) contains invalid character", str)
-			return errors.New("contain invalid character")
-		}
-		return nil
-	}
-	for key, value := range meta {
-		if err := matchFunc(key); err != nil {
-			return err
-		}
-		if err := matchFunc(value); err != nil {
-			return err
-		}
-	}*/
+	  matchFunc := func(str string) error {
+	  	if str == "" {
+	  		return nil
+	  	}
+	  	ok, err := regexp.MatchString(regStr, str)
+	  	if err != nil {
+	  		log.Errorf("regexp match string(%s) err: %s", str, err.Error())
+	  		return err
+	  	}
+	  	if !ok {
+	  		log.Errorf("metadata string(%s) contains invalid character", str)
+	  		return errors.New("contain invalid character")
+	  	}
+	  	return nil
+	  }
+	  for key, value := range meta {
+	  	if err := matchFunc(key); err != nil {
+	  		return err
+	  	}
+	  	if err := matchFunc(value); err != nil {
+	  		return err
+	  	}
+	  }*/
 
 	return nil
 }

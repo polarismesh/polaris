@@ -304,7 +304,7 @@ func (ins *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mo
 		return nil, nil
 	}
 
-	str := `select instance.id, host, port, name, namespace, token, IFNULL(platform_id,"") from service, instance 
+	str := `select instance.id, host, port, name, namespace, token, IFNULL(platform_id,"") from service, instance
 		 where instance.flag = 0 and service.flag = 0 
 		 and service.id = instance.service_id and instance.id in (` + PlaceholdersN(len(ids)) + ")"
 	args := make([]interface{}, 0, len(ids))
@@ -801,7 +801,7 @@ func batchQueryMetadata(queryHandler QueryHandler, instances []interface{}) (*sq
 // addMainInstance 往instance主表中增加数据
 func addMainInstance(tx *BaseTx, instance *model.Instance) error {
 	// #lizard forgives
-	str := `replace into instance(id, service_id, vpc_id, host, port, protocol, version, health_status, isolate, 
+	str := `replace into instance(id, service_id, vpc_id, host, port, protocol, version, health_status, isolate,
 		 weight, enable_health_check, logic_set, cmdb_region, cmdb_zone, cmdb_idc, priority, revision, ctime, mtime)
 			 values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate(), sysdate())`
 	_, err := tx.Exec(str, instance.ID(), instance.ServiceID, instance.VpcID(), instance.Host(), instance.Port(),
@@ -814,7 +814,7 @@ func addMainInstance(tx *BaseTx, instance *model.Instance) error {
 
 // batchAddMainInstances 批量增加main instance数据
 func batchAddMainInstances(tx *BaseTx, instances []*model.Instance) error {
-	str := `replace into instance(id, service_id, vpc_id, host, port, protocol, version, health_status, isolate, 
+	str := `replace into instance(id, service_id, vpc_id, host, port, protocol, version, health_status, isolate,
 		 weight, enable_health_check, logic_set, cmdb_region, cmdb_zone, cmdb_idc, priority, revision, ctime, mtime) 
 		 values`
 	first := true
@@ -977,7 +977,7 @@ func updateInstanceCheck(tx *BaseTx, instance *model.Instance) error {
 
 // updateInstanceMain 更新instance主表
 func updateInstanceMain(tx *BaseTx, instance *model.Instance) error {
-	str := `update instance set protocol = ?, 
+	str := `update instance set protocol = ?,
 	 version = ?, health_status = ?, isolate = ?, weight = ?, enable_health_check = ?, logic_set = ?,
 	 cmdb_region = ?, cmdb_zone = ?, cmdb_idc = ?, priority = ?, revision = ?, mtime = sysdate() where id = ?`
 
@@ -1148,7 +1148,7 @@ func genCompleteInstanceSelectSQL() string {
 
 // genExpandInstanceSelectSQL 生成expandInstance的select sql语句
 func genExpandInstanceSelectSQL(needForceIndex bool) string {
-	str := `select instance.id, service_id, IFNULL(vpc_id,""), host, port, IFNULL(protocol, ""), IFNULL(version, ""), 
+	str := `select instance.id, service_id, IFNULL(vpc_id,""), host, port, IFNULL(protocol, ""), IFNULL(version, ""),
 					 health_status, isolate, weight, enable_health_check, IFNULL(logic_set, ""), IFNULL(cmdb_region, ""), 
 					 IFNULL(cmdb_zone, ""), IFNULL(cmdb_idc, ""), priority, instance.revision, instance.flag, 
 					 IFNULL(health_check.type, -1), IFNULL(health_check.ttl, 0), service.name, service.namespace, 

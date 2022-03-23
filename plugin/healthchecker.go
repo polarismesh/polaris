@@ -18,9 +18,10 @@
 package plugin
 
 import (
-	"github.com/polarismesh/polaris-server/common/log"
 	"os"
 	"sync"
+
+	"github.com/polarismesh/polaris-server/common/log"
 )
 
 // ReportRequest report heartbeat request

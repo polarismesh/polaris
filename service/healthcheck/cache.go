@@ -18,10 +18,11 @@
 package healthcheck
 
 import (
+	"runtime"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/plugin"
-	"runtime"
 )
 
 var DefaultShardSize uint32
@@ -162,7 +163,7 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 			}
 			return
 		}
-		//check exists
+		// check exists
 		instanceId := instance.ID()
 		healthCheckInstanceValue, exists := c.healthCheckInstances.Load(instanceId)
 		hcEnable, checker := isHealthCheckEnable(instProto)
@@ -182,7 +183,7 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 		}
 		var noChanged bool
 		if exists {
-			//instance is healthy, exists, consistent healthCheckInstance.Revision(), no need to change。
+			// instance is healthy, exists, consistent healthCheckInstance.Revision(), no need to change。
 			healthCheckInstance := healthCheckInstanceValue.instance
 			noChanged = healthCheckInstance.Revision() == instance.Revision()
 		}

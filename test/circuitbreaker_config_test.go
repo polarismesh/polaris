@@ -32,7 +32,7 @@ func TestCircuitBreaker(t *testing.T) {
 
 	client := http.NewClient(httpserverAddress, httpserverVersion)
 
-	//-------------------------------------------------------
+	// -------------------------------------------------------
 	namespaces := resource.CreateNamespaces()
 	// 创建命名空间
 	ret, err := client.CreateNamespaces(namespaces)
@@ -101,7 +101,7 @@ func TestCircuitBreaker(t *testing.T) {
 		t.Fatalf("get circuit breaker version fail, err: %s", err.Error())
 	}
 
-	//-------------------------------------------------------
+	// -------------------------------------------------------
 	services := resource.CreateServices(namespaces[0])
 	// 创建服务
 	ret, err = client.CreateServices(services)
@@ -112,7 +112,7 @@ func TestCircuitBreaker(t *testing.T) {
 		services[index].Token = item.GetService().GetToken()
 	}
 	t.Log("create services success")
-	//-------------------------------------------------------
+	// -------------------------------------------------------
 
 	// 发布熔断规则
 	configReleases := resource.CreateConfigRelease(services, newCircuitBreakers)
@@ -147,7 +147,7 @@ func TestCircuitBreaker(t *testing.T) {
 	}
 	t.Log("delete circuitbreaker success")
 
-	//-------------------------------------------------------
+	// -------------------------------------------------------
 
 	// 删除服务
 	err = client.DeleteServices(services)

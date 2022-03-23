@@ -1,8 +1,8 @@
 # Contributing  
 ---
-If you have good comments or suggestions, welcome to create [Issues](https://github.com/Tencent/polaris/issues) or [Pull Requests](https://github.com/Tencent/polaris/pulls)，contribute to the polaris open source community. Polaris continues to recruit contributors, even if it is answering questions in the issue, or doing some simple bugfixes, it will be of great help to polaris.
+If you have good comments or suggestions, welcome to create [Issues](https://github.com/Tencent/polaris/issues) or [Pull Requests](https://github.com/Tencent/polaris/pulls) ,contribute to the polaris open source community. Polaris continues to recruit contributors, even if it is answering questions on the issue, or doing some simple bugfixes, it will be of great help to polaris.
 
-[Tencent Open Source Incentive Program](https://opensource.tencent.com/contribution) Encourage developers to participate and contribute, and look forward to your joining.
+[Tencent Open Source Incentive Programs](https://opensource.tencent.com/contribution) Encourage developers to participate and contribute, and look forward to your joining.
 
 ## Issue  
 #### For contributors 
@@ -10,7 +10,7 @@ If you have good comments or suggestions, welcome to create [Issues](https://git
 Please ensure that the following conditions are met before submitting an issue:
 
 * Must be a bug or new feature
-* Have searched in the issue, and did not find a similar issue or solution
+* Have searched on the issue, and did not find a similar issue or solution
 * When creating a new issue, please provide a detailed description, screenshot or short video to help us locate the problem
 
 ## Pull Request  

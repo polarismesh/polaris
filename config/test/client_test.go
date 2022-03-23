@@ -18,13 +18,15 @@
 package test
 
 import (
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
-	utils2 "github.com/polarismesh/polaris-server/config/utils"
-	"github.com/stretchr/testify/assert"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
+	utils2 "github.com/polarismesh/polaris-server/config/utils"
 )
 
 // TestClientSetupAndFileNotExisted 测试客户端启动时（version=0），并且配置不存在的情况下拉取配置
@@ -49,7 +51,7 @@ func TestClientSetupAndFileExisted(t *testing.T) {
 	if err := clearTestData(); err != nil {
 		t.FailNow()
 	}
-	//创建并发布一个配置文件
+	// 创建并发布一个配置文件
 	configFile := assembleConfigFile()
 	rsp := configService.Service().CreateConfigFile(defaultCtx, configFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
@@ -57,7 +59,7 @@ func TestClientSetupAndFileExisted(t *testing.T) {
 	rsp2 := configService.Service().PublishConfigFile(defaultCtx, assembleConfigFileRelease(configFile))
 	assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 
-	//拉取配置接口
+	// 拉取配置接口
 	rsp3 := configService.Service().GetConfigFileForClient(defaultCtx, testNamespace, testGroup, testFile, 0)
 	assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 	assert.NotNil(t, rsp3.ConfigFile)
@@ -65,7 +67,7 @@ func TestClientSetupAndFileExisted(t *testing.T) {
 	assert.Equal(t, configFile.Content.GetValue(), rsp3.ConfigFile.Content.GetValue())
 	assert.Equal(t, utils2.CalMd5(configFile.Content.GetValue()), rsp3.ConfigFile.Md5.GetValue())
 
-	//比较客户端配置是否落后
+	// 比较客户端配置是否落后
 	rsp4 := configService.Service().CheckClientConfigFileByVersion(defaultCtx, assembleDefaultClientConfigFile(0))
 	assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
 	assert.NotNil(t, rsp4.ConfigFile)
@@ -84,25 +86,25 @@ func TestClientVersionBehindServer(t *testing.T) {
 		t.FailNow()
 	}
 
-	//创建并连续发布5次
+	// 创建并连续发布5次
 	configFile := assembleConfigFile()
 	rsp := configService.Service().CreateConfigFile(defaultCtx, configFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 
 	for i := 0; i < 5; i++ {
 		configFile.Content = utils.NewStringValue("content" + strconv.Itoa(i))
-		//更新
+		// 更新
 		rsp2 := configService.Service().UpdateConfigFile(defaultCtx, configFile)
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
-		//发布
+		// 发布
 		rsp3 := configService.Service().PublishConfigFile(defaultCtx, assembleConfigFileRelease(configFile))
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 	}
 
-	//客户端版本号为4， 服务端由于连续发布5次，所以版本号为5
+	// 客户端版本号为4， 服务端由于连续发布5次，所以版本号为5
 	clientVersion := uint64(4)
 	latestContent := "content4"
-	//拉取配置接口
+	// 拉取配置接口
 	rsp4 := configService.Service().GetConfigFileForClient(defaultCtx, testNamespace, testGroup, testFile, clientVersion)
 	assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
 	assert.NotNil(t, rsp4.ConfigFile)
@@ -110,7 +112,7 @@ func TestClientVersionBehindServer(t *testing.T) {
 	assert.Equal(t, latestContent, rsp4.ConfigFile.Content.GetValue())
 	assert.Equal(t, utils2.CalMd5(latestContent), rsp4.ConfigFile.Md5.GetValue())
 
-	//比较客户端配置是否落后
+	// 比较客户端配置是否落后
 	rsp5 := configService.Service().CheckClientConfigFileByVersion(defaultCtx, assembleDefaultClientConfigFile(clientVersion))
 	assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue())
 	assert.NotNil(t, rsp5.ConfigFile)
@@ -139,7 +141,7 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 		return true
 	})
 
-	//创建并发布配置文件
+	// 创建并发布配置文件
 	configFile := assembleConfigFile()
 	rsp := configService.Service().CreateConfigFile(defaultCtx, configFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
@@ -147,16 +149,16 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 	rsp2 := configService.Service().PublishConfigFile(defaultCtx, assembleConfigFileRelease(configFile))
 	assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 
-	//等待回调
+	// 等待回调
 	time.Sleep(1200 * time.Millisecond)
 
 	assert.True(t, received)
 	assert.Equal(t, uint64(1), receivedVersion)
 
-	//第二次订阅发布
+	// 第二次订阅发布
 	configService.WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
 
-	//版本号由于发布过一次，所以是1
+	// 版本号由于发布过一次，所以是1
 	watchConfigFiles = assembleDefaultClientConfigFile(1)
 	received = false
 	configService.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *api.ConfigClientResponse) bool {
@@ -168,13 +170,13 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 	rsp3 := configService.Service().PublishConfigFile(defaultCtx, assembleConfigFileRelease(configFile))
 	assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 
-	//等待回调
+	// 等待回调
 	time.Sleep(1200 * time.Millisecond)
 
 	assert.True(t, received)
 	assert.Equal(t, uint64(2), receivedVersion)
 
-	//为了避免影响其它 case，删除订阅
+	// 为了避免影响其它 case，删除订阅
 	configService.WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
 }
 
@@ -199,7 +201,7 @@ func Test10000ClientWatchConfigFile(t *testing.T) {
 		})
 	}
 
-	//创建并发布配置文件
+	// 创建并发布配置文件
 	configFile := assembleConfigFile()
 	rsp := configService.Service().CreateConfigFile(defaultCtx, configFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
@@ -207,10 +209,10 @@ func Test10000ClientWatchConfigFile(t *testing.T) {
 	rsp2 := configService.Service().PublishConfigFile(defaultCtx, assembleConfigFileRelease(configFile))
 	assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 
-	//等待回调
+	// 等待回调
 	time.Sleep(2000 * time.Millisecond)
 
-	//校验是否所有客户端都收到推送通知
+	// 校验是否所有客户端都收到推送通知
 	for _, v := range received {
 		assert.True(t, v)
 	}
@@ -219,7 +221,7 @@ func Test10000ClientWatchConfigFile(t *testing.T) {
 		assert.Equal(t, uint64(1), v)
 	}
 
-	//为了避免影响其它case，删除订阅
+	// 为了避免影响其它case，删除订阅
 	for clientId, _ := range received {
 		configService.WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
 	}
@@ -230,7 +232,7 @@ func TestDeleteConfigFile(t *testing.T) {
 	if err := clearTestData(); err != nil {
 		t.FailNow()
 	}
-	//创建并发布一个配置文件
+	// 创建并发布一个配置文件
 	configFile := assembleConfigFile()
 	rsp := configService.Service().CreateConfigFile(defaultCtx, configFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
@@ -240,7 +242,7 @@ func TestDeleteConfigFile(t *testing.T) {
 
 	time.Sleep(1200 * time.Millisecond)
 
-	//客户端订阅
+	// 客户端订阅
 	clientId := randomStr()
 	var received bool
 	var receivedVersion uint64
@@ -251,17 +253,17 @@ func TestDeleteConfigFile(t *testing.T) {
 		return true
 	})
 
-	//删除配置文件
+	// 删除配置文件
 	rsp3 := configService.Service().DeleteConfigFile(defaultCtx, testNamespace, testGroup, testFile, operator)
 	assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 
 	time.Sleep(1200 * time.Millisecond)
 
-	//客户端收到推送通知
+	// 客户端收到推送通知
 	assert.True(t, received)
 	assert.Equal(t, uint64(2), receivedVersion)
 
-	//重新拉取配置，获取不到配置文件
+	// 重新拉取配置，获取不到配置文件
 	rsp4 := configService.Service().GetConfigFileForClient(defaultCtx, testNamespace, testGroup, testFile, 2)
 	assert.Equal(t, uint32(api.NotFoundResource), rsp4.Code.GetValue())
 }

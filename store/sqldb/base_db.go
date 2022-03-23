@@ -40,15 +40,15 @@ type BaseDB struct {
 
 // dbConfig store的配置
 type dbConfig struct {
-	dbType            string
-	dbUser            string
-	dbPwd             string
-	dbAddr            string
-	dbName            string
-	maxOpenConns      int
-	maxIdleConns      int
-	connMaxLifetime   int
-	txIsolationLevel  int
+	dbType           string
+	dbUser           string
+	dbPwd            string
+	dbAddr           string
+	dbName           string
+	maxOpenConns     int
+	maxIdleConns     int
+	connMaxLifetime  int
+	txIsolationLevel int
 }
 
 // NewBaseDB 新建一个BaseDB

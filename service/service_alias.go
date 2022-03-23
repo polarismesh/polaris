@@ -191,9 +191,9 @@ func (s *Server) UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) 
 	}
 
 	// 检查别名负责人
-	//if err := checkResourceOwners(req.GetOwners()); err != nil {
+	// if err := checkResourceOwners(req.GetOwners()); err != nil {
 	//	return api.NewServiceAliasResponse(api.InvalidServiceAliasOwners, req)
-	//}
+	// }
 
 	// 检查服务别名是否存在
 	alias, err := s.storage.GetService(req.GetAlias().GetValue(), req.GetAliasNamespace().GetValue())

@@ -66,7 +66,6 @@ func (g *GRPCServer) DeregisterInstance(ctx context.Context, in *api.Instance) (
 		rCtx = context.WithValue(rCtx, utils.ContextAuthTokenKey, in.GetServiceToken().GetValue())
 	}
 
-
 	out := g.namingServer.DeleteInstances(rCtx, []*api.Instance{in})
 	return out.Responses[0], nil
 }

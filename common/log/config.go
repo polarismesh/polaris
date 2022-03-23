@@ -159,7 +159,7 @@ func prepZap(options *Options) ([]zapcore.Core, zapcore.Core, zapcore.WriteSynce
 }
 
 func formatDate(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-	//t = t.UTC() 不用utc时间
+	// t = t.UTC() 不用utc时间
 	year, month, day := t.Date()
 	hour, minute, second := t.Clock()
 	micros := t.Nanosecond() / 1000

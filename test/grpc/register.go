@@ -20,16 +20,15 @@ package grpc
 import (
 	"context"
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/utils"
 	"time"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"google.golang.org/grpc/metadata"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
-/**
- * @brief 注册服务实例
- */
+// RegisterInstance 注册服务实例
 func (c *Client) RegisterInstance(instance *api.Instance) error {
 	fmt.Printf("\nregister instance\n")
 
@@ -50,9 +49,7 @@ func (c *Client) RegisterInstance(instance *api.Instance) error {
 	return nil
 }
 
-/**
- * @brief 反注册服务实例
- */
+// DeregisterInstance 反注册服务实例
 func (c *Client) DeregisterInstance(instance *api.Instance) error {
 	fmt.Printf("\nderegister instance\n")
 
