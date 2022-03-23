@@ -239,7 +239,7 @@ func (m *boltStore) newStore() error {
 	return nil
 }
 
-// Destroy destroy store
+// Destroy store
 func (m *boltStore) Destroy() error {
 	if m.handler != nil {
 		return m.handler.Close()
@@ -252,6 +252,7 @@ func (m *boltStore) CreateTransaction() (store.Transaction, error) {
 	return &transaction{handler: m.handler}, nil
 }
 
+// StartTx starting transactions
 func (m *boltStore) StartTx() (store.Tx, error) {
 	return m.handler.StartTx()
 }

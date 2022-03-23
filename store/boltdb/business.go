@@ -38,7 +38,7 @@ type businessStore struct {
 func (bs *businessStore) AddBusiness(b *model.Business) error {
 	if b.ID == "" || b.Name == "" || b.Token == "" || b.Owner == "" {
 		log.Errorf("[Store][business] add business missing some params: %+v", b)
-		return errors.New("Add Business missing some params")
+		return errors.New("add Business missing some params")
 	}
 
 	dbOp := bs.handler
@@ -60,7 +60,7 @@ func (bs *businessStore) AddBusiness(b *model.Business) error {
 func (bs *businessStore) DeleteBusiness(bid string) error {
 	if bid == "" {
 		log.Errorf("[Store][business] delete business missing id")
-		return errors.New("Delete Business missing some params")
+		return errors.New("delete Business missing some params")
 	}
 
 	dbOp := bs.handler
@@ -77,7 +77,7 @@ func (bs *businessStore) DeleteBusiness(bid string) error {
 func (bs *businessStore) UpdateBusiness(b *model.Business) error {
 	if b.ID == "" || b.Name == "" || b.Owner == "" {
 		log.Errorf("[Store][business] update business missing some params: %+v", b)
-		return errors.New("Update Business missing some params")
+		return errors.New("update Business missing some params")
 	}
 
 	dbOp := bs.handler
@@ -96,7 +96,7 @@ func (bs *businessStore) UpdateBusiness(b *model.Business) error {
 func (bs *businessStore) UpdateBusinessToken(bid string, token string) error {
 	if bid == "" || token == "" {
 		log.Errorf("[Store][business] update business token missing some params")
-		return errors.New("Update Business Token missing some params")
+		return errors.New("update Business Token missing some params")
 	}
 
 	dbOp := bs.handler
@@ -114,7 +114,7 @@ func (bs *businessStore) UpdateBusinessToken(bid string, token string) error {
 func (bs *businessStore) ListBusiness(owner string) ([]*model.Business, error) {
 	if owner == "" {
 		log.Errorf("[Store][business] list business missing owner")
-		return nil, errors.New("List Business Mising param owner")
+		return nil, errors.New("list Business Mising param owner")
 	}
 
 	dbOp := bs.handler
@@ -146,7 +146,7 @@ func (bs *businessStore) GetBusinessByID(id string) (*model.Business, error) {
 
 	if id == "" {
 		log.Errorf("[Store][business] get business missing id")
-		return nil, errors.New("Get Business missing some params")
+		return nil, errors.New("get Business missing some params")
 	}
 	dbOp := bs.handler
 

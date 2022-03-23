@@ -35,28 +35,28 @@ type HeartbeatRecord struct {
 	CurTimeSec int64
 }
 
-// MemoryHealthChecker
+// MemoryHealthChecker memory health checker
 type MemoryHealthChecker struct {
 	hbRecords *sync.Map
 }
 
-// Name
+// Name return plugin name
 func (r *MemoryHealthChecker) Name() string {
 	return PluginName
 }
 
-// Initialize
+// Initialize initialize plugin
 func (r *MemoryHealthChecker) Initialize(c *plugin.ConfigEntry) error {
 	r.hbRecords = &sync.Map{}
 	return nil
 }
 
-// Destroy
+// Destroy plugin destruction
 func (r *MemoryHealthChecker) Destroy() error {
 	return nil
 }
 
-// Type type for health check plugin, only one same type plugin is allowed
+// Type for health check plugin, only one same type plugin is allowed
 func (r *MemoryHealthChecker) Type() plugin.HealthCheckType {
 	return plugin.HealthCheckerHeartbeat
 }
@@ -71,7 +71,7 @@ func (r *MemoryHealthChecker) Report(request *plugin.ReportRequest) error {
 	return nil
 }
 
-// Query query the heartbeat time
+// Query queries the heartbeat time
 func (r *MemoryHealthChecker) Query(request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
 	recordValue, ok := r.hbRecords.Load(request.InstanceId)
 	if !ok {
@@ -86,7 +86,7 @@ func (r *MemoryHealthChecker) Query(request *plugin.QueryRequest) (*plugin.Query
 	}, nil
 }
 
-// Report process the instance check
+// Check Report process the instance check
 func (r *MemoryHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckResponse, error) {
 	queryResp, err := r.Query(&request.QueryRequest)
 	if err != nil {
@@ -114,7 +114,7 @@ func (r *MemoryHealthChecker) AddToCheck(request *plugin.AddCheckRequest) error 
 	return nil
 }
 
-// AddToCheck add the instances to check procedure
+// RemoveFromCheck removes the instances from check procedure
 func (r *MemoryHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) error {
 	return nil
 }

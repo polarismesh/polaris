@@ -257,7 +257,7 @@ func checkQueryLimit(limit []string) (int, error) {
 	return value, nil
 }
 
-// 计算实例ID
+// CalculateInstanceID 计算实例ID
 func CalculateInstanceID(namespace string, service string, vpcID string, host string, port uint32) (string, error) {
 	h := sha1.New()
 	var str string

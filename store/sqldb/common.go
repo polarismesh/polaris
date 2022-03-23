@@ -23,7 +23,7 @@ import (
 	"github.com/polarismesh/polaris-server/store"
 )
 
-// query
+// QueryHandler is the interface that wraps the basic Query method.
 type QueryHandler func(query string, args ...interface{}) (*sql.Rows, error)
 
 // BatchHandler 批量查询数据的回调函数

@@ -43,7 +43,7 @@ const (
 	Servers = "servers"
 )
 
-// RedisHealthChecker
+// RedisHealthChecker 心跳检测redis
 type RedisHealthChecker struct {
 	// 用于写入心跳数据的池
 	hbPool *redispool.Pool
@@ -53,12 +53,12 @@ type RedisHealthChecker struct {
 	statis    plugin.Statis
 }
 
-// Name
+// Name plugin name
 func (r *RedisHealthChecker) Name() string {
 	return PluginName
 }
 
-// Initialize
+// Initialize initialize plugin
 func (r *RedisHealthChecker) Initialize(c *plugin.ConfigEntry) error {
 	redisBytes, err := json.Marshal(c.Option)
 	if err != nil {
@@ -87,13 +87,13 @@ func (r *RedisHealthChecker) registerSelf() error {
 	return resp.Err
 }
 
-// Destroy
+// Destroy plugin destroy
 func (r *RedisHealthChecker) Destroy() error {
 	r.cancel()
 	return nil
 }
 
-// Type type for health check plugin, only one same type plugin is allowed
+// Type for health check plugin, only one same type plugin is allowed
 func (r *RedisHealthChecker) Type() plugin.HealthCheckType {
 	return plugin.HealthCheckerHeartbeat
 }
@@ -146,7 +146,7 @@ func (h *HeathCheckRecord) Deserialize(value string, compatible bool) error {
 	return err
 }
 
-// String
+// String 字符串化
 func (h HeathCheckRecord) String() string {
 	return fmt.Sprintf("{LocalHost=%s, CurTimeSec=%d}", h.LocalHost, h.CurTimeSec)
 }
@@ -167,7 +167,7 @@ func (r *RedisHealthChecker) Report(request *plugin.ReportRequest) error {
 	return nil
 }
 
-// Query query the heartbeat time
+// Query queries the heartbeat time
 func (r *RedisHealthChecker) Query(request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
 	resp := r.checkPool.Get(request.InstanceId)
 	if resp.Err != nil {

@@ -82,7 +82,7 @@ type strategyStore struct {
 	handler BoltHandler
 }
 
-// AddStrategy
+// AddStrategy add a new strategy
 func (ss *strategyStore) AddStrategy(strategy *model.StrategyDetail) error {
 	if strategy.ID == "" || strategy.Name == "" || strategy.Owner == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
@@ -125,7 +125,7 @@ func (ss *strategyStore) addStrategy(tx *bolt.Tx, strategy *model.StrategyDetail
 	return nil
 }
 
-// UpdateStrategy
+// UpdateStrategy update a strategy
 func (ss *strategyStore) UpdateStrategy(strategy *model.ModifyStrategyDetail) error {
 	if strategy.ID == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
@@ -229,7 +229,7 @@ func computeResources(remove bool, resources []model.StrategyResource, saveVal *
 	}
 }
 
-// DeleteStrategy
+// DeleteStrategy delete a strategy
 func (ss *strategyStore) DeleteStrategy(id string) error {
 	if id == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
@@ -338,7 +338,7 @@ func buildResMap(resources []model.StrategyResource) map[string][]model.Strategy
 	return ret
 }
 
-// GetStrategyDetail
+// GetStrategyDetail 获取策略详情
 func (ss *strategyStore) GetStrategyDetail(id string, isDefault bool) (*model.StrategyDetail, error) {
 	proxy, err := ss.handler.StartTx()
 	if err != nil {
@@ -363,7 +363,7 @@ func (ss *strategyStore) GetStrategyDetail(id string, isDefault bool) (*model.St
 	return convertForStrategyDetail(ret), nil
 }
 
-// GetStrategyResources
+// GetStrategyResources 获取策略的资源
 func (ss *strategyStore) GetStrategyResources(principalId string,
 	principalRole model.PrincipalType) ([]model.StrategyResource, error) {
 
@@ -437,7 +437,7 @@ func collectStrategyResources(rule *strategyForStore) []model.StrategyResource {
 	return ret
 }
 
-// GetDefaultStrategyDetailByPrincipal
+// GetDefaultStrategyDetailByPrincipal 获取默认策略详情
 func (ss *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
 	principalType int) (*model.StrategyDetail, error) {
 
@@ -503,14 +503,14 @@ func (ss *strategyStore) GetStrategies(filters map[string]string, offset uint32,
 	return ss.listStrategies(filters, offset, limit, showDetail == "true")
 }
 
-func (s *strategyStore) listStrategies(filters map[string]string, offset uint32, limit uint32,
+func (ss *strategyStore) listStrategies(filters map[string]string, offset uint32, limit uint32,
 	showDetail bool) (uint32, []*model.StrategyDetail, error) {
 
 	fields := []string{StrategyFieldValid, StrategyFieldName, StrategyFieldUsersPrincipal,
 		StrategyFieldGroupsPrincipal, StrategyFieldNsResources, StrategyFieldSvcResources,
 		StrategyFieldCfgResources, StrategyFieldOwner, StrategyFieldDefault}
 
-	values, err := s.handler.LoadValuesByFilter(tblStrategy, fields, &strategyForStore{},
+	values, err := ss.handler.LoadValuesByFilter(tblStrategy, fields, &strategyForStore{},
 		func(m map[string]interface{}) bool {
 			valid, ok := m[StrategyFieldValid].(bool)
 			if ok && !valid {
@@ -660,7 +660,7 @@ func comparePrincipalExist(principalType, principalId string, m map[string]inter
 	return true
 }
 
-// GetStrategyDetailsForCache
+// GetStrategyDetailsForCache get strategy details for cache
 func (ss *strategyStore) GetStrategyDetailsForCache(mtime time.Time,
 	firstUpdate bool) ([]*model.StrategyDetail, error) {
 
@@ -686,7 +686,7 @@ func (ss *strategyStore) GetStrategyDetailsForCache(mtime time.Time,
 }
 
 // cleanInvalidStrategy 按名称清理鉴权策略
-func (s *strategyStore) cleanInvalidStrategy(tx *bolt.Tx, name, owner string) error {
+func (ss *strategyStore) cleanInvalidStrategy(tx *bolt.Tx, name, owner string) error {
 
 	fields := []string{StrategyFieldName, StrategyFieldOwner, StrategyFieldValid}
 	values := make(map[string]interface{})
@@ -797,10 +797,11 @@ func cleanLinkStrategy(tx *bolt.Tx, role model.PrincipalType, principalId, owner
 
 func convertForStrategyStore(strategy *model.StrategyDetail) *strategyForStore {
 
-	users := make(map[string]string, 4)
-	groups := make(map[string]string, 4)
-
-	principals := strategy.Principals
+	var (
+		users      = make(map[string]string, 4)
+		groups     = make(map[string]string, 4)
+		principals = strategy.Principals
+	)
 
 	for i := range principals {
 		principal := principals[i]

@@ -148,7 +148,7 @@ func (i *instanceStore) CleanInstance(instanceID string) error {
 	return nil
 }
 
-// CheckInstancesExisted Check whether the ID exists, and return the query results of all IDs
+// BatchGetInstanceIsolate Check whether the ID exists, and return the query results of all IDs
 func (i *instanceStore) BatchGetInstanceIsolate(ids map[string]bool) (map[string]bool, error) {
 
 	if len(ids) == 0 {
@@ -268,9 +268,7 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 
 // GetInstance Query the details of an instance
 func (i *instanceStore) GetInstance(instanceID string) (*model.Instance, error) {
-
 	fields := []string{insFieldProto, insFieldValid}
-
 	ins, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
 			insValid, ok := m[insFieldValid]
@@ -609,7 +607,7 @@ func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, 
 
 	fields := []string{insFieldProto}
 
-	// get all instance by given ids
+	// get all instances by given ids
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
 			proto, ok := m[insFieldProto]

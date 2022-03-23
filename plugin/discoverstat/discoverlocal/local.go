@@ -64,7 +64,7 @@ func (d *DiscoverStatisWorker) Initialize(conf *plugin.ConfigEntry) error {
 	return nil
 }
 
-// Destroy销毁服务发现统计插件
+// Destroy 销毁服务发现统计插件
 func (d *DiscoverStatisWorker) Destroy() error {
 	return nil
 }
@@ -84,6 +84,7 @@ func (d *DiscoverStatisWorker) AddDiscoverCall(service, namespace string, time t
 	return nil
 }
 
+// Run init
 func (d *DiscoverStatisWorker) Run() {
 	ticker := time.NewTicker(d.interval)
 	defer ticker.Stop()

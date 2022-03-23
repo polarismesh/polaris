@@ -70,7 +70,7 @@ type NamingModuleStore interface {
 	// RateLimitStore 限流规则接口
 	RateLimitStore
 
-	// RateLimitStore 熔断规则接口
+	// CircuitBreakerStore 熔断规则接口
 	CircuitBreakerStore
 
 	// PlatformStore 平台信息接口
@@ -430,7 +430,7 @@ type GroupStore interface {
 	// GetGroups 获取用户组列表
 	GetGroups(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error)
 
-	// GetUserGroupsForCache 用于获取用户组 cache
+	// GetGroupsForCache 用于获取用户组 cache
 	GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*model.UserGroupDetail, error)
 }
 
@@ -455,7 +455,7 @@ type StrategyStore interface {
 	// GetStrategyResources 获取某个 principal 对应的可以操作的资源ID数据信息
 	GetStrategyResources(principalId string, principalRole model.PrincipalType) ([]model.StrategyResource, error)
 
-	// GetDefaultStrategyDetailByPrincipal
+	// GetDefaultStrategyDetailByPrincipal .
 	GetDefaultStrategyDetailByPrincipal(principalId string, principalType int) (*model.StrategyDetail, error)
 
 	// GetStrategyDetail 获取策略详细

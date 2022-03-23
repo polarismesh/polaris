@@ -28,7 +28,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
-// PrometheusStatis
+// PrometheusStatis is a struct for prometheus statistics
 type PrometheusStatis struct {
 	registry                     *prometheus.Registry
 	metricVecCaches              map[string]interface{}

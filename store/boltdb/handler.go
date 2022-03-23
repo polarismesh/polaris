@@ -44,7 +44,7 @@ type BoltHandler interface {
 	// SaveValue insert data object, each data object should be identified by unique key
 	SaveValue(typ string, key string, object interface{}) error
 
-	// DeleteValue delete data object by unique key
+	// DeleteValues delete data object by unique key
 	DeleteValues(typ string, key []string, logicDelete bool) error
 
 	// UpdateValue update properties of data object
@@ -57,7 +57,7 @@ type BoltHandler interface {
 	LoadValuesByFilter(typ string, fields []string,
 		typObject interface{}, filter func(map[string]interface{}) bool) (map[string]interface{}, error)
 
-	// LoadValues load all saved data objects, return value is 'key->object' map
+	// LoadValuesAll load all saved data objects, return value is 'key->object' map
 	LoadValuesAll(typ string, typObject interface{}) (map[string]interface{}, error)
 
 	// IterateFields iterate all saved data objects
@@ -72,7 +72,7 @@ type BoltHandler interface {
 	// StartTx start new tx
 	StartTx() (store.Tx, error)
 
-	// Close close boltdb
+	// Close boltdb
 	Close() error
 }
 
@@ -374,7 +374,7 @@ func (b *boltHandler) IterateFields(typ string, field string, typObject interfac
 	})
 }
 
-// Close close boltdb
+// Close boltdb
 func (b *boltHandler) Close() error {
 	if b.db != nil {
 		return b.db.Close()
@@ -382,7 +382,7 @@ func (b *boltHandler) Close() error {
 	return nil
 }
 
-// DeleteValue delete data object by unique key
+// DeleteValues delete data object by unique key
 func (b *boltHandler) DeleteValues(typ string, keys []string, logicDelete bool) error {
 	if len(keys) == 0 {
 		return nil
@@ -557,7 +557,7 @@ func updateValue(tx *bolt.Tx, typ string, key string, properties map[string]inte
 	return nil
 }
 
-// LoadValues load all saved data objects, return value is 'key->object' map
+// LoadValuesAll load all saved data objects, return value is 'key->object' map
 func (b *boltHandler) LoadValuesAll(typ string, typObject interface{}) (map[string]interface{}, error) {
 	values := make(map[string]interface{})
 	err := b.db.View(func(tx *bolt.Tx) error {
