@@ -25,7 +25,6 @@ import (
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -34,8 +33,7 @@ import (
 
 // ReportClient 客户端上报
 func (g *GRPCServer) ReportClient(ctx context.Context, in *api.Client) (*api.Response, error) {
-	out := g.namingServer.ReportClient(ConvertContext(ctx), in)
-	return out, nil
+	return g.namingServer.ReportClient(ConvertContext(ctx), in), nil
 }
 
 // RegisterInstance 注册服务实例
@@ -139,42 +137,7 @@ func (g *GRPCServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
 
 // Heartbeat 上报心跳
 func (g *GRPCServer) Heartbeat(ctx context.Context, in *api.Instance) (*api.Response, error) {
-	out := g.healthCheckServer.Report(ConvertContext(ctx), in)
-	return out, nil
-}
-
-// convertContext 将GRPC上下文转换成内部上下文
-func convertContext(ctx context.Context) context.Context {
-	requestID := ""
-	userAgent := ""
-	meta, exist := metadata.FromIncomingContext(ctx)
-	if exist {
-		ids := meta["request-id"]
-		if len(ids) > 0 {
-			requestID = ids[0]
-		}
-		agents := meta["user-agent"]
-		if len(agents) > 0 {
-			userAgent = agents[0]
-		}
-	}
-
-	clientIP := ""
-	address := ""
-	if pr, ok := peer.FromContext(ctx); ok && pr.Addr != nil {
-		address = pr.Addr.String()
-		addrSlice := strings.Split(address, ":")
-		if len(addrSlice) == 2 {
-			clientIP = addrSlice[0]
-		}
-	}
-
-	ctx = context.Background()
-	ctx = context.WithValue(ctx, utils.StringContext("request-id"), requestID)
-	ctx = context.WithValue(ctx, utils.StringContext("client-ip"), clientIP)
-	ctx = context.WithValue(ctx, utils.StringContext("client-address"), address)
-	ctx = context.WithValue(ctx, utils.StringContext("user-agent"), userAgent)
-	return ctx
+	return g.healthCheckServer.Report(ConvertContext(ctx), in), nil
 }
 
 // ParseGrpcOperator 构造请求源
@@ -182,8 +145,7 @@ func ParseGrpcOperator(ctx context.Context) string {
 	// 获取请求源
 	operator := "GRPC"
 	if pr, ok := peer.FromContext(ctx); ok && pr.Addr != nil {
-		address := pr.Addr.String()
-		addrSlice := strings.Split(address, ":")
+		addrSlice := strings.Split(pr.Addr.String(), ":")
 		if len(addrSlice) == 2 {
 			operator += ":" + addrSlice[0]
 		}
