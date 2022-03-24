@@ -102,7 +102,7 @@ func (cs *Impl) GetConfigFileForClient(ctx context.Context, namespace, group, fi
 	}
 
 	if entry.Empty {
-		return api.NewConfigClientResponse(api.NotFoundResourceConfigFile, nil)
+		return api.NewConfigClientResponse(api.NotFoundResource, nil)
 	}
 
 	//客户端版本号大于服务端版本号，服务端需要重新加载缓存

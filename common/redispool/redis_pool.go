@@ -261,7 +261,7 @@ func (p *Pool) Del(id string) *Resp { // nolint
 
 func (p *Pool) checkRedisDead() error {
 	if atomic.LoadUint32(&p.redisDead) == 1 {
-		return errors.New(fmt.Sprintf("redis %s is dead", p.config.KvAddr))
+		return fmt.Errorf("redis %s is dead", p.config.KvAddr)
 	}
 	return nil
 }
@@ -353,9 +353,7 @@ func sleep(dur time.Duration) {
 	t := time.NewTimer(dur)
 	defer t.Stop()
 
-	select {
-	case <-t.C:
-	}
+	<-t.C
 }
 
 // checkRedis check redis alive

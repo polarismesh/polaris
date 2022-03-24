@@ -78,8 +78,7 @@ func (cs *Impl) CreateConfigFileTags(ctx context.Context, namespace, group, file
 	}
 
 	var toCreateTags []string
-	for key, _ := range newTagMap {
-		newTagValues := newTagMap[key]
+	for key, newTagValues := range newTagMap {
 		storedTagValues := storedTagMap[key]
 		for _, newTagValue := range newTagValues {
 			if storedTagValues == nil {
@@ -105,9 +104,8 @@ func (cs *Impl) CreateConfigFileTags(ctx context.Context, namespace, group, file
 
 	//3. 删除 tag
 	var toDeleteTags []string
-	for key, _ := range storedTagMap {
+	for key, storedTagValues := range storedTagMap {
 		newTagValues := newTagMap[key]
-		storedTagValues := storedTagMap[key]
 		for _, storedTagValue := range storedTagValues {
 			if newTagValues == nil {
 				toDeleteTags = append(toDeleteTags, key)
@@ -134,7 +132,7 @@ func (cs *Impl) CreateConfigFileTags(ctx context.Context, namespace, group, file
 }
 
 // QueryConfigFileByTags 通过标签查询配置文件,多个 tag 之间为或的关系, tags 格式：k1,v1,k2,v2,k3,v3...
-func (cs *Impl) QueryConfigFileByTags(ctx context.Context, namespace, group, fileName string, offset, limit int, tags ...string) (int, []*model.ConfigFileTag, error) {
+func (cs *Impl) QueryConfigFileByTags(ctx context.Context, namespace, group, fileName string, offset, limit uint32, tags ...string) (int, []*model.ConfigFileTag, error) {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
 	if len(tags)%2 != 0 {
@@ -177,15 +175,15 @@ func (cs *Impl) QueryConfigFileByTags(ctx context.Context, namespace, group, fil
 
 	//内存分页
 	fileCount := len(distinctFiles)
-	if offset > fileCount {
+	if int(offset) >= fileCount {
 		return fileCount, nil, nil
 	}
 
 	var endIdx int
-	if offset+limit > fileCount {
+	if int(offset+limit) >= fileCount {
 		endIdx = fileCount
 	} else {
-		endIdx = offset + limit
+		endIdx = int(offset + limit)
 	}
 
 	return fileCount, files[offset:endIdx], nil

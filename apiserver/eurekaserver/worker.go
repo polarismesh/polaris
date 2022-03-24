@@ -24,15 +24,16 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/service"
-	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/service"
+	"github.com/polarismesh/polaris-server/service/healthcheck"
 )
 
 //全量服务缓存
@@ -68,7 +69,7 @@ type ApplicationsWorker struct {
 	//增量数据缓存，数据结构为ApplicationsRespCache
 	deltaCache *atomic.Value
 
-	namingServer *service.Server
+	namingServer service.DiscoverServer
 
 	healthCheckServer *healthcheck.Server
 
@@ -82,7 +83,7 @@ type ApplicationsWorker struct {
 //构造函数
 func NewApplicationsWorker(interval time.Duration,
 	deltaExpireInterval time.Duration, unhealthyExpireInterval time.Duration,
-	namingServer *service.Server, healthCheckServer *healthcheck.Server, namespace string) *ApplicationsWorker {
+	namingServer service.DiscoverServer, healthCheckServer *healthcheck.Server, namespace string) *ApplicationsWorker {
 	return &ApplicationsWorker{
 		mutex:                   &sync.Mutex{},
 		interval:                interval,
@@ -265,7 +266,7 @@ func buildHashStr(counts map[string]int) string {
 	for k := range counts {
 		slice = append(slice, k)
 	}
-	sort.Sort(sort.StringSlice(slice))
+	sort.Strings(slice)
 	builder := &strings.Builder{}
 	for _, status := range slice {
 		builder.WriteString(fmt.Sprintf("%s_%d_", status, counts[status]))

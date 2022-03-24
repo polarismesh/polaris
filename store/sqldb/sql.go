@@ -26,8 +26,12 @@ import (
 )
 
 const (
-	OwnerAttribute = "owner"
-	And            = " and"
+
+	// OwnerAttribute
+	OwnerAttribute string = "owner"
+
+	// And
+	And string = " and"
 )
 
 // Order 排序结构体

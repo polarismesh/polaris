@@ -36,7 +36,7 @@ func (cs *Impl) PublishConfigFile(ctx context.Context, configFileRelease *api.Co
 	group := configFileRelease.Group.GetValue()
 	fileName := configFileRelease.FileName.GetValue()
 
-	if err := utils2.CheckResourceName(utils.NewStringValue(fileName)); err != nil {
+	if err := utils2.CheckFileName(utils.NewStringValue(fileName)); err != nil {
 		return api.NewConfigFileResponse(api.InvalidConfigFileName, nil)
 	}
 
@@ -53,7 +53,7 @@ func (cs *Impl) PublishConfigFile(ctx context.Context, configFileRelease *api.Co
 	}
 
 	tx := cs.getTx(ctx)
-	//获取待发布的 configFileRelease 信息
+	//获取待发布的 configFile 信息
 	toPublishFile, err := cs.storage.GetConfigFile(tx, namespace, group, fileName)
 
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
@@ -91,10 +91,19 @@ func (cs *Impl) PublishConfigFile(ctx context.Context, configFileRelease *api.Co
 		return api.NewConfigFileResponse(api.StoreLayerException, nil)
 	}
 
+	releaseName := configFileRelease.Name.GetValue()
+	if releaseName == "" {
+		if managedFileRelease == nil {
+			releaseName = utils2.GenReleaseName("", fileName)
+		} else {
+			releaseName = utils2.GenReleaseName(managedFileRelease.Name, fileName)
+		}
+	}
+
 	//第一次发布
 	if managedFileRelease == nil {
 		fileRelease := &model.ConfigFileRelease{
-			Name:      configFileRelease.Name.GetValue(),
+			Name:      releaseName,
 			Namespace: namespace,
 			Group:     group,
 			FileName:  fileName,
@@ -129,7 +138,7 @@ func (cs *Impl) PublishConfigFile(ctx context.Context, configFileRelease *api.Co
 
 	//更新发布
 	fileRelease := &model.ConfigFileRelease{
-		Name:      configFileRelease.Name.GetValue(),
+		Name:      releaseName,
 		Namespace: namespace,
 		Group:     group,
 		FileName:  fileName,
@@ -162,7 +171,7 @@ func (cs *Impl) PublishConfigFile(ctx context.Context, configFileRelease *api.Co
 
 // GetConfigFileRelease 获取配置文件发布内容
 func (cs *Impl) GetConfigFileRelease(ctx context.Context, namespace, group, fileName string) *api.ConfigResponse {
-	if err := utils2.CheckResourceName(utils.NewStringValue(fileName)); err != nil {
+	if err := utils2.CheckFileName(utils.NewStringValue(fileName)); err != nil {
 		return api.NewConfigFileResponse(api.InvalidConfigFileName, nil)
 	}
 
@@ -194,7 +203,7 @@ func (cs *Impl) GetConfigFileRelease(ctx context.Context, namespace, group, file
 
 // DeleteConfigFileRelease 删除配置文件发布，删除配置文件的时候，同步删除配置文件发布数据
 func (cs *Impl) DeleteConfigFileRelease(ctx context.Context, namespace, group, fileName, deleteBy string) *api.ConfigResponse {
-	if err := utils2.CheckResourceName(utils.NewStringValue(fileName)); err != nil {
+	if err := utils2.CheckFileName(utils.NewStringValue(fileName)); err != nil {
 		return api.NewConfigFileResponse(api.InvalidConfigFileName, nil)
 	}
 
@@ -206,9 +215,39 @@ func (cs *Impl) DeleteConfigFileRelease(ctx context.Context, namespace, group, f
 		return api.NewConfigFileResponse(api.InvalidConfigFileGroupName, nil)
 	}
 
-	err := cs.storage.DeleteConfigFileRelease(cs.getTx(ctx), namespace, group, fileName, deleteBy)
+	latestReleaseRsp := cs.GetConfigFileRelease(ctx, namespace, group, fileName)
+	if latestReleaseRsp.Code.GetValue() != api.ExecuteSuccess {
+		return api.NewConfigFileResponse(latestReleaseRsp.Code.GetValue(), nil)
+	}
 
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
+
+	var releaseName string
+	latestRelease := latestReleaseRsp.ConfigFileRelease
+	if latestRelease == nil {
+		// 从来没有发布过，无需删除
+		return api.NewConfigFileResponse(api.ExecuteSuccess, nil)
+	}
+
+	releaseName = utils2.GenReleaseName(latestRelease.Name.GetValue(), fileName)
+	if releaseName != latestRelease.Name.GetValue() {
+		//更新releaseName
+		releaseModel := transferConfigFileReleaseAPIModel2StoreModel(latestRelease)
+		releaseModel.Name = releaseName
+		_, err := cs.storage.UpdateConfigFileRelease(cs.getTx(ctx), releaseModel)
+		if err != nil {
+			log.ConfigScope().Error("[Config][Service] update release name error when delete release.",
+				zap.String("request-id", requestID),
+				zap.String("namespace", namespace),
+				zap.String("group", group),
+				zap.String("fileName", fileName),
+				zap.Error(err))
+		}
+		return api.NewConfigFileResponse(api.StoreLayerException, nil)
+	}
+
+	err := cs.storage.DeleteConfigFileRelease(cs.getTx(ctx), namespace, group, fileName, deleteBy)
+
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] delete config file release error.",
 			zap.String("request-id", requestID),
@@ -218,6 +257,7 @@ func (cs *Impl) DeleteConfigFileRelease(ctx context.Context, namespace, group, f
 			zap.Error(err))
 
 		cs.RecordConfigFileReleaseHistory(nil, &model.ConfigFileRelease{
+			Name:      releaseName,
 			Namespace: namespace,
 			Group:     group,
 			FileName:  fileName,
@@ -228,6 +268,7 @@ func (cs *Impl) DeleteConfigFileRelease(ctx context.Context, namespace, group, f
 	}
 
 	cs.RecordConfigFileReleaseHistory(ctx, &model.ConfigFileRelease{
+		Name:      releaseName,
 		Namespace: namespace,
 		Group:     group,
 		FileName:  fileName,
@@ -245,18 +286,46 @@ func transferConfigFileReleaseAPIModel2StoreModel(release *api.ConfigFileRelease
 	if release == nil {
 		return nil
 	}
+	var comment string
+	if release.Comment != nil {
+		comment = release.Comment.Value
+	}
+	var content string
+	if release.Content != nil {
+		content = release.Content.Value
+	}
+	var md5 string
+	if release.Md5 != nil {
+		md5 = release.Md5.Value
+	}
+	var version uint64
+	if release.Version != nil {
+		version = release.Version.Value
+	}
+	var createBy string
+	if release.CreateBy != nil {
+		createBy = release.CreateBy.Value
+	}
+	var modifyBy string
+	if release.ModifyBy != nil {
+		createBy = release.ModifyBy.Value
+	}
+	var id uint64
+	if release.Id != nil {
+		id = release.Id.Value
+	}
 
 	return &model.ConfigFileRelease{
-		Id:        release.Id.GetValue(),
+		Id:        id,
 		Namespace: release.Namespace.GetValue(),
 		Group:     release.Group.GetValue(),
 		FileName:  release.FileName.GetValue(),
-		Content:   release.Content.GetValue(),
-		Comment:   release.Comment.GetValue(),
-		Md5:       release.Md5.GetValue(),
-		Version:   release.Version.GetValue(),
-		CreateBy:  release.CreateBy.GetValue(),
-		ModifyBy:  release.ModifyBy.GetValue(),
+		Content:   content,
+		Comment:   comment,
+		Md5:       md5,
+		Version:   version,
+		CreateBy:  createBy,
+		ModifyBy:  modifyBy,
 	}
 }
 

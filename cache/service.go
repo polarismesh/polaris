@@ -345,7 +345,8 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 	update := 0
 	del := 0
 
-	svcIds := make(map[string]bool)
+	// 这里要记录 ns 的变动情况，避免由于 svc delete 之后，命名空间的服务计数无法更新
+	changeNs := make(map[string]bool)
 
 	lastMtime := sc.lastMtime
 	for _, service := range services {
@@ -359,9 +360,8 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 			lastMtime = serviceMtime
 		}
 
-		svcIds[service.ID] = true
-
 		spaceName := service.Namespace
+		changeNs[spaceName] = true
 		// 发现有删除操作
 		if !service.Valid {
 			sc.removeServices(service)
@@ -390,8 +390,7 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 		sc.lastMtime = lastMtime
 	}
 
-	sc.notifyServiceCountReload(svcIds)
-
+	sc.postProcessUpdatedServices(changeNs)
 	return update, del
 }
 

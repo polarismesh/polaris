@@ -25,6 +25,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/polarismesh/polaris-server/auth"
+	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 
@@ -124,23 +126,47 @@ func Start(configFilePath string) {
 // StartComponents start healthcheck and naming components
 func StartComponents(ctx context.Context, cfg *config.Config) error {
 	var err error
+
+	// 获取存储层对象
+	s, err := store.GetStore()
+	if err != nil {
+		log.Errorf("[Naming][Server] can not get store, err: %s", err.Error())
+		return errors.New("can not get store")
+	}
+
 	if len(cfg.HealthChecks.LocalHost) == 0 {
 		cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
 	}
-	err = healthcheck.Initialize(ctx, &cfg.HealthChecks, cfg.Cache.Open)
-	if err != nil {
+
+	if err = healthcheck.Initialize(ctx, &cfg.HealthChecks, cfg.Cache.Open); err != nil {
 		return err
 	}
+
 	healthCheckServer, err := healthcheck.GetServer()
 	if err != nil {
 		return err
 	}
+
 	cacheProvider, err := healthCheckServer.CacheProvider()
 	if err != nil {
 		return err
 	}
-	err = service.Initialize(ctx, &cfg.Naming, &cfg.Cache, cacheProvider)
+
+	if err := cache.Initialize(ctx, &cfg.Cache, s, []cache.Listener{cacheProvider}); err != nil {
+		return err
+	}
+
+	cacheMgn, err := cache.GetCacheManager()
 	if err != nil {
+		return err
+	}
+
+	// 初始化鉴权层
+	if err = auth.Initialize(ctx, &cfg.Auth, s, cacheMgn); err != nil {
+		return err
+	}
+
+	if err = service.Initialize(ctx, &cfg.Naming, &cfg.Cache, cacheProvider); err != nil {
 		return err
 	}
 
@@ -342,6 +368,9 @@ func polarisServiceRegister(polarisService *config.PolarisService, apiServers []
 				log.Errorf("self register err: %s", err.Error())
 				return err
 			}
+
+			log.Infof("self register success. host = %s, port = %s, protocol = %s, service = %s",
+				host, port, protocol, service)
 		}
 	}
 
@@ -350,7 +379,7 @@ func polarisServiceRegister(polarisService *config.PolarisService, apiServers []
 
 // selfRegister 服务自注册
 func selfRegister(host string, port uint32, protocol string, isolated bool, polarisService *config.Service) error {
-	server, err := service.GetServer()
+	server, err := service.GetOriginServer()
 	if err != nil {
 		return err
 	}
@@ -413,7 +442,7 @@ func selfRegister(host string, port uint32, protocol string, isolated bool, pola
 
 // SelfDeregister Server退出的时候，自动反注册
 func SelfDeregister() {
-	namingServer, err := service.GetServer()
+	namingServer, err := service.GetOriginServer()
 	if err != nil {
 		log.Errorf("get naming server obj err: %s", err.Error())
 		return

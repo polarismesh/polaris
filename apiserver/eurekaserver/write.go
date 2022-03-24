@@ -172,7 +172,7 @@ func (h *EurekaServer) registerInstances(ctx context.Context, appId string, inst
 	//1. 先转换数据结构
 	totalInstance := convertEurekaInstance(instance, h.namespace, appId)
 	//3. 注册实例
-	resp := h.namingServer.CreateInstance(ctx, totalInstance)
+	resp := h.namingServer.CreateInstances(ctx, []*api.Instance{totalInstance})
 	//4. 注册成功，则返回
 	if resp.GetCode().GetValue() == api.ExecuteSuccess || resp.GetCode().GetValue() == api.ExistedResource {
 		return api.ExecuteSuccess
@@ -183,20 +183,20 @@ func (h *EurekaServer) registerInstances(ctx context.Context, appId string, inst
 		svc.Namespace = &wrappers.StringValue{Value: h.namespace}
 		svc.Name = &wrappers.StringValue{Value: appId}
 		svc.Owners = &wrappers.StringValue{Value: h.owner}
-		svcResp := h.namingServer.CreateService(ctx, svc)
+		svcResp := h.namingServer.CreateServices(ctx, []*api.Service{svc})
 		svcCreateCode := svcResp.GetCode().GetValue()
 		if svcCreateCode != api.ExecuteSuccess && svcCreateCode != api.ExistedResource {
 			return svcCreateCode
 		}
 		//6. 再重试注册实例列表
-		resp = h.namingServer.CreateInstance(ctx, totalInstance)
+		resp = h.namingServer.CreateInstances(ctx, []*api.Instance{totalInstance})
 		return resp.GetCode().GetValue()
 	}
 	return resp.GetCode().GetValue()
 }
 
 func (h *EurekaServer) deregisterInstance(ctx context.Context, appId string, instanceId string) uint32 {
-	resp := h.namingServer.DeleteInstance(ctx, &api.Instance{Id: &wrappers.StringValue{Value: instanceId}})
+	resp := h.namingServer.DeleteInstances(ctx, []*api.Instance{{Id: &wrappers.StringValue{Value: instanceId}}})
 	return resp.GetCode().GetValue()
 }
 
@@ -205,8 +205,8 @@ func (h *EurekaServer) update(ctx context.Context, appId string, instanceId stri
 	if status != StatusUp {
 		isolated = true
 	}
-	resp := h.namingServer.UpdateInstance(ctx,
-		&api.Instance{Id: &wrappers.StringValue{Value: instanceId}, Isolate: &wrappers.BoolValue{Value: isolated}})
+	resp := h.namingServer.UpdateInstances(ctx,
+		[]*api.Instance{&api.Instance{Id: &wrappers.StringValue{Value: instanceId}, Isolate: &wrappers.BoolValue{Value: isolated}}})
 	return resp.GetCode().GetValue()
 }
 

@@ -18,6 +18,7 @@
 package httpserver
 
 import (
+	"github.com/golang/protobuf/proto"
 	"strconv"
 
 	"go.uber.org/zap"
@@ -52,10 +53,11 @@ func (h *HTTPServer) QueryConfigFileGroups(req *restful.Request, rsp *restful.Re
 
 	namespace := handler.QueryParameter("namespace")
 	group := handler.QueryParameter("group")
+	fileName := handler.QueryParameter("fileName")
 	offset, _ := strconv.ParseUint(handler.QueryParameter("offset"), 10, 64)
 	limit, _ := strconv.ParseUint(handler.QueryParameter("limit"), 10, 64)
 
-	response := h.configServer.Service().QueryConfigFileGroups(handler.ParseHeaderContext(), namespace, group,
+	response := h.configServer.Service().QueryConfigFileGroups(handler.ParseHeaderContext(), namespace, group, fileName,
 		uint32(offset), uint32(limit))
 
 	handler.WriteHeaderAndProto(response)
@@ -134,7 +136,7 @@ func (h *HTTPServer) SearchConfigFile(req *restful.Request, rsp *restful.Respons
 	limit, _ := strconv.ParseUint(handler.QueryParameter("limit"), 10, 64)
 
 	response := h.configServer.Service().SearchConfigFile(handler.ParseHeaderContext(), namespace, group, name, tags,
-		int(offset), int(limit))
+		uint32(offset), uint32(limit))
 
 	handler.WriteHeaderAndProto(response)
 }
@@ -167,6 +169,27 @@ func (h *HTTPServer) DeleteConfigFile(req *restful.Request, rsp *restful.Respons
 	operator := handler.QueryParameter("deleteBy")
 
 	response := h.configServer.Service().DeleteConfigFile(handler.ParseHeaderContext(), namespace, group, name, operator)
+	handler.WriteHeaderAndProto(response)
+}
+
+// BatchDeleteConfigFile 批量删除配置文件
+func (h *HTTPServer) BatchDeleteConfigFile(req *restful.Request, rsp *restful.Response) {
+	handler := &Handler{req, rsp}
+
+	operator := handler.QueryParameter("deleteBy")
+
+	var configFiles ConfigFileArr
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.ConfigFile{}
+		configFiles = append(configFiles, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		return
+	}
+
+	response := h.configServer.Service().BatchDeleteConfigFile(ctx, configFiles, operator)
 	handler.WriteHeaderAndProto(response)
 }
 
@@ -209,11 +232,18 @@ func (h *HTTPServer) GetConfigFileReleaseHistory(req *restful.Request, rsp *rest
 	namespace := handler.QueryParameter("namespace")
 	group := handler.QueryParameter("group")
 	name := handler.QueryParameter("name")
+	endIdStr := handler.QueryParameter("endId")
 	offset, _ := strconv.ParseUint(handler.QueryParameter("offset"), 10, 64)
 	limit, _ := strconv.ParseUint(handler.QueryParameter("limit"), 10, 64)
+	var endId uint64
+	if endIdStr == "" {
+		endId = 0
+	} else {
+		endId, _ = strconv.ParseUint(endIdStr, 10, 64)
+	}
 
 	response := h.configServer.Service().GetConfigFileReleaseHistory(handler.ParseHeaderContext(),
-		namespace, group, name, uint32(offset), uint32(limit))
+		namespace, group, name, uint32(offset), uint32(limit), endId)
 
 	handler.WriteHeaderAndProto(response)
 }

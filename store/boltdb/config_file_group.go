@@ -49,3 +49,7 @@ func (fg *configFileGroupStore) DeleteConfigFileGroup(namespace, name string) er
 func (fg *configFileGroupStore) UpdateConfigFileGroup(fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
 	return nil, nil
 }
+
+func (fg *configFileGroupStore) FindConfigFileGroups(namespace string, names []string) ([]*model.ConfigFileGroup, error) {
+	return nil, nil
+}

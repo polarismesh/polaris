@@ -90,13 +90,13 @@ func (h *HTTPServer) watchConfigFile(req *restful.Request, rsp *restful.Response
 	id, _ := uuid.NewUUID()
 	clientId := clientAddr + "@" + id.String()[0:8]
 
-	finishChan := make(chan struct{})
+	finishChan := make(chan *api.ConfigClientResponse)
 	defer close(finishChan)
 
-	h.addConn(clientId, watchFiles, handler, finishChan)
+	h.configServer.ConnManager().AddConn(clientId, watchFiles, finishChan)
 
 	//阻塞等待响应
-	<-finishChan
+	watchRsp := <-finishChan
 
-	h.removeConn(clientId, watchFiles)
+	handler.WriteHeaderAndProto(watchRsp)
 }

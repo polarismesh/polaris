@@ -18,11 +18,13 @@
 package test
 
 import (
+	"context"
 	"fmt"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
 	"testing"
 	"time"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 // create
@@ -107,7 +109,7 @@ func TestRemoveNamespace(t *testing.T) {
 		defer cleanNamespace(resp.GetName().GetValue())
 
 		removeCommonNamespaces(t, []*api.Namespace{resp})
-		out := server.GetNamespaces(map[string][]string{"name": {resp.GetName().GetValue()}})
+		out := server.GetNamespaces(context.Background(), map[string][]string{"name": {resp.GetName().GetValue()}})
 		if !respSuccess(out) {
 			t.Fatalf("error: %s", out.GetInfo().GetValue())
 		}
@@ -176,7 +178,7 @@ func TestGetNamespaces(t *testing.T) {
 			defer cleanNamespace(req.GetName().GetValue())
 		}
 
-		resp := server.GetNamespaces(map[string][]string{})
+		resp := server.GetNamespaces(context.Background(), map[string][]string{})
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -196,7 +198,7 @@ func TestGetNamespaces(t *testing.T) {
 			"offset": {"10"},
 			"limit":  {"10"},
 		}
-		resp := server.GetNamespaces(query)
+		resp := server.GetNamespaces(context.Background(), query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}

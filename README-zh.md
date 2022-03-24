@@ -75,7 +75,7 @@ README：
 
 #### 导入数据库建表脚本
 
-建表脚本为./store/sqldb/polaris_server.sql，可通过mysql命令或者admin客户端进行导入
+建表脚本为./store/sqldb/scripts/polaris_server.sql，可通过mysql命令或者admin客户端进行导入
 
 #### 准备golang编译环境
 
@@ -149,7 +149,7 @@ curl http://127.0.0.1:8090
 
 ## 交流群
 
-扫码下方二维码进入北极星PolarisMesh交流2群，加群之前有劳点一下 star，一个小小的 star 是对北极星作者们努力建设社区的动力。
+扫码下方二维码进入北极星开源社区交流群，加群之前有劳点一下 star，一个小小的 star 是对北极星作者们努力建设社区的动力。
 
 北极星社区相关的特性计划、运营活动都会在交流群中进行发布，加群可以保证您不会错过任何一个关于北极星的资讯。
 

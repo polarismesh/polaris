@@ -53,19 +53,37 @@ func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(tx store
 }
 
 // QueryConfigFileReleaseHistories 获取配置文件的发布历史记录
-func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespace, group, fileName string, offset, limit uint32) (uint32, []*model.ConfigFileReleaseHistory, error) {
-	countSql := "select count(*) from config_file_release_history where namespace = ? and `group` like ? and file_name like ?"
-	group = "%" + group + "%"
-	fileName = "%" + fileName + "%"
+func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespace, group, fileName string,
+	offset, limit uint32, endId uint64) (uint32, []*model.ConfigFileReleaseHistory, error) {
+	countSql := "select count(*) from config_file_release_history where "
+	querySql := rh.genSelectSql() + " where "
+
+	var queryParams []interface{}
+	if namespace != "" {
+		countSql += " namespace = ? and "
+		querySql += " namespace = ? and "
+		queryParams = append(queryParams, namespace)
+	}
+	if endId > 0 {
+		countSql += " id < ? and "
+		querySql += " id < ? and "
+		queryParams = append(queryParams, endId)
+	}
+
+	countSql += "`group` like ? and file_name like ?"
+	querySql += "`group` like ? and file_name like ? order by id desc limit ?, ?"
+	queryParams = append(queryParams, "%"+group+"%")
+	queryParams = append(queryParams, "%"+fileName+"%")
+
 	var count uint32
-	err := rh.db.QueryRow(countSql, namespace, group, fileName).Scan(&count)
+	err := rh.db.QueryRow(countSql, queryParams...).Scan(&count)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	sql := "select id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), md5, format, tags, type, status, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), UNIX_TIMESTAMP(modify_time), " +
-		"IFNULL(modify_by, '') from config_file_release_history where namespace = ? and `group` like ? and file_name like ? order by id desc limit ?, ?"
-	rows, err := rh.db.Query(sql, namespace, group, fileName, offset, limit)
+	queryParams = append(queryParams, offset)
+	queryParams = append(queryParams, limit)
+	rows, err := rh.db.Query(querySql, queryParams...)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -76,12 +94,10 @@ func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespa
 	}
 
 	return count, fileReleaseHistories, nil
-
 }
 
 func (rh *configFileReleaseHistoryStore) GetLatestConfigFileReleaseHistory(namespace, group, fileName string) (*model.ConfigFileReleaseHistory, error) {
-	sql := "select id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), md5, format, tags, type, status, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), UNIX_TIMESTAMP(modify_time), " +
-		"IFNULL(modify_by, '') from config_file_release_history where namespace = ? and `group` = ? and file_name = ? order by id desc limit 1"
+	sql := rh.genSelectSql() + "where namespace = ? and `group` = ? and file_name = ? order by id desc limit 1"
 
 	rows, err := rh.db.Query(sql, namespace, group, fileName)
 	if err != nil {
@@ -100,6 +116,10 @@ func (rh *configFileReleaseHistoryStore) GetLatestConfigFileReleaseHistory(names
 	return fileReleaseHistories[0], nil
 }
 
+func (rh *configFileReleaseHistoryStore) genSelectSql() string {
+	return "select id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), md5, format, tags, type, status, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), UNIX_TIMESTAMP(modify_time), " +
+		"IFNULL(modify_by, '') from config_file_release_history "
+}
 func (rh *configFileReleaseHistoryStore) transferRows(rows *sql.Rows) ([]*model.ConfigFileReleaseHistory, error) {
 	if rows == nil {
 		return nil, nil

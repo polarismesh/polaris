@@ -19,6 +19,8 @@ package sqldb
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/model"
@@ -61,6 +63,30 @@ func (fg *configFileGroupStore) GetConfigFileGroup(namespace, name string) (*mod
 // QueryConfigFileGroups 翻页查询配置文件组, name 为模糊匹配关键字
 func (fg *configFileGroupStore) QueryConfigFileGroups(namespace, name string, offset, limit uint32) (uint32, []*model.ConfigFileGroup, error) {
 	name = "%" + name + "%"
+
+	// 全部 namespace
+	if namespace == "" {
+		countSql := "select count(*) from config_file_group where name like ?"
+		var count uint32
+		err := fg.db.QueryRow(countSql, name).Scan(&count)
+		if err != nil {
+			return count, nil, err
+		}
+
+		sql := fg.genConfigFileGroupSelectSql() + " where name like ? order by id desc limit ?,?"
+		rows, err := fg.db.Query(sql, name, offset, limit)
+		if err != nil {
+			return 0, nil, err
+		}
+		cfgs, err := fg.transferRows(rows)
+		if err != nil {
+			return 0, nil, err
+		}
+
+		return count, cfgs, nil
+	}
+
+	// 特定 namespace
 	countSql := "select count(*) from config_file_group where namespace=? and name like ?"
 	var count uint32
 	err := fg.db.QueryRow(countSql, namespace, name).Scan(&count)
@@ -68,7 +94,7 @@ func (fg *configFileGroupStore) QueryConfigFileGroups(namespace, name string, of
 		return count, nil, err
 	}
 
-	sql := fg.genConfigFileGroupSelectSql() + " where namespace=? and name like ? limit ?,?"
+	sql := fg.genConfigFileGroupSelectSql() + " where namespace=? and name like ? order by id desc limit ?,? "
 	rows, err := fg.db.Query(sql, namespace, name, offset, limit)
 	if err != nil {
 		return 0, nil, err
@@ -101,6 +127,36 @@ func (fg *configFileGroupStore) UpdateConfigFileGroup(fileGroup *model.ConfigFil
 		return nil, store.Error(err)
 	}
 	return fg.GetConfigFileGroup(fileGroup.Namespace, fileGroup.Name)
+}
+
+// FindConfigFileGroups 获取一组配置文件组信息
+func (fg *configFileGroupStore) FindConfigFileGroups(namespace string, names []string) ([]*model.ConfigFileGroup, error) {
+	querySql := fg.genConfigFileGroupSelectSql()
+	params := make([]interface{}, 0)
+
+	if namespace == "" {
+		querySql += " where name in (%s)"
+	} else {
+		querySql += " where namespace = ? and name in (%s)"
+		params = append(params, namespace)
+	}
+
+	inParamPlaceholders := make([]string, 0)
+	for i := 0; i < len(names); i++ {
+		inParamPlaceholders = append(inParamPlaceholders, "?")
+		params = append(params, names[i])
+	}
+	querySql = fmt.Sprintf(querySql, strings.Join(inParamPlaceholders, ","))
+
+	rows, err := fg.db.Query(querySql, params...)
+	if err != nil {
+		return nil, err
+	}
+	cfgs, err := fg.transferRows(rows)
+	if err != nil {
+		return nil, err
+	}
+	return cfgs, nil
 }
 
 func (fg *configFileGroupStore) genConfigFileGroupSelectSql() string {

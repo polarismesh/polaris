@@ -44,6 +44,10 @@ const (
 	CacheCL5
 	CacheRateLimit
 	CacheCircuitBreaker
+	CacheUser
+	CacheAuthStrategy
+	CacheNamespace
+
 	CacheLast
 )
 
@@ -54,9 +58,22 @@ const (
 
 // Cache 缓存接口
 type Cache interface {
+
+	// initialize
+	//  @param c
+	//  @return error
 	initialize(c map[string]interface{}) error
+
+	// update
+	//  @return error
 	update() error
+
+	// clear
+	//  @return error
 	clear() error
+
+	// name
+	//  @return string
 	name() string
 }
 
@@ -93,44 +110,6 @@ type NamingCache struct {
 
 	comRevisionCh chan *revisionNotify
 	revisions     *sync.Map // service id -> reversion (所有instance reversion 的累计计算值)
-}
-
-// NewNamingCache 新建一个缓存对象
-func NewNamingCache(storage store.Store, listeners []Listener) (*NamingCache, error) {
-	nc := &NamingCache{
-		storage:       storage,
-		caches:        make([]Cache, CacheLast),
-		comRevisionCh: make(chan *revisionNotify, RevisionChanCount),
-		revisions:     new(sync.Map),
-	}
-
-	listeners = append(listeners, &WatchInstanceReload{
-		Handler: func(val interface{}) {
-			if svcIds, ok := val.(map[string]bool); ok {
-				nc.caches[CacheService].(*serviceCache).notifyServiceCountReload(svcIds)
-			}
-		},
-	})
-
-	ic := newInstanceCache(storage, nc.comRevisionCh, listeners)
-	sc := newServiceCache(storage, nc.comRevisionCh, ic)
-
-	nc.caches[CacheService] = sc
-	nc.caches[CacheInstance] = ic
-	nc.caches[CacheRoutingConfig] = newRoutingConfigCache(storage)
-	nc.caches[CacheCL5] = &l5Cache{
-		storage: storage,
-		ic:      ic,
-		sc:      sc,
-	}
-	nc.caches[CacheRateLimit] = newRateLimitCache(storage)
-	nc.caches[CacheCircuitBreaker] = newCircuitBreakerCache(storage)
-
-	if err := nc.initialize(); err != nil {
-		return nil, err
-	}
-
-	return nc, nil
 }
 
 // initialize 缓存对象初始化
@@ -334,6 +313,27 @@ func (nc *NamingCache) RateLimit() RateLimitCache {
 // CircuitBreaker 获取熔断规则缓存信息
 func (nc *NamingCache) CircuitBreaker() CircuitBreakerCache {
 	return nc.caches[CacheCircuitBreaker].(CircuitBreakerCache)
+}
+
+// User Get user information cache information
+//  @receiver nc
+//  @return UserCache
+func (nc *NamingCache) User() UserCache {
+	return nc.caches[CacheUser].(UserCache)
+}
+
+// AuthStrategy Get authentication cache information
+//  @receiver nc
+//  @return StrategyCache
+func (nc *NamingCache) AuthStrategy() StrategyCache {
+	return nc.caches[CacheAuthStrategy].(StrategyCache)
+}
+
+// Namespace Get namespace cache information
+//  @receiver nc
+//  @return NamespaceCache
+func (nc *NamingCache) Namespace() NamespaceCache {
+	return nc.caches[CacheNamespace].(NamespaceCache)
 }
 
 // ComputeRevision 计算唯一的版本标识

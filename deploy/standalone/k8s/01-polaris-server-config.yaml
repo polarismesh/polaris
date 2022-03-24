@@ -5,32 +5,68 @@ data:
     bootstrap:
       # 全局日志
       logger:
-        naming:
+        config:
+          rotateOutputPath: log/polaris-config.log
+          errorRotateOutputPath: log/polaris-config-error.log
+          rotationMaxSize: 100
+          rotationMaxBackups: 10
+          rotationMaxAge: 7
+          outputLevel: info
           outputPaths:
             - stdout
           errorOutputPaths:
             - stderr
-        health-check:
+        auth:
+          rotateOutputPath: log/polaris-auth.log
+          errorRotateOutputPath: log/polaris-auth-error.log
+          rotationMaxSize: 100
+          rotationMaxBackups: 10
+          rotationMaxAge: 7
+          outputLevel: info
           outputPaths:
             - stdout
           errorOutputPaths:
             - stderr
         store:
+          rotateOutputPath: log/polaris-store.log
+          errorRotateOutputPath: log/polaris-store-error.log
+          rotationMaxSize: 100
+          rotationMaxBackups: 10
+          rotationMaxAge: 7
+          outputLevel: info
           outputPaths:
             - stdout
           errorOutputPaths:
             - stderr
-        plugin:
+        cache:
+          rotateOutputPath: log/polaris-cache.log
+          errorRotateOutputPath: log/polaris-cache-error.log
+          rotationMaxSize: 100
+          rotationMaxBackups: 10
+          rotationMaxAge: 7
+          outputLevel: info
           outputPaths:
             - stdout
           errorOutputPaths:
             - stderr
-        server:
+        naming:
+          rotateOutputPath: log/polaris-naming.log
+          errorRotateOutputPath: log/polaris-naming-error.log
+          rotationMaxSize: 100
+          rotationMaxBackups: 10
+          rotationMaxAge: 7
+          outputLevel: info
           outputPaths:
             - stdout
           errorOutputPaths:
             - stderr
         default:
+          rotateOutputPath: log/polaris-default.log
+          errorRotateOutputPath: log/polaris-default-error.log
+          rotationMaxSize: 100
+          rotationMaxBackups: 10
+          rotationMaxAge: 7
+          outputLevel: info
           outputPaths:
             - stdout
           errorOutputPaths:
@@ -41,7 +77,7 @@ data:
         key: sz # 全局锁
       # 注册为北极星服务
       polaris_service:
-        # probe_address: ##DB_ADDR##
+        probe_address: ##DB_ADDR##
         enable_register: true
         isolated: false
         services:
@@ -50,6 +86,22 @@ data:
               - grpcserver
     # apiserver配置
     apiservers:
+      - name: eurekaserver
+        option:
+          listenIP: "0.0.0.0"
+          listenPort: 8761
+          namespace: default
+          owner: polaris
+          refreshInterval: 10
+          deltaExpireInterval: 60
+          unhealthyExpireInterval: 180
+          connLimit:
+            openConnLimit: false
+            maxConnPerHost: 1024
+            maxConnLimit: 10240
+            whiteList: 127.0.0.1
+            purgeCounterInterval: 10s
+            purgeCounterExpired: 5s
       - name: httpserver # 协议名，全局唯一
         option:
           listenIP: "0.0.0.0"
@@ -71,6 +123,9 @@ data:
           client:
             enable: true
             include: [discover, register, healthcheck]
+          config:
+            enable: true
+            include: [default]
       - name: grpcserver
         option:
           listenIP: "0.0.0.0"
@@ -91,11 +146,19 @@ data:
             openConnLimit: false
             maxConnPerHost: 128
             maxConnLimit: 10240
+    #  - name: l5pbserver
+    #    option:
+    #      listenIP: 0.0.0.0
+    #      listenPort: 7779
+    #      clusterName: cl5.discover
     # 核心逻辑的配置
+    auth:
+      name: defaultAuth
+      option:
+        salt: polarismesh@2021
+        open: ##AUTH_OPEN##
     naming:
-      # 鉴权配置
       auth:
-        # 是否开启鉴权
         open: false
       # 批量控制器
       batch:
@@ -111,6 +174,13 @@ data:
           waitTime: 32ms
           maxBatchCount: 32
           concurrency: 64
+    # 配置中心模块启动配置
+    config:
+      # 是否启动配置模块
+      open: true
+      cache:
+        #配置文件缓存过期时间，单位s
+        expireTimeAfterWrite: 3600
     # 健康检查的配置
     healthcheck:
       open: true
@@ -151,29 +221,41 @@ data:
         - name: routingConfig # 加载路由数据
         - name: rateLimitConfig # 加载限流数据
         - name: circuitBreakerConfig # 加载熔断数据
+        - name: users
+        - name: strategyRule
+        - name: namespace
+    #    - name: l5 # 加载l5数据
     # 存储配置
     store:
-    # 单机文件存储插件
+      # 单机文件存储插件
       name: boltdbStore
       option:
         path: ./polaris.bolt
-    # 数据库存储插件
-    #  name: defaultStore
-    #  option:
-    #    master:
-    #      dbType: mysql
-    #      dbUser: ##DB_USER##
-    #      dbPwd: ##DB_PWD##
-    #      dbAddr: ##DB_ADDR##
-    #      dbName: ##DB_NAME##
-    #      maxOpenConns: -1
-    #      maxIdleConns: -1
-    #      connMaxLifetime: 300 # 单位秒
-    #      txIsolationLevel: 2 #LevelReadCommitted
+      ## 数据库存储插件
+      # name: defaultStore
+      # option:
+      #   master:
+      #     dbType: mysql
+      #     dbName: polaris_server
+      #     dbUser: ##DB_USER##
+      #     dbPwd: ##DB_PWD##
+      #     dbAddr: ##DB_ADDR##
+      #     maxOpenConns: -1
+      #     maxIdleConns: -1
+      #     connMaxLifetime: 300 # 单位秒
+      #     txIsolationLevel: 2 #LevelReadCommitted
     # 插件配置
     plugin:
       history:
         name: HistoryLogger
+      discoverEvent:
+        name: discoverEventLocal
+        # option:
+        #   queueSize: 1024
+        #   outputPath: ./discover-event
+        #   rotationMaxSize: 500
+        #   rotationMaxAge: 8
+        #   rotationMaxBackups: 100
       discoverStatis:
         name: discoverLocal
         option:
@@ -184,6 +266,12 @@ data:
         option:
           interval: 60 # 统计间隔，单位为秒
           outputPath: ./statis
+        # api 调用指标数据计算上报到 prometheus
+        # name: prometheus
+        # option:
+        #   interval: 60 # 统计间隔，单位为秒
+      auth:
+        name: defaultAuth
       ratelimit:
         name: token-bucket
         option:
@@ -199,8 +287,8 @@ data:
           instance-limit:
             open: true
             global:
-              bucket: 2
-              rate: 2
+              bucket: 200
+              rate: 100
             resource-cache-amount: 1024
           api-limit: # 接口级限流
             open: false # 是否开启接口限流，全局开关，只有为true，才代表系统的限流开启。默认关闭
@@ -226,7 +314,7 @@ data:
                 rule: store-read
               - name: "GET:/v1/naming/services/count"
                 rule: store-read
-              - name: ""
+
 kind: ConfigMap
 metadata:
   name: polaris-server-config

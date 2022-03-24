@@ -112,7 +112,7 @@ var (
 // EurekaServer主结构体
 type EurekaServer struct {
 	server            *http.Server
-	namingServer      *service.Server
+	namingServer      service.DiscoverServer
 	healthCheckServer *healthcheck.Server
 	connLimitConfig   *connlimit.Config
 	option            map[string]interface{}

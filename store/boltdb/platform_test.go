@@ -18,10 +18,7 @@
 package boltdb
 
 import (
-	"io/ioutil"
 	"math/rand"
-	"os"
-	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
@@ -66,23 +63,8 @@ func createTestPlatform(id string, createId bool) *model.Platform {
 	}
 }
 
-func CreatePlatformDBHandlerAndRun(t *testing.T, tf func(t *testing.T, handler BoltHandler)) {
-	tempDir, _ := ioutil.TempDir("", "test_platform")
-	_ = os.Remove(filepath.Join(tempDir, "test_platform.bolt"))
-	handler, err := NewBoltHandler(&BoltConfig{FileName: filepath.Join(tempDir, "test_platform.bolt")})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer func() {
-		_ = handler.Close()
-		_ = os.Remove(filepath.Join(tempDir, "test_platform.bolt"))
-	}()
-	tf(t, handler)
-}
-
 func Test_platformStore_CreatePlatform(t *testing.T) {
-	CreatePlatformDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_platform", func(t *testing.T, handler BoltHandler) {
 
 		platformId := uuid.NewString()
 
@@ -154,7 +136,7 @@ func Test_platformStore_CreatePlatform(t *testing.T) {
 }
 
 func Test_platformStore_UpdatePlatform(t *testing.T) {
-	CreatePlatformDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_platform", func(t *testing.T, handler BoltHandler) {
 
 		platformId := uuid.NewString()
 
@@ -244,7 +226,7 @@ func Test_platformStore_UpdatePlatform(t *testing.T) {
 }
 
 func Test_platformStore_DeletePlatform(t *testing.T) {
-	CreatePlatformDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_platform", func(t *testing.T, handler BoltHandler) {
 		p := &platformStore{
 			handler: handler,
 		}
@@ -271,7 +253,7 @@ func Test_platformStore_DeletePlatform(t *testing.T) {
 }
 
 func Test_platformStore_GetPlatforms(t *testing.T) {
-	CreatePlatformDBHandlerAndRun(t, func(t *testing.T, handler BoltHandler) {
+	CreateTableDBHandlerAndRun(t, "test_platform", func(t *testing.T, handler BoltHandler) {
 
 		p := &platformStore{
 			handler: handler,

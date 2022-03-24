@@ -27,6 +27,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var (
@@ -135,7 +136,7 @@ func (s *Server) createInstance(ctx context.Context, req *api.Instance, ins *api
 		return nil, api.NewInstanceResponse(code, req)
 	}
 
-	if server.bc == nil || !server.bc.CreateInstanceOpen() {
+	if namingServer.bc == nil || !namingServer.bc.CreateInstanceOpen() {
 		return s.serialCreateInstance(ctx, req, ins) // 单个同步
 	}
 	return s.asyncCreateInstance(ctx, req, ins) // 批量异步
@@ -689,7 +690,7 @@ func updateHealthCheck(req *api.Instance, instance *model.Instance) bool {
 /**
  * GetInstances 查询服务实例
  */
-func (s *Server) GetInstances(query map[string]string) *api.BatchQueryResponse {
+func (s *Server) GetInstances(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	// 对数据先进行提前处理一下
 	filters, metaFilter, batchErr := preGetInstances(query)
 	if batchErr != nil {
@@ -725,7 +726,7 @@ func (s *Server) GetInstances(query map[string]string) *api.BatchQueryResponse {
 /**
  * GetInstancesCount 查询总的服务实例，不带过滤条件的
  */
-func (s *Server) GetInstancesCount() *api.BatchQueryResponse {
+func (s *Server) GetInstancesCount(ctx context.Context) *api.BatchQueryResponse {
 	count, err := s.storage.GetInstancesCount()
 	if err != nil {
 		log.Errorf("[Server][Instance][Count] storage get err: %s", err.Error())
@@ -898,12 +899,19 @@ func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instan
 	simpleService := &api.Service{
 		Name:      utils.NewStringValue(instance.GetService().GetValue()),
 		Namespace: utils.NewStringValue(instance.GetNamespace().GetValue()),
-		Owners:    utils.NewStringValue("Polaris"),
+		Owners: func() *wrapperspb.StringValue {
+			owner := utils.ParseOwnerID(ctx)
+			if owner == "" {
+				return utils.NewStringValue("Polaris")
+			} else {
+				return utils.NewStringValue(owner)
+			}
+		}(),
 	}
 
 	key := fmt.Sprintf("%s:%s", simpleService.Namespace, simpleService.Name)
 
-	ret, _, _ := s.creareServiceSingle.Do(key, func() (interface{}, error) {
+	ret, _, _ := s.createServiceSingle.Do(key, func() (interface{}, error) {
 		resp := s.CreateService(ctx, simpleService)
 		return resp, nil
 	})

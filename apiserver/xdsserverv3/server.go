@@ -73,7 +73,7 @@ type XDSServer struct {
 	start           bool
 	restart         bool
 	exitCh          chan struct{}
-	namingServer    *service.Server
+	namingServer    service.DiscoverServer
 	cache           cachev3.SnapshotCache
 	versionNum      *atomic.Uint64
 	server          *grpc.Server
@@ -574,7 +574,7 @@ func makeListeners() []types.Resource {
 func (x *XDSServer) pushRegistryInfoToXDSCache(registryInfo map[string][]*ServiceInfo) error {
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
 
-	for ns, _ := range registryInfo {
+	for ns := range registryInfo {
 		resources := make(map[resource.Type][]types.Resource)
 		resources[resource.EndpointType] = makeEndpoints(registryInfo[ns])
 		resources[resource.ClusterType] = x.makeClusters(registryInfo[ns])
@@ -670,7 +670,13 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 }
 
 func (x *XDSServer) initRegistryInfo() error {
-	resp := x.namingServer.GetNamespaces(make(map[string][]string))
+
+	namingServer, err := service.GetOriginServer()
+	if err != nil {
+		return err
+	}
+
+	resp := namingServer.GetNamespaces(context.Background(), make(map[string][]string))
 	if resp.Code.Value != api.ExecuteSuccess {
 		return fmt.Errorf("error to init registry info %s", resp.Code)
 	}

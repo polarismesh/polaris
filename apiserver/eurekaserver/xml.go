@@ -59,9 +59,9 @@ func xmlToMapParser(skey string, a []xml.Attr, p *xml.Decoder, r bool) (map[stri
 			}
 			return nil, err
 		}
-		switch t.(type) {
+		switch value := t.(type) {
 		case xml.StartElement:
-			tt := t.(xml.StartElement)
+			tt := value
 
 			// First call to xmlToMapParser() doesn't pass xml.StartElement - the map key.
 			// So when the loop is first entered, the first token is the root tag along
@@ -96,9 +96,9 @@ func xmlToMapParser(skey string, a []xml.Attr, p *xml.Decoder, r bool) (map[stri
 			// If 'key' exists, then this is a list, if not just add key:val to na.
 			if v, ok := na[key]; ok {
 				var a []interface{}
-				switch v.(type) {
+				switch key := v.(type) {
 				case []interface{}:
-					a = v.([]interface{})
+					a = key
 				default: // anything else - note: v.(type) != nil
 					a = []interface{}{v}
 				}
@@ -123,7 +123,7 @@ func xmlToMapParser(skey string, a []xml.Attr, p *xml.Decoder, r bool) (map[stri
 			return n, nil
 		case xml.CharData:
 			// clean up possible noise
-			tt := strings.Trim(string(t.(xml.CharData)), "\t\r\b\n ")
+			tt := strings.Trim(string(value), "\t\r\b\n ")
 			if len(tt) > 0 {
 				if len(na) > 0 {
 					na["#text"] = cast(tt, r)

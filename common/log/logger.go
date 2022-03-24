@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package logger
+package log
 
 import (
 	"github.com/natefinch/lumberjack"

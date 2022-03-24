@@ -38,7 +38,7 @@ func (cs *Impl) CreateConfigFile(ctx context.Context, configFile *api.ConfigFile
 		configFile.Format = utils.NewStringValue(utils.FileFormatText)
 	}
 
-	if checkRsp := checkConfigFileParams(configFile); checkRsp != nil {
+	if checkRsp := checkConfigFileParams(configFile, true); checkRsp != nil {
 		return checkRsp
 	}
 
@@ -130,7 +130,7 @@ func (cs *Impl) GetConfigFileBaseInfo(ctx context.Context, namespace, group, nam
 		return api.NewConfigFileResponse(api.InvalidConfigFileGroupName, nil)
 	}
 
-	if err := utils2.CheckResourceName(utils.NewStringValue(name)); err != nil {
+	if err := utils2.CheckFileName(utils.NewStringValue(name)); err != nil {
 		return api.NewConfigFileResponse(api.InvalidConfigFileName, nil)
 	}
 
@@ -182,7 +182,7 @@ func (cs *Impl) GetConfigFileRichInfo(ctx context.Context, namespace, group, nam
 }
 
 // SearchConfigFile 查询配置文件
-func (cs *Impl) SearchConfigFile(ctx context.Context, namespace, group, name, tags string, offset, limit int) *api.ConfigBatchQueryResponse {
+func (cs *Impl) SearchConfigFile(ctx context.Context, namespace, group, name, tags string, offset, limit uint32) *api.ConfigBatchQueryResponse {
 	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileBatchQueryResponse(api.InvalidNamespaceName, 0, nil)
 	}
@@ -228,7 +228,7 @@ func (cs *Impl) SearchConfigFile(ctx context.Context, namespace, group, name, ta
 	return api.NewConfigFileBatchQueryResponse(api.ExecuteSuccess, uint32(count), enrichedFiles)
 }
 
-func (cs *Impl) queryConfigFileWithoutTags(ctx context.Context, namespace string, group string, name string, offset, limit int) *api.ConfigBatchQueryResponse {
+func (cs *Impl) queryConfigFileWithoutTags(ctx context.Context, namespace string, group string, name string, offset, limit uint32) *api.ConfigBatchQueryResponse {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 	count, files, err := cs.storage.QueryConfigFiles(namespace, group, name, offset, limit)
 	if err != nil {
@@ -261,11 +261,7 @@ func (cs *Impl) queryConfigFileWithoutTags(ctx context.Context, namespace string
 
 // UpdateConfigFile 更新配置文件
 func (cs *Impl) UpdateConfigFile(ctx context.Context, configFile *api.ConfigFile) *api.ConfigResponse {
-	if configFile.Format.GetValue() == "" {
-		configFile.Format = utils.NewStringValue(utils.FileFormatText)
-	}
-
-	if checkRsp := checkConfigFileParams(configFile); checkRsp != nil {
+	if checkRsp := checkConfigFileParams(configFile, false); checkRsp != nil {
 		return checkRsp
 	}
 
@@ -293,6 +289,10 @@ func (cs *Impl) UpdateConfigFile(ctx context.Context, configFile *api.ConfigFile
 
 	toUpdateFile := transferConfigFileAPIModel2StoreModel(configFile)
 	toUpdateFile.ModifyBy = configFile.ModifyBy.GetValue()
+
+	if configFile.Format.GetValue() == "" {
+		toUpdateFile.Format = managedFile.Format
+	}
 
 	updatedFile, err := cs.storage.UpdateConfigFile(cs.getTx(ctx), toUpdateFile)
 	if err != nil {
@@ -327,7 +327,7 @@ func (cs *Impl) DeleteConfigFile(ctx context.Context, namespace, group, name, de
 		return api.NewConfigFileResponse(api.InvalidConfigFileGroupName, nil)
 	}
 
-	if err := utils2.CheckResourceName(utils.NewStringValue(name)); err != nil {
+	if err := utils2.CheckFileName(utils.NewStringValue(name)); err != nil {
 		return api.NewConfigFileResponse(api.InvalidConfigFileName, nil)
 	}
 
@@ -401,12 +401,26 @@ func (cs *Impl) DeleteConfigFile(ctx context.Context, namespace, group, name, de
 	return api.NewConfigFileResponse(api.ExecuteSuccess, nil)
 }
 
-func checkConfigFileParams(configFile *api.ConfigFile) *api.ConfigResponse {
+// BatchDeleteConfigFile 批量删除配置文件
+func (cs *Impl) BatchDeleteConfigFile(ctx context.Context, configFiles []*api.ConfigFile, operator string) *api.ConfigResponse {
+	if len(configFiles) == 0 {
+		api.NewConfigFileResponse(api.ExecuteSuccess, nil)
+	}
+	for _, configFile := range configFiles {
+		rsp := cs.DeleteConfigFile(ctx, configFile.Namespace.GetValue(), configFile.Group.GetValue(), configFile.Name.GetValue(), operator)
+		if rsp.Code.GetValue() != api.ExecuteSuccess {
+			return rsp
+		}
+	}
+	return api.NewConfigFileResponse(api.ExecuteSuccess, nil)
+}
+
+func checkConfigFileParams(configFile *api.ConfigFile, checkFormat bool) *api.ConfigResponse {
 	if configFile == nil {
 		return api.NewConfigFileResponse(api.InvalidParameter, configFile)
 	}
 
-	if err := utils2.CheckResourceName(configFile.Name); err != nil {
+	if err := utils2.CheckFileName(configFile.Name); err != nil {
 		return api.NewConfigFileResponse(api.InvalidConfigFileName, configFile)
 	}
 
@@ -418,7 +432,7 @@ func checkConfigFileParams(configFile *api.ConfigFile) *api.ConfigResponse {
 		return api.NewConfigFileResponse(api.InvalidConfigFileContentLength, configFile)
 	}
 
-	if !utils.IsValidFileFormat(configFile.Format.GetValue()) {
+	if checkFormat && !utils.IsValidFileFormat(configFile.Format.GetValue()) {
 		return api.NewConfigFileResponse(api.InvalidConfigFileFormat, configFile)
 	}
 
@@ -434,14 +448,30 @@ func checkConfigFileParams(configFile *api.ConfigFile) *api.ConfigResponse {
 }
 
 func transferConfigFileAPIModel2StoreModel(file *api.ConfigFile) *model.ConfigFile {
+	var comment string
+	if file.Comment != nil {
+		comment = file.Comment.Value
+	}
+	var createBy string
+	if file.CreateBy != nil {
+		createBy = file.CreateBy.Value
+	}
+	var content string
+	if file.Content != nil {
+		content = file.Content.Value
+	}
+	var format string
+	if file.Format != nil {
+		format = file.Format.Value
+	}
 	return &model.ConfigFile{
 		Name:      file.Name.GetValue(),
 		Namespace: file.Namespace.GetValue(),
 		Group:     file.Group.GetValue(),
-		Content:   file.Content.GetValue(),
-		Comment:   file.Comment.GetValue(),
-		Format:    file.Format.GetValue(),
-		CreateBy:  file.CreateBy.GetValue(),
+		Content:   content,
+		Comment:   comment,
+		Format:    format,
+		CreateBy:  createBy,
 	}
 }
 
