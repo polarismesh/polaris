@@ -390,6 +390,7 @@ func ParseIsOwner(ctx context.Context) bool {
 	return isOwner
 }
 
+// ParseUserRole 从ctx中解析用户角色
 func ParseUserRole(ctx context.Context) model.UserRoleType {
 	if ctx == nil {
 		return model.SubAccountUserRole
@@ -399,6 +400,7 @@ func ParseUserRole(ctx context.Context) model.UserRoleType {
 	return role
 }
 
+// ParseUserID 从ctx中解析用户ID
 func ParseUserID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -408,6 +410,7 @@ func ParseUserID(ctx context.Context) string {
 	return userID
 }
 
+// ParseOwnerID 从ctx解析Owner ID
 func ParseOwnerID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -441,9 +444,7 @@ func ParseOperator(ctx context.Context) string {
 	return defaultOperator
 }
 
-/**
- * ParsePlatformID 从ctx中获取Platform-Id
- */
+// ParsePlatformID 从ctx中获取Platform-Id
 func ParsePlatformID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -452,9 +453,7 @@ func ParsePlatformID(ctx context.Context) string {
 	return pid
 }
 
-/**
- * ParsePlatformToken 从ctx中获取Platform-Token
- */
+// ParsePlatformToken 从ctx中获取Platform-Token
 func ParsePlatformToken(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -468,6 +467,7 @@ func ZapRequestID(id string) zap.Field {
 	return zap.String("request-id", id)
 }
 
+// ZapRequestIDByCtx 从ctx中获取Request-ID
 func ZapRequestIDByCtx(ctx context.Context) zap.Field {
 	return zap.String("request-id", ParseRequestID(ctx))
 }

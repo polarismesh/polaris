@@ -34,6 +34,7 @@ import (
 )
 
 type (
+	// User2Api convert user to api.User
 	User2Api func(user *model.User) *api.User
 )
 

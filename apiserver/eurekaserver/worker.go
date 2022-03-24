@@ -36,7 +36,7 @@ import (
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 )
 
-// 全量服务缓存
+// ApplicationsRespCache 全量服务缓存
 type ApplicationsRespCache struct {
 	AppsResp  *ApplicationsResponse
 	Revision  string
@@ -49,7 +49,7 @@ func sha1s(bytes []byte) string {
 	return hex.EncodeToString(r[:])
 }
 
-// 应用缓存协程
+// ApplicationsWorker 应用缓存协程
 type ApplicationsWorker struct {
 	mutex *sync.Mutex
 
@@ -80,7 +80,7 @@ type ApplicationsWorker struct {
 	VersionIncrement int64
 }
 
-// 构造函数
+// NewApplicationsWorker 构造函数
 func NewApplicationsWorker(interval time.Duration,
 	deltaExpireInterval time.Duration, unhealthyExpireInterval time.Duration,
 	namingServer service.DiscoverServer, healthCheckServer *healthcheck.Server, namespace string) *ApplicationsWorker {
@@ -97,12 +97,12 @@ func NewApplicationsWorker(interval time.Duration,
 	}
 }
 
-// 是否已经启动
+// IsStarted 是否已经启动
 func (a *ApplicationsWorker) IsStarted() bool {
 	return atomic.LoadUint32(&a.started) > 0
 }
 
-// 从缓存获取全量服务数据
+// GetCachedApps 从缓存获取全量服务数据
 func (a *ApplicationsWorker) GetCachedApps() *ApplicationsRespCache {
 	appsValue := a.appsCache.Load()
 	if appsValue != nil {
@@ -124,7 +124,7 @@ func (a *ApplicationsWorker) GetCachedAppsWithLoad() *ApplicationsRespCache {
 	return appsRespCache
 }
 
-// 从缓存获取增量服务数据
+// GetDeltaApps 从缓存获取增量服务数据
 func (a *ApplicationsWorker) GetDeltaApps() *ApplicationsRespCache {
 	appsValue := a.deltaCache.Load()
 	if appsValue != nil {

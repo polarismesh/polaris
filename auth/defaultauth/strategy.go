@@ -34,10 +34,12 @@ import (
 )
 
 type (
+	// StrategyDetail2Api is the strategy detail to api
 	StrategyDetail2Api func(user *model.StrategyDetail) *api.AuthStrategy
 )
 
 var (
+	// StrategyFilterAttributes is the attributes that can be filtered
 	StrategyFilterAttributes = map[string]int{
 		"id":             1,
 		"name":           1,

@@ -350,9 +350,9 @@ func (h *HTTPServer) enablePprofAccess(wsContainer *restful.Container) {
 func (h *HTTPServer) enablePrometheusAccess(wsContainer *restful.Container) {
 	log.Infof("open http access for prometheus")
 
-	statis := plugin.GetStatis().(*local.StatisWorker)
+	statics := plugin.GetStatis().(*local.StatisWorker)
 
-	wsContainer.Handle("/metrics", statis.GetPrometheusHandler())
+	wsContainer.Handle("/metrics", statics.GetPrometheusHandler())
 }
 
 // process 在接收和回复时统一处理请求

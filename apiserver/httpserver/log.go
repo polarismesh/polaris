@@ -21,5 +21,7 @@ import (
 	commonlog "github.com/polarismesh/polaris-server/common/log"
 )
 
-var log = commonlog.NamingScope()
-var configLog = commonlog.ConfigScope()
+var (
+	log       = commonlog.NamingScope()
+	configLog = commonlog.ConfigScope()
+)

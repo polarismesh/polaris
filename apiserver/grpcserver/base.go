@@ -78,7 +78,7 @@ func (b *BaseGrpcServer) Initialize(ctx context.Context, option map[string]inter
 	return nil
 }
 
-// Stop stop the gRPC server
+// Stop stopping the gRPC server
 func (b *BaseGrpcServer) Stop(protocol string) {
 	connlimit.RemoveLimitListener(protocol)
 	if b.server != nil {
@@ -86,7 +86,7 @@ func (b *BaseGrpcServer) Stop(protocol string) {
 	}
 }
 
-// Run run server main loop
+// Run server main loop
 func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer func(*grpc.Server) error) {
 	log.Infof("start %s server", protocol)
 	b.exitCh = make(chan struct{})
@@ -412,8 +412,10 @@ func (b *BaseGrpcServer) AllowAccess(method string) bool {
 
 // ConvertContext 将GRPC上下文转换成内部上下文
 func ConvertContext(ctx context.Context) context.Context {
-	requestID := ""
-	userAgent := ""
+	var (
+		requestID = ""
+		userAgent = ""
+	)
 	meta, exist := metadata.FromIncomingContext(ctx)
 	if exist {
 		ids := meta["request-id"]
@@ -426,8 +428,10 @@ func ConvertContext(ctx context.Context) context.Context {
 		}
 	}
 
-	clientIP := ""
-	address := ""
+	var (
+		clientIP = ""
+		address  = ""
+	)
 	if pr, ok := peer.FromContext(ctx); ok && pr.Addr != nil {
 		address = pr.Addr.String()
 		addrSlice := strings.Split(address, ":")

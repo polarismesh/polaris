@@ -63,7 +63,7 @@ func (h *HTTPServer) GetAuthServer(ws *restful.WebService) error {
 	return nil
 }
 
-// Login 登陆函数
+// AuthStatus auth status
 func (h *HTTPServer) AuthStatus(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
@@ -214,7 +214,7 @@ func (h *HTTPServer) ResetUserToken(req *restful.Request, rsp *restful.Response)
 	handler.WriteHeaderAndProto(h.authServer.ResetUserToken(ctx, user))
 }
 
-// CreateUserGroup 创建用户组
+// CreateGroup 创建用户组
 func (h *HTTPServer) CreateGroup(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
@@ -229,7 +229,7 @@ func (h *HTTPServer) CreateGroup(req *restful.Request, rsp *restful.Response) {
 	handler.WriteHeaderAndProto(h.authServer.CreateGroup(ctx, group))
 }
 
-// UpdateGroup 更新用户组
+// UpdateGroups 更新用户组
 func (h *HTTPServer) UpdateGroups(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
@@ -248,7 +248,7 @@ func (h *HTTPServer) UpdateGroups(req *restful.Request, rsp *restful.Response) {
 	handler.WriteHeaderAndProto(h.authServer.UpdateGroups(ctx, groups))
 }
 
-// DeleteUserGroup 删除用户组
+// DeleteGroups 删除用户组
 func (h *HTTPServer) DeleteGroups(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
@@ -350,7 +350,7 @@ func (h *HTTPServer) CreateStrategy(req *restful.Request, rsp *restful.Response)
 	handler.WriteHeaderAndProto(h.authServer.CreateStrategy(ctx, strategy))
 }
 
-// UpdateStrategy 更新鉴权策略
+// UpdateStrategies 更新鉴权策略
 func (h *HTTPServer) UpdateStrategies(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
@@ -412,7 +412,7 @@ func (h *HTTPServer) GetStrategy(req *restful.Request, rsp *restful.Response) {
 	handler.WriteHeaderAndProto(h.authServer.GetStrategy(ctx, strategy))
 }
 
-// GetStrategy 获取鉴权策略详细
+// GetPrincipalResources 获取鉴权策略详细
 func (h *HTTPServer) GetPrincipalResources(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 

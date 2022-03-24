@@ -61,22 +61,22 @@ func (svr *serverAuthAbility) Initialize(authOpt *auth.Config, storage store.Sto
 	return nil
 }
 
-// Login
+// Login login servers
 func (svr *serverAuthAbility) Login(req *api.LoginRequest) *api.Response {
 	return svr.target.Login(req)
 }
 
-// AfterResourceOperation
+// AfterResourceOperation is called after resource operation
 func (svr *serverAuthAbility) AfterResourceOperation(afterCtx *model.AcquireContext) error {
 	return svr.target.AfterResourceOperation(afterCtx)
 }
 
-// GetAuthChecker
+// GetAuthChecker 获取鉴权管理器
 func (svr *serverAuthAbility) GetAuthChecker() auth.AuthChecker {
 	return svr.authMgn
 }
 
-// Name
+// Name of the plugin
 func (svr *serverAuthAbility) Name() string {
 	return PluginName
 }

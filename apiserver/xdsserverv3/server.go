@@ -53,6 +53,7 @@ import (
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/cache"
@@ -66,7 +67,7 @@ const K8sDnsResolveSuffixSvc = ".svc"
 const K8sDnsResolveSuffixSvcCluster = ".svc.cluster"
 const K8sDnsResolveSuffixSvcClusterLocal = ".svc.cluster.local"
 
-// XDSServer
+// XDSServer is the xDS server
 type XDSServer struct {
 	listenIP        string
 	listenPort      uint32
@@ -199,11 +200,10 @@ func makeOutlierDetection(conf *model.ServiceWithCircuitBreaker) *cluster.Outlie
 
 func (x *XDSServer) makeClusters(services []*ServiceInfo) []types.Resource {
 	var clusters []types.Resource
-
 	// 默认 passthrough cluster
 	passthroughClsuter := &cluster.Cluster{
 		Name:                 "PassthroughCluster",
-		ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
+		ConnectTimeout:       durationpb.New(5 * time.Second),
 		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_ORIGINAL_DST},
 		LbPolicy:             cluster.Cluster_CLUSTER_PROVIDED,
 		CircuitBreakers: &cluster.CircuitBreakers{
@@ -691,7 +691,7 @@ func (x *XDSServer) initRegistryInfo() error {
 	return nil
 }
 
-// Initialize
+// Initialize 初始化
 func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{},
 	api map[string]apiserver.APIConfig) error {
 
@@ -834,7 +834,7 @@ func (x *XDSServer) checkUpdate(curServiceInfo, cacheServiceInfo []*ServiceInfo)
 	return false
 }
 
-// Run
+// Run 启动运行
 func (x *XDSServer) Run(errCh chan error) {
 
 	// 启动 grpc server
@@ -889,7 +889,7 @@ func registerServer(grpcServer *grpc.Server, server serverv3.Server) {
 	runtimeservice.RegisterRuntimeDiscoveryServiceServer(grpcServer, server)
 }
 
-// Stop
+// Stop 停止服务
 func (x *XDSServer) Stop() {
 	connlimit.RemoveLimitListener(x.GetProtocol())
 	if x.server != nil {
@@ -897,7 +897,7 @@ func (x *XDSServer) Stop() {
 	}
 }
 
-// Restart
+// Restart 重启服务
 func (x *XDSServer) Restart(option map[string]interface{}, api map[string]apiserver.APIConfig, errCh chan error) error {
 
 	log.Infof("restart xds server with new config: +%v", option)
