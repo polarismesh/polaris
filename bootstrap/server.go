@@ -123,7 +123,7 @@ func Start(configFilePath string) {
 	RunMainLoop(servers, errCh)
 }
 
-// StartComponents start healthcheck and naming components
+// StartComponents start health check and naming components
 func StartComponents(ctx context.Context, cfg *config.Config) error {
 	var err error
 
@@ -218,11 +218,11 @@ func RestartServers(errCh chan error) error {
 	}
 	log.Infof("new config: %+v", cfg)
 
-	// 把配置的每个apiserver，进行重启
+	// 把配置的每个api server，进行重启
 	for _, protocol := range cfg.APIServers {
 		server, exist := apiserver.Slots[protocol.Name]
 		if !exist {
-			log.Errorf("apiserver slot %s not exists\n", protocol.Name)
+			log.Errorf("api server slot %s not exists\n", protocol.Name)
 			return err
 		}
 		log.Infof("begin restarting server: %s", protocol.Name)
@@ -298,7 +298,7 @@ func StartBootstrapOrder(s store.Store, c *config.Config) (store.Transaction, er
 	return nil, errors.New("lock bootstrap error")
 }
 
-// FinishBootstrapOrder
+// FinishBootstrapOrder 完成 提交锁
 func FinishBootstrapOrder(tx store.Transaction) error {
 	if tx != nil {
 		return tx.Commit()
@@ -454,7 +454,6 @@ func SelfDeregister() {
 			log.Errorf("Deregister instance error: %s", resp.GetInfo().GetValue())
 		}
 	}
-
 }
 
 // getLocalHost 获取本地IP地址

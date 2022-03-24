@@ -538,7 +538,7 @@ func ParseSetID(str string) []string {
 	return strings.Split(str, ",")
 }
 
-// 解析metadata保存的weight字符串
+// ParseWeight 解析metadata保存的weight字符串
 func ParseWeight(str string) []uint32 {
 	if str == "" {
 		return nil

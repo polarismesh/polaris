@@ -36,19 +36,19 @@ const (
 type L5Cache interface {
 	Cache
 
-	// 根据IP获取访问关系
+	// GetRouteByIP 根据IP获取访问关系
 	GetRouteByIP(ip uint32) []*model.Route
 
-	// 检查IP对应的SID是否存在访问关系
+	// CheckRouteExisted 检查IP对应的SID是否存在访问关系
 	CheckRouteExisted(ip uint32, modID uint32, cmdID uint32) bool
 
-	// 获取有状态路由信息policy
+	// GetPolicy 获取有状态路由信息policy
 	GetPolicy(modID uint32) *model.Policy
 
-	// 获取有状态路由信息policy
+	// GetSection 获取有状态路由信息policy
 	GetSection(modeID uint32) []*model.Section
 
-	// 获取IpConfig
+	// GetIPConfig 获取IpConfig
 	GetIPConfig(ip uint32) *model.IPConfig
 }
 

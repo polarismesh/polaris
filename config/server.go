@@ -150,6 +150,7 @@ func (cs *Server) Cache() *cache.FileCache {
 	return cs.cache
 }
 
+// ConnManager 获取配置中心连接管理器
 func (cs *Server) ConnManager() *connManager {
 	return cs.connManager
 }

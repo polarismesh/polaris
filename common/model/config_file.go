@@ -87,6 +87,7 @@ type ConfigFileReleaseHistory struct {
 	ModifyBy   string
 }
 
+// ConfigFileTag 配置文件标签数据持久化对象
 type ConfigFileTag struct {
 	Id         uint64
 	Key        string

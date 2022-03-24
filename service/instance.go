@@ -66,9 +66,7 @@ var (
 	}
 )
 
-/**
- * CreateInstances 批量创建服务实例
- */
+// CreateInstances 批量创建服务实例
 func (s *Server) CreateInstances(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse {
 	if checkError := checkBatchInstance(reqs); checkError != nil {
 		return checkError
@@ -77,10 +75,8 @@ func (s *Server) CreateInstances(ctx context.Context, reqs []*api.Instance) *api
 	return batchOperateInstances(ctx, reqs, s.CreateInstance)
 }
 
-/**
- * CreateInstance 创建单个服务实例
- * 注意：创建实例需要对服务进行加锁保护服务不被删除
- */
+// CreateInstance 创建单个服务实例
+// 注意：创建实例需要对服务进行加锁保护服务不被删除
 func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Response {
 	rid := ParseRequestID(ctx)
 	pid := ParsePlatformID(ctx)
@@ -203,9 +199,7 @@ func (s *Server) serialCreateInstance(ctx context.Context, req *api.Instance, in
 	return data, nil
 }
 
-/**
- * DeleteInstances 批量删除服务实例
- */
+// DeleteInstances 批量删除服务实例
 func (s *Server) DeleteInstances(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse {
 	if checkError := checkBatchInstance(req); checkError != nil {
 		return checkError
@@ -214,9 +208,7 @@ func (s *Server) DeleteInstances(ctx context.Context, req []*api.Instance) *api.
 	return batchOperateInstances(ctx, req, s.DeleteInstance)
 }
 
-/**
- * DeleteInstance 删除单个服务实例
- */
+// DeleteInstance 删除单个服务实例
 func (s *Server) DeleteInstance(ctx context.Context, req *api.Instance) *api.Response {
 	rid := ParseRequestID(ctx)
 	pid := ParsePlatformID(ctx)
@@ -320,9 +312,7 @@ func (s *Server) asyncDeleteInstance(ctx context.Context, req *api.Instance, ins
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
 }
 
-/**
- * DeleteInstancesByHost 根据host批量删除服务实例
- */
+// DeleteInstancesByHost 根据host批量删除服务实例
 func (s *Server) DeleteInstancesByHost(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse {
 	if checkError := checkBatchInstance(req); checkError != nil {
 		return checkError
@@ -331,9 +321,7 @@ func (s *Server) DeleteInstancesByHost(ctx context.Context, req []*api.Instance)
 	return batchOperateInstances(ctx, req, s.DeleteInstanceByHost)
 }
 
-/**
- * DeleteInstanceByHost 根据host删除服务实例
- */
+// DeleteInstanceByHost 根据host删除服务实例
 func (s *Server) DeleteInstanceByHost(ctx context.Context, req *api.Instance) *api.Response {
 	requestID := ParseRequestID(ctx)
 	platformID := ParsePlatformID(ctx)
@@ -379,9 +367,7 @@ func (s *Server) DeleteInstanceByHost(ctx context.Context, req *api.Instance) *a
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
 }
 
-/**
- * UpdateInstances 批量修改服务实例
- */
+// UpdateInstances 批量修改服务实例
 func (s *Server) UpdateInstances(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse {
 	if checkError := checkBatchInstance(req); checkError != nil {
 		return checkError
@@ -390,9 +376,7 @@ func (s *Server) UpdateInstances(ctx context.Context, req []*api.Instance) *api.
 	return batchOperateInstances(ctx, req, s.UpdateInstance)
 }
 
-/**
- * UpdateInstance 修改单个服务实例
- */
+// UpdateInstance 修改单个服务实例
 func (s *Server) UpdateInstance(ctx context.Context, req *api.Instance) *api.Response {
 	service, instance, preErr := s.execInstancePreStep(ctx, req)
 	if preErr != nil {
@@ -434,10 +418,8 @@ func (s *Server) UpdateInstance(ctx context.Context, req *api.Instance) *api.Res
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
 }
 
-/**
- * UpdateInstancesIsolate 批量修改服务实例隔离状态
- * @note 必填参数为service+namespace+host
- */
+// UpdateInstancesIsolate 批量修改服务实例隔离状态
+// @note 必填参数为service+namespace+host
 func (s *Server) UpdateInstancesIsolate(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse {
 	if checkError := checkBatchInstance(req); checkError != nil {
 		return checkError
@@ -446,10 +428,8 @@ func (s *Server) UpdateInstancesIsolate(ctx context.Context, req []*api.Instance
 	return batchOperateInstances(ctx, req, s.UpdateInstanceIsolate)
 }
 
-/**
- * UpdateInstanceIsolate 修改服务实例隔离状态
- * @note 必填参数为service+namespace+ip
- */
+// UpdateInstanceIsolate 修改服务实例隔离状态
+// @note 必填参数为service+namespace+ip
 func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *api.Response {
 	requestID := ParseRequestID(ctx)
 	platformID := ParsePlatformID(ctx)
@@ -688,9 +668,7 @@ func updateHealthCheck(req *api.Instance, instance *model.Instance) bool {
 	return needUpdate
 }
 
-/**
- * GetInstances 查询服务实例
- */
+// GetInstances 查询服务实例
 func (s *Server) GetInstances(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	// 对数据先进行提前处理一下
 	filters, metaFilter, batchErr := preGetInstances(query)
@@ -724,9 +702,7 @@ func (s *Server) GetInstances(ctx context.Context, query map[string]string) *api
 	return out
 }
 
-/**
- * GetInstancesCount 查询总的服务实例，不带过滤条件的
- */
+// GetInstancesCount 查询总的服务实例，不带过滤条件的
 func (s *Server) GetInstancesCount(ctx context.Context) *api.BatchQueryResponse {
 	count, err := s.storage.GetInstancesCount()
 	if err != nil {
@@ -904,9 +880,8 @@ func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instan
 			owner := utils.ParseOwnerID(ctx)
 			if owner == "" {
 				return utils.NewStringValue("Polaris")
-			} else {
-				return utils.NewStringValue(owner)
 			}
+			return utils.NewStringValue(owner)
 		}(),
 	}
 
@@ -1024,9 +999,8 @@ func CheckInstanceTetrad(req *api.Instance) (string, *api.Response) {
 		return "", api.NewInstanceResponse(api.InvalidInstancePort, req)
 	}
 
-	var instId string
-	instId = req.GetId().GetValue()
-	if len(instId) == 0 {
+	var instID string = req.GetId().GetValue()
+	if len(instID) == 0 {
 		id, err := CalculateInstanceID(req.GetNamespace().GetValue(), req.GetService().GetValue(),
 			req.GetVpcId().GetValue(),
 			req.GetHost().GetValue(),
@@ -1035,9 +1009,9 @@ func CheckInstanceTetrad(req *api.Instance) (string, *api.Response) {
 		if err != nil {
 			return "", api.NewInstanceResponse(api.ExecuteException, req)
 		}
-		instId = id
+		instID = id
 	}
-	return instId, nil
+	return instID, nil
 }
 
 // 获取instance请求的token信息

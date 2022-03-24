@@ -55,9 +55,7 @@ func newCounter() *counter {
 	}
 }
 
-/**
- * Listener 包装 net.Listener
- */
+// Listener 包装 net.Listener
 type Listener struct {
 	net.Listener
 	protocol             string             // 协议，主要用以日志记录与全局对象索引

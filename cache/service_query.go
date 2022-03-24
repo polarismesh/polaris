@@ -58,7 +58,7 @@ func (sc *serviceCache) Update() error {
 	return nil
 }
 
-// GetServiceByFilter 通过filter在缓存中进行服务过滤
+// GetServicesByFilter 通过filter在缓存中进行服务过滤
 func (sc *serviceCache) GetServicesByFilter(serviceFilters *ServiceArgs,
 	instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error) {
 	var amount uint32

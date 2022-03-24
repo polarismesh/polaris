@@ -102,7 +102,7 @@ type ServiceCache interface {
 	// GetServiceByCl5Name Get the corresponding SID according to CL5name
 	GetServiceByCl5Name(cl5Name string) *model.Service
 
-	// GetServiceByFilter Serving the service filtering in the cache through Filter
+	// GetServicesByFilter Serving the service filtering in the cache through Filter
 	GetServicesByFilter(serviceFilters *ServiceArgs,
 		instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error)
 

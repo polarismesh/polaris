@@ -52,12 +52,12 @@ type ResourceEvent struct {
 	IsRemove     bool
 }
 
-// Before
+// Before this function is called before the resource operation
 func (svr *serverAuthAbility) Before(ctx context.Context, resourceType model.Resource) {
 	// do nothing
 }
 
-// After
+// After this function is called after the resource operation
 func (svr *serverAuthAbility) After(ctx context.Context, resourceType model.Resource, res *ResourceEvent) error {
 	switch resourceType {
 	case model.RNamespace:
@@ -72,14 +72,14 @@ func (svr *serverAuthAbility) After(ctx context.Context, resourceType model.Reso
 // onNamespaceResource
 func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *ResourceEvent) error {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
-	ownerId := utils.ParseOwnerID(ctx)
+	ownerID := utils.ParseOwnerID(ctx)
 
 	ns := res.Namespace
 	authCtx.GetAttachment()[model.ResourceAttachmentKey] = map[api.ResourceType][]model.ResourceEntry{
 		api.ResourceType_Namespaces: {
 			{
 				ID:    ns.Name,
-				Owner: ownerId,
+				Owner: ownerID,
 			},
 		},
 	}
@@ -102,13 +102,13 @@ func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *Reso
 // onServiceResource 服务资源的处理，只处理服务，namespace 只由 namespace 相关的进行处理，
 func (svr *serverAuthAbility) onServiceResource(ctx context.Context, res *ResourceEvent) error {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
-	ownerId := utils.ParseOwnerID(ctx)
+	ownerID := utils.ParseOwnerID(ctx)
 
 	authCtx.GetAttachment()[model.ResourceAttachmentKey] = map[api.ResourceType][]model.ResourceEntry{
 		api.ResourceType_Services: {
 			{
 				ID:    res.Service.ID,
-				Owner: ownerId,
+				Owner: ownerID,
 			},
 		},
 	}

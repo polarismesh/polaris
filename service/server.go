@@ -67,7 +67,7 @@ func (s *Server) Cache() *cache.NamingCache {
 	return s.caches
 }
 
-// Cache 返回Cache
+// SetResourceHooks 返回Cache
 func (s *Server) SetResourceHooks(hooks ...ResourceHook) {
 	s.hooks = hooks
 }

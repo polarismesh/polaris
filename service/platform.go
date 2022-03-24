@@ -44,9 +44,7 @@ var (
 	}
 )
 
-/**
- * CreatePlatforms 批量创建平台信息
- */
+// CreatePlatforms 批量创建平台信息
 func (s *Server) CreatePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse {
 	if checkErr := checkBatchPlatform(req); checkErr != nil {
 		return checkErr
@@ -61,9 +59,7 @@ func (s *Server) CreatePlatforms(ctx context.Context, req []*api.Platform) *api.
 	return api.FormatBatchWriteResponse(responses)
 }
 
-/**
- * CreatePlatform 创建单个平台
- */
+// CreatePlatform 创建单个平台
 func (s *Server) CreatePlatform(ctx context.Context, req *api.Platform) *api.Response {
 	requestID := ParseRequestID(ctx)
 
@@ -101,9 +97,7 @@ func (s *Server) CreatePlatform(ctx context.Context, req *api.Platform) *api.Res
 	return api.NewPlatformResponse(api.ExecuteSuccess, req)
 }
 
-/**
- * UpdatePlatforms 批量修改平台
- */
+// UpdatePlatforms 批量修改平台
 func (s *Server) UpdatePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse {
 	if checkErr := checkBatchPlatform(req); checkErr != nil {
 		return checkErr
@@ -118,9 +112,7 @@ func (s *Server) UpdatePlatforms(ctx context.Context, req []*api.Platform) *api.
 	return api.FormatBatchWriteResponse(responses)
 }
 
-/**
- * UpdatePlatform 修改平台信息
- */
+// UpdatePlatform 修改平台信息
 func (s *Server) UpdatePlatform(ctx context.Context, req *api.Platform) *api.Response {
 	requestID := ParseRequestID(ctx)
 
@@ -159,9 +151,7 @@ func (s *Server) UpdatePlatform(ctx context.Context, req *api.Platform) *api.Res
 	return api.NewPlatformResponse(api.ExecuteSuccess, req)
 }
 
-/**
- * DeletePlatforms 批量删除平台信息
- */
+// DeletePlatforms 批量删除平台信息
 func (s *Server) DeletePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse {
 	if checkErr := checkBatchPlatform(req); checkErr != nil {
 		return checkErr
@@ -176,9 +166,7 @@ func (s *Server) DeletePlatforms(ctx context.Context, req []*api.Platform) *api.
 	return api.FormatBatchWriteResponse(responses)
 }
 
-/**
- * DeletePlatform 删除平台信息
- */
+// DeletePlatform 删除平台信息
 func (s *Server) DeletePlatform(ctx context.Context, req *api.Platform) *api.Response {
 	requestID := ParseRequestID(ctx)
 
@@ -209,9 +197,7 @@ func (s *Server) DeletePlatform(ctx context.Context, req *api.Platform) *api.Res
 	return api.NewPlatformResponse(api.ExecuteSuccess, req)
 }
 
-/**
- * GetPlatforms 查询平台信息
- */
+// GetPlatforms 查询平台信息
 func (s *Server) GetPlatforms(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	for key := range query {
 		if _, ok := platformFilterAttributes[key]; !ok {
@@ -239,9 +225,7 @@ func (s *Server) GetPlatforms(ctx context.Context, query map[string]string) *api
 	return resp
 }
 
-/**
- * GetPlatformToken 查询平台Token
- */
+// GetPlatformToken 查询平台Token
 func (s *Server) GetPlatformToken(ctx context.Context, req *api.Platform) *api.Response {
 	// 参数检查
 	if err := checkDeletePlatformParams(ctx, req); err != nil {
@@ -258,9 +242,7 @@ func (s *Server) GetPlatformToken(ctx context.Context, req *api.Platform) *api.R
 	return api.NewPlatformResponse(api.ExecuteSuccess, req)
 }
 
-/**
- * @brief 检查批量请求
- */
+// checkBatchPlatform 检查批量请求
 func checkBatchPlatform(req []*api.Platform) *api.BatchWriteResponse {
 	if len(req) == 0 {
 		return api.NewBatchWriteResponse(api.EmptyRequest)
@@ -273,9 +255,7 @@ func checkBatchPlatform(req []*api.Platform) *api.BatchWriteResponse {
 	return nil
 }
 
-/**
- * @brief 检查创建/修改平台参数
- */
+// checkPlatformParams 检查创建/修改平台参数
 func checkPlatformParams(req *api.Platform) *api.Response {
 	if req == nil {
 		return api.NewPlatformResponse(api.EmptyRequest, req)
@@ -312,9 +292,7 @@ func checkPlatformParams(req *api.Platform) *api.Response {
 	return nil
 }
 
-/**
- * @brief 检查删除平台参数
- */
+// checkDeletePlatformParams 检查删除平台参数
 func checkDeletePlatformParams(ctx context.Context, req *api.Platform) *api.Response {
 	if req == nil {
 		return api.NewPlatformResponse(api.EmptyRequest, req)
@@ -332,9 +310,7 @@ func checkDeletePlatformParams(ctx context.Context, req *api.Platform) *api.Resp
 	return nil
 }
 
-/**
- * @brief 修改和删除平台信息的公共检查
- */
+// checkRevisePlatform 修改和删除平台信息的公共检查
 func (s *Server) checkRevisePlatform(ctx context.Context, req *api.Platform) (*model.Platform, *api.Response) {
 	requestID := ParseRequestID(ctx)
 
@@ -355,9 +331,7 @@ func (s *Server) checkRevisePlatform(ctx context.Context, req *api.Platform) (*m
 	return platform, nil
 }
 
-/**
- * @brief 检查平台ID
- */
+// checkPlatformID 检查平台ID
 func checkPlatformID(id *wrappers.StringValue) error {
 	if id == nil {
 		return errors.New("id is nil")
@@ -384,9 +358,7 @@ func checkPlatformID(id *wrappers.StringValue) error {
 	return nil
 }
 
-/**
- * @brief 检查平台Name
- */
+// checkPlatformName 检查平台Name
 func checkPlatformName(name *wrappers.StringValue) error {
 	if name.GetValue() == "" {
 		return errors.New("name is empty")
@@ -399,9 +371,7 @@ func checkPlatformName(name *wrappers.StringValue) error {
 	return nil
 }
 
-/**
- * @brief 检查平台域名
- */
+// checkPlatformDomain 检查平台域名
 func checkPlatformDomain(domain *wrappers.StringValue) error {
 	if domain.GetValue() == "" {
 		return errors.New("domain is empty")
@@ -414,9 +384,7 @@ func checkPlatformDomain(domain *wrappers.StringValue) error {
 	return nil
 }
 
-/**
- * @brief 检查QPS
- */
+// checkPlatformQPS 检查QPS
 func checkPlatformQPS(qps *wrappers.UInt32Value) error {
 	if qps.GetValue() == 0 {
 		return errors.New("qps is empty")
@@ -428,9 +396,7 @@ func checkPlatformQPS(qps *wrappers.UInt32Value) error {
 	return nil
 }
 
-/**
- * @brief 检查部门
- */
+// checkPlatformDepartment 检查部门
 func checkPlatformDepartment(department *wrappers.StringValue) error {
 	if department.GetValue() == "" {
 		return errors.New("department is empty")
@@ -443,9 +409,7 @@ func checkPlatformDepartment(department *wrappers.StringValue) error {
 	return nil
 }
 
-/**
- * @brief 检查描述
- */
+// checkPlatformComment 检查描述
 func checkPlatformComment(comment *wrappers.StringValue) error {
 	if comment.GetValue() == "" {
 		return errors.New("comment is empty")
@@ -457,9 +421,7 @@ func checkPlatformComment(comment *wrappers.StringValue) error {
 	return nil
 }
 
-/**
- * @brief 创建存储层模型
- */
+// createPlatformModel 创建存储层模型
 func createPlatformModel(req *api.Platform) *model.Platform {
 	platform := &model.Platform{
 		ID:         req.GetId().GetValue(),
@@ -475,9 +437,7 @@ func createPlatformModel(req *api.Platform) *model.Platform {
 	return platform
 }
 
-/**
- * @brief platform数组转换为[]*api.Platform
- */
+// platforms2API platform数组转换为[]*api.Platform
 func platforms2API(platforms []*model.Platform) []*api.Platform {
 	out := make([]*api.Platform, 0, len(platforms))
 	for _, entry := range platforms {
@@ -487,9 +447,7 @@ func platforms2API(platforms []*model.Platform) []*api.Platform {
 	return out
 }
 
-/**
- * @brief model.Platform转为api.Platform
- */
+// platform2Api model.Platform转为api.Platform
 func platform2Api(platform *model.Platform) *api.Platform {
 	if platform == nil {
 		return nil
@@ -511,9 +469,7 @@ func platform2Api(platform *model.Platform) *api.Platform {
 	return out
 }
 
-/**
- * @brief 修改平台字段
- */
+// updatePlatformAttribute 修改平台字段
 func (s *Server) updatePlatformAttribute(req *api.Platform, platform *model.Platform) bool {
 	needUpdate := false
 
@@ -550,9 +506,7 @@ func (s *Server) updatePlatformAttribute(req *api.Platform, platform *model.Plat
 	return needUpdate
 }
 
-/**
- * @brief 封装存储层错误
- */
+// wrapperPlatformStoreResponse 封装存储层错误
 func wrapperPlatformStoreResponse(platform *api.Platform, err error) *api.Response {
 	resp := storeError2Response(err)
 	if resp == nil {
@@ -563,9 +517,7 @@ func wrapperPlatformStoreResponse(platform *api.Platform, err error) *api.Respon
 	return resp
 }
 
-/**
- * @brief 获取平台的token信息
- */
+// parsePlatformToken 获取平台的token信息
 func parsePlatformToken(ctx context.Context, req *api.Platform) string {
 	if token := req.GetToken().GetValue(); token != "" {
 		return token

@@ -84,7 +84,7 @@ func (d *DiscoverStatisWorker) AddDiscoverCall(service, namespace string, time t
 	return nil
 }
 
-// Run init
+// Run 运行服务发现统计插件
 func (d *DiscoverStatisWorker) Run() {
 	ticker := time.NewTicker(d.interval)
 	defer ticker.Stop()

@@ -40,7 +40,7 @@ type CacheProvider struct {
 	selfService          string
 }
 
-// CacheEvent provide the event for cache changes
+// CacheEvent provides the event for cache changes
 type CacheEvent struct {
 	healthCheckInstancesChanged bool
 	selfServiceInstancesChanged bool

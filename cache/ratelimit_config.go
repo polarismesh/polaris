@@ -38,19 +38,19 @@ type RateLimitIterProc func(id string, rateLimit *model.RateLimit) (bool, error)
 type RateLimitCache interface {
 	Cache
 
-	// 根据serviceID进行迭代回调
+	// GetRateLimit 根据serviceID进行迭代回调
 	GetRateLimit(serviceID string, rateLimitIterProc RateLimitIterProc) error
 
-	// 根据serviceID获取最新revision
+	// GetLastRevision 根据serviceID获取最新revision
 	GetLastRevision(serviceID string) string
 
-	// 根据serviceID获取限流数据
+	// GetRateLimitByServiceID 根据serviceID获取限流数据
 	GetRateLimitByServiceID(serviceID string) []*model.RateLimit
 
-	// 获取revision总数
+	// GetRevisionsCount 获取revision总数
 	GetRevisionsCount() int
 
-	// 获取限流规则总数
+	// GetRateLimitsCount 获取限流规则总数
 	GetRateLimitsCount() int
 }
 

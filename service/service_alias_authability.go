@@ -25,7 +25,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
-// CreateServiceAlias
+// CreateServiceAlias creates a service alias
 func (svr *serverAuthAbility) CreateServiceAlias(ctx context.Context,
 	req *api.ServiceAlias) *api.Response {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Create, "CreateServiceAlias")
@@ -46,7 +46,7 @@ func (svr *serverAuthAbility) CreateServiceAlias(ctx context.Context,
 	return svr.targetServer.CreateServiceAlias(ctx, req)
 }
 
-// DeleteServiceAliases
+// DeleteServiceAliases deletes service aliases
 func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context,
 	reqs []*api.ServiceAlias) *api.BatchWriteResponse {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, reqs, model.Delete, "DeleteServiceAliases")
@@ -61,7 +61,7 @@ func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context,
 	return svr.targetServer.DeleteServiceAliases(ctx, reqs)
 }
 
-// UpdateServiceAlias
+// UpdateServiceAlias updates service alias
 func (svr *serverAuthAbility) UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Modify, "UpdateServiceAlias")
 
@@ -75,7 +75,7 @@ func (svr *serverAuthAbility) UpdateServiceAlias(ctx context.Context, req *api.S
 	return svr.targetServer.UpdateServiceAlias(ctx, req)
 }
 
-// GetServiceAliases
+// GetServiceAliases gets service aliases
 func (svr *serverAuthAbility) GetServiceAliases(ctx context.Context,
 	query map[string]string) *api.BatchQueryResponse {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, nil, model.Read, "GetServiceAliases")

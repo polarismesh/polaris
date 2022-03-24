@@ -48,7 +48,7 @@ type CheckScheduler struct {
 	ctx                context.Context
 }
 
-// AdoptEvent
+// AdoptEvent is the event for adopt
 type AdoptEvent struct {
 	InstanceId string
 	Add        bool

@@ -40,7 +40,7 @@ const (
 	StrategyRuleName string = "strategyRule"
 )
 
-// StrategyCache
+// StrategyCache is a cache for strategy rules.
 type StrategyCache interface {
 	Cache
 
@@ -49,7 +49,7 @@ type StrategyCache interface {
 	//  @return []*model.StrategyDetail
 	GetStrategyDetailsByUID(uid string) []*model.StrategyDetail
 
-	// GetStrategyDetailsByGroupID
+	// GetStrategyDetailsByGroupID returns all strategy details of a group.
 	GetStrategyDetailsByGroupID(groupId string) []*model.StrategyDetail
 
 	// IsResourceLinkStrategy 该资源是否关联了鉴权策略
@@ -480,7 +480,7 @@ func (sc *strategyCache) getStrategyDetails(uid string, gid string) []*model.Str
 	return nil
 }
 
-// IsResourceLinkStrategy
+// IsResourceLinkStrategy 校验
 func (sc *strategyCache) IsResourceLinkStrategy(resType api.ResourceType, resId string) bool {
 	switch resType {
 	case api.ResourceType_Namespaces:
