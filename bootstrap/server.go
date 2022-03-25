@@ -387,7 +387,7 @@ func polarisServiceRegister(polarisService *config.PolarisService, apiServers []
 			log.Errorf("self health checker err: %s", err.Error())
 			return err
 		}
-		selfHeathChecker.Start()
+		go selfHeathChecker.Start()
 	}
 	return nil
 }
