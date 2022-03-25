@@ -100,9 +100,9 @@ var (
 		"polaris.config":  "e6542db1a2cc846c1866010b40b7f51f",
 	}
 
-	adminUser = &model.User{
-		ID:          "65e4789a6d5b49669adf1e9e8387549c",
-		Name:        "polarisadmin",
+	mainUser = &model.User{
+		ID:          "04ae4ead86e1ecf5811e32a9fbca9bfa",
+		Name:        "polaris",
 		Password:    "$2a$10$5XMjs.oqo4PnpbTGy9dQqewL4eb4yoA7b/6ZKL33IPhFyIxzj4lRy",
 		Owner:       "",
 		Source:      "Polaris",
@@ -117,20 +117,20 @@ var (
 		ModifyTime:  time.Now(),
 	}
 
-	adminDefaultStrategy = &model.StrategyDetail{
+	mainDefaultStrategy = &model.StrategyDetail{
 		ID:      "fbca9bfa04ae4ead86e1ecf5811e32a9",
-		Name:    "(用户) PolarisAdmin的默认策略",
+		Name:    "(用户) polaris的默认策略",
 		Action:  "READ_WRITE",
 		Comment: "default admin",
 		Principals: []model.Principal{
 			{
 				StrategyID:    "fbca9bfa04ae4ead86e1ecf5811e32a9",
-				PrincipalID:   "65e4789a6d5b49669adf1e9e8387549c",
+				PrincipalID:   "04ae4ead86e1ecf5811e32a9fbca9bfa",
 				PrincipalRole: model.PrincipalUser,
 			},
 		},
 		Default: true,
-		Owner:   "65e4789a6d5b49669adf1e9e8387549c",
+		Owner:   "04ae4ead86e1ecf5811e32a9fbca9bfa",
 		Resources: []model.StrategyResource{
 			{
 				StrategyID: "fbca9bfa04ae4ead86e1ecf5811e32a9",
@@ -191,18 +191,19 @@ func (m *boltStore) initNamingStoreData() error {
 }
 
 func (m *boltStore) initAuthStoreData() error {
-	if err := m.handler.Execute(true, func(tx *bolt.Tx) error {
-		// 添加管理主体信息
-		if err := m.addUserMain(tx, adminUser); err != nil {
+	return m.handler.Execute(true, func(tx *bolt.Tx) error {
+		// 添加主账户主体信息
+		if err := m.addUserMain(tx, mainUser); err != nil {
 			return err
 		}
 
-		// 添加管理员的默认鉴权策略信息
-		return m.addStrategy(tx, adminDefaultStrategy)
-	}); err != nil {
-		return err
-	}
-	return nil
+		// 添加主账户的默认鉴权策略信息
+		if err := m.addStrategy(tx, mainDefaultStrategy); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (m *boltStore) newStore() error {
