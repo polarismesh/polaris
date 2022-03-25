@@ -25,6 +25,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
+
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -45,6 +47,7 @@ import (
 var (
 	SelfServiceInstance = make([]*api.Instance, 0)
 	ConfigFilePath      = ""
+	selfHeathChecker    *SelfHeathChecker
 )
 
 // Start 启动
@@ -217,7 +220,6 @@ func RestartServers(errCh chan error) error {
 		return err
 	}
 	log.Infof("new config: %+v", cfg)
-
 	// 把配置的每个apiserver，进行重启
 	for _, protocol := range cfg.APIServers {
 		server, exist := apiserver.Slots[protocol.Name]
@@ -235,9 +237,12 @@ func RestartServers(errCh chan error) error {
 
 // StopServers 接受外部信号，停止server
 func StopServers(servers []apiserver.Apiserver) {
-	// 先反注册所有服务
+	// stop health checkers
+	if nil != selfHeathChecker {
+		selfHeathChecker.Stop()
+	}
+	// deregister instances
 	SelfDeregister()
-
 	// 停掉服务
 	for _, s := range servers {
 		log.Infof("stop server protocol: %s", s.GetProtocol())
@@ -342,17 +347,19 @@ func polarisServiceRegister(polarisService *config.PolarisService, apiServers []
 	for _, server := range apiServers {
 		apiServerNames[server.Name] = true
 	}
-
+	hbInterval := config.DefaultHeartbeatInterval
+	if polarisService.HeartbeatInterval > 0 {
+		hbInterval = polarisService.HeartbeatInterval
+	}
 	// 开始注册每个服务
-	for _, service := range polarisService.Services {
-		protocols := service.Protocols
+	for _, svc := range polarisService.Services {
+		protocols := svc.Protocols
 		// 如果service.Protocols为空，默认采用protocols注册
 		if len(protocols) == 0 {
 			for _, server := range apiServers {
 				protocols = append(protocols, server.Name)
 			}
 		}
-
 		for _, name := range protocols {
 			if _, exist := apiServerNames[name]; !exist {
 				return fmt.Errorf("not register the server(%s)", name)
@@ -364,21 +371,30 @@ func polarisServiceRegister(polarisService *config.PolarisService, apiServers []
 			host := utils.LocalHost
 			port := slot.GetPort()
 			protocol := slot.GetProtocol()
-			if err := selfRegister(host, port, protocol, polarisService.Isolated, service); err != nil {
+			if err := selfRegister(host, port, protocol, polarisService.Isolated, svc, hbInterval); err != nil {
 				log.Errorf("self register err: %s", err.Error())
 				return err
 			}
 
-			log.Infof("self register success. host = %s, port = %s, protocol = %s, service = %s",
-				host, port, protocol, service)
+			log.Infof("self register success. host = %s, port = %d, protocol = %s, service = %s",
+				host, port, protocol, svc)
 		}
 	}
-
+	if len(SelfServiceInstance) > 0 {
+		log.Infof("start self health checker")
+		var err error
+		if selfHeathChecker, err = NewSelfHeathChecker(SelfServiceInstance, hbInterval); nil != err {
+			log.Errorf("self health checker err: %s", err.Error())
+			return err
+		}
+		selfHeathChecker.Start()
+	}
 	return nil
 }
 
 // selfRegister 服务自注册
-func selfRegister(host string, port uint32, protocol string, isolated bool, polarisService *config.Service) error {
+func selfRegister(
+	host string, port uint32, protocol string, isolated bool, polarisService *config.Service, hbInterval int) error {
 	server, err := service.GetOriginServer()
 	if err != nil {
 		return err
@@ -398,24 +414,31 @@ func selfRegister(host string, port uint32, protocol string, isolated bool, pola
 		namespace = polarisService.Namespace
 	}
 
-	service, err := storage.GetService(name, namespace)
+	svc, err := storage.GetService(name, namespace)
 	if err != nil {
 		return err
 	}
-	if service == nil {
+	if svc == nil {
 		return fmt.Errorf("not found the self service(%s), namespace(%s)",
 			name, namespace)
 	}
 
 	req := &api.Instance{
-		Service:      utils.NewStringValue(name),
-		Namespace:    utils.NewStringValue(namespace),
-		Host:         utils.NewStringValue(host),
-		Port:         utils.NewUInt32Value(port),
-		Protocol:     utils.NewStringValue(protocol),
-		ServiceToken: utils.NewStringValue(service.Token),
-		Version:      utils.NewStringValue(version.Get()),
-		Isolate:      utils.NewBoolValue(isolated), // 自注册，默认是隔离的
+		Service:           utils.NewStringValue(name),
+		Namespace:         utils.NewStringValue(namespace),
+		Host:              utils.NewStringValue(host),
+		Port:              utils.NewUInt32Value(port),
+		Protocol:          utils.NewStringValue(protocol),
+		ServiceToken:      utils.NewStringValue(svc.Token),
+		Version:           utils.NewStringValue(version.Get()),
+		EnableHealthCheck: utils.NewBoolValue(true),
+		Isolate:           utils.NewBoolValue(isolated),
+		HealthCheck: &api.HealthCheck{
+			Type: api.HealthCheck_HEARTBEAT,
+			Heartbeat: &api.HeartbeatHealthCheck{
+				Ttl: &wrappers.UInt32Value{Value: uint32(hbInterval)},
+			},
+		},
 		Metadata: map[string]string{
 			model.MetaKeyBuildRevision:  version.GetRevision(),
 			model.MetaKeyPolarisService: name,
