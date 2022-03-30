@@ -438,7 +438,6 @@ func (u *groupStore) listGroupByUser(filters map[string]string, offset uint32, l
 // collectGroupsFromRows 查询用户组列表
 func (u *groupStore) collectGroupsFromRows(handler QueryHandler, querySql string,
 	args []interface{}) ([]*model.UserGroup, error) {
-
 	rows, err := u.master.Query(querySql, args...)
 	if err != nil {
 		logger.AuthScope().Error("[Store][Group] list group", zap.String("query sql", querySql), zap.Any("args", args))
