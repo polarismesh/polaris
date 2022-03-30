@@ -324,20 +324,11 @@ func (gs *groupStore) GetGroups(filters map[string]string, offset uint32,
 	}
 }
 
-// listSimpleGroups 正常的用户组查询
+// listSimpleGroups Normal user group query
 func (gs *groupStore) listSimpleGroups(filters map[string]string, offset uint32, limit uint32) (uint32,
 	[]*model.UserGroup, error) {
 
-	query := make(map[string]string)
-	if _, ok := filters["id"]; ok {
-		query["id"] = filters["id"]
-	}
-	if _, ok := filters["name"]; ok {
-		query["name"] = filters["name"]
-	}
-	filters = query
-
-	fields := []string{GroupFieldID, GroupFieldName, GroupFieldValid}
+	fields := []string{GroupFieldID, GroupFieldOwner, GroupFieldName, GroupFieldValid}
 
 	values, err := gs.handler.LoadValuesByFilter(tblGroup, fields, &groupForStore{},
 		func(m map[string]interface{}) bool {
@@ -348,15 +339,22 @@ func (gs *groupStore) listSimpleGroups(filters map[string]string, offset uint32,
 
 			saveId, _ := m[GroupFieldID].(string)
 			saveName, _ := m[GroupFieldName].(string)
+			saveOwner, _ := m[GroupFieldOwner].(string)
 
-			if sId, ok := query["id"]; ok && sId != saveId {
+			if sId, ok := filters["id"]; ok && sId != saveId {
 				return false
 			}
-			if sName, ok := query["name"]; ok {
+			if sName, ok := filters["name"]; ok {
 				if utils.IsWildName(sName) {
 					sName = sName[:len(sName)-1]
 				}
-				return strings.Contains(saveName, sName)
+				if !strings.Contains(saveName, sName) {
+					return false
+				}
+			}
+
+			if sOwner, ok := filters["owner"]; ok && sOwner != saveOwner {
+				return false
 			}
 
 			return true
@@ -371,12 +369,12 @@ func (gs *groupStore) listSimpleGroups(filters map[string]string, offset uint32,
 	return total, doGroupPage(values, offset, limit), nil
 }
 
-// listGroupByUser 查询某个用户下所关联的用户组信息, 或者用户组 owner 为自己
+// listGroupByUser 查询某个用户下所关联的用户组信息
 func (gs *groupStore) listGroupByUser(filters map[string]string, offset uint32, limit uint32) (uint32,
 	[]*model.UserGroup, error) {
 
 	userId := filters["user_id"]
-	owner := filters["owner"]
+	owner, existOwner := filters["owner"]
 	fields := []string{GroupFieldUserIds, GroupFieldOwner, GroupFieldValid}
 
 	values, err := gs.handler.LoadValuesByFilter(tblGroup, fields, &groupForStore{},
@@ -391,17 +389,24 @@ func (gs *groupStore) listGroupByUser(filters map[string]string, offset uint32, 
 				if utils.IsWildName(sName) {
 					sName = sName[:len(sName)-1]
 				}
-				return strings.Contains(saveName, sName)
+				if !strings.Contains(saveName, sName) {
+					return false
+				}
 			}
 
 			saveOwner, _ := m[GroupFieldOwner]
 			saveVal, ok := m[GroupFieldUserIds]
-			saveUserIds := saveVal.(map[string]string)
 			if !ok {
 				return false
 			}
+
+			saveUserIds := saveVal.(map[string]string)
 			_, exist := saveUserIds[userId]
-			return exist || saveOwner == owner
+
+			if existOwner {
+				return exist || saveOwner == owner
+			}
+			return exist
 		})
 
 	if err != nil {

@@ -23,9 +23,11 @@ import (
 
 	"github.com/boltdb/bolt"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	logger "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
+	"go.uber.org/zap"
 )
 
 const (
@@ -79,6 +81,12 @@ func (m *boltStore) Initialize(c *store.Config) error {
 		_ = handler.Close()
 		return err
 	}
+
+	if err = m.initAuthStoreData(); err != nil {
+		_ = handler.Close()
+		return err
+	}
+
 	if err = m.initNamingStoreData(); err != nil {
 		_ = handler.Close()
 		return err
@@ -108,8 +116,8 @@ var (
 		Source:      "Polaris",
 		Mobile:      "",
 		Email:       "",
-		Type:        0,
-		Token:       "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=",
+		Type:        20,
+		Token:       "4azbewS+pdXvrMG1PtYV3SrcLxjmYd0IVNaX9oYziQygRnKzjcSbxl+Reg7zYQC1gRrGiLzmMY+w+aCxOYI=",
 		TokenEnable: true,
 		Valid:       true,
 		Comment:     "default polaris admin account",
@@ -192,16 +200,34 @@ func (m *boltStore) initNamingStoreData() error {
 
 func (m *boltStore) initAuthStoreData() error {
 	return m.handler.Execute(true, func(tx *bolt.Tx) error {
-		// 添加主账户主体信息
-		if err := m.addUserMain(tx, mainUser); err != nil {
+		user, err := m.getUser(tx, mainUser.ID)
+		if err != nil {
 			return err
 		}
 
-		// 添加主账户的默认鉴权策略信息
-		if err := m.addStrategy(tx, mainDefaultStrategy); err != nil {
+		if user == nil {
+			user = mainUser
+			// 添加主账户主体信息
+			if err := saveValue(tx, tblUser, user.ID, converToUserStore(user)); err != nil {
+				logger.AuthScope().Error("[Store][User] save user fail", zap.Error(err), zap.String("name", user.Name))
+				return err
+			}
+		}
+
+		rule, err := m.getStrategyDetail(tx, mainDefaultStrategy.ID, true)
+		if err != nil {
 			return err
 		}
 
+		if rule == nil {
+			strategy := mainDefaultStrategy
+			// 添加主账户的默认鉴权策略信息
+			if err := saveValue(tx, tblStrategy, strategy.ID, convertForStrategyStore(strategy)); err != nil {
+				logger.AuthScope().Error("[Store][Strategy] save auth_strategy", zap.Error(err),
+					zap.String("name", strategy.Name), zap.String("owner", strategy.Owner))
+				return err
+			}
+		}
 		return nil
 	})
 }

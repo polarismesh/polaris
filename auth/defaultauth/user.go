@@ -181,7 +181,8 @@ func (svr *server) UpdateUserPassword(ctx context.Context, req *api.ModifyUserPa
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	data, needUpdate, err := updateUserPasswordAttribute(utils.ParseUserRole(ctx) == model.AdminUserRole, user, req)
+	ignoreOrign := utils.ParseUserRole(ctx) == model.AdminUserRole || utils.ParseUserRole(ctx) == model.OwnerUserRole
+	data, needUpdate, err := updateUserPasswordAttribute(ignoreOrign, user, req)
 	if err != nil {
 		log.AuthScope().Error("[Auth][User] compute user update attribute", zap.Error(err),
 			zap.String("user", req.GetId().GetValue()))
@@ -573,9 +574,13 @@ func updateUserAttribute(old *model.User, newUser *api.User) (*model.User, bool,
 	return old, needUpdate, nil
 }
 
-// updateUserAttribute 更新用户密码信息，如果用户的密码被更新，则会一并更新用户的toiken字段
+// updateUserAttribute 更新用户密码信息，如果用户的密码被更新
 func updateUserPasswordAttribute(isAdmin bool, user *model.User, req *api.ModifyUserPassword) (*model.User, bool, error) {
 	needUpdate := false
+
+	if err := checkPassword(req.NewPassword); err != nil {
+		return nil, false, err
+	}
 
 	if !isAdmin {
 		if req.GetOldPassword().GetValue() == "" {
