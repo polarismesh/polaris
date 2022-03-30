@@ -193,7 +193,7 @@ func (svr *server) handleGroupStrategy(groupIds []string, afterCtx *model.Acquir
 func (svr *server) handlerModifyDefaultStrategy(id, ownerId string, uType model.PrincipalType,
 	afterCtx *model.AcquireContext, cleanRealtion bool) error {
 	// Get the default policy rules
-	strategy, err := svr.storage.GetDefaultStrategyDetailByPrincipal(id, int(uType))
+	strategy, err := svr.storage.GetDefaultStrategyDetailByPrincipal(id, uType)
 	if err != nil {
 		log.AuthScope().Error("[Auth][Server] get default strategy",
 			zap.String("owner", ownerId), zap.String("id", id), zap.Error(err))

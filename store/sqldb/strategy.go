@@ -395,7 +395,7 @@ func (s *strategyStore) GetStrategyDetail(id string, isDefault bool) (*model.Str
 
 // GetDefaultStrategyDetailByPrincipal
 func (s *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
-	principalType int) (*model.StrategyDetail, error) {
+	principalType model.PrincipalType) (*model.StrategyDetail, error) {
 
 	if principalId == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
@@ -417,7 +417,7 @@ func (s *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
 		 )
 	 `
 
-	row := s.master.QueryRow(querySql, principalId, principalType)
+	row := s.master.QueryRow(querySql, principalId, int(principalType))
 
 	return s.getStrategyDetail(row)
 }

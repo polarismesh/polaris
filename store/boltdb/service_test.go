@@ -430,15 +430,13 @@ func TestServiceStore_UpdateServiceAlias(t *testing.T) {
 	sStore := &serviceStore{handler: handler}
 
 	err = sStore.UpdateServiceAlias(&model.Service{
-		ID:         "svcid2",
-		Name:       "svcname1",
-		Namespace:  "testsvc",
-		Owner:      "testo",
-		Token:      "t1",
-		Revision:   "modifyRevision2",
-		Reference:  "m1",
-		Business:   "modifyBusiness",
-		Department: "modifyDepartment",
+		ID:        "svcid2",
+		Name:      "svcname1",
+		Namespace: "testsvc",
+		Owner:     "testo",
+		Token:     "t1",
+		Revision:  "modifyRevision2",
+		Reference: "m1",
 	}, true)
 	if err != nil {
 		t.Fatal(err)
@@ -452,9 +450,7 @@ func TestServiceStore_UpdateServiceAlias(t *testing.T) {
 
 	fmt.Printf("get service %+v\n", ss)
 
-	if ss.Business != "modifyBusiness" ||
-		ss.Department != "modifyDepartment" ||
-		ss.Revision != "modifyRevision2" {
+	if ss.Reference != "m1" || ss.Revision != "modifyRevision2" {
 		t.Fatal("update service error")
 	}
 }

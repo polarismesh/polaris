@@ -623,18 +623,19 @@ func createUserModel(req *api.User, role model.UserRoleType) (*model.User, error
 	}
 
 	user := &model.User{
-		ID:         id,
-		Name:       req.GetName().GetValue(),
-		Password:   string(pwd),
-		Owner:      req.GetOwner().GetValue(),
-		Source:     req.GetSource().GetValue(),
-		Mobile:     req.GetMobile().GetValue(),
-		Email:      req.GetEmail().GetValue(),
-		Valid:      true,
-		Type:       converCreateUserRole(role),
-		Comment:    req.GetComment().GetValue(),
-		CreateTime: time.Now(),
-		ModifyTime: time.Now(),
+		ID:          id,
+		Name:        req.GetName().GetValue(),
+		Password:    string(pwd),
+		Owner:       req.GetOwner().GetValue(),
+		Source:      req.GetSource().GetValue(),
+		Mobile:      req.GetMobile().GetValue(),
+		Email:       req.GetEmail().GetValue(),
+		Valid:       true,
+		Type:        converCreateUserRole(role),
+		Comment:     req.GetComment().GetValue(),
+		CreateTime:  time.Now(),
+		ModifyTime:  time.Now(),
+		TokenEnable: true,
 	}
 
 	// 如果不是子账户的话，owner 就是自己

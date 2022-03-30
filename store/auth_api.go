@@ -91,7 +91,7 @@ type StrategyStore interface {
 	// DeleteStrategy Delete authentication strategy
 	DeleteStrategy(id string) error
 
-	// LooseAddStrategyResources Song requires the resources of the authentication strategy, 
+	// LooseAddStrategyResources Song requires the resources of the authentication strategy,
 	//   allowing the issue of ignoring the primary key conflict
 	LooseAddStrategyResources(resources []model.StrategyResource) error
 
@@ -102,7 +102,7 @@ type StrategyStore interface {
 	GetStrategyResources(principalId string, principalRole model.PrincipalType) ([]model.StrategyResource, error)
 
 	// GetDefaultStrategyDetailByPrincipal Get a default policy for a Principal
-	GetDefaultStrategyDetailByPrincipal(principalId string, principalType int) (*model.StrategyDetail, error)
+	GetDefaultStrategyDetailByPrincipal(principalId string, principalType model.PrincipalType) (*model.StrategyDetail, error)
 
 	// GetStrategyDetail Get strategy details
 	GetStrategyDetail(id string, isDefault bool) (*model.StrategyDetail, error)
