@@ -8,12 +8,18 @@ metadata:
 spec:
   type: LoadBalancer
   ports:
+    - port: 8761
+      name: eureka-server
+      targetPort: 8761
     - port: 8090
       name: http-server
       targetPort: 8090
     - port: 8091
       name: grpc-server
       targetPort: 8091
+    - port: 8093
+      name: config-grpc-server
+      targetPort: 8093
     - port: 8080
       name: web-server
       targetPort: 8080

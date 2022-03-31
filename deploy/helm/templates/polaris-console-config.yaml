@@ -14,7 +14,10 @@ data:
       mode: "release"
       listenIP: "0.0.0.0"
       listenPort: {{ .Values.service.webPort }}
+      namingURL: "/naming/v1"
+      authURL: "/core/v1"
       requestURL: "/naming/v1"
+      configURL: "/config/v1"
       monitorURL: "/api/v1"
       webPath: "web/dist/"
     polarisServer:

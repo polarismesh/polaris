@@ -10,16 +10,22 @@ spec:
   ports:
     - port: {{ .Values.service.httpPort }}
       name: http-server
-      targetPort: {{ .Values.polaris.httpPort }}
+      targetPort: {{ .Values.service.httpPort }}
     - port: {{ .Values.service.grpcPort }}
       name: grpc-server
-      targetPort: {{ .Values.polaris.grpcPort }}
+      targetPort: {{ .Values.service.grpcPort }}
     - port: {{ .Values.service.webPort }}
       name: web-server
-      targetPort: {{ .Values.polaris.webPort }}
+      targetPort: {{ .Values.service.webPort }}
     - port: {{ .Values.service.xdsv3Port }}
       name: xdsv3-server
-      targetPort: {{ .Values.polaris.xdsv3Port }}
+      targetPort: {{ .Values.service.xdsv3Port }}
+    - port: {{ .Values.service.configGrpcPort }}
+      name: config-grpc-server
+      targetPort: {{ .Values.service.configGrpcPort }}
+    - port: {{ .Values.service.eurekaPort }}
+      name: eureka-server
+      targetPort: {{ .Values.service.eurekaPort }}
   selector:
     app: polaris
 ---
