@@ -111,7 +111,7 @@ var (
 	mainUser = &model.User{
 		ID:          "04ae4ead86e1ecf5811e32a9fbca9bfa",
 		Name:        "polaris",
-		Password:    "$2a$10$5XMjs.oqo4PnpbTGy9dQqewL4eb4yoA7b/6ZKL33IPhFyIxzj4lRy",
+		Password:    "$2a$10$3izWuZtE5SBdAtSZci.gs.iZ2pAn9I8hEqYrC6gwJp1dyjqQnrrum",
 		Owner:       "",
 		Source:      "Polaris",
 		Mobile:      "",

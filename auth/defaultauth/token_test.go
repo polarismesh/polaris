@@ -37,7 +37,7 @@ func TestCreateToken(t *testing.T) {
 
 	fmt.Printf("token=%s\n", token)
 
-	password, err := bcrypt.GenerateFromPassword([]byte("polarismesh@2021"), bcrypt.DefaultCost)
+	password, err := bcrypt.GenerateFromPassword([]byte("polaris"), bcrypt.DefaultCost)
 	if err != nil {
 		t.Fatal(err)
 	}

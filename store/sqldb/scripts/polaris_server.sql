@@ -838,7 +838,7 @@ VALUES
     (
         '65e4789a6d5b49669adf1e9e8387549c',
         'polaris',
-        '$2a$10$5XMjs.oqo4PnpbTGy9dQqewL4eb4yoA7b/6ZKL33IPhFyIxzj4lRy',
+        '$2a$10$3izWuZtE5SBdAtSZci.gs.iZ2pAn9I8hEqYrC6gwJp1dyjqQnrrum',
         'Polaris',
         'nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=',
         1,
@@ -864,7 +864,7 @@ INSERT INTO
 VALUES
     (
         'fbca9bfa04ae4ead86e1ecf5811e32a9',
-        '(用户) PolarisAdmin的默认策略',
+        '(用户) polaris的默认策略',
         'READ_WRITE',
         '65e4789a6d5b49669adf1e9e8387549c',
         'default admin',
