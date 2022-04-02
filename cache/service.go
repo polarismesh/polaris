@@ -102,7 +102,7 @@ type ServiceCache interface {
 	// GetServiceByCl5Name Get the corresponding SID according to CL5name
 	GetServiceByCl5Name(cl5Name string) *model.Service
 
-	// GetServiceByFilter Serving the service filtering in the cache through Filter
+	// GetServicesByFilter Serving the service filtering in the cache through Filter
 	GetServicesByFilter(serviceFilters *ServiceArgs,
 		instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error)
 
@@ -125,7 +125,7 @@ type serviceCache struct {
 	needMeta            bool
 	singleFlight        *singleflight.Group
 	instCache           InstanceCache
-	countChangeCh       chan map[string]bool //Counting information requires a change event channel
+	countChangeCh       chan map[string]bool // Counting information requires a change event channel
 	pendingServices     map[string]int8
 	namespaceServiceCnt *sync.Map // namespce -> model.NamespaceServiceCount
 	cancel              context.CancelFunc
@@ -460,7 +460,7 @@ func (sc *serviceCache) postProcessUpdatedServices(affect map[string]bool) {
 		if progress%10000 == 0 {
 			log.Infof("[Cache][Service] namespace service detail count progress(%d / %d)", progress, len(affect))
 		}
-		//Construction of service quantity statistics
+		// Construction of service quantity statistics
 		value, ok := sc.names.Load(namespace)
 		if !ok {
 			sc.namespaceServiceCnt.Delete(namespace)

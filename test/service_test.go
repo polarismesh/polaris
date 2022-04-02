@@ -44,7 +44,7 @@ func TestService(t *testing.T) {
 	}
 	t.Log("create namespaces success")
 
-	//-------------------------------------------------------
+	// -------------------------------------------------------
 
 	services := resource.CreateServices(namespaces[0])
 
@@ -88,7 +88,7 @@ func TestService(t *testing.T) {
 	}
 	t.Log("delete services success")
 
-	//-------------------------------------------------------
+	// -------------------------------------------------------
 
 	// 删除命名空间
 	err = client.DeleteNamespaces(namespaces)

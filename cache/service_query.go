@@ -58,7 +58,7 @@ func (sc *serviceCache) Update() error {
 	return nil
 }
 
-// GetServiceByFilter 通过filter在缓存中进行服务过滤
+// GetServicesByFilter 通过filter在缓存中进行服务过滤
 func (sc *serviceCache) GetServicesByFilter(serviceFilters *ServiceArgs,
 	instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error) {
 	var amount uint32
@@ -275,7 +275,7 @@ func (sc *serviceCache) getServicesByIteratingCache(
 		res = append(res, svc)
 	}
 	if len(svcArgs.Namespace) > 0 {
-		//从命名空间来找
+		// 从命名空间来找
 		spaces, ok := sc.names.Load(svcArgs.Namespace)
 		if !ok {
 			return 0, nil, nil
@@ -285,7 +285,7 @@ func (sc *serviceCache) getServicesByIteratingCache(
 			return true
 		})
 	} else {
-		//直接名字匹配
+		// 直接名字匹配
 		_ = sc.IteratorServices(func(key string, svc *model.Service) (bool, error) {
 			process(svc)
 			return true, nil

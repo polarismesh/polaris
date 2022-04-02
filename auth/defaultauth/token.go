@@ -27,6 +27,7 @@ import (
 	"io"
 
 	"github.com/google/uuid"
+
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
@@ -62,6 +63,7 @@ func (t TokenInfo) IsEmpty() bool {
 	return t.Origin == ""
 }
 
+// String token 字符串
 func (t TokenInfo) String() string {
 	return fmt.Sprintf("operator-id=%s, owner=%s, role=%d, is-user=%v, disable=%v",
 		t.OperatorID, t.OwnerID, t.Role, t.IsUserToken, t.Disable)

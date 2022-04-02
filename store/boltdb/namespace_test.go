@@ -247,7 +247,7 @@ func TestNamespaceStore_UpdateNamespace(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	//检查update是否生效
+	// 检查update是否生效
 	for i := 0; i < nsCount; i++ {
 		name := "default" + strconv.Itoa(i)
 		ns, err := nsStore.GetNamespace(name)
@@ -284,7 +284,7 @@ func TestNamespaceStore_UpdateNamespaceToken(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	//检查update是否生效
+	// 检查update是否生效
 	for i := 0; i < nsCount; i++ {
 		name := "default" + strconv.Itoa(i)
 		ns, err := nsStore.GetNamespace(name)

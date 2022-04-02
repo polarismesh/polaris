@@ -41,7 +41,7 @@ var (
 	finishInit = false
 )
 
-// Server health check main server
+// Server health checks the main server
 type Server struct {
 	storage        store.Store
 	checkers       map[int32]plugin.HealthChecker
@@ -123,7 +123,7 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool) error {
 	return nil
 }
 
-// Report report heartbeat request
+// Report heartbeat request
 func (s *Server) Report(ctx context.Context, req *api.Instance) *api.Response {
 	return s.doReport(ctx, req)
 }
@@ -138,8 +138,8 @@ func GetServer() (*Server, error) {
 }
 
 // SetServiceCache 设置服务缓存
-func (s *Server) SetServiceCache(serviceÇache cache.ServiceCache) {
-	s.serviceCache = serviceÇache
+func (s *Server) SetServiceCache(serviceCache cache.ServiceCache) {
+	s.serviceCache = serviceCache
 }
 
 // CacheProvider get cache provider
@@ -166,12 +166,12 @@ func (s *Server) RecordHistory(entry *model.RecordEntry) {
 }
 
 // PublishDiscoverEvent 发布服务事件
-func (s *Server) PublishDiscoverEvent(serviceId string, event model.DiscoverEvent) {
+func (s *Server) PublishDiscoverEvent(serviceID string, event model.DiscoverEvent) {
 	if s.discoverEvent == nil {
 		return
 	}
 	s.discoverCh <- eventWrapper{
-		ServiceID: serviceId,
+		ServiceID: serviceID,
 		Event:     event,
 	}
 }
@@ -182,11 +182,13 @@ func (s *Server) receiveEventAndPush() {
 	}
 
 	for wrapper := range s.discoverCh {
-		svcId := wrapper.ServiceID
-		event := wrapper.Event
-		var service *model.Service
+		var (
+			svcID   = wrapper.ServiceID
+			event   = wrapper.Event
+			service *model.Service
+		)
 		for {
-			service = s.serviceCache.GetServiceByID(svcId)
+			service = s.serviceCache.GetServiceByID(svcID)
 			if service == nil {
 				time.Sleep(500 * time.Millisecond)
 				continue
@@ -198,7 +200,6 @@ func (s *Server) receiveEventAndPush() {
 
 		s.discoverEvent.PublishEvent(event)
 	}
-
 }
 
 // GetLastHeartbeat 获取上一次心跳的时间

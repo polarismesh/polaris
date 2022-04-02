@@ -23,7 +23,7 @@ import (
 	"net/http"
 
 	"github.com/emicklei/go-restful"
-	proto "github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
@@ -418,7 +418,7 @@ func (h *HTTPServer) UpdateServiceAlias(req *restful.Request, rsp *restful.Respo
 	handler.WriteHeaderAndProto(ret)
 }
 
-// DeleteServiceAlias 删除服务别名
+// DeleteServiceAliases 删除服务别名
 func (h *HTTPServer) DeleteServiceAliases(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 

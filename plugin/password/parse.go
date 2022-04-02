@@ -28,7 +28,7 @@ func init() {
 	plugin.RegisterPlugin(PluginName, &Password{})
 }
 
-// Password密码插件
+// Password 密码插件
 type Password struct{}
 
 // Name 返回插件名字

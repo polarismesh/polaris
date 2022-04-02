@@ -24,15 +24,17 @@ import (
 	"os"
 	"sync"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/polarismesh/polaris-server/bootstrap/config"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 	config2 "github.com/polarismesh/polaris-server/config"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
-	"gopkg.in/yaml.v2"
 
 	_ "github.com/go-sql-driver/mysql"
+
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
 )
 

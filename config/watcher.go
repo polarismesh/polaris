@@ -41,7 +41,7 @@ type watchContext struct {
 // watchCenter 处理客户端订阅配置请求，监听配置文件发布事件通知客户端
 type watchCenter struct {
 	eventCenter         *Center
-	configFileWatchers  *sync.Map //fileId -> clientId -> watchContext
+	configFileWatchers  *sync.Map // fileId -> clientId -> watchContext
 	lock                *sync.Mutex
 	releaseMessageQueue chan *model.ConfigFileRelease
 }
@@ -76,7 +76,7 @@ func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*api.Clien
 		watchers, ok := wc.configFileWatchers.Load(watchFileId)
 		if !ok {
 			wc.lock.Lock()
-			//double check
+			// double check
 			watchers, ok = wc.configFileWatchers.Load(watchFileId)
 			if !ok {
 				newWatchers := new(sync.Map)

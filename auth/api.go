@@ -28,13 +28,13 @@ import (
 
 // AuthServer 鉴权 Server
 type AuthServer interface {
-	// Initialize
+	// Initialize 初始化
 	Initialize(authOpt *Config, storage store.Store, cacheMgn *cache.NamingCache) error
 
-	// Name
+	// Name 获取服务名称
 	Name() string
 
-	// GetAuthChecker
+	// GetAuthChecker 获取鉴权检查器
 	GetAuthChecker() AuthChecker
 
 	// AfterResourceOperation 操作完资源的后置处理逻辑
@@ -43,13 +43,13 @@ type AuthServer interface {
 	// Login 登陆动作
 	Login(req *api.LoginRequest) *api.Response
 
-	// UserOperator
+	// UserOperator 用户操作
 	UserOperator
 
-	// GroupOperator
+	// GroupOperator 组操作
 	GroupOperator
 
-	// StrategyOperator
+	// StrategyOperator 策略操作
 	StrategyOperator
 }
 
@@ -59,7 +59,7 @@ type AuthChecker interface {
 	// Initialize 执行初始化动作
 	Initialize(options *Config, cacheMgn *cache.NamingCache) error
 
-	// VerifyToken
+	// VerifyToken 验证令牌
 	VerifyToken(preCtx *model.AcquireContext) error
 
 	// CheckPermission 执行检查动作判断是否有权限，并且将 RequestContext 进行插入一些新的数据
@@ -69,7 +69,7 @@ type AuthChecker interface {
 	IsOpenAuth() bool
 }
 
-// UserServer 用户数据管理 server
+// UserOperator 用户数据管理 server
 type UserOperator interface {
 
 	// CreateUsers 批量创建用户
@@ -81,7 +81,7 @@ type UserOperator interface {
 	// UpdateUserPassword 更新用户密码
 	UpdateUserPassword(ctx context.Context, req *api.ModifyUserPassword) *api.Response
 
-	// DeleteUser 删除用户
+	// DeleteUsers 批量删除用户
 	DeleteUsers(ctx context.Context, users []*api.User) *api.BatchWriteResponse
 
 	// GetUsers 查询用户列表
@@ -105,7 +105,7 @@ type GroupOperator interface {
 	// UpdateGroups 更新用户组
 	UpdateGroups(ctx context.Context, groups []*api.ModifyUserGroup) *api.BatchWriteResponse
 
-	// DeleteUserGroup 删除用户组
+	// DeleteGroups 批量删除用户组
 	DeleteGroups(ctx context.Context, group []*api.UserGroup) *api.BatchWriteResponse
 
 	// GetGroups 查询用户组列表（不带用户详细信息）
@@ -148,6 +148,7 @@ type StrategyOperator interface {
 	GetPrincipalResources(ctx context.Context, query map[string]string) *api.Response
 }
 
+// Authority 授权相关操作
 type Authority interface {
 	// VerifyToken 检查Token格式是否合法
 	VerifyToken(actualToken string) bool

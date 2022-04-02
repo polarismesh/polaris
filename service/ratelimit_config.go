@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
@@ -41,9 +42,7 @@ var (
 	}
 )
 
-/**
- * CreateRateLimits 批量创建限流规则
- */
+// CreateRateLimits 批量创建限流规则
 func (s *Server) CreateRateLimits(ctx context.Context, request []*api.Rule) *api.BatchWriteResponse {
 	if err := checkBatchRateLimits(request); err != nil {
 		return err
@@ -57,9 +56,7 @@ func (s *Server) CreateRateLimits(ctx context.Context, request []*api.Rule) *api
 	return api.FormatBatchWriteResponse(responses)
 }
 
-/**
- * CreateRateLimit 创建限流规则
- */
+// CreateRateLimit 创建限流规则
 func (s *Server) CreateRateLimit(ctx context.Context, req *api.Rule) *api.Response {
 	requestID := ParseRequestID(ctx)
 	platformID := ParsePlatformID(ctx)
@@ -125,9 +122,7 @@ func (s *Server) CreateRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 	return api.NewRateLimitResponse(api.ExecuteSuccess, req)
 }
 
-/**
- * DeleteRateLimits 批量删除限流规则
- */
+// DeleteRateLimits 批量删除限流规则
 func (s *Server) DeleteRateLimits(ctx context.Context, request []*api.Rule) *api.BatchWriteResponse {
 	if err := checkBatchRateLimits(request); err != nil {
 		return err
@@ -141,9 +136,7 @@ func (s *Server) DeleteRateLimits(ctx context.Context, request []*api.Rule) *api
 	return api.FormatBatchWriteResponse(responses)
 }
 
-/**
- * DeleteRateLimit 删除单个限流规则
- */
+// DeleteRateLimit 删除单个限流规则
 func (s *Server) DeleteRateLimit(ctx context.Context, req *api.Rule) *api.Response {
 	requestID := ParseRequestID(ctx)
 	platformID := ParsePlatformID(ctx)
@@ -185,9 +178,7 @@ func (s *Server) DeleteRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 	return api.NewRateLimitResponse(api.ExecuteSuccess, req)
 }
 
-/**
- * UpdateRateLimits 批量更新限流规则
- */
+// UpdateRateLimits 批量更新限流规则
 func (s *Server) UpdateRateLimits(ctx context.Context, request []*api.Rule) *api.BatchWriteResponse {
 	if err := checkBatchRateLimits(request); err != nil {
 		return err
@@ -201,9 +192,7 @@ func (s *Server) UpdateRateLimits(ctx context.Context, request []*api.Rule) *api
 	return api.FormatBatchWriteResponse(responses)
 }
 
-/**
- * UpdateRateLimit 更新限流规则
- */
+// UpdateRateLimit 更新限流规则
 func (s *Server) UpdateRateLimit(ctx context.Context, req *api.Rule) *api.Response {
 	requestID := ParseRequestID(ctx)
 	platformID := ParsePlatformID(ctx)
@@ -252,9 +241,7 @@ func (s *Server) UpdateRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 	return api.NewRateLimitResponse(api.ExecuteSuccess, req)
 }
 
-/**
- * GetRateLimits 查询限流规则
- */
+// GetRateLimits 查询限流规则
 func (s *Server) GetRateLimits(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	for key := range query {
 		if _, ok := RateLimitFilters[key]; !ok {
@@ -297,9 +284,7 @@ func (s *Server) GetRateLimits(ctx context.Context, query map[string]string) *ap
 	return out
 }
 
-/**
- * @brief 检查批量请求
- */
+// checkBatchRateLimits 检查批量请求的限流规则
 func checkBatchRateLimits(req []*api.Rule) *api.BatchWriteResponse {
 	if len(req) == 0 {
 		return api.NewBatchWriteResponse(api.EmptyRequest)
@@ -312,9 +297,7 @@ func checkBatchRateLimits(req []*api.Rule) *api.BatchWriteResponse {
 	return nil
 }
 
-/**
- * @brief 检查限流规则是否允许修改/删除
- */
+// checkRateLimitValid 检查限流规则是否允许修改/删除
 func (s *Server) checkRateLimitValid(ctx context.Context, serviceID string, req *api.Rule) (
 	*model.Service, *api.Response) {
 	requestID := ParseRequestID(ctx)
@@ -331,9 +314,7 @@ func (s *Server) checkRateLimitValid(ctx context.Context, serviceID string, req 
 	return service, nil
 }
 
-/**
- * @brief 检查限流规则基础参数
- */
+// checkRateLimitParams 检查限流规则基础参数
 func checkRateLimitParams(req *api.Rule) *api.Response {
 	if req == nil {
 		return api.NewRateLimitResponse(api.EmptyRequest, req)
@@ -356,9 +337,7 @@ func checkRateLimitParams(req *api.Rule) *api.Response {
 	return nil
 }
 
-/*
- * @brief 检查限流规则其他参数
- */
+// checkRateLimitRuleParams 检查限流规则其他参数
 func checkRateLimitRuleParams(requestID string, req *api.Rule) *api.Response {
 	// 检查业务维度标签
 	if req.GetLabels() == nil {
@@ -382,9 +361,7 @@ func checkRateLimitRuleParams(requestID string, req *api.Rule) *api.Response {
 	return nil
 }
 
-/**
- * @brief 检查修改/删除限流规则基础参数
- */
+// checkRevisedRateLimitParams 检查修改/删除限流规则基础参数
 func checkRevisedRateLimitParams(req *api.Rule) *api.Response {
 	if req == nil {
 		return api.NewRateLimitResponse(api.EmptyRequest, req)
@@ -395,9 +372,7 @@ func checkRevisedRateLimitParams(req *api.Rule) *api.Response {
 	return nil
 }
 
-/**
- * @brief 检查限流规则是否存在
- */
+// checkRateLimitExisted 检查限流规则是否存在
 func (s *Server) checkRateLimitExisted(id, requestID string, req *api.Rule) (*model.RateLimit, *api.Response) {
 	rateLimit, err := s.storage.GetRateLimitWithID(id)
 	if err != nil {
@@ -410,9 +385,7 @@ func (s *Server) checkRateLimitExisted(id, requestID string, req *api.Rule) (*mo
 	return rateLimit, nil
 }
 
-/**
- * @brief 获取限流规则请求的token信息
- */
+// parseRateLimitReqToken 获取限流规则请求的token信息
 func parseRateLimitReqToken(ctx context.Context, req *api.Rule) string {
 	if reqToken := req.GetServiceToken().GetValue(); reqToken != "" {
 		return reqToken
@@ -421,9 +394,7 @@ func parseRateLimitReqToken(ctx context.Context, req *api.Rule) string {
 	return ParseToken(ctx)
 }
 
-/**
- * @brief 限流鉴权
- */
+// verifyRateLimitAuth 限流鉴权
 func (s *Server) verifyRateLimitAuth(ctx context.Context, service *model.Service, req *api.Rule) *api.Response {
 	// 使用平台id及token鉴权
 	if ok := s.verifyAuthByPlatform(ctx, service.PlatformID); !ok {
@@ -442,9 +413,7 @@ func (s *Server) verifyRateLimitAuth(ctx context.Context, service *model.Service
 	return nil
 }
 
-/**
- * @brief 把API参数转化为内部数据结构
- */
+// api2RateLimit 把API参数转化为内部数据结构
 func api2RateLimit(serviceID string, clusterID string, req *api.Rule) (*model.RateLimit, error) {
 	labels, err := marshalRateLimitLabels(req.GetLabels())
 	if err != nil {
@@ -466,9 +435,7 @@ func api2RateLimit(serviceID string, clusterID string, req *api.Rule) (*model.Ra
 	return out, nil
 }
 
-/**
- * @brief 把内部数据结构转化为API参数
- */
+// rateLimit2api 把内部数据结构转化为API参数
 func rateLimit2api(service string, namespace string, rateLimit *model.RateLimit) (
 	*api.Rule, error) {
 	if rateLimit == nil {
@@ -501,9 +468,7 @@ func rateLimit2api(service string, namespace string, rateLimit *model.RateLimit)
 	return rule, nil
 }
 
-/**
- * @brief 格式化限流规则labels
- */
+// marshalRateLimitLabels 格式化限流规则labels
 func marshalRateLimitLabels(l map[string]*api.MatchString) (string, error) {
 	labels, err := json.Marshal(l)
 	if err != nil {
@@ -512,9 +477,7 @@ func marshalRateLimitLabels(l map[string]*api.MatchString) (string, error) {
 	return string(labels), nil
 }
 
-/**
- * @brief 序列化限流规则具体内容
- */
+// marshalRateLimitRules 序列化限流规则具体内容
 func marshalRateLimitRules(req *api.Rule) (string, error) {
 	r := &api.Rule{
 		Subset:       req.GetSubset(),
@@ -538,9 +501,7 @@ func marshalRateLimitRules(req *api.Rule) (string, error) {
 	return string(rule), nil
 }
 
-/**
- * @brief 构建rateLimit的记录entry
- */
+// rateLimitRecordEntry 构建rateLimit的记录entry
 func rateLimitRecordEntry(ctx context.Context, namespace string, service string, md *model.RateLimit,
 	opt model.OperationType) *model.RecordEntry {
 	entry := &model.RecordEntry{
@@ -559,9 +520,7 @@ func rateLimitRecordEntry(ctx context.Context, namespace string, service string,
 	return entry
 }
 
-/**
- * @brief 封装路由存储层错误
- */
+// wrapperRateLimitStoreResponse 封装路由存储层错误
 func wrapperRateLimitStoreResponse(rule *api.Rule, err error) *api.Response {
 	resp := storeError2Response(err)
 	if resp == nil {

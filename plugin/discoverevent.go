@@ -29,7 +29,7 @@ var (
 	discoverEventOnce = &sync.Once{}
 )
 
-// DiscoverChannel
+// DiscoverChannel is used to receive discover events from the agent
 type DiscoverChannel interface {
 	Plugin
 	// PublishEvent 发布一个服务事件

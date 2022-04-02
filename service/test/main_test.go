@@ -214,14 +214,14 @@ func cleanInstance(instanceID string) {
 	}
 
 	/*str := "delete from health_check where id = ?"
-	if _, err := db.Exec(str, instanceID); err != nil {
-		panic(err)
-	}
+	  if _, err := db.Exec(str, instanceID); err != nil {
+	  	panic(err)
+	  }
 
-	str = "delete from instance_metadata where id = ?"
-	if _, err := db.Exec(str, instanceID); err != nil {
-		panic(err)
-	}*/
+	  str = "delete from instance_metadata where id = ?"
+	  if _, err := db.Exec(str, instanceID); err != nil {
+	  	panic(err)
+	  }*/
 	log.Infof("clean instance: %s", instanceID)
 	str := "delete from instance where id = ?"
 	if _, err := db.Exec(str, instanceID); err != nil {
@@ -344,7 +344,7 @@ func createCommonInstance(t *testing.T, svc *api.Service, id int) (
 	return instanceReq, resp.GetInstance()
 }
 
-//指定 IP 和端口为一个服务创建实例
+// 指定 IP 和端口为一个服务创建实例
 func addHostPortInstance(t *testing.T, service *api.Service, host string, port uint32) (
 	*api.Instance, *api.Instance) {
 	instanceReq := &api.Instance{
@@ -487,7 +487,7 @@ func updateCommonRoutingConfig(t *testing.T, req *api.Routing) {
 // 彻底删除一个路由配置
 func cleanCommonRoutingConfig(service string, namespace string) {
 	str := "delete from routing_config where id in (select id from service where name = ? and namespace = ?)"
-	//fmt.Printf("%s %s %s\n", str, service, namespace)
+	// fmt.Printf("%s %s %s\n", str, service, namespace)
 	if _, err := db.Exec(str, service, namespace); err != nil {
 		panic(err)
 	}
@@ -552,7 +552,7 @@ func discoveryCheck(t *testing.T, req *api.Service, resp *api.DiscoverResponse) 
 	if resp.Service == nil {
 		t.Fatalf("error")
 	}
-	//t.Logf("%+v", resp.Service)
+	// t.Logf("%+v", resp.Service)
 
 	if resp.Service.GetName().GetValue() != req.GetName().GetValue() ||
 		resp.Service.GetNamespace().GetValue() != req.GetNamespace().GetValue() {
@@ -591,11 +591,11 @@ func instanceCheck(t *testing.T, expect *api.Instance, actual *api.Instance) {
 
 		// 实例创建，无法指定cmdb信息
 		/*case expect.GetCmdbRegion().GetValue() != actual.GetCmdbRegion().GetValue():
-			t.Fatalf("error")
-		case expect.GetCmdbCampus().GetValue() != actual.GetCmdbRegion().GetValue():
-			t.Fatalf("error")
-		case expect.GetCmdbZone().GetValue() != actual.GetCmdbZone().GetValue():
-			t.Fatalf("error")*/
+		  	t.Fatalf("error")
+		  case expect.GetCmdbCampus().GetValue() != actual.GetCmdbRegion().GetValue():
+		  	t.Fatalf("error")
+		  case expect.GetCmdbZone().GetValue() != actual.GetCmdbZone().GetValue():
+		  	t.Fatalf("error")*/
 
 	}
 	for key, value := range expect.GetMetadata() {
@@ -719,7 +719,7 @@ func cleanRateLimit(id string) {
 
 // 彻底删除限流规则版本号
 func cleanRateLimitRevision(service, namespace string) {
-	str := `delete from ratelimit_revision using ratelimit_revision, service 
+	str := `delete from ratelimit_revision using ratelimit_revision, service
 			where service_id = service.id and name = ? and namespace = ?`
 	if _, err := db.Exec(str, service, namespace); err != nil {
 		panic(err)
@@ -1045,15 +1045,15 @@ func cleanCircuitBreaker(id, version string) {
 
 // 彻底删除熔断规则发布记录
 func cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
-	str := `delete from circuitbreaker_rule_relation using circuitbreaker_rule_relation, service where 
+	str := `delete from circuitbreaker_rule_relation using circuitbreaker_rule_relation, service where
 			service_id = service.id and name = ? and namespace = ? and rule_id = ? and rule_version = ?`
 	if _, err := db.Exec(str, name, namespace, ruleID, ruleVersion); err != nil {
 		panic(err)
 	}
 }
 
-//// 创建一个网格规则
-//func createMeshResource(typeUrl, meshID, meshToken, rule string) (*api.MeshResource, *api.Response) {
+// // 创建一个网格规则
+// func createMeshResource(typeUrl, meshID, meshToken, rule string) (*api.MeshResource, *api.Response) {
 //	resource := &api.MeshResource{
 //		MeshId:    utils.NewStringValue(meshID),
 //		MeshToken: utils.NewStringValue(meshToken),
@@ -1067,19 +1067,19 @@ func cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
 //		Body:      utils.NewStringValue(rule),
 //	}
 //	return reqResource, server.CreateMeshResource(defaultCtx, resource)
-//}
+// }
 //
-//// 创建一个网格
-//func createMesh(req *api.Mesh, withSystemToken bool) *api.Response {
+// // 创建一个网格
+// func createMesh(req *api.Mesh, withSystemToken bool) *api.Response {
 //	ctx := defaultCtx
 //	if withSystemToken {
 //		ctx = context.Background()
 //		ctx = context.WithValue(ctx, utils.StringContext("polaris-token"), "polaris@12345678")
 //	}
 //	return server.CreateMesh(ctx, req)
-//}
+// }
 //
-//func checkReqMesh(t *testing.T, expect *api.Mesh, actual *api.Mesh) {
+// func checkReqMesh(t *testing.T, expect *api.Mesh, actual *api.Mesh) {
 //	switch {
 //	case actual.GetName().GetValue() != expect.GetName().GetValue():
 //		t.Fatalf("mesh name not match")
@@ -1096,9 +1096,9 @@ func cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
 //	case actual.GetComment().GetValue() != expect.GetComment().GetValue():
 //		t.Fatalf("mesh comment not match")
 //	}
-//}
+// }
 //
-//func checkReqMeshComplete(t *testing.T, expect *api.Mesh, actual *api.Mesh) {
+// func checkReqMeshComplete(t *testing.T, expect *api.Mesh, actual *api.Mesh) {
 //	checkReqMesh(t, expect, actual)
 //	switch {
 //	case actual.GetId().GetValue() != expect.GetId().GetValue():
@@ -1106,10 +1106,10 @@ func cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
 //	case actual.GetRevision().GetValue() != expect.GetRevision().GetValue():
 //		t.Fatalf("mesh revision not match")
 //	}
-//}
+// }
 //
-//// 比较两个网格规则是否一致
-//func checkReqMeshResource(t *testing.T, expect *api.MeshResource, actual *api.MeshResource) {
+// // 比较两个网格规则是否一致
+// func checkReqMeshResource(t *testing.T, expect *api.MeshResource, actual *api.MeshResource) {
 //	switch {
 //	case actual.GetName().GetValue() != expect.GetName().GetValue():
 //		t.Fatalf("mesh resource name not match")
@@ -1124,10 +1124,10 @@ func cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
 //	default:
 //		break
 //	}
-//}
+// }
 //
-//// 比较从cache中获取的规则是否符合预期
-//func checkCacheMeshResource(t *testing.T, expect *api.MeshResource, actual *api.MeshResource) {
+// // 比较从cache中获取的规则是否符合预期
+// func checkCacheMeshResource(t *testing.T, expect *api.MeshResource, actual *api.MeshResource) {
 //	switch {
 //	case expect.GetName().GetValue() != actual.GetName().GetValue():
 //		t.Fatalf("mesh resource name not match")
@@ -1142,10 +1142,10 @@ func cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
 //	default:
 //		break
 //	}
-//}
+// }
 
 // 比较利用控制台接口获取的规则是否符合预期
-//func checkHttpMeshResource(t *testing.T, expect *api.MeshResource, actual *api.MeshResource) {
+// func checkHttpMeshResource(t *testing.T, expect *api.MeshResource, actual *api.MeshResource) {
 //	switch {
 //	case actual.GetId().GetValue() != expect.GetId().GetValue():
 //		t.Fatalf("mesh resource id not match")
@@ -1168,10 +1168,10 @@ func cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
 //	default:
 //		break
 //	}
-//}
+// }
 
 // 获取一个更新规则请求
-//func updateMeshResource(baseResource *api.MeshResource) *api.MeshResource {
+// func updateMeshResource(baseResource *api.MeshResource) *api.MeshResource {
 //	return &api.MeshResource{
 //		Namespace: utils.NewStringValue(baseResource.GetNamespace().GetValue()),
 //		Name:      utils.NewStringValue(baseResource.GetName().GetValue()),
@@ -1180,25 +1180,25 @@ func cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
 //		Business:  utils.NewStringValue(baseResource.GetBusiness().GetValue()),
 //		Id:        utils.NewStringValue(baseResource.GetId().GetValue()),
 //	}
-//}
+// }
 
-//// 清除网格规则
-//func cleanMeshResource(namespace, name string) {
+// // 清除网格规则
+// func cleanMeshResource(namespace, name string) {
 //	str := `delete from mesh_resource where name = ? and namespace = ?`
 //	if _, err := db.Exec(str, name, namespace); err != nil {
 //		panic(err)
 //	}
-//}
+// }
 //
-//// 清除网格规则版本号
-//func cleanMeshResourceRevision(namespace, business, typeUrl string) {
+// // 清除网格规则版本号
+// func cleanMeshResourceRevision(namespace, business, typeUrl string) {
 //	str := `delete from mesh_revision where namespace = ? and business = ? and type_url = ?`
 //	if _, err := db.Exec(str, namespace, business, typeUrl); err != nil {
 //		panic(err)
 //	}
-//}
+// }
 
-//func cleanMeshResourceByMeshID(meshID string) {
+// func cleanMeshResourceByMeshID(meshID string) {
 //	log.Infof("cleanMeshResourceByMeshID: %s", meshID)
 //	str := `delete from mesh_resource where mesh_id = ?`
 //	if _, err := db.Exec(str, meshID); err != nil {
@@ -1208,17 +1208,17 @@ func cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
 //	if _, err := db.Exec(str, meshID); err != nil {
 //		panic(err)
 //	}
-//}
+// }
 //
-//// 清除网格
-//func cleanMesh(id string) {
+// // 清除网格
+// func cleanMesh(id string) {
 //	str := `delete from mesh where id = ?`
 //	if _, err := db.Exec(str, id); err != nil {
 //		panic(err)
 //	}
-//}
+// }
 //
-//func cleanMeshService(meshID string) {
+// func cleanMeshService(meshID string) {
 //	str := `delete from mesh_service where mesh_id = ?`
 //	if _, err := db.Exec(str, meshID); err != nil {
 //		panic(err)
@@ -1227,33 +1227,33 @@ func cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
 //	if _, err := db.Exec(str, meshID); err != nil {
 //		panic(err)
 //	}
-//}
+// }
 //
-//// 删除一个网格
-//func deleteMesh(mesh *api.Mesh) *api.Response {
+// // 删除一个网格
+// func deleteMesh(mesh *api.Mesh) *api.Response {
 //	dMesh := &api.Mesh{
 //		Id:    utils.NewStringValue(mesh.GetId().GetValue()),
 //		Token: utils.NewStringValue(mesh.GetToken().GetValue()),
 //	}
 //	return server.DeleteMesh(defaultCtx, dMesh)
-//}
+// }
 //
-//// 更新一个网格
-//func updateMesh(mesh *api.Mesh) *api.Response {
+// // 更新一个网格
+// func updateMesh(mesh *api.Mesh) *api.Response {
 //	return server.UpdateMesh(defaultCtx, mesh)
-//}
+// }
 //
-//// 删除一个网格规则
-//func deleteMeshResource(name, namespace, token string) *api.Response {
+// // 删除一个网格规则
+// func deleteMeshResource(name, namespace, token string) *api.Response {
 //	resource := &api.MeshResource{
 //		Name:      utils.NewStringValue(name),
 //		MeshToken: utils.NewStringValue(token),
 //	}
 //	return server.DeleteMeshResource(defaultCtx, resource)
-//}
+// }
 //
-//// 创建flux限流规则
-//func createCommonFluxRateLimit(t *testing.T, service *api.Service, index int) (*api.FluxConsoleRateLimitRule,
+// // 创建flux限流规则
+// func createCommonFluxRateLimit(t *testing.T, service *api.Service, index int) (*api.FluxConsoleRateLimitRule,
 //	*api.FluxConsoleRateLimitRule) {
 //	rateLimit := &api.FluxConsoleRateLimitRule{
 //		Name:                  utils.NewStringValue(fmt.Sprintf("test-%d", index)),
@@ -1281,41 +1281,41 @@ func cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
 //		t.Fatalf("error: %+v", resp)
 //	}
 //	return rateLimit, resp.GetFluxConsoleRateLimitRule()
-//}
+// }
 //
-//// 删除限流规则
-//func deleteFluxRateLimit(t *testing.T, rateLimit *api.FluxConsoleRateLimitRule) {
+// // 删除限流规则
+// func deleteFluxRateLimit(t *testing.T, rateLimit *api.FluxConsoleRateLimitRule) {
 //	if resp := server.DeleteFluxRateLimit(defaultCtx, rateLimit); !respSuccess(resp) {
 //		t.Fatalf("%s", resp.GetInfo().GetValue())
 //	}
-//}
+// }
 //
-//// 更新单个限流规则
-//func updateFluxRateLimit(t *testing.T, rateLimit *api.FluxConsoleRateLimitRule) {
+// // 更新单个限流规则
+// func updateFluxRateLimit(t *testing.T, rateLimit *api.FluxConsoleRateLimitRule) {
 //	if resp := server.UpdateFluxRateLimit(defaultCtx, rateLimit); !respSuccess(resp) {
 //		t.Fatalf("%s", resp.GetInfo().GetValue())
 //	}
-//}
+// }
 //
-//// 彻底删除限流规则
-//func cleanFluxRateLimit(id string) {
+// // 彻底删除限流规则
+// func cleanFluxRateLimit(id string) {
 //	str := `delete from ratelimit_flux_rule_config where id = ?`
 //	if _, err := db.Exec(str, id); err != nil {
 //		panic(err)
 //	}
-//}
+// }
 //
-//// 彻底删除限流规则版本号
-//func cleanFluxRateLimitRevision(service, namespace string) {
+// // 彻底删除限流规则版本号
+// func cleanFluxRateLimitRevision(service, namespace string) {
 //	str := `delete from ratelimit_flux_rule_revision using ratelimit_flux_rule_revision, service
 //			where service_id = service.id and name = ? and namespace = ?`
 //	if _, err := db.Exec(str, service, namespace); err != nil {
 //		panic(err)
 //	}
-//}
+// }
 //
-//// 更新限流规则内容
-//func updateFluxRateLimitContent(rateLimit *api.FluxConsoleRateLimitRule, index int) {
+// // 更新限流规则内容
+// func updateFluxRateLimitContent(rateLimit *api.FluxConsoleRateLimitRule, index int) {
 //	rateLimit.SetAlertQps = utils.NewStringValue(fmt.Sprintf("%d", index*10))
 //	rateLimit.SetWarningQps = utils.NewStringValue(fmt.Sprintf("%d", index*5))
 //	rateLimit.SetKey = utils.NewStringValue(fmt.Sprintf("set-key-%d", index))
@@ -1324,12 +1324,12 @@ func cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
 //	rateLimit.DefaultWarningQps = utils.NewStringValue(fmt.Sprintf("%d", index))
 //	rateLimit.DefaultKey = utils.NewStringValue(fmt.Sprintf("default-key-%d", index))
 //	rateLimit.DefaultRemark = utils.NewStringValue(fmt.Sprintf("default-remark-%d", index))
-//}
+// }
 //
-///*
+// /*
 // * @brief 对比限流规则的各个属性
 // */
-//func checkFluxRateLimit(t *testing.T, expect *api.FluxConsoleRateLimitRule, actual *api.FluxConsoleRateLimitRule) {
+// func checkFluxRateLimit(t *testing.T, expect *api.FluxConsoleRateLimitRule, actual *api.FluxConsoleRateLimitRule) {
 //	switch {
 //	case (expect.GetId().GetValue()) != "" && (expect.GetId().GetValue() != actual.GetId().GetValue()):
 //		t.Fatal("invalid id")
@@ -1369,7 +1369,7 @@ func cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
 //		break
 //	}
 //	t.Log("check success")
-//}
+// }
 
 // 获取指定长度str
 func genSpecialStr(n int) string {

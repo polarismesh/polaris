@@ -62,7 +62,7 @@ func (cs *Impl) doCheckClientConfigFile(ctx context.Context, configFiles []*api.
 			return api.NewConfigClientResponseWithMessage(api.BadRequest, "namespace & group & fileName can not be empty")
 		}
 
-		//从缓存中获取最新的配置文件信息
+		// 从缓存中获取最新的配置文件信息
 		entry, err := cs.cache.GetOrLoadIfAbsent(namespace, group, fileName)
 
 		if err != nil {
@@ -90,7 +90,7 @@ func (cs *Impl) GetConfigFileForClient(ctx context.Context, namespace, group, fi
 
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
-	//从缓存中获取配置内容
+	// 从缓存中获取配置内容
 	entry, err := cs.cache.GetOrLoadIfAbsent(namespace, group, fileName)
 
 	if err != nil {
@@ -105,7 +105,7 @@ func (cs *Impl) GetConfigFileForClient(ctx context.Context, namespace, group, fi
 		return api.NewConfigClientResponse(api.NotFoundResource, nil)
 	}
 
-	//客户端版本号大于服务端版本号，服务端需要重新加载缓存
+	// 客户端版本号大于服务端版本号，服务端需要重新加载缓存
 	if clientVersion > entry.Version {
 		entry, err = cs.cache.ReLoad(namespace, group, fileName)
 		if err != nil {

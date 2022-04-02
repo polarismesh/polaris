@@ -50,6 +50,7 @@ func (fg *configFileGroupStore) UpdateConfigFileGroup(fileGroup *model.ConfigFil
 	return nil, nil
 }
 
+// FindConfigFileGroups 查询配置文件组
 func (fg *configFileGroupStore) FindConfigFileGroups(namespace string, names []string) ([]*model.ConfigFileGroup, error) {
 	return nil, nil
 }

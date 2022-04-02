@@ -95,11 +95,11 @@ var (
 
 const (
 
-	// 默认策略的名称前缀
+	// DefaultStrategySuffix 默认策略的名称前缀
 	DefaultStrategySuffix string = "的默认策略"
 )
 
-//  BuildDefaultStrategyName 构建默认鉴权策略的名称信息
+// BuildDefaultStrategyName 构建默认鉴权策略的名称信息
 func BuildDefaultStrategyName(role PrincipalType, name string) string {
 	if role == PrincipalUser {
 		return fmt.Sprintf("%s%s%s", "(用户) ", name, DefaultStrategySuffix)
@@ -139,10 +139,11 @@ const (
 	// ConfigModule 配置模块
 	ConfigModule
 
-	// AUthModule 鉴权模块
+	// AuthModule 鉴权模块
 	AuthModule
 )
 
+// UserRoleType 用户角色类型
 type UserRoleType int
 
 const (
@@ -192,7 +193,7 @@ type UserGroupDetail struct {
 	UserIds map[string]struct{}
 }
 
-//  ToUserIdSlice 将用户ID Map 专为 slice
+// ToUserIdSlice 将用户ID Map 专为 slice
 func (ugd *UserGroupDetail) ToUserIdSlice() []string {
 	uids := make([]string, 0, len(ugd.UserIds))
 	for uid := range ugd.UserIds {

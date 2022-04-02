@@ -19,9 +19,10 @@ package config
 
 import (
 	"context"
-	"github.com/polarismesh/polaris-server/common/utils"
 	"sync"
 	"time"
+
+	"github.com/polarismesh/polaris-server/common/utils"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
@@ -38,7 +39,7 @@ type connection struct {
 
 type connManager struct {
 	watchCenter    *watchCenter
-	conns          *sync.Map //client -> connection
+	conns          *sync.Map // client -> connection
 	stopWorkerFunc context.CancelFunc
 }
 

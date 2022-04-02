@@ -247,7 +247,7 @@ func (s *Server) GetRoutingConfigs(ctx context.Context, query map[string]string)
 	return resp
 }
 
-// 路由配置操作的公共检查
+// routingConfigCommonCheck 路由配置操作的公共检查
 func (s *Server) routingConfigCommonCheck(ctx context.Context, req *api.Routing) (*model.Service, *api.Response) {
 	if resp := checkRoutingConfig(req); resp != nil {
 		return nil, resp
@@ -275,7 +275,7 @@ func (s *Server) routingConfigCommonCheck(ctx context.Context, req *api.Routing)
 	return service, nil
 }
 
-// 检查路由配置基础参数有效性
+// checkRoutingConfig 检查路由配置基础参数有效性
 func checkRoutingConfig(req *api.Routing) *api.Response {
 	if req == nil {
 		return api.NewRoutingResponse(api.EmptyRequest, req)
@@ -301,7 +301,7 @@ func checkRoutingConfig(req *api.Routing) *api.Response {
 	return nil
 }
 
-// 从routingConfig请求参数中获取token
+// parseServiceRoutingToken 从routingConfig请求参数中获取token
 func parseServiceRoutingToken(ctx context.Context, req *api.Routing) string {
 	if reqToken := req.GetServiceToken().GetValue(); reqToken != "" {
 		return reqToken
@@ -310,7 +310,7 @@ func parseServiceRoutingToken(ctx context.Context, req *api.Routing) string {
 	return ParseToken(ctx)
 }
 
-// 把API参数转换为内部的数据结构
+// api2RoutingConfig 把API参数转换为内部的数据结构
 func api2RoutingConfig(serviceID string, req *api.Routing) (*model.RoutingConfig, error) {
 	inBounds, outBounds, err := marshalRoutingConfig(req.GetInbounds(), req.GetOutbounds())
 	if err != nil {
@@ -327,7 +327,7 @@ func api2RoutingConfig(serviceID string, req *api.Routing) (*model.RoutingConfig
 	return out, nil
 }
 
-// 把内部数据结构转换为API参数传递出去
+// routingConfig2API 把内部数据结构转换为API参数传递出去
 func routingConfig2API(req *model.RoutingConfig, service string, namespace string) (*api.Routing, error) {
 	if req == nil {
 		return nil, nil
@@ -359,7 +359,7 @@ func routingConfig2API(req *model.RoutingConfig, service string, namespace strin
 	return out, nil
 }
 
-// 格式化inbounds和outbounds
+// marshalRoutingConfig 格式化inbounds和outbounds
 func marshalRoutingConfig(in []*api.Route, out []*api.Route) ([]byte, []byte, error) {
 	inBounds, err := json.Marshal(in)
 	if err != nil {
@@ -374,9 +374,7 @@ func marshalRoutingConfig(in []*api.Route, out []*api.Route) ([]byte, []byte, er
 	return inBounds, outBounds, nil
 }
 
-/*
- * @brief 检查批量请求
- */
+// checkBatchRoutingConfig 检查批量请求
 func checkBatchRoutingConfig(req []*api.Routing) *api.BatchWriteResponse {
 	if len(req) == 0 {
 		return api.NewBatchWriteResponse(api.EmptyRequest)
@@ -389,7 +387,7 @@ func checkBatchRoutingConfig(req []*api.Routing) *api.BatchWriteResponse {
 	return nil
 }
 
-// 构建routingConfig的记录entry
+// routingRecordEntry 构建routingConfig的记录entry
 func routingRecordEntry(ctx context.Context, req *api.Routing, md *model.RoutingConfig,
 	opt model.OperationType) *model.RecordEntry {
 	entry := &model.RecordEntry{
@@ -408,9 +406,7 @@ func routingRecordEntry(ctx context.Context, req *api.Routing, md *model.Routing
 	return entry
 }
 
-/**
- * @brief 封装路由存储层错误
- */
+// wrapperRoutingStoreResponse 封装路由存储层错误
 func wrapperRoutingStoreResponse(routing *api.Routing, err error) *api.Response {
 	resp := storeError2Response(err)
 	if resp == nil {
@@ -420,9 +416,7 @@ func wrapperRoutingStoreResponse(routing *api.Routing, err error) *api.Response 
 	return resp
 }
 
-/**
- * @brief 路由鉴权
- */
+// verifyRoutingAuth 路由鉴权
 func (s *Server) verifyRoutingAuth(ctx context.Context, service *model.Service, req *api.Routing) *api.Response {
 	// 使用平台id及token鉴权
 	if ok := s.verifyAuthByPlatform(ctx, service.PlatformID); !ok {

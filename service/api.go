@@ -192,7 +192,7 @@ type NamespaceOperateServer interface {
 	GetNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response
 }
 
-// Client operation interface definition
+// ClientServer Client related operation  Client operation interface definition
 type ClientServer interface {
 
 	// ReportClient Client gets geographic location information

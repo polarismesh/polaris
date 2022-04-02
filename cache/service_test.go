@@ -24,12 +24,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
+
 	v1 "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
-
-	"github.com/golang/mock/gomock"
-	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store/mock"
 )
 
@@ -385,7 +385,7 @@ func TestServiceCache_GetServicesByFilter(t *testing.T) {
 		for svc, instances := range svcInstances {
 			hostToService[instances[0].Host()] = svc
 		}
-		//先不带命名空间进行查询
+		// 先不带命名空间进行查询
 		for host, svcId := range hostToService {
 			instArgs := &store.InstanceArgs{
 				Hosts: []string{host},

@@ -23,42 +23,42 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
-//
+// CreatePlatforms creates platforms
 func (svr *serverAuthAbility) CreatePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse {
 	return svr.targetServer.CreatePlatforms(ctx, req)
 }
 
-//
+// CreatePlatform creates a platform
 func (svr *serverAuthAbility) CreatePlatform(ctx context.Context, req *api.Platform) *api.Response {
 	return svr.targetServer.CreatePlatform(ctx, req)
 }
 
-//
+// UpdatePlatforms updates platforms
 func (svr *serverAuthAbility) UpdatePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse {
 	return svr.targetServer.UpdatePlatforms(ctx, req)
 }
 
-//
+// UpdatePlatform updates a platform
 func (svr *serverAuthAbility) UpdatePlatform(ctx context.Context, req *api.Platform) *api.Response {
 	return svr.targetServer.UpdatePlatform(ctx, req)
 }
 
-//
+// DeletePlatforms deletes platforms
 func (svr *serverAuthAbility) DeletePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse {
 	return svr.targetServer.DeletePlatforms(ctx, req)
 }
 
-//
+// DeletePlatform deletes a platform
 func (svr *serverAuthAbility) DeletePlatform(ctx context.Context, req *api.Platform) *api.Response {
 	return svr.targetServer.DeletePlatform(ctx, req)
 }
 
-//
+// GetPlatforms gets platforms
 func (svr *serverAuthAbility) GetPlatforms(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	return svr.targetServer.GetPlatforms(ctx, query)
 }
 
-//
+// GetPlatformToken gets a platform token
 func (svr *serverAuthAbility) GetPlatformToken(ctx context.Context, req *api.Platform) *api.Response {
 	return svr.targetServer.GetPlatformToken(ctx, req)
 }

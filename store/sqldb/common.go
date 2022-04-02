@@ -23,7 +23,7 @@ import (
 	"github.com/polarismesh/polaris-server/store"
 )
 
-// query
+// QueryHandler is the interface that wraps the basic Query method.
 type QueryHandler func(query string, args ...interface{}) (*sql.Rows, error)
 
 // BatchHandler 批量查询数据的回调函数
@@ -32,7 +32,7 @@ type BatchHandler func(objects []interface{}) error
 // BatchQuery 批量查询数据的对外接口
 // 每次最多查询200个
 func BatchQuery(label string, data []interface{}, handler BatchHandler) error {
-	//start := time.Now()
+	// start := time.Now()
 	maxCount := 200
 	beg := 0
 	remain := len(data)
@@ -60,7 +60,7 @@ func BatchQuery(label string, data []interface{}, handler BatchHandler) error {
 			break
 		}
 	}
-	//log.Infof("[Store][database][Batch] consume time: %v", time.Now().Sub(start))
+	// log.Infof("[Store][database][Batch] consume time: %v", time.Now().Sub(start))
 	return nil
 }
 

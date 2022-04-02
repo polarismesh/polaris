@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store/mock"
@@ -106,7 +107,7 @@ func initCache(ctrl *gomock.Controller) (*cache.NamingCache, error) {
 func Test_defaultAuthChecker_VerifyToken(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	
+
 	initDefaultAuth()
 	cacheMgn, err := initCache(ctrl)
 	if err != nil {

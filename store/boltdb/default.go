@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	logger "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -49,7 +50,7 @@ type boltStore struct {
 	*groupStore
 	*strategyStore
 
-	//配置中心stores
+	// 配置中心stores
 	*configFileGroupStore
 	*configFileStore
 	*configFileReleaseStore
@@ -265,7 +266,7 @@ func (m *boltStore) newStore() error {
 	return nil
 }
 
-// Destroy destroy store
+// Destroy store
 func (m *boltStore) Destroy() error {
 	if m.handler != nil {
 		return m.handler.Close()
@@ -273,11 +274,12 @@ func (m *boltStore) Destroy() error {
 	return nil
 }
 
-//CreateTransaction create store transaction
+// CreateTransaction create store transaction
 func (m *boltStore) CreateTransaction() (store.Transaction, error) {
 	return &transaction{handler: m.handler}, nil
 }
 
+// StartTx starting transactions
 func (m *boltStore) StartTx() (store.Tx, error) {
 	return m.handler.StartTx()
 }

@@ -73,7 +73,7 @@ func (m *shardMap) Store(instanceId string, healthCheckInstance *InstanceWithChe
 	shard.healthCheckMutex.Unlock()
 }
 
-//PutIfAbsent to avoid storing twice when key is the same in the concurrent scenario.
+// PutIfAbsent to avoid storing twice when key is the same in the concurrent scenario.
 func (m *shardMap) PutIfAbsent(instanceId string, healthCheckInstance *InstanceWithChecker) (*InstanceWithChecker, bool) {
 	if len(instanceId) == 0 {
 		return nil, false
@@ -118,7 +118,7 @@ func (m *shardMap) Delete(instanceId string) {
 	shard.healthCheckMutex.Unlock()
 }
 
-//DeleteIfExist to avoid deleting twice when key is the same in the concurrent scenario.
+// DeleteIfExist to avoid deleting twice when key is the same in the concurrent scenario.
 func (m *shardMap) DeleteIfExist(instanceId string) bool {
 	if len(instanceId) == 0 {
 		return false

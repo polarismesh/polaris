@@ -43,22 +43,22 @@ const (
 	Servers = "servers"
 )
 
-// RedisHealthChecker
+// RedisHealthChecker 心跳检测redis
 type RedisHealthChecker struct {
-	//用于写入心跳数据的池
+	// 用于写入心跳数据的池
 	hbPool *redispool.Pool
-	//用于检查回调的池
+	// 用于检查回调的池
 	checkPool *redispool.Pool
 	cancel    context.CancelFunc
 	statis    plugin.Statis
 }
 
-// Name
+// Name plugin name
 func (r *RedisHealthChecker) Name() string {
 	return PluginName
 }
 
-// Initialize
+// Initialize initialize plugin
 func (r *RedisHealthChecker) Initialize(c *plugin.ConfigEntry) error {
 	redisBytes, err := json.Marshal(c.Option)
 	if err != nil {
@@ -87,13 +87,13 @@ func (r *RedisHealthChecker) registerSelf() error {
 	return resp.Err
 }
 
-// Destroy
+// Destroy plugin destroy
 func (r *RedisHealthChecker) Destroy() error {
 	r.cancel()
 	return nil
 }
 
-// Type type for health check plugin, only one same type plugin is allowed
+// Type for health check plugin, only one same type plugin is allowed
 func (r *RedisHealthChecker) Type() plugin.HealthCheckType {
 	return plugin.HealthCheckerHeartbeat
 }
@@ -146,7 +146,7 @@ func (h *HeathCheckRecord) Deserialize(value string, compatible bool) error {
 	return err
 }
 
-// String
+// String 字符串化
 func (h HeathCheckRecord) String() string {
 	return fmt.Sprintf("{LocalHost=%s, CurTimeSec=%d}", h.LocalHost, h.CurTimeSec)
 }
@@ -167,7 +167,7 @@ func (r *RedisHealthChecker) Report(request *plugin.ReportRequest) error {
 	return nil
 }
 
-// Query query the heartbeat time
+// Query queries the heartbeat time
 func (r *RedisHealthChecker) Query(request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
 	resp := r.checkPool.Get(request.InstanceId)
 	if resp.Err != nil {
@@ -216,7 +216,7 @@ func (r *RedisHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckR
 	}
 	recoverTimeSec := r.checkPool.RecoverTimeSec()
 	localCurTimeSec := time.Now().Unix()
-	//redis恢复期，不做变更
+	// redis恢复期，不做变更
 	if localCurTimeSec >= recoverTimeSec && localCurTimeSec-recoverTimeSec < int64(request.ExpireDurationSec) {
 		log.Infof("[Health Check][RedisCheck]health check redis on recover, "+
 			"recoverTimeSec is %d, localCurTimeSec is %d, expireDurationSec is %d, id %s",
@@ -225,17 +225,17 @@ func (r *RedisHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckR
 		return checkResp, nil
 	}
 	curTimeSec := request.CurTimeSec()
-	//出现时间倒退，不对心跳状态做变更
+	// 出现时间倒退，不对心跳状态做变更
 	if curTimeSec < lastHeartbeatTime {
 		log.Infof("[Health Check][RedisCheck]time reverse, curTime is %d, last heartbeat time is %d, id %s",
 			curTimeSec, lastHeartbeatTime, request.InstanceId)
 		checkResp.StayUnchanged = true
 		return checkResp, nil
 	}
-	//正常进行心跳中
+	// 正常进行心跳中
 	checkResp.Regular = true
 	if curTimeSec-lastHeartbeatTime >= int64(request.ExpireDurationSec) {
-		//心跳超时
+		// 心跳超时
 		checkResp.Healthy = false
 		if request.Healthy {
 			log.Infof("[Health Check][RedisCheck]health check expired, "+
@@ -253,7 +253,7 @@ func (r *RedisHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckR
 			}
 		}
 	} else {
-		//心跳恢复
+		// 心跳恢复
 		checkResp.Healthy = true
 		if !request.Healthy {
 			log.Infof("[Health Check][RedisCheck]health check resumed, "+

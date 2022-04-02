@@ -20,16 +20,15 @@ package grpc
 import (
 	"context"
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/utils"
 	"time"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"google.golang.org/grpc/metadata"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
-/**
- * @brief 上报心跳
- */
+// Heartbeat 上报心跳
 func (c *Client) Heartbeat(instance *api.Instance) error {
 	fmt.Printf("\nheartbeat\n")
 

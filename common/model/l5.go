@@ -71,9 +71,9 @@ type Callee struct {
 	Port     uint32
 	Weight   uint32
 	Location *Location
-	//AreaID uint32
-	//CityID uint32
-	//IdcID  uint32
+	// AreaID uint32
+	// CityID uint32
+	// IdcID  uint32
 }
 
 // SidConfig sid信息，对应t_sid表

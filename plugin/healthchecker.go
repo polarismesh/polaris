@@ -18,9 +18,10 @@
 package plugin
 
 import (
-	"github.com/polarismesh/polaris-server/common/log"
 	"os"
 	"sync"
+
+	"github.com/polarismesh/polaris-server/common/log"
 )
 
 // ReportRequest report heartbeat request
@@ -30,14 +31,14 @@ type ReportRequest struct {
 	CurTimeSec int64
 }
 
-// CheckRequest
+// CheckRequest check heartbeat request
 type CheckRequest struct {
 	QueryRequest
 	ExpireDurationSec uint32
 	CurTimeSec        func() int64
 }
 
-// CheckResponse
+// CheckResponse check heartbeat response
 type CheckResponse struct {
 	Healthy              bool
 	LastHeartbeatTimeSec int64
@@ -45,7 +46,7 @@ type CheckResponse struct {
 	Regular              bool
 }
 
-// QueryRequest
+// QueryRequest query heartbeat request
 type QueryRequest struct {
 	InstanceId string
 	Host       string
@@ -53,19 +54,20 @@ type QueryRequest struct {
 	Healthy    bool
 }
 
-// QueryResponse
+// QueryResponse query heartbeat response
 type QueryResponse struct {
 	Server           string
 	Exists           bool
 	LastHeartbeatSec int64
 }
 
-// CheckingRequest
+// AddCheckRequest add check request
 type AddCheckRequest struct {
 	Instances []string
 	LocalHost string
 }
 
+// HealthCheckType health check type
 type HealthCheckType int32
 
 const (
@@ -79,17 +81,17 @@ var (
 // HealthChecker health checker plugin interface
 type HealthChecker interface {
 	Plugin
-	// Type type for health check plugin, only one same type plugin is allowed
+	// Type for health check plugin, only one same type plugin is allowed
 	Type() HealthCheckType
 	// Report process heartbeat info report
 	Report(request *ReportRequest) error
-	// Report process the instance check
+	// Check process the instance check
 	Check(request *CheckRequest) (*CheckResponse, error)
-	// Query query the heartbeat time
+	// Query queries the heartbeat time
 	Query(request *QueryRequest) (*QueryResponse, error)
 	// AddToCheck add the instances to check procedure
 	AddToCheck(request *AddCheckRequest) error
-	// AddToCheck add the instances to check procedure
+	// RemoveFromCheck removes the instances from check procedure
 	RemoveFromCheck(request *AddCheckRequest) error
 	// Delete delete the id
 	Delete(id string) error

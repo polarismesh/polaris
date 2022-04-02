@@ -60,7 +60,7 @@ func (h *HistoryLogger) Initialize(c *plugin.ConfigEntry) error {
 	// 日志的encode
 	encCfg := zapcore.EncoderConfig{
 		TimeKey: "time",
-		//LevelKey:       "level",
+		// LevelKey:       "level",
 		NameKey:        "scope",
 		CallerKey:      "caller",
 		MessageKey:     "msg",
@@ -69,7 +69,7 @@ func (h *HistoryLogger) Initialize(c *plugin.ConfigEntry) error {
 		EncodeLevel:    zapcore.LowercaseLevelEncoder,
 		EncodeCaller:   zapcore.ShortCallerEncoder,
 		EncodeDuration: zapcore.StringDurationEncoder,
-		//EncodeTime:     TimeEncoder,
+		// EncodeTime:     TimeEncoder,
 	}
 
 	// 同步到文件中的配置 TODO，参数来自于外部配置文件
@@ -80,7 +80,7 @@ func (h *HistoryLogger) Initialize(c *plugin.ConfigEntry) error {
 		MaxAge:     15, // days TODO
 		LocalTime:  true,
 	})
-	//multiSync := zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), w)
+	// multiSync := zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), w)
 
 	// 日志
 	core := zapcore.NewCore(zapcore.NewConsoleEncoder(encCfg), w, zap.DebugLevel)

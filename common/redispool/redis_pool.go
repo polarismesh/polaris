@@ -61,11 +61,11 @@ const (
 	keyPrefix = "hb_"
 )
 
-func toRedisKey(instanceId string, compatible bool) string {
+func toRedisKey(instanceID string, compatible bool) string {
 	if compatible {
-		return instanceId
+		return instanceID
 	}
-	return fmt.Sprintf("%s%s", keyPrefix, instanceId)
+	return fmt.Sprintf("%s%s", keyPrefix, instanceID)
 }
 
 // Task ckv任务请求结构体
@@ -200,7 +200,7 @@ func (p *Pool) Get(id string) *Resp { // nolint
 	return p.handleTask(task)
 }
 
-// Get 使用连接池，向redis发起Sdd请求
+// Sdd 使用连接池，向redis发起Sdd请求
 func (p *Pool) Sdd(id string, members []string) *Resp { // nolint
 	if err := p.checkRedisDead(); err != nil {
 		return &Resp{Err: err}
@@ -213,7 +213,7 @@ func (p *Pool) Sdd(id string, members []string) *Resp { // nolint
 	return p.handleTaskWithRetries(task)
 }
 
-// Get 使用连接池，向redis发起Srem请求
+// Srem 使用连接池，向redis发起Srem请求
 func (p *Pool) Srem(id string, members []string) *Resp { // nolint
 	if err := p.checkRedisDead(); err != nil {
 		return &Resp{Err: err}

@@ -23,12 +23,13 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
-	"golang.org/x/sync/singleflight"
 )
 
 func init() {
@@ -39,7 +40,7 @@ const (
 	StrategyRuleName string = "strategyRule"
 )
 
-// StrategyCache
+// StrategyCache is a cache for strategy rules.
 type StrategyCache interface {
 	Cache
 
@@ -48,7 +49,7 @@ type StrategyCache interface {
 	//  @return []*model.StrategyDetail
 	GetStrategyDetailsByUID(uid string) []*model.StrategyDetail
 
-	// GetStrategyDetailsByGroupID
+	// GetStrategyDetailsByGroupID returns all strategy details of a group.
 	GetStrategyDetailsByGroupID(groupId string) []*model.StrategyDetail
 
 	// IsResourceLinkStrategy 该资源是否关联了鉴权策略
@@ -479,7 +480,7 @@ func (sc *strategyCache) getStrategyDetails(uid string, gid string) []*model.Str
 	return nil
 }
 
-// IsResourceLinkStrategy
+// IsResourceLinkStrategy 校验
 func (sc *strategyCache) IsResourceLinkStrategy(resType api.ResourceType, resId string) bool {
 	switch resType {
 	case api.ResourceType_Namespaces:

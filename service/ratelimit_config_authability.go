@@ -25,6 +25,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
+// CreateRateLimits creates rate limits for a namespace.
 func (svr *serverAuthAbility) CreateRateLimits(ctx context.Context, reqs []*api.Rule) *api.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Create, "CreateRateLimits")
 
@@ -39,6 +40,7 @@ func (svr *serverAuthAbility) CreateRateLimits(ctx context.Context, reqs []*api.
 	return svr.targetServer.CreateRateLimits(ctx, reqs)
 }
 
+// DeleteRateLimits deletes rate limits for a namespace.
 func (svr *serverAuthAbility) DeleteRateLimits(ctx context.Context, reqs []*api.Rule) *api.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Delete, "DeleteRateLimits")
 
@@ -53,6 +55,7 @@ func (svr *serverAuthAbility) DeleteRateLimits(ctx context.Context, reqs []*api.
 	return svr.targetServer.DeleteRateLimits(ctx, reqs)
 }
 
+// UpdateRateLimits updates rate limits for a namespace.
 func (svr *serverAuthAbility) UpdateRateLimits(ctx context.Context, reqs []*api.Rule) *api.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Modify, "UpdateRateLimits")
 
@@ -67,6 +70,7 @@ func (svr *serverAuthAbility) UpdateRateLimits(ctx context.Context, reqs []*api.
 	return svr.targetServer.UpdateRateLimits(ctx, reqs)
 }
 
+// GetRateLimits gets rate limits for a namespace.
 func (svr *serverAuthAbility) GetRateLimits(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, nil, model.Read, "GetRateLimits")
 

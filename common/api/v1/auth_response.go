@@ -17,7 +17,7 @@
 
 package v1
 
-import wrappers "github.com/golang/protobuf/ptypes/wrappers"
+import "github.com/golang/protobuf/ptypes/wrappers"
 
 // NewUserResponse 创建回复带用户信息
 func NewUserResponse(code uint32, user *User) *Response {

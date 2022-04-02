@@ -24,10 +24,11 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
-	"go.uber.org/zap"
 )
 
 const (
@@ -105,14 +106,14 @@ type discoverEventLocal struct {
 }
 
 // Name 插件名称
-//  @return string 返回插件名称
+// @return string 返回插件名称
 func (el *discoverEventLocal) Name() string {
 	return PluginName
 }
 
 // Initialize 根据配置文件进行初始化插件 discoverEventLocal
-//  @param conf 配置文件内容
-//  @return error 初始化失败，返回 error 信息
+// @param conf 配置文件内容
+// @return error 初始化失败，返回 error 信息
 func (el *discoverEventLocal) Initialize(conf *plugin.ConfigEntry) error {
 	contentBytes, err := json.Marshal(conf.Option)
 	if err != nil {

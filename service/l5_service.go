@@ -26,6 +26,7 @@ import (
 	"sync/atomic"
 
 	"github.com/golang/protobuf/proto"
+
 	"github.com/polarismesh/polaris-server/common/api/l5"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
@@ -537,7 +538,7 @@ func ParseSetID(str string) []string {
 	return strings.Split(str, ",")
 }
 
-// 解析metadata保存的weight字符串
+// ParseWeight 解析metadata保存的weight字符串
 func ParseWeight(str string) []uint32 {
 	if str == "" {
 		return nil

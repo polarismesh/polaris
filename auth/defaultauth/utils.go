@@ -24,22 +24,23 @@ import (
 	"unicode/utf8"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"go.uber.org/zap"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 var (
-	// 必须超级账户 or 主账户
+	// MustOwner 必须超级账户 or 主账户
 	MustOwner = true
-	// 任意账户
+	// NotOwner 任意账户
 	NotOwner = false
-	// 写操作
+	// WriteOp 写操作
 	WriteOp = true
-	// 读操作
+	// ReadOp 读操作
 	ReadOp = false
 )
 

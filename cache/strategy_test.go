@@ -22,9 +22,10 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/stretchr/testify/assert"
 )
 
 //
@@ -371,7 +372,7 @@ func Test_strategyCache_IsResourceEditable_6(t *testing.T) {
 	assert.True(t, ret, "must be true")
 
 	strategyDetail.Valid = false
-	
+
 	strategyCache.handlerPrincipalStrategy([]*model.StrategyDetail{strategyDetail})
 	strategyCache.handlerResourceStrategy([]*model.StrategyDetail{strategyDetail})
 	strategyCache.strategys.Delete(strategyDetail.ID)

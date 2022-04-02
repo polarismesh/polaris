@@ -23,7 +23,7 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
-// CreateStrategy
+// CreateStrategy creates a new strategy.
 func (svr *serverAuthAbility) CreateStrategy(ctx context.Context, strategy *api.AuthStrategy) *api.Response {
 	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if errResp != nil {
@@ -34,7 +34,7 @@ func (svr *serverAuthAbility) CreateStrategy(ctx context.Context, strategy *api.
 	return svr.target.CreateStrategy(ctx, strategy)
 }
 
-// UpdateStrategies
+// UpdateStrategies update a strategy.
 func (svr *serverAuthAbility) UpdateStrategies(ctx context.Context,
 	reqs []*api.ModifyAuthStrategy) *api.BatchWriteResponse {
 
@@ -48,7 +48,7 @@ func (svr *serverAuthAbility) UpdateStrategies(ctx context.Context,
 	return svr.target.UpdateStrategies(ctx, reqs)
 }
 
-// DeleteStrategy
+// DeleteStrategies delete strategy.
 func (svr *serverAuthAbility) DeleteStrategies(ctx context.Context,
 	reqs []*api.AuthStrategy) *api.BatchWriteResponse {
 
@@ -62,7 +62,7 @@ func (svr *serverAuthAbility) DeleteStrategies(ctx context.Context,
 	return svr.target.DeleteStrategies(ctx, reqs)
 }
 
-// GetStrategies
+// GetStrategies get strategy list .
 func (svr *serverAuthAbility) GetStrategies(ctx context.Context,
 	query map[string]string) *api.BatchQueryResponse {
 	ctx, errResp := svr.verifyAuth(ctx, ReadOp, NotOwner)
@@ -73,7 +73,7 @@ func (svr *serverAuthAbility) GetStrategies(ctx context.Context,
 	return svr.target.GetStrategies(ctx, query)
 }
 
-// GetStrategy
+// GetStrategy get strategy.
 func (svr *serverAuthAbility) GetStrategy(ctx context.Context, strategy *api.AuthStrategy) *api.Response {
 	ctx, errResp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if errResp != nil {
@@ -83,7 +83,7 @@ func (svr *serverAuthAbility) GetStrategy(ctx context.Context, strategy *api.Aut
 	return svr.target.GetStrategy(ctx, strategy)
 }
 
-// GetPrincipalResources
+// GetPrincipalResources get principal resources.
 func (svr *serverAuthAbility) GetPrincipalResources(ctx context.Context, query map[string]string) *api.Response {
 	ctx, errResp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if errResp != nil {

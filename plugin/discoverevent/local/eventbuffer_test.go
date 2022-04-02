@@ -20,8 +20,9 @@ package local
 import (
 	"testing"
 
-	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 func TestEventBufferTest(t *testing.T) {

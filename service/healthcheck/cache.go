@@ -40,7 +40,7 @@ type CacheProvider struct {
 	selfService          string
 }
 
-// CacheEvent provide the event for cache changes
+// CacheEvent provides the event for cache changes
 type CacheEvent struct {
 	healthCheckInstancesChanged bool
 	selfServiceInstancesChanged bool
@@ -163,7 +163,7 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 			}
 			//return
 		}
-		//check exists
+		// check exists
 		instanceId := instance.ID()
 		healthCheckInstanceValue, exists := c.healthCheckInstances.Load(instanceId)
 		hcEnable, checker := isHealthCheckEnable(instProto)
@@ -183,7 +183,7 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 		}
 		var noChanged bool
 		if exists {
-			//instance is healthy, exists, consistent healthCheckInstance.Revision(), no need to change。
+			// instance is healthy, exists, consistent healthCheckInstance.Revision(), no need to change。
 			healthCheckInstance := healthCheckInstanceValue.instance
 			noChanged = healthCheckInstance.Revision() == instance.Revision()
 		}

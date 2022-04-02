@@ -28,18 +28,18 @@ import (
 type CMDB interface {
 	Plugin
 
-	// 在CMDB中没有找到Host，返回error为nil，location为nil
+	// GetLocation 在CMDB中没有找到Host，返回error为nil，location为nil
 	// 插件内部出现错误，返回error不为nil，忽略location
 	GetLocation(host string) (*model.Location, error)
 
-	// 提供一个Range接口，遍历所有的数据
+	// Range 提供一个Range接口，遍历所有的数据
 	// 遍历失败，通过Range返回值error可以额捕获
 	// 参数为一个回调函数
 	// 返回值：bool，是否继续遍历
 	// 返回值：error，回调函数处理结果，error不为nil，则停止遍历过程，并且通过Range返回error
 	Range(handler func(host string, location *model.Location) (bool, error)) error
 
-	// 获取当前CMDB存储的entry个数
+	// Size 获取当前CMDB存储的entry个数
 	Size() int32
 }
 

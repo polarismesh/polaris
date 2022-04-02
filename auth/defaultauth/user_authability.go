@@ -23,7 +23,7 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
-// CreateUser 创建用户，只能由超级账户 or 主账户调用
+// CreateUsers 创建用户，只能由超级账户 or 主账户调用
 //  case 1. 超级账户调用：创建的是主账户
 //  case 2. 主账户调用：创建的是子账户
 func (svr *serverAuthAbility) CreateUsers(ctx context.Context, req []*api.User) *api.BatchWriteResponse {
@@ -72,7 +72,7 @@ func (svr *serverAuthAbility) DeleteUsers(ctx context.Context, reqs []*api.User)
 	return svr.target.DeleteUsers(ctx, reqs)
 }
 
-// DeleteUser
+// DeleteUser 删除用户，只能由超级账户 or 主账户操作
 func (svr *serverAuthAbility) DeleteUser(ctx context.Context, user *api.User) *api.Response {
 
 	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
@@ -84,7 +84,7 @@ func (svr *serverAuthAbility) DeleteUser(ctx context.Context, user *api.User) *a
 	return svr.target.DeleteUser(ctx, user)
 }
 
-// GetUsers
+// GetUsers 获取用户列表，任意账户均可以操作
 func (svr *serverAuthAbility) GetUsers(ctx context.Context, filter map[string]string) *api.BatchQueryResponse {
 	ctx, errResp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if errResp != nil {
@@ -94,7 +94,7 @@ func (svr *serverAuthAbility) GetUsers(ctx context.Context, filter map[string]st
 	return svr.target.GetUsers(ctx, filter)
 }
 
-// GetUserToken
+// GetUserToken 获取用户token，任意账户均可以操作
 func (svr *serverAuthAbility) GetUserToken(ctx context.Context, user *api.User) *api.Response {
 	ctx, errResp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if errResp != nil {

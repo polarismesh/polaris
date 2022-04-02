@@ -119,7 +119,7 @@ func (l *L5pbserver) Run(errCh chan error) {
 	}
 }
 
-// Stop stop server
+// Stop server
 func (l *L5pbserver) Stop() {
 	if l.listener != nil {
 		_ = l.listener.Close()

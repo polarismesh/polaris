@@ -87,8 +87,8 @@ message CbPolicy {
     google.protobuf.UInt32Value errorRateToOpen = 4;
     //错误码相关特定配置
     message SpecialConfig {
-	  // 熔断关心的错误类型，用户可以自己定义
-	  google.protobuf.StringValue	type = 1;
+      // 熔断关心的错误类型，用户可以自己定义
+      google.protobuf.StringValue  type = 1;
       repeated google.protobuf.Int64Value errorCodes = 2;
       google.protobuf.UInt32Value errorRateToPreserved = 3;
       google.protobuf.UInt32Value errorRateToOpen = 4;

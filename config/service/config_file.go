@@ -48,7 +48,7 @@ func (cs *Impl) CreateConfigFile(ctx context.Context, configFile *api.ConfigFile
 
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
-	//如果 namespace 不存在则自动创建
+	// 如果 namespace 不存在则自动创建
 	if err := cs.createNamespaceIfAbsent(namespace, configFile.CreateBy.GetValue(), requestID); err != nil {
 		log.ConfigScope().Error("[Config][Service] create config file error because of create namespace failed.",
 			zap.String("request-id", requestID),
@@ -59,7 +59,7 @@ func (cs *Impl) CreateConfigFile(ctx context.Context, configFile *api.ConfigFile
 		return api.NewConfigFileResponse(api.StoreLayerException, configFile)
 	}
 
-	//如果配置文件组不存在则自动创建
+	// 如果配置文件组不存在则自动创建
 	createGroupRsp := cs.CreateConfigFileGroupIfAbsent(ctx, &api.ConfigFileGroup{
 		Namespace: configFile.Namespace,
 		Name:      configFile.Group,
@@ -91,7 +91,7 @@ func (cs *Impl) CreateConfigFile(ctx context.Context, configFile *api.ConfigFile
 	fileStoreModel := transferConfigFileAPIModel2StoreModel(configFile)
 	fileStoreModel.ModifyBy = fileStoreModel.CreateBy
 
-	//创建配置文件
+	// 创建配置文件
 	createdFile, err := cs.storage.CreateConfigFile(cs.getTx(ctx), fileStoreModel)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] create config file error.",
@@ -103,13 +103,13 @@ func (cs *Impl) CreateConfigFile(ctx context.Context, configFile *api.ConfigFile
 		return api.NewConfigFileResponse(api.StoreLayerException, configFile)
 	}
 
-	//创建配置文件标签
+	// 创建配置文件标签
 	response, success := cs.createOrUpdateConfigFileTags(ctx, configFile, fileStoreModel.ModifyBy, requestID)
 	if !success {
 		return response
 	}
 
-	//创建成功
+	// 创建成功
 	log.ConfigScope().Info("[Config][Service] create config file success.",
 		zap.String("request-id", requestID),
 		zap.String("namespace", namespace),
@@ -171,7 +171,7 @@ func (cs *Impl) GetConfigFileRichInfo(ctx context.Context, namespace, group, nam
 
 	configFileBaseInfo := configFileBaseInfoRsp.ConfigFile
 
-	//填充发布信息、标签信息等
+	// 填充发布信息、标签信息等
 	err := cs.enrich(ctx, configFileBaseInfo, requestID)
 
 	if err != nil {
@@ -195,7 +195,7 @@ func (cs *Impl) SearchConfigFile(ctx context.Context, namespace, group, name, ta
 		return cs.queryConfigFileWithoutTags(ctx, namespace, group, name, offset, limit)
 	}
 
-	//按tag搜索，内存分页
+	// 按tag搜索，内存分页
 
 	tagKVs := strings.Split(tags, ",")
 	if len(tagKVs)%2 != 0 {
@@ -215,7 +215,7 @@ func (cs *Impl) SearchConfigFile(ctx context.Context, namespace, group, name, ta
 		return api.NewConfigFileBatchQueryResponse(api.StoreLayerException, 0, nil)
 	}
 
-	//渲染配置文件，因为从 tag 表获取的只有主键信息
+	// 渲染配置文件，因为从 tag 表获取的只有主键信息
 	var enrichedFiles []*api.ConfigFile
 	for _, file := range files {
 		rsp := cs.GetConfigFileRichInfo(ctx, file.Namespace, file.Group, file.FileName)
@@ -357,13 +357,13 @@ func (cs *Impl) DeleteConfigFile(ctx context.Context, namespace, group, name, de
 	tx, newCtx, _ := cs.StartTxAndSetToContext(ctx)
 	defer func() { _ = tx.Rollback() }()
 
-	//1. 删除配置文件发布内容
+	// 1. 删除配置文件发布内容
 	deleteFileReleaseRsp := cs.DeleteConfigFileRelease(newCtx, namespace, group, name, deleteBy)
 	if deleteFileReleaseRsp.Code.GetValue() != api.ExecuteSuccess {
 		return api.NewConfigFileResponse(deleteFileReleaseRsp.Code.GetValue(), nil)
 	}
 
-	//2. 删除配置文件
+	// 2. 删除配置文件
 	err = cs.storage.DeleteConfigFile(tx, namespace, group, name)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] delete config file error.",
@@ -375,7 +375,7 @@ func (cs *Impl) DeleteConfigFile(ctx context.Context, namespace, group, name, de
 		return api.NewConfigFileResponse(api.StoreLayerException, nil)
 	}
 
-	//3. 删除配置文件关联的 tag
+	// 3. 删除配置文件关联的 tag
 	err = cs.DeleteTagByConfigFile(ctx, namespace, group, name)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] delete config file tags error.",
@@ -522,7 +522,7 @@ func (cs *Impl) enrich(ctx context.Context, baseConfigFile *api.ConfigFile, requ
 	group := baseConfigFile.Group.GetValue()
 	name := baseConfigFile.Name.GetValue()
 
-	//填充发布信息
+	// 填充发布信息
 	latestReleaseRsp := cs.GetConfigFileLatestReleaseHistory(ctx, namespace, group, name)
 	if latestReleaseRsp.Code.GetValue() != api.ExecuteSuccess {
 		log.ConfigScope().Error("[Config][Service] get config file latest release error.",
@@ -538,20 +538,20 @@ func (cs *Impl) enrich(ctx context.Context, baseConfigFile *api.ConfigFile, requ
 		baseConfigFile.ReleaseBy = latestRelease.CreateBy
 		baseConfigFile.ReleaseTime = latestRelease.CreateTime
 
-		//如果最后一次发布的内容和当前文件内容一致，则展示最后一次发布状态。否则说明文件有修改，待发布
+		// 如果最后一次发布的内容和当前文件内容一致，则展示最后一次发布状态。否则说明文件有修改，待发布
 		if latestRelease.Content.GetValue() == baseConfigFile.Content.GetValue() {
 			baseConfigFile.Status = latestRelease.Status
 		} else {
 			baseConfigFile.Status = utils.NewStringValue(utils.ReleaseStatusToRelease)
 		}
 	} else {
-		//如果从来没有发布过，也是待发布状态
+		// 如果从来没有发布过，也是待发布状态
 		baseConfigFile.Status = utils.NewStringValue(utils.ReleaseStatusToRelease)
 		baseConfigFile.ReleaseBy = utils.NewStringValue("")
 		baseConfigFile.ReleaseTime = utils.NewStringValue("")
 	}
 
-	//填充标签信息
+	// 填充标签信息
 	tags, err := cs.QueryTagsByConfigFileWithAPIModels(ctx, namespace, group, name)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] create config file error.",

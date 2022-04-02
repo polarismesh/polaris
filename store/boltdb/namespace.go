@@ -53,6 +53,7 @@ var (
 	}
 )
 
+// InitData initialize the namespace data
 func (n *namespaceStore) InitData() error {
 	namespaces := []string{defaultNamespace, polarisNamespace}
 	for _, namespace := range namespaces {

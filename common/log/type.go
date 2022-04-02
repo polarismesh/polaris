@@ -69,7 +69,7 @@ func AuthScope() *Scope {
 	return authScope
 }
 
-// HealthCheckScope health check logging scope handler
+// StoreScope store logging scope handler
 func StoreScope() *Scope {
 	return storeScope
 }

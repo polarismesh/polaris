@@ -19,13 +19,15 @@ package cache
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store/mock"
-	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 var (
@@ -40,7 +42,7 @@ func TestGetAndRemoveAndReloadConfigFile(t *testing.T) {
 	fileCache.Clear()
 	defer control.Finish()
 
-	//Mock 数据
+	// Mock 数据
 	configFile := assembleConfigFile()
 	configFileRelease := assembleConfigFileRelease(configFile)
 
@@ -56,7 +58,7 @@ func TestGetAndRemoveAndReloadConfigFile(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	//删除缓存
+	// 删除缓存
 	fileCache.Remove(testNamespace, testGroup, testFile)
 
 	for i := 0; i < 100; i++ {
@@ -68,7 +70,7 @@ func TestGetAndRemoveAndReloadConfigFile(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	//重新加载缓存
+	// 重新加载缓存
 	reloadEntry, _ := fileCache.ReLoad(testNamespace, testGroup, testFile)
 	assert.True(t, !reloadEntry.Empty)
 
@@ -88,7 +90,7 @@ func TestConcurrentGetConfigFile(t *testing.T) {
 	defer control.Finish()
 	defer fileCache.Clear()
 
-	//Mock 数据
+	// Mock 数据
 	configFile := assembleConfigFile()
 	configFileRelease := assembleConfigFileRelease(configFile)
 
@@ -111,7 +113,7 @@ func TestUpdateCache(t *testing.T) {
 	fileCache.Clear()
 	defer control.Finish()
 
-	//Mock 数据
+	// Mock 数据
 	// 第一次调用返会值
 	firstValue := "firstValue"
 	firstVersion := uint64(10)
@@ -143,7 +145,7 @@ func TestUpdateCache(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	//删除缓存
+	// 删除缓存
 	fileCache.Remove(testNamespace, testGroup, testFile)
 
 	for i := 0; i < 100; i++ {

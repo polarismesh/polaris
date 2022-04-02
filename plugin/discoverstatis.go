@@ -33,6 +33,7 @@ var (
 type DiscoverStatis interface {
 	Plugin
 
+	// AddDiscoverCall 添加发现调用
 	AddDiscoverCall(service, namespace string, time time.Time) error
 }
 

@@ -51,7 +51,7 @@ func (l *l5Store) InitL5Data() error {
 		}
 		rowBucket := tblBucket.Bucket([]byte(rowSidKey))
 		if rowBucket != nil {
-			//数据已存在，不做处理
+			// 数据已存在，不做处理
 			return nil
 		}
 		rowBucket, err = tblBucket.CreateBucket([]byte(rowSidKey))

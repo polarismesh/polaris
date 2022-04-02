@@ -52,6 +52,7 @@ func (cf *configFileStore) DeleteConfigFile(tx store.Tx, namespace, group, name 
 	return nil
 }
 
+// CountByConfigFileGroup 统计配置文件组下的配置文件数量
 func (cf *configFileStore) CountByConfigFileGroup(namespace, group string) (uint64, error) {
 	return 0, nil
 }

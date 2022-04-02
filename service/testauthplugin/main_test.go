@@ -25,19 +25,19 @@ import (
 	"sync"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
+	"gopkg.in/yaml.v2"
+
 	"github.com/polarismesh/polaris-server/bootstrap/config"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/service"
-	"github.com/polarismesh/polaris-server/store"
-	"gopkg.in/yaml.v2"
-
-	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/polarismesh/polaris-server/plugin/auth/defaultauth"
 	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
 	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/token"
+	"github.com/polarismesh/polaris-server/service"
+	"github.com/polarismesh/polaris-server/store"
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
 )
 

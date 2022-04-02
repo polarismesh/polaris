@@ -25,7 +25,7 @@ import (
 
 const adjustInterval = 60 * time.Second
 
-// TimeAdjuster adjust the seconds from database
+// TimeAdjuster adjust the seconds from databases
 type TimeAdjuster struct {
 	diff int64
 }

@@ -23,32 +23,32 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
-// ReportClient
+// ReportClient is the interface for reporting client authability
 func (svr *serverAuthAbility) ReportClient(ctx context.Context, req *api.Client) *api.Response {
 	return svr.targetServer.ReportClient(ctx, req)
 }
 
-// GetServiceWithCache
+// GetServiceWithCache is the interface for getting service with cache
 func (svr *serverAuthAbility) GetServiceWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
 	return svr.targetServer.GetServiceWithCache(ctx, req)
 }
 
-// ServiceInstancesCache
+// ServiceInstancesCache is the interface for getting service instances cache
 func (svr *serverAuthAbility) ServiceInstancesCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
 	return svr.targetServer.ServiceInstancesCache(ctx, req)
 }
 
-// GetRoutingConfigWithCache
+// GetRoutingConfigWithCache is the interface for getting routing config with cache
 func (svr *serverAuthAbility) GetRoutingConfigWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
 	return svr.targetServer.GetRoutingConfigWithCache(ctx, req)
 }
 
-// GetRateLimitWithCache
+// GetRateLimitWithCache is the interface for getting rate limit with cache
 func (svr *serverAuthAbility) GetRateLimitWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
 	return svr.targetServer.GetRateLimitWithCache(ctx, req)
 }
 
-// GetCircuitBreakerWithCache
+// GetCircuitBreakerWithCache is the interface for getting a circuit breaker with cache
 func (svr *serverAuthAbility) GetCircuitBreakerWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
 	return svr.targetServer.GetCircuitBreakerWithCache(ctx, req)
 }

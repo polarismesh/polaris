@@ -280,7 +280,7 @@ func serializeObject(parent *bolt.Bucket, value interface{}) (map[string][]byte,
 	rawValue := reflect.ValueOf(value)
 	into := indirect(rawValue)
 	if !into.IsValid() {
-		//nil object
+		// nil object
 		return nil, nil
 	}
 	values := make(map[string][]byte)
@@ -292,7 +292,7 @@ func serializeObject(parent *bolt.Bucket, value interface{}) (map[string][]byte,
 		rawFieldType := field.Type
 		name := toBucketField(field.Name)
 		if field.Anonymous {
-			//不处理匿名属性
+			// 不处理匿名属性
 			log.Warnf("[BlobStore] anonymous field %s, type is %v", name, rawFieldType)
 			continue
 		}
@@ -331,7 +331,7 @@ func serializeObject(parent *bolt.Bucket, value interface{}) (map[string][]byte,
 			}
 		case reflect.Ptr:
 			if rawFieldType.Implements(messageType) {
-				//protobuf类型
+				// protobuf类型
 				msgValue := fieldValue.Addr().Elem().Interface().(proto.Message)
 				values[name], err = encodeMessageBuffer(msgValue)
 				if err != nil {
@@ -340,7 +340,7 @@ func serializeObject(parent *bolt.Bucket, value interface{}) (map[string][]byte,
 			}
 		case reflect.Struct:
 			if rawFieldType.AssignableTo(timeType) {
-				//时间类型
+				// 时间类型
 				timeValue := fieldValue.Addr().Elem().Interface().(time.Time)
 				values[name] = encodeTimeBuffer(timeValue)
 			}
@@ -360,7 +360,7 @@ func toBucketField(field string) string {
 func deserializeObject(bucket *bolt.Bucket, value interface{}) (interface{}, error) {
 	fromObj := indirect(reflect.ValueOf(value))
 	if !fromObj.IsValid() {
-		//nil object
+		// nil object
 		return nil, nil
 	}
 	toValue := reflect.New(reflect.TypeOf(value).Elem()).Interface()
@@ -372,7 +372,7 @@ func deserializeObject(bucket *bolt.Bucket, value interface{}) (interface{}, err
 		rawFieldType := field.Type
 		name := toBucketField(field.Name)
 		if field.Anonymous {
-			//不处理匿名属性
+			// 不处理匿名属性
 			log.Warnf("[BlobStore] anonymous field %s, type is %v", name, rawFieldType)
 			continue
 		}
@@ -428,7 +428,7 @@ func deserializeObject(bucket *bolt.Bucket, value interface{}) (interface{}, err
 			fieldValue.Set(reflect.ValueOf(values))
 		case reflect.Ptr:
 			if rawFieldType.Implements(messageType) {
-				//protobuf类型
+				// protobuf类型
 				buf := bucket.Get([]byte(name))
 				toMsgValue := reflect.New(rawFieldType.Elem()).Interface().(proto.Message)
 				msg, err := decodeMessageBuffer(toMsgValue, name, buf)
@@ -439,7 +439,7 @@ func deserializeObject(bucket *bolt.Bucket, value interface{}) (interface{}, err
 			}
 		case reflect.Struct:
 			if rawFieldType.AssignableTo(timeType) {
-				//时间类型
+				// 时间类型
 				buf := bucket.Get([]byte(name))
 				value, err := decodeTimeBuffer(name, buf)
 				if err != nil {
@@ -468,7 +468,7 @@ func setIntValue(value int64, fieldValue *reflect.Value, kind reflect.Kind) {
 	case reflect.Int64:
 		fieldValue.Set(reflect.ValueOf(value))
 	default:
-		//do nothing
+		// do nothing
 	}
 }
 
@@ -485,7 +485,7 @@ func setUintValue(value uint64, fieldValue *reflect.Value, kind reflect.Kind) {
 	case reflect.Uint64:
 		fieldValue.Set(reflect.ValueOf(value))
 	default:
-		//do nothing
+		// do nothing
 	}
 }
 
