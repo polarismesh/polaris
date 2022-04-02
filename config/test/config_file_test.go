@@ -18,10 +18,12 @@
 package test
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 var (
@@ -56,11 +58,11 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, operator, rsp.ConfigFile.CreateBy.GetValue())
 		assert.Equal(t, operator, rsp.ConfigFile.ModifyBy.GetValue())
 
-		//重复创建
+		// 重复创建
 		rsp2 := configService.Service().CreateConfigFile(defaultCtx, configFile)
 		assert.Equal(t, uint32(api.ExistedResource), rsp2.Code.GetValue())
 
-		//创建完之后再查询
+		// 创建完之后再查询
 		rsp3 := configService.Service().GetConfigFileBaseInfo(defaultCtx, testNamespace, testGroup, testFile)
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 		assert.NotNil(t, rsp.ConfigFile)
@@ -87,7 +89,7 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 		assert.Equal(t, newContent, rsp2.ConfigFile.Content.GetValue())
 
-		//更新完之后再查询
+		// 更新完之后再查询
 		rsp3 := configService.Service().GetConfigFileBaseInfo(defaultCtx, testNamespace, testGroup, testFile)
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 		assert.NotNil(t, rsp.ConfigFile)
@@ -101,7 +103,7 @@ func TestConfigFileCRUD(t *testing.T) {
 	})
 
 	t.Run("step4-delete", func(t *testing.T) {
-		//删除前先发布一次
+		// 删除前先发布一次
 		configFile := assembleConfigFile()
 		configFileRelease := assembleConfigFileRelease(configFile)
 		rsp := configService.Service().PublishConfigFile(defaultCtx, configFileRelease)
@@ -111,12 +113,12 @@ func TestConfigFileCRUD(t *testing.T) {
 		rsp2 := configService.Service().DeleteConfigFile(defaultCtx, testNamespace, testGroup, testFile, deleteBy)
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 
-		//删除后，查询不到
+		// 删除后，查询不到
 		rsp3 := configService.Service().GetConfigFileBaseInfo(defaultCtx, testNamespace, testGroup, testFile)
 		assert.Equal(t, uint32(api.NotFoundResource), rsp3.Code.GetValue())
 		assert.Nil(t, rsp2.ConfigFile)
 
-		//删除会创建一条删除的历史记录
+		// 删除会创建一条删除的历史记录
 		rsp4 := configService.Service().GetConfigFileReleaseHistory(defaultCtx, testNamespace, testGroup, testFile, 0, 2, 0)
 		assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
 		assert.Equal(t, uint32(2), rsp4.Total.GetValue())
@@ -134,25 +136,25 @@ func TestConfigFileCRUD(t *testing.T) {
 			assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 		}
 
-		//第一页
+		// 第一页
 		rsp2 := configService.Service().SearchConfigFile(defaultCtx, testNamespace, group, "", "", 0, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 		assert.Equal(t, uint32(size), rsp2.Total.GetValue())
 		assert.Equal(t, 3, len(rsp2.ConfigFiles))
 
-		//最后一页
+		// 最后一页
 		rsp3 := configService.Service().SearchConfigFile(defaultCtx, testNamespace, group, "", "", 6, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 		assert.Equal(t, uint32(size), rsp3.Total.GetValue())
 		assert.Equal(t, 1, len(rsp3.ConfigFiles))
 
-		//group为空
+		// group为空
 		rsp4 := configService.Service().SearchConfigFile(defaultCtx, testNamespace, "", "", "", 0, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
 		assert.Equal(t, uint32(size), rsp4.Total.GetValue())
 		assert.Equal(t, 3, len(rsp4.ConfigFiles))
 
-		//group 模糊搜索
+		// group 模糊搜索
 		rsp5 := configService.Service().SearchConfigFile(defaultCtx, testNamespace, "group1", "", "", 0, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue())
 		assert.Equal(t, uint32(size), rsp5.Total.GetValue())
@@ -166,25 +168,25 @@ func TestConfigFileCRUD(t *testing.T) {
 			assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 		}
 
-		//第一页
+		// 第一页
 		rsp2 := configService.Service().SearchConfigFile(defaultCtx, testNamespace, "", file, "", 0, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 		assert.Equal(t, uint32(size), rsp2.Total.GetValue())
 		assert.Equal(t, 3, len(rsp2.ConfigFiles))
 
-		//最后一页
+		// 最后一页
 		rsp3 := configService.Service().SearchConfigFile(defaultCtx, testNamespace, "", file, "", 6, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 		assert.Equal(t, uint32(size), rsp3.Total.GetValue())
 		assert.Equal(t, 1, len(rsp3.ConfigFiles))
 
-		//group,name都为空
+		// group,name都为空
 		rsp4 := configService.Service().SearchConfigFile(defaultCtx, testNamespace, "", "", "", 0, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
 		assert.Equal(t, uint32(size*2), rsp4.Total.GetValue()) // 总数为随机 group 和随机 fileName 总和
 		assert.Equal(t, 3, len(rsp4.ConfigFiles))
 
-		//fileName 模糊搜索
+		// fileName 模糊搜索
 		rsp5 := configService.Service().SearchConfigFile(defaultCtx, testNamespace, "", "file1", "", 0, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue())
 		assert.Equal(t, uint32(size), rsp5.Total.GetValue())
@@ -192,7 +194,7 @@ func TestConfigFileCRUD(t *testing.T) {
 	})
 
 	t.Run("step7-search-by-tag", func(t *testing.T) {
-		//按 tag k1=v1 搜索
+		// 按 tag k1=v1 搜索
 		rsp := configService.Service().SearchConfigFile(defaultCtx, testNamespace, "", "", "k1,v1", 0, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 		assert.Equal(t, uint32(size*2), rsp.Total.GetValue())

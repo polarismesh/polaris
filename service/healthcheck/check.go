@@ -48,7 +48,7 @@ type CheckScheduler struct {
 	ctx                context.Context
 }
 
-// AdoptEvent
+// AdoptEvent is the event for adopt
 type AdoptEvent struct {
 	InstanceId string
 	Add        bool
@@ -326,13 +326,13 @@ func (c *CheckScheduler) checkCallback(value interface{}) {
 	if !checkResp.StayUnchanged {
 		var code uint32
 		if checkResp.Healthy {
-			//from unhealthy to healthy
+			// from unhealthy to healthy
 			log.Infof(
 				"[Health Check][Check]instance change from unhealthy to healthy, id is %s, address is %s:%d",
 				instanceValue.id, instanceValue.host, instanceValue.port)
 			code = setInsDbStatus(cachedInstance, checkResp.Healthy)
 		} else {
-			//from healthy to unhealthy
+			// from healthy to unhealthy
 			log.Infof(
 				"[Health Check][Check]instance change from healthy to unhealthy, id is %s, address is %s:%d",
 				instanceValue.id, instanceValue.host, instanceValue.port)

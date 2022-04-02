@@ -14,93 +14,83 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
+
 package httpserver
 
 import (
-	proto "github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/proto"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
-/**
- * UserArr 命名空间数组定义
- */
+// UserArr 命名空间数组定义
 type UserArr []*api.User
 
-// Reset
+// Reset 清空数组
 func (m *UserArr) Reset() { *m = UserArr{} }
 
 // String return string
 func (m *UserArr) String() string { return proto.CompactTextString(m) }
 
-// ProtoMessage
+// ProtoMessage return proto message
 func (*UserArr) ProtoMessage() {}
 
-/**
- * GroupArr 命名空间数组定义
- */
+// GroupArr 命名空间数组定义
 type GroupArr []*api.UserGroup
 
-// Reset
+// Reset 清空数组
 func (m *GroupArr) Reset() { *m = GroupArr{} }
 
 // String return string
 func (m *GroupArr) String() string { return proto.CompactTextString(m) }
 
-// ProtoMessage
+// ProtoMessage return proto message
 func (*GroupArr) ProtoMessage() {}
 
-/**
- * GroupArr 命名空间数组定义
- */
+// ModifyGroupArr 命名空间数组定义
 type ModifyGroupArr []*api.ModifyUserGroup
 
-// Reset
+// Reset 清空数组
 func (m *ModifyGroupArr) Reset() { *m = ModifyGroupArr{} }
 
 // String return string
 func (m *ModifyGroupArr) String() string { return proto.CompactTextString(m) }
 
-// ProtoMessage
+// ProtoMessage return proto message
 func (*ModifyGroupArr) ProtoMessage() {}
 
-/**
- * GroupArr 命名空间数组定义
- */
+// StrategyArr 命名空间数组定义
 type StrategyArr []*api.AuthStrategy
 
-// Reset
+// Reset 清空数组
 func (m *StrategyArr) Reset() { *m = StrategyArr{} }
 
 // String return string
 func (m *StrategyArr) String() string { return proto.CompactTextString(m) }
 
-// ProtoMessage
+// ProtoMessage return proto message
 func (*StrategyArr) ProtoMessage() {}
 
-/**
- * GroupArr 命名空间数组定义
- */
+// ModifyStrategyArr 命名空间数组定义
 type ModifyStrategyArr []*api.ModifyAuthStrategy
 
-// Reset
+// Reset 清空数组
 func (m *ModifyStrategyArr) Reset() { *m = ModifyStrategyArr{} }
 
 // String return string
 func (m *ModifyStrategyArr) String() string { return proto.CompactTextString(m) }
 
-// ProtoMessage
+// ProtoMessage return proto message
 func (*ModifyStrategyArr) ProtoMessage() {}
 
-/**
- * AuthResourceArr 命名空间数组定义
- */
+// AuthResourceArr 命名空间数组定义
 type AuthResourceArr []*api.StrategyResources
 
-// Reset
+// Reset 清空数组
 func (m *AuthResourceArr) Reset() { *m = AuthResourceArr{} }
 
 // String return string
 func (m *AuthResourceArr) String() string { return proto.CompactTextString(m) }
 
-// ProtoMessage
+// ProtoMessage return proto message
 func (*AuthResourceArr) ProtoMessage() {}

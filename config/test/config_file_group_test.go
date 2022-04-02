@@ -18,9 +18,11 @@
 package test
 
 import (
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 var (
@@ -108,15 +110,15 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 		assert.Equal(t, randomGroupSize, rsp.Total.GetValue())
 	})
 
-	//测试翻页
+	// 测试翻页
 	t.Run("step8-query-by-page", func(t *testing.T) {
-		//最后一页
+		// 最后一页
 		rsp := configService.Service().QueryConfigFileGroups(defaultCtx, testNamespace, randomGroupPrefix, "", 6, 2)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 		assert.Equal(t, 1, len(rsp.ConfigFileGroups))
 		assert.Equal(t, randomGroupSize, rsp.Total.GetValue())
 
-		//超出页范围
+		// 超出页范围
 		rsp2 := configService.Service().QueryConfigFileGroups(defaultCtx, testNamespace, randomGroupPrefix, "", 8, 2)
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 		assert.Equal(t, 0, len(rsp2.ConfigFileGroups))

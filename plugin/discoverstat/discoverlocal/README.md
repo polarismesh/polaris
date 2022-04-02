@@ -1,9 +1,9 @@
 # 统计服务发现请求到本地
 
 ## 测试
+
 1. 功能测试： 正常
-2. 压力测试：
-    存入服务数量及写入文件耗时：
+2. 压力测试： 存入服务数量及写入文件耗时：
     ```
     === RUN   TestWriteFile
            local_test.go:52: total num is 250000, duration is 175.246112ms
@@ -15,7 +15,6 @@
        
        Process finished with exit code 0
    ```
-   
-   写入channel测试：
-   channel大小为1024，并发1000，可以支持10w/s的AddDiscoverCall请求
+
+   写入channel测试： channel大小为1024，并发1000，可以支持10w/s的AddDiscoverCall请求
    

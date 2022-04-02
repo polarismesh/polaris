@@ -41,7 +41,7 @@ func (p *platformStore) CreatePlatform(platform *model.Platform) error {
 		return store.Error(err)
 	}
 
-	str := `insert into platform 
+	str := `insert into platform
 			(id, name, domain, qps, token, owner, department, comment, flag, ctime, mtime) 
 			values(?,?,?,?,?,?,?,?,?,sysdate(),sysdate())`
 	if _, err := p.master.Exec(str, platform.ID, platform.Name, platform.Domain, platform.QPS, platform.Token,
@@ -70,7 +70,7 @@ func (p *platformStore) DeletePlatform(id string) error {
 
 // UpdatePlatform 修改平台信息
 func (p *platformStore) UpdatePlatform(platform *model.Platform) error {
-	str := `update platform set name = ?, domain = ?, qps = ?, token = ?, owner = ?, department = ?, comment = ?, 
+	str := `update platform set name = ?, domain = ?, qps = ?, token = ?, owner = ?, department = ?, comment = ?,
 			mtime = sysdate() where id = ?`
 	if _, err := p.master.Exec(str, platform.Name, platform.Domain, platform.QPS, platform.Token, platform.Owner,
 		platform.Department, platform.Comment, platform.ID); err != nil {
@@ -203,7 +203,7 @@ func (p *platformStore) cleanPlatform(id string) error {
 
 // genSelectPlatformSQL 查询平台信息sql
 func genSelectPlatformSQL() string {
-	str := `select id, name, domain, qps, token, owner, IFNULL(department, ""), IFNULL(comment, ""), flag, 
+	str := `select id, name, domain, qps, token, owner, IFNULL(department, ""), IFNULL(comment, ""), flag,
 			unix_timestamp(ctime), unix_timestamp(mtime) from platform `
 	return str
 }

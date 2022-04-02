@@ -20,9 +20,10 @@ package test
 import (
 	"testing"
 
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	"github.com/polarismesh/polaris-server/test/http"
 	"github.com/polarismesh/polaris-server/test/resource"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 /**
@@ -56,7 +57,7 @@ func TestInstance(t *testing.T) {
 	}
 	t.Log("create services success")
 
-	//-------------------------------------------------------
+	// -------------------------------------------------------
 
 	instances := resource.CreateInstances(services[0])
 
@@ -100,7 +101,7 @@ func TestInstance(t *testing.T) {
 	}
 	t.Log("delete instances success")
 
-	//-------------------------------------------------------
+	// -------------------------------------------------------
 
 	// 删除服务
 	err = client.DeleteServices(services)
@@ -140,7 +141,7 @@ func TestInstanceWithoutService(t *testing.T) {
 	}
 	t.Log("create namespaces success")
 
-	//-------------------------------------------------------
+	// -------------------------------------------------------
 
 	instances := resource.CreateInstances(services[0])
 
@@ -184,7 +185,7 @@ func TestInstanceWithoutService(t *testing.T) {
 	}
 	t.Log("delete instances success")
 
-	//-------------------------------------------------------
+	// -------------------------------------------------------
 
 	// 删除服务
 	err = client.DeleteServices(services)

@@ -188,7 +188,7 @@ func (ss *serviceStore) updateServiceAlias(alias *model.Service, needUpdateOwner
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	str := `update service set name = ?, namespace = ?, reference = ?, comment = ?, token = ?, revision = ?, owner = ?, 
+	str := `update service set name = ?, namespace = ?, reference = ?, comment = ?, token = ?, revision = ?, owner = ?,
 			mtime = sysdate()
 			where id = ? and (select flag from (select flag from service where id = ?) as alias) = 0`
 
@@ -320,7 +320,7 @@ func (ss *serviceStore) GetService(name string, namespace string) (*model.Servic
 // GetSourceServiceToken 获取只获取服务token
 // 返回服务ID，服务token
 func (ss *serviceStore) GetSourceServiceToken(name string, namespace string) (*model.Service, error) {
-	str := `select id, token, IFNULL(platform_id, "") from service 
+	str := `select id, token, IFNULL(platform_id, "") from service
 			where name = ? and namespace = ? and flag = 0 
 			and (reference is null or reference = '')`
 	var out model.Service
@@ -441,7 +441,7 @@ func (ss *serviceStore) getServiceAliasesInfo(filter map[string]string, offset u
 		return make([]*model.ServiceAlias, 0), nil
 	}
 
-	baseStr := `select alias.id, alias.name, alias.namespace, UNIX_TIMESTAMP(alias.ctime), UNIX_TIMESTAMP(alias.mtime), 
+	baseStr := `select alias.id, alias.name, alias.namespace, UNIX_TIMESTAMP(alias.ctime), UNIX_TIMESTAMP(alias.mtime),
 			alias.comment, source.id as sourceID, source.name as sourceName, source.namespace, alias.owner 
 			from service as alias inner join service as source 
 			on alias.reference = source.id and alias.flag != 1 `
@@ -476,7 +476,7 @@ func (ss *serviceStore) getServiceAliasesInfo(filter map[string]string, offset u
 
 // getServiceAliasesCount 获取别名总数
 func (ss *serviceStore) getServiceAliasesCount(filter map[string]string) (uint32, error) {
-	baseStr := `select count(*) from 
+	baseStr := `select count(*) from
 				service as alias inner join service as source 
 				on alias.reference = source.id and alias.flag != 1 `
 	str, args := genServiceAliasWhereSQLAndArgs(baseStr, filter, nil, 0, 1)
@@ -979,14 +979,14 @@ func addServiceMeta(tx *BaseTx, id string, meta map[string]string) error {
 		args = append(args, value)
 	}
 
-	//log.Infof("str: %s, args: %+v", str, args)
+	// log.Infof("str: %s, args: %+v", str, args)
 	_, err := tx.Exec(str, args...)
 	return err
 }
 
 // updateServiceMain 更新service主表
 func updateServiceMain(tx *BaseTx, service *model.Service) error {
-	str := `update service set name = ?, namespace = ?, ports = ?, business = ?, 
+	str := `update service set name = ?, namespace = ?, ports = ?, business = ?,
 	department = ?, cmdb_mod1 = ?, cmdb_mod2 = ?, cmdb_mod3 = ?, comment = ?, token = ?, platform_id = ?,
 	revision = ?, owner = ?, mtime = sysdate() where id = ?`
 
@@ -1039,7 +1039,7 @@ func fetchServiceMeta(rows *sql.Rows) (map[string]string, error) {
 
 // genServiceSelectSQL 生成service查询语句
 func genServiceSelectSQL() string {
-	return `select service.id, name, namespace, IFNULL(business, ""), IFNULL(comment, ""), 
+	return `select service.id, name, namespace, IFNULL(business, ""), IFNULL(comment, ""),
 			token, service.revision, owner, service.flag, 
 			UNIX_TIMESTAMP(service.ctime), UNIX_TIMESTAMP(service.mtime),
 			IFNULL(ports, ""), IFNULL(department, ""), IFNULL(cmdb_mod1, ""), IFNULL(cmdb_mod2, ""), 

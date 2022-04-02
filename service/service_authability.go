@@ -37,12 +37,12 @@ func (svr *serverAuthAbility) CreateServices(ctx context.Context, reqs []*api.Se
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	// 填充 ownerId 信息数据
-	ownerId := utils.ParseOwnerID(ctx)
-	if len(ownerId) > 0 {
+	// 填充 ownerID 信息数据
+	ownerID := utils.ParseOwnerID(ctx)
+	if len(ownerID) > 0 {
 		for index := range reqs {
 			req := reqs[index]
-			req.Owners = utils.NewStringValue(ownerId)
+			req.Owners = utils.NewStringValue(ownerID)
 		}
 	}
 
@@ -88,6 +88,7 @@ func (svr *serverAuthAbility) UpdateServices(ctx context.Context, reqs []*api.Se
 	return svr.targetServer.UpdateServices(ctx, reqs)
 }
 
+// UpdateServiceToken 更新服务的 token
 func (svr *serverAuthAbility) UpdateServiceToken(ctx context.Context, req *api.Service) *api.Response {
 	authCtx := svr.collectServiceAuthContext(ctx, []*api.Service{req}, model.Modify, "UpdateServiceToken")
 
@@ -106,6 +107,7 @@ func (svr *serverAuthAbility) UpdateServiceToken(ctx context.Context, req *api.S
 	return svr.targetServer.UpdateServiceToken(ctx, req)
 }
 
+// GetServices 批量获取服务
 func (svr *serverAuthAbility) GetServices(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServices")
 
@@ -138,6 +140,7 @@ func (svr *serverAuthAbility) GetServices(ctx context.Context, query map[string]
 	return resp
 }
 
+// GetServicesCount 批量获取服务数量
 func (svr *serverAuthAbility) GetServicesCount(ctx context.Context) *api.BatchQueryResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServicesCount")
 
@@ -152,6 +155,7 @@ func (svr *serverAuthAbility) GetServicesCount(ctx context.Context) *api.BatchQu
 	return svr.targetServer.GetServicesCount(ctx)
 }
 
+// GetServiceToken 获取服务的 token
 func (svr *serverAuthAbility) GetServiceToken(ctx context.Context, req *api.Service) *api.Response {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServiceToken")
 
@@ -166,6 +170,7 @@ func (svr *serverAuthAbility) GetServiceToken(ctx context.Context, req *api.Serv
 	return svr.targetServer.GetServiceToken(ctx, req)
 }
 
+// GetServiceOwner 获取服务的 owner
 func (svr *serverAuthAbility) GetServiceOwner(ctx context.Context, req []*api.Service) *api.BatchQueryResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServiceOwner")
 

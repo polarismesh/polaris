@@ -58,7 +58,7 @@ func TestClientGRPC(t *testing.T) {
 	}
 	t.Log("create services success")
 
-	//-------------------------------------------------------
+	// -------------------------------------------------------
 
 	clientGRPC, err := grpc.NewClient(grpcserverAddress)
 	if err != nil {

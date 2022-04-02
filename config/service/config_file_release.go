@@ -53,7 +53,7 @@ func (cs *Impl) PublishConfigFile(ctx context.Context, configFileRelease *api.Co
 	}
 
 	tx := cs.getTx(ctx)
-	//获取待发布的 configFile 信息
+	// 获取待发布的 configFile 信息
 	toPublishFile, err := cs.storage.GetConfigFile(tx, namespace, group, fileName)
 
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
@@ -76,7 +76,7 @@ func (cs *Impl) PublishConfigFile(ctx context.Context, configFileRelease *api.Co
 
 	md5 := utils2.CalMd5(toPublishFile.Content)
 
-	//获取 configFileRelease 信息
+	// 获取 configFileRelease 信息
 	managedFileRelease, err := cs.storage.GetConfigFileReleaseWithAllFlag(tx, namespace, group, fileName)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] get config file release error.",
@@ -100,7 +100,7 @@ func (cs *Impl) PublishConfigFile(ctx context.Context, configFileRelease *api.Co
 		}
 	}
 
-	//第一次发布
+	// 第一次发布
 	if managedFileRelease == nil {
 		fileRelease := &model.ConfigFileRelease{
 			Name:      releaseName,
@@ -136,7 +136,7 @@ func (cs *Impl) PublishConfigFile(ctx context.Context, configFileRelease *api.Co
 			transferConfigFileReleaseStoreModel2APIModel(createdFileRelease))
 	}
 
-	//更新发布
+	// 更新发布
 	fileRelease := &model.ConfigFileRelease{
 		Name:      releaseName,
 		Namespace: namespace,
@@ -231,7 +231,7 @@ func (cs *Impl) DeleteConfigFileRelease(ctx context.Context, namespace, group, f
 
 	releaseName = utils2.GenReleaseName(latestRelease.Name.GetValue(), fileName)
 	if releaseName != latestRelease.Name.GetValue() {
-		//更新releaseName
+		// 更新releaseName
 		releaseModel := transferConfigFileReleaseAPIModel2StoreModel(latestRelease)
 		releaseModel.Name = releaseName
 		_, err := cs.storage.UpdateConfigFileRelease(cs.getTx(ctx), releaseModel)

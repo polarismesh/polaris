@@ -34,7 +34,7 @@ function start() {
     set +e
     ulimit -n 409600
 	set -e
-    nohup $cmdline >>./log/stdout 2>&1 &
+    nohup $cmdline >> ./log/stdout 2>&1 &
 }
 
 function stop() {

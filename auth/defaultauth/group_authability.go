@@ -23,7 +23,7 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
-// CreateGroup
+// CreateGroup creates a group.
 func (svr *serverAuthAbility) CreateGroup(ctx context.Context, group *api.UserGroup) *api.Response {
 	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if errResp != nil {
@@ -34,7 +34,7 @@ func (svr *serverAuthAbility) CreateGroup(ctx context.Context, group *api.UserGr
 	return svr.target.CreateGroup(ctx, group)
 }
 
-// UpdateGroups
+// UpdateGroups updates groups.
 func (svr *serverAuthAbility) UpdateGroups(ctx context.Context,
 	reqs []*api.ModifyUserGroup) *api.BatchWriteResponse {
 
@@ -48,7 +48,7 @@ func (svr *serverAuthAbility) UpdateGroups(ctx context.Context,
 	return svr.target.UpdateGroups(ctx, reqs)
 }
 
-// DeleteGroup
+// DeleteGroups deletes groups.
 func (svr *serverAuthAbility) DeleteGroups(ctx context.Context,
 	reqs []*api.UserGroup) *api.BatchWriteResponse {
 
@@ -62,7 +62,7 @@ func (svr *serverAuthAbility) DeleteGroups(ctx context.Context,
 	return svr.target.DeleteGroups(ctx, reqs)
 }
 
-// GetGroups 查看用户组
+// GetGroups 查看用户组列表
 func (svr *serverAuthAbility) GetGroups(ctx context.Context,
 	query map[string]string) *api.BatchQueryResponse {
 
@@ -74,7 +74,7 @@ func (svr *serverAuthAbility) GetGroups(ctx context.Context,
 	return svr.target.GetGroups(ctx, query)
 }
 
-// GetGroupUsers
+// GetGroup 查看用户组
 func (svr *serverAuthAbility) GetGroup(ctx context.Context, req *api.UserGroup) *api.Response {
 
 	ctx, errResp := svr.verifyAuth(ctx, WriteOp, NotOwner)
@@ -85,7 +85,7 @@ func (svr *serverAuthAbility) GetGroup(ctx context.Context, req *api.UserGroup) 
 	return svr.target.GetGroup(ctx, req)
 }
 
-// GetUserGroupToken
+// GetGroupToken 获取用户组token
 func (svr *serverAuthAbility) GetGroupToken(ctx context.Context, req *api.UserGroup) *api.Response {
 
 	ctx, errResp := svr.verifyAuth(ctx, ReadOp, NotOwner)
@@ -96,7 +96,7 @@ func (svr *serverAuthAbility) GetGroupToken(ctx context.Context, req *api.UserGr
 	return svr.target.GetGroupToken(ctx, req)
 }
 
-// UpdateGroupToken
+// UpdateGroupToken 更新用户组token
 func (svr *serverAuthAbility) UpdateGroupToken(ctx context.Context, group *api.UserGroup) *api.Response {
 	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if errResp != nil {
@@ -107,7 +107,7 @@ func (svr *serverAuthAbility) UpdateGroupToken(ctx context.Context, group *api.U
 	return svr.target.UpdateGroupToken(ctx, group)
 }
 
-// ResetGroupToken
+// ResetGroupToken 重置用户组token
 func (svr *serverAuthAbility) ResetGroupToken(ctx context.Context, group *api.UserGroup) *api.Response {
 	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if errResp != nil {

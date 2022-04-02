@@ -1,179 +1,178 @@
-
 syntax = "proto2";
 
 package l5;
 
 enum CL5_CMD
 {
-//------------------------------------------------
-	CL5_SYNC_BY_AGENT_CMD = 100;    // 该命令号标示请求需要根据agent IP和Sid列表同步相关信息
-	CL5_SYNC_BY_AGENT_ACK_CMD = 101;    // 请求CL5_SYNC_BY_AGENT_CMD对应的应答包命令号
-	CL5_REGISTER_BY_ID_CMD = 102;    // 已经废弃
-	CL5_REGISTER_BY_ID_ACK_CMD = 103;    // 已经废弃
-	CL5_REGISTER_BY_NAME_CMD = 104;    // 该命令号的请求表示需要根据Name获取对应的Sid信息
-	CL5_REGISTER_BY_NAME_ACK_CMD = 105;    // CL5_REGISTER_BY_NAME_CMD对应的应答包命令号
+  //------------------------------------------------
+  CL5_SYNC_BY_AGENT_CMD = 100;    // 该命令号标示请求需要根据agent IP和Sid列表同步相关信息
+  CL5_SYNC_BY_AGENT_ACK_CMD = 101;    // 请求CL5_SYNC_BY_AGENT_CMD对应的应答包命令号
+  CL5_REGISTER_BY_ID_CMD = 102;    // 已经废弃
+  CL5_REGISTER_BY_ID_ACK_CMD = 103;    // 已经废弃
+  CL5_REGISTER_BY_NAME_CMD = 104;    // 该命令号的请求表示需要根据Name获取对应的Sid信息
+  CL5_REGISTER_BY_NAME_ACK_CMD = 105;    // CL5_REGISTER_BY_NAME_CMD对应的应答包命令号
 }
 
 // IP配置信息，用于实现就近访问。L5 server从表t_ip_config读取，由OSS从CMDB查询IP相关信息写入表中
 message cl5_ipc_obj
 {
-	required int32	ip = 1;
-	required int32	area_id	= 2;  // 区域编号
-	required int32	city_id	= 3;  // 城市编号
-	required int32	idc_id = 4;  // IDC编号
+  required int32  ip = 1;
+  required int32  area_id = 2;  // 区域编号
+  required int32  city_id = 3;  // 城市编号
+  required int32  idc_id = 4;  // IDC编号
 }
 
 // IP配置信息列表
 message cl5_ipc_list
 {
-	repeated cl5_ipc_obj	ipc = 1;
+  repeated cl5_ipc_obj  ipc = 1;
 }
 
 // Sid属性
 message cl5_sid_obj
 {
-	required int32	mod_id = 1;
-	required int32	cmd_id = 2;
-	optional string	name = 3;  // 名字，可用于实现通过name查询sid
-	optional int32	policy = 4;  // 就近访问标志， 0：不开启就近访问； 1：开启就近访问
+  required int32  mod_id = 1;
+  required int32  cmd_id = 2;
+  optional string  name = 3;  // 名字，可用于实现通过name查询sid
+  optional int32  policy = 4;  // 就近访问标志， 0：不开启就近访问； 1：开启就近访问
 }
 
 // Sid属性列表
 message cl5_sid_list
 {
-	repeated cl5_sid_obj	sid	= 1;
+  repeated cl5_sid_obj  sid = 1;
 }
 
 // Sid
 message cl5_opt_obj
 {
-	required int32	mod_id							= 1;
-	required int32	cmd_id							= 2;
+  required int32  mod_id = 1;
+  required int32  cmd_id = 2;
 }
 
 // Sid列表，用于CL5_SYNC_BY_AGENT_CMD请求包
 message cl5_opt_list
 {
-	repeated cl5_opt_obj	opt						= 1;
+  repeated cl5_opt_obj  opt = 1;
 }
 
 // Sid名字列表，用于CL5_REGISTER_BY_NAME_CMD请求包
 message cl5_name_list
 {
-	repeated string	name							= 1;
+  repeated string  name = 1;
 }
 
 // l5 server列表，用于agent实现在连接l5 server失败时重试其他l5 server
 message cl5_l5svr_list
 {
-	repeated int32		ip							= 1;
+  repeated int32    ip = 1;
 }
 
 // 被调server
 message cl5_serv_obj
 {
-	required int32	mod_id							= 1;
-	required int32	cmd_id							= 2;
-	required int32	ip								= 3;
-	required int32	port							= 4;
-	required int32	weight							= 5;
+  required int32  mod_id = 1;
+  required int32  cmd_id = 2;
+  required int32  ip = 3;
+  required int32  port = 4;
+  required int32  weight = 5;
 }
 
 // 被调server列表
 message cl5_serv_list
 {
-	repeated cl5_serv_obj	serv					= 1;
+  repeated cl5_serv_obj  serv = 1;
 }
 
 // 有状态规则配置
 message cl5_poly_obj
 {
-	required int32	mod_id							= 1;
-	required int32	div								= 2;
-	required int32	mod								= 3;
+  required int32  mod_id = 1;
+  required int32  div = 2;
+  required int32  mod = 3;
 }
 
 // 有状态规则分段信息
 message cl5_sect_obj
 {
-	required int32	mod_id							= 1;
-	required int32	from							= 2;
-	required int32	to								= 3;
-	required int32	cmd_id							= 4;
+  required int32  mod_id = 1;
+  required int32  from = 2;
+  required int32  to = 3;
+  required int32  cmd_id = 4;
 }
 
 // 有状态规则列表
 message cl5_rule_list
 {
-	repeated cl5_poly_obj	poly					= 1;
-	repeated cl5_sect_obj	sect					= 2;
+  repeated cl5_poly_obj  poly = 1;
+  repeated cl5_sect_obj  sect = 2;
 }
 
 // CL5_SYNC_BY_AGENT_CMD请求包
 message cl5_sync_by_agent_cmd
 {
-	required int32 agent_ip							= 1;  // agent ip，在就近访问开启时，会在cl5_ipc_list中返回agent的ip配置信息
-	required int32 sync_flow						= 2;  // 流水号
-	optional cl5_opt_list	opt_list				= 3;  // 需要同步信息的Sid列表
+  required int32 agent_ip = 1;  // agent ip，在就近访问开启时，会在cl5_ipc_list中返回agent的ip配置信息
+  required int32 sync_flow = 2;  // 流水号
+  optional cl5_opt_list  opt_list = 3;  // 需要同步信息的Sid列表
 }
 
 // CL5_SYNC_BY_AGENT_CMD应答包
 message cl5_sync_by_agent_ack_cmd
 {
-	required int32 agent_ip							= 1;
-	required int32 sync_flow						= 2;
-	optional cl5_serv_list	serv_list				= 3;  // 被调信息列表
-	optional cl5_sid_list	 sid_list				= 4;  // sid信息列表
-	optional cl5_ipc_list	 ipc_list				= 5;  // ip信息列表
-	optional cl5_rule_list	rule_list				= 6;  // 有状态规则列表
-	optional cl5_l5svr_list	l5svr_list			=7;       // l5 server列表
+  required int32 agent_ip = 1;
+  required int32 sync_flow = 2;
+  optional cl5_serv_list  serv_list = 3;  // 被调信息列表
+  optional cl5_sid_list   sid_list = 4;  // sid信息列表
+  optional cl5_ipc_list   ipc_list = 5;  // ip信息列表
+  optional cl5_rule_list  rule_list = 6;  // 有状态规则列表
+  optional cl5_l5svr_list  l5svr_list = 7;       // l5 server列表
 }
 
 // 已经废弃
 message cl5_register_by_id_cmd
 {
-	required int32 caller_ip						= 1;
-	optional cl5_opt_list	opt_list				= 2; 
+  required int32 caller_ip = 1;
+  optional cl5_opt_list  opt_list = 2;
 }
 
 // 已经废弃
 message cl5_register_by_id_ack_cmd
 {
-	required int32 caller_ip						= 1;
-	optional cl5_serv_list	serv_list				= 2;
-	optional cl5_sid_list 	sid_list				= 3;
-	optional cl5_ipc_list 	ipc_list				= 4;
+  required int32 caller_ip = 1;
+  optional cl5_serv_list  serv_list = 2;
+  optional cl5_sid_list  sid_list = 3;
+  optional cl5_ipc_list  ipc_list = 4;
 }
 
 // CL5_REGISTER_BY_NAME_CMD 请求包
 message cl5_register_by_name_cmd
 {
-	required int32 caller_ip						= 1;
-	optional cl5_name_list	name_list				= 2; 
+  required int32 caller_ip = 1;
+  optional cl5_name_list  name_list = 2;
 }
 
 // CL5_REGISTER_BY_NAME_ACK_CMD 应答包
 message cl5_register_by_name_ack_cmd
 {
-	required int32 caller_ip						= 1;
-	optional cl5_serv_list	serv_list				= 2;  // 被调信息列表
-	optional cl5_sid_list 	sid_list				= 3;  // sid信息列表
-	optional cl5_ipc_list 	ipc_list				= 4;  // ip信息列表
+  required int32 caller_ip = 1;
+  optional cl5_serv_list  serv_list = 2;  // 被调信息列表
+  optional cl5_sid_list  sid_list = 3;  // sid信息列表
+  optional cl5_ipc_list  ipc_list = 4;  // ip信息列表
 }
 
 // 包格式
 message cl5_pkg
 {
-	required int32	seqno												=1;  // 序列号
-	required int32	cmd													=2;  // 命令字
-	optional int32	result												=3;  // 结果
-	optional string	error												=4;  // 调用
-	optional int32	ip													=5;  // 调用者IP
-	
-	optional cl5_sync_by_agent_cmd 	sync_by_agent_cmd					=10;
-	optional cl5_sync_by_agent_ack_cmd 	sync_by_agent_ack_cmd			=11;
-	optional cl5_register_by_id_cmd 	register_by_id_cmd				=12;
-	optional cl5_register_by_id_ack_cmd 	register_by_id_ack_cmd		=13;
-	optional cl5_register_by_name_cmd 	register_by_name_cmd			=14;
-	optional cl5_register_by_name_ack_cmd 	register_by_name_ack_cmd	=15;
+  required int32  seqno = 1;  // 序列号
+  required int32  cmd = 2;  // 命令字
+  optional int32  result = 3;  // 结果
+  optional string  error = 4;  // 调用
+  optional int32  ip = 5;  // 调用者IP
+
+  optional cl5_sync_by_agent_cmd  sync_by_agent_cmd = 10;
+  optional cl5_sync_by_agent_ack_cmd  sync_by_agent_ack_cmd = 11;
+  optional cl5_register_by_id_cmd  register_by_id_cmd = 12;
+  optional cl5_register_by_id_ack_cmd  register_by_id_ack_cmd = 13;
+  optional cl5_register_by_name_cmd  register_by_name_cmd = 14;
+  optional cl5_register_by_name_ack_cmd  register_by_name_ack_cmd = 15;
 }

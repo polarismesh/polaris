@@ -120,12 +120,50 @@ curl http://127.0.0.1:8090
 
 返回Polaris Server，证明功能正常
 
+### 接入
+
+北极星支持多语言、多框架、多形态（proxyless及proxy）的微服务进行接入。
+
+(1) 主流语言微服务接入可参考：
+
+- [Java语言快速接入样例](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/quickstart-example)
+- [Go语言快速接入样例](https://github.com/polarismesh/polaris-go/tree/main/examples/quickstart)
+- [C++语言快速接入样例](https://github.com/polarismesh/polaris-cpp/tree/main/examples/quickstart)
+
+(2) 基于主流框架开发的微服务接入可参考：
+
+- [Spring Cloud快速接入样例](https://github.com/Tencent/spring-cloud-tencent/tree/main/spring-cloud-tencent-examples)
+- [Spring Boot快速接入样例](https://github.com/polarismesh/spring-boot-polaris/tree/main/spring-boot-polaris-examples/quickstart-example)
+- [gRPC-Go快速接入样例](https://github.com/polarismesh/grpc-go-polaris/tree/main/examples/quickstart)
+- [gRPC-Java快速接入样例](https://github.com/polarismesh/grpc-java-polaris/tree/main/grpc-java-polaris-examples/quickstart-example)
+
+(3) proxy模式的微服务接入可参考：
+
+- [Envoy快速接入样例](https://github.com/polarismesh/examples/tree/main/servicemesh/extended-bookinfo)
+
+更多接入指引可参考：[接入文档](https://polarismesh.cn/zh/doc/快速入门/使用SDK接入.html#使用-sdk%20接入)
+
+## 使用指南
+
+北极星各部分功能的使用方式可参考：[使用指南](https://polarismesh.cn/zh/doc/使用指南/基本原理.html#基本原理)
 
 ## 交流群
 
-扫码下方二维码进入北极星开源社区交流群。
+扫码下方二维码进入北极星开源社区交流群，加群之前有劳点一下 star，一个小小的 star 是对北极星作者们努力建设社区的动力。
+
+北极星社区相关的特性计划、运营活动都会在交流群中进行发布，加群可以保证您不会错过任何一个关于北极星的资讯。
+
+欢迎您在群里提出你在体验或者使用北极星过程中所遇到的疑问，我们会尽快答复。
+
+您可以在群内提出使用中需要改进的地方，我们评审合理性后会接纳并尽快落实。
+
+如果您发现 bug 请及时提 issue，我们会尽快确认并修改。
 
 <img src="https://main.qcloudimg.com/raw/bff4285d70498058caa212805b83a620.jpg" width="30%" height="30%" />
+
+欢迎扫码关注官方账号，北极星相关课程的文章和视频，都会在微信公众号发布，同时我们也将为大家分享最新的实践案例和PolarisMesh的更新动态。
+
+<img src="https://main.qcloudimg.com/raw/e5a51696ae7c01e8bc9097fa0c7e426d.png" width="30%" height="30%" />
 
 ## 参与贡献
 
@@ -133,5 +171,5 @@ curl http://127.0.0.1:8090
 
 详见：[CONTRIBUTING.md](CONTRIBUTING.md)
 
-[腾讯开源激励计划](https://opensource.tencent.com/contribution) 鼓励开发者的参与和贡献，期待你的加入。
+[腾讯开源激励计划](https://opensource.tencent.com/contribution) 鼓励开发者的参与和贡献，期待你的加入。
 

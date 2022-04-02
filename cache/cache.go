@@ -60,12 +60,12 @@ const (
 type Cache interface {
 
 	// initialize
-	//  @param c
-	//  @return error
+	// @param c
+	// @return error
 	initialize(c map[string]interface{}) error
 
 	// update
-	//  @return error
+	// @return error
 	update() error
 
 	// clear

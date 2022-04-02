@@ -66,7 +66,7 @@ func (h *HTTPServer) watchConfigFile(req *restful.Request, rsp *restful.Response
 		zap.String("requestId", requestId),
 		zap.String("client", clientAddr))
 
-	//1. 解析出客户端监听的配置文件列表
+	// 1. 解析出客户端监听的配置文件列表
 	watchConfigFileRequest := &api.ClientWatchConfigFileRequest{}
 	_, err := handler.Parse(watchConfigFileRequest)
 	if err != nil {
@@ -79,14 +79,14 @@ func (h *HTTPServer) watchConfigFile(req *restful.Request, rsp *restful.Response
 	}
 
 	watchFiles := watchConfigFileRequest.WatchFiles
-	//2. 检查客户端是否有版本落后
+	// 2. 检查客户端是否有版本落后
 	response := h.configServer.Service().CheckClientConfigFileByVersion(handler.ParseHeaderContext(), watchFiles)
 	if response.Code.GetValue() != api.DataNoChange {
 		handler.WriteHeaderAndProto(response)
 		return
 	}
 
-	//3. 监听配置变更，hold 请求 30s，30s 内如果有配置发布，则响应请求
+	// 3. 监听配置变更，hold 请求 30s，30s 内如果有配置发布，则响应请求
 	id, _ := uuid.NewUUID()
 	clientId := clientAddr + "@" + id.String()[0:8]
 
@@ -95,7 +95,7 @@ func (h *HTTPServer) watchConfigFile(req *restful.Request, rsp *restful.Response
 
 	h.configServer.ConnManager().AddConn(clientId, watchFiles, finishChan)
 
-	//阻塞等待响应
+	// 阻塞等待响应
 	watchRsp := <-finishChan
 
 	handler.WriteHeaderAndProto(watchRsp)

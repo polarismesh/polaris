@@ -30,9 +30,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
-/**
- * CreateNamespaces 批量创建命名空间
- */
+// CreateNamespaces 批量创建命名空间
 func (s *Server) CreateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
 	if checkError := checkBatchNamespace(req); checkError != nil {
 		return checkError
@@ -47,9 +45,7 @@ func (s *Server) CreateNamespaces(ctx context.Context, req []*api.Namespace) *ap
 	return responses
 }
 
-/**
- * CreateNamespace 创建单个命名空间
- */
+// CreateNamespace 创建单个命名空间
 func (s *Server) CreateNamespace(ctx context.Context, req *api.Namespace) *api.Response {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
@@ -107,9 +103,7 @@ func (s *Server) createNamespaceModel(req *api.Namespace) *model.Namespace {
 	return namespace
 }
 
-/**
- * DeleteNamespaces 批量删除命名空间
- */
+// DeleteNamespaces 批量删除命名空间
 func (s *Server) DeleteNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
 	if checkError := checkBatchNamespace(req); checkError != nil {
 		return checkError
@@ -124,9 +118,7 @@ func (s *Server) DeleteNamespaces(ctx context.Context, req []*api.Namespace) *ap
 	return responses
 }
 
-/**
- * DeleteNamespace 删除单个命名空间
- */
+// DeleteNamespace 删除单个命名空间
 func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.Response {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
@@ -200,9 +192,7 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 	return api.NewNamespaceResponse(api.ExecuteSuccess, req)
 }
 
-/**
- * UpdateNamespaces 批量修改命名空间
- */
+// UpdateNamespaces 批量修改命名空间
 func (s *Server) UpdateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
 	if checkError := checkBatchNamespace(req); checkError != nil {
 		return checkError
@@ -217,9 +207,7 @@ func (s *Server) UpdateNamespaces(ctx context.Context, req []*api.Namespace) *ap
 	return responses
 }
 
-/**
- * UpdateNamespace 修改单个命名空间
- */
+// UpdateNamespace 修改单个命名空间
 func (s *Server) UpdateNamespace(ctx context.Context, req *api.Namespace) *api.Response {
 	// 参数检查
 	if resp := checkReviseNamespace(ctx, req); resp != nil {
@@ -266,9 +254,7 @@ func (s *Server) updateNamespaceAttribute(req *api.Namespace, namespace *model.N
 	}
 }
 
-/**
- * UpdateNamespaceToken 更新命名空间token
- */
+// UpdateNamespaceToken 更新命名空间token
 func (s *Server) UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response {
 	if resp := checkReviseNamespace(ctx, req); resp != nil {
 		return resp
@@ -300,9 +286,7 @@ func (s *Server) UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *
 	return api.NewNamespaceResponse(api.ExecuteSuccess, out)
 }
 
-/**
- * GetNamespaces 查询命名空间
- */
+// GetNamespaces 查询命名空间
 func (s *Server) GetNamespaces(ctx context.Context, query map[string][]string) *api.BatchQueryResponse {
 	filter, offset, limit, checkError := checkGetNamespace(query)
 	if checkError != nil {
@@ -400,9 +384,7 @@ func (s *Server) checkNamespaceAuthority(ctx context.Context, req *api.Namespace
 	return namespace, nil
 }
 
-/*
- * @brief 检查批量请求
- */
+// 检查批量请求
 func checkBatchNamespace(req []*api.Namespace) *api.BatchWriteResponse {
 	if len(req) == 0 {
 		return api.NewBatchWriteResponse(api.EmptyRequest)
@@ -415,9 +397,7 @@ func checkBatchNamespace(req []*api.Namespace) *api.BatchWriteResponse {
 	return nil
 }
 
-/*
- * @brief 检查创建命名空间请求参数
- */
+// 检查创建命名空间请求参数
 func checkCreateNamespace(req *api.Namespace) *api.Response {
 	if req == nil {
 		return api.NewNamespaceResponse(api.EmptyRequest, req)
@@ -430,9 +410,7 @@ func checkCreateNamespace(req *api.Namespace) *api.Response {
 	return nil
 }
 
-/*
- * @brief 检查删除/修改命名空间请求参数
- */
+// 检查删除/修改命名空间请求参数
 func checkReviseNamespace(ctx context.Context, req *api.Namespace) *api.Response {
 	if req == nil {
 		return api.NewNamespaceResponse(api.EmptyRequest, req)
@@ -444,9 +422,7 @@ func checkReviseNamespace(ctx context.Context, req *api.Namespace) *api.Response
 	return nil
 }
 
-/*
- * @brief 检查查询命名空间请求参数
- */
+// 检查查询命名空间请求参数
 func checkGetNamespace(query map[string][]string) (map[string][]string, int, int, *api.BatchQueryResponse) {
 	filter := make(map[string][]string)
 

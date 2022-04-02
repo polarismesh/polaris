@@ -57,10 +57,11 @@ type Bootstrap struct {
 
 // PolarisService polaris-server的自注册配置
 type PolarisService struct {
-	EnableRegister bool       `yaml:"enable_register"`
-	ProbeAddress   string     `yaml:"probe_address"`
-	Isolated       bool       `yaml:"isolated"`
-	Services       []*Service `yaml:"services"`
+	EnableRegister    bool       `yaml:"enable_register"`
+	ProbeAddress      string     `yaml:"probe_address"`
+	Isolated          bool       `yaml:"isolated"`
+	HeartbeatInterval int        `yaml:"heartbeat_interval"`
+	Services          []*Service `yaml:"services"`
 }
 
 // Service 服务的自注册的配置
@@ -83,6 +84,8 @@ const (
 	DefaultPolarisNamespace = "Polaris"
 	// DefaultFilePath default file path
 	DefaultFilePath = "polaris-server.yaml"
+	// DefaultHeartbeatInterval default interval second for heartbeat
+	DefaultHeartbeatInterval = 5
 )
 
 // Load 加载配置

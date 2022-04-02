@@ -35,10 +35,10 @@ const (
 type RoutingConfigCache interface {
 	Cache
 
-	// 根据ServiceID获取路由配置
+	// GetRoutingConfig 根据ServiceID获取路由配置
 	GetRoutingConfig(id string) *model.RoutingConfig
 
-	// 获取路由配置缓存的总个数
+	// GetRoutingConfigCount 获取路由配置缓存的总个数
 	GetRoutingConfigCount() int
 }
 

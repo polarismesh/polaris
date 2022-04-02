@@ -4,7 +4,7 @@
 
 <img src="logo.svg" width="10%" height="10%" />
 
-English | [简体中文](./README-zh.md) 
+English | [简体中文](./README-zh.md)
 
 ---
 
@@ -20,7 +20,8 @@ Visit [website](https://polarismesh.cn) to learn more
 
 ## Introduction
 
-Polaris is a cloud-native service discovery and governance center. It can be used to solve the problem of service connection, fault tolerance, traffic control and secure in distributed and microservice architecture.
+Polaris is a cloud-native service discovery and governance center. It can be used to solve the problem of service
+connection, fault tolerance, traffic control and secure in distributed and microservice architecture.
 
 Functions:
 
@@ -53,11 +54,13 @@ client:
 
 ecosystem:
 
-- [polaris-controller](https://github.com/PolarisMesh/polaris-controller): K8s Controller for Automatic Injection of K8s Service and Polaris Sidecar
+- [polaris-controller](https://github.com/PolarisMesh/polaris-controller): K8s Controller for Automatic Injection of K8s
+  Service and Polaris Sidecar
 - [spring-cloud-polaris](https://github.com/PolarisMesh/spring-cloud-polaris): spring cloud integrates with polaris-java
 - [grpc-java-polaris](https://github.com/PolarisMesh/grpc-java-polaris): grpc-java integrates with polaris-java
 - [grpc-go-polaris](https://github.com/PolarisMesh/grpc-go-polaris): grpc-go integrates with polaris-go
-- [dubbo3/dubbo-go](https://github.com/polarismesh/examples/tree/main/dubbo3/dubbogo): dubbo-go integrates with polaris-go
+- [dubbo3/dubbo-go](https://github.com/polarismesh/examples/tree/main/dubbo3/dubbogo): dubbo-go integrates with
+  polaris-go
 - [nginx-polaris](https://github.com/PolarisMesh/nginx-polaris): nginx integrates with polaris-cpp
 
 others:
@@ -69,9 +72,9 @@ others:
 
 ### Preconditions
 
-#### Prepare database 
+#### Prepare database
 
-Please download and install MySQL, version requirement >=5.7, download available here: 
+Please download and install MySQL, version requirement >=5.7, download available here:
 https://dev.mysql.com/downloads/mysql/5.7.html
 
 #### Import SQL script
@@ -80,7 +83,8 @@ Point Script: ./store/sqldb/scripts/polaris_server.sql, one can import through m
 
 #### Prepare golang compile environment
 
-Polaris server end needs golang compile environment, version number needs >=1.12, download available here: https://golang.org/dl/#featured.
+Polaris server end needs golang compile environment, version number needs >=1.12, download available
+here: https://golang.org/dl/#featured.
 
 ### Build
 
@@ -89,7 +93,7 @@ chmod +x build.sh
 ./build.sh
 ```
 
-After built, one can see 'polaris-server-release_${version}.tar.gz' package from the list. 
+After built, one can see 'polaris-server-release_${version}.tar.gz' package from the list.
 
 ### Installation
 
@@ -100,7 +104,8 @@ Obtain polaris-server-release_${version}.tar.gz, and unzip.
 #### Change polaris configuration
 
 After unzipped, vi polaris-server.yaml, replace DB configuration's variable to real database information
-: ##DB_USER## (database username), ##DB_PWD##（database password）, ##DB_ADDR##（database address）, ##DB_NAME##（database name）
+: ##DB_USER## (database username), ##DB_PWD##（database password）, ##DB_ADDR##（database address）, ##DB_NAME##（database
+name）
 
 #### Execute Installation Script
 
@@ -112,7 +117,7 @@ chmod +x ./tool/*.sh
 ./tool/p.sh
 ```
 
-After all, run ./p.sh, prompt Polaris Server, proof the installation is successful 
+After all, run ./p.sh, prompt Polaris Server, proof the installation is successful
 
 #### Verify installation
 
@@ -120,7 +125,34 @@ After all, run ./p.sh, prompt Polaris Server, proof the installation is successf
 curl http://127.0.0.1:8090
 ```
 
-Return text is 'Polaris Server', proof features run smoothly 
+Return text is 'Polaris Server', proof features run smoothly
+
+## How to access
+
+Polaris supports microservices built with multi-language, multi-framework, multi-mode (proxyless / proxy)  to access。
+
+(1) multi-language access guide：
+
+- [Java QuickStart Example](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/quickstart-example)
+- [Go QuickStart Example](https://github.com/polarismesh/polaris-go/tree/main/examples/quickstart)
+- [C++ QuickStart Example](https://github.com/polarismesh/polaris-cpp/tree/main/examples/quickstart)
+
+(2) multi-framework access guide:
+
+- [Spring Cloud Examples](https://github.com/Tencent/spring-cloud-tencent/tree/main/spring-cloud-tencent-examples)
+- [Spring Boot QuickStart Example](https://github.com/polarismesh/spring-boot-polaris/tree/main/spring-boot-polaris-examples/quickstart-example)
+- [gRPC-Go QuickStart Example](https://github.com/polarismesh/grpc-go-polaris/tree/main/examples/quickstart)
+- [gRPC-Java QuickStart Example](https://github.com/polarismesh/grpc-java-polaris/tree/main/grpc-java-polaris-examples/quickstart-example)
+
+(3) proxy mode access guide：
+
+- [Envoy QuickStart Example](https://github.com/polarismesh/examples/tree/main/servicemesh/extended-bookinfo)
+
+More access guide：[Doc](https://polarismesh.cn/zh/doc/快速入门/使用SDK接入.html#使用-sdk%20接入)
+
+## User manual
+
+Polaris function guide can refer：[Manual](https://polarismesh.cn/zh/doc/使用指南/基本原理.html#基本原理)
 
 ## Chat group
 
@@ -130,7 +162,9 @@ Please scan the QR code to join the chat group.
 
 ## Contribution
 
-If you have good comments or suggestions, please give us Issues or Pull Requests to contribute to  improve the development experience of Polaris Mesh.
+If you have good comments or suggestions, please give us Issues or Pull Requests to contribute to improve the
+development experience of Polaris Mesh.
 <br>see details：[CONTRIBUTING.md](./CONTRIBUTING.md)
 
-[Tencent Open Source Incentive Plan](https://opensource.tencent.com/contribution) encourages developers to participate and contribute. Look forward to your participation.
+[Tencent Open Source Incentive Plan](https://opensource.tencent.com/contribution) encourages developers to participate
+and contribute. Look forward to your participation.

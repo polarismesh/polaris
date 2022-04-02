@@ -24,19 +24,22 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"go.uber.org/zap"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"go.uber.org/zap"
 )
 
 type (
+	// StrategyDetail2Api is the strategy detail to api
 	StrategyDetail2Api func(user *model.StrategyDetail) *api.AuthStrategy
 )
 
 var (
+	// StrategyFilterAttributes is the attributes that can be filtered
 	StrategyFilterAttributes = map[string]int{
 		"id":             1,
 		"name":           1,

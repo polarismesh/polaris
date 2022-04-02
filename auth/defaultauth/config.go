@@ -20,7 +20,6 @@ package defaultauth
 import "errors"
 
 var (
-
 	// AuthOption 鉴权的配置信息
 	AuthOption *AuthConfig = DefaultAuthConfig()
 )

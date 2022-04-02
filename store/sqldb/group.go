@@ -22,24 +22,26 @@ import (
 	"fmt"
 	"time"
 
+	"go.uber.org/zap"
+
 	logger "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 const (
-	// IDAttribute
+	// IDAttribute is the name of the attribute that stores the ID of the object.
 	IDAttribute string = "id"
 
-	// NameAttribute
+	// NameAttribute will be used as the name of the attribute that stores the name of the object.
 	NameAttribute string = "name"
 
-	// FlagAttribute
+	// FlagAttribute will be used as the name of the attribute that stores the flag of the object.
 	FlagAttribute string = "flag"
 
+	// GroupIDAttribute will be used as the name of the attribute that stores the group ID of the object.
 	GroupIDAttribute string = "group_id"
 )
 
@@ -269,7 +271,7 @@ func (u *groupStore) GetGroup(groupId string) (*model.UserGroupDetail, error) {
 	}
 
 	group.UserIds = uids
-	group.TokenEnable = (tokenEnable == 1)
+	group.TokenEnable = tokenEnable == 1
 	group.CreateTime = time.Unix(ctime, 0)
 	group.ModifyTime = time.Unix(mtime, 0)
 
@@ -458,6 +460,7 @@ func (u *groupStore) collectGroupsFromRows(handler QueryHandler, querySql string
 	return groups, nil
 }
 
+// GetGroupsForCache .
 func (u *groupStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*model.UserGroupDetail, error) {
 	tx, err := u.slave.Begin()
 	if err != nil {

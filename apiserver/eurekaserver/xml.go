@@ -27,7 +27,7 @@ import (
 
 const (
 	attributeNotion = `@`
-	//存量的属性前缀
+	// 存量的属性前缀
 	attributeNotionCross = `-`
 )
 

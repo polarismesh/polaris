@@ -15,6 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
+// Package log
 // Once configured, this package intercepts the output of the standard golang "log" package as well as anything
 // sent to the global zap logger (zap.L()).
 package log
@@ -159,7 +160,7 @@ func prepZap(options *Options) ([]zapcore.Core, zapcore.Core, zapcore.WriteSynce
 }
 
 func formatDate(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-	//t = t.UTC() 不用utc时间
+	// t = t.UTC() 不用utc时间
 	year, month, day := t.Date()
 	hour, minute, second := t.Clock()
 	micros := t.Nanosecond() / 1000
@@ -254,6 +255,7 @@ func updateScopes(typeName string, options *Options, cores []zapcore.Core, errSi
 	return nil
 }
 
+// Configure .
 // nolint: staticcheck
 // You typically call this once at process startup.
 // Configure Once this call returns, the logging system is ready to accept data.

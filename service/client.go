@@ -20,15 +20,14 @@ package service
 import (
 	"context"
 
+	"go.uber.org/zap"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"go.uber.org/zap"
 )
 
-/**
- * ReportClient 客户端上报信息
- */
+// ReportClient 客户端上报信息
 func (s *Server) ReportClient(ctx context.Context, req *api.Client) *api.Response {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 	if s.caches == nil {
@@ -58,9 +57,7 @@ func (s *Server) ReportClient(ctx context.Context, req *api.Client) *api.Respons
 	return api.NewClientResponse(api.ExecuteSuccess, out)
 }
 
-/**
- * GetServiceWithCache 根据元数据查询服务
- */
+// GetServiceWithCache 根据元数据查询服务
 func (s *Server) GetServiceWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
 	if s.caches == nil {
 		return api.NewDiscoverServiceResponse(api.ClientAPINotOpen, req)
@@ -99,9 +96,7 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *api.Service) *api
 	return resp
 }
 
-/**
- * @brief 判断请求元数据是否属于服务的元数据
- */
+// checkServiceMetadata 判断请求元数据是否属于服务的元数据
 func checkServiceMetadata(requestMeta map[string]string, service *model.Service, business, namespace string) bool {
 	// if len(service.Meta) == 0 && len(business) == 0 {
 	// 	return false
@@ -126,9 +121,7 @@ func checkServiceMetadata(requestMeta map[string]string, service *model.Service,
 	return true
 }
 
-/**
- * ServiceInstancesCache 根据服务名查询服务实例列表
- */
+// ServiceInstancesCache 根据服务名查询服务实例列表
 func (s *Server) ServiceInstancesCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
 	if req == nil {
 		return api.NewDiscoverInstanceResponse(api.EmptyRequest, req)

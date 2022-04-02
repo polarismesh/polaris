@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+
 	v1 "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
@@ -233,7 +234,7 @@ func TestGetInstancesByServiceID(t *testing.T) {
 		_ = ic.clear()
 		instances1 := genModelInstances("my-services", instances1Count)
 		instances2 := genModelInstances("my-services-a", instances2Count)
-		//instances2 = append(instances2, instances1...)
+		// instances2 = append(instances2, instances1...)
 
 		ret := make(map[string]*model.Instance)
 		for id, instance := range instances1 {

@@ -94,7 +94,7 @@ func (bc *Controller) DeleteInstanceOpen() bool {
 	return bc.deregister != nil
 }
 
-// DeleteInstanceOpen 删除实例是否开启
+// HeartbeatOpen 心跳是否开启
 func (bc *Controller) HeartbeatOpen() bool {
 	return bc.heartbeat != nil
 }
@@ -126,7 +126,7 @@ func (bc *Controller) AsyncDeleteInstance(instance *api.Instance, platformID, pl
 	return future
 }
 
-// AsyncDeleteInstance 异步合并反注册
+// AsyncHeartbeat 异步心跳
 func (bc *Controller) AsyncHeartbeat(instance *api.Instance, healthy bool) *InstanceFuture {
 	future := &InstanceFuture{
 		request: instance,

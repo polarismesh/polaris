@@ -25,6 +25,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
+// CreateRoutingConfigs creates routing configs
 func (svr *serverAuthAbility) CreateRoutingConfigs(ctx context.Context, reqs []*api.Routing) *api.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Create, "CreateRoutingConfigs")
 
@@ -39,6 +40,7 @@ func (svr *serverAuthAbility) CreateRoutingConfigs(ctx context.Context, reqs []*
 	return svr.targetServer.CreateRoutingConfigs(ctx, reqs)
 }
 
+// DeleteRoutingConfigs deletes routing configs
 func (svr *serverAuthAbility) DeleteRoutingConfigs(ctx context.Context, reqs []*api.Routing) *api.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Delete, "DeleteRoutingConfigs")
 
@@ -53,6 +55,7 @@ func (svr *serverAuthAbility) DeleteRoutingConfigs(ctx context.Context, reqs []*
 	return svr.targetServer.DeleteRoutingConfigs(ctx, reqs)
 }
 
+// UpdateRoutingConfigs updates routing configs
 func (svr *serverAuthAbility) UpdateRoutingConfigs(ctx context.Context, reqs []*api.Routing) *api.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Modify, "UpdateRoutingConfigs")
 
@@ -67,6 +70,7 @@ func (svr *serverAuthAbility) UpdateRoutingConfigs(ctx context.Context, reqs []*
 	return svr.targetServer.UpdateRoutingConfigs(ctx, reqs)
 }
 
+// GetRoutingConfigs gets routing configs
 func (svr *serverAuthAbility) GetRoutingConfigs(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, nil, model.Read, "GetRoutingConfigs")
 

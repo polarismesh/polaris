@@ -99,7 +99,7 @@ func (i *Instance) Version() string {
 	return i.Proto.GetVersion().GetValue()
 }
 
-// Priority get priority
+// Priority gets priority
 func (i *Instance) Priority() uint32 {
 	if i.Proto == nil {
 		return 0
@@ -115,7 +115,7 @@ func (i *Instance) Weight() uint32 {
 	return i.Proto.GetWeight().GetValue()
 }
 
-// EnableHealthCheck get enable health check
+// EnableHealthCheck get enables health check
 func (i *Instance) EnableHealthCheck() bool {
 	if i.Proto == nil {
 		return false
@@ -147,7 +147,7 @@ func (i *Instance) Isolate() bool {
 	return i.Proto.GetIsolate().GetValue()
 }
 
-// Location get location
+// Location gets location
 func (i *Instance) Location() *api.Location {
 	if i.Proto == nil {
 		return nil

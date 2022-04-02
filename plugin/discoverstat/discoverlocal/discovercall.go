@@ -63,7 +63,7 @@ func (d *DiscoverCallStatis) log() {
 	}
 
 	var buffer bytes.Buffer
-	for service, time := range d.statis {
+	for service, t := range d.statis {
 		buffer.WriteString("service=")
 		buffer.WriteString(service.name)
 		buffer.WriteString(";")
@@ -71,7 +71,7 @@ func (d *DiscoverCallStatis) log() {
 		buffer.WriteString(service.namespace)
 		buffer.WriteString(";")
 		buffer.WriteString("visitTime=")
-		buffer.WriteString(commontime.Time2String(time))
+		buffer.WriteString(commontime.Time2String(t))
 		buffer.WriteString("\n")
 	}
 

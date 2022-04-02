@@ -25,6 +25,7 @@ import (
 	"reflect"
 
 	"github.com/golang/protobuf/jsonpb"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
@@ -274,8 +275,8 @@ func compareInstance(correctItem *api.Instance, item *api.Instance) bool {
 	correctMeta := correctItem.GetMetadata()
 	correctLogicSet := correctItem.GetLogicSet().GetValue()
 	/*correctCmdbRegion := correctItem.GetLocation().GetRegion().GetValue()
-	correctCmdbZone := correctItem.GetLocation().GetZone().GetValue()
-	correctCmdbCampus := correctItem.GetLocation().GetCampus().GetValue()*/
+	  correctCmdbZone := correctItem.GetLocation().GetZone().GetValue()
+	  correctCmdbCampus := correctItem.GetLocation().GetCampus().GetValue()*/
 
 	id := item.GetId().GetValue()
 	service := item.GetService().GetValue()
@@ -293,8 +294,8 @@ func compareInstance(correctItem *api.Instance, item *api.Instance) bool {
 	meta := item.GetMetadata()
 	logicSet := item.GetLogicSet().GetValue()
 	/*cmdbRegion := item.GetLocation().GetRegion().GetValue()
-	cmdbZone := item.GetLocation().GetZone().GetValue()
-	cmdbCampus := item.GetLocation().GetCampus().GetValue()*/
+	  cmdbZone := item.GetLocation().GetZone().GetValue()
+	  cmdbCampus := item.GetLocation().GetCampus().GetValue()*/
 
 	if correctID == id && correctService == service && correctNamespace == namespace && correctHost == host &&
 		correctPort == port && correctProtocol == protocol && correctVersion == version &&
