@@ -23,9 +23,11 @@ import (
 
 	"github.com/boltdb/bolt"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	logger "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
+	"go.uber.org/zap"
 )
 
 const (
@@ -79,6 +81,12 @@ func (m *boltStore) Initialize(c *store.Config) error {
 		_ = handler.Close()
 		return err
 	}
+
+	if err = m.initAuthStoreData(); err != nil {
+		_ = handler.Close()
+		return err
+	}
+
 	if err = m.initNamingStoreData(); err != nil {
 		_ = handler.Close()
 		return err
@@ -100,16 +108,16 @@ var (
 		"polaris.config":  "e6542db1a2cc846c1866010b40b7f51f",
 	}
 
-	adminUser = &model.User{
-		ID:          "65e4789a6d5b49669adf1e9e8387549c",
-		Name:        "polarisadmin",
+	mainUser = &model.User{
+		ID:          "04ae4ead86e1ecf5811e32a9fbca9bfa",
+		Name:        "polaris",
 		Password:    "$2a$10$5XMjs.oqo4PnpbTGy9dQqewL4eb4yoA7b/6ZKL33IPhFyIxzj4lRy",
 		Owner:       "",
 		Source:      "Polaris",
 		Mobile:      "",
 		Email:       "",
-		Type:        0,
-		Token:       "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=",
+		Type:        20,
+		Token:       "4azbewS+pdXvrMG1PtYV3SrcLxjmYd0IVNaX9oYziQygRnKzjcSbxl+Reg7zYQC1gRrGiLzmMY+w+aCxOYI=",
 		TokenEnable: true,
 		Valid:       true,
 		Comment:     "default polaris admin account",
@@ -117,20 +125,20 @@ var (
 		ModifyTime:  time.Now(),
 	}
 
-	adminDefaultStrategy = &model.StrategyDetail{
+	mainDefaultStrategy = &model.StrategyDetail{
 		ID:      "fbca9bfa04ae4ead86e1ecf5811e32a9",
-		Name:    "(用户) PolarisAdmin的默认策略",
+		Name:    "(用户) polaris的默认策略",
 		Action:  "READ_WRITE",
 		Comment: "default admin",
 		Principals: []model.Principal{
 			{
 				StrategyID:    "fbca9bfa04ae4ead86e1ecf5811e32a9",
-				PrincipalID:   "65e4789a6d5b49669adf1e9e8387549c",
+				PrincipalID:   "04ae4ead86e1ecf5811e32a9fbca9bfa",
 				PrincipalRole: model.PrincipalUser,
 			},
 		},
 		Default: true,
-		Owner:   "65e4789a6d5b49669adf1e9e8387549c",
+		Owner:   "04ae4ead86e1ecf5811e32a9fbca9bfa",
 		Resources: []model.StrategyResource{
 			{
 				StrategyID: "fbca9bfa04ae4ead86e1ecf5811e32a9",
@@ -191,18 +199,37 @@ func (m *boltStore) initNamingStoreData() error {
 }
 
 func (m *boltStore) initAuthStoreData() error {
-	if err := m.handler.Execute(true, func(tx *bolt.Tx) error {
-		// 添加管理主体信息
-		if err := m.addUserMain(tx, adminUser); err != nil {
+	return m.handler.Execute(true, func(tx *bolt.Tx) error {
+		user, err := m.getUser(tx, mainUser.ID)
+		if err != nil {
 			return err
 		}
 
-		// 添加管理员的默认鉴权策略信息
-		return m.addStrategy(tx, adminDefaultStrategy)
-	}); err != nil {
-		return err
-	}
-	return nil
+		if user == nil {
+			user = mainUser
+			// 添加主账户主体信息
+			if err := saveValue(tx, tblUser, user.ID, converToUserStore(user)); err != nil {
+				logger.AuthScope().Error("[Store][User] save user fail", zap.Error(err), zap.String("name", user.Name))
+				return err
+			}
+		}
+
+		rule, err := m.getStrategyDetail(tx, mainDefaultStrategy.ID, true)
+		if err != nil {
+			return err
+		}
+
+		if rule == nil {
+			strategy := mainDefaultStrategy
+			// 添加主账户的默认鉴权策略信息
+			if err := saveValue(tx, tblStrategy, strategy.ID, convertForStrategyStore(strategy)); err != nil {
+				logger.AuthScope().Error("[Store][Strategy] save auth_strategy", zap.Error(err),
+					zap.String("name", strategy.Name), zap.String("owner", strategy.Owner))
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (m *boltStore) newStore() error {
