@@ -34,8 +34,10 @@ import (
 )
 
 var (
+	// ErrorMultipleGroupFound is returned when multiple groups are found.
 	ErrorMultipleGroupFound error = errors.New("multiple group found")
-	ErrorGroupNotFound      error = errors.New("usergroup not found")
+	// ErrorGroupNotFound is returned when a group is not found.
+	ErrorGroupNotFound error = errors.New("usergroup not found")
 )
 
 const (
@@ -238,15 +240,15 @@ func (gs *groupStore) deleteGroup(group *model.UserGroupDetail) error {
 }
 
 // GetGroup get a group
-func (gs *groupStore) GetGroup(groupId string) (*model.UserGroupDetail, error) {
-	if groupId == "" {
+func (gs *groupStore) GetGroup(groupID string) (*model.UserGroupDetail, error) {
+	if groupID == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
-			"get usergroup missing some params, groupId is %s", groupId))
+			"get usergroup missing some params, groupID is %s", groupID))
 	}
 
-	values, err := gs.handler.LoadValues(tblGroup, []string{groupId}, &groupForStore{})
+	values, err := gs.handler.LoadValues(tblGroup, []string{groupID}, &groupForStore{})
 	if err != nil {
-		logger.AuthScope().Error("[Store][Group] get usergroup by id", zap.Error(err), zap.String("id", groupId))
+		logger.AuthScope().Error("[Store][Group] get usergroup by id", zap.Error(err), zap.String("id", groupID))
 		return nil, err
 	}
 
@@ -372,14 +374,12 @@ func (gs *groupStore) listSimpleGroups(filters map[string]string, offset uint32,
 }
 
 // listGroupByUser 查询某个用户下所关联的用户组信息
-func (gs *groupStore) listGroupByUser(filters map[string]string, offset uint32, limit uint32) (uint32,
-	[]*model.UserGroup, error) {
-
+func (gs *groupStore) listGroupByUser(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error) {
 
 	var (
-		userId = filters["user_id"]
-		owner  = filters["owner"]
-		fields = []string{GroupFieldUserIds, GroupFieldOwner, GroupFieldValid}
+		userID            = filters["user_id"]
+		owner, existOwner = filters["owner"]
+		fields            = []string{GroupFieldUserIds, GroupFieldOwner, GroupFieldValid}
 	)
 
 	values, err := gs.handler.LoadValuesByFilter(tblGroup, fields, &groupForStore{},
@@ -406,7 +406,7 @@ func (gs *groupStore) listGroupByUser(filters map[string]string, offset uint32, 
 			}
 
 			saveUserIds := saveVal.(map[string]string)
-			_, exist := saveUserIds[userId]
+			_, exist := saveUserIds[userID]
 
 			if existOwner {
 				return exist || saveOwner == owner
