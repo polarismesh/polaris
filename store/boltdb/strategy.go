@@ -301,7 +301,7 @@ func loadStrategyById(tx *bolt.Tx, id string) (*strategyForStore, error) {
 	}
 
 	if len(values) == 0 {
-		return nil, ErrorStrategyNotFound
+		return nil, nil
 	}
 	if len(values) > 1 {
 		return nil, ErrorMultiDefaultStrategy
@@ -348,12 +348,17 @@ func (ss *strategyStore) GetStrategyDetail(id string, isDefault bool) (*model.St
 
 	defer tx.Rollback()
 
+	return ss.getStrategyDetail(tx, id, isDefault)
+}
+
+// GetStrategyDetail
+func (ss *strategyStore) getStrategyDetail(tx *bolt.Tx, id string, isDefault bool) (*model.StrategyDetail, error) {
 	ret, err := loadStrategyById(tx, id)
 	if err != nil {
 		return nil, err
 	}
 	if ret == nil {
-		return nil, ErrorStrategyNotFound
+		return nil, nil
 	}
 
 	if ret.Default != isDefault {

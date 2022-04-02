@@ -246,5 +246,20 @@ func Test_groupStore_GetGroups(t *testing.T) {
 		if !assert.Equal(t, len(groups), int(total)) {
 			t.Fatal("total != len(groups)")
 		}
+
+		total, ret, err = gs.GetGroups(map[string]string{
+			"owner": "polaris",
+		}, 0, 100)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if !assert.Equal(t, len(groups), len(ret)) {
+			t.Fatal("len(ret) need zero")
+		}
+
+		if !assert.Equal(t, len(groups), int(total)) {
+			t.Fatal("total != len(groups)")
+		}
 	})
 }

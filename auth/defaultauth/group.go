@@ -237,10 +237,10 @@ func parseGroupSearchArgs(ctx context.Context, query map[string]string) (map[str
 
 	// 如果当前不是管理员角色的话，只能查询该用户所关联的用户组列表以及自己创建的用户组
 	if utils.ParseUserRole(ctx) != model.AdminUserRole {
-		if utils.ParseIsOwner(ctx) {
-			searchFilters["owner"] = utils.ParseOwnerID(ctx)
+		if !utils.ParseIsOwner(ctx) {
+			searchFilters["user_id"] = utils.ParseUserID(ctx)
 		}
-		searchFilters["user_id"] = utils.ParseUserID(ctx)
+		searchFilters["owner"] = utils.ParseOwnerID(ctx)
 	}
 
 	return searchFilters, nil

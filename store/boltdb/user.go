@@ -200,8 +200,26 @@ func (us *userStore) GetUser(id string) (*model.User, error) {
 		return nil, store.NewStatusError(store.EmptyParamsErr, "get user missing some params")
 	}
 
-	ret, err := us.handler.LoadValues(tblUser, []string{id}, &userForStore{})
+	proxy, err := us.handler.StartTx()
 	if err != nil {
+		return nil, err
+	}
+	tx := proxy.GetDelegateTx().(*bolt.Tx)
+
+	defer tx.Rollback()
+
+	return us.getUser(tx, id)
+}
+
+// GetUser
+func (us *userStore) getUser(tx *bolt.Tx, id string) (*model.User, error) {
+
+	if id == "" {
+		return nil, store.NewStatusError(store.EmptyParamsErr, "get user missing some params")
+	}
+
+	ret := make(map[string]interface{})
+	if err := loadValues(tx, tblUser, []string{id}, &userForStore{}, ret); err != nil {
 		logger.AuthScope().Error("[Store][User] get user by id", zap.Error(err), zap.String("id", id))
 		return nil, err
 	}
@@ -471,8 +489,8 @@ func (us *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mod
 	ret, err := us.handler.LoadValuesByFilter(tblUser, []string{UserFieldModifyTime}, &userForStore{},
 		func(m map[string]interface{}) bool {
 			mt := m[UserFieldModifyTime].(time.Time)
-			isAfter := mt.After(mtime)
-			return isAfter
+			isBefore := mt.Before(mtime)
+			return !isBefore
 		})
 	if err != nil {
 		logger.AuthScope().Error("[Store][User] get users for cache", zap.Error(err))
