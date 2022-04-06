@@ -19,6 +19,7 @@ package boltdb
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -262,6 +263,8 @@ func (m *boltStore) newStore() error {
 	m.strategyStore = &strategyStore{handler: m.handler}
 
 	m.groupStore = &groupStore{handler: m.handler}
+
+	m.configFileGroupStore = &configFileGroupStore{lock: &sync.Mutex{}, handler: m.handler}
 
 	return nil
 }
