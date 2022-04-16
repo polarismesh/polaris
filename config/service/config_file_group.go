@@ -368,6 +368,7 @@ func transferConfigFileGroupAPIModel2StoreModel(group *api.ConfigFileGroup) *mod
 		Namespace: group.Namespace.GetValue(),
 		Comment:   comment,
 		CreateBy:  createBy,
+		Valid:     true,
 	}
 }
 
