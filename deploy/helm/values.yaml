@@ -3,8 +3,8 @@
 # Declare variables to be passed into your templates.
 
 global:
-  mode: standalone
-#  mode: cluster
+  # mode: standalone
+  mode: cluster
 
 polaris:
   image:

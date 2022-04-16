@@ -30,7 +30,7 @@ func (svr *serverAuthAbility) CreateNamespaces(ctx context.Context, reqs []*api.
 	authCtx := svr.collectNamespaceAuthContext(ctx, reqs, model.Create, "CreateNamespaces")
 
 	// 验证 token 信息
-	if err := svr.authMgn.VerifyToken(authCtx); err != nil {
+	if err := svr.authMgn.VerifyCredential(authCtx); err != nil {
 		return api.NewBatchWriteResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 

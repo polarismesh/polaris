@@ -88,7 +88,6 @@ func (i PrincipalType) String() string {
 	return _PrincipalType_name[_PrincipalType_index[i]:_PrincipalType_index[i+1]]
 }
 
-
 //go:generate stringer -type=PrincipalType
 type PrincipalType int
 
@@ -152,16 +151,14 @@ const (
 type BzModule int16
 
 const (
-
+	// UnknowModule 未知模块
+	UnknowModule BzModule = iota
 	// CoreModule 核心模块
-	CoreModule BzModule = iota
-
+	CoreModule
 	// DiscoverModule 服务模块
 	DiscoverModule
-
 	// ConfigModule 配置模块
 	ConfigModule
-
 	// AuthModule 鉴权模块
 	AuthModule
 )

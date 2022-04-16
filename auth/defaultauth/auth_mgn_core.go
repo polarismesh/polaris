@@ -22,12 +22,11 @@ import (
 	"errors"
 	"strings"
 
-	"go.uber.org/zap"
-
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"go.uber.org/zap"
 )
 
 // IsOpenAuth 返回是否开启了操作鉴权
@@ -44,43 +43,42 @@ func (authMgn *defaultAuthChecker) IsOpenAuth() bool {
 // 	step 3. 拉取token对应的操作者相关信息，注入到请求上下文中
 // 	step 4. 进行权限检查
 func (authMgn *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (bool, error) {
-	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
-
 	if !authMgn.IsOpenAuth() {
 		return true, nil
 	}
 
-	if err := authMgn.VerifyToken(authCtx); err != nil {
-		if errors.Is(err, model.ErrorTokenDisabled) && authCtx.GetOperation() == model.Read {
-			// 当前读操作不处理
-			return true, nil
-		}
+	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
+	if err := authMgn.VerifyCredential(authCtx); err != nil {
 		return false, err
 	}
 
-	// 开启鉴权之后，读操作需要一些鉴权上下文的信息，因此必须要先走完 verifytoken 才可以结束
 	if authCtx.GetOperation() == model.Read {
 		return true, nil
 	}
 
-	tokenInfo := authCtx.GetAttachment()[model.TokenDetailInfoKey].(TokenInfo)
-	strategies, err := authMgn.findStrategies(tokenInfo)
-	// 如果访问的资源，其 owner 找不到对应的用户，则认为是可以被随意操作的资源
-	noResourceNeedCheck := authMgn.removeNoStrategyResources(authCtx)
+	operatorInfo := authCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo)
+	if operatorInfo.Disable {
+		return false, model.ErrorTokenDisabled
+	}
 
+	strategies, err := authMgn.findStrategies(operatorInfo)
 	if err != nil {
 		log.AuthScope().Error("[Auth][Server] find strategies when check permission", utils.ZapRequestID(reqId),
-			zap.Error(err), zap.String("token", tokenInfo.String()))
+			zap.Error(err), zap.Any("token", operatorInfo.String()))
 		return false, err
 	}
 
-	authCtx.GetAttachment()[model.OperatorLinkStrategy] = strategies
+	authCtx.SetAttachment(model.OperatorLinkStrategy, strategies)
 
+	noResourceNeedCheck := authMgn.removeNoStrategyResources(authCtx)
 	if !noResourceNeedCheck && len(strategies) == 0 {
 		log.AuthScope().Error("[Auth][Server]", utils.ZapRequestID(reqId),
 			zap.String("msg", "need check resource is not empty, but strategies is empty"))
-		return false, errors.New(api.Code2Info(api.NotAllowedAccess))
+		return false, errors.New("need check resource is not empty, but strategies is empty")
 	}
+
+	log.AuthScope().Info("[Auth][Server] check permission args", zap.Any("resources", authCtx.GetAccessResources()),
+		zap.Any("strategies", strategies))
 
 	ok, err := authMgn.authPlugin.CheckPermission(authCtx, strategies)
 	if err != nil {
@@ -94,97 +92,137 @@ func (authMgn *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext
 	return ok, err
 }
 
-// verifyToken 对 token 进行检查验证，并将 verify 过程中解析出的数据注入到 model.AcquireContext 中
+func canDowngradeAnonymous(authCtx *model.AcquireContext, err error) bool {
+	if authCtx.GetModule() == model.AuthModule {
+		return false
+	}
+
+	if AuthOption.Strict {
+		return false
+	}
+
+	if errors.Is(err, model.ErrorTokenInvalid) {
+		return true
+	}
+	if errors.Is(err, model.ErrorTokenNotExist) {
+		return true
+	}
+
+	return false
+}
+
+// VerifyCredential 对 token 进行检查验证，并将 verify 过程中解析出的数据注入到 model.AcquireContext 中
 // step 1. 首先对 token 进行解析，获取相关的数据信息，注入到整个的 AcquireContext 中
 // step 2. 最后对 token 进行一些验证步骤的执行
-func (authMgn *defaultAuthChecker) VerifyToken(authCtx *model.AcquireContext) error {
+// step 3. 兜底措施：如果开启了鉴权的非严格模式，则根据错误的类型，判断是否转为匿名用户进行访问
+// 		- 如果不是访问权限控制相关模块（用户、用户组、权限策略），不得转为匿名用户
+func (authMgn *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) error {
 	if !authMgn.IsOpenAuth() && authCtx.GetModule() != model.AuthModule {
 		return nil
 	}
 
-	tokenInfo, err := authMgn.DecodeToken(authCtx.GetToken())
-	if err != nil {
-		log.AuthScope().Error("[Auth][Server] decode token", utils.ZapRequestIDByCtx(authCtx.GetRequestContext()),
-			zap.Error(err))
-		return err
-	}
+	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
 
-	ownerId, isOwner, err := authMgn.checkToken(&tokenInfo)
-	if err != nil {
-		log.AuthScope().Error("[Auth][Server] check token", utils.ZapRequestIDByCtx(authCtx.GetRequestContext()),
-			zap.Error(err))
-		return err
-	}
-
-	ctx := authCtx.GetRequestContext()
-
-	if tokenInfo.IsUserToken {
-		user := authMgn.Cache().User().GetUserByID(tokenInfo.OperatorID)
-		tokenInfo.Role = user.Type
-		ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, user.Type)
-	}
-
-	ctx = context.WithValue(ctx, utils.ContextIsOwnerKey, isOwner)
-	ctx = context.WithValue(ctx, utils.ContextUserIDKey, tokenInfo.OperatorID)
-	ctx = context.WithValue(ctx, utils.ContextOwnerIDKey, ownerId)
-
-	authCtx.GetAttachment()[model.OperatorRoleKey] = tokenInfo.Role
-	authCtx.GetAttachment()[model.OperatorPrincipalType] = func() model.PrincipalType {
-		if tokenInfo.IsUserToken {
-			return model.PrincipalUser
+	checkErr := func() error {
+		operator, err := authMgn.decodeToken(authCtx.GetToken())
+		if err != nil {
+			log.AuthScope().Error("[Auth][Server] decode token", zap.Error(err))
+			return model.ErrorTokenInvalid
 		}
-		return model.PrincipalGroup
+
+		ownerId, isOwner, err := authMgn.checkToken(&operator)
+		if err != nil {
+			log.AuthScope().Error("[Auth][Server] check token", zap.Error(err))
+			return err
+		}
+
+		operator.OwnerID = ownerId
+		ctx := authCtx.GetRequestContext()
+		ctx = context.WithValue(ctx, utils.ContextIsOwnerKey, isOwner)
+		ctx = context.WithValue(ctx, utils.ContextUserIDKey, operator.OperatorID)
+		ctx = context.WithValue(ctx, utils.ContextOwnerIDKey, ownerId)
+		authCtx.SetRequestContext(ctx)
+		authMgn.parseOperatorInfo(operator, authCtx)
+		if operator.Disable {
+			log.AuthScope().Warn("[Auth][Server] token already disabled", utils.ZapRequestID(reqId),
+				zap.Any("token", operator.String()))
+		}
+		return nil
 	}()
-	authCtx.GetAttachment()[model.OperatorIDKey] = tokenInfo.OperatorID
-	authCtx.GetAttachment()[model.OperatorOwnerKey] = ownerId
-	authCtx.GetAttachment()[model.TokenDetailInfoKey] = tokenInfo
 
-	authCtx.SetRequestContext(ctx)
-
-	if tokenInfo.Disable {
-		log.AuthScope().Error("[Auth][Server] token already disabled",
-			utils.ZapRequestIDByCtx(authCtx.GetRequestContext()), zap.String("token", tokenInfo.String()))
-		return model.ErrorTokenDisabled
+	if checkErr != nil {
+		if !canDowngradeAnonymous(authCtx, checkErr) {
+			return checkErr
+		}
+		log.AuthScope().Warn("[Auth][Server] parse operator info, downgrade to anonymous", utils.ZapRequestID(reqId),
+			zap.Error(checkErr))
+		// 操作者信息解析失败，降级为匿名用户
+		authCtx.SetAttachment(model.TokenDetailInfoKey, newAnonymous())
 	}
+
 	return nil
 }
 
-// DecodeToken 解析 token 信息，如果 t == ""，直接返回一个空对象
-func (authMgn *defaultAuthChecker) DecodeToken(t string) (TokenInfo, error) {
+func (authMgn *defaultAuthChecker) parseOperatorInfo(operator OperatorInfo, authCtx *model.AcquireContext) {
+
+	ctx := authCtx.GetRequestContext()
+
+	if operator.IsUserToken {
+		user := authMgn.Cache().User().GetUserByID(operator.OperatorID)
+		operator.Role = user.Type
+		ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, user.Type)
+	}
+
+	authCtx.SetAttachment(model.OperatorRoleKey, operator.Role)
+	authCtx.SetAttachment(model.OperatorPrincipalType, func() model.PrincipalType {
+		if operator.IsUserToken {
+			return model.PrincipalUser
+		}
+		return model.PrincipalGroup
+	}())
+	authCtx.SetAttachment(model.OperatorIDKey, operator.OperatorID)
+	authCtx.SetAttachment(model.OperatorOwnerKey, operator)
+	authCtx.SetAttachment(model.TokenDetailInfoKey, operator)
+
+	authCtx.SetRequestContext(ctx)
+}
+
+// decodeToken 解析 token 信息，如果 t == ""，直接返回一个空对象
+func (authMgn *defaultAuthChecker) decodeToken(t string) (OperatorInfo, error) {
 	if t == "" {
-		return TokenInfo{}, nil
+		return OperatorInfo{}, model.ErrorTokenInvalid
 	}
 
 	ret, err := decryptMessage([]byte(AuthOption.Salt), t)
 	if err != nil {
-		return TokenInfo{}, err
+		return OperatorInfo{}, err
 	}
 	tokenDetails := strings.Split(ret, TokenSplit)
 	if len(tokenDetails) != 2 {
-		return TokenInfo{}, model.ErrorTokenInvalid
+		return OperatorInfo{}, model.ErrorTokenInvalid
 	}
 
 	detail := strings.Split(tokenDetails[1], "/")
 	if len(detail) != 2 {
-		return TokenInfo{}, model.ErrorTokenInvalid
+		return OperatorInfo{}, model.ErrorTokenInvalid
 	}
 
-	tokenInfo := TokenInfo{
+	tokenInfo := OperatorInfo{
 		Origin:      t,
 		IsUserToken: detail[0] == model.TokenForUser,
 		OperatorID:  detail[1],
 		Role:        model.UnknownUserRole,
 	}
 
-	log.AuthScope().Info("[Auth][Server] token detail", zap.String("info", tokenInfo.String()))
+	log.AuthScope().Info("[Auth][Server] token detail", zap.Any("info", tokenInfo.String()))
 
 	return tokenInfo, nil
 }
 
 // checkToken 对 token 进行检查，如果 token 是一个空，直接返回默认值，但是不返回错误
 // return {owner-id} {is-owner} {error}
-func (authMgn *defaultAuthChecker) checkToken(tokenInfo *TokenInfo) (string, bool, error) {
-	if tokenInfo.IsEmpty() {
+func (authMgn *defaultAuthChecker) checkToken(tokenInfo *OperatorInfo) (string, bool, error) {
+	if IsEmptyOperator(*tokenInfo) {
 		return "", false, nil
 	}
 
@@ -244,12 +282,12 @@ func (authMgn *defaultAuthChecker) findStrategiesByUserID(userId string) []*mode
 }
 
 // findStrategies Inquire about TOKEN information, the actual all-associated authentication strategy
-func (authMgn *defaultAuthChecker) findStrategies(tokenInfo TokenInfo) ([]*model.StrategyDetail, error) {
+func (authMgn *defaultAuthChecker) findStrategies(tokenInfo OperatorInfo) ([]*model.StrategyDetail, error) {
 	var (
 		strategies []*model.StrategyDetail
 	)
 
-	if tokenInfo.IsEmpty() {
+	if IsEmptyOperator(tokenInfo) {
 		return make([]*model.StrategyDetail, 0), nil
 	}
 
@@ -317,7 +355,7 @@ func (authMgn *defaultAuthChecker) removeNoStrategyResources(authCtx *model.Acqu
 	}
 
 	if authCtx.GetModule() == model.ConfigModule {
-		// 检查配置空间
+		// 检查配置
 		cfgRes := resources[api.ResourceType_ConfigGroups]
 		newCfgRes := make([]model.ResourceEntry, 0)
 		for index := range cfgRes {
@@ -329,13 +367,13 @@ func (authMgn *defaultAuthChecker) removeNoStrategyResources(authCtx *model.Acqu
 		newAccessRes[api.ResourceType_ConfigGroups] = newCfgRes
 	}
 
-	log.AuthScope().Info("[Auth][Server] remove no link strategy resource", utils.ZapRequestID(reqId),
+	log.AuthScope().Info("[Auth][Server] remove no link strategy final result", utils.ZapRequestID(reqId),
 		zap.Any("resource", newAccessRes))
 
 	authCtx.SetAccessResources(newAccessRes)
 	noResourceNeedCheck := authCtx.IsAccessResourceEmpty()
 	if noResourceNeedCheck {
-		log.AuthScope().Info("[Auth][Server]", utils.ZapRequestID(reqId),
+		log.AuthScope().Debug("[Auth][Server]", utils.ZapRequestID(reqId),
 			zap.String("msg", "need check permission resource is empty"))
 	}
 

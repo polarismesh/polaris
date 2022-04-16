@@ -196,6 +196,19 @@ func (s *strategyStore) deleteStrategy(id string) error {
 	}...); err != nil {
 		return err
 	}
+
+	if _, err = tx.Exec("DELETE FROM auth_strategy_resource WHERE strategy_id = ?", []interface{}{
+		id,
+	}...); err != nil {
+		return err
+	}
+
+	if _, err = tx.Exec("DELETE FROM auth_principal WHERE strategy_id = ?", []interface{}{
+		id,
+	}...); err != nil {
+		return err
+	}
+
 	if err := tx.Commit(); err != nil {
 		logger.StoreScope().Errorf("[Store][Strategy] delete auth_strategy tx commit err: %s", err.Error())
 		return err
@@ -678,7 +691,8 @@ func (s *strategyStore) GetStrategyResources(principalId string,
 	principalRole model.PrincipalType) ([]model.StrategyResource, error) {
 
 	querySql := "SELECT res_id, res_type FROM auth_strategy_resource WHERE strategy_id IN (SELECT DISTINCT " +
-		" strategy_id FROM auth_principal WHERE principal_id = ? AND principal_role = ? )"
+		" ap.strategy_id FROM auth_principal ap join auth_strategy ar ON ap.strategy_id = ar.id WHERE ar.flag = 0 " +
+		" AND ap.principal_id = ? AND ap.principal_role = ? )"
 
 	rows, err := s.master.Query(querySql, principalId, principalRole)
 	if err != nil {

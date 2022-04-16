@@ -30,6 +30,8 @@ type AuthConfig struct {
 	Open bool `json:"open" xml:"open"`
 	// Salt 相关密码、token加密的salt
 	Salt string `json:"salt" xml:"salt"`
+	// Strict 是否启用鉴权的严格模式，即对于没有任何鉴权策略的资源，也必须带上正确的token才能操作, 默认关闭
+	Strict bool `json:"strict"`
 }
 
 // Verify 检查配置是否合法
