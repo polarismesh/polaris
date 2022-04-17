@@ -112,7 +112,12 @@ func (s *Server) GetServiceInstanceRevision(serviceID string, instances []*model
 		return revision, nil
 	}
 
-	data, err := cache.ComputeRevision(serviceID, instances)
+	svc := s.Cache().Service().GetServiceByID(serviceID)
+	if svc == nil {
+		return "", model.ErrorNoService
+	}
+
+	data, err := cache.ComputeRevision(svc.Revision, instances)
 	if err != nil {
 		return "", err
 	}
