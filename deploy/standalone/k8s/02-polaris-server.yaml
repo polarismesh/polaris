@@ -3,6 +3,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: polaris
+  namespace: polaris-system
   labels:
     app: polaris
 spec:
@@ -29,6 +30,7 @@ metadata:
   labels:
     app: polaris
   name: polaris
+  namespace: polaris-system
 spec:
   podManagementPolicy: OrderedReady
   replicas: 1

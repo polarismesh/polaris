@@ -47,6 +47,7 @@ $ helm install ${release_name} .
 部署后可以通过以下命令观察到 pod 正常运行：
 
 ```shell
+$ kubectl get po -n polaris-system
 NAME                                  READY   STATUS    RESTARTS   AGE
 polaris-0                             2/2     Running   0          2m44s
 polaris-prometheus-6cd7cd5fc6-gqtcz   2/2     Running   0          2m44s
@@ -94,6 +95,7 @@ $ helm uninstall `${release_name}`
 |polaris.storage.service.grpcPort      | polaris service 暴露，polaris-server 监听的 grpc 端口|
 |polaris.storage.service.webPort       | polaris service 暴露，polaris-server 监听的 web 端口|
 |monitor.port                          | 客户端上报监控信息的端口|
+|installation.namespace                | 部署polaris组件所在的namespace|
 
 
 

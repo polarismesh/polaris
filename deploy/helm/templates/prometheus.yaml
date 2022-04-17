@@ -3,6 +3,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: polaris-prometheus
+  namespace: {{ .Values.installation.namespace }}
 spec:
   ports:
     - name: polaris-prometheus
@@ -23,6 +24,7 @@ metadata:
   labels:
     app: polaris-prometheus
   name: polaris-prometheus
+  namespace: {{ .Values.installation.namespace }}
 spec:
   progressDeadlineSeconds: 600
   replicas: 1

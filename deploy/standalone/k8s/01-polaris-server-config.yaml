@@ -318,4 +318,4 @@ data:
 kind: ConfigMap
 metadata:
   name: polaris-server-config
-
+  namespace: polaris-system
