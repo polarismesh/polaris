@@ -20,6 +20,7 @@ package boltdb
 import (
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/boltdb/bolt"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -54,6 +55,26 @@ type configFileReleaseHistoryStore struct {
 	handler BoltHandler
 }
 
+func newConfigFileReleaseHistoryStore(handler BoltHandler) (*configFileReleaseHistoryStore, error) {
+	s := &configFileReleaseHistoryStore{handler: handler, id: 0}
+
+	ret, err := handler.LoadValues(tblConfigFileReleaseHistoryID, []string{tblConfigFileReleaseHistoryID}, &IDHolder{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ret) == 0 {
+		return s, err
+	}
+
+	val := ret[tblConfigFileReleaseHistoryID].(*IDHolder)
+
+	s.id = val.ID
+
+	return s, nil
+}
+
 // CreateConfigFileReleaseHistory 创建配置文件发布历史记录
 func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(proxyTx store.Tx,
 	fileReleaseHistory *model.ConfigFileReleaseHistory) error {
@@ -73,7 +94,9 @@ func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(proxyTx 
 	rh.id++
 	fileReleaseHistory.Id = rh.id
 
-	if err := saveValue(tx, tblConfigFileGroupID, tblConfigFileGroupID, rh.id); err != nil {
+	if err := saveValue(tx, tblConfigFileReleaseHistoryID, tblConfigFileReleaseHistoryID, &IDHolder{
+		ID: rh.id,
+	}); err != nil {
 		log.Error("[ConfigFileReleaseHistory] save auto_increment id", zap.Error(err))
 		return err
 	}
@@ -99,13 +122,27 @@ func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespa
 
 	fields := []string{FileHistoryFieldNamespace, FileHistoryFieldGroup, FileHistoryFieldFileName, FileHistoryFieldId}
 
-	hasNs := len(namespace)
+	hasNs := len(namespace) > 0
 	hasEndId := endId > 0
 
 	ret, err := rh.handler.LoadValuesByFilter(tblConfigFileReleaseHistory, fields,
 		&model.ConfigFileReleaseHistory{}, func(m map[string]interface{}) bool {
 
-			return true
+			saveNs, _ := m[FileHistoryFieldNamespace].(string)
+			saveFileGroup, _ := m[FileHistoryFieldGroup].(string)
+			saveFileName, _ := m[FileHistoryFieldFileName].(string)
+			saveID, _ := m[FileHistoryFieldId].(int64)
+
+			if hasNs && strings.Compare(namespace, saveNs) != 0 {
+				return false
+			}
+
+			if hasEndId && endId < uint64(saveID) {
+				return false
+			}
+
+			ret := strings.Contains(saveFileGroup, group) && strings.Contains(saveFileName, fileName)
+			return ret
 		})
 
 	if err != nil {
@@ -119,7 +156,39 @@ func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespa
 func (rh *configFileReleaseHistoryStore) GetLatestConfigFileReleaseHistory(namespace, group,
 	fileName string) (*model.ConfigFileReleaseHistory, error) {
 
-	return nil, nil
+	fields := []string{FileHistoryFieldNamespace, FileHistoryFieldGroup, FileHistoryFieldFileName}
+
+	ret, err := rh.handler.LoadValuesByFilter(tblConfigFileReleaseHistory, fields,
+		&model.ConfigFileReleaseHistory{}, func(m map[string]interface{}) bool {
+
+			saveNs, _ := m[FileHistoryFieldNamespace].(string)
+			saveFileGroup, _ := m[FileHistoryFieldGroup].(string)
+			saveFileName, _ := m[FileHistoryFieldFileName].(string)
+
+			equalNs := strings.Compare(saveNs, namespace) == 0
+			equalGroup := strings.Compare(saveFileGroup, group) == 0
+			equalName := strings.Compare(saveFileName, fileName) == 0
+			return equalNs && equalGroup && equalName
+		})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ret) == 0 {
+		return nil, nil
+	}
+
+	histories := make([]*model.ConfigFileReleaseHistory, 0, len(ret))
+	for k := range ret {
+		histories = append(histories, ret[k].(*model.ConfigFileReleaseHistory))
+	}
+
+	sort.Slice(histories, func(i, j int) bool {
+		return histories[i].Id > histories[j].Id
+	})
+
+	return histories[0], nil
 }
 
 // doConfigFileGroupPage 进行分页
@@ -148,7 +217,7 @@ func doConfigFileHistoryPage(ret map[string]interface{}, offset, limit uint32) [
 	}
 
 	sort.Slice(histories, func(i, j int) bool {
-		return histories[i].ModifyTime.After(histories[j].ModifyTime)
+		return histories[i].Id > histories[j].Id
 	})
 
 	return histories[beginIndex:endIndex]

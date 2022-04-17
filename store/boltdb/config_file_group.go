@@ -56,6 +56,26 @@ type configFileGroupStore struct {
 	handler BoltHandler
 }
 
+func newConfigFileGroupStore(handler BoltHandler) (*configFileGroupStore, error) {
+	s := &configFileGroupStore{handler: handler, id: 0, lock: &sync.Mutex{}}
+
+	ret, err := handler.LoadValues(tblConfigFileGroupID, []string{tblConfigFileGroupID}, &IDHolder{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ret) == 0 {
+		return s, err
+	}
+
+	val := ret[tblConfigFileGroupID].(*IDHolder)
+
+	s.id = val.ID
+
+	return s, nil
+}
+
 // CreateConfigFileGroup 创建配置文件组
 func (fg *configFileGroupStore) CreateConfigFileGroup(fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
 	if fileGroup.Namespace == "" || fileGroup.Name == "" {
@@ -77,7 +97,9 @@ func (fg *configFileGroupStore) createConfigFileGroup(fileGroup *model.ConfigFil
 	fg.id++
 	fileGroup.Id = fg.id
 
-	if err := saveValue(tx, tblConfigFileGroupID, tblConfigFileGroupID, fg.id); err != nil {
+	if err := saveValue(tx, tblConfigFileGroupID, tblConfigFileGroupID, &IDHolder{
+		ID: fg.id,
+	}); err != nil {
 		log.Error("[ConfigFileGroup] save auto_increment id", zap.Error(err))
 		return nil, err
 	}

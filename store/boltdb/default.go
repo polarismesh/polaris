@@ -19,7 +19,6 @@ package boltdb
 
 import (
 	"errors"
-	"sync"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -235,13 +234,15 @@ func (m *boltStore) initAuthStoreData() error {
 }
 
 func (m *boltStore) newStore() error {
+	var err error
+
 	m.l5Store = &l5Store{handler: m.handler}
-	if err := m.l5Store.InitL5Data(); err != nil {
+	if err = m.l5Store.InitL5Data(); err != nil {
 		return err
 	}
 
 	m.namespaceStore = &namespaceStore{handler: m.handler}
-	if err := m.namespaceStore.InitData(); err != nil {
+	if err = m.namespaceStore.InitData(); err != nil {
 		return err
 	}
 	m.businessStore = &businessStore{handler: m.handler}
@@ -264,7 +265,15 @@ func (m *boltStore) newStore() error {
 
 	m.groupStore = &groupStore{handler: m.handler}
 
-	m.configFileGroupStore = &configFileGroupStore{lock: &sync.Mutex{}, handler: m.handler}
+	m.configFileGroupStore, err = newConfigFileGroupStore(m.handler)
+	if err != nil {
+		return err
+	}
+
+	m.configFileReleaseHistoryStore, err = newConfigFileReleaseHistoryStore(m.handler)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
