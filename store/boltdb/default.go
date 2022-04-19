@@ -240,13 +240,28 @@ func (m *boltStore) newStore() error {
 	if err = m.l5Store.InitL5Data(); err != nil {
 		return err
 	}
-
 	m.namespaceStore = &namespaceStore{handler: m.handler}
 	if err = m.namespaceStore.InitData(); err != nil {
 		return err
 	}
 	m.businessStore = &businessStore{handler: m.handler}
+	m.platformStore = &platformStore{handler: m.handler}
 
+
+	if err := m.newDiscoverModuleStore(); err != nil {
+		return err
+	}
+	if err := m.newAuthModuleStore(); err != nil {
+		return err
+	}
+	if err := m.newConfigModuleStore(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *boltStore) newDiscoverModuleStore() error {
 	m.serviceStore = &serviceStore{handler: m.handler}
 
 	m.instanceStore = &instanceStore{handler: m.handler}
@@ -257,13 +272,21 @@ func (m *boltStore) newStore() error {
 
 	m.circuitBreakerStore = &circuitBreakerStore{handler: m.handler}
 
-	m.platformStore = &platformStore{handler: m.handler}
+	return nil
+}
 
+func (m *boltStore) newAuthModuleStore() error {
 	m.userStore = &userStore{handler: m.handler}
 
 	m.strategyStore = &strategyStore{handler: m.handler}
 
 	m.groupStore = &groupStore{handler: m.handler}
+
+	return nil
+}
+
+func (m *boltStore) newConfigModuleStore() error {
+	var err error
 
 	m.configFileGroupStore, err = newConfigFileGroupStore(m.handler)
 	if err != nil {
@@ -271,6 +294,11 @@ func (m *boltStore) newStore() error {
 	}
 
 	m.configFileReleaseHistoryStore, err = newConfigFileReleaseHistoryStore(m.handler)
+	if err != nil {
+		return err
+	}
+
+	m.configFileReleaseStore, err = newConfigFileReleaseStore(m.handler)
 	if err != nil {
 		return err
 	}

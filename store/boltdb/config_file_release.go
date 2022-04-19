@@ -250,10 +250,11 @@ func (cfr *configFileReleaseStore) FindConfigFileReleaseByModifyTimeAfter(modify
 
 	fields := []string{FileReleaseFieldModifyTime}
 
-	ret, err := cfr.handler.LoadValuesByFilter(tblConfigFileRelease, fields, &model.ConfigFileRelease{}, func(m map[string]interface{}) bool {
-		saveMt, _ := m[FileReleaseFieldModifyTime].(time.Time)
-		return saveMt.After(modifyTime)
-	})
+	ret, err := cfr.handler.LoadValuesByFilter(tblConfigFileRelease, fields, &model.ConfigFileRelease{},
+		func(m map[string]interface{}) bool {
+			saveMt, _ := m[FileReleaseFieldModifyTime].(time.Time)
+			return saveMt.After(modifyTime)
+		})
 
 	if err != nil {
 		return nil, err
