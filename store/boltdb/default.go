@@ -288,6 +288,16 @@ func (m *boltStore) newAuthModuleStore() error {
 func (m *boltStore) newConfigModuleStore() error {
 	var err error
 
+	m.configFileStore, err = newConfigFileStore(m.handler)
+	if err != nil {
+		return err
+	}
+
+	m.configFileTagStore, err = newConfigFileTagStore(m.handler)
+	if err != nil {
+		return err
+	}
+
 	m.configFileGroupStore, err = newConfigFileGroupStore(m.handler)
 	if err != nil {
 		return err

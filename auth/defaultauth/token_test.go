@@ -27,8 +27,9 @@ import (
 
 func TestCreateToken(t *testing.T) {
 	AuthOption = DefaultAuthConfig()
+	AuthOption.Salt = "polarishaoweilai"
 
-	uid := "d5b49669adf1e9e8387549c65e4789a6"
+	uid := "65e4789a6d5b49669adf1e9e8387549c"
 	fmt.Printf("uid=%s\n", uid)
 
 	token, err := createToken(uid, "")
@@ -38,7 +39,7 @@ func TestCreateToken(t *testing.T) {
 
 	fmt.Printf("token=%s\n", token)
 
-	password, err := bcrypt.GenerateFromPassword([]byte("polaris"), bcrypt.DefaultCost)
+	password, err := bcrypt.GenerateFromPassword([]byte("j+7VPLIt"), bcrypt.DefaultCost)
 	if err != nil {
 		t.Fatal(err)
 	}

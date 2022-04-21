@@ -75,7 +75,9 @@ func (cs *Impl) RecordConfigFileReleaseHistory(ctx context.Context, fileRelease 
 }
 
 // GetConfigFileReleaseHistory 获取配置文件发布历史记录
-func (cs *Impl) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset, limit uint32, endId uint64) *api.ConfigBatchQueryResponse {
+func (cs *Impl) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset,
+	limit uint32, endId uint64) *api.ConfigBatchQueryResponse {
+
 	if offset < 0 || limit <= 0 || limit > MaxPageSize {
 		return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.InvalidParameter, 0, nil)
 	}
@@ -107,7 +109,9 @@ func (cs *Impl) GetConfigFileReleaseHistory(ctx context.Context, namespace, grou
 }
 
 // GetConfigFileLatestReleaseHistory 获取配置文件最后一次发布记录
-func (cs *Impl) GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group, fileName string) *api.ConfigResponse {
+func (cs *Impl) GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group,
+	fileName string) *api.ConfigResponse {
+
 	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileReleaseHistoryResponse(api.InvalidNamespaceName, nil)
 	}

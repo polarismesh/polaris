@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 /**
  * Tencent is pleased to support the open source community by making Polaris available.
  *

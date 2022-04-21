@@ -50,7 +50,8 @@ func (cfg *AuthConfig) Verify() error {
 // DefaultAuthConfig 返回一个默认的鉴权配置
 func DefaultAuthConfig() *AuthConfig {
 	return &AuthConfig{
-		Open: false,
-		Salt: "polarismesh@2021",
+		Open:   false,
+		Salt:   "polarismesh@2021",
+		Strict: true,
 	}
 }

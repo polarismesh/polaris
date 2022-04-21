@@ -21,6 +21,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/boltdb/bolt"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -31,23 +32,24 @@ import (
 const (
 	tblConfigFileReleaseHistory   string = "ConfigFileReleaseHistory"
 	tblConfigFileReleaseHistoryID string = "ConfigFileReleaseHistoryID"
-	FileHistoryFieldId            string = "Id"
-	FileHistoryFieldName          string = "Name"
-	FileHistoryFieldNamespace     string = "Namespace"
-	FileHistoryFieldGroup         string = "Group"
-	FileHistoryFieldFileName      string = "FileName"
-	FileHistoryFieldFormat        string = "Format"
-	FileHistoryFieldTags          string = "Tags"
-	FileHistoryFieldContent       string = "Content"
-	FileHistoryFieldComment       string = "Comment"
-	FileHistoryFieldMd5           string = "Md5"
-	FileHistoryFieldType          string = "Type"
-	FileHistoryFieldStatus        string = "Status"
-	FileHistoryFieldCreateBy      string = "CreateBy"
-	FileHistoryFieldModifyBy      string = "ModifyBy"
-	FileHistoryFieldCreateTime    string = "CreateTime"
-	FileHistoryFieldModifyTime    string = "ModifyTime"
-	FileHistoryFieldValid         string = "Valid"
+
+	FileHistoryFieldId         string = "Id"
+	FileHistoryFieldName       string = "Name"
+	FileHistoryFieldNamespace  string = "Namespace"
+	FileHistoryFieldGroup      string = "Group"
+	FileHistoryFieldFileName   string = "FileName"
+	FileHistoryFieldFormat     string = "Format"
+	FileHistoryFieldTags       string = "Tags"
+	FileHistoryFieldContent    string = "Content"
+	FileHistoryFieldComment    string = "Comment"
+	FileHistoryFieldMd5        string = "Md5"
+	FileHistoryFieldType       string = "Type"
+	FileHistoryFieldStatus     string = "Status"
+	FileHistoryFieldCreateBy   string = "CreateBy"
+	FileHistoryFieldModifyBy   string = "ModifyBy"
+	FileHistoryFieldCreateTime string = "CreateTime"
+	FileHistoryFieldModifyTime string = "ModifyTime"
+	FileHistoryFieldValid      string = "Valid"
 )
 
 type configFileReleaseHistoryStore struct {
@@ -57,21 +59,15 @@ type configFileReleaseHistoryStore struct {
 
 func newConfigFileReleaseHistoryStore(handler BoltHandler) (*configFileReleaseHistoryStore, error) {
 	s := &configFileReleaseHistoryStore{handler: handler, id: 0}
-
 	ret, err := handler.LoadValues(tblConfigFileReleaseHistoryID, []string{tblConfigFileReleaseHistoryID}, &IDHolder{})
-
 	if err != nil {
 		return nil, err
 	}
-
 	if len(ret) == 0 {
 		return s, err
 	}
-
 	val := ret[tblConfigFileReleaseHistoryID].(*IDHolder)
-
 	s.id = val.ID
-
 	return s, nil
 }
 
@@ -79,41 +75,32 @@ func newConfigFileReleaseHistoryStore(handler BoltHandler) (*configFileReleaseHi
 func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(proxyTx store.Tx,
 	fileReleaseHistory *model.ConfigFileReleaseHistory) error {
 
-	var err error
+	_, err := DoTransactionIfNeed(proxyTx, rh.handler, func(tx *bolt.Tx) ([]interface{}, error) {
+		rh.id++
+		fileReleaseHistory.Id = rh.id
 
-	if proxyTx == nil {
-		proxyTx, err = rh.handler.StartTx()
-		if err != nil {
-			return err
+		if err := saveValue(tx, tblConfigFileReleaseHistoryID, tblConfigFileReleaseHistoryID, &IDHolder{
+			ID: rh.id,
+		}); err != nil {
+			log.Error("[ConfigFileReleaseHistory] save auto_increment id", zap.Error(err))
+			return nil, err
 		}
-	}
 
-	tx := proxyTx.GetDelegateTx().(*bolt.Tx)
-	defer tx.Rollback()
+		key := strconv.FormatUint(rh.id, 10)
 
-	rh.id++
-	fileReleaseHistory.Id = rh.id
+		fileReleaseHistory.Valid = true
+		fileReleaseHistory.CreateTime = time.Now()
+		fileReleaseHistory.ModifyTime = fileReleaseHistory.CreateTime
 
-	if err := saveValue(tx, tblConfigFileReleaseHistoryID, tblConfigFileReleaseHistoryID, &IDHolder{
-		ID: rh.id,
-	}); err != nil {
-		log.Error("[ConfigFileReleaseHistory] save auto_increment id", zap.Error(err))
-		return err
-	}
+		if err := saveValue(tx, tblConfigFileReleaseHistory, key, fileReleaseHistory); err != nil {
+			log.Error("[ConfigFileReleaseHistory] save info", zap.Error(err))
+			return nil, err
+		}
 
-	key := strconv.FormatUint(rh.id, 10)
+		return nil, nil
+	})
 
-	if err := saveValue(tx, tblConfigFileGroup, key, fileReleaseHistory); err != nil {
-		log.Error("[ConfigFileReleaseHistory] save info", zap.Error(err))
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Error("[ConfigFileReleaseHistory] do tx commit", zap.Error(err))
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // QueryConfigFileReleaseHistories 获取配置文件的发布历史记录
@@ -131,13 +118,13 @@ func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespa
 			saveNs, _ := m[FileHistoryFieldNamespace].(string)
 			saveFileGroup, _ := m[FileHistoryFieldGroup].(string)
 			saveFileName, _ := m[FileHistoryFieldFileName].(string)
-			saveID, _ := m[FileHistoryFieldId].(int64)
+			saveID, _ := m[FileHistoryFieldId].(uint64)
 
 			if hasNs && strings.Compare(namespace, saveNs) != 0 {
 				return false
 			}
 
-			if hasEndId && endId < uint64(saveID) {
+			if hasEndId && endId <= uint64(saveID) {
 				return false
 			}
 

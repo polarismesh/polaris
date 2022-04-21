@@ -38,6 +38,8 @@ import (
 type Server struct {
 	storage store.Store
 
+	disableAutoCreateNamespace bool
+
 	caches    *cache.NamingCache
 	authority auth.Authority
 	bc        *batch.Controller

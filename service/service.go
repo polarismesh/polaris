@@ -84,8 +84,10 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 		return checkError
 	}
 
-	if code, err := s.createNamespaceIfAbsent(ctx, req); err != nil {
-		return api.NewServiceResponse(code, req)
+	if !s.disableAutoCreateNamespace {
+		if code, err := s.createNamespaceIfAbsent(ctx, req); err != nil {
+			return api.NewServiceResponse(code, req)
+		}
 	}
 
 	namespaceName := req.GetNamespace().GetValue()

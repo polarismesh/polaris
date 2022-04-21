@@ -28,6 +28,7 @@ import (
 var (
 	TestCacheInitialize = func(ctx context.Context, cacheOpt *Config, storage store.Store, listeners []Listener) error {
 		if err := initialize(ctx, cacheOpt, storage, listeners); err != nil {
+			finishInit = false
 			return err
 		}
 		finishInit = true

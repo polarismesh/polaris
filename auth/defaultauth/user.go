@@ -188,7 +188,7 @@ func (svr *server) UpdateUserPassword(ctx context.Context, req *api.ModifyUserPa
 	if err != nil {
 		log.AuthScope().Error("[Auth][User] compute user update attribute", zap.Error(err),
 			zap.String("user", req.GetId().GetValue()))
-		return api.NewResponse(api.ExecuteException)
+		return api.NewResponseWithMsg(api.ExecuteException, err.Error())
 	}
 
 	if !needUpdate {
@@ -223,9 +223,10 @@ func (svr *server) DeleteUsers(ctx context.Context, reqs []*api.User) *api.Batch
 }
 
 // DeleteUser 删除用户
-// Case 1. 删除主账户. 主账户不能自己删除自己
-// Case 2. 主账户角色下，只能删除自己创建的子账户
-// Case 3. 超级账户角色下，可以删除任意账户
+// Case 1. 删除主账户，主账户不能自己删除自己
+// Case 2. 删除主账户，如果主账户下还存在子账户，必须先删除子账户，才能删除主账户
+// Case 3. 主账户角色下，只能删除自己创建的子账户
+// Case 4. 超级账户角色下，可以删除任意账户
 func (svr *server) DeleteUser(ctx context.Context, req *api.User) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 
@@ -591,7 +592,7 @@ func updateUserPasswordAttribute(isAdmin bool, user *model.User, req *api.Modify
 
 		err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.GetOldPassword().GetValue()))
 		if err != nil {
-			return nil, false, err
+			return nil, false, errors.New("original password match failed")
 		}
 	}
 

@@ -49,7 +49,7 @@ const (
 )
 
 var (
-	MultipleConfigFileReleaseFound error = errors.New("multiple config_file_release found")
+	ErrMultipleConfigFileReleaseFound error = errors.New("multiple config_file_release found")
 )
 
 type configFileReleaseStore struct {
@@ -59,124 +59,157 @@ type configFileReleaseStore struct {
 
 func newConfigFileReleaseStore(handler BoltHandler) (*configFileReleaseStore, error) {
 	s := &configFileReleaseStore{handler: handler, id: 0}
-
 	ret, err := handler.LoadValues(tblConfigFileReleaseID, []string{tblConfigFileReleaseID}, &IDHolder{})
+	if err != nil {
+		return nil, err
+	}
+	if len(ret) == 0 {
+		return s, nil
+	}
+	val := ret[tblConfigFileReleaseID].(*IDHolder)
+	s.id = val.ID
+	return s, nil
+}
+
+// CreateConfigFileRelease 新建配置文件发布
+func (cfr *configFileReleaseStore) CreateConfigFileRelease(proxyTx store.Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
+	ret, err := DoTransactionIfNeed(proxyTx, cfr.handler, func(tx *bolt.Tx) ([]interface{}, error) {
+		cfr.id++
+		fileRelease.Id = cfr.id
+		fileRelease.Valid = true
+
+		if err := saveValue(tx, tblConfigFileReleaseID, tblConfigFileReleaseID, &IDHolder{
+			ID: cfr.id,
+		}); err != nil {
+			log.Error("[ConfigFileRelease] save auto_increment id", zap.Error(err))
+			return nil, err
+		}
+
+		key := fmt.Sprintf("%s@@%s@@%s", fileRelease.Namespace, fileRelease.Group, fileRelease.FileName)
+		if err := saveValue(tx, tblConfigFileRelease, key, fileRelease); err != nil {
+			log.Error("[ConfigFileRelease] save info", zap.Error(err))
+			return nil, err
+		}
+
+		data, err := cfr.getConfigFileReleaseByFlag(tx, fileRelease.Namespace, fileRelease.Group, fileRelease.FileName, false)
+		if err != nil {
+			return nil, err
+		}
+
+		if data == nil {
+			return nil, nil
+		}
+
+		return []interface{}{data}, nil
+	})
 
 	if err != nil {
 		return nil, err
 	}
 
 	if len(ret) == 0 {
-		return s, nil
+		return nil, nil
 	}
 
-	val := ret[tblConfigFileReleaseID].(*IDHolder)
-
-	s.id = val.ID
-
-	return s, nil
-}
-
-// CreateConfigFileRelease 新建配置文件发布
-func (cfr *configFileReleaseStore) CreateConfigFileRelease(proxyTx store.Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
-	var err error
-
-	if proxyTx == nil {
-		proxyTx, err = cfr.handler.StartTx()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	tx := proxyTx.GetDelegateTx().(*bolt.Tx)
-	defer tx.Rollback()
-
-	cfr.id++
-	fileRelease.Id = cfr.id
-	fileRelease.Valid = true
-
-	if err := saveValue(tx, tblConfigFileReleaseID, tblConfigFileReleaseID, &IDHolder{
-		ID: cfr.id,
-	}); err != nil {
-		log.Error("[ConfigFileRelease] save auto_increment id", zap.Error(err))
-		return nil, err
-	}
-
-	key := fmt.Sprintf("%s@@%s@@%s", fileRelease.Namespace, fileRelease.Group, fileRelease.FileName)
-	if err := saveValue(tx, tblConfigFileRelease, key, fileRelease); err != nil {
-		log.Error("[ConfigFileRelease] save info", zap.Error(err))
-		return nil, err
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Error("[ConfigFileRelease] create do tx commit", zap.Error(err))
-		return nil, err
-	}
-	return cfr.GetConfigFileRelease(proxyTx, fileRelease.Namespace, fileRelease.Group, fileRelease.FileName)
+	return ret[0].(*model.ConfigFileRelease), nil
 }
 
 // UpdateConfigFileRelease 更新配置文件发布
 func (cfr *configFileReleaseStore) UpdateConfigFileRelease(proxyTx store.Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
-	var err error
-	if proxyTx == nil {
-		proxyTx, err = cfr.handler.StartTx()
+	ret, err := DoTransactionIfNeed(proxyTx, cfr.handler, func(tx *bolt.Tx) ([]interface{}, error) {
+		properties := make(map[string]interface{})
+
+		properties[FileReleaseFieldName] = fileRelease.Name
+		properties[FileReleaseFieldContent] = fileRelease.Content
+		properties[FileReleaseFieldComment] = fileRelease.Comment
+		properties[FileReleaseFieldMd5] = fileRelease.Md5
+		properties[FileReleaseFieldVersion] = fileRelease.Version
+		properties[FileReleaseFieldValid] = true
+		properties[FileReleaseFieldFlag] = 0
+		properties[FileReleaseFieldModifyTime] = time.Now()
+		properties[FileReleaseFieldModifyBy] = fileRelease.ModifyBy
+
+		key := fmt.Sprintf("%s@@%s@@%s", fileRelease.Namespace, fileRelease.Group, fileRelease.FileName)
+		if err := updateValue(tx, tblConfigFileRelease, key, properties); err != nil {
+			log.Error("[ConfigFileRelease] update info", zap.Error(err))
+			return nil, err
+		}
+
+		data, err := cfr.getConfigFileReleaseByFlag(tx, fileRelease.Namespace, fileRelease.Group, fileRelease.FileName, false)
 		if err != nil {
 			return nil, err
 		}
-	}
 
-	tx := proxyTx.GetDelegateTx().(*bolt.Tx)
-	defer tx.Rollback()
+		if data == nil {
+			return nil, nil
+		}
 
-	properties := make(map[string]interface{})
+		return []interface{}{data}, nil
+	})
 
-	properties[FileReleaseFieldName] = fileRelease.Name
-	properties[FileReleaseFieldContent] = fileRelease.Content
-	properties[FileReleaseFieldComment] = fileRelease.Comment
-	properties[FileReleaseFieldMd5] = fileRelease.Md5
-	properties[FileReleaseFieldVersion] = fileRelease.Version
-	properties[FileReleaseFieldValid] = true
-	properties[FileReleaseFieldFlag] = 0
-	properties[FileReleaseFieldModifyTime] = time.Now()
-	properties[FileReleaseFieldModifyBy] = fileRelease.ModifyBy
-
-	key := fmt.Sprintf("%s@@%s@@%s", fileRelease.Namespace, fileRelease.Group, fileRelease.FileName)
-	if err := updateValue(tx, tblConfigFileRelease, key, properties); err != nil {
-		log.Error("[ConfigFileRelease] update info", zap.Error(err))
+	if err != nil {
 		return nil, err
 	}
 
-	if err := tx.Commit(); err != nil {
-		log.Error("[ConfigFileRelease] update do tx commit", zap.Error(err))
-		return nil, err
+	if len(ret) == 0 {
+		return nil, nil
 	}
 
-	return cfr.GetConfigFileRelease(proxyTx, fileRelease.Namespace, fileRelease.Group, fileRelease.FileName)
+	return ret[0].(*model.ConfigFileRelease), nil
 }
 
 // GetConfigFileRelease 获取配置文件发布，只返回 flag=0 的记录
-func (cfr *configFileReleaseStore) GetConfigFileRelease(tx store.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
-	return cfr.getConfigFileReleaseByFlag(tx, namespace, group, fileName, false)
-}
-
-// GetConfigFileReleaseWithAllFlag 获取所有发布数据，包含删除的
-func (cfr *configFileReleaseStore) GetConfigFileReleaseWithAllFlag(tx store.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
-	return cfr.getConfigFileReleaseByFlag(tx, namespace, group, fileName, true)
-}
-
-// getConfigFileReleaseByFlag 通过 flag 获取发布数据
-func (cfr *configFileReleaseStore) getConfigFileReleaseByFlag(proxyTx store.Tx, namespace, group, fileName string, withAllFlag bool) (*model.ConfigFileRelease, error) {
-	var err error
-	if proxyTx == nil {
-		proxyTx, err = cfr.handler.StartTx()
+func (cfr *configFileReleaseStore) GetConfigFileRelease(proxyTx store.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
+	ret, err := DoTransactionIfNeed(proxyTx, cfr.handler, func(tx *bolt.Tx) ([]interface{}, error) {
+		data, err := cfr.getConfigFileReleaseByFlag(tx, namespace, group, fileName, false)
 		if err != nil {
 			return nil, err
 		}
+
+		if data == nil {
+			return nil, nil
+		}
+
+		return []interface{}{data}, nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	tx := proxyTx.GetDelegateTx().(*bolt.Tx)
-	defer tx.Rollback()
+	if len(ret) == 0 {
+		return nil, nil
+	}
 
+	return ret[0].(*model.ConfigFileRelease), nil
+}
+
+// GetConfigFileReleaseWithAllFlag 获取所有发布数据，包含删除的
+func (cfr *configFileReleaseStore) GetConfigFileReleaseWithAllFlag(proxyTx store.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
+	ret, err := DoTransactionIfNeed(proxyTx, cfr.handler, func(tx *bolt.Tx) ([]interface{}, error) {
+		data, err := cfr.getConfigFileReleaseByFlag(tx, namespace, group, fileName, true)
+		if err != nil {
+			return nil, err
+		}
+
+		if data == nil {
+			return nil, nil
+		}
+
+		return []interface{}{data}, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ret) == 0 {
+		return nil, nil
+	}
+
+	return ret[0].(*model.ConfigFileRelease), nil
+}
+
+// getConfigFileReleaseByFlag 通过 flag 获取发布数据
+func (cfr *configFileReleaseStore) getConfigFileReleaseByFlag(tx *bolt.Tx, namespace, group, fileName string, withAllFlag bool) (*model.ConfigFileRelease, error) {
 	key := fmt.Sprintf("%s@@%s@@%s", namespace, group, fileName)
 
 	ret := make(map[string]interface{})
@@ -189,7 +222,7 @@ func (cfr *configFileReleaseStore) getConfigFileReleaseByFlag(proxyTx store.Tx, 
 		return nil, nil
 	}
 	if len(ret) > 1 {
-		return nil, MultipleConfigFileReleaseFound
+		return nil, ErrMultipleConfigFileReleaseFound
 	}
 
 	var release *model.ConfigFileRelease
@@ -206,43 +239,31 @@ func (cfr *configFileReleaseStore) getConfigFileReleaseByFlag(proxyTx store.Tx, 
 
 // DeleteConfigFileRelease 删除发布数据
 func (cfr *configFileReleaseStore) DeleteConfigFileRelease(proxyTx store.Tx, namespace, group, fileName, deleteBy string) error {
-	var err error
-	if proxyTx == nil {
-		proxyTx, err = cfr.handler.StartTx()
+	_, err := DoTransactionIfNeed(proxyTx, cfr.handler, func(tx *bolt.Tx) ([]interface{}, error) {
+		release, err := cfr.getConfigFileReleaseByFlag(tx, namespace, group, fileName, false)
 		if err != nil {
-			return err
+			return nil, err
 		}
-	}
 
-	tx := proxyTx.GetDelegateTx().(*bolt.Tx)
-	defer tx.Rollback()
+		properties := make(map[string]interface{})
 
-	release, err := cfr.getConfigFileReleaseByFlag(proxyTx, namespace, group, fileName, false)
-	if err != nil {
-		return err
-	}
+		properties[FileReleaseFieldMd5] = ""
+		properties[FileReleaseFieldVersion] = release.Version + 1
+		properties[FileReleaseFieldValid] = false
+		properties[FileReleaseFieldFlag] = 1
+		properties[FileReleaseFieldModifyTime] = time.Now()
+		properties[FileReleaseFieldModifyBy] = deleteBy
 
-	properties := make(map[string]interface{})
+		key := fmt.Sprintf("%s@@%s@@%s", namespace, group, fileName)
+		if err := updateValue(tx, tblConfigFileRelease, key, properties); err != nil {
+			log.Error("[ConfigFileRelease] delete info", zap.Error(err))
+			return nil, err
+		}
 
-	properties[FileReleaseFieldMd5] = ""
-	properties[FileReleaseFieldVersion] = release.Version + 1
-	properties[FileReleaseFieldValid] = false
-	properties[FileReleaseFieldFlag] = 1
-	properties[FileReleaseFieldModifyTime] = time.Now()
-	properties[FileReleaseFieldModifyBy] = deleteBy
+		return nil, nil
+	})
 
-	key := fmt.Sprintf("%s@@%s@@%s", namespace, group, fileName)
-	if err := updateValue(tx, tblConfigFileRelease, key, properties); err != nil {
-		log.Error("[ConfigFileRelease] delete info", zap.Error(err))
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Error("[ConfigFileRelease] delete do tx commit", zap.Error(err))
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // FindConfigFileReleaseByModifyTimeAfter 获取最后更新时间大于某个时间点的发布，注意包含 flag = 1 的，为了能够获取被删除的 release

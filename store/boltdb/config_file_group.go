@@ -47,7 +47,7 @@ const (
 )
 
 var (
-	MultipleConfigFileGroupFound error = errors.New("multiple config_file_group found")
+	ErrMultipleConfigFileGroupFound error = errors.New("multiple config_file_group found")
 )
 
 type configFileGroupStore struct {
@@ -96,6 +96,9 @@ func (fg *configFileGroupStore) createConfigFileGroup(fileGroup *model.ConfigFil
 
 	fg.id++
 	fileGroup.Id = fg.id
+	fileGroup.Valid = true
+	fileGroup.CreateTime = time.Now()
+	fileGroup.ModifyTime = fileGroup.CreateTime
 
 	if err := saveValue(tx, tblConfigFileGroupID, tblConfigFileGroupID, &IDHolder{
 		ID: fg.id,
@@ -134,7 +137,7 @@ func (fg *configFileGroupStore) GetConfigFileGroup(namespace, name string) (*mod
 	}
 
 	if len(ret) > 1 {
-		return nil, MultipleConfigFileGroupFound
+		return nil, ErrMultipleConfigFileGroupFound
 	}
 	if len(ret) == 0 {
 		return nil, nil
@@ -148,6 +151,10 @@ func (fg *configFileGroupStore) GetConfigFileGroup(namespace, name string) (*mod
 		}
 	}
 
+	if !cfg.Valid {
+		return nil, nil
+	}
+
 	return cfg, nil
 }
 
@@ -158,6 +165,7 @@ func (fg *configFileGroupStore) QueryConfigFileGroups(namespace, name string, of
 	fields := []string{FileGroupFieldNamespace, FileGroupFieldName, FileGroupFieldValid}
 
 	hasNs := len(namespace) != 0
+	hasName := len(name) != 0
 
 	ret, err := fg.handler.LoadValuesByFilter(tblConfigFileGroup, fields, &model.ConfigFileGroup{},
 		func(m map[string]interface{}) bool {
@@ -173,13 +181,15 @@ func (fg *configFileGroupStore) QueryConfigFileGroups(namespace, name string, of
 				return false
 			}
 
-			if utils.IsWildName(name) {
-				if !strings.Contains(saveName, name[:len(name)-1]) {
-					return false
-				}
-			} else {
-				if saveName != name {
-					return false
+			if hasName {
+				if utils.IsWildName(name) {
+					if !strings.Contains(saveName, name[:len(name)-1]) {
+						return false
+					}
+				} else {
+					if saveName != name {
+						return false
+					}
 				}
 			}
 

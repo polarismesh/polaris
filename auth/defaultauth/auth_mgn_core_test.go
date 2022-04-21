@@ -107,6 +107,8 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 	t.Run("子账户在Token被禁用情况下", func(t *testing.T) {
 		reset(false)
 		users[1].TokenEnable = false
+		// 让 cache 可以刷新到
+		time.Sleep(time.Second)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(context.Background()),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
