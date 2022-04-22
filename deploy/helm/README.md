@@ -48,6 +48,7 @@ $ helm install ${release_name} .
 After deployment, the pod can be observed to run normally with the following command:
 
 ```shell
+$ kubectl get po -n polaris-system
 NAME                                  READY   STATUS    RESTARTS   AGE
 polaris-0                             2/2     Running   0          2m44s
 polaris-prometheus-6cd7cd5fc6-gqtcz   2/2     Running   0          2m44s
@@ -95,3 +96,4 @@ The currently supported configurations are as follows:
 |polaris.storage.service.grpcPort      | polaris service expose, polaris-server listening grpc port number|
 |polaris.storage.service.webPort       | polaris service expose, polaris-server listening web  port number|
 |monitor.port                          | The port through which the client reports monitoring information|
+|installation.namespace                | namespace for polaris installation|

@@ -44,3 +44,6 @@ service:
 
 monitor:
   port: 9091
+
+installation:
+  namespace: polaris-system

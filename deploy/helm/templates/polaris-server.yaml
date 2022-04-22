@@ -3,6 +3,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: polaris
+  namespace: {{ .Values.installation.namespace }}
   labels:
     app: polaris
 spec:
@@ -35,6 +36,7 @@ metadata:
   labels:
     app: polaris
   name: polaris
+  namespace: {{ .Values.installation.namespace }}
 spec:
   podManagementPolicy: OrderedReady
   {{- if eq .Values.global.mode "cluster" }}
