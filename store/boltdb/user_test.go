@@ -310,14 +310,26 @@ func Test_userStore_GetUsers(t *testing.T) {
 
 		total, ret, err = us.GetUsers(map[string]string{
 			"hide_admin": "true",
-		}, 0, 2)
+		}, 0, 1000)
 
-		if !assert.Equal(t, 0, len(ret)) {
-			t.Fatal("len(ret) need to zero")
+		if !assert.Equal(t, 10, len(ret)) {
+			t.Fatal("len(ret) not equal 10")
 		}
 
-		if !assert.Equal(t, 0, int(total)) {
-			t.Fatal("total != 0")
+		if !assert.Equal(t, 10, int(total)) {
+			t.Fatal("total != 10")
+		}
+
+		total, ret, err = us.GetUsers(map[string]string{
+			"hide_admin": "false",
+		}, 0, 1000)
+
+		if !assert.Equal(t, 11, len(ret)) {
+			t.Fatal("len(ret) not equal 11")
+		}
+
+		if !assert.Equal(t, 11, int(total)) {
+			t.Fatal("total != 11")
 		}
 	})
 }

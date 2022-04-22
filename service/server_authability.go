@@ -288,6 +288,7 @@ func (svr *serverAuthAbility) queryServiceAliasResource(
 }
 
 // queryInstanceResource 根据所给的 instances 信息，收集对应的 ResourceEntry 列表
+// 由于实例是注册到服务下的，因此只需要判断，是否有对应服务的权限即可
 func (svr *serverAuthAbility) queryInstanceResource(
 	req []*api.Instance) map[api.ResourceType][]model.ResourceEntry {
 	if len(req) == 0 {
@@ -300,7 +301,6 @@ func (svr *serverAuthAbility) queryInstanceResource(
 	for index := range req {
 		item := req[index]
 		if item.Namespace.GetValue() != "" && item.Service.GetValue() != "" {
-			names.Add(req[index].Namespace.GetValue())
 			svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
 				req[index].Namespace.GetValue())
 			if svc != nil {
@@ -311,7 +311,6 @@ func (svr *serverAuthAbility) queryInstanceResource(
 			if ins != nil {
 				svc := svr.Cache().Service().GetServiceByID(ins.ServiceID)
 				if svc != nil {
-					names.Add(svc.Namespace)
 					svcSet.Add(svc)
 				}
 			}
@@ -334,7 +333,6 @@ func (svr *serverAuthAbility) queryCircuitBreakerResource(
 	svcSet := utils.NewServiceSet()
 
 	for index := range req {
-		names.Add(req[index].Namespace.GetValue())
 		svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
 			req[index].Namespace.GetValue())
 		if svc != nil {
@@ -357,7 +355,6 @@ func (svr *serverAuthAbility) queryCircuitBreakerReleaseResource(
 	svcSet := utils.NewServiceSet()
 
 	for index := range req {
-		names.Add(req[index].Service.Namespace.GetValue())
 		svc := svr.Cache().Service().GetServiceByName(req[index].Service.Name.GetValue(),
 			req[index].Service.Namespace.GetValue())
 		if svc != nil {
@@ -381,7 +378,6 @@ func (svr *serverAuthAbility) queryRouteRuleResource(
 	svcSet := utils.NewServiceSet()
 
 	for index := range req {
-		names.Add(req[index].Namespace.GetValue())
 		svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
 			req[index].Namespace.GetValue())
 		if svc != nil {
@@ -405,7 +401,6 @@ func (svr *serverAuthAbility) queryRateLimitConfigResource(
 	svcSet := utils.NewServiceSet()
 
 	for index := range req {
-		names.Add(req[index].Namespace.GetValue())
 		svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
 			req[index].Namespace.GetValue())
 		if svc != nil {

@@ -167,10 +167,10 @@ auth:
   # 鉴权插件
   name: defaultAuth
   option:
-    # token 加密的 salt
+    # token 加密的 salt，鉴权解析 token 时需要依靠这个 salt 去解密 token 的信息
     salt: polarismesh@2021
-    # 鉴权能力开关
-    open: ##AUTH_OPEN##
+    # 鉴权能力开关, 默认关闭
+    open: false
 naming:
   auth:
     open: false

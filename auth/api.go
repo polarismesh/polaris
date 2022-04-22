@@ -60,7 +60,7 @@ type AuthChecker interface {
 	Initialize(options *Config, cacheMgn *cache.NamingCache) error
 
 	// VerifyToken 验证令牌
-	VerifyToken(preCtx *model.AcquireContext) error
+	VerifyCredential(preCtx *model.AcquireContext) error
 
 	// CheckPermission 执行检查动作判断是否有权限，并且将 RequestContext 进行插入一些新的数据
 	CheckPermission(preCtx *model.AcquireContext) (bool, error)

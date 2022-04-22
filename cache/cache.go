@@ -336,6 +336,11 @@ func (nc *NamingCache) Namespace() NamespaceCache {
 	return nc.caches[CacheNamespace].(NamespaceCache)
 }
 
+// GetStore get store
+func (nc *NamingCache) GetStore() store.Store {
+	return nc.storage
+}
+
 // ComputeRevision 计算唯一的版本标识
 func ComputeRevision(serviceRevision string, instances []*model.Instance) (string, error) {
 	h := sha1.New()

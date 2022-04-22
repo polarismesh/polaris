@@ -42,6 +42,7 @@ import (
 	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/token"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/store"
+	_ "github.com/polarismesh/polaris-server/store/boltdb"
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
 )
 

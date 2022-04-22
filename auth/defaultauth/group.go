@@ -63,7 +63,7 @@ func (svr *server) CreateGroup(ctx context.Context, req *api.UserGroup) *api.Res
 	}
 
 	// 根据 owner + groupname 确定唯一的用户组信息
-	group, err := svr.storage.GetUserByName(req.Name.GetValue(), ownerID)
+	group, err := svr.storage.GetGroupByName(req.Name.GetValue(), ownerID)
 	if err != nil {
 		log.AuthScope().Error("get group when create", utils.ZapRequestID(requestID),
 			utils.ZapPlatformID(platformID), zap.Error(err))

@@ -27,12 +27,11 @@ import (
 	"io"
 
 	"github.com/google/uuid"
-
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
-// TokenInfo 根据 token 解析出来的具体额外信息
-type TokenInfo struct {
+// OperatorInfo 根据 token 解析出来的具体额外信息
+type OperatorInfo struct {
 
 	// Origin 原始 token 字符串
 	Origin string
@@ -51,20 +50,31 @@ type TokenInfo struct {
 
 	// Disable 标识用户 token 是否被禁用
 	Disable bool
+
+	// 是否属于匿名操作者
+	Anonymous bool
+}
+
+func newAnonymous() OperatorInfo {
+	return OperatorInfo{
+		Origin:     "",
+		OwnerID:    "",
+		OperatorID: "__anonymous__",
+		Anonymous:  true,
+	}
+}
+
+// IsEmptyOperator token 是否是一个空类型
+func IsEmptyOperator(t OperatorInfo) bool {
+	return t.Origin == "" || t.Anonymous
 }
 
 // IsSubAccount 当前 token 对应的账户类型
-func (t TokenInfo) IsSubAccount() bool {
+func IsSubAccount(t OperatorInfo) bool {
 	return t.Role == model.SubAccountUserRole
 }
 
-// IsEmpty token 是否是一个空类型
-func (t TokenInfo) IsEmpty() bool {
-	return t.Origin == ""
-}
-
-// String token 字符串
-func (t TokenInfo) String() string {
+func (t *OperatorInfo) String() string {
 	return fmt.Sprintf("operator-id=%s, owner=%s, role=%d, is-user=%v, disable=%v",
 		t.OperatorID, t.OwnerID, t.Role, t.IsUserToken, t.Disable)
 }

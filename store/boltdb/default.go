@@ -112,7 +112,7 @@ var (
 	mainUser = &model.User{
 		ID:          "04ae4ead86e1ecf5811e32a9fbca9bfa",
 		Name:        "polaris",
-		Password:    "$2a$10$5XMjs.oqo4PnpbTGy9dQqewL4eb4yoA7b/6ZKL33IPhFyIxzj4lRy",
+		Password:    "$2a$10$3izWuZtE5SBdAtSZci.gs.iZ2pAn9I8hEqYrC6gwJp1dyjqQnrrum",
 		Owner:       "",
 		Source:      "Polaris",
 		Mobile:      "",
@@ -234,17 +234,34 @@ func (m *boltStore) initAuthStoreData() error {
 }
 
 func (m *boltStore) newStore() error {
+	var err error
+
 	m.l5Store = &l5Store{handler: m.handler}
-	if err := m.l5Store.InitL5Data(); err != nil {
+	if err = m.l5Store.InitL5Data(); err != nil {
 		return err
 	}
-
 	m.namespaceStore = &namespaceStore{handler: m.handler}
-	if err := m.namespaceStore.InitData(); err != nil {
+	if err = m.namespaceStore.InitData(); err != nil {
 		return err
 	}
 	m.businessStore = &businessStore{handler: m.handler}
+	m.platformStore = &platformStore{handler: m.handler}
 
+
+	if err := m.newDiscoverModuleStore(); err != nil {
+		return err
+	}
+	if err := m.newAuthModuleStore(); err != nil {
+		return err
+	}
+	if err := m.newConfigModuleStore(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *boltStore) newDiscoverModuleStore() error {
 	m.serviceStore = &serviceStore{handler: m.handler}
 
 	m.instanceStore = &instanceStore{handler: m.handler}
@@ -255,13 +272,46 @@ func (m *boltStore) newStore() error {
 
 	m.circuitBreakerStore = &circuitBreakerStore{handler: m.handler}
 
-	m.platformStore = &platformStore{handler: m.handler}
+	return nil
+}
 
+func (m *boltStore) newAuthModuleStore() error {
 	m.userStore = &userStore{handler: m.handler}
 
 	m.strategyStore = &strategyStore{handler: m.handler}
 
 	m.groupStore = &groupStore{handler: m.handler}
+
+	return nil
+}
+
+func (m *boltStore) newConfigModuleStore() error {
+	var err error
+
+	m.configFileStore, err = newConfigFileStore(m.handler)
+	if err != nil {
+		return err
+	}
+
+	m.configFileTagStore, err = newConfigFileTagStore(m.handler)
+	if err != nil {
+		return err
+	}
+
+	m.configFileGroupStore, err = newConfigFileGroupStore(m.handler)
+	if err != nil {
+		return err
+	}
+
+	m.configFileReleaseHistoryStore, err = newConfigFileReleaseHistoryStore(m.handler)
+	if err != nil {
+		return err
+	}
+
+	m.configFileReleaseStore, err = newConfigFileReleaseStore(m.handler)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

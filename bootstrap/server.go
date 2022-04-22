@@ -425,6 +425,13 @@ func selfRegister(
 			name, namespace)
 	}
 
+	metadata := polarisService.Metadata
+	if len(metadata) == 0 {
+		metadata = make(map[string]string)
+	}
+	metadata[model.MetaKeyBuildRevision] = version.GetRevision()
+	metadata[model.MetaKeyPolarisService] = name
+
 	req := &api.Instance{
 		Service:           utils.NewStringValue(name),
 		Namespace:         utils.NewStringValue(namespace),
@@ -441,10 +448,7 @@ func selfRegister(
 				Ttl: &wrappers.UInt32Value{Value: uint32(hbInterval)},
 			},
 		},
-		Metadata: map[string]string{
-			model.MetaKeyBuildRevision:  version.GetRevision(),
-			model.MetaKeyPolarisService: name,
-		},
+		Metadata: metadata,
 	}
 
 	resp := server.CreateInstance(genContext(), req)

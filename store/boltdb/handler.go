@@ -38,6 +38,10 @@ var (
 	ErrorValueInvisible = errors.New("value is Invisible")
 )
 
+type IDHolder struct {
+	ID uint64
+}
+
 // BoltHandler encapsulate operations around boltdb
 type BoltHandler interface {
 

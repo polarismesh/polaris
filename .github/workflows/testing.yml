@@ -50,6 +50,9 @@ jobs:
           pushd ./store/boltdb
           go test -v
           popd
+          pushd ./auth/defaultauth
+          go test -v
+          popd
           
       # Run interface tests
       - name: run interface tests

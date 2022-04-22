@@ -21,11 +21,10 @@ import (
 	"context"
 	"strings"
 
-	"google.golang.org/protobuf/types/known/wrapperspb"
-
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // ResourceHook The listener is placed before and after the resource operation, only normal flow
@@ -72,17 +71,17 @@ func (svr *serverAuthAbility) After(ctx context.Context, resourceType model.Reso
 // onNamespaceResource
 func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *ResourceEvent) error {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
-	ownerID := utils.ParseOwnerID(ctx)
+	ownerId := utils.ParseOwnerID(ctx)
 
 	ns := res.Namespace
-	authCtx.GetAttachment()[model.ResourceAttachmentKey] = map[api.ResourceType][]model.ResourceEntry{
+	authCtx.SetAttachment(model.ResourceAttachmentKey, map[api.ResourceType][]model.ResourceEntry{
 		api.ResourceType_Namespaces: {
 			{
 				ID:    ns.Name,
-				Owner: ownerID,
+				Owner: ownerId,
 			},
 		},
-	}
+	})
 
 	users := convertStringValuesToSlice(res.ReqNamespace.UserIds)
 	removeUses := convertStringValuesToSlice(res.ReqNamespace.RemoveUserIds)
@@ -90,11 +89,11 @@ func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *Reso
 	groups := convertStringValuesToSlice(res.ReqNamespace.GroupIds)
 	removeGroups := convertStringValuesToSlice(res.ReqNamespace.RemoveGroupIds)
 
-	authCtx.GetAttachment()[model.LinkUsersKey] = utils.StringSliceDeDuplication(users)
-	authCtx.GetAttachment()[model.RemoveLinkUsersKey] = utils.StringSliceDeDuplication(removeUses)
+	authCtx.SetAttachment(model.LinkUsersKey, utils.StringSliceDeDuplication(users))
+	authCtx.SetAttachment(model.RemoveLinkUsersKey, utils.StringSliceDeDuplication(removeUses))
 
-	authCtx.GetAttachment()[model.LinkGroupsKey] = utils.StringSliceDeDuplication(groups)
-	authCtx.GetAttachment()[model.RemoveLinkGroupsKey] = utils.StringSliceDeDuplication(removeGroups)
+	authCtx.SetAttachment(model.LinkGroupsKey, utils.StringSliceDeDuplication(groups))
+	authCtx.SetAttachment(model.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
 
 	return svr.authSvr.AfterResourceOperation(authCtx)
 }
@@ -102,16 +101,16 @@ func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *Reso
 // onServiceResource 服务资源的处理，只处理服务，namespace 只由 namespace 相关的进行处理，
 func (svr *serverAuthAbility) onServiceResource(ctx context.Context, res *ResourceEvent) error {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
-	ownerID := utils.ParseOwnerID(ctx)
+	ownerId := utils.ParseOwnerID(ctx)
 
-	authCtx.GetAttachment()[model.ResourceAttachmentKey] = map[api.ResourceType][]model.ResourceEntry{
+	authCtx.SetAttachment(model.ResourceAttachmentKey, map[api.ResourceType][]model.ResourceEntry{
 		api.ResourceType_Services: {
 			{
 				ID:    res.Service.ID,
-				Owner: ownerID,
+				Owner: ownerId,
 			},
 		},
-	}
+	})
 
 	users := convertStringValuesToSlice(res.ReqService.UserIds)
 	removeUses := convertStringValuesToSlice(res.ReqService.RemoveUserIds)
@@ -119,11 +118,11 @@ func (svr *serverAuthAbility) onServiceResource(ctx context.Context, res *Resour
 	groups := convertStringValuesToSlice(res.ReqService.GroupIds)
 	removeGroups := convertStringValuesToSlice(res.ReqService.RemoveGroupIds)
 
-	authCtx.GetAttachment()[model.LinkUsersKey] = utils.StringSliceDeDuplication(users)
-	authCtx.GetAttachment()[model.RemoveLinkUsersKey] = utils.StringSliceDeDuplication(removeUses)
+	authCtx.SetAttachment(model.LinkUsersKey, utils.StringSliceDeDuplication(users))
+	authCtx.SetAttachment(model.RemoveLinkUsersKey, utils.StringSliceDeDuplication(removeUses))
 
-	authCtx.GetAttachment()[model.LinkGroupsKey] = utils.StringSliceDeDuplication(groups)
-	authCtx.GetAttachment()[model.RemoveLinkGroupsKey] = utils.StringSliceDeDuplication(removeGroups)
+	authCtx.SetAttachment(model.LinkGroupsKey, utils.StringSliceDeDuplication(groups))
+	authCtx.SetAttachment(model.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
 
 	return svr.authSvr.AfterResourceOperation(authCtx)
 }
