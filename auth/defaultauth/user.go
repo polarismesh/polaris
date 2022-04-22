@@ -327,11 +327,26 @@ func (svr *server) GetUsers(ctx context.Context, query map[string]string) *api.B
 
 // GetUserToken 获取用户 token
 func (svr *server) GetUserToken(ctx context.Context, req *api.User) *api.Response {
-	if req.GetId().GetValue() == "" {
-		return api.NewResponse(api.InvalidUserID)
-	}
+	var user *model.User
 
-	user := svr.cacheMgn.User().GetUserByID(req.GetId().GetValue())
+	if req.GetId().GetValue() != "" {
+		user = svr.cacheMgn.User().GetUserByID(req.GetId().GetValue())
+	} else if req.GetName().GetValue() != "" {
+		ownerName := req.GetOwner().GetValue()
+		ownerID := utils.ParseOwnerID(ctx)
+		if ownerName == "" {
+			owner := svr.cacheMgn.User().GetUserByID(ownerID)
+			if owner == nil {
+				log.AuthScope().Error("[Auth][User] get user's owner not found",
+					zap.String("name", req.GetName().GetValue()), zap.String("owner", ownerID))
+				return api.NewResponse(api.NotFoundUser)
+			}
+			ownerName = owner.Name
+		}
+		user = svr.cacheMgn.User().GetUserByName(req.GetName().GetValue(), ownerName)
+	} else {
+		return api.NewResponse(api.InvalidParameter)
+	}
 
 	if user == nil {
 		return api.NewUserResponse(api.NotFoundUser, req)
