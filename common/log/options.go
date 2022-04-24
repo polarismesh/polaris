@@ -177,3 +177,7 @@ func (o *Options) SetStackTraceLevel(level string) error {
 func (o *Options) GetStackTraceLevel() Level {
 	return stringToLevel[o.StackTraceLevel]
 }
+
+func (l Level) Name() string {
+	return levelToString[l]
+}

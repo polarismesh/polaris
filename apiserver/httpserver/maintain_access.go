@@ -28,6 +28,7 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
@@ -42,6 +43,8 @@ func (h *HTTPServer) GetMaintainAccessServer() *restful.WebService {
 	ws.Route(ws.POST("/memory/free").To(h.FreeOSMemory))
 	ws.Route(ws.POST("/instance/clean").Consumes(restful.MIME_JSON).To(h.CleanInstance))
 	ws.Route(ws.GET("/instance/heartbeat").To(h.GetLastHeartbeat))
+	ws.Route(ws.GET("/log/outputlevel").To(h.GetLogOutputLevel))
+	ws.Route(ws.PUT("/log/outputlevel").To(h.SetLogOutputLevel))
 	return ws
 }
 
@@ -229,4 +232,34 @@ func (h *HTTPServer) GetLastHeartbeat(req *restful.Request, rsp *restful.Respons
 
 	ret := h.healthCheckServer.GetLastHeartbeat(instance)
 	handler.WriteHeaderAndProto(ret)
+}
+func (h *HTTPServer) GetLogOutputLevel(req *restful.Request, rsp *restful.Response) {
+	scopes := commonlog.Scopes()
+	out := make(map[string]string, len(scopes))
+	for k, v := range scopes {
+		out[k] = v.GetOutputLevel().Name()
+	}
+
+	rsp.WriteAsJson(out)
+}
+
+func (h *HTTPServer) SetLogOutputLevel(req *restful.Request, rsp *restful.Response) {
+	params := parseQueryParams(req)
+	scopeName, exist := params["scope"]
+	if !exist {
+		rsp.WriteErrorString(http.StatusBadRequest, "missing param scope")
+		return
+	}
+	levelName, exist := params["level"]
+	if !exist {
+		rsp.WriteErrorString(http.StatusBadRequest, "missing param level")
+		return
+	}
+
+	err := commonlog.SetLogOutputLevel(scopeName, levelName)
+	if err != nil {
+		rsp.WriteError(http.StatusBadRequest, err)
+	} else {
+		rsp.WriteEntity("OK")
+	}
 }

@@ -18,6 +18,8 @@
 package log
 
 import (
+	"errors"
+
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -47,4 +49,19 @@ func Logger(file string) *zap.Logger {
 	})
 
 	return zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(encCfg), w, zap.InfoLevel))
+}
+
+func SetLogOutputLevel(scopeName string, levelName string) error {
+	scope := FindScope(scopeName)
+	if scope == nil {
+		return errors.New("invalid scope name")
+	}
+
+	l, exist := stringToLevel[levelName]
+	if !exist {
+		return errors.New("invalid log level")
+	}
+
+	scope.SetOutputLevel(l)
+	return nil
 }
