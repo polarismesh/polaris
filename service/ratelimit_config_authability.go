@@ -29,7 +29,7 @@ import (
 func (svr *serverAuthAbility) CreateRateLimits(ctx context.Context, reqs []*api.Rule) *api.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Create, "CreateRateLimits")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -44,7 +44,7 @@ func (svr *serverAuthAbility) CreateRateLimits(ctx context.Context, reqs []*api.
 func (svr *serverAuthAbility) DeleteRateLimits(ctx context.Context, reqs []*api.Rule) *api.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Delete, "DeleteRateLimits")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -59,7 +59,7 @@ func (svr *serverAuthAbility) DeleteRateLimits(ctx context.Context, reqs []*api.
 func (svr *serverAuthAbility) UpdateRateLimits(ctx context.Context, reqs []*api.Rule) *api.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Modify, "UpdateRateLimits")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -74,7 +74,7 @@ func (svr *serverAuthAbility) UpdateRateLimits(ctx context.Context, reqs []*api.
 func (svr *serverAuthAbility) GetRateLimits(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, nil, model.Read, "GetRateLimits")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchQueryResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}

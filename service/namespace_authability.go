@@ -53,7 +53,7 @@ func (svr *serverAuthAbility) CreateNamespaces(ctx context.Context, reqs []*api.
 func (svr *serverAuthAbility) DeleteNamespaces(ctx context.Context, reqs []*api.Namespace) *api.BatchWriteResponse {
 	authCtx := svr.collectNamespaceAuthContext(ctx, reqs, model.Delete, "DeleteNamespaces")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(convertToErrCode(err), err.Error())
 	}
@@ -68,7 +68,7 @@ func (svr *serverAuthAbility) DeleteNamespaces(ctx context.Context, reqs []*api.
 func (svr *serverAuthAbility) UpdateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
 	authCtx := svr.collectNamespaceAuthContext(ctx, req, model.Modify, "UpdateNamespaces")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(convertToErrCode(err), err.Error())
 	}
@@ -83,7 +83,7 @@ func (svr *serverAuthAbility) UpdateNamespaces(ctx context.Context, req []*api.N
 func (svr *serverAuthAbility) UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response {
 	authCtx := svr.collectNamespaceAuthContext(ctx, []*api.Namespace{req}, model.Modify, "UpdateNamespaceToken")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 	}
@@ -99,7 +99,7 @@ func (svr *serverAuthAbility) GetNamespaces(ctx context.Context, query map[strin
 
 	authCtx := svr.collectNamespaceAuthContext(ctx, nil, model.Read, "GetNamespaces")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchQueryResponseWithMsg(convertToErrCode(err), err.Error())
 	}
@@ -123,6 +123,10 @@ func (svr *serverAuthAbility) GetNamespaces(ctx context.Context, query map[strin
 					api.ResourceType_Namespaces, ns.Id.GetValue())
 			}
 			ns.Editable = utils.NewBoolValue(editable)
+			// 如果当前登录账户为该资源的主账户，则允许直接进行操作
+			if ns.Owners.GetValue() == utils.ParseUserID(ctx) {
+				ns.Editable = utils.NewBoolValue(true)
+			}
 		}
 	}
 
@@ -134,7 +138,7 @@ func (svr *serverAuthAbility) GetNamespaceToken(ctx context.Context, req *api.Na
 
 	authCtx := svr.collectNamespaceAuthContext(ctx, []*api.Namespace{req}, model.Read, "GetNamespaceToken")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 	}

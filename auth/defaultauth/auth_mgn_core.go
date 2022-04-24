@@ -29,9 +29,38 @@ import (
 	"go.uber.org/zap"
 )
 
-// IsOpenAuth 返回是否开启了操作鉴权
-func (authMgn *defaultAuthChecker) IsOpenAuth() bool {
+// IsOpenConsoleAuth 针对控制台是否开启了操作鉴权
+func (authMgn *defaultAuthChecker) IsOpenConsoleAuth() bool {
+	return AuthOption.ConsoleOpen
+}
+
+// IsOpenClientAuth 针对客户端是否开启了操作鉴权
+func (authMgn *defaultAuthChecker) IsOpenClientAuth() bool {
 	return AuthOption.Open
+}
+
+// IsOpenConsoleAuth 返回对于控制台/客户端任意其中的一个是否开启了操作鉴权
+func (authMgn *defaultAuthChecker) IsOpenAuth() bool {
+	return AuthOption.ConsoleOpen || AuthOption.Open
+}
+
+
+// CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据
+func (authMgn *defaultAuthChecker) CheckClientPermission(preCtx *model.AcquireContext) (bool, error) {
+	if !authMgn.IsOpenClientAuth() {
+		return true, nil
+	}
+
+	return authMgn.CheckPermission(preCtx)
+}
+
+// CheckConsolePermission 执行检查控制台动作判断是否有权限，并且对 RequestContext 注入操作者数据
+func (authMgn *defaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireContext) (bool, error) {
+	if !authMgn.IsOpenConsoleAuth() {
+		return true, nil
+	}
+
+	return authMgn.CheckPermission(preCtx)
 }
 
 // CheckPermission 执行检查动作判断是否有权限
@@ -43,10 +72,6 @@ func (authMgn *defaultAuthChecker) IsOpenAuth() bool {
 // 	step 3. 拉取token对应的操作者相关信息，注入到请求上下文中
 // 	step 4. 进行权限检查
 func (authMgn *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (bool, error) {
-	if !authMgn.IsOpenAuth() {
-		return true, nil
-	}
-
 	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
 	if err := authMgn.VerifyCredential(authCtx); err != nil {
 		return false, err

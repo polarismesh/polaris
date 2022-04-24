@@ -26,6 +26,8 @@ var (
 
 // AuthConfig 鉴权配置
 type AuthConfig struct {
+	// ConsoleOpen 控制台是否开启鉴权
+	ConsoleOpen bool `json:"consoleOpen" xml:"consoleOpen"`
 	// Open 是否开启鉴权
 	Open bool `json:"open" xml:"open"`
 	// Salt 相关密码、token加密的salt
@@ -50,8 +52,12 @@ func (cfg *AuthConfig) Verify() error {
 // DefaultAuthConfig 返回一个默认的鉴权配置
 func DefaultAuthConfig() *AuthConfig {
 	return &AuthConfig{
-		Open:   false,
-		Salt:   "polarismesh@2021",
-		Strict: true,
+		// 针对控制台接口，默认开启鉴权操作
+		ConsoleOpen: true,
+		// 针对客户端接口，默认不开启鉴权操作
+		Open:        false,
+		Salt:        "polarismesh@2021",
+		// 这里默认开启强 Token 检查模式
+		Strict:      true,
 	}
 }

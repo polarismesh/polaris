@@ -27,8 +27,17 @@ type toolStore struct {
 }
 
 const (
-	nowSql           = `select UNIX_TIMESTAMP(SYSDATE())`
+	nowSql = `select UNIX_TIMESTAMP(SYSDATE())`
+
+	// 如果是东八区，则结果为 +08:00:00
+	timeZoneSql      = `select (UNIX_TIMESTAMP(now()) - UNIX_TIMESTAMP(convert_tz(now(),@@session.time_zone,'+00:00')));`
 	maxQueryInterval = time.Second
+)
+
+var (
+	timeZoneToInt map[string]int = map[string]int{
+		"-01:00:00": -1,
+	}
 )
 
 // GetNow 获取当前时间，单位秒
@@ -52,5 +61,24 @@ func (t *toolStore) GetNow() (int64, error) {
 			return 0, err
 		}
 	}
+	return value, nil
+}
+
+// GetTimeZone 获取当前时间，单位秒
+func (t *toolStore) GetTimeZone() (int, error) {
+	rows, err := t.db.Query(timeZoneSql)
+	if err != nil {
+		log.Errorf("[Store][database] query now err: %s", err.Error())
+		return -1, err
+	}
+	defer rows.Close()
+	var value int
+	for rows.Next() {
+		if err := rows.Scan(&value); err != nil {
+			log.Errorf("[Store][database] get time-zone rows scan err: %s", err.Error())
+			return -1, err
+		}
+	}
+
 	return value, nil
 }

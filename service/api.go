@@ -195,6 +195,12 @@ type NamespaceOperateServer interface {
 // ClientServer Client related operation  Client operation interface definition
 type ClientServer interface {
 
+	// RegisterInstance create one instance by client
+	RegisterInstance(ctx context.Context, req *api.Instance) *api.Response
+
+	// DeregisterInstance delete onr instance by client
+	DeregisterInstance(ctx context.Context, req *api.Instance) *api.Response
+
 	// ReportClient Client gets geographic location information
 	ReportClient(ctx context.Context, req *api.Client) *api.Response
 

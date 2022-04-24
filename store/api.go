@@ -110,4 +110,6 @@ type Tx interface {
 type ToolStore interface {
 	// GetNow Get the current time
 	GetNow() (int64, error)
+	// GetTimeZone 获取与UTC时区所差的秒数，如果为 -1，则直接采用本地时区进行处理
+	GetTimeZone() (int, error)
 }

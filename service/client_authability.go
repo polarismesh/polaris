@@ -21,7 +21,41 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
+
+// CreateInstances create one instance
+func (svr *serverAuthAbility) RegisterInstance(ctx context.Context, req *api.Instance) *api.Response {
+	authCtx := svr.collectInstanceAuthContext(ctx, []*api.Instance{req}, model.Create, "RegisterInstance")
+
+	_, err := svr.authMgn.CheckClientPermission(authCtx)
+	if err != nil {
+		resp := api.NewResponseWithMsg(convertToErrCode(err), err.Error())
+		return resp
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.targetServer.RegisterInstance(ctx, req)
+}
+
+// DeleteInstance delete onr instance
+func (svr *serverAuthAbility) DeregisterInstance(ctx context.Context, req *api.Instance) *api.Response {
+	authCtx := svr.collectInstanceAuthContext(ctx, []*api.Instance{req}, model.Create, "DeregisterInstance")
+
+	_, err := svr.authMgn.CheckClientPermission(authCtx)
+	if err != nil {
+		resp := api.NewResponseWithMsg(convertToErrCode(err), err.Error())
+		return resp
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.targetServer.DeregisterInstance(ctx, req)
+}
 
 // ReportClient is the interface for reporting client authability
 func (svr *serverAuthAbility) ReportClient(ctx context.Context, req *api.Client) *api.Response {

@@ -29,7 +29,7 @@ func (svr *serverAuthAbility) CreateCircuitBreakers(ctx context.Context,
 	reqs []*api.CircuitBreaker) *api.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerAuthContext(ctx, reqs, model.Create, "CreateCircuitBreakers")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -42,7 +42,7 @@ func (svr *serverAuthAbility) CreateCircuitBreakerVersions(ctx context.Context,
 	reqs []*api.CircuitBreaker) *api.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerAuthContext(ctx, reqs, model.Create, "CreateCircuitBreakerVersions")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -55,7 +55,7 @@ func (svr *serverAuthAbility) DeleteCircuitBreakers(ctx context.Context,
 	reqs []*api.CircuitBreaker) *api.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerAuthContext(ctx, reqs, model.Delete, "DeleteCircuitBreakers")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -68,7 +68,7 @@ func (svr *serverAuthAbility) UpdateCircuitBreakers(ctx context.Context,
 	reqs []*api.CircuitBreaker) *api.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerAuthContext(ctx, reqs, model.Modify, "UpdateCircuitBreakers")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -81,7 +81,7 @@ func (svr *serverAuthAbility) ReleaseCircuitBreakers(ctx context.Context,
 	reqs []*api.ConfigRelease) *api.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerReleaseAuthContext(ctx, reqs, model.Create, "ReleaseCircuitBreakers")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
@@ -94,7 +94,7 @@ func (svr *serverAuthAbility) UnBindCircuitBreakers(ctx context.Context,
 	reqs []*api.ConfigRelease) *api.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerReleaseAuthContext(ctx, reqs, model.Modify, "UnBindCircuitBreakers")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}

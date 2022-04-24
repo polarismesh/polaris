@@ -62,8 +62,11 @@ type AuthChecker interface {
 	// VerifyToken 验证令牌
 	VerifyCredential(preCtx *model.AcquireContext) error
 
-	// CheckPermission 执行检查动作判断是否有权限，并且将 RequestContext 进行插入一些新的数据
-	CheckPermission(preCtx *model.AcquireContext) (bool, error)
+	// CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据
+	CheckClientPermission(preCtx *model.AcquireContext) (bool, error)
+
+	// CheckConsolePermission 执行检查控制台动作判断是否有权限，并且对 RequestContext 注入操作者数据
+	CheckConsolePermission(preCtx *model.AcquireContext) (bool, error)
 
 	// IsOpenAuth 返回是否开启了操作鉴权，可以用于前端查询
 	IsOpenAuth() bool
