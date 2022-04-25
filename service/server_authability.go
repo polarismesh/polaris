@@ -278,6 +278,8 @@ func (svr *serverAuthAbility) queryInstanceResource(
 				req[index].Namespace.GetValue())
 			if svc != nil {
 				svcSet.Add(svc)
+			} else {
+				names.Add(req[index].Namespace.GetValue())
 			}
 		} else {
 			ins := svr.Cache().Instance().GetInstance(item.GetId().GetValue())
@@ -285,6 +287,8 @@ func (svr *serverAuthAbility) queryInstanceResource(
 				svc := svr.Cache().Service().GetServiceByID(ins.ServiceID)
 				if svc != nil {
 					svcSet.Add(svc)
+				} else {
+					names.Add(req[index].Namespace.GetValue())
 				}
 			}
 		}

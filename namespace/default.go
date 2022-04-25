@@ -25,6 +25,7 @@ import (
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris-server/store"
 )
 
 var (
@@ -39,10 +40,10 @@ type Config struct {
 }
 
 // Initialize 初始化
-func Initialize(ctx context.Context, nsOpt *Config, cacheMgn *cache.NamingCache) error {
+func Initialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.NamingCache) error {
 	var err error
 	once.Do(func() {
-		err = initialize(ctx, nsOpt, cacheMgn)
+		err = initialize(ctx, nsOpt, storage, cacheMgn)
 	})
 
 	if err != nil {
@@ -53,9 +54,10 @@ func Initialize(ctx context.Context, nsOpt *Config, cacheMgn *cache.NamingCache)
 	return nil
 }
 
-func initialize(ctx context.Context, nsOpt *Config, cacheMgn *cache.NamingCache) error {
+func initialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.NamingCache) error {
 
 	namespaceServer.caches = cacheMgn
+	namespaceServer.storage = storage
 
 	// 获取History插件，注意：插件的配置在bootstrap已经设置好
 	namespaceServer.history = plugin.GetHistory()

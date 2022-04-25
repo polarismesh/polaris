@@ -70,12 +70,12 @@ func (s *Server) Cache() *cache.NamingCache {
 	return s.caches
 }
 
-// Namespace 返回Cache
+// Namespace 返回NamespaceOperateServer
 func (s *Server) Namespace() namespace.NamespaceOperateServer {
 	return s.namespaceSvr
 }
 
-// SetResourceHooks 返回Cache
+// SetResourceHooks 设置资源操作的Hook
 func (s *Server) SetResourceHooks(hooks ...ResourceHook) {
 	s.hooks = hooks
 }

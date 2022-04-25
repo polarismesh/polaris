@@ -171,7 +171,7 @@ func StartComponents(ctx context.Context, cfg *config.Config) error {
 	}
 
 	// 初始化命名空间模块
-	if err := namespace.Initialize(ctx, &cfg.Namespace, cacheMgn); err != nil {
+	if err := namespace.Initialize(ctx, &cfg.Namespace, s, cacheMgn); err != nil {
 		return err
 	}
 

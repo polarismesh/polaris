@@ -99,7 +99,7 @@ func (checker *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext
 	if !noResourceNeedCheck && len(strategies) == 0 {
 		log.AuthScope().Error("[Auth][Checker]", utils.ZapRequestID(reqId),
 			zap.String("msg", "need check resource is not empty, but strategies is empty"))
-		return false, errors.New("need check resource is not empty, but strategies is empty")
+		return false, errors.New("no permission")
 	}
 
 	log.AuthScope().Info("[Auth][Checker] check permission args", zap.Any("resources", authCtx.GetAccessResources()),
@@ -234,9 +234,6 @@ func (checker *defaultAuthChecker) decodeToken(t string) (OperatorInfo, error) {
 		OperatorID:  detail[1],
 		Role:        model.UnknownUserRole,
 	}
-
-	log.AuthScope().Info("[Auth][Checker] token detail", zap.Any("info", tokenInfo.String()))
-
 	return tokenInfo, nil
 }
 

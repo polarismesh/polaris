@@ -242,8 +242,6 @@ type DiscoverServer interface {
 	ServiceOperateServer
 	// Instance Operation Interface Definition
 	InstanceOperateServer
-	// Namespace Operation Interface Definition
-	// NamespaceOperateServer
 	// Client operation interface definition
 	ClientServer
 	// Get cache management
