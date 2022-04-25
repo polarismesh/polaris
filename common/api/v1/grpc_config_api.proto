@@ -5,7 +5,7 @@ package v1;
 import "config_file.proto";
 import "config_file_response.proto";
 
-option go_package = "/v1";
+option go_package = "v1";
 
 
 service PolarisConfigGRPC {
