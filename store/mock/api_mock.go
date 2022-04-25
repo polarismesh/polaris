@@ -1382,21 +1382,6 @@ func (mr *MockStoreMockRecorder) GetNow() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNow", reflect.TypeOf((*MockStore)(nil).GetNow))
 }
 
-// GetTimeZone mocks base method
-func (m *MockStore) GetTimeZone() (int, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTimeZone")
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetTimeZone indicates an expected call of GetTimeZone
-func (mr *MockStoreMockRecorder) GetTimeZone() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTimeZone", reflect.TypeOf((*MockStore)(nil).GetTimeZone))
-}
-
 // AddUser mocks base method
 func (m *MockStore) AddUser(user *model.User) error {
 	m.ctrl.T.Helper()
@@ -2507,19 +2492,4 @@ func (m *MockToolStore) GetNow() (int64, error) {
 func (mr *MockToolStoreMockRecorder) GetNow() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNow", reflect.TypeOf((*MockToolStore)(nil).GetNow))
-}
-
-// GetTimeZone mocks base method
-func (m *MockToolStore) GetTimeZone() (int, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTimeZone")
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetTimeZone indicates an expected call of GetTimeZone
-func (mr *MockToolStoreMockRecorder) GetTimeZone() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTimeZone", reflect.TypeOf((*MockToolStore)(nil).GetTimeZone))
 }

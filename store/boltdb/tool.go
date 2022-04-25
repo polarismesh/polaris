@@ -28,7 +28,3 @@ func (t *toolStore) GetNow() (int64, error) {
 	return time.Now().Unix(), nil
 }
 
-// GetTimeZone 获取时区所差的秒数
-func (t *toolStore) GetTimeZone() (int, error) {
-	return -1, nil
-}
