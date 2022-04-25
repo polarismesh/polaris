@@ -102,7 +102,7 @@ func (cf *configFileStore) QueryConfigFiles(namespace, group, name string, offse
 		return count, files, nil
 	}
 
-	//特定 namespace
+	// 特定 namespace
 	group = "%" + group + "%"
 	name = "%" + name + "%"
 	countSql := "select count(*) from config_file where namespace = ? and `group` like ? and name like ? and flag = 0"

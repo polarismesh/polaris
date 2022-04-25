@@ -19,12 +19,14 @@ package boltdb
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,14 +35,26 @@ func createTestStrategy(num int) []*model.StrategyDetail {
 
 	for i := 0; i < num; i++ {
 		ret = append(ret, &model.StrategyDetail{
-			ID:         fmt.Sprintf("strategy-%d", i),
-			Name:       fmt.Sprintf("strategy-%d", i),
-			Action:     api.AuthAction_READ_WRITE.String(),
-			Comment:    fmt.Sprintf("strategy-%d", i),
-			Principals: []model.Principal{},
-			Default:    true,
-			Owner:      "polaris",
-			Resources:  []model.StrategyResource{},
+			ID:      fmt.Sprintf("strategy-%d", i),
+			Name:    fmt.Sprintf("strategy-%d", i),
+			Action:  api.AuthAction_READ_WRITE.String(),
+			Comment: fmt.Sprintf("strategy-%d", i),
+			Principals: []model.Principal{
+				{
+					StrategyID:    fmt.Sprintf("strategy-%d", i),
+					PrincipalID:   fmt.Sprintf("user-%d", i),
+					PrincipalRole: model.PrincipalUser,
+				},
+			},
+			Default: true,
+			Owner:   "polaris",
+			Resources: []model.StrategyResource{
+				{
+					StrategyID: "",
+					ResType:    int32(api.ResourceType_Namespaces),
+					ResID:      fmt.Sprintf("namespace_%d", i),
+				},
+			},
 			Valid:      false,
 			Revision:   utils.NewUUID(),
 			CreateTime: time.Now(),
@@ -114,6 +128,10 @@ func Test_strategyStore_DeleteStrategy(t *testing.T) {
 
 		err = ss.DeleteStrategy(rules[0].ID)
 		assert.Nil(t, err, "delete strategy must success")
+
+		ret, err := ss.GetStrategyDetail(rules[0].ID, false)
+		assert.Nil(t, err, "get strategy must success")
+		assert.Nil(t, ret, "get strategy ret must nil")
 	})
 }
 
@@ -125,8 +143,26 @@ func Test_strategyStore_RemoveStrategyResources(t *testing.T) {
 		err := ss.AddStrategy(rules[0])
 		assert.Nil(t, err, "add strategy must success")
 
-		err = ss.DeleteStrategy(rules[0].ID)
-		assert.Nil(t, err, "delete strategy must success")
+		err = ss.RemoveStrategyResources([]model.StrategyResource{
+			{
+				StrategyID: rules[0].ID,
+				ResType:    int32(api.ResourceType_Namespaces),
+				ResID:      "namespace_0",
+			},
+		})
+		assert.Nil(t, err, "RemoveStrategyResources must success")
+		ret, err := ss.GetStrategyDetail(rules[0].ID, false)
+		assert.Nil(t, err, "get strategy must success")
+
+		for i := range ret.Resources {
+			res := ret.Resources[i]
+			t.Logf("resource=%#v", res)
+			assert.NotEqual(t, res, model.StrategyResource{
+				StrategyID: rules[0].ID,
+				ResType:    int32(api.ResourceType_Namespaces),
+				ResID:      "namespace_0",
+			})
+		}
 	})
 }
 
@@ -138,8 +174,32 @@ func Test_strategyStore_LooseAddStrategyResources(t *testing.T) {
 		err := ss.AddStrategy(rules[0])
 		assert.Nil(t, err, "add strategy must success")
 
-		err = ss.DeleteStrategy(rules[0].ID)
-		assert.Nil(t, err, "delete strategy must success")
+		err = ss.LooseAddStrategyResources([]model.StrategyResource{
+			{
+				StrategyID: rules[0].ID,
+				ResType:    int32(api.ResourceType_Namespaces),
+				ResID:      "namespace_1",
+			},
+		})
+		assert.Nil(t, err, "RemoveStrategyResources must success")
+		ret, err := ss.GetStrategyDetail(rules[0].ID, false)
+		assert.Nil(t, err, "get strategy must success")
+
+		ans := make([]model.StrategyResource, 0)
+		for i := range ret.Resources {
+			res := ret.Resources[i]
+			t.Logf("resource=%#v", res)
+			res.StrategyID = rules[0].ID
+			if reflect.DeepEqual(res, model.StrategyResource{
+				StrategyID: rules[0].ID,
+				ResType:    int32(api.ResourceType_Namespaces),
+				ResID:      "namespace_1",
+			}) {
+				ans = append(ans, res)
+			}
+		}
+
+		assert.Equal(t, 1, len(ans))
 	})
 }
 
@@ -151,8 +211,14 @@ func Test_strategyStore_GetStrategyDetail(t *testing.T) {
 		err := ss.AddStrategy(rules[0])
 		assert.Nil(t, err, "add strategy must success")
 
-		err = ss.DeleteStrategy(rules[0].ID)
-		assert.Nil(t, err, "delete strategy must success")
+		v, err := ss.GetStrategyDetail(rules[0].ID, rules[0].Default)
+		assert.Nil(t, err, "get strategy-detail must success")
+
+		rules[0].ModifyTime = rules[0].CreateTime
+		v.CreateTime = rules[0].CreateTime
+		v.ModifyTime = rules[0].CreateTime
+
+		assert.Equal(t, rules[0], v)
 	})
 }
 
@@ -160,12 +226,23 @@ func Test_strategyStore_GetStrategyResources(t *testing.T) {
 	CreateTableDBHandlerAndRun(t, "test_strategy", func(t *testing.T, handler BoltHandler) {
 		ss := &strategyStore{handler: handler}
 
-		rules := createTestStrategy(1)
-		err := ss.AddStrategy(rules[0])
-		assert.Nil(t, err, "add strategy must success")
+		rules := createTestStrategy(2)
+		for i := range rules {
+			rule := rules[i]
+			err := ss.AddStrategy(rule)
+			assert.Nil(t, err, "add strategy must success")
+		}
 
-		err = ss.DeleteStrategy(rules[0].ID)
-		assert.Nil(t, err, "delete strategy must success")
+		res, err := ss.GetStrategyResources("user-1", model.PrincipalUser)
+		assert.Nil(t, err, "GetStrategyResources must success")
+
+		assert.ElementsMatch(t, []model.StrategyResource{
+			{
+				StrategyID: "strategy-1",
+				ResType:    int32(api.ResourceType_Namespaces),
+				ResID:      "namespace_1",
+			},
+		}, res)
 	})
 }
 
@@ -173,11 +250,21 @@ func Test_strategyStore_GetDefaultStrategyDetailByPrincipal(t *testing.T) {
 	CreateTableDBHandlerAndRun(t, "test_strategy", func(t *testing.T, handler BoltHandler) {
 		ss := &strategyStore{handler: handler}
 
-		rules := createTestStrategy(1)
-		err := ss.AddStrategy(rules[0])
-		assert.Nil(t, err, "add strategy must success")
+		rules := createTestStrategy(2)
+		for i := range rules {
+			rule := rules[i]
+			rule.Default = i == 1
+			rules[i] = rule
+			err := ss.AddStrategy(rule)
+			assert.Nil(t, err, "add strategy must success")
+		}
 
-		err = ss.DeleteStrategy(rules[0].ID)
-		assert.Nil(t, err, "delete strategy must success")
+		res, err := ss.GetDefaultStrategyDetailByPrincipal("user-1", model.PrincipalUser)
+		assert.Nil(t, err, "GetStrategyResources must success")
+
+		rules[1].ModifyTime = rules[1].CreateTime
+		res.CreateTime = rules[1].CreateTime
+		res.ModifyTime = rules[1].CreateTime
+		assert.Equal(t, rules[1], res)
 	})
 }

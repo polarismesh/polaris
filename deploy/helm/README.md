@@ -12,7 +12,8 @@ Make sure k8s cluster is installed and helm is installed.
 
 ### Standalone
 
-You can modify `values.yaml` , set `global.mode` to `standalone` , then install using the command below, replacing `${release_name}` with your desired release name.
+You can modify `values.yaml` , set `global.mode` to `standalone` , then install using the command below,
+replacing `${release_name}` with your desired release name.
 
 ```shell
 $ cd deploy/helm
@@ -28,8 +29,8 @@ $ helm install ${release_name} . --set global.mode=standalone
 
 ### Cluster
 
-You need to modify `values.yaml`, set `global.mode` to `cluster`, and set the address information of `polaris.storage.db` and `polaris.storaate.redis`.
-Make sure your mysql has been initialized with the command below.
+You need to modify `values.yaml`, set `global.mode` to `cluster`, and set the address information
+of `polaris.storage.db` and `polaris.storaate.redis`. Make sure your mysql has been initialized with the command below.
 
 ```shell
 mysql -u $db_user -p $db_pwd -h $db_host < store/sqldb/polaris_server.sql
@@ -47,13 +48,15 @@ $ helm install ${release_name} .
 After deployment, the pod can be observed to run normally with the following command:
 
 ```shell
+$ kubectl get po -n polaris-system
 NAME                                  READY   STATUS    RESTARTS   AGE
 polaris-0                             2/2     Running   0          2m44s
 polaris-prometheus-6cd7cd5fc6-gqtcz   2/2     Running   0          2m44s
 ```
 
-If you configure `service.type` as `LoadBalancer` in `values.yaml`, you can use the `EXTERNAL-IP`:webPort of the polaris service to access the Polaris page.
-If your k8s cluster does not support `LoadBalancer` , you can set `service.type` to `NodePort` and access it through nodeip:nodeport . The page is as follows:
+If you configure `service.type` as `LoadBalancer` in `values.yaml`, you can use the `EXTERNAL-IP`:webPort of the polaris
+service to access the Polaris page. If your k8s cluster does not support `LoadBalancer` , you can set `service.type`
+to `NodePort` and access it through nodeip:nodeport . The page is as follows:
 ![img](./images/polaris.png)
 
 ## Uninstall polaris helm chart
@@ -65,6 +68,7 @@ $ helm uninstall `${release_name}`
 ```
 
 ## Configuration
+
 The currently supported configurations are as follows:
 
 | Parameter                            | Description                              |
@@ -92,3 +96,4 @@ The currently supported configurations are as follows:
 |polaris.storage.service.grpcPort      | polaris service expose, polaris-server listening grpc port number|
 |polaris.storage.service.webPort       | polaris service expose, polaris-server listening web  port number|
 |monitor.port                          | The port through which the client reports monitoring information|
+|installation.namespace                | namespace for polaris installation|

@@ -25,16 +25,19 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
+	"go.uber.org/zap"
+
 	logger "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 var (
+	// ErrorMultipleGroupFound is returned when multiple groups are found.
 	ErrorMultipleGroupFound error = errors.New("multiple group found")
-	ErrorGroupNotFound      error = errors.New("usergroup not found")
+	// ErrorGroupNotFound is returned when a group is not found.
+	ErrorGroupNotFound error = errors.New("usergroup not found")
 )
 
 const (
@@ -70,7 +73,7 @@ type groupStore struct {
 	handler BoltHandler
 }
 
-// AddUserGroup
+// AddGroup add a group
 func (gs *groupStore) AddGroup(group *model.UserGroupDetail) error {
 	if group.ID == "" || group.Name == "" || group.Token == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
@@ -86,7 +89,7 @@ func (gs *groupStore) AddGroup(group *model.UserGroupDetail) error {
 	defer tx.Rollback()
 
 	if err := gs.cleanInValidGroup(tx, group.Name, group.Owner); err != nil {
-		logger.AuthScope().Error("[Store][Group] clean invalid usergroup", zap.Error(err),
+		logger.StoreScope().Error("[Store][Group] clean invalid usergroup", zap.Error(err),
 			zap.String("name", group.Name), zap.String("owner", group.Owner))
 		return err
 	}
@@ -94,6 +97,7 @@ func (gs *groupStore) AddGroup(group *model.UserGroupDetail) error {
 	return gs.addGroup(tx, group)
 }
 
+// addGroup to boltdb
 func (gs *groupStore) addGroup(tx *bolt.Tx, group *model.UserGroupDetail) error {
 
 	group.Valid = true
@@ -103,7 +107,7 @@ func (gs *groupStore) addGroup(tx *bolt.Tx, group *model.UserGroupDetail) error 
 	data := convertForGroupStore(group)
 
 	if err := saveValue(tx, tblGroup, data.ID, data); err != nil {
-		logger.AuthScope().Error("[Store][Group] save usergroup", zap.Error(err),
+		logger.StoreScope().Error("[Store][Group] save usergroup", zap.Error(err),
 			zap.String("name", group.Name), zap.String("owner", group.Owner))
 
 		return err
@@ -111,14 +115,14 @@ func (gs *groupStore) addGroup(tx *bolt.Tx, group *model.UserGroupDetail) error 
 
 	if err := createDefaultStrategy(tx, model.PrincipalGroup, data.ID, data.Name,
 		data.Owner); err != nil {
-		logger.AuthScope().Error("[Store][Group] add usergroup default strategy", zap.Error(err),
+		logger.StoreScope().Error("[Store][Group] add usergroup default strategy", zap.Error(err),
 			zap.String("name", group.Name), zap.String("owner", group.Owner))
 
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.AuthScope().Error("[Store][Group] add usergroup tx commit", zap.Error(err),
+		logger.StoreScope().Error("[Store][Group] add usergroup tx commit", zap.Error(err),
 			zap.String("name", group.Name), zap.String("owner", group.Owner))
 		return err
 	}
@@ -126,7 +130,7 @@ func (gs *groupStore) addGroup(tx *bolt.Tx, group *model.UserGroupDetail) error 
 	return nil
 }
 
-// UpdateUserGroup
+// UpdateGroup update a group
 func (gs *groupStore) UpdateGroup(group *model.ModifyUserGroup) error {
 	if group.ID == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
@@ -148,7 +152,7 @@ func (gs *groupStore) updateGroup(group *model.ModifyUserGroup) error {
 	values := make(map[string]interface{})
 
 	if err := loadValues(tx, tblGroup, []string{group.ID}, &groupForStore{}, values); err != nil {
-		logger.AuthScope().Error("[Store][Group] get usergroup by id", zap.Error(err), zap.String("id", group.ID))
+		logger.StoreScope().Error("[Store][Group] get usergroup by id", zap.Error(err), zap.String("id", group.ID))
 	}
 
 	if len(values) == 0 {
@@ -170,15 +174,15 @@ func (gs *groupStore) updateGroup(group *model.ModifyUserGroup) error {
 	ret.TokenEnable = group.TokenEnable
 	ret.ModifyTime = time.Now()
 
-	gs.updateGroupRelation(ret, group)
+	updateGroupRelation(ret, group)
 
 	if err := saveValue(tx, tblGroup, ret.ID, convertForGroupStore(ret)); err != nil {
-		logger.AuthScope().Error("[Store][Group] update usergroup", zap.Error(err), zap.String("id", ret.ID))
+		logger.StoreScope().Error("[Store][Group] update usergroup", zap.Error(err), zap.String("id", ret.ID))
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.AuthScope().Error("[Store][Group] update usergroup tx commit",
+		logger.StoreScope().Error("[Store][Group] update usergroup tx commit",
 			zap.Error(err), zap.String("id", ret.ID))
 		return err
 	}
@@ -186,17 +190,17 @@ func (gs *groupStore) updateGroup(group *model.ModifyUserGroup) error {
 }
 
 // updateGroupRelation 更新用户组的关联关系数据
-func (gs *groupStore) updateGroupRelation(group *model.UserGroupDetail, modify *model.ModifyUserGroup) {
+func updateGroupRelation(group *model.UserGroupDetail, modify *model.ModifyUserGroup) {
 	for i := range modify.AddUserIds {
 		group.UserIds[modify.AddUserIds[i]] = struct{}{}
 	}
 
 	for i := range modify.RemoveUserIds {
-		delete(group.UserIds, modify.AddUserIds[i])
+		delete(group.UserIds, modify.RemoveUserIds[i])
 	}
 }
 
-// DeleteUserGroup 删除用户组
+// DeleteGroup 删除用户组
 func (gs *groupStore) DeleteGroup(group *model.UserGroupDetail) error {
 	if group.ID == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
@@ -216,18 +220,18 @@ func (gs *groupStore) deleteGroup(group *model.UserGroupDetail) error {
 	defer tx.Rollback()
 
 	if err := deleteValues(tx, tblGroup, []string{group.ID}, true); err != nil {
-		logger.AuthScope().Error("[Store][Group] remove usergroup", zap.Error(err), zap.String("id", group.ID))
+		logger.StoreScope().Error("[Store][Group] remove usergroup", zap.Error(err), zap.String("id", group.ID))
 		return err
 	}
 
 	if err := cleanLinkStrategy(tx, model.PrincipalGroup, group.ID, group.Owner); err != nil {
-		logger.AuthScope().Error("[Store][Group] clean usergroup default strategy",
+		logger.StoreScope().Error("[Store][Group] clean usergroup default strategy",
 			zap.Error(err), zap.String("id", group.ID))
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.AuthScope().Error("[Store][Group] delete usergroupr tx commit",
+		logger.StoreScope().Error("[Store][Group] delete usergroupr tx commit",
 			zap.Error(err), zap.String("id", group.ID))
 		return err
 	}
@@ -235,16 +239,16 @@ func (gs *groupStore) deleteGroup(group *model.UserGroupDetail) error {
 	return nil
 }
 
-// GetGroup
-func (gs *groupStore) GetGroup(groupId string) (*model.UserGroupDetail, error) {
-	if groupId == "" {
+// GetGroup get a group
+func (gs *groupStore) GetGroup(groupID string) (*model.UserGroupDetail, error) {
+	if groupID == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
-			"get usergroup missing some params, groupId is %s", groupId))
+			"get usergroup missing some params, groupID is %s", groupID))
 	}
 
-	values, err := gs.handler.LoadValues(tblGroup, []string{groupId}, &groupForStore{})
+	values, err := gs.handler.LoadValues(tblGroup, []string{groupID}, &groupForStore{})
 	if err != nil {
-		logger.AuthScope().Error("[Store][Group] get usergroup by id", zap.Error(err), zap.String("id", groupId))
+		logger.StoreScope().Error("[Store][Group] get usergroup by id", zap.Error(err), zap.String("id", groupID))
 		return nil, err
 	}
 
@@ -269,7 +273,7 @@ func (gs *groupStore) GetGroup(groupId string) (*model.UserGroupDetail, error) {
 	return nil, nil
 }
 
-// GetGroupByName
+// GetGroupByName get a group by name
 func (gs *groupStore) GetGroupByName(name, owner string) (*model.UserGroup, error) {
 
 	if name == "" || owner == "" {
@@ -311,17 +315,17 @@ func (gs *groupStore) GetGroupByName(name, owner string) (*model.UserGroup, erro
 	return ret.UserGroup, nil
 }
 
-// GetGroups
+// GetGroups get groups
 func (gs *groupStore) GetGroups(filters map[string]string, offset uint32,
 	limit uint32) (uint32, []*model.UserGroup, error) {
 
 	// 如果本次请求参数携带了 user_id，那么就是查询这个用户所关联的所有用户组
 	if _, ok := filters["user_id"]; ok {
 		return gs.listGroupByUser(filters, offset, limit)
-	} else {
-		// 正常查询用户组信息
-		return gs.listSimpleGroups(filters, offset, limit)
 	}
+	// 正常查询用户组信息
+	return gs.listSimpleGroups(filters, offset, limit)
+
 }
 
 // listSimpleGroups Normal user group query
@@ -370,12 +374,13 @@ func (gs *groupStore) listSimpleGroups(filters map[string]string, offset uint32,
 }
 
 // listGroupByUser 查询某个用户下所关联的用户组信息
-func (gs *groupStore) listGroupByUser(filters map[string]string, offset uint32, limit uint32) (uint32,
-	[]*model.UserGroup, error) {
+func (gs *groupStore) listGroupByUser(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error) {
 
-	userId := filters["user_id"]
-	owner, existOwner := filters["owner"]
-	fields := []string{GroupFieldUserIds, GroupFieldOwner, GroupFieldValid}
+	var (
+		userID            = filters["user_id"]
+		owner, existOwner = filters["owner"]
+		fields            = []string{GroupFieldUserIds, GroupFieldOwner, GroupFieldValid}
+	)
 
 	values, err := gs.handler.LoadValuesByFilter(tblGroup, fields, &groupForStore{},
 		func(m map[string]interface{}) bool {
@@ -401,7 +406,7 @@ func (gs *groupStore) listGroupByUser(filters map[string]string, offset uint32, 
 			}
 
 			saveUserIds := saveVal.(map[string]string)
-			_, exist := saveUserIds[userId]
+			_, exist := saveUserIds[userID]
 
 			if existOwner {
 				return exist || saveOwner == owner
@@ -450,8 +455,8 @@ func doGroupPage(ret map[string]interface{}, offset uint32, limit uint32) []*mod
 }
 
 // GetGroupsForCache 查询用户分组数据，主要用于Cache更新
-func (us *groupStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*model.UserGroupDetail, error) {
-	ret, err := us.handler.LoadValuesByFilter(tblGroup, []string{GroupFieldModifyTime}, &groupForStore{},
+func (gs *groupStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*model.UserGroupDetail, error) {
+	ret, err := gs.handler.LoadValuesByFilter(tblGroup, []string{GroupFieldModifyTime}, &groupForStore{},
 		func(m map[string]interface{}) bool {
 			mt := m[GroupFieldModifyTime].(time.Time)
 			isAfter := mt.After(mtime)
@@ -473,7 +478,7 @@ func (us *groupStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*m
 
 // cleanInValidGroup 清理无效的用户组数据
 func (gs *groupStore) cleanInValidGroup(tx *bolt.Tx, name, owner string) error {
-	logger.AuthScope().Infof("[Store][User] clean usergroup(%s)", name)
+	logger.StoreScope().Infof("[Store][User] clean usergroup(%s)", name)
 
 	fields := []string{GroupFieldName, GroupFieldValid, GroupFieldOwner}
 
@@ -533,9 +538,7 @@ func convertForGroupStore(group *model.UserGroupDetail) *groupForStore {
 }
 
 func convertForGroupDetail(group *groupForStore) *model.UserGroupDetail {
-
 	userIds := make(map[string]struct{}, len(group.UserIds))
-
 	for id := range group.UserIds {
 		userIds[id] = struct{}{}
 	}
@@ -554,5 +557,4 @@ func convertForGroupDetail(group *groupForStore) *model.UserGroupDetail {
 		},
 		UserIds: userIds,
 	}
-
 }

@@ -119,7 +119,7 @@ func BenchmarkAddTask1(t *testing.B) {
 		}
 	}
 
-	//t.N = 100000
+	// t.N = 100000
 	t.SetParallelism(10000)
 	t.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -155,7 +155,7 @@ func BenchmarkAddTask2(t *testing.B) {
 }
 
 // bench-test timewheel task add
-//use 2 timewheel
+// use 2 timewheel
 func BenchmarkAddTask3(t *testing.B) {
 	tw := New(time.Second, 5, "test tw")
 	tw2 := New(time.Second, 5, "test tw")

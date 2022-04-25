@@ -45,9 +45,9 @@ type FileCacheParam struct {
 type FileCache struct {
 	params  FileCacheParam
 	storage store.Store
-	//fileId -> Entry
+	// fileId -> Entry
 	files *sync.Map
-	//fileId -> lock
+	// fileId -> lock
 	fileLoadLocks *sync.Map
 }
 
@@ -56,9 +56,9 @@ type Entry struct {
 	Content string
 	Md5     string
 	Version uint64
-	//创建的时候，设置过期时间
+	// 创建的时候，设置过期时间
 	ExpireTime time.Time
-	//标识是否是空缓存
+	// 标识是否是空缓存
 	Empty bool
 }
 
@@ -98,15 +98,15 @@ func (fc *FileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 		return storedEntry.(*Entry), nil
 	}
 
-	//缓存未命中，则从数据库里加载数据
+	// 缓存未命中，则从数据库里加载数据
 
-	//为了避免在大并发量的情况下，数据库被压垮，所以增加锁。同时为了提高性能，减小锁粒度
+	// 为了避免在大并发量的情况下，数据库被压垮，所以增加锁。同时为了提高性能，减小锁粒度
 	lockObj, _ := fc.fileLoadLocks.LoadOrStore(fileId, new(sync.Mutex))
 	loadLock := lockObj.(*sync.Mutex)
 	loadLock.Lock()
 	defer loadLock.Unlock()
 
-	//double check
+	// double check
 	storedEntry, ok = fc.files.Load(fileId)
 	if ok {
 		return storedEntry.(*Entry), nil
@@ -125,7 +125,7 @@ func (fc *FileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 		return nil, err
 	}
 
-	//数据库中没有该对象, 为了避免对象不存在时，一直击穿数据库，所以缓存空对象
+	// 数据库中没有该对象, 为了避免对象不存在时，一直击穿数据库，所以缓存空对象
 	if file == nil {
 		emptyEntry := &Entry{
 			ExpireTime: fc.getExpireTime(),
@@ -135,7 +135,7 @@ func (fc *FileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 		return emptyEntry, nil
 	}
 
-	//数据库中有对象，更新缓存
+	// 数据库中有对象，更新缓存
 	newEntry := &Entry{
 		Content:    file.Content,
 		Md5:        file.Md5,
@@ -144,13 +144,13 @@ func (fc *FileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 		Empty:      false,
 	}
 
-	//缓存不存在，则直接存入缓存
+	// 缓存不存在，则直接存入缓存
 	if !ok {
 		fc.files.Store(fileId, newEntry)
 		return newEntry, nil
 	}
 
-	//缓存存在，幂等判断只能存入版本号更大的
+	// 缓存存在，幂等判断只能存入版本号更大的
 	oldEntry := storedEntry.(*Entry)
 	if oldEntry.Empty || newEntry.Version > oldEntry.Version {
 		fc.files.Store(fileId, newEntry)
@@ -180,13 +180,13 @@ func (fc *FileCache) Clear() {
 	})
 }
 
-//缓存过期时间，为了避免集中失效，加上随机数。[60 ~ 70]分钟内随机失效
+// 缓存过期时间，为了避免集中失效，加上随机数。[60 ~ 70]分钟内随机失效
 func (fc *FileCache) getExpireTime() time.Time {
 	randTime := rand.Intn(10*60) + fc.params.ExpireTimeAfterWrite
 	return time.Now().Add(time.Duration(randTime) * time.Second)
 }
 
-//定时清理过期的缓存
+// 定时清理过期的缓存
 func (fc *FileCache) startClearExpireEntryTask(ctx context.Context) {
 	t := time.NewTicker(time.Minute)
 	defer t.Stop()
@@ -213,7 +213,7 @@ func (fc *FileCache) startClearExpireEntryTask(ctx context.Context) {
 	}
 }
 
-//print cache status at fix rate
+// print cache status at fix rate
 func (fc *FileCache) startLogStatusTask(ctx context.Context) {
 	t := time.NewTicker(time.Minute)
 	defer t.Stop()

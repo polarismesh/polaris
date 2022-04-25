@@ -3,13 +3,13 @@
 # Declare variables to be passed into your templates.
 
 global:
-  mode: standalone
-#  mode: cluster
+  # mode: standalone
+  mode: cluster
 
 polaris:
   image:
     repository: polarismesh/polaris-server
-    tag: v1.4.0
+    tag: latest
     pullPolicy: Always
   limit:
     cpu: "500m"
@@ -17,7 +17,7 @@ polaris:
   console:
     image:
       repository: polarismesh/polaris-console
-      tag: v1.3.1
+      tag: latest
       pullPolicy: Always
     limit:
       cpu: "500m"
@@ -35,10 +35,15 @@ polaris:
 
 service:
   type: LoadBalancer
+  eurekaPort: 8761
   httpPort: 8090
   grpcPort: 8091
   webPort: 8080
   xdsv3Port: 15010
+  configGrpcPort: 8093
 
 monitor:
   port: 9091
+
+installation:
+  namespace: polaris-system

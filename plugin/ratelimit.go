@@ -28,16 +28,16 @@ import (
 type RatelimitType int
 
 const (
-	// 基于ip的流控
+	// IPRatelimit 基于ip的流控
 	IPRatelimit RatelimitType = iota + 1
 
-	// 基于接口级限流
+	// APIRatelimit 基于接口级限流
 	APIRatelimit
 
-	// 基于service的流控
+	// ServiceRatelimit 基于service的流控
 	ServiceRatelimit
 
-	// 基于Instance的限流
+	// InstanceRatelimit 基于Instance的限流
 	InstanceRatelimit
 )
 
@@ -57,7 +57,7 @@ var (
 type Ratelimit interface {
 	Plugin
 
-	// 是否允许访问, true: 允许, false: 不允许 TODO
+	// Allow 是否允许访问, true: 允许, false: 不允许 TODO
 	// 参数rateType即限流类型，id为限流的key
 	// 如果rateType为RatelimitIP则id为ip, rateType为RatelimitService则id为ip_namespace_service或ip_serviceId
 	Allow(typ RatelimitType, key string) bool

@@ -21,10 +21,10 @@ import (
 	"errors"
 	"fmt"
 
+	_ "github.com/go-sql-driver/mysql"
+
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
-
-	_ "github.com/go-sql-driver/mysql"
 )
 
 const (
@@ -55,7 +55,7 @@ type stableStore struct {
 	*groupStore
 	*strategyStore
 
-	//配置中心stores
+	// 配置中心stores
 	*configFileGroupStore
 	*configFileStore
 	*configFileReleaseStore
@@ -160,11 +160,11 @@ func parseStoreConfig(opts interface{}) (*dbConfig, error) {
 	}
 
 	c := &dbConfig{
-		dbType:            dbType,
-		dbUser:            dbUser,
-		dbPwd:             dbPwd,
-		dbAddr:            dbAddr,
-		dbName:            dbName,
+		dbType: dbType,
+		dbUser: dbUser,
+		dbPwd:  dbPwd,
+		dbAddr: dbAddr,
+		dbName: dbName,
 	}
 	if maxOpenConns, _ := obj["maxOpenConns"].(int); maxOpenConns > 0 {
 		c.maxOpenConns = maxOpenConns

@@ -100,7 +100,7 @@ func (s *releaseMessageScanner) startScanTask(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			//为了避免丢失消息，扫描发布消息的时间点往前拨10s。因为处理消息是幂等的，所以即使捞出重复消息也能够正常处理
+			// 为了避免丢失消息，扫描发布消息的时间点往前拨10s。因为处理消息是幂等的，所以即使捞出重复消息也能够正常处理
 			scanIdx := s.lastScannerTime.Add(DefaultScanTimeOffset)
 			releases, err := s.storage.FindConfigFileReleaseByModifyTimeAfter(scanIdx)
 
@@ -133,17 +133,17 @@ func (s *releaseMessageScanner) handlerReleases(firstTime bool, releases []*mode
 
 		entry, ok := s.fileCache.Get(release.Namespace, release.Group, release.FileName)
 
-		//缓存不存在，或者缓存的版本号落后数据库的版本号则处理消息. 因为有版本号判断，所以能够幂等处理重复消息
+		// 缓存不存在，或者缓存的版本号落后数据库的版本号则处理消息. 因为有版本号判断，所以能够幂等处理重复消息
 		if !ok || entry.Empty || release.Version > entry.Version {
 			if release.Flag == 1 {
-				//删除的发布消息，因为缓存被清除了，所以会一直判断为新消息，所以通过判断消息是否过期来避免一直重复消费
+				// 删除的发布消息，因为缓存被清除了，所以会一直判断为新消息，所以通过判断消息是否过期来避免一直重复消费
 				if isExpireMessage(release) {
 					continue
 				}
-				//删除配置文件，删除缓存
+				// 删除配置文件，删除缓存
 				s.fileCache.Remove(release.Namespace, release.Group, release.FileName)
 			} else {
-				//正常配置发布，更新缓存
+				// 正常配置发布，更新缓存
 				_, _ = s.fileCache.ReLoad(release.Namespace, release.Group, release.FileName)
 			}
 

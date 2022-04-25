@@ -21,22 +21,22 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
-// NewStringValue
+// NewStringValue returns a new StringValue with the given value.
 func NewStringValue(value string) *wrappers.StringValue {
 	return &wrappers.StringValue{Value: value}
 }
 
-// NewUInt32Value
+// NewUInt32Value returns a new UInt32Value with the given value.
 func NewUInt32Value(value uint32) *wrappers.UInt32Value {
 	return &wrappers.UInt32Value{Value: value}
 }
 
-// NewUInt64Value
+// NewUInt64Value returns a new UInt64Value with the given value.
 func NewUInt64Value(value uint64) *wrappers.UInt64Value {
 	return &wrappers.UInt64Value{Value: value}
 }
 
-// NewBoolValue
+// NewBoolValue returns a new BoolValue with the given value.
 func NewBoolValue(value bool) *wrappers.BoolValue {
 	return &wrappers.BoolValue{Value: value}
 }

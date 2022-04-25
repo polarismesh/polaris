@@ -55,7 +55,7 @@ func (p *platformStore) CreatePlatform(platform *model.Platform) error {
 
 	if old, _ := p.GetPlatformById(platformKey); old != nil {
 		log.Errorf("[Store][platform] create platform(%s) duplicate", platform.ID)
-		return errors.New("Create Platform duplicate")
+		return errors.New("create Platform duplicate")
 	}
 
 	if err := dbOp.SaveValue(tblPlatform, platformKey, platform); err != nil {

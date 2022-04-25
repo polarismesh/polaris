@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
@@ -43,7 +44,7 @@ func Test_checkPassword(t *testing.T) {
 			args: args{
 				password: utils.NewStringValue("123456"),
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			args: args{

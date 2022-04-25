@@ -46,7 +46,7 @@ type ResponseFuture struct {
 
 // wait 等待任务执行
 func (r *ResponseFuture) wait() error {
-	//defer log.Infof("[TaskManager][%s] finish all task(%d)", r.label, r.total)
+	// defer log.Infof("[TaskManager][%s] finish all task(%d)", r.label, r.total)
 
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
@@ -208,7 +208,7 @@ func (t *TaskManager) Release() {
 
 // worker 任务管理器的工作协程
 func (t *TaskManager) worker(index int) {
-	//log.Infof("[TaskManager] reading metadata worker(%d) running", index)
+	// log.Infof("[TaskManager] reading metadata worker(%d) running", index)
 	defer log.Infof("[TaskManager] reading metadata worker(%d) exit", index)
 
 	for {

@@ -27,19 +27,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/polarismesh/polaris-server/auth"
-	"github.com/polarismesh/polaris-server/plugin/statis/local"
-
 	"github.com/emicklei/go-restful"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris-server/apiserver"
+	"github.com/polarismesh/polaris-server/auth"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/config"
 	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris-server/plugin/statis/local"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 )
@@ -152,7 +151,7 @@ func (h *HTTPServer) Run(errCh chan error) {
 	}
 	h.statis = plugin.GetStatis()
 
-	//初始化配置中心模块
+	// 初始化配置中心模块
 	h.configServer, err = config.GetConfigServer()
 	if err != nil {
 		log.Errorf("set config server to http server error. %v", err)
@@ -351,9 +350,9 @@ func (h *HTTPServer) enablePprofAccess(wsContainer *restful.Container) {
 func (h *HTTPServer) enablePrometheusAccess(wsContainer *restful.Container) {
 	log.Infof("open http access for prometheus")
 
-	statis := plugin.GetStatis().(*local.StatisWorker)
+	statics := plugin.GetStatis().(*local.StatisWorker)
 
-	wsContainer.Handle("/metrics", statis.GetPrometheusHandler())
+	wsContainer.Handle("/metrics", statics.GetPrometheusHandler())
 }
 
 // process 在接收和回复时统一处理请求

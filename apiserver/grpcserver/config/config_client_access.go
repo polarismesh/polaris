@@ -19,12 +19,14 @@ package configgrpcserver
 
 import (
 	"context"
+
 	"github.com/google/uuid"
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"go.uber.org/zap"
 )
 
 // GetConfigFile 拉取配置
@@ -71,13 +73,13 @@ func (g *ConfigGRPCServer) WatchConfigFiles(ctx context.Context, watchConfigFile
 		zap.String("client", clientAddress))
 
 	watchFiles := watchConfigFileRequest.WatchFiles
-	//1. 检查客户端是否有版本落后
+	// 1. 检查客户端是否有版本落后
 	response := g.configServer.Service().CheckClientConfigFileByVersion(ctx, watchFiles)
 	if response.Code.GetValue() != api.DataNoChange {
 		return response, nil
 	}
 
-	//2. 监听配置变更，hold 请求 30s，30s 内如果有配置发布，则响应请求
+	// 2. 监听配置变更，hold 请求 30s，30s 内如果有配置发布，则响应请求
 	id, _ := uuid.NewUUID()
 	clientId := clientAddress + "@" + id.String()[0:8]
 
@@ -86,7 +88,7 @@ func (g *ConfigGRPCServer) WatchConfigFiles(ctx context.Context, watchConfigFile
 
 	g.configServer.ConnManager().AddConn(clientId, watchFiles, finishChan)
 
-	//3. 阻塞等待响应
+	// 3. 阻塞等待响应
 	rsp := <-finishChan
 
 	return rsp, nil

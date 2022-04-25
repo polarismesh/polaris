@@ -25,9 +25,7 @@ import (
 	v1 "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
-/**
- * Namespace 命名空间结构体
- */
+// Namespace 命名空间结构体
 type Namespace struct {
 	Name       string
 	Comment    string
@@ -38,9 +36,7 @@ type Namespace struct {
 	ModifyTime time.Time
 }
 
-/**
- * Business 业务集
- */
+// Business 业务结构体
 type Business struct {
 	ID         string
 	Name       string
@@ -51,9 +47,7 @@ type Business struct {
 	ModifyTime time.Time
 }
 
-/**
- * Service 服务数据
- */
+// Service 服务数据
 type Service struct {
 	ID          string
 	Name        string
@@ -86,9 +80,7 @@ type EnhancedService struct {
 	HealthyInstanceCount uint32
 }
 
-/**
- * ServiceKey 服务名
- */
+// ServiceKey 服务名
 type ServiceKey struct {
 	Namespace string
 	Name      string
@@ -114,9 +106,7 @@ type ServiceAlias struct {
 	ModifyTime     time.Time
 }
 
-/**
- * WeightType 服务下实例的权重类型
- */
+// WeightType 服务下实例的权重类型
 type WeightType uint32
 
 const (
@@ -139,9 +129,7 @@ var WeightEnum = map[string]WeightType{
 	"static":  WEIGHTSTATIC,
 }
 
-/**
- * LocationStore 地域信息，对应数据库字段
- */
+// LocationStore 地域信息，对应数据库字段
 type LocationStore struct {
 	IP         string
 	Region     string
@@ -178,9 +166,7 @@ func Store2Location(s *LocationStore) *Location {
 	}
 }
 
-/**
- * Client 客户端上报信息表
- */
+// Client 客户端上报信息表
 type Client struct {
 	VpcID      string
 	Host       string
@@ -190,9 +176,7 @@ type Client struct {
 	ModifyTime time.Time
 }
 
-/**
- * RoutingConfig 路由配置
- */
+// RoutingConfig 路由配置
 type RoutingConfig struct {
 	ID         string
 	InBounds   string
@@ -203,18 +187,14 @@ type RoutingConfig struct {
 	ModifyTime time.Time
 }
 
-/**
- * ExtendRoutingConfig 路由配置的扩展结构体
- */
+// ExtendRoutingConfig 路由配置的扩展结构体
 type ExtendRoutingConfig struct {
 	ServiceName   string
 	NamespaceName string
 	Config        *RoutingConfig
 }
 
-/**
- * RateLimit 限流规则
- */
+// RateLimit 限流规则
 type RateLimit struct {
 	ID         string
 	ServiceID  string
@@ -228,27 +208,21 @@ type RateLimit struct {
 	ModifyTime time.Time
 }
 
-/**
- * ExtendRateLimit 包含服务信息的限流规则
- */
+// ExtendRateLimit 包含服务信息的限流规则
 type ExtendRateLimit struct {
 	ServiceName   string
 	NamespaceName string
 	RateLimit     *RateLimit
 }
 
-/**
- * RateLimitRevision 包含最新版本号的限流规则
- */
+// RateLimitRevision 包含最新版本号的限流规则
 type RateLimitRevision struct {
 	ServiceID    string
 	LastRevision string
 	ModifyTime   time.Time
 }
 
-/**
- * CircuitBreaker 熔断规则
- */
+// CircuitBreaker 熔断规则
 type CircuitBreaker struct {
 	ID         string
 	Version    string
@@ -267,9 +241,7 @@ type CircuitBreaker struct {
 	ModifyTime time.Time
 }
 
-/**
- * ServiceWithCircuitBreaker 与服务关系绑定的熔断规则
- */
+// ServiceWithCircuitBreaker 与服务关系绑定的熔断规则
 type ServiceWithCircuitBreaker struct {
 	ServiceID      string
 	CircuitBreaker *CircuitBreaker
@@ -278,9 +250,7 @@ type ServiceWithCircuitBreaker struct {
 	ModifyTime     time.Time
 }
 
-/**
- * CircuitBreakerRelation 熔断规则绑定关系
- */
+// CircuitBreakerRelation 熔断规则绑定关系
 type CircuitBreakerRelation struct {
 	ServiceID   string
 	RuleID      string
@@ -290,25 +260,19 @@ type CircuitBreakerRelation struct {
 	ModifyTime  time.Time
 }
 
-/**
- * CircuitBreakerDetail 返回给控制台的熔断规则及服务数据
- */
+// CircuitBreakerDetail 返回给控制台的熔断规则及服务数据
 type CircuitBreakerDetail struct {
 	Total               uint32
 	CircuitBreakerInfos []*CircuitBreakerInfo
 }
 
-/**
- * CircuitBreakerInfo 熔断规则及绑定服务
- */
+// CircuitBreakerInfo 熔断规则及绑定服务
 type CircuitBreakerInfo struct {
 	CircuitBreaker *CircuitBreaker
 	Services       []*Service
 }
 
-/**
- * Platform 平台信息
- */
+// Platform 平台信息
 type Platform struct {
 	ID         string
 	Name       string
@@ -367,7 +331,7 @@ const (
 	// OUpdateToken 更新token
 	OUpdateToken OperationType = "UpdateToken" // nolint
 
-	// OUpdateUserGroup 更新用户-用户组关联关系
+	// OUpdateGroup 更新用户-用户组关联关系
 	OUpdateGroup OperationType = "UpdateGroup"
 )
 
@@ -435,21 +399,21 @@ type RecordEntry struct {
 	CreateTime    time.Time
 }
 
-// DiscoverEventType
+// DiscoverEventType 探测事件类型
 type DiscoverEventType string
 
 const (
-	// empty discover event
+	// EventDiscoverNone empty discover event
 	EventDiscoverNone DiscoverEventType = "EventDiscoverNone"
-	// Instance becomes unhealthy
+	// EventInstanceTurnUnHealth Instance becomes unhealthy
 	EventInstanceTurnUnHealth DiscoverEventType = "InstanceTurnUnHealth"
-	// Instance becomes healthy
+	// EventInstanceTurnHealth Instance becomes healthy
 	EventInstanceTurnHealth DiscoverEventType = "InstanceTurnHealth"
-	// Instance is in isolation
+	// EventInstanceOpenIsolate Instance is in isolation
 	EventInstanceOpenIsolate DiscoverEventType = "InstanceOpenIsolate"
-	// Instance shutdown isolation state
+	// EventInstanceCloseIsolate Instance shutdown isolation state
 	EventInstanceCloseIsolate DiscoverEventType = "InstanceCloseIsolate"
-	// Instance offline
+	// EventInstanceOffline Instance offline
 	EventInstanceOffline DiscoverEventType = "InstanceOffline"
 )
 
@@ -463,7 +427,7 @@ type DiscoverEvent struct {
 	CreateTimeSec int64
 }
 
-// InstancesDetail Service instance list and details
+// InstanceCount Service instance statistics
 type InstanceCount struct {
 	// HealthyInstanceCount 健康实例数
 	HealthyInstanceCount uint32

@@ -50,7 +50,7 @@ func (rs *routingConfigStore) CreateRoutingConfig(conf *model.RoutingConfig) err
 	}
 
 	// 服务配置的创建由外层进行服务的保护，这里不需要加锁
-	str := `insert into routing_config(id, in_bounds, out_bounds, revision, ctime, mtime) 
+	str := `insert into routing_config(id, in_bounds, out_bounds, revision, ctime, mtime)
 			values(?,?,?,?,sysdate(),sysdate())`
 	if _, err := rs.master.Exec(str, conf.ID, conf.InBounds, conf.OutBounds, conf.Revision); err != nil {
 		log.Errorf("[Store][database] create routing(%+v) err: %s", conf, err.Error())
@@ -99,7 +99,7 @@ func (rs *routingConfigStore) DeleteRoutingConfig(serviceID string) error {
 // GetRoutingConfigsForCache 缓存增量拉取
 func (rs *routingConfigStore) GetRoutingConfigsForCache(
 	mtime time.Time, firstUpdate bool) ([]*model.RoutingConfig, error) {
-	str := `select id, in_bounds, out_bounds, revision, 
+	str := `select id, in_bounds, out_bounds, revision,
 			flag, unix_timestamp(ctime), unix_timestamp(mtime)  
 			from routing_config where mtime > ?`
 	if firstUpdate {
@@ -122,7 +122,7 @@ func (rs *routingConfigStore) GetRoutingConfigsForCache(
 func (rs *routingConfigStore) GetRoutingConfigWithService(
 	name string, namespace string) (*model.RoutingConfig, error) {
 	// 只查询到flag=0的数据
-	str := `select routing_config.id, in_bounds, out_bounds, revision, flag, 
+	str := `select routing_config.id, in_bounds, out_bounds, revision, flag,
 			unix_timestamp(ctime), unix_timestamp(mtime)  
 			from (select id from service where name = ? and namespace = ?) as service, routing_config 
 			where service.id = routing_config.id and routing_config.flag = 0`
@@ -147,7 +147,7 @@ func (rs *routingConfigStore) GetRoutingConfigWithService(
 
 // GetRoutingConfigWithID 根据服务ID获取对应的配置
 func (rs *routingConfigStore) GetRoutingConfigWithID(id string) (*model.RoutingConfig, error) {
-	str := `select routing_config.id, in_bounds, out_bounds, revision, flag, 
+	str := `select routing_config.id, in_bounds, out_bounds, revision, flag,
 			unix_timestamp(ctime), unix_timestamp(mtime)
 			from routing_config 
 			where id = ? and flag = 0`
@@ -265,7 +265,7 @@ func fetchRoutingConfigRows(rows *sql.Rows) ([]*model.RoutingConfig, error) {
 
 // genQueryRoutingConfigSQL 查询路由配置的语句
 func genQueryRoutingConfigSQL() string {
-	str := `select name, namespace, routing_config.id, in_bounds, out_bounds, 
+	str := `select name, namespace, routing_config.id, in_bounds, out_bounds,
 			unix_timestamp(routing_config.ctime), unix_timestamp(routing_config.mtime)  
 			from routing_config, service 
 			where routing_config.id = service.id 
@@ -275,7 +275,7 @@ func genQueryRoutingConfigSQL() string {
 
 // genQueryRoutingConfigCountSQL 获取路由配置指定过滤条件下的总条目数
 func genQueryRoutingConfigCountSQL() string {
-	str := `select count(*) from routing_config, service 
+	str := `select count(*) from routing_config, service
 			where routing_config.id = service.id 
 			and routing_config.flag = 0`
 	return str

@@ -6,64 +6,64 @@ import "google/protobuf/wrappers.proto";
 import "model.proto";
 
 message Routing {
-	// 规则所属服务以及命名空间
-	google.protobuf.StringValue service = 1;
-	google.protobuf.StringValue namespace = 2;
+  // 规则所属服务以及命名空间
+  google.protobuf.StringValue service = 1;
+  google.protobuf.StringValue namespace = 2;
 
-	// 每个服务可以配置多条入站或者出站规则
-	// 对于每个请求，从上到下依次匹配，若命中则终止
-	repeated Route inbounds = 3;
-	repeated Route outbounds = 4;
+  // 每个服务可以配置多条入站或者出站规则
+  // 对于每个请求，从上到下依次匹配，若命中则终止
+  repeated Route inbounds = 3;
+  repeated Route outbounds = 4;
 
-	google.protobuf.StringValue ctime = 5;
-	google.protobuf.StringValue mtime = 6;
-	google.protobuf.StringValue revision = 7;
+  google.protobuf.StringValue ctime = 5;
+  google.protobuf.StringValue mtime = 6;
+  google.protobuf.StringValue revision = 7;
 
-	google.protobuf.StringValue service_token = 8 [json_name="service_token"];
+  google.protobuf.StringValue service_token = 8 [json_name = "service_token"];
 }
 
 message Route {
-	// 如果匹配Source规则，按照Destination路由
-	// 多个Source之间的关系为或
-	repeated Source sources = 1;
-	repeated Destination destinations = 2;
+  // 如果匹配Source规则，按照Destination路由
+  // 多个Source之间的关系为或
+  repeated Source sources = 1;
+  repeated Destination destinations = 2;
 }
 
 message Source {
-	// 主调方服务以及命名空间
-	google.protobuf.StringValue service = 1;
-	google.protobuf.StringValue namespace = 2;
+  // 主调方服务以及命名空间
+  google.protobuf.StringValue service = 1;
+  google.protobuf.StringValue namespace = 2;
 
-	// 主调方服务实例标签或者请求标签
-	// value支持正则匹配
-	map<string, MatchString> metadata = 3;
+  // 主调方服务实例标签或者请求标签
+  // value支持正则匹配
+  map<string, MatchString> metadata = 3;
 }
 
 message Destination {
-	// 被调方服务以及命名空间
-	google.protobuf.StringValue service = 1;
-	google.protobuf.StringValue namespace = 2;
+  // 被调方服务以及命名空间
+  google.protobuf.StringValue service = 1;
+  google.protobuf.StringValue namespace = 2;
 
-	// 被调方服务实例标签
-	// value支持正则匹配
-	map<string, MatchString> metadata = 3;
+  // 被调方服务实例标签
+  // value支持正则匹配
+  map<string, MatchString> metadata = 3;
 
-	// 根据服务名和服务实例metadata筛选符合条件的服务实例子集
-	// 服务实例子集可以设置优先级和权重
-	// 优先级：整型，范围[0, 9]，最高优先级为0
-	// 权重：整型
-	// 先按优先级路由，如果存在高优先级，不会使用低优先级
-	// 如果存在优先级相同的子集，再按权重分配
-	// 优先级和权重可以都不设置/设置一个/设置两个
-	// 如果部分设置优先级，部分没有设置，认为没有设置的优先级最低
-	// 如果部分设置权重，部分没有设置，认为没有设置的权重为0
-	// 如果全部没有设置权重，认为权重相同
-	google.protobuf.UInt32Value priority = 4;
-	google.protobuf.UInt32Value weight = 5;
+  // 根据服务名和服务实例metadata筛选符合条件的服务实例子集
+  // 服务实例子集可以设置优先级和权重
+  // 优先级：整型，范围[0, 9]，最高优先级为0
+  // 权重：整型
+  // 先按优先级路由，如果存在高优先级，不会使用低优先级
+  // 如果存在优先级相同的子集，再按权重分配
+  // 优先级和权重可以都不设置/设置一个/设置两个
+  // 如果部分设置优先级，部分没有设置，认为没有设置的优先级最低
+  // 如果部分设置权重，部分没有设置，认为没有设置的权重为0
+  // 如果全部没有设置权重，认为权重相同
+  google.protobuf.UInt32Value priority = 4;
+  google.protobuf.UInt32Value weight = 5;
 
-	// 将请求转发到代理服务
-	google.protobuf.StringValue transfer = 6;
-	
-	//是否对该set执行隔离，隔离后，不会再分配流量
-	google.protobuf.BoolValue isolate = 7;
+  // 将请求转发到代理服务
+  google.protobuf.StringValue transfer = 6;
+
+  //是否对该set执行隔离，隔离后，不会再分配流量
+  google.protobuf.BoolValue isolate = 7;
 }

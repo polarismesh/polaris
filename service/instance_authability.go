@@ -25,6 +25,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
+// CreateInstances create instances
 func (svr *serverAuthAbility) CreateInstances(ctx context.Context,
 	reqs []*api.Instance) *api.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Create, "CreateInstances")
@@ -43,6 +44,7 @@ func (svr *serverAuthAbility) CreateInstances(ctx context.Context,
 	return svr.targetServer.CreateInstances(ctx, reqs)
 }
 
+// DeleteInstances delete instances
 func (svr *serverAuthAbility) DeleteInstances(ctx context.Context,
 	reqs []*api.Instance) *api.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Delete, "DeleteInstances")
@@ -66,7 +68,7 @@ func (svr *serverAuthAbility) DeleteInstancesByHost(ctx context.Context,
 	reqs []*api.Instance) *api.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Delete, "DeleteInstancesByHost")
 
-	if err := svr.authMgn.VerifyToken(authCtx); err != nil {
+	if err := svr.authMgn.VerifyCredential(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
@@ -80,6 +82,7 @@ func (svr *serverAuthAbility) DeleteInstancesByHost(ctx context.Context,
 	return svr.targetServer.DeleteInstancesByHost(ctx, reqs)
 }
 
+// UpdateInstances update instances
 func (svr *serverAuthAbility) UpdateInstances(ctx context.Context,
 	reqs []*api.Instance) *api.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Modify, "UpdateInstances")
@@ -95,6 +98,7 @@ func (svr *serverAuthAbility) UpdateInstances(ctx context.Context,
 	return svr.targetServer.UpdateInstances(ctx, reqs)
 }
 
+// UpdateInstancesIsolate update instances
 func (svr *serverAuthAbility) UpdateInstancesIsolate(ctx context.Context,
 	reqs []*api.Instance) *api.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Modify, "UpdateInstancesIsolate")
@@ -110,6 +114,7 @@ func (svr *serverAuthAbility) UpdateInstancesIsolate(ctx context.Context,
 	return svr.targetServer.UpdateInstancesIsolate(ctx, reqs)
 }
 
+// GetInstances get instances
 func (svr *serverAuthAbility) GetInstances(ctx context.Context,
 	query map[string]string) *api.BatchQueryResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read, "GetInstances")
@@ -125,6 +130,7 @@ func (svr *serverAuthAbility) GetInstances(ctx context.Context,
 	return svr.targetServer.GetInstances(ctx, query)
 }
 
+// GetInstancesCount get instances to count
 func (svr *serverAuthAbility) GetInstancesCount(ctx context.Context) *api.BatchQueryResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read, "GetInstancesCount")
 
@@ -138,6 +144,7 @@ func (svr *serverAuthAbility) GetInstancesCount(ctx context.Context) *api.BatchQ
 	return svr.targetServer.GetInstancesCount(ctx)
 }
 
+// CleanInstance clean instance
 func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *api.Instance) *api.Response {
 	authCtx := svr.collectInstanceAuthContext(ctx, []*api.Instance{req}, model.Delete, "CleanInstance")
 

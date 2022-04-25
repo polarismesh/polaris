@@ -25,8 +25,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 func createTestRateLimit(id string, createId bool) *model.RateLimit {

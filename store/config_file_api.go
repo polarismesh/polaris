@@ -105,7 +105,8 @@ type ConfigFileReleaseHistoryStore interface {
 	CreateConfigFileReleaseHistory(tx Tx, fileReleaseHistory *model.ConfigFileReleaseHistory) error
 
 	// QueryConfigFileReleaseHistories 获取配置文件的发布历史记录
-	QueryConfigFileReleaseHistories(namespace, group, fileName string, offset, limit uint32, endId uint64) (uint32, []*model.ConfigFileReleaseHistory, error)
+	QueryConfigFileReleaseHistories(namespace, group, fileName string, offset, limit uint32,
+		endId uint64) (uint32, []*model.ConfigFileReleaseHistory, error)
 
 	// GetLatestConfigFileReleaseHistory 获取配置文件最后一次发布
 	GetLatestConfigFileReleaseHistory(namespace, group, fileName string) (*model.ConfigFileReleaseHistory, error)

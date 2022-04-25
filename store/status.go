@@ -44,9 +44,9 @@ const (
 	NotFoundCircuitBreaker                   // Failed to find target CircuitBreaker
 	NotFoundReleaseCircuitBreaker            // Failed to find fuse breaker information associated with service
 	Unknown
-	NotFoundUser       //用户不存在
-	NotFoundUserGroup  //用户组不存在
-	InvalidUserIDSlice //非法的用户ID列表
+	NotFoundUser       // 用户不存在
+	NotFoundUserGroup  // 用户组不存在
+	InvalidUserIDSlice // 非法的用户ID列表
 )
 
 // Error 普通error转StatusError

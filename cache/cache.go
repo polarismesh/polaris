@@ -60,12 +60,12 @@ const (
 type Cache interface {
 
 	// initialize
-	//  @param c
-	//  @return error
+	// @param c
+	// @return error
 	initialize(c map[string]interface{}) error
 
 	// update
-	//  @return error
+	// @return error
 	update() error
 
 	// clear
@@ -334,6 +334,11 @@ func (nc *NamingCache) AuthStrategy() StrategyCache {
 //  @return NamespaceCache
 func (nc *NamingCache) Namespace() NamespaceCache {
 	return nc.caches[CacheNamespace].(NamespaceCache)
+}
+
+// GetStore get store
+func (nc *NamingCache) GetStore() store.Store {
+	return nc.storage
 }
 
 // ComputeRevision 计算唯一的版本标识

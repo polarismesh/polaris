@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/emicklei/go-restful"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
@@ -36,9 +37,7 @@ const (
 	ParamValue  string = "value"
 )
 
-/**
- * @brief 注册管理端接口
- */
+// GetEurekaAccessServer 注册管理端接口
 func (h *EurekaServer) GetEurekaAccessServer() *restful.WebService {
 	ws := new(restful.WebService)
 
@@ -48,9 +47,7 @@ func (h *EurekaServer) GetEurekaAccessServer() *restful.WebService {
 	return ws
 }
 
-/**
- * @brief 增加服务发现接口
- */
+// addDiscoverAccess 增加服务发现接口
 func (h *EurekaServer) addDiscoverAccess(ws *restful.WebService) {
 	// 应用实例注册
 	ws.Route(ws.POST(fmt.Sprintf("/apps/{%s}", ParamAppId)).To(h.RegisterApplication)).
@@ -70,12 +67,12 @@ func (h *EurekaServer) addDiscoverAccess(ws *restful.WebService) {
 	ws.Route(ws.PUT(fmt.Sprintf("/apps/{%s}/{%s}", ParamAppId, ParamInstId)).To(h.RenewInstance)).
 		Param(ws.PathParameter(ParamAppId, "applicationId").DataType("string")).
 		Param(ws.PathParameter(ParamInstId, "instanceId").DataType("string"))
-		//Param(ws.QueryParameter(ParamStatus, "status").DataType("string"))
+	// Param(ws.QueryParameter(ParamStatus, "status").DataType("string"))
 	// 实例反注册
 	ws.Route(ws.DELETE(fmt.Sprintf("/apps/{%s}/{%s}", ParamAppId, ParamInstId)).To(h.CancelInstance)).
 		Param(ws.PathParameter(ParamAppId, "applicationId").DataType("string")).
 		Param(ws.PathParameter(ParamInstId, "instanceId").DataType("string"))
-	//状态变更
+	// 状态变更
 	ws.Route(ws.PUT(fmt.Sprintf("/apps/{%s}/{%s}/status", ParamAppId, ParamInstId)).To(h.UpdateStatus)).
 		Param(ws.PathParameter(ParamAppId, "applicationId").DataType("string")).
 		Param(ws.PathParameter(ParamInstId, "instanceId").DataType("string"))
@@ -97,7 +94,7 @@ func parseAcceptValue(acceptValue string) map[string]bool {
 	return values
 }
 
-//全量拉取服务实例信息
+// GetAllApplications 全量拉取服务实例信息
 func (h *EurekaServer) GetAllApplications(req *restful.Request, rsp *restful.Response) {
 	appsRespCache := h.worker.GetCachedAppsWithLoad()
 	remoteAddr := req.Request.RemoteAddr
@@ -185,7 +182,7 @@ func writeEurekaResponse(acceptValue string, output interface{}, req *restful.Re
 }
 
 const (
-	MIME_JSON_WILD = "application/*+json"
+	MimeJsonWild = "application/*+json"
 )
 
 func hasKey(values map[string]bool, key string) bool {
@@ -197,9 +194,9 @@ func writeResponse(acceptValues map[string]bool, appsRespCache *ApplicationsResp
 	req *restful.Request, rsp *restful.Response) error {
 	writePolarisStatusCode(req, api.ExecuteSuccess)
 	var err error
-	if len(acceptValues) > 0 && (hasKey(acceptValues, restful.MIME_JSON) || hasKey(acceptValues, MIME_JSON_WILD)) {
+	if len(acceptValues) > 0 && (hasKey(acceptValues, restful.MIME_JSON) || hasKey(acceptValues, MimeJsonWild)) {
 		if len(appsRespCache.JsonBytes) > 0 {
-			//直接使用只读缓存返回
+			// 直接使用只读缓存返回
 			rsp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 			rsp.WriteHeader(http.StatusOK)
 			_, err = rsp.Write(appsRespCache.JsonBytes)
@@ -223,7 +220,7 @@ func writeResponse(acceptValues map[string]bool, appsRespCache *ApplicationsResp
 	return err
 }
 
-//增量拉取服务实例信息
+// GetDeltaApplications 增量拉取服务实例信息
 func (h *EurekaServer) GetDeltaApplications(req *restful.Request, rsp *restful.Response) {
 	appsRespCache := h.worker.GetDeltaApps()
 	if nil == appsRespCache {
@@ -290,7 +287,7 @@ func checkRegisterRequest(registrationRequest *RegistrationRequest, req *restful
 	return true
 }
 
-//服务注册
+// RegisterApplication 服务注册
 func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
 	appId := strings.ToUpper(req.PathParameter(ParamAppId))
@@ -349,7 +346,7 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 	writeHeader(int(code/1000), rsp)
 }
 
-//人工进行状态更新
+// UpdateStatus 更新服务状态
 func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
 	appId := req.PathParameter(ParamAppId)
@@ -371,7 +368,7 @@ func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response)
 	status := req.QueryParameter(ParamValue)
 	log.Infof("[EUREKA-SERVER]received instance update request, client: %s, instId: %s, appId: %s, status: %s",
 		remoteAddr, instId, appId, status)
-	//check status
+	// check status
 	if status == StatusUnknown {
 		writePolarisStatusCode(req, api.ExecuteSuccess)
 		writeHeader(http.StatusOK, rsp)
@@ -393,7 +390,7 @@ func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response)
 	writeHeader(int(code/1000), rsp)
 }
 
-// UpdateStatus 关闭强制隔离
+// DeleteStatus 关闭强制隔离
 func (h *EurekaServer) DeleteStatus(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
 	appId := req.PathParameter(ParamAppId)
@@ -433,7 +430,7 @@ func (h *EurekaServer) DeleteStatus(req *restful.Request, rsp *restful.Response)
 	writeHeader(int(code/1000), rsp)
 }
 
-//心跳上报
+// RenewInstance 更新实例状态
 func (h *EurekaServer) RenewInstance(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
 	appId := req.PathParameter(ParamAppId)
@@ -467,7 +464,7 @@ func (h *EurekaServer) RenewInstance(req *restful.Request, rsp *restful.Response
 	writeHeader(int(code/1000), rsp)
 }
 
-//实例反注册
+// CancelInstance 实例反注册
 func (h *EurekaServer) CancelInstance(req *restful.Request, rsp *restful.Response) {
 	appId := req.PathParameter(ParamAppId)
 	remoteAddr := req.Request.RemoteAddr

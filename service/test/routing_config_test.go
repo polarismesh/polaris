@@ -19,12 +19,14 @@ package test
 
 import (
 	"encoding/json"
+	"testing"
+	"time"
+
+	. "github.com/smartystreets/goconvey/convey"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/service"
-	. "github.com/smartystreets/goconvey/convey"
-	"testing"
-	"time"
 )
 
 // 检查routingConfig前后是否一致

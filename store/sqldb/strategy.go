@@ -23,12 +23,13 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
+
 	logger "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 var (
@@ -195,6 +196,19 @@ func (s *strategyStore) deleteStrategy(id string) error {
 	}...); err != nil {
 		return err
 	}
+
+	if _, err = tx.Exec("DELETE FROM auth_strategy_resource WHERE strategy_id = ?", []interface{}{
+		id,
+	}...); err != nil {
+		return err
+	}
+
+	if _, err = tx.Exec("DELETE FROM auth_principal WHERE strategy_id = ?", []interface{}{
+		id,
+	}...); err != nil {
+		return err
+	}
+
 	if err := tx.Commit(); err != nil {
 		logger.StoreScope().Errorf("[Store][Strategy] delete auth_strategy tx commit err: %s", err.Error())
 		return err
@@ -395,7 +409,7 @@ func (s *strategyStore) GetStrategyDetail(id string, isDefault bool) (*model.Str
 
 // GetDefaultStrategyDetailByPrincipal
 func (s *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
-	principalType int) (*model.StrategyDetail, error) {
+	principalType model.PrincipalType) (*model.StrategyDetail, error) {
 
 	if principalId == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
@@ -417,7 +431,7 @@ func (s *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
 		 )
 	 `
 
-	row := s.master.QueryRow(querySql, principalId, principalType)
+	row := s.master.QueryRow(querySql, principalId, int(principalType))
 
 	return s.getStrategyDetail(row)
 }
@@ -677,7 +691,8 @@ func (s *strategyStore) GetStrategyResources(principalId string,
 	principalRole model.PrincipalType) ([]model.StrategyResource, error) {
 
 	querySql := "SELECT res_id, res_type FROM auth_strategy_resource WHERE strategy_id IN (SELECT DISTINCT " +
-		" strategy_id FROM auth_principal WHERE principal_id = ? AND principal_role = ? )"
+		" ap.strategy_id FROM auth_principal ap join auth_strategy ar ON ap.strategy_id = ar.id WHERE ar.flag = 0 " +
+		" AND ap.principal_id = ? AND ap.principal_role = ? )"
 
 	rows, err := s.master.Query(querySql, principalId, principalRole)
 	if err != nil {

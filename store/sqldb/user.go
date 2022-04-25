@@ -23,13 +23,14 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	logger "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 var (
@@ -110,12 +111,12 @@ func (u *userStore) addUser(user *model.User) error {
 	}
 
 	if err := createDefaultStrategy(tx, model.PrincipalUser, user.ID, user.Name, user.Owner); err != nil {
-		logger.AuthScope().Error("[Auth][User] create default strategy", zap.Error(err))
+		logger.StoreScope().Error("[Auth][User] create default strategy", zap.Error(err))
 		return store.Error(err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.AuthScope().Errorf("[Store][User] add user tx commit err: %s", err.Error())
+		logger.StoreScope().Errorf("[Store][User] add user tx commit err: %s", err.Error())
 		return store.Error(err)
 	}
 	return nil
@@ -167,7 +168,7 @@ func (u *userStore) updateUser(user *model.User) error {
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.AuthScope().Errorf("[Store][User] update user tx commit err: %s", err.Error())
+		logger.StoreScope().Errorf("[Store][User] update user tx commit err: %s", err.Error())
 		return err
 	}
 
@@ -187,12 +188,12 @@ func (u *userStore) DeleteUser(user *model.User) error {
 	return store.Error(err)
 }
 
-// deleteUser 具体的删除用户的步骤
-// step 1. 删除该用户关联的策略信息
-// 			a. 删除该用户的默认策略
-// 			b. 更新相关策略的最新更新时间，使得可以满足cache机制
-// 			c. 删除该用户和策略的关联关系
-// step 2. 删除该用户所关联的用户组
+// deleteUser Specific deletion user steps
+// step 1. Delete the user-associated policy information
+// 			a. Delete the user's default policy
+// 			b. Update the latest update time of related policies, make the Cache mechanism
+// 			c. Delete the association relationship of the user and policy
+// step 2. Delete the user group associated with this user
 func (u *userStore) deleteUser(user *model.User) error {
 
 	tx, err := u.master.Begin()
@@ -207,23 +208,23 @@ func (u *userStore) deleteUser(user *model.User) error {
 	}
 
 	if _, err = tx.Exec("UPDATE user SET flag = 1 WHERE id = ?", user.ID); err != nil {
-		logger.AuthScope().Error("[Store][User] update set user flag", zap.Error(err))
+		logger.StoreScope().Error("[Store][User] update set user flag", zap.Error(err))
 		return err
 	}
 
 	if _, err = tx.Exec("UPDATE user_group SET mtime = sysdate() WHERE id IN (SELECT DISTINCT group_id FROM "+
 		" user_group_relation WHERE user_id = ?)", user.ID); err != nil {
-		logger.AuthScope().Error("[Store][User] update usergroup mtime", zap.Error(err))
+		logger.StoreScope().Error("[Store][User] update usergroup mtime", zap.Error(err))
 		return err
 	}
 
 	if _, err = tx.Exec("DELETE FROM user_group_relation WHERE user_id = ?", user.ID); err != nil {
-		logger.AuthScope().Error("[Store][User] delete usergroup relation", zap.Error(err))
+		logger.StoreScope().Error("[Store][User] delete usergroup relation", zap.Error(err))
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.AuthScope().Error("[Store][User] delete user tx commit", zap.Error(err))
+		logger.StoreScope().Error("[Store][User] delete user tx commit", zap.Error(err))
 		return err
 	}
 	return nil
@@ -234,7 +235,7 @@ func (u *userStore) GetSubCount(user *model.User) (uint32, error) {
 
 	count, err := queryEntryCount(u.master, countSql, []interface{}{user.ID})
 	if err != nil {
-		logger.AuthScope().Error("[Store][User] count sub-account", zap.String("owner", user.Owner), zap.Error(err))
+		logger.StoreScope().Error("[Store][User] count sub-account", zap.String("owner", user.Owner), zap.Error(err))
 	}
 
 	return count, err
@@ -301,7 +302,7 @@ func (u *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
 
 }
 
-// GetUserByIDS 根据用户ID获取用户列表数据
+// GetUserByIds Get user list data according to user ID
 func (u *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
 
 	if len(ids) == 0 {
@@ -340,7 +341,7 @@ func (u *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
 	for rows.Next() {
 		user, err := fetchRown2User(rows)
 		if err != nil {
-			logger.AuthScope().Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
+			logger.StoreScope().Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
 			return nil, store.Error(err)
 		}
 		users = append(users, user)
@@ -349,9 +350,9 @@ func (u *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
 	return users, nil
 }
 
-// GetUsers 查询用户列表信息
-// Case 1. 以用户视角来看，正常的查询条件
-// Case 2. 以用户组视角来看，查询的是某个用户组下涉及的用户列表信息
+// GetUsers Query user list information
+// Case 1. From the user's perspective, normal query conditions
+// Case 2. From the perspective of the user group, query is the list of users involved under a user group.
 func (u *userStore) GetUsers(filters map[string]string, offset uint32, limit uint32) (uint32,
 	[]*model.User, error) {
 
@@ -363,7 +364,7 @@ func (u *userStore) GetUsers(filters map[string]string, offset uint32, limit uin
 
 }
 
-// listUsers 查询用户列表信息
+// listUsers Query user list information
 func (u *userStore) listUsers(filters map[string]string, offset uint32, limit uint32) (uint32,
 	[]*model.User, error) {
 
@@ -419,14 +420,14 @@ func (u *userStore) listUsers(filters map[string]string, offset uint32, limit ui
 	getSql += " ORDER BY mtime LIMIT ? , ?"
 	getArgs := append(args, offset, limit)
 
-	users, err := u.collectUsers(u.master.Query, getSql, getArgs, logger.AuthScope())
+	users, err := u.collectUsers(u.master.Query, getSql, getArgs, logger.StoreScope())
 	if err != nil {
 		return 0, nil, err
 	}
 	return count, users, nil
 }
 
-// listGroupUsers 查询某个用户组下的用户信息
+// listGroupUsers Check the user information under a user group
 func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, limit uint32) (uint32,
 	[]*model.User, error) {
 	if _, ok := filters[GroupIDAttribute]; !ok {
@@ -478,7 +479,7 @@ func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, lim
 	querySql += " ORDER BY u.mtime LIMIT ? , ?"
 	args = append(args, offset, limit)
 
-	users, err := u.collectUsers(u.master.Query, querySql, args, logger.AuthScope())
+	users, err := u.collectUsers(u.master.Query, querySql, args, logger.StoreScope())
 	if err != nil {
 		return 0, nil, err
 	}
@@ -486,7 +487,7 @@ func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, lim
 	return count, users, nil
 }
 
-// GetUsersForCache 获取用户信息，主要是为了 Cache 使用的
+// GetUsersForCache Get user information, mainly for cache
 func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*model.User, error) {
 
 	args := make([]interface{}, 0)
@@ -511,7 +512,7 @@ func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mode
 	return users, nil
 }
 
-// collectUsers 通用的查询用户列表的操作
+// collectUsers General query user list
 func (u *userStore) collectUsers(handler QueryHandler, querySql string, args []interface{},
 	scope *logger.Scope) ([]*model.User, error) {
 
@@ -541,7 +542,7 @@ func createDefaultStrategy(tx *BaseTx, role model.PrincipalType, id, name, owner
 		owner = id
 	}
 
-	// 创建该用户的默认权限策略
+	// Create the user's default weight policy
 	strategy := &model.StrategyDetail{
 		ID:        utils.NewUUID(),
 		Name:      model.BuildDefaultStrategyName(role, name),
@@ -554,7 +555,7 @@ func createDefaultStrategy(tx *BaseTx, role model.PrincipalType, id, name, owner
 		Comment:   "Default Strategy",
 	}
 
-	// 保存策略主信息
+	// Save policy master information
 	saveMainSql := "INSERT INTO auth_strategy(`id`, `name`, `action`, `owner`, `comment`, `flag`, " +
 		" `default`, `revision`) VALUES (?,?,?,?,?,?,?,?)"
 	if _, err := tx.Exec(saveMainSql, []interface{}{strategy.ID, strategy.Name, strategy.Action,
@@ -563,7 +564,7 @@ func createDefaultStrategy(tx *BaseTx, role model.PrincipalType, id, name, owner
 		return err
 	}
 
-	// 插入 user/group 与策略的关联关系
+	// Insert User / Group and Policy Association
 	savePrincipalSql := "INSERT INTO auth_principal(`strategy_id`, `principal_id`, `principal_role`) VALUES (?,?,?)"
 	_, err := tx.Exec(savePrincipalSql, []interface{}{strategy.ID, id, role}...)
 	return err
@@ -590,10 +591,10 @@ func fetchRown2User(rows *sql.Rows) (*model.User, error) {
 }
 
 func (u *userStore) cleanInValidUser(name, owner string) error {
-	logger.AuthScope().Infof("[Store][User] clean user, name=(%s), owner=(%s)", name, owner)
+	logger.StoreScope().Infof("[Store][User] clean user, name=(%s), owner=(%s)", name, owner)
 	str := "delete from user where name = ? and owner = ? and flag = 1"
 	if _, err := u.master.Exec(str, name, owner); err != nil {
-		logger.AuthScope().Errorf("[Store][User] clean user(%s) err: %s", name, err.Error())
+		logger.StoreScope().Errorf("[Store][User] clean user(%s) err: %s", name, err.Error())
 		return err
 	}
 
@@ -603,13 +604,13 @@ func (u *userStore) cleanInValidUser(name, owner string) error {
 func checkAffectedRows(label string, result sql.Result, count int64) error {
 	n, err := result.RowsAffected()
 	if err != nil {
-		logger.AuthScope().Errorf("[Store][%s] get rows affected err: %s", label, err.Error())
+		logger.StoreScope().Errorf("[Store][%s] get rows affected err: %s", label, err.Error())
 		return err
 	}
 
 	if n == count {
 		return nil
 	}
-	logger.AuthScope().Errorf("[Store][%s] get rows affected result(%d) is not match expect(%d)", label, n, count)
+	logger.StoreScope().Errorf("[Store][%s] get rows affected result(%d) is not match expect(%d)", label, n, count)
 	return store.NewStatusError(store.AffectedRowsNotMatch, "affected rows not match")
 }

@@ -20,16 +20,15 @@ package grpc
 import (
 	"context"
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/utils"
 	"time"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"google.golang.org/grpc/metadata"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
-/**
- * @brief 上报客户端信息
- */
+// ReportClient 上报客户端信息
 func (c *Client) ReportClient(client *api.Client) error {
 	fmt.Printf("\nreport client\n")
 

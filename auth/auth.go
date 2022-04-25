@@ -53,7 +53,7 @@ func RegisterAuthServer(s AuthServer) error {
 	return nil
 }
 
-// GetAuthManager 获取一个 AuthManager
+// GetAuthServer 获取一个 AuthManager
 func GetAuthServer() (AuthServer, error) {
 	if !finishInit {
 		return nil, errors.New("AuthServer has not done Initialize")

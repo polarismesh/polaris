@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 /**
  * Tencent is pleased to support the open source community by making Polaris available.
  *
@@ -18,9 +21,10 @@
 package test
 
 import (
+	"testing"
+
 	"github.com/polarismesh/polaris-server/test/http"
 	"github.com/polarismesh/polaris-server/test/resource"
-	"testing"
 )
 
 /**

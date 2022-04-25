@@ -19,10 +19,12 @@ package token
 
 import (
 	"fmt"
+
 	lru "github.com/hashicorp/golang-lru"
+	"golang.org/x/time/rate"
+
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/plugin"
-	"golang.org/x/time/rate"
 )
 
 // 资源限制器

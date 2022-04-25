@@ -20,8 +20,9 @@ package token
 import (
 	"testing"
 
-	"github.com/polarismesh/polaris-server/plugin"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"github.com/polarismesh/polaris-server/plugin"
 )
 
 // baseConfigOption 返回一个基础的正常option配置

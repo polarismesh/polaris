@@ -99,7 +99,7 @@ func (i *Instance) Version() string {
 	return i.Proto.GetVersion().GetValue()
 }
 
-// Priority get priority
+// Priority gets priority
 func (i *Instance) Priority() uint32 {
 	if i.Proto == nil {
 		return 0
@@ -115,7 +115,7 @@ func (i *Instance) Weight() uint32 {
 	return i.Proto.GetWeight().GetValue()
 }
 
-// EnableHealthCheck get enable health check
+// EnableHealthCheck get enables health check
 func (i *Instance) EnableHealthCheck() bool {
 	if i.Proto == nil {
 		return false
@@ -147,7 +147,7 @@ func (i *Instance) Isolate() bool {
 	return i.Proto.GetIsolate().GetValue()
 }
 
-// Location get location
+// Location gets location
 func (i *Instance) Location() *api.Location {
 	if i.Proto == nil {
 		return nil
@@ -260,12 +260,17 @@ func Store2Instance(is *InstanceStore) *Instance {
 			Weight:            &wrappers.UInt32Value{Value: is.Weight},
 			EnableHealthCheck: &wrappers.BoolValue{Value: Int2bool(is.EnableHealthCheck)},
 			Healthy:           &wrappers.BoolValue{Value: Int2bool(is.HealthStatus)},
-			Isolate:           &wrappers.BoolValue{Value: Int2bool(is.Isolate)},
-			Metadata:          is.Meta,
-			LogicSet:          &wrappers.StringValue{Value: is.LogicSet},
-			Ctime:             &wrappers.StringValue{Value: commontime.Int64Time2String(is.CreateTime)},
-			Mtime:             &wrappers.StringValue{Value: commontime.Int64Time2String(is.ModifyTime)},
-			Revision:          &wrappers.StringValue{Value: is.Revision},
+			Location: &api.Location{
+				Region: &wrappers.StringValue{Value: is.Region},
+				Zone:   &wrappers.StringValue{Value: is.Zone},
+				Campus: &wrappers.StringValue{Value: is.Campus},
+			},
+			Isolate:  &wrappers.BoolValue{Value: Int2bool(is.Isolate)},
+			Metadata: is.Meta,
+			LogicSet: &wrappers.StringValue{Value: is.LogicSet},
+			Ctime:    &wrappers.StringValue{Value: commontime.Int64Time2String(is.CreateTime)},
+			Mtime:    &wrappers.StringValue{Value: commontime.Int64Time2String(is.ModifyTime)},
+			Revision: &wrappers.StringValue{Value: is.Revision},
 		},
 		ServiceID:  is.ServiceID,
 		Valid:      flag2valid(is.Flag),

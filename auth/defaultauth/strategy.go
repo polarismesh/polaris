@@ -270,7 +270,7 @@ func parseStrategySearchArgs(ctx context.Context, searchFilters map[string]strin
 	}
 
 	if utils.ParseUserRole(ctx) != model.AdminUserRole {
-		// 如果当前账户不是 owner 角色，既不是走资源视角查看，也不是指定principal查看，那么只能查询当前操作用户被关联到的鉴权策略，
+		// 如果当前账户不是 admin 角色，既不是走资源视角查看，也不是指定principal查看，那么只能查询当前操作用户被关联到的鉴权策略，
 		if _, ok := searchFilters["res_id"]; !ok {
 			// 设置 owner 参数，只能查看对应 owner 下的策略
 			searchFilters["owner"] = utils.ParseOwnerID(ctx)
@@ -363,7 +363,7 @@ func (svr *server) GetPrincipalResources(ctx context.Context, query map[string]s
 		switch val {
 		case "user":
 			return "1"
-		case "group":
+		case "group", "groups":
 			return "2"
 		default:
 			return "1"
@@ -390,17 +390,17 @@ func (svr *server) GetPrincipalResources(ctx context.Context, query map[string]s
 					zap.String("principal-id", principalId), zap.Any("principal-role", principalRole), zap.Error(err))
 				return api.NewResponse(api.StoreLayerException)
 			}
-
 			resources = append(resources, res...)
 		}
 	}
 
-	resources, err = svr.storage.GetStrategyResources(principalId, model.PrincipalType(principalRole))
+	pResources, err := svr.storage.GetStrategyResources(principalId, model.PrincipalType(principalRole))
 	if err != nil {
 		log.AuthScope().Error("[Auth][Strategy] get principal link resource", utils.ZapRequestID(requestID),
 			zap.String("principal-id", principalId), zap.Any("principal-role", principalRole), zap.Error(err))
 		return api.NewResponse(api.StoreLayerException)
 	}
+	resources = append(resources, pResources...)
 
 	tmp := &api.AuthStrategy{
 		Resources: &api.StrategyResources{
@@ -411,7 +411,7 @@ func (svr *server) GetPrincipalResources(ctx context.Context, query map[string]s
 	}
 
 	svr.fillResourceInfo(tmp, &model.StrategyDetail{
-		Resources: resources,
+		Resources: resourceDeduplication(resources),
 	})
 
 	return api.NewStrategyResourcesResponse(api.ExecuteSuccess, tmp.Resources)
@@ -1017,4 +1017,32 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 		Services:     services,
 		ConfigGroups: configGroups,
 	}
+}
+
+func resourceDeduplication(resources []model.StrategyResource) []model.StrategyResource {
+	ret := make([]model.StrategyResource, 0, 4)
+
+	tmpNs := make(map[string]struct{})
+	tmpSvc := make(map[string]struct{})
+	tmpConf := make(map[string]struct{})
+
+	for i := range resources {
+		res := resources[i]
+
+		var m map[string]struct{}
+		if res.ResType == int32(api.ResourceType_Namespaces) {
+			m = tmpNs
+		} else if res.ResType == int32(api.ResourceType_Services) {
+			m = tmpSvc
+		} else {
+			m = tmpConf
+		}
+
+		if _, exist := m[res.ResID]; !exist {
+			ret = append(ret, res)
+			m[res.ResID] = struct{}{}
+		}
+	}
+
+	return ret
 }

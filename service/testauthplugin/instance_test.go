@@ -20,11 +20,12 @@ package testauthplugin
 import (
 	"context"
 	"fmt"
+	"sync"
+	"testing"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"sync"
-	"testing"
 )
 
 /**

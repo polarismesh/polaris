@@ -19,7 +19,7 @@ package utils
 
 import "context"
 
-// StringContext
+// StringContext is a context that carries a string.
 type StringContext string
 
 // localhostCtx 存储localhost的ctx

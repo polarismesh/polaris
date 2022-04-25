@@ -43,7 +43,7 @@ func (cs *Impl) CreateConfigFileGroup(ctx context.Context, configFileGroup *api.
 	namespace := configFileGroup.Namespace.GetValue()
 	groupName := configFileGroup.Name.GetValue()
 
-	//如果 namespace 不存在则自动创建
+	// 如果 namespace 不存在则自动创建
 	if err := cs.createNamespaceIfAbsent(namespace, configFileGroup.CreateBy.GetValue(), requestID); err != nil {
 		log.ConfigScope().Error("[Config][Service] create config file group error because of create namespace failed.",
 			zap.String("request-id", requestID),
@@ -151,16 +151,16 @@ func (cs *Impl) queryByGroupName(ctx context.Context, namespace string, groupNam
 }
 
 func (cs *Impl) queryByFileName(ctx context.Context, namespace, groupName, fileName string, offset uint32, limit uint32) *api.ConfigBatchQueryResponse {
-	//内存分页，先获取到所有配置文件
+	// 内存分页，先获取到所有配置文件
 	rsp := cs.queryConfigFileWithoutTags(ctx, namespace, groupName, fileName, 0, 10000)
 	if rsp.Code.GetValue() != api.ExecuteSuccess {
 		return rsp
 	}
 
-	//获取所有的 group 信息
+	// 获取所有的 group 信息
 	groupMap := make(map[string]bool)
 	for _, configFile := range rsp.ConfigFiles {
-		//namespace+group 是唯一键
+		// namespace+group 是唯一键
 		groupMap[configFile.Namespace.Value+"+"+configFile.Group.Value] = true
 	}
 
@@ -173,10 +173,10 @@ func (cs *Impl) queryByFileName(ctx context.Context, namespace, groupName, fileN
 		distinctGroupNames = append(distinctGroupNames, key)
 	}
 
-	//按 groupName 字典排序
+	// 按 groupName 字典排序
 	sort.Strings(distinctGroupNames)
 
-	//分页
+	// 分页
 	total := len(distinctGroupNames)
 	if int(offset) >= total {
 		return api.NewConfigFileGroupBatchQueryResponse(api.ExecuteSuccess, uint32(total), nil)
@@ -189,7 +189,7 @@ func (cs *Impl) queryByFileName(ctx context.Context, namespace, groupName, fileN
 		pageGroupNames = distinctGroupNames[offset : offset+limit]
 	}
 
-	//渲染
+	// 渲染
 	var configFileGroups []*model.ConfigFileGroup
 	for _, pageGroupName := range pageGroupNames {
 		namespaceAndGroup := strings.Split(pageGroupName, "+")
@@ -219,7 +219,7 @@ func (cs *Impl) batchTransfer(ctx context.Context, groups []*model.ConfigFileGro
 
 	for _, groupStoreModel := range groups {
 		configFileGroup := transferConfigFileGroupStoreModel2APIModel(groupStoreModel)
-		//enrich config file count
+		// enrich config file count
 		fileCount, err := cs.storage.CountByConfigFileGroup(groupStoreModel.Namespace, groupStoreModel.Name)
 		if err != nil {
 			requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
@@ -368,6 +368,7 @@ func transferConfigFileGroupAPIModel2StoreModel(group *api.ConfigFileGroup) *mod
 		Namespace: group.Namespace.GetValue(),
 		Comment:   comment,
 		CreateBy:  createBy,
+		Valid:     true,
 	}
 }
 

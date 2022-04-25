@@ -20,16 +20,16 @@ package grpc
 import (
 	"context"
 	"fmt"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"google.golang.org/grpc/metadata"
 	"io"
 	"time"
+
+	"google.golang.org/grpc/metadata"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
-/**
- * @brief 统一发现函数
- */
+// Discover 统一发现函数
 func (c *Client) Discover(drt api.DiscoverRequest_DiscoverRequestType, service *api.Service) error {
 	fmt.Printf("\ndiscover\n")
 
@@ -70,9 +70,7 @@ func (c *Client) Discover(drt api.DiscoverRequest_DiscoverRequestType, service *
 	}
 }
 
-/**
- * @brief 统一发现函数
- */
+// DiscoverRequest 统一发现函数
 func (c *Client) DiscoverRequest(request *api.DiscoverRequest) (*api.DiscoverResponse, error) {
 	fmt.Printf("\ndiscover\n")
 

@@ -20,15 +20,17 @@ package test
 import (
 	"context"
 	"fmt"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/service"
-	. "github.com/smartystreets/goconvey/convey"
 	"regexp"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	. "github.com/smartystreets/goconvey/convey"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/service"
 )
 
 const defaultAliasNs = "Production"

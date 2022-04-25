@@ -21,14 +21,14 @@ import (
 	"context"
 	"errors"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"go.uber.org/zap"
-
-	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 // serverAuthAbility 带有鉴权能力的 discoverServer
@@ -51,11 +51,12 @@ func newServerAuthAbility(targetServer *Server, authSvr auth.AuthServer) Discove
 	return proxy
 }
 
-// Get cache management
+// Cache Get cache management
 func (svr *serverAuthAbility) Cache() *cache.NamingCache {
 	return svr.targetServer.Cache()
 }
 
+// GetServiceInstanceRevision 获取服务实例的版本号
 func (svr *serverAuthAbility) GetServiceInstanceRevision(serviceID string,
 	instances []*model.Instance) (string, error) {
 	return svr.targetServer.GetServiceInstanceRevision(serviceID, instances)
@@ -287,6 +288,7 @@ func (svr *serverAuthAbility) queryServiceAliasResource(
 }
 
 // queryInstanceResource 根据所给的 instances 信息，收集对应的 ResourceEntry 列表
+// 由于实例是注册到服务下的，因此只需要判断，是否有对应服务的权限即可
 func (svr *serverAuthAbility) queryInstanceResource(
 	req []*api.Instance) map[api.ResourceType][]model.ResourceEntry {
 	if len(req) == 0 {
@@ -299,7 +301,6 @@ func (svr *serverAuthAbility) queryInstanceResource(
 	for index := range req {
 		item := req[index]
 		if item.Namespace.GetValue() != "" && item.Service.GetValue() != "" {
-			names.Add(req[index].Namespace.GetValue())
 			svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
 				req[index].Namespace.GetValue())
 			if svc != nil {
@@ -310,7 +311,6 @@ func (svr *serverAuthAbility) queryInstanceResource(
 			if ins != nil {
 				svc := svr.Cache().Service().GetServiceByID(ins.ServiceID)
 				if svc != nil {
-					names.Add(svc.Namespace)
 					svcSet.Add(svc)
 				}
 			}
@@ -333,7 +333,6 @@ func (svr *serverAuthAbility) queryCircuitBreakerResource(
 	svcSet := utils.NewServiceSet()
 
 	for index := range req {
-		names.Add(req[index].Namespace.GetValue())
 		svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
 			req[index].Namespace.GetValue())
 		if svc != nil {
@@ -356,7 +355,6 @@ func (svr *serverAuthAbility) queryCircuitBreakerReleaseResource(
 	svcSet := utils.NewServiceSet()
 
 	for index := range req {
-		names.Add(req[index].Service.Namespace.GetValue())
 		svc := svr.Cache().Service().GetServiceByName(req[index].Service.Name.GetValue(),
 			req[index].Service.Namespace.GetValue())
 		if svc != nil {
@@ -380,7 +378,6 @@ func (svr *serverAuthAbility) queryRouteRuleResource(
 	svcSet := utils.NewServiceSet()
 
 	for index := range req {
-		names.Add(req[index].Namespace.GetValue())
 		svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
 			req[index].Namespace.GetValue())
 		if svc != nil {
@@ -404,7 +401,6 @@ func (svr *serverAuthAbility) queryRateLimitConfigResource(
 	svcSet := utils.NewServiceSet()
 
 	for index := range req {
-		names.Add(req[index].Namespace.GetValue())
 		svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
 			req[index].Namespace.GetValue())
 		if svc != nil {

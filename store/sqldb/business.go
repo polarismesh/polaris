@@ -37,7 +37,7 @@ func (bs *businessStore) AddBusiness(b *model.Business) error {
 		return fmt.Errorf("add Business missing some params, id %s, name %s", b.ID, b.Name)
 	}
 
-	str := `insert into business(id, name, token, owner, ctime, mtime) 
+	str := `insert into business(id, name, token, owner, ctime, mtime)
 		values(?, ?, ?, ?, sysdate(), sysdate())`
 	_, err := bs.db.Exec(str, b.ID, b.Name, b.Token, b.Owner)
 
@@ -141,7 +141,7 @@ func (bs *businessStore) GetMoreBusiness(mtime time.Time) ([]*model.Business, er
 
 // genBusinessSelectSQL 生成business查询语句
 func genBusinessSelectSQL() string {
-	str := `select id, name, token, owner, flag, 
+	str := `select id, name, token, owner, flag,
 			UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) 
 			from business `
 	return str

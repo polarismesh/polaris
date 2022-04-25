@@ -31,6 +31,7 @@ type ConfigFileGroup struct {
 	CreateBy   string
 	ModifyTime time.Time
 	ModifyBy   string
+	Valid      bool
 }
 
 // ConfigFile 配置文件数据持久化对象
@@ -47,6 +48,7 @@ type ConfigFile struct {
 	CreateBy   string
 	ModifyTime time.Time
 	ModifyBy   string
+	Valid      bool
 }
 
 // ConfigFileRelease 配置文件发布数据持久化对象
@@ -65,6 +67,7 @@ type ConfigFileRelease struct {
 	CreateBy   string
 	ModifyTime time.Time
 	ModifyBy   string
+	Valid      bool
 }
 
 // ConfigFileReleaseHistory 配置文件发布历史记录数据持久化对象
@@ -85,8 +88,10 @@ type ConfigFileReleaseHistory struct {
 	CreateBy   string
 	ModifyTime time.Time
 	ModifyBy   string
+	Valid      bool
 }
 
+// ConfigFileTag 配置文件标签数据持久化对象
 type ConfigFileTag struct {
 	Id         uint64
 	Key        string
@@ -98,4 +103,5 @@ type ConfigFileTag struct {
 	CreateBy   string
 	ModifyTime time.Time
 	ModifyBy   string
+	Valid      bool
 }

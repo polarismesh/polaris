@@ -27,10 +27,11 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/smartystreets/goconvey/convey"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/service"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 // 测试新建实例
@@ -582,7 +583,7 @@ func TestListInstances1(t *testing.T) {
 		defer cleanInstance(instanceResp1.GetId().GetValue())
 		_, instanceResp2 := createCommonInstance(t, serviceResp, 20)
 		defer cleanInstance(instanceResp2.GetId().GetValue())
-		//只返回第一个实例的查询
+		// 只返回第一个实例的查询
 		query := map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
@@ -590,7 +591,7 @@ func TestListInstances1(t *testing.T) {
 			"values":    "internal-personal-xxx_10",
 		}
 		checkAmountAndSize(t, server.GetInstances(context.Background(), query), 1, 1)
-		//使用共同的元数据查询，返回两个实例
+		// 使用共同的元数据查询，返回两个实例
 		query = map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
@@ -598,7 +599,7 @@ func TestListInstances1(t *testing.T) {
 			"values":    "1111",
 		}
 		checkAmountAndSize(t, server.GetInstances(context.Background(), query), 2, 2)
-		//使用不存在的元数据查询，返回零个实例
+		// 使用不存在的元数据查询，返回零个实例
 		query = map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),

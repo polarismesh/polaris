@@ -111,30 +111,6 @@ func checkPassword(password *wrappers.StringValue) error {
 		return errors.New("password len need 6 ~ 17")
 	}
 
-	// spcChar := "!@#$%&*"
-	// flag := make([]string, len(password.GetValue()))
-	// for k, v := range []rune(password.GetValue()) {
-	// 	if unicode.IsDigit(v) {
-	// 		flag[k] = "Number"
-	// 	} else if unicode.IsLower(v) {
-	// 		flag[k] = "LowerCaseLetter"
-	// 	} else if unicode.IsUpper(v) {
-	// 		flag[k] = "UpperCaseLetter"
-	// 	} else if strings.Contains(spcChar, string(v)) {
-	// 		flag[k] = "SpecialCharacter"
-	// 	} else {
-	// 		flag[k] = "OtherCharacter"
-	// 	}
-	// }
-
-	// cpx := make(map[string]bool)
-	// for _, v := range flag {
-	// 	cpx[v] = true
-	// }
-	// if len(cpx) < 2 {
-	// 	return errors.New("password security is so low")
-	// }
-
 	return nil
 }
 
@@ -208,35 +184,30 @@ func (svr *serverAuthAbility) verifyAuth(ctx context.Context, isWrite bool,
 		model.WithModule(model.AuthModule),
 	)
 
-	err := svr.authMgn.VerifyToken(authCtx)
-
 	// case 1. 如果 error 不是 token 被禁止的 error，直接返回
 	// case 2. 如果 error 是 token 被禁止，按下面情况判断
 	// 		i. 如果当前只是一个数据的读取操作，则放通
 	// 		ii. 如果当前是一个数据的写操作，则只能允许处于正常的 token 进行操作
-
-	if err != nil {
-		if !errors.Is(err, model.ErrorTokenDisabled) {
-			log.AuthScope().Error("[Auth][Server] verify auth token", utils.ZapRequestID(reqId),
-				zap.Error(err))
-			return nil, api.NewResponse(api.AuthTokenVerifyException)
-		}
-
-		if isWrite {
-			log.AuthScope().Error("[Auth][Server] token is disabled and op is write", utils.ZapRequestID(reqId),
-				zap.Error(err))
-			return nil, api.NewResponse(api.TokenDisabled)
-		}
+	if err := svr.authMgn.VerifyCredential(authCtx); err != nil {
+		log.AuthScope().Error("[Auth][Server] verify auth token", utils.ZapRequestID(reqId),
+			zap.Error(err))
+		return nil, api.NewResponse(api.AuthTokenVerifyException)
 	}
 
-	tokenInfo := authCtx.GetAttachment()[model.TokenDetailInfoKey].(TokenInfo)
+	tokenInfo := authCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo)
+
+	if isWrite && tokenInfo.Disable {
+		log.AuthScope().Error("[Auth][Server] token is disabled", utils.ZapRequestID(reqId),
+			zap.String("operation", authCtx.GetMethod()))
+		return nil, api.NewResponse(api.TokenDisabled)
+	}
 
 	if !tokenInfo.IsUserToken {
 		log.AuthScope().Error("[Auth][Server] only user role can access this API", utils.ZapRequestID(reqId))
 		return nil, api.NewResponse(api.OperationRoleException)
 	}
 
-	if needOwner && tokenInfo.IsSubAccount() {
+	if needOwner && IsSubAccount(tokenInfo) {
 		log.AuthScope().Error("[Auth][Server] only admin/owner account can access this API", utils.ZapRequestID(reqId))
 		return nil, api.NewResponse(api.OperationRoleException)
 	}

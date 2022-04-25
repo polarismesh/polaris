@@ -26,85 +26,85 @@ import (
 // NamespaceArr 命名空间数组定义
 type NamespaceArr []*api.Namespace
 
-// Reset
+// Reset 重置初始化
 func (m *NamespaceArr) Reset() { *m = NamespaceArr{} }
 
 // String return string
 func (m *NamespaceArr) String() string { return proto.CompactTextString(m) }
 
-// ProtoMessage
+// ProtoMessage return proto message
 func (*NamespaceArr) ProtoMessage() {}
 
 // ServiceArr 服务数组定义
 type ServiceArr []*api.Service
 
-// Reset
+// Reset 重置初始化
 func (m *ServiceArr) Reset() { *m = ServiceArr{} }
 
-// String
+// String return string
 func (m *ServiceArr) String() string { return proto.CompactTextString(m) }
 
-// ProtoMessage
+// ProtoMessage return proto message
 func (*ServiceArr) ProtoMessage() {}
 
 // InstanceArr 服务实例数组定义
 type InstanceArr []*api.Instance
 
-// Reset
+// Reset reset initialization
 func (m *InstanceArr) Reset() { *m = InstanceArr{} }
 
 // String
 func (m *InstanceArr) String() string { return proto.CompactTextString(m) }
 
-// ProtoMessage
+// ProtoMessage return proto message
 func (*InstanceArr) ProtoMessage() {}
 
 // RoutingArr 路由规则数组定义
 type RoutingArr []*api.Routing
 
-// Reset
+// Reset reset initialization
 func (m *RoutingArr) Reset() { *m = RoutingArr{} }
 
-// String
+// String return string
 func (m *RoutingArr) String() string { return proto.CompactTextString(m) }
 
-// ProtoMessage
+// ProtoMessage return proto message
 func (*RoutingArr) ProtoMessage() {}
 
 // RateLimitArr 限流规则数组定义
 type RateLimitArr []*api.Rule
 
-// Reset
+// Reset reset initialization
 func (m *RateLimitArr) Reset() { *m = RateLimitArr{} }
 
 // String
 func (m *RateLimitArr) String() string { return proto.CompactTextString(m) }
 
-// ProtoMessage
+// ProtoMessage return proto message
 func (*RateLimitArr) ProtoMessage() {}
 
 // CircuitBreakerArr 熔断规则数组定义
 type CircuitBreakerArr []*api.CircuitBreaker
 
-// Reset
+// Reset reset initialization
 func (m *CircuitBreakerArr) Reset() { *m = CircuitBreakerArr{} }
 
 // String
 func (m *CircuitBreakerArr) String() string { return proto.CompactTextString(m) }
 
-// ProtoMessage
+// ProtoMessage return proto message
 func (*CircuitBreakerArr) ProtoMessage() {}
 
 // ConfigReleaseArr 发布规则数组定义
 type ConfigReleaseArr []*api.ConfigRelease
 
-// Reset
+// Reset reset initialization
 func (m *ConfigReleaseArr) Reset() { *m = ConfigReleaseArr{} }
 
-// String
+// String return string
 func (m *ConfigReleaseArr) String() string { return proto.CompactTextString(m) }
 
-// ProtoMessage
+// ProtoMessage return proto message
 func (*ConfigReleaseArr) ProtoMessage() {}
 
 // PlatformArr 平台数组定义
@@ -119,26 +119,26 @@ func (m *PlatformArr) String() string { return proto.CompactTextString(m) }
 // ProtoMessage proto message
 func (m *PlatformArr) ProtoMessage() {}
 
-// InstanceArr 服务实例数组定义
+// ServiceAliasArr 服务实例数组定义
 type ServiceAliasArr []*api.ServiceAlias
 
-// Reset
+// Reset reset initialization
 func (m *ServiceAliasArr) Reset() { *m = ServiceAliasArr{} }
 
-// String
+// String return string
 func (m *ServiceAliasArr) String() string { return proto.CompactTextString(m) }
 
-// ProtoMessage
+// ProtoMessage proto message
 func (*ServiceAliasArr) ProtoMessage() {}
 
 // ConfigFileArr 配置文件数组定义
 type ConfigFileArr []*api.ConfigFile
 
-// Reset
+// Reset reset initialization
 func (m *ConfigFileArr) Reset() { *m = ConfigFileArr{} }
 
-// String
+// String return string
 func (m *ConfigFileArr) String() string { return proto.CompactTextString(m) }
 
-// ProtoMessage
+// ProtoMessage proto message
 func (*ConfigFileArr) ProtoMessage() {}

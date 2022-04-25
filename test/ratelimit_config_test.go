@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 /**
  * Tencent is pleased to support the open source community by making Polaris available.
  *
@@ -18,9 +21,10 @@
 package test
 
 import (
+	"testing"
+
 	"github.com/polarismesh/polaris-server/test/http"
 	"github.com/polarismesh/polaris-server/test/resource"
-	"testing"
 )
 
 /**
@@ -58,7 +62,7 @@ func TestRateLimit(t *testing.T) {
 	}
 	t.Log("create services success")
 
-	//-------------------------------------------------------
+	// -------------------------------------------------------
 
 	rateLimits := resource.CreateRateLimits(services)
 
@@ -102,7 +106,7 @@ func TestRateLimit(t *testing.T) {
 	}
 	t.Log("delete rate limits success")
 
-	//-------------------------------------------------------
+	// -------------------------------------------------------
 
 	// 删除服务
 	err = client.DeleteServices(services)

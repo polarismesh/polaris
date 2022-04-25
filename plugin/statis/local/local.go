@@ -89,7 +89,7 @@ func (s *StatisWorker) AddAPICall(api string, protocol string, code int, duratio
 	return nil
 }
 
-// AddRedisCall
+// AddRedisCall 上报redis请求
 func (s *StatisWorker) AddRedisCall(api string, code int, duration int64) error {
 	s.acc <- &APICall{
 		api:       api,

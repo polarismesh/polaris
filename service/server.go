@@ -23,6 +23,8 @@ import (
 
 	"golang.org/x/sync/singleflight"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -30,12 +32,13 @@ import (
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 // Server 对接API层的server层，用以处理业务逻辑
 type Server struct {
 	storage store.Store
+
+	disableAutoCreateNamespace bool
 
 	caches    *cache.NamingCache
 	authority auth.Authority
@@ -66,7 +69,7 @@ func (s *Server) Cache() *cache.NamingCache {
 	return s.caches
 }
 
-// Cache 返回Cache
+// SetResourceHooks 返回Cache
 func (s *Server) SetResourceHooks(hooks ...ResourceHook) {
 	s.hooks = hooks
 }
@@ -111,7 +114,12 @@ func (s *Server) GetServiceInstanceRevision(serviceID string, instances []*model
 		return revision, nil
 	}
 
-	data, err := cache.ComputeRevision(serviceID, instances)
+	svc := s.Cache().Service().GetServiceByID(serviceID)
+	if svc == nil {
+		return "", model.ErrorNoService
+	}
+
+	data, err := cache.ComputeRevision(svc.Revision, instances)
 	if err != nil {
 		return "", err
 	}

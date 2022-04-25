@@ -79,7 +79,6 @@ func (svr *server) Login(req *api.LoginRequest) *api.Response {
 	})
 }
 
-
 // RecordHistory server对外提供history插件的简单封装
 func (svr *server) RecordHistory(entry *model.RecordEntry) {
 	// 如果插件没有初始化，那么不记录history
@@ -101,18 +100,20 @@ func (svr *server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 	if !svr.authMgn.IsOpenAuth() || afterCtx.GetOperation() == model.Read {
 		return nil
 	}
-	if afterCtx.GetAttachment()[model.TokenDetailInfoKey].(TokenInfo).IsEmpty() {
+
+	// 如果 token 信息为空，则代表当前创建的资源，任何人都可以进行操作，不做资源的后置逻辑处理
+	if IsEmptyOperator(afterCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo)) {
 		return nil
 	}
 
-	addUserIds := afterCtx.GetAttachment()[model.LinkUsersKey].([]string)
-	addGroupIds := afterCtx.GetAttachment()[model.LinkGroupsKey].([]string)
-	removeUserIds := afterCtx.GetAttachment()[model.RemoveLinkUsersKey].([]string)
-	removeGroupIds := afterCtx.GetAttachment()[model.RemoveLinkGroupsKey].([]string)
+	addUserIds := afterCtx.GetAttachment(model.LinkUsersKey).([]string)
+	addGroupIds := afterCtx.GetAttachment(model.LinkGroupsKey).([]string)
+	removeUserIds := afterCtx.GetAttachment(model.RemoveLinkUsersKey).([]string)
+	removeGroupIds := afterCtx.GetAttachment(model.RemoveLinkGroupsKey).([]string)
 
 	// 只有在创建一个资源的时候，才需要把当前的创建者一并加到里面去
 	if afterCtx.GetOperation() == model.Create {
-		tokenInfo := afterCtx.GetAttachment()[model.TokenDetailInfoKey].(TokenInfo)
+		tokenInfo := afterCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo)
 		if tokenInfo.IsUserToken {
 			addUserIds = append(addUserIds, tokenInfo.OperatorID)
 		} else {
@@ -121,7 +122,7 @@ func (svr *server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 	}
 
 	log.AuthScope().Info("[Auth][Server] add resource to principal default strategy",
-		zap.Any("resource", afterCtx.GetAttachment()[model.ResourceAttachmentKey]),
+		zap.Any("resource", afterCtx.GetAttachment(model.ResourceAttachmentKey)),
 		zap.Any("add_user", addUserIds), zap.Any("add_group", addGroupIds), zap.Any("remove_user", removeUserIds),
 		zap.Any("remove_group", removeGroupIds),
 	)
@@ -193,7 +194,7 @@ func (svr *server) handleGroupStrategy(groupIds []string, afterCtx *model.Acquir
 func (svr *server) handlerModifyDefaultStrategy(id, ownerId string, uType model.PrincipalType,
 	afterCtx *model.AcquireContext, cleanRealtion bool) error {
 	// Get the default policy rules
-	strategy, err := svr.storage.GetDefaultStrategyDetailByPrincipal(id, int(uType))
+	strategy, err := svr.storage.GetDefaultStrategyDetailByPrincipal(id, uType)
 	if err != nil {
 		log.AuthScope().Error("[Auth][Server] get default strategy",
 			zap.String("owner", ownerId), zap.String("id", id), zap.Error(err))
@@ -204,7 +205,7 @@ func (svr *server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 	}
 
 	strategyResource := make([]model.StrategyResource, 0)
-	resources := afterCtx.GetAttachment()[model.ResourceAttachmentKey].(map[api.ResourceType][]model.ResourceEntry)
+	resources := afterCtx.GetAttachment(model.ResourceAttachmentKey).(map[api.ResourceType][]model.ResourceEntry)
 
 	strategyId := strategy.ID
 

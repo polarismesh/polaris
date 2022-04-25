@@ -24,12 +24,13 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	"golang.org/x/sync/singleflight"
+
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/store"
-	"golang.org/x/sync/singleflight"
 )
 
 const (
@@ -59,8 +60,9 @@ var (
 
 // Config 核心逻辑层配置
 type Config struct {
-	Auth  map[string]interface{} `yaml:"auth"`
-	Batch map[string]interface{} `yaml:"batch"`
+	DisableAutoCreateNamespace bool                   `yaml:"disableAutoCreateNamespace"`
+	Auth                       map[string]interface{} `yaml:"auth"`
+	Batch                      map[string]interface{} `yaml:"batch"`
 }
 
 // Initialize 初始化
@@ -108,7 +110,10 @@ func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, 
 		log.Errorf("[Naming][Server] store is null")
 		return errors.New("store is null")
 	}
+
 	namingServer.storage = s
+
+	namingServer.disableAutoCreateNamespace = namingOpt.DisableAutoCreateNamespace
 
 	// 初始化鉴权模块
 	authority, err := auth.NewAuthority(namingOpt.Auth)

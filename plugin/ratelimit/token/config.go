@@ -110,14 +110,14 @@ func decodeConfig(data map[string]interface{}) (*Config, error) {
 	}
 
 	/*log.Infof("%+v", config)
-	log.Infof("%+v", config.IPLimitConf.Global)
-	log.Infof("%+v", config.APILimitConf)
-	for _, entry := range config.APILimitConf.Rules {
-		log.Infof("%s->%+v", entry.Name, entry.Limit)
-	}
-	for _, entry := range config.APILimitConf.Apis {
-		log.Infof("%+v", entry)
-	}*/
+	  log.Infof("%+v", config.IPLimitConf.Global)
+	  log.Infof("%+v", config.APILimitConf)
+	  for _, entry := range config.APILimitConf.Rules {
+	  	log.Infof("%s->%+v", entry.Name, entry.Limit)
+	  }
+	  for _, entry := range config.APILimitConf.Apis {
+	  	log.Infof("%+v", entry)
+	  }*/
 
 	return &config, nil
 }

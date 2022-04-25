@@ -19,6 +19,7 @@ package test
 
 import (
 	"github.com/google/uuid"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
@@ -49,7 +50,7 @@ func clearTestData() error {
 		return err
 	}
 
-	//清理缓存
+	// 清理缓存
 	configService.Cache().Clear()
 
 	return err

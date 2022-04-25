@@ -66,8 +66,7 @@ func (ss *serviceStore) AddService(s *model.Service) error {
 
 	initService(s)
 
-	if s.ID == "" || s.Name == "" || s.Namespace == "" ||
-		s.Owner == "" || s.Token == "" {
+	if s.ID == "" || s.Name == "" || s.Namespace == "" {
 		return store.NewStatusError(store.EmptyParamsErr, "add Service missing some params")
 	}
 
@@ -115,9 +114,6 @@ func (ss *serviceStore) UpdateServiceAlias(alias *model.Service, needUpdateOwner
 	properties := make(map[string]interface{})
 	properties[SvcFieldName] = alias.Name
 	properties[SvcFieldNamespace] = alias.Namespace
-	properties[SvcFieldDepartment] = alias.Department
-	properties[SvcFieldBusiness] = alias.Business
-	properties[SvcFieldMeta] = alias.Meta
 	properties[SvcFieldComment] = alias.Comment
 	properties[SvcFieldRevision] = alias.Revision
 	properties[SvcFieldToken] = alias.Token
@@ -386,12 +382,13 @@ func (ss *serviceStore) GetServiceAliases(
 		alias := model.ServiceAlias{}
 		alias.ID = service.ID
 		alias.Alias = service.Name
+		alias.AliasNamespace = service.Namespace
 		alias.ServiceID = service.Reference
 		alias.Service = refServices[service.Reference].(*model.Service).Name
 		alias.ModifyTime = service.ModifyTime
 		alias.CreateTime = service.CreateTime
 		alias.Comment = service.Comment
-		alias.Namespace = service.Namespace
+		alias.Namespace = refServices[service.Reference].(*model.Service).Namespace
 		alias.Owner = service.Owner
 
 		serviceAlias = append(serviceAlias, &alias)

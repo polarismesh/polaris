@@ -126,7 +126,7 @@ func Start(configFilePath string) {
 	RunMainLoop(servers, errCh)
 }
 
-// StartComponents start healthcheck and naming components
+// StartComponents start health check and naming components
 func StartComponents(ctx context.Context, cfg *config.Config) error {
 	var err error
 
@@ -220,11 +220,13 @@ func RestartServers(errCh chan error) error {
 		return err
 	}
 	log.Infof("new config: %+v", cfg)
+
 	// 把配置的每个apiserver，进行重启
+
 	for _, protocol := range cfg.APIServers {
 		server, exist := apiserver.Slots[protocol.Name]
 		if !exist {
-			log.Errorf("apiserver slot %s not exists\n", protocol.Name)
+			log.Errorf("api server slot %s not exists\n", protocol.Name)
 			return err
 		}
 		log.Infof("begin restarting server: %s", protocol.Name)
@@ -303,7 +305,7 @@ func StartBootstrapOrder(s store.Store, c *config.Config) (store.Transaction, er
 	return nil, errors.New("lock bootstrap error")
 }
 
-// FinishBootstrapOrder
+// FinishBootstrapOrder 完成 提交锁
 func FinishBootstrapOrder(tx store.Transaction) error {
 	if tx != nil {
 		return tx.Commit()
@@ -423,6 +425,13 @@ func selfRegister(
 			name, namespace)
 	}
 
+	metadata := polarisService.Metadata
+	if len(metadata) == 0 {
+		metadata = make(map[string]string)
+	}
+	metadata[model.MetaKeyBuildRevision] = version.GetRevision()
+	metadata[model.MetaKeyPolarisService] = name
+
 	req := &api.Instance{
 		Service:           utils.NewStringValue(name),
 		Namespace:         utils.NewStringValue(namespace),
@@ -439,10 +448,7 @@ func selfRegister(
 				Ttl: &wrappers.UInt32Value{Value: uint32(hbInterval)},
 			},
 		},
-		Metadata: map[string]string{
-			model.MetaKeyBuildRevision:  version.GetRevision(),
-			model.MetaKeyPolarisService: name,
-		},
+		Metadata: metadata,
 	}
 
 	resp := server.CreateInstance(genContext(), req)
@@ -477,7 +483,6 @@ func SelfDeregister() {
 			log.Errorf("Deregister instance error: %s", resp.GetInfo().GetValue())
 		}
 	}
-
 }
 
 // getLocalHost 获取本地IP地址

@@ -10,7 +10,7 @@ message ConfigRelease {
   Service service = 1;
   google.protobuf.StringValue ctime = 2;
   google.protobuf.StringValue mtime = 3;
-  
+
   CircuitBreaker circuitBreaker = 4;
 }
 

@@ -30,10 +30,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 // some options config
@@ -177,29 +178,29 @@ func checkMetadata(meta map[string]string) error {
 	}
 
 	/*regStr := "^[0-9A-Za-z-._*]+$"
-	 matchFunc := func(str string) error {
-		 if str == "" {
-			 return nil
-		 }
-		 ok, err := regexp.MatchString(regStr, str)
-		 if err != nil {
-			 log.Errorf("regexp match string(%s) err: %s", str, err.Error())
-			 return err
-		 }
-		 if !ok {
-			 log.Errorf("metadata string(%s) contains invalid character", str)
-			 return errors.New("contain invalid character")
-		 }
-		 return nil
-	 }
-	 for key, value := range meta {
-		 if err := matchFunc(key); err != nil {
-			 return err
-		 }
-		 if err := matchFunc(value); err != nil {
-			 return err
-		 }
-	 }*/
+	   matchFunc := func(str string) error {
+	  	 if str == "" {
+	  		 return nil
+	  	 }
+	  	 ok, err := regexp.MatchString(regStr, str)
+	  	 if err != nil {
+	  		 log.Errorf("regexp match string(%s) err: %s", str, err.Error())
+	  		 return err
+	  	 }
+	  	 if !ok {
+	  		 log.Errorf("metadata string(%s) contains invalid character", str)
+	  		 return errors.New("contain invalid character")
+	  	 }
+	  	 return nil
+	   }
+	   for key, value := range meta {
+	  	 if err := matchFunc(key); err != nil {
+	  		 return err
+	  	 }
+	  	 if err := matchFunc(value); err != nil {
+	  		 return err
+	  	 }
+	   }*/
 
 	return nil
 }
@@ -256,7 +257,7 @@ func checkQueryLimit(limit []string) (int, error) {
 	return value, nil
 }
 
-// 计算实例ID
+// CalculateInstanceID 计算实例ID
 func CalculateInstanceID(namespace string, service string, vpcID string, host string, port uint32) (string, error) {
 	h := sha1.New()
 	var str string
@@ -389,6 +390,7 @@ func ParseIsOwner(ctx context.Context) bool {
 	return isOwner
 }
 
+// ParseUserRole 从ctx中解析用户角色
 func ParseUserRole(ctx context.Context) model.UserRoleType {
 	if ctx == nil {
 		return model.SubAccountUserRole
@@ -398,6 +400,7 @@ func ParseUserRole(ctx context.Context) model.UserRoleType {
 	return role
 }
 
+// ParseUserID 从ctx中解析用户ID
 func ParseUserID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -407,6 +410,7 @@ func ParseUserID(ctx context.Context) string {
 	return userID
 }
 
+// ParseOwnerID 从ctx解析Owner ID
 func ParseOwnerID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -440,9 +444,7 @@ func ParseOperator(ctx context.Context) string {
 	return defaultOperator
 }
 
-/**
- * ParsePlatformID 从ctx中获取Platform-Id
- */
+// ParsePlatformID 从ctx中获取Platform-Id
 func ParsePlatformID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -451,9 +453,7 @@ func ParsePlatformID(ctx context.Context) string {
 	return pid
 }
 
-/**
- * ParsePlatformToken 从ctx中获取Platform-Token
- */
+// ParsePlatformToken 从ctx中获取Platform-Token
 func ParsePlatformToken(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -467,11 +467,10 @@ func ZapRequestID(id string) zap.Field {
 	return zap.String("request-id", id)
 }
 
+// ZapRequestIDByCtx 从ctx中获取Request-ID
 func ZapRequestIDByCtx(ctx context.Context) zap.Field {
 	return zap.String("request-id", ParseRequestID(ctx))
 }
-
-
 
 // ZapPlatformID 生成Platform-ID的日志描述
 func ZapPlatformID(id string) zap.Field {

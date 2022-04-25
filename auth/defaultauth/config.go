@@ -20,7 +20,6 @@ package defaultauth
 import "errors"
 
 var (
-
 	// AuthOption 鉴权的配置信息
 	AuthOption *AuthConfig = DefaultAuthConfig()
 )
@@ -31,6 +30,8 @@ type AuthConfig struct {
 	Open bool `json:"open" xml:"open"`
 	// Salt 相关密码、token加密的salt
 	Salt string `json:"salt" xml:"salt"`
+	// Strict 是否启用鉴权的严格模式，即对于没有任何鉴权策略的资源，也必须带上正确的token才能操作, 默认关闭
+	Strict bool `json:"strict"`
 }
 
 // Verify 检查配置是否合法
@@ -49,7 +50,8 @@ func (cfg *AuthConfig) Verify() error {
 // DefaultAuthConfig 返回一个默认的鉴权配置
 func DefaultAuthConfig() *AuthConfig {
 	return &AuthConfig{
-		Open: false,
-		Salt: "polarismesh@2021",
+		Open:   false,
+		Salt:   "polarismesh@2021",
+		Strict: true,
 	}
 }

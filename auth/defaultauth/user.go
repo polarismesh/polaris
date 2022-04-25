@@ -23,16 +23,18 @@ import (
 	"strconv"
 	"time"
 
+	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type (
+	// User2Api convert user to api.User
 	User2Api func(user *model.User) *api.User
 )
 
@@ -186,7 +188,7 @@ func (svr *server) UpdateUserPassword(ctx context.Context, req *api.ModifyUserPa
 	if err != nil {
 		log.AuthScope().Error("[Auth][User] compute user update attribute", zap.Error(err),
 			zap.String("user", req.GetId().GetValue()))
-		return api.NewResponse(api.ExecuteException)
+		return api.NewResponseWithMsg(api.ExecuteException, err.Error())
 	}
 
 	if !needUpdate {
@@ -221,9 +223,10 @@ func (svr *server) DeleteUsers(ctx context.Context, reqs []*api.User) *api.Batch
 }
 
 // DeleteUser 删除用户
-// Case 1. 删除主账户. 主账户不能自己删除自己
-// Case 2. 主账户角色下，只能删除自己创建的子账户
-// Case 3. 超级账户角色下，可以删除任意账户
+// Case 1. 删除主账户，主账户不能自己删除自己
+// Case 2. 删除主账户，如果主账户下还存在子账户，必须先删除子账户，才能删除主账户
+// Case 3. 主账户角色下，只能删除自己创建的子账户
+// Case 4. 超级账户角色下，可以删除任意账户
 func (svr *server) DeleteUser(ctx context.Context, req *api.User) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 
@@ -324,11 +327,26 @@ func (svr *server) GetUsers(ctx context.Context, query map[string]string) *api.B
 
 // GetUserToken 获取用户 token
 func (svr *server) GetUserToken(ctx context.Context, req *api.User) *api.Response {
-	if req.GetId().GetValue() == "" {
-		return api.NewResponse(api.InvalidUserID)
-	}
+	var user *model.User
 
-	user := svr.cacheMgn.User().GetUserByID(req.GetId().GetValue())
+	if req.GetId().GetValue() != "" {
+		user = svr.cacheMgn.User().GetUserByID(req.GetId().GetValue())
+	} else if req.GetName().GetValue() != "" {
+		ownerName := req.GetOwner().GetValue()
+		ownerID := utils.ParseOwnerID(ctx)
+		if ownerName == "" {
+			owner := svr.cacheMgn.User().GetUserByID(ownerID)
+			if owner == nil {
+				log.AuthScope().Error("[Auth][User] get user's owner not found",
+					zap.String("name", req.GetName().GetValue()), zap.String("owner", ownerID))
+				return api.NewResponse(api.NotFoundUser)
+			}
+			ownerName = owner.Name
+		}
+		user = svr.cacheMgn.User().GetUserByName(req.GetName().GetValue(), ownerName)
+	} else {
+		return api.NewResponse(api.InvalidParameter)
+	}
 
 	if user == nil {
 		return api.NewUserResponse(api.NotFoundUser, req)
@@ -589,7 +607,7 @@ func updateUserPasswordAttribute(isAdmin bool, user *model.User, req *api.Modify
 
 		err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.GetOldPassword().GetValue()))
 		if err != nil {
-			return nil, false, err
+			return nil, false, errors.New("original password match failed")
 		}
 	}
 
@@ -623,18 +641,19 @@ func createUserModel(req *api.User, role model.UserRoleType) (*model.User, error
 	}
 
 	user := &model.User{
-		ID:         id,
-		Name:       req.GetName().GetValue(),
-		Password:   string(pwd),
-		Owner:      req.GetOwner().GetValue(),
-		Source:     req.GetSource().GetValue(),
-		Mobile:     req.GetMobile().GetValue(),
-		Email:      req.GetEmail().GetValue(),
-		Valid:      true,
-		Type:       converCreateUserRole(role),
-		Comment:    req.GetComment().GetValue(),
-		CreateTime: time.Now(),
-		ModifyTime: time.Now(),
+		ID:          id,
+		Name:        req.GetName().GetValue(),
+		Password:    string(pwd),
+		Owner:       req.GetOwner().GetValue(),
+		Source:      req.GetSource().GetValue(),
+		Mobile:      req.GetMobile().GetValue(),
+		Email:       req.GetEmail().GetValue(),
+		Valid:       true,
+		Type:        converCreateUserRole(role),
+		Comment:     req.GetComment().GetValue(),
+		CreateTime:  time.Now(),
+		ModifyTime:  time.Now(),
+		TokenEnable: true,
 	}
 
 	// 如果不是子账户的话，owner 就是自己

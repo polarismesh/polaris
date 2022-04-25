@@ -66,9 +66,10 @@ type PolarisService struct {
 
 // Service 服务的自注册的配置
 type Service struct {
-	Name      string   `yaml:"name"`
-	Namespace string   `yaml:"namespace"`
-	Protocols []string `yaml:"protocols"`
+	Name      string            `yaml:"name"`
+	Namespace string            `yaml:"namespace"`
+	Protocols []string          `yaml:"protocols"`
+	Metadata  map[string]string `yaml:"metadata"`
 }
 
 // APIEntries 对外提供的apiServers

@@ -28,8 +28,8 @@ $ helm install ${release_name} . --set global.mode=standalone
 
 ### 安装集群版
 
-您需要修改 `values.yaml` ，将 `global.mode` 设置为 `cluster` ，同时设置 `polaris.storage.db` 和 `polaris.storaate.redis` 的地址信息。
-确保您的 mysql 已经使用下面的命令初始化了。
+您需要修改 `values.yaml` ，将 `global.mode` 设置为 `cluster` ，同时设置 `polaris.storage.db` 和 `polaris.storaate.redis` 的地址信息。 确保您的
+mysql 已经使用下面的命令初始化了。
 
 ```shell
 mysql -u $db_user -p $db_pwd -h $db_host < store/sqldb/polaris_server.sql
@@ -47,13 +47,14 @@ $ helm install ${release_name} .
 部署后可以通过以下命令观察到 pod 正常运行：
 
 ```shell
+$ kubectl get po -n polaris-system
 NAME                                  READY   STATUS    RESTARTS   AGE
 polaris-0                             2/2     Running   0          2m44s
 polaris-prometheus-6cd7cd5fc6-gqtcz   2/2     Running   0          2m44s
 ```
 
-如果您在 `values.yaml` 中配置了 `service.type` 为 `LoadBalancer` 则可以使用 polaris 的 service 的 `EXTERNAL-IP`:webPort 访问到北极星的页面。
-如果您的 k8s 集群不支持  `LoadBalancer` ，可以将 `service.type` 为 `NodePort` ，通过 nodeip:nodeport 访问。页面如下图：
+如果您在 `values.yaml` 中配置了 `service.type` 为 `LoadBalancer` 则可以使用 polaris 的 service 的 `EXTERNAL-IP`:webPort 访问到北极星的页面。 如果您的
+k8s 集群不支持  `LoadBalancer` ，可以将 `service.type` 为 `NodePort` ，通过 nodeip:nodeport 访问。页面如下图：
 
 ![img](./images/polaris.png)
 
@@ -94,6 +95,7 @@ $ helm uninstall `${release_name}`
 |polaris.storage.service.grpcPort      | polaris service 暴露，polaris-server 监听的 grpc 端口|
 |polaris.storage.service.webPort       | polaris service 暴露，polaris-server 监听的 web 端口|
 |monitor.port                          | 客户端上报监控信息的端口|
+|installation.namespace                | 部署polaris组件所在的namespace|
 
 
 

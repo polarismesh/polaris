@@ -20,10 +20,11 @@ package testauthplugin
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/service"
-	"testing"
 )
 
 /**
@@ -404,7 +405,7 @@ func cleanCircuitBreaker(id, version string) {
  * @brief 彻底删除熔断规则发布记录
  */
 func cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
-	str := `delete from circuitbreaker_rule_relation using circuitbreaker_rule_relation, service where 
+	str := `delete from circuitbreaker_rule_relation using circuitbreaker_rule_relation, service where
 			service_id = service.id and name = ? and namespace = ? and rule_id = ? and rule_version = ?`
 	if _, err := db.Exec(str, name, namespace, ruleID, ruleVersion); err != nil {
 		panic(err)
