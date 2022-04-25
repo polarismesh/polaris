@@ -95,7 +95,7 @@ const (
 /*
  * 检查资源Name
  */
-func checkResourceName(name *wrappers.StringValue) error {
+func CheckResourceName(name *wrappers.StringValue) error {
 	if name == nil {
 		return errors.New("nil")
 	}
@@ -119,7 +119,7 @@ func checkResourceName(name *wrappers.StringValue) error {
 /*
  * 检查资源Owners
  */
-func checkResourceOwners(owners *wrappers.StringValue) error {
+func CheckResourceOwners(owners *wrappers.StringValue) error {
 	if owners == nil {
 		return errors.New("nil")
 	}
@@ -138,7 +138,7 @@ func checkResourceOwners(owners *wrappers.StringValue) error {
 /*
  * 检查服务实例Host
  */
-func checkInstanceHost(host *wrappers.StringValue) error {
+func CheckInstanceHost(host *wrappers.StringValue) error {
 	if host == nil {
 		return errors.New("nil")
 	}
@@ -153,7 +153,7 @@ func checkInstanceHost(host *wrappers.StringValue) error {
 /*
  * 检查服务实例Port
  */
-func checkInstancePort(port *wrappers.UInt32Value) error {
+func CheckInstancePort(port *wrappers.UInt32Value) error {
 	if port == nil {
 		return errors.New("nil")
 	}
@@ -168,7 +168,7 @@ func checkInstancePort(port *wrappers.UInt32Value) error {
 // 检查metadata的个数
 // 最大是64个
 // key/value是否符合要求
-func checkMetadata(meta map[string]string) error {
+func CheckMetadata(meta map[string]string) error {
 	if meta == nil {
 		return nil
 	}
@@ -208,7 +208,7 @@ func checkMetadata(meta map[string]string) error {
 /*
  * 检查查询参数Offset
  */
-func checkQueryOffset(offset []string) (int, error) {
+func CheckQueryOffset(offset []string) (int, error) {
 	if len(offset) == 0 {
 		return 0, nil
 	}
@@ -232,7 +232,7 @@ func checkQueryOffset(offset []string) (int, error) {
 /*
  * 检查查询参数Limit
  */
-func checkQueryLimit(limit []string) (int, error) {
+func CheckQueryLimit(limit []string) (int, error) {
 	if len(limit) == 0 {
 		return MaxQuerySize, nil
 	}

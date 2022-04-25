@@ -60,6 +60,7 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/service"
 )
 
@@ -673,12 +674,12 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 
 func (x *XDSServer) initRegistryInfo() error {
 
-	namingServer, err := service.GetOriginServer()
+	namespaceServer, err := namespace.GetOriginServer()
 	if err != nil {
 		return err
 	}
 
-	resp := namingServer.GetNamespaces(context.Background(), make(map[string][]string))
+	resp := namespaceServer.GetNamespaces(context.Background(), make(map[string][]string))
 	if resp.Code.Value != api.ExecuteSuccess {
 		return fmt.Errorf("error to init registry info %s", resp.Code)
 	}

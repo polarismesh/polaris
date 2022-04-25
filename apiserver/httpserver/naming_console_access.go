@@ -180,7 +180,7 @@ func (h *HTTPServer) CreateNamespaces(req *restful.Request, rsp *restful.Respons
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.namingServer.CreateNamespaces(ctx, namespaces))
+	handler.WriteHeaderAndProto(h.namespaceServer.CreateNamespaces(ctx, namespaces))
 }
 
 // DeleteNamespaces 删除命名空间
@@ -198,7 +198,7 @@ func (h *HTTPServer) DeleteNamespaces(req *restful.Request, rsp *restful.Respons
 		return
 	}
 
-	ret := h.namingServer.DeleteNamespaces(ctx, namespaces)
+	ret := h.namespaceServer.DeleteNamespaces(ctx, namespaces)
 	if code := api.CalcCode(ret); code != http.StatusOK {
 		handler.WriteHeaderAndProto(ret)
 		return
@@ -222,7 +222,7 @@ func (h *HTTPServer) UpdateNamespaces(req *restful.Request, rsp *restful.Respons
 		return
 	}
 
-	ret := h.namingServer.UpdateNamespaces(ctx, namespaces)
+	ret := h.namespaceServer.UpdateNamespaces(ctx, namespaces)
 	if code := api.CalcCode(ret); code != http.StatusOK {
 		handler.WriteHeaderAndProto(ret)
 		return
@@ -235,7 +235,7 @@ func (h *HTTPServer) UpdateNamespaces(req *restful.Request, rsp *restful.Respons
 func (h *HTTPServer) GetNamespaces(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	ret := h.namingServer.GetNamespaces(handler.ParseHeaderContext(), req.Request.URL.Query())
+	ret := h.namespaceServer.GetNamespaces(handler.ParseHeaderContext(), req.Request.URL.Query())
 	handler.WriteHeaderAndProto(ret)
 }
 
@@ -252,7 +252,7 @@ func (h *HTTPServer) GetNamespaceToken(req *restful.Request, rsp *restful.Respon
 		Token: utils.NewStringValue(queryParams["token"]),
 	}
 
-	ret := h.namingServer.GetNamespaceToken(ctx, namespace)
+	ret := h.namespaceServer.GetNamespaceToken(ctx, namespace)
 	handler.WriteHeaderAndProto(ret)
 }
 
@@ -267,7 +267,7 @@ func (h *HTTPServer) UpdateNamespaceToken(req *restful.Request, rsp *restful.Res
 		return
 	}
 
-	ret := h.namingServer.UpdateNamespaceToken(ctx, &namespace)
+	ret := h.namespaceServer.UpdateNamespaceToken(ctx, &namespace)
 	handler.WriteHeaderAndProto(ret)
 }
 

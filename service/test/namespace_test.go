@@ -36,7 +36,7 @@ func createCommonNamespace(t *testing.T, id int) (*api.Namespace, *api.Namespace
 	}
 	cleanNamespace(req.GetName().GetValue())
 
-	resp := server.CreateNamespace(defaultCtx, req)
+	resp := server.Namespace().CreateNamespace(defaultCtx, req)
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
@@ -51,7 +51,7 @@ func createCommonNamespace(t *testing.T, id int) (*api.Namespace, *api.Namespace
 
 // remove
 func removeCommonNamespaces(t *testing.T, req []*api.Namespace) {
-	resp := server.DeleteNamespaces(defaultCtx, req)
+	resp := server.Namespace().DeleteNamespaces(defaultCtx, req)
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
@@ -59,7 +59,7 @@ func removeCommonNamespaces(t *testing.T, req []*api.Namespace) {
 
 // update
 func updateCommonNamespaces(t *testing.T, req []*api.Namespace) {
-	resp := server.UpdateNamespaces(defaultCtx, req)
+	resp := server.Namespace().UpdateNamespaces(defaultCtx, req)
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
@@ -79,7 +79,7 @@ func TestCreateNamespace(t *testing.T) {
 
 		// remove
 		removeCommonNamespaces(t, []*api.Namespace{resp})
-		apiResp := server.CreateNamespace(defaultCtx, req)
+		apiResp := server.Namespace().CreateNamespace(defaultCtx, req)
 		if !respSuccess(apiResp) {
 			t.Fatalf("error: %s", apiResp.GetInfo().GetValue())
 		}
@@ -109,7 +109,7 @@ func TestRemoveNamespace(t *testing.T) {
 		defer cleanNamespace(resp.GetName().GetValue())
 
 		removeCommonNamespaces(t, []*api.Namespace{resp})
-		out := server.GetNamespaces(context.Background(), map[string][]string{"name": {resp.GetName().GetValue()}})
+		out := server.Namespace().GetNamespaces(context.Background(), map[string][]string{"name": {resp.GetName().GetValue()}})
 		if !respSuccess(out) {
 			t.Fatalf("error: %s", out.GetInfo().GetValue())
 		}
@@ -145,7 +145,7 @@ func TestRemoveNamespace(t *testing.T) {
 		}
 		defer cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 
-		resp := server.DeleteNamespace(defaultCtx, namespaceResp)
+		resp := server.Namespace().DeleteNamespace(defaultCtx, namespaceResp)
 		if resp.GetCode().GetValue() != api.NamespaceExistedServices {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -178,7 +178,7 @@ func TestGetNamespaces(t *testing.T) {
 			defer cleanNamespace(req.GetName().GetValue())
 		}
 
-		resp := server.GetNamespaces(context.Background(), map[string][]string{})
+		resp := server.Namespace().GetNamespaces(context.Background(), map[string][]string{})
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -198,7 +198,7 @@ func TestGetNamespaces(t *testing.T) {
 			"offset": {"10"},
 			"limit":  {"10"},
 		}
-		resp := server.GetNamespaces(context.Background(), query)
+		resp := server.Namespace().GetNamespaces(context.Background(), query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -214,7 +214,7 @@ func TestNamespaceToken(t *testing.T) {
 		_, namespaceResp := createCommonNamespace(t, 1)
 		defer cleanNamespace(namespaceResp.GetName().GetValue())
 
-		resp := server.GetNamespaceToken(defaultCtx, namespaceResp)
+		resp := server.Namespace().GetNamespaceToken(defaultCtx, namespaceResp)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -226,7 +226,7 @@ func TestNamespaceToken(t *testing.T) {
 		_, namespaceResp := createCommonNamespace(t, 2)
 		defer cleanNamespace(namespaceResp.GetName().GetValue())
 
-		resp := server.UpdateNamespaceToken(defaultCtx, namespaceResp)
+		resp := server.Namespace().UpdateNamespaceToken(defaultCtx, namespaceResp)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}

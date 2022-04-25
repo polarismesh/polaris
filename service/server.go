@@ -29,6 +29,7 @@ import (
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/store"
@@ -38,7 +39,7 @@ import (
 type Server struct {
 	storage store.Store
 
-	disableAutoCreateNamespace bool
+	namespaceSvr namespace.NamespaceOperateServer
 
 	caches    *cache.NamingCache
 	authority auth.Authority
@@ -67,6 +68,11 @@ func (s *Server) Authority() auth.Authority {
 // Cache 返回Cache
 func (s *Server) Cache() *cache.NamingCache {
 	return s.caches
+}
+
+// Namespace 返回Cache
+func (s *Server) Namespace() namespace.NamespaceOperateServer {
+	return s.namespaceSvr
 }
 
 // SetResourceHooks 返回Cache
@@ -154,25 +160,6 @@ func (s *Server) allowInstanceAccess(instanceID string) bool {
 
 	return true
 
-}
-
-func (s *Server) afterNamespaceResource(ctx context.Context, req *api.Namespace, save *model.Namespace,
-	remove bool) error {
-
-	event := &ResourceEvent{
-		ReqNamespace: req,
-		Namespace:    save,
-		IsRemove:     remove,
-	}
-
-	for index := range s.hooks {
-		hook := s.hooks[index]
-		if err := hook.After(ctx, model.RNamespace, event); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (s *Server) afterServiceResource(ctx context.Context, req *api.Service, save *model.Service,

@@ -171,26 +171,26 @@ type InstanceOperateServer interface {
 }
 
 // NamespaceOperateServer Namespace related operation
-type NamespaceOperateServer interface {
+// type NamespaceOperateServer interface {
 
-	// CreateNamespaces Batch creation namespace
-	CreateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse
+// 	// CreateNamespaces Batch creation namespace
+// 	CreateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse
 
-	// DeleteNamespaces Batch delete namespace
-	DeleteNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse
+// 	// DeleteNamespaces Batch delete namespace
+// 	DeleteNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse
 
-	// UpdateNamespaces 批量更新命名空间
-	UpdateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse
+// 	// UpdateNamespaces 批量更新命名空间
+// 	UpdateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse
 
-	// UpdateNamespaceToken Update token with namespace
-	UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response
+// 	// UpdateNamespaceToken Update token with namespace
+// 	UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response
 
-	// GetNamespaces Get a list of namespaces
-	GetNamespaces(ctx context.Context, query map[string][]string) *api.BatchQueryResponse
+// 	// GetNamespaces Get a list of namespaces
+// 	GetNamespaces(ctx context.Context, query map[string][]string) *api.BatchQueryResponse
 
-	// GetNamespaceToken Get the token with namespace
-	GetNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response
-}
+// 	// GetNamespaceToken Get the token with namespace
+// 	GetNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response
+// }
 
 // ClientServer Client related operation  Client operation interface definition
 type ClientServer interface {
@@ -264,7 +264,7 @@ type DiscoverServer interface {
 	// Instance Operation Interface Definition
 	InstanceOperateServer
 	// Namespace Operation Interface Definition
-	NamespaceOperateServer
+	// NamespaceOperateServer
 	// Client operation interface definition
 	ClientServer
 	// Get cache management

@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package namespace
 
 import (
 	"context"
@@ -29,6 +29,10 @@ import (
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
+
+func (s *Server) AllowAutoCreate() bool {
+	return s.autoCreateNamespace
+}
 
 // CreateNamespaces 批量创建命名空间
 func (s *Server) CreateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
@@ -129,7 +133,7 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 
 	tx, err := s.storage.CreateTransaction()
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 		return api.NewNamespaceResponse(api.StoreLayerException, req)
 	}
 	defer func() { _ = tx.Commit() }()
@@ -144,10 +148,10 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 		return api.NewNamespaceResponse(api.ExecuteSuccess, req)
 	}
 
-	// 鉴权
-	if ok := s.authority.VerifyNamespace(namespace.Token, parseNamespaceToken(ctx, req)); !ok {
-		return api.NewNamespaceResponse(api.Unauthorized, req)
-	}
+	// // 鉴权
+	// if ok := s.authority.VerifyNamespace(namespace.Token, parseNamespaceToken(ctx, req)); !ok {
+	// 	return api.NewNamespaceResponse(api.Unauthorized, req)
+	// }
 
 	// 判断属于该命名空间的服务是否都已经被删除
 	total, err := s.getServicesCountWithNamespace(namespace.Name)
@@ -220,7 +224,7 @@ func (s *Server) UpdateNamespace(ctx context.Context, req *api.Namespace) *api.R
 		return resp
 	}
 
-	rid := ParseRequestID(ctx)
+	rid := utils.ParseRequestID(ctx)
 	// 修改
 	s.updateNamespaceAttribute(req, namespace)
 
@@ -264,7 +268,7 @@ func (s *Server) UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *
 		return resp
 	}
 
-	rid := ParseRequestID(ctx)
+	rid := utils.ParseRequestID(ctx)
 	// 生成token
 	token := utils.NewUUID()
 
@@ -362,14 +366,14 @@ func (s *Server) getCircuitBreakerCountWithNamespace(namespace string) (uint32, 
 
 // 检查namespace的权限，并且返回namespace
 func (s *Server) checkNamespaceAuthority(ctx context.Context, req *api.Namespace) (*model.Namespace, *api.Response) {
-	rid := ParseRequestID(ctx)
+	rid := utils.ParseRequestID(ctx)
 	namespaceName := req.GetName().GetValue()
-	namespaceToken := parseNamespaceToken(ctx, req)
+	// namespaceToken := parseNamespaceToken(ctx, req)
 
 	// 检查是否存在
 	namespace, err := s.storage.GetNamespace(namespaceName)
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(rid))
+		log.Error(err.Error(), utils.ZapRequestID(rid))
 		return nil, api.NewNamespaceResponse(api.StoreLayerException, req)
 	}
 	if namespace == nil {
@@ -377,9 +381,9 @@ func (s *Server) checkNamespaceAuthority(ctx context.Context, req *api.Namespace
 	}
 
 	// 鉴权
-	if ok := s.authority.VerifyNamespace(namespace.Token, namespaceToken); !ok {
-		return nil, api.NewNamespaceResponse(api.Unauthorized, req)
-	}
+	// if ok := s.authority.VerifyNamespace(namespace.Token, namespaceToken); !ok {
+	// 	return nil, api.NewNamespaceResponse(api.Unauthorized, req)
+	// }
 
 	return namespace, nil
 }
@@ -390,7 +394,7 @@ func checkBatchNamespace(req []*api.Namespace) *api.BatchWriteResponse {
 		return api.NewBatchWriteResponse(api.EmptyRequest)
 	}
 
-	if len(req) > MaxBatchSize {
+	if len(req) > utils.MaxBatchSize {
 		return api.NewBatchWriteResponse(api.BatchSizeOverLimit)
 	}
 
@@ -403,7 +407,7 @@ func checkCreateNamespace(req *api.Namespace) *api.Response {
 		return api.NewNamespaceResponse(api.EmptyRequest, req)
 	}
 
-	if err := checkResourceName(req.GetName()); err != nil {
+	if err := utils.CheckResourceName(req.GetName()); err != nil {
 		return api.NewNamespaceResponse(api.InvalidNamespaceName, req)
 	}
 
@@ -416,7 +420,7 @@ func checkReviseNamespace(ctx context.Context, req *api.Namespace) *api.Response
 		return api.NewNamespaceResponse(api.EmptyRequest, req)
 	}
 
-	if err := checkResourceName(req.GetName()); err != nil {
+	if err := utils.CheckResourceName(req.GetName()); err != nil {
 		return api.NewNamespaceResponse(api.InvalidNamespaceName, req)
 	}
 	return nil
@@ -434,12 +438,12 @@ func checkGetNamespace(query map[string][]string) (map[string][]string, int, int
 		filter["owner"] = value
 	}
 
-	offset, err := checkQueryOffset(query["offset"])
+	offset, err := utils.CheckQueryOffset(query["offset"])
 	if err != nil {
 		return nil, 0, 0, api.NewBatchQueryResponse(api.InvalidParameter)
 	}
 
-	limit, err := checkQueryLimit(query["limit"])
+	limit, err := utils.CheckQueryLimit(query["limit"])
 	if err != nil {
 		return nil, 0, 0, api.NewBatchQueryResponse(api.InvalidParameter)
 	}
@@ -454,7 +458,7 @@ func parseNamespaceToken(ctx context.Context, req *api.Namespace) string {
 		return reqToken
 	}
 
-	if headerToken := ParseToken(ctx); headerToken != "" {
+	if headerToken := utils.ParseToken(ctx); headerToken != "" {
 		return headerToken
 	}
 
@@ -467,7 +471,7 @@ func namespaceRecordEntry(ctx context.Context, req *api.Namespace, opt model.Ope
 		ResourceType:  model.RNamespace,
 		OperationType: opt,
 		Namespace:     req.GetName().GetValue(),
-		Operator:      ParseOperator(ctx),
+		Operator:      utils.ParseOperator(ctx),
 		CreateTime:    time.Now(),
 	}
 }

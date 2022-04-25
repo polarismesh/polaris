@@ -28,6 +28,7 @@ import (
 
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
+	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/store"
@@ -60,7 +61,6 @@ var (
 
 // Config 核心逻辑层配置
 type Config struct {
-	DisableAutoCreateNamespace bool                   `yaml:"disableAutoCreateNamespace"`
 	Auth                       map[string]interface{} `yaml:"auth"`
 	Batch                      map[string]interface{} `yaml:"batch"`
 }
@@ -113,7 +113,12 @@ func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, 
 
 	namingServer.storage = s
 
-	namingServer.disableAutoCreateNamespace = namingOpt.DisableAutoCreateNamespace
+	// 注入命名空间管理模块
+	namespaceSvr, err := namespace.GetOriginServer()
+	if err != nil {
+		return err
+	}
+	namingServer.namespaceSvr = namespaceSvr
 
 	// 初始化鉴权模块
 	authority, err := auth.NewAuthority(namingOpt.Auth)
