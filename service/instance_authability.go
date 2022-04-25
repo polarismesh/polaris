@@ -68,7 +68,7 @@ func (svr *serverAuthAbility) DeleteInstancesByHost(ctx context.Context,
 	reqs []*api.Instance) *api.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Delete, "DeleteInstancesByHost")
 
-	if err := svr.authMgn.VerifyCredential(authCtx); err != nil {
+	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()

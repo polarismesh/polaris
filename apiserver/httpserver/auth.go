@@ -67,8 +67,7 @@ func (h *HTTPServer) GetAuthServer(ws *restful.WebService) error {
 func (h *HTTPServer) AuthStatus(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	isOpen := h.authServer.GetAuthChecker().IsOpenAuth()
-
+	isOpen := h.authServer.GetAuthChecker().IsOpenConsoleAuth()
 	resp := api.NewResponse(api.ExecuteSuccess)
 	resp.OptionSwitch = &api.OptionSwitch{
 		Options: map[string]string{

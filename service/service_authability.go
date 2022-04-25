@@ -130,7 +130,7 @@ func (svr *serverAuthAbility) GetServices(ctx context.Context, query map[string]
 			svc := resp.Services[index]
 			editable := true
 			// 如果鉴权能力没有开启，那就默认都可以进行编辑
-			if svr.authMgn.IsOpenAuth() {
+			if svr.authMgn.IsOpenConsoleAuth() {
 				editable = svr.Cache().AuthStrategy().IsResourceEditable(principal,
 					api.ResourceType_Services, svc.Id.GetValue())
 			}

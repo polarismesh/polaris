@@ -30,7 +30,7 @@ func (svr *serverAuthAbility) CreateNamespaces(ctx context.Context, reqs []*api.
 	authCtx := svr.collectNamespaceAuthContext(ctx, reqs, model.Create, "CreateNamespaces")
 
 	// 验证 token 信息
-	if err := svr.authMgn.VerifyCredential(authCtx); err != nil {
+	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 
@@ -118,7 +118,7 @@ func (svr *serverAuthAbility) GetNamespaces(ctx context.Context, query map[strin
 			ns := resp.Namespaces[index]
 			editable := true
 			// 如果鉴权能力没有开启，那就默认都可以进行编辑
-			if svr.authMgn.IsOpenAuth() {
+			if svr.authMgn.IsOpenConsoleAuth() {
 				editable = svr.Cache().AuthStrategy().IsResourceEditable(principal,
 					api.ResourceType_Namespaces, ns.Id.GetValue())
 			}

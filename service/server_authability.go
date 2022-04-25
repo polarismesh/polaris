@@ -133,6 +133,21 @@ func (svr *serverAuthAbility) collectInstanceAuthContext(ctx context.Context, re
 	)
 }
 
+// collectClientInstanceAuthContext 对于服务实例的处理，收集所有的与鉴权的相关信息
+func (svr *serverAuthAbility) collectClientInstanceAuthContext(ctx context.Context, req []*api.Instance,
+	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
+
+	return model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithOperation(resourceOp),
+		model.WithToken(utils.ParseAuthToken(ctx)),
+		model.WithModule(model.DiscoverModule),
+		model.WithMethod(methodName),
+		model.WithFromClient(),
+		model.WithAccessResources(svr.queryInstanceResource(req)),
+	)
+}
+
 // collectCircuitBreakerAuthContext 对于服务熔断的处理，收集所有的与鉴权的相关信息
 //  @receiver svr serverAuthAbility
 //  @param ctx 请求上下文 ctx

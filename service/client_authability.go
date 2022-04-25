@@ -27,7 +27,7 @@ import (
 
 // CreateInstances create one instance
 func (svr *serverAuthAbility) RegisterInstance(ctx context.Context, req *api.Instance) *api.Response {
-	authCtx := svr.collectInstanceAuthContext(ctx, []*api.Instance{req}, model.Create, "RegisterInstance")
+	authCtx := svr.collectClientInstanceAuthContext(ctx, []*api.Instance{req}, model.Create, "RegisterInstance")
 
 	_, err := svr.authMgn.CheckClientPermission(authCtx)
 	if err != nil {
@@ -43,7 +43,7 @@ func (svr *serverAuthAbility) RegisterInstance(ctx context.Context, req *api.Ins
 
 // DeleteInstance delete onr instance
 func (svr *serverAuthAbility) DeregisterInstance(ctx context.Context, req *api.Instance) *api.Response {
-	authCtx := svr.collectInstanceAuthContext(ctx, []*api.Instance{req}, model.Create, "DeregisterInstance")
+	authCtx := svr.collectClientInstanceAuthContext(ctx, []*api.Instance{req}, model.Create, "DeregisterInstance")
 
 	_, err := svr.authMgn.CheckClientPermission(authCtx)
 	if err != nil {

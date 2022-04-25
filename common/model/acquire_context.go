@@ -25,30 +25,31 @@ import (
 
 // AcquireContext 每次鉴权请求上下文信息
 type AcquireContext struct {
-
 	// RequestContext 请求上下文
 	requestContext context.Context
-
 	// Token 本次请求的访问凭据
 	token string
-
 	// Module 来自那个业务层（服务注册与服务治理、配置模块）
 	module BzModule
-
 	// Method 操作函数
 	method string
-
 	// Operation 本次操作涉及的动作
 	operation ResourceOperation
-
 	// Resources 本次
 	accessResources map[api.ResourceType][]ResourceEntry
-
 	// Attachment 携带信息，用于操作完权限检查和资源操作的后置处理逻辑，解决信息需要二次查询问题
 	attachment map[string]interface{}
+	// fromClient 是否来自客户端的请求
+	fromClient bool
 }
 
 type acquireContextOption func(authCtx *AcquireContext)
+
+var (
+	_defaultAuthContextOptions []acquireContextOption = []acquireContextOption{
+		WithFromConsole(),
+	}
+)
 
 // NewAcquireContext 创建一个请求响应
 //  @param options
@@ -58,6 +59,11 @@ func NewAcquireContext(options ...acquireContextOption) *AcquireContext {
 		attachment:      make(map[string]interface{}),
 		accessResources: make(map[api.ResourceType][]ResourceEntry),
 		module:          UnknowModule,
+	}
+
+	for index := range _defaultAuthContextOptions {
+		opt := _defaultAuthContextOptions[index]
+		opt(authCtx)
 	}
 
 	for index := range options {
@@ -131,6 +137,20 @@ func WithAttachment(attachment map[string]interface{}) acquireContextOption {
 	}
 }
 
+// WithFromConsole 设置本次请求来自控制台
+func WithFromConsole() acquireContextOption {
+	return func(authCtx *AcquireContext) {
+		authCtx.fromClient = false
+	}
+}
+
+// WithFromClient 设置本次请求来自客户端
+func WithFromClient() acquireContextOption {
+	return func(authCtx *AcquireContext) {
+		authCtx.fromClient = true
+	}
+}
+
 // GetRequestContext 获取 context.Context
 //  @receiver authCtx
 //  @return context.Context
@@ -198,6 +218,11 @@ func (authCtx *AcquireContext) SetAttachment(key string, val interface{}) {
 // GetMethod 获取本次请求涉及的操作函数
 func (authCtx *AcquireContext) GetMethod() string {
 	return authCtx.method
+}
+
+// IsFromClient 本次请求是否来自客户端
+func (authCtx *AcquireContext) IsFromClient() bool {
+	return authCtx.fromClient
 }
 
 // IsAccessResourceEmpty 判断当前待访问的资源，是否为空

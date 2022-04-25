@@ -30,37 +30,36 @@ import (
 )
 
 // IsOpenConsoleAuth 针对控制台是否开启了操作鉴权
-func (authMgn *defaultAuthChecker) IsOpenConsoleAuth() bool {
+func (checker *defaultAuthChecker) IsOpenConsoleAuth() bool {
 	return AuthOption.ConsoleOpen
 }
 
 // IsOpenClientAuth 针对客户端是否开启了操作鉴权
-func (authMgn *defaultAuthChecker) IsOpenClientAuth() bool {
+func (checker *defaultAuthChecker) IsOpenClientAuth() bool {
 	return AuthOption.Open
 }
 
-// IsOpenConsoleAuth 返回对于控制台/客户端任意其中的一个是否开启了操作鉴权
-func (authMgn *defaultAuthChecker) IsOpenAuth() bool {
-	return AuthOption.ConsoleOpen || AuthOption.Open
+// IsOpenAuth 返回对于控制台/客户端任意其中的一个是否开启了操作鉴权
+func (checker *defaultAuthChecker) IsOpenAuth() bool {
+	return checker.IsOpenConsoleAuth() || checker.IsOpenClientAuth()
 }
 
-
 // CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据
-func (authMgn *defaultAuthChecker) CheckClientPermission(preCtx *model.AcquireContext) (bool, error) {
-	if !authMgn.IsOpenClientAuth() {
+func (checker *defaultAuthChecker) CheckClientPermission(preCtx *model.AcquireContext) (bool, error) {
+	if !checker.IsOpenClientAuth() {
 		return true, nil
 	}
 
-	return authMgn.CheckPermission(preCtx)
+	return checker.CheckPermission(preCtx)
 }
 
 // CheckConsolePermission 执行检查控制台动作判断是否有权限，并且对 RequestContext 注入操作者数据
-func (authMgn *defaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireContext) (bool, error) {
-	if !authMgn.IsOpenConsoleAuth() {
+func (checker *defaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireContext) (bool, error) {
+	if !checker.IsOpenConsoleAuth() {
 		return true, nil
 	}
 
-	return authMgn.CheckPermission(preCtx)
+	return checker.CheckPermission(preCtx)
 }
 
 // CheckPermission 执行检查动作判断是否有权限
@@ -71,9 +70,9 @@ func (authMgn *defaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireC
 // 				b. 写操作，快速失败
 // 	step 3. 拉取token对应的操作者相关信息，注入到请求上下文中
 // 	step 4. 进行权限检查
-func (authMgn *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (bool, error) {
+func (checker *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (bool, error) {
 	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
-	if err := authMgn.VerifyCredential(authCtx); err != nil {
+	if err := checker.VerifyCredential(authCtx); err != nil {
 		return false, err
 	}
 
@@ -82,35 +81,36 @@ func (authMgn *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext
 	}
 
 	operatorInfo := authCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo)
+	// 这里需要检查当 token 被禁止的情况，如果 token 被禁止，无论是否可以操作目标资源，都无法进行写操作
 	if operatorInfo.Disable {
 		return false, model.ErrorTokenDisabled
 	}
 
-	strategies, err := authMgn.findStrategies(operatorInfo)
+	strategies, err := checker.findStrategies(operatorInfo)
 	if err != nil {
-		log.AuthScope().Error("[Auth][Server] find strategies when check permission", utils.ZapRequestID(reqId),
+		log.AuthScope().Error("[Auth][Checker] find strategies when check permission", utils.ZapRequestID(reqId),
 			zap.Error(err), zap.Any("token", operatorInfo.String()))
 		return false, err
 	}
 
 	authCtx.SetAttachment(model.OperatorLinkStrategy, strategies)
 
-	noResourceNeedCheck := authMgn.removeNoStrategyResources(authCtx)
+	noResourceNeedCheck := checker.removeNoStrategyResources(authCtx)
 	if !noResourceNeedCheck && len(strategies) == 0 {
-		log.AuthScope().Error("[Auth][Server]", utils.ZapRequestID(reqId),
+		log.AuthScope().Error("[Auth][Checker]", utils.ZapRequestID(reqId),
 			zap.String("msg", "need check resource is not empty, but strategies is empty"))
 		return false, errors.New("need check resource is not empty, but strategies is empty")
 	}
 
-	log.AuthScope().Info("[Auth][Server] check permission args", zap.Any("resources", authCtx.GetAccessResources()),
+	log.AuthScope().Info("[Auth][Checker] check permission args", zap.Any("resources", authCtx.GetAccessResources()),
 		zap.Any("strategies", strategies))
 
-	ok, err := authMgn.authPlugin.CheckPermission(authCtx, strategies)
+	ok, err := checker.authPlugin.CheckPermission(authCtx, strategies)
 	if err != nil {
-		log.AuthScope().Error("[Auth][Server] check permission args", utils.ZapRequestID(reqId),
+		log.AuthScope().Error("[Auth][Checker] check permission args", utils.ZapRequestID(reqId),
 			zap.String("method", authCtx.GetMethod()), zap.Any("resources", authCtx.GetAccessResources()),
 			zap.Any("strategies", strategies))
-		log.AuthScope().Error("[Auth][Server] check permission when request arrive", utils.ZapRequestID(reqId),
+		log.AuthScope().Error("[Auth][Checker] check permission when request arrive", utils.ZapRequestID(reqId),
 			zap.Error(err))
 	}
 
@@ -141,23 +141,19 @@ func canDowngradeAnonymous(authCtx *model.AcquireContext, err error) bool {
 // step 2. 最后对 token 进行一些验证步骤的执行
 // step 3. 兜底措施：如果开启了鉴权的非严格模式，则根据错误的类型，判断是否转为匿名用户进行访问
 // 		- 如果不是访问权限控制相关模块（用户、用户组、权限策略），不得转为匿名用户
-func (authMgn *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) error {
-	if !authMgn.IsOpenAuth() && authCtx.GetModule() != model.AuthModule {
-		return nil
-	}
-
+func (checker *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) error {
 	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
 
 	checkErr := func() error {
-		operator, err := authMgn.decodeToken(authCtx.GetToken())
+		operator, err := checker.decodeToken(authCtx.GetToken())
 		if err != nil {
-			log.AuthScope().Error("[Auth][Server] decode token", zap.Error(err))
+			log.AuthScope().Error("[Auth][Checker] decode token", zap.Error(err))
 			return model.ErrorTokenInvalid
 		}
 
-		ownerId, isOwner, err := authMgn.checkToken(&operator)
+		ownerId, isOwner, err := checker.checkToken(&operator)
 		if err != nil {
-			log.AuthScope().Error("[Auth][Server] check token", zap.Error(err))
+			log.AuthScope().Error("[Auth][Checker] check token", zap.Error(err))
 			return err
 		}
 
@@ -167,9 +163,9 @@ func (authMgn *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContex
 		ctx = context.WithValue(ctx, utils.ContextUserIDKey, operator.OperatorID)
 		ctx = context.WithValue(ctx, utils.ContextOwnerIDKey, ownerId)
 		authCtx.SetRequestContext(ctx)
-		authMgn.parseOperatorInfo(operator, authCtx)
+		checker.parseOperatorInfo(operator, authCtx)
 		if operator.Disable {
-			log.AuthScope().Warn("[Auth][Server] token already disabled", utils.ZapRequestID(reqId),
+			log.AuthScope().Warn("[Auth][Checker] token already disabled", utils.ZapRequestID(reqId),
 				zap.Any("token", operator.String()))
 		}
 		return nil
@@ -179,7 +175,7 @@ func (authMgn *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContex
 		if !canDowngradeAnonymous(authCtx, checkErr) {
 			return checkErr
 		}
-		log.AuthScope().Warn("[Auth][Server] parse operator info, downgrade to anonymous", utils.ZapRequestID(reqId),
+		log.AuthScope().Warn("[Auth][Checker] parse operator info, downgrade to anonymous", utils.ZapRequestID(reqId),
 			zap.Error(checkErr))
 		// 操作者信息解析失败，降级为匿名用户
 		authCtx.SetAttachment(model.TokenDetailInfoKey, newAnonymous())
@@ -188,12 +184,12 @@ func (authMgn *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContex
 	return nil
 }
 
-func (authMgn *defaultAuthChecker) parseOperatorInfo(operator OperatorInfo, authCtx *model.AcquireContext) {
+func (checker *defaultAuthChecker) parseOperatorInfo(operator OperatorInfo, authCtx *model.AcquireContext) {
 
 	ctx := authCtx.GetRequestContext()
 
 	if operator.IsUserToken {
-		user := authMgn.Cache().User().GetUserByID(operator.OperatorID)
+		user := checker.Cache().User().GetUserByID(operator.OperatorID)
 		operator.Role = user.Type
 		ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, user.Type)
 	}
@@ -213,7 +209,7 @@ func (authMgn *defaultAuthChecker) parseOperatorInfo(operator OperatorInfo, auth
 }
 
 // decodeToken 解析 token 信息，如果 t == ""，直接返回一个空对象
-func (authMgn *defaultAuthChecker) decodeToken(t string) (OperatorInfo, error) {
+func (checker *defaultAuthChecker) decodeToken(t string) (OperatorInfo, error) {
 	if t == "" {
 		return OperatorInfo{}, model.ErrorTokenInvalid
 	}
@@ -239,21 +235,21 @@ func (authMgn *defaultAuthChecker) decodeToken(t string) (OperatorInfo, error) {
 		Role:        model.UnknownUserRole,
 	}
 
-	log.AuthScope().Info("[Auth][Server] token detail", zap.Any("info", tokenInfo.String()))
+	log.AuthScope().Info("[Auth][Checker] token detail", zap.Any("info", tokenInfo.String()))
 
 	return tokenInfo, nil
 }
 
 // checkToken 对 token 进行检查，如果 token 是一个空，直接返回默认值，但是不返回错误
 // return {owner-id} {is-owner} {error}
-func (authMgn *defaultAuthChecker) checkToken(tokenInfo *OperatorInfo) (string, bool, error) {
+func (checker *defaultAuthChecker) checkToken(tokenInfo *OperatorInfo) (string, bool, error) {
 	if IsEmptyOperator(*tokenInfo) {
 		return "", false, nil
 	}
 
 	id := tokenInfo.OperatorID
 	if tokenInfo.IsUserToken {
-		user := authMgn.Cache().User().GetUserByID(id)
+		user := checker.Cache().User().GetUserByID(id)
 		if user == nil {
 			return "", false, model.ErrorNoUser
 		}
@@ -266,7 +262,7 @@ func (authMgn *defaultAuthChecker) checkToken(tokenInfo *OperatorInfo) (string, 
 		}
 		return user.Owner, false, nil
 	} else {
-		group := authMgn.Cache().User().GetGroup(id)
+		group := checker.Cache().User().GetGroup(id)
 		if group == nil {
 			return "", false, model.ErrorNoUserGroup
 		}
@@ -279,14 +275,14 @@ func (authMgn *defaultAuthChecker) checkToken(tokenInfo *OperatorInfo) (string, 
 }
 
 // findStrategiesByUserID 根据 user-id 查找相关联的鉴权策略（用户自己的 + 用户所在用户组的）
-func (authMgn *defaultAuthChecker) findStrategiesByUserID(userId string) []*model.StrategyDetail {
+func (checker *defaultAuthChecker) findStrategiesByUserID(userId string) []*model.StrategyDetail {
 	// Step 1, first pull all the strategy information involved in this user.
-	rules := authMgn.cacheMgn.AuthStrategy().GetStrategyDetailsByUID(userId)
+	rules := checker.cacheMgn.AuthStrategy().GetStrategyDetailsByUID(userId)
 
 	// Step 2, pull the Group information to which this user belongs
-	groupIds := authMgn.cacheMgn.User().GetUserLinkGroupIds(userId)
+	groupIds := checker.cacheMgn.User().GetUserLinkGroupIds(userId)
 	for i := range groupIds {
-		ret := authMgn.findStrategiesByGroupID(groupIds[i])
+		ret := checker.findStrategiesByGroupID(groupIds[i])
 		rules = append(rules, ret...)
 	}
 
@@ -307,7 +303,7 @@ func (authMgn *defaultAuthChecker) findStrategiesByUserID(userId string) []*mode
 }
 
 // findStrategies Inquire about TOKEN information, the actual all-associated authentication strategy
-func (authMgn *defaultAuthChecker) findStrategies(tokenInfo OperatorInfo) ([]*model.StrategyDetail, error) {
+func (checker *defaultAuthChecker) findStrategies(tokenInfo OperatorInfo) ([]*model.StrategyDetail, error) {
 	var (
 		strategies []*model.StrategyDetail
 	)
@@ -317,34 +313,34 @@ func (authMgn *defaultAuthChecker) findStrategies(tokenInfo OperatorInfo) ([]*mo
 	}
 
 	if tokenInfo.IsUserToken {
-		user := authMgn.cacheMgn.User().GetUserByID(tokenInfo.OperatorID)
+		user := checker.cacheMgn.User().GetUserByID(tokenInfo.OperatorID)
 		if user == nil {
 			return nil, model.ErrorNoUser
 		}
-		strategies = authMgn.findStrategiesByUserID(tokenInfo.OperatorID)
+		strategies = checker.findStrategiesByUserID(tokenInfo.OperatorID)
 	} else {
-		group := authMgn.cacheMgn.User().GetGroup(tokenInfo.OperatorID)
+		group := checker.cacheMgn.User().GetGroup(tokenInfo.OperatorID)
 		if group == nil {
 			return nil, model.ErrorNoUserGroup
 		}
-		strategies = authMgn.findStrategiesByGroupID(tokenInfo.OperatorID)
+		strategies = checker.findStrategiesByGroupID(tokenInfo.OperatorID)
 	}
 
 	return strategies, nil
 }
 
 // findStrategiesByGroupID 根据 group-id 查找相关联的鉴权策略
-func (authMgn *defaultAuthChecker) findStrategiesByGroupID(id string) []*model.StrategyDetail {
+func (checker *defaultAuthChecker) findStrategiesByGroupID(id string) []*model.StrategyDetail {
 
-	return authMgn.cacheMgn.AuthStrategy().GetStrategyDetailsByGroupID(id)
+	return checker.cacheMgn.AuthStrategy().GetStrategyDetailsByGroupID(id)
 }
 
 // removeNoStrategyResources 移除没有关联任何鉴权策略的资源
-func (authMgn *defaultAuthChecker) removeNoStrategyResources(authCtx *model.AcquireContext) bool {
+func (checker *defaultAuthChecker) removeNoStrategyResources(authCtx *model.AcquireContext) bool {
 	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
 
 	resources := authCtx.GetAccessResources()
-	cacheMgn := authMgn.Cache()
+	cacheMgn := checker.Cache()
 	newAccessRes := make(map[api.ResourceType][]model.ResourceEntry, 0)
 
 	checkIsFree := func(resType api.ResourceType, entry model.ResourceEntry) bool {
@@ -392,13 +388,13 @@ func (authMgn *defaultAuthChecker) removeNoStrategyResources(authCtx *model.Acqu
 		newAccessRes[api.ResourceType_ConfigGroups] = newCfgRes
 	}
 
-	log.AuthScope().Info("[Auth][Server] remove no link strategy final result", utils.ZapRequestID(reqId),
+	log.AuthScope().Info("[Auth][Checker] remove no link strategy final result", utils.ZapRequestID(reqId),
 		zap.Any("resource", newAccessRes))
 
 	authCtx.SetAccessResources(newAccessRes)
 	noResourceNeedCheck := authCtx.IsAccessResourceEmpty()
 	if noResourceNeedCheck {
-		log.AuthScope().Debug("[Auth][Server]", utils.ZapRequestID(reqId),
+		log.AuthScope().Debug("[Auth][Checker]", utils.ZapRequestID(reqId),
 			zap.String("msg", "need check permission resource is empty"))
 	}
 
