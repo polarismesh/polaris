@@ -3,7 +3,7 @@ syntax = "proto3";
 package v1;
 
 import "google/protobuf/wrappers.proto";
-option go_package = "/v1";
+option go_package = "v1";
 
 message ConfigFileGroup {
   google.protobuf.UInt64Value id = 1;

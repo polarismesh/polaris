@@ -5,7 +5,7 @@ package v1;
 import "google/protobuf/wrappers.proto";
 import "config_file.proto";
 
-option go_package="/v1";
+option go_package="v1";
 
 message ConfigSimpleResponse {
   google.protobuf.UInt32Value code = 1;
