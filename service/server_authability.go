@@ -62,20 +62,6 @@ func (svr *serverAuthAbility) GetServiceInstanceRevision(serviceID string,
 	return svr.targetServer.GetServiceInstanceRevision(serviceID, instances)
 }
 
-// collectNamespaceAuthContext 对于命名空间的处理，收集所有的与鉴权的相关信息
-func (svr *serverAuthAbility) collectNamespaceAuthContext(ctx context.Context, req []*api.Namespace,
-	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
-	return model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
-		model.WithModule(model.CoreModule),
-		model.WithMethod(methodName),
-		model.WithAccessResources(svr.queryNamespaceResource(req)),
-	)
-}
-
 // collectServiceAuthContext 对于服务的处理，收集所有的与鉴权的相关信息
 //  @receiver svr serverAuthAbility
 //  @param ctx 请求上下文 ctx
@@ -222,34 +208,6 @@ func (svr *serverAuthAbility) collectRateLimitAuthContext(ctx context.Context, r
 		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryRateLimitConfigResource(req)),
 	)
-}
-
-// queryNamespaceResource 根据所给的 namespace 信息，收集对应的 ResourceEntry 列表
-func (svr *serverAuthAbility) queryNamespaceResource(
-	req []*api.Namespace) map[api.ResourceType][]model.ResourceEntry {
-
-	names := utils.NewStringSet()
-	for index := range req {
-		names.Add(req[index].Name.GetValue())
-	}
-	param := names.ToSlice()
-	nsArr := svr.Cache().Namespace().GetNamespacesByName(param)
-
-	temp := make([]model.ResourceEntry, 0, len(nsArr))
-
-	for index := range nsArr {
-		ns := nsArr[index]
-		temp = append(temp, model.ResourceEntry{
-			ID:    ns.Name,
-			Owner: ns.Owner,
-		})
-	}
-
-	ret := map[api.ResourceType][]model.ResourceEntry{
-		api.ResourceType_Namespaces: temp,
-	}
-	commonlog.AuthScope().Debug("[Auth][Server] collect namespace access res", zap.Any("res", ret))
-	return ret
 }
 
 // queryServiceResource  根据所给的 service 信息，收集对应的 ResourceEntry 列表
