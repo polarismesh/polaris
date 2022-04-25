@@ -47,6 +47,7 @@ const (
 	CacheUser
 	CacheAuthStrategy
 	CacheNamespace
+	CacheClient
 
 	CacheLast
 )
@@ -339,6 +340,13 @@ func (nc *NamingCache) Namespace() NamespaceCache {
 // GetStore get store
 func (nc *NamingCache) GetStore() store.Store {
 	return nc.storage
+}
+
+// Client Get client cache information
+//  @receiver nc
+//  @return ClientCache
+func (nc *NamingCache) Client() ClientCache {
+	return nc.caches[CacheClient].(ClientCache)
 }
 
 // ComputeRevision 计算唯一的版本标识

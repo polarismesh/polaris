@@ -188,13 +188,6 @@ naming:
       waitTime: 32ms
       maxBatchCount: 32
       concurrency: 64
-# 配置中心模块启动配置
-config:
-  # 是否启动配置模块
-  open: true
-  cache:
-    #配置文件缓存过期时间，单位s
-    expireTimeAfterWrite: 3600
 # 健康检查的配置
 healthcheck:
   open: true
@@ -202,6 +195,7 @@ healthcheck:
   slotNum: 30
   minCheckInterval: 1s
   maxCheckInterval: 30s
+  clientReportInterval: 120s
   batch:
     heartbeat:
       open: true
@@ -220,6 +214,13 @@ healthcheck:
 #      connectTimeout: 200ms
 #      msgTimeout: 200ms
 #      concurrency: 200
+# 配置中心模块启动配置
+config:
+  # 是否启动配置模块
+  open: true
+  cache:
+    #配置文件缓存过期时间，单位s
+    expireTimeAfterWrite: 3600
 # 缓存配置
 cache:
   open: true

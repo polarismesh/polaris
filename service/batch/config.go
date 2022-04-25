@@ -25,9 +25,11 @@ import (
 
 // Config 批量配置，控制最大的条目，批量等待时间等
 type Config struct {
-	Register   *CtrlConfig `mapstructure:"register"`
-	Deregister *CtrlConfig `mapstructure:"deregister"`
-	Heartbeat  *CtrlConfig `mapstructure:"heartbeat"`
+	Register         *CtrlConfig `mapstructure:"register"`
+	Deregister       *CtrlConfig `mapstructure:"deregister"`
+	Heartbeat        *CtrlConfig `mapstructure:"heartbeat"`
+	ClientRegister   *CtrlConfig `mapstructure:"clientRegister"`
+	ClientDeregister *CtrlConfig `mapstructure:"clientDeregister"`
 }
 
 // CtrlConfig batch控制配置项
@@ -68,6 +70,14 @@ func ParseBatchConfig(opt map[string]interface{}) (*Config, error) {
 	if !checkCtrlConfig(config.Heartbeat) {
 		log.Errorf("[Controller] batch heartbeat config is invalid: %+v", config)
 		return nil, errors.New("batch deregister config is invalid")
+	}
+	if !checkCtrlConfig(config.ClientRegister) {
+		log.Errorf("[Controller] batch client register config is invalid: %+v", config)
+		return nil, errors.New("batch client register config is invalid")
+	}
+	if !checkCtrlConfig(config.ClientDeregister) {
+		log.Errorf("[Controller] batch client deregister config is invalid: %+v", config)
+		return nil, errors.New("batch client deregister config is invalid")
 	}
 	return &config, nil
 }

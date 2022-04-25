@@ -36,9 +36,6 @@ func (s *Server) ReportClient(ctx context.Context, req *api.Client) *api.Respons
 
 	// 客户端信息不写入到DB中
 	host := req.GetHost().GetValue()
-	out := &api.Client{
-		Host: req.GetHost(),
-	}
 
 	// 从CMDB查询地理位置信息
 	if s.cmdb != nil {
@@ -51,13 +48,113 @@ func (s *Server) ReportClient(ctx context.Context, req *api.Client) *api.Respons
 		if location == nil {
 			return api.NewClientResponse(api.CMDBNotFindHost, req)
 		}
-		out.Location = location.Proto
+		req.Location = location.Proto
 	}
 
+	// save the client with unique id into store
+	if len(req.GetId().GetValue()) > 0 {
+		return s.checkAndStoreClient(ctx, req)
+	}
+	out := &api.Client{
+		Host:     req.GetHost(),
+		Location: req.Location,
+	}
 	return api.NewClientResponse(api.ExecuteSuccess, out)
 }
 
-// GetServiceWithCache 根据元数据查询服务
+func clientEquals(client1 *api.Client, client2 *api.Client) bool {
+	if client1.GetId().GetValue() != client2.GetId().GetValue() {
+		return false
+	}
+	if client1.GetHost().GetValue() != client2.GetHost().GetValue() {
+		return false
+	}
+	if client1.GetVersion().GetValue() != client2.GetVersion().GetValue() {
+		return false
+	}
+	if client1.GetType() != client2.GetType() {
+		return false
+	}
+	if client1.GetLocation().GetRegion().GetValue() != client2.GetLocation().GetRegion().GetValue() {
+		return false
+	}
+	if client1.GetLocation().GetZone().GetValue() != client2.GetLocation().GetZone().GetValue() {
+		return false
+	}
+	if client1.GetLocation().GetCampus().GetValue() != client2.GetLocation().GetCampus().GetValue() {
+		return false
+	}
+	if len(client1.Stat) != len(client2.Stat) {
+		return false
+	}
+	for i := 0; i < len(client1.Stat); i++ {
+		if client1.Stat[i].GetTarget().GetValue() != client2.Stat[i].GetTarget().GetValue() {
+			return false
+		}
+		if client1.Stat[i].GetPort().GetValue() != client2.Stat[i].GetPort().GetValue() {
+			return false
+		}
+		if client1.Stat[i].GetPath().GetValue() != client2.Stat[i].GetPath().GetValue() {
+			return false
+		}
+		if client1.Stat[i].GetProtocol().GetValue() != client2.Stat[i].GetProtocol().GetValue() {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *Server) checkAndStoreClient(ctx context.Context, req *api.Client) *api.Response {
+	clientId := req.GetId().GetValue()
+	var needStore bool
+	client := s.caches.Client().GetClient(clientId)
+	var resp *api.Response
+	if nil == client {
+		needStore = true
+	} else {
+		needStore = !clientEquals(client.Proto(), req)
+	}
+	if needStore {
+		client, resp = s.createClient(ctx, req)
+	}
+	//TODO: do heartbeat
+
+	if nil != resp {
+		return resp
+	}
+	return nil
+}
+
+func (s *Server) createClient(ctx context.Context, req *api.Client) (*model.Client, *api.Response) {
+
+	if namingServer.bc == nil || !namingServer.bc.CreateInstanceOpen() {
+		return nil, nil
+	}
+	return s.asyncCreateClient(ctx, req) // 批量异步
+}
+
+// 异步新建客户端
+// 底层函数会合并create请求，增加并发创建的吞吐
+// req 原始请求
+// ins 包含了req数据与instanceID，serviceToken
+func (s *Server) asyncCreateClient(ctx context.Context, req *api.Client) (*model.Client, *api.Response) {
+	rid := ParseRequestID(ctx)
+	pid := ParsePlatformID(ctx)
+	future := s.bc.AsyncRegisterClient(req)
+	if err := future.Wait(); err != nil {
+		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
+		if future.Code() == api.ExistedResource {
+			req.Id = utils.NewStringValue(req.GetId().GetValue())
+		}
+		return nil, api.NewClientResponse(future.Code(), req)
+	}
+
+	return future.Client(), nil
+}
+
+/**
+ * GetServiceWithCache 根据元数据查询服务
+ */
 func (s *Server) GetServiceWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
 	if s.caches == nil {
 		return api.NewDiscoverServiceResponse(api.ClientAPINotOpen, req)

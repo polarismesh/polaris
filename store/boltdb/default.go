@@ -247,7 +247,6 @@ func (m *boltStore) newStore() error {
 	m.businessStore = &businessStore{handler: m.handler}
 	m.platformStore = &platformStore{handler: m.handler}
 
-
 	if err := m.newDiscoverModuleStore(); err != nil {
 		return err
 	}

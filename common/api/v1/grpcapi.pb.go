@@ -270,9 +270,9 @@ var _PolarisGRPC_serviceDesc = grpc.ServiceDesc{
 	Metadata: "grpcapi.proto",
 }
 
-func init() { proto.RegisterFile("grpcapi.proto", fileDescriptor_grpcapi_1bc1b7fe180cc761) }
+func init() { proto.RegisterFile("grpcapi.proto", fileDescriptor_grpcapi_5af82093fbf54d81) }
 
-var fileDescriptor_grpcapi_1bc1b7fe180cc761 = []byte{
+var fileDescriptor_grpcapi_5af82093fbf54d81 = []byte{
 	// 208 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x90, 0xbd, 0x4a, 0x04, 0x31,
 	0x10, 0xc7, 0xbd, 0x2b, 0x44, 0xc7, 0x3d, 0x91, 0xd1, 0x2a, 0xa5, 0x95, 0x5a, 0x2c, 0x77, 0x6b,
