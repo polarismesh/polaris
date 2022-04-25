@@ -36,8 +36,10 @@ const (
 // Dispatcher dispatch all instances using consistent hash ring
 type Dispatcher struct {
 	healthCheckInstancesChanged uint32
+	healthCheckClientsChanged   uint32
 	selfServiceInstancesChanged uint32
 	managedInstances            map[string]*InstanceWithChecker
+	managedClients              map[string]*ClientWithChecker
 
 	selfServiceBuckets map[Bucket]bool
 	continuum          *Continuum
@@ -61,6 +63,9 @@ func (d *Dispatcher) UpdateStatusByEvent(event CacheEvent) {
 	}
 	if event.healthCheckInstancesChanged {
 		atomic.StoreUint32(&d.healthCheckInstancesChanged, 1)
+	}
+	if event.healthCheckClientChanged {
+		atomic.StoreUint32(&d.healthCheckClientsChanged, 1)
 	}
 }
 
@@ -123,6 +128,46 @@ func (d *Dispatcher) reloadSelfContinuum() bool {
 	return true
 }
 
+func (d *Dispatcher) reloadManagedClients() {
+	nextClients := make(map[string]*ClientWithChecker)
+
+	if d.continuum != nil {
+		server.cacheProvider.RangeHealthCheckClients(func(client *ClientWithChecker) {
+			clientId := client.client.Proto().GetId().GetValue()
+			host := d.continuum.Hash(client.hashValue)
+			if host == server.localHost {
+				nextClients[clientId] = client
+			}
+		})
+	}
+	log.Infof("[Health Check][Dispatcher]count %d clients has been dispatched to %s, total is %d",
+		len(nextClients), server.localHost, server.cacheProvider.healthCheckInstances.Count())
+	originClients := d.managedClients
+	d.managedClients = originClients
+	if len(nextClients) > 0 {
+		for id, client := range nextClients {
+			if len(originClients) == 0 {
+				server.checkScheduler.AddClient(client)
+				continue
+			}
+			if _, ok := originClients[id]; !ok {
+				server.checkScheduler.AddClient(client)
+			}
+		}
+	}
+	if len(originClients) > 0 {
+		for id, client := range originClients {
+			if len(nextClients) == 0 {
+				server.checkScheduler.DelClient(client)
+				continue
+			}
+			if _, ok := nextClients[id]; !ok {
+				server.checkScheduler.DelClient(client)
+			}
+		}
+	}
+}
+
 func (d *Dispatcher) reloadManagedInstances() {
 	nextInstances := make(map[string]*InstanceWithChecker)
 
@@ -171,9 +216,13 @@ func (d *Dispatcher) processEvent() {
 	if selfContinuumReloaded || atomic.CompareAndSwapUint32(&d.healthCheckInstancesChanged, 1, 0) {
 		d.reloadManagedInstances()
 	}
+	if selfContinuumReloaded || atomic.CompareAndSwapUint32(&d.healthCheckClientsChanged, 1, 0) {
+		d.reloadManagedClients()
+	}
 }
 
 func (d *Dispatcher) processEnsure() {
 	d.reloadSelfContinuum()
 	d.reloadManagedInstances()
+	d.reloadManagedClients()
 }

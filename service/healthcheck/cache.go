@@ -38,12 +38,14 @@ type CacheProvider struct {
 	healthCheckInstances *shardMap
 	selfServiceInstances *shardMap
 	selfService          string
+	healthCheckClients   *shardMap
 }
 
 // CacheEvent provide the event for cache changes
 type CacheEvent struct {
 	healthCheckInstancesChanged bool
 	selfServiceInstancesChanged bool
+	healthCheckClientChanged    bool
 }
 
 func newCacheProvider(selfService string) *CacheProvider {
@@ -51,6 +53,7 @@ func newCacheProvider(selfService string) *CacheProvider {
 		healthCheckInstances: NewShardMap(DefaultShardSize),
 		selfServiceInstances: NewShardMap(1),
 		selfService:          selfService,
+		healthCheckClients:   NewShardMap(DefaultShardSize),
 	}
 }
 
@@ -69,16 +72,14 @@ func (c *CacheProvider) sendEvent(event CacheEvent) {
 func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, values *shardMap) bool {
 	instanceId := instanceWithChecker.instance.ID()
 	value, isNew := values.PutIfAbsent(instanceId, instanceWithChecker)
-	if value == nil {
-		return false
-	}
 	if isNew {
 		log.Infof("[Health Check][Cache]create service instance is %s:%d, id is %s",
 			instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(),
 			instanceId)
 		return true
 	}
-	lastInstance := value.instance
+	instanceValue := value.(*InstanceWithChecker)
+	lastInstance := instanceValue.instance
 	if lastInstance.Revision() == instanceWithChecker.instance.Revision() {
 		return false
 	}
@@ -88,6 +89,17 @@ func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, va
 	// if they arrive here at the same time, they will be saved multiple times.
 	values.Store(instanceId, instanceWithChecker)
 	return true
+}
+
+func compareAndStoreClient(clientWithChecker *ClientWithChecker, values *shardMap) bool {
+	clientId := clientWithChecker.client.Proto().GetId().GetValue()
+	_, isNew := values.PutIfAbsent(clientId, clientWithChecker)
+	if isNew {
+		log.Infof("[Health Check][Cache]create client is %s, id is %s",
+			clientWithChecker.client.Proto().GetHost().GetValue(), clientId)
+		return true
+	}
+	return false
 }
 
 func storeServiceInstance(instanceWithChecker *InstanceWithChecker, values *shardMap) bool {
@@ -109,6 +121,24 @@ func deleteServiceInstance(instance *api.Instance, values *shardMap) bool {
 	return true
 }
 
+func deleteClient(client *api.Client, values *shardMap) bool {
+	instanceId := client.GetId().GetValue()
+	ok := values.DeleteIfExist(instanceId)
+	if ok {
+		log.Infof("[Health Check][Cache]delete service instance is %s, id is %s",
+			client.GetHost().GetValue(), instanceId)
+	}
+	return true
+}
+
+func storeClient(clientWithChecker *ClientWithChecker, values *shardMap) bool {
+	log.Infof("[Health Check][Cache]create client is %s, id is %s",
+		clientWithChecker.client.Proto().GetHost().GetValue(), clientWithChecker.client.Proto().GetId().GetValue())
+	clientId := clientWithChecker.client.Proto().GetId().GetValue()
+	values.Store(clientId, clientWithChecker)
+	return true
+}
+
 // InstanceWithChecker instance and checker combine
 type InstanceWithChecker struct {
 	instance  *model.Instance
@@ -124,12 +154,28 @@ func newInstanceWithChecker(instance *model.Instance, checker plugin.HealthCheck
 	}
 }
 
+// ClientWithChecker instance and checker combine
+type ClientWithChecker struct {
+	client    *model.Client
+	checker   plugin.HealthChecker
+	hashValue uint
+}
+
+func newClientWithChecker(client *model.Client, checker plugin.HealthChecker) *ClientWithChecker {
+	return &ClientWithChecker{
+		client:    client,
+		checker:   checker,
+		hashValue: hashString(client.Proto().GetId().GetValue()),
+	}
+}
+
 // OnCreated callback when cache value created
 func (c *CacheProvider) OnCreated(value interface{}) {
-	if instance, ok := value.(*model.Instance); ok {
-		instProto := instance.Proto
+	switch actual := value.(type) {
+	case *model.Instance:
+		instProto := actual.Proto
 		if c.isSelfServiceInstance(instProto) {
-			storeServiceInstance(newInstanceWithChecker(instance, nil), c.selfServiceInstances)
+			storeServiceInstance(newInstanceWithChecker(actual, nil), c.selfServiceInstances)
 			c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
 			//return
 		}
@@ -137,16 +183,28 @@ func (c *CacheProvider) OnCreated(value interface{}) {
 		if !hcEnable {
 			return
 		}
-		storeServiceInstance(newInstanceWithChecker(instance, checker), c.healthCheckInstances)
+		storeServiceInstance(newInstanceWithChecker(actual, checker), c.healthCheckInstances)
 		c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
+	case *model.Client:
+		checker, ok := getHealthChecker(api.HealthCheck_HEARTBEAT)
+		if !ok {
+			return
+		}
+		storeClient(newClientWithChecker(actual, checker), c.healthCheckClients)
+		c.sendEvent(CacheEvent{healthCheckClientChanged: true})
 	}
+}
+
+func getHealthChecker(hcType api.HealthCheck_HealthCheckType) (plugin.HealthChecker, bool) {
+	checker, ok := server.checkers[int32(hcType)]
+	return checker, ok
 }
 
 func isHealthCheckEnable(instance *api.Instance) (bool, plugin.HealthChecker) {
 	if !instance.GetEnableHealthCheck().GetValue() || instance.GetHealthCheck() == nil {
 		return false, nil
 	}
-	checker, ok := server.checkers[int32(instance.GetHealthCheck().GetType())]
+	checker, ok := getHealthChecker(instance.GetHealthCheck().GetType())
 	if !ok {
 		return false, nil
 	}
@@ -155,17 +213,18 @@ func isHealthCheckEnable(instance *api.Instance) (bool, plugin.HealthChecker) {
 
 // OnUpdated callback when cache value updated
 func (c *CacheProvider) OnUpdated(value interface{}) {
-	if instance, ok := value.(*model.Instance); ok {
-		instProto := instance.Proto
+	switch actual := value.(type) {
+	case *model.Instance:
+		instProto := actual.Proto
 		if c.isSelfServiceInstance(instProto) {
-			if compareAndStoreServiceInstance(newInstanceWithChecker(instance, nil), c.selfServiceInstances) {
+			if compareAndStoreServiceInstance(newInstanceWithChecker(actual, nil), c.selfServiceInstances) {
 				c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
 			}
 			//return
 		}
 		//check exists
-		instanceId := instance.ID()
-		healthCheckInstanceValue, exists := c.healthCheckInstances.Load(instanceId)
+		instanceId := actual.ID()
+		value, exists := c.healthCheckInstances.Load(instanceId)
 		hcEnable, checker := isHealthCheckEnable(instProto)
 		if !hcEnable {
 			if !exists {
@@ -173,7 +232,7 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 				return
 			}
 			log.Infof("[Health Check][Cache]delete health check disabled instance is %s:%d, id is %s",
-				instance.Host(), instance.Port(), instanceId)
+				actual.Host(), actual.Port(), instanceId)
 			// instance is unhealthy, but exist, delete it.
 			ok := c.healthCheckInstances.DeleteIfExist(instanceId)
 			if ok {
@@ -181,27 +240,37 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 			}
 			return
 		}
+		healthCheckInstanceValue := value.(*InstanceWithChecker)
 		var noChanged bool
 		if exists {
 			//instance is healthy, exists, consistent healthCheckInstance.Revision(), no need to change。
 			healthCheckInstance := healthCheckInstanceValue.instance
-			noChanged = healthCheckInstance.Revision() == instance.Revision()
+			noChanged = healthCheckInstance.Revision() == actual.Revision()
 		}
 		if !noChanged {
 			log.Infof("[Health Check][Cache]update service instance is %s:%d, id is %s",
-				instance.Host(), instance.Port(), instanceId)
+				actual.Host(), actual.Port(), instanceId)
 			//   In the concurrent scenario, when the healthCheckInstance.Revision() of the same health instance is the same,
 			//   if it arrives here at the same time, it will be saved multiple times
-			c.healthCheckInstances.Store(instanceId, newInstanceWithChecker(instance, checker))
+			c.healthCheckInstances.Store(instanceId, newInstanceWithChecker(actual, checker))
 			c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
+		}
+	case *model.Client:
+		checker, ok := getHealthChecker(api.HealthCheck_HEARTBEAT)
+		if !ok {
+			return
+		}
+		if compareAndStoreClient(newClientWithChecker(actual, checker), c.healthCheckClients) {
+			c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
 		}
 	}
 }
 
 // OnDeleted callback when cache value deleted
 func (c *CacheProvider) OnDeleted(value interface{}) {
-	if instance, ok := value.(*model.Instance); ok {
-		instProto := instance.Proto
+	switch actual := value.(type) {
+	case *model.Instance:
+		instProto := actual.Proto
 		if c.isSelfServiceInstance(instProto) {
 			deleteServiceInstance(instProto, c.selfServiceInstances)
 			c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
@@ -212,6 +281,9 @@ func (c *CacheProvider) OnDeleted(value interface{}) {
 		}
 		deleteServiceInstance(instProto, c.healthCheckInstances)
 		c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
+	case *model.Client:
+		deleteClient(actual.Proto(), c.healthCheckInstances)
+		c.sendEvent(CacheEvent{healthCheckClientChanged: true})
 	}
 }
 
@@ -230,19 +302,25 @@ func (c *CacheProvider) OnBatchDeleted(value interface{}) {
 
 }
 
-// RangeHealthCheckInstances range loop healthCheckInstances
+// RangeHealthCheckInstances range loop values
 func (c *CacheProvider) RangeHealthCheckInstances(check func(instance *InstanceWithChecker)) {
 
-	c.healthCheckInstances.Range(func(instanceId string, healthCheckInstance *InstanceWithChecker) {
-		check(healthCheckInstance)
+	c.healthCheckInstances.Range(func(instanceId string, value interface{}) {
+		check(value.(*InstanceWithChecker))
 	})
 }
 
 // RangeSelfServiceInstances range loop selfServiceInstances
 func (c *CacheProvider) RangeSelfServiceInstances(check func(instance *api.Instance)) {
+	c.selfServiceInstances.Range(func(instanceId string, value interface{}) {
+		check(value.(*InstanceWithChecker).instance.Proto)
+	})
+}
 
-	c.selfServiceInstances.Range(func(instanceId string, selfServiceInstance *InstanceWithChecker) {
-		check(selfServiceInstance.instance.Proto)
+// RangeSelfServiceInstances range loop selfServiceInstances
+func (c *CacheProvider) RangeHealthCheckClients(check func(instance *ClientWithChecker)) {
+	c.selfServiceInstances.Range(func(instanceId string, value interface{}) {
+		check(value.(*ClientWithChecker))
 	})
 }
 
@@ -252,5 +330,14 @@ func (c *CacheProvider) GetInstance(instanceId string) *model.Instance {
 	if !ok {
 		return nil
 	}
-	return value.instance
+	return value.(*InstanceWithChecker).instance
+}
+
+// GetInstance get instance by id
+func (c *CacheProvider) GetClient(clientId string) *model.Client {
+	value, ok := c.healthCheckClients.Load(clientId)
+	if !ok {
+		return nil
+	}
+	return value.(*ClientWithChecker).client
 }

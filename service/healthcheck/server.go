@@ -128,6 +128,11 @@ func (s *Server) Report(ctx context.Context, req *api.Instance) *api.Response {
 	return s.doReport(ctx, req)
 }
 
+// Report report heartbeat request by client
+func (s *Server) ReportByClient(ctx context.Context, req *api.Client) *api.Response {
+	return s.doReportByClient(ctx, req)
+}
+
 // GetServer 获取已经初始化好的Server
 func GetServer() (*Server, error) {
 	if !finishInit {

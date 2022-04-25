@@ -48,6 +48,9 @@ type Store interface {
 
 	//ConfigFileModuleStore Configure the central module storage interface
 	ConfigFileModuleStore
+
+	//ClientStore Client the central module storage interface
+	ClientStore
 }
 
 // NamespaceStore Namespace storage interface
