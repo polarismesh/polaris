@@ -19,13 +19,13 @@ package httpserver
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"runtime/debug"
 	"strconv"
 	"time"
 
 	"github.com/emicklei/go-restful"
-
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
 	commonlog "github.com/polarismesh/polaris-server/common/log"
@@ -233,6 +233,8 @@ func (h *HTTPServer) GetLastHeartbeat(req *restful.Request, rsp *restful.Respons
 	ret := h.healthCheckServer.GetLastHeartbeat(instance)
 	handler.WriteHeaderAndProto(ret)
 }
+
+// GetLogOutputLevel 获取日志输出级别
 func (h *HTTPServer) GetLogOutputLevel(req *restful.Request, rsp *restful.Response) {
 	scopes := commonlog.Scopes()
 	out := make(map[string]string, len(scopes))
@@ -240,26 +242,29 @@ func (h *HTTPServer) GetLogOutputLevel(req *restful.Request, rsp *restful.Respon
 		out[k] = v.GetOutputLevel().Name()
 	}
 
-	rsp.WriteAsJson(out)
+	_ = rsp.WriteAsJson(out)
 }
 
+// SetLogOutputLevel 设置日志输出级别
 func (h *HTTPServer) SetLogOutputLevel(req *restful.Request, rsp *restful.Response) {
-	params := parseQueryParams(req)
-	scopeName, exist := params["scope"]
-	if !exist {
-		rsp.WriteErrorString(http.StatusBadRequest, "missing param scope")
+	var scopeLogLevel struct {
+		Scope string `json:"scope"`
+		Level string `json:"level"`
+	}
+	body, err := ioutil.ReadAll(req.Request.Body)
+	if err != nil {
+		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
 		return
 	}
-	levelName, exist := params["level"]
-	if !exist {
-		rsp.WriteErrorString(http.StatusBadRequest, "missing param level")
+	if err := json.Unmarshal(body, &scopeLogLevel); err != nil {
+		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	err := commonlog.SetLogOutputLevel(scopeName, levelName)
-	if err != nil {
-		rsp.WriteError(http.StatusBadRequest, err)
-	} else {
-		rsp.WriteEntity("OK")
+	if err := commonlog.SetLogOutputLevel(scopeLogLevel.Scope, scopeLogLevel.Level); err != nil {
+		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
+		return
 	}
+
+	_ = rsp.WriteEntity("ok")
 }
