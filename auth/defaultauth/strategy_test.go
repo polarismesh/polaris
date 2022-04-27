@@ -53,12 +53,12 @@ func Test_GetPrincipalResources(t *testing.T) {
 	storage.EXPECT().GetMoreNamespaces(gomock.Any()).AnyTimes().Return(namespaces, nil)
 	storage.EXPECT().GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(serviceMap, nil)
 	storage.EXPECT().GetStrategyResources(gomock.Eq(users[1].ID), gomock.Any()).Return(strategies[1].Resources, nil)
-	storage.EXPECT().GetStrategyResources(gomock.Eq(groups[1].ID), gomock.Any()).Return(strategies[len(users) -1 + 2].Resources, nil)
+	storage.EXPECT().GetStrategyResources(gomock.Eq(groups[1].ID), gomock.Any()).Return(strategies[len(users)-1+2].Resources, nil)
 
 	cfg, _ := initCache(ctrl)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage, nil); err != nil {
+	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
 		t.Fatal(err)
 	}
 

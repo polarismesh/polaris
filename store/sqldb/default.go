@@ -62,6 +62,9 @@ type stableStore struct {
 	*configFileReleaseHistoryStore
 	*configFileTagStore
 
+	//client info stores
+	*clientStore
+
 	// 主数据库，可以进行读写
 	master *BaseDB
 	// 对主数据库的事务操作，可读写
@@ -259,4 +262,6 @@ func (s *stableStore) newStore() {
 	s.configFileReleaseHistoryStore = &configFileReleaseHistoryStore{db: s.master}
 
 	s.configFileTagStore = &configFileTagStore{db: s.master}
+
+	s.clientStore = &clientStore{master: s.master, slave: s.slave}
 }

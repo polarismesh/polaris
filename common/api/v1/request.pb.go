@@ -53,7 +53,7 @@ func (x DiscoverRequest_DiscoverRequestType) String() string {
 	return proto.EnumName(DiscoverRequest_DiscoverRequestType_name, int32(x))
 }
 func (DiscoverRequest_DiscoverRequestType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_request_89a70c847f5ccd5b, []int{0, 0}
+	return fileDescriptor_request_a05c6df9c1beb380, []int{0, 0}
 }
 
 type DiscoverRequest struct {
@@ -68,7 +68,7 @@ func (m *DiscoverRequest) Reset()         { *m = DiscoverRequest{} }
 func (m *DiscoverRequest) String() string { return proto.CompactTextString(m) }
 func (*DiscoverRequest) ProtoMessage()    {}
 func (*DiscoverRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_request_89a70c847f5ccd5b, []int{0}
+	return fileDescriptor_request_a05c6df9c1beb380, []int{0}
 }
 func (m *DiscoverRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DiscoverRequest.Unmarshal(m, b)
@@ -107,9 +107,9 @@ func init() {
 	proto.RegisterEnum("v1.DiscoverRequest_DiscoverRequestType", DiscoverRequest_DiscoverRequestType_name, DiscoverRequest_DiscoverRequestType_value)
 }
 
-func init() { proto.RegisterFile("request.proto", fileDescriptor_request_89a70c847f5ccd5b) }
+func init() { proto.RegisterFile("request.proto", fileDescriptor_request_a05c6df9c1beb380) }
 
-var fileDescriptor_request_89a70c847f5ccd5b = []byte{
+var fileDescriptor_request_a05c6df9c1beb380 = []byte{
 	// 242 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x90, 0xbf, 0x4b, 0xc3, 0x40,
 	0x14, 0xc7, 0xbd, 0x34, 0x6d, 0xc2, 0x8b, 0x6d, 0x1f, 0xd7, 0xa5, 0x38, 0x95, 0x80, 0xd8, 0x29,

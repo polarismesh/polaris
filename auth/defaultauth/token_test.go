@@ -25,9 +25,40 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Test_CustomDesignSalt 主要用于有自定义salt需求的用户
+func Test_CustomDesignSalt(t *testing.T) {
+	AuthOption = DefaultAuthConfig()
+
+	// 设置自定义的 salt 值，长度需要满足在 [16, 24, 32] 中的任意一个
+ 	AuthOption.Salt = "polarismesh@2021"
+
+	//  polaris 用户的ID
+	uid := "65e4789a6d5b49669adf1e9e8387549c"
+	fmt.Printf("uid=%s\n", uid)
+
+	token, err := createToken(uid, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 输出最终的 token 信息
+	fmt.Printf("token=%s\n", token)
+
+	// 对 polaris 用户的密码进行加密
+	password, err := bcrypt.GenerateFromPassword([]byte("polaris"), bcrypt.DefaultCost)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 输出最终的密码值
+	fmt.Printf("password=%s\n", string(password))
+
+	time.Sleep(time.Second)
+}
+
 func TestCreateToken(t *testing.T) {
 	AuthOption = DefaultAuthConfig()
-	AuthOption.Salt = "polarishaoweilai"
+	AuthOption.Salt = "polarismesh@2021"
 
 	uid := "65e4789a6d5b49669adf1e9e8387549c"
 	fmt.Printf("uid=%s\n", uid)
@@ -39,7 +70,7 @@ func TestCreateToken(t *testing.T) {
 
 	fmt.Printf("token=%s\n", token)
 
-	password, err := bcrypt.GenerateFromPassword([]byte("j+7VPLIt"), bcrypt.DefaultCost)
+	password, err := bcrypt.GenerateFromPassword([]byte("polaris"), bcrypt.DefaultCost)
 	if err != nil {
 		t.Fatal(err)
 	}

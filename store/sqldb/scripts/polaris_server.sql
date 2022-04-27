@@ -984,8 +984,34 @@ VALUES ('fbca9bfa04ae4ead86e1ecf5811e32a9',
         sysdate());
 
 -- Insert permission policies and association relationships for Polaris-Admin accounts
-INSERT INTO auth_principal(`strategy_id`, `principal_id`, `principal_role`) VALUE (
-                                                                                   'fbca9bfa04ae4ead86e1ecf5811e32a9',
-                                                                                   '65e4789a6d5b49669adf1e9e8387549c',
-                                                                                   1
+INSERT INTO
+    auth_principal(`strategy_id`, `principal_id`, `principal_role`) VALUE (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        '65e4789a6d5b49669adf1e9e8387549c',
+        1
     );
+
+-- v1.8.0, support client info storage
+CREATE TABLE `client` (
+     `id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'client id',
+     `host` VARCHAR(100) COLLATE utf8_bin NOT NULL comment 'client host IP',
+     `type` VARCHAR(100) COLLATE utf8_bin NOT NULL comment 'client type: polaris-java/polaris-go',
+     `version` VARCHAR(32) COLLATE utf8_bin NOT NULL comment 'client SDK version',
+     `region` varchar(128) COLLATE utf8_bin DEFAULT NULL comment 'region info for client',
+     `zone` varchar(128) COLLATE utf8_bin DEFAULT NULL comment 'zone info for client',
+     `campus` varchar(128) COLLATE utf8_bin DEFAULT NULL comment 'campus info for client',
+     `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT '0 is valid, 1 is invalid(deleted)',
+     `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'create time',
+     `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'last updated time',
+     PRIMARY KEY (`id`),
+     KEY `mtime` (`mtime`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;
+
+CREATE TABLE `client_stat` (
+    `client_id` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'client id',
+    `target` VARCHAR(100) COLLATE utf8_bin NOT NULL comment 'target stat platform',
+    `port` int(11) NOT NULL comment 'client port to get stat information',
+    `protocol` VARCHAR(100) COLLATE utf8_bin NOT NULL comment 'stat info transport protocol',
+    `path` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'stat metric path',
+    PRIMARY KEY (`client_id`, `target`, `port`)
+)

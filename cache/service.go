@@ -112,6 +112,8 @@ type ServiceCache interface {
 
 // serviceCache 服务数据缓存实现类
 type serviceCache struct {
+	*basCache
+
 	storage             store.Store
 	lastMtime           int64
 	lastMtimeLogged     int64
@@ -139,6 +141,7 @@ func init() {
 // newServiceCache 返回一个serviceCache
 func newServiceCache(storage store.Store, ch chan *revisionNotify, instCache InstanceCache) *serviceCache {
 	return &serviceCache{
+		basCache:   newBaseCache(),
 		storage:    storage,
 		revisionCh: ch,
 		instCache:  instCache,
