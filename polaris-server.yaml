@@ -168,6 +168,7 @@ auth:
   name: defaultAuth
   option:
     # token 加密的 salt，鉴权解析 token 时需要依靠这个 salt 去解密 token 的信息
+    # salt 的长度需要满足以下任意一个：len(salt) in [16, 24, 32]
     salt: polarismesh@2021
     # 鉴权能力开关, 默认关闭
     open: false
