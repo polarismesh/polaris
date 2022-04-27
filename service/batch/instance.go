@@ -117,8 +117,6 @@ func (ctrl *InstanceCtrl) Start(ctx context.Context) {
 	ctrl.mainLoop(ctx)
 }
 
-const defaultWaitTime = 32 * time.Millisecond
-
 // newBatchInstanceCtrl 创建批量控制instance的对象
 func newBatchInstanceCtrl(storage store.Store, authority auth.Authority, auth plugin.Auth,
 	config *CtrlConfig) (*InstanceCtrl, error) {
@@ -132,8 +130,8 @@ func newBatchInstanceCtrl(storage store.Store, authority auth.Authority, auth pl
 		return nil, err
 	}
 	if duration == 0 {
-		log.Infof("[Batch] waitTime(%s) is 0, use default %v", config.WaitTime, defaultWaitTime)
-		duration = defaultWaitTime
+		log.Errorf("[Batch] config waitTime is invalid")
+		return nil, errors.New("config waitTime is invalid")
 	}
 
 	instance := &InstanceCtrl{

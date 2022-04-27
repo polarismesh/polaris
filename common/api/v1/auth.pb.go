@@ -39,7 +39,7 @@ func (x AuthAction) String() string {
 	return proto.EnumName(AuthAction_name, int32(x))
 }
 func (AuthAction) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_auth_7f6a95f507eac77c, []int{0}
+	return fileDescriptor_auth_12bb77fda2f56c66, []int{0}
 }
 
 type ResourceType int32
@@ -65,7 +65,7 @@ func (x ResourceType) String() string {
 	return proto.EnumName(ResourceType_name, int32(x))
 }
 func (ResourceType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_auth_7f6a95f507eac77c, []int{1}
+	return fileDescriptor_auth_12bb77fda2f56c66, []int{1}
 }
 
 type LoginRequest struct {
@@ -81,7 +81,7 @@ func (m *LoginRequest) Reset()         { *m = LoginRequest{} }
 func (m *LoginRequest) String() string { return proto.CompactTextString(m) }
 func (*LoginRequest) ProtoMessage()    {}
 func (*LoginRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_7f6a95f507eac77c, []int{0}
+	return fileDescriptor_auth_12bb77fda2f56c66, []int{0}
 }
 func (m *LoginRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LoginRequest.Unmarshal(m, b)
@@ -137,7 +137,7 @@ func (m *LoginResponse) Reset()         { *m = LoginResponse{} }
 func (m *LoginResponse) String() string { return proto.CompactTextString(m) }
 func (*LoginResponse) ProtoMessage()    {}
 func (*LoginResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_7f6a95f507eac77c, []int{1}
+	return fileDescriptor_auth_12bb77fda2f56c66, []int{1}
 }
 func (m *LoginResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LoginResponse.Unmarshal(m, b)
@@ -215,7 +215,7 @@ func (m *User) Reset()         { *m = User{} }
 func (m *User) String() string { return proto.CompactTextString(m) }
 func (*User) ProtoMessage()    {}
 func (*User) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_7f6a95f507eac77c, []int{2}
+	return fileDescriptor_auth_12bb77fda2f56c66, []int{2}
 }
 func (m *User) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_User.Unmarshal(m, b)
@@ -339,7 +339,7 @@ func (m *ModifyUserPassword) Reset()         { *m = ModifyUserPassword{} }
 func (m *ModifyUserPassword) String() string { return proto.CompactTextString(m) }
 func (*ModifyUserPassword) ProtoMessage()    {}
 func (*ModifyUserPassword) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_7f6a95f507eac77c, []int{3}
+	return fileDescriptor_auth_12bb77fda2f56c66, []int{3}
 }
 func (m *ModifyUserPassword) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ModifyUserPassword.Unmarshal(m, b)
@@ -392,7 +392,7 @@ func (m *UserGroupRelation) Reset()         { *m = UserGroupRelation{} }
 func (m *UserGroupRelation) String() string { return proto.CompactTextString(m) }
 func (*UserGroupRelation) ProtoMessage()    {}
 func (*UserGroupRelation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_7f6a95f507eac77c, []int{4}
+	return fileDescriptor_auth_12bb77fda2f56c66, []int{4}
 }
 func (m *UserGroupRelation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UserGroupRelation.Unmarshal(m, b)
@@ -446,7 +446,7 @@ func (m *UserGroup) Reset()         { *m = UserGroup{} }
 func (m *UserGroup) String() string { return proto.CompactTextString(m) }
 func (*UserGroup) ProtoMessage()    {}
 func (*UserGroup) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_7f6a95f507eac77c, []int{5}
+	return fileDescriptor_auth_12bb77fda2f56c66, []int{5}
 }
 func (m *UserGroup) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UserGroup.Unmarshal(m, b)
@@ -554,7 +554,7 @@ func (m *ModifyUserGroup) Reset()         { *m = ModifyUserGroup{} }
 func (m *ModifyUserGroup) String() string { return proto.CompactTextString(m) }
 func (*ModifyUserGroup) ProtoMessage()    {}
 func (*ModifyUserGroup) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_7f6a95f507eac77c, []int{6}
+	return fileDescriptor_auth_12bb77fda2f56c66, []int{6}
 }
 func (m *ModifyUserGroup) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ModifyUserGroup.Unmarshal(m, b)
@@ -642,7 +642,7 @@ func (m *Principal) Reset()         { *m = Principal{} }
 func (m *Principal) String() string { return proto.CompactTextString(m) }
 func (*Principal) ProtoMessage()    {}
 func (*Principal) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_7f6a95f507eac77c, []int{7}
+	return fileDescriptor_auth_12bb77fda2f56c66, []int{7}
 }
 func (m *Principal) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Principal.Unmarshal(m, b)
@@ -688,7 +688,7 @@ func (m *Principals) Reset()         { *m = Principals{} }
 func (m *Principals) String() string { return proto.CompactTextString(m) }
 func (*Principals) ProtoMessage()    {}
 func (*Principals) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_7f6a95f507eac77c, []int{8}
+	return fileDescriptor_auth_12bb77fda2f56c66, []int{8}
 }
 func (m *Principals) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Principals.Unmarshal(m, b)
@@ -735,7 +735,7 @@ func (m *StrategyResourceEntry) Reset()         { *m = StrategyResourceEntry{} }
 func (m *StrategyResourceEntry) String() string { return proto.CompactTextString(m) }
 func (*StrategyResourceEntry) ProtoMessage()    {}
 func (*StrategyResourceEntry) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_7f6a95f507eac77c, []int{9}
+	return fileDescriptor_auth_12bb77fda2f56c66, []int{9}
 }
 func (m *StrategyResourceEntry) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StrategyResourceEntry.Unmarshal(m, b)
@@ -790,7 +790,7 @@ func (m *StrategyResources) Reset()         { *m = StrategyResources{} }
 func (m *StrategyResources) String() string { return proto.CompactTextString(m) }
 func (*StrategyResources) ProtoMessage()    {}
 func (*StrategyResources) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_7f6a95f507eac77c, []int{10}
+	return fileDescriptor_auth_12bb77fda2f56c66, []int{10}
 }
 func (m *StrategyResources) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StrategyResources.Unmarshal(m, b)
@@ -859,7 +859,7 @@ func (m *AuthStrategy) Reset()         { *m = AuthStrategy{} }
 func (m *AuthStrategy) String() string { return proto.CompactTextString(m) }
 func (*AuthStrategy) ProtoMessage()    {}
 func (*AuthStrategy) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_7f6a95f507eac77c, []int{11}
+	return fileDescriptor_auth_12bb77fda2f56c66, []int{11}
 }
 func (m *AuthStrategy) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AuthStrategy.Unmarshal(m, b)
@@ -975,7 +975,7 @@ func (m *ModifyAuthStrategy) Reset()         { *m = ModifyAuthStrategy{} }
 func (m *ModifyAuthStrategy) String() string { return proto.CompactTextString(m) }
 func (*ModifyAuthStrategy) ProtoMessage()    {}
 func (*ModifyAuthStrategy) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_7f6a95f507eac77c, []int{12}
+	return fileDescriptor_auth_12bb77fda2f56c66, []int{12}
 }
 func (m *ModifyAuthStrategy) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ModifyAuthStrategy.Unmarshal(m, b)
@@ -1076,9 +1076,9 @@ func init() {
 	proto.RegisterEnum("v1.ResourceType", ResourceType_name, ResourceType_value)
 }
 
-func init() { proto.RegisterFile("auth.proto", fileDescriptor_auth_7f6a95f507eac77c) }
+func init() { proto.RegisterFile("auth.proto", fileDescriptor_auth_12bb77fda2f56c66) }
 
-var fileDescriptor_auth_7f6a95f507eac77c = []byte{
+var fileDescriptor_auth_12bb77fda2f56c66 = []byte{
 	// 979 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xd4, 0x57, 0xdd, 0x6e, 0xdc, 0x44,
 	0x14, 0xee, 0x7a, 0xbd, 0xbb, 0xf6, 0xc9, 0xee, 0xb2, 0x19, 0x29, 0x92, 0xa9, 0x50, 0x55, 0x19,

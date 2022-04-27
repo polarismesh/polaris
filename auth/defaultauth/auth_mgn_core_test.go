@@ -70,7 +70,7 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 				Name: "users",
 			},
 		},
-	}, storage); err != nil {
+	}, storage, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -221,7 +221,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 	storage.EXPECT().GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(serviceMap, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
+	if err := cache.TestCacheInitialize(ctx, cfg, storage, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -465,7 +465,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 	storage.EXPECT().GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(serviceMap, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
+	if err := cache.TestCacheInitialize(ctx, cfg, storage, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -659,7 +659,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 	storage.EXPECT().GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(serviceMap, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
+	if err := cache.TestCacheInitialize(ctx, cfg, storage, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -873,7 +873,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 	storage.EXPECT().GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(serviceMap, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
+	if err := cache.TestCacheInitialize(ctx, cfg, storage, nil); err != nil {
 		t.Fatal(err)
 	}
 

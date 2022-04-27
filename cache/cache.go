@@ -21,7 +21,6 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -48,39 +47,8 @@ const (
 	CacheUser
 	CacheAuthStrategy
 	CacheNamespace
-	CacheClient
 
 	CacheLast
-)
-
-type CacheName string
-
-const (
-	CacheNameService        CacheName = "Service"
-	CacheNameInstance       CacheName = "Instance"
-	CacheNameRoutingConfig  CacheName = "RoutingConfig"
-	CacheNameCL5            CacheName = "CL5"
-	CacheNameRateLimit      CacheName = "RateLimit"
-	CacheNameCircuitBreaker CacheName = "CircuitBreaker"
-	CacheNameUser           CacheName = "User"
-	CacheNameAuthStrategy   CacheName = "AuthStrategy"
-	CacheNameNamespace      CacheName = "Namespace"
-	CacheNameClient         CacheName = "Client"
-)
-
-var (
-	cacheIndexMap map[CacheName]int = map[CacheName]int{
-		CacheNameService:        CacheService,
-		CacheNameInstance:       CacheInstance,
-		CacheNameRoutingConfig:  CacheRoutingConfig,
-		CacheNameCL5:            CacheCL5,
-		CacheNameRateLimit:      CacheRateLimit,
-		CacheNameCircuitBreaker: CacheCircuitBreaker,
-		CacheNameUser:           CacheUser,
-		CacheNameAuthStrategy:   CacheAuthStrategy,
-		CacheNameNamespace:      CacheNamespace,
-		CacheNameClient:         CacheClient,
-	}
 )
 
 const (
@@ -90,62 +58,23 @@ const (
 
 // Cache 缓存接口
 type Cache interface {
+
 	// initialize
+	// @param c
+	// @return error
 	initialize(c map[string]interface{}) error
 
-	// addListener 添加
-	addListener(listeners []Listener)
-
 	// update
+	// @return error
 	update() error
 
 	// clear
+	//  @return error
 	clear() error
 
 	// name
+	//  @return string
 	name() string
-}
-
-type basCache struct {
-	manager *listenerManager
-}
-
-func newBaseCache() *basCache {
-	return &basCache{
-		manager: &listenerManager{
-			listeners: make([]Listener, 0, 4),
-		},
-	}
-}
-
-// initialize
-// @param c
-// @return error
-func (bc *basCache) initialize(c map[string]interface{}) error {
-	return errors.New("implement me")
-}
-
-// addListener 添加
-func (bc *basCache) addListener(listeners []Listener) {
-	bc.manager.listeners = append(bc.manager.listeners, listeners...)
-}
-
-// update
-// @return error
-func (bc *basCache) update() error {
-	return errors.New("implement me")
-}
-
-// clear
-//  @return error
-func (bc *basCache) clear() error {
-	return errors.New("implement me")
-}
-
-// name
-//  @return string
-func (bc *basCache) name() string {
-	panic(errors.New("implement me"))
 }
 
 const (
@@ -356,11 +285,6 @@ func (nc *NamingCache) GetServiceRevisionCount() int {
 	return count
 }
 
-func (nc *NamingCache) AddListener(cacheName CacheName, listeners []Listener) {
-	cacheIndex := cacheIndexMap[cacheName]
-	nc.caches[cacheIndex].addListener(listeners)
-}
-
 // Service 获取Service缓存信息
 func (nc *NamingCache) Service() ServiceCache {
 	return nc.caches[CacheService].(ServiceCache)
@@ -415,13 +339,6 @@ func (nc *NamingCache) Namespace() NamespaceCache {
 // GetStore get store
 func (nc *NamingCache) GetStore() store.Store {
 	return nc.storage
-}
-
-// Client Get client cache information
-//  @receiver nc
-//  @return ClientCache
-func (nc *NamingCache) Client() ClientCache {
-	return nc.caches[CacheClient].(ClientCache)
 }
 
 // ComputeRevision 计算唯一的版本标识

@@ -54,7 +54,7 @@ func (x DiscoverResponse_DiscoverResponseType) String() string {
 	return proto.EnumName(DiscoverResponse_DiscoverResponseType_name, int32(x))
 }
 func (DiscoverResponse_DiscoverResponseType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_response_2902e4f83fd7e61a, []int{4, 0}
+	return fileDescriptor_response_5957e967a6e83a21, []int{4, 0}
 }
 
 type SimpleResponse struct {
@@ -69,7 +69,7 @@ func (m *SimpleResponse) Reset()         { *m = SimpleResponse{} }
 func (m *SimpleResponse) String() string { return proto.CompactTextString(m) }
 func (*SimpleResponse) ProtoMessage()    {}
 func (*SimpleResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_response_2902e4f83fd7e61a, []int{0}
+	return fileDescriptor_response_5957e967a6e83a21, []int{0}
 }
 func (m *SimpleResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SimpleResponse.Unmarshal(m, b)
@@ -134,7 +134,7 @@ func (m *Response) Reset()         { *m = Response{} }
 func (m *Response) String() string { return proto.CompactTextString(m) }
 func (*Response) ProtoMessage()    {}
 func (*Response) Descriptor() ([]byte, []int) {
-	return fileDescriptor_response_2902e4f83fd7e61a, []int{1}
+	return fileDescriptor_response_5957e967a6e83a21, []int{1}
 }
 func (m *Response) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Response.Unmarshal(m, b)
@@ -315,7 +315,7 @@ func (m *BatchWriteResponse) Reset()         { *m = BatchWriteResponse{} }
 func (m *BatchWriteResponse) String() string { return proto.CompactTextString(m) }
 func (*BatchWriteResponse) ProtoMessage()    {}
 func (*BatchWriteResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_response_2902e4f83fd7e61a, []int{2}
+	return fileDescriptor_response_5957e967a6e83a21, []int{2}
 }
 func (m *BatchWriteResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BatchWriteResponse.Unmarshal(m, b)
@@ -388,7 +388,7 @@ func (m *BatchQueryResponse) Reset()         { *m = BatchQueryResponse{} }
 func (m *BatchQueryResponse) String() string { return proto.CompactTextString(m) }
 func (*BatchQueryResponse) ProtoMessage()    {}
 func (*BatchQueryResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_response_2902e4f83fd7e61a, []int{3}
+	return fileDescriptor_response_5957e967a6e83a21, []int{3}
 }
 func (m *BatchQueryResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BatchQueryResponse.Unmarshal(m, b)
@@ -532,7 +532,7 @@ func (m *DiscoverResponse) Reset()         { *m = DiscoverResponse{} }
 func (m *DiscoverResponse) String() string { return proto.CompactTextString(m) }
 func (*DiscoverResponse) ProtoMessage()    {}
 func (*DiscoverResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_response_2902e4f83fd7e61a, []int{4}
+	return fileDescriptor_response_5957e967a6e83a21, []int{4}
 }
 func (m *DiscoverResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DiscoverResponse.Unmarshal(m, b)
@@ -624,9 +624,9 @@ func init() {
 	proto.RegisterEnum("v1.DiscoverResponse_DiscoverResponseType", DiscoverResponse_DiscoverResponseType_name, DiscoverResponse_DiscoverResponseType_value)
 }
 
-func init() { proto.RegisterFile("response.proto", fileDescriptor_response_2902e4f83fd7e61a) }
+func init() { proto.RegisterFile("response.proto", fileDescriptor_response_5957e967a6e83a21) }
 
-var fileDescriptor_response_2902e4f83fd7e61a = []byte{
+var fileDescriptor_response_5957e967a6e83a21 = []byte{
 	// 1061 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x55, 0xdd, 0x52, 0xe3, 0x36,
 	0x14, 0x2e, 0x8b, 0x93, 0x38, 0x27, 0x90, 0x78, 0x15, 0xd8, 0xaa, 0x74, 0x67, 0x67, 0x27, 0x33,

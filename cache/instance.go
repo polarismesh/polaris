@@ -59,8 +59,6 @@ type InstanceCache interface {
 
 // instanceCache 实例缓存的类
 type instanceCache struct {
-	*basCache
-
 	storage          store.Store
 	lastMtime        int64
 	lastMtimeLogged  int64
@@ -72,6 +70,7 @@ type instanceCache struct {
 	disableBusiness  bool
 	needMeta         bool
 	systemServiceID  []string
+	manager          *listenerManager
 	singleFlight     *singleflight.Group
 	instanceCount    int64
 	lastCheckAllTime int64
@@ -82,11 +81,11 @@ func init() {
 }
 
 // newInstanceCache 新建一个instanceCache
-func newInstanceCache(storage store.Store, ch chan *revisionNotify) *instanceCache {
+func newInstanceCache(storage store.Store, ch chan *revisionNotify, listeners []Listener) *instanceCache {
 	return &instanceCache{
-		basCache:   newBaseCache(),
 		storage:    storage,
 		revisionCh: ch,
+		manager:    newListenerManager(listeners),
 	}
 }
 

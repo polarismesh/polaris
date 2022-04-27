@@ -22,7 +22,7 @@ import (
 	"sync/atomic"
 )
 
-// A concurrent safe shardMap for values
+// A concurrent safe shardMap for healthCheckInstances
 // To avoid lock bottlenecks this map is dived to several (shardSize) concurrent map.
 type shardMap struct {
 	shardSize uint32
@@ -31,8 +31,8 @@ type shardMap struct {
 }
 
 type shard struct {
-	values map[string]ItemWithChecker
-	mutex  *sync.RWMutex
+	healthCheckInstances map[string]*InstanceWithChecker
+	healthCheckMutex     *sync.RWMutex
 }
 
 // NewShardMap creates a new shardMap and init shardSize.
@@ -44,8 +44,8 @@ func NewShardMap(size uint32) *shardMap {
 	}
 	for i := range m.shards {
 		m.shards[i] = &shard{
-			values: make(map[string]ItemWithChecker),
-			mutex:  &sync.RWMutex{},
+			healthCheckInstances: make(map[string]*InstanceWithChecker),
+			healthCheckMutex:     &sync.RWMutex{},
 		}
 	}
 	return m
@@ -56,54 +56,66 @@ func (m *shardMap) getShard(instanceId string) *shard {
 	return m.shards[fnv32(instanceId)%m.shardSize]
 }
 
-// Store stores values under given instanceId.
-func (m *shardMap) Store(instanceId string, value ItemWithChecker) {
+// Store stores healthCheckInstances under given instanceId.
+func (m *shardMap) Store(instanceId string, healthCheckInstance *InstanceWithChecker) {
+	if len(instanceId) == 0 {
+		return
+	}
 	shard := m.getShard(instanceId)
-	shard.mutex.Lock()
-	_, ok := shard.values[instanceId]
+	shard.healthCheckMutex.Lock()
+	_, ok := shard.healthCheckInstances[instanceId]
 	if ok {
-		shard.values[instanceId] = value
+		shard.healthCheckInstances[instanceId] = healthCheckInstance
 	} else {
-		shard.values[instanceId] = value
+		shard.healthCheckInstances[instanceId] = healthCheckInstance
 		atomic.AddInt32(&m.size, 1)
 	}
-	shard.mutex.Unlock()
+	shard.healthCheckMutex.Unlock()
 }
 
-//PutIfAbsent to avoid storing twice when key is the same in the concurrent scenario.
-func (m *shardMap) PutIfAbsent(instanceId string, value ItemWithChecker) (ItemWithChecker, bool) {
-	shard := m.getShard(instanceId)
-	shard.mutex.Lock()
-	oldValue, has := shard.values[instanceId]
-	if !has {
-		shard.values[instanceId] = value
-		shard.mutex.Unlock()
-		atomic.AddInt32(&m.size, 1)
-		return oldValue, true
+// PutIfAbsent to avoid storing twice when key is the same in the concurrent scenario.
+func (m *shardMap) PutIfAbsent(instanceId string, healthCheckInstance *InstanceWithChecker) (*InstanceWithChecker, bool) {
+	if len(instanceId) == 0 {
+		return nil, false
 	}
-	shard.mutex.Unlock()
+	shard := m.getShard(instanceId)
+	shard.healthCheckMutex.Lock()
+	value, has := shard.healthCheckInstances[instanceId]
+	if !has {
+		shard.healthCheckInstances[instanceId] = healthCheckInstance
+		shard.healthCheckMutex.Unlock()
+		atomic.AddInt32(&m.size, 1)
+		return healthCheckInstance, true
+	}
+	shard.healthCheckMutex.Unlock()
 	return value, false
 }
 
-// Load loads the values under the instanceId.
-func (m *shardMap) Load(instanceId string) (value ItemWithChecker, ok bool) {
+// Load loads the healthCheckInstances under the instanceId.
+func (m *shardMap) Load(instanceId string) (healthCheckInstance *InstanceWithChecker, ok bool) {
+	if len(instanceId) == 0 {
+		return nil, false
+	}
 	shard := m.getShard(instanceId)
-	shard.mutex.RLock()
-	exist, ok := shard.values[instanceId]
-	shard.mutex.RUnlock()
-	return exist, ok
+	shard.healthCheckMutex.RLock()
+	healthCheckInstance, ok = shard.healthCheckInstances[instanceId]
+	shard.healthCheckMutex.RUnlock()
+	return healthCheckInstance, ok
 }
 
-// Delete deletes the values under the given instanceId.
+// Delete deletes the healthCheckInstances under the given instanceId.
 func (m *shardMap) Delete(instanceId string) {
+	if len(instanceId) == 0 {
+		return
+	}
 	shard := m.getShard(instanceId)
-	shard.mutex.Lock()
-	_, ok := shard.values[instanceId]
+	shard.healthCheckMutex.Lock()
+	_, ok := shard.healthCheckInstances[instanceId]
 	if ok {
-		delete(shard.values, instanceId)
+		delete(shard.healthCheckInstances, instanceId)
 		atomic.AddInt32(&m.size, -1)
 	}
-	shard.mutex.Unlock()
+	shard.healthCheckMutex.Unlock()
 }
 
 // DeleteIfExist to avoid deleting twice when key is the same in the concurrent scenario.
@@ -112,26 +124,26 @@ func (m *shardMap) DeleteIfExist(instanceId string) bool {
 		return false
 	}
 	shard := m.getShard(instanceId)
-	shard.mutex.Lock()
-	_, ok := shard.values[instanceId]
+	shard.healthCheckMutex.Lock()
+	_, ok := shard.healthCheckInstances[instanceId]
 	if ok {
-		delete(shard.values, instanceId)
+		delete(shard.healthCheckInstances, instanceId)
 		atomic.AddInt32(&m.size, -1)
-		shard.mutex.Unlock()
+		shard.healthCheckMutex.Unlock()
 		return true
 	}
-	shard.mutex.Unlock()
+	shard.healthCheckMutex.Unlock()
 	return false
 }
 
 // Range iterates over the shardMap.
-func (m *shardMap) Range(fn func(instanceId string, value ItemWithChecker)) {
+func (m *shardMap) Range(fn func(instanceId string, healthCheckInstance *InstanceWithChecker)) {
 	for _, shard := range m.shards {
-		shard.mutex.RLock()
-		for k, v := range shard.values {
+		shard.healthCheckMutex.RLock()
+		for k, v := range shard.healthCheckInstances {
 			fn(k, v)
 		}
-		shard.mutex.RUnlock()
+		shard.healthCheckMutex.RUnlock()
 	}
 }
 

@@ -64,7 +64,7 @@ func TestNamingCache_Start(t *testing.T) {
 	SetCacheConfig(conf)
 
 	Convey("测试正常的更新缓存逻辑", t, func() {
-		err := initialize(context.Background(), &Config{Open: true}, storage)
+		err := initialize(context.Background(), &Config{Open: true}, storage, nil)
 		So(err, ShouldBeNil)
 
 		c := cacheMgn
@@ -108,7 +108,7 @@ func TestRevisionWorker(t *testing.T) {
 	defer ctl.Finish()
 
 	Convey("revision计算，chan可以正常收发", t, func() {
-		err := initialize(context.TODO(), &Config{Open: true}, storage)
+		err := initialize(context.TODO(), &Config{Open: true}, storage, nil)
 		nc := cacheMgn
 		defer func() { _ = nc.Clear() }()
 		So(err, ShouldBeNil)

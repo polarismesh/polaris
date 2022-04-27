@@ -43,7 +43,7 @@ func (x Rule_Resource) String() string {
 	return proto.EnumName(Rule_Resource_name, int32(x))
 }
 func (Rule_Resource) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_ratelimit_0de03de0b519ea32, []int{1, 0}
+	return fileDescriptor_ratelimit_2b495c7362132910, []int{1, 0}
 }
 
 // 限流类型
@@ -68,7 +68,7 @@ func (x Rule_Type) String() string {
 	return proto.EnumName(Rule_Type_name, int32(x))
 }
 func (Rule_Type) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_ratelimit_0de03de0b519ea32, []int{1, 1}
+	return fileDescriptor_ratelimit_2b495c7362132910, []int{1, 1}
 }
 
 // 限流阈值模式
@@ -92,7 +92,7 @@ func (x Rule_AmountMode) String() string {
 	return proto.EnumName(Rule_AmountMode_name, int32(x))
 }
 func (Rule_AmountMode) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_ratelimit_0de03de0b519ea32, []int{1, 2}
+	return fileDescriptor_ratelimit_2b495c7362132910, []int{1, 2}
 }
 
 // 与限流集群连接失败时降级模式
@@ -116,7 +116,7 @@ func (x Rule_FailoverType) String() string {
 	return proto.EnumName(Rule_FailoverType_name, int32(x))
 }
 func (Rule_FailoverType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_ratelimit_0de03de0b519ea32, []int{1, 3}
+	return fileDescriptor_ratelimit_2b495c7362132910, []int{1, 3}
 }
 
 // 同一服务下限流规则集合
@@ -134,7 +134,7 @@ func (m *RateLimit) Reset()         { *m = RateLimit{} }
 func (m *RateLimit) String() string { return proto.CompactTextString(m) }
 func (*RateLimit) ProtoMessage()    {}
 func (*RateLimit) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ratelimit_0de03de0b519ea32, []int{0}
+	return fileDescriptor_ratelimit_2b495c7362132910, []int{0}
 }
 func (m *RateLimit) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RateLimit.Unmarshal(m, b)
@@ -221,7 +221,7 @@ func (m *Rule) Reset()         { *m = Rule{} }
 func (m *Rule) String() string { return proto.CompactTextString(m) }
 func (*Rule) ProtoMessage()    {}
 func (*Rule) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ratelimit_0de03de0b519ea32, []int{1}
+	return fileDescriptor_ratelimit_2b495c7362132910, []int{1}
 }
 func (m *Rule) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Rule.Unmarshal(m, b)
@@ -409,7 +409,7 @@ func (m *RateLimitCluster) Reset()         { *m = RateLimitCluster{} }
 func (m *RateLimitCluster) String() string { return proto.CompactTextString(m) }
 func (*RateLimitCluster) ProtoMessage()    {}
 func (*RateLimitCluster) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ratelimit_0de03de0b519ea32, []int{2}
+	return fileDescriptor_ratelimit_2b495c7362132910, []int{2}
 }
 func (m *RateLimitCluster) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RateLimitCluster.Unmarshal(m, b)
@@ -464,7 +464,7 @@ func (m *Amount) Reset()         { *m = Amount{} }
 func (m *Amount) String() string { return proto.CompactTextString(m) }
 func (*Amount) ProtoMessage()    {}
 func (*Amount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ratelimit_0de03de0b519ea32, []int{3}
+	return fileDescriptor_ratelimit_2b495c7362132910, []int{3}
 }
 func (m *Amount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Amount.Unmarshal(m, b)
@@ -534,7 +534,7 @@ func (m *Report) Reset()         { *m = Report{} }
 func (m *Report) String() string { return proto.CompactTextString(m) }
 func (*Report) ProtoMessage()    {}
 func (*Report) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ratelimit_0de03de0b519ea32, []int{4}
+	return fileDescriptor_ratelimit_2b495c7362132910, []int{4}
 }
 func (m *Report) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Report.Unmarshal(m, b)
@@ -580,7 +580,7 @@ func (m *AmountAdjuster) Reset()         { *m = AmountAdjuster{} }
 func (m *AmountAdjuster) String() string { return proto.CompactTextString(m) }
 func (*AmountAdjuster) ProtoMessage()    {}
 func (*AmountAdjuster) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ratelimit_0de03de0b519ea32, []int{5}
+	return fileDescriptor_ratelimit_2b495c7362132910, []int{5}
 }
 func (m *AmountAdjuster) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AmountAdjuster.Unmarshal(m, b)
@@ -622,7 +622,7 @@ func (m *ClimbConfig) Reset()         { *m = ClimbConfig{} }
 func (m *ClimbConfig) String() string { return proto.CompactTextString(m) }
 func (*ClimbConfig) ProtoMessage()    {}
 func (*ClimbConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ratelimit_0de03de0b519ea32, []int{6}
+	return fileDescriptor_ratelimit_2b495c7362132910, []int{6}
 }
 func (m *ClimbConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClimbConfig.Unmarshal(m, b)
@@ -687,7 +687,7 @@ func (m *ClimbConfig_MetricConfig) Reset()         { *m = ClimbConfig_MetricConf
 func (m *ClimbConfig_MetricConfig) String() string { return proto.CompactTextString(m) }
 func (*ClimbConfig_MetricConfig) ProtoMessage()    {}
 func (*ClimbConfig_MetricConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ratelimit_0de03de0b519ea32, []int{6, 0}
+	return fileDescriptor_ratelimit_2b495c7362132910, []int{6, 0}
 }
 func (m *ClimbConfig_MetricConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClimbConfig_MetricConfig.Unmarshal(m, b)
@@ -741,7 +741,7 @@ func (m *ClimbConfig_TriggerPolicy) Reset()         { *m = ClimbConfig_TriggerPo
 func (m *ClimbConfig_TriggerPolicy) String() string { return proto.CompactTextString(m) }
 func (*ClimbConfig_TriggerPolicy) ProtoMessage()    {}
 func (*ClimbConfig_TriggerPolicy) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ratelimit_0de03de0b519ea32, []int{6, 1}
+	return fileDescriptor_ratelimit_2b495c7362132910, []int{6, 1}
 }
 func (m *ClimbConfig_TriggerPolicy) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClimbConfig_TriggerPolicy.Unmarshal(m, b)
@@ -790,7 +790,7 @@ func (m *ClimbConfig_TriggerPolicy_ErrorRate) Reset()         { *m = ClimbConfig
 func (m *ClimbConfig_TriggerPolicy_ErrorRate) String() string { return proto.CompactTextString(m) }
 func (*ClimbConfig_TriggerPolicy_ErrorRate) ProtoMessage()    {}
 func (*ClimbConfig_TriggerPolicy_ErrorRate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ratelimit_0de03de0b519ea32, []int{6, 1, 0}
+	return fileDescriptor_ratelimit_2b495c7362132910, []int{6, 1, 0}
 }
 func (m *ClimbConfig_TriggerPolicy_ErrorRate) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClimbConfig_TriggerPolicy_ErrorRate.Unmarshal(m, b)
@@ -856,7 +856,7 @@ func (m *ClimbConfig_TriggerPolicy_ErrorRate_SpecialConfig) String() string {
 }
 func (*ClimbConfig_TriggerPolicy_ErrorRate_SpecialConfig) ProtoMessage() {}
 func (*ClimbConfig_TriggerPolicy_ErrorRate_SpecialConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ratelimit_0de03de0b519ea32, []int{6, 1, 0, 0}
+	return fileDescriptor_ratelimit_2b495c7362132910, []int{6, 1, 0, 0}
 }
 func (m *ClimbConfig_TriggerPolicy_ErrorRate_SpecialConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClimbConfig_TriggerPolicy_ErrorRate_SpecialConfig.Unmarshal(m, b)
@@ -911,7 +911,7 @@ func (m *ClimbConfig_TriggerPolicy_SlowRate) Reset()         { *m = ClimbConfig_
 func (m *ClimbConfig_TriggerPolicy_SlowRate) String() string { return proto.CompactTextString(m) }
 func (*ClimbConfig_TriggerPolicy_SlowRate) ProtoMessage()    {}
 func (*ClimbConfig_TriggerPolicy_SlowRate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ratelimit_0de03de0b519ea32, []int{6, 1, 1}
+	return fileDescriptor_ratelimit_2b495c7362132910, []int{6, 1, 1}
 }
 func (m *ClimbConfig_TriggerPolicy_SlowRate) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClimbConfig_TriggerPolicy_SlowRate.Unmarshal(m, b)
@@ -971,7 +971,7 @@ func (m *ClimbConfig_ClimbThrottling) Reset()         { *m = ClimbConfig_ClimbTh
 func (m *ClimbConfig_ClimbThrottling) String() string { return proto.CompactTextString(m) }
 func (*ClimbConfig_ClimbThrottling) ProtoMessage()    {}
 func (*ClimbConfig_ClimbThrottling) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ratelimit_0de03de0b519ea32, []int{6, 2}
+	return fileDescriptor_ratelimit_2b495c7362132910, []int{6, 2}
 }
 func (m *ClimbConfig_ClimbThrottling) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClimbConfig_ClimbThrottling.Unmarshal(m, b)
@@ -1069,9 +1069,9 @@ func init() {
 	proto.RegisterEnum("v1.Rule_FailoverType", Rule_FailoverType_name, Rule_FailoverType_value)
 }
 
-func init() { proto.RegisterFile("ratelimit.proto", fileDescriptor_ratelimit_0de03de0b519ea32) }
+func init() { proto.RegisterFile("ratelimit.proto", fileDescriptor_ratelimit_2b495c7362132910) }
 
-var fileDescriptor_ratelimit_0de03de0b519ea32 = []byte{
+var fileDescriptor_ratelimit_2b495c7362132910 = []byte{
 	// 1341 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x57, 0xdd, 0x72, 0xdb, 0x36,
 	0x13, 0x0d, 0xf5, 0x43, 0x4b, 0x2b, 0x4b, 0x56, 0x90, 0x9f, 0xe1, 0xa7, 0xaf, 0x49, 0x53, 0x4d,

@@ -726,7 +726,7 @@ func (s *Server) CleanInstance(ctx context.Context, req *api.Instance) *api.Resp
 			}
 			return req.GetId().GetValue(), nil
 		}
-		return utils.CheckInstanceTetrad(req)
+		return CheckInstanceTetrad(req)
 	}
 
 	instanceID, resp := getInstanceID()
@@ -936,7 +936,7 @@ func checkCreateInstance(req *api.Instance) (string, *api.Response) {
 		return "", err
 	}
 
-	return utils.CheckInstanceTetrad(req)
+	return CheckInstanceTetrad(req)
 }
 
 /*
@@ -960,7 +960,7 @@ func checkReviseInstance(req *api.Instance) (string, *api.Response) {
 		return "", err
 	}
 
-	return utils.CheckInstanceTetrad(req)
+	return CheckInstanceTetrad(req)
 }
 
 /*
@@ -978,7 +978,40 @@ func checkHeartbeatInstance(req *api.Instance) (string, *api.Response) {
 		}
 		return req.GetId().GetValue(), nil
 	}
-	return utils.CheckInstanceTetrad(req)
+	return CheckInstanceTetrad(req)
+}
+
+// CheckInstanceTetrad 根据服务实例四元组计算ID
+func CheckInstanceTetrad(req *api.Instance) (string, *api.Response) {
+	if err := checkResourceName(req.GetService()); err != nil {
+		return "", api.NewInstanceResponse(api.InvalidServiceName, req)
+	}
+
+	if err := checkResourceName(req.GetNamespace()); err != nil {
+		return "", api.NewInstanceResponse(api.InvalidNamespaceName, req)
+	}
+
+	if err := checkInstanceHost(req.GetHost()); err != nil {
+		return "", api.NewInstanceResponse(api.InvalidInstanceHost, req)
+	}
+
+	if err := checkInstancePort(req.GetPort()); err != nil {
+		return "", api.NewInstanceResponse(api.InvalidInstancePort, req)
+	}
+
+	var instID string = req.GetId().GetValue()
+	if len(instID) == 0 {
+		id, err := CalculateInstanceID(req.GetNamespace().GetValue(), req.GetService().GetValue(),
+			req.GetVpcId().GetValue(),
+			req.GetHost().GetValue(),
+			req.GetPort().GetValue(),
+		)
+		if err != nil {
+			return "", api.NewInstanceResponse(api.ExecuteException, req)
+		}
+		instID = id
+	}
+	return instID, nil
 }
 
 // 获取instance请求的token信息
