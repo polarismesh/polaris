@@ -36,7 +36,7 @@ func (checker *defaultAuthChecker) IsOpenConsoleAuth() bool {
 
 // IsOpenClientAuth 针对客户端是否开启了操作鉴权
 func (checker *defaultAuthChecker) IsOpenClientAuth() bool {
-	return AuthOption.Open
+	return AuthOption.ClientOpen
 }
 
 // IsOpenAuth 返回对于控制台/客户端任意其中的一个是否开启了操作鉴权

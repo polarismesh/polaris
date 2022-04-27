@@ -34,7 +34,8 @@ import (
 func reset(strict bool) {
 	initDefaultAuth()
 	AuthOption = DefaultAuthConfig()
-	AuthOption.Open = true
+	AuthOption.ClientOpen = true
+	AuthOption.ConsoleOpen = true
 	AuthOption.Strict = strict
 }
 

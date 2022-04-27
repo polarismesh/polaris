@@ -172,7 +172,7 @@ auth:
     # 控制台鉴权能力开关，默认开启
     consoleOpen: true
     # 客户端鉴权能力开关, 默认关闭
-    open: false
+    clientOpen: false
 namespace:
   # 是否允许自动创建命名空间
   autoCreate: true
