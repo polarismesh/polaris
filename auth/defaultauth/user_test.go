@@ -61,7 +61,7 @@ func Test_server_CreateUsers(t *testing.T) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
+	if err := cache.TestCacheInitialize(ctx, cfg, storage, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -269,7 +269,7 @@ func Test_server_UpdateUser(t *testing.T) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
+	if err := cache.TestCacheInitialize(ctx, cfg, storage, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -416,7 +416,7 @@ func Test_server_UpdateUserPassword(t *testing.T) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
+	if err := cache.TestCacheInitialize(ctx, cfg, storage, nil); err != nil {
 		t.Fatal(err)
 	}
 

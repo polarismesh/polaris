@@ -166,9 +166,17 @@ func Store2Location(s *LocationStore) *Location {
 	}
 }
 
-/*
- * RoutingConfig 路由配置
- */
+// Client 客户端上报信息表
+type Client struct {
+	VpcID      string
+	Host       string
+	Typ        int
+	Version    string
+	CreateTime time.Time
+	ModifyTime time.Time
+}
+
+// RoutingConfig 路由配置
 type RoutingConfig struct {
 	ID         string
 	InBounds   string

@@ -24,6 +24,7 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris-server/service"
 )
 
 // checkHeartbeatInstance 检查心跳实例请求参数
@@ -39,7 +40,7 @@ func checkHeartbeatInstance(req *api.Instance) (string, *api.Response) {
 		}
 		return req.GetId().GetValue(), nil
 	}
-	return utils.CheckInstanceTetrad(req)
+	return service.CheckInstanceTetrad(req)
 }
 
 func (s *Server) doReport(ctx context.Context, instance *api.Instance) *api.Response {

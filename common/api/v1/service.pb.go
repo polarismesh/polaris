@@ -39,7 +39,7 @@ func (x AliasType) String() string {
 	return proto.EnumName(AliasType_name, int32(x))
 }
 func (AliasType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_service_35e377566d316886, []int{0}
+	return fileDescriptor_service_9eda35d63a137b2e, []int{0}
 }
 
 type HealthCheck_HealthCheckType int32
@@ -62,7 +62,7 @@ func (x HealthCheck_HealthCheckType) String() string {
 	return proto.EnumName(HealthCheck_HealthCheckType_name, int32(x))
 }
 func (HealthCheck_HealthCheckType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_service_35e377566d316886, []int{4, 0}
+	return fileDescriptor_service_9eda35d63a137b2e, []int{4, 0}
 }
 
 type Namespace struct {
@@ -90,7 +90,7 @@ func (m *Namespace) Reset()         { *m = Namespace{} }
 func (m *Namespace) String() string { return proto.CompactTextString(m) }
 func (*Namespace) ProtoMessage()    {}
 func (*Namespace) Descriptor() ([]byte, []int) {
-	return fileDescriptor_service_35e377566d316886, []int{0}
+	return fileDescriptor_service_9eda35d63a137b2e, []int{0}
 }
 func (m *Namespace) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Namespace.Unmarshal(m, b)
@@ -249,7 +249,7 @@ func (m *Service) Reset()         { *m = Service{} }
 func (m *Service) String() string { return proto.CompactTextString(m) }
 func (*Service) ProtoMessage()    {}
 func (*Service) Descriptor() ([]byte, []int) {
-	return fileDescriptor_service_35e377566d316886, []int{1}
+	return fileDescriptor_service_9eda35d63a137b2e, []int{1}
 }
 func (m *Service) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Service.Unmarshal(m, b)
@@ -459,7 +459,7 @@ func (m *ServiceAlias) Reset()         { *m = ServiceAlias{} }
 func (m *ServiceAlias) String() string { return proto.CompactTextString(m) }
 func (*ServiceAlias) ProtoMessage()    {}
 func (*ServiceAlias) Descriptor() ([]byte, []int) {
-	return fileDescriptor_service_35e377566d316886, []int{2}
+	return fileDescriptor_service_9eda35d63a137b2e, []int{2}
 }
 func (m *ServiceAlias) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ServiceAlias.Unmarshal(m, b)
@@ -594,7 +594,7 @@ func (m *Instance) Reset()         { *m = Instance{} }
 func (m *Instance) String() string { return proto.CompactTextString(m) }
 func (*Instance) ProtoMessage()    {}
 func (*Instance) Descriptor() ([]byte, []int) {
-	return fileDescriptor_service_35e377566d316886, []int{3}
+	return fileDescriptor_service_9eda35d63a137b2e, []int{3}
 }
 func (m *Instance) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Instance.Unmarshal(m, b)
@@ -773,7 +773,7 @@ func (m *HealthCheck) Reset()         { *m = HealthCheck{} }
 func (m *HealthCheck) String() string { return proto.CompactTextString(m) }
 func (*HealthCheck) ProtoMessage()    {}
 func (*HealthCheck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_service_35e377566d316886, []int{4}
+	return fileDescriptor_service_9eda35d63a137b2e, []int{4}
 }
 func (m *HealthCheck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_HealthCheck.Unmarshal(m, b)
@@ -818,7 +818,7 @@ func (m *HeartbeatHealthCheck) Reset()         { *m = HeartbeatHealthCheck{} }
 func (m *HeartbeatHealthCheck) String() string { return proto.CompactTextString(m) }
 func (*HeartbeatHealthCheck) ProtoMessage()    {}
 func (*HeartbeatHealthCheck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_service_35e377566d316886, []int{5}
+	return fileDescriptor_service_9eda35d63a137b2e, []int{5}
 }
 func (m *HeartbeatHealthCheck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_HeartbeatHealthCheck.Unmarshal(m, b)
@@ -858,9 +858,9 @@ func init() {
 	proto.RegisterEnum("v1.HealthCheck_HealthCheckType", HealthCheck_HealthCheckType_name, HealthCheck_HealthCheckType_value)
 }
 
-func init() { proto.RegisterFile("service.proto", fileDescriptor_service_35e377566d316886) }
+func init() { proto.RegisterFile("service.proto", fileDescriptor_service_9eda35d63a137b2e) }
 
-var fileDescriptor_service_35e377566d316886 = []byte{
+var fileDescriptor_service_9eda35d63a137b2e = []byte{
 	// 1083 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x98, 0xd1, 0x6e, 0xe3, 0x44,
 	0x14, 0x86, 0x37, 0x49, 0x9b, 0xc4, 0xc7, 0x49, 0x9b, 0x4e, 0xcb, 0x62, 0x0a, 0x82, 0x25, 0xe2,

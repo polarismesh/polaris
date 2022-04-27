@@ -41,8 +41,6 @@ type CircuitBreakerCache interface {
 
 // circuitBreaker的实现
 type circuitBreakerCache struct {
-	*basCache
-
 	storage     store.Store
 	ids         *sync.Map
 	lastTime    time.Time
@@ -57,8 +55,7 @@ func init() {
 // newCircuitBreakerCache 返回一个操作CircuitBreakerCache的对象
 func newCircuitBreakerCache(s store.Store) *circuitBreakerCache {
 	return &circuitBreakerCache{
-		basCache: newBaseCache(),
-		storage:  s,
+		storage: s,
 	}
 }
 

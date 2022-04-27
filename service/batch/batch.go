@@ -28,11 +28,9 @@ import (
 
 // Controller 批量控制器
 type Controller struct {
-	register         *InstanceCtrl
-	deregister       *InstanceCtrl
-	heartbeat        *InstanceCtrl
-	clientRegister   *ClientCtrl
-	clientDeregister *ClientCtrl
+	register   *InstanceCtrl
+	deregister *InstanceCtrl
+	heartbeat  *InstanceCtrl
 }
 
 // NewBatchCtrlWithConfig 根据配置文件创建一个批量控制器
@@ -64,26 +62,10 @@ func NewBatchCtrlWithConfig(storage store.Store, authority auth.Authority, auth 
 		return nil, err
 	}
 
-	var clientRegister *ClientCtrl
-	clientRegister, err = NewBatchRegisterClientCtrl(storage, config.ClientRegister)
-	if err != nil {
-		log.Errorf("[Batch] new batch client register ctrl err: %s", err.Error())
-		return nil, err
-	}
-
-	var clientDeregister *ClientCtrl
-	clientDeregister, err = NewBatchRegisterClientCtrl(storage, config.ClientDeregister)
-	if err != nil {
-		log.Errorf("[Batch] new batch client deregister ctrl err: %s", err.Error())
-		return nil, err
-	}
-
 	bc := &Controller{
-		register:         register,
-		deregister:       deregister,
-		heartbeat:        heartbeat,
-		clientRegister:   clientRegister,
-		clientDeregister: clientDeregister,
+		register:   register,
+		deregister: deregister,
+		heartbeat:  heartbeat,
 	}
 	return bc, nil
 }
@@ -100,12 +82,6 @@ func (bc *Controller) Start(ctx context.Context) {
 	if bc.HeartbeatOpen() {
 		bc.heartbeat.Start(ctx)
 	}
-	if bc.ClientRegisterOpen() {
-		bc.clientRegister.Start(ctx)
-	}
-	if bc.ClientDeregisterOpen() {
-		bc.clientDeregister.Start(ctx)
-	}
 }
 
 // CreateInstanceOpen 创建是否开启
@@ -121,16 +97,6 @@ func (bc *Controller) DeleteInstanceOpen() bool {
 // HeartbeatOpen 心跳是否开启
 func (bc *Controller) HeartbeatOpen() bool {
 	return bc.heartbeat != nil
-}
-
-// ClientRegisterOpen 添加客户端是否开启
-func (bc *Controller) ClientRegisterOpen() bool {
-	return bc.clientRegister != nil
-}
-
-// ClientDeregisterOpen 删除客户端是否开启
-func (bc *Controller) ClientDeregisterOpen() bool {
-	return bc.clientDeregister != nil
 }
 
 // AsyncCreateInstance 异步创建实例，返回一个future，根据future获取创建结果
@@ -169,27 +135,5 @@ func (bc *Controller) AsyncHeartbeat(instance *api.Instance, healthy bool) *Inst
 	}
 
 	bc.heartbeat.queue <- future
-	return future
-}
-
-// AsyncRegisterClient 异步合并反注册
-func (bc *Controller) AsyncRegisterClient(client *api.Client) *ClientFuture {
-	future := &ClientFuture{
-		request: client,
-		result:  make(chan error, 1),
-	}
-
-	bc.clientRegister.queue <- future
-	return future
-}
-
-// AsyncDeregisterClient 异步合并反注册
-func (bc *Controller) AsyncDeregisterClient(client *api.Client) *ClientFuture {
-	future := &ClientFuture{
-		request: client,
-		result:  make(chan error, 1),
-	}
-
-	bc.clientDeregister.queue <- future
 	return future
 }
