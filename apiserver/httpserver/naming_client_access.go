@@ -99,7 +99,7 @@ func (h *HTTPServer) RegisterInstance(req *restful.Request, rsp *restful.Respons
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.namingServer.CreateInstances(ctx, []*api.Instance{instance}))
+	handler.WriteHeaderAndProto(h.namingServer.RegisterInstance(ctx, instance))
 }
 
 // DeregisterInstance 反注册服务实例
@@ -113,7 +113,7 @@ func (h *HTTPServer) DeregisterInstance(req *restful.Request, rsp *restful.Respo
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.namingServer.DeleteInstances(ctx, []*api.Instance{instance}))
+	handler.WriteHeaderAndProto(h.namingServer.DeregisterInstance(ctx, instance))
 }
 
 // Discover 统一发现接口

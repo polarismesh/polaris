@@ -164,7 +164,7 @@ func TestCreateSid(t *testing.T) {
 			Name:   utils.NewStringValue("other-namespace-xxx"),
 			Owners: utils.NewStringValue("aaa"),
 		}
-		So(respSuccess(server.CreateNamespace(defaultCtx, namespace)), ShouldEqual, true)
+		So(respSuccess(server.Namespace().CreateNamespace(defaultCtx, namespace)), ShouldEqual, true)
 		defer cleanNamespace(namespace.Name.Value)
 
 		service := &api.Service{

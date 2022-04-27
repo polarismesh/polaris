@@ -84,7 +84,7 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 		return checkError
 	}
 
-	if !s.disableAutoCreateNamespace {
+	if s.namespaceSvr.AllowAutoCreate() {
 		if code, err := s.createNamespaceIfAbsent(ctx, req); err != nil {
 			return api.NewServiceResponse(code, req)
 		}
@@ -482,7 +482,7 @@ func (s *Server) createNamespaceIfAbsent(ctx context.Context, svc *api.Service) 
 	key := fmt.Sprintf("%s", svc.Namespace)
 
 	ret, err, _ := s.createNamespaceSingle.Do(key, func() (interface{}, error) {
-		resp := s.CreateNamespace(ctx, apiNamespace)
+		resp := s.Namespace().CreateNamespace(ctx, apiNamespace)
 
 		retCode := resp.GetCode().GetValue()
 		if retCode != api.ExecuteSuccess && retCode != api.ExistedResource {

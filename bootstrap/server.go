@@ -30,6 +30,7 @@ import (
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 
 	"github.com/polarismesh/polaris-server/apiserver"
@@ -169,6 +170,12 @@ func StartComponents(ctx context.Context, cfg *config.Config) error {
 		return err
 	}
 
+	// 初始化命名空间模块
+	if err := namespace.Initialize(ctx, &cfg.Namespace, s, cacheMgn); err != nil {
+		return err
+	}
+
+	// 初始化服务模块
 	if err = service.Initialize(ctx, &cfg.Naming, &cfg.Cache, cacheProvider); err != nil {
 		return err
 	}

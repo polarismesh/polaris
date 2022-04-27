@@ -29,6 +29,7 @@ import (
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/config"
+	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
@@ -40,6 +41,7 @@ type Config struct {
 	Bootstrap    Bootstrap            `yaml:"bootstrap"`
 	APIServers   []apiserver.Config   `yaml:"apiservers"`
 	Cache        cache.Config         `yaml:"cache"`
+	Namespace    namespace.Config     `yaml:"namespace"`
 	Naming       service.Config       `yaml:"naming"`
 	Config       config.StartupConfig `yaml:"config"`
 	HealthChecks healthcheck.Config   `yaml:"healthcheck"`

@@ -173,7 +173,7 @@ func (h *EurekaServer) registerInstances(ctx context.Context, appId string, inst
 	// 1. 先转换数据结构
 	totalInstance := convertEurekaInstance(instance, h.namespace, appId)
 	// 3. 注册实例
-	resp := h.namingServer.CreateInstances(ctx, []*api.Instance{totalInstance})
+	resp := h.namingServer.RegisterInstance(ctx, totalInstance)
 	// 4. 注册成功，则返回
 	if resp.GetCode().GetValue() == api.ExecuteSuccess || resp.GetCode().GetValue() == api.ExistedResource {
 		return api.ExecuteSuccess
@@ -190,14 +190,14 @@ func (h *EurekaServer) registerInstances(ctx context.Context, appId string, inst
 			return svcCreateCode
 		}
 		// 6. 再重试注册实例列表
-		resp = h.namingServer.CreateInstances(ctx, []*api.Instance{totalInstance})
+		resp = h.namingServer.RegisterInstance(ctx, totalInstance)
 		return resp.GetCode().GetValue()
 	}
 	return resp.GetCode().GetValue()
 }
 
 func (h *EurekaServer) deregisterInstance(ctx context.Context, appId string, instanceId string) uint32 {
-	resp := h.namingServer.DeleteInstances(ctx, []*api.Instance{{Id: &wrappers.StringValue{Value: instanceId}}})
+	resp := h.namingServer.DeregisterInstance(ctx, &api.Instance{Id: &wrappers.StringValue{Value: instanceId}})
 	return resp.GetCode().GetValue()
 }
 
@@ -207,7 +207,7 @@ func (h *EurekaServer) update(ctx context.Context, appId string, instanceId stri
 		isolated = true
 	}
 	resp := h.namingServer.UpdateInstances(ctx,
-		[]*api.Instance{&api.Instance{Id: &wrappers.StringValue{Value: instanceId}, Isolate: &wrappers.BoolValue{Value: isolated}}})
+		[]*api.Instance{{Id: &wrappers.StringValue{Value: instanceId}, Isolate: &wrappers.BoolValue{Value: isolated}}})
 	return resp.GetCode().GetValue()
 }
 
