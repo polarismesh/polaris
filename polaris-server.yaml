@@ -188,6 +188,18 @@ naming:
       waitTime: 32ms
       maxBatchCount: 32
       concurrency: 64
+    clientRegister:
+      open: true
+      queueSize: 10240
+      waitTime: 32ms
+      maxBatchCount: 32
+      concurrency: 64
+    clientDeregister:
+      open: true
+      queueSize: 10240
+      waitTime: 32ms
+      maxBatchCount: 32
+      concurrency: 64
 # 健康检查的配置
 healthcheck:
   open: true
@@ -239,26 +251,27 @@ cache:
     - name: users # 加载用户、用户组数据
     - name: strategyRule # 加载鉴权规则数据
     - name: namespace # 加载命名空间数据
+    - name: client # 加载 SDK 数据
 #    - name: l5 # 加载l5数据
 # 存储配置
 store:
   # 单机文件存储插件
-  name: boltdbStore
-  option:
-    path: ./polaris.bolt
-  ## 数据库存储插件
-  # name: defaultStore
+  # name: boltdbStore
   # option:
-  #   master:
-  #     dbType: mysql
-  #     dbName: polaris_server
-  #     dbUser: ##DB_USER##
-  #     dbPwd: ##DB_PWD##
-  #     dbAddr: ##DB_ADDR##
-  #     maxOpenConns: 300
-  #     maxIdleConns: 50
-  #     connMaxLifetime: 300 # 单位秒
-  #     txIsolationLevel: 2 #LevelReadCommitted
+  #   path: ./polaris.bolt
+  ## 数据库存储插件
+  name: defaultStore
+  option:
+    master:
+      dbType: mysql
+      dbName: polaris_server
+      dbUser: root ##DB_USER##
+      dbPwd: "123456" ##DB_PWD##
+      dbAddr: "127.0.0.1:3306" ##DB_ADDR##
+      maxOpenConns: 300
+      maxIdleConns: 50
+      connMaxLifetime: 300 # 单位秒
+      txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置
 plugin:
   history:

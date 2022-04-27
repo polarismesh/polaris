@@ -36,5 +36,5 @@ CREATE TABLE `client_stat` (
        `port` int(11) NOT NULL comment 'client port to get stat information',
        `protocol` VARCHAR(100) COLLATE utf8_bin NOT NULL comment 'stat info transport protocol',
        `path` VARCHAR(128) COLLATE utf8_bin NOT NULL comment 'stat metric path',
-       PRIMARY KEY (`client_id`, `target`, `port`),
-)
+       PRIMARY KEY (`client_id`, `target`, `port`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_bin;

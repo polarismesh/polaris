@@ -31,7 +31,7 @@ type shardMap struct {
 }
 
 type shard struct {
-	values map[string]interface{}
+	values map[string]ItemWithChecker
 	mutex  *sync.RWMutex
 }
 
@@ -44,7 +44,7 @@ func NewShardMap(size uint32) *shardMap {
 	}
 	for i := range m.shards {
 		m.shards[i] = &shard{
-			values: make(map[string]interface{}),
+			values: make(map[string]ItemWithChecker),
 			mutex:  &sync.RWMutex{},
 		}
 	}
@@ -57,7 +57,7 @@ func (m *shardMap) getShard(instanceId string) *shard {
 }
 
 // Store stores values under given instanceId.
-func (m *shardMap) Store(instanceId string, value interface{}) {
+func (m *shardMap) Store(instanceId string, value ItemWithChecker) {
 	shard := m.getShard(instanceId)
 	shard.mutex.Lock()
 	_, ok := shard.values[instanceId]
@@ -71,22 +71,22 @@ func (m *shardMap) Store(instanceId string, value interface{}) {
 }
 
 //PutIfAbsent to avoid storing twice when key is the same in the concurrent scenario.
-func (m *shardMap) PutIfAbsent(instanceId string, value interface{}) (interface{}, bool) {
+func (m *shardMap) PutIfAbsent(instanceId string, value ItemWithChecker) (ItemWithChecker, bool) {
 	shard := m.getShard(instanceId)
 	shard.mutex.Lock()
-	value, has := shard.values[instanceId]
+	oldValue, has := shard.values[instanceId]
 	if !has {
 		shard.values[instanceId] = value
 		shard.mutex.Unlock()
 		atomic.AddInt32(&m.size, 1)
-		return value, true
+		return oldValue, true
 	}
 	shard.mutex.Unlock()
 	return value, false
 }
 
 // Load loads the values under the instanceId.
-func (m *shardMap) Load(instanceId string) (value interface{}, ok bool) {
+func (m *shardMap) Load(instanceId string) (value ItemWithChecker, ok bool) {
 	shard := m.getShard(instanceId)
 	shard.mutex.RLock()
 	exist, ok := shard.values[instanceId]
@@ -125,7 +125,7 @@ func (m *shardMap) DeleteIfExist(instanceId string) bool {
 }
 
 // Range iterates over the shardMap.
-func (m *shardMap) Range(fn func(instanceId string, value interface{})) {
+func (m *shardMap) Range(fn func(instanceId string, value ItemWithChecker)) {
 	for _, shard := range m.shards {
 		shard.mutex.RLock()
 		for k, v := range shard.values {

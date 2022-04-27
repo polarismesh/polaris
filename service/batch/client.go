@@ -49,7 +49,7 @@ func NewBatchRegisterClientCtrl(storage store.Store, config *CtrlConfig) (*Clien
 		return nil, nil
 	}
 
-	log.Infof("[Batch] open batch register")
+	log.Infof("[Batch] open batch register client")
 	register.label = "register"
 	register.clientHandler = register.registerHandler
 	return register, nil
@@ -65,7 +65,7 @@ func NewBatchDeregisterClientCtrl(storage store.Store, config *CtrlConfig) (*Cli
 		return nil, nil
 	}
 
-	log.Infof("[Batch] open batch deregister")
+	log.Infof("[Batch] open batch deregister client")
 	deregister.label = "deregister"
 	deregister.clientHandler = deregister.deregisterHandler
 	return deregister, nil
@@ -89,7 +89,7 @@ func (ctrl *ClientCtrl) Start(ctx context.Context) {
 
 // newBatchInstanceCtrl 创建批量控制instance的对象
 func newBatchClientCtrl(storage store.Store, config *CtrlConfig) (*ClientCtrl, error) {
-	if !config.Open {
+	if config == nil || !config.Open {
 		return nil, nil
 	}
 	duration, err := time.ParseDuration(config.WaitTime)
@@ -190,7 +190,7 @@ func (ctrl *ClientCtrl) registerHandler(futures []*ClientFuture) error {
 	// 调用batch接口，创建实例
 	clients := make([]*model.Client, 0, len(futures))
 	for _, entry := range futures {
-		clients = append(clients, entry.client)
+		clients = append(clients, model.NewClient(entry.request))
 	}
 	if err := ctrl.storage.BatchAddClients(clients); err != nil {
 		SendClientReply(clients, StoreCode2APICode(err), err)

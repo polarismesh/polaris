@@ -31,6 +31,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service/batch"
+	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"github.com/polarismesh/polaris-server/store"
 )
 
@@ -43,6 +44,8 @@ type Server struct {
 	caches    *cache.NamingCache
 	authority auth.Authority
 	bc        *batch.Controller
+
+	healthServer *healthcheck.Server
 
 	cmdb           plugin.CMDB
 	history        plugin.History
@@ -62,6 +65,11 @@ type Server struct {
 // Authority 返回鉴权对象，获取鉴权信息
 func (s *Server) Authority() auth.Authority {
 	return s.authority
+}
+
+// HealthServer 健康检查Server
+func (s *Server) HealthServer() *healthcheck.Server {
+	return s.healthServer
 }
 
 // Cache 返回Cache

@@ -30,6 +30,7 @@ import (
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 
 	"github.com/polarismesh/polaris-server/apiserver"
@@ -105,11 +106,6 @@ func Start(configFilePath string) {
 		fmt.Printf("[ERROR] %v\n", err)
 		return
 	}
-	err = StartConfigModule(ctx, cfg)
-	if err != nil {
-		fmt.Printf("[ERROR] Start config module error. %v\n", err)
-		return
-	}
 	errCh := make(chan error, len(cfg.APIServers))
 	servers, err := StartServers(ctx, cfg, errCh)
 	if err != nil {
@@ -137,25 +133,8 @@ func StartComponents(ctx context.Context, cfg *config.Config) error {
 		return errors.New("can not get store")
 	}
 
-	if len(cfg.HealthChecks.LocalHost) == 0 {
-		cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
-	}
-
-	if err = healthcheck.Initialize(ctx, &cfg.HealthChecks, cfg.Cache.Open); err != nil {
-		return err
-	}
-
-	healthCheckServer, err := healthcheck.GetServer()
-	if err != nil {
-		return err
-	}
-
-	cacheProvider, err := healthCheckServer.CacheProvider()
-	if err != nil {
-		return err
-	}
-
-	if err := cache.Initialize(ctx, &cfg.Cache, s, []cache.Listener{cacheProvider}); err != nil {
+	// 初始化缓存模块
+	if err := cache.Initialize(ctx, &cfg.Cache, s); err != nil {
 		return err
 	}
 
@@ -169,7 +148,76 @@ func StartComponents(ctx context.Context, cfg *config.Config) error {
 		return err
 	}
 
-	if err = service.Initialize(ctx, &cfg.Naming, &cfg.Cache, cacheProvider); err != nil {
+	authMgn, err := auth.GetAuthServer()
+	if err != nil {
+		return err
+	}
+
+	// 初始化服务发现模块相关功能
+	if err := StartDiscoverComponents(ctx, cfg, s, cacheMgn, authMgn); err != nil {
+		return err
+	}
+
+	// 初始化配置中心模块相关功能
+	if err := StartConfigCenterComponents(ctx, cfg); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func StartDiscoverComponents(ctx context.Context, cfg *config.Config, s store.Store,
+	cacheMgn *cache.NamingCache, authMgn auth.AuthServer) error {
+
+	var err error
+
+	// 批量控制器
+	namingBatchConfig, err := batch.ParseBatchConfig(cfg.Naming.Batch)
+	if err != nil {
+		return err
+	}
+	healthBatchConfig, err := batch.ParseBatchConfig(cfg.HealthChecks.Batch)
+	if err != nil {
+		return err
+	}
+
+	batchConfig := &batch.Config{
+		Register:         namingBatchConfig.Register,
+		Deregister:       namingBatchConfig.Register,
+		ClientRegister:   namingBatchConfig.ClientRegister,
+		ClientDeregister: namingBatchConfig.ClientDeregister,
+		Heartbeat:        healthBatchConfig.Heartbeat,
+	}
+
+	bc, err := batch.NewBatchCtrlWithConfig(s, nil, plugin.GetAuth(), batchConfig)
+	if err != nil {
+		log.Errorf("new batch ctrl with config err: %s", err.Error())
+		return err
+	}
+	bc.Start(ctx)
+
+	if len(cfg.HealthChecks.LocalHost) == 0 {
+		cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
+	}
+
+	if err = healthcheck.Initialize(ctx, &cfg.HealthChecks, cfg.Cache.Open, bc); err != nil {
+		return err
+	}
+
+	healthCheckServer, err := healthcheck.GetServer()
+	if err != nil {
+		return err
+	}
+
+	cacheProvider, err := healthCheckServer.CacheProvider()
+	if err != nil {
+		return err
+	}
+
+	cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
+	cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
+
+	if err = service.Initialize(ctx, &cfg.Naming, &cfg.Cache, bc); err != nil {
 		return err
 	}
 
@@ -178,11 +226,12 @@ func StartComponents(ctx context.Context, cfg *config.Config) error {
 		return err
 	}
 	healthCheckServer.SetServiceCache(namingSvr.Cache().Service())
+
 	return nil
 }
 
-// StartConfigModule 启动配置中心模块
-func StartConfigModule(ctx context.Context, cfg *config.Config) error {
+// StartConfigCenterComponents 启动配置中心模块
+func StartConfigCenterComponents(ctx context.Context, cfg *config.Config) error {
 	return config2.InitConfigModule(ctx, cfg.Config)
 }
 

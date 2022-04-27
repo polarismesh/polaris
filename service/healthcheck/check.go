@@ -20,6 +20,7 @@ package healthcheck
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -29,6 +30,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/timewheel"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
+	"go.uber.org/zap"
 )
 
 const (
@@ -55,12 +57,32 @@ type AdoptEvent struct {
 	Checker    plugin.HealthChecker
 }
 
+//go:generate stringer -type=ItemType
 type ItemType int
 
 const (
 	itemTypeInstance ItemType = iota
 	itemTypeClient
 )
+
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[itemTypeInstance-0]
+	_ = x[itemTypeClient-1]
+}
+
+const _ItemType_name = "itemTypeInstanceitemTypeClient"
+
+var _ItemType_index = [...]uint8{0, 16, 30}
+
+func (i ItemType) String() string {
+	if i < 0 || i >= ItemType(len(_ItemType_index)-1) {
+		return "ItemType(" + strconv.FormatInt(int64(i), 10) + ")"
+	}
+	return _ItemType_name[_ItemType_index[i]:_ItemType_index[i+1]]
+}
 
 type itemValue struct {
 	mutex               *sync.Mutex
@@ -381,9 +403,8 @@ func (c *CheckScheduler) checkCallbackClient(value interface{}) {
 	}
 	if !checkResp.StayUnchanged {
 		if !checkResp.Healthy {
-			//from unhealthy to healthy
 			log.Infof(
-				"[Health Check][Check]client change from unhealthy to healthy, id is %s, address is %s",
+				"[Health Check][Check]client change from healthy to unhealthy, id is %s, address is %s",
 				instanceValue.id, instanceValue.host)
 			code := server.asyncDeleteClient(cachedClient.Proto())
 			if code != api.ExecuteSuccess {
@@ -557,7 +578,8 @@ func (s *Server) asyncSetInsDbStatus(ins *api.Instance, healthStatus bool) uint3
 func (s *Server) asyncDeleteClient(ins *api.Client) uint32 {
 	future := s.bc.AsyncDeregisterClient(ins)
 	if err := future.Wait(); err != nil {
-		log.Error(err.Error())
+		log.Error("[Health Check][Check] async delete client", zap.String("client-ip", ins.GetHost().GetValue()),
+			zap.Error(err))
 	}
 	return future.Code()
 }

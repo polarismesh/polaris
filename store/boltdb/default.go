@@ -38,6 +38,9 @@ const (
 type boltStore struct {
 	*namespaceStore
 	*businessStore
+	*clientStore
+
+	// 服务注册发现、治理
 	*serviceStore
 	*instanceStore
 	*l5Store
@@ -45,7 +48,11 @@ type boltStore struct {
 	*rateLimitStore
 	*platformStore
 	*circuitBreakerStore
+
+	// 工具
 	*toolStore
+
+	// 鉴权模块相关
 	*userStore
 	*groupStore
 	*strategyStore
@@ -246,6 +253,7 @@ func (m *boltStore) newStore() error {
 	}
 	m.businessStore = &businessStore{handler: m.handler}
 	m.platformStore = &platformStore{handler: m.handler}
+	m.clientStore = &clientStore{handler: m.handler}
 
 	if err := m.newDiscoverModuleStore(); err != nil {
 		return err

@@ -58,7 +58,7 @@ func Test_GetPrincipalResources(t *testing.T) {
 	cfg, _ := initCache(ctrl)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage, nil); err != nil {
+	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
 		t.Fatal(err)
 	}
 

@@ -35,6 +35,12 @@ type Client struct {
 	modifyTime time.Time
 }
 
+func NewClient(req *api.Client) *Client {
+	return &Client{
+		proto: req,
+	}
+}
+
 func (c *Client) Proto() *api.Client {
 	return c.proto
 }

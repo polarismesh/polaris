@@ -24,6 +24,7 @@ import (
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 const (
@@ -132,11 +133,11 @@ func (d *Dispatcher) reloadManagedClients() {
 	nextClients := make(map[string]*ClientWithChecker)
 
 	if d.continuum != nil {
-		server.cacheProvider.RangeHealthCheckClients(func(client *ClientWithChecker) {
-			clientId := client.client.Proto().GetId().GetValue()
-			host := d.continuum.Hash(client.hashValue)
+		server.cacheProvider.RangeHealthCheckClients(func(itemChecker ItemWithChecker, client *model.Client) {
+			clientId := client.Proto().GetId().GetValue()
+			host := d.continuum.Hash(itemChecker.GetHashValue())
 			if host == server.localHost {
-				nextClients[clientId] = client
+				nextClients[clientId] = itemChecker.(*ClientWithChecker)
 			}
 		})
 	}
@@ -172,11 +173,11 @@ func (d *Dispatcher) reloadManagedInstances() {
 	nextInstances := make(map[string]*InstanceWithChecker)
 
 	if d.continuum != nil {
-		server.cacheProvider.RangeHealthCheckInstances(func(instance *InstanceWithChecker) {
-			instanceId := instance.instance.ID()
-			host := d.continuum.Hash(instance.hashValue)
+		server.cacheProvider.RangeHealthCheckInstances(func(itemChecker ItemWithChecker, instance *model.Instance) {
+			instanceId := instance.ID()
+			host := d.continuum.Hash(itemChecker.GetHashValue())
 			if host == server.localHost {
-				nextInstances[instanceId] = instance
+				nextInstances[instanceId] = itemChecker.(*InstanceWithChecker)
 			}
 		})
 	}

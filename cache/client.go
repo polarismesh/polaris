@@ -28,6 +28,10 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
+func init() {
+	RegisterCache(ClientName, CacheClient)
+}
+
 const (
 	// ClientName client cache name
 	ClientName = "client"
@@ -51,17 +55,14 @@ type ClientCache interface {
 
 // clientCache 客户端缓存的类
 type clientCache struct {
+	*basCache
+
 	storage         store.Store
 	lastMtime       int64
 	lastMtimeLogged int64
 	firstUpdate     bool
 	ids             *sync.Map // instanceid -> instance
 	singleFlight    *singleflight.Group
-	manager         *listenerManager
-}
-
-func init() {
-	RegisterCache(ClientName, CacheClient)
 }
 
 // name 获取资源名称
@@ -75,10 +76,10 @@ func (cc *clientCache) LastMtime() time.Time {
 }
 
 // newClientCache 新建一个clientCache
-func newClientCache(storage store.Store, listeners []Listener) *clientCache {
+func newClientCache(storage store.Store) *clientCache {
 	return &clientCache{
-		storage: storage,
-		manager: newListenerManager(listeners),
+		basCache: newBaseCache(),
+		storage:  storage,
 	}
 }
 
@@ -96,7 +97,7 @@ func (cc *clientCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := cc.singleFlight.Do(InstanceName, func() (interface{}, error) {
 		defer func() {
-			cc.lastMtimeLogged = logLastMtime(cc.lastMtimeLogged, cc.lastMtime, "Instance")
+			cc.lastMtimeLogged = logLastMtime(cc.lastMtimeLogged, cc.lastMtime, "Client")
 		}()
 		return nil, cc.realUpdate()
 	})

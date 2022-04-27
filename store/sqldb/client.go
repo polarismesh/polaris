@@ -71,7 +71,7 @@ func (cs *clientStore) UpdateClient(client *model.Client) error {
 // DeleteClient delete the client info
 func (cs *clientStore) DeleteClient(clientID string) error {
 	if clientID == "" {
-		return errors.New("delete client missing instance id")
+		return errors.New("delete client missing client id")
 	}
 
 	str := "update client set flag = 1, mtime = sysdate() where `id` = ?"
@@ -106,15 +106,15 @@ func (cs *clientStore) GetMoreClients(mtime time.Time, firstUpdate bool) (map[st
 	str := `select client.id, client.host, client.type, IFNULL(client.version,""), IFNULL(client.region, ""),
 		 IFNULL(client.zone, ""), IFNULL(client.campus, ""), client.flag,  IFNULL(client_stat.target, ""), 
 		 IFNULL(client_stat.port, 0), IFNULL(client_stat.protocol, ""), IFNULL(client_stat.path, ""), 
-		 UNIX_TIMESTAMP(instance.ctime), UNIX_TIMESTAMP(instance.mtime)
+		 UNIX_TIMESTAMP(client.ctime), UNIX_TIMESTAMP(client.mtime)
 		 from client left join client_stat on client.id = client_stat.client_id `
-	str += " where instance.mtime >= ?"
+	str += " where client.mtime >= ?"
 	if firstUpdate {
 		str += " and flag != 1" // nolint
 	}
 	rows, err := cs.slave.Query(str, mtime)
 	if err != nil {
-		log.Errorf("[Store][database] get more instance query err: %s", err.Error())
+		log.Errorf("[Store][database] get more client query err: %s", err.Error())
 		return nil, err
 	}
 
@@ -130,7 +130,7 @@ func (cs *clientStore) GetMoreClients(mtime time.Time, firstUpdate bool) (map[st
 		return true, nil
 	})
 	if err != nil {
-		log.Errorf("[Store][database] call fetch instance rows err: %s", err.Error())
+		log.Errorf("[Store][database] call fetch client rows err: %s", err.Error())
 		return nil, err
 	}
 
@@ -153,7 +153,7 @@ func (cs *clientStore) batchAddClients(clients []*model.Client) error {
 			builder.WriteString(",")
 		}
 		builder.WriteString("?")
-		ids = append(ids, entry.Proto().GetId())
+		ids = append(ids, entry.Proto().GetId().GetValue())
 		var statInfos []*api.StatInfo
 		if len(entry.Proto().GetStat()) > 0 {
 			statInfos = append(statInfos, entry.Proto().GetStat()...)
@@ -225,7 +225,7 @@ func batchCleanClientStats(tx *BaseTx, ids []interface{}) error {
 }
 
 func (cs *clientStore) GetClientStat(clientID string) ([]*model.ClientStatStore, error) {
-	str := "select `target`, `port`, `protocol`, `path` from instance_metadata where instance.mtime >= ?"
+	str := "select `target`, `port`, `protocol`, `path` from client_stat where client.id = ?"
 	rows, err := cs.master.Query(str, clientID)
 	if err != nil {
 		log.Errorf("[Store][database] query client stat err: %s", err.Error())
@@ -238,20 +238,20 @@ func (cs *clientStore) GetClientStat(clientID string) ([]*model.ClientStatStore,
 		clientStatStore := &model.ClientStatStore{}
 		if err := rows.Scan(&clientStatStore.Target,
 			&clientStatStore.Port, &clientStatStore.Protocol, &clientStatStore.Path); err != nil {
-			log.Errorf("[Store][database] get instance meta rows scan err: %s", err.Error())
+			log.Errorf("[Store][database] get client meta rows scan err: %s", err.Error())
 			return nil, err
 		}
 		clientStatStores = append(clientStatStores, clientStatStore)
 	}
 	if err := rows.Err(); err != nil {
-		log.Errorf("[Store][database] get instance meta rows next err: %s", err.Error())
+		log.Errorf("[Store][database] get client meta rows next err: %s", err.Error())
 		return nil, err
 	}
 
 	return clientStatStores, nil
 }
 
-// callFetchClientRows 带回调的fetch instance
+// callFetchClientRows 带回调的fetch client
 func callFetchClientRows(rows *sql.Rows, callback func(entry *model.ClientStore) (bool, error)) error {
 	if rows == nil {
 		return nil
@@ -389,10 +389,10 @@ func batchAddClientStat(tx *BaseTx, client2Stats map[string][]*api.StatInfo) err
 			first = false
 			args = append(args,
 				clientId,
-				entry.GetTarget(),
-				entry.GetPort(),
-				entry.GetProtocol(),
-				entry.GetPath())
+				entry.GetTarget().GetValue(),
+				entry.GetPort().GetValue(),
+				entry.GetProtocol().GetValue(),
+				entry.GetPath().GetValue())
 		}
 	}
 	_, err := tx.Exec(str, args...)
@@ -416,10 +416,10 @@ func addClientStat(tx *BaseTx, client *model.Client) error {
 		first = false
 		args = append(args,
 			client.Proto().GetId().GetValue(),
-			entry.GetTarget(),
-			entry.GetPort(),
-			entry.GetProtocol(),
-			entry.GetPath())
+			entry.GetTarget().GetValue(),
+			entry.GetPort().GetValue(),
+			entry.GetProtocol().GetValue(),
+			entry.GetPath().GetValue())
 	}
 	_, err := tx.Exec(str, args...)
 	return err
@@ -442,7 +442,7 @@ func updateClientMain(tx *BaseTx, client *model.Client) error {
 	return err
 }
 
-// updateInstanceMeta 更新instance的meta表
+// updateClientStat 更新client的stat表
 func updateClientStat(tx *BaseTx, client *model.Client) error {
 	deleteStr := "delete from client_stat where cliend_id = ?"
 	if _, err := tx.Exec(deleteStr, client.Proto().GetId().GetValue()); err != nil {

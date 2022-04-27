@@ -35,6 +35,8 @@ import (
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 // some options config
@@ -496,4 +498,37 @@ func CheckDbMetaDataFieldLen(metaData map[string]string) error {
 		}
 	}
 	return nil
+}
+
+// CheckInstanceTetrad 根据服务实例四元组计算ID
+func CheckInstanceTetrad(req *api.Instance) (string, *api.Response) {
+	if err := checkResourceName(req.GetService()); err != nil {
+		return "", api.NewInstanceResponse(api.InvalidServiceName, req)
+	}
+
+	if err := checkResourceName(req.GetNamespace()); err != nil {
+		return "", api.NewInstanceResponse(api.InvalidNamespaceName, req)
+	}
+
+	if err := checkInstanceHost(req.GetHost()); err != nil {
+		return "", api.NewInstanceResponse(api.InvalidInstanceHost, req)
+	}
+
+	if err := checkInstancePort(req.GetPort()); err != nil {
+		return "", api.NewInstanceResponse(api.InvalidInstancePort, req)
+	}
+
+	var instID string = req.GetId().GetValue()
+	if len(instID) == 0 {
+		id, err := CalculateInstanceID(req.GetNamespace().GetValue(), req.GetService().GetValue(),
+			req.GetVpcId().GetValue(),
+			req.GetHost().GetValue(),
+			req.GetPort().GetValue(),
+		)
+		if err != nil {
+			return "", api.NewInstanceResponse(api.ExecuteException, req)
+		}
+		instID = id
+	}
+	return instID, nil
 }

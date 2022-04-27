@@ -118,7 +118,7 @@ func (bc *Controller) DeleteInstanceOpen() bool {
 	return bc.deregister != nil
 }
 
-// HeartbeatOpen 删除实例是否开启
+// HeartbeatOpen 心跳是否开启
 func (bc *Controller) HeartbeatOpen() bool {
 	return bc.heartbeat != nil
 }

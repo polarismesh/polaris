@@ -310,6 +310,12 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 					return nil, err
 				}
 				wsContainer.Add(service)
+
+				service, err = h.GetPrometheusDiscoveryServer([]string{})
+				if err != nil {
+					return nil, err
+				}
+				wsContainer.Add(service)
 			}
 		case "config":
 			if config.Enable {
