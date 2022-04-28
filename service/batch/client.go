@@ -193,11 +193,11 @@ func (ctrl *ClientCtrl) registerHandler(futures []*ClientFuture) error {
 		clients = append(clients, model.NewClient(entry.request))
 	}
 	if err := ctrl.storage.BatchAddClients(clients); err != nil {
-		SendClientReply(clients, StoreCode2APICode(err), err)
+		SendClientReply(futures, StoreCode2APICode(err), err)
 		return err
 	}
 
-	SendClientReply(clients, api.ExecuteSuccess, nil)
+	SendClientReply(futures, api.ExecuteSuccess, nil)
 	return nil
 }
 
@@ -215,14 +215,14 @@ func (ctrl *ClientCtrl) deregisterHandler(futures []*ClientFuture) error {
 	// 调用batch接口，创建实例
 	clients := make([]interface{}, 0, len(futures))
 	for _, entry := range futures {
-		id := entry.client.Proto().GetId().GetValue()
+		id := entry.request.GetId().GetValue()
 		clients = append(clients, id)
 	}
 	if err := ctrl.storage.BatchDeleteClients(clients); err != nil {
-		SendClientReply(clients, StoreCode2APICode(err), err)
+		SendClientReply(futures, StoreCode2APICode(err), err)
 		return err
 	}
 
-	SendClientReply(clients, api.ExecuteSuccess, nil)
+	SendClientReply(futures, api.ExecuteSuccess, nil)
 	return nil
 }

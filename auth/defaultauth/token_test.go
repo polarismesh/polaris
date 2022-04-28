@@ -30,7 +30,7 @@ func Test_CustomDesignSalt(t *testing.T) {
 	AuthOption = DefaultAuthConfig()
 
 	// 设置自定义的 salt 值，长度需要满足在 [16, 24, 32] 中的任意一个
- 	AuthOption.Salt = "polarismesh@2021"
+	AuthOption.Salt = "polarismesh@2021"
 
 	//  polaris 用户的ID
 	uid := "65e4789a6d5b49669adf1e9e8387549c"

@@ -154,6 +154,11 @@ func StartComponents(ctx context.Context, cfg *config.Config) error {
 		return err
 	}
 
+	// 初始化命名空间模块
+	if err := namespace.Initialize(ctx, &cfg.Namespace, s, cacheMgn); err != nil {
+		return err
+	}
+
 	// 初始化服务发现模块相关功能
 	if err := StartDiscoverComponents(ctx, cfg, s, cacheMgn, authMgn); err != nil {
 		return err
@@ -161,6 +166,11 @@ func StartComponents(ctx context.Context, cfg *config.Config) error {
 
 	// 初始化配置中心模块相关功能
 	if err := StartConfigCenterComponents(ctx, cfg); err != nil {
+		return err
+	}
+
+	// 最后启动 cache
+	if err := cache.Run(ctx); err != nil {
 		return err
 	}
 
@@ -200,32 +210,32 @@ func StartDiscoverComponents(ctx context.Context, cfg *config.Config, s store.St
 	if len(cfg.HealthChecks.LocalHost) == 0 {
 		cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
 	}
-
 	if err = healthcheck.Initialize(ctx, &cfg.HealthChecks, cfg.Cache.Open, bc); err != nil {
 		return err
 	}
-
 	healthCheckServer, err := healthcheck.GetServer()
 	if err != nil {
 		return err
 	}
-
-	// 初始化命名空间模块
-	if err := namespace.Initialize(ctx, &cfg.Namespace, s, cacheMgn); err != nil {
+	cacheProvider, err := healthCheckServer.CacheProvider()
+	if err != nil {
 		return err
 	}
+	healthCheckServer.SetServiceCache(cacheMgn.Service())
+
+	// 为 instance 的 cache 添加 健康检查的 Listener
+	cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
+	cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
 
 	// 初始化服务模块
 	if err = service.Initialize(ctx, &cfg.Naming, &cfg.Cache, bc); err != nil {
 		return err
 	}
 
-	namingSvr, err := service.GetServer()
+	_, err = service.GetServer()
 	if err != nil {
 		return err
 	}
-	healthCheckServer.SetServiceCache(namingSvr.Cache().Service())
-
 	return nil
 }
 

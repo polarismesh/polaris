@@ -52,7 +52,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: debug
       # outputPaths:
       #   - stdout
       # errorOutputPaths:

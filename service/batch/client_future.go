@@ -46,12 +46,12 @@ func (future *ClientFuture) Wait() error {
 	return <-future.result
 }
 
-// SetInstance 设置ins
+// SetClient 设置 client 信息
 func (future *ClientFuture) SetClient(client *model.Client) {
 	future.client = client
 }
 
-// Instance 获取ins
+// Client 获取 client 信息
 func (future *ClientFuture) Client() *model.Client {
 	return future.client
 }

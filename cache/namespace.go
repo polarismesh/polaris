@@ -71,7 +71,7 @@ type namespaceCache struct {
 func newNamespaceCache(storage store.Store) NamespaceCache {
 	return &namespaceCache{
 		basCache: newBaseCache(),
-		storage: storage,
+		storage:  storage,
 	}
 }
 

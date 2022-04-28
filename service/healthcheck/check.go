@@ -335,8 +335,8 @@ func (c *CheckScheduler) addHealthyCallback(instance *itemValue, lastHeartbeatTi
 	port := instance.port
 	instanceId := instance.id
 	delayMilli := delaySec*1000 + getRandDelayMilli()
-	log.Debugf("[Health Check][Check]add healthy callback, instance is %s:%d, id is %s, delay is %d(ms)",
-		host, port, instanceId, delayMilli)
+	log.Debugf("[Health Check][Check]add healthy callback, %s is %s:%d, id is %s, delay is %d(ms)",
+		instance.ItemType.String(), host, port, instanceId, delayMilli)
 	if instance.ItemType == itemTypeClient {
 		c.timeWheel.AddTask(delayMilli, instanceId, c.checkCallbackClient)
 	} else {
@@ -353,8 +353,8 @@ func (c *CheckScheduler) addUnHealthyCallback(instance *itemValue) {
 	port := instance.port
 	instanceId := instance.id
 	delayMilli := delaySec*1000 + getRandDelayMilli()
-	log.Debugf("[Health Check][Check]add unhealthy callback, instance is %s:%d, id is %s, delay is %d(ms)",
-		host, port, instanceId, delayMilli)
+	log.Debugf("[Health Check][Check]add unhealthy callback, %s is %s:%d, id is %s, delay is %d(ms)",
+		instance.ItemType.String(), host, port, instanceId, delayMilli)
 	if instance.ItemType == itemTypeClient {
 		c.timeWheel.AddTask(delayMilli, instanceId, c.checkCallbackClient)
 	} else {
@@ -387,7 +387,7 @@ func (c *CheckScheduler) checkCallbackClient(value interface{}) {
 	}
 	request := &plugin.CheckRequest{
 		QueryRequest: plugin.QueryRequest{
-			InstanceId: instanceValue.id,
+			InstanceId: toClientId(instanceValue.id),
 			Host:       instanceValue.host,
 			Port:       instanceValue.port,
 			Healthy:    true,
@@ -575,10 +575,10 @@ func (s *Server) asyncSetInsDbStatus(ins *api.Instance, healthStatus bool) uint3
 // 底层函数会合并delete请求，增加并发创建的吞吐
 // req 原始请求
 // ins 包含了req数据与instanceID，serviceToken
-func (s *Server) asyncDeleteClient(ins *api.Client) uint32 {
-	future := s.bc.AsyncDeregisterClient(ins)
+func (s *Server) asyncDeleteClient(client *api.Client) uint32 {
+	future := s.bc.AsyncDeregisterClient(client)
 	if err := future.Wait(); err != nil {
-		log.Error("[Health Check][Check] async delete client", zap.String("client-ip", ins.GetHost().GetValue()),
+		log.Error("[Health Check][Check] async delete client", zap.String("client-id", client.GetId().GetValue()),
 			zap.Error(err))
 	}
 	return future.Code()

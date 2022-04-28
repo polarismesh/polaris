@@ -32,6 +32,6 @@ var (
 			return err
 		}
 		finishInit = true
-		return nil
+		return Run(ctx)
 	}
 )

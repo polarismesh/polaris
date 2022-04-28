@@ -313,7 +313,7 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 			return
 		}
 		if compareAndStoreClient(newClientWithChecker(actual, checker), c.healthCheckClients) {
-			c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
+			c.sendEvent(CacheEvent{healthCheckClientChanged: true})
 		}
 	}
 }

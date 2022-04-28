@@ -33,9 +33,26 @@ func (h *HTTPServer) GetPrometheusDiscoveryServer(include []string) (*restful.We
 }
 
 func (h *HTTPServer) addPrometheusDefaultAccess(ws *restful.WebService) {
-	ws.GET("/clients").To(h.GetPrometheusClients)
+	ws.Route(ws.GET("/clients").To(h.GetPrometheusClients))
 }
 
+// [
+//   {
+//     "targets": [ "<host>", ... ],
+//     "labels": {
+//       "<labelname>": "<labelvalue>", ...
+//     }
+//   },
+//   ...
+// ]
+// GetPrometheusClients 对接 prometheus 基于 http 的 service discovery
 func (h *HTTPServer) GetPrometheusClients(req *restful.Request, rsp *restful.Response) {
 
+	handler := &Handler{req, rsp}
+
+	queryParams := parseQueryParams(req)
+	ctx := handler.ParseHeaderContext()
+	ret := h.namingServer.GetReportClientWithCache(ctx, queryParams)
+
+	handler.WriteAsJson(ret.Response)
 }

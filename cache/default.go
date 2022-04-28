@@ -98,6 +98,10 @@ func initialize(ctx context.Context, cacheOpt *Config, storage store.Store) erro
 		},
 	})
 
+	return nil
+}
+
+func Run(ctx context.Context) error {
 	if startErr := cacheMgn.Start(ctx); startErr != nil {
 		log.CacheScope().Errorf("[Cache][Server] start cache err: %s", startErr.Error())
 		return startErr

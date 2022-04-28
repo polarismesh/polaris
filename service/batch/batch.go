@@ -72,7 +72,7 @@ func NewBatchCtrlWithConfig(storage store.Store, authority auth.Authority, auth 
 	}
 
 	var clientDeregister *ClientCtrl
-	clientDeregister, err = NewBatchRegisterClientCtrl(storage, config.ClientDeregister)
+	clientDeregister, err = NewBatchDeregisterClientCtrl(storage, config.ClientDeregister)
 	if err != nil {
 		log.Errorf("[Batch] new batch client deregister ctrl err: %s", err.Error())
 		return nil, err

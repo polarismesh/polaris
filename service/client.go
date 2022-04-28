@@ -19,6 +19,8 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -119,6 +121,55 @@ func (s *Server) asyncCreateClient(ctx context.Context, req *api.Client) (*model
 	}
 
 	return future.Client(), nil
+}
+
+// GetReportClientWithCache Used for client acquisition service information
+func (s *Server) GetReportClientWithCache(ctx context.Context,
+	query map[string]string) *model.PrometheusDiscoveryResponse {
+
+	if s.caches == nil {
+		return &model.PrometheusDiscoveryResponse{
+			Code:     api.NotFoundInstance,
+			Response: make([]model.PrometheusTarget, 0),
+		}
+	}
+
+	targets := make([]model.PrometheusTarget, 0)
+
+	expectSchema := map[string]struct{}{
+		"http":  {},
+		"https": {},
+	}
+
+	s.Cache().Client().IteratorClients(func(key string, value *model.Client) bool {
+		for i := range value.Proto().Stat {
+			stat := value.Proto().Stat[i]
+			if stat.Target.GetValue() != model.StatReportPrometheus {
+				continue
+			}
+			_, ok := expectSchema[strings.ToLower(stat.Protocol.GetValue())]
+			if !ok {
+				continue
+			}
+
+			target := model.PrometheusTarget{
+				Targets: []string{fmt.Sprintf("%s:%d", value.Proto().Host.GetValue(), stat.Port.GetValue())},
+				Labels: map[string]string{
+					"__metrics_path__":         stat.Path.GetValue(),
+					"__scheme__":               stat.Protocol.GetValue(),
+					"__meta_polaris_client_id": value.Proto().Id.GetValue(),
+				},
+			}
+			targets = append(targets, target)
+		}
+
+		return true
+	})
+
+	return &model.PrometheusDiscoveryResponse{
+		Code:     api.ExecuteSuccess,
+		Response: targets,
+	}
 }
 
 /**
