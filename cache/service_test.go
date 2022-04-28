@@ -43,7 +43,16 @@ func newTestServiceCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *se
 
 	storage := mock.NewMockStore(ctl)
 	notifier := make(chan *revisionNotify, 1024)
-	ic := newInstanceCache(storage, notifier, []Listener{
+	ic := newInstanceCache(storage, notifier)
+	sc := newServiceCache(storage, notifier, ic)
+	opt := map[string]interface{}{
+		"disableBusiness": false,
+		"needMeta":        true,
+	}
+	_ = ic.initialize(opt)
+	_ = sc.initialize(opt)
+
+	ic.addListener([]Listener{
 		&WatchInstanceReload{
 			Handler: func(val interface{}) {
 				if svcIds, ok := val.(map[string]bool); ok {
@@ -52,13 +61,6 @@ func newTestServiceCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *se
 			},
 		},
 	})
-	sc := newServiceCache(storage, notifier, ic)
-	opt := map[string]interface{}{
-		"disableBusiness": false,
-		"needMeta":        true,
-	}
-	_ = ic.initialize(opt)
-	_ = sc.initialize(opt)
 
 	testSvcCacheMap["serviceCache"] = sc
 

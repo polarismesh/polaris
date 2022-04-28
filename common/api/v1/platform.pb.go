@@ -49,7 +49,7 @@ func (m *Platform) Reset()         { *m = Platform{} }
 func (m *Platform) String() string { return proto.CompactTextString(m) }
 func (*Platform) ProtoMessage()    {}
 func (*Platform) Descriptor() ([]byte, []int) {
-	return fileDescriptor_platform_91ca9823fa0e864e, []int{0}
+	return fileDescriptor_platform_75aa576a865b568e, []int{0}
 }
 func (m *Platform) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Platform.Unmarshal(m, b)
@@ -143,9 +143,9 @@ func init() {
 	proto.RegisterType((*Platform)(nil), "v1.Platform")
 }
 
-func init() { proto.RegisterFile("platform.proto", fileDescriptor_platform_91ca9823fa0e864e) }
+func init() { proto.RegisterFile("platform.proto", fileDescriptor_platform_75aa576a865b568e) }
 
-var fileDescriptor_platform_91ca9823fa0e864e = []byte{
+var fileDescriptor_platform_75aa576a865b568e = []byte{
 	// 244 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0xce, 0xc1, 0x4a, 0x03, 0x31,
 	0x10, 0xc6, 0x71, 0xba, 0xdd, 0x6e, 0xeb, 0x08, 0x1e, 0x72, 0x0a, 0x22, 0x22, 0x9e, 0x3c, 0x48,

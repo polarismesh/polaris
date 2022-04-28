@@ -39,7 +39,7 @@ func (x MatchString_MatchStringType) String() string {
 	return proto.EnumName(MatchString_MatchStringType_name, int32(x))
 }
 func (MatchString_MatchStringType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_model_e02dc54f4d85852b, []int{1, 0}
+	return fileDescriptor_model_7699d3da81c352b2, []int{1, 0}
 }
 
 type MatchString_ValueType int32
@@ -65,7 +65,7 @@ func (x MatchString_ValueType) String() string {
 	return proto.EnumName(MatchString_ValueType_name, int32(x))
 }
 func (MatchString_ValueType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_model_e02dc54f4d85852b, []int{1, 1}
+	return fileDescriptor_model_7699d3da81c352b2, []int{1, 1}
 }
 
 type Location struct {
@@ -81,7 +81,7 @@ func (m *Location) Reset()         { *m = Location{} }
 func (m *Location) String() string { return proto.CompactTextString(m) }
 func (*Location) ProtoMessage()    {}
 func (*Location) Descriptor() ([]byte, []int) {
-	return fileDescriptor_model_e02dc54f4d85852b, []int{0}
+	return fileDescriptor_model_7699d3da81c352b2, []int{0}
 }
 func (m *Location) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Location.Unmarshal(m, b)
@@ -135,7 +135,7 @@ func (m *MatchString) Reset()         { *m = MatchString{} }
 func (m *MatchString) String() string { return proto.CompactTextString(m) }
 func (*MatchString) ProtoMessage()    {}
 func (*MatchString) Descriptor() ([]byte, []int) {
-	return fileDescriptor_model_e02dc54f4d85852b, []int{1}
+	return fileDescriptor_model_7699d3da81c352b2, []int{1}
 }
 func (m *MatchString) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MatchString.Unmarshal(m, b)
@@ -187,7 +187,7 @@ func (m *OptionSwitch) Reset()         { *m = OptionSwitch{} }
 func (m *OptionSwitch) String() string { return proto.CompactTextString(m) }
 func (*OptionSwitch) ProtoMessage()    {}
 func (*OptionSwitch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_model_e02dc54f4d85852b, []int{2}
+	return fileDescriptor_model_7699d3da81c352b2, []int{2}
 }
 func (m *OptionSwitch) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_OptionSwitch.Unmarshal(m, b)
@@ -223,9 +223,9 @@ func init() {
 	proto.RegisterEnum("v1.MatchString_ValueType", MatchString_ValueType_name, MatchString_ValueType_value)
 }
 
-func init() { proto.RegisterFile("model.proto", fileDescriptor_model_e02dc54f4d85852b) }
+func init() { proto.RegisterFile("model.proto", fileDescriptor_model_7699d3da81c352b2) }
 
-var fileDescriptor_model_e02dc54f4d85852b = []byte{
+var fileDescriptor_model_7699d3da81c352b2 = []byte{
 	// 363 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x91, 0xc1, 0x6f, 0xa2, 0x40,
 	0x14, 0xc6, 0x77, 0x40, 0x5d, 0x79, 0xb8, 0xbb, 0x64, 0xb2, 0x07, 0xd6, 0xec, 0x6e, 0x0d, 0x97,

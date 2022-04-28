@@ -2155,6 +2155,49 @@ func (mr *MockStoreMockRecorder) DeleteTagByConfigFile(tx, namespace, group, fil
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTagByConfigFile", reflect.TypeOf((*MockStore)(nil).DeleteTagByConfigFile), tx, namespace, group, fileName)
 }
 
+// BatchAddClients mocks base method
+func (m *MockStore) BatchAddClients(clients []*model.Client) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchAddClients", clients)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BatchAddClients indicates an expected call of BatchAddClients
+func (mr *MockStoreMockRecorder) BatchAddClients(clients interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchAddClients", reflect.TypeOf((*MockStore)(nil).BatchAddClients), clients)
+}
+
+// BatchDeleteClients mocks base method
+func (m *MockStore) BatchDeleteClients(ids []interface{}) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchDeleteClients", ids)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BatchDeleteClients indicates an expected call of BatchDeleteClients
+func (mr *MockStoreMockRecorder) BatchDeleteClients(ids interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchDeleteClients", reflect.TypeOf((*MockStore)(nil).BatchDeleteClients), ids)
+}
+
+// GetMoreClients mocks base method
+func (m *MockStore) GetMoreClients(mtime time.Time, firstUpdate bool) (map[string]*model.Client, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreClients", mtime, firstUpdate)
+	ret0, _ := ret[0].(map[string]*model.Client)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreClients indicates an expected call of GetMoreClients
+func (mr *MockStoreMockRecorder) GetMoreClients(mtime, firstUpdate interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreClients", reflect.TypeOf((*MockStore)(nil).GetMoreClients), mtime, firstUpdate)
+}
+
 // MockNamespaceStore is a mock of NamespaceStore interface
 type MockNamespaceStore struct {
 	ctrl     *gomock.Controller

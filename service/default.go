@@ -31,6 +31,7 @@ import (
 	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service/batch"
+	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"github.com/polarismesh/polaris-server/store"
 )
 
@@ -66,10 +67,10 @@ type Config struct {
 }
 
 // Initialize 初始化
-func Initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, listener cache.Listener) error {
+func Initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, bc *batch.Controller) error {
 	var err error
 	once.Do(func() {
-		err = initialize(ctx, namingOpt, cacheOpt, listener)
+		err = initialize(ctx, namingOpt, cacheOpt, bc)
 	})
 
 	if err != nil {
@@ -99,7 +100,8 @@ func GetOriginServer() (*Server, error) {
 }
 
 // 内部初始化函数
-func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, listener cache.Listener) error {
+func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, bc *batch.Controller) error {
+
 	// 获取存储层对象
 	s, err := store.GetStore()
 	if err != nil {
@@ -110,6 +112,14 @@ func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, 
 		log.Errorf("[Naming][Server] store is null")
 		return errors.New("store is null")
 	}
+
+	healthServer, err := healthcheck.GetServer()
+	if err != nil {
+		log.Errorf("[Naming][Server] can not get store, err: %s", err.Error())
+		return errors.New("can not get healthcheck server")
+	}
+
+	namingServer.healthServer = healthServer
 
 	namingServer.storage = s
 
@@ -140,20 +150,7 @@ func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, 
 		namingServer.caches = caches
 	}
 
-	// 批量控制器
-	batchConfig, err := batch.ParseBatchConfig(namingOpt.Batch)
-	if err != nil {
-		return err
-	}
-	bc, err := batch.NewBatchCtrlWithConfig(namingServer.storage, namingServer.authority, plugin.GetAuth(), batchConfig)
-	if err != nil {
-		log.Errorf("new batch ctrl with config err: %s", err.Error())
-		return err
-	}
 	namingServer.bc = bc
-	if namingServer.bc != nil {
-		namingServer.bc.Start(ctx)
-	}
 
 	// l5service
 	namingServer.l5service = &l5service{}
