@@ -502,19 +502,19 @@ func CheckDbMetaDataFieldLen(metaData map[string]string) error {
 
 // CheckInstanceTetrad 根据服务实例四元组计算ID
 func CheckInstanceTetrad(req *api.Instance) (string, *api.Response) {
-	if err := checkResourceName(req.GetService()); err != nil {
+	if err := CheckResourceName(req.GetService()); err != nil {
 		return "", api.NewInstanceResponse(api.InvalidServiceName, req)
 	}
 
-	if err := checkResourceName(req.GetNamespace()); err != nil {
+	if err := CheckResourceName(req.GetNamespace()); err != nil {
 		return "", api.NewInstanceResponse(api.InvalidNamespaceName, req)
 	}
 
-	if err := checkInstanceHost(req.GetHost()); err != nil {
+	if err := CheckInstanceHost(req.GetHost()); err != nil {
 		return "", api.NewInstanceResponse(api.InvalidInstanceHost, req)
 	}
 
-	if err := checkInstancePort(req.GetPort()); err != nil {
+	if err := CheckInstancePort(req.GetPort()); err != nil {
 		return "", api.NewInstanceResponse(api.InvalidInstancePort, req)
 	}
 
