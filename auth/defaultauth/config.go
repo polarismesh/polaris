@@ -30,6 +30,8 @@ type AuthConfig struct {
 	ConsoleOpen bool `json:"consoleOpen" xml:"consoleOpen"`
 	// ClientOpen 是否开启客户端接口鉴权
 	ClientOpen bool `json:"open" xml:"clientOpen"`
+	// MaintainOpen 是否开启运维接口鉴权
+	MaintainOpen bool `json:"maintainOpen" xml:"maintainOpen"`
 	// Salt 相关密码、token加密的salt
 	Salt string `json:"salt" xml:"salt"`
 	// Strict 是否启用鉴权的严格模式，即对于没有任何鉴权策略的资源，也必须带上正确的token才能操作, 默认关闭
@@ -56,7 +58,9 @@ func DefaultAuthConfig() *AuthConfig {
 		ConsoleOpen: true,
 		// 针对客户端接口，默认不开启鉴权操作
 		ClientOpen: false,
-		Salt:       "polarismesh@2021",
+		// 针对运维接口，默认开启鉴权操作
+		MaintainOpen: true,
+		Salt:         "polarismesh@2021",
 		// 这里默认开启强 Token 检查模式
 		Strict: true,
 	}

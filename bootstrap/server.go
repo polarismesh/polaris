@@ -30,6 +30,7 @@ import (
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/maintain"
 	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 
@@ -185,6 +186,12 @@ func StartComponents(ctx context.Context, cfg *config.Config) error {
 		return err
 	}
 	healthCheckServer.SetServiceCache(namingSvr.Cache().Service())
+
+	// 初始化运维操作模块
+	if err := maintain.Initialize(ctx, namingSvr, healthCheckServer); err != nil {
+		return err
+	}
+
 	return nil
 }
 
