@@ -15,14 +15,15 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package httpserver
+package prometheusserver
 
 import (
 	"github.com/emicklei/go-restful"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 // GetPrometheusDiscoveryServer 注册用于promethesu服务发现的接口
-func (h *HTTPServer) GetPrometheusDiscoveryServer(include []string) (*restful.WebService, error) {
+func (h *PrometheusServer) GetPrometheusDiscoveryServer(include []string) (*restful.WebService, error) {
 	ws := new(restful.WebService)
 
 	ws.Path("/prometheus/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
@@ -32,7 +33,7 @@ func (h *HTTPServer) GetPrometheusDiscoveryServer(include []string) (*restful.We
 	return ws, nil
 }
 
-func (h *HTTPServer) addPrometheusDefaultAccess(ws *restful.WebService) {
+func (h *PrometheusServer) addPrometheusDefaultAccess(ws *restful.WebService) {
 	ws.Route(ws.GET("/clients").To(h.GetPrometheusClients))
 }
 
@@ -46,13 +47,13 @@ func (h *HTTPServer) addPrometheusDefaultAccess(ws *restful.WebService) {
 //   ...
 // ]
 // GetPrometheusClients 对接 prometheus 基于 http 的 service discovery
-func (h *HTTPServer) GetPrometheusClients(req *restful.Request, rsp *restful.Response) {
+func (h *PrometheusServer) GetPrometheusClients(req *restful.Request, rsp *restful.Response) {
 
-	handler := &Handler{req, rsp}
+	handler := &utils.Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 	ret := h.namingServer.GetReportClientWithCache(ctx, queryParams)
 
-	handler.WriteAsJson(ret.Response)
+	_ = rsp.WriteAsJson(ret.Response)
 }

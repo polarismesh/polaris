@@ -18,6 +18,7 @@
 package cache
 
 import (
+	"sort"
 	"sync"
 	"time"
 
@@ -45,12 +46,13 @@ type ClientCache interface {
 	Cache
 
 	// GetClient
-	//  @param id
-	//  @return *model.Client
 	GetClient(id string) *model.Client
 
 	// IteratorClients 迭代
 	IteratorClients(iterProc ClientIterProc)
+
+	// GetClientsByFilter Query client information
+	GetClientsByFilter(filters map[string]string, offset, limit uint32) (uint32, []*model.Client, error)
 }
 
 // clientCache 客户端缓存的类
@@ -203,4 +205,66 @@ func (cc *clientCache) IteratorClients(iterProc ClientIterProc) {
 	cc.ids.Range(func(key, value interface{}) bool {
 		return iterProc(key.(string), value.(*model.Client))
 	})
+}
+
+// GetClientsByFilter Query client information
+func (cc *clientCache) GetClientsByFilter(filters map[string]string, offset, limit uint32) (uint32,
+	[]*model.Client, error) {
+
+	ret := make([]*model.Client, 0, 16)
+
+	host, hasHost := filters["host"]
+	clientType, hasType := filters["type"]
+	version, hasVer := filters["version"]
+
+	cc.IteratorClients(func(_ string, value *model.Client) bool {
+		if hasHost && value.Proto().GetHost().GetValue() != host {
+			return true
+		}
+		if hasType && value.Proto().GetType().String() != clientType {
+			return true
+		}
+		if hasVer && value.Proto().GetVersion().String() != version {
+			return true
+		}
+
+		ret = append(ret, value)
+		return true
+	})
+
+	amount := uint32(len(ret))
+	return amount, doClientPage(ret, offset, limit), nil
+}
+
+// doClientPage 进行分页
+func doClientPage(ret []*model.Client, offset, limit uint32) []*model.Client {
+
+	clients := make([]*model.Client, 0, len(ret))
+
+	beginIndex := offset
+	endIndex := beginIndex + limit
+	totalCount := uint32(len(ret))
+
+	if totalCount == 0 {
+		return clients
+	}
+	if beginIndex >= endIndex {
+		return clients
+	}
+	if beginIndex >= totalCount {
+		return clients
+	}
+	if endIndex > totalCount {
+		endIndex = totalCount
+	}
+	for i := range ret {
+		clients = append(clients, ret[i])
+	}
+
+	sort.Slice(clients, func(i, j int) bool {
+		return clients[i].ModifyTime().After(clients[j].ModifyTime())
+	})
+
+	return clients[beginIndex:endIndex]
+
 }

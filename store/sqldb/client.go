@@ -91,7 +91,7 @@ func (cs *clientStore) BatchAddClients(clients []*model.Client) error {
 }
 
 // BatchDeleteClients 批量删除实例，flag=1
-func (cs *clientStore) BatchDeleteClients(ids []interface{}) error {
+func (cs *clientStore) BatchDeleteClients(ids []string) error {
 	err := RetryTransaction("batchDeleteClients", func() error {
 		return cs.batchDeleteClients(ids)
 	})
@@ -145,7 +145,7 @@ func (cs *clientStore) batchAddClients(clients []*model.Client) error {
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	ids := make([]interface{}, 0, len(clients))
+	ids := make([]string, 0, len(clients))
 	var client2StatInfos = make(map[string][]*api.StatInfo)
 	builder := strings.Builder{}
 	for idx, entry := range clients {
@@ -179,7 +179,7 @@ func (cs *clientStore) batchAddClients(clients []*model.Client) error {
 	return nil
 }
 
-func (cs *clientStore) batchDeleteClients(ids []interface{}) error {
+func (cs *clientStore) batchDeleteClients(ids []string) error {
 	tx, err := cs.master.Begin()
 	if err != nil {
 		log.Errorf("[Store][database] batch delete clients tx begin err: %s", err.Error())
@@ -202,8 +202,13 @@ func (cs *clientStore) batchDeleteClients(ids []interface{}) error {
 	return nil
 }
 
-func batchDeleteClientsMain(tx *BaseTx, ids []interface{}) error {
-	return BatchOperation("batch-delete-clients", ids, func(objects []interface{}) error {
+func batchDeleteClientsMain(tx *BaseTx, ids []string) error {
+	args := make([]interface{}, 0, len(ids))
+	for i := range ids {
+		args = append(args, ids[i])
+	}
+
+	return BatchOperation("batch-delete-clients", args, func(objects []interface{}) error {
 		if len(objects) == 0 {
 			return nil
 		}
@@ -213,8 +218,13 @@ func batchDeleteClientsMain(tx *BaseTx, ids []interface{}) error {
 	})
 }
 
-func batchCleanClientStats(tx *BaseTx, ids []interface{}) error {
-	return BatchOperation("batch-delete-client-stats", ids, func(objects []interface{}) error {
+func batchCleanClientStats(tx *BaseTx, ids []string) error {
+	args := make([]interface{}, 0, len(ids))
+	for i := range ids {
+		args = append(args, ids[i])
+	}
+
+	return BatchOperation("batch-delete-client-stats", args, func(objects []interface{}) error {
 		if len(objects) == 0 {
 			return nil
 		}

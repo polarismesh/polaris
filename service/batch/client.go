@@ -213,7 +213,7 @@ func (ctrl *ClientCtrl) deregisterHandler(futures []*ClientFuture) error {
 	log.Infof("[Batch] Start batch deleting clients count: %d", len(futures))
 
 	// 调用batch接口，创建实例
-	clients := make([]interface{}, 0, len(futures))
+	clients := make([]string, 0, len(futures))
 	for _, entry := range futures {
 		id := entry.request.GetId().GetValue()
 		clients = append(clients, id)

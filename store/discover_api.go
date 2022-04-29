@@ -334,7 +334,7 @@ type ClientStore interface {
 	BatchAddClients(clients []*model.Client) error
 
 	// BatchDeleteClients delete the client info
-	BatchDeleteClients(ids []interface{}) error
+	BatchDeleteClients(ids []string) error
 
 	// GetMoreClients 根据mtime获取增量clients，返回所有store的变更信息
 	GetMoreClients(mtime time.Time, firstUpdate bool) (map[string]*model.Client, error)

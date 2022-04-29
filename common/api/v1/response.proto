@@ -66,6 +66,7 @@ message BatchQueryResponse {
   repeated User users = 18;
   repeated UserGroup userGroups = 19;
   repeated AuthStrategy authStrategies = 20;
+  repeated Client clients = 21;
   reserved 12 to 14, 16;
 }
 

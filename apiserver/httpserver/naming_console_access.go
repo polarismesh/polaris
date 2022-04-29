@@ -246,7 +246,7 @@ func (h *HTTPServer) GetNamespaceToken(req *restful.Request, rsp *restful.Respon
 	token := req.HeaderParameter("Polaris-Token")
 	ctx := context.WithValue(context.Background(), utils.StringContext("polaris-token"), token)
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	namespace := &api.Namespace{
 		Name:  utils.NewStringValue(queryParams["name"]),
 		Token: utils.NewStringValue(queryParams["token"]),
@@ -340,7 +340,7 @@ func (h *HTTPServer) UpdateServices(req *restful.Request, rsp *restful.Response)
 func (h *HTTPServer) GetServices(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 	ret := h.namingServer.GetServices(ctx, queryParams)
 	handler.WriteHeaderAndProto(ret)
@@ -359,7 +359,7 @@ func (h *HTTPServer) GetServiceToken(req *restful.Request, rsp *restful.Response
 	token := req.HeaderParameter("Polaris-Token")
 	ctx := context.WithValue(context.Background(), utils.StringContext("polaris-token"), token)
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	service := &api.Service{
 		Name:      utils.NewStringValue(queryParams["name"]),
 		Namespace: utils.NewStringValue(queryParams["namespace"]),
@@ -445,7 +445,7 @@ func (h *HTTPServer) DeleteServiceAliases(req *restful.Request, rsp *restful.Res
 func (h *HTTPServer) GetServiceAliases(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ret := h.namingServer.GetServiceAliases(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
@@ -568,7 +568,7 @@ func (h *HTTPServer) UpdateInstancesIsolate(req *restful.Request, rsp *restful.R
 func (h *HTTPServer) GetInstances(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ret := h.namingServer.GetInstances(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
@@ -652,7 +652,7 @@ func (h *HTTPServer) UpdateRoutings(req *restful.Request, rsp *restful.Response)
 func (h *HTTPServer) GetRoutings(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ret := h.namingServer.GetRoutingConfigs(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
@@ -726,7 +726,7 @@ func (h *HTTPServer) UpdateRateLimits(req *restful.Request, rsp *restful.Respons
 func (h *HTTPServer) GetRateLimits(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ret := h.namingServer.GetRateLimits(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
@@ -864,7 +864,7 @@ func (h *HTTPServer) UnBindCircuitBreakers(req *restful.Request, rsp *restful.Re
 func (h *HTTPServer) GetCircuitBreaker(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ret := h.namingServer.GetCircuitBreaker(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
@@ -873,7 +873,7 @@ func (h *HTTPServer) GetCircuitBreaker(req *restful.Request, rsp *restful.Respon
 func (h *HTTPServer) GetCircuitBreakerVersions(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ret := h.namingServer.GetCircuitBreakerVersions(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
@@ -882,7 +882,7 @@ func (h *HTTPServer) GetCircuitBreakerVersions(req *restful.Request, rsp *restfu
 func (h *HTTPServer) GetMasterCircuitBreakers(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ret := h.namingServer.GetMasterCircuitBreakers(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
@@ -891,7 +891,7 @@ func (h *HTTPServer) GetMasterCircuitBreakers(req *restful.Request, rsp *restful
 func (h *HTTPServer) GetReleaseCircuitBreakers(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ret := h.namingServer.GetReleaseCircuitBreakers(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
@@ -900,7 +900,7 @@ func (h *HTTPServer) GetReleaseCircuitBreakers(req *restful.Request, rsp *restfu
 func (h *HTTPServer) GetCircuitBreakerByService(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ret := h.namingServer.GetCircuitBreakerByService(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
@@ -929,7 +929,7 @@ func (h *HTTPServer) GetCircuitBreakerToken(req *restful.Request, rsp *restful.R
 	token := req.HeaderParameter("Polaris-Token")
 	ctx := context.WithValue(context.Background(), utils.StringContext("polaris-token"), token)
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	circuitBreaker := &api.CircuitBreaker{
 		Id:      utils.NewStringValue(queryParams["id"]),
 		Version: utils.NewStringValue("master"),
@@ -1008,7 +1008,7 @@ func (h *HTTPServer) DeletePlatforms(req *restful.Request, rsp *restful.Response
 func (h *HTTPServer) GetPlatforms(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ret := h.namingServer.GetPlatforms(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
@@ -1019,7 +1019,7 @@ func (h *HTTPServer) GetPlatformToken(req *restful.Request, rsp *restful.Respons
 	token := req.HeaderParameter("Polaris-Token")
 	ctx := context.WithValue(context.Background(), utils.StringContext("polaris-token"), token)
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	platform := &api.Platform{
 		Id:    utils.NewStringValue(queryParams["id"]),
 		Token: utils.NewStringValue(queryParams["token"]),
@@ -1027,16 +1027,4 @@ func (h *HTTPServer) GetPlatformToken(req *restful.Request, rsp *restful.Respons
 
 	ret := h.namingServer.GetPlatformToken(ctx, platform)
 	handler.WriteHeaderAndProto(ret)
-}
-
-// parseQueryParams 解析并获取HTTP的query params
-func parseQueryParams(req *restful.Request) map[string]string {
-	queryParams := make(map[string]string)
-	for key, value := range req.Request.URL.Query() {
-		if len(value) > 0 {
-			queryParams[key] = value[0] // 暂时默认只支持一个查询
-		}
-	}
-
-	return queryParams
 }

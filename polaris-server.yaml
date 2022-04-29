@@ -157,6 +157,14 @@ apiservers:
         openConnLimit: false
         maxConnPerHost: 128
         maxConnLimit: 10240
+  - name: prometheusserver
+    option:
+      listenIP: "0.0.0.0"
+      listenPort: 19090
+      connLimit:
+        openConnLimit: false
+        maxConnPerHost: 128
+        maxConnLimit: 10240
 #  - name: l5pbserver
 #    option:
 #      listenIP: 0.0.0.0

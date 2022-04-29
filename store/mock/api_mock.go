@@ -2170,7 +2170,7 @@ func (mr *MockStoreMockRecorder) BatchAddClients(clients interface{}) *gomock.Ca
 }
 
 // BatchDeleteClients mocks base method
-func (m *MockStore) BatchDeleteClients(ids []interface{}) error {
+func (m *MockStore) BatchDeleteClients(ids []string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BatchDeleteClients", ids)
 	ret0, _ := ret[0].(error)
