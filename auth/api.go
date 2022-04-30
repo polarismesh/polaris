@@ -63,14 +63,10 @@ type AuthChecker interface {
 	CheckClientPermission(preCtx *model.AcquireContext) (bool, error)
 	// CheckConsolePermission 执行检查控制台动作判断是否有权限，并且对 RequestContext 注入操作者数据
 	CheckConsolePermission(preCtx *model.AcquireContext) (bool, error)
-	// CheckMaintainPermission
-	CheckMaintainPermission(preCtx *model.AcquireContext) (bool, error)
 	// IsOpenConsoleAuth 返回是否开启了操作鉴权，可以用于前端查询
 	IsOpenConsoleAuth() bool
 	// IsOpenClientAuth
 	IsOpenClientAuth() bool
-	// IsOpenMaintainAuth
-	IsOpenMaintainAuth() bool
 }
 
 // UserOperator 用户数据管理 server

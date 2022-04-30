@@ -44,11 +44,13 @@ func newServerAuthAbility(targetServer *Server, authSvr auth.AuthServer) Maintai
 	return proxy
 }
 
-func (svr *serverAuthAbility) collectMaintainAuthContext(ctx context.Context, methodName string) *model.AcquireContext {
+func (svr *serverAuthAbility) collectMaintainAuthContext(ctx context.Context, resourceOp model.ResourceOperation,
+	methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
+		model.WithOperation(resourceOp),
 		model.WithToken(utils.ParseAuthToken(ctx)),
-		model.WithModule(model.CoreModule),
+		model.WithModule(model.MaintainModule),
 		model.WithMethod(methodName),
 	)
 }

@@ -39,10 +39,6 @@ func (checker *defaultAuthChecker) IsOpenClientAuth() bool {
 	return AuthOption.ClientOpen
 }
 
-func (checker *defaultAuthChecker) IsOpenMaintainAuth() bool {
-	return AuthOption.MaintainOpen
-}
-
 // IsOpenAuth 返回对于控制台/客户端任意其中的一个是否开启了操作鉴权
 func (checker *defaultAuthChecker) IsOpenAuth() bool {
 	return checker.IsOpenConsoleAuth() || checker.IsOpenClientAuth()
@@ -63,23 +59,32 @@ func (checker *defaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireC
 		return true, nil
 	}
 
+	if preCtx.GetModule() == model.MaintainModule {
+		return checker.checkMaintainPermission(preCtx)
+	}
+
 	return checker.CheckPermission(preCtx)
 }
 
 // CheckClientPermission 执行检查运维动作判断是否有权限
-func (checker *defaultAuthChecker) CheckMaintainPermission(preCtx *model.AcquireContext) (bool, error) {
-	if !checker.IsOpenMaintainAuth() {
-		return true, nil
-	}
+func (checker *defaultAuthChecker) checkMaintainPermission(preCtx *model.AcquireContext) (bool, error) {
 
 	if err := checker.VerifyCredential(preCtx); err != nil {
 		return false, err
+	}
+
+	if preCtx.GetOperation() == model.Read {
+		return true, nil
 	}
 
 	tokenInfo := preCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo)
 
 	if tokenInfo.Disable {
 		return false, model.ErrorTokenDisabled
+	}
+
+	if !tokenInfo.IsUserToken {
+		return false, errors.New("only user role can access maintain API")
 	}
 
 	if tokenInfo.Role != model.OwnerUserRole {

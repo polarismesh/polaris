@@ -21,11 +21,12 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 func (svr *serverAuthAbility) GetServerConnections(ctx context.Context, req *ConnReq) (*ConnCountResp, error) {
-	authCtx := svr.collectMaintainAuthContext(ctx, "GetServerConnections")
-	_, err := svr.authMgn.CheckMaintainPermission(authCtx)
+	authCtx := svr.collectMaintainAuthContext(ctx, model.Read, "GetServerConnections")
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -34,8 +35,8 @@ func (svr *serverAuthAbility) GetServerConnections(ctx context.Context, req *Con
 }
 
 func (svr *serverAuthAbility) GetServerConnStats(ctx context.Context, req *ConnReq) (*ConnStatsResp, error) {
-	authCtx := svr.collectMaintainAuthContext(ctx, "GetServerConnStats")
-	_, err := svr.authMgn.CheckMaintainPermission(authCtx)
+	authCtx := svr.collectMaintainAuthContext(ctx, model.Read, "GetServerConnStats")
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -44,8 +45,8 @@ func (svr *serverAuthAbility) GetServerConnStats(ctx context.Context, req *ConnR
 }
 
 func (svr *serverAuthAbility) CloseConnections(ctx context.Context, reqs []ConnReq) error {
-	authCtx := svr.collectMaintainAuthContext(ctx, "GetServerConnStats")
-	_, err := svr.authMgn.CheckMaintainPermission(authCtx)
+	authCtx := svr.collectMaintainAuthContext(ctx, model.Delete, "CloseConnections")
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return err
 	}
@@ -54,8 +55,8 @@ func (svr *serverAuthAbility) CloseConnections(ctx context.Context, reqs []ConnR
 }
 
 func (svr *serverAuthAbility) FreeOSMemory(ctx context.Context) error {
-	authCtx := svr.collectMaintainAuthContext(ctx, "FreeOSMemory")
-	_, err := svr.authMgn.CheckMaintainPermission(authCtx)
+	authCtx := svr.collectMaintainAuthContext(ctx, model.Modify, "FreeOSMemory")
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return err
 	}
@@ -64,8 +65,8 @@ func (svr *serverAuthAbility) FreeOSMemory(ctx context.Context) error {
 }
 
 func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *api.Instance) *api.Response {
-	authCtx := svr.collectMaintainAuthContext(ctx, "CleanInstance")
-	_, err := svr.authMgn.CheckMaintainPermission(authCtx)
+	authCtx := svr.collectMaintainAuthContext(ctx, model.Delete, "CleanInstance")
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 	}
@@ -74,8 +75,8 @@ func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *api.Instan
 }
 
 func (svr *serverAuthAbility) GetLastHeartbeat(ctx context.Context, req *api.Instance) *api.Response {
-	authCtx := svr.collectMaintainAuthContext(ctx, "GetLastHeartbeat")
-	_, err := svr.authMgn.CheckMaintainPermission(authCtx)
+	authCtx := svr.collectMaintainAuthContext(ctx, model.Read, "GetLastHeartbeat")
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 	}
@@ -84,8 +85,8 @@ func (svr *serverAuthAbility) GetLastHeartbeat(ctx context.Context, req *api.Ins
 }
 
 func (svr *serverAuthAbility) GetLogOutputLevel(ctx context.Context) (map[string]string, error) {
-	authCtx := svr.collectMaintainAuthContext(ctx, "GetLogOutputLevel")
-	_, err := svr.authMgn.CheckMaintainPermission(authCtx)
+	authCtx := svr.collectMaintainAuthContext(ctx, model.Read, "GetLogOutputLevel")
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -94,8 +95,8 @@ func (svr *serverAuthAbility) GetLogOutputLevel(ctx context.Context) (map[string
 }
 
 func (svr *serverAuthAbility) SetLogOutputLevel(ctx context.Context, scope string, level string) error {
-	authCtx := svr.collectMaintainAuthContext(ctx, "SetLogOutputLevel")
-	_, err := svr.authMgn.CheckMaintainPermission(authCtx)
+	authCtx := svr.collectMaintainAuthContext(ctx, model.Modify, "SetLogOutputLevel")
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return err
 	}
