@@ -66,7 +66,7 @@ func (checker *defaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireC
 	return checker.CheckPermission(preCtx)
 }
 
-// CheckClientPermission 执行检查运维动作判断是否有权限
+// CheckMaintainPermission 执行检查运维动作判断是否有权限
 func (checker *defaultAuthChecker) checkMaintainPermission(preCtx *model.AcquireContext) (bool, error) {
 
 	if err := checker.VerifyCredential(preCtx); err != nil {
