@@ -15,16 +15,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package boltdb
+package namespace
 
-import "time"
+import (
+	commonlog "github.com/polarismesh/polaris-server/common/log"
+)
 
-// toolStore 实现了ToolStoreStore
-type toolStore struct {
-}
-
-// GetNow 获取当前时间，单位秒
-func (t *toolStore) GetNow() (int64, error) {
-	return time.Now().Unix(), nil
-}
-
+var log = commonlog.NamingScope()

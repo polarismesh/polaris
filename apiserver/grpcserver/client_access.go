@@ -40,32 +40,30 @@ func (g *GRPCServer) ReportClient(ctx context.Context, in *api.Client) (*api.Res
 func (g *GRPCServer) RegisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
 	rCtx := ConvertContext(ctx)
-	operator := ParseGrpcOperator(ctx)
-	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), operator)
+	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
 
 	// 客户端请求中带了 token 的，优先已请求中的为准
 	if in.GetServiceToken().GetValue() != "" {
 		rCtx = context.WithValue(rCtx, utils.ContextAuthTokenKey, in.GetServiceToken().GetValue())
 	}
 
-	out := g.namingServer.CreateInstances(rCtx, []*api.Instance{in})
-	return out.Responses[0], nil
+	out := g.namingServer.RegisterInstance(rCtx, in)
+	return out, nil
 }
 
 // DeregisterInstance 反注册服务实例
 func (g *GRPCServer) DeregisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
 	rCtx := ConvertContext(ctx)
-	operator := ParseGrpcOperator(ctx)
-	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), operator)
+	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
 
 	// 客户端请求中带了 token 的，优先已请求中的为准
 	if in.GetServiceToken().GetValue() != "" {
 		rCtx = context.WithValue(rCtx, utils.ContextAuthTokenKey, in.GetServiceToken().GetValue())
 	}
 
-	out := g.namingServer.DeleteInstances(rCtx, []*api.Instance{in})
-	return out.Responses[0], nil
+	out := g.namingServer.DeregisterInstance(rCtx, in)
+	return out, nil
 }
 
 // Discover 统一发现接口

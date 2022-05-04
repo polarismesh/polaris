@@ -27,6 +27,16 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
+// CreateInstances create one instance
+func (s *Server) RegisterInstance(ctx context.Context, req *api.Instance) *api.Response {
+	return s.CreateInstance(ctx, req)
+}
+
+// DeleteInstance delete onr instance
+func (s *Server) DeregisterInstance(ctx context.Context, req *api.Instance) *api.Response {
+	return s.DeleteInstance(ctx, req)
+}
+
 // ReportClient 客户端上报信息
 func (s *Server) ReportClient(ctx context.Context, req *api.Client) *api.Response {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)

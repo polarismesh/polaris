@@ -37,6 +37,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/connlimit"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/config"
+	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/plugin/statis/local"
 	"github.com/polarismesh/polaris-server/service"
@@ -59,6 +60,7 @@ type HTTPServer struct {
 	freeMemMu *sync.Mutex
 
 	server            *http.Server
+	namespaceServer   namespace.NamespaceOperateServer
 	namingServer      service.DiscoverServer
 	configServer      *config.Server
 	healthCheckServer *healthcheck.Server
@@ -126,6 +128,15 @@ func (h *HTTPServer) Run(errCh chan error) {
 	}()
 
 	var err error
+
+	// 引入命名空间模块
+	h.namespaceServer, err = namespace.GetServer()
+	if err != nil {
+		log.Errorf("%v", err)
+		errCh <- err
+		return
+	}
+
 	// 引入功能模块和插件
 	h.namingServer, err = service.GetServer()
 	if err != nil {

@@ -30,7 +30,7 @@ func (svr *serverAuthAbility) CreateServiceAlias(ctx context.Context,
 	req *api.ServiceAlias) *api.Response {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Create, "CreateServiceAlias")
 
-	if _, err := svr.authMgn.CheckPermission(authCtx); err != nil {
+	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
 		return api.NewServiceAliasResponse(convertToErrCode(err), req)
 	}
 
@@ -51,7 +51,7 @@ func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context,
 	reqs []*api.ServiceAlias) *api.BatchWriteResponse {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, reqs, model.Delete, "DeleteServiceAliases")
 
-	if _, err := svr.authMgn.CheckPermission(authCtx); err != nil {
+	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 
@@ -65,7 +65,7 @@ func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context,
 func (svr *serverAuthAbility) UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Modify, "UpdateServiceAlias")
 
-	if _, err := svr.authMgn.CheckPermission(authCtx); err != nil {
+	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
 		return api.NewServiceAliasResponse(convertToErrCode(err), req)
 	}
 
@@ -80,7 +80,7 @@ func (svr *serverAuthAbility) GetServiceAliases(ctx context.Context,
 	query map[string]string) *api.BatchQueryResponse {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, nil, model.Read, "GetServiceAliases")
 
-	if _, err := svr.authMgn.CheckPermission(authCtx); err != nil {
+	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponse(convertToErrCode(err))
 	}
 
@@ -100,11 +100,15 @@ func (svr *serverAuthAbility) GetServiceAliases(ctx context.Context,
 			svc := svr.Cache().Service().GetServiceByName(alias.Service.Value, alias.Namespace.Value)
 			editable := true
 			// 如果鉴权能力没有开启，那就默认都可以进行编辑
-			if svr.authMgn.IsOpenAuth() {
+			if svr.authMgn.IsOpenConsoleAuth() {
 				editable = svr.Cache().AuthStrategy().IsResourceEditable(principal,
 					api.ResourceType_Services, svc.ID)
 			}
 			alias.Editable = utils.NewBoolValue(editable)
+			// 如果当前登录账户为该资源的主账户，则允许直接进行操作
+			if alias.Owners.GetValue() == utils.ParseUserID(ctx) {
+				alias.Editable = utils.NewBoolValue(true)
+			}
 		}
 	}
 	return resp

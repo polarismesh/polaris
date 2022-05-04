@@ -29,7 +29,7 @@ import (
 func (svr *serverAuthAbility) CreateServices(ctx context.Context, reqs []*api.Service) *api.BatchWriteResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, reqs, model.Create, "CreateServices")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
@@ -59,7 +59,7 @@ func (svr *serverAuthAbility) DeleteServices(ctx context.Context, reqs []*api.Se
 	delete(accessRes, api.ResourceType_Namespaces)
 	authCtx.SetAccessResources(accessRes)
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(convertToErrCode(err), err.Error())
 	}
@@ -78,7 +78,7 @@ func (svr *serverAuthAbility) UpdateServices(ctx context.Context, reqs []*api.Se
 	delete(accessRes, api.ResourceType_Namespaces)
 	authCtx.SetAccessResources(accessRes)
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
@@ -96,7 +96,7 @@ func (svr *serverAuthAbility) UpdateServiceToken(ctx context.Context, req *api.S
 	delete(accessRes, api.ResourceType_Namespaces)
 	authCtx.SetAccessResources(accessRes)
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 	}
@@ -111,7 +111,7 @@ func (svr *serverAuthAbility) UpdateServiceToken(ctx context.Context, req *api.S
 func (svr *serverAuthAbility) GetServices(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServices")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchQueryResponseWithMsg(convertToErrCode(err), err.Error())
 	}
@@ -130,11 +130,15 @@ func (svr *serverAuthAbility) GetServices(ctx context.Context, query map[string]
 			svc := resp.Services[index]
 			editable := true
 			// 如果鉴权能力没有开启，那就默认都可以进行编辑
-			if svr.authMgn.IsOpenAuth() {
+			if svr.authMgn.IsOpenConsoleAuth() {
 				editable = svr.Cache().AuthStrategy().IsResourceEditable(principal,
 					api.ResourceType_Services, svc.Id.GetValue())
 			}
 			svc.Editable = utils.NewBoolValue(editable)
+			// 如果当前登录账户为该资源的主账户，则允许直接进行操作
+			if svc.Owners.GetValue() == utils.ParseUserID(ctx) {
+				svc.Editable = utils.NewBoolValue(true)
+			}
 		}
 	}
 	return resp
@@ -144,7 +148,7 @@ func (svr *serverAuthAbility) GetServices(ctx context.Context, query map[string]
 func (svr *serverAuthAbility) GetServicesCount(ctx context.Context) *api.BatchQueryResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServicesCount")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchQueryResponseWithMsg(convertToErrCode(err), err.Error())
 	}
@@ -159,7 +163,7 @@ func (svr *serverAuthAbility) GetServicesCount(ctx context.Context) *api.BatchQu
 func (svr *serverAuthAbility) GetServiceToken(ctx context.Context, req *api.Service) *api.Response {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServiceToken")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 	}
@@ -174,7 +178,7 @@ func (svr *serverAuthAbility) GetServiceToken(ctx context.Context, req *api.Serv
 func (svr *serverAuthAbility) GetServiceOwner(ctx context.Context, req []*api.Service) *api.BatchQueryResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServiceOwner")
 
-	_, err := svr.authMgn.CheckPermission(authCtx)
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchQueryResponseWithMsg(convertToErrCode(err), err.Error())
 	}

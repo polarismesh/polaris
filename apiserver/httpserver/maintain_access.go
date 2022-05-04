@@ -19,15 +19,16 @@ package httpserver
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"runtime/debug"
 	"strconv"
 	"time"
 
 	"github.com/emicklei/go-restful"
-
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
@@ -42,6 +43,8 @@ func (h *HTTPServer) GetMaintainAccessServer() *restful.WebService {
 	ws.Route(ws.POST("/memory/free").To(h.FreeOSMemory))
 	ws.Route(ws.POST("/instance/clean").Consumes(restful.MIME_JSON).To(h.CleanInstance))
 	ws.Route(ws.GET("/instance/heartbeat").To(h.GetLastHeartbeat))
+	ws.Route(ws.GET("/log/outputlevel").To(h.GetLogOutputLevel))
+	ws.Route(ws.PUT("/log/outputlevel").To(h.SetLogOutputLevel))
 	return ws
 }
 
@@ -229,4 +232,39 @@ func (h *HTTPServer) GetLastHeartbeat(req *restful.Request, rsp *restful.Respons
 
 	ret := h.healthCheckServer.GetLastHeartbeat(instance)
 	handler.WriteHeaderAndProto(ret)
+}
+
+// GetLogOutputLevel 获取日志输出级别
+func (h *HTTPServer) GetLogOutputLevel(req *restful.Request, rsp *restful.Response) {
+	scopes := commonlog.Scopes()
+	out := make(map[string]string, len(scopes))
+	for k, v := range scopes {
+		out[k] = v.GetOutputLevel().Name()
+	}
+
+	_ = rsp.WriteAsJson(out)
+}
+
+// SetLogOutputLevel 设置日志输出级别
+func (h *HTTPServer) SetLogOutputLevel(req *restful.Request, rsp *restful.Response) {
+	var scopeLogLevel struct {
+		Scope string `json:"scope"`
+		Level string `json:"level"`
+	}
+	body, err := ioutil.ReadAll(req.Request.Body)
+	if err != nil {
+		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := json.Unmarshal(body, &scopeLogLevel); err != nil {
+		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := commonlog.SetLogOutputLevel(scopeLogLevel.Scope, scopeLogLevel.Level); err != nil {
+		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	_ = rsp.WriteEntity("ok")
 }

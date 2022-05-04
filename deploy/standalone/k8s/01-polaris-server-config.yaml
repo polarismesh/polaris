@@ -167,7 +167,8 @@ data:
       name: defaultAuth
       option:
         salt: polarismesh@2021
-        open: ##AUTH_OPEN##
+        consoleOpen: true
+        clientOpen: false
     naming:
       auth:
         open: false

@@ -467,19 +467,34 @@ func (mr *MockAuthCheckerMockRecorder) VerifyCredential(preCtx interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyCredential", reflect.TypeOf((*MockAuthChecker)(nil).VerifyCredential), preCtx)
 }
 
-// CheckPermission mocks base method
-func (m *MockAuthChecker) CheckPermission(preCtx *model.AcquireContext) (bool, error) {
+// CheckClientPermission mocks base method
+func (m *MockAuthChecker) CheckClientPermission(preCtx *model.AcquireContext) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckPermission", preCtx)
+	ret := m.ctrl.Call(m, "CheckClientPermission", preCtx)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// CheckPermission indicates an expected call of CheckPermission
-func (mr *MockAuthCheckerMockRecorder) CheckPermission(preCtx interface{}) *gomock.Call {
+// CheckClientPermission indicates an expected call of CheckClientPermission
+func (mr *MockAuthCheckerMockRecorder) CheckClientPermission(preCtx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckPermission", reflect.TypeOf((*MockAuthChecker)(nil).CheckPermission), preCtx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckClientPermission", reflect.TypeOf((*MockAuthChecker)(nil).CheckClientPermission), preCtx)
+}
+
+// CheckConsolePermission mocks base method
+func (m *MockAuthChecker) CheckConsolePermission(preCtx *model.AcquireContext) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckConsolePermission", preCtx)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckConsolePermission indicates an expected call of CheckConsolePermission
+func (mr *MockAuthCheckerMockRecorder) CheckConsolePermission(preCtx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckConsolePermission", reflect.TypeOf((*MockAuthChecker)(nil).CheckConsolePermission), preCtx)
 }
 
 // IsOpenAuth mocks base method

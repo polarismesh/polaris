@@ -27,7 +27,7 @@ type toolStore struct {
 }
 
 const (
-	nowSql           = `select UNIX_TIMESTAMP(SYSDATE())`
+	nowSql = `select UNIX_TIMESTAMP(SYSDATE())`
 	maxQueryInterval = time.Second
 )
 
