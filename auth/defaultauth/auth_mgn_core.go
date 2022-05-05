@@ -41,7 +41,9 @@ func (checker *defaultAuthChecker) IsOpenClientAuth() bool {
 
 // IsOpenAuth 返回对于控制台/客户端任意其中的一个是否开启了操作鉴权
 func (checker *defaultAuthChecker) IsOpenAuth() bool {
-	return checker.IsOpenConsoleAuth() || checker.IsOpenClientAuth()
+	consoleOpen := checker.IsOpenConsoleAuth()
+	clientOpen := checker.IsOpenClientAuth()
+	return consoleOpen || clientOpen
 }
 
 // CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据

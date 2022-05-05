@@ -29,7 +29,7 @@ type AuthConfig struct {
 	// ConsoleOpen 控制台是否开启鉴权
 	ConsoleOpen bool `json:"consoleOpen" xml:"consoleOpen"`
 	// ClientOpen 是否开启客户端接口鉴权
-	ClientOpen bool `json:"open" xml:"clientOpen"`
+	ClientOpen bool `json:"clientOpen" xml:"clientOpen"`
 	// Salt 相关密码、token加密的salt
 	Salt string `json:"salt" xml:"salt"`
 	// Strict 是否启用鉴权的严格模式，即对于没有任何鉴权策略的资源，也必须带上正确的token才能操作, 默认关闭
