@@ -236,7 +236,7 @@ func (cc *clientCache) GetClientsByFilter(filters map[string]string, offset, lim
 	return amount, doClientPage(ret, offset, limit), nil
 }
 
-// doClientPage 进行分页
+// doClientPage 进行分页, 仅用于控制台查询时的排序
 func doClientPage(ret []*model.Client, offset, limit uint32) []*model.Client {
 
 	clients := make([]*model.Client, 0, len(ret))

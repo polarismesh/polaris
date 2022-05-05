@@ -84,11 +84,12 @@ func initialize(ctx context.Context, cacheOpt *Config, storage store.Store) erro
 	cacheMgn.caches[CacheNamespace] = newNamespaceCache(storage)
 	cacheMgn.caches[CacheClient] = newClientCache(storage)
 
-	if err := cacheMgn.initialize(); err != nil {
-		return err
+	if len(cacheMgn.caches) != CacheLast {
+		return errors.New("some Cache implement not loaded into CacheManager")
 	}
 
-	cacheMgn.caches[CacheInstance].addListener([]Listener{
+	// 在这里调用 Cache.AddListener 时，必须先保证每一个Cache的实现都已经实例化并装载进 NamingCache 中
+	cacheMgn.AddListener(CacheNameInstance, []Listener{
 		&WatchInstanceReload{
 			Handler: func(val interface{}) {
 				if svcIds, ok := val.(map[string]bool); ok {
@@ -97,6 +98,10 @@ func initialize(ctx context.Context, cacheOpt *Config, storage store.Store) erro
 			},
 		},
 	})
+
+	if err := cacheMgn.initialize(); err != nil {
+		return err
+	}
 
 	return nil
 }
