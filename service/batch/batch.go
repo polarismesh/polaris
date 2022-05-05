@@ -38,6 +38,7 @@ type Controller struct {
 // NewBatchCtrlWithConfig 根据配置文件创建一个批量控制器
 func NewBatchCtrlWithConfig(storage store.Store, authority auth.Authority, auth plugin.Auth,
 	config *Config) (*Controller, error) {
+
 	if config == nil {
 		return nil, nil
 	}

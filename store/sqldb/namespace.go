@@ -205,7 +205,7 @@ func (ns *namespaceStore) cleanNamespace(name string) error {
 // rlockNamespace rlock namespace
 func rlockNamespace(queryRow func(query string, args ...interface{}) *sql.Row, namespace string) (
 	string, error) {
-	str := "select name  from namespace where name = ? and flag != 1 lock in share mode"
+	str := "select name from namespace where name = ? and flag != 1 lock in share mode"
 
 	var name string
 	err := queryRow(str, namespace).Scan(&name)

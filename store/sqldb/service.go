@@ -59,7 +59,11 @@ func (ss *serviceStore) addService(s *model.Service) error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = tx.Rollback() }()
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
 
 	// 锁namespace
 	namespace, err := rlockNamespace(tx.QueryRow, s.Namespace)
@@ -110,7 +114,11 @@ func (ss *serviceStore) deleteService(id, serviceName, namespaceName string) err
 	if err != nil {
 		return err
 	}
-	defer func() { _ = tx.Rollback() }()
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
 
 	// 锁住服务
 	revision, err := lockServiceWithID(tx.QueryRow, id)
@@ -167,8 +175,12 @@ func (ss *serviceStore) DeleteServiceAlias(name string, namespace string) error 
 
 // UpdateServiceAlias 更新服务别名
 func (ss *serviceStore) UpdateServiceAlias(alias *model.Service, needUpdateOwner bool) error {
-	if alias.ID == "" || alias.Name == "" || alias.Namespace == "" ||
-		alias.Revision == "" || alias.Reference == "" || (needUpdateOwner && alias.Owner == "") {
+	if alias.ID == "" ||
+		alias.Name == "" ||
+		alias.Namespace == "" ||
+		alias.Revision == "" ||
+		alias.Reference == "" ||
+		(needUpdateOwner && alias.Owner == "") {
 		return store.NewStatusError(store.EmptyParamsErr, "update Service Alias missing some params")
 	}
 	if err := ss.updateServiceAlias(alias, needUpdateOwner); err != nil {
@@ -186,13 +198,21 @@ func (ss *serviceStore) updateServiceAlias(alias *model.Service, needUpdateOwner
 		log.Errorf("[Store][database] update service alias tx begin err: %s", err.Error())
 		return err
 	}
-	defer func() { _ = tx.Rollback() }()
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
 
-	str := `update service set name = ?, namespace = ?, reference = ?, comment = ?, token = ?, revision = ?, owner = ?,
-			mtime = sysdate()
-			where id = ? and (select flag from (select flag from service where id = ?) as alias) = 0`
+	updateStmt := `
+		update 
+			service 
+		set 
+			name = ?, namespace = ?, reference = ?, comment = ?, token = ?, revision = ?, owner = ?, mtime = sysdate()
+		where 
+			id = ? and (select flag from (select flag from service where id = ?) as alias) = 0`
 
-	result, err := tx.Exec(str, alias.Name, alias.Namespace, alias.Reference, alias.Comment, alias.Token,
+	result, err := tx.Exec(updateStmt, alias.Name, alias.Namespace, alias.Reference, alias.Comment, alias.Token,
 		alias.Revision, alias.Owner, alias.ID, alias.Reference)
 	if err != nil {
 		log.Errorf("[Store][ServiceAlias] update service alias exec err: %s", err.Error())
@@ -237,7 +257,10 @@ func checkServiceAffectedRows(result sql.Result, count int64) error {
 
 // UpdateService 更新完整的服务信息
 func (ss *serviceStore) UpdateService(service *model.Service, needUpdateOwner bool) error {
-	if service.ID == "" || service.Name == "" || service.Namespace == "" || service.Revision == "" {
+	if service.ID == "" ||
+		service.Name == "" ||
+		service.Namespace == "" ||
+		service.Revision == "" {
 		return store.NewStatusError(store.EmptyParamsErr, "Update Service missing some params")
 	}
 
@@ -262,7 +285,11 @@ func (ss *serviceStore) updateService(service *model.Service, needUpdateOwner bo
 		log.Errorf("[Store][database] update service tx begin err: %s", err.Error())
 		return err
 	}
-	defer func() { _ = tx.Rollback() }()
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
 
 	// 更新main表
 	if err := updateServiceMain(tx, service); err != nil {
@@ -307,7 +334,7 @@ func (ss *serviceStore) UpdateServiceToken(id string, token string, revision str
 func (ss *serviceStore) GetService(name string, namespace string) (*model.Service, error) {
 	service, err := ss.getService(name, namespace)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getService err: %v", err)
 	}
 
 	if service != nil && !service.Valid {
@@ -441,16 +468,19 @@ func (ss *serviceStore) getServiceAliasesInfo(filter map[string]string, offset u
 		return make([]*model.ServiceAlias, 0), nil
 	}
 
-	baseStr := `select alias.id, alias.name, alias.namespace, UNIX_TIMESTAMP(alias.ctime), UNIX_TIMESTAMP(alias.mtime),
+	baseStr := `
+		select 
+			alias.id, alias.name, alias.namespace, UNIX_TIMESTAMP(alias.ctime), UNIX_TIMESTAMP(alias.mtime), 
 			alias.comment, source.id as sourceID, source.name as sourceName, source.namespace, alias.owner 
-			from service as alias inner join service as source 
+		from 
+			service as alias inner join service as source 
 			on alias.reference = source.id and alias.flag != 1 `
 	order := &Order{"alias.mtime", "desc"}
 
-	str, args := genServiceAliasWhereSQLAndArgs(baseStr, filter, order, offset, limit)
-	rows, err := ss.master.Query(str, args...)
+	queryStmt, args := genServiceAliasWhereSQLAndArgs(baseStr, filter, order, offset, limit)
+	rows, err := ss.master.Query(queryStmt, args...)
 	if err != nil {
-		log.Errorf("[Store][database] get service aliases query(%s) err: %s", str, err.Error())
+		log.Errorf("[Store][database] get service aliases query(%s) err: %s", queryStmt, err.Error())
 		return nil, err
 	}
 	defer func() { _ = rows.Close() }()
@@ -459,7 +489,8 @@ func (ss *serviceStore) getServiceAliasesInfo(filter map[string]string, offset u
 	var ctime, mtime int64
 	for rows.Next() {
 		var entry model.ServiceAlias
-		err := rows.Scan(&entry.ID, &entry.Alias, &entry.AliasNamespace, &ctime, &mtime, &entry.Comment,
+		err := rows.Scan(
+			&entry.ID, &entry.Alias, &entry.AliasNamespace, &ctime, &mtime, &entry.Comment,
 			&entry.ServiceID, &entry.Service, &entry.Namespace, &entry.Owner)
 		if err != nil {
 			log.Errorf("[Store][database] get service alias rows scan err: %s", err.Error())
@@ -476,9 +507,12 @@ func (ss *serviceStore) getServiceAliasesInfo(filter map[string]string, offset u
 
 // getServiceAliasesCount 获取别名总数
 func (ss *serviceStore) getServiceAliasesCount(filter map[string]string) (uint32, error) {
-	baseStr := `select count(*) from
-				service as alias inner join service as source 
-				on alias.reference = source.id and alias.flag != 1 `
+	baseStr := `
+		select 
+			count(*) 
+		from 
+			service as alias inner join service as source 
+			on alias.reference = source.id and alias.flag != 1 `
 	str, args := genServiceAliasWhereSQLAndArgs(baseStr, filter, nil, 0, 1)
 	return queryEntryCount(ss.master, str, args)
 }
@@ -625,7 +659,7 @@ func (ss *serviceStore) getServiceMeta(id string) (map[string]string, error) {
 // getService 获取service内部函数
 func (ss *serviceStore) getService(name string, namespace string) (*model.Service, error) {
 	if name == "" || namespace == "" {
-		return nil, fmt.Errorf("get Service missing some params, name is %s, namespace is %s", name, namespace)
+		return nil, fmt.Errorf("missing params, name: %s, namespace: %s", name, namespace)
 	}
 
 	out, err := ss.getServiceMain(name, namespace)
@@ -947,12 +981,14 @@ func lockServiceWithID(queryRow func(query string, args ...interface{}) *sql.Row
 // addServiceMain 增加service主表数据
 func addServiceMain(tx *BaseTx, s *model.Service) error {
 	// 先把主表填充
-	mainStr := `insert into service
+	insertStmt := `
+		insert into service
 			(id, name, namespace, ports, business, department, cmdb_mod1, cmdb_mod2,
 			cmdb_mod3, comment, token, reference,  platform_id, revision, owner, ctime, mtime)
-		values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate(), sysdate())`
+		values
+			(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate(), sysdate())`
 
-	_, err := tx.Exec(mainStr, s.ID, s.Name, s.Namespace, s.Ports, s.Business, s.Department,
+	_, err := tx.Exec(insertStmt, s.ID, s.Name, s.Namespace, s.Ports, s.Business, s.Department,
 		s.CmdbMod1, s.CmdbMod2, s.CmdbMod3, s.Comment, s.Token,
 		s.Reference, s.PlatformID, s.Revision, s.Owner)
 	return err

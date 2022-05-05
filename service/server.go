@@ -23,8 +23,6 @@ import (
 
 	"golang.org/x/sync/singleflight"
 
-	"go.uber.org/zap"
-
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -161,13 +159,7 @@ func (s *Server) allowInstanceAccess(instanceID string) bool {
 		return true
 	}
 
-	if ok := s.ratelimit.Allow(plugin.InstanceRatelimit, instanceID); !ok {
-		log.Error("[Server][ratelimit] instance is not allow access", zap.String("instance", instanceID))
-		return false
-	}
-
-	return true
-
+	return s.ratelimit.Allow(plugin.InstanceRatelimit, instanceID)
 }
 
 func (s *Server) afterServiceResource(ctx context.Context, req *api.Service, save *model.Service,
