@@ -161,6 +161,8 @@ const (
 	ConfigModule
 	// AuthModule 鉴权模块
 	AuthModule
+	// MaintainModule 运维操作模块
+	MaintainModule
 )
 
 // UserRoleType 用户角色类型

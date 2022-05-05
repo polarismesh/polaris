@@ -24,7 +24,6 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/emicklei/go-restful"
@@ -37,6 +36,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/connlimit"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/config"
+	"github.com/polarismesh/polaris-server/maintain"
 	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/plugin/statis/local"
@@ -57,9 +57,8 @@ type HTTPServer struct {
 
 	enablePprof bool
 
-	freeMemMu *sync.Mutex
-
 	server            *http.Server
+	maintainServer    maintain.MaintainOperateServer
 	namespaceServer   namespace.NamespaceOperateServer
 	namingServer      service.DiscoverServer
 	configServer      *config.Server
@@ -112,8 +111,6 @@ func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{}
 		h.auth = auth
 	}
 
-	h.freeMemMu = new(sync.Mutex)
-
 	return nil
 }
 
@@ -128,6 +125,13 @@ func (h *HTTPServer) Run(errCh chan error) {
 	}()
 
 	var err error
+
+	h.maintainServer, err = maintain.GetServer()
+	if err != nil {
+		log.Errorf("%v", err)
+		errCh <- err
+		return
+	}
 
 	// 引入命名空间模块
 	h.namespaceServer, err = namespace.GetServer()
