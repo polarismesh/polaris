@@ -31,7 +31,7 @@ import (
 )
 
 func (s *Server) AllowAutoCreate() bool {
-	return s.autoCreateNamespace
+	return s.cfg.AutoCreate
 }
 
 // CreateNamespaces 批量创建命名空间
