@@ -69,7 +69,7 @@ func (h *HTTPServer) AuthStatus(req *restful.Request, rsp *restful.Response) {
 
 	checker := h.authServer.GetAuthChecker()
 
-	isOpen := (checker.IsOpenClientAuth() || checker.IsOpenClientAuth())
+	isOpen := (checker.IsOpenClientAuth() || checker.IsOpenConsoleAuth())
 	resp := api.NewResponse(api.ExecuteSuccess)
 	resp.OptionSwitch = &api.OptionSwitch{
 		Options: map[string]string{
