@@ -60,7 +60,7 @@ type NamespaceCache interface {
 }
 
 type namespaceCache struct {
-	*basCache
+	*baseCache
 	storage     store.Store
 	ids         *sync.Map
 	lastTime    int64
@@ -70,8 +70,8 @@ type namespaceCache struct {
 
 func newNamespaceCache(storage store.Store) NamespaceCache {
 	return &namespaceCache{
-		basCache: newBaseCache(),
-		storage:  storage,
+		baseCache: newBaseCache(),
+		storage:   storage,
 	}
 }
 

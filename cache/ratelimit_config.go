@@ -56,7 +56,7 @@ type RateLimitCache interface {
 
 // rateLimitCache的实现
 type rateLimitCache struct {
-	*basCache
+	*baseCache
 
 	storage     store.Store
 	ids         *sync.Map
@@ -73,8 +73,8 @@ func init() {
 // newRateLimitCache 返回一个操作RateLimitCache的对象
 func newRateLimitCache(s store.Store) *rateLimitCache {
 	return &rateLimitCache{
-		basCache: newBaseCache(),
-		storage:  s,
+		baseCache: newBaseCache(),
+		storage:   s,
 	}
 }
 

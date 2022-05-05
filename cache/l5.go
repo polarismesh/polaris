@@ -54,7 +54,7 @@ type L5Cache interface {
 
 // l5Cache L5的cache对象
 type l5Cache struct {
-	*basCache
+	*baseCache
 
 	storage store.Store
 
@@ -75,8 +75,8 @@ type l5Cache struct {
 
 func newL5Cache(s store.Store) *l5Cache {
 	return &l5Cache{
-		basCache: newBaseCache(),
-		storage:  s,
+		baseCache: newBaseCache(),
+		storage:   s,
 	}
 }
 

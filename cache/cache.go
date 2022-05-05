@@ -106,12 +106,13 @@ type Cache interface {
 	name() string
 }
 
-type basCache struct {
+// baseCache 对于 Cache 中的一些 func 做统一实现，避免重复逻辑
+type baseCache struct {
 	manager *listenerManager
 }
 
-func newBaseCache() *basCache {
-	return &basCache{
+func newBaseCache() *baseCache {
+	return &baseCache{
 		manager: &listenerManager{
 			listeners: make([]Listener, 0, 4),
 		},
@@ -121,30 +122,30 @@ func newBaseCache() *basCache {
 // initialize
 // @param c
 // @return error
-func (bc *basCache) initialize(c map[string]interface{}) error {
+func (bc *baseCache) initialize(c map[string]interface{}) error {
 	return errors.New("implement me")
 }
 
 // addListener 添加
-func (bc *basCache) addListener(listeners []Listener) {
+func (bc *baseCache) addListener(listeners []Listener) {
 	bc.manager.listeners = append(bc.manager.listeners, listeners...)
 }
 
 // update
 // @return error
-func (bc *basCache) update() error {
+func (bc *baseCache) update() error {
 	return errors.New("implement me")
 }
 
 // clear
 //  @return error
-func (bc *basCache) clear() error {
+func (bc *baseCache) clear() error {
 	return errors.New("implement me")
 }
 
 // name
 //  @return string
-func (bc *basCache) name() string {
+func (bc *baseCache) name() string {
 	panic(errors.New("implement me"))
 }
 

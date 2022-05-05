@@ -57,7 +57,7 @@ type ClientCache interface {
 
 // clientCache 客户端缓存的类
 type clientCache struct {
-	*basCache
+	*baseCache
 
 	storage         store.Store
 	lastMtime       int64
@@ -80,8 +80,8 @@ func (cc *clientCache) LastMtime() time.Time {
 // newClientCache 新建一个clientCache
 func newClientCache(storage store.Store) *clientCache {
 	return &clientCache{
-		basCache: newBaseCache(),
-		storage:  storage,
+		baseCache: newBaseCache(),
+		storage:   storage,
 	}
 }
 

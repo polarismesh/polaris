@@ -93,7 +93,7 @@ type userAndGroupCacheRefreshResult struct {
 
 // userCache 用户信息缓存
 type userCache struct {
-	*basCache
+	*baseCache
 
 	storage store.Store
 
@@ -115,9 +115,9 @@ type userCache struct {
 // newUserCache
 func newUserCache(storage store.Store, notifyCh chan interface{}) UserCache {
 	return &userCache{
-		basCache: newBaseCache(),
-		storage:  storage,
-		notifyCh: notifyCh,
+		baseCache: newBaseCache(),
+		storage:   storage,
+		notifyCh:  notifyCh,
 	}
 }
 

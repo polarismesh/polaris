@@ -61,7 +61,7 @@ type StrategyCache interface {
 
 // strategyCache
 type strategyCache struct {
-	*basCache
+	*baseCache
 
 	storage          store.Store
 	strategys        *sync.Map
@@ -85,7 +85,7 @@ type strategyCache struct {
 // newStrategyCache
 func newStrategyCache(storage store.Store, principalCh chan interface{}, userCache UserCache) StrategyCache {
 	return &strategyCache{
-		basCache:    newBaseCache(),
+		baseCache:   newBaseCache(),
 		storage:     storage,
 		principalCh: principalCh,
 		userCache:   userCache,

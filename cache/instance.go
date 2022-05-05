@@ -59,7 +59,7 @@ type InstanceCache interface {
 
 // instanceCache 实例缓存的类
 type instanceCache struct {
-	*basCache
+	*baseCache
 
 	storage          store.Store
 	lastMtime        int64
@@ -84,7 +84,7 @@ func init() {
 // newInstanceCache 新建一个instanceCache
 func newInstanceCache(storage store.Store, ch chan *revisionNotify) *instanceCache {
 	return &instanceCache{
-		basCache:   newBaseCache(),
+		baseCache:  newBaseCache(),
 		storage:    storage,
 		revisionCh: ch,
 	}
