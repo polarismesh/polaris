@@ -44,6 +44,8 @@ type RoutingConfigCache interface {
 
 // routingCache的实现
 type routingConfigCache struct {
+	*baseCache
+
 	storage     store.Store
 	ids         *sync.Map
 	lastMtime   time.Time
@@ -58,7 +60,8 @@ func init() {
 // newRoutingConfigCache 返回一个操作RoutingConfigCache的对象
 func newRoutingConfigCache(s store.Store) *routingConfigCache {
 	return &routingConfigCache{
-		storage: s,
+		baseCache: newBaseCache(),
+		storage:   s,
 	}
 }
 

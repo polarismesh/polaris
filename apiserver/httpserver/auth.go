@@ -67,7 +67,9 @@ func (h *HTTPServer) GetAuthServer(ws *restful.WebService) error {
 func (h *HTTPServer) AuthStatus(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	isOpen := h.authServer.GetAuthChecker().IsOpenConsoleAuth()
+	checker := h.authServer.GetAuthChecker()
+
+	isOpen := (checker.IsOpenClientAuth() || checker.IsOpenClientAuth())
 	resp := api.NewResponse(api.ExecuteSuccess)
 	resp.OptionSwitch = &api.OptionSwitch{
 		Options: map[string]string{
@@ -165,7 +167,7 @@ func (h *HTTPServer) DeleteUsers(req *restful.Request, rsp *restful.Response) {
 func (h *HTTPServer) GetUsers(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
 	handler.WriteHeaderAndProto(h.authServer.GetUsers(ctx, queryParams))
@@ -174,7 +176,7 @@ func (h *HTTPServer) GetUsers(req *restful.Request, rsp *restful.Response) {
 // GetUserToken 获取这个用户所关联的所有用户组列表信息，支持翻页
 func (h *HTTPServer) GetUserToken(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 
 	user := &api.User{
 		Id: utils.NewStringValue(queryParams["id"]),
@@ -270,7 +272,7 @@ func (h *HTTPServer) DeleteGroups(req *restful.Request, rsp *restful.Response) {
 func (h *HTTPServer) GetGroups(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
 	handler.WriteHeaderAndProto(h.authServer.GetGroups(ctx, queryParams))
@@ -280,7 +282,7 @@ func (h *HTTPServer) GetGroups(req *restful.Request, rsp *restful.Response) {
 func (h *HTTPServer) GetGroup(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
 	group := &api.UserGroup{
@@ -294,7 +296,7 @@ func (h *HTTPServer) GetGroup(req *restful.Request, rsp *restful.Response) {
 func (h *HTTPServer) GetGroupToken(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
 	group := &api.UserGroup{
@@ -391,7 +393,7 @@ func (h *HTTPServer) DeleteStrategies(req *restful.Request, rsp *restful.Respons
 func (h *HTTPServer) GetStrategies(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
 	handler.WriteHeaderAndProto(h.authServer.GetStrategies(ctx, queryParams))
@@ -401,7 +403,7 @@ func (h *HTTPServer) GetStrategies(req *restful.Request, rsp *restful.Response) 
 func (h *HTTPServer) GetStrategy(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
 	strategy := &api.AuthStrategy{
@@ -415,7 +417,7 @@ func (h *HTTPServer) GetStrategy(req *restful.Request, rsp *restful.Response) {
 func (h *HTTPServer) GetPrincipalResources(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	queryParams := parseQueryParams(req)
+	queryParams := utils.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
 	handler.WriteHeaderAndProto(h.authServer.GetPrincipalResources(ctx, queryParams))

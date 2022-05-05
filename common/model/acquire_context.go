@@ -225,6 +225,10 @@ func (authCtx *AcquireContext) IsFromClient() bool {
 	return authCtx.fromClient
 }
 
+func (authCtx *AcquireContext) IsFromConsole() bool {
+	return !authCtx.IsFromClient()
+}
+
 // IsAccessResourceEmpty 判断当前待访问的资源，是否为空
 func (authCtx *AcquireContext) IsAccessResourceEmpty() bool {
 	nsEmpty := len(authCtx.accessResources[api.ResourceType_Namespaces]) == 0

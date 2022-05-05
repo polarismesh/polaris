@@ -97,15 +97,17 @@ func (svr *server) RecordHistory(entry *model.RecordEntry) {
 // AfterResourceOperation 对于资源的添加删除操作，需要执行后置逻辑
 // 所有子用户或者用户分组，都默认获得对所创建的资源的写权限
 func (svr *server) AfterResourceOperation(afterCtx *model.AcquireContext) error {
-	if afterCtx.GetOperation() == model.Read {
+	if !svr.authMgn.IsOpenAuth() || afterCtx.GetOperation() == model.Read {
 		return nil
 	}
 
-	if svr.authMgn.IsOpenAuth() {
-		// 如果客户端鉴权没有开启，且请求来自客户端，忽略
-		if afterCtx.IsFromClient() && !svr.authMgn.IsOpenClientAuth() {
-			return nil
-		}
+	// 如果客户端鉴权没有开启，且请求来自客户端，忽略
+	if afterCtx.IsFromClient() && !svr.authMgn.IsOpenClientAuth() {
+		return nil
+	}
+	// 如果控制台鉴权没有开启，且请求来自控制台，忽略
+	if afterCtx.IsFromConsole() && !svr.authMgn.IsOpenConsoleAuth() {
+		return nil
 	}
 
 	// 如果 token 信息为空，则代表当前创建的资源，任何人都可以进行操作，不做资源的后置逻辑处理

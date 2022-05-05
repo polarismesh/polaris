@@ -54,6 +54,8 @@ type L5Cache interface {
 
 // l5Cache L5的cache对象
 type l5Cache struct {
+	*baseCache
+
 	storage store.Store
 
 	lastRouteFlow    uint32
@@ -69,6 +71,13 @@ type l5Cache struct {
 	// instances的信息
 	ic *instanceCache
 	sc *serviceCache
+}
+
+func newL5Cache(s store.Store) *l5Cache {
+	return &l5Cache{
+		baseCache: newBaseCache(),
+		storage:   s,
+	}
 }
 
 // init 自注册到缓存列表

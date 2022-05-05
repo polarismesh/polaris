@@ -25,19 +25,21 @@ import (
 
 // Config 健康检查配置
 type Config struct {
-	Open             bool                   `yaml:"open"`
-	Service          string                 `yaml:"service"`
-	SlotNum          int                    `yaml:"slotNum"`
-	LocalHost        string                 `yaml:"localHost"`
-	MinCheckInterval time.Duration          `yaml:"minCheckInterval"`
-	MaxCheckInterval time.Duration          `yaml:"maxCheckInterval"`
-	Checkers         []plugin.ConfigEntry   `yaml:"checkers"`
-	Batch            map[string]interface{} `yaml:"batch"`
+	Open                 bool                   `yaml:"open"`
+	Service              string                 `yaml:"service"`
+	SlotNum              int                    `yaml:"slotNum"`
+	LocalHost            string                 `yaml:"localHost"`
+	MinCheckInterval     time.Duration          `yaml:"minCheckInterval"`
+	MaxCheckInterval     time.Duration          `yaml:"maxCheckInterval"`
+	ClientReportInterval time.Duration          `yaml:"clientReportInterval"`
+	Checkers             []plugin.ConfigEntry   `yaml:"checkers"`
+	Batch                map[string]interface{} `yaml:"batch"`
 }
 
 const (
-	minCheckInterval = 1 * time.Second
-	maxCheckInterval = 30 * time.Second
+	minCheckInterval            = 1 * time.Second
+	maxCheckInterval            = 30 * time.Second
+	defaultClientReportInterval = 120 * time.Second
 )
 
 // SetDefault 设置默认值
@@ -57,5 +59,8 @@ func (c *Config) SetDefault() {
 	if c.MinCheckInterval > c.MaxCheckInterval {
 		c.MinCheckInterval = minCheckInterval
 		c.MaxCheckInterval = maxCheckInterval
+	}
+	if c.ClientReportInterval == 0 {
+		c.ClientReportInterval = defaultClientReportInterval
 	}
 }
