@@ -20,6 +20,7 @@ package heartbeatmemory
 import (
 	"sync"
 
+	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/plugin"
 )
 
@@ -68,6 +69,7 @@ func (r *MemoryHealthChecker) Report(request *plugin.ReportRequest) error {
 		CurTimeSec: request.CurTimeSec,
 	}
 	r.hbRecords.Store(request.InstanceId, record)
+	log.Debugf("[HealthCheck][MemoryCheck]add hb record, instanceId %s, record %+v", request.InstanceId, record)
 	return nil
 }
 
@@ -80,6 +82,7 @@ func (r *MemoryHealthChecker) Query(request *plugin.QueryRequest) (*plugin.Query
 		}, nil
 	}
 	record := recordValue.(HeartbeatRecord)
+	log.Debugf("[HealthCheck][MemoryCheck]query hb record, instanceId %s, record %+v", request.InstanceId, record)
 	return &plugin.QueryResponse{
 		Server:           record.Server,
 		LastHeartbeatSec: record.CurTimeSec,
@@ -97,6 +100,7 @@ func (r *MemoryHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 		LastHeartbeatTimeSec: lastHeartbeatTime,
 	}
 	curTimeSec := request.CurTimeSec()
+	log.Debugf("[HealthCheck][MemoryCheck]check hb record, cur is %d, last is %d", curTimeSec, lastHeartbeatTime)
 	if curTimeSec > lastHeartbeatTime {
 		if curTimeSec-lastHeartbeatTime >= int64(request.ExpireDurationSec) {
 			// 心跳超时
