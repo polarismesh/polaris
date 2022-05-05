@@ -230,7 +230,6 @@ type L5OperateServer interface {
 	RegisterByNameCmd(rbnc *l5.Cl5RegisterByNameCmd) (*l5.Cl5RegisterByNameAckCmd, error)
 }
 
-
 // ReportClientOperateServer Report information operation interface on the client
 type ReportClientOperateServer interface {
 	// GetReportClients Query the client information reported
