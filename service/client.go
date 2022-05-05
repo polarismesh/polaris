@@ -19,8 +19,8 @@ package service
 
 import (
 	"context"
-
-	"go.uber.org/zap"
+	"fmt"
+	"strings"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -39,35 +39,90 @@ func (s *Server) DeregisterInstance(ctx context.Context, req *api.Instance) *api
 
 // ReportClient 客户端上报信息
 func (s *Server) ReportClient(ctx context.Context, req *api.Client) *api.Response {
-	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 	if s.caches == nil {
 		return api.NewResponse(api.ClientAPINotOpen)
 	}
 
 	// 客户端信息不写入到DB中
 	host := req.GetHost().GetValue()
-	out := &api.Client{
-		Host: req.GetHost(),
-	}
 
 	// 从CMDB查询地理位置信息
 	if s.cmdb != nil {
 		location, err := s.cmdb.GetLocation(host)
 		if err != nil {
-			log.Error(err.Error(), zap.String("request-id", requestID))
+			log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
 			return api.NewClientResponse(api.CMDBPluginException, req)
 		}
 
 		if location == nil {
 			return api.NewClientResponse(api.CMDBNotFindHost, req)
 		}
-		out.Location = location.Proto
+		req.Location = location.Proto
 	}
 
+	// save the client with unique id into store
+	if len(req.GetId().GetValue()) > 0 {
+		return s.checkAndStoreClient(ctx, req)
+	}
+	out := &api.Client{
+		Host:     req.GetHost(),
+		Location: req.Location,
+	}
 	return api.NewClientResponse(api.ExecuteSuccess, out)
 }
 
-// GetServiceWithCache 根据元数据查询服务
+// GetReportClientWithCache Used for client acquisition service information
+func (s *Server) GetReportClientWithCache(ctx context.Context,
+	query map[string]string) *model.PrometheusDiscoveryResponse {
+
+	if s.caches == nil {
+		return &model.PrometheusDiscoveryResponse{
+			Code:     api.NotFoundInstance,
+			Response: make([]model.PrometheusTarget, 0),
+		}
+	}
+
+	targets := make([]model.PrometheusTarget, 0)
+
+	expectSchema := map[string]struct{}{
+		"http":  {},
+		"https": {},
+	}
+
+	s.Cache().Client().IteratorClients(func(key string, value *model.Client) bool {
+		for i := range value.Proto().Stat {
+			stat := value.Proto().Stat[i]
+			if stat.Target.GetValue() != model.StatReportPrometheus {
+				continue
+			}
+			_, ok := expectSchema[strings.ToLower(stat.Protocol.GetValue())]
+			if !ok {
+				continue
+			}
+
+			target := model.PrometheusTarget{
+				Targets: []string{fmt.Sprintf("%s:%d", value.Proto().Host.GetValue(), stat.Port.GetValue())},
+				Labels: map[string]string{
+					"__metrics_path__":         stat.Path.GetValue(),
+					"__scheme__":               stat.Protocol.GetValue(),
+					"__meta_polaris_client_id": value.Proto().Id.GetValue(),
+				},
+			}
+			targets = append(targets, target)
+		}
+
+		return true
+	})
+
+	return &model.PrometheusDiscoveryResponse{
+		Code:     api.ExecuteSuccess,
+		Response: targets,
+	}
+}
+
+/**
+ * GetServiceWithCache 根据元数据查询服务
+ */
 func (s *Server) GetServiceWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
 	if s.caches == nil {
 		return api.NewDiscoverServiceResponse(api.ClientAPINotOpen, req)
@@ -81,7 +136,7 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *api.Service) *api
 	// 	return api.NewDiscoverServiceResponse(api.InvalidServiceMetadata, req)
 	// }
 
-	requestID := ParseRequestID(ctx)
+	requestID := utils.ParseRequestID(ctx)
 
 	resp := api.NewDiscoverServiceResponse(api.ExecuteSuccess, req)
 

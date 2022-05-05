@@ -170,7 +170,6 @@ type InstanceOperateServer interface {
 	CleanInstance(ctx context.Context, req *api.Instance) *api.Response
 }
 
-
 // ClientServer Client related operation  Client operation interface definition
 type ClientServer interface {
 
@@ -182,6 +181,9 @@ type ClientServer interface {
 
 	// ReportClient Client gets geographic location information
 	ReportClient(ctx context.Context, req *api.Client) *api.Response
+
+	// GetReportClientWithCache Used to obtain the ReportClient information and serve as the SD result of Prometheus
+	GetReportClientWithCache(ctx context.Context, query map[string]string) *model.PrometheusDiscoveryResponse
 
 	// GetServiceWithCache Used for client acquisition service information
 	GetServiceWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse
@@ -226,6 +228,12 @@ type L5OperateServer interface {
 
 	// RegisterByNameCmd Look for the corresponding SID list according to the list of service names
 	RegisterByNameCmd(rbnc *l5.Cl5RegisterByNameCmd) (*l5.Cl5RegisterByNameAckCmd, error)
+}
+
+// ReportClientOperateServer Report information operation interface on the client
+type ReportClientOperateServer interface {
+	// GetReportClients Query the client information reported
+	GetReportClients(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 }
 
 // DiscoverServer Server discovered by the service

@@ -58,10 +58,10 @@ type Server struct {
 }
 
 // Initialize 初始化
-func Initialize(ctx context.Context, hcOpt *Config, cacheOpen bool) error {
+func Initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Controller) error {
 	var err error
 	once.Do(func() {
-		err = initialize(ctx, hcOpt, cacheOpen)
+		err = initialize(ctx, hcOpt, cacheOpen, bc)
 	})
 
 	if err != nil {
@@ -72,7 +72,7 @@ func Initialize(ctx context.Context, hcOpt *Config, cacheOpen bool) error {
 	return nil
 }
 
-func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool) error {
+func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Controller) error {
 	if !hcOpt.Open {
 		return nil
 	}
@@ -94,20 +94,9 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool) error {
 	if server.storage, err = store.GetStore(); err != nil {
 		return err
 	}
-	// 批量控制器
-	batchConfig, err := batch.ParseBatchConfig(hcOpt.Batch)
-	if err != nil {
-		return err
-	}
-	bc, err := batch.NewBatchCtrlWithConfig(server.storage, nil, plugin.GetAuth(), batchConfig)
-	if err != nil {
-		log.Errorf("new batch ctrl with config err: %s", err.Error())
-		return err
-	}
+
 	server.bc = bc
-	if server.bc != nil {
-		server.bc.Start(ctx)
-	}
+
 	server.localHost = hcOpt.LocalHost
 	server.history = plugin.GetHistory()
 	server.discoverEvent = plugin.GetDiscoverEvent()
@@ -126,6 +115,11 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool) error {
 // Report heartbeat request
 func (s *Server) Report(ctx context.Context, req *api.Instance) *api.Response {
 	return s.doReport(ctx, req)
+}
+
+// Report report heartbeat request by client
+func (s *Server) ReportByClient(ctx context.Context, req *api.Client) *api.Response {
+	return s.doReportByClient(ctx, req)
 }
 
 // GetServer 获取已经初始化好的Server

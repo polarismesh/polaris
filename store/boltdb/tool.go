@@ -27,4 +27,3 @@ type toolStore struct {
 func (t *toolStore) GetNow() (int64, error) {
 	return time.Now().Unix(), nil
 }
-

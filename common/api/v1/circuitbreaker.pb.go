@@ -47,7 +47,7 @@ func (x RecoverConfig_OutlierDetectWhen) String() string {
 	return proto.EnumName(RecoverConfig_OutlierDetectWhen_name, int32(x))
 }
 func (RecoverConfig_OutlierDetectWhen) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_circuitbreaker_893772a31588c4ee, []int{2, 0}
+	return fileDescriptor_circuitbreaker_6cd92de0428cf271, []int{2, 0}
 }
 
 // 需要进行熔断的资源
@@ -74,7 +74,7 @@ func (x DestinationSet_Resource) String() string {
 	return proto.EnumName(DestinationSet_Resource_name, int32(x))
 }
 func (DestinationSet_Resource) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_circuitbreaker_893772a31588c4ee, []int{4, 0}
+	return fileDescriptor_circuitbreaker_6cd92de0428cf271, []int{4, 0}
 }
 
 // 熔断决策类型，支持GLOBAL（分布式决策）以及LOCAL(本地决策），默认GLOBAL
@@ -99,7 +99,7 @@ func (x DestinationSet_Type) String() string {
 	return proto.EnumName(DestinationSet_Type_name, int32(x))
 }
 func (DestinationSet_Type) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_circuitbreaker_893772a31588c4ee, []int{4, 1}
+	return fileDescriptor_circuitbreaker_6cd92de0428cf271, []int{4, 1}
 }
 
 // 熔断范围，是否扩散针对相同服务下所有接口进行熔断
@@ -125,7 +125,7 @@ func (x DestinationSet_Scope) String() string {
 	return proto.EnumName(DestinationSet_Scope_name, int32(x))
 }
 func (DestinationSet_Scope) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_circuitbreaker_893772a31588c4ee, []int{4, 2}
+	return fileDescriptor_circuitbreaker_6cd92de0428cf271, []int{4, 2}
 }
 
 // 单个熔断规则定义
@@ -165,7 +165,7 @@ func (m *CircuitBreaker) Reset()         { *m = CircuitBreaker{} }
 func (m *CircuitBreaker) String() string { return proto.CompactTextString(m) }
 func (*CircuitBreaker) ProtoMessage()    {}
 func (*CircuitBreaker) Descriptor() ([]byte, []int) {
-	return fileDescriptor_circuitbreaker_893772a31588c4ee, []int{0}
+	return fileDescriptor_circuitbreaker_6cd92de0428cf271, []int{0}
 }
 func (m *CircuitBreaker) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CircuitBreaker.Unmarshal(m, b)
@@ -313,7 +313,7 @@ func (m *SourceMatcher) Reset()         { *m = SourceMatcher{} }
 func (m *SourceMatcher) String() string { return proto.CompactTextString(m) }
 func (*SourceMatcher) ProtoMessage()    {}
 func (*SourceMatcher) Descriptor() ([]byte, []int) {
-	return fileDescriptor_circuitbreaker_893772a31588c4ee, []int{1}
+	return fileDescriptor_circuitbreaker_6cd92de0428cf271, []int{1}
 }
 func (m *SourceMatcher) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SourceMatcher.Unmarshal(m, b)
@@ -376,7 +376,7 @@ func (m *RecoverConfig) Reset()         { *m = RecoverConfig{} }
 func (m *RecoverConfig) String() string { return proto.CompactTextString(m) }
 func (*RecoverConfig) ProtoMessage()    {}
 func (*RecoverConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_circuitbreaker_893772a31588c4ee, []int{2}
+	return fileDescriptor_circuitbreaker_6cd92de0428cf271, []int{2}
 }
 func (m *RecoverConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RecoverConfig.Unmarshal(m, b)
@@ -456,7 +456,7 @@ func (m *CbPolicy) Reset()         { *m = CbPolicy{} }
 func (m *CbPolicy) String() string { return proto.CompactTextString(m) }
 func (*CbPolicy) ProtoMessage()    {}
 func (*CbPolicy) Descriptor() ([]byte, []int) {
-	return fileDescriptor_circuitbreaker_893772a31588c4ee, []int{3}
+	return fileDescriptor_circuitbreaker_6cd92de0428cf271, []int{3}
 }
 func (m *CbPolicy) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CbPolicy.Unmarshal(m, b)
@@ -531,7 +531,7 @@ func (m *CbPolicy_ErrRateConfig) Reset()         { *m = CbPolicy_ErrRateConfig{}
 func (m *CbPolicy_ErrRateConfig) String() string { return proto.CompactTextString(m) }
 func (*CbPolicy_ErrRateConfig) ProtoMessage()    {}
 func (*CbPolicy_ErrRateConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_circuitbreaker_893772a31588c4ee, []int{3, 0}
+	return fileDescriptor_circuitbreaker_6cd92de0428cf271, []int{3, 0}
 }
 func (m *CbPolicy_ErrRateConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CbPolicy_ErrRateConfig.Unmarshal(m, b)
@@ -602,7 +602,7 @@ func (m *CbPolicy_ErrRateConfig_SpecialConfig) Reset()         { *m = CbPolicy_E
 func (m *CbPolicy_ErrRateConfig_SpecialConfig) String() string { return proto.CompactTextString(m) }
 func (*CbPolicy_ErrRateConfig_SpecialConfig) ProtoMessage()    {}
 func (*CbPolicy_ErrRateConfig_SpecialConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_circuitbreaker_893772a31588c4ee, []int{3, 0, 0}
+	return fileDescriptor_circuitbreaker_6cd92de0428cf271, []int{3, 0, 0}
 }
 func (m *CbPolicy_ErrRateConfig_SpecialConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CbPolicy_ErrRateConfig_SpecialConfig.Unmarshal(m, b)
@@ -669,7 +669,7 @@ func (m *CbPolicy_SlowRateConfig) Reset()         { *m = CbPolicy_SlowRateConfig
 func (m *CbPolicy_SlowRateConfig) String() string { return proto.CompactTextString(m) }
 func (*CbPolicy_SlowRateConfig) ProtoMessage()    {}
 func (*CbPolicy_SlowRateConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_circuitbreaker_893772a31588c4ee, []int{3, 1}
+	return fileDescriptor_circuitbreaker_6cd92de0428cf271, []int{3, 1}
 }
 func (m *CbPolicy_SlowRateConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CbPolicy_SlowRateConfig.Unmarshal(m, b)
@@ -734,7 +734,7 @@ func (m *CbPolicy_ConsecutiveErrConfig) Reset()         { *m = CbPolicy_Consecut
 func (m *CbPolicy_ConsecutiveErrConfig) String() string { return proto.CompactTextString(m) }
 func (*CbPolicy_ConsecutiveErrConfig) ProtoMessage()    {}
 func (*CbPolicy_ConsecutiveErrConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_circuitbreaker_893772a31588c4ee, []int{3, 2}
+	return fileDescriptor_circuitbreaker_6cd92de0428cf271, []int{3, 2}
 }
 func (m *CbPolicy_ConsecutiveErrConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CbPolicy_ConsecutiveErrConfig.Unmarshal(m, b)
@@ -810,7 +810,7 @@ func (m *DestinationSet) Reset()         { *m = DestinationSet{} }
 func (m *DestinationSet) String() string { return proto.CompactTextString(m) }
 func (*DestinationSet) ProtoMessage()    {}
 func (*DestinationSet) Descriptor() ([]byte, []int) {
-	return fileDescriptor_circuitbreaker_893772a31588c4ee, []int{4}
+	return fileDescriptor_circuitbreaker_6cd92de0428cf271, []int{4}
 }
 func (m *DestinationSet) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DestinationSet.Unmarshal(m, b)
@@ -936,7 +936,7 @@ func (m *CbRule) Reset()         { *m = CbRule{} }
 func (m *CbRule) String() string { return proto.CompactTextString(m) }
 func (*CbRule) ProtoMessage()    {}
 func (*CbRule) Descriptor() ([]byte, []int) {
-	return fileDescriptor_circuitbreaker_893772a31588c4ee, []int{5}
+	return fileDescriptor_circuitbreaker_6cd92de0428cf271, []int{5}
 }
 func (m *CbRule) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CbRule.Unmarshal(m, b)
@@ -990,10 +990,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("circuitbreaker.proto", fileDescriptor_circuitbreaker_893772a31588c4ee)
+	proto.RegisterFile("circuitbreaker.proto", fileDescriptor_circuitbreaker_6cd92de0428cf271)
 }
 
-var fileDescriptor_circuitbreaker_893772a31588c4ee = []byte{
+var fileDescriptor_circuitbreaker_6cd92de0428cf271 = []byte{
 	// 1326 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x57, 0xcd, 0x73, 0x1b, 0xc5,
 	0x12, 0x8f, 0x64, 0xeb, 0xc3, 0x2d, 0x4b, 0x91, 0xe7, 0xe5, 0xbd, 0xb7, 0x51, 0x5e, 0x5e, 0x05,

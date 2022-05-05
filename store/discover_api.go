@@ -326,3 +326,16 @@ type PlatformStore interface {
 	// GetPlatforms 根据过滤条件查询平台信息
 	GetPlatforms(query map[string]string, offset uint32, limit uint32) (uint32, []*model.Platform, error)
 }
+
+// ClientStore store interface for client info
+type ClientStore interface {
+
+	// BatchAddClients insert the client info
+	BatchAddClients(clients []*model.Client) error
+
+	// BatchDeleteClients delete the client info
+	BatchDeleteClients(ids []string) error
+
+	// GetMoreClients 根据mtime获取增量clients，返回所有store的变更信息
+	GetMoreClients(mtime time.Time, firstUpdate bool) (map[string]*model.Client, error)
+}

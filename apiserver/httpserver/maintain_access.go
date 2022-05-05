@@ -51,7 +51,7 @@ func (h *HTTPServer) GetMaintainAccessServer() *restful.WebService {
 //           host，可选，查看指定host
 func (h *HTTPServer) GetServerConnections(req *restful.Request, rsp *restful.Response) {
 	ctx := initContext(req)
-	params := parseQueryParams(req)
+	params := utils.ParseQueryParams(req)
 	connReq := maintain.ConnReq{
 		Protocol: params["protocol"],
 		Host:     params["host"],
@@ -68,7 +68,7 @@ func (h *HTTPServer) GetServerConnections(req *restful.Request, rsp *restful.Res
 // GetServerConnStats 获取连接缓存里面的统计信息
 func (h *HTTPServer) GetServerConnStats(req *restful.Request, rsp *restful.Response) {
 	ctx := initContext(req)
-	params := parseQueryParams(req)
+	params := utils.ParseQueryParams(req)
 
 	var amount int = 0
 	if amountStr, ok := params["amount"]; ok {
@@ -147,8 +147,7 @@ func (h *HTTPServer) CleanInstance(req *restful.Request, rsp *restful.Response) 
 func (h *HTTPServer) GetLastHeartbeat(req *restful.Request, rsp *restful.Response) {
 	ctx := initContext(req)
 	handler := &Handler{req, rsp}
-	params := parseQueryParams(req)
-
+	params := utils.ParseQueryParams(req)
 	instance := &api.Instance{}
 	if id, ok := params["id"]; ok && id != "" {
 		instance.Id = utils.NewStringValue(id)

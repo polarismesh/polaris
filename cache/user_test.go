@@ -79,6 +79,5 @@ func genModelUsers(label string, total int) map[string]*model.User {
 	return out
 }
 
-
 func TestUserCache_UpdateNormal(t *testing.T) {
 }

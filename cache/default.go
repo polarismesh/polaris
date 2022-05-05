@@ -33,10 +33,10 @@ var (
 )
 
 // Initialize 初始化
-func Initialize(ctx context.Context, cacheOpt *Config, storage store.Store, listeners []Listener) error {
+func Initialize(ctx context.Context, cacheOpt *Config, storage store.Store) error {
 	var err error
 	once.Do(func() {
-		err = initialize(ctx, cacheOpt, storage, listeners)
+		err = initialize(ctx, cacheOpt, storage)
 	})
 
 	if err != nil {
@@ -48,7 +48,7 @@ func Initialize(ctx context.Context, cacheOpt *Config, storage store.Store, list
 }
 
 // initialize cache 初始化
-func initialize(ctx context.Context, cacheOpt *Config, storage store.Store, listeners []Listener) error {
+func initialize(ctx context.Context, cacheOpt *Config, storage store.Store) error {
 
 	if !cacheOpt.Open {
 		return nil
@@ -63,15 +63,7 @@ func initialize(ctx context.Context, cacheOpt *Config, storage store.Store, list
 		revisions:     new(sync.Map),
 	}
 
-	listeners = append(listeners, &WatchInstanceReload{
-		Handler: func(val interface{}) {
-			if svcIds, ok := val.(map[string]bool); ok {
-				cacheMgn.caches[CacheService].(*serviceCache).notifyServiceCountReload(svcIds)
-			}
-		},
-	})
-
-	ic := newInstanceCache(storage, cacheMgn.comRevisionCh, listeners)
+	ic := newInstanceCache(storage, cacheMgn.comRevisionCh)
 	sc := newServiceCache(storage, cacheMgn.comRevisionCh, ic)
 
 	cacheMgn.caches[CacheService] = sc
@@ -90,11 +82,31 @@ func initialize(ctx context.Context, cacheOpt *Config, storage store.Store, list
 	cacheMgn.caches[CacheUser] = newUserCache(storage, notify)
 	cacheMgn.caches[CacheAuthStrategy] = newStrategyCache(storage, notify, cacheMgn.caches[CacheUser].(UserCache))
 	cacheMgn.caches[CacheNamespace] = newNamespaceCache(storage)
+	cacheMgn.caches[CacheClient] = newClientCache(storage)
+
+	if len(cacheMgn.caches) != CacheLast {
+		return errors.New("some Cache implement not loaded into CacheManager")
+	}
+
+	// 在这里调用 Cache.AddListener 时，必须先保证每一个Cache的实现都已经实例化并装载进 NamingCache 中
+	cacheMgn.AddListener(CacheNameInstance, []Listener{
+		&WatchInstanceReload{
+			Handler: func(val interface{}) {
+				if svcIds, ok := val.(map[string]bool); ok {
+					cacheMgn.caches[CacheService].(*serviceCache).notifyServiceCountReload(svcIds)
+				}
+			},
+		},
+	})
 
 	if err := cacheMgn.initialize(); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func Run(ctx context.Context) error {
 	if startErr := cacheMgn.Start(ctx); startErr != nil {
 		log.CacheScope().Errorf("[Cache][Server] start cache err: %s", startErr.Error())
 		return startErr
