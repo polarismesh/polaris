@@ -21,7 +21,6 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -119,34 +118,9 @@ func newBaseCache() *baseCache {
 	}
 }
 
-// initialize
-// @param c
-// @return error
-func (bc *baseCache) initialize(c map[string]interface{}) error {
-	return errors.New("implement me")
-}
-
 // addListener 添加
 func (bc *baseCache) addListener(listeners []Listener) {
 	bc.manager.listeners = append(bc.manager.listeners, listeners...)
-}
-
-// update
-// @return error
-func (bc *baseCache) update() error {
-	return errors.New("implement me")
-}
-
-// clear
-//  @return error
-func (bc *baseCache) clear() error {
-	return errors.New("implement me")
-}
-
-// name
-//  @return string
-func (bc *baseCache) name() string {
-	panic(errors.New("implement me"))
 }
 
 const (
