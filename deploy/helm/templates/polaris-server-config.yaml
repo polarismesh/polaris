@@ -152,6 +152,14 @@ data:
             openConnLimit: false
             maxConnPerHost: 128
             maxConnLimit: 10240
+      - name: prometheusserver
+        option:
+          listenIP: "0.0.0.0"
+          listenPort: {{ .Values.service.prometheusPort }}
+          connLimit:
+            openConnLimit: false
+            maxConnPerHost: 128
+            maxConnLimit: 10240
     #  - name: l5pbserver
     #    option:
     #      listenIP: 0.0.0.0

@@ -44,6 +44,7 @@ service:
   webPort: 8080
   xdsv3Port: 15010
   configGrpcPort: 8093
+  prometheusPort: 9000
 
 monitor:
   port: 9091

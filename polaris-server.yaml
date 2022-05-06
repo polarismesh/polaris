@@ -160,7 +160,7 @@ apiservers:
   - name: prometheusserver
     option:
       listenIP: "0.0.0.0"
-      listenPort: 19090
+      listenPort: 9000
       connLimit:
         openConnLimit: false
         maxConnPerHost: 128
