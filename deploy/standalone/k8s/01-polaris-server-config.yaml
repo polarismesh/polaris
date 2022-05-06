@@ -169,6 +169,8 @@ data:
         salt: polarismesh@2021
         consoleOpen: true
         clientOpen: false
+    namespace:
+      autoCreate: true
     naming:
       auth:
         open: false

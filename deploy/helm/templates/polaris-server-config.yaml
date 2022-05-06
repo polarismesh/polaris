@@ -162,8 +162,10 @@ data:
       name: defaultAuth
       option:
         salt: polarismesh@2021
-        consoleOpen: true
-        clientOpen: false
+        consoleOpen: {{ .Values.polaris.auth.consoleOpen }}
+        clientOpen: {{ .Values.polaris.auth.clientOpen }}
+    namespace:
+      autoCreate: true
     naming:
       auth:
         open: false

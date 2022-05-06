@@ -23,6 +23,9 @@ polaris:
       cpu: "500m"
       memory: "1000Mi"
   replicaCount: 1
+  auth:
+    consoleOpen: true
+    clientOpen: false
   storage:
     db:
       address: localhost:3306

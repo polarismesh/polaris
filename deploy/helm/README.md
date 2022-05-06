@@ -95,5 +95,7 @@ The currently supported configurations are as follows:
 |polaris.storage.service.httpPort      | polaris service expose, polaris-server listening http port number|
 |polaris.storage.service.grpcPort      | polaris service expose, polaris-server listening grpc port number|
 |polaris.storage.service.webPort       | polaris service expose, polaris-server listening web  port number|
+|polaris.auth.consoleOpen              | polaris open the console interface auth, open the default|
+|polaris.auth.clientOpen               | polaris open the client interface auth, close the default|
 |monitor.port                          | The port through which the client reports monitoring information|
 |installation.namespace                | namespace for polaris installation|
