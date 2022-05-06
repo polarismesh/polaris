@@ -24,20 +24,23 @@ import (
 	"github.com/boltdb/bolt"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"go.uber.org/zap"
 )
 
 const (
 	tblClient string = "client"
 
-	ClientFieldHost     string = "Host"
-	ClientFieldType     string = "Type"
-	ClientFieldVersion  string = "Version"
-	ClientFieldLocation string = "Location"
-	ClientFieldId       string = "Id"
-	ClientFieldStat     string = "Stat"
-	ClientFieldCtime    string = "Ctime"
-	ClientFieldMtime    string = "Mtime"
+	ClientFieldHost       string = "Host"
+	ClientFieldType       string = "Type"
+	ClientFieldVersion    string = "Version"
+	ClientFieldLocation   string = "Location"
+	ClientFieldId         string = "Id"
+	ClientFieldStatArrStr string = "StatArrStr"
+	ClientFieldCtime      string = "Ctime"
+	ClientFieldMtime      string = "Mtime"
+	ClientFieldValid      string = "Valid"
 )
 
 type clientObject struct {
@@ -58,7 +61,7 @@ type clientStore struct {
 
 // BatchAddClients insert the client info
 func (cs *clientStore) BatchAddClients(clients []*model.Client) error {
-	err := cs.handler.Execute(true, func(tx *bolt.Tx) error {
+	if err := cs.handler.Execute(true, func(tx *bolt.Tx) error {
 		for i := range clients {
 			client := clients[i]
 			saveVal, err := convertToClientObject(client)
@@ -71,9 +74,8 @@ func (cs *clientStore) BatchAddClients(clients []*model.Client) error {
 			}
 		}
 		return nil
-	})
-
-	if err != nil {
+	}); err != nil {
+		log.Error("[Client] batch add clients", zap.Error(err))
 		return err
 	}
 
@@ -82,7 +84,12 @@ func (cs *clientStore) BatchAddClients(clients []*model.Client) error {
 
 // BatchDeleteClients delete the client info
 func (cs *clientStore) BatchDeleteClients(ids []string) error {
-	return cs.handler.DeleteValues(tblClient, ids, true)
+	if err := cs.handler.DeleteValues(tblClient, ids, true); err != nil {
+		log.Error("[Client] batch delete clients", zap.Error(err))
+		return err
+	}
+
+	return nil
 }
 
 // GetMoreClients 根据mtime获取增量clients，返回所有store的变更信息
@@ -99,22 +106,23 @@ func (cs *clientStore) GetMoreClients(mtime time.Time, firstUpdate bool) (map[st
 	})
 
 	if err != nil {
+		log.Error("[Client] get more clients for cache", zap.Error(err))
 		return nil, err
 	}
 
-	clients := make([]*model.Client, 0, len(ret))
+	clients := make(map[string]*model.Client, len(ret))
 
-	for _, v := range ret {
+	for k, v := range ret {
 		client, err := convertToModelClient(v.(*clientObject))
-
 		if err != nil {
+			log.Error("[Client] convert clientObject to model.Client", zap.Error(err))
 			return nil, err
 		}
 
-		clients = append(clients, client)
+		clients[k] = client
 	}
 
-	return nil, nil
+	return clients, nil
 }
 
 func convertToClientObject(client *model.Client) (*clientObject, error) {
@@ -155,8 +163,8 @@ func convertToModelClient(client *clientObject) (*model.Client, error) {
 		Host:    utils.NewStringValue(client.Host),
 		Type:    api.Client_ClientType(api.Client_ClientType_value[client.Type]),
 		Version: utils.NewStringValue(client.Version),
-		Ctime:   utils.NewStringValue(client.Ctime.Format("2006-01-02 15:04:05")),
-		Mtime:   utils.NewStringValue(client.Mtime.Format("2006-01-02 15:04:05")),
+		Ctime:   utils.NewStringValue(commontime.Time2String(client.Ctime)),
+		Mtime:   utils.NewStringValue(commontime.Time2String(client.Mtime)),
 		Location: &api.Location{
 			Region: utils.NewStringValue(client.Location["region"]),
 			Zone:   utils.NewStringValue(client.Location["zone"]),
