@@ -488,19 +488,19 @@ func (sc *strategyCache) IsResourceLinkStrategy(resType api.ResourceType, resId 
 	switch resType {
 	case api.ResourceType_Namespaces:
 		val, ok := sc.namespace2Strategy.Load(resId)
-		return ok && synMapIsNotEmpty(val.(*sync.Map))
+		return ok && hasLinkRule(val.(*sync.Map))
 	case api.ResourceType_Services:
 		val, ok := sc.service2Strategy.Load(resId)
-		return ok && synMapIsNotEmpty(val.(*sync.Map))
+		return ok && hasLinkRule(val.(*sync.Map))
 	case api.ResourceType_ConfigGroups:
 		val, ok := sc.configGroup2Strategy.Load(resId)
-		return ok && synMapIsNotEmpty(val.(*sync.Map))
+		return ok && hasLinkRule(val.(*sync.Map))
 	default:
 		return true
 	}
 }
 
-func synMapIsNotEmpty(val *sync.Map) bool {
+func hasLinkRule(val *sync.Map) bool {
 	count := 0
 
 	val.Range(func(key, value interface{}) bool {
