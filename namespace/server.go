@@ -32,8 +32,7 @@ type Server struct {
 
 	caches *cache.NamingCache
 
-	autoCreateNamespace bool
-
+	cfg     Config
 	auth    plugin.Auth
 	history plugin.History
 
