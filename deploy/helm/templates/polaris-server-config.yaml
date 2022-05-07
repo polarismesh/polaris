@@ -244,6 +244,7 @@ data:
         - name: users
         - name: strategyRule
         - name: namespace
+        - name: client
     #    - name: l5 # 加载l5数据
     # 存储配置
     store:
