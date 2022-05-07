@@ -45,6 +45,10 @@ func (c *Client) Proto() *api.Client {
 	return c.proto
 }
 
+func (c *Client) SetValid(v bool) {
+	c.valid = v
+}
+
 func (c *Client) Valid() bool {
 	return c.valid
 }

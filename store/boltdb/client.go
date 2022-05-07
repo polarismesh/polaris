@@ -173,5 +173,7 @@ func convertToModelClient(client *clientObject) (*model.Client, error) {
 		Stat: stat,
 	}
 
-	return model.NewClient(c), nil
+	mc := model.NewClient(c)
+	mc.SetValid(client.Valid)
+	return mc, nil
 }
