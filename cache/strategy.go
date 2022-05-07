@@ -487,15 +487,26 @@ func (sc *strategyCache) getStrategyDetails(uid string, gid string) []*model.Str
 func (sc *strategyCache) IsResourceLinkStrategy(resType api.ResourceType, resId string) bool {
 	switch resType {
 	case api.ResourceType_Namespaces:
-		_, ok := sc.namespace2Strategy.Load(resId)
-		return ok
+		val, ok := sc.namespace2Strategy.Load(resId)
+		return ok && hasLinkRule(val.(*sync.Map))
 	case api.ResourceType_Services:
-		_, ok := sc.service2Strategy.Load(resId)
-		return ok
+		val, ok := sc.service2Strategy.Load(resId)
+		return ok && hasLinkRule(val.(*sync.Map))
 	case api.ResourceType_ConfigGroups:
-		_, ok := sc.configGroup2Strategy.Load(resId)
-		return ok
+		val, ok := sc.configGroup2Strategy.Load(resId)
+		return ok && hasLinkRule(val.(*sync.Map))
 	default:
 		return true
 	}
+}
+
+func hasLinkRule(val *sync.Map) bool {
+	count := 0
+
+	val.Range(func(key, value interface{}) bool {
+		count++
+		return true
+	})
+
+	return count != 0
 }

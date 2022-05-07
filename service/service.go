@@ -129,7 +129,9 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 		Token:     utils.NewStringValue(data.Token),
 	}
 
-	s.afterServiceResource(ctx, req, data, false)
+	if err := s.afterServiceResource(ctx, req, data, false); err != nil {
+		return api.NewResponseWithMsg(api.ExecuteException, err.Error())
+	}
 
 	return api.NewServiceResponse(api.ExecuteSuccess, out)
 }

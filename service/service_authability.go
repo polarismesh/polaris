@@ -135,10 +135,6 @@ func (svr *serverAuthAbility) GetServices(ctx context.Context, query map[string]
 					api.ResourceType_Services, svc.Id.GetValue())
 			}
 			svc.Editable = utils.NewBoolValue(editable)
-			// 如果当前登录账户为该资源的主账户，则允许直接进行操作
-			if svc.Owners.GetValue() == utils.ParseUserID(ctx) {
-				svc.Editable = utils.NewBoolValue(true)
-			}
 		}
 	}
 	return resp

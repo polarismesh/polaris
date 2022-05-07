@@ -105,10 +105,6 @@ func (svr *serverAuthAbility) GetServiceAliases(ctx context.Context,
 					api.ResourceType_Services, svc.ID)
 			}
 			alias.Editable = utils.NewBoolValue(editable)
-			// 如果当前登录账户为该资源的主账户，则允许直接进行操作
-			if alias.Owners.GetValue() == utils.ParseUserID(ctx) {
-				alias.Editable = utils.NewBoolValue(true)
-			}
 		}
 	}
 	return resp

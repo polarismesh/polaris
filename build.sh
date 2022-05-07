@@ -16,6 +16,10 @@ workdir=$(dirname $(realpath $0))
 version=$(cat version 2>/dev/null)
 bin_name="polaris-server"
 
+if [ $# == 1 ]; then
+  version=$1
+fi
+
 if [ "${GOOS}" == "windows" ]; then
   bin_name="polaris-server.exe"
 fi

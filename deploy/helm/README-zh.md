@@ -94,6 +94,8 @@ $ helm uninstall `${release_name}`
 |polaris.storage.service.httpPort      | polaris service 暴露，polaris-server 监听的 http 端口|
 |polaris.storage.service.grpcPort      | polaris service 暴露，polaris-server 监听的 grpc 端口|
 |polaris.storage.service.webPort       | polaris service 暴露，polaris-server 监听的 web 端口|
+|polaris.auth.consoleOpen              | polaris 打开控制台接口鉴权，默认开启|
+|polaris.auth.clientOpen               | polaris 打开客户端接口鉴权，默认关闭|
 |monitor.port                          | 客户端上报监控信息的端口|
 |installation.namespace                | 部署polaris组件所在的namespace|
 

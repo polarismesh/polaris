@@ -152,6 +152,14 @@ data:
             openConnLimit: false
             maxConnPerHost: 128
             maxConnLimit: 10240
+      - name: prometheusserver
+        option:
+          listenIP: "0.0.0.0"
+          listenPort: {{ .Values.service.prometheusPort }}
+          connLimit:
+            openConnLimit: false
+            maxConnPerHost: 128
+            maxConnLimit: 10240
     #  - name: l5pbserver
     #    option:
     #      listenIP: 0.0.0.0
@@ -162,8 +170,10 @@ data:
       name: defaultAuth
       option:
         salt: polarismesh@2021
-        consoleOpen: true
-        clientOpen: false
+        consoleOpen: {{ .Values.polaris.auth.consoleOpen }}
+        clientOpen: {{ .Values.polaris.auth.clientOpen }}
+    namespace:
+      autoCreate: true
     naming:
       auth:
         open: false
@@ -234,6 +244,7 @@ data:
         - name: users
         - name: strategyRule
         - name: namespace
+        - name: client
     #    - name: l5 # 加载l5数据
     # 存储配置
     store:
