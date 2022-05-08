@@ -183,7 +183,7 @@ func (cs *Impl) GetConfigFileRelease(ctx context.Context, namespace, group, file
 		return api.NewConfigFileResponse(api.InvalidConfigFileGroupName, nil)
 	}
 
-	fileRelease, err := cs.storage.GetConfigFileRelease(nil, namespace, group, fileName)
+	fileRelease, err := cs.storage.GetConfigFileRelease(cs.getTx(ctx), namespace, group, fileName)
 
 	if err != nil {
 		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)

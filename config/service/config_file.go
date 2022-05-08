@@ -376,7 +376,7 @@ func (cs *Impl) DeleteConfigFile(ctx context.Context, namespace, group, name, de
 	}
 
 	// 3. 删除配置文件关联的 tag
-	err = cs.DeleteTagByConfigFile(ctx, namespace, group, name)
+	err = cs.DeleteTagByConfigFile(newCtx, namespace, group, name)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] delete config file tags error.",
 			zap.String("request-id", requestID),
