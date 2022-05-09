@@ -33,8 +33,10 @@ const (
 	QueueSize = 10240
 )
 
+type FileReleaseCallback func(clientId string, rsp *api.ConfigClientResponse) bool
+
 type watchContext struct {
-	fileReleaseCb func(clientId string, rsp *api.ConfigClientResponse) bool
+	fileReleaseCb FileReleaseCallback
 	ClientVersion uint64
 }
 
@@ -67,7 +69,7 @@ func NewWatchCenter(eventCenter *Center) *watchCenter {
 
 // AddWatcher 新增订阅者
 func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*api.ClientConfigFileInfo,
-	fileReleaseCb func(clientId string, rsp *api.ConfigClientResponse) bool) {
+	fileReleaseCb FileReleaseCallback) {
 	if len(watchConfigFiles) == 0 {
 		return
 	}

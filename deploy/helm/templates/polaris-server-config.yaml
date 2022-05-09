@@ -92,7 +92,7 @@ data:
               - grpcserver
     # apiserver配置
     apiservers:
-      - name: eurekaserver
+      - name: service-eureka
         option:
           listenIP: "0.0.0.0"
           listenPort: {{ .Values.service.eurekaPort }}
@@ -108,7 +108,7 @@ data:
             whiteList: 127.0.0.1
             purgeCounterInterval: 10s
             purgeCounterExpired: 5s
-      - name: httpserver # 协议名，全局唯一
+      - name: api-http # 协议名，全局唯一
         option:
           listenIP: "0.0.0.0"
           listenPort: {{ .Values.service.httpPort }}
@@ -132,10 +132,10 @@ data:
           config:
             enable: true
             include: [default]
-      - name: grpcserver
+      - name: service-grpc
         option:
           listenIP: "0.0.0.0"
-          listenPort: {{ .Values.service.grpcPort }}
+          listenPort: {{ .Values.service.serviceGrpcPort }}
           connLimit:
             openConnLimit: false
             maxConnPerHost: 128
@@ -144,7 +144,18 @@ data:
           client:
             enable: true
             include: [discover, register, healthcheck]
-      - name: xdsserverv3
+      - name: config-grpc
+        option:
+          listenIP: "0.0.0.0"
+          listenPort: {{ .Values.service.configGrpcPort }}
+          connLimit:
+            openConnLimit: false
+            maxConnPerHost: 128
+            maxConnLimit: 5120
+        api:
+          client:
+            enable: true
+      - name: xds-v3
         option:
           listenIP: "0.0.0.0"
           listenPort: {{ .Values.service.xdsv3Port }}
@@ -152,7 +163,7 @@ data:
             openConnLimit: false
             maxConnPerHost: 128
             maxConnLimit: 10240
-      - name: prometheusserver
+      - name: prometheus-sd
         option:
           listenIP: "0.0.0.0"
           listenPort: {{ .Values.service.prometheusPort }}
@@ -160,7 +171,7 @@ data:
             openConnLimit: false
             maxConnPerHost: 128
             maxConnLimit: 10240
-    #  - name: l5pbserver
+    #  - name: service-l5
     #    option:
     #      listenIP: 0.0.0.0
     #      listenPort: 7779

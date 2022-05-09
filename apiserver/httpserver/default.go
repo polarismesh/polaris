@@ -23,5 +23,5 @@ import (
 
 // init 自注册到API服务器插槽
 func init() {
-	_ = apiserver.Register("httpserver", &HTTPServer{})
+	_ = apiserver.Register("api-http", &HTTPServer{})
 }

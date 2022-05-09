@@ -25,5 +25,5 @@ import (
  * @brief 自注册到API服务器插槽
  */
 func init() {
-	_ = apiserver.Register("eurekaserver", &EurekaServer{})
+	_ = apiserver.Register("service-eureka", &EurekaServer{})
 }

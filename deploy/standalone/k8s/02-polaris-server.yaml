@@ -10,23 +10,26 @@ spec:
   type: LoadBalancer
   ports:
     - port: 8761
-      name: eureka-server
+      name: service-eureka
       targetPort: 8761
     - port: 8090
-      name: http-server
+      name: api-http
       targetPort: 8090
     - port: 8091
-      name: grpc-server
+      name: service-grpc
       targetPort: 8091
     - port: 8093
-      name: config-grpc-server
+      name: config-grpc
       targetPort: 8093
     - port: 8080
       name: web-server
       targetPort: 8080
     - port: 15010
-      name: xdsv3-server
+      name: xds-v3
       targetPort: 15010
+    - port: 9000
+      name: prometheus-sd
+      targetPort: 9000
   selector:
     app: polaris
 ---
