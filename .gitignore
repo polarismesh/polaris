@@ -13,7 +13,8 @@ polaris-server-release.tar.gz
 *.swp
 *.code-workspace
 
-.vscode/*
+.vscode
 *.bolt
 *.bolt.lock
 /vendor
+.codecc

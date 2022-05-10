@@ -150,7 +150,7 @@ data:
             maxConnPerHost: 128
             maxConnLimit: 5120
         api:
-          configClient:
+          client:
             enable: true
       - name: xds-v3
         option:
