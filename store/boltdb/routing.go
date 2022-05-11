@@ -195,6 +195,8 @@ func (r *routingStore) GetRoutingConfigs(
 	// get all route config
 	fields := []string{routingFieldInBounds, routingFieldOutBounds, routingFieldRevision}
 
+	svcName, hasSvcName := filter["name"]
+	svcNs, hasSvcNs := filter["namespace"]
 	inBounds, isInBounds := filter["inBounds"]
 	outBounds, isOutBounds := filter["outBounds"]
 	revision, isRevision := filter["revision"]
@@ -245,14 +247,25 @@ func (r *routingStore) GetRoutingConfigs(
 		svcIds[k] = true
 	}
 
-	fields = []string{routingFieldID}
+	fields = []string{SvcFieldID, SvcFieldName, SvcFieldNamespace}
 
 	services, err := r.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
-			rId, ok := m[routingFieldID]
+			rId, ok := m[SvcFieldID]
 			if !ok {
 				return false
 			}
+
+			savcName := m[SvcFieldName].(string)
+			savcNamespace := m[SvcFieldNamespace].(string)
+
+			if hasSvcName && savcName != svcName {
+				return false
+			}
+			if hasSvcNs && savcNamespace != svcNs {
+				return false
+			}
+
 			id := rId.(string)
 			_, ok = svcIds[id]
 			return ok
@@ -268,6 +281,7 @@ func (r *routingStore) GetRoutingConfigs(
 			temp.NamespaceName = svc.Namespace
 		} else {
 			log.Warnf("[Store][boltdb] get service in route conf error, service is nil, id: %s", id)
+			continue
 		}
 		temp.Config = r.(*model.RoutingConfig)
 

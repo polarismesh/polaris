@@ -367,15 +367,13 @@ func (c *circuitBreakerStore) ListMasterCircuitBreakers(
 			if ok && !valid.(bool) {
 				return false
 			}
-			delete(m, CBFieldNameValid)
 			val := m[CBFieldNameVersion].(string)
 			if strings.Compare(val, VersionForMaster) != 0 {
 				return false
 			}
-			delete(m, CBFieldNameVersion)
 			for k, v := range filters {
-				qV := m[k]
-				if !reflect.DeepEqual(qV, v) {
+				qV, ok := m[k]
+				if ok && !reflect.DeepEqual(qV, v) {
 					return false
 				}
 			}
@@ -435,9 +433,9 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 			if emptyCondition {
 				return true
 			}
-			ruleIDVal, ok := m[CBRFieldNameRuleID]
+			ruleIDVal := m[CBRFieldNameRuleID].(string)
 			if isRuleID {
-				if ok && ruleIDVal.(string) != ruleID {
+				if ok && ruleIDVal != ruleID {
 					return false
 				}
 			}
@@ -448,10 +446,10 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 					return false
 				}
 			}
-			if _, exist := svcIds[ruleIDVal.(string)]; !exist {
-				svcIds[ruleIDVal.(string)] = make([]string, 0)
+			if _, exist := svcIds[ruleIDVal]; !exist {
+				svcIds[ruleIDVal] = make([]string, 0)
 			}
-			svcIds[ruleIDVal.(string)] = append(svcIds[ruleIDVal.(string)], m[CBRFieldNameServiceID].(string))
+			svcIds[ruleIDVal] = append(svcIds[ruleIDVal], m[CBRFieldNameServiceID].(string))
 			ruleVersions[m[CBRFieldNameRuleVersion].(string)] = struct{}{}
 			return true
 		})
@@ -467,8 +465,8 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 				return false
 			}
 			if isRuleID {
-				ruleIDVal, ok := m[CBFieldNameID]
-				if ok && ruleIDVal.(string) != ruleID {
+				ruleIDVal := m[CBFieldNameID].(string)
+				if ok && ruleIDVal != ruleID {
 					return false
 				}
 			}
