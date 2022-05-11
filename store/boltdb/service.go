@@ -508,10 +508,6 @@ func (ss *serviceStore) getServiceByNameAndNsIgnoreValid(name string, namespace 
 
 	svc, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
-			valid, ok := m[SvcFieldValid].(bool)
-			if ok && !valid {
-				return false
-			}
 
 			svcName, ok := m[SvcFieldName]
 			if !ok {

@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 const (
@@ -457,24 +458,31 @@ func TestServiceStore_UpdateServiceAlias(t *testing.T) {
 }
 
 func TestServiceStore_DeleteServiceAlias(t *testing.T) {
-	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if err != nil {
-		t.Fatal(err)
-	}
+	CreateTableDBHandlerAndRun(t, tblNameService, func(t *testing.T, handler BoltHandler) {
 
-	defer handler.Close()
+		sStore := &serviceStore{handler: handler}
 
-	sStore := &serviceStore{handler: handler}
+		if err := sStore.AddService(&model.Service{
+			ID: utils.NewUUID(),
+			Name: "service-alias",
+			Namespace: "namespace-alias",
+		}); err != nil {
+			t.Fatal(err)
+		}
 
-	err = sStore.DeleteServiceAlias("svcname0", "testsvc")
-	if err != nil {
-		t.Fatal(err)
-	}
+		err := sStore.DeleteServiceAlias("service-alias", "namespace-alias")
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	svc, err := sStore.getServiceByNameAndNs("svcname0", "testsvc")
-	assert.Nil(t, err, "error must be nil")
+		svc, err := sStore.getServiceByNameAndNsIgnoreValid("service-alias", "namespace-alias")
+		assert.Nil(t, err, "error must be nil")
+		assert.False(t, svc.Valid, "delete service alias failed")
 
-	assert.False(t, svc.Valid, "delete service alias failed")
+		svc, err = sStore.getServiceByNameAndNs("service-alias", "namespace-alias")
+		assert.Nil(t, err, "error must be nil")
+		assert.Nil(t, svc, "service must be nil")
+	})
 }
 
 func TestServiceStore_DeleteService(t *testing.T) {
