@@ -55,6 +55,13 @@ func (c *circuitBreakerStore) CreateCircuitBreaker(cb *model.CircuitBreaker) err
 	dbOp := c.handler
 	cb.Valid = true
 
+	if err := c.cleanCircuitBreaker(cb.ID, cb.Version); err != nil {
+		log.Errorf("[Store][circuitBreaker] clean master for circuit breaker(%s, %s) err: %s",
+			cb.ID, cb.Version, err.Error())
+		return store.Error(err)
+	}
+
+
 	if err := dbOp.SaveValue(tblCircuitBreaker, c.buildKey(cb.ID, cb.Version), cb); err != nil {
 		log.Errorf("[Store][circuitBreaker] create circuit breaker(%s, %s, %s) err: %s",
 			cb.ID, cb.Name, cb.Version, err.Error())
@@ -62,6 +69,18 @@ func (c *circuitBreakerStore) CreateCircuitBreaker(cb *model.CircuitBreaker) err
 	}
 	return nil
 }
+
+// cleanCircuitBreaker 彻底清理熔断规则
+func (c *circuitBreakerStore) cleanCircuitBreaker(id string, version string) error {
+	if err := c.handler.DeleteValues(tblCircuitBreaker, []string{c.buildKey(id, version)}, false); err != nil {
+		log.Errorf("[Store][circuitBreaker] clean invalid circuit-breaker(%s, %s) err: %s",
+			id, version, err.Error())
+		return store.Error(err)
+	}
+
+	return nil
+}
+
 
 // TagCircuitBreaker 标记熔断规则
 func (c *circuitBreakerStore) TagCircuitBreaker(cb *model.CircuitBreaker) error {

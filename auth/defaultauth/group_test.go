@@ -454,7 +454,6 @@ func Test_server_UpdateGroup(t *testing.T) {
 
 }
 
-
 func Test_server_GetGroupToken(t *testing.T) {
 	reset(false)
 	ctrl := gomock.NewController(t)
@@ -553,4 +552,3 @@ func Test_server_GetGroupToken(t *testing.T) {
 		assert.True(t, resp.GetCode().Value == v1.NotAllowedAccess, resp.Info.GetValue())
 	})
 }
-

@@ -50,6 +50,10 @@ func (r *routingStore) CreateRoutingConfig(conf *model.RoutingConfig) error {
 		return store.NewStatusError(store.EmptyParamsErr, "missing some params")
 	}
 
+	if err := r.cleanRoutingConfig(conf.ID); err != nil {
+		return err
+	}
+
 	initRouting(conf)
 
 	err := r.handler.SaveValue(tblNameRouting, conf.ID, conf)
@@ -57,6 +61,17 @@ func (r *routingStore) CreateRoutingConfig(conf *model.RoutingConfig) error {
 		log.Errorf("add routing config to kv error, %v", err)
 		return err
 	}
+	return nil
+}
+
+// cleanRoutingConfig 从数据库彻底清理路由配置
+func (r *routingStore) cleanRoutingConfig(serviceID string) error {
+	err := r.handler.DeleteValues(tblNameRouting, []string{serviceID}, false)
+	if err != nil {
+		log.Errorf("[Store][boltdb] delete invalid route config error, %v", err)
+		return err
+	}
+
 	return nil
 }
 

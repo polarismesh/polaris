@@ -30,6 +30,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 	"github.com/polarismesh/polaris-server/store/sqldb"
+	"go.uber.org/zap"
 )
 
 type serviceStore struct {
@@ -64,6 +65,11 @@ const (
 // AddService save a service
 func (ss *serviceStore) AddService(s *model.Service) error {
 
+	// 删除之前同名的服务
+	if err := ss.cleanInValidService(s.Name, s.Namespace); err != nil {
+		return err
+	}
+
 	initService(s)
 
 	if s.ID == "" || s.Name == "" || s.Namespace == "" {
@@ -92,8 +98,11 @@ func (ss *serviceStore) DeleteServiceAlias(name string, namespace string) error 
 
 	svc, err := ss.getServiceByNameAndNs(name, namespace)
 	if err != nil {
-		log.Errorf("[Store][boltdb] get service alias error, %v", err)
+		log.Error("[Store][boltdb] get service alias error", zap.Error(err))
 		return err
+	}
+	if svc == nil {
+		return nil
 	}
 
 	err = ss.handler.DeleteValues(tblNameService, []string{svc.ID}, true)
@@ -178,10 +187,12 @@ func (ss *serviceStore) GetSourceServiceToken(name string, namespace string) (*m
 	var out model.Service
 	s, err := ss.getServiceByNameAndNs(name, namespace)
 	switch {
-	case err == sql.ErrNoRows, s == nil:
+	case err == sql.ErrNoRows:
 		return nil, nil
 	case err != nil:
 		return nil, err
+	case s == nil:
+		return nil, nil
 	default:
 		out.ID = s.ID
 		out.Token = s.Token
@@ -198,6 +209,11 @@ func (ss *serviceStore) GetService(name string, namespace string) (*model.Servic
 	if err != nil {
 		return nil, err
 	}
+
+	if s == nil {
+		return nil, nil
+	}
+
 	return s, nil
 }
 
@@ -468,14 +484,32 @@ func (ss *serviceStore) GetServicesBatch(services []*model.Service) ([]*model.Se
 }
 
 func (ss *serviceStore) getServiceByNameAndNs(name string, namespace string) (*model.Service, error) {
+
+	out, err := ss.getServiceByNameAndNsIgnoreValid(name, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	if out == nil {
+		return nil, nil
+	}
+
+	if !out.Valid {
+		return nil, nil
+	}
+
+	return out, err
+}
+
+func (ss *serviceStore) getServiceByNameAndNsIgnoreValid(name string, namespace string) (*model.Service, error) {
 	var out *model.Service
 
-	fields := []string{SvcFieldName, SvcFieldNamespace}
+	fields := []string{SvcFieldName, SvcFieldNamespace, SvcFieldValid}
 
 	svc, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
-			valid, ok := m[SvcFieldValid]
-			if ok && !valid.(bool) {
+			valid, ok := m[SvcFieldValid].(bool)
+			if ok && !valid {
 				return false
 			}
 
@@ -500,6 +534,10 @@ func (ss *serviceStore) getServiceByNameAndNs(name string, namespace string) (*m
 	if len(svc) > 1 {
 		log.Errorf("[Store][boltdb] multiple services found %v", svc)
 		return nil, MultipleSvcFound
+	}
+
+	if len(svc) == 0 {
+		return nil, nil
 	}
 
 	// should only find one service
@@ -732,6 +770,25 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 	}
 	totalCount := len(svcs)
 	return uint32(totalCount), getRealServicesList(svcs, offset, limit), nil
+}
+
+func (ss *serviceStore) cleanInValidService(name, namespace string) error {
+	old, err := ss.getServiceByNameAndNsIgnoreValid(name, namespace)
+
+	if err != nil {
+		return err
+	}
+
+	if old == nil {
+		return nil
+	}
+
+	if err := ss.handler.DeleteValues(tblNameService, []string{old.ID}, false); err != nil {
+		log.Errorf("[Store][boltdb] delete invalid service error, %+v", err)
+		return err
+	}
+
+	return nil
 }
 
 func getRealServicesList(originServices map[string]interface{}, offset, limit uint32) []*model.Service {
