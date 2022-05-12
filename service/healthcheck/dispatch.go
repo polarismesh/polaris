@@ -25,6 +25,7 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	. "github.com/polarismesh/polaris-server/common/utils"
 )
 
 const (
@@ -93,21 +94,6 @@ func (d *Dispatcher) startDispatchingJob(ctx context.Context) {
 
 const weight = 100
 
-func compareBuckets(src map[Bucket]bool, dst map[Bucket]bool) bool {
-	if len(src) != len(dst) {
-		return false
-	}
-	if len(src) == 0 {
-		return false
-	}
-	for bucket := range dst {
-		if _, ok := src[bucket]; !ok {
-			return false
-		}
-	}
-	return true
-}
-
 func (d *Dispatcher) reloadSelfContinuum() bool {
 	nextBuckets := make(map[Bucket]bool)
 	server.cacheProvider.RangeSelfServiceInstances(func(instance *api.Instance) {
@@ -121,7 +107,7 @@ func (d *Dispatcher) reloadSelfContinuum() bool {
 	})
 	originBucket := d.selfServiceBuckets
 	log.Debugf("[Health Check][Dispatcher]reload continuum by %v, origin is %v", nextBuckets, originBucket)
-	if compareBuckets(originBucket, nextBuckets) {
+	if CompareBuckets(originBucket, nextBuckets) {
 		return false
 	}
 	d.selfServiceBuckets = nextBuckets

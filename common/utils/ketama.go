@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package healthcheck
+package utils
 
 import (
 	"crypto/sha1"
@@ -56,9 +56,24 @@ func sha1Digest(in string) []byte {
 	return h.Sum(nil)
 }
 
-func hashString(in string) uint {
+func HashString(in string) uint {
 	digest := sha1Digest(in)
 	return uint(digest[3])<<24 | uint(digest[2])<<16 | uint(digest[1])<<8 | uint(digest[0])
+}
+
+func CompareBuckets(src map[Bucket]bool, dst map[Bucket]bool) bool {
+	if len(src) != len(dst) {
+		return false
+	}
+	if len(src) == 0 {
+		return false
+	}
+	for bucket := range dst {
+		if _, ok := src[bucket]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
 // New hash ring

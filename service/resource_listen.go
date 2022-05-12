@@ -100,7 +100,11 @@ func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *Reso
 
 // onServiceResource 服务资源的处理，只处理服务，namespace 只由 namespace 相关的进行处理，
 func (svr *serverAuthAbility) onServiceResource(ctx context.Context, res *ResourceEvent) error {
-	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
+	authCtx, ok := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
+	if !ok {
+		return nil
+	}
+
 	ownerId := utils.ParseOwnerID(ctx)
 
 	authCtx.SetAttachment(model.ResourceAttachmentKey, map[api.ResourceType][]model.ResourceEntry{

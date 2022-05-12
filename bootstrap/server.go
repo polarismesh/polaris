@@ -34,6 +34,7 @@ import (
 	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
+	"github.com/polarismesh/polaris-server/serviceautoclean"
 
 	"github.com/polarismesh/polaris-server/apiserver"
 	boot_config "github.com/polarismesh/polaris-server/bootstrap/config"
@@ -181,6 +182,12 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 
 	// 初始化运维操作模块
 	if err := maintain.Initialize(ctx, namingSvr, healthCheckServer); err != nil {
+		return err
+	}
+
+	// 启动空服务自动清理
+	cfg.ServiceAutoClean.SetDefault(boot_config.DefaultPolarisNamespace)
+	if err := serviceautoclean.Start(ctx, &cfg.ServiceAutoClean, cfg.Cache.Open, namingSvr); err != nil {
 		return err
 	}
 

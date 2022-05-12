@@ -84,6 +84,9 @@ bootstrap:
       - name: polaris.config
         protocols:
           - configgrpcserver
+      - name: polaris.serviceAutoCleaner
+        protocols:
+          - grpcserver
 # apiserver配置
 apiservers:
   - name: eurekaserver
@@ -214,6 +217,16 @@ naming:
       waitTime: 32ms
       maxBatchCount: 32
       concurrency: 64
+# 空服务清理配置
+serviceAutoClean:
+  open: true
+  service: polaris.serviceAutoCleaner
+  # 检查周期
+  checkInterval: 60s
+  # 清理条件1 - 超过该时间窗为空
+  expireTime: 600s
+  # 清理条件2 - 并且连续检测该次后仍为空
+  checkCountBeforeClean: 3
 # 健康检查的配置
 healthcheck:
   open: true

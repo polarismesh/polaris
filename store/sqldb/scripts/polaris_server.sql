@@ -291,6 +291,17 @@ VALUES ('fbca9bfa04ae4ead86e1ecf5811e32a9',
         'polaris',
         0,
         '2021-09-06 07:55:07',
+        '2021-09-06 07:55:11'),
+        ('16923529ad3a433da9bdee6703f05c41',
+        'polaris.serviceAutoCleaner',
+        'Polaris',
+        'polaris service auto cleaner',
+        'polaris',
+        '21a57bb666a74022a0f179837d61559e',
+        'c02bf17e416b4ec5a79e323039e4e4fb',
+        'polaris',
+        0,
+        '2021-09-06 07:55:07',
         '2021-09-06 07:55:11');
 
 -- --------------------------------------------------------
