@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris-server/common/model"
 )
@@ -1193,10 +1194,7 @@ func Test_circuitBreakerStore_GetCircuitBreakersByService(t *testing.T) {
 				}{name: tt.name, fields: tt.fields, args: tt.args, want: tt.want})
 
 				got, err := c.GetCircuitBreakersByService(tt.args.name, tt.args.namespace)
-				if (err != nil) != tt.wantErr {
-					t.Errorf("circuitBreakerStore.GetCircuitBreakersByService() error = %v, wantErr %v", err, tt.wantErr)
-					return
-				}
+				assert.NoError(t, err)
 
 				if got == nil {
 					if tt.want == nil {
