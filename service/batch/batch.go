@@ -20,9 +20,8 @@ package batch
 import (
 	"context"
 
-	"github.com/polarismesh/polaris-server/auth"
+	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
 )
 
@@ -36,29 +35,28 @@ type Controller struct {
 }
 
 // NewBatchCtrlWithConfig 根据配置文件创建一个批量控制器
-func NewBatchCtrlWithConfig(storage store.Store, authority auth.Authority, auth plugin.Auth,
-	config *Config) (*Controller, error) {
+func NewBatchCtrlWithConfig(storage store.Store, cacheMgn *cache.NamingCache, config *Config) (*Controller, error) {
 	if config == nil {
 		return nil, nil
 	}
 
 	var err error
 	var register *InstanceCtrl
-	register, err = NewBatchRegisterCtrl(storage, authority, auth, config.Register)
+	register, err = NewBatchRegisterCtrl(storage, cacheMgn, config.Register)
 	if err != nil {
 		log.Errorf("[Batch] new batch register instance ctrl err: %s", err.Error())
 		return nil, err
 	}
 
 	var deregister *InstanceCtrl
-	deregister, err = NewBatchDeregisterCtrl(storage, authority, auth, config.Deregister)
+	deregister, err = NewBatchDeregisterCtrl(storage, cacheMgn, config.Deregister)
 	if err != nil {
 		log.Errorf("[Batch] new batch deregister instance ctrl err: %s", err.Error())
 		return nil, err
 	}
 
 	var heartbeat *InstanceCtrl
-	heartbeat, err = NewBatchHeartbeatCtrl(storage, authority, auth, config.Heartbeat)
+	heartbeat, err = NewBatchHeartbeatCtrl(storage, cacheMgn, config.Heartbeat)
 	if err != nil {
 		log.Errorf("[Batch] new batch heartbeat instance ctrl err: %s", err.Error())
 		return nil, err

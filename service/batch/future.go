@@ -64,8 +64,8 @@ func (future *InstanceFuture) Code() uint32 {
 	return future.code
 }
 
-// SendReply 批量答复futures
-func SendReply(futures interface{}, code uint32, result error) {
+// sendReply 批量答复futures
+func sendReply(futures interface{}, code uint32, result error) {
 	switch futureType := futures.(type) {
 	case []*InstanceFuture:
 		for _, entry := range futureType {
