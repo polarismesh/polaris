@@ -91,9 +91,6 @@ func (s *Server) CreateRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 	if service.IsAlias() {
 		return api.NewRateLimitResponse(api.NotAllowAliasCreateRateLimit, req)
 	}
-	if err := s.verifyRateLimitAuth(ctx, service, req); err != nil {
-		return err
-	}
 
 	clusterID := ""
 
@@ -308,9 +305,6 @@ func (s *Server) checkRateLimitValid(ctx context.Context, serviceID string, req 
 		return nil, api.NewRateLimitResponse(api.StoreLayerException, req)
 	}
 
-	if err := s.verifyRateLimitAuth(ctx, service, req); err != nil {
-		return nil, err
-	}
 	return service, nil
 }
 
@@ -392,25 +386,6 @@ func parseRateLimitReqToken(ctx context.Context, req *api.Rule) string {
 	}
 
 	return ParseToken(ctx)
-}
-
-// verifyRateLimitAuth 限流鉴权
-func (s *Server) verifyRateLimitAuth(ctx context.Context, service *model.Service, req *api.Rule) *api.Response {
-	// 使用平台id及token鉴权
-	if ok := s.verifyAuthByPlatform(ctx, service.PlatformID); !ok {
-		// 检查token是否存在
-		token := parseRateLimitReqToken(ctx, req)
-		if !s.authority.VerifyToken(token) {
-			return api.NewRateLimitResponse(api.InvalidServiceToken, req)
-		}
-
-		// 检查token是否ok
-		if ok := s.authority.VerifyService(service.Token, token); !ok {
-			return api.NewRateLimitResponse(api.Unauthorized, req)
-		}
-	}
-
-	return nil
 }
 
 // api2RateLimit 把API参数转化为内部数据结构

@@ -324,10 +324,6 @@ func (s *Server) checkRevisePlatform(ctx context.Context, req *api.Platform) (*m
 		return nil, api.NewPlatformResponse(api.NotFoundPlatform, req)
 	}
 
-	// 鉴权
-	if ok := s.authority.VerifyPlatform(platform.Token, parsePlatformToken(ctx, req)); !ok {
-		return nil, api.NewPlatformResponse(api.Unauthorized, req)
-	}
 	return platform, nil
 }
 

@@ -520,7 +520,8 @@ func (c *circuitBreakerStore) GetCircuitBreakersByService(
 	}
 
 	if service == nil {
-		return nil, store.NewStatusError(store.NotFoundService, fmt.Sprintf("service(namespace=%s, name=%s)", name, namespace))
+		log.Warnf("[Store][] not found service(namespace=%s, name=%s)", name, namespace)
+		return nil, nil
 	}
 
 	serviceId := service.ID

@@ -25,7 +25,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -42,9 +41,8 @@ type Server struct {
 
 	namespaceSvr namespace.NamespaceOperateServer
 
-	caches    *cache.NamingCache
-	authority auth.Authority
-	bc        *batch.Controller
+	caches *cache.NamingCache
+	bc     *batch.Controller
 
 	healthServer *healthcheck.Server
 
@@ -61,11 +59,6 @@ type Server struct {
 	createNamespaceSingle *singleflight.Group
 
 	hooks []ResourceHook
-}
-
-// Authority 返回鉴权对象，获取鉴权信息
-func (s *Server) Authority() auth.Authority {
-	return s.authority
 }
 
 // HealthServer 健康检查Server
