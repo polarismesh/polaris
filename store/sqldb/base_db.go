@@ -80,7 +80,7 @@ func (b *BaseDB) openDatabase() error {
 		c.dbPwd = pwd
 	}
 
-	dns := fmt.Sprintf("%s:%s@tcp(%s)/%s", c.dbUser, c.dbPwd, c.dbAddr, c.dbName)
+	dns := fmt.Sprintf("%s:%s@tcp(%s)/%s&loc=Local", c.dbUser, c.dbPwd, c.dbAddr, c.dbName)
 
 	db, err := sql.Open(c.dbType, dns)
 	if err != nil {
