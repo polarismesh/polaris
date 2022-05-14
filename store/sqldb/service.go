@@ -734,7 +734,7 @@ func getMoreServiceWithMeta(queryHandler QueryHandler, mtime time.Time, firstUpd
 	var args []interface{}
 	args = append(args, mtime.Unix())
 	str := genServiceSelectSQL() + `, IFNULL(service_metadata.id, ""), IFNULL(mkey, ""), IFNULL(mvalue, "") ` +
-		`from service left join service_metadata on service.id = service_metadata.id where UNIX_TIMESTAMP(service.mtime) >= ?`
+		`from service left join service_metadata on service.id = service_metadata.id where service.mtime >= FROM_UNIXTIME(?)`
 	if disableBusiness {
 		str += " and service.namespace = ?"
 		args = append(args, SystemNamespace)
@@ -803,7 +803,7 @@ func getMoreServiceMain(queryHandler QueryHandler, mtime time.Time,
 	firstUpdate, disableBusiness bool) (map[string]*model.Service, error) {
 	var args []interface{}
 	args = append(args, mtime.Unix())
-	str := genServiceSelectSQL() + " from service where UNIX_TIMESTAMP(service.mtime) >= ?"
+	str := genServiceSelectSQL() + " from service where service.mtime >= FROM_UNIXTIME(?)"
 	if disableBusiness {
 		str += " and service.namespace = ?"
 		args = append(args, SystemNamespace)

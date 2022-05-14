@@ -601,7 +601,7 @@ func (ins *instanceStore) getMoreInstancesMainWithMeta(mtime time.Time, firstUpd
 	}
 
 	// 非首次拉取
-	str := genCompleteInstanceSelectSQL() + " where UNIX_TIMESTAMP(instance.mtime) >= ?"
+	str := genCompleteInstanceSelectSQL() + " where instance.mtime >= FROM_UNIXTIME(?)"
 	args := make([]interface{}, 0, len(serviceID)+1)
 	args = append(args, mtime.Unix())
 
@@ -667,7 +667,7 @@ func fetchInstanceWithMetaRows(rows *sql.Rows) (map[string]*model.Instance, erro
 // getMoreInstancesMain 获取增量instances 主表内容，health_check内容
 func (ins *instanceStore) getMoreInstancesMain(mtime time.Time, firstUpdate bool, serviceID []string) (
 	map[string]*model.Instance, error) {
-	str := genInstanceSelectSQL() + " where UNIX_TIMESTAMP(instance.mtime) >= ?"
+	str := genInstanceSelectSQL() + " where instance.mtime >= FROM_UNIXTIME(?)"
 	args := make([]interface{}, 0, len(serviceID)+1)
 	args = append(args, mtime.Unix())
 

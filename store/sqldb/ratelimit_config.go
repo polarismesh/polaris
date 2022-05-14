@@ -216,7 +216,7 @@ func (rls *rateLimitStore) GetRateLimitsForCache(mtime time.Time,
 	str := `select id, ratelimit_config.service_id, cluster_id, labels, priority, rule, revision, flag,
 			unix_timestamp(ratelimit_config.ctime), unix_timestamp(ratelimit_config.mtime), last_revision 
 			from ratelimit_config, ratelimit_revision 
-			where UNIX_TIMESTAMP(ratelimit_config.mtime) > ? and ratelimit_config.service_id = ratelimit_revision.service_id`
+			where ratelimit_config.mtime > FROM_UNIXTIME(?) and ratelimit_config.service_id = ratelimit_revision.service_id`
 	if firstUpdate {
 		str += " and flag != 1" // nolint
 	}

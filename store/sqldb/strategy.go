@@ -650,7 +650,7 @@ func (s *strategyStore) GetStrategyDetailsForCache(mtime time.Time,
 		" UNIX_TIMESTAMP(ag.ctime), UNIX_TIMESTAMP(ag.mtime) FROM auth_strategy ag "
 
 	if !firstUpdate {
-		querySql += " WHERE UNIX_TIMESTAMP(ag.mtime) >= ?"
+		querySql += " WHERE ag.mtime >= FROM_UNIXTIME(?)"
 		args = append(args, mtime.Unix())
 	}
 

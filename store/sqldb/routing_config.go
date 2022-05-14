@@ -100,7 +100,7 @@ func (rs *routingConfigStore) GetRoutingConfigsForCache(
 	mtime time.Time, firstUpdate bool) ([]*model.RoutingConfig, error) {
 	str := `select id, in_bounds, out_bounds, revision,
 			flag, unix_timestamp(ctime), unix_timestamp(mtime)  
-			from routing_config where UNIX_TIMESTAMP(mtime) > ?`
+			from routing_config where mtime > FROM_UNIXTIME(?)`
 	if firstUpdate {
 		str += " and flag != 1" // nolint
 	}

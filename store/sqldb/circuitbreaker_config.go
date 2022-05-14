@@ -274,7 +274,7 @@ func (c *circuitBreakerStore) GetCircuitBreakerMasterRelation(ruleID string) (
 func (c *circuitBreakerStore) GetCircuitBreakerForCache(mtime time.Time, firstUpdate bool) (
 	[]*model.ServiceWithCircuitBreaker, error) {
 	str := genQueryCircuitBreakerWithServiceID()
-	str += `where UNIX_TIMESTAMP(circuitbreaker_rule_relation.mtime) > ? and rule_id = id and rule_version = version
+	str += `where circuitbreaker_rule_relation.mtime > FROM_UNIXTIME(?) and rule_id = id and rule_version = version
 			and circuitbreaker_rule.flag = 0`
 	if firstUpdate {
 		str += ` and circuitbreaker_rule_relation.flag != 1`

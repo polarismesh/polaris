@@ -499,7 +499,7 @@ func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mode
 	  `
 
 	if !firstUpdate {
-		querySql += " WHERE UNIX_TIMESTAMP(u.mtime) >= ? "
+		querySql += " WHERE u.mtime >= FROM_UNIXTIME(?) "
 		args = append(args, mtime.Unix())
 	}
 
