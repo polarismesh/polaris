@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/model"
-	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/store"
 )
 
@@ -101,11 +100,11 @@ func (rs *routingConfigStore) GetRoutingConfigsForCache(
 	mtime time.Time, firstUpdate bool) ([]*model.RoutingConfig, error) {
 	str := `select id, in_bounds, out_bounds, revision,
 			flag, unix_timestamp(ctime), unix_timestamp(mtime)  
-			from routing_config where mtime > ?`
+			from routing_config where UNIX_TIMESTAMP(mtime) > ?`
 	if firstUpdate {
 		str += " and flag != 1" // nolint
 	}
-	rows, err := rs.slave.Query(str, commontime.Time2String(mtime))
+	rows, err := rs.slave.Query(str, mtime.Unix())
 	if err != nil {
 		log.Errorf("[Store][database] query routing configs with mtime err: %s", err.Error())
 		return nil, err

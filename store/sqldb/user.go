@@ -28,7 +28,6 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	logger "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
-	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 )
@@ -500,8 +499,8 @@ func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mode
 	  `
 
 	if !firstUpdate {
-		querySql += " WHERE u.mtime >= ? "
-		args = append(args, commontime.Time2String(mtime))
+		querySql += " WHERE UNIX_TIMESTAMP(u.mtime) >= ? "
+		args = append(args, mtime.Unix())
 	}
 
 	users, err := u.collectUsers(u.master.Query, querySql, args, logger.CacheScope())

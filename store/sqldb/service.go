@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/model"
-	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 )
@@ -733,9 +732,9 @@ func getMoreServiceWithMeta(queryHandler QueryHandler, mtime time.Time, firstUpd
 
 	// 非首次拉取
 	var args []interface{}
-	args = append(args, commontime.Time2String(mtime))
+	args = append(args, mtime.Unix())
 	str := genServiceSelectSQL() + `, IFNULL(service_metadata.id, ""), IFNULL(mkey, ""), IFNULL(mvalue, "") ` +
-		`from service left join service_metadata on service.id = service_metadata.id where service.mtime >= ?`
+		`from service left join service_metadata on service.id = service_metadata.id where UNIX_TIMESTAMP(service.mtime) >= ?`
 	if disableBusiness {
 		str += " and service.namespace = ?"
 		args = append(args, SystemNamespace)
@@ -803,8 +802,8 @@ func fetchServiceWithMetaRows(rows *sql.Rows) (map[string]*model.Service, error)
 func getMoreServiceMain(queryHandler QueryHandler, mtime time.Time,
 	firstUpdate, disableBusiness bool) (map[string]*model.Service, error) {
 	var args []interface{}
-	args = append(args, commontime.Time2String(mtime))
-	str := genServiceSelectSQL() + " from service where service.mtime >= ?"
+	args = append(args, mtime.Unix())
+	str := genServiceSelectSQL() + " from service where UNIX_TIMESTAMP(service.mtime) >= ?"
 	if disableBusiness {
 		str += " and service.namespace = ?"
 		args = append(args, SystemNamespace)

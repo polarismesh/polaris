@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/model"
-	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/store"
 )
 
@@ -275,12 +274,12 @@ func (c *circuitBreakerStore) GetCircuitBreakerMasterRelation(ruleID string) (
 func (c *circuitBreakerStore) GetCircuitBreakerForCache(mtime time.Time, firstUpdate bool) (
 	[]*model.ServiceWithCircuitBreaker, error) {
 	str := genQueryCircuitBreakerWithServiceID()
-	str += `where circuitbreaker_rule_relation.mtime > ? and rule_id = id and rule_version = version
+	str += `where UNIX_TIMESTAMP(circuitbreaker_rule_relation.mtime) > ? and rule_id = id and rule_version = version
 			and circuitbreaker_rule.flag = 0`
 	if firstUpdate {
 		str += ` and circuitbreaker_rule_relation.flag != 1`
 	}
-	rows, err := c.slave.Query(str, commontime.Time2String(mtime))
+	rows, err := c.slave.Query(str, mtime.Unix())
 	if err != nil {
 		log.Errorf("[Store][CircuitBreaker] query circuitbreaker_rule_relation with mtime err: %s",
 			err.Error())
