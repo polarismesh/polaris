@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package grpcserver
+package discover
 
 import (
 	"context"
@@ -27,19 +27,21 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"
 
+	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 // ReportClient 客户端上报
 func (g *GRPCServer) ReportClient(ctx context.Context, in *api.Client) (*api.Response, error) {
-	return g.namingServer.ReportClient(ConvertContext(ctx), in), nil
+	return g.namingServer.ReportClient(grpcserver.ConvertContext(ctx), in), nil
 }
 
 // RegisterInstance 注册服务实例
 func (g *GRPCServer) RegisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
-	rCtx := ConvertContext(ctx)
+	rCtx := grpcserver.ConvertContext(ctx)
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
 
 	// 客户端请求中带了 token 的，优先已请求中的为准
@@ -54,7 +56,7 @@ func (g *GRPCServer) RegisterInstance(ctx context.Context, in *api.Instance) (*a
 // DeregisterInstance 反注册服务实例
 func (g *GRPCServer) DeregisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
-	rCtx := ConvertContext(ctx)
+	rCtx := grpcserver.ConvertContext(ctx)
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
 
 	// 客户端请求中带了 token 的，优先已请求中的为准
@@ -68,7 +70,7 @@ func (g *GRPCServer) DeregisterInstance(ctx context.Context, in *api.Instance) (
 
 // Discover 统一发现接口
 func (g *GRPCServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
-	ctx := ConvertContext(server.Context())
+	ctx := grpcserver.ConvertContext(server.Context())
 	clientIP, _ := ctx.Value(utils.StringContext("client-ip")).(string)
 	clientAddress, _ := ctx.Value(utils.StringContext("client-address")).(string)
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
@@ -135,7 +137,7 @@ func (g *GRPCServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
 
 // Heartbeat 上报心跳
 func (g *GRPCServer) Heartbeat(ctx context.Context, in *api.Instance) (*api.Response, error) {
-	return g.healthCheckServer.Report(ConvertContext(ctx), in), nil
+	return g.healthCheckServer.Report(grpcserver.ConvertContext(ctx), in), nil
 }
 
 // ParseGrpcOperator 构造请求源

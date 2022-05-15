@@ -258,7 +258,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 
 // StartConfigCenterComponents 启动配置中心模块
 func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config) error {
-	return config_center.InitConfigModule(ctx, cfg.Config)
+	return config_center.Initialize(ctx, cfg.Config)
 }
 
 // StartServers 启动server

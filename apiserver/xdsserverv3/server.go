@@ -649,8 +649,8 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 
 			routeResp := x.namingServer.GetRoutingConfigWithCache(ctx, s)
 			if routeResp.GetCode().Value != api.ExecuteSuccess {
-				log.Errorf("error sync instances for %s", svc.Name)
-				return fmt.Errorf("error sync instances for %s", svc.Name)
+				log.Errorf("error sync routing for %s, info : %s", svc.Name, routeResp.Info.GetValue())
+				return fmt.Errorf("error sync routing for %s", svc.Name)
 			}
 
 			if routeResp.Routing != nil {
@@ -660,7 +660,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 
 			resp := x.namingServer.ServiceInstancesCache(nil, s)
 			if resp.GetCode().Value != api.ExecuteSuccess {
-				log.Errorf("error sync instances for %s", svc.Name)
+				log.Errorf("error sync instances for %s, info : %s", svc.Name, resp.Info.GetValue())
 				return fmt.Errorf("error sync instances for %s", svc.Name)
 			}
 

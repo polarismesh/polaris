@@ -80,13 +80,13 @@ bootstrap:
     services:
       - name: polaris.checker
         protocols:
-          - grpcserver
+          - service-grpc
       - name: polaris.config
         protocols:
-          - configgrpcserver
+          - config-grpc
 # apiserver配置
 apiservers:
-  - name: eurekaserver
+  - name: service-eureka
     option:
       listenIP: "0.0.0.0"
       listenPort: 8761
@@ -102,7 +102,7 @@ apiservers:
         whiteList: 127.0.0.1
         purgeCounterInterval: 10s
         purgeCounterExpired: 5s
-  - name: httpserver # 协议名，全局唯一
+  - name: api-http # 协议名，全局唯一
     option:
       listenIP: "0.0.0.0"
       listenPort: 8090
@@ -126,7 +126,7 @@ apiservers:
       config:
         enable: true
         include: [default]
-  - name: grpcserver
+  - name: service-grpc
     option:
       listenIP: "0.0.0.0"
       listenPort: 8091
@@ -138,7 +138,7 @@ apiservers:
       client:
         enable: true
         include: [discover, register, healthcheck]
-  - name: configgrpcserver
+  - name: config-grpc
     option:
       listenIP: "0.0.0.0"
       listenPort: 8093
@@ -147,9 +147,9 @@ apiservers:
         maxConnPerHost: 128
         maxConnLimit: 5120
     api:
-      configClient:
+      client:
         enable: true
-  - name: xdsserverv3
+  - name: xds-v3
     option:
       listenIP: "0.0.0.0"
       listenPort: 15010
@@ -157,7 +157,7 @@ apiservers:
         openConnLimit: false
         maxConnPerHost: 128
         maxConnLimit: 10240
-  - name: prometheusserver
+  - name: prometheus-sd
     option:
       listenIP: "0.0.0.0"
       listenPort: 9000
@@ -165,7 +165,7 @@ apiservers:
         openConnLimit: false
         maxConnPerHost: 128
         maxConnLimit: 10240
-#  - name: l5pbserver
+#  - name: service-l5
 #    option:
 #      listenIP: 0.0.0.0
 #      listenPort: 7779

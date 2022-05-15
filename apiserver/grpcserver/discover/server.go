@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package grpcserver
+package discover
 
 import (
 	"context"
@@ -24,14 +24,16 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/polarismesh/polaris-server/apiserver"
+	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 )
 
 // GRPCServer GRPC API服务器
 type GRPCServer struct {
-	BaseGrpcServer
+	grpcserver.BaseGrpcServer
 	namingServer      service.DiscoverServer
 	healthCheckServer *healthcheck.Server
 	openAPI           map[string]apiserver.APIConfig

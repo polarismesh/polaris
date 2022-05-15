@@ -31,6 +31,7 @@ import (
 	"github.com/polarismesh/polaris-server/plugin"
 	storemock "github.com/polarismesh/polaris-server/store/mock"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func Test_server_CreateUsers(t *testing.T) {
@@ -591,5 +592,164 @@ func Test_server_UpdateUserPassword(t *testing.T) {
 		resp := svr.UpdateUserPassword(reqCtx, req)
 		t.Logf("CreateUsers resp : %+v", resp)
 		assert.Equal(t, api.NotAllowedAccess, resp.Code.GetValue(), "update user must fail")
+	})
+}
+
+func Test_server_DeleteUser(t *testing.T) {
+	reset(false)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	users := createMockUser(10)
+
+	adminId := utils.NewUUID()
+	pwd, _ := bcrypt.GenerateFromPassword([]byte("polaris"), bcrypt.DefaultCost)
+	token, _ := createToken(adminId, "")
+
+	admin := &model.User{
+		ID:          adminId,
+		Type:        model.AdminUserRole,
+		Owner:       "",
+		Password:    string(pwd),
+		Name:        "polarissysadmin",
+		Token:       token,
+		TokenEnable: true,
+		Valid:       true,
+	}
+	groups := createMockUserGroup(users)
+	users = append(users, admin)
+
+	storage := storemock.NewMockStore(ctrl)
+
+	storage.EXPECT().DeleteUser(gomock.Any()).AnyTimes().Return(nil)
+	storage.EXPECT().UpdateUser(gomock.Any()).AnyTimes().Return(nil)
+	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
+	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(groups, nil)
+
+	cfg := &cache.Config{
+		Open: true,
+		Resources: []cache.ConfigEntry{
+			{
+				Name: "users",
+			},
+		},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
+		t.Fatal(err)
+	}
+
+	cacheMgn, err := cache.GetCacheManager()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		cancel()
+		cacheMgn.Clear()
+		time.Sleep(2 * time.Second)
+	}()
+	time.Sleep(time.Second)
+
+	checker := &defaultAuthChecker{}
+	checker.cacheMgn = cacheMgn
+	checker.authPlugin = plugin.GetAuth()
+
+	svr := &serverAuthAbility{
+		authMgn: checker,
+		target: &server{
+			storage:  storage,
+			cacheMgn: cacheMgn,
+			authMgn:  checker,
+		},
+	}
+
+	t.Run("主账户删除自己", func(t *testing.T) {
+		storage.EXPECT().GetUser(gomock.Any()).Return(users[0], nil)
+
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
+		resp := svr.DeleteUser(reqCtx, &api.User{
+			Id: utils.NewStringValue(users[0].ID),
+		})
+
+		assert.True(t, resp.GetCode().Value == api.NotAllowedAccess, resp.Info.GetValue())
+	})
+
+	t.Run("主账户删除另外一个主账户", func(t *testing.T) {
+		uid := utils.NewUUID()
+		storage.EXPECT().GetUser(gomock.Any()).Return(&model.User{
+			ID:    uid,
+			Type:  model.OwnerUserRole,
+			Owner: "",
+		}, nil)
+
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
+		resp := svr.DeleteUser(reqCtx, &api.User{
+			Id: utils.NewStringValue(uid),
+		})
+
+		assert.True(t, resp.GetCode().Value == api.NotAllowedAccess, resp.Info.GetValue())
+	})
+
+	t.Run("主账户删除自己的子账户", func(t *testing.T) {
+		storage.EXPECT().GetUser(gomock.Eq(users[1].ID)).Return(users[1], nil)
+
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
+		resp := svr.DeleteUser(reqCtx, &api.User{
+			Id: utils.NewStringValue(users[1].ID),
+		})
+
+		assert.True(t, resp.GetCode().Value == api.ExecuteSuccess, resp.Info.GetValue())
+	})
+
+	t.Run("主账户删除不是自己的子账户", func(t *testing.T) {
+		uid := utils.NewUUID()
+		oid := utils.NewUUID()
+		storage.EXPECT().GetUser(gomock.Any()).Return(&model.User{
+			ID:    uid,
+			Type:  model.OwnerUserRole,
+			Owner: oid,
+		}, nil)
+
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
+		resp := svr.DeleteUser(reqCtx, &api.User{
+			Id: utils.NewStringValue(uid),
+		})
+
+		assert.True(t, resp.GetCode().Value == api.NotAllowedAccess, resp.Info.GetValue())
+	})
+
+	t.Run("管理员删除主账户-主账户下没有子账户", func(t *testing.T) {
+		storage.EXPECT().GetUser(gomock.Any()).Return(users[0], nil)
+		storage.EXPECT().GetSubCount(gomock.Any()).Return(uint32(0), nil)
+
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, admin.Token)
+		resp := svr.DeleteUser(reqCtx, &api.User{
+			Id: utils.NewStringValue(users[0].ID),
+		})
+
+		assert.True(t, resp.GetCode().Value == api.ExecuteSuccess, resp.Info.GetValue())
+	})
+
+	t.Run("管理员删除主账户-主账户下还有子账户", func(t *testing.T) {
+		storage.EXPECT().GetUser(gomock.Any()).Return(users[0], nil)
+		storage.EXPECT().GetSubCount(gomock.Any()).Return(uint32(1), nil)
+
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, admin.Token)
+		resp := svr.DeleteUser(reqCtx, &api.User{
+			Id: utils.NewStringValue(users[0].ID),
+		})
+
+		assert.True(t, resp.GetCode().Value == api.SubAccountExisted, resp.Info.GetValue())
+	})
+
+	t.Run("子账户删除用户", func(t *testing.T) {
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
+		resp := svr.DeleteUser(reqCtx, &api.User{
+			Id: utils.NewStringValue(users[0].ID),
+		})
+
+		assert.True(t, resp.GetCode().Value == api.OperationRoleException, resp.Info.GetValue())
 	})
 }

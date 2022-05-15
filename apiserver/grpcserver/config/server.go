@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package configgrpcserver
+package config
 
 import (
 	"context"
@@ -61,7 +61,7 @@ func (g *ConfigGRPCServer) Run(errCh chan error) {
 	g.BaseGrpcServer.Run(errCh, g.GetProtocol(), func(server *grpc.Server) error {
 		for name, apiConfig := range g.openAPI {
 			switch name {
-			case "configClient":
+			case "client":
 				if apiConfig.Enable {
 					api.RegisterPolarisConfigGRPCServer(server, g)
 					openMethod, getErr := getConfigClientOpenMethod(g.GetProtocol())
@@ -82,7 +82,7 @@ func (g *ConfigGRPCServer) Run(errCh chan error) {
 			}
 		}
 		var err error
-		if g.configServer, err = config.GetConfigServer(); err != nil {
+		if g.configServer, err = config.GetServer(); err != nil {
 			log.Errorf("[Config] %v", err)
 			return err
 		}

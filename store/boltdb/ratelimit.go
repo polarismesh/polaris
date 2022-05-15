@@ -88,6 +88,10 @@ func (r *rateLimitStore) DeleteRateLimit(limit *model.RateLimit) error {
 // GetExtendRateLimits 根据过滤条件拉取限流规则
 func (r *rateLimitStore) GetExtendRateLimits(
 	query map[string]string, offset uint32, limit uint32) (uint32, []*model.ExtendRateLimit, error) {
+
+	svcName, hasSvcName := query["name"]
+	svcNs, hasSvcNamespace := query["namespace"]
+
 	handler := r.handler
 	fields := []string{SvcFieldName, SvcFieldNamespace, SvcFieldValid}
 	services, err := r.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
@@ -96,12 +100,11 @@ func (r *rateLimitStore) GetExtendRateLimits(
 			if ok && !validVal.(bool) {
 				return false
 			}
-			svcName, ok := query["name"]
-			if ok && svcName != m[SvcFieldName].(string) {
+
+			if hasSvcName && svcName != m[SvcFieldName].(string) {
 				return false
 			}
-			svcNs, ok := query["namespace"]
-			if ok && svcNs != m[SvcFieldNamespace].(string) {
+			if hasSvcNamespace && svcNs != m[SvcFieldNamespace].(string) {
 				return false
 			}
 			return true
