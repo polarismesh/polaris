@@ -90,12 +90,12 @@ func doInitialize() error {
 			}
 		}()
 
-		err = config2.InitConfigModule(ctx, cfg.Config)
+		err = config2.Initialize(ctx, cfg.Config)
 		if err != nil {
 			return
 		}
 
-		configService, err = config2.GetConfigServer()
+		configService, err = config2.GetServer()
 		if err != nil {
 			return
 		}

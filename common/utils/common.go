@@ -518,9 +518,11 @@ func CheckInstanceTetrad(req *api.Instance) (string, *api.Response) {
 		return "", api.NewInstanceResponse(api.InvalidInstancePort, req)
 	}
 
-	var instID string = req.GetId().GetValue()
+	var instID = req.GetId().GetValue()
 	if len(instID) == 0 {
-		id, err := CalculateInstanceID(req.GetNamespace().GetValue(), req.GetService().GetValue(),
+		id, err := CalculateInstanceID(
+			req.GetNamespace().GetValue(),
+			req.GetService().GetValue(),
 			req.GetVpcId().GetValue(),
 			req.GetHost().GetValue(),
 			req.GetPort().GetValue(),

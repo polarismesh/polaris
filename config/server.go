@@ -57,8 +57,8 @@ type Server struct {
 	connManager *connManager
 }
 
-// InitConfigModule 初始化配置中心模块
-func InitConfigModule(ctx context.Context, config StartupConfig) error {
+// Initialize 初始化配置中心模块
+func Initialize(ctx context.Context, config StartupConfig) error {
 	if !config.Open {
 		initialized = true
 		return nil
@@ -66,7 +66,7 @@ func InitConfigModule(ctx context.Context, config StartupConfig) error {
 
 	var err error
 	once.Do(func() {
-		err = doInit(ctx, config)
+		err = initialize(ctx, config)
 	})
 
 	if err != nil {
@@ -77,7 +77,7 @@ func InitConfigModule(ctx context.Context, config StartupConfig) error {
 	return nil
 }
 
-func doInit(ctx context.Context, config StartupConfig) error {
+func initialize(ctx context.Context, config StartupConfig) error {
 	// 1. 初始化存储模块
 	storage, err := store.GetStore()
 	if err != nil {
@@ -126,8 +126,8 @@ func doInit(ctx context.Context, config StartupConfig) error {
 	return nil
 }
 
-// GetConfigServer 获取已经初始化好的ConfigServer
-func GetConfigServer() (*Server, error) {
+// GetServer 获取已经初始化好的ConfigServer
+func GetServer() (*Server, error) {
 	if !initialized {
 		return nil, errors.New("config server has not done initialize")
 	}

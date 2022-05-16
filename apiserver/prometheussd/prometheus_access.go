@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package prometheusserver
+package prometheussd
 
 import (
 	"github.com/emicklei/go-restful"

@@ -19,10 +19,10 @@ package utils
 
 import "context"
 
-// StringContext is a context that carries a string.
+// StringContext is a context key that carries a string.
 type StringContext string
 
-// localhostCtx 存储localhost的ctx
+// localhostCtx is a context key that carries localhost info.
 type localhostCtx struct{}
 
 // WithLocalhost 存储localhost

@@ -23,5 +23,5 @@ import (
 
 // init 自注册到API服务器插槽
 func init() {
-	_ = apiserver.Register("l5pbserver", &L5pbserver{})
+	_ = apiserver.Register("service-l5", &L5pbserver{})
 }

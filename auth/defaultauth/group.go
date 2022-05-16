@@ -263,7 +263,7 @@ func (svr *server) GetGroup(ctx context.Context, req *api.UserGroup) *api.Respon
 		isGroupOwner := group.Owner == userID
 		_, find := group.UserIds[userID]
 		if !isGroupOwner && !find {
-			log.AuthScope().Error("can't see group token", zap.String("user", userID),
+			log.AuthScope().Error("can't see group info", zap.String("user", userID),
 				zap.String("group", req.GetId().GetValue()), zap.Bool("group-owner", isGroupOwner),
 				zap.Bool("in-group", find))
 			return api.NewResponse(api.NotAllowedAccess)
@@ -343,7 +343,7 @@ func (svr *server) UpdateGroupToken(ctx context.Context, req *api.UserGroup) *ap
 	return api.NewGroupResponse(api.ExecuteSuccess, req)
 }
 
-// ResetGroupToken 刷新用户组的token，刷新时会重置 token 的状态为 enable
+// ResetGroupToken 刷新用户组的token
 func (svr *server) ResetGroupToken(ctx context.Context, req *api.UserGroup) *api.Response {
 	var (
 		requestID      = utils.ParseRequestID(ctx)

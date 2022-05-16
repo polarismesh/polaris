@@ -88,7 +88,8 @@ func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Res
 	}
 	// 限制instance频繁注册
 	if ok := s.allowInstanceAccess(instanceID); !ok {
-		log.Error("create instance is not allow access", ZapRequestID(rid), ZapPlatformID(pid))
+		log.Error("create instance not allowed to access: exceed ratelimit",
+			ZapRequestID(rid), ZapPlatformID(pid), ZapInstanceID(instanceID))
 		return api.NewInstanceResponse(api.InstanceTooManyRequests, req)
 	}
 

@@ -89,6 +89,8 @@ const (
 )
 
 // checkResourceName 检查资源Name
+var resourceNameRE = regexp.MustCompile("^[0-9A-Za-z-.:_]+$")
+
 func checkResourceName(name *wrappers.StringValue) error {
 	if name == nil {
 		return errors.New("nil")
@@ -98,11 +100,7 @@ func checkResourceName(name *wrappers.StringValue) error {
 		return errors.New("empty")
 	}
 
-	regStr := "^[0-9A-Za-z-.:_]+$"
-	ok, err := regexp.MatchString(regStr, name.GetValue())
-	if err != nil {
-		return err
-	}
+	ok := resourceNameRE.MatchString(name.GetValue())
 	if !ok {
 		return errors.New("name contains invalid character")
 	}
@@ -413,6 +411,11 @@ func ZapPlatformID(id string) zap.Field {
 	return zap.String("platform-id", id)
 }
 
+// ZapInstanceID 生成instanceID的日志描述
+func ZapInstanceID(id string) zap.Field {
+	return zap.String("instance", id)
+}
+
 // CheckDbStrFieldLen 检查name字段是否超过DB中对应字段的最大字符长度限制
 func CheckDbStrFieldLen(param *wrappers.StringValue, dbLen int) error {
 	if param.GetValue() != "" && utf8.RuneCountInString(param.GetValue()) > dbLen {
@@ -426,8 +429,7 @@ func CheckDbStrFieldLen(param *wrappers.StringValue, dbLen int) error {
 func CheckDbMetaDataFieldLen(metaData map[string]string) error {
 	for k, v := range metaData {
 		if utf8.RuneCountInString(k) > 128 || utf8.RuneCountInString(v) > 4096 {
-			errMsg := fmt.Sprintf("metadata:length of key(%s) or value(%s) is over size(key:128,value:4096)",
-				k, v)
+			errMsg := fmt.Sprintf("metadata:length of key(%s) or value(%s) exceeds size(key:128,value:4096)", k, v)
 			return errors.New(errMsg)
 		}
 	}

@@ -38,10 +38,10 @@ polaris:
 
 service:
   type: LoadBalancer
+  webPort: 8080
   eurekaPort: 8761
   httpPort: 8090
-  grpcPort: 8091
-  webPort: 8080
+  serviceGrpcPort: 8091
   xdsv3Port: 15010
   configGrpcPort: 8093
   prometheusPort: 9000
