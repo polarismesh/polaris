@@ -34,6 +34,10 @@ import (
 	"github.com/polarismesh/polaris-server/store"
 )
 
+const (
+	MetadataInternalAutoCreated string = "internal-auto-created"
+)
+
 // Service2Api *model.service转换为*api.service
 type Service2Api func(service *model.Service) *api.Service
 

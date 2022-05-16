@@ -853,6 +853,9 @@ func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instan
 			}
 			return utils.NewStringValue(owner)
 		}(),
+		Metadata: map[string]string{
+			MetadataInternalAutoCreated: "true",
+		},
 	}
 
 	key := fmt.Sprintf("%s:%s", simpleService.Namespace, simpleService.Name)
