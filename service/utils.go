@@ -89,7 +89,7 @@ const (
 )
 
 // checkResourceName 检查资源Name
-var resourceNameRE = regexp.MustCompile("^[0-9A-Za-z-.:_]+$")
+var resourceNameRE = regexp.MustCompile("^[0-9A-Za-z-./:_]+$")
 
 func checkResourceName(name *wrappers.StringValue) error {
 	if name == nil {

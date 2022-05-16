@@ -47,7 +47,7 @@ func CheckResourceName(name *wrappers.StringValue) error {
 		return errors.New("empty")
 	}
 
-	regStr := "^[0-9A-Za-z-.:_]+$"
+	regStr := "^[0-9A-Za-z-./:_]+$"
 	ok, err := regexp.MatchString(regStr, name.GetValue())
 	if err != nil {
 		return err

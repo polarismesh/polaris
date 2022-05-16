@@ -35,7 +35,7 @@ import (
 
 var (
 	// 用户查询相关属性对应关系
-	userAttributeMapping map[string]string = map[string]string{
+	userAttributeMapping = map[string]string{
 		"owner":    "u.owner",
 		"name":     "u.name",
 		"group_id": "group_id",
