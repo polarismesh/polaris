@@ -61,7 +61,6 @@ func (c *circuitBreakerStore) CreateCircuitBreaker(cb *model.CircuitBreaker) err
 		return store.Error(err)
 	}
 
-
 	if err := dbOp.SaveValue(tblCircuitBreaker, c.buildKey(cb.ID, cb.Version), cb); err != nil {
 		log.Errorf("[Store][circuitBreaker] create circuit breaker(%s, %s, %s) err: %s",
 			cb.ID, cb.Name, cb.Version, err.Error())
@@ -80,7 +79,6 @@ func (c *circuitBreakerStore) cleanCircuitBreaker(id string, version string) err
 
 	return nil
 }
-
 
 // TagCircuitBreaker 标记熔断规则
 func (c *circuitBreakerStore) TagCircuitBreaker(cb *model.CircuitBreaker) error {
@@ -537,7 +535,8 @@ func (c *circuitBreakerStore) GetCircuitBreakersByService(
 	}
 
 	if service == nil {
-		return nil, store.NewStatusError(store.NotFoundService, fmt.Sprintf("service(namespace=%s, name=%s)", name, namespace))
+		log.Warnf("[Store][] not found service(namespace=%s, name=%s)", name, namespace)
+		return nil, nil
 	}
 
 	serviceId := service.ID

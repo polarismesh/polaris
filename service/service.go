@@ -34,6 +34,10 @@ import (
 	"github.com/polarismesh/polaris-server/store"
 )
 
+const (
+	MetadataInternalAutoCreated string = "internal-auto-created"
+)
+
 // Service2Api *model.service转换为*api.service
 type Service2Api func(service *model.Service) *api.Service
 
@@ -174,11 +178,6 @@ func (s *Server) DeleteService(ctx context.Context, req *api.Service) *api.Respo
 	}
 	if service == nil {
 		return api.NewServiceResponse(api.ExecuteSuccess, req)
-	}
-
-	// 鉴权
-	if err := s.verifyServiceAuth(ctx, service, req); err != nil {
-		return err
 	}
 
 	// 判断service下的资源是否已经全部被删除
@@ -737,30 +736,7 @@ func (s *Server) checkServiceAuthority(ctx context.Context, req *api.Service) (*
 	}
 	expectToken := service.Token
 
-	if err := s.verifyServiceAuth(ctx, service, req); err != nil {
-		return nil, "", err
-	}
-
 	return service, expectToken, nil
-}
-
-// verifyServiceAuth 服务鉴权
-func (s *Server) verifyServiceAuth(ctx context.Context, service *model.Service, req *api.Service) *api.Response {
-	// 使用平台id及token鉴权
-	if ok := s.verifyAuthByPlatform(ctx, service.PlatformID); !ok {
-		// 检查token是否存在
-		token := parseRequestToken(ctx, req.GetToken().GetValue())
-		if !s.authority.VerifyToken(token) {
-			return api.NewServiceResponse(api.InvalidServiceToken, req)
-		}
-
-		// 检查token是否ok
-		if ok := s.authority.VerifyService(service.Token, token); !ok {
-			return api.NewServiceResponse(api.Unauthorized, req)
-		}
-	}
-
-	return nil
 }
 
 // service2Api model.Service 转为 api.Service

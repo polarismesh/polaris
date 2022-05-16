@@ -216,7 +216,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		Heartbeat:        healthBatchConfig.Heartbeat,
 	}
 
-	bc, err := batch.NewBatchCtrlWithConfig(s, nil, plugin.GetAuth(), batchConfig)
+	bc, err := batch.NewBatchCtrlWithConfig(s, cacheMgn, batchConfig)
 	if err != nil {
 		log.Errorf("new batch ctrl with config err: %s", err.Error())
 		return err

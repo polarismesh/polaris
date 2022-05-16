@@ -177,9 +177,6 @@ func (s *Server) serialCreateInstance(ctx context.Context, req *api.Instance, in
 	if service == nil {
 		return nil, api.NewInstanceResponse(api.NotFoundResource, req)
 	}
-	if err := s.verifyInstanceAuth(ctx, service, req); err != nil {
-		return nil, err
-	}
 
 	instance, err := s.storage.GetInstance(ins.GetId().GetValue())
 	if err != nil {
@@ -539,11 +536,6 @@ func (s *Server) getInstancesMainByService(ctx context.Context, req *api.Instanc
 		return nil, nil, api.NewInstanceResponse(api.NotFoundService, req)
 	}
 
-	// 鉴权
-	if err := s.verifyInstanceAuth(ctx, service, req); err != nil {
-		return nil, nil, err
-	}
-
 	// 获取服务实例
 	instances, err := s.storage.GetInstancesMainByService(service.ID, req.GetHost().GetValue())
 	if err != nil {
@@ -784,30 +776,7 @@ func (s *Server) instanceAuth(ctx context.Context, req *api.Instance, serviceID 
 		return nil, api.NewInstanceResponse(api.NotFoundResource, req)
 	}
 
-	// 鉴权
-	if err := s.verifyInstanceAuth(ctx, service, req); err != nil {
-		return nil, err
-	}
 	return service, nil
-}
-
-/**
- * @brief 实例鉴权
- */
-func (s *Server) verifyInstanceAuth(ctx context.Context, service *model.Service, req *api.Instance) *api.Response {
-	if ok := s.verifyAuthByPlatform(ctx, service.PlatformID); !ok {
-		// 检查token是否存在
-		serviceToken := parseInstanceReqToken(ctx, req)
-		if !s.authority.VerifyToken(serviceToken) {
-			return api.NewInstanceResponse(api.InvalidServiceToken, req)
-		}
-
-		// 检查token是否ok
-		if ok := s.authority.VerifyInstance(service.Token, serviceToken); !ok {
-			return api.NewInstanceResponse(api.Unauthorized, req)
-		}
-	}
-	return nil
 }
 
 // 获取api.instance
@@ -884,6 +853,9 @@ func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instan
 			}
 			return utils.NewStringValue(owner)
 		}(),
+		Metadata: map[string]string{
+			MetadataInternalAutoCreated: "true",
+		},
 	}
 
 	key := fmt.Sprintf("%s:%s", simpleService.Namespace, simpleService.Name)

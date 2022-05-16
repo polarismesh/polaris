@@ -138,11 +138,6 @@ func (s *Server) DeleteServiceAlias(ctx context.Context, req *api.ServiceAlias) 
 	if alias == nil {
 		return api.NewServiceAliasResponse(api.NotFoundServiceAlias, req)
 	}
-	// 鉴权
-	actualToken := parseRequestToken(ctx, req.GetServiceToken().GetValue())
-	if ok := s.authority.VerifyService(alias.Token, actualToken); !ok {
-		return api.NewServiceAliasResponse(api.Unauthorized, req)
-	}
 
 	// 直接删除alias
 	if err := s.storage.DeleteServiceAlias(req.GetAlias().GetValue(),
@@ -203,12 +198,6 @@ func (s *Server) UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) 
 	}
 	if alias == nil {
 		return api.NewServiceAliasResponse(api.NotFoundServiceAlias, req)
-	}
-
-	// 鉴权
-	actualToken := parseRequestToken(ctx, req.GetServiceToken().GetValue())
-	if ok := s.authority.VerifyService(alias.Token, actualToken); !ok {
-		return api.NewServiceAliasResponse(api.Unauthorized, req)
 	}
 
 	// 检查将要指向的服务是否存在

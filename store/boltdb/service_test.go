@@ -463,8 +463,8 @@ func TestServiceStore_DeleteServiceAlias(t *testing.T) {
 		sStore := &serviceStore{handler: handler}
 
 		if err := sStore.AddService(&model.Service{
-			ID: utils.NewUUID(),
-			Name: "service-alias",
+			ID:        utils.NewUUID(),
+			Name:      "service-alias",
 			Namespace: "namespace-alias",
 		}); err != nil {
 			t.Fatal(err)
