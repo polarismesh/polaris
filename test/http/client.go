@@ -29,9 +29,7 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
-/**
- * @brief 创建HTTP客户端
- */
+// NewClient 创建HTTP客户端
 func NewClient(address, version string) *Client {
 	return &Client{
 		Address: address,
@@ -40,18 +38,14 @@ func NewClient(address, version string) *Client {
 	}
 }
 
-/**
- * @brief HTTP客户端
- */
+// Client HTTP客户端
 type Client struct {
 	Address string
 	Version string
 	Worker  *http.Client
 }
 
-/**
- * @brief HTTP Post/Put
- */
+// SendRequest 发送请求 HTTP Post/Put
 func (c *Client) SendRequest(method string, url string, body *bytes.Buffer) (*http.Response, error) {
 	var request *http.Request
 	var err error
@@ -77,9 +71,7 @@ func (c *Client) SendRequest(method string, url string, body *bytes.Buffer) (*ht
 	return response, nil
 }
 
-/**
- * @brief 生成GET请求的完整URL
- */
+// CompleteURL 生成GET请求的完整URL
 func (c *Client) CompleteURL(url string, params map[string][]interface{}) string {
 	count := 1
 	url += "?"
@@ -101,9 +93,7 @@ func (c *Client) CompleteURL(url string, params map[string][]interface{}) string
 	return url
 }
 
-/**
- * @brief 获取BatchWriteResponse
- */
+// GetBatchWriteResponse 获取BatchWriteResponse
 func GetBatchWriteResponse(response *http.Response) (*api.BatchWriteResponse, error) {
 	// 打印回复
 	fmt.Printf("http code: %v\n", response.StatusCode)
@@ -130,9 +120,7 @@ func GetBatchWriteResponse(response *http.Response) (*api.BatchWriteResponse, er
 	}
 }
 
-/**
- * @brief 获取BatchQueryResponse
- */
+// GetBatchQueryResponse 获取BatchQueryResponse
 func GetBatchQueryResponse(response *http.Response) (*api.BatchQueryResponse, error) {
 	// 打印回复
 	fmt.Printf("http code: %v\n", response.StatusCode)
@@ -159,9 +147,7 @@ func GetBatchQueryResponse(response *http.Response) (*api.BatchQueryResponse, er
 	}
 }
 
-/**
- * @brief 获取SimpleResponse
- */
+// GetSimpleResponse 获取SimpleResponse
 func GetSimpleResponse(response *http.Response) (*api.Response, error) {
 	// 打印回复
 	fmt.Printf("http code: %v\n", response.StatusCode)
