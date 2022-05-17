@@ -26,8 +26,7 @@ import (
 )
 
 const (
-	serviceName          = "test-service-%v-%v"
-	backslashServiceName = "/test/service/%v/%v"
+	serviceName = "test-service-%v-%v"
 )
 
 // CreateServices creates services
@@ -37,33 +36,6 @@ func CreateServices(namespace *api.Namespace) []*api.Service {
 	var services []*api.Service
 	for index := 0; index < 2; index++ {
 		name := fmt.Sprintf(serviceName, nowStr, index)
-
-		service := &api.Service{
-			Name:       utils.NewStringValue(name),
-			Namespace:  namespace.GetName(),
-			Metadata:   map[string]string{"test": "test"},
-			Ports:      utils.NewStringValue("8,8"),
-			Business:   utils.NewStringValue("test"),
-			Department: utils.NewStringValue("test"),
-			CmdbMod1:   utils.NewStringValue("test"),
-			CmdbMod2:   utils.NewStringValue("test"),
-			CmdbMod3:   utils.NewStringValue("test"),
-			Comment:    utils.NewStringValue("test"),
-			Owners:     utils.NewStringValue("test"),
-		}
-		services = append(services, service)
-	}
-
-	return services
-}
-
-// CreateServicesForBackslash creates services for backslash
-func CreateServicesForBackslash(namespace *api.Namespace) []*api.Service {
-	nowStr := time.Now().Format("2006-01-02T15:04:05.000000")
-
-	var services []*api.Service
-	for index := 0; index < 2; index++ {
-		name := fmt.Sprintf(backslashServiceName, nowStr, index)
 
 		service := &api.Service{
 			Name:       utils.NewStringValue(name),
