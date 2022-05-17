@@ -60,11 +60,14 @@ jobs:
           work_dir=$(ls | grep polaris-server-release | sed -n '1p')
           echo "work_dir is $work_dir"
           cd $work_dir
+
+          sed -i 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' polaris-server.yaml
+
+          cat polaris-server.yaml
+
           ls -alR
           chmod +x ./tool/*.sh
           ./tool/start.sh
-
-          sed -i 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' polaris-server.yaml
 
           cd ..
           # 先测试普通的集成测试
