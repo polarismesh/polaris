@@ -83,5 +83,10 @@ jobs:
 
           # 针对开启鉴权的集成测试
 
+
+      - name: Go Test
+        run: |
+          go mod vendor && go test ./pkg/... -coverprofile=coverage.txt -covermode=atomic
+
       - name: Coverage
         run: bash <(curl -s https://codecov.io/bash)
