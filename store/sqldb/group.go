@@ -26,7 +26,6 @@ import (
 
 	logger "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
-	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 )
@@ -473,8 +472,8 @@ func (u *groupStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*mo
 	querySql := "SELECT id, name, owner, comment, token, token_enable, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime), " +
 		" flag FROM user_group "
 	if !firstUpdate {
-		querySql += " WHERE mtime >= ?"
-		args = append(args, commontime.Time2String(mtime))
+		querySql += " WHERE mtime >= FROM_UNIXTIME(?)"
+		args = append(args, mtime.Unix())
 	}
 
 	rows, err := tx.Query(querySql, args...)
