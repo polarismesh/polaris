@@ -29,15 +29,23 @@ config:
     expireTimeAfterWrite: 3600
 # 存储配置
 store:
-  name: defaultStore
+  name: boltdbStore
   option:
-    master:
-      dbType: mysql
-      dbName: polaris_server
-      dbUser: # 数据库账号
-      dbPwd: # 数据库密码
-      dbAddr: 127.0.0.1:3306
-      maxOpenConns: -1
-      maxIdleConns: -1
-      connMaxLifetime: 300 # 单位秒
-      txIsolationLevel: 2 #LevelReadCommitted
+    path: ./polaris.bolt
+auth:
+  name: defaultAuth
+  option:
+    clientOpen: false
+    consoleOpen: false
+  # name: defaultStore
+  # option:
+  #   master:
+  #     dbType: mysql
+  #     dbName: polaris_server
+  #     dbUser: # 数据库账号
+  #     dbPwd: # 数据库密码
+  #     dbAddr: 127.0.0.1:3306
+  #     maxOpenConns: -1
+  #     maxIdleConns: -1
+  #     connMaxLifetime: 300 # 单位秒
+  #     txIsolationLevel: 2 #LevelReadCommitted

@@ -1,3 +1,6 @@
+//go:build integrationconfig
+// +build integrationconfig
+
 /*
  * Tencent is pleased to support the open source community by making Polaris available.
  *
@@ -15,7 +18,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package test
+package config_center_test
 
 import (
 	"strconv"

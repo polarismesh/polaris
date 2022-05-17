@@ -1,3 +1,6 @@
+//go:build integrationconfig
+// +build integrationconfig
+
 /*
  * Tencent is pleased to support the open source community by making Polaris available.
  *
@@ -15,7 +18,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package test
+package config_center_test
 
 import (
 	"context"
@@ -29,7 +32,7 @@ import (
 	"github.com/polarismesh/polaris-server/bootstrap/config"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
-	config2 "github.com/polarismesh/polaris-server/config"
+	config_center "github.com/polarismesh/polaris-server/config"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
 
@@ -41,7 +44,7 @@ import (
 var (
 	cfg           = new(config.Config)
 	once          = new(sync.Once)
-	configService = new(config2.Server)
+	configService = new(config_center.Server)
 	db            = new(sql.DB)
 	cancelFlag    = false
 	defaultCtx    = context.Background()
@@ -90,12 +93,12 @@ func doInitialize() error {
 			}
 		}()
 
-		err = config2.Initialize(ctx, cfg.Config)
+		err = config_center.Initialize(ctx, cfg.Config)
 		if err != nil {
 			return
 		}
 
-		configService, err = config2.GetServer()
+		configService, err = config_center.GetServer()
 		if err != nil {
 			return
 		}

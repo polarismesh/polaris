@@ -193,7 +193,7 @@ func TestSelect(t *testing.T) {
 			ch <- i
 			ch2 <- i + 20
 		}
-		time.Sleep(10 * time.Second)
+		time.Sleep(1 * time.Second)
 		close(stopCh)
 	}()
 
@@ -206,9 +206,6 @@ func TestSelect(t *testing.T) {
 			fmt.Println(i)
 			time.Sleep(time.Second)
 		case <-stopCh:
-			for i := range ch {
-				fmt.Println(i)
-			}
 			return
 		}
 	}

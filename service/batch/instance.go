@@ -447,7 +447,9 @@ func (ctrl *InstanceCtrl) loadService(entry *InstanceFuture, name, namespace str
 	)
 
 	// 判断缓存中是否可以找到该服务
-	tmpService = ctrl.cacheMgn.Service().GetServiceByName(name, namespace)
+	if ctrl.cacheMgn != nil {
+		tmpService = ctrl.cacheMgn.Service().GetServiceByName(name, namespace)
+	}
 
 	// 缓存中不存在，在走store层在发起一次查询
 	if tmpService == nil {

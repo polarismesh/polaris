@@ -63,10 +63,25 @@ jobs:
           ls -alR
           chmod +x ./tool/*.sh
           ./tool/start.sh
+
+          sed -i 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' polaris-server.yaml
+
           cd ..
+          # 先测试普通的集成测试
           pushd ./test
-          go test -count=1 -v
+          go test -count=1 -v -tags integration
           popd
           cd $work_dir
           ./tool/stop.sh
           cd ..
+
+          # 进行配置中心的集成测试
+
+
+          # 针对服务发现进行集成测试
+
+
+          # 针对开启鉴权的集成测试
+
+      - name: Coverage
+        run: bash <(curl -s https://codecov.io/bash)
