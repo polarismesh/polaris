@@ -6,6 +6,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
+// Test_checkResourceName checks if the resource name is valid.
 func Test_checkResourceName(t *testing.T) {
 	type args struct {
 		name *wrappers.StringValue

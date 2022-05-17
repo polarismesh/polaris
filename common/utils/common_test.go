@@ -6,6 +6,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
+// TestCheckResourceName tests the checkResourceName function
 func TestCheckResourceName(t *testing.T) {
 	type args struct {
 		name *wrappers.StringValue
