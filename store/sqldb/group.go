@@ -473,7 +473,7 @@ func (u *groupStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*mo
 		" flag FROM user_group "
 	if !firstUpdate {
 		querySql += " WHERE mtime >= FROM_UNIXTIME(?)"
-		args = append(args, mtime.Unix())
+		args = append(args, timeToTimestamp(mtime))
 	}
 
 	rows, err := tx.Query(querySql, args...)

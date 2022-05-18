@@ -220,7 +220,7 @@ func (rls *rateLimitStore) GetRateLimitsForCache(mtime time.Time,
 	if firstUpdate {
 		str += " and flag != 1" // nolint
 	}
-	rows, err := rls.db.Query(str, mtime.Unix())
+	rows, err := rls.db.Query(str, timeToTimestamp(mtime))
 	if err != nil {
 		log.Errorf("[Store][database] query rate limits with mtime err: %s", err.Error())
 		return nil, nil, err

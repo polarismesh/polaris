@@ -279,7 +279,7 @@ func (c *circuitBreakerStore) GetCircuitBreakerForCache(mtime time.Time, firstUp
 	if firstUpdate {
 		str += ` and circuitbreaker_rule_relation.flag != 1`
 	}
-	rows, err := c.slave.Query(str, mtime.Unix())
+	rows, err := c.slave.Query(str, timeToTimestamp(mtime))
 	if err != nil {
 		log.Errorf("[Store][CircuitBreaker] query circuitbreaker_rule_relation with mtime err: %s",
 			err.Error())

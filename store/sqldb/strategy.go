@@ -651,7 +651,7 @@ func (s *strategyStore) GetStrategyDetailsForCache(mtime time.Time,
 
 	if !firstUpdate {
 		querySql += " WHERE ag.mtime >= FROM_UNIXTIME(?)"
-		args = append(args, mtime.Unix())
+		args = append(args, timeToTimestamp(mtime))
 	}
 
 	rows, err := tx.Query(querySql, args...)

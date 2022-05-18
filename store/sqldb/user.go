@@ -500,7 +500,7 @@ func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mode
 
 	if !firstUpdate {
 		querySql += " WHERE u.mtime >= FROM_UNIXTIME(?) "
-		args = append(args, mtime.Unix())
+		args = append(args, timeToTimestamp(mtime))
 	}
 
 	users, err := u.collectUsers(u.master.Query, querySql, args, logger.CacheScope())

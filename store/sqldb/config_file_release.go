@@ -118,7 +118,7 @@ func (cfr *configFileReleaseStore) DeleteConfigFileRelease(tx store.Tx, namespac
 // FindConfigFileReleaseByModifyTimeAfter 获取最后更新时间大于某个时间点的发布，注意包含 flag = 1 的，为了能够获取被删除的 release
 func (cfr *configFileReleaseStore) FindConfigFileReleaseByModifyTimeAfter(modifyTime time.Time) ([]*model.ConfigFileRelease, error) {
 	sql := cfr.baseQuerySql() + " where modify_time > FROM_UNIXTIME(?)"
-	rows, err := cfr.db.Query(sql, modifyTime.Unix())
+	rows, err := cfr.db.Query(sql, timeToTimestamp(modifyTime))
 	if err != nil {
 		return nil, err
 	}

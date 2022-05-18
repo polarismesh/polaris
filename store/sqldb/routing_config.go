@@ -104,7 +104,7 @@ func (rs *routingConfigStore) GetRoutingConfigsForCache(
 	if firstUpdate {
 		str += " and flag != 1" // nolint
 	}
-	rows, err := rs.slave.Query(str, mtime.Unix())
+	rows, err := rs.slave.Query(str, timeToTimestamp(mtime))
 	if err != nil {
 		log.Errorf("[Store][database] query routing configs with mtime err: %s", err.Error())
 		return nil, err

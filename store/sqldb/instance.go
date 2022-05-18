@@ -603,7 +603,7 @@ func (ins *instanceStore) getMoreInstancesMainWithMeta(mtime time.Time, firstUpd
 	// 非首次拉取
 	str := genCompleteInstanceSelectSQL() + " where instance.mtime >= FROM_UNIXTIME(?)"
 	args := make([]interface{}, 0, len(serviceID)+1)
-	args = append(args, mtime.Unix())
+	args = append(args, timeToTimestamp(mtime))
 
 	if len(serviceID) > 0 {
 		str += " and service_id in (" + PlaceholdersN(len(serviceID))
@@ -669,7 +669,7 @@ func (ins *instanceStore) getMoreInstancesMain(mtime time.Time, firstUpdate bool
 	map[string]*model.Instance, error) {
 	str := genInstanceSelectSQL() + " where instance.mtime >= FROM_UNIXTIME(?)"
 	args := make([]interface{}, 0, len(serviceID)+1)
-	args = append(args, mtime.Unix())
+	args = append(args, timeToTimestamp(mtime))
 
 	if firstUpdate {
 		str += " and flag != 1" // nolint

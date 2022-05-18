@@ -112,7 +112,7 @@ func (cs *clientStore) GetMoreClients(mtime time.Time, firstUpdate bool) (map[st
 	if firstUpdate {
 		str += " and flag != 1" // nolint
 	}
-	rows, err := cs.slave.Query(str, mtime.Unix())
+	rows, err := cs.slave.Query(str, timeToTimestamp(mtime))
 	if err != nil {
 		log.Errorf("[Store][database] get more client query err: %s", err.Error())
 		return nil, err
