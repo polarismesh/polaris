@@ -134,6 +134,8 @@ apiservers:
         openConnLimit: false
         maxConnPerHost: 128
         maxConnLimit: 5120
+      enableCacheProto: true
+      sizeCacheProto: 128
     api:
       client:
         enable: true

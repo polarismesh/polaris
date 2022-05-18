@@ -38,6 +38,8 @@ import (
 	"github.com/polarismesh/polaris-server/plugin"
 )
 
+type InitServer func(*grpc.Server) error
+
 // BaseGrpcServer base utilities and functions for gRPC Connector
 type BaseGrpcServer struct {
 	listenIP        string
@@ -51,6 +53,8 @@ type BaseGrpcServer struct {
 	statis     plugin.Statis
 	ratelimit  plugin.Ratelimit
 	OpenMethod map[string]bool
+
+	customerHandler GrpcStreamHandler
 }
 
 // GetPort get the connector listen port value
@@ -59,7 +63,8 @@ func (b *BaseGrpcServer) GetPort() uint32 {
 }
 
 // Initialize init the gRPC server
-func (b *BaseGrpcServer) Initialize(ctx context.Context, option map[string]interface{}, protocol string) error {
+func (b *BaseGrpcServer) Initialize(ctx context.Context, option map[string]interface{}, protocol string, customerHandler ...GrpcStreamHandler) error {
+	b.customerHandler = &noopGrpcStreamHandler{}
 	b.listenIP = option["listenIP"].(string)
 	b.listenPort = uint32(option["listenPort"].(int))
 
@@ -75,6 +80,10 @@ func (b *BaseGrpcServer) Initialize(ctx context.Context, option map[string]inter
 		b.ratelimit = ratelimit
 	}
 
+	if len(customerHandler) > 0 {
+		b.customerHandler = customerHandler[0]
+	}
+
 	return nil
 }
 
@@ -87,7 +96,7 @@ func (b *BaseGrpcServer) Stop(protocol string) {
 }
 
 // Run server main loop
-func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer func(*grpc.Server) error) {
+func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer InitServer) {
 	log.Infof("start %s server", protocol)
 	b.exitCh = make(chan struct{})
 	b.start = true
@@ -149,6 +158,8 @@ type VirtualStream struct {
 	RequestID     string
 
 	grpc.ServerStream
+	customerHandler GrpcStreamHandler
+
 	Code int
 
 	preprocess  PreProcessFunc
@@ -159,6 +170,8 @@ type VirtualStream struct {
 
 // RecvMsg VirtualStream接收消息函数
 func (v *VirtualStream) RecvMsg(m interface{}) error {
+	m = v.customerHandler.OnRecv(v.ServerStream, m)
+
 	err := v.ServerStream.RecvMsg(m)
 	if err == io.EOF {
 		return err
@@ -177,6 +190,8 @@ func (v *VirtualStream) RecvMsg(m interface{}) error {
 func (v *VirtualStream) SendMsg(m interface{}) error {
 	v.postprocess(v, m)
 
+	m = v.customerHandler.OnSend(v.ServerStream, m)
+
 	err := v.ServerStream.SendMsg(m)
 	if err != nil {
 		v.Code = -2
@@ -186,7 +201,7 @@ func (v *VirtualStream) SendMsg(m interface{}) error {
 }
 
 func newVirtualStream(ctx context.Context, method string, stream grpc.ServerStream,
-	preprocess PreProcessFunc, postprocess PostProcessFunc) *VirtualStream {
+	preprocess PreProcessFunc, postprocess PostProcessFunc, customerHandler GrpcStreamHandler) *VirtualStream {
 	var clientAddress string
 	var clientIP string
 	var userAgent string
@@ -216,15 +231,16 @@ func newVirtualStream(ctx context.Context, method string, stream grpc.ServerStre
 	}
 
 	return &VirtualStream{
-		Method:        method,
-		ClientAddress: clientAddress,
-		ClientIP:      clientIP,
-		UserAgent:     userAgent,
-		RequestID:     requestID,
-		ServerStream:  stream,
-		Code:          0,
-		preprocess:    preprocess,
-		postprocess:   postprocess,
+		Method:          method,
+		ClientAddress:   clientAddress,
+		ClientIP:        clientIP,
+		UserAgent:       userAgent,
+		RequestID:       requestID,
+		ServerStream:    stream,
+		customerHandler: customerHandler,
+		Code:            0,
+		preprocess:      preprocess,
+		postprocess:     postprocess,
 	}
 }
 
@@ -235,7 +251,7 @@ var notPrintableMethods = map[string]bool{
 func (b *BaseGrpcServer) unaryInterceptor(ctx context.Context, req interface{},
 	info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (rsp interface{}, err error) {
 
-	stream := newVirtualStream(ctx, info.FullMethod, nil, b.preprocess, b.postprocess)
+	stream := newVirtualStream(ctx, info.FullMethod, nil, b.preprocess, b.postprocess, b.customerHandler)
 
 	func() {
 		_, ok := notPrintableMethods[info.FullMethod]
@@ -266,7 +282,7 @@ func (b *BaseGrpcServer) unaryInterceptor(ctx context.Context, req interface{},
 func (b *BaseGrpcServer) streamInterceptor(srv interface{}, ss grpc.ServerStream,
 	info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
 
-	stream := newVirtualStream(ss.Context(), info.FullMethod, ss, b.preprocess, b.postprocess)
+	stream := newVirtualStream(ss.Context(), info.FullMethod, ss, b.preprocess, b.postprocess, b.customerHandler)
 
 	err = handler(srv, stream)
 	if err != nil { // 存在非EOF读错误或者写错误

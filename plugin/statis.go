@@ -31,6 +31,8 @@ var (
 const (
 	ComponentServer = "server"
 	ComponentRedis  = "redis"
+
+	ComponentProtobufCache = "protobuf"
 )
 
 // Statis 统计插件接口
@@ -40,6 +42,8 @@ type Statis interface {
 	AddAPICall(api string, protocol string, code int, duration int64) error
 
 	AddRedisCall(api string, code int, duration int64) error
+
+	AddCacheCall(component string, cacheType string, miss bool, call int) error
 }
 
 // GetStatis 获取统计插件

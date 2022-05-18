@@ -53,7 +53,13 @@ func (g *GRPCServer) GetProtocol() string {
 func (g *GRPCServer) Initialize(ctx context.Context, option map[string]interface{},
 	api map[string]apiserver.APIConfig) error {
 	g.openAPI = api
-	return g.BaseGrpcServer.Initialize(ctx, option, g.GetProtocol())
+
+	streamHandler, err := newProtobufCache(option)
+	if err != nil {
+		return err
+	}
+
+	return g.BaseGrpcServer.Initialize(ctx, option, g.GetProtocol(), streamHandler)
 }
 
 // Run 启动GRPC API服务器
