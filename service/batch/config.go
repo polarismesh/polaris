@@ -46,13 +46,53 @@ type CtrlConfig struct {
 	Concurrency int `mapstructure:"concurrency"`
 }
 
+func defaultBatchCtrlConfig() *Config {
+	return &Config{
+		Register: &CtrlConfig{
+			Open:          true,
+			QueueSize:     10240,
+			WaitTime:      "32ms",
+			MaxBatchCount: 32,
+			Concurrency:   64,
+		},
+		Deregister: &CtrlConfig{
+			Open:          true,
+			QueueSize:     10240,
+			WaitTime:      "32ms",
+			MaxBatchCount: 32,
+			Concurrency:   64,
+		},
+		Heartbeat: &CtrlConfig{
+			Open:          true,
+			QueueSize:     10240,
+			WaitTime:      "32ms",
+			MaxBatchCount: 32,
+			Concurrency:   64,
+		},
+		ClientRegister: &CtrlConfig{
+			Open:          true,
+			QueueSize:     10240,
+			WaitTime:      "32ms",
+			MaxBatchCount: 32,
+			Concurrency:   64,
+		},
+		ClientDeregister: &CtrlConfig{
+			Open:          true,
+			QueueSize:     10240,
+			WaitTime:      "32ms",
+			MaxBatchCount: 32,
+			Concurrency:   64,
+		},
+	}
+}
+
 // ParseBatchConfig 解析配置文件为config
 func ParseBatchConfig(opt map[string]interface{}) (*Config, error) {
 	if opt == nil {
 		return nil, nil
 	}
 
-	var config Config
+	config := defaultBatchCtrlConfig()
 	if err := mapstructure.Decode(opt, &config); err != nil {
 		log.Errorf("[Batch] parse config(%+v) err: %s", opt, err.Error())
 		return nil, err
@@ -79,7 +119,7 @@ func ParseBatchConfig(opt map[string]interface{}) (*Config, error) {
 		log.Errorf("[Controller] batch client deregister config is invalid: %+v", config)
 		return nil, errors.New("batch client deregister config is invalid")
 	}
-	return &config, nil
+	return config, nil
 }
 
 // checkCtrlConfig 配置文件校验

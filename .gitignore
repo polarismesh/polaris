@@ -9,6 +9,7 @@ polaris-server-release.tar.gz
 
 .idea
 .DS_Store
+coverage.txt
 
 *.swp
 *.code-workspace
