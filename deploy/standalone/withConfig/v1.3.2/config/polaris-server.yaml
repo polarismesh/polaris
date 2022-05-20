@@ -1,0 +1,208 @@
+# server启动引导配置
+bootstrap:
+  # 全局日志
+  logger:
+    RotateOutputPath: log/polaris-server.log
+    RotationMaxSize: 500
+    RotationMaxAge: 30
+    RotationMaxBackups: 100
+    level: debug
+  # 按顺序启动server
+  startInOrder:
+    open: true # 是否开启，默认是关闭
+    key: sz # 全局锁
+  # 注册为北极星服务
+  polaris_service:
+#    probe_address: ##DB_ADDR##
+    enable_register: true
+    isolated: false
+    services:
+      - name: polaris.checker
+        protocols:
+          - grpcserver
+# apiserver配置
+apiservers:
+  - name: httpserver # 协议名，全局唯一
+    option:
+      listenIP: "0.0.0.0"
+      listenPort: 8090
+      enablePprof: true # debug pprof
+      connLimit:
+        openConnLimit: false
+        maxConnPerHost: 128
+        maxConnLimit: 5120
+        whiteList: 127.0.0.1
+        purgeCounterInterval: 10s
+        purgeCounterExpired: 5s
+    api:
+      admin:
+        enable: true
+      console:
+        enable: true
+        include: [default]
+      client:
+        enable: true
+        include: [discover, register, healthcheck]
+  - name: grpcserver
+    option:
+      listenIP: "0.0.0.0"
+      listenPort: 8091
+      connLimit:
+        openConnLimit: false
+        maxConnPerHost: 128
+        maxConnLimit: 5120
+    api:
+      client:
+        enable: true
+        include: [discover, register, healthcheck]
+  - name: xdsserverv3
+    option:
+      listenIP: "0.0.0.0"
+      listenPort: 15010
+      connLimit:
+        openConnLimit: false
+        maxConnPerHost: 128
+        maxConnLimit: 10240
+#  - name: l5pbserver
+#    option:
+#      listenIP: 0.0.0.0
+#      listenPort: 7779
+#      clusterName: cl5.discover
+# 核心逻辑的配置
+naming:
+  auth:
+    open: false
+  # 批量控制器
+  batch:
+    register:
+      open: true
+      queueSize: 10240
+      waitTime: 32ms
+      maxBatchCount: 32
+      concurrency: 64
+    deregister:
+      open: true
+      queueSize: 10240
+      waitTime: 32ms
+      maxBatchCount: 32
+      concurrency: 64
+# 健康检查的配置
+healthcheck:
+  open: true
+  service: polaris.checker
+  slotNum: 30
+  minCheckInterval: 1s
+  maxCheckInterval: 30s
+  batch:
+    heartbeat:
+      open: true
+      queueSize: 10240
+      waitTime: 32ms
+      maxBatchCount: 32
+      concurrency: 64
+  checkers:
+    - name: heartbeatMemory
+#  - name: heartbeatRedis
+#    option:
+#      kvAddr: ##REDIS_ADDR##
+#      kvPasswd: ##REDIS_PWD##
+#      maxIdle: 200
+#      idleTimeout: 120s
+#      connectTimeout: 200ms
+#      msgTimeout: 200ms
+#      concurrency: 200
+# 缓存配置
+cache:
+  open: true
+  resources:
+    - name: service # 加载服务数据
+      option:
+        disableBusiness: false # 不加载业务服务
+        needMeta: true # 加载服务元数据
+    - name: instance # 加载实例数据
+      option:
+        disableBusiness: false # 不加载业务服务实例
+        needMeta: true # 加载实例元数据
+    - name: routingConfig # 加载路由数据
+    - name: rateLimitConfig # 加载限流数据
+    - name: circuitBreakerConfig # 加载熔断数据
+#    - name: l5 # 加载l5数据
+# 存储配置
+store:
+  # 单机文件存储插件
+  name: boltdbStore
+  option:
+    path: ./polaris.bolt
+## 数据库存储插件
+#  name: defaultStore
+#  option:
+#    master:
+#      dbType: mysql
+#      dbName: polaris_server
+#      dbUser: ##DB_USER##
+#      dbPwd: ##DB_PWD##
+#      dbAddr: ##DB_ADDR##
+#      maxOpenConns: -1
+#      maxIdleConns: -1
+#      connMaxLifetime: 300 # 单位秒
+#      txIsolationLevel: 2 #LevelReadCommitted
+# 插件配置
+plugin:
+  history:
+    name: HistoryLogger
+  discoverStatis:
+    name: discoverLocal
+    option:
+      interval: 60 # 统计间隔，单位为秒
+      outputPath: ./discover-statis
+  statis:
+    name: local
+    option:
+      interval: 60 # 统计间隔，单位为秒
+      outputPath: ./statis
+    # api 调用指标数据计算上报到 prometheus
+    # name: prometheus
+    # option:
+    #   interval: 60 # 统计间隔，单位为秒
+  ratelimit:
+    name: token-bucket
+    option:
+      remote-conf: false # 是否使用远程配置
+      ip-limit: # ip级限流，全局
+        open: true # 系统是否开启ip级限流
+        global:
+          open: true
+          bucket: 300 # 最高峰值
+          rate: 200 # 平均一个IP每秒的请求数
+        resource-cache-amount: 1024 # 最大缓存的IP个数
+        white-list: [127.0.0.1]
+      instance-limit:
+        open: true
+        global:
+          bucket: 200
+          rate: 100
+        resource-cache-amount: 1024
+      api-limit: # 接口级限流
+        open: false # 是否开启接口限流，全局开关，只有为true，才代表系统的限流开启。默认关闭
+        rules:
+          - name: store-read
+            limit:
+              open: true # 接口的全局配置，如果在api子项中，不配置，则该接口依据global来做限制
+              bucket: 2000 # 令牌桶最大值
+              rate: 1000 # 每秒产生的令牌数
+          - name: store-write
+            limit:
+              open: true
+              bucket: 1000
+              rate: 500
+        apis:
+          - name: "POST:/v1/naming/services"
+            rule: store-write
+          - name: "PUT:/v1/naming/services"
+            rule: store-write
+          - name: "POST:/v1/naming/services/delete"
+            rule: store-write
+          - name: "GET:/v1/naming/services"
+            rule: store-read
+          - name: "GET:/v1/naming/services/count"
+            rule: store-read
