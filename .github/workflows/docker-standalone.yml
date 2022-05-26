@@ -33,7 +33,7 @@ jobs:
         with:
           username: ${{ secrets.POLARIS_DOCKER_NAME }}
           password: ${{ secrets.POLARIS_DOCKER_PASSWORD }}
-          
+
       - name: Build Server
         id: build-server
         env:
@@ -41,8 +41,16 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           DOCKER_TAG: ${{ steps.get_version.outputs.VERSION }}
         run: |
+          echo "docker repository : polarismesh/polaris-server-standalone, tag : ${docker_tag}"
+          bash build.sh
+          
+          if [ $? != 0 ]; then
+              echo "build polaris-server failed"
+              exit 1
+          fi
+          cd deploy/standalone/docker
           ls -lstrh
-          bash build_docker.sh ${DOCKER_TAG}
+          bash build.sh ${DOCKER_TAG}
 
       - name: Build Prometheus
         id: build-prom

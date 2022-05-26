@@ -51,6 +51,7 @@ spec:
     metadata:
       labels:
         app: polaris
+        env: prod
     spec:
       containers:
       - image: polarismesh/polaris-server:latest

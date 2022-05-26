@@ -56,7 +56,7 @@ func NewBatchRegisterCtrl(storage store.Store, cacheMgn *cache.NamingCache, conf
 		return nil, nil
 	}
 
-	log.Infof("[Batch] open batch register")
+	log.Info("[Batch] open batch register")
 	register.label = "register"
 	register.instanceHandler = register.registerHandler
 	return register, nil
@@ -73,7 +73,7 @@ func NewBatchDeregisterCtrl(storage store.Store, cacheMgn *cache.NamingCache, co
 		return nil, nil
 	}
 
-	log.Infof("[Batch] open batch deregister")
+	log.Info("[Batch] open batch deregister")
 	deregister.label = "deregister"
 	deregister.instanceHandler = deregister.deregisterHandler
 
@@ -91,7 +91,7 @@ func NewBatchHeartbeatCtrl(storage store.Store, cacheMgn *cache.NamingCache, con
 		return nil, nil
 	}
 
-	log.Infof("[Batch] open batch heartbeat")
+	log.Info("[Batch] open batch heartbeat")
 	heartbeat.label = "heartbeat"
 	heartbeat.instanceHandler = heartbeat.heartbeatHandler
 
@@ -239,24 +239,24 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 		return nil
 	}
 
-	// 统一鉴权
-	remains, serviceIDs, _ := ctrl.batchVerifyInstances(remains)
-	if len(remains) == 0 {
-		log.Infof("[Batch] all instances verify failed, no remain any instances")
-		return nil
-	}
+	// 由于在创建instance的统一入口中，会自动创建 service，因此这里的判断逻辑可以不再需要
+	// remains, serviceIDs, _ := ctrl.batchVerifyInstances(remains)
+	// if len(remains) == 0 {
+	// 	log.Infof("[Batch] all instances verify failed, no remain any instances")
+	// 	return nil
+	// }
 
-	// 构造model数据
-	for id, entry := range remains {
-		serviceID, ok := serviceIDs[entry.request.GetId().GetValue()]
-		if !ok || serviceID == "" {
-			log.Errorf("[Batch] not found instance(%s) service, ignore it", entry.request.GetId().GetValue())
-			delete(remains, id)
-			entry.Reply(api.NotFoundResource, errors.New("not found service"))
-			continue
-		}
-		entry.SetInstance(utils.CreateInstanceModel(serviceID, entry.request))
-	}
+	// // 构造model数据
+	// for id, entry := range remains {
+	// 	serviceID, ok := serviceIDs[entry.request.GetId().GetValue()]
+	// 	if !ok || serviceID == "" {
+	// 		log.Errorf("[Batch] not found instance(%s) service, ignore it", entry.request.GetId().GetValue())
+	// 		delete(remains, id)
+	// 		entry.Reply(api.NotFoundResource, errors.New("not found service"))
+	// 		continue
+	// 	}
+	// 	entry.SetInstance(utils.CreateInstanceModel(serviceID, entry.request))
+	// }
 
 	// 调用batch接口，创建实例
 	instances := make([]*model.Instance, 0, len(remains))
@@ -416,25 +416,25 @@ func (ctrl *InstanceCtrl) batchVerifyInstances(futures map[string]*InstanceFutur
 		return nil, nil, nil
 	}
 
-	serviceIDs := make(map[string]string)       // 实例ID -> ServiceID
-	services := make(map[string]*model.Service) // 保存Service的鉴权结果
-	for id, entry := range futures {
-		serviceStr := entry.request.GetService().GetValue() + entry.request.GetNamespace().GetValue()
-		service, ok := services[serviceStr]
-		if !ok {
-			tmpService, ok := ctrl.loadService(entry, entry.request.Service.GetValue(), entry.request.Namespace.GetValue())
-			if !ok {
-				delete(futures, id)
-				continue
-			}
+	serviceIDs := make(map[string]string) // 实例ID -> ServiceID
+	// services := make(map[string]*model.Service) // 保存Service的鉴权结果
+	for _, entry := range futures {
+		// serviceStr := entry.request.GetService().GetValue() + entry.request.GetNamespace().GetValue()
+		// service, ok := services[serviceStr]
+		// if !ok {
+		// 	tmpService, ok := ctrl.loadService(entry, entry.request.Service.GetValue(), entry.request.Namespace.GetValue())
+		// 	if !ok {
+		// 		delete(futures, id)
+		// 		continue
+		// 	}
 
-			// 保存查询到的最新服务信息，后续可能会使用到
-			service = tmpService
-			services[serviceStr] = service
-		}
+		// 	// 保存查询到的最新服务信息，后续可能会使用到
+		// 	service = tmpService
+		// 	services[serviceStr] = service
+		// }
 
 		// 保存每个instance注册到的服务ID
-		serviceIDs[entry.request.GetId().GetValue()] = service.ID
+		serviceIDs[entry.request.GetId().GetValue()] = entry.serviceId
 	}
 
 	return futures, serviceIDs, nil

@@ -132,8 +132,9 @@ func (bc *Controller) ClientDeregisterOpen() bool {
 }
 
 // AsyncCreateInstance 异步创建实例，返回一个future，根据future获取创建结果
-func (bc *Controller) AsyncCreateInstance(instance *api.Instance, platformID, platformToken string) *InstanceFuture {
+func (bc *Controller) AsyncCreateInstance(svcId string, instance *api.Instance, platformID, platformToken string) *InstanceFuture {
 	future := &InstanceFuture{
+		serviceId:     svcId,
 		request:       instance,
 		result:        make(chan error, 1),
 		platformID:    platformID,
