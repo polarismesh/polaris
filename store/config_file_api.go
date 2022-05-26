@@ -95,6 +95,7 @@ type ConfigFileReleaseStore interface {
 	DeleteConfigFileRelease(tx Tx, namespace, group, fileName, deleteBy string) error
 
 	// FindConfigFileReleaseByModifyTimeAfter 获取最近更新的配置文件发布
+	// 此方法用于 cache 增量更新，需要注意 modifyTime 应为数据库时间戳
 	FindConfigFileReleaseByModifyTimeAfter(modifyTime time.Time) ([]*model.ConfigFileRelease, error)
 }
 

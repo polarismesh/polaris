@@ -27,7 +27,6 @@ import (
 
 	logger "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
-	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 )
@@ -651,8 +650,8 @@ func (s *strategyStore) GetStrategyDetailsForCache(mtime time.Time,
 		" UNIX_TIMESTAMP(ag.ctime), UNIX_TIMESTAMP(ag.mtime) FROM auth_strategy ag "
 
 	if !firstUpdate {
-		querySql += " WHERE ag.mtime >= ?"
-		args = append(args, commontime.Time2String(mtime))
+		querySql += " WHERE ag.mtime >= FROM_UNIXTIME(?)"
+		args = append(args, timeToTimestamp(mtime))
 	}
 
 	rows, err := tx.Query(querySql, args...)
