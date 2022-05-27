@@ -134,7 +134,7 @@ func (h *PrometheusServer) Run(errCh chan error) {
 	if err != nil {
 		log.Errorf("%+v", err)
 		if !h.restart {
-			log.Infof("not in restart progress, broadcast error")
+			log.Infof("not in restart progress, broadcast error", err)
 			errCh <- err
 		}
 

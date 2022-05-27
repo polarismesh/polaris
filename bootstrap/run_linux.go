@@ -46,6 +46,9 @@ func RunMainLoop(servers []apiserver.Apiserver, errCh chan error) {
 				if err := RestartServers(errCh); err != nil {
 					log.Errorf("restart servers err: %s", err.Error())
 					return
+				} else {
+					log.Infof("restart servers success: %+v", s)
+					continue
 				}
 			}
 
