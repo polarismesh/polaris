@@ -246,17 +246,17 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 	// 	return nil
 	// }
 
-	// // 构造model数据
-	// for id, entry := range remains {
-	// 	serviceID, ok := serviceIDs[entry.request.GetId().GetValue()]
-	// 	if !ok || serviceID == "" {
-	// 		log.Errorf("[Batch] not found instance(%s) service, ignore it", entry.request.GetId().GetValue())
-	// 		delete(remains, id)
-	// 		entry.Reply(api.NotFoundResource, errors.New("not found service"))
-	// 		continue
-	// 	}
-	// 	entry.SetInstance(utils.CreateInstanceModel(serviceID, entry.request))
-	// }
+	// 构造model数据
+	for _, entry := range remains {
+		// serviceID, ok := serviceIDs[entry.request.GetId().GetValue()]
+		// if !ok || serviceID == "" {
+		// 	log.Errorf("[Batch] not found instance(%s) service, ignore it", entry.request.GetId().GetValue())
+		// 	delete(remains, id)
+		// 	entry.Reply(api.NotFoundResource, errors.New("not found service"))
+		// 	continue
+		// }
+		entry.SetInstance(utils.CreateInstanceModel(entry.serviceId, entry.request))
+	}
 
 	// 调用batch接口，创建实例
 	instances := make([]*model.Instance, 0, len(remains))
