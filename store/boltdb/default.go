@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	storeName = "boltdbStore"
+	STORENAME = "boltdbStore"
 )
 
 type boltStore struct {
@@ -70,7 +70,7 @@ type boltStore struct {
 
 // Name store name
 func (m *boltStore) Name() string {
-	return storeName
+	return STORENAME
 }
 
 // Initialize init store

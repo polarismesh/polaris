@@ -27,7 +27,6 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
 )
@@ -182,14 +181,8 @@ func (fg *configFileGroupStore) QueryConfigFileGroups(namespace, name string, of
 			}
 
 			if hasName {
-				if utils.IsWildName(name) {
-					if !strings.Contains(saveName, name[:len(name)-1]) {
-						return false
-					}
-				} else {
-					if saveName != name {
-						return false
-					}
+				if !strings.Contains(saveName, name[:len(name)-1]) {
+					return false
 				}
 			}
 

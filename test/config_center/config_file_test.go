@@ -1,6 +1,3 @@
-//go:build integrationconfig
-// +build integrationconfig
-
 /*
  * Tencent is pleased to support the open source community by making Polaris available.
  *
@@ -33,14 +30,14 @@ var (
 	testNamespace = "testNamespace123qwe"
 	testGroup     = "testGroup"
 	testFile      = "testFile"
-	operator      = "ledou"
+	operator      = "polaris"
 	size          = 7
 )
 
 // TestConfigFileCRUD 测试配置文件增删改查
 func TestConfigFileCRUD(t *testing.T) {
 	if err := clearTestData(); err != nil {
-		t.FailNow()
+		t.Fatal(err)
 	}
 
 	t.Run("step1-query", func(t *testing.T) {
@@ -209,7 +206,7 @@ func TestConfigFileCRUD(t *testing.T) {
 // TestPublishConfigFile 测试配置文件发布相关的用例
 func TestPublishConfigFile(t *testing.T) {
 	if err := clearTestData(); err != nil {
-		t.FailNow()
+		t.Fatal(err)
 	}
 
 	configFile := assembleConfigFile()

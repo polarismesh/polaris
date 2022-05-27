@@ -256,7 +256,7 @@ func (cs *Impl) DeleteConfigFileRelease(ctx context.Context, namespace, group, f
 			zap.String("fileName", fileName),
 			zap.Error(err))
 
-		cs.RecordConfigFileReleaseHistory(nil, &model.ConfigFileRelease{
+		cs.RecordConfigFileReleaseHistory(ctx, &model.ConfigFileRelease{
 			Name:      releaseName,
 			Namespace: namespace,
 			Group:     group,
