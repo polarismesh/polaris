@@ -99,3 +99,7 @@ func Test_GetPrincipalResources(t *testing.T) {
 	resources := ret.Resources
 	assert.Equal(t, 2, len(resources.Services), "need query 2 service resources")
 }
+
+func Test_server_CreateStrategy(t *testing.T) {
+
+}
