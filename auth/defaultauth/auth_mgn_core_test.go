@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -86,6 +87,12 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 	}()
 
 	checker := &defaultAuthChecker{}
+	checker.Initialize(&auth.Config{
+		Name: "",
+		Option: map[string]interface{}{
+			"": nil,
+		},
+	}, cacheMgn)
 	checker.cacheMgn = cacheMgn
 	checker.authPlugin = plugin.GetAuth()
 
