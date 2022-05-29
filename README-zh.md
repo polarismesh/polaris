@@ -14,7 +14,7 @@ README：
 - [交流群](#交流群)
 - [参与贡献](#参与贡献)
 
-其他文档请见[北极星官网](https://polarismesh.cn)
+北极星原理介绍及相关实践文档请见[北极星官网](https://polarismesh.cn/zh/doc/)
 
 ## 介绍
 
