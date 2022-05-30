@@ -172,7 +172,7 @@ func (h *PrometheusServer) Restart(option map[string]interface{}, api map[string
 		<-h.exitCh
 	}
 
-	log.Infof("old PrometheusServer has stopped, begin restart PrometheusServer")
+	log.Info("old PrometheusServer has stopped, begin restart PrometheusServer")
 
 	ctx := context.Background()
 	if err := h.Initialize(ctx, option, api); err != nil {
