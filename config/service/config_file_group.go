@@ -40,6 +40,16 @@ func (cs *Impl) CreateConfigFileGroup(ctx context.Context, configFileGroup *api.
 		return checkError
 	}
 
+	authCtx := cs.collectBaseTokenInfo(ctx)
+	if err := cs.authMgn.VerifyCredential(authCtx); err != nil {
+		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+
+	requestCtx := authCtx.GetRequestContext()
+	userName := utils.ParseUserName(requestCtx)
+	configFileGroup.CreateBy = utils.NewStringValue(userName)
+	configFileGroup.ModifyBy = utils.NewStringValue(userName)
+
 	namespace := configFileGroup.Namespace.GetValue()
 	groupName := configFileGroup.Name.GetValue()
 
@@ -246,6 +256,14 @@ func (cs *Impl) DeleteConfigFileGroup(ctx context.Context, namespace, name strin
 		return api.NewConfigFileGroupResponse(api.InvalidConfigFileGroupName, nil)
 	}
 
+	authCtx := cs.collectBaseTokenInfo(ctx)
+	if err := cs.authMgn.VerifyCredential(authCtx); err != nil {
+		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+
+	requestCtx := authCtx.GetRequestContext()
+	operator := utils.ParseUserName(requestCtx)
+
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 	log.ConfigScope().Info("[Config][Service] delete config file group. ",
 		zap.String("request-id", requestID),
@@ -266,7 +284,7 @@ func (cs *Impl) DeleteConfigFileGroup(ctx context.Context, namespace, name strin
 		}
 		configFiles := searchRsp.ConfigFiles
 
-		deleteRsp := cs.BatchDeleteConfigFile(ctx, configFiles, "")
+		deleteRsp := cs.BatchDeleteConfigFile(ctx, configFiles, operator)
 		if deleteRsp.Code.GetValue() != api.ExecuteSuccess {
 			log.ConfigScope().Error("[Config][Service] batch delete group's config file failed. ",
 				zap.String("request-id", requestID),
@@ -320,6 +338,15 @@ func (cs *Impl) UpdateConfigFileGroup(ctx context.Context, configFileGroup *api.
 	if fileGroup == nil {
 		return api.NewConfigFileGroupResponse(api.NotFoundResource, configFileGroup)
 	}
+
+	authCtx := cs.collectBaseTokenInfo(ctx)
+	if err := cs.authMgn.VerifyCredential(authCtx); err != nil {
+		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+
+	requestCtx := authCtx.GetRequestContext()
+	userName := utils.ParseUserName(requestCtx)
+	configFileGroup.ModifyBy = utils.NewStringValue(userName)
 
 	toUpdateGroup := transferConfigFileGroupAPIModel2StoreModel(configFileGroup)
 	toUpdateGroup.ModifyBy = configFileGroup.ModifyBy.GetValue()

@@ -196,6 +196,12 @@ func (checker *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContex
 		ctx = context.WithValue(ctx, utils.ContextIsOwnerKey, isOwner)
 		ctx = context.WithValue(ctx, utils.ContextUserIDKey, operator.OperatorID)
 		ctx = context.WithValue(ctx, utils.ContextOwnerIDKey, ownerId)
+		//注入用户名信息
+		user := checker.Cache().User().GetUserByID(operator.OperatorID)
+		if user != nil {
+			ctx = context.WithValue(ctx, utils.ContextUserNameKey, user.Name)
+		}
+
 		authCtx.SetRequestContext(ctx)
 		checker.parseOperatorInfo(operator, authCtx)
 		if operator.Disable {

@@ -52,6 +52,16 @@ func (cs *Impl) PublishConfigFile(ctx context.Context, configFileRelease *api.Co
 		return api.NewConfigFileReleaseResponse(api.NotFoundNamespace, configFileRelease)
 	}
 
+	authCtx := cs.collectBaseTokenInfo(ctx)
+	if err := cs.authMgn.VerifyCredential(authCtx); err != nil {
+		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+
+	requestCtx := authCtx.GetRequestContext()
+	userName := utils.ParseUserName(requestCtx)
+	configFileRelease.CreateBy = utils.NewStringValue(userName)
+	configFileRelease.ModifyBy = utils.NewStringValue(userName)
+
 	tx := cs.getTx(ctx)
 	// 获取待发布的 configFile 信息
 	toPublishFile, err := cs.storage.GetConfigFile(tx, namespace, group, fileName)

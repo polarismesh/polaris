@@ -42,6 +42,16 @@ func (cs *Impl) CreateConfigFile(ctx context.Context, configFile *api.ConfigFile
 		return checkRsp
 	}
 
+	authCtx := cs.collectBaseTokenInfo(ctx)
+	if err := cs.authMgn.VerifyCredential(authCtx); err != nil {
+		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+
+	requestCtx := authCtx.GetRequestContext()
+	userName := utils.ParseUserName(requestCtx)
+	configFile.CreateBy = utils.NewStringValue(userName)
+	configFile.ModifyBy = utils.NewStringValue(userName)
+
 	namespace := configFile.Namespace.GetValue()
 	group := configFile.Group.GetValue()
 	name := configFile.Name.GetValue()
@@ -287,6 +297,15 @@ func (cs *Impl) UpdateConfigFile(ctx context.Context, configFile *api.ConfigFile
 		return api.NewConfigFileResponse(api.NotFoundResource, configFile)
 	}
 
+	authCtx := cs.collectBaseTokenInfo(ctx)
+	if err := cs.authMgn.VerifyCredential(authCtx); err != nil {
+		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+
+	requestCtx := authCtx.GetRequestContext()
+	userName := utils.ParseUserName(requestCtx)
+	configFile.ModifyBy = utils.NewStringValue(userName)
+
 	toUpdateFile := transferConfigFileAPIModel2StoreModel(configFile)
 	toUpdateFile.ModifyBy = configFile.ModifyBy.GetValue()
 
@@ -356,6 +375,16 @@ func (cs *Impl) DeleteConfigFile(ctx context.Context, namespace, group, name, de
 
 	tx, newCtx, _ := cs.StartTxAndSetToContext(ctx)
 	defer func() { _ = tx.Rollback() }()
+
+	if deleteBy == "" {
+		authCtx := cs.collectBaseTokenInfo(ctx)
+		if err := cs.authMgn.VerifyCredential(authCtx); err != nil {
+			return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+		}
+
+		requestCtx := authCtx.GetRequestContext()
+		deleteBy = utils.ParseUserName(requestCtx)
+	}
 
 	// 1. 删除配置文件发布内容
 	deleteFileReleaseRsp := cs.DeleteConfigFileRelease(newCtx, namespace, group, name, deleteBy)
