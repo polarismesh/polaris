@@ -56,7 +56,7 @@ ecosystem:
 
 - [polaris-controller](https://github.com/PolarisMesh/polaris-controller): K8s Controller for Automatic Injection of K8s
   Service and Polaris Sidecar
-- [spring-cloud-polaris](https://github.com/PolarisMesh/spring-cloud-polaris): spring cloud integrates with polaris-java
+- [spring-cloud-tencent](https://github.com/Tencent/spring-cloud-tencent): spring cloud integrates with polaris-java
 - [grpc-java-polaris](https://github.com/PolarisMesh/grpc-java-polaris): grpc-java integrates with polaris-java
 - [grpc-go-polaris](https://github.com/PolarisMesh/grpc-go-polaris): grpc-go integrates with polaris-go
 - [dubbo3/dubbo-go](https://github.com/polarismesh/examples/tree/main/dubbo3/dubbogo): dubbo-go integrates with
