@@ -43,4 +43,5 @@ const (
 	ContextOwnerIDKey     StringContext = StringContext(HeaderOwnerIDKey)
 	ContextUserRoleIDKey  StringContext = StringContext(HeaderUserRoleKey)
 	ContextAuthContextKey StringContext = StringContext("X-Polaris-AuthContext")
+	ContextUserNameKey    StringContext = StringContext("X-User-Name")
 )

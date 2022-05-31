@@ -19,6 +19,7 @@ package service
 
 import (
 	"context"
+	"github.com/polarismesh/polaris-server/auth"
 
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -143,12 +144,14 @@ type Impl struct {
 	API
 	storage store.Store
 	cache   *cache.FileCache
+	authMgn auth.AuthChecker
 }
 
 // NewServiceImpl 新建配置中心服务实现类
-func NewServiceImpl(storage store.Store, cache *cache.FileCache) API {
+func NewServiceImpl(storage store.Store, cache *cache.FileCache, authMgn auth.AuthChecker) API {
 	return &Impl{
 		storage: storage,
 		cache:   cache,
+		authMgn: authMgn,
 	}
 }

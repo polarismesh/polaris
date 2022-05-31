@@ -20,6 +20,7 @@ package config
 import (
 	"context"
 	"errors"
+	"github.com/polarismesh/polaris-server/auth"
 	"sync"
 	"time"
 
@@ -102,8 +103,13 @@ func initialize(ctx context.Context, config StartupConfig) error {
 	fileCache := cache.NewFileCache(ctx, storage, cacheParam)
 	server.cache = fileCache
 
+	authServer, err := auth.GetAuthServer()
+	if err != nil {
+		return err
+	}
+
 	// 3. 初始化 service 模块
-	serviceImpl := service.NewServiceImpl(storage, fileCache)
+	serviceImpl := service.NewServiceImpl(storage, fileCache, authServer.GetAuthChecker())
 	server.service = serviceImpl
 
 	// 4. 初始化事件中心

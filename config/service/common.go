@@ -19,6 +19,8 @@ package service
 
 import (
 	"context"
+	"errors"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 
 	"go.uber.org/zap"
 
@@ -78,4 +80,22 @@ func (cs *Impl) createNamespaceIfAbsent(namespaceName, operator, requestId strin
 	}
 
 	return nil
+}
+
+func (cs *Impl) collectBaseTokenInfo(ctx context.Context) *model.AcquireContext {
+	return model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithToken(utils.ParseAuthToken(ctx)),
+		model.WithModule(model.ConfigModule),
+	)
+}
+
+func convertToErrCode(err error) uint32 {
+	if errors.Is(err, model.ErrorTokenNotExist) {
+		return api.TokenNotExisted
+	}
+	if errors.Is(err, model.ErrorTokenDisabled) {
+		return api.TokenDisabled
+	}
+	return api.NotAllowedAccess
 }

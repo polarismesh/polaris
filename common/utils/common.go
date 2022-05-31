@@ -400,6 +400,16 @@ func ParseUserID(ctx context.Context) string {
 	return userID
 }
 
+// ParseUserName 从ctx解析用户名称
+func ParseUserName(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+
+	userName, _ := ctx.Value(ContextUserNameKey).(string)
+	return userName
+}
+
 // ParseOwnerID 从ctx解析Owner ID
 func ParseOwnerID(ctx context.Context) string {
 	if ctx == nil {
