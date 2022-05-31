@@ -41,13 +41,20 @@ type Center struct {
 
 type callbackBucket struct {
 	cbs  []Callback
-	lock sync.RWMutex
+	lock *sync.RWMutex // this lock cannot be copied
 }
 
 func (c *callbackBucket) add(cb Callback) {
 	c.lock.Lock()
 	c.cbs = append(c.cbs, cb)
 	c.lock.Unlock()
+}
+
+func (c *callbackBucket) getCbs() []Callback {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.cbs
 }
 
 // NewEventCenter 新建事件中心
@@ -66,8 +73,9 @@ func (c *Center) WatchEvent(eventType string, cb Callback) {
 
 	callback, ok := c.watchers[eventType]
 	if !ok {
-		c.watchers[eventType] = callbackBucket{
-			cbs: make([]Callback, 0, 6),
+		callback = callbackBucket{
+			cbs:  make([]Callback, 0, 6),
+			lock: &sync.RWMutex{},
 		}
 	}
 
@@ -77,15 +85,18 @@ func (c *Center) WatchEvent(eventType string, cb Callback) {
 
 func (c *Center) handleEvent(e Event) {
 	defer c.recovery()
-	c.lock.RLock()
-	defer c.lock.RUnlock()
 
+	// get map value
+	c.lock.RLock()
 	callback, ok := c.watchers[e.EventType]
 	if !ok {
+		c.lock.RUnlock()
 		return
 	}
 
-	for _, cb := range callback.cbs {
+	c.lock.RUnlock()
+
+	for _, cb := range callback.getCbs() {
 		if !cb(e) {
 			log.ConfigScope().Errorf("[Common][Event] cb message error. event = %+v", e)
 		}
