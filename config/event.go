@@ -20,9 +20,8 @@ package config
 import (
 	"sync"
 
-	"go.uber.org/zap"
-
 	"github.com/polarismesh/polaris-server/common/log"
+	"go.uber.org/zap"
 )
 
 // Event 事件对象，包含类型和事件消息
@@ -36,15 +35,14 @@ type Callback func(event Event) bool
 
 // Center 事件中心
 type Center struct {
-	watchers *sync.Map
-	lock     *sync.Mutex
+	watchers map[string][]Callback
+	lock     sync.RWMutex
 }
 
 // NewEventCenter 新建事件中心
 func NewEventCenter() *Center {
 	center := &Center{
-		watchers: new(sync.Map),
-		lock:     new(sync.Mutex),
+		watchers: make(map[string][]Callback),
 	}
 
 	return center
@@ -54,34 +52,32 @@ func NewEventCenter() *Center {
 func (c *Center) WatchEvent(eventType string, cb Callback) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-
-	cbs, ok := c.watchers.Load(eventType)
-	if !ok {
-		cbs = []Callback{cb}
-		c.watchers.Store(eventType, cbs)
-	} else {
-		cbArr := cbs.([]Callback)
-		cbArr = append(cbArr, cb)
+	if len(c.watchers[eventType]) == 0 {
+		c.watchers[eventType] = make([]Callback, 0, 6)
 	}
+
+	c.watchers[eventType] = append(c.watchers[eventType], cb)
 }
 
 func (c *Center) handleEvent(e Event) {
-	defer func() {
-		if err := recover(); err != nil {
-			log.ConfigScope().Error("[Common][Event] handler event error.", zap.Any("error", err))
-		}
-	}()
+	defer c.recovery()
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 
-	cbs, ok := c.watchers.Load(e.EventType)
+	cbs, ok := c.watchers[e.EventType]
 	if !ok {
 		return
 	}
 
-	cbArr := cbs.([]Callback)
-	for _, cb := range cbArr {
-		ok := cb(e)
-		if !ok {
+	for _, cb := range cbs {
+		if !cb(e) {
 			log.ConfigScope().Errorf("[Common][Event] cb message error. event = %+v", e)
 		}
+	}
+}
+
+func (c *Center) recovery() {
+	if err := recover(); err != nil {
+		log.ConfigScope().Error("[Common][Event] handler event error.", zap.Any("error", err))
 	}
 }
