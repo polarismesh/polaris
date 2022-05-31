@@ -35,14 +35,25 @@ type Callback func(event Event) bool
 
 // Center 事件中心
 type Center struct {
-	watchers map[string][]Callback
+	watchers map[string]callbackBucket
 	lock     sync.RWMutex
+}
+
+type callbackBucket struct {
+	cbs  []Callback
+	lock sync.RWMutex
+}
+
+func (c *callbackBucket) add(cb Callback) {
+	c.lock.Lock()
+	c.cbs = append(c.cbs, cb)
+	c.lock.Unlock()
 }
 
 // NewEventCenter 新建事件中心
 func NewEventCenter() *Center {
 	center := &Center{
-		watchers: make(map[string][]Callback),
+		watchers: make(map[string]callbackBucket),
 	}
 
 	return center
@@ -52,11 +63,16 @@ func NewEventCenter() *Center {
 func (c *Center) WatchEvent(eventType string, cb Callback) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	if len(c.watchers[eventType]) == 0 {
-		c.watchers[eventType] = make([]Callback, 0, 6)
+
+	callback, ok := c.watchers[eventType]
+	if !ok {
+		c.watchers[eventType] = callbackBucket{
+			cbs: make([]Callback, 0, 6),
+		}
 	}
 
-	c.watchers[eventType] = append(c.watchers[eventType], cb)
+	callback.add(cb)
+	c.watchers[eventType] = callback
 }
 
 func (c *Center) handleEvent(e Event) {
@@ -64,12 +80,12 @@ func (c *Center) handleEvent(e Event) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
-	cbs, ok := c.watchers[e.EventType]
+	callback, ok := c.watchers[e.EventType]
 	if !ok {
 		return
 	}
 
-	for _, cb := range cbs {
+	for _, cb := range callback.cbs {
 		if !cb(e) {
 			log.ConfigScope().Errorf("[Common][Event] cb message error. event = %+v", e)
 		}
