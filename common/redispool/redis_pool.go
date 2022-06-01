@@ -19,6 +19,7 @@ package redispool
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"math"
@@ -94,6 +95,7 @@ type Resp struct {
 // Config redis pool configuration
 type Config struct {
 	KvAddr         string              `json:"kvAddr"`
+	KvUser         string              `json:"kvUser"`
 	KvPasswd       string              `json:"kvPasswd"`
 	MaxIdle        int                 `json:"maxIdle"`
 	IdleTimeout    commontime.Duration `json:"idleTimeout"`
@@ -104,6 +106,7 @@ type Config struct {
 	MaxRetry       int                 `json:"maxRetry"`
 	MinBatchCount  int                 `json:"minBatchCount"`
 	WaitTime       commontime.Duration `json:"waitTime"`
+	WithTLS        bool                `json:"withTLS"`
 }
 
 // DefaultConfig redis pool configuration with default values
@@ -126,8 +129,8 @@ func (c *Config) Validate() error {
 	if len(c.KvAddr) == 0 {
 		return errors.New("kvAddr is empty")
 	}
-	if len(c.KvPasswd) == 0 {
-		return errors.New("KvPasswd is empty")
+	if len(c.KvUser) > 0 && len(c.KvPasswd) == 0 { // password is required only when ACL's user is given
+		return errors.New("kvPasswd is empty")
 	}
 	if c.MaxIdle <= 0 {
 		return errors.New("maxIdle is empty")
@@ -163,8 +166,9 @@ type Pool struct {
 
 // NewPool init a redis connection pool instance
 func NewPool(ctx context.Context, config *Config, statis plugin.Statis) *Pool {
-	redisClient := redis.NewClient(&redis.Options{
+	redisOptions := &redis.Options{
 		Addr:         config.KvAddr,
+		Username:     config.KvUser,
 		Password:     config.KvPasswd,
 		MaxRetries:   -1,
 		DialTimeout:  time.Duration(config.ConnectTimeout),
@@ -173,7 +177,14 @@ func NewPool(ctx context.Context, config *Config, statis plugin.Statis) *Pool {
 		PoolSize:     config.MaxIdle,
 		MinIdleConns: config.MaxIdle,
 		IdleTimeout:  time.Duration(config.IdleTimeout),
-	})
+	}
+	if config.WithTLS {
+		redisOptions.TLSConfig = &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		}
+	}
+
+	redisClient := redis.NewClient(redisOptions)
 	pool := &Pool{
 		config:         config,
 		ctx:            ctx,
