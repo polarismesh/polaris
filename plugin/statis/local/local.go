@@ -155,31 +155,20 @@ func (s *StatisWorker) Run() {
 	time.Sleep(time.Duration(diff) * time.Second)
 
 	ticker := time.NewTicker(s.interval)
-	cacheTicker := time.NewTicker(30 * time.Second)
 	defer func() {
 		ticker.Stop()
-		cacheTicker.Stop()
 	}()
 
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				s.acs.log()
-			case ac := <-s.acc:
-				s.acs.add(ac)
-			}
+	for {
+		select {
+		case <-ticker.C:
+			s.acs.log()
+			s.cacheStatis.log()
+		case ac := <-s.acc:
+			s.acs.add(ac)
+		case ac := <-s.cacheCall:
+			s.cacheStatis.add(ac)
 		}
-	}()
+	}
 
-	go func() {
-		for {
-			select {
-			case <-cacheTicker.C:
-				s.cacheStatis.log()
-			case ac := <-s.cacheCall:
-				s.cacheStatis.add(ac)
-			}
-		}
-	}()
 }

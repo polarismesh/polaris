@@ -111,10 +111,13 @@ func (pc *protobufCache) Get(cacheType string, key string) *CacheObject {
 		return nil
 	}
 
-	val, _ := c.Get(key)
+	val, exist := c.Get(key)
 
-	exist := val != nil
 	plugin.GetStatis().AddCacheCall(plugin.ComponentProtobufCache, cacheType, exist, 1)
+
+	if val == nil {
+		return nil
+	}
 
 	return val.(*CacheObject)
 }
