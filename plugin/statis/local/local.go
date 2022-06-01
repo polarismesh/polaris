@@ -161,16 +161,25 @@ func (s *StatisWorker) Run() {
 		cacheTicker.Stop()
 	}()
 
-	for {
-		select {
-		case <-ticker.C:
-			s.acs.log()
-		case ac := <-s.acc:
-			s.acs.add(ac)
-		case <-cacheTicker.C:
-			s.cacheStatis.log()
-		case ac := <-s.cacheCall:
-			s.cacheStatis.add(ac)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				s.acs.log()
+			case ac := <-s.acc:
+				s.acs.add(ac)
+			}
 		}
-	}
+	}()
+
+	go func() {
+		for {
+			select {
+			case <-cacheTicker.C:
+				s.cacheStatis.log()
+			case ac := <-s.cacheCall:
+				s.cacheStatis.add(ac)
+			}
+		}
+	}()
 }

@@ -32,13 +32,13 @@ const (
 	sizeProtobufCacheKey   = "sizeCacheProto"
 )
 
-// ProtobufCache pb对象缓存，降低由于pb重复对象序列化带来的开销
+// ProtobufCache PB object cache, reduce the overhead caused by the serialization of the PB repeated object
 type ProtobufCache struct {
 	enabled       bool
 	cahceRegistry map[api.DiscoverResponse_DiscoverResponseType]*lru.ARCCache
 }
 
-// newProtobufCache 构件一个 pb 缓存池
+// newProtobufCache Component a PB cache pool
 func newProtobufCache(options map[string]interface{}) (*ProtobufCache, error) {
 	enabled, _ := options[enableProtobufCacheKey].(bool)
 
@@ -93,7 +93,7 @@ func (pc *ProtobufCache) OnSend(stream grpc.ServerStream, m interface{}) interfa
 	if resp.GetCode().GetValue() != api.ExecuteSuccess {
 		return m
 	}
-	// 计算缓存数据的 key 信息
+	// Key information of calculating the cache data
 	keyProto := fmt.Sprintf("%s-%s-%s", resp.Service.Namespace.GetValue(), resp.Service.Name.GetValue(),
 		resp.Service.Revision.GetValue())
 	value, ok := pc.cahceRegistry[resp.Type].Get(keyProto)
@@ -103,14 +103,14 @@ func (pc *ProtobufCache) OnSend(stream grpc.ServerStream, m interface{}) interfa
 	}()
 
 	if !ok {
-		// 没有缓存
+		// no cache
 		pmsg := &grpc.PreparedMsg{}
 		errEncode := pmsg.Encode(stream, m)
 		if errEncode != nil {
 			log.Infof("SendMsg encode err %v %v", keyProto, errEncode)
 			return m
 		} else {
-			// 添加缓存
+			// add cache
 			pc.cahceRegistry[resp.Type].Add(keyProto, pmsg)
 			log.Debugf("SendMsg add cache %v", keyProto)
 			return pmsg

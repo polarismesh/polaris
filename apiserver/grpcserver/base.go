@@ -38,6 +38,7 @@ import (
 	"github.com/polarismesh/polaris-server/plugin"
 )
 
+// InitServer BaseGrpcServer.Run 中回调函数的定义
 type InitServer func(*grpc.Server) error
 
 // BaseGrpcServer base utilities and functions for gRPC Connector
@@ -54,6 +55,7 @@ type BaseGrpcServer struct {
 	ratelimit  plugin.Ratelimit
 	OpenMethod map[string]bool
 
+	// customerHandler Processing Stream type requests, for Request and Response for pre-processing
 	customerHandler GrpcStreamHandler
 }
 
