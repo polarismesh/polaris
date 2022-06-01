@@ -836,9 +836,14 @@ func (s *Server) sendDiscoverEvent(eventType model.DiscoverEventType, namespace,
 // createServiceIfAbsent 如果服务不存在，则进行创建，并返回服务的ID信息
 func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instance) (uint32, string, error) {
 
-	if svc := s.caches.Service().GetServiceByName(instance.GetService().GetValue(), instance.GetNamespace().GetValue()); svc != nil {
+	svc, err := s.loadService(instance)
+	if err != nil {
+		return api.ExecuteException, "", err
+	}
+	if svc != nil {
 		return api.ExecuteSuccess, svc.ID, nil
 	}
+
 	simpleService := &api.Service{
 		Name:      utils.NewStringValue(instance.GetService().GetValue()),
 		Namespace: utils.NewStringValue(instance.GetNamespace().GetValue()),
@@ -872,6 +877,30 @@ func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instan
 	svcId := resp.Service.Id.GetValue()
 
 	return retCode, svcId, nil
+}
+
+func (s *Server) loadService(instance *api.Instance) (*model.Service, error) {
+
+	svc := s.caches.Service().GetServiceByName(instance.GetService().GetValue(), instance.GetNamespace().GetValue())
+
+	if svc != nil {
+		if svc.IsAlias() {
+			return nil, errors.New("service is alias")
+		}
+		return svc, nil
+	}
+
+	// 再走数据库查询一遍
+	svc, err := s.storage.GetService(instance.GetService().GetValue(), instance.GetNamespace().GetValue())
+	if err != nil {
+		return nil, err
+	}
+
+	if svc != nil && svc.IsAlias() {
+		return nil, errors.New("service is alias")
+	}
+
+	return svc, nil
 }
 
 /*
