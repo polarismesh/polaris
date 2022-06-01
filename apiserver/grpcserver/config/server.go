@@ -53,7 +53,7 @@ func (g *ConfigGRPCServer) GetProtocol() string {
 func (g *ConfigGRPCServer) Initialize(ctx context.Context, option map[string]interface{},
 	api map[string]apiserver.APIConfig) error {
 	g.openAPI = api
-	return g.BaseGrpcServer.Initialize(ctx, option, g.GetProtocol())
+	return g.BaseGrpcServer.Initialize(ctx, option, grpcserver.WithProtocol(g.GetProtocol()))
 }
 
 // Run 启动GRPC API服务器

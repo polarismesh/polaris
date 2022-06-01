@@ -17,27 +17,25 @@
 
 package grpcserver
 
-import (
-	"google.golang.org/grpc"
-)
+type InitOption func(svr *BaseGrpcServer)
 
-// GrpcStreamHandler handler of GRPC-Stream
-type GrpcStreamHandler interface {
-	// OnRecv Treatment when receiving the request
-	OnRecv(stream grpc.ServerStream, m interface{}) interface{}
-	// OnSend Ready to send data processing
-	OnSend(stream grpc.ServerStream, m interface{}) interface{}
+// WithProtocol
+func WithProtocol(protocol string) InitOption {
+	return func(svr *BaseGrpcServer) {
+		svr.protocol = protocol
+	}
 }
 
-type noopGrpcStreamHandler struct {
+// WithProtobufCache
+func WithProtobufCache(cache Cache) InitOption {
+	return func(svr *BaseGrpcServer) {
+		svr.cache = cache
+	}
 }
 
-// OnRecv Treatment when receiving the request
-func (noop *noopGrpcStreamHandler) OnRecv(stream grpc.ServerStream, m interface{}) interface{} {
-	return m
-}
-
-// OnSend Ready to send data processing
-func (noop *noopGrpcStreamHandler) OnSend(stream grpc.ServerStream, m interface{}) interface{} {
-	return m
+// WithMessageToCacheObject
+func WithMessageToCacheObject(convert MessageToCache) InitOption {
+	return func(svr *BaseGrpcServer) {
+		svr.convert = convert
+	}
 }

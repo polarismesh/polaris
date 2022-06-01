@@ -196,19 +196,19 @@ naming:
       open: true
       queueSize: 10240
       waitTime: 32ms
-      maxBatchCount: 32
-      concurrency: 64
+      maxBatchCount: 128
+      concurrency: 128
     deregister:
       open: true
       queueSize: 10240
       waitTime: 32ms
-      maxBatchCount: 32
-      concurrency: 64
+      maxBatchCount: 128
+      concurrency: 128
     clientRegister:
       open: true
       queueSize: 10240
-      waitTime: 32ms
-      maxBatchCount: 32
+      waitTime: 32s
+      maxBatchCount: 1024
       concurrency: 64
     clientDeregister:
       open: true

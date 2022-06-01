@@ -50,13 +50,15 @@ type BaseGrpcServer struct {
 	restart         bool
 	exitCh          chan struct{}
 
+	protocol string
+
 	server     *grpc.Server
 	statis     plugin.Statis
 	ratelimit  plugin.Ratelimit
 	OpenMethod map[string]bool
 
-	// customerHandler Processing Stream type requests, for Request and Response for pre-processing
-	customerHandler GrpcStreamHandler
+	cache   Cache
+	convert MessageToCache
 }
 
 // GetPort get the connector listen port value
@@ -65,12 +67,16 @@ func (b *BaseGrpcServer) GetPort() uint32 {
 }
 
 // Initialize init the gRPC server
-func (b *BaseGrpcServer) Initialize(ctx context.Context, option map[string]interface{}, protocol string, customerHandler ...GrpcStreamHandler) error {
-	b.customerHandler = &noopGrpcStreamHandler{}
-	b.listenIP = option["listenIP"].(string)
-	b.listenPort = uint32(option["listenPort"].(int))
+func (b *BaseGrpcServer) Initialize(ctx context.Context, conf map[string]interface{}, initOptions ...InitOption) error {
 
-	if raw, _ := option["connLimit"].(map[interface{}]interface{}); raw != nil {
+	for i := range initOptions {
+		initOptions[i](b)
+	}
+
+	b.listenIP = conf["listenIP"].(string)
+	b.listenPort = uint32(conf["listenPort"].(int))
+
+	if raw, _ := conf["connLimit"].(map[interface{}]interface{}); raw != nil {
 		connConfig, err := connlimit.ParseConnLimitConfig(raw)
 		if err != nil {
 			return err
@@ -78,12 +84,8 @@ func (b *BaseGrpcServer) Initialize(ctx context.Context, option map[string]inter
 		b.connLimitConfig = connConfig
 	}
 	if ratelimit := plugin.GetRatelimit(); ratelimit != nil {
-		log.Infof("%s server open the ratelimit", protocol)
+		log.Infof("%s server open the ratelimit", b.protocol)
 		b.ratelimit = ratelimit
-	}
-
-	if len(customerHandler) > 0 {
-		b.customerHandler = customerHandler[0]
 	}
 
 	return nil
@@ -151,6 +153,8 @@ func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer InitS
 	log.Infof("%s server stop", protocol)
 }
 
+type HandleGrpcStreamResponse func(stream grpc.ServerStream, m interface{}) interface{}
+
 // VirtualStream 虚拟Stream 继承ServerStream
 type VirtualStream struct {
 	Method        string
@@ -160,10 +164,10 @@ type VirtualStream struct {
 	RequestID     string
 
 	grpc.ServerStream
-	customerHandler GrpcStreamHandler
 
 	Code int
 
+	handle      HandleGrpcStreamResponse
 	preprocess  PreProcessFunc
 	postprocess PostProcessFunc
 
@@ -172,8 +176,6 @@ type VirtualStream struct {
 
 // RecvMsg VirtualStream接收消息函数
 func (v *VirtualStream) RecvMsg(m interface{}) error {
-	m = v.customerHandler.OnRecv(v.ServerStream, m)
-
 	err := v.ServerStream.RecvMsg(m)
 	if err == io.EOF {
 		return err
@@ -192,7 +194,7 @@ func (v *VirtualStream) RecvMsg(m interface{}) error {
 func (v *VirtualStream) SendMsg(m interface{}) error {
 	v.postprocess(v, m)
 
-	m = v.customerHandler.OnSend(v.ServerStream, m)
+	m = v.handle(v.ServerStream, m)
 
 	err := v.ServerStream.SendMsg(m)
 	if err != nil {
@@ -202,8 +204,12 @@ func (v *VirtualStream) SendMsg(m interface{}) error {
 	return err
 }
 
+func (v *VirtualStream) handleResponse(m interface{}) interface{} {
+	return m
+}
+
 func newVirtualStream(ctx context.Context, method string, stream grpc.ServerStream,
-	preprocess PreProcessFunc, postprocess PostProcessFunc, customerHandler GrpcStreamHandler) *VirtualStream {
+	preprocess PreProcessFunc, postprocess PostProcessFunc, handle HandleGrpcStreamResponse) *VirtualStream {
 	var clientAddress string
 	var clientIP string
 	var userAgent string
@@ -233,16 +239,16 @@ func newVirtualStream(ctx context.Context, method string, stream grpc.ServerStre
 	}
 
 	return &VirtualStream{
-		Method:          method,
-		ClientAddress:   clientAddress,
-		ClientIP:        clientIP,
-		UserAgent:       userAgent,
-		RequestID:       requestID,
-		ServerStream:    stream,
-		customerHandler: customerHandler,
-		Code:            0,
-		preprocess:      preprocess,
-		postprocess:     postprocess,
+		Method:        method,
+		ClientAddress: clientAddress,
+		ClientIP:      clientIP,
+		UserAgent:     userAgent,
+		RequestID:     requestID,
+		ServerStream:  stream,
+		handle:        handle,
+		Code:          0,
+		preprocess:    preprocess,
+		postprocess:   postprocess,
 	}
 }
 
@@ -253,7 +259,7 @@ var notPrintableMethods = map[string]bool{
 func (b *BaseGrpcServer) unaryInterceptor(ctx context.Context, req interface{},
 	info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (rsp interface{}, err error) {
 
-	stream := newVirtualStream(ctx, info.FullMethod, nil, b.preprocess, b.postprocess, b.customerHandler)
+	stream := newVirtualStream(ctx, info.FullMethod, nil, b.preprocess, b.postprocess, nil)
 
 	func() {
 		_, ok := notPrintableMethods[info.FullMethod]
@@ -284,7 +290,7 @@ func (b *BaseGrpcServer) unaryInterceptor(ctx context.Context, req interface{},
 func (b *BaseGrpcServer) streamInterceptor(srv interface{}, ss grpc.ServerStream,
 	info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
 
-	stream := newVirtualStream(ss.Context(), info.FullMethod, ss, b.preprocess, b.postprocess, b.customerHandler)
+	stream := newVirtualStream(ss.Context(), info.FullMethod, ss, b.preprocess, b.postprocess, b.handleStreamResponse)
 
 	err = handler(srv, stream)
 	if err != nil { // 存在非EOF读错误或者写错误
@@ -464,4 +470,26 @@ func ConvertContext(ctx context.Context) context.Context {
 	ctx = context.WithValue(ctx, utils.StringContext("client-address"), address)
 	ctx = context.WithValue(ctx, utils.StringContext("user-agent"), userAgent)
 	return ctx
+}
+
+// handleStreamResponse Response that processing GRPC Stream. may affect the data of Response
+func (b *BaseGrpcServer) handleStreamResponse(stream grpc.ServerStream, m interface{}) interface{} {
+	if b.cache == nil {
+		return m
+	}
+
+	cacheVal := b.convert(m)
+	if cacheVal == nil {
+		return m
+	}
+
+	if saveVal := b.cache.Get(cacheVal.CacheType, cacheVal.Key); saveVal != nil {
+		return saveVal.GetPreparedMessage()
+	}
+
+	if err := cacheVal.PrepareMessage(stream); err != nil {
+		return m
+	}
+
+	return b.cache.Put(cacheVal)
 }
