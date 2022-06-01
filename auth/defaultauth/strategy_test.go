@@ -379,7 +379,7 @@ func Test_UpdateStrategy(t *testing.T) {
 	}
 
 	t.Run("正常更新鉴权策略", func(t *testing.T) {
-		storage.EXPECT().GetStrategyDetail(gomock.Any(), gomock.Any()).Return(strategies[0], nil)
+		storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategies[0], nil)
 		storage.EXPECT().UpdateStrategy(gomock.Any()).Return(nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
@@ -481,7 +481,7 @@ func Test_UpdateStrategy(t *testing.T) {
 
 	t.Run("更新鉴权策略-目标策略不存在", func(t *testing.T) {
 
-		storage.EXPECT().GetStrategyDetail(gomock.Any(), gomock.Any()).Return(nil, nil)
+		storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(nil, nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 
@@ -512,7 +512,7 @@ func Test_UpdateStrategy(t *testing.T) {
 
 		strategies[2].Owner = users[2].ID
 
-		storage.EXPECT().GetStrategyDetail(gomock.Any(), gomock.Any()).Return(strategies[2], nil)
+		storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategies[2], nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 
@@ -536,7 +536,7 @@ func Test_UpdateStrategy(t *testing.T) {
 
 	t.Run("更新鉴权策略-关联用户不存在", func(t *testing.T) {
 
-		storage.EXPECT().GetStrategyDetail(gomock.Any(), gomock.Any()).Return(strategies[0], nil)
+		storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategies[0], nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 
@@ -560,7 +560,7 @@ func Test_UpdateStrategy(t *testing.T) {
 
 	t.Run("更新鉴权策略-关联用户组不存在", func(t *testing.T) {
 
-		storage.EXPECT().GetStrategyDetail(gomock.Any(), gomock.Any()).Return(strategies[0], nil)
+		storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategies[0], nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 
@@ -584,7 +584,7 @@ func Test_UpdateStrategy(t *testing.T) {
 
 	t.Run("更新默认鉴权策略-不能更改principals成员", func(t *testing.T) {
 
-		storage.EXPECT().GetStrategyDetail(gomock.Any(), gomock.Any()).Return(defaultStrategies[0], nil)
+		storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(defaultStrategies[0], nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 
@@ -677,7 +677,7 @@ func Test_DeleteStrategy(t *testing.T) {
 
 		index := rand.Intn(len(strategies))
 
-		storage.EXPECT().GetStrategyDetail(gomock.Any(), gomock.Any()).Return(strategies[index], nil)
+		storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategies[index], nil)
 		storage.EXPECT().DeleteStrategy(gomock.Any()).Return(nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
@@ -703,7 +703,7 @@ func Test_DeleteStrategy(t *testing.T) {
 
 		index := rand.Intn(len(strategies))
 
-		storage.EXPECT().GetStrategyDetail(gomock.Any(), gomock.Any()).Return(nil, nil)
+		storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(nil, nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 
@@ -717,7 +717,7 @@ func Test_DeleteStrategy(t *testing.T) {
 	t.Run("删除鉴权策略-目标为默认鉴权策略", func(t *testing.T) {
 		index := rand.Intn(len(defaultStrategies))
 
-		storage.EXPECT().GetStrategyDetail(gomock.Any(), gomock.Any()).Return(defaultStrategies[index], nil)
+		storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(defaultStrategies[index], nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 
@@ -738,7 +738,7 @@ func Test_DeleteStrategy(t *testing.T) {
 
 		strategies[index].Owner = users[2].ID
 
-		storage.EXPECT().GetStrategyDetail(gomock.Any(), gomock.Any()).Return(strategies[index], nil)
+		storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategies[index], nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 
@@ -818,7 +818,7 @@ func Test_GetStrategy(t *testing.T) {
 
 	t.Run("正常查询鉴权策略", func(t *testing.T) {
 		// 主账户查询自己的策略
-		storage.EXPECT().GetStrategyDetail(gomock.Any(), gomock.Any()).Return(strategies[0], nil)
+		storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategies[0], nil)
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 		resp := svr.GetStrategy(valCtx, &api.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategies[0].ID},
@@ -826,7 +826,7 @@ func Test_GetStrategy(t *testing.T) {
 		assert.Equal(t, api.ExecuteSuccess, resp.Code.GetValue(), resp.Info.GetValue())
 
 		// 主账户查询自己自账户的策略
-		storage.EXPECT().GetStrategyDetail(gomock.Any(), gomock.Any()).Return(strategies[1], nil)
+		storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategies[1], nil)
 		valCtx = context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 		resp = svr.GetStrategy(valCtx, &api.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategies[1].ID},
@@ -844,7 +844,7 @@ func Test_GetStrategy(t *testing.T) {
 
 		strategies[index].Owner = users[2].ID
 
-		storage.EXPECT().GetStrategyDetail(gomock.Any(), gomock.Any()).Return(strategies[index], nil)
+		storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategies[index], nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 
@@ -857,7 +857,7 @@ func Test_GetStrategy(t *testing.T) {
 
 	t.Run("查询鉴权策略-非owner用户查询自己的", func(t *testing.T) {
 
-		storage.EXPECT().GetStrategyDetail(gomock.Any(), gomock.Any()).Return(strategies[1], nil)
+		storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategies[1], nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 
@@ -869,7 +869,7 @@ func Test_GetStrategy(t *testing.T) {
 	})
 
 	t.Run("查询鉴权策略-非owner用户查询自己所在用户组的", func(t *testing.T) {
-		storage.EXPECT().GetStrategyDetail(gomock.Any(), gomock.Any()).Return(strategies[len(users)-1+2], nil)
+		storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategies[len(users)-1+2], nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 
@@ -881,7 +881,7 @@ func Test_GetStrategy(t *testing.T) {
 	})
 
 	t.Run("查询鉴权策略-非owner用户查询别人的", func(t *testing.T) {
-		storage.EXPECT().GetStrategyDetail(gomock.Any(), gomock.Any()).Return(strategies[2], nil)
+		storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategies[2], nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 
@@ -893,7 +893,7 @@ func Test_GetStrategy(t *testing.T) {
 	})
 
 	t.Run("查询鉴权策略-目标策略不存在", func(t *testing.T) {
-		storage.EXPECT().GetStrategyDetail(gomock.Any(), gomock.Any()).Return(nil, nil)
+		storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(nil, nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 

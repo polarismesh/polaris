@@ -339,7 +339,7 @@ func buildResMap(resources []model.StrategyResource) map[string][]model.Strategy
 }
 
 // GetStrategyDetail 获取策略详情
-func (ss *strategyStore) GetStrategyDetail(id string, queryDefault bool) (*model.StrategyDetail, error) {
+func (ss *strategyStore) GetStrategyDetail(id string) (*model.StrategyDetail, error) {
 	proxy, err := ss.handler.StartTx()
 	if err != nil {
 		return nil, err
@@ -348,20 +348,16 @@ func (ss *strategyStore) GetStrategyDetail(id string, queryDefault bool) (*model
 
 	defer tx.Rollback()
 
-	return ss.getStrategyDetail(tx, id, queryDefault)
+	return ss.getStrategyDetail(tx, id)
 }
 
 // GetStrategyDetail
-func (ss *strategyStore) getStrategyDetail(tx *bolt.Tx, id string, queryDefault bool) (*model.StrategyDetail, error) {
+func (ss *strategyStore) getStrategyDetail(tx *bolt.Tx, id string) (*model.StrategyDetail, error) {
 	ret, err := loadStrategyById(tx, id)
 	if err != nil {
 		return nil, err
 	}
 	if ret == nil {
-		return nil, nil
-	}
-
-	if queryDefault && !ret.Default {
 		return nil, nil
 	}
 

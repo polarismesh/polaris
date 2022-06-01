@@ -389,7 +389,7 @@ func (s *strategyStore) RemoveStrategyResources(resources []model.StrategyResour
 }
 
 // GetStrategyDetail
-func (s *strategyStore) GetStrategyDetail(id string, queryDefault bool) (*model.StrategyDetail, error) {
+func (s *strategyStore) GetStrategyDetail(id string) (*model.StrategyDetail, error) {
 	if id == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"get auth_strategy missing some params, id is %s", id))
@@ -397,10 +397,6 @@ func (s *strategyStore) GetStrategyDetail(id string, queryDefault bool) (*model.
 
 	querySql := "SELECT ag.id, ag.name, ag.action, ag.owner, ag.default, ag.comment, ag.revision, ag.flag, " +
 		" UNIX_TIMESTAMP(ag.ctime), UNIX_TIMESTAMP(ag.mtime) FROM auth_strategy AS ag WHERE ag.flag = 0 AND ag.id = ?"
-
-	if queryDefault {
-		querySql += " AND ag.default = 1"
-	}
 
 	row := s.master.QueryRow(querySql, id)
 

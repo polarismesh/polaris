@@ -222,7 +222,7 @@ func (m *boltStore) initAuthStoreData() error {
 			}
 		}
 
-		rule, err := m.getStrategyDetail(tx, mainDefaultStrategy.ID, true)
+		rule, err := m.getStrategyDetail(tx, mainDefaultStrategy.ID)
 		if err != nil {
 			return err
 		}

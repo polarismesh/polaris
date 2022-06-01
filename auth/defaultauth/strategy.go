@@ -96,7 +96,7 @@ func (svr *server) UpdateStrategies(ctx context.Context, reqs []*api.ModifyAuthS
 func (svr *server) UpdateStrategy(ctx context.Context, req *api.ModifyAuthStrategy) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 
-	strategy, err := svr.storage.GetStrategyDetail(req.GetId().GetValue(), false)
+	strategy, err := svr.storage.GetStrategyDetail(req.GetId().GetValue())
 	if err != nil {
 		log.AuthScope().Error("[Auth][Strategy] get strategy from store", utils.ZapRequestID(requestID),
 			zap.Error(err))
@@ -147,7 +147,7 @@ func (svr *server) DeleteStrategies(ctx context.Context, reqs []*api.AuthStrateg
 func (svr *server) DeleteStrategy(ctx context.Context, req *api.AuthStrategy) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 
-	strategy, err := svr.storage.GetStrategyDetail(req.GetId().GetValue(), false)
+	strategy, err := svr.storage.GetStrategyDetail(req.GetId().GetValue())
 	if err != nil {
 		log.AuthScope().Error("[Auth][Strategy] get strategy from store", utils.ZapRequestID(requestID),
 			zap.Error(err))
@@ -300,7 +300,7 @@ func (svr *server) GetStrategy(ctx context.Context, req *api.AuthStrategy) *api.
 		return api.NewResponse(api.EmptyQueryParameter)
 	}
 
-	ret, err := svr.storage.GetStrategyDetail(req.GetId().GetValue(), false)
+	ret, err := svr.storage.GetStrategyDetail(req.GetId().GetValue())
 	if err != nil {
 		log.AuthScope().Error("[Auth][Strategy] get strategt from store",
 			utils.ZapRequestID(requestID), zap.Error(err))
