@@ -54,15 +54,14 @@ type CacheObject struct {
 	Key string
 }
 
-func (c CacheObject) GetPreparedMessage() *grpc.PreparedMsg {
+func (c *CacheObject) GetPreparedMessage() *grpc.PreparedMsg {
 	return c.preparedVal
 }
 
-func (c CacheObject) PrepareMessage(stream grpc.ServerStream) error {
+func (c *CacheObject) PrepareMessage(stream grpc.ServerStream) error {
 	pmsg := &grpc.PreparedMsg{}
-	err := pmsg.Encode(stream, c.OriginVal)
-	if err != nil {
-		log.Info("[Grpc][ProtoCache] prepare message", zap.String("key", c.Key), zap.Error(err))
+	if err := pmsg.Encode(stream, c.OriginVal); err != nil {
+		log.Error("[Grpc][ProtoCache] prepare message", zap.String("key", c.Key), zap.Error(err))
 		return err
 	}
 	c.preparedVal = pmsg
@@ -124,15 +123,19 @@ func (pc *protobufCache) Get(cacheType string, key string) *CacheObject {
 
 // Put save cache value
 func (pc *protobufCache) Put(v *CacheObject) *CacheObject {
+	if v == nil {
+		return nil
+	}
+
 	cacheType := v.CacheType
 	key := v.Key
 
 	c, ok := pc.cahceRegistry[cacheType]
 	if !ok {
+		log.Warn("[Grpc][ProtoCache] put cache ignore", zap.String("cacheType", cacheType))
 		return nil
 	}
 
-	c.Add(key, v.preparedVal)
-
+	c.Add(key, v)
 	return v
 }

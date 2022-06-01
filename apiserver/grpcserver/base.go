@@ -491,5 +491,10 @@ func (b *BaseGrpcServer) handleStreamResponse(stream grpc.ServerStream, m interf
 		return m
 	}
 
-	return b.cache.Put(cacheVal)
+	cacheVal = b.cache.Put(cacheVal)
+	if cacheVal == nil {
+		return m
+	}
+
+	return cacheVal.GetPreparedMessage()
 }
