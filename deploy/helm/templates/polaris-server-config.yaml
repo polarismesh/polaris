@@ -246,7 +246,8 @@ data:
             {{- if .Values.polaris.storage.redis.password }}
             kvPasswd: {{ .Values.polaris.storage.redis.password }}
             {{- end }}
-            maxIdle: 200
+            poolSize: 200
+            minIdleConns: 30
             idleTimeout: 120s
             connectTimeout: 200ms
             msgTimeout: 200ms
