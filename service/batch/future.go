@@ -24,6 +24,7 @@ import (
 
 // InstanceFuture 创建实例的异步结构体
 type InstanceFuture struct {
+	serviceId     string
 	request       *api.Instance   // api请求对象
 	instance      *model.Instance // 从数据库中读取到的model信息
 	code          uint32          // 记录对外API的错误码

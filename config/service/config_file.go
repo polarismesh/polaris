@@ -146,7 +146,7 @@ func (cs *Impl) GetConfigFileBaseInfo(ctx context.Context, namespace, group, nam
 
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
-	file, err := cs.storage.GetConfigFile(nil, namespace, group, name)
+	file, err := cs.storage.GetConfigFile(cs.getTx(ctx), namespace, group, name)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] get config file error.",
 			zap.String("request-id", requestID),

@@ -1,6 +1,3 @@
-//go:build integrationconfig
-// +build integrationconfig
-
 /*
  * Tencent is pleased to support the open source community by making Polaris available.
  *
@@ -21,34 +18,117 @@
 package config_center_test
 
 import (
+	"database/sql"
+	"errors"
+
+	"github.com/boltdb/bolt"
 	"github.com/google/uuid"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris-server/store/boltdb"
+	"github.com/polarismesh/polaris-server/store/sqldb"
 )
 
 func clearTestData() error {
-	_, err := db.Exec("delete from config_file_group where namespace = ? ", testNamespace)
+	configService.Cache().Clear()
+
+	s, err := store.GetStore()
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec("delete from config_file where namespace = ? ", testNamespace)
+
+	if s.Name() == sqldb.STORENAME {
+		if err := clearTestDataWhenUseRDS(); err != nil {
+			return err
+		}
+	} else if s.Name() == boltdb.STORENAME {
+		if err := clearTestDataWhenUseBoltdb(); err != nil {
+			return err
+		}
+	} else {
+		return errors.New("store impl unexpect")
+	}
+
+	return nil
+}
+
+func clearTestDataWhenUseBoltdb() error {
+	s, err := store.GetStore()
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec("delete from config_file_release where namespace = ? ", testNamespace)
+
+	proxyTx, err := s.StartTx()
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec("delete from config_file_release_history where namespace = ? ", testNamespace)
+
+	tx := proxyTx.GetDelegateTx().(*bolt.Tx)
+
+	bucketName := []string{
+		"ConfigFileGroup",
+		"ConfigFileGroupID",
+		"ConfigFile",
+		"ConfigFileID",
+		"ConfigFileReleaseHistory",
+		"ConfigFileReleaseHistoryID",
+		"ConfigFileRelease",
+		"ConfigFileReleaseID",
+		"ConfigFileTag",
+		"ConfigFileTagID",
+		"namespace",
+	}
+
+	defer tx.Rollback()
+
+	for i := range bucketName {
+		if err := tx.DeleteBucket([]byte(bucketName[i])); err != nil {
+			if !errors.Is(err, bolt.ErrBucketNotFound) {
+				return err
+			}
+		}
+	}
+
+	return tx.Commit()
+}
+
+func clearTestDataWhenUseRDS() error {
+
+	s, err := store.GetStore()
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec("delete from config_file_tag where namespace = ? ", testNamespace)
+
+	proxyTx, err := s.StartTx()
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec("delete from namespace where name = ? ", testNamespace)
+
+	tx := proxyTx.GetDelegateTx().(*sql.Tx)
+
+	_, err = tx.Exec("delete from config_file_group where namespace = ? ", testNamespace)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec("delete from config_file where namespace = ? ", testNamespace)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec("delete from config_file_release where namespace = ? ", testNamespace)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec("delete from config_file_release_history where namespace = ? ", testNamespace)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec("delete from config_file_tag where namespace = ? ", testNamespace)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec("delete from namespace where name = ? ", testNamespace)
 	if err != nil {
 		return err
 	}

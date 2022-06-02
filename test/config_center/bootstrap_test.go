@@ -1,6 +1,3 @@
-//go:build integrationconfig
-// +build integrationconfig
-
 /*
  * Tencent is pleased to support the open source community by making Polaris available.
  *
@@ -22,7 +19,6 @@ package config_center_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"os"
 	"sync"
@@ -37,7 +33,7 @@ import (
 	"github.com/polarismesh/polaris-server/store"
 
 	_ "github.com/go-sql-driver/mysql"
-
+	_ "github.com/polarismesh/polaris-server/store/boltdb"
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
 )
 
@@ -45,12 +41,14 @@ var (
 	cfg           = new(config.Config)
 	once          = new(sync.Once)
 	configService = new(config_center.Server)
-	db            = new(sql.DB)
 	cancelFlag    = false
 	defaultCtx    = context.Background()
 )
 
 func init() {
+	if err := os.RemoveAll("./config_center_test.bolt"); err != nil {
+		panic(err)
+	}
 	if err := doInitialize(); err != nil {
 		fmt.Printf("bootstrap config test module error. %s", err.Error())
 		panic(err)
@@ -73,15 +71,16 @@ func doInitialize() error {
 		// 初始化defaultCtx
 		defaultCtx = context.WithValue(defaultCtx, utils.StringContext("request-id"), "config-test-request-id")
 
+		// 初始化日志打印
+		err = log.Configure(cfg.Bootstrap.Logger)
+		if err != nil {
+			fmt.Printf("[ERROR] configure logger fail: %v\n", err)
+			return
+		}
+
 		// 初始化存储层
 		store.SetStoreConfig(&cfg.Store)
 		_, _ = store.GetStore()
-
-		// 初始化 DB 对象
-		db, err = initDB()
-		if err != nil {
-			return
-		}
 
 		plugin.SetPluginConfig(&cfg.Plugin)
 
@@ -120,21 +119,4 @@ func loadBootstrapConfig() error {
 	}
 
 	return err
-}
-
-func initDB() (*sql.DB, error) {
-	masterEntry := cfg.Store.Option["master"]
-	masterConfig, ok := masterEntry.(map[interface{}]interface{})
-	if !ok {
-		panic("database cfg is invalid")
-	}
-
-	dbType := masterConfig["dbType"].(string)
-	dbUser := masterConfig["dbUser"].(string)
-	dbPwd := masterConfig["dbPwd"].(string)
-	dbAddr := masterConfig["dbAddr"].(string)
-	dbName := masterConfig["dbName"].(string)
-
-	dbSource := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPwd, dbAddr, dbName)
-	return sql.Open(dbType, dbSource)
 }

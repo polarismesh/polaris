@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	"github.com/polarismesh/polaris-server/apiserver"
@@ -51,9 +52,11 @@ func (g *GRPCServer) GetProtocol() string {
 
 // Initialize 初始化GRPC API服务器
 func (g *GRPCServer) Initialize(ctx context.Context, option map[string]interface{},
-	api map[string]apiserver.APIConfig) error {
-	g.openAPI = api
-	return g.BaseGrpcServer.Initialize(ctx, option, g.GetProtocol())
+	apiConf map[string]apiserver.APIConfig) error {
+
+	g.openAPI = apiConf
+
+	return g.BaseGrpcServer.Initialize(ctx, option, g.buildInitOptions(option)...)
 }
 
 // Run 启动GRPC API服务器
@@ -71,7 +74,7 @@ func (g *GRPCServer) Run(errCh chan error) {
 					g.BaseGrpcServer.OpenMethod = openMethod
 				}
 			default:
-				log.Errorf("api %s does not exist in grpcserver", name)
+				log.Errorf("[Grpc][Discover] api %s does not exist in grpcserver", name)
 				return fmt.Errorf("api %s does not exist in grpcserver", name)
 			}
 		}
@@ -116,4 +119,52 @@ func (g *GRPCServer) enterRateLimit(ip string, method string) uint32 {
 // allowAccess 限制访问
 func (g *GRPCServer) allowAccess(method string) bool {
 	return g.BaseGrpcServer.AllowAccess(method)
+}
+
+func (g *GRPCServer) buildInitOptions(option map[string]interface{}) []grpcserver.InitOption {
+	cacheTypes := []string{
+		api.DiscoverResponse_INSTANCE.String(),
+		api.DiscoverResponse_CLUSTER.String(),
+		api.DiscoverResponse_ROUTING.String(),
+		api.DiscoverResponse_RATE_LIMIT.String(),
+		api.DiscoverResponse_CIRCUIT_BREAKER.String(),
+		api.DiscoverResponse_SERVICES.String(),
+	}
+
+	initOptions := []grpcserver.InitOption{
+		grpcserver.WithProtocol(g.GetProtocol()),
+		grpcserver.WithMessageToCacheObject(discoverCacheConvert),
+	}
+
+	cache, err := grpcserver.NewCache(option, cacheTypes)
+	if err != nil {
+		log.Warn("[Grpc][Discover] new protobuf cache", zap.Error(err))
+	}
+
+	if cache != nil {
+		initOptions = append(initOptions, grpcserver.WithProtobufCache(cache))
+	}
+
+	return initOptions
+}
+
+func discoverCacheConvert(m interface{}) *grpcserver.CacheObject {
+	resp, ok := m.(*api.DiscoverResponse)
+
+	if !ok {
+		return nil
+	}
+
+	if resp.Code.GetValue() != api.ExecuteSuccess {
+		return nil
+	}
+
+	keyProto := fmt.Sprintf("%s-%s-%s", resp.Service.Namespace.GetValue(),
+		resp.Service.Name.GetValue(), resp.Service.Revision.GetValue())
+
+	return &grpcserver.CacheObject{
+		OriginVal: resp,
+		CacheType: resp.Type.String(),
+		Key:       keyProto,
+	}
 }

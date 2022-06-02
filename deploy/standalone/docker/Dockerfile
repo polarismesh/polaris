@@ -1,7 +1,6 @@
-FROM polarismesh/polaris-server:polaris-server-tag
+ARG VERSION=v1.0.0
 
-LABEL MAINTAINER = huyuanxin
-LABEL EMAIL = huyuanxin1999@outlook.com
+FROM polarismesh/polaris-server:${VERSION}
 
 COPY ../../../polaris-server.yaml /root/
 

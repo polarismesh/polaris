@@ -107,7 +107,7 @@ type StrategyStore interface {
 	GetDefaultStrategyDetailByPrincipal(principalId string, principalType model.PrincipalType) (*model.StrategyDetail, error)
 
 	// GetStrategyDetail Get strategy details
-	GetStrategyDetail(id string, isDefault bool) (*model.StrategyDetail, error)
+	GetStrategyDetail(id string) (*model.StrategyDetail, error)
 
 	// GetStrategies Get a list of strategies
 	GetStrategies(filters map[string]string, offset uint32, limit uint32) (uint32,

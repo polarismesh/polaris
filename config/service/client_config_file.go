@@ -90,6 +90,9 @@ func (cs *Impl) GetConfigFileForClient(ctx context.Context, namespace, group, fi
 
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
+	log.ConfigScope().Info("[Config][Service] load config file from cache.",
+		zap.String("requestId", requestID), zap.String("namespace", namespace), zap.String("group", group), zap.String("file", fileName))
+
 	// 从缓存中获取配置内容
 	entry, err := cs.cache.GetOrLoadIfAbsent(namespace, group, fileName)
 

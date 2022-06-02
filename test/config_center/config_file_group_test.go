@@ -1,6 +1,3 @@
-//go:build integrationconfig
-// +build integrationconfig
-
 /*
  * Tencent is pleased to support the open source community by making Polaris available.
  *
@@ -36,7 +33,7 @@ var (
 // TestConfigFileGroupCRUD 测试配置文件组增删改查
 func TestConfigFileGroupCRUD(t *testing.T) {
 	if err := clearTestData(); err != nil {
-		t.FailNow()
+		t.Fatal(err)
 	}
 
 	// 查询不存在的 group

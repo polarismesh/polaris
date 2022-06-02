@@ -75,7 +75,7 @@ func (cs *Impl) PublishConfigFile(ctx context.Context, configFileRelease *api.Co
 			zap.String("fileName", fileName),
 			zap.Error(err))
 
-		cs.recordReleaseFail(transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
+		cs.recordReleaseFail(ctx, transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
 
 		return api.NewConfigFileResponse(api.StoreLayerException, nil)
 	}
@@ -96,7 +96,7 @@ func (cs *Impl) PublishConfigFile(ctx context.Context, configFileRelease *api.Co
 			zap.String("fileName", fileName),
 			zap.Error(err))
 
-		cs.recordReleaseFail(transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
+		cs.recordReleaseFail(ctx, transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
 
 		return api.NewConfigFileResponse(api.StoreLayerException, nil)
 	}
@@ -135,7 +135,7 @@ func (cs *Impl) PublishConfigFile(ctx context.Context, configFileRelease *api.Co
 				zap.String("fileName", fileName),
 				zap.Error(err))
 
-			cs.recordReleaseFail(transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
+			cs.recordReleaseFail(ctx, transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
 
 			return api.NewConfigFileResponse(api.StoreLayerException, nil)
 		}
@@ -168,7 +168,7 @@ func (cs *Impl) PublishConfigFile(ctx context.Context, configFileRelease *api.Co
 			zap.String("fileName", fileName),
 			zap.Error(err))
 
-		cs.recordReleaseFail(transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
+		cs.recordReleaseFail(ctx, transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
 
 		return api.NewConfigFileResponse(api.StoreLayerException, nil)
 	}
@@ -266,7 +266,7 @@ func (cs *Impl) DeleteConfigFileRelease(ctx context.Context, namespace, group, f
 			zap.String("fileName", fileName),
 			zap.Error(err))
 
-		cs.RecordConfigFileReleaseHistory(nil, &model.ConfigFileRelease{
+		cs.RecordConfigFileReleaseHistory(ctx, &model.ConfigFileRelease{
 			Name:      releaseName,
 			Namespace: namespace,
 			Group:     group,
@@ -288,8 +288,8 @@ func (cs *Impl) DeleteConfigFileRelease(ctx context.Context, namespace, group, f
 	return api.NewConfigFileReleaseResponse(api.ExecuteSuccess, nil)
 }
 
-func (cs *Impl) recordReleaseFail(configFileRelease *model.ConfigFileRelease) {
-	cs.RecordConfigFileReleaseHistory(nil, configFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusFail)
+func (cs *Impl) recordReleaseFail(ctx context.Context, configFileRelease *model.ConfigFileRelease) {
+	cs.RecordConfigFileReleaseHistory(ctx, configFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusFail)
 }
 
 func transferConfigFileReleaseAPIModel2StoreModel(release *api.ConfigFileRelease) *model.ConfigFileRelease {

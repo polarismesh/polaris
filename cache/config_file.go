@@ -127,6 +127,11 @@ func (fc *FileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 
 	// 数据库中没有该对象, 为了避免对象不存在时，一直击穿数据库，所以缓存空对象
 	if file == nil {
+		log.ConfigScope().Warn("[Config][Cache] load config file release not found.",
+			zap.String("namespace", namespace),
+			zap.String("group", group),
+			zap.String("fileName", fileName),
+			zap.Error(err))
 		emptyEntry := &Entry{
 			ExpireTime: fc.getExpireTime(),
 			Empty:      true,

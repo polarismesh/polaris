@@ -22,7 +22,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16.5
+          go-version: 1.17.1
       # Checkout latest code
       - name: Checkout repo
         uses: actions/checkout@v2
@@ -55,7 +55,7 @@ jobs:
           popd
           
       # Run interface tests
-      - name: run interface tests
+      - name: run discover interface tests
         run: |
           work_dir=$(ls | grep polaris-server-release | sed -n '1p')
           echo "work_dir is $work_dir"
@@ -78,10 +78,9 @@ jobs:
           ./tool/stop.sh
           cd ..
 
+      - name: run config-center interface tests
+        run: |
           # 进行配置中心的集成测试
-
-
-          # 针对服务发现进行集成测试
-
-
-          # 针对开启鉴权的集成测试
+          pushd ./test/config_center
+          go test -count=1 -v
+          popd

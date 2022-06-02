@@ -111,7 +111,7 @@ func Test_strategyStore_UpdateStrategy(t *testing.T) {
 		err = ss.UpdateStrategy(req)
 		assert.Nil(t, err, "update strategy must success")
 
-		v, err := ss.GetStrategyDetail(rules[0].ID, rules[0].Default)
+		v, err := ss.GetStrategyDetail(rules[0].ID)
 		assert.Nil(t, err, "update strategy must success")
 		assert.Equal(t, req.Comment, v.Comment, "comment")
 		assert.ElementsMatch(t, append(rules[0].Principals, addPrincipals...), v.Principals, "principals")
@@ -129,7 +129,7 @@ func Test_strategyStore_DeleteStrategy(t *testing.T) {
 		err = ss.DeleteStrategy(rules[0].ID)
 		assert.Nil(t, err, "delete strategy must success")
 
-		ret, err := ss.GetStrategyDetail(rules[0].ID, false)
+		ret, err := ss.GetStrategyDetail(rules[0].ID)
 		assert.Nil(t, err, "get strategy must success")
 		assert.Nil(t, ret, "get strategy ret must nil")
 	})
@@ -151,7 +151,7 @@ func Test_strategyStore_RemoveStrategyResources(t *testing.T) {
 			},
 		})
 		assert.Nil(t, err, "RemoveStrategyResources must success")
-		ret, err := ss.GetStrategyDetail(rules[0].ID, false)
+		ret, err := ss.GetStrategyDetail(rules[0].ID)
 		assert.Nil(t, err, "get strategy must success")
 
 		for i := range ret.Resources {
@@ -182,7 +182,7 @@ func Test_strategyStore_LooseAddStrategyResources(t *testing.T) {
 			},
 		})
 		assert.Nil(t, err, "RemoveStrategyResources must success")
-		ret, err := ss.GetStrategyDetail(rules[0].ID, false)
+		ret, err := ss.GetStrategyDetail(rules[0].ID)
 		assert.Nil(t, err, "get strategy must success")
 
 		ans := make([]model.StrategyResource, 0)
@@ -211,7 +211,7 @@ func Test_strategyStore_GetStrategyDetail(t *testing.T) {
 		err := ss.AddStrategy(rules[0])
 		assert.Nil(t, err, "add strategy must success")
 
-		v, err := ss.GetStrategyDetail(rules[0].ID, rules[0].Default)
+		v, err := ss.GetStrategyDetail(rules[0].ID)
 		assert.Nil(t, err, "get strategy-detail must success")
 
 		rules[0].ModifyTime = rules[0].CreateTime

@@ -367,22 +367,16 @@ func (nc *NamingCache) CircuitBreaker() CircuitBreakerCache {
 }
 
 // User Get user information cache information
-//  @receiver nc
-//  @return UserCache
 func (nc *NamingCache) User() UserCache {
 	return nc.caches[CacheUser].(UserCache)
 }
 
 // AuthStrategy Get authentication cache information
-//  @receiver nc
-//  @return StrategyCache
 func (nc *NamingCache) AuthStrategy() StrategyCache {
 	return nc.caches[CacheAuthStrategy].(StrategyCache)
 }
 
 // Namespace Get namespace cache information
-//  @receiver nc
-//  @return NamespaceCache
 func (nc *NamingCache) Namespace() NamespaceCache {
 	return nc.caches[CacheNamespace].(NamespaceCache)
 }
@@ -393,8 +387,6 @@ func (nc *NamingCache) GetStore() store.Store {
 }
 
 // Client Get client cache information
-//  @receiver nc
-//  @return ClientCache
 func (nc *NamingCache) Client() ClientCache {
 	return nc.caches[CacheClient].(ClientCache)
 }

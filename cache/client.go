@@ -65,6 +65,7 @@ type clientCache struct {
 	firstUpdate     bool
 	ids             *sync.Map // instanceid -> instance
 	singleFlight    *singleflight.Group
+	lastUpdateTime  time.Time
 }
 
 // name 获取资源名称
@@ -90,12 +91,20 @@ func (cc *clientCache) initialize(opt map[string]interface{}) error {
 	cc.singleFlight = new(singleflight.Group)
 	cc.ids = new(sync.Map)
 	cc.lastMtime = 0
+	cc.lastUpdateTime = time.Unix(0, 0)
 	cc.firstUpdate = true
 	return nil
 }
 
 // update 更新缓存函数
 func (cc *clientCache) update() error {
+	// 一分钟update一次
+	timeDiff := time.Now().Sub(cc.lastUpdateTime).Minutes()
+	if !cc.firstUpdate && 1 > timeDiff {
+		log.CacheScope().Debug("[Cache][Client] update get storage ignore", zap.Float64("time-diff", timeDiff))
+		return nil
+	}
+
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := cc.singleFlight.Do(InstanceName, func() (interface{}, error) {
 		defer func() {
@@ -124,6 +133,9 @@ func (cc *clientCache) realUpdate() error {
 			zap.Int("update", update), zap.Int("delete", del),
 			zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
 	}
+
+	cc.lastUpdateTime = time.Now()
+
 	return nil
 }
 

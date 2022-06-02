@@ -79,7 +79,7 @@ func (h *PrometheusServer) Initialize(_ context.Context, option map[string]inter
 
 // Run 启动HTTP API服务器
 func (h *PrometheusServer) Run(errCh chan error) {
-	log.Infof("start PrometheusServer")
+	log.Infof("[API-Server][Prometheus] start server")
 	h.exitCh = make(chan struct{}, 1)
 	h.start = true
 	defer func() {
@@ -110,7 +110,7 @@ func (h *PrometheusServer) Run(errCh chan error) {
 	var ln net.Listener
 	ln, err = net.Listen("tcp", address)
 	if err != nil {
-		log.Errorf("net listen(%s) err: %s", address, err.Error())
+		log.Errorf("[API-Server][Prometheus] net listen(%s) err: %s", address, err.Error())
 		errCh <- err
 		return
 	}
@@ -118,7 +118,7 @@ func (h *PrometheusServer) Run(errCh chan error) {
 	ln = &tcpKeepAliveListener{ln.(*net.TCPListener)}
 	// 开启最大连接数限制
 	if h.connLimitConfig != nil && h.connLimitConfig.OpenConnLimit {
-		log.Infof("prometheus server use max connection limit per ip: %d, http max limit: %d",
+		log.Infof("[API-Server][Prometheus] server use max connection limit per ip: %d, http max limit: %d",
 			h.connLimitConfig.MaxConnPerHost, h.connLimitConfig.MaxConnLimit)
 		ln, err = connlimit.NewListener(ln, h.GetProtocol(), h.connLimitConfig)
 		if err != nil {
@@ -134,14 +134,14 @@ func (h *PrometheusServer) Run(errCh chan error) {
 	if err != nil {
 		log.Errorf("%+v", err)
 		if !h.restart {
-			log.Infof("not in restart progress, broadcast error")
+			log.Info("[API-Server][Prometheus] not in restart progress", zap.Error(err))
 			errCh <- err
 		}
 
 		return
 	}
 
-	log.Infof("PrometheusServer stop")
+	log.Infof("[API-Server][Prometheus] server stop")
 }
 
 // Stop shutdown server
@@ -157,7 +157,7 @@ func (h *PrometheusServer) Stop() {
 // Restart restart server
 func (h *PrometheusServer) Restart(option map[string]interface{}, api map[string]apiserver.APIConfig,
 	errCh chan error) error {
-	log.Infof("restart PrometheusServer new config: %+v", option)
+	log.Infof("[API-Server][Prometheus] restart server new config: %+v", option)
 	// 备份一下option
 	backupOption := h.option
 	// 备份一下api
@@ -172,22 +172,22 @@ func (h *PrometheusServer) Restart(option map[string]interface{}, api map[string
 		<-h.exitCh
 	}
 
-	log.Infof("old PrometheusServer has stopped, begin restart PrometheusServer")
+	log.Info("[API-Server][Prometheus] old server has stopped, begin restart")
 
 	ctx := context.Background()
 	if err := h.Initialize(ctx, option, api); err != nil {
 		h.restart = false
 		if initErr := h.Initialize(ctx, backupOption, backupAPI); initErr != nil {
-			log.Errorf("start PrometheusServer with backup cfg err: %s", initErr.Error())
+			log.Errorf("[API-Server][Prometheus] tart with backup cfg err: %s", initErr.Error())
 			return initErr
 		}
 		go h.Run(errCh)
 
-		log.Errorf("restart PrometheusServer initialize err: %s", err.Error())
+		log.Errorf("[API-Server][Prometheus] restart initialize err: %s", err.Error())
 		return err
 	}
 
-	log.Infof("init PrometheusServer successfully, restart it")
+	log.Infof("[API-Server][Prometheus] init successfully, restart it")
 	h.restart = false
 	go h.Run(errCh)
 	return nil
@@ -255,7 +255,7 @@ func (h *PrometheusServer) postProcess(req *restful.Request, rsp *restful.Respon
 	diff := now.Sub(startTime)
 	// 打印耗时超过1s的请求
 	if diff > time.Second {
-		log.Info("handling time > 1s",
+		log.Info("[API-Server][Prometheus] handling time > 1s",
 			zap.String("client-address", req.Request.RemoteAddr),
 			zap.String("user-agent", req.HeaderParameter("User-Agent")),
 			zap.String("request-id", req.HeaderParameter("Request-Id")),

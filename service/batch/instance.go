@@ -34,16 +34,26 @@ import (
 
 // InstanceCtrl 批量操作实例的类
 type InstanceCtrl struct {
-	config          *CtrlConfig
-	storage         store.Store
-	cacheMgn        *cache.NamingCache
-	storeThreadCh   []chan []*InstanceFuture      // store协程，负责写操作
-	instanceHandler func([]*InstanceFuture) error // store协程里面调用的instance处理函数，可以是注册和反注册
-	idleStoreThread chan int                      // 空闲的store协程，记录每一个空闲id
+	config   *CtrlConfig
+	storage  store.Store
+	cacheMgn *cache.NamingCache
+
+	// store协程，负责写操作
+	storeThreadCh []chan []*InstanceFuture
+
+	// store协程里面调用的instance处理函数，可以是注册和反注册
+	instanceHandler func([]*InstanceFuture) error
+
+	// 空闲的store协程，记录每一个空闲id
+	idleStoreThread chan int
 	waitDuration    time.Duration
-	queue           chan *InstanceFuture // 请求接受协程
-	label           string
-	hbOpen          bool // 是否开启了心跳上报功能
+
+	// 请求接受协程
+	queue chan *InstanceFuture
+	label string
+
+	// 是否开启了心跳上报功能
+	hbOpen bool
 }
 
 // NewBatchRegisterCtrl 注册实例批量操作对象
@@ -56,7 +66,7 @@ func NewBatchRegisterCtrl(storage store.Store, cacheMgn *cache.NamingCache, conf
 		return nil, nil
 	}
 
-	log.Infof("[Batch] open batch register")
+	log.Info("[Batch] open batch register")
 	register.label = "register"
 	register.instanceHandler = register.registerHandler
 	return register, nil
@@ -73,7 +83,7 @@ func NewBatchDeregisterCtrl(storage store.Store, cacheMgn *cache.NamingCache, co
 		return nil, nil
 	}
 
-	log.Infof("[Batch] open batch deregister")
+	log.Info("[Batch] open batch deregister")
 	deregister.label = "deregister"
 	deregister.instanceHandler = deregister.deregisterHandler
 
@@ -91,7 +101,7 @@ func NewBatchHeartbeatCtrl(storage store.Store, cacheMgn *cache.NamingCache, con
 		return nil, nil
 	}
 
-	log.Infof("[Batch] open batch heartbeat")
+	log.Info("[Batch] open batch heartbeat")
 	heartbeat.label = "heartbeat"
 	heartbeat.instanceHandler = heartbeat.heartbeatHandler
 
@@ -239,23 +249,9 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 		return nil
 	}
 
-	// 统一鉴权
-	remains, serviceIDs, _ := ctrl.batchVerifyInstances(remains)
-	if len(remains) == 0 {
-		log.Infof("[Batch] all instances verify failed, no remain any instances")
-		return nil
-	}
-
 	// 构造model数据
-	for id, entry := range remains {
-		serviceID, ok := serviceIDs[entry.request.GetId().GetValue()]
-		if !ok || serviceID == "" {
-			log.Errorf("[Batch] not found instance(%s) service, ignore it", entry.request.GetId().GetValue())
-			delete(remains, id)
-			entry.Reply(api.NotFoundResource, errors.New("not found service"))
-			continue
-		}
-		entry.SetInstance(utils.CreateInstanceModel(serviceID, entry.request))
+	for _, entry := range remains {
+		entry.SetInstance(utils.CreateInstanceModel(entry.serviceId, entry.request))
 	}
 
 	// 调用batch接口，创建实例
@@ -416,25 +412,10 @@ func (ctrl *InstanceCtrl) batchVerifyInstances(futures map[string]*InstanceFutur
 		return nil, nil, nil
 	}
 
-	serviceIDs := make(map[string]string)       // 实例ID -> ServiceID
-	services := make(map[string]*model.Service) // 保存Service的鉴权结果
-	for id, entry := range futures {
-		serviceStr := entry.request.GetService().GetValue() + entry.request.GetNamespace().GetValue()
-		service, ok := services[serviceStr]
-		if !ok {
-			tmpService, ok := ctrl.loadService(entry, entry.request.Service.GetValue(), entry.request.Namespace.GetValue())
-			if !ok {
-				delete(futures, id)
-				continue
-			}
-
-			// 保存查询到的最新服务信息，后续可能会使用到
-			service = tmpService
-			services[serviceStr] = service
-		}
-
-		// 保存每个instance注册到的服务ID
-		serviceIDs[entry.request.GetId().GetValue()] = service.ID
+	serviceIDs := make(map[string]string) // 实例ID -> ServiceID
+	// services := make(map[string]*model.Service) // 保存Service的鉴权结果
+	for _, entry := range futures {
+		serviceIDs[entry.request.GetId().GetValue()] = entry.serviceId
 	}
 
 	return futures, serviceIDs, nil
