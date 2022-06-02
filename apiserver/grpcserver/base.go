@@ -152,8 +152,6 @@ func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer InitS
 	log.Infof("[API-Server] %s server stop", protocol)
 }
 
-type HandleGrpcStreamResponse func(stream grpc.ServerStream, m interface{}) interface{}
-
 var notPrintableMethods = map[string]bool{
 	"/v1.PolarisGRPC/Heartbeat": true,
 }
