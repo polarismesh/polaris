@@ -92,7 +92,7 @@ func NewCache(options map[string]interface{}, cacheType []string) (Cache, error)
 	for i := range cacheType {
 		cache, err := lru.NewARC(size)
 		if err != nil {
-			return nil, fmt.Errorf("init protobuf=[%d] cache fail : %+v", cacheType[i], err)
+			return nil, fmt.Errorf("init protobuf=[%s] cache fail : %+v", cacheType[i], err)
 		}
 		cahceRegistry[cacheType[i]] = cache
 	}
