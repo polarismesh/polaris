@@ -239,7 +239,8 @@ data:
     #      kvAddr: ##REDIS_ADDR##
     #      kvUser: ##REDIS_USER#
     #      kvPasswd: ##REDIS_PWD##
-    #      maxIdle: 200
+    #      poolSize: 200
+    #      minIdleConns: 30
     #      idleTimeout: 120s
     #      connectTimeout: 200ms
     #      msgTimeout: 200ms
