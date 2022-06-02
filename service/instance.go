@@ -168,12 +168,6 @@ func (s *Server) serialCreateInstance(ctx context.Context, svcId string, req *ap
 	rid := ParseRequestID(ctx)
 	pid := ParsePlatformID(ctx)
 
-	// 鉴权，这里拿的源服务的，如果是别名，service=nil
-	// service := s.Cache().Service().GetServiceByName(req.GetService().GetValue(), req.GetNamespace().GetValue())
-	// if service == nil {
-	// 	return nil, api.NewInstanceResponse(api.NotFoundResource, req)
-	// }
-
 	instance, err := s.storage.GetInstance(ins.GetId().GetValue())
 	if err != nil {
 		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))

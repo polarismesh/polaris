@@ -20,7 +20,6 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"strings"
@@ -84,7 +83,7 @@ func (b *BaseGrpcServer) Initialize(ctx context.Context, conf map[string]interfa
 		b.connLimitConfig = connConfig
 	}
 	if ratelimit := plugin.GetRatelimit(); ratelimit != nil {
-		log.Infof("%s server open the ratelimit", b.protocol)
+		log.Infof("[API-Server] %s server open the ratelimit", b.protocol)
 		b.ratelimit = ratelimit
 	}
 
@@ -101,7 +100,7 @@ func (b *BaseGrpcServer) Stop(protocol string) {
 
 // Run server main loop
 func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer InitServer) {
-	log.Infof("start %s server", protocol)
+	log.Infof("[API-Server] start %s server", protocol)
 	b.exitCh = make(chan struct{})
 	b.start = true
 	defer func() {
@@ -112,7 +111,7 @@ func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer InitS
 	address := fmt.Sprintf("%v:%v", b.listenIP, b.listenPort)
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
-		log.Errorf("%v", err)
+		log.Error("[API-Server][GRPC] %v", zap.Error(err))
 		errCh <- err
 		return
 	}
@@ -120,11 +119,11 @@ func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer InitS
 
 	// 如果设置最大连接数
 	if b.connLimitConfig != nil && b.connLimitConfig.OpenConnLimit {
-		log.Infof("grpc server use max connection limit: %d, grpc max limit: %d",
+		log.Infof("[API-Server][GRPC] grpc server use max connection limit: %d, grpc max limit: %d",
 			b.connLimitConfig.MaxConnPerHost, b.connLimitConfig.MaxConnLimit)
 		listener, err = connlimit.NewListener(listener, protocol, b.connLimitConfig)
 		if err != nil {
-			log.Errorf("conn limit init err: %s", err.Error())
+			log.Error("[API-Server][GRPC] conn limit init", zap.Error(err))
 			errCh <- err
 			return
 		}
@@ -145,112 +144,15 @@ func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer InitS
 	b.statis = plugin.GetStatis()
 
 	if err := server.Serve(listener); err != nil {
-		log.Errorf("%v", err)
+		log.Errorf("[API-Server][GRPC] %v", err)
 		errCh <- err
 		return
 	}
 
-	log.Infof("%s server stop", protocol)
+	log.Infof("[API-Server] %s server stop", protocol)
 }
 
 type HandleGrpcStreamResponse func(stream grpc.ServerStream, m interface{}) interface{}
-
-// VirtualStream 虚拟Stream 继承ServerStream
-type VirtualStream struct {
-	Method        string
-	ClientAddress string
-	ClientIP      string
-	UserAgent     string
-	RequestID     string
-
-	grpc.ServerStream
-
-	Code int
-
-	handle      HandleGrpcStreamResponse
-	preprocess  PreProcessFunc
-	postprocess PostProcessFunc
-
-	StartTime time.Time
-}
-
-// RecvMsg VirtualStream接收消息函数
-func (v *VirtualStream) RecvMsg(m interface{}) error {
-	err := v.ServerStream.RecvMsg(m)
-	if err == io.EOF {
-		return err
-	}
-
-	if err == nil {
-		err = v.preprocess(v, false)
-	} else {
-		v.Code = -1
-	}
-
-	return err
-}
-
-// SendMsg VirtualStream发送消息函数
-func (v *VirtualStream) SendMsg(m interface{}) error {
-	v.postprocess(v, m)
-
-	m = v.handle(v.ServerStream, m)
-
-	err := v.ServerStream.SendMsg(m)
-	if err != nil {
-		v.Code = -2
-	}
-
-	return err
-}
-
-func (v *VirtualStream) handleResponse(m interface{}) interface{} {
-	return m
-}
-
-func newVirtualStream(ctx context.Context, method string, stream grpc.ServerStream,
-	preprocess PreProcessFunc, postprocess PostProcessFunc, handle HandleGrpcStreamResponse) *VirtualStream {
-	var clientAddress string
-	var clientIP string
-	var userAgent string
-	var requestID string
-
-	peerAddress, exist := peer.FromContext(ctx)
-	if exist {
-		clientAddress = peerAddress.Addr.String()
-		// 解析获取clientIP
-		items := strings.Split(clientAddress, ":")
-		if len(items) == 2 {
-			clientIP = items[0]
-		}
-	}
-
-	meta, exist := metadata.FromIncomingContext(ctx)
-	if exist {
-		agents := meta["user-agent"]
-		if len(agents) > 0 {
-			userAgent = agents[0]
-		}
-
-		ids := meta["request-id"]
-		if len(ids) > 0 {
-			requestID = ids[0]
-		}
-	}
-
-	return &VirtualStream{
-		Method:        method,
-		ClientAddress: clientAddress,
-		ClientIP:      clientIP,
-		UserAgent:     userAgent,
-		RequestID:     requestID,
-		ServerStream:  stream,
-		handle:        handle,
-		Code:          0,
-		preprocess:    preprocess,
-		postprocess:   postprocess,
-	}
-}
 
 var notPrintableMethods = map[string]bool{
 	"/v1.PolarisGRPC/Heartbeat": true,
@@ -259,7 +161,12 @@ var notPrintableMethods = map[string]bool{
 func (b *BaseGrpcServer) unaryInterceptor(ctx context.Context, req interface{},
 	info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (rsp interface{}, err error) {
 
-	stream := newVirtualStream(ctx, info.FullMethod, nil, b.preprocess, b.postprocess, nil)
+	stream := newVirtualStream(ctx,
+		WithVirtualStreamBaseServer(b),
+		WithVirtualStreamMethod(info.FullMethod),
+		WithVirtualStreamPreProcessFunc(b.preprocess),
+		WithVirtualStreamPostProcessFunc(b.postprocess),
+	)
 
 	func() {
 		_, ok := notPrintableMethods[info.FullMethod]
@@ -290,15 +197,22 @@ func (b *BaseGrpcServer) unaryInterceptor(ctx context.Context, req interface{},
 func (b *BaseGrpcServer) streamInterceptor(srv interface{}, ss grpc.ServerStream,
 	info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
 
-	stream := newVirtualStream(ss.Context(), info.FullMethod, ss, b.preprocess, b.postprocess, b.handleStreamResponse)
+	stream := newVirtualStream(ss.Context(),
+		WithVirtualStreamBaseServer(b),
+		WithVirtualStreamServerStream(ss),
+		WithVirtualStreamMethod(info.FullMethod),
+		WithVirtualStreamPreProcessFunc(b.preprocess),
+		WithVirtualStreamPostProcessFunc(b.postprocess),
+	)
 
 	err = handler(srv, stream)
 	if err != nil { // 存在非EOF读错误或者写错误
-		log.Error(err.Error(),
+		log.Error("[API-Server][GRPC] handler stream",
 			zap.String("client-address", stream.ClientAddress),
 			zap.String("user-agent", stream.UserAgent),
 			zap.String("request-id", stream.RequestID),
 			zap.String("method", stream.Method),
+			zap.Error(err),
 		)
 
 		_ = b.statis.AddAPICall(stream.Method, "gRPC", stream.Code, 0)
@@ -316,7 +230,7 @@ func (b *BaseGrpcServer) preprocess(stream *VirtualStream, isPrint bool) error {
 
 	if isPrint {
 		// 打印请求
-		log.Info("receive request",
+		log.Info("[API-Server][GRPC] receive request",
 			zap.String("client-address", stream.ClientAddress),
 			zap.String("user-agent", stream.UserAgent),
 			zap.String("request-id", stream.RequestID),
@@ -339,11 +253,12 @@ func (b *BaseGrpcServer) postprocess(stream *VirtualStream, m interface{}) {
 
 		// 打印回复
 		if code != http.StatusOK {
-			log.Error(response.String(),
+			log.Error("[API-Server][GRPC] send response",
 				zap.String("client-address", stream.ClientAddress),
 				zap.String("user-agent", stream.UserAgent),
 				zap.String("request-id", stream.RequestID),
 				zap.String("method", stream.Method),
+				zap.String("response", response.String()),
 			)
 		}
 		if polarisCode > 0 {
@@ -353,11 +268,12 @@ func (b *BaseGrpcServer) postprocess(stream *VirtualStream, m interface{}) {
 		code = stream.Code
 		// 打印回复
 		if code != int(codes.OK) {
-			log.Error(response.String(),
+			log.Error("[API-Server][GRPC] send response",
 				zap.String("client-address", stream.ClientAddress),
 				zap.String("user-agent", stream.UserAgent),
 				zap.String("request-id", stream.RequestID),
 				zap.String("method", stream.Method),
+				zap.String("response", response.String()),
 			)
 		}
 	}
@@ -368,7 +284,7 @@ func (b *BaseGrpcServer) postprocess(stream *VirtualStream, m interface{}) {
 
 	// 打印耗时超过1s的请求
 	if diff > time.Second {
-		log.Info("handling time > 1s",
+		log.Info("[API-Server][GRPC] handling time > 1s",
 			zap.String("client-address", stream.ClientAddress),
 			zap.String("user-agent", stream.UserAgent),
 			zap.String("request-id", stream.RequestID),
@@ -382,7 +298,7 @@ func (b *BaseGrpcServer) postprocess(stream *VirtualStream, m interface{}) {
 // Restart restart gRPC server
 func (b *BaseGrpcServer) Restart(
 	initialize func() error, run func(), protocol string, option map[string]interface{}) error {
-	log.Infof("restart %s server with new config: %+v", protocol, option)
+	log.Infof("[API-Server][GRPC] restart %s server with new config: %+v", protocol, option)
 
 	b.restart = true
 	b.Stop(protocol)
@@ -390,13 +306,13 @@ func (b *BaseGrpcServer) Restart(
 		<-b.exitCh
 	}
 
-	log.Infof("old %s server has stopped, begin restarting it", protocol)
+	log.Infof("[API-Server][GRPC] old %s server has stopped, begin restarting it", protocol)
 	if err := initialize(); err != nil {
 		log.Errorf("restart %s server err: %s", protocol, err.Error())
 		return err
 	}
 
-	log.Infof("init %s server successfully, restart it", protocol)
+	log.Infof("[API-Server][GRPC] init %s server successfully, restart it", protocol)
 	b.restart = false
 	go run()
 
@@ -411,13 +327,13 @@ func (b *BaseGrpcServer) EnterRatelimit(ip string, method string) uint32 {
 
 	// ipRatelimit
 	if ok := b.ratelimit.Allow(plugin.IPRatelimit, ip); !ok {
-		log.Error("[grpc] ip ratelimit is not allow", zap.String("client-ip", ip),
+		log.Error("[API-Server][GRPC] ip ratelimit is not allow", zap.String("client-ip", ip),
 			zap.String("method", method))
 		return api.IPRateLimit
 	}
 	// apiRatelimit
 	if ok := b.ratelimit.Allow(plugin.APIRatelimit, method); !ok {
-		log.Error("[grpc] api rate limit is not allow", zap.String("client-ip", ip),
+		log.Error("[API-Server][GRPC] api rate limit is not allow", zap.String("client-ip", ip),
 			zap.String("method", method))
 		return api.APIRateLimit
 	}
@@ -470,31 +386,4 @@ func ConvertContext(ctx context.Context) context.Context {
 	ctx = context.WithValue(ctx, utils.StringContext("client-address"), address)
 	ctx = context.WithValue(ctx, utils.StringContext("user-agent"), userAgent)
 	return ctx
-}
-
-// handleStreamResponse Response that processing GRPC Stream. may affect the data of Response
-func (b *BaseGrpcServer) handleStreamResponse(stream grpc.ServerStream, m interface{}) interface{} {
-	if b.cache == nil {
-		return m
-	}
-
-	cacheVal := b.convert(m)
-	if cacheVal == nil {
-		return m
-	}
-
-	if saveVal := b.cache.Get(cacheVal.CacheType, cacheVal.Key); saveVal != nil {
-		return saveVal.GetPreparedMessage()
-	}
-
-	if err := cacheVal.PrepareMessage(stream); err != nil {
-		return m
-	}
-
-	cacheVal = b.cache.Put(cacheVal)
-	if cacheVal == nil {
-		return m
-	}
-
-	return cacheVal.GetPreparedMessage()
 }
