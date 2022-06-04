@@ -37,20 +37,19 @@ type (
 
 var (
 	// UserLinkGroupAttributes is the user link group attributes
-	UserLinkGroupAttributes = map[string]int{
-		"id":        1,
-		"user_id":   1,
-		"user_name": 1,
-		"group_id":  1,
-		"name":      1,
-		"offset":    1,
-		"limit":     1,
+	UserLinkGroupAttributes = map[string]bool{
+		"id":        true,
+		"user_id":   true,
+		"user_name": true,
+		"group_id":  true,
+		"name":      true,
+		"offset":    true,
+		"limit":     true,
 	}
 )
 
 // CreateGroup create a group
 func (svr *server) CreateGroup(ctx context.Context, req *api.UserGroup) *api.Response {
-
 	var (
 		requestID  = utils.ParseRequestID(ctx)
 		platformID = utils.ParsePlatformID(ctx)
@@ -69,6 +68,7 @@ func (svr *server) CreateGroup(ctx context.Context, req *api.UserGroup) *api.Res
 			utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewGroupResponse(api.StoreLayerException, req)
 	}
+
 	if group != nil {
 		return api.NewGroupResponse(api.UserGroupExisted, req)
 	}
@@ -123,7 +123,6 @@ func (svr *server) UpdateGroup(ctx context.Context, req *api.ModifyUserGroup) *a
 	}
 
 	modifyReq, needUpdate := updateGroupAttribute(ctx, data.UserGroup, req)
-
 	if !needUpdate {
 		log.AuthScope().Info("update group data no change, no need update",
 			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.String("group", req.String()))
@@ -145,10 +144,8 @@ func (svr *server) UpdateGroup(ctx context.Context, req *api.ModifyUserGroup) *a
 // DeleteGroups 批量删除用户组
 func (svr *server) DeleteGroups(ctx context.Context, reqs []*api.UserGroup) *api.BatchWriteResponse {
 	resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
-
 	for index := range reqs {
 		ret := svr.DeleteGroup(ctx, reqs[index])
-
 		resp.Collect(ret)
 	}
 
@@ -161,6 +158,7 @@ func (svr *server) DeleteGroup(ctx context.Context, req *api.UserGroup) *api.Res
 		requestID = utils.ParseRequestID(ctx)
 		userID    = utils.ParseUserID(ctx)
 	)
+
 	group, err := svr.storage.GetGroup(req.GetId().GetValue())
 	if err != nil {
 		log.AuthScope().Error("get group from store", utils.ZapRequestID(requestID), zap.Error(err))
@@ -226,12 +224,13 @@ func (svr *server) GetGroups(ctx context.Context, query map[string]string) *api.
 }
 
 func parseGroupSearchArgs(ctx context.Context, query map[string]string) (map[string]string, *api.BatchQueryResponse) {
-	searchFilters := make(map[string]string)
+	searchFilters := make(map[string]string, len(query))
 	for key, value := range query {
 		if _, ok := UserLinkGroupAttributes[key]; !ok {
 			log.AuthScope().Errorf("[Auth][Group] get groups attribute(%s) it not allowed", key)
 			return nil, api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
 		}
+
 		searchFilters[key] = value
 	}
 
@@ -248,8 +247,6 @@ func parseGroupSearchArgs(ctx context.Context, query map[string]string) (map[str
 
 // GetGroup 查看对应用户组下的用户信息
 func (svr *server) GetGroup(ctx context.Context, req *api.UserGroup) *api.Response {
-	userID := utils.ParseUserID(ctx)
-
 	if req.GetId().GetValue() == "" {
 		return api.NewResponse(api.InvalidUserGroupID)
 	}
@@ -260,6 +257,7 @@ func (svr *server) GetGroup(ctx context.Context, req *api.UserGroup) *api.Respon
 	}
 
 	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+		userID := utils.ParseUserID(ctx)
 		isGroupOwner := group.Owner == userID
 		_, find := group.UserIds[userID]
 		if !isGroupOwner && !find {
@@ -275,7 +273,6 @@ func (svr *server) GetGroup(ctx context.Context, req *api.UserGroup) *api.Respon
 
 // GetGroupToken 查看用户组的token
 func (svr *server) GetGroupToken(ctx context.Context, req *api.UserGroup) *api.Response {
-	userID := utils.ParseUserID(ctx)
 	if req.GetId().GetValue() == "" {
 		return api.NewResponse(api.InvalidUserGroupID)
 	}
@@ -286,6 +283,7 @@ func (svr *server) GetGroupToken(ctx context.Context, req *api.UserGroup) *api.R
 	}
 
 	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+		userID := utils.ParseUserID(ctx)
 		isGroupOwner := groupCache.Owner == userID
 		_, find := groupCache.UserIds[userID]
 		if !isGroupOwner && !find {
@@ -355,11 +353,7 @@ func (svr *server) ResetGroupToken(ctx context.Context, req *api.UserGroup) *api
 		return errResp
 	}
 
-	var (
-		isOwner = utils.ParseIsOwner(ctx)
-		userID  = utils.ParseUserID(ctx)
-	)
-	if !isOwner || (group.Owner != userID) {
+	if !utils.ParseIsOwner(ctx) || (group.Owner != utils.ParseUserID(ctx)) {
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
@@ -426,23 +420,24 @@ func (svr *server) preCheckGroupRelation(groupID string, req *api.UserGroupRelat
 	}
 
 	// 检查该关系中所有的用户是否存在
-	uids := make([]string, len(req.GetUsers()))
+	uIDs := make([]string, len(req.GetUsers()))
 	for i := range req.GetUsers() {
-		uids[i] = req.GetUsers()[i].GetId().GetValue()
+		uIDs[i] = req.GetUsers()[i].GetId().GetValue()
 	}
-	uids = utils.StringSliceDeDuplication(uids)
-	for i := range uids {
-		user := svr.cacheMgn.User().GetUserByID(uids[i])
+
+	uIDs = utils.StringSliceDeDuplication(uIDs)
+	for i := range uIDs {
+		user := svr.cacheMgn.User().GetUserByID(uIDs[i])
 		if user == nil {
 			return group, api.NewGroupRelationResponse(api.NotFoundUser, req)
 		}
 	}
+
 	return group, nil
 }
 
 // checkCreateGroup 检查创建用户组的请求
-func (svr *server) checkCreateGroup(ctx context.Context, req *api.UserGroup) *api.Response {
-
+func (svr *server) checkCreateGroup(_ context.Context, req *api.UserGroup) *api.Response {
 	if req == nil {
 		return api.NewGroupResponse(api.EmptyRequest, req)
 	}
@@ -514,9 +509,7 @@ func (svr *server) fillGroupUserCount(groups []*api.UserGroup) {
 // updateGroupAttribute 更新计算用户组更新时的结构体数据，并判断是否需要执行更新操作
 func updateGroupAttribute(ctx context.Context, old *model.UserGroup, newUser *api.ModifyUserGroup) (
 	*model.ModifyUserGroup, bool) {
-
-	var needUpdate bool = false
-
+	var needUpdate bool
 	ret := &model.ModifyUserGroup{
 		ID:          old.ID,
 		Token:       old.Token,
@@ -557,9 +550,8 @@ func updateGroupAttribute(ctx context.Context, old *model.UserGroup, newUser *ap
 // enhancedGroups2Api 数组专为 []*api.UserGroup
 func enhancedGroups2Api(groups []*model.UserGroup, handler UserGroup2Api) []*api.UserGroup {
 	out := make([]*api.UserGroup, 0, len(groups))
-	for _, entry := range groups {
-		outUser := handler(entry)
-		out = append(out, outUser)
+	for k := range groups {
+		out = append(out, handler(groups[k]))
 	}
 
 	return out
@@ -567,7 +559,6 @@ func enhancedGroups2Api(groups []*model.UserGroup, handler UserGroup2Api) []*api
 
 // createGroupModel 创建用户组的存储模型
 func createGroupModel(req *api.UserGroup) (*model.UserGroupDetail, error) {
-
 	ids := make(map[string]struct{}, len(req.GetRelation().GetUsers()))
 	for index := range req.GetRelation().GetUsers() {
 		ids[req.GetRelation().GetUsers()[index].GetId().GetValue()] = struct{}{}
@@ -624,7 +615,6 @@ func (svr *server) userGroupDetail2Api(group *model.UserGroupDetail) *api.UserGr
 	}
 
 	users := make([]*api.User, 0, len(group.UserIds))
-
 	for id := range group.UserIds {
 		user := svr.cacheMgn.User().GetUserByID(id)
 		users = append(users, &api.User{
@@ -656,8 +646,8 @@ func (svr *server) userGroupDetail2Api(group *model.UserGroupDetail) *api.UserGr
 	return out
 }
 
-// 生成用户组的记录entry
-func userGroupRecordEntry(ctx context.Context, req *api.UserGroup, md *model.UserGroup,
+// userGroupRecordEntry 生成用户组的记录entry
+func userGroupRecordEntry(ctx context.Context, _ *api.UserGroup, md *model.UserGroup,
 	operationType model.OperationType) *model.RecordEntry {
 	entry := &model.RecordEntry{
 		ResourceType:  model.RUserGroup,
@@ -671,7 +661,7 @@ func userGroupRecordEntry(ctx context.Context, req *api.UserGroup, md *model.Use
 }
 
 // 生成修改用户组的记录entry
-func modifyUserGroupRecordEntry(ctx context.Context, req *api.ModifyUserGroup, md *model.UserGroup,
+func modifyUserGroupRecordEntry(ctx context.Context, _ *api.ModifyUserGroup, md *model.UserGroup,
 	operationType model.OperationType) *model.RecordEntry {
 	entry := &model.RecordEntry{
 		ResourceType:  model.RUserGroup,
@@ -685,7 +675,7 @@ func modifyUserGroupRecordEntry(ctx context.Context, req *api.ModifyUserGroup, m
 }
 
 // 生成用户-用户组关联关系的记录entry
-func userRelationRecordEntry(ctx context.Context, req *api.UserGroupRelation, md *model.UserGroup,
+func userRelationRecordEntry(ctx context.Context, _ *api.UserGroupRelation, md *model.UserGroup,
 	operationType model.OperationType) *model.RecordEntry {
 	entry := &model.RecordEntry{
 		ResourceType:  model.RUserGroupRelation,
