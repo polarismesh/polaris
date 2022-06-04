@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-
 	"github.com/polarismesh/polaris-server/common/log"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/plugin"
@@ -93,31 +92,77 @@ type Resp struct {
 
 // Config redis pool configuration
 type Config struct {
-	KvAddr         string              `json:"kvAddr"`
-	KvPasswd       string              `json:"kvPasswd"`
-	MaxIdle        int                 `json:"maxIdle"`
-	IdleTimeout    commontime.Duration `json:"idleTimeout"`
+	KvAddr   string `json:"kvAddr"`
+	KvPasswd string `json:"kvPasswd"`
+
+	// MaxIdle for go-redis is Minimum number of idle connections which is useful when establishing
+	// new connection is slow.
+	MaxIdle int `json:"maxIdle"`
+
+	// Amount of time after which client closes idle connections.
+	// Should be less than server's timeout.
+	// Default is 5 minutes. -1 disables idle timeout check.
+	IdleTimeout commontime.Duration `json:"idleTimeout"`
+
+	// ConnectTimeout for go-redis is Dial timeout for establishing new connections.
+	// Default is 5 seconds.
 	ConnectTimeout commontime.Duration `json:"connectTimeout"`
-	MsgTimeout     commontime.Duration `json:"msgTimeout"`
-	Concurrency    int                 `json:"concurrency"`
-	Compatible     bool                `json:"compatible"`
-	MaxRetry       int                 `json:"maxRetry"`
-	MinBatchCount  int                 `json:"minBatchCount"`
-	WaitTime       commontime.Duration `json:"waitTime"`
+
+	MsgTimeout    commontime.Duration `json:"msgTimeout"`
+	Concurrency   int                 `json:"concurrency"`
+	Compatible    bool                `json:"compatible"`
+	MaxRetry      int                 `json:"maxRetry"`
+	MinBatchCount int                 `json:"minBatchCount"`
+	WaitTime      commontime.Duration `json:"waitTime"`
+
+	// MaxRetries is Maximum number of retries before giving up.
+	// Default is 3 retries; -1 (not 0) disables retries.
+	MaxRetries int `json:"maxRetries"`
+
+	// DB is Database to be selected after connecting to the server.
+	DB int `json:"DB"`
+
+	// ReadTimeout for socket reads. If reached, commands will fail
+	// with a timeout instead of blocking. Use value -1 for no timeout and 0 for default.
+	// Default is 3 seconds.
+	ReadTimeout commontime.Duration `json:"readTimeout"`
+
+	// WriteTimeout for socket writes. If reached, commands will fail
+	// with a timeout instead of blocking.
+	// Default is ReadTimeout.
+	WriteTimeout commontime.Duration `json:"writeTimeout"`
+
+	// Maximum number of socket connections.
+	// Default is 10 connections per every available CPU as reported by runtime.GOMAXPROCS.
+	PoolSize int `json:"poolSize"`
+
+	// Amount of time client waits for connection if all connections
+	// are busy before returning an error.
+	// Default is ReadTimeout + 1 second.
+	PoolTimeout commontime.Duration `json:"poolTimeout"`
+
+	// Connection age at which client retires (closes) the connection.
+	// Default is to not close aged connections.
+	MaxConnAge commontime.Duration `json:"maxConnAge"`
 }
 
 // DefaultConfig redis pool configuration with default values
 func DefaultConfig() *Config {
 	return &Config{
 		MaxIdle:        200,
-		IdleTimeout:    commontime.Duration(120 * time.Second),
-		ConnectTimeout: commontime.Duration(300 * time.Millisecond),
-		MsgTimeout:     commontime.Duration(300 * time.Millisecond),
+		IdleTimeout:    commontime.Duration(300 * time.Second),
+		ConnectTimeout: commontime.Duration(5 * time.Second),
+		MsgTimeout:     commontime.Duration(5 * time.Second),
 		Concurrency:    200,
 		Compatible:     false,
 		MaxRetry:       2,
 		MinBatchCount:  10,
 		WaitTime:       commontime.Duration(50 * time.Millisecond),
+		DB:             0,
+		ReadTimeout:    commontime.Duration(5 * time.Second),
+		WriteTimeout:   commontime.Duration(5 * time.Second),
+		PoolTimeout:    commontime.Duration(6 * time.Second),
+		MaxConnAge:     commontime.Duration(1800 * time.Second),
 	}
 }
 
@@ -161,19 +206,55 @@ type Pool struct {
 	taskChans      []chan *Task
 }
 
-// NewPool init a redis connection pool instance
-func NewPool(ctx context.Context, config *Config, statis plugin.Statis) *Pool {
-	redisClient := redis.NewClient(&redis.Options{
+// NewRedisClient new redis client
+func NewRedisClient(opts ...Option) *redis.Client {
+	config := DefaultConfig()
+	for _, o := range opts {
+		o(config)
+	}
+
+	redisOption := &redis.Options{
 		Addr:         config.KvAddr,
 		Password:     config.KvPasswd,
-		MaxRetries:   -1,
+		MaxRetries:   config.MaxRetries,
 		DialTimeout:  time.Duration(config.ConnectTimeout),
-		ReadTimeout:  time.Duration(config.MsgTimeout),
-		WriteTimeout: time.Duration(config.MsgTimeout),
-		PoolSize:     config.MaxIdle,
+		PoolSize:     config.PoolSize,
 		MinIdleConns: config.MaxIdle,
 		IdleTimeout:  time.Duration(config.IdleTimeout),
-	})
+		DB:           config.DB,
+		ReadTimeout:  time.Duration(config.ReadTimeout),
+		WriteTimeout: time.Duration(config.WriteTimeout),
+		PoolTimeout:  time.Duration(config.PoolTimeout),
+		MaxConnAge:   time.Duration(config.MaxConnAge),
+	}
+
+	if config.MaxConnAge == 0 {
+		redisOption.MaxConnAge = 1800 * time.Second
+	}
+
+	redisClient := redis.NewClient(redisOption)
+	return redisClient
+}
+
+// NewPool init a redis connection pool instance
+func NewPool(ctx context.Context, config *Config, statis plugin.Statis, opts ...Option) *Pool {
+	if config.WriteTimeout == 0 {
+		config.WriteTimeout = config.MsgTimeout
+	}
+
+	if config.ReadTimeout == 0 {
+		config.ReadTimeout = config.MsgTimeout
+	}
+
+	// keep old code compatibility
+	configOpts := []Option{
+		WithConfig(config),
+	}
+	if len(opts) > 0 {
+		configOpts = append(configOpts, opts...)
+	}
+
+	redisClient := NewRedisClient(configOpts...)
 	pool := &Pool{
 		config:         config,
 		ctx:            ctx,
@@ -182,6 +263,7 @@ func NewPool(ctx context.Context, config *Config, statis plugin.Statis) *Pool {
 		statis:         statis,
 		taskChans:      make([]chan *Task, 0, config.Concurrency),
 	}
+
 	for i := 0; i < config.Concurrency; i++ {
 		pool.taskChans = append(pool.taskChans, make(chan *Task, 1024))
 	}
