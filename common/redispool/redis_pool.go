@@ -163,7 +163,7 @@ type Config struct {
 	WithTLS bool `json:"withTLS"`
 
 	// TLS Config to use. When set TLS will be negotiated.
-	tlsConfig *tls.Config
+	TlsConfig *tls.Config
 }
 
 // DefaultConfig redis pool configuration with default values
@@ -253,11 +253,11 @@ func NewRedisClient(opts ...Option) *redis.Client {
 	}
 
 	if config.WithTLS {
-		if config.tlsConfig == nil {
+		if config.TlsConfig == nil {
 			panic("TLSConfig is nil,please call WithTLSConfig func to set tlsConfig")
 		}
 
-		redisOption.TLSConfig = config.tlsConfig
+		redisOption.TLSConfig = config.TlsConfig
 	}
 
 	redisClient := redis.NewClient(redisOption)
