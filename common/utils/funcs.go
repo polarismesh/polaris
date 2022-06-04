@@ -127,17 +127,15 @@ func NewUUID() string {
 var emptyVal = struct{}{}
 
 // StringSliceDeDuplication 字符切片去重
-func StringSliceDeDuplication(ss []string) []string {
-	tmp := make(map[string]struct{}, len(ss))
-
-	for i := range ss {
-		tmp[ss[i]] = emptyVal
+func StringSliceDeDuplication(s []string) []string {
+	m := make(map[string]struct{}, len(s))
+	res := make([]string, 0, len(s))
+	for k := range s {
+		if _, ok := m[s[k]]; !ok {
+			m[s[k]] = emptyVal
+			res = append(res, s[k])
+		}
 	}
 
-	ret := make([]string, 0, len(tmp))
-	for k := range tmp {
-		ret = append(ret, k)
-	}
-
-	return ret
+	return res
 }
