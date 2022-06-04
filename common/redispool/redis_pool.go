@@ -19,6 +19,7 @@ package redispool
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"math"
@@ -92,7 +93,13 @@ type Resp struct {
 
 // Config redis pool configuration
 type Config struct {
-	KvAddr   string `json:"kvAddr"`
+	KvAddr string `json:"kvAddr"`
+
+	// KvPasswd for go-redis password or username (redis 6.0 version)
+	// Optional password. Must match the password specified in the
+	// requirepass server configuration option (if connecting to a Redis 5.0 instance, or lower),
+	// or the User Password when connecting to a Redis 6.0 instance, or greater,
+	// that is using the Redis ACL system.
 	KvPasswd string `json:"kvPasswd"`
 
 	// MaxIdle for go-redis is Minimum number of idle connections which is useful when establishing
@@ -144,6 +151,19 @@ type Config struct {
 	// Connection age at which client retires (closes) the connection.
 	// Default is to not close aged connections.
 	MaxConnAge commontime.Duration `json:"maxConnAge"`
+
+	// Use the specified Username to authenticate the current connection
+	// with one of the connections defined in the ACL list when connecting
+	// to a Redis 6.0 instance, or greater, that is using the Redis ACL system.
+	Username string `json:"username"`
+
+	// WithTLS whether open TLSConfig
+	// if WithTLS is true, you should call WithEnableWithTLS,and then TLSConfig is not should be nil
+	// In this case you should call WithTLSConfig func to set tlsConfig
+	WithTLS bool `json:"withTLS"`
+
+	// TLS Config to use. When set TLS will be negotiated.
+	tlsConfig *tls.Config
 }
 
 // DefaultConfig redis pool configuration with default values
@@ -230,6 +250,14 @@ func NewRedisClient(opts ...Option) *redis.Client {
 
 	if config.MaxConnAge == 0 {
 		redisOption.MaxConnAge = 1800 * time.Second
+	}
+
+	if config.WithTLS {
+		if config.tlsConfig == nil {
+			panic("TLSConfig is nil,please call WithTLSConfig func to set tlsConfig")
+		}
+
+		redisOption.TLSConfig = config.tlsConfig
 	}
 
 	redisClient := redis.NewClient(redisOption)

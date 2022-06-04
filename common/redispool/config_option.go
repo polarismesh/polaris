@@ -1,6 +1,7 @@
 package redispool
 
 import (
+	"crypto/tls"
 	"time"
 
 	commontime "github.com/polarismesh/polaris-server/common/time"
@@ -132,5 +133,26 @@ func WithPoolTimeout(poolTimeout time.Duration) Option {
 func WithMaxConnAge(maxConnAge time.Duration) Option {
 	return func(c *Config) {
 		c.MaxConnAge = commontime.Duration(maxConnAge)
+	}
+}
+
+// WithUsername set username
+func WithUsername(username string) Option {
+	return func(c *Config) {
+		c.Username = username
+	}
+}
+
+// WithTLSConfig set TLSConfig
+func WithTLSConfig(tlsConfig *tls.Config) Option {
+	return func(c *Config) {
+		c.tlsConfig = tlsConfig
+	}
+}
+
+// WithEnableWithTLS set WithTLS
+func WithEnableWithTLS() Option {
+	return func(c *Config) {
+		c.WithTLS = true
 	}
 }
