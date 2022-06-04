@@ -162,7 +162,7 @@ func WithUsername(username string) Option {
 // WithTLSConfig set TLSConfig
 func WithTLSConfig(tlsConfig *tls.Config) Option {
 	return func(c *Config) {
-		c.tlsConfig = tlsConfig
+		c.TlsConfig = tlsConfig
 	}
 }
 
