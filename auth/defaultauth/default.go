@@ -22,6 +22,7 @@ import (
 )
 
 const (
+	// PluginName default auth name
 	PluginName = "defaultAuth"
 )
 
