@@ -11,11 +11,11 @@
  *
  * Unless required by applicable law or agreed to in writing, software distributed
  * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * CONDITIONS OF ANY KIND, either express or Serveried. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package config
 
 import (
 	"context"
@@ -33,7 +33,7 @@ import (
 )
 
 // CreateConfigFile 创建配置文件
-func (cs *Impl) CreateConfigFile(ctx context.Context, configFile *api.ConfigFile) *api.ConfigResponse {
+func (cs *Server) CreateConfigFile(ctx context.Context, configFile *api.ConfigFile) *api.ConfigResponse {
 	if configFile.Format.GetValue() == "" {
 		configFile.Format = utils.NewStringValue(utils.FileFormatText)
 	}
@@ -42,13 +42,7 @@ func (cs *Impl) CreateConfigFile(ctx context.Context, configFile *api.ConfigFile
 		return checkRsp
 	}
 
-	authCtx := cs.collectBaseTokenInfo(ctx)
-	if err := cs.authMgn.VerifyCredential(authCtx); err != nil {
-		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
-	}
-
-	requestCtx := authCtx.GetRequestContext()
-	userName := utils.ParseUserName(requestCtx)
+	userName := utils.ParseUserName(ctx)
 	configFile.CreateBy = utils.NewStringValue(userName)
 	configFile.ModifyBy = utils.NewStringValue(userName)
 
@@ -70,7 +64,7 @@ func (cs *Impl) CreateConfigFile(ctx context.Context, configFile *api.ConfigFile
 	}
 
 	// 如果配置文件组不存在则自动创建
-	createGroupRsp := cs.CreateConfigFileGroupIfAbsent(ctx, &api.ConfigFileGroup{
+	createGroupRsp := cs.createConfigFileGroupIfAbsent(ctx, &api.ConfigFileGroup{
 		Namespace: configFile.Namespace,
 		Name:      configFile.Group,
 		CreateBy:  configFile.CreateBy,
@@ -131,7 +125,7 @@ func (cs *Impl) CreateConfigFile(ctx context.Context, configFile *api.ConfigFile
 }
 
 // GetConfigFileBaseInfo 获取配置文件，只返回基础元信息
-func (cs *Impl) GetConfigFileBaseInfo(ctx context.Context, namespace, group, name string) *api.ConfigResponse {
+func (cs *Server) GetConfigFileBaseInfo(ctx context.Context, namespace, group, name string) *api.ConfigResponse {
 	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileResponse(api.InvalidNamespaceName, nil)
 	}
@@ -166,7 +160,7 @@ func (cs *Impl) GetConfigFileBaseInfo(ctx context.Context, namespace, group, nam
 }
 
 // GetConfigFileRichInfo 获取单个配置文件基础信息，包含发布状态等信息
-func (cs *Impl) GetConfigFileRichInfo(ctx context.Context, namespace, group, name string) *api.ConfigResponse {
+func (cs *Server) GetConfigFileRichInfo(ctx context.Context, namespace, group, name string) *api.ConfigResponse {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
 	configFileBaseInfoRsp := cs.GetConfigFileBaseInfo(ctx, namespace, group, name)
@@ -192,7 +186,7 @@ func (cs *Impl) GetConfigFileRichInfo(ctx context.Context, namespace, group, nam
 }
 
 // SearchConfigFile 查询配置文件
-func (cs *Impl) SearchConfigFile(ctx context.Context, namespace, group, name, tags string, offset, limit uint32) *api.ConfigBatchQueryResponse {
+func (cs *Server) SearchConfigFile(ctx context.Context, namespace, group, name, tags string, offset, limit uint32) *api.ConfigBatchQueryResponse {
 	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileBatchQueryResponse(api.InvalidNamespaceName, 0, nil)
 	}
@@ -214,7 +208,7 @@ func (cs *Impl) SearchConfigFile(ctx context.Context, namespace, group, name, ta
 
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
-	count, files, err := cs.QueryConfigFileByTags(ctx, namespace, group, name, offset, limit, tagKVs...)
+	count, files, err := cs.queryConfigFileByTags(ctx, namespace, group, name, offset, limit, tagKVs...)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] query config file tags error.",
 			zap.String("request-id", requestID),
@@ -238,7 +232,7 @@ func (cs *Impl) SearchConfigFile(ctx context.Context, namespace, group, name, ta
 	return api.NewConfigFileBatchQueryResponse(api.ExecuteSuccess, uint32(count), enrichedFiles)
 }
 
-func (cs *Impl) queryConfigFileWithoutTags(ctx context.Context, namespace string, group string, name string, offset, limit uint32) *api.ConfigBatchQueryResponse {
+func (cs *Server) queryConfigFileWithoutTags(ctx context.Context, namespace string, group string, name string, offset, limit uint32) *api.ConfigBatchQueryResponse {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 	count, files, err := cs.storage.QueryConfigFiles(namespace, group, name, offset, limit)
 	if err != nil {
@@ -270,7 +264,7 @@ func (cs *Impl) queryConfigFileWithoutTags(ctx context.Context, namespace string
 }
 
 // UpdateConfigFile 更新配置文件
-func (cs *Impl) UpdateConfigFile(ctx context.Context, configFile *api.ConfigFile) *api.ConfigResponse {
+func (cs *Server) UpdateConfigFile(ctx context.Context, configFile *api.ConfigFile) *api.ConfigResponse {
 	if checkRsp := checkConfigFileParams(configFile, false); checkRsp != nil {
 		return checkRsp
 	}
@@ -297,13 +291,7 @@ func (cs *Impl) UpdateConfigFile(ctx context.Context, configFile *api.ConfigFile
 		return api.NewConfigFileResponse(api.NotFoundResource, configFile)
 	}
 
-	authCtx := cs.collectBaseTokenInfo(ctx)
-	if err := cs.authMgn.VerifyCredential(authCtx); err != nil {
-		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
-	}
-
-	requestCtx := authCtx.GetRequestContext()
-	userName := utils.ParseUserName(requestCtx)
+	userName := utils.ParseUserName(ctx)
 	configFile.ModifyBy = utils.NewStringValue(userName)
 
 	toUpdateFile := transferConfigFileAPIModel2StoreModel(configFile)
@@ -337,7 +325,7 @@ func (cs *Impl) UpdateConfigFile(ctx context.Context, configFile *api.ConfigFile
 }
 
 // DeleteConfigFile 删除配置文件，删除配置文件同时会通知客户端 Not_Found
-func (cs *Impl) DeleteConfigFile(ctx context.Context, namespace, group, name, deleteBy string) *api.ConfigResponse {
+func (cs *Server) DeleteConfigFile(ctx context.Context, namespace, group, name, deleteBy string) *api.ConfigResponse {
 	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileResponse(api.InvalidNamespaceName, nil)
 	}
@@ -377,13 +365,7 @@ func (cs *Impl) DeleteConfigFile(ctx context.Context, namespace, group, name, de
 	defer func() { _ = tx.Rollback() }()
 
 	if deleteBy == "" {
-		authCtx := cs.collectBaseTokenInfo(ctx)
-		if err := cs.authMgn.VerifyCredential(authCtx); err != nil {
-			return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
-		}
-
-		requestCtx := authCtx.GetRequestContext()
-		deleteBy = utils.ParseUserName(requestCtx)
+		deleteBy = utils.ParseUserName(ctx)
 	}
 
 	// 1. 删除配置文件发布内容
@@ -405,7 +387,7 @@ func (cs *Impl) DeleteConfigFile(ctx context.Context, namespace, group, name, de
 	}
 
 	// 3. 删除配置文件关联的 tag
-	err = cs.DeleteTagByConfigFile(newCtx, namespace, group, name)
+	err = cs.deleteTagByConfigFile(newCtx, namespace, group, name)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] delete config file tags error.",
 			zap.String("request-id", requestID),
@@ -431,7 +413,7 @@ func (cs *Impl) DeleteConfigFile(ctx context.Context, namespace, group, name, de
 }
 
 // BatchDeleteConfigFile 批量删除配置文件
-func (cs *Impl) BatchDeleteConfigFile(ctx context.Context, configFiles []*api.ConfigFile, operator string) *api.ConfigResponse {
+func (cs *Server) BatchDeleteConfigFile(ctx context.Context, configFiles []*api.ConfigFile, operator string) *api.ConfigResponse {
 	if len(configFiles) == 0 {
 		api.NewConfigFileResponse(api.ExecuteSuccess, nil)
 	}
@@ -523,7 +505,7 @@ func transferConfigFileStoreModel2APIModel(file *model.ConfigFile) *api.ConfigFi
 	}
 }
 
-func (cs *Impl) createOrUpdateConfigFileTags(ctx context.Context, configFile *api.ConfigFile, operator, requestID string) (*api.ConfigResponse, bool) {
+func (cs *Server) createOrUpdateConfigFileTags(ctx context.Context, configFile *api.ConfigFile, operator, requestID string) (*api.ConfigResponse, bool) {
 	namespace := configFile.Namespace.GetValue()
 	group := configFile.Group.GetValue()
 	name := configFile.Name.GetValue()
@@ -533,7 +515,7 @@ func (cs *Impl) createOrUpdateConfigFileTags(ctx context.Context, configFile *ap
 		tags = append(tags, tag.Key.GetValue())
 		tags = append(tags, tag.Value.GetValue())
 	}
-	err := cs.CreateConfigFileTags(ctx, namespace, group, name, operator, tags...)
+	err := cs.createConfigFileTags(ctx, namespace, group, name, operator, tags...)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] create or update config file tags error.",
 			zap.String("request-id", requestID),
@@ -546,7 +528,7 @@ func (cs *Impl) createOrUpdateConfigFileTags(ctx context.Context, configFile *ap
 	return nil, true
 }
 
-func (cs *Impl) enrich(ctx context.Context, baseConfigFile *api.ConfigFile, requestID string) error {
+func (cs *Server) enrich(ctx context.Context, baseConfigFile *api.ConfigFile, requestID string) error {
 	namespace := baseConfigFile.Namespace.GetValue()
 	group := baseConfigFile.Group.GetValue()
 	name := baseConfigFile.Name.GetValue()
@@ -581,7 +563,7 @@ func (cs *Impl) enrich(ctx context.Context, baseConfigFile *api.ConfigFile, requ
 	}
 
 	// 填充标签信息
-	tags, err := cs.QueryTagsByConfigFileWithAPIModels(ctx, namespace, group, name)
+	tags, err := cs.queryTagsByConfigFileWithAPIModels(ctx, namespace, group, name)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] create config file error.",
 			zap.String("request-id", requestID),

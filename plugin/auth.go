@@ -22,6 +22,7 @@ import (
 	"sync"
 
 	"github.com/polarismesh/polaris-server/common/log"
+	"go.uber.org/zap"
 )
 
 var (
@@ -46,6 +47,7 @@ func GetAuth() Auth {
 
 	plugin, exist := pluginSet[c.Name]
 	if !exist {
+		log.Error("[Plugin][Auth] not found", zap.String("name", c.Name))
 		return nil
 	}
 

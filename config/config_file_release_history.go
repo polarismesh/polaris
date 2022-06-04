@@ -11,11 +11,11 @@
  *
  * Unless required by applicable law or agreed to in writing, software distributed
  * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * CONDITIONS OF ANY KIND, either express or Serveried. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package config
 
 import (
 	"context"
@@ -31,7 +31,7 @@ import (
 )
 
 // RecordConfigFileReleaseHistory 新增配置文件发布历史记录
-func (cs *Impl) RecordConfigFileReleaseHistory(ctx context.Context, fileRelease *model.ConfigFileRelease, releaseType, status string) {
+func (cs *Server) RecordConfigFileReleaseHistory(ctx context.Context, fileRelease *model.ConfigFileRelease, releaseType, status string) {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
 	namespace, group, fileName := fileRelease.Namespace, fileRelease.Group, fileRelease.FileName
@@ -44,7 +44,7 @@ func (cs *Impl) RecordConfigFileReleaseHistory(ctx context.Context, fileRelease 
 	}
 
 	// 获取配置文件标签信息
-	tags, _ := cs.QueryTagsByConfigFileWithAPIModels(ctx, namespace, group, fileName)
+	tags, _ := cs.queryTagsByConfigFileWithAPIModels(ctx, namespace, group, fileName)
 
 	releaseHistory := &model.ConfigFileReleaseHistory{
 		Name:      fileRelease.Name,
@@ -75,7 +75,7 @@ func (cs *Impl) RecordConfigFileReleaseHistory(ctx context.Context, fileRelease 
 }
 
 // GetConfigFileReleaseHistory 获取配置文件发布历史记录
-func (cs *Impl) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset,
+func (cs *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset,
 	limit uint32, endId uint64) *api.ConfigBatchQueryResponse {
 
 	if offset < 0 || limit <= 0 || limit > MaxPageSize {
@@ -109,7 +109,7 @@ func (cs *Impl) GetConfigFileReleaseHistory(ctx context.Context, namespace, grou
 }
 
 // GetConfigFileLatestReleaseHistory 获取配置文件最后一次发布记录
-func (cs *Impl) GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group,
+func (cs *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group,
 	fileName string) *api.ConfigResponse {
 
 	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
