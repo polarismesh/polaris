@@ -48,9 +48,9 @@ func WithPwd(pwd string) Option {
 }
 
 // WithMinIdleConns set minIdleConns
-func WithMinIdleConns(minIdle int) Option {
+func WithMinIdleConns(minIdleConns int) Option {
 	return func(c *Config) {
-		c.MinIdleConns = minIdle
+		c.MinIdleConns = minIdleConns
 	}
 }
 
