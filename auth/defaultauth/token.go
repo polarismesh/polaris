@@ -101,6 +101,7 @@ func createToken(uid, gid string) (string, error) {
 	if uid == "" && gid == "" {
 		return "", errors.New("uid and groupid not be empty at the same time")
 	}
+
 	var val string
 	if uid == "" {
 		val = fmt.Sprintf("%s/%s", model.TokenForUserGroup, gid)
