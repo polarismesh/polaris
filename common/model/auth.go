@@ -109,7 +109,8 @@ func CheckPrincipalType(role int) error {
 }
 
 var (
-	PrincipalNames map[PrincipalType]string = map[PrincipalType]string{
+	// PrincipalNames principal name map
+	PrincipalNames = map[PrincipalType]string{
 		PrincipalUser:  "user",
 		PrincipalGroup: "group",
 	}
@@ -176,7 +177,7 @@ const (
 )
 
 var (
-	UserRoleNames map[UserRoleType]string = map[UserRoleType]string{
+	UserRoleNames = map[UserRoleType]string{
 		AdminUserRole:      "admin",
 		OwnerUserRole:      "main",
 		SubAccountUserRole: "sub",
