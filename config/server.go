@@ -87,7 +87,7 @@ func initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 
 	originServer.storage = s
 
-	// 2. 初始化缓存模块
+	// 初始化缓存模块
 	expireTimeAfterWrite, ok := config.Cache["expireTimeAfterWrite"]
 	if !ok {
 		expireTimeAfterWrite = defaultExpireTimeAfterWrite
@@ -99,17 +99,15 @@ func initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 	fileCache := cache.NewFileCache(ctx, s, cacheParam)
 	originServer.cache = fileCache
 
-	// 3. 初始化 service 模块
-
-	// 4. 初始化事件中心
+	// 初始化事件中心
 	eventCenter := NewEventCenter()
 	originServer.watchCenter = NewWatchCenter(eventCenter)
 
-	// 5. 初始化连接管理器
+	// 初始化连接管理器
 	connMng := NewConfigConnManager(ctx, originServer.watchCenter)
 	originServer.connManager = connMng
 
-	// 6. 初始化发布事件扫描器
+	// 初始化发布事件扫描器
 	if err := initReleaseMessageScanner(ctx, s, fileCache, eventCenter, time.Second); err != nil {
 		log.ConfigScope().Error("[Config][Server] init release message scanner error. ", zap.Error(err))
 		return errors.New("init config module error")

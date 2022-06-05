@@ -27,6 +27,13 @@ import (
 func (cs *serverAuthibility) PublishConfigFile(ctx context.Context,
 	configFileRelease *api.ConfigFileRelease) *api.ConfigResponse {
 
+	authCtx := cs.collectBaseTokenInfo(ctx)
+	if err := cs.authChecker.VerifyCredential(authCtx); err != nil {
+		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+
 	return cs.targetServer.PublishConfigFile(ctx, configFileRelease)
 }
 
