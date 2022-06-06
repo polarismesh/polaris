@@ -237,12 +237,14 @@ data:
     #  - name: heartbeatRedis
     #    option:
     #      kvAddr: ##REDIS_ADDR##
+    #      kvUser: ##REDIS_USER#
     #      kvPasswd: ##REDIS_PWD##
     #      maxIdle: 200
     #      idleTimeout: 120s
     #      connectTimeout: 200ms
     #      msgTimeout: 200ms
     #      concurrency: 200
+    #      withTLS: false
     # 缓存配置
     cache:
       open: true
