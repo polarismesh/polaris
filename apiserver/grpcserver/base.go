@@ -381,7 +381,7 @@ func ConvertContext(ctx context.Context) context.Context {
 	ctx = context.Background()
 	ctx = context.WithValue(ctx, utils.StringContext("request-id"), requestID)
 	ctx = context.WithValue(ctx, utils.StringContext("client-ip"), clientIP)
-	ctx = context.WithValue(ctx, utils.StringContext("client-address"), address)
+	ctx = context.WithValue(ctx, utils.ContextClientAddress, address)
 	ctx = context.WithValue(ctx, utils.StringContext("user-agent"), userAgent)
 	return ctx
 }

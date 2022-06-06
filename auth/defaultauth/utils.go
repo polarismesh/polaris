@@ -57,7 +57,7 @@ var storeCodeAPICodeMap = map[store.StatusCode]uint32{
 }
 
 var (
-	regNameStr = regexp.MustCompile(`^[\u4E00-\u9FA5A-Za-z\d_\\-]+$`)
+	regNameStr = regexp.MustCompile("^[\u4E00-\u9FA5A-Za-z0-9_\\-]+$")
 	regEmail   = regexp.MustCompile(`^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$`)
 )
 

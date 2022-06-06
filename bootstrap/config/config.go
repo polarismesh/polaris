@@ -38,16 +38,16 @@ import (
 
 // Config 配置
 type Config struct {
-	Bootstrap    Bootstrap            `yaml:"bootstrap"`
-	APIServers   []apiserver.Config   `yaml:"apiservers"`
-	Cache        cache.Config         `yaml:"cache"`
-	Namespace    namespace.Config     `yaml:"namespace"`
-	Naming       service.Config       `yaml:"naming"`
-	Config       config.StartupConfig `yaml:"config"`
-	HealthChecks healthcheck.Config   `yaml:"healthcheck"`
-	Store        store.Config         `yaml:"store"`
-	Auth         auth.Config          `yaml:"auth"`
-	Plugin       plugin.Config        `yaml:"plugin"`
+	Bootstrap    Bootstrap          `yaml:"bootstrap"`
+	APIServers   []apiserver.Config `yaml:"apiservers"`
+	Cache        cache.Config       `yaml:"cache"`
+	Namespace    namespace.Config   `yaml:"namespace"`
+	Naming       service.Config     `yaml:"naming"`
+	Config       config.Config      `yaml:"config"`
+	HealthChecks healthcheck.Config `yaml:"healthcheck"`
+	Store        store.Config       `yaml:"store"`
+	Auth         auth.Config        `yaml:"auth"`
+	Plugin       plugin.Config      `yaml:"plugin"`
 }
 
 // Bootstrap 启动引导配置

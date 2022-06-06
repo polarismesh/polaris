@@ -11,11 +11,11 @@
  *
  * Unless required by applicable law or agreed to in writing, software distributed
  * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * CONDITIONS OF ANY KIND, either express or Serveried. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package config
 
 import (
 	"context"
@@ -35,13 +35,13 @@ const (
 )
 
 // StartTxAndSetToContext 开启一个事务，并放入到上下文里
-func (cs *Impl) StartTxAndSetToContext(ctx context.Context) (store.Tx, context.Context, error) {
+func (cs *Server) StartTxAndSetToContext(ctx context.Context) (store.Tx, context.Context, error) {
 	tx, err := cs.storage.StartTx()
 	return tx, context.WithValue(ctx, ContextTxKey, tx), err
 }
 
 // getTx 从上下文里获取事务对象
-func (cs *Impl) getTx(ctx context.Context) store.Tx {
+func (cs *Server) getTx(ctx context.Context) store.Tx {
 	tx := ctx.Value(ContextTxKey)
 	if tx == nil {
 		return nil
@@ -49,12 +49,12 @@ func (cs *Impl) getTx(ctx context.Context) store.Tx {
 	return tx.(store.Tx)
 }
 
-func (cs *Impl) checkNamespaceExisted(namespaceName string) bool {
+func (cs *Server) checkNamespaceExisted(namespaceName string) bool {
 	namespace, _ := cs.storage.GetNamespace(namespaceName)
 	return namespace != nil
 }
 
-func (cs *Impl) createNamespaceIfAbsent(namespaceName, operator, requestId string) error {
+func (cs *Server) createNamespaceIfAbsent(namespaceName, operator, requestId string) error {
 	namespace, err := cs.storage.GetNamespace(namespaceName)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] get namespace error.", zap.Error(err))
@@ -80,14 +80,6 @@ func (cs *Impl) createNamespaceIfAbsent(namespaceName, operator, requestId strin
 	}
 
 	return nil
-}
-
-func (cs *Impl) collectBaseTokenInfo(ctx context.Context) *model.AcquireContext {
-	return model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithToken(utils.ParseAuthToken(ctx)),
-		model.WithModule(model.ConfigModule),
-	)
 }
 
 func convertToErrCode(err error) uint32 {

@@ -167,7 +167,7 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 	}
 
 	// 初始化配置中心模块相关功能
-	if err := StartConfigCenterComponents(ctx, cfg); err != nil {
+	if err := StartConfigCenterComponents(ctx, cfg, s, cacheMgn, authMgn); err != nil {
 		return err
 	}
 
@@ -257,8 +257,9 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 }
 
 // StartConfigCenterComponents 启动配置中心模块
-func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config) error {
-	return config_center.Initialize(ctx, cfg.Config)
+func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config, s store.Store,
+	cacheMgn *cache.NamingCache, authMgn auth.AuthServer) error {
+	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, authMgn)
 }
 
 // StartServers 启动server

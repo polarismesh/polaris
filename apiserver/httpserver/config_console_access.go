@@ -44,7 +44,7 @@ func (h *HTTPServer) CreateConfigFileGroup(req *restful.Request, rsp *restful.Re
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.configServer.Service().CreateConfigFileGroup(ctx, configFileGroup))
+	handler.WriteHeaderAndProto(h.configServer.CreateConfigFileGroup(ctx, configFileGroup))
 }
 
 // QueryConfigFileGroups 查询配置文件组，group 模糊搜索
@@ -57,7 +57,7 @@ func (h *HTTPServer) QueryConfigFileGroups(req *restful.Request, rsp *restful.Re
 	offset, _ := strconv.ParseUint(handler.QueryParameter("offset"), 10, 64)
 	limit, _ := strconv.ParseUint(handler.QueryParameter("limit"), 10, 64)
 
-	response := h.configServer.Service().QueryConfigFileGroups(handler.ParseHeaderContext(), namespace, group, fileName,
+	response := h.configServer.QueryConfigFileGroups(handler.ParseHeaderContext(), namespace, group, fileName,
 		uint32(offset), uint32(limit))
 
 	handler.WriteHeaderAndProto(response)
@@ -70,7 +70,7 @@ func (h *HTTPServer) DeleteConfigFileGroup(req *restful.Request, rsp *restful.Re
 	namespace := handler.QueryParameter("namespace")
 	group := handler.QueryParameter("group")
 
-	response := h.configServer.Service().DeleteConfigFileGroup(handler.ParseHeaderContext(), namespace, group)
+	response := h.configServer.DeleteConfigFileGroup(handler.ParseHeaderContext(), namespace, group)
 	handler.WriteHeaderAndProto(response)
 }
 
@@ -90,7 +90,7 @@ func (h *HTTPServer) UpdateConfigFileGroup(req *restful.Request, rsp *restful.Re
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.configServer.Service().UpdateConfigFileGroup(ctx, configFileGroup))
+	handler.WriteHeaderAndProto(h.configServer.UpdateConfigFileGroup(ctx, configFileGroup))
 }
 
 // CreateConfigFile 创建配置文件
@@ -109,7 +109,7 @@ func (h *HTTPServer) CreateConfigFile(req *restful.Request, rsp *restful.Respons
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.configServer.Service().CreateConfigFile(ctx, configFile))
+	handler.WriteHeaderAndProto(h.configServer.CreateConfigFile(ctx, configFile))
 }
 
 // GetConfigFile 获取单个配置文件
@@ -120,7 +120,7 @@ func (h *HTTPServer) GetConfigFile(req *restful.Request, rsp *restful.Response) 
 	group := handler.QueryParameter("group")
 	name := handler.QueryParameter("name")
 
-	response := h.configServer.Service().GetConfigFileRichInfo(handler.ParseHeaderContext(), namespace, group, name)
+	response := h.configServer.GetConfigFileRichInfo(handler.ParseHeaderContext(), namespace, group, name)
 	handler.WriteHeaderAndProto(response)
 }
 
@@ -135,7 +135,7 @@ func (h *HTTPServer) SearchConfigFile(req *restful.Request, rsp *restful.Respons
 	offset, _ := strconv.ParseUint(handler.QueryParameter("offset"), 10, 64)
 	limit, _ := strconv.ParseUint(handler.QueryParameter("limit"), 10, 64)
 
-	response := h.configServer.Service().SearchConfigFile(handler.ParseHeaderContext(), namespace, group, name, tags,
+	response := h.configServer.SearchConfigFile(handler.ParseHeaderContext(), namespace, group, name, tags,
 		uint32(offset), uint32(limit))
 
 	handler.WriteHeaderAndProto(response)
@@ -156,7 +156,7 @@ func (h *HTTPServer) UpdateConfigFile(req *restful.Request, rsp *restful.Respons
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.configServer.Service().UpdateConfigFile(ctx, configFile))
+	handler.WriteHeaderAndProto(h.configServer.UpdateConfigFile(ctx, configFile))
 }
 
 // DeleteConfigFile 删除单个配置文件，删除配置文件也会删除配置文件发布内容，客户端将获取不到配置文件
@@ -168,7 +168,7 @@ func (h *HTTPServer) DeleteConfigFile(req *restful.Request, rsp *restful.Respons
 	name := handler.QueryParameter("name")
 	operator := handler.QueryParameter("deleteBy")
 
-	response := h.configServer.Service().DeleteConfigFile(handler.ParseHeaderContext(), namespace, group, name, operator)
+	response := h.configServer.DeleteConfigFile(handler.ParseHeaderContext(), namespace, group, name, operator)
 	handler.WriteHeaderAndProto(response)
 }
 
@@ -189,7 +189,7 @@ func (h *HTTPServer) BatchDeleteConfigFile(req *restful.Request, rsp *restful.Re
 		return
 	}
 
-	response := h.configServer.Service().BatchDeleteConfigFile(ctx, configFiles, operator)
+	response := h.configServer.BatchDeleteConfigFile(ctx, configFiles, operator)
 	handler.WriteHeaderAndProto(response)
 }
 
@@ -209,7 +209,7 @@ func (h *HTTPServer) PublishConfigFile(req *restful.Request, rsp *restful.Respon
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.configServer.Service().PublishConfigFile(ctx, configFile))
+	handler.WriteHeaderAndProto(h.configServer.PublishConfigFile(ctx, configFile))
 }
 
 // GetConfigFileRelease 获取配置文件最后一次发布内容
@@ -220,7 +220,7 @@ func (h *HTTPServer) GetConfigFileRelease(req *restful.Request, rsp *restful.Res
 	group := handler.QueryParameter("group")
 	name := handler.QueryParameter("name")
 
-	response := h.configServer.Service().GetConfigFileRelease(handler.ParseHeaderContext(), namespace, group, name)
+	response := h.configServer.GetConfigFileRelease(handler.ParseHeaderContext(), namespace, group, name)
 
 	handler.WriteHeaderAndProto(response)
 }
@@ -242,7 +242,7 @@ func (h *HTTPServer) GetConfigFileReleaseHistory(req *restful.Request, rsp *rest
 		endId, _ = strconv.ParseUint(endIdStr, 10, 64)
 	}
 
-	response := h.configServer.Service().GetConfigFileReleaseHistory(handler.ParseHeaderContext(),
+	response := h.configServer.GetConfigFileReleaseHistory(handler.ParseHeaderContext(),
 		namespace, group, name, uint32(offset), uint32(limit), endId)
 
 	handler.WriteHeaderAndProto(response)
