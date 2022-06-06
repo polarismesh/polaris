@@ -21,8 +21,7 @@ import (
 	"strconv"
 
 	"github.com/emicklei/go-restful"
-	"github.com/google/uuid"
-	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
@@ -30,28 +29,19 @@ import (
 func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	requestId := handler.HeaderParameter("Request-Id")
-	namespace := handler.QueryParameter("namespace")
-	group := handler.QueryParameter("group")
-	fileName := handler.QueryParameter("fileName")
-	clientVersionStr := handler.QueryParameter("version")
-
-	clientVersion, err := strconv.ParseUint(clientVersionStr, 10, 64)
+	version, err := strconv.ParseUint(handler.QueryParameter("version"), 10, 64)
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewConfigClientResponseWithMessage(api.BadRequest, "version must be number"))
 	}
 
-	response := h.configServer.Service().GetConfigFileForClient(handler.ParseHeaderContext(), namespace, group, fileName, clientVersion)
-
-	var version uint64 = 0
-	if response.ConfigFile != nil {
-		version = response.ConfigFile.Version.GetValue()
+	configFile := &api.ClientConfigFileInfo{
+		Namespace: &wrapperspb.StringValue{Value: handler.QueryParameter("namespace")},
+		Group: &wrapperspb.StringValue{Value: handler.QueryParameter("group")},
+		FileName: &wrapperspb.StringValue{Value: handler.QueryParameter("fileName")},
+		Version: &wrapperspb.UInt64Value{Value: version},
 	}
-	configLog.Info("[Config][Client] client get config file success.",
-		zap.String("requestId", requestId),
-		zap.String("client", req.Request.RemoteAddr),
-		zap.String("file", fileName),
-		zap.Uint64("version", version))
+
+	response := h.configServer.GetConfigFileForClient(handler.ParseHeaderContext(), configFile)
 
 	handler.WriteHeaderAndProto(response)
 }
@@ -59,44 +49,19 @@ func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) 
 func (h *HTTPServer) watchConfigFile(req *restful.Request, rsp *restful.Response) {
 	handler := &Handler{req, rsp}
 
-	requestId := req.HeaderParameter("Request-Id")
-	clientAddr := req.Request.RemoteAddr
-
-	configLog.Debug("[Config][Client] received client listener request.",
-		zap.String("requestId", requestId),
-		zap.String("client", clientAddr))
-
 	// 1. 解析出客户端监听的配置文件列表
 	watchConfigFileRequest := &api.ClientWatchConfigFileRequest{}
 	_, err := handler.Parse(watchConfigFileRequest)
 	if err != nil {
-		configLog.Warn("[Config][Client] parse client watch request error.",
-			zap.String("requestId", requestId),
-			zap.String("client", req.Request.RemoteAddr))
-
 		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
 		return
 	}
 
-	watchFiles := watchConfigFileRequest.WatchFiles
-	// 2. 检查客户端是否有版本落后
-	response := h.configServer.Service().CheckClientConfigFileByVersion(handler.ParseHeaderContext(), watchFiles)
-	if response.Code.GetValue() != api.DataNoChange {
-		handler.WriteHeaderAndProto(response)
-		return
+	// 阻塞等待响应
+	callback, err := h.configServer.WatchConfigFiles(handler.ParseHeaderContext(), watchConfigFileRequest)
+	if err != nil {
+
 	}
 
-	// 3. 监听配置变更，hold 请求 30s，30s 内如果有配置发布，则响应请求
-	id, _ := uuid.NewUUID()
-	clientId := clientAddr + "@" + id.String()[0:8]
-
-	finishChan := make(chan *api.ConfigClientResponse)
-	defer close(finishChan)
-
-	h.configServer.ConnManager().AddConn(clientId, watchFiles, finishChan)
-
-	// 阻塞等待响应
-	watchRsp := <-finishChan
-
-	handler.WriteHeaderAndProto(watchRsp)
+	handler.WriteHeaderAndProto(callback())
 }

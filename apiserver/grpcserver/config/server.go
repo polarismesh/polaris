@@ -35,7 +35,7 @@ import (
 // ConfigGRPCServer 配置中心 GRPC API 服务器
 type ConfigGRPCServer struct {
 	grpcserver.BaseGrpcServer
-	configServer *config.Server
+	configServer config.ConfigCenterServer
 	openAPI      map[string]apiserver.APIConfig
 }
 

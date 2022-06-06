@@ -11,11 +11,11 @@
  *
  * Unless required by applicable law or agreed to in writing, software distributed
  * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * CONDITIONS OF ANY KIND, either express or Serveried. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package config
 
 import (
 	"context"
@@ -29,8 +29,8 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
-// CreateConfigFileTags 创建配置文件标签，tags 格式：k1,v1,k2,v2,k3,v3...
-func (cs *Impl) CreateConfigFileTags(ctx context.Context, namespace, group, fileName, operator string, tags ...string) error {
+// createConfigFileTags 创建配置文件标签，tags 格式：k1,v1,k2,v2,k3,v3...
+func (cs *Server) createConfigFileTags(ctx context.Context, namespace, group, fileName, operator string, tags ...string) error {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
 	if len(tags)%2 != 0 {
@@ -38,7 +38,7 @@ func (cs *Impl) CreateConfigFileTags(ctx context.Context, namespace, group, file
 	}
 
 	// 1. 获取已存储的 tags
-	storedTags, err := cs.QueryTagsByConfigFile(ctx, namespace, group, fileName)
+	storedTags, err := cs.storage.QueryTagByConfigFile(namespace, group, fileName)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] query config file tags error.",
 			zap.String("request-id", requestID),
@@ -132,7 +132,7 @@ func (cs *Impl) CreateConfigFileTags(ctx context.Context, namespace, group, file
 }
 
 // QueryConfigFileByTags 通过标签查询配置文件,多个 tag 之间为或的关系, tags 格式：k1,v1,k2,v2,k3,v3...
-func (cs *Impl) QueryConfigFileByTags(ctx context.Context, namespace, group, fileName string, offset, limit uint32,
+func (cs *Server) queryConfigFileByTags(ctx context.Context, namespace, group, fileName string, offset, limit uint32,
 	tags ...string) (int, []*model.ConfigFileTag, error) {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
@@ -190,13 +190,8 @@ func (cs *Impl) QueryConfigFileByTags(ctx context.Context, namespace, group, fil
 	return fileCount, files[offset:endIdx], nil
 }
 
-// QueryTagsByConfigFile 查询配置文件的标签
-func (cs *Impl) QueryTagsByConfigFile(ctx context.Context, namespace, group, fileName string) ([]*model.ConfigFileTag, error) {
-	return cs.storage.QueryTagByConfigFile(namespace, group, fileName)
-}
-
 // QueryTagsByConfigFileWithAPIModels 查询标签，返回API对象
-func (cs *Impl) QueryTagsByConfigFileWithAPIModels(ctx context.Context, namespace, group, fileName string) ([]*api.ConfigFileTag, error) {
+func (cs *Server) queryTagsByConfigFileWithAPIModels(ctx context.Context, namespace, group, fileName string) ([]*api.ConfigFileTag, error) {
 	tags, err := cs.storage.QueryTagByConfigFile(namespace, group, fileName)
 	if err != nil {
 		return nil, err
@@ -216,8 +211,8 @@ func (cs *Impl) QueryTagsByConfigFileWithAPIModels(ctx context.Context, namespac
 	return tagAPIModels, nil
 }
 
-// DeleteTagByConfigFile 删除配置文件的所有标签
-func (cs *Impl) DeleteTagByConfigFile(ctx context.Context, namespace, group, fileName string) error {
+// deleteTagByConfigFile 删除配置文件的所有标签
+func (cs *Server) deleteTagByConfigFile(ctx context.Context, namespace, group, fileName string) error {
 	if err := cs.storage.DeleteTagByConfigFile(cs.getTx(ctx), namespace, group, fileName); err != nil {
 		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 		log.ConfigScope().Error("[Config][Service] query config file tags error.",
@@ -231,7 +226,7 @@ func (cs *Impl) DeleteTagByConfigFile(ctx context.Context, namespace, group, fil
 	return nil
 }
 
-func (cs *Impl) doCreateConfigFileTags(ctx context.Context, namespace, group, fileName, operator string, tags ...string) error {
+func (cs *Server) doCreateConfigFileTags(ctx context.Context, namespace, group, fileName, operator string, tags ...string) error {
 	if len(tags) == 0 {
 		return nil
 	}
@@ -266,7 +261,7 @@ func (cs *Impl) doCreateConfigFileTags(ctx context.Context, namespace, group, fi
 	return nil
 }
 
-func (cs *Impl) doDeleteConfigFileTags(ctx context.Context, namespace, group, fileName string, tags ...string) error {
+func (cs *Server) doDeleteConfigFileTags(ctx context.Context, namespace, group, fileName string, tags ...string) error {
 	if len(tags) == 0 {
 		return nil
 	}

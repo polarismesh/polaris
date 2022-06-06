@@ -25,6 +25,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
+	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/bootstrap/config"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
@@ -33,8 +34,12 @@ import (
 	"github.com/polarismesh/polaris-server/store"
 
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/polarismesh/polaris-server/cache"
 	_ "github.com/polarismesh/polaris-server/store/boltdb"
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
+
+	_ "github.com/polarismesh/polaris-server/auth/defaultauth"
+	_ "github.com/polarismesh/polaris-server/plugin/auth/defaultauth"
 )
 
 var (
@@ -70,6 +75,7 @@ func doInitialize() error {
 
 		// 初始化defaultCtx
 		defaultCtx = context.WithValue(defaultCtx, utils.StringContext("request-id"), "config-test-request-id")
+		defaultCtx = context.WithValue(defaultCtx, utils.ContextUserNameKey, "polaris")
 
 		// 初始化日志打印
 		err = log.Configure(cfg.Bootstrap.Logger)
@@ -78,9 +84,26 @@ func doInitialize() error {
 			return
 		}
 
+		plugin.SetPluginConfig(&cfg.Plugin)
+
 		// 初始化存储层
 		store.SetStoreConfig(&cfg.Store)
-		_, _ = store.GetStore()
+		s, err := store.GetStore()
+		if err != nil {
+			fmt.Printf("[ERROR] configure get store fail: %v\n", err)
+			return
+		}
+
+		if err := auth.Initialize(context.Background(), &cfg.Auth, s, nil); err != nil {
+			fmt.Printf("[ERROR] configure init auth fail: %v\n", err)
+			return
+		}
+
+		authSvr, err := auth.GetAuthServer()
+		if err != nil {
+			fmt.Printf("[ERROR] configure get auth fail: %v\n", err)
+			return
+		}
 
 		plugin.SetPluginConfig(&cfg.Plugin)
 
@@ -92,12 +115,12 @@ func doInitialize() error {
 			}
 		}()
 
-		err = config_center.Initialize(ctx, cfg.Config)
+		err = config_center.Initialize(ctx, cfg.Config, s, nil, authSvr)
 		if err != nil {
 			return
 		}
 
-		configService, err = config_center.GetServer()
+		configService, err = config_center.GetOriginServer()
 		if err != nil {
 			return
 		}

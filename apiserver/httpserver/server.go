@@ -61,7 +61,7 @@ type HTTPServer struct {
 	maintainServer    maintain.MaintainOperateServer
 	namespaceServer   namespace.NamespaceOperateServer
 	namingServer      service.DiscoverServer
-	configServer      *config.Server
+	configServer      config.ConfigCenterServer
 	healthCheckServer *healthcheck.Server
 	rateLimit         plugin.Ratelimit
 	statis            plugin.Statis

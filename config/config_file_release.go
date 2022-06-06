@@ -11,11 +11,11 @@
  *
  * Unless required by applicable law or agreed to in writing, software distributed
  * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * CONDITIONS OF ANY KIND, either express or Serveried. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package config
 
 import (
 	"context"
@@ -31,7 +31,7 @@ import (
 )
 
 // PublishConfigFile 发布配置文件
-func (cs *Impl) PublishConfigFile(ctx context.Context, configFileRelease *api.ConfigFileRelease) *api.ConfigResponse {
+func (cs *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.ConfigFileRelease) *api.ConfigResponse {
 	namespace := configFileRelease.Namespace.GetValue()
 	group := configFileRelease.Group.GetValue()
 	fileName := configFileRelease.FileName.GetValue()
@@ -52,13 +52,7 @@ func (cs *Impl) PublishConfigFile(ctx context.Context, configFileRelease *api.Co
 		return api.NewConfigFileReleaseResponse(api.NotFoundNamespace, configFileRelease)
 	}
 
-	authCtx := cs.collectBaseTokenInfo(ctx)
-	if err := cs.authMgn.VerifyCredential(authCtx); err != nil {
-		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
-	}
-
-	requestCtx := authCtx.GetRequestContext()
-	userName := utils.ParseUserName(requestCtx)
+	userName := utils.ParseUserName(ctx)
 	configFileRelease.CreateBy = utils.NewStringValue(userName)
 	configFileRelease.ModifyBy = utils.NewStringValue(userName)
 
@@ -180,7 +174,7 @@ func (cs *Impl) PublishConfigFile(ctx context.Context, configFileRelease *api.Co
 }
 
 // GetConfigFileRelease 获取配置文件发布内容
-func (cs *Impl) GetConfigFileRelease(ctx context.Context, namespace, group, fileName string) *api.ConfigResponse {
+func (cs *Server) GetConfigFileRelease(ctx context.Context, namespace, group, fileName string) *api.ConfigResponse {
 	if err := utils2.CheckFileName(utils.NewStringValue(fileName)); err != nil {
 		return api.NewConfigFileResponse(api.InvalidConfigFileName, nil)
 	}
@@ -212,7 +206,7 @@ func (cs *Impl) GetConfigFileRelease(ctx context.Context, namespace, group, file
 }
 
 // DeleteConfigFileRelease 删除配置文件发布，删除配置文件的时候，同步删除配置文件发布数据
-func (cs *Impl) DeleteConfigFileRelease(ctx context.Context, namespace, group, fileName, deleteBy string) *api.ConfigResponse {
+func (cs *Server) DeleteConfigFileRelease(ctx context.Context, namespace, group, fileName, deleteBy string) *api.ConfigResponse {
 	if err := utils2.CheckFileName(utils.NewStringValue(fileName)); err != nil {
 		return api.NewConfigFileResponse(api.InvalidConfigFileName, nil)
 	}
@@ -288,7 +282,7 @@ func (cs *Impl) DeleteConfigFileRelease(ctx context.Context, namespace, group, f
 	return api.NewConfigFileReleaseResponse(api.ExecuteSuccess, nil)
 }
 
-func (cs *Impl) recordReleaseFail(ctx context.Context, configFileRelease *model.ConfigFileRelease) {
+func (cs *Server) recordReleaseFail(ctx context.Context, configFileRelease *model.ConfigFileRelease) {
 	cs.RecordConfigFileReleaseHistory(ctx, configFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusFail)
 }
 

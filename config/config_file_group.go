@@ -11,11 +11,11 @@
  *
  * Unless required by applicable law or agreed to in writing, software distributed
  * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * CONDITIONS OF ANY KIND, either express or Serveried. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package config
 
 import (
 	"context"
@@ -33,20 +33,14 @@ import (
 )
 
 // CreateConfigFileGroup 创建配置文件组
-func (cs *Impl) CreateConfigFileGroup(ctx context.Context, configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
+func (cs *Server) CreateConfigFileGroup(ctx context.Context, configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
 	if checkError := checkConfigFileGroupParams(configFileGroup); checkError != nil {
 		return checkError
 	}
 
-	authCtx := cs.collectBaseTokenInfo(ctx)
-	if err := cs.authMgn.VerifyCredential(authCtx); err != nil {
-		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
-	}
-
-	requestCtx := authCtx.GetRequestContext()
-	userName := utils.ParseUserName(requestCtx)
+	userName := utils.ParseUserName(ctx)
 	configFileGroup.CreateBy = utils.NewStringValue(userName)
 	configFileGroup.ModifyBy = utils.NewStringValue(userName)
 
@@ -96,8 +90,8 @@ func (cs *Impl) CreateConfigFileGroup(ctx context.Context, configFileGroup *api.
 	return api.NewConfigFileGroupResponse(api.ExecuteSuccess, transferConfigFileGroupStoreModel2APIModel(createdGroup))
 }
 
-// CreateConfigFileGroupIfAbsent 如果不存在配置文件组，则自动创建
-func (cs *Impl) CreateConfigFileGroupIfAbsent(ctx context.Context, configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
+// createConfigFileGroupIfAbsent 如果不存在配置文件组，则自动创建
+func (cs *Server) createConfigFileGroupIfAbsent(ctx context.Context, configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
 	namespace := configFileGroup.Namespace.GetValue()
 	name := configFileGroup.Name.GetValue()
 
@@ -121,7 +115,7 @@ func (cs *Impl) CreateConfigFileGroupIfAbsent(ctx context.Context, configFileGro
 }
 
 // QueryConfigFileGroups 查询配置文件组
-func (cs *Impl) QueryConfigFileGroups(ctx context.Context, namespace, groupName, fileName string, offset, limit uint32) *api.ConfigBatchQueryResponse {
+func (cs *Server) QueryConfigFileGroups(ctx context.Context, namespace, groupName, fileName string, offset, limit uint32) *api.ConfigBatchQueryResponse {
 	if offset < 0 || limit <= 0 || limit > MaxPageSize {
 		return api.NewConfigFileGroupBatchQueryResponse(api.InvalidParameter, 0, nil)
 	}
@@ -135,7 +129,7 @@ func (cs *Impl) QueryConfigFileGroups(ctx context.Context, namespace, groupName,
 	return cs.queryByFileName(ctx, namespace, groupName, fileName, offset, limit)
 }
 
-func (cs *Impl) queryByGroupName(ctx context.Context, namespace string, groupName string, offset uint32, limit uint32) *api.ConfigBatchQueryResponse {
+func (cs *Server) queryByGroupName(ctx context.Context, namespace string, groupName string, offset uint32, limit uint32) *api.ConfigBatchQueryResponse {
 	count, groups, err := cs.storage.QueryConfigFileGroups(namespace, groupName, offset, limit)
 	if err != nil {
 		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
@@ -160,7 +154,7 @@ func (cs *Impl) queryByGroupName(ctx context.Context, namespace string, groupNam
 	return api.NewConfigFileGroupBatchQueryResponse(api.ExecuteSuccess, count, groupAPIModels)
 }
 
-func (cs *Impl) queryByFileName(ctx context.Context, namespace, groupName, fileName string, offset uint32, limit uint32) *api.ConfigBatchQueryResponse {
+func (cs *Server) queryByFileName(ctx context.Context, namespace, groupName, fileName string, offset uint32, limit uint32) *api.ConfigBatchQueryResponse {
 	// 内存分页，先获取到所有配置文件
 	rsp := cs.queryConfigFileWithoutTags(ctx, namespace, groupName, fileName, 0, 10000)
 	if rsp.Code.GetValue() != api.ExecuteSuccess {
@@ -224,7 +218,7 @@ func (cs *Impl) queryByFileName(ctx context.Context, namespace, groupName, fileN
 	return api.NewConfigFileGroupBatchQueryResponse(api.ExecuteSuccess, uint32(total), groupAPIModels)
 }
 
-func (cs *Impl) batchTransfer(ctx context.Context, groups []*model.ConfigFileGroup) ([]*api.ConfigFileGroup, error) {
+func (cs *Server) batchTransfer(ctx context.Context, groups []*model.ConfigFileGroup) ([]*api.ConfigFileGroup, error) {
 	var result []*api.ConfigFileGroup
 
 	for _, groupStoreModel := range groups {
@@ -248,7 +242,7 @@ func (cs *Impl) batchTransfer(ctx context.Context, groups []*model.ConfigFileGro
 }
 
 // DeleteConfigFileGroup 删除配置文件组
-func (cs *Impl) DeleteConfigFileGroup(ctx context.Context, namespace, name string) *api.ConfigResponse {
+func (cs *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name string) *api.ConfigResponse {
 	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileGroupResponse(api.InvalidNamespaceName, nil)
 	}
@@ -256,13 +250,7 @@ func (cs *Impl) DeleteConfigFileGroup(ctx context.Context, namespace, name strin
 		return api.NewConfigFileGroupResponse(api.InvalidConfigFileGroupName, nil)
 	}
 
-	authCtx := cs.collectBaseTokenInfo(ctx)
-	if err := cs.authMgn.VerifyCredential(authCtx); err != nil {
-		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
-	}
-
-	requestCtx := authCtx.GetRequestContext()
-	operator := utils.ParseUserName(requestCtx)
+	operator := utils.ParseUserName(ctx)
 
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 	log.ConfigScope().Info("[Config][Service] delete config file group. ",
@@ -314,7 +302,7 @@ func (cs *Impl) DeleteConfigFileGroup(ctx context.Context, namespace, name strin
 }
 
 // UpdateConfigFileGroup 更新配置文件组
-func (cs *Impl) UpdateConfigFileGroup(ctx context.Context, configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
+func (cs *Server) UpdateConfigFileGroup(ctx context.Context, configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
 	if checkError := checkConfigFileGroupParams(configFileGroup); checkError != nil {
 		return checkError
 	}
@@ -339,13 +327,7 @@ func (cs *Impl) UpdateConfigFileGroup(ctx context.Context, configFileGroup *api.
 		return api.NewConfigFileGroupResponse(api.NotFoundResource, configFileGroup)
 	}
 
-	authCtx := cs.collectBaseTokenInfo(ctx)
-	if err := cs.authMgn.VerifyCredential(authCtx); err != nil {
-		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
-	}
-
-	requestCtx := authCtx.GetRequestContext()
-	userName := utils.ParseUserName(requestCtx)
+	userName := utils.ParseUserName(ctx)
 	configFileGroup.ModifyBy = utils.NewStringValue(userName)
 
 	toUpdateGroup := transferConfigFileGroupAPIModel2StoreModel(configFileGroup)
