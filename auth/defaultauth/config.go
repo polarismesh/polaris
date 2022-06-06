@@ -19,10 +19,8 @@ package defaultauth
 
 import "errors"
 
-var (
-	// AuthOption 鉴权的配置信息
-	AuthOption *AuthConfig = DefaultAuthConfig()
-)
+// AuthOption 鉴权的配置信息
+var AuthOption = DefaultAuthConfig()
 
 // AuthConfig 鉴权配置
 type AuthConfig struct {
@@ -40,10 +38,10 @@ type AuthConfig struct {
 func (cfg *AuthConfig) Verify() error {
 	k := len(cfg.Salt)
 	switch k {
-	default:
-		return errors.New("[Auth][Config] salt len must 16 | 24 | 32")
 	case 16, 24, 32:
 		break
+	default:
+		return errors.New("[Auth][Config] salt len must 16 | 24 | 32")
 	}
 
 	return nil
