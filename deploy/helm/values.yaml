@@ -34,7 +34,9 @@ polaris:
       password: polaris@123456
     redis:
       address: localhost:6379
-      password: polaris@123456
+      user: polaris # ACL user from redis v6.0, remove it if ACL is not available
+      password: polaris@123456 # AUTH password below redis v6.0, or ACL password from redis v6.0
+      withTLS: false
 
 service:
   type: LoadBalancer

@@ -240,12 +240,18 @@ data:
         - name: heartbeatRedis
           option:
             kvAddr: {{ .Values.polaris.storage.redis.address }}
+            {{- if .Values.polaris.storage.redis.user }}
+            kvUser: {{ .Values.polaris.storage.redis.user }}
+            {{- end }}
+            {{- if .Values.polaris.storage.redis.password }}
             kvPasswd: {{ .Values.polaris.storage.redis.password }}
+            {{- end }}
             maxIdle: 200
             idleTimeout: 120s
             connectTimeout: 200ms
             msgTimeout: 200ms
             concurrency: 200
+            withTLS: {{ .Values.polaris.storage.redis.withTLS | default false }}
     {{- else }}
         - name: heartbeatMemory
     {{- end }}
