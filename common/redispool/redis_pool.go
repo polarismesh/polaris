@@ -97,7 +97,8 @@ type Config struct {
 	KvAddr         string              `json:"kvAddr"`
 	KvUser         string              `json:"kvUser"`
 	KvPasswd       string              `json:"kvPasswd"`
-	MaxIdle        int                 `json:"maxIdle"`
+	PoolSize       int                 `json:"poolSize"`
+	MinIdleConns   int                 `json:"minIdleConns"`
 	IdleTimeout    commontime.Duration `json:"idleTimeout"`
 	ConnectTimeout commontime.Duration `json:"connectTimeout"`
 	MsgTimeout     commontime.Duration `json:"msgTimeout"`
@@ -112,7 +113,8 @@ type Config struct {
 // DefaultConfig redis pool configuration with default values
 func DefaultConfig() *Config {
 	return &Config{
-		MaxIdle:        200,
+		PoolSize:       200,
+		MinIdleConns:   30,
 		IdleTimeout:    commontime.Duration(120 * time.Second),
 		ConnectTimeout: commontime.Duration(300 * time.Millisecond),
 		MsgTimeout:     commontime.Duration(300 * time.Millisecond),
@@ -132,8 +134,11 @@ func (c *Config) Validate() error {
 	if len(c.KvUser) > 0 && len(c.KvPasswd) == 0 { // password is required only when ACL's user is given
 		return errors.New("kvPasswd is empty")
 	}
-	if c.MaxIdle <= 0 {
-		return errors.New("maxIdle is empty")
+	if c.MinIdleConns <= 0 {
+		return errors.New("minIdleConns is empty")
+	}
+	if c.PoolSize <= 0 {
+		return errors.New("poolSize is empty")
 	}
 	if c.IdleTimeout == 0 {
 		return errors.New("idleTimeout is empty")
@@ -174,8 +179,8 @@ func NewPool(ctx context.Context, config *Config, statis plugin.Statis) *Pool {
 		DialTimeout:  time.Duration(config.ConnectTimeout),
 		ReadTimeout:  time.Duration(config.MsgTimeout),
 		WriteTimeout: time.Duration(config.MsgTimeout),
-		PoolSize:     config.MaxIdle,
-		MinIdleConns: config.MaxIdle,
+		PoolSize:     config.PoolSize,
+		MinIdleConns: config.MinIdleConns,
 		IdleTimeout:  time.Duration(config.IdleTimeout),
 	}
 	if config.WithTLS {
