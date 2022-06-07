@@ -17,7 +17,7 @@ func TestNewRedisClient(t *testing.T) {
 	client := NewRedisClient(WithConfig(config))
 	err := client.Set(context.Background(), "polaris", 1, 60*time.Second).Err()
 	if err != nil {
-		t.Fatalf("new redis client error:%v", err)
+		t.Fatalf("test redis client error:%v", err)
 	}
 
 	t.Log("test success")
