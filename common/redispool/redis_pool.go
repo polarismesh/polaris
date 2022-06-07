@@ -14,7 +14,6 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-
 package redispool
 
 import (
@@ -28,7 +27,6 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-
 	"github.com/polarismesh/polaris-server/common/log"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/plugin"
@@ -94,20 +92,77 @@ type Resp struct {
 
 // Config redis pool configuration
 type Config struct {
-	KvAddr         string              `json:"kvAddr"`
-	KvUser         string              `json:"kvUser"`
-	KvPasswd       string              `json:"kvPasswd"`
-	PoolSize       int                 `json:"poolSize"`
-	MinIdleConns   int                 `json:"minIdleConns"`
-	IdleTimeout    commontime.Duration `json:"idleTimeout"`
+	KvAddr string `json:"kvAddr"`
+
+	// Use the specified Username to authenticate the current connection
+	// with one of the connections defined in the ACL list when connecting
+	// to a Redis 6.0 instance, or greater, that is using the Redis ACL system.
+	KvUser string `json:"kvUser"`
+
+	// KvPasswd for go-redis password or username (redis 6.0 version)
+	// Optional password. Must match the password specified in the
+	// requirepass server configuration option (if connecting to a Redis 5.0 instance, or lower),
+	// or the User Password when connecting to a Redis 6.0 instance, or greater,
+	// that is using the Redis ACL system.
+	KvPasswd string `json:"kvPasswd"`
+
+	// Minimum number of idle connections which is useful when establishing
+	// new connection is slow.
+	MinIdleConns int `json:"minIdleConns"`
+
+	// Amount of time after which client closes idle connections.
+	// Should be less than server's timeout.
+	// Default is 5 minutes. -1 disables idle timeout check.
+	IdleTimeout commontime.Duration `json:"idleTimeout"`
+
+	// ConnectTimeout for go-redis is Dial timeout for establishing new connections.
+	// Default is 5 seconds.
 	ConnectTimeout commontime.Duration `json:"connectTimeout"`
-	MsgTimeout     commontime.Duration `json:"msgTimeout"`
-	Concurrency    int                 `json:"concurrency"`
-	Compatible     bool                `json:"compatible"`
-	MaxRetry       int                 `json:"maxRetry"`
-	MinBatchCount  int                 `json:"minBatchCount"`
-	WaitTime       commontime.Duration `json:"waitTime"`
-	WithTLS        bool                `json:"withTLS"`
+
+	MsgTimeout    commontime.Duration `json:"msgTimeout"`
+	Concurrency   int                 `json:"concurrency"`
+	Compatible    bool                `json:"compatible"`
+	MaxRetry      int                 `json:"maxRetry"`
+	MinBatchCount int                 `json:"minBatchCount"`
+	WaitTime      commontime.Duration `json:"waitTime"`
+
+	// MaxRetries is Maximum number of retries before giving up.
+	// Default is 3 retries; -1 (not 0) disables retries.
+	MaxRetries int `json:"maxRetries"`
+
+	// DB is Database to be selected after connecting to the server.
+	DB int `json:"DB"`
+
+	// ReadTimeout for socket reads. If reached, commands will fail
+	// with a timeout instead of blocking. Use value -1 for no timeout and 0 for default.
+	// Default is 3 seconds.
+	ReadTimeout commontime.Duration `json:"readTimeout"`
+
+	// WriteTimeout for socket writes. If reached, commands will fail
+	// with a timeout instead of blocking.
+	// Default is ReadTimeout.
+	WriteTimeout commontime.Duration `json:"writeTimeout"`
+
+	// Maximum number of socket connections.
+	// Default is 10 connections per every available CPU as reported by runtime.GOMAXPROCS.
+	PoolSize int `json:"poolSize"`
+
+	// Amount of time client waits for connection if all connections
+	// are busy before returning an error.
+	// Default is ReadTimeout + 1 second.
+	PoolTimeout commontime.Duration `json:"poolTimeout"`
+
+	// Connection age at which client retires (closes) the connection.
+	// Default is to not close aged connections.
+	MaxConnAge commontime.Duration `json:"maxConnAge"`
+
+	// WithTLS whether open TLSConfig
+	// if WithTLS is true, you should call WithEnableWithTLS,and then TLSConfig is not should be nil
+	// In this case you should call WithTLSConfig func to set tlsConfig
+	WithTLS bool `json:"withTLS"`
+
+	// TLS Config to use. When set TLS will be negotiated.
+	tlsConfig *tls.Config
 }
 
 // DefaultConfig redis pool configuration with default values
@@ -123,6 +178,9 @@ func DefaultConfig() *Config {
 		MaxRetry:       2,
 		MinBatchCount:  10,
 		WaitTime:       commontime.Duration(50 * time.Millisecond),
+		DB:             0,
+		PoolTimeout:    commontime.Duration(3 * time.Second),
+		MaxConnAge:     commontime.Duration(1800 * time.Second),
 	}
 }
 
@@ -169,27 +227,78 @@ type Pool struct {
 	taskChans      []chan *Task
 }
 
-// NewPool init a redis connection pool instance
-func NewPool(ctx context.Context, config *Config, statis plugin.Statis) *Pool {
-	redisOptions := &redis.Options{
+// NewRedisClient new redis client
+func NewRedisClient(opts ...Option) *redis.Client {
+	config := DefaultConfig()
+	for _, o := range opts {
+		o(config)
+	}
+
+	redisOption := &redis.Options{
 		Addr:         config.KvAddr,
 		Username:     config.KvUser,
 		Password:     config.KvPasswd,
-		MaxRetries:   -1,
+		MaxRetries:   config.MaxRetries,
 		DialTimeout:  time.Duration(config.ConnectTimeout),
-		ReadTimeout:  time.Duration(config.MsgTimeout),
-		WriteTimeout: time.Duration(config.MsgTimeout),
 		PoolSize:     config.PoolSize,
 		MinIdleConns: config.MinIdleConns,
 		IdleTimeout:  time.Duration(config.IdleTimeout),
+		DB:           config.DB,
+		ReadTimeout:  time.Duration(config.ReadTimeout),
+		WriteTimeout: time.Duration(config.WriteTimeout),
+		PoolTimeout:  time.Duration(config.PoolTimeout),
+		MaxConnAge:   time.Duration(config.MaxConnAge),
 	}
+
+	if redisOption.ReadTimeout == 0 {
+		redisOption.ReadTimeout = time.Duration(config.MsgTimeout)
+	}
+
+	if redisOption.WriteTimeout == 0 {
+		redisOption.WriteTimeout = time.Duration(config.MsgTimeout)
+	}
+
+	if config.MaxConnAge == 0 {
+		redisOption.MaxConnAge = 1800 * time.Second
+	}
+
 	if config.WithTLS {
-		redisOptions.TLSConfig = &tls.Config{
-			MinVersion: tls.VersionTLS12,
+		if config.tlsConfig != nil {
+			redisOption.TLSConfig = config.tlsConfig
+		} else {
+			redisOption.TLSConfig = &tls.Config{
+				MinVersion: tls.VersionTLS12,
+			}
 		}
 	}
 
-	redisClient := redis.NewClient(redisOptions)
+	redisClient := redis.NewClient(redisOption)
+	return redisClient
+}
+
+// NewPool init a redis connection pool instance
+func NewPool(ctx context.Context, config *Config, statis plugin.Statis, opts ...Option) *Pool {
+	if config.WriteTimeout == 0 {
+		config.WriteTimeout = config.MsgTimeout
+	}
+
+	if config.ReadTimeout == 0 {
+		config.ReadTimeout = config.MsgTimeout
+	}
+
+	if config.MaxRetries <= 0 {
+		config.MaxRetries = -1
+	}
+
+	// keep old code compatibility
+	configOpts := []Option{
+		WithConfig(config),
+	}
+	if len(opts) > 0 {
+		configOpts = append(configOpts, opts...)
+	}
+
+	redisClient := NewRedisClient(configOpts...)
 	pool := &Pool{
 		config:         config,
 		ctx:            ctx,
@@ -198,6 +307,7 @@ func NewPool(ctx context.Context, config *Config, statis plugin.Statis) *Pool {
 		statis:         statis,
 		taskChans:      make([]chan *Task, 0, config.Concurrency),
 	}
+
 	for i := 0; i < config.Concurrency; i++ {
 		pool.taskChans = append(pool.taskChans, make(chan *Task, 1024))
 	}
