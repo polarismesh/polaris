@@ -14,7 +14,6 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-
 package redispool
 
 import (
@@ -95,6 +94,11 @@ type Resp struct {
 type Config struct {
 	KvAddr string `json:"kvAddr"`
 
+	// Use the specified Username to authenticate the current connection
+	// with one of the connections defined in the ACL list when connecting
+	// to a Redis 6.0 instance, or greater, that is using the Redis ACL system.
+	KvUser string `json:"kvUser"`
+
 	// KvPasswd for go-redis password or username (redis 6.0 version)
 	// Optional password. Must match the password specified in the
 	// requirepass server configuration option (if connecting to a Redis 5.0 instance, or lower),
@@ -102,9 +106,9 @@ type Config struct {
 	// that is using the Redis ACL system.
 	KvPasswd string `json:"kvPasswd"`
 
-	// MaxIdle for go-redis is Minimum number of idle connections which is useful when establishing
+	// Minimum number of idle connections which is useful when establishing
 	// new connection is slow.
-	MaxIdle int `json:"maxIdle"`
+	MinIdleConns int `json:"minIdleConns"`
 
 	// Amount of time after which client closes idle connections.
 	// Should be less than server's timeout.
@@ -152,36 +156,30 @@ type Config struct {
 	// Default is to not close aged connections.
 	MaxConnAge commontime.Duration `json:"maxConnAge"`
 
-	// Use the specified Username to authenticate the current connection
-	// with one of the connections defined in the ACL list when connecting
-	// to a Redis 6.0 instance, or greater, that is using the Redis ACL system.
-	Username string `json:"username"`
-
 	// WithTLS whether open TLSConfig
 	// if WithTLS is true, you should call WithEnableWithTLS,and then TLSConfig is not should be nil
 	// In this case you should call WithTLSConfig func to set tlsConfig
 	WithTLS bool `json:"withTLS"`
 
 	// TLS Config to use. When set TLS will be negotiated.
-	TlsConfig *tls.Config
+	tlsConfig *tls.Config
 }
 
 // DefaultConfig redis pool configuration with default values
 func DefaultConfig() *Config {
 	return &Config{
-		MaxIdle:        200,
-		IdleTimeout:    commontime.Duration(300 * time.Second),
-		ConnectTimeout: commontime.Duration(5 * time.Second),
-		MsgTimeout:     commontime.Duration(5 * time.Second),
+		PoolSize:       200,
+		MinIdleConns:   30,
+		IdleTimeout:    commontime.Duration(120 * time.Second),
+		ConnectTimeout: commontime.Duration(300 * time.Millisecond),
+		MsgTimeout:     commontime.Duration(300 * time.Millisecond),
 		Concurrency:    200,
 		Compatible:     false,
 		MaxRetry:       2,
 		MinBatchCount:  10,
 		WaitTime:       commontime.Duration(50 * time.Millisecond),
 		DB:             0,
-		ReadTimeout:    commontime.Duration(5 * time.Second),
-		WriteTimeout:   commontime.Duration(5 * time.Second),
-		PoolTimeout:    commontime.Duration(6 * time.Second),
+		PoolTimeout:    commontime.Duration(5 * time.Second),
 		MaxConnAge:     commontime.Duration(1800 * time.Second),
 	}
 }
@@ -191,11 +189,14 @@ func (c *Config) Validate() error {
 	if len(c.KvAddr) == 0 {
 		return errors.New("kvAddr is empty")
 	}
-	if len(c.KvPasswd) == 0 {
-		return errors.New("KvPasswd is empty")
+	if len(c.KvUser) > 0 && len(c.KvPasswd) == 0 { // password is required only when ACL's user is given
+		return errors.New("kvPasswd is empty")
 	}
-	if c.MaxIdle <= 0 {
-		return errors.New("maxIdle is empty")
+	if c.MinIdleConns <= 0 {
+		return errors.New("minIdleConns is empty")
+	}
+	if c.PoolSize <= 0 {
+		return errors.New("poolSize is empty")
 	}
 	if c.IdleTimeout == 0 {
 		return errors.New("idleTimeout is empty")
@@ -235,11 +236,12 @@ func NewRedisClient(opts ...Option) *redis.Client {
 
 	redisOption := &redis.Options{
 		Addr:         config.KvAddr,
+		Username:     config.KvUser,
 		Password:     config.KvPasswd,
 		MaxRetries:   config.MaxRetries,
 		DialTimeout:  time.Duration(config.ConnectTimeout),
 		PoolSize:     config.PoolSize,
-		MinIdleConns: config.MaxIdle,
+		MinIdleConns: config.MinIdleConns,
 		IdleTimeout:  time.Duration(config.IdleTimeout),
 		DB:           config.DB,
 		ReadTimeout:  time.Duration(config.ReadTimeout),
@@ -248,16 +250,26 @@ func NewRedisClient(opts ...Option) *redis.Client {
 		MaxConnAge:   time.Duration(config.MaxConnAge),
 	}
 
+	if redisOption.ReadTimeout == 0 {
+		redisOption.ReadTimeout = time.Duration(config.MsgTimeout)
+	}
+
+	if redisOption.WriteTimeout == 0 {
+		redisOption.WriteTimeout = time.Duration(config.MsgTimeout)
+	}
+
 	if config.MaxConnAge == 0 {
 		redisOption.MaxConnAge = 1800 * time.Second
 	}
 
 	if config.WithTLS {
-		if config.TlsConfig == nil {
-			panic("TLSConfig is nil,please call WithTLSConfig func to set tlsConfig")
+		if config.tlsConfig != nil {
+			redisOption.TLSConfig = config.tlsConfig
+		} else {
+			redisOption.TLSConfig = &tls.Config{
+				MinVersion: tls.VersionTLS12,
+			}
 		}
-
-		redisOption.TLSConfig = config.TlsConfig
 	}
 
 	redisClient := redis.NewClient(redisOption)
@@ -272,6 +284,10 @@ func NewPool(ctx context.Context, config *Config, statis plugin.Statis, opts ...
 
 	if config.ReadTimeout == 0 {
 		config.ReadTimeout = config.MsgTimeout
+	}
+
+	if config.MaxRetries <= 0 {
+		config.MaxRetries = -1
 	}
 
 	// keep old code compatibility
