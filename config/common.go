@@ -20,14 +20,13 @@ package config
 import (
 	"context"
 	"errors"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-
-	"go.uber.org/zap"
-
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
+	"go.uber.org/zap"
 )
 
 const (
@@ -35,13 +34,13 @@ const (
 )
 
 // StartTxAndSetToContext 开启一个事务，并放入到上下文里
-func (cs *Server) StartTxAndSetToContext(ctx context.Context) (store.Tx, context.Context, error) {
-	tx, err := cs.storage.StartTx()
+func (s *Server) StartTxAndSetToContext(ctx context.Context) (store.Tx, context.Context, error) {
+	tx, err := s.storage.StartTx()
 	return tx, context.WithValue(ctx, ContextTxKey, tx), err
 }
 
 // getTx 从上下文里获取事务对象
-func (cs *Server) getTx(ctx context.Context) store.Tx {
+func (s *Server) getTx(ctx context.Context) store.Tx {
 	tx := ctx.Value(ContextTxKey)
 	if tx == nil {
 		return nil
@@ -49,13 +48,13 @@ func (cs *Server) getTx(ctx context.Context) store.Tx {
 	return tx.(store.Tx)
 }
 
-func (cs *Server) checkNamespaceExisted(namespaceName string) bool {
-	namespace, _ := cs.storage.GetNamespace(namespaceName)
+func (s *Server) checkNamespaceExisted(namespaceName string) bool {
+	namespace, _ := s.storage.GetNamespace(namespaceName)
 	return namespace != nil
 }
 
-func (cs *Server) createNamespaceIfAbsent(namespaceName, operator, requestId string) error {
-	namespace, err := cs.storage.GetNamespace(namespaceName)
+func (s *Server) createNamespaceIfAbsent(namespaceName, operator, requestId string) error {
+	namespace, err := s.storage.GetNamespace(namespaceName)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] get namespace error.", zap.Error(err))
 		return err
@@ -71,7 +70,7 @@ func (cs *Server) createNamespaceIfAbsent(namespaceName, operator, requestId str
 		Comment: "auto created by config module",
 	}
 
-	if err := cs.storage.AddNamespace(namespace); err != nil {
+	if err := s.storage.AddNamespace(namespace); err != nil {
 		log.ConfigScope().Error("[Config][Service] create namespace error.",
 			zap.String("namespace", namespaceName),
 			zap.String("requestId", requestId),

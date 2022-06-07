@@ -24,13 +24,13 @@ import (
 )
 
 // GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
-func (cs *serverAuthibility) GetConfigFileForClient(ctx context.Context, fileInfo *api.ClientConfigFileInfo) *api.ConfigClientResponse {
+func (s *serverAuthibility) GetConfigFileForClient(ctx context.Context, fileInfo *api.ClientConfigFileInfo) *api.ConfigClientResponse {
 
-	return cs.targetServer.GetConfigFileForClient(ctx, fileInfo)
+	return s.targetServer.GetConfigFileForClient(ctx, fileInfo)
 }
 
-func (cs *serverAuthibility) WatchConfigFiles(ctx context.Context,
+func (s *serverAuthibility) WatchConfigFiles(ctx context.Context,
 	request *api.ClientWatchConfigFileRequest) (func() *api.ConfigClientResponse, error) {
 
-	return cs.targetServer.WatchConfigFiles(ctx, request)
+	return s.targetServer.WatchConfigFiles(ctx, request)
 }

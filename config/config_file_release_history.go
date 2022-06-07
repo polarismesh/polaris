@@ -20,31 +20,30 @@ package config
 import (
 	"context"
 
-	"go.uber.org/zap"
-
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
 	utils2 "github.com/polarismesh/polaris-server/config/utils"
+	"go.uber.org/zap"
 )
 
 // RecordConfigFileReleaseHistory 新增配置文件发布历史记录
-func (cs *Server) RecordConfigFileReleaseHistory(ctx context.Context, fileRelease *model.ConfigFileRelease, releaseType, status string) {
+func (s *Server) RecordConfigFileReleaseHistory(ctx context.Context, fileRelease *model.ConfigFileRelease, releaseType, status string) {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
 	namespace, group, fileName := fileRelease.Namespace, fileRelease.Group, fileRelease.FileName
 
 	// 获取 format 信息
 	var format string
-	configFileResponse := cs.GetConfigFileBaseInfo(ctx, namespace, group, fileName)
+	configFileResponse := s.GetConfigFileBaseInfo(ctx, namespace, group, fileName)
 	if configFileResponse.ConfigFile != nil {
 		format = configFileResponse.ConfigFile.Format.GetValue()
 	}
 
 	// 获取配置文件标签信息
-	tags, _ := cs.queryTagsByConfigFileWithAPIModels(ctx, namespace, group, fileName)
+	tags, _ := s.queryTagsByConfigFileWithAPIModels(ctx, namespace, group, fileName)
 
 	releaseHistory := &model.ConfigFileReleaseHistory{
 		Name:      fileRelease.Name,
@@ -62,7 +61,7 @@ func (cs *Server) RecordConfigFileReleaseHistory(ctx context.Context, fileReleas
 		ModifyBy:  fileRelease.ModifyBy,
 	}
 
-	err := cs.storage.CreateConfigFileReleaseHistory(cs.getTx(ctx), releaseHistory)
+	err := s.storage.CreateConfigFileReleaseHistory(s.getTx(ctx), releaseHistory)
 
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] create config file release history error.",
@@ -75,14 +74,14 @@ func (cs *Server) RecordConfigFileReleaseHistory(ctx context.Context, fileReleas
 }
 
 // GetConfigFileReleaseHistory 获取配置文件发布历史记录
-func (cs *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset,
+func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset,
 	limit uint32, endId uint64) *api.ConfigBatchQueryResponse {
 
 	if offset < 0 || limit <= 0 || limit > MaxPageSize {
 		return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.InvalidParameter, 0, nil)
 	}
 
-	count, releaseHistories, err := cs.storage.QueryConfigFileReleaseHistories(namespace, group, fileName, offset, limit, endId)
+	count, releaseHistories, err := s.storage.QueryConfigFileReleaseHistories(namespace, group, fileName, offset, limit, endId)
 
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 	if err != nil {
@@ -109,7 +108,7 @@ func (cs *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, gr
 }
 
 // GetConfigFileLatestReleaseHistory 获取配置文件最后一次发布记录
-func (cs *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group,
+func (s *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group,
 	fileName string) *api.ConfigResponse {
 
 	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
@@ -124,7 +123,7 @@ func (cs *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespa
 		return api.NewConfigFileReleaseHistoryResponse(api.InvalidNamespaceName, nil)
 	}
 
-	history, err := cs.storage.GetLatestConfigFileReleaseHistory(namespace, group, fileName)
+	history, err := s.storage.GetLatestConfigFileReleaseHistory(namespace, group, fileName)
 
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 

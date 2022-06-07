@@ -30,7 +30,7 @@ import (
 )
 
 // createConfigFileTags 创建配置文件标签，tags 格式：k1,v1,k2,v2,k3,v3...
-func (cs *Server) createConfigFileTags(ctx context.Context, namespace, group, fileName, operator string, tags ...string) error {
+func (s *Server) createConfigFileTags(ctx context.Context, namespace, group, fileName, operator string, tags ...string) error {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
 	if len(tags)%2 != 0 {
@@ -38,7 +38,7 @@ func (cs *Server) createConfigFileTags(ctx context.Context, namespace, group, fi
 	}
 
 	// 1. 获取已存储的 tags
-	storedTags, err := cs.storage.QueryTagByConfigFile(namespace, group, fileName)
+	storedTags, err := s.storage.QueryTagByConfigFile(namespace, group, fileName)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] query config file tags error.",
 			zap.String("request-id", requestID),
@@ -50,7 +50,7 @@ func (cs *Server) createConfigFileTags(ctx context.Context, namespace, group, fi
 	}
 
 	if len(storedTags) == 0 {
-		return cs.doCreateConfigFileTags(ctx, namespace, group, fileName, operator, tags...)
+		return s.doCreateConfigFileTags(ctx, namespace, group, fileName, operator, tags...)
 	}
 
 	// 2. 新增 tag，一个 key 可以有多个的 value
@@ -97,7 +97,7 @@ func (cs *Server) createConfigFileTags(ctx context.Context, namespace, group, fi
 			}
 		}
 	}
-	err = cs.doCreateConfigFileTags(ctx, namespace, group, fileName, operator, toCreateTags...)
+	err = s.doCreateConfigFileTags(ctx, namespace, group, fileName, operator, toCreateTags...)
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func (cs *Server) createConfigFileTags(ctx context.Context, namespace, group, fi
 			}
 		}
 	}
-	err = cs.doDeleteConfigFileTags(ctx, namespace, group, fileName, toDeleteTags...)
+	err = s.doDeleteConfigFileTags(ctx, namespace, group, fileName, toDeleteTags...)
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (cs *Server) createConfigFileTags(ctx context.Context, namespace, group, fi
 }
 
 // QueryConfigFileByTags 通过标签查询配置文件,多个 tag 之间为或的关系, tags 格式：k1,v1,k2,v2,k3,v3...
-func (cs *Server) queryConfigFileByTags(ctx context.Context, namespace, group, fileName string, offset, limit uint32,
+func (s *Server) queryConfigFileByTags(ctx context.Context, namespace, group, fileName string, offset, limit uint32,
 	tags ...string) (int, []*model.ConfigFileTag, error) {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
@@ -140,7 +140,7 @@ func (cs *Server) queryConfigFileByTags(ctx context.Context, namespace, group, f
 		return 0, nil, errors.New("tags param must be key,value pair, like key1,value1,key2,value2")
 	}
 
-	files, err := cs.storage.QueryConfigFileByTag(namespace, group, fileName, tags...)
+	files, err := s.storage.QueryConfigFileByTag(namespace, group, fileName, tags...)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] query config file by tags error.",
 			zap.String("request-id", requestID),
@@ -191,8 +191,8 @@ func (cs *Server) queryConfigFileByTags(ctx context.Context, namespace, group, f
 }
 
 // QueryTagsByConfigFileWithAPIModels 查询标签，返回API对象
-func (cs *Server) queryTagsByConfigFileWithAPIModels(ctx context.Context, namespace, group, fileName string) ([]*api.ConfigFileTag, error) {
-	tags, err := cs.storage.QueryTagByConfigFile(namespace, group, fileName)
+func (s *Server) queryTagsByConfigFileWithAPIModels(ctx context.Context, namespace, group, fileName string) ([]*api.ConfigFileTag, error) {
+	tags, err := s.storage.QueryTagByConfigFile(namespace, group, fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -212,8 +212,8 @@ func (cs *Server) queryTagsByConfigFileWithAPIModels(ctx context.Context, namesp
 }
 
 // deleteTagByConfigFile 删除配置文件的所有标签
-func (cs *Server) deleteTagByConfigFile(ctx context.Context, namespace, group, fileName string) error {
-	if err := cs.storage.DeleteTagByConfigFile(cs.getTx(ctx), namespace, group, fileName); err != nil {
+func (s *Server) deleteTagByConfigFile(ctx context.Context, namespace, group, fileName string) error {
+	if err := s.storage.DeleteTagByConfigFile(s.getTx(ctx), namespace, group, fileName); err != nil {
 		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 		log.ConfigScope().Error("[Config][Service] query config file tags error.",
 			zap.String("request-id", requestID),
@@ -226,7 +226,7 @@ func (cs *Server) deleteTagByConfigFile(ctx context.Context, namespace, group, f
 	return nil
 }
 
-func (cs *Server) doCreateConfigFileTags(ctx context.Context, namespace, group, fileName, operator string, tags ...string) error {
+func (s *Server) doCreateConfigFileTags(ctx context.Context, namespace, group, fileName, operator string, tags ...string) error {
 	if len(tags) == 0 {
 		return nil
 	}
@@ -238,7 +238,7 @@ func (cs *Server) doCreateConfigFileTags(ctx context.Context, namespace, group, 
 		if idx%2 == 0 {
 			key = t
 		} else {
-			err := cs.storage.CreateConfigFileTag(cs.getTx(ctx), &model.ConfigFileTag{
+			err := s.storage.CreateConfigFileTag(s.getTx(ctx), &model.ConfigFileTag{
 				Key:       key,
 				Value:     t,
 				Namespace: namespace,
@@ -261,7 +261,7 @@ func (cs *Server) doCreateConfigFileTags(ctx context.Context, namespace, group, 
 	return nil
 }
 
-func (cs *Server) doDeleteConfigFileTags(ctx context.Context, namespace, group, fileName string, tags ...string) error {
+func (s *Server) doDeleteConfigFileTags(ctx context.Context, namespace, group, fileName string, tags ...string) error {
 	if len(tags) == 0 {
 		return nil
 	}
@@ -273,7 +273,7 @@ func (cs *Server) doDeleteConfigFileTags(ctx context.Context, namespace, group, 
 		if idx%2 == 0 {
 			key = t
 		} else {
-			err := cs.storage.DeleteConfigFileTag(cs.getTx(ctx), namespace, group, fileName, key, t)
+			err := s.storage.DeleteConfigFileTag(s.getTx(ctx), namespace, group, fileName, key, t)
 			if err != nil {
 				log.ConfigScope().Error("[Config][Service] delete config file tag error.",
 					zap.String("request-id", requestID),

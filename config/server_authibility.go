@@ -44,7 +44,7 @@ func newServerAuthAbility(targetServer *Server, authSvr auth.AuthServer) ConfigC
 	return proxy
 }
 
-func (cs *serverAuthibility) collectBaseTokenInfo(ctx context.Context) *model.AcquireContext {
+func (s *serverAuthibility) collectBaseTokenInfo(ctx context.Context) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithToken(utils.ParseAuthToken(ctx)),

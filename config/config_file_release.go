@@ -20,18 +20,17 @@ package config
 import (
 	"context"
 
-	"go.uber.org/zap"
-
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
 	utils2 "github.com/polarismesh/polaris-server/config/utils"
+	"go.uber.org/zap"
 )
 
 // PublishConfigFile 发布配置文件
-func (cs *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.ConfigFileRelease) *api.ConfigResponse {
+func (s *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.ConfigFileRelease) *api.ConfigResponse {
 	namespace := configFileRelease.Namespace.GetValue()
 	group := configFileRelease.Group.GetValue()
 	fileName := configFileRelease.FileName.GetValue()
@@ -48,7 +47,7 @@ func (cs *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.
 		return api.NewConfigFileResponse(api.InvalidConfigFileGroupName, nil)
 	}
 
-	if !cs.checkNamespaceExisted(namespace) {
+	if !s.checkNamespaceExisted(namespace) {
 		return api.NewConfigFileReleaseResponse(api.NotFoundNamespace, configFileRelease)
 	}
 
@@ -56,9 +55,9 @@ func (cs *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.
 	configFileRelease.CreateBy = utils.NewStringValue(userName)
 	configFileRelease.ModifyBy = utils.NewStringValue(userName)
 
-	tx := cs.getTx(ctx)
+	tx := s.getTx(ctx)
 	// 获取待发布的 configFile 信息
-	toPublishFile, err := cs.storage.GetConfigFile(tx, namespace, group, fileName)
+	toPublishFile, err := s.storage.GetConfigFile(tx, namespace, group, fileName)
 
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 	if err != nil {
@@ -69,7 +68,7 @@ func (cs *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.
 			zap.String("fileName", fileName),
 			zap.Error(err))
 
-		cs.recordReleaseFail(ctx, transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
+		s.recordReleaseFail(ctx, transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
 
 		return api.NewConfigFileResponse(api.StoreLayerException, nil)
 	}
@@ -81,7 +80,7 @@ func (cs *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.
 	md5 := utils2.CalMd5(toPublishFile.Content)
 
 	// 获取 configFileRelease 信息
-	managedFileRelease, err := cs.storage.GetConfigFileReleaseWithAllFlag(tx, namespace, group, fileName)
+	managedFileRelease, err := s.storage.GetConfigFileReleaseWithAllFlag(tx, namespace, group, fileName)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] get config file release error.",
 			zap.String("request-id", requestID),
@@ -90,7 +89,7 @@ func (cs *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.
 			zap.String("fileName", fileName),
 			zap.Error(err))
 
-		cs.recordReleaseFail(ctx, transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
+		s.recordReleaseFail(ctx, transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
 
 		return api.NewConfigFileResponse(api.StoreLayerException, nil)
 	}
@@ -120,7 +119,7 @@ func (cs *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.
 			ModifyBy:  configFileRelease.CreateBy.GetValue(),
 		}
 
-		createdFileRelease, err := cs.storage.CreateConfigFileRelease(tx, fileRelease)
+		createdFileRelease, err := s.storage.CreateConfigFileRelease(tx, fileRelease)
 		if err != nil {
 			log.ConfigScope().Error("[Config][Service] create config file release error.",
 				zap.String("request-id", requestID),
@@ -129,12 +128,12 @@ func (cs *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.
 				zap.String("fileName", fileName),
 				zap.Error(err))
 
-			cs.recordReleaseFail(ctx, transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
+			s.recordReleaseFail(ctx, transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
 
 			return api.NewConfigFileResponse(api.StoreLayerException, nil)
 		}
 
-		cs.RecordConfigFileReleaseHistory(ctx, createdFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
+		s.RecordConfigFileReleaseHistory(ctx, createdFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
 
 		return api.NewConfigFileReleaseResponse(api.ExecuteSuccess,
 			transferConfigFileReleaseStoreModel2APIModel(createdFileRelease))
@@ -153,7 +152,7 @@ func (cs *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.
 		ModifyBy:  configFileRelease.CreateBy.GetValue(),
 	}
 
-	updatedFileRelease, err := cs.storage.UpdateConfigFileRelease(tx, fileRelease)
+	updatedFileRelease, err := s.storage.UpdateConfigFileRelease(tx, fileRelease)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] update config file release error.",
 			zap.String("request-id", requestID),
@@ -162,19 +161,19 @@ func (cs *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.
 			zap.String("fileName", fileName),
 			zap.Error(err))
 
-		cs.recordReleaseFail(ctx, transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
+		s.recordReleaseFail(ctx, transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
 
 		return api.NewConfigFileResponse(api.StoreLayerException, nil)
 	}
 
-	cs.RecordConfigFileReleaseHistory(ctx, updatedFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
+	s.RecordConfigFileReleaseHistory(ctx, updatedFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
 
 	return api.NewConfigFileReleaseResponse(api.ExecuteSuccess,
 		transferConfigFileReleaseStoreModel2APIModel(updatedFileRelease))
 }
 
 // GetConfigFileRelease 获取配置文件发布内容
-func (cs *Server) GetConfigFileRelease(ctx context.Context, namespace, group, fileName string) *api.ConfigResponse {
+func (s *Server) GetConfigFileRelease(ctx context.Context, namespace, group, fileName string) *api.ConfigResponse {
 	if err := utils2.CheckFileName(utils.NewStringValue(fileName)); err != nil {
 		return api.NewConfigFileResponse(api.InvalidConfigFileName, nil)
 	}
@@ -187,7 +186,7 @@ func (cs *Server) GetConfigFileRelease(ctx context.Context, namespace, group, fi
 		return api.NewConfigFileResponse(api.InvalidConfigFileGroupName, nil)
 	}
 
-	fileRelease, err := cs.storage.GetConfigFileRelease(cs.getTx(ctx), namespace, group, fileName)
+	fileRelease, err := s.storage.GetConfigFileRelease(s.getTx(ctx), namespace, group, fileName)
 
 	if err != nil {
 		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
@@ -206,7 +205,7 @@ func (cs *Server) GetConfigFileRelease(ctx context.Context, namespace, group, fi
 }
 
 // DeleteConfigFileRelease 删除配置文件发布，删除配置文件的时候，同步删除配置文件发布数据
-func (cs *Server) DeleteConfigFileRelease(ctx context.Context, namespace, group, fileName, deleteBy string) *api.ConfigResponse {
+func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace, group, fileName, deleteBy string) *api.ConfigResponse {
 	if err := utils2.CheckFileName(utils.NewStringValue(fileName)); err != nil {
 		return api.NewConfigFileResponse(api.InvalidConfigFileName, nil)
 	}
@@ -219,7 +218,7 @@ func (cs *Server) DeleteConfigFileRelease(ctx context.Context, namespace, group,
 		return api.NewConfigFileResponse(api.InvalidConfigFileGroupName, nil)
 	}
 
-	latestReleaseRsp := cs.GetConfigFileRelease(ctx, namespace, group, fileName)
+	latestReleaseRsp := s.GetConfigFileRelease(ctx, namespace, group, fileName)
 	if latestReleaseRsp.Code.GetValue() != api.ExecuteSuccess {
 		return api.NewConfigFileResponse(latestReleaseRsp.Code.GetValue(), nil)
 	}
@@ -238,7 +237,7 @@ func (cs *Server) DeleteConfigFileRelease(ctx context.Context, namespace, group,
 		// 更新releaseName
 		releaseModel := transferConfigFileReleaseAPIModel2StoreModel(latestRelease)
 		releaseModel.Name = releaseName
-		_, err := cs.storage.UpdateConfigFileRelease(cs.getTx(ctx), releaseModel)
+		_, err := s.storage.UpdateConfigFileRelease(s.getTx(ctx), releaseModel)
 		if err != nil {
 			log.ConfigScope().Error("[Config][Service] update release name error when delete release.",
 				zap.String("request-id", requestID),
@@ -250,7 +249,7 @@ func (cs *Server) DeleteConfigFileRelease(ctx context.Context, namespace, group,
 		return api.NewConfigFileResponse(api.StoreLayerException, nil)
 	}
 
-	err := cs.storage.DeleteConfigFileRelease(cs.getTx(ctx), namespace, group, fileName, deleteBy)
+	err := s.storage.DeleteConfigFileRelease(s.getTx(ctx), namespace, group, fileName, deleteBy)
 
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] delete config file release error.",
@@ -260,7 +259,7 @@ func (cs *Server) DeleteConfigFileRelease(ctx context.Context, namespace, group,
 			zap.String("fileName", fileName),
 			zap.Error(err))
 
-		cs.RecordConfigFileReleaseHistory(ctx, &model.ConfigFileRelease{
+		s.RecordConfigFileReleaseHistory(ctx, &model.ConfigFileRelease{
 			Name:      releaseName,
 			Namespace: namespace,
 			Group:     group,
@@ -271,7 +270,7 @@ func (cs *Server) DeleteConfigFileRelease(ctx context.Context, namespace, group,
 		return api.NewConfigFileResponse(api.StoreLayerException, nil)
 	}
 
-	cs.RecordConfigFileReleaseHistory(ctx, &model.ConfigFileRelease{
+	s.RecordConfigFileReleaseHistory(ctx, &model.ConfigFileRelease{
 		Name:      releaseName,
 		Namespace: namespace,
 		Group:     group,
@@ -282,8 +281,8 @@ func (cs *Server) DeleteConfigFileRelease(ctx context.Context, namespace, group,
 	return api.NewConfigFileReleaseResponse(api.ExecuteSuccess, nil)
 }
 
-func (cs *Server) recordReleaseFail(ctx context.Context, configFileRelease *model.ConfigFileRelease) {
-	cs.RecordConfigFileReleaseHistory(ctx, configFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusFail)
+func (s *Server) recordReleaseFail(ctx context.Context, configFileRelease *model.ConfigFileRelease) {
+	s.RecordConfigFileReleaseHistory(ctx, configFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusFail)
 }
 
 func transferConfigFileReleaseAPIModel2StoreModel(release *api.ConfigFileRelease) *model.ConfigFileRelease {

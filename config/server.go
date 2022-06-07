@@ -20,16 +20,13 @@ package config
 import (
 	"context"
 	"errors"
-	"sync"
 	"time"
 
 	"github.com/polarismesh/polaris-server/auth"
-
-	"go.uber.org/zap"
-
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/store"
+	"go.uber.org/zap"
 )
 
 var _ ConfigCenterServer = (*Server)(nil)
@@ -41,12 +38,10 @@ const (
 
 var (
 	server       ConfigCenterServer
-	originServer = new(Server)
-	once         = sync.Once{}
-	initialized  = false
+	originServer = &Server{}
 )
 
-// StartupConfig 配置中心模块启动参数
+// Config 配置中心模块启动参数
 type Config struct {
 	Open  bool                   `yaml:"open"`
 	Cache map[string]interface{} `yaml:"cache"`
@@ -58,34 +53,34 @@ type Server struct {
 	cache       *cache.FileCache
 	watchCenter *watchCenter
 	connManager *connManager
+	initialized bool
 }
 
 // Initialize 初始化配置中心模块
 func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cache.NamingCache,
 	authSvr auth.AuthServer) error {
-
 	if !config.Open {
-		initialized = true
+		originServer.initialized = true
 		return nil
 	}
 
-	var err error
-	once.Do(func() {
-		err = initialize(ctx, config, s, cacheMgn, authSvr)
-	})
+	if originServer.initialized {
+		return nil
+	}
 
+	err := originServer.initialize(ctx, config, s, cacheMgn, authSvr)
 	if err != nil {
 		return err
 	}
 
-	initialized = true
+	originServer.initialized = true
 	return nil
 }
 
-func initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cache.NamingCache,
+func (s *Server) initialize(ctx context.Context, config Config, ss store.Store, cacheMgn *cache.NamingCache,
 	authSvr auth.AuthServer) error {
 
-	originServer.storage = s
+	s.storage = ss
 
 	// 初始化缓存模块
 	expireTimeAfterWrite, ok := config.Cache["expireTimeAfterWrite"]
@@ -96,19 +91,19 @@ func initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 	cacheParam := cache.FileCacheParam{
 		ExpireTimeAfterWrite: expireTimeAfterWrite.(int),
 	}
-	fileCache := cache.NewFileCache(ctx, s, cacheParam)
-	originServer.cache = fileCache
+	fileCache := cache.NewFileCache(ctx, ss, cacheParam)
+	s.cache = fileCache
 
 	// 初始化事件中心
 	eventCenter := NewEventCenter()
-	originServer.watchCenter = NewWatchCenter(eventCenter)
+	s.watchCenter = NewWatchCenter(eventCenter)
 
 	// 初始化连接管理器
-	connMng := NewConfigConnManager(ctx, originServer.watchCenter)
-	originServer.connManager = connMng
+	connMng := NewConfigConnManager(ctx, s.watchCenter)
+	s.connManager = connMng
 
 	// 初始化发布事件扫描器
-	if err := initReleaseMessageScanner(ctx, s, fileCache, eventCenter, time.Second); err != nil {
+	if err := initReleaseMessageScanner(ctx, ss, fileCache, eventCenter, time.Second); err != nil {
 		log.ConfigScope().Error("[Config][Server] init release message scanner error. ", zap.Error(err))
 		return errors.New("init config module error")
 	}
@@ -122,7 +117,7 @@ func initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 
 // GetServer 获取已经初始化好的ConfigServer
 func GetServer() (ConfigCenterServer, error) {
-	if !initialized {
+	if !originServer.initialized {
 		return nil, errors.New("config server has not done initialize")
 	}
 
@@ -130,7 +125,7 @@ func GetServer() (ConfigCenterServer, error) {
 }
 
 func GetOriginServer() (*Server, error) {
-	if !initialized {
+	if !originServer.initialized {
 		return nil, errors.New("config server has not done initialize")
 	}
 
@@ -138,16 +133,16 @@ func GetOriginServer() (*Server, error) {
 }
 
 // WatchCenter 获取监听事件中心
-func (cs *Server) WatchCenter() *watchCenter {
-	return cs.watchCenter
+func (s *Server) WatchCenter() *watchCenter {
+	return s.watchCenter
 }
 
 // Cache 获取配置中心缓存模块
-func (cs *Server) Cache() *cache.FileCache {
-	return cs.cache
+func (s *Server) Cache() *cache.FileCache {
+	return s.cache
 }
 
 // ConnManager 获取配置中心连接管理器
-func (cs *Server) ConnManager() *connManager {
-	return cs.connManager
+func (s *Server) ConnManager() *connManager {
+	return s.connManager
 }
