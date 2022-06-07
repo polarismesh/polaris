@@ -179,7 +179,7 @@ func DefaultConfig() *Config {
 		MinBatchCount:  10,
 		WaitTime:       commontime.Duration(50 * time.Millisecond),
 		DB:             0,
-		PoolTimeout:    commontime.Duration(5 * time.Second),
+		PoolTimeout:    commontime.Duration(3 * time.Second),
 		MaxConnAge:     commontime.Duration(1800 * time.Second),
 	}
 }
