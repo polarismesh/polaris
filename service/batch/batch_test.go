@@ -47,14 +47,14 @@ func TestNewBatchCtrlWithConfig(t *testing.T) {
 			Register:   ctrlConfig,
 			Deregister: ctrlConfig,
 		}
-		bc, err := NewBatchCtrlWithConfig(nil, nil, nil, config)
+		bc, err := NewBatchCtrlWithConfig(nil, nil, config)
 		So(err, ShouldBeNil)
 		So(bc, ShouldNotBeNil)
 		So(bc.register, ShouldNotBeNil)
 		So(bc.deregister, ShouldNotBeNil)
 	})
 	Convey("可以关闭register和deregister的batch操作", t, func() {
-		bc, err := NewBatchCtrlWithConfig(nil, nil, nil, nil)
+		bc, err := NewBatchCtrlWithConfig(nil, nil, nil)
 		So(err, ShouldBeNil)
 		So(bc, ShouldBeNil)
 
@@ -62,7 +62,7 @@ func TestNewBatchCtrlWithConfig(t *testing.T) {
 			Register:   &CtrlConfig{Open: false},
 			Deregister: &CtrlConfig{Open: false},
 		}
-		bc, err = NewBatchCtrlWithConfig(nil, nil, nil, config)
+		bc, err = NewBatchCtrlWithConfig(nil, nil, config)
 		So(err, ShouldBeNil)
 		So(bc, ShouldNotBeNil)
 		So(bc.register, ShouldBeNil)
@@ -85,7 +85,7 @@ func newCreateInstanceController(t *testing.T) (*Controller, *smock.MockStore, *
 			Concurrency:   4,
 		},
 	}
-	bc, err := NewBatchCtrlWithConfig(storage, authority, nil, config)
+	bc, err := NewBatchCtrlWithConfig(storage, nil, config)
 	if bc == nil || err != nil {
 		t.Fatalf("error: %+v", err)
 	}
@@ -102,7 +102,7 @@ func sendAsyncCreateInstance(bc *Controller) error {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
-			future := bc.AsyncCreateInstance(&api.Instance{
+			future := bc.AsyncCreateInstance(utils.NewUUID(), &api.Instance{
 				Id:           utils.NewStringValue(fmt.Sprintf("%d", index)),
 				ServiceToken: utils.NewStringValue(fmt.Sprintf("%d", index)),
 			},
@@ -137,28 +137,17 @@ func TestAsyncCreateInstance(t *testing.T) {
 		storage.EXPECT().BatchAddInstances(gomock.Any()).Return(nil).AnyTimes()
 		So(sendAsyncCreateInstance(bc), ShouldBeNil)
 	})
-	Convey("鉴权失败", t, func() {
-		bc, storage, authority, cancel := newCreateInstanceController(t)
-		defer cancel()
-		storage.EXPECT().BatchGetInstanceIsolate(gomock.Any()).Return(nil, nil).AnyTimes()
-		storage.EXPECT().GetSourceServiceToken(gomock.Any(), gomock.Any()).
-			Return(&model.Service{ID: "1"}, nil).AnyTimes()
-		authority.EXPECT().VerifyInstance(gomock.Any(), gomock.Any()).Return(false).AnyTimes()
-		err := sendAsyncCreateInstance(bc)
-		So(err, ShouldNotBeNil)
-		t.Logf("%+v", err)
-	})
 }
 
 // TestSendReply 测试reply
 func TestSendReply(t *testing.T) {
 	Convey("可以正常获取类型", t, func() {
-		SendReply(make([]*InstanceFuture, 0, 10), 1, nil)
+		sendReply(make([]*InstanceFuture, 0, 10), 1, nil)
 	})
 	Convey("可以正常获取类型2", t, func() {
-		SendReply(make(map[string]*InstanceFuture, 10), 1, nil)
+		sendReply(make(map[string]*InstanceFuture, 10), 1, nil)
 	})
 	Convey("其他类型不通过", t, func() {
-		SendReply("test string", 1, nil)
+		sendReply("test string", 1, nil)
 	})
 }

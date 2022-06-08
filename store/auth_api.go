@@ -51,6 +51,7 @@ type UserStore interface {
 	GetUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error)
 
 	// GetUsersForCache Used to refresh user cache
+	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*model.User, error)
 }
 
@@ -76,6 +77,7 @@ type GroupStore interface {
 	GetGroups(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error)
 
 	// GetUserGroupsForCache Refresh of getting user groups for cache
+	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*model.UserGroupDetail, error)
 }
 
@@ -105,12 +107,13 @@ type StrategyStore interface {
 	GetDefaultStrategyDetailByPrincipal(principalId string, principalType model.PrincipalType) (*model.StrategyDetail, error)
 
 	// GetStrategyDetail Get strategy details
-	GetStrategyDetail(id string, isDefault bool) (*model.StrategyDetail, error)
+	GetStrategyDetail(id string) (*model.StrategyDetail, error)
 
 	// GetStrategies Get a list of strategies
 	GetStrategies(filters map[string]string, offset uint32, limit uint32) (uint32,
 		[]*model.StrategyDetail, error)
 
 	// GetStrategyDetailsForCache Used to refresh policy cache
+	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetStrategyDetailsForCache(mtime time.Time, firstUpdate bool) ([]*model.StrategyDetail, error)
 }

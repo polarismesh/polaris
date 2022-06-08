@@ -23,6 +23,9 @@ polaris:
       cpu: "500m"
       memory: "1000Mi"
   replicaCount: 1
+  auth:
+    consoleOpen: true
+    clientOpen: false
   storage:
     db:
       address: localhost:3306
@@ -31,16 +34,19 @@ polaris:
       password: polaris@123456
     redis:
       address: localhost:6379
-      password: polaris@123456
+      user: polaris # ACL user from redis v6.0, remove it if ACL is not available
+      password: polaris@123456 # AUTH password below redis v6.0, or ACL password from redis v6.0
+      withTLS: false
 
 service:
   type: LoadBalancer
+  webPort: 8080
   eurekaPort: 8761
   httpPort: 8090
-  grpcPort: 8091
-  webPort: 8080
+  serviceGrpcPort: 8091
   xdsv3Port: 15010
   configGrpcPort: 8093
+  prometheusPort: 9000
 
 monitor:
   port: 9091

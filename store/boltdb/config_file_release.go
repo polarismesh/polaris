@@ -77,6 +77,9 @@ func (cfr *configFileReleaseStore) CreateConfigFileRelease(proxyTx store.Tx, fil
 		cfr.id++
 		fileRelease.Id = cfr.id
 		fileRelease.Valid = true
+		tN := time.Now()
+		fileRelease.CreateTime = tN
+		fileRelease.ModifyTime = tN
 
 		if err := saveValue(tx, tblConfigFileReleaseID, tblConfigFileReleaseID, &IDHolder{
 			ID: cfr.id,
@@ -274,7 +277,7 @@ func (cfr *configFileReleaseStore) FindConfigFileReleaseByModifyTimeAfter(modify
 	ret, err := cfr.handler.LoadValuesByFilter(tblConfigFileRelease, fields, &model.ConfigFileRelease{},
 		func(m map[string]interface{}) bool {
 			saveMt, _ := m[FileReleaseFieldModifyTime].(time.Time)
-			return saveMt.After(modifyTime)
+			return !saveMt.Before(modifyTime)
 		})
 
 	if err != nil {

@@ -20,11 +20,11 @@ package main
 import (
 	// api-server 插件注册
 	_ "github.com/polarismesh/polaris-server/apiserver/eurekaserver"
-	_ "github.com/polarismesh/polaris-server/apiserver/grpcserver"
 	_ "github.com/polarismesh/polaris-server/apiserver/grpcserver/config"
+	_ "github.com/polarismesh/polaris-server/apiserver/grpcserver/discover"
 	_ "github.com/polarismesh/polaris-server/apiserver/httpserver"
 	_ "github.com/polarismesh/polaris-server/apiserver/l5pbserver"
-	_ "github.com/polarismesh/polaris-server/apiserver/prometheusserver"
+	_ "github.com/polarismesh/polaris-server/apiserver/prometheussd"
 	_ "github.com/polarismesh/polaris-server/apiserver/xdsserverv3"
 
 	_ "github.com/polarismesh/polaris-server/auth/defaultauth"

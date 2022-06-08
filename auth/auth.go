@@ -20,8 +20,7 @@ package auth
 import (
 	"context"
 	"errors"
-	"fmt"
-	"os"
+	"log"
 	"sync"
 
 	"github.com/polarismesh/polaris-server/cache"
@@ -91,8 +90,8 @@ func initialize(ctx context.Context, authOpt *Config, storage store.Store, cache
 	authSvr = mgn
 
 	if err := authSvr.Initialize(authOpt, storage, cacheMgn); err != nil {
-		fmt.Printf("auth manager do initialize err: %s", err.Error())
-		os.Exit(-1)
+		log.Printf("auth manager do initialize err: %s", err.Error())
+		return err
 	}
 	return nil
 }

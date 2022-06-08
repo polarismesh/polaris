@@ -28,14 +28,13 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	logger "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
-	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 )
 
 var (
 	// 用户查询相关属性对应关系
-	userAttributeMapping map[string]string = map[string]string{
+	userAttributeMapping = map[string]string{
 		"owner":    "u.owner",
 		"name":     "u.name",
 		"group_id": "group_id",
@@ -500,8 +499,8 @@ func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mode
 	  `
 
 	if !firstUpdate {
-		querySql += " WHERE u.mtime >= ? "
-		args = append(args, commontime.Time2String(mtime))
+		querySql += " WHERE u.mtime >= FROM_UNIXTIME(?) "
+		args = append(args, timeToTimestamp(mtime))
 	}
 
 	users, err := u.collectUsers(u.master.Query, querySql, args, logger.CacheScope())

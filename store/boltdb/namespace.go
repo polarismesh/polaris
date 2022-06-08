@@ -84,10 +84,27 @@ func (n *namespaceStore) AddNamespace(namespace *model.Namespace) error {
 	if namespace.Name == "" {
 		return errors.New("store add namespace name is empty")
 	}
-	namespace.CreateTime = time.Now()
-	namespace.ModifyTime = time.Now()
+
+	// 先删除无效数据，再添加新数据
+	if err := n.cleanNamespace(namespace.Name); err != nil {
+		return err
+	}
+
+	tn := time.Now()
+
+	namespace.CreateTime = tn
+	namespace.ModifyTime = tn
 	namespace.Valid = true
 	return n.handler.SaveValue(tblNameNamespace, namespace.Name, namespace)
+}
+
+func (n *namespaceStore) cleanNamespace(name string) error {
+	if err := n.handler.DeleteValues(tblNameNamespace, []string{name}, false); err != nil {
+		log.Errorf("[Store][boltdb] delete invalid namespace error, %+v", err)
+		return err
+	}
+
+	return nil
 }
 
 // UpdateNamespace update a namespace

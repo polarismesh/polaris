@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	storeName = "boltdbStore"
+	STORENAME = "boltdbStore"
 )
 
 type boltStore struct {
@@ -70,7 +70,7 @@ type boltStore struct {
 
 // Name store name
 func (m *boltStore) Name() string {
-	return storeName
+	return STORENAME
 }
 
 // Initialize init store
@@ -222,7 +222,7 @@ func (m *boltStore) initAuthStoreData() error {
 			}
 		}
 
-		rule, err := m.getStrategyDetail(tx, mainDefaultStrategy.ID, true)
+		rule, err := m.getStrategyDetail(tx, mainDefaultStrategy.ID)
 		if err != nil {
 			return err
 		}

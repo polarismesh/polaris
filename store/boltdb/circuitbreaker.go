@@ -55,11 +55,28 @@ func (c *circuitBreakerStore) CreateCircuitBreaker(cb *model.CircuitBreaker) err
 	dbOp := c.handler
 	cb.Valid = true
 
+	if err := c.cleanCircuitBreaker(cb.ID, cb.Version); err != nil {
+		log.Errorf("[Store][circuitBreaker] clean master for circuit breaker(%s, %s) err: %s",
+			cb.ID, cb.Version, err.Error())
+		return store.Error(err)
+	}
+
 	if err := dbOp.SaveValue(tblCircuitBreaker, c.buildKey(cb.ID, cb.Version), cb); err != nil {
 		log.Errorf("[Store][circuitBreaker] create circuit breaker(%s, %s, %s) err: %s",
 			cb.ID, cb.Name, cb.Version, err.Error())
 		return store.Error(err)
 	}
+	return nil
+}
+
+// cleanCircuitBreaker 彻底清理熔断规则
+func (c *circuitBreakerStore) cleanCircuitBreaker(id string, version string) error {
+	if err := c.handler.DeleteValues(tblCircuitBreaker, []string{c.buildKey(id, version)}, false); err != nil {
+		log.Errorf("[Store][circuitBreaker] clean invalid circuit-breaker(%s, %s) err: %s",
+			id, version, err.Error())
+		return store.Error(err)
+	}
+
 	return nil
 }
 
@@ -348,15 +365,13 @@ func (c *circuitBreakerStore) ListMasterCircuitBreakers(
 			if ok && !valid.(bool) {
 				return false
 			}
-			delete(m, CBFieldNameValid)
 			val := m[CBFieldNameVersion].(string)
 			if strings.Compare(val, VersionForMaster) != 0 {
 				return false
 			}
-			delete(m, CBFieldNameVersion)
 			for k, v := range filters {
-				qV := m[k]
-				if !reflect.DeepEqual(qV, v) {
+				qV, ok := m[k]
+				if ok && !reflect.DeepEqual(qV, v) {
 					return false
 				}
 			}
@@ -416,9 +431,9 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 			if emptyCondition {
 				return true
 			}
-			ruleIDVal, ok := m[CBRFieldNameRuleID]
+			ruleIDVal := m[CBRFieldNameRuleID].(string)
 			if isRuleID {
-				if ok && ruleIDVal.(string) != ruleID {
+				if ok && ruleIDVal != ruleID {
 					return false
 				}
 			}
@@ -429,10 +444,10 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 					return false
 				}
 			}
-			if _, exist := svcIds[ruleIDVal.(string)]; !exist {
-				svcIds[ruleIDVal.(string)] = make([]string, 0)
+			if _, exist := svcIds[ruleIDVal]; !exist {
+				svcIds[ruleIDVal] = make([]string, 0)
 			}
-			svcIds[ruleIDVal.(string)] = append(svcIds[ruleIDVal.(string)], m[CBRFieldNameServiceID].(string))
+			svcIds[ruleIDVal] = append(svcIds[ruleIDVal], m[CBRFieldNameServiceID].(string))
 			ruleVersions[m[CBRFieldNameRuleVersion].(string)] = struct{}{}
 			return true
 		})
@@ -448,8 +463,8 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 				return false
 			}
 			if isRuleID {
-				ruleIDVal, ok := m[CBFieldNameID]
-				if ok && ruleIDVal.(string) != ruleID {
+				ruleIDVal := m[CBFieldNameID].(string)
+				if ok && ruleIDVal != ruleID {
 					return false
 				}
 			}
@@ -520,7 +535,8 @@ func (c *circuitBreakerStore) GetCircuitBreakersByService(
 	}
 
 	if service == nil {
-		return nil, store.NewStatusError(store.NotFoundService, fmt.Sprintf("service(namespace=%s, name=%s)", name, namespace))
+		log.Warnf("[Store][] not found service(namespace=%s, name=%s)", name, namespace)
+		return nil, nil
 	}
 
 	serviceId := service.ID

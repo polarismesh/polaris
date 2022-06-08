@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/model"
-	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/store"
 )
 
@@ -217,11 +216,11 @@ func (rls *rateLimitStore) GetRateLimitsForCache(mtime time.Time,
 	str := `select id, ratelimit_config.service_id, cluster_id, labels, priority, rule, revision, flag,
 			unix_timestamp(ratelimit_config.ctime), unix_timestamp(ratelimit_config.mtime), last_revision 
 			from ratelimit_config, ratelimit_revision 
-			where ratelimit_config.mtime > ? and ratelimit_config.service_id = ratelimit_revision.service_id`
+			where ratelimit_config.mtime > FROM_UNIXTIME(?) and ratelimit_config.service_id = ratelimit_revision.service_id`
 	if firstUpdate {
 		str += " and flag != 1" // nolint
 	}
-	rows, err := rls.db.Query(str, commontime.Time2String(mtime))
+	rows, err := rls.db.Query(str, timeToTimestamp(mtime))
 	if err != nil {
 		log.Errorf("[Store][database] query rate limits with mtime err: %s", err.Error())
 		return nil, nil, err

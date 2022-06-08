@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -86,6 +87,12 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 	}()
 
 	checker := &defaultAuthChecker{}
+	checker.Initialize(&auth.Config{
+		Name: "",
+		Option: map[string]interface{}{
+			"": nil,
+		},
+	}, cacheMgn)
 	checker.cacheMgn = cacheMgn
 	checker.authPlugin = plugin.GetAuth()
 
@@ -210,7 +217,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 	namespaces := createMockNamespace(len(users)+len(groups)+10, users[0].ID)
 	services := createMockService(namespaces)
 	serviceMap := convertServiceSliceToMap(services)
-	strategies := createMockStrategy(users, groups, services[:len(users)+len(groups)])
+	strategies, _ := createMockStrategy(users, groups, services[:len(users)+len(groups)])
 
 	cfg, storage := initCache(ctrl)
 
@@ -454,7 +461,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 	namespaces := createMockNamespace(len(users)+len(groups)+10, users[0].ID)
 	services := createMockService(namespaces)
 	serviceMap := convertServiceSliceToMap(services)
-	strategies := createMockStrategy(users, groups, services[:len(users)+len(groups)])
+	strategies, _ := createMockStrategy(users, groups, services[:len(users)+len(groups)])
 
 	cfg, storage := initCache(ctrl)
 
@@ -648,7 +655,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 	namespaces := createMockNamespace(len(users)+len(groups)+10, users[0].ID)
 	services := createMockService(namespaces)
 	serviceMap := convertServiceSliceToMap(services)
-	strategies := createMockStrategy(users, groups, services[:len(users)+len(groups)])
+	strategies, _ := createMockStrategy(users, groups, services[:len(users)+len(groups)])
 
 	cfg, storage := initCache(ctrl)
 
@@ -862,7 +869,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 	namespaces := createMockNamespace(len(users)+len(groups)+10, users[0].ID)
 	services := createMockService(namespaces)
 	serviceMap := convertServiceSliceToMap(services)
-	strategies := createMockStrategy(users, groups, services[:len(users)+len(groups)])
+	strategies, _ := createMockStrategy(users, groups, services[:len(users)+len(groups)])
 
 	cfg, storage := initCache(ctrl)
 

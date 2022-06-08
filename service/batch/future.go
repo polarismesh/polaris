@@ -24,6 +24,7 @@ import (
 
 // InstanceFuture 创建实例的异步结构体
 type InstanceFuture struct {
+	serviceId     string
 	request       *api.Instance   // api请求对象
 	instance      *model.Instance // 从数据库中读取到的model信息
 	code          uint32          // 记录对外API的错误码
@@ -64,8 +65,8 @@ func (future *InstanceFuture) Code() uint32 {
 	return future.code
 }
 
-// SendReply 批量答复futures
-func SendReply(futures interface{}, code uint32, result error) {
+// sendReply 批量答复futures
+func sendReply(futures interface{}, code uint32, result error) {
 	switch futureType := futures.(type) {
 	case []*InstanceFuture:
 		for _, entry := range futureType {

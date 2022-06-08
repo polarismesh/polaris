@@ -58,6 +58,7 @@ func initialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMg
 
 	namespaceServer.caches = cacheMgn
 	namespaceServer.storage = storage
+	namespaceServer.cfg = *nsOpt
 
 	// 获取History插件，注意：插件的配置在bootstrap已经设置好
 	namespaceServer.history = plugin.GetHistory()

@@ -14,18 +14,31 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-
 package utils
 
 import (
 	"testing"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCalMd5(t *testing.T) {
 	assert.Equal(t, "d41d8cd98f00b204e9800998ecf8427e", CalMd5(""))
 	assert.Equal(t, "acbd18db4cc2f85cedef654fccc4a4d8", CalMd5("foo"))
-	assert.Equal(t, "02f463eb799797e2a978fb1a2ae2991e", CalMd5("38c5ee9532f037a20b93d0f804cf111fca4003e451d09a692d9dea8032308d9c64eda9047fcd5e850284a49b1a0cfb2ecd45"))
 
+	str := "38c5ee9532f037a20b93d0f804cf111fca4003e451d09a692d9dea8032308d9c64eda9047fcd5e850284a49b1a0cfb2ecd45"
+	assert.Equal(t, "02f463eb799797e2a978fb1a2ae2991e", CalMd5(str))
+}
+
+func TestCheckResourceName(t *testing.T) {
+	w := &wrappers.StringValue{Value: "123abc"}
+	err := CheckResourceName(w)
+	assert.Equal(t, err, nil)
+}
+
+func TestCheckFileName(t *testing.T) {
+	w := &wrappers.StringValue{Value: "123abc.test.log"}
+	err := CheckFileName(w)
+	assert.Equal(t, err, nil)
 }

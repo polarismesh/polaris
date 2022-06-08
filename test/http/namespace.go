@@ -28,9 +28,7 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
-/**
- * @brief 命名空间数组转JSON
- */
+// JSONFromNamespaces 将命名空间数组转换为JSON
 func JSONFromNamespaces(namespaces []*api.Namespace) (*bytes.Buffer, error) {
 	m := jsonpb.Marshaler{Indent: " "}
 
@@ -52,9 +50,7 @@ func JSONFromNamespaces(namespaces []*api.Namespace) (*bytes.Buffer, error) {
 	return buffer, nil
 }
 
-/**
- * @brief 创建命名空间
- */
+// CreateNamespaces 创建命名空间
 func (c *Client) CreateNamespaces(namespaces []*api.Namespace) (*api.BatchWriteResponse, error) {
 	fmt.Printf("\ncreate namespaces\n")
 
@@ -81,9 +77,7 @@ func (c *Client) CreateNamespaces(namespaces []*api.Namespace) (*api.BatchWriteR
 	return checkCreateNamespacesResponse(ret, namespaces)
 }
 
-/**
- * @brief 删除命名空间
- */
+// DeleteNamespaces 删除命名空间
 func (c *Client) DeleteNamespaces(namespaces []*api.Namespace) error {
 	fmt.Printf("\ndelete namespaces\n")
 
@@ -114,9 +108,7 @@ func (c *Client) DeleteNamespaces(namespaces []*api.Namespace) error {
 	return nil
 }
 
-/**
- * @brief 更新命名空间
- */
+// UpdateNamesapces 更新命名空间
 func (c *Client) UpdateNamesapces(namespaces []*api.Namespace) error {
 	fmt.Printf("\nupdate namespaces\n")
 
@@ -147,9 +139,7 @@ func (c *Client) UpdateNamesapces(namespaces []*api.Namespace) error {
 	return nil
 }
 
-/**
- * @brief 查询命名空间
- */
+// GetNamespaces 查询命名空间
 func (c *Client) GetNamespaces(namespaces []*api.Namespace) ([]*api.Namespace, error) {
 	fmt.Printf("\nget namespaces\n")
 

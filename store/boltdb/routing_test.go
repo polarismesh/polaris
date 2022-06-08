@@ -60,100 +60,138 @@ func TestRoutingStore_CreateRoutingConfig(t *testing.T) {
 }
 
 func TestRoutingStore_GetRoutingConfigs(t *testing.T) {
-	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if err != nil {
-		t.Fatal(err)
-	}
+	CreateTableDBHandlerAndRun(t, "RoutingConfig", func(t *testing.T, handler BoltHandler) {
 
-	defer handler.Close()
+		rStore := &routingStore{handler: handler}
+		sStore := &serviceStore{handler: handler}
 
-	rStore := &routingStore{handler: handler}
+		for i := 0; i < routeCount; i++ {
+			err := sStore.AddService(&model.Service{
+				ID:        "testid" + strconv.Itoa(i),
+				Name:      "testid" + strconv.Itoa(i),
+				Namespace: "testid" + strconv.Itoa(i),
+			})
+			assert.NoError(t, err)
 
-	totalCount, rs, err := rStore.GetRoutingConfigs(nil, 0, 20)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if totalCount != routeCount {
-		t.Fatal(fmt.Sprintf("routing total count not match, expect %d, got %d", routeCount, totalCount))
-	}
-	if len(rs) != routeCount {
-		t.Fatal(fmt.Sprintf("routing count not match, expect %d, got %d", routeCount, len(rs)))
-	}
-	for _, r := range rs {
-		fmt.Printf("routing conf is %+v\n", r.Config)
-	}
-}
-
-func TestRoutingStore_UpdateRoutingConfig(t *testing.T) {
-	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer handler.Close()
-
-	rStore := &routingStore{handler: handler}
-
-	for i := 0; i < routeCount; i++ {
-
-		conf := &model.RoutingConfig{
-			ID:        "testid" + strconv.Itoa(i),
-			InBounds:  "vv1" + strconv.Itoa(i),
-			OutBounds: "vv2" + strconv.Itoa(i),
-			Revision:  "revi" + strconv.Itoa(i),
+			err = rStore.CreateRoutingConfig(&model.RoutingConfig{
+				ID:         "testid" + strconv.Itoa(i),
+				InBounds:   "v1" + strconv.Itoa(i),
+				OutBounds:  "v2" + strconv.Itoa(i),
+				Revision:   "revision" + strconv.Itoa(i),
+				Valid:      true,
+				CreateTime: time.Now(),
+				ModifyTime: time.Now(),
+			})
+			assert.NoError(t, err)
 		}
 
-		err := rStore.UpdateRoutingConfig(conf)
+		totalCount, rs, err := rStore.GetRoutingConfigs(nil, 0, 20)
 		if err != nil {
 			t.Fatal(err)
 		}
-	}
+		if totalCount != routeCount {
+			t.Fatal(fmt.Sprintf("routing total count not match, expect %d, got %d", routeCount, totalCount))
+		}
+		if len(rs) != routeCount {
+			t.Fatal(fmt.Sprintf("routing count not match, expect %d, got %d", routeCount, len(rs)))
+		}
+		for _, r := range rs {
+			fmt.Printf("routing conf is %+v\n", r.Config)
+		}
+	})
+}
 
-	// check update result
-	totalCount, rs, err := rStore.GetRoutingConfigs(nil, 0, 20)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if totalCount != routeCount {
-		t.Fatal(fmt.Sprintf("routing total count not match, expect %d, got %d", routeCount, totalCount))
-	}
-	if len(rs) != routeCount {
-		t.Fatal(fmt.Sprintf("routing count not match, expect %d, got %d", routeCount, len(rs)))
-	}
-	for _, r := range rs {
-		fmt.Printf("routing conf is %+v\n", r.Config)
-	}
+func TestRoutingStore_UpdateRoutingConfig(t *testing.T) {
+	CreateTableDBHandlerAndRun(t, "TestRoutingStore_GetRoutingConfigsForCache", func(t *testing.T, handler BoltHandler) {
+
+		rStore := &routingStore{handler: handler}
+		sStore := &serviceStore{handler: handler}
+
+		for i := 0; i < routeCount; i++ {
+			err := sStore.AddService(&model.Service{
+				ID:        "testid" + strconv.Itoa(i),
+				Name:      "testid" + strconv.Itoa(i),
+				Namespace: "testid" + strconv.Itoa(i),
+			})
+			assert.NoError(t, err)
+
+			conf := &model.RoutingConfig{
+				ID:        "testid" + strconv.Itoa(i),
+				InBounds:  "vv1" + strconv.Itoa(i),
+				OutBounds: "vv2" + strconv.Itoa(i),
+				Revision:  "revi" + strconv.Itoa(i),
+			}
+
+			err = rStore.CreateRoutingConfig(conf)
+			assert.NoError(t, err)
+
+			err = rStore.UpdateRoutingConfig(conf)
+			assert.NoError(t, err)
+		}
+
+		// check update result
+		totalCount, rs, err := rStore.GetRoutingConfigs(nil, 0, 20)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if totalCount != routeCount {
+			t.Fatal(fmt.Sprintf("routing total count not match, expect %d, got %d", routeCount, totalCount))
+		}
+		if len(rs) != routeCount {
+			t.Fatal(fmt.Sprintf("routing count not match, expect %d, got %d", routeCount, len(rs)))
+		}
+		for _, r := range rs {
+			fmt.Printf("routing conf is %+v\n", r.Config)
+		}
+	})
 }
 
 func TestRoutingStore_GetRoutingConfigsForCache(t *testing.T) {
-	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if err != nil {
-		t.Fatal(err)
-	}
+	CreateTableDBHandlerAndRun(t, "TestRoutingStore_GetRoutingConfigsForCache",
+		func(t *testing.T, handler BoltHandler) {
+			rStore := &routingStore{handler: handler}
+			sStore := &serviceStore{handler: handler}
 
-	defer handler.Close()
+			for i := 0; i < routeCount; i++ {
+				err := sStore.AddService(&model.Service{
+					ID:        "testid" + strconv.Itoa(i),
+					Name:      "testid" + strconv.Itoa(i),
+					Namespace: "testid" + strconv.Itoa(i),
+				})
+				assert.NoError(t, err)
 
-	rStore := &routingStore{handler: handler}
+				err = rStore.CreateRoutingConfig(&model.RoutingConfig{
+					ID:         "testid" + strconv.Itoa(i),
+					InBounds:   "v1" + strconv.Itoa(i),
+					OutBounds:  "v2" + strconv.Itoa(i),
+					Revision:   "revision" + strconv.Itoa(i),
+					Valid:      true,
+					CreateTime: time.Now(),
+					ModifyTime: time.Now(),
+				})
+				assert.NoError(t, err)
+			}
 
-	// get create modify time
-	totalCount, rs, err := rStore.GetRoutingConfigs(nil, 0, 20)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if totalCount != routeCount {
-		t.Fatal(fmt.Sprintf("routing total count not match, expect %d, got %d", routeCount, totalCount))
-	}
-	if len(rs) != routeCount {
-		t.Fatal(fmt.Sprintf("routing count not match, expect %d, got %d", routeCount, len(rs)))
-	}
+			// get create modify time
+			totalCount, rs, err := rStore.GetRoutingConfigs(nil, 0, 20)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if totalCount != routeCount {
+				t.Fatal(fmt.Sprintf("routing total count not match, expect %d, got %d", routeCount, totalCount))
+			}
+			if len(rs) != routeCount {
+				t.Fatal(fmt.Sprintf("routing count not match, expect %d, got %d", routeCount, len(rs)))
+			}
 
-	rss, err := rStore.GetRoutingConfigsForCache(rs[2].Config.ModifyTime, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(rss) != routeCount-2 {
-		t.Fatal(fmt.Sprintf("routing config count mismatch, except %d, got %d", routeCount-2, len(rss)))
-	}
+			rss, err := rStore.GetRoutingConfigsForCache(rs[2].Config.ModifyTime, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(rss) != routeCount-2 {
+				t.Fatal(fmt.Sprintf("routing config count mismatch, except %d, got %d", routeCount-2, len(rss)))
+			}
+		})
 }
 
 func TestRoutingStore_GetRoutingConfigWithService(t *testing.T) {

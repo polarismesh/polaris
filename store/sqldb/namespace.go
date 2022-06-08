@@ -121,8 +121,8 @@ func (ns *namespaceStore) GetNamespaces(filter map[string][]string, offset, limi
 
 // GetMoreNamespaces 根据mtime获取命名空间
 func (ns *namespaceStore) GetMoreNamespaces(mtime time.Time) ([]*model.Namespace, error) {
-	str := genNamespaceSelectSQL() + " where UNIX_TIMESTAMP(mtime) >= ?"
-	rows, err := ns.db.Query(str, mtime.Unix())
+	str := genNamespaceSelectSQL() + " where mtime >= FROM_UNIXTIME(?)"
+	rows, err := ns.db.Query(str, timeToTimestamp(mtime))
 	if err != nil {
 		log.Errorf("[Store][database] get more namespace query err: %s", err.Error())
 		return nil, err
@@ -205,7 +205,7 @@ func (ns *namespaceStore) cleanNamespace(name string) error {
 // rlockNamespace rlock namespace
 func rlockNamespace(queryRow func(query string, args ...interface{}) *sql.Row, namespace string) (
 	string, error) {
-	str := "select name  from namespace where name = ? and flag != 1 lock in share mode"
+	str := "select name from namespace where name = ? and flag != 1 lock in share mode"
 
 	var name string
 	err := queryRow(str, namespace).Scan(&name)

@@ -54,7 +54,7 @@ README：
 生态组件:
 
 - [polaris-controller](https://github.com/PolarisMesh/polaris-controller): K8s控制器，支持K8s Service和Polaris Sidecar自动注入
-- [spring-cloud-polaris](https://github.com/PolarisMesh/spring-cloud-polaris): spring cloud集成polaris-java
+- [spring-cloud-tencent](https://github.com/Tencent/spring-cloud-tencent): spring cloud集成polaris-java
 - [grpc-java-polaris](https://github.com/PolarisMesh/grpc-java-polaris): grpc-java集成polaris-java
 - [grpc-go-polaris](https://github.com/PolarisMesh/grpc-go-polaris): grpc-go集成polaris-go
 - [dubbo3/dubbo-go](https://github.com/polarismesh/examples/tree/main/dubbo3/dubbogo): dubbo-go集成polaris-go

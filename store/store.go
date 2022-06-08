@@ -42,7 +42,7 @@ var (
 func RegisterStore(s Store) error {
 	name := s.Name()
 	if _, ok := StoreSlots[name]; ok {
-		return errors.New("store name is exist")
+		return errors.New("store name already existed")
 	}
 
 	StoreSlots[name] = s
@@ -53,12 +53,12 @@ func RegisterStore(s Store) error {
 func GetStore() (Store, error) {
 	name := config.Name
 	if name == "" {
-		return nil, errors.New("store Name is empty")
+		return nil, errors.New("store name is empty")
 	}
 
 	store, ok := StoreSlots[name]
 	if !ok {
-		return nil, errors.New("no such name Store")
+		return nil, fmt.Errorf("store `%s` not found", name)
 	}
 
 	initialize(store)
@@ -74,7 +74,7 @@ func SetStoreConfig(conf *Config) {
 func initialize(s Store) {
 	once.Do(func() {
 		if err := s.Initialize(config); err != nil {
-			fmt.Printf("store do initialize err: %s", err.Error())
+			fmt.Printf("[ERROR] initialize store `%s` fail: %v", s.Name(), err)
 			os.Exit(-1)
 		}
 	})

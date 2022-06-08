@@ -59,16 +59,16 @@ func Start(configFilePath string) {
 	ConfigFilePath = configFilePath
 	cfg, err := boot_config.Load(configFilePath)
 	if err != nil {
-		fmt.Printf("[ERROR] loadConfig fail\n")
+		fmt.Printf("[ERROR] load config fail\n")
 		return
 	}
 
-	fmt.Printf("%+v\n", *cfg)
+	fmt.Printf("[INFO] %+v\n", *cfg)
 
 	// 初始化日志打印
 	err = log.Configure(cfg.Bootstrap.Logger)
 	if err != nil {
-		fmt.Printf("[ERROR] %v\n", err)
+		fmt.Printf("[ERROR] configure logger fail: %v\n", err)
 		return
 	}
 
@@ -79,7 +79,7 @@ func Start(configFilePath string) {
 	// 获取本地IP地址
 	ctx, err = acquireLocalhost(ctx, &cfg.Bootstrap.PolarisService)
 	if err != nil {
-		fmt.Printf("[ERROR] %s\n", err.Error())
+		fmt.Printf("[ERROR] acquire localhost fail: %v\n", err)
 		return
 	}
 
@@ -91,31 +91,32 @@ func Start(configFilePath string) {
 	var s store.Store
 	s, err = store.GetStore()
 	if err != nil {
-		fmt.Printf("get store error:%s", err.Error())
+		fmt.Printf("[ERROR] get store fail: %v", err)
 		return
 	}
 
 	// 开启进入启动流程，初始化插件，加载数据等
 	var tx store.Transaction
-	tx, err = StartBootstrapOrder(s, cfg)
+	tx, err = StartBootstrapInOrder(s, cfg)
 	if err != nil {
 		// 多次尝试加锁失败
-		fmt.Printf("[ERROR] %v\n", err)
+		fmt.Printf("[ERROR] bootstrap fail: %v\n", err)
 		return
 	}
 	err = StartComponents(ctx, cfg)
 	if err != nil {
-		fmt.Printf("[ERROR] %v\n", err)
+		fmt.Printf("[ERROR] start components fail: %v\n", err)
 		return
 	}
 	errCh := make(chan error, len(cfg.APIServers))
 	servers, err := StartServers(ctx, cfg, errCh)
 	if err != nil {
+		fmt.Printf("[ERROR] start servers fail: %v\n", err)
 		return
 	}
 
 	if err := polarisServiceRegister(&cfg.Bootstrap.PolarisService, cfg.APIServers); err != nil {
-		fmt.Printf("[ERROR] %v\n", err)
+		fmt.Printf("[ERROR] register polaris service fail: %v\n", err)
 		return
 	}
 	_ = FinishBootstrapOrder(tx) // 启动完成，解锁
@@ -166,7 +167,7 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 	}
 
 	// 初始化配置中心模块相关功能
-	if err := StartConfigCenterComponents(ctx, cfg); err != nil {
+	if err := StartConfigCenterComponents(ctx, cfg, s, cacheMgn, authMgn); err != nil {
 		return err
 	}
 
@@ -215,7 +216,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		Heartbeat:        healthBatchConfig.Heartbeat,
 	}
 
-	bc, err := batch.NewBatchCtrlWithConfig(s, nil, plugin.GetAuth(), batchConfig)
+	bc, err := batch.NewBatchCtrlWithConfig(s, cacheMgn, batchConfig)
 	if err != nil {
 		log.Errorf("new batch ctrl with config err: %s", err.Error())
 		return err
@@ -256,8 +257,9 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 }
 
 // StartConfigCenterComponents 启动配置中心模块
-func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config) error {
-	return config_center.InitConfigModule(ctx, cfg.Config)
+func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config, s store.Store,
+	cacheMgn *cache.NamingCache, authMgn auth.AuthServer) error {
+	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, authMgn)
 }
 
 // StartServers 启动server
@@ -329,7 +331,7 @@ func StopServers(servers []apiserver.Apiserver) {
 // StartBootstrapOrder 开始进入启动加锁
 // 原因：Server启动的时候会从数据库拉取大量数据，防止同时启动把DB压死
 // 还有一种场景，server全部宕机批量重启，导致数据库被压死，导致雪崩
-func StartBootstrapOrder(s store.Store, c *boot_config.Config) (store.Transaction, error) {
+func StartBootstrapInOrder(s store.Store, c *boot_config.Config) (store.Transaction, error) {
 	order := c.Bootstrap.StartInOrder
 	log.Infof("[Bootstrap] get bootstrap order config: %+v", order)
 	open, _ := order["open"].(bool)
@@ -362,7 +364,7 @@ func StartBootstrapOrder(s store.Store, c *boot_config.Config) (store.Transactio
 	for i := 0; i < maxTimes; i++ {
 		tx, err := s.CreateTransaction()
 		if err != nil {
-			log.Errorf("create transaction err: %s", err.Error())
+			log.Errorf("create transaction err: %v", err)
 			return nil, err
 		}
 		// 这里可能会出现锁超时，超时则重试
@@ -397,7 +399,7 @@ func genContext() context.Context {
 // acquireLocalhost 探测获取本机IP地址
 func acquireLocalhost(ctx context.Context, polarisService *boot_config.PolarisService) (context.Context, error) {
 	if polarisService == nil || !polarisService.EnableRegister {
-		log.Infof("[Bootstrap] not found polaris service config")
+		log.Infof("[Bootstrap] polaris service config not found")
 		return ctx, nil
 	}
 
@@ -430,7 +432,8 @@ func polarisServiceRegister(polarisService *boot_config.PolarisService, apiServe
 	// 开始注册每个服务
 	for _, svc := range polarisService.Services {
 		protocols := svc.Protocols
-		// 如果service.Protocols为空，默认采用protocols注册
+		// 如果service.Protocols为空，默认采用apiServers的protocols注册，实际为配置中的Name字段,
+		// 如：grpcserver, httpserver, xdsserverv3，也隐式表达了协议的意思
 		if len(protocols) == 0 {
 			for _, server := range apiServers {
 				protocols = append(protocols, server.Name)
@@ -438,11 +441,11 @@ func polarisServiceRegister(polarisService *boot_config.PolarisService, apiServe
 		}
 		for _, name := range protocols {
 			if _, exist := apiServerNames[name]; !exist {
-				return fmt.Errorf("not register the server(%s)", name)
+				return fmt.Errorf("server(%s) not registered", name)
 			}
 			slot, exist := apiserver.Slots[name]
 			if !exist {
-				return fmt.Errorf("not exist the server(%s)", name)
+				return fmt.Errorf("server(%s) not supported", name)
 			}
 			host := utils.LocalHost
 			port := slot.GetPort()
@@ -495,8 +498,7 @@ func selfRegister(
 		return err
 	}
 	if svc == nil {
-		return fmt.Errorf("not found the self service(%s), namespace(%s)",
-			name, namespace)
+		return fmt.Errorf("self service(%s) in namespace(%s) not found", name, namespace)
 	}
 
 	metadata := polarisService.Metadata
@@ -560,11 +562,11 @@ func SelfDeregister() {
 }
 
 // getLocalHost 获取本地IP地址
-func getLocalHost(vip string) (string, error) {
-	if len(vip) == 0 {
+func getLocalHost(addr string) (string, error) {
+	if len(addr) == 0 {
 		return "127.0.0.1", nil
 	}
-	conn, err := net.Dial("tcp", vip)
+	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return "", err
 	}

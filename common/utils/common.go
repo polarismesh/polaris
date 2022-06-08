@@ -94,9 +94,7 @@ const (
 	MaxPlatformQPS          = 65535
 )
 
-/*
- * 检查资源Name
- */
+// CheckResourceName 检查资源Name
 func CheckResourceName(name *wrappers.StringValue) error {
 	if name == nil {
 		return errors.New("nil")
@@ -106,7 +104,7 @@ func CheckResourceName(name *wrappers.StringValue) error {
 		return errors.New("empty")
 	}
 
-	regStr := "^[0-9A-Za-z-.:_]+$"
+	regStr := "^[0-9A-Za-z-./:_]+$"
 	ok, err := regexp.MatchString(regStr, name.GetValue())
 	if err != nil {
 		return err
@@ -118,9 +116,7 @@ func CheckResourceName(name *wrappers.StringValue) error {
 	return nil
 }
 
-/*
- * 检查资源Owners
- */
+// CheckResourceOwners 检查资源Owners
 func CheckResourceOwners(owners *wrappers.StringValue) error {
 	if owners == nil {
 		return errors.New("nil")
@@ -137,9 +133,7 @@ func CheckResourceOwners(owners *wrappers.StringValue) error {
 	return nil
 }
 
-/*
- * 检查服务实例Host
- */
+// CheckInstanceHost 检查服务实例Host
 func CheckInstanceHost(host *wrappers.StringValue) error {
 	if host == nil {
 		return errors.New("nil")
@@ -152,9 +146,7 @@ func CheckInstanceHost(host *wrappers.StringValue) error {
 	return nil
 }
 
-/*
- * 检查服务实例Port
- */
+// CheckInstancePort 检查服务实例Port
 func CheckInstancePort(port *wrappers.UInt32Value) error {
 	if port == nil {
 		return errors.New("nil")
@@ -167,8 +159,8 @@ func CheckInstancePort(port *wrappers.UInt32Value) error {
 	return nil
 }
 
-// 检查metadata的个数
-// 最大是64个
+// CheckMetadata check metadata
+// 检查metadata的个数 最大是64个
 // key/value是否符合要求
 func CheckMetadata(meta map[string]string) error {
 	if meta == nil {
@@ -207,9 +199,7 @@ func CheckMetadata(meta map[string]string) error {
 	return nil
 }
 
-/*
- * 检查查询参数Offset
- */
+// CheckQueryOffset 检查查询参数Offset
 func CheckQueryOffset(offset []string) (int, error) {
 	if len(offset) == 0 {
 		return 0, nil
@@ -231,9 +221,7 @@ func CheckQueryOffset(offset []string) (int, error) {
 	return value, nil
 }
 
-/*
- * 检查查询参数Limit
- */
+// CheckQueryLimit 检查查询参数Limit
 func CheckQueryLimit(limit []string) (int, error) {
 	if len(limit) == 0 {
 		return MaxQuerySize, nil
@@ -372,6 +360,15 @@ func ParseRequestID(ctx context.Context) string {
 	return rid
 }
 
+func ParseClientAddress(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	rid, _ := ctx.Value(ContextClientAddress).(string)
+	return rid
+}
+
+
 // ParseAuthToken 从ctx中获取token
 func ParseAuthToken(ctx context.Context) string {
 	if ctx == nil {
@@ -410,6 +407,16 @@ func ParseUserID(ctx context.Context) string {
 
 	userID, _ := ctx.Value(ContextUserIDKey).(string)
 	return userID
+}
+
+// ParseUserName 从ctx解析用户名称
+func ParseUserName(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+
+	userName, _ := ctx.Value(ContextUserNameKey).(string)
+	return userName
 }
 
 // ParseOwnerID 从ctx解析Owner ID
@@ -518,9 +525,11 @@ func CheckInstanceTetrad(req *api.Instance) (string, *api.Response) {
 		return "", api.NewInstanceResponse(api.InvalidInstancePort, req)
 	}
 
-	var instID string = req.GetId().GetValue()
+	var instID = req.GetId().GetValue()
 	if len(instID) == 0 {
-		id, err := CalculateInstanceID(req.GetNamespace().GetValue(), req.GetService().GetValue(),
+		id, err := CalculateInstanceID(
+			req.GetNamespace().GetValue(),
+			req.GetService().GetValue(),
 			req.GetVpcId().GetValue(),
 			req.GetHost().GetValue(),
 			req.GetPort().GetValue(),

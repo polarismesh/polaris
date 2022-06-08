@@ -106,8 +106,8 @@ func (t *configFileTagStore) QueryConfigFileByTag(namespace, group, fileName str
 		saveTagValue, _ := m[TagFieldValue].(string)
 
 		equalNs := strings.Compare(saveNs, namespace) == 0
-		equalGroup := strings.Compare(saveGroup, group) == 0
-		equalFileName := strings.Compare(saveFileName, fileName) == 0
+		equalGroup := strings.Contains(saveGroup, group)
+		equalFileName := strings.Contains(saveFileName, fileName)
 
 		if !equalNs || !equalGroup || !equalFileName {
 			return false

@@ -748,7 +748,7 @@ func (s *Server) GetCircuitBreakerByService(ctx context.Context, query map[strin
 
 	breaker, err := circuitBreaker2API(circuitBreaker)
 	if err != nil {
-		log.Errorf("get circuit breaker by service err: %s", err.Error())
+		log.Errorf("get circuit breaker to api err: %s", err.Error())
 		return api.NewBatchQueryResponse(api.ParseCircuitBreakerException)
 	}
 
@@ -937,10 +937,6 @@ func (s *Server) checkCircuitBreakerValid(ctx context.Context, req *api.CircuitB
 		return nil, api.NewCircuitBreakerResponse(api.NotFoundCircuitBreaker, req)
 	}
 
-	// 鉴权
-	if ok := s.authority.VerifyRule(circuitBreaker.Token, parseCircuitBreakerToken(ctx, req)); !ok {
-		return nil, api.NewCircuitBreakerResponse(api.Unauthorized, req)
-	}
 	return circuitBreaker, nil
 }
 
@@ -960,20 +956,6 @@ func (s *Server) checkService(ctx context.Context, req *api.ConfigRelease) (*mod
 	}
 	if service.IsAlias() {
 		return nil, api.NewConfigResponse(api.NotAllowAliasBindRule, req)
-	}
-
-	// 使用平台id以及token鉴权
-	if ok := s.verifyAuthByPlatform(ctx, service.PlatformID); !ok {
-		// 检查token是否存在
-		serviceToken := parseRequestToken(ctx, req.GetService().GetToken().GetValue())
-		if !s.authority.VerifyToken(serviceToken) {
-			return nil, api.NewConfigResponse(api.InvalidServiceToken, req)
-		}
-
-		// 检查token是否ok
-		if ok := s.authority.VerifyService(service.Token, serviceToken); !ok {
-			return nil, api.NewConfigResponse(api.Unauthorized, req)
-		}
 	}
 
 	return service, nil

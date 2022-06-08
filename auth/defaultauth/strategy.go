@@ -14,7 +14,6 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-
 package defaultauth
 
 import (
@@ -33,22 +32,24 @@ import (
 )
 
 type (
+	// StrategyDetail2Api strategy detail to *api.AuthStrategy func
 	StrategyDetail2Api func(user *model.StrategyDetail) *api.AuthStrategy
 )
 
 var (
-	StrategyFilterAttributes = map[string]int{
-		"id":             1,
-		"name":           1,
-		"owner":          1,
-		"offset":         1,
-		"limit":          1,
-		"principal_id":   1,
-		"principal_type": 1,
-		"res_id":         1,
-		"res_type":       1,
-		"default":        1,
-		"show_detail":    1,
+	// StrategyFilterAttributes strategy filter attributes
+	StrategyFilterAttributes = map[string]bool{
+		"id":             true,
+		"name":           true,
+		"owner":          true,
+		"offset":         true,
+		"limit":          true,
+		"principal_id":   true,
+		"principal_type": true,
+		"res_id":         true,
+		"res_type":       true,
+		"default":        true,
+		"show_detail":    true,
 	}
 )
 
@@ -96,7 +97,7 @@ func (svr *server) UpdateStrategies(ctx context.Context, reqs []*api.ModifyAuthS
 func (svr *server) UpdateStrategy(ctx context.Context, req *api.ModifyAuthStrategy) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 
-	strategy, err := svr.storage.GetStrategyDetail(req.GetId().GetValue(), false)
+	strategy, err := svr.storage.GetStrategyDetail(req.GetId().GetValue())
 	if err != nil {
 		log.AuthScope().Error("[Auth][Strategy] get strategy from store", utils.ZapRequestID(requestID),
 			zap.Error(err))
@@ -115,6 +116,7 @@ func (svr *server) UpdateStrategy(ctx context.Context, req *api.ModifyAuthStrate
 	if !needUpdate {
 		return api.NewModifyAuthStrategyResponse(api.NoNeedUpdate, req)
 	}
+
 	if err := svr.storage.UpdateStrategy(data); err != nil {
 		log.AuthScope().Error("[Auth][Strategy] update strategy into store",
 			utils.ZapRequestID(requestID), zap.Error(err))
@@ -130,9 +132,7 @@ func (svr *server) UpdateStrategy(ctx context.Context, req *api.ModifyAuthStrate
 
 // DeleteStrategies 批量删除鉴权策略
 func (svr *server) DeleteStrategies(ctx context.Context, reqs []*api.AuthStrategy) *api.BatchWriteResponse {
-
 	resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
-
 	for index := range reqs {
 		ret := svr.DeleteStrategy(ctx, reqs[index])
 		resp.Collect(ret)
@@ -147,7 +147,7 @@ func (svr *server) DeleteStrategies(ctx context.Context, reqs []*api.AuthStrateg
 func (svr *server) DeleteStrategy(ctx context.Context, req *api.AuthStrategy) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 
-	strategy, err := svr.storage.GetStrategyDetail(req.GetId().GetValue(), false)
+	strategy, err := svr.storage.GetStrategyDetail(req.GetId().GetValue())
 	if err != nil {
 		log.AuthScope().Error("[Auth][Strategy] get strategy from store", utils.ZapRequestID(requestID),
 			zap.Error(err))
@@ -198,7 +198,7 @@ func (svr *server) GetStrategies(ctx context.Context, query map[string]string) *
 
 	showDetail := query["show_detail"]
 
-	searchFilters := make(map[string]string)
+	searchFilters := make(map[string]string, len(query))
 	for key, value := range query {
 		if _, ok := StrategyFilterAttributes[key]; !ok {
 			log.AuthScope().Errorf("[Auth][Strategy] get strategies attribute(%s) it not allowed", key)
@@ -236,37 +236,34 @@ func (svr *server) GetStrategies(ctx context.Context, query map[string]string) *
 	return resp
 }
 
+var resTypeFilter = map[string]string{
+	"namespace":    "0",
+	"service":      "1",
+	"config_group": "2",
+}
+
+var principalTypeFilter = map[string]string{
+	"user":   "1",
+	"group":  "2",
+	"groups": "2",
+}
+
 // parseStrategySearchArgs 处理鉴权策略的搜索参数
 func parseStrategySearchArgs(ctx context.Context, searchFilters map[string]string) map[string]string {
-
 	if val, ok := searchFilters["res_type"]; ok {
-		searchFilters["res_type"] = func(val string) string {
-			switch val {
-			case "namespace":
-				return "0"
-			case "service":
-				return "1"
-			case "config_group":
-				return "2"
-			default:
-				return "0"
-			}
-		}(val)
-	}
-
-	convertPrincipalType := func(val string) string {
-		switch val {
-		case "user":
-			return "1"
-		case "group":
-			return "2"
-		default:
-			return "1"
+		if v, exist := resTypeFilter[val]; exist {
+			searchFilters["res_type"] = v
+		} else {
+			searchFilters["res_type"] = "0"
 		}
 	}
 
 	if val, ok := searchFilters["principal_type"]; ok {
-		searchFilters["principal_type"] = convertPrincipalType(val)
+		if v, exist := principalTypeFilter[val]; exist {
+			searchFilters["principal_type"] = v
+		} else {
+			searchFilters["principal_type"] = "1"
+		}
 	}
 
 	if utils.ParseUserRole(ctx) != model.AdminUserRole {
@@ -300,7 +297,7 @@ func (svr *server) GetStrategy(ctx context.Context, req *api.AuthStrategy) *api.
 		return api.NewResponse(api.EmptyQueryParameter)
 	}
 
-	ret, err := svr.storage.GetStrategyDetail(req.GetId().GetValue(), false)
+	ret, err := svr.storage.GetStrategyDetail(req.GetId().GetValue())
 	if err != nil {
 		log.AuthScope().Error("[Auth][Strategy] get strategt from store",
 			utils.ZapRequestID(requestID), zap.Error(err))
@@ -310,8 +307,7 @@ func (svr *server) GetStrategy(ctx context.Context, req *api.AuthStrategy) *api.
 		return api.NewAuthStrategyResponse(api.NotFoundAuthStrategyRule, req)
 	}
 
-	canView := false
-
+	var canView bool
 	if isOwner {
 		// 是否是本鉴权策略的 owner 账户, 或者是否是超级管理员, 是的话则快速跳过下面的检查
 		canView = (ret.Owner == userId) || utils.ParseUserRole(ctx) == model.AdminUserRole
@@ -343,13 +339,13 @@ func (svr *server) GetStrategy(ctx context.Context, req *api.AuthStrategy) *api.
 		)
 		return api.NewAuthStrategyResponse(api.NotAllowedAccess, req)
 	}
+
 	return api.NewAuthStrategyResponse(api.ExecuteSuccess, svr.authStrategyFull2Api(ret))
 }
 
 // GetPrincipalResources 获取某个principal可以获取到的所有资源ID数据信息
 func (svr *server) GetPrincipalResources(ctx context.Context, query map[string]string) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
-
 	if len(query) == 0 {
 		return api.NewResponse(api.EmptyRequest)
 	}
@@ -359,24 +355,20 @@ func (svr *server) GetPrincipalResources(ctx context.Context, query map[string]s
 		return api.NewResponse(api.EmptyQueryParameter)
 	}
 
-	convertPrincipalType := func(val string) string {
-		switch val {
-		case "user":
-			return "1"
-		case "group", "groups":
-			return "2"
-		default:
-			return "1"
-		}
+	var principalType string
+	if v, exist := principalTypeFilter[query["principal_type"]]; exist {
+		principalType = v
+	} else {
+		principalType = "1"
 	}
 
-	principalRole, _ := strconv.ParseInt(convertPrincipalType(query["principal_type"]), 10, 64)
+	principalRole, _ := strconv.ParseInt(principalType, 10, 64)
 	if err := model.CheckPrincipalType(int(principalRole)); err != nil {
 		return api.NewResponse(api.InvalidPrincipalType)
 	}
 
 	var (
-		resources []model.StrategyResource
+		resources = make([]model.StrategyResource, 0, 20)
 		err       error
 	)
 
@@ -400,8 +392,8 @@ func (svr *server) GetPrincipalResources(ctx context.Context, query map[string]s
 			zap.String("principal-id", principalId), zap.Any("principal-role", principalRole), zap.Error(err))
 		return api.NewResponse(api.StoreLayerException)
 	}
-	resources = append(resources, pResources...)
 
+	resources = append(resources, pResources...)
 	tmp := &api.AuthStrategy{
 		Resources: &api.StrategyResources{
 			Namespaces:   make([]*api.StrategyResourceEntry, 0),
@@ -419,32 +411,31 @@ func (svr *server) GetPrincipalResources(ctx context.Context, query map[string]s
 }
 
 // enhancedAuthStrategy2Api
-func enhancedAuthStrategy2Api(datas []*model.StrategyDetail, apply StrategyDetail2Api) []*api.AuthStrategy {
-	out := make([]*api.AuthStrategy, 0, len(datas))
-	for _, entry := range datas {
-		item := apply(entry)
-		out = append(out, item)
+func enhancedAuthStrategy2Api(s []*model.StrategyDetail, fn StrategyDetail2Api) []*api.AuthStrategy {
+	out := make([]*api.AuthStrategy, 0, len(s))
+	for k := range s {
+		out = append(out, fn(s[k]))
 	}
 
 	return out
 }
 
 // authStrategy2Api
-func (svr *server) authStrategy2Api(data *model.StrategyDetail) *api.AuthStrategy {
-	if data == nil {
+func (svr *server) authStrategy2Api(s *model.StrategyDetail) *api.AuthStrategy {
+	if s == nil {
 		return nil
 	}
 
 	// note: 不包括token，token比较特殊
 	out := &api.AuthStrategy{
-		Id:              utils.NewStringValue(data.ID),
-		Name:            utils.NewStringValue(data.Name),
-		Owner:           utils.NewStringValue(data.Owner),
-		Comment:         utils.NewStringValue(data.Comment),
-		Ctime:           utils.NewStringValue(commontime.Time2String(data.CreateTime)),
-		Mtime:           utils.NewStringValue(commontime.Time2String(data.ModifyTime)),
-		Action:          api.AuthAction(api.AuthAction_value[data.Action]),
-		DefaultStrategy: utils.NewBoolValue(data.Default),
+		Id:              utils.NewStringValue(s.ID),
+		Name:            utils.NewStringValue(s.Name),
+		Owner:           utils.NewStringValue(s.Owner),
+		Comment:         utils.NewStringValue(s.Comment),
+		Ctime:           utils.NewStringValue(commontime.Time2String(s.CreateTime)),
+		Mtime:           utils.NewStringValue(commontime.Time2String(s.ModifyTime)),
+		Action:          api.AuthAction(api.AuthAction_value[s.Action]),
+		DefaultStrategy: utils.NewBoolValue(s.Default),
 	}
 
 	return out
@@ -456,8 +447,8 @@ func (svr *server) authStrategyFull2Api(data *model.StrategyDetail) *api.AuthStr
 		return nil
 	}
 
-	users := make([]*wrappers.StringValue, 0)
-	groups := make([]*wrappers.StringValue, 0)
+	users := make([]*wrappers.StringValue, 0, len(data.Principals))
+	groups := make([]*wrappers.StringValue, 0, len(data.Principals))
 	for index := range data.Principals {
 		principal := data.Principals[index]
 		if principal.PrincipalRole == model.PrincipalUser {
@@ -487,7 +478,6 @@ func (svr *server) authStrategyFull2Api(data *model.StrategyDetail) *api.AuthStr
 
 // createAuthStrategyModel 创建鉴权策略的存储模型
 func (svr *server) createAuthStrategyModel(strategy *api.AuthStrategy) *model.StrategyDetail {
-
 	ret := &model.StrategyDetail{
 		ID:         utils.NewUUID(),
 		Name:       strategy.Name.GetValue(),
@@ -502,7 +492,7 @@ func (svr *server) createAuthStrategyModel(strategy *api.AuthStrategy) *model.St
 	}
 
 	// 收集涉及的资源信息
-	resEntry := make([]model.StrategyResource, 0)
+	resEntry := make([]model.StrategyResource, 0, 20)
 	resEntry = append(resEntry, svr.collectResEntry(ret.ID, api.ResourceType_Namespaces,
 		strategy.GetResources().GetNamespaces(), false)...)
 	resEntry = append(resEntry, svr.collectResEntry(ret.ID, api.ResourceType_Services,
@@ -511,7 +501,7 @@ func (svr *server) createAuthStrategyModel(strategy *api.AuthStrategy) *model.St
 		strategy.GetResources().GetConfigGroups(), false)...)
 
 	// 收集涉及的 principal 信息
-	principals := make([]model.Principal, 0)
+	principals := make([]model.Principal, 0, 20)
 	principals = append(principals, collectPrincipalEntry(ret.ID, model.PrincipalUser,
 		strategy.GetPrincipals().GetUsers())...)
 	principals = append(principals, collectPrincipalEntry(ret.ID, model.PrincipalGroup,
@@ -526,9 +516,7 @@ func (svr *server) createAuthStrategyModel(strategy *api.AuthStrategy) *model.St
 // updateAuthStrategyAttribute 更新计算鉴权策略的属性
 func (svr *server) updateAuthStrategyAttribute(ctx context.Context, strategy *api.ModifyAuthStrategy,
 	saved *model.StrategyDetail) (*model.ModifyStrategyDetail, bool) {
-
-	needUpdate := false
-
+	var needUpdate bool
 	ret := &model.ModifyStrategyDetail{
 		ID:         strategy.Id.GetValue(),
 		Name:       saved.Name,
@@ -562,9 +550,7 @@ func (svr *server) updateAuthStrategyAttribute(ctx context.Context, strategy *ap
 
 // computeResourceChange 计算资源的变化情况，判断是否涉及变更
 func (svr *server) computeResourceChange(modify *model.ModifyStrategyDetail, strategy *api.ModifyAuthStrategy) bool {
-
-	needUpdate := false
-
+	var needUpdate bool
 	addResEntry := make([]model.StrategyResource, 0)
 	addResEntry = append(addResEntry, svr.collectResEntry(modify.ID, api.ResourceType_Namespaces,
 		strategy.GetAddResources().GetNamespaces(), false)...)
@@ -596,9 +582,7 @@ func (svr *server) computeResourceChange(modify *model.ModifyStrategyDetail, str
 
 // computePrincipalChange 计算 principal 的变化情况，判断是否涉及变更
 func computePrincipalChange(modify *model.ModifyStrategyDetail, strategy *api.ModifyAuthStrategy) bool {
-
-	needUpdate := false
-
+	var needUpdate bool
 	addPrincipals := make([]model.Principal, 0)
 	addPrincipals = append(addPrincipals, collectPrincipalEntry(modify.ID, model.PrincipalUser,
 		strategy.GetAddPrincipals().GetUsers())...)
@@ -627,11 +611,11 @@ func computePrincipalChange(modify *model.ModifyStrategyDetail, strategy *api.Mo
 // collectResEntry 将资源ID转换为对应的 []model.StrategyResource 数组
 func (svr *server) collectResEntry(ruleId string, resType api.ResourceType,
 	res []*api.StrategyResourceEntry, delete bool) []model.StrategyResource {
+	resEntries := make([]model.StrategyResource, 0, len(res)+1)
 	if len(res) == 0 {
-		return make([]model.StrategyResource, 0)
+		return resEntries
 	}
 
-	resEntries := make([]model.StrategyResource, 0)
 	for index := range res {
 		// 如果是添加的动作，那么需要进行归一化处理
 		if !delete {
@@ -661,11 +645,11 @@ func (svr *server) collectResEntry(ruleId string, resType api.ResourceType,
 
 // collectPrincipalEntry 将 Principal 转换为对应的 []model.Principal 数组
 func collectPrincipalEntry(ruleID string, uType model.PrincipalType, res []*api.Principal) []model.Principal {
+	principals := make([]model.Principal, len(res)+1)
 	if len(res) == 0 {
-		return make([]model.Principal, 0)
+		return principals
 	}
 
-	principals := make([]model.Principal, 0)
 	for index := range res {
 		principals = append(principals, model.Principal{
 			StrategyID:    ruleID,
@@ -712,7 +696,6 @@ func (svr *server) checkCreateStrategy(req *api.AuthStrategy) *api.Response {
 // Case 2. 鉴权策略只能被自己的 owner 对应的用户修改
 func (svr *server) checkUpdateStrategy(ctx context.Context, req *api.ModifyAuthStrategy,
 	saved *model.StrategyDetail) *api.Response {
-
 	userId := utils.ParseUserID(ctx)
 	if utils.ParseUserRole(ctx) != model.AdminUserRole {
 		if !utils.ParseIsOwner(ctx) || userId != saved.Owner {
@@ -786,10 +769,8 @@ func convertPrincipalsToUsers(principals *api.Principals) []*api.User {
 	}
 
 	users := make([]*api.User, 0, len(principals.Users))
-
-	for index := range principals.GetUsers() {
-		user := principals.GetUsers()[index]
-
+	for k := range principals.GetUsers() {
+		user := principals.GetUsers()[k]
 		users = append(users, &api.User{
 			Id: user.Id,
 		})
@@ -804,10 +785,8 @@ func convertPrincipalsToGroups(principals *api.Principals) []*api.UserGroup {
 	}
 
 	groups := make([]*api.UserGroup, 0, len(principals.Groups))
-
-	for index := range principals.GetGroups() {
-		group := principals.GetGroups()[index]
-
+	for k := range principals.GetGroups() {
+		group := principals.GetGroups()[k]
 		groups = append(groups, &api.UserGroup{
 			Id: group.Id,
 		})
@@ -845,6 +824,7 @@ func (svr *server) checkGroupExist(groups []*api.UserGroup) error {
 			return model.ErrorNoUserGroup
 		}
 	}
+
 	return nil
 }
 
@@ -910,13 +890,10 @@ func (svr *server) normalizeResource(resources *api.StrategyResources) *api.Stra
 
 // fillPrincipalInfo 填充 principal 摘要信息
 func (svr *server) fillPrincipalInfo(resp *api.AuthStrategy, data *model.StrategyDetail) {
-
-	users := make([]*api.Principal, 0, 8)
-	groups := make([]*api.Principal, 0, 8)
-
+	users := make([]*api.Principal, 0, len(data.Principals))
+	groups := make([]*api.Principal, 0, len(data.Principals))
 	for index := range data.Principals {
 		principal := data.Principals[index]
-
 		if principal.PrincipalRole == model.PrincipalUser {
 			user := svr.cacheMgn.User().GetUserByID(principal.PrincipalID)
 			if user == nil {
@@ -946,16 +923,17 @@ func (svr *server) fillPrincipalInfo(resp *api.AuthStrategy, data *model.Strateg
 
 // fillResourceInfo 填充资源摘要信息
 func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.StrategyDetail) {
-	namespaces := make([]*api.StrategyResourceEntry, 0, 8)
-	services := make([]*api.StrategyResourceEntry, 0, 8)
-	configGroups := make([]*api.StrategyResourceEntry, 0, 8)
+	namespaces := make([]*api.StrategyResourceEntry, 0, len(data.Resources))
+	services := make([]*api.StrategyResourceEntry, 0, len(data.Resources))
+	configGroups := make([]*api.StrategyResourceEntry, 0, len(data.Resources))
 
-	autoAllNs := false
-	autoAllSvc := false
+	var (
+		autoAllNs  bool
+		autoAllSvc bool
+	)
 
 	for index := range data.Resources {
 		res := data.Resources[index]
-
 		switch res.ResType {
 		case int32(api.ResourceType_Namespaces):
 			if res.ResID == "*" {
@@ -969,6 +947,7 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 				}
 				continue
 			}
+
 			if !autoAllNs {
 				ns := svr.cacheMgn.Namespace().GetNamespace(res.ResID)
 				if ns == nil {
@@ -1019,28 +998,46 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 	}
 }
 
+type resourceFilter struct {
+	ns   map[string]struct{}
+	svc  map[string]struct{}
+	conf map[string]struct{}
+}
+
+// filter different types of Strategy resources
 func resourceDeduplication(resources []model.StrategyResource) []model.StrategyResource {
-	ret := make([]model.StrategyResource, 0, 4)
+	rLen := len(resources)
+	ret := make([]model.StrategyResource, 0, rLen)
+	rf := resourceFilter{
+		ns:   make(map[string]struct{}, rLen),
+		svc:  make(map[string]struct{}, rLen),
+		conf: make(map[string]struct{}, rLen),
+	}
 
-	tmpNs := make(map[string]struct{})
-	tmpSvc := make(map[string]struct{})
-	tmpConf := make(map[string]struct{})
-
+	est := struct{}{}
 	for i := range resources {
 		res := resources[i]
-
-		var m map[string]struct{}
 		if res.ResType == int32(api.ResourceType_Namespaces) {
-			m = tmpNs
-		} else if res.ResType == int32(api.ResourceType_Services) {
-			m = tmpSvc
-		} else {
-			m = tmpConf
+			if _, exist := rf.ns[res.ResID]; !exist {
+				rf.ns[res.ResID] = est
+				ret = append(ret, res)
+			}
+			continue
 		}
 
-		if _, exist := m[res.ResID]; !exist {
+		if res.ResType == int32(api.ResourceType_Services) {
+			if _, exist := rf.svc[res.ResID]; !exist {
+				rf.svc[res.ResID] = est
+				ret = append(ret, res)
+			}
+
+			continue
+		}
+
+		// other type conf
+		if _, exist := rf.conf[res.ResID]; !exist {
+			rf.conf[res.ResID] = est
 			ret = append(ret, res)
-			m[res.ResID] = struct{}{}
 		}
 	}
 

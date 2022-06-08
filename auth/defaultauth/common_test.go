@@ -196,14 +196,15 @@ func createMockUserGroup(users []*model.User) []*model.UserGroupDetail {
 	return groups
 }
 
-func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, services []*model.Service) []*model.StrategyDetail {
+func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, services []*model.Service) ([]*model.StrategyDetail, []*model.StrategyDetail) {
 	strategies := make([]*model.StrategyDetail, 0, len(users)+len(groups))
+	defaultStrategies := make([]*model.StrategyDetail, 0, len(users)+len(groups))
 
 	owner := ""
 	for i := 0; i < len(users); i++ {
 		user := users[i]
 		if user.Owner == "" {
-			owner = user.Owner
+			owner = user.ID
 			break
 		}
 	}
@@ -215,6 +216,37 @@ func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, se
 		strategies = append(strategies, &model.StrategyDetail{
 			ID:      id,
 			Name:    fmt.Sprintf("strategy_user_%s_%d", user.Name, i),
+			Action:  api.AuthAction_READ_WRITE.String(),
+			Comment: "",
+			Principals: []model.Principal{
+				{
+					PrincipalID:   user.ID,
+					PrincipalRole: model.PrincipalUser,
+				},
+			},
+			Default: false,
+			Owner:   owner,
+			Resources: []model.StrategyResource{
+				{
+					StrategyID: id,
+					ResType:    int32(api.ResourceType_Namespaces),
+					ResID:      service.Namespace,
+				},
+				{
+					StrategyID: id,
+					ResType:    int32(api.ResourceType_Services),
+					ResID:      service.ID,
+				},
+			},
+			Valid:      true,
+			Revision:   utils.NewUUID(),
+			CreateTime: time.Time{},
+			ModifyTime: time.Time{},
+		})
+
+		defaultStrategies = append(defaultStrategies, &model.StrategyDetail{
+			ID:      id,
+			Name:    fmt.Sprintf("strategy_default_user_%s_%d", user.Name, i),
 			Action:  api.AuthAction_READ_WRITE.String(),
 			Comment: "",
 			Principals: []model.Principal{
@@ -259,6 +291,37 @@ func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, se
 					PrincipalRole: model.PrincipalGroup,
 				},
 			},
+			Default: false,
+			Owner:   owner,
+			Resources: []model.StrategyResource{
+				{
+					StrategyID: id,
+					ResType:    int32(api.ResourceType_Namespaces),
+					ResID:      service.Namespace,
+				},
+				{
+					StrategyID: id,
+					ResType:    int32(api.ResourceType_Services),
+					ResID:      service.ID,
+				},
+			},
+			Valid:      true,
+			Revision:   utils.NewUUID(),
+			CreateTime: time.Time{},
+			ModifyTime: time.Time{},
+		})
+
+		defaultStrategies = append(defaultStrategies, &model.StrategyDetail{
+			ID:      id,
+			Name:    fmt.Sprintf("strategy_default_group_%s_%d", group.Name, i),
+			Action:  api.AuthAction_READ_WRITE.String(),
+			Comment: "",
+			Principals: []model.Principal{
+				{
+					PrincipalID:   group.ID,
+					PrincipalRole: model.PrincipalGroup,
+				},
+			},
 			Default: true,
 			Owner:   owner,
 			Resources: []model.StrategyResource{
@@ -280,7 +343,7 @@ func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, se
 		})
 	}
 
-	return strategies
+	return defaultStrategies, strategies
 }
 
 func convertServiceSliceToMap(services []*model.Service) map[string]*model.Service {

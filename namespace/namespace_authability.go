@@ -164,10 +164,6 @@ func (svr *serverAuthAbility) GetNamespaces(ctx context.Context, query map[strin
 					api.ResourceType_Namespaces, ns.Id.GetValue())
 			}
 			ns.Editable = utils.NewBoolValue(editable)
-			// 如果当前登录账户为该资源的主账户，则允许直接进行操作
-			if ns.Owners.GetValue() == utils.ParseUserID(ctx) {
-				ns.Editable = utils.NewBoolValue(true)
-			}
 		}
 	}
 

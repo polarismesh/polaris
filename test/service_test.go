@@ -27,9 +27,7 @@ import (
 	"github.com/polarismesh/polaris-server/test/resource"
 )
 
-/**
- * @brief 测试增删改查服务
- */
+// TestService 测试增删改查服务
 func TestService(t *testing.T) {
 	t.Log("test service interface")
 

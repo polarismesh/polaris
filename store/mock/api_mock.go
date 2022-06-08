@@ -1719,18 +1719,18 @@ func (mr *MockStoreMockRecorder) GetDefaultStrategyDetailByPrincipal(principalId
 }
 
 // GetStrategyDetail mocks base method
-func (m *MockStore) GetStrategyDetail(id string, isDefault bool) (*model.StrategyDetail, error) {
+func (m *MockStore) GetStrategyDetail(id string) (*model.StrategyDetail, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStrategyDetail", id, isDefault)
+	ret := m.ctrl.Call(m, "GetStrategyDetail", id)
 	ret0, _ := ret[0].(*model.StrategyDetail)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStrategyDetail indicates an expected call of GetStrategyDetail
-func (mr *MockStoreMockRecorder) GetStrategyDetail(id, isDefault interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) GetStrategyDetail(id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategyDetail", reflect.TypeOf((*MockStore)(nil).GetStrategyDetail), id, isDefault)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategyDetail", reflect.TypeOf((*MockStore)(nil).GetStrategyDetail), id)
 }
 
 // GetStrategies mocks base method

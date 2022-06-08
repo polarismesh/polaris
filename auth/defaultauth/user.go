@@ -23,14 +23,13 @@ import (
 	"strconv"
 	"time"
 
-	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
-
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type (
@@ -41,15 +40,15 @@ type (
 var (
 
 	// UserFilterAttributes 查询用户所能允许的参数查询列表
-	UserFilterAttributes = map[string]int{
-		"id":         1,
-		"name":       1,
-		"owner":      1,
-		"source":     1,
-		"offset":     1,
-		"group_id":   1,
-		"limit":      1,
-		"hide_admin": 1,
+	UserFilterAttributes = map[string]bool{
+		"id":         true,
+		"name":       true,
+		"owner":      true,
+		"source":     true,
+		"offset":     true,
+		"group_id":   true,
+		"limit":      true,
+		"hide_admin": true,
 	}
 )
 
@@ -76,7 +75,7 @@ func (svr *server) CreateUser(ctx context.Context, req *api.User) *api.Response 
 	}
 
 	// 如果创建的目标账户类型是非子账户，则 ownerId 需要设置为 “”
-	if converCreateUserRole(utils.ParseUserRole(ctx)) != model.SubAccountUserRole {
+	if convertCreateUserRole(utils.ParseUserRole(ctx)) != model.SubAccountUserRole {
 		ownerID = ""
 	}
 
@@ -240,12 +239,12 @@ func (svr *server) DeleteUser(ctx context.Context, req *api.User) *api.Response 
 	}
 
 	if !checkUserViewPermission(ctx, user) {
-		log.AuthScope().Info("[Auth][User] delete user forbidden", utils.ZapRequestID(requestID),
+		log.AuthScope().Error("[Auth][User] delete user forbidden", utils.ZapRequestID(requestID),
 			zap.String("name", req.GetName().GetValue()))
 		return api.NewUserResponse(api.NotAllowedAccess, req)
 	}
 	if user.ID == utils.ParseOwnerID(ctx) {
-		log.AuthScope().Info("[Auth][User] delete user forbidden, can't delete when self is owner",
+		log.AuthScope().Error("[Auth][User] delete user forbidden, can't delete when self is owner",
 			utils.ZapRequestID(requestID), zap.String("name", req.Name.GetValue()))
 		return api.NewUserResponse(api.NotAllowedAccess, req)
 	}
@@ -279,17 +278,18 @@ func (svr *server) GetUsers(ctx context.Context, query map[string]string) *api.B
 	log.AuthScope().Debug("[Auth][User] origin get users query params",
 		utils.ZapRequestID(requestID), zap.Any("query", query))
 
-	searchFilters := make(map[string]string)
 	var (
 		offset, limit uint32
 		err           error
 	)
 
+	searchFilters := make(map[string]string, len(query)+1)
 	for key, value := range query {
 		if _, ok := UserFilterAttributes[key]; !ok {
 			log.AuthScope().Errorf("[Auth][User] attribute(%s) it not allowed", key)
 			return api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
 		}
+
 		searchFilters[key] = value
 	}
 
@@ -508,7 +508,7 @@ func user2Api(user *model.User) *api.User {
 }
 
 // 生成用户的记录entry
-func userRecordEntry(ctx context.Context, req *api.User, md *model.User,
+func userRecordEntry(ctx context.Context, _ *api.User, md *model.User,
 	operationType model.OperationType) *model.RecordEntry {
 	entry := &model.RecordEntry{
 		ResourceType:  model.RUser,
@@ -572,7 +572,7 @@ func checkUpdateUser(req *api.User) *api.Response {
 
 // updateUserAttribute 更新用户属性
 func updateUserAttribute(old *model.User, newUser *api.User) (*model.User, bool, error) {
-	var needUpdate bool = true
+	var needUpdate = true
 
 	if newUser.Comment != nil && old.Comment != newUser.Comment.GetValue() {
 		old.Comment = newUser.Comment.GetValue()
@@ -649,7 +649,7 @@ func createUserModel(req *api.User, role model.UserRoleType) (*model.User, error
 		Mobile:      req.GetMobile().GetValue(),
 		Email:       req.GetEmail().GetValue(),
 		Valid:       true,
-		Type:        converCreateUserRole(role),
+		Type:        convertCreateUserRole(role),
 		Comment:     req.GetComment().GetValue(),
 		CreateTime:  time.Now(),
 		ModifyTime:  time.Now(),
@@ -671,11 +671,12 @@ func createUserModel(req *api.User, role model.UserRoleType) (*model.User, error
 	return user, nil
 }
 
-// converCreateUserRole 转换为创建的目标用户的用户角色类型
-func converCreateUserRole(role model.UserRoleType) model.UserRoleType {
+// convertCreateUserRole 转换为创建的目标用户的用户角色类型
+func convertCreateUserRole(role model.UserRoleType) model.UserRoleType {
 	if role == model.AdminUserRole {
 		return model.OwnerUserRole
 	}
+
 	if role == model.OwnerUserRole {
 		return model.SubAccountUserRole
 	}

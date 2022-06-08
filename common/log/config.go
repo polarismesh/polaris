@@ -299,7 +299,6 @@ func Configure(optionsMap map[string]*Options) error {
 				grpclog.SetLogger(zapgrpc.NewLogger(captureLogger.WithOptions(zap.AddCallerSkip(2))))
 			}
 		}
-
 	}
 	return nil
 }

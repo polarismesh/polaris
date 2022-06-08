@@ -223,9 +223,12 @@ func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult,
 		}
 		owner := ownerSupplier(user)
 		if !user.Valid {
+			// 删除 user-id -> user 的缓存
+			// 删除 username + ownername -> user 的缓存
+			// 删除 user-id -> group-ids 的缓存
 			uc.users.Delete(user.ID)
 			uc.name2Users.Delete(fmt.Sprintf(NameLinkOwnerTemp, owner.Name, user.Name))
-
+			// uc.user2Groups.Delete(user.ID)
 			ret.userDel++
 		} else {
 			if _, ok := uc.users.Load(user.ID); ok {
