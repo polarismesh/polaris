@@ -25,20 +25,20 @@ import (
 )
 
 // RecordConfigFileReleaseHistory 新增配置文件发布历史记录
-func (cs *serverAuthibility) RecordConfigFileReleaseHistory(ctx context.Context, fileRelease *model.ConfigFileRelease, releaseType, status string) {
+func (s *serverAuthibility) RecordConfigFileReleaseHistory(ctx context.Context, fileRelease *model.ConfigFileRelease, releaseType, status string) {
 
 }
 
 // GetConfigFileReleaseHistory 获取配置文件发布历史记录
-func (cs *serverAuthibility) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset,
+func (s *serverAuthibility) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset,
 	limit uint32, endId uint64) *api.ConfigBatchQueryResponse {
 
-	return cs.targetServer.GetConfigFileReleaseHistory(ctx, namespace, group, fileName, offset, limit, endId)
+	return s.targetServer.GetConfigFileReleaseHistory(ctx, namespace, group, fileName, offset, limit, endId)
 }
 
 // GetConfigFileLatestReleaseHistory 获取配置文件最后一次发布记录
-func (cs *serverAuthibility) GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group,
+func (s *serverAuthibility) GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group,
 	fileName string) *api.ConfigResponse {
 
-	return cs.targetServer.GetConfigFileLatestReleaseHistory(ctx, namespace, group, fileName)
+	return s.targetServer.GetConfigFileLatestReleaseHistory(ctx, namespace, group, fileName)
 }

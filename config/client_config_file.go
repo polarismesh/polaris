@@ -31,7 +31,7 @@ import (
 )
 
 // GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
-func (cs *Server) GetConfigFileForClient(ctx context.Context,
+func (s *Server) GetConfigFileForClient(ctx context.Context,
 	client *api.ClientConfigFileInfo) *api.ConfigClientResponse {
 
 	namespace := client.GetNamespace().GetValue()
@@ -50,7 +50,7 @@ func (cs *Server) GetConfigFileForClient(ctx context.Context,
 		zap.String("group", group), zap.String("file", fileName))
 
 	// 从缓存中获取配置内容
-	entry, err := cs.cache.GetOrLoadIfAbsent(namespace, group, fileName)
+	entry, err := s.cache.GetOrLoadIfAbsent(namespace, group, fileName)
 
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] get or load config file from cache error.",
@@ -66,7 +66,7 @@ func (cs *Server) GetConfigFileForClient(ctx context.Context,
 
 	// 客户端版本号大于服务端版本号，服务端需要重新加载缓存
 	if clientVersion > entry.Version {
-		entry, err = cs.cache.ReLoad(namespace, group, fileName)
+		entry, err = s.cache.ReLoad(namespace, group, fileName)
 		if err != nil {
 			log.ConfigScope().Error("[Config][Service] reload config file error.",
 				zap.String("requestId", requestID),
@@ -91,14 +91,14 @@ func (cs *Server) GetConfigFileForClient(ctx context.Context,
 	return resp
 }
 
-func (cs *Server) WatchConfigFiles(ctx context.Context,
+func (s *Server) WatchConfigFiles(ctx context.Context,
 	request *api.ClientWatchConfigFileRequest) (func() *api.ConfigClientResponse, error) {
 
 	clientAddr := utils.ParseClientAddress(ctx)
 
 	watchFiles := request.GetWatchFiles()
 	// 2. 检查客户端是否有版本落后
-	resp := cs.CheckClientConfigFileByVersion(ctx, watchFiles)
+	resp := s.CheckClientConfigFileByVersion(ctx, watchFiles)
 	if resp.Code.GetValue() != api.DataNoChange {
 		return func() *api.ConfigClientResponse {
 			return resp
@@ -111,7 +111,7 @@ func (cs *Server) WatchConfigFiles(ctx context.Context,
 
 	finishChan := make(chan *api.ConfigClientResponse)
 
-	cs.ConnManager().AddConn(clientId, watchFiles, finishChan)
+	s.ConnManager().AddConn(clientId, watchFiles, finishChan)
 
 	return func() *api.ConfigClientResponse {
 		resp := <-finishChan
@@ -123,20 +123,20 @@ func (cs *Server) WatchConfigFiles(ctx context.Context,
 type checkFunc func(clientConfigFile *api.ClientConfigFileInfo, cacheEntry *cache.Entry) bool
 
 // CheckClientConfigFileByVersion 通过比较版本号检查客户端使用的配置文件是否版本落后
-func (cs *Server) CheckClientConfigFileByVersion(ctx context.Context, configFiles []*api.ClientConfigFileInfo) *api.ConfigClientResponse {
-	return cs.doCheckClientConfigFile(ctx, configFiles, func(clientConfigFile *api.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
+func (s *Server) CheckClientConfigFileByVersion(ctx context.Context, configFiles []*api.ClientConfigFileInfo) *api.ConfigClientResponse {
+	return s.doCheckClientConfigFile(ctx, configFiles, func(clientConfigFile *api.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
 		return !cacheEntry.Empty && clientConfigFile.Version.GetValue() < cacheEntry.Version
 	})
 }
 
 // CheckClientConfigFileByMd5 通过比较md5检查客户端使用的配置文件是否版本落后
-func (cs *Server) CheckClientConfigFileByMd5(ctx context.Context, configFiles []*api.ClientConfigFileInfo) *api.ConfigClientResponse {
-	return cs.doCheckClientConfigFile(ctx, configFiles, func(clientConfigFile *api.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
+func (s *Server) CheckClientConfigFileByMd5(ctx context.Context, configFiles []*api.ClientConfigFileInfo) *api.ConfigClientResponse {
+	return s.doCheckClientConfigFile(ctx, configFiles, func(clientConfigFile *api.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
 		return clientConfigFile.Md5.GetValue() != cacheEntry.Md5
 	})
 }
 
-func (cs *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api.ClientConfigFileInfo,
+func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api.ClientConfigFileInfo,
 	checkFunc checkFunc) *api.ConfigClientResponse {
 	if len(configFiles) == 0 {
 		return api.NewConfigClientResponse(api.InvalidWatchConfigFileFormat, nil)
@@ -154,7 +154,7 @@ func (cs *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*ap
 		}
 
 		// 从缓存中获取最新的配置文件信息
-		entry, err := cs.cache.GetOrLoadIfAbsent(namespace, group, fileName)
+		entry, err := s.cache.GetOrLoadIfAbsent(namespace, group, fileName)
 
 		if err != nil {
 			log.ConfigScope().Error("[Config][Service] get or load config file from cache error.",

@@ -24,29 +24,29 @@ import (
 )
 
 // PublishConfigFile 发布配置文件
-func (cs *serverAuthibility) PublishConfigFile(ctx context.Context,
+func (s *serverAuthibility) PublishConfigFile(ctx context.Context,
 	configFileRelease *api.ConfigFileRelease) *api.ConfigResponse {
 
-	authCtx := cs.collectBaseTokenInfo(ctx)
-	if err := cs.authChecker.VerifyCredential(authCtx); err != nil {
+	authCtx := s.collectBaseTokenInfo(ctx)
+	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
 
-	return cs.targetServer.PublishConfigFile(ctx, configFileRelease)
+	return s.targetServer.PublishConfigFile(ctx, configFileRelease)
 }
 
 // GetConfigFileRelease 获取配置文件发布内容
-func (cs *serverAuthibility) GetConfigFileRelease(ctx context.Context,
+func (s *serverAuthibility) GetConfigFileRelease(ctx context.Context,
 	namespace, group, fileName string) *api.ConfigResponse {
 
-	return cs.targetServer.GetConfigFileRelease(ctx, namespace, group, fileName)
+	return s.targetServer.GetConfigFileRelease(ctx, namespace, group, fileName)
 }
 
 // DeleteConfigFileRelease 删除配置文件发布，删除配置文件的时候，同步删除配置文件发布数据
-func (cs *serverAuthibility) DeleteConfigFileRelease(ctx context.Context, namespace,
+func (s *serverAuthibility) DeleteConfigFileRelease(ctx context.Context, namespace,
 	group, fileName, deleteBy string) *api.ConfigResponse {
 
-	return cs.targetServer.DeleteConfigFileRelease(ctx, namespace, group, fileName, deleteBy)
+	return s.targetServer.DeleteConfigFileRelease(ctx, namespace, group, fileName, deleteBy)
 }

@@ -24,49 +24,49 @@ import (
 )
 
 // CreateConfigFileGroup 创建配置文件组
-func (cs *serverAuthibility) CreateConfigFileGroup(ctx context.Context,
+func (s *serverAuthibility) CreateConfigFileGroup(ctx context.Context,
 	configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
 
-	authCtx := cs.collectBaseTokenInfo(ctx)
-	if err := cs.authChecker.VerifyCredential(authCtx); err != nil {
+	authCtx := s.collectBaseTokenInfo(ctx)
+	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
 
-	return cs.targetServer.CreateConfigFileGroup(ctx, configFileGroup)
+	return s.targetServer.CreateConfigFileGroup(ctx, configFileGroup)
 }
 
 // QueryConfigFileGroups 查询配置文件组
-func (cs *serverAuthibility) QueryConfigFileGroups(ctx context.Context, namespace, groupName,
+func (s *serverAuthibility) QueryConfigFileGroups(ctx context.Context, namespace, groupName,
 	fileName string, offset, limit uint32) *api.ConfigBatchQueryResponse {
 
-	return cs.targetServer.QueryConfigFileGroups(ctx, namespace, groupName, fileName, offset, limit)
+	return s.targetServer.QueryConfigFileGroups(ctx, namespace, groupName, fileName, offset, limit)
 }
 
 // DeleteConfigFileGroup 删除配置文件组
-func (cs *serverAuthibility) DeleteConfigFileGroup(ctx context.Context, namespace, name string) *api.ConfigResponse {
+func (s *serverAuthibility) DeleteConfigFileGroup(ctx context.Context, namespace, name string) *api.ConfigResponse {
 
-	authCtx := cs.collectBaseTokenInfo(ctx)
-	if err := cs.authChecker.VerifyCredential(authCtx); err != nil {
+	authCtx := s.collectBaseTokenInfo(ctx)
+	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
 
-	return cs.targetServer.DeleteConfigFileGroup(ctx, namespace, name)
+	return s.targetServer.DeleteConfigFileGroup(ctx, namespace, name)
 }
 
 // UpdateConfigFileGroup 更新配置文件组
-func (cs *serverAuthibility) UpdateConfigFileGroup(ctx context.Context,
+func (s *serverAuthibility) UpdateConfigFileGroup(ctx context.Context,
 	configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
 
-	authCtx := cs.collectBaseTokenInfo(ctx)
-	if err := cs.authChecker.VerifyCredential(authCtx); err != nil {
+	authCtx := s.collectBaseTokenInfo(ctx)
+	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
 
-	return cs.targetServer.UpdateConfigFileGroup(ctx, configFileGroup)
+	return s.targetServer.UpdateConfigFileGroup(ctx, configFileGroup)
 }
