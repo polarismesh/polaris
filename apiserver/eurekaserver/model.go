@@ -28,7 +28,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
-// 端口包装类
+// PortWrapper 端口包装类
 type PortWrapper struct {
 	Port interface{} `json:"$" xml:",chardata"`
 
@@ -100,14 +100,14 @@ func (p *PortWrapper) convertEnableValue() error {
 	return fmt.Errorf("unknow type of enable value, type is %v", reflect.TypeOf(p.Enabled))
 }
 
-// 数据中心信息
+// DataCenterInfo 数据中心信息
 type DataCenterInfo struct {
 	Clazz string `json:"@class" xml:"class,attr"`
 
 	Name string `json:"name" xml:"name"`
 }
 
-// 租约信息
+// LeaseInfo 租约信息
 type LeaseInfo struct {
 
 	// Client settings
@@ -125,22 +125,22 @@ type LeaseInfo struct {
 	ServiceUpTimestamp int `json:"serviceUpTimestamp" xml:"serviceUpTimestamp"`
 }
 
-// 实例注册请求
+// RegistrationRequest 实例注册请求
 type RegistrationRequest struct {
 	Instance *InstanceInfo `json:"instance"`
 }
 
-// 服务拉取应答
+// ApplicationsResponse 服务拉取应答
 type ApplicationsResponse struct {
 	Applications *Applications `json:"applications"`
 }
 
-// 单个服务拉取响应
+// ApplicationResponse 单个服务拉取响应
 type ApplicationResponse struct {
 	Application *Application `json:"application"`
 }
 
-// 单个服务实例拉取响应
+// InstanceResponse 单个服务实例拉取响应
 type InstanceResponse struct {
 	InstanceInfo *InstanceInfo `json:"instance" xml:"instance"`
 }
@@ -169,7 +169,7 @@ func (i *Metadata) UnmarshalJSON(b []byte) error {
 
 // UnmarshalXML Metadata xml 反序列化方法
 func (i *Metadata) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	i.Meta = make(map[string]string)
+	i.Meta = make(map[string]interface{})
 	values, err := xmlToMapParser(start.Name.Local, start.Attr, d, true)
 	if err != nil {
 		return err
@@ -181,11 +181,7 @@ func (i *Metadata) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	}
 	if len(subValues) > 0 {
 		for k, v := range subValues {
-			if str, ok := v.(string); ok {
-				i.Meta[k] = str
-			} else {
-				i.Meta[k] = fmt.Sprintf("%v", v)
-			}
+			i.Meta[k] = v
 		}
 	}
 	return nil
@@ -217,17 +213,18 @@ func (i *Metadata) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	tokens := []xml.Token{start}
 	if i.Meta != nil {
 		for key, value := range i.Meta {
+			strValue := ObjectToString(value)
 			if strings.HasPrefix(key, attributeNotion) {
-				start.Attr = append(start.Attr, startLocalAttribute(key[1:], value))
+				start.Attr = append(start.Attr, startLocalAttribute(key[1:], strValue))
 				continue
 			}
 			// 兼容，后续去掉
 			if strings.HasPrefix(key, attributeNotionCross) {
-				start.Attr = append(start.Attr, startLocalAttribute(key[1:], value))
+				start.Attr = append(start.Attr, startLocalAttribute(key[1:], strValue))
 				continue
 			}
 			t := startLocalName(key)
-			tokens = append(tokens, t, xml.CharData(value), xml.EndElement{Name: t.Name})
+			tokens = append(tokens, t, xml.CharData(strValue), xml.EndElement{Name: t.Name})
 		}
 	}
 	tokens = append(tokens, xml.EndElement{Name: start.Name})
@@ -245,7 +242,7 @@ func (i *Metadata) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.Flush()
 }
 
-// 实例信息
+// InstanceInfo 实例信息
 type InstanceInfo struct {
 	XMLName struct{} `json:"-" xml:"instance"`
 
@@ -275,7 +272,7 @@ type InstanceInfo struct {
 
 	SecureVipAddress string `json:"secureVipAddress" xml:"secureVipAddress,omitempty"`
 
-	CountryId int `json:"countryId" xml:"countryId,omitempty"`
+	CountryId interface{} `json:"countryId" xml:"countryId,omitempty"`
 
 	DataCenterInfo *DataCenterInfo `json:"dataCenterInfo" xml:"dataCenterInfo"`
 
@@ -301,7 +298,7 @@ type InstanceInfo struct {
 	RealInstances map[string]*model.Instance `json:"-" xml:"-"`
 }
 
-// 对实例进行拷贝
+// Clone 对实例进行拷贝
 func (i *InstanceInfo) Clone(actionType string) *InstanceInfo {
 	return &InstanceInfo{
 		InstanceId:                    i.InstanceId,
@@ -331,7 +328,7 @@ func (i *InstanceInfo) Clone(actionType string) *InstanceInfo {
 	}
 }
 
-// 判断实例是否发生变更
+// Equals 判断实例是否发生变更
 func (i *InstanceInfo) Equals(another *InstanceInfo) bool {
 	if len(i.RealInstances) != len(another.RealInstances) {
 		return false
@@ -347,7 +344,7 @@ func (i *InstanceInfo) Equals(another *InstanceInfo) bool {
 	return true
 }
 
-// 服务数据
+// Application 服务数据
 type Application struct {
 	XMLName struct{} `json:"-" xml:"application"`
 
@@ -362,7 +359,7 @@ type Application struct {
 	StatusCounts map[string]int `json:"-" xml:"-"`
 }
 
-// 获取eureka实例
+// GetInstance 获取eureka实例
 func (a *Application) GetInstance(instId string) *InstanceInfo {
 	if len(a.InstanceMap) > 0 {
 		return a.InstanceMap[instId]
@@ -370,7 +367,7 @@ func (a *Application) GetInstance(instId string) *InstanceInfo {
 	return nil
 }
 
-// 服务列表
+// Applications 服务列表
 type Applications struct {
 	XMLName struct{} `json:"-" xml:"applications"`
 
@@ -383,7 +380,7 @@ type Applications struct {
 	ApplicationMap map[string]*Application `json:"-" xml:"-"`
 }
 
-// 获取eureka应用
+// GetApplication 获取eureka应用
 func (a *Applications) GetApplication(appId string) *Application {
 	if len(a.ApplicationMap) > 0 {
 		return a.ApplicationMap[appId]
@@ -391,5 +388,19 @@ func (a *Applications) GetApplication(appId string) *Application {
 	return nil
 }
 
+// GetInstance get instance by instanceId
+func (a *Applications) GetInstance(instId string) *InstanceInfo {
+	if len(a.Application) == 0 {
+		return nil
+	}
+	for _, app := range a.Application {
+		inst, ok := app.InstanceMap[instId]
+		if ok {
+			return inst
+		}
+	}
+	return nil
+}
+
 // StringMap is a map[string]string.
-type StringMap map[string]string
+type StringMap map[string]interface{}

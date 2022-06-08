@@ -46,11 +46,17 @@ type APIConfig struct {
 
 // Apiserver API服务器接口
 type Apiserver interface {
+	// API协议名
 	GetProtocol() string
+	// API的监听端口
 	GetPort() uint32
+	// API初始化逻辑
 	Initialize(ctx context.Context, option map[string]interface{}, api map[string]APIConfig) error
+	// API服务的主逻辑循环
 	Run(errCh chan error)
+	// 停止API端口监听
 	Stop()
+	// 重启API
 	Restart(option map[string]interface{}, api map[string]APIConfig, errCh chan error) error
 }
 
