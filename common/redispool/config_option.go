@@ -17,7 +17,6 @@
 package redispool
 
 import (
-	"crypto/tls"
 	"time"
 
 	commontime "github.com/polarismesh/polaris-server/common/time"
@@ -29,7 +28,7 @@ type Option func(c *Config)
 // WithConfig set new config for NewPool,keep old code compatibility
 func WithConfig(newConfig *Config) Option {
 	return func(c *Config) {
-		c = newConfig
+		*c = *newConfig
 	}
 }
 
@@ -156,13 +155,6 @@ func WithMaxConnAge(maxConnAge time.Duration) Option {
 func WithUsername(username string) Option {
 	return func(c *Config) {
 		c.KvUser = username
-	}
-}
-
-// WithTLSConfig set TLSConfig
-func WithTLSConfig(tlsConfig *tls.Config) Option {
-	return func(c *Config) {
-		c.tlsConfig = tlsConfig
 	}
 }
 

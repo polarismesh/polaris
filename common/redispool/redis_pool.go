@@ -160,9 +160,6 @@ type Config struct {
 	// if WithTLS is true, you should call WithEnableWithTLS,and then TLSConfig is not should be nil
 	// In this case you should call WithTLSConfig func to set tlsConfig
 	WithTLS bool `json:"withTLS"`
-
-	// TLS Config to use. When set TLS will be negotiated.
-	tlsConfig *tls.Config
 }
 
 // DefaultConfig redis pool configuration with default values
@@ -263,12 +260,8 @@ func NewRedisClient(opts ...Option) *redis.Client {
 	}
 
 	if config.WithTLS {
-		if config.tlsConfig != nil {
-			redisOption.TLSConfig = config.tlsConfig
-		} else {
-			redisOption.TLSConfig = &tls.Config{
-				MinVersion: tls.VersionTLS12,
-			}
+		redisOption.TLSConfig = &tls.Config{
+			MinVersion: tls.VersionTLS12,
 		}
 	}
 
