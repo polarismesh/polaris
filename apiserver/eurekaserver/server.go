@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -74,14 +75,11 @@ const (
 	ActionModified = "MODIFIED"
 	ActionDeleted  = "DELETED"
 
-	DefaultNamespace               = "default"
-	DefaultCountryId               = 1
+	DefaultCountryIdInt            = 1
 	DefaultDciClazz                = "com.netflix.appinfo.InstanceInfo$DefaultDataCenterInfo"
 	DefaultDciName                 = "MyOwn"
 	DefaultRenewInterval           = 30
 	DefaultDuration                = 90
-	DefaultRefreshInterval         = 10
-	DefaultDetailExpireInterval    = 60
 	DefaultUnhealthyExpireInterval = 180
 
 	DefaultOwner        = "polaris"
@@ -109,31 +107,29 @@ var (
 		Clazz: DefaultDciClazz,
 		Name:  DefaultDciName,
 	}
+	DefaultCountryId = strconv.Itoa(DefaultCountryIdInt)
 )
 
 // EurekaServer is the Eureka server
 type EurekaServer struct {
-	server            *http.Server
-	namingServer      service.DiscoverServer
-	healthCheckServer *healthcheck.Server
-	connLimitConfig   *connlimit.Config
-	option            map[string]interface{}
-	openAPI           map[string]apiserver.APIConfig
-	worker            *ApplicationsWorker
-	listenPort        uint32
-	listenIP          string
-	exitCh            chan struct{}
-	start             bool
-	restart           bool
-	rateLimit         plugin.Ratelimit
-	statis            plugin.Statis
-	namespace         string
-	owner             string
-	refreshInterval   time.Duration
-
-	deltaExpireInterval time.Duration
-
-	unhealthyExpireInterval time.Duration
+	server                 *http.Server
+	namingServer           service.DiscoverServer
+	healthCheckServer      *healthcheck.Server
+	connLimitConfig        *connlimit.Config
+	option                 map[string]interface{}
+	openAPI                map[string]apiserver.APIConfig
+	worker                 *ApplicationsWorker
+	listenPort             uint32
+	listenIP               string
+	exitCh                 chan struct{}
+	start                  bool
+	restart                bool
+	rateLimit              plugin.Ratelimit
+	statis                 plugin.Statis
+	namespace              string
+	refreshInterval        time.Duration
+	deltaExpireInterval    time.Duration
+	enableSelfPreservation bool
 }
 
 // GetPort 获取端口
@@ -149,13 +145,13 @@ func (h *EurekaServer) GetProtocol() string {
 // Initialize 初始化HTTP API服务器
 func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interface{},
 	api map[string]apiserver.APIConfig) error {
-	h.listenIP = option["listenIP"].(string)
-	h.listenPort = uint32(option["listenPort"].(int))
+	h.listenIP = option[optionListenIP].(string)
+	h.listenPort = uint32(option[optionListenPort].(int))
 	h.option = option
 	h.openAPI = api
 
 	var namespace = DefaultNamespace
-	if namespaceValue, ok := option["namespace"]; ok {
+	if namespaceValue, ok := option[optionNamespace]; ok {
 		theNamespace := namespaceValue.(string)
 		if len(theNamespace) > 0 {
 			namespace = theNamespace
@@ -163,16 +159,8 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 	}
 	h.namespace = namespace
 
-	var owner = DefaultOwner
-	if ownerValue, ok := option["owner"]; ok {
-		theOwner := ownerValue.(string)
-		if len(theOwner) > 0 {
-			owner = theOwner
-		}
-	}
-	h.owner = owner
 	var refreshInterval int
-	if value, ok := option["refreshInterval"]; ok {
+	if value, ok := option[optionRefreshInterval]; ok {
 		refreshInterval = value.(int)
 	}
 	if refreshInterval < DefaultRefreshInterval {
@@ -180,36 +168,31 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 	}
 
 	var deltaExpireInterval int
-	if value, ok := option["deltaExpireInterval"]; ok {
+	if value, ok := option[optionDeltaExpireInterval]; ok {
 		deltaExpireInterval = value.(int)
 	}
 	if deltaExpireInterval < DefaultDetailExpireInterval {
 		deltaExpireInterval = DefaultDetailExpireInterval
 	}
 
-	var unhealthyExpireInterval int
-	if value, ok := option["unhealthyExpireInterval"]; ok {
-		unhealthyExpireInterval = value.(int)
-	}
-	if unhealthyExpireInterval < DefaultUnhealthyExpireInterval {
-		unhealthyExpireInterval = DefaultUnhealthyExpireInterval
-	}
-
 	// 连接数限制的配置
-	if raw, _ := option["connLimit"].(map[interface{}]interface{}); raw != nil {
+	if raw, _ := option[optionConnLimit].(map[interface{}]interface{}); raw != nil {
 		connLimitConfig, err := connlimit.ParseConnLimitConfig(raw)
 		if err != nil {
 			return err
 		}
 		h.connLimitConfig = connLimitConfig
 	}
-	// if rateLimit := plugin.GetRatelimit(); rateLimit != nil {
-	//	log.Infof("http server open the ratelimit")
-	//	h.rateLimit = rateLimit
-	// }
 	h.refreshInterval = time.Duration(refreshInterval) * time.Second
 	h.deltaExpireInterval = time.Duration(deltaExpireInterval) * time.Second
-	h.unhealthyExpireInterval = time.Duration(unhealthyExpireInterval) * time.Second
+
+	var enableSelfPreservation bool
+	if value, ok := option[optionEnableSelfPreservation]; ok {
+		enableSelfPreservation = value.(bool)
+	} else {
+		enableSelfPreservation = DefaultEnableSelfPreservation
+	}
+	h.enableSelfPreservation = enableSelfPreservation
 	return nil
 }
 
@@ -236,8 +219,8 @@ func (h *EurekaServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
-	h.worker = NewApplicationsWorker(h.refreshInterval, h.deltaExpireInterval,
-		h.unhealthyExpireInterval, h.namingServer, h.healthCheckServer, h.namespace)
+	h.worker = NewApplicationsWorker(h.refreshInterval, h.deltaExpireInterval, h.enableSelfPreservation,
+		h.namingServer, h.healthCheckServer, h.namespace)
 	h.statis = plugin.GetStatis()
 	// 初始化http server
 	address := fmt.Sprintf("%v:%v", h.listenIP, h.listenPort)
@@ -287,15 +270,10 @@ func (h *EurekaServer) Run(errCh chan error) {
 // 创建handler
 func (h *EurekaServer) createRestfulContainer() (*restful.Container, error) {
 	wsContainer := restful.NewContainer()
-	// cors := restful.CrossOriginResourceSharing{
-	//	AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
-	//	CookiesAllowed: false,
-	//	Container:      wsContainer}
-	// wsContainer.Filter(cors.Filter)
-
 	wsContainer.Filter(h.process)
-
-	wsContainer.Add(h.GetEurekaAccessServer())
+	wsContainer.Add(h.GetEurekaV2Server())
+	wsContainer.Add(h.GetEurekaV1Server())
+	wsContainer.Add(h.GetEurekaServer())
 	return wsContainer, nil
 }
 
