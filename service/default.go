@@ -62,8 +62,9 @@ var (
 
 // Config 核心逻辑层配置
 type Config struct {
-	Auth  map[string]interface{} `yaml:"auth"`
-	Batch map[string]interface{} `yaml:"batch"`
+	AsyncRegisWrite bool                   `yaml:"asyncRegisWrite"`
+	Auth            map[string]interface{} `yaml:"auth"`
+	Batch           map[string]interface{} `yaml:"batch"`
 }
 
 // Initialize 初始化
@@ -142,6 +143,7 @@ func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, 
 		namingServer.caches = caches
 	}
 
+	namingServer.asyncRegisWrite = namingOpt.AsyncRegisWrite
 	namingServer.bc = bc
 
 	// l5service

@@ -29,6 +29,12 @@ import (
 
 // CreateInstances create one instance
 func (s *Server) RegisterInstance(ctx context.Context, req *api.Instance) *api.Response {
+
+	val, _ := ctx.Value(utils.ContextClientOpenAsyncRegis).(string)
+
+	clientOpenAsync := strings.Compare(val, "true") == 0 && s.asyncRegisWrite
+	ctx = context.WithValue(ctx, utils.ContextOpenAsyncRegis, clientOpenAsync)
+
 	return s.CreateInstance(ctx, req)
 }
 
