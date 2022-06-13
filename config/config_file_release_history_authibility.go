@@ -27,6 +27,7 @@ import (
 // RecordConfigFileReleaseHistory 新增配置文件发布历史记录
 func (cs *serverAuthibility) RecordConfigFileReleaseHistory(ctx context.Context, fileRelease *model.ConfigFileRelease, releaseType, status string) {
 
+	cs.targetServer.RecordConfigFileReleaseHistory(ctx, fileRelease, releaseType, status)
 }
 
 // GetConfigFileReleaseHistory 获取配置文件发布历史记录

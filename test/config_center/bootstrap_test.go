@@ -27,6 +27,7 @@ import (
 
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/bootstrap/config"
+	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 	config_center "github.com/polarismesh/polaris-server/config"
@@ -45,7 +46,8 @@ import (
 var (
 	cfg           = new(config.Config)
 	once          = new(sync.Once)
-	configService = new(config_center.Server)
+	configService config_center.ConfigCenterServer
+	originServer  = new(config_center.Server)
 	cancelFlag    = false
 	defaultCtx    = context.Background()
 )
@@ -76,6 +78,7 @@ func doInitialize() error {
 		// 初始化defaultCtx
 		defaultCtx = context.WithValue(defaultCtx, utils.StringContext("request-id"), "config-test-request-id")
 		defaultCtx = context.WithValue(defaultCtx, utils.ContextUserNameKey, "polaris")
+		defaultCtx = context.WithValue(defaultCtx, utils.ContextAuthTokenKey, "4azbewS+pdXvrMG1PtYV3SrcLxjmYd0IVNaX9oYziQygRnKzjcSbxl+Reg7zYQC1gRrGiLzmMY+w+aCxOYI=")
 
 		// 初始化日志打印
 		err = log.Configure(cfg.Bootstrap.Logger)
@@ -83,6 +86,7 @@ func doInitialize() error {
 			fmt.Printf("[ERROR] configure logger fail: %v\n", err)
 			return
 		}
+
 
 		plugin.SetPluginConfig(&cfg.Plugin)
 
@@ -94,7 +98,18 @@ func doInitialize() error {
 			return
 		}
 
-		if err := auth.Initialize(context.Background(), &cfg.Auth, s, nil); err != nil {
+		if err := cache.Initialize(context.Background(), &cfg.Cache, s); err != nil {
+			fmt.Printf("[ERROR] configure init cache fail: %v\n", err)
+			return
+		}
+
+		cacheMgr, err := cache.GetCacheManager()
+		if err != nil {
+			fmt.Printf("[ERROR] configure get cache fail: %v\n", err)
+			return
+		}
+
+		if err := auth.Initialize(context.Background(), &cfg.Auth, s, cacheMgr); err != nil {
 			fmt.Printf("[ERROR] configure init auth fail: %v\n", err)
 			return
 		}
@@ -115,13 +130,21 @@ func doInitialize() error {
 			}
 		}()
 
-		err = config_center.Initialize(ctx, cfg.Config, s, nil, authSvr)
+		err = config_center.Initialize(ctx, cfg.Config, s, cacheMgr, authSvr)
 		if err != nil {
 			return
 		}
 
-		configService, err = config_center.GetOriginServer()
+		configService, err = config_center.GetServer()
 		if err != nil {
+			return
+		}
+		originServer, err = config_center.GetOriginServer()
+		if err != nil {
+			return
+		}
+
+		if err := cacheMgr.Start(context.Background());  err != nil {
 			return
 		}
 	})

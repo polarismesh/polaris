@@ -32,7 +32,7 @@ import (
 )
 
 func clearTestData() error {
-	configService.Cache().Clear()
+	originServer.Cache().Clear()
 
 	s, err := store.GetStore()
 	if err != nil {
@@ -134,7 +134,7 @@ func clearTestDataWhenUseRDS() error {
 	}
 
 	// 清理缓存
-	configService.Cache().Clear()
+	originServer.Cache().Clear()
 
 	return err
 }
@@ -247,7 +247,7 @@ func assembleConfigFileRelease(configFile *api.ConfigFile) *api.ConfigFileReleas
 		Namespace: configFile.Namespace,
 		Group:     configFile.Group,
 		FileName:  configFile.Name,
-		CreateBy:  utils.NewStringValue("ledou2"),
+		CreateBy:  utils.NewStringValue("polaris"),
 	}
 }
 
