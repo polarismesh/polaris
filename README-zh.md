@@ -173,3 +173,8 @@ curl http://127.0.0.1:8090
 
 [腾讯开源激励计划](https://opensource.tencent.com/contribution) 鼓励开发者的参与和贡献，期待你的加入。
 
+## Stargazers over time
+
+如果你觉得我们的项目对你们有帮助，请点星或关注我们项目，谢谢~
+
+[![Stargazers over time](https://starchart.cc/polarismesh/polaris.svg)](https://starchart.cc/polarismesh/polaris)
