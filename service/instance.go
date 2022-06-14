@@ -29,6 +29,7 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/service/batch"
 )
 
 var (
@@ -149,15 +150,26 @@ func (s *Server) asyncCreateInstance(ctx context.Context, svcId string, req *api
 	rid := ParseRequestID(ctx)
 	pid := ParsePlatformID(ctx)
 	future := s.bc.AsyncCreateInstance(svcId, ins, ParsePlatformID(ctx), ParsePlatformToken(ctx))
-	if err := future.Wait(); err != nil {
-		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
-		if future.Code() == api.ExistedResource {
-			req.Id = utils.NewStringValue(ins.GetId().GetValue())
+
+	f := func(future *batch.InstanceFuture)  (*model.Instance, *api.Response) {
+		if err := future.Wait(); err != nil {
+			log.Error("[Instance][Regis] receive future result", ZapRequestID(rid), ZapPlatformID(pid), zap.Error(err))
+			if future.Code() == api.ExistedResource {
+				req.Id = utils.NewStringValue(ins.GetId().GetValue())
+			}
+			return nil, api.NewInstanceResponse(future.Code(), req)
 		}
-		return nil, api.NewInstanceResponse(future.Code(), req)
+	
+		return future.Instance(), nil
 	}
 
-	return future.Instance(), nil
+	allowAsyncRegis, _ := ctx.Value(utils.ContextOpenAsyncRegis).(bool)
+	if allowAsyncRegis {
+		go f(future)
+		return utils.CreateInstanceModel(svcId, req), nil
+	}
+
+	return f(future)
 }
 
 // 同步串行创建实例

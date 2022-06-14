@@ -223,6 +223,7 @@ func (ctrl *InstanceCtrl) storeWorker(ctx context.Context, index int) {
 // batch操作，只是写操作
 func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 	if len(futures) == 0 {
+		log.Info("[Batch] futures is empty")
 		return nil
 	}
 

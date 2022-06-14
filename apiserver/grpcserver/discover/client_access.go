@@ -49,6 +49,10 @@ func (g *GRPCServer) RegisterInstance(ctx context.Context, in *api.Instance) (*a
 		rCtx = context.WithValue(rCtx, utils.ContextAuthTokenKey, in.GetServiceToken().GetValue())
 	}
 
+	if in.GetHealthCheck().GetHeartbeat().GetTtl() != nil {
+		rCtx = context.WithValue(rCtx, utils.ContextOpenAsyncRegis, true)
+	}
+
 	out := g.namingServer.RegisterInstance(rCtx, in)
 	return out, nil
 }

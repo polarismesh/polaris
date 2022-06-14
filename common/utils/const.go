@@ -46,6 +46,5 @@ const (
 	ContextUserNameKey    StringContext = StringContext("X-User-Name")
 	ContextClientAddress  StringContext = StringContext("client-address")
 
-	ContextClientOpenAsyncRegis StringContext = StringContext("X-Client-AsyncRegis")
 	ContextOpenAsyncRegis StringContext = StringContext("client-asyncRegis")
 )
