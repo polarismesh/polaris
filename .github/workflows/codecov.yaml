@@ -26,6 +26,8 @@ jobs:
       # Checkout latest code
       - name: Checkout repo
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
 
       - name: Go Test
         run: |
