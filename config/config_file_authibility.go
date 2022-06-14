@@ -55,7 +55,7 @@ func (s *serverAuthibility) GetConfigFileRichInfo(ctx context.Context, namespace
 func (s *serverAuthibility) SearchConfigFile(ctx context.Context, namespace, group, name,
 	tags string, offset, limit uint32) *api.ConfigBatchQueryResponse {
 
-	return s.SearchConfigFile(ctx, namespace, group, name, tags, offset, limit)
+	return s.targetServer.SearchConfigFile(ctx, namespace, group, name, tags, offset, limit)
 }
 
 // UpdateConfigFile 更新配置文件
@@ -82,7 +82,7 @@ func (s *serverAuthibility) DeleteConfigFile(ctx context.Context, namespace, gro
 
 	ctx = authCtx.GetRequestContext()
 
-	return s.DeleteConfigFile(ctx, namespace, group, name, deleteBy)
+	return s.targetServer.DeleteConfigFile(ctx, namespace, group, name, deleteBy)
 }
 
 // BatchDeleteConfigFile 批量删除配置文件
