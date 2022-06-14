@@ -35,8 +35,9 @@ func buildBaseInstance(instance *InstanceInfo, namespace string, appId string) *
 	if len(instance.AppGroupName) > 0 {
 		eurekaMetadata[MetadataAppGroupName] = instance.AppGroupName
 	}
-	if DefaultCountryId != instance.CountryId {
-		eurekaMetadata[MetadataCountryId] = strconv.Itoa(instance.CountryId)
+	countryIdStr := ObjectToString(instance.CountryId)
+	if DefaultCountryId != countryIdStr {
+		eurekaMetadata[MetadataCountryId] = countryIdStr
 	}
 	if instance.DataCenterInfo != nil {
 		if DefaultDciClazz != instance.DataCenterInfo.Clazz {
@@ -72,18 +73,16 @@ func buildBaseInstance(instance *InstanceInfo, namespace string, appId string) *
 	if instance.Metadata != nil && len(instance.Metadata.Meta) > 0 {
 		targetInstance.Location = &api.Location{}
 		for k, v := range instance.Metadata.Meta {
-			if len(v) == 0 {
-				continue
-			}
+			strValue := ObjectToString(v)
 			switch k {
 			case KeyRegion:
-				targetInstance.Location.Region = &wrappers.StringValue{Value: v}
+				targetInstance.Location.Region = &wrappers.StringValue{Value: strValue}
 			case keyZone:
-				targetInstance.Location.Zone = &wrappers.StringValue{Value: v}
+				targetInstance.Location.Zone = &wrappers.StringValue{Value: strValue}
 			case keyCampus:
-				targetInstance.Location.Campus = &wrappers.StringValue{Value: v}
+				targetInstance.Location.Campus = &wrappers.StringValue{Value: strValue}
 			}
-			targetInstance.Metadata[k] = v
+			targetInstance.Metadata[k] = strValue
 		}
 	}
 	targetInstance.Weight = &wrappers.UInt32Value{Value: 100}
@@ -183,7 +182,6 @@ func (h *EurekaServer) registerInstances(ctx context.Context, appId string, inst
 		svc := &api.Service{}
 		svc.Namespace = &wrappers.StringValue{Value: h.namespace}
 		svc.Name = &wrappers.StringValue{Value: appId}
-		svc.Owners = &wrappers.StringValue{Value: h.owner}
 		svcResp := h.namingServer.CreateServices(ctx, []*api.Service{svc})
 		svcCreateCode := svcResp.GetCode().GetValue()
 		if svcCreateCode != api.ExecuteSuccess && svcCreateCode != api.ExistedResource {
@@ -201,7 +199,7 @@ func (h *EurekaServer) deregisterInstance(ctx context.Context, appId string, ins
 	return resp.GetCode().GetValue()
 }
 
-func (h *EurekaServer) update(ctx context.Context, appId string, instanceId string, status string) uint32 {
+func (h *EurekaServer) updateStatus(ctx context.Context, appId string, instanceId string, status string) uint32 {
 	var isolated = false
 	if status != StatusUp {
 		isolated = true
@@ -213,5 +211,11 @@ func (h *EurekaServer) update(ctx context.Context, appId string, instanceId stri
 
 func (h *EurekaServer) renew(ctx context.Context, appId string, instanceId string) uint32 {
 	resp := h.healthCheckServer.Report(ctx, &api.Instance{Id: &wrappers.StringValue{Value: instanceId}})
+	return resp.GetCode().GetValue()
+}
+
+func (h *EurekaServer) updateMetadata(ctx context.Context, instanceId string, metadata map[string]string) uint32 {
+	resp := h.namingServer.UpdateInstances(ctx,
+		[]*api.Instance{{Id: &wrappers.StringValue{Value: instanceId}, Metadata: metadata}})
 	return resp.GetCode().GetValue()
 }
