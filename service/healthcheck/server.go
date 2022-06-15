@@ -87,6 +87,12 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 			if checker == nil {
 				return fmt.Errorf("[healthcheck]unknown healthchecker %s", entry.Name)
 			}
+			// The same health type check plugin can only exist in one
+			_, exist := server.checkers[int32(checker.Type())]
+			if exist {
+				return fmt.Errorf("[healthcheck]duplicate healthchecker %s, checkType %d", entry.Name, checker.Type())
+			}
+
 			server.checkers[int32(checker.Type())] = checker
 		}
 	}

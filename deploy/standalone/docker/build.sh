@@ -9,8 +9,8 @@ version=$1
 
 cp ../../../polaris-server.yaml ./
 
-docker build --build-arg= VERSION="${version}" --network=host -t polarismesh/polaris-server-standalone:${docker_tag} ./
+docker build --network=host --build-arg VERSION="${version}" -t polarismesh/polaris-server-standalone:${version} ./
 
-docker push polarismesh/polaris-server-standalone:${docker_tag}
-docker tag polarismesh/polaris-server-standalone:${docker_tag} polarismesh/polaris-server-standalone:latest
+docker push polarismesh/polaris-server-standalone:${version}
+docker tag polarismesh/polaris-server-standalone:${version} polarismesh/polaris-server-standalone:latest
 docker push polarismesh/polaris-server-standalone:latest

@@ -121,7 +121,6 @@ func Test_configFileReleaseStore(t *testing.T) {
 		})
 	})
 
-
 	t.Run("删除配置Release", func(t *testing.T) {
 		CreateTableDBHandlerAndRun(t, tblConfigFileRelease, func(t *testing.T, handler BoltHandler) {
 
@@ -175,7 +174,6 @@ func Test_configFileReleaseStore(t *testing.T) {
 				assert.False(t, oldCfr.Valid)
 				assert.Equal(t, 1, oldCfr.Flag)
 
-
 				saveCfr.Id = 0
 				saveCfr.CreateTime = time.Time{}
 				saveCfr.ModifyTime = time.Time{}
@@ -190,6 +188,34 @@ func Test_configFileReleaseStore(t *testing.T) {
 
 				assert.Equal(t, saveCfr, oldCfr, "saveCfr : %#v, oldCfr : %#v", saveCfr, oldCfr)
 			}
+		})
+	})
+
+	t.Run("查询Release信息-用于刷新Cache缓存", func(t *testing.T) {
+		CreateTableDBHandlerAndRun(t, tblConfigFileRelease, func(t *testing.T, handler BoltHandler) {
+
+			s := &configFileReleaseStore{handler: handler}
+
+			ret := mockConfigFileRelease(10)
+
+			save := make([]*model.ConfigFileRelease, 0, len(ret))
+
+			for i := range ret {
+				cfr, err := s.CreateConfigFileRelease(nil, ret[i])
+				assert.NoError(t, err, err)
+				assert.Equal(t, uint64(i+1), cfr.Id)
+
+				save = append(save, cfr)
+			}
+
+			result, err := s.FindConfigFileReleaseByModifyTimeAfter(time.Time{})
+			assert.NoError(t, err, err)
+
+			assert.ElementsMatch(t, save, result, fmt.Sprintf("expect %#v, actual %#v", save, result))
+
+			result, err = s.FindConfigFileReleaseByModifyTimeAfter(time.Now().Add(time.Duration(1 * time.Hour)))
+			assert.NoError(t, err, err)
+			assert.Empty(t, result)
 		})
 	})
 }
