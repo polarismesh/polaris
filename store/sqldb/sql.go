@@ -27,10 +27,10 @@ import (
 
 const (
 
-	// OwnerAttribute
+	// OwnerAttribute 是owner的字段名
 	OwnerAttribute string = "owner"
 
-	// And
+	// And 是and的字符串
 	And string = " and"
 )
 
