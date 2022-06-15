@@ -247,7 +247,7 @@ func assembleConfigFileRelease(configFile *api.ConfigFile) *api.ConfigFileReleas
 		Namespace: configFile.Namespace,
 		Group:     configFile.Group,
 		FileName:  configFile.Name,
-		CreateBy:  utils.NewStringValue("ledou2"),
+		CreateBy:  utils.NewStringValue("polaris"),
 	}
 }
 
