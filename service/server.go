@@ -35,8 +35,6 @@ import (
 
 // Server 对接API层的server层，用以处理业务逻辑
 type Server struct {
-	asyncRegisWrite bool
-
 	storage store.Store
 
 	namespaceSvr namespace.NamespaceOperateServer
