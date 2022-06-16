@@ -284,8 +284,13 @@ func (uc *userCache) handlerGroupCacheUpdate(ret *userAndGroupCacheRefreshResult
 			}
 
 			for uid := range group.UserIds {
-				uc.user2Groups.LoadOrStore(uid, new(sync.Map))
+				_, exist := uc.user2Groups.Load(uid)
+				if !exist {
+					uc.user2Groups.Store(uid, new(sync.Map))
+				}
+
 				val, _ := uc.user2Groups.Load(uid)
+				
 				gids := val.(*sync.Map)
 				gids.Store(group.ID, struct{}{})
 			}
