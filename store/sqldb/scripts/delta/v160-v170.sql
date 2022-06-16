@@ -18,10 +18,10 @@
 -- Database: `polaris_server`
 --
 CREATE
-DATABASE IF NOT EXISTS `polaris_server` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+    DATABASE IF NOT EXISTS `polaris_server` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
 
 USE
-`polaris_server`;
+    `polaris_server`;
 
 INSERT INTO `service` (`id`,
                        `name`,
@@ -58,16 +58,16 @@ CREATE TABLE `user`
     `mobile`       VARCHAR(12)  NOT NULL DEFAULT '' comment 'Account mobile phone number',
     `email`        VARCHAR(64)  NOT NULL DEFAULT '' comment 'Account mailbox',
     `token`        VARCHAR(255) NOT NULL comment 'The token information owned by the account can be used for SDK access authentication',
-    `token_enable` tinyint(4) NOT NULL DEFAULT 1,
+    `token_enable` tinyint(4)   NOT NULL DEFAULT 1,
     `user_type`    int          NOT NULL DEFAULT 20 comment 'Account type, 0 is the admin super account, 20 is the primary account, 50 for the child account',
     `comment`      VARCHAR(255) NOT NULL comment 'describe',
-    `flag`         tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
+    `flag`         tinyint(4)   NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime`        timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime`        timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`),
     UNIQUE KEY (`name`, `owner`),
-    KEY            `owner` (`owner`),
-    KEY            `mtime` (`mtime`)
+    KEY `owner` (`owner`),
+    KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB;
 
 -- user group
@@ -78,14 +78,14 @@ CREATE TABLE `user_group`
     `owner`        VARCHAR(128) NOT NULL comment 'The main account ID of the user group',
     `token`        VARCHAR(255) NOT NULL comment 'TOKEN information of this user group',
     `comment`      VARCHAR(255) NOT NULL comment 'Description',
-    `token_enable` tinyint(4) NOT NULL DEFAULT 1,
-    `flag`         tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
+    `token_enable` tinyint(4)   NOT NULL DEFAULT 1,
+    `flag`         tinyint(4)   NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime`        timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime`        timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`),
     UNIQUE KEY (`name`, `owner`),
-    KEY            `owner` (`owner`),
-    KEY            `mtime` (`mtime`)
+    KEY `owner` (`owner`),
+    KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB;
 
 -- Users of users and user groups
@@ -96,7 +96,7 @@ CREATE TABLE `user_group_relation`
     `ctime`    timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime`    timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`user_id`, `group_id`),
-    KEY        `mtime` (`mtime`)
+    KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB;
 
 -- Subject information of authentication strategy
@@ -107,15 +107,15 @@ CREATE TABLE `auth_strategy`
     `action`   VARCHAR(32)  NOT NULL comment 'Read and write permission for this policy, only_read = 0, read_write = 1',
     `owner`    VARCHAR(128) NOT NULL comment 'The account ID to which this policy is',
     `comment`  VARCHAR(255) NOT NULL comment 'describe',
-    `default`  tinyint(4) NOT NULL DEFAULT '0',
+    `default`  tinyint(4)   NOT NULL DEFAULT '0',
     `revision` VARCHAR(128) NOT NULL comment 'Authentication rule version',
-    `flag`     tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
+    `flag`     tinyint(4)   NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
     `ctime`    timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime`    timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`),
     UNIQUE KEY (`name`, `owner`),
-    KEY        `owner` (`owner`),
-    KEY        `mtime` (`mtime`)
+    KEY `owner` (`owner`),
+    KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB;
 
 -- Member information, users and user groups in authentication strategies
@@ -136,7 +136,7 @@ CREATE TABLE `auth_strategy_resource`
     `ctime`       timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime`       timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`strategy_id`, `res_type`, `res_id`),
-    KEY           `mtime` (`mtime`)
+    KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB;
 
 -- Create a default master account, password is Polarismesh @ 2021
@@ -205,7 +205,7 @@ VALUES ('fbca9bfa04ae4ead86e1ecf5811e32a9',
 
 -- Insert permission policies and association relationships for Polaris-Admin accounts
 INSERT INTO auth_principal(`strategy_id`, `principal_id`, `principal_role`) VALUE (
-    'fbca9bfa04ae4ead86e1ecf5811e32a9',
-    '65e4789a6d5b49669adf1e9e8387549c',
-    1
-  );
+                                                                                   'fbca9bfa04ae4ead86e1ecf5811e32a9',
+                                                                                   '65e4789a6d5b49669adf1e9e8387549c',
+                                                                                   1
+    );
