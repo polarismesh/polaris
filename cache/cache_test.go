@@ -32,8 +32,8 @@ import (
 	"github.com/polarismesh/polaris-server/store/mock"
 )
 
-// TestNamingCache_Start 测试cache函数是否正常
-func TestNamingCache_Start(t *testing.T) {
+// TestCacheManager_Start 测试cache函数是否正常
+func TestCacheManager_Start(t *testing.T) {
 	ctl := gomock.NewController(t)
 	storage := mock.NewMockStore(ctl)
 	defer ctl.Finish()
@@ -132,7 +132,7 @@ func TestRevisionWorker(t *testing.T) {
 			}
 			storage.EXPECT().GetMoreServices(time.Unix(0, 0).Add(DefaultTimeDiff), true, false, false).Return(services, nil)
 			// 触发计算
-			_ = nc.caches[CacheService].update()
+			_ = nc.caches[CacheService].update(Args{})
 			time.Sleep(time.Second * 2)
 			So(nc.GetServiceRevisionCount(), ShouldEqual, maxTotal)
 
@@ -149,7 +149,7 @@ func TestRevisionWorker(t *testing.T) {
 			}
 			storage.EXPECT().GetMoreServices(time.Unix(0, 0).Add(DefaultTimeDiff), false, false, false).Return(services, nil)
 			// 触发计算
-			_ = nc.caches[CacheService].update()
+			_ = nc.caches[CacheService].update(Args{})
 			time.Sleep(time.Second * 2)
 			// 检查是否有正常计算
 			So(nc.GetServiceRevisionCount(), ShouldEqual, maxTotal/2)

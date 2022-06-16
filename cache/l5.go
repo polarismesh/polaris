@@ -101,7 +101,7 @@ func (lc *l5Cache) initialize(opt map[string]interface{}) error {
 	return nil
 }
 
-func (lc *l5Cache) update() error {
+func (lc *l5Cache) update(arg Args) error {
 	err := lc.updateCL5Route()
 	if err != nil {
 		log.CacheScope().Errorf("[Cache][CL5] update l5 route cache err: %s", err.Error())

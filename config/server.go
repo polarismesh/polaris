@@ -57,7 +57,7 @@ type Server struct {
 }
 
 // Initialize 初始化配置中心模块
-func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cache.NamingCache,
+func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cache.CacheManager,
 	authSvr auth.AuthServer) error {
 	if !config.Open {
 		originServer.initialized = true
@@ -77,7 +77,7 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 	return nil
 }
 
-func (s *Server) initialize(ctx context.Context, config Config, ss store.Store, cacheMgn *cache.NamingCache,
+func (s *Server) initialize(ctx context.Context, config Config, ss store.Store, cacheMgn *cache.CacheManager,
 	authSvr auth.AuthServer) error {
 
 	s.storage = ss

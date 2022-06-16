@@ -35,7 +35,7 @@ type Controller struct {
 }
 
 // NewBatchCtrlWithConfig 根据配置文件创建一个批量控制器
-func NewBatchCtrlWithConfig(storage store.Store, cacheMgn *cache.NamingCache, config *Config) (*Controller, error) {
+func NewBatchCtrlWithConfig(storage store.Store, cacheMgn *cache.CacheManager, config *Config) (*Controller, error) {
 	if config == nil {
 		return nil, nil
 	}
@@ -134,9 +134,9 @@ func (bc *Controller) ClientDeregisterOpen() bool {
 // AsyncCreateInstance 异步创建实例，返回一个future，根据future获取创建结果
 func (bc *Controller) AsyncCreateInstance(svcId string, instance *api.Instance, allowAsyncRegis bool) *InstanceFuture {
 	future := &InstanceFuture{
-		serviceId:     svcId,
-		request:       instance,
-		result:        make(chan error, 1),
+		serviceId: svcId,
+		request:   instance,
+		result:    make(chan error, 1),
 	}
 
 	// 发送到注册请求队列
@@ -147,8 +147,8 @@ func (bc *Controller) AsyncCreateInstance(svcId string, instance *api.Instance, 
 // AsyncDeleteInstance 异步合并反注册
 func (bc *Controller) AsyncDeleteInstance(instance *api.Instance) *InstanceFuture {
 	future := &InstanceFuture{
-		request:       instance,
-		result:        make(chan error, 1),
+		request: instance,
+		result:  make(chan error, 1),
 	}
 
 	bc.deregister.queue <- future

@@ -137,7 +137,7 @@ func (s *StatisWorker) Run() {
 		return
 	}
 
-	nowSeconds, err := store.GetNow()
+	nowSeconds, err := store.GetUnixSecond()
 	if err != nil {
 		log.Errorf("[APICall] get now second from store error, %v", err)
 		return

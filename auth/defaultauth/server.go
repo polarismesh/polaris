@@ -34,7 +34,7 @@ import (
 type server struct {
 	storage  store.Store
 	history  plugin.History
-	cacheMgn *cache.NamingCache
+	cacheMgn *cache.CacheManager
 	authMgn  *defaultAuthChecker
 }
 

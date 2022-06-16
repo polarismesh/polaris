@@ -111,6 +111,6 @@ type Tx interface {
 
 // ToolStore Storage related functions and tool interfaces
 type ToolStore interface {
-	// GetNow Get the current time
-	GetNow() (int64, error)
+	// GetUnixSecond Get the current time
+	GetUnixSecond() (int64, error)
 }

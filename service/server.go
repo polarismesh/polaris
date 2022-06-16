@@ -39,7 +39,7 @@ type Server struct {
 
 	namespaceSvr namespace.NamespaceOperateServer
 
-	caches *cache.NamingCache
+	caches *cache.CacheManager
 	bc     *batch.Controller
 
 	healthServer *healthcheck.Server
@@ -65,7 +65,7 @@ func (s *Server) HealthServer() *healthcheck.Server {
 }
 
 // Cache 返回Cache
-func (s *Server) Cache() *cache.NamingCache {
+func (s *Server) Cache() *cache.CacheManager {
 	return s.caches
 }
 
