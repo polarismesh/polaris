@@ -17,6 +17,13 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm64
     steps:
       # Setup the environment.
       - name: Setup Go
@@ -33,8 +40,11 @@ jobs:
 
       # Compile
       - name: Build server
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
         run: bash build.sh
-        
+
       # Run unit tests
       - name: run tests
         run: |
