@@ -57,7 +57,7 @@ type AuthServer interface {
 type AuthChecker interface {
 	// Initialize 执行初始化动作
 	Initialize(options *Config, cacheMgn *cache.NamingCache) error
-	// VerifyToken 验证令牌
+	// VerifyCredential 验证令牌
 	VerifyCredential(preCtx *model.AcquireContext) error
 	// CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据
 	CheckClientPermission(preCtx *model.AcquireContext) (bool, error)
@@ -65,7 +65,7 @@ type AuthChecker interface {
 	CheckConsolePermission(preCtx *model.AcquireContext) (bool, error)
 	// IsOpenConsoleAuth 返回是否开启了操作鉴权，可以用于前端查询
 	IsOpenConsoleAuth() bool
-	// IsOpenClientAuth
+	// IsOpenClientAuth 针对客户端是否开启了操作鉴权
 	IsOpenClientAuth() bool
 }
 

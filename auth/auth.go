@@ -36,9 +36,9 @@ type Config struct {
 var (
 	// Slots store slots
 	Slots      = make(map[string]AuthServer)
-	once       = &sync.Once{}
+	once       sync.Once
 	authSvr    AuthServer
-	finishInit bool = false
+	finishInit bool
 )
 
 // RegisterAuthServer 注册一个新的 AuthManager
