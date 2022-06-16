@@ -43,7 +43,7 @@ func Test_server_CreateUsers(t *testing.T) {
 	groups := createMockUserGroup(users)
 
 	storage := storemock.NewMockStore(ctrl)
-
+	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 	storage.EXPECT().AddUser(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().GetUserByName(gomock.Eq("create-user-1"), gomock.Any()).AnyTimes().Return(nil, nil)
 	storage.EXPECT().GetUserByName(gomock.Eq("create-user-2"), gomock.Any()).AnyTimes().Return(&model.User{
@@ -255,7 +255,7 @@ func Test_server_UpdateUser(t *testing.T) {
 	groups := createMockUserGroup(users)
 
 	storage := storemock.NewMockStore(ctrl)
-
+	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 	storage.EXPECT().UpdateUser(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(groups, nil)
@@ -402,7 +402,7 @@ func Test_server_UpdateUserPassword(t *testing.T) {
 	groups := createMockUserGroup(users)
 
 	storage := storemock.NewMockStore(ctrl)
-
+	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 	storage.EXPECT().UpdateUser(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(groups, nil)
@@ -620,7 +620,7 @@ func Test_server_DeleteUser(t *testing.T) {
 	users = append(users, admin)
 
 	storage := storemock.NewMockStore(ctrl)
-
+	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 	storage.EXPECT().DeleteUser(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().UpdateUser(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)

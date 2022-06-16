@@ -46,6 +46,7 @@ func Test_server_CreateGroup(t *testing.T) {
 
 	storage := storemock.NewMockStore(ctrl)
 
+	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 	storage.EXPECT().AddGroup(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().UpdateUser(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
@@ -199,6 +200,7 @@ func Test_server_GetGroup(t *testing.T) {
 
 	storage := storemock.NewMockStore(ctrl)
 
+	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 	storage.EXPECT().AddGroup(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().UpdateUser(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
@@ -306,6 +308,7 @@ func Test_server_UpdateGroup(t *testing.T) {
 
 	storage := storemock.NewMockStore(ctrl)
 
+	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 	storage.EXPECT().AddGroup(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().UpdateGroup(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
@@ -467,7 +470,7 @@ func Test_server_GetGroupToken(t *testing.T) {
 	groups = append(groups, newGroups...)
 
 	storage := storemock.NewMockStore(ctrl)
-
+	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 	storage.EXPECT().AddGroup(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().UpdateUser(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)

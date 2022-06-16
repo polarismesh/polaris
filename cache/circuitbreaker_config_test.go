@@ -36,6 +36,7 @@ func newTestCircuitBreakerCache(t *testing.T) (*gomock.Controller, *mock.MockSto
 
 	storage := mock.NewMockStore(ctl)
 	rlc := newCircuitBreakerCache(storage)
+	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 	var opt map[string]interface{}
 	_ = rlc.initialize(opt)
 	return ctl, storage, rlc
@@ -88,7 +89,7 @@ func TestCircuitBreakersUpdate(t *testing.T) {
 	t.Run("正常更新缓存，可以获取到数据", func(t *testing.T) {
 		_ = cbc.clear()
 
-		storage.EXPECT().GetCircuitBreakerForCache(cbc.lastTime.Add(DefaultTimeDiff), cbc.firstUpdate).
+		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
 			Return(serviceWithCircuitBreakers, nil)
 		if err := cbc.update(Args{}); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -105,7 +106,7 @@ func TestCircuitBreakersUpdate(t *testing.T) {
 	t.Run("缓存数据为空", func(t *testing.T) {
 		_ = cbc.clear()
 
-		storage.EXPECT().GetCircuitBreakerForCache(cbc.lastTime.Add(DefaultTimeDiff), cbc.firstUpdate).
+		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
 			Return(nil, nil)
 		if err := cbc.update(Args{}); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -123,7 +124,7 @@ func TestCircuitBreakersUpdate(t *testing.T) {
 
 		currentTime := time.Unix(100, 0)
 		serviceWithCircuitBreakers[0].ModifyTime = currentTime
-		storage.EXPECT().GetCircuitBreakerForCache(cbc.lastTime.Add(DefaultTimeDiff), cbc.firstUpdate).
+		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
 			Return(serviceWithCircuitBreakers, nil)
 		if err := cbc.update(Args{}); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -137,7 +138,7 @@ func TestCircuitBreakersUpdate(t *testing.T) {
 	})
 
 	t.Run("数据库返回错误, update错误", func(t *testing.T) {
-		storage.EXPECT().GetCircuitBreakerForCache(cbc.lastTime.Add(DefaultTimeDiff), cbc.firstUpdate).
+		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
 			Return(nil, fmt.Errorf("storage error"))
 		if err := cbc.update(Args{}); err != nil {
 			t.Log("pass")
@@ -160,14 +161,14 @@ func TestCircuitBreakerUpdate2(t *testing.T) {
 		_ = cbc.clear()
 
 		serviceWithCircuitBreakers := genModelCircuitBreakers(0, total)
-		storage.EXPECT().GetCircuitBreakerForCache(cbc.lastTime.Add(DefaultTimeDiff), cbc.firstUpdate).
+		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
 			Return(serviceWithCircuitBreakers, nil)
 		if err := cbc.update(Args{}); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
 		serviceWithCircuitBreakers = genModelCircuitBreakers(10, total)
-		storage.EXPECT().GetCircuitBreakerForCache(cbc.lastTime.Add(DefaultTimeDiff), cbc.firstUpdate).
+		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
 			Return(serviceWithCircuitBreakers, nil)
 		if err := cbc.update(Args{}); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -184,7 +185,7 @@ func TestCircuitBreakerUpdate2(t *testing.T) {
 		_ = cbc.clear()
 
 		serviceWithCircuitBreakers := genModelCircuitBreakers(0, total)
-		storage.EXPECT().GetCircuitBreakerForCache(cbc.lastTime.Add(DefaultTimeDiff), cbc.firstUpdate).
+		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
 			Return(serviceWithCircuitBreakers, nil)
 		if err := cbc.update(Args{}); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -194,7 +195,7 @@ func TestCircuitBreakerUpdate2(t *testing.T) {
 			serviceWithCircuitBreakers[i].Valid = false
 		}
 
-		storage.EXPECT().GetCircuitBreakerForCache(cbc.lastTime.Add(DefaultTimeDiff), cbc.firstUpdate).
+		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
 			Return(serviceWithCircuitBreakers, nil)
 		if err := cbc.update(Args{}); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -220,7 +221,7 @@ func TestGetCircuitBreakerByServiceID(t *testing.T) {
 
 		total := 10
 		serviceWithCircuitBreakers := genModelCircuitBreakers(0, total)
-		storage.EXPECT().GetCircuitBreakerForCache(cbc.lastTime.Add(DefaultTimeDiff), cbc.firstUpdate).
+		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
 			Return(serviceWithCircuitBreakers, nil)
 		if err := cbc.update(Args{}); err != nil {
 			t.Fatalf("error: %s", err.Error())
