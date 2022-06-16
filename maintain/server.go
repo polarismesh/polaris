@@ -24,8 +24,10 @@ import (
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 )
 
+var _ MaintainOperateServer = (*Server)(nil)
+
 type Server struct {
-	freeMemMu         *sync.Mutex
+	mu                sync.Mutex
 	namingServer      service.DiscoverServer
 	healthCheckServer *healthcheck.Server
 }
