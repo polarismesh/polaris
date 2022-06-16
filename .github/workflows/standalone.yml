@@ -18,13 +18,6 @@ jobs:
       matrix:
         goos: [linux, windows, darwin, kubernetes]
         goarch: [amd64, arm64]
-        exclude:
-          - goos: windows
-            goarch: arm64
-          - goos: linux
-            goarch: arm64
-          - goos: kubernetes
-            goarch: arm64
 
     steps:
       - name: Checkout code
