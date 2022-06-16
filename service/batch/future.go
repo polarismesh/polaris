@@ -20,22 +20,30 @@ package batch
 import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	"go.uber.org/zap"
 )
 
 // InstanceFuture 创建实例的异步结构体
 type InstanceFuture struct {
-	serviceId     string
-	request       *api.Instance   // api请求对象
-	instance      *model.Instance // 从数据库中读取到的model信息
-	code          uint32          // 记录对外API的错误码
-	result        chan error      // 执行成功/失败的应答chan
-	platformID    string          // 平台id
-	platformToken string          // 平台Token
-	healthy       bool            // 健康与否
+	serviceId string
+	request   *api.Instance   // api请求对象
+	instance  *model.Instance // 从数据库中读取到的model信息
+	code      uint32          // 记录对外API的错误码
+	async     bool
+	result    chan error // 执行成功/失败的应答chan
+	healthy   bool       // 健康与否
 }
 
 // Reply future的应答
 func (future *InstanceFuture) Reply(code uint32, result error) {
+	if future.async {
+		if result != nil {
+			log.Error("[Instance][Regis] receive future result", zap.String("service-id", future.serviceId),
+				zap.Error(result))
+		}
+		return
+	}
+
 	future.code = code
 
 	select {
@@ -47,6 +55,9 @@ func (future *InstanceFuture) Reply(code uint32, result error) {
 
 // Wait 外部调用者，需要调用Wait等待执行结果
 func (future *InstanceFuture) Wait() error {
+	if future.async {
+		return nil
+	}
 	return <-future.result
 }
 

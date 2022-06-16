@@ -132,13 +132,11 @@ func (bc *Controller) ClientDeregisterOpen() bool {
 }
 
 // AsyncCreateInstance 异步创建实例，返回一个future，根据future获取创建结果
-func (bc *Controller) AsyncCreateInstance(svcId string, instance *api.Instance, platformID, platformToken string) *InstanceFuture {
+func (bc *Controller) AsyncCreateInstance(svcId string, instance *api.Instance, allowAsyncRegis bool) *InstanceFuture {
 	future := &InstanceFuture{
 		serviceId:     svcId,
 		request:       instance,
 		result:        make(chan error, 1),
-		platformID:    platformID,
-		platformToken: platformToken,
 	}
 
 	// 发送到注册请求队列
@@ -147,12 +145,10 @@ func (bc *Controller) AsyncCreateInstance(svcId string, instance *api.Instance, 
 }
 
 // AsyncDeleteInstance 异步合并反注册
-func (bc *Controller) AsyncDeleteInstance(instance *api.Instance, platformID, platformToken string) *InstanceFuture {
+func (bc *Controller) AsyncDeleteInstance(instance *api.Instance) *InstanceFuture {
 	future := &InstanceFuture{
 		request:       instance,
 		result:        make(chan error, 1),
-		platformID:    platformID,
-		platformToken: platformToken,
 	}
 
 	bc.deregister.queue <- future
