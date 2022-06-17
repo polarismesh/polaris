@@ -75,7 +75,9 @@ func TestDiscoverStatisWorker_AddDiscoverCall(t *testing.T) {
 	stop := make(chan struct{})
 	for i := 0; i < 1000; i++ {
 		go func(stop chan struct{}, index int) {
-			trigger := time.NewTimer(time.Millisecond * 10)
+			trigger := time.NewTicker(time.Millisecond * 10)
+			defer trigger.Stop()
+
 			for {
 				select {
 				case <-trigger.C:
