@@ -20,8 +20,6 @@ import (
 	"crypto/tls"
 	"time"
 
-	"github.com/jinzhu/copier"
-
 	commontime "github.com/polarismesh/polaris-server/common/time"
 )
 
@@ -31,7 +29,7 @@ type Option func(c *Config)
 // WithConfig set new config for NewPool,keep old code compatibility
 func WithConfig(newConfig *Config) Option {
 	return func(c *Config) {
-		_ = copier.CopyWithOption(c, newConfig, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+		*c = *newConfig
 	}
 }
 
