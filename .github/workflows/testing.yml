@@ -20,23 +20,23 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         goarch: [amd64, arm64]
-          goos: [linux, windows, darwin]
-          include:
-            - os: ubuntu-latest
-              goos: linux
-              goarch: amd64
-            - os: ubuntu-latest
-              goos: linux
-              goarch: arm64
-            - os: windows-latest
-              goos: windows
-              goarch: amd64
-            - os: macos-latest
-              goos: darwin
-              goarch: amd64
-            - os: macos-latest
-              goos: darwin
-              goarch: arm64
+        goos: [linux, windows, darwin]
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+          - os: ubuntu-latest
+            goos: linux
+            goarch: arm64
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
     runs-on: ${{ matrix.os }}
 
     steps:
