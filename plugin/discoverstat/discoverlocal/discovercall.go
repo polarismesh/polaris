@@ -76,6 +76,4 @@ func (d *DiscoverCallStatis) log() {
 	}
 
 	d.logger.Info(buffer.String())
-
-	d.statis = make(map[Service]time.Time)
 }
