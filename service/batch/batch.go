@@ -132,11 +132,15 @@ func (bc *Controller) ClientDeregisterOpen() bool {
 }
 
 // AsyncCreateInstance 异步创建实例，返回一个future，根据future获取创建结果
-func (bc *Controller) AsyncCreateInstance(svcId string, instance *api.Instance, allowAsyncRegis bool) *InstanceFuture {
+func (bc *Controller) AsyncCreateInstance(svcId string, instance *api.Instance, needWait bool) *InstanceFuture {
 	future := &InstanceFuture{
 		serviceId: svcId,
+		needWait:  needWait,
 		request:   instance,
-		result:    make(chan error, 1),
+	}
+
+	if needWait {
+		future.result = make(chan error, 1)
 	}
 
 	// 发送到注册请求队列

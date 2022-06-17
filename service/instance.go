@@ -148,7 +148,7 @@ func (s *Server) asyncCreateInstance(ctx context.Context, svcId string, req *api
 	*model.Instance, *api.Response) {
 
 	allowAsyncRegis, _ := ctx.Value(utils.ContextOpenAsyncRegis).(bool)
-	future := s.bc.AsyncCreateInstance(svcId, ins, allowAsyncRegis)
+	future := s.bc.AsyncCreateInstance(svcId, ins, !allowAsyncRegis)
 
 	if err := future.Wait(); err != nil {
 		if future.Code() == api.ExistedResource {
