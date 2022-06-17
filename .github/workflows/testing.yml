@@ -16,33 +16,33 @@ env:
 jobs:
 
 build:
-               strategy:
-                 matrix:
-                   os: [ ubuntu-latest, windows-latest, macos-latest ]
-                   goarch: [ amd64, arm64 ]
-                   goos: [ linux, windows, darwin ]
-                   include:
-                     - os: ubuntu-latest
-                       goos: linux
-                       goarch: amd64
-                       vert: 1
-                     - os: ubuntu-latest
-                       goos: linux
-                       goarch: arm64
-                       vert: 0
-                     - os: windows-latest
-                       goos: windows
-                       goarch: amd64
-                       vert: 0
-                     - os: macos-latest
-                       goos: darwin
-                       goarch: amd64
-                       vert: 0
-                     - os: macos-latest
-                       goos: darwin
-                       goarch: arm64
-                       vert: 0
-               runs-on: ${{ matrix.os }}
+    strategy:
+     matrix:
+       os: [ ubuntu-latest, windows-latest, macos-latest ]
+       goarch: [ amd64, arm64 ]
+       goos: [ linux, windows, darwin ]
+       include:
+         - os: ubuntu-latest
+           goos: linux
+           goarch: amd64
+           vert: 1
+         - os: ubuntu-latest
+           goos: linux
+           goarch: arm64
+           vert: 0
+         - os: windows-latest
+           goos: windows
+           goarch: amd64
+           vert: 0
+         - os: macos-latest
+           goos: darwin
+           goarch: amd64
+           vert: 0
+         - os: macos-latest
+           goos: darwin
+           goarch: arm64
+           vert: 0
+    runs-on: ${{ matrix.os }}
 
     steps:
       # Setup the environment.
