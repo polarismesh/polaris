@@ -194,7 +194,7 @@ func (uc *userCache) setUserAndGroups(users []*model.User,
 
 	// step 2. 更新非 owner 用户
 	uc.handlerUserCacheUpdate(&ret, users, func(user *model.User) bool {
-		return (user.Owner != "")
+		return (user.Owner != "" && user.ID != user.Owner)
 	}, func(user *model.User) *model.User {
 		owner, _ := uc.users.Load(user.Owner)
 		return owner.(*model.User)
