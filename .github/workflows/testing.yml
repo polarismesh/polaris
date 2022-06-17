@@ -20,31 +20,28 @@ jobs:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
         goarch: [ amd64, arm64 ]
         goos: [ linux, windows, darwin ]
+        vert: 0
         include:
           - os: ubuntu-latest
             goos: linux
             goarch: amd64
             vert: 1
-          - os: ubuntu-latest
-            goos: linux
-            goarch: arm64
-            vert: 0
-          - os: windows-latest
-            goos: windows
-            goarch: amd64
-            vert: 0
-          - os: macos-latest
-            goos: darwin
-            goarch: amd64
-            vert: 0
-          - os: macos-latest
-            goos: darwin
-            goarch: arm64
-            vert: 0
         exclude:
+          - os: ubuntu-latest
+            goos: windows
+          - os: ubuntu-latest
+            goos: darwin
+          - os: windows-latest
+            goos: linux
+          - os: windows-latest
+            goos: darwin
+          - os: macos-latest
+            goos: windows
+          - os: macos-latest
+            goos: linux
           - goos: windows
             goarch: arm64
-            
+
     runs-on: ${{ matrix.os }}
     steps:
       # Setup the environment.
