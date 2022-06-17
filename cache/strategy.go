@@ -314,11 +314,15 @@ func (sc *strategyCache) operatePrincipalLink(principal model.Principal, rule *m
 	} else {
 		var rulesMap *sync.Map
 		if principal.PrincipalRole == model.PrincipalUser {
-			sc.uid2Strategy.LoadOrStore(principal.PrincipalID, new(sync.Map))
+			if _, exist := sc.uid2Strategy.Load(principal.PrincipalID); !exist {
+				sc.uid2Strategy.Store(principal.PrincipalID, new(sync.Map))
+			}
 			val, _ := sc.uid2Strategy.Load(principal.PrincipalID)
 			rulesMap = val.(*sync.Map)
 		} else {
-			sc.groupid2Strategy.LoadOrStore(principal.PrincipalID, new(sync.Map))
+			if _, exist := sc.groupid2Strategy.Load(principal.PrincipalID); !exist {
+				sc.groupid2Strategy.Store(principal.PrincipalID, new(sync.Map))
+			}
 			val, _ := sc.groupid2Strategy.Load(principal.PrincipalID)
 			rulesMap = val.(*sync.Map)
 		}
