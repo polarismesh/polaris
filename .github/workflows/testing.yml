@@ -14,9 +14,33 @@ env:
   GO111MODULE: on
 
 jobs:
-
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+        goarch: [ amd64 ]
+        goos: [ linux, darwin ]
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            vert: 1
+        exclude:
+          - os: ubuntu-latest
+            goos: windows
+          - os: ubuntu-latest
+            goos: darwin
+          - os: windows-latest
+            goos: linux
+          - os: windows-latest
+            goos: darwin
+          - os: macos-latest
+            goos: windows
+          - os: macos-latest
+            goos: linux
+
+
+    runs-on: ${{ matrix.os }}
     steps:
       # Setup the environment.
       - name: Setup Go
@@ -29,12 +53,16 @@ jobs:
 
       # Execute vert check
       - name: Vert check
+        if: ${{ matrix.vert == '1' }}
         run: bash vert.sh -install && bash vert.sh
 
       # Compile
       - name: Build server
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
         run: bash build.sh
-        
+
       # Run unit tests
       - name: run tests
         run: |
@@ -53,7 +81,7 @@ jobs:
           pushd ./auth/defaultauth
           go test -v
           popd
-          
+
       # Run interface tests
       - name: run discover interface tests
         run: |
