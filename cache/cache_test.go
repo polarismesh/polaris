@@ -136,7 +136,7 @@ func TestRevisionWorker(t *testing.T) {
 			storage.EXPECT().GetMoreServices(gomock.Any(), true, false, false).Return(services, nil)
 			// 触发计算
 			_ = nc.caches[CacheService].update(Args{})
-			time.Sleep(time.Second * 5)
+			time.Sleep(time.Second * 10)
 			So(nc.GetServiceRevisionCount(), ShouldEqual, maxTotal)
 
 			services = make(map[string]*model.Service)

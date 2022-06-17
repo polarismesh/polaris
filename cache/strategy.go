@@ -293,41 +293,33 @@ func (sc *strategyCache) handlerPrincipalStrategy(strategies []*model.StrategyDe
 }
 
 func (sc *strategyCache) removePrincipalLink(principal model.Principal, rule *model.StrategyDetail) {
-	sc.operatePrincipalLink(principal, rule, true)
+	if principal.PrincipalRole == model.PrincipalUser {
+		if val, ok := sc.uid2Strategy.Load(principal.PrincipalID); ok {
+			val.(*sync.Map).Delete(rule.ID)
+		}
+	} else {
+		if val, ok := sc.groupid2Strategy.Load(principal.PrincipalID); ok {
+			val.(*sync.Map).Delete(rule.ID)
+		}
+	}
 }
 
 func (sc *strategyCache) addPrincipalLink(principal model.Principal, rule *model.StrategyDetail) {
-	sc.operatePrincipalLink(principal, rule, false)
-}
-
-func (sc *strategyCache) operatePrincipalLink(principal model.Principal, rule *model.StrategyDetail, remove bool) {
-	if remove {
-		if principal.PrincipalRole == model.PrincipalUser {
-			if val, ok := sc.uid2Strategy.Load(principal.PrincipalID); ok {
-				val.(*sync.Map).Delete(rule.ID)
-			}
-		} else {
-			if val, ok := sc.groupid2Strategy.Load(principal.PrincipalID); ok {
-				val.(*sync.Map).Delete(rule.ID)
-			}
+	var rulesMap *sync.Map
+	if principal.PrincipalRole == model.PrincipalUser {
+		if _, exist := sc.uid2Strategy.Load(principal.PrincipalID); !exist {
+			sc.uid2Strategy.Store(principal.PrincipalID, new(sync.Map))
 		}
+		val, _ := sc.uid2Strategy.Load(principal.PrincipalID)
+		rulesMap = val.(*sync.Map)
 	} else {
-		var rulesMap *sync.Map
-		if principal.PrincipalRole == model.PrincipalUser {
-			if _, exist := sc.uid2Strategy.Load(principal.PrincipalID); !exist {
-				sc.uid2Strategy.Store(principal.PrincipalID, new(sync.Map))
-			}
-			val, _ := sc.uid2Strategy.Load(principal.PrincipalID)
-			rulesMap = val.(*sync.Map)
-		} else {
-			if _, exist := sc.groupid2Strategy.Load(principal.PrincipalID); !exist {
-				sc.groupid2Strategy.Store(principal.PrincipalID, new(sync.Map))
-			}
-			val, _ := sc.groupid2Strategy.Load(principal.PrincipalID)
-			rulesMap = val.(*sync.Map)
+		if _, exist := sc.groupid2Strategy.Load(principal.PrincipalID); !exist {
+			sc.groupid2Strategy.Store(principal.PrincipalID, new(sync.Map))
 		}
-		rulesMap.Store(rule.ID, struct{}{})
+		val, _ := sc.groupid2Strategy.Load(principal.PrincipalID)
+		rulesMap = val.(*sync.Map)
 	}
+	rulesMap.Store(rule.ID, struct{}{})
 }
 
 // postProcessPrincipalCh
