@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest, macos-latest ]
-        goarch: [ amd64, arm64 ]
+        goarch: [ amd64 ]
         goos: [ linux, darwin ]
         include:
           - os: ubuntu-latest
@@ -38,8 +38,7 @@ jobs:
             goos: windows
           - os: macos-latest
             goos: linux
-          - goos: windows
-            goarch: arm64
+
 
     runs-on: ${{ matrix.os }}
     steps:
