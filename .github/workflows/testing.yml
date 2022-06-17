@@ -16,7 +16,6 @@ env:
 jobs:
 
   build:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -38,6 +37,7 @@ jobs:
             - os: macos-latest
               goos: darwin
               goarch: arm64
+    runs-on: ${{ matrix.os }}
 
     steps:
       # Setup the environment.
