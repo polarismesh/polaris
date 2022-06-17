@@ -16,14 +16,29 @@ env:
 jobs:
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        goos: [linux, windows, darwin]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         goarch: [amd64, arm64]
-        exclude:
-          - goos: windows
-            goarch: arm64
+          goos: [linux, windows, darwin]
+          include:
+            - os: ubuntu-latest
+              goos: linux
+              goarch: amd64
+            - os: ubuntu-latest
+              goos: linux
+              goarch: arm64
+            - os: windows-latest
+              goos: windows
+              goarch: amd64
+            - os: macos-latest
+              goos: darwin
+              goarch: amd64
+            - os: macos-latest
+              goos: darwin
+              goarch: arm64
+
     steps:
       # Setup the environment.
       - name: Setup Go
