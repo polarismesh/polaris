@@ -20,7 +20,6 @@ jobs:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
         goarch: [ amd64, arm64 ]
         goos: [ linux, windows, darwin ]
-        vert: [0]
         include:
           - os: ubuntu-latest
             goos: linux
