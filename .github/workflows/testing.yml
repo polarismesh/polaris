@@ -41,6 +41,10 @@ jobs:
             goos: darwin
             goarch: arm64
             vert: 0
+        exclude:
+          - goos: windows
+            goarch: arm64
+            
     runs-on: ${{ matrix.os }}
     steps:
       # Setup the environment.
