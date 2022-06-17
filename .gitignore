@@ -19,3 +19,4 @@ coverage.txt
 *.bolt.lock
 /vendor
 .codecc
+*.log
