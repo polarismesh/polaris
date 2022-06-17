@@ -138,19 +138,19 @@ func (uc *userCache) initialize(c map[string]interface{}) error {
 	return nil
 }
 
-func (uc *userCache) update(arg Args) error {
+func (uc *userCache) update(storeRollbackSec time.Duration) error {
 	// Multiple threads competition, only one thread is updated
 	_, err, _ := uc.singleFlight.Do(UsersName, func() (interface{}, error) {
-		return nil, uc.realUpdate(arg)
+		return nil, uc.realUpdate(storeRollbackSec)
 	})
 	return err
 }
 
-func (uc *userCache) realUpdate(arg Args) error {
+func (uc *userCache) realUpdate(storeRollbackSec time.Duration) error {
 	// Get all data before a few seconds
 	start := time.Now()
 	userlastMtime := time.Unix(uc.lastUserCacheUpdateTime, 0)
-	users, err := uc.storage.GetUsersForCache(userlastMtime.Add(arg.StoreTimeRollbackSec), uc.userCacheFirstUpdate)
+	users, err := uc.storage.GetUsersForCache(userlastMtime.Add(storeRollbackSec), uc.userCacheFirstUpdate)
 	if err != nil {
 		log.CacheScope().Errorf("[Cache][User] update user err: %s", err.Error())
 		return err

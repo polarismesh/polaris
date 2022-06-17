@@ -113,7 +113,7 @@ type Cache interface {
 	addListener(listeners []Listener)
 
 	// update
-	update(arg Args) error
+	update(storeRollbackSec time.Duration) error
 
 	// clear
 	clear() error
@@ -209,7 +209,7 @@ func (nc *CacheManager) update() error {
 
 			sec := atomic.LoadInt64(&nc.storeTimeDiffSec)
 
-			_ = c.update(Args{StoreTimeRollbackSec: time.Duration(sec * int64(time.Second))})
+			_ = c.update(time.Duration(sec * int64(time.Second)))
 		}(nc.caches[index])
 	}
 

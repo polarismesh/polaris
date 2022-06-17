@@ -107,19 +107,19 @@ func (sc *strategyCache) initialize(c map[string]interface{}) error {
 	return nil
 }
 
-func (sc *strategyCache) update(arg Args) error {
+func (sc *strategyCache) update(storeRollbackSec time.Duration) error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := sc.singleFlight.Do(StrategyRuleName, func() (interface{}, error) {
-		return nil, sc.realUpdate(arg)
+		return nil, sc.realUpdate(storeRollbackSec)
 	})
 	return err
 }
 
-func (sc *strategyCache) realUpdate(arg Args) error {
+func (sc *strategyCache) realUpdate(storeRollbackSec time.Duration) error {
 	// 获取几秒前的全部数据
 	start := time.Now()
 	lastMtime := time.Unix(sc.lastUpdateTime, 0)
-	strategys, err := sc.storage.GetStrategyDetailsForCache(lastMtime.Add(arg.StoreTimeRollbackSec), sc.firstUpdate)
+	strategys, err := sc.storage.GetStrategyDetailsForCache(lastMtime.Add(storeRollbackSec), sc.firstUpdate)
 	if err != nil {
 		log.CacheScope().Errorf("[Cache][AuthStrategy] refresh auth strategy cache err: %s", err.Error())
 		return err

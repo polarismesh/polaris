@@ -74,9 +74,9 @@ func (cbc *circuitBreakerCache) initialize(opt map[string]interface{}) error {
 }
 
 // update 实现Cache接口的函数
-func (cbc *circuitBreakerCache) update(arg Args) error {
+func (cbc *circuitBreakerCache) update(storeRollbackSec time.Duration) error {
 
-	lastTime := cbc.lastTime.Add(arg.StoreTimeRollbackSec)
+	lastTime := cbc.lastTime.Add(storeRollbackSec)
 	
 	out, err := cbc.storage.GetCircuitBreakerForCache(lastTime, cbc.firstUpdate)
 	if err != nil {

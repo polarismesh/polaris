@@ -97,7 +97,7 @@ func (cc *clientCache) initialize(opt map[string]interface{}) error {
 }
 
 // update 更新缓存函数
-func (cc *clientCache) update(arg Args) error {
+func (cc *clientCache) update(storeRollbackSec time.Duration) error {
 	// 一分钟update一次
 	timeDiff := time.Now().Sub(cc.lastUpdateTime).Minutes()
 	if !cc.firstUpdate && 1 > timeDiff {
@@ -110,16 +110,16 @@ func (cc *clientCache) update(arg Args) error {
 		defer func() {
 			cc.lastMtimeLogged = logLastMtime(cc.lastMtimeLogged, cc.lastMtime, "Client")
 		}()
-		return nil, cc.realUpdate(arg)
+		return nil, cc.realUpdate(storeRollbackSec)
 	})
 	return err
 }
 
-func (cc *clientCache) realUpdate(arg Args) error {
+func (cc *clientCache) realUpdate(storeRollbackSec time.Duration) error {
 	// 拉取diff前的所有数据
 	
 	start := time.Now()
-	lastMtime := cc.LastMtime().Add(arg.StoreTimeRollbackSec)
+	lastMtime := cc.LastMtime().Add(storeRollbackSec)
 
 	clients, err := cc.storage.GetMoreClients(lastMtime, cc.firstUpdate)
 	if err != nil {

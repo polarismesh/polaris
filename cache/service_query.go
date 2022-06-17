@@ -49,10 +49,10 @@ type ServiceArgs struct {
 // Update 更新配置
 func (sc *serviceCache) Update() error {
 	var err error
-	if err = sc.update(Args{}); err != nil {
+	if err = sc.update(0); err != nil {
 		return err
 	}
-	if err = sc.instCache.update(Args{}); err != nil {
+	if err = sc.instCache.update(0); err != nil {
 		return err
 	}
 	return nil
