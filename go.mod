@@ -19,6 +19,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/golang-lru v0.5.4
+	github.com/jinzhu/copier v0.3.5
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/natefinch/lumberjack v2.0.0+incompatible
@@ -43,7 +44,6 @@ require (
 	google.golang.org/protobuf v1.28.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
-
 )
 
 require bou.ke/monkey v1.0.2
