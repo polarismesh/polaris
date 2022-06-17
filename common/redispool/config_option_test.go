@@ -48,3 +48,15 @@ func TestNewRedisClient(t *testing.T) {
 
 	t.Log("test success")
 }
+
+func TestWithConfig(t *testing.T) {
+	baseConfig := &Config{}
+	newConfig := &Config{DB: 16}
+	options := []Option{
+		WithConfig(newConfig),
+	}
+	for _, option := range options {
+		option(baseConfig)
+	}
+	assert.Equalf(t, baseConfig.DB, newConfig.DB, "with config failed")
+}
