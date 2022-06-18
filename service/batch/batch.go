@@ -151,8 +151,9 @@ func (bc *Controller) AsyncCreateInstance(svcId string, instance *api.Instance, 
 // AsyncDeleteInstance 异步合并反注册
 func (bc *Controller) AsyncDeleteInstance(instance *api.Instance) *InstanceFuture {
 	future := &InstanceFuture{
-		request: instance,
-		result:  make(chan error, 1),
+		request:  instance,
+		result:   make(chan error, 1),
+		needWait: true,
 	}
 
 	bc.deregister.queue <- future
@@ -162,9 +163,10 @@ func (bc *Controller) AsyncDeleteInstance(instance *api.Instance) *InstanceFutur
 // AsyncHeartbeat 异步心跳
 func (bc *Controller) AsyncHeartbeat(instance *api.Instance, healthy bool) *InstanceFuture {
 	future := &InstanceFuture{
-		request: instance,
-		result:  make(chan error, 1),
-		healthy: healthy,
+		request:  instance,
+		result:   make(chan error, 1),
+		healthy:  healthy,
+		needWait: true,
 	}
 
 	bc.heartbeat.queue <- future
