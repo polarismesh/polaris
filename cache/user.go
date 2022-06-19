@@ -184,21 +184,24 @@ func (uc *userCache) setUserAndGroups(users []*model.User,
 	groups []*model.UserGroupDetail) userAndGroupCacheRefreshResult {
 	ret := userAndGroupCacheRefreshResult{}
 
+	ownerSupplier := func(user *model.User) *model.User {
+		if user.Type == model.SubAccountUserRole {
+			owner, _ := uc.users.Load(user.Owner)
+			return owner.(*model.User)
+		}
+		return user
+	}
+
 	// 更新 users 缓存
 	// step 1. 先更新 owner 用户
 	uc.handlerUserCacheUpdate(&ret, users, func(user *model.User) bool {
-		return (user.ID == user.Owner || user.Owner == "")
-	}, func(user *model.User) *model.User {
-		return user
-	})
+		return user.Type == model.OwnerUserRole
+	}, ownerSupplier)
 
 	// step 2. 更新非 owner 用户
 	uc.handlerUserCacheUpdate(&ret, users, func(user *model.User) bool {
-		return (user.Owner != "" && user.ID != user.Owner)
-	}, func(user *model.User) *model.User {
-		owner, _ := uc.users.Load(user.Owner)
-		return owner.(*model.User)
-	})
+		return user.Type == model.SubAccountUserRole
+	}, ownerSupplier)
 
 	uc.handlerGroupCacheUpdate(&ret, groups)
 
@@ -216,11 +219,17 @@ func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult,
 		user := users[i]
 		if user.Type == model.AdminUserRole {
 			uc.adminUser.Store(user)
+			uc.users.Store(user.ID, user)
+			uc.name2Users.Store(fmt.Sprintf(NameLinkOwnerTemp, user.Name, user.Name), user)
+			uc.lastUserCacheUpdateTime = int64(math.Max(float64(user.ModifyTime.Unix()),
+				float64(uc.lastUserCacheUpdateTime)))
+			continue
 		}
 
 		if !filter(user) {
 			continue
 		}
+
 		owner := ownerSupplier(user)
 		if !user.Valid {
 			// 删除 user-id -> user 的缓存
@@ -236,7 +245,6 @@ func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult,
 			} else {
 				ret.userAdd++
 			}
-
 			uc.users.Store(user.ID, user)
 			uc.name2Users.Store(fmt.Sprintf(NameLinkOwnerTemp, owner.Name, user.Name), user)
 
@@ -290,7 +298,7 @@ func (uc *userCache) handlerGroupCacheUpdate(ret *userAndGroupCacheRefreshResult
 				}
 
 				val, _ := uc.user2Groups.Load(uid)
-				
+
 				gids := val.(*sync.Map)
 				gids.Store(group.ID, struct{}{})
 			}

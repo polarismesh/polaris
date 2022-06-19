@@ -127,13 +127,18 @@ func createMockService(namespaces []*model.Namespace) []*model.Service {
 }
 
 // createMockUser 默认 users[0] 为 owner 用户
-func createMockUser(total int) []*model.User {
+func createMockUser(total int, prefix ...string) []*model.User {
 	users := make([]*model.User, 0, total)
 
 	ownerId := utils.NewUUID()
 
+	nameTemp := "user-%d"
+	if len(prefix) != 0 {
+		nameTemp = prefix[0] + nameTemp
+	}
+
 	for i := 0; i < total; i++ {
-		id := utils.NewUUID()
+		id := fmt.Sprintf("fake-user-id-%d-%s", i, utils.NewUUID())
 		if i == 0 {
 			id = ownerId
 		}
@@ -141,7 +146,7 @@ func createMockUser(total int) []*model.User {
 		token, _ := createToken(id, "")
 		users = append(users, &model.User{
 			ID:       id,
-			Name:     fmt.Sprintf("user-%d", i),
+			Name:     fmt.Sprintf(nameTemp, i),
 			Password: string(pwd),
 			Owner: func() string {
 				if id == ownerId {
