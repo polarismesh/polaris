@@ -45,6 +45,7 @@ type dbConfig struct {
 	dbPwd            string
 	dbAddr           string
 	dbName           string
+	dbLoc            string
 	maxOpenConns     int
 	maxIdleConns     int
 	connMaxLifetime  int
@@ -80,7 +81,7 @@ func (b *BaseDB) openDatabase() error {
 		c.dbPwd = pwd
 	}
 
-	dns := fmt.Sprintf("%s:%s@tcp(%s)/%s&loc=Local", c.dbUser, c.dbPwd, c.dbAddr, c.dbName)
+	dns := fmt.Sprintf("%s:%s@tcp(%s)/%s&loc=%s", c.dbUser, c.dbPwd, c.dbAddr, c.dbName, c.dbLoc)
 
 	db, err := sql.Open(c.dbType, dns)
 	if err != nil {

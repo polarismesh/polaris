@@ -282,6 +282,7 @@ store:
   #     dbUser: ##DB_USER##
   #     dbPwd: ##DB_PWD##
   #     dbAddr: ##DB_ADDR##
+  #     dbLoc: ""
   #     maxOpenConns: 300
   #     maxIdleConns: 50
   #     connMaxLifetime: 300 # 单位秒
