@@ -162,13 +162,23 @@ func WithUsername(username string) Option {
 // WithTLSConfig set TLSConfig
 func WithTLSConfig(tlsConfig *tls.Config) Option {
 	return func(c *Config) {
+		c.WithTLS = true
 		c.tlsConfig = tlsConfig
 	}
 }
 
-// WithEnableWithTLS set WithTLS
-func WithEnableWithTLS() Option {
+// WithClusterMode use redis cluster
+func WithClusterMode(cc ClusterConfig) Option {
 	return func(c *Config) {
-		c.WithTLS = true
+		c.DeployMode = redisCluster
+		c.ClusterConfig = cc
+	}
+}
+
+// WithSentinel use redis sentinel
+func WithSentinel(sc SentinelConfig) Option {
+	return func(c *Config) {
+		c.DeployMode = redisSentinel
+		c.SentinelConfig = sc
 	}
 }
