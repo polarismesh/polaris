@@ -20,6 +20,8 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"github.com/polarismesh/polaris-server/common/secure"
+	"google.golang.org/grpc/credentials"
 	"net"
 	"net/http"
 	"strings"
@@ -45,6 +47,7 @@ type BaseGrpcServer struct {
 	listenIP        string
 	listenPort      uint32
 	connLimitConfig *connlimit.Config
+	tlsInfo         *secure.TLSInfo
 	start           bool
 	restart         bool
 	exitCh          chan struct{}
@@ -82,6 +85,19 @@ func (b *BaseGrpcServer) Initialize(ctx context.Context, conf map[string]interfa
 		}
 		b.connLimitConfig = connConfig
 	}
+
+	if raw, _ := conf["tls"].(map[interface{}]interface{}); raw != nil {
+		tlsConfig, err := secure.ParseTLSConfig(raw)
+		if err != nil {
+			return err
+		}
+		b.tlsInfo = &secure.TLSInfo{
+			CertFile:      tlsConfig.Cert,
+			KeyFile:       tlsConfig.Key,
+			TrustedCAFile: tlsConfig.CaCert,
+		}
+	}
+
 	if ratelimit := plugin.GetRatelimit(); ratelimit != nil {
 		log.Infof("[API-Server] %s server open the ratelimit", b.protocol)
 		b.ratelimit = ratelimit
@@ -130,10 +146,27 @@ func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer InitS
 
 	}
 
-	server := grpc.NewServer(
+	// 指定使用服务端证书创建一个 TLS credentials
+	var creds credentials.TransportCredentials
+	if !b.tlsInfo.IsEmpty() {
+		creds, err = credentials.NewServerTLSFromFile(b.tlsInfo.CertFile, b.tlsInfo.KeyFile)
+		if err != nil {
+			log.Error("failed to create credentials: %v", zap.Error(err))
+			errCh <- err
+			return
+		}
+	}
+
+	// 设置 grpc server options
+	opts := []grpc.ServerOption{
 		grpc.UnaryInterceptor(b.unaryInterceptor),
 		grpc.StreamInterceptor(b.streamInterceptor),
-	)
+	}
+	if creds != nil {
+		// 指定使用 TLS credentials
+		opts = append(opts, grpc.Creds(creds))
+	}
+	server := grpc.NewServer(opts...)
 
 	if err = initServer(server); err != nil {
 		errCh <- err

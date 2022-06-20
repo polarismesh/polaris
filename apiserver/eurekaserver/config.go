@@ -26,6 +26,7 @@ const (
 	optionRefreshInterval        = "refreshInterval"
 	optionDeltaExpireInterval    = "deltaExpireInterval"
 	optionConnLimit              = "connLimit"
+	optionTLS                    = "tls"
 	optionEnableSelfPreservation = "enableSelfPreservation"
 )
 
