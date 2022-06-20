@@ -29,11 +29,11 @@ import (
 )
 
 const (
-	// redisStandalone 单机
+	// redisStandalone 单机模式
 	redisStandalone = "standalone"
-	// redisSentinel 哨兵
+	// redisSentinel 哨兵模式
 	redisSentinel = "sentinel"
-	// redisCluster Redis 集群
+	// redisCluster 集群模式
 	redisCluster = "cluster"
 )
 
@@ -83,7 +83,7 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// StandaloneOptions singleton model options
+// StandaloneOptions standalone-mode options
 func (c *Config) StandaloneOptions() *redis.Options {
 	redisOption := &redis.Options{
 		Addr:         c.KvAddr,
@@ -124,7 +124,7 @@ func (c *Config) StandaloneOptions() *redis.Options {
 	return redisOption
 }
 
-// ClusterOptions 集群版本的配置
+// ClusterOptions cluster-mode client options
 func (c *Config) ClusterOptions() *redis.ClusterOptions {
 	standalone := c.StandaloneOptions()
 	return &redis.ClusterOptions{
@@ -148,7 +148,7 @@ func (c *Config) ClusterOptions() *redis.ClusterOptions {
 	}
 }
 
-// FailOverOptions failOver client option
+// FailOverOptions sentinel-model options
 func (c *Config) FailOverOptions() *redis.FailoverOptions {
 	standalone := c.StandaloneOptions()
 	return &redis.FailoverOptions{
