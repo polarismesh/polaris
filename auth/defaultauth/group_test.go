@@ -23,8 +23,11 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 	v1 "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
 	storemock "github.com/polarismesh/polaris-server/store/mock"
@@ -32,7 +35,25 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func Test_server_CreateGroup(t *testing.T) {
+type GroupTest struct {
+	ownerOne *model.User
+	ownerTwo *model.User
+
+	users     []*model.User
+	groups    []*model.UserGroupDetail
+	newGroups []*model.UserGroupDetail
+	allGroups []*model.UserGroupDetail
+
+	storage  *storemock.MockStore
+	cacheMgn *cache.CacheManager
+	checker  auth.AuthChecker
+
+	svr *serverAuthAbility
+
+	cancel context.CancelFunc
+}
+
+func newGroupTest(t *testing.T) *GroupTest {
 	reset(false)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -40,16 +61,18 @@ func Test_server_CreateGroup(t *testing.T) {
 	users := createMockUser(10)
 	groups := createMockUserGroup(users)
 
-	newGroups := createMockUserGroup(createMockUser(10))
+	newUsers := createMockUser(10)
+	newGroups := createMockUserGroup(newUsers)
 
-	groups = append(groups, newGroups...)
+	allGroups := append(groups, newGroups...)
 
 	storage := storemock.NewMockStore(ctrl)
 
+	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 	storage.EXPECT().AddGroup(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().UpdateUser(gomock.Any()).AnyTimes().Return(nil)
-	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
-	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(groups, nil)
+	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(append(users, newUsers...), nil)
+	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(allGroups, nil)
 
 	cfg := &cache.Config{
 		Open: true,
@@ -70,11 +93,6 @@ func Test_server_CreateGroup(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer func() {
-		cancel()
-		cacheMgn.Clear()
-		time.Sleep(2 * time.Second)
-	}()
 	time.Sleep(time.Second)
 
 	checker := &defaultAuthChecker{}
@@ -90,15 +108,44 @@ func Test_server_CreateGroup(t *testing.T) {
 		},
 	}
 
-	t.Run("正常创建用户组", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
+	return &GroupTest{
+		ownerOne: users[0],
+		ownerTwo: newUsers[0],
 
-		groups := createMockUserGroup(users[:1])
+		users:     users,
+		groups:    groups,
+		newGroups: newGroups,
+		allGroups: allGroups,
+
+		storage:  storage,
+		cacheMgn: cacheMgn,
+		checker:  checker,
+		svr:      svr,
+
+		cancel: cancel,
+	}
+}
+
+func (g *GroupTest) Clean() {
+	g.cancel()
+	_ = g.cacheMgn.Clear()
+	time.Sleep(2 * time.Second)
+}
+
+func Test_server_CreateGroup(t *testing.T) {
+	groupTest := newGroupTest(t)
+
+	defer groupTest.Clean()
+
+	t.Run("正常创建用户组", func(t *testing.T) {
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[0].Token)
+
+		groups := createMockUserGroup(groupTest.users[:1])
 		groups[0].ID = utils.NewUUID()
 
-		storage.EXPECT().GetGroupByName(gomock.Any(), gomock.Any()).Return(nil, nil)
+		groupTest.storage.EXPECT().GetGroupByName(gomock.Any(), gomock.Any()).Return(nil, nil)
 
-		resp := svr.CreateGroup(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.CreateGroup(reqCtx, &v1.UserGroup{
 			Id:   utils.NewStringValue(groups[0].ID),
 			Name: utils.NewStringValue(groups[0].Name),
 		})
@@ -107,14 +154,14 @@ func Test_server_CreateGroup(t *testing.T) {
 	})
 
 	t.Run("用户组已存在", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[0].Token)
 
-		groups := createMockUserGroup(users[:1])
+		groups := createMockUserGroup(groupTest.users[:1])
 		groups[0].ID = utils.NewUUID()
 
-		storage.EXPECT().GetGroupByName(gomock.Any(), gomock.Any()).Return(groups[0].UserGroup, nil)
+		groupTest.storage.EXPECT().GetGroupByName(gomock.Any(), gomock.Any()).Return(groups[0].UserGroup, nil)
 
-		resp := svr.CreateGroup(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.CreateGroup(reqCtx, &v1.UserGroup{
 			Id:   utils.NewStringValue(groups[0].ID),
 			Name: utils.NewStringValue(groups[0].Name),
 		})
@@ -123,12 +170,12 @@ func Test_server_CreateGroup(t *testing.T) {
 	})
 
 	t.Run("子用户去创建用户组", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[1].Token)
 
-		groups := createMockUserGroup(users[:1])
+		groups := createMockUserGroup(groupTest.users[:1])
 		groups[0].ID = utils.NewUUID()
 
-		resp := svr.CreateGroup(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.CreateGroup(reqCtx, &v1.UserGroup{
 			Id:   utils.NewStringValue(groups[0].ID),
 			Name: utils.NewStringValue(groups[0].Name),
 		})
@@ -137,48 +184,48 @@ func Test_server_CreateGroup(t *testing.T) {
 	})
 
 	t.Run("主账户去查询owner为自己的用户组", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[0].Token)
 
-		storage.EXPECT().GetGroup(gomock.Any()).Return(groups[1], nil)
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[1], nil)
 
-		resp := svr.GetGroup(reqCtx, &v1.UserGroup{
-			Id: utils.NewStringValue(groups[1].ID),
+		resp := groupTest.svr.GetGroup(reqCtx, &v1.UserGroup{
+			Id: utils.NewStringValue(groupTest.groups[1].ID),
 		})
 
 		assert.True(t, resp.GetCode().Value == v1.ExecuteSuccess, resp.Info.GetValue())
 	})
 
 	t.Run("主账户去查询owner不是自己的用户组", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerTwo.Token)
 
-		storage.EXPECT().GetGroup(gomock.Any()).Return(groups[len(groups)-1], nil)
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[3], nil)
 
-		resp := svr.GetGroup(reqCtx, &v1.UserGroup{
-			Id: utils.NewStringValue(groups[len(groups)-1].ID),
+		resp := groupTest.svr.GetGroup(reqCtx, &v1.UserGroup{
+			Id: utils.NewStringValue(groupTest.groups[3].ID),
 		})
 
 		assert.True(t, resp.GetCode().Value == v1.NotAllowedAccess, resp.Info.GetValue())
 	})
 
 	t.Run("子账户去查询自己所在的用户组", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[1].Token)
 
-		storage.EXPECT().GetGroup(gomock.Any()).Return(groups[1], nil)
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[1], nil)
 
-		resp := svr.GetGroup(reqCtx, &v1.UserGroup{
-			Id: utils.NewStringValue(groups[1].ID),
+		resp := groupTest.svr.GetGroup(reqCtx, &v1.UserGroup{
+			Id: utils.NewStringValue(groupTest.groups[1].ID),
 		})
 
 		assert.True(t, resp.GetCode().Value == v1.ExecuteSuccess, resp.Info.GetValue())
 	})
 
 	t.Run("子账户去查询自己不在的用户组", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[1].Token)
 
-		storage.EXPECT().GetGroup(gomock.Any()).Return(groups[2], nil)
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[2], nil)
 
-		resp := svr.GetGroup(reqCtx, &v1.UserGroup{
-			Id: utils.NewStringValue(groups[2].ID),
+		resp := groupTest.svr.GetGroup(reqCtx, &v1.UserGroup{
+			Id: utils.NewStringValue(groupTest.groups[2].ID),
 		})
 
 		assert.True(t, resp.GetCode().Value == v1.NotAllowedAccess, resp.Info.GetValue())
@@ -186,106 +233,52 @@ func Test_server_CreateGroup(t *testing.T) {
 }
 
 func Test_server_GetGroup(t *testing.T) {
-	reset(false)
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	groupTest := newGroupTest(t)
 
-	users := createMockUser(10)
-	groups := createMockUserGroup(users)
-
-	newGroups := createMockUserGroup(createMockUser(10))
-
-	groups = append(groups, newGroups...)
-
-	storage := storemock.NewMockStore(ctrl)
-
-	storage.EXPECT().AddGroup(gomock.Any()).AnyTimes().Return(nil)
-	storage.EXPECT().UpdateUser(gomock.Any()).AnyTimes().Return(nil)
-	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
-	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(groups, nil)
-
-	cfg := &cache.Config{
-		Open: true,
-		Resources: []cache.ConfigEntry{
-			{
-				Name: "users",
-			},
-		},
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
-		t.Fatal(err)
-	}
-
-	cacheMgn, err := cache.GetCacheManager()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer func() {
-		cancel()
-		cacheMgn.Clear()
-		time.Sleep(2 * time.Second)
-	}()
-	time.Sleep(time.Second)
-
-	checker := &defaultAuthChecker{}
-	checker.cacheMgn = cacheMgn
-	checker.authPlugin = plugin.GetAuth()
-
-	svr := &serverAuthAbility{
-		authMgn: checker,
-		target: &server{
-			storage:  storage,
-			cacheMgn: cacheMgn,
-			authMgn:  checker,
-		},
-	}
-
+	defer groupTest.Clean()
 	t.Run("主账户去查询owner为自己的用户组", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[0].Token)
 
-		storage.EXPECT().GetGroup(gomock.Any()).Return(groups[1], nil)
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[1], nil)
 
-		resp := svr.GetGroup(reqCtx, &v1.UserGroup{
-			Id: utils.NewStringValue(groups[1].ID),
+		resp := groupTest.svr.GetGroup(reqCtx, &v1.UserGroup{
+			Id: utils.NewStringValue(groupTest.groups[1].ID),
 		})
 
 		assert.True(t, resp.GetCode().Value == v1.ExecuteSuccess, resp.Info.GetValue())
 	})
 
 	t.Run("主账户去查询owner不是自己的用户组", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerOne.Token)
 
-		storage.EXPECT().GetGroup(gomock.Any()).Return(groups[len(groups)-1], nil)
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.newGroups[0], nil)
 
-		resp := svr.GetGroup(reqCtx, &v1.UserGroup{
-			Id: utils.NewStringValue(groups[len(groups)-1].ID),
+		resp := groupTest.svr.GetGroup(reqCtx, &v1.UserGroup{
+			Id: utils.NewStringValue(groupTest.newGroups[0].ID),
 		})
 
 		assert.True(t, resp.GetCode().Value == v1.NotAllowedAccess, resp.Info.GetValue())
 	})
 
 	t.Run("子账户去查询自己所在的用户组", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[1].Token)
 
-		storage.EXPECT().GetGroup(gomock.Any()).Return(groups[1], nil)
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[1], nil)
 
-		resp := svr.GetGroup(reqCtx, &v1.UserGroup{
-			Id: utils.NewStringValue(groups[1].ID),
+		resp := groupTest.svr.GetGroup(reqCtx, &v1.UserGroup{
+			Id: utils.NewStringValue(groupTest.groups[1].ID),
 		})
 
 		assert.True(t, resp.GetCode().Value == v1.ExecuteSuccess, resp.Info.GetValue())
 	})
 
 	t.Run("子账户去查询自己不在的用户组", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[1].Token)
 
-		storage.EXPECT().GetGroup(gomock.Any()).Return(groups[2], nil)
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[2], nil)
 
-		resp := svr.GetGroup(reqCtx, &v1.UserGroup{
-			Id: utils.NewStringValue(groups[2].ID),
+		resp := groupTest.svr.GetGroup(reqCtx, &v1.UserGroup{
+			Id: utils.NewStringValue(groupTest.groups[2].ID),
 		})
 
 		assert.True(t, resp.GetCode().Value == v1.NotAllowedAccess, resp.Info.GetValue())
@@ -293,262 +286,339 @@ func Test_server_GetGroup(t *testing.T) {
 }
 
 func Test_server_UpdateGroup(t *testing.T) {
-	reset(false)
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	groupTest := newGroupTest(t)
 
-	users := createMockUser(10)
-	groups := createMockUserGroup(users)
-
-	newGroups := createMockUserGroup(createMockUser(10))
-
-	groups = append(groups, newGroups...)
-
-	storage := storemock.NewMockStore(ctrl)
-
-	storage.EXPECT().AddGroup(gomock.Any()).AnyTimes().Return(nil)
-	storage.EXPECT().UpdateGroup(gomock.Any()).AnyTimes().Return(nil)
-	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
-	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(groups, nil)
-
-	cfg := &cache.Config{
-		Open: true,
-		Resources: []cache.ConfigEntry{
-			{
-				Name: "users",
-			},
-		},
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
-		t.Fatal(err)
-	}
-
-	cacheMgn, err := cache.GetCacheManager()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer func() {
-		cancel()
-		cacheMgn.Clear()
-		time.Sleep(2 * time.Second)
-	}()
-	time.Sleep(time.Second)
-
-	checker := &defaultAuthChecker{}
-	checker.cacheMgn = cacheMgn
-	checker.authPlugin = plugin.GetAuth()
-
-	svr := &serverAuthAbility{
-		authMgn: checker,
-		target: &server{
-			storage:  storage,
-			cacheMgn: cacheMgn,
-			authMgn:  checker,
-		},
-	}
+	defer groupTest.Clean()
 
 	t.Run("主账户更新用户组", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerOne.Token)
 
-		storage.EXPECT().GetGroup(gomock.Any()).Return(groups[1], nil)
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[1], nil)
+		groupTest.storage.EXPECT().UpdateGroup(gomock.Any()).Return(nil)
 
 		req := &v1.ModifyUserGroup{
-			Id: utils.NewStringValue(groups[1].ID),
+			Id: utils.NewStringValue(groupTest.groups[1].ID),
 			Comment: &wrapperspb.StringValue{
 				Value: "new test group",
 			},
 			AddRelations: &v1.UserGroupRelation{
-				GroupId: utils.NewStringValue(groups[1].ID),
+				GroupId: utils.NewStringValue(groupTest.groups[1].ID),
 				Users: []*v1.User{
 					{
-						Id: utils.NewStringValue(users[2].ID),
+						Id: utils.NewStringValue(groupTest.users[2].ID),
 					},
 					{
-						Id: utils.NewStringValue(users[3].ID),
+						Id: utils.NewStringValue(groupTest.users[3].ID),
 					},
 				},
 			},
 			RemoveRelations: &v1.UserGroupRelation{
-				GroupId: utils.NewStringValue(groups[1].ID),
+				GroupId: utils.NewStringValue(groupTest.groups[1].ID),
 				Users: []*v1.User{
 					{
-						Id: utils.NewStringValue(users[5].ID),
+						Id: utils.NewStringValue(groupTest.users[5].ID),
 					},
 				},
 			},
 		}
 
-		resp := svr.UpdateGroups(reqCtx, []*v1.ModifyUserGroup{req})
+		resp := groupTest.svr.UpdateGroups(reqCtx, []*v1.ModifyUserGroup{req})
 
 		assert.True(t, resp.Responses[0].Code.GetValue() == v1.ExecuteSuccess, resp.Responses[0].Info.GetValue())
 	})
 
 	t.Run("主账户更新不是自己负责的用户组", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerOne.Token)
+
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.newGroups[1], nil)
 
 		req := &v1.ModifyUserGroup{
-			Id: utils.NewStringValue(groups[len(groups)-1].ID),
+			Id: utils.NewStringValue(groupTest.newGroups[0].ID),
 			Comment: &wrapperspb.StringValue{
 				Value: "new test group",
 			},
 			AddRelations: &v1.UserGroupRelation{
-				GroupId: utils.NewStringValue(groups[len(groups)-1].ID),
+				GroupId: utils.NewStringValue(groupTest.groups[0].ID),
 				Users: []*v1.User{
 					{
-						Id: utils.NewStringValue(users[2].ID),
+						Id: utils.NewStringValue(groupTest.users[2].ID),
 					},
 					{
-						Id: utils.NewStringValue(users[3].ID),
+						Id: utils.NewStringValue(groupTest.users[3].ID),
 					},
 				},
 			},
 			RemoveRelations: &v1.UserGroupRelation{
-				GroupId: utils.NewStringValue(groups[len(groups)-1].ID),
+				GroupId: utils.NewStringValue(groupTest.groups[0].ID),
 				Users: []*v1.User{
 					{
-						Id: utils.NewStringValue(users[5].ID),
+						Id: utils.NewStringValue(groupTest.users[5].ID),
 					},
 				},
 			},
 		}
 
-		resp := svr.UpdateGroups(reqCtx, []*v1.ModifyUserGroup{req})
+		resp := groupTest.svr.UpdateGroups(reqCtx, []*v1.ModifyUserGroup{req})
 		assert.True(t, resp.Responses[0].Code.GetValue() == v1.NotAllowedAccess, resp.Responses[0].Info.GetValue())
 	})
 
 	t.Run("子账户更新用户组", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[1].Token)
 
 		req := &v1.ModifyUserGroup{
-			Id: utils.NewStringValue(groups[2].ID),
+			Id: utils.NewStringValue(groupTest.groups[2].ID),
 			Comment: &wrapperspb.StringValue{
 				Value: "new test group",
 			},
 			AddRelations: &v1.UserGroupRelation{
-				GroupId: utils.NewStringValue(groups[2].ID),
+				GroupId: utils.NewStringValue(groupTest.groups[2].ID),
 				Users: []*v1.User{
 					{
-						Id: utils.NewStringValue(users[2].ID),
+						Id: utils.NewStringValue(groupTest.users[2].ID),
 					},
 					{
-						Id: utils.NewStringValue(users[3].ID),
+						Id: utils.NewStringValue(groupTest.users[3].ID),
 					},
 				},
 			},
 			RemoveRelations: &v1.UserGroupRelation{
-				GroupId: utils.NewStringValue(groups[2].ID),
+				GroupId: utils.NewStringValue(groupTest.groups[2].ID),
 				Users: []*v1.User{
 					{
-						Id: utils.NewStringValue(users[5].ID),
+						Id: utils.NewStringValue(groupTest.users[5].ID),
 					},
 				},
 			},
 		}
 
-		resp := svr.UpdateGroups(reqCtx, []*v1.ModifyUserGroup{req})
+		resp := groupTest.svr.UpdateGroups(reqCtx, []*v1.ModifyUserGroup{req})
 		assert.True(t, resp.Responses[0].GetCode().Value == v1.OperationRoleException, resp.Responses[0].Info.GetValue())
+	})
+
+	t.Run("更新用户组-啥都没用动过", func(t *testing.T) {
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[0].Token)
+
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[2], nil)
+
+		req := &v1.ModifyUserGroup{
+			Id:              utils.NewStringValue(groupTest.groups[2].ID),
+			Comment:         &wrapperspb.StringValue{Value: groupTest.groups[2].Comment},
+			AddRelations:    &v1.UserGroupRelation{},
+			RemoveRelations: &v1.UserGroupRelation{},
+		}
+
+		resp := groupTest.svr.UpdateGroups(reqCtx, []*v1.ModifyUserGroup{req})
+		assert.True(t, resp.Responses[0].GetCode().Value == v1.NoNeedUpdate, resp.Responses[0].Info.GetValue())
 	})
 
 }
 
 func Test_server_GetGroupToken(t *testing.T) {
-	reset(false)
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	groupTest := newGroupTest(t)
 
-	users := createMockUser(10)
-	groups := createMockUserGroup(users)
-
-	newGroups := createMockUserGroup(createMockUser(10))
-
-	groups = append(groups, newGroups...)
-
-	storage := storemock.NewMockStore(ctrl)
-
-	storage.EXPECT().AddGroup(gomock.Any()).AnyTimes().Return(nil)
-	storage.EXPECT().UpdateUser(gomock.Any()).AnyTimes().Return(nil)
-	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
-	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(groups, nil)
-
-	cfg := &cache.Config{
-		Open: true,
-		Resources: []cache.ConfigEntry{
-			{
-				Name: "users",
-			},
-		},
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
-		t.Fatal(err)
-	}
-
-	cacheMgn, err := cache.GetCacheManager()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer func() {
-		cancel()
-		cacheMgn.Clear()
-		time.Sleep(2 * time.Second)
-	}()
-	time.Sleep(time.Second)
-
-	checker := &defaultAuthChecker{}
-	checker.cacheMgn = cacheMgn
-	checker.authPlugin = plugin.GetAuth()
-
-	svr := &serverAuthAbility{
-		authMgn: checker,
-		target: &server{
-			storage:  storage,
-			cacheMgn: cacheMgn,
-			authMgn:  checker,
-		},
-	}
+	defer groupTest.Clean()
 
 	t.Run("主账户去查询owner为自己的用户组", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[0].Token)
 
-		resp := svr.GetGroupToken(reqCtx, &v1.UserGroup{
-			Id: utils.NewStringValue(groups[1].ID),
+		resp := groupTest.svr.GetGroupToken(reqCtx, &v1.UserGroup{
+			Id: utils.NewStringValue(groupTest.groups[1].ID),
 		})
 
 		assert.True(t, resp.GetCode().Value == v1.ExecuteSuccess, resp.Info.GetValue())
 	})
 
 	t.Run("主账户去查询owner不是自己的用户组", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerTwo.Token)
 
-		resp := svr.GetGroupToken(reqCtx, &v1.UserGroup{
-			Id: utils.NewStringValue(groups[len(groups)-1].ID),
+		resp := groupTest.svr.GetGroupToken(reqCtx, &v1.UserGroup{
+			Id: utils.NewStringValue(groupTest.groups[1].ID),
 		})
 
 		assert.True(t, resp.GetCode().Value == v1.NotAllowedAccess, resp.Info.GetValue())
 	})
 
 	t.Run("子账户去查询自己所在的用户组", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[1].Token)
 
-		resp := svr.GetGroupToken(reqCtx, &v1.UserGroup{
-			Id: utils.NewStringValue(groups[1].ID),
+		resp := groupTest.svr.GetGroupToken(reqCtx, &v1.UserGroup{
+			Id: utils.NewStringValue(groupTest.groups[1].ID),
 		})
 
 		assert.True(t, resp.GetCode().Value == v1.ExecuteSuccess, resp.Info.GetValue())
 	})
 
 	t.Run("子账户去查询自己不在的用户组", func(t *testing.T) {
-		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[1].Token)
 
-		resp := svr.GetGroupToken(reqCtx, &v1.UserGroup{
-			Id: utils.NewStringValue(groups[2].ID),
+		resp := groupTest.svr.GetGroupToken(reqCtx, &v1.UserGroup{
+			Id: utils.NewStringValue(groupTest.groups[2].ID),
 		})
 
 		assert.True(t, resp.GetCode().Value == v1.NotAllowedAccess, resp.Info.GetValue())
 	})
 }
+
+func Test_server_DeleteGroup(t *testing.T) {
+
+	groupTest := newGroupTest(t)
+
+	defer groupTest.Clean()
+
+	t.Run("正常删除用户组", func(t *testing.T) {
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerOne.Token)
+
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
+		groupTest.storage.EXPECT().DeleteGroup(gomock.Any()).Return(nil)
+
+		batchResp := groupTest.svr.DeleteGroups(reqCtx, []*api.UserGroup{
+			{
+				Id: utils.NewStringValue(groupTest.groups[0].ID),
+			},
+		})
+
+		assert.True(t, batchResp.GetCode().Value == v1.ExecuteSuccess, batchResp.Info.GetValue())
+	})
+
+	t.Run("删除用户组-用户组不存在", func(t *testing.T) {
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerOne.Token)
+
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(nil, nil)
+		groupTest.storage.EXPECT().DeleteGroup(gomock.Any()).Return(nil)
+
+		batchResp := groupTest.svr.DeleteGroups(reqCtx, []*api.UserGroup{
+			{
+				Id: utils.NewStringValue(groupTest.groups[0].ID),
+			},
+		})
+
+		assert.True(t, batchResp.GetCode().Value == v1.ExecuteSuccess, batchResp.Info.GetValue())
+	})
+
+	t.Run("删除用户组-不是用户组的owner", func(t *testing.T) {
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerTwo.Token)
+
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
+		groupTest.storage.EXPECT().DeleteGroup(gomock.Any()).Return(nil)
+
+		batchResp := groupTest.svr.DeleteGroups(reqCtx, []*api.UserGroup{
+			{
+				Id: utils.NewStringValue(groupTest.groups[0].ID),
+			},
+		})
+
+		assert.True(t, batchResp.Responses[0].GetCode().Value == v1.NotAllowedAccess, batchResp.Responses[0].Info.GetValue())
+	})
+
+	t.Run("删除用户组-非owner角色", func(t *testing.T) {
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[1].Token)
+
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
+		groupTest.storage.EXPECT().DeleteGroup(gomock.Any()).Return(nil)
+
+		batchResp := groupTest.svr.DeleteGroups(reqCtx, []*api.UserGroup{
+			{
+				Id: utils.NewStringValue(groupTest.groups[0].ID),
+			},
+		})
+
+		assert.True(t, batchResp.Responses[0].GetCode().Value == v1.OperationRoleException, batchResp.Responses[0].Info.GetValue())
+	})
+
+}
+
+
+
+func Test_server_UpdateGroupToken(t *testing.T) {
+
+	groupTest := newGroupTest(t)
+
+	defer groupTest.Clean()
+
+	t.Run("正常更新用户组Token的Enable状态", func(t *testing.T) {
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerOne.Token)
+
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
+		groupTest.storage.EXPECT().UpdateGroup(gomock.Any()).Return(nil)
+
+		batchResp := groupTest.svr.UpdateGroupToken(reqCtx, &api.UserGroup{
+			Id: utils.NewStringValue(groupTest.groups[2].ID),
+		})
+
+		assert.True(t, batchResp.GetCode().Value == v1.ExecuteSuccess, batchResp.Info.GetValue())
+	})
+
+	t.Run("非Owner角色更新用户组Token的Enable状态", func(t *testing.T) {
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[2].Token)
+
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
+
+
+		batchResp := groupTest.svr.UpdateGroupToken(reqCtx, &api.UserGroup{
+			Id: utils.NewStringValue(groupTest.groups[2].ID),
+		})
+
+		assert.True(t, batchResp.Code.Value == v1.OperationRoleException, batchResp.Info.GetValue())
+	})
+
+
+	t.Run("更新用户组Token的Enable状态-非group的owner", func(t *testing.T) {
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerTwo.Token)
+
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
+
+		batchResp := groupTest.svr.UpdateGroupToken(reqCtx, &api.UserGroup{
+			Id: utils.NewStringValue(groupTest.groups[2].ID),
+		})
+
+		assert.True(t, batchResp.Code.Value == v1.NotAllowedAccess, batchResp.Info.GetValue())
+	})
+}
+
+
+
+func Test_server_RefreshGroupToken(t *testing.T) {
+
+	groupTest := newGroupTest(t)
+
+	defer groupTest.Clean()
+
+	t.Run("正常更新用户组Token的Enable状态", func(t *testing.T) {
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerOne.Token)
+
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
+		groupTest.storage.EXPECT().UpdateGroup(gomock.Any()).Return(nil)
+
+		batchResp := groupTest.svr.ResetGroupToken(reqCtx, &api.UserGroup{
+			Id: utils.NewStringValue(groupTest.groups[2].ID),
+		})
+
+		assert.True(t, batchResp.GetCode().Value == v1.ExecuteSuccess, batchResp.Info.GetValue())
+	})
+
+	t.Run("非Owner角色更新用户组Token的Enable状态", func(t *testing.T) {
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[2].Token)
+
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
+
+		batchResp := groupTest.svr.ResetGroupToken(reqCtx, &api.UserGroup{
+			Id: utils.NewStringValue(groupTest.groups[2].ID),
+		})
+
+		assert.True(t, batchResp.Code.Value == v1.OperationRoleException, batchResp.Info.GetValue())
+	})
+
+
+	t.Run("更新用户组Token的Enable状态-非group的owner", func(t *testing.T) {
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerTwo.Token)
+
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
+
+		batchResp := groupTest.svr.ResetGroupToken(reqCtx, &api.UserGroup{
+			Id: utils.NewStringValue(groupTest.groups[2].ID),
+		})
+
+		assert.True(t, batchResp.Code.Value == v1.NotAllowedAccess, batchResp.Info.GetValue())
+	})
+}
+

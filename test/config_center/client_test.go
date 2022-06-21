@@ -47,11 +47,11 @@ func TestClientSetupAndFileNotExisted(t *testing.T) {
 	rsp := configService.GetConfigFileForClient(defaultCtx, fileInfo)
 	assert.Equal(t, uint32(api.NotFoundResource), rsp.Code.GetValue(), "GetConfigFileForClient must notfound")
 
-	rsp2 := configService.CheckClientConfigFileByVersion(defaultCtx, assembleDefaultClientConfigFile(0))
+	rsp2 := originServer.CheckClientConfigFileByVersion(defaultCtx, assembleDefaultClientConfigFile(0))
 	assert.Equal(t, uint32(api.DataNoChange), rsp2.Code.GetValue(), "CheckClientConfigFileByVersion must nochange")
 	assert.Nil(t, rsp2.ConfigFile)
 
-	rsp3 := configService.CheckClientConfigFileByMd5(defaultCtx, assembleDefaultClientConfigFile(0))
+	rsp3 := originServer.CheckClientConfigFileByMd5(defaultCtx, assembleDefaultClientConfigFile(0))
 	assert.Equal(t, uint32(api.DataNoChange), rsp3.Code.GetValue())
 	assert.Nil(t, rsp3.ConfigFile)
 }
@@ -85,12 +85,12 @@ func TestClientSetupAndFileExisted(t *testing.T) {
 	assert.Equal(t, utils2.CalMd5(configFile.Content.GetValue()), rsp3.ConfigFile.Md5.GetValue())
 
 	// 比较客户端配置是否落后
-	rsp4 := configService.CheckClientConfigFileByVersion(defaultCtx, assembleDefaultClientConfigFile(0))
+	rsp4 := originServer.CheckClientConfigFileByVersion(defaultCtx, assembleDefaultClientConfigFile(0))
 	assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
 	assert.NotNil(t, rsp4.ConfigFile)
 	assert.Equal(t, utils2.CalMd5(configFile.Content.GetValue()), rsp4.ConfigFile.Md5.GetValue())
 
-	rsp5 := configService.CheckClientConfigFileByMd5(defaultCtx, assembleDefaultClientConfigFile(0))
+	rsp5 := originServer.CheckClientConfigFileByMd5(defaultCtx, assembleDefaultClientConfigFile(0))
 	assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue())
 	assert.NotNil(t, rsp5.ConfigFile)
 	assert.Equal(t, uint64(1), rsp5.ConfigFile.Version.GetValue())
@@ -138,12 +138,12 @@ func TestClientVersionBehindServer(t *testing.T) {
 	assert.Equal(t, utils2.CalMd5(latestContent), rsp4.ConfigFile.Md5.GetValue())
 
 	// 比较客户端配置是否落后
-	rsp5 := configService.CheckClientConfigFileByVersion(defaultCtx, assembleDefaultClientConfigFile(clientVersion))
+	rsp5 := originServer.CheckClientConfigFileByVersion(defaultCtx, assembleDefaultClientConfigFile(clientVersion))
 	assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue())
 	assert.NotNil(t, rsp5.ConfigFile)
 	assert.Equal(t, utils2.CalMd5(latestContent), rsp5.ConfigFile.Md5.GetValue())
 
-	rsp6 := configService.CheckClientConfigFileByMd5(defaultCtx, assembleDefaultClientConfigFile(clientVersion))
+	rsp6 := originServer.CheckClientConfigFileByMd5(defaultCtx, assembleDefaultClientConfigFile(clientVersion))
 	assert.Equal(t, api.ExecuteSuccess, rsp6.Code.GetValue())
 	assert.NotNil(t, rsp6.ConfigFile)
 	assert.Equal(t, uint64(5), rsp6.ConfigFile.Version.GetValue())
@@ -167,10 +167,10 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 		clientId := "TestWatchConfigFileAtFirstPublish-first"
 
 		defer func() {
-			configService.WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
+			originServer.WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
 		}()
 
-		configService.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *api.ConfigClientResponse) bool {
+		originServer.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *api.ConfigClientResponse) bool {
 			t.Logf("clientId=[%s] receive config publish msg", clientId)
 			received <- rsp.ConfigFile.Version.GetValue()
 			return true
@@ -195,7 +195,7 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 
 		clientId := "TestWatchConfigFileAtFirstPublish-second"
 
-		configService.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *api.ConfigClientResponse) bool {
+		originServer.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *api.ConfigClientResponse) bool {
 			t.Logf("clientId=[%s] receive config publish msg", clientId)
 			received <- rsp.ConfigFile.Version.GetValue()
 			return true
@@ -209,7 +209,7 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 		assert.Equal(t, uint64(2), receivedVersion)
 
 		// 为了避免影响其它 case，删除订阅
-		configService.WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
+		originServer.WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
 	})
 }
 
@@ -227,7 +227,7 @@ func Test10000ClientWatchConfigFile(t *testing.T) {
 		clientId := fmt.Sprintf("Test10000ClientWatchConfigFile-client-id=%d", i)
 		received[clientId] = false
 		receivedVersion[clientId] = uint64(0)
-		configService.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *api.ConfigClientResponse) bool {
+		originServer.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *api.ConfigClientResponse) bool {
 			received[clientId] = true
 			receivedVersion[clientId] = rsp.ConfigFile.Version.GetValue()
 			return true
@@ -262,7 +262,7 @@ func Test10000ClientWatchConfigFile(t *testing.T) {
 
 	// 为了避免影响其它case，删除订阅
 	for clientId := range received {
-		configService.WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
+		originServer.WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
 	}
 }
 
@@ -288,7 +288,7 @@ func TestDeleteConfigFile(t *testing.T) {
 
 	t.Log("add config watcher")
 
-	configService.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *api.ConfigClientResponse) bool {
+	originServer.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *api.ConfigClientResponse) bool {
 		received <- rsp.ConfigFile.Version.GetValue()
 		return true
 	})

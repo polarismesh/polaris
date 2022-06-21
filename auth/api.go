@@ -29,7 +29,7 @@ import (
 // AuthServer 鉴权 Server
 type AuthServer interface {
 	// Initialize 初始化
-	Initialize(authOpt *Config, storage store.Store, cacheMgn *cache.NamingCache) error
+	Initialize(authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error
 
 	// Name 获取服务名称
 	Name() string
@@ -56,7 +56,7 @@ type AuthServer interface {
 // AuthChecker 权限管理通用接口定义
 type AuthChecker interface {
 	// Initialize 执行初始化动作
-	Initialize(options *Config, cacheMgn *cache.NamingCache) error
+	Initialize(options *Config, cacheMgn *cache.CacheManager) error
 	// VerifyToken 验证令牌
 	VerifyCredential(preCtx *model.AcquireContext) error
 	// CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据

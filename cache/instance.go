@@ -121,14 +121,14 @@ func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 }
 
 // update 更新缓存函数
-func (ic *instanceCache) update() error {
+func (ic *instanceCache) update(storeRollbackSec time.Duration) error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := ic.singleFlight.Do(InstanceName, func() (interface{}, error) {
 		defer func() {
 			ic.lastMtimeLogged = logLastMtime(ic.lastMtimeLogged, ic.lastMtime, "Instance")
 			ic.checkAll()
 		}()
-		return nil, ic.realUpdate()
+		return nil, ic.realUpdate(storeRollbackSec)
 	})
 	return err
 }
@@ -157,12 +157,11 @@ func (ic *instanceCache) checkAll() {
 
 const maxLoadTimeDuration = 1 * time.Second
 
-func (ic *instanceCache) realUpdate() error {
+func (ic *instanceCache) realUpdate(storeRollbackSec time.Duration) error {
 	// 拉取diff前的所有数据
 	start := time.Now()
-	lastMtime := ic.LastMtime()
-	instances, err := ic.storage.GetMoreInstances(lastMtime.Add(DefaultTimeDiff),
-		ic.firstUpdate, ic.needMeta, ic.systemServiceID)
+	lastMtime := ic.LastMtime().Add(storeRollbackSec)
+	instances, err := ic.storage.GetMoreInstances(lastMtime, ic.firstUpdate, ic.needMeta, ic.systemServiceID)
 	if err != nil {
 		log.CacheScope().Errorf("[Cache][Instance] update get storage more err: %s", err.Error())
 		return err

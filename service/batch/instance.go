@@ -36,7 +36,7 @@ import (
 type InstanceCtrl struct {
 	config   *CtrlConfig
 	storage  store.Store
-	cacheMgn *cache.NamingCache
+	cacheMgn *cache.CacheManager
 
 	// store协程，负责写操作
 	storeThreadCh []chan []*InstanceFuture
@@ -57,7 +57,7 @@ type InstanceCtrl struct {
 }
 
 // NewBatchRegisterCtrl 注册实例批量操作对象
-func NewBatchRegisterCtrl(storage store.Store, cacheMgn *cache.NamingCache, config *CtrlConfig) (*InstanceCtrl, error) {
+func NewBatchRegisterCtrl(storage store.Store, cacheMgn *cache.CacheManager, config *CtrlConfig) (*InstanceCtrl, error) {
 	register, err := newBatchInstanceCtrl(storage, cacheMgn, config)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func NewBatchRegisterCtrl(storage store.Store, cacheMgn *cache.NamingCache, conf
 }
 
 // NewBatchDeregisterCtrl 实例反注册的操作对象
-func NewBatchDeregisterCtrl(storage store.Store, cacheMgn *cache.NamingCache, config *CtrlConfig) (
+func NewBatchDeregisterCtrl(storage store.Store, cacheMgn *cache.CacheManager, config *CtrlConfig) (
 	*InstanceCtrl, error) {
 	deregister, err := newBatchInstanceCtrl(storage, cacheMgn, config)
 	if err != nil {
@@ -91,7 +91,7 @@ func NewBatchDeregisterCtrl(storage store.Store, cacheMgn *cache.NamingCache, co
 }
 
 // NewBatchHeartbeatCtrl 实例心跳的操作对象
-func NewBatchHeartbeatCtrl(storage store.Store, cacheMgn *cache.NamingCache, config *CtrlConfig) (
+func NewBatchHeartbeatCtrl(storage store.Store, cacheMgn *cache.CacheManager, config *CtrlConfig) (
 	*InstanceCtrl, error) {
 	heartbeat, err := newBatchInstanceCtrl(storage, cacheMgn, config)
 	if err != nil {
@@ -127,7 +127,7 @@ func (ctrl *InstanceCtrl) Start(ctx context.Context) {
 const defaultWaitTime = 32 * time.Millisecond
 
 // newBatchInstanceCtrl 创建批量控制instance的对象
-func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.NamingCache, config *CtrlConfig) (*InstanceCtrl, error) {
+func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.CacheManager, config *CtrlConfig) (*InstanceCtrl, error) {
 	if config == nil || !config.Open {
 		return nil, nil
 	}
@@ -223,6 +223,7 @@ func (ctrl *InstanceCtrl) storeWorker(ctx context.Context, index int) {
 // batch操作，只是写操作
 func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 	if len(futures) == 0 {
+		log.Warn("[Batch] futures is empty")
 		return nil
 	}
 

@@ -83,7 +83,7 @@ Point Script: ./store/sqldb/scripts/polaris_server.sql, one can import through m
 
 #### Prepare golang compile environment
 
-Polaris server end needs golang compile environment, version number needs >=1.12, download available
+Polaris server end needs golang compile environment, version number needs >=1.17, download available
 here: https://golang.org/dl/#featured.
 
 ### Build

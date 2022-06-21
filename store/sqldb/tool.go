@@ -32,7 +32,7 @@ const (
 )
 
 // GetNow 获取当前时间，单位秒
-func (t *toolStore) GetNow() (int64, error) {
+func (t *toolStore) GetUnixSecond() (int64, error) {
 	startTime := time.Now()
 	rows, err := t.db.Query(nowSql)
 	if err != nil {

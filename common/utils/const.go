@@ -45,4 +45,6 @@ const (
 	ContextAuthContextKey StringContext = StringContext("X-Polaris-AuthContext")
 	ContextUserNameKey    StringContext = StringContext("X-User-Name")
 	ContextClientAddress  StringContext = StringContext("client-address")
+
+	ContextOpenAsyncRegis StringContext = StringContext("client-asyncRegis")
 )

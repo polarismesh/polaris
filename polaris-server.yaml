@@ -236,6 +236,7 @@ healthcheck:
 #  - name: heartbeatRedis
 #    option:
 #      kvAddr: ##REDIS_ADDR##
+#       # ACL user from redis v6.0, remove it if ACL is not available
 #      kvUser: ##REDIS_USER#
 #      kvPasswd: ##REDIS_PWD##
 #      poolSize: 200

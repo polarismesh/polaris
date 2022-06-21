@@ -34,7 +34,7 @@ type serverAuthAbility struct {
 
 // Initialize 执行初始化动作
 func (svr *serverAuthAbility) Initialize(authOpt *auth.Config, storage store.Store,
-	cacheMgn *cache.NamingCache) error {
+	cacheMgn *cache.CacheManager) error {
 
 	history := plugin.GetHistory()
 
