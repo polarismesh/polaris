@@ -36,14 +36,19 @@ import (
 	"github.com/golang/protobuf/ptypes/duration"
 	"gopkg.in/yaml.v2"
 
+	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/bootstrap/config"
+	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/plugin"
 	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
 	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/token"
 	"github.com/polarismesh/polaris-server/service"
+	"github.com/polarismesh/polaris-server/service/batch"
+	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"github.com/polarismesh/polaris-server/store"
 	_ "github.com/polarismesh/polaris-server/store/boltdb"
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
@@ -97,7 +102,7 @@ func initialize() error {
 
 		// 初始化存储层
 		store.SetStoreConfig(&cfg.Store)
-		_, _ = store.GetStore()
+		s, _ := store.GetStore()
 
 		plugin.SetPluginConfig(&cfg.Plugin)
 
@@ -109,7 +114,77 @@ func initialize() error {
 			}
 		}()
 
-		if err := service.Initialize(ctx, &cfg.Naming, &cfg.Cache, nil); err != nil {
+		// 初始化缓存模块
+		if err := cache.Initialize(ctx, &cfg.Cache, s); err != nil {
+			panic(err)
+		}
+
+		cacheMgn, err := cache.GetCacheManager()
+		if err != nil {
+			panic(err)
+		}
+
+		// 初始化鉴权层
+		if err = auth.Initialize(ctx, &cfg.Auth, s, cacheMgn); err != nil {
+			panic(err)
+		}
+
+		_, err = auth.GetAuthServer()
+		if err != nil {
+			panic(err)
+		}
+
+		// 初始化命名空间模块
+		if err := namespace.Initialize(ctx, &cfg.Namespace, s, cacheMgn); err != nil {
+			panic(err)
+		}
+
+		// 批量控制器
+		namingBatchConfig, err := batch.ParseBatchConfig(cfg.Naming.Batch)
+		if err != nil {
+			panic(err)
+		}
+		healthBatchConfig, err := batch.ParseBatchConfig(cfg.HealthChecks.Batch)
+		if err != nil {
+			panic(err)
+		}
+
+		batchConfig := &batch.Config{
+			Register:         namingBatchConfig.Register,
+			Deregister:       namingBatchConfig.Register,
+			ClientRegister:   namingBatchConfig.ClientRegister,
+			ClientDeregister: namingBatchConfig.ClientDeregister,
+			Heartbeat:        healthBatchConfig.Heartbeat,
+		}
+
+		bc, err := batch.NewBatchCtrlWithConfig(s, cacheMgn, batchConfig)
+		if err != nil {
+			log.Errorf("new batch ctrl with config err: %s", err.Error())
+			panic(err)
+		}
+		bc.Start(ctx)
+
+		if len(cfg.HealthChecks.LocalHost) == 0 {
+			cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
+		}
+		if err = healthcheck.Initialize(ctx, &cfg.HealthChecks, cfg.Cache.Open, bc); err != nil {
+			panic(err)
+		}
+		healthCheckServer, err := healthcheck.GetServer()
+		if err != nil {
+			panic(err)
+		}
+		cacheProvider, err := healthCheckServer.CacheProvider()
+		if err != nil {
+			panic(err)
+		}
+		healthCheckServer.SetServiceCache(cacheMgn.Service())
+
+		// 为 instance 的 cache 添加 健康检查的 Listener
+		cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
+		cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
+
+		if err := service.Initialize(ctx, &cfg.Naming, &cfg.Cache, bc); err != nil {
 			panic(err)
 		}
 
