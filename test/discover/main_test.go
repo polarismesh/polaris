@@ -32,6 +32,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/boltdb/bolt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/protobuf/ptypes/duration"
 	"gopkg.in/yaml.v2"
@@ -50,7 +51,9 @@ import (
 	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris-server/store/boltdb"
 	_ "github.com/polarismesh/polaris-server/store/boltdb"
+	"github.com/polarismesh/polaris-server/store/sqldb"
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
 )
 
@@ -227,9 +230,38 @@ func cleanNamespace(name string) {
 	}
 
 	log.Infof("clean namespace: %s", name)
-	str := "delete from namespace where name = ?"
-	if _, err := db.Exec(str, name); err != nil {
+
+	s, err := store.GetStore()
+	if err != nil {
 		panic(err)
+	}
+
+	if s.Name() == sqldb.STORENAME {
+		str := "delete from namespace where name = ?"
+		func() {
+			tx, err := s.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*sql.Tx)
+
+			if _, err := dbTx.Exec(str); err != nil {
+				dbTx.Rollback()
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if s.Name() == boltdb.STORENAME {
+		func() {
+			tx, err := s.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			_ = tx.GetDelegateTx().(*bolt.Tx)
+		}()
 	}
 }
 

@@ -9,7 +9,7 @@ htmlfile="cover.html"
 mergecover="merge_cover"
 mode="atomic"
 
-for package in $(go list ./... | grep -v api | grep -v mock); do
+for package in $(go list ./... | grep -v api | grep -v mock | grep -v log | grep -v model); do
     coverfile="$(echo $package | tr / -).cover"
     go test -covermode="$mode" -coverprofile="$coverfile" -coverpkg="$package" "$package"
 done
