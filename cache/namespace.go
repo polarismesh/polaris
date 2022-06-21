@@ -90,16 +90,17 @@ func (nsCache *namespaceCache) initialize(c map[string]interface{}) error {
 
 // update
 //  @return error
-func (nsCache *namespaceCache) update() error {
+func (nsCache *namespaceCache) update(storeRollbackSec time.Duration) error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := nsCache.updater.Do(NamespaceName, func() (interface{}, error) {
-		return nil, nsCache.realUpdate()
+		return nil, nsCache.realUpdate(storeRollbackSec)
 	})
 	return err
 }
 
-func (nsCache *namespaceCache) realUpdate() error {
-	lastMtime := time.Unix(nsCache.lastTime, 0)
+func (nsCache *namespaceCache) realUpdate(storeRollbackSec time.Duration) error {
+
+	lastMtime := time.Unix(nsCache.lastTime, 0).Add(storeRollbackSec)
 
 	ret, err := nsCache.storage.GetMoreNamespaces(lastMtime)
 	if err != nil {

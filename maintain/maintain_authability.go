@@ -24,6 +24,8 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
+var _ MaintainOperateServer = (*serverAuthAbility)(nil)
+
 func (svr *serverAuthAbility) GetServerConnections(ctx context.Context, req *ConnReq) (*ConnCountResp, error) {
 	authCtx := svr.collectMaintainAuthContext(ctx, model.Read, "GetServerConnections")
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)

@@ -52,7 +52,7 @@ func newServerAuthAbility(targetServer *Server, authSvr auth.AuthServer) Discove
 }
 
 // Cache Get cache management
-func (svr *serverAuthAbility) Cache() *cache.NamingCache {
+func (svr *serverAuthAbility) Cache() *cache.CacheManager {
 	return svr.targetServer.Cache()
 }
 

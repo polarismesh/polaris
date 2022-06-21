@@ -146,18 +146,18 @@ func (s *Server) createInstance(ctx context.Context, req *api.Instance, ins *api
 // ins 包含了req数据与instanceID，serviceToken
 func (s *Server) asyncCreateInstance(ctx context.Context, svcId string, req *api.Instance, ins *api.Instance) (
 	*model.Instance, *api.Response) {
-	rid := ParseRequestID(ctx)
-	pid := ParsePlatformID(ctx)
-	future := s.bc.AsyncCreateInstance(svcId, ins, ParsePlatformID(ctx), ParsePlatformToken(ctx))
+
+	allowAsyncRegis, _ := ctx.Value(utils.ContextOpenAsyncRegis).(bool)
+	future := s.bc.AsyncCreateInstance(svcId, ins, !allowAsyncRegis)
+
 	if err := future.Wait(); err != nil {
-		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
 		if future.Code() == api.ExistedResource {
 			req.Id = utils.NewStringValue(ins.GetId().GetValue())
 		}
 		return nil, api.NewInstanceResponse(future.Code(), req)
 	}
 
-	return future.Instance(), nil
+	return utils.CreateInstanceModel(svcId, req), nil
 }
 
 // 同步串行创建实例
@@ -170,7 +170,7 @@ func (s *Server) serialCreateInstance(ctx context.Context, svcId string, req *ap
 
 	instance, err := s.storage.GetInstance(ins.GetId().GetValue())
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
+		log.Error("[Instance] get instance from store", ZapRequestID(rid), ZapPlatformID(pid), zap.Error(err))
 		return nil, api.NewInstanceResponse(api.StoreLayerException, req)
 	}
 	// 如果存在，则替换实例的属性数据，但是需要保留用户设置的隔离状态，以免出现关键状态丢失
@@ -276,7 +276,8 @@ func (s *Server) asyncDeleteInstance(ctx context.Context, req *api.Instance, ins
 	start := time.Now()
 	rid := ParseRequestID(ctx)
 	pid := ParsePlatformID(ctx)
-	future := s.bc.AsyncDeleteInstance(ins, ParsePlatformID(ctx), ParsePlatformToken(ctx))
+
+	future := s.bc.AsyncDeleteInstance(ins)
 	if err := future.Wait(); err != nil {
 		// 如果发现不存在资源，意味着实例已经被删除，直接返回成功
 		if future.Code() == api.NotFoundResource {

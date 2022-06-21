@@ -157,12 +157,12 @@ func (r *RedisHealthChecker) Report(request *plugin.ReportRequest) error {
 		LocalHost:  request.LocalHost,
 		CurTimeSec: request.CurTimeSec,
 	}
+
 	log.Debugf("[Health Check][RedisCheck]redis set key is %s, value is %s", request.InstanceId, *value)
 	resp := r.hbPool.Set(request.InstanceId, value)
 	if resp.Err != nil {
 		log.Errorf("[Health Check][RedisCheck]addr:%s:%d, id:%s, set redis err:%s",
 			request.Host, request.Port, request.InstanceId, resp.Err)
-		return resp.Err
 	}
 	return nil
 }

@@ -107,19 +107,19 @@ func (sc *strategyCache) initialize(c map[string]interface{}) error {
 	return nil
 }
 
-func (sc *strategyCache) update() error {
+func (sc *strategyCache) update(storeRollbackSec time.Duration) error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := sc.singleFlight.Do(StrategyRuleName, func() (interface{}, error) {
-		return nil, sc.realUpdate()
+		return nil, sc.realUpdate(storeRollbackSec)
 	})
 	return err
 }
 
-func (sc *strategyCache) realUpdate() error {
+func (sc *strategyCache) realUpdate(storeRollbackSec time.Duration) error {
 	// 获取几秒前的全部数据
 	start := time.Now()
 	lastMtime := time.Unix(sc.lastUpdateTime, 0)
-	strategys, err := sc.storage.GetStrategyDetailsForCache(lastMtime.Add(DefaultTimeDiff), sc.firstUpdate)
+	strategys, err := sc.storage.GetStrategyDetailsForCache(lastMtime.Add(storeRollbackSec), sc.firstUpdate)
 	if err != nil {
 		log.CacheScope().Errorf("[Cache][AuthStrategy] refresh auth strategy cache err: %s", err.Error())
 		return err
@@ -293,37 +293,33 @@ func (sc *strategyCache) handlerPrincipalStrategy(strategies []*model.StrategyDe
 }
 
 func (sc *strategyCache) removePrincipalLink(principal model.Principal, rule *model.StrategyDetail) {
-	sc.operatePrincipalLink(principal, rule, true)
+	if principal.PrincipalRole == model.PrincipalUser {
+		if val, ok := sc.uid2Strategy.Load(principal.PrincipalID); ok {
+			val.(*sync.Map).Delete(rule.ID)
+		}
+	} else {
+		if val, ok := sc.groupid2Strategy.Load(principal.PrincipalID); ok {
+			val.(*sync.Map).Delete(rule.ID)
+		}
+	}
 }
 
 func (sc *strategyCache) addPrincipalLink(principal model.Principal, rule *model.StrategyDetail) {
-	sc.operatePrincipalLink(principal, rule, false)
-}
-
-func (sc *strategyCache) operatePrincipalLink(principal model.Principal, rule *model.StrategyDetail, remove bool) {
-	if remove {
-		if principal.PrincipalRole == model.PrincipalUser {
-			if val, ok := sc.uid2Strategy.Load(principal.PrincipalID); ok {
-				val.(*sync.Map).Delete(rule.ID)
-			}
-		} else {
-			if val, ok := sc.groupid2Strategy.Load(principal.PrincipalID); ok {
-				val.(*sync.Map).Delete(rule.ID)
-			}
+	var rulesMap *sync.Map
+	if principal.PrincipalRole == model.PrincipalUser {
+		if _, exist := sc.uid2Strategy.Load(principal.PrincipalID); !exist {
+			sc.uid2Strategy.Store(principal.PrincipalID, new(sync.Map))
 		}
+		val, _ := sc.uid2Strategy.Load(principal.PrincipalID)
+		rulesMap = val.(*sync.Map)
 	} else {
-		var rulesMap *sync.Map
-		if principal.PrincipalRole == model.PrincipalUser {
-			sc.uid2Strategy.LoadOrStore(principal.PrincipalID, new(sync.Map))
-			val, _ := sc.uid2Strategy.Load(principal.PrincipalID)
-			rulesMap = val.(*sync.Map)
-		} else {
-			sc.groupid2Strategy.LoadOrStore(principal.PrincipalID, new(sync.Map))
-			val, _ := sc.groupid2Strategy.Load(principal.PrincipalID)
-			rulesMap = val.(*sync.Map)
+		if _, exist := sc.groupid2Strategy.Load(principal.PrincipalID); !exist {
+			sc.groupid2Strategy.Store(principal.PrincipalID, new(sync.Map))
 		}
-		rulesMap.Store(rule.ID, struct{}{})
+		val, _ := sc.groupid2Strategy.Load(principal.PrincipalID)
+		rulesMap = val.(*sync.Map)
 	}
+	rulesMap.Store(rule.ID, struct{}{})
 }
 
 // postProcessPrincipalCh

@@ -77,8 +77,8 @@ func (rc *routingConfigCache) initialize(opt map[string]interface{}) error {
 }
 
 // update 实现Cache接口的函数
-func (rc *routingConfigCache) update() error {
-	out, err := rc.storage.GetRoutingConfigsForCache(rc.lastMtime.Add(DefaultTimeDiff), rc.firstUpdate)
+func (rc *routingConfigCache) update(storeRollbackSec time.Duration) error {
+	out, err := rc.storage.GetRoutingConfigsForCache(rc.lastMtime.Add(storeRollbackSec), rc.firstUpdate)
 	if err != nil {
 		log.CacheScope().Errorf("[Cache] routing config cache update err: %s", err.Error())
 		return err

@@ -20,7 +20,6 @@ package maintain
 import (
 	"context"
 	"errors"
-	"sync"
 
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/service"
@@ -29,18 +28,17 @@ import (
 
 var (
 	server         MaintainOperateServer
-	maintainServer *Server = new(Server)
-	once                   = sync.Once{}
-	finishInit             = false
+	maintainServer = &Server{}
+	finishInit     bool
 )
 
 // Initialize 初始化
 func Initialize(ctx context.Context, namingService service.DiscoverServer, healthCheckServer *healthcheck.Server) error {
-	var err error
-	once.Do(func() {
-		err = initialize(ctx, namingService, healthCheckServer)
-	})
+	if finishInit {
+		return nil
+	}
 
+	err := initialize(ctx, namingService, healthCheckServer)
 	if err != nil {
 		return err
 	}
@@ -49,14 +47,12 @@ func Initialize(ctx context.Context, namingService service.DiscoverServer, healt
 	return nil
 }
 
-func initialize(ctx context.Context, namingService service.DiscoverServer, healthCheckServer *healthcheck.Server) error {
-
+func initialize(_ context.Context, namingService service.DiscoverServer, healthCheckServer *healthcheck.Server) error {
 	authServer, err := auth.GetAuthServer()
 	if err != nil {
 		return err
 	}
 
-	maintainServer.freeMemMu = new(sync.Mutex)
 	maintainServer.namingServer = namingService
 	maintainServer.healthCheckServer = healthCheckServer
 

@@ -60,6 +60,7 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 
 	storage := storemock.NewMockStore(ctrl)
 
+	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return([]*model.UserGroupDetail{}, nil)
 

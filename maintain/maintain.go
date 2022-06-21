@@ -28,7 +28,7 @@ import (
 	commonlog "github.com/polarismesh/polaris-server/common/log"
 )
 
-func (s *Server) GetServerConnections(ctx context.Context, req *ConnReq) (*ConnCountResp, error) {
+func (s *Server) GetServerConnections(_ context.Context, req *ConnReq) (*ConnCountResp, error) {
 	if req.Protocol == "" {
 		return nil, errors.New("missing param protocol")
 	}
@@ -38,11 +38,11 @@ func (s *Server) GetServerConnections(ctx context.Context, req *ConnReq) (*ConnC
 		return nil, errors.New("not found the protocol")
 	}
 
-	var resp ConnCountResp
-
-	resp.Protocol = req.Protocol
-	resp.Total = lis.GetListenerConnCount()
-	resp.Host = make(map[string]int32)
+	var resp = ConnCountResp{
+		Protocol: req.Protocol,
+		Total:    lis.GetListenerConnCount(),
+		Host:     map[string]int32{},
+	}
 	if req.Host != "" {
 		resp.Host[req.Host] = lis.GetHostConnCount(req.Host)
 	} else {
@@ -55,7 +55,7 @@ func (s *Server) GetServerConnections(ctx context.Context, req *ConnReq) (*ConnC
 	return &resp, nil
 }
 
-func (s *Server) GetServerConnStats(ctx context.Context, req *ConnReq) (*ConnStatsResp, error) {
+func (s *Server) GetServerConnStats(_ context.Context, req *ConnReq) (*ConnStatsResp, error) {
 	if req.Protocol == "" {
 		return nil, errors.New("missing param protocol")
 	}
@@ -83,22 +83,23 @@ func (s *Server) GetServerConnStats(ctx context.Context, req *ConnReq) (*ConnSta
 	} else {
 		resp.Stats = stats
 	}
-	resp.StatsSize = len(resp.Stats)
 
-	if resp.Stats == nil {
+	resp.StatsSize = len(resp.Stats)
+	if len(resp.Stats) == 0 {
 		resp.Stats = make([]*connlimit.HostConnStat, 0)
 	}
 
 	return &resp, nil
 }
 
-func (s *Server) CloseConnections(ctx context.Context, reqs []ConnReq) error {
+func (s *Server) CloseConnections(_ context.Context, reqs []ConnReq) error {
 	for _, entry := range reqs {
 		listener := connlimit.GetLimitListener(entry.Protocol)
 		if listener == nil {
 			log.Warnf("[MAINTAIN] not found listener for protocol(%s)", entry.Protocol)
 			continue
 		}
+
 		if entry.Port != 0 {
 			if conn := listener.GetHostConnection(entry.Host, entry.Port); conn != nil {
 				log.Infof("[MAINTAIN] address(%s:%d) to be closed", entry.Host, entry.Port)
@@ -109,22 +110,23 @@ func (s *Server) CloseConnections(ctx context.Context, reqs []ConnReq) error {
 
 		log.Infof("[MAINTAIN] host(%s) connections to be closed", entry.Host)
 		activeConns := listener.GetHostActiveConns(entry.Host)
-		for _, conn := range activeConns {
-			if conn != nil {
-				_ = conn.Close()
+		for k := range activeConns {
+			if activeConns[k] != nil {
+				_ = activeConns[k].Close()
 			}
 		}
 	}
+
 	return nil
 }
 
-func (s *Server) FreeOSMemory(ctx context.Context) error {
+func (s *Server) FreeOSMemory(_ context.Context) error {
 	log.Info("[MAINTAIN] start doing free os memory")
 	// 防止并发释放
 	start := time.Now()
-	s.freeMemMu.Lock()
+	s.mu.Lock()
 	debug.FreeOSMemory()
-	s.freeMemMu.Unlock()
+	s.mu.Unlock()
 	log.Infof("[MAINTAIN] finish doing free os memory, used time: %v", time.Since(start))
 	return nil
 }
@@ -133,19 +135,20 @@ func (s *Server) CleanInstance(ctx context.Context, req *api.Instance) *api.Resp
 	return s.namingServer.CleanInstance(ctx, req)
 }
 
-func (s *Server) GetLastHeartbeat(ctx context.Context, req *api.Instance) *api.Response {
+func (s *Server) GetLastHeartbeat(_ context.Context, req *api.Instance) *api.Response {
 	return s.healthCheckServer.GetLastHeartbeat(req)
 }
 
-func (s *Server) GetLogOutputLevel(ctx context.Context) (map[string]string, error) {
+func (s *Server) GetLogOutputLevel(_ context.Context) (map[string]string, error) {
 	scopes := commonlog.Scopes()
 	out := make(map[string]string, len(scopes))
-	for k, v := range scopes {
-		out[k] = v.GetOutputLevel().Name()
+	for k := range scopes {
+		out[k] = scopes[k].GetOutputLevel().Name()
 	}
+
 	return out, nil
 }
 
-func (s *Server) SetLogOutputLevel(ctx context.Context, scope string, level string) error {
+func (s *Server) SetLogOutputLevel(_ context.Context, scope string, level string) error {
 	return commonlog.SetLogOutputLevel(scope, level)
 }

@@ -40,7 +40,7 @@ type Config struct {
 }
 
 // Initialize 初始化
-func Initialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.NamingCache) error {
+func Initialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
 	var err error
 	once.Do(func() {
 		err = initialize(ctx, nsOpt, storage, cacheMgn)
@@ -54,7 +54,7 @@ func Initialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMg
 	return nil
 }
 
-func initialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.NamingCache) error {
+func initialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
 
 	namespaceServer.caches = cacheMgn
 	namespaceServer.storage = storage

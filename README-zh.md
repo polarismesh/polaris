@@ -79,7 +79,7 @@ README：
 
 #### 准备golang编译环境
 
-北极星服务端编译需要golang编译环境，版本号要求>=1.12，可以在这里进行下载：https://golang.org/dl/#featured
+北极星服务端编译需要golang编译环境，版本号要求>=1.17，可以在这里进行下载：https://golang.org/dl/#featured
 
 ### 编译构建
 

@@ -194,7 +194,7 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 }
 
 func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s store.Store,
-	cacheMgn *cache.NamingCache, authMgn auth.AuthServer) error {
+	cacheMgn *cache.CacheManager, authMgn auth.AuthServer) error {
 
 	var err error
 
@@ -258,7 +258,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 
 // StartConfigCenterComponents 启动配置中心模块
 func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config, s store.Store,
-	cacheMgn *cache.NamingCache, authMgn auth.AuthServer) error {
+	cacheMgn *cache.CacheManager, authMgn auth.AuthServer) error {
 	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, authMgn)
 }
 

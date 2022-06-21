@@ -77,14 +77,14 @@ func TestConfigFileCRUD(t *testing.T) {
 	})
 
 	t.Run("step3-update", func(t *testing.T) {
-		defaultCtx = context.WithValue(defaultCtx, utils.ContextUserNameKey, "ledou2")
+		defaultCtx = context.WithValue(defaultCtx, utils.ContextUserNameKey, "polaris")
 
 		rsp := configService.GetConfigFileBaseInfo(defaultCtx, testNamespace, testGroup, testFile)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 
 		configFile := rsp.ConfigFile
 		newContent := "k1=v1"
-		modifyBy := "ledou2"
+		modifyBy := "polaris"
 		configFile.Content = utils.NewStringValue(newContent)
 		configFile.ModifyBy = utils.NewStringValue(modifyBy)
 
@@ -112,7 +112,7 @@ func TestConfigFileCRUD(t *testing.T) {
 		rsp := configService.PublishConfigFile(defaultCtx, configFileRelease)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 
-		deleteBy := "ledou2"
+		deleteBy := "polaris"
 		rsp2 := configService.DeleteConfigFile(defaultCtx, testNamespace, testGroup, testFile, deleteBy)
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 

@@ -23,7 +23,7 @@ import (
 	"github.com/polarismesh/polaris-server/store"
 )
 
-// 由于某一些模块依赖Cache，但是由于Cache模块初始化采用sync.Once，会导致单元测试之间Cache存在脏数据问题，因此为了确保单
+// TestCacheInitialize 由于某一些模块依赖Cache，但是由于Cache模块初始化采用sync.Once，会导致单元测试之间Cache存在脏数据问题，因此为了确保单
 // 元测试能够正常执行，这里将 cache.initialize 方法导出并命名为 TestCacheInitialize，仅用于单元测试初始化一个完整的 CacheManager
 var (
 	TestCacheInitialize = func(ctx context.Context, cacheOpt *Config, storage store.Store) error {
