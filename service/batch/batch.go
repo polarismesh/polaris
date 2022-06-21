@@ -20,9 +20,8 @@ package batch
 import (
 	"context"
 
-	"github.com/polarismesh/polaris-server/auth"
+	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
 )
 
@@ -36,29 +35,28 @@ type Controller struct {
 }
 
 // NewBatchCtrlWithConfig 根据配置文件创建一个批量控制器
-func NewBatchCtrlWithConfig(storage store.Store, authority auth.Authority, auth plugin.Auth,
-	config *Config) (*Controller, error) {
+func NewBatchCtrlWithConfig(storage store.Store, cacheMgn *cache.CacheManager, config *Config) (*Controller, error) {
 	if config == nil {
 		return nil, nil
 	}
 
 	var err error
 	var register *InstanceCtrl
-	register, err = NewBatchRegisterCtrl(storage, authority, auth, config.Register)
+	register, err = NewBatchRegisterCtrl(storage, cacheMgn, config.Register)
 	if err != nil {
 		log.Errorf("[Batch] new batch register instance ctrl err: %s", err.Error())
 		return nil, err
 	}
 
 	var deregister *InstanceCtrl
-	deregister, err = NewBatchDeregisterCtrl(storage, authority, auth, config.Deregister)
+	deregister, err = NewBatchDeregisterCtrl(storage, cacheMgn, config.Deregister)
 	if err != nil {
 		log.Errorf("[Batch] new batch deregister instance ctrl err: %s", err.Error())
 		return nil, err
 	}
 
 	var heartbeat *InstanceCtrl
-	heartbeat, err = NewBatchHeartbeatCtrl(storage, authority, auth, config.Heartbeat)
+	heartbeat, err = NewBatchHeartbeatCtrl(storage, cacheMgn, config.Heartbeat)
 	if err != nil {
 		log.Errorf("[Batch] new batch heartbeat instance ctrl err: %s", err.Error())
 		return nil, err
@@ -134,12 +132,15 @@ func (bc *Controller) ClientDeregisterOpen() bool {
 }
 
 // AsyncCreateInstance 异步创建实例，返回一个future，根据future获取创建结果
-func (bc *Controller) AsyncCreateInstance(instance *api.Instance, platformID, platformToken string) *InstanceFuture {
+func (bc *Controller) AsyncCreateInstance(svcId string, instance *api.Instance, needWait bool) *InstanceFuture {
 	future := &InstanceFuture{
-		request:       instance,
-		result:        make(chan error, 1),
-		platformID:    platformID,
-		platformToken: platformToken,
+		serviceId: svcId,
+		needWait:  needWait,
+		request:   instance,
+	}
+
+	if needWait {
+		future.result = make(chan error, 1)
 	}
 
 	// 发送到注册请求队列
@@ -148,12 +149,11 @@ func (bc *Controller) AsyncCreateInstance(instance *api.Instance, platformID, pl
 }
 
 // AsyncDeleteInstance 异步合并反注册
-func (bc *Controller) AsyncDeleteInstance(instance *api.Instance, platformID, platformToken string) *InstanceFuture {
+func (bc *Controller) AsyncDeleteInstance(instance *api.Instance) *InstanceFuture {
 	future := &InstanceFuture{
-		request:       instance,
-		result:        make(chan error, 1),
-		platformID:    platformID,
-		platformToken: platformToken,
+		request:  instance,
+		result:   make(chan error, 1),
+		needWait: true,
 	}
 
 	bc.deregister.queue <- future
@@ -163,9 +163,10 @@ func (bc *Controller) AsyncDeleteInstance(instance *api.Instance, platformID, pl
 // AsyncHeartbeat 异步心跳
 func (bc *Controller) AsyncHeartbeat(instance *api.Instance, healthy bool) *InstanceFuture {
 	future := &InstanceFuture{
-		request: instance,
-		result:  make(chan error, 1),
-		healthy: healthy,
+		request:  instance,
+		result:   make(chan error, 1),
+		healthy:  healthy,
+		needWait: true,
 	}
 
 	bc.heartbeat.queue <- future

@@ -147,7 +147,9 @@ func (s *releaseMessageScanner) handlerReleases(firstTime bool, releases []*mode
 				_, _ = s.fileCache.ReLoad(release.Namespace, release.Group, release.FileName)
 			}
 
-			if !firstTime && !isExpireMessage(release) {
+			isExpire := isExpireMessage(release)
+
+			if !firstTime && !isExpire {
 				s.eventCenter.handleEvent(Event{
 					EventType: eventTypePublishConfigFile,
 					Message:   release,

@@ -1367,19 +1367,19 @@ func (mr *MockStoreMockRecorder) GetPlatforms(query, offset, limit interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlatforms", reflect.TypeOf((*MockStore)(nil).GetPlatforms), query, offset, limit)
 }
 
-// GetNow mocks base method
-func (m *MockStore) GetNow() (int64, error) {
+// GetUnixSecond mocks base method
+func (m *MockStore) GetUnixSecond() (int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNow")
+	ret := m.ctrl.Call(m, "GetUnixSecond")
 	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetNow indicates an expected call of GetNow
-func (mr *MockStoreMockRecorder) GetNow() *gomock.Call {
+// GetUnixSecond indicates an expected call of GetUnixSecond
+func (mr *MockStoreMockRecorder) GetUnixSecond() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNow", reflect.TypeOf((*MockStore)(nil).GetNow))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnixSecond", reflect.TypeOf((*MockStore)(nil).GetUnixSecond))
 }
 
 // AddUser mocks base method
@@ -1719,18 +1719,18 @@ func (mr *MockStoreMockRecorder) GetDefaultStrategyDetailByPrincipal(principalId
 }
 
 // GetStrategyDetail mocks base method
-func (m *MockStore) GetStrategyDetail(id string, isDefault bool) (*model.StrategyDetail, error) {
+func (m *MockStore) GetStrategyDetail(id string) (*model.StrategyDetail, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStrategyDetail", id, isDefault)
+	ret := m.ctrl.Call(m, "GetStrategyDetail", id)
 	ret0, _ := ret[0].(*model.StrategyDetail)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStrategyDetail indicates an expected call of GetStrategyDetail
-func (mr *MockStoreMockRecorder) GetStrategyDetail(id, isDefault interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) GetStrategyDetail(id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategyDetail", reflect.TypeOf((*MockStore)(nil).GetStrategyDetail), id, isDefault)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategyDetail", reflect.TypeOf((*MockStore)(nil).GetStrategyDetail), id)
 }
 
 // GetStrategies mocks base method
@@ -2522,17 +2522,17 @@ func (m *MockToolStore) EXPECT() *MockToolStoreMockRecorder {
 	return m.recorder
 }
 
-// GetNow mocks base method
-func (m *MockToolStore) GetNow() (int64, error) {
+// GetUnixSecond mocks base method
+func (m *MockToolStore) GetUnixSecond() (int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNow")
+	ret := m.ctrl.Call(m, "GetUnixSecond")
 	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetNow indicates an expected call of GetNow
-func (mr *MockToolStoreMockRecorder) GetNow() *gomock.Call {
+// GetUnixSecond indicates an expected call of GetUnixSecond
+func (mr *MockToolStoreMockRecorder) GetUnixSecond() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNow", reflect.TypeOf((*MockToolStore)(nil).GetNow))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnixSecond", reflect.TypeOf((*MockToolStore)(nil).GetUnixSecond))
 }

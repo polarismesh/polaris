@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package configgrpcserver
+package config
 
 import (
 	"github.com/polarismesh/polaris-server/apiserver"
@@ -23,5 +23,5 @@ import (
 
 // init 自注册到API服务器插槽
 func init() {
-	_ = apiserver.Register("configgrpcserver", &ConfigGRPCServer{})
+	_ = apiserver.Register("config-grpc", &ConfigGRPCServer{})
 }

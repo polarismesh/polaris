@@ -23,9 +23,6 @@ import (
 
 	"golang.org/x/sync/singleflight"
 
-	"go.uber.org/zap"
-
-	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -42,9 +39,8 @@ type Server struct {
 
 	namespaceSvr namespace.NamespaceOperateServer
 
-	caches    *cache.NamingCache
-	authority auth.Authority
-	bc        *batch.Controller
+	caches *cache.CacheManager
+	bc     *batch.Controller
 
 	healthServer *healthcheck.Server
 
@@ -63,18 +59,13 @@ type Server struct {
 	hooks []ResourceHook
 }
 
-// Authority 返回鉴权对象，获取鉴权信息
-func (s *Server) Authority() auth.Authority {
-	return s.authority
-}
-
 // HealthServer 健康检查Server
 func (s *Server) HealthServer() *healthcheck.Server {
 	return s.healthServer
 }
 
 // Cache 返回Cache
-func (s *Server) Cache() *cache.NamingCache {
+func (s *Server) Cache() *cache.CacheManager {
 	return s.caches
 }
 
@@ -161,13 +152,7 @@ func (s *Server) allowInstanceAccess(instanceID string) bool {
 		return true
 	}
 
-	if ok := s.ratelimit.Allow(plugin.InstanceRatelimit, instanceID); !ok {
-		log.Error("[Server][ratelimit] instance is not allow access", zap.String("instance", instanceID))
-		return false
-	}
-
-	return true
-
+	return s.ratelimit.Allow(plugin.InstanceRatelimit, instanceID)
 }
 
 func (s *Server) afterServiceResource(ctx context.Context, req *api.Service, save *model.Service,

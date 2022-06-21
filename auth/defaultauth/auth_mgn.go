@@ -30,12 +30,12 @@ import (
 
 // defaultAuthChecker 北极星自带的默认鉴权中心
 type defaultAuthChecker struct {
-	cacheMgn   *cache.NamingCache
+	cacheMgn   *cache.CacheManager
 	authPlugin plugin.Auth
 }
 
 // Initialize 执行初始化动作
-func (authMgn *defaultAuthChecker) Initialize(options *auth.Config, cacheMgn *cache.NamingCache) error {
+func (d *defaultAuthChecker) Initialize(options *auth.Config, cacheMgn *cache.CacheManager) error {
 	contentBytes, err := json.Marshal(options.Option)
 	if err != nil {
 		return err
@@ -68,13 +68,13 @@ func (authMgn *defaultAuthChecker) Initialize(options *auth.Config, cacheMgn *ca
 		return errors.New("AuthChecker needs to configure plugin.Auth plugin for permission check")
 	}
 
-	authMgn.cacheMgn = cacheMgn
-	authMgn.authPlugin = authPlugin
+	d.cacheMgn = cacheMgn
+	d.authPlugin = authPlugin
 
 	return nil
 }
 
 // Cache 获取缓存统一管理
-func (authMgn *defaultAuthChecker) Cache() *cache.NamingCache {
-	return authMgn.cacheMgn
+func (d *defaultAuthChecker) Cache() *cache.CacheManager {
+	return d.cacheMgn
 }

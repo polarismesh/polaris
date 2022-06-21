@@ -18,8 +18,6 @@
 package defaultauth
 
 import (
-	"errors"
-
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -36,13 +34,9 @@ type serverAuthAbility struct {
 
 // Initialize 执行初始化动作
 func (svr *serverAuthAbility) Initialize(authOpt *auth.Config, storage store.Store,
-	cacheMgn *cache.NamingCache) error {
+	cacheMgn *cache.CacheManager) error {
 
 	history := plugin.GetHistory()
-
-	if history == nil {
-		return errors.New("RecordPlugin not found")
-	}
 
 	authMgn := &defaultAuthChecker{}
 	if err := authMgn.Initialize(authOpt, cacheMgn); err != nil {

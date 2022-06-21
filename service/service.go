@@ -34,6 +34,10 @@ import (
 	"github.com/polarismesh/polaris-server/store"
 )
 
+const (
+	MetadataInternalAutoCreated string = "internal-auto-created"
+)
+
 // Service2Api *model.service转换为*api.service
 type Service2Api func(service *model.Service) *api.Service
 
@@ -92,29 +96,32 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 
 	namespaceName := req.GetNamespace().GetValue()
 	serviceName := req.GetName().GetValue()
+
 	// 检查命名空间是否存在
 	namespace, err := s.storage.GetNamespace(namespaceName)
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
+		log.Error("[Service] get namespace fail", ZapRequestID(requestID), ZapPlatformID(platformID), zap.Error(err))
 		return api.NewServiceResponse(api.StoreLayerException, req)
 	}
 	if namespace == nil {
 		return api.NewServiceResponse(api.NotFoundNamespace, req)
 	}
+
 	// 检查是否存在
 	service, err := s.storage.GetService(serviceName, namespaceName)
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
+		log.Error("[Service] get service fail", ZapRequestID(requestID), ZapPlatformID(platformID), zap.Error(err))
 		return api.NewServiceResponse(api.StoreLayerException, req)
 	}
 	if service != nil {
+		req.Id = utils.NewStringValue(service.ID)
 		return api.NewServiceResponse(api.ExistedResource, req)
 	}
 
 	// 存储层操作
 	data := s.createServiceModel(req)
 	if err := s.storage.AddService(data); err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
+		log.Error("[Service] save service fail", ZapRequestID(requestID), ZapPlatformID(platformID), zap.Error(err))
 		return wrapperServiceStoreResponse(req, err)
 	}
 
@@ -124,6 +131,7 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 	s.RecordHistory(serviceRecordEntry(ctx, req, data, model.OCreate))
 
 	out := &api.Service{
+		Id:        utils.NewStringValue(data.ID),
 		Name:      req.GetName(),
 		Namespace: req.GetNamespace(),
 		Token:     utils.NewStringValue(data.Token),
@@ -174,11 +182,6 @@ func (s *Server) DeleteService(ctx context.Context, req *api.Service) *api.Respo
 	}
 	if service == nil {
 		return api.NewServiceResponse(api.ExecuteSuccess, req)
-	}
-
-	// 鉴权
-	if err := s.verifyServiceAuth(ctx, service, req); err != nil {
-		return err
 	}
 
 	// 判断service下的资源是否已经全部被删除
@@ -737,30 +740,7 @@ func (s *Server) checkServiceAuthority(ctx context.Context, req *api.Service) (*
 	}
 	expectToken := service.Token
 
-	if err := s.verifyServiceAuth(ctx, service, req); err != nil {
-		return nil, "", err
-	}
-
 	return service, expectToken, nil
-}
-
-// verifyServiceAuth 服务鉴权
-func (s *Server) verifyServiceAuth(ctx context.Context, service *model.Service, req *api.Service) *api.Response {
-	// 使用平台id及token鉴权
-	if ok := s.verifyAuthByPlatform(ctx, service.PlatformID); !ok {
-		// 检查token是否存在
-		token := parseRequestToken(ctx, req.GetToken().GetValue())
-		if !s.authority.VerifyToken(token) {
-			return api.NewServiceResponse(api.InvalidServiceToken, req)
-		}
-
-		// 检查token是否ok
-		if ok := s.authority.VerifyService(service.Token, token); !ok {
-			return api.NewServiceResponse(api.Unauthorized, req)
-		}
-	}
-
-	return nil
 }
 
 // service2Api model.Service 转为 api.Service

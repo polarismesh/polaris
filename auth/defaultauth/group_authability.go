@@ -25,10 +25,10 @@ import (
 
 // CreateGroup creates a group.
 func (svr *serverAuthAbility) CreateGroup(ctx context.Context, group *api.UserGroup) *api.Response {
-	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
-	if errResp != nil {
-		errResp.UserGroup = group
-		return errResp
+	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
+	if rsp != nil {
+		rsp.UserGroup = group
+		return rsp
 	}
 
 	return svr.target.CreateGroup(ctx, group)
@@ -37,11 +37,10 @@ func (svr *serverAuthAbility) CreateGroup(ctx context.Context, group *api.UserGr
 // UpdateGroups updates groups.
 func (svr *serverAuthAbility) UpdateGroups(ctx context.Context,
 	reqs []*api.ModifyUserGroup) *api.BatchWriteResponse {
-
-	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
-	if errResp != nil {
+	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
+	if rsp != nil {
 		resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
-		resp.Collect(errResp)
+		resp.Collect(rsp)
 		return resp
 	}
 
@@ -51,11 +50,10 @@ func (svr *serverAuthAbility) UpdateGroups(ctx context.Context,
 // DeleteGroups deletes groups.
 func (svr *serverAuthAbility) DeleteGroups(ctx context.Context,
 	reqs []*api.UserGroup) *api.BatchWriteResponse {
-
-	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
-	if errResp != nil {
+	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
+	if rsp != nil {
 		resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
-		resp.Collect(errResp)
+		resp.Collect(rsp)
 		return resp
 	}
 
@@ -65,10 +63,9 @@ func (svr *serverAuthAbility) DeleteGroups(ctx context.Context,
 // GetGroups 查看用户组列表
 func (svr *serverAuthAbility) GetGroups(ctx context.Context,
 	query map[string]string) *api.BatchQueryResponse {
-
-	ctx, errResp := svr.verifyAuth(ctx, ReadOp, NotOwner)
-	if errResp != nil {
-		return api.NewBatchQueryResponseWithMsg(errResp.GetCode().Value, errResp.Info.Value)
+	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
+	if rsp != nil {
+		return api.NewBatchQueryResponseWithMsg(rsp.GetCode().Value, rsp.Info.Value)
 	}
 
 	return svr.target.GetGroups(ctx, query)
@@ -76,10 +73,9 @@ func (svr *serverAuthAbility) GetGroups(ctx context.Context,
 
 // GetGroup 查看用户组
 func (svr *serverAuthAbility) GetGroup(ctx context.Context, req *api.UserGroup) *api.Response {
-
-	ctx, errResp := svr.verifyAuth(ctx, WriteOp, NotOwner)
-	if errResp != nil {
-		return errResp
+	ctx, rsp := svr.verifyAuth(ctx, WriteOp, NotOwner)
+	if rsp != nil {
+		return rsp
 	}
 
 	return svr.target.GetGroup(ctx, req)
@@ -87,10 +83,9 @@ func (svr *serverAuthAbility) GetGroup(ctx context.Context, req *api.UserGroup) 
 
 // GetGroupToken 获取用户组token
 func (svr *serverAuthAbility) GetGroupToken(ctx context.Context, req *api.UserGroup) *api.Response {
-
-	ctx, errResp := svr.verifyAuth(ctx, ReadOp, NotOwner)
-	if errResp != nil {
-		return errResp
+	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
+	if rsp != nil {
+		return rsp
 	}
 
 	return svr.target.GetGroupToken(ctx, req)
@@ -98,10 +93,10 @@ func (svr *serverAuthAbility) GetGroupToken(ctx context.Context, req *api.UserGr
 
 // UpdateGroupToken 更新用户组token
 func (svr *serverAuthAbility) UpdateGroupToken(ctx context.Context, group *api.UserGroup) *api.Response {
-	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
-	if errResp != nil {
-		errResp.UserGroup = group
-		return errResp
+	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
+	if rsp != nil {
+		rsp.UserGroup = group
+		return rsp
 	}
 
 	return svr.target.UpdateGroupToken(ctx, group)
@@ -109,10 +104,10 @@ func (svr *serverAuthAbility) UpdateGroupToken(ctx context.Context, group *api.U
 
 // ResetGroupToken 重置用户组token
 func (svr *serverAuthAbility) ResetGroupToken(ctx context.Context, group *api.UserGroup) *api.Response {
-	ctx, errResp := svr.verifyAuth(ctx, WriteOp, MustOwner)
-	if errResp != nil {
-		errResp.UserGroup = group
-		return errResp
+	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
+	if rsp != nil {
+		rsp.UserGroup = group
+		return rsp
 	}
 
 	return svr.target.ResetGroupToken(ctx, group)

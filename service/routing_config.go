@@ -83,11 +83,6 @@ func (s *Server) CreateRoutingConfig(ctx context.Context, req *api.Routing) *api
 		return api.NewRoutingResponse(api.NotAllowAliasCreateRouting, req)
 	}
 
-	// 鉴权
-	if err := s.verifyRoutingAuth(ctx, service, req); err != nil {
-		return err
-	}
-
 	// 检查路由配置是否已经存在了
 	routingConfig, err := s.storage.GetRoutingConfigWithService(service.Name, service.Namespace)
 	if err != nil {
@@ -267,11 +262,6 @@ func (s *Server) routingConfigCommonCheck(ctx context.Context, req *api.Routing)
 		return nil, api.NewRoutingResponse(api.NotFoundService, req)
 	}
 
-	// 鉴权
-	if err := s.verifyRoutingAuth(ctx, service, req); err != nil {
-		return nil, err
-	}
-
 	return service, nil
 }
 
@@ -414,22 +404,4 @@ func wrapperRoutingStoreResponse(routing *api.Routing, err error) *api.Response 
 	}
 	resp.Routing = routing
 	return resp
-}
-
-// verifyRoutingAuth 路由鉴权
-func (s *Server) verifyRoutingAuth(ctx context.Context, service *model.Service, req *api.Routing) *api.Response {
-	// 使用平台id及token鉴权
-	if ok := s.verifyAuthByPlatform(ctx, service.PlatformID); !ok {
-		// 检查token是否存在
-		token := parseServiceRoutingToken(ctx, req)
-		if !s.authority.VerifyToken(token) {
-			return api.NewRoutingResponse(api.InvalidServiceToken, req)
-		}
-
-		// 检查token是否ok
-		if ok := s.authority.VerifyService(service.Token, token); !ok {
-			return api.NewRoutingResponse(api.Unauthorized, req)
-		}
-	}
-	return nil
 }

@@ -20,16 +20,16 @@ package config
 import (
 	"context"
 	"errors"
-	"sync"
 	"time"
 
-	"go.uber.org/zap"
-
+	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/config/service"
 	"github.com/polarismesh/polaris-server/store"
+	"go.uber.org/zap"
 )
+
+var _ ConfigCenterServer = (*Server)(nil)
 
 const (
 	eventTypePublishConfigFile  = "PublishConfigFile"
@@ -37,13 +37,12 @@ const (
 )
 
 var (
-	server      = new(Server)
-	once        = sync.Once{}
-	initialized = false
+	server       ConfigCenterServer
+	originServer = &Server{}
 )
 
-// StartupConfig 配置中心模块启动参数
-type StartupConfig struct {
+// Config 配置中心模块启动参数
+type Config struct {
 	Open  bool                   `yaml:"open"`
 	Cache map[string]interface{} `yaml:"cache"`
 }
@@ -52,45 +51,38 @@ type StartupConfig struct {
 type Server struct {
 	storage     store.Store
 	cache       *cache.FileCache
-	service     service.API
 	watchCenter *watchCenter
 	connManager *connManager
+	initialized bool
 }
 
-// InitConfigModule 初始化配置中心模块
-func InitConfigModule(ctx context.Context, config StartupConfig) error {
+// Initialize 初始化配置中心模块
+func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cache.CacheManager,
+	authSvr auth.AuthServer) error {
 	if !config.Open {
-		initialized = true
+		originServer.initialized = true
 		return nil
 	}
 
-	var err error
-	once.Do(func() {
-		err = doInit(ctx, config)
-	})
+	if originServer.initialized {
+		return nil
+	}
 
+	err := originServer.initialize(ctx, config, s, cacheMgn, authSvr)
 	if err != nil {
 		return err
 	}
 
-	initialized = true
+	originServer.initialized = true
 	return nil
 }
 
-func doInit(ctx context.Context, config StartupConfig) error {
-	// 1. 初始化存储模块
-	storage, err := store.GetStore()
-	if err != nil {
-		log.ConfigScope().Errorf("[Config][Server] can not get store, err: %s", err.Error())
-		return errors.New("can not get store")
-	}
-	if storage == nil {
-		log.ConfigScope().Errorf("[Config][Server] store is null")
-		return errors.New("store is null")
-	}
-	server.storage = storage
+func (s *Server) initialize(ctx context.Context, config Config, ss store.Store, cacheMgn *cache.CacheManager,
+	authSvr auth.AuthServer) error {
 
-	// 2. 初始化缓存模块
+	s.storage = ss
+
+	// 初始化缓存模块
 	expireTimeAfterWrite, ok := config.Cache["expireTimeAfterWrite"]
 	if !ok {
 		expireTimeAfterWrite = defaultExpireTimeAfterWrite
@@ -99,58 +91,58 @@ func doInit(ctx context.Context, config StartupConfig) error {
 	cacheParam := cache.FileCacheParam{
 		ExpireTimeAfterWrite: expireTimeAfterWrite.(int),
 	}
-	fileCache := cache.NewFileCache(ctx, storage, cacheParam)
-	server.cache = fileCache
+	fileCache := cache.NewFileCache(ctx, ss, cacheParam)
+	s.cache = fileCache
 
-	// 3. 初始化 service 模块
-	serviceImpl := service.NewServiceImpl(storage, fileCache)
-	server.service = serviceImpl
-
-	// 4. 初始化事件中心
+	// 初始化事件中心
 	eventCenter := NewEventCenter()
-	server.watchCenter = NewWatchCenter(eventCenter)
+	s.watchCenter = NewWatchCenter(eventCenter)
 
-	// 5. 初始化连接管理器
-	connMng := NewConfigConnManager(ctx, server.watchCenter)
-	server.connManager = connMng
+	// 初始化连接管理器
+	connMng := NewConfigConnManager(ctx, s.watchCenter)
+	s.connManager = connMng
 
-	// 6. 初始化发布事件扫描器
-	err = initReleaseMessageScanner(ctx, storage, fileCache, eventCenter, time.Second)
-	if err != nil {
+	// 初始化发布事件扫描器
+	if err := initReleaseMessageScanner(ctx, ss, fileCache, eventCenter, time.Second); err != nil {
 		log.ConfigScope().Error("[Config][Server] init release message scanner error. ", zap.Error(err))
 		return errors.New("init config module error")
 	}
 
 	log.ConfigScope().Infof("[Config][Server] startup config module success.")
 
+	server = newServerAuthAbility(originServer, authSvr)
+
 	return nil
 }
 
-// GetConfigServer 获取已经初始化好的ConfigServer
-func GetConfigServer() (*Server, error) {
-	if !initialized {
+// GetServer 获取已经初始化好的ConfigServer
+func GetServer() (ConfigCenterServer, error) {
+	if !originServer.initialized {
 		return nil, errors.New("config server has not done initialize")
 	}
 
 	return server, nil
 }
 
-// WatchCenter 获取监听事件中心
-func (cs *Server) WatchCenter() *watchCenter {
-	return cs.watchCenter
+func GetOriginServer() (*Server, error) {
+	if !originServer.initialized {
+		return nil, errors.New("config server has not done initialize")
+	}
+
+	return originServer, nil
 }
 
-// Service 获取配置中心核心服务模块
-func (cs *Server) Service() service.API {
-	return cs.service
+// WatchCenter 获取监听事件中心
+func (s *Server) WatchCenter() *watchCenter {
+	return s.watchCenter
 }
 
 // Cache 获取配置中心缓存模块
-func (cs *Server) Cache() *cache.FileCache {
-	return cs.cache
+func (s *Server) Cache() *cache.FileCache {
+	return s.cache
 }
 
 // ConnManager 获取配置中心连接管理器
-func (cs *Server) ConnManager() *connManager {
-	return cs.connManager
+func (s *Server) ConnManager() *connManager {
+	return s.connManager
 }

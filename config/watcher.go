@@ -20,21 +20,22 @@ package config
 import (
 	"sync"
 
-	"go.uber.org/zap"
-
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	utils2 "github.com/polarismesh/polaris-server/config/utils"
+	"go.uber.org/zap"
 )
 
 const (
 	QueueSize = 10240
 )
 
+type FileReleaseCallback func(clientId string, rsp *api.ConfigClientResponse) bool
+
 type watchContext struct {
-	fileReleaseCb func(clientId string, rsp *api.ConfigClientResponse) bool
+	fileReleaseCb FileReleaseCallback
 	ClientVersion uint64
 }
 
@@ -67,12 +68,16 @@ func NewWatchCenter(eventCenter *Center) *watchCenter {
 
 // AddWatcher 新增订阅者
 func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*api.ClientConfigFileInfo,
-	fileReleaseCb func(clientId string, rsp *api.ConfigClientResponse) bool) {
+	fileReleaseCb FileReleaseCallback) {
 	if len(watchConfigFiles) == 0 {
 		return
 	}
 	for _, file := range watchConfigFiles {
 		watchFileId := utils.GenFileId(file.Namespace.GetValue(), file.Group.GetValue(), file.FileName.GetValue())
+
+		log.ConfigScope().Info("[Config][Watcher] add watcher.", zap.Any("client-id", clientId),
+			zap.String("watch-file-id", watchFileId), zap.Uint64("client-version", file.Version.GetValue()))
+
 		watchers, ok := wc.configFileWatchers.Load(watchFileId)
 		if !ok {
 			wc.lock.Lock()
@@ -91,6 +96,7 @@ func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*api.Clien
 		}
 
 		watcherMap := watchers.(*sync.Map)
+
 		watcherMap.Store(clientId, &watchContext{
 			fileReleaseCb: fileReleaseCb,
 			ClientVersion: file.Version.GetValue(),
@@ -144,14 +150,20 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.ConfigFileRelea
 
 	watcherMap := watchers.(*sync.Map)
 	watcherMap.Range(func(clientId, watchCtx interface{}) bool {
-		log.ConfigScope().Info("[Config][Watcher] notify to client.",
-			zap.String("file", watchFileId),
-			zap.String("clientId", clientId.(string)),
-			zap.Uint64("version", publishConfigFile.Version))
 
 		c := watchCtx.(*watchContext)
 		if c.ClientVersion < publishConfigFile.Version {
+			log.ConfigScope().Info("[Config][Watcher] notify to client.",
+				zap.String("file", watchFileId),
+				zap.String("clientId", clientId.(string)),
+				zap.Uint64("version", publishConfigFile.Version))
 			c.fileReleaseCb(clientId.(string), response)
+		} else {
+			log.ConfigScope().Info("[Config][Watcher] notify to client ignore.",
+				zap.String("file", watchFileId),
+				zap.String("clientId", clientId.(string)),
+				zap.Uint64("client-version", c.ClientVersion),
+				zap.Uint64("version", publishConfigFile.Version))
 		}
 		return true
 	})

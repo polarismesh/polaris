@@ -25,33 +25,40 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	"github.com/polarismesh/polaris-server/auth"
+	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
 )
 
 // InstanceCtrl 批量操作实例的类
 type InstanceCtrl struct {
-	config          *CtrlConfig
-	storage         store.Store
-	authority       auth.Authority
-	auth            plugin.Auth
-	storeThreadCh   []chan []*InstanceFuture      // store协程，负责写操作
-	instanceHandler func([]*InstanceFuture) error // store协程里面调用的instance处理函数，可以是注册和反注册
-	idleStoreThread chan int                      // 空闲的store协程，记录每一个空闲id
+	config   *CtrlConfig
+	storage  store.Store
+	cacheMgn *cache.CacheManager
+
+	// store协程，负责写操作
+	storeThreadCh []chan []*InstanceFuture
+
+	// store协程里面调用的instance处理函数，可以是注册和反注册
+	instanceHandler func([]*InstanceFuture) error
+
+	// 空闲的store协程，记录每一个空闲id
+	idleStoreThread chan int
 	waitDuration    time.Duration
-	queue           chan *InstanceFuture // 请求接受协程
-	label           string
-	hbOpen          bool // 是否开启了心跳上报功能
+
+	// 请求接受协程
+	queue chan *InstanceFuture
+	label string
+
+	// 是否开启了心跳上报功能
+	hbOpen bool
 }
 
 // NewBatchRegisterCtrl 注册实例批量操作对象
-func NewBatchRegisterCtrl(storage store.Store, authority auth.Authority, auth plugin.Auth,
-	config *CtrlConfig) (*InstanceCtrl, error) {
-	register, err := newBatchInstanceCtrl(storage, authority, auth, config)
+func NewBatchRegisterCtrl(storage store.Store, cacheMgn *cache.CacheManager, config *CtrlConfig) (*InstanceCtrl, error) {
+	register, err := newBatchInstanceCtrl(storage, cacheMgn, config)
 	if err != nil {
 		return nil, err
 	}
@@ -59,16 +66,16 @@ func NewBatchRegisterCtrl(storage store.Store, authority auth.Authority, auth pl
 		return nil, nil
 	}
 
-	log.Infof("[Batch] open batch register")
+	log.Info("[Batch] open batch register")
 	register.label = "register"
 	register.instanceHandler = register.registerHandler
 	return register, nil
 }
 
 // NewBatchDeregisterCtrl 实例反注册的操作对象
-func NewBatchDeregisterCtrl(storage store.Store, authority auth.Authority, auth plugin.Auth, config *CtrlConfig) (
+func NewBatchDeregisterCtrl(storage store.Store, cacheMgn *cache.CacheManager, config *CtrlConfig) (
 	*InstanceCtrl, error) {
-	deregister, err := newBatchInstanceCtrl(storage, authority, auth, config)
+	deregister, err := newBatchInstanceCtrl(storage, cacheMgn, config)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +83,7 @@ func NewBatchDeregisterCtrl(storage store.Store, authority auth.Authority, auth 
 		return nil, nil
 	}
 
-	log.Infof("[Batch] open batch deregister")
+	log.Info("[Batch] open batch deregister")
 	deregister.label = "deregister"
 	deregister.instanceHandler = deregister.deregisterHandler
 
@@ -84,9 +91,9 @@ func NewBatchDeregisterCtrl(storage store.Store, authority auth.Authority, auth 
 }
 
 // NewBatchHeartbeatCtrl 实例心跳的操作对象
-func NewBatchHeartbeatCtrl(storage store.Store, authority auth.Authority, auth plugin.Auth, config *CtrlConfig) (
+func NewBatchHeartbeatCtrl(storage store.Store, cacheMgn *cache.CacheManager, config *CtrlConfig) (
 	*InstanceCtrl, error) {
-	heartbeat, err := newBatchInstanceCtrl(storage, authority, auth, config)
+	heartbeat, err := newBatchInstanceCtrl(storage, cacheMgn, config)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +101,7 @@ func NewBatchHeartbeatCtrl(storage store.Store, authority auth.Authority, auth p
 		return nil, nil
 	}
 
-	log.Infof("[Batch] open batch heartbeat")
+	log.Info("[Batch] open batch heartbeat")
 	heartbeat.label = "heartbeat"
 	heartbeat.instanceHandler = heartbeat.heartbeatHandler
 
@@ -120,8 +127,7 @@ func (ctrl *InstanceCtrl) Start(ctx context.Context) {
 const defaultWaitTime = 32 * time.Millisecond
 
 // newBatchInstanceCtrl 创建批量控制instance的对象
-func newBatchInstanceCtrl(storage store.Store, authority auth.Authority, auth plugin.Auth,
-	config *CtrlConfig) (*InstanceCtrl, error) {
+func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.CacheManager, config *CtrlConfig) (*InstanceCtrl, error) {
 	if config == nil || !config.Open {
 		return nil, nil
 	}
@@ -139,8 +145,7 @@ func newBatchInstanceCtrl(storage store.Store, authority auth.Authority, auth pl
 	instance := &InstanceCtrl{
 		config:          config,
 		storage:         storage,
-		authority:       authority,
-		auth:            auth,
+		cacheMgn:        cacheMgn,
 		storeThreadCh:   make([]chan []*InstanceFuture, 0, config.Concurrency),
 		idleStoreThread: make(chan int, config.Concurrency),
 		queue:           make(chan *InstanceFuture, config.QueueSize),
@@ -218,6 +223,7 @@ func (ctrl *InstanceCtrl) storeWorker(ctx context.Context, index int) {
 // batch操作，只是写操作
 func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 	if len(futures) == 0 {
+		log.Warn("[Batch] futures is empty")
 		return nil
 	}
 
@@ -244,23 +250,9 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 		return nil
 	}
 
-	// 统一鉴权
-	remains, serviceIDs, _ := ctrl.batchVerifyInstances(remains)
-	if len(remains) == 0 {
-		log.Infof("[Batch] all instances verify failed, no remain any instances")
-		return nil
-	}
-
 	// 构造model数据
-	for id, entry := range remains {
-		serviceID, ok := serviceIDs[entry.request.GetId().GetValue()]
-		if !ok || serviceID == "" {
-			log.Errorf("[Batch] not found instance(%s) service, ignore it", entry.request.GetId().GetValue())
-			delete(remains, id)
-			entry.Reply(api.NotFoundResource, errors.New("not found service"))
-			continue
-		}
-		entry.SetInstance(utils.CreateInstanceModel(serviceID, entry.request))
+	for _, entry := range remains {
+		entry.SetInstance(utils.CreateInstanceModel(entry.serviceId, entry.request))
 	}
 
 	// 调用batch接口，创建实例
@@ -269,11 +261,11 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 		instances = append(instances, entry.instance)
 	}
 	if err := ctrl.storage.BatchAddInstances(instances); err != nil {
-		SendReply(remains, StoreCode2APICode(err), err)
+		sendReply(remains, StoreCode2APICode(err), err)
 		return err
 	}
 
-	SendReply(remains, api.ExecuteSuccess, nil)
+	sendReply(remains, api.ExecuteSuccess, nil)
 	return nil
 }
 
@@ -309,11 +301,11 @@ func (ctrl *InstanceCtrl) heartbeatHandler(futures []*InstanceFuture) error {
 		err := ctrl.storage.BatchSetInstanceHealthStatus(idValues, model.StatusBoolToInt(healthy), utils.NewUUID())
 		if err != nil {
 			log.Errorf("[Batch] batch healthy check instances err: %s", err.Error())
-			SendReply(futures, api.StoreLayerException, err)
+			sendReply(futures, api.StoreLayerException, err)
 			return err
 		}
 	}
-	SendReply(futures, api.ExecuteSuccess, nil)
+	sendReply(futures, api.ExecuteSuccess, nil)
 	return nil
 }
 
@@ -347,7 +339,7 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 	instances, err := ctrl.storage.GetInstancesBrief(ids)
 	if err != nil {
 		log.Errorf("[Batch] get instances service token err: %s", err.Error())
-		SendReply(remains, api.StoreLayerException, err)
+		sendReply(remains, api.StoreLayerException, err)
 		return err
 	}
 	for _, future := range futures {
@@ -360,13 +352,6 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 		}
 
 		future.SetInstance(instance) // 这里保存instance的目的：方便上层使用model数据
-		if ok, code := ctrl.verifyInstanceAuth(future.platformID, future.platformToken, instance.ServiceToken(),
-			instance.ServicePlatformID, future.request); !ok {
-			future.Reply(code, fmt.Errorf("instances: %s %s", future.request.GetId().GetValue(),
-				api.Code2Info(code)))
-			delete(remains, future.request.GetId().GetValue())
-			continue
-		}
 	}
 
 	if len(remains) == 0 {
@@ -381,11 +366,11 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 	}
 	if err := ctrl.storage.BatchDeleteInstances(args); err != nil {
 		log.Errorf("[Batch] batch delete instances err: %s", err.Error())
-		SendReply(remains, api.StoreLayerException, err)
+		sendReply(remains, api.StoreLayerException, err)
 		return err
 	}
 
-	SendReply(remains, api.ExecuteSuccess, nil)
+	sendReply(remains, api.ExecuteSuccess, nil)
 	return nil
 }
 
@@ -405,7 +390,7 @@ func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*Instan
 	var err error
 	if id2Isolate, err = ctrl.storage.BatchGetInstanceIsolate(ids); err != nil {
 		log.Errorf("[Batch] check instances existed storage err: %s", err.Error())
-		SendReply(futures, api.StoreLayerException, err)
+		sendReply(futures, api.StoreLayerException, err)
 		return err
 	}
 	if len(id2Isolate) > 0 {
@@ -428,85 +413,44 @@ func (ctrl *InstanceCtrl) batchVerifyInstances(futures map[string]*InstanceFutur
 		return nil, nil, nil
 	}
 
-	serviceIDs := make(map[string]string)       // 实例ID -> ServiceID
-	services := make(map[string]*model.Service) // 保存Service的鉴权结果
-	for id, entry := range futures {
-		serviceStr := entry.request.GetService().GetValue() + entry.request.GetNamespace().GetValue()
-		service, ok := services[serviceStr]
-		if !ok {
-			// 鉴权，这里拿的是源服务token，如果是别名，service=nil
-			tmpService, err := ctrl.storage.GetSourceServiceToken(entry.request.GetService().GetValue(),
-				entry.request.GetNamespace().GetValue())
-			if err != nil {
-				log.Errorf("[Controller] get source service(%s, %s) token err: %s",
-					entry.request.GetService().GetValue(), entry.request.GetNamespace().GetValue(), err.Error())
-				entry.Reply(api.StoreLayerException, err)
-				delete(futures, id)
-				continue
-			}
-
-			// 注册的实例对应的源服务不存在
-			if tmpService == nil {
-				log.Errorf("[Controller] get source service(%s, %s) token is empty, verify failed",
-					entry.request.GetService().GetValue(), entry.request.GetNamespace().GetValue())
-				entry.Reply(api.NotFoundResource, errors.New("not found service"))
-				delete(futures, id)
-				continue
-			}
-			// 保存查询到的最新服务信息，后续可能会使用到
-			service = tmpService
-			services[serviceStr] = service
-		}
-
-		if ok, code := ctrl.verifyInstanceAuth(entry.platformID, entry.platformToken,
-			service.Token, service.PlatformID, entry.request); !ok {
-			entry.Reply(code, fmt.Errorf("service: %s, namepace: %s, instance: %s %s",
-				entry.request.GetService().GetValue(), entry.request.GetNamespace().GetValue(),
-				entry.request.GetId().GetValue(), api.Code2Info(code)))
-			delete(futures, id)
-			continue
-		}
-
-		// 保存每个instance注册到的服务ID
-		serviceIDs[entry.request.GetId().GetValue()] = service.ID
+	serviceIDs := make(map[string]string) // 实例ID -> ServiceID
+	// services := make(map[string]*model.Service) // 保存Service的鉴权结果
+	for _, entry := range futures {
+		serviceIDs[entry.request.GetId().GetValue()] = entry.serviceId
 	}
 
 	return futures, serviceIDs, nil
 }
 
-// verifyInstanceAuth 实例鉴权
-func (ctrl *InstanceCtrl) verifyInstanceAuth(platformID, platformToken, expectServiceToken, sPlatformID string,
-	req *api.Instance) (bool, uint32) {
-	if ctrl.authority == nil {
-		return true, 0
+func (ctrl *InstanceCtrl) loadService(entry *InstanceFuture, name, namespace string) (*model.Service, bool) {
+	var (
+		err        error
+		tmpService *model.Service
+	)
+
+	// 判断缓存中是否可以找到该服务
+	if ctrl.cacheMgn != nil {
+		tmpService = ctrl.cacheMgn.Service().GetServiceByName(name, namespace)
 	}
-	if ok := ctrl.verifyAuthByPlatform(platformID, platformToken, sPlatformID); !ok {
-		// 检查token是否存在
-		actualServiceToken := req.GetServiceToken().GetValue()
-		if !ctrl.authority.VerifyToken(actualServiceToken) {
-			return false, api.InvalidServiceToken
+
+	// 缓存中不存在，在走store层在发起一次查询
+	if tmpService == nil {
+		tmpService, err = ctrl.storage.GetSourceServiceToken(name, namespace)
+		if err != nil {
+			log.Errorf("[Controller] get source service(%s, %s) token err: %s",
+				entry.request.GetService().GetValue(), entry.request.GetNamespace().GetValue(), err.Error())
+			entry.Reply(api.StoreLayerException, err)
+
+			return nil, false
 		}
+		if tmpService == nil {
+			log.Errorf("[Controller] get source service(%s, %s) token is empty, verify failed",
+				entry.request.GetService().GetValue(), entry.request.GetNamespace().GetValue())
+			entry.Reply(api.NotFoundResource, errors.New("not found service"))
 
-		// 检查token是否ok
-		if ok := ctrl.authority.VerifyInstance(expectServiceToken, actualServiceToken); !ok {
-			return false, api.Unauthorized
+			return nil, false
 		}
 	}
-	return true, 0
-}
 
-// verifyAuthByPlatform 使用平台ID鉴权
-func (ctrl *InstanceCtrl) verifyAuthByPlatform(platformID, platformToken, sPlatformID string) bool {
-	if ctrl.auth == nil {
-		return false
-	}
-
-	if sPlatformID == "" {
-		return false
-	}
-
-	if ctrl.auth.Allow(platformID, platformToken) && platformID == sPlatformID {
-		return true
-	}
-	return false
+	return tmpService, true
 }

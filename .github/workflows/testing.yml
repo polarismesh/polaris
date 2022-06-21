@@ -14,27 +14,55 @@ env:
   GO111MODULE: on
 
 jobs:
-
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+        goarch: [ amd64 ]
+        goos: [ linux, darwin ]
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            vert: 1
+        exclude:
+          - os: ubuntu-latest
+            goos: windows
+          - os: ubuntu-latest
+            goos: darwin
+          - os: windows-latest
+            goos: linux
+          - os: windows-latest
+            goos: darwin
+          - os: macos-latest
+            goos: windows
+          - os: macos-latest
+            goos: linux
+
+
+    runs-on: ${{ matrix.os }}
     steps:
       # Setup the environment.
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16.5
+          go-version: 1.17.1
       # Checkout latest code
       - name: Checkout repo
         uses: actions/checkout@v2
 
       # Execute vert check
       - name: Vert check
+        if: ${{ matrix.vert == '1' }}
         run: bash vert.sh -install && bash vert.sh
 
       # Compile
       - name: Build server
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
         run: bash build.sh
-        
+
       # Run unit tests
       - name: run tests
         run: |
@@ -53,20 +81,40 @@ jobs:
           pushd ./auth/defaultauth
           go test -v
           popd
-          
+
       # Run interface tests
-      - name: run interface tests
+      - name: run discover interface tests
         run: |
           work_dir=$(ls | grep polaris-server-release | sed -n '1p')
           echo "work_dir is $work_dir"
           cd $work_dir
+
+          if["$(uname)"=="Darwin"];then
+          # Mac OS X 操作系统
+              sed -i '' 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' polaris-server.yaml
+          elif["$(expr substr $(uname -s) 1 5)"=="Linux"];then
+          # GNU/Linux操作系统
+              sed -i 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' polaris-server.yaml
+          fi
+
+          cat polaris-server.yaml
+
           ls -alR
           chmod +x ./tool/*.sh
           ./tool/start.sh
+
           cd ..
+          # 先测试普通的集成测试
           pushd ./test
-          go test -count=1 -v
+          go test -count=1 -v -tags integration
           popd
           cd $work_dir
           ./tool/stop.sh
           cd ..
+
+      - name: run config-center interface tests
+        run: |
+          # 进行配置中心的集成测试
+          pushd ./test/config_center
+          go test -count=1 -v
+          popd

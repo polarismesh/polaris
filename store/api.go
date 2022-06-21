@@ -74,6 +74,7 @@ type NamespaceStore interface {
 	GetNamespaces(filter map[string][]string, offset, limit int) ([]*model.Namespace, uint32, error)
 
 	// GetMoreNamespaces Get incremental data
+	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetMoreNamespaces(mtime time.Time) ([]*model.Namespace, error)
 }
 
@@ -110,6 +111,6 @@ type Tx interface {
 
 // ToolStore Storage related functions and tool interfaces
 type ToolStore interface {
-	// GetNow Get the current time
-	GetNow() (int64, error)
+	// GetUnixSecond Get the current time
+	GetUnixSecond() (int64, error)
 }

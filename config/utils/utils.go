@@ -14,27 +14,30 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-
 package utils
 
 import (
 	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
-
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 const (
 	fileContentMaxLength = 20000 // 文件内容限制为 2w 个字符
+)
+
+var (
+	regSourceName = regexp.MustCompile(`^[\dA-Za-z-.:_]+$`)
+	regFileName   = regexp.MustCompile(`^[\dA-Za-z-./:_]+$`)
 )
 
 // CheckResourceName 检查资源名称
@@ -47,12 +50,7 @@ func CheckResourceName(name *wrappers.StringValue) error {
 		return errors.New("empty")
 	}
 
-	regStr := "^[0-9A-Za-z-.:_]+$"
-	ok, err := regexp.MatchString(regStr, name.GetValue())
-	if err != nil {
-		return err
-	}
-	if !ok {
+	if ok := regSourceName.MatchString(name.GetValue()); !ok {
 		return errors.New("name contains invalid character")
 	}
 
@@ -69,12 +67,7 @@ func CheckFileName(name *wrappers.StringValue) error {
 		return errors.New("empty")
 	}
 
-	regStr := "^[0-9A-Za-z-./:_]+$"
-	ok, err := regexp.MatchString(regStr, name.GetValue())
-	if err != nil {
-		return err
-	}
-	if !ok {
+	if ok := regFileName.MatchString(name.GetValue()); !ok {
 		return errors.New("name contains invalid character")
 	}
 
@@ -84,15 +77,16 @@ func CheckFileName(name *wrappers.StringValue) error {
 // CalMd5 计算md5值
 func CalMd5(content string) string {
 	h := md5.New()
-	_, _ = io.WriteString(h, content)
-	return fmt.Sprintf("%x", h.Sum(nil))
+	h.Write([]byte(content))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 // CheckContentLength 校验文件内容长度
 func CheckContentLength(content string) error {
 	if len(content) > fileContentMaxLength {
-		return errors.New("content length too long. max length =" + strconv.Itoa(fileContentMaxLength))
+		return fmt.Errorf("content length too long. max length =%d", fileContentMaxLength)
 	}
+
 	return nil
 }
 
@@ -119,13 +113,15 @@ func ToTagJsonStr(tags []*api.ConfigFileTag) string {
 	if len(tags) == 0 {
 		return "[]"
 	}
-	var kvs []kv
+
+	kvs := make([]kv, 0, len(tags))
 	for _, tag := range tags {
 		kvs = append(kvs, kv{
 			Key:   tag.Key.GetValue(),
 			Value: tag.Value.GetValue(),
 		})
 	}
+
 	bytes, _ := json.Marshal(kvs)
 	return string(bytes)
 }
@@ -135,15 +131,21 @@ func FromTagJson(tagStr string) []*api.ConfigFileTag {
 	if tagStr == "" {
 		return nil
 	}
-	kvs := &[]kv{}
-	_ = json.Unmarshal([]byte(tagStr), kvs)
-	var tags []*api.ConfigFileTag
-	for _, kv := range *kvs {
+
+	kvs := make([]kv, 0, 10)
+	err := json.Unmarshal([]byte(tagStr), &kvs)
+	if err != nil {
+		return nil
+	}
+
+	tags := make([]*api.ConfigFileTag, 0, len(kvs))
+	for _, val := range kvs {
 		tags = append(tags, &api.ConfigFileTag{
-			Key:   utils.NewStringValue(kv.Key),
-			Value: utils.NewStringValue(kv.Value),
+			Key:   utils.NewStringValue(val.Key),
+			Value: utils.NewStringValue(val.Value),
 		})
 	}
+
 	return tags
 }
 
@@ -158,17 +160,14 @@ func GenReleaseName(oldReleaseName, fileName string) string {
 		return oldReleaseName
 	}
 
-	olNumStr := nameInfo[1]
-
 	if fileName != nameInfo[0] {
 		return oldReleaseName
 	}
 
-	num, err := strconv.ParseInt(olNumStr, 10, 64)
+	num, err := strconv.ParseInt(nameInfo[1], 10, 64)
 	if err != nil {
 		return oldReleaseName
 	}
 
-	num += 1
-	return fileName + "-" + strings.ReplaceAll(fmt.Sprintf("%3d", num), " ", "0")
+	return fileName + "-" + strings.ReplaceAll(fmt.Sprintf("%3d", num+1), " ", "0")
 }

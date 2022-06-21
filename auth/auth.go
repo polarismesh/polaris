@@ -20,8 +20,7 @@ package auth
 import (
 	"context"
 	"errors"
-	"fmt"
-	"os"
+	"log"
 	"sync"
 
 	"github.com/polarismesh/polaris-server/cache"
@@ -62,7 +61,7 @@ func GetAuthServer() (AuthServer, error) {
 }
 
 // Initialize 初始化
-func Initialize(ctx context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.NamingCache) error {
+func Initialize(ctx context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
 	var err error
 	once.Do(func() {
 		err = initialize(ctx, authOpt, storage, cacheMgn)
@@ -77,7 +76,7 @@ func Initialize(ctx context.Context, authOpt *Config, storage store.Store, cache
 }
 
 // initialize 包裹了初始化函数，在 Initialize 的时候会在自动调用，全局初始化一次
-func initialize(ctx context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.NamingCache) error {
+func initialize(ctx context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
 	name := authOpt.Name
 	if name == "" {
 		return errors.New("auth manager Name is empty")
@@ -91,8 +90,8 @@ func initialize(ctx context.Context, authOpt *Config, storage store.Store, cache
 	authSvr = mgn
 
 	if err := authSvr.Initialize(authOpt, storage, cacheMgn); err != nil {
-		fmt.Printf("auth manager do initialize err: %s", err.Error())
-		os.Exit(-1)
+		log.Printf("auth manager do initialize err: %s", err.Error())
+		return err
 	}
 	return nil
 }

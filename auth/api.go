@@ -29,7 +29,7 @@ import (
 // AuthServer 鉴权 Server
 type AuthServer interface {
 	// Initialize 初始化
-	Initialize(authOpt *Config, storage store.Store, cacheMgn *cache.NamingCache) error
+	Initialize(authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error
 
 	// Name 获取服务名称
 	Name() string
@@ -56,7 +56,7 @@ type AuthServer interface {
 // AuthChecker 权限管理通用接口定义
 type AuthChecker interface {
 	// Initialize 执行初始化动作
-	Initialize(options *Config, cacheMgn *cache.NamingCache) error
+	Initialize(options *Config, cacheMgn *cache.CacheManager) error
 	// VerifyToken 验证令牌
 	VerifyCredential(preCtx *model.AcquireContext) error
 	// CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据
@@ -146,28 +146,4 @@ type StrategyOperator interface {
 
 	// GetPrincipalResources 获取某个 principal 的所有可操作资源列表
 	GetPrincipalResources(ctx context.Context, query map[string]string) *api.Response
-}
-
-// Authority 授权相关操作
-type Authority interface {
-	// VerifyToken 检查Token格式是否合法
-	VerifyToken(actualToken string) bool
-
-	// VerifyNamespace 校验命名空间是否合法
-	VerifyNamespace(expectToken string, actualToken string) bool
-
-	// VerifyService 校验服务是否合法
-	VerifyService(expectToken string, actualToken string) bool
-
-	// VerifyInstance 校验实例是否合法
-	VerifyInstance(expectToken string, actualToken string) bool
-
-	// VerifyRule 校验规则是否合法
-	VerifyRule(expectToken string, actualToken string) bool
-
-	// VerifyPlatform 校验平台是否合法
-	VerifyPlatform(expectToken string, actualToken string) bool
-
-	// VerifyMesh 校验网格权限是否合法
-	VerifyMesh(expectToken string, actualToken string) bool
 }

@@ -269,10 +269,10 @@ func (cf *configFileStore) CountByConfigFileGroup(namespace, group string) (uint
 			saveNs, _ := m[FileFieldNamespace].(string)
 			saveGroup, _ := m[FileFieldGroup].(string)
 
-			if hasNs && !strings.Contains(saveNs, namespace) {
+			if hasNs && strings.Compare(saveNs, namespace) != 0 {
 				return false
 			}
-			if hasGroup && !strings.Contains(saveGroup, group) {
+			if hasGroup && strings.Compare(saveGroup, group) != 0 {
 				return false
 			}
 

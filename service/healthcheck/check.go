@@ -104,6 +104,7 @@ func (i *itemValue) eventExpired() (int64, bool) {
 
 func newCheckScheduler(ctx context.Context, slotNum int,
 	minCheckInterval time.Duration, maxCheckInterval time.Duration) *CheckScheduler {
+
 	scheduler := &CheckScheduler{
 		rwMutex:             &sync.RWMutex{},
 		scheduledInstances:  make(map[string]*itemValue),
@@ -422,8 +423,10 @@ func (c *CheckScheduler) checkCallbackInstance(value interface{}) {
 		log.Infof("[Health Check][Check]instance %s has been removed from callback", instanceId)
 		return
 	}
+
 	instanceValue.mutex.Lock()
 	defer instanceValue.mutex.Unlock()
+
 	var checkResp *plugin.CheckResponse
 	var err error
 	defer func() {
@@ -433,6 +436,7 @@ func (c *CheckScheduler) checkCallbackInstance(value interface{}) {
 			c.addUnHealthyCallback(instanceValue)
 		}
 	}()
+
 	cachedInstance := server.cacheProvider.GetInstance(instanceId)
 	if cachedInstance == nil {
 		log.Infof("[Health Check][Check]instance %s has been deleted", instanceValue.id)
@@ -455,22 +459,21 @@ func (c *CheckScheduler) checkCallbackInstance(value interface{}) {
 		return
 	}
 	if !checkResp.StayUnchanged {
-		var code uint32
+		code := setInsDbStatus(cachedInstance, checkResp.Healthy)
 		if checkResp.Healthy {
 			// from unhealthy to healthy
 			log.Infof(
 				"[Health Check][Check]instance change from unhealthy to healthy, id is %s, address is %s:%d",
 				instanceValue.id, instanceValue.host, instanceValue.port)
-			code = setInsDbStatus(cachedInstance, checkResp.Healthy)
 		} else {
 			// from healthy to unhealthy
 			log.Infof(
 				"[Health Check][Check]instance change from healthy to unhealthy, id is %s, address is %s:%d",
 				instanceValue.id, instanceValue.host, instanceValue.port)
-			code = setInsDbStatus(cachedInstance, checkResp.Healthy)
 		}
 		if code != api.ExecuteSuccess {
-			log.Errorf("[Health Check][Check]fail to update instance, id is %s, address is %s:%d, code is %d",
+			log.Errorf(
+				"[Health Check][Check]fail to update instance, id is %s, address is %s:%d, code is %d",
 				instanceValue.id, instanceValue.host, instanceValue.port, code)
 		}
 	}

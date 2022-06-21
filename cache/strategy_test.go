@@ -30,358 +30,360 @@ import (
 
 //
 func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
-	userCache := &userCache{
-		users:       &sync.Map{},
-		name2Users:  &sync.Map{},
-		groups:      &sync.Map{},
-		user2Groups: &sync.Map{},
-	}
-	strategyCache := &strategyCache{
-		userCache:            userCache,
-		strategys:            &sync.Map{},
-		uid2Strategy:         &sync.Map{},
-		groupid2Strategy:     &sync.Map{},
-		namespace2Strategy:   &sync.Map{},
-		service2Strategy:     &sync.Map{},
-		configGroup2Strategy: &sync.Map{},
-	}
+	t.Run("资源没有关联任何策略", func(t *testing.T) {
+		userCache := &userCache{
+			users:       &sync.Map{},
+			name2Users:  &sync.Map{},
+			groups:      &sync.Map{},
+			user2Groups: &sync.Map{},
+		}
+		strategyCache := &strategyCache{
+			userCache:            userCache,
+			strategys:            &sync.Map{},
+			uid2Strategy:         &sync.Map{},
+			groupid2Strategy:     &sync.Map{},
+			namespace2Strategy:   &sync.Map{},
+			service2Strategy:     &sync.Map{},
+			configGroup2Strategy: &sync.Map{},
+		}
 
-	strategyCache.setStrategys(buildStrategies(10))
+		strategyCache.setStrategys(buildStrategies(10))
 
-	ret := strategyCache.IsResourceEditable(model.Principal{
-		PrincipalID:   "user-1",
-		PrincipalRole: model.PrincipalUser,
-	}, api.ResourceType_Namespaces, "namespace-1")
+		ret := strategyCache.IsResourceEditable(model.Principal{
+			PrincipalID:   "user-1",
+			PrincipalRole: model.PrincipalUser,
+		}, api.ResourceType_Namespaces, "namespace-1")
 
-	assert.True(t, ret, "must be true")
-}
+		assert.True(t, ret, "must be true")
+	})
 
-func Test_strategyCache_IsResourceEditable_2(t *testing.T) {
-	userCache := &userCache{
-		users:       &sync.Map{},
-		name2Users:  &sync.Map{},
-		groups:      &sync.Map{},
-		user2Groups: &sync.Map{},
-	}
-	strategyCache := &strategyCache{
-		userCache:            userCache,
-		strategys:            &sync.Map{},
-		uid2Strategy:         &sync.Map{},
-		groupid2Strategy:     &sync.Map{},
-		namespace2Strategy:   &sync.Map{},
-		service2Strategy:     &sync.Map{},
-		configGroup2Strategy: &sync.Map{},
-	}
+	t.Run("操作的目标资源关联了策略-自己在principal-user列表中", func(t *testing.T) {
+		userCache := &userCache{
+			users:       &sync.Map{},
+			name2Users:  &sync.Map{},
+			groups:      &sync.Map{},
+			user2Groups: &sync.Map{},
+		}
+		strategyCache := &strategyCache{
+			userCache:            userCache,
+			strategys:            &sync.Map{},
+			uid2Strategy:         &sync.Map{},
+			groupid2Strategy:     &sync.Map{},
+			namespace2Strategy:   &sync.Map{},
+			service2Strategy:     &sync.Map{},
+			configGroup2Strategy: &sync.Map{},
+		}
 
-	strategyCache.setStrategys([]*model.StrategyDetail{
-		{
-			ID:   fmt.Sprintf("rule-%d", 1),
-			Name: fmt.Sprintf("rule-%d", 1),
+		strategyCache.setStrategys([]*model.StrategyDetail{
+			{
+				ID:   fmt.Sprintf("rule-%d", 1),
+				Name: fmt.Sprintf("rule-%d", 1),
+				Principals: []model.Principal{
+					{
+						PrincipalID:   "user-1",
+						PrincipalRole: model.PrincipalUser,
+					},
+				},
+				Valid: true,
+				Resources: []model.StrategyResource{
+					{
+						StrategyID: fmt.Sprintf("rule-%d", 1),
+						ResType:    0,
+						ResID:      "*",
+					},
+				},
+			},
+		})
+
+		ret := strategyCache.IsResourceEditable(model.Principal{
+			PrincipalID:   "user-1",
+			PrincipalRole: model.PrincipalUser,
+		}, api.ResourceType_Namespaces, "namespace-1")
+
+		assert.True(t, ret, "must be true")
+	})
+
+	t.Run("操作的目标资源关联了策略-自己不在principal-user列表中", func(t *testing.T) {
+		userCache := &userCache{
+			users:       &sync.Map{},
+			name2Users:  &sync.Map{},
+			groups:      &sync.Map{},
+			user2Groups: &sync.Map{},
+		}
+		strategyCache := &strategyCache{
+			userCache:            userCache,
+			strategys:            &sync.Map{},
+			uid2Strategy:         &sync.Map{},
+			groupid2Strategy:     &sync.Map{},
+			namespace2Strategy:   &sync.Map{},
+			service2Strategy:     &sync.Map{},
+			configGroup2Strategy: &sync.Map{},
+		}
+
+		strategyCache.setStrategys(buildStrategies(10))
+
+		ret := strategyCache.IsResourceEditable(model.Principal{
+			PrincipalID:   "user-20",
+			PrincipalRole: model.PrincipalUser,
+		}, api.ResourceType_Namespaces, "namespace-1")
+
+		assert.False(t, ret, "must be false")
+	})
+
+	t.Run("操作的目标资源关联了策略-自己属于principal-group中组成员", func(t *testing.T) {
+		userCache := &userCache{
+			users:       &sync.Map{},
+			name2Users:  &sync.Map{},
+			groups:      &sync.Map{},
+			user2Groups: &sync.Map{},
+		}
+		strategyCache := &strategyCache{
+			userCache:            userCache,
+			strategys:            &sync.Map{},
+			uid2Strategy:         &sync.Map{},
+			groupid2Strategy:     &sync.Map{},
+			namespace2Strategy:   &sync.Map{},
+			service2Strategy:     &sync.Map{},
+			configGroup2Strategy: &sync.Map{},
+		}
+
+		userCache.groups.Store("group-1", &model.UserGroupDetail{
+			UserGroup: &model.UserGroup{
+				ID: "group-1",
+			},
+			UserIds: map[string]struct{}{
+				"user-1": {},
+			},
+		})
+
+		links := new(sync.Map)
+		links.Store("group-1", struct{}{})
+		userCache.user2Groups.Store("user-1", links)
+
+		strategyCache.setStrategys(buildStrategies(10))
+
+		ret := strategyCache.IsResourceEditable(model.Principal{
+			PrincipalID:   "user-1",
+			PrincipalRole: model.PrincipalUser,
+		}, api.ResourceType_Namespaces, "namespace-1")
+
+		assert.True(t, ret, "must be true")
+	})
+
+	t.Run("操作关联策略的资源-策略在操作成功-策略移除操作失败", func(t *testing.T) {
+		userCache := &userCache{
+			users:       &sync.Map{},
+			name2Users:  &sync.Map{},
+			groups:      &sync.Map{},
+			user2Groups: &sync.Map{},
+		}
+		strategyCache := &strategyCache{
+			userCache:            userCache,
+			strategys:            &sync.Map{},
+			uid2Strategy:         &sync.Map{},
+			groupid2Strategy:     &sync.Map{},
+			namespace2Strategy:   &sync.Map{},
+			service2Strategy:     &sync.Map{},
+			configGroup2Strategy: &sync.Map{},
+		}
+
+		userCache.groups.Store("group-1", &model.UserGroupDetail{
+			UserGroup: &model.UserGroup{
+				ID: "group-1",
+			},
+			UserIds: map[string]struct{}{
+				"user-1": {},
+			},
+		})
+
+		links := new(sync.Map)
+		links.Store("group-1", struct{}{})
+		userCache.user2Groups.Store("user-1", links)
+		strategyCache.strategys.Store("rule-1", &model.StrategyDetailCache{
+			StrategyDetail: &model.StrategyDetail{
+				ID:         "rule-1",
+				Name:       "rule-1",
+				Principals: []model.Principal{},
+				Resources:  []model.StrategyResource{},
+			},
+			GroupPrincipal: map[string]model.Principal{
+				"group-1": {
+					PrincipalID: "group-1",
+				},
+			},
+		})
+		strategyCache.strategys.Store("rule-2", &model.StrategyDetailCache{
+			StrategyDetail: &model.StrategyDetail{
+				ID:         "rule-2",
+				Name:       "rule-2",
+				Principals: []model.Principal{},
+				Resources:  []model.StrategyResource{},
+			},
+			GroupPrincipal: map[string]model.Principal{
+				"group-2": {
+					PrincipalID: "group-2",
+				},
+			},
+		})
+
+		nsRules := &sync.Map{}
+		nsRules.Store("rule-1", struct{}{})
+		nsRules.Store("rule-2", struct{}{})
+		strategyCache.namespace2Strategy.Store("namespace-1", nsRules)
+
+		ret := strategyCache.IsResourceEditable(model.Principal{
+			PrincipalID:   "user-1",
+			PrincipalRole: model.PrincipalUser,
+		}, api.ResourceType_Namespaces, "namespace-1")
+
+		assert.True(t, ret, "must be true")
+
+		strategyCache.handlerResourceStrategy([]*model.StrategyDetail{
+			{
+				ID:         "rule-1",
+				Name:       "rule-1",
+				Valid:      false,
+				Principals: []model.Principal{},
+				Resources: []model.StrategyResource{
+					{
+						StrategyID: "rule-1",
+						ResType:    0,
+						ResID:      "namespace-1",
+					},
+				},
+			},
+		})
+
+		ret = strategyCache.IsResourceEditable(model.Principal{
+			PrincipalID:   "user-1",
+			PrincipalRole: model.PrincipalUser,
+		}, api.ResourceType_Namespaces, "namespace-1")
+
+		assert.False(t, ret, "must be false")
+	})
+
+	t.Run("", func(t *testing.T) {
+		userCache := &userCache{
+			users:       &sync.Map{},
+			name2Users:  &sync.Map{},
+			groups:      &sync.Map{},
+			user2Groups: &sync.Map{},
+		}
+		strategyCache := &strategyCache{
+			userCache:            userCache,
+			strategys:            &sync.Map{},
+			uid2Strategy:         &sync.Map{},
+			groupid2Strategy:     &sync.Map{},
+			namespace2Strategy:   &sync.Map{},
+			service2Strategy:     &sync.Map{},
+			configGroup2Strategy: &sync.Map{},
+		}
+
+		userCache.groups.Store("group-1", &model.UserGroupDetail{
+			UserGroup: &model.UserGroup{
+				ID: "group-1",
+			},
+			UserIds: map[string]struct{}{
+				"user-1": {},
+			},
+		})
+
+		strategyDetail := &model.StrategyDetail{
+			ID:   "rule-1",
+			Name: "rule-1",
 			Principals: []model.Principal{
 				{
 					PrincipalID:   "user-1",
 					PrincipalRole: model.PrincipalUser,
 				},
+				{
+					PrincipalID:   "group-1",
+					PrincipalRole: model.PrincipalGroup,
+				},
 			},
 			Valid: true,
 			Resources: []model.StrategyResource{
 				{
-					StrategyID: fmt.Sprintf("rule-%d", 1),
+					StrategyID: "rule-1",
 					ResType:    0,
 					ResID:      "*",
 				},
 			},
-		},
-	})
+		}
 
-	ret := strategyCache.IsResourceEditable(model.Principal{
-		PrincipalID:   "user-1",
-		PrincipalRole: model.PrincipalUser,
-	}, api.ResourceType_Namespaces, "namespace-1")
-
-	assert.True(t, ret, "must be true")
-}
-
-func Test_strategyCache_IsResourceEditable_3(t *testing.T) {
-	userCache := &userCache{
-		users:       &sync.Map{},
-		name2Users:  &sync.Map{},
-		groups:      &sync.Map{},
-		user2Groups: &sync.Map{},
-	}
-	strategyCache := &strategyCache{
-		userCache:            userCache,
-		strategys:            &sync.Map{},
-		uid2Strategy:         &sync.Map{},
-		groupid2Strategy:     &sync.Map{},
-		namespace2Strategy:   &sync.Map{},
-		service2Strategy:     &sync.Map{},
-		configGroup2Strategy: &sync.Map{},
-	}
-
-	strategyCache.setStrategys(buildStrategies(10))
-
-	ret := strategyCache.IsResourceEditable(model.Principal{
-		PrincipalID:   "user-20",
-		PrincipalRole: model.PrincipalUser,
-	}, api.ResourceType_Namespaces, "namespace-1")
-
-	assert.False(t, ret, "must be false")
-}
-
-func Test_strategyCache_IsResourceEditable_4(t *testing.T) {
-	userCache := &userCache{
-		users:       &sync.Map{},
-		name2Users:  &sync.Map{},
-		groups:      &sync.Map{},
-		user2Groups: &sync.Map{},
-	}
-	strategyCache := &strategyCache{
-		userCache:            userCache,
-		strategys:            &sync.Map{},
-		uid2Strategy:         &sync.Map{},
-		groupid2Strategy:     &sync.Map{},
-		namespace2Strategy:   &sync.Map{},
-		service2Strategy:     &sync.Map{},
-		configGroup2Strategy: &sync.Map{},
-	}
-
-	userCache.groups.Store("group-1", &model.UserGroupDetail{
-		UserGroup: &model.UserGroup{
-			ID: "group-1",
-		},
-		UserIds: map[string]struct{}{
-			"user-1": {},
-		},
-	})
-
-	links := new(sync.Map)
-	links.Store("group-1", struct{}{})
-	userCache.user2Groups.Store("user-1", links)
-
-	strategyCache.setStrategys(buildStrategies(10))
-
-	ret := strategyCache.IsResourceEditable(model.Principal{
-		PrincipalID:   "user-1",
-		PrincipalRole: model.PrincipalUser,
-	}, api.ResourceType_Namespaces, "namespace-1")
-
-	assert.True(t, ret, "must be true")
-}
-
-func Test_strategyCache_IsResourceEditable_5(t *testing.T) {
-	userCache := &userCache{
-		users:       &sync.Map{},
-		name2Users:  &sync.Map{},
-		groups:      &sync.Map{},
-		user2Groups: &sync.Map{},
-	}
-	strategyCache := &strategyCache{
-		userCache:            userCache,
-		strategys:            &sync.Map{},
-		uid2Strategy:         &sync.Map{},
-		groupid2Strategy:     &sync.Map{},
-		namespace2Strategy:   &sync.Map{},
-		service2Strategy:     &sync.Map{},
-		configGroup2Strategy: &sync.Map{},
-	}
-
-	userCache.groups.Store("group-1", &model.UserGroupDetail{
-		UserGroup: &model.UserGroup{
-			ID: "group-1",
-		},
-		UserIds: map[string]struct{}{
-			"user-1": {},
-		},
-	})
-
-	links := new(sync.Map)
-	links.Store("group-1", struct{}{})
-	userCache.user2Groups.Store("user-1", links)
-	strategyCache.strategys.Store("rule-1", &model.StrategyDetailCache{
-		StrategyDetail: &model.StrategyDetail{
-			ID:         "rule-1",
-			Name:       "rule-1",
-			Principals: []model.Principal{},
-			Resources:  []model.StrategyResource{},
-		},
-		GroupPrincipal: map[string]model.Principal{
-			"group-1": {
-				PrincipalID: "group-1",
+		strategyDetail2 := &model.StrategyDetail{
+			ID:   "rule-2",
+			Name: "rule-2",
+			Principals: []model.Principal{
+				{
+					PrincipalID:   "user-2",
+					PrincipalRole: model.PrincipalUser,
+				},
+				{
+					PrincipalID:   "group-2",
+					PrincipalRole: model.PrincipalGroup,
+				},
 			},
-		},
-	})
-	strategyCache.strategys.Store("rule-2", &model.StrategyDetailCache{
-		StrategyDetail: &model.StrategyDetail{
-			ID:         "rule-2",
-			Name:       "rule-2",
-			Principals: []model.Principal{},
-			Resources:  []model.StrategyResource{},
-		},
-		GroupPrincipal: map[string]model.Principal{
-			"group-2": {
-				PrincipalID: "group-2",
-			},
-		},
-	})
-
-	nsRules := &sync.Map{}
-	nsRules.Store("rule-1", struct{}{})
-	nsRules.Store("rule-2", struct{}{})
-	strategyCache.namespace2Strategy.Store("namespace-1", nsRules)
-
-	ret := strategyCache.IsResourceEditable(model.Principal{
-		PrincipalID:   "user-1",
-		PrincipalRole: model.PrincipalUser,
-	}, api.ResourceType_Namespaces, "namespace-1")
-
-	assert.True(t, ret, "must be true")
-
-	strategyCache.handlerResourceStrategy([]*model.StrategyDetail{
-		{
-			ID:         "rule-1",
-			Name:       "rule-1",
-			Valid:      false,
-			Principals: []model.Principal{},
+			Valid: true,
 			Resources: []model.StrategyResource{
 				{
-					StrategyID: "rule-1",
+					StrategyID: "rule-2",
 					ResType:    0,
 					ResID:      "namespace-1",
 				},
 			},
-		},
+		}
+
+		strategyCache.strategys.Store("rule-1", &model.StrategyDetailCache{
+			StrategyDetail: strategyDetail,
+			UserPrincipal: map[string]model.Principal{
+				"user-1": {
+					PrincipalID: "user-1",
+				},
+			},
+			GroupPrincipal: map[string]model.Principal{
+				"group-1": {
+					PrincipalID: "group-1",
+				},
+			},
+		})
+		strategyCache.strategys.Store("rule-2", &model.StrategyDetailCache{
+			StrategyDetail: strategyDetail2,
+			UserPrincipal: map[string]model.Principal{
+				"user-2": {
+					PrincipalID: "user-2",
+				},
+			},
+			GroupPrincipal: map[string]model.Principal{
+				"group-2": {
+					PrincipalID: "group-2",
+				},
+			},
+		})
+
+		strategyCache.handlerPrincipalStrategy([]*model.StrategyDetail{strategyDetail2})
+		strategyCache.handlerResourceStrategy([]*model.StrategyDetail{strategyDetail2})
+		strategyCache.handlerPrincipalStrategy([]*model.StrategyDetail{strategyDetail})
+		strategyCache.handlerResourceStrategy([]*model.StrategyDetail{strategyDetail})
+		ret := strategyCache.IsResourceEditable(model.Principal{
+			PrincipalID:   "user-1",
+			PrincipalRole: model.PrincipalUser,
+		}, api.ResourceType_Namespaces, "namespace-1")
+
+		assert.True(t, ret, "must be true")
+
+		strategyDetail.Valid = false
+
+		strategyCache.handlerPrincipalStrategy([]*model.StrategyDetail{strategyDetail})
+		strategyCache.handlerResourceStrategy([]*model.StrategyDetail{strategyDetail})
+		strategyCache.strategys.Delete(strategyDetail.ID)
+		ret = strategyCache.IsResourceEditable(model.Principal{
+			PrincipalID:   "user-1",
+			PrincipalRole: model.PrincipalUser,
+		}, api.ResourceType_Namespaces, "namespace-1")
+
+		assert.False(t, ret, "must be false")
 	})
-
-	ret = strategyCache.IsResourceEditable(model.Principal{
-		PrincipalID:   "user-1",
-		PrincipalRole: model.PrincipalUser,
-	}, api.ResourceType_Namespaces, "namespace-1")
-
-	assert.False(t, ret, "must be false")
-}
-
-func Test_strategyCache_IsResourceEditable_6(t *testing.T) {
-	userCache := &userCache{
-		users:       &sync.Map{},
-		name2Users:  &sync.Map{},
-		groups:      &sync.Map{},
-		user2Groups: &sync.Map{},
-	}
-	strategyCache := &strategyCache{
-		userCache:            userCache,
-		strategys:            &sync.Map{},
-		uid2Strategy:         &sync.Map{},
-		groupid2Strategy:     &sync.Map{},
-		namespace2Strategy:   &sync.Map{},
-		service2Strategy:     &sync.Map{},
-		configGroup2Strategy: &sync.Map{},
-	}
-
-	userCache.groups.Store("group-1", &model.UserGroupDetail{
-		UserGroup: &model.UserGroup{
-			ID: "group-1",
-		},
-		UserIds: map[string]struct{}{
-			"user-1": {},
-		},
-	})
-
-	strategyDetail := &model.StrategyDetail{
-		ID:   "rule-1",
-		Name: "rule-1",
-		Principals: []model.Principal{
-			{
-				PrincipalID:   "user-1",
-				PrincipalRole: model.PrincipalUser,
-			},
-			{
-				PrincipalID:   "group-1",
-				PrincipalRole: model.PrincipalGroup,
-			},
-		},
-		Valid: true,
-		Resources: []model.StrategyResource{
-			{
-				StrategyID: "rule-1",
-				ResType:    0,
-				ResID:      "*",
-			},
-		},
-	}
-
-	strategyDetail2 := &model.StrategyDetail{
-		ID:   "rule-2",
-		Name: "rule-2",
-		Principals: []model.Principal{
-			{
-				PrincipalID:   "user-2",
-				PrincipalRole: model.PrincipalUser,
-			},
-			{
-				PrincipalID:   "group-2",
-				PrincipalRole: model.PrincipalGroup,
-			},
-		},
-		Valid: true,
-		Resources: []model.StrategyResource{
-			{
-				StrategyID: "rule-2",
-				ResType:    0,
-				ResID:      "namespace-1",
-			},
-		},
-	}
-
-	strategyCache.strategys.Store("rule-1", &model.StrategyDetailCache{
-		StrategyDetail: strategyDetail,
-		UserPrincipal: map[string]model.Principal{
-			"user-1": {
-				PrincipalID: "user-1",
-			},
-		},
-		GroupPrincipal: map[string]model.Principal{
-			"group-1": {
-				PrincipalID: "group-1",
-			},
-		},
-	})
-	strategyCache.strategys.Store("rule-2", &model.StrategyDetailCache{
-		StrategyDetail: strategyDetail2,
-		UserPrincipal: map[string]model.Principal{
-			"user-2": {
-				PrincipalID: "user-2",
-			},
-		},
-		GroupPrincipal: map[string]model.Principal{
-			"group-2": {
-				PrincipalID: "group-2",
-			},
-		},
-	})
-
-	strategyCache.handlerPrincipalStrategy([]*model.StrategyDetail{strategyDetail2})
-	strategyCache.handlerResourceStrategy([]*model.StrategyDetail{strategyDetail2})
-	strategyCache.handlerPrincipalStrategy([]*model.StrategyDetail{strategyDetail})
-	strategyCache.handlerResourceStrategy([]*model.StrategyDetail{strategyDetail})
-	ret := strategyCache.IsResourceEditable(model.Principal{
-		PrincipalID:   "user-1",
-		PrincipalRole: model.PrincipalUser,
-	}, api.ResourceType_Namespaces, "namespace-1")
-
-	assert.True(t, ret, "must be true")
-
-	strategyDetail.Valid = false
-
-	strategyCache.handlerPrincipalStrategy([]*model.StrategyDetail{strategyDetail})
-	strategyCache.handlerResourceStrategy([]*model.StrategyDetail{strategyDetail})
-	strategyCache.strategys.Delete(strategyDetail.ID)
-	ret = strategyCache.IsResourceEditable(model.Principal{
-		PrincipalID:   "user-1",
-		PrincipalRole: model.PrincipalUser,
-	}, api.ResourceType_Namespaces, "namespace-1")
-
-	assert.False(t, ret, "must be false")
 }
 
 func buildStrategies(num int) []*model.StrategyDetail {
@@ -423,7 +425,7 @@ func buildStrategies(num int) []*model.StrategyDetail {
 	return ret
 }
 
-func buildPrincipalMap(principals []model.Principal, role model.PrincipalType) map[string]model.Principal {
+func testBuildPrincipalMap(principals []model.Principal, role model.PrincipalType) map[string]model.Principal {
 	ret := make(map[string]model.Principal, 0)
 	for i := range principals {
 		principal := principals[i]

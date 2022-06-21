@@ -138,19 +138,19 @@ func (uc *userCache) initialize(c map[string]interface{}) error {
 	return nil
 }
 
-func (uc *userCache) update() error {
+func (uc *userCache) update(storeRollbackSec time.Duration) error {
 	// Multiple threads competition, only one thread is updated
 	_, err, _ := uc.singleFlight.Do(UsersName, func() (interface{}, error) {
-		return nil, uc.realUpdate()
+		return nil, uc.realUpdate(storeRollbackSec)
 	})
 	return err
 }
 
-func (uc *userCache) realUpdate() error {
+func (uc *userCache) realUpdate(storeRollbackSec time.Duration) error {
 	// Get all data before a few seconds
 	start := time.Now()
 	userlastMtime := time.Unix(uc.lastUserCacheUpdateTime, 0)
-	users, err := uc.storage.GetUsersForCache(userlastMtime.Add(DefaultTimeDiff), uc.userCacheFirstUpdate)
+	users, err := uc.storage.GetUsersForCache(userlastMtime.Add(storeRollbackSec), uc.userCacheFirstUpdate)
 	if err != nil {
 		log.CacheScope().Errorf("[Cache][User] update user err: %s", err.Error())
 		return err
@@ -184,21 +184,24 @@ func (uc *userCache) setUserAndGroups(users []*model.User,
 	groups []*model.UserGroupDetail) userAndGroupCacheRefreshResult {
 	ret := userAndGroupCacheRefreshResult{}
 
+	ownerSupplier := func(user *model.User) *model.User {
+		if user.Type == model.SubAccountUserRole {
+			owner, _ := uc.users.Load(user.Owner)
+			return owner.(*model.User)
+		}
+		return user
+	}
+
 	// 更新 users 缓存
 	// step 1. 先更新 owner 用户
 	uc.handlerUserCacheUpdate(&ret, users, func(user *model.User) bool {
-		return (user.ID == user.Owner || user.Owner == "")
-	}, func(user *model.User) *model.User {
-		return user
-	})
+		return user.Type == model.OwnerUserRole
+	}, ownerSupplier)
 
 	// step 2. 更新非 owner 用户
 	uc.handlerUserCacheUpdate(&ret, users, func(user *model.User) bool {
-		return (user.Owner != "")
-	}, func(user *model.User) *model.User {
-		owner, _ := uc.users.Load(user.Owner)
-		return owner.(*model.User)
-	})
+		return user.Type == model.SubAccountUserRole
+	}, ownerSupplier)
 
 	uc.handlerGroupCacheUpdate(&ret, groups)
 
@@ -216,16 +219,25 @@ func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult,
 		user := users[i]
 		if user.Type == model.AdminUserRole {
 			uc.adminUser.Store(user)
+			uc.users.Store(user.ID, user)
+			uc.name2Users.Store(fmt.Sprintf(NameLinkOwnerTemp, user.Name, user.Name), user)
+			uc.lastUserCacheUpdateTime = int64(math.Max(float64(user.ModifyTime.Unix()),
+				float64(uc.lastUserCacheUpdateTime)))
+			continue
 		}
 
 		if !filter(user) {
 			continue
 		}
+
 		owner := ownerSupplier(user)
 		if !user.Valid {
+			// 删除 user-id -> user 的缓存
+			// 删除 username + ownername -> user 的缓存
+			// 删除 user-id -> group-ids 的缓存
 			uc.users.Delete(user.ID)
 			uc.name2Users.Delete(fmt.Sprintf(NameLinkOwnerTemp, owner.Name, user.Name))
-
+			// uc.user2Groups.Delete(user.ID)
 			ret.userDel++
 		} else {
 			if _, ok := uc.users.Load(user.ID); ok {
@@ -233,7 +245,6 @@ func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult,
 			} else {
 				ret.userAdd++
 			}
-
 			uc.users.Store(user.ID, user)
 			uc.name2Users.Store(fmt.Sprintf(NameLinkOwnerTemp, owner.Name, user.Name), user)
 
@@ -281,8 +292,13 @@ func (uc *userCache) handlerGroupCacheUpdate(ret *userAndGroupCacheRefreshResult
 			}
 
 			for uid := range group.UserIds {
-				uc.user2Groups.LoadOrStore(uid, new(sync.Map))
+				_, exist := uc.user2Groups.Load(uid)
+				if !exist {
+					uc.user2Groups.Store(uid, new(sync.Map))
+				}
+
 				val, _ := uc.user2Groups.Load(uid)
+
 				gids := val.(*sync.Map)
 				gids.Store(group.ID, struct{}{})
 			}

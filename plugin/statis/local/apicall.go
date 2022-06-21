@@ -196,7 +196,7 @@ type APICallStatis struct {
 	prometheusStatis *PrometheusStatis
 }
 
-func newAPICallStatis(outputPath string) (*APICallStatis, error) {
+func newAPICallStatis(outputPath string, prometheusStatis *PrometheusStatis) (*APICallStatis, error) {
 	value := &APICallStatis{
 		components: make(map[string]*ComponentStatics),
 	}
@@ -205,11 +205,6 @@ func newAPICallStatis(outputPath string) (*APICallStatis, error) {
 		value.components[componentName] = newComponentStatics(outputPath, componentName, value)
 	}
 
-	// 初始化 prometheus 输出
-	prometheusStatis, err := NewPrometheusStatis()
-	if err != nil {
-		return nil, err
-	}
 	value.prometheusStatis = prometheusStatis
 
 	return value, nil
@@ -235,6 +230,5 @@ func (a *APICallStatis) log() {
 		} else {
 			component.log()
 		}
-
 	}
 }

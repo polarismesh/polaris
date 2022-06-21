@@ -91,8 +91,8 @@ func (rlc *rateLimitCache) initialize(opt map[string]interface{}) error {
 }
 
 // update 实现Cache接口的update函数
-func (rlc *rateLimitCache) update() error {
-	rateLimits, revisions, err := rlc.storage.GetRateLimitsForCache(rlc.lastTime.Add(DefaultTimeDiff),
+func (rlc *rateLimitCache) update(storeRollbackSec time.Duration) error {
+	rateLimits, revisions, err := rlc.storage.GetRateLimitsForCache(rlc.lastTime.Add(storeRollbackSec),
 		rlc.firstUpdate)
 	if err != nil {
 		log.CacheScope().Errorf("[Cache] rate limit cache update err: %s", err.Error())

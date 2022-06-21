@@ -38,6 +38,9 @@ type StatisWorker struct {
 
 	acc chan *APICall
 	acs *APICallStatis
+
+	cacheCall   chan *CacheCall
+	cacheStatis *CacheCallStatis
 }
 
 // Name 获取统计插件名称
@@ -54,13 +57,22 @@ func (s *StatisWorker) Initialize(conf *plugin.ConfigEntry) error {
 
 	outputPath := conf.Option["outputPath"].(string)
 
+	// 初始化 prometheus 输出
+	prometheusStatis, err := NewPrometheusStatis()
+	if err != nil {
+		return err
+	}
+
 	// 初始化接口调用统计
 	s.acc = make(chan *APICall, 1024)
-	s.acs, err = newAPICallStatis(outputPath)
+	s.acs, err = newAPICallStatis(outputPath, prometheusStatis)
 	if err != nil {
 		return err
 	}
 	go s.Run()
+
+	s.cacheCall = make(chan *CacheCall, 1024)
+	s.cacheStatis, err = newCacheCallStatis(outputPath, prometheusStatis)
 
 	return nil
 }
@@ -100,6 +112,17 @@ func (s *StatisWorker) AddRedisCall(api string, code int, duration int64) error 
 	return nil
 }
 
+// AddCacheCall 上报 Cache 指标信息
+func (s *StatisWorker) AddCacheCall(component string, cacheType string, miss bool, call int) error {
+	s.cacheCall <- &CacheCall{
+		cacheType: cacheType,
+		miss:      miss,
+		component: component,
+		count:     int32(call),
+	}
+	return nil
+}
+
 // GetPrometheusHandler 获取 prometheus http handler
 func (s *StatisWorker) GetPrometheusHandler() http.Handler {
 	return s.acs.prometheusStatis.GetHttpHandler()
@@ -114,7 +137,7 @@ func (s *StatisWorker) Run() {
 		return
 	}
 
-	nowSeconds, err := store.GetNow()
+	nowSeconds, err := store.GetUnixSecond()
 	if err != nil {
 		log.Errorf("[APICall] get now second from store error, %v", err)
 		return
@@ -132,14 +155,20 @@ func (s *StatisWorker) Run() {
 	time.Sleep(time.Duration(diff) * time.Second)
 
 	ticker := time.NewTicker(s.interval)
-	defer ticker.Stop()
+	defer func() {
+		ticker.Stop()
+	}()
 
 	for {
 		select {
 		case <-ticker.C:
 			s.acs.log()
+			s.cacheStatis.log()
 		case ac := <-s.acc:
 			s.acs.add(ac)
+		case ac := <-s.cacheCall:
+			s.cacheStatis.add(ac)
 		}
 	}
+
 }

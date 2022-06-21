@@ -1,0 +1,95 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: polaris
+  namespace: polaris-system
+  labels:
+    app: polaris
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 8761
+      name: service-eureka
+      targetPort: 8761
+    - port: 8090
+      name: api-http
+      targetPort: 8090
+    - port: 8091
+      name: service-grpc
+      targetPort: 8091
+    - port: 8093
+      name: config-grpc
+      targetPort: 8093
+    - port: 8080
+      name: web-server
+      targetPort: 8080
+    - port: 15010
+      name: xds-v3
+      targetPort: 15010
+    - port: 9000
+      name: prometheus-sd
+      targetPort: 9000
+  selector:
+    app: polaris
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: polaris
+  name: polaris
+  namespace: polaris-system
+spec:
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  selector:
+    matchLabels:
+      app: polaris
+  serviceName: polaris
+  template:
+    metadata:
+      labels:
+        app: polaris
+    spec:
+      containers:
+      - image: polarismesh/polaris-server:latest
+        imagePullPolicy: Always
+        name: polaris-server
+        resources:
+          limits:
+            cpu: "500m"
+            memory: 1000Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /root/polaris-server.yaml
+          name: polaris-server-config
+          subPath: polaris-server.yaml
+      - image: polarismesh/polaris-console:latest
+        imagePullPolicy: Always
+        name: polaris-console
+        resources:
+          limits:
+            cpu: "500m"
+            memory: 1000Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /root/polaris-console.yaml
+          name: polaris-console-config
+          subPath: polaris-console.yaml
+      restartPolicy: Always
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: polaris-console-config
+        name: polaris-console-config
+      - configMap:
+          defaultMode: 420
+          name: polaris-server-config
+        name: polaris-server-config
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate

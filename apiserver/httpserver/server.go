@@ -61,7 +61,7 @@ type HTTPServer struct {
 	maintainServer    maintain.MaintainOperateServer
 	namespaceServer   namespace.NamespaceOperateServer
 	namingServer      service.DiscoverServer
-	configServer      *config.Server
+	configServer      config.ConfigCenterServer
 	healthCheckServer *healthcheck.Server
 	rateLimit         plugin.Ratelimit
 	statis            plugin.Statis
@@ -167,7 +167,7 @@ func (h *HTTPServer) Run(errCh chan error) {
 	h.statis = plugin.GetStatis()
 
 	// 初始化配置中心模块
-	h.configServer, err = config.GetConfigServer()
+	h.configServer, err = config.GetServer()
 	if err != nil {
 		log.Errorf("set config server to http server error. %v", err)
 		errCh <- err

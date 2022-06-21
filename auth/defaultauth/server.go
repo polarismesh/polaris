@@ -34,7 +34,7 @@ import (
 type server struct {
 	storage  store.Store
 	history  plugin.History
-	cacheMgn *cache.NamingCache
+	cacheMgn *cache.CacheManager
 	authMgn  *defaultAuthChecker
 }
 
@@ -161,13 +161,13 @@ func (svr *server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 
 // handleUserStrategy
 func (svr *server) handleUserStrategy(userIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
-
 	for index := range utils.StringSliceDeDuplication(userIds) {
 		userId := userIds[index]
 		user := svr.cacheMgn.User().GetUserByID(userId)
 		if user == nil {
 			return errors.New("not found target user")
 		}
+
 		ownerId := user.Owner
 		if ownerId == "" {
 			ownerId = user.ID
@@ -177,24 +177,26 @@ func (svr *server) handleUserStrategy(userIds []string, afterCtx *model.AcquireC
 			return err
 		}
 	}
+
 	return nil
 }
 
 // handleGroupStrategy
 func (svr *server) handleGroupStrategy(groupIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
-
 	for index := range utils.StringSliceDeDuplication(groupIds) {
 		groupId := groupIds[index]
 		group := svr.cacheMgn.User().GetGroup(groupId)
 		if group == nil {
 			return errors.New("not found target group")
 		}
+
 		ownerId := group.Owner
 		if err := svr.handlerModifyDefaultStrategy(groupId, ownerId, model.PrincipalGroup,
 			afterCtx, isRemove); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -209,6 +211,7 @@ func (svr *server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 			zap.String("owner", ownerId), zap.String("id", id), zap.Error(err))
 		return err
 	}
+
 	if strategy == nil {
 		return errors.New("not found default strategy rule")
 	}
@@ -234,9 +237,7 @@ func (svr *server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 		}
 	}
 
-	isRemove := (afterCtx.GetOperation() == model.Delete || cleanRealtion)
-
-	if isRemove {
+	if afterCtx.GetOperation() == model.Delete || cleanRealtion {
 		err = svr.storage.RemoveStrategyResources(strategyResource)
 		if err != nil {
 			log.AuthScope().Error("[Auth][Server] remove default strategy resource",
@@ -244,6 +245,7 @@ func (svr *server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 				zap.String("type", model.PrincipalNames[uType]), zap.Error(err))
 			return err
 		}
+
 		return nil
 	} else {
 		// 如果是写操作，那么采用松添加操作进行新增资源的添加操作(仅忽略主键冲突的错误)
@@ -255,13 +257,13 @@ func (svr *server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 			return err
 		}
 	}
+
 	return nil
 }
 
 func checkHasPassAll(rule *model.StrategyDetail) bool {
 	for i := range rule.Resources {
-		res := rule.Resources[i]
-		if res.ResID == "*" {
+		if rule.Resources[i].ResID == "*" {
 			return true
 		}
 	}

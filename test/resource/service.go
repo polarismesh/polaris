@@ -29,9 +29,7 @@ const (
 	serviceName = "test-service-%v-%v"
 )
 
-/**
- * @brief 创建测试服务
- */
+// CreateServices creates services
 func CreateServices(namespace *api.Namespace) []*api.Service {
 	nowStr := time.Now().Format("2006-01-02T15:04:05.000000")
 
@@ -58,9 +56,7 @@ func CreateServices(namespace *api.Namespace) []*api.Service {
 	return services
 }
 
-/**
- * @brief 更新测试服务
- */
+// UpdateServices 更新测试服务
 func UpdateServices(services []*api.Service) {
 	for _, service := range services {
 		service.Metadata = map[string]string{"update": "update"}

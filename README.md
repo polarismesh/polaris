@@ -1,6 +1,9 @@
 # Polaris: Service Discovery and Governance
 
 [![Build Status](https://github.com/polarismesh/polaris/actions/workflows/testing.yml/badge.svg)](https://github.com/PolarisMesh/polaris/actions/workflows/testing.yml)
+[![codecov.io](https://codecov.io/gh/polarismesh/polaris/branch/main/graph/badge.svg)](https://codecov.io/gh/polarismesh/polaris?branch=main)
+[![Contributors](https://img.shields.io/github/contributors/polarismesh/polaris)](https://github.com/polarismesh/polaris/graphs/contributors)
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 <img src="logo.svg" width="10%" height="10%" />
 
@@ -16,7 +19,7 @@ README：
 - [Chat group](#chat-group)
 - [Contribution](#contribution)
 
-Visit [website](https://polarismesh.cn) to learn more
+Principle or user manual can visit [website](https://polarismesh.cn/zh/doc/) to learn more
 
 ## Introduction
 
@@ -56,7 +59,7 @@ ecosystem:
 
 - [polaris-controller](https://github.com/PolarisMesh/polaris-controller): K8s Controller for Automatic Injection of K8s
   Service and Polaris Sidecar
-- [spring-cloud-polaris](https://github.com/PolarisMesh/spring-cloud-polaris): spring cloud integrates with polaris-java
+- [spring-cloud-tencent](https://github.com/Tencent/spring-cloud-tencent): spring cloud integrates with polaris-java
 - [grpc-java-polaris](https://github.com/PolarisMesh/grpc-java-polaris): grpc-java integrates with polaris-java
 - [grpc-go-polaris](https://github.com/PolarisMesh/grpc-go-polaris): grpc-go integrates with polaris-go
 - [dubbo3/dubbo-go](https://github.com/polarismesh/examples/tree/main/dubbo3/dubbogo): dubbo-go integrates with
@@ -83,7 +86,7 @@ Point Script: ./store/sqldb/scripts/polaris_server.sql, one can import through m
 
 #### Prepare golang compile environment
 
-Polaris server end needs golang compile environment, version number needs >=1.12, download available
+Polaris server end needs golang compile environment, version number needs >=1.17, download available
 here: https://golang.org/dl/#featured.
 
 ### Build
@@ -168,3 +171,9 @@ development experience of Polaris Mesh.
 
 [Tencent Open Source Incentive Plan](https://opensource.tencent.com/contribution) encourages developers to participate
 and contribute. Look forward to your participation.
+
+## Stargazers over time
+
+If you are interested in Polaris, please star and follow our project, thank you very much.
+
+[![Stargazers over time](https://starchart.cc/polarismesh/polaris.svg)](https://starchart.cc/polarismesh/polaris)

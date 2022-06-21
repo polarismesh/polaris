@@ -33,13 +33,13 @@ import (
 )
 
 var (
-	// 必须超级账户 or 主账户
+	// MustOwner 必须超级账户 or 主账户
 	MustOwner = true
-	// 任意账户
+	// NotOwner 任意账户
 	NotOwner = false
-	// 写操作
+	// WriteOp 写操作
 	WriteOp = true
-	// 读操作
+	// ReadOp 读操作
 	ReadOp = false
 )
 
@@ -56,11 +56,14 @@ var storeCodeAPICodeMap = map[store.StatusCode]uint32{
 	store.DuplicateEntryErr:          api.ExistedResource,
 }
 
+var (
+	regNameStr = regexp.MustCompile("^[\u4E00-\u9FA5A-Za-z0-9_\\-]+$")
+	regEmail   = regexp.MustCompile(`^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$`)
+)
+
 // StoreCode2APICode store code to api code
 func StoreCode2APICode(err error) uint32 {
-	code := store.Code(err)
-	apiCode, ok := storeCodeAPICodeMap[code]
-	if ok {
+	if apiCode, ok := storeCodeAPICodeMap[store.Code(err)]; ok {
 		return apiCode
 	}
 
@@ -85,12 +88,7 @@ func checkName(name *wrappers.StringValue) error {
 		return errors.New("name too long")
 	}
 
-	regStr := "^[\u4E00-\u9FA5A-Za-z0-9_\\-]+$"
-	ok, err := regexp.MatchString(regStr, name.GetValue())
-	if err != nil {
-		return err
-	}
-	if !ok {
+	if ok := regNameStr.MatchString(name.GetValue()); !ok {
 		return errors.New("name contains invalid character")
 	}
 
@@ -107,7 +105,7 @@ func checkPassword(password *wrappers.StringValue) error {
 		return errors.New("empty")
 	}
 
-	if len(password.GetValue()) < 6 || len(password.GetValue()) > 17 {
+	if pLen := len(password.GetValue()); pLen < 6 || pLen > 17 {
 		return errors.New("password len need 6 ~ 17")
 	}
 
@@ -158,8 +156,7 @@ func checkEmail(email *wrappers.StringValue) error {
 		return nil
 	}
 
-	emailReg := regexp.MustCompile(`^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$`)
-	if !emailReg.Match([]byte(email.GetValue())) {
+	if ok := regEmail.MatchString(email.GetValue()); !ok {
 		return errors.New("invalid email")
 	}
 

@@ -123,6 +123,7 @@ type ServiceStore interface {
 	GetServicesCount() (uint32, error)
 
 	// GetMoreServices 获取增量services
+	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetMoreServices(mtime time.Time, firstUpdate, disableBusiness, needMeta bool) (map[string]*model.Service, error)
 
 	// GetServiceAliases 获取服务别名列表
@@ -175,6 +176,7 @@ type InstanceStore interface {
 		filter, metaFilter map[string]string, offset uint32, limit uint32) (uint32, []*model.Instance, error)
 
 	// GetMoreInstances 根据mtime获取增量instances，返回所有store的变更信息
+	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetMoreInstances(mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (map[string]*model.Instance, error)
 
 	// SetInstanceHealthStatus 设置实例的健康状态
@@ -226,6 +228,7 @@ type RoutingConfigStore interface {
 	DeleteRoutingConfig(serviceID string) error
 
 	// GetRoutingConfigsForCache 通过mtime拉取增量的路由配置信息
+	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetRoutingConfigsForCache(mtime time.Time, firstUpdate bool) ([]*model.RoutingConfig, error)
 
 	// GetRoutingConfigWithService 根据服务名和命名空间拉取路由配置
@@ -256,6 +259,7 @@ type RateLimitStore interface {
 	GetRateLimitWithID(id string) (*model.RateLimit, error)
 
 	// GetRateLimitsForCache 根据修改时间拉取增量限流规则及最新版本号
+	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, []*model.RateLimitRevision, error)
 }
 
@@ -295,6 +299,7 @@ type CircuitBreakerStore interface {
 	GetCircuitBreakerRelation(ruleID, ruleVersion string) ([]*model.CircuitBreakerRelation, error)
 
 	// GetCircuitBreakerForCache 根据修改时间拉取增量熔断规则
+	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetCircuitBreakerForCache(mtime time.Time, firstUpdate bool) ([]*model.ServiceWithCircuitBreaker, error)
 
 	// ListMasterCircuitBreakers 获取master熔断规则
@@ -337,5 +342,6 @@ type ClientStore interface {
 	BatchDeleteClients(ids []string) error
 
 	// GetMoreClients 根据mtime获取增量clients，返回所有store的变更信息
+	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetMoreClients(mtime time.Time, firstUpdate bool) (map[string]*model.Client, error)
 }

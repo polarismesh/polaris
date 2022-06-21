@@ -1,5 +1,10 @@
 # 北极星：服务发现和治理
 
+[![Build Status](https://github.com/polarismesh/polaris/actions/workflows/testing.yml/badge.svg)](https://github.com/PolarisMesh/polaris/actions/workflows/testing.yml)
+[![codecov.io](https://codecov.io/gh/polarismesh/polaris/branch/main/graph/badge.svg)](https://codecov.io/gh/polarismesh/polaris?branch=main)
+[![Contributors](https://img.shields.io/github/contributors/polarismesh/polaris)](https://github.com/polarismesh/polaris/graphs/contributors)
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+
 <img src="logo.svg" width="10%" height="10%" />
 
 [English](./README.md) | 简体中文
@@ -14,7 +19,7 @@ README：
 - [交流群](#交流群)
 - [参与贡献](#参与贡献)
 
-其他文档请见[北极星官网](https://polarismesh.cn)
+北极星原理介绍及相关实践文档请见[北极星官网](https://polarismesh.cn/zh/doc/)
 
 ## 介绍
 
@@ -54,7 +59,7 @@ README：
 生态组件:
 
 - [polaris-controller](https://github.com/PolarisMesh/polaris-controller): K8s控制器，支持K8s Service和Polaris Sidecar自动注入
-- [spring-cloud-polaris](https://github.com/PolarisMesh/spring-cloud-polaris): spring cloud集成polaris-java
+- [spring-cloud-tencent](https://github.com/Tencent/spring-cloud-tencent): spring cloud集成polaris-java
 - [grpc-java-polaris](https://github.com/PolarisMesh/grpc-java-polaris): grpc-java集成polaris-java
 - [grpc-go-polaris](https://github.com/PolarisMesh/grpc-go-polaris): grpc-go集成polaris-go
 - [dubbo3/dubbo-go](https://github.com/polarismesh/examples/tree/main/dubbo3/dubbogo): dubbo-go集成polaris-go
@@ -79,7 +84,7 @@ README：
 
 #### 准备golang编译环境
 
-北极星服务端编译需要golang编译环境，版本号要求>=1.12，可以在这里进行下载：https://golang.org/dl/#featured
+北极星服务端编译需要golang编译环境，版本号要求>=1.17，可以在这里进行下载：https://golang.org/dl/#featured
 
 ### 编译构建
 
@@ -173,3 +178,8 @@ curl http://127.0.0.1:8090
 
 [腾讯开源激励计划](https://opensource.tencent.com/contribution) 鼓励开发者的参与和贡献，期待你的加入。
 
+## Stargazers over time
+
+如果你觉得我们的项目对你们有帮助，请点星或关注我们项目，谢谢~
+
+[![Stargazers over time](https://starchart.cc/polarismesh/polaris.svg)](https://starchart.cc/polarismesh/polaris)

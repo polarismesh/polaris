@@ -20,9 +20,8 @@ package config
 import (
 	"sync"
 
-	"go.uber.org/zap"
-
 	"github.com/polarismesh/polaris-server/common/log"
+	"go.uber.org/zap"
 )
 
 // Event 事件对象，包含类型和事件消息
@@ -36,15 +35,32 @@ type Callback func(event Event) bool
 
 // Center 事件中心
 type Center struct {
-	watchers *sync.Map
-	lock     *sync.Mutex
+	watchers map[string]callbackBucket
+	lock     sync.RWMutex
+}
+
+type callbackBucket struct {
+	cbs  []Callback
+	lock *sync.RWMutex // this lock cannot be copied
+}
+
+func (c *callbackBucket) add(cb Callback) {
+	c.lock.Lock()
+	c.cbs = append(c.cbs, cb)
+	c.lock.Unlock()
+}
+
+func (c *callbackBucket) getCbs() []Callback {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.cbs
 }
 
 // NewEventCenter 新建事件中心
 func NewEventCenter() *Center {
 	center := &Center{
-		watchers: new(sync.Map),
-		lock:     new(sync.Mutex),
+		watchers: make(map[string]callbackBucket),
 	}
 
 	return center
@@ -55,33 +71,40 @@ func (c *Center) WatchEvent(eventType string, cb Callback) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	cbs, ok := c.watchers.Load(eventType)
+	callback, ok := c.watchers[eventType]
 	if !ok {
-		cbs = []Callback{cb}
-		c.watchers.Store(eventType, cbs)
-	} else {
-		cbArr := cbs.([]Callback)
-		cbArr = append(cbArr, cb)
+		callback = callbackBucket{
+			cbs:  make([]Callback, 0, 6),
+			lock: &sync.RWMutex{},
+		}
 	}
+
+	callback.add(cb)
+	c.watchers[eventType] = callback
 }
 
 func (c *Center) handleEvent(e Event) {
-	defer func() {
-		if err := recover(); err != nil {
-			log.ConfigScope().Error("[Common][Event] handler event error.", zap.Any("error", err))
-		}
-	}()
+	defer c.recovery()
 
-	cbs, ok := c.watchers.Load(e.EventType)
+	// get map value
+	c.lock.RLock()
+	callback, ok := c.watchers[e.EventType]
 	if !ok {
+		c.lock.RUnlock()
 		return
 	}
 
-	cbArr := cbs.([]Callback)
-	for _, cb := range cbArr {
-		ok := cb(e)
-		if !ok {
+	c.lock.RUnlock()
+
+	for _, cb := range callback.getCbs() {
+		if !cb(e) {
 			log.ConfigScope().Errorf("[Common][Event] cb message error. event = %+v", e)
 		}
+	}
+}
+
+func (c *Center) recovery() {
+	if err := recover(); err != nil {
+		log.ConfigScope().Error("[Common][Event] handler event error.", zap.Any("error", err))
 	}
 }

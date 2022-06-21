@@ -77,6 +77,9 @@ func (cfr *configFileReleaseStore) CreateConfigFileRelease(proxyTx store.Tx, fil
 		cfr.id++
 		fileRelease.Id = cfr.id
 		fileRelease.Valid = true
+		tN := time.Now()
+		fileRelease.CreateTime = tN
+		fileRelease.ModifyTime = tN
 
 		if err := saveValue(tx, tblConfigFileReleaseID, tblConfigFileReleaseID, &IDHolder{
 			ID: cfr.id,
@@ -158,7 +161,7 @@ func (cfr *configFileReleaseStore) UpdateConfigFileRelease(proxyTx store.Tx, fil
 	return ret[0].(*model.ConfigFileRelease), nil
 }
 
-// GetConfigFileRelease 获取配置文件发布，只返回 flag=0 的记录
+// GetConfigFileRelease Get the configuration file release, only the record of FLAG = 0
 func (cfr *configFileReleaseStore) GetConfigFileRelease(proxyTx store.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
 	ret, err := DoTransactionIfNeed(proxyTx, cfr.handler, func(tx *bolt.Tx) ([]interface{}, error) {
 		data, err := cfr.getConfigFileReleaseByFlag(tx, namespace, group, fileName, false)
@@ -183,7 +186,7 @@ func (cfr *configFileReleaseStore) GetConfigFileRelease(proxyTx store.Tx, namesp
 	return ret[0].(*model.ConfigFileRelease), nil
 }
 
-// GetConfigFileReleaseWithAllFlag 获取所有发布数据，包含删除的
+// GetConfigFileReleaseWithAllFlag Get all publishing data, including deletion
 func (cfr *configFileReleaseStore) GetConfigFileReleaseWithAllFlag(proxyTx store.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
 	ret, err := DoTransactionIfNeed(proxyTx, cfr.handler, func(tx *bolt.Tx) ([]interface{}, error) {
 		data, err := cfr.getConfigFileReleaseByFlag(tx, namespace, group, fileName, true)
@@ -208,7 +211,7 @@ func (cfr *configFileReleaseStore) GetConfigFileReleaseWithAllFlag(proxyTx store
 	return ret[0].(*model.ConfigFileRelease), nil
 }
 
-// getConfigFileReleaseByFlag 通过 flag 获取发布数据
+// getConfigFileReleaseByFlag Obtain data through FLAG
 func (cfr *configFileReleaseStore) getConfigFileReleaseByFlag(tx *bolt.Tx, namespace, group, fileName string, withAllFlag bool) (*model.ConfigFileRelease, error) {
 	key := fmt.Sprintf("%s@@%s@@%s", namespace, group, fileName)
 
@@ -237,7 +240,7 @@ func (cfr *configFileReleaseStore) getConfigFileReleaseByFlag(tx *bolt.Tx, names
 	return release, nil
 }
 
-// DeleteConfigFileRelease 删除发布数据
+// DeleteConfigFileRelease Delete the release data
 func (cfr *configFileReleaseStore) DeleteConfigFileRelease(proxyTx store.Tx, namespace, group, fileName, deleteBy string) error {
 	_, err := DoTransactionIfNeed(proxyTx, cfr.handler, func(tx *bolt.Tx) ([]interface{}, error) {
 		release, err := cfr.getConfigFileReleaseByFlag(tx, namespace, group, fileName, false)
@@ -266,7 +269,8 @@ func (cfr *configFileReleaseStore) DeleteConfigFileRelease(proxyTx store.Tx, nam
 	return err
 }
 
-// FindConfigFileReleaseByModifyTimeAfter 获取最后更新时间大于某个时间点的发布，注意包含 flag = 1 的，为了能够获取被删除的 release
+// FindConfigFileReleaseByModifyTimeAfter Get the last update time more than a certain time point, 
+//    pay attention to containing Flag = 1, in order to get the deleted Release
 func (cfr *configFileReleaseStore) FindConfigFileReleaseByModifyTimeAfter(modifyTime time.Time) ([]*model.ConfigFileRelease, error) {
 
 	fields := []string{FileReleaseFieldModifyTime}
@@ -274,7 +278,7 @@ func (cfr *configFileReleaseStore) FindConfigFileReleaseByModifyTimeAfter(modify
 	ret, err := cfr.handler.LoadValuesByFilter(tblConfigFileRelease, fields, &model.ConfigFileRelease{},
 		func(m map[string]interface{}) bool {
 			saveMt, _ := m[FileReleaseFieldModifyTime].(time.Time)
-			return saveMt.After(modifyTime)
+			return !saveMt.Before(modifyTime)
 		})
 
 	if err != nil {

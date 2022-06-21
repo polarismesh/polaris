@@ -130,14 +130,6 @@ func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, 
 	}
 	namingServer.namespaceSvr = namespaceSvr
 
-	// 初始化鉴权模块
-	authority, err := auth.NewAuthority(namingOpt.Auth)
-	if err != nil {
-		log.Errorf("[Naming][Server] new auth err: %s", err.Error())
-		return err
-	}
-	namingServer.authority = authority
-
 	// cache模块，可以不开启
 	// 对于控制台集群，只访问控制台接口的，可以不开启cache
 	if cacheOpt.Open {
