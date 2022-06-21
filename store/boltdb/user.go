@@ -171,7 +171,11 @@ func (us *userStore) deleteUser(user *model.User) error {
 
 	defer tx.Rollback()
 
-	if err := deleteValues(tx, tblUser, []string{user.ID}, true); err != nil {
+	properties := make(map[string]interface{})
+	properties[UserFieldValid] = false
+	properties[UserFieldModifyTime] = time.Now()
+
+	if err := updateValue(tx, tblUser, user.ID, properties); err != nil {
 		logger.StoreScope().Error("[Store][User] delete user by id", zap.Error(err), zap.String("id", user.ID))
 		return err
 	}

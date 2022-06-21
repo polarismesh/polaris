@@ -37,6 +37,7 @@ const (
 	routingFieldOutBounds  = "OutBounds"
 	routingFieldRevision   = "Revision"
 	routingFieldModifyTime = "ModifyTime"
+	routingFieldValid      = "Valid"
 )
 
 // CreateRoutingConfig Add a routing configuration
@@ -108,7 +109,11 @@ func (r *routingStore) DeleteRoutingConfig(serviceID string) error {
 		return store.NewStatusError(store.EmptyParamsErr, "missing service id")
 	}
 
-	err := r.handler.DeleteValues(tblNameRouting, []string{serviceID}, true)
+	properties := make(map[string]interface{})
+	properties[routingFieldValid] = false
+	properties[routingFieldModifyTime] = time.Now()
+
+	err := r.handler.UpdateValue(tblNameRouting, serviceID, properties)
 	if err != nil {
 		log.Errorf("[Store][boltdb] delete route config to kv error, %v", err)
 		return err
@@ -185,6 +190,11 @@ func (r *routingStore) getWithID(id string) (*model.RoutingConfig, error) {
 	if !ok {
 		return nil, nil
 	}
+
+	if !routeC.Valid {
+		return nil, nil
+	}
+
 	return routeC, nil
 }
 
@@ -193,7 +203,7 @@ func (r *routingStore) GetRoutingConfigs(
 	filter map[string]string, offset uint32, limit uint32) (uint32, []*model.ExtendRoutingConfig, error) {
 
 	// get all route config
-	fields := []string{routingFieldInBounds, routingFieldOutBounds, routingFieldRevision}
+	fields := []string{routingFieldInBounds, routingFieldOutBounds, routingFieldRevision, routingFieldValid}
 
 	svcName, hasSvcName := filter["name"]
 	svcNs, hasSvcNs := filter["namespace"]
@@ -203,6 +213,10 @@ func (r *routingStore) GetRoutingConfigs(
 
 	routeConf, err := r.handler.LoadValuesByFilter(tblNameRouting, fields, &model.RoutingConfig{},
 		func(m map[string]interface{}) bool {
+			if valid, _ := m[routingFieldValid].(bool); !valid {
+				return false
+			}
+
 			if isInBounds {
 				rIn, ok := m[routingFieldInBounds]
 				if !ok {
@@ -247,10 +261,15 @@ func (r *routingStore) GetRoutingConfigs(
 		svcIds[k] = true
 	}
 
-	fields = []string{SvcFieldID, SvcFieldName, SvcFieldNamespace}
+	fields = []string{SvcFieldID, SvcFieldName, SvcFieldNamespace, SvcFieldValid}
 
 	services, err := r.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
+
+			if valid, _ := m[SvcFieldValid].(bool); !valid {
+				return false
+			}
+
 			rId, ok := m[SvcFieldID]
 			if !ok {
 				return false

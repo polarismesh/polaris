@@ -219,7 +219,11 @@ func (gs *groupStore) deleteGroup(group *model.UserGroupDetail) error {
 
 	defer tx.Rollback()
 
-	if err := deleteValues(tx, tblGroup, []string{group.ID}, true); err != nil {
+	properties := make(map[string]interface{})
+	properties[GroupFieldValid] = false
+	properties[GroupFieldModifyTime] = time.Now()
+
+	if err := updateValue(tx, tblGroup, group.ID, properties); err != nil {
 		logger.StoreScope().Error("[Store][Group] remove usergroup", zap.Error(err), zap.String("id", group.ID))
 		return err
 	}

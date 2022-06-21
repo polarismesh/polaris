@@ -60,6 +60,7 @@ func newUserTest(t *testing.T) *UserTest {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	log.AuthScope().SetOutputLevel(log.DebugLevel)
 	log.CacheScope().SetOutputLevel(log.DebugLevel)
 
 	users := createMockUser(10, "one")
@@ -776,7 +777,7 @@ func Test_server_UpdateUserToken(t *testing.T) {
 	t.Run("主账户刷新自己的Token状态", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
 
-		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(userTest.users[0], nil)
+		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.users[0].ID)).Return(userTest.users[0], nil)
 
 		resp := userTest.svr.UpdateUserToken(reqCtx, &api.User{
 			Id: utils.NewStringValue(userTest.users[0].ID),
@@ -787,7 +788,7 @@ func Test_server_UpdateUserToken(t *testing.T) {
 
 	t.Run("子账户刷新自己的Token状态", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[1].Token)
-		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(userTest.users[1], nil)
+		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.users[1].ID)).Return(userTest.users[1], nil)
 		resp := userTest.svr.UpdateUserToken(reqCtx, &api.User{
 			Id: utils.NewStringValue(userTest.users[1].ID),
 		})
@@ -797,7 +798,7 @@ func Test_server_UpdateUserToken(t *testing.T) {
 
 	t.Run("主账户刷新子账户的Token状态", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
-		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(userTest.users[1], nil)
+		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.users[1].ID)).Return(userTest.users[1], nil)
 		resp := userTest.svr.UpdateUserToken(reqCtx, &api.User{
 			Id: utils.NewStringValue(userTest.users[1].ID),
 		})
@@ -807,17 +808,20 @@ func Test_server_UpdateUserToken(t *testing.T) {
 
 	t.Run("主账户刷新别的主账户的Token状态", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
-		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(userTest.ownerTwo, nil)
+
+		t.Logf("operator-id : %s, user-two-owner : %s", userTest.ownerOne.ID, userTest.ownerTwo.Owner)
+
+		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.ownerTwo.ID)).Return(userTest.ownerTwo, nil)
 		resp := userTest.svr.UpdateUserToken(reqCtx, &api.User{
 			Id: utils.NewStringValue(userTest.ownerTwo.ID),
 		})
 
-		assert.True(t, resp.GetCode().Value == api.NotAllowedAccess, resp.Info.GetValue())
+		assert.Truef(t, resp.GetCode().Value == api.NotAllowedAccess, "code=%d, msg=%s", resp.Code.GetValue(), resp.Info.GetValue())
 	})
 
 	t.Run("主账户刷新不属于自己子账户的Token状态", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
-		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(userTest.newUsers[1], nil)
+		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.newUsers[1].ID)).Return(userTest.newUsers[1], nil)
 		resp := userTest.svr.UpdateUserToken(reqCtx, &api.User{
 			Id: utils.NewStringValue(userTest.newUsers[1].ID),
 		})

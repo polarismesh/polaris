@@ -236,7 +236,11 @@ func (ss *strategyStore) DeleteStrategy(id string) error {
 			"delete auth_strategy missing some params, id is %s", id))
 	}
 
-	if err := ss.handler.DeleteValues(tblStrategy, []string{id}, true); err != nil {
+	properties := make(map[string]interface{})
+	properties[StrategyFieldValid] = false
+	properties[StrategyFieldModifyTime] = time.Now()
+
+	if err := ss.handler.UpdateValue(tblStrategy, id, properties); err != nil {
 		logger.StoreScope().Error("[Store][Strategy] delete auth_strategy", zap.Error(err), zap.String("id", id))
 		return err
 	}
@@ -786,7 +790,12 @@ func cleanLinkStrategy(tx *bolt.Tx, role model.PrincipalType, principalId, owner
 	}
 
 	for k := range values {
-		if err := deleteValues(tx, tblStrategy, []string{k}, true); err != nil {
+
+		properties := make(map[string]interface{})
+		properties[StrategyFieldValid] = false
+		properties[StrategyFieldModifyTime] = time.Now()
+
+		if err := updateValue(tx, tblStrategy, k, properties); err != nil {
 			logger.StoreScope().Error("[Store][Strategy] clean link auth_strategy", zap.Error(err),
 				zap.String("principal-id", principalId), zap.Any("principal-type", role))
 			return err

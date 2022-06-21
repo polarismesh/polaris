@@ -31,7 +31,7 @@ jobs:
 
       - name: Go Test
         run: |
-          go mod vendor && go test ./... -coverprofile=coverage.txt -covermode=atomic
+          go mod vendor && bash coverage.sh
 
       - name: Coverage
         run: bash <(curl -s https://codecov.io/bash)

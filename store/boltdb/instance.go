@@ -111,7 +111,11 @@ func (i *instanceStore) UpdateInstance(instance *model.Instance) error {
 // DeleteInstance Delete an instance
 func (i *instanceStore) DeleteInstance(instanceID string) error {
 
-	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}, true); err != nil {
+	properties := make(map[string]interface{})
+	properties[insFieldValid] = false
+	properties[insFieldModifyTime] = time.Now()
+
+	if err := i.handler.UpdateValue(tblNameInstance, instanceID, properties); err != nil {
 		log.Errorf("[Store][boltdb] delete instance from kv error, %v", err)
 		return err
 	}
@@ -126,15 +130,16 @@ func (i *instanceStore) BatchDeleteInstances(ids []interface{}) error {
 		return nil
 	}
 
-	var realIDs []string
-
 	for _, id := range ids {
-		realIDs = append(realIDs, id.(string))
-	}
 
-	if err := i.handler.DeleteValues(tblNameInstance, realIDs, true); err != nil {
-		log.Errorf("[Store][boltdb] batch delete instance from kv error, %v", err)
-		return err
+		properties := make(map[string]interface{})
+		properties[insFieldValid] = false
+		properties[insFieldModifyTime] = time.Now()
+
+		if err := i.handler.UpdateValue(tblNameInstance, id.(string), properties); err != nil {
+			log.Errorf("[Store][boltdb] batch delete instance from kv error, %v", err)
+			return err
+		}
 	}
 	return nil
 }
