@@ -1,6 +1,3 @@
-//go:build integrationdiscover
-// +build integrationdiscover
-
 /**
  * Tencent is pleased to support the open source community by making Polaris available.
  *
@@ -45,16 +42,40 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/plugin"
-	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
-	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/token"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"github.com/polarismesh/polaris-server/store"
 	"github.com/polarismesh/polaris-server/store/boltdb"
-	_ "github.com/polarismesh/polaris-server/store/boltdb"
 	"github.com/polarismesh/polaris-server/store/sqldb"
+
+	_ "github.com/polarismesh/polaris-server/apiserver/eurekaserver"
+	_ "github.com/polarismesh/polaris-server/apiserver/grpcserver/config"
+	_ "github.com/polarismesh/polaris-server/apiserver/grpcserver/discover"
+	_ "github.com/polarismesh/polaris-server/apiserver/httpserver"
+	_ "github.com/polarismesh/polaris-server/apiserver/l5pbserver"
+	_ "github.com/polarismesh/polaris-server/apiserver/prometheussd"
+	_ "github.com/polarismesh/polaris-server/apiserver/xdsserverv3"
+
+	_ "github.com/polarismesh/polaris-server/auth/defaultauth"
+	_ "github.com/polarismesh/polaris-server/cache"
+	_ "github.com/polarismesh/polaris-server/store/boltdb"
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
+
+	_ "github.com/polarismesh/polaris-server/plugin/auth/defaultauth"
+	_ "github.com/polarismesh/polaris-server/plugin/cmdb/memory"
+
+	_ "github.com/polarismesh/polaris-server/plugin/auth/platform"
+	_ "github.com/polarismesh/polaris-server/plugin/discoverevent/local"
+	_ "github.com/polarismesh/polaris-server/plugin/discoverstat/discoverlocal"
+	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
+	_ "github.com/polarismesh/polaris-server/plugin/password"
+	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/lrurate"
+	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/token"
+	_ "github.com/polarismesh/polaris-server/plugin/statis/local"
+
+	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatmemory"
+	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatredis"
 )
 
 var (
@@ -260,48 +281,89 @@ func cleanNamespace(name string) {
 				panic(err)
 			}
 
-			_ = tx.GetDelegateTx().(*bolt.Tx)
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+			if err := dbTx.Bucket([]byte("namespace")).DeleteBucket([]byte(name)); err != nil {
+				dbTx.Rollback()
+				panic(err)
+			}
+
+			dbTx.Commit()
 		}()
 	}
 }
 
 // 从数据库彻底删除服务
-func cleanService(id, name, namespace string) {
-	if id == "" {
-		panic("id is empty")
-	}
+func cleanService(name, namespace string) {
 
-	log.Infof("clean service: %s", id)
-	str := "delete from service_metadata where id = ?"
-	if _, err := db.Exec(str, id); err != nil {
+	s, err := store.GetStore()
+	if err != nil {
 		panic(err)
 	}
+	if s.Name() == sqldb.STORENAME {
+		func() {
+			tx, err := s.StartTx()
+			if err != nil {
+				panic(err)
+			}
 
-	str = "delete from service where id = ?"
-	if _, err := db.Exec(str, id); err != nil {
-		panic(err)
-	}
+			dbTx := tx.GetDelegateTx().(*sql.Tx)
 
-	str = "delete from owner_service_map where service=? and namespace=?"
-	if _, err := db.Exec(str, name, namespace); err != nil {
-		panic(err)
+			str := "select id from service where name = ? and namespace = ?"
+			var id string
+			err = dbTx.QueryRow(str, name, namespace).Scan(&id)
+			switch {
+			case err == sql.ErrNoRows:
+				return
+			case err != nil:
+				panic(err)
+			}
+
+			if _, err := dbTx.Exec("delete from service_metadata where id = ?", id); err != nil {
+				dbTx.Rollback()
+				panic(err)
+			}
+		
+			if _, err := dbTx.Exec("delete from service where id = ?", id); err != nil {
+				dbTx.Rollback()
+				panic(err)
+			}
+		
+			if _, err := dbTx.Exec("delete from owner_service_map where service=? and namespace=?", name, namespace); err != nil {
+				dbTx.Rollback()
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if s.Name() == boltdb.STORENAME {
+		func() {
+			svc, err := s.GetService(name, namespace)
+			if err != nil {
+				panic(err)
+			}
+			
+			tx, err := s.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+
+			if err := dbTx.Bucket([]byte("service")).DeleteBucket([]byte(svc.ID)); err != nil {
+				dbTx.Rollback()
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
 	}
 }
 
 // 从数据库彻底删除服务名对应的服务
 func cleanServiceName(name string, namespace string) {
 	log.Infof("clean service %s, %s", name, namespace)
-	str := "select id from service where name = ? and namespace = ?"
-	var id string
-	err := db.QueryRow(str, name, namespace).Scan(&id)
-	switch {
-	case err == sql.ErrNoRows:
-		return
-	case err != nil:
-		panic(err)
-	}
 
-	cleanService(id, name, namespace)
+	cleanService(name, namespace)
 }
 
 // clean services
