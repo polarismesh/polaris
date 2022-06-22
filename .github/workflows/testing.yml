@@ -2,9 +2,9 @@ name: Testing
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: write
@@ -17,9 +17,9 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ ubuntu-latest, macos-latest ]
-        goarch: [ amd64 ]
-        goos: [ linux, darwin ]
+        os: [ubuntu-latest, macos-latest]
+        goarch: [amd64]
+        goos: [linux, darwin]
         include:
           - os: ubuntu-latest
             goos: linux
@@ -38,7 +38,6 @@ jobs:
             goos: windows
           - os: macos-latest
             goos: linux
-
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -89,7 +88,7 @@ jobs:
           echo "work_dir is $work_dir"
           cd $work_dir
 
-          if["$(uname)"=="Darwin"];then
+          if [[ "$(uname)" == "Darwin" ]];
               # Mac OS X 操作系统
               sed -i '' 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' polaris-server.yaml
           then
