@@ -114,9 +114,9 @@ jobs:
           ./tool/stop.sh
           cd ..
 
-      - name: run config-center interface tests
-        run: |
-          # 进行配置中心的集成测试
-          pushd ./test/config_center
-          go test -count=1 -v
-          popd
+      # - name: run config-center interface tests
+      #   run: |
+      #     # 进行配置中心的集成测试
+      #     pushd ./test/config_center
+      #     go test -count=1 -v
+      #     popd

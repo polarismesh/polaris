@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package config_test
+package config
 
 import (
 	"context"
@@ -37,19 +37,26 @@ var (
 
 // TestConfigFileCRUD 测试配置文件增删改查
 func TestConfigFileCRUD(t *testing.T) {
-	if err := clearTestData(); err != nil {
+	testSuit, err := newConfigCenterTest(t)
+	if err != nil {
 		t.Fatal(err)
 	}
 
+	defer func() {
+		if err := testSuit.clearTestData(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
 	t.Run("step1-query", func(t *testing.T) {
-		rsp := configService.GetConfigFileBaseInfo(defaultCtx, testNamespace, testGroup, testFile)
+		rsp := testSuit.testService.GetConfigFileBaseInfo(testSuit.defaultCtx, testNamespace, testGroup, testFile)
 		assert.Equal(t, uint32(api.NotFoundResource), rsp.Code.GetValue())
 		assert.Nil(t, rsp.ConfigFile)
 	})
 
 	t.Run("step2-create", func(t *testing.T) {
 		configFile := assembleConfigFile()
-		rsp := configService.CreateConfigFile(defaultCtx, configFile)
+		rsp := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 		assert.Equal(t, testNamespace, rsp.ConfigFile.Namespace.GetValue())
 		assert.Equal(t, testGroup, rsp.ConfigFile.Group.GetValue())
@@ -60,11 +67,11 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, operator, rsp.ConfigFile.ModifyBy.GetValue())
 
 		// 重复创建
-		rsp2 := configService.CreateConfigFile(defaultCtx, configFile)
+		rsp2 := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
 		assert.Equal(t, uint32(api.ExistedResource), rsp2.Code.GetValue())
 
 		// 创建完之后再查询
-		rsp3 := configService.GetConfigFileBaseInfo(defaultCtx, testNamespace, testGroup, testFile)
+		rsp3 := testSuit.testService.GetConfigFileBaseInfo(testSuit.defaultCtx, testNamespace, testGroup, testFile)
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 		assert.NotNil(t, rsp.ConfigFile)
 		assert.Equal(t, testNamespace, rsp.ConfigFile.Namespace.GetValue())
@@ -77,9 +84,9 @@ func TestConfigFileCRUD(t *testing.T) {
 	})
 
 	t.Run("step3-update", func(t *testing.T) {
-		defaultCtx = context.WithValue(defaultCtx, utils.ContextUserNameKey, "polaris")
+		testSuit.defaultCtx = context.WithValue(testSuit.defaultCtx, utils.ContextUserNameKey, "polaris")
 
-		rsp := configService.GetConfigFileBaseInfo(defaultCtx, testNamespace, testGroup, testFile)
+		rsp := testSuit.testService.GetConfigFileBaseInfo(testSuit.defaultCtx, testNamespace, testGroup, testFile)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 
 		configFile := rsp.ConfigFile
@@ -88,12 +95,12 @@ func TestConfigFileCRUD(t *testing.T) {
 		configFile.Content = utils.NewStringValue(newContent)
 		configFile.ModifyBy = utils.NewStringValue(modifyBy)
 
-		rsp2 := configService.UpdateConfigFile(defaultCtx, configFile)
+		rsp2 := testSuit.testService.UpdateConfigFile(testSuit.defaultCtx, configFile)
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 		assert.Equal(t, newContent, rsp2.ConfigFile.Content.GetValue())
 
 		// 更新完之后再查询
-		rsp3 := configService.GetConfigFileBaseInfo(defaultCtx, testNamespace, testGroup, testFile)
+		rsp3 := testSuit.testService.GetConfigFileBaseInfo(testSuit.defaultCtx, testNamespace, testGroup, testFile)
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 		assert.NotNil(t, rsp.ConfigFile)
 		assert.Equal(t, testNamespace, rsp.ConfigFile.Namespace.GetValue())
@@ -109,20 +116,20 @@ func TestConfigFileCRUD(t *testing.T) {
 		// 删除前先发布一次
 		configFile := assembleConfigFile()
 		configFileRelease := assembleConfigFileRelease(configFile)
-		rsp := configService.PublishConfigFile(defaultCtx, configFileRelease)
+		rsp := testSuit.testService.PublishConfigFile(testSuit.defaultCtx, configFileRelease)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 
 		deleteBy := "polaris"
-		rsp2 := configService.DeleteConfigFile(defaultCtx, testNamespace, testGroup, testFile, deleteBy)
+		rsp2 := testSuit.testService.DeleteConfigFile(testSuit.defaultCtx, testNamespace, testGroup, testFile, deleteBy)
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 
 		// 删除后，查询不到
-		rsp3 := configService.GetConfigFileBaseInfo(defaultCtx, testNamespace, testGroup, testFile)
+		rsp3 := testSuit.testService.GetConfigFileBaseInfo(testSuit.defaultCtx, testNamespace, testGroup, testFile)
 		assert.Equal(t, uint32(api.NotFoundResource), rsp3.Code.GetValue())
 		assert.Nil(t, rsp2.ConfigFile)
 
 		// 删除会创建一条删除的历史记录
-		rsp4 := configService.GetConfigFileReleaseHistory(defaultCtx, testNamespace, testGroup, testFile, 0, 2, 0)
+		rsp4 := testSuit.testService.GetConfigFileReleaseHistory(testSuit.defaultCtx, testNamespace, testGroup, testFile, 0, 2, 0)
 		assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
 		assert.Equal(t, uint32(2), rsp4.Total.GetValue())
 		assert.Equal(t, utils.ReleaseTypeDelete, rsp4.ConfigFileReleaseHistories[0].Type.GetValue())
@@ -135,30 +142,30 @@ func TestConfigFileCRUD(t *testing.T) {
 	t.Run("step5-search-by-group", func(t *testing.T) {
 		group := "group11"
 		for i := 0; i < size; i++ {
-			rsp := configService.CreateConfigFile(defaultCtx, assembleConfigFileWithFixedGroupAndRandomFileName(group))
+			rsp := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, assembleConfigFileWithFixedGroupAndRandomFileName(group))
 			assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 		}
 
 		// 第一页
-		rsp2 := configService.SearchConfigFile(defaultCtx, testNamespace, group, "", "", 0, 3)
+		rsp2 := testSuit.testService.SearchConfigFile(testSuit.defaultCtx, testNamespace, group, "", "", 0, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 		assert.Equal(t, uint32(size), rsp2.Total.GetValue())
 		assert.Equal(t, 3, len(rsp2.ConfigFiles))
 
 		// 最后一页
-		rsp3 := configService.SearchConfigFile(defaultCtx, testNamespace, group, "", "", 6, 3)
+		rsp3 := testSuit.testService.SearchConfigFile(testSuit.defaultCtx, testNamespace, group, "", "", 6, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 		assert.Equal(t, uint32(size), rsp3.Total.GetValue())
 		assert.Equal(t, 1, len(rsp3.ConfigFiles))
 
 		// group为空
-		rsp4 := configService.SearchConfigFile(defaultCtx, testNamespace, "", "", "", 0, 3)
+		rsp4 := testSuit.testService.SearchConfigFile(testSuit.defaultCtx, testNamespace, "", "", "", 0, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
 		assert.Equal(t, uint32(size), rsp4.Total.GetValue())
 		assert.Equal(t, 3, len(rsp4.ConfigFiles))
 
 		// group 模糊搜索
-		rsp5 := configService.SearchConfigFile(defaultCtx, testNamespace, "group1", "", "", 0, 3)
+		rsp5 := testSuit.testService.SearchConfigFile(testSuit.defaultCtx, testNamespace, "group1", "", "", 0, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue())
 		assert.Equal(t, uint32(size), rsp5.Total.GetValue())
 		assert.Equal(t, 3, len(rsp5.ConfigFiles))
@@ -167,30 +174,30 @@ func TestConfigFileCRUD(t *testing.T) {
 	t.Run("step6-search-by-file", func(t *testing.T) {
 		file := "file1.txt"
 		for i := 0; i < size; i++ {
-			rsp := configService.CreateConfigFile(defaultCtx, assembleConfigFileWithRandomGroupAndFixedFileName(file))
+			rsp := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, assembleConfigFileWithRandomGroupAndFixedFileName(file))
 			assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 		}
 
 		// 第一页
-		rsp2 := configService.SearchConfigFile(defaultCtx, testNamespace, "", file, "", 0, 3)
+		rsp2 := testSuit.testService.SearchConfigFile(testSuit.defaultCtx, testNamespace, "", file, "", 0, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 		assert.Equal(t, uint32(size), rsp2.Total.GetValue())
 		assert.Equal(t, 3, len(rsp2.ConfigFiles))
 
 		// 最后一页
-		rsp3 := configService.SearchConfigFile(defaultCtx, testNamespace, "", file, "", 6, 3)
+		rsp3 := testSuit.testService.SearchConfigFile(testSuit.defaultCtx, testNamespace, "", file, "", 6, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 		assert.Equal(t, uint32(size), rsp3.Total.GetValue())
 		assert.Equal(t, 1, len(rsp3.ConfigFiles))
 
 		// group,name都为空
-		rsp4 := configService.SearchConfigFile(defaultCtx, testNamespace, "", "", "", 0, 3)
+		rsp4 := testSuit.testService.SearchConfigFile(testSuit.defaultCtx, testNamespace, "", "", "", 0, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
 		assert.Equal(t, uint32(size*2), rsp4.Total.GetValue()) // 总数为随机 group 和随机 fileName 总和
 		assert.Equal(t, 3, len(rsp4.ConfigFiles))
 
 		// fileName 模糊搜索
-		rsp5 := configService.SearchConfigFile(defaultCtx, testNamespace, "", "file1", "", 0, 3)
+		rsp5 := testSuit.testService.SearchConfigFile(testSuit.defaultCtx, testNamespace, "", "file1", "", 0, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue())
 		assert.Equal(t, uint32(size), rsp5.Total.GetValue())
 		assert.Equal(t, 3, len(rsp5.ConfigFiles))
@@ -198,7 +205,7 @@ func TestConfigFileCRUD(t *testing.T) {
 
 	t.Run("step7-search-by-tag", func(t *testing.T) {
 		// 按 tag k1=v1 搜索
-		rsp := configService.SearchConfigFile(defaultCtx, testNamespace, "", "", "k1,v1", 0, 3)
+		rsp := testSuit.testService.SearchConfigFile(testSuit.defaultCtx, testNamespace, "", "", "k1,v1", 0, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 		assert.Equal(t, uint32(size*2), rsp.Total.GetValue())
 		assert.Equal(t, 3, len(rsp.ConfigFiles))
@@ -208,16 +215,23 @@ func TestConfigFileCRUD(t *testing.T) {
 
 // TestPublishConfigFile 测试配置文件发布相关的用例
 func TestPublishConfigFile(t *testing.T) {
-	if err := clearTestData(); err != nil {
+	testSuit, err := newConfigCenterTest(t)
+	if err != nil {
 		t.Fatal(err)
 	}
 
+	defer func() {
+		if err := testSuit.clearTestData(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
 	configFile := assembleConfigFile()
-	rsp := configService.CreateConfigFile(defaultCtx, configFile)
+	rsp := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 
 	configFileRelease := assembleConfigFileRelease(configFile)
-	rsp2 := configService.PublishConfigFile(defaultCtx, configFileRelease)
+	rsp2 := testSuit.testService.PublishConfigFile(testSuit.defaultCtx, configFileRelease)
 	assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 	assert.Equal(t, uint64(1), rsp2.ConfigFileRelease.Version.GetValue())
 	assert.Equal(t, configFileRelease.Name.GetValue(), rsp2.ConfigFileRelease.Name.GetValue())
@@ -225,7 +239,7 @@ func TestPublishConfigFile(t *testing.T) {
 	assert.Equal(t, configFileRelease.CreateBy.GetValue(), rsp2.ConfigFileRelease.ModifyBy.GetValue())
 	assert.Equal(t, configFile.Content.GetValue(), rsp2.ConfigFileRelease.Content.GetValue())
 
-	rsp3 := configService.GetConfigFileRelease(defaultCtx, testNamespace, testGroup, testFile)
+	rsp3 := testSuit.testService.GetConfigFileRelease(testSuit.defaultCtx, testNamespace, testGroup, testFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 	assert.Equal(t, uint64(1), rsp3.ConfigFileRelease.Version.GetValue())
 	assert.Equal(t, configFileRelease.Name.GetValue(), rsp3.ConfigFileRelease.Name.GetValue())
@@ -233,7 +247,7 @@ func TestPublishConfigFile(t *testing.T) {
 	assert.Equal(t, configFileRelease.CreateBy.GetValue(), rsp3.ConfigFileRelease.ModifyBy.GetValue())
 	assert.Equal(t, configFile.Content.GetValue(), rsp3.ConfigFileRelease.Content.GetValue())
 
-	rsp4 := configService.GetConfigFileLatestReleaseHistory(defaultCtx, testNamespace, testGroup, testFile)
+	rsp4 := testSuit.testService.GetConfigFileLatestReleaseHistory(testSuit.defaultCtx, testNamespace, testGroup, testFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
 	assert.Equal(t, configFileRelease.Name.GetValue(), rsp4.ConfigFileReleaseHistory.Name.GetValue())
 	assert.Equal(t, configFileRelease.CreateBy.GetValue(), rsp4.ConfigFileReleaseHistory.CreateBy.GetValue())
@@ -244,7 +258,7 @@ func TestPublishConfigFile(t *testing.T) {
 	assert.Equal(t, utils.ReleaseTypeNormal, rsp4.ConfigFileReleaseHistory.Type.GetValue())
 	assert.Equal(t, utils.ReleaseStatusSuccess, rsp4.ConfigFileReleaseHistory.Status.GetValue())
 
-	rsp5 := configService.GetConfigFileRichInfo(defaultCtx, testNamespace, testGroup, testFile)
+	rsp5 := testSuit.testService.GetConfigFileRichInfo(testSuit.defaultCtx, testNamespace, testGroup, testFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
 	assert.Equal(t, rsp4.ConfigFileReleaseHistory.CreateTime.GetValue(), rsp5.ConfigFile.ReleaseTime.GetValue())
 	assert.Equal(t, rsp3.ConfigFileRelease.ModifyTime.GetValue(), rsp5.ConfigFile.ReleaseTime.GetValue())
@@ -256,24 +270,24 @@ func TestPublishConfigFile(t *testing.T) {
 	configFile.Content = utils.NewStringValue(secondReleaseContent)
 	configFile.Format = utils.NewStringValue(secondReleaseFormat)
 
-	rsp6 := configService.UpdateConfigFile(defaultCtx, configFile)
+	rsp6 := testSuit.testService.UpdateConfigFile(testSuit.defaultCtx, configFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp6.Code.GetValue())
 
 	configFileRelease.CreateBy = utils.NewStringValue("ledou3")
-	rsp7 := configService.PublishConfigFile(defaultCtx, configFileRelease)
+	rsp7 := testSuit.testService.PublishConfigFile(testSuit.defaultCtx, configFileRelease)
 	assert.Equal(t, api.ExecuteSuccess, rsp7.Code.GetValue())
 	assert.Equal(t, configFile.Content.GetValue(), rsp7.ConfigFileRelease.Content.GetValue())
 	assert.Equal(t, configFileRelease.CreateBy.GetValue(), rsp7.ConfigFileRelease.ModifyBy.GetValue())
 	assert.Equal(t, uint64(2), rsp7.ConfigFileRelease.Version.GetValue())
 
-	rsp8 := configService.GetConfigFileLatestReleaseHistory(defaultCtx, testNamespace, testGroup, testFile)
+	rsp8 := testSuit.testService.GetConfigFileLatestReleaseHistory(testSuit.defaultCtx, testNamespace, testGroup, testFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp8.Code.GetValue())
 	assert.Equal(t, configFile.Content.GetValue(), rsp8.ConfigFileReleaseHistory.Content.GetValue())
 	assert.Equal(t, configFile.Format.GetValue(), rsp8.ConfigFileReleaseHistory.Format.GetValue())
 	assert.Equal(t, configFileRelease.CreateBy.GetValue(), rsp8.ConfigFileReleaseHistory.ModifyBy.GetValue())
 	assert.Equal(t, configFileRelease.CreateBy.GetValue(), rsp8.ConfigFileReleaseHistory.CreateBy.GetValue())
 
-	rsp9 := configService.GetConfigFileReleaseHistory(defaultCtx, testNamespace, testGroup, testFile, 0, 10, 0)
+	rsp9 := testSuit.testService.GetConfigFileReleaseHistory(testSuit.defaultCtx, testNamespace, testGroup, testFile, 0, 10, 0)
 	assert.Equal(t, api.ExecuteSuccess, rsp9.Code.GetValue())
 	assert.Equal(t, 2, len(rsp9.ConfigFileReleaseHistories))
 
