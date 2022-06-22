@@ -93,7 +93,7 @@ jobs:
           if [[ "$(uname)" == "Darwin" ]]; then
               # Mac OS X 操作系统
               echo "Run on MacOS"
-              sed -i '' 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' polaris-server.yaml
+              sed -i '' 's/consoleOpen: true/consoleOpen: false/g' polaris-server.yaml
           else
               # GNU/Linux操作系统
               echo "Run on Linux"
