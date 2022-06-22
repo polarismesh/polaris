@@ -90,10 +90,10 @@ jobs:
           cd $work_dir
 
           if["$(uname)"=="Darwin"];then
-          # Mac OS X 操作系统
+              # Mac OS X 操作系统
               sed -i '' 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' polaris-server.yaml
-          elif["$(expr substr $(uname -s) 1 5)"=="Linux"];then
-          # GNU/Linux操作系统
+          then
+              # GNU/Linux操作系统
               sed -i 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' polaris-server.yaml
           fi
 
