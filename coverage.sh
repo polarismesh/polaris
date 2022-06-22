@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#!/bin/bash
-
 set -e
+
+go mod vendor
 
 profile="coverage.txt"
 htmlfile="cover.html"

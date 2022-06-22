@@ -31,8 +31,8 @@ jobs:
 
       - name: Go Test
         run: |
-          # go mod vendor && bash coverage.sh
-          go test -v -mod=vendor -coverprofile=coverage.txt -covermode=atomic -coverpkg=github.com/polarismesh/polaris-server/auth,github.com/polarismesh/polaris-server/service/batch,github.com/polarismesh/polaris-server/cache,github.com/polarismesh/polaris-server/store/defaultStore,github.com/polarismesh/polaris-server/store/defaultStore,github.com/polarismesh/polaris-server/plugin/ratelimit/token,github.com/polarismesh/polaris-server/common/model | tee test.log
+          # bash coverage.sh
+          go mod vendor && go test -v -coverprofile=coverage.txt -covermode=atomic -coverpkg=github.com/polarismesh/polaris-server/auth,github.com/polarismesh/polaris-server/service/batch,github.com/polarismesh/polaris-server/cache,github.com/polarismesh/polaris-server/store/defaultStore,github.com/polarismesh/polaris-server/store/defaultStore,github.com/polarismesh/polaris-server/plugin/ratelimit/token,github.com/polarismesh/polaris-server/common/model | tee test.log
 
 
       - name: Coverage
