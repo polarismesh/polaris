@@ -29,8 +29,9 @@ import (
 )
 
 const (
-	tblConfigFileRelease       string = "ConfigFileRelease"
-	tblConfigFileReleaseID     string = "ConfigFileReleaseID"
+	tblConfigFileRelease   string = "ConfigFileRelease"
+	tblConfigFileReleaseID string = "ConfigFileReleaseID"
+
 	FileReleaseFieldId         string = "Id"
 	FileReleaseFieldName       string = "Name"
 	FileReleaseFieldNamespace  string = "Namespace"
@@ -269,7 +270,7 @@ func (cfr *configFileReleaseStore) DeleteConfigFileRelease(proxyTx store.Tx, nam
 	return err
 }
 
-// FindConfigFileReleaseByModifyTimeAfter Get the last update time more than a certain time point, 
+// FindConfigFileReleaseByModifyTimeAfter Get the last update time more than a certain time point,
 //    pay attention to containing Flag = 1, in order to get the deleted Release
 func (cfr *configFileReleaseStore) FindConfigFileReleaseByModifyTimeAfter(modifyTime time.Time) ([]*model.ConfigFileRelease, error) {
 

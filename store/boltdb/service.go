@@ -86,7 +86,12 @@ func (ss *serviceStore) DeleteService(id, serviceName, namespaceName string) err
 	if id == "" {
 		return store.NewStatusError(store.EmptyParamsErr, "delete Service missing some params")
 	}
-	err := ss.handler.DeleteValues(tblNameService, []string{id}, true)
+
+	properties := make(map[string]interface{})
+	properties[SvcFieldValid] = false
+	properties[SvcFieldModifyTime] = time.Now()
+
+	err := ss.handler.UpdateValue(tblNameService, id, properties)
 	return store.Error(err)
 }
 
@@ -105,8 +110,11 @@ func (ss *serviceStore) DeleteServiceAlias(name string, namespace string) error 
 		return nil
 	}
 
-	err = ss.handler.DeleteValues(tblNameService, []string{svc.ID}, true)
-	if err != nil {
+	properties := make(map[string]interface{})
+	properties[SvcFieldValid] = false
+	properties[SvcFieldModifyTime] = time.Now()
+
+	if err = ss.handler.UpdateValue(tblNameService, svc.ID, properties); err != nil {
 		log.Errorf("[Store][boltdb] delete service alias error, %v", err)
 	}
 

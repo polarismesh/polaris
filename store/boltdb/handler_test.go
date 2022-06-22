@@ -34,6 +34,7 @@ import (
 
 func CreateTableDBHandlerAndRun(t *testing.T, tableName string, tf func(t *testing.T, handler BoltHandler)) {
 	tempDir, _ := ioutil.TempDir("", tableName)
+	t.Logf("temp dir : %s", tempDir)
 	_ = os.Remove(filepath.Join(tempDir, fmt.Sprintf("%s.bolt", tableName)))
 	handler, err := NewBoltHandler(&BoltConfig{FileName: filepath.Join(tempDir, fmt.Sprintf("%s.bolt", tableName))})
 	if err != nil {

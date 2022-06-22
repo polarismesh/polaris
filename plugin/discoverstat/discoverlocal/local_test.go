@@ -27,7 +27,7 @@ import (
 func TestWriteFile(t *testing.T) {
 	dcs := &DiscoverCallStatis{
 		statis: make(map[Service]time.Time),
-		logger: newLogger("discovercall_test1.log"),
+		logger: newLogger("./log/discovercall_test1.log"),
 	}
 	namespace := "Test"
 	totals := []int{25, 50, 100, 150}
@@ -59,7 +59,7 @@ func TestDiscoverStatisWorker_AddDiscoverCall(t *testing.T) {
 		dcc:      make(chan *DiscoverCall, 1024),
 		dcs: &DiscoverCallStatis{
 			statis: make(map[Service]time.Time),
-			logger: newLogger("discovercall_test2.log"),
+			logger: newLogger("./log/discovercall_test2.log"),
 		},
 	}
 

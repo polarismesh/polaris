@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
@@ -40,6 +41,7 @@ const (
 	CBFieldNameValid          string = "Valid"
 	CBFieldNameVersion        string = "Version"
 	CBFieldNameID             string = "ID"
+	CBFieldNameModifyTime     string = "ModifyTime"
 
 	CBRFieldNameServiceID   string = "ServiceID"
 	CBRFieldNameRuleID      string = "RuleID"
@@ -170,8 +172,11 @@ func (c *circuitBreakerStore) UnbindCircuitBreaker(serviceID, ruleID, ruleVersio
 	dbOp := c.handler
 
 	// 删除某个服务的熔断规则
+	properties := make(map[string]interface{})
+	properties[CBFieldNameValid] = false
+	properties[CBFieldNameModifyTime] = time.Now()
 
-	if err := dbOp.DeleteValues(tblCircuitBreakerRelation, []string{serviceID}, true); err != nil {
+	if err := dbOp.UpdateValue(tblCircuitBreakerRelation, serviceID, properties); err != nil {
 		log.Errorf("[Store][circuitBreaker] tag rule relation(%s, %s, %s) err: %s",
 			serviceID, ruleID, ruleVersion, err.Error())
 		return store.Error(err)
@@ -182,9 +187,11 @@ func (c *circuitBreakerStore) UnbindCircuitBreaker(serviceID, ruleID, ruleVersio
 // DeleteTagCircuitBreaker 删除已标记熔断规则
 func (c *circuitBreakerStore) DeleteTagCircuitBreaker(id string, version string) error {
 
-	dbOp := c.handler
+	properties := make(map[string]interface{})
+	properties[CBFieldNameValid] = false
+	properties[CBFieldNameModifyTime] = time.Now()
 
-	if err := dbOp.DeleteValues(tblCircuitBreaker, []string{c.buildKey(id, version)}, true); err != nil {
+	if err := c.handler.UpdateValue(tblCircuitBreaker, c.buildKey(id, version), properties); err != nil {
 		log.Errorf("[Store][circuitBreaker] delete tag rule(%s, %s) err: %s", id, version, err.Error())
 		return store.Error(err)
 	}
@@ -219,7 +226,7 @@ func (c *circuitBreakerStore) GetCircuitBreaker(id, version string) (*model.Circ
 
 	result, err := dbOp.LoadValues(tblCircuitBreaker, []string{cbKey}, &model.CircuitBreaker{})
 	if err != nil {
-		log.Errorf("[Store][CircuitBreaker] get tag rule id(%s) version(%s) err : %s", id, version, err.Error())
+		log.Errorf("[Store][CircuitBreaker] get tag rule id(%s) version(%s) err : %s", id, version, errors.WithStack(err))
 		return nil, store.Error(err)
 	}
 
