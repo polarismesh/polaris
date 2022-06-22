@@ -1,3 +1,6 @@
+//go:build integrationdiscover
+// +build integrationdiscover
+
 /**
  * Tencent is pleased to support the open source community by making Polaris available.
  *
@@ -322,12 +325,12 @@ func cleanService(name, namespace string) {
 				dbTx.Rollback()
 				panic(err)
 			}
-		
+
 			if _, err := dbTx.Exec("delete from service where id = ?", id); err != nil {
 				dbTx.Rollback()
 				panic(err)
 			}
-		
+
 			if _, err := dbTx.Exec("delete from owner_service_map where service=? and namespace=?", name, namespace); err != nil {
 				dbTx.Rollback()
 				panic(err)
@@ -341,7 +344,7 @@ func cleanService(name, namespace string) {
 			if err != nil {
 				panic(err)
 			}
-			
+
 			tx, err := s.StartTx()
 			if err != nil {
 				panic(err)
