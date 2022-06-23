@@ -23,8 +23,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-
-	commontime "github.com/polarismesh/polaris-server/common/time"
 )
 
 func TestNewRedisClient(t *testing.T) {
@@ -34,11 +32,11 @@ func TestNewRedisClient(t *testing.T) {
 
 	// mock config read
 	config.KvAddr = "127.0.0.1:6379"
-	config.MaxConnAge = commontime.Duration(1000 * time.Second)
+	config.MaxConnAge = 1000 * time.Second
 	config.MinIdleConns = 30
 
 	_ = NewRedisClient(WithConfig(config))
-	assert.Equal(t, config.MaxConnAge, commontime.Duration(1000*time.Second))
+	assert.Equal(t, config.MaxConnAge, 1000*time.Second)
 	assert.Equal(t, config.MinIdleConns, 30)
 
 	t.Log("after config: ", config)
@@ -89,20 +87,20 @@ func Test_WithStandalone(t *testing.T) {
 			KvUser:         "",
 			KvPasswd:       "polaris",
 			MinIdleConns:   1234,
-			IdleTimeout:    commontime.Duration(time.Minute),
-			ConnectTimeout: commontime.Duration(time.Millisecond * 10),
+			IdleTimeout:    time.Minute,
+			ConnectTimeout: time.Millisecond * 10,
 			Concurrency:    20,
 			MaxRetry:       5,
 			MinBatchCount:  1,
-			WaitTime:       commontime.Duration(time.Millisecond * 50),
+			WaitTime:       time.Millisecond * 50,
 			MaxRetries:     5,
 			DB:             16,
-			ReadTimeout:    commontime.Duration(time.Millisecond * 200),
-			WriteTimeout:   commontime.Duration(time.Millisecond * 200),
-			MsgTimeout:     commontime.Duration(time.Millisecond * 300),
+			ReadTimeout:    time.Millisecond * 200,
+			WriteTimeout:   time.Millisecond * 200,
+			MsgTimeout:     time.Millisecond * 300,
 			PoolSize:       2000,
-			PoolTimeout:    commontime.Duration(time.Second * 3),
-			MaxConnAge:     commontime.Duration(time.Minute * 30),
+			PoolTimeout:    time.Second * 3,
+			MaxConnAge:     time.Minute * 30,
 			WithTLS:        true,
 			tlsConfig: &tls.Config{
 				InsecureSkipVerify: true,
@@ -130,20 +128,20 @@ func Test_WithCluster(t *testing.T) {
 		StandaloneConfig: StandaloneConfig{
 			KvPasswd:       "polaris",
 			MinIdleConns:   1234,
-			IdleTimeout:    commontime.Duration(time.Minute),
-			ConnectTimeout: commontime.Duration(time.Millisecond * 10),
+			IdleTimeout:    time.Minute,
+			ConnectTimeout: time.Millisecond * 10,
 			Concurrency:    20,
 			MaxRetry:       5,
 			MinBatchCount:  1,
-			WaitTime:       commontime.Duration(time.Millisecond * 50),
+			WaitTime:       time.Millisecond * 50,
 			MaxRetries:     5,
 			DB:             16,
-			ReadTimeout:    commontime.Duration(time.Millisecond * 200),
-			WriteTimeout:   commontime.Duration(time.Millisecond * 200),
-			MsgTimeout:     commontime.Duration(time.Millisecond * 300),
+			ReadTimeout:    time.Millisecond * 200,
+			WriteTimeout:   time.Millisecond * 200,
+			MsgTimeout:     time.Millisecond * 300,
 			PoolSize:       2000,
-			PoolTimeout:    commontime.Duration(time.Second * 3),
-			MaxConnAge:     commontime.Duration(time.Minute * 30),
+			PoolTimeout:    time.Second * 3,
+			MaxConnAge:     time.Minute * 30,
 			WithTLS:        true,
 			tlsConfig: &tls.Config{
 				InsecureSkipVerify: true,
@@ -178,20 +176,20 @@ func TestWithSentinel(t *testing.T) {
 		StandaloneConfig: StandaloneConfig{
 			KvPasswd:       "polaris",
 			MinIdleConns:   1234,
-			IdleTimeout:    commontime.Duration(time.Minute),
-			ConnectTimeout: commontime.Duration(time.Millisecond * 10),
+			IdleTimeout:    time.Minute,
+			ConnectTimeout: time.Millisecond * 10,
 			Concurrency:    20,
 			MaxRetry:       5,
 			MinBatchCount:  1,
-			WaitTime:       commontime.Duration(time.Millisecond * 50),
+			WaitTime:       time.Millisecond * 50,
 			MaxRetries:     5,
 			DB:             16,
-			ReadTimeout:    commontime.Duration(time.Millisecond * 200),
-			WriteTimeout:   commontime.Duration(time.Millisecond * 200),
-			MsgTimeout:     commontime.Duration(time.Millisecond * 300),
+			ReadTimeout:    time.Millisecond * 200,
+			WriteTimeout:   time.Millisecond * 200,
+			MsgTimeout:     time.Millisecond * 300,
 			PoolSize:       2000,
-			PoolTimeout:    commontime.Duration(time.Second * 3),
-			MaxConnAge:     commontime.Duration(time.Minute * 30),
+			PoolTimeout:    time.Second * 3,
+			MaxConnAge:     time.Minute * 30,
 			WithTLS:        true,
 			tlsConfig: &tls.Config{
 				InsecureSkipVerify: true,

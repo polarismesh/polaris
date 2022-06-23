@@ -25,8 +25,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-
-	commontime "github.com/polarismesh/polaris-server/common/time"
+	"github.com/mitchellh/mapstructure"
 )
 
 const (
@@ -50,31 +49,38 @@ type Config struct {
 	ClusterConfig
 }
 
-// provider is a helper struct to deserialization Config.
-type provider struct {
-	DeployMode string `json:"deployMode"`
-	StandaloneConfig
-}
-
 // UnmarshalJSON unmarshal config from json
 func (c *Config) UnmarshalJSON(data []byte) error {
-	var raw provider
-	if err := json.Unmarshal(data, &raw); err != nil {
+	var configmap map[string]interface{}
+	if err := json.Unmarshal(data, &configmap); err != nil {
 		return err
 	}
-	c.DeployMode = raw.DeployMode
-	c.StandaloneConfig = raw.StandaloneConfig
-
+	// 需要以用户的配置为优先
+	raw := DefaultConfig().StandaloneConfig
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
+		ZeroFields: false,
+		Result:     &raw,
+		TagName:    "json",
+	})
+	if err != nil {
+		return err
+	}
+	if err = decoder.Decode(configmap); err != nil {
+		return err
+	}
+	c.DeployMode, _ = configmap["deployMode"].(string)
+	c.StandaloneConfig = raw
 	switch c.DeployMode {
 	case redisCluster:
 		var clusterConfig ClusterConfig
-		if err := json.Unmarshal(data, &clusterConfig); err != nil {
+		if err = json.Unmarshal(data, &clusterConfig); err != nil {
 			return fmt.Errorf("unmarshal redis cluster config error: %w", err)
 		}
 		c.ClusterConfig = clusterConfig
 	case redisSentinel:
 		var sentinelConfig SentinelConfig
-		if err := json.Unmarshal(data, &sentinelConfig); err != nil {
+		if err = json.Unmarshal(data, &sentinelConfig); err != nil {
 			return fmt.Errorf("unmarshal redis sentinel config error: %w", err)
 		}
 		c.SentinelConfig = sentinelConfig
@@ -91,23 +97,23 @@ func (c *Config) StandaloneOptions() *redis.Options {
 		Username:     c.KvUser,
 		Password:     c.KvPasswd,
 		MaxRetries:   c.MaxRetries,
-		DialTimeout:  time.Duration(c.ConnectTimeout),
+		DialTimeout:  c.ConnectTimeout,
 		PoolSize:     c.PoolSize,
 		MinIdleConns: c.MinIdleConns,
-		IdleTimeout:  time.Duration(c.IdleTimeout),
+		IdleTimeout:  c.IdleTimeout,
 		DB:           c.DB,
-		ReadTimeout:  time.Duration(c.ReadTimeout),
-		WriteTimeout: time.Duration(c.WriteTimeout),
-		PoolTimeout:  time.Duration(c.PoolTimeout),
-		MaxConnAge:   time.Duration(c.MaxConnAge),
+		ReadTimeout:  c.ReadTimeout,
+		WriteTimeout: c.WriteTimeout,
+		PoolTimeout:  c.PoolTimeout,
+		MaxConnAge:   c.MaxConnAge,
 	}
 
 	if redisOption.ReadTimeout == 0 {
-		redisOption.ReadTimeout = time.Duration(c.MsgTimeout)
+		redisOption.ReadTimeout = c.MsgTimeout
 	}
 
 	if redisOption.WriteTimeout == 0 {
-		redisOption.WriteTimeout = time.Duration(c.MsgTimeout)
+		redisOption.WriteTimeout = c.MsgTimeout
 	}
 
 	if c.MaxConnAge == 0 {
@@ -198,18 +204,18 @@ type StandaloneConfig struct {
 	// Amount of time after which client closes idle connections.
 	// Should be less than server's timeout.
 	// Default is 5 minutes. -1 disables idle timeout check.
-	IdleTimeout commontime.Duration `json:"idleTimeout"`
+	IdleTimeout time.Duration `json:"idleTimeout"`
 
 	// ConnectTimeout for go-redis is Dial timeout for establishing new connections.
 	// Default is 5 seconds.
-	ConnectTimeout commontime.Duration `json:"connectTimeout"`
+	ConnectTimeout time.Duration `json:"connectTimeout"`
 
-	MsgTimeout    commontime.Duration `json:"msgTimeout"`
-	Concurrency   int                 `json:"concurrency"`
-	Compatible    bool                `json:"compatible"`
-	MaxRetry      int                 `json:"maxRetry"`
-	MinBatchCount int                 `json:"minBatchCount"`
-	WaitTime      commontime.Duration `json:"waitTime"`
+	MsgTimeout    time.Duration `json:"msgTimeout"`
+	Concurrency   int           `json:"concurrency"`
+	Compatible    bool          `json:"compatible"`
+	MaxRetry      int           `json:"maxRetry"`
+	MinBatchCount int           `json:"minBatchCount"`
+	WaitTime      time.Duration `json:"waitTime"`
 
 	// MaxRetries is Maximum number of retries before giving up.
 	// Default is 3 retries; -1 (not 0) disables retries.
@@ -221,25 +227,25 @@ type StandaloneConfig struct {
 	// ReadTimeout for socket reads. If reached, commands will fail
 	// with a timeout instead of blocking. Use value -1 for no timeout and 0 for default.
 	// Default is 3 seconds.
-	ReadTimeout commontime.Duration `json:"readTimeout"`
+	ReadTimeout time.Duration `json:"readTimeout"`
 
 	// WriteTimeout for socket writes. If reached, commands will fail
 	// with a timeout instead of blocking.
 	// Default is ReadTimeout.
-	WriteTimeout commontime.Duration `json:"writeTimeout"`
+	WriteTimeout time.Duration `json:"writeTimeout"`
 
 	// Maximum number of socket connections.
 	// Default is 10 connections per every available CPU as reported by runtime.GOMAXPROCS.
-	PoolSize int `json:"poolSize"`
+	PoolSize int `json:"poolSize" mapstructure:"poolSize"`
 
 	// Amount of time client waits for connection if all connections
 	// are busy before returning an error.
 	// Default is ReadTimeout + 1 second.
-	PoolTimeout commontime.Duration `json:"poolTimeout"`
+	PoolTimeout time.Duration `json:"poolTimeout"`
 
 	// Connection age at which client retires (closes) the connection.
 	// Default is to not close aged connections.
-	MaxConnAge commontime.Duration `json:"maxConnAge"`
+	MaxConnAge time.Duration `json:"maxConnAge"`
 
 	// WithTLS whether open TLSConfig
 	// if WithTLS is true, you should call WithEnableWithTLS,and then TLSConfig is not should be nil
@@ -297,17 +303,17 @@ func DefaultConfig() *Config {
 		StandaloneConfig: StandaloneConfig{
 			PoolSize:       200,
 			MinIdleConns:   30,
-			IdleTimeout:    commontime.Duration(120 * time.Second),
-			ConnectTimeout: commontime.Duration(300 * time.Millisecond),
-			MsgTimeout:     commontime.Duration(300 * time.Millisecond),
+			IdleTimeout:    120 * time.Second,
+			ConnectTimeout: 300 * time.Millisecond,
+			MsgTimeout:     300 * time.Millisecond,
 			Concurrency:    200,
 			Compatible:     false,
 			MaxRetry:       2,
 			MinBatchCount:  10,
-			WaitTime:       commontime.Duration(50 * time.Millisecond),
+			WaitTime:       50 * time.Millisecond,
 			DB:             0,
-			PoolTimeout:    commontime.Duration(3 * time.Second),
-			MaxConnAge:     commontime.Duration(1800 * time.Second),
+			PoolTimeout:    3 * time.Second,
+			MaxConnAge:     1800 * time.Second,
 		},
 	}
 }

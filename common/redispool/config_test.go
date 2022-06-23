@@ -108,6 +108,13 @@ option:
 		t.Fatalf("unmarshal to json got error:%v", err)
 	}
 
+	// keep default
+	assert.Equal(t, config.StandaloneConfig.WaitTime, DefaultConfig().WaitTime)
+	assert.Equal(t, config.StandaloneConfig.MinBatchCount, DefaultConfig().MinBatchCount)
+	assert.Equal(t, config.StandaloneConfig.PoolTimeout, DefaultConfig().PoolTimeout)
+	assert.Equal(t, config.StandaloneConfig.MaxConnAge, DefaultConfig().MaxConnAge)
+
+	// use config file
 	assert.Equal(t, config.DeployMode, "sentinel")
 	assert.Equal(t, config.KvAddr, "")
 	assert.Equal(t, config.KvPasswd, "polaris")

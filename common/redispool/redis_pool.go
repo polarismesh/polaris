@@ -250,7 +250,7 @@ func (p *Pool) startWorkers(wg *sync.WaitGroup) {
 
 func (p *Pool) process(wg *sync.WaitGroup, idx int) {
 	log.Infof("[RedisPool]redis worker %d started", idx)
-	ticker := time.NewTicker(time.Duration(p.config.WaitTime))
+	ticker := time.NewTicker(p.config.WaitTime)
 	piper := p.redisClient.Pipeline()
 	defer func() {
 		ticker.Stop()
