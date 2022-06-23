@@ -166,14 +166,8 @@ curl http://127.0.0.1:8090
 
 <img src="https://main.qcloudimg.com/raw/bff4285d70498058caa212805b83a620.jpg" width="30%" height="30%" />
 
-欢迎扫码关注官方账号，北极星相关课程的文章和视频，都会在微信公众号发布，同时我们也将为大家分享最新的实践案例和PolarisMesh的更新动态。
-
-<img src="https://main.qcloudimg.com/raw/e5a51696ae7c01e8bc9097fa0c7e426d.png" width="30%" height="30%" />
-
 ## 参与贡献
 
 如果你有好的意见或建议，欢迎给我们提 Issues 或 Pull Requests，为提升北极星的开发体验贡献力量。
 
 详见：[CONTRIBUTING.md](CONTRIBUTING.md)
-
-[腾讯开源激励计划](https://opensource.tencent.com/contribution) 鼓励开发者的参与和贡献，期待你的加入。
