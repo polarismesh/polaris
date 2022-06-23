@@ -25,13 +25,6 @@ import (
 // Option functional options for Config
 type Option func(c *Config)
 
-// WithConfig set new config for NewPool,keep old code compatibility
-func WithConfig(newConfig *Config) Option {
-	return func(c *Config) {
-		*c = *newConfig
-	}
-}
-
 // WithAddr set redis addr
 func WithAddr(addr string) Option {
 	return func(c *Config) {

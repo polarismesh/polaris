@@ -30,12 +30,12 @@ func TestNewRedisClient(t *testing.T) {
 
 	t.Log("before config: ", config)
 
-	// mock config read
-	config.KvAddr = "127.0.0.1:6379"
-	config.MaxConnAge = 1000 * time.Second
-	config.MinIdleConns = 30
-
-	_ = NewRedisClient(WithConfig(config))
+	_ = NewRedisClient(config,
+		WithAddr("127.0.0.1:6379"),
+		WithMaxConnAge(1000*time.Second),
+		WithMinIdleConns(30),
+	)
+	assert.Equal(t, config.KvAddr, "127.0.0.1:6379")
 	assert.Equal(t, config.MaxConnAge, 1000*time.Second)
 	assert.Equal(t, config.MinIdleConns, 30)
 
