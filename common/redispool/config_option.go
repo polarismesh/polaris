@@ -14,6 +14,7 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
+
 package redispool
 
 import (
@@ -29,7 +30,7 @@ type Option func(c *Config)
 // WithConfig set new config for NewPool,keep old code compatibility
 func WithConfig(newConfig *Config) Option {
 	return func(c *Config) {
-		c = newConfig
+		*c = *newConfig
 	}
 }
 
@@ -162,13 +163,25 @@ func WithUsername(username string) Option {
 // WithTLSConfig set TLSConfig
 func WithTLSConfig(tlsConfig *tls.Config) Option {
 	return func(c *Config) {
+		c.WithTLS = true
 		c.tlsConfig = tlsConfig
 	}
 }
 
-// WithEnableWithTLS set WithTLS
-func WithEnableWithTLS() Option {
+// WithCluster use redis cluster
+func WithCluster(cc ClusterConfig) Option {
 	return func(c *Config) {
-		c.WithTLS = true
+		c.DeployMode = redisCluster
+		c.StandaloneConfig.KvAddr = ""
+		c.ClusterConfig = cc
+	}
+}
+
+// WithSentinel use redis sentinel
+func WithSentinel(sc SentinelConfig) Option {
+	return func(c *Config) {
+		c.DeployMode = redisSentinel
+		c.StandaloneConfig.KvAddr = ""
+		c.SentinelConfig = sc
 	}
 }
