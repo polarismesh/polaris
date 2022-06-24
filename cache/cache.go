@@ -286,7 +286,7 @@ func (nc *CacheManager) Start(ctx context.Context) error {
 func (nc *CacheManager) Clear() error {
 	nc.lock.Lock()
 	nc.revisions = map[string]string{}
-	nc.lock.Lock()
+	nc.lock.Unlock()
 
 	return nc.clear()
 }
