@@ -101,12 +101,13 @@ type Pool struct {
 }
 
 // NewRedisClient new redis client
-func NewRedisClient(opts ...Option) redis.UniversalClient {
-	config := DefaultConfig()
+func NewRedisClient(config *Config, opts ...Option) redis.UniversalClient {
+	if config == nil {
+		config = DefaultConfig()
+	}
 	for _, o := range opts {
 		o(config)
 	}
-
 	var redisClient redis.UniversalClient
 	switch config.DeployMode {
 	case redisSentinel:
@@ -131,15 +132,7 @@ func NewPool(ctx context.Context, config *Config, statis plugin.Statis, opts ...
 		config.ReadTimeout = config.MsgTimeout
 	}
 
-	// keep old code compatibility
-	configOpts := []Option{
-		WithConfig(config),
-	}
-	if len(opts) > 0 {
-		configOpts = append(configOpts, opts...)
-	}
-
-	redisClient := NewRedisClient(configOpts...)
+	redisClient := NewRedisClient(config, opts...)
 	pool := &Pool{
 		config:         config,
 		ctx:            ctx,
@@ -250,7 +243,7 @@ func (p *Pool) startWorkers(wg *sync.WaitGroup) {
 
 func (p *Pool) process(wg *sync.WaitGroup, idx int) {
 	log.Infof("[RedisPool]redis worker %d started", idx)
-	ticker := time.NewTicker(time.Duration(p.config.WaitTime))
+	ticker := time.NewTicker(p.config.WaitTime)
 	piper := p.redisClient.Pipeline()
 	defer func() {
 		ticker.Stop()

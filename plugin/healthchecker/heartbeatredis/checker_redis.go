@@ -64,16 +64,16 @@ func (r *RedisHealthChecker) Initialize(c *plugin.ConfigEntry) error {
 	if err != nil {
 		return fmt.Errorf("fail to marshal %s config entry, err is %v", PluginName, err)
 	}
-	config := redispool.DefaultConfig()
-	if err = json.Unmarshal(redisBytes, config); err != nil {
+	var config redispool.Config
+	if err = json.Unmarshal(redisBytes, &config); err != nil {
 		return fmt.Errorf("fail to unmarshal %s config entry, err is %v", PluginName, err)
 	}
 	r.statis = plugin.GetStatis()
 	var ctx context.Context
 	ctx, r.cancel = context.WithCancel(context.Background())
-	r.hbPool = redispool.NewPool(ctx, config, r.statis)
+	r.hbPool = redispool.NewPool(ctx, &config, r.statis)
 	r.hbPool.Start()
-	r.checkPool = redispool.NewPool(ctx, config, r.statis)
+	r.checkPool = redispool.NewPool(ctx, &config, r.statis)
 	r.checkPool.Start()
 	if err = r.registerSelf(); err != nil {
 		return fmt.Errorf("fail to register %s to redis, err is %v", utils.LocalHost, err)
