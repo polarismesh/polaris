@@ -2,9 +2,9 @@ name: Testing
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: write
@@ -17,9 +17,9 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ ubuntu-latest, macos-latest ]
-        goarch: [ amd64 ]
-        goos: [ linux, darwin ]
+        os: [ubuntu-latest, macos-latest]
+        goarch: [amd64]
+        goos: [linux, darwin]
         include:
           - os: ubuntu-latest
             goos: linux
@@ -38,7 +38,6 @@ jobs:
             goos: windows
           - os: macos-latest
             goos: linux
-
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -89,17 +88,20 @@ jobs:
           echo "work_dir is $work_dir"
           cd $work_dir
 
-          if["$(uname)"=="Darwin"];then
-          # Mac OS X 操作系统
-              sed -i '' 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' polaris-server.yaml
-          elif["$(expr substr $(uname -s) 1 5)"=="Linux"];then
-          # GNU/Linux操作系统
+          ls -alR
+
+          if [[ "$(uname)" == "Darwin" ]]; then
+              # Mac OS X 操作系统
+              echo "Run on MacOS"
+              sed -i '' 's/consoleOpen: true/consoleOpen: false/g' polaris-server.yaml
+          else
+              # GNU/Linux操作系统
+              echo "Run on Linux"
               sed -i 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' polaris-server.yaml
           fi
 
           cat polaris-server.yaml
 
-          ls -alR
           chmod +x ./tool/*.sh
           ./tool/start.sh
 
@@ -112,9 +114,9 @@ jobs:
           ./tool/stop.sh
           cd ..
 
-      - name: run config-center interface tests
-        run: |
-          # 进行配置中心的集成测试
-          pushd ./test/config_center
-          go test -count=1 -v
-          popd
+      # - name: run config-center interface tests
+      #   run: |
+      #     # 进行配置中心的集成测试
+      #     pushd ./test/config_center
+      #     go test -count=1 -v
+      #     popd

@@ -456,7 +456,9 @@ func (svr *server) ResetUserToken(ctx context.Context, req *api.User) *api.Respo
 // Case 2: 如果是主账户操作自己的子账户，通过
 // Case 3: 如果是超级账户，通过
 func checkUserViewPermission(ctx context.Context, user *model.User) bool {
-	if utils.ParseUserRole(ctx) == model.AdminUserRole {
+	role := utils.ParseUserRole(ctx)
+	if role == model.AdminUserRole {
+		log.AuthScope().Debug("check user view permission", utils.ZapRequestIDByCtx(ctx), zap.Bool("admin", true))
 		return true
 	}
 
@@ -466,6 +468,8 @@ func checkUserViewPermission(ctx context.Context, user *model.User) bool {
 	}
 
 	if user.Owner == userId {
+		log.AuthScope().Debug("check user view permission", utils.ZapRequestIDByCtx(ctx),
+			zap.Any("user", user), zap.String("owner", user.Owner), zap.String("operator", userId))
 		return true
 	}
 

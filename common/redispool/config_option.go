@@ -14,24 +14,16 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
+
 package redispool
 
 import (
 	"crypto/tls"
 	"time"
-
-	commontime "github.com/polarismesh/polaris-server/common/time"
 )
 
 // Option functional options for Config
 type Option func(c *Config)
-
-// WithConfig set new config for NewPool,keep old code compatibility
-func WithConfig(newConfig *Config) Option {
-	return func(c *Config) {
-		c = newConfig
-	}
-}
 
 // WithAddr set redis addr
 func WithAddr(addr string) Option {
@@ -57,14 +49,14 @@ func WithMinIdleConns(minIdleConns int) Option {
 // WithIdleTimeout set idleTimeout
 func WithIdleTimeout(idleTimeout time.Duration) Option {
 	return func(c *Config) {
-		c.IdleTimeout = commontime.Duration(idleTimeout)
+		c.IdleTimeout = idleTimeout
 	}
 }
 
 // WithConnectTimeout set connection timeout
 func WithConnectTimeout(timeout time.Duration) Option {
 	return func(c *Config) {
-		c.ConnectTimeout = commontime.Duration(timeout)
+		c.ConnectTimeout = timeout
 	}
 }
 
@@ -99,7 +91,7 @@ func WithMinBatchCount(n int) Option {
 // WithWaitTime set wait timeout
 func WithWaitTime(t time.Duration) Option {
 	return func(c *Config) {
-		c.WaitTime = commontime.Duration(t)
+		c.WaitTime = t
 	}
 }
 
@@ -120,14 +112,14 @@ func WithDB(num int) Option {
 // WithReadTimeout set readTimeout
 func WithReadTimeout(timeout time.Duration) Option {
 	return func(c *Config) {
-		c.ReadTimeout = commontime.Duration(timeout)
+		c.ReadTimeout = timeout
 	}
 }
 
 // WithWriteTimeout set writeTimeout
 func WithWriteTimeout(timeout time.Duration) Option {
 	return func(c *Config) {
-		c.WriteTimeout = commontime.Duration(timeout)
+		c.WriteTimeout = timeout
 	}
 }
 
@@ -141,14 +133,14 @@ func WithPoolSize(poolSize int) Option {
 // WithPoolTimeout set pool timeout
 func WithPoolTimeout(poolTimeout time.Duration) Option {
 	return func(c *Config) {
-		c.PoolTimeout = commontime.Duration(poolTimeout)
+		c.PoolTimeout = poolTimeout
 	}
 }
 
 // WithMaxConnAge set MaxConnAge
 func WithMaxConnAge(maxConnAge time.Duration) Option {
 	return func(c *Config) {
-		c.MaxConnAge = commontime.Duration(maxConnAge)
+		c.MaxConnAge = maxConnAge
 	}
 }
 
@@ -162,13 +154,25 @@ func WithUsername(username string) Option {
 // WithTLSConfig set TLSConfig
 func WithTLSConfig(tlsConfig *tls.Config) Option {
 	return func(c *Config) {
+		c.WithTLS = true
 		c.tlsConfig = tlsConfig
 	}
 }
 
-// WithEnableWithTLS set WithTLS
-func WithEnableWithTLS() Option {
+// WithCluster use redis cluster
+func WithCluster(cc ClusterConfig) Option {
 	return func(c *Config) {
-		c.WithTLS = true
+		c.DeployMode = redisCluster
+		c.StandaloneConfig.KvAddr = ""
+		c.ClusterConfig = cc
+	}
+}
+
+// WithSentinel use redis sentinel
+func WithSentinel(sc SentinelConfig) Option {
+	return func(c *Config) {
+		c.DeployMode = redisSentinel
+		c.StandaloneConfig.KvAddr = ""
+		c.SentinelConfig = sc
 	}
 }

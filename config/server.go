@@ -73,6 +73,8 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 		return err
 	}
 
+	server = newServerAuthAbility(originServer, authSvr)
+
 	originServer.initialized = true
 	return nil
 }
@@ -109,9 +111,6 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store, 
 	}
 
 	log.ConfigScope().Infof("[Config][Server] startup config module success.")
-
-	server = newServerAuthAbility(originServer, authSvr)
-
 	return nil
 }
 

@@ -168,12 +168,3 @@ Please scan the QR code to join the chat group.
 If you have good comments or suggestions, please give us Issues or Pull Requests to contribute to improve the
 development experience of Polaris Mesh.
 <br>see details：[CONTRIBUTING.md](./CONTRIBUTING.md)
-
-[Tencent Open Source Incentive Plan](https://opensource.tencent.com/contribution) encourages developers to participate
-and contribute. Look forward to your participation.
-
-## Stargazers over time
-
-If you are interested in Polaris, please star and follow our project, thank you very much.
-
-[![Stargazers over time](https://starchart.cc/polarismesh/polaris.svg)](https://starchart.cc/polarismesh/polaris)
