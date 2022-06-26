@@ -20,7 +20,6 @@ package store
 import (
 	"errors"
 	"fmt"
-	"os"
 )
 
 // GetStore 获取Store
@@ -38,7 +37,7 @@ func TestGetStore() (Store, error) {
 
 	if err := s.Initialize(config); err != nil {
 		fmt.Printf("[ERROR] initialize store `%s` fail: %v", s.Name(), err)
-		os.Exit(-1)
+		panic(err)
 	}
 	return s, nil
 }

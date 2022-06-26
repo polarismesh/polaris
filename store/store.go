@@ -20,7 +20,6 @@ package store
 import (
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 )
 
@@ -75,7 +74,7 @@ func initialize(s Store) {
 	once.Do(func() {
 		if err := s.Initialize(config); err != nil {
 			fmt.Printf("[ERROR] initialize store `%s` fail: %v", s.Name(), err)
-			os.Exit(-1)
+			panic(err)
 		}
 	})
 }
