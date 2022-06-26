@@ -76,6 +76,6 @@ func (d *DiscoverCallStatis) log() {
 	}
 
 	d.logger.Info(buffer.String())
-
+	// Reset for every tick
 	d.statis = make(map[Service]time.Time)
 }

@@ -204,7 +204,13 @@ func (fg *configFileGroupStore) DeleteConfigFileGroup(namespace, name string) er
 	}
 
 	key := fmt.Sprintf("%s@@%s", namespace, name)
-	if err := fg.handler.DeleteValues(tblConfigFileGroup, []string{key}, true); err != nil {
+
+
+	properties := make(map[string]interface{})
+	properties[FileGroupFieldValid] = false
+	properties[FileGroupFieldModifyTime] = time.Now()
+
+	if err := fg.handler.UpdateValue(tblConfigFileGroup, key, properties); err != nil {
 		log.Error("[ConfigFileGroup] do delete", zap.Error(err))
 		return err
 	}

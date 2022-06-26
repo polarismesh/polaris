@@ -64,7 +64,7 @@ func (h *PrometheusServer) Initialize(_ context.Context, option map[string]inter
 	api map[string]apiserver.APIConfig) error {
 	h.option = option
 	h.openAPI = api
-	h.listenIP = option["listenIP"].(string)
+	h.listenIP, _ = option["listenIP"].(string)
 	h.listenPort = uint32(option["listenPort"].(int))
 	// 连接数限制的配置
 	if raw, _ := option["connLimit"].(map[interface{}]interface{}); raw != nil {
@@ -234,14 +234,14 @@ func (h *PrometheusServer) process(req *restful.Request, rsp *restful.Response, 
 }
 
 // preprocess 请求预处理
-func (h *PrometheusServer) preprocess(req *restful.Request, rsp *restful.Response) error {
+func (h *PrometheusServer) preprocess(req *restful.Request, _ *restful.Response) error {
 	// 设置开始时间
 	req.SetAttribute("start-time", time.Now())
 	return nil
 }
 
 // postProcess 请求后处理：统计
-func (h *PrometheusServer) postProcess(req *restful.Request, rsp *restful.Response) {
+func (h *PrometheusServer) postProcess(req *restful.Request, _ *restful.Response) {
 	now := time.Now()
 
 	// 接口调用统计
@@ -250,17 +250,15 @@ func (h *PrometheusServer) postProcess(req *restful.Request, rsp *restful.Respon
 		// 去掉最后一个"/"
 		path = strings.TrimSuffix(path, "/")
 	}
-	startTime := req.Attribute("start-time").(time.Time)
-
-	diff := now.Sub(startTime)
+	startTime, _ := req.Attribute("start-time").(time.Time)
 	// 打印耗时超过1s的请求
-	if diff > time.Second {
+	if diff := now.Sub(startTime); diff > time.Second {
 		log.Info("[API-Server][Prometheus] handling time > 1s",
 			zap.String("client-address", req.Request.RemoteAddr),
 			zap.String("user-agent", req.HeaderParameter("User-Agent")),
 			zap.String("request-id", req.HeaderParameter("Request-Id")),
 			zap.String("method", req.Request.Method),
-			zap.String("url", req.Request.URL.String()),
+			zap.String("url", path),
 			zap.Duration("handling-time", diff),
 		)
 	}

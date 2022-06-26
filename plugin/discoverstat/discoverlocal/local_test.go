@@ -27,7 +27,7 @@ import (
 func TestWriteFile(t *testing.T) {
 	dcs := &DiscoverCallStatis{
 		statis: make(map[Service]time.Time),
-		logger: newLogger("discovercall_test1.log"),
+		logger: newLogger("./log/discovercall_test1.log"),
 	}
 	namespace := "Test"
 	totals := []int{25, 50, 100, 150}
@@ -59,25 +59,39 @@ func TestDiscoverStatisWorker_AddDiscoverCall(t *testing.T) {
 		dcc:      make(chan *DiscoverCall, 1024),
 		dcs: &DiscoverCallStatis{
 			statis: make(map[Service]time.Time),
-			logger: newLogger("discovercall_test2.log"),
+			logger: newLogger("./log/discovercall_test2.log"),
 		},
 	}
 
-	go worker.Run()
+	workerStarted := make(chan struct{}, 1)
+	go func() {
+		workerStarted <- struct{}{}
+		worker.Run()
+	}()
+	<-workerStarted // 等待 worker 启动
 
 	namespace := "Test"
 	timeout := time.After(time.Minute * 3)
+	stop := make(chan struct{})
 	for i := 0; i < 1000; i++ {
-		go func(index int) {
+		go func(stop chan struct{}, index int) {
+			trigger := time.NewTicker(time.Millisecond * 10)
+			defer trigger.Stop()
+
 			for {
-				name := fmt.Sprintf("test-service-%d", index)
-				if err := worker.AddDiscoverCall(name, namespace, time.Now()); err != nil {
-					t.Errorf("err: %s", err.Error())
+				select {
+				case <-trigger.C:
+					name := fmt.Sprintf("test-service-%d", index)
+					if err := worker.AddDiscoverCall(name, namespace, time.Now()); err != nil {
+						t.Errorf("err: %s", err.Error())
+					}
+				case <-stop:
+					return
 				}
-				time.Sleep(time.Millisecond * 10)
 			}
-		}(i)
+		}(stop, i)
 	}
 	<-timeout
+	stop <- struct{}{}
 	t.Log("pass")
 }

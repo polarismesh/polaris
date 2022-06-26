@@ -33,7 +33,7 @@ import (
 )
 
 var (
-	cacheSet = make(map[string]int)
+	cacheSet = map[string]int{}
 
 	_ InstanceCache       = (*instanceCache)(nil)
 	_ ServiceCache        = (*serviceCache)(nil)
@@ -64,6 +64,7 @@ const (
 	CacheLast
 )
 
+// CacheName cache name
 type CacheName string
 
 const (
@@ -80,7 +81,7 @@ const (
 )
 
 var (
-	cacheIndexMap map[CacheName]int = map[CacheName]int{
+	cacheIndexMap = map[CacheName]int{
 		CacheNameService:        CacheService,
 		CacheNameInstance:       CacheInstance,
 		CacheNameRoutingConfig:  CacheRoutingConfig,
@@ -171,9 +172,9 @@ type CacheManager struct {
 	storage store.Store
 	caches  []Cache
 
-	comRevisionCh chan *revisionNotify
-	revisions     *sync.Map // service id -> reversion (所有instance reversion 的累计计算值)
-
+	comRevisionCh    chan *revisionNotify
+	revisions        map[string]string // service id -> reversion (所有instance reversion 的累计计算值)
+	lock             sync.RWMutex      // for revisions rw lock
 	storeTimeDiffSec int64
 }
 
@@ -215,6 +216,26 @@ func (nc *CacheManager) update() error {
 
 	wg.Wait()
 	return nil
+}
+
+func (nc *CacheManager) deleteRevisions(id string) {
+	nc.lock.Lock()
+	delete(nc.revisions, id)
+	nc.lock.Unlock()
+}
+
+func (nc *CacheManager) setRevisions(key string, val string) {
+	nc.lock.Lock()
+	nc.revisions[key] = val
+	nc.lock.Unlock()
+}
+
+func (nc *CacheManager) readRevisions(key string) (string, bool) {
+	nc.lock.RLock()
+	defer nc.lock.RUnlock()
+
+	id, ok := nc.revisions[key]
+	return id, ok
 }
 
 // clear 清除caches的所有缓存数据
@@ -263,7 +284,10 @@ func (nc *CacheManager) Start(ctx context.Context) error {
 
 // Clear 主动清除缓存数据
 func (nc *CacheManager) Clear() error {
-	nc.revisions = new(sync.Map)
+	nc.lock.Lock()
+	nc.revisions = map[string]string{}
+	nc.lock.Unlock()
+
 	return nc.clear()
 }
 
@@ -308,7 +332,7 @@ func (nc *CacheManager) processRevisionWorker(req *revisionNotify) bool {
 
 	if !req.valid {
 		log.CacheScope().Infof("[Cache][Revision] service(%s) revision has all been removed", req.serviceID)
-		nc.revisions.Delete(req.serviceID)
+		nc.deleteRevisions(req.serviceID)
 		return true
 	}
 
@@ -325,7 +349,8 @@ func (nc *CacheManager) processRevisionWorker(req *revisionNotify) bool {
 			"[Cache] compute service id(%s) instances revision err: %s", req.serviceID, err.Error())
 		return false
 	}
-	nc.revisions.Store(req.serviceID, revision) // string -> string
+
+	nc.setRevisions(req.serviceID, revision) // string -> string
 	return true
 }
 
@@ -336,23 +361,20 @@ func (nc *CacheManager) GetUpdateCacheInterval() time.Duration {
 
 // GetServiceInstanceRevision 获取服务实例计算之后的revision
 func (nc *CacheManager) GetServiceInstanceRevision(serviceID string) string {
-	value, ok := nc.revisions.Load(serviceID)
+	value, ok := nc.readRevisions(serviceID)
 	if !ok {
 		return ""
 	}
 
-	return value.(string)
+	return value
 }
 
 // GetServiceRevisionCount 计算一下缓存中的revision的个数
 func (nc *CacheManager) GetServiceRevisionCount() int {
-	count := 0
-	nc.revisions.Range(func(key, value interface{}) bool {
-		count++
-		return true
-	})
+	nc.lock.RLock()
+	defer nc.lock.RUnlock()
 
-	return count
+	return len(nc.revisions)
 }
 
 func (nc *CacheManager) AddListener(cacheName CacheName, listeners []Listener) {

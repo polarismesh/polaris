@@ -32,21 +32,53 @@ import (
 	"testing"
 	"time"
 
+	"github.com/boltdb/bolt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/protobuf/ptypes/duration"
 	"gopkg.in/yaml.v2"
 
+	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/bootstrap/config"
+	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/plugin"
-	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
-	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/token"
 	"github.com/polarismesh/polaris-server/service"
+	"github.com/polarismesh/polaris-server/service/batch"
+	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris-server/store/boltdb"
+	"github.com/polarismesh/polaris-server/store/sqldb"
+
+	_ "github.com/polarismesh/polaris-server/apiserver/eurekaserver"
+	_ "github.com/polarismesh/polaris-server/apiserver/grpcserver/config"
+	_ "github.com/polarismesh/polaris-server/apiserver/grpcserver/discover"
+	_ "github.com/polarismesh/polaris-server/apiserver/httpserver"
+	_ "github.com/polarismesh/polaris-server/apiserver/l5pbserver"
+	_ "github.com/polarismesh/polaris-server/apiserver/prometheussd"
+	_ "github.com/polarismesh/polaris-server/apiserver/xdsserverv3"
+
+	_ "github.com/polarismesh/polaris-server/auth/defaultauth"
+	_ "github.com/polarismesh/polaris-server/cache"
 	_ "github.com/polarismesh/polaris-server/store/boltdb"
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
+
+	_ "github.com/polarismesh/polaris-server/plugin/auth/defaultauth"
+	_ "github.com/polarismesh/polaris-server/plugin/cmdb/memory"
+
+	_ "github.com/polarismesh/polaris-server/plugin/auth/platform"
+	_ "github.com/polarismesh/polaris-server/plugin/discoverevent/local"
+	_ "github.com/polarismesh/polaris-server/plugin/discoverstat/discoverlocal"
+	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
+	_ "github.com/polarismesh/polaris-server/plugin/password"
+	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/lrurate"
+	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/token"
+	_ "github.com/polarismesh/polaris-server/plugin/statis/local"
+
+	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatmemory"
+	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatredis"
 )
 
 var (
@@ -97,7 +129,7 @@ func initialize() error {
 
 		// 初始化存储层
 		store.SetStoreConfig(&cfg.Store)
-		_, _ = store.GetStore()
+		s, _ := store.GetStore()
 
 		plugin.SetPluginConfig(&cfg.Plugin)
 
@@ -109,7 +141,77 @@ func initialize() error {
 			}
 		}()
 
-		if err := service.Initialize(ctx, &cfg.Naming, &cfg.Cache, nil); err != nil {
+		// 初始化缓存模块
+		if err := cache.Initialize(ctx, &cfg.Cache, s); err != nil {
+			panic(err)
+		}
+
+		cacheMgn, err := cache.GetCacheManager()
+		if err != nil {
+			panic(err)
+		}
+
+		// 初始化鉴权层
+		if err = auth.Initialize(ctx, &cfg.Auth, s, cacheMgn); err != nil {
+			panic(err)
+		}
+
+		_, err = auth.GetAuthServer()
+		if err != nil {
+			panic(err)
+		}
+
+		// 初始化命名空间模块
+		if err := namespace.Initialize(ctx, &cfg.Namespace, s, cacheMgn); err != nil {
+			panic(err)
+		}
+
+		// 批量控制器
+		namingBatchConfig, err := batch.ParseBatchConfig(cfg.Naming.Batch)
+		if err != nil {
+			panic(err)
+		}
+		healthBatchConfig, err := batch.ParseBatchConfig(cfg.HealthChecks.Batch)
+		if err != nil {
+			panic(err)
+		}
+
+		batchConfig := &batch.Config{
+			Register:         namingBatchConfig.Register,
+			Deregister:       namingBatchConfig.Register,
+			ClientRegister:   namingBatchConfig.ClientRegister,
+			ClientDeregister: namingBatchConfig.ClientDeregister,
+			Heartbeat:        healthBatchConfig.Heartbeat,
+		}
+
+		bc, err := batch.NewBatchCtrlWithConfig(s, cacheMgn, batchConfig)
+		if err != nil {
+			log.Errorf("new batch ctrl with config err: %s", err.Error())
+			panic(err)
+		}
+		bc.Start(ctx)
+
+		if len(cfg.HealthChecks.LocalHost) == 0 {
+			cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
+		}
+		if err = healthcheck.Initialize(ctx, &cfg.HealthChecks, cfg.Cache.Open, bc); err != nil {
+			panic(err)
+		}
+		healthCheckServer, err := healthcheck.GetServer()
+		if err != nil {
+			panic(err)
+		}
+		cacheProvider, err := healthCheckServer.CacheProvider()
+		if err != nil {
+			panic(err)
+		}
+		healthCheckServer.SetServiceCache(cacheMgn.Service())
+
+		// 为 instance 的 cache 添加 健康检查的 Listener
+		cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
+		cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
+
+		if err := service.Initialize(ctx, &cfg.Naming, &cfg.Cache, bc); err != nil {
 			panic(err)
 		}
 
@@ -152,49 +254,119 @@ func cleanNamespace(name string) {
 	}
 
 	log.Infof("clean namespace: %s", name)
-	str := "delete from namespace where name = ?"
-	if _, err := db.Exec(str, name); err != nil {
+
+	s, err := store.GetStore()
+	if err != nil {
 		panic(err)
+	}
+
+	if s.Name() == sqldb.STORENAME {
+		str := "delete from namespace where name = ?"
+		func() {
+			tx, err := s.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*sql.Tx)
+
+			if _, err := dbTx.Exec(str); err != nil {
+				dbTx.Rollback()
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if s.Name() == boltdb.STORENAME {
+		func() {
+			tx, err := s.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+			if err := dbTx.Bucket([]byte("namespace")).DeleteBucket([]byte(name)); err != nil {
+				dbTx.Rollback()
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
 	}
 }
 
 // 从数据库彻底删除服务
-func cleanService(id, name, namespace string) {
-	if id == "" {
-		panic("id is empty")
-	}
+func cleanService(name, namespace string) {
 
-	log.Infof("clean service: %s", id)
-	str := "delete from service_metadata where id = ?"
-	if _, err := db.Exec(str, id); err != nil {
+	s, err := store.GetStore()
+	if err != nil {
 		panic(err)
 	}
+	if s.Name() == sqldb.STORENAME {
+		func() {
+			tx, err := s.StartTx()
+			if err != nil {
+				panic(err)
+			}
 
-	str = "delete from service where id = ?"
-	if _, err := db.Exec(str, id); err != nil {
-		panic(err)
-	}
+			dbTx := tx.GetDelegateTx().(*sql.Tx)
 
-	str = "delete from owner_service_map where service=? and namespace=?"
-	if _, err := db.Exec(str, name, namespace); err != nil {
-		panic(err)
+			str := "select id from service where name = ? and namespace = ?"
+			var id string
+			err = dbTx.QueryRow(str, name, namespace).Scan(&id)
+			switch {
+			case err == sql.ErrNoRows:
+				return
+			case err != nil:
+				panic(err)
+			}
+
+			if _, err := dbTx.Exec("delete from service_metadata where id = ?", id); err != nil {
+				dbTx.Rollback()
+				panic(err)
+			}
+
+			if _, err := dbTx.Exec("delete from service where id = ?", id); err != nil {
+				dbTx.Rollback()
+				panic(err)
+			}
+
+			if _, err := dbTx.Exec("delete from owner_service_map where service=? and namespace=?", name, namespace); err != nil {
+				dbTx.Rollback()
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if s.Name() == boltdb.STORENAME {
+		func() {
+			svc, err := s.GetService(name, namespace)
+			if err != nil {
+				panic(err)
+			}
+
+			tx, err := s.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+
+			if err := dbTx.Bucket([]byte("service")).DeleteBucket([]byte(svc.ID)); err != nil {
+				dbTx.Rollback()
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
 	}
 }
 
 // 从数据库彻底删除服务名对应的服务
 func cleanServiceName(name string, namespace string) {
 	log.Infof("clean service %s, %s", name, namespace)
-	str := "select id from service where name = ? and namespace = ?"
-	var id string
-	err := db.QueryRow(str, name, namespace).Scan(&id)
-	switch {
-	case err == sql.ErrNoRows:
-		return
-	case err != nil:
-		panic(err)
-	}
 
-	cleanService(id, name, namespace)
+	cleanService(name, namespace)
 }
 
 // clean services

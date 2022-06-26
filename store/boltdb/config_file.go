@@ -245,7 +245,12 @@ func (cf *configFileStore) UpdateConfigFile(proxyTx store.Tx, file *model.Config
 func (cf *configFileStore) DeleteConfigFile(proxyTx store.Tx, namespace, group, name string) error {
 	_, err := DoTransactionIfNeed(proxyTx, cf.handler, func(tx *bolt.Tx) ([]interface{}, error) {
 		key := fmt.Sprintf("%s@%s@%s", namespace, group, name)
-		err := deleteValues(tx, tblConfigFile, []string{key}, true)
+
+		properties := make(map[string]interface{})
+		properties[FileFieldValid] = false
+		properties[FileFieldModifyTime] = time.Now()
+
+		err := updateValue(tx, tblConfigFile, key, properties)
 		return nil, err
 	})
 	return err
