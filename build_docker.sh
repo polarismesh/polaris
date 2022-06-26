@@ -9,7 +9,7 @@ docker_tag=$1
 
 echo "docker repository : polarismesh/polaris-server, tag : ${docker_tag}"
 
-bash build.sh
+bash build.sh ${docker_tag}
 
 if [ $? != 0 ]; then
     echo "build polaris-server failed"
