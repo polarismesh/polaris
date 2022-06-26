@@ -81,7 +81,7 @@ func TestCreateServiceAlias(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 123)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -147,7 +147,7 @@ func TestCreateSid(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	Convey("创建不同命名空间的sid，可以返回符合规范的sid", t, func() {
 		for namespace, layout := range service.Namespace2SidLayoutID {
@@ -204,7 +204,7 @@ func TestConcurrencyCreateSid(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 234)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -265,7 +265,7 @@ func TestExceptCreateAlias(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 345)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -354,7 +354,7 @@ func TestUpdateServiceAlias(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 3)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -469,7 +469,7 @@ func TestDeleteServiceAlias(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 201)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -504,7 +504,7 @@ func TestServiceAliasRelated(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 202)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -567,7 +567,7 @@ func TestGetServiceAliases(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 203)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -641,7 +641,7 @@ func TestCheckServiceAliasFieldLen(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	serviceAlias := &api.ServiceAlias{
 		Service:        utils.NewStringValue("test-123"),
@@ -711,7 +711,7 @@ func TestServiceAliasDifferentNamespace(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 203)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())

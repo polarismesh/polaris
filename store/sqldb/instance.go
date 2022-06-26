@@ -91,11 +91,11 @@ func (ins *instanceStore) addInstance(instance *model.Instance) error {
 
 // BatchAddInstances 批量增加实例
 func (ins *instanceStore) BatchAddInstances(instances []*model.Instance) error {
-	// 直接清理所有的老数据
-	if err := ins.BatchClearInstances(instances); err != nil {
-		log.Errorf("[Store][database] batch clear instances err: %s", err.Error())
-		return err
-	}
+	// 由于已经走了 replace into 逻辑，因为这里不需要在进行额外的数据删除动作
+	// if err := ins.BatchClearInstances(instances); err != nil {
+	// 	log.Errorf("[Store][database] batch clear instances err: %s", err.Error())
+	// 	return err
+	// }
 
 	err := RetryTransaction("batchAddInstances", func() error {
 		return ins.batchAddInstances(instances)
@@ -905,12 +905,21 @@ func batchDeleteInstanceMeta(tx *BaseTx, instances []*model.Instance) error {
 	ids := make([]interface{}, 0, len(instances))
 	builder := strings.Builder{}
 	for idx, entry := range instances {
+		if entry.FirstRegis {
+			continue
+		}
+
 		if idx > 0 {
 			builder.WriteString(",")
 		}
 		builder.WriteString("?")
 		ids = append(ids, entry.ID())
 	}
+	
+	if len(ids) == 0 {
+		return nil
+	}
+
 	str := `delete from instance_metadata where id in (` + builder.String() + `)`
 	_, err := tx.Exec(str, ids...)
 	return err

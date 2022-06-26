@@ -82,7 +82,7 @@ func TestCreateRoutingConfig(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	Convey("正常创建路由配置配置请求", t, func() {
 		_, serviceResp := discoverSuit.createCommonService(t, 200)
@@ -119,7 +119,7 @@ func TestCreateRoutingConfig2(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	Convey("参数缺失，报错", t, func() {
 		_, serviceResp := discoverSuit.createCommonService(t, 20)
@@ -163,7 +163,7 @@ func TestDeleteRoutingConfig(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	Convey("可以正常删除路由配置", t, func() {
 		_, serviceResp := discoverSuit.createCommonService(t, 100)
@@ -188,7 +188,7 @@ func TestUpdateRoutingConfig(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	Convey("可以正常更新路由配置", t, func() {
 		_, serviceResp := discoverSuit.createCommonService(t, 50)
@@ -217,7 +217,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	Convey("多个服务的，多个路由配置，都可以查询到", t, func() {
 		total := 20
@@ -277,7 +277,7 @@ func TestGetRoutings(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	Convey("直接从数据库查询数据，可以查询成功", t, func() {
 		total := 10
@@ -321,7 +321,7 @@ func TestCheckRoutingFieldLen(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	req := &api.Routing{
 		ServiceToken: utils.NewStringValue("test"),

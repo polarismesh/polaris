@@ -255,7 +255,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	return err
 }
 
-func (d *DiscoverTestSuit) Destory() {
+func (d *DiscoverTestSuit) Destroy() {
 	d.cancel()
 	d.storage.Destroy()
 }

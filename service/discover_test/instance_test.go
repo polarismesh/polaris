@@ -43,7 +43,7 @@ func TestCreateInstance(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 100)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -166,7 +166,7 @@ func TestCreateInstanceWithNoService(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("无权限注册，可以捕获正常的错误", func(t *testing.T) {
 		_, serviceResp := discoverSuit.createCommonService(t, 900)
@@ -212,7 +212,7 @@ func TestCreateInstance2(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("并发注册，可以正常注册", func(t *testing.T) {
 		var serviceResps []*api.Service
@@ -266,7 +266,7 @@ func TestUpdateInstanceManyTimes(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 100)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -317,7 +317,7 @@ func TestGetInstances(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("可以正常获取到实例信息", func(t *testing.T) {
 		_ = discoverSuit.server.Cache().Clear() // 为了防止影响，每个函数需要把缓存的内容清空
@@ -390,7 +390,7 @@ func TestGetInstances1(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	discover := func(t *testing.T, service *api.Service, expectCount int) *api.DiscoverResponse {
 		time.Sleep(discoverSuit.updateCacheInterval)
@@ -460,7 +460,7 @@ func TestRemoveInstance(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 15)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -500,7 +500,7 @@ func TestListInstances(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("list实例列表，返回的数据字段都存在", func(t *testing.T) {
 		_, serviceResp := discoverSuit.createCommonService(t, 1156)
@@ -578,7 +578,7 @@ func TestListInstances1(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	// 先任意找几个实例字段过滤
 	_, serviceResp := discoverSuit.createCommonService(t, 800)
@@ -723,7 +723,7 @@ func TestInstancesContainLocation(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	locationCheck := func(lhs *api.Location, rhs *api.Location) {
 		if lhs.GetRegion().GetValue() != rhs.GetRegion().GetValue() {
@@ -787,7 +787,7 @@ func TestUpdateInstance(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 123)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -882,7 +882,7 @@ func TestUpdateIsolate(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 111)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -1032,7 +1032,7 @@ func TestDeleteInstanceByHost(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 222)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -1107,7 +1107,7 @@ func TestUpdateHealthCheck(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	getAndCheck := func(t *testing.T, req *api.Instance) {
 		query := map[string]string{
@@ -1193,7 +1193,7 @@ func TestDeleteInstance(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 123)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -1255,7 +1255,7 @@ func TestBatchCreateInstances(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	Convey("批量创建服务", t, func() {
 		n := 32
@@ -1310,7 +1310,7 @@ func TestCreateInstancesOrder(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("测试批量接口返回的顺序与发送的数据一致", func(t *testing.T) {
 		_, service := discoverSuit.createCommonService(t, 123)
@@ -1346,7 +1346,7 @@ func TestBatchDeleteInstances(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, service := discoverSuit.createCommonService(t, 234)
 	defer discoverSuit.cleanServiceName(service.GetName().GetValue(), service.GetNamespace().GetValue())
@@ -1432,7 +1432,7 @@ func TestInstanceResponse(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, service := discoverSuit.createCommonService(t, 234)
 	defer discoverSuit.cleanServiceName(service.GetName().GetValue(), service.GetNamespace().GetValue())
@@ -1487,7 +1487,7 @@ func TestCreateInstancesBadCase2(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, service := discoverSuit.createCommonService(t, 123)
 	defer discoverSuit.cleanServiceName(service.GetName().GetValue(), service.GetNamespace().GetValue())
@@ -1586,7 +1586,7 @@ func TestInstanceNoNeedUpdate(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 222)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -1619,7 +1619,7 @@ func TestUpdateInstanceFiled(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 555)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -1716,7 +1716,7 @@ func TestCheckInstanceFieldLen(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 800)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -1836,7 +1836,7 @@ func TestCheckInstanceParam(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	// get instances接口限制(service+namespace)或者host必传，其它传参均拒绝服务
 	_, serviceResp := discoverSuit.createCommonService(t, 1254)

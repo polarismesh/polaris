@@ -71,7 +71,7 @@ func TestCreateNamespace(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("正常创建命名空间", func(t *testing.T) {
 		_, resp := discoverSuit.createCommonNamespace(t, 100)
@@ -114,7 +114,7 @@ func TestRemoveNamespace(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("可以删除命名空间", func(t *testing.T) {
 		_, resp := discoverSuit.createCommonNamespace(t, 99)
@@ -171,7 +171,7 @@ func TestUpdateNamespace(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("正常更新命名空间", func(t *testing.T) {
 		req, resp := discoverSuit.createCommonNamespace(t, 200)
@@ -194,7 +194,7 @@ func TestGetNamespaces(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("正常获取命名空间，可以正常获取", func(t *testing.T) {
 		total := 50
@@ -240,7 +240,7 @@ func TestNamespaceToken(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("可以正常获取到namespaceToken", func(t *testing.T) {
 		_, namespaceResp := discoverSuit.createCommonNamespace(t, 1)

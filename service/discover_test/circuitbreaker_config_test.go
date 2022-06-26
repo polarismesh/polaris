@@ -160,7 +160,7 @@ func TestCreateCircuitBreaker(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("正常创建熔断规则，返回成功", func(t *testing.T) {
 		circuitBreakerReq, circuitBreakerResp := discoverSuit.createCommonCircuitBreaker(t, 0)
@@ -245,7 +245,7 @@ func TestCreateCircuitBreakerVersion(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, cbResp := discoverSuit.createCommonCircuitBreaker(t, 0)
 	defer discoverSuit.cleanCircuitBreaker(cbResp.GetId().GetValue(), cbResp.GetVersion().GetValue())
@@ -405,7 +405,7 @@ func Test_DeleteCircuitBreaker(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	getCircuitBreakerVersions := func(t *testing.T, id string, expectNum uint32) {
 		filters := map[string]string{
@@ -635,7 +635,7 @@ func TestUpdateCircuitBreaker(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	// 创建熔断规则
 	_, cbResp := discoverSuit.createCommonCircuitBreaker(t, 0)
@@ -780,7 +780,7 @@ func TestReleaseCircuitBreaker(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	// 创建服务
 	_, serviceResp := discoverSuit.createCommonService(t, 0)
@@ -1021,7 +1021,7 @@ func TestUnBindCircuitBreaker(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	// 创建服务
 	_, serviceResp := discoverSuit.createCommonService(t, 0)
@@ -1199,7 +1199,7 @@ func TestGetCircuitBreaker(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	versionNum := 10
 	serviceNum := 2
@@ -1312,7 +1312,7 @@ func TestGetCircuitBreaker2(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	// 创建服务
 	_, serviceResp := discoverSuit.createCommonService(t, 0)
@@ -1400,7 +1400,7 @@ func TestCheckCircuitBreakerFieldLen(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	circuitBreaker := &api.CircuitBreaker{
 		Name:       utils.NewStringValue("name-test-123"),

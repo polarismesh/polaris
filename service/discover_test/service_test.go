@@ -40,7 +40,7 @@ func TestCreateService(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("正常创建服务", func(t *testing.T) {
 		serviceReq, serviceResp := discoverSuit.createCommonService(t, 9)
@@ -133,7 +133,7 @@ func TestRemoveServices(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("删除单个服务，删除成功", func(t *testing.T) {
 		serviceReq, serviceResp := discoverSuit.createCommonService(t, 59)
@@ -229,7 +229,7 @@ func TestDeleteService2(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("存在路由配置的情况下，删除服务会失败", func(t *testing.T) {
 		serviceReq, serviceResp := discoverSuit.createCommonService(t, 20)
@@ -277,7 +277,7 @@ func TestGetServiceOwner(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("服务个数为0，返回错误", func(t *testing.T) {
 		var reqs []*api.Service
@@ -327,7 +327,7 @@ func TestGetService(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("查询服务列表，可以正常返回", func(t *testing.T) {
 		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{})
@@ -400,7 +400,7 @@ func TestGetServices2(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("查询服务列表，limit有最大为100的限制", func(t *testing.T) {
 		total := 101
@@ -483,7 +483,7 @@ func TestGetService3(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("根据服务名，可以正常过滤", func(t *testing.T) {
 		var reqs []*api.Service
@@ -560,7 +560,7 @@ func TestGetServices4(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	t.Run("查询服务列表，新建一批服务，删除部分，再查询，可以过滤掉删除的", func(t *testing.T) {
 		total := 50
@@ -637,7 +637,7 @@ func TestGetServices5(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	getServiceCheck := func(resp *api.BatchQueryResponse, amount, size uint32) {
 		t.Logf("gocheck resp: %v", resp)
@@ -736,7 +736,7 @@ func TestUpdateService(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 200)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -828,7 +828,7 @@ func TestNoNeedUpdateService(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 500)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -930,7 +930,7 @@ func TestServiceToken(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	_, serviceResp := discoverSuit.createCommonService(t, 200)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -1063,7 +1063,7 @@ func TestCheckServiceFieldLen(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	service := genMainService(400)
 	t.Run("服务名超长", func(t *testing.T) {

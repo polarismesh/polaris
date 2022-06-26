@@ -35,7 +35,7 @@ func TestReportClient(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	Convey("可以进行正常的client上报", t, func() {
 		req := &api.Client{
@@ -55,7 +55,7 @@ func TestDiscoverInstances(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	Convey("服务发现测试", t, func() {
 		_, service := discoverSuit.createCommonService(t, 5)
@@ -120,7 +120,7 @@ func TestDiscoverRateLimits(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	Convey("限流规则测试", t, func() {
 		_, service := discoverSuit.createCommonService(t, 1)
@@ -159,7 +159,7 @@ func TestDiscoverRateLimits2(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	Convey("限流规则异常测试", t, func() {
 		_, service := discoverSuit.createCommonService(t, 1)
@@ -189,7 +189,7 @@ func TestDiscoverCircuitBreaker(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	Convey("熔断规则测试", t, func() {
 		// 创建服务
@@ -237,7 +237,7 @@ func TestDiscoverCircuitBreaker2(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	Convey("熔断规则异常测试", t, func() {
 		_, service := discoverSuit.createCommonService(t, 1)
@@ -267,7 +267,7 @@ func TestDiscoverService(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	Convey("服务测试", t, func() {
 		expectService1 := &api.Service{}
@@ -337,7 +337,7 @@ func TestDiscoverService2(t *testing.T) {
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destory()
+	defer discoverSuit.Destroy()
 
 	Convey("服务正常测试", t, func() {
 		Convey("元数据不存在", func() {
