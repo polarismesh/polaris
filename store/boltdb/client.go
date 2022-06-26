@@ -84,12 +84,23 @@ func (cs *clientStore) BatchAddClients(clients []*model.Client) error {
 
 // BatchDeleteClients delete the client info
 func (cs *clientStore) BatchDeleteClients(ids []string) error {
-	if err := cs.handler.DeleteValues(tblClient, ids, true); err != nil {
-		log.Error("[Client] batch delete clients", zap.Error(err))
-		return err
-	}
+	err := cs.handler.Execute(true, func(tx *bolt.Tx) error {
+		for i := range ids {
 
-	return nil
+			properties := make(map[string]interface{})
+			properties[ClientFieldValid] = false
+			properties[ClientFieldMtime] = time.Now()
+
+			if err := updateValue(tx, tblClient, ids[i], properties); err != nil {
+				log.Error("[Client] batch delete clients", zap.Error(err))
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	return err
 }
 
 // GetMoreClients 根据mtime获取增量clients，返回所有store的变更信息

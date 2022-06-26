@@ -31,6 +31,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 func RandCircuitbreakerStringRunes(n int) string {
@@ -44,7 +45,7 @@ func RandCircuitbreakerStringRunes(n int) string {
 func createTestCircuitbreaker(id string, createId bool) *model.CircuitBreaker {
 
 	if strings.Compare(id, "") == 0 && createId {
-		id = uuid.NewString()
+		id = utils.NewUUID()
 	}
 
 	str := RandCircuitbreakerStringRunes(5)
@@ -449,8 +450,6 @@ func Test_circuitBreakerStore_DeleteTagCircuitBreaker(t *testing.T) {
 
 		type fields struct {
 			handler      BoltHandler
-			ruleLock     *sync.RWMutex
-			relationLock *sync.RWMutex
 		}
 		type args struct {
 			id      string
@@ -466,8 +465,6 @@ func Test_circuitBreakerStore_DeleteTagCircuitBreaker(t *testing.T) {
 				name: "",
 				fields: fields{
 					handler:      handler,
-					ruleLock:     &sync.RWMutex{},
-					relationLock: &sync.RWMutex{},
 				},
 				args: args{
 					id:      cb.ID,

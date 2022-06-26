@@ -47,10 +47,10 @@ func (d *DiscoverStatisWorker) Name() string {
 // Initialize 初始化服务发现统计插件
 func (d *DiscoverStatisWorker) Initialize(conf *plugin.ConfigEntry) error {
 	// 设置打印周期
-	interval := conf.Option["interval"].(int)
+	interval, _ := conf.Option["interval"].(int)
 	d.interval = time.Duration(interval) * time.Second
 
-	outputPath := conf.Option["outputPath"].(string)
+	outputPath, _ := conf.Option["outputPath"].(string)
 
 	// 初始化
 	d.dcc = make(chan *DiscoverCall, 1024)

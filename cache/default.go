@@ -28,8 +28,8 @@ import (
 
 var (
 	cacheMgn   *CacheManager
-	once       *sync.Once = new(sync.Once)
-	finishInit bool       = false
+	once       sync.Once
+	finishInit bool
 )
 
 // Initialize 初始化
@@ -48,24 +48,21 @@ func Initialize(ctx context.Context, cacheOpt *Config, storage store.Store) erro
 }
 
 // initialize cache 初始化
-func initialize(ctx context.Context, cacheOpt *Config, storage store.Store) error {
-
+func initialize(_ context.Context, cacheOpt *Config, storage store.Store) error {
 	if !cacheOpt.Open {
 		return nil
 	}
 
 	SetCacheConfig(cacheOpt)
-
 	cacheMgn = &CacheManager{
 		storage:       storage,
 		caches:        make([]Cache, CacheLast),
 		comRevisionCh: make(chan *revisionNotify, RevisionChanCount),
-		revisions:     new(sync.Map),
+		revisions:     map[string]string{},
 	}
 
 	ic := newInstanceCache(storage, cacheMgn.comRevisionCh)
 	sc := newServiceCache(storage, cacheMgn.comRevisionCh, ic)
-
 	cacheMgn.caches[CacheService] = sc
 	cacheMgn.caches[CacheInstance] = ic
 	cacheMgn.caches[CacheRoutingConfig] = newRoutingConfigCache(storage)

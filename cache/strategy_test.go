@@ -19,7 +19,6 @@ package cache
 
 import (
 	"fmt"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,21 +30,12 @@ import (
 //
 func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 	t.Run("资源没有关联任何策略", func(t *testing.T) {
-		userCache := &userCache{
-			users:       &sync.Map{},
-			name2Users:  &sync.Map{},
-			groups:      &sync.Map{},
-			user2Groups: &sync.Map{},
-		}
+		userCache := &userCache{}
+		userCache.initBuckets()
 		strategyCache := &strategyCache{
-			userCache:            userCache,
-			strategys:            &sync.Map{},
-			uid2Strategy:         &sync.Map{},
-			groupid2Strategy:     &sync.Map{},
-			namespace2Strategy:   &sync.Map{},
-			service2Strategy:     &sync.Map{},
-			configGroup2Strategy: &sync.Map{},
+			userCache: userCache,
 		}
+		strategyCache.initBuckets()
 
 		strategyCache.setStrategys(buildStrategies(10))
 
@@ -58,21 +48,12 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 	})
 
 	t.Run("操作的目标资源关联了策略-自己在principal-user列表中", func(t *testing.T) {
-		userCache := &userCache{
-			users:       &sync.Map{},
-			name2Users:  &sync.Map{},
-			groups:      &sync.Map{},
-			user2Groups: &sync.Map{},
-		}
+		userCache := &userCache{}
+		userCache.initBuckets()
 		strategyCache := &strategyCache{
-			userCache:            userCache,
-			strategys:            &sync.Map{},
-			uid2Strategy:         &sync.Map{},
-			groupid2Strategy:     &sync.Map{},
-			namespace2Strategy:   &sync.Map{},
-			service2Strategy:     &sync.Map{},
-			configGroup2Strategy: &sync.Map{},
+			userCache: userCache,
 		}
+		strategyCache.initBuckets()
 
 		strategyCache.setStrategys([]*model.StrategyDetail{
 			{
@@ -104,22 +85,12 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 	})
 
 	t.Run("操作的目标资源关联了策略-自己不在principal-user列表中", func(t *testing.T) {
-		userCache := &userCache{
-			users:       &sync.Map{},
-			name2Users:  &sync.Map{},
-			groups:      &sync.Map{},
-			user2Groups: &sync.Map{},
-		}
+		userCache := &userCache{}
+		userCache.initBuckets()
 		strategyCache := &strategyCache{
-			userCache:            userCache,
-			strategys:            &sync.Map{},
-			uid2Strategy:         &sync.Map{},
-			groupid2Strategy:     &sync.Map{},
-			namespace2Strategy:   &sync.Map{},
-			service2Strategy:     &sync.Map{},
-			configGroup2Strategy: &sync.Map{},
+			userCache: userCache,
 		}
-
+		strategyCache.initBuckets()
 		strategyCache.setStrategys(buildStrategies(10))
 
 		ret := strategyCache.IsResourceEditable(model.Principal{
@@ -131,23 +102,14 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 	})
 
 	t.Run("操作的目标资源关联了策略-自己属于principal-group中组成员", func(t *testing.T) {
-		userCache := &userCache{
-			users:       &sync.Map{},
-			name2Users:  &sync.Map{},
-			groups:      &sync.Map{},
-			user2Groups: &sync.Map{},
-		}
+		userCache := &userCache{}
+		userCache.initBuckets()
 		strategyCache := &strategyCache{
-			userCache:            userCache,
-			strategys:            &sync.Map{},
-			uid2Strategy:         &sync.Map{},
-			groupid2Strategy:     &sync.Map{},
-			namespace2Strategy:   &sync.Map{},
-			service2Strategy:     &sync.Map{},
-			configGroup2Strategy: &sync.Map{},
+			userCache: userCache,
 		}
+		strategyCache.initBuckets()
 
-		userCache.groups.Store("group-1", &model.UserGroupDetail{
+		userCache.groups.save("group-1", &model.UserGroupDetail{
 			UserGroup: &model.UserGroup{
 				ID: "group-1",
 			},
@@ -156,9 +118,9 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 			},
 		})
 
-		links := new(sync.Map)
-		links.Store("group-1", struct{}{})
-		userCache.user2Groups.Store("user-1", links)
+		userCache.user2Groups.save("user-1")
+		links, _ := userCache.user2Groups.get("user-1")
+		links.save("group-1")
 
 		strategyCache.setStrategys(buildStrategies(10))
 
@@ -171,23 +133,14 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 	})
 
 	t.Run("操作关联策略的资源-策略在操作成功-策略移除操作失败", func(t *testing.T) {
-		userCache := &userCache{
-			users:       &sync.Map{},
-			name2Users:  &sync.Map{},
-			groups:      &sync.Map{},
-			user2Groups: &sync.Map{},
-		}
+		userCache := &userCache{}
+		userCache.initBuckets()
 		strategyCache := &strategyCache{
-			userCache:            userCache,
-			strategys:            &sync.Map{},
-			uid2Strategy:         &sync.Map{},
-			groupid2Strategy:     &sync.Map{},
-			namespace2Strategy:   &sync.Map{},
-			service2Strategy:     &sync.Map{},
-			configGroup2Strategy: &sync.Map{},
+			userCache: userCache,
 		}
+		strategyCache.initBuckets()
 
-		userCache.groups.Store("group-1", &model.UserGroupDetail{
+		userCache.groups.save("group-1", &model.UserGroupDetail{
 			UserGroup: &model.UserGroup{
 				ID: "group-1",
 			},
@@ -196,10 +149,10 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 			},
 		})
 
-		links := new(sync.Map)
-		links.Store("group-1", struct{}{})
-		userCache.user2Groups.Store("user-1", links)
-		strategyCache.strategys.Store("rule-1", &model.StrategyDetailCache{
+		userCache.user2Groups.save("user-1")
+		links, _ := userCache.user2Groups.get("user-1")
+		links.save("group-1")
+		strategyCache.strategys.save("rule-1", &model.StrategyDetailCache{
 			StrategyDetail: &model.StrategyDetail{
 				ID:         "rule-1",
 				Name:       "rule-1",
@@ -212,7 +165,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 				},
 			},
 		})
-		strategyCache.strategys.Store("rule-2", &model.StrategyDetailCache{
+		strategyCache.strategys.save("rule-2", &model.StrategyDetailCache{
 			StrategyDetail: &model.StrategyDetail{
 				ID:         "rule-2",
 				Name:       "rule-2",
@@ -226,10 +179,8 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 			},
 		})
 
-		nsRules := &sync.Map{}
-		nsRules.Store("rule-1", struct{}{})
-		nsRules.Store("rule-2", struct{}{})
-		strategyCache.namespace2Strategy.Store("namespace-1", nsRules)
+		strategyCache.namespace2Strategy.save("namespace-1", "rule-1")
+		strategyCache.namespace2Strategy.save("namespace-1", "rule-2")
 
 		ret := strategyCache.IsResourceEditable(model.Principal{
 			PrincipalID:   "user-1",
@@ -263,23 +214,14 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		userCache := &userCache{
-			users:       &sync.Map{},
-			name2Users:  &sync.Map{},
-			groups:      &sync.Map{},
-			user2Groups: &sync.Map{},
-		}
+		userCache := &userCache{}
+		userCache.initBuckets()
 		strategyCache := &strategyCache{
-			userCache:            userCache,
-			strategys:            &sync.Map{},
-			uid2Strategy:         &sync.Map{},
-			groupid2Strategy:     &sync.Map{},
-			namespace2Strategy:   &sync.Map{},
-			service2Strategy:     &sync.Map{},
-			configGroup2Strategy: &sync.Map{},
+			userCache: userCache,
 		}
+		strategyCache.initBuckets()
 
-		userCache.groups.Store("group-1", &model.UserGroupDetail{
+		userCache.groups.save("group-1", &model.UserGroupDetail{
 			UserGroup: &model.UserGroup{
 				ID: "group-1",
 			},
@@ -334,7 +276,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 			},
 		}
 
-		strategyCache.strategys.Store("rule-1", &model.StrategyDetailCache{
+		strategyCache.strategys.save("rule-1", &model.StrategyDetailCache{
 			StrategyDetail: strategyDetail,
 			UserPrincipal: map[string]model.Principal{
 				"user-1": {
@@ -347,7 +289,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 				},
 			},
 		})
-		strategyCache.strategys.Store("rule-2", &model.StrategyDetailCache{
+		strategyCache.strategys.save("rule-2", &model.StrategyDetailCache{
 			StrategyDetail: strategyDetail2,
 			UserPrincipal: map[string]model.Principal{
 				"user-2": {
@@ -376,7 +318,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 
 		strategyCache.handlerPrincipalStrategy([]*model.StrategyDetail{strategyDetail})
 		strategyCache.handlerResourceStrategy([]*model.StrategyDetail{strategyDetail})
-		strategyCache.strategys.Delete(strategyDetail.ID)
+		strategyCache.strategys.delete(strategyDetail.ID)
 		ret = strategyCache.IsResourceEditable(model.Principal{
 			PrincipalID:   "user-1",
 			PrincipalRole: model.PrincipalUser,
