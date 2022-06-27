@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package discover
+package service
 
 import (
 	"context"
@@ -31,7 +31,6 @@ import (
 	"github.com/pkg/errors"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/service"
 )
 
 func TestServer_CreateCircuitBreakerJson(t *testing.T) {
@@ -200,7 +199,7 @@ func TestCreateCircuitBreaker(t *testing.T) {
 
 	t.Run("创建熔断规则时，没有传递规则名，返回错误", func(t *testing.T) {
 		circuitBreaker := &api.CircuitBreaker{
-			Namespace: utils.NewStringValue(service.DefaultNamespace),
+			Namespace: utils.NewStringValue(DefaultNamespace),
 			Owners:    utils.NewStringValue("test"),
 		}
 		if resp := discoverSuit.server.CreateCircuitBreakers(discoverSuit.defaultCtx, []*api.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
@@ -1205,7 +1204,7 @@ func TestGetCircuitBreaker(t *testing.T) {
 	serviceNum := 2
 	releaseVersion := &api.CircuitBreaker{}
 	deleteVersion := &api.CircuitBreaker{}
-	service := &api.Service{}
+	svc := &api.Service{}
 
 	// 创建熔断规则
 	_, cbResp := discoverSuit.createCommonCircuitBreaker(t, 0)
@@ -1233,7 +1232,7 @@ func TestGetCircuitBreaker(t *testing.T) {
 	for i := 1; i <= serviceNum; i++ {
 		_, serviceResp := discoverSuit.createCommonService(t, i)
 		if i == 1 {
-			service = serviceResp
+			svc = serviceResp
 		}
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
@@ -1291,8 +1290,8 @@ func TestGetCircuitBreaker(t *testing.T) {
 
 	t.Run("根据服务获取绑定的熔断规则", func(t *testing.T) {
 		filters := map[string]string{
-			"service":   service.GetName().GetValue(),
-			"namespace": service.GetNamespace().GetValue(),
+			"service":   svc.GetName().GetValue(),
+			"namespace": svc.GetNamespace().GetValue(),
 		}
 
 		resp := discoverSuit.server.GetCircuitBreakerByService(context.Background(), filters)
@@ -1404,7 +1403,7 @@ func TestCheckCircuitBreakerFieldLen(t *testing.T) {
 
 	circuitBreaker := &api.CircuitBreaker{
 		Name:       utils.NewStringValue("name-test-123"),
-		Namespace:  utils.NewStringValue(service.DefaultNamespace),
+		Namespace:  utils.NewStringValue(DefaultNamespace),
 		Owners:     utils.NewStringValue("owner-test"),
 		Comment:    utils.NewStringValue("comment-test"),
 		Department: utils.NewStringValue("department-test"),

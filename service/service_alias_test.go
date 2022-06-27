@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package discover
+package service
 
 import (
 	"context"
@@ -30,7 +30,6 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/service"
 )
 
 const defaultAliasNs = "Production"
@@ -150,7 +149,7 @@ func TestCreateSid(t *testing.T) {
 	defer discoverSuit.Destroy()
 
 	Convey("创建不同命名空间的sid，可以返回符合规范的sid", t, func() {
-		for namespace, layout := range service.Namespace2SidLayoutID {
+		for namespace, layout := range Namespace2SidLayoutID {
 			service := &api.Service{
 				Name:      utils.NewStringValue("sid-test-xxx"),
 				Namespace: utils.NewStringValue(namespace),

@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package discover
+package service
 
 import (
 	"encoding/json"
@@ -26,7 +26,6 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/service"
 )
 
 // 检查routingConfig前后是否一致
@@ -299,13 +298,13 @@ func TestGetRoutings(t *testing.T) {
 		So(api.CalcCode(resp), ShouldEqual, 200)
 		So(len(resp.GetRoutings()), ShouldEqual, 5)
 
-		resp = discoverSuit.server.GetRoutingConfigs(discoverSuit.defaultCtx, map[string]string{"namespace": service.DefaultNamespace})
+		resp = discoverSuit.server.GetRoutingConfigs(discoverSuit.defaultCtx, map[string]string{"namespace": DefaultNamespace})
 		So(api.CalcCode(resp), ShouldEqual, 200)
 		So(len(resp.GetRoutings()), ShouldBeGreaterThanOrEqualTo, total)
 
 		// 按命名空间和名字过滤，得到一个
 		filter := map[string]string{
-			"namespace": service.DefaultNamespace,
+			"namespace": DefaultNamespace,
 			"service":   serviceResp.GetName().GetValue(),
 		}
 		resp = discoverSuit.server.GetRoutingConfigs(discoverSuit.defaultCtx, filter)

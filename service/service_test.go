@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package discover
+package service
 
 import (
 	"context"
@@ -30,7 +30,6 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/service"
 )
 
 // 测试新增服务
@@ -115,7 +114,7 @@ func TestCreateService(t *testing.T) {
 			Owners:    utils.NewStringValue("my"),
 		}
 		svc.Metadata = make(map[string]string)
-		for i := 0; i < service.MaxMetadataLength+1; i++ {
+		for i := 0; i < MaxMetadataLength+1; i++ {
 			svc.Metadata[fmt.Sprintf("aa-%d", i)] = "value"
 		}
 		if resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{svc}); !respSuccess(resp) {
@@ -415,7 +414,7 @@ func TestGetServices2(t *testing.T) {
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.Info.GetValue())
 		}
-		if resp.GetSize().GetValue() == service.QueryMaxLimit {
+		if resp.GetSize().GetValue() == QueryMaxLimit {
 			t.Logf("pass")
 		} else {
 			t.Fatalf("error: %d", resp.GetSize().GetValue())
@@ -782,7 +781,7 @@ func TestUpdateService(t *testing.T) {
 	})
 	t.Run("更新服务，metadata数据个数太多，报错", func(t *testing.T) {
 		serviceResp.Metadata = make(map[string]string)
-		for i := 0; i < service.MaxMetadataLength+1; i++ {
+		for i := 0; i < MaxMetadataLength+1; i++ {
 			serviceResp.Metadata[fmt.Sprintf("update-%d", i)] = "abc"
 		}
 		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{serviceResp}); !respSuccess(resp) {

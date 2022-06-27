@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package discover
+package service
 
 import (
 	"context"
@@ -35,27 +35,17 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris-server/auth"
-	"github.com/polarismesh/polaris-server/bootstrap/config"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"github.com/polarismesh/polaris-server/store"
 	"github.com/polarismesh/polaris-server/store/boltdb"
 	"github.com/polarismesh/polaris-server/store/sqldb"
-
-	_ "github.com/polarismesh/polaris-server/apiserver/eurekaserver"
-	_ "github.com/polarismesh/polaris-server/apiserver/grpcserver/config"
-	_ "github.com/polarismesh/polaris-server/apiserver/grpcserver/discover"
-	_ "github.com/polarismesh/polaris-server/apiserver/httpserver"
-	_ "github.com/polarismesh/polaris-server/apiserver/l5pbserver"
-	_ "github.com/polarismesh/polaris-server/apiserver/prometheussd"
-	_ "github.com/polarismesh/polaris-server/apiserver/xdsserverv3"
 
 	_ "github.com/polarismesh/polaris-server/auth/defaultauth"
 	_ "github.com/polarismesh/polaris-server/cache"
@@ -91,9 +81,25 @@ const (
 	tblNameL5                 = "l5"
 )
 
+type Bootstrap struct {
+	Logger map[string]*commonlog.Options
+}
+
+type TestConfig struct {
+	Bootstrap    Bootstrap          `yaml:"bootstrap"`
+	Cache        cache.Config       `yaml:"cache"`
+	Namespace    namespace.Config   `yaml:"namespace"`
+	Naming       Config             `yaml:"naming"`
+	Config       Config             `yaml:"config"`
+	HealthChecks healthcheck.Config `yaml:"healthcheck"`
+	Store        store.Config       `yaml:"store"`
+	Auth         auth.Config        `yaml:"auth"`
+	Plugin       plugin.Config      `yaml:"plugin"`
+}
+
 type DiscoverTestSuit struct {
-	cfg                 *config.Config
-	server              service.DiscoverServer
+	cfg                 *TestConfig
+	server              DiscoverServer
 	namespaceSvr        namespace.NamespaceOperateServer
 	cancelFlag          bool
 	updateCacheInterval time.Duration
@@ -105,7 +111,7 @@ type DiscoverTestSuit struct {
 // 加载配置
 func (d *DiscoverTestSuit) loadConfig() error {
 
-	d.cfg = new(config.Config)
+	d.cfg = new(TestConfig)
 
 	confFileName := "test.yaml"
 	if os.Getenv("STORE_MODE") == "sqldb" {
@@ -136,7 +142,7 @@ func respSuccess(resp api.ResponseMessage) bool {
 	return ret
 }
 
-type options func(cfg *config.Config)
+type options func(cfg *TestConfig)
 
 // 内部初始化函数
 func (d *DiscoverTestSuit) initialize(opts ...options) error {
@@ -158,13 +164,13 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 		opts[i](d.cfg)
 	}
 
-	_ = log.Configure(d.cfg.Bootstrap.Logger)
+	_ = commonlog.Configure(d.cfg.Bootstrap.Logger)
 
-	log.DefaultScope().SetOutputLevel(log.ErrorLevel)
-	log.NamingScope().SetOutputLevel(log.ErrorLevel)
-	log.CacheScope().SetOutputLevel(log.ErrorLevel)
-	log.StoreScope().SetOutputLevel(log.ErrorLevel)
-	log.AuthScope().SetOutputLevel(log.ErrorLevel)
+	commonlog.DefaultScope().SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.NamingScope().SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.CacheScope().SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.StoreScope().SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.AuthScope().SetOutputLevel(commonlog.ErrorLevel)
 
 	// 初始化存储层
 	store.SetStoreConfig(&d.cfg.Store)
@@ -242,7 +248,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
 	cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
 
-	val, err := service.TestInitialize(ctx, &d.cfg.Naming, &d.cfg.Cache, bc, cacheMgn, d.storage, namespaceSvr,
+	val, err := TestInitialize(ctx, &d.cfg.Naming, &d.cfg.Cache, bc, cacheMgn, d.storage, namespaceSvr,
 		healthCheckServer, authSvr)
 	if err != nil {
 		panic(err)
@@ -515,7 +521,7 @@ func (d *DiscoverTestSuit) createCommonService(t *testing.T, id int) (*api.Servi
 func genMainService(id int) *api.Service {
 	return &api.Service{
 		Name:       utils.NewStringValue(fmt.Sprintf("test-service-%d", id)),
-		Namespace:  utils.NewStringValue(service.DefaultNamespace),
+		Namespace:  utils.NewStringValue(DefaultNamespace),
 		Metadata:   make(map[string]string),
 		Ports:      utils.NewStringValue(fmt.Sprintf("ports-%d", id)),
 		Business:   utils.NewStringValue(fmt.Sprintf("business-%d", id)),
@@ -595,7 +601,7 @@ func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *api.Service, 
 	}
 
 	// repeated
-	InstanceID, _ := service.CalculateInstanceID(instanceReq.GetNamespace().GetValue(), instanceReq.GetService().GetValue(),
+	InstanceID, _ := CalculateInstanceID(instanceReq.GetNamespace().GetValue(), instanceReq.GetService().GetValue(),
 		instanceReq.GetVpcId().GetValue(), instanceReq.GetHost().GetValue(), instanceReq.GetPort().GetValue())
 	d.cleanInstance(InstanceID)
 	t.Logf("repeatd create instance(%s)", InstanceID)
@@ -636,7 +642,7 @@ func (d *DiscoverTestSuit) addInstance(t *testing.T, ins *api.Instance) (
 	resp := d.server.CreateInstances(d.defaultCtx, []*api.Instance{ins})
 	if !respSuccess(resp) {
 		if resp.GetCode().GetValue() == api.ExistedResource {
-			id, _ := service.CalculateInstanceID(ins.GetNamespace().GetValue(), ins.GetService().GetValue(),
+			id, _ := CalculateInstanceID(ins.GetNamespace().GetValue(), ins.GetService().GetValue(),
 				ins.GetHost().GetValue(), ins.GetHost().GetValue(), ins.GetPort().GetValue())
 			d.cleanInstance(id)
 		}
@@ -1217,7 +1223,7 @@ func checkRateLimit(t *testing.T, expect *api.Rule, actual *api.Rule) {
 func (d *DiscoverTestSuit) createCommonCircuitBreaker(t *testing.T, id int) (*api.CircuitBreaker, *api.CircuitBreaker) {
 	circuitBreaker := &api.CircuitBreaker{
 		Name:       utils.NewStringValue(fmt.Sprintf("name-test-%d", id)),
-		Namespace:  utils.NewStringValue(service.DefaultNamespace),
+		Namespace:  utils.NewStringValue(DefaultNamespace),
 		Owners:     utils.NewStringValue("owner-test"),
 		Comment:    utils.NewStringValue("comment-test"),
 		Department: utils.NewStringValue("department-test"),

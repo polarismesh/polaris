@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package discover
+package service
 
 import (
 	"context"
@@ -33,7 +33,6 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/service"
 )
 
 // 测试新建实例
@@ -51,7 +50,7 @@ func TestCreateInstance(t *testing.T) {
 	t.Run("正常创建实例-服务没有提前创建", func(t *testing.T) {
 		instanceReq, instanceResp := discoverSuit.createCommonInstance(t, &api.Service{
 			Name:      utils.NewStringValue("test-nocreate-service"),
-			Namespace: utils.NewStringValue(service.DefaultNamespace),
+			Namespace: utils.NewStringValue(DefaultNamespace),
 		}, 1000)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
@@ -114,7 +113,7 @@ func TestCreateInstance(t *testing.T) {
 			Port:         utils.NewUInt32Value(456),
 			Metadata:     make(map[string]string),
 		}
-		for i := 0; i < service.MaxMetadataLength+1; i++ {
+		for i := 0; i < MaxMetadataLength+1; i++ {
 			instanceReq.Metadata[fmt.Sprintf("%d", i)] = fmt.Sprintf("%d", i)
 		}
 		if resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*api.Instance{instanceReq}); respSuccess(resp) {
@@ -153,7 +152,7 @@ func TestCreateInstance(t *testing.T) {
 		if getResp.GetInstances()[0].HealthCheck.Type != api.HealthCheck_HEARTBEAT {
 			t.Fatalf("error")
 		}
-		if getResp.GetInstances()[0].HealthCheck.Heartbeat.Ttl.Value != service.DefaultTLL {
+		if getResp.GetInstances()[0].HealthCheck.Heartbeat.Ttl.Value != DefaultTLL {
 			t.Fatalf("error")
 		}
 	})
@@ -862,7 +861,7 @@ func TestUpdateInstance(t *testing.T) {
 	})
 	t.Run("metadata太长，update会报错", func(t *testing.T) {
 		instanceReq.Metadata = make(map[string]string)
-		for i := 0; i < service.MaxMetadataLength+1; i++ {
+		for i := 0; i < MaxMetadataLength+1; i++ {
 			instanceReq.Metadata[fmt.Sprintf("%d", i)] = "a"
 		}
 		if resp := discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*api.Instance{instanceReq}); !respSuccess(resp) {
@@ -1179,7 +1178,7 @@ func TestUpdateHealthCheck(t *testing.T) {
 		instanceReq.HealthCheck = &api.HealthCheck{
 			Type: api.HealthCheck_HEARTBEAT,
 			Heartbeat: &api.HeartbeatHealthCheck{
-				Ttl: utils.NewUInt32Value(service.DefaultTLL),
+				Ttl: utils.NewUInt32Value(DefaultTLL),
 			},
 		}
 		getAndCheck(t, instanceReq)
