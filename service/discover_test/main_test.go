@@ -252,12 +252,15 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	// 多等待一会
 	d.updateCacheInterval = d.server.Cache().GetUpdateCacheInterval() + time.Millisecond*500
 
-	return err
+	time.Sleep(5 * time.Second)
+	return nil
 }
 
 func (d *DiscoverTestSuit) Destroy() {
 	d.cancel()
 	d.storage.Destroy()
+
+	time.Sleep(5 * time.Second)
 }
 
 // 从数据库彻底删除命名空间

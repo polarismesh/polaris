@@ -197,7 +197,7 @@ func TestRemoveServices(t *testing.T) {
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
-			t.Fatalf("error")
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 	})
 
