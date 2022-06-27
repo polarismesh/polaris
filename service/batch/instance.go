@@ -239,7 +239,7 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 	}
 
 	// 统一判断实例是否存在，存在则需要更新部分数据
-	diff, err := ctrl.batchRestoreInstanceIsolate(remains)
+	firstRegisInstances, err := ctrl.batchRestoreInstanceIsolate(remains)
 	if err != nil {
 		log.Errorf("[Batch] batch check instances existed err: %s", err.Error())
 	}
@@ -253,7 +253,7 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 	// 构造model数据
 	for _, entry := range remains {
 		ins := utils.CreateInstanceModel(entry.serviceId, entry.request)
-		if _, ok := diff[ins.ID()]; ok {
+		if _, ok := firstRegisInstances[ins.ID()]; ok {
 			ins.FirstRegis = true
 		}
 		entry.SetInstance(ins)
@@ -398,11 +398,11 @@ func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*Instan
 		return nil, err
 	}
 
-	diff := make(map[string]struct{})
+	firstRegisInstances := make(map[string]struct{})
 	if len(id2Isolate) > 0 {
 		for id := range ids {
 			if _, ok := id2Isolate[id]; !ok {
-				diff[id] = struct{}{}
+				firstRegisInstances[id] = struct{}{}
 			}
 		}
 
@@ -412,7 +412,7 @@ func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*Instan
 			}
 		}
 	}
-	return diff, err
+	return firstRegisInstances, err
 }
 
 // batchVerifyInstances 对请求futures进行统一的鉴权
