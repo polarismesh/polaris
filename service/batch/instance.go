@@ -399,6 +399,13 @@ func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*Instan
 	}
 
 	firstRegisInstances := make(map[string]struct{})
+	if len(id2Isolate) == 0 {
+		for id := range futures {
+			firstRegisInstances[id] = struct{}{}
+		}
+		return firstRegisInstances, err
+	}
+
 	if len(id2Isolate) > 0 {
 		for id := range ids {
 			if _, ok := id2Isolate[id]; !ok {
