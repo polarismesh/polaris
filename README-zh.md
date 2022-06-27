@@ -171,5 +171,3 @@ curl http://127.0.0.1:8090
 如果你有好的意见或建议，欢迎给我们提 Issues 或 Pull Requests，为提升北极星的开发体验贡献力量。
 
 详见：[CONTRIBUTING.md](CONTRIBUTING.md)
-
-[腾讯开源激励计划](https://opensource.tencent.com/contribution) 鼓励开发者的参与和贡献，期待你的加入。
