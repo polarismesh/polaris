@@ -310,7 +310,7 @@ func (ss *serviceStore) GetServiceAliases(
 	var totalCount uint32
 
 	// find all alias service with filters
-	fields := []string{SvcFieldReference, SvcFieldMeta, SvcFieldDepartment, SvcFieldBusiness}
+	fields := []string{SvcFieldReference, SvcFieldValid, SvcFieldName, SvcFieldNamespace, SvcFieldMeta, SvcFieldDepartment, SvcFieldBusiness}
 	for k := range filter {
 		fields = append(fields, k)
 	}
@@ -318,16 +318,16 @@ func (ss *serviceStore) GetServiceAliases(
 	referenceService := make(map[string]bool)
 	services, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
-			// judge whether it is alias by whether there is a reference
-			reference, err := m[SvcFieldReference]
-			if !err {
-				return false
-			}
-			if reference.(string) == "" {
+			if valid, _ := m[SvcFieldValid].(bool); !valid {
 				return false
 			}
 
-			name, isName := filter["name"]
+			// judge whether it is alias by whether there is a reference
+			if reference, _ := m[SvcFieldReference].(string); reference == "" {
+				return false
+			}
+
+			name, isName := filter["alias"]
 			keys, isKeys := filter["keys"]
 			values, isValues := filter["values"]
 			department, isDepartment := filter["department"]
@@ -335,11 +335,11 @@ func (ss *serviceStore) GetServiceAliases(
 
 			// filter by other
 			if isName {
-				svcName, ok := m[SvcFieldName]
-				if !ok {
+				svcName, _ := m[SvcFieldName].(string)
+				if utils.IsWildName(name) && !strings.Contains(svcName, name[:len(name)-1]) {
 					return false
 				}
-				if svcName.(string) != name {
+				if svcName != name {
 					return false
 				}
 			}
@@ -390,10 +390,25 @@ func (ss *serviceStore) GetServiceAliases(
 	totalCount = uint32(len(services))
 
 	// find source service for every alias
-	fields = []string{SvcFieldID}
+	fields = []string{SvcFieldID, SvcFieldName, SvcFieldNamespace, SvcFieldValid}
+
+	svcName, hasSvcName := filter["service"]
+	svcNs, hasSvcNs := filter["namespace"]
 
 	refServices, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
+			if valid, _ := m[SvcFieldValid].(bool); !valid {
+				return false
+			}
+
+			if hasSvcName && m[SvcFieldName].(string) != svcName {
+				return false
+			}
+
+			if hasSvcNs && m[SvcFieldNamespace].(string) != svcNs {
+				return false
+			}
+
 			_, ok := referenceService[m[SvcFieldID].(string)]
 			return ok
 		})
@@ -403,6 +418,11 @@ func (ss *serviceStore) GetServiceAliases(
 
 	var serviceAlias []*model.ServiceAlias
 	for _, service := range s {
+
+		if _, ok := refServices[service.Reference]; !ok {
+			continue
+		}
+
 		alias := model.ServiceAlias{}
 		alias.ID = service.ID
 		alias.Alias = service.Name

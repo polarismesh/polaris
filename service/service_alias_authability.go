@@ -98,6 +98,9 @@ func (svr *serverAuthAbility) GetServiceAliases(ctx context.Context,
 		for index := range resp.Aliases {
 			alias := resp.Aliases[index]
 			svc := svr.Cache().Service().GetServiceByName(alias.Service.Value, alias.Namespace.Value)
+			if svc == nil {
+				continue
+			}
 			editable := true
 			// 如果鉴权能力没有开启，那就默认都可以进行编辑
 			if svr.authMgn.IsOpenConsoleAuth() {

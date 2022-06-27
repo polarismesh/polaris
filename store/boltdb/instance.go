@@ -276,8 +276,7 @@ func (i *instanceStore) GetInstance(instanceID string) (*model.Instance, error) 
 	fields := []string{insFieldProto, insFieldValid}
 	ins, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
-			insValid, ok := m[insFieldValid]
-			if ok && !insValid.(bool) {
+			if insValid, _ := m[insFieldValid].(bool); !insValid {
 				return false
 			}
 			insProto, ok := m[insFieldProto]

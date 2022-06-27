@@ -31,8 +31,12 @@ type Instance struct {
 	Proto             *api.Instance
 	ServiceID         string
 	ServicePlatformID string
+	// Valid Whether it is deleted by logic
 	Valid             bool
+	// ModifyTime Update time of instance
 	ModifyTime        time.Time
+	// FirstRegis Whether the label instance is the first registration
+	FirstRegis bool
 }
 
 // ID get id

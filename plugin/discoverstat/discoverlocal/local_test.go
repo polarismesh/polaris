@@ -25,6 +25,9 @@ import (
 
 // TestWriteFile 测试打印文件所需耗时
 func TestWriteFile(t *testing.T) {
+
+	t.SkipNow()
+
 	dcs := &DiscoverCallStatis{
 		statis: make(map[Service]time.Time),
 		logger: newLogger("./log/discovercall_test1.log"),
@@ -54,6 +57,9 @@ func TestWriteFile(t *testing.T) {
 
 // TestDiscoverStatisWorker_AddDiscoverCall 测试写入chan的情况
 func TestDiscoverStatisWorker_AddDiscoverCall(t *testing.T) {
+
+	t.SkipNow()
+
 	worker := &DiscoverStatisWorker{
 		interval: 60 * time.Second,
 		dcc:      make(chan *DiscoverCall, 1024),

@@ -1,6 +1,3 @@
-//go:build integrationdiscover
-// +build integrationdiscover
-
 /**
  * Tencent is pleased to support the open source community by making Polaris available.
  *
@@ -18,17 +15,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package discover
+package service
 
 import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -38,27 +35,17 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris-server/auth"
-	"github.com/polarismesh/polaris-server/bootstrap/config"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"github.com/polarismesh/polaris-server/store"
 	"github.com/polarismesh/polaris-server/store/boltdb"
 	"github.com/polarismesh/polaris-server/store/sqldb"
-
-	_ "github.com/polarismesh/polaris-server/apiserver/eurekaserver"
-	_ "github.com/polarismesh/polaris-server/apiserver/grpcserver/config"
-	_ "github.com/polarismesh/polaris-server/apiserver/grpcserver/discover"
-	_ "github.com/polarismesh/polaris-server/apiserver/httpserver"
-	_ "github.com/polarismesh/polaris-server/apiserver/l5pbserver"
-	_ "github.com/polarismesh/polaris-server/apiserver/prometheussd"
-	_ "github.com/polarismesh/polaris-server/apiserver/xdsserverv3"
 
 	_ "github.com/polarismesh/polaris-server/auth/defaultauth"
 	_ "github.com/polarismesh/polaris-server/cache"
@@ -81,25 +68,64 @@ import (
 	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatredis"
 )
 
-var (
-	cfg                 = config.Config{}
-	once                = sync.Once{}
-	server              = &service.Server{}
-	db                  = &sql.DB{}
-	cancelFlag          = false
-	updateCacheInterval = time.Second * 2
-	defaultCtx          = context.Background()
+const (
+	tblNameNamespace          = "namespace"
+	tblNameInstance           = "instance"
+	tblNameService            = "service"
+	tblNameRouting            = "routing"
+	tblRateLimitConfig        = "ratelimit_config"
+	tblRateLimitRevision      = "ratelimit_revision"
+	tblCircuitBreaker         = "circuitbreaker_rule"
+	tblCircuitBreakerRelation = "circuitbreaker_rule_relation"
+	tblPlatform               = "platform"
+	tblNameL5                 = "l5"
 )
 
+type Bootstrap struct {
+	Logger map[string]*commonlog.Options
+}
+
+type TestConfig struct {
+	Bootstrap    Bootstrap          `yaml:"bootstrap"`
+	Cache        cache.Config       `yaml:"cache"`
+	Namespace    namespace.Config   `yaml:"namespace"`
+	Naming       Config             `yaml:"naming"`
+	Config       Config             `yaml:"config"`
+	HealthChecks healthcheck.Config `yaml:"healthcheck"`
+	Store        store.Config       `yaml:"store"`
+	Auth         auth.Config        `yaml:"auth"`
+	Plugin       plugin.Config      `yaml:"plugin"`
+}
+
+type DiscoverTestSuit struct {
+	cfg                 *TestConfig
+	server              DiscoverServer
+	namespaceSvr        namespace.NamespaceOperateServer
+	cancelFlag          bool
+	updateCacheInterval time.Duration
+	defaultCtx          context.Context
+	cancel              context.CancelFunc
+	storage             store.Store
+}
+
 // 加载配置
-func loadConfig() error {
-	file, err := os.Open("test.yaml")
+func (d *DiscoverTestSuit) loadConfig() error {
+
+	d.cfg = new(TestConfig)
+
+	confFileName := "test.yaml"
+	if os.Getenv("STORE_MODE") == "sqldb" {
+		fmt.Printf("run store mode : sqldb")
+		confFileName = "test_sqldb.yaml"
+		d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey, "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
+	}
+	file, err := os.Open(confFileName)
 	if err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
 		return err
 	}
 
-	err = yaml.NewDecoder(file).Decode(&cfg)
+	err = yaml.NewDecoder(file).Decode(d.cfg)
 	if err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
 		return err
@@ -111,144 +137,140 @@ func loadConfig() error {
 // 判断一个resp是否执行成功
 func respSuccess(resp api.ResponseMessage) bool {
 
-	return api.CalcCode(resp) == 200
+	ret := api.CalcCode(resp) == 200
+
+	return ret
 }
 
+type options func(cfg *TestConfig)
+
 // 内部初始化函数
-func initialize() error {
-	options := log.DefaultOptions()
-	_ = log.Configure(options)
-	var err error
-	once.Do(func() {
-		err = loadConfig()
-		if err != nil {
-			return
-		}
-		// 初始化defaultCtx
-		defaultCtx = context.WithValue(defaultCtx, utils.StringContext("request-id"), "test-1")
+func (d *DiscoverTestSuit) initialize(opts ...options) error {
+	// 初始化defaultCtx
+	d.defaultCtx = context.WithValue(context.Background(), utils.StringContext("request-id"), "test-1")
+	d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey, "4azbewS+pdXvrMG1PtYV3SrcLxjmYd0IVNaX9oYziQygRnKzjcSbxl+Reg7zYQC1gRrGiLzmMY+w+aCxOYI=")
 
-		// 初始化存储层
-		store.SetStoreConfig(&cfg.Store)
-		s, _ := store.GetStore()
-
-		plugin.SetPluginConfig(&cfg.Plugin)
-
-		// 初始化Naming Server
-		ctx, cancel := context.WithCancel(context.Background())
-		defer func() {
-			if cancelFlag {
-				cancel()
-			}
-		}()
-
-		// 初始化缓存模块
-		if err := cache.Initialize(ctx, &cfg.Cache, s); err != nil {
+	if err := os.RemoveAll("polaris.bolt"); err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
 			panic(err)
 		}
+	}
 
-		cacheMgn, err := cache.GetCacheManager()
-		if err != nil {
-			panic(err)
-		}
+	if err := d.loadConfig(); err != nil {
+		panic(err)
+	}
 
-		// 初始化鉴权层
-		if err = auth.Initialize(ctx, &cfg.Auth, s, cacheMgn); err != nil {
-			panic(err)
-		}
+	for i := range opts {
+		opts[i](d.cfg)
+	}
 
-		_, err = auth.GetAuthServer()
-		if err != nil {
-			panic(err)
-		}
+	_ = commonlog.Configure(d.cfg.Bootstrap.Logger)
 
-		// 初始化命名空间模块
-		if err := namespace.Initialize(ctx, &cfg.Namespace, s, cacheMgn); err != nil {
-			panic(err)
-		}
+	commonlog.DefaultScope().SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.NamingScope().SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.CacheScope().SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.StoreScope().SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.AuthScope().SetOutputLevel(commonlog.ErrorLevel)
 
-		// 批量控制器
-		namingBatchConfig, err := batch.ParseBatchConfig(cfg.Naming.Batch)
-		if err != nil {
-			panic(err)
-		}
-		healthBatchConfig, err := batch.ParseBatchConfig(cfg.HealthChecks.Batch)
-		if err != nil {
-			panic(err)
-		}
+	// 初始化存储层
+	store.SetStoreConfig(&d.cfg.Store)
+	s, _ := store.TestGetStore()
+	d.storage = s
 
-		batchConfig := &batch.Config{
-			Register:         namingBatchConfig.Register,
-			Deregister:       namingBatchConfig.Register,
-			ClientRegister:   namingBatchConfig.ClientRegister,
-			ClientDeregister: namingBatchConfig.ClientDeregister,
-			Heartbeat:        healthBatchConfig.Heartbeat,
-		}
+	plugin.SetPluginConfig(&d.cfg.Plugin)
 
-		bc, err := batch.NewBatchCtrlWithConfig(s, cacheMgn, batchConfig)
-		if err != nil {
-			log.Errorf("new batch ctrl with config err: %s", err.Error())
-			panic(err)
-		}
-		bc.Start(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 
-		if len(cfg.HealthChecks.LocalHost) == 0 {
-			cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
-		}
-		if err = healthcheck.Initialize(ctx, &cfg.HealthChecks, cfg.Cache.Open, bc); err != nil {
-			panic(err)
-		}
-		healthCheckServer, err := healthcheck.GetServer()
-		if err != nil {
-			panic(err)
-		}
-		cacheProvider, err := healthCheckServer.CacheProvider()
-		if err != nil {
-			panic(err)
-		}
-		healthCheckServer.SetServiceCache(cacheMgn.Service())
+	d.cancel = cancel
 
-		// 为 instance 的 cache 添加 健康检查的 Listener
-		cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
-		cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
+	// 初始化缓存模块
+	if err := cache.TestCacheInitialize(ctx, &d.cfg.Cache, s); err != nil {
+		panic(err)
+	}
 
-		if err := service.Initialize(ctx, &cfg.Naming, &cfg.Cache, bc); err != nil {
-			panic(err)
-		}
+	cacheMgn, err := cache.GetCacheManager()
+	if err != nil {
+		panic(err)
+	}
 
-		val, err := service.GetOriginServer()
-		if err != nil {
-			panic(err)
-		}
+	// 初始化鉴权层
+	authSvr, err := auth.TestInitialize(ctx, &d.cfg.Auth, s, cacheMgn)
+	if err != nil {
+		panic(err)
+	}
 
-		server = val
+	// 初始化命名空间模块
+	namespaceSvr, err := namespace.TestInitialize(ctx, &d.cfg.Namespace, s, cacheMgn, authSvr)
+	if err != nil {
+		panic(err)
+	}
+	d.namespaceSvr = namespaceSvr
 
-		masterEntry := cfg.Store.Option["master"]
-		masterConfig, ok := masterEntry.(map[interface{}]interface{})
-		if !ok {
-			panic("database cfg is invalid")
-		}
+	// 批量控制器
+	namingBatchConfig, err := batch.ParseBatchConfig(d.cfg.Naming.Batch)
+	if err != nil {
+		panic(err)
+	}
+	healthBatchConfig, err := batch.ParseBatchConfig(d.cfg.HealthChecks.Batch)
+	if err != nil {
+		panic(err)
+	}
 
-		dbType := masterConfig["dbType"].(string)
-		dbUser := masterConfig["dbUser"].(string)
-		dbPwd := masterConfig["dbPwd"].(string)
-		dbAddr := masterConfig["dbAddr"].(string)
-		dbName := masterConfig["dbName"].(string)
+	batchConfig := &batch.Config{
+		Register:         namingBatchConfig.Register,
+		Deregister:       namingBatchConfig.Register,
+		ClientRegister:   namingBatchConfig.ClientRegister,
+		ClientDeregister: namingBatchConfig.ClientDeregister,
+		Heartbeat:        healthBatchConfig.Heartbeat,
+	}
 
-		dbSource := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPwd, dbAddr, dbName)
-		db, err = sql.Open(dbType, dbSource)
-		if err != nil {
-			panic(err)
-		}
+	bc, err := batch.NewBatchCtrlWithConfig(s, cacheMgn, batchConfig)
+	if err != nil {
+		log.Errorf("new batch ctrl with config err: %s", err.Error())
+		panic(err)
+	}
+	bc.Start(ctx)
 
-		// 多等待一会
-		updateCacheInterval = server.Cache().GetUpdateCacheInterval() + time.Millisecond*500
-	})
+	if len(d.cfg.HealthChecks.LocalHost) == 0 {
+		d.cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
+	}
+	healthCheckServer, err := healthcheck.TestInitialize(ctx, &d.cfg.HealthChecks, d.cfg.Cache.Open, bc, d.storage)
+	if err != nil {
+		panic(err)
+	}
+	cacheProvider, err := healthCheckServer.CacheProvider()
+	if err != nil {
+		panic(err)
+	}
+	healthCheckServer.SetServiceCache(cacheMgn.Service())
 
-	return err
+	// 为 instance 的 cache 添加 健康检查的 Listener
+	cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
+	cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
+
+	val, err := TestInitialize(ctx, &d.cfg.Naming, &d.cfg.Cache, bc, cacheMgn, d.storage, namespaceSvr,
+		healthCheckServer, authSvr)
+	if err != nil {
+		panic(err)
+	}
+	d.server = val
+
+	// 多等待一会
+	d.updateCacheInterval = d.server.Cache().GetUpdateCacheInterval() + time.Millisecond*500
+
+	time.Sleep(5 * time.Second)
+	return nil
+}
+
+func (d *DiscoverTestSuit) Destroy() {
+	d.cancel()
+	d.storage.Destroy()
+
+	time.Sleep(5 * time.Second)
 }
 
 // 从数据库彻底删除命名空间
-func cleanNamespace(name string) {
+func (d *DiscoverTestSuit) cleanNamespace(name string) {
 	if name == "" {
 		panic("name is empty")
 	}
@@ -268,10 +290,9 @@ func cleanNamespace(name string) {
 				panic(err)
 			}
 
-			dbTx := tx.GetDelegateTx().(*sql.Tx)
+			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
 
 			if _, err := dbTx.Exec(str); err != nil {
-				dbTx.Rollback()
 				panic(err)
 			}
 
@@ -285,9 +306,11 @@ func cleanNamespace(name string) {
 			}
 
 			dbTx := tx.GetDelegateTx().(*bolt.Tx)
-			if err := dbTx.Bucket([]byte("namespace")).DeleteBucket([]byte(name)); err != nil {
-				dbTx.Rollback()
-				panic(err)
+			if err := dbTx.Bucket([]byte(tblNameNamespace)).DeleteBucket([]byte(name)); err != nil {
+				if !errors.Is(err, bolt.ErrBucketNotFound) {
+					dbTx.Rollback()
+					panic(err)
+				}
 			}
 
 			dbTx.Commit()
@@ -296,20 +319,18 @@ func cleanNamespace(name string) {
 }
 
 // 从数据库彻底删除服务
-func cleanService(name, namespace string) {
+func (d *DiscoverTestSuit) cleanService(name, namespace string) {
 
-	s, err := store.GetStore()
-	if err != nil {
-		panic(err)
-	}
-	if s.Name() == sqldb.STORENAME {
+	if d.storage.Name() == sqldb.STORENAME {
 		func() {
-			tx, err := s.StartTx()
+			tx, err := d.storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
 
-			dbTx := tx.GetDelegateTx().(*sql.Tx)
+			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+
+			defer dbTx.Rollback()
 
 			str := "select id from service where name = ? and namespace = ?"
 			var id string
@@ -338,22 +359,25 @@ func cleanService(name, namespace string) {
 
 			dbTx.Commit()
 		}()
-	} else if s.Name() == boltdb.STORENAME {
+	} else if d.storage.Name() == boltdb.STORENAME {
 		func() {
-			svc, err := s.GetService(name, namespace)
+			svc, err := d.storage.GetService(name, namespace)
 			if err != nil {
 				panic(err)
 			}
+			if svc == nil {
+				return
+			}
 
-			tx, err := s.StartTx()
+			tx, err := d.storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
 
 			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+			defer dbTx.Rollback()
 
-			if err := dbTx.Bucket([]byte("service")).DeleteBucket([]byte(svc.ID)); err != nil {
-				dbTx.Rollback()
+			if err := dbTx.Bucket([]byte(tblNameService)).DeleteBucket([]byte(svc.ID)); err != nil {
 				panic(err)
 			}
 
@@ -363,50 +387,119 @@ func cleanService(name, namespace string) {
 }
 
 // 从数据库彻底删除服务名对应的服务
-func cleanServiceName(name string, namespace string) {
-	log.Infof("clean service %s, %s", name, namespace)
-
-	cleanService(name, namespace)
+func (d *DiscoverTestSuit) cleanServiceName(name string, namespace string) {
+	// log.Infof("clean service %s, %s", name, namespace)
+	d.cleanService(name, namespace)
 }
 
 // clean services
-func cleanServices(services []*api.Service) {
-	str := "delete from service where name = ? and namespace = ?"
-	cleanOwnerSql := "delete from owner_service_map where service=? and namespace=?"
-	for _, service := range services {
-		if _, err := db.Exec(str, service.GetName().GetValue(), service.GetNamespace().GetValue()); err != nil {
-			panic(err)
-		}
-		if _, err := db.Exec(cleanOwnerSql, service.GetName().GetValue(), service.GetNamespace().GetValue()); err != nil {
-			panic(err)
-		}
+func (d *DiscoverTestSuit) cleanServices(services []*api.Service) {
+
+	if d.storage.Name() == sqldb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+
+			defer dbTx.Rollback()
+
+			str := "delete from service where name = ? and namespace = ?"
+			cleanOwnerSql := "delete from owner_service_map where service=? and namespace=?"
+			for _, service := range services {
+				if _, err := dbTx.Exec(str, service.GetName().GetValue(), service.GetNamespace().GetValue()); err != nil {
+					panic(err)
+				}
+				if _, err := dbTx.Exec(cleanOwnerSql, service.GetName().GetValue(), service.GetNamespace().GetValue()); err != nil {
+					panic(err)
+				}
+			}
+
+			dbTx.Commit()
+		}()
+	} else if d.storage.Name() == boltdb.STORENAME {
+		func() {
+			ids := make([]string, 0, len(services))
+
+			for _, service := range services {
+				svc, err := d.storage.GetService(service.GetName().GetValue(), service.GetNamespace().GetValue())
+				if err != nil {
+					panic(err)
+				}
+
+				ids = append(ids, svc.ID)
+			}
+
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+
+			for i := range ids {
+				if err := dbTx.Bucket([]byte(tblNameService)).DeleteBucket([]byte(ids[i])); err != nil {
+					dbTx.Rollback()
+					panic(err)
+				}
+			}
+			dbTx.Commit()
+		}()
 	}
+
 }
 
 // 从数据库彻底删除实例
-func cleanInstance(instanceID string) {
+func (d *DiscoverTestSuit) cleanInstance(instanceID string) {
 	if instanceID == "" {
 		panic("instanceID is empty")
 	}
-
-	/*str := "delete from health_check where id = ?"
-	  if _, err := db.Exec(str, instanceID); err != nil {
-	  	panic(err)
-	  }
-
-	  str = "delete from instance_metadata where id = ?"
-	  if _, err := db.Exec(str, instanceID); err != nil {
-	  	panic(err)
-	  }*/
 	log.Infof("clean instance: %s", instanceID)
-	str := "delete from instance where id = ?"
-	if _, err := db.Exec(str, instanceID); err != nil {
-		panic(err)
+
+	if d.storage.Name() == sqldb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+
+			defer dbTx.Rollback()
+
+			str := "delete from instance where id = ?"
+			if _, err := dbTx.Exec(str, instanceID); err != nil {
+				dbTx.Rollback()
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if d.storage.Name() == boltdb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+
+			if err := dbTx.Bucket([]byte(tblNameInstance)).DeleteBucket([]byte(instanceID)); err != nil {
+				if !errors.Is(err, bolt.ErrBucketNotFound) {
+					dbTx.Rollback()
+					panic(err)
+				}
+			}
+			dbTx.Commit()
+		}()
 	}
+
 }
 
 // 增加一个服务
-func createCommonService(t *testing.T, id int) (*api.Service, *api.Service) {
+func (d *DiscoverTestSuit) createCommonService(t *testing.T, id int) (*api.Service, *api.Service) {
 	serviceReq := genMainService(id)
 	for i := 0; i < 10; i++ {
 		k := fmt.Sprintf("key-%d-%d", id, i)
@@ -414,21 +507,21 @@ func createCommonService(t *testing.T, id int) (*api.Service, *api.Service) {
 		serviceReq.Metadata[k] = v
 	}
 
-	cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
+	d.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 
-	resp := server.CreateService(defaultCtx, serviceReq)
+	resp := d.server.CreateServices(d.defaultCtx, []*api.Service{serviceReq})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 
-	return serviceReq, resp.GetService()
+	return serviceReq, resp.Responses[0].GetService()
 }
 
 // 生成服务的主要数据
 func genMainService(id int) *api.Service {
 	return &api.Service{
 		Name:       utils.NewStringValue(fmt.Sprintf("test-service-%d", id)),
-		Namespace:  utils.NewStringValue(service.DefaultNamespace),
+		Namespace:  utils.NewStringValue(DefaultNamespace),
 		Metadata:   make(map[string]string),
 		Ports:      utils.NewStringValue(fmt.Sprintf("ports-%d", id)),
 		Business:   utils.NewStringValue(fmt.Sprintf("business-%d", id)),
@@ -442,21 +535,21 @@ func genMainService(id int) *api.Service {
 }
 
 // removeCommonService
-func removeCommonServices(t *testing.T, req []*api.Service) {
-	if resp := server.DeleteServices(defaultCtx, req); !respSuccess(resp) {
+func (d *DiscoverTestSuit) removeCommonServices(t *testing.T, req []*api.Service) {
+	if resp := d.server.DeleteServices(d.defaultCtx, req); !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 }
 
 // removeCommonService
-func removeCommonServiceAliases(t *testing.T, req []*api.ServiceAlias) {
-	if resp := server.DeleteServiceAliases(defaultCtx, req); !respSuccess(resp) {
+func (d *DiscoverTestSuit) removeCommonServiceAliases(t *testing.T, req []*api.ServiceAlias) {
+	if resp := d.server.DeleteServiceAliases(d.defaultCtx, req); !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 }
 
 // 新增一个实例
-func createCommonInstance(t *testing.T, svc *api.Service, id int) (
+func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *api.Service, id int) (
 	*api.Instance, *api.Instance) {
 	instanceReq := &api.Instance{
 		ServiceToken: utils.NewStringValue(svc.GetToken().GetValue()),
@@ -498,9 +591,9 @@ func createCommonInstance(t *testing.T, svc *api.Service, id int) (
 		},
 	}
 
-	resp := server.CreateInstance(defaultCtx, instanceReq)
+	resp := d.server.CreateInstances(d.defaultCtx, []*api.Instance{instanceReq})
 	if respSuccess(resp) {
-		return instanceReq, resp.GetInstance()
+		return instanceReq, resp.Responses[0].GetInstance()
 	}
 
 	if resp.GetCode().GetValue() != api.ExistedResource {
@@ -508,20 +601,20 @@ func createCommonInstance(t *testing.T, svc *api.Service, id int) (
 	}
 
 	// repeated
-	InstanceID, _ := service.CalculateInstanceID(instanceReq.GetNamespace().GetValue(), instanceReq.GetService().GetValue(),
+	InstanceID, _ := CalculateInstanceID(instanceReq.GetNamespace().GetValue(), instanceReq.GetService().GetValue(),
 		instanceReq.GetVpcId().GetValue(), instanceReq.GetHost().GetValue(), instanceReq.GetPort().GetValue())
-	cleanInstance(InstanceID)
+	d.cleanInstance(InstanceID)
 	t.Logf("repeatd create instance(%s)", InstanceID)
-	resp = server.CreateInstance(defaultCtx, instanceReq)
+	resp = d.server.CreateInstances(d.defaultCtx, []*api.Instance{instanceReq})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 
-	return instanceReq, resp.GetInstance()
+	return instanceReq, resp.Responses[0].GetInstance()
 }
 
 // 指定 IP 和端口为一个服务创建实例
-func addHostPortInstance(t *testing.T, service *api.Service, host string, port uint32) (
+func (d *DiscoverTestSuit) addHostPortInstance(t *testing.T, service *api.Service, host string, port uint32) (
 	*api.Instance, *api.Instance) {
 	instanceReq := &api.Instance{
 		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
@@ -532,47 +625,47 @@ func addHostPortInstance(t *testing.T, service *api.Service, host string, port u
 		Healthy:      utils.NewBoolValue(true),
 		Isolate:      utils.NewBoolValue(false),
 	}
-	resp := server.CreateInstance(defaultCtx, instanceReq)
+	resp := d.server.CreateInstances(d.defaultCtx, []*api.Instance{instanceReq})
 	if respSuccess(resp) {
-		return instanceReq, resp.GetInstance()
+		return instanceReq, resp.Responses[0].GetInstance()
 	}
 
 	if resp.GetCode().GetValue() != api.ExistedResource {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
-	return instanceReq, resp.GetInstance()
+	return instanceReq, resp.Responses[0].GetInstance()
 }
 
 // 添加一个实例
-func addInstance(t *testing.T, ins *api.Instance) (
+func (d *DiscoverTestSuit) addInstance(t *testing.T, ins *api.Instance) (
 	*api.Instance, *api.Instance) {
-	resp := server.CreateInstance(defaultCtx, ins)
+	resp := d.server.CreateInstances(d.defaultCtx, []*api.Instance{ins})
 	if !respSuccess(resp) {
 		if resp.GetCode().GetValue() == api.ExistedResource {
-			id, _ := service.CalculateInstanceID(ins.GetNamespace().GetValue(), ins.GetService().GetValue(),
+			id, _ := CalculateInstanceID(ins.GetNamespace().GetValue(), ins.GetService().GetValue(),
 				ins.GetHost().GetValue(), ins.GetHost().GetValue(), ins.GetPort().GetValue())
-			cleanInstance(id)
+			d.cleanInstance(id)
 		}
 	} else {
-		return ins, resp.GetInstance()
+		return ins, resp.Responses[0].GetInstance()
 	}
 
-	resp = server.CreateInstance(defaultCtx, ins)
+	resp = d.server.CreateInstances(d.defaultCtx, []*api.Instance{ins})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 
-	return ins, resp.GetInstance()
+	return ins, resp.Responses[0].GetInstance()
 }
 
 // 删除一个实例
-func removeCommonInstance(t *testing.T, service *api.Service, instanceID string) {
+func (d *DiscoverTestSuit) removeCommonInstance(t *testing.T, service *api.Service, instanceID string) {
 	req := &api.Instance{
 		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
 		Id:           utils.NewStringValue(instanceID),
 	}
 
-	resp := server.DeleteInstance(defaultCtx, req)
+	resp := d.server.DeleteInstances(d.defaultCtx, []*api.Instance{req})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
@@ -580,7 +673,7 @@ func removeCommonInstance(t *testing.T, service *api.Service, instanceID string)
 }
 
 // 通过四元组或者五元组删除实例
-func removeInstanceWithAttrs(t *testing.T, service *api.Service, instance *api.Instance) {
+func (d *DiscoverTestSuit) removeInstanceWithAttrs(t *testing.T, service *api.Service, instance *api.Instance) {
 	req := &api.Instance{
 		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
 		Service:      utils.NewStringValue(service.GetName().GetValue()),
@@ -589,13 +682,13 @@ func removeInstanceWithAttrs(t *testing.T, service *api.Service, instance *api.I
 		Host:         utils.NewStringValue(instance.GetHost().GetValue()),
 		Port:         utils.NewUInt32Value(instance.GetPort().GetValue()),
 	}
-	if resp := server.DeleteInstance(defaultCtx, req); !respSuccess(resp) {
+	if resp := d.server.DeleteInstances(d.defaultCtx, []*api.Instance{req}); !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 }
 
 // 创建一个路由配置
-func createCommonRoutingConfig(t *testing.T, service *api.Service, inCount int, outCount int) (*api.Routing, *api.Routing) {
+func (d *DiscoverTestSuit) createCommonRoutingConfig(t *testing.T, service *api.Service, inCount int, outCount int) (*api.Routing, *api.Routing) {
 	inBounds := make([]*api.Route, 0, inCount)
 	for i := 0; i < inCount; i++ {
 		matchString := &api.MatchString{
@@ -636,42 +729,84 @@ func createCommonRoutingConfig(t *testing.T, service *api.Service, inCount int, 
 
 	// TODO 是否应该先删除routing
 
-	resp := server.CreateRoutingConfig(defaultCtx, conf)
+	resp := d.server.CreateRoutingConfigs(d.defaultCtx, []*api.Routing{conf})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
 
-	return conf, resp.GetRouting()
+	return conf, resp.Responses[0].GetRouting()
 }
 
 // 删除一个路由配置
-func deleteCommonRoutingConfig(t *testing.T, req *api.Routing) {
-	resp := server.DeleteRoutingConfig(defaultCtx, req)
+func (d *DiscoverTestSuit) deleteCommonRoutingConfig(t *testing.T, req *api.Routing) {
+	resp := d.server.DeleteRoutingConfigs(d.defaultCtx, []*api.Routing{req})
 	if !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
 }
 
 // 更新一个路由配置
-func updateCommonRoutingConfig(t *testing.T, req *api.Routing) {
-	resp := server.UpdateRoutingConfig(defaultCtx, req)
+func (d *DiscoverTestSuit) updateCommonRoutingConfig(t *testing.T, req *api.Routing) {
+	resp := d.server.UpdateRoutingConfigs(d.defaultCtx, []*api.Routing{req})
 	if !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
 }
 
 // 彻底删除一个路由配置
-func cleanCommonRoutingConfig(service string, namespace string) {
-	str := "delete from routing_config where id in (select id from service where name = ? and namespace = ?)"
-	// fmt.Printf("%s %s %s\n", str, service, namespace)
-	if _, err := db.Exec(str, service, namespace); err != nil {
-		panic(err)
+func (d *DiscoverTestSuit) cleanCommonRoutingConfig(service string, namespace string) {
+
+	if d.storage.Name() == sqldb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+
+			defer dbTx.Rollback()
+
+			str := "delete from routing_config where id in (select id from service where name = ? and namespace = ?)"
+			// fmt.Printf("%s %s %s\n", str, service, namespace)
+			if _, err := dbTx.Exec(str, service, namespace); err != nil {
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if d.storage.Name() == boltdb.STORENAME {
+		func() {
+
+			svc, err := d.storage.GetService(service, namespace)
+			if err != nil {
+				panic(err)
+			}
+
+			if svc == nil {
+				return
+			}
+
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+
+			if err := dbTx.Bucket([]byte(tblNameRouting)).DeleteBucket([]byte(svc.ID)); err != nil {
+				if !errors.Is(err, bolt.ErrBucketNotFound) {
+					dbTx.Rollback()
+					panic(err)
+				}
+			}
+			dbTx.Commit()
+		}()
 	}
-	return
 }
 
 //
-func CheckGetService(t *testing.T, expectReqs []*api.Service, actualReqs []*api.Service) {
+func (d *DiscoverTestSuit) CheckGetService(t *testing.T, expectReqs []*api.Service, actualReqs []*api.Service) {
 	if len(expectReqs) != len(actualReqs) {
 		t.Fatalf("error: %d %d", len(expectReqs), len(actualReqs))
 	}
@@ -714,7 +849,7 @@ func CheckGetService(t *testing.T, expectReqs []*api.Service, actualReqs []*api.
 }
 
 // 检查服务发现的字段是否一致
-func discoveryCheck(t *testing.T, req *api.Service, resp *api.DiscoverResponse) {
+func (d *DiscoverTestSuit) discoveryCheck(t *testing.T, req *api.Service, resp *api.DiscoverResponse) {
 	if resp == nil {
 		t.Fatalf("error")
 	}
@@ -826,7 +961,7 @@ func serviceCheck(t *testing.T, expect *api.Service, actual *api.Service) {
 }
 
 // 创建限流规则
-func createCommonRateLimit(t *testing.T, service *api.Service, index int) (*api.Rule, *api.Rule) {
+func (d *DiscoverTestSuit) createCommonRateLimit(t *testing.T, service *api.Service, index int) (*api.Rule, *api.Rule) {
 	// 先不考虑Cluster
 	rateLimit := &api.Rule{
 		Service:   service.GetName(),
@@ -864,41 +999,116 @@ func createCommonRateLimit(t *testing.T, service *api.Service, index int) (*api.
 		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
 	}
 
-	resp := server.CreateRateLimit(defaultCtx, rateLimit)
+	resp := d.server.CreateRateLimits(d.defaultCtx, []*api.Rule{rateLimit})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
-	return rateLimit, resp.GetRateLimit()
+	return rateLimit, resp.Responses[0].GetRateLimit()
 }
 
 // 删除限流规则
-func deleteRateLimit(t *testing.T, rateLimit *api.Rule) {
-	if resp := server.DeleteRateLimit(defaultCtx, rateLimit); !respSuccess(resp) {
+func (d *DiscoverTestSuit) deleteRateLimit(t *testing.T, rateLimit *api.Rule) {
+	if resp := d.server.DeleteRateLimits(d.defaultCtx, []*api.Rule{rateLimit}); !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
 }
 
 // 更新单个限流规则
-func updateRateLimit(t *testing.T, rateLimit *api.Rule) {
-	if resp := server.UpdateRateLimit(defaultCtx, rateLimit); !respSuccess(resp) {
+func (d *DiscoverTestSuit) updateRateLimit(t *testing.T, rateLimit *api.Rule) {
+	if resp := d.server.UpdateRateLimits(d.defaultCtx, []*api.Rule{rateLimit}); !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
 }
 
 // 彻底删除限流规则
-func cleanRateLimit(id string) {
-	str := `delete from ratelimit_config where id = ?`
-	if _, err := db.Exec(str, id); err != nil {
-		panic(err)
+func (d *DiscoverTestSuit) cleanRateLimit(id string) {
+
+	if d.storage.Name() == sqldb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+
+			defer dbTx.Rollback()
+
+			str := `delete from ratelimit_config where id = ?`
+			if _, err := dbTx.Exec(str, id); err != nil {
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if d.storage.Name() == boltdb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+
+			if err := dbTx.Bucket([]byte(tblRateLimitConfig)).DeleteBucket([]byte(id)); err != nil {
+				if !errors.Is(err, bolt.ErrBucketNotFound) {
+					dbTx.Rollback()
+					panic(err)
+				}
+			}
+			dbTx.Commit()
+		}()
 	}
 }
 
 // 彻底删除限流规则版本号
-func cleanRateLimitRevision(service, namespace string) {
-	str := `delete from ratelimit_revision using ratelimit_revision, service
-			where service_id = service.id and name = ? and namespace = ?`
-	if _, err := db.Exec(str, service, namespace); err != nil {
-		panic(err)
+func (d *DiscoverTestSuit) cleanRateLimitRevision(service, namespace string) {
+
+	if d.storage.Name() == sqldb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+
+			defer dbTx.Rollback()
+
+			str := `delete from ratelimit_revision using ratelimit_revision, service where service_id = service.id and name = ? and namespace = ?`
+			if _, err := dbTx.Exec(str, service, namespace); err != nil {
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if d.storage.Name() == boltdb.STORENAME {
+		func() {
+
+			svc, err := d.storage.GetService(service, namespace)
+			if err != nil {
+				panic(err)
+			}
+
+			if svc == nil {
+				panic("service not found " + service + ", namespace" + namespace)
+			}
+
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+
+			if err := dbTx.Bucket([]byte(tblRateLimitRevision)).DeleteBucket([]byte(svc.ID)); err != nil {
+				if !errors.Is(err, bolt.ErrBucketNotFound) {
+					dbTx.Rollback()
+					panic(err)
+				}
+			}
+			dbTx.Commit()
+		}()
 	}
 }
 
@@ -1007,14 +1217,13 @@ func checkRateLimit(t *testing.T, expect *api.Rule, actual *api.Rule) {
 	if string(expectReport) != string(actualReport) {
 		t.Fatal("error report")
 	}
-	t.Log("check success")
 }
 
 // 增加熔断规则
-func createCommonCircuitBreaker(t *testing.T, id int) (*api.CircuitBreaker, *api.CircuitBreaker) {
+func (d *DiscoverTestSuit) createCommonCircuitBreaker(t *testing.T, id int) (*api.CircuitBreaker, *api.CircuitBreaker) {
 	circuitBreaker := &api.CircuitBreaker{
 		Name:       utils.NewStringValue(fmt.Sprintf("name-test-%d", id)),
-		Namespace:  utils.NewStringValue(service.DefaultNamespace),
+		Namespace:  utils.NewStringValue(DefaultNamespace),
 		Owners:     utils.NewStringValue("owner-test"),
 		Comment:    utils.NewStringValue("comment-test"),
 		Department: utils.NewStringValue("department-test"),
@@ -1094,15 +1303,15 @@ func createCommonCircuitBreaker(t *testing.T, id int) (*api.CircuitBreaker, *api
 	circuitBreaker.Inbounds = inbounds
 	circuitBreaker.Outbounds = outbounds
 
-	resp := server.CreateCircuitBreaker(defaultCtx, circuitBreaker)
+	resp := d.server.CreateCircuitBreakers(d.defaultCtx, []*api.CircuitBreaker{circuitBreaker})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
-	return circuitBreaker, resp.GetCircuitBreaker()
+	return circuitBreaker, resp.Responses[0].GetCircuitBreaker()
 }
 
 // 增加熔断规则版本
-func createCommonCircuitBreakerVersion(t *testing.T, cb *api.CircuitBreaker, index int) (
+func (d *DiscoverTestSuit) createCommonCircuitBreakerVersion(t *testing.T, cb *api.CircuitBreaker, index int) (
 	*api.CircuitBreaker, *api.CircuitBreaker) {
 	cbVersion := &api.CircuitBreaker{
 		Id:        cb.GetId(),
@@ -1114,48 +1323,48 @@ func createCommonCircuitBreakerVersion(t *testing.T, cb *api.CircuitBreaker, ind
 		Token:     cb.GetToken(),
 	}
 
-	resp := server.CreateCircuitBreakerVersion(defaultCtx, cbVersion)
+	resp := d.server.CreateCircuitBreakerVersions(d.defaultCtx, []*api.CircuitBreaker{cbVersion})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
-	return cbVersion, resp.GetCircuitBreaker()
+	return cbVersion, resp.Responses[0].GetCircuitBreaker()
 }
 
 // 删除熔断规则
-func deleteCircuitBreaker(t *testing.T, circuitBreaker *api.CircuitBreaker) {
-	if resp := server.DeleteCircuitBreaker(defaultCtx, circuitBreaker); !respSuccess(resp) {
+func (d *DiscoverTestSuit) deleteCircuitBreaker(t *testing.T, circuitBreaker *api.CircuitBreaker) {
+	if resp := d.server.DeleteCircuitBreakers(d.defaultCtx, []*api.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
 }
 
 // 更新熔断规则内容
-func updateCircuitBreaker(t *testing.T, circuitBreaker *api.CircuitBreaker) {
-	if resp := server.UpdateCircuitBreaker(defaultCtx, circuitBreaker); !respSuccess(resp) {
+func (d *DiscoverTestSuit) updateCircuitBreaker(t *testing.T, circuitBreaker *api.CircuitBreaker) {
+	if resp := d.server.UpdateCircuitBreakers(d.defaultCtx, []*api.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
 }
 
 // 发布熔断规则
-func releaseCircuitBreaker(t *testing.T, cb *api.CircuitBreaker, service *api.Service) {
+func (d *DiscoverTestSuit) releaseCircuitBreaker(t *testing.T, cb *api.CircuitBreaker, service *api.Service) {
 	release := &api.ConfigRelease{
 		Service:        service,
 		CircuitBreaker: cb,
 	}
 
-	resp := server.ReleaseCircuitBreaker(defaultCtx, release)
+	resp := d.server.ReleaseCircuitBreakers(d.defaultCtx, []*api.ConfigRelease{release})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
 }
 
 // 解绑熔断规则
-func unBindCircuitBreaker(t *testing.T, cb *api.CircuitBreaker, service *api.Service) {
+func (d *DiscoverTestSuit) unBindCircuitBreaker(t *testing.T, cb *api.CircuitBreaker, service *api.Service) {
 	unbind := &api.ConfigRelease{
 		Service:        service,
 		CircuitBreaker: cb,
 	}
 
-	resp := server.UnBindCircuitBreaker(defaultCtx, unbind)
+	resp := d.server.UnBindCircuitBreakers(d.defaultCtx, []*api.ConfigRelease{unbind})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
@@ -1207,24 +1416,100 @@ func checkCircuitBreaker(t *testing.T, expect, expectMaster *api.CircuitBreaker,
 	if string(expectOutbounds) != string(outbounds) {
 		t.Fatal("error inbounds")
 	}
-	t.Log("check success")
+}
+
+func buildCircuitBreakerKey(id, version string) string {
+	return fmt.Sprintf("%s_%s", id, version)
 }
 
 // 彻底删除熔断规则
-func cleanCircuitBreaker(id, version string) {
+func (d *DiscoverTestSuit) cleanCircuitBreaker(id, version string) {
 	log.Infof("clean circuit breaker, id: %s, version: %s", id, version)
-	str := `delete from circuitbreaker_rule where id = ? and version = ?`
-	if _, err := db.Exec(str, id, version); err != nil {
-		panic(err)
+
+	if d.storage.Name() == sqldb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+
+			defer dbTx.Rollback()
+
+			str := `delete from circuitbreaker_rule where id = ? and version = ?`
+			if _, err := dbTx.Exec(str, id, version); err != nil {
+				tx.Rollback()
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if d.storage.Name() == boltdb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+
+			if err := dbTx.Bucket([]byte(tblCircuitBreaker)).DeleteBucket([]byte(buildCircuitBreakerKey(id, version))); err != nil {
+				if !errors.Is(err, bolt.ErrBucketNotFound) {
+					panic(err)
+				}
+			}
+
+			dbTx.Commit()
+		}()
 	}
 }
 
 // 彻底删除熔断规则发布记录
-func cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
-	str := `delete from circuitbreaker_rule_relation using circuitbreaker_rule_relation, service where
-			service_id = service.id and name = ? and namespace = ? and rule_id = ? and rule_version = ?`
-	if _, err := db.Exec(str, name, namespace, ruleID, ruleVersion); err != nil {
-		panic(err)
+func (d *DiscoverTestSuit) cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
+
+	if d.storage.Name() == sqldb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+
+			defer dbTx.Rollback()
+
+			str := `delete from circuitbreaker_rule_relation using circuitbreaker_rule_relation, service where service_id = service.id and name = ? and namespace = ? and rule_id = ? and rule_version = ?`
+			if _, err := dbTx.Exec(str, name, namespace, ruleID, ruleVersion); err != nil {
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if d.storage.Name() == boltdb.STORENAME {
+		func() {
+			releations, err := d.storage.GetCircuitBreakerRelation(ruleID, ruleVersion)
+			if err != nil {
+				panic(err)
+			}
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+
+			for i := range releations {
+				if err := dbTx.Bucket([]byte(tblCircuitBreakerRelation)).DeleteBucket([]byte(releations[i].ServiceID)); err != nil {
+					if !errors.Is(err, bolt.ErrBucketNotFound) {
+						tx.Rollback()
+						panic(err)
+					}
+				}
+			}
+
+			dbTx.Commit()
+		}()
 	}
 }
 
@@ -1566,12 +1851,4 @@ func parseStr2Sid(sid string) (uint32, uint32) {
 	mod, _ := strconv.ParseUint(items[0], 10, 32)
 	cmd, _ := strconv.ParseUint(items[1], 10, 32)
 	return uint32(mod), uint32(cmd)
-}
-
-// 初始化函数
-func init() {
-	if err := initialize(); err != nil {
-		fmt.Printf("init err: %s", err.Error())
-		panic(err)
-	}
 }

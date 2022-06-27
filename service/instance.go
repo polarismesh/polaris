@@ -548,10 +548,10 @@ func (s *Server) updateInstanceAttribute(req *api.Instance, instance *model.Inst
 		insProto.Metadata = req.GetMetadata()
 		needUpdate = true
 	}
-	if !needUpdate {
-		// 不需要更新metadata，则置空
-		insProto.Metadata = nil
-	}
+	// if !needUpdate {
+	// 	// 不需要更新metadata，则置空
+	// 	insProto.Metadata = nil
+	// }
 
 	if req.GetProtocol() != nil && req.GetProtocol().GetValue() != instance.Protocol() {
 		insProto.Protocol = req.GetProtocol()
@@ -740,7 +740,8 @@ func (s *Server) execInstancePreStep(ctx context.Context, req *api.Instance) (
 	// 检查服务实例是否存在
 	instance, err := s.storage.GetInstance(instanceID)
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(rid))
+		log.Error("[Instance] get instance from store", ZapRequestID(rid), zap.String("instance-id", instanceID),
+			zap.Error(err))
 		return nil, nil, api.NewInstanceResponse(api.StoreLayerException, req)
 	}
 	if instance == nil {

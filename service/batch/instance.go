@@ -239,7 +239,7 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 	}
 
 	// 统一判断实例是否存在，存在则需要更新部分数据
-	err := ctrl.batchRestoreInstanceIsolate(remains)
+	firstRegisInstances, err := ctrl.batchRestoreInstanceIsolate(remains)
 	if err != nil {
 		log.Errorf("[Batch] batch check instances existed err: %s", err.Error())
 	}
@@ -252,7 +252,11 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 
 	// 构造model数据
 	for _, entry := range remains {
-		entry.SetInstance(utils.CreateInstanceModel(entry.serviceId, entry.request))
+		ins := utils.CreateInstanceModel(entry.serviceId, entry.request)
+		if _, ok := firstRegisInstances[ins.ID()]; ok {
+			ins.FirstRegis = true
+		}
+		entry.SetInstance(ins)
 	}
 
 	// 调用batch接口，创建实例
@@ -375,10 +379,10 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 }
 
 // batchRestoreInstanceIsolate 批量恢复实例的隔离状态，以请求为准，请求如果不存在，就以数据库为准
-func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*InstanceFuture) error {
+func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*InstanceFuture) (map[string]struct{}, error) {
 
 	if len(futures) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	// 初始化所有的id都是不存在的
@@ -391,16 +395,31 @@ func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*Instan
 	if id2Isolate, err = ctrl.storage.BatchGetInstanceIsolate(ids); err != nil {
 		log.Errorf("[Batch] check instances existed storage err: %s", err.Error())
 		sendReply(futures, api.StoreLayerException, err)
-		return err
+		return nil, err
 	}
+
+	firstRegisInstances := make(map[string]struct{})
+	if len(id2Isolate) == 0 {
+		for id := range futures {
+			firstRegisInstances[id] = struct{}{}
+		}
+		return firstRegisInstances, err
+	}
+
 	if len(id2Isolate) > 0 {
+		for id := range ids {
+			if _, ok := id2Isolate[id]; !ok {
+				firstRegisInstances[id] = struct{}{}
+			}
+		}
+
 		for id, isolate := range id2Isolate {
 			if future, ok := futures[id]; ok && future.request.Isolate == nil {
 				future.request.Isolate = &wrappers.BoolValue{Value: isolate}
 			}
 		}
 	}
-	return nil
+	return firstRegisInstances, err
 }
 
 // batchVerifyInstances 对请求futures进行统一的鉴权

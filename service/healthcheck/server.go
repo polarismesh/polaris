@@ -107,10 +107,10 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 	server.history = plugin.GetHistory()
 	server.discoverEvent = plugin.GetDiscoverEvent()
 
-	server.cacheProvider = newCacheProvider(hcOpt.Service)
-	server.timeAdjuster = newTimeAdjuster(ctx)
+	server.cacheProvider = newCacheProvider(hcOpt.Service, server)
+	server.timeAdjuster = newTimeAdjuster(ctx, server.storage)
 	server.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval, hcOpt.MaxCheckInterval)
-	server.dispatcher = newDispatcher(ctx)
+	server.dispatcher = newDispatcher(ctx, server)
 
 	server.discoverCh = make(chan eventWrapper, 32)
 	go server.receiveEventAndPush()
