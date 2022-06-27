@@ -169,6 +169,3 @@ If you have good comments or suggestions, please give us Issues or Pull Requests
 development experience of Polaris Mesh.
 
 <br>see details：[CONTRIBUTING.md](./CONTRIBUTING.md)
-
-[Tencent Open Source Incentive Plan](https://opensource.tencent.com/contribution) encourages developers to participate
-and contribute. Look forward to your participation.
