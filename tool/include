@@ -59,7 +59,7 @@ function reload() {
 
 function add_cron() {
     set +e
-    item="$workdir/tool/check.sh >>$workdir/log/check.log 2>&1"
+    item="bash $workdir/tool/check.sh >>$workdir/log/check.log 2>&1"
     exist=$(crontab -l | grep "$item" | grep -v "#" | wc -l)
     if [ "$exist" == "0" ]; then
         log_info "add cron for $server_name"
@@ -75,7 +75,7 @@ function add_cron() {
 
 function del_cron() {
     set +e
-    item="$workdir/tool/check.sh >>$workdir/log/check.log 2>&1"
+    item="bash $workdir/tool/check.sh >>$workdir/log/check.log 2>&1"
     exist=$(crontab -l | grep "$item" | grep -v "#" | wc -l)
     if [ "$exist" != "0" ]; then
         log_info "del cron for $server_name"
