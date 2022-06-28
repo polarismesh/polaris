@@ -20,6 +20,7 @@ package httpserver
 import (
 	"context"
 	"fmt"
+	"github.com/polarismesh/polaris-server/common/secure"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -49,6 +50,7 @@ type HTTPServer struct {
 	listenIP        string
 	listenPort      uint32
 	connLimitConfig *connlimit.Config
+	tlsInfo         *secure.TLSInfo
 	option          map[string]interface{}
 	openAPI         map[string]apiserver.APIConfig
 	start           bool
@@ -109,6 +111,19 @@ func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{}
 	if auth := plugin.GetAuth(); auth != nil {
 		log.Infof("http server open the auth")
 		h.auth = auth
+	}
+
+	// tls 配置信息
+	if raw, _ := option["tls"].(map[interface{}]interface{}); raw != nil {
+		tlsConfig, err := secure.ParseTLSConfig(raw)
+		if err != nil {
+			return err
+		}
+		h.tlsInfo = &secure.TLSInfo{
+			CertFile:      tlsConfig.Cert,
+			KeyFile:       tlsConfig.Key,
+			TrustedCAFile: tlsConfig.CaCert,
+		}
 	}
 
 	return nil
@@ -208,7 +223,11 @@ func (h *HTTPServer) Run(errCh chan error) {
 	h.server = &server
 
 	// 开始对外服务
-	err = server.Serve(ln)
+	if h.tlsInfo.IsEmpty() {
+		err = server.Serve(ln)
+	} else {
+		err = server.ServeTLS(ln, h.tlsInfo.CertFile, h.tlsInfo.KeyFile)
+	}
 	if err != nil {
 		log.Errorf("%+v", err)
 		if !h.restart {

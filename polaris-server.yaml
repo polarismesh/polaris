@@ -136,6 +136,10 @@ apiservers:
         maxConnLimit: 5120
       enableCacheProto: true
       sizeCacheProto: 128
+      tls:
+        cert: ""
+        key: ""
+        caCert: ""
     api:
       client:
         enable: true
