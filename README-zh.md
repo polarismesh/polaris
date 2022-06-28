@@ -19,9 +19,11 @@ README：
 - [交流群](#交流群)
 - [参与贡献](#参与贡献)
 
-北极星原理介绍及相关实践文档请见[北极星官网](https://polarismesh.cn/zh/doc/)
+北极星原理介绍及相关实践文档请见[北极星官网](https://polarismesh.cn/)
 
 ## 介绍
+
+<img src="https://raw.githubusercontent.com/polarismesh/website/main/docs/zh/doc/北极星是什么/图片/简介/第一印象.png" width="800" />
 
 北极星是一个支持多语言、多框架的云原生服务发现和治理中心，解决分布式和微服务架构中的服务可见、故障容错、流量控制和安全问题。
 

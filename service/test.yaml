@@ -68,110 +68,7 @@ bootstrap:
         - stdout
       errorOutputPaths:
         - stderr
-  # 按顺序启动server
-  startInOrder:
-    open: true # 是否开启，默认是关闭
-    key: sz # 全局锁
-  # 注册为北极星服务
-  polaris_service:
-    # probe_address: ##DB_ADDR##
-    enable_register: true
-    isolated: false
-    services:
-      - name: polaris.checker
-        protocols:
-          - service-grpc
-      - name: polaris.config
-        protocols:
-          - config-grpc
-# apiserver配置
-apiservers:
-  - name: service-eureka
-    option:
-      listenIP: "0.0.0.0"
-      listenPort: 8761
-      namespace: default
-      owner: polaris
-      refreshInterval: 10
-      deltaExpireInterval: 60
-      unhealthyExpireInterval: 180
-      connLimit:
-        openConnLimit: false
-        maxConnPerHost: 1024
-        maxConnLimit: 10240
-        whiteList: 127.0.0.1
-        purgeCounterInterval: 10s
-        purgeCounterExpired: 5s
-  - name: api-http # 协议名，全局唯一
-    option:
-      listenIP: "0.0.0.0"
-      listenPort: 8090
-      enablePprof: true # debug pprof
-      connLimit:
-        openConnLimit: false
-        maxConnPerHost: 128
-        maxConnLimit: 5120
-        whiteList: 127.0.0.1
-        purgeCounterInterval: 10s
-        purgeCounterExpired: 5s
-    api:
-      admin:
-        enable: true
-      console:
-        enable: true
-        include: [default]
-      client:
-        enable: true
-        include: [discover, register, healthcheck]
-      config:
-        enable: true
-        include: [default]
-  - name: service-grpc
-    option:
-      listenIP: "0.0.0.0"
-      listenPort: 8091
-      connLimit:
-        openConnLimit: false
-        maxConnPerHost: 128
-        maxConnLimit: 5120
-      enableCacheProto: true
-      sizeCacheProto: 128
-      tls:
-        cert: ""
-        key: ""
-        caCert: ""
-    api:
-      client:
-        enable: true
-        include: [discover, register, healthcheck]
-  - name: config-grpc
-    option:
-      listenIP: "0.0.0.0"
-      listenPort: 8093
-      connLimit:
-        openConnLimit: false
-        maxConnPerHost: 128
-        maxConnLimit: 5120
-    api:
-      client:
-        enable: true
-  - name: xds-v3
-    option:
-      listenIP: "0.0.0.0"
-      listenPort: 15010
-      connLimit:
-        openConnLimit: false
-        maxConnPerHost: 128
-        maxConnLimit: 10240
-  - name: prometheus-sd
-    option:
-      listenIP: "0.0.0.0"
-      listenPort: 9000
-      connLimit:
-        openConnLimit: false
-        maxConnPerHost: 128
-        maxConnLimit: 10240
-#  - name: service-l5
+#  - name: l5pbserver
 #    option:
 #      listenIP: 0.0.0.0
 #      listenPort: 7779
@@ -200,26 +97,21 @@ naming:
       open: true
       queueSize: 10240
       waitTime: 32ms
-      maxBatchCount: 128
-      concurrency: 128
+      maxBatchCount: 32
+      concurrency: 16
     deregister:
       open: true
       queueSize: 10240
       waitTime: 32ms
-      maxBatchCount: 128
-      concurrency: 128
-    clientRegister:
-      open: true
-      queueSize: 10240
-      waitTime: 32s
-      maxBatchCount: 1024
-      concurrency: 64
-    clientDeregister:
-      open: true
-      queueSize: 10240
-      waitTime: 32ms
       maxBatchCount: 32
-      concurrency: 64
+      concurrency: 16
+# 配置中心模块启动配置
+config:
+  # 是否启动配置模块
+  open: true
+  cache:
+    #配置文件缓存过期时间，单位s
+    expireTimeAfterWrite: 3600
 # 健康检查的配置
 healthcheck:
   open: true
@@ -227,20 +119,18 @@ healthcheck:
   slotNum: 30
   minCheckInterval: 1s
   maxCheckInterval: 30s
-  clientReportInterval: 120s
   batch:
     heartbeat:
       open: true
       queueSize: 10240
       waitTime: 32ms
       maxBatchCount: 32
-      concurrency: 64
+      concurrency: 8
   checkers:
     - name: heartbeatMemory
 #  - name: heartbeatRedis
 #    option:
 #      kvAddr: ##REDIS_ADDR##
-#       # ACL user from redis v6.0, remove it if ACL is not available
 #      kvUser: ##REDIS_USER#
 #      kvPasswd: ##REDIS_PWD##
 #      poolSize: 200
@@ -250,13 +140,6 @@ healthcheck:
 #      msgTimeout: 200ms
 #      concurrency: 200
 #      withTLS: false
-# 配置中心模块启动配置
-config:
-  # 是否启动配置模块
-  open: true
-  cache:
-    #配置文件缓存过期时间，单位s
-    expireTimeAfterWrite: 3600
 # 缓存配置
 cache:
   open: true
@@ -275,7 +158,6 @@ cache:
     - name: users # 加载用户、用户组数据
     - name: strategyRule # 加载鉴权规则数据
     - name: namespace # 加载命名空间数据
-    - name: client # 加载 SDK 数据
 #    - name: l5 # 加载l5数据
 # 存储配置
 store:
@@ -292,7 +174,6 @@ store:
   #     dbUser: ##DB_USER##
   #     dbPwd: ##DB_PWD##
   #     dbAddr: ##DB_ADDR##
-  #     dbExternal: "loc=Local&charset=utf8mb4"
   #     maxOpenConns: 300
   #     maxIdleConns: 50
   #     connMaxLifetime: 300 # 单位秒

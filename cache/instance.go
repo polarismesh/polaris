@@ -254,8 +254,13 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 		if item.Proto.Metadata == nil {
 			item.Proto.Metadata = make(map[string]string)
 		}
-		item.Proto.Metadata["version"] = item.Version()
-		item.Proto.Metadata["protocol"] = item.Protocol()
+
+		if len(item.Version()) > 0 {
+			item.Proto.Metadata["version"] = item.Version()
+		}
+		if len(item.Protocol()) > 0 {
+			item.Proto.Metadata["protocol"] = item.Protocol()
+		}
 
 		ic.ids.Store(item.ID(), item)
 		if !itemExist {

@@ -83,7 +83,7 @@ func (s *stableStore) Name() string {
 // Initialize 初始化函数
 func (s *stableStore) Initialize(conf *store.Config) error {
 	if s.start {
-		return errors.New("store has been Initialize")
+		return nil
 	}
 
 	masterConfig, slaveConfig, err := parseDatabaseConf(conf.Option)

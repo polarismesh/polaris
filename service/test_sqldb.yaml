@@ -85,6 +85,9 @@ auth:
     consoleOpen: true
     # 客户端鉴权能力开关, 默认关闭
     clientOpen: false
+namespace:
+  # 是否允许自动创建命名空间
+  autoCreate: true
 naming:
   auth:
     open: false
@@ -159,22 +162,22 @@ cache:
 # 存储配置
 store:
   # 单机文件存储插件
-  name: boltdbStore
-  option:
-    path: ./polaris.bolt
-  ## 数据库存储插件
-  # name: defaultStore
+  # name: boltdbStore
   # option:
-  #   master:
-  #     dbType: mysql
-  #     dbName: polaris_server
-  #     dbUser: ##DB_USER##
-  #     dbPwd: ##DB_PWD##
-  #     dbAddr: ##DB_ADDR##
-  #     maxOpenConns: 300
-  #     maxIdleConns: 50
-  #     connMaxLifetime: 300 # 单位秒
-  #     txIsolationLevel: 2 #LevelReadCommitted
+  #   path: ./polaris.bolt
+  ## 数据库存储插件
+  name: defaultStore
+  option:
+    master:
+      dbType: mysql
+      dbName: polaris_server
+      dbUser: root ##DB_USER##
+      dbPwd: "123456" ##DB_PWD##
+      dbAddr: "127.0.0.1:3306" ##DB_ADDR##
+      maxOpenConns: -1
+      maxIdleConns: -1
+      connMaxLifetime: 300 # 单位秒
+      txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置
 plugin:
   history:

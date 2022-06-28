@@ -35,6 +35,7 @@ func init() {
 
 // CacheProvider provider health check objects for service cache
 type CacheProvider struct {
+	svr                  *Server
 	selfService          string
 	selfServiceInstances *shardMap
 	healthCheckInstances *shardMap
@@ -48,8 +49,9 @@ type CacheEvent struct {
 	healthCheckClientChanged    bool
 }
 
-func newCacheProvider(selfService string) *CacheProvider {
+func newCacheProvider(selfService string, svr *Server) *CacheProvider {
 	return &CacheProvider{
+		svr:                  svr,
 		selfService:          selfService,
 		selfServiceInstances: NewShardMap(1),
 		healthCheckInstances: NewShardMap(DefaultShardSize),
@@ -66,7 +68,7 @@ func (c *CacheProvider) isSelfServiceInstance(instance *api.Instance) bool {
 }
 
 func (c *CacheProvider) sendEvent(event CacheEvent) {
-	server.dispatcher.UpdateStatusByEvent(event)
+	c.svr.dispatcher.UpdateStatusByEvent(event)
 }
 
 func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, values *shardMap) bool {
@@ -232,14 +234,14 @@ func (c *CacheProvider) OnCreated(value interface{}) {
 			c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
 			//return
 		}
-		hcEnable, checker := isHealthCheckEnable(instProto)
+		hcEnable, checker := c.isHealthCheckEnable(instProto)
 		if !hcEnable {
 			return
 		}
 		storeServiceInstance(newInstanceWithChecker(actual, checker), c.healthCheckInstances)
 		c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 	case *model.Client:
-		checker, ok := getHealthChecker(api.HealthCheck_HEARTBEAT)
+		checker, ok := c.getHealthChecker(api.HealthCheck_HEARTBEAT)
 		if !ok {
 			return
 		}
@@ -248,16 +250,16 @@ func (c *CacheProvider) OnCreated(value interface{}) {
 	}
 }
 
-func getHealthChecker(hcType api.HealthCheck_HealthCheckType) (plugin.HealthChecker, bool) {
-	checker, ok := server.checkers[int32(hcType)]
+func (c *CacheProvider) getHealthChecker(hcType api.HealthCheck_HealthCheckType) (plugin.HealthChecker, bool) {
+	checker, ok := c.svr.checkers[int32(hcType)]
 	return checker, ok
 }
 
-func isHealthCheckEnable(instance *api.Instance) (bool, plugin.HealthChecker) {
+func (c *CacheProvider) isHealthCheckEnable(instance *api.Instance) (bool, plugin.HealthChecker) {
 	if !instance.GetEnableHealthCheck().GetValue() || instance.GetHealthCheck() == nil {
 		return false, nil
 	}
-	checker, ok := getHealthChecker(instance.GetHealthCheck().GetType())
+	checker, ok := c.getHealthChecker(instance.GetHealthCheck().GetType())
 	if !ok {
 		return false, nil
 	}
@@ -278,7 +280,7 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 		//check exists
 		instanceId := actual.ID()
 		value, exists := c.healthCheckInstances.Load(instanceId)
-		hcEnable, checker := isHealthCheckEnable(instProto)
+		hcEnable, checker := c.isHealthCheckEnable(instProto)
 		if !hcEnable {
 			if !exists {
 				// instance is unhealthy, not exist, just return.
@@ -308,7 +310,7 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 			c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 		}
 	case *model.Client:
-		checker, ok := getHealthChecker(api.HealthCheck_HEARTBEAT)
+		checker, ok := c.getHealthChecker(api.HealthCheck_HEARTBEAT)
 		if !ok {
 			return
 		}

@@ -42,7 +42,7 @@ jobs:
           DOCKER_TAG: ${{ steps.get_version.outputs.VERSION }}
         run: |
           echo "docker repository : polarismesh/polaris-server-standalone, tag : ${docker_tag}"
-          bash build.sh
+          bash build.sh ${DOCKER_TAG}
           
           if [ $? != 0 ]; then
               echo "build polaris-server failed"
