@@ -19,7 +19,7 @@ README：
 - [Chat group](#chat-group)
 - [Contribution](#contribution)
 
-Principle or user manual can visit [website](https://polarismesh.cn/zh/doc/) to learn more
+Principle or user manual can visit [website](https://polarismesh.cn/) to learn more
 
 ## Introduction
 
