@@ -374,10 +374,12 @@ func (h *EurekaServer) postproccess(req *restful.Request, rsp *restful.Response)
 		path = strings.TrimSuffix(path, "/")
 	}
 	startTime := req.Attribute("start-time").(time.Time)
-	code := rsp.StatusCode()
-	polarisCode, ok := req.Attribute(statusCodeHeader).(uint32)
-	if ok {
-		code = int(polarisCode)
+
+	recordApiCall := true
+	code, ok := req.Attribute(statusCodeHeader).(uint32)
+	if !ok {
+		code = uint32(rsp.StatusCode())
+		recordApiCall = code != http.StatusNotFound
 	}
 	diff := now.Sub(startTime)
 	// 打印耗时超过1s的请求
@@ -391,7 +393,10 @@ func (h *EurekaServer) postproccess(req *restful.Request, rsp *restful.Response)
 		)
 	}
 	method := getEurekaApi(req.Request.Method, path)
-	_ = h.statis.AddAPICall(method, "HTTP", code, diff.Nanoseconds())
+
+	if recordApiCall {
+		_ = h.statis.AddAPICall(method, "HTTP", int(code), diff.Nanoseconds())
+	}
 }
 
 // getEurekaApi 聚合 eureka 接口，不暴露服务名和实例 id
