@@ -73,7 +73,7 @@ func (svr *serverAuthAbility) DeleteInstancesByHost(ctx context.Context,
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+	if utils.ParseUserRole(ctx) == model.SubAccountUserRole {
 		ret := api.NewBatchWriteResponse(api.ExecuteSuccess)
 		ret.Collect(api.NewResponse(api.NotAllowedAccess))
 		return ret

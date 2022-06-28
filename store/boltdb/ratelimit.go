@@ -254,23 +254,18 @@ func (r *rateLimitStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool
 		return []*model.RateLimit{}, []*model.RateLimitRevision{}, nil
 	}
 
-	if len(limitResults) != len(revisionResults) {
-		return nil, nil, errors.New("ratelimit conf size must be equal to ratelimit revision size")
-	}
+	limits := make([]*model.RateLimit, 0, len(limitResults))
+	versions := make([]*model.RateLimitRevision, 0, len(revisionResults))
 
-	limits := make([]*model.RateLimit, len(limitResults))
-	versions := make([]*model.RateLimitRevision, len(revisionResults))
-
-	pos = 0
 	for i := range limitResults {
-		limits[pos] = limitResults[i].(*model.RateLimit)
-		pos++
-	}
+		rule := limitResults[i].(*model.RateLimit)
+		ver, ok := revisionResults[rule.ServiceID]
+		if !ok {
+			continue
+		}
 
-	pos = 0
-	for i := range revisionResults {
-		versions[pos] = revisionResults[i].(*model.RateLimitRevision)
-		pos++
+		limits = append(limits, rule)
+		versions = append(versions, ver.(*model.RateLimitRevision))
 	}
 
 	return limits, versions, nil
@@ -318,11 +313,15 @@ func (r *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 	return handler.Execute(true, func(tx *bolt.Tx) error {
 		tNow := time.Now()
 
-		limit.ModifyTime = tNow
-		limit.Valid = true
+		properties := make(map[string]interface{})
+		properties[RateLimitFieldLabels] = limit.Labels
+		properties[RateLimitFieldPriority] = limit.Priority
+		properties[RateLimitFieldRule] = limit.Rule
+		properties[RateLimitFieldRevision] = limit.Revision
+		properties[RateLimitFieldModifyTime] = time.Now()
 
 		// create ratelimit_config
-		if err := saveValue(tx, tblRateLimitConfig, limit.ID, limit); err != nil {
+		if err := updateValue(tx, tblRateLimitConfig, limit.ID, properties); err != nil {
 			log.Errorf("[Store][RateLimit] update rate_limit(%s, %s) err: %s",
 				limit.ID, limit.ServiceID, err.Error())
 			return err

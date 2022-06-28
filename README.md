@@ -23,6 +23,8 @@ Principle or user manual can visit [website](https://polarismesh.cn/zh/doc/) to 
 
 ## Introduction
 
+<img src="https://raw.githubusercontent.com/polarismesh/website/main/docs/en/doc/What%20is%20Polaris/Picture/Overview/first-image.png" width="800" />
+
 Polaris is a cloud-native service discovery and governance center. It can be used to solve the problem of service
 connection, fault tolerance, traffic control and secure in distributed and microservice architecture.
 

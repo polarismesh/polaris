@@ -25,10 +25,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/boltdb/bolt"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
+	"go.uber.org/zap"
 )
 
 const (
@@ -46,16 +47,30 @@ const (
 	CBRFieldNameServiceID   string = "ServiceID"
 	CBRFieldNameRuleID      string = "RuleID"
 	CBRFieldNameRuleVersion string = "RuleVersion"
+
+	CBRelationFieldServiceID   string = "ServiceID"
+	CBRelationFieldRuleID      string = "RuleID"
+	CBRelationFieldRuleVersion string = "RuleVersion"
+	CBRelationFieldValid       string = "Valid"
+	CBRelationFieldCreateTime  string = "CreateTime"
+	CBRelationFieldModifyTime  string = "ModifyTime"
 )
 
 type circuitBreakerStore struct {
 	handler BoltHandler
 }
 
+func initCircuitBreaker(cb *model.CircuitBreaker) {
+	cb.Valid = true
+	cb.CreateTime = time.Now()
+	cb.ModifyTime = time.Now()
+}
+
 // CreateCircuitBreaker create circuit breaker rule
 func (c *circuitBreakerStore) CreateCircuitBreaker(cb *model.CircuitBreaker) error {
 	dbOp := c.handler
-	cb.Valid = true
+
+	initCircuitBreaker(cb)
 
 	if err := c.cleanCircuitBreaker(cb.ID, cb.Version); err != nil {
 		log.Errorf("[Store][circuitBreaker] clean master for circuit breaker(%s, %s) err: %s",
@@ -85,6 +100,12 @@ func (c *circuitBreakerStore) cleanCircuitBreaker(id string, version string) err
 // TagCircuitBreaker 标记熔断规则
 func (c *circuitBreakerStore) TagCircuitBreaker(cb *model.CircuitBreaker) error {
 
+	if err := c.cleanCircuitBreaker(cb.ID, cb.Version); err != nil {
+		log.Errorf("[Store][circuitBreaker] clean tag for circuit breaker(%s, %s) err: %s",
+			cb.ID, cb.Version, err.Error())
+		return store.Error(err)
+	}
+
 	if err := c.tagCircuitBreaker(cb); err != nil {
 		log.Errorf("[Store][circuitBreaker] create tag for circuit breaker(%s, %s) err: %s",
 			cb.ID, cb.Version, err.Error())
@@ -98,27 +119,23 @@ func (c *circuitBreakerStore) TagCircuitBreaker(cb *model.CircuitBreaker) error 
 func (c *circuitBreakerStore) tagCircuitBreaker(cb *model.CircuitBreaker) error {
 
 	dbOp := c.handler
-	key := c.buildKey(cb.ID, cb.Version)
 
 	// first : Ensure that the master rule exists
 	result, err := c.GetCircuitBreaker(cb.ID, VersionForMaster)
 	if err != nil {
-		log.Errorf("[Store][CircuitBreaker] get tag rule id(%s) version(%s) err : %s", cb.ID, VersionForMaster, err.Error())
+		log.Errorf("[Store][CircuitBreaker] get tag rule id(%s) version(%s) err : %s",
+			cb.ID, VersionForMaster, err.Error())
 		return store.Error(err)
 	}
 
 	if result == nil {
 		return store.NewStatusError(store.NotFoundCircuitBreaker, fmt.Sprintf("not exist for CircuitBreaker(id=%s, "+
-			"version=%s)", key, VersionForMaster))
+			"version=%s)", cb.ID, VersionForMaster))
 	}
 
-	tNow := time.Now()
+	initCircuitBreaker(cb)
 
-	cb.CreateTime = tNow
-	cb.ModifyTime = tNow
-	cb.Valid = true
-
-	if err := dbOp.SaveValue(tblCircuitBreaker, key, cb); err != nil {
+	if err := dbOp.SaveValue(tblCircuitBreaker, c.buildKey(cb.ID, cb.Version), cb); err != nil {
 		log.Errorf("[Store][circuitBreaker] tag rule breaker(%s, %s, %s) err: %s",
 			cb.ID, cb.Name, cb.Version, err.Error())
 		return store.Error(err)
@@ -129,12 +146,6 @@ func (c *circuitBreakerStore) tagCircuitBreaker(cb *model.CircuitBreaker) error 
 
 // ReleaseCircuitBreaker 发布熔断规则
 func (c *circuitBreakerStore) ReleaseCircuitBreaker(cbr *model.CircuitBreakerRelation) error {
-
-	tNow := time.Now()
-
-	cbr.CreateTime = tNow
-	cbr.ModifyTime = tNow
-	cbr.Valid = true
 
 	if err := c.releaseCircuitBreaker(cbr); err != nil {
 		log.Errorf("[Store][CircuitBreaker] release rule err: %s", err.Error())
@@ -151,11 +162,17 @@ func (c *circuitBreakerStore) releaseCircuitBreaker(cbr *model.CircuitBreakerRel
 
 	dbOp := c.handler
 
-	if tRule, _ := c.GetCircuitBreaker(cbr.RuleID, cbr.RuleVersion); tRule == nil {
+	tRule, err := c.GetCircuitBreaker(cbr.RuleID, cbr.RuleVersion)
+	if err != nil {
+		return err
+	}
+	if tRule == nil {
 		return store.NewStatusError(store.NotFoundMasterConfig, "not found tag config")
 	}
 
 	cbr.Valid = true
+	cbr.CreateTime = time.Now()
+	cbr.ModifyTime = time.Now()
 
 	// 如果之前存在，就直接覆盖上一次的 release 信息
 	if err := dbOp.SaveValue(tblCircuitBreakerRelation, cbr.ServiceID, cbr); err != nil {
@@ -169,14 +186,12 @@ func (c *circuitBreakerStore) releaseCircuitBreaker(cbr *model.CircuitBreakerRel
 // UnbindCircuitBreaker 解绑熔断规则
 func (c *circuitBreakerStore) UnbindCircuitBreaker(serviceID, ruleID, ruleVersion string) error {
 
-	dbOp := c.handler
-
 	// 删除某个服务的熔断规则
 	properties := make(map[string]interface{})
-	properties[CBFieldNameValid] = false
-	properties[CBFieldNameModifyTime] = time.Now()
+	properties[CBRelationFieldValid] = false
+	properties[CBRelationFieldModifyTime] = time.Now()
 
-	if err := dbOp.UpdateValue(tblCircuitBreakerRelation, serviceID, properties); err != nil {
+	if err := c.handler.UpdateValue(tblCircuitBreakerRelation, serviceID, properties); err != nil {
 		log.Errorf("[Store][circuitBreaker] tag rule relation(%s, %s, %s) err: %s",
 			serviceID, ruleID, ruleVersion, err.Error())
 		return store.Error(err)
@@ -187,16 +202,49 @@ func (c *circuitBreakerStore) UnbindCircuitBreaker(serviceID, ruleID, ruleVersio
 // DeleteTagCircuitBreaker 删除已标记熔断规则
 func (c *circuitBreakerStore) DeleteTagCircuitBreaker(id string, version string) error {
 
-	properties := make(map[string]interface{})
-	properties[CBFieldNameValid] = false
-	properties[CBFieldNameModifyTime] = time.Now()
+	err := c.handler.Execute(true, func(tx *bolt.Tx) error {
 
-	if err := c.handler.UpdateValue(tblCircuitBreaker, c.buildKey(id, version), properties); err != nil {
-		log.Errorf("[Store][circuitBreaker] delete tag rule(%s, %s) err: %s", id, version, err.Error())
-		return store.Error(err)
-	}
+		values := make(map[string]interface{})
+		fields := []string{CBRelationFieldValid, CBRelationFieldRuleID, CBRelationFieldRuleVersion}
 
-	return nil
+		err := loadValuesByFilter(tx, tblCircuitBreakerRelation, fields, &model.CircuitBreakerRelation{},
+			func(m map[string]interface{}) bool {
+				if valid, _ := m[CBRelationFieldValid].(bool); !valid {
+					return false
+				}
+
+				ruleId, _ := m[CBRelationFieldRuleID].(string)
+				if ruleId != id {
+					return false
+				}
+
+				saveVer, _ := m[CBRelationFieldRuleVersion].(string)
+
+				return version == VersionForMaster || saveVer == version
+			}, values)
+
+		if err != nil {
+			return err
+		}
+
+		if _, ok := values[id]; ok {
+			return nil
+		}
+
+		properties := make(map[string]interface{})
+		properties[CBFieldNameValid] = false
+		properties[CBFieldNameModifyTime] = time.Now()
+
+		key := c.buildKey(id, version)
+		if err := updateValue(tx, tblCircuitBreaker, key, properties); err != nil {
+			log.Errorf("[Store][circuitBreaker] delete tag rule(%s, %s) err: %s", id, version, err.Error())
+			return store.Error(err)
+		}
+
+		return nil
+	})
+
+	return err
 }
 
 // DeleteMasterCircuitBreaker 删除master熔断规则
@@ -209,6 +257,7 @@ func (c *circuitBreakerStore) UpdateCircuitBreaker(cb *model.CircuitBreaker) err
 
 	dbOp := c.handler
 	cb.Valid = true
+	cb.ModifyTime = time.Now()
 
 	if err := dbOp.SaveValue(tblCircuitBreaker, c.buildKey(cb.ID, cb.Version), cb); err != nil {
 		log.Errorf("[Store][CircuitBreaker] update rule(%s,%s) exec err: %s", cb.ID, cb.Version, err.Error())
@@ -226,7 +275,7 @@ func (c *circuitBreakerStore) GetCircuitBreaker(id, version string) (*model.Circ
 
 	result, err := dbOp.LoadValues(tblCircuitBreaker, []string{cbKey}, &model.CircuitBreaker{})
 	if err != nil {
-		log.Errorf("[Store][CircuitBreaker] get tag rule id(%s) version(%s) err : %s", id, version, errors.WithStack(err))
+		log.Errorf("[Store][CircuitBreaker] get tag rule id(%s) version(%s) err : %s", id, version, err)
 		return nil, store.Error(err)
 	}
 
@@ -251,12 +300,17 @@ func (c *circuitBreakerStore) GetCircuitBreaker(id, version string) (*model.Circ
 // GetCircuitBreakerVersions 获取熔断规则的所有版本
 func (c *circuitBreakerStore) GetCircuitBreakerVersions(id string) ([]string, error) {
 
-	dbOp := c.handler
+	fields := []string{CBFieldNameID, CBFieldNameValid}
 
-	results, err := dbOp.LoadValuesByFilter(tblCircuitBreaker, []string{"ID"}, &model.CircuitBreaker{}, func(m map[string]interface{}) bool {
-		mV := m["ID"]
-		return strings.Compare(mV.(string), id) == 0
-	})
+	results, err := c.handler.LoadValuesByFilter(tblCircuitBreaker, fields, &model.CircuitBreaker{},
+		func(m map[string]interface{}) bool {
+			if valid, _ := m[CBFieldNameValid].(bool); !valid {
+				return false
+			}
+
+			mV, _ := m[CBFieldNameID].(string)
+			return strings.Compare(mV, id) == 0
+		})
 	if err != nil {
 		log.Errorf("[Store][CircuitBreaker] get rule_id(%s) links version err : %s", id, err.Error())
 		return nil, store.Error(err)
@@ -318,13 +372,15 @@ func (c *circuitBreakerStore) GetCircuitBreakerRelation(
 func (c *circuitBreakerStore) GetCircuitBreakerForCache(
 	mtime time.Time, firstUpdate bool) ([]*model.ServiceWithCircuitBreaker, error) {
 
-	dbOp := c.handler
+	fields := []string{CBRelationFieldModifyTime}
 
-	relations, err := dbOp.LoadValuesByFilter(tblCircuitBreakerRelation, []string{"ModifyTime"}, &model.CircuitBreakerRelation{}, func(m map[string]interface{}) bool {
-		mt := m["ModifyTime"].(time.Time)
-		isAfter := mt.After(mtime)
-		return isAfter
-	})
+	relations, err := c.handler.LoadValuesByFilter(tblCircuitBreakerRelation, fields,
+		&model.CircuitBreakerRelation{},
+		func(m map[string]interface{}) bool {
+			mt, _ := m[CBRelationFieldModifyTime].(time.Time)
+			isAfter := !mt.Before(mtime)
+			return isAfter
+		})
 	if err != nil {
 		return nil, store.Error(err)
 	}
@@ -338,7 +394,7 @@ func (c *circuitBreakerStore) GetCircuitBreakerForCache(
 		serviceToCbKey[k] = c.buildKey(rel.RuleID, rel.RuleVersion)
 	}
 
-	cbs, err := dbOp.LoadValues(tblCircuitBreaker, cbKeys, &model.CircuitBreaker{})
+	cbs, err := c.handler.LoadValues(tblCircuitBreaker, cbKeys, &model.CircuitBreaker{})
 
 	if err != nil {
 		return nil, store.Error(err)
@@ -346,9 +402,19 @@ func (c *circuitBreakerStore) GetCircuitBreakerForCache(
 
 	results := make([]*model.ServiceWithCircuitBreaker, 0)
 	for serviceId, cbKey := range serviceToCbKey {
+		val, ok := cbs[cbKey]
+		if !ok {
+			log.Error("[Bolt][CircuitBreaker] not exist", zap.String("service-id", serviceId), zap.String("key", cbKey))
+			continue
+		}
+
+		rule := val.(*model.CircuitBreaker)
+
+		relation := relations[serviceId].(*model.CircuitBreakerRelation)
 		results = append(results, &model.ServiceWithCircuitBreaker{
 			ServiceID:      serviceId,
-			CircuitBreaker: cbs[cbKey].(*model.CircuitBreaker),
+			CircuitBreaker: rule,
+			Valid:          relation.Valid,
 			CreateTime:     relations[serviceId].(*model.CircuitBreakerRelation).CreateTime,
 			ModifyTime:     relations[serviceId].(*model.CircuitBreakerRelation).ModifyTime,
 		})
@@ -428,34 +494,29 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 	ruleVersions := make(map[string]struct{})
 	svcIds := make(map[string][]string)
 
-	fields := []string{CBFieldNameValid, CBRFieldNameRuleID, CBRFieldNameRuleVersion, CBRFieldNameServiceID}
-	_, err := dbOp.LoadValuesByFilter(tblCircuitBreakerRelation, fields, &model.CircuitBreakerRelation{},
+	fields := []string{CBRelationFieldValid, CBRelationFieldRuleID, CBRelationFieldRuleVersion, CBRelationFieldServiceID}
+	retRelations, err := dbOp.LoadValuesByFilter(tblCircuitBreakerRelation, fields, &model.CircuitBreakerRelation{},
 		func(m map[string]interface{}) bool {
-			validVal, ok := m[CBFieldNameValid]
-			if ok && !validVal.(bool) {
+			if valid, _ := m[CBRelationFieldValid].(bool); !valid {
 				return false
 			}
 			if emptyCondition {
 				return true
 			}
-			ruleIDVal := m[CBRFieldNameRuleID].(string)
-			if isRuleID {
-				if ok && ruleIDVal != ruleID {
-					return false
-				}
+			ruleIDVal, _ := m[CBRelationFieldRuleID].(string)
+			if isRuleID && ruleIDVal != ruleID {
+				return false
 			}
 
-			ruleVerVal, ok := m[CBRFieldNameRuleVersion]
-			if isRuleVer {
-				if ok && ruleVerVal.(string) != ruleVersion {
-					return false
-				}
+			ruleVerVal, _ := m[CBRelationFieldRuleVersion].(string)
+			if isRuleVer && ruleVerVal != ruleVersion {
+				return false
 			}
 			if _, exist := svcIds[ruleIDVal]; !exist {
 				svcIds[ruleIDVal] = make([]string, 0)
 			}
-			svcIds[ruleIDVal] = append(svcIds[ruleIDVal], m[CBRFieldNameServiceID].(string))
-			ruleVersions[m[CBRFieldNameRuleVersion].(string)] = struct{}{}
+			svcIds[ruleIDVal] = append(svcIds[ruleIDVal], m[CBRelationFieldServiceID].(string))
+			ruleVersions[ruleVerVal] = struct{}{}
 			return true
 		})
 	if err != nil {
@@ -465,19 +526,21 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 	fields = []string{CBFieldNameValid, CBFieldNameID, CBFieldNameVersion}
 	results, err := dbOp.LoadValuesByFilter(tblCircuitBreaker, fields, &model.CircuitBreaker{},
 		func(m map[string]interface{}) bool {
-			validVal, ok := m[CBFieldNameValid]
-			if ok && !validVal.(bool) {
+			if valid, _ := m[CBFieldNameValid].(bool); !valid {
 				return false
 			}
 			if isRuleID {
 				ruleIDVal := m[CBFieldNameID].(string)
-				if ok && ruleIDVal != ruleID {
+				if ruleIDVal != ruleID {
 					return false
 				}
 			}
 
-			ruleVerVal, ok := m[CBFieldNameVersion]
-			if _, exist := ruleVersions[ruleVerVal.(string)]; !exist {
+			ruleVerVal, _ := m[CBFieldNameVersion].(string)
+			if isRuleVer && ruleVersion == ruleVerVal {
+				return true
+			}
+			if _, exist := ruleVersions[ruleVerVal]; !exist {
 				return false
 			}
 			return true
@@ -489,22 +552,20 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 	cbSlice := make([]*model.CircuitBreakerInfo, 0)
 	for _, v := range results {
 		record := v.(*model.CircuitBreaker)
-		cbDetail := convertCircuitBreakerToInfo(record)
 		svcIds, ok := svcIds[record.ID]
 		if ok {
 			svcRets, err := dbOp.LoadValues(tblNameService, svcIds, &model.Service{})
 			if err != nil {
 				return nil, err
 			}
-			svcs := make([]*model.Service, len(svcRets))
-			pos := 0
 			for _, svc := range svcRets {
-				svcs[pos] = svc.(*model.Service)
-				pos++
+				cbDetail := convertCircuitBreakerToInfo(record)
+				cbDetail.Services = []*model.Service{
+					svc.(*model.Service),
+				}
+				cbSlice = append(cbSlice, cbDetail)
 			}
-			cbDetail.Services = svcs
 		}
-		cbSlice = append(cbSlice, cbDetail)
 	}
 
 	sort.Slice(cbSlice, func(i, j int) bool {
@@ -514,13 +575,15 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 	})
 
 	if offset >= uint32(len(cbSlice)) {
-		offset = 0
-		limit = math.MaxUint32
+		return &model.CircuitBreakerDetail{
+			Total:               uint32(0),
+			CircuitBreakerInfos: []*model.CircuitBreakerInfo{},
+		}, nil
 	}
 
 	out := &model.CircuitBreakerDetail{
-		Total:               uint32(len(results)),
-		CircuitBreakerInfos: cbSlice[offset:int(math.Min(float64(offset+limit), float64(len(results))))],
+		Total:               uint32(len(retRelations)),
+		CircuitBreakerInfos: cbSlice[offset:int(math.Min(float64(offset+limit), float64(len(cbSlice))))],
 	}
 
 	return out, nil
@@ -530,9 +593,8 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 func (c *circuitBreakerStore) GetCircuitBreakersByService(
 	name string, namespace string) (*model.CircuitBreaker, error) {
 
-	dbOp := c.handler
 	ss := &serviceStore{
-		handler: dbOp,
+		handler: c.handler,
 	}
 
 	service, err := ss.getServiceByNameAndNs(name, namespace)
@@ -578,17 +640,23 @@ func (c *circuitBreakerStore) getCircuitBreakerRelationByServiceId(serviceID str
 		return nil, fmt.Errorf("[Store][CircuitBreaker] service_id=%s expect get one, but actual more then one, impossible", serviceID)
 	}
 
-	return result[serviceID].(*model.CircuitBreakerRelation), nil
+	ret := result[serviceID].(*model.CircuitBreakerRelation)
+	if !ret.Valid {
+		return nil, nil
+	}
+
+	return ret, nil
 }
 
 func (c *circuitBreakerStore) getServiceIDS(ruleID string) ([]string, error) {
 
 	dbOp := c.handler
 
-	result, err := dbOp.LoadValuesByFilter(tblCircuitBreakerRelation, []string{"RuleID"}, &model.CircuitBreaker{}, func(m map[string]interface{}) bool {
-		id := m["RuleID"].(string)
-		return strings.Compare(id, ruleID) == 0
-	})
+	result, err := dbOp.LoadValuesByFilter(tblCircuitBreakerRelation, []string{"RuleID"}, &model.CircuitBreaker{},
+		func(m map[string]interface{}) bool {
+			id := m["RuleID"].(string)
+			return strings.Compare(id, ruleID) == 0
+		})
 	if err != nil {
 		log.Errorf("[Store][CircuitBreaker] get tag rule id(%s) err : %s", ruleID, err.Error())
 		return nil, store.Error(err)

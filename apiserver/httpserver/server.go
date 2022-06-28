@@ -436,8 +436,12 @@ func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 	method := req.Request.Method + ":" + path
 	startTime := req.Attribute("start-time").(time.Time)
 	code, ok := req.Attribute(utils.PolarisCode).(uint32)
+
+	recordApiCall := true
+
 	if !ok {
 		code = uint32(rsp.StatusCode())
+		recordApiCall = code != http.StatusNotFound
 	}
 
 	diff := now.Sub(startTime)
@@ -453,7 +457,9 @@ func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 		)
 	}
 
-	_ = h.statis.AddAPICall(method, "HTTP", int(code), diff.Nanoseconds())
+	if recordApiCall {
+		_ = h.statis.AddAPICall(method, "HTTP", int(code), diff.Nanoseconds())
+	}
 }
 
 // enterAuth 访问鉴权

@@ -96,7 +96,7 @@ func checkResourceName(name *wrappers.StringValue) error {
 		return errors.New("nil")
 	}
 
-	if name.GetValue() == "" {
+	if len(name.GetValue()) == 0 {
 		return errors.New("empty")
 	}
 
