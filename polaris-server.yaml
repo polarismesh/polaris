@@ -278,22 +278,22 @@ cache:
 # 存储配置
 store:
   # 单机文件存储插件
-  name: boltdbStore
-  option:
-    path: ./polaris.bolt
-  ## 数据库存储插件
-  # name: defaultStore
+  # name: boltdbStore
   # option:
-  #   master:
-  #     dbType: mysql
-  #     dbName: polaris_server
-  #     dbUser: ##DB_USER##
-  #     dbPwd: ##DB_PWD##
-  #     dbAddr: ##DB_ADDR##
-  #     maxOpenConns: 300
-  #     maxIdleConns: 50
-  #     connMaxLifetime: 300 # 单位秒
-  #     txIsolationLevel: 2 #LevelReadCommitted
+  #   path: ./polaris.bolt
+  ## 数据库存储插件
+  name: defaultStore
+  option:
+    master:
+      dbType: mysql
+      dbName: polaris_server
+      dbUser: ##DB_USER##
+      dbPwd: ##DB_PWD##
+      dbAddr: ##DB_ADDR##
+      maxOpenConns: 300
+      maxIdleConns: 50
+      connMaxLifetime: 300 # 单位秒
+      txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置
 plugin:
   history:
