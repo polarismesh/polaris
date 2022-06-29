@@ -39,9 +39,9 @@ func newLogger(file string, maxSizeMB, maxBackups, maxAge int) *zap.Logger {
 
 	w := zapcore.AddSync(&lumberjack.Logger{
 		Filename:   file,
-		MaxSize:    500, // MB
-		MaxBackups: 10,
-		MaxAge:     7, // days
+		MaxSize:    maxSizeMB, // MB
+		MaxBackups: maxBackups,
+		MaxAge:     maxAge, // days
 	})
 
 	return zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(encCfg), w, zap.InfoLevel))

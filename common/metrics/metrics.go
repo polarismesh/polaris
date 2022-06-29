@@ -59,7 +59,6 @@ func InitMetrics() {
 		},
 	})
 
-
 	registry.Register(instanceAsyncRegisCost)
 	registry.Register(instanceRegisTaskExpire)
 }
