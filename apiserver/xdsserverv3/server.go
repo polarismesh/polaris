@@ -32,6 +32,7 @@ import (
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_extensions_common_ratelimit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	tcp "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	clusterservice "github.com/envoyproxy/go-control-plane/envoy/service/cluster/v3"
@@ -41,6 +42,7 @@ import (
 	routeservice "github.com/envoyproxy/go-control-plane/envoy/service/route/v3"
 	runtimeservice "github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3"
 	secretservice "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
+	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
@@ -53,8 +55,10 @@ import (
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 
+	lrl "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -113,14 +117,16 @@ func (x *XDSServer) GetPort() uint32 {
 
 // ServiceInfo 北极星服务结构体
 type ServiceInfo struct {
-	ID                 string
-	Name               string
-	Namespace          string
-	Instances          []*api.Instance
-	SvcInsRevision     string
-	Routing            *api.Routing
-	SvcRoutingRevision string
-	Ports              string
+	ID                   string
+	Name                 string
+	Namespace            string
+	Instances            []*api.Instance
+	SvcInsRevision       string
+	Routing              *api.Routing
+	SvcRoutingRevision   string
+	Ports                string
+	RateLimit            *api.RateLimit
+	SvcRateLimitRevision string
 }
 
 func makeLbSubsetConfig(serviceInfo *ServiceInfo) *cluster.Cluster_LbSubsetConfig {
@@ -445,17 +451,94 @@ func generateServiceDomains(serviceInfo *ServiceInfo) []string {
 	return resDomains
 }
 
-func makeVirtualHosts(services []*ServiceInfo) []types.Resource {
+func makeLocalRateLimit(conf []*model.RateLimit) map[string]*anypb.Any {
+	filters := make(map[string]*anypb.Any)
+	if conf != nil {
+		rateLimitConf := &lrl.LocalRateLimit{
+			StatPrefix: "http_local_rate_limiter",
+			// TokenBucket: &envoy_type_v3.TokenBucket{
+			// 	MaxTokens:    rule.Amounts[0].MaxAmount.Value,
+			// 	FillInterval: rule.Amounts[0].ValidDuration,
+			// },
+		}
+		rateLimitConf.FilterEnabled = &core.RuntimeFractionalPercent{
+			RuntimeKey: "local_rate_limit_enabled",
+			DefaultValue: &envoy_type_v3.FractionalPercent{
+				Numerator:   uint32(100),
+				Denominator: envoy_type_v3.FractionalPercent_HUNDRED,
+			},
+		}
+		rateLimitConf.FilterEnforced = &core.RuntimeFractionalPercent{
+			RuntimeKey: "local_rate_limit_enforced",
+			DefaultValue: &envoy_type_v3.FractionalPercent{
+				Numerator:   uint32(100),
+				Denominator: envoy_type_v3.FractionalPercent_HUNDRED,
+			},
+		}
+		for _, c := range conf {
+			rlRule := c.Rule
+			rlLabels := c.Labels
+			if rlRule == "" {
+				continue
+			}
+			rule := new(api.Rule)
+			if err := json.Unmarshal([]byte(rlRule), rule); err != nil {
+				log.Errorf("unmarshal local rate limit rule error,%v", err)
+				continue
+			}
+			if err := json.Unmarshal([]byte(rlLabels), &rule.Labels); err != nil {
+				log.Errorf("unmarshal local rate limit labels error,%v", err)
+			}
+
+			// 跳过全局限流配置
+			if rule.Type == api.Rule_GLOBAL || rule.Disable.Value {
+				continue
+			}
+
+			for _, amount := range rule.Amounts {
+				descriptor := &envoy_extensions_common_ratelimit_v3.LocalRateLimitDescriptor{
+					TokenBucket: &envoy_type_v3.TokenBucket{
+						MaxTokens:    amount.MaxAmount.Value,
+						FillInterval: amount.ValidDuration,
+					},
+				}
+				var entries []*envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry
+				for k, v := range rule.Labels {
+					entries = append(entries, &envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry{
+						Key:   k,
+						Value: v.Value.Value,
+					})
+				}
+				descriptor.Entries = entries
+				rateLimitConf.Descriptors = append(rateLimitConf.Descriptors, descriptor)
+			}
+			if rule.AmountMode == api.Rule_GLOBAL_TOTAL {
+				rateLimitConf.LocalRateLimitPerDownstreamConnection = true
+			}
+		}
+		pbst, err := ptypes.MarshalAny(rateLimitConf)
+		if err != nil {
+			panic(err)
+		}
+		filters["envoy.filters.http.local_ratelimit"] = pbst
+		return filters
+	}
+	return nil
+}
+
+func (x *XDSServer) makeVirtualHosts(services []*ServiceInfo) []types.Resource {
 	// 每个 polaris service 对应一个 virtualHost
 	var routeConfs []types.Resource
 	var hosts []*route.VirtualHost
 
 	for _, service := range services {
 
+		rateLimitConf := x.namingServer.Cache().RateLimit().GetRateLimitByServiceID(service.ID)
 		hosts = append(hosts, &route.VirtualHost{
-			Name:    service.Name,
-			Domains: generateServiceDomains(service),
-			Routes:  makeRoutes(service),
+			Name:                 service.Name,
+			Domains:              generateServiceDomains(service),
+			Routes:               makeRoutes(service),
+			TypedPerFilterConfig: makeLocalRateLimit(rateLimitConf),
 		})
 	}
 
@@ -581,7 +664,7 @@ func (x *XDSServer) pushRegistryInfoToXDSCache(registryInfo map[string][]*Servic
 		resources := make(map[resource.Type][]types.Resource)
 		resources[resource.EndpointType] = makeEndpoints(registryInfo[ns])
 		resources[resource.ClusterType] = x.makeClusters(registryInfo[ns])
-		resources[resource.RouteType] = makeVirtualHosts(registryInfo[ns])
+		resources[resource.RouteType] = x.makeVirtualHosts(registryInfo[ns])
 		resources[resource.ListenerType] = makeListeners()
 		snapshot, err := cachev3.NewSnapshot(versionLocal, resources)
 		if err != nil {
@@ -647,6 +730,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 				},
 			}
 
+			// 获取routing配置
 			routeResp := x.namingServer.GetRoutingConfigWithCache(ctx, s)
 			if routeResp.GetCode().Value != api.ExecuteSuccess {
 				log.Errorf("error sync routing for %s, info : %s", svc.Name, routeResp.Info.GetValue())
@@ -658,6 +742,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 				svc.Routing = routeResp.Routing
 			}
 
+			// 获取instance配置
 			resp := x.namingServer.ServiceInstancesCache(nil, s)
 			if resp.GetCode().Value != api.ExecuteSuccess {
 				log.Errorf("error sync instances for %s, info : %s", svc.Name, resp.Info.GetValue())
@@ -666,6 +751,17 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 
 			svc.SvcInsRevision = resp.Service.Revision.Value
 			svc.Instances = resp.Instances
+
+			// 获取ratelimit配置
+			ratelimitResp := x.namingServer.GetRateLimitWithCache(ctx, s)
+			if ratelimitResp.GetCode().Value != api.ExecuteSuccess {
+				log.Errorf("error sync ratelimit for %s, info : %s", svc.Name, ratelimitResp.Info.GetValue())
+				return fmt.Errorf("error sync ratelimit for %s", svc.Name)
+			}
+			if ratelimitResp.RateLimit != nil {
+				svc.SvcRateLimitRevision = ratelimitResp.RateLimit.Revision.Value
+				svc.RateLimit = ratelimitResp.RateLimit
+			}
 		}
 	}
 
@@ -824,6 +920,10 @@ func (x *XDSServer) checkUpdate(curServiceInfo, cacheServiceInfo []*ServiceInfo)
 				if info.SvcRoutingRevision != serviceInfo.SvcRoutingRevision {
 					return true
 				}
+				if info.SvcRateLimitRevision != serviceInfo.SvcRateLimitRevision {
+					return true
+				}
+
 				find = true
 			}
 		}
