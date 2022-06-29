@@ -39,6 +39,7 @@ import (
 	boot_config "github.com/polarismesh/polaris-server/bootstrap/config"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/metrics"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/common/version"
 	config_center "github.com/polarismesh/polaris-server/config"
@@ -82,6 +83,8 @@ func Start(configFilePath string) {
 		fmt.Printf("[ERROR] acquire localhost fail: %v\n", err)
 		return
 	}
+
+	metrics.InitMetrics()
 
 	// 设置插件配置
 	plugin.SetPluginConfig(&cfg.Plugin)

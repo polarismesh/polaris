@@ -18,38 +18,29 @@
 package local
 
 import (
-	"net/http"
-	"sync"
-
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/metrics"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 // PrometheusStatis is a struct for prometheus statistics
 type PrometheusStatis struct {
-	registry                     *prometheus.Registry
-	metricVecCaches              map[string]interface{}
-	polarisPrometheusHttpHandler *PolarisPrometheusHttpHandler
+	registry        *prometheus.Registry
+	metricVecCaches map[string]interface{}
 }
 
 // NewPrometheusStatis 初始化 PrometheusStatis
 func NewPrometheusStatis() (*PrometheusStatis, error) {
 	statis := &PrometheusStatis{}
 	statis.metricVecCaches = make(map[string]interface{})
-	statis.registry = prometheus.NewRegistry()
+	statis.registry = metrics.GetRegistry()
 
 	err := statis.registerMetrics()
 	if err != nil {
 		return nil, err
 	}
-
-	handler := &PolarisPrometheusHttpHandler{}
-	handler.lock = &sync.RWMutex{}
-	handler.promeHttpHandler = promhttp.HandlerFor(statis.GetRegistry(), promhttp.HandlerOpts{})
-	statis.polarisPrometheusHttpHandler = handler
 
 	return statis, nil
 }
@@ -144,9 +135,7 @@ func (statis *PrometheusStatis) collectMetricData(statInfos []*MetricData) {
 		return
 	}
 
-	// 收集到 prometheus 时加写锁，防止 polaris-monitor 读取到不一致的数据
-	statis.polarisPrometheusHttpHandler.lock.Lock()
-	defer statis.polarisPrometheusHttpHandler.lock.Unlock()
+	// prometheus-sdk 本身做了pull时数据一致性的保证，这里不需要自己在进行额外的保护动作
 
 	// 清理掉当前的存量数据
 
@@ -179,22 +168,4 @@ func (statis *PrometheusStatis) collectMetricData(statInfos []*MetricData) {
 // GetRegistry return prometheus.Registry instance
 func (statis *PrometheusStatis) GetRegistry() *prometheus.Registry {
 	return statis.registry
-}
-
-// PolarisPrometheusHttpHandler prometheus 处理 handler
-type PolarisPrometheusHttpHandler struct {
-	promeHttpHandler http.Handler
-	lock             *sync.RWMutex
-}
-
-// ServeHTTP 提供 prometheus http 服务
-func (p *PolarisPrometheusHttpHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-	p.promeHttpHandler.ServeHTTP(writer, request)
-}
-
-// GetHttpHandler 获取 handler
-func (statis *PrometheusStatis) GetHttpHandler() http.Handler {
-	return statis.polarisPrometheusHttpHandler
 }

@@ -25,6 +25,7 @@ import (
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 
 	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
@@ -40,6 +41,7 @@ func (g *GRPCServer) ReportClient(ctx context.Context, in *api.Client) (*api.Res
 
 // RegisterInstance 注册服务实例
 func (g *GRPCServer) RegisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
+
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
 	rCtx := grpcserver.ConvertContext(ctx)
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
@@ -49,7 +51,9 @@ func (g *GRPCServer) RegisterInstance(ctx context.Context, in *api.Instance) (*a
 		rCtx = context.WithValue(rCtx, utils.ContextAuthTokenKey, in.GetServiceToken().GetValue())
 	}
 
-	if in.GetHealthCheck().GetHeartbeat().GetTtl() != nil {
+	grpcHeader := rCtx.Value(utils.ContextGrpcHeader).(metadata.MD)
+
+	if _, ok := grpcHeader["async-regis"]; ok {
 		rCtx = context.WithValue(rCtx, utils.ContextOpenAsyncRegis, true)
 	}
 

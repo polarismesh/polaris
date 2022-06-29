@@ -397,6 +397,8 @@ func ConvertContext(ctx context.Context) context.Context {
 		if len(agents) > 0 {
 			userAgent = agents[0]
 		}
+	} else {
+		meta = metadata.MD{}
 	}
 
 	var (
@@ -412,9 +414,11 @@ func ConvertContext(ctx context.Context) context.Context {
 	}
 
 	ctx = context.Background()
+	ctx = context.WithValue(ctx, utils.ContextGrpcHeader, meta)
 	ctx = context.WithValue(ctx, utils.StringContext("request-id"), requestID)
 	ctx = context.WithValue(ctx, utils.StringContext("client-ip"), clientIP)
 	ctx = context.WithValue(ctx, utils.ContextClientAddress, address)
 	ctx = context.WithValue(ctx, utils.StringContext("user-agent"), userAgent)
+
 	return ctx
 }
