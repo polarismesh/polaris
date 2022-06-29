@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -155,7 +156,7 @@ func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.CacheManager, con
 	}
 
 	taskLife := defaultTaskLife
-	if config.DropExpireTask && config.TaskLife != "" {
+	if config.TaskLife != "" {
 		taskLife, err := time.ParseDuration(config.TaskLife)
 		if err != nil {
 			log.Errorf("[Batch] parse taskLife(%s) err: %s", config.TaskLife, err.Error())
@@ -165,7 +166,11 @@ func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.CacheManager, con
 			log.Infof("[Batch] taskLife(%s) is 0, use default %v", config.TaskLife, defaultTaskLife)
 			taskLife = defaultTaskLife
 		}
+	} else {
+		// mean not allow drop expire task
+		taskLife = time.Duration(0)
 	}
+	log.Info("[Batch] drop expire regis-instance task", zap.Bool("switch-open", taskLife == 0))
 
 	instance := &InstanceCtrl{
 		config:          config,
@@ -255,7 +260,7 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 
 	current := time.Now()
 	taskLife := ctrl.taskLife
-	dropExpire := ctrl.config.DropExpireTask
+	dropExpire := taskLife != 0
 
 	log.Infof("[Batch] Start batch creating instances count: %d", len(futures))
 	remains := make(map[string]*InstanceFuture, len(futures))
