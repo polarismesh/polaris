@@ -160,6 +160,8 @@ func Test_server_CreateUsers(t *testing.T) {
 			},
 		}
 
+		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.ownerOne.ID)).Return(userTest.ownerOne, nil)
+
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
 		resp := userTest.svr.CreateUsers(reqCtx, createUsersReq)
 
@@ -208,7 +210,28 @@ func Test_server_CreateUsers(t *testing.T) {
 			},
 		}
 
+		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.ownerOne.ID)).Return(userTest.ownerOne, nil)
+
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[0].Token)
+		resp := userTest.svr.CreateUsers(reqCtx, createUsersReq)
+
+		t.Logf("CreateUsers resp : %+v", resp)
+		assert.Equal(t, api.ExecuteException, resp.Code.GetValue(), "create users must fail")
+		assert.Equal(t, api.UserExisted, resp.Responses[0].Code.GetValue(), "create users must fail")
+	})
+
+	t.Run("主账户创建账户-与主账户同名", func(t *testing.T) {
+		createUsersReq := []*api.User{
+			{
+				Id:       &wrappers.StringValue{Value: utils.NewUUID()},
+				Name:     &wrappers.StringValue{Value: userTest.ownerOne.Name},
+				Password: &wrappers.StringValue{Value: "create-user-2"},
+			},
+		}
+
+		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.ownerOne.ID)).Return(userTest.ownerOne, nil)
+
+		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
 		resp := userTest.svr.CreateUsers(reqCtx, createUsersReq)
 
 		t.Logf("CreateUsers resp : %+v", resp)

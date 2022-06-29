@@ -79,6 +79,21 @@ func (svr *server) CreateUser(ctx context.Context, req *api.User) *api.Response 
 		ownerID = ""
 	}
 
+	if ownerID != "" {
+		owner, err := svr.storage.GetUser(ownerID)
+		if err != nil {
+			log.Error("[Auth][User] get user by name and owner", utils.ZapRequestID(requestID),
+				zap.Error(err), zap.String("name", req.GetName().GetValue()))
+			return api.NewUserResponse(api.StoreLayerException, req)
+		}
+
+		if owner.Name == req.Name.GetValue() {
+			log.Error("[Auth][User] create user name is equal owner", utils.ZapRequestID(requestID),
+				zap.Error(err), zap.String("name", req.GetName().GetValue()))
+			return api.NewUserResponse(api.UserExisted, req)
+		}
+	}
+
 	// 只有通过 owner + username 才能唯一确定一个用户
 	user, err := svr.storage.GetUserByName(req.Name.GetValue(), ownerID)
 	if err != nil {

@@ -198,6 +198,8 @@ naming:
       waitTime: 32ms
       maxBatchCount: 128
       concurrency: 128
+      dropExpireTask: true
+      taskLife: 30s
     deregister:
       open: true
       queueSize: 10240

@@ -40,8 +40,10 @@ func (g *GRPCServer) ReportClient(ctx context.Context, in *api.Client) (*api.Res
 
 // RegisterInstance 注册服务实例
 func (g *GRPCServer) RegisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
+	externalHeaders := []string{"internal-instance-asyncregis"}
+
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
-	rCtx := grpcserver.ConvertContext(ctx)
+	rCtx := grpcserver.ConvertContext(ctx, externalHeaders...)
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
 
 	// 客户端请求中带了 token 的，优先已请求中的为准
@@ -49,7 +51,7 @@ func (g *GRPCServer) RegisterInstance(ctx context.Context, in *api.Instance) (*a
 		rCtx = context.WithValue(rCtx, utils.ContextAuthTokenKey, in.GetServiceToken().GetValue())
 	}
 
-	if in.GetHealthCheck().GetHeartbeat().GetTtl() != nil {
+	if v, _ := rCtx.Value(utils.StringContext(externalHeaders[0])).(string); v == "true" {
 		rCtx = context.WithValue(rCtx, utils.ContextOpenAsyncRegis, true)
 	}
 

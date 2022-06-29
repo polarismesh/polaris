@@ -44,44 +44,54 @@ type CtrlConfig struct {
 	MaxBatchCount int `mapstructure:"maxBatchCount"`
 	// 写store的并发协程数
 	Concurrency int `mapstructure:"concurrency"`
+	// 抛弃过期的任务
+	DropExpireTask bool `mapstructure:"dropExpireTask"`
+	// 任务最大存活周期
+	TaskLife string `mapstructure:"taskLife"`
 }
 
 func defaultBatchCtrlConfig() *Config {
 	return &Config{
 		Register: &CtrlConfig{
-			Open:          true,
-			QueueSize:     10240,
-			WaitTime:      "32ms",
-			MaxBatchCount: 32,
-			Concurrency:   64,
+			Open:           true,
+			QueueSize:      10240,
+			WaitTime:       "32ms",
+			MaxBatchCount:  32,
+			Concurrency:    64,
+			DropExpireTask: true,
+			TaskLife:       "30s",
 		},
 		Deregister: &CtrlConfig{
-			Open:          true,
-			QueueSize:     10240,
-			WaitTime:      "32ms",
-			MaxBatchCount: 32,
-			Concurrency:   64,
+			Open:           true,
+			QueueSize:      10240,
+			WaitTime:       "32ms",
+			MaxBatchCount:  32,
+			Concurrency:    64,
+			DropExpireTask: false,
 		},
 		Heartbeat: &CtrlConfig{
-			Open:          true,
-			QueueSize:     10240,
-			WaitTime:      "32ms",
-			MaxBatchCount: 32,
-			Concurrency:   64,
+			Open:           true,
+			QueueSize:      10240,
+			WaitTime:       "32ms",
+			MaxBatchCount:  32,
+			Concurrency:    64,
+			DropExpireTask: false,
 		},
 		ClientRegister: &CtrlConfig{
-			Open:          true,
-			QueueSize:     10240,
-			WaitTime:      "32ms",
-			MaxBatchCount: 32,
-			Concurrency:   64,
+			Open:           true,
+			QueueSize:      10240,
+			WaitTime:       "32ms",
+			MaxBatchCount:  32,
+			Concurrency:    64,
+			DropExpireTask: false,
 		},
 		ClientDeregister: &CtrlConfig{
-			Open:          true,
-			QueueSize:     10240,
-			WaitTime:      "32ms",
-			MaxBatchCount: 32,
-			Concurrency:   64,
+			Open:           true,
+			QueueSize:      10240,
+			WaitTime:       "32ms",
+			MaxBatchCount:  32,
+			Concurrency:    64,
+			DropExpireTask: false,
 		},
 	}
 }
