@@ -55,15 +55,25 @@ func TestConvertContext(t *testing.T) {
 				ctx: mockGrpcContext(map[string]string{
 					"internal-key-1": "internal-value-1",
 				}),
-				externalHeaders: []string{"internal-key-1"},
 			},
 			want: func() context.Context {
 				ctx := context.Background()
+
+				md := make(metadata.MD)
+
+				testVal := map[string]string{
+					"internal-key-1": "internal-value-1",
+				}
+
+				for k := range testVal {
+					md[k] = []string{testVal[k]}
+				}
+
+				ctx = context.WithValue(ctx, utils.ContextGrpcHeader, md)
 				ctx = context.WithValue(ctx, utils.StringContext("request-id"), "")
 				ctx = context.WithValue(ctx, utils.StringContext("client-ip"), "")
 				ctx = context.WithValue(ctx, utils.ContextClientAddress, "")
 				ctx = context.WithValue(ctx, utils.StringContext("user-agent"), "")
-				ctx = context.WithValue(ctx, utils.StringContext("internal-key-1"), "internal-value-1")
 
 				return ctx
 			}(),
@@ -76,15 +86,26 @@ func TestConvertContext(t *testing.T) {
 					"request-id":     "request-id",
 					"user-agent":     "user-agent",
 				}),
-				externalHeaders: []string{"internal-key-1"},
 			},
 			want: func() context.Context {
+
+				md := make(metadata.MD)
+
+				testVal := map[string]string{
+					"internal-key-1": "internal-value-1",
+					"request-id":     "request-id",
+					"user-agent":     "user-agent",
+				}
+				for k := range testVal {
+					md[k] = []string{testVal[k]}
+				}
+
 				ctx := context.Background()
+				ctx = context.WithValue(ctx, utils.ContextGrpcHeader, md)
 				ctx = context.WithValue(ctx, utils.StringContext("request-id"), "request-id")
 				ctx = context.WithValue(ctx, utils.StringContext("client-ip"), "")
 				ctx = context.WithValue(ctx, utils.ContextClientAddress, "")
 				ctx = context.WithValue(ctx, utils.StringContext("user-agent"), "user-agent")
-				ctx = context.WithValue(ctx, utils.StringContext("internal-key-1"), "internal-value-1")
 
 				return ctx
 			}(),
@@ -92,7 +113,7 @@ func TestConvertContext(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ConvertContext(tt.args.ctx, tt.args.externalHeaders...); !reflect.DeepEqual(got, tt.want) {
+			if got := ConvertContext(tt.args.ctx); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ConvertContext() = %v, \n want %v", got, tt.want)
 			}
 		})

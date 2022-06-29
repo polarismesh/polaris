@@ -47,4 +47,5 @@ const (
 	ContextClientAddress  StringContext = StringContext("client-address")
 
 	ContextOpenAsyncRegis StringContext = StringContext("client-asyncRegis")
+	ContextGrpcHeader     StringContext = StringContext("grpc-header")
 )

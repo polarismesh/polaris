@@ -349,11 +349,10 @@ func (b *BaseGrpcServer) AllowAccess(method string) bool {
 }
 
 // ConvertContext 将GRPC上下文转换成内部上下文
-func ConvertContext(ctx context.Context, externalHeaders ...string) context.Context {
+func ConvertContext(ctx context.Context) context.Context {
 	var (
 		requestID = ""
 		userAgent = ""
-
 	)
 	meta, exist := metadata.FromIncomingContext(ctx)
 	if exist {
@@ -365,16 +364,8 @@ func ConvertContext(ctx context.Context, externalHeaders ...string) context.Cont
 		if len(agents) > 0 {
 			userAgent = agents[0]
 		}
-	}
-
-
-	external := make(map[string]string)
-
-	for i := range externalHeaders {
-		val, ok := meta[externalHeaders[i]]
-		if ok {
-			external[externalHeaders[i]] = val[0]
-		}
+	} else {
+		meta = metadata.MD{}
 	}
 
 	var (
@@ -390,15 +381,11 @@ func ConvertContext(ctx context.Context, externalHeaders ...string) context.Cont
 	}
 
 	ctx = context.Background()
+	ctx = context.WithValue(ctx, utils.ContextGrpcHeader, meta)
 	ctx = context.WithValue(ctx, utils.StringContext("request-id"), requestID)
 	ctx = context.WithValue(ctx, utils.StringContext("client-ip"), clientIP)
 	ctx = context.WithValue(ctx, utils.ContextClientAddress, address)
 	ctx = context.WithValue(ctx, utils.StringContext("user-agent"), userAgent)
-
-	for k := range external {
-		val := external[k]
-		ctx = context.WithValue(ctx, utils.StringContext(k), val)
-	}
 
 	return ctx
 }
