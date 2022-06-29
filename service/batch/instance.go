@@ -154,14 +154,17 @@ func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.CacheManager, con
 		duration = defaultWaitTime
 	}
 
-	taskLife, err := time.ParseDuration(config.TaskLife)
-	if err != nil {
-		log.Errorf("[Batch] parse taskLife(%s) err: %s", config.TaskLife, err.Error())
-		return nil, err
-	}
-	if taskLife == 0 {
-		log.Infof("[Batch] taskLife(%s) is 0, use default %v", config.TaskLife, defaultTaskLife)
-		taskLife = defaultTaskLife
+	taskLife := defaultTaskLife
+	if config.DropExpireTask {
+		taskLife, err := time.ParseDuration(config.TaskLife)
+		if err != nil {
+			log.Errorf("[Batch] parse taskLife(%s) err: %s", config.TaskLife, err.Error())
+			return nil, err
+		}
+		if taskLife == 0 {
+			log.Infof("[Batch] taskLife(%s) is 0, use default %v", config.TaskLife, defaultTaskLife)
+			taskLife = defaultTaskLife
+		}
 	}
 
 	instance := &InstanceCtrl{
