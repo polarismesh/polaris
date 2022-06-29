@@ -155,7 +155,7 @@ func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.CacheManager, con
 	}
 
 	taskLife := defaultTaskLife
-	if config.DropExpireTask {
+	if config.DropExpireTask && config.TaskLife != "" {
 		taskLife, err := time.ParseDuration(config.TaskLife)
 		if err != nil {
 			log.Errorf("[Batch] parse taskLife(%s) err: %s", config.TaskLife, err.Error())
