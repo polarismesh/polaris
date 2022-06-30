@@ -66,6 +66,9 @@ type ConfigFileStore interface {
 	// QueryConfigFiles 翻页查询配置文件，group、name可为模糊匹配
 	QueryConfigFiles(namespace, group, name string, offset, limit uint32) (uint32, []*model.ConfigFile, error)
 
+	// QueryConfigFilesByGroup query config file group's files
+	QueryConfigFilesByGroup(namespace, group string, offset, limit uint32) (uint32, []*model.ConfigFile, error)
+
 	// UpdateConfigFile 更新配置文件
 	UpdateConfigFile(tx Tx, file *model.ConfigFile) (*model.ConfigFile, error)
 
