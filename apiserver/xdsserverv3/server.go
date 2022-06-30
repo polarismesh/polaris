@@ -516,6 +516,9 @@ func makeLocalRateLimit(conf []*model.RateLimit) map[string]*anypb.Any {
 				rateLimitConf.LocalRateLimitPerDownstreamConnection = true
 			}
 		}
+		if len(rateLimitConf.Descriptors) == 0 {
+			return nil
+		}
 		pbst, err := ptypes.MarshalAny(rateLimitConf)
 		if err != nil {
 			panic(err)
