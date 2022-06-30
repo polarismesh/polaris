@@ -502,12 +502,14 @@ func makeLocalRateLimit(conf []*model.RateLimit) map[string]*anypb.Any {
 						FillInterval: amount.ValidDuration,
 					},
 				}
-				var entries []*envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry
+				entries := make([]*envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry, len(rule.Labels))
+				pos := 0
 				for k, v := range rule.Labels {
-					entries = append(entries, &envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry{
+					entries[pos] = &envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry{
 						Key:   k,
 						Value: v.Value.Value,
-					})
+					}
+					pos++
 				}
 				descriptor.Entries = entries
 				rateLimitConf.Descriptors = append(rateLimitConf.Descriptors, descriptor)
@@ -737,7 +739,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 			routeResp := x.namingServer.GetRoutingConfigWithCache(ctx, s)
 			if routeResp.GetCode().Value != api.ExecuteSuccess {
 				log.Errorf("error sync routing for %s, info : %s", svc.Name, routeResp.Info.GetValue())
-				return fmt.Errorf("error sync routing for %s", svc.Name)
+				return fmt.Errorf("[XDSV3] error sync routing for %s", svc.Name)
 			}
 
 			if routeResp.Routing != nil {
@@ -748,7 +750,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 			// 获取instance配置
 			resp := x.namingServer.ServiceInstancesCache(nil, s)
 			if resp.GetCode().Value != api.ExecuteSuccess {
-				log.Errorf("error sync instances for %s, info : %s", svc.Name, resp.Info.GetValue())
+				log.Errorf("[XDSV3] error sync instances for %s, info : %s", svc.Name, resp.Info.GetValue())
 				return fmt.Errorf("error sync instances for %s", svc.Name)
 			}
 
@@ -758,7 +760,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 			// 获取ratelimit配置
 			ratelimitResp := x.namingServer.GetRateLimitWithCache(ctx, s)
 			if ratelimitResp.GetCode().Value != api.ExecuteSuccess {
-				log.Errorf("error sync ratelimit for %s, info : %s", svc.Name, ratelimitResp.Info.GetValue())
+				log.Errorf("[XDSV3] error sync ratelimit for %s, info : %s", svc.Name, ratelimitResp.Info.GetValue())
 				return fmt.Errorf("error sync ratelimit for %s", svc.Name)
 			}
 			if ratelimitResp.RateLimit != nil {
