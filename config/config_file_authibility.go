@@ -51,6 +51,11 @@ func (s *serverAuthibility) GetConfigFileRichInfo(ctx context.Context, namespace
 	return s.targetServer.GetConfigFileRichInfo(ctx, namespace, group, name)
 }
 
+func (s *serverAuthibility) QueryConfigFilesByGroup(ctx context.Context, namespace, group string,
+	offset, limit uint32) *api.ConfigBatchQueryResponse {
+	return s.targetServer.QueryConfigFilesByGroup(ctx, namespace, group, offset, limit)
+}
+
 // SearchConfigFile 查询配置文件
 func (s *serverAuthibility) SearchConfigFile(ctx context.Context, namespace, group, name,
 	tags string, offset, limit uint32) *api.ConfigBatchQueryResponse {
