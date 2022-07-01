@@ -88,6 +88,7 @@ func (h *HistoryLogger) Initialize(c *plugin.ConfigEntry) error {
 			<-ticker.C
 			log.Rotate()
 		}
+		ticker.Stop()
 	}()
 	w := zapcore.AddSync(log)
 	// multiSync := zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), w)
