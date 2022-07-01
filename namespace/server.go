@@ -30,7 +30,7 @@ import (
 type Server struct {
 	storage store.Store
 
-	caches *cache.NamingCache
+	caches *cache.CacheManager
 
 	cfg     Config
 	auth    plugin.Auth

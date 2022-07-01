@@ -63,6 +63,6 @@ func convertToErrCode(err error) uint32 {
 	if errors.Is(err, model.ErrorTokenDisabled) {
 		return api.TokenDisabled
 	}
-	
+
 	return api.NotAllowedAccess
 }

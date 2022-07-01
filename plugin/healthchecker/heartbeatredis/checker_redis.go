@@ -64,16 +64,16 @@ func (r *RedisHealthChecker) Initialize(c *plugin.ConfigEntry) error {
 	if err != nil {
 		return fmt.Errorf("fail to marshal %s config entry, err is %v", PluginName, err)
 	}
-	config := redispool.DefaultConfig()
-	if err = json.Unmarshal(redisBytes, config); err != nil {
+	var config redispool.Config
+	if err = json.Unmarshal(redisBytes, &config); err != nil {
 		return fmt.Errorf("fail to unmarshal %s config entry, err is %v", PluginName, err)
 	}
 	r.statis = plugin.GetStatis()
 	var ctx context.Context
 	ctx, r.cancel = context.WithCancel(context.Background())
-	r.hbPool = redispool.NewPool(ctx, config, r.statis)
+	r.hbPool = redispool.NewPool(ctx, &config, r.statis)
 	r.hbPool.Start()
-	r.checkPool = redispool.NewPool(ctx, config, r.statis)
+	r.checkPool = redispool.NewPool(ctx, &config, r.statis)
 	r.checkPool.Start()
 	if err = r.registerSelf(); err != nil {
 		return fmt.Errorf("fail to register %s to redis, err is %v", utils.LocalHost, err)
@@ -157,12 +157,12 @@ func (r *RedisHealthChecker) Report(request *plugin.ReportRequest) error {
 		LocalHost:  request.LocalHost,
 		CurTimeSec: request.CurTimeSec,
 	}
+
 	log.Debugf("[Health Check][RedisCheck]redis set key is %s, value is %s", request.InstanceId, *value)
 	resp := r.hbPool.Set(request.InstanceId, value)
 	if resp.Err != nil {
 		log.Errorf("[Health Check][RedisCheck]addr:%s:%d, id:%s, set redis err:%s",
 			request.Host, request.Port, request.InstanceId, resp.Err)
-		return resp.Err
 	}
 	return nil
 }

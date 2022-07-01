@@ -166,6 +166,39 @@ func (cf *configFileStore) getConfigFile(tx *bolt.Tx, namespace, group, name str
 	return nil, nil
 }
 
+func (cf *configFileStore) QueryConfigFilesByGroup(namespace, group string, offset, limit uint32) (uint32, []*model.ConfigFile, error) {
+	fields := []string{FileFieldNamespace, FileFieldGroup, FileFieldValid}
+
+	hasNs := len(namespace) != 0
+	hasGroup := len(group) != 0
+
+	ret, err := cf.handler.LoadValuesByFilter(tblConfigFile, fields, &model.ConfigFile{},
+		func(m map[string]interface{}) bool {
+			valid, _ := m[FileFieldValid].(bool)
+			if !valid {
+				return false
+			}
+
+			saveNs, _ := m[FileFieldNamespace].(string)
+			saveGroup, _ := m[FileFieldGroup].(string)
+
+			if hasNs && !strings.Contains(saveNs, namespace) {
+				return false
+			}
+			if hasGroup && !strings.Contains(saveGroup, group) {
+				return false
+			}
+
+			return true
+		})
+
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return uint32(len(ret)), doConfigFilePage(ret, offset, limit), nil
+}
+
 // QueryConfigFiles 翻页查询配置文件，group、name可为模糊匹配
 func (cf *configFileStore) QueryConfigFiles(namespace, group, name string, offset, limit uint32) (uint32, []*model.ConfigFile, error) {
 
@@ -245,7 +278,12 @@ func (cf *configFileStore) UpdateConfigFile(proxyTx store.Tx, file *model.Config
 func (cf *configFileStore) DeleteConfigFile(proxyTx store.Tx, namespace, group, name string) error {
 	_, err := DoTransactionIfNeed(proxyTx, cf.handler, func(tx *bolt.Tx) ([]interface{}, error) {
 		key := fmt.Sprintf("%s@%s@%s", namespace, group, name)
-		err := deleteValues(tx, tblConfigFile, []string{key}, true)
+
+		properties := make(map[string]interface{})
+		properties[FileFieldValid] = false
+		properties[FileFieldModifyTime] = time.Now()
+
+		err := updateValue(tx, tblConfigFile, key, properties)
 		return nil, err
 	})
 	return err
@@ -269,10 +307,10 @@ func (cf *configFileStore) CountByConfigFileGroup(namespace, group string) (uint
 			saveNs, _ := m[FileFieldNamespace].(string)
 			saveGroup, _ := m[FileFieldGroup].(string)
 
-			if hasNs && !strings.Contains(saveNs, namespace) {
+			if hasNs && strings.Compare(saveNs, namespace) != 0 {
 				return false
 			}
-			if hasGroup && !strings.Contains(saveGroup, group) {
+			if hasGroup && strings.Compare(saveGroup, group) != 0 {
 				return false
 			}
 

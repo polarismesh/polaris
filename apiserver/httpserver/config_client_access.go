@@ -36,9 +36,9 @@ func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) 
 
 	configFile := &api.ClientConfigFileInfo{
 		Namespace: &wrapperspb.StringValue{Value: handler.QueryParameter("namespace")},
-		Group: &wrapperspb.StringValue{Value: handler.QueryParameter("group")},
-		FileName: &wrapperspb.StringValue{Value: handler.QueryParameter("fileName")},
-		Version: &wrapperspb.UInt64Value{Value: version},
+		Group:     &wrapperspb.StringValue{Value: handler.QueryParameter("group")},
+		FileName:  &wrapperspb.StringValue{Value: handler.QueryParameter("fileName")},
+		Version:   &wrapperspb.UInt64Value{Value: version},
 	}
 
 	response := h.configServer.GetConfigFileForClient(handler.ParseHeaderContext(), configFile)

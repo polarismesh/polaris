@@ -36,6 +36,8 @@ const (
 
 // Dispatcher dispatch all instances using consistent hash ring
 type Dispatcher struct {
+	svr *Server
+
 	healthCheckInstancesChanged uint32
 	healthCheckClientsChanged   uint32
 	selfServiceInstancesChanged uint32
@@ -47,8 +49,9 @@ type Dispatcher struct {
 	mutex              *sync.Mutex
 }
 
-func newDispatcher(ctx context.Context) *Dispatcher {
+func newDispatcher(ctx context.Context, svr *Server) *Dispatcher {
 	dispatcher := &Dispatcher{
+		svr:   svr,
 		mutex: &sync.Mutex{},
 	}
 	dispatcher.startDispatchingJob(ctx)
@@ -110,7 +113,7 @@ func compareBuckets(src map[Bucket]bool, dst map[Bucket]bool) bool {
 
 func (d *Dispatcher) reloadSelfContinuum() bool {
 	nextBuckets := make(map[Bucket]bool)
-	server.cacheProvider.RangeSelfServiceInstances(func(instance *api.Instance) {
+	d.svr.cacheProvider.RangeSelfServiceInstances(func(instance *api.Instance) {
 		if instance.GetIsolate().GetValue() || !instance.GetHealthy().GetValue() {
 			return
 		}
@@ -133,37 +136,37 @@ func (d *Dispatcher) reloadManagedClients() {
 	nextClients := make(map[string]*ClientWithChecker)
 
 	if d.continuum != nil {
-		server.cacheProvider.RangeHealthCheckClients(func(itemChecker ItemWithChecker, client *model.Client) {
+		d.svr.cacheProvider.RangeHealthCheckClients(func(itemChecker ItemWithChecker, client *model.Client) {
 			clientId := client.Proto().GetId().GetValue()
 			host := d.continuum.Hash(itemChecker.GetHashValue())
-			if host == server.localHost {
+			if host == d.svr.localHost {
 				nextClients[clientId] = itemChecker.(*ClientWithChecker)
 			}
 		})
 	}
 	log.Infof("[Health Check][Dispatcher]count %d clients has been dispatched to %s, total is %d",
-		len(nextClients), server.localHost, server.cacheProvider.healthCheckInstances.Count())
+		len(nextClients), d.svr.localHost, d.svr.cacheProvider.healthCheckInstances.Count())
 	originClients := d.managedClients
 	d.managedClients = originClients
 	if len(nextClients) > 0 {
 		for id, client := range nextClients {
 			if len(originClients) == 0 {
-				server.checkScheduler.AddClient(client)
+				d.svr.checkScheduler.AddClient(client)
 				continue
 			}
 			if _, ok := originClients[id]; !ok {
-				server.checkScheduler.AddClient(client)
+				d.svr.checkScheduler.AddClient(client)
 			}
 		}
 	}
 	if len(originClients) > 0 {
 		for id, client := range originClients {
 			if len(nextClients) == 0 {
-				server.checkScheduler.DelClient(client)
+				d.svr.checkScheduler.DelClient(client)
 				continue
 			}
 			if _, ok := nextClients[id]; !ok {
-				server.checkScheduler.DelClient(client)
+				d.svr.checkScheduler.DelClient(client)
 			}
 		}
 	}
@@ -173,37 +176,37 @@ func (d *Dispatcher) reloadManagedInstances() {
 	nextInstances := make(map[string]*InstanceWithChecker)
 
 	if d.continuum != nil {
-		server.cacheProvider.RangeHealthCheckInstances(func(itemChecker ItemWithChecker, instance *model.Instance) {
+		d.svr.cacheProvider.RangeHealthCheckInstances(func(itemChecker ItemWithChecker, instance *model.Instance) {
 			instanceId := instance.ID()
 			host := d.continuum.Hash(itemChecker.GetHashValue())
-			if host == server.localHost {
+			if host == d.svr.localHost {
 				nextInstances[instanceId] = itemChecker.(*InstanceWithChecker)
 			}
 		})
 	}
 	log.Infof("[Health Check][Dispatcher]count %d instances has been dispatched to %s, total is %d",
-		len(nextInstances), server.localHost, server.cacheProvider.healthCheckInstances.Count())
+		len(nextInstances), d.svr.localHost, d.svr.cacheProvider.healthCheckInstances.Count())
 	originInstances := d.managedInstances
 	d.managedInstances = nextInstances
 	if len(nextInstances) > 0 {
 		for id, instance := range nextInstances {
 			if len(originInstances) == 0 {
-				server.checkScheduler.AddInstance(instance)
+				d.svr.checkScheduler.AddInstance(instance)
 				continue
 			}
 			if _, ok := originInstances[id]; !ok {
-				server.checkScheduler.AddInstance(instance)
+				d.svr.checkScheduler.AddInstance(instance)
 			}
 		}
 	}
 	if len(originInstances) > 0 {
 		for id, instance := range originInstances {
 			if len(nextInstances) == 0 {
-				server.checkScheduler.DelInstance(instance)
+				d.svr.checkScheduler.DelInstance(instance)
 				continue
 			}
 			if _, ok := nextInstances[id]; !ok {
-				server.checkScheduler.DelInstance(instance)
+				d.svr.checkScheduler.DelInstance(instance)
 			}
 		}
 	}

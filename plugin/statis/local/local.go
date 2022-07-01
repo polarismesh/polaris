@@ -18,7 +18,6 @@
 package local
 
 import (
-	"net/http"
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/log"
@@ -123,11 +122,6 @@ func (s *StatisWorker) AddCacheCall(component string, cacheType string, miss boo
 	return nil
 }
 
-// GetPrometheusHandler 获取 prometheus http handler
-func (s *StatisWorker) GetPrometheusHandler() http.Handler {
-	return s.acs.prometheusStatis.GetHttpHandler()
-}
-
 // Run 主流程
 func (s *StatisWorker) Run() {
 
@@ -137,7 +131,7 @@ func (s *StatisWorker) Run() {
 		return
 	}
 
-	nowSeconds, err := store.GetNow()
+	nowSeconds, err := store.GetUnixSecond()
 	if err != nil {
 		log.Errorf("[APICall] get now second from store error, %v", err)
 		return

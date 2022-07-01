@@ -39,6 +39,7 @@ import (
 	boot_config "github.com/polarismesh/polaris-server/bootstrap/config"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/metrics"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/common/version"
 	config_center "github.com/polarismesh/polaris-server/config"
@@ -82,6 +83,8 @@ func Start(configFilePath string) {
 		fmt.Printf("[ERROR] acquire localhost fail: %v\n", err)
 		return
 	}
+
+	metrics.InitMetrics()
 
 	// 设置插件配置
 	plugin.SetPluginConfig(&cfg.Plugin)
@@ -194,7 +197,7 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 }
 
 func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s store.Store,
-	cacheMgn *cache.NamingCache, authMgn auth.AuthServer) error {
+	cacheMgn *cache.CacheManager, authMgn auth.AuthServer) error {
 
 	var err error
 
@@ -258,7 +261,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 
 // StartConfigCenterComponents 启动配置中心模块
 func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config, s store.Store,
-	cacheMgn *cache.NamingCache, authMgn auth.AuthServer) error {
+	cacheMgn *cache.CacheManager, authMgn auth.AuthServer) error {
 	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, authMgn)
 }
 

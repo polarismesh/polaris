@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/log"
@@ -32,7 +33,18 @@ import (
 )
 
 var (
-	cacheSet = make(map[string]int)
+	cacheSet = map[string]int{}
+
+	_ InstanceCache       = (*instanceCache)(nil)
+	_ ServiceCache        = (*serviceCache)(nil)
+	_ RoutingConfigCache  = (*routingConfigCache)(nil)
+	_ CircuitBreakerCache = (*circuitBreakerCache)(nil)
+	_ RateLimitCache      = (*rateLimitCache)(nil)
+	_ NamespaceCache      = (*namespaceCache)(nil)
+	_ ClientCache         = (*clientCache)(nil)
+	_ UserCache           = (*userCache)(nil)
+	_ StrategyCache       = (*strategyCache)(nil)
+	_ L5Cache             = (*l5Cache)(nil)
 )
 
 const (
@@ -52,6 +64,7 @@ const (
 	CacheLast
 )
 
+// CacheName cache name
 type CacheName string
 
 const (
@@ -68,7 +81,7 @@ const (
 )
 
 var (
-	cacheIndexMap map[CacheName]int = map[CacheName]int{
+	cacheIndexMap = map[CacheName]int{
 		CacheNameService:        CacheService,
 		CacheNameInstance:       CacheInstance,
 		CacheNameRoutingConfig:  CacheRoutingConfig,
@@ -87,6 +100,11 @@ const (
 	DefaultTimeDiff = -1 * time.Second * 10
 )
 
+type Args struct {
+	// StoreTimeRollbackSec 存储层时钟回拨情况
+	StoreTimeRollbackSec time.Duration
+}
+
 // Cache 缓存接口
 type Cache interface {
 	// initialize
@@ -96,7 +114,7 @@ type Cache interface {
 	addListener(listeners []Listener)
 
 	// update
-	update() error
+	update(storeRollbackSec time.Duration) error
 
 	// clear
 	clear() error
@@ -149,17 +167,19 @@ func newRevisionNotify(serviceID string, valid bool) *revisionNotify {
 	}
 }
 
-// NamingCache 名字服务缓存
-type NamingCache struct {
+// CacheManager 名字服务缓存
+type CacheManager struct {
 	storage store.Store
 	caches  []Cache
 
-	comRevisionCh chan *revisionNotify
-	revisions     *sync.Map // service id -> reversion (所有instance reversion 的累计计算值)
+	comRevisionCh    chan *revisionNotify
+	revisions        map[string]string // service id -> reversion (所有instance reversion 的累计计算值)
+	lock             sync.RWMutex      // for revisions rw lock
+	storeTimeDiffSec int64
 }
 
 // initialize 缓存对象初始化
-func (nc *NamingCache) initialize() error {
+func (nc *CacheManager) initialize() error {
 	for _, obj := range nc.caches {
 		var option map[string]interface{}
 		for _, entry := range config.Resources {
@@ -177,7 +197,7 @@ func (nc *NamingCache) initialize() error {
 }
 
 // update 缓存更新
-func (nc *NamingCache) update() error {
+func (nc *CacheManager) update() error {
 	var wg sync.WaitGroup
 	for _, entry := range config.Resources {
 		index, exist := cacheSet[entry.Name]
@@ -187,7 +207,10 @@ func (nc *NamingCache) update() error {
 		wg.Add(1)
 		go func(c Cache) {
 			defer wg.Done()
-			_ = c.update()
+
+			sec := atomic.LoadInt64(&nc.storeTimeDiffSec)
+
+			_ = c.update(time.Duration(sec * int64(time.Second)))
 		}(nc.caches[index])
 	}
 
@@ -195,8 +218,28 @@ func (nc *NamingCache) update() error {
 	return nil
 }
 
+func (nc *CacheManager) deleteRevisions(id string) {
+	nc.lock.Lock()
+	delete(nc.revisions, id)
+	nc.lock.Unlock()
+}
+
+func (nc *CacheManager) setRevisions(key string, val string) {
+	nc.lock.Lock()
+	nc.revisions[key] = val
+	nc.lock.Unlock()
+}
+
+func (nc *CacheManager) readRevisions(key string) (string, bool) {
+	nc.lock.RLock()
+	defer nc.lock.RUnlock()
+
+	id, ok := nc.revisions[key]
+	return id, ok
+}
+
 // clear 清除caches的所有缓存数据
-func (nc *NamingCache) clear() error {
+func (nc *CacheManager) clear() error {
 	for _, obj := range nc.caches {
 		if err := obj.clear(); err != nil {
 			return err
@@ -207,10 +250,12 @@ func (nc *NamingCache) clear() error {
 }
 
 // Start 缓存对象启动协程，定时更新缓存
-func (nc *NamingCache) Start(ctx context.Context) error {
+func (nc *CacheManager) Start(ctx context.Context) error {
 	log.CacheScope().Infof("[Cache] cache goroutine start")
 	// 先启动revision计算协程
 	go nc.revisionWorker(ctx)
+
+	go nc.watchStoreTime(ctx)
 
 	// 启动的时候，先更新一版缓存
 	log.CacheScope().Infof("[Cache] cache update now first time")
@@ -238,13 +283,16 @@ func (nc *NamingCache) Start(ctx context.Context) error {
 }
 
 // Clear 主动清除缓存数据
-func (nc *NamingCache) Clear() error {
-	nc.revisions = new(sync.Map)
+func (nc *CacheManager) Clear() error {
+	nc.lock.Lock()
+	nc.revisions = map[string]string{}
+	nc.lock.Unlock()
+
 	return nc.clear()
 }
 
 // revisionWorker Cache中计算服务实例revision的worker
-func (nc *NamingCache) revisionWorker(ctx context.Context) {
+func (nc *CacheManager) revisionWorker(ctx context.Context) {
 	log.CacheScope().Infof("[Cache] compute revision worker start")
 	defer log.CacheScope().Infof("[Cache] compute revision worker done")
 
@@ -271,7 +319,7 @@ func (nc *NamingCache) revisionWorker(ctx context.Context) {
 }
 
 // processRevisionWorker 处理revision计算的函数
-func (nc *NamingCache) processRevisionWorker(req *revisionNotify) bool {
+func (nc *CacheManager) processRevisionWorker(req *revisionNotify) bool {
 	if req == nil {
 		log.CacheScope().Errorf("[Cache][Revision] get null revision request")
 		return false
@@ -284,7 +332,7 @@ func (nc *NamingCache) processRevisionWorker(req *revisionNotify) bool {
 
 	if !req.valid {
 		log.CacheScope().Infof("[Cache][Revision] service(%s) revision has all been removed", req.serviceID)
-		nc.revisions.Delete(req.serviceID)
+		nc.deleteRevisions(req.serviceID)
 		return true
 	}
 
@@ -301,93 +349,91 @@ func (nc *NamingCache) processRevisionWorker(req *revisionNotify) bool {
 			"[Cache] compute service id(%s) instances revision err: %s", req.serviceID, err.Error())
 		return false
 	}
-	nc.revisions.Store(req.serviceID, revision) // string -> string
+
+	nc.setRevisions(req.serviceID, revision) // string -> string
 	return true
 }
 
 // GetUpdateCacheInterval 获取当前cache的更新间隔
-func (nc *NamingCache) GetUpdateCacheInterval() time.Duration {
+func (nc *CacheManager) GetUpdateCacheInterval() time.Duration {
 	return UpdateCacheInterval
 }
 
 // GetServiceInstanceRevision 获取服务实例计算之后的revision
-func (nc *NamingCache) GetServiceInstanceRevision(serviceID string) string {
-	value, ok := nc.revisions.Load(serviceID)
+func (nc *CacheManager) GetServiceInstanceRevision(serviceID string) string {
+	value, ok := nc.readRevisions(serviceID)
 	if !ok {
 		return ""
 	}
 
-	return value.(string)
+	return value
 }
 
 // GetServiceRevisionCount 计算一下缓存中的revision的个数
-func (nc *NamingCache) GetServiceRevisionCount() int {
-	count := 0
-	nc.revisions.Range(func(key, value interface{}) bool {
-		count++
-		return true
-	})
+func (nc *CacheManager) GetServiceRevisionCount() int {
+	nc.lock.RLock()
+	defer nc.lock.RUnlock()
 
-	return count
+	return len(nc.revisions)
 }
 
-func (nc *NamingCache) AddListener(cacheName CacheName, listeners []Listener) {
+func (nc *CacheManager) AddListener(cacheName CacheName, listeners []Listener) {
 	cacheIndex := cacheIndexMap[cacheName]
 	nc.caches[cacheIndex].addListener(listeners)
 }
 
 // Service 获取Service缓存信息
-func (nc *NamingCache) Service() ServiceCache {
+func (nc *CacheManager) Service() ServiceCache {
 	return nc.caches[CacheService].(ServiceCache)
 }
 
 // Instance 获取Instance缓存信息
-func (nc *NamingCache) Instance() InstanceCache {
+func (nc *CacheManager) Instance() InstanceCache {
 	return nc.caches[CacheInstance].(InstanceCache)
 }
 
 // RoutingConfig 获取路由配置的缓存信息
-func (nc *NamingCache) RoutingConfig() RoutingConfigCache {
+func (nc *CacheManager) RoutingConfig() RoutingConfigCache {
 	return nc.caches[CacheRoutingConfig].(RoutingConfigCache)
 }
 
 // CL5 获取l5缓存信息
-func (nc *NamingCache) CL5() L5Cache {
+func (nc *CacheManager) CL5() L5Cache {
 	return nc.caches[CacheCL5].(L5Cache)
 }
 
 // RateLimit 获取限流规则缓存信息
-func (nc *NamingCache) RateLimit() RateLimitCache {
+func (nc *CacheManager) RateLimit() RateLimitCache {
 	return nc.caches[CacheRateLimit].(RateLimitCache)
 }
 
 // CircuitBreaker 获取熔断规则缓存信息
-func (nc *NamingCache) CircuitBreaker() CircuitBreakerCache {
+func (nc *CacheManager) CircuitBreaker() CircuitBreakerCache {
 	return nc.caches[CacheCircuitBreaker].(CircuitBreakerCache)
 }
 
 // User Get user information cache information
-func (nc *NamingCache) User() UserCache {
+func (nc *CacheManager) User() UserCache {
 	return nc.caches[CacheUser].(UserCache)
 }
 
 // AuthStrategy Get authentication cache information
-func (nc *NamingCache) AuthStrategy() StrategyCache {
+func (nc *CacheManager) AuthStrategy() StrategyCache {
 	return nc.caches[CacheAuthStrategy].(StrategyCache)
 }
 
 // Namespace Get namespace cache information
-func (nc *NamingCache) Namespace() NamespaceCache {
+func (nc *CacheManager) Namespace() NamespaceCache {
 	return nc.caches[CacheNamespace].(NamespaceCache)
 }
 
 // GetStore get store
-func (nc *NamingCache) GetStore() store.Store {
+func (nc *CacheManager) GetStore() store.Store {
 	return nc.storage
 }
 
 // Client Get client cache information
-func (nc *NamingCache) Client() ClientCache {
+func (nc *CacheManager) Client() ClientCache {
 	return nc.caches[CacheClient].(ClientCache)
 }
 

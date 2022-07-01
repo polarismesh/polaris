@@ -18,7 +18,6 @@
 package boltdb
 
 import (
-	"errors"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -76,7 +75,7 @@ func (m *boltStore) Name() string {
 // Initialize init store
 func (m *boltStore) Initialize(c *store.Config) error {
 	if m.start {
-		return errors.New("store has been Initialize")
+		return nil
 	}
 	boltConfig := &BoltConfig{}
 	boltConfig.Parse(c.Option)
@@ -325,6 +324,7 @@ func (m *boltStore) newConfigModuleStore() error {
 
 // Destroy store
 func (m *boltStore) Destroy() error {
+	m.start = false
 	if m.handler != nil {
 		return m.handler.Close()
 	}

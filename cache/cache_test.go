@@ -32,10 +32,11 @@ import (
 	"github.com/polarismesh/polaris-server/store/mock"
 )
 
-// TestNamingCache_Start 测试cache函数是否正常
-func TestNamingCache_Start(t *testing.T) {
+// TestCacheManager_Start 测试cache函数是否正常
+func TestCacheManager_Start(t *testing.T) {
 	ctl := gomock.NewController(t)
 	storage := mock.NewMockStore(ctl)
+	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 	defer ctl.Finish()
 
 	conf := &Config{
@@ -71,6 +72,7 @@ func TestNamingCache_Start(t *testing.T) {
 		So(c, ShouldNotBeNil)
 
 		beg := time.Unix(0, 0).Add(DefaultTimeDiff)
+		storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 		storage.EXPECT().GetMoreInstances(beg, true, false, nil).Return(nil, nil).MaxTimes(1)
 		storage.EXPECT().GetMoreInstances(beg, false, false, nil).Return(nil, nil).MaxTimes(3)
 		storage.EXPECT().GetMoreServices(beg, true, false, false).Return(nil, nil).MaxTimes(1)
@@ -105,6 +107,7 @@ func TestNamingCache_Start(t *testing.T) {
 func TestRevisionWorker(t *testing.T) {
 	ctl := gomock.NewController(t)
 	storage := mock.NewMockStore(ctl)
+	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 	defer ctl.Finish()
 
 	Convey("revision计算，chan可以正常收发", t, func() {
@@ -130,10 +133,10 @@ func TestRevisionWorker(t *testing.T) {
 				}
 				services[item.ID] = item
 			}
-			storage.EXPECT().GetMoreServices(time.Unix(0, 0).Add(DefaultTimeDiff), true, false, false).Return(services, nil)
+			storage.EXPECT().GetMoreServices(gomock.Any(), true, false, false).Return(services, nil)
 			// 触发计算
-			_ = nc.caches[CacheService].update()
-			time.Sleep(time.Second * 2)
+			_ = nc.caches[CacheService].update(0)
+			time.Sleep(time.Second * 10)
 			So(nc.GetServiceRevisionCount(), ShouldEqual, maxTotal)
 
 			services = make(map[string]*model.Service)
@@ -147,10 +150,10 @@ func TestRevisionWorker(t *testing.T) {
 					services[item.ID] = item
 				}
 			}
-			storage.EXPECT().GetMoreServices(time.Unix(0, 0).Add(DefaultTimeDiff), false, false, false).Return(services, nil)
+			storage.EXPECT().GetMoreServices(gomock.Any(), false, false, false).Return(services, nil)
 			// 触发计算
-			_ = nc.caches[CacheService].update()
-			time.Sleep(time.Second * 2)
+			_ = nc.caches[CacheService].update(0)
+			time.Sleep(time.Second * 20)
 			// 检查是否有正常计算
 			So(nc.GetServiceRevisionCount(), ShouldEqual, maxTotal/2)
 		})

@@ -32,6 +32,18 @@ import (
 
 const (
 	tblPlatform string = "platform"
+
+	PlatformFieldID         string = "ID"
+	PlatformFieldName       string = "Name"
+	PlatformFieldDomain     string = "Domain"
+	PlatformFieldQPS        string = "QPS"
+	PlatformFieldToken      string = "Token"
+	PlatformFieldOwner      string = "Owner"
+	PlatformFieldDepartment string = "Department"
+	PlatformFieldComment    string = "Comment"
+	PlatformFieldValid      string = "Valid"
+	PlatformFieldCreateTime string = "CreateTime"
+	PlatformFieldModifyTime string = "ModifyTime"
 )
 
 type platformStore struct {
@@ -94,9 +106,11 @@ func (p *platformStore) DeletePlatform(id string) error {
 
 	platformKey := id
 
-	dbOp := p.handler
+	properties := make(map[string]interface{})
+	properties[PlatformFieldValid] = false
+	properties[PlatformFieldModifyTime] = time.Now()
 
-	if err := dbOp.DeleteValues(tblPlatform, []string{platformKey}, false); err != nil {
+	if err := p.handler.UpdateValue(tblPlatform, platformKey, properties); err != nil {
 		log.Errorf("[Store][platform] delete platform(%s) err: %s", id, err.Error())
 		return store.Error(err)
 	}
@@ -120,12 +134,21 @@ func (p *platformStore) GetPlatformById(id string) (*model.Platform, error) {
 		return nil, store.Error(err)
 	}
 
-	val := result[platformKey]
-	if val == nil {
+	val, ok := result[platformKey]
+	if !ok {
 		return nil, nil
 	}
 
-	return val.(*model.Platform), nil
+	ret, ok := val.(*model.Platform)
+	if !ok {
+		return nil, nil
+	}
+
+	if !ret.Valid {
+		return nil, nil
+	}
+
+	return ret, nil
 }
 
 // GetPlatforms 根据过滤条件查询平台信息

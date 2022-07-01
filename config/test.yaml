@@ -1,0 +1,128 @@
+# server启动引导配置
+bootstrap:
+  # 全局日志
+  logger:
+    config:
+      rotateOutputPath: log/polaris-config.log
+      errorRotateOutputPath: log/polaris-config-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
+    auth:
+      rotateOutputPath: log/polaris-auth.log
+      errorRotateOutputPath: log/polaris-auth-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
+    store:
+      rotateOutputPath: log/polaris-store.log
+      errorRotateOutputPath: log/polaris-store-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
+    cache:
+      rotateOutputPath: log/polaris-cache.log
+      errorRotateOutputPath: log/polaris-cache-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
+    naming:
+      rotateOutputPath: log/polaris-naming.log
+      errorRotateOutputPath: log/polaris-naming-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
+    default:
+      rotateOutputPath: log/polaris-default.log
+      errorRotateOutputPath: log/polaris-default-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      outputPaths:
+        - stdout
+      errorOutputPaths:
+        - stderr
+# 配置中心模块启动配置
+config:
+  # 是否启动配置模块
+  open: true
+  cache:
+    #配置文件缓存过期时间，单位s
+    expireTimeAfterWrite: 3600
+# 存储配置
+store:
+  name: boltdbStore
+  option:
+    path: ./config_center_test.bolt
+auth:
+  # 鉴权插件
+  name: defaultAuth
+  option:
+    # token 加密的 salt，鉴权解析 token 时需要依靠这个 salt 去解密 token 的信息
+    # salt 的长度需要满足以下任意一个：len(salt) in [16, 24, 32]
+    salt: polarismesh@2021
+    # 控制台鉴权能力开关，默认开启
+    consoleOpen: true
+    # 客户端鉴权能力开关, 默认关闭
+    clientOpen: false
+  # name: defaultStore
+  # option:
+  #   master:
+  #     dbType: mysql
+  #     dbName: polaris_server
+  #     dbUser: # 数据库账号
+  #     dbPwd: # 数据库密码
+  #     dbAddr: 127.0.0.1:3306
+  #     maxOpenConns: -1
+  #     maxIdleConns: -1
+  #     connMaxLifetime: 300 # 单位秒
+  #     txIsolationLevel: 2 #LevelReadCommitted
+# 缓存配置
+cache:
+  open: true
+  resources:
+    - name: service # 加载服务数据
+      option:
+        disableBusiness: false # 不加载业务服务
+        needMeta: true # 加载服务元数据
+    - name: instance # 加载实例数据
+      option:
+        disableBusiness: false # 不加载业务服务实例
+        needMeta: true # 加载实例元数据
+    - name: routingConfig # 加载路由数据
+    - name: rateLimitConfig # 加载限流数据
+    - name: circuitBreakerConfig # 加载熔断数据
+    - name: users # 加载用户、用户组数据
+    - name: strategyRule # 加载鉴权规则数据
+    - name: namespace # 加载命名空间数据
+    - name: client # 加载 SDK 数据
+#    - name: l5 # 加载l5数据
+plugin:
+  auth:
+    name: defaultAuth

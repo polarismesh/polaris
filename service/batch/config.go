@@ -44,44 +44,47 @@ type CtrlConfig struct {
 	MaxBatchCount int `mapstructure:"maxBatchCount"`
 	// 写store的并发协程数
 	Concurrency int `mapstructure:"concurrency"`
+	// 任务最大存活周期
+	TaskLife string `mapstructure:"taskLife"`
 }
 
 func defaultBatchCtrlConfig() *Config {
 	return &Config{
 		Register: &CtrlConfig{
-			Open:          true,
-			QueueSize:     10240,
-			WaitTime:      "32ms",
-			MaxBatchCount: 32,
-			Concurrency:   64,
+			Open:           true,
+			QueueSize:      10240,
+			WaitTime:       "32ms",
+			MaxBatchCount:  32,
+			Concurrency:    64,
+			TaskLife:       "30s",
 		},
 		Deregister: &CtrlConfig{
-			Open:          true,
-			QueueSize:     10240,
-			WaitTime:      "32ms",
-			MaxBatchCount: 32,
-			Concurrency:   64,
+			Open:           true,
+			QueueSize:      10240,
+			WaitTime:       "32ms",
+			MaxBatchCount:  32,
+			Concurrency:    64,
 		},
 		Heartbeat: &CtrlConfig{
-			Open:          true,
-			QueueSize:     10240,
-			WaitTime:      "32ms",
-			MaxBatchCount: 32,
-			Concurrency:   64,
+			Open:           true,
+			QueueSize:      10240,
+			WaitTime:       "32ms",
+			MaxBatchCount:  32,
+			Concurrency:    64,
 		},
 		ClientRegister: &CtrlConfig{
-			Open:          true,
-			QueueSize:     10240,
-			WaitTime:      "32ms",
-			MaxBatchCount: 32,
-			Concurrency:   64,
+			Open:           true,
+			QueueSize:      10240,
+			WaitTime:       "32ms",
+			MaxBatchCount:  32,
+			Concurrency:    64,
 		},
 		ClientDeregister: &CtrlConfig{
-			Open:          true,
-			QueueSize:     10240,
-			WaitTime:      "32ms",
-			MaxBatchCount: 32,
-			Concurrency:   64,
+			Open:           true,
+			QueueSize:      10240,
+			WaitTime:       "32ms",
+			MaxBatchCount:  32,
+			Concurrency:    64,
 		},
 	}
 }

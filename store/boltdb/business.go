@@ -28,6 +28,14 @@ import (
 
 const (
 	tblBusiness string = "business"
+
+	BusinessFieldID         string = "ID"
+	BusinessFieldName       string = "Name"
+	BusinessFieldToken      string = "Token"
+	BusinessFieldOwner      string = "Owner"
+	BusinessFieldValid      string = "Valid"
+	BusinessFieldCreateTime string = "CreateTime"
+	BusinessFieldModifyTime string = "ModifyTime"
 )
 
 type businessStore struct {
@@ -63,9 +71,11 @@ func (bs *businessStore) DeleteBusiness(bid string) error {
 		return errors.New("delete Business missing some params")
 	}
 
-	dbOp := bs.handler
+	properties := make(map[string]interface{})
+	properties[BusinessFieldValid] = false
+	properties[BusinessFieldModifyTime] = time.Now()
 
-	if err := dbOp.DeleteValues(tblBusiness, []string{bid}, false); err != nil {
+	if err := bs.handler.UpdateValue(tblBusiness, bid, properties); err != nil {
 		log.Errorf("[Store][business] delete business err : %s", err.Error())
 		return store.Error(err)
 	}
@@ -155,12 +165,21 @@ func (bs *businessStore) GetBusinessByID(id string) (*model.Business, error) {
 		return nil, store.Error(err)
 	}
 
-	val := result[id]
-	if val != nil {
-		return val.(*model.Business), nil
+	val, ok := result[id]
+	if !ok {
+		return nil, nil
 	}
 
-	return nil, nil
+	ret, ok := val.(*model.Business)
+	if !ok {
+		return nil, nil
+	}
+	
+	if !ret.Valid {
+		return nil, nil
+	}
+
+	return ret, nil
 }
 
 // GetMoreBusiness 根据mtime获取增量数据

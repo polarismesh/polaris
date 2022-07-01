@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -32,11 +33,22 @@ import (
 	"github.com/polarismesh/polaris-server/store"
 )
 
+var (
+	Error_NotFoundService          = errors.New("not found service")
+	Error_SameRegisInstanceRequest = errors.New("there is the same instance request")
+	Error_RegisInstanceTimeout     = errors.New("polaris-sever regis instance busy")
+)
+
+const (
+	defaultWaitTime = 32 * time.Millisecond
+	defaultTaskLife = 30 * time.Second
+)
+
 // InstanceCtrl 批量操作实例的类
 type InstanceCtrl struct {
 	config   *CtrlConfig
 	storage  store.Store
-	cacheMgn *cache.NamingCache
+	cacheMgn *cache.CacheManager
 
 	// store协程，负责写操作
 	storeThreadCh []chan []*InstanceFuture
@@ -48,6 +60,9 @@ type InstanceCtrl struct {
 	idleStoreThread chan int
 	waitDuration    time.Duration
 
+	// 任务的有效时间
+	taskLife time.Duration
+
 	// 请求接受协程
 	queue chan *InstanceFuture
 	label string
@@ -57,7 +72,7 @@ type InstanceCtrl struct {
 }
 
 // NewBatchRegisterCtrl 注册实例批量操作对象
-func NewBatchRegisterCtrl(storage store.Store, cacheMgn *cache.NamingCache, config *CtrlConfig) (*InstanceCtrl, error) {
+func NewBatchRegisterCtrl(storage store.Store, cacheMgn *cache.CacheManager, config *CtrlConfig) (*InstanceCtrl, error) {
 	register, err := newBatchInstanceCtrl(storage, cacheMgn, config)
 	if err != nil {
 		return nil, err
@@ -73,7 +88,7 @@ func NewBatchRegisterCtrl(storage store.Store, cacheMgn *cache.NamingCache, conf
 }
 
 // NewBatchDeregisterCtrl 实例反注册的操作对象
-func NewBatchDeregisterCtrl(storage store.Store, cacheMgn *cache.NamingCache, config *CtrlConfig) (
+func NewBatchDeregisterCtrl(storage store.Store, cacheMgn *cache.CacheManager, config *CtrlConfig) (
 	*InstanceCtrl, error) {
 	deregister, err := newBatchInstanceCtrl(storage, cacheMgn, config)
 	if err != nil {
@@ -91,7 +106,7 @@ func NewBatchDeregisterCtrl(storage store.Store, cacheMgn *cache.NamingCache, co
 }
 
 // NewBatchHeartbeatCtrl 实例心跳的操作对象
-func NewBatchHeartbeatCtrl(storage store.Store, cacheMgn *cache.NamingCache, config *CtrlConfig) (
+func NewBatchHeartbeatCtrl(storage store.Store, cacheMgn *cache.CacheManager, config *CtrlConfig) (
 	*InstanceCtrl, error) {
 	heartbeat, err := newBatchInstanceCtrl(storage, cacheMgn, config)
 	if err != nil {
@@ -124,10 +139,8 @@ func (ctrl *InstanceCtrl) Start(ctx context.Context) {
 	ctrl.mainLoop(ctx)
 }
 
-const defaultWaitTime = 32 * time.Millisecond
-
 // newBatchInstanceCtrl 创建批量控制instance的对象
-func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.NamingCache, config *CtrlConfig) (*InstanceCtrl, error) {
+func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.CacheManager, config *CtrlConfig) (*InstanceCtrl, error) {
 	if config == nil || !config.Open {
 		return nil, nil
 	}
@@ -142,6 +155,23 @@ func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.NamingCache, conf
 		duration = defaultWaitTime
 	}
 
+	taskLife := defaultTaskLife
+	if config.TaskLife != "" {
+		taskLife, err := time.ParseDuration(config.TaskLife)
+		if err != nil {
+			log.Errorf("[Batch] parse taskLife(%s) err: %s", config.TaskLife, err.Error())
+			return nil, err
+		}
+		if taskLife == 0 {
+			log.Infof("[Batch] taskLife(%s) is 0, use default %v", config.TaskLife, defaultTaskLife)
+			taskLife = defaultTaskLife
+		}
+	} else {
+		// mean not allow drop expire task
+		taskLife = time.Duration(0)
+	}
+	log.Info("[Batch] drop expire regis-instance task", zap.Bool("switch-open", taskLife == 0))
+
 	instance := &InstanceCtrl{
 		config:          config,
 		storage:         storage,
@@ -150,6 +180,7 @@ func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.NamingCache, conf
 		idleStoreThread: make(chan int, config.Concurrency),
 		queue:           make(chan *InstanceFuture, config.QueueSize),
 		waitDuration:    duration,
+		taskLife:        taskLife,
 	}
 	return instance, nil
 }
@@ -223,14 +254,26 @@ func (ctrl *InstanceCtrl) storeWorker(ctx context.Context, index int) {
 // batch操作，只是写操作
 func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 	if len(futures) == 0 {
+		log.Warn("[Batch] futures is empty")
 		return nil
 	}
 
+	current := time.Now()
+	taskLife := ctrl.taskLife
+	dropExpire := taskLife != 0
+
 	log.Infof("[Batch] Start batch creating instances count: %d", len(futures))
 	remains := make(map[string]*InstanceFuture, len(futures))
-	for _, entry := range futures {
+	for i := range futures {
+		entry := futures[i]
+
 		if _, ok := remains[entry.request.GetId().GetValue()]; ok {
-			entry.Reply(api.SameInstanceRequest, errors.New("there is the same instance request"))
+			entry.Reply(current, api.SameInstanceRequest, Error_SameRegisInstanceRequest)
+			continue
+		}
+
+		if dropExpire && entry.CanDrop() && entry.begin.Add(taskLife).Before(current) {
+			entry.Reply(current, api.InstanceRegisTimeout, Error_RegisInstanceTimeout)
 			continue
 		}
 
@@ -238,7 +281,7 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 	}
 
 	// 统一判断实例是否存在，存在则需要更新部分数据
-	err := ctrl.batchRestoreInstanceIsolate(remains)
+	firstRegisInstances, err := ctrl.batchRestoreInstanceIsolate(remains)
 	if err != nil {
 		log.Errorf("[Batch] batch check instances existed err: %s", err.Error())
 	}
@@ -251,7 +294,11 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 
 	// 构造model数据
 	for _, entry := range remains {
-		entry.SetInstance(utils.CreateInstanceModel(entry.serviceId, entry.request))
+		ins := utils.CreateInstanceModel(entry.serviceId, entry.request)
+		if _, ok := firstRegisInstances[ins.ID()]; ok {
+			ins.FirstRegis = true
+		}
+		entry.SetInstance(ins)
 	}
 
 	// 调用batch接口，创建实例
@@ -321,12 +368,14 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 		return nil
 	}
 
+	cur := time.Now()
+
 	log.Infof("[Batch] Start batch deregister instances count: %d", len(futures))
 	remains := make(map[string]*InstanceFuture, len(futures))
 	ids := make(map[string]bool, len(futures))
 	for _, entry := range futures {
 		if _, ok := remains[entry.request.GetId().GetValue()]; ok {
-			entry.Reply(api.SameInstanceRequest, errors.New("there is the same instance request"))
+			entry.Reply(cur, api.SameInstanceRequest, Error_SameRegisInstanceRequest)
 			continue
 		}
 
@@ -345,7 +394,7 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 		instance, ok := instances[future.request.GetId().GetValue()]
 		if !ok {
 			// 不存在，意味着不需要删除了
-			future.Reply(api.NotFoundResource, fmt.Errorf("%s", api.Code2Info(api.NotFoundResource)))
+			future.Reply(cur, api.NotFoundResource, fmt.Errorf("%s", api.Code2Info(api.NotFoundResource)))
 			delete(remains, future.request.GetId().GetValue())
 			continue
 		}
@@ -374,10 +423,10 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 }
 
 // batchRestoreInstanceIsolate 批量恢复实例的隔离状态，以请求为准，请求如果不存在，就以数据库为准
-func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*InstanceFuture) error {
+func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*InstanceFuture) (map[string]struct{}, error) {
 
 	if len(futures) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	// 初始化所有的id都是不存在的
@@ -390,16 +439,31 @@ func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*Instan
 	if id2Isolate, err = ctrl.storage.BatchGetInstanceIsolate(ids); err != nil {
 		log.Errorf("[Batch] check instances existed storage err: %s", err.Error())
 		sendReply(futures, api.StoreLayerException, err)
-		return err
+		return nil, err
 	}
+
+	firstRegisInstances := make(map[string]struct{})
+	if len(id2Isolate) == 0 {
+		for id := range futures {
+			firstRegisInstances[id] = struct{}{}
+		}
+		return firstRegisInstances, err
+	}
+
 	if len(id2Isolate) > 0 {
+		for id := range ids {
+			if _, ok := id2Isolate[id]; !ok {
+				firstRegisInstances[id] = struct{}{}
+			}
+		}
+
 		for id, isolate := range id2Isolate {
 			if future, ok := futures[id]; ok && future.request.Isolate == nil {
 				future.request.Isolate = &wrappers.BoolValue{Value: isolate}
 			}
 		}
 	}
-	return nil
+	return firstRegisInstances, err
 }
 
 // batchVerifyInstances 对请求futures进行统一的鉴权
@@ -438,14 +502,14 @@ func (ctrl *InstanceCtrl) loadService(entry *InstanceFuture, name, namespace str
 		if err != nil {
 			log.Errorf("[Controller] get source service(%s, %s) token err: %s",
 				entry.request.GetService().GetValue(), entry.request.GetNamespace().GetValue(), err.Error())
-			entry.Reply(api.StoreLayerException, err)
+			entry.Reply(time.Now(), api.StoreLayerException, err)
 
 			return nil, false
 		}
 		if tmpService == nil {
 			log.Errorf("[Controller] get source service(%s, %s) token is empty, verify failed",
 				entry.request.GetService().GetValue(), entry.request.GetNamespace().GetValue())
-			entry.Reply(api.NotFoundResource, errors.New("not found service"))
+			entry.Reply(time.Now(), api.NotFoundResource, Error_NotFoundService)
 
 			return nil, false
 		}

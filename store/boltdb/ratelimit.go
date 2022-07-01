@@ -40,9 +40,23 @@ const (
 	tblRateLimitConfig   string = "ratelimit_config"
 	tblRateLimitRevision string = "ratelimit_revision"
 
-	RateConfFieldMtime     string = "ModifyTime"
-	RateConfFieldServiceID string = "ServiceID"
-	RateConfFieldValid     string = "Valid"
+	RateLimitFieldID         string = "ID"
+	RateLimitFieldServiceID  string = "ServiceID"
+	RateLimitFieldClusterID  string = "ClusterID"
+	RateLimitFieldLabels     string = "Labels"
+	RateLimitFieldPriority   string = "Priority"
+	RateLimitFieldRule       string = "Rule"
+	RateLimitFieldRevision   string = "Revision"
+	RateLimitFieldValid      string = "Valid"
+	RateLimitFieldCreateTime string = "CreateTime"
+	RateLimitFieldModifyTime string = "ModifyTime"
+	RateConfFieldMtime       string = "ModifyTime"
+	RateConfFieldServiceID   string = "ServiceID"
+	RateConfFieldValid       string = "Valid"
+
+	RateLimitReviFieldServiceID    string = "ServiceID"
+	RateLimitReviFieldLastRevision string = "LastRevision"
+	RateLimitReviFieldModifyTime   string = "ModifyTime"
 )
 
 type rateLimitStore struct {
@@ -240,23 +254,18 @@ func (r *rateLimitStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool
 		return []*model.RateLimit{}, []*model.RateLimitRevision{}, nil
 	}
 
-	if len(limitResults) != len(revisionResults) {
-		return nil, nil, errors.New("ratelimit conf size must be equal to ratelimit revision size")
-	}
+	limits := make([]*model.RateLimit, 0, len(limitResults))
+	versions := make([]*model.RateLimitRevision, 0, len(revisionResults))
 
-	limits := make([]*model.RateLimit, len(limitResults))
-	versions := make([]*model.RateLimitRevision, len(revisionResults))
-
-	pos = 0
 	for i := range limitResults {
-		limits[pos] = limitResults[i].(*model.RateLimit)
-		pos++
-	}
+		rule := limitResults[i].(*model.RateLimit)
+		ver, ok := revisionResults[rule.ServiceID]
+		if !ok {
+			continue
+		}
 
-	pos = 0
-	for i := range revisionResults {
-		versions[pos] = revisionResults[i].(*model.RateLimitRevision)
-		pos++
+		limits = append(limits, rule)
+		versions = append(versions, ver.(*model.RateLimitRevision))
 	}
 
 	return limits, versions, nil
@@ -304,11 +313,15 @@ func (r *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 	return handler.Execute(true, func(tx *bolt.Tx) error {
 		tNow := time.Now()
 
-		limit.ModifyTime = tNow
-		limit.Valid = true
+		properties := make(map[string]interface{})
+		properties[RateLimitFieldLabels] = limit.Labels
+		properties[RateLimitFieldPriority] = limit.Priority
+		properties[RateLimitFieldRule] = limit.Rule
+		properties[RateLimitFieldRevision] = limit.Revision
+		properties[RateLimitFieldModifyTime] = time.Now()
 
 		// create ratelimit_config
-		if err := saveValue(tx, tblRateLimitConfig, limit.ID, limit); err != nil {
+		if err := updateValue(tx, tblRateLimitConfig, limit.ID, properties); err != nil {
 			log.Errorf("[Store][RateLimit] update rate_limit(%s, %s) err: %s",
 				limit.ID, limit.ServiceID, err.Error())
 			return err
@@ -341,13 +354,22 @@ func (r *rateLimitStore) deleteRateLimit(limit *model.RateLimit) error {
 
 	return handler.Execute(true, func(tx *bolt.Tx) error {
 
-		if err := deleteValues(tx, tblRateLimitConfig, []string{limit.ID}, true); err != nil {
+		properties := make(map[string]interface{})
+		properties[RateLimitFieldValid] = false
+		properties[RateLimitFieldModifyTime] = time.Now()
+
+		if err := updateValue(tx, tblRateLimitConfig, limit.ID, properties); err != nil {
 			log.Errorf("[Store][RateLimit] delete rate_limit(%s, %s) err: %s",
 				limit.ID, limit.ServiceID, err.Error())
 			return err
 		}
 
-		if err := deleteValues(tx, tblRateLimitRevision, []string{limit.ID}, true); err != nil {
+		revisionProperties := make(map[string]interface{})
+		revisionProperties[RateLimitReviFieldServiceID] = limit.ServiceID
+		revisionProperties[RateLimitReviFieldLastRevision] = limit.Revision
+		revisionProperties[RateLimitReviFieldModifyTime] = time.Now()
+
+		if err := updateValue(tx, tblRateLimitRevision, limit.ServiceID, revisionProperties); err != nil {
 			log.Errorf("[Store][RateLimit] delete ratelimit_version(%s, %s) err: %s",
 				limit.ID, limit.ServiceID, err.Error())
 			return err

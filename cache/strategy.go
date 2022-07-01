@@ -64,13 +64,13 @@ type strategyCache struct {
 	*baseCache
 
 	storage          store.Store
-	strategys        *sync.Map
-	uid2Strategy     *sync.Map
-	groupid2Strategy *sync.Map
+	strategys        *strategyBucket
+	uid2Strategy     *strategyLinkBucket
+	groupid2Strategy *strategyLinkBucket
 
-	namespace2Strategy   *sync.Map
-	service2Strategy     *sync.Map
-	configGroup2Strategy *sync.Map
+	namespace2Strategy   *strategyLinkBucket
+	service2Strategy     *strategyLinkBucket
+	configGroup2Strategy *strategyLinkBucket
 
 	userCache UserCache
 
@@ -80,6 +80,118 @@ type strategyCache struct {
 	singleFlight *singleflight.Group
 
 	principalCh chan interface{}
+}
+
+type strategyBucket struct {
+	lock       sync.RWMutex
+	strategies map[string]*model.StrategyDetailCache
+}
+
+func (s *strategyBucket) save(key string, val *model.StrategyDetailCache) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.strategies[key] = val
+}
+
+func (s *strategyBucket) delete(key string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	delete(s.strategies, key)
+}
+
+func (s *strategyBucket) get(key string) (*model.StrategyDetailCache, bool) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	val, ok := s.strategies[key]
+	return val, ok
+}
+
+type strategyIdBucket struct {
+	lock sync.RWMutex
+	ids  map[string]struct{}
+}
+
+func (s *strategyIdBucket) save(key string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.ids[key] = struct{}{}
+}
+
+func (s *strategyIdBucket) delete(key string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	delete(s.ids, key)
+}
+
+func (s *strategyIdBucket) toSlice() []string {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	ret := make([]string, 0, len(s.ids))
+
+	for k := range s.ids {
+		ret = append(ret, k)
+	}
+
+	return ret
+}
+
+type strategyLinkBucket struct {
+	lock       sync.RWMutex
+	strategies map[string]*strategyIdBucket
+}
+
+func (s *strategyLinkBucket) save(linkId, strategyId string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if _, ok := s.strategies[linkId]; !ok {
+		s.strategies[linkId] = &strategyIdBucket{
+			lock: sync.RWMutex{},
+			ids:  make(map[string]struct{}),
+		}
+	}
+
+	s.strategies[linkId].save(strategyId)
+}
+
+func (s *strategyLinkBucket) deleteAllLink(linkId string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	delete(s.strategies, linkId)
+}
+
+func (s *strategyLinkBucket) delete(linkId, strategyID string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	v, ok := s.strategies[linkId]
+	if !ok {
+		return
+	}
+
+	v.delete(strategyID)
+
+	if len(v.ids) == 0 {
+		delete(s.strategies, linkId)
+	}
+}
+
+func (s *strategyLinkBucket) get(key string) ([]string, bool) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	val, ok := s.strategies[key]
+	if !ok {
+		return []string{}, ok
+	}
+	return val.toSlice(), ok
 }
 
 // newStrategyCache
@@ -92,14 +204,36 @@ func newStrategyCache(storage store.Store, principalCh chan interface{}, userCac
 	}
 }
 
-func (sc *strategyCache) initialize(c map[string]interface{}) error {
-	sc.strategys = new(sync.Map)
-	sc.uid2Strategy = new(sync.Map)
-	sc.groupid2Strategy = new(sync.Map)
+func (sc *strategyCache) initBuckets() {
+	sc.strategys = &strategyBucket{
+		lock:       sync.RWMutex{},
+		strategies: make(map[string]*model.StrategyDetailCache),
+	}
+	sc.uid2Strategy = &strategyLinkBucket{
+		lock:       sync.RWMutex{},
+		strategies: make(map[string]*strategyIdBucket),
+	}
+	sc.groupid2Strategy = &strategyLinkBucket{
+		lock:       sync.RWMutex{},
+		strategies: make(map[string]*strategyIdBucket),
+	}
 
-	sc.namespace2Strategy = new(sync.Map)
-	sc.service2Strategy = new(sync.Map)
-	sc.configGroup2Strategy = new(sync.Map)
+	sc.namespace2Strategy = &strategyLinkBucket{
+		lock:       sync.RWMutex{},
+		strategies: make(map[string]*strategyIdBucket),
+	}
+	sc.service2Strategy = &strategyLinkBucket{
+		lock:       sync.RWMutex{},
+		strategies: make(map[string]*strategyIdBucket),
+	}
+	sc.configGroup2Strategy = &strategyLinkBucket{
+		lock:       sync.RWMutex{},
+		strategies: make(map[string]*strategyIdBucket),
+	}
+}
+
+func (sc *strategyCache) initialize(c map[string]interface{}) error {
+	sc.initBuckets()
 
 	sc.singleFlight = new(singleflight.Group)
 	sc.firstUpdate = true
@@ -107,19 +241,19 @@ func (sc *strategyCache) initialize(c map[string]interface{}) error {
 	return nil
 }
 
-func (sc *strategyCache) update() error {
+func (sc *strategyCache) update(storeRollbackSec time.Duration) error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := sc.singleFlight.Do(StrategyRuleName, func() (interface{}, error) {
-		return nil, sc.realUpdate()
+		return nil, sc.realUpdate(storeRollbackSec)
 	})
 	return err
 }
 
-func (sc *strategyCache) realUpdate() error {
+func (sc *strategyCache) realUpdate(storeRollbackSec time.Duration) error {
 	// 获取几秒前的全部数据
 	start := time.Now()
 	lastMtime := time.Unix(sc.lastUpdateTime, 0)
-	strategys, err := sc.storage.GetStrategyDetailsForCache(lastMtime.Add(DefaultTimeDiff), sc.firstUpdate)
+	strategys, err := sc.storage.GetStrategyDetailsForCache(lastMtime.Add(storeRollbackSec), sc.firstUpdate)
 	if err != nil {
 		log.CacheScope().Errorf("[Cache][AuthStrategy] refresh auth strategy cache err: %s", err.Error())
 		return err
@@ -150,16 +284,16 @@ func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (int, 
 	for index := range strategies {
 		rule := strategies[index]
 		if !rule.Valid {
-			sc.strategys.Delete(rule.ID)
+			sc.strategys.delete(rule.ID)
 			remove++
 		} else {
-			_, ok := sc.strategys.Load(rule.ID)
+			_, ok := sc.strategys.get(rule.ID)
 			if !ok {
 				add++
 			} else {
 				update++
 			}
-			sc.strategys.Store(rule.ID, buildEnchanceStrategyDetail(rule))
+			sc.strategys.save(rule.ID, buildEnchanceStrategyDetail(rule))
 
 			sc.lastUpdateTime = int64(math.Max(float64(sc.lastUpdateTime), float64(rule.ModifyTime.Unix())))
 		}
@@ -193,25 +327,34 @@ func buildEnchanceStrategyDetail(strategy *model.StrategyDetail) *model.Strategy
 // handlerResourceStrategy 处理资源视角下策略的缓存
 // 根据新老策略的资源列表比对，计算出哪些资源不在和该策略存在关联关系，哪些资源新增了相关的策略
 func (sc *strategyCache) handlerResourceStrategy(strategies []*model.StrategyDetail) {
-	supplier := func(resType int32, resId string) interface{} {
-		var val interface{}
+	operateLink := func(resType int32, resId, strategyId string, remove bool) {
 		switch resType {
 		case int32(api.ResourceType_Namespaces):
-			val, _ = sc.namespace2Strategy.LoadOrStore(resId, new(sync.Map))
+			if remove {
+				sc.namespace2Strategy.delete(resId, strategyId)
+			} else {
+				sc.namespace2Strategy.save(resId, strategyId)
+			}
 		case int32(api.ResourceType_Services):
-			val, _ = sc.service2Strategy.LoadOrStore(resId, new(sync.Map))
+			if remove {
+				sc.service2Strategy.delete(resId, strategyId)
+			} else {
+				sc.service2Strategy.save(resId, strategyId)
+			}
 		case int32(api.ResourceType_ConfigGroups):
-			val, _ = sc.configGroup2Strategy.LoadOrStore(resId, new(sync.Map))
+			if remove {
+				sc.configGroup2Strategy.delete(resId, strategyId)
+			} else {
+				sc.configGroup2Strategy.save(resId, strategyId)
+			}
 		}
-		return val
 	}
 
 	for sIndex := range strategies {
 		rule := strategies[sIndex]
 		addRes := rule.Resources
 
-		if oldVal, exist := sc.strategys.Load(rule.ID); exist {
-			oldRule := oldVal.(*model.StrategyDetailCache)
+		if oldRule, exist := sc.strategys.get(rule.ID); exist {
 			delRes := make([]model.StrategyResource, 0, 8)
 			// 计算前后对比， resource 的变化
 			newRes := make(map[string]struct{}, len(addRes))
@@ -230,18 +373,16 @@ func (sc *strategyCache) handlerResourceStrategy(strategies []*model.StrategyDet
 			// 针对被剔除的 resource 列表，清理掉所关联的鉴权策略信息
 			for rIndex := range delRes {
 				resource := delRes[rIndex]
-				val := supplier(resource.ResType, resource.ResID)
-				val.(*sync.Map).Delete(rule.ID)
+				operateLink(resource.ResType, resource.ResID, rule.ID, true)
 			}
 		}
 
 		for rIndex := range addRes {
 			resource := addRes[rIndex]
-			val := supplier(resource.ResType, resource.ResID)
 			if rule.Valid {
-				val.(*sync.Map).Store(rule.ID, struct{}{})
+				operateLink(resource.ResType, resource.ResID, rule.ID, false)
 			} else {
-				val.(*sync.Map).Delete(rule.ID)
+				operateLink(resource.ResType, resource.ResID, rule.ID, true)
 			}
 		}
 	}
@@ -255,8 +396,7 @@ func (sc *strategyCache) handlerPrincipalStrategy(strategies []*model.StrategyDe
 		// 计算 uid -> auth rule
 		principals := rule.Principals
 
-		if oldVal, exist := sc.strategys.Load(rule.ID); exist {
-			oldRule := oldVal.(*model.StrategyDetailCache)
+		if oldRule, exist := sc.strategys.get(rule.ID); exist {
 			delMembers := make([]model.Principal, 0, 8)
 			// 计算前后对比， principal 的变化
 			newRes := make(map[string]struct{}, len(principals))
@@ -293,36 +433,18 @@ func (sc *strategyCache) handlerPrincipalStrategy(strategies []*model.StrategyDe
 }
 
 func (sc *strategyCache) removePrincipalLink(principal model.Principal, rule *model.StrategyDetail) {
-	sc.operatePrincipalLink(principal, rule, true)
+	if principal.PrincipalRole == model.PrincipalUser {
+		sc.uid2Strategy.delete(principal.PrincipalID, rule.ID)
+	} else {
+		sc.groupid2Strategy.delete(principal.PrincipalID, rule.ID)
+	}
 }
 
 func (sc *strategyCache) addPrincipalLink(principal model.Principal, rule *model.StrategyDetail) {
-	sc.operatePrincipalLink(principal, rule, false)
-}
-
-func (sc *strategyCache) operatePrincipalLink(principal model.Principal, rule *model.StrategyDetail, remove bool) {
-	if remove {
-		if principal.PrincipalRole == model.PrincipalUser {
-			if val, ok := sc.uid2Strategy.Load(principal.PrincipalID); ok {
-				val.(*sync.Map).Delete(rule.ID)
-			}
-		} else {
-			if val, ok := sc.groupid2Strategy.Load(principal.PrincipalID); ok {
-				val.(*sync.Map).Delete(rule.ID)
-			}
-		}
+	if principal.PrincipalRole == model.PrincipalUser {
+		sc.uid2Strategy.save(principal.PrincipalID, rule.ID)
 	} else {
-		var rulesMap *sync.Map
-		if principal.PrincipalRole == model.PrincipalUser {
-			sc.uid2Strategy.LoadOrStore(principal.PrincipalID, new(sync.Map))
-			val, _ := sc.uid2Strategy.Load(principal.PrincipalID)
-			rulesMap = val.(*sync.Map)
-		} else {
-			sc.groupid2Strategy.LoadOrStore(principal.PrincipalID, new(sync.Map))
-			val, _ := sc.groupid2Strategy.Load(principal.PrincipalID)
-			rulesMap = val.(*sync.Map)
-		}
-		rulesMap.Store(rule.ID, struct{}{})
+		sc.groupid2Strategy.save(principal.PrincipalID, rule.ID)
 	}
 }
 
@@ -335,9 +457,9 @@ func (sc *strategyCache) postProcessPrincipalCh() {
 			principal := principals[index]
 
 			if principal.PrincipalRole == model.PrincipalUser {
-				sc.uid2Strategy.Delete(principal.PrincipalID)
+				sc.uid2Strategy.deleteAllLink(principal.PrincipalID)
 			} else {
-				sc.groupid2Strategy.Delete(principal.PrincipalID)
+				sc.groupid2Strategy.deleteAllLink(principal.PrincipalID)
 			}
 		}
 	case <-time.After(time.Duration(100 * time.Millisecond)):
@@ -346,13 +468,7 @@ func (sc *strategyCache) postProcessPrincipalCh() {
 }
 
 func (sc *strategyCache) clear() error {
-	sc.strategys = new(sync.Map)
-	sc.uid2Strategy = new(sync.Map)
-	sc.groupid2Strategy = new(sync.Map)
-
-	sc.namespace2Strategy = new(sync.Map)
-	sc.service2Strategy = new(sync.Map)
-	sc.configGroup2Strategy = new(sync.Map)
+	sc.initBuckets()
 
 	sc.firstUpdate = true
 	sc.lastUpdateTime = 0
@@ -365,28 +481,30 @@ func (sc *strategyCache) name() string {
 
 // 对于 check 逻辑，如果是计算 * 策略，则必须要求 * 资源下必须有策略
 // 如果是具体的资源ID，则该资源下不必有策略，如果没有策略就认为这个资源是可以被任何人编辑的
-func (sc *strategyCache) checkResourceEditable(val *sync.Map, principal model.Principal, mustCheck bool) bool {
+func (sc *strategyCache) checkResourceEditable(strategIds []string, principal model.Principal, mustCheck bool) bool {
 	// 是否可以编辑
 	editable := false
 	// 是否真的包含策略
-	isCheck := false
-	val.Range(func(key, _ interface{}) bool {
-		isCheck = true
-		if val, ok := sc.strategys.Load(key); ok {
-			rule := val.(*model.StrategyDetailCache)
-			if principal.PrincipalRole == model.PrincipalUser {
-				_, editable = rule.UserPrincipal[principal.PrincipalID]
-			} else {
-				_, editable = rule.GroupPrincipal[principal.PrincipalID]
-			}
-		}
-		return !editable
-	})
+	isCheck := len(strategIds) != 0
 
 	// 如果根本没有遍历过，则表示该资源下没有对应的策略列表，直接返回可编辑状态即可
 	if !isCheck && !mustCheck {
 		return true
 	}
+
+	for i := range strategIds {
+		isCheck = true
+		if rule, ok := sc.strategys.get(strategIds[i]); ok {
+			if principal.PrincipalRole == model.PrincipalUser {
+				_, exist := rule.UserPrincipal[principal.PrincipalID]
+				editable = editable || exist
+			} else {
+				_, exist := rule.GroupPrincipal[principal.PrincipalID]
+				editable = editable || exist
+			}
+		}
+	}
+
 	return editable
 }
 
@@ -395,19 +513,19 @@ func (sc *strategyCache) checkResourceEditable(val *sync.Map, principal model.Pr
 func (sc *strategyCache) IsResourceEditable(principal model.Principal, resType api.ResourceType, resId string) bool {
 
 	var (
-		valAll, val interface{}
+		valAll, val []string
 		ok          bool
 	)
 	switch resType {
 	case api.ResourceType_Namespaces:
-		val, ok = sc.namespace2Strategy.Load(resId)
-		valAll, _ = sc.namespace2Strategy.Load("*")
+		val, ok = sc.namespace2Strategy.get(resId)
+		valAll, _ = sc.namespace2Strategy.get("*")
 	case api.ResourceType_Services:
-		val, ok = sc.service2Strategy.Load(resId)
-		valAll, _ = sc.service2Strategy.Load("*")
+		val, ok = sc.service2Strategy.get(resId)
+		valAll, _ = sc.service2Strategy.get("*")
 	case api.ResourceType_ConfigGroups:
-		val, ok = sc.configGroup2Strategy.Load(resId)
-		valAll, _ = sc.configGroup2Strategy.Load("*")
+		val, ok = sc.configGroup2Strategy.get(resId)
+		valAll, _ = sc.configGroup2Strategy.get("*")
 	}
 
 	// 代表该资源没有关联到任何策略，任何人都可以编辑
@@ -429,11 +547,11 @@ func (sc *strategyCache) IsResourceEditable(principal model.Principal, resType a
 
 	for i := range principals {
 		item := principals[i]
-		if valAll != nil && sc.checkResourceEditable(valAll.(*sync.Map), item, true) {
+		if valAll != nil && sc.checkResourceEditable(valAll, item, true) {
 			return true
 		}
 
-		if sc.checkResourceEditable(val.(*sync.Map), item, false) {
+		if sc.checkResourceEditable(val, item, false) {
 			return true
 		}
 	}
@@ -452,30 +570,30 @@ func (sc *strategyCache) GetStrategyDetailsByGroupID(groupid string) []*model.St
 }
 
 func (sc *strategyCache) getStrategyDetails(uid string, gid string) []*model.StrategyDetail {
-	var strategyIds *sync.Map
+	var (
+		strategyIds []string
+		ok          bool
+	)
 	if uid != "" {
-		val, ok := sc.uid2Strategy.Load(uid)
+		strategyIds, ok = sc.uid2Strategy.get(uid)
 		if !ok {
 			return nil
 		}
-		strategyIds = val.(*sync.Map)
 	} else if gid != "" {
-		val, ok := sc.groupid2Strategy.Load(gid)
+		strategyIds, ok = sc.groupid2Strategy.get(gid)
 		if !ok {
 			return nil
 		}
-		strategyIds = val.(*sync.Map)
 	}
 
 	if strategyIds != nil {
 		result := make([]*model.StrategyDetail, 0, 16)
-		strategyIds.Range(func(key, value interface{}) bool {
-			strategy, ok := sc.strategys.Load(key)
+		for i := range strategyIds {
+			strategy, ok := sc.strategys.get(strategyIds[i])
 			if ok {
-				result = append(result, strategy.(*model.StrategyDetailCache).StrategyDetail)
+				result = append(result, strategy.StrategyDetail)
 			}
-			return true
-		})
+		}
 
 		return result
 	}
@@ -487,26 +605,19 @@ func (sc *strategyCache) getStrategyDetails(uid string, gid string) []*model.Str
 func (sc *strategyCache) IsResourceLinkStrategy(resType api.ResourceType, resId string) bool {
 	switch resType {
 	case api.ResourceType_Namespaces:
-		val, ok := sc.namespace2Strategy.Load(resId)
-		return ok && hasLinkRule(val.(*sync.Map))
+		val, ok := sc.namespace2Strategy.get(resId)
+		return ok && hasLinkRule(val)
 	case api.ResourceType_Services:
-		val, ok := sc.service2Strategy.Load(resId)
-		return ok && hasLinkRule(val.(*sync.Map))
+		val, ok := sc.service2Strategy.get(resId)
+		return ok && hasLinkRule(val)
 	case api.ResourceType_ConfigGroups:
-		val, ok := sc.configGroup2Strategy.Load(resId)
-		return ok && hasLinkRule(val.(*sync.Map))
+		val, ok := sc.configGroup2Strategy.get(resId)
+		return ok && hasLinkRule(val)
 	default:
 		return true
 	}
 }
 
-func hasLinkRule(val *sync.Map) bool {
-	count := 0
-
-	val.Range(func(key, value interface{}) bool {
-		count++
-		return true
-	})
-
-	return count != 0
+func hasLinkRule(val []string) bool {
+	return len(val) != 0
 }

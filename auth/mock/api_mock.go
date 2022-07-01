@@ -39,7 +39,7 @@ func (m *MockAuthServer) EXPECT() *MockAuthServerMockRecorder {
 }
 
 // Initialize mocks base method
-func (m *MockAuthServer) Initialize(authOpt *auth.Config, storage store.Store, cacheMgn *cache.NamingCache) error {
+func (m *MockAuthServer) Initialize(authOpt *auth.Config, storage store.Store, cacheMgn *cache.CacheManager) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize", authOpt, storage, cacheMgn)
 	ret0, _ := ret[0].(error)
@@ -440,7 +440,7 @@ func (m *MockAuthChecker) EXPECT() *MockAuthCheckerMockRecorder {
 }
 
 // Initialize mocks base method
-func (m *MockAuthChecker) Initialize(options *auth.Config, cacheMgn *cache.NamingCache) error {
+func (m *MockAuthChecker) Initialize(options *auth.Config, cacheMgn *cache.CacheManager) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize", options, cacheMgn)
 	ret0, _ := ret[0].(error)

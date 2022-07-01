@@ -35,10 +35,10 @@ type Config struct {
 
 var (
 	// Slots store slots
-	Slots      = make(map[string]AuthServer)
-	once       = &sync.Once{}
+	Slots      = map[string]AuthServer{}
+	once       sync.Once
 	authSvr    AuthServer
-	finishInit bool = false
+	finishInit bool
 )
 
 // RegisterAuthServer 注册一个新的 AuthManager
@@ -61,7 +61,7 @@ func GetAuthServer() (AuthServer, error) {
 }
 
 // Initialize 初始化
-func Initialize(ctx context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.NamingCache) error {
+func Initialize(ctx context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
 	var err error
 	once.Do(func() {
 		err = initialize(ctx, authOpt, storage, cacheMgn)
@@ -76,7 +76,7 @@ func Initialize(ctx context.Context, authOpt *Config, storage store.Store, cache
 }
 
 // initialize 包裹了初始化函数，在 Initialize 的时候会在自动调用，全局初始化一次
-func initialize(ctx context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.NamingCache) error {
+func initialize(_ context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
 	name := authOpt.Name
 	if name == "" {
 		return errors.New("auth manager Name is empty")

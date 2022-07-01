@@ -27,9 +27,9 @@ import (
 )
 
 var (
-	cacheMgn   *NamingCache
-	once       *sync.Once = new(sync.Once)
-	finishInit bool       = false
+	cacheMgn   *CacheManager
+	once       sync.Once
+	finishInit bool
 )
 
 // Initialize 初始化
@@ -48,24 +48,21 @@ func Initialize(ctx context.Context, cacheOpt *Config, storage store.Store) erro
 }
 
 // initialize cache 初始化
-func initialize(ctx context.Context, cacheOpt *Config, storage store.Store) error {
-
+func initialize(_ context.Context, cacheOpt *Config, storage store.Store) error {
 	if !cacheOpt.Open {
 		return nil
 	}
 
 	SetCacheConfig(cacheOpt)
-
-	cacheMgn = &NamingCache{
+	cacheMgn = &CacheManager{
 		storage:       storage,
 		caches:        make([]Cache, CacheLast),
 		comRevisionCh: make(chan *revisionNotify, RevisionChanCount),
-		revisions:     new(sync.Map),
+		revisions:     map[string]string{},
 	}
 
 	ic := newInstanceCache(storage, cacheMgn.comRevisionCh)
 	sc := newServiceCache(storage, cacheMgn.comRevisionCh, ic)
-
 	cacheMgn.caches[CacheService] = sc
 	cacheMgn.caches[CacheInstance] = ic
 	cacheMgn.caches[CacheRoutingConfig] = newRoutingConfigCache(storage)
@@ -88,7 +85,7 @@ func initialize(ctx context.Context, cacheOpt *Config, storage store.Store) erro
 		return errors.New("some Cache implement not loaded into CacheManager")
 	}
 
-	// 在这里调用 Cache.AddListener 时，必须先保证每一个Cache的实现都已经实例化并装载进 NamingCache 中
+	// call cache.addlistener here, need ensure that all of cache impl has been instantiated and loaded
 	cacheMgn.AddListener(CacheNameInstance, []Listener{
 		&WatchInstanceReload{
 			Handler: func(val interface{}) {
@@ -116,9 +113,9 @@ func Run(ctx context.Context) error {
 }
 
 // GetCacheManager
-//  @return *NamingCache
+//  @return *CacheManager
 //  @return error
-func GetCacheManager() (*NamingCache, error) {
+func GetCacheManager() (*CacheManager, error) {
 	if !finishInit {
 		return nil, errors.New("cache has not done Initialize")
 	}

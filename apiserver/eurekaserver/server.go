@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/polarismesh/polaris-server/common/secure"
 	"net"
 	"net/http"
 	"strconv"
@@ -116,6 +117,7 @@ type EurekaServer struct {
 	namingServer           service.DiscoverServer
 	healthCheckServer      *healthcheck.Server
 	connLimitConfig        *connlimit.Config
+	tlsInfo                *secure.TLSInfo
 	option                 map[string]interface{}
 	openAPI                map[string]apiserver.APIConfig
 	worker                 *ApplicationsWorker
@@ -183,6 +185,18 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 		}
 		h.connLimitConfig = connLimitConfig
 	}
+	if raw, _ := option[optionTLS].(map[interface{}]interface{}); raw != nil {
+		tlsConfig, err := secure.ParseTLSConfig(raw)
+		if err != nil {
+			return err
+		}
+		h.tlsInfo = &secure.TLSInfo{
+			CertFile:      tlsConfig.Cert,
+			KeyFile:       tlsConfig.Key,
+			TrustedCAFile: tlsConfig.CaCert,
+		}
+	}
+
 	h.refreshInterval = time.Duration(refreshInterval) * time.Second
 	h.deltaExpireInterval = time.Duration(deltaExpireInterval) * time.Second
 
@@ -254,16 +268,19 @@ func (h *EurekaServer) Run(errCh chan error) {
 	h.server = &server
 
 	// 开始对外服务
-	if err := server.Serve(ln); err != nil {
+	if h.tlsInfo.IsEmpty() {
+		err = server.Serve(ln)
+	} else {
+		err = server.ServeTLS(ln, h.tlsInfo.CertFile, h.tlsInfo.KeyFile)
+	}
+	if err != nil {
 		log.Errorf("%+v", err)
 		if !h.restart {
 			log.Infof("not in restart progress, broadcast error")
 			errCh <- err
 		}
-
 		return
 	}
-
 	log.Infof("eurekaserver stop")
 }
 
@@ -374,10 +391,12 @@ func (h *EurekaServer) postproccess(req *restful.Request, rsp *restful.Response)
 		path = strings.TrimSuffix(path, "/")
 	}
 	startTime := req.Attribute("start-time").(time.Time)
-	code := rsp.StatusCode()
-	polarisCode, ok := req.Attribute(statusCodeHeader).(uint32)
-	if ok {
-		code = int(polarisCode)
+
+	recordApiCall := true
+	code, ok := req.Attribute(statusCodeHeader).(uint32)
+	if !ok {
+		code = uint32(rsp.StatusCode())
+		recordApiCall = code != http.StatusNotFound
 	}
 	diff := now.Sub(startTime)
 	// 打印耗时超过1s的请求
@@ -391,7 +410,10 @@ func (h *EurekaServer) postproccess(req *restful.Request, rsp *restful.Response)
 		)
 	}
 	method := getEurekaApi(req.Request.Method, path)
-	_ = h.statis.AddAPICall(method, "HTTP", code, diff.Nanoseconds())
+
+	if recordApiCall {
+		_ = h.statis.AddAPICall(method, "HTTP", int(code), diff.Nanoseconds())
+	}
 }
 
 // getEurekaApi 聚合 eureka 接口，不暴露服务名和实例 id

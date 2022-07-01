@@ -253,7 +253,7 @@ type DiscoverServer interface {
 	// Client operation interface definition
 	ClientServer
 	// Get cache management
-	Cache() *cache.NamingCache
+	Cache() *cache.CacheManager
 	// Platform-related operation
 	PlatformOperateServer
 	// L5 related operations

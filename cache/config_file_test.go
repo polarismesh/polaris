@@ -186,7 +186,7 @@ func assembleConfigFileRelease(configFile *model.ConfigFile) *model.ConfigFileRe
 		Namespace: configFile.Namespace,
 		Group:     configFile.Group,
 		FileName:  configFile.Name,
-		CreateBy:  "ledou2",
+		CreateBy:  "polaris",
 		Content:   configFile.Content,
 		Version:   uint64(10),
 	}

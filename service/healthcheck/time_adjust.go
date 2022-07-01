@@ -21,17 +21,20 @@ import (
 	"context"
 	"sync/atomic"
 	"time"
+
+	"github.com/polarismesh/polaris-server/store"
 )
 
 const adjustInterval = 60 * time.Second
 
 // TimeAdjuster adjust the seconds from databases
 type TimeAdjuster struct {
-	diff int64
+	diff    int64
+	storage store.Store
 }
 
-func newTimeAdjuster(ctx context.Context) *TimeAdjuster {
-	adjuster := &TimeAdjuster{}
+func newTimeAdjuster(ctx context.Context, storage store.Store) *TimeAdjuster {
+	adjuster := &TimeAdjuster{storage: storage}
 	go adjuster.doTimeAdjust(ctx)
 	return adjuster
 }
@@ -52,7 +55,7 @@ func (t *TimeAdjuster) doTimeAdjust(ctx context.Context) {
 }
 
 func (t *TimeAdjuster) calcDiff() {
-	curTimeSecond, err := server.storage.GetNow()
+	curTimeSecond, err := t.storage.GetUnixSecond()
 	if err != nil {
 		log.Errorf("[Health Check] fail to get now from store, err is %s", err.Error())
 		return

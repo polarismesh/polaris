@@ -730,17 +730,28 @@ func (s *Server) checkServiceAuthority(ctx context.Context, req *api.Service) (*
 	serviceName := req.GetName().GetValue()
 
 	// 检查是否存在
-	service, err := s.storage.GetService(serviceName, namespaceName)
+	svc, err := s.storage.GetService(serviceName, namespaceName)
 	if err != nil {
 		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
 		return nil, "", api.NewServiceResponse(api.StoreLayerException, req)
 	}
-	if service == nil {
+	if svc == nil {
 		return nil, "", api.NewServiceResponse(api.NotFoundResource, req)
 	}
-	expectToken := service.Token
+	if svc.Reference != "" {
+		svc, err = s.storage.GetServiceByID(svc.Reference)
+		if err != nil {
+			log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
+			return nil, "", api.NewServiceResponse(api.StoreLayerException, req)
+		}
+		if svc == nil {
+			return nil, "", api.NewServiceResponse(api.NotFoundResource, req)
+		}
+	}
 
-	return service, expectToken, nil
+	expectToken := svc.Token
+
+	return svc, expectToken, nil
 }
 
 // service2Api model.Service 转为 api.Service

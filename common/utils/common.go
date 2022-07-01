@@ -368,7 +368,6 @@ func ParseClientAddress(ctx context.Context) string {
 	return rid
 }
 
-
 // ParseAuthToken 从ctx中获取token
 func ParseAuthToken(ctx context.Context) string {
 	if ctx == nil {

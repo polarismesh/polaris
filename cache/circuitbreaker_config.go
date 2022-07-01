@@ -31,6 +31,8 @@ const (
 	CircuitBreakerName = "circuitBreakerConfig"
 )
 
+var _ CircuitBreakerCache = (*circuitBreakerCache)(nil)
+
 // CircuitBreakerCache  circuitBreaker配置的cache接口
 type CircuitBreakerCache interface {
 	Cache
@@ -43,10 +45,11 @@ type CircuitBreakerCache interface {
 type circuitBreakerCache struct {
 	*baseCache
 
-	storage     store.Store
-	ids         *sync.Map
-	lastTime    time.Time
-	firstUpdate bool
+	storage         store.Store
+	circuitBreakers map[string]*model.ServiceWithCircuitBreaker
+	lock            sync.RWMutex
+	lastTime        time.Time
+	firstUpdate     bool
 }
 
 // init 自注册到缓存列表
@@ -57,91 +60,118 @@ func init() {
 // newCircuitBreakerCache 返回一个操作CircuitBreakerCache的对象
 func newCircuitBreakerCache(s store.Store) *circuitBreakerCache {
 	return &circuitBreakerCache{
-		baseCache: newBaseCache(),
-		storage:   s,
+		baseCache:       newBaseCache(),
+		storage:         s,
+		circuitBreakers: map[string]*model.ServiceWithCircuitBreaker{},
 	}
 }
 
 // initialize 实现Cache接口的函数
-func (cbc *circuitBreakerCache) initialize(opt map[string]interface{}) error {
-	cbc.ids = new(sync.Map)
-	cbc.lastTime = time.Unix(0, 0)
-	cbc.firstUpdate = true
-	if opt == nil {
-		return nil
-	}
+func (c *circuitBreakerCache) initialize(_ map[string]interface{}) error {
+	c.lastTime = time.Unix(0, 0)
+	c.firstUpdate = true
+
 	return nil
 }
 
 // update 实现Cache接口的函数
-func (cbc *circuitBreakerCache) update() error {
-	out, err := cbc.storage.GetCircuitBreakerForCache(cbc.lastTime.Add(DefaultTimeDiff), cbc.firstUpdate)
+func (c *circuitBreakerCache) update(storeRollbackSec time.Duration) error {
+	lastTime := c.lastTime.Add(storeRollbackSec)
+	out, err := c.storage.GetCircuitBreakerForCache(lastTime, c.firstUpdate)
 	if err != nil {
 		log.CacheScope().Errorf("[Cache] circuit breaker config cache update err:%s", err.Error())
 		return err
 	}
 
-	cbc.firstUpdate = false
-	return cbc.setCircuitBreaker(out)
+	c.firstUpdate = false
+	return c.setCircuitBreaker(out)
 }
 
 // clear 实现Cache接口的函数
-func (cbc *circuitBreakerCache) clear() error {
-	cbc.ids = new(sync.Map)
-	cbc.lastTime = time.Unix(0, 0)
+func (c *circuitBreakerCache) clear() error {
+	c.lock.Lock()
+	c.circuitBreakers = map[string]*model.ServiceWithCircuitBreaker{}
+	c.lock.Unlock()
+
+	c.lastTime = time.Unix(0, 0)
 	return nil
 }
 
 // name 实现资源名称
-func (cbc *circuitBreakerCache) name() string {
+func (c *circuitBreakerCache) name() string {
 	return CircuitBreakerName
 }
 
 // GetCircuitBreakerConfig 根据serviceID获取熔断规则
-func (cbc *circuitBreakerCache) GetCircuitBreakerConfig(id string) *model.ServiceWithCircuitBreaker {
+func (c *circuitBreakerCache) GetCircuitBreakerConfig(id string) *model.ServiceWithCircuitBreaker {
 	if id == "" {
 		return nil
 	}
 
-	value, ok := cbc.ids.Load(id)
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	value, ok := c.circuitBreakers[id]
 	if !ok {
 		return nil
 	}
 
-	return value.(*model.ServiceWithCircuitBreaker)
+	return value
+}
+
+func (c *circuitBreakerCache) deleteCircuitBreaker(id string) {
+	c.lock.Lock()
+	delete(c.circuitBreakers, id)
+	c.lock.Unlock()
+}
+
+func (c *circuitBreakerCache) storeCircuitBreaker(entry *model.ServiceWithCircuitBreaker) {
+	c.lock.Lock()
+	c.circuitBreakers[entry.ServiceID] = entry
+	c.lock.Unlock()
 }
 
 // setCircuitBreaker 更新store的数据到cache中
-func (cbc *circuitBreakerCache) setCircuitBreaker(cb []*model.ServiceWithCircuitBreaker) error {
-	if len(cb) == 0 {
+func (c *circuitBreakerCache) setCircuitBreaker(cbs []*model.ServiceWithCircuitBreaker) error {
+	if len(cbs) == 0 {
 		return nil
 	}
 
-	lastTime := cbc.lastTime.Unix()
-	for _, entry := range cb {
-		if entry.ServiceID == "" {
+	lastTime := c.lastTime.Unix()
+
+	// Here is a slice pointer type, do not use for _,entry := range mode
+	// avoid pointer copy during processing
+	for k := range cbs {
+		if cbs[k].ServiceID == "" {
 			continue
 		}
 
-		if entry.ModifyTime.Unix() > lastTime {
-			lastTime = entry.ModifyTime.Unix()
+		if cbs[k].ModifyTime.Unix() > lastTime {
+			lastTime = cbs[k].ModifyTime.Unix()
 		}
 
-		if !entry.Valid {
-			cbc.ids.Delete(entry.ServiceID)
+		if !cbs[k].Valid {
+			c.deleteCircuitBreaker(cbs[k].ServiceID)
 			continue
 		}
 
-		cbc.ids.Store(entry.ServiceID, entry)
+		c.storeCircuitBreaker(cbs[k])
 	}
 
-	if cbc.lastTime.Unix() < lastTime {
-		cbc.lastTime = time.Unix(lastTime, 0)
+	if c.lastTime.Unix() < lastTime {
+		c.lastTime = time.Unix(lastTime, 0)
 	}
+
 	return nil
 }
 
 // GetCircuitBreakerCount 获取熔断规则总数
-func (cbc *circuitBreakerCache) GetCircuitBreakerCount(f func(k, v interface{}) bool) {
-	cbc.ids.Range(f)
+func (c *circuitBreakerCache) GetCircuitBreakerCount(f func(k, v interface{}) bool) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	for k, v := range c.circuitBreakers {
+		if !f(k, v) {
+			break
+		}
+	}
 }
