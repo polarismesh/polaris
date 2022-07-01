@@ -84,11 +84,13 @@ func (h *HistoryLogger) Initialize(c *plugin.ConfigEntry) error {
 	go func() {
 		duration := 24 * time.Hour
 		ticker := time.NewTicker(duration)
+		defer ticker.Stop()
 		for {
 			<-ticker.C
-			log.Rotate()
+			if err := log.Rotate(); err != nil{
+				return
+			}
 		}
-		ticker.Stop()
 	}()
 	w := zapcore.AddSync(log)
 	// multiSync := zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), w)
