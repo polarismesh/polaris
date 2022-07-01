@@ -82,8 +82,10 @@ func (h *HistoryLogger) Initialize(c *plugin.ConfigEntry) error {
 		LocalTime:  true,
 	}
 	go func() {
+		duration := 24 * time.Hour
+		ticker := time.NewTicker(duration)
 		for {
-			<-time.After(time.Hour*24)
+			<-ticker.C
 			log.Rotate()
 		}
 	}()
