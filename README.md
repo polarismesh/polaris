@@ -157,7 +157,7 @@ More access guide：[Doc](https://polarismesh.cn/zh/doc/快速入门/使用SDK�
 
 ## User manual
 
-Polaris function guide can refer：[Manual](https://polarismesh.cn/zh/doc/使用指南/基本原理.html#基本原理)
+Polaris function guide can refer：[Manual](https://polarismesh.cn/zh/doc/使用指南/服务注册/概述.html#概述)
 
 ## Chat group
 
