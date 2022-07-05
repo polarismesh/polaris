@@ -23,6 +23,7 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/metrics"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/plugin"
 	"go.uber.org/zap"
 )
 
@@ -50,7 +51,9 @@ type InstanceFuture struct {
 func (future *InstanceFuture) Reply(cur time.Time, code uint32, result error) {
 
 	if code == api.ExecuteSuccess {
-		metrics.ReportInstanceRegisCost(cur.Sub(future.begin))
+		diff := cur.Sub(future.begin)
+		plugin.GetStatis().AddAPICall("AsyncRegisInstance", "", int(api.ExecuteSuccess), diff.Nanoseconds())
+		metrics.ReportInstanceRegisCost(diff)
 	}
 
 	if code == api.InstanceRegisTimeout {

@@ -113,9 +113,9 @@ func (c *ComponentStatics) printStatics(staticsSlice []*APICallStatisItem, start
 		}
 		msg += fmt.Sprintf("%-48v|%12v|%12v|%12.3f|%12.3f|%12.3f|\n",
 			item.api, item.code, item.count,
-			float32(item.minTime)/1e6,
-			float32(item.maxTime)/1e6,
-			float32(item.accTime)/float32(item.count)/1e6,
+			float64(item.minTime)/1e6,
+			float64(item.maxTime)/1e6,
+			float64(item.accTime)/float64(item.count)/1e6,
 		)
 	}
 	c.logger.Info(msg)

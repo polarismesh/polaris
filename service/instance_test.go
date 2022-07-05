@@ -222,7 +222,7 @@ func TestCreateInstance2(t *testing.T) {
 		}
 
 		time.Sleep(discoverSuit.updateCacheInterval)
-		total := 1024
+		total := 20
 		var wg sync.WaitGroup
 		start := time.Now()
 		errs := make(chan error)

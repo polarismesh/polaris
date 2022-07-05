@@ -1,4 +1,4 @@
-name: Testing(With Boltdb)
+name: Testing(With MySQL)
 
 on:
   push:
@@ -50,6 +50,20 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v2
 
+      # close default MySQL-Server
+      - name: Shutdown default mysql  
+        run: sudo service mysql stop
+
+      # run mysql server
+      - name: Create mysql database auth  
+        uses: icomponent/mysql-action@master  
+        with:  
+          VERSION: 5.7  
+          CONTAINER_NAME: mysql  
+          PORT_MAPPING: 3306:3306  
+          ROOT_PASSWORD: polaris
+          DATABASE: polaris_server
+
       # Execute vert check
       - name: Vert check
         if: ${{ matrix.vert == '1' }}
@@ -65,25 +79,46 @@ jobs:
       # Run unit tests
       - name: run tests
         run: |
-          pushd ./cache
+          export STORE_MODE=sqldb
+          echo "cur STORE MODE=${STORE_MODE}"
+          
+          # 清空数据
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
+          # 初始化 polaris 数据库
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/sqldb/scripts/polaris_server.sql
+          # 临时放开 DB 的最大连接数
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
+
+          pushd ./config
           go test -v
           popd
-          pushd ./plugin/ratelimit/token
-          go test -v
-          popd
-          pushd ./store/sqldb
-          go test -v
-          popd
-          pushd ./store/boltdb
-          go test -v
-          popd
-          pushd ./auth/defaultauth
+
+          sleep 10s
+
+          # 清空数据
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
+          # 初始化 polaris 数据库
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/sqldb/scripts/polaris_server.sql
+          # 临时放开 DB 的最大连接数
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
+
+          pushd ./service
           go test -v
           popd
 
       # Run interface tests
       - name: run discover interface tests
         run: |
+          export STORE_MODE=sqldb
+          echo "cur STORE MODE=${STORE_MODE}"
+
+          # 清空数据
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
+          # 初始化 polaris 数据库
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/sqldb/scripts/polaris_server.sql
+          # 临时放开 DB 的最大连接数
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
+
           work_dir=$(ls | grep polaris-server-release | sed -n '1p')
           echo "work_dir is $work_dir"
           cd $work_dir

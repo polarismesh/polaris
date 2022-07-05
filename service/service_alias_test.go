@@ -209,7 +209,7 @@ func TestConcurrencyCreateSid(t *testing.T) {
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
 	Convey("并发创建sid别名，sid不会重复", t, func() {
-		c := 200
+		c := 20
 		var wg sync.WaitGroup
 		resultCh := make(chan *api.Response, 1)
 		results := make([]*api.Response, 0, 200)

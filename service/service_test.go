@@ -85,7 +85,7 @@ func TestCreateService(t *testing.T) {
 	})
 	t.Run("并发创建服务", func(t *testing.T) {
 		var wg sync.WaitGroup
-		for i := 0; i < 500; i++ {
+		for i := 0; i < 50; i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
