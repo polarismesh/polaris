@@ -82,9 +82,14 @@ func (h *HistoryLogger) Initialize(c *plugin.ConfigEntry) error {
 		LocalTime:  true,
 	}
 	go func() {
+		duration := 24 * time.Hour
+		ticker := time.NewTicker(duration)
+		defer ticker.Stop()
 		for {
-			<-time.After(time.Hour*24)
-			log.Rotate()
+			<-ticker.C
+			if err := log.Rotate(); err != nil{
+				return
+			}
 		}
 	}()
 	w := zapcore.AddSync(log)
