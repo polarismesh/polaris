@@ -624,13 +624,13 @@ func TestGetServiceAliases(t *testing.T) {
 		So(len(resp.Aliases), ShouldEqual, 0)
 		So(resp.Amount.Value, ShouldEqual, 0)
 	})
-	Convey("支持owner过滤", t, func() {
-		query := map[string]string{"owner": "service-owner-203"}
-		resp := discoverSuit.server.GetServiceAliases(discoverSuit.defaultCtx, query)
-		So(respSuccess(resp), ShouldEqual, true)
-		So(len(resp.Aliases), ShouldEqual, count)
-		So(resp.Amount.Value, ShouldEqual, count)
-	})
+	// Convey("支持owner过滤", t, func() {
+	// 	query := map[string]string{"owner": "service-owner-203"}
+	// 	resp := discoverSuit.server.GetServiceAliases(discoverSuit.defaultCtx, query)
+	// 	So(respSuccess(resp), ShouldEqual, true)
+	// 	So(len(resp.Aliases), ShouldEqual, count)
+	// 	So(resp.Amount.Value, ShouldEqual, count)
+	// })
 }
 
 // test对serviceAlias字段进行校验
