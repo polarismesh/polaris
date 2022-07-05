@@ -137,9 +137,9 @@ apiservers:
       enableCacheProto: true
       sizeCacheProto: 128
       tls:
-        cert: ""
-        key: ""
-        caCert: ""
+        certFile: ""
+        keyFile: ""
+        trustedCAFile: ""
     api:
       client:
         enable: true
