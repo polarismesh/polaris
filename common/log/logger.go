@@ -62,6 +62,9 @@ func SetLogOutputLevel(scopeName string, levelName string) error {
 		return errors.New("invalid log level")
 	}
 
+	lock.Lock()
 	scope.SetOutputLevel(l)
+	lock.Unlock()
+
 	return nil
 }
