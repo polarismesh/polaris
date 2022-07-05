@@ -45,6 +45,7 @@ type dbConfig struct {
 	dbPwd            string
 	dbAddr           string
 	dbName           string
+	dbExternal       string
 	maxOpenConns     int
 	maxIdleConns     int
 	connMaxLifetime  int
@@ -81,6 +82,10 @@ func (b *BaseDB) openDatabase() error {
 	}
 
 	dns := fmt.Sprintf("%s:%s@tcp(%s)/%s", c.dbUser, c.dbPwd, c.dbAddr, c.dbName)
+	// 如果有额外参数，需要在db中添加
+	if c.dbExternal != "" {
+		dns = fmt.Sprintf("%s?%s", dns, c.dbExternal)
+	}
 
 	db, err := sql.Open(c.dbType, dns)
 	if err != nil {

@@ -158,16 +158,18 @@ func parseStoreConfig(opts interface{}) (*dbConfig, error) {
 	dbPwd, _ := obj["dbPwd"].(string)
 	dbAddr, _ := obj["dbAddr"].(string)
 	dbName, _ := obj["dbName"].(string)
+	dbExternal, _ := obj["dbExternal"].(string)
 	if dbType == "" || dbUser == "" || dbPwd == "" || dbAddr == "" || dbName == "" {
 		return nil, fmt.Errorf("config Plugin %s missing database param", STORENAME)
 	}
 
 	c := &dbConfig{
-		dbType: dbType,
-		dbUser: dbUser,
-		dbPwd:  dbPwd,
-		dbAddr: dbAddr,
-		dbName: dbName,
+		dbType:     dbType,
+		dbUser:     dbUser,
+		dbPwd:      dbPwd,
+		dbAddr:     dbAddr,
+		dbName:     dbName,
+		dbExternal: dbExternal,
 	}
 	if maxOpenConns, _ := obj["maxOpenConns"].(int); maxOpenConns > 0 {
 		c.maxOpenConns = maxOpenConns
