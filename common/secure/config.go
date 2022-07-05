@@ -24,12 +24,12 @@ import (
 
 // TLSConfig tls 相关配置
 type TLSConfig struct {
-	// Cert 证书
-	Cert string `mapstructure:"cert"`
-	// Key 密钥
-	Key string `mapstructure:"key"`
-	// CaCert CA 证书
-	CaCert string `mapstructure:"caCert"`
+	// CertFile 证书
+	CertFile string `mapstructure:"certFile"`
+	// KeyFile 密钥
+	KeyFile string `mapstructure:"keyFile"`
+	// TrustedCAFile CA 证书
+	TrustedCAFile string `mapstructure:"trustedCAFile"`
 	// ServerName 客户端发送的 Server Name Indication 扩展的值
 	ServerName string `mapstructure:"serverName"`
 

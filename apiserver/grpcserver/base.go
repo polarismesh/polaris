@@ -92,9 +92,9 @@ func (b *BaseGrpcServer) Initialize(ctx context.Context, conf map[string]interfa
 			return err
 		}
 		b.tlsInfo = &secure.TLSInfo{
-			CertFile:      tlsConfig.Cert,
-			KeyFile:       tlsConfig.Key,
-			TrustedCAFile: tlsConfig.CaCert,
+			CertFile:      tlsConfig.CertFile,
+			KeyFile:       tlsConfig.KeyFile,
+			TrustedCAFile: tlsConfig.TrustedCAFile,
 		}
 	}
 
