@@ -290,10 +290,9 @@ func (d *DiscoverTestSuit) cleanNamespace(name string) {
 			}
 
 			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
-
 			defer dbTx.Rollback()
 
-			if _, err := dbTx.Exec(str); err != nil {
+			if _, err := dbTx.Exec(str, name); err != nil {
 				panic(err)
 			}
 
