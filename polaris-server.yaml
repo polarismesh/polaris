@@ -294,7 +294,6 @@ store:
   #     dbUser: ##DB_USER##
   #     dbPwd: ##DB_PWD##
   #     dbAddr: ##DB_ADDR##
-  #     dbExternal: "loc=Local&charset=utf8mb4"
   #     maxOpenConns: 300
   #     maxIdleConns: 50
   #     connMaxLifetime: 300 # 单位秒
