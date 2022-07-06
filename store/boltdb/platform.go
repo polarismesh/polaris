@@ -20,7 +20,6 @@ package boltdb
 import (
 	"errors"
 	"math"
-	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -157,15 +156,41 @@ func (p *platformStore) GetPlatforms(
 
 	dbOp := p.handler
 
-	result, err := dbOp.LoadValuesByFilter(tblPlatform, utils.CollectMapKeys(query), &model.Platform{}, func(m map[string]interface{}) bool {
-		for k, v := range query {
-			qV := m[k]
-			if !reflect.DeepEqual(qV, v) {
+	fields := []string{PlatformFieldValid, PlatformFieldName, PlatformFieldID, PlatformFieldDepartment}
+
+	querName, hasName := query["name"]
+	queryID, hasID := query["id"]
+	queryDepart, hasDepart := query["department"]
+
+	result, err := dbOp.LoadValuesByFilter(tblPlatform, fields, &model.Platform{},
+		func(m map[string]interface{}) bool {
+			if valid, _ := m[PlatformFieldValid].(bool); !valid {
 				return false
 			}
-		}
-		return true
-	})
+
+			saveID, _ := m[PlatformFieldID].(string)
+			saveName, _ := m[PlatformFieldName].(string)
+			saveDepart, _ := m[PlatformFieldDepartment].(string)
+
+			if hasName {
+				if utils.IsWildName(querName) {
+					if querName[:len(querName)-1] != saveName {
+						return false
+					}
+				} else {
+					if querName != saveName {
+						return false
+					}
+				}
+			}
+			if hasID && queryID != saveID {
+				return false
+			}
+			if hasDepart && queryDepart != saveDepart {
+				return false
+			}
+			return true
+		})
 	if err != nil {
 		log.Errorf("[Store][platform] get platform by query(%#v) err: %s", query, err.Error())
 		return 0, nil, store.Error(err)

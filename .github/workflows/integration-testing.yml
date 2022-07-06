@@ -1,4 +1,4 @@
-name: Testing
+name: IntegrationTest
 
 on:
   push:
@@ -50,36 +50,12 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v2
 
-      # Execute vert check
-      - name: Vert check
-        if: ${{ matrix.vert == '1' }}
-        run: bash vert.sh -install && bash vert.sh
-
       # Compile
       - name: Build server
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: bash build.sh
-
-      # Run unit tests
-      - name: run tests
-        run: |
-          pushd ./cache
-          go test -v
-          popd
-          pushd ./plugin/ratelimit/token
-          go test -v
-          popd
-          pushd ./store/sqldb
-          go test -v
-          popd
-          pushd ./store/boltdb
-          go test -v
-          popd
-          pushd ./auth/defaultauth
-          go test -v
-          popd
 
       # Run interface tests
       - name: run discover interface tests
