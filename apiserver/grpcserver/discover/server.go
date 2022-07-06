@@ -32,6 +32,15 @@ import (
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 )
 
+var (
+	cacheTypes = map[string]struct{}{
+		api.DiscoverResponse_INSTANCE.String():        {},
+		api.DiscoverResponse_ROUTING.String():         {},
+		api.DiscoverResponse_RATE_LIMIT.String():      {},
+		api.DiscoverResponse_CIRCUIT_BREAKER.String(): {},
+	}
+)
+
 // GRPCServer GRPC API服务器
 type GRPCServer struct {
 	grpcserver.BaseGrpcServer
@@ -122,21 +131,17 @@ func (g *GRPCServer) allowAccess(method string) bool {
 }
 
 func (g *GRPCServer) buildInitOptions(option map[string]interface{}) []grpcserver.InitOption {
-	cacheTypes := []string{
-		api.DiscoverResponse_INSTANCE.String(),
-		api.DiscoverResponse_CLUSTER.String(),
-		api.DiscoverResponse_ROUTING.String(),
-		api.DiscoverResponse_RATE_LIMIT.String(),
-		api.DiscoverResponse_CIRCUIT_BREAKER.String(),
-		api.DiscoverResponse_SERVICES.String(),
-	}
-
 	initOptions := []grpcserver.InitOption{
 		grpcserver.WithProtocol(g.GetProtocol()),
 		grpcserver.WithMessageToCacheObject(discoverCacheConvert),
 	}
 
-	cache, err := grpcserver.NewCache(option, cacheTypes)
+	types := make([]string, 0, len(cacheTypes))
+	for k := range cacheTypes {
+		types = append(types, k)
+	}
+
+	cache, err := grpcserver.NewCache(option, types)
 	if err != nil {
 		log.Warn("[Grpc][Discover] new protobuf cache", zap.Error(err))
 	}
@@ -148,6 +153,12 @@ func (g *GRPCServer) buildInitOptions(option map[string]interface{}) []grpcserve
 	return initOptions
 }
 
+// discoverCacheConvert 将 DiscoverResponse 转换为 grpcserver.CacheObject
+// 当前支持进行 pb cache 缓存的 Type
+// 1. DiscoverResponse_INSTANCE
+// 2. DiscoverResponse_ROUTING
+// 3. DiscoverResponse_RATE_LIMIT
+// 4. DiscoverResponse_CIRCUIT_BREAKER
 func discoverCacheConvert(m interface{}) *grpcserver.CacheObject {
 	resp, ok := m.(*api.DiscoverResponse)
 
@@ -156,6 +167,10 @@ func discoverCacheConvert(m interface{}) *grpcserver.CacheObject {
 	}
 
 	if resp.Code.GetValue() != api.ExecuteSuccess {
+		return nil
+	}
+
+	if _, ok := cacheTypes[resp.GetType().String()]; !ok {
 		return nil
 	}
 
