@@ -50,11 +50,7 @@ type InstanceFuture struct {
 // Reply future的应答
 func (future *InstanceFuture) Reply(cur time.Time, code uint32, result error) {
 
-	if code == api.ExecuteSuccess {
-		diff := cur.Sub(future.begin)
-		plugin.GetStatis().AddAPICall("AsyncRegisInstance", "", int(api.ExecuteSuccess), diff.Nanoseconds())
-		metrics.ReportInstanceRegisCost(diff)
-	}
+	reportRegisInstanceCost(future.begin, cur, code)
 
 	if code == api.InstanceRegisTimeout {
 		metrics.ReportDropInstanceRegisTask()
@@ -121,4 +117,15 @@ func sendReply(futures interface{}, code uint32, result error) {
 	default:
 		log.Errorf("[Controller] not found reply futures type: %T", futures)
 	}
+}
+
+func reportRegisInstanceCost(begin, cur time.Time, code uint32) {
+	if code != api.ExecuteSuccess {
+		return
+	}
+	diff := cur.Sub(begin)
+	if statis := plugin.GetStatis(); statis != nil {
+		statis.AddAPICall("AsyncRegisInstance", "", int(api.ExecuteSuccess), diff.Nanoseconds())
+	}
+	metrics.ReportInstanceRegisCost(diff)
 }
