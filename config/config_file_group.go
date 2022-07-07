@@ -261,15 +261,15 @@ func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name stri
 	startOffset := uint32(0)
 	hasMore := true
 	for hasMore {
-		searchRsp := s.SearchConfigFile(ctx, namespace, name, "", "", startOffset, MaxPageSize)
-		if searchRsp.Code.GetValue() != api.ExecuteSuccess {
+		queryRsp := s.QueryConfigFilesByGroup(ctx, namespace, name, startOffset, MaxPageSize)
+		if queryRsp.Code.GetValue() != api.ExecuteSuccess {
 			log.ConfigScope().Error("[Config][Service] get group's config file failed. ",
 				zap.String("request-id", requestID),
 				zap.String("namespace", namespace),
 				zap.String("name", name))
-			return api.NewConfigFileGroupResponse(searchRsp.Code.GetValue(), nil)
+			return api.NewConfigFileGroupResponse(queryRsp.Code.GetValue(), nil)
 		}
-		configFiles := searchRsp.ConfigFiles
+		configFiles := queryRsp.ConfigFiles
 
 		deleteRsp := s.BatchDeleteConfigFile(ctx, configFiles, operator)
 		if deleteRsp.Code.GetValue() != api.ExecuteSuccess {
@@ -280,7 +280,7 @@ func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name stri
 			return api.NewConfigFileGroupResponse(deleteRsp.Code.GetValue(), nil)
 		}
 
-		hasMore = len(searchRsp.ConfigFiles) >= MaxPageSize
+		hasMore = len(queryRsp.ConfigFiles) >= MaxPageSize
 		if hasMore {
 			startOffset += MaxPageSize
 		}

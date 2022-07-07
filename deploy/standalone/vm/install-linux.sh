@@ -98,6 +98,8 @@ function installPrometheus() {
   tar -xf ${target_prometheus_pkg} > /dev/null
 
   pushd ${prometheus_dirname}
+  echo "    http_sd_configs:" >> prometheus.yml
+  echo "    - url: http://localhost:9000/prometheus/v1/clients" >> prometheus.yml
   echo "" >> prometheus.yml
   echo "  - job_name: 'push-metrics'" >> prometheus.yml
   echo "    static_configs:" >> prometheus.yml

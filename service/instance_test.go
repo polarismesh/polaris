@@ -421,6 +421,8 @@ func TestGetInstances1(t *testing.T) {
 		for i := 1; i < 6; i++ {
 			discoverSuit.removeCommonInstance(t, serviceResp, ids[i])
 		}
+
+		time.Sleep(2 * time.Second)
 		discover(t, serviceResp, 5)
 	})
 	t.Run("传递revision， revision有变化则有数据，否则无数据返回", func(t *testing.T) {

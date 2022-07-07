@@ -1,4 +1,4 @@
-name: Testing(With MySQL)
+name: IntegrationTest(MySQL)
 
 on:
   push:
@@ -51,23 +51,18 @@ jobs:
         uses: actions/checkout@v2
 
       # close default MySQL-Server
-      - name: Shutdown default mysql  
+      - name: Shutdown default mysql
         run: sudo service mysql stop
 
       # run mysql server
-      - name: Create mysql database auth  
-        uses: icomponent/mysql-action@master  
-        with:  
-          VERSION: 5.7  
-          CONTAINER_NAME: mysql  
-          PORT_MAPPING: 3306:3306  
+      - name: Create mysql database auth
+        uses: icomponent/mysql-action@master
+        with:
+          VERSION: 5.7
+          CONTAINER_NAME: mysql
+          PORT_MAPPING: 3306:3306
           ROOT_PASSWORD: polaris
           DATABASE: polaris_server
-
-      # Execute vert check
-      - name: Vert check
-        if: ${{ matrix.vert == '1' }}
-        run: bash vert.sh -install && bash vert.sh
 
       # Compile
       - name: Build server
@@ -81,7 +76,7 @@ jobs:
         run: |
           export STORE_MODE=sqldb
           echo "cur STORE MODE=${STORE_MODE}"
-          
+
           # 清空数据
           mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
           # 初始化 polaris 数据库

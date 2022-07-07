@@ -62,6 +62,7 @@ func (c *Client) SendRequest(method string, url string, body *bytes.Buffer) (*ht
 
 	request.Header.Add("Content-Type", "application/json")
 	request.Header.Add("Request-Id", "test")
+	request.Header.Add("X-Polaris-Token", "4azbewS+pdXvrMG1PtYV3SrcLxjmYd0IVNaX9oYziQygRnKzjcSbxl+Reg7zYQC1gRrGiLzmMY+w+aCxOYI=")
 
 	response, err := c.Worker.Do(request)
 	if err != nil {

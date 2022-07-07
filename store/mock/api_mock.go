@@ -5,212 +5,38 @@
 package mock
 
 import (
+	reflect "reflect"
+	time "time"
+
 	gomock "github.com/golang/mock/gomock"
 	model "github.com/polarismesh/polaris-server/common/model"
 	store "github.com/polarismesh/polaris-server/store"
-	reflect "reflect"
-	time "time"
 )
 
-// MockStore is a mock of Store interface
+// MockStore is a mock of Store interface.
 type MockStore struct {
 	ctrl     *gomock.Controller
 	recorder *MockStoreMockRecorder
 }
 
-// MockStoreMockRecorder is the mock recorder for MockStore
+// MockStoreMockRecorder is the mock recorder for MockStore.
 type MockStoreMockRecorder struct {
 	mock *MockStore
 }
 
-// NewMockStore creates a new mock instance
+// NewMockStore creates a new mock instance.
 func NewMockStore(ctrl *gomock.Controller) *MockStore {
 	mock := &MockStore{ctrl: ctrl}
 	mock.recorder = &MockStoreMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockStore) EXPECT() *MockStoreMockRecorder {
 	return m.recorder
 }
 
-// Name mocks base method
-func (m *MockStore) Name() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Name")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// Name indicates an expected call of Name
-func (mr *MockStoreMockRecorder) Name() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockStore)(nil).Name))
-}
-
-// Initialize mocks base method
-func (m *MockStore) Initialize(c *store.Config) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Initialize", c)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Initialize indicates an expected call of Initialize
-func (mr *MockStoreMockRecorder) Initialize(c interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockStore)(nil).Initialize), c)
-}
-
-// Destroy mocks base method
-func (m *MockStore) Destroy() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Destroy")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Destroy indicates an expected call of Destroy
-func (mr *MockStoreMockRecorder) Destroy() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Destroy", reflect.TypeOf((*MockStore)(nil).Destroy))
-}
-
-// CreateTransaction mocks base method
-func (m *MockStore) CreateTransaction() (store.Transaction, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateTransaction")
-	ret0, _ := ret[0].(store.Transaction)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateTransaction indicates an expected call of CreateTransaction
-func (mr *MockStoreMockRecorder) CreateTransaction() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransaction", reflect.TypeOf((*MockStore)(nil).CreateTransaction))
-}
-
-// StartTx mocks base method
-func (m *MockStore) StartTx() (store.Tx, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StartTx")
-	ret0, _ := ret[0].(store.Tx)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// StartTx indicates an expected call of StartTx
-func (mr *MockStoreMockRecorder) StartTx() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartTx", reflect.TypeOf((*MockStore)(nil).StartTx))
-}
-
-// AddNamespace mocks base method
-func (m *MockStore) AddNamespace(namespace *model.Namespace) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddNamespace", namespace)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddNamespace indicates an expected call of AddNamespace
-func (mr *MockStoreMockRecorder) AddNamespace(namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddNamespace", reflect.TypeOf((*MockStore)(nil).AddNamespace), namespace)
-}
-
-// UpdateNamespace mocks base method
-func (m *MockStore) UpdateNamespace(namespace *model.Namespace) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateNamespace", namespace)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateNamespace indicates an expected call of UpdateNamespace
-func (mr *MockStoreMockRecorder) UpdateNamespace(namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNamespace", reflect.TypeOf((*MockStore)(nil).UpdateNamespace), namespace)
-}
-
-// UpdateNamespaceToken mocks base method
-func (m *MockStore) UpdateNamespaceToken(name, token string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateNamespaceToken", name, token)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateNamespaceToken indicates an expected call of UpdateNamespaceToken
-func (mr *MockStoreMockRecorder) UpdateNamespaceToken(name, token interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNamespaceToken", reflect.TypeOf((*MockStore)(nil).UpdateNamespaceToken), name, token)
-}
-
-// ListNamespaces mocks base method
-func (m *MockStore) ListNamespaces(owner string) ([]*model.Namespace, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListNamespaces", owner)
-	ret0, _ := ret[0].([]*model.Namespace)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListNamespaces indicates an expected call of ListNamespaces
-func (mr *MockStoreMockRecorder) ListNamespaces(owner interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNamespaces", reflect.TypeOf((*MockStore)(nil).ListNamespaces), owner)
-}
-
-// GetNamespace mocks base method
-func (m *MockStore) GetNamespace(name string) (*model.Namespace, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNamespace", name)
-	ret0, _ := ret[0].(*model.Namespace)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetNamespace indicates an expected call of GetNamespace
-func (mr *MockStoreMockRecorder) GetNamespace(name interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespace", reflect.TypeOf((*MockStore)(nil).GetNamespace), name)
-}
-
-// GetNamespaces mocks base method
-func (m *MockStore) GetNamespaces(filter map[string][]string, offset, limit int) ([]*model.Namespace, uint32, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNamespaces", filter, offset, limit)
-	ret0, _ := ret[0].([]*model.Namespace)
-	ret1, _ := ret[1].(uint32)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetNamespaces indicates an expected call of GetNamespaces
-func (mr *MockStoreMockRecorder) GetNamespaces(filter, offset, limit interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespaces", reflect.TypeOf((*MockStore)(nil).GetNamespaces), filter, offset, limit)
-}
-
-// GetMoreNamespaces mocks base method
-func (m *MockStore) GetMoreNamespaces(mtime time.Time) ([]*model.Namespace, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMoreNamespaces", mtime)
-	ret0, _ := ret[0].([]*model.Namespace)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMoreNamespaces indicates an expected call of GetMoreNamespaces
-func (mr *MockStoreMockRecorder) GetMoreNamespaces(mtime interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreNamespaces", reflect.TypeOf((*MockStore)(nil).GetMoreNamespaces), mtime)
-}
-
-// AddBusiness mocks base method
+// AddBusiness mocks base method.
 func (m *MockStore) AddBusiness(business *model.Business) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddBusiness", business)
@@ -218,321 +44,27 @@ func (m *MockStore) AddBusiness(business *model.Business) error {
 	return ret0
 }
 
-// AddBusiness indicates an expected call of AddBusiness
+// AddBusiness indicates an expected call of AddBusiness.
 func (mr *MockStoreMockRecorder) AddBusiness(business interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBusiness", reflect.TypeOf((*MockStore)(nil).AddBusiness), business)
 }
 
-// DeleteBusiness mocks base method
-func (m *MockStore) DeleteBusiness(bid string) error {
+// AddGroup mocks base method.
+func (m *MockStore) AddGroup(group *model.UserGroupDetail) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteBusiness", bid)
+	ret := m.ctrl.Call(m, "AddGroup", group)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// DeleteBusiness indicates an expected call of DeleteBusiness
-func (mr *MockStoreMockRecorder) DeleteBusiness(bid interface{}) *gomock.Call {
+// AddGroup indicates an expected call of AddGroup.
+func (mr *MockStoreMockRecorder) AddGroup(group interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBusiness", reflect.TypeOf((*MockStore)(nil).DeleteBusiness), bid)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddGroup", reflect.TypeOf((*MockStore)(nil).AddGroup), group)
 }
 
-// UpdateBusiness mocks base method
-func (m *MockStore) UpdateBusiness(business *model.Business) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateBusiness", business)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateBusiness indicates an expected call of UpdateBusiness
-func (mr *MockStoreMockRecorder) UpdateBusiness(business interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBusiness", reflect.TypeOf((*MockStore)(nil).UpdateBusiness), business)
-}
-
-// UpdateBusinessToken mocks base method
-func (m *MockStore) UpdateBusinessToken(bid, token string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateBusinessToken", bid, token)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateBusinessToken indicates an expected call of UpdateBusinessToken
-func (mr *MockStoreMockRecorder) UpdateBusinessToken(bid, token interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBusinessToken", reflect.TypeOf((*MockStore)(nil).UpdateBusinessToken), bid, token)
-}
-
-// ListBusiness mocks base method
-func (m *MockStore) ListBusiness(owner string) ([]*model.Business, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListBusiness", owner)
-	ret0, _ := ret[0].([]*model.Business)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListBusiness indicates an expected call of ListBusiness
-func (mr *MockStoreMockRecorder) ListBusiness(owner interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBusiness", reflect.TypeOf((*MockStore)(nil).ListBusiness), owner)
-}
-
-// GetBusinessByID mocks base method
-func (m *MockStore) GetBusinessByID(id string) (*model.Business, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBusinessByID", id)
-	ret0, _ := ret[0].(*model.Business)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetBusinessByID indicates an expected call of GetBusinessByID
-func (mr *MockStoreMockRecorder) GetBusinessByID(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBusinessByID", reflect.TypeOf((*MockStore)(nil).GetBusinessByID), id)
-}
-
-// GetMoreBusiness mocks base method
-func (m *MockStore) GetMoreBusiness(mtime time.Time) ([]*model.Business, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMoreBusiness", mtime)
-	ret0, _ := ret[0].([]*model.Business)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMoreBusiness indicates an expected call of GetMoreBusiness
-func (mr *MockStoreMockRecorder) GetMoreBusiness(mtime interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreBusiness", reflect.TypeOf((*MockStore)(nil).GetMoreBusiness), mtime)
-}
-
-// AddService mocks base method
-func (m *MockStore) AddService(service *model.Service) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddService", service)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddService indicates an expected call of AddService
-func (mr *MockStoreMockRecorder) AddService(service interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddService", reflect.TypeOf((*MockStore)(nil).AddService), service)
-}
-
-// DeleteService mocks base method
-func (m *MockStore) DeleteService(id, serviceName, namespaceName string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteService", id, serviceName, namespaceName)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteService indicates an expected call of DeleteService
-func (mr *MockStoreMockRecorder) DeleteService(id, serviceName, namespaceName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteService", reflect.TypeOf((*MockStore)(nil).DeleteService), id, serviceName, namespaceName)
-}
-
-// DeleteServiceAlias mocks base method
-func (m *MockStore) DeleteServiceAlias(name, namespace string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteServiceAlias", name, namespace)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteServiceAlias indicates an expected call of DeleteServiceAlias
-func (mr *MockStoreMockRecorder) DeleteServiceAlias(name, namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteServiceAlias", reflect.TypeOf((*MockStore)(nil).DeleteServiceAlias), name, namespace)
-}
-
-// UpdateServiceAlias mocks base method
-func (m *MockStore) UpdateServiceAlias(alias *model.Service, needUpdateOwner bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateServiceAlias", alias, needUpdateOwner)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateServiceAlias indicates an expected call of UpdateServiceAlias
-func (mr *MockStoreMockRecorder) UpdateServiceAlias(alias, needUpdateOwner interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateServiceAlias", reflect.TypeOf((*MockStore)(nil).UpdateServiceAlias), alias, needUpdateOwner)
-}
-
-// UpdateService mocks base method
-func (m *MockStore) UpdateService(service *model.Service, needUpdateOwner bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateService", service, needUpdateOwner)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateService indicates an expected call of UpdateService
-func (mr *MockStoreMockRecorder) UpdateService(service, needUpdateOwner interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateService", reflect.TypeOf((*MockStore)(nil).UpdateService), service, needUpdateOwner)
-}
-
-// UpdateServiceToken mocks base method
-func (m *MockStore) UpdateServiceToken(serviceID, token, revision string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateServiceToken", serviceID, token, revision)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateServiceToken indicates an expected call of UpdateServiceToken
-func (mr *MockStoreMockRecorder) UpdateServiceToken(serviceID, token, revision interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateServiceToken", reflect.TypeOf((*MockStore)(nil).UpdateServiceToken), serviceID, token, revision)
-}
-
-// GetSourceServiceToken mocks base method
-func (m *MockStore) GetSourceServiceToken(name, namespace string) (*model.Service, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSourceServiceToken", name, namespace)
-	ret0, _ := ret[0].(*model.Service)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetSourceServiceToken indicates an expected call of GetSourceServiceToken
-func (mr *MockStoreMockRecorder) GetSourceServiceToken(name, namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSourceServiceToken", reflect.TypeOf((*MockStore)(nil).GetSourceServiceToken), name, namespace)
-}
-
-// GetService mocks base method
-func (m *MockStore) GetService(name, namespace string) (*model.Service, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetService", name, namespace)
-	ret0, _ := ret[0].(*model.Service)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetService indicates an expected call of GetService
-func (mr *MockStoreMockRecorder) GetService(name, namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetService", reflect.TypeOf((*MockStore)(nil).GetService), name, namespace)
-}
-
-// GetServiceByID mocks base method
-func (m *MockStore) GetServiceByID(id string) (*model.Service, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServiceByID", id)
-	ret0, _ := ret[0].(*model.Service)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetServiceByID indicates an expected call of GetServiceByID
-func (mr *MockStoreMockRecorder) GetServiceByID(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceByID", reflect.TypeOf((*MockStore)(nil).GetServiceByID), id)
-}
-
-// GetServices mocks base method
-func (m *MockStore) GetServices(serviceFilters, serviceMetas map[string]string, instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.Service, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServices", serviceFilters, serviceMetas, instanceFilters, offset, limit)
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].([]*model.Service)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetServices indicates an expected call of GetServices
-func (mr *MockStoreMockRecorder) GetServices(serviceFilters, serviceMetas, instanceFilters, offset, limit interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServices", reflect.TypeOf((*MockStore)(nil).GetServices), serviceFilters, serviceMetas, instanceFilters, offset, limit)
-}
-
-// GetServicesCount mocks base method
-func (m *MockStore) GetServicesCount() (uint32, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServicesCount")
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetServicesCount indicates an expected call of GetServicesCount
-func (mr *MockStoreMockRecorder) GetServicesCount() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesCount", reflect.TypeOf((*MockStore)(nil).GetServicesCount))
-}
-
-// GetMoreServices mocks base method
-func (m *MockStore) GetMoreServices(mtime time.Time, firstUpdate, disableBusiness, needMeta bool) (map[string]*model.Service, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMoreServices", mtime, firstUpdate, disableBusiness, needMeta)
-	ret0, _ := ret[0].(map[string]*model.Service)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMoreServices indicates an expected call of GetMoreServices
-func (mr *MockStoreMockRecorder) GetMoreServices(mtime, firstUpdate, disableBusiness, needMeta interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreServices", reflect.TypeOf((*MockStore)(nil).GetMoreServices), mtime, firstUpdate, disableBusiness, needMeta)
-}
-
-// GetServiceAliases mocks base method
-func (m *MockStore) GetServiceAliases(filter map[string]string, offset, limit uint32) (uint32, []*model.ServiceAlias, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServiceAliases", filter, offset, limit)
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].([]*model.ServiceAlias)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetServiceAliases indicates an expected call of GetServiceAliases
-func (mr *MockStoreMockRecorder) GetServiceAliases(filter, offset, limit interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceAliases", reflect.TypeOf((*MockStore)(nil).GetServiceAliases), filter, offset, limit)
-}
-
-// GetSystemServices mocks base method
-func (m *MockStore) GetSystemServices() ([]*model.Service, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSystemServices")
-	ret0, _ := ret[0].([]*model.Service)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetSystemServices indicates an expected call of GetSystemServices
-func (mr *MockStoreMockRecorder) GetSystemServices() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSystemServices", reflect.TypeOf((*MockStore)(nil).GetSystemServices))
-}
-
-// GetServicesBatch mocks base method
-func (m *MockStore) GetServicesBatch(services []*model.Service) ([]*model.Service, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServicesBatch", services)
-	ret0, _ := ret[0].([]*model.Service)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetServicesBatch indicates an expected call of GetServicesBatch
-func (mr *MockStoreMockRecorder) GetServicesBatch(services interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesBatch", reflect.TypeOf((*MockStore)(nil).GetServicesBatch), services)
-}
-
-// AddInstance mocks base method
+// AddInstance mocks base method.
 func (m *MockStore) AddInstance(instance *model.Instance) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddInstance", instance)
@@ -540,13 +72,83 @@ func (m *MockStore) AddInstance(instance *model.Instance) error {
 	return ret0
 }
 
-// AddInstance indicates an expected call of AddInstance
+// AddInstance indicates an expected call of AddInstance.
 func (mr *MockStoreMockRecorder) AddInstance(instance interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddInstance", reflect.TypeOf((*MockStore)(nil).AddInstance), instance)
 }
 
-// BatchAddInstances mocks base method
+// AddNamespace mocks base method.
+func (m *MockStore) AddNamespace(namespace *model.Namespace) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddNamespace", namespace)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddNamespace indicates an expected call of AddNamespace.
+func (mr *MockStoreMockRecorder) AddNamespace(namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddNamespace", reflect.TypeOf((*MockStore)(nil).AddNamespace), namespace)
+}
+
+// AddService mocks base method.
+func (m *MockStore) AddService(service *model.Service) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddService", service)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddService indicates an expected call of AddService.
+func (mr *MockStoreMockRecorder) AddService(service interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddService", reflect.TypeOf((*MockStore)(nil).AddService), service)
+}
+
+// AddStrategy mocks base method.
+func (m *MockStore) AddStrategy(strategy *model.StrategyDetail) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddStrategy", strategy)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddStrategy indicates an expected call of AddStrategy.
+func (mr *MockStoreMockRecorder) AddStrategy(strategy interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddStrategy", reflect.TypeOf((*MockStore)(nil).AddStrategy), strategy)
+}
+
+// AddUser mocks base method.
+func (m *MockStore) AddUser(user *model.User) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddUser", user)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddUser indicates an expected call of AddUser.
+func (mr *MockStoreMockRecorder) AddUser(user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddUser", reflect.TypeOf((*MockStore)(nil).AddUser), user)
+}
+
+// BatchAddClients mocks base method.
+func (m *MockStore) BatchAddClients(clients []*model.Client) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchAddClients", clients)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BatchAddClients indicates an expected call of BatchAddClients.
+func (mr *MockStoreMockRecorder) BatchAddClients(clients interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchAddClients", reflect.TypeOf((*MockStore)(nil).BatchAddClients), clients)
+}
+
+// BatchAddInstances mocks base method.
 func (m *MockStore) BatchAddInstances(instances []*model.Instance) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BatchAddInstances", instances)
@@ -554,41 +156,27 @@ func (m *MockStore) BatchAddInstances(instances []*model.Instance) error {
 	return ret0
 }
 
-// BatchAddInstances indicates an expected call of BatchAddInstances
+// BatchAddInstances indicates an expected call of BatchAddInstances.
 func (mr *MockStoreMockRecorder) BatchAddInstances(instances interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchAddInstances", reflect.TypeOf((*MockStore)(nil).BatchAddInstances), instances)
 }
 
-// UpdateInstance mocks base method
-func (m *MockStore) UpdateInstance(instance *model.Instance) error {
+// BatchDeleteClients mocks base method.
+func (m *MockStore) BatchDeleteClients(ids []string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateInstance", instance)
+	ret := m.ctrl.Call(m, "BatchDeleteClients", ids)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// UpdateInstance indicates an expected call of UpdateInstance
-func (mr *MockStoreMockRecorder) UpdateInstance(instance interface{}) *gomock.Call {
+// BatchDeleteClients indicates an expected call of BatchDeleteClients.
+func (mr *MockStoreMockRecorder) BatchDeleteClients(ids interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstance", reflect.TypeOf((*MockStore)(nil).UpdateInstance), instance)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchDeleteClients", reflect.TypeOf((*MockStore)(nil).BatchDeleteClients), ids)
 }
 
-// DeleteInstance mocks base method
-func (m *MockStore) DeleteInstance(instanceID string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteInstance", instanceID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteInstance indicates an expected call of DeleteInstance
-func (mr *MockStoreMockRecorder) DeleteInstance(instanceID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInstance", reflect.TypeOf((*MockStore)(nil).DeleteInstance), instanceID)
-}
-
-// BatchDeleteInstances mocks base method
+// BatchDeleteInstances mocks base method.
 func (m *MockStore) BatchDeleteInstances(ids []interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BatchDeleteInstances", ids)
@@ -596,27 +184,13 @@ func (m *MockStore) BatchDeleteInstances(ids []interface{}) error {
 	return ret0
 }
 
-// BatchDeleteInstances indicates an expected call of BatchDeleteInstances
+// BatchDeleteInstances indicates an expected call of BatchDeleteInstances.
 func (mr *MockStoreMockRecorder) BatchDeleteInstances(ids interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchDeleteInstances", reflect.TypeOf((*MockStore)(nil).BatchDeleteInstances), ids)
 }
 
-// CleanInstance mocks base method
-func (m *MockStore) CleanInstance(instanceID string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CleanInstance", instanceID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CleanInstance indicates an expected call of CleanInstance
-func (mr *MockStoreMockRecorder) CleanInstance(instanceID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanInstance", reflect.TypeOf((*MockStore)(nil).CleanInstance), instanceID)
-}
-
-// BatchGetInstanceIsolate mocks base method
+// BatchGetInstanceIsolate mocks base method.
 func (m *MockStore) BatchGetInstanceIsolate(ids map[string]bool) (map[string]bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BatchGetInstanceIsolate", ids)
@@ -625,73 +199,691 @@ func (m *MockStore) BatchGetInstanceIsolate(ids map[string]bool) (map[string]boo
 	return ret0, ret1
 }
 
-// BatchGetInstanceIsolate indicates an expected call of BatchGetInstanceIsolate
+// BatchGetInstanceIsolate indicates an expected call of BatchGetInstanceIsolate.
 func (mr *MockStoreMockRecorder) BatchGetInstanceIsolate(ids interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchGetInstanceIsolate", reflect.TypeOf((*MockStore)(nil).BatchGetInstanceIsolate), ids)
 }
 
-// GetInstancesBrief mocks base method
-func (m *MockStore) GetInstancesBrief(ids map[string]bool) (map[string]*model.Instance, error) {
+// BatchSetInstanceHealthStatus mocks base method.
+func (m *MockStore) BatchSetInstanceHealthStatus(ids []interface{}, healthy int, revision string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstancesBrief", ids)
-	ret0, _ := ret[0].(map[string]*model.Instance)
+	ret := m.ctrl.Call(m, "BatchSetInstanceHealthStatus", ids, healthy, revision)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BatchSetInstanceHealthStatus indicates an expected call of BatchSetInstanceHealthStatus.
+func (mr *MockStoreMockRecorder) BatchSetInstanceHealthStatus(ids, healthy, revision interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchSetInstanceHealthStatus", reflect.TypeOf((*MockStore)(nil).BatchSetInstanceHealthStatus), ids, healthy, revision)
+}
+
+// BatchSetInstanceIsolate mocks base method.
+func (m *MockStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, revision string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchSetInstanceIsolate", ids, isolate, revision)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BatchSetInstanceIsolate indicates an expected call of BatchSetInstanceIsolate.
+func (mr *MockStoreMockRecorder) BatchSetInstanceIsolate(ids, isolate, revision interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchSetInstanceIsolate", reflect.TypeOf((*MockStore)(nil).BatchSetInstanceIsolate), ids, isolate, revision)
+}
+
+// CleanInstance mocks base method.
+func (m *MockStore) CleanInstance(instanceID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CleanInstance", instanceID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CleanInstance indicates an expected call of CleanInstance.
+func (mr *MockStoreMockRecorder) CleanInstance(instanceID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanInstance", reflect.TypeOf((*MockStore)(nil).CleanInstance), instanceID)
+}
+
+// CountByConfigFileGroup mocks base method.
+func (m *MockStore) CountByConfigFileGroup(namespace, group string) (uint64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountByConfigFileGroup", namespace, group)
+	ret0, _ := ret[0].(uint64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetInstancesBrief indicates an expected call of GetInstancesBrief
-func (mr *MockStoreMockRecorder) GetInstancesBrief(ids interface{}) *gomock.Call {
+// CountByConfigFileGroup indicates an expected call of CountByConfigFileGroup.
+func (mr *MockStoreMockRecorder) CountByConfigFileGroup(namespace, group interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstancesBrief", reflect.TypeOf((*MockStore)(nil).GetInstancesBrief), ids)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountByConfigFileGroup", reflect.TypeOf((*MockStore)(nil).CountByConfigFileGroup), namespace, group)
 }
 
-// GetInstance mocks base method
-func (m *MockStore) GetInstance(instanceID string) (*model.Instance, error) {
+// CreateCircuitBreaker mocks base method.
+func (m *MockStore) CreateCircuitBreaker(circuitBreaker *model.CircuitBreaker) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstance", instanceID)
-	ret0, _ := ret[0].(*model.Instance)
+	ret := m.ctrl.Call(m, "CreateCircuitBreaker", circuitBreaker)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateCircuitBreaker indicates an expected call of CreateCircuitBreaker.
+func (mr *MockStoreMockRecorder) CreateCircuitBreaker(circuitBreaker interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCircuitBreaker", reflect.TypeOf((*MockStore)(nil).CreateCircuitBreaker), circuitBreaker)
+}
+
+// CreateConfigFile mocks base method.
+func (m *MockStore) CreateConfigFile(tx store.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateConfigFile", tx, file)
+	ret0, _ := ret[0].(*model.ConfigFile)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetInstance indicates an expected call of GetInstance
-func (mr *MockStoreMockRecorder) GetInstance(instanceID interface{}) *gomock.Call {
+// CreateConfigFile indicates an expected call of CreateConfigFile.
+func (mr *MockStoreMockRecorder) CreateConfigFile(tx, file interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstance", reflect.TypeOf((*MockStore)(nil).GetInstance), instanceID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConfigFile", reflect.TypeOf((*MockStore)(nil).CreateConfigFile), tx, file)
 }
 
-// GetInstancesCount mocks base method
-func (m *MockStore) GetInstancesCount() (uint32, error) {
+// CreateConfigFileGroup mocks base method.
+func (m *MockStore) CreateConfigFileGroup(fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstancesCount")
-	ret0, _ := ret[0].(uint32)
+	ret := m.ctrl.Call(m, "CreateConfigFileGroup", fileGroup)
+	ret0, _ := ret[0].(*model.ConfigFileGroup)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetInstancesCount indicates an expected call of GetInstancesCount
-func (mr *MockStoreMockRecorder) GetInstancesCount() *gomock.Call {
+// CreateConfigFileGroup indicates an expected call of CreateConfigFileGroup.
+func (mr *MockStoreMockRecorder) CreateConfigFileGroup(fileGroup interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstancesCount", reflect.TypeOf((*MockStore)(nil).GetInstancesCount))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConfigFileGroup", reflect.TypeOf((*MockStore)(nil).CreateConfigFileGroup), fileGroup)
 }
 
-// GetInstancesMainByService mocks base method
-func (m *MockStore) GetInstancesMainByService(serviceID, host string) ([]*model.Instance, error) {
+// CreateConfigFileRelease mocks base method.
+func (m *MockStore) CreateConfigFileRelease(tx store.Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstancesMainByService", serviceID, host)
-	ret0, _ := ret[0].([]*model.Instance)
+	ret := m.ctrl.Call(m, "CreateConfigFileRelease", tx, fileRelease)
+	ret0, _ := ret[0].(*model.ConfigFileRelease)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetInstancesMainByService indicates an expected call of GetInstancesMainByService
-func (mr *MockStoreMockRecorder) GetInstancesMainByService(serviceID, host interface{}) *gomock.Call {
+// CreateConfigFileRelease indicates an expected call of CreateConfigFileRelease.
+func (mr *MockStoreMockRecorder) CreateConfigFileRelease(tx, fileRelease interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstancesMainByService", reflect.TypeOf((*MockStore)(nil).GetInstancesMainByService), serviceID, host)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConfigFileRelease", reflect.TypeOf((*MockStore)(nil).CreateConfigFileRelease), tx, fileRelease)
 }
 
-// GetExpandInstances mocks base method
+// CreateConfigFileReleaseHistory mocks base method.
+func (m *MockStore) CreateConfigFileReleaseHistory(tx store.Tx, fileReleaseHistory *model.ConfigFileReleaseHistory) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateConfigFileReleaseHistory", tx, fileReleaseHistory)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateConfigFileReleaseHistory indicates an expected call of CreateConfigFileReleaseHistory.
+func (mr *MockStoreMockRecorder) CreateConfigFileReleaseHistory(tx, fileReleaseHistory interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConfigFileReleaseHistory", reflect.TypeOf((*MockStore)(nil).CreateConfigFileReleaseHistory), tx, fileReleaseHistory)
+}
+
+// CreateConfigFileTag mocks base method.
+func (m *MockStore) CreateConfigFileTag(tx store.Tx, fileTag *model.ConfigFileTag) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateConfigFileTag", tx, fileTag)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateConfigFileTag indicates an expected call of CreateConfigFileTag.
+func (mr *MockStoreMockRecorder) CreateConfigFileTag(tx, fileTag interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConfigFileTag", reflect.TypeOf((*MockStore)(nil).CreateConfigFileTag), tx, fileTag)
+}
+
+// CreatePlatform mocks base method.
+func (m *MockStore) CreatePlatform(platform *model.Platform) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreatePlatform", platform)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreatePlatform indicates an expected call of CreatePlatform.
+func (mr *MockStoreMockRecorder) CreatePlatform(platform interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePlatform", reflect.TypeOf((*MockStore)(nil).CreatePlatform), platform)
+}
+
+// CreateRateLimit mocks base method.
+func (m *MockStore) CreateRateLimit(limiting *model.RateLimit) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateRateLimit", limiting)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateRateLimit indicates an expected call of CreateRateLimit.
+func (mr *MockStoreMockRecorder) CreateRateLimit(limiting interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRateLimit", reflect.TypeOf((*MockStore)(nil).CreateRateLimit), limiting)
+}
+
+// CreateRoutingConfig mocks base method.
+func (m *MockStore) CreateRoutingConfig(conf *model.RoutingConfig) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateRoutingConfig", conf)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateRoutingConfig indicates an expected call of CreateRoutingConfig.
+func (mr *MockStoreMockRecorder) CreateRoutingConfig(conf interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRoutingConfig", reflect.TypeOf((*MockStore)(nil).CreateRoutingConfig), conf)
+}
+
+// CreateTransaction mocks base method.
+func (m *MockStore) CreateTransaction() (store.Transaction, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTransaction")
+	ret0, _ := ret[0].(store.Transaction)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateTransaction indicates an expected call of CreateTransaction.
+func (mr *MockStoreMockRecorder) CreateTransaction() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransaction", reflect.TypeOf((*MockStore)(nil).CreateTransaction))
+}
+
+// DeleteBusiness mocks base method.
+func (m *MockStore) DeleteBusiness(bid string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteBusiness", bid)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteBusiness indicates an expected call of DeleteBusiness.
+func (mr *MockStoreMockRecorder) DeleteBusiness(bid interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBusiness", reflect.TypeOf((*MockStore)(nil).DeleteBusiness), bid)
+}
+
+// DeleteConfigFile mocks base method.
+func (m *MockStore) DeleteConfigFile(tx store.Tx, namespace, group, name string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteConfigFile", tx, namespace, group, name)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteConfigFile indicates an expected call of DeleteConfigFile.
+func (mr *MockStoreMockRecorder) DeleteConfigFile(tx, namespace, group, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteConfigFile", reflect.TypeOf((*MockStore)(nil).DeleteConfigFile), tx, namespace, group, name)
+}
+
+// DeleteConfigFileGroup mocks base method.
+func (m *MockStore) DeleteConfigFileGroup(namespace, name string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteConfigFileGroup", namespace, name)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteConfigFileGroup indicates an expected call of DeleteConfigFileGroup.
+func (mr *MockStoreMockRecorder) DeleteConfigFileGroup(namespace, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteConfigFileGroup", reflect.TypeOf((*MockStore)(nil).DeleteConfigFileGroup), namespace, name)
+}
+
+// DeleteConfigFileRelease mocks base method.
+func (m *MockStore) DeleteConfigFileRelease(tx store.Tx, namespace, group, fileName, deleteBy string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteConfigFileRelease", tx, namespace, group, fileName, deleteBy)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteConfigFileRelease indicates an expected call of DeleteConfigFileRelease.
+func (mr *MockStoreMockRecorder) DeleteConfigFileRelease(tx, namespace, group, fileName, deleteBy interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteConfigFileRelease", reflect.TypeOf((*MockStore)(nil).DeleteConfigFileRelease), tx, namespace, group, fileName, deleteBy)
+}
+
+// DeleteConfigFileTag mocks base method.
+func (m *MockStore) DeleteConfigFileTag(tx store.Tx, namespace, group, fileName, key, value string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteConfigFileTag", tx, namespace, group, fileName, key, value)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteConfigFileTag indicates an expected call of DeleteConfigFileTag.
+func (mr *MockStoreMockRecorder) DeleteConfigFileTag(tx, namespace, group, fileName, key, value interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteConfigFileTag", reflect.TypeOf((*MockStore)(nil).DeleteConfigFileTag), tx, namespace, group, fileName, key, value)
+}
+
+// DeleteGroup mocks base method.
+func (m *MockStore) DeleteGroup(group *model.UserGroupDetail) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteGroup", group)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteGroup indicates an expected call of DeleteGroup.
+func (mr *MockStoreMockRecorder) DeleteGroup(group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteGroup", reflect.TypeOf((*MockStore)(nil).DeleteGroup), group)
+}
+
+// DeleteInstance mocks base method.
+func (m *MockStore) DeleteInstance(instanceID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteInstance", instanceID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteInstance indicates an expected call of DeleteInstance.
+func (mr *MockStoreMockRecorder) DeleteInstance(instanceID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInstance", reflect.TypeOf((*MockStore)(nil).DeleteInstance), instanceID)
+}
+
+// DeleteMasterCircuitBreaker mocks base method.
+func (m *MockStore) DeleteMasterCircuitBreaker(id string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteMasterCircuitBreaker", id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteMasterCircuitBreaker indicates an expected call of DeleteMasterCircuitBreaker.
+func (mr *MockStoreMockRecorder) DeleteMasterCircuitBreaker(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMasterCircuitBreaker", reflect.TypeOf((*MockStore)(nil).DeleteMasterCircuitBreaker), id)
+}
+
+// DeletePlatform mocks base method.
+func (m *MockStore) DeletePlatform(id string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeletePlatform", id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeletePlatform indicates an expected call of DeletePlatform.
+func (mr *MockStoreMockRecorder) DeletePlatform(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePlatform", reflect.TypeOf((*MockStore)(nil).DeletePlatform), id)
+}
+
+// DeleteRateLimit mocks base method.
+func (m *MockStore) DeleteRateLimit(limiting *model.RateLimit) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteRateLimit", limiting)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteRateLimit indicates an expected call of DeleteRateLimit.
+func (mr *MockStoreMockRecorder) DeleteRateLimit(limiting interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRateLimit", reflect.TypeOf((*MockStore)(nil).DeleteRateLimit), limiting)
+}
+
+// DeleteRoutingConfig mocks base method.
+func (m *MockStore) DeleteRoutingConfig(serviceID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteRoutingConfig", serviceID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteRoutingConfig indicates an expected call of DeleteRoutingConfig.
+func (mr *MockStoreMockRecorder) DeleteRoutingConfig(serviceID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRoutingConfig", reflect.TypeOf((*MockStore)(nil).DeleteRoutingConfig), serviceID)
+}
+
+// DeleteService mocks base method.
+func (m *MockStore) DeleteService(id, serviceName, namespaceName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteService", id, serviceName, namespaceName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteService indicates an expected call of DeleteService.
+func (mr *MockStoreMockRecorder) DeleteService(id, serviceName, namespaceName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteService", reflect.TypeOf((*MockStore)(nil).DeleteService), id, serviceName, namespaceName)
+}
+
+// DeleteServiceAlias mocks base method.
+func (m *MockStore) DeleteServiceAlias(name, namespace string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteServiceAlias", name, namespace)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteServiceAlias indicates an expected call of DeleteServiceAlias.
+func (mr *MockStoreMockRecorder) DeleteServiceAlias(name, namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteServiceAlias", reflect.TypeOf((*MockStore)(nil).DeleteServiceAlias), name, namespace)
+}
+
+// DeleteStrategy mocks base method.
+func (m *MockStore) DeleteStrategy(id string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteStrategy", id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteStrategy indicates an expected call of DeleteStrategy.
+func (mr *MockStoreMockRecorder) DeleteStrategy(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteStrategy", reflect.TypeOf((*MockStore)(nil).DeleteStrategy), id)
+}
+
+// DeleteTagByConfigFile mocks base method.
+func (m *MockStore) DeleteTagByConfigFile(tx store.Tx, namespace, group, fileName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteTagByConfigFile", tx, namespace, group, fileName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteTagByConfigFile indicates an expected call of DeleteTagByConfigFile.
+func (mr *MockStoreMockRecorder) DeleteTagByConfigFile(tx, namespace, group, fileName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTagByConfigFile", reflect.TypeOf((*MockStore)(nil).DeleteTagByConfigFile), tx, namespace, group, fileName)
+}
+
+// DeleteTagCircuitBreaker mocks base method.
+func (m *MockStore) DeleteTagCircuitBreaker(id, version string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteTagCircuitBreaker", id, version)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteTagCircuitBreaker indicates an expected call of DeleteTagCircuitBreaker.
+func (mr *MockStoreMockRecorder) DeleteTagCircuitBreaker(id, version interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTagCircuitBreaker", reflect.TypeOf((*MockStore)(nil).DeleteTagCircuitBreaker), id, version)
+}
+
+// DeleteUser mocks base method.
+func (m *MockStore) DeleteUser(user *model.User) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteUser", user)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteUser indicates an expected call of DeleteUser.
+func (mr *MockStoreMockRecorder) DeleteUser(user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockStore)(nil).DeleteUser), user)
+}
+
+// Destroy mocks base method.
+func (m *MockStore) Destroy() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Destroy")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Destroy indicates an expected call of Destroy.
+func (mr *MockStoreMockRecorder) Destroy() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Destroy", reflect.TypeOf((*MockStore)(nil).Destroy))
+}
+
+// FindConfigFileGroups mocks base method.
+func (m *MockStore) FindConfigFileGroups(namespace string, names []string) ([]*model.ConfigFileGroup, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindConfigFileGroups", namespace, names)
+	ret0, _ := ret[0].([]*model.ConfigFileGroup)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindConfigFileGroups indicates an expected call of FindConfigFileGroups.
+func (mr *MockStoreMockRecorder) FindConfigFileGroups(namespace, names interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindConfigFileGroups", reflect.TypeOf((*MockStore)(nil).FindConfigFileGroups), namespace, names)
+}
+
+// FindConfigFileReleaseByModifyTimeAfter mocks base method.
+func (m *MockStore) FindConfigFileReleaseByModifyTimeAfter(modifyTime time.Time) ([]*model.ConfigFileRelease, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindConfigFileReleaseByModifyTimeAfter", modifyTime)
+	ret0, _ := ret[0].([]*model.ConfigFileRelease)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindConfigFileReleaseByModifyTimeAfter indicates an expected call of FindConfigFileReleaseByModifyTimeAfter.
+func (mr *MockStoreMockRecorder) FindConfigFileReleaseByModifyTimeAfter(modifyTime interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindConfigFileReleaseByModifyTimeAfter", reflect.TypeOf((*MockStore)(nil).FindConfigFileReleaseByModifyTimeAfter), modifyTime)
+}
+
+// GenNextL5Sid mocks base method.
+func (m *MockStore) GenNextL5Sid(layoutID uint32) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenNextL5Sid", layoutID)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GenNextL5Sid indicates an expected call of GenNextL5Sid.
+func (mr *MockStoreMockRecorder) GenNextL5Sid(layoutID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenNextL5Sid", reflect.TypeOf((*MockStore)(nil).GenNextL5Sid), layoutID)
+}
+
+// GetBusinessByID mocks base method.
+func (m *MockStore) GetBusinessByID(id string) (*model.Business, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBusinessByID", id)
+	ret0, _ := ret[0].(*model.Business)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBusinessByID indicates an expected call of GetBusinessByID.
+func (mr *MockStoreMockRecorder) GetBusinessByID(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBusinessByID", reflect.TypeOf((*MockStore)(nil).GetBusinessByID), id)
+}
+
+// GetCircuitBreaker mocks base method.
+func (m *MockStore) GetCircuitBreaker(id, version string) (*model.CircuitBreaker, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCircuitBreaker", id, version)
+	ret0, _ := ret[0].(*model.CircuitBreaker)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCircuitBreaker indicates an expected call of GetCircuitBreaker.
+func (mr *MockStoreMockRecorder) GetCircuitBreaker(id, version interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreaker", reflect.TypeOf((*MockStore)(nil).GetCircuitBreaker), id, version)
+}
+
+// GetCircuitBreakerForCache mocks base method.
+func (m *MockStore) GetCircuitBreakerForCache(mtime time.Time, firstUpdate bool) ([]*model.ServiceWithCircuitBreaker, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCircuitBreakerForCache", mtime, firstUpdate)
+	ret0, _ := ret[0].([]*model.ServiceWithCircuitBreaker)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCircuitBreakerForCache indicates an expected call of GetCircuitBreakerForCache.
+func (mr *MockStoreMockRecorder) GetCircuitBreakerForCache(mtime, firstUpdate interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakerForCache", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakerForCache), mtime, firstUpdate)
+}
+
+// GetCircuitBreakerMasterRelation mocks base method.
+func (m *MockStore) GetCircuitBreakerMasterRelation(ruleID string) ([]*model.CircuitBreakerRelation, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCircuitBreakerMasterRelation", ruleID)
+	ret0, _ := ret[0].([]*model.CircuitBreakerRelation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCircuitBreakerMasterRelation indicates an expected call of GetCircuitBreakerMasterRelation.
+func (mr *MockStoreMockRecorder) GetCircuitBreakerMasterRelation(ruleID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakerMasterRelation", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakerMasterRelation), ruleID)
+}
+
+// GetCircuitBreakerRelation mocks base method.
+func (m *MockStore) GetCircuitBreakerRelation(ruleID, ruleVersion string) ([]*model.CircuitBreakerRelation, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCircuitBreakerRelation", ruleID, ruleVersion)
+	ret0, _ := ret[0].([]*model.CircuitBreakerRelation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCircuitBreakerRelation indicates an expected call of GetCircuitBreakerRelation.
+func (mr *MockStoreMockRecorder) GetCircuitBreakerRelation(ruleID, ruleVersion interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakerRelation", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakerRelation), ruleID, ruleVersion)
+}
+
+// GetCircuitBreakerVersions mocks base method.
+func (m *MockStore) GetCircuitBreakerVersions(id string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCircuitBreakerVersions", id)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCircuitBreakerVersions indicates an expected call of GetCircuitBreakerVersions.
+func (mr *MockStoreMockRecorder) GetCircuitBreakerVersions(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakerVersions", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakerVersions), id)
+}
+
+// GetCircuitBreakersByService mocks base method.
+func (m *MockStore) GetCircuitBreakersByService(name, namespace string) (*model.CircuitBreaker, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCircuitBreakersByService", name, namespace)
+	ret0, _ := ret[0].(*model.CircuitBreaker)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCircuitBreakersByService indicates an expected call of GetCircuitBreakersByService.
+func (mr *MockStoreMockRecorder) GetCircuitBreakersByService(name, namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakersByService", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakersByService), name, namespace)
+}
+
+// GetConfigFile mocks base method.
+func (m *MockStore) GetConfigFile(tx store.Tx, namespace, group, name string) (*model.ConfigFile, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConfigFile", tx, namespace, group, name)
+	ret0, _ := ret[0].(*model.ConfigFile)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetConfigFile indicates an expected call of GetConfigFile.
+func (mr *MockStoreMockRecorder) GetConfigFile(tx, namespace, group, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFile", reflect.TypeOf((*MockStore)(nil).GetConfigFile), tx, namespace, group, name)
+}
+
+// GetConfigFileGroup mocks base method.
+func (m *MockStore) GetConfigFileGroup(namespace, name string) (*model.ConfigFileGroup, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConfigFileGroup", namespace, name)
+	ret0, _ := ret[0].(*model.ConfigFileGroup)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetConfigFileGroup indicates an expected call of GetConfigFileGroup.
+func (mr *MockStoreMockRecorder) GetConfigFileGroup(namespace, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFileGroup", reflect.TypeOf((*MockStore)(nil).GetConfigFileGroup), namespace, name)
+}
+
+// GetConfigFileRelease mocks base method.
+func (m *MockStore) GetConfigFileRelease(tx store.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConfigFileRelease", tx, namespace, group, fileName)
+	ret0, _ := ret[0].(*model.ConfigFileRelease)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetConfigFileRelease indicates an expected call of GetConfigFileRelease.
+func (mr *MockStoreMockRecorder) GetConfigFileRelease(tx, namespace, group, fileName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFileRelease", reflect.TypeOf((*MockStore)(nil).GetConfigFileRelease), tx, namespace, group, fileName)
+}
+
+// GetConfigFileReleaseWithAllFlag mocks base method.
+func (m *MockStore) GetConfigFileReleaseWithAllFlag(tx store.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConfigFileReleaseWithAllFlag", tx, namespace, group, fileName)
+	ret0, _ := ret[0].(*model.ConfigFileRelease)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetConfigFileReleaseWithAllFlag indicates an expected call of GetConfigFileReleaseWithAllFlag.
+func (mr *MockStoreMockRecorder) GetConfigFileReleaseWithAllFlag(tx, namespace, group, fileName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFileReleaseWithAllFlag", reflect.TypeOf((*MockStore)(nil).GetConfigFileReleaseWithAllFlag), tx, namespace, group, fileName)
+}
+
+// GetDefaultStrategyDetailByPrincipal mocks base method.
+func (m *MockStore) GetDefaultStrategyDetailByPrincipal(principalId string, principalType model.PrincipalType) (*model.StrategyDetail, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDefaultStrategyDetailByPrincipal", principalId, principalType)
+	ret0, _ := ret[0].(*model.StrategyDetail)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDefaultStrategyDetailByPrincipal indicates an expected call of GetDefaultStrategyDetailByPrincipal.
+func (mr *MockStoreMockRecorder) GetDefaultStrategyDetailByPrincipal(principalId, principalType interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDefaultStrategyDetailByPrincipal", reflect.TypeOf((*MockStore)(nil).GetDefaultStrategyDetailByPrincipal), principalId, principalType)
+}
+
+// GetExpandInstances mocks base method.
 func (m *MockStore) GetExpandInstances(filter, metaFilter map[string]string, offset, limit uint32) (uint32, []*model.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetExpandInstances", filter, metaFilter, offset, limit)
@@ -701,335 +893,13 @@ func (m *MockStore) GetExpandInstances(filter, metaFilter map[string]string, off
 	return ret0, ret1, ret2
 }
 
-// GetExpandInstances indicates an expected call of GetExpandInstances
+// GetExpandInstances indicates an expected call of GetExpandInstances.
 func (mr *MockStoreMockRecorder) GetExpandInstances(filter, metaFilter, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetExpandInstances", reflect.TypeOf((*MockStore)(nil).GetExpandInstances), filter, metaFilter, offset, limit)
 }
 
-// GetMoreInstances mocks base method
-func (m *MockStore) GetMoreInstances(mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (map[string]*model.Instance, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMoreInstances", mtime, firstUpdate, needMeta, serviceID)
-	ret0, _ := ret[0].(map[string]*model.Instance)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMoreInstances indicates an expected call of GetMoreInstances
-func (mr *MockStoreMockRecorder) GetMoreInstances(mtime, firstUpdate, needMeta, serviceID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreInstances", reflect.TypeOf((*MockStore)(nil).GetMoreInstances), mtime, firstUpdate, needMeta, serviceID)
-}
-
-// SetInstanceHealthStatus mocks base method
-func (m *MockStore) SetInstanceHealthStatus(instanceID string, flag int, revision string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetInstanceHealthStatus", instanceID, flag, revision)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetInstanceHealthStatus indicates an expected call of SetInstanceHealthStatus
-func (mr *MockStoreMockRecorder) SetInstanceHealthStatus(instanceID, flag, revision interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetInstanceHealthStatus", reflect.TypeOf((*MockStore)(nil).SetInstanceHealthStatus), instanceID, flag, revision)
-}
-
-// BatchSetInstanceHealthStatus mocks base method
-func (m *MockStore) BatchSetInstanceHealthStatus(ids []interface{}, healthy int, revision string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BatchSetInstanceHealthStatus", ids, healthy, revision)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// BatchSetInstanceHealthStatus indicates an expected call of BatchSetInstanceHealthStatus
-func (mr *MockStoreMockRecorder) BatchSetInstanceHealthStatus(ids, healthy, revision interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchSetInstanceHealthStatus", reflect.TypeOf((*MockStore)(nil).BatchSetInstanceHealthStatus), ids, healthy, revision)
-}
-
-// BatchSetInstanceIsolate mocks base method
-func (m *MockStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, revision string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BatchSetInstanceIsolate", ids, isolate, revision)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// BatchSetInstanceIsolate indicates an expected call of BatchSetInstanceIsolate
-func (mr *MockStoreMockRecorder) BatchSetInstanceIsolate(ids, isolate, revision interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchSetInstanceIsolate", reflect.TypeOf((*MockStore)(nil).BatchSetInstanceIsolate), ids, isolate, revision)
-}
-
-// CreateRoutingConfig mocks base method
-func (m *MockStore) CreateRoutingConfig(conf *model.RoutingConfig) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateRoutingConfig", conf)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateRoutingConfig indicates an expected call of CreateRoutingConfig
-func (mr *MockStoreMockRecorder) CreateRoutingConfig(conf interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRoutingConfig", reflect.TypeOf((*MockStore)(nil).CreateRoutingConfig), conf)
-}
-
-// UpdateRoutingConfig mocks base method
-func (m *MockStore) UpdateRoutingConfig(conf *model.RoutingConfig) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateRoutingConfig", conf)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateRoutingConfig indicates an expected call of UpdateRoutingConfig
-func (mr *MockStoreMockRecorder) UpdateRoutingConfig(conf interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRoutingConfig", reflect.TypeOf((*MockStore)(nil).UpdateRoutingConfig), conf)
-}
-
-// DeleteRoutingConfig mocks base method
-func (m *MockStore) DeleteRoutingConfig(serviceID string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteRoutingConfig", serviceID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteRoutingConfig indicates an expected call of DeleteRoutingConfig
-func (mr *MockStoreMockRecorder) DeleteRoutingConfig(serviceID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRoutingConfig", reflect.TypeOf((*MockStore)(nil).DeleteRoutingConfig), serviceID)
-}
-
-// GetRoutingConfigsForCache mocks base method
-func (m *MockStore) GetRoutingConfigsForCache(mtime time.Time, firstUpdate bool) ([]*model.RoutingConfig, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRoutingConfigsForCache", mtime, firstUpdate)
-	ret0, _ := ret[0].([]*model.RoutingConfig)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetRoutingConfigsForCache indicates an expected call of GetRoutingConfigsForCache
-func (mr *MockStoreMockRecorder) GetRoutingConfigsForCache(mtime, firstUpdate interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoutingConfigsForCache", reflect.TypeOf((*MockStore)(nil).GetRoutingConfigsForCache), mtime, firstUpdate)
-}
-
-// GetRoutingConfigWithService mocks base method
-func (m *MockStore) GetRoutingConfigWithService(name, namespace string) (*model.RoutingConfig, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRoutingConfigWithService", name, namespace)
-	ret0, _ := ret[0].(*model.RoutingConfig)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetRoutingConfigWithService indicates an expected call of GetRoutingConfigWithService
-func (mr *MockStoreMockRecorder) GetRoutingConfigWithService(name, namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoutingConfigWithService", reflect.TypeOf((*MockStore)(nil).GetRoutingConfigWithService), name, namespace)
-}
-
-// GetRoutingConfigWithID mocks base method
-func (m *MockStore) GetRoutingConfigWithID(id string) (*model.RoutingConfig, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRoutingConfigWithID", id)
-	ret0, _ := ret[0].(*model.RoutingConfig)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetRoutingConfigWithID indicates an expected call of GetRoutingConfigWithID
-func (mr *MockStoreMockRecorder) GetRoutingConfigWithID(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoutingConfigWithID", reflect.TypeOf((*MockStore)(nil).GetRoutingConfigWithID), id)
-}
-
-// GetRoutingConfigs mocks base method
-func (m *MockStore) GetRoutingConfigs(filter map[string]string, offset, limit uint32) (uint32, []*model.ExtendRoutingConfig, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRoutingConfigs", filter, offset, limit)
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].([]*model.ExtendRoutingConfig)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetRoutingConfigs indicates an expected call of GetRoutingConfigs
-func (mr *MockStoreMockRecorder) GetRoutingConfigs(filter, offset, limit interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoutingConfigs", reflect.TypeOf((*MockStore)(nil).GetRoutingConfigs), filter, offset, limit)
-}
-
-// GetL5Extend mocks base method
-func (m *MockStore) GetL5Extend(serviceID string) (map[string]interface{}, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetL5Extend", serviceID)
-	ret0, _ := ret[0].(map[string]interface{})
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetL5Extend indicates an expected call of GetL5Extend
-func (mr *MockStoreMockRecorder) GetL5Extend(serviceID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetL5Extend", reflect.TypeOf((*MockStore)(nil).GetL5Extend), serviceID)
-}
-
-// SetL5Extend mocks base method
-func (m *MockStore) SetL5Extend(serviceID string, meta map[string]interface{}) (map[string]interface{}, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetL5Extend", serviceID, meta)
-	ret0, _ := ret[0].(map[string]interface{})
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SetL5Extend indicates an expected call of SetL5Extend
-func (mr *MockStoreMockRecorder) SetL5Extend(serviceID, meta interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetL5Extend", reflect.TypeOf((*MockStore)(nil).SetL5Extend), serviceID, meta)
-}
-
-// GenNextL5Sid mocks base method
-func (m *MockStore) GenNextL5Sid(layoutID uint32) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenNextL5Sid", layoutID)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GenNextL5Sid indicates an expected call of GenNextL5Sid
-func (mr *MockStoreMockRecorder) GenNextL5Sid(layoutID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenNextL5Sid", reflect.TypeOf((*MockStore)(nil).GenNextL5Sid), layoutID)
-}
-
-// GetMoreL5Extend mocks base method
-func (m *MockStore) GetMoreL5Extend(mtime time.Time) (map[string]map[string]interface{}, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMoreL5Extend", mtime)
-	ret0, _ := ret[0].(map[string]map[string]interface{})
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMoreL5Extend indicates an expected call of GetMoreL5Extend
-func (mr *MockStoreMockRecorder) GetMoreL5Extend(mtime interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreL5Extend", reflect.TypeOf((*MockStore)(nil).GetMoreL5Extend), mtime)
-}
-
-// GetMoreL5Routes mocks base method
-func (m *MockStore) GetMoreL5Routes(flow uint32) ([]*model.Route, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMoreL5Routes", flow)
-	ret0, _ := ret[0].([]*model.Route)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMoreL5Routes indicates an expected call of GetMoreL5Routes
-func (mr *MockStoreMockRecorder) GetMoreL5Routes(flow interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreL5Routes", reflect.TypeOf((*MockStore)(nil).GetMoreL5Routes), flow)
-}
-
-// GetMoreL5Policies mocks base method
-func (m *MockStore) GetMoreL5Policies(flow uint32) ([]*model.Policy, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMoreL5Policies", flow)
-	ret0, _ := ret[0].([]*model.Policy)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMoreL5Policies indicates an expected call of GetMoreL5Policies
-func (mr *MockStoreMockRecorder) GetMoreL5Policies(flow interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreL5Policies", reflect.TypeOf((*MockStore)(nil).GetMoreL5Policies), flow)
-}
-
-// GetMoreL5Sections mocks base method
-func (m *MockStore) GetMoreL5Sections(flow uint32) ([]*model.Section, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMoreL5Sections", flow)
-	ret0, _ := ret[0].([]*model.Section)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMoreL5Sections indicates an expected call of GetMoreL5Sections
-func (mr *MockStoreMockRecorder) GetMoreL5Sections(flow interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreL5Sections", reflect.TypeOf((*MockStore)(nil).GetMoreL5Sections), flow)
-}
-
-// GetMoreL5IPConfigs mocks base method
-func (m *MockStore) GetMoreL5IPConfigs(flow uint32) ([]*model.IPConfig, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMoreL5IPConfigs", flow)
-	ret0, _ := ret[0].([]*model.IPConfig)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMoreL5IPConfigs indicates an expected call of GetMoreL5IPConfigs
-func (mr *MockStoreMockRecorder) GetMoreL5IPConfigs(flow interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreL5IPConfigs", reflect.TypeOf((*MockStore)(nil).GetMoreL5IPConfigs), flow)
-}
-
-// CreateRateLimit mocks base method
-func (m *MockStore) CreateRateLimit(limiting *model.RateLimit) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateRateLimit", limiting)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateRateLimit indicates an expected call of CreateRateLimit
-func (mr *MockStoreMockRecorder) CreateRateLimit(limiting interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRateLimit", reflect.TypeOf((*MockStore)(nil).CreateRateLimit), limiting)
-}
-
-// UpdateRateLimit mocks base method
-func (m *MockStore) UpdateRateLimit(limiting *model.RateLimit) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateRateLimit", limiting)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateRateLimit indicates an expected call of UpdateRateLimit
-func (mr *MockStoreMockRecorder) UpdateRateLimit(limiting interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRateLimit", reflect.TypeOf((*MockStore)(nil).UpdateRateLimit), limiting)
-}
-
-// DeleteRateLimit mocks base method
-func (m *MockStore) DeleteRateLimit(limiting *model.RateLimit) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteRateLimit", limiting)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteRateLimit indicates an expected call of DeleteRateLimit
-func (mr *MockStoreMockRecorder) DeleteRateLimit(limiting interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRateLimit", reflect.TypeOf((*MockStore)(nil).DeleteRateLimit), limiting)
-}
-
-// GetExtendRateLimits mocks base method
+// GetExtendRateLimits mocks base method.
 func (m *MockStore) GetExtendRateLimits(query map[string]string, offset, limit uint32) (uint32, []*model.ExtendRateLimit, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetExtendRateLimits", query, offset, limit)
@@ -1039,525 +909,13 @@ func (m *MockStore) GetExtendRateLimits(query map[string]string, offset, limit u
 	return ret0, ret1, ret2
 }
 
-// GetExtendRateLimits indicates an expected call of GetExtendRateLimits
+// GetExtendRateLimits indicates an expected call of GetExtendRateLimits.
 func (mr *MockStoreMockRecorder) GetExtendRateLimits(query, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetExtendRateLimits", reflect.TypeOf((*MockStore)(nil).GetExtendRateLimits), query, offset, limit)
 }
 
-// GetRateLimitWithID mocks base method
-func (m *MockStore) GetRateLimitWithID(id string) (*model.RateLimit, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRateLimitWithID", id)
-	ret0, _ := ret[0].(*model.RateLimit)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetRateLimitWithID indicates an expected call of GetRateLimitWithID
-func (mr *MockStoreMockRecorder) GetRateLimitWithID(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRateLimitWithID", reflect.TypeOf((*MockStore)(nil).GetRateLimitWithID), id)
-}
-
-// GetRateLimitsForCache mocks base method
-func (m *MockStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, []*model.RateLimitRevision, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRateLimitsForCache", mtime, firstUpdate)
-	ret0, _ := ret[0].([]*model.RateLimit)
-	ret1, _ := ret[1].([]*model.RateLimitRevision)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetRateLimitsForCache indicates an expected call of GetRateLimitsForCache
-func (mr *MockStoreMockRecorder) GetRateLimitsForCache(mtime, firstUpdate interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRateLimitsForCache", reflect.TypeOf((*MockStore)(nil).GetRateLimitsForCache), mtime, firstUpdate)
-}
-
-// CreateCircuitBreaker mocks base method
-func (m *MockStore) CreateCircuitBreaker(circuitBreaker *model.CircuitBreaker) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateCircuitBreaker", circuitBreaker)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateCircuitBreaker indicates an expected call of CreateCircuitBreaker
-func (mr *MockStoreMockRecorder) CreateCircuitBreaker(circuitBreaker interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCircuitBreaker", reflect.TypeOf((*MockStore)(nil).CreateCircuitBreaker), circuitBreaker)
-}
-
-// TagCircuitBreaker mocks base method
-func (m *MockStore) TagCircuitBreaker(circuitBreaker *model.CircuitBreaker) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TagCircuitBreaker", circuitBreaker)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// TagCircuitBreaker indicates an expected call of TagCircuitBreaker
-func (mr *MockStoreMockRecorder) TagCircuitBreaker(circuitBreaker interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagCircuitBreaker", reflect.TypeOf((*MockStore)(nil).TagCircuitBreaker), circuitBreaker)
-}
-
-// ReleaseCircuitBreaker mocks base method
-func (m *MockStore) ReleaseCircuitBreaker(circuitBreakerRelation *model.CircuitBreakerRelation) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ReleaseCircuitBreaker", circuitBreakerRelation)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ReleaseCircuitBreaker indicates an expected call of ReleaseCircuitBreaker
-func (mr *MockStoreMockRecorder) ReleaseCircuitBreaker(circuitBreakerRelation interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseCircuitBreaker", reflect.TypeOf((*MockStore)(nil).ReleaseCircuitBreaker), circuitBreakerRelation)
-}
-
-// UnbindCircuitBreaker mocks base method
-func (m *MockStore) UnbindCircuitBreaker(serviceID, ruleID, ruleVersion string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UnbindCircuitBreaker", serviceID, ruleID, ruleVersion)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UnbindCircuitBreaker indicates an expected call of UnbindCircuitBreaker
-func (mr *MockStoreMockRecorder) UnbindCircuitBreaker(serviceID, ruleID, ruleVersion interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnbindCircuitBreaker", reflect.TypeOf((*MockStore)(nil).UnbindCircuitBreaker), serviceID, ruleID, ruleVersion)
-}
-
-// DeleteTagCircuitBreaker mocks base method
-func (m *MockStore) DeleteTagCircuitBreaker(id, version string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteTagCircuitBreaker", id, version)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteTagCircuitBreaker indicates an expected call of DeleteTagCircuitBreaker
-func (mr *MockStoreMockRecorder) DeleteTagCircuitBreaker(id, version interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTagCircuitBreaker", reflect.TypeOf((*MockStore)(nil).DeleteTagCircuitBreaker), id, version)
-}
-
-// DeleteMasterCircuitBreaker mocks base method
-func (m *MockStore) DeleteMasterCircuitBreaker(id string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteMasterCircuitBreaker", id)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteMasterCircuitBreaker indicates an expected call of DeleteMasterCircuitBreaker
-func (mr *MockStoreMockRecorder) DeleteMasterCircuitBreaker(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMasterCircuitBreaker", reflect.TypeOf((*MockStore)(nil).DeleteMasterCircuitBreaker), id)
-}
-
-// UpdateCircuitBreaker mocks base method
-func (m *MockStore) UpdateCircuitBreaker(circuitBraker *model.CircuitBreaker) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateCircuitBreaker", circuitBraker)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateCircuitBreaker indicates an expected call of UpdateCircuitBreaker
-func (mr *MockStoreMockRecorder) UpdateCircuitBreaker(circuitBraker interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCircuitBreaker", reflect.TypeOf((*MockStore)(nil).UpdateCircuitBreaker), circuitBraker)
-}
-
-// GetCircuitBreaker mocks base method
-func (m *MockStore) GetCircuitBreaker(id, version string) (*model.CircuitBreaker, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCircuitBreaker", id, version)
-	ret0, _ := ret[0].(*model.CircuitBreaker)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCircuitBreaker indicates an expected call of GetCircuitBreaker
-func (mr *MockStoreMockRecorder) GetCircuitBreaker(id, version interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreaker", reflect.TypeOf((*MockStore)(nil).GetCircuitBreaker), id, version)
-}
-
-// GetCircuitBreakerVersions mocks base method
-func (m *MockStore) GetCircuitBreakerVersions(id string) ([]string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCircuitBreakerVersions", id)
-	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCircuitBreakerVersions indicates an expected call of GetCircuitBreakerVersions
-func (mr *MockStoreMockRecorder) GetCircuitBreakerVersions(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakerVersions", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakerVersions), id)
-}
-
-// GetCircuitBreakerMasterRelation mocks base method
-func (m *MockStore) GetCircuitBreakerMasterRelation(ruleID string) ([]*model.CircuitBreakerRelation, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCircuitBreakerMasterRelation", ruleID)
-	ret0, _ := ret[0].([]*model.CircuitBreakerRelation)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCircuitBreakerMasterRelation indicates an expected call of GetCircuitBreakerMasterRelation
-func (mr *MockStoreMockRecorder) GetCircuitBreakerMasterRelation(ruleID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakerMasterRelation", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakerMasterRelation), ruleID)
-}
-
-// GetCircuitBreakerRelation mocks base method
-func (m *MockStore) GetCircuitBreakerRelation(ruleID, ruleVersion string) ([]*model.CircuitBreakerRelation, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCircuitBreakerRelation", ruleID, ruleVersion)
-	ret0, _ := ret[0].([]*model.CircuitBreakerRelation)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCircuitBreakerRelation indicates an expected call of GetCircuitBreakerRelation
-func (mr *MockStoreMockRecorder) GetCircuitBreakerRelation(ruleID, ruleVersion interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakerRelation", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakerRelation), ruleID, ruleVersion)
-}
-
-// GetCircuitBreakerForCache mocks base method
-func (m *MockStore) GetCircuitBreakerForCache(mtime time.Time, firstUpdate bool) ([]*model.ServiceWithCircuitBreaker, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCircuitBreakerForCache", mtime, firstUpdate)
-	ret0, _ := ret[0].([]*model.ServiceWithCircuitBreaker)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCircuitBreakerForCache indicates an expected call of GetCircuitBreakerForCache
-func (mr *MockStoreMockRecorder) GetCircuitBreakerForCache(mtime, firstUpdate interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakerForCache", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakerForCache), mtime, firstUpdate)
-}
-
-// ListMasterCircuitBreakers mocks base method
-func (m *MockStore) ListMasterCircuitBreakers(filters map[string]string, offset, limit uint32) (*model.CircuitBreakerDetail, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListMasterCircuitBreakers", filters, offset, limit)
-	ret0, _ := ret[0].(*model.CircuitBreakerDetail)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListMasterCircuitBreakers indicates an expected call of ListMasterCircuitBreakers
-func (mr *MockStoreMockRecorder) ListMasterCircuitBreakers(filters, offset, limit interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMasterCircuitBreakers", reflect.TypeOf((*MockStore)(nil).ListMasterCircuitBreakers), filters, offset, limit)
-}
-
-// ListReleaseCircuitBreakers mocks base method
-func (m *MockStore) ListReleaseCircuitBreakers(filters map[string]string, offset, limit uint32) (*model.CircuitBreakerDetail, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListReleaseCircuitBreakers", filters, offset, limit)
-	ret0, _ := ret[0].(*model.CircuitBreakerDetail)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListReleaseCircuitBreakers indicates an expected call of ListReleaseCircuitBreakers
-func (mr *MockStoreMockRecorder) ListReleaseCircuitBreakers(filters, offset, limit interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListReleaseCircuitBreakers", reflect.TypeOf((*MockStore)(nil).ListReleaseCircuitBreakers), filters, offset, limit)
-}
-
-// GetCircuitBreakersByService mocks base method
-func (m *MockStore) GetCircuitBreakersByService(name, namespace string) (*model.CircuitBreaker, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCircuitBreakersByService", name, namespace)
-	ret0, _ := ret[0].(*model.CircuitBreaker)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCircuitBreakersByService indicates an expected call of GetCircuitBreakersByService
-func (mr *MockStoreMockRecorder) GetCircuitBreakersByService(name, namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakersByService", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakersByService), name, namespace)
-}
-
-// CreatePlatform mocks base method
-func (m *MockStore) CreatePlatform(platform *model.Platform) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreatePlatform", platform)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreatePlatform indicates an expected call of CreatePlatform
-func (mr *MockStoreMockRecorder) CreatePlatform(platform interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePlatform", reflect.TypeOf((*MockStore)(nil).CreatePlatform), platform)
-}
-
-// UpdatePlatform mocks base method
-func (m *MockStore) UpdatePlatform(platform *model.Platform) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdatePlatform", platform)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdatePlatform indicates an expected call of UpdatePlatform
-func (mr *MockStoreMockRecorder) UpdatePlatform(platform interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePlatform", reflect.TypeOf((*MockStore)(nil).UpdatePlatform), platform)
-}
-
-// DeletePlatform mocks base method
-func (m *MockStore) DeletePlatform(id string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeletePlatform", id)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeletePlatform indicates an expected call of DeletePlatform
-func (mr *MockStoreMockRecorder) DeletePlatform(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePlatform", reflect.TypeOf((*MockStore)(nil).DeletePlatform), id)
-}
-
-// GetPlatformById mocks base method
-func (m *MockStore) GetPlatformById(id string) (*model.Platform, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPlatformById", id)
-	ret0, _ := ret[0].(*model.Platform)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPlatformById indicates an expected call of GetPlatformById
-func (mr *MockStoreMockRecorder) GetPlatformById(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlatformById", reflect.TypeOf((*MockStore)(nil).GetPlatformById), id)
-}
-
-// GetPlatforms mocks base method
-func (m *MockStore) GetPlatforms(query map[string]string, offset, limit uint32) (uint32, []*model.Platform, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPlatforms", query, offset, limit)
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].([]*model.Platform)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetPlatforms indicates an expected call of GetPlatforms
-func (mr *MockStoreMockRecorder) GetPlatforms(query, offset, limit interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlatforms", reflect.TypeOf((*MockStore)(nil).GetPlatforms), query, offset, limit)
-}
-
-// GetUnixSecond mocks base method
-func (m *MockStore) GetUnixSecond() (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUnixSecond")
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUnixSecond indicates an expected call of GetUnixSecond
-func (mr *MockStoreMockRecorder) GetUnixSecond() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnixSecond", reflect.TypeOf((*MockStore)(nil).GetUnixSecond))
-}
-
-// AddUser mocks base method
-func (m *MockStore) AddUser(user *model.User) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddUser", user)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddUser indicates an expected call of AddUser
-func (mr *MockStoreMockRecorder) AddUser(user interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddUser", reflect.TypeOf((*MockStore)(nil).AddUser), user)
-}
-
-// UpdateUser mocks base method
-func (m *MockStore) UpdateUser(user *model.User) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateUser", user)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateUser indicates an expected call of UpdateUser
-func (mr *MockStoreMockRecorder) UpdateUser(user interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockStore)(nil).UpdateUser), user)
-}
-
-// DeleteUser mocks base method
-func (m *MockStore) DeleteUser(user *model.User) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteUser", user)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteUser indicates an expected call of DeleteUser
-func (mr *MockStoreMockRecorder) DeleteUser(user interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockStore)(nil).DeleteUser), user)
-}
-
-// GetSubCount mocks base method
-func (m *MockStore) GetSubCount(user *model.User) (uint32, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSubCount", user)
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetSubCount indicates an expected call of GetSubCount
-func (mr *MockStoreMockRecorder) GetSubCount(user interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSubCount", reflect.TypeOf((*MockStore)(nil).GetSubCount), user)
-}
-
-// GetUser mocks base method
-func (m *MockStore) GetUser(id string) (*model.User, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUser", id)
-	ret0, _ := ret[0].(*model.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUser indicates an expected call of GetUser
-func (mr *MockStoreMockRecorder) GetUser(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUser", reflect.TypeOf((*MockStore)(nil).GetUser), id)
-}
-
-// GetUserByName mocks base method
-func (m *MockStore) GetUserByName(name, ownerId string) (*model.User, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserByName", name, ownerId)
-	ret0, _ := ret[0].(*model.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUserByName indicates an expected call of GetUserByName
-func (mr *MockStoreMockRecorder) GetUserByName(name, ownerId interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByName", reflect.TypeOf((*MockStore)(nil).GetUserByName), name, ownerId)
-}
-
-// GetUserByIds mocks base method
-func (m *MockStore) GetUserByIds(ids []string) ([]*model.User, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserByIds", ids)
-	ret0, _ := ret[0].([]*model.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUserByIds indicates an expected call of GetUserByIds
-func (mr *MockStoreMockRecorder) GetUserByIds(ids interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByIds", reflect.TypeOf((*MockStore)(nil).GetUserByIds), ids)
-}
-
-// GetUsers mocks base method
-func (m *MockStore) GetUsers(filters map[string]string, offset, limit uint32) (uint32, []*model.User, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUsers", filters, offset, limit)
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].([]*model.User)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetUsers indicates an expected call of GetUsers
-func (mr *MockStoreMockRecorder) GetUsers(filters, offset, limit interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsers", reflect.TypeOf((*MockStore)(nil).GetUsers), filters, offset, limit)
-}
-
-// GetUsersForCache mocks base method
-func (m *MockStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*model.User, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUsersForCache", mtime, firstUpdate)
-	ret0, _ := ret[0].([]*model.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUsersForCache indicates an expected call of GetUsersForCache
-func (mr *MockStoreMockRecorder) GetUsersForCache(mtime, firstUpdate interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsersForCache", reflect.TypeOf((*MockStore)(nil).GetUsersForCache), mtime, firstUpdate)
-}
-
-// AddGroup mocks base method
-func (m *MockStore) AddGroup(group *model.UserGroupDetail) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddGroup", group)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddGroup indicates an expected call of AddGroup
-func (mr *MockStoreMockRecorder) AddGroup(group interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddGroup", reflect.TypeOf((*MockStore)(nil).AddGroup), group)
-}
-
-// UpdateGroup mocks base method
-func (m *MockStore) UpdateGroup(group *model.ModifyUserGroup) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateGroup", group)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateGroup indicates an expected call of UpdateGroup
-func (mr *MockStoreMockRecorder) UpdateGroup(group interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGroup", reflect.TypeOf((*MockStore)(nil).UpdateGroup), group)
-}
-
-// DeleteGroup mocks base method
-func (m *MockStore) DeleteGroup(group *model.UserGroupDetail) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteGroup", group)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteGroup indicates an expected call of DeleteGroup
-func (mr *MockStoreMockRecorder) DeleteGroup(group interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteGroup", reflect.TypeOf((*MockStore)(nil).DeleteGroup), group)
-}
-
-// GetGroup mocks base method
+// GetGroup mocks base method.
 func (m *MockStore) GetGroup(id string) (*model.UserGroupDetail, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroup", id)
@@ -1566,13 +924,13 @@ func (m *MockStore) GetGroup(id string) (*model.UserGroupDetail, error) {
 	return ret0, ret1
 }
 
-// GetGroup indicates an expected call of GetGroup
+// GetGroup indicates an expected call of GetGroup.
 func (mr *MockStoreMockRecorder) GetGroup(id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroup", reflect.TypeOf((*MockStore)(nil).GetGroup), id)
 }
 
-// GetGroupByName mocks base method
+// GetGroupByName mocks base method.
 func (m *MockStore) GetGroupByName(name, owner string) (*model.UserGroup, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroupByName", name, owner)
@@ -1581,13 +939,13 @@ func (m *MockStore) GetGroupByName(name, owner string) (*model.UserGroup, error)
 	return ret0, ret1
 }
 
-// GetGroupByName indicates an expected call of GetGroupByName
+// GetGroupByName indicates an expected call of GetGroupByName.
 func (mr *MockStoreMockRecorder) GetGroupByName(name, owner interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupByName", reflect.TypeOf((*MockStore)(nil).GetGroupByName), name, owner)
 }
 
-// GetGroups mocks base method
+// GetGroups mocks base method.
 func (m *MockStore) GetGroups(filters map[string]string, offset, limit uint32) (uint32, []*model.UserGroup, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroups", filters, offset, limit)
@@ -1597,13 +955,13 @@ func (m *MockStore) GetGroups(filters map[string]string, offset, limit uint32) (
 	return ret0, ret1, ret2
 }
 
-// GetGroups indicates an expected call of GetGroups
+// GetGroups indicates an expected call of GetGroups.
 func (mr *MockStoreMockRecorder) GetGroups(filters, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroups", reflect.TypeOf((*MockStore)(nil).GetGroups), filters, offset, limit)
 }
 
-// GetGroupsForCache mocks base method
+// GetGroupsForCache mocks base method.
 func (m *MockStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*model.UserGroupDetail, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroupsForCache", mtime, firstUpdate)
@@ -1612,128 +970,514 @@ func (m *MockStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*mod
 	return ret0, ret1
 }
 
-// GetGroupsForCache indicates an expected call of GetGroupsForCache
+// GetGroupsForCache indicates an expected call of GetGroupsForCache.
 func (mr *MockStoreMockRecorder) GetGroupsForCache(mtime, firstUpdate interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupsForCache", reflect.TypeOf((*MockStore)(nil).GetGroupsForCache), mtime, firstUpdate)
 }
 
-// AddStrategy mocks base method
-func (m *MockStore) AddStrategy(strategy *model.StrategyDetail) error {
+// GetInstance mocks base method.
+func (m *MockStore) GetInstance(instanceID string) (*model.Instance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddStrategy", strategy)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddStrategy indicates an expected call of AddStrategy
-func (mr *MockStoreMockRecorder) AddStrategy(strategy interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddStrategy", reflect.TypeOf((*MockStore)(nil).AddStrategy), strategy)
-}
-
-// UpdateStrategy mocks base method
-func (m *MockStore) UpdateStrategy(strategy *model.ModifyStrategyDetail) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateStrategy", strategy)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateStrategy indicates an expected call of UpdateStrategy
-func (mr *MockStoreMockRecorder) UpdateStrategy(strategy interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStrategy", reflect.TypeOf((*MockStore)(nil).UpdateStrategy), strategy)
-}
-
-// DeleteStrategy mocks base method
-func (m *MockStore) DeleteStrategy(id string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteStrategy", id)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteStrategy indicates an expected call of DeleteStrategy
-func (mr *MockStoreMockRecorder) DeleteStrategy(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteStrategy", reflect.TypeOf((*MockStore)(nil).DeleteStrategy), id)
-}
-
-// LooseAddStrategyResources mocks base method
-func (m *MockStore) LooseAddStrategyResources(resources []model.StrategyResource) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LooseAddStrategyResources", resources)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// LooseAddStrategyResources indicates an expected call of LooseAddStrategyResources
-func (mr *MockStoreMockRecorder) LooseAddStrategyResources(resources interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LooseAddStrategyResources", reflect.TypeOf((*MockStore)(nil).LooseAddStrategyResources), resources)
-}
-
-// RemoveStrategyResources mocks base method
-func (m *MockStore) RemoveStrategyResources(resources []model.StrategyResource) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveStrategyResources", resources)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RemoveStrategyResources indicates an expected call of RemoveStrategyResources
-func (mr *MockStoreMockRecorder) RemoveStrategyResources(resources interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveStrategyResources", reflect.TypeOf((*MockStore)(nil).RemoveStrategyResources), resources)
-}
-
-// GetStrategyResources mocks base method
-func (m *MockStore) GetStrategyResources(principalId string, principalRole model.PrincipalType) ([]model.StrategyResource, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStrategyResources", principalId, principalRole)
-	ret0, _ := ret[0].([]model.StrategyResource)
+	ret := m.ctrl.Call(m, "GetInstance", instanceID)
+	ret0, _ := ret[0].(*model.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetStrategyResources indicates an expected call of GetStrategyResources
-func (mr *MockStoreMockRecorder) GetStrategyResources(principalId, principalRole interface{}) *gomock.Call {
+// GetInstance indicates an expected call of GetInstance.
+func (mr *MockStoreMockRecorder) GetInstance(instanceID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategyResources", reflect.TypeOf((*MockStore)(nil).GetStrategyResources), principalId, principalRole)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstance", reflect.TypeOf((*MockStore)(nil).GetInstance), instanceID)
 }
 
-// GetDefaultStrategyDetailByPrincipal mocks base method
-func (m *MockStore) GetDefaultStrategyDetailByPrincipal(principalId string, principalType model.PrincipalType) (*model.StrategyDetail, error) {
+// GetInstancesBrief mocks base method.
+func (m *MockStore) GetInstancesBrief(ids map[string]bool) (map[string]*model.Instance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDefaultStrategyDetailByPrincipal", principalId, principalType)
-	ret0, _ := ret[0].(*model.StrategyDetail)
+	ret := m.ctrl.Call(m, "GetInstancesBrief", ids)
+	ret0, _ := ret[0].(map[string]*model.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetDefaultStrategyDetailByPrincipal indicates an expected call of GetDefaultStrategyDetailByPrincipal
-func (mr *MockStoreMockRecorder) GetDefaultStrategyDetailByPrincipal(principalId, principalType interface{}) *gomock.Call {
+// GetInstancesBrief indicates an expected call of GetInstancesBrief.
+func (mr *MockStoreMockRecorder) GetInstancesBrief(ids interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDefaultStrategyDetailByPrincipal", reflect.TypeOf((*MockStore)(nil).GetDefaultStrategyDetailByPrincipal), principalId, principalType)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstancesBrief", reflect.TypeOf((*MockStore)(nil).GetInstancesBrief), ids)
 }
 
-// GetStrategyDetail mocks base method
-func (m *MockStore) GetStrategyDetail(id string) (*model.StrategyDetail, error) {
+// GetInstancesCount mocks base method.
+func (m *MockStore) GetInstancesCount() (uint32, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStrategyDetail", id)
-	ret0, _ := ret[0].(*model.StrategyDetail)
+	ret := m.ctrl.Call(m, "GetInstancesCount")
+	ret0, _ := ret[0].(uint32)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetStrategyDetail indicates an expected call of GetStrategyDetail
-func (mr *MockStoreMockRecorder) GetStrategyDetail(id interface{}) *gomock.Call {
+// GetInstancesCount indicates an expected call of GetInstancesCount.
+func (mr *MockStoreMockRecorder) GetInstancesCount() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategyDetail", reflect.TypeOf((*MockStore)(nil).GetStrategyDetail), id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstancesCount", reflect.TypeOf((*MockStore)(nil).GetInstancesCount))
 }
 
-// GetStrategies mocks base method
+// GetInstancesMainByService mocks base method.
+func (m *MockStore) GetInstancesMainByService(serviceID, host string) ([]*model.Instance, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstancesMainByService", serviceID, host)
+	ret0, _ := ret[0].([]*model.Instance)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInstancesMainByService indicates an expected call of GetInstancesMainByService.
+func (mr *MockStoreMockRecorder) GetInstancesMainByService(serviceID, host interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstancesMainByService", reflect.TypeOf((*MockStore)(nil).GetInstancesMainByService), serviceID, host)
+}
+
+// GetL5Extend mocks base method.
+func (m *MockStore) GetL5Extend(serviceID string) (map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetL5Extend", serviceID)
+	ret0, _ := ret[0].(map[string]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetL5Extend indicates an expected call of GetL5Extend.
+func (mr *MockStoreMockRecorder) GetL5Extend(serviceID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetL5Extend", reflect.TypeOf((*MockStore)(nil).GetL5Extend), serviceID)
+}
+
+// GetLatestConfigFileReleaseHistory mocks base method.
+func (m *MockStore) GetLatestConfigFileReleaseHistory(namespace, group, fileName string) (*model.ConfigFileReleaseHistory, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLatestConfigFileReleaseHistory", namespace, group, fileName)
+	ret0, _ := ret[0].(*model.ConfigFileReleaseHistory)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLatestConfigFileReleaseHistory indicates an expected call of GetLatestConfigFileReleaseHistory.
+func (mr *MockStoreMockRecorder) GetLatestConfigFileReleaseHistory(namespace, group, fileName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestConfigFileReleaseHistory", reflect.TypeOf((*MockStore)(nil).GetLatestConfigFileReleaseHistory), namespace, group, fileName)
+}
+
+// GetMoreBusiness mocks base method.
+func (m *MockStore) GetMoreBusiness(mtime time.Time) ([]*model.Business, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreBusiness", mtime)
+	ret0, _ := ret[0].([]*model.Business)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreBusiness indicates an expected call of GetMoreBusiness.
+func (mr *MockStoreMockRecorder) GetMoreBusiness(mtime interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreBusiness", reflect.TypeOf((*MockStore)(nil).GetMoreBusiness), mtime)
+}
+
+// GetMoreClients mocks base method.
+func (m *MockStore) GetMoreClients(mtime time.Time, firstUpdate bool) (map[string]*model.Client, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreClients", mtime, firstUpdate)
+	ret0, _ := ret[0].(map[string]*model.Client)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreClients indicates an expected call of GetMoreClients.
+func (mr *MockStoreMockRecorder) GetMoreClients(mtime, firstUpdate interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreClients", reflect.TypeOf((*MockStore)(nil).GetMoreClients), mtime, firstUpdate)
+}
+
+// GetMoreInstances mocks base method.
+func (m *MockStore) GetMoreInstances(mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (map[string]*model.Instance, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreInstances", mtime, firstUpdate, needMeta, serviceID)
+	ret0, _ := ret[0].(map[string]*model.Instance)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreInstances indicates an expected call of GetMoreInstances.
+func (mr *MockStoreMockRecorder) GetMoreInstances(mtime, firstUpdate, needMeta, serviceID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreInstances", reflect.TypeOf((*MockStore)(nil).GetMoreInstances), mtime, firstUpdate, needMeta, serviceID)
+}
+
+// GetMoreL5Extend mocks base method.
+func (m *MockStore) GetMoreL5Extend(mtime time.Time) (map[string]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreL5Extend", mtime)
+	ret0, _ := ret[0].(map[string]map[string]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreL5Extend indicates an expected call of GetMoreL5Extend.
+func (mr *MockStoreMockRecorder) GetMoreL5Extend(mtime interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreL5Extend", reflect.TypeOf((*MockStore)(nil).GetMoreL5Extend), mtime)
+}
+
+// GetMoreL5IPConfigs mocks base method.
+func (m *MockStore) GetMoreL5IPConfigs(flow uint32) ([]*model.IPConfig, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreL5IPConfigs", flow)
+	ret0, _ := ret[0].([]*model.IPConfig)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreL5IPConfigs indicates an expected call of GetMoreL5IPConfigs.
+func (mr *MockStoreMockRecorder) GetMoreL5IPConfigs(flow interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreL5IPConfigs", reflect.TypeOf((*MockStore)(nil).GetMoreL5IPConfigs), flow)
+}
+
+// GetMoreL5Policies mocks base method.
+func (m *MockStore) GetMoreL5Policies(flow uint32) ([]*model.Policy, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreL5Policies", flow)
+	ret0, _ := ret[0].([]*model.Policy)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreL5Policies indicates an expected call of GetMoreL5Policies.
+func (mr *MockStoreMockRecorder) GetMoreL5Policies(flow interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreL5Policies", reflect.TypeOf((*MockStore)(nil).GetMoreL5Policies), flow)
+}
+
+// GetMoreL5Routes mocks base method.
+func (m *MockStore) GetMoreL5Routes(flow uint32) ([]*model.Route, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreL5Routes", flow)
+	ret0, _ := ret[0].([]*model.Route)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreL5Routes indicates an expected call of GetMoreL5Routes.
+func (mr *MockStoreMockRecorder) GetMoreL5Routes(flow interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreL5Routes", reflect.TypeOf((*MockStore)(nil).GetMoreL5Routes), flow)
+}
+
+// GetMoreL5Sections mocks base method.
+func (m *MockStore) GetMoreL5Sections(flow uint32) ([]*model.Section, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreL5Sections", flow)
+	ret0, _ := ret[0].([]*model.Section)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreL5Sections indicates an expected call of GetMoreL5Sections.
+func (mr *MockStoreMockRecorder) GetMoreL5Sections(flow interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreL5Sections", reflect.TypeOf((*MockStore)(nil).GetMoreL5Sections), flow)
+}
+
+// GetMoreNamespaces mocks base method.
+func (m *MockStore) GetMoreNamespaces(mtime time.Time) ([]*model.Namespace, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreNamespaces", mtime)
+	ret0, _ := ret[0].([]*model.Namespace)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreNamespaces indicates an expected call of GetMoreNamespaces.
+func (mr *MockStoreMockRecorder) GetMoreNamespaces(mtime interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreNamespaces", reflect.TypeOf((*MockStore)(nil).GetMoreNamespaces), mtime)
+}
+
+// GetMoreServices mocks base method.
+func (m *MockStore) GetMoreServices(mtime time.Time, firstUpdate, disableBusiness, needMeta bool) (map[string]*model.Service, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreServices", mtime, firstUpdate, disableBusiness, needMeta)
+	ret0, _ := ret[0].(map[string]*model.Service)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreServices indicates an expected call of GetMoreServices.
+func (mr *MockStoreMockRecorder) GetMoreServices(mtime, firstUpdate, disableBusiness, needMeta interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreServices", reflect.TypeOf((*MockStore)(nil).GetMoreServices), mtime, firstUpdate, disableBusiness, needMeta)
+}
+
+// GetNamespace mocks base method.
+func (m *MockStore) GetNamespace(name string) (*model.Namespace, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNamespace", name)
+	ret0, _ := ret[0].(*model.Namespace)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNamespace indicates an expected call of GetNamespace.
+func (mr *MockStoreMockRecorder) GetNamespace(name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespace", reflect.TypeOf((*MockStore)(nil).GetNamespace), name)
+}
+
+// GetNamespaces mocks base method.
+func (m *MockStore) GetNamespaces(filter map[string][]string, offset, limit int) ([]*model.Namespace, uint32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNamespaces", filter, offset, limit)
+	ret0, _ := ret[0].([]*model.Namespace)
+	ret1, _ := ret[1].(uint32)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetNamespaces indicates an expected call of GetNamespaces.
+func (mr *MockStoreMockRecorder) GetNamespaces(filter, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespaces", reflect.TypeOf((*MockStore)(nil).GetNamespaces), filter, offset, limit)
+}
+
+// GetPlatformById mocks base method.
+func (m *MockStore) GetPlatformById(id string) (*model.Platform, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPlatformById", id)
+	ret0, _ := ret[0].(*model.Platform)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPlatformById indicates an expected call of GetPlatformById.
+func (mr *MockStoreMockRecorder) GetPlatformById(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlatformById", reflect.TypeOf((*MockStore)(nil).GetPlatformById), id)
+}
+
+// GetPlatforms mocks base method.
+func (m *MockStore) GetPlatforms(query map[string]string, offset, limit uint32) (uint32, []*model.Platform, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPlatforms", query, offset, limit)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.Platform)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetPlatforms indicates an expected call of GetPlatforms.
+func (mr *MockStoreMockRecorder) GetPlatforms(query, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlatforms", reflect.TypeOf((*MockStore)(nil).GetPlatforms), query, offset, limit)
+}
+
+// GetRateLimitWithID mocks base method.
+func (m *MockStore) GetRateLimitWithID(id string) (*model.RateLimit, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRateLimitWithID", id)
+	ret0, _ := ret[0].(*model.RateLimit)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRateLimitWithID indicates an expected call of GetRateLimitWithID.
+func (mr *MockStoreMockRecorder) GetRateLimitWithID(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRateLimitWithID", reflect.TypeOf((*MockStore)(nil).GetRateLimitWithID), id)
+}
+
+// GetRateLimitsForCache mocks base method.
+func (m *MockStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, []*model.RateLimitRevision, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRateLimitsForCache", mtime, firstUpdate)
+	ret0, _ := ret[0].([]*model.RateLimit)
+	ret1, _ := ret[1].([]*model.RateLimitRevision)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetRateLimitsForCache indicates an expected call of GetRateLimitsForCache.
+func (mr *MockStoreMockRecorder) GetRateLimitsForCache(mtime, firstUpdate interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRateLimitsForCache", reflect.TypeOf((*MockStore)(nil).GetRateLimitsForCache), mtime, firstUpdate)
+}
+
+// GetRoutingConfigWithID mocks base method.
+func (m *MockStore) GetRoutingConfigWithID(id string) (*model.RoutingConfig, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRoutingConfigWithID", id)
+	ret0, _ := ret[0].(*model.RoutingConfig)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRoutingConfigWithID indicates an expected call of GetRoutingConfigWithID.
+func (mr *MockStoreMockRecorder) GetRoutingConfigWithID(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoutingConfigWithID", reflect.TypeOf((*MockStore)(nil).GetRoutingConfigWithID), id)
+}
+
+// GetRoutingConfigWithService mocks base method.
+func (m *MockStore) GetRoutingConfigWithService(name, namespace string) (*model.RoutingConfig, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRoutingConfigWithService", name, namespace)
+	ret0, _ := ret[0].(*model.RoutingConfig)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRoutingConfigWithService indicates an expected call of GetRoutingConfigWithService.
+func (mr *MockStoreMockRecorder) GetRoutingConfigWithService(name, namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoutingConfigWithService", reflect.TypeOf((*MockStore)(nil).GetRoutingConfigWithService), name, namespace)
+}
+
+// GetRoutingConfigs mocks base method.
+func (m *MockStore) GetRoutingConfigs(filter map[string]string, offset, limit uint32) (uint32, []*model.ExtendRoutingConfig, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRoutingConfigs", filter, offset, limit)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.ExtendRoutingConfig)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetRoutingConfigs indicates an expected call of GetRoutingConfigs.
+func (mr *MockStoreMockRecorder) GetRoutingConfigs(filter, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoutingConfigs", reflect.TypeOf((*MockStore)(nil).GetRoutingConfigs), filter, offset, limit)
+}
+
+// GetRoutingConfigsForCache mocks base method.
+func (m *MockStore) GetRoutingConfigsForCache(mtime time.Time, firstUpdate bool) ([]*model.RoutingConfig, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRoutingConfigsForCache", mtime, firstUpdate)
+	ret0, _ := ret[0].([]*model.RoutingConfig)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRoutingConfigsForCache indicates an expected call of GetRoutingConfigsForCache.
+func (mr *MockStoreMockRecorder) GetRoutingConfigsForCache(mtime, firstUpdate interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoutingConfigsForCache", reflect.TypeOf((*MockStore)(nil).GetRoutingConfigsForCache), mtime, firstUpdate)
+}
+
+// GetService mocks base method.
+func (m *MockStore) GetService(name, namespace string) (*model.Service, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetService", name, namespace)
+	ret0, _ := ret[0].(*model.Service)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetService indicates an expected call of GetService.
+func (mr *MockStoreMockRecorder) GetService(name, namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetService", reflect.TypeOf((*MockStore)(nil).GetService), name, namespace)
+}
+
+// GetServiceAliases mocks base method.
+func (m *MockStore) GetServiceAliases(filter map[string]string, offset, limit uint32) (uint32, []*model.ServiceAlias, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetServiceAliases", filter, offset, limit)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.ServiceAlias)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetServiceAliases indicates an expected call of GetServiceAliases.
+func (mr *MockStoreMockRecorder) GetServiceAliases(filter, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceAliases", reflect.TypeOf((*MockStore)(nil).GetServiceAliases), filter, offset, limit)
+}
+
+// GetServiceByID mocks base method.
+func (m *MockStore) GetServiceByID(id string) (*model.Service, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetServiceByID", id)
+	ret0, _ := ret[0].(*model.Service)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetServiceByID indicates an expected call of GetServiceByID.
+func (mr *MockStoreMockRecorder) GetServiceByID(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceByID", reflect.TypeOf((*MockStore)(nil).GetServiceByID), id)
+}
+
+// GetServices mocks base method.
+func (m *MockStore) GetServices(serviceFilters, serviceMetas map[string]string, instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.Service, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetServices", serviceFilters, serviceMetas, instanceFilters, offset, limit)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.Service)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetServices indicates an expected call of GetServices.
+func (mr *MockStoreMockRecorder) GetServices(serviceFilters, serviceMetas, instanceFilters, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServices", reflect.TypeOf((*MockStore)(nil).GetServices), serviceFilters, serviceMetas, instanceFilters, offset, limit)
+}
+
+// GetServicesBatch mocks base method.
+func (m *MockStore) GetServicesBatch(services []*model.Service) ([]*model.Service, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetServicesBatch", services)
+	ret0, _ := ret[0].([]*model.Service)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetServicesBatch indicates an expected call of GetServicesBatch.
+func (mr *MockStoreMockRecorder) GetServicesBatch(services interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesBatch", reflect.TypeOf((*MockStore)(nil).GetServicesBatch), services)
+}
+
+// GetServicesCount mocks base method.
+func (m *MockStore) GetServicesCount() (uint32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetServicesCount")
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetServicesCount indicates an expected call of GetServicesCount.
+func (mr *MockStoreMockRecorder) GetServicesCount() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesCount", reflect.TypeOf((*MockStore)(nil).GetServicesCount))
+}
+
+// GetSourceServiceToken mocks base method.
+func (m *MockStore) GetSourceServiceToken(name, namespace string) (*model.Service, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSourceServiceToken", name, namespace)
+	ret0, _ := ret[0].(*model.Service)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSourceServiceToken indicates an expected call of GetSourceServiceToken.
+func (mr *MockStoreMockRecorder) GetSourceServiceToken(name, namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSourceServiceToken", reflect.TypeOf((*MockStore)(nil).GetSourceServiceToken), name, namespace)
+}
+
+// GetStrategies mocks base method.
 func (m *MockStore) GetStrategies(filters map[string]string, offset, limit uint32) (uint32, []*model.StrategyDetail, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStrategies", filters, offset, limit)
@@ -1743,13 +1487,28 @@ func (m *MockStore) GetStrategies(filters map[string]string, offset, limit uint3
 	return ret0, ret1, ret2
 }
 
-// GetStrategies indicates an expected call of GetStrategies
+// GetStrategies indicates an expected call of GetStrategies.
 func (mr *MockStoreMockRecorder) GetStrategies(filters, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategies", reflect.TypeOf((*MockStore)(nil).GetStrategies), filters, offset, limit)
 }
 
-// GetStrategyDetailsForCache mocks base method
+// GetStrategyDetail mocks base method.
+func (m *MockStore) GetStrategyDetail(id string) (*model.StrategyDetail, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetStrategyDetail", id)
+	ret0, _ := ret[0].(*model.StrategyDetail)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetStrategyDetail indicates an expected call of GetStrategyDetail.
+func (mr *MockStoreMockRecorder) GetStrategyDetail(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategyDetail", reflect.TypeOf((*MockStore)(nil).GetStrategyDetail), id)
+}
+
+// GetStrategyDetailsForCache mocks base method.
 func (m *MockStore) GetStrategyDetailsForCache(mtime time.Time, firstUpdate bool) ([]*model.StrategyDetail, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStrategyDetailsForCache", mtime, firstUpdate)
@@ -1758,341 +1517,251 @@ func (m *MockStore) GetStrategyDetailsForCache(mtime time.Time, firstUpdate bool
 	return ret0, ret1
 }
 
-// GetStrategyDetailsForCache indicates an expected call of GetStrategyDetailsForCache
+// GetStrategyDetailsForCache indicates an expected call of GetStrategyDetailsForCache.
 func (mr *MockStoreMockRecorder) GetStrategyDetailsForCache(mtime, firstUpdate interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategyDetailsForCache", reflect.TypeOf((*MockStore)(nil).GetStrategyDetailsForCache), mtime, firstUpdate)
 }
 
-// CreateConfigFileGroup mocks base method
-func (m *MockStore) CreateConfigFileGroup(fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
+// GetStrategyResources mocks base method.
+func (m *MockStore) GetStrategyResources(principalId string, principalRole model.PrincipalType) ([]model.StrategyResource, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateConfigFileGroup", fileGroup)
-	ret0, _ := ret[0].(*model.ConfigFileGroup)
+	ret := m.ctrl.Call(m, "GetStrategyResources", principalId, principalRole)
+	ret0, _ := ret[0].([]model.StrategyResource)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// CreateConfigFileGroup indicates an expected call of CreateConfigFileGroup
-func (mr *MockStoreMockRecorder) CreateConfigFileGroup(fileGroup interface{}) *gomock.Call {
+// GetStrategyResources indicates an expected call of GetStrategyResources.
+func (mr *MockStoreMockRecorder) GetStrategyResources(principalId, principalRole interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConfigFileGroup", reflect.TypeOf((*MockStore)(nil).CreateConfigFileGroup), fileGroup)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategyResources", reflect.TypeOf((*MockStore)(nil).GetStrategyResources), principalId, principalRole)
 }
 
-// GetConfigFileGroup mocks base method
-func (m *MockStore) GetConfigFileGroup(namespace, name string) (*model.ConfigFileGroup, error) {
+// GetSubCount mocks base method.
+func (m *MockStore) GetSubCount(user *model.User) (uint32, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetConfigFileGroup", namespace, name)
-	ret0, _ := ret[0].(*model.ConfigFileGroup)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetConfigFileGroup indicates an expected call of GetConfigFileGroup
-func (mr *MockStoreMockRecorder) GetConfigFileGroup(namespace, name interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFileGroup", reflect.TypeOf((*MockStore)(nil).GetConfigFileGroup), namespace, name)
-}
-
-// QueryConfigFileGroups mocks base method
-func (m *MockStore) QueryConfigFileGroups(namespace, name string, offset, limit uint32) (uint32, []*model.ConfigFileGroup, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "QueryConfigFileGroups", namespace, name, offset, limit)
+	ret := m.ctrl.Call(m, "GetSubCount", user)
 	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].([]*model.ConfigFileGroup)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSubCount indicates an expected call of GetSubCount.
+func (mr *MockStoreMockRecorder) GetSubCount(user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSubCount", reflect.TypeOf((*MockStore)(nil).GetSubCount), user)
+}
+
+// GetSystemServices mocks base method.
+func (m *MockStore) GetSystemServices() ([]*model.Service, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSystemServices")
+	ret0, _ := ret[0].([]*model.Service)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSystemServices indicates an expected call of GetSystemServices.
+func (mr *MockStoreMockRecorder) GetSystemServices() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSystemServices", reflect.TypeOf((*MockStore)(nil).GetSystemServices))
+}
+
+// GetUnixSecond mocks base method.
+func (m *MockStore) GetUnixSecond() (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUnixSecond")
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUnixSecond indicates an expected call of GetUnixSecond.
+func (mr *MockStoreMockRecorder) GetUnixSecond() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnixSecond", reflect.TypeOf((*MockStore)(nil).GetUnixSecond))
+}
+
+// GetUser mocks base method.
+func (m *MockStore) GetUser(id string) (*model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUser", id)
+	ret0, _ := ret[0].(*model.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUser indicates an expected call of GetUser.
+func (mr *MockStoreMockRecorder) GetUser(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUser", reflect.TypeOf((*MockStore)(nil).GetUser), id)
+}
+
+// GetUserByIds mocks base method.
+func (m *MockStore) GetUserByIds(ids []string) ([]*model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserByIds", ids)
+	ret0, _ := ret[0].([]*model.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserByIds indicates an expected call of GetUserByIds.
+func (mr *MockStoreMockRecorder) GetUserByIds(ids interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByIds", reflect.TypeOf((*MockStore)(nil).GetUserByIds), ids)
+}
+
+// GetUserByName mocks base method.
+func (m *MockStore) GetUserByName(name, ownerId string) (*model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserByName", name, ownerId)
+	ret0, _ := ret[0].(*model.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserByName indicates an expected call of GetUserByName.
+func (mr *MockStoreMockRecorder) GetUserByName(name, ownerId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByName", reflect.TypeOf((*MockStore)(nil).GetUserByName), name, ownerId)
+}
+
+// GetUsers mocks base method.
+func (m *MockStore) GetUsers(filters map[string]string, offset, limit uint32) (uint32, []*model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUsers", filters, offset, limit)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.User)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
 
-// QueryConfigFileGroups indicates an expected call of QueryConfigFileGroups
-func (mr *MockStoreMockRecorder) QueryConfigFileGroups(namespace, name, offset, limit interface{}) *gomock.Call {
+// GetUsers indicates an expected call of GetUsers.
+func (mr *MockStoreMockRecorder) GetUsers(filters, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryConfigFileGroups", reflect.TypeOf((*MockStore)(nil).QueryConfigFileGroups), namespace, name, offset, limit)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsers", reflect.TypeOf((*MockStore)(nil).GetUsers), filters, offset, limit)
 }
 
-// DeleteConfigFileGroup mocks base method
-func (m *MockStore) DeleteConfigFileGroup(namespace, name string) error {
+// GetUsersForCache mocks base method.
+func (m *MockStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*model.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteConfigFileGroup", namespace, name)
+	ret := m.ctrl.Call(m, "GetUsersForCache", mtime, firstUpdate)
+	ret0, _ := ret[0].([]*model.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUsersForCache indicates an expected call of GetUsersForCache.
+func (mr *MockStoreMockRecorder) GetUsersForCache(mtime, firstUpdate interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsersForCache", reflect.TypeOf((*MockStore)(nil).GetUsersForCache), mtime, firstUpdate)
+}
+
+// Initialize mocks base method.
+func (m *MockStore) Initialize(c *store.Config) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Initialize", c)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// DeleteConfigFileGroup indicates an expected call of DeleteConfigFileGroup
-func (mr *MockStoreMockRecorder) DeleteConfigFileGroup(namespace, name interface{}) *gomock.Call {
+// Initialize indicates an expected call of Initialize.
+func (mr *MockStoreMockRecorder) Initialize(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteConfigFileGroup", reflect.TypeOf((*MockStore)(nil).DeleteConfigFileGroup), namespace, name)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockStore)(nil).Initialize), c)
 }
 
-// UpdateConfigFileGroup mocks base method
-func (m *MockStore) UpdateConfigFileGroup(fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
+// ListBusiness mocks base method.
+func (m *MockStore) ListBusiness(owner string) ([]*model.Business, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateConfigFileGroup", fileGroup)
-	ret0, _ := ret[0].(*model.ConfigFileGroup)
+	ret := m.ctrl.Call(m, "ListBusiness", owner)
+	ret0, _ := ret[0].([]*model.Business)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// UpdateConfigFileGroup indicates an expected call of UpdateConfigFileGroup
-func (mr *MockStoreMockRecorder) UpdateConfigFileGroup(fileGroup interface{}) *gomock.Call {
+// ListBusiness indicates an expected call of ListBusiness.
+func (mr *MockStoreMockRecorder) ListBusiness(owner interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateConfigFileGroup", reflect.TypeOf((*MockStore)(nil).UpdateConfigFileGroup), fileGroup)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBusiness", reflect.TypeOf((*MockStore)(nil).ListBusiness), owner)
 }
 
-// FindConfigFileGroups mocks base method
-func (m *MockStore) FindConfigFileGroups(namespace string, names []string) ([]*model.ConfigFileGroup, error) {
+// ListMasterCircuitBreakers mocks base method.
+func (m *MockStore) ListMasterCircuitBreakers(filters map[string]string, offset, limit uint32) (*model.CircuitBreakerDetail, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindConfigFileGroups", namespace, names)
-	ret0, _ := ret[0].([]*model.ConfigFileGroup)
+	ret := m.ctrl.Call(m, "ListMasterCircuitBreakers", filters, offset, limit)
+	ret0, _ := ret[0].(*model.CircuitBreakerDetail)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FindConfigFileGroups indicates an expected call of FindConfigFileGroups
-func (mr *MockStoreMockRecorder) FindConfigFileGroups(namespace, names interface{}) *gomock.Call {
+// ListMasterCircuitBreakers indicates an expected call of ListMasterCircuitBreakers.
+func (mr *MockStoreMockRecorder) ListMasterCircuitBreakers(filters, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindConfigFileGroups", reflect.TypeOf((*MockStore)(nil).FindConfigFileGroups), namespace, names)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMasterCircuitBreakers", reflect.TypeOf((*MockStore)(nil).ListMasterCircuitBreakers), filters, offset, limit)
 }
 
-// CreateConfigFile mocks base method
-func (m *MockStore) CreateConfigFile(tx store.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
+// ListNamespaces mocks base method.
+func (m *MockStore) ListNamespaces(owner string) ([]*model.Namespace, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateConfigFile", tx, file)
-	ret0, _ := ret[0].(*model.ConfigFile)
+	ret := m.ctrl.Call(m, "ListNamespaces", owner)
+	ret0, _ := ret[0].([]*model.Namespace)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// CreateConfigFile indicates an expected call of CreateConfigFile
-func (mr *MockStoreMockRecorder) CreateConfigFile(tx, file interface{}) *gomock.Call {
+// ListNamespaces indicates an expected call of ListNamespaces.
+func (mr *MockStoreMockRecorder) ListNamespaces(owner interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConfigFile", reflect.TypeOf((*MockStore)(nil).CreateConfigFile), tx, file)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNamespaces", reflect.TypeOf((*MockStore)(nil).ListNamespaces), owner)
 }
 
-// GetConfigFile mocks base method
-func (m *MockStore) GetConfigFile(tx store.Tx, namespace, group, name string) (*model.ConfigFile, error) {
+// ListReleaseCircuitBreakers mocks base method.
+func (m *MockStore) ListReleaseCircuitBreakers(filters map[string]string, offset, limit uint32) (*model.CircuitBreakerDetail, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetConfigFile", tx, namespace, group, name)
-	ret0, _ := ret[0].(*model.ConfigFile)
+	ret := m.ctrl.Call(m, "ListReleaseCircuitBreakers", filters, offset, limit)
+	ret0, _ := ret[0].(*model.CircuitBreakerDetail)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetConfigFile indicates an expected call of GetConfigFile
-func (mr *MockStoreMockRecorder) GetConfigFile(tx, namespace, group, name interface{}) *gomock.Call {
+// ListReleaseCircuitBreakers indicates an expected call of ListReleaseCircuitBreakers.
+func (mr *MockStoreMockRecorder) ListReleaseCircuitBreakers(filters, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFile", reflect.TypeOf((*MockStore)(nil).GetConfigFile), tx, namespace, group, name)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListReleaseCircuitBreakers", reflect.TypeOf((*MockStore)(nil).ListReleaseCircuitBreakers), filters, offset, limit)
 }
 
-// QueryConfigFiles mocks base method
-func (m *MockStore) QueryConfigFiles(namespace, group, name string, offset, limit uint32) (uint32, []*model.ConfigFile, error) {
+// LooseAddStrategyResources mocks base method.
+func (m *MockStore) LooseAddStrategyResources(resources []model.StrategyResource) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "QueryConfigFiles", namespace, group, name, offset, limit)
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].([]*model.ConfigFile)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// QueryConfigFiles indicates an expected call of QueryConfigFiles
-func (mr *MockStoreMockRecorder) QueryConfigFiles(namespace, group, name, offset, limit interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryConfigFiles", reflect.TypeOf((*MockStore)(nil).QueryConfigFiles), namespace, group, name, offset, limit)
-}
-
-// UpdateConfigFile mocks base method
-func (m *MockStore) UpdateConfigFile(tx store.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateConfigFile", tx, file)
-	ret0, _ := ret[0].(*model.ConfigFile)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateConfigFile indicates an expected call of UpdateConfigFile
-func (mr *MockStoreMockRecorder) UpdateConfigFile(tx, file interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateConfigFile", reflect.TypeOf((*MockStore)(nil).UpdateConfigFile), tx, file)
-}
-
-// DeleteConfigFile mocks base method
-func (m *MockStore) DeleteConfigFile(tx store.Tx, namespace, group, name string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteConfigFile", tx, namespace, group, name)
+	ret := m.ctrl.Call(m, "LooseAddStrategyResources", resources)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// DeleteConfigFile indicates an expected call of DeleteConfigFile
-func (mr *MockStoreMockRecorder) DeleteConfigFile(tx, namespace, group, name interface{}) *gomock.Call {
+// LooseAddStrategyResources indicates an expected call of LooseAddStrategyResources.
+func (mr *MockStoreMockRecorder) LooseAddStrategyResources(resources interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteConfigFile", reflect.TypeOf((*MockStore)(nil).DeleteConfigFile), tx, namespace, group, name)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LooseAddStrategyResources", reflect.TypeOf((*MockStore)(nil).LooseAddStrategyResources), resources)
 }
 
-// CountByConfigFileGroup mocks base method
-func (m *MockStore) CountByConfigFileGroup(namespace, group string) (uint64, error) {
+// Name mocks base method.
+func (m *MockStore) Name() string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CountByConfigFileGroup", namespace, group)
-	ret0, _ := ret[0].(uint64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CountByConfigFileGroup indicates an expected call of CountByConfigFileGroup
-func (mr *MockStoreMockRecorder) CountByConfigFileGroup(namespace, group interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountByConfigFileGroup", reflect.TypeOf((*MockStore)(nil).CountByConfigFileGroup), namespace, group)
-}
-
-// CreateConfigFileRelease mocks base method
-func (m *MockStore) CreateConfigFileRelease(tx store.Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateConfigFileRelease", tx, fileRelease)
-	ret0, _ := ret[0].(*model.ConfigFileRelease)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateConfigFileRelease indicates an expected call of CreateConfigFileRelease
-func (mr *MockStoreMockRecorder) CreateConfigFileRelease(tx, fileRelease interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConfigFileRelease", reflect.TypeOf((*MockStore)(nil).CreateConfigFileRelease), tx, fileRelease)
-}
-
-// UpdateConfigFileRelease mocks base method
-func (m *MockStore) UpdateConfigFileRelease(tx store.Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateConfigFileRelease", tx, fileRelease)
-	ret0, _ := ret[0].(*model.ConfigFileRelease)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateConfigFileRelease indicates an expected call of UpdateConfigFileRelease
-func (mr *MockStoreMockRecorder) UpdateConfigFileRelease(tx, fileRelease interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateConfigFileRelease", reflect.TypeOf((*MockStore)(nil).UpdateConfigFileRelease), tx, fileRelease)
-}
-
-// GetConfigFileRelease mocks base method
-func (m *MockStore) GetConfigFileRelease(tx store.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetConfigFileRelease", tx, namespace, group, fileName)
-	ret0, _ := ret[0].(*model.ConfigFileRelease)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetConfigFileRelease indicates an expected call of GetConfigFileRelease
-func (mr *MockStoreMockRecorder) GetConfigFileRelease(tx, namespace, group, fileName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFileRelease", reflect.TypeOf((*MockStore)(nil).GetConfigFileRelease), tx, namespace, group, fileName)
-}
-
-// GetConfigFileReleaseWithAllFlag mocks base method
-func (m *MockStore) GetConfigFileReleaseWithAllFlag(tx store.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetConfigFileReleaseWithAllFlag", tx, namespace, group, fileName)
-	ret0, _ := ret[0].(*model.ConfigFileRelease)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetConfigFileReleaseWithAllFlag indicates an expected call of GetConfigFileReleaseWithAllFlag
-func (mr *MockStoreMockRecorder) GetConfigFileReleaseWithAllFlag(tx, namespace, group, fileName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFileReleaseWithAllFlag", reflect.TypeOf((*MockStore)(nil).GetConfigFileReleaseWithAllFlag), tx, namespace, group, fileName)
-}
-
-// DeleteConfigFileRelease mocks base method
-func (m *MockStore) DeleteConfigFileRelease(tx store.Tx, namespace, group, fileName, deleteBy string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteConfigFileRelease", tx, namespace, group, fileName, deleteBy)
-	ret0, _ := ret[0].(error)
+	ret := m.ctrl.Call(m, "Name")
+	ret0, _ := ret[0].(string)
 	return ret0
 }
 
-// DeleteConfigFileRelease indicates an expected call of DeleteConfigFileRelease
-func (mr *MockStoreMockRecorder) DeleteConfigFileRelease(tx, namespace, group, fileName, deleteBy interface{}) *gomock.Call {
+// Name indicates an expected call of Name.
+func (mr *MockStoreMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteConfigFileRelease", reflect.TypeOf((*MockStore)(nil).DeleteConfigFileRelease), tx, namespace, group, fileName, deleteBy)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockStore)(nil).Name))
 }
 
-// FindConfigFileReleaseByModifyTimeAfter mocks base method
-func (m *MockStore) FindConfigFileReleaseByModifyTimeAfter(modifyTime time.Time) ([]*model.ConfigFileRelease, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindConfigFileReleaseByModifyTimeAfter", modifyTime)
-	ret0, _ := ret[0].([]*model.ConfigFileRelease)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FindConfigFileReleaseByModifyTimeAfter indicates an expected call of FindConfigFileReleaseByModifyTimeAfter
-func (mr *MockStoreMockRecorder) FindConfigFileReleaseByModifyTimeAfter(modifyTime interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindConfigFileReleaseByModifyTimeAfter", reflect.TypeOf((*MockStore)(nil).FindConfigFileReleaseByModifyTimeAfter), modifyTime)
-}
-
-// CreateConfigFileReleaseHistory mocks base method
-func (m *MockStore) CreateConfigFileReleaseHistory(tx store.Tx, fileReleaseHistory *model.ConfigFileReleaseHistory) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateConfigFileReleaseHistory", tx, fileReleaseHistory)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateConfigFileReleaseHistory indicates an expected call of CreateConfigFileReleaseHistory
-func (mr *MockStoreMockRecorder) CreateConfigFileReleaseHistory(tx, fileReleaseHistory interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConfigFileReleaseHistory", reflect.TypeOf((*MockStore)(nil).CreateConfigFileReleaseHistory), tx, fileReleaseHistory)
-}
-
-// QueryConfigFileReleaseHistories mocks base method
-func (m *MockStore) QueryConfigFileReleaseHistories(namespace, group, fileName string, offset, limit uint32, endId uint64) (uint32, []*model.ConfigFileReleaseHistory, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "QueryConfigFileReleaseHistories", namespace, group, fileName, offset, limit, endId)
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].([]*model.ConfigFileReleaseHistory)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// QueryConfigFileReleaseHistories indicates an expected call of QueryConfigFileReleaseHistories
-func (mr *MockStoreMockRecorder) QueryConfigFileReleaseHistories(namespace, group, fileName, offset, limit, endId interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryConfigFileReleaseHistories", reflect.TypeOf((*MockStore)(nil).QueryConfigFileReleaseHistories), namespace, group, fileName, offset, limit, endId)
-}
-
-// GetLatestConfigFileReleaseHistory mocks base method
-func (m *MockStore) GetLatestConfigFileReleaseHistory(namespace, group, fileName string) (*model.ConfigFileReleaseHistory, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLatestConfigFileReleaseHistory", namespace, group, fileName)
-	ret0, _ := ret[0].(*model.ConfigFileReleaseHistory)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetLatestConfigFileReleaseHistory indicates an expected call of GetLatestConfigFileReleaseHistory
-func (mr *MockStoreMockRecorder) GetLatestConfigFileReleaseHistory(namespace, group, fileName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestConfigFileReleaseHistory", reflect.TypeOf((*MockStore)(nil).GetLatestConfigFileReleaseHistory), namespace, group, fileName)
-}
-
-// CreateConfigFileTag mocks base method
-func (m *MockStore) CreateConfigFileTag(tx store.Tx, fileTag *model.ConfigFileTag) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateConfigFileTag", tx, fileTag)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateConfigFileTag indicates an expected call of CreateConfigFileTag
-func (mr *MockStoreMockRecorder) CreateConfigFileTag(tx, fileTag interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConfigFileTag", reflect.TypeOf((*MockStore)(nil).CreateConfigFileTag), tx, fileTag)
-}
-
-// QueryConfigFileByTag mocks base method
+// QueryConfigFileByTag mocks base method.
 func (m *MockStore) QueryConfigFileByTag(namespace, group, fileName string, tags ...string) ([]*model.ConfigFileTag, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{namespace, group, fileName}
@@ -2105,14 +1774,78 @@ func (m *MockStore) QueryConfigFileByTag(namespace, group, fileName string, tags
 	return ret0, ret1
 }
 
-// QueryConfigFileByTag indicates an expected call of QueryConfigFileByTag
+// QueryConfigFileByTag indicates an expected call of QueryConfigFileByTag.
 func (mr *MockStoreMockRecorder) QueryConfigFileByTag(namespace, group, fileName interface{}, tags ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{namespace, group, fileName}, tags...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryConfigFileByTag", reflect.TypeOf((*MockStore)(nil).QueryConfigFileByTag), varargs...)
 }
 
-// QueryTagByConfigFile mocks base method
+// QueryConfigFileGroups mocks base method.
+func (m *MockStore) QueryConfigFileGroups(namespace, name string, offset, limit uint32) (uint32, []*model.ConfigFileGroup, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueryConfigFileGroups", namespace, name, offset, limit)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.ConfigFileGroup)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// QueryConfigFileGroups indicates an expected call of QueryConfigFileGroups.
+func (mr *MockStoreMockRecorder) QueryConfigFileGroups(namespace, name, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryConfigFileGroups", reflect.TypeOf((*MockStore)(nil).QueryConfigFileGroups), namespace, name, offset, limit)
+}
+
+// QueryConfigFileReleaseHistories mocks base method.
+func (m *MockStore) QueryConfigFileReleaseHistories(namespace, group, fileName string, offset, limit uint32, endId uint64) (uint32, []*model.ConfigFileReleaseHistory, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueryConfigFileReleaseHistories", namespace, group, fileName, offset, limit, endId)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.ConfigFileReleaseHistory)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// QueryConfigFileReleaseHistories indicates an expected call of QueryConfigFileReleaseHistories.
+func (mr *MockStoreMockRecorder) QueryConfigFileReleaseHistories(namespace, group, fileName, offset, limit, endId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryConfigFileReleaseHistories", reflect.TypeOf((*MockStore)(nil).QueryConfigFileReleaseHistories), namespace, group, fileName, offset, limit, endId)
+}
+
+// QueryConfigFiles mocks base method.
+func (m *MockStore) QueryConfigFiles(namespace, group, name string, offset, limit uint32) (uint32, []*model.ConfigFile, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueryConfigFiles", namespace, group, name, offset, limit)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.ConfigFile)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// QueryConfigFiles indicates an expected call of QueryConfigFiles.
+func (mr *MockStoreMockRecorder) QueryConfigFiles(namespace, group, name, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryConfigFiles", reflect.TypeOf((*MockStore)(nil).QueryConfigFiles), namespace, group, name, offset, limit)
+}
+
+// QueryConfigFilesByGroup mocks base method.
+func (m *MockStore) QueryConfigFilesByGroup(namespace, group string, offset, limit uint32) (uint32, []*model.ConfigFile, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueryConfigFilesByGroup", namespace, group, offset, limit)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.ConfigFile)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// QueryConfigFilesByGroup indicates an expected call of QueryConfigFilesByGroup.
+func (mr *MockStoreMockRecorder) QueryConfigFilesByGroup(namespace, group, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryConfigFilesByGroup", reflect.TypeOf((*MockStore)(nil).QueryConfigFilesByGroup), namespace, group, offset, limit)
+}
+
+// QueryTagByConfigFile mocks base method.
 func (m *MockStore) QueryTagByConfigFile(namespace, group, fileName string) ([]*model.ConfigFileTag, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "QueryTagByConfigFile", namespace, group, fileName)
@@ -2121,107 +1854,391 @@ func (m *MockStore) QueryTagByConfigFile(namespace, group, fileName string) ([]*
 	return ret0, ret1
 }
 
-// QueryTagByConfigFile indicates an expected call of QueryTagByConfigFile
+// QueryTagByConfigFile indicates an expected call of QueryTagByConfigFile.
 func (mr *MockStoreMockRecorder) QueryTagByConfigFile(namespace, group, fileName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryTagByConfigFile", reflect.TypeOf((*MockStore)(nil).QueryTagByConfigFile), namespace, group, fileName)
 }
 
-// DeleteConfigFileTag mocks base method
-func (m *MockStore) DeleteConfigFileTag(tx store.Tx, namespace, group, fileName, key, value string) error {
+// ReleaseCircuitBreaker mocks base method.
+func (m *MockStore) ReleaseCircuitBreaker(circuitBreakerRelation *model.CircuitBreakerRelation) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteConfigFileTag", tx, namespace, group, fileName, key, value)
+	ret := m.ctrl.Call(m, "ReleaseCircuitBreaker", circuitBreakerRelation)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// DeleteConfigFileTag indicates an expected call of DeleteConfigFileTag
-func (mr *MockStoreMockRecorder) DeleteConfigFileTag(tx, namespace, group, fileName, key, value interface{}) *gomock.Call {
+// ReleaseCircuitBreaker indicates an expected call of ReleaseCircuitBreaker.
+func (mr *MockStoreMockRecorder) ReleaseCircuitBreaker(circuitBreakerRelation interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteConfigFileTag", reflect.TypeOf((*MockStore)(nil).DeleteConfigFileTag), tx, namespace, group, fileName, key, value)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseCircuitBreaker", reflect.TypeOf((*MockStore)(nil).ReleaseCircuitBreaker), circuitBreakerRelation)
 }
 
-// DeleteTagByConfigFile mocks base method
-func (m *MockStore) DeleteTagByConfigFile(tx store.Tx, namespace, group, fileName string) error {
+// RemoveStrategyResources mocks base method.
+func (m *MockStore) RemoveStrategyResources(resources []model.StrategyResource) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteTagByConfigFile", tx, namespace, group, fileName)
+	ret := m.ctrl.Call(m, "RemoveStrategyResources", resources)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// DeleteTagByConfigFile indicates an expected call of DeleteTagByConfigFile
-func (mr *MockStoreMockRecorder) DeleteTagByConfigFile(tx, namespace, group, fileName interface{}) *gomock.Call {
+// RemoveStrategyResources indicates an expected call of RemoveStrategyResources.
+func (mr *MockStoreMockRecorder) RemoveStrategyResources(resources interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTagByConfigFile", reflect.TypeOf((*MockStore)(nil).DeleteTagByConfigFile), tx, namespace, group, fileName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveStrategyResources", reflect.TypeOf((*MockStore)(nil).RemoveStrategyResources), resources)
 }
 
-// BatchAddClients mocks base method
-func (m *MockStore) BatchAddClients(clients []*model.Client) error {
+// SetInstanceHealthStatus mocks base method.
+func (m *MockStore) SetInstanceHealthStatus(instanceID string, flag int, revision string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BatchAddClients", clients)
+	ret := m.ctrl.Call(m, "SetInstanceHealthStatus", instanceID, flag, revision)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// BatchAddClients indicates an expected call of BatchAddClients
-func (mr *MockStoreMockRecorder) BatchAddClients(clients interface{}) *gomock.Call {
+// SetInstanceHealthStatus indicates an expected call of SetInstanceHealthStatus.
+func (mr *MockStoreMockRecorder) SetInstanceHealthStatus(instanceID, flag, revision interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchAddClients", reflect.TypeOf((*MockStore)(nil).BatchAddClients), clients)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetInstanceHealthStatus", reflect.TypeOf((*MockStore)(nil).SetInstanceHealthStatus), instanceID, flag, revision)
 }
 
-// BatchDeleteClients mocks base method
-func (m *MockStore) BatchDeleteClients(ids []string) error {
+// SetL5Extend mocks base method.
+func (m *MockStore) SetL5Extend(serviceID string, meta map[string]interface{}) (map[string]interface{}, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BatchDeleteClients", ids)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// BatchDeleteClients indicates an expected call of BatchDeleteClients
-func (mr *MockStoreMockRecorder) BatchDeleteClients(ids interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchDeleteClients", reflect.TypeOf((*MockStore)(nil).BatchDeleteClients), ids)
-}
-
-// GetMoreClients mocks base method
-func (m *MockStore) GetMoreClients(mtime time.Time, firstUpdate bool) (map[string]*model.Client, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMoreClients", mtime, firstUpdate)
-	ret0, _ := ret[0].(map[string]*model.Client)
+	ret := m.ctrl.Call(m, "SetL5Extend", serviceID, meta)
+	ret0, _ := ret[0].(map[string]interface{})
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetMoreClients indicates an expected call of GetMoreClients
-func (mr *MockStoreMockRecorder) GetMoreClients(mtime, firstUpdate interface{}) *gomock.Call {
+// SetL5Extend indicates an expected call of SetL5Extend.
+func (mr *MockStoreMockRecorder) SetL5Extend(serviceID, meta interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreClients", reflect.TypeOf((*MockStore)(nil).GetMoreClients), mtime, firstUpdate)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetL5Extend", reflect.TypeOf((*MockStore)(nil).SetL5Extend), serviceID, meta)
 }
 
-// MockNamespaceStore is a mock of NamespaceStore interface
+// StartTx mocks base method.
+func (m *MockStore) StartTx() (store.Tx, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StartTx")
+	ret0, _ := ret[0].(store.Tx)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// StartTx indicates an expected call of StartTx.
+func (mr *MockStoreMockRecorder) StartTx() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartTx", reflect.TypeOf((*MockStore)(nil).StartTx))
+}
+
+// TagCircuitBreaker mocks base method.
+func (m *MockStore) TagCircuitBreaker(circuitBreaker *model.CircuitBreaker) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TagCircuitBreaker", circuitBreaker)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// TagCircuitBreaker indicates an expected call of TagCircuitBreaker.
+func (mr *MockStoreMockRecorder) TagCircuitBreaker(circuitBreaker interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagCircuitBreaker", reflect.TypeOf((*MockStore)(nil).TagCircuitBreaker), circuitBreaker)
+}
+
+// UnbindCircuitBreaker mocks base method.
+func (m *MockStore) UnbindCircuitBreaker(serviceID, ruleID, ruleVersion string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnbindCircuitBreaker", serviceID, ruleID, ruleVersion)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UnbindCircuitBreaker indicates an expected call of UnbindCircuitBreaker.
+func (mr *MockStoreMockRecorder) UnbindCircuitBreaker(serviceID, ruleID, ruleVersion interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnbindCircuitBreaker", reflect.TypeOf((*MockStore)(nil).UnbindCircuitBreaker), serviceID, ruleID, ruleVersion)
+}
+
+// UpdateBusiness mocks base method.
+func (m *MockStore) UpdateBusiness(business *model.Business) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateBusiness", business)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateBusiness indicates an expected call of UpdateBusiness.
+func (mr *MockStoreMockRecorder) UpdateBusiness(business interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBusiness", reflect.TypeOf((*MockStore)(nil).UpdateBusiness), business)
+}
+
+// UpdateBusinessToken mocks base method.
+func (m *MockStore) UpdateBusinessToken(bid, token string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateBusinessToken", bid, token)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateBusinessToken indicates an expected call of UpdateBusinessToken.
+func (mr *MockStoreMockRecorder) UpdateBusinessToken(bid, token interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBusinessToken", reflect.TypeOf((*MockStore)(nil).UpdateBusinessToken), bid, token)
+}
+
+// UpdateCircuitBreaker mocks base method.
+func (m *MockStore) UpdateCircuitBreaker(circuitBraker *model.CircuitBreaker) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateCircuitBreaker", circuitBraker)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateCircuitBreaker indicates an expected call of UpdateCircuitBreaker.
+func (mr *MockStoreMockRecorder) UpdateCircuitBreaker(circuitBraker interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCircuitBreaker", reflect.TypeOf((*MockStore)(nil).UpdateCircuitBreaker), circuitBraker)
+}
+
+// UpdateConfigFile mocks base method.
+func (m *MockStore) UpdateConfigFile(tx store.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateConfigFile", tx, file)
+	ret0, _ := ret[0].(*model.ConfigFile)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateConfigFile indicates an expected call of UpdateConfigFile.
+func (mr *MockStoreMockRecorder) UpdateConfigFile(tx, file interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateConfigFile", reflect.TypeOf((*MockStore)(nil).UpdateConfigFile), tx, file)
+}
+
+// UpdateConfigFileGroup mocks base method.
+func (m *MockStore) UpdateConfigFileGroup(fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateConfigFileGroup", fileGroup)
+	ret0, _ := ret[0].(*model.ConfigFileGroup)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateConfigFileGroup indicates an expected call of UpdateConfigFileGroup.
+func (mr *MockStoreMockRecorder) UpdateConfigFileGroup(fileGroup interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateConfigFileGroup", reflect.TypeOf((*MockStore)(nil).UpdateConfigFileGroup), fileGroup)
+}
+
+// UpdateConfigFileRelease mocks base method.
+func (m *MockStore) UpdateConfigFileRelease(tx store.Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateConfigFileRelease", tx, fileRelease)
+	ret0, _ := ret[0].(*model.ConfigFileRelease)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateConfigFileRelease indicates an expected call of UpdateConfigFileRelease.
+func (mr *MockStoreMockRecorder) UpdateConfigFileRelease(tx, fileRelease interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateConfigFileRelease", reflect.TypeOf((*MockStore)(nil).UpdateConfigFileRelease), tx, fileRelease)
+}
+
+// UpdateGroup mocks base method.
+func (m *MockStore) UpdateGroup(group *model.ModifyUserGroup) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateGroup", group)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateGroup indicates an expected call of UpdateGroup.
+func (mr *MockStoreMockRecorder) UpdateGroup(group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGroup", reflect.TypeOf((*MockStore)(nil).UpdateGroup), group)
+}
+
+// UpdateInstance mocks base method.
+func (m *MockStore) UpdateInstance(instance *model.Instance) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateInstance", instance)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateInstance indicates an expected call of UpdateInstance.
+func (mr *MockStoreMockRecorder) UpdateInstance(instance interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstance", reflect.TypeOf((*MockStore)(nil).UpdateInstance), instance)
+}
+
+// UpdateNamespace mocks base method.
+func (m *MockStore) UpdateNamespace(namespace *model.Namespace) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateNamespace", namespace)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateNamespace indicates an expected call of UpdateNamespace.
+func (mr *MockStoreMockRecorder) UpdateNamespace(namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNamespace", reflect.TypeOf((*MockStore)(nil).UpdateNamespace), namespace)
+}
+
+// UpdateNamespaceToken mocks base method.
+func (m *MockStore) UpdateNamespaceToken(name, token string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateNamespaceToken", name, token)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateNamespaceToken indicates an expected call of UpdateNamespaceToken.
+func (mr *MockStoreMockRecorder) UpdateNamespaceToken(name, token interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNamespaceToken", reflect.TypeOf((*MockStore)(nil).UpdateNamespaceToken), name, token)
+}
+
+// UpdatePlatform mocks base method.
+func (m *MockStore) UpdatePlatform(platform *model.Platform) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdatePlatform", platform)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdatePlatform indicates an expected call of UpdatePlatform.
+func (mr *MockStoreMockRecorder) UpdatePlatform(platform interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePlatform", reflect.TypeOf((*MockStore)(nil).UpdatePlatform), platform)
+}
+
+// UpdateRateLimit mocks base method.
+func (m *MockStore) UpdateRateLimit(limiting *model.RateLimit) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateRateLimit", limiting)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateRateLimit indicates an expected call of UpdateRateLimit.
+func (mr *MockStoreMockRecorder) UpdateRateLimit(limiting interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRateLimit", reflect.TypeOf((*MockStore)(nil).UpdateRateLimit), limiting)
+}
+
+// UpdateRoutingConfig mocks base method.
+func (m *MockStore) UpdateRoutingConfig(conf *model.RoutingConfig) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateRoutingConfig", conf)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateRoutingConfig indicates an expected call of UpdateRoutingConfig.
+func (mr *MockStoreMockRecorder) UpdateRoutingConfig(conf interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRoutingConfig", reflect.TypeOf((*MockStore)(nil).UpdateRoutingConfig), conf)
+}
+
+// UpdateService mocks base method.
+func (m *MockStore) UpdateService(service *model.Service, needUpdateOwner bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateService", service, needUpdateOwner)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateService indicates an expected call of UpdateService.
+func (mr *MockStoreMockRecorder) UpdateService(service, needUpdateOwner interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateService", reflect.TypeOf((*MockStore)(nil).UpdateService), service, needUpdateOwner)
+}
+
+// UpdateServiceAlias mocks base method.
+func (m *MockStore) UpdateServiceAlias(alias *model.Service, needUpdateOwner bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateServiceAlias", alias, needUpdateOwner)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateServiceAlias indicates an expected call of UpdateServiceAlias.
+func (mr *MockStoreMockRecorder) UpdateServiceAlias(alias, needUpdateOwner interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateServiceAlias", reflect.TypeOf((*MockStore)(nil).UpdateServiceAlias), alias, needUpdateOwner)
+}
+
+// UpdateServiceToken mocks base method.
+func (m *MockStore) UpdateServiceToken(serviceID, token, revision string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateServiceToken", serviceID, token, revision)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateServiceToken indicates an expected call of UpdateServiceToken.
+func (mr *MockStoreMockRecorder) UpdateServiceToken(serviceID, token, revision interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateServiceToken", reflect.TypeOf((*MockStore)(nil).UpdateServiceToken), serviceID, token, revision)
+}
+
+// UpdateStrategy mocks base method.
+func (m *MockStore) UpdateStrategy(strategy *model.ModifyStrategyDetail) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateStrategy", strategy)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateStrategy indicates an expected call of UpdateStrategy.
+func (mr *MockStoreMockRecorder) UpdateStrategy(strategy interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStrategy", reflect.TypeOf((*MockStore)(nil).UpdateStrategy), strategy)
+}
+
+// UpdateUser mocks base method.
+func (m *MockStore) UpdateUser(user *model.User) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateUser", user)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateUser indicates an expected call of UpdateUser.
+func (mr *MockStoreMockRecorder) UpdateUser(user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockStore)(nil).UpdateUser), user)
+}
+
+// MockNamespaceStore is a mock of NamespaceStore interface.
 type MockNamespaceStore struct {
 	ctrl     *gomock.Controller
 	recorder *MockNamespaceStoreMockRecorder
 }
 
-// MockNamespaceStoreMockRecorder is the mock recorder for MockNamespaceStore
+// MockNamespaceStoreMockRecorder is the mock recorder for MockNamespaceStore.
 type MockNamespaceStoreMockRecorder struct {
 	mock *MockNamespaceStore
 }
 
-// NewMockNamespaceStore creates a new mock instance
+// NewMockNamespaceStore creates a new mock instance.
 func NewMockNamespaceStore(ctrl *gomock.Controller) *MockNamespaceStore {
 	mock := &MockNamespaceStore{ctrl: ctrl}
 	mock.recorder = &MockNamespaceStoreMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockNamespaceStore) EXPECT() *MockNamespaceStoreMockRecorder {
 	return m.recorder
 }
 
-// AddNamespace mocks base method
+// AddNamespace mocks base method.
 func (m *MockNamespaceStore) AddNamespace(namespace *model.Namespace) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddNamespace", namespace)
@@ -2229,56 +2246,28 @@ func (m *MockNamespaceStore) AddNamespace(namespace *model.Namespace) error {
 	return ret0
 }
 
-// AddNamespace indicates an expected call of AddNamespace
+// AddNamespace indicates an expected call of AddNamespace.
 func (mr *MockNamespaceStoreMockRecorder) AddNamespace(namespace interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddNamespace", reflect.TypeOf((*MockNamespaceStore)(nil).AddNamespace), namespace)
 }
 
-// UpdateNamespace mocks base method
-func (m *MockNamespaceStore) UpdateNamespace(namespace *model.Namespace) error {
+// GetMoreNamespaces mocks base method.
+func (m *MockNamespaceStore) GetMoreNamespaces(mtime time.Time) ([]*model.Namespace, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateNamespace", namespace)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateNamespace indicates an expected call of UpdateNamespace
-func (mr *MockNamespaceStoreMockRecorder) UpdateNamespace(namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNamespace", reflect.TypeOf((*MockNamespaceStore)(nil).UpdateNamespace), namespace)
-}
-
-// UpdateNamespaceToken mocks base method
-func (m *MockNamespaceStore) UpdateNamespaceToken(name, token string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateNamespaceToken", name, token)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateNamespaceToken indicates an expected call of UpdateNamespaceToken
-func (mr *MockNamespaceStoreMockRecorder) UpdateNamespaceToken(name, token interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNamespaceToken", reflect.TypeOf((*MockNamespaceStore)(nil).UpdateNamespaceToken), name, token)
-}
-
-// ListNamespaces mocks base method
-func (m *MockNamespaceStore) ListNamespaces(owner string) ([]*model.Namespace, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListNamespaces", owner)
+	ret := m.ctrl.Call(m, "GetMoreNamespaces", mtime)
 	ret0, _ := ret[0].([]*model.Namespace)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListNamespaces indicates an expected call of ListNamespaces
-func (mr *MockNamespaceStoreMockRecorder) ListNamespaces(owner interface{}) *gomock.Call {
+// GetMoreNamespaces indicates an expected call of GetMoreNamespaces.
+func (mr *MockNamespaceStoreMockRecorder) GetMoreNamespaces(mtime interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNamespaces", reflect.TypeOf((*MockNamespaceStore)(nil).ListNamespaces), owner)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreNamespaces", reflect.TypeOf((*MockNamespaceStore)(nil).GetMoreNamespaces), mtime)
 }
 
-// GetNamespace mocks base method
+// GetNamespace mocks base method.
 func (m *MockNamespaceStore) GetNamespace(name string) (*model.Namespace, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetNamespace", name)
@@ -2287,13 +2276,13 @@ func (m *MockNamespaceStore) GetNamespace(name string) (*model.Namespace, error)
 	return ret0, ret1
 }
 
-// GetNamespace indicates an expected call of GetNamespace
+// GetNamespace indicates an expected call of GetNamespace.
 func (mr *MockNamespaceStoreMockRecorder) GetNamespace(name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespace", reflect.TypeOf((*MockNamespaceStore)(nil).GetNamespace), name)
 }
 
-// GetNamespaces mocks base method
+// GetNamespaces mocks base method.
 func (m *MockNamespaceStore) GetNamespaces(filter map[string][]string, offset, limit int) ([]*model.Namespace, uint32, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetNamespaces", filter, offset, limit)
@@ -2303,51 +2292,79 @@ func (m *MockNamespaceStore) GetNamespaces(filter map[string][]string, offset, l
 	return ret0, ret1, ret2
 }
 
-// GetNamespaces indicates an expected call of GetNamespaces
+// GetNamespaces indicates an expected call of GetNamespaces.
 func (mr *MockNamespaceStoreMockRecorder) GetNamespaces(filter, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespaces", reflect.TypeOf((*MockNamespaceStore)(nil).GetNamespaces), filter, offset, limit)
 }
 
-// GetMoreNamespaces mocks base method
-func (m *MockNamespaceStore) GetMoreNamespaces(mtime time.Time) ([]*model.Namespace, error) {
+// ListNamespaces mocks base method.
+func (m *MockNamespaceStore) ListNamespaces(owner string) ([]*model.Namespace, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMoreNamespaces", mtime)
+	ret := m.ctrl.Call(m, "ListNamespaces", owner)
 	ret0, _ := ret[0].([]*model.Namespace)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetMoreNamespaces indicates an expected call of GetMoreNamespaces
-func (mr *MockNamespaceStoreMockRecorder) GetMoreNamespaces(mtime interface{}) *gomock.Call {
+// ListNamespaces indicates an expected call of ListNamespaces.
+func (mr *MockNamespaceStoreMockRecorder) ListNamespaces(owner interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreNamespaces", reflect.TypeOf((*MockNamespaceStore)(nil).GetMoreNamespaces), mtime)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNamespaces", reflect.TypeOf((*MockNamespaceStore)(nil).ListNamespaces), owner)
 }
 
-// MockTransaction is a mock of Transaction interface
+// UpdateNamespace mocks base method.
+func (m *MockNamespaceStore) UpdateNamespace(namespace *model.Namespace) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateNamespace", namespace)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateNamespace indicates an expected call of UpdateNamespace.
+func (mr *MockNamespaceStoreMockRecorder) UpdateNamespace(namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNamespace", reflect.TypeOf((*MockNamespaceStore)(nil).UpdateNamespace), namespace)
+}
+
+// UpdateNamespaceToken mocks base method.
+func (m *MockNamespaceStore) UpdateNamespaceToken(name, token string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateNamespaceToken", name, token)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateNamespaceToken indicates an expected call of UpdateNamespaceToken.
+func (mr *MockNamespaceStoreMockRecorder) UpdateNamespaceToken(name, token interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNamespaceToken", reflect.TypeOf((*MockNamespaceStore)(nil).UpdateNamespaceToken), name, token)
+}
+
+// MockTransaction is a mock of Transaction interface.
 type MockTransaction struct {
 	ctrl     *gomock.Controller
 	recorder *MockTransactionMockRecorder
 }
 
-// MockTransactionMockRecorder is the mock recorder for MockTransaction
+// MockTransactionMockRecorder is the mock recorder for MockTransaction.
 type MockTransactionMockRecorder struct {
 	mock *MockTransaction
 }
 
-// NewMockTransaction creates a new mock instance
+// NewMockTransaction creates a new mock instance.
 func NewMockTransaction(ctrl *gomock.Controller) *MockTransaction {
 	mock := &MockTransaction{ctrl: ctrl}
 	mock.recorder = &MockTransactionMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockTransaction) EXPECT() *MockTransactionMockRecorder {
 	return m.recorder
 }
 
-// Commit mocks base method
+// Commit mocks base method.
 func (m *MockTransaction) Commit() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Commit")
@@ -2355,13 +2372,27 @@ func (m *MockTransaction) Commit() error {
 	return ret0
 }
 
-// Commit indicates an expected call of Commit
+// Commit indicates an expected call of Commit.
 func (mr *MockTransactionMockRecorder) Commit() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Commit", reflect.TypeOf((*MockTransaction)(nil).Commit))
 }
 
-// LockBootstrap mocks base method
+// DeleteNamespace mocks base method.
+func (m *MockTransaction) DeleteNamespace(name string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteNamespace", name)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteNamespace indicates an expected call of DeleteNamespace.
+func (mr *MockTransactionMockRecorder) DeleteNamespace(name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNamespace", reflect.TypeOf((*MockTransaction)(nil).DeleteNamespace), name)
+}
+
+// LockBootstrap mocks base method.
 func (m *MockTransaction) LockBootstrap(key, server string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LockBootstrap", key, server)
@@ -2369,13 +2400,13 @@ func (m *MockTransaction) LockBootstrap(key, server string) error {
 	return ret0
 }
 
-// LockBootstrap indicates an expected call of LockBootstrap
+// LockBootstrap indicates an expected call of LockBootstrap.
 func (mr *MockTransactionMockRecorder) LockBootstrap(key, server interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LockBootstrap", reflect.TypeOf((*MockTransaction)(nil).LockBootstrap), key, server)
 }
 
-// LockNamespace mocks base method
+// LockNamespace mocks base method.
 func (m *MockTransaction) LockNamespace(name string) (*model.Namespace, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LockNamespace", name)
@@ -2384,27 +2415,13 @@ func (m *MockTransaction) LockNamespace(name string) (*model.Namespace, error) {
 	return ret0, ret1
 }
 
-// LockNamespace indicates an expected call of LockNamespace
+// LockNamespace indicates an expected call of LockNamespace.
 func (mr *MockTransactionMockRecorder) LockNamespace(name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LockNamespace", reflect.TypeOf((*MockTransaction)(nil).LockNamespace), name)
 }
 
-// DeleteNamespace mocks base method
-func (m *MockTransaction) DeleteNamespace(name string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteNamespace", name)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteNamespace indicates an expected call of DeleteNamespace
-func (mr *MockTransactionMockRecorder) DeleteNamespace(name interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNamespace", reflect.TypeOf((*MockTransaction)(nil).DeleteNamespace), name)
-}
-
-// LockService mocks base method
+// LockService mocks base method.
 func (m *MockTransaction) LockService(name, namespace string) (*model.Service, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LockService", name, namespace)
@@ -2413,13 +2430,13 @@ func (m *MockTransaction) LockService(name, namespace string) (*model.Service, e
 	return ret0, ret1
 }
 
-// LockService indicates an expected call of LockService
+// LockService indicates an expected call of LockService.
 func (mr *MockTransactionMockRecorder) LockService(name, namespace interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LockService", reflect.TypeOf((*MockTransaction)(nil).LockService), name, namespace)
 }
 
-// RLockService mocks base method
+// RLockService mocks base method.
 func (m *MockTransaction) RLockService(name, namespace string) (*model.Service, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RLockService", name, namespace)
@@ -2428,36 +2445,36 @@ func (m *MockTransaction) RLockService(name, namespace string) (*model.Service, 
 	return ret0, ret1
 }
 
-// RLockService indicates an expected call of RLockService
+// RLockService indicates an expected call of RLockService.
 func (mr *MockTransactionMockRecorder) RLockService(name, namespace interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RLockService", reflect.TypeOf((*MockTransaction)(nil).RLockService), name, namespace)
 }
 
-// MockTx is a mock of Tx interface
+// MockTx is a mock of Tx interface.
 type MockTx struct {
 	ctrl     *gomock.Controller
 	recorder *MockTxMockRecorder
 }
 
-// MockTxMockRecorder is the mock recorder for MockTx
+// MockTxMockRecorder is the mock recorder for MockTx.
 type MockTxMockRecorder struct {
 	mock *MockTx
 }
 
-// NewMockTx creates a new mock instance
+// NewMockTx creates a new mock instance.
 func NewMockTx(ctrl *gomock.Controller) *MockTx {
 	mock := &MockTx{ctrl: ctrl}
 	mock.recorder = &MockTxMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockTx) EXPECT() *MockTxMockRecorder {
 	return m.recorder
 }
 
-// Commit mocks base method
+// Commit mocks base method.
 func (m *MockTx) Commit() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Commit")
@@ -2465,27 +2482,13 @@ func (m *MockTx) Commit() error {
 	return ret0
 }
 
-// Commit indicates an expected call of Commit
+// Commit indicates an expected call of Commit.
 func (mr *MockTxMockRecorder) Commit() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Commit", reflect.TypeOf((*MockTx)(nil).Commit))
 }
 
-// Rollback mocks base method
-func (m *MockTx) Rollback() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Rollback")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Rollback indicates an expected call of Rollback
-func (mr *MockTxMockRecorder) Rollback() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rollback", reflect.TypeOf((*MockTx)(nil).Rollback))
-}
-
-// GetDelegateTx mocks base method
+// GetDelegateTx mocks base method.
 func (m *MockTx) GetDelegateTx() interface{} {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetDelegateTx")
@@ -2493,36 +2496,50 @@ func (m *MockTx) GetDelegateTx() interface{} {
 	return ret0
 }
 
-// GetDelegateTx indicates an expected call of GetDelegateTx
+// GetDelegateTx indicates an expected call of GetDelegateTx.
 func (mr *MockTxMockRecorder) GetDelegateTx() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDelegateTx", reflect.TypeOf((*MockTx)(nil).GetDelegateTx))
 }
 
-// MockToolStore is a mock of ToolStore interface
+// Rollback mocks base method.
+func (m *MockTx) Rollback() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Rollback")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Rollback indicates an expected call of Rollback.
+func (mr *MockTxMockRecorder) Rollback() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rollback", reflect.TypeOf((*MockTx)(nil).Rollback))
+}
+
+// MockToolStore is a mock of ToolStore interface.
 type MockToolStore struct {
 	ctrl     *gomock.Controller
 	recorder *MockToolStoreMockRecorder
 }
 
-// MockToolStoreMockRecorder is the mock recorder for MockToolStore
+// MockToolStoreMockRecorder is the mock recorder for MockToolStore.
 type MockToolStoreMockRecorder struct {
 	mock *MockToolStore
 }
 
-// NewMockToolStore creates a new mock instance
+// NewMockToolStore creates a new mock instance.
 func NewMockToolStore(ctrl *gomock.Controller) *MockToolStore {
 	mock := &MockToolStore{ctrl: ctrl}
 	mock.recorder = &MockToolStoreMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockToolStore) EXPECT() *MockToolStoreMockRecorder {
 	return m.recorder
 }
 
-// GetUnixSecond mocks base method
+// GetUnixSecond mocks base method.
 func (m *MockToolStore) GetUnixSecond() (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUnixSecond")
@@ -2531,7 +2548,7 @@ func (m *MockToolStore) GetUnixSecond() (int64, error) {
 	return ret0, ret1
 }
 
-// GetUnixSecond indicates an expected call of GetUnixSecond
+// GetUnixSecond indicates an expected call of GetUnixSecond.
 func (mr *MockToolStoreMockRecorder) GetUnixSecond() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnixSecond", reflect.TypeOf((*MockToolStore)(nil).GetUnixSecond))

@@ -166,6 +166,39 @@ func (cf *configFileStore) getConfigFile(tx *bolt.Tx, namespace, group, name str
 	return nil, nil
 }
 
+func (cf *configFileStore) QueryConfigFilesByGroup(namespace, group string, offset, limit uint32) (uint32, []*model.ConfigFile, error) {
+	fields := []string{FileFieldNamespace, FileFieldGroup, FileFieldValid}
+
+	hasNs := len(namespace) != 0
+	hasGroup := len(group) != 0
+
+	ret, err := cf.handler.LoadValuesByFilter(tblConfigFile, fields, &model.ConfigFile{},
+		func(m map[string]interface{}) bool {
+			valid, _ := m[FileFieldValid].(bool)
+			if !valid {
+				return false
+			}
+
+			saveNs, _ := m[FileFieldNamespace].(string)
+			saveGroup, _ := m[FileFieldGroup].(string)
+
+			if hasNs && !strings.Contains(saveNs, namespace) {
+				return false
+			}
+			if hasGroup && !strings.Contains(saveGroup, group) {
+				return false
+			}
+
+			return true
+		})
+
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return uint32(len(ret)), doConfigFilePage(ret, offset, limit), nil
+}
+
 // QueryConfigFiles 翻页查询配置文件，group、name可为模糊匹配
 func (cf *configFileStore) QueryConfigFiles(namespace, group, name string, offset, limit uint32) (uint32, []*model.ConfigFile, error) {
 
