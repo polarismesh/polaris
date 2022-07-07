@@ -160,7 +160,7 @@ func (c *ConfigCenterTest) loadBootstrapConfig() error {
 		confFileName = "test_sqldb.yaml"
 		c.defaultCtx = context.WithValue(c.defaultCtx, utils.ContextAuthTokenKey, "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
 	} else {
-		c.defaultCtx = context.WithValue(c.defaultCtx, utils.ContextAuthTokenKey, "4azbewS+pdXvrMG1PtYV3SrcLxjmYd0IVNaX9oYziQygRnKzjcSbxl+Reg7zYQC1gRrGiLzmMY+w+aCxOYI=")
+		c.defaultCtx = context.WithValue(c.defaultCtx, utils.ContextAuthTokenKey, "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
 	}
 
 	file, err := os.Open(confFileName)

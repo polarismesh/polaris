@@ -171,11 +171,11 @@ store:
   #   master:
   #     dbType: mysql
   #     dbName: polaris_server
-  #     dbUser: ##DB_USER##
-  #     dbPwd: ##DB_PWD##
-  #     dbAddr: ##DB_ADDR##
-  #     maxOpenConns: 300
-  #     maxIdleConns: 50
+  #     dbUser: root ##DB_USER##
+  #     dbPwd: polaris ##DB_PWD##
+  #     dbAddr: "127.0.0.1:3306" ##DB_ADDR##
+  #     maxOpenConns: -1
+  #     maxIdleConns: -1
   #     connMaxLifetime: 300 # 单位秒
   #     txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置

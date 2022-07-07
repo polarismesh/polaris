@@ -149,7 +149,7 @@ type options func(cfg *TestConfig)
 func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	// 初始化defaultCtx
 	d.defaultCtx = context.WithValue(context.Background(), utils.StringContext("request-id"), "test-1")
-	d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey, "4azbewS+pdXvrMG1PtYV3SrcLxjmYd0IVNaX9oYziQygRnKzjcSbxl+Reg7zYQC1gRrGiLzmMY+w+aCxOYI=")
+	d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey, "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
 
 	if err := os.RemoveAll("polaris.bolt"); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
