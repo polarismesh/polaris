@@ -244,13 +244,11 @@ func checkCreateNamespacesResponse(ret *api.BatchWriteResponse, namespaces []*ap
 func compareNamespace(correctItem *api.Namespace, item *api.Namespace) bool {
 	correctName := correctItem.GetName().GetValue()
 	correctComment := correctItem.GetComment().GetValue()
-	correctOwners := correctItem.GetOwners().GetValue()
 
 	name := item.GetName().GetValue()
 	comment := item.GetComment().GetValue()
-	owners := item.GetOwners().GetValue()
 
-	if correctName == name && correctComment == comment && correctOwners == owners {
+	if correctName == name && correctComment == comment {
 		return true
 	}
 	return false
