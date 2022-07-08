@@ -52,7 +52,7 @@ func (d *DiscoverTestSuit) createCommonAliasCheck(
 	t *testing.T, service *api.Service, alias string, aliasNamespace string, typ api.AliasType) *api.Response {
 	resp := d.createCommonAlias(service, alias, aliasNamespace, typ)
 	if !respSuccess(resp) {
-		t.Fatalf("error")
+		t.Fatalf("error : %s", resp.GetInfo().GetValue())
 	}
 	return resp
 }
