@@ -27,6 +27,7 @@ import (
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
@@ -122,7 +123,14 @@ func TestCreateServiceAlias(t *testing.T) {
 		discoverSuit.cleanServiceName(resp.Alias.Alias.Value, serviceResp.GetNamespace().GetValue())
 	})
 	Convey("不允许为别名创建别名", t, func() {
-		resp := discoverSuit.createCommonAliasCheck(t, serviceResp, "", defaultAliasNs, api.AliasType_CL5SID)
+		resp := discoverSuit.namespaceSvr.CreateNamespace(discoverSuit.defaultCtx, &api.Namespace{
+			Name: &wrapperspb.StringValue{Value: defaultAliasNs},
+		})
+		if !respSuccess(resp) {
+			t.Fatalf("error : %s", resp.GetInfo().GetValue())
+		}
+
+		resp = discoverSuit.createCommonAliasCheck(t, serviceResp, "", defaultAliasNs, api.AliasType_CL5SID)
 		defer discoverSuit.cleanServiceName(resp.Alias.Alias.Value, serviceResp.Namespace.Value)
 
 		service := &api.Service{
@@ -450,7 +458,6 @@ func TestUpdateServiceAlias(t *testing.T) {
 		// 修改service token
 		req := resp.GetAlias()
 		req.ServiceToken = utils.NewStringValue("")
-
 
 		repeatedResp := discoverSuit.server.UpdateServiceAlias(context.Background(), req)
 
