@@ -25,6 +25,7 @@ import (
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
 )
@@ -49,11 +50,12 @@ type Config struct {
 
 // Server 配置中心核心服务
 type Server struct {
-	storage     store.Store
-	cache       *cache.FileCache
-	watchCenter *watchCenter
-	connManager *connManager
-	initialized bool
+	storage           store.Store
+	cache             *cache.FileCache
+	watchCenter       *watchCenter
+	connManager       *connManager
+	namespaceOperator namespace.NamespaceOperateServer
+	initialized       bool
 }
 
 // Initialize 初始化配置中心模块

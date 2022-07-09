@@ -29,10 +29,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// RecordConfigFileReleaseHistory 新增配置文件发布历史记录
-func (s *Server) RecordConfigFileReleaseHistory(ctx context.Context, fileRelease *model.ConfigFileRelease, releaseType, status string) {
-	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
-
+// recordReleaseHistory 新增配置文件发布历史记录
+func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.ConfigFileRelease, releaseType, status string) {
 	namespace, group, fileName := fileRelease.Namespace, fileRelease.Group, fileRelease.FileName
 
 	// 获取 format 信息
@@ -65,7 +63,7 @@ func (s *Server) RecordConfigFileReleaseHistory(ctx context.Context, fileRelease
 
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] create config file release history error.",
-			zap.String("request-id", requestID),
+			zap.String("request-id", utils.ParseRequestID(ctx)),
 			zap.String("namespace", fileRelease.Namespace),
 			zap.String("group", fileRelease.Group),
 			zap.String("fileName", fileRelease.FileName),
@@ -83,10 +81,9 @@ func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, gro
 
 	count, releaseHistories, err := s.storage.QueryConfigFileReleaseHistories(namespace, group, fileName, offset, limit, endId)
 
-	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] get config file release history error.",
-			zap.String("request-id", requestID),
+			zap.String("request-id", utils.ParseRequestID(ctx)),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -125,11 +122,9 @@ func (s *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespac
 
 	history, err := s.storage.GetLatestConfigFileReleaseHistory(namespace, group, fileName)
 
-	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
-
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] get latest config file release error",
-			zap.String("request-id", requestID),
+			zap.String("request-id", utils.ParseRequestID(ctx)),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),

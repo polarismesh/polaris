@@ -61,7 +61,10 @@ func NewConfigConnManager(ctx context.Context, watchCenter *watchCenter) *connMa
 	return cm
 }
 
-func (c *connManager) AddConn(clientId string, watchConfigFiles []*api.ClientConfigFileInfo, finishChan chan *api.ConfigClientResponse) {
+func (c *connManager) AddConn(clientId string, watchConfigFiles []*api.ClientConfigFileInfo) chan *api.ConfigClientResponse {
+
+	finishChan := make(chan *api.ConfigClientResponse)
+
 	cm.conns.Store(clientId, &connection{
 		finishTime:       time.Now().Add(defaultLongPollingTimeout),
 		finishChan:       finishChan,
@@ -73,11 +76,13 @@ func (c *connManager) AddConn(clientId string, watchConfigFiles []*api.ClientCon
 		if ok {
 			conn := connObj.(*connection)
 			conn.finishChan <- rsp
-
+			close(conn.finishChan)
 			c.removeConn(clientId)
 		}
 		return true
 	})
+
+	return finishChan
 }
 
 func (c *connManager) removeConn(clientId string) {

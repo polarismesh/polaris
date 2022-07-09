@@ -25,12 +25,15 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
+	"golang.org/x/sync/singleflight"
 )
 
 type Server struct {
 	storage store.Store
 
 	caches *cache.CacheManager
+
+	createNamespaceSingle *singleflight.Group
 
 	cfg     Config
 	auth    plugin.Auth

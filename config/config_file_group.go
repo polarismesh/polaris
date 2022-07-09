@@ -47,8 +47,10 @@ func (s *Server) CreateConfigFileGroup(ctx context.Context, configFileGroup *api
 	groupName := configFileGroup.Name.GetValue()
 
 	// 如果 namespace 不存在则自动创建
-	if err := s.createNamespaceIfAbsent(namespace, configFileGroup.CreateBy.GetValue(), requestID); err != nil {
-		log.ConfigScope().Error("[Config][Service] create config file group error because of create namespace failed.",
+	if err := s.namespaceOperator.CreateNamespaceIfAbsent(ctx, &api.Namespace{
+		Name: utils.NewStringValue(namespace),
+	}); err != nil {
+		log.ConfigScope().Error("[Config][Service] create namespace failed.",
 			zap.String("request-id", requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", groupName),

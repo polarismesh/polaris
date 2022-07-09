@@ -41,6 +41,6 @@ type NamespaceOperateServer interface {
 	GetNamespaces(ctx context.Context, query map[string][]string) *api.BatchQueryResponse
 	// GetNamespaceToken Get the token with namespace
 	GetNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response
-	// AllowAutoCreate Whether to allow automatic creation of naming space
-	AllowAutoCreate() bool
+	// CreateNamespaceIfAbsent Create a single name space
+	CreateNamespaceIfAbsent(ctx context.Context, req *api.Namespace) error
 }

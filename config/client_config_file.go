@@ -22,7 +22,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/google/uuid"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
@@ -30,9 +29,12 @@ import (
 	utils2 "github.com/polarismesh/polaris-server/config/utils"
 )
 
+type (
+	compareFunction func(clientConfigFile *api.ClientConfigFileInfo, cacheEntry *cache.Entry) bool
+)
+
 // GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
-func (s *Server) GetConfigFileForClient(ctx context.Context,
-	client *api.ClientConfigFileInfo) *api.ConfigClientResponse {
+func (s *Server) GetConfigFileForClient(ctx context.Context, client *api.ClientConfigFileInfo) *api.ConfigClientResponse {
 
 	namespace := client.GetNamespace().GetValue()
 	group := client.GetGroup().GetValue()
@@ -76,73 +78,53 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 		}
 	}
 
-	resp := utils2.GenConfigFileResponse(namespace, group, fileName, entry.Content, entry.Md5, entry.Version)
-
-	var version uint64 = 0
-	if resp.ConfigFile != nil {
-		version = resp.ConfigFile.Version.GetValue()
-	}
 	log.ConfigScope().Info("[Config][Client] client get config file success.",
 		zap.String("requestId", requestID),
 		zap.String("client", utils.ParseClientAddress(ctx)),
 		zap.String("file", fileName),
-		zap.Uint64("version", version))
+		zap.Uint64("version", entry.Version))
 
+	resp := utils2.GenConfigFileResponse(namespace, group, fileName, entry.Content, entry.Md5, entry.Version)
 	return resp
 }
 
-func (s *Server) WatchConfigFiles(ctx context.Context,
-	request *api.ClientWatchConfigFileRequest) (func() *api.ConfigClientResponse, error) {
+func (s *Server) WatchConfigFiles(ctx context.Context, request *api.ClientWatchConfigFileRequest) (WatchCallback, error) {
 
 	clientAddr := utils.ParseClientAddress(ctx)
 
 	watchFiles := request.GetWatchFiles()
 	// 2. 检查客户端是否有版本落后
-	resp := s.CheckClientConfigFileByVersion(ctx, watchFiles)
-	if resp.Code.GetValue() != api.DataNoChange {
+	if resp := s.doCheckClientConfigFile(ctx, watchFiles, compareByVersion); resp.Code.GetValue() != api.DataNoChange {
 		return func() *api.ConfigClientResponse {
 			return resp
 		}, nil
 	}
 
 	// 3. 监听配置变更，hold 请求 30s，30s 内如果有配置发布，则响应请求
-	id, _ := uuid.NewUUID()
-	clientId := clientAddr + "@" + id.String()[0:8]
+	clientId := clientAddr + "@" + utils.NewUUID()[0:8]
 
-	finishChan := make(chan *api.ConfigClientResponse)
-
-	s.ConnManager().AddConn(clientId, watchFiles, finishChan)
+	finishChan := s.ConnManager().AddConn(clientId, watchFiles)
 
 	return func() *api.ConfigClientResponse {
-		resp := <-finishChan
-		close(finishChan)
-		return resp
+		return <-finishChan
 	}, nil
 }
 
-type checkFunc func(clientConfigFile *api.ClientConfigFileInfo, cacheEntry *cache.Entry) bool
-
-// CheckClientConfigFileByVersion 通过比较版本号检查客户端使用的配置文件是否版本落后
-func (s *Server) CheckClientConfigFileByVersion(ctx context.Context, configFiles []*api.ClientConfigFileInfo) *api.ConfigClientResponse {
-	return s.doCheckClientConfigFile(ctx, configFiles, func(clientConfigFile *api.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
-		return !cacheEntry.Empty && clientConfigFile.Version.GetValue() < cacheEntry.Version
-	})
+func compareByVersion(clientConfigFile *api.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
+	return !cacheEntry.Empty && clientConfigFile.Version.GetValue() < cacheEntry.Version
 }
 
-// CheckClientConfigFileByMd5 通过比较md5检查客户端使用的配置文件是否版本落后
-func (s *Server) CheckClientConfigFileByMd5(ctx context.Context, configFiles []*api.ClientConfigFileInfo) *api.ConfigClientResponse {
-	return s.doCheckClientConfigFile(ctx, configFiles, func(clientConfigFile *api.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
-		return clientConfigFile.Md5.GetValue() != cacheEntry.Md5
-	})
+func compareByMD5(clientConfigFile *api.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
+	return clientConfigFile.Md5.GetValue() != cacheEntry.Md5
 }
 
 func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api.ClientConfigFileInfo,
-	checkFunc checkFunc) *api.ConfigClientResponse {
+	compartor compareFunction) *api.ConfigClientResponse {
 	if len(configFiles) == 0 {
 		return api.NewConfigClientResponse(api.InvalidWatchConfigFileFormat, nil)
 	}
 
-	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
+	requestID := utils.ParseRequestID(ctx)
 
 	for _, configFile := range configFiles {
 		namespace := configFile.Namespace.GetValue()
@@ -165,7 +147,7 @@ func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api
 			return api.NewConfigClientResponse(api.ExecuteException, nil)
 		}
 
-		if checkFunc(configFile, entry) {
+		if compartor(configFile, entry) {
 			return utils2.GenConfigFileResponse(namespace, group, fileName, "", entry.Md5, entry.Version)
 		}
 	}
