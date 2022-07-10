@@ -41,24 +41,23 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           DOCKER_TAG: ${{ steps.get_version.outputs.VERSION }}
         run: |
-          echo "docker repository : polarismesh/polaris-server-standalone, tag : ${docker_tag}"
-          bash build.sh ${DOCKER_TAG}
-          
-          if [ $? != 0 ]; then
-              echo "build polaris-server failed"
-              exit 1
-          fi
-          cd deploy/standalone/docker
-          ls -lstrh
-          bash build.sh ${DOCKER_TAG}
+          set -e
+          cd deploy/standalone
+          POLARIS_GIT_PATH=https://github.com/polarismesh
+          DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}.${GOARCH}
+          pushd ${DIR_NAME}
+          SERVER_PKG_NAME=polaris-server-release_${SERVER_VERSION}.${GOOS}.${GOARCH}.zip
+          wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris/releases/download/${SERVER_VERSION}/${SERVER_PKG_NAME} --no-check-certificate
+          CONSOLE_PKG_NAME=polaris-console-release_${CONSOLE_VERSION}.${GOOS}.${GOARCH}.zip
+          wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris-console/releases/download/${CONSOLE_VERSION}/${CONSOLE_PKG_NAME} --no-check-certificate
 
-      - name: Build Prometheus
-        id: build-prom
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          DOCKER_TAG: ${{ steps.get_version.outputs.VERSION }}
-        run: |
-          cd deploy/docker/prometheus
-          ls -lstrh
-          bash build_docker_prom.sh ${DOCKER_TAG}
+          wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz
+          wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${GOOS}-${GOARCH}.tar.gz
+          mv ../vm/install-${GOOS}.sh ./install.sh
+          mv ../vm/uninstall-${GOOS}.sh ./uninstall.sh
+          mv ../vm/port.properties ./port.properties
+          mv ../vm/Dockerfile ./Dockerfile
+
+          mv ${SERVER_PKG_NAME} polaris-server.zip
+          mv ${CONSOLE_PKG_NAME} polaris-console.zip
+          mv prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz prometheus.tar.gz
