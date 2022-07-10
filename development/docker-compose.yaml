@@ -63,7 +63,7 @@ services:
       - ./mysql/mysqld.cnf:/etc/mysql/conf.d/custom.cnf:cached
       - ../store/sqldb/scripts/polaris_server.sql:/docker-entrypoint-initdb.d/polaris_server.sql
     ports:
-      - "0.0.0.0:3306:3306"
+      - "3306:3306"
     networks:
       - backend
   redis:
@@ -74,7 +74,7 @@ services:
     networks:
       - backend
     ports:
-      - '0.0.0.0:6379:6379'
+      - '6379:6379'
   redis-slave:
     image: 'bitnami/redis:latest'
     environment:
@@ -111,7 +111,7 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
-      - "0.0.0.0:9090:9090"
+      - "9090:9090"
     networks:
       - backend
   polaris-pushgateway:
@@ -119,13 +119,20 @@ services:
     image: prom/pushgateway
     hostname: polaris-pushgateway
     ports:
-      - "0.0.0.0:9091:9091"
+      - "9091:9091"
     networks:
       - backend
   grafana:
     container_name: grafana
-    image: grafana/grafana
+    build: grafana
     ports:
-      - "0.0.0.0:3000:3000"
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning/:/etc/grafana/provisioning/:rw
+      - ./grafana/dashboards:/etc/grafana/dashboards/:rw
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini:rw
     depends_on:
-      - prometheus
+      - polaris-prometheus
+      - polaris-pushgateway
+    networks:
+      - backend

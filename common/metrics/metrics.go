@@ -21,9 +21,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 var (
@@ -39,7 +41,11 @@ func GetRegistry() *prometheus.Registry {
 
 // GetHttpHandler 获取 handler
 func GetHttpHandler() http.Handler {
-	return promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
+	// 添加 Golang runtime metrics
+	registry.MustRegister(collectors.NewGoCollector(
+		collectors.WithGoCollections(collectors.GoRuntimeMetricsCollection),
+	))
+	return promhttp.HandlerFor(registry, promhttp.HandlerOpts{EnableOpenMetrics: true})
 }
 
 func InitMetrics() {
