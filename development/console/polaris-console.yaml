@@ -18,7 +18,7 @@ polarisServer:
   address: "polaris-server:8090"
   polarisToken: "polaris@12345678"
 monitorServer:
-  address: "prometheus:9090"
+  address: "polaris-prometheus:9090"
 oaAuthority:
   enableOAAuth: false
 hrData:
