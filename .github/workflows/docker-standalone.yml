@@ -48,9 +48,11 @@ jobs:
           set -e
           cd deploy/standalone
           POLARIS_GIT_PATH=https://github.com/polarismesh
+          
           DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}.${GOARCH}
           mkdir ${DIR_NAME}
           pushd ${DIR_NAME}
+
           SERVER_PKG_NAME=polaris-server-release_${SERVER_VERSION}.${GOOS}.${GOARCH}.zip
           wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris/releases/download/${SERVER_VERSION}/${SERVER_PKG_NAME} --no-check-certificate
           CONSOLE_PKG_NAME=polaris-console-release_${CONSOLE_VERSION}.${GOOS}.${GOARCH}.zip
@@ -63,9 +65,9 @@ jobs:
           mv ../vm/port.properties ./port.properties
           mv ../vm/Dockerfile ./Dockerfile
 
-          mv ${SERVER_PKG_NAME} polaris-server.zip
-          mv ${CONSOLE_PKG_NAME} polaris-console.zip
-          mv prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz prometheus.tar.gz
+          mv ${SERVER_PKG_NAME} polaris-server-release.zip
+          mv ${CONSOLE_PKG_NAME} polaris-console-release.zip
+          mv prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz prometheus-release.tar.gz
 
           docker_repository="polarismesh"
           docker_image="polaris-server-standalone"
