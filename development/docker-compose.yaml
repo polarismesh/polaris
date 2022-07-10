@@ -1,0 +1,131 @@
+version: '3'
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  vlm_data_mysql:
+    external: true
+  vlm_redis_sentinel:
+    external: true
+
+services:
+  polaris-server:
+    container_name: polaris-server
+    hostname: polaris-server
+    image: cosmtrek/air
+    volumes:
+      - ../:/data/www/polaris
+      - ~/.ssh:/root/.ssh:cached
+    environment:
+      - GOPROXY=https://proxy.golang.com.cn,direct
+    working_dir: /data/www/polaris
+    entrypoint: [ "air", "-c", "development/server/air.toml", "-d" ]
+    ports:
+      - "8090:8090"    # api-http
+      - "8091:8091"    # service-grpc
+      - "8093:8093"    # config-grpc
+      - "9000:9000"    # prometheus-sd
+      - "8761:8761"    # service-eureka
+      - "15010:15010"  # xds-v3
+    networks:
+      - backend
+    depends_on:
+      - redis-sentinel
+  polaris-console:
+    container_name: polaris-console
+    hostname: polaris-console
+    image: polarismesh/polaris-console
+    volumes:
+      - ./console/polaris-console.yaml:/root/polaris-console.yaml
+    ports:
+      - "8081:8080"
+    networks:
+      - backend
+    depends_on:
+      - polaris-server
+  mysql:
+    container_name: mysql
+    hostname: mysql
+    platform: linux/amd64
+    build: mysql
+    command: mysqld --optimizer-trace-max-mem-size=102400
+    environment:
+      - TZ=Asia/Shanghai
+      - LANG=zh_CN.utf8
+      - MYSQL_DATABASE=default
+      - MYSQL_USER=default
+      - MYSQL_PASSWORD=secret
+      - MYSQL_ROOT_PASSWORD=polaris
+    volumes:
+      - vlm_data_mysql:/var/lib/mysql
+      - ./mysql/mysqld.cnf:/etc/mysql/conf.d/custom.cnf:cached
+      - ../store/sqldb/scripts/polaris_server.sql:/docker-entrypoint-initdb.d/polaris_server.sql
+    ports:
+      - "0.0.0.0:3306:3306"
+    networks:
+      - backend
+  redis:
+    image: 'bitnami/redis:latest'
+    environment:
+      - REDIS_REPLICATION_MODE=master
+      - REDIS_PASSWORD=polaris
+    networks:
+      - backend
+    ports:
+      - '0.0.0.0:6379:6379'
+  redis-slave:
+    image: 'bitnami/redis:latest'
+    environment:
+      - REDIS_REPLICATION_MODE=slave
+      - REDIS_MASTER_HOST=redis
+      - REDIS_MASTER_PASSWORD=polaris
+      - REDIS_PASSWORD=polaris
+    ports:
+      - '6379'
+    depends_on:
+      - redis
+    networks:
+      - backend
+  redis-sentinel:
+    image: 'bitnami/redis-sentinel:latest'
+    environment:
+      - REDIS_MASTER_HOST=redis
+      - REDIS_MASTER_USER=polaris
+      - REDIS_MASTER_SET=mymaster
+      - REDIS_MASTER_PASSWORD=polaris
+      - REDIS_SENTINEL_PORT_NUMBER=26379
+      - REDIS_SENTINEL_RESOLVE_HOSTNAMES=yes
+    depends_on:
+      - redis
+      - redis-slave
+    ports:
+      - '26379-26381:26379'
+    networks:
+      - backend
+  polaris-prometheus:
+    container_name: polaris-prometheus
+    image: prom/prometheus
+    hostname: polaris-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "0.0.0.0:9090:9090"
+    networks:
+      - backend
+  polaris-pushgateway:
+    container_name: polaris-pushgateway
+    image: prom/pushgateway
+    hostname: polaris-pushgateway
+    ports:
+      - "0.0.0.0:9091:9091"
+    networks:
+      - backend
+  grafana:
+    container_name: grafana
+    image: grafana/grafana
+    ports:
+      - "0.0.0.0:3000:3000"
+    depends_on:
+      - prometheus
