@@ -146,5 +146,5 @@ installPolarisConsole
 # 安装Prometheus
 installPrometheus
 # 安装PushGateWay
-installPushGateway
+# installPushGateway
 
