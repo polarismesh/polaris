@@ -1,5 +1,32 @@
 #!/bin/bash
 
+function getProperties() {
+  result=""
+  proFilePath="./port.properties"
+  key="$1"
+  if [ "WJA${key}" = "WJA" ]; then
+    echo "invalid param, pls set key"
+    echo "" >&2
+    exit 1
+  fi
+  if [ ! -r ${proFilePath} ]; then
+    echo "current use not file ${proFilePath} read and write permission"
+    echo "" >&2
+    exit 1
+  fi
+  keyLength=$(echo ${key} | awk '{print length($0)}')
+  lineNumStr=$(cat ${proFilePath} | wc -l)
+  lineNum=$((${lineNumStr}))
+  for ((i = 1; i <= ${lineNum}; i++)); do
+    oneLine=$(sed -n ${i}p ${proFilePath})
+    if [ "${oneLine:0:((keyLength))}" = "${key}" ] && [ "${oneLine:$((keyLength)):1}" = "=" ]; then
+      result=${oneLine#*=}
+      break
+    fi
+  done
+  echo ${result}
+}
+
 echo "To allow polaris to be installed on your Mac, we need to open the install from anywhere 'sudo spctl
 --master-disable'"
 
@@ -13,6 +40,37 @@ fi
 
 # Get Darwin CPU is AMD64 or ARM64
 UNAME_MACHINE="$(/usr/bin/uname -m)"
+
+console_port=$(getProperties "polaris_console_port")
+
+eureka_port=$(getProperties "polaris_eureka_port")
+xdsv3_port=$(getProperties "polaris_xdsv3_port")
+prometheus_sd_port=$(getProperties "polaris_prometheus_sd_port")
+service_grpc_port=$(getProperties "polaris_service_grpc_port")
+config_grpc_port=$(getProperties "polaris_config_grpc_port")
+api_http_port=$(getProperties "polaris_open_api_port")
+
+prometheus_port=$(getProperties prometheus_port)
+pushgateway_port=$(getProperties pushgateway_port)
+
+echo "prepare install polaris standalone..."
+
+echo "polaris-console listen port info"
+echo "console_port=${console_port}"
+echo ""
+echo "polaris-server listen port info"
+echo "eureka_port=${eureka_port}"
+echo "xdsv3_port=${xdsv3_port}"
+echo "prometheus_sd_port=${prometheus_sd_port}"
+echo "service_grpc_port=${service_grpc_port}"
+echo "config_grpc_port=${config_grpc_port}"
+echo "api_http_port=${api_http_port}"
+echo ""
+echo "prometheus-server listen port info"
+echo "prometheus_server_port=${prometheus_port}"
+echo ""
+echo "pushgateway-server listen port info"
+echo "pushgateway_server_port=${pushgateway_port}"
 
 function installPolarisServer() {
   echo -e "install polaris server ... "
@@ -40,6 +98,23 @@ function installPolarisServer() {
     echo "no such directory ${polaris_server_dirname}"
     exit -1
   )
+
+  # 备份 polaris-server.yaml
+  cp polaris-server.yaml polaris-server.yaml.bak
+
+  # 修改 polaris-server eureka 端口信息
+  sed -i "" "s/listenPort: 8080/listenPort: ${eureka_port}/g" polaris-server.yaml
+  # 修改 polaris-server xdsv3 端口信息
+  sed -i "" "s/listenPort: 8080/listenPort: ${xdsv3_port}/g" polaris-server.yaml
+  # 修改 polaris-server prometheus-sd 端口信息
+  sed -i "" "s/listenPort: 8080/listenPort: ${prometheus_sd_port}/g" polaris-server.yaml
+  # 修改 polaris-server service-grpc 端口信息
+  sed -i "" "s/listenPort: 8080/listenPort: ${service_grpc_port}/g" polaris-server.yaml
+  # 修改 polaris-server config-grpc 端口信息
+  sed -i "" "s/listenPort: 8080/listenPort: ${config_grpc_port}/g" polaris-server.yaml
+  # 修改 polaris-server http-api 端口信息
+  sed -i "" "s/listenPort: 8090/listenPort: ${api_http_port}/g" polaris-server.yaml
+
   /bin/bash ./tool/start.sh
   echo -e "install polaris server finish."
   cd ${install_path} || (
@@ -74,6 +149,17 @@ function installPolarisConsole() {
     echo "no such directory ${polaris_console_dirname}"
     exit -1
   )
+
+  # 备份 polaris-console.yaml
+  cp polaris-console.yaml polaris-console.yaml.bak
+
+  # 修改 polaris-console 端口信息
+  sed -i "" "s/listenPort: 8080/listenPort: ${console_port}/g" polaris-console.yaml
+  # 修改监听的 polaris-server 端口信息
+  sed -i "" "s/address: \"127.0.0.1:8090\"/address: \"127.0.0.1:${api_http_port}\"/g" polaris-console.yaml
+  # 修改监听的 prometheus 端口信息
+  sed -i "" "s/address: \"127.0.0.1:9090\"/address: \"127.0.0.1:${prometheus_port}\"/g" polaris-console.yaml
+
   /bin/bash ./tool/start.sh
   echo -e "install polaris console finish."
   cd ${install_path} || (
@@ -108,15 +194,15 @@ function installPrometheus() {
   pushd ${prometheus_dirname}
   local push_count=$(cat prometheus.yml | grep "push-metrics" | wc -l)
   if [ $push_count -eq 0 ]; then
-    echo "    http_sd_configs:" >> prometheus.yml
-    echo "    - url: http://localhost:9000/prometheus/v1/clients" >> prometheus.yml
+    echo "    http_sd_configs:" >>prometheus.yml
+    echo "    - url: http://localhost:9000/prometheus/v1/clients" >>prometheus.yml
     echo "" >>prometheus.yml
     echo "  - job_name: 'push-metrics'" >>prometheus.yml
     echo "    static_configs:" >>prometheus.yml
     echo "    - targets: ['localhost:9091']" >>prometheus.yml
     echo "    honor_labels: true" >>prometheus.yml
   fi
-  nohup ./prometheus --web.enable-lifecycle --web.enable-admin-api >>prometheus.out 2>&1 &
+  nohup ./prometheus --web.enable-lifecycle --web.enable-admin-api --web.listen-address=:${prometheus_port} >>prometheus.out 2>&1 &
   echo "install prometheus success"
   popd
 }
@@ -145,18 +231,30 @@ function installPushGateway() {
   tar -xf ${target_pgw_pkg} >/dev/null
 
   pushd ${pgw_dirname}
-  nohup ./pushgateway --web.enable-lifecycle --web.enable-admin-api >>pgw.out 2>&1 &
+  nohup ./pushgateway --web.enable-lifecycle --web.enable-admin-api --web.listen-address=:${pushgateway_port} >>pgw.out 2>&1 &
   echo "install pushgateway success"
   popd
 }
 
 function checkPort() {
-  # check polaris、polaris-console、prometheus and pushgateway listen port is already used
-  ports=("8080" "8090" "8091" "9090" "9091")
-  for port in ${ports[@]}; do
+  proFilePath="./port.properties"
+  if [ ! -f ${proFilePath} ]; then
+    echo "file ${proFilePath} not exist"
+    echo "" >&2
+    exit 1
+  fi
+  keyLength=$(echo ${key} | awk '{print length($0)}')
+  lineNumStr=$(cat ${proFilePath} | wc -l)
+  lineNum=$((${lineNumStr}))
+  for ((i = 1; i <= ${lineNum}; i++)); do
+    oneLine=$(sed -n ${i}p ${proFilePath})
+    port=${oneLine#*=}
+    if [ "WJA${port}" == "WJA" ]; then
+      continue
+    fi
     pid=$(lsof -i :${port} | grep LISTEN | awk '{print $1 " " $2}')
     if [ "${pid}" != "" ]; then
-      echo "port ${port} has been used, exit."
+      echo "port ${port} already used, you can modify port.properties to adjust port"
       exit -1
     fi
   done
@@ -171,7 +269,7 @@ installPolarisConsole
 # 安装Prometheus
 installPrometheus
 # 安装PushGateWay
-installPushGateway
+# installPushGateway
 
 echo "now, we finish install polaris in your mac, we will exec rollback 'sudo spctl --master-enable'"
 
