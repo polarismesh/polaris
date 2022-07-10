@@ -1,0 +1,25 @@
+logger:
+  RotateOutputPath: log/polaris-console.log
+  RotationMaxSize: 500
+  RotationMaxAge: 30
+  RotationMaxBackups: 100
+  level: info
+webServer:
+  mode: "release"
+  listenIP: "0.0.0.0"
+  listenPort: 8080
+  namingURL: "/naming/v1"
+  authURL: "/core/v1"
+  requestURL: "/naming/v1"
+  configURL: "/config/v1"
+  monitorURL: "/api/v1"
+  webPath: "web/dist/"
+polarisServer:
+  address: "polaris-server:8090"
+  polarisToken: "polaris@12345678"
+monitorServer:
+  address: "prometheus:9090"
+oaAuthority:
+  enableOAAuth: false
+hrData:
+  enableHrData: false
