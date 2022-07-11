@@ -1,9 +1,9 @@
+FROM ubuntu:latest
+
 ARG SERVER_VERSION=v1.10.0
 ARG CONSOLE_VERSION=v1.7.1
 ARG GOOS=linux
 ARG GOARCH=amd64
-
-FROM ubuntu:latest
 
 LABEL cn.polarismesh.image.authors="polaris"
 LABEL cn.polarismesh.image.documentation="https://polarismesh.cn/#/"
