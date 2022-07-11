@@ -90,7 +90,26 @@ README：
 
 ### 编译构建
 
-```shell
+
+如果您是国内用户, 或者无法正常访问`proxy.golang.org`, 需要按照以下步骤设置**GOPROXY**环境变量信息
+
+> Linux/Mac
+
+```bash
+# set GOPROXY set
+export GOPROXY=https://proxy.golang.com.cn,direct
+```
+
+> Window
+
+```bash
+# set GOPROXY set
+$env:GOPROXY = "https://proxy.golang.com.cn,direct"
+```
+
+> 执行构建动作
+
+```bash
 chmod +x build.sh
 ./build.sh
 ```
