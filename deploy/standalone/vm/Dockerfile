@@ -1,3 +1,8 @@
+ARG SERVER_VERSION=v1.10.0
+ARG CONSOLE_VERSION=v1.7.1
+ARG GOOS=linux
+ARG GOARCH=amd64
+
 FROM ubuntu:latest
 
 LABEL cn.polarismesh.image.authors="polaris"
@@ -6,9 +11,9 @@ LABEL cn.polarismesh.image.documentation="https://polarismesh.cn/#/"
 RUN apt-get -y update
 RUN apt-get install -y lsof curl unzip
 
-COPY polaris-server-release.zip /root/polaris-server-release.zip
-COPY polaris-console-release.zip /root/polaris-console-release.zip
-COPY prometheus-release.tar.gz /root/prometheus-release.tar.gz
+COPY polaris-server-release_${SERVER_VERSION}.${GOOS}.${GOARCH}.zip /root/polaris-server-release_${SERVER_VERSION}.${GOOS}.${GOARCH}.zip
+COPY polaris-console-release_${CONSOLE_VERSION}.${GOOS}.${GOARCH}.zip /root/polaris-console-release_${CONSOLE_VERSION}.${GOOS}.${GOARCH}.zip
+COPY prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz /root/prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz
 COPY install.sh /root/install.sh
 COPY port.properties /root/port.properties
 

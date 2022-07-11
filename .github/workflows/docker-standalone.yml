@@ -65,15 +65,11 @@ jobs:
           mv ../vm/port.properties ./port.properties
           mv ../vm/Dockerfile ./Dockerfile
 
-          mv ${SERVER_PKG_NAME} polaris-server-release.zip
-          mv ${CONSOLE_PKG_NAME} polaris-console-release.zip
-          mv prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz prometheus-release.tar.gz
-
           docker_repository="polarismesh"
           docker_image="polaris-server-standalone"
           docker_tag=${SERVER_VERSION}
 
-          docker build --network=host -t ${docker_repository}/${docker_image}:${docker_tag} ./
+          docker build --network=host --build-arg SERVER_VERSION="${SERVER_VERSION}" --build-arg CONSOLE_VERSION="${CONSOLE_VERSION}" -t ${docker_repository}/${docker_image}:${docker_tag} ./
 
           docker push ${docker_repository}/${docker_image}:${docker_tag}
           docker tag ${docker_repository}/${docker_image}:${docker_tag} ${docker_repository}/${docker_image}:latest
