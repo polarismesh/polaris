@@ -3,7 +3,8 @@ FROM ubuntu:latest
 LABEL cn.polarismesh.image.authors="polaris"
 LABEL cn.polarismesh.image.documentation="https://polarismesh.cn/#/"
 
-RUN apt-get install lsof -y
+RUN apt-get -y update
+RUN apt-get install -y lsof curl
 
 COPY polaris-server-release.zip /root/polaris-server-release.zip
 COPY polaris-console-release.zip /root/polaris-console-release.zip
