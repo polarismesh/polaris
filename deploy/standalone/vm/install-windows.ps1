@@ -86,6 +86,8 @@ function installPrometheus() {
     }
     Expand-Archive -Path $target_prometheus_pkg -DestinationPath .
     Push-Location $prometheus_dirname
+    Add-Content prometheus.yml "    http_sd_configs:"
+    Add-Content prometheus.yml "    - url: http://localhost:9000/prometheus/v1/clients"
     Add-Content prometheus.yml ""
     Add-Content prometheus.yml "  - job_name: 'push-metrics'"
     Add-Content prometheus.yml "    static_configs:"
@@ -144,5 +146,5 @@ installPolarisConsole
 # 安装Prometheus
 installPrometheus
 # 安装PushGateWay
-installPushGateway
+# installPushGateway
 

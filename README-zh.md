@@ -90,7 +90,26 @@ README：
 
 ### 编译构建
 
-```shell
+
+如果您是国内用户, 或者无法正常访问`proxy.golang.org`, 需要按照以下步骤设置**GOPROXY**环境变量信息
+
+> Linux/Mac
+
+```bash
+# set GOPROXY set
+export GOPROXY=https://proxy.golang.com.cn,direct
+```
+
+> Window
+
+```bash
+# set GOPROXY set
+$env:GOPROXY = "https://proxy.golang.com.cn,direct"
+```
+
+> 执行构建动作
+
+```bash
 chmod +x build.sh
 ./build.sh
 ```
@@ -152,7 +171,7 @@ curl http://127.0.0.1:8090
 
 ## 使用指南
 
-北极星各部分功能的使用方式可参考：[使用指南](https://polarismesh.cn/zh/doc/使用指南/基本原理.html#基本原理)
+北极星各部分功能的使用方式可参考：[使用指南](https://polarismesh.cn/zh/doc/使用指南/服务注册/概述.html#概述)
 
 ## 交流群
 

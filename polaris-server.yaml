@@ -136,6 +136,10 @@ apiservers:
         maxConnLimit: 5120
       enableCacheProto: true
       sizeCacheProto: 128
+      tls:
+        certFile: ""
+        keyFile: ""
+        trustedCAFile: ""
     api:
       client:
         enable: true
@@ -198,6 +202,8 @@ naming:
       waitTime: 32ms
       maxBatchCount: 128
       concurrency: 128
+      dropExpireTask: true
+      taskLife: 30s
     deregister:
       open: true
       queueSize: 10240

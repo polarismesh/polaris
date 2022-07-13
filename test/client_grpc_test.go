@@ -28,6 +28,8 @@ import (
 	"github.com/polarismesh/polaris-server/test/grpc"
 	"github.com/polarismesh/polaris-server/test/http"
 	"github.com/polarismesh/polaris-server/test/resource"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 /**
@@ -124,4 +126,81 @@ func TestClientGRPC(t *testing.T) {
 		t.Fatalf("delete namespaces fail")
 	}
 	t.Log("delete namespaces success")
+}
+
+func TestClientGRPC_DiscoverServices(t *testing.T) {
+	t.Run("测试客户端查询服务列表", func(t *testing.T) {
+		t.Log("test client grpc TestClientGRPC_DiscoverServices")
+
+		clientHTTP := http.NewClient(httpserverAddress, httpserverVersion)
+
+		namespaces := resource.CreateNamespaces()
+		services := resource.CreateServices(namespaces[0])
+
+		// 创建命名空间
+		ret, err := clientHTTP.CreateNamespaces(namespaces)
+		if err != nil {
+			t.Fatalf("create namespaces fail")
+		}
+		for index, item := range ret.GetResponses() {
+			namespaces[index].Token = item.GetNamespace().GetToken()
+		}
+		t.Log("create namespaces success")
+
+		clientGRPC, err := grpc.NewClient(grpcserverAddress)
+		if err != nil {
+			t.Fatalf("new grpc client fail")
+		}
+		defer clientGRPC.Close()
+
+		resp, err := clientGRPC.DiscoverRequest(&api.DiscoverRequest{
+			Type: api.DiscoverRequest_SERVICES,
+			Service: &api.Service{
+				Namespace: &wrapperspb.StringValue{Value: namespaces[0].Name.Value},
+			},
+		})
+		if err != nil {
+			t.Fatalf("discover services fail")
+		}
+
+		assert.True(t, len(resp.Services) == 0, "discover services response not empty")
+
+		// 创建服务
+		ret, err = clientHTTP.CreateServices(services)
+		if err != nil {
+			t.Fatalf("create services fail")
+		}
+		for index, item := range ret.GetResponses() {
+			services[index].Token = item.GetService().GetToken()
+		}
+		t.Log("create services success")
+
+		time.Sleep(2 * time.Second)
+
+		resp, err = clientGRPC.DiscoverRequest(&api.DiscoverRequest{
+			Type: api.DiscoverRequest_SERVICES,
+			Service: &api.Service{
+				Namespace: &wrapperspb.StringValue{Value: namespaces[0].Name.Value},
+			},
+		})
+		if err != nil {
+			t.Fatalf("discover services fail")
+		}
+
+		assert.Equal(t, len(resp.Services), len(services), "discover services response not equal")
+
+		// 删除服务
+		err = clientHTTP.DeleteServices(services)
+		if err != nil {
+			t.Fatalf("delete services fail")
+		}
+		t.Log("delete services success")
+
+		// 删除命名空间
+		err = clientHTTP.DeleteNamespaces(namespaces)
+		if err != nil {
+			t.Fatalf("delete namespaces fail")
+		}
+		t.Log("delete namespaces success")
+	})
 }

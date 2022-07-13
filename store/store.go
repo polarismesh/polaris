@@ -73,6 +73,7 @@ func SetStoreConfig(conf *Config) {
 // initialize  包裹了初始化函数，在GetStore的时候会在自动调用，全局初始化一次
 func initialize(s Store) {
 	once.Do(func() {
+		fmt.Printf("[Store][Info] current use store plugin : %s\n", s.Name())
 		if err := s.Initialize(config); err != nil {
 			fmt.Printf("[ERROR] initialize store `%s` fail: %v", s.Name(), err)
 			os.Exit(1)

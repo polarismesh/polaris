@@ -19,6 +19,7 @@ package logger
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
@@ -73,13 +74,25 @@ func (h *HistoryLogger) Initialize(c *plugin.ConfigEntry) error {
 	}
 
 	// 同步到文件中的配置 TODO，参数来自于外部配置文件
-	w := zapcore.AddSync(&lumberjack.Logger{
+	log := &lumberjack.Logger{
 		Filename:   "./log/polaris-history.log", // TODO
 		MaxSize:    100,                         // megabytes TODO
 		MaxBackups: 50,
 		MaxAge:     15, // days TODO
 		LocalTime:  true,
-	})
+	}
+	go func() {
+		duration := 24 * time.Hour
+		ticker := time.NewTicker(duration)
+		defer ticker.Stop()
+		for {
+			<-ticker.C
+			if err := log.Rotate(); err != nil{
+				return
+			}
+		}
+	}()
+	w := zapcore.AddSync(log)
 	// multiSync := zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), w)
 
 	// 日志

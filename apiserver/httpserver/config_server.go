@@ -68,6 +68,7 @@ func (h *HTTPServer) bindConfigConsoleEndpoint(ws *restful.WebService) {
 	// 配置文件
 	ws.Route(ws.POST("/configfiles").To(h.CreateConfigFile))
 	ws.Route(ws.GET("/configfiles").To(h.GetConfigFile))
+	ws.Route(ws.GET("/configfiles/by-group").To(h.QueryConfigFilesByGroup))
 	ws.Route(ws.GET("/configfiles/search").To(h.SearchConfigFile))
 	ws.Route(ws.PUT("/configfiles").To(h.UpdateConfigFile))
 	ws.Route(ws.DELETE("/configfiles").To(h.DeleteConfigFile))

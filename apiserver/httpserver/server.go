@@ -20,6 +20,7 @@ package httpserver
 import (
 	"context"
 	"fmt"
+	"github.com/polarismesh/polaris-server/common/secure"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -34,6 +35,7 @@ import (
 	"github.com/polarismesh/polaris-server/auth"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
+	"github.com/polarismesh/polaris-server/common/metrics"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/config"
 	"github.com/polarismesh/polaris-server/maintain"
@@ -49,6 +51,7 @@ type HTTPServer struct {
 	listenIP        string
 	listenPort      uint32
 	connLimitConfig *connlimit.Config
+	tlsInfo         *secure.TLSInfo
 	option          map[string]interface{}
 	openAPI         map[string]apiserver.APIConfig
 	start           bool
@@ -109,6 +112,19 @@ func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{}
 	if auth := plugin.GetAuth(); auth != nil {
 		log.Infof("http server open the auth")
 		h.auth = auth
+	}
+
+	// tls 配置信息
+	if raw, _ := option["tls"].(map[interface{}]interface{}); raw != nil {
+		tlsConfig, err := secure.ParseTLSConfig(raw)
+		if err != nil {
+			return err
+		}
+		h.tlsInfo = &secure.TLSInfo{
+			CertFile:      tlsConfig.CertFile,
+			KeyFile:       tlsConfig.KeyFile,
+			TrustedCAFile: tlsConfig.TrustedCAFile,
+		}
 	}
 
 	return nil
@@ -208,7 +224,11 @@ func (h *HTTPServer) Run(errCh chan error) {
 	h.server = &server
 
 	// 开始对外服务
-	err = server.Serve(ln)
+	if h.tlsInfo.IsEmpty() {
+		err = server.Serve(ln)
+	} else {
+		err = server.ServeTLS(ln, h.tlsInfo.CertFile, h.tlsInfo.KeyFile)
+	}
 	if err != nil {
 		log.Errorf("%+v", err)
 		if !h.restart {
@@ -365,9 +385,7 @@ func (h *HTTPServer) enablePprofAccess(wsContainer *restful.Container) {
 func (h *HTTPServer) enablePrometheusAccess(wsContainer *restful.Container) {
 	log.Infof("open http access for prometheus")
 
-	statics := plugin.GetStatis().(*local.StatisWorker)
-
-	wsContainer.Handle("/metrics", statics.GetPrometheusHandler())
+	wsContainer.Handle("/metrics", metrics.GetHttpHandler())
 }
 
 // process 在接收和回复时统一处理请求

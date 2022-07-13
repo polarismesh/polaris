@@ -184,6 +184,48 @@ func (s *Server) GetConfigFileRichInfo(ctx context.Context, namespace, group, na
 	return api.NewConfigFileResponse(api.ExecuteSuccess, configFileBaseInfo)
 }
 
+func (s *Server) QueryConfigFilesByGroup(ctx context.Context, namespace, group string, offset, limit uint32) *api.ConfigBatchQueryResponse {
+	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
+		return api.NewConfigFileBatchQueryResponse(api.InvalidNamespaceName, 0, nil)
+	}
+
+	if err := utils2.CheckResourceName(utils.NewStringValue(group)); err != nil {
+		return api.NewConfigFileBatchQueryResponse(api.InvalidConfigFileGroupName, 0, nil)
+	}
+
+	if offset < 0 || limit <= 0 || limit > MaxPageSize {
+		return api.NewConfigFileBatchQueryResponse(api.InvalidParameter, 0, nil)
+	}
+
+	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
+	count, files, err := s.storage.QueryConfigFilesByGroup(namespace, group, offset, limit)
+	if err != nil {
+		log.ConfigScope().Error("[Config][Service]get config files by group error.",
+			zap.String("request-id", requestID),
+			zap.String("namespace", namespace),
+			zap.String("group", group),
+			zap.Error(err))
+
+		return api.NewConfigFileBatchQueryResponse(api.StoreLayerException, 0, nil)
+	}
+
+	if len(files) == 0 {
+		return api.NewConfigFileBatchQueryResponse(api.ExecuteSuccess, count, nil)
+	}
+
+	var fileAPIModels []*api.ConfigFile
+	for _, file := range files {
+		baseFile := transferConfigFileStoreModel2APIModel(file)
+		err = s.enrich(ctx, baseFile, requestID)
+		if err != nil {
+			return api.NewConfigFileBatchQueryResponse(api.StoreLayerException, 0, nil)
+		}
+		fileAPIModels = append(fileAPIModels, baseFile)
+	}
+
+	return api.NewConfigFileBatchQueryResponse(api.ExecuteSuccess, count, fileAPIModels)
+}
+
 // SearchConfigFile 查询配置文件
 func (s *Server) SearchConfigFile(ctx context.Context, namespace, group, name, tags string, offset, limit uint32) *api.ConfigBatchQueryResponse {
 	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {

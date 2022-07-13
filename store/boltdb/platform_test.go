@@ -319,7 +319,7 @@ func Test_platformStore_GetPlatforms(t *testing.T) {
 				},
 				args: args{
 					query: map[string]string{
-						"Name": platNames[0],
+						"name": platNames[0],
 					},
 					offset: 0,
 					limit:  20,
@@ -335,7 +335,7 @@ func Test_platformStore_GetPlatforms(t *testing.T) {
 				},
 				args: args{
 					query: map[string]string{
-						"Name": platNames[1],
+						"name": platNames[1],
 					},
 					offset: 0,
 					limit:  20,

@@ -93,7 +93,25 @@ here: https://golang.org/dl/#featured.
 
 ### Build
 
-```shell script
+If you are china developer, or cannot access the normally `proxy.golang.org`, need to set the following steps **GOPROXY** Environment variable information
+
+> Linux/Mac
+
+```bash
+# set GOPROXY set
+export GOPROXY=https://proxy.golang.com.cn,direct
+```
+
+> Window
+
+```bash
+# set GOPROXY set
+$env:GOPROXY = "https://proxy.golang.com.cn,direct"
+```
+
+> Run build
+
+```bash
 chmod +x build.sh
 ./build.sh
 ```
@@ -157,7 +175,7 @@ More access guide：[Doc](https://polarismesh.cn/zh/doc/快速入门/使用SDK�
 
 ## User manual
 
-Polaris function guide can refer：[Manual](https://polarismesh.cn/zh/doc/使用指南/基本原理.html#基本原理)
+Polaris function guide can refer：[Manual](https://polarismesh.cn/zh/doc/使用指南/服务注册/概述.html#概述)
 
 ## Chat group
 

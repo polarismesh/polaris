@@ -146,6 +146,7 @@ const (
 	ParseRateLimitException            uint32 = 500005
 	ParseCircuitBreakerException       uint32 = 500006
 	HeartbeatException                 uint32 = 500007
+	InstanceRegisTimeout               uint32 = 500008
 
 	// 配置中心模块的错误码
 
@@ -306,6 +307,8 @@ var code2info = map[uint32]string{
 	InvalidFluxRateLimitId:             "invalid flux ratelimit id",
 	InvalidFluxRateLimitQps:            "invalid flux ratelimit qps",
 	InvalidFluxRateLimitSetKey:         "invalid flux ratelimit key",
+	InstanceRegisTimeout:               "instance async regist timeout",
+
 	// 配置中心的错误信息
 	InvalidConfigFileGroupName:     "invalid config file group name",
 	InvalidConfigFileName:          "invalid config file name",

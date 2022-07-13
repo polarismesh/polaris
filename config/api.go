@@ -54,6 +54,9 @@ type ConfigFileOperate interface {
 	// GetConfigFileRichInfo 获取单个配置文件基础信息，包含发布状态等信息
 	GetConfigFileRichInfo(ctx context.Context, namespace, group, name string) *api.ConfigResponse
 
+	// QueryConfigFilesByGroup query file group's config file
+	QueryConfigFilesByGroup(ctx context.Context, namespace, group string, offset, limit uint32) *api.ConfigBatchQueryResponse
+
 	// SearchConfigFile 按 group 和 name 模糊搜索配置文件
 	SearchConfigFile(ctx context.Context, namespace, group, name, tags string, offset, limit uint32) *api.ConfigBatchQueryResponse
 
