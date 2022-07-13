@@ -57,16 +57,16 @@ jobs:
             wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris-console/releases/download/${CONSOLE_VERSION}/${CONSOLE_PKG_NAME} --no-check-certificate
             if [ ${GOOS} == "windows" ];then
             wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.zip
-            wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${GOOS}-${GOARCH}.zip
             mv ../vm/install-windows.bat ./install.bat
             mv ../vm/install-windows.ps1 ./install-windows.ps1
             mv ../vm/uninstall-windows.bat ./uninstall.bat
             mv ../vm/uninstall-windows.ps1 ./uninstall-windows.ps1
+            mv ../vm/port.properties ./port.properties
             else
             wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz
-            wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${GOOS}-${GOARCH}.tar.gz
             mv ../vm/install-${GOOS}.sh ./install.sh
             mv ../vm/uninstall-${GOOS}.sh ./uninstall.sh
+            mv ../vm/port.properties ./port.properties
             fi
             popd
           fi

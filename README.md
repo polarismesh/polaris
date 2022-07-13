@@ -93,7 +93,25 @@ here: https://golang.org/dl/#featured.
 
 ### Build
 
-```shell script
+If you are china developer, or cannot access the normally `proxy.golang.org`, need to set the following steps **GOPROXY** Environment variable information
+
+> Linux/Mac
+
+```bash
+# set GOPROXY set
+export GOPROXY=https://proxy.golang.com.cn,direct
+```
+
+> Window
+
+```bash
+# set GOPROXY set
+$env:GOPROXY = "https://proxy.golang.com.cn,direct"
+```
+
+> Run build
+
+```bash
 chmod +x build.sh
 ./build.sh
 ```
