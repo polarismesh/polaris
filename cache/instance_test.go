@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 
 	v1 "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -218,6 +219,59 @@ func TestInstanceCache_GetInstance(t *testing.T) {
 
 		if instance := ic.GetInstance("test-instance-xx"); instance != nil {
 			t.Fatalf("error")
+		}
+	})
+}
+
+func TestInstanceCache_GetServicePorts(t *testing.T) {
+	ctl, storage, ic := newTestInstanceCache(t)
+	defer ctl.Finish()
+	t.Run("缓存有数据，可以正常获取到服务的端口列表", func(t *testing.T) {
+		_ = ic.clear()
+		instances := genModelInstances("my-services", 10)
+
+		ports := make(map[string][]string)
+
+		for i := range instances {
+			ins := instances[i]
+			if _, ok := ports[ins.ServiceID]; !ok {
+				ports[ins.ServiceID] = make([]string, 0, 4)
+			}
+
+			values := ports[ins.ServiceID]
+			find := false
+
+			for j := range values {
+				if values[j] == fmt.Sprintf("%d", ins.Port()) {
+					find = true
+					break
+				}
+			}
+
+			if !find {
+				values = append(values, fmt.Sprintf("%d", ins.Port()))
+			}
+
+			ports[ins.ServiceID] = values
+		}
+
+		gomock.InOrder(storage.EXPECT().
+			GetMoreInstances(gomock.Any(), ic.firstUpdate, ic.needMeta, ic.systemServiceID).
+			Return(instances, nil))
+		gomock.InOrder(storage.EXPECT().GetInstancesCount().Return(uint32(10), nil))
+		if err := ic.update(0); err != nil {
+			t.Fatalf("error: %s", err.Error())
+		}
+
+		for i := range instances {
+			ins := instances[i]
+
+			expectVal := ports[ins.ServiceID]
+			targetVal := ic.GetServicePorts(ins.ServiceID)
+
+			t.Logf("service-ports expectVal : %v, targetVal : %v", expectVal, targetVal)
+
+			assert.ElementsMatch(t, expectVal, targetVal)
 		}
 	})
 }
