@@ -19,12 +19,11 @@ package config
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"os"
-	"sync"
 	"testing"
+	"time"
 
 	"gopkg.in/yaml.v2"
 
@@ -36,11 +35,11 @@ import (
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/polarismesh/polaris-server/store/boltdb"
 	"github.com/polarismesh/polaris-server/store/sqldb"
 
@@ -50,22 +49,21 @@ import (
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
 
 	_ "github.com/polarismesh/polaris-server/plugin/auth/defaultauth"
-	_ "github.com/polarismesh/polaris-server/plugin/cmdb/memory"
 
 	_ "github.com/polarismesh/polaris-server/plugin/auth/platform"
-	_ "github.com/polarismesh/polaris-server/plugin/discoverevent/local"
-	_ "github.com/polarismesh/polaris-server/plugin/discoverstat/discoverlocal"
 	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
 	_ "github.com/polarismesh/polaris-server/plugin/password"
-	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/lrurate"
-	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/token"
-	_ "github.com/polarismesh/polaris-server/plugin/statis/local"
 
 	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatmemory"
 	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatredis"
 )
 
+type Bootstrap struct {
+	Logger map[string]*commonlog.Options
+}
+
 type TestConfig struct {
+	Bootstrap Bootstrap        `yaml:"bootstrap"`
 	Cache     cache.Config     `yaml:"cache"`
 	Namespace namespace.Config `yaml:"namespace"`
 	Config    Config           `yaml:"config"`
@@ -76,10 +74,10 @@ type TestConfig struct {
 
 type ConfigCenterTest struct {
 	cfg         *TestConfig
-	once        sync.Once
 	testService ConfigCenterServer
 	testServer  *Server
 	defaultCtx  context.Context
+	cancel      context.CancelFunc
 	storage     store.Store
 }
 
@@ -91,7 +89,6 @@ func newConfigCenterTest(t *testing.T) (*ConfigCenterTest, error) {
 	c := &ConfigCenterTest{
 		defaultCtx: context.Background(),
 		testServer: new(Server),
-		once:       sync.Once{},
 		cfg:        new(TestConfig),
 	}
 
@@ -104,73 +101,75 @@ func newConfigCenterTest(t *testing.T) (*ConfigCenterTest, error) {
 }
 
 func (c *ConfigCenterTest) doInitialize() error {
-	var err error
+	// 加载启动配置文件
+	if err := c.loadBootstrapConfig(); err != nil {
+		return err
+	}
+	_ = log.Configure(c.cfg.Bootstrap.Logger)
+	ctx, cancel := context.WithCancel(context.Background())
+	c.cancel = cancel
+	plugin.SetPluginConfig(&c.cfg.Plugin)
 
-	c.once.Do(func() {
-		logOptions := log.DefaultOptions()
-		_ = log.Configure(logOptions)
-		// 加载启动配置文件
-		err = c.loadBootstrapConfig()
-		if err != nil {
-			return
-		}
+	// 初始化存储层
+	store.SetStoreConfig(&c.cfg.Store)
+	s, err := store.TestGetStore()
+	if err != nil {
+		fmt.Printf("[ERROR] configure get store fail: %v\n", err)
+		return err
+	}
+	c.storage = s
 
-		// 初始化defaultCtx
-		c.defaultCtx = context.WithValue(c.defaultCtx, utils.StringContext("request-id"), "config-test-request-id")
-		c.defaultCtx = context.WithValue(c.defaultCtx, utils.ContextUserNameKey, "polaris")
-		c.defaultCtx = context.WithValue(c.defaultCtx, utils.ContextAuthTokenKey, "4azbewS+pdXvrMG1PtYV3SrcLxjmYd0IVNaX9oYziQygRnKzjcSbxl+Reg7zYQC1gRrGiLzmMY+w+aCxOYI=")
+	if err := cache.TestCacheInitialize(ctx, &c.cfg.Cache, s); err != nil {
+		fmt.Printf("[ERROR] configure init cache fail: %v\n", err)
+		return err
+	}
 
-		plugin.SetPluginConfig(&c.cfg.Plugin)
+	cacheMgr, err := cache.GetCacheManager()
+	if err != nil {
+		fmt.Printf("[ERROR] configure get cache fail: %v\n", err)
+		return err
+	}
 
-		// 初始化存储层
-		store.SetStoreConfig(&c.cfg.Store)
-		s, err := store.GetStore()
-		if err != nil {
-			fmt.Printf("[ERROR] configure get store fail: %v\n", err)
-			return
-		}
-		c.storage = s
+	authSvr, err := auth.TestInitialize(ctx, &c.cfg.Auth, s, cacheMgr)
+	if err != nil {
+		fmt.Printf("[ERROR] configure init auth fail: %v\n", err)
+		return err
+	}
 
-		if err := cache.TestCacheInitialize(context.Background(), &c.cfg.Cache, s); err != nil {
-			fmt.Printf("[ERROR] configure init cache fail: %v\n", err)
-			return
-		}
+	// 初始化配置中心模块
+	if err := c.testServer.initialize(ctx, c.cfg.Config, s, cacheMgr, authSvr); err != nil {
+		return err
+	}
+	c.testServer.initialized = true
+	c.testService = newServerAuthAbility(c.testServer, authSvr)
 
-		cacheMgr, err := cache.GetCacheManager()
-		if err != nil {
-			fmt.Printf("[ERROR] configure get cache fail: %v\n", err)
-			return
-		}
+	time.Sleep(5 * time.Second)
 
-		if err := auth.Initialize(context.Background(), &c.cfg.Auth, s, cacheMgr); err != nil {
-			fmt.Printf("[ERROR] configure init auth fail: %v\n", err)
-			return
-		}
-
-		authSvr, err := auth.GetAuthServer()
-		if err != nil {
-			fmt.Printf("[ERROR] configure get auth fail: %v\n", err)
-			return
-		}
-
-		// 初始化配置中心模块
-		if err := c.testServer.initialize(context.Background(), c.cfg.Config, s, cacheMgr, authSvr); err != nil {
-			return
-		}
-
-		c.testService = newServerAuthAbility(c.testServer, authSvr)
-	})
-	return err
+	return nil
 }
 
 func (c *ConfigCenterTest) loadBootstrapConfig() error {
-	file, err := os.Open("test.yaml")
+	confFileName := "test.yaml"
+
+	// 初始化defaultCtx
+	c.defaultCtx = context.WithValue(c.defaultCtx, utils.StringContext("request-id"), "config-test-request-id")
+	c.defaultCtx = context.WithValue(c.defaultCtx, utils.ContextUserNameKey, "polaris")
+
+	if os.Getenv("STORE_MODE") == "sqldb" {
+		fmt.Printf("run store mode : sqldb\n")
+		confFileName = "test_sqldb.yaml"
+		c.defaultCtx = context.WithValue(c.defaultCtx, utils.ContextAuthTokenKey, "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
+	} else {
+		c.defaultCtx = context.WithValue(c.defaultCtx, utils.ContextAuthTokenKey, "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
+	}
+
+	file, err := os.Open(confFileName)
 	if err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
 		return err
 	}
 
-	err = yaml.NewDecoder(file).Decode(&c.cfg)
+	err = yaml.NewDecoder(file).Decode(c.cfg)
 	if err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
 		return err
@@ -180,7 +179,13 @@ func (c *ConfigCenterTest) loadBootstrapConfig() error {
 }
 
 func (c *ConfigCenterTest) clearTestData() error {
-	c.testServer.Cache().Clear()
+	defer func() {
+		c.cancel()
+		time.Sleep(5 * time.Second)
+
+		c.storage.Destroy()
+		time.Sleep(5 * time.Second)
+	}()
 
 	if c.storage.Name() == sqldb.STORENAME {
 		if err := c.clearTestDataWhenUseRDS(); err != nil {
@@ -240,7 +245,9 @@ func (c *ConfigCenterTest) clearTestDataWhenUseRDS() error {
 		return err
 	}
 
-	tx := proxyTx.GetDelegateTx().(*sql.Tx)
+	tx := proxyTx.GetDelegateTx().(*sqldb.BaseTx)
+
+	defer tx.Rollback()
 
 	_, err = tx.Exec("delete from config_file_group where namespace = ? ", testNamespace)
 	if err != nil {
@@ -268,9 +275,9 @@ func (c *ConfigCenterTest) clearTestDataWhenUseRDS() error {
 	}
 
 	// 清理缓存
-	originServer.Cache().Clear()
+	c.testServer.Cache().Clear()
 
-	return err
+	return tx.Commit()
 }
 
 func randomStr() string {

@@ -156,7 +156,7 @@ func TestCreateRateLimit(t *testing.T) {
 
 	t.Run("并发创建同一服务的限流规则，可以正常创建", func(t *testing.T) {
 		var wg sync.WaitGroup
-		for i := 1; i <= 500; i++ {
+		for i := 1; i <= 50; i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
@@ -170,7 +170,7 @@ func TestCreateRateLimit(t *testing.T) {
 
 	t.Run("并发创建不同服务的限流规则，可以正常创建", func(t *testing.T) {
 		var wg sync.WaitGroup
-		for i := 1; i <= 500; i++ {
+		for i := 1; i <= 50; i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
@@ -270,7 +270,7 @@ func TestDeleteRateLimit(t *testing.T) {
 
 	t.Run("并发删除限流规则，可以正常删除", func(t *testing.T) {
 		var wg sync.WaitGroup
-		for i := 1; i <= 500; i++ {
+		for i := 1; i <= 50; i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
@@ -350,7 +350,7 @@ func TestUpdateRateLimit(t *testing.T) {
 	t.Run("并发更新限流规则时，可以正常更新", func(t *testing.T) {
 		var wg sync.WaitGroup
 		errs := make(chan error)
-		for i := 1; i <= 500; i++ {
+		for i := 1; i <= 50; i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
