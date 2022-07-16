@@ -397,6 +397,8 @@ type DiscoverEventType string
 const (
 	// EventDiscoverNone empty discover event
 	EventDiscoverNone DiscoverEventType = "EventDiscoverNone"
+	// EventInstanceOnline instance becoming online
+	EventInstanceOnline DiscoverEventType = "EventInstanceOnline"
 	// EventInstanceTurnUnHealth Instance becomes unhealthy
 	EventInstanceTurnUnHealth DiscoverEventType = "InstanceTurnUnHealth"
 	// EventInstanceTurnHealth Instance becomes healthy

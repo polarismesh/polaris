@@ -175,7 +175,7 @@ func (c *circuitBreakerStore) DeleteTagCircuitBreaker(id string, version string)
 func (c *circuitBreakerStore) DeleteMasterCircuitBreaker(id string) error {
 	// 需要保证所有已标记的规则无绑定服务
 	str := `update circuitbreaker_rule set flag = 1, mtime = sysdate()
-			where id = ? 
+			where id = ? and version = 'master'
 			and id not in 
 			(select DISTINCT(rule_id) from circuitbreaker_rule_relation 
 				where rule_id = ? and flag = 0)`

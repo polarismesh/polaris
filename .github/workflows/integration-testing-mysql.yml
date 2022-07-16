@@ -1,4 +1,4 @@
-name: IntegrationTest(BoltDB)
+name: IntegrationTest(MySQL)
 
 on:
   push:
@@ -17,9 +17,9 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         goarch: [amd64]
-        goos: [linux, darwin]
+        goos: [linux]
         include:
           - os: ubuntu-latest
             goos: linux
@@ -50,6 +50,20 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v2
 
+      # close default MySQL-Server
+      - name: Shutdown default mysql
+        run: sudo service mysql stop
+
+      # run mysql server
+      - name: Create mysql database auth
+        uses: icomponent/mysql-action@master
+        with:
+          VERSION: 5.7
+          CONTAINER_NAME: mysql
+          PORT_MAPPING: 3306:3306
+          ROOT_PASSWORD: polaris
+          DATABASE: polaris_server
+
       # Compile
       - name: Build server
         env:
@@ -57,9 +71,49 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: bash build.sh
 
+      # Run unit tests
+      - name: run tests
+        run: |
+          export STORE_MODE=sqldb
+          echo "cur STORE MODE=${STORE_MODE}"
+
+          # 清空数据
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
+          # 初始化 polaris 数据库
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/sqldb/scripts/polaris_server.sql
+          # 临时放开 DB 的最大连接数
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
+
+          pushd ./config
+          go test -v -timeout 40m
+          popd
+
+          sleep 10s
+
+          # 清空数据
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
+          # 初始化 polaris 数据库
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/sqldb/scripts/polaris_server.sql
+          # 临时放开 DB 的最大连接数
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
+
+          pushd ./service
+          go test -v -timeout 40m
+          popd
+
       # Run interface tests
       - name: run discover interface tests
         run: |
+          export STORE_MODE=sqldb
+          echo "cur STORE MODE=${STORE_MODE}"
+
+          # 清空数据
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
+          # 初始化 polaris 数据库
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/sqldb/scripts/polaris_server.sql
+          # 临时放开 DB 的最大连接数
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
+
           work_dir=$(ls | grep polaris-server-release | sed -n '1p')
           echo "work_dir is $work_dir"
           cd $work_dir
@@ -84,7 +138,7 @@ jobs:
           cd ..
           # 先测试普通的集成测试
           pushd ./test
-          go test -count=1 -v -tags integration
+          go test -count=1 -v -tags integration  -timeout 60m
           popd
           cd $work_dir
           ./tool/stop.sh
