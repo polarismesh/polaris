@@ -106,10 +106,27 @@ func (r *MemoryHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 			// 心跳超时
 			checkResp.Healthy = false
 			_ = r.Delete(request.InstanceId)
+
+			if request.Healthy {
+				log.Infof("[Health Check][MemoryCheck]health check expired, "+
+					"last hb timestamp is %d, curTimeSec is %d, expireDurationSec is %d instanceId %s",
+					lastHeartbeatTime, curTimeSec, request.ExpireDurationSec, request.InstanceId)
+			} else {
+				checkResp.StayUnchanged = true
+			}
 			return checkResp, nil
 		}
 	}
 	checkResp.Healthy = true
+
+	if !request.Healthy {
+		log.Infof("[Health Check][MemoryCheck]health check resumed, "+
+			"last hb timestamp is %d, curTimeSec is %d, expireDurationSec is %d instanceId %s",
+			lastHeartbeatTime, curTimeSec, request.ExpireDurationSec, request.InstanceId)
+	} else {
+		checkResp.StayUnchanged = true
+	}
+	
 	return checkResp, nil
 }
 
