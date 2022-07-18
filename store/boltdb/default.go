@@ -62,6 +62,7 @@ type boltStore struct {
 	*configFileReleaseStore
 	*configFileReleaseHistoryStore
 	*configFileTagStore
+	*configFileTemplateStore
 
 	handler BoltHandler
 	start   bool
@@ -315,6 +316,11 @@ func (m *boltStore) newConfigModuleStore() error {
 	}
 
 	m.configFileReleaseStore, err = newConfigFileReleaseStore(m.handler)
+	if err != nil {
+		return err
+	}
+
+	m.configFileTemplateStore, err = newConfigFileTemplateStore(m.handler)
 	if err != nil {
 		return err
 	}

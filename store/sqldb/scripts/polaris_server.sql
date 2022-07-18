@@ -948,4 +948,19 @@ CREATE TABLE `client_stat`
     `protocol`  VARCHAR(100) NOT NULL comment 'stat info transport protocol',
     `path`      VARCHAR(128) NOT NULL comment 'stat metric path',
     PRIMARY KEY (`client_id`, `target`, `port`)
-)
+) ENGINE = InnoDB;
+
+-- v1.9.0
+CREATE TABLE `config_file_template` (
+    `id` bigint(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `name` varchar(128) COLLATE utf8_bin NOT NULL COMMENT '配置文件模板名称',
+    `content` longtext COLLATE utf8_bin NOT NULL COMMENT '配置文件模板内容',
+    `format` varchar(16) COLLATE utf8_bin DEFAULT 'text' COMMENT '模板文件格式',
+    `comment` varchar(512) COLLATE utf8_bin DEFAULT NULL COMMENT '模板描述信息',
+    `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by` varchar(32) COLLATE utf8_bin DEFAULT NULL COMMENT '创建人',
+    `modify_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    `modify_by` varchar(32) COLLATE utf8_bin DEFAULT NULL COMMENT '最后更新人',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_name` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='配置文件模板表';
