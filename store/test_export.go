@@ -34,6 +34,7 @@ func TestGetStore() (Store, error) {
 		return nil, fmt.Errorf("store `%s` not found", name)
 	}
 	_ = s.Destroy()
+	fmt.Printf("[Store][Info] current use store plugin : %s\n", s.Name())
 
 	if err := s.Initialize(config); err != nil {
 		fmt.Printf("[ERROR] initialize store `%s` fail: %v", s.Name(), err)

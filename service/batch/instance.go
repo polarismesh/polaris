@@ -258,7 +258,7 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 		return nil
 	}
 
-	current := time.Now()
+	cur := time.Now()
 	taskLife := ctrl.taskLife
 	dropExpire := taskLife != 0
 
@@ -268,12 +268,12 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 		entry := futures[i]
 
 		if _, ok := remains[entry.request.GetId().GetValue()]; ok {
-			entry.Reply(current, api.SameInstanceRequest, Error_SameRegisInstanceRequest)
+			entry.Reply(cur, api.SameInstanceRequest, Error_SameRegisInstanceRequest)
 			continue
 		}
 
-		if dropExpire && entry.CanDrop() && entry.begin.Add(taskLife).Before(current) {
-			entry.Reply(current, api.InstanceRegisTimeout, Error_RegisInstanceTimeout)
+		if dropExpire && entry.CanDrop() && entry.begin.Add(taskLife).Before(cur) {
+			entry.Reply(cur, api.InstanceRegisTimeout, Error_RegisInstanceTimeout)
 			continue
 		}
 

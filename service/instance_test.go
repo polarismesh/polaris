@@ -222,7 +222,7 @@ func TestCreateInstance2(t *testing.T) {
 		}
 
 		time.Sleep(discoverSuit.updateCacheInterval)
-		total := 1024
+		total := 20
 		var wg sync.WaitGroup
 		start := time.Now()
 		errs := make(chan error)
@@ -422,7 +422,7 @@ func TestGetInstances1(t *testing.T) {
 			discoverSuit.removeCommonInstance(t, serviceResp, ids[i])
 		}
 
-		time.Sleep(2 * time.Second)
+		time.Sleep(10 * time.Second)
 		discover(t, serviceResp, 5)
 	})
 	t.Run("传递revision， revision有变化则有数据，否则无数据返回", func(t *testing.T) {

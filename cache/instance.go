@@ -18,6 +18,7 @@
 package cache
 
 import (
+	"strconv"
 	"sync"
 	"time"
 
@@ -55,26 +56,29 @@ type InstanceCache interface {
 	GetInstancesCount() int
 	// GetInstancesCountByServiceID 根据服务ID获取实例数
 	GetInstancesCountByServiceID(serviceID string) model.InstanceCount
+	// GetServicePorts
+	GetServicePorts(serviceID string) []string
 }
 
 // instanceCache 实例缓存的类
 type instanceCache struct {
 	*baseCache
 
-	storage          store.Store
-	lastMtime        int64
-	lastMtimeLogged  int64
-	firstUpdate      bool
-	ids              *sync.Map // instanceid -> instance
-	services         *sync.Map // service id -> [instanceid ->instance]
-	instanceCounts   *sync.Map // service id -> [instanceCount]
-	revisionCh       chan *revisionNotify
-	disableBusiness  bool
-	needMeta         bool
-	systemServiceID  []string
-	singleFlight     *singleflight.Group
-	instanceCount    int64
-	lastCheckAllTime int64
+	storage            store.Store
+	lastMtime          int64
+	lastMtimeLogged    int64
+	firstUpdate        bool
+	ids                *sync.Map // instanceid -> instance
+	services           *sync.Map // service id -> [instanceid ->instance]
+	instanceCounts     *sync.Map // service id -> [instanceCount]
+	servicePortsBucket *servicePortsBucket
+	revisionCh         chan *revisionNotify
+	disableBusiness    bool
+	needMeta           bool
+	systemServiceID    []string
+	singleFlight       *singleflight.Group
+	instanceCount      int64
+	lastCheckAllTime   int64
 }
 
 func init() {
@@ -96,6 +100,10 @@ func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 	ic.ids = new(sync.Map)
 	ic.services = new(sync.Map)
 	ic.instanceCounts = new(sync.Map)
+	ic.servicePortsBucket = &servicePortsBucket{
+		lock:         sync.RWMutex{},
+		servicePorts: make(map[string]map[string]struct{}),
+	}
 	ic.lastMtime = 0
 	ic.firstUpdate = true
 	if opt == nil {
@@ -183,6 +191,7 @@ func (ic *instanceCache) clear() error {
 	ic.ids = new(sync.Map)
 	ic.services = new(sync.Map)
 	ic.instanceCounts = new(sync.Map)
+	ic.servicePortsBucket.reset()
 	ic.instanceCount = 0
 	ic.lastMtime = 0
 	return nil
@@ -274,6 +283,9 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 			value = new(sync.Map)
 			ic.services.Store(item.ServiceID, value)
 		}
+
+		ic.servicePortsBucket.appendPort(item.ServiceID, int(item.Port()))
+
 		value.(*sync.Map).Store(item.ID(), item)
 	}
 
@@ -403,6 +415,10 @@ func (ic *instanceCache) GetInstancesCount() int {
 	return count
 }
 
+func (ic *instanceCache) GetServicePorts(serviceID string) []string {
+	return ic.servicePortsBucket.listPort(serviceID)
+}
+
 // iteratorInstancesProc 迭代指定的instance数据，id->instance
 func iteratorInstancesProc(data *sync.Map, iterProc InstanceIterProc) error {
 	var cont bool
@@ -417,4 +433,52 @@ func iteratorInstancesProc(data *sync.Map, iterProc InstanceIterProc) error {
 
 	data.Range(proc)
 	return err
+}
+
+type servicePortsBucket struct {
+	lock sync.RWMutex
+	//servicePorts service-id -> []port
+	servicePorts map[string]map[string]struct{}
+}
+
+func (b *servicePortsBucket) reset() {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
+	b.servicePorts = make(map[string]map[string]struct{})
+}
+
+func (b *servicePortsBucket) appendPort(serviceID string, port int) {
+	if serviceID == "" || port == 0 {
+		return
+	}
+
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
+	if _, ok := b.servicePorts[serviceID]; !ok {
+		b.servicePorts[serviceID] = map[string]struct{}{}
+	}
+
+	ports := b.servicePorts[serviceID]
+	ports[strconv.FormatInt(int64(port), 10)] = struct{}{}
+}
+
+func (b *servicePortsBucket) listPort(serviceID string) []string {
+	b.lock.RLock()
+	defer b.lock.RUnlock()
+
+	ret := make([]string, 0, 4)
+
+	val, ok := b.servicePorts[serviceID]
+
+	if !ok {
+		return ret
+	}
+
+	for k := range val {
+		ret = append(ret, k)
+	}
+
+	return ret
 }

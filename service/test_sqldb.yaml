@@ -9,10 +9,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+        - stdout
+      errorOutputPaths:
+        - stderr
     auth:
       rotateOutputPath: log/polaris-auth.log
       errorRotateOutputPath: log/polaris-auth-error.log
@@ -20,10 +20,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+        - stdout
+      errorOutputPaths:
+        - stderr
     store:
       rotateOutputPath: log/polaris-store.log
       errorRotateOutputPath: log/polaris-store-error.log
@@ -31,10 +31,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+        - stdout
+      errorOutputPaths:
+        - stderr
     cache:
       rotateOutputPath: log/polaris-cache.log
       errorRotateOutputPath: log/polaris-cache-error.log
@@ -42,10 +42,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+        - stdout
+      errorOutputPaths:
+        - stderr
     naming:
       rotateOutputPath: log/polaris-naming.log
       errorRotateOutputPath: log/polaris-naming-error.log
@@ -53,10 +53,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+        - stdout
+      errorOutputPaths:
+        - stderr
     default:
       rotateOutputPath: log/polaris-default.log
       errorRotateOutputPath: log/polaris-default-error.log
@@ -172,7 +172,7 @@ store:
       dbType: mysql
       dbName: polaris_server
       dbUser: root ##DB_USER##
-      dbPwd: "123456" ##DB_PWD##
+      dbPwd: polaris ##DB_PWD##
       dbAddr: "127.0.0.1:3306" ##DB_ADDR##
       maxOpenConns: -1
       maxIdleConns: -1

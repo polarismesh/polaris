@@ -107,11 +107,14 @@ func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Res
 		ins.GetId().GetValue(), req.GetNamespace().GetValue(), req.GetService().GetValue(),
 		req.GetHost().GetValue(), req.GetPort().GetValue())
 	log.Info(msg, ZapRequestID(rid), ZapPlatformID(pid), zap.Duration("cost", time.Since(start)))
-	service := &model.Service{
+	svc := &model.Service{
 		Name:      req.GetService().GetValue(),
 		Namespace: req.GetNamespace().GetValue(),
 	}
-	s.RecordHistory(instanceRecordEntry(ctx, service, data, model.OCreate))
+
+	s.sendDiscoverEvent(model.EventInstanceOnline, svc.Namespace, svc.Name, req.GetHost().GetValue(),
+		int(req.GetPort().GetValue()))
+	s.RecordHistory(instanceRecordEntry(ctx, svc, data, model.OCreate))
 	out := &api.Instance{
 		Id:        ins.GetId(),
 		Service:   req.GetService(),

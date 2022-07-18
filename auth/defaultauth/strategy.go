@@ -645,7 +645,7 @@ func (svr *server) collectResEntry(ruleId string, resType api.ResourceType,
 
 // collectPrincipalEntry 将 Principal 转换为对应的 []model.Principal 数组
 func collectPrincipalEntry(ruleID string, uType model.PrincipalType, res []*api.Principal) []model.Principal {
-	principals := make([]model.Principal, len(res)+1)
+	principals := make([]model.Principal, 0, len(res)+1)
 	if len(res) == 0 {
 		return principals
 	}

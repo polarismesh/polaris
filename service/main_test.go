@@ -116,7 +116,7 @@ func (d *DiscoverTestSuit) loadConfig() error {
 
 	confFileName := "test.yaml"
 	if os.Getenv("STORE_MODE") == "sqldb" {
-		fmt.Printf("run store mode : sqldb")
+		fmt.Printf("run store mode : sqldb\n")
 		confFileName = "test_sqldb.yaml"
 		d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey, "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
 	}
@@ -149,7 +149,7 @@ type options func(cfg *TestConfig)
 func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	// 初始化defaultCtx
 	d.defaultCtx = context.WithValue(context.Background(), utils.StringContext("request-id"), "test-1")
-	d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey, "4azbewS+pdXvrMG1PtYV3SrcLxjmYd0IVNaX9oYziQygRnKzjcSbxl+Reg7zYQC1gRrGiLzmMY+w+aCxOYI=")
+	d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey, "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
 
 	if err := os.RemoveAll("polaris.bolt"); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
@@ -267,8 +267,9 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 
 func (d *DiscoverTestSuit) Destroy() {
 	d.cancel()
-	d.storage.Destroy()
+	time.Sleep(5 * time.Second)
 
+	d.storage.Destroy()
 	time.Sleep(5 * time.Second)
 }
 
@@ -280,30 +281,26 @@ func (d *DiscoverTestSuit) cleanNamespace(name string) {
 
 	log.Infof("clean namespace: %s", name)
 
-	s, err := store.GetStore()
-	if err != nil {
-		panic(err)
-	}
-
-	if s.Name() == sqldb.STORENAME {
+	if d.storage.Name() == sqldb.STORENAME {
 		str := "delete from namespace where name = ?"
 		func() {
-			tx, err := s.StartTx()
+			tx, err := d.storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
 
 			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+			defer dbTx.Rollback()
 
-			if _, err := dbTx.Exec(str); err != nil {
+			if _, err := dbTx.Exec(str, name); err != nil {
 				panic(err)
 			}
 
 			dbTx.Commit()
 		}()
-	} else if s.Name() == boltdb.STORENAME {
+	} else if d.storage.Name() == boltdb.STORENAME {
 		func() {
-			tx, err := s.StartTx()
+			tx, err := d.storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -1442,7 +1439,6 @@ func (d *DiscoverTestSuit) cleanCircuitBreaker(id, version string) {
 
 			str := `delete from circuitbreaker_rule where id = ? and version = ?`
 			if _, err := dbTx.Exec(str, id, version); err != nil {
-				tx.Rollback()
 				panic(err)
 			}
 
