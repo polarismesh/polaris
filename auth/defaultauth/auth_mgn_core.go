@@ -19,9 +19,9 @@ package defaultauth
 
 import (
 	"context"
-	"errors"
 	"strings"
 
+	"github.com/pkg/errors"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -184,7 +184,7 @@ func (d *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) err
 
 		ownerId, isOwner, err := d.checkToken(&operator)
 		if err != nil {
-			log.AuthScope().Error("[Auth][Checker] check token", zap.Error(err))
+			log.AuthScope().Errorf("[Auth][Checker] check token err : %s", errors.WithStack(err).Error())
 			return err
 		}
 

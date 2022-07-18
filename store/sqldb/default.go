@@ -188,6 +188,7 @@ func parseStoreConfig(opts interface{}) (*dbConfig, error) {
 
 // Destroy 退出函数
 func (s *stableStore) Destroy() error {
+	s.start = false
 	if s.master != nil {
 		_ = s.master.Close()
 	}
@@ -197,6 +198,10 @@ func (s *stableStore) Destroy() error {
 	if s.slave != nil {
 		_ = s.slave.Close()
 	}
+
+	s.master = nil
+	s.masterTx = nil
+	s.slave = nil
 
 	return nil
 }

@@ -703,13 +703,22 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 			registryInfo[value.Namespace] = []*ServiceInfo{}
 		}
 
-		registryInfo[value.Namespace] = append(registryInfo[value.Namespace], &ServiceInfo{
+		info := &ServiceInfo{
 			ID:        value.ID,
 			Name:      value.Name,
 			Namespace: value.Namespace,
 			Instances: []*api.Instance{},
 			Ports:     value.Ports,
-		})
+		}
+
+		if info.Ports == "" {
+			ports := x.namingServer.Cache().Instance().GetServicePorts(value.ID)
+			if len(ports) != 0 {
+				info.Ports = strings.Join(ports, ",")
+			}
+		}
+
+		registryInfo[value.Namespace] = append(registryInfo[value.Namespace], info)
 
 		return true, nil
 	}

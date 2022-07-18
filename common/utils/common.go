@@ -94,6 +94,8 @@ const (
 	MaxPlatformQPS          = 65535
 )
 
+var resourceNameRE = regexp.MustCompile("^[0-9A-Za-z-./:_]+$")
+
 // CheckResourceName 检查资源Name
 func CheckResourceName(name *wrappers.StringValue) error {
 	if name == nil {
@@ -104,12 +106,7 @@ func CheckResourceName(name *wrappers.StringValue) error {
 		return errors.New("empty")
 	}
 
-	regStr := "^[0-9A-Za-z-./:_]+$"
-	ok, err := regexp.MatchString(regStr, name.GetValue())
-	if err != nil {
-		return err
-	}
-	if !ok {
+	if ok := resourceNameRE.MatchString(name.GetValue()); !ok {
 		return errors.New("name contains invalid character")
 	}
 
