@@ -103,8 +103,8 @@ type ServiceCache interface {
 	GetServiceByCl5Name(cl5Name string) *model.Service
 
 	// GetServicesByFilter Serving the service filtering in the cache through Filter
-	GetServicesByFilter(serviceFilters *ServiceArgs,
-		instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error)
+	GetServicesByFilter(serviceFilters *ServiceArgs, instanceFilters *store.InstanceArgs,
+		hiddenServiceList []*model.ServiceKey, offset, limit uint32) (uint32, []*model.EnhancedService, error)
 
 	// Update Query trigger update interface
 	Update() error

@@ -147,7 +147,8 @@ func TestRemoveServices(t *testing.T) {
 		// wait for data cache
 		time.Sleep(time.Second * 2)
 		discoverSuit.removeCommonServices(t, []*api.Service{req})
-		out := discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{"name": req.GetName().GetValue()})
+		out := discoverSuit.server.GetServices(discoverSuit.defaultCtx,
+			map[string]string{"name": req.GetName().GetValue()}, nil)
 		if !respSuccess(out) {
 			t.Fatalf(out.GetInfo().GetValue())
 		}
@@ -330,7 +331,7 @@ func TestGetService(t *testing.T) {
 	defer discoverSuit.Destroy()
 
 	t.Run("查询服务列表，可以正常返回", func(t *testing.T) {
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{})
+		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{}, nil)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.Info.GetValue())
 		}
@@ -346,7 +347,7 @@ func TestGetService(t *testing.T) {
 
 		// 创建完，直接查询
 		filters := map[string]string{"offset": "0", "limit": "100"}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters, nil)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.Info.GetValue())
 		}
@@ -365,7 +366,7 @@ func TestGetService(t *testing.T) {
 			defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 		}
 
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{})
+		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{}, nil)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.Info.GetValue())
 		}
@@ -383,7 +384,8 @@ func TestGetService(t *testing.T) {
 			aliasResp := discoverSuit.createCommonAlias(serviceResp, "", defaultAliasNs, api.AliasType_CL5SID)
 			defer discoverSuit.cleanServiceName(aliasResp.Alias.Alias.Value, serviceResp.Namespace.Value)
 		}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{"business": "business-102"})
+		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx,
+			map[string]string{"business": "business-102"}, nil)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.Info.GetValue())
 		}
@@ -410,7 +412,7 @@ func TestGetServices2(t *testing.T) {
 		}
 
 		filters := map[string]string{"offset": "0", "limit": "600"}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters, nil)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.Info.GetValue())
 		}
@@ -422,7 +424,7 @@ func TestGetServices2(t *testing.T) {
 	})
 	t.Run("查询服务列表，offset参数不为int，返回错误", func(t *testing.T) {
 		filters := map[string]string{"offset": "abc", "limit": "200"}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters, nil)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.Info.GetValue())
 		} else {
@@ -431,7 +433,7 @@ func TestGetServices2(t *testing.T) {
 	})
 	t.Run("查询服务列表，limit参数不为int，返回错误", func(t *testing.T) {
 		filters := map[string]string{"offset": "0", "limit": "ss"}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters, nil)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.Info.GetValue())
 		} else {
@@ -440,7 +442,7 @@ func TestGetServices2(t *testing.T) {
 	})
 	t.Run("查询服务列表，offset参数为负数，返回错误", func(t *testing.T) {
 		filters := map[string]string{"offset": "-100", "limit": "10"}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters, nil)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.Info.GetValue())
 		} else {
@@ -449,7 +451,7 @@ func TestGetServices2(t *testing.T) {
 	})
 	t.Run("查询服务列表，limit参数为负数，返回错误", func(t *testing.T) {
 		filters := map[string]string{"offset": "100", "limit": "-10"}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters, nil)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.Info.GetValue())
 		} else {
@@ -458,7 +460,7 @@ func TestGetServices2(t *testing.T) {
 	})
 	t.Run("查询服务列表，单独提供port参数，返回错误", func(t *testing.T) {
 		filters := map[string]string{"port": "100"}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters, nil)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.Info.GetValue())
 		} else {
@@ -467,7 +469,7 @@ func TestGetServices2(t *testing.T) {
 	})
 	t.Run("查询服务列表，port参数有误，返回错误", func(t *testing.T) {
 		filters := map[string]string{"port": "p100", "host": "127.0.0.1"}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters, nil)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.Info.GetValue())
 		} else {
@@ -503,7 +505,7 @@ func TestGetService3(t *testing.T) {
 
 		name := serviceReq.GetName().GetValue()
 		filters := map[string]string{"offset": "0", "limit": "10", "name": name}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters, nil)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -524,7 +526,7 @@ func TestGetService3(t *testing.T) {
 			}
 		}
 		filters := map[string]string{"offset": "0", "limit": "10", "name": name, "namespace": namespace}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters, nil)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -541,7 +543,7 @@ func TestGetService3(t *testing.T) {
 		}
 
 		filters := map[string]string{"offset": "0", "limit": "100", "business": "business-60"}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters, nil)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -577,7 +579,7 @@ func TestGetServices4(t *testing.T) {
 			"limit":  "100",
 			"name":   "test-service-*",
 		}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, query, nil)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.Info.GetValue())
 		}
@@ -609,19 +611,19 @@ func TestGetServices4(t *testing.T) {
 		defer discoverSuit.cleanServiceName(service2.GetName().GetValue(), service2.GetNamespace().GetValue())
 		defer discoverSuit.cleanServiceName(service3.GetName().GetValue(), service3.GetNamespace().GetValue())
 
-		resps := discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{"keys": "key3", "values": "value3"})
+		resps := discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{"keys": "key3", "values": "value3"}, nil)
 		if len(resps.GetServices()) != 3 && resps.GetAmount().GetValue() != 3 {
 			t.Fatalf("error: %d", len(resps.GetServices()))
 		}
-		resps = discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{"keys": "key2", "values": "value2"})
+		resps = discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{"keys": "key2", "values": "value2"}, nil)
 		if len(resps.GetServices()) != 2 && resps.GetAmount().GetValue() != 2 {
 			t.Fatalf("error: %d", len(resps.GetServices()))
 		}
-		resps = discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{"keys": "key1", "values": "value1"})
+		resps = discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{"keys": "key1", "values": "value1"}, nil)
 		if len(resps.GetServices()) != 1 && resps.GetAmount().GetValue() != 1 {
 			t.Fatalf("error: %d", len(resps.GetServices()))
 		}
-		resps = discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{"keys": "key1", "values": "value2"})
+		resps = discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{"keys": "key1", "values": "value2"}, nil)
 		if len(resps.GetServices()) != 0 && resps.GetAmount().GetValue() != 0 {
 			t.Fatalf("error: %d", len(resps.GetServices()))
 		}
@@ -656,14 +658,14 @@ func TestGetServices5(t *testing.T) {
 			"owner": "service-owner-200",
 			"host":  instanceReq.GetHost().GetValue(),
 		}
-		convey.Convey("check-1", func() { getServiceCheck(discoverSuit.server.GetServices(context.Background(), query), 1, 1) })
+		convey.Convey("check-1", func() { getServiceCheck(discoverSuit.server.GetServices(context.Background(), query, nil), 1, 1) })
 
 		// 同host的实例，对应一个服务，那么返回值也是一个
 		instanceReq.Port.Value = 999
 		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*api.Instance{instanceReq})
 		convey.So(respSuccess(resp), convey.ShouldEqual, true)
 		defer discoverSuit.cleanInstance(resp.Responses[0].Instance.GetId().GetValue())
-		convey.Convey("check-2", func() { getServiceCheck(discoverSuit.server.GetServices(context.Background(), query), 1, 1) })
+		convey.Convey("check-2", func() { getServiceCheck(discoverSuit.server.GetServices(context.Background(), query, nil), 1, 1) })
 	})
 	convey.Convey("支持host和port配合查询服务", t, func() {
 		host1 := "127.0.0.1"
@@ -693,17 +695,17 @@ func TestGetServices5(t *testing.T) {
 		}
 		convey.Convey("check-1-1", func() {
 			getServiceCheck(
-				discoverSuit.server.GetServices(discoverSuit.defaultCtx, query), 1, 1)
+				discoverSuit.server.GetServices(discoverSuit.defaultCtx, query, nil), 1, 1)
 		})
 		query["host"] = host1 + "," + host2
 		convey.Convey("check-2-1", func() {
 			getServiceCheck(
-				discoverSuit.server.GetServices(discoverSuit.defaultCtx, query), 2, 2)
+				discoverSuit.server.GetServices(discoverSuit.defaultCtx, query, nil), 2, 2)
 		})
 		query["port"] = fmt.Sprintf("%d,%d", port1, port2)
 		convey.Convey("check-2-2", func() {
 			getServiceCheck(
-				discoverSuit.server.GetServices(discoverSuit.defaultCtx, query), 4, 4)
+				discoverSuit.server.GetServices(discoverSuit.defaultCtx, query, nil), 4, 4)
 		})
 	})
 	convey.Convey("多个服务，对应同个host，返回多个服务", t, func() {
@@ -724,7 +726,7 @@ func TestGetServices5(t *testing.T) {
 		}
 		convey.Convey("check-1", func() {
 			getServiceCheck(
-				discoverSuit.server.GetServices(discoverSuit.defaultCtx, query), uint32(count), 5)
+				discoverSuit.server.GetServices(discoverSuit.defaultCtx, query, nil), uint32(count), 5)
 		})
 	})
 }
@@ -769,7 +771,7 @@ func TestUpdateService(t *testing.T) {
 			"name":      updateReq.GetName().GetValue(),
 			"namespace": updateReq.GetNamespace().GetValue(),
 		}
-		services := discoverSuit.server.GetServices(discoverSuit.defaultCtx, query)
+		services := discoverSuit.server.GetServices(discoverSuit.defaultCtx, query, nil)
 		if !respSuccess(services) {
 			t.Fatalf("error: %s", services.GetInfo().GetValue())
 		}
@@ -795,7 +797,7 @@ func TestUpdateService(t *testing.T) {
 		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{serviceResp}); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
-		getResp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{"name": serviceResp.Name.Value})
+		getResp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{"name": serviceResp.Name.Value}, nil)
 		if !respSuccess(getResp) {
 			t.Fatalf("error: %s", getResp.GetInfo().GetValue())
 		}

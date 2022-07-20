@@ -59,21 +59,38 @@ func (sc *serviceCache) Update() error {
 }
 
 // GetServicesByFilter 通过filter在缓存中进行服务过滤
-func (sc *serviceCache) GetServicesByFilter(serviceFilters *ServiceArgs,
-	instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error) {
+func (sc *serviceCache) GetServicesByFilter(serviceFilters *ServiceArgs, instanceFilters *store.InstanceArgs,
+	hiddenServiceList []*model.ServiceKey, offset, limit uint32) (uint32, []*model.EnhancedService, error) {
 	var amount uint32
 	var err error
 	var services []*model.Service
+
+	hiddenCount, hiddenHitCount := uint32(len(hiddenServiceList)), uint32(0)
+	hidden := make(map[string]bool)
+	hiddenKey := func(namespace, name string) string { return namespace + name }
+	for _, s := range hiddenServiceList {
+		hidden[hiddenKey(s.Namespace, s.Name)] = true
+	}
+
 	// 如果具有名字条件，并且不是模糊查询，直接获取对应命名空间下面的服务，并检查是否匹配所有条件
 	if serviceFilters.Name != "" && !serviceFilters.FuzzyName {
-		amount, services, err = sc.getServicesFromCacheByName(serviceFilters, instanceFilters, offset, limit)
+		amount, services, err = sc.getServicesFromCacheByName(serviceFilters,
+			instanceFilters, offset, limit+hiddenCount)
 	} else {
-		amount, services, err = sc.getServicesByIteratingCache(serviceFilters, instanceFilters, offset, limit)
+		amount, services, err = sc.getServicesByIteratingCache(serviceFilters,
+			instanceFilters, offset, limit+hiddenCount)
 	}
 	var enhancedServices []*model.EnhancedService
 	if amount > 0 {
 		enhancedServices = make([]*model.EnhancedService, 0, len(services))
 		for _, service := range services {
+			if uint32(len(enhancedServices)) >= limit {
+				break
+			}
+			if hidden[hiddenKey(service.Namespace, service.Name)] {
+				hiddenHitCount++
+				continue
+			}
 			count := sc.instCache.GetInstancesCountByServiceID(service.ID)
 			enhancedService := &model.EnhancedService{
 				Service:              service,
@@ -83,7 +100,7 @@ func (sc *serviceCache) GetServicesByFilter(serviceFilters *ServiceArgs,
 			enhancedServices = append(enhancedServices, enhancedService)
 		}
 	}
-	return amount, enhancedServices, err
+	return amount - hiddenHitCount, enhancedServices, err
 }
 
 func hasInstanceFilter(instanceFilters *store.InstanceArgs) bool {

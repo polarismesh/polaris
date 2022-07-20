@@ -342,7 +342,7 @@ func (h *HTTPServer) GetServices(req *restful.Request, rsp *restful.Response) {
 
 	queryParams := utils.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
-	ret := h.namingServer.GetServices(ctx, queryParams)
+	ret := h.namingServer.GetServices(ctx, queryParams, h.serviceHidden.HiddenList())
 	handler.WriteHeaderAndProto(ret)
 }
 

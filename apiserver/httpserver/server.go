@@ -69,6 +69,7 @@ type HTTPServer struct {
 	rateLimit         plugin.Ratelimit
 	statis            plugin.Statis
 	auth              plugin.Auth
+	serviceHidden     plugin.HideService
 
 	authServer auth.AuthServer
 }
@@ -112,6 +113,11 @@ func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{}
 	if auth := plugin.GetAuth(); auth != nil {
 		log.Infof("http server open the auth")
 		h.auth = auth
+	}
+
+	if serviceHidden := plugin.GetHideService(); serviceHidden != nil {
+		log.Infof("http server open the serviceHidden")
+		h.serviceHidden = serviceHidden
 	}
 
 	// tls 配置信息
