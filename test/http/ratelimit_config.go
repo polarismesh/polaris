@@ -242,35 +242,42 @@ func checkCreateRateLimitsResponse(ret *api.BatchWriteResponse, rateLimits []*ap
 func compareRateLimit(correctItem *api.Rule, item *api.Rule) (bool, error) {
 	switch {
 	case (correctItem.GetId().GetValue()) != "" && (correctItem.GetId().GetValue() != item.GetId().GetValue()):
-		return false, errors.New("invalid id")
+		return false, fmt.Errorf(
+			"invalid id, expect %s, actual %s", correctItem.GetId().GetValue(), item.GetId().GetValue())
 	case correctItem.GetService().GetValue() != item.GetService().GetValue():
-		return false, errors.New("error service")
+		return false, fmt.Errorf("error service, expect %s, actual %s",
+			correctItem.GetService().GetValue(), item.GetService().GetValue())
 	case correctItem.GetNamespace().GetValue() != item.GetNamespace().GetValue():
-		return false, errors.New("error namespace")
+		return false, fmt.Errorf("error namespace, expect %s, actual %s",
+			correctItem.GetNamespace().GetValue(), item.GetNamespace().GetValue())
 	case correctItem.GetPriority().GetValue() != item.GetPriority().GetValue():
-		return false, errors.New("invalid priority")
+		return false, fmt.Errorf("invalid priority, expect %v, actual %v",
+			correctItem.GetPriority().GetValue(), item.GetPriority().GetValue())
 	case correctItem.GetResource() != item.GetResource():
-		return false, errors.New("invalid resource")
+		return false, fmt.Errorf("invalid resource, expect %v, actual %v",
+			correctItem.GetResource(), item.GetResource())
 	case correctItem.GetType() != item.GetType():
-		return false, errors.New("error type")
+		return false, fmt.Errorf("error type, exepct %v, actual %v", correctItem.GetType(), item.GetType())
 	case correctItem.GetAction().GetValue() != item.GetAction().GetValue():
-		return false, errors.New("error action")
+		return false, fmt.Errorf("error action, expect %v, actual %v",
+			correctItem.GetAction().GetValue(), item.GetAction().GetValue())
 	case correctItem.GetDisable().GetValue() != item.GetDisable().GetValue():
-		return false, errors.New("error disable")
+		return false, fmt.Errorf("error disable, expect %v, actual %v",
+			correctItem.GetDisable().GetValue(), item.GetDisable().GetValue())
 	case correctItem.GetRegexCombine().GetValue() != item.GetRegexCombine().GetValue():
-		return false, errors.New("error regex combine")
+		return false, fmt.Errorf("error regex combine, expect %v, actual %v",
+			correctItem.GetRegexCombine().GetValue(), item.GetRegexCombine().GetValue())
 	case correctItem.GetAmountMode() != item.GetAmountMode():
-		return false, errors.New("error amount mode")
+		return false, fmt.Errorf("error amount mode, expect %v, actual %v",
+			correctItem.GetAmountMode(), item.GetAmountMode())
 	case correctItem.GetFailover() != item.GetFailover():
-		return false, errors.New("error fail over")
+		return false, fmt.Errorf(
+			"error fail over, expect %v, actual %v", correctItem.GetFailover(), item.GetFailover())
 	default:
 		break
 	}
 
-	if equal, err := checkField(correctItem.GetSubset(), item.GetSubset(), "subset"); !equal {
-		return equal, err
-	}
-	if equal, err := checkField(correctItem.GetLabels(), item.GetLabels(), "labels"); !equal {
+	if equal, err := checkField(correctItem.GetArguments(), item.GetArguments(), "arguments"); !equal {
 		return equal, err
 	}
 
@@ -278,15 +285,11 @@ func compareRateLimit(correctItem *api.Rule, item *api.Rule) (bool, error) {
 		return equal, err
 	}
 
-	if equal, err := checkField(correctItem.GetReport(), item.GetReport(), "report"); !equal {
-		return equal, err
-	}
-
 	if equal, err := checkField(correctItem.GetAdjuster(), item.GetAdjuster(), "adjuster"); !equal {
 		return equal, err
 	}
 
-	return checkField(correctItem.GetCluster(), item.GetCluster(), "cluster")
+	return checkField(correctItem.GetName(), item.GetName(), "cluster")
 }
 
 /**
@@ -303,7 +306,7 @@ func checkField(correctItem, actualItem interface{}, name string) (bool, error) 
 	}
 
 	if string(expect) != string(actual) {
-		return false, fmt.Errorf("error %s", name)
+		return false, fmt.Errorf("error %s, expect %s ,actual %s", name, expect, actual)
 	}
 	return true, nil
 }

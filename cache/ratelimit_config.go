@@ -18,8 +18,11 @@
 package cache
 
 import (
+	"encoding/json"
 	"sync"
 	"time"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -115,6 +118,18 @@ func (rlc *rateLimitCache) clear() error {
 	return nil
 }
 
+func rateLimitToProto(rateLimit *model.RateLimit) error {
+	rateLimit.Proto = &api.Rule{}
+	if len(rateLimit.Rule) == 0 {
+		return nil
+	}
+	// 反序列化rule
+	if err := json.Unmarshal([]byte(rateLimit.Rule), rateLimit.Proto); err != nil {
+		return err
+	}
+	return rateLimit.AdaptArgumentsAndLabels()
+}
+
 // setRateLimit 更新限流规则到缓存中
 func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit,
 	revisions []*model.RateLimitRevision) error {
@@ -124,6 +139,11 @@ func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit,
 
 	lastMtime := rlc.lastTime.Unix()
 	for _, item := range rateLimits {
+		err := rateLimitToProto(item)
+		if nil != err {
+			log.Errorf("[Cache]fail to unmarshal rule to proto, err: %v", err)
+			continue
+		}
 		if item.ModifyTime.Unix() > lastMtime {
 			lastMtime = item.ModifyTime.Unix()
 		}

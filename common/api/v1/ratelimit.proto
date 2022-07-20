@@ -82,6 +82,35 @@ message Rule {
   RateLimitCluster cluster = 21;
   // 被调接口名
   MatchString method = 22;
+  // 被调的参数过滤条件，满足过滤条件才进入限流规则
+  repeated MatchArgument arguments = 23;
+  // 限流规则名
+  google.protobuf.StringValue name = 24;
+  // 限流规则启用时间
+  google.protobuf.StringValue etime = 25;
+}
+
+message MatchArgument {
+  // label type for gateway request
+  enum Type {
+    // custom arguments
+    CUSTOM = 0;
+    // method, match the http post/get/put/delete or grpc method
+    METHOD = 1;
+    // header, match the http header, dubbo attachment, grpc header
+    HEADER = 2;
+    // query, match the http query, dubbo argument
+    QUERY = 3;
+    // caller service
+    CALLER_SERVICE = 4;
+    // caller host ip
+    CALLER_IP =5;
+  }
+  Type type = 1;
+  // header key or query key
+  string key = 2;
+  // header value or query value
+  MatchString value = 3;
 }
 
 // 分布式限流服务集群

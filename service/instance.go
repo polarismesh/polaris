@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
+
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -832,8 +834,15 @@ func (s *Server) sendDiscoverEvent(eventType model.DiscoverEventType, namespace,
 	s.PublishDiscoverEvent(event)
 }
 
+type svcName interface {
+	// GetService 获取服务名
+	GetService() *wrappers.StringValue
+	// GetNamespace 获取命名空间
+	GetNamespace() *wrappers.StringValue
+}
+
 // createServiceIfAbsent 如果服务不存在，则进行创建，并返回服务的ID信息
-func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instance) (uint32, string, error) {
+func (s *Server) createServiceIfAbsent(ctx context.Context, instance svcName) (uint32, string, error) {
 
 	svc, err := s.loadService(instance)
 	if err != nil {
@@ -878,7 +887,7 @@ func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instan
 	return retCode, svcId, nil
 }
 
-func (s *Server) loadService(instance *api.Instance) (*model.Service, error) {
+func (s *Server) loadService(instance svcName) (*model.Service, error) {
 
 	svc := s.caches.Service().GetServiceByName(instance.GetService().GetValue(), instance.GetNamespace().GetValue())
 

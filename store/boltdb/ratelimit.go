@@ -103,7 +103,7 @@ func (r *rateLimitStore) DeleteRateLimit(limit *model.RateLimit) error {
 func (r *rateLimitStore) GetExtendRateLimits(
 	query map[string]string, offset uint32, limit uint32) (uint32, []*model.ExtendRateLimit, error) {
 
-	svcName, hasSvcName := query["name"]
+	svcName, hasSvcName := query["service"]
 	svcNs, hasSvcNamespace := query["namespace"]
 
 	handler := r.handler
@@ -125,8 +125,8 @@ func (r *rateLimitStore) GetExtendRateLimits(
 		})
 
 	// Remove query parameters for the service
-	delete(query, strings.ToLower(SvcFieldName))
-	delete(query, strings.ToLower(svcFieldNamespace))
+	delete(query, "service")
+	delete(query, "namespace")
 
 	fields = append(utils.CollectMapKeys(query), RateConfFieldServiceID, RateConfFieldValid)
 
@@ -144,7 +144,7 @@ func (r *rateLimitStore) GetExtendRateLimits(
 			delete(m, RateConfFieldValid)
 
 			for k, v := range query {
-				if k == "labels" {
+				if k == "method" {
 					if !strings.Contains(m[k].(string), v) {
 						return false
 					}

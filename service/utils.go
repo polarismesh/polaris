@@ -86,6 +86,9 @@ const (
 	MaxPlatformNameLength   = 128
 	MaxPlatformDomainLength = 1024
 	MaxPlatformQPS          = 65535
+
+	// ratelimit表
+	MaxDbRateLimitName = 64
 )
 
 // checkResourceName 检查资源Name

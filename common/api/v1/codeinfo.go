@@ -66,6 +66,7 @@ const (
 	InvalidRateLimitID              uint32 = 400151
 	InvalidRateLimitLabels          uint32 = 400152
 	InvalidRateLimitAmounts         uint32 = 400153
+	InvalidRateLimitName            uint32 = 400154
 	InvalidCircuitBreakerID         uint32 = 400160
 	InvalidCircuitBreakerVersion    uint32 = 400161
 	InvalidCircuitBreakerName       uint32 = 400162
