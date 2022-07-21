@@ -67,6 +67,8 @@ import (
 
 	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatmemory"
 	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatredis"
+
+	_ "github.com/polarismesh/polaris-server/plugin/hideservice/defaulthidden"
 )
 
 const (
