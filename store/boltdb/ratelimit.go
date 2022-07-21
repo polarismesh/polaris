@@ -78,6 +78,11 @@ func (r *rateLimitStore) CreateRateLimit(limit *model.RateLimit) error {
 
 	limit.CreateTime = tNow
 	limit.ModifyTime = tNow
+	if !limit.Disable {
+		limit.EnableTime = tNow
+	} else {
+		limit.EnableTime = time.Unix(0, 0)
+	}
 	limit.Valid = true
 
 	return r.createRateLimit(limit)

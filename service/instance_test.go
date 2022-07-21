@@ -399,7 +399,7 @@ func TestGetInstances1(t *testing.T) {
 		}
 		discoverSuit.discoveryCheck(t, service, resp)
 		if len(resp.Instances) != expectCount {
-			t.Fatalf("error : %d", len(resp.Instances))
+			t.Fatalf("error : expect %d, actual %d", expectCount, len(resp.Instances))
 		}
 		return resp
 	}
@@ -415,6 +415,7 @@ func TestGetInstances1(t *testing.T) {
 			ids = append(ids, instanceResp.GetId().GetValue())
 			defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 		}
+		time.Sleep(10 * time.Second)
 		discover(t, serviceResp, 10)
 
 		// 反注册一部分
