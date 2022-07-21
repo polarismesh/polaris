@@ -479,7 +479,7 @@ func genFilterRateLimitSQL(query map[string]string) (string, []interface{}) {
 		if len(sqlKey) == 0 {
 			continue
 		}
-		if key == "method" {
+		if key == "method" || key == "labels" {
 			str += fmt.Sprintf(" and %s like ?", sqlKey)
 			value = "%" + value + "%"
 		} else {

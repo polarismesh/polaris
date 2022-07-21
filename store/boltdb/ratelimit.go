@@ -43,6 +43,10 @@ const (
 	RateLimitFieldID         string = "ID"
 	RateLimitFieldServiceID  string = "ServiceID"
 	RateLimitFieldClusterID  string = "ClusterID"
+	RateLimitFieldEnableTime string = "EnableTime"
+	RateLimitFieldName       string = "Name"
+	RateLimitFieldDisable    string = "disable"
+	RateLimitFieldMethod     string = "Method"
 	RateLimitFieldLabels     string = "Labels"
 	RateLimitFieldPriority   string = "Priority"
 	RateLimitFieldRule       string = "Rule"
@@ -144,7 +148,7 @@ func (r *rateLimitStore) GetExtendRateLimits(
 			delete(m, RateConfFieldValid)
 
 			for k, v := range query {
-				if k == "method" {
+				if k == "method" || k == "labels" {
 					if !strings.Contains(m[k].(string), v) {
 						return false
 					}
@@ -314,12 +318,19 @@ func (r *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 		tNow := time.Now()
 
 		properties := make(map[string]interface{})
+		properties[RateLimitFieldName] = limit.Name
+		properties[RateLimitFieldMethod] = limit.Method
+		properties[RateLimitFieldDisable] = limit.Disable
 		properties[RateLimitFieldLabels] = limit.Labels
 		properties[RateLimitFieldPriority] = limit.Priority
 		properties[RateLimitFieldRule] = limit.Rule
 		properties[RateLimitFieldRevision] = limit.Revision
 		properties[RateLimitFieldModifyTime] = time.Now()
-
+		if limit.Disable {
+			properties[RateLimitFieldModifyTime] = time.Unix(0, 0)
+		} else {
+			properties[RateLimitFieldModifyTime] = time.Now()
+		}
 		// create ratelimit_config
 		if err := updateValue(tx, tblRateLimitConfig, limit.ID, properties); err != nil {
 			log.Errorf("[Store][RateLimit] update rate_limit(%s, %s) err: %s",
