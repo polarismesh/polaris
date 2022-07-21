@@ -281,8 +281,8 @@ func (r *rateLimitStore) createRateLimit(limit *model.RateLimit) error {
 
 		// create ratelimit_config
 		if err := saveValue(tx, tblRateLimitConfig, limit.ID, limit); err != nil {
-			log.Errorf("[Store][RateLimit] create rate_limit(%s, %s) err: %s",
-				limit.ID, limit.ServiceID, err.Error())
+			log.Errorf("[Store][RateLimit] create rate_limit(%s, %s), %+v, err: %s",
+				limit.ID, limit.ServiceID, limit, err.Error())
 			return err
 		}
 

@@ -332,7 +332,11 @@ func serializeObject(parent *bolt.Bucket, value interface{}) (map[string][]byte,
 		case reflect.Ptr:
 			if rawFieldType.Implements(messageType) {
 				// protobuf类型
-				msgValue := fieldValue.Addr().Elem().Interface().(proto.Message)
+				elem := fieldValue.Addr().Elem()
+				if elem.IsNil() {
+					continue
+				}
+				msgValue := elem.Interface().(proto.Message)
 				values[name], err = encodeMessageBuffer(msgValue)
 				if err != nil {
 					return nil, err
@@ -430,6 +434,9 @@ func deserializeObject(bucket *bolt.Bucket, value interface{}) (interface{}, err
 			if rawFieldType.Implements(messageType) {
 				// protobuf类型
 				buf := bucket.Get([]byte(name))
+				if nil == buf {
+					continue
+				}
 				toMsgValue := reflect.New(rawFieldType.Elem()).Interface().(proto.Message)
 				msg, err := decodeMessageBuffer(toMsgValue, name, buf)
 				if err != nil {
