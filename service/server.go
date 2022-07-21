@@ -50,6 +50,7 @@ type Server struct {
 	discoverStatis plugin.DiscoverStatis
 	discoverEvent  plugin.DiscoverChannel
 	auth           plugin.Auth
+	hideService    plugin.HideService
 
 	l5service *l5service
 

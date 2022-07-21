@@ -200,6 +200,12 @@ func pluginInitialize() {
 	if namingServer.auth == nil {
 		log.Warnf("Not found Auth Plugin")
 	}
+
+	// 获取隐藏服务插件
+	namingServer.hideService = plugin.GetHideService()
+	if namingServer.hideService == nil {
+		log.Warnf("Not found Hide Service Plugin")
+	}
 }
 
 // NewUUID 返回一个随机的UUID

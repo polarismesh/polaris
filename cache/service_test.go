@@ -396,7 +396,7 @@ func TestServiceCache_GetServicesByFilter(t *testing.T) {
 			svcArgs := &ServiceArgs{
 				EmptyCondition: true,
 			}
-			amount, services, err := sc.GetServicesByFilter(svcArgs, instArgs, nil, 0, 10)
+			amount, services, err := sc.GetServicesByFilter(svcArgs, instArgs, 0, 10)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -426,14 +426,16 @@ func TestServiceCache_GetServicesByFilter(t *testing.T) {
 		}
 		instArgs := &store.InstanceArgs{}
 		svcArgs := &ServiceArgs{
-			EmptyCondition: true,
+			EmptyCondition:    true,
+			HiddenServiceList: hiddenService,
 		}
-		amount, _, _ := sc.GetServicesByFilter(svcArgs, instArgs, hiddenService, 0, 100)
+		amount, _, _ := sc.GetServicesByFilter(svcArgs, instArgs, 0, 100)
 		if expect := len(services) - len(hiddenService); amount != uint32(expect) {
 			t.Fatalf("service after hidden count is %d, expect %d", amount, expect)
 		}
 		svcArgs = &ServiceArgs{
-			Namespace: "filter",
+			Namespace:         "filter",
+			HiddenServiceList: hiddenService,
 		}
 		filterServices := genModelServiceByNamespace(50, "filter")
 		for k, v := range filterServices {
@@ -441,7 +443,7 @@ func TestServiceCache_GetServicesByFilter(t *testing.T) {
 		}
 		sc.setServices(services)
 		// 过滤条件的结果中不含有隐藏列表, 结果期望和过滤的service一致
-		amount, _, _ = sc.GetServicesByFilter(svcArgs, instArgs, hiddenService, 0, 200)
+		amount, _, _ = sc.GetServicesByFilter(svcArgs, instArgs, 0, 200)
 		if expect := len(filterServices); amount != uint32(expect) {
 			t.Fatalf("service after hidden count is %d, expect %d", amount, expect)
 		}

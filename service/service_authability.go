@@ -108,8 +108,7 @@ func (svr *serverAuthAbility) UpdateServiceToken(ctx context.Context, req *api.S
 }
 
 // GetServices 批量获取服务
-func (svr *serverAuthAbility) GetServices(ctx context.Context,
-	query map[string]string, hiddenServiceList []*model.ServiceKey) *api.BatchQueryResponse {
+func (svr *serverAuthAbility) GetServices(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServices")
 
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
@@ -120,7 +119,7 @@ func (svr *serverAuthAbility) GetServices(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	resp := svr.targetServer.GetServices(ctx, query, hiddenServiceList)
+	resp := svr.targetServer.GetServices(ctx, query)
 	if len(resp.Services) != 0 {
 
 		principal := model.Principal{

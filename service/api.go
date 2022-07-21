@@ -114,8 +114,7 @@ type ServiceOperateServer interface {
 	UpdateServiceToken(ctx context.Context, req *api.Service) *api.Response
 
 	// GetServices Get a list of service
-	GetServices(ctx context.Context,
-		query map[string]string, hiddenServiceList []*model.ServiceKey) *api.BatchQueryResponse
+	GetServices(ctx context.Context, query map[string]string) *api.BatchQueryResponse
 
 	// GetServicesCount Total number of services
 	GetServicesCount(ctx context.Context) *api.BatchQueryResponse

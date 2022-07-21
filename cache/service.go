@@ -104,7 +104,7 @@ type ServiceCache interface {
 
 	// GetServicesByFilter Serving the service filtering in the cache through Filter
 	GetServicesByFilter(serviceFilters *ServiceArgs, instanceFilters *store.InstanceArgs,
-		hiddenServiceList []*model.ServiceKey, offset, limit uint32) (uint32, []*model.EnhancedService, error)
+		offset, limit uint32) (uint32, []*model.EnhancedService, error)
 
 	// Update Query trigger update interface
 	Update() error

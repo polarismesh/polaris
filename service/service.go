@@ -315,8 +315,7 @@ func (s *Server) UpdateServiceToken(ctx context.Context, req *api.Service) *api.
 }
 
 // GetServices 查询服务 注意：不包括别名
-func (s *Server) GetServices(ctx context.Context,
-	query map[string]string, hiddenServiceList []*model.ServiceKey) *api.BatchQueryResponse {
+func (s *Server) GetServices(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	serviceFilters := make(map[string]string)
 	instanceFilters := make(map[string]string)
 	var metaKeys, metaValues string
@@ -364,13 +363,15 @@ func (s *Server) GetServices(ctx context.Context,
 	}
 
 	serviceArgs := parseServiceArgs(serviceFilters, serviceMetas, ctx)
+	if s.hideService != nil {
+		serviceArgs.HiddenServiceList = s.hideService.GetHiddenList()
+	}
 	err = s.caches.Service().Update()
 	if err != nil {
 		log.Errorf("[Server][Service][Query] req(%+v) update store err: %s", query, err.Error())
 		return api.NewBatchQueryResponse(api.StoreLayerException)
 	}
-	total, services, err := s.caches.Service().GetServicesByFilter(serviceArgs, instanceArgs,
-		hiddenServiceList, offset, limit)
+	total, services, err := s.caches.Service().GetServicesByFilter(serviceArgs, instanceArgs, offset, limit)
 	if err != nil {
 		log.Errorf("[Server][Service][Query] req(%+v) store err: %s", query, err.Error())
 		return api.NewBatchQueryResponse(api.StoreLayerException)
