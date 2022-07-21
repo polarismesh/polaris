@@ -344,8 +344,8 @@ func (h *HTTPServer) GetServices(req *restful.Request, rsp *restful.Response) {
 	queryParams := utils.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 	var hiddenServiceList []*model.ServiceKey
-	if h.serviceHidden != nil {
-		hiddenServiceList = h.serviceHidden.GetHiddenList()
+	if h.hideService != nil {
+		hiddenServiceList = h.hideService.GetHiddenList()
 	}
 	ret := h.namingServer.GetServices(ctx, queryParams, hiddenServiceList)
 	handler.WriteHeaderAndProto(ret)
