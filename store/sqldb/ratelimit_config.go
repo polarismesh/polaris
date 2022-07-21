@@ -46,13 +46,13 @@ func (rls *rateLimitStore) CreateRateLimit(limit *model.RateLimit) error {
 }
 
 const (
-	emptyEnableTime = "1970-01-01 00:00:01"
+	emptyEnableTime = "STR_TO_DATE('1980-01-01 00:00:01', '%Y-%m-%d %H:%i:%s')"
 )
 
 func limitToEtimeStr(limit *model.RateLimit) string {
 	etimeStr := "sysdate()"
 	if limit.Disable {
-		etimeStr = "'" + emptyEnableTime + "'"
+		etimeStr = emptyEnableTime
 	}
 	return etimeStr
 }
@@ -76,7 +76,7 @@ func (rls *rateLimitStore) createRateLimit(limit *model.RateLimit) error {
 			values(?,?,?,?,?,?,?,?,?,sysdate(),sysdate(), %s)`, etimeStr)
 	if _, err := tx.Exec(str, limit.ID, limit.Name, limit.Disable, limit.ServiceID, limit.Method, limit.Labels,
 		limit.Priority, limit.Rule, limit.Revision); err != nil {
-		log.Errorf("[Store][database] create rate limit(%+v) err: %s", limit, err.Error())
+		log.Errorf("[Store][database] create rate limit(%+v), sql %s err: %s", limit, str, err.Error())
 		return err
 	}
 
@@ -127,7 +127,7 @@ func (rls *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 			labels = ?, priority = ?, rule = ?, revision = ?, mtime = sysdate(), etime=%s where id = ?`, etimeStr)
 	if _, err := tx.Exec(str, limit.Name, limit.Disable,
 		limit.Method, limit.Labels, limit.Priority, limit.Rule, limit.Revision, limit.ID); err != nil {
-		log.Errorf("[Store][database] update rate limit(%+v) err: %s", limit, err)
+		log.Errorf("[Store][database] update rate limit(%+v), sql %s, err: %s", limit, str, err)
 		return err
 	}
 

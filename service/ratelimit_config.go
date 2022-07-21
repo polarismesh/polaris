@@ -428,7 +428,7 @@ func rateLimit2Console(
 	rule.Ctime = utils.NewStringValue(commontime.Time2String(rateLimit.CreateTime))
 	rule.Mtime = utils.NewStringValue(commontime.Time2String(rateLimit.ModifyTime))
 	rule.Disable = utils.NewBoolValue(rateLimit.Disable)
-	if rateLimit.EnableTime.Year() > 1970 {
+	if rateLimit.EnableTime.Year() > 2000 {
 		rule.Etime = utils.NewStringValue(commontime.Time2String(rateLimit.EnableTime))
 	}
 	rule.Revision = utils.NewStringValue(rateLimit.Revision)
