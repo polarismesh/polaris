@@ -21,9 +21,10 @@ import (
 	"os"
 	"sync"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
-	"go.uber.org/zap"
 )
 
 var (
@@ -34,7 +35,7 @@ var (
 type HideService interface {
 	Plugin
 
-	// HiddenList 隐藏服务列表
+	// GetHiddenList 获取隐藏服务列表
 	GetHiddenList() []*model.ServiceKey
 }
 

@@ -176,3 +176,79 @@ func Test_matchServiceFilter_business(t *testing.T) {
 		})
 	}
 }
+
+func Test_filterHiddenService_business(t *testing.T) {
+	type args struct {
+		svcList    []*model.Service
+		hiddenList []*model.ServiceKey
+	}
+	tests := []struct {
+		name string
+		args args
+		want int
+	}{
+		{
+			name: "Test_1",
+			args: args{
+				svcList: []*model.Service{
+					{Namespace: "default1", Name: "n1"},
+					{Namespace: "default2", Name: "n2"},
+					{Namespace: "default3", Name: "n3"},
+				},
+				hiddenList: []*model.ServiceKey{
+					{Namespace: "default3", Name: "n3"},
+				},
+			},
+			want: 2,
+		},
+		{
+			name: "Test_1",
+			args: args{
+				svcList: []*model.Service{
+					{Namespace: "default1", Name: "n1"},
+					{Namespace: "default2", Name: "n2"},
+					{Namespace: "default3", Name: "n3"},
+				},
+				hiddenList: nil,
+			},
+			want: 3,
+		},
+		{
+			name: "Test_1",
+			args: args{
+				svcList: []*model.Service{
+					{Namespace: "default1", Name: "n1"},
+					{Namespace: "default2", Name: "n2"},
+					{Namespace: "default3", Name: "n3"},
+				},
+				hiddenList: []*model.ServiceKey{
+					{Namespace: "default0", Name: "n0"},
+				},
+			},
+			want: 3,
+		},
+		{
+			name: "Test_1",
+			args: args{
+				svcList: []*model.Service{
+					{Namespace: "default1", Name: "n1"},
+					{Namespace: "default2", Name: "n2"},
+					{Namespace: "default3", Name: "n3"},
+				},
+				hiddenList: []*model.ServiceKey{
+					{Namespace: "default1", Name: "n1"},
+					{Namespace: "default2", Name: "n2"},
+					{Namespace: "default3", Name: "n3"},
+				},
+			},
+			want: 0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := len(filterHiddenService(tt.args.svcList, tt.args.hiddenList)); got != tt.want {
+				t.Errorf("filterHiddenService() = %v, want %v, args %#v", got, tt.want, tt.args)
+			}
+		})
+	}
+}
