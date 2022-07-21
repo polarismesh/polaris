@@ -176,7 +176,7 @@ CREATE TABLE `ratelimit_config`
     `flag`       tinyint(4)     NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
     `ctime`      timestamp      NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
     `mtime`      timestamp      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
-    `etime`      timestamp      DEFAULT 0 comment 'RateLimit rule enable time',
+    `etime`      timestamp      NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'RateLimit rule enable time',
     PRIMARY KEY (`id`),
     KEY `mtime` (`mtime`),
     KEY `service_id` (`service_id`)

@@ -45,10 +45,14 @@ func (rls *rateLimitStore) CreateRateLimit(limit *model.RateLimit) error {
 	return store.Error(err)
 }
 
+const (
+	emptyEnableTime = "1970-01-01 00:00:01"
+)
+
 func limitToEtimeStr(limit *model.RateLimit) string {
 	etimeStr := "sysdate()"
 	if limit.Disable {
-		etimeStr = "0"
+		etimeStr = "'" + emptyEnableTime + "'"
 	}
 	return etimeStr
 }
@@ -468,6 +472,7 @@ var queryKeyToDbColumn = map[string]string{
 	"service":   "service.name",
 	"namespace": "service.namespace",
 	"method":    "ratelimit_config.method",
+	"labels":    "ratelimit_config.labels",
 }
 
 // genFilterRateLimitSQL 生成查询语句的过滤语句
