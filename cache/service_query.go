@@ -163,6 +163,7 @@ func (sc *serviceCache) getServicesFromCacheByName(svcArgs *ServiceArgs, instArg
 			}
 		}
 	}
+	res = filterHiddenService(res, svcArgs.HiddenServiceList)
 	amount, services := sortBeforeTrim(res, offset, limit)
 	return amount, services, nil
 }
