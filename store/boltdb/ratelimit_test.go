@@ -39,7 +39,6 @@ func createTestRateLimit(id string, createId bool) *model.RateLimit {
 	return &model.RateLimit{
 		ID:         id,
 		ServiceID:  RandStringRunes(10),
-		ClusterID:  RandStringRunes(10),
 		Labels:     RandStringRunes(20),
 		Rule:       RandStringRunes(20),
 		Revision:   RandStringRunes(30),
@@ -181,17 +180,14 @@ func Test_rateLimitStore_GetExtendRateLimits(t *testing.T) {
 
 			if i%2 == 0 {
 				testVal.ServiceID = "Service_Cluster_2"
-				testVal.ClusterID = "Cluster_2"
 				testVal.Labels = "Cluster_2@@Labels@@12345"
 				Cluster_2 = append(Cluster_2, testVal)
 			} else if i%3 == 0 {
 				testVal.ServiceID = "Service_Cluster_3"
-				testVal.ClusterID = "Cluster_3"
 				testVal.Labels = "Cluster_3@@Labels@@67890"
 				Cluster_3 = append(Cluster_3, testVal)
 			} else if i%5 == 0 {
 				testVal.ServiceID = "Service_Cluster_5"
-				testVal.ClusterID = "Cluster_5"
 				testVal.Labels = "Cluster_5@@Labels@@abcde"
 				Cluster_5 = append(Cluster_5, testVal)
 			}

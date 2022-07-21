@@ -58,7 +58,7 @@ func (s *Server) CreateRateLimits(ctx context.Context, request []*api.Rule) *api
 		code, svcId, err := s.createServiceIfAbsent(ctx, rateLimit)
 
 		if err != nil {
-			log.Errorf("[Service]fail to create ratelimit config, err: ", err)
+			log.Errorf("[Service]fail to create ratelimit config, err: %v", err)
 			response = api.NewRateLimitResponse(code, rateLimit)
 		} else {
 			response = s.CreateRateLimit(ctx, rateLimit, svcId)

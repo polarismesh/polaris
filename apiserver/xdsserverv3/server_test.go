@@ -121,7 +121,6 @@ func generateGlobalRateLimitRule() ([]*model.RateLimit, map[string]*anypb.Any) {
 	var rateLimits []*model.RateLimit
 	rateLimits = append(rateLimits, &model.RateLimit{
 		ID:         "ratelimit-1",
-		ClusterID:  "cluster-1",
 		ServiceID:  "service-1",
 		Labels:     labelStr,
 		Rule:       ruleStr,
@@ -138,7 +137,6 @@ func generateLocalRateLimitRule() ([]*model.RateLimit, map[string]*anypb.Any) {
 	var rateLimits []*model.RateLimit
 	rateLimits = append(rateLimits, &model.RateLimit{
 		ID:         "ratelimit-2",
-		ClusterID:  "cluster-2",
 		ServiceID:  "service-2",
 		Labels:     labelStr,
 		Rule:       ruleStr,
