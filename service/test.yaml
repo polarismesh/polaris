@@ -248,3 +248,8 @@ plugin:
             rule: store-read
           - name: "GET:/v1/naming/services/count"
             rule: store-read
+  hideService:
+    name: defaultHidden
+    option:
+      services:
+        - Polaris:polaris.checker

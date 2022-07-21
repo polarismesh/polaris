@@ -119,13 +119,13 @@ apiservers:
         enable: true
       console:
         enable: true
-        include: [default]
+        include: [ default ]
       client:
         enable: true
-        include: [discover, register, healthcheck]
+        include: [ discover, register, healthcheck ]
       config:
         enable: true
-        include: [default]
+        include: [ default ]
   - name: service-grpc
     option:
       listenIP: "0.0.0.0"
@@ -143,7 +143,7 @@ apiservers:
     api:
       client:
         enable: true
-        include: [discover, register, healthcheck]
+        include: [ discover, register, healthcheck ]
   - name: config-grpc
     option:
       listenIP: "0.0.0.0"
@@ -337,7 +337,7 @@ plugin:
           bucket: 300 # 最高峰值
           rate: 200 # 平均一个IP每秒的请求数
         resource-cache-amount: 1024 # 最大缓存的IP个数
-        white-list: [127.0.0.1]
+        white-list: [ 127.0.0.1 ]
       instance-limit:
         open: true
         global:
@@ -372,5 +372,4 @@ plugin:
     name: defaultHidden
     option:
       services:
-        - Polaris:polaris.monitor
-        - Polaris:polaris.config
+        - Polaris:polaris.checker
