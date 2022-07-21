@@ -362,8 +362,10 @@ func Test_rateLimitStore_GetRateLimitsForCache(t *testing.T) {
 		for i := range expectList {
 			expectList[i].CreateTime = testT_1
 			expectList[i].ModifyTime = testT_1
+			expectList[i].EnableTime = testT_1
 			limits[i].CreateTime = testT_1
 			limits[i].ModifyTime = testT_1
+			limits[i].EnableTime = testT_1
 		}
 
 		assert.ElementsMatch(t, limits, expectList, "not equal")
