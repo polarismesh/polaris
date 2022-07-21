@@ -115,9 +115,9 @@ func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{}
 		h.auth = auth
 	}
 
-	if serviceHidden := plugin.GetHideService(); serviceHidden != nil {
+	if hideService := plugin.GetHideService(); hideService != nil {
 		log.Infof("http server open the hideService")
-		h.hideService = serviceHidden
+		h.hideService = hideService
 	}
 
 	// tls 配置信息

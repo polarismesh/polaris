@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	serviceHiddenOnce = &sync.Once{}
+	hideServiceOnce = &sync.Once{}
 )
 
 // HideService 服务隐藏接口
@@ -49,7 +49,7 @@ func GetHideService() HideService {
 		return nil
 	}
 
-	serviceHiddenOnce.Do(func() {
+	hideServiceOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
 			log.Errorf("plugin init err: %s", err.Error())
 			os.Exit(-1)
