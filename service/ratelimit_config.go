@@ -149,12 +149,6 @@ func (s *Server) DeleteRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 		return resp
 	}
 
-	// 鉴权
-	service, resp := s.checkRateLimitValid(ctx, rateLimit.ServiceID, req)
-	if resp != nil {
-		return resp
-	}
-
 	// 生成新的revision
 	rateLimit.Revision = utils.NewUUID()
 
@@ -164,11 +158,12 @@ func (s *Server) DeleteRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 		return wrapperRateLimitStoreResponse(req, err)
 	}
 
-	msg := fmt.Sprintf("delete rate limit rule: id=%v, namespace=%v, service=%v, labels=%v",
-		rateLimit.ID, service.Namespace, service.Name, rateLimit.Labels)
+	msg := fmt.Sprintf("delete rate limit rule: id=%v, namespace=%v, service=%v, name=%v",
+		rateLimit.ID, req.GetNamespace().GetValue(), req.GetService().GetValue(), rateLimit.Labels)
 	log.Info(msg, ZapRequestID(requestID), ZapPlatformID(platformID))
 
-	s.RecordHistory(rateLimitRecordEntry(ctx, service.Namespace, service.Name, rateLimit, model.ODelete))
+	s.RecordHistory(
+		rateLimitRecordEntry(ctx, req.GetNamespace().GetValue(), req.GetService().GetValue(), rateLimit, model.ODelete))
 	return api.NewRateLimitResponse(api.ExecuteSuccess, req)
 }
 
