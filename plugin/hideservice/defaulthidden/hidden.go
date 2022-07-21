@@ -63,6 +63,7 @@ func (ds *defaultServiceHidden) Destroy() error {
 	return nil
 }
 
-func (ds *defaultServiceHidden) HiddenList() []*model.ServiceKey {
+// GetHiddenList 获取隐藏服务列表
+func (ds *defaultServiceHidden) GetHiddenList() []*model.ServiceKey {
 	return ds.hiddenList
 }

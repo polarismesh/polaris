@@ -65,32 +65,18 @@ func (sc *serviceCache) GetServicesByFilter(serviceFilters *ServiceArgs, instanc
 	var err error
 	var services []*model.Service
 
-	hiddenCount, hiddenHitCount := uint32(len(hiddenServiceList)), uint32(0)
-	hidden := make(map[string]bool)
-	hiddenKey := func(namespace, name string) string { return namespace + name }
-	for _, s := range hiddenServiceList {
-		hidden[hiddenKey(s.Namespace, s.Name)] = true
-	}
-
 	// 如果具有名字条件，并且不是模糊查询，直接获取对应命名空间下面的服务，并检查是否匹配所有条件
 	if serviceFilters.Name != "" && !serviceFilters.FuzzyName {
-		amount, services, err = sc.getServicesFromCacheByName(serviceFilters,
-			instanceFilters, offset, limit+hiddenCount)
+		services, err = sc.getServicesFromCacheByName(serviceFilters, instanceFilters)
 	} else {
-		amount, services, err = sc.getServicesByIteratingCache(serviceFilters,
-			instanceFilters, offset, limit+hiddenCount)
+		services, err = sc.getServicesByIteratingCache(serviceFilters, instanceFilters)
 	}
+	services = filterHiddenService(services, hiddenServiceList)
+	amount, services = sortBeforeTrim(services, offset, limit)
 	var enhancedServices []*model.EnhancedService
 	if amount > 0 {
 		enhancedServices = make([]*model.EnhancedService, 0, len(services))
 		for _, service := range services {
-			if uint32(len(enhancedServices)) >= limit {
-				break
-			}
-			if hidden[hiddenKey(service.Namespace, service.Name)] {
-				hiddenHitCount++
-				continue
-			}
 			count := sc.instCache.GetInstancesCountByServiceID(service.ID)
 			enhancedService := &model.EnhancedService{
 				Service:              service,
@@ -100,7 +86,7 @@ func (sc *serviceCache) GetServicesByFilter(serviceFilters *ServiceArgs, instanc
 			enhancedServices = append(enhancedServices, enhancedService)
 		}
 	}
-	return amount - hiddenHitCount, enhancedServices, err
+	return amount, enhancedServices, err
 }
 
 func hasInstanceFilter(instanceFilters *store.InstanceArgs) bool {
@@ -159,8 +145,8 @@ func (sc *serviceCache) GetAllNamespaces() []string {
 }
 
 // 通过具体的名字来进行查询服务
-func (sc *serviceCache) getServicesFromCacheByName(svcArgs *ServiceArgs, instArgs *store.InstanceArgs,
-	offset, limit uint32) (uint32, []*model.Service, error) {
+func (sc *serviceCache) getServicesFromCacheByName(
+	svcArgs *ServiceArgs, instArgs *store.InstanceArgs) ([]*model.Service, error) {
 	var res []*model.Service
 	if svcArgs.Namespace != "" {
 		svc := sc.GetServiceByName(svcArgs.Name, svcArgs.Namespace)
@@ -177,8 +163,7 @@ func (sc *serviceCache) getServicesFromCacheByName(svcArgs *ServiceArgs, instArg
 			}
 		}
 	}
-	amount, services := sortBeforeTrim(res, offset, limit)
-	return amount, services, nil
+	return res, nil
 }
 
 func sortBeforeTrim(services []*model.Service, offset, limit uint32) (uint32, []*model.Service) {
@@ -274,7 +259,7 @@ func (sc *serviceCache) matchInstance(svc *model.Service, instArgs *store.Instan
 
 // getServicesByIteratingCache 通过遍历缓存中的服务
 func (sc *serviceCache) getServicesByIteratingCache(
-	svcArgs *ServiceArgs, instArgs *store.InstanceArgs, offset, limit uint32) (uint32, []*model.Service, error) {
+	svcArgs *ServiceArgs, instArgs *store.InstanceArgs) ([]*model.Service, error) {
 	var res []*model.Service
 	var process = func(svc *model.Service) {
 		// 如果是别名，直接略过
@@ -295,7 +280,7 @@ func (sc *serviceCache) getServicesByIteratingCache(
 		// 从命名空间来找
 		spaces, ok := sc.names.Load(svcArgs.Namespace)
 		if !ok {
-			return 0, nil, nil
+			return nil, nil
 		}
 		spaces.(*sync.Map).Range(func(key, value interface{}) bool {
 			process(value.(*model.Service))
@@ -308,6 +293,25 @@ func (sc *serviceCache) getServicesByIteratingCache(
 			return true, nil
 		})
 	}
-	amount, services := sortBeforeTrim(res, offset, limit)
-	return amount, services, nil
+	return res, nil
+}
+
+// filterHiddenService 过略掉需要隐藏的服务
+func filterHiddenService(services []*model.Service, hiddenServiceList []*model.ServiceKey) []*model.Service {
+	if len(services) == 0 || len(hiddenServiceList) == 0 {
+		return services
+	}
+	hide := make(map[string]bool)
+	hiddenKey := func(namespace, name string) string { return namespace + name }
+	for _, s := range hiddenServiceList {
+		hide[hiddenKey(s.Namespace, s.Name)] = true
+	}
+	var res []*model.Service
+	for _, service := range services {
+		if hide[hiddenKey(service.Namespace, service.Name)] {
+			continue
+		}
+		res = append(res, service)
+	}
+	return res
 }

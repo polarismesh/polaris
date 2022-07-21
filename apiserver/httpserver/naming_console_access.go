@@ -26,6 +26,7 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
@@ -342,7 +343,11 @@ func (h *HTTPServer) GetServices(req *restful.Request, rsp *restful.Response) {
 
 	queryParams := utils.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
-	ret := h.namingServer.GetServices(ctx, queryParams, h.serviceHidden.HiddenList())
+	var hiddenServiceList []*model.ServiceKey
+	if h.serviceHidden != nil {
+		hiddenServiceList = h.serviceHidden.GetHiddenList()
+	}
+	ret := h.namingServer.GetServices(ctx, queryParams, hiddenServiceList)
 	handler.WriteHeaderAndProto(ret)
 }
 

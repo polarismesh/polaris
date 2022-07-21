@@ -35,7 +35,7 @@ type HideService interface {
 	Plugin
 
 	// HiddenList 隐藏服务列表
-	HiddenList() []*model.ServiceKey
+	GetHiddenList() []*model.ServiceKey
 }
 
 // GetHideService 获取服务隐藏插件
