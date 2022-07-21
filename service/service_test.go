@@ -147,8 +147,7 @@ func TestRemoveServices(t *testing.T) {
 		// wait for data cache
 		time.Sleep(time.Second * 2)
 		discoverSuit.removeCommonServices(t, []*api.Service{req})
-		out := discoverSuit.server.GetServices(discoverSuit.defaultCtx,
-			map[string]string{"name": req.GetName().GetValue()})
+		out := discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{"name": req.GetName().GetValue()})
 		if !respSuccess(out) {
 			t.Fatalf(out.GetInfo().GetValue())
 		}
@@ -384,8 +383,7 @@ func TestGetService(t *testing.T) {
 			aliasResp := discoverSuit.createCommonAlias(serviceResp, "", defaultAliasNs, api.AliasType_CL5SID)
 			defer discoverSuit.cleanServiceName(aliasResp.Alias.Alias.Value, serviceResp.Namespace.Value)
 		}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx,
-			map[string]string{"business": "business-102"})
+		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{"business": "business-102"})
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.Info.GetValue())
 		}

@@ -61,8 +61,8 @@ func (sc *serviceCache) Update() error {
 }
 
 // GetServicesByFilter 通过filter在缓存中进行服务过滤
-func (sc *serviceCache) GetServicesByFilter(serviceFilters *ServiceArgs, instanceFilters *store.InstanceArgs,
-	offset, limit uint32) (uint32, []*model.EnhancedService, error) {
+func (sc *serviceCache) GetServicesByFilter(serviceFilters *ServiceArgs,
+	instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error) {
 	var amount uint32
 	var err error
 	var services []*model.Service
@@ -145,8 +145,8 @@ func (sc *serviceCache) GetAllNamespaces() []string {
 }
 
 // 通过具体的名字来进行查询服务
-func (sc *serviceCache) getServicesFromCacheByName(
-	svcArgs *ServiceArgs, instArgs *store.InstanceArgs, offset, limit uint32) (uint32, []*model.Service, error) {
+func (sc *serviceCache) getServicesFromCacheByName(svcArgs *ServiceArgs, instArgs *store.InstanceArgs,
+	offset, limit uint32) (uint32, []*model.Service, error) {
 	var res []*model.Service
 	if svcArgs.Namespace != "" {
 		svc := sc.GetServiceByName(svcArgs.Name, svcArgs.Namespace)
