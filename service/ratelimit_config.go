@@ -40,6 +40,7 @@ var (
 		"namespace": true,
 		"brief":     true,
 		"method":    true,
+		"labels":    true,
 		"offset":    true,
 		"limit":     true,
 	}

@@ -1151,21 +1151,21 @@ func updateRateLimitContent(rateLimit *api.Rule, index int) {
 func checkRateLimit(t *testing.T, expect *api.Rule, actual *api.Rule) {
 	switch {
 	case expect.GetId().GetValue() != actual.GetId().GetValue():
-		t.Fatal("error id")
+		t.Fatalf("error id, expect %s, actual %s", expect.GetId().GetValue(), actual.GetId().GetValue())
 	case expect.GetService().GetValue() != actual.GetService().GetValue():
-		t.Fatal("error service")
+		t.Fatalf("error service, expect %s, actual %s", expect.GetService().GetValue(), actual.GetService().GetValue())
 	case expect.GetNamespace().GetValue() != actual.GetNamespace().GetValue():
-		t.Fatal("error namespace")
+		t.Fatalf("error namespace, expect %s, actual %s", expect.GetNamespace().GetValue(), actual.GetNamespace().GetValue())
 	case expect.GetPriority().GetValue() != actual.GetPriority().GetValue():
-		t.Fatal("error priority")
+		t.Fatalf("error priority, expect %v, actual %v", expect.GetPriority().GetValue(), actual.GetPriority().GetValue())
 	case expect.GetResource() != actual.GetResource():
-		t.Fatal("error resource")
+		t.Fatalf("error resource, expect %v, actual %v", expect.GetResource(), actual.GetResource())
 	case expect.GetType() != actual.GetType():
-		t.Fatal("error type")
+		t.Fatalf("error type, expect %v, actual %v", expect.GetType(), actual.GetType())
 	case expect.GetDisable().GetValue() != actual.GetDisable().GetValue():
-		t.Fatal("error disable")
+		t.Fatalf("error disable, expect %v, actual %v", expect.GetDisable().GetValue(), actual.GetDisable().GetValue())
 	case expect.GetAction().GetValue() != actual.GetAction().GetValue():
-		t.Fatal("error action")
+		t.Fatalf("error action, expect %s, actual %s", expect.GetAction().GetValue(), actual.GetAction().GetValue())
 	default:
 		break
 	}
@@ -1204,18 +1204,6 @@ func checkRateLimit(t *testing.T, expect *api.Rule, actual *api.Rule) {
 	}
 	if string(expectAmounts) != string(actualAmounts) {
 		t.Fatal("error amounts")
-	}
-
-	expectReport, err := json.Marshal(expect.GetReport())
-	if err != nil {
-		panic(err)
-	}
-	actualReport, err := json.Marshal(actual.GetReport())
-	if err != nil {
-		panic(err)
-	}
-	if string(expectReport) != string(actualReport) {
-		t.Fatal("error report")
 	}
 }
 

@@ -185,7 +185,7 @@ func TestCreateRateLimit(t *testing.T) {
 		t.Log("pass")
 	})
 
-	t.Run("为不存在的服务创建限流规则，返回失败", func(t *testing.T) {
+	t.Run("为不存在的服务创建限流规则，返回成功", func(t *testing.T) {
 		_, serviceResp := discoverSuit.createCommonService(t, 2)
 		discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		rateLimit := &api.Rule{
@@ -194,7 +194,7 @@ func TestCreateRateLimit(t *testing.T) {
 			Labels:       map[string]*api.MatchString{},
 			ServiceToken: serviceResp.GetToken(),
 		}
-		if resp := discoverSuit.server.CreateRateLimits(discoverSuit.defaultCtx, []*api.Rule{rateLimit}); !respSuccess(resp) {
+		if resp := discoverSuit.server.CreateRateLimits(discoverSuit.defaultCtx, []*api.Rule{rateLimit}); respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatalf("error : %s", resp.GetInfo().GetValue())
@@ -604,13 +604,13 @@ func TestCheckRatelimitFieldLen(t *testing.T) {
 			t.Fatalf("%+v", resp)
 		}
 	})
-	t.Run("创建限流规则，toeken超长", func(t *testing.T) {
+	t.Run("创建限流规则，名称超长", func(t *testing.T) {
 		str := genSpecialStr(2049)
-		oldServiceToken := rateLimit.ServiceToken
-		rateLimit.ServiceToken = utils.NewStringValue(str)
+		oldName := rateLimit.Name
+		rateLimit.Name = utils.NewStringValue(str)
 		resp := discoverSuit.server.CreateRateLimits(discoverSuit.defaultCtx, []*api.Rule{rateLimit})
-		rateLimit.ServiceToken = oldServiceToken
-		if resp.Code.Value != api.InvalidServiceToken {
+		rateLimit.Name = oldName
+		if resp.Code.Value != api.InvalidRateLimitName {
 			t.Fatalf("%+v", resp)
 		}
 	})
