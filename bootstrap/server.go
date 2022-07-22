@@ -246,13 +246,16 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 	cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
 	cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
 
-	polarisServiceSet := make(map[model.ServiceKey]bool)
-	for _, svc := range cfg.Bootstrap.PolarisService.Services {
-		ns, n := svc.Namespace, svc.Name
-		if ns == "" {
-			ns = boot_config.DefaultPolarisNamespace
+	var polarisServiceSet map[model.ServiceKey]bool
+	if polarisService := &cfg.Bootstrap.PolarisService; polarisService != nil {
+		polarisServiceSet = make(map[model.ServiceKey]bool)
+		for _, svc := range polarisService.Services {
+			ns, n := svc.Namespace, svc.Name
+			if ns == "" {
+				ns = boot_config.DefaultPolarisNamespace
+			}
+			polarisServiceSet[model.ServiceKey{Namespace: ns, Name: n}] = true
 		}
-		polarisServiceSet[model.ServiceKey{Namespace: ns, Name: n}] = true
 	}
 	// 初始化服务模块
 	if err = service.Initialize(ctx, &cfg.Naming, &cfg.Cache, bc, polarisServiceSet); err != nil {
