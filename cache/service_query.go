@@ -44,7 +44,7 @@ type ServiceArgs struct {
 	Name string
 	// EmptyCondition 是否是空条件，即只需要从所有服务或者某个命名空间下面的服务，进行不需要匹配的遍历，返回前面的服务即可
 	EmptyCondition bool
-	// HiddenServiceList 需要隐藏的服务列表
+	// HiddenServiceSet 需要隐藏的服务
 	HiddenServiceSet map[model.ServiceKey]bool
 }
 
