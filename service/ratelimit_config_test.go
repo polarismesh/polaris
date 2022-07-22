@@ -510,6 +510,20 @@ func TestGetRateLimit(t *testing.T) {
 		}
 	})
 
+	t.Run("查询限流规则列表，过滤条件为name", func(t *testing.T) {
+		filters := map[string]string{
+			"name":  "rule_name_0",
+			"brief": "true",
+		}
+		resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if resp.GetSize().GetValue() != uint32(serviceNum) {
+			t.Fatalf("expect num is %d, actual num is %d", serviceNum, resp.GetSize().GetValue())
+		}
+	})
+
 	t.Run("查询限流规则，过滤条件为labels中的value", func(t *testing.T) {
 		filters := map[string]string{
 			"labels": labelsValue.GetValue().GetValue(),

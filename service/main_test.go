@@ -29,6 +29,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
+
 	"github.com/boltdb/bolt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/protobuf/ptypes/duration"
@@ -964,6 +966,7 @@ func serviceCheck(t *testing.T, expect *api.Service, actual *api.Service) {
 func (d *DiscoverTestSuit) createCommonRateLimit(t *testing.T, service *api.Service, index int) (*api.Rule, *api.Rule) {
 	// 先不考虑Cluster
 	rateLimit := &api.Rule{
+		Name:      &wrappers.StringValue{Value: fmt.Sprintf("rule_name_%d", index)},
 		Service:   service.GetName(),
 		Namespace: service.GetNamespace(),
 		Priority:  utils.NewUInt32Value(uint32(index)),

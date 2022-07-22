@@ -136,6 +136,7 @@ func (r *rateLimitStore) GetExtendRateLimits(
 	// Remove query parameters for the service
 	delete(query, "service")
 	delete(query, "namespace")
+	delete(query, "brief")
 
 	fields = append(utils.CollectMapKeys(query), RateConfFieldServiceID, RateConfFieldValid)
 

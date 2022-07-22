@@ -410,14 +410,16 @@ func rateLimit2Console(
 	if rateLimit == nil {
 		return nil, nil
 	}
-	rateLimit.Proto = &api.Rule{}
-	// 控制台查询的请求
-	if err := json.Unmarshal([]byte(rateLimit.Rule), rateLimit.Proto); err != nil {
-		return nil, err
-	}
-	// 存量标签适配到参数列表
-	if err := rateLimit.AdaptArgumentsAndLabels(); err != nil {
-		return nil, err
+	if len(rateLimit.Rule) > 0 {
+		rateLimit.Proto = &api.Rule{}
+		// 控制台查询的请求
+		if err := json.Unmarshal([]byte(rateLimit.Rule), rateLimit.Proto); err != nil {
+			return nil, err
+		}
+		// 存量标签适配到参数列表
+		if err := rateLimit.AdaptArgumentsAndLabels(); err != nil {
+			return nil, err
+		}
 	}
 	rule := &api.Rule{}
 	rule.Id = utils.NewStringValue(rateLimit.ID)
@@ -432,7 +434,11 @@ func rateLimit2Console(
 		rule.Etime = utils.NewStringValue(commontime.Time2String(rateLimit.EnableTime))
 	}
 	rule.Revision = utils.NewStringValue(rateLimit.Revision)
-	copyRateLimitProto(rateLimit, rule)
+	if nil != rateLimit.Proto {
+		copyRateLimitProto(rateLimit, rule)
+	} else {
+		rule.Method = &api.MatchString{Value: utils.NewStringValue(rateLimit.Method)}
+	}
 	return rule, nil
 }
 
