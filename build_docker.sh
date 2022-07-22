@@ -21,5 +21,9 @@ fi
 docker build --network=host -t ${docker_repository}/polaris-server:${docker_tag} ./
 
 docker push ${docker_repository}/polaris-server:${docker_tag}
-docker tag ${docker_repository}/polaris-server:${docker_tag} ${docker_repository}/polaris-server:latest
-docker push ${docker_repository}/polaris-server:latest
+
+pre_release=`echo ${docker_tag}|egrep "(alpha|beta|rc|[T|t]est)"|wc -l`
+if [ ${pre_release} == 0 ]; then
+  docker tag ${docker_repository}/polaris-server:${docker_tag} ${docker_repository}/polaris-server:latest
+  docker push ${docker_repository}/polaris-server:latest
+fi
