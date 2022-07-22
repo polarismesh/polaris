@@ -1,0 +1,23 @@
+name: weekly-report
+
+on:
+  schedule:
+    - cron: "0 10 * * 1"
+
+jobs:
+  create_issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get today's date
+        id: date
+        run: |
+          echo "::set-output name=today::$(date "+%Y-%m-%d")"
+      - name: Create an issue
+        uses: actions-ecosystem/action-create-issue@v1.0.0
+        with:
+          github_token: ${{ secrets.weekly_token }}
+          title: "[Polaris Weekly Report] ${{ steps.date.outputs.today }}"
+          body: |
+            ## Polaris Weekly Report
+          labels: |
+            weekly-report

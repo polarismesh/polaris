@@ -234,7 +234,7 @@ func (s *Server) UpdateService(ctx context.Context, req *api.Service) *api.Respo
 		return resp
 	}
 
-	// [2020.02.18]如果该服务是别名服务，不允许修改 TODO
+	// [2020.02.18]If service is alias, not allowed to modify
 	if service.IsAlias() {
 		return api.NewServiceResponse(api.NotAllowAliasUpdate, req)
 	}

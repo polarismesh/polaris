@@ -262,7 +262,13 @@ func (s *Server) getCalleeByRoute(route *model.Route) []*model.Callee {
 
 	hasInstance := false
 	_ = s.caches.Instance().IteratorInstancesWithService(service.ID,
-		func(key string, entry *model.Instance) (b bool, e error) {
+		func(_ string, entry *model.Instance) (b bool, e error) {
+
+			// 过滤掉不健康或者隔离状态的server
+			if !entry.Healthy() || entry.Isolate() {
+				return false, nil
+			}
+
 			hasInstance = true
 			// 如果不存在internal-cl5-setId，则默认都是NOSET，适用于别名场景
 			setValue := "NOSET"
@@ -449,7 +455,7 @@ func (s *Server) getCl5DiscoverList(ctx context.Context, clientIP uint32) *l5.Cl
 			continue
 		}
 		// 过滤掉不健康或者隔离状态的server
-		if !entry.Healthy() == false || entry.Isolate() {
+		if !entry.Healthy() || entry.Isolate() {
 			continue
 		}
 		ip := ParseIPStr2IntV2(entry.Host())
