@@ -66,5 +66,4 @@ type Config struct {
 	Auth                 ConfigEntry `yaml:"auth"`
 	MeshResourceValidate ConfigEntry `yaml:"meshResourceValidate"`
 	DiscoverEvent        ConfigEntry `yaml:"discoverEvent"`
-	HideService          ConfigEntry `yaml:"hideService"`
 }

@@ -246,19 +246,9 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 	cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
 	cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
 
-	var polarisServiceSet map[model.ServiceKey]bool
-	if polarisService := &cfg.Bootstrap.PolarisService; polarisService != nil {
-		polarisServiceSet = make(map[model.ServiceKey]bool)
-		for _, svc := range polarisService.Services {
-			ns, n := svc.Namespace, svc.Name
-			if ns == "" {
-				ns = boot_config.DefaultPolarisNamespace
-			}
-			polarisServiceSet[model.ServiceKey{Namespace: ns, Name: n}] = true
-		}
-	}
 	// 初始化服务模块
-	if err = service.Initialize(ctx, &cfg.Naming, &cfg.Cache, bc, polarisServiceSet); err != nil {
+	if err = service.Initialize(ctx, &cfg.Naming, &cfg.Cache, bc,
+		getSelfRegisterPolarsServiceKeySet(&cfg.Bootstrap.PolarisService)); err != nil {
 		return err
 	}
 
@@ -593,4 +583,20 @@ func getLocalHost(addr string) (string, error) {
 	}
 
 	return segs[0], nil
+}
+
+// getSelfRegisterPolarsServiceKeySet 获取自注册的系统服务集合
+func getSelfRegisterPolarsServiceKeySet(polarisServiceCfg *boot_config.PolarisService) map[model.ServiceKey]bool {
+	if polarisServiceCfg == nil {
+		return nil
+	}
+	polarisServiceSet := make(map[model.ServiceKey]bool)
+	for _, svc := range polarisServiceCfg.Services {
+		ns, n := svc.Namespace, svc.Name
+		if ns == "" {
+			ns = boot_config.DefaultPolarisNamespace
+		}
+		polarisServiceSet[model.ServiceKey{Namespace: ns, Name: n}] = true
+	}
+	return polarisServiceSet
 }
