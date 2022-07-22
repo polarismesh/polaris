@@ -50,7 +50,6 @@ type Server struct {
 	discoverStatis plugin.DiscoverStatis
 	discoverEvent  plugin.DiscoverChannel
 	auth           plugin.Auth
-	hideService    plugin.HideService
 
 	l5service *l5service
 
@@ -58,6 +57,8 @@ type Server struct {
 	createNamespaceSingle *singleflight.Group
 
 	hooks []ResourceHook
+
+	polarisServiceList []*model.ServiceKey
 }
 
 // HealthServer 健康检查Server

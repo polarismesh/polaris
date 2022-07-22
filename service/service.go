@@ -363,9 +363,7 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *api.
 	}
 
 	serviceArgs := parseServiceArgs(serviceFilters, serviceMetas, ctx)
-	if s.hideService != nil {
-		serviceArgs.HiddenServiceList = s.hideService.GetHiddenList()
-	}
+	serviceArgs.HiddenServiceList = s.polarisServiceList
 	err = s.caches.Service().Update()
 	if err != nil {
 		log.Errorf("[Server][Service][Query] req(%+v) update store err: %s", query, err.Error())
