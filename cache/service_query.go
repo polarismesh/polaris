@@ -45,7 +45,7 @@ type ServiceArgs struct {
 	// EmptyCondition 是否是空条件，即只需要从所有服务或者某个命名空间下面的服务，进行不需要匹配的遍历，返回前面的服务即可
 	EmptyCondition bool
 	// HiddenServiceList 需要隐藏的服务列表
-	HiddenServiceList []*model.ServiceKey
+	HiddenServiceSet map[model.ServiceKey]bool
 }
 
 // Update 更新配置
@@ -163,7 +163,7 @@ func (sc *serviceCache) getServicesFromCacheByName(svcArgs *ServiceArgs, instArg
 			}
 		}
 	}
-	res = filterHiddenService(res, svcArgs.HiddenServiceList)
+	res = filterHiddenService(res, svcArgs.HiddenServiceSet)
 	amount, services := sortBeforeTrim(res, offset, limit)
 	return amount, services, nil
 }
@@ -295,24 +295,19 @@ func (sc *serviceCache) getServicesByIteratingCache(
 			return true, nil
 		})
 	}
-	res = filterHiddenService(res, svcArgs.HiddenServiceList)
+	res = filterHiddenService(res, svcArgs.HiddenServiceSet)
 	amount, services := sortBeforeTrim(res, offset, limit)
 	return amount, services, nil
 }
 
 // filterHiddenService 过略掉需要隐藏的服务
-func filterHiddenService(services []*model.Service, hiddenServiceList []*model.ServiceKey) []*model.Service {
-	if len(services) == 0 || len(hiddenServiceList) == 0 {
+func filterHiddenService(services []*model.Service, hiddenServiceSet map[model.ServiceKey]bool) []*model.Service {
+	if len(hiddenServiceSet) == 0 {
 		return services
-	}
-	hide := make(map[string]bool)
-	hiddenKey := func(namespace, name string) string { return namespace + name }
-	for _, s := range hiddenServiceList {
-		hide[hiddenKey(s.Namespace, s.Name)] = true
 	}
 	var res []*model.Service
 	for _, service := range services {
-		if hide[hiddenKey(service.Namespace, service.Name)] {
+		if hiddenServiceSet[model.ServiceKey{Namespace: service.Namespace, Name: service.Name}] {
 			continue
 		}
 		res = append(res, service)

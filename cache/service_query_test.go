@@ -179,8 +179,8 @@ func Test_matchServiceFilter_business(t *testing.T) {
 
 func Test_filterHiddenService_business(t *testing.T) {
 	type args struct {
-		svcList    []*model.Service
-		hiddenList []*model.ServiceKey
+		svcList   []*model.Service
+		hiddenSet map[model.ServiceKey]bool
 	}
 	tests := []struct {
 		name string
@@ -195,8 +195,8 @@ func Test_filterHiddenService_business(t *testing.T) {
 					{Namespace: "default2", Name: "n2"},
 					{Namespace: "default3", Name: "n3"},
 				},
-				hiddenList: []*model.ServiceKey{
-					{Namespace: "default3", Name: "n3"},
+				hiddenSet: map[model.ServiceKey]bool{
+					{Namespace: "default3", Name: "n3"}: true,
 				},
 			},
 			want: 2,
@@ -209,7 +209,7 @@ func Test_filterHiddenService_business(t *testing.T) {
 					{Namespace: "default2", Name: "n2"},
 					{Namespace: "default3", Name: "n3"},
 				},
-				hiddenList: nil,
+				hiddenSet: nil,
 			},
 			want: 3,
 		},
@@ -221,8 +221,8 @@ func Test_filterHiddenService_business(t *testing.T) {
 					{Namespace: "default2", Name: "n2"},
 					{Namespace: "default3", Name: "n3"},
 				},
-				hiddenList: []*model.ServiceKey{
-					{Namespace: "default0", Name: "n0"},
+				hiddenSet: map[model.ServiceKey]bool{
+					{Namespace: "default0", Name: "n0"}: true,
 				},
 			},
 			want: 3,
@@ -235,10 +235,10 @@ func Test_filterHiddenService_business(t *testing.T) {
 					{Namespace: "default2", Name: "n2"},
 					{Namespace: "default3", Name: "n3"},
 				},
-				hiddenList: []*model.ServiceKey{
-					{Namespace: "default1", Name: "n1"},
-					{Namespace: "default2", Name: "n2"},
-					{Namespace: "default3", Name: "n3"},
+				hiddenSet: map[model.ServiceKey]bool{
+					{Namespace: "default1", Name: "n1"}: true,
+					{Namespace: "default2", Name: "n2"}: true,
+					{Namespace: "default3", Name: "n3"}: true,
 				},
 			},
 			want: 0,
@@ -246,7 +246,7 @@ func Test_filterHiddenService_business(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := len(filterHiddenService(tt.args.svcList, tt.args.hiddenList)); got != tt.want {
+			if got := len(filterHiddenService(tt.args.svcList, tt.args.hiddenSet)); got != tt.want {
 				t.Errorf("filterHiddenService() = %v, want %v, args %#v", got, tt.want, tt.args)
 			}
 		})

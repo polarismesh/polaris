@@ -417,25 +417,25 @@ func TestServiceCache_GetServicesByFilter(t *testing.T) {
 		_ = sc.clear()
 		services := genModelServiceByNamespace(100, "default")
 		sc.setServices(services)
-		var hiddenService []*model.ServiceKey
+		hiddenService := make(map[model.ServiceKey]bool)
 		for _, service := range genModelServiceByNamespace(10, "default") {
-			hiddenService = append(hiddenService, &model.ServiceKey{
+			hiddenService[model.ServiceKey{
 				Namespace: service.Namespace,
 				Name:      service.Name,
-			})
+			}] = true
 		}
 		instArgs := &store.InstanceArgs{}
 		svcArgs := &ServiceArgs{
-			EmptyCondition:    true,
-			HiddenServiceList: hiddenService,
+			EmptyCondition:   true,
+			HiddenServiceSet: hiddenService,
 		}
 		amount, _, _ := sc.GetServicesByFilter(svcArgs, instArgs, 0, 100)
 		if expect := len(services) - len(hiddenService); amount != uint32(expect) {
 			t.Fatalf("service after hidden count is %d, expect %d", amount, expect)
 		}
 		svcArgs = &ServiceArgs{
-			Namespace:         "filter",
-			HiddenServiceList: hiddenService,
+			Namespace:        "filter",
+			HiddenServiceSet: hiddenService,
 		}
 		filterServices := genModelServiceByNamespace(50, "filter")
 		for k, v := range filterServices {

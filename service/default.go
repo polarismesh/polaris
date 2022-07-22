@@ -69,10 +69,10 @@ type Config struct {
 
 // Initialize 初始化
 func Initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config,
-	bc *batch.Controller, polarisServiceList []*model.ServiceKey) error {
+	bc *batch.Controller, polarisServiceSet map[model.ServiceKey]bool) error {
 	var err error
 	once.Do(func() {
-		err = initialize(ctx, namingOpt, cacheOpt, bc, polarisServiceList)
+		err = initialize(ctx, namingOpt, cacheOpt, bc, polarisServiceSet)
 	})
 
 	if err != nil {
@@ -103,7 +103,7 @@ func GetOriginServer() (*Server, error) {
 
 // 内部初始化函数
 func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, bc *batch.Controller,
-	polarisServiceList []*model.ServiceKey) error {
+	polarisServiceSet map[model.ServiceKey]bool) error {
 
 	// 获取存储层对象
 	s, err := store.GetStore()
@@ -152,7 +152,7 @@ func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, 
 
 	namingServer.createServiceSingle = &singleflight.Group{}
 	namingServer.createNamespaceSingle = &singleflight.Group{}
-	namingServer.polarisServiceList = polarisServiceList
+	namingServer.polarisServiceSet = polarisServiceSet
 
 	// 插件初始化
 	pluginInitialize()
