@@ -20,6 +20,7 @@ package sqldb
 import (
 	"database/sql"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -168,6 +169,23 @@ func (fg *configFileGroupStore) FindConfigFileGroups(namespace string,
 		return nil, err
 	}
 	return cfgs, nil
+}
+
+func (fg *configFileGroupStore) GetConfigFileGroupById(id uint64) (*model.ConfigFileGroup, error) {
+	querySql := fg.genConfigFileGroupSelectSql()
+	querySql += fmt.Sprintf(" where id = %s", strconv.FormatUint(id, 10))
+
+	rows, err := fg.db.Query(querySql)
+	if err != nil {
+		return nil, err
+	}
+
+	cfgs, err := fg.transferRows(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfgs[0], nil
 }
 
 func (fg *configFileGroupStore) genConfigFileGroupSelectSql() string {

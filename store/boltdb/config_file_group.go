@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -265,6 +266,18 @@ func (fg *configFileGroupStore) FindConfigFileGroups(namespace string,
 	}
 
 	return groups, nil
+}
+
+func (fg *configFileGroupStore) GetConfigFileGroupById(id uint64) (*model.ConfigFileGroup, error) {
+	idStr := strconv.FormatUint(id, 10)
+	keys := []string{strconv.FormatUint(id, 10)}
+	ret, err := fg.handler.LoadValues(tblConfigFileGroup, keys, &model.ConfigFileGroup{})
+	if err != nil {
+		log.Error("[ConfigFileGroup] find by id", zap.Error(err))
+		return nil, err
+	}
+	group := ret[idStr].(*model.ConfigFileGroup)
+	return group, nil
 }
 
 // doConfigFileGroupPage 进行分页
