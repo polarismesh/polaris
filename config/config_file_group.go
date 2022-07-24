@@ -89,6 +89,7 @@ func (s *Server) CreateConfigFileGroup(ctx context.Context, configFileGroup *api
 		zap.String("namespace", namespace),
 		zap.String("groupName", groupName))
 
+	s.afterConfigGroupResource(ctx, configFileGroup, createdGroup)
 	return api.NewConfigFileGroupResponse(api.ExecuteSuccess, transferConfigFileGroupStoreModel2APIModel(createdGroup))
 }
 
@@ -296,6 +297,17 @@ func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name stri
 		}
 	}
 
+	configGroup, err := s.storage.GetConfigFileGroup(namespace, name)
+	if err != nil {
+		log.ConfigScope().Error("[Config][Service] get config file group failed. ",
+			zap.String("request-id", requestID),
+			zap.String("namespace", namespace),
+			zap.String("name", name),
+			zap.Error(err))
+
+		return api.NewConfigFileGroupResponse(api.StoreLayerException, nil)
+	}
+
 	if err := s.storage.DeleteConfigFileGroup(namespace, name); err != nil {
 		log.ConfigScope().Error("[Config][Service] delete config file group failed. ",
 			zap.String("request-id", requestID),
@@ -306,6 +318,7 @@ func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name stri
 		return api.NewConfigFileGroupResponse(api.StoreLayerException, nil)
 	}
 
+	s.afterConfigGroupResource(ctx, &api.ConfigFileGroup{}, configGroup)
 	return api.NewConfigFileGroupResponse(api.ExecuteSuccess, nil)
 }
 
@@ -352,7 +365,7 @@ func (s *Server) UpdateConfigFileGroup(ctx context.Context,
 
 		return api.NewConfigFileGroupResponse(api.StoreLayerException, configFileGroup)
 	}
-
+	s.afterConfigGroupResource(ctx, configFileGroup, updatedGroup)
 	return api.NewConfigFileGroupResponse(api.ExecuteSuccess, transferConfigFileGroupStoreModel2APIModel(updatedGroup))
 }
 

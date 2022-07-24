@@ -938,8 +938,9 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 	configGroups := make([]*api.StrategyResourceEntry, 0, len(data.Resources))
 
 	var (
-		autoAllNs  bool
-		autoAllSvc bool
+		autoAllNs          bool
+		autoAllSvc         bool
+		autoAllConfigGroup bool
 	)
 
 	for index := range data.Resources {
@@ -998,6 +999,36 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 				})
 			}
 		case int32(api.ResourceType_ConfigGroups):
+			if res.ResID == "*" {
+				autoAllConfigGroup = true
+				configGroups = []*api.StrategyResourceEntry{
+					{
+						Id:        utils.NewStringValue("*"),
+						Namespace: utils.NewStringValue("*"),
+						Name:      utils.NewStringValue("*"),
+					},
+				}
+				continue
+			}
+			if !autoAllConfigGroup {
+				groupId, err := strconv.ParseUint(res.ResID, 10, 64)
+				if err != nil {
+					log.AuthScope().Error("[Auth][Strategy] invalid resource id",
+						zap.String("id", data.ID), zap.String("config_file_group", res.ResID))
+					continue
+				}
+				group, _ := svr.storage.GetConfigFileGroupById(groupId)
+				if group == nil {
+					log.AuthScope().Error("[Auth][Strategy] not found config_file_group in fill-info",
+						zap.String("id", data.ID), zap.String("config_file_group", res.ResID))
+					continue
+				}
+				configGroups = append(configGroups, &api.StrategyResourceEntry{
+					Id:        utils.NewStringValue(strconv.FormatUint(group.Id, 10)),
+					Namespace: utils.NewStringValue(group.Namespace),
+					Name:      utils.NewStringValue(group.Name),
+				})
+			}
 		}
 	}
 
