@@ -32,6 +32,20 @@ jobs:
         with:
           fetch-depth: 2
 
+      # close default MySQL-Server
+      - name: Shutdown default mysql
+        run: sudo service mysql stop
+
+      # run mysql server
+      - name: Create mysql database auth
+        uses: icomponent/mysql-action@master
+        with:
+          VERSION: 5.7
+          CONTAINER_NAME: mysql
+          PORT_MAPPING: 3306:3306
+          ROOT_PASSWORD: polaris
+          DATABASE: polaris_server
+
       # Execute vert check
       - name: Vert check
         run: bash vert.sh -install && bash vert.sh
@@ -39,8 +53,68 @@ jobs:
       - name: Go Test
         run: |
           # bash coverage.sh
-          go mod vendor && go test  -timeout 40m ./... -v -coverprofile=coverage.txt -coverpkg=github.com/polarismesh/polaris-server/auth/defaultauth,github.com/polarismesh/polaris-server/service,github.com/polarismesh/polaris-server/service/batch,github.com/polarismesh/polaris-server/cache,github.com/polarismesh/polaris-server/store/boltdb,github.com/polarismesh/polaris-server/store/sqldb,github.com/polarismesh/polaris-server/plugin/ratelimit/token,github.com/polarismesh/polaris-server/config,github.com/polarismesh/polaris-server/common/model
+          go mod vendor && go test  -timeout 40m ./... -v -coverprofile=coverage_1.cover -coverpkg=github.com/polarismesh/polaris-server/auth/defaultauth,github.com/polarismesh/polaris-server/service,github.com/polarismesh/polaris-server/service/batch,github.com/polarismesh/polaris-server/cache,github.com/polarismesh/polaris-server/store/boltdb,github.com/polarismesh/polaris-server/store/sqldb,github.com/polarismesh/polaris-server/plugin/ratelimit/token,github.com/polarismesh/polaris-server/config,github.com/polarismesh/polaris-server/common/model
 
+      # Run unit tests
+      - name: Go Test With DB
+        run: |
+          export STORE_MODE=sqldb
+          echo "cur STORE MODE=${STORE_MODE}"
+
+          # 清空数据
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
+          # 初始化 polaris 数据库
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/sqldb/scripts/polaris_server.sql
+          # 临时放开 DB 的最大连接数
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
+
+          pushd ./config
+          go mod vendor && go test -v -timeout 40m -v -coverprofile=coverage_sqldb_1.cover
+          popd
+
+          sleep 10s
+
+          # 清空数据
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
+          # 初始化 polaris 数据库
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/sqldb/scripts/polaris_server.sql
+          # 临时放开 DB 的最大连接数
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
+
+          pushd ./service
+          go mod vendor && go test -v -timeout 40m -v -coverprofile=coverage_sqldb_2.cover
+          popd
+
+      - name: Merge All Coverage
+        run: |
+          profile="coverage.out"
+          htmlfile="coverage.html"
+          mergecover="merge_cover"
+          mode="set"
+
+          grep -h -v "^mode:" *.cover | sort > $mergecover
+
+          echo "mode: $mode" > $profile
+          current=""
+          count=0
+          while read line; do
+              block=$(echo $line | cut -d ' ' -f1-2)
+              num=$(echo $line | cut -d ' ' -f3)
+              if [ "$current" == "" ]; then
+                  current=$block
+                  count=$num
+              elif [ "$block" == "$current" ]; then
+                  count=$(($count + $num))
+              else
+                  echo $current $count >> $profile
+                  current=$block
+                  count=$num
+              fi
+          done < $mergecover
+          
+          if [ "$current" != "" ]; then
+              echo $current $count >> $profile
+          fi
 
       - name: Coverage
         run: bash <(curl -s https://codecov.io/bash)

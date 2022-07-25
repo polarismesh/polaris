@@ -209,3 +209,10 @@ func TestClientGRPC_DiscoverServices(t *testing.T) {
 
 		})
 }
+
+func Test_QueryGroups(t *testing.T) {
+	ConfigCenterRunAndInitResource(t,
+		func(t *testing.T, clientHttp *http.Client, namespaces []*api.Namespace, configGroups []*api.ConfigFileGroup) {
+
+		})
+}

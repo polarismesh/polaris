@@ -29,9 +29,9 @@ import (
 )
 
 const (
-	httpserverVersion       = "v1"
-	httpserverAddress       = "127.0.0.1:8090"
-	grpcServerAddress       = "127.0.0.1"
+	httpserverVersion = "v1"
+	httpserverAddress = "127.0.0.1:8090"
+	grpcServerAddress = "127.0.0.1"
 )
 
 type (
@@ -86,4 +86,43 @@ func DiscoveryRunAndInitResource(t *testing.T, runner DiscoveryRunner) {
 }
 
 func ConfigCenterRunAndInitResource(t *testing.T, runner ConfigRunner) {
+	clientHTTP := http.NewClient(httpserverAddress, httpserverVersion)
+
+	namespaces := resource.CreateNamespaces()
+	groups := resource.MockConfigGroups(namespaces[0])
+
+	// 创建命名空间
+	ret, err := clientHTTP.CreateNamespaces(namespaces)
+	if err != nil {
+		t.Fatalf("create namespaces fail")
+	}
+	for index, item := range ret.GetResponses() {
+		namespaces[index].Token = item.GetNamespace().GetToken()
+	}
+	t.Log("create namespaces success")
+
+	// 创建服务
+	_, err = clientHTTP.CreateConfigGroup(groups[0])
+	if err != nil {
+		t.Fatalf("create config group fail")
+	}
+	t.Log("create config group success")
+
+	defer func() {
+		// 删除配置分组
+		_, err := clientHTTP.DeleteConfigGroup(groups[0])
+		if err != nil {
+			t.Fatalf("delete config group fail")
+		}
+		t.Log("delete config group success")
+
+		// 删除命名空间
+		err = clientHTTP.DeleteNamespaces(namespaces)
+		if err != nil {
+			t.Fatalf("delete namespaces fail")
+		}
+		t.Log("delete namespaces success")
+	}()
+
+	runner(t, clientHTTP, namespaces, groups)
 }

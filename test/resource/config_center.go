@@ -31,10 +31,8 @@ const (
 	configFileNameTemp = "file-%s-%d"
 )
 
-func MockConfigGroups() []*api.ConfigFileGroup {
+func MockConfigGroups(ns *api.Namespace) []*api.ConfigFileGroup {
 	ret := make([]*api.ConfigFileGroup, 0, totalGroups)
-
-	namespace := utils.NewUUID()
 
 	for i := 0; i < totalGroups; i++ {
 
@@ -43,7 +41,7 @@ func MockConfigGroups() []*api.ConfigFileGroup {
 				Value: fmt.Sprintf(confiGroupNameTemp, utils.NewUUID(), i),
 			},
 			Namespace: &wrapperspb.StringValue{
-				Value: namespace,
+				Value: ns.Name.Value,
 			},
 			Comment: &wrapperspb.StringValue{
 				Value: "",
