@@ -371,15 +371,6 @@ func (s *Server) checkRateLimitExisted(id, requestID string, req *api.Rule) (*mo
 	return rateLimit, nil
 }
 
-// parseRateLimitReqToken 获取限流规则请求的token信息
-func parseRateLimitReqToken(ctx context.Context, req *api.Rule) string {
-	if reqToken := req.GetServiceToken().GetValue(); reqToken != "" {
-		return reqToken
-	}
-
-	return ParseToken(ctx)
-}
-
 // api2RateLimit 把API参数转化为内部数据结构
 func api2RateLimit(serviceID string, req *api.Rule) (*model.RateLimit, error) {
 	rule, err := marshalRateLimitRules(req)
