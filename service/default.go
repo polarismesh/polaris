@@ -69,7 +69,7 @@ type Config struct {
 
 // Initialize 初始化
 func Initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config,
-	bc *batch.Controller, polarisServiceSet map[model.ServiceKey]bool) error {
+	bc *batch.Controller, polarisServiceSet map[model.ServiceKey]struct{}) error {
 	var err error
 	once.Do(func() {
 		err = initialize(ctx, namingOpt, cacheOpt, bc, polarisServiceSet)
@@ -103,7 +103,7 @@ func GetOriginServer() (*Server, error) {
 
 // 内部初始化函数
 func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, bc *batch.Controller,
-	polarisServiceSet map[model.ServiceKey]bool) error {
+	polarisServiceSet map[model.ServiceKey]struct{}) error {
 
 	// 获取存储层对象
 	s, err := store.GetStore()

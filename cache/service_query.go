@@ -45,7 +45,7 @@ type ServiceArgs struct {
 	// EmptyCondition 是否是空条件，即只需要从所有服务或者某个命名空间下面的服务，进行不需要匹配的遍历，返回前面的服务即可
 	EmptyCondition bool
 	// HiddenServiceSet 需要隐藏的服务
-	HiddenServiceSet map[model.ServiceKey]bool
+	HiddenServiceSet map[model.ServiceKey]struct{}
 }
 
 // Update 更新配置
@@ -301,13 +301,13 @@ func (sc *serviceCache) getServicesByIteratingCache(
 }
 
 // filterHiddenService 过略掉需要隐藏的服务
-func filterHiddenService(services []*model.Service, hiddenServiceSet map[model.ServiceKey]bool) []*model.Service {
+func filterHiddenService(services []*model.Service, hiddenServiceSet map[model.ServiceKey]struct{}) []*model.Service {
 	if len(hiddenServiceSet) == 0 {
 		return services
 	}
 	var res []*model.Service
 	for _, service := range services {
-		if hiddenServiceSet[model.ServiceKey{Namespace: service.Namespace, Name: service.Name}] {
+		if _, ok := hiddenServiceSet[model.ServiceKey{Namespace: service.Namespace, Name: service.Name}]; ok {
 			continue
 		}
 		res = append(res, service)

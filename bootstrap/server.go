@@ -586,17 +586,17 @@ func getLocalHost(addr string) (string, error) {
 }
 
 // getSelfRegisterPolarsServiceKeySet 获取自注册的系统服务集合
-func getSelfRegisterPolarsServiceKeySet(polarisServiceCfg *boot_config.PolarisService) map[model.ServiceKey]bool {
+func getSelfRegisterPolarsServiceKeySet(polarisServiceCfg *boot_config.PolarisService) map[model.ServiceKey]struct{} {
 	if polarisServiceCfg == nil {
 		return nil
 	}
-	polarisServiceSet := make(map[model.ServiceKey]bool)
+	polarisServiceSet := make(map[model.ServiceKey]struct{})
 	for _, svc := range polarisServiceCfg.Services {
 		ns, n := svc.Namespace, svc.Name
 		if ns == "" {
 			ns = boot_config.DefaultPolarisNamespace
 		}
-		polarisServiceSet[model.ServiceKey{Namespace: ns, Name: n}] = true
+		polarisServiceSet[model.ServiceKey{Namespace: ns, Name: n}] = struct{}{}
 	}
 	return polarisServiceSet
 }

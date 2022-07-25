@@ -58,7 +58,7 @@ type Server struct {
 
 	hooks []ResourceHook
 
-	polarisServiceSet map[model.ServiceKey]bool
+	polarisServiceSet map[model.ServiceKey]struct{}
 }
 
 // HealthServer 健康检查Server

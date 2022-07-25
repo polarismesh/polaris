@@ -178,9 +178,10 @@ func Test_matchServiceFilter_business(t *testing.T) {
 }
 
 func Test_filterHiddenService_business(t *testing.T) {
+	emptyVal := struct{}{}
 	type args struct {
 		svcList   []*model.Service
-		hiddenSet map[model.ServiceKey]bool
+		hiddenSet map[model.ServiceKey]struct{}
 	}
 	tests := []struct {
 		name string
@@ -195,8 +196,8 @@ func Test_filterHiddenService_business(t *testing.T) {
 					{Namespace: "default2", Name: "n2"},
 					{Namespace: "default3", Name: "n3"},
 				},
-				hiddenSet: map[model.ServiceKey]bool{
-					{Namespace: "default3", Name: "n3"}: true,
+				hiddenSet: map[model.ServiceKey]struct{}{
+					{Namespace: "default3", Name: "n3"}: emptyVal,
 				},
 			},
 			want: 2,
@@ -221,8 +222,8 @@ func Test_filterHiddenService_business(t *testing.T) {
 					{Namespace: "default2", Name: "n2"},
 					{Namespace: "default3", Name: "n3"},
 				},
-				hiddenSet: map[model.ServiceKey]bool{
-					{Namespace: "default0", Name: "n0"}: true,
+				hiddenSet: map[model.ServiceKey]struct{}{
+					{Namespace: "default0", Name: "n0"}: emptyVal,
 				},
 			},
 			want: 3,
@@ -235,10 +236,10 @@ func Test_filterHiddenService_business(t *testing.T) {
 					{Namespace: "default2", Name: "n2"},
 					{Namespace: "default3", Name: "n3"},
 				},
-				hiddenSet: map[model.ServiceKey]bool{
-					{Namespace: "default1", Name: "n1"}: true,
-					{Namespace: "default2", Name: "n2"}: true,
-					{Namespace: "default3", Name: "n3"}: true,
+				hiddenSet: map[model.ServiceKey]struct{}{
+					{Namespace: "default1", Name: "n1"}: emptyVal,
+					{Namespace: "default2", Name: "n2"}: emptyVal,
+					{Namespace: "default3", Name: "n3"}: emptyVal,
 				},
 			},
 			want: 0,

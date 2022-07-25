@@ -417,12 +417,12 @@ func TestServiceCache_GetServicesByFilter(t *testing.T) {
 		_ = sc.clear()
 		services := genModelServiceByNamespace(100, "default")
 		sc.setServices(services)
-		hiddenService := make(map[model.ServiceKey]bool)
+		hiddenService := make(map[model.ServiceKey]struct{})
 		for _, service := range genModelServiceByNamespace(10, "default") {
 			hiddenService[model.ServiceKey{
 				Namespace: service.Namespace,
 				Name:      service.Name,
-			}] = true
+			}] = struct{}{}
 		}
 		instArgs := &store.InstanceArgs{}
 		svcArgs := &ServiceArgs{
