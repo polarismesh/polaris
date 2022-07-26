@@ -53,7 +53,7 @@ jobs:
       - name: Go Test
         run: |
           # bash coverage.sh
-          go mod vendor && go test  -timeout 40m ./... -v -coverprofile=coverage_1.cover -coverpkg=github.com/polarismesh/polaris-server/auth/defaultauth,github.com/polarismesh/polaris-server/service,github.com/polarismesh/polaris-server/service/batch,github.com/polarismesh/polaris-server/cache,github.com/polarismesh/polaris-server/store/boltdb,github.com/polarismesh/polaris-server/store/sqldb,github.com/polarismesh/polaris-server/plugin/ratelimit/token,github.com/polarismesh/polaris-server/config,github.com/polarismesh/polaris-server/common/model
+          go mod vendor && go test  -timeout 40m ./... -v -coverprofile=coverage_1.cover -coverpkg=github.com/polarismesh/polaris-server/auth/defaultauth,github.com/polarismesh/polaris-server/service,github.com/polarismesh/polaris-server/service/batch,github.com/polarismesh/polaris-server/cache,github.com/polarismesh/polaris-server/store/boltdb,github.com/polarismesh/polaris-server/store/sqldb,github.com/polarismesh/polaris-server/plugin,github.com/polarismesh/polaris-server/config,github.com/polarismesh/polaris-server/common/model
 
       # Run unit tests
       - name: Go Test With DB
@@ -69,7 +69,7 @@ jobs:
           mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
 
           pushd ./config
-          go mod vendor && go test -v -timeout 40m -v -coverprofile=coverage_sqldb_1.cover
+          go mod vendor && go test -v -timeout 40m -v -coverprofile=coverage_sqldb_1.cover -coverpkg=github.com/polarismesh/polaris-server/auth/defaultauth,github.com/polarismesh/polaris-server/service,github.com/polarismesh/polaris-server/service/batch,github.com/polarismesh/polaris-server/cache,github.com/polarismesh/polaris-server/store/boltdb,github.com/polarismesh/polaris-server/store/sqldb,github.com/polarismesh/polaris-server/plugin,github.com/polarismesh/polaris-server/config,github.com/polarismesh/polaris-server/common/model
           mv coverage_sqldb_1.cover ../
           popd
 
@@ -83,7 +83,7 @@ jobs:
           mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
 
           pushd ./service
-          go mod vendor && go test -v -timeout 40m -v -coverprofile=coverage_sqldb_2.cover
+          go mod vendor && go test -v -timeout 40m -v -coverprofile=coverage_sqldb_2.cover -coverpkg=github.com/polarismesh/polaris-server/auth/defaultauth,github.com/polarismesh/polaris-server/service,github.com/polarismesh/polaris-server/service/batch,github.com/polarismesh/polaris-server/cache,github.com/polarismesh/polaris-server/store/boltdb,github.com/polarismesh/polaris-server/store/sqldb,github.com/polarismesh/polaris-server/plugin,github.com/polarismesh/polaris-server/config,github.com/polarismesh/polaris-server/common/model
           mv coverage_sqldb_2.cover ../
           popd
 
@@ -95,6 +95,8 @@ jobs:
           mode="count"
 
           grep -h -v "^mode:" *.cover | sort > $mergecover
+
+          cat $mergecover
 
           echo "mode: $mode" > $profile
           current=""
@@ -117,6 +119,8 @@ jobs:
           if [ "$current" != "" ]; then
               echo $current $count >> $profile
           fi
+
+          rm -rf *.cover
 
       - name: Coverage
         run: bash <(curl -s https://codecov.io/bash)
