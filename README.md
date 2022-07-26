@@ -112,8 +112,7 @@ $env:GOPROXY = "https://proxy.golang.com.cn,direct"
 > Run build
 
 ```bash
-chmod +x build.sh
-./build.sh
+make build
 ```
 
 After built, one can see 'polaris-server-release_${version}.tar.gz' package from the list.

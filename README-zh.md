@@ -110,8 +110,7 @@ $env:GOPROXY = "https://proxy.golang.com.cn,direct"
 > 执行构建动作
 
 ```bash
-chmod +x build.sh
-./build.sh
+make build
 ```
 
 构建完后，可以在当前目录看到polaris-server-release_${version}.tar.gz的软件包。

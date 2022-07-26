@@ -73,7 +73,7 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-        run: bash build.sh
+        run: make build
 
       # Run unit tests
       - name: run tests

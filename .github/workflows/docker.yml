@@ -42,7 +42,7 @@ jobs:
           DOCKER_TAG: ${{ steps.get_version.outputs.VERSION }}
         run: |
           ls -lstrh
-          bash build_docker.sh ${DOCKER_TAG}
+          make build-docker IMAGE_TAG=${DOCKER_TAG}
 
       - name: Build Prometheus
         id: build-prom
