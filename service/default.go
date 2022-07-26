@@ -28,6 +28,7 @@ import (
 
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
+	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service/batch"
@@ -67,10 +68,11 @@ type Config struct {
 }
 
 // Initialize 初始化
-func Initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, bc *batch.Controller) error {
+func Initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config,
+	bc *batch.Controller, polarisServiceSet map[model.ServiceKey]struct{}) error {
 	var err error
 	once.Do(func() {
-		err = initialize(ctx, namingOpt, cacheOpt, bc)
+		err = initialize(ctx, namingOpt, cacheOpt, bc, polarisServiceSet)
 	})
 
 	if err != nil {
@@ -100,7 +102,8 @@ func GetOriginServer() (*Server, error) {
 }
 
 // 内部初始化函数
-func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, bc *batch.Controller) error {
+func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, bc *batch.Controller,
+	polarisServiceSet map[model.ServiceKey]struct{}) error {
 
 	// 获取存储层对象
 	s, err := store.GetStore()
@@ -149,6 +152,7 @@ func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, 
 
 	namingServer.createServiceSingle = &singleflight.Group{}
 	namingServer.createNamespaceSingle = &singleflight.Group{}
+	namingServer.polarisServiceSet = polarisServiceSet
 
 	// 插件初始化
 	pluginInitialize()
