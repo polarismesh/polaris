@@ -371,8 +371,13 @@ func (s *Server) checkRateLimitExisted(id, requestID string, req *api.Rule) (*mo
 	return rateLimit, nil
 }
 
+const (
+	defaultRuleAction = "REJECT"
+)
+
 // api2RateLimit 把API参数转化为内部数据结构
 func api2RateLimit(serviceID string, req *api.Rule) (*model.RateLimit, error) {
+
 	rule, err := marshalRateLimitRules(req)
 	if err != nil {
 		return nil, err
@@ -423,6 +428,8 @@ func rateLimit2Console(
 	rule.Disable = utils.NewBoolValue(rateLimit.Disable)
 	if rateLimit.EnableTime.Year() > 2000 {
 		rule.Etime = utils.NewStringValue(commontime.Time2String(rateLimit.EnableTime))
+	} else {
+		rule.Etime = utils.NewStringValue("")
 	}
 	rule.Revision = utils.NewStringValue(rateLimit.Revision)
 	if nil != rateLimit.Proto {
@@ -431,6 +438,12 @@ func rateLimit2Console(
 		rule.Method = &api.MatchString{Value: utils.NewStringValue(rateLimit.Method)}
 	}
 	return rule, nil
+}
+
+func populateDefaultRuleValue(rule *api.Rule) {
+	if rule.GetAction().GetValue() == "" {
+		rule.Action = utils.NewStringValue(defaultRuleAction)
+	}
 }
 
 func copyRateLimitProto(rateLimit *model.RateLimit, rule *api.Rule) {
@@ -446,6 +459,7 @@ func copyRateLimitProto(rateLimit *model.RateLimit, rule *api.Rule) {
 	rule.Failover = rateLimit.Proto.Failover
 	rule.AmountMode = rateLimit.Proto.AmountMode
 	rule.Adjuster = rateLimit.Proto.Adjuster
+	populateDefaultRuleValue(rule)
 }
 
 // rateLimit2api 把内部数据结构转化为API参数
@@ -482,7 +496,6 @@ func marshalRateLimitRules(req *api.Rule) (string, error) {
 		Arguments:    req.GetArguments(),
 		Method:       req.GetMethod(),
 	}
-
 	rule, err := json.Marshal(r)
 	if err != nil {
 		return "", err
