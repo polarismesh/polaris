@@ -70,6 +70,7 @@ jobs:
 
           pushd ./config
           go mod vendor && go test -v -timeout 40m -v -coverprofile=coverage_sqldb_1.cover
+          mv coverage_sqldb_1.cover ../
           popd
 
           sleep 10s
@@ -83,6 +84,7 @@ jobs:
 
           pushd ./service
           go mod vendor && go test -v -timeout 40m -v -coverprofile=coverage_sqldb_2.cover
+          mv coverage_sqldb_2.cover ../
           popd
 
       - name: Merge All Coverage
@@ -90,7 +92,7 @@ jobs:
           profile="coverage.out"
           htmlfile="coverage.html"
           mergecover="merge_cover"
-          mode="set"
+          mode="count"
 
           grep -h -v "^mode:" *.cover | sort > $mergecover
 
