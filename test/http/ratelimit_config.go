@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
+
 	"github.com/golang/protobuf/jsonpb"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -122,6 +124,43 @@ func (c *Client) UpdateRateLimits(rateLimits []*api.Rule) error {
 	url := fmt.Sprintf("http://%v/naming/%v/ratelimits", c.Address, c.Version)
 
 	body, err := JSONFromRateLimits(rateLimits)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return err
+	}
+
+	response, err := c.SendRequest("PUT", url, body)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return err
+	}
+
+	_, err = GetBatchWriteResponse(response)
+	if err != nil {
+		if err == io.EOF {
+			return nil
+		}
+
+		fmt.Printf("%v\n", err)
+		return err
+	}
+	return nil
+}
+
+// EnableRateLimits 启用限流规则
+func (c *Client) EnableRateLimits(rateLimits []*api.Rule) error {
+	fmt.Printf("\nenable rate limits\n")
+
+	url := fmt.Sprintf("http://%v/naming/%v/ratelimits/enable", c.Address, c.Version)
+
+	rateLimitsEnable := make([]*api.Rule, 0, len(rateLimits))
+	for _, rateLimit := range rateLimits {
+		rateLimitsEnable = append(rateLimitsEnable, &api.Rule{
+			Id:      rateLimit.GetId(),
+			Disable: &wrappers.BoolValue{Value: true},
+		})
+	}
+	body, err := JSONFromRateLimits(rateLimitsEnable)
 	if err != nil {
 		fmt.Printf("%v\n", err)
 		return err

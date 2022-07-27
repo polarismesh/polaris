@@ -21,6 +21,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -108,6 +109,52 @@ func (rls *rateLimitStore) UpdateRateLimit(limit *model.RateLimit) error {
 	})
 
 	return store.Error(err)
+}
+
+// EnableRateLimit 启用限流规则
+func (rls *rateLimitStore) EnableRateLimit(limit *model.RateLimit) error {
+	if limit.ID == "" || limit.ServiceID == "" || limit.Revision == "" {
+		return errors.New("[Store][database] enable rate limit missing some params")
+	}
+
+	err := RetryTransaction("enableRateLimit", func() error {
+		return rls.enableRateLimit(limit)
+	})
+
+	return store.Error(err)
+}
+
+// enableRateLimit
+func (rls *rateLimitStore) enableRateLimit(limit *model.RateLimit) error {
+	tx, err := rls.db.Begin()
+	if err != nil {
+		log.Errorf("[Store][database] update rate limit(%+v) begin tx err: %s", limit, err.Error())
+		return err
+	}
+
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	etimeStr := limitToEtimeStr(limit)
+	str := fmt.Sprintf(
+		`update ratelimit_config set disable = ?, revision = ?, mtime = sysdate(), etime=%s where id = ?`, etimeStr)
+	if _, err := tx.Exec(str, limit.Disable, limit.Revision, limit.ID); err != nil {
+		log.Errorf("[Store][database] update rate limit(%+v), sql %s, err: %s", limit, str, err)
+		return err
+	}
+
+	if err := rls.updateLastRevision(tx, limit.ServiceID, limit.Revision); err != nil {
+		log.Errorf("[Store][database][Update] update rate limit revision with service id(%s) err: %s",
+			limit.ServiceID, err.Error())
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Errorf("[Store][database] update rate limit(%+v) commit tx err: %s", limit, err.Error())
+		return err
+	}
+	return nil
 }
 
 // updateRateLimit
@@ -473,6 +520,7 @@ var queryKeyToDbColumn = map[string]string{
 	"namespace": "service.namespace",
 	"method":    "ratelimit_config.method",
 	"labels":    "ratelimit_config.labels",
+	"disable":   "ratelimit_config.disable",
 }
 
 // genFilterRateLimitSQL 生成查询语句的过滤语句
@@ -480,17 +528,22 @@ func genFilterRateLimitSQL(query map[string]string) (string, []interface{}) {
 	str := ""
 	args := make([]interface{}, 0, len(query))
 	for key, value := range query {
+		var arg interface{}
 		sqlKey := queryKeyToDbColumn[key]
 		if len(sqlKey) == 0 {
 			continue
 		}
-		if key == "method" || key == "labels" {
+		if key == "name" || key == "method" || key == "labels" {
 			str += fmt.Sprintf(" and %s like ?", sqlKey)
-			value = "%" + value + "%"
+			arg = "%" + value + "%"
+		} else if key == "disable" {
+			str += fmt.Sprintf(" and %s = ?", sqlKey)
+			arg, _ = strconv.ParseBool(value)
 		} else {
 			str += fmt.Sprintf(" and %s = ?", sqlKey)
+			arg = value
 		}
-		args = append(args, value)
+		args = append(args, arg)
 	}
 	return str, args
 }

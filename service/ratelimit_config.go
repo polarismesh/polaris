@@ -41,6 +41,7 @@ var (
 		"brief":     true,
 		"method":    true,
 		"labels":    true,
+		"disable":   true,
 		"offset":    true,
 		"limit":     true,
 	}
@@ -165,6 +166,54 @@ func (s *Server) DeleteRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 
 	s.RecordHistory(
 		rateLimitRecordEntry(ctx, req.GetNamespace().GetValue(), req.GetService().GetValue(), rateLimit, model.ODelete))
+	return api.NewRateLimitResponse(api.ExecuteSuccess, req)
+}
+
+func (s *Server) EnableRateLimits(ctx context.Context, request []*api.Rule) *api.BatchWriteResponse {
+	if err := checkBatchRateLimits(request); err != nil {
+		return err
+	}
+	responses := api.NewBatchWriteResponse(api.ExecuteSuccess)
+	for _, entry := range request {
+		response := s.EnableRateLimit(ctx, entry)
+		responses.Collect(response)
+	}
+	return api.FormatBatchWriteResponse(responses)
+}
+
+// EnableRateLimit 启用限流规则
+func (s *Server) EnableRateLimit(ctx context.Context, req *api.Rule) *api.Response {
+	requestID := ParseRequestID(ctx)
+	platformID := ParsePlatformID(ctx)
+
+	// 参数校验
+	if resp := checkRevisedRateLimitParams(req); resp != nil {
+		return resp
+	}
+
+	// 检查限流规则是否存在
+	data, resp := s.checkRateLimitExisted(req.GetId().GetValue(), requestID, req)
+	if resp != nil {
+		return resp
+	}
+
+	// 构造底层数据结构
+	rateLimit := &model.RateLimit{}
+	rateLimit.ID = data.ID
+	rateLimit.ServiceID = data.ServiceID
+	rateLimit.Disable = req.GetDisable().GetValue()
+	rateLimit.Revision = utils.NewUUID()
+
+	if err := s.storage.EnableRateLimit(rateLimit); err != nil {
+		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
+		return wrapperRateLimitStoreResponse(req, err)
+	}
+
+	msg := fmt.Sprintf("enable rate limit: id=%v, disable=%v",
+		rateLimit.ID, rateLimit.Disable)
+	log.Info(msg, ZapRequestID(requestID), ZapPlatformID(platformID))
+
+	s.RecordHistory(rateLimitRecordEntry(ctx, "", "", rateLimit, model.OUpdate))
 	return api.NewRateLimitResponse(api.ExecuteSuccess, req)
 }
 
@@ -377,7 +426,6 @@ const (
 
 // api2RateLimit 把API参数转化为内部数据结构
 func api2RateLimit(serviceID string, req *api.Rule) (*model.RateLimit, error) {
-
 	rule, err := marshalRateLimitRules(req)
 	if err != nil {
 		return nil, err

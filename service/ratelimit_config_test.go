@@ -329,7 +329,7 @@ func TestUpdateRateLimit(t *testing.T) {
 		}
 	})
 
-	t.Run("更新限流规则时，没有传递token, 返回错误", func(t *testing.T) {
+	t.Run("更新限流规则时，没有传递token，正常", func(t *testing.T) {
 
 		oldCtx := discoverSuit.defaultCtx
 
@@ -384,6 +384,29 @@ func TestUpdateRateLimit(t *testing.T) {
 		}
 
 		t.Log("pass")
+	})
+
+	t.Run("启用限流规则", func(t *testing.T) {
+
+		oldCtx := discoverSuit.defaultCtx
+
+		discoverSuit.defaultCtx = context.Background()
+
+		defer func() {
+			discoverSuit.defaultCtx = oldCtx
+		}()
+
+		ruleContents := []*api.Rule{
+			{
+				Id:      utils.NewStringValue(rateLimitResp.GetId().GetValue()),
+				Disable: utils.NewBoolValue(true),
+			},
+		}
+		if resp := discoverSuit.server.EnableRateLimits(discoverSuit.defaultCtx, ruleContents); !respSuccess(resp) {
+			t.Logf("pass: %s", resp.GetInfo().GetValue())
+		} else {
+			t.Fatalf("error")
+		}
 	})
 }
 
