@@ -349,6 +349,21 @@ func (mr *MockStoreMockRecorder) CreateConfigFileTag(tx, fileTag interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConfigFileTag", reflect.TypeOf((*MockStore)(nil).CreateConfigFileTag), tx, fileTag)
 }
 
+// CreateConfigFileTemplate mocks base method.
+func (m *MockStore) CreateConfigFileTemplate(template *model.ConfigFileTemplate) (*model.ConfigFileTemplate, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateConfigFileTemplate", template)
+	ret0, _ := ret[0].(*model.ConfigFileTemplate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateConfigFileTemplate indicates an expected call of CreateConfigFileTemplate.
+func (mr *MockStoreMockRecorder) CreateConfigFileTemplate(template interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConfigFileTemplate", reflect.TypeOf((*MockStore)(nil).CreateConfigFileTemplate), template)
+}
+
 // CreatePlatform mocks base method.
 func (m *MockStore) CreatePlatform(platform *model.Platform) error {
 	m.ctrl.T.Helper()
@@ -866,6 +881,21 @@ func (m *MockStore) GetConfigFileReleaseWithAllFlag(tx store.Tx, namespace, grou
 func (mr *MockStoreMockRecorder) GetConfigFileReleaseWithAllFlag(tx, namespace, group, fileName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFileReleaseWithAllFlag", reflect.TypeOf((*MockStore)(nil).GetConfigFileReleaseWithAllFlag), tx, namespace, group, fileName)
+}
+
+// GetConfigFileTemplate mocks base method.
+func (m *MockStore) GetConfigFileTemplate(name string) (*model.ConfigFileTemplate, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConfigFileTemplate", name)
+	ret0, _ := ret[0].(*model.ConfigFileTemplate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetConfigFileTemplate indicates an expected call of GetConfigFileTemplate.
+func (mr *MockStoreMockRecorder) GetConfigFileTemplate(name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFileTemplate", reflect.TypeOf((*MockStore)(nil).GetConfigFileTemplate), name)
 }
 
 // GetDefaultStrategyDetailByPrincipal mocks base method.
@@ -1759,6 +1789,21 @@ func (m *MockStore) Name() string {
 func (mr *MockStoreMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockStore)(nil).Name))
+}
+
+// QueryAllConfigFileTemplates mocks base method.
+func (m *MockStore) QueryAllConfigFileTemplates() ([]*model.ConfigFileTemplate, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueryAllConfigFileTemplates")
+	ret0, _ := ret[0].([]*model.ConfigFileTemplate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// QueryAllConfigFileTemplates indicates an expected call of QueryAllConfigFileTemplates.
+func (mr *MockStoreMockRecorder) QueryAllConfigFileTemplates() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryAllConfigFileTemplates", reflect.TypeOf((*MockStore)(nil).QueryAllConfigFileTemplates))
 }
 
 // QueryConfigFileByTag mocks base method.

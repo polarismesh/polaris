@@ -75,6 +75,18 @@ message ConfigFileReleaseHistory {
   google.protobuf.StringValue modify_by = 16;
 }
 
+message ConfigFileTemplate {
+  google.protobuf.UInt64Value id = 1;
+  google.protobuf.StringValue name = 2;
+  google.protobuf.StringValue content = 3;
+  google.protobuf.StringValue format = 4;
+  google.protobuf.StringValue comment = 5;
+  google.protobuf.StringValue create_time = 6;
+  google.protobuf.StringValue create_by = 7;
+  google.protobuf.StringValue modify_time = 8;
+  google.protobuf.StringValue modify_by = 9;
+}
+
 message ClientConfigFileInfo {
   google.protobuf.StringValue namespace = 1;
   google.protobuf.StringValue group = 2;

@@ -20,6 +20,7 @@ message ConfigResponse {
   ConfigFile configFile = 4;
   ConfigFileRelease configFileRelease = 5;
   ConfigFileReleaseHistory configFileReleaseHistory = 6;
+  ConfigFileTemplate configFileTemplate = 7;
 }
 
 message ConfigBatchWriteResponse {
@@ -38,6 +39,7 @@ message ConfigBatchQueryResponse {
   repeated ConfigFile configFiles = 5;
   repeated ConfigFileRelease configFileReleases = 6;
   repeated ConfigFileReleaseHistory configFileReleaseHistories = 7;
+  repeated ConfigFileTemplate configFileTemplates = 8;
 }
 
 message ConfigClientResponse {

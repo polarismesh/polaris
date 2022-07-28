@@ -61,6 +61,7 @@ type stableStore struct {
 	*configFileReleaseStore
 	*configFileReleaseHistoryStore
 	*configFileTagStore
+	*configFileTemplateStore
 
 	//client info stores
 	*clientStore
@@ -267,6 +268,8 @@ func (s *stableStore) newStore() {
 	s.configFileReleaseHistoryStore = &configFileReleaseHistoryStore{db: s.master}
 
 	s.configFileTagStore = &configFileTagStore{db: s.master}
+
+	s.configFileTemplateStore = &configFileTemplateStore{db: s.master}
 
 	s.clientStore = &clientStore{master: s.master, slave: s.slave}
 }

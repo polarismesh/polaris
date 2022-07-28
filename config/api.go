@@ -104,6 +104,18 @@ type ConfigFileClientOperate interface {
 		request *api.ClientWatchConfigFileRequest) (func() *api.ConfigClientResponse, error)
 }
 
+// ConfigFileTemplateOperate config file template operate
+type ConfigFileTemplateOperate interface {
+	// GetAllConfigFileTemplates get all config file templates
+	GetAllConfigFileTemplates(ctx context.Context) *api.ConfigBatchQueryResponse
+
+	// CreateConfigFileTemplate create config file template
+	CreateConfigFileTemplate(ctx context.Context, template *api.ConfigFileTemplate) *api.ConfigResponse
+
+	// GetConfigFileTemplate get config file template
+	GetConfigFileTemplate(ctx context.Context, name string) *api.ConfigResponse
+}
+
 // ConfigCenterServer 配置中心server
 type ConfigCenterServer interface {
 	ConfigFileGroupOperate
@@ -111,4 +123,5 @@ type ConfigCenterServer interface {
 	ConfigFileReleaseOperate
 	ConfigFileReleaseHistoryOperate
 	ConfigFileClientOperate
+	ConfigFileTemplateOperate
 }
