@@ -30,7 +30,7 @@ import (
 )
 
 // Discover 统一发现函数
-func (c *Client) Discover(drt api.DiscoverRequest_DiscoverRequestType, service *api.Service) error {
+func (c *Client) Discover(drt api.DiscoverRequest_DiscoverRequestType, service *api.Service, hook func(resp *api.DiscoverResponse)) error {
 	fmt.Printf("\ndiscover\n")
 
 	md := metadata.Pairs("request-id", utils.NewUUID())
@@ -53,6 +53,7 @@ func (c *Client) Discover(drt api.DiscoverRequest_DiscoverRequestType, service *
 		fmt.Printf("%v\n", err)
 		return err
 	}
+
 	worker.CloseSend()
 
 	for {
@@ -66,7 +67,7 @@ func (c *Client) Discover(drt api.DiscoverRequest_DiscoverRequestType, service *
 			return err
 		}
 
-		fmt.Printf("%v\n", rsp)
+		hook(rsp)
 	}
 }
 

@@ -234,7 +234,7 @@ func (s *Server) UpdateService(ctx context.Context, req *api.Service) *api.Respo
 		return resp
 	}
 
-	// [2020.02.18]如果该服务是别名服务，不允许修改 TODO
+	// [2020.02.18]If service is alias, not allowed to modify
 	if service.IsAlias() {
 		return api.NewServiceResponse(api.NotAllowAliasUpdate, req)
 	}
@@ -363,6 +363,7 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *api.
 	}
 
 	serviceArgs := parseServiceArgs(serviceFilters, serviceMetas, ctx)
+	serviceArgs.HiddenServiceSet = s.polarisServiceSet
 	err = s.caches.Service().Update()
 	if err != nil {
 		log.Errorf("[Server][Service][Query] req(%+v) update store err: %s", query, err.Error())

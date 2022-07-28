@@ -81,6 +81,9 @@ func (h *HTTPServer) bindConfigConsoleEndpoint(ws *restful.WebService) {
 	// 配置文件发布历史
 	ws.Route(ws.GET("/configfiles/releasehistory").To(h.GetConfigFileReleaseHistory))
 
+	// config file template
+	ws.Route(ws.GET("/configfiletemplates").To(h.GetAllConfigFileTemplates))
+	ws.Route(ws.POST("/configfiletemplates").To(h.CreateConfigFileTemplate))
 }
 
 func (h *HTTPServer) bindConfigClientEndpoint(ws *restful.WebService) {

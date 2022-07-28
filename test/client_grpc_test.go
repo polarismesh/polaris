@@ -25,6 +25,7 @@ import (
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/test/grpc"
 	"github.com/polarismesh/polaris-server/test/http"
 	"github.com/polarismesh/polaris-server/test/resource"
@@ -35,172 +36,183 @@ import (
 /**
  * @brief 测试客户端GRPC接口
  */
-func TestClientGRPC(t *testing.T) {
-	t.Log("test client grpc interface")
+func TestClientGRPC_DiscoverInstance(t *testing.T) {
+	DiscoveryRunAndInitResource(t,
+		func(t *testing.T, clientHttp *http.Client, namespaces []*api.Namespace, services []*api.Service) {
+			clientGRPC, err := grpc.NewClient(grpcServerAddress)
+			if err != nil {
+				t.Fatalf("new grpc client fail")
+			}
+			defer clientGRPC.Close()
 
-	clientHTTP := http.NewClient(httpserverAddress, httpserverVersion)
+			client := resource.CreateClient(0)
+			instances := resource.CreateInstances(services[0])
 
-	namespaces := resource.CreateNamespaces()
-	services := resource.CreateServices(namespaces[0])
+			t.Run("GRPC——上报SDK客户端信息", func(t *testing.T) {
+				// 上报客户端信息
+				err = clientGRPC.ReportClient(client)
+				if err != nil {
+					t.Fatalf("report client fail")
+				}
+				t.Log("report client success")
+			})
 
-	// 创建命名空间
-	ret, err := clientHTTP.CreateNamespaces(namespaces)
-	if err != nil {
-		t.Fatalf("create namespaces fail")
-	}
-	for index, item := range ret.GetResponses() {
-		namespaces[index].Token = item.GetNamespace().GetToken()
-	}
-	t.Log("create namespaces success")
+			t.Run("GRPC——实例注册", func(t *testing.T) {
+				// 注册服务实例
+				err = clientGRPC.RegisterInstance(instances[0])
+				if err != nil {
+					t.Fatalf("register instance fail")
+				}
+				t.Log("register instance success")
+			})
 
-	// 创建服务
-	ret, err = clientHTTP.CreateServices(services)
-	if err != nil {
-		t.Fatalf("create services fail")
-	}
-	for index, item := range ret.GetResponses() {
-		services[index].Token = item.GetService().GetToken()
-	}
-	t.Log("create services success")
+			time.Sleep(3 * time.Second) // 延迟
 
-	// -------------------------------------------------------
+			var revision string
+			t.Run("GRPC——首次发现实例", func(t *testing.T) {
+				// 查询服务实例
+				err = clientGRPC.Discover(api.DiscoverRequest_INSTANCE, services[0], func(resp *api.DiscoverResponse) {
+					assert.Equal(t, api.ExecuteSuccess, resp.Code.GetValue(), "discover instance must be success")
+					assert.Equal(t, 1, len(resp.Instances), "instance size must not be zero")
+					revision = resp.Service.GetRevision().GetValue()
+				})
+				if err != nil {
+					t.Fatalf("discover instance fail")
+				}
+				t.Log("discover instance success")
+			})
 
-	clientGRPC, err := grpc.NewClient(grpcserverAddress)
-	if err != nil {
-		t.Fatalf("new grpc client fail")
-	}
-	defer clientGRPC.Close()
+			time.Sleep(time.Second)
+			t.Run("GRPC——二次发现实例", func(t *testing.T) {
+				// 查询服务实例
+				copySvc := &(*services[0])
+				copySvc.Revision = utils.NewStringValue(revision)
 
-	client := resource.CreateClient(0)
-	instances := resource.CreateInstances(services[0])
+				err = clientGRPC.Discover(api.DiscoverRequest_INSTANCE, copySvc, func(resp *api.DiscoverResponse) {
+					assert.Equal(t, api.DataNoChange, resp.Code.GetValue(), "discover instance must be datanotchange")
+				})
+				if err != nil {
+					t.Fatalf("discover instance fail")
+				}
+				t.Log("discover instance success")
+			})
 
-	// 上报客户端信息
-	err = clientGRPC.ReportClient(client)
-	if err != nil {
-		t.Fatalf("report client fail")
-	}
-	t.Log("report client success")
+			t.Run("GRPC——客户端心跳上报", func(t *testing.T) {
+				// 上报心跳
+				if err = clientGRPC.Heartbeat(instances[0]); err != nil {
+					t.Fatalf("instance heartbeat fail")
+				}
+				t.Log("instance heartbeat success")
+			})
 
-	// 注册服务实例
-	err = clientGRPC.RegisterInstance(instances[0])
-	if err != nil {
-		t.Fatalf("register instance fail")
-	}
-	t.Log("register instance success")
+			t.Run("GRPC——控制台修改实例信息", func(t *testing.T) {
 
-	time.Sleep(3 * time.Second) // 延迟
+				testMeta := map[string]string{
+					"internal-mock-label": "polaris-auto-mock-test",
+				}
 
-	// 上报心跳
-	err = clientGRPC.Heartbeat(instances[0])
-	if err != nil {
-		t.Fatalf("instance heartbeat fail")
-	}
-	t.Log("instance heartbeat success")
+				copyIns := &(*instances[0])
+				copyIns.Metadata = testMeta
 
-	time.Sleep(3 * time.Second) // 延迟
+				if err := clientHttp.UpdateInstances([]*api.Instance{copyIns}); err != nil {
+					t.Fatalf("update instance fail : %s", err)
+				}
 
-	// 查询服务实例
-	err = clientGRPC.Discover(api.DiscoverRequest_INSTANCE, services[0])
-	if err != nil {
-		t.Fatalf("discover instance fail")
-	}
-	t.Log("discover instance success")
+				time.Sleep(5 * time.Second)
 
-	// 反注册服务实例
-	err = clientGRPC.DeregisterInstance(instances[0])
-	if err != nil {
-		t.Fatalf("deregister instance fail")
-	}
-	t.Log("deregister instance success")
+				err = clientGRPC.Discover(api.DiscoverRequest_INSTANCE, services[0], func(resp *api.DiscoverResponse) {
+					assert.Equal(t, api.ExecuteSuccess, resp.Code.GetValue(), "discover instance must be success")
+					assert.Equal(t, 1, len(resp.Instances), "instance size must not be zero")
 
-	// 删除服务
-	err = clientHTTP.DeleteServices(services)
-	if err != nil {
-		t.Fatalf("delete services fail")
-	}
-	t.Log("delete services success")
+					testMeta["version"] = instances[0].Version.GetValue()
+					testMeta["protocol"] = instances[0].Protocol.GetValue()
 
-	// 删除命名空间
-	err = clientHTTP.DeleteNamespaces(namespaces)
-	if err != nil {
-		t.Fatalf("delete namespaces fail")
-	}
-	t.Log("delete namespaces success")
+					assert.Equalf(t, testMeta, resp.Instances[0].Metadata, "instance metadata actual : %v", instances[0].Metadata)
+				})
+				if err != nil {
+					t.Fatalf("discover instance fail")
+				}
+				t.Log("discover after update instance success")
+			})
+
+			t.Run("GRPC——反注册实例", func(t *testing.T) {
+				// 反注册服务实例
+				err = clientGRPC.DeregisterInstance(instances[0])
+				if err != nil {
+					t.Fatalf("deregister instance fail")
+				}
+
+				time.Sleep(2 * time.Second)
+
+				err = clientGRPC.Discover(api.DiscoverRequest_INSTANCE, services[0], func(resp *api.DiscoverResponse) {
+					assert.Equalf(t, api.ExecuteSuccess, resp.Code.GetValue(),
+						"discover instance must success, actual code: %d", resp.GetCode().GetValue())
+					assert.Equal(t, 0, len(resp.Instances), "instance size must be zero")
+				})
+
+				t.Log("deregister instance success")
+			})
+		})
 }
 
 func TestClientGRPC_DiscoverServices(t *testing.T) {
-	t.Run("测试客户端查询服务列表", func(t *testing.T) {
-		t.Log("test client grpc TestClientGRPC_DiscoverServices")
+	DiscoveryRunAndInitResource(t,
+		func(t *testing.T, clientHttp *http.Client, namespaces []*api.Namespace, services []*api.Service) {
+			clientGRPC, err := grpc.NewClient(grpcServerAddress)
+			if err != nil {
+				t.Fatalf("new grpc client fail")
+			}
+			defer clientGRPC.Close()
 
-		clientHTTP := http.NewClient(httpserverAddress, httpserverVersion)
+			newNs := resource.CreateNamespaces()
+			newSvcs := resource.CreateServices(newNs[0])
 
-		namespaces := resource.CreateNamespaces()
-		services := resource.CreateServices(namespaces[0])
+			t.Run("命名空间下未创建服务", func(t *testing.T) {
+				resp, err := clientGRPC.DiscoverRequest(&api.DiscoverRequest{
+					Type: api.DiscoverRequest_SERVICES,
+					Service: &api.Service{
+						Namespace: &wrapperspb.StringValue{Value: newNs[0].Name.Value},
+					},
+				})
+				if err != nil {
+					t.Fatalf("discover services fail")
+				}
 
-		// 创建命名空间
-		ret, err := clientHTTP.CreateNamespaces(namespaces)
-		if err != nil {
-			t.Fatalf("create namespaces fail")
-		}
-		for index, item := range ret.GetResponses() {
-			namespaces[index].Token = item.GetNamespace().GetToken()
-		}
-		t.Log("create namespaces success")
+				assert.True(t, len(resp.Services) == 0, "discover services response need empty")
+			})
 
-		clientGRPC, err := grpc.NewClient(grpcserverAddress)
-		if err != nil {
-			t.Fatalf("new grpc client fail")
-		}
-		defer clientGRPC.Close()
+			t.Run("命名空间下创建了服务", func(t *testing.T) {
 
-		resp, err := clientGRPC.DiscoverRequest(&api.DiscoverRequest{
-			Type: api.DiscoverRequest_SERVICES,
-			Service: &api.Service{
-				Namespace: &wrapperspb.StringValue{Value: namespaces[0].Name.Value},
-			},
+				// 创建服务
+				_, err := clientHttp.CreateServices(newSvcs)
+				if err != nil {
+					t.Fatalf("create services fail")
+				}
+				t.Log("create services success")
+
+				time.Sleep(5 * time.Second)
+
+				resp, err := clientGRPC.DiscoverRequest(&api.DiscoverRequest{
+					Type: api.DiscoverRequest_SERVICES,
+					Service: &api.Service{
+						Namespace: &wrapperspb.StringValue{Value: newNs[0].Name.Value},
+					},
+				})
+				if err != nil {
+					t.Fatalf("discover services fail")
+				}
+
+				assert.False(t, len(resp.Services) == 0, "discover services response not empty")
+				assert.Truef(t, len(newSvcs) == len(resp.Services),
+					"discover services size not equal, expect : %d, actual : %s", len(newSvcs), len(resp.Services))
+			})
+
 		})
-		if err != nil {
-			t.Fatalf("discover services fail")
-		}
+}
 
-		assert.True(t, len(resp.Services) == 0, "discover services response not empty")
+func Test_QueryGroups(t *testing.T) {
+	ConfigCenterRunAndInitResource(t,
+		func(t *testing.T, clientHttp *http.Client, namespaces []*api.Namespace, configGroups []*api.ConfigFileGroup) {
 
-		// 创建服务
-		ret, err = clientHTTP.CreateServices(services)
-		if err != nil {
-			t.Fatalf("create services fail")
-		}
-		for index, item := range ret.GetResponses() {
-			services[index].Token = item.GetService().GetToken()
-		}
-		t.Log("create services success")
-
-		time.Sleep(2 * time.Second)
-
-		resp, err = clientGRPC.DiscoverRequest(&api.DiscoverRequest{
-			Type: api.DiscoverRequest_SERVICES,
-			Service: &api.Service{
-				Namespace: &wrapperspb.StringValue{Value: namespaces[0].Name.Value},
-			},
 		})
-		if err != nil {
-			t.Fatalf("discover services fail")
-		}
-
-		assert.Equal(t, len(resp.Services), len(services), "discover services response not equal")
-
-		// 删除服务
-		err = clientHTTP.DeleteServices(services)
-		if err != nil {
-			t.Fatalf("delete services fail")
-		}
-		t.Log("delete services success")
-
-		// 删除命名空间
-		err = clientHTTP.DeleteNamespaces(namespaces)
-		if err != nil {
-			t.Fatalf("delete namespaces fail")
-		}
-		t.Log("delete namespaces success")
-	})
 }

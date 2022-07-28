@@ -30,6 +30,7 @@ type ConfigFileModuleStore interface {
 	ConfigFileReleaseStore
 	ConfigFileReleaseHistoryStore
 	ConfigFileTagStore
+	ConfigFileTemplateStore
 }
 
 // ConfigFileGroupStore 配置文件组存储接口
@@ -132,4 +133,16 @@ type ConfigFileTagStore interface {
 
 	// DeleteTagByConfigFile 删除配置文件标签
 	DeleteTagByConfigFile(tx Tx, namespace, group, fileName string) error
+}
+
+// ConfigFileTemplateStore config file template store
+type ConfigFileTemplateStore interface {
+	// QueryAllConfigFileTemplates query all config file templates
+	QueryAllConfigFileTemplates() ([]*model.ConfigFileTemplate, error)
+
+	// CreateConfigFileTemplate create config file template
+	CreateConfigFileTemplate(template *model.ConfigFileTemplate) (*model.ConfigFileTemplate, error)
+
+	// GetConfigFileTemplate get config file template by name
+	GetConfigFileTemplate(name string) (*model.ConfigFileTemplate, error)
 }

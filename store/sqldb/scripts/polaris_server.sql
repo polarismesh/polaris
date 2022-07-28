@@ -578,60 +578,6 @@ CREATE TABLE `mesh_resource_revision`
     KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB;
 
--- --------------------------------------------------------
---
--- FLUX Rule Configuring Table structure `ratelimit_flux_rule_config`
---
-CREATE TABLE `ratelimit_flux_rule_config`
-(
-    `id`                      varchar(32)  NOT NULL,
-    `revision`                varchar(32)  NOT NULL,
-    `callee_service_id`       varchar(32)  NOT NULL,
-    `callee_service_env`      varchar(64)  NOT NULL,
-    `callee_service_name`     varchar(250) NOT NULL DEFAULT '',
-    `caller_service_business` varchar(250) NOT NULL DEFAULT '',
-    `name`                    varchar(128) NOT NULL DEFAULT '',
-    `description`             varchar(500) NOT NULL DEFAULT '',
-    `type`                    tinyint(4)   NOT NULL DEFAULT '0',
-    `set_key`                 varchar(250) NOT NULL DEFAULT '',
-    `set_alert_qps`           varchar(10)  NOT NULL DEFAULT '',
-    `set_warning_qps`         varchar(10)  NOT NULL DEFAULT '',
-    `set_remark`              varchar(500) NOT NULL DEFAULT '',
-    `default_key`             varchar(250) NOT NULL DEFAULT '',
-    `default_alert_qps`       varchar(10)  NOT NULL DEFAULT '',
-    `default_warning_qps`     varchar(10)  NOT NULL DEFAULT '',
-    `default_remark`          varchar(500) NOT NULL DEFAULT '',
-    `creator`                 varchar(32)  NOT NULL DEFAULT '',
-    `updater`                 varchar(32)  NOT NULL DEFAULT '',
-    `status`                  tinyint(4)   NOT NULL DEFAULT '0',
-    `flag`                    tinyint(4)   NOT NULL DEFAULT '0',
-    `ctime`                   timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`                   timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
-    `flux_server_id`          varchar(32)  NOT NULL DEFAULT '',
-    `monitor_server_id`       varchar(32)  NOT NULL DEFAULT '',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `unique_service` (
-                                 `callee_service_id`,
-                                 `caller_service_business`,
-                                 `set_key`
-        ),
-    KEY `mtime` (`mtime`),
-    KEY `name` (`name`),
-    KEY `creator` (`creator`),
-    KEY `callee_service` (`callee_service_env`, `callee_service_name`)
-) ENGINE = InnoDB;
-
--- --------------------------------------------------------
---
--- FLUX rule version is associated with TABLE structure `ratelimit_flux_rule_revision`
---
-CREATE TABLE `ratelimit_flux_rule_revision`
-(
-    `service_id`    varchar(32) NOT NULL comment 'Service ID',
-    `last_revision` varchar(40) NOT NULL comment 'Latest version of the FLUX rule',
-    `mtime`         timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
-    PRIMARY KEY (`service_id`)
-) ENGINE = InnoDB;
 
 -- --------------------------------------------------------
 --
@@ -948,4 +894,19 @@ CREATE TABLE `client_stat`
     `protocol`  VARCHAR(100) NOT NULL comment 'stat info transport protocol',
     `path`      VARCHAR(128) NOT NULL comment 'stat metric path',
     PRIMARY KEY (`client_id`, `target`, `port`)
-)
+) ENGINE = InnoDB;
+
+-- v1.9.0
+CREATE TABLE `config_file_template` (
+    `id` bigint(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `name` varchar(128) COLLATE utf8_bin NOT NULL COMMENT '配置文件模板名称',
+    `content` longtext COLLATE utf8_bin NOT NULL COMMENT '配置文件模板内容',
+    `format` varchar(16) COLLATE utf8_bin DEFAULT 'text' COMMENT '模板文件格式',
+    `comment` varchar(512) COLLATE utf8_bin DEFAULT NULL COMMENT '模板描述信息',
+    `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by` varchar(32) COLLATE utf8_bin DEFAULT NULL COMMENT '创建人',
+    `modify_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    `modify_by` varchar(32) COLLATE utf8_bin DEFAULT NULL COMMENT '最后更新人',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_name` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='配置文件模板表';
