@@ -260,3 +260,31 @@ func (h *HTTPServer) GetConfigFileReleaseHistory(req *restful.Request, rsp *rest
 
 	handler.WriteHeaderAndProto(response)
 }
+
+// GetAllConfigFileTemplates get all config file template
+func (h *HTTPServer) GetAllConfigFileTemplates(req *restful.Request, rsp *restful.Response) {
+	handler := &Handler{req, rsp}
+
+	response := h.configServer.GetAllConfigFileTemplates(handler.ParseHeaderContext())
+
+	handler.WriteHeaderAndProto(response)
+}
+
+// CreateConfigFileTemplate create config file template
+func (h *HTTPServer) CreateConfigFileTemplate(req *restful.Request, rsp *restful.Response) {
+	handler := &Handler{req, rsp}
+
+	configFileTemplate := &api.ConfigFileTemplate{}
+	ctx, err := handler.Parse(configFileTemplate)
+	requestId := ctx.Value(utils.StringContext("request-id"))
+
+	if err != nil {
+		configLog.Error("[Config][HttpServer] parse config file template from request error.",
+			zap.String("requestId", requestId.(string)),
+			zap.String("error", err.Error()))
+		handler.WriteHeaderAndProto(api.NewConfigFileTemplateResponseWithMessage(api.ParseException, err.Error()))
+		return
+	}
+
+	handler.WriteHeaderAndProto(h.configServer.CreateConfigFileTemplate(ctx, configFileTemplate))
+}
