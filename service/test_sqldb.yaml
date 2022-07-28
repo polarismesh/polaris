@@ -127,19 +127,19 @@ healthcheck:
       maxBatchCount: 32
       concurrency: 64
   checkers:
-    - name: heartbeatMemory
-#  - name: heartbeatRedis
-#    option:
-#      kvAddr: ##REDIS_ADDR##
-#      kvUser: ##REDIS_USER#
-#      kvPasswd: ##REDIS_PWD##
-#      poolSize: 200
-#      minIdleConns: 30
-#      idleTimeout: 120s
-#      connectTimeout: 200ms
-#      msgTimeout: 200ms
-#      concurrency: 200
-#      withTLS: false
+    # - name: heartbeatMemory
+    - name: heartbeatRedis
+      option:
+        kvAddr: 127.0.0.1:6379 ##REDIS_ADDR##
+        kvUser: ##REDIS_USER#
+        kvPasswd: ##REDIS_PWD##
+        poolSize: 200
+        minIdleConns: 30
+        idleTimeout: 120s
+        connectTimeout: 200ms
+        msgTimeout: 200ms
+        concurrency: 200
+        withTLS: false
 # 缓存配置
 cache:
   open: true
