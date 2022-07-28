@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -30,11 +31,9 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+
 	envoy_extensions_common_ratelimit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
-	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
-	tcp "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	clusterservice "github.com/envoyproxy/go-control-plane/envoy/service/cluster/v3"
 	discoverygrpc "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	endpointservice "github.com/envoyproxy/go-control-plane/envoy/service/endpoint/v3"
@@ -48,7 +47,6 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	serverv3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	testv3 "github.com/envoyproxy/go-control-plane/pkg/test/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -56,7 +54,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/anypb"
-	"google.golang.org/protobuf/types/known/durationpb"
 
 	lrl "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	"github.com/polarismesh/polaris-server/apiserver"
@@ -68,9 +65,18 @@ import (
 	"github.com/polarismesh/polaris-server/service"
 )
 
-const K8sDnsResolveSuffixSvc = ".svc"
-const K8sDnsResolveSuffixSvcCluster = ".svc.cluster"
-const K8sDnsResolveSuffixSvcClusterLocal = ".svc.cluster.local"
+const (
+	K8sDnsResolveSuffixSvc             = ".svc"
+	K8sDnsResolveSuffixSvcCluster      = ".svc.cluster"
+	K8sDnsResolveSuffixSvcClusterLocal = ".svc.cluster.local"
+)
+
+const (
+	TLSModeTag        = "polarismesh.cn/tls-mode"
+	TLSModeNone       = "none"
+	TLSModeStrict     = "strict"
+	TLSModePermissive = "permissive"
+)
 
 // XDSServer is the xDS server
 type XDSServer struct {
@@ -85,24 +91,46 @@ type XDSServer struct {
 	server          *grpc.Server
 	connLimitConfig *connlimit.Config
 
-	registryInfo map[string][]*ServiceInfo
+	registryInfo               map[string][]*ServiceInfo
+	CircuitBreakerConfigGetter CircuitBreakerConfigGetter
+	RatelimitConfigGetter      RatelimitConfigGetter
 }
+
+type RatelimitConfigGetter func(serviceID string) []*model.RateLimit
 
 // PolarisNodeHash 存放 hash 方法
 type PolarisNodeHash struct{}
+
+// node id 的格式是:
+// 1. namespace/uuid~hostIp
+var nodeIDFormat = regexp.MustCompile(`^(\S+)\/([^~]+)~([^~]+)$`)
+
+func parseNodeID(nodeID string) (namespace string, uuid string, hostip string) {
+	groups := nodeIDFormat.FindStringSubmatch(nodeID)
+	if len(groups) == 0 {
+		// invalid node format
+		return
+	}
+	namespace = groups[1]
+	uuid = groups[2]
+	hostip = groups[3]
+	return
+}
 
 // ID id 的格式是 namespace/uuid~hostIp
 func (PolarisNodeHash) ID(node *envoy_config_core_v3.Node) string {
 	if node == nil {
 		return ""
 	}
-	if node.Id == "" || !strings.Contains(node.Id, "/") {
-		return ""
+	ns, _, _ := parseNodeID(node.Id)
+	if node.Metadata != nil && node.Metadata.Fields != nil {
+		tlsMode := node.Metadata.Fields[TLSModeTag].GetStringValue()
+		if tlsMode == TLSModePermissive || tlsMode == TLSModeStrict {
+			return ns + "/" + tlsMode
+		}
 	}
-	// 每个命名空间下的 envoy node 拥有相同的服务视图
-	namespace := strings.Split(node.Id, "/")[0]
 
-	return namespace
+	return ns
 }
 
 // GetProtocol 服务注册到北极星中的协议
@@ -190,67 +218,16 @@ func makeOutlierDetection(conf *model.ServiceWithCircuitBreaker) *cluster.Outlie
 		outlierDetection := &cluster.OutlierDetection{}
 
 		if consecutiveErrConfig != nil {
-			outlierDetection.Consecutive_5Xx =
-				&wrappers.UInt32Value{Value: consecutiveErrConfig.ConsecutiveErrorToOpen.Value}
+			outlierDetection.Consecutive_5Xx = &wrappers.UInt32Value{Value: consecutiveErrConfig.ConsecutiveErrorToOpen.Value}
 		}
 		if errorRateConfig != nil {
-			outlierDetection.FailurePercentageRequestVolume =
-				&wrappers.UInt32Value{Value: errorRateConfig.RequestVolumeThreshold.Value}
-			outlierDetection.FailurePercentageThreshold =
-				&wrappers.UInt32Value{Value: errorRateConfig.ErrorRateToOpen.Value}
+			outlierDetection.FailurePercentageRequestVolume = &wrappers.UInt32Value{Value: errorRateConfig.RequestVolumeThreshold.Value}
+			outlierDetection.FailurePercentageThreshold = &wrappers.UInt32Value{Value: errorRateConfig.ErrorRateToOpen.Value}
 		}
 
 		return outlierDetection
 	}
 	return nil
-}
-
-func (x *XDSServer) makeClusters(services []*ServiceInfo) []types.Resource {
-	var clusters []types.Resource
-	// 默认 passthrough cluster
-	passthroughClsuter := &cluster.Cluster{
-		Name:                 "PassthroughCluster",
-		ConnectTimeout:       durationpb.New(5 * time.Second),
-		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_ORIGINAL_DST},
-		LbPolicy:             cluster.Cluster_CLUSTER_PROVIDED,
-		CircuitBreakers: &cluster.CircuitBreakers{
-			Thresholds: []*cluster.CircuitBreakers_Thresholds{
-				{
-					MaxConnections:     &wrappers.UInt32Value{Value: 4294967295},
-					MaxPendingRequests: &wrappers.UInt32Value{Value: 4294967295},
-					MaxRequests:        &wrappers.UInt32Value{Value: 4294967295},
-					MaxRetries:         &wrappers.UInt32Value{Value: 4294967295},
-				},
-			},
-		},
-	}
-
-	clusters = append(clusters, passthroughClsuter)
-
-	// 每一个 polaris service 对应一个 envoy cluster
-	for _, service := range services {
-		circuitBreakerConf := x.namingServer.Cache().CircuitBreaker().GetCircuitBreakerConfig(service.ID)
-		cluster := &cluster.Cluster{
-			Name:                 service.Name,
-			ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
-			ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_EDS},
-			EdsClusterConfig: &cluster.Cluster_EdsClusterConfig{
-				ServiceName: service.Name,
-				EdsConfig: &core.ConfigSource{
-					ResourceApiVersion: resource.DefaultAPIVersion,
-					ConfigSourceSpecifier: &core.ConfigSource_Ads{
-						Ads: &core.AggregatedConfigSource{},
-					},
-				},
-			},
-			LbSubsetConfig:   makeLbSubsetConfig(service),
-			OutlierDetection: makeOutlierDetection(circuitBreakerConf),
-		}
-
-		clusters = append(clusters, cluster)
-	}
-
-	return clusters
 }
 
 func getEndpointMetaFromPolarisIns(ins *api.Instance) *core.Metadata {
@@ -263,15 +240,18 @@ func getEndpointMetaFromPolarisIns(ins *api.Instance) *core.Metadata {
 			},
 		}
 	}
+
 	meta.FilterMetadata = make(map[string]*_struct.Struct)
 	meta.FilterMetadata["envoy.lb"] = &_struct.Struct{
 		Fields: fields,
+	}
+	if ins.Metadata != nil && ins.Metadata[TLSModeTag] != "" {
+		meta.FilterMetadata["envoy.transport_socket_match"] = mtlsTransportSocketMatch
 	}
 	return meta
 }
 
 func makeEndpoints(services []*ServiceInfo) []types.Resource {
-
 	var clusterLoads []types.Resource
 
 	for _, service := range services {
@@ -319,7 +299,6 @@ func makeEndpoints(services []*ServiceInfo) []types.Resource {
 }
 
 func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
-
 	var routes []*route.Route
 
 	// 路由目前只处理 inbounds
@@ -420,7 +399,8 @@ func getDefaultRoute(serviceName string) *route.Route {
 					Cluster: serviceName,
 				},
 			},
-		}}
+		},
+	}
 }
 
 func generateServiceDomains(serviceInfo *ServiceInfo) []string {
@@ -537,8 +517,11 @@ func (x *XDSServer) makeVirtualHosts(services []*ServiceInfo) []types.Resource {
 	var hosts []*route.VirtualHost
 
 	for _, service := range services {
-
-		rateLimitConf := x.namingServer.Cache().RateLimit().GetRateLimitByServiceID(service.ID)
+		ratelimitGetter := x.RatelimitConfigGetter
+		if ratelimitGetter == nil {
+			ratelimitGetter = x.namingServer.Cache().RateLimit().GetRateLimitByServiceID
+		}
+		rateLimitConf := ratelimitGetter(service.ID)
 		hosts = append(hosts, &route.VirtualHost{
 			Name:                 service.Name,
 			Domains:              generateServiceDomains(service),
@@ -580,125 +563,91 @@ func (x *XDSServer) makeVirtualHosts(services []*ServiceInfo) []types.Resource {
 	return append(routeConfs, routeConfiguration)
 }
 
-func makeListeners() []types.Resource {
-	manager := &hcm.HttpConnectionManager{
-		CodecType:  hcm.HttpConnectionManager_AUTO,
-		StatPrefix: "http",
-		RouteSpecifier: &hcm.HttpConnectionManager_Rds{
-			Rds: &hcm.Rds{
-				ConfigSource: &core.ConfigSource{
-					ResourceApiVersion: resource.DefaultAPIVersion,
-					ConfigSourceSpecifier: &core.ConfigSource_Ads{
-						Ads: &core.AggregatedConfigSource{},
-					},
-				},
-				RouteConfigName: "polaris-router",
-			},
-		},
-		HttpFilters: []*hcm.HttpFilter{{
-			Name: wellknown.Router,
-		}},
-	}
-
-	pbst, err := ptypes.MarshalAny(manager)
-	if err != nil {
-		panic(err)
-	}
-
-	tcpConfig := &tcp.TcpProxy{
-		StatPrefix: "PassthroughCluster",
-		ClusterSpecifier: &tcp.TcpProxy_Cluster{
-			Cluster: "PassthroughCluster",
-		},
-	}
-
-	tcpC, err := ptypes.MarshalAny(tcpConfig)
-	if err != nil {
-		panic(err)
-	}
-
-	return []types.Resource{
-		&listener.Listener{
-			Name: "listener_15001",
-			Address: &core.Address{
-				Address: &core.Address_SocketAddress{
-					SocketAddress: &core.SocketAddress{
-						Protocol: core.SocketAddress_TCP,
-						Address:  "0.0.0.0",
-						PortSpecifier: &core.SocketAddress_PortValue{
-							PortValue: 15001,
-						},
-					},
-				},
-			},
-			FilterChains: []*listener.FilterChain{
-				{
-					Filters: []*listener.Filter{
-						{
-							Name: wellknown.HTTPConnectionManager,
-							ConfigType: &listener.Filter_TypedConfig{
-								TypedConfig: pbst,
-							},
-						},
-					},
-				},
-			},
-			DefaultFilterChain: &listener.FilterChain{
-				Name: "PassthroughFilterChain",
-				Filters: []*listener.Filter{
-					{
-						Name: wellknown.TCPProxy,
-						ConfigType: &listener.Filter_TypedConfig{
-							TypedConfig: tcpC,
-						},
-					},
-				},
-			},
-			ListenerFilters: []*listener.ListenerFilter{
-				{
-					Name: "envoy.filters.listener.original_dst",
-				},
-			},
-		}}
-}
-
 func (x *XDSServer) pushRegistryInfoToXDSCache(registryInfo map[string][]*ServiceInfo) error {
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
 
-	for ns := range registryInfo {
-		resources := make(map[resource.Type][]types.Resource)
-		resources[resource.EndpointType] = makeEndpoints(registryInfo[ns])
-		resources[resource.ClusterType] = x.makeClusters(registryInfo[ns])
-		resources[resource.RouteType] = x.makeVirtualHosts(registryInfo[ns])
-		resources[resource.ListenerType] = makeListeners()
-		snapshot, err := cachev3.NewSnapshot(versionLocal, resources)
-		if err != nil {
-			log.Errorf("fail to create snapshot for %s, err is %v", ns, err)
-			return err
-		}
-		// 检查 snapshot 一致性
-		if err := snapshot.Consistent(); err != nil {
-			log.Errorf("snapshot inconsistency: %v, err is %v", snapshot, err)
-			return err
-		}
-
-		log.Infof("will serve ns: %s ,snapshot: %+v", ns, snapshot)
-
-		// 为每个 ns 刷写 cache ，推送 xds 更新
-		if err := x.cache.SetSnapshot(context.Background(), ns, snapshot); err != nil {
-			log.Errorf("snapshot error %q for %+v", err, snapshot)
-			return err
-		}
+	for ns, services := range registryInfo {
+		x.makeSnapshot(ns, versionLocal, services)
+		x.makePermissiveSnapshot(ns, versionLocal, services)
+		x.makeStrictSnapshot(ns, versionLocal, services)
 	}
 	return nil
 }
 
+func (x *XDSServer) makeSnapshot(ns, version string, services []*ServiceInfo) (err error) {
+	resources := make(map[resource.Type][]types.Resource)
+	resources[resource.EndpointType] = makeEndpoints(services)
+	resources[resource.ClusterType] = x.makeClusters(services)
+	resources[resource.RouteType] = x.makeVirtualHosts(services)
+	resources[resource.ListenerType] = makeListeners()
+	snapshot, err := cachev3.NewSnapshot(version, resources)
+	if err != nil {
+		log.Errorf("fail to create snapshot for %s, err is %v", ns, err)
+		return err
+	}
+	err = snapshot.Consistent()
+	if err != nil {
+		return err
+	}
+	log.Infof("will serve ns: %s ,snapshot: %+v", ns, string(dumpSnapShotJSON(snapshot)))
+	// 为每个 ns 刷写 cache ，推送 xds 更新
+	if err := x.cache.SetSnapshot(context.Background(), ns, snapshot); err != nil {
+		log.Errorf("snapshot error %q for %+v", err, snapshot)
+		return err
+	}
+	return
+}
+
+func (x *XDSServer) makePermissiveSnapshot(ns, version string, services []*ServiceInfo) (err error) {
+	resources := make(map[resource.Type][]types.Resource)
+	resources[resource.EndpointType] = makeEndpoints(services)
+	resources[resource.ClusterType] = x.makePermissiveClusters(services)
+	resources[resource.RouteType] = x.makeVirtualHosts(services)
+	resources[resource.ListenerType] = makePermissiveListeners()
+	snapshot, err := cachev3.NewSnapshot(version, resources)
+	if err != nil {
+		return err
+	}
+	err = snapshot.Consistent()
+	if err != nil {
+		return err
+	}
+	log.Infof("will serve ns: %s ,mode permissive,snapshot: %+v", ns, string(dumpSnapShotJSON(snapshot)))
+	// 为每个 ns 刷写 cache ，推送 xds 更新
+	if err := x.cache.SetSnapshot(context.Background(), ns+"/permissive", snapshot); err != nil {
+		log.Errorf("snapshot error %q for %+v", err, snapshot)
+		return err
+	}
+	return
+}
+
+func (x *XDSServer) makeStrictSnapshot(ns, version string, services []*ServiceInfo) (err error) {
+	resources := make(map[resource.Type][]types.Resource)
+	resources[resource.EndpointType] = makeEndpoints(services)
+	resources[resource.ClusterType] = x.makeStrictClusters(services)
+	resources[resource.RouteType] = x.makeVirtualHosts(services)
+	resources[resource.ListenerType] = makeStrictListeners()
+	snapshot, err := cachev3.NewSnapshot(version, resources)
+	if err != nil {
+		return err
+	}
+	err = snapshot.Consistent()
+	if err != nil {
+		return err
+	}
+	log.Infof("will serve ns: %s ,mode strict,snapshot: %+v", ns, string(dumpSnapShotJSON(snapshot)))
+	// 为每个 ns 刷写 cache ，推送 xds 更新
+	if err := x.cache.SetSnapshot(context.Background(), ns+"/strict", snapshot); err != nil {
+		log.Errorf("snapshot error %q for %+v", err, snapshot)
+		return err
+	}
+	return
+}
+
 // syncPolarisServiceInfo 初始化本地 cache，初始化 xds cache
 func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo map[string][]*ServiceInfo) error {
-
 	// 从 cache 中获取全量的服务信息
 	serviceIterProc := func(key string, value *model.Service) (bool, error) {
-
 		if _, ok := registryInfo[value.Namespace]; !ok {
 			registryInfo[value.Namespace] = []*ServiceInfo{}
 		}
@@ -757,7 +706,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 			}
 
 			// 获取instance配置
-			resp := x.namingServer.ServiceInstancesCache(nil, s)
+			resp := x.namingServer.ServiceInstancesCache(context.TODO(), s)
 			if resp.GetCode().Value != api.ExecuteSuccess {
 				log.Errorf("[XDSV3] error sync instances for %s, info : %s", svc.Name, resp.Info.GetValue())
 				return fmt.Errorf("error sync instances for %s", svc.Name)
@@ -783,7 +732,6 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 }
 
 func (x *XDSServer) initRegistryInfo() error {
-
 	namespaceServer, err := namespace.GetOriginServer()
 	if err != nil {
 		return err
@@ -804,9 +752,9 @@ func (x *XDSServer) initRegistryInfo() error {
 
 // Initialize 初始化
 func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{},
-	api map[string]apiserver.APIConfig) error {
-
-	logger, _ := zap.NewProduction()
+	api map[string]apiserver.APIConfig,
+) error {
+	logger, _ := zap.NewDevelopment()
 	defer logger.Sync() // flushes buffer, if any
 	l := logger.Sugar()
 
@@ -856,7 +804,6 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 }
 
 func (x *XDSServer) startSynTask(ctx context.Context) error {
-
 	// 读取 polaris 缓存数据
 	synXdsConfFunc := func() {
 		registryInfo := make(map[string][]*ServiceInfo)
@@ -951,7 +898,6 @@ func (x *XDSServer) checkUpdate(curServiceInfo, cacheServiceInfo []*ServiceInfo)
 
 // Run 启动运行
 func (x *XDSServer) Run(errCh chan error) {
-
 	// 启动 grpc server
 	ctx := context.Background()
 	cb := &testv3.Callbacks{Debug: true}
@@ -1014,7 +960,6 @@ func (x *XDSServer) Stop() {
 
 // Restart 重启服务
 func (x *XDSServer) Restart(option map[string]interface{}, api map[string]apiserver.APIConfig, errCh chan error) error {
-
 	log.Infof("restart xds server with new config: +%v", option)
 
 	x.restart = true
