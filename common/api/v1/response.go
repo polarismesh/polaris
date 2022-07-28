@@ -28,6 +28,7 @@ import (
 type ResponseMessage interface {
 	proto.Message
 	GetCode() *wrappers.UInt32Value
+	GetInfo() *wrappers.StringValue
 }
 
 /**

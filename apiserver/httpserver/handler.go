@@ -27,8 +27,10 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"go.uber.org/zap"
 
+	"github.com/polarismesh/polaris-server/apiserver/httpserver/i18n"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
@@ -166,12 +168,11 @@ func (h *Handler) WriteHeaderAndProto(obj api.ResponseMessage) {
 		h.Response.AddHeader(utils.PolarisCode, fmt.Sprintf("%d", code))
 		h.Response.AddHeader(utils.PolarisMessage, api.Code2Info(code))
 	}
-
 	h.Response.AddHeader(utils.PolarisRequestID, requestID)
 	h.Response.WriteHeader(status)
 
 	m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
-	err := m.Marshal(h.Response, obj)
+	err := m.Marshal(h.Response, h.i18n(obj))
 	if err != nil {
 		log.Error(err.Error(), zap.String("request-id", requestID))
 	}
@@ -182,4 +183,23 @@ func HTTPResponse(req *restful.Request, rsp *restful.Response, code uint32) {
 	handler := &Handler{req, rsp}
 	resp := api.NewResponse(code)
 	handler.WriteHeaderAndProto(resp)
+}
+
+// i18n 依据resp.code进行国际化resp.info信息
+// 当与header中的信息不匹配时, 则使用原文, 后续通过新定义code的方式增量解决
+// 当header的msg 与 resp.info一致时, 根据resp.code国际化信息
+func (h *Handler) i18n(obj api.ResponseMessage) api.ResponseMessage {
+	hMsg := h.Response.Header().Get(utils.PolarisMessage)
+	info := obj.GetInfo()
+	if hMsg != info.Value {
+		return obj
+	}
+	code := obj.GetCode()
+	msg, err := i18n.Translate(
+		code.Value, h.Request.QueryParameter("lang"), h.Request.HeaderParameter("Accept-Language"))
+	if msg == "" || err != nil {
+		return obj
+	}
+	*info = wrappers.StringValue{Value: msg}
+	return obj
 }
