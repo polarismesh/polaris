@@ -66,7 +66,7 @@ message Rule {
   // 通配符是否合并计算，默认分开计数
   google.protobuf.BoolValue regex_combine = 18;
 
-  // 限流阈值模式
+  // 限流阈值模
   enum AmountMode {
     GLOBAL_TOTAL = 0;   // 总体阈值
     SHARE_EQUALLY = 1;  // 单机均摊阈值
@@ -88,6 +88,8 @@ message Rule {
   google.protobuf.StringValue name = 24;
   // 限流规则启用时间
   google.protobuf.StringValue etime = 25;
+  // 最大排队时长，单位秒
+  google.protobuf.UInt32Value max_queue_delay = 26;
 }
 
 message MatchArgument {
