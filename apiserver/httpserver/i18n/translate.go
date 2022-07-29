@@ -24,7 +24,10 @@ import (
 
 	"github.com/BurntSushi/toml"
 	ii18n "github.com/nicksnyder/go-i18n/v2/i18n"
+	"go.uber.org/zap"
 	"golang.org/x/text/language"
+
+	"github.com/polarismesh/polaris-server/common/log"
 )
 
 var (
@@ -35,11 +38,15 @@ var (
 func init() {
 	bundle = ii18n.NewBundle(language.English)
 	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
-	bundle.MustLoadMessageFile("apiserver/httpserver/i18n/zh.toml")
-	bundle.MustLoadMessageFile("apiserver/httpserver/i18n/en.toml")
+	if _, err := bundle.LoadMessageFile("apiserver/httpserver/i18n/zh.toml"); err != nil {
+		log.Error("[i18n][MessageFile] zh.toml load fail", zap.Error(err))
+	}
+	if _, err := bundle.LoadMessageFile("apiserver/httpserver/i18n/en.toml"); err != nil {
+		log.Error("[i18n][MessageFile] en.toml load fail", zap.Error(err))
+	}
 }
 
-// Translate 国际化code锁对应的msg信息
+// Translate 国际化code所对应的msg信息
 func Translate(code uint32, langs ...string) (string, error) {
 	msg, ok := i18nMsgCache[code]
 	if !ok {
