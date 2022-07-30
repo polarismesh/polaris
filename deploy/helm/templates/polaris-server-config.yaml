@@ -89,7 +89,7 @@ data:
         services:
           - name: polaris.checker
             protocols:
-              - grpcserver
+              - service-grpc
     # apiserver配置
     apiservers:
       - name: service-eureka

@@ -1,0 +1,275 @@
+clusters:
+- circuitBreakers:
+    thresholds:
+    - maxConnections: 4.294967295e+09
+      maxPendingRequests: 4.294967295e+09
+      maxRequests: 4.294967295e+09
+      maxRetries: 4.294967295e+09
+  connectTimeout: 5s
+  lbPolicy: CLUSTER_PROVIDED
+  name: Inbound
+  type: ORIGINAL_DST
+  typedExtensionProtocolOptions:
+    envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+      '@type': type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+      useDownstreamProtocolConfig:
+        http2ProtocolOptions:
+          maxConcurrentStreams: 1.073741824e+09
+        httpProtocolOptions: {}
+  upstreamBindConfig:
+    sourceAddress:
+      address: 127.0.0.6
+      portValue: 0
+- circuitBreakers:
+    thresholds:
+    - maxConnections: 4.294967295e+09
+      maxPendingRequests: 4.294967295e+09
+      maxRequests: 4.294967295e+09
+      maxRetries: 4.294967295e+09
+  connectTimeout: 5s
+  lbPolicy: CLUSTER_PROVIDED
+  name: PassthroughCluster
+  type: ORIGINAL_DST
+- connectTimeout: 5s
+  edsClusterConfig:
+    edsConfig:
+      ads: {}
+      resourceApiVersion: V3
+    serviceName: service-a
+  name: service-a
+  transportSocketMatches:
+  - match:
+      acceptMTLS: "true"
+    name: tls-mode
+    transportSocket:
+      name: envoy.transport_sockets.tls
+      typedConfig:
+        '@type': type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+        commonTlsContext:
+          combinedValidationContext:
+            defaultValidationContext: {}
+            validationContextSdsSecretConfig:
+              name: ROOTCA
+              sdsConfig:
+                apiConfigSource:
+                  apiType: GRPC
+                  grpcServices:
+                  - envoyGrpc:
+                      clusterName: sds-grpc
+                  setNodeOnFirstMessageOnly: true
+                  transportApiVersion: V3
+                initialFetchTimeout: 0s
+                resourceApiVersion: V3
+          tlsCertificateSdsSecretConfigs:
+          - name: default
+            sdsConfig:
+              apiConfigSource:
+                apiType: GRPC
+                grpcServices:
+                - envoyGrpc:
+                    clusterName: sds-grpc
+                setNodeOnFirstMessageOnly: true
+                transportApiVersion: V3
+              initialFetchTimeout: 0s
+              resourceApiVersion: V3
+        sni: outbound_.default_.service-a.default.svc.cluster.local
+  - match: {}
+    name: rawbuffer
+    transportSocket:
+      name: envoy.transport_sockets.raw_buffer
+      typedConfig:
+        '@type': type.googleapis.com/envoy.extensions.transport_sockets.raw_buffer.v3.RawBuffer
+  type: EDS
+endpoints:
+- clusterName: service-a
+  endpoints:
+  - lbEndpoints:
+    - endpoint:
+        address:
+          socketAddress:
+            address: 172.17.1.2
+            portValue: 80
+      metadata:
+        filterMetadata:
+          envoy.lb:
+            polarismesh.cn/tls-mode: strict
+          envoy.transport_socket_match:
+            acceptMTLS: "true"
+    - endpoint:
+        address:
+          socketAddress:
+            address: 172.17.1.3
+            portValue: 80
+      metadata:
+        filterMetadata:
+          envoy.lb: {}
+listeners:
+- address:
+    socketAddress:
+      address: 0.0.0.0
+      portValue: 15001
+  defaultFilterChain:
+    filters:
+    - name: envoy.filters.network.tcp_proxy
+      typedConfig:
+        '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+        cluster: PassthroughCluster
+        statPrefix: PassthroughCluster
+    name: PassthroughFilterChain
+  filterChains:
+  - filters:
+    - name: envoy.filters.network.http_connection_manager
+      typedConfig:
+        '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+        httpFilters:
+        - name: envoy.filters.http.router
+        rds:
+          configSource:
+            ads: {}
+            resourceApiVersion: V3
+          routeConfigName: polaris-router
+        statPrefix: http
+  listenerFilters:
+  - name: envoy.filters.listener.original_dst
+  name: listener_15001
+- address:
+    socketAddress:
+      address: 0.0.0.0
+      portValue: 15006
+  defaultFilterChain:
+    filters:
+    - name: envoy.filters.network.http_connection_manager
+      typedConfig:
+        '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+        accessLog:
+        - name: envoy.access_loggers.file
+          typedConfig:
+            '@type': type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog
+            path: /dev/stdout
+        httpFilters:
+        - name: envoy.filters.http.router
+        httpProtocolOptions:
+          acceptHttp10: true
+        routeConfig:
+          name: Inbound
+          validateClusters: false
+          virtualHosts:
+          - domains:
+            - '*'
+            name: inbound|http|0
+            routes:
+            - match:
+                prefix: /
+              name: default
+              route:
+                cluster: Inbound
+        statPrefix: Inbound
+    name: virtualInbound-catchall
+  filterChains:
+  - filterChainMatch:
+      transportProtocol: tls
+    filters:
+    - name: envoy.filters.network.http_connection_manager
+      typedConfig:
+        '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+        accessLog:
+        - name: envoy.access_loggers.file
+          typedConfig:
+            '@type': type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog
+            path: /dev/stdout
+        httpFilters:
+        - name: envoy.filters.http.router
+        httpProtocolOptions:
+          acceptHttp10: true
+        routeConfig:
+          name: Inbound
+          validateClusters: false
+          virtualHosts:
+          - domains:
+            - '*'
+            name: inbound|http|0
+            routes:
+            - match:
+                prefix: /
+              name: default
+              route:
+                cluster: Inbound
+        statPrefix: Inbound
+    name: virtualInbound-catchall-tls
+    transportSocket:
+      name: envoy.transport_sockets.tls
+      typedConfig:
+        '@type': type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+        commonTlsContext:
+          combinedValidationContext:
+            defaultValidationContext:
+              matchSubjectAltNames:
+              - prefix: spiffe://cluster.local/
+            validationContextSdsSecretConfig:
+              name: ROOTCA
+              sdsConfig:
+                apiConfigSource:
+                  apiType: GRPC
+                  grpcServices:
+                  - envoyGrpc:
+                      clusterName: sds-grpc
+                  setNodeOnFirstMessageOnly: true
+                  transportApiVersion: V3
+                initialFetchTimeout: 0s
+                resourceApiVersion: V3
+          tlsCertificateSdsSecretConfigs:
+          - name: default
+            sdsConfig:
+              apiConfigSource:
+                apiType: GRPC
+                grpcServices:
+                - envoyGrpc:
+                    clusterName: sds-grpc
+                setNodeOnFirstMessageOnly: true
+                transportApiVersion: V3
+              initialFetchTimeout: 0s
+              resourceApiVersion: V3
+          tlsParams:
+            cipherSuites:
+            - ECDHE-ECDSA-AES256-GCM-SHA384
+            - ECDHE-RSA-AES256-GCM-SHA384
+            - ECDHE-ECDSA-AES128-GCM-SHA256
+            - ECDHE-RSA-AES128-GCM-SHA256
+            - AES256-GCM-SHA384
+            - AES128-GCM-SHA256
+            tlsMinimumProtocolVersion: TLSv1_2
+        requireClientCertificate: true
+  listenerFilters:
+  - name: envoy.filters.listener.tls_inspector
+    typedConfig:
+      '@type': type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector
+  - name: envoy.filters.listener.http_inspector
+    typedConfig:
+      '@type': type.googleapis.com/envoy.extensions.filters.listener.http_inspector.v3.HttpInspector
+  name: virtualInbound
+  trafficDirection: INBOUND
+  useOriginalDst: true
+routers:
+- name: polaris-router
+  validateClusters: false
+  virtualHosts:
+  - domains:
+    - service-a
+    - service-a.default
+    - service-a.default.svc
+    - service-a.default.svc.cluster
+    - service-a.default.svc.cluster.local
+    name: service-a
+    routes:
+    - match:
+        prefix: /
+      route:
+        cluster: service-a
+  - domains:
+    - '*'
+    name: allow_any
+    routes:
+    - match:
+        prefix: /
+      route:
+        cluster: PassthroughCluster
