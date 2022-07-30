@@ -86,6 +86,9 @@ const (
 	MaxPlatformNameLength   = 128
 	MaxPlatformDomainLength = 1024
 	MaxPlatformQPS          = 65535
+
+	// ratelimit表
+	MaxDbRateLimitName = 64
 )
 
 // checkResourceName 检查资源Name
@@ -278,7 +281,7 @@ func ParseQueryOffset(offset string) (uint32, error) {
 
 	tmp, err := strconv.ParseUint(offset, 10, 32)
 	if err != nil {
-		log.Errorf("[Server][Query] attribute(offset:%s) is invalid, parse err: %s",
+		log.Warnf("[Server][Query] attribute(offset:%s) is invalid, parse err: %s",
 			offset, err.Error())
 		return 0, err
 	}

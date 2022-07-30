@@ -144,6 +144,7 @@ func (h *HTTPServer) addDefaultAccess(ws *restful.WebService) {
 	ws.Route(ws.POST("/ratelimits/delete").To(h.DeleteRateLimits))
 	ws.Route(ws.PUT("/ratelimits").To(h.UpdateRateLimits))
 	ws.Route(ws.GET("/ratelimits").To(h.GetRateLimits))
+	ws.Route(ws.PUT("/ratelimits/enable").To(h.EnableRateLimits))
 
 	ws.Route(ws.POST("/circuitbreakers").To(h.CreateCircuitBreakers))
 	ws.Route(ws.POST("/circuitbreakers/version").To(h.CreateCircuitBreakerVersions))
@@ -695,6 +696,28 @@ func (h *HTTPServer) DeleteRateLimits(req *restful.Request, rsp *restful.Respons
 		handler.WriteHeaderAndProto(ret)
 		return
 	}
+	handler.WriteHeaderAndProto(ret)
+}
+
+// EnableRateLimits 激活限流规则
+func (h *HTTPServer) EnableRateLimits(req *restful.Request, rsp *restful.Response) {
+	handler := &Handler{req, rsp}
+	var rateLimits RateLimitArr
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &api.Rule{}
+		rateLimits = append(rateLimits, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		return
+	}
+	ret := h.namingServer.EnableRateLimits(ctx, rateLimits)
+	if code := api.CalcCode(ret); code != http.StatusOK {
+		handler.WriteHeaderAndProto(ret)
+		return
+	}
+
 	handler.WriteHeaderAndProto(ret)
 }
 

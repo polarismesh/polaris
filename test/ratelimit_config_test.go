@@ -99,6 +99,13 @@ func TestRateLimit(t *testing.T) {
 	}
 	t.Log("get rate limits success")
 
+	// 禁用限流规则
+	err = client.EnableRateLimits(rateLimits)
+	if err != nil {
+		t.Fatalf("enable rate limits fail, err is %s", err.Error())
+	}
+	t.Log("enable rate limits success")
+
 	// 删除限流规则
 	err = client.DeleteRateLimits(rateLimits)
 	if err != nil {
