@@ -120,7 +120,8 @@ func (d *DiscoverTestSuit) loadConfig() error {
 	if os.Getenv("STORE_MODE") == "sqldb" {
 		fmt.Printf("run store mode : sqldb\n")
 		confFileName = "test_sqldb.yaml"
-		d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey, "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
+		d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey,
+			"nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
 	}
 	file, err := os.Open(confFileName)
 	if err != nil {
@@ -151,7 +152,8 @@ type options func(cfg *TestConfig)
 func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	// 初始化defaultCtx
 	d.defaultCtx = context.WithValue(context.Background(), utils.StringContext("request-id"), "test-1")
-	d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey, "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
+	d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey,
+		"nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
 
 	if err := os.RemoveAll("polaris.bolt"); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {

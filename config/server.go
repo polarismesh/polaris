@@ -60,7 +60,7 @@ type Server struct {
 
 // Initialize 初始化配置中心模块
 func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cache.CacheManager,
-	authSvr auth.AuthServer) error {
+	namespaceOperator namespace.NamespaceOperateServer, authSvr auth.AuthServer) error {
 	if !config.Open {
 		originServer.initialized = true
 		return nil
@@ -70,7 +70,7 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 		return nil
 	}
 
-	err := originServer.initialize(ctx, config, s, cacheMgn, authSvr)
+	err := originServer.initialize(ctx, config, s, namespaceOperator, cacheMgn, authSvr)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,8 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 	return nil
 }
 
-func (s *Server) initialize(ctx context.Context, config Config, ss store.Store, cacheMgn *cache.CacheManager,
+func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
+	namespaceOperator namespace.NamespaceOperateServer, cacheMgn *cache.CacheManager,
 	authSvr auth.AuthServer) error {
 
 	s.storage = ss
@@ -90,11 +91,6 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store, 
 	expireTimeAfterWrite, ok := config.Cache["expireTimeAfterWrite"]
 	if !ok {
 		expireTimeAfterWrite = defaultExpireTimeAfterWrite
-	}
-
-	namespaceOperator, err := namespace.GetServer()
-	if err != nil {
-		return err
 	}
 
 	s.namespaceOperator = namespaceOperator

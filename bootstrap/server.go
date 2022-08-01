@@ -246,9 +246,22 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 	cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
 	cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
 
+	namespaceSvr, err := namespace.GetServer()
+	if err != nil {
+		return err
+	}
+
+	opts := []service.InitOption{
+		service.WithBatchController(bc),
+		service.WithStorage(s),
+		service.WithCacheManager(&cfg.Cache, cacheMgn),
+		service.WithHealthCheckSvr(healthCheckServer),
+		service.WithNamespaceSvr(namespaceSvr),
+		service.WithHiddenService(getSelfRegisterPolarsServiceKeySet(&cfg.Bootstrap.PolarisService)),
+	}
+
 	// 初始化服务模块
-	if err = service.Initialize(ctx, &cfg.Naming, &cfg.Cache, bc,
-		getSelfRegisterPolarsServiceKeySet(&cfg.Bootstrap.PolarisService)); err != nil {
+	if err = service.Initialize(ctx, &cfg.Naming, opts...); err != nil {
 		return err
 	}
 
@@ -263,7 +276,13 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 // StartConfigCenterComponents 启动配置中心模块
 func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config, s store.Store,
 	cacheMgn *cache.CacheManager, authMgn auth.AuthServer) error {
-	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, authMgn)
+
+	namespaceOperator, err := namespace.GetServer()
+	if err != nil {
+		return err
+	}
+
+	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, namespaceOperator, authMgn)
 }
 
 // StartServers 启动server
