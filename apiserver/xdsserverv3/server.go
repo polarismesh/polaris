@@ -486,8 +486,10 @@ func makeLocalRateLimit(conf []*model.RateLimit) map[string]*anypb.Any {
 				log.Errorf("unmarshal local rate limit rule error,%v", err)
 				continue
 			}
-			if err := json.Unmarshal([]byte(rlLabels), &rule.Labels); err != nil {
-				log.Errorf("unmarshal local rate limit labels error,%v", err)
+			if len(rlRule) > 0 {
+				if err := json.Unmarshal([]byte(rlLabels), &rule.Labels); err != nil {
+					log.Errorf("unmarshal local rate limit labels error,%v", err)
+				}
 			}
 
 			// 跳过全局限流配置

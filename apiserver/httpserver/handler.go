@@ -171,7 +171,7 @@ func (h *Handler) WriteHeaderAndProto(obj api.ResponseMessage) {
 	h.Response.AddHeader(utils.PolarisRequestID, requestID)
 	h.Response.WriteHeader(status)
 
-	m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
+	m := jsonpb.Marshaler{Indent: " ", EmitDefaults: false}
 	err := m.Marshal(h.Response, h.i18n(obj))
 	if err != nil {
 		log.Error(err.Error(), zap.String("request-id", requestID))

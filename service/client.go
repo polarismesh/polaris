@@ -356,7 +356,7 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *api.Service) *a
 	}
 
 	rateLimitIterProc := func(key string, value *model.RateLimit) (bool, error) {
-		rateLimit, err := rateLimit2api(req.GetName().GetValue(), req.GetNamespace().GetValue(), value)
+		rateLimit, err := rateLimit2Client(req.GetName().GetValue(), req.GetNamespace().GetValue(), value)
 		if err != nil {
 			return false, err
 		}

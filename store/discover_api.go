@@ -249,6 +249,9 @@ type RateLimitStore interface {
 	// UpdateRateLimit 更新限流规则
 	UpdateRateLimit(limiting *model.RateLimit) error
 
+	// EnableRateLimit 启用限流规则
+	EnableRateLimit(limit *model.RateLimit) error
+
 	// DeleteRateLimit 删除限流规则
 	DeleteRateLimit(limiting *model.RateLimit) error
 

@@ -11,7 +11,7 @@ docker_repository="polarismesh"
 
 echo "docker repository : ${docker_repository}/polaris-server, tag : ${docker_tag}"
 
-bash build.sh ${docker_tag}
+make build VERSION=${docker_tag}
 
 if [ $? != 0 ]; then
     echo "build polaris-server failed"
