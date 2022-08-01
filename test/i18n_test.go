@@ -31,6 +31,7 @@ import (
 
 // 测试国际化信息
 func TestI18n(t *testing.T) {
+	t.Log("test i18n")
 	type args struct {
 		lang string
 		want string
