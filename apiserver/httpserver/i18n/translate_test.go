@@ -25,8 +25,8 @@ import (
 )
 
 func init() {
-	bundle.MustLoadMessageFile("zh.toml")
-	bundle.MustLoadMessageFile("en.toml")
+	LoadI18nMessageFile("en.toml")
+	LoadI18nMessageFile("zh.toml")
 }
 
 func Test_Translate(t *testing.T) {

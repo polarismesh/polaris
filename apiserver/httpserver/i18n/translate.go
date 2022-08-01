@@ -38,11 +38,14 @@ var (
 func init() {
 	bundle = ii18n.NewBundle(language.English)
 	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
-	if _, err := bundle.LoadMessageFile("apiserver/httpserver/i18n/zh.toml"); err != nil {
-		log.Error("[i18n][MessageFile] zh.toml load fail", zap.Error(err))
-	}
-	if _, err := bundle.LoadMessageFile("apiserver/httpserver/i18n/en.toml"); err != nil {
-		log.Error("[i18n][MessageFile] en.toml load fail", zap.Error(err))
+	LoadI18nMessageFile("apiserver/httpserver/i18n/zh.toml")
+	LoadI18nMessageFile("apiserver/httpserver/i18n/en.toml")
+}
+
+// LoadI18nMessageFile 加载i18n配置文件
+func LoadI18nMessageFile(path string) {
+	if _, err := bundle.LoadMessageFile(path); err != nil {
+		log.Error("[i18n][MessageFile] load fail", zap.Error(err))
 	}
 }
 
