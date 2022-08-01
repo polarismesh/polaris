@@ -29,7 +29,7 @@ import (
 	"github.com/polarismesh/polaris-server/test/http"
 )
 
-// 测试国际化信息
+//TestI18n 测试国际化信息
 func TestI18n(t *testing.T) {
 	t.Log("test i18n")
 	type args struct {
@@ -43,10 +43,10 @@ func TestI18n(t *testing.T) {
 	for _, item := range tests {
 		ret, err := reqCreateIllegalNamespace(item.lang)
 		if err != nil {
-			t.Errorf("create namespace fail for i18n test: %s", err.Error())
+			t.Fatalf("create namespace fail for i18n test: %s", err.Error())
 		}
 		if msg := ret.GetInfo().Value; msg != item.want {
-			t.Errorf("create namespace handler.i18n() msg = %v, want: %v", msg, item.want)
+			t.Errorf("test i18n by create namespace resp msg = %v, want: %v", msg, item.want)
 		}
 	}
 }
