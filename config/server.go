@@ -92,6 +92,13 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store, 
 		expireTimeAfterWrite = defaultExpireTimeAfterWrite
 	}
 
+	namespaceOperator, err := namespace.GetServer()
+	if err != nil {
+		return err
+	}
+
+	s.namespaceOperator = namespaceOperator
+
 	cacheParam := cache.FileCacheParam{
 		ExpireTimeAfterWrite: expireTimeAfterWrite.(int),
 	}
