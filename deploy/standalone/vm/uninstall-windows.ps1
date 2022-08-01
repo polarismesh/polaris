@@ -103,4 +103,4 @@ uninstallPolarisConsole
 # 安装Prometheus
 uninstallPrometheus
 # 安装PushGateWay
-uninstallPushGateway
+# uninstallPushGateway
