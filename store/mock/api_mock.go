@@ -673,6 +673,20 @@ func (mr *MockStoreMockRecorder) Destroy() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Destroy", reflect.TypeOf((*MockStore)(nil).Destroy))
 }
 
+// EnableRateLimit mocks base method.
+func (m *MockStore) EnableRateLimit(limit *model.RateLimit) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableRateLimit", limit)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// EnableRateLimit indicates an expected call of EnableRateLimit.
+func (mr *MockStoreMockRecorder) EnableRateLimit(limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableRateLimit", reflect.TypeOf((*MockStore)(nil).EnableRateLimit), limit)
+}
+
 // FindConfigFileGroups mocks base method.
 func (m *MockStore) FindConfigFileGroups(namespace string, names []string) ([]*model.ConfigFileGroup, error) {
 	m.ctrl.T.Helper()
