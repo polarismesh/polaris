@@ -43,6 +43,7 @@
 400151 = "invalid rate limit id"    #InvalidRateLimitID
 400152 = "invalid rate limit labels"    #InvalidRateLimitLabels
 400153 = "invalid rate limit amounts"    #InvalidRateLimitAmounts
+400154 = "invalid rate limit name"    #InvalidRateLimitName
 400160 = "invalid circuit breaker id"    #InvalidCircuitBreakerID
 400161 = "invalid circuit breaker version"    #InvalidCircuitBreakerVersion
 400162 = "invalid circuit breaker name"    #InvalidCircuitBreakerName
@@ -128,6 +129,7 @@
 400805 = "invalid config file tags, tags should be pair, like key1,value1,key2,value2. and key,value should not blank"    #InvalidConfigFileTags
 400806 = "invalid watch config file format"    #InvalidWatchConfigFileFormat
 400807 = "config file not existed"    #NotFoundResourceConfigFile
+400808 = "invalid config file template name"    #InvalidConfigFileTemplateName
 401000 = "unauthorized"    #Unauthorized
 401001 = "access is not approved"    #NotAllowedAccess
 401002 = "auth token empty"    #EmptyAutToken

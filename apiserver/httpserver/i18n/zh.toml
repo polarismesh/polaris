@@ -43,6 +43,7 @@
 400151 = "限频ID非法"    #InvalidRateLimitID
 400152 = "限频标签非法"    #InvalidRateLimitLabels
 400153 = "限频数量非法"    #InvalidRateLimitAmounts
+400154 = "限流名称非法"    #InvalidRateLimitName
 400160 = "熔断ID非法"    #InvalidCircuitBreakerID
 400161 = "熔断版本非法"    #InvalidCircuitBreakerVersion
 400162 = "熔断名称非法"    #InvalidCircuitBreakerName
@@ -128,6 +129,7 @@
 400805 = "配置文件标签非法, 标签应该是成对的, 比如key1,value1,key2,value2, 并且key,value应是非空白字符"    #InvalidConfigFileTags
 400806 = "监视配置文件格式非法"    #InvalidWatchConfigFileFormat
 400807 = "无法找到配置文件"    #NotFoundResourceConfigFile
+400808 = "invalid config file template name"    #InvalidConfigFileTemplateName
 401000 = "未经授权"    #Unauthorized
 401001 = "权限不被允许"    #NotAllowedAccess
 401002 = "鉴权token为空"    #EmptyAutToken
