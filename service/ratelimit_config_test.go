@@ -185,7 +185,7 @@ func TestCreateRateLimit(t *testing.T) {
 		t.Log("pass")
 	})
 
-	t.Run("为不存在的服务创建限流规则，返回失败", func(t *testing.T) {
+	t.Run("为不存在的服务创建限流规则，返回成功", func(t *testing.T) {
 		_, serviceResp := discoverSuit.createCommonService(t, 2)
 		discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		rateLimit := &api.Rule{
@@ -194,7 +194,7 @@ func TestCreateRateLimit(t *testing.T) {
 			Labels:       map[string]*api.MatchString{},
 			ServiceToken: serviceResp.GetToken(),
 		}
-		if resp := discoverSuit.server.CreateRateLimits(discoverSuit.defaultCtx, []*api.Rule{rateLimit}); !respSuccess(resp) {
+		if resp := discoverSuit.server.CreateRateLimits(discoverSuit.defaultCtx, []*api.Rule{rateLimit}); respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatalf("error : %s", resp.GetInfo().GetValue())
@@ -329,7 +329,7 @@ func TestUpdateRateLimit(t *testing.T) {
 		}
 	})
 
-	t.Run("更新限流规则时，没有传递token, 返回错误", func(t *testing.T) {
+	t.Run("更新限流规则时，没有传递token，正常", func(t *testing.T) {
 
 		oldCtx := discoverSuit.defaultCtx
 
@@ -384,6 +384,29 @@ func TestUpdateRateLimit(t *testing.T) {
 		}
 
 		t.Log("pass")
+	})
+
+	t.Run("启用限流规则", func(t *testing.T) {
+
+		oldCtx := discoverSuit.defaultCtx
+
+		discoverSuit.defaultCtx = context.Background()
+
+		defer func() {
+			discoverSuit.defaultCtx = oldCtx
+		}()
+
+		ruleContents := []*api.Rule{
+			{
+				Id:      utils.NewStringValue(rateLimitResp.GetId().GetValue()),
+				Disable: utils.NewBoolValue(true),
+			},
+		}
+		if resp := discoverSuit.server.EnableRateLimits(discoverSuit.defaultCtx, ruleContents); !respSuccess(resp) {
+			t.Logf("pass: %s", resp.GetInfo().GetValue())
+		} else {
+			t.Fatalf("error")
+		}
 	})
 }
 
@@ -510,6 +533,20 @@ func TestGetRateLimit(t *testing.T) {
 		}
 	})
 
+	t.Run("查询限流规则列表，过滤条件为name", func(t *testing.T) {
+		filters := map[string]string{
+			"name":  "rule_name_0",
+			"brief": "true",
+		}
+		resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if resp.GetSize().GetValue() != uint32(serviceNum) {
+			t.Fatalf("expect num is %d, actual num is %d", serviceNum, resp.GetSize().GetValue())
+		}
+	})
+
 	t.Run("查询限流规则，过滤条件为labels中的value", func(t *testing.T) {
 		filters := map[string]string{
 			"labels": labelsValue.GetValue().GetValue(),
@@ -604,13 +641,13 @@ func TestCheckRatelimitFieldLen(t *testing.T) {
 			t.Fatalf("%+v", resp)
 		}
 	})
-	t.Run("创建限流规则，toeken超长", func(t *testing.T) {
+	t.Run("创建限流规则，名称超长", func(t *testing.T) {
 		str := genSpecialStr(2049)
-		oldServiceToken := rateLimit.ServiceToken
-		rateLimit.ServiceToken = utils.NewStringValue(str)
+		oldName := rateLimit.Name
+		rateLimit.Name = utils.NewStringValue(str)
 		resp := discoverSuit.server.CreateRateLimits(discoverSuit.defaultCtx, []*api.Rule{rateLimit})
-		rateLimit.ServiceToken = oldServiceToken
-		if resp.Code.Value != api.InvalidServiceToken {
+		rateLimit.Name = oldName
+		if resp.Code.Value != api.InvalidRateLimitName {
 			t.Fatalf("%+v", resp)
 		}
 	})

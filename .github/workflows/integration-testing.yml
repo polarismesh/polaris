@@ -59,7 +59,7 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-        run: bash build.sh
+        run: make build
 
       # Run interface tests
       - name: run discover interface tests

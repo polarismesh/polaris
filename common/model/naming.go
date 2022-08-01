@@ -18,6 +18,7 @@
 package model
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -188,16 +189,90 @@ type ExtendRoutingConfig struct {
 
 // RateLimit 限流规则
 type RateLimit struct {
-	ID         string
-	ServiceID  string
-	ClusterID  string
+	Proto     *v1.Rule
+	ID        string
+	ServiceID string
+	Name      string
+	Method    string
+	// Labels for old compatible, will be removed later
 	Labels     string
 	Priority   uint32
 	Rule       string
 	Revision   string
+	Disable    bool
 	Valid      bool
 	CreateTime time.Time
 	ModifyTime time.Time
+	EnableTime time.Time
+}
+
+// Labels2Arguments 适配老的标签到新的参数列表
+func (r *RateLimit) Labels2Arguments() (map[string]*v1.MatchString, error) {
+	if len(r.Proto.Arguments) == 0 && len(r.Labels) > 0 {
+		var labels = make(map[string]*v1.MatchString)
+		if err := json.Unmarshal([]byte(r.Labels), &labels); err != nil {
+			return nil, err
+		}
+		for key, value := range labels {
+			r.Proto.Arguments = append(r.Proto.Arguments, &v1.MatchArgument{
+				Type:  v1.MatchArgument_CUSTOM,
+				Key:   key,
+				Value: value,
+			})
+		}
+		return labels, nil
+	}
+	return nil, nil
+}
+
+const (
+	labelKeyMethod        = "$method"
+	labelKeyHeader        = "$header"
+	labelKeyQuery         = "$query"
+	labelKeyCallerService = "$caller_service"
+	labelKeyCallerIP      = "$caller_ip"
+)
+
+// Arguments2Labels 将参数列表适配成旧的标签模型
+func (r *RateLimit) Arguments2Labels() bool {
+	if len(r.Proto.Arguments) > 0 {
+		r.Proto.Labels = make(map[string]*v1.MatchString)
+		for _, argument := range r.Proto.Arguments {
+			switch argument.Type {
+			case v1.MatchArgument_CUSTOM:
+				r.Proto.Labels[argument.Key] = argument.Value
+			case v1.MatchArgument_METHOD:
+				r.Proto.Labels[labelKeyMethod] = argument.Value
+			case v1.MatchArgument_HEADER:
+				r.Proto.Labels[labelKeyHeader+"."+argument.Key] = argument.Value
+			case v1.MatchArgument_QUERY:
+				r.Proto.Labels[labelKeyQuery+"."+argument.Key] = argument.Value
+			case v1.MatchArgument_CALLER_SERVICE:
+				r.Proto.Labels[labelKeyCallerService+"."+argument.Key] = argument.Value
+			case v1.MatchArgument_CALLER_IP:
+				r.Proto.Labels[labelKeyCallerIP] = argument.Value
+			default:
+				continue
+			}
+		}
+		return true
+	}
+	return false
+}
+
+// AdaptArgumentsAndLabels 对存量标签进行兼容
+func (r *RateLimit) AdaptArgumentsAndLabels() error {
+	// 新的限流规则，需要适配老的SDK使用场景
+	if !r.Arguments2Labels() {
+		// 存量限流规则，需要适配成新的规则
+		labels, err := r.Labels2Arguments()
+		if nil != err {
+			return err
+		}
+		r.Proto.Labels = labels
+	}
+
+	return nil
 }
 
 // ExtendRateLimit 包含服务信息的限流规则

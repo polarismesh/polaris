@@ -75,6 +75,9 @@ type RateLimitOperateServer interface {
 	// DeleteRateLimits Delete current RateLimit rules
 	DeleteRateLimits(ctx context.Context, request []*api.Rule) *api.BatchWriteResponse
 
+	// EnableRateLimits Enable the RateLimit rule
+	EnableRateLimits(ctx context.Context, request []*api.Rule) *api.BatchWriteResponse
+
 	// UpdateRateLimits Modify the RateLimit rule
 	UpdateRateLimits(ctx context.Context, request []*api.Rule) *api.BatchWriteResponse
 

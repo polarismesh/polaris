@@ -32,7 +32,7 @@ type routingConfigStore struct {
 	slave  *BaseDB
 }
 
-// 新建RoutingConfig
+// CreateRoutingConfig 新建RoutingConfig
 func (rs *routingConfigStore) CreateRoutingConfig(conf *model.RoutingConfig) error {
 	if conf.ID == "" || conf.Revision == "" {
 		log.Errorf("[Store][database] create routing config missing service id or revision")

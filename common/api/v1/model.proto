@@ -12,8 +12,16 @@ message Location {
 
 message MatchString {
   enum MatchStringType {
+    // Equivalent match
     EXACT = 0;
+    // Regular match
     REGEX = 1;
+    // Not equals match
+    NOT_EQUALS = 2;
+    // Include match
+    IN = 3;
+    // Not include match
+    NOT_IN = 4;
   }
 
   enum ValueType {

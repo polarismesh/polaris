@@ -21,8 +21,6 @@ import (
 	"fmt"
 
 	"github.com/golang/protobuf/ptypes/duration"
-	"github.com/golang/protobuf/ptypes/wrappers"
-
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
@@ -34,31 +32,25 @@ func CreateRateLimits(services []*api.Service) []*api.Rule {
 	var rateLimits []*api.Rule
 	for index := 0; index < 2; index++ {
 		rateLimit := &api.Rule{
+			Name:      utils.NewStringValue(fmt.Sprintf("rlimit-%d", index)),
 			Service:   services[index].GetName(),
 			Namespace: services[index].GetNamespace(),
-			Subset: map[string]*api.MatchString{
-				fmt.Sprintf("name-%d", index): {
+			Priority:  utils.NewUInt32Value(uint32(index)),
+			Resource:  api.Rule_CONCURRENCY,
+			Type:      api.Rule_LOCAL,
+			Arguments: []*api.MatchArgument{{
+				Type: api.MatchArgument_CUSTOM,
+				Key:  fmt.Sprintf("name-%d", index),
+				Value: &api.MatchString{
 					Type:  api.MatchString_REGEX,
 					Value: utils.NewStringValue(fmt.Sprintf("value-%d", index)),
 				},
-				fmt.Sprintf("name-%d", index+1): {
+			}, {Type: api.MatchArgument_CUSTOM,
+				Key: fmt.Sprintf("name-%d", index+1),
+				Value: &api.MatchString{
 					Type:  api.MatchString_EXACT,
 					Value: utils.NewStringValue(fmt.Sprintf("value-%d", index+1)),
-				},
-			},
-			Priority: utils.NewUInt32Value(uint32(index)),
-			Resource: api.Rule_CONCURRENCY,
-			Type:     api.Rule_LOCAL,
-			Labels: map[string]*api.MatchString{
-				fmt.Sprintf("name-%d", index): {
-					Type:  api.MatchString_REGEX,
-					Value: utils.NewStringValue(fmt.Sprintf("value-%d", index)),
-				},
-				fmt.Sprintf("name-%d", index+1): {
-					Type:  api.MatchString_EXACT,
-					Value: utils.NewStringValue(fmt.Sprintf("value-%d", index+1)),
-				},
-			},
+				}}},
 			Amounts: []*api.Amount{
 				{
 					MaxAmount: utils.NewUInt32Value(uint32(index)),
@@ -70,13 +62,6 @@ func CreateRateLimits(services []*api.Service) []*api.Rule {
 			},
 			Action:  utils.NewStringValue("REJECT"),
 			Disable: utils.NewBoolValue(true),
-			Report: &api.Report{
-				Interval: &duration.Duration{
-					Seconds: int64(index),
-					Nanos:   int32(index),
-				},
-				AmountPercent: utils.NewUInt32Value(uint32(index)),
-			},
 			Adjuster: &api.AmountAdjuster{
 				Climb: &api.ClimbConfig{
 					Enable: utils.NewBoolValue(true),
@@ -96,11 +81,6 @@ func CreateRateLimits(services []*api.Service) []*api.Rule {
 			RegexCombine: utils.NewBoolValue(true),
 			AmountMode:   api.Rule_SHARE_EQUALLY,
 			Failover:     api.Rule_FAILOVER_PASS,
-			Cluster: &api.RateLimitCluster{
-				Service:   services[index].GetName(),
-				Namespace: services[index].GetNamespace(),
-			},
-			ServiceToken: services[index].GetToken(),
 		}
 		rateLimits = append(rateLimits, rateLimit)
 	}
@@ -112,10 +92,14 @@ func CreateRateLimits(services []*api.Service) []*api.Rule {
  */
 func UpdateRateLimits(rateLimits []*api.Rule) {
 	for _, rateLimit := range rateLimits {
-		rateLimit.Labels = map[string]*api.MatchString{
-			"key1": &api.MatchString{
-				Type:  api.MatchString_EXACT,
-				Value: &wrappers.StringValue{Value: "value1"},
+		rateLimit.Arguments = []*api.MatchArgument{
+			{
+				Type: api.MatchArgument_CUSTOM,
+				Key:  "key1",
+				Value: &api.MatchString{
+					Type:  api.MatchString_REGEX,
+					Value: utils.NewStringValue("value-1"),
+				},
 			},
 		}
 	}

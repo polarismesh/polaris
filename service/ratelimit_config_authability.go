@@ -70,6 +70,21 @@ func (svr *serverAuthAbility) UpdateRateLimits(ctx context.Context, reqs []*api.
 	return svr.targetServer.UpdateRateLimits(ctx, reqs)
 }
 
+// EnableRateLimits 启用限流规则
+func (svr *serverAuthAbility) EnableRateLimits(ctx context.Context, reqs []*api.Rule) *api.BatchWriteResponse {
+	authCtx := svr.collectRateLimitAuthContext(ctx, nil, model.Read, "EnableRateLimits")
+
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	if err != nil {
+		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.targetServer.EnableRateLimits(ctx, reqs)
+}
+
 // GetRateLimits gets rate limits for a namespace.
 func (svr *serverAuthAbility) GetRateLimits(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, nil, model.Read, "GetRateLimits")
