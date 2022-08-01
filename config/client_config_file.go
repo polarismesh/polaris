@@ -34,7 +34,8 @@ type (
 )
 
 // GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
-func (s *Server) GetConfigFileForClient(ctx context.Context, client *api.ClientConfigFileInfo) *api.ConfigClientResponse {
+func (s *Server) GetConfigFileForClient(ctx context.Context,
+	client *api.ClientConfigFileInfo) *api.ConfigClientResponse {
 
 	namespace := client.GetNamespace().GetValue()
 	group := client.GetGroup().GetValue()
@@ -88,7 +89,8 @@ func (s *Server) GetConfigFileForClient(ctx context.Context, client *api.ClientC
 	return resp
 }
 
-func (s *Server) WatchConfigFiles(ctx context.Context, request *api.ClientWatchConfigFileRequest) (WatchCallback, error) {
+func (s *Server) WatchConfigFiles(ctx context.Context,
+	request *api.ClientWatchConfigFileRequest) (WatchCallback, error) {
 
 	clientAddr := utils.ParseClientAddress(ctx)
 
@@ -132,7 +134,8 @@ func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api
 		fileName := configFile.FileName.GetValue()
 
 		if namespace == "" || group == "" || fileName == "" {
-			return api.NewConfigClientResponseWithMessage(api.BadRequest, "namespace & group & fileName can not be empty")
+			return api.NewConfigClientResponseWithMessage(api.BadRequest,
+				"namespace & group & fileName can not be empty")
 		}
 
 		// 从缓存中获取最新的配置文件信息

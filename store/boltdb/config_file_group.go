@@ -76,7 +76,9 @@ func newConfigFileGroupStore(handler BoltHandler) (*configFileGroupStore, error)
 }
 
 // CreateConfigFileGroup 创建配置文件组
-func (fg *configFileGroupStore) CreateConfigFileGroup(fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
+func (fg *configFileGroupStore) CreateConfigFileGroup(
+	fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
+
 	if fileGroup.Namespace == "" || fileGroup.Name == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, "ConfigFileGroup miss some param")
 	}
@@ -84,7 +86,9 @@ func (fg *configFileGroupStore) CreateConfigFileGroup(fileGroup *model.ConfigFil
 	return fg.createConfigFileGroup(fileGroup)
 }
 
-func (fg *configFileGroupStore) createConfigFileGroup(fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
+func (fg *configFileGroupStore) createConfigFileGroup(
+	fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
+
 	proxy, err := fg.handler.StartTx()
 	if err != nil {
 		return nil, err
@@ -205,7 +209,6 @@ func (fg *configFileGroupStore) DeleteConfigFileGroup(namespace, name string) er
 
 	key := fmt.Sprintf("%s@@%s", namespace, name)
 
-
 	properties := make(map[string]interface{})
 	properties[FileGroupFieldValid] = false
 	properties[FileGroupFieldModifyTime] = time.Now()
@@ -219,7 +222,9 @@ func (fg *configFileGroupStore) DeleteConfigFileGroup(namespace, name string) er
 }
 
 // UpdateConfigFileGroup 更新配置文件组信息
-func (fg *configFileGroupStore) UpdateConfigFileGroup(fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
+func (fg *configFileGroupStore) UpdateConfigFileGroup(
+	fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
+
 	if fileGroup.Namespace == "" || fileGroup.Name == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, "ConfigFileGroup miss some param")
 	}
@@ -239,7 +244,8 @@ func (fg *configFileGroupStore) UpdateConfigFileGroup(fileGroup *model.ConfigFil
 }
 
 // FindConfigFileGroups 查询配置文件组
-func (fg *configFileGroupStore) FindConfigFileGroups(namespace string, names []string) ([]*model.ConfigFileGroup, error) {
+func (fg *configFileGroupStore) FindConfigFileGroups(namespace string,
+	names []string) ([]*model.ConfigFileGroup, error) {
 
 	keys := make([]string, 0, len(names))
 

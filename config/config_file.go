@@ -184,7 +184,9 @@ func (s *Server) GetConfigFileRichInfo(ctx context.Context, namespace, group, na
 	return api.NewConfigFileResponse(api.ExecuteSuccess, configFileBaseInfo)
 }
 
-func (s *Server) QueryConfigFilesByGroup(ctx context.Context, namespace, group string, offset, limit uint32) *api.ConfigBatchQueryResponse {
+func (s *Server) QueryConfigFilesByGroup(ctx context.Context, namespace, group string,
+	offset, limit uint32) *api.ConfigBatchQueryResponse {
+
 	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileBatchQueryResponse(api.InvalidNamespaceName, 0, nil)
 	}
@@ -226,7 +228,9 @@ func (s *Server) QueryConfigFilesByGroup(ctx context.Context, namespace, group s
 }
 
 // SearchConfigFile 查询配置文件
-func (s *Server) SearchConfigFile(ctx context.Context, namespace, group, name, tags string, offset, limit uint32) *api.ConfigBatchQueryResponse {
+func (s *Server) SearchConfigFile(ctx context.Context, namespace, group, name, tags string,
+	offset, limit uint32) *api.ConfigBatchQueryResponse {
+
 	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileBatchQueryResponse(api.InvalidNamespaceName, 0, nil)
 	}
@@ -259,8 +263,9 @@ func (s *Server) SearchConfigFile(ctx context.Context, namespace, group, name, t
 		return api.NewConfigFileBatchQueryResponse(api.StoreLayerException, 0, nil)
 	}
 
-	// 渲染配置文件，因为从 tag 表获取的只有主键信息
-	var enrichedFiles []*api.ConfigFile
+	// Rendering configuration files, because only the main key information is obtained from the TAG table
+	enrichedFiles := make([]*api.ConfigFile, 0, len(files))
+
 	for _, file := range files {
 		rsp := s.GetConfigFileRichInfo(ctx, file.Namespace, file.Group, file.FileName)
 		if rsp.Code.GetValue() != api.ExecuteSuccess {
@@ -272,7 +277,9 @@ func (s *Server) SearchConfigFile(ctx context.Context, namespace, group, name, t
 	return api.NewConfigFileBatchQueryResponse(api.ExecuteSuccess, uint32(count), enrichedFiles)
 }
 
-func (s *Server) queryConfigFileWithoutTags(ctx context.Context, namespace string, group string, name string, offset, limit uint32) *api.ConfigBatchQueryResponse {
+func (s *Server) queryConfigFileWithoutTags(ctx context.Context, namespace, group, name string,
+	offset, limit uint32) *api.ConfigBatchQueryResponse {
+
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 	count, files, err := s.storage.QueryConfigFiles(namespace, group, name, offset, limit)
 	if err != nil {
@@ -290,7 +297,8 @@ func (s *Server) queryConfigFileWithoutTags(ctx context.Context, namespace strin
 		return api.NewConfigFileBatchQueryResponse(api.ExecuteSuccess, count, nil)
 	}
 
-	var fileAPIModels []*api.ConfigFile
+	fileAPIModels := make([]*api.ConfigFile, 0, len(files))
+
 	for _, file := range files {
 		baseFile := transferConfigFileStoreModel2APIModel(file)
 		baseFile, err = s.fillReleaseAndTags(ctx, baseFile)
@@ -453,12 +461,15 @@ func (s *Server) DeleteConfigFile(ctx context.Context, namespace, group, name, d
 }
 
 // BatchDeleteConfigFile 批量删除配置文件
-func (s *Server) BatchDeleteConfigFile(ctx context.Context, configFiles []*api.ConfigFile, operator string) *api.ConfigResponse {
+func (s *Server) BatchDeleteConfigFile(ctx context.Context, configFiles []*api.ConfigFile,
+	operator string) *api.ConfigResponse {
+
 	if len(configFiles) == 0 {
 		api.NewConfigFileResponse(api.ExecuteSuccess, nil)
 	}
 	for _, configFile := range configFiles {
-		rsp := s.DeleteConfigFile(ctx, configFile.Namespace.GetValue(), configFile.Group.GetValue(), configFile.Name.GetValue(), operator)
+		rsp := s.DeleteConfigFile(ctx, configFile.Namespace.GetValue(),
+			configFile.Group.GetValue(), configFile.Name.GetValue(), operator)
 		if rsp.Code.GetValue() != api.ExecuteSuccess {
 			return rsp
 		}
@@ -545,7 +556,9 @@ func transferConfigFileStoreModel2APIModel(file *model.ConfigFile) *api.ConfigFi
 	}
 }
 
-func (s *Server) createOrUpdateConfigFileTags(ctx context.Context, configFile *api.ConfigFile, operator string) (*api.ConfigResponse, bool) {
+func (s *Server) createOrUpdateConfigFileTags(ctx context.Context, configFile *api.ConfigFile,
+	operator string) (*api.ConfigResponse, bool) {
+
 	namespace := configFile.Namespace.GetValue()
 	group := configFile.Group.GetValue()
 	name := configFile.Name.GetValue()

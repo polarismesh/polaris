@@ -205,7 +205,9 @@ func (s *Server) GetConfigFileRelease(ctx context.Context, namespace, group, fil
 }
 
 // DeleteConfigFileRelease 删除配置文件发布，删除配置文件的时候，同步删除配置文件发布数据
-func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace, group, fileName, deleteBy string) *api.ConfigResponse {
+func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace,
+	group, fileName, deleteBy string) *api.ConfigResponse {
+
 	if err := utils2.CheckFileName(utils.NewStringValue(fileName)); err != nil {
 		return api.NewConfigFileResponse(api.InvalidConfigFileName, nil)
 	}

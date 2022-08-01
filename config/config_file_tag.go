@@ -31,7 +31,9 @@ import (
 )
 
 // createConfigFileTags 创建配置文件标签，tags 格式：k1,v1,k2,v2,k3,v3...
-func (s *Server) createConfigFileTags(ctx context.Context, namespace, group, fileName, operator string, tags ...string) error {
+func (s *Server) createConfigFileTags(ctx context.Context, namespace, group,
+	fileName, operator string, tags ...string) error {
+
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
 	if len(tags)%2 != 0 {
@@ -55,84 +57,84 @@ func (s *Server) createConfigFileTags(ctx context.Context, namespace, group, fil
 	}
 
 	// 2. 新增 tag，一个 key 可以有多个的 value
-	storedTagMap := make(map[string][]string, len(storedTags))
+	storedTagMap := make(map[string]map[string]struct{}, len(storedTags))
 	for _, tag := range storedTags {
 		if storedTagMap[tag.Key] == nil {
-			storedTagMap[tag.Key] = []string{tag.Value}
-		} else {
-			storedTagMap[tag.Key] = append(storedTagMap[tag.Key], tag.Value)
+			storedTagMap[tag.Key] = map[string]struct{}{}
 		}
+		val := storedTagMap[tag.Key]
+
+		val[tag.Value] = struct{}{}
+		storedTagMap[tag.Key] = val
 	}
 
-	newTagMap := make(map[string][]string, len(tags))
-	var key string
-	for idx, t := range tags {
-		if idx%2 == 0 {
-			key = t
-		} else {
-			if newTagMap[key] == nil {
-				newTagMap[key] = []string{t}
-			} else {
-				newTagMap[key] = append(newTagMap[key], t)
-			}
+	newTagMap := make(map[string]map[string]struct{}, len(tags))
+
+	for i := 0; i < len(tags)-1; i += 2 {
+		key := tags[i]
+		if newTagMap[key] == nil {
+			newTagMap[key] = map[string]struct{}{}
 		}
+
+		val := newTagMap[key]
+		val[tags[i+1]] = struct{}{}
+
+		newTagMap[key] = val
 	}
 
-	var toCreateTags []string
-	for key, newTagValues := range newTagMap {
-		storedTagValues := storedTagMap[key]
-		for _, newTagValue := range newTagValues {
-			if storedTagValues == nil {
-				toCreateTags = append(toCreateTags, key)
-				toCreateTags = append(toCreateTags, newTagValue)
-			}
-			var existed = false
-			for _, storedTagValue := range storedTagValues {
-				if storedTagValue == newTagValue {
-					existed = true
-				}
-			}
-			if !existed {
-				toCreateTags = append(toCreateTags, key)
-				toCreateTags = append(toCreateTags, newTagValue)
-			}
-		}
-	}
-	err = s.doCreateConfigFileTags(ctx, namespace, group, fileName, operator, toCreateTags...)
-	if err != nil {
+	toCreateTags := diffTags(newTagMap, storedTagMap)
+	if err = s.doCreateConfigFileTags(ctx, namespace, group, fileName, operator, toCreateTags...); err != nil {
 		return err
 	}
 
 	// 3. 删除 tag
-	var toDeleteTags []string
-	for key, storedTagValues := range storedTagMap {
-		newTagValues := newTagMap[key]
-		for _, storedTagValue := range storedTagValues {
-			if newTagValues == nil {
-				toDeleteTags = append(toDeleteTags, key)
-				toDeleteTags = append(toDeleteTags, storedTagValue)
-			}
-			var existed = false
-			for _, newTagValue := range newTagValues {
-				if storedTagValue == newTagValue {
-					existed = true
-				}
-			}
-			if !existed {
-				toDeleteTags = append(toDeleteTags, key)
-				toDeleteTags = append(toDeleteTags, storedTagValue)
-			}
-		}
-	}
-	err = s.doDeleteConfigFileTags(ctx, namespace, group, fileName, toDeleteTags...)
-	if err != nil {
+	toDeleteTags := diffTags(storedTagMap, newTagMap)
+	if err = s.doDeleteConfigFileTags(ctx, namespace, group, fileName, toDeleteTags...); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// QueryConfigFileByTags 通过标签查询配置文件,多个 tag 之间为或的关系, tags 格式：k1,v1,k2,v2,k3,v3...
+// diffTags Compare data from A and B more than B.
+func diffTags(a, b map[string]map[string]struct{}) []string {
+	tmp := make(map[string]map[string]struct{})
+
+	for key, values := range a {
+
+		existVals := b[key]
+		if len(existVals) == 0 {
+			tmp[key] = a[key]
+			continue
+		}
+
+		if _, ok := tmp[key]; !ok {
+			tmp[key] = map[string]struct{}{}
+		}
+
+		for val := range values {
+			_, existed := existVals[val]
+			if !existed {
+				tmp[key][val] = struct{}{}
+			}
+		}
+	}
+
+	ret := make([]string, 0, 4)
+
+	for k, vs := range tmp {
+
+		for v := range vs {
+			ret = append(ret, k, v)
+		}
+
+	}
+
+	return ret
+}
+
+// QueryConfigFileByTags Inquire the configuration file through the label, the relationship between multiple TAGs,
+//  TAGS format: K1, V1, K2, V2, K3, V3 ...
 func (s *Server) queryConfigFileByTags(ctx context.Context, namespace, group, fileName string, offset, limit uint32,
 	tags ...string) (int, []*model.ConfigFileTag, error) {
 
@@ -186,7 +188,9 @@ func (s *Server) queryConfigFileByTags(ctx context.Context, namespace, group, fi
 }
 
 // QueryTagsByConfigFileWithAPIModels 查询标签，返回API对象
-func (s *Server) queryTagsByConfigFileWithAPIModels(ctx context.Context, namespace, group, fileName string) ([]*api.ConfigFileTag, error) {
+func (s *Server) queryTagsByConfigFileWithAPIModels(ctx context.Context, namespace,
+	group, fileName string) ([]*api.ConfigFileTag, error) {
+
 	tags, err := s.storage.QueryTagByConfigFile(namespace, group, fileName)
 	if err != nil {
 		return nil, err
@@ -221,7 +225,9 @@ func (s *Server) deleteTagByConfigFile(ctx context.Context, namespace, group, fi
 	return nil
 }
 
-func (s *Server) doCreateConfigFileTags(ctx context.Context, namespace, group, fileName, operator string, tags ...string) error {
+func (s *Server) doCreateConfigFileTags(ctx context.Context, namespace, group, fileName,
+	operator string, tags ...string) error {
+
 	if len(tags) == 0 {
 		return nil
 	}

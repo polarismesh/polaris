@@ -30,7 +30,9 @@ import (
 )
 
 // recordReleaseHistory 新增配置文件发布历史记录
-func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.ConfigFileRelease, releaseType, status string) {
+func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.ConfigFileRelease,
+	releaseType, status string) {
+
 	namespace, group, fileName := fileRelease.Namespace, fileRelease.Group, fileRelease.FileName
 
 	// 获取 format 信息
@@ -79,7 +81,8 @@ func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, gro
 		return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.InvalidParameter, 0, nil)
 	}
 
-	count, releaseHistories, err := s.storage.QueryConfigFileReleaseHistories(namespace, group, fileName, offset, limit, endId)
+	count, releaseHistories, err := s.storage.QueryConfigFileReleaseHistories(namespace,
+		group, fileName, offset, limit, endId)
 
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] get config file release history error.",
@@ -133,10 +136,13 @@ func (s *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespac
 		return api.NewConfigFileReleaseHistoryResponse(api.StoreLayerException, nil)
 	}
 
-	return api.NewConfigFileReleaseHistoryResponse(api.ExecuteSuccess, transferReleaseHistoryStoreModel2APIModel(history))
+	return api.NewConfigFileReleaseHistoryResponse(api.ExecuteSuccess,
+		transferReleaseHistoryStoreModel2APIModel(history))
 }
 
-func transferReleaseHistoryStoreModel2APIModel(releaseHistory *model.ConfigFileReleaseHistory) *api.ConfigFileReleaseHistory {
+func transferReleaseHistoryStoreModel2APIModel(
+	releaseHistory *model.ConfigFileReleaseHistory) *api.ConfigFileReleaseHistory {
+
 	if releaseHistory == nil {
 		return nil
 	}
