@@ -54,7 +54,6 @@ func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Conf
 	namingServer.l5service = &l5service{}
 
 	namingServer.createServiceSingle = &singleflight.Group{}
-	namingServer.createNamespaceSingle = &singleflight.Group{}
 
 	// 插件初始化
 	pluginInitialize()

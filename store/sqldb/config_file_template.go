@@ -19,9 +19,10 @@ package sqldb
 
 import (
 	"database/sql"
+	"time"
+
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
-	"time"
 )
 
 type configFileTemplateStore struct {
@@ -29,10 +30,14 @@ type configFileTemplateStore struct {
 }
 
 // CreateConfigFileTemplate create config file template
-func (cf *configFileTemplateStore) CreateConfigFileTemplate(template *model.ConfigFileTemplate) (*model.ConfigFileTemplate, error) {
-	createSql := "insert into config_file_template(name,content,comment,format,create_time,create_by,modify_time,modify_by) values " +
+func (cf *configFileTemplateStore) CreateConfigFileTemplate(
+	template *model.ConfigFileTemplate) (*model.ConfigFileTemplate, error) {
+
+	createSql := "insert into config_file_template(name,content,comment,format,create_time,create_by, " +
+		" modify_time,modify_by) values " +
 		"(?,?,?,?,sysdate(),?,sysdate(),?)"
-	_, err := cf.db.Exec(createSql, template.Name, template.Content, template.Comment, template.Format, template.CreateBy, template.ModifyBy)
+	_, err := cf.db.Exec(createSql, template.Name, template.Content, template.Comment, template.Format,
+		template.CreateBy, template.ModifyBy)
 	if err != nil {
 		return nil, store.Error(err)
 	}
@@ -74,7 +79,8 @@ func (cf *configFileTemplateStore) QueryAllConfigFileTemplates() ([]*model.Confi
 }
 
 func (cf *configFileTemplateStore) baseSelectConfigFileTemplateSql() string {
-	return "select id, name, content,IFNULL(comment, ''),format, UNIX_TIMESTAMP(create_time),IFNULL(create_by, ''),UNIX_TIMESTAMP(modify_time),IFNULL(modify_by, '') from config_file_template "
+	return "select id, name, content,IFNULL(comment, ''),format, UNIX_TIMESTAMP(create_time),  " +
+		" IFNULL(create_by, ''),UNIX_TIMESTAMP(modify_time),IFNULL(modify_by, '') from config_file_template "
 }
 
 func (cf *configFileTemplateStore) transferRows(rows *sql.Rows) ([]*model.ConfigFileTemplate, error) {
@@ -88,7 +94,8 @@ func (cf *configFileTemplateStore) transferRows(rows *sql.Rows) ([]*model.Config
 	for rows.Next() {
 		template := &model.ConfigFileTemplate{}
 		var ctime, mtime int64
-		err := rows.Scan(&template.Id, &template.Name, &template.Content, &template.Comment, &template.Format, &ctime, &template.CreateBy, &mtime, &template.ModifyBy)
+		err := rows.Scan(&template.Id, &template.Name, &template.Content, &template.Comment, &template.Format,
+			&ctime, &template.CreateBy, &mtime, &template.ModifyBy)
 		if err != nil {
 			return nil, err
 		}

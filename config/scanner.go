@@ -81,7 +81,8 @@ func (s *releaseMessageScanner) scanAtFirstTime() error {
 		return nil
 	}
 
-	log.ConfigScope().Info("[Config][Scanner] scan config file release count at first time. ", zap.Int("count", len(releases)))
+	log.ConfigScope().Info("[Config][Scanner] scan config file release count at first time. ",
+		zap.Int("count", len(releases)))
 
 	err = s.handlerReleases(true, releases)
 	if err != nil {

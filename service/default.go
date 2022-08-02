@@ -27,13 +27,7 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris-server/auth"
-	"github.com/polarismesh/polaris-server/cache"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/service/batch"
-	"github.com/polarismesh/polaris-server/service/healthcheck"
-	"github.com/polarismesh/polaris-server/store"
 )
 
 const (
@@ -68,11 +62,10 @@ type Config struct {
 }
 
 // Initialize 初始化
-func Initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config,
-	bc *batch.Controller, polarisServiceSet map[model.ServiceKey]struct{}) error {
+func Initialize(ctx context.Context, namingOpt *Config, opts ...InitOption) error {
 	var err error
 	once.Do(func() {
-		err = initialize(ctx, namingOpt, cacheOpt, bc, polarisServiceSet)
+		err = initialize(ctx, namingOpt, opts...)
 	})
 
 	if err != nil {
@@ -102,57 +95,14 @@ func GetOriginServer() (*Server, error) {
 }
 
 // 内部初始化函数
-func initialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, bc *batch.Controller,
-	polarisServiceSet map[model.ServiceKey]struct{}) error {
-
-	// 获取存储层对象
-	s, err := store.GetStore()
-	if err != nil {
-		log.Errorf("[Naming][Server] can not get store, err: %s", err.Error())
-		return errors.New("can not get store")
-	}
-	if s == nil {
-		log.Errorf("[Naming][Server] store is null")
-		return errors.New("store is null")
-	}
-
-	healthServer, err := healthcheck.GetServer()
-	if err != nil {
-		log.Errorf("[Naming][Server] can not get store, err: %s", err.Error())
-		return errors.New("can not get healthcheck server")
-	}
-
-	namingServer.healthServer = healthServer
-
-	namingServer.storage = s
-
-	// 注入命名空间管理模块
-	namespaceSvr, err := namespace.GetOriginServer()
-	if err != nil {
-		return err
-	}
-	namingServer.namespaceSvr = namespaceSvr
-
-	// cache模块，可以不开启
-	// 对于控制台集群，只访问控制台接口的，可以不开启cache
-	if cacheOpt.Open {
-		caches, cacheErr := cache.GetCacheManager()
-		if cacheErr != nil {
-			log.Errorf("[Naming][Server] new naming cache err: %s", cacheErr.Error())
-			return cacheErr
-		}
-		log.Infof("[Naming][Server] cache is open, can access the client api function")
-		namingServer.caches = caches
-	}
-
-	namingServer.bc = bc
-
+func initialize(ctx context.Context, namingOpt *Config, opts ...InitOption) error {
 	// l5service
 	namingServer.l5service = &l5service{}
-
 	namingServer.createServiceSingle = &singleflight.Group{}
-	namingServer.createNamespaceSingle = &singleflight.Group{}
-	namingServer.polarisServiceSet = polarisServiceSet
+
+	for i := range opts {
+		opts[i](namingServer)
+	}
 
 	// 插件初始化
 	pluginInitialize()

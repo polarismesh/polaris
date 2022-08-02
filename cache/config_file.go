@@ -21,6 +21,7 @@ import (
 	"context"
 	"math/rand"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"go.uber.org/zap"
@@ -28,13 +29,6 @@ import (
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
-)
-
-var (
-	loadCnt   = 0
-	getCnt    = 0
-	removeCnt = 0
-	expireCnt = 0
 )
 
 type FileCacheParam struct {
@@ -49,6 +43,14 @@ type FileCache struct {
 	files *sync.Map
 	// fileId -> lock
 	fileLoadLocks *sync.Map
+	// loadCnt
+	loadCnt int32
+	// getCnt
+	getCnt int32
+	// removeCnt
+	removeCnt int32
+	// expireCnt
+	expireCnt int32
 }
 
 // Entry 缓存实体对象
@@ -90,7 +92,7 @@ func (fc *FileCache) Get(namespace, group, fileName string) (*Entry, bool) {
 
 // GetOrLoadIfAbsent 获取缓存，如果缓存没命中则会从数据库中加载，如果数据库里获取不到数据，则会缓存一个空对象防止缓存一直被击穿
 func (fc *FileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entry, error) {
-	getCnt++
+	atomic.AddInt32(&fc.getCnt, 1)
 
 	fileId := utils.GenFileId(namespace, group, fileName)
 	storedEntry, ok := fc.files.Load(fileId)
@@ -113,7 +115,7 @@ func (fc *FileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 	}
 
 	// 从数据库中加载数据
-	loadCnt++
+	atomic.AddInt32(&fc.loadCnt, 1)
 
 	file, err := fc.storage.GetConfigFileRelease(nil, namespace, group, fileName)
 	if err != nil {
@@ -166,7 +168,7 @@ func (fc *FileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 
 // Remove 删除缓存对象
 func (fc *FileCache) Remove(namespace, group, fileName string) {
-	removeCnt++
+	atomic.AddInt32(&fc.removeCnt, 1)
 	fileId := utils.GenFileId(namespace, group, fileName)
 	fc.files.Delete(fileId)
 }
@@ -213,7 +215,7 @@ func (fc *FileCache) startClearExpireEntryTask(ctx context.Context) {
 				log.ConfigScope().Info("[Config][Cache] clear expired file cache.", zap.Int("count", curExpiredFileCnt))
 			}
 
-			expireCnt += curExpiredFileCnt
+			atomic.AddInt32(&fc.expireCnt, int32(curExpiredFileCnt))
 		}
 	}
 }
@@ -228,10 +230,10 @@ func (fc *FileCache) startLogStatusTask(ctx context.Context) {
 			return
 		case <-t.C:
 			log.ConfigScope().Info("[Config][Cache] cache status:",
-				zap.Int("getCnt", getCnt),
-				zap.Int("loadCnt", loadCnt),
-				zap.Int("removeCnt", removeCnt),
-				zap.Int("expireCnt", expireCnt))
+				zap.Int32("getCnt", atomic.LoadInt32(&fc.getCnt)),
+				zap.Int32("loadCnt", atomic.LoadInt32(&fc.loadCnt)),
+				zap.Int32("removeCnt", atomic.LoadInt32(&fc.removeCnt)),
+				zap.Int32("expireCnt", atomic.LoadInt32(&fc.expireCnt)))
 		}
 	}
 }

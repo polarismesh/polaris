@@ -133,7 +133,7 @@ func (s *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.C
 			return api.NewConfigFileResponse(api.StoreLayerException, nil)
 		}
 
-		s.RecordConfigFileReleaseHistory(ctx, createdFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
+		s.recordReleaseHistory(ctx, createdFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
 
 		return api.NewConfigFileReleaseResponse(api.ExecuteSuccess,
 			transferConfigFileReleaseStoreModel2APIModel(createdFileRelease))
@@ -166,7 +166,7 @@ func (s *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.C
 		return api.NewConfigFileResponse(api.StoreLayerException, nil)
 	}
 
-	s.RecordConfigFileReleaseHistory(ctx, updatedFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
+	s.recordReleaseHistory(ctx, updatedFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
 
 	return api.NewConfigFileReleaseResponse(api.ExecuteSuccess,
 		transferConfigFileReleaseStoreModel2APIModel(updatedFileRelease))
@@ -205,7 +205,9 @@ func (s *Server) GetConfigFileRelease(ctx context.Context, namespace, group, fil
 }
 
 // DeleteConfigFileRelease 删除配置文件发布，删除配置文件的时候，同步删除配置文件发布数据
-func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace, group, fileName, deleteBy string) *api.ConfigResponse {
+func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace,
+	group, fileName, deleteBy string) *api.ConfigResponse {
+
 	if err := utils2.CheckFileName(utils.NewStringValue(fileName)); err != nil {
 		return api.NewConfigFileResponse(api.InvalidConfigFileName, nil)
 	}
@@ -259,7 +261,7 @@ func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace, group, 
 			zap.String("fileName", fileName),
 			zap.Error(err))
 
-		s.RecordConfigFileReleaseHistory(ctx, &model.ConfigFileRelease{
+		s.recordReleaseHistory(ctx, &model.ConfigFileRelease{
 			Name:      releaseName,
 			Namespace: namespace,
 			Group:     group,
@@ -270,7 +272,7 @@ func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace, group, 
 		return api.NewConfigFileResponse(api.StoreLayerException, nil)
 	}
 
-	s.RecordConfigFileReleaseHistory(ctx, &model.ConfigFileRelease{
+	s.recordReleaseHistory(ctx, &model.ConfigFileRelease{
 		Name:      releaseName,
 		Namespace: namespace,
 		Group:     group,
@@ -282,7 +284,7 @@ func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace, group, 
 }
 
 func (s *Server) recordReleaseFail(ctx context.Context, configFileRelease *model.ConfigFileRelease) {
-	s.RecordConfigFileReleaseHistory(ctx, configFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusFail)
+	s.recordReleaseHistory(ctx, configFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusFail)
 }
 
 func transferConfigFileReleaseAPIModel2StoreModel(release *api.ConfigFileRelease) *model.ConfigFileRelease {

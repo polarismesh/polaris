@@ -19,6 +19,7 @@ package config
 
 import (
 	"context"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -58,7 +59,8 @@ func (s *Server) CreateConfigFileTemplate(ctx context.Context, template *api.Con
 		return api.NewConfigFileTemplateResponse(api.StoreLayerException, template)
 	}
 
-	return api.NewConfigFileTemplateResponse(api.ExecuteSuccess, transferConfigFileTemplateStoreModel2APIModel(createdTemplate))
+	return api.NewConfigFileTemplateResponse(api.ExecuteSuccess,
+		transferConfigFileTemplateStoreModel2APIModel(createdTemplate))
 }
 
 func (s *Server) GetConfigFileTemplate(ctx context.Context, name string) *api.ConfigResponse {
@@ -80,7 +82,8 @@ func (s *Server) GetConfigFileTemplate(ctx context.Context, name string) *api.Co
 		return api.NewConfigFileTemplateResponse(api.NotFoundResource, nil)
 	}
 
-	return api.NewConfigFileTemplateResponse(api.ExecuteSuccess, transferConfigFileTemplateStoreModel2APIModel(template))
+	return api.NewConfigFileTemplateResponse(api.ExecuteSuccess,
+		transferConfigFileTemplateStoreModel2APIModel(template))
 }
 
 // GetAllConfigFileTemplates get all config file templates

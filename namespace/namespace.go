@@ -19,6 +19,7 @@ package namespace
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -30,7 +31,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
-func (s *Server) AllowAutoCreate() bool {
+func (s *Server) allowAutoCreate() bool {
 	return s.cfg.AutoCreate
 }
 
@@ -47,6 +48,34 @@ func (s *Server) CreateNamespaces(ctx context.Context, req []*api.Namespace) *ap
 	}
 
 	return responses
+}
+
+func (s *Server) CreateNamespaceIfAbsent(ctx context.Context, req *api.Namespace) error {
+	if !s.allowAutoCreate() {
+		return errors.New("not allow auto create namespace")
+	}
+	
+	if resp := checkCreateNamespace(req); resp != nil {
+		return errors.New(resp.GetInfo().GetValue())
+	}
+
+	if val := s.caches.Namespace().GetNamespace(req.GetName().GetValue()); val != nil {
+		return nil
+	}
+
+	_, err, _ := s.createNamespaceSingle.Do(req.GetName().GetValue(), func() (interface{}, error) {
+		resp := s.CreateNamespace(ctx, req)
+
+		code := resp.GetCode().GetValue()
+
+		if code == api.ExecuteSuccess || code == api.ExistedResource {
+			return nil, nil
+		}
+
+		return nil, errors.New(resp.GetInfo().GetValue())
+	})
+
+	return err
 }
 
 // CreateNamespace 创建单个命名空间
