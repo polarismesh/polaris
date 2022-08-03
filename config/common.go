@@ -22,11 +22,9 @@ import (
 	"errors"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 const (
@@ -51,34 +49,6 @@ func (s *Server) getTx(ctx context.Context) store.Tx {
 func (s *Server) checkNamespaceExisted(namespaceName string) bool {
 	namespace, _ := s.storage.GetNamespace(namespaceName)
 	return namespace != nil
-}
-
-func (s *Server) createNamespaceIfAbsent(namespaceName, operator, requestId string) error {
-	namespace, err := s.storage.GetNamespace(namespaceName)
-	if err != nil {
-		log.ConfigScope().Error("[Config][Service] get namespace error.", zap.Error(err))
-		return err
-	}
-	if namespace != nil {
-		return nil
-	}
-
-	namespace = &model.Namespace{
-		Name:    namespaceName,
-		Token:   utils.NewUUID(),
-		Owner:   operator,
-		Comment: "auto created by config module",
-	}
-
-	if err := s.storage.AddNamespace(namespace); err != nil {
-		log.ConfigScope().Error("[Config][Service] create namespace error.",
-			zap.String("namespace", namespaceName),
-			zap.String("requestId", requestId),
-			zap.Error(err))
-		return err
-	}
-
-	return nil
 }
 
 func convertToErrCode(err error) uint32 {

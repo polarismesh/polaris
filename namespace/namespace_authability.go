@@ -25,9 +25,8 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
-// AllowAutoCreate 是否允许自动创建命名空间
-func (svr *serverAuthAbility) AllowAutoCreate() bool {
-	return svr.targetServer.AllowAutoCreate()
+func (svr *serverAuthAbility) CreateNamespaceIfAbsent(ctx context.Context, req *api.Namespace) error {
+	return svr.targetServer.CreateNamespaceIfAbsent(ctx, req)
 }
 
 // CreateNamespaces 创建命名空间，只需要要后置鉴权，将数据添加到资源策略中

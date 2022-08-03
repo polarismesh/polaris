@@ -54,11 +54,11 @@ func TestClientSetupAndFileNotExisted(t *testing.T) {
 	rsp := testSuit.testService.GetConfigFileForClient(testSuit.defaultCtx, fileInfo)
 	assert.Equal(t, uint32(api.NotFoundResource), rsp.Code.GetValue(), "GetConfigFileForClient must notfound")
 
-	rsp2 := testSuit.testServer.CheckClientConfigFileByVersion(testSuit.defaultCtx, assembleDefaultClientConfigFile(0))
-	assert.Equal(t, uint32(api.DataNoChange), rsp2.Code.GetValue(), "CheckClientConfigFileByVersion must nochange")
+	rsp2 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(0), compareByVersion)
+	assert.Equal(t, uint32(api.DataNoChange), rsp2.Code.GetValue(), "checkClientConfigFileByVersion must nochange")
 	assert.Nil(t, rsp2.ConfigFile)
 
-	rsp3 := testSuit.testServer.CheckClientConfigFileByMd5(testSuit.defaultCtx, assembleDefaultClientConfigFile(0))
+	rsp3 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(0), compareByMD5)
 	assert.Equal(t, uint32(api.DataNoChange), rsp3.Code.GetValue())
 	assert.Nil(t, rsp3.ConfigFile)
 }
@@ -99,12 +99,12 @@ func TestClientSetupAndFileExisted(t *testing.T) {
 	assert.Equal(t, utils2.CalMd5(configFile.Content.GetValue()), rsp3.ConfigFile.Md5.GetValue())
 
 	// 比较客户端配置是否落后
-	rsp4 := testSuit.testServer.CheckClientConfigFileByVersion(testSuit.defaultCtx, assembleDefaultClientConfigFile(0))
+	rsp4 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(0), compareByVersion)
 	assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
 	assert.NotNil(t, rsp4.ConfigFile)
 	assert.Equal(t, utils2.CalMd5(configFile.Content.GetValue()), rsp4.ConfigFile.Md5.GetValue())
 
-	rsp5 := testSuit.testServer.CheckClientConfigFileByMd5(testSuit.defaultCtx, assembleDefaultClientConfigFile(0))
+	rsp5 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(0), compareByMD5)
 	assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue())
 	assert.NotNil(t, rsp5.ConfigFile)
 	assert.Equal(t, uint64(1), rsp5.ConfigFile.Version.GetValue())
@@ -159,12 +159,12 @@ func TestClientVersionBehindServer(t *testing.T) {
 	assert.Equal(t, utils2.CalMd5(latestContent), rsp4.ConfigFile.Md5.GetValue())
 
 	// 比较客户端配置是否落后
-	rsp5 := testSuit.testServer.CheckClientConfigFileByVersion(testSuit.defaultCtx, assembleDefaultClientConfigFile(clientVersion))
+	rsp5 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(clientVersion), compareByVersion)
 	assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue())
 	assert.NotNil(t, rsp5.ConfigFile)
 	assert.Equal(t, utils2.CalMd5(latestContent), rsp5.ConfigFile.Md5.GetValue())
 
-	rsp6 := testSuit.testServer.CheckClientConfigFileByMd5(testSuit.defaultCtx, assembleDefaultClientConfigFile(clientVersion))
+	rsp6 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(clientVersion), compareByMD5)
 	assert.Equal(t, api.ExecuteSuccess, rsp6.Code.GetValue())
 	assert.NotNil(t, rsp6.ConfigFile)
 	assert.Equal(t, uint64(5), rsp6.ConfigFile.Version.GetValue())

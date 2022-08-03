@@ -1,10 +1,14 @@
-name: IntegrationTest(MySQL)
+name: IntegrationTest(MySQL + Redis)
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - release*
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - release*
 
 permissions:
   contents: write
@@ -40,6 +44,20 @@ jobs:
             goos: linux
 
     runs-on: ${{ matrix.os }}
+    services:
+    # Label used to access the service container
+      redis:
+        # Docker Hub image
+        image: redis
+        # Set health checks to wait until redis has started
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps port 6379 on service container to the host
+          - 6379:6379
     steps:
       # Setup the environment.
       - name: Setup Go
@@ -69,7 +87,7 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-        run: bash build.sh
+        run: make build
 
       # Run unit tests
       - name: run tests

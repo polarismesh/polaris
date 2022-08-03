@@ -54,9 +54,10 @@ type Server struct {
 	l5service *l5service
 
 	createServiceSingle   *singleflight.Group
-	createNamespaceSingle *singleflight.Group
 
 	hooks []ResourceHook
+
+	polarisServiceSet map[model.ServiceKey]struct{}
 }
 
 // HealthServer 健康检查Server

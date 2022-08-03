@@ -125,7 +125,8 @@ func (wc *watchCenter) handleMessage() {
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
-				log.ConfigScope().Error("[Config][Watcher] handler config release message error.", zap.Any("error", err))
+				log.ConfigScope().Error("[Config][Watcher] handler config release message error.",
+					zap.Any("error", err))
 			}
 		}()
 

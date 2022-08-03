@@ -21,14 +21,17 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
+)
+
+type (
+	WatchCallback func() *api.ConfigClientResponse
 )
 
 const (
 	MaxPageSize = 100
 )
 
-// ConfigFileGroupAPI 配置文件组接口
+// ConfigFileGroupOperate 配置文件组接口
 type ConfigFileGroupOperate interface {
 	// CreateConfigFileGroup 创建配置文件组
 	CreateConfigFileGroup(ctx context.Context, configFileGroup *api.ConfigFileGroup) *api.ConfigResponse
@@ -43,7 +46,7 @@ type ConfigFileGroupOperate interface {
 	UpdateConfigFileGroup(ctx context.Context, configFileGroup *api.ConfigFileGroup) *api.ConfigResponse
 }
 
-// ConfigFileAPI 配置文件接口
+// ConfigFileOperate 配置文件接口
 type ConfigFileOperate interface {
 	// CreateConfigFile 创建配置文件
 	CreateConfigFile(ctx context.Context, configFile *api.ConfigFile) *api.ConfigResponse
@@ -84,9 +87,6 @@ type ConfigFileReleaseOperate interface {
 
 // ConfigFileReleaseHistoryOperate 配置文件发布历史接口
 type ConfigFileReleaseHistoryOperate interface {
-	// RecordConfigFileReleaseHistory 记录发布
-	RecordConfigFileReleaseHistory(ctx context.Context, fileRelease *model.ConfigFileRelease, releaseType, status string)
-
 	// GetConfigFileReleaseHistory 获取配置文件的发布历史
 	GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset, limit uint32, endId uint64) *api.ConfigBatchQueryResponse
 
@@ -100,8 +100,19 @@ type ConfigFileClientOperate interface {
 	GetConfigFileForClient(ctx context.Context, configFile *api.ClientConfigFileInfo) *api.ConfigClientResponse
 
 	// WatchConfigFiles 客户端监听配置文件
-	WatchConfigFiles(ctx context.Context,
-		request *api.ClientWatchConfigFileRequest) (func() *api.ConfigClientResponse, error)
+	WatchConfigFiles(ctx context.Context, request *api.ClientWatchConfigFileRequest) (WatchCallback, error)
+}
+
+// ConfigFileTemplateOperate config file template operate
+type ConfigFileTemplateOperate interface {
+	// GetAllConfigFileTemplates get all config file templates
+	GetAllConfigFileTemplates(ctx context.Context) *api.ConfigBatchQueryResponse
+
+	// CreateConfigFileTemplate create config file template
+	CreateConfigFileTemplate(ctx context.Context, template *api.ConfigFileTemplate) *api.ConfigResponse
+
+	// GetConfigFileTemplate get config file template
+	GetConfigFileTemplate(ctx context.Context, name string) *api.ConfigResponse
 }
 
 // ConfigCenterServer 配置中心server
@@ -111,4 +122,5 @@ type ConfigCenterServer interface {
 	ConfigFileReleaseOperate
 	ConfigFileReleaseHistoryOperate
 	ConfigFileClientOperate
+	ConfigFileTemplateOperate
 }

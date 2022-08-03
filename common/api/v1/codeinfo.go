@@ -158,6 +158,7 @@ const (
 	InvalidConfigFileTags          uint32 = 400805
 	InvalidWatchConfigFileFormat   uint32 = 400806
 	NotFoundResourceConfigFile     uint32 = 400807
+	InvalidConfigFileTemplateName  uint32 = 400808
 
 	// 鉴权相关错误码
 	InvalidUserOwners         uint32 = 400410
@@ -318,6 +319,7 @@ var code2info = map[uint32]string{
 	InvalidConfigFileTags:          "invalid config file tags, tags should be pair, like key1,value1,key2,value2. and key,value should not blank",
 	InvalidWatchConfigFileFormat:   "invalid watch config file format",
 	NotFoundResourceConfigFile:     "config file not existed",
+	InvalidConfigFileTemplateName:  "invalid config file template name",
 
 	// 鉴权错误
 	NotFoundUser:             "not found user",

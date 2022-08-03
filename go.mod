@@ -3,7 +3,7 @@ module github.com/polarismesh/polaris-server
 go 1.17
 
 require (
-	github.com/BurntSushi/toml v0.4.1 // indirect
+	github.com/BurntSushi/toml v1.0.0
 	github.com/boltdb/bolt v1.3.1
 	github.com/census-instrumentation/opencensus-proto v0.3.0 // indirect
 	github.com/cncf/xds/go v0.0.0-20211130200136-a8f946100490 // indirect
@@ -46,7 +46,10 @@ require (
 
 )
 
-require bou.ke/monkey v1.0.2
+require (
+	bou.ke/monkey v1.0.2
+	github.com/nicksnyder/go-i18n/v2 v2.2.0
+)
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect

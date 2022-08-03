@@ -2,9 +2,13 @@ name: IntegrationTest(BoltDB)
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - release*
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - release*
 
 permissions:
   contents: write
@@ -55,7 +59,7 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-        run: bash build.sh
+        run: make build
 
       # Run interface tests
       - name: run discover interface tests
@@ -89,10 +93,3 @@ jobs:
           cd $work_dir
           ./tool/stop.sh
           cd ..
-
-      # - name: run config-center interface tests
-      #   run: |
-      #     # 进行配置中心的集成测试
-      #     pushd ./test/config_center
-      #     go test -count=1 -v
-      #     popd

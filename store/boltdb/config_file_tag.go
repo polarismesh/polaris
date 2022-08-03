@@ -76,7 +76,9 @@ func (t *configFileTagStore) CreateConfigFileTag(proxyTx store.Tx, fileTag *mode
 			return nil, err
 		}
 
-		key := fmt.Sprintf("%s@%s@%s@%s@%s", fileTag.Key, fileTag.Value, fileTag.Namespace, fileTag.Group, fileTag.FileName)
+		key := fmt.Sprintf("%s@%s@%s@%s@%s", fileTag.Key, fileTag.Value, fileTag.Namespace,
+			fileTag.Group, fileTag.FileName)
+
 		if err := saveValue(tx, tbleConfigFileTag, key, fileTag); err != nil {
 			log.Error("[ConfigFileTag] save info", zap.Error(err))
 			return nil, err
@@ -89,7 +91,8 @@ func (t *configFileTagStore) CreateConfigFileTag(proxyTx store.Tx, fileTag *mode
 }
 
 // QueryConfigFileByTag 通过标签查询配置文件
-func (t *configFileTagStore) QueryConfigFileByTag(namespace, group, fileName string, tags ...string) ([]*model.ConfigFileTag, error) {
+func (t *configFileTagStore) QueryConfigFileByTag(namespace, group, fileName string,
+	tags ...string) ([]*model.ConfigFileTag, error) {
 
 	fields := []string{TagFieldNamespace, TagFieldGroup, TagFieldFileName, TagFieldKey, TagFieldValue}
 
@@ -98,28 +101,29 @@ func (t *configFileTagStore) QueryConfigFileByTag(namespace, group, fileName str
 		tagSearchMap[tags[i]] = tags[i+1]
 	}
 
-	ret, err := t.handler.LoadValuesByFilter(tbleConfigFileTag, fields, &model.ConfigFileTag{}, func(m map[string]interface{}) bool {
-		saveNs, _ := m[TagFieldNamespace].(string)
-		saveGroup, _ := m[TagFieldGroup].(string)
-		saveFileName, _ := m[TagFieldFileName].(string)
-		saveTagKey, _ := m[TagFieldKey].(string)
-		saveTagValue, _ := m[TagFieldValue].(string)
+	ret, err := t.handler.LoadValuesByFilter(tbleConfigFileTag, fields, &model.ConfigFileTag{},
+		func(m map[string]interface{}) bool {
+			saveNs, _ := m[TagFieldNamespace].(string)
+			saveGroup, _ := m[TagFieldGroup].(string)
+			saveFileName, _ := m[TagFieldFileName].(string)
+			saveTagKey, _ := m[TagFieldKey].(string)
+			saveTagValue, _ := m[TagFieldValue].(string)
 
-		equalNs := strings.Compare(saveNs, namespace) == 0
-		equalGroup := strings.Contains(saveGroup, group)
-		equalFileName := strings.Contains(saveFileName, fileName)
+			equalNs := strings.Compare(saveNs, namespace) == 0
+			equalGroup := strings.Contains(saveGroup, group)
+			equalFileName := strings.Contains(saveFileName, fileName)
 
-		if !equalNs || !equalGroup || !equalFileName {
-			return false
-		}
+			if !equalNs || !equalGroup || !equalFileName {
+				return false
+			}
 
-		tagVal, ok := tagSearchMap[saveTagKey]
-		if !ok {
-			return false
-		}
+			tagVal, ok := tagSearchMap[saveTagKey]
+			if !ok {
+				return false
+			}
 
-		return strings.Compare(tagVal, saveTagValue) == 0
-	})
+			return strings.Compare(tagVal, saveTagValue) == 0
+		})
 
 	if err != nil {
 		return nil, err
@@ -166,7 +170,9 @@ func (t *configFileTagStore) QueryTagByConfigFile(namespace, group, fileName str
 }
 
 // DeleteConfigFileTag 删除配置文件标签
-func (t *configFileTagStore) DeleteConfigFileTag(proxyTx store.Tx, namespace, group, fileName, key, value string) error {
+func (t *configFileTagStore) DeleteConfigFileTag(proxyTx store.Tx, namespace, group,
+	fileName, key, value string) error {
+
 	_, err := DoTransactionIfNeed(proxyTx, t.handler, func(tx *bolt.Tx) ([]interface{}, error) {
 		dataKey := fmt.Sprintf("%s@%s@%s@%s@%s", key, value, namespace, group, fileName)
 

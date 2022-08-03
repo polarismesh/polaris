@@ -68,6 +68,9 @@ bootstrap:
         - stdout
       errorOutputPaths:
         - stderr
+namespace:
+  # 是否允许自动创建命名空间
+  autoCreate: true
 # 配置中心模块启动配置
 config:
   # 是否启动配置模块
