@@ -507,6 +507,7 @@ func copyRateLimitProto(rateLimit *model.RateLimit, rule *api.Rule) {
 	rule.Failover = rateLimit.Proto.Failover
 	rule.AmountMode = rateLimit.Proto.AmountMode
 	rule.Adjuster = rateLimit.Proto.Adjuster
+	rule.MaxQueueDelay = rateLimit.Proto.MaxQueueDelay
 	populateDefaultRuleValue(rule)
 }
 
@@ -530,19 +531,20 @@ func rateLimit2Client(
 // marshalRateLimitRules 序列化限流规则具体内容
 func marshalRateLimitRules(req *api.Rule) (string, error) {
 	r := &api.Rule{
-		Name:         req.GetName(),
-		Resource:     req.GetResource(),
-		Type:         req.GetType(),
-		Amounts:      req.GetAmounts(),
-		Action:       req.GetAction(),
-		Disable:      req.GetDisable(),
-		Report:       req.GetReport(),
-		Adjuster:     req.GetAdjuster(),
-		RegexCombine: req.GetRegexCombine(),
-		AmountMode:   req.GetAmountMode(),
-		Failover:     req.GetFailover(),
-		Arguments:    req.GetArguments(),
-		Method:       req.GetMethod(),
+		Name:          req.GetName(),
+		Resource:      req.GetResource(),
+		Type:          req.GetType(),
+		Amounts:       req.GetAmounts(),
+		Action:        req.GetAction(),
+		Disable:       req.GetDisable(),
+		Report:        req.GetReport(),
+		Adjuster:      req.GetAdjuster(),
+		RegexCombine:  req.GetRegexCombine(),
+		AmountMode:    req.GetAmountMode(),
+		Failover:      req.GetFailover(),
+		Arguments:     req.GetArguments(),
+		Method:        req.GetMethod(),
+		MaxQueueDelay: req.GetMaxQueueDelay(),
 	}
 	rule, err := json.Marshal(r)
 	if err != nil {
