@@ -393,12 +393,19 @@ func transferConfigFileGroupAPIModel2StoreModel(group *api.ConfigFileGroup) *mod
 	if group.CreateBy != nil {
 		createBy = group.CreateBy.Value
 	}
+	var groupOwner string
+	if group.Owner != nil && group.Owner.GetValue() != "" {
+		groupOwner = group.Owner.GetValue()
+	} else {
+		groupOwner = createBy
+	}
 	return &model.ConfigFileGroup{
 		Name:      group.Name.GetValue(),
 		Namespace: group.Namespace.GetValue(),
 		Comment:   comment,
 		CreateBy:  createBy,
 		Valid:     true,
+		Owner:     groupOwner,
 	}
 }
 
@@ -411,6 +418,7 @@ func transferConfigFileGroupStoreModel2APIModel(group *model.ConfigFileGroup) *a
 		Name:       utils.NewStringValue(group.Name),
 		Namespace:  utils.NewStringValue(group.Namespace),
 		Comment:    utils.NewStringValue(group.Comment),
+		Owner:      utils.NewStringValue(group.Owner),
 		CreateBy:   utils.NewStringValue(group.CreateBy),
 		ModifyBy:   utils.NewStringValue(group.ModifyBy),
 		CreateTime: utils.NewStringValue(time.Time2String(group.CreateTime)),
