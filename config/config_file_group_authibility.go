@@ -29,8 +29,7 @@ import (
 func (s *serverAuthability) CreateConfigFileGroup(ctx context.Context,
 	configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
 
-	authCtx := s.collectBaseTokenInfo(ctx, []*api.ConfigFileGroup{configFileGroup},
-		model.Create, "CreateConfigFileGroup", model.RConfigGroup)
+	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{configFileGroup}, model.Create, "CreateConfigFileGroup")
 
 	// 验证 token 信息
 	if _, err := s.authChecker.CheckConsolePermission(authCtx); err != nil {
@@ -47,8 +46,8 @@ func (s *serverAuthability) CreateConfigFileGroup(ctx context.Context,
 func (s *serverAuthability) QueryConfigFileGroups(ctx context.Context, namespace, groupName,
 	fileName string, offset, limit uint32) *api.ConfigBatchQueryResponse {
 
-	authCtx := s.collectBaseTokenInfo(ctx, []*api.ConfigFileGroup{{Name: utils.NewStringValue(groupName), Namespace: utils.NewStringValue(namespace)}},
-		model.Read, "QueryConfigFileGroups", model.RConfigGroup)
+	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{{Name: utils.NewStringValue(groupName),
+		Namespace: utils.NewStringValue(namespace)}}, model.Read, "QueryConfigFileGroups")
 
 	if _, err := s.authChecker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileGroupBatchQueryResponse(convertToErrCode(err), 0, nil)
@@ -82,8 +81,8 @@ func (s *serverAuthability) QueryConfigFileGroups(ctx context.Context, namespace
 // DeleteConfigFileGroup 删除配置文件组
 func (s *serverAuthability) DeleteConfigFileGroup(ctx context.Context, namespace, name string) *api.ConfigResponse {
 
-	authCtx := s.collectBaseTokenInfo(ctx, []*api.ConfigFileGroup{{Name: utils.NewStringValue(name), Namespace: utils.NewStringValue(namespace)}},
-		model.Delete, "DeleteConfigFileGroup", model.RConfigGroup)
+	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{{Name: utils.NewStringValue(name),
+		Namespace: utils.NewStringValue(namespace)}}, model.Delete, "DeleteConfigFileGroup")
 
 	if _, err := s.authChecker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
@@ -99,8 +98,7 @@ func (s *serverAuthability) DeleteConfigFileGroup(ctx context.Context, namespace
 func (s *serverAuthability) UpdateConfigFileGroup(ctx context.Context,
 	configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
 
-	authCtx := s.collectBaseTokenInfo(ctx, []*api.ConfigFileGroup{configFileGroup},
-		model.Modify, "UpdateConfigFileGroup", model.RConfigGroup)
+	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{configFileGroup}, model.Modify, "UpdateConfigFileGroup")
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	if _, err := s.authChecker.CheckConsolePermission(authCtx); err != nil {

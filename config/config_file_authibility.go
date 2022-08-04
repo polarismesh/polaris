@@ -20,6 +20,7 @@ package config
 import (
 	"context"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
@@ -28,7 +29,7 @@ import (
 func (s *serverAuthability) CreateConfigFile(ctx context.Context,
 	configFile *api.ConfigFile) *api.ConfigResponse {
 
-	authCtx := s.collectBaseTokenInfo(ctx, nil, model.Create, "CreateConfigFile", model.RConfigFile)
+	authCtx := s.collectConfigFileAuthContext(ctx, []*api.ConfigFile{configFile}, model.Create, "CreateConfigFile")
 	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
@@ -67,7 +68,7 @@ func (s *serverAuthability) SearchConfigFile(ctx context.Context, namespace, gro
 // UpdateConfigFile 更新配置文件
 func (s *serverAuthability) UpdateConfigFile(ctx context.Context, configFile *api.ConfigFile) *api.ConfigResponse {
 
-	authCtx := s.collectBaseTokenInfo(ctx, nil, model.Modify, "UpdateConfigFile", model.RConfigFile)
+	authCtx := s.collectConfigFileAuthContext(ctx, []*api.ConfigFile{configFile}, model.Modify, "UpdateConfigFile")
 	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
@@ -81,7 +82,8 @@ func (s *serverAuthability) UpdateConfigFile(ctx context.Context, configFile *ap
 func (s *serverAuthability) DeleteConfigFile(ctx context.Context, namespace, group,
 	name, deleteBy string) *api.ConfigResponse {
 
-	authCtx := s.collectBaseTokenInfo(ctx, nil, model.Delete, "DeleteConfigFile", model.RConfigFile)
+	//todo
+	authCtx := s.collectConfigFileAuthContext(ctx, []*api.ConfigFile{{Namespace: utils.NewStringValue(namespace), Name: utils.NewStringValue(name), Group: utils.NewStringValue(group)}}, model.Delete, "DeleteConfigFile")
 	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
@@ -95,7 +97,7 @@ func (s *serverAuthability) DeleteConfigFile(ctx context.Context, namespace, gro
 func (s *serverAuthability) BatchDeleteConfigFile(ctx context.Context, configFiles []*api.ConfigFile,
 	operator string) *api.ConfigResponse {
 
-	authCtx := s.collectBaseTokenInfo(ctx, nil, model.Delete, "BatchDeleteConfigFile", model.RConfigFile)
+	authCtx := s.collectConfigFileAuthContext(ctx, configFiles, model.Delete, "BatchDeleteConfigFile")
 	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}

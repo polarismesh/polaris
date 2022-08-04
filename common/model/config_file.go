@@ -28,6 +28,7 @@ type ConfigFileGroup struct {
 	Namespace  string
 	Comment    string
 	CreateTime time.Time
+	Owner      string
 	CreateBy   string
 	ModifyTime time.Time
 	ModifyBy   string
