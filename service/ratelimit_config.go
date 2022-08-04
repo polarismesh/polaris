@@ -233,7 +233,6 @@ func (s *Server) UpdateRateLimits(ctx context.Context, request []*api.Rule) *api
 
 // UpdateRateLimit 更新限流规则
 func (s *Server) UpdateRateLimit(ctx context.Context, req *api.Rule) *api.Response {
-	log.Infof("updateRateLimit, received request %+v", req)
 	requestID := ParseRequestID(ctx)
 	platformID := ParsePlatformID(ctx)
 
@@ -268,7 +267,6 @@ func (s *Server) UpdateRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 		return api.NewRateLimitResponse(api.ParseRateLimitException, req)
 	}
 	rateLimit.ID = data.ID
-	log.Infof("updateRateLimit, marshalled rule %s", rateLimit.Rule)
 	if err := s.storage.UpdateRateLimit(rateLimit); err != nil {
 		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
 		return wrapperRateLimitStoreResponse(req, err)
