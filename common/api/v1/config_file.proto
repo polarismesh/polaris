@@ -23,6 +23,8 @@ message ConfigFileGroup {
   repeated google.protobuf.StringValue remove_group_ids = 14 [json_name = "remove_group_ids"];
 
   google.protobuf.BoolValue editable = 15;
+  google.protobuf.StringValue owner = 16;
+
 }
 
 message ConfigFile {

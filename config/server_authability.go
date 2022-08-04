@@ -47,54 +47,124 @@ func newServerAuthAbility(targetServer *Server, authSvr auth.AuthServer) ConfigC
 	return proxy
 }
 
-func (s *serverAuthability) collectBaseTokenInfo(ctx context.Context, req []*api.ConfigFileGroup,
-	op model.ResourceOperation, methodName string, rType model.Resource) *model.AcquireContext {
-	switch rType {
-	case model.RConfigFile:
-		return model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithToken(utils.ParseAuthToken(ctx)),
-			model.WithModule(model.ConfigModule),
-		)
-	case model.RConfigGroup:
-		return model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithToken(utils.ParseAuthToken(ctx)),
-			model.WithModule(model.ConfigModule),
-			model.WithOperation(op),
-			model.WithMethod(methodName),
-			model.WithAccessResources(s.queryConfigGroupResource(req)),
-		)
-	default:
-		return nil
-	}
+func (s *serverAuthability) collectConfigFileAuthContext(ctx context.Context, req []*api.ConfigFile,
+	op model.ResourceOperation, methodName string) *model.AcquireContext {
+	return model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithToken(utils.ParseAuthToken(ctx)),
+		model.WithModule(model.ConfigModule),
+		model.WithOperation(op),
+		model.WithMethod(methodName),
+		model.WithAccessResources(s.queryConfigFileResource(ctx, req)),
+	)
 }
 
-func (s *serverAuthability) queryConfigGroupResource(req []*api.ConfigFileGroup) map[api.ResourceType][]model.ResourceEntry {
+func (s *serverAuthability) collectConfigFileReleaseAuthContext(ctx context.Context, req []*api.ConfigFileRelease,
+	op model.ResourceOperation, methodName string) *model.AcquireContext {
+	return model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithToken(utils.ParseAuthToken(ctx)),
+		model.WithModule(model.ConfigModule),
+		model.WithOperation(op),
+		model.WithMethod(methodName),
+		model.WithAccessResources(s.queryConfigFileReleaseResource(ctx, req)),
+	)
+}
+
+func (s *serverAuthability) collectConfigGroupAuthContext(ctx context.Context, req []*api.ConfigFileGroup,
+	op model.ResourceOperation, methodName string) *model.AcquireContext {
+	return model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithToken(utils.ParseAuthToken(ctx)),
+		model.WithModule(model.ConfigModule),
+		model.WithOperation(op),
+		model.WithMethod(methodName),
+		model.WithAccessResources(s.queryConfigGroupResource(ctx, req)),
+	)
+}
+
+func (s *serverAuthability) collectConfigFileTemplateAuthContext(ctx context.Context, req []*api.ConfigFileTemplate,
+	op model.ResourceOperation, methodName string) *model.AcquireContext {
+	return model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithToken(utils.ParseAuthToken(ctx)),
+		model.WithModule(model.ConfigModule),
+	)
+}
+
+func (s *serverAuthability) queryConfigGroupResource(ctx context.Context, req []*api.ConfigFileGroup) map[api.ResourceType][]model.ResourceEntry {
 	names := utils.NewStringSet()
 	namespace := req[0].Namespace.GetValue()
 	for index := range req {
 		names.Add(req[index].Name.GetValue())
 	}
-
-	configFileGroups, err := s.targetServer.storage.FindConfigFileGroups(namespace, names.ToSlice())
+	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, names.ToSlice())
 	if err != nil {
 		return nil
 	}
+	ret := map[api.ResourceType][]model.ResourceEntry{
+		api.ResourceType_ConfigGroups: entries,
+	}
+	commonlog.AuthScope().Debug("[Config][Server] collect config_file_group access res", zap.Any("res", ret))
+	return ret
+}
 
-	temp := make([]model.ResourceEntry, 0, len(configFileGroups))
+// queryConfigFileResource config file资源的鉴权转换为config group的鉴权
+func (s *serverAuthability) queryConfigFileResource(ctx context.Context, req []*api.ConfigFile) map[api.ResourceType][]model.ResourceEntry {
+	if len(req) == 0 {
+		return nil
+	}
+	namespace := req[0].Namespace.GetValue()
+	groupNames := utils.NewStringSet()
+
+	for _, apiConfigFile := range req {
+		groupNames.Add(apiConfigFile.Group.GetValue())
+	}
+	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, groupNames.ToSlice())
+	if err != nil {
+		return nil
+	}
+	ret := map[api.ResourceType][]model.ResourceEntry{
+		api.ResourceType_ConfigGroups: entries,
+	}
+	commonlog.AuthScope().Debug("[Config][Server] collect config_file access res", zap.Any("res", ret))
+	return ret
+}
+
+func (s *serverAuthability) queryConfigFileReleaseResource(ctx context.Context, req []*api.ConfigFileRelease) map[api.ResourceType][]model.ResourceEntry {
+	if len(req) == 0 {
+		return nil
+	}
+	namespace := req[0].Namespace.GetValue()
+	groupNames := utils.NewStringSet()
+
+	for _, apiConfigFile := range req {
+		groupNames.Add(apiConfigFile.Group.GetValue())
+	}
+	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, groupNames.ToSlice())
+	if err != nil {
+		return nil
+	}
+	ret := map[api.ResourceType][]model.ResourceEntry{
+		api.ResourceType_ConfigGroups: entries,
+	}
+	commonlog.AuthScope().Debug("[Config][Server] collect config_file access res", zap.Any("res", ret))
+	return ret
+}
+
+func (s *serverAuthability) queryConfigGroupRsEntryByNames(ctx context.Context, namespace string, names []string) ([]model.ResourceEntry, error) {
+	configFileGroups, err := s.targetServer.storage.FindConfigFileGroups(namespace, names)
+	if err != nil {
+		return nil, err
+	}
+	entries := make([]model.ResourceEntry, 0, len(configFileGroups))
 
 	for index := range configFileGroups {
 		group := configFileGroups[index]
-		temp = append(temp, model.ResourceEntry{
+		entries = append(entries, model.ResourceEntry{
 			ID:    strconv.FormatUint(group.Id, 10),
-			Owner: group.CreateBy, // todo config_file_group owner
+			Owner: group.Owner,
 		})
 	}
-
-	ret := map[api.ResourceType][]model.ResourceEntry{
-		api.ResourceType_Namespaces: temp,
-	}
-	commonlog.AuthScope().Debug("[Auth][Server] collect config_file_group access res", zap.Any("res", ret))
-	return ret
+	return entries, nil
 }

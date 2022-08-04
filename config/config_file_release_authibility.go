@@ -28,7 +28,7 @@ import (
 func (s *serverAuthability) PublishConfigFile(ctx context.Context,
 	configFileRelease *api.ConfigFileRelease) *api.ConfigResponse {
 
-	authCtx := s.collectBaseTokenInfo(ctx, []*api.ConfigFileGroup{}, model.Create, "PublishConfigFile", model.RConfigFile)
+	authCtx := s.collectConfigFileReleaseAuthContext(ctx, []*api.ConfigFileRelease{configFileRelease}, model.Create, "PublishConfigFile")
 	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
@@ -50,7 +50,14 @@ func (s *serverAuthability) GetConfigFileRelease(ctx context.Context,
 func (s *serverAuthability) DeleteConfigFileRelease(ctx context.Context, namespace,
 	group, fileName, deleteBy string) *api.ConfigResponse {
 
-	authCtx := s.collectBaseTokenInfo(ctx)
+	req := []*api.ConfigFileRelease{
+		{
+			Namespace: utils.NewStringValue(namespace),
+			Group:     utils.NewStringValue(group),
+			FileName:  utils.NewStringValue(fileName),
+		},
+	}
+	authCtx := s.collectConfigFileReleaseAuthContext(ctx, req, model.Delete, "DeleteConfigFileRelease")
 	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
