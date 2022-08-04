@@ -64,7 +64,7 @@ message Rule {
   // 配额调整算法
   AmountAdjuster adjuster = 17;
   // 通配符是否合并计算，默认分开计数
-  google.protobuf.BoolValue regex_combine = 18;
+  google.protobuf.BoolValue regex_combine = 18 [json_name = "regex_combine"];
 
   // 限流阈值模
   enum AmountMode {
@@ -89,7 +89,7 @@ message Rule {
   // 限流规则启用时间
   google.protobuf.StringValue etime = 25;
   // 最大排队时长，单位秒
-  google.protobuf.UInt32Value max_queue_delay = 26;
+  google.protobuf.UInt32Value max_queue_delay = 26 [json_name = "max_queue_delay"];
 }
 
 message MatchArgument {
