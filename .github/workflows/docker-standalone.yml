@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         goos: [linux]
-        goarch: [amd64, arm64]
+        goarch: [amd64]
         exclude:
           - goos: windows
             goarch: arm64
@@ -30,6 +30,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
+        with:
+          config-inline: |
+            insecure-entitlements = [ "network.host" ]
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
@@ -50,18 +53,27 @@ jobs:
           
           POLARIS_GIT_PATH=https://github.com/polarismesh
           
-          DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}.${GOARCH}
+          DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}
           rm -rf ${DIR_NAME}
           mkdir ${DIR_NAME}
           cd ${DIR_NAME}
-          
-          SERVER_PKG_NAME=polaris-server-release_${SERVER_VERSION}.${GOOS}.${GOARCH}.zip
-          wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris/releases/download/${SERVER_VERSION}/${SERVER_PKG_NAME} --no-check-certificate
-          CONSOLE_PKG_NAME=polaris-console-release_${CONSOLE_VERSION}.${GOOS}.${GOARCH}.zip
-          wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris-console/releases/download/${CONSOLE_VERSION}/${CONSOLE_PKG_NAME} --no-check-certificate
-          
-          wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz
-          wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${GOOS}-${GOARCH}.tar.gz
+
+          arch_list=("amd64" "arm64")
+          platforms=""
+
+          for GOARCH in ${arch_list[@]}; do
+              SERVER_PKG_NAME=polaris-server-release_${SERVER_VERSION}.${GOOS}.${GOARCH}.zip
+              wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris/releases/download/${SERVER_VERSION}/${SERVER_PKG_NAME} --no-check-certificate
+              CONSOLE_PKG_NAME=polaris-console-release_${CONSOLE_VERSION}.${GOOS}.${GOARCH}.zip
+              wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris-console/releases/download/${CONSOLE_VERSION}/${CONSOLE_PKG_NAME} --no-check-certificate
+              
+              wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz
+              wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${GOOS}-${GOARCH}.tar.gz
+              
+              platforms+="${GOOS}/${GOARCH},"
+          done
+
+          platforms=${platforms::-1}
           
           cp ../vm/install-${GOOS}.sh ./install.sh
           cp ../vm/uninstall-${GOOS}.sh ./uninstall.sh
@@ -80,9 +92,4 @@ jobs:
           docker_image="polaris-server-standalone"
           docker_tag=${SERVER_VERSION}
           
-          docker build --network=host --build-arg SERVER_VERSION="${SERVER_VERSION}" --build-arg CONSOLE_VERSION="${CONSOLE_VERSION}" -t ${docker_repository}/${docker_image}:${docker_tag} ./
-          
-          docker push ${docker_repository}/${docker_image}:${docker_tag}
-          docker tag ${docker_repository}/${docker_image}:${docker_tag} ${docker_repository}/${docker_image}:latest
-          docker push ${docker_repository}/${docker_image}:latest
-          
+          docker buildx build --network=host --build-arg SERVER_VERSION="${SERVER_VERSION}" --build-arg CONSOLE_VERSION="${CONSOLE_VERSION}" -t ${docker_repository}/${docker_image}:${docker_tag} -t ${docker_repository}/${docker_image}:latest --platform ${platforms} --push ./
