@@ -48,5 +48,12 @@ func (s *serverAuthibility) GetConfigFileRelease(ctx context.Context,
 func (s *serverAuthibility) DeleteConfigFileRelease(ctx context.Context, namespace,
 	group, fileName, deleteBy string) *api.ConfigResponse {
 
+	authCtx := s.collectBaseTokenInfo(ctx)
+	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
+		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+
 	return s.targetServer.DeleteConfigFileRelease(ctx, namespace, group, fileName, deleteBy)
 }

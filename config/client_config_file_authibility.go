@@ -29,8 +29,8 @@ func (s *serverAuthibility) GetConfigFileForClient(ctx context.Context, fileInfo
 	return s.targetServer.GetConfigFileForClient(ctx, fileInfo)
 }
 
-func (s *serverAuthibility) WatchConfigFiles(ctx context.Context,
-	request *api.ClientWatchConfigFileRequest) (func() *api.ConfigClientResponse, error) {
+// WatchConfigFiles
+func (s *serverAuthibility) WatchConfigFiles(ctx context.Context, request *api.ClientWatchConfigFileRequest) (WatchCallback, error) {
 
 	return s.targetServer.WatchConfigFiles(ctx, request)
 }

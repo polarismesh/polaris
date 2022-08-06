@@ -254,31 +254,29 @@ func (s *Server) UpdateRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 	if resp != nil {
 		return resp
 	}
-
-	// 检查服务是否存在
-	service, resp := s.checkRateLimitValid(ctx, data.ServiceID, req)
-	if resp != nil {
-		return resp
+	// create service if absent
+	code, svcId, err := s.createServiceIfAbsent(ctx, req)
+	if err != nil {
+		log.Errorf("[Service]fail to create ratelimit config, err: %v", err)
+		return api.NewRateLimitResponse(code, req)
 	}
-
 	// 构造底层数据结构
-	rateLimit, err := api2RateLimit(service.ID, req)
+	rateLimit, err := api2RateLimit(svcId, req)
 	if err != nil {
 		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
 		return api.NewRateLimitResponse(api.ParseRateLimitException, req)
 	}
 	rateLimit.ID = data.ID
-
 	if err := s.storage.UpdateRateLimit(rateLimit); err != nil {
 		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
 		return wrapperRateLimitStoreResponse(req, err)
 	}
 
 	msg := fmt.Sprintf("update rate limit: id=%v, namespace=%v, service=%v, name=%v",
-		rateLimit.ID, service.Namespace, service.Name, rateLimit.Name)
+		rateLimit.ID, req.GetNamespace().GetValue(), req.GetService().GetValue(), rateLimit.Name)
 	log.Info(msg, ZapRequestID(requestID), ZapPlatformID(platformID))
 
-	s.RecordHistory(rateLimitRecordEntry(ctx, service.Namespace, service.Name, rateLimit, model.OUpdate))
+	s.RecordHistory(rateLimitRecordEntry(ctx, req.GetNamespace().GetValue(), req.GetService().GetValue(), rateLimit, model.OUpdate))
 	return api.NewRateLimitResponse(api.ExecuteSuccess, req)
 }
 
@@ -507,6 +505,7 @@ func copyRateLimitProto(rateLimit *model.RateLimit, rule *api.Rule) {
 	rule.Failover = rateLimit.Proto.Failover
 	rule.AmountMode = rateLimit.Proto.AmountMode
 	rule.Adjuster = rateLimit.Proto.Adjuster
+	rule.MaxQueueDelay = rateLimit.Proto.MaxQueueDelay
 	populateDefaultRuleValue(rule)
 }
 
@@ -530,19 +529,20 @@ func rateLimit2Client(
 // marshalRateLimitRules 序列化限流规则具体内容
 func marshalRateLimitRules(req *api.Rule) (string, error) {
 	r := &api.Rule{
-		Name:         req.GetName(),
-		Resource:     req.GetResource(),
-		Type:         req.GetType(),
-		Amounts:      req.GetAmounts(),
-		Action:       req.GetAction(),
-		Disable:      req.GetDisable(),
-		Report:       req.GetReport(),
-		Adjuster:     req.GetAdjuster(),
-		RegexCombine: req.GetRegexCombine(),
-		AmountMode:   req.GetAmountMode(),
-		Failover:     req.GetFailover(),
-		Arguments:    req.GetArguments(),
-		Method:       req.GetMethod(),
+		Name:          req.GetName(),
+		Resource:      req.GetResource(),
+		Type:          req.GetType(),
+		Amounts:       req.GetAmounts(),
+		Action:        req.GetAction(),
+		Disable:       req.GetDisable(),
+		Report:        req.GetReport(),
+		Adjuster:      req.GetAdjuster(),
+		RegexCombine:  req.GetRegexCombine(),
+		AmountMode:    req.GetAmountMode(),
+		Failover:      req.GetFailover(),
+		Arguments:     req.GetArguments(),
+		Method:        req.GetMethod(),
+		MaxQueueDelay: req.GetMaxQueueDelay(),
 	}
 	rule, err := json.Marshal(r)
 	if err != nil {

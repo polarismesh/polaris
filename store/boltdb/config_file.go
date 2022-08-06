@@ -166,7 +166,9 @@ func (cf *configFileStore) getConfigFile(tx *bolt.Tx, namespace, group, name str
 	return nil, nil
 }
 
-func (cf *configFileStore) QueryConfigFilesByGroup(namespace, group string, offset, limit uint32) (uint32, []*model.ConfigFile, error) {
+func (cf *configFileStore) QueryConfigFilesByGroup(namespace, group string,
+	offset, limit uint32) (uint32, []*model.ConfigFile, error) {
+
 	fields := []string{FileFieldNamespace, FileFieldGroup, FileFieldValid}
 
 	hasNs := len(namespace) != 0
@@ -200,7 +202,8 @@ func (cf *configFileStore) QueryConfigFilesByGroup(namespace, group string, offs
 }
 
 // QueryConfigFiles 翻页查询配置文件，group、name可为模糊匹配
-func (cf *configFileStore) QueryConfigFiles(namespace, group, name string, offset, limit uint32) (uint32, []*model.ConfigFile, error) {
+func (cf *configFileStore) QueryConfigFiles(namespace, group, name string,
+	offset, limit uint32) (uint32, []*model.ConfigFile, error) {
 
 	fields := []string{FileFieldNamespace, FileFieldGroup, FileFieldName, FileFieldValid}
 

@@ -21,13 +21,7 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
 )
-
-// RecordConfigFileReleaseHistory 新增配置文件发布历史记录
-func (s *serverAuthibility) RecordConfigFileReleaseHistory(ctx context.Context, fileRelease *model.ConfigFileRelease, releaseType, status string) {
-
-}
 
 // GetConfigFileReleaseHistory 获取配置文件发布历史记录
 func (s *serverAuthibility) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset,

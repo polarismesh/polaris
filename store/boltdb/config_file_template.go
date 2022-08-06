@@ -18,10 +18,11 @@
 package boltdb
 
 import (
+	"time"
+
 	"github.com/boltdb/bolt"
 	"github.com/polarismesh/polaris-server/common/model"
 	"go.uber.org/zap"
-	"time"
 )
 
 const (
@@ -98,7 +99,9 @@ func (cf *configFileTemplateStore) GetConfigFileTemplate(name string) (*model.Co
 }
 
 // CreateConfigFileTemplate create config file template
-func (cf *configFileTemplateStore) CreateConfigFileTemplate(template *model.ConfigFileTemplate) (*model.ConfigFileTemplate, error) {
+func (cf *configFileTemplateStore) CreateConfigFileTemplate(
+	template *model.ConfigFileTemplate) (*model.ConfigFileTemplate, error) {
+
 	proxy, err := cf.handler.StartTx()
 	if err != nil {
 		return nil, err

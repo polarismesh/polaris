@@ -19,7 +19,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -88,10 +87,8 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 		return checkError
 	}
 
-	if s.namespaceSvr.AllowAutoCreate() {
-		if code, err := s.createNamespaceIfAbsent(ctx, req); err != nil {
-			return api.NewServiceResponse(code, req)
-		}
+	if code, err := s.createNamespaceIfAbsent(ctx, req); err != nil {
+		return api.NewServiceResponse(code, req)
 	}
 
 	namespaceName := req.GetNamespace().GetValue()
@@ -476,29 +473,15 @@ func (s *Server) GetServiceOwner(ctx context.Context, req []*api.Service) *api.B
 // createNamespaceIfAbsent Automatically create namespaces
 func (s *Server) createNamespaceIfAbsent(ctx context.Context, svc *api.Service) (uint32, error) {
 
-	if ns := s.caches.Namespace().GetNamespace(svc.GetNamespace().GetValue()); ns != nil {
-		return api.ExecuteSuccess, nil
-	}
-
-	apiNamespace := &api.Namespace{
+	err := s.Namespace().CreateNamespaceIfAbsent(ctx, &api.Namespace{
 		Name:   utils.NewStringValue(svc.GetNamespace().GetValue()),
 		Owners: svc.Owners,
+	})
+	if err != nil {
+		return api.ExecuteException, err
 	}
 
-	key := fmt.Sprintf("%s", svc.Namespace)
-
-	ret, err, _ := s.createNamespaceSingle.Do(key, func() (interface{}, error) {
-		resp := s.Namespace().CreateNamespace(ctx, apiNamespace)
-
-		retCode := resp.GetCode().GetValue()
-		if retCode != api.ExecuteSuccess && retCode != api.ExistedResource {
-			return retCode, errors.New(resp.GetInfo().GetValue())
-		}
-
-		return retCode, nil
-	})
-
-	return ret.(uint32), err
+	return api.ExecuteSuccess, nil
 }
 
 // createServiceModel 创建存储层服务模型

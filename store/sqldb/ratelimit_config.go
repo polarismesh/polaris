@@ -170,9 +170,9 @@ func (rls *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 	}()
 
 	etimeStr := limitToEtimeStr(limit)
-	str := fmt.Sprintf(`update ratelimit_config set name = ?, disable = ?, method= ?, 
+	str := fmt.Sprintf(`update ratelimit_config set name = ?, service_id=?, disable = ?, method= ?, 
 			labels = ?, priority = ?, rule = ?, revision = ?, mtime = sysdate(), etime=%s where id = ?`, etimeStr)
-	if _, err := tx.Exec(str, limit.Name, limit.Disable,
+	if _, err := tx.Exec(str, limit.Name, limit.ServiceID, limit.Disable,
 		limit.Method, limit.Labels, limit.Priority, limit.Rule, limit.Revision, limit.ID); err != nil {
 		log.Errorf("[Store][database] update rate limit(%+v), sql %s, err: %s", limit, str, err)
 		return err
