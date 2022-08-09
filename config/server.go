@@ -24,7 +24,9 @@ import (
 
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
@@ -52,10 +54,13 @@ type Config struct {
 type Server struct {
 	storage           store.Store
 	cache             *cache.FileCache
+	caches            *cache.CacheManager
 	watchCenter       *watchCenter
 	connManager       *connManager
 	namespaceOperator namespace.NamespaceOperateServer
 	initialized       bool
+
+	hooks []ResourceHook
 }
 
 // Initialize 初始化配置中心模块
@@ -115,6 +120,8 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 		return errors.New("init config module error")
 	}
 
+	s.caches = cacheMgn
+
 	log.ConfigScope().Infof("[Config][Server] startup config module success.")
 	return nil
 }
@@ -149,4 +156,24 @@ func (s *Server) Cache() *cache.FileCache {
 // ConnManager 获取配置中心连接管理器
 func (s *Server) ConnManager() *connManager {
 	return s.connManager
+}
+
+// SetResourceHooks 设置资源钩子
+func (s *Server) SetResourceHooks(hooks ...ResourceHook) {
+	s.hooks = hooks
+}
+
+func (s *Server) afterConfigGroupResource(ctx context.Context, req *api.ConfigFileGroup,
+	save *model.ConfigFileGroup) error {
+	event := &ResourceEvent{
+		ReqConfigGroup:  req,
+		ConfigFileGroup: save,
+	}
+
+	for _, hook := range s.hooks {
+		if err := hook.After(ctx, model.RConfigGroup, event); err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -66,6 +66,9 @@ const (
 	TokenForUserGroup  string = "groupid"
 
 	ResourceAttachmentKey string = "resource_attachment"
+
+	ConfigFileGroupNameKey      string = "ConfigGroupName"
+	ConfigFileGroupNamespaceKey string = "NamespaceOfConfigGroup"
 )
 
 func _() {

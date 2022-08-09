@@ -19,50 +19,89 @@ package config
 
 import (
 	"context"
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 // CreateConfigFileGroup 创建配置文件组
-func (s *serverAuthibility) CreateConfigFileGroup(ctx context.Context,
+func (s *serverAuthability) CreateConfigFileGroup(ctx context.Context,
 	configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
 
-	authCtx := s.collectBaseTokenInfo(ctx)
-	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
+	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{configFileGroup}, model.Create, "CreateConfigFileGroup")
+
+	// 验证 token 信息
+	if _, err := s.authChecker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return s.targetServer.CreateConfigFileGroup(ctx, configFileGroup)
 }
 
 // QueryConfigFileGroups 查询配置文件组
-func (s *serverAuthibility) QueryConfigFileGroups(ctx context.Context, namespace, groupName,
+func (s *serverAuthability) QueryConfigFileGroups(ctx context.Context, namespace, groupName,
 	fileName string, offset, limit uint32) *api.ConfigBatchQueryResponse {
 
-	return s.targetServer.QueryConfigFileGroups(ctx, namespace, groupName, fileName, offset, limit)
+	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{{Name: utils.NewStringValue(groupName),
+		Namespace: utils.NewStringValue(namespace)}}, model.Read, "QueryConfigFileGroups")
+
+	if _, err := s.authChecker.CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigFileGroupBatchQueryResponse(convertToErrCode(err), 0, nil)
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	resp := s.targetServer.QueryConfigFileGroups(ctx, namespace, groupName, fileName, offset, limit)
+
+	if len(resp.ConfigFileGroups) != 0 {
+		principal := model.Principal{
+			PrincipalID:   utils.ParseUserID(ctx),
+			PrincipalRole: model.PrincipalUser,
+		}
+		for index := range resp.ConfigFileGroups {
+			group := resp.ConfigFileGroups[index]
+			editable := true
+			// 如果鉴权能力没有开启，那就默认都可以进行编辑
+			if s.authChecker.IsOpenConsoleAuth() {
+				editable = s.targetServer.caches.AuthStrategy().IsResourceEditable(principal,
+					api.ResourceType_ConfigGroups, group.Id.String())
+			}
+			group.Editable = utils.NewBoolValue(editable)
+		}
+	}
+
+	return resp
 }
 
 // DeleteConfigFileGroup 删除配置文件组
-func (s *serverAuthibility) DeleteConfigFileGroup(ctx context.Context, namespace, name string) *api.ConfigResponse {
+func (s *serverAuthability) DeleteConfigFileGroup(ctx context.Context, namespace, name string) *api.ConfigResponse {
 
-	authCtx := s.collectBaseTokenInfo(ctx)
-	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
+	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{{Name: utils.NewStringValue(name),
+		Namespace: utils.NewStringValue(namespace)}}, model.Delete, "DeleteConfigFileGroup")
+
+	if _, err := s.authChecker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return s.targetServer.DeleteConfigFileGroup(ctx, namespace, name)
 }
 
 // UpdateConfigFileGroup 更新配置文件组
-func (s *serverAuthibility) UpdateConfigFileGroup(ctx context.Context,
+func (s *serverAuthability) UpdateConfigFileGroup(ctx context.Context,
 	configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
 
-	authCtx := s.collectBaseTokenInfo(ctx)
-	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
+	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{configFileGroup}, model.Modify, "UpdateConfigFileGroup")
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	if _, err := s.authChecker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 

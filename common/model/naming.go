@@ -420,6 +420,8 @@ const (
 	RUserGroup         Resource = "UserGroup"
 	RUserGroupRelation Resource = "UserGroupRelation"
 	RAuthStrategy      Resource = "AuthStrategy"
+	RConfigGroup       Resource = "ConfigGroup"
+	RConfigFile        Resource = "ConfigFile"
 )
 
 // ResourceType 资源类型
