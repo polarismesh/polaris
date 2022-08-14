@@ -115,7 +115,7 @@ func Test_diffTags(t *testing.T) {
 		},
 	}
 
-	// 由于diffTags 返回的函数是由mp遍历得来, 不保证顺序
+	// 由于diffTags 返回的切片是由mp遍历得来, 不保证顺序
 	diffTagsEqual := func(a, b []string) bool {
 		sort.Strings(a)
 		sort.Strings(b)
