@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/golang/protobuf/jsonpb"
@@ -104,30 +105,31 @@ func TestUserRenewalAuthToken(t *testing.T) {
 	url := fmt.Sprintf("http://%v/core/%v/user/token/renewal", c.Address, c.Version)
 	request, err = http.NewRequest("PUT", url, nil)
 	if err != nil {
-		t.Errorf("renewl token should success, err: %s", err.Error())
+		t.Errorf("renewal token should success, err: %s", err.Error())
 		return
 	}
 	request.Header.Add("Content-Type", "application/json")
 	request.Header.Add("Request-Id", "test")
 	request.Header.Add("X-Polaris-Token", oldToken)
+	time.Sleep(time.Second)
 	response, err := c.Worker.Do(request)
 	if err != nil {
-		t.Errorf("renewl token should success, err: %s", err.Error())
+		t.Errorf("renewal token should success, err: %s", err.Error())
 		return
 	}
 
 	ret = &api.Response{}
 	if ierr := jsonpb.Unmarshal(response.Body, ret); ierr != nil {
-		t.Fatalf("parse user renewl token resp occurs error: %s", ierr.Error())
+		t.Fatalf("parse user renewal token resp occurs error: %s", ierr.Error())
 		return
 	}
 
 	if ret.Code.GetValue() != api.ExecuteSuccess || ret.GetLoginResponse() == nil {
-		t.Errorf("renewl token should resp success")
+		t.Errorf("renewal token should resp success")
 		return
 	}
 	if ret.GetLoginResponse().Token.GetValue() == oldToken {
-		t.Errorf("renewl token should not same to old token")
+		t.Errorf("renewal token should not same to old token")
 	}
 
 }
