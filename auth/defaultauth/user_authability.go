@@ -123,13 +123,3 @@ func (svr *serverAuthAbility) ResetUserToken(ctx context.Context, user *api.User
 
 	return svr.target.ResetUserToken(ctx, user)
 }
-
-func (svr *serverAuthAbility) RenewalAuthToken(ctx context.Context, user *api.User) *api.Response {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, NotOwner)
-	if rsp != nil {
-		rsp.User = user
-		return rsp
-	}
-
-	return svr.target.RenewalAuthToken(ctx, user)
-}

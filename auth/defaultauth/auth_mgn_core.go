@@ -22,12 +22,11 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
-
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"go.uber.org/zap"
 )
 
 // IsOpenConsoleAuth 针对控制台是否开启了操作鉴权
@@ -59,9 +58,11 @@ func (d *defaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireContext
 	if !d.IsOpenConsoleAuth() {
 		return true, nil
 	}
+
 	if preCtx.GetModule() == model.MaintainModule {
 		return d.checkMaintainPermission(preCtx)
 	}
+
 	return d.CheckPermission(preCtx)
 }
 
@@ -172,9 +173,6 @@ func canDowngradeAnonymous(authCtx *model.AcquireContext, err error) bool {
 // step 3. 兜底措施：如果开启了鉴权的非严格模式，则根据错误的类型，判断是否转为匿名用户进行访问
 // 		- 如果不是访问权限控制相关模块（用户、用户组、权限策略），不得转为匿名用户
 func (d *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) error {
-	if err := d.tryJWTToken(authCtx); err != nil {
-		return err
-	}
 	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
 
 	checkErr := func() error {
@@ -436,21 +434,4 @@ func (d *defaultAuthChecker) removeNoStrategyResources(authCtx *model.AcquireCon
 	}
 
 	return noResourceNeedCheck
-}
-
-// tryJWTToken 尝试解析jwtToken并将解析的内容放入ctx. [兼容逻辑]如果识别到当前token非jwt, 则什么也不做
-func (d *defaultAuthChecker) tryJWTToken(preCtx *model.AcquireContext) error {
-	userID, err := userIDFromJWT(preCtx.GetToken())
-	if err != nil {
-		return err
-	}
-	if userID == "" {
-		return nil
-	}
-	user := d.cacheMgn.User().GetUserByID(userID)
-	if user == nil {
-		return model.ErrorNoUser
-	}
-	model.WithToken(user.Token)(preCtx)
-	return nil
 }

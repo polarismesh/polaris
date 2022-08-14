@@ -18,26 +18,13 @@
 package http
 
 import (
-	"bytes"
-
-	"github.com/golang/protobuf/jsonpb"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 func Login(username, password string) (*api.LoginResponse, error) {
 
+	
 	return nil, nil
 }
 
-// JSONFromLoginRequest 解析登陆请求
-func JSONFromLoginRequest(loginReq *api.LoginRequest) (*bytes.Buffer, error) {
-	m := jsonpb.Marshaler{Indent: " "}
 
-	buffer := bytes.NewBuffer([]byte{})
-
-	err := m.Marshal(buffer, loginReq)
-	if err != nil {
-		return nil, err
-	}
-	return buffer, nil
-}

@@ -371,11 +371,6 @@ func (svr *server) GetUserToken(ctx context.Context, req *api.User) *api.Respons
 		return api.NewUserResponse(api.NotAllowedAccess, req)
 	}
 
-	userID, err := userIDFromJWT(utils.ParseAuthToken(ctx))
-	if err != nil {
-		return api.NewUserResponse(api.NotAllowedAccess, req)
-	}
-
 	out := &api.User{
 		Id:          utils.NewStringValue(user.ID),
 		Name:        utils.NewStringValue(user.Name),
@@ -383,9 +378,6 @@ func (svr *server) GetUserToken(ctx context.Context, req *api.User) *api.Respons
 		TokenEnable: utils.NewBoolValue(user.TokenEnable),
 	}
 
-	if userID != "" {
-		out.AuthToken = utils.NewStringValue(utils.ParseAuthToken(ctx))
-	}
 	return api.NewUserResponse(api.ExecuteSuccess, out)
 }
 
@@ -471,47 +463,7 @@ func (svr *server) ResetUserToken(ctx context.Context, req *api.User) *api.Respo
 
 	req.AuthToken = utils.NewStringValue(user.Token)
 
-	if token, ierr := createJWT(user.ID, time.Now().Add(AuthOption.JWTExpired)); ierr != nil {
-		req.AuthToken = utils.NewStringValue(token)
-	}
 	return api.NewUserResponse(api.ExecuteSuccess, req)
-}
-
-// RenewalAuthToken 续期用户的authToken
-func (svr *server) RenewalAuthToken(ctx context.Context, req *api.User) *api.Response {
-	requestID := utils.ParseRequestID(ctx)
-	userID, err := userIDFromJWT(utils.ParseAuthToken(ctx))
-	if err != nil {
-		return api.NewResponse(api.NotAllowedAccess)
-	}
-	user, err := svr.storage.GetUser(userID)
-	if err != nil {
-		log.AuthScope().Error("[Auth][User] get user from store", utils.ZapRequestID(requestID), zap.Error(err))
-		return api.NewResponse(api.StoreLayerException)
-	}
-	if user == nil {
-		return api.NewResponse(api.NotFoundUser)
-	}
-
-	if !checkUserViewPermission(ctx, user) {
-		return api.NewUserResponse(api.NotAllowedAccess, req)
-	}
-	token, err := createJWT(user.ID, time.Now().Add(AuthOption.JWTExpired))
-	if err != nil {
-		log.AuthScope().Error("[Auth][User] renewal user jwt token occurs err",
-			utils.ZapRequestID(requestID), zap.Error(err))
-		return api.NewResponse(api.ExecuteException)
-	}
-	log.AuthScope().Info("[Auth][User] renewal user token", utils.ZapRequestID(requestID),
-		zap.String("id", userID))
-	svr.RecordHistory(userRecordEntry(ctx, req, user, model.OUpdate))
-	return api.NewLoginResponse(api.ExecuteSuccess, &api.LoginResponse{
-		UserId:  utils.NewStringValue(user.ID),
-		OwnerId: utils.NewStringValue(user.Owner),
-		Token:   utils.NewStringValue(token),
-		Name:    utils.NewStringValue(user.Name),
-		Role:    utils.NewStringValue(model.UserRoleNames[user.Type]),
-	})
 }
 
 // checkUserViewPermission 检查是否可以操作该用户

@@ -25,11 +25,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"time"
 
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
-
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
@@ -56,12 +53,6 @@ type OperatorInfo struct {
 
 	// 是否属于匿名操作者
 	Anonymous bool
-}
-
-// jwtClaims jwt 额外信息
-type jwtClaims struct {
-	UserID string
-	jwt.RegisteredClaims
 }
 
 func newAnonymous() OperatorInfo {
@@ -165,38 +156,4 @@ func decryptMessage(key []byte, message string) (string, error) {
 	stream.XORKeyStream(cipherText, cipherText)
 
 	return string(cipherText), nil
-}
-
-// createJWT 创建一个带有过期时间的jwt
-func createJWT(userID string, exp time.Time) (string, error) {
-	nowTime := time.Now()
-	claims := jwtClaims{
-		UserID: userID,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(exp),
-			NotBefore: jwt.NewNumericDate(nowTime),
-			IssuedAt:  jwt.NewNumericDate(nowTime),
-		},
-	}
-	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(AuthOption.Salt))
-}
-
-// userIDFromJWT 从jwt中抽取userID, 若jwt校验不过(时间, 签名), 则返回error
-// 非jwtToken(比如历史token)则返回userID为空
-func userIDFromJWT(tokenString string) (string, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &jwtClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(AuthOption.Salt), nil
-	})
-	if ve, ok := err.(*jwt.ValidationError); ok {
-		if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-			// 兼容历史情况
-			return "", nil
-		}
-		return "", err
-	}
-	claims, ok := token.Claims.(*jwtClaims)
-	if !ok || !token.Valid || claims.UserID == "" {
-		return "", errors.New("jwt token is invalid")
-	}
-	return claims.UserID, nil
 }

@@ -18,9 +18,8 @@
 package defaultauth
 
 import (
+	"encoding/json"
 	"errors"
-
-	"github.com/mitchellh/mapstructure"
 
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
@@ -37,19 +36,16 @@ type defaultAuthChecker struct {
 
 // Initialize 执行初始化动作
 func (d *defaultAuthChecker) Initialize(options *auth.Config, cacheMgn *cache.CacheManager) error {
-	cfg := DefaultAuthConfig()
-	decodeConfig := &mapstructure.DecoderConfig{
-		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
-		Result:     cfg,
-	}
-	decoder, err := mapstructure.NewDecoder(decodeConfig)
+	contentBytes, err := json.Marshal(options.Option)
 	if err != nil {
-		log.Errorf("default auth checker new decoder err: %s", err.Error())
 		return err
 	}
-	if ierr := decoder.Decode(options.Option); ierr != nil {
-		return ierr
+
+	cfg := DefaultAuthConfig()
+	if err := json.Unmarshal(contentBytes, cfg); err != nil {
+		return err
 	}
+
 	if err := cfg.Verify(); err != nil {
 		return err
 	}
