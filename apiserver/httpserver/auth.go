@@ -42,6 +42,7 @@ func (h *HTTPServer) GetAuthServer(ws *restful.WebService) error {
 	ws.Route(ws.GET("/user/token").To(h.GetUserToken))
 	ws.Route(ws.PUT("/user/token/status").To(h.UpdateUserToken))
 	ws.Route(ws.PUT("/user/token/refresh").To(h.ResetUserToken))
+	ws.Route(ws.PUT("/user/token/renewal").To(h.RenewalUserToken))
 
 	//
 	ws.Route(ws.POST("/usergroup").To(h.CreateGroup))
@@ -213,6 +214,13 @@ func (h *HTTPServer) ResetUserToken(req *restful.Request, rsp *restful.Response)
 	}
 
 	handler.WriteHeaderAndProto(h.authServer.ResetUserToken(ctx, user))
+}
+
+// RenewalUserToken 续期用户token
+func (h *HTTPServer) RenewalUserToken(req *restful.Request, rsp *restful.Response) {
+	handler := &Handler{req, rsp}
+	user := &api.User{}
+	handler.WriteHeaderAndProto(h.authServer.RenewalAuthToken(handler.ParseHeaderContext(), user))
 }
 
 // CreateGroup 创建用户组
