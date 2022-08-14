@@ -20,8 +20,114 @@
 
 package test
 
-import "testing"
+import (
+	"fmt"
+	"net/http"
+	"testing"
+
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang/protobuf/jsonpb"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
+	phttp "github.com/polarismesh/polaris-server/test/http"
+)
 
 func TestUser(t *testing.T) {
+
+}
+
+func login(t *testing.T) (*api.Response, error) {
+	c := phttp.NewClient(httpserverAddress, httpserverVersion)
+	url := fmt.Sprintf("http://%v/core/%v/user/login", c.Address, c.Version)
+	body, err := phttp.JSONFromLoginRequest(&api.LoginRequest{
+		// 北极星内置的用户
+		Name:     utils.NewStringValue("polaris"),
+		Password: utils.NewStringValue("polaris"),
+	})
+	if err != nil {
+		t.Fatal(err)
+		return nil, err
+	}
+	response, err := c.SendRequest("POST", url, body)
+	if err != nil {
+		t.Fatalf("request user login occurs error: %s", err.Error())
+		return nil, err
+	}
+	ret := &api.Response{}
+	if ierr := jsonpb.Unmarshal(response.Body, ret); ierr != nil {
+		t.Fatalf("parse user login resp occurs error: %s", err.Error())
+		return nil, ierr
+	}
+	return ret, nil
+}
+
+func TestUserLogin(t *testing.T) {
+	t.Log("test user login")
+	ret, err := login(t)
+	if err != nil {
+		t.Errorf("user: polaris should req login success, err: %s", err.Error())
+		return
+	}
+	if ret.Code.GetValue() != api.ExecuteSuccess {
+		t.Errorf("user: polaris should login success")
+		return
+	}
+	type jwtClaims struct {
+		UserID string
+		jwt.RegisteredClaims
+	}
+	token, err := jwt.ParseWithClaims(ret.GetLoginResponse().Token.GetValue(), &jwtClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte("polarismesh@2021"), nil
+	})
+	if err != nil {
+		t.Errorf("user login resp parse jwt fail: %s", err.Error())
+		return
+	}
+	if claims, ok := token.Claims.(*jwtClaims); !ok || claims.UserID == "" {
+		t.Errorf("user login successed token parsed must have user id")
+	} else {
+		t.Logf("user login parsed user is is %s", claims.UserID)
+	}
+}
+
+func TestUserRenewalAuthToken(t *testing.T) {
+	var request *http.Request
+	var err error
+	ret, err := login(t)
+	if err != nil {
+		t.Errorf("user: polaris should req login success, err: %s", err.Error())
+		return
+	}
+	oldToken := ret.LoginResponse.Token.GetValue()
+	c := phttp.NewClient(httpserverAddress, httpserverVersion)
+	url := fmt.Sprintf("http://%v/core/%v/user/token/renewal", c.Address, c.Version)
+	request, err = http.NewRequest("PUT", url, nil)
+	if err != nil {
+		t.Errorf("renewl token should success, err: %s", err.Error())
+		return
+	}
+	request.Header.Add("Content-Type", "application/json")
+	request.Header.Add("Request-Id", "test")
+	request.Header.Add("X-Polaris-Token", oldToken)
+	response, err := c.Worker.Do(request)
+	if err != nil {
+		t.Errorf("renewl token should success, err: %s", err.Error())
+		return
+	}
+
+	ret = &api.Response{}
+	if ierr := jsonpb.Unmarshal(response.Body, ret); ierr != nil {
+		t.Fatalf("parse user renewl token resp occurs error: %s", ierr.Error())
+		return
+	}
+
+	if ret.Code.GetValue() != api.ExecuteSuccess || ret.GetLoginResponse() == nil {
+		t.Errorf("renewl token should resp success")
+		return
+	}
+	if ret.GetLoginResponse().Token.GetValue() == oldToken {
+		t.Errorf("renewl token should not same to old token")
+	}
 
 }

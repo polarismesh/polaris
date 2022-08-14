@@ -95,6 +95,9 @@ type UserOperator interface {
 
 	// ResetUserToken 重置用户的token
 	ResetUserToken(ctx context.Context, user *api.User) *api.Response
+
+	// RenewalAuthToken 续期用户的token
+	RenewalAuthToken(ctx context.Context, user *api.User) *api.Response
 }
 
 // GroupOperator 用户组相关操作

@@ -17,7 +17,10 @@
 
 package defaultauth
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 // AuthOption 鉴权的配置信息
 var AuthOption = DefaultAuthConfig()
@@ -25,13 +28,15 @@ var AuthOption = DefaultAuthConfig()
 // AuthConfig 鉴权配置
 type AuthConfig struct {
 	// ConsoleOpen 控制台是否开启鉴权
-	ConsoleOpen bool `json:"consoleOpen" xml:"consoleOpen"`
+	ConsoleOpen bool `json:"consoleOpen" xml:"consoleOpen" mapstructure:"consoleOpen"`
 	// ClientOpen 是否开启客户端接口鉴权
-	ClientOpen bool `json:"clientOpen" xml:"clientOpen"`
+	ClientOpen bool `json:"clientOpen" xml:"clientOpen"  mapstructure:"clientOpen"`
 	// Salt 相关密码、token加密的salt
-	Salt string `json:"salt" xml:"salt"`
+	Salt string `json:"salt" xml:"salt" mapstructure:"salt"`
 	// Strict 是否启用鉴权的严格模式，即对于没有任何鉴权策略的资源，也必须带上正确的token才能操作, 默认关闭
-	Strict bool `json:"strict"`
+	Strict bool `json:"strict" xml:"strict" mapstructure:"strict"`
+	// JWTExpired jwt的有效时间
+	JWTExpired time.Duration `json:"jwtExpired" xml:"jwtExpired" mapstructure:"jwtExpired"`
 }
 
 // Verify 检查配置是否合法
@@ -57,5 +62,7 @@ func DefaultAuthConfig() *AuthConfig {
 		Salt:       "polarismesh@2021",
 		// 这里默认开启强 Token 检查模式
 		Strict: true,
+		// 默认为4小时有效期
+		JWTExpired: 4 * time.Hour,
 	}
 }

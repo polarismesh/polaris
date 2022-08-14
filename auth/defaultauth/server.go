@@ -19,6 +19,7 @@ package defaultauth
 
 import (
 	"errors"
+	"time"
 
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -70,10 +71,14 @@ func (svr *server) Login(req *api.LoginRequest) *api.Response {
 		return api.NewResponseWithMsg(api.ExecuteException, model.ErrorWrongUsernameOrPassword.Error())
 	}
 
+	token, err := createJWT(user.ID, time.Now().Add(AuthOption.JWTExpired))
+	if err != nil {
+		return api.NewResponse(api.ExecuteException)
+	}
 	return api.NewLoginResponse(api.ExecuteSuccess, &api.LoginResponse{
 		UserId:  utils.NewStringValue(user.ID),
 		OwnerId: utils.NewStringValue(user.Owner),
-		Token:   utils.NewStringValue(user.Token),
+		Token:   utils.NewStringValue(token),
 		Name:    utils.NewStringValue(user.Name),
 		Role:    utils.NewStringValue(model.UserRoleNames[user.Type]),
 	})

@@ -188,6 +188,7 @@ auth:
     consoleOpen: true
     # 客户端鉴权能力开关, 默认关闭
     clientOpen: false
+    jwtExpired: 4h
 namespace:
   # 是否允许自动创建命名空间
   autoCreate: true
