@@ -220,6 +220,20 @@ func (mr *MockAuthServerMockRecorder) ResetUserToken(ctx, user interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetUserToken", reflect.TypeOf((*MockAuthServer)(nil).ResetUserToken), ctx, user)
 }
 
+// RenewalAuthToken mocks base method.
+func (m *MockAuthServer) RenewalAuthToken(ctx context.Context, user *v1.User) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RenewalAuthToken", ctx, user)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// RenewalAuthToken indicates an expected call of RenewalAuthToken.
+func (mr *MockAuthServerMockRecorder) RenewalAuthToken(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenewalAuthToken", reflect.TypeOf((*MockAuthServer)(nil).RenewalAuthToken), ctx, user)
+}
+
 // CreateGroup mocks base method
 func (m *MockAuthServer) CreateGroup(ctx context.Context, group *v1.UserGroup) *v1.Response {
 	m.ctrl.T.Helper()
@@ -644,6 +658,20 @@ func (m *MockUserOperator) ResetUserToken(ctx context.Context, user *v1.User) *v
 func (mr *MockUserOperatorMockRecorder) ResetUserToken(ctx, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetUserToken", reflect.TypeOf((*MockUserOperator)(nil).ResetUserToken), ctx, user)
+}
+
+// RenewalAuthToken mocks base method.
+func (m *MockUserOperator) RenewalAuthToken(ctx context.Context, user *v1.User) *v1.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RenewalAuthToken", ctx, user)
+	ret0, _ := ret[0].(*v1.Response)
+	return ret0
+}
+
+// RenewalAuthToken indicates an expected call of RenewalAuthToken.
+func (mr *MockUserOperatorMockRecorder) RenewalAuthToken(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenewalAuthToken", reflect.TypeOf((*MockUserOperator)(nil).RenewalAuthToken), ctx, user)
 }
 
 // MockGroupOperator is a mock of GroupOperator interface
