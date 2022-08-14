@@ -19,6 +19,7 @@ package config
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -113,9 +114,17 @@ func Test_diffTags(t *testing.T) {
 			want: []string{},
 		},
 	}
+
+	// 由于diffTags 返回的函数是由mp遍历得来, 不保证顺序
+	diffTagsEqual := func(a, b []string) bool {
+		sort.Strings(a)
+		sort.Strings(b)
+		return reflect.DeepEqual(a, b)
+	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := diffTags(tt.args.a, tt.args.b); !reflect.DeepEqual(got, tt.want) {
+			if got := diffTags(tt.args.a, tt.args.b); !diffTagsEqual(got, tt.want) {
 				t.Errorf("diffTags() = %v, want %v", got, tt.want)
 			}
 		})
