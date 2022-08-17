@@ -9,8 +9,4 @@ docker_tag=$1
 
 echo "docker repository : polarismesh/polaris-prometheus, tag : ${docker_tag}"
 
-docker build --network=host -t polarismesh/polaris-prometheus:${docker_tag} ./
-
-docker push polarismesh/polaris-prometheus:${docker_tag}
-docker tag polarismesh/polaris-prometheus:${docker_tag} polarismesh/polaris-prometheus:latest
-docker push polarismesh/polaris-prometheus:latest
+docker buildx build --network=host -t polarismesh/polaris-prometheus:${docker_tag} -t polarismesh/polaris-prometheus:latest --platform linux/amd64,linux/arm64 --push ./
