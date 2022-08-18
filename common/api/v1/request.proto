@@ -14,6 +14,7 @@ message DiscoverRequest {
     CIRCUIT_BREAKER = 5;
     SERVICES = 6;
     reserved 7 to 11;
+    NAMESPACES = 12;
   }
 
   DiscoverRequestType type = 1;

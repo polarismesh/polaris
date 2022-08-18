@@ -31,4 +31,6 @@ scrape_configs:
     http_sd_configs:
       - url: http://polaris:9000/prometheus/v1/clients
 
-    honor_labels: true 
+
+    honor_labels: true
+

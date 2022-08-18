@@ -15,7 +15,7 @@ rem specific language governing permissions and limitations under the License.
 
 setlocal
 set "CURRENT_DIR=%cd%"
-powershell -c "Set-ExecutionPolicy RemoteSigned"
+rem powershell -c "Set-ExecutionPolicy RemoteSigned"
 echo allowed to use powershell
 powershell -File %CURRENT_DIR%\install-windows.ps1
 endlocal

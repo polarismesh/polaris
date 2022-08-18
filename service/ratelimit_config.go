@@ -254,31 +254,29 @@ func (s *Server) UpdateRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 	if resp != nil {
 		return resp
 	}
-
-	// 检查服务是否存在
-	service, resp := s.checkRateLimitValid(ctx, data.ServiceID, req)
-	if resp != nil {
-		return resp
+	// create service if absent
+	code, svcId, err := s.createServiceIfAbsent(ctx, req)
+	if err != nil {
+		log.Errorf("[Service]fail to create ratelimit config, err: %v", err)
+		return api.NewRateLimitResponse(code, req)
 	}
-
 	// 构造底层数据结构
-	rateLimit, err := api2RateLimit(service.ID, req)
+	rateLimit, err := api2RateLimit(svcId, req)
 	if err != nil {
 		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
 		return api.NewRateLimitResponse(api.ParseRateLimitException, req)
 	}
 	rateLimit.ID = data.ID
-
 	if err := s.storage.UpdateRateLimit(rateLimit); err != nil {
 		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
 		return wrapperRateLimitStoreResponse(req, err)
 	}
 
 	msg := fmt.Sprintf("update rate limit: id=%v, namespace=%v, service=%v, name=%v",
-		rateLimit.ID, service.Namespace, service.Name, rateLimit.Name)
+		rateLimit.ID, req.GetNamespace().GetValue(), req.GetService().GetValue(), rateLimit.Name)
 	log.Info(msg, ZapRequestID(requestID), ZapPlatformID(platformID))
 
-	s.RecordHistory(rateLimitRecordEntry(ctx, service.Namespace, service.Name, rateLimit, model.OUpdate))
+	s.RecordHistory(rateLimitRecordEntry(ctx, req.GetNamespace().GetValue(), req.GetService().GetValue(), rateLimit, model.OUpdate))
 	return api.NewRateLimitResponse(api.ExecuteSuccess, req)
 }
 
