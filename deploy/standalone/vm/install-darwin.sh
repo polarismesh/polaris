@@ -103,15 +103,15 @@ function installPolarisServer() {
   cp polaris-server.yaml polaris-server.yaml.bak
 
   # 修改 polaris-server eureka 端口信息
-  sed -i "" "s/listenPort: 8080/listenPort: ${eureka_port}/g" polaris-server.yaml
+  sed -i "" "s/listenPort: 8761/listenPort: ${eureka_port}/g" polaris-server.yaml
   # 修改 polaris-server xdsv3 端口信息
-  sed -i "" "s/listenPort: 8080/listenPort: ${xdsv3_port}/g" polaris-server.yaml
+  sed -i "" "s/listenPort: 15010/listenPort: ${xdsv3_port}/g" polaris-server.yaml
   # 修改 polaris-server prometheus-sd 端口信息
-  sed -i "" "s/listenPort: 8080/listenPort: ${prometheus_sd_port}/g" polaris-server.yaml
+  sed -i "" "s/listenPort: 9000/listenPort: ${prometheus_sd_port}/g" polaris-server.yaml
   # 修改 polaris-server service-grpc 端口信息
-  sed -i "" "s/listenPort: 8080/listenPort: ${service_grpc_port}/g" polaris-server.yaml
+  sed -i "" "s/listenPort: 8091/listenPort: ${service_grpc_port}/g" polaris-server.yaml
   # 修改 polaris-server config-grpc 端口信息
-  sed -i "" "s/listenPort: 8080/listenPort: ${config_grpc_port}/g" polaris-server.yaml
+  sed -i "" "s/listenPort: 8093/listenPort: ${config_grpc_port}/g" polaris-server.yaml
   # 修改 polaris-server http-api 端口信息
   sed -i "" "s/listenPort: 8090/listenPort: ${api_http_port}/g" polaris-server.yaml
 
