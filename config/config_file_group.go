@@ -364,7 +364,10 @@ func (s *Server) UpdateConfigFileGroup(ctx context.Context,
 
 		return api.NewConfigFileGroupResponse(api.StoreLayerException, configFileGroup)
 	}
-	s.afterConfigGroupResource(ctx, configFileGroup, updatedGroup)
+
+	if err := s.afterConfigGroupResource(ctx, configFileGroup, updatedGroup); err != nil {
+		return api.NewConfigFileGroupResponseWithMessage(api.ExecuteException, err.Error())
+	}
 	return api.NewConfigFileGroupResponse(api.ExecuteSuccess, transferConfigFileGroupStoreModel2APIModel(updatedGroup))
 }
 

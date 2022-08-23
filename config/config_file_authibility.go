@@ -35,6 +35,7 @@ func (s *serverAuthability) CreateConfigFile(ctx context.Context,
 	}
 
 	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return s.targetServer.CreateConfigFile(ctx, configFile)
 }
@@ -74,6 +75,7 @@ func (s *serverAuthability) UpdateConfigFile(ctx context.Context, configFile *ap
 	}
 
 	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return s.targetServer.UpdateConfigFile(ctx, configFile)
 }
@@ -82,13 +84,13 @@ func (s *serverAuthability) UpdateConfigFile(ctx context.Context, configFile *ap
 func (s *serverAuthability) DeleteConfigFile(ctx context.Context, namespace, group,
 	name, deleteBy string) *api.ConfigResponse {
 
-	//todo
 	authCtx := s.collectConfigFileAuthContext(ctx, []*api.ConfigFile{{Namespace: utils.NewStringValue(namespace), Name: utils.NewStringValue(name), Group: utils.NewStringValue(group)}}, model.Delete, "DeleteConfigFile")
 	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return s.targetServer.DeleteConfigFile(ctx, namespace, group, name, deleteBy)
 }
@@ -103,6 +105,7 @@ func (s *serverAuthability) BatchDeleteConfigFile(ctx context.Context, configFil
 	}
 
 	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return s.targetServer.BatchDeleteConfigFile(ctx, configFiles, operator)
 }
