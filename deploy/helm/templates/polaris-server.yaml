@@ -12,7 +12,7 @@ spec:
     - port: {{ .Values.service.httpPort }}
       name: http-server
       targetPort: {{ .Values.service.httpPort }}
-    - port: {{ .Values.service.grpcPort }}
+    - port: {{ .Values.service.serviceGrpcPort }}
       name: service-grpc
       targetPort: {{ .Values.service.serviceGrpcPort }}
     - port: {{ .Values.service.webPort }}
