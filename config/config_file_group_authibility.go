@@ -99,13 +99,13 @@ func (s *serverAuthability) UpdateConfigFileGroup(ctx context.Context,
 	configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
 
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{configFileGroup}, model.Modify, "UpdateConfigFileGroup")
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	if _, err := s.authChecker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return s.targetServer.UpdateConfigFileGroup(ctx, configFileGroup)
 }

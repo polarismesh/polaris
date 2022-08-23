@@ -942,8 +942,23 @@ func (mr *MockStoreMockRecorder) GetMoreL5Extend(mtime interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreL5Extend", reflect.TypeOf((*MockStore)(nil).GetMoreL5Extend), mtime)
 }
 
-// GetMoreL5Routes mocks base method
-func (m *MockStore) GetMoreL5Routes(flow uint32) ([]*model.Route, error) {
+// GetConfigFileGroupById mocks base method.
+func (m *MockStore) GetConfigFileGroupById(id uint64) (*model.ConfigFileGroup, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConfigFileGroupById", id)
+	ret0, _ := ret[0].(*model.ConfigFileGroup)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetConfigFileGroupById indicates an expected call of GetConfigFileGroupById.
+func (mr *MockStoreMockRecorder) GetConfigFileGroupById(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFileGroupById", reflect.TypeOf((*MockStore)(nil).GetConfigFileGroupById), id)
+}
+
+// GetConfigFileRelease mocks base method.
+func (m *MockStore) GetConfigFileRelease(tx store.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMoreL5Routes", flow)
 	ret0, _ := ret[0].([]*model.Route)

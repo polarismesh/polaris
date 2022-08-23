@@ -63,6 +63,7 @@ func (s *serverAuthability) DeleteConfigFileRelease(ctx context.Context, namespa
 	}
 
 	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return s.targetServer.DeleteConfigFileRelease(ctx, namespace, group, fileName, deleteBy)
 }

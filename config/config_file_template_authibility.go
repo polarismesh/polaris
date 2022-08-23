@@ -22,6 +22,7 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 // GetAllConfigFileTemplates get all config file templates
@@ -42,5 +43,7 @@ func (s *serverAuthability) CreateConfigFileTemplate(ctx context.Context, templa
 	}
 
 	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return s.targetServer.CreateConfigFileTemplate(ctx, template)
 }
