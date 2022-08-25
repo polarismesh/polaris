@@ -14,8 +14,13 @@ English | [简体中文](./README-zh.md)
 README：
 
 - [Introduction](#introduction)
-- [Components](#components)
 - [Getting started](#getting-started)
+  - [Installation](#installation)
+  - [Examples](#examples)
+- [Document](#document)
+  - [OpenAPI](#openapi)
+  - [Benchmark Report](#benchmark-report)
+  - [Official Document](#official-document)
 - [Chat group](#chat-group)
 - [Contribution](#contribution)
 
