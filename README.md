@@ -104,7 +104,7 @@ curl http://127.0.0.1:8090
 
 Return text is 'Polaris Server', proof features run smoothly
 
-If you want to learn more installation methods (changing ports, docker installation, cluster instanllation ect.), please refer: [Installation Guide](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/%E5%AE%89%E8%A3%85%E6%9C%8D%E5%8A%A1%E7%AB%AF/%E5%AE%89%E8%A3%85%E5%8D%95%E6%9C%BA%E7%89%88.html#%E5%8D%95%E6%9C%BA%E7%89%88%E5%AE%89%E8%A3%85)
+If you want to learn more installation methods (changing ports, docker installation, cluster instanllation etc.), please refer: [Installation Guide](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/%E5%AE%89%E8%A3%85%E6%9C%8D%E5%8A%A1%E7%AB%AF/%E5%AE%89%E8%A3%85%E5%8D%95%E6%9C%BA%E7%89%88.html#%E5%8D%95%E6%9C%BA%E7%89%88%E5%AE%89%E8%A3%85)
 
 ### Examples
 
