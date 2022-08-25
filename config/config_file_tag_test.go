@@ -18,8 +18,9 @@
 package config
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_diffTags(t *testing.T) {
@@ -115,7 +116,8 @@ func Test_diffTags(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := diffTags(tt.args.a, tt.args.b); !reflect.DeepEqual(got, tt.want) {
+			got := diffTags(tt.args.a, tt.args.b)
+			if !assert.ElementsMatch(t, got, tt.want) {
 				t.Errorf("diffTags() = %v, want %v", got, tt.want)
 			}
 		})

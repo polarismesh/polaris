@@ -553,10 +553,10 @@ func (s *Server) updateInstanceAttribute(req *api.Instance, instance *model.Inst
 		insProto.Metadata = req.GetMetadata()
 		needUpdate = true
 	}
-	// if !needUpdate {
-	// 	// 不需要更新metadata，则置空
-	// 	insProto.Metadata = nil
-	// }
+	if ok := instanceLocationNeedUpdate(req.GetLocation(), instance.Proto.GetLocation()); ok {
+		insProto.Location = req.Location
+		needUpdate = true
+	}
 
 	if req.GetProtocol() != nil && req.GetProtocol().GetValue() != instance.Protocol() {
 		insProto.Protocol = req.GetProtocol()
@@ -603,6 +603,21 @@ func (s *Server) updateInstanceAttribute(req *api.Instance, instance *model.Inst
 	}
 
 	return needUpdate
+}
+
+func instanceLocationNeedUpdate(req *api.Location, old *api.Location) bool {
+
+	if req.GetRegion().GetValue() != old.GetRegion().GetValue() {
+		return true
+	}
+	if req.GetZone().GetValue() != old.GetZone().GetValue() {
+		return true
+	}
+	if req.GetCampus().GetValue() != old.GetCampus().GetValue() {
+		return true
+	}
+
+	return false
 }
 
 // 健康检查的更新

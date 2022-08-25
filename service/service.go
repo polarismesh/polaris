@@ -622,7 +622,7 @@ func (s *Server) getRoutingCountWithService(id string) (uint32, error) {
 // getRateLimitingCountWithService 获取服务下限流规则总数
 func (s *Server) getRateLimitingCountWithService(name string, namespace string) (uint32, error) {
 	filter := map[string]string{
-		"name":      name,
+		"service":      name,
 		"namespace": namespace,
 	}
 	total, _, err := s.storage.GetExtendRateLimits(filter, 0, 1)

@@ -78,6 +78,12 @@ bootstrap:
     enable_register: true
     isolated: false
     services:
+      - name: polaris.discover
+        protocols:
+          - service-grpc
+      - name: polaris.healthcheck
+        protocols:
+          - service-grpc
       - name: polaris.checker
         protocols:
           - service-grpc
@@ -320,10 +326,6 @@ plugin:
     option:
       interval: 60 # 统计间隔，单位为秒
       outputPath: ./statis
-    # api 调用指标数据计算上报到 prometheus
-    # name: prometheus
-    # option:
-    #   interval: 60 # 统计间隔，单位为秒
   auth:
     name: defaultAuth
   ratelimit:

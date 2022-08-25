@@ -18,6 +18,8 @@
 package xdsserverv3
 
 import (
+	"bytes"
+	_ "embed"
 	"encoding/json"
 	"reflect"
 	"testing"
@@ -27,12 +29,16 @@ import (
 	envoy_extensions_common_ratelimit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
 	lrl "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
+	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	"go.uber.org/atomic"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func generateRateLimitString(ruleType api.Rule_Type) (string, string, map[string]*anypb.Any) {
@@ -46,7 +52,7 @@ func generateRateLimitString(ruleType api.Rule_Type) (string, string, map[string
 			Value: &wrappers.StringValue{Value: "/info"},
 		},
 		Labels: map[string]*api.MatchString{
-			"uin": &api.MatchString{
+			"uin": {
 				Type:  0,
 				Value: &wrappers.StringValue{Value: "109870111"},
 			},
@@ -180,5 +186,195 @@ func Test_makeLocalRateLimit(t *testing.T) {
 				t.Errorf("makeLocalRateLimit() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestParseNodeID(t *testing.T) {
+	testTable := []struct {
+		NodeID string
+
+		Namespace string
+		UUID      string
+		HostIP    string
+	}{
+		{
+			NodeID:    "default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
+			Namespace: "default",
+			UUID:      "9b9f5630-81a1-47cd-a558-036eb616dc71",
+			HostIP:    "172.17.1.1",
+		},
+		{
+			NodeID:    "namespace/9b9f5630-81a1-47cd-a558-036eb616dc71~1.1.1.1",
+			Namespace: "namespace",
+			UUID:      "9b9f5630-81a1-47cd-a558-036eb616dc71",
+			HostIP:    "1.1.1.1",
+		},
+		{
+			NodeID:    "default/67c745dd-35b3-40fe-8a9d-64ea6ec19fb2~10.244.0.229",
+			Namespace: "default",
+			HostIP:    "10.244.0.229",
+			UUID:      "67c745dd-35b3-40fe-8a9d-64ea6ec19fb2",
+		},
+		// bad case
+		{
+			NodeID:    "namespace",
+			Namespace: "",
+			UUID:      "",
+			HostIP:    "",
+		},
+	}
+	for _, item := range testTable {
+		ns, id, hostip := parseNodeID(item.NodeID)
+		if ns != item.Namespace || id != item.UUID || hostip != item.HostIP {
+			t.Fatalf("parse node id [%s] expected ['%s' '%s' '%s'] got : ['%s' '%s' '%s']",
+				item.NodeID,
+				item.Namespace, item.UUID, item.HostIP,
+				ns, id, hostip,
+			)
+		}
+	}
+}
+
+func TestNodeHashID(t *testing.T) {
+	testTable := []struct {
+		Node     *core.Node
+		TargetID string
+	}{
+		{
+			Node: &core.Node{
+				Id: "default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
+				Metadata: &_struct.Struct{
+					Fields: map[string]*structpb.Value{
+						TLSModeTag: &_struct.Value{
+							Kind: &_struct.Value_StringValue{
+								StringValue: TLSModeStrict,
+							},
+						},
+					},
+				},
+			},
+			TargetID: "default/" + TLSModeStrict,
+		},
+		{
+			Node: &core.Node{
+				Id: "polaris/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
+				Metadata: &_struct.Struct{
+					Fields: map[string]*structpb.Value{
+						TLSModeTag: &_struct.Value{
+							Kind: &_struct.Value_StringValue{
+								StringValue: TLSModePermissive,
+							},
+						},
+					},
+				},
+			},
+			TargetID: "polaris/" + TLSModePermissive,
+		},
+		{
+			Node: &core.Node{
+				Id: "default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
+				Metadata: &_struct.Struct{
+					Fields: map[string]*structpb.Value{
+						TLSModeTag: &_struct.Value{
+							Kind: &_struct.Value_StringValue{
+								StringValue: TLSModeNone,
+							},
+						},
+					},
+				},
+			},
+			TargetID: "default",
+		},
+		// bad case: wrong tls mode
+		{
+			Node: &core.Node{
+				Id: "default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
+				Metadata: &_struct.Struct{
+					Fields: map[string]*structpb.Value{
+						TLSModeTag: &_struct.Value{
+							Kind: &_struct.Value_StringValue{
+								StringValue: "abc",
+							},
+						},
+					},
+				},
+			},
+			TargetID: "default",
+		},
+		// no node metadata
+		{
+			Node: &core.Node{
+				Id: "default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
+			},
+			TargetID: "default",
+		},
+		// metadata does not contain tls mode kv
+		{
+			Node: &core.Node{
+				Id: "default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
+				Metadata: &_struct.Struct{
+					Fields: map[string]*structpb.Value{
+						"hello": &_struct.Value{
+							Kind: &_struct.Value_StringValue{
+								StringValue: "abc",
+							},
+						},
+					},
+				},
+			},
+			TargetID: "default",
+		},
+	}
+	for i, item := range testTable {
+		id := PolarisNodeHash{}.ID(item.Node)
+		if id != item.TargetID {
+			t.Fatalf("test case [%d] failed: expect ID %s, got ID %s",
+				i, item.TargetID, id)
+		}
+	}
+}
+
+//go:embed testdata/data.json
+var testServicesData []byte
+
+//go:embed testdata/dump.yaml
+var noInboundDump []byte
+
+//go:embed testdata/permissive.dump.yaml
+var permissiveDump []byte
+
+//go:embed testdata/strict.dump.yaml
+var strictDump []byte
+
+func TestSnapshot(t *testing.T) {
+	sis := map[string][]*ServiceInfo{}
+	json.Unmarshal(testServicesData, &sis)
+
+	x := XDSServer{
+		CircuitBreakerConfigGetter: func(id string) *model.ServiceWithCircuitBreaker {
+			return nil
+		},
+		RatelimitConfigGetter: func(serviceID string) []*model.RateLimit { return nil },
+		versionNum:            atomic.NewUint64(1),
+		cache:                 cache.NewSnapshotCache(true, cache.IDHash{}, nil),
+	}
+	x.pushRegistryInfoToXDSCache(sis)
+
+	snapshot, _ := x.cache.GetSnapshot("default")
+	dumpYaml := dumpSnapShot(snapshot)
+	if !bytes.Equal(noInboundDump, dumpYaml) {
+		t.Fatal(string(dumpYaml))
+	}
+
+	snapshot, _ = x.cache.GetSnapshot("default/permissive")
+	dumpYaml = dumpSnapShot(snapshot)
+	if !bytes.Equal(permissiveDump, dumpYaml) {
+		t.Fatal(string(dumpYaml))
+	}
+
+	snapshot, _ = x.cache.GetSnapshot("default/strict")
+	dumpYaml = dumpSnapShot(snapshot)
+	if !bytes.Equal(strictDump, dumpYaml) {
+		t.Fatal(string(dumpYaml))
 	}
 }
