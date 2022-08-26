@@ -116,85 +116,109 @@ func TestNamespaceStore_GetNamespaces(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ret, retCnt, err := nsStore.GetNamespaces(map[string][]string{
-		"": {},
-	}, 0, nsCount)
+	t.Run("正常查询命名空间列表", func(t *testing.T) {
+		ret, retCnt, err := nsStore.GetNamespaces(map[string][]string{
+			"": {},
+		}, 0, nsCount)
 
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(ret) != int(retCnt) {
-		t.Fatal("len(ret) need equal int(retCnt)")
-	}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(ret) != int(retCnt) {
+			t.Fatal("len(ret) need equal int(retCnt)")
+		}
+	})
 
-	// 只要有一个条件不满足，则对应的条目就不应该查出来
-	ret, retCnt, err = nsStore.GetNamespaces(map[string][]string{
-		OwnerAttribute: {"springliao"},
-	}, 0, nsCount)
+	t.Run("查询条件不满足-无法查询出结果", func(t *testing.T) {
+		// 只要有一个条件不满足，则对应的条目就不应该查出来
+		ret, _, err := nsStore.GetNamespaces(map[string][]string{
+			OwnerAttribute: {"springliao"},
+		}, 0, nsCount)
 
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(ret) != 0 {
-		t.Fatal("len(ret) must be zero")
-	}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(ret) != 0 {
+			t.Fatal("len(ret) must be zero")
+		}
 
-	ret, retCnt, err = nsStore.GetNamespaces(map[string][]string{
-		OwnerAttribute: {nsOwner},
-		NameAttribute:  {"springliao"},
-	}, 0, nsCount)
+		ret, _, err = nsStore.GetNamespaces(map[string][]string{
+			OwnerAttribute: {nsOwner},
+			NameAttribute:  {"springliao"},
+		}, 0, nsCount)
 
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(ret) != 0 {
-		t.Fatal("len(ret) must be zero")
-	}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(ret) != 0 {
+			t.Fatal("len(ret) must be zero")
+		}
+	})
 
-	ret, retCnt, err = nsStore.GetNamespaces(map[string][]string{
-		OwnerAttribute: {nsOwner},
-	}, 0, 1)
+	t.Run("条件分页-offset为0开始查询-只查一条数据", func(t *testing.T) {
+		ret, retCnt, err := nsStore.GetNamespaces(map[string][]string{
+			OwnerAttribute: {nsOwner},
+		}, 0, 1)
 
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !(len(ret) == 1 && nsCount == int(retCnt)) {
-		t.Fatalf("len(ret) must be 1 and retCnt must be %d", nsCount)
-	}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !(len(ret) == 1 && nsCount == int(retCnt)) {
+			t.Fatalf("len(ret) must be 1 and retCnt must be %d", nsCount)
+		}
 
-	ret, retCnt, err = nsStore.GetNamespaces(map[string][]string{
-		OwnerAttribute: {nsOwner},
-		NameAttribute:  {"default1"},
-	}, 0, 1)
+		ret, retCnt, err = nsStore.GetNamespaces(map[string][]string{
+			OwnerAttribute: {nsOwner},
+			NameAttribute:  {"default1"},
+		}, 0, 1)
 
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !(len(ret) == 1 && retCnt == 1) {
-		t.Fatalf("len(ret) must be 1 and retCnt must be 1, acutal len(ret) %d, retCnt : %d", len(ret), retCnt)
-	}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !(len(ret) == 1 && retCnt == 1) {
+			t.Fatalf("len(ret) must be 1 and retCnt must be 1, acutal len(ret) %d, retCnt : %d", len(ret), retCnt)
+		}
 
-	ret, retCnt, err = nsStore.GetNamespaces(map[string][]string{
-		OwnerAttribute: {nsOwner},
-	}, 3, 1)
+	})
 
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !(len(ret) == 1 && nsCount == int(retCnt)) {
-		t.Fatalf("len(ret) must be 1 and retCnt must be %d", nsCount)
-	}
+	t.Run("条件分页查询-从offset3开始查询-只查一条数据", func(t *testing.T) {
+		ret, retCnt, err := nsStore.GetNamespaces(map[string][]string{
+			OwnerAttribute: {nsOwner},
+		}, 3, 1)
 
-	ret, retCnt, err = nsStore.GetNamespaces(map[string][]string{
-		OwnerAttribute: {nsOwner},
-	}, 3, 10)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !(len(ret) == 1 && nsCount == int(retCnt)) {
+			t.Fatalf("len(ret) must be 1 and retCnt must be %d", nsCount)
+		}
+	})
 
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !(len(ret) == 2 && nsCount == int(retCnt)) {
-		t.Fatalf("len(ret) must be 1 and retCnt must be %d", nsCount)
-	}
+	t.Run("条件分页查询-查询多条数据", func(t *testing.T) {
+		ret, retCnt, err := nsStore.GetNamespaces(map[string][]string{
+			OwnerAttribute: {nsOwner},
+		}, 3, 10)
+	
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !(len(ret) == 2 && nsCount == int(retCnt)) {
+			t.Fatalf("len(ret) must be 1 and retCnt must be %d", nsCount)
+		}
+	})
+
+	t.Run("分页查询-offset太大", func(t *testing.T) {
+		ret, retCnt, err := nsStore.GetNamespaces(map[string][]string{
+			OwnerAttribute: {nsOwner},
+		}, 1000000, 10)
+	
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !(len(ret) == 0 && nsCount == int(retCnt)) {
+			t.Fatalf("len(ret) must be 1 and retCnt must be %d", nsCount)
+		}
+	})
 
 }
 

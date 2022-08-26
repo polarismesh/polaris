@@ -264,12 +264,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 			item.Proto.Metadata = make(map[string]string)
 		}
 
-		if len(item.Version()) > 0 {
-			item.Proto.Metadata["version"] = item.Version()
-		}
-		if len(item.Protocol()) > 0 {
-			item.Proto.Metadata["protocol"] = item.Protocol()
-		}
+		item = fillIntrnalLabels(item)
 
 		ic.ids.Store(item.ID(), item)
 		if !itemExist {
@@ -302,6 +297,23 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 	ic.postProcessUpdatedServices(affect)
 	ic.manager.onEvent(affect, EventInstanceReload)
 	return update, del
+}
+
+func fillIntrnalLabels(item *model.Instance) *model.Instance {
+	if len(item.Version()) > 0 {
+		item.Proto.Metadata["version"] = item.Version()
+	}
+	if len(item.Protocol()) > 0 {
+		item.Proto.Metadata["protocol"] = item.Protocol()
+	}
+
+	if item.Location() != nil {
+		item.Proto.Metadata["region"] = item.Location().GetRegion().GetValue()
+		item.Proto.Metadata["zone"] = item.Location().GetZone().GetValue()
+		item.Proto.Metadata["campus"] = item.Location().GetCampus().GetValue()
+	}
+
+	return item
 }
 
 func (ic *instanceCache) postProcessUpdatedServices(affect map[string]bool) {
