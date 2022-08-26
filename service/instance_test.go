@@ -398,7 +398,7 @@ func TestGetInstances1(t *testing.T) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 		discoverSuit.discoveryCheck(t, service, resp)
-		if check(len(resp.Instances)) {
+		if !check(len(resp.Instances)) {
 			t.Fatalf("error : check instance cnt fail, acutal : %d", len(resp.Instances))
 		}
 		return resp
