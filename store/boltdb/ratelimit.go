@@ -185,7 +185,7 @@ func (r *rateLimitStore) GetExtendRateLimits(
 		return 0, []*model.ExtendRateLimit{}, nil
 	}
 
-	var out []*model.ExtendRateLimit
+	out := make([]*model.ExtendRateLimit, 0, 4)
 
 	for id, r := range result {
 		var temp model.ExtendRateLimit

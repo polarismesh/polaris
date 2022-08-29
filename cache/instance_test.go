@@ -56,6 +56,11 @@ func genModelInstances(label string, total int) map[string]*model.Instance {
 				Id:   utils.NewStringValue(fmt.Sprintf("instanceID-%s-%d", label, i)),
 				Host: utils.NewStringValue(fmt.Sprintf("host-%s-%d", label, i)),
 				Port: utils.NewUInt32Value(uint32(i + 10)),
+				Location: &v1.Location{
+					Region: utils.NewStringValue("china"),
+					Zone:   utils.NewStringValue("ap-shenzheng"),
+					Campus: utils.NewStringValue("ap-shenzheng-1"),
+				},
 			},
 			ServiceID: fmt.Sprintf("serviceID-%s", label),
 			Valid:     true,
@@ -272,6 +277,58 @@ func TestInstanceCache_GetServicePorts(t *testing.T) {
 			t.Logf("service-ports expectVal : %v, targetVal : %v", expectVal, targetVal)
 
 			assert.ElementsMatch(t, expectVal, targetVal)
+		}
+	})
+}
+
+func TestInstanceCache_fillIntrnalLabels(t *testing.T) {
+	ctl, storage, ic := newTestInstanceCache(t)
+	defer ctl.Finish()
+	t.Run("向实例Metadata中自动注入北极星默认label信息", func(t *testing.T) {
+		_ = ic.clear()
+		instances := genModelInstances("inject-internal-label", 10)
+
+		ports := make(map[string][]string)
+
+		for i := range instances {
+			ins := instances[i]
+			if _, ok := ports[ins.ServiceID]; !ok {
+				ports[ins.ServiceID] = make([]string, 0, 4)
+			}
+
+			values := ports[ins.ServiceID]
+			find := false
+
+			for j := range values {
+				if values[j] == fmt.Sprintf("%d", ins.Port()) {
+					find = true
+					break
+				}
+			}
+
+			if !find {
+				values = append(values, fmt.Sprintf("%d", ins.Port()))
+			}
+
+			ports[ins.ServiceID] = values
+		}
+
+		gomock.InOrder(storage.EXPECT().
+			GetMoreInstances(gomock.Any(), ic.firstUpdate, ic.needMeta, ic.systemServiceID).
+			Return(instances, nil))
+		gomock.InOrder(storage.EXPECT().GetInstancesCount().Return(uint32(10), nil))
+		if err := ic.update(0); err != nil {
+			t.Fatalf("error: %s", err.Error())
+		}
+
+		for i := range instances {
+			ins := instances[i]
+
+			assert.Equal(t, map[string]string{
+				"region": "china",
+				"zone":   "ap-shenzheng",
+				"campus": "ap-shenzheng-1",
+			}, ins.Proto.Metadata)
 		}
 	})
 }

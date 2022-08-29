@@ -576,7 +576,7 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 
 	if offset >= uint32(len(cbSlice)) {
 		return &model.CircuitBreakerDetail{
-			Total:               uint32(0),
+			Total:               uint32(len(retRelations)),
 			CircuitBreakerInfos: []*model.CircuitBreakerInfo{},
 		}, nil
 	}
