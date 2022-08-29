@@ -32,7 +32,6 @@ import (
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-
 	envoy_extensions_common_ratelimit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
 	clusterservice "github.com/envoyproxy/go-control-plane/envoy/service/cluster/v3"
 	discoverygrpc "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -41,6 +40,7 @@ import (
 	routeservice "github.com/envoyproxy/go-control-plane/envoy/service/route/v3"
 	runtimeservice "github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3"
 	secretservice "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
+	v32 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
@@ -303,27 +303,73 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 
 	// 路由目前只处理 inbounds
 	if serviceInfo.Routing != nil && len(serviceInfo.Routing.Inbounds) > 0 {
-		for _, r := range serviceInfo.Routing.Inbounds {
+		for _, inbound := range serviceInfo.Routing.Inbounds {
 
-			// 目前只支持从 header 中取 metadata
-			var headerMatchers []*route.HeaderMatcher
+			routeMatch := &route.RouteMatch{}
 
 			// 使用 sources 生成 routeMatch
-			for _, source := range r.Sources {
+			for _, source := range inbound.Sources {
 				if source.Metadata != nil && len(source.Metadata) > 0 {
 					for name, matchString := range source.Metadata {
-						headerMatch := &route.HeaderMatcher{}
-						headerMatch.Name = name
-						if matchString.Type == api.MatchString_EXACT {
-							headerMatch.HeaderMatchSpecifier = &route.HeaderMatcher_ExactMatch{
-								ExactMatch: matchString.Value.Value,
+						if name == model.LabelKeyPath {
+							if matchString.Type == api.MatchString_EXACT {
+								routeMatch.PathSpecifier = &route.RouteMatch_Path{
+									Path: matchString.GetValue().GetValue()}
+							} else if matchString.Type == api.MatchString_REGEX {
+								routeMatch.PathSpecifier = &route.RouteMatch_SafeRegex{SafeRegex: &v32.RegexMatcher{
+									Regex: matchString.GetValue().GetValue()}}
 							}
-						} else {
-							headerMatch.HeaderMatchSpecifier = &route.HeaderMatcher_SuffixMatch{
-								SuffixMatch: matchString.Value.Value,
+						} else if strings.HasPrefix(name, model.LabelKeyHeader) {
+							headerSubName := name[len(model.LabelKeyHeader):]
+							if !(len(headerSubName) > 1 && strings.HasPrefix(headerSubName, ".")) {
+								continue
+							}
+							headerSubName = headerSubName[1:]
+							var headerMatch *route.HeaderMatcher
+							if matchString.Type == api.MatchString_EXACT {
+								headerMatch = &route.HeaderMatcher{
+									Name: headerSubName,
+									HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_Exact{Exact: matchString.GetValue().GetValue()}},
+									},
+								}
+							} else {
+								headerMatch = &route.HeaderMatcher{
+									Name: headerSubName,
+									HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_SafeRegex{SafeRegex: &v32.RegexMatcher{Regex: matchString.GetValue().GetValue()}}},
+									},
+								}
+							}
+							if headerMatch != nil {
+								routeMatch.Headers = append(routeMatch.Headers, headerMatch)
+							}
+						} else if strings.HasPrefix(name, model.LabelKeyQuery) {
+							querySubName := name[len(model.LabelKeyQuery):]
+							if !(len(querySubName) > 1 && strings.HasPrefix(querySubName, ".")) {
+								continue
+							}
+							querySubName = querySubName[1:]
+							var queryMatcher *route.QueryParameterMatcher
+							if matchString.Type == api.MatchString_EXACT {
+								queryMatcher = &route.QueryParameterMatcher{
+									Name: querySubName,
+									QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{
+										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_Exact{Exact: matchString.GetValue().GetValue()}},
+									},
+								}
+							} else {
+								queryMatcher = &route.QueryParameterMatcher{
+									Name: querySubName,
+									QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{
+										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_SafeRegex{SafeRegex: &v32.RegexMatcher{Regex: matchString.GetValue().GetValue()}}},
+									},
+								}
+							}
+							if queryMatcher != nil {
+								routeMatch.QueryParameters = append(routeMatch.QueryParameters, queryMatcher)
 							}
 						}
-						headerMatchers = append(headerMatchers, headerMatch)
 					}
 				}
 			}
@@ -332,7 +378,7 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 			var totalWeight uint32
 
 			// 使用 destinations 生成 weightedClusters。makeClusters() 也使用这个字段生成对应的 subset
-			for _, destination := range r.Destinations {
+			for _, destination := range inbound.Destinations {
 
 				fields := make(map[string]*_struct.Value)
 				for k, v := range destination.Metadata {
@@ -359,12 +405,7 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 			}
 
 			route := &route.Route{
-				Match: &route.RouteMatch{
-					PathSpecifier: &route.RouteMatch_Prefix{
-						Prefix: "/",
-					},
-					Headers: headerMatchers,
-				},
+				Match: routeMatch,
 				Action: &route.Route_Route{
 					Route: &route.RouteAction{
 						ClusterSpecifier: &route.RouteAction_WeightedClusters{
