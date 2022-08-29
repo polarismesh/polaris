@@ -300,16 +300,28 @@ func makeEndpoints(services []*ServiceInfo) []types.Resource {
 
 func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 	var routes []*route.Route
-
+	var matchAllRoute *route.Route
 	// 路由目前只处理 inbounds
 	if serviceInfo.Routing != nil && len(serviceInfo.Routing.Inbounds) > 0 {
 		for _, inbound := range serviceInfo.Routing.Inbounds {
 
 			routeMatch := &route.RouteMatch{}
-
+			var matchAll bool
 			// 使用 sources 生成 routeMatch
 			for _, source := range inbound.Sources {
-				if source.Metadata != nil && len(source.Metadata) > 0 {
+				if source.Metadata == nil || len(source.Metadata) == 0 {
+					continue
+				}
+				for name := range source.Metadata {
+					if name == "*" {
+						matchAll = true
+						break
+					}
+				}
+				if matchAll {
+					routeMatch.PathSpecifier = &route.RouteMatch_Prefix{Prefix: "/"}
+					break
+				} else {
 					for name, matchString := range source.Metadata {
 						if name == model.LabelKeyPath {
 							if matchString.Type == api.MatchString_EXACT {
@@ -404,7 +416,7 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 				totalWeight += destination.Weight.Value
 			}
 
-			route := &route.Route{
+			currentRoute := &route.Route{
 				Match: routeMatch,
 				Action: &route.Route_Route{
 					Route: &route.RouteAction{
@@ -417,12 +429,19 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 					},
 				},
 			}
-			routes = append(routes, route)
+			if matchAll {
+				matchAllRoute = currentRoute
+			} else {
+				routes = append(routes, currentRoute)
+			}
 		}
 	}
-
-	// 如果没有路由，会进入最后的默认处理
-	routes = append(routes, getDefaultRoute(serviceInfo.Name))
+	if matchAllRoute == nil {
+		// 如果没有路由，会进入最后的默认处理
+		routes = append(routes, getDefaultRoute(serviceInfo.Name))
+	} else {
+		routes = append(routes, matchAllRoute)
+	}
 	return routes
 }
 
