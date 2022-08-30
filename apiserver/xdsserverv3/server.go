@@ -305,7 +305,9 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 	if serviceInfo.Routing != nil && len(serviceInfo.Routing.Inbounds) > 0 {
 		for _, inbound := range serviceInfo.Routing.Inbounds {
 
-			routeMatch := &route.RouteMatch{}
+			routeMatch := &route.RouteMatch{
+				PathSpecifier: &route.RouteMatch_Prefix{Prefix: "/"},
+			}
 			var matchAll bool
 			// 使用 sources 生成 routeMatch
 			for _, source := range inbound.Sources {
@@ -319,7 +321,6 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 					}
 				}
 				if matchAll {
-					routeMatch.PathSpecifier = &route.RouteMatch_Prefix{Prefix: "/"}
 					break
 				} else {
 					for name, matchString := range source.Metadata {
