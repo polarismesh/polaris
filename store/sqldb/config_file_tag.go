@@ -126,6 +126,7 @@ func (t *configFileTagStore) DeleteTagByConfigFile(tx store.Tx, namespace, group
 	}
 	return nil
 }
+
 func (t *configFileTagStore) baseSelectSql() string {
 	return "select id, `key`,`value`,namespace,`group`,file_name,UNIX_TIMESTAMP(create_time), " +
 		" IFNULL(create_by, ''),UNIX_TIMESTAMP(modify_time),IFNULL(modify_by, '') from config_file_tag"

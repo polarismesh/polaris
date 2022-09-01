@@ -22,9 +22,10 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/polarismesh/polaris-server/plugin"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+
+	"github.com/polarismesh/polaris-server/plugin"
 )
 
 const (

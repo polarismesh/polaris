@@ -221,7 +221,7 @@ func updateScopes(typeName string, options *Options, cores []zapcore.Core, errSi
 
 	scope.SetOutputLevel(outPutLevel)
 	scope.SetStackTraceLevel(stackTraceLevel)
-	
+
 	// update patchTable
 	pt := &patchTable{
 		write: func(ent zapcore.Entry, fields []zapcore.Field) error {

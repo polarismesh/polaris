@@ -24,16 +24,16 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
-	storemock "github.com/polarismesh/polaris-server/store/mock"
-	"github.com/stretchr/testify/assert"
-
 	_ "github.com/polarismesh/polaris-server/plugin/auth/defaultauth"
+	storemock "github.com/polarismesh/polaris-server/store/mock"
 )
 
 func Test_defaultAuthManager_ParseToken(t *testing.T) {

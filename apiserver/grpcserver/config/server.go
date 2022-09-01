@@ -22,14 +22,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/config"
-
 	"google.golang.org/grpc"
 
 	"github.com/polarismesh/polaris-server/apiserver"
+	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/config"
 )
 
 // ConfigGRPCServer 配置中心 GRPC API 服务器

@@ -24,6 +24,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -32,7 +34,6 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
 	storemock "github.com/polarismesh/polaris-server/store/mock"
-	"github.com/stretchr/testify/assert"
 )
 
 type UserTest struct {

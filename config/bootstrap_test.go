@@ -25,37 +25,31 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/boltdb/bolt"
 	"github.com/google/uuid"
-	"github.com/polarismesh/polaris-server/auth"
-	"github.com/polarismesh/polaris-server/namespace"
+	"gopkg.in/yaml.v2"
 
+	"github.com/polarismesh/polaris-server/auth"
+	_ "github.com/polarismesh/polaris-server/auth/defaultauth"
 	"github.com/polarismesh/polaris-server/cache"
+	_ "github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/store"
-
-	"github.com/polarismesh/polaris-server/store/boltdb"
-	"github.com/polarismesh/polaris-server/store/sqldb"
-
-	_ "github.com/polarismesh/polaris-server/auth/defaultauth"
-	_ "github.com/polarismesh/polaris-server/cache"
-	_ "github.com/polarismesh/polaris-server/store/boltdb"
-	_ "github.com/polarismesh/polaris-server/store/sqldb"
-
 	_ "github.com/polarismesh/polaris-server/plugin/auth/defaultauth"
-
 	_ "github.com/polarismesh/polaris-server/plugin/auth/platform"
-	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
-	_ "github.com/polarismesh/polaris-server/plugin/password"
-
 	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatmemory"
 	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatredis"
+	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
+	_ "github.com/polarismesh/polaris-server/plugin/password"
+	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris-server/store/boltdb"
+	_ "github.com/polarismesh/polaris-server/store/boltdb"
+	"github.com/polarismesh/polaris-server/store/sqldb"
+	_ "github.com/polarismesh/polaris-server/store/sqldb"
 )
 
 type Bootstrap struct {

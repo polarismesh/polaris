@@ -23,11 +23,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func createTestStrategy(num int) []*model.StrategyDetail {

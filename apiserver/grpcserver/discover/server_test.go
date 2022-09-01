@@ -22,9 +22,10 @@ import (
 	"reflect"
 	"testing"
 
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func Test_discoverCacheConvert(t *testing.T) {

@@ -21,10 +21,9 @@ import (
 	"encoding/json"
 	"sort"
 
-	res "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	res "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v2"
 )

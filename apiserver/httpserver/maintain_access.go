@@ -20,13 +20,15 @@ package httpserver
 import (
 	"context"
 	"encoding/json"
-	"github.com/emicklei/go-restful/v3"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/maintain"
 	"io/ioutil"
 	"net/http"
 	"strconv"
+
+	"github.com/emicklei/go-restful/v3"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/maintain"
 )
 
 // GetMaintainAccessServer 运维接口

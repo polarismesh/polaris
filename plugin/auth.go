@@ -21,8 +21,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/polarismesh/polaris-server/common/log"
 	"go.uber.org/zap"
+
+	"github.com/polarismesh/polaris-server/common/log"
 )
 
 var (

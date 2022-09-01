@@ -23,6 +23,9 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -31,8 +34,6 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
 	storemock "github.com/polarismesh/polaris-server/store/mock"
-	"github.com/stretchr/testify/assert"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type GroupTest struct {
@@ -527,8 +528,6 @@ func Test_server_DeleteGroup(t *testing.T) {
 
 }
 
-
-
 func Test_server_UpdateGroupToken(t *testing.T) {
 
 	groupTest := newGroupTest(t)
@@ -553,14 +552,12 @@ func Test_server_UpdateGroupToken(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
 
-
 		batchResp := groupTest.svr.UpdateGroupToken(reqCtx, &api.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[2].ID),
 		})
 
 		assert.True(t, batchResp.Code.Value == v1.OperationRoleException, batchResp.Info.GetValue())
 	})
-
 
 	t.Run("更新用户组Token的Enable状态-非group的owner", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerTwo.Token)
@@ -574,8 +571,6 @@ func Test_server_UpdateGroupToken(t *testing.T) {
 		assert.True(t, batchResp.Code.Value == v1.NotAllowedAccess, batchResp.Info.GetValue())
 	})
 }
-
-
 
 func Test_server_RefreshGroupToken(t *testing.T) {
 
@@ -608,7 +603,6 @@ func Test_server_RefreshGroupToken(t *testing.T) {
 		assert.True(t, batchResp.Code.Value == v1.OperationRoleException, batchResp.Info.GetValue())
 	})
 
-
 	t.Run("更新用户组Token的Enable状态-非group的owner", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerTwo.Token)
 
@@ -621,4 +615,3 @@ func Test_server_RefreshGroupToken(t *testing.T) {
 		assert.True(t, batchResp.Code.Value == v1.NotAllowedAccess, batchResp.Info.GetValue())
 	})
 }
-
