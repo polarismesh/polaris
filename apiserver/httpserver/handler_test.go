@@ -22,7 +22,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/polarismesh/polaris-server/apiserver/httpserver/i18n"

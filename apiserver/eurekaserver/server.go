@@ -28,7 +28,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris-server/apiserver"

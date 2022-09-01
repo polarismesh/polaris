@@ -7,7 +7,6 @@ require (
 	bou.ke/monkey v1.0.2
 	github.com/BurntSushi/toml v1.0.0
 	github.com/boltdb/bolt v1.3.1
-	github.com/emicklei/go-restful v2.15.0+incompatible
 	github.com/envoyproxy/go-control-plane v0.10.2-0.20220325020618-49ff273808a1
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.6.0
@@ -72,5 +71,7 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+require github.com/emicklei/go-restful/v3 v3.9.0
 
 replace gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.2

@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 

@@ -18,7 +18,7 @@
 package httpserver
 
 import (
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 )
 
 // GetAdminServer get admin server
