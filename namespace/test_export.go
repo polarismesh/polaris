@@ -20,11 +20,12 @@ package namespace
 import (
 	"context"
 
+	"golang.org/x/sync/singleflight"
+
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
-	"golang.org/x/sync/singleflight"
 )
 
 func TestInitialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.CacheManager,

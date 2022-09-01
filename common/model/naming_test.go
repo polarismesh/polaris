@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
-
 	"github.com/stretchr/testify/assert"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"

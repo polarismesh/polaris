@@ -32,9 +32,9 @@ type Instance struct {
 	ServiceID         string
 	ServicePlatformID string
 	// Valid Whether it is deleted by logic
-	Valid             bool
+	Valid bool
 	// ModifyTime Update time of instance
-	ModifyTime        time.Time
+	ModifyTime time.Time
 	// FirstRegis Whether the label instance is the first registration
 	FirstRegis bool
 }

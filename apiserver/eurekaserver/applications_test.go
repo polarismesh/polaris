@@ -22,16 +22,14 @@ import (
 	"testing"
 	"time"
 
+	"bou.ke/monkey"
+	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/polarismesh/polaris-server/service"
-
-	"github.com/golang/protobuf/ptypes/wrappers"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-
-	"bou.ke/monkey"
-	"github.com/google/uuid"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/service"
 )
 
 const (

@@ -22,8 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/polarismesh/polaris-server/plugin"
 )
 
 func TestMemoryHealthChecker_Query(t *testing.T) {

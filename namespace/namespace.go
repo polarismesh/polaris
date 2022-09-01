@@ -54,7 +54,7 @@ func (s *Server) CreateNamespaceIfAbsent(ctx context.Context, req *api.Namespace
 	if !s.allowAutoCreate() {
 		return errors.New("not allow auto create namespace")
 	}
-	
+
 	if resp := checkCreateNamespace(req); resp != nil {
 		return errors.New(resp.GetInfo().GetValue())
 	}

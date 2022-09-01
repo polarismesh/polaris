@@ -449,7 +449,7 @@ func Test_circuitBreakerStore_DeleteTagCircuitBreaker(t *testing.T) {
 		cb := createTestCircuitbreaker("", true)
 
 		type fields struct {
-			handler      BoltHandler
+			handler BoltHandler
 		}
 		type args struct {
 			id      string
@@ -464,7 +464,7 @@ func Test_circuitBreakerStore_DeleteTagCircuitBreaker(t *testing.T) {
 			{
 				name: "",
 				fields: fields{
-					handler:      handler,
+					handler: handler,
 				},
 				args: args{
 					id:      cb.ID,

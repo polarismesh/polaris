@@ -20,7 +20,7 @@ package httpserver
 import (
 	"strconv"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/proto"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"

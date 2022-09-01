@@ -198,7 +198,7 @@ func TestNamespaceStore_GetNamespaces(t *testing.T) {
 		ret, retCnt, err := nsStore.GetNamespaces(map[string][]string{
 			OwnerAttribute: {nsOwner},
 		}, 3, 10)
-	
+
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -211,7 +211,7 @@ func TestNamespaceStore_GetNamespaces(t *testing.T) {
 		ret, retCnt, err := nsStore.GetNamespaces(map[string][]string{
 			OwnerAttribute: {nsOwner},
 		}, 1000000, 10)
-	
+
 		if err != nil {
 			t.Fatal(err)
 		}

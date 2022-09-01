@@ -427,7 +427,7 @@ func TestGetInstances1(t *testing.T) {
 
 		time.Sleep(15 * time.Second)
 		discover(t, serviceResp, func(cnt int) bool {
-			return cnt >= 5 
+			return cnt >= 5
 		})
 	})
 	t.Run("传递revision， revision有变化则有数据，否则无数据返回", func(t *testing.T) {

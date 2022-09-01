@@ -22,8 +22,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/polarismesh/polaris-server/common/log"
 	"go.uber.org/zap"
+
+	"github.com/polarismesh/polaris-server/common/log"
 )
 
 // watchStoreTime The timestamp change of the storage layer, whether the clock is dialed in the detection

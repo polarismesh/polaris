@@ -22,13 +22,14 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
 	storemock "github.com/polarismesh/polaris-server/store/mock"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func reset(strict bool) {
