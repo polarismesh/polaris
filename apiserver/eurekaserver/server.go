@@ -37,6 +37,7 @@ import (
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
+	"go.uber.org/zap"
 )
 
 const (
