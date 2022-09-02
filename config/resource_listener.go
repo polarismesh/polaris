@@ -19,9 +19,7 @@ package config
 
 import (
 	"context"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	"strconv"
-	"strings"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -45,8 +43,7 @@ type ResourceHook interface {
 
 // ResourceEvent 资源事件
 type ResourceEvent struct {
-	ReqConfigGroup  *api.ConfigFileGroup
-	ConfigFileGroup *model.ConfigFileGroup
+	ConfigGroup *api.ConfigFileGroup
 }
 
 // Before this function is called before the resource operation
@@ -67,24 +64,24 @@ func (s *serverAuthability) After(ctx context.Context, resourceType model.Resour
 // onConfigGroupResource
 func (s *serverAuthability) onConfigGroupResource(ctx context.Context, res *ResourceEvent) error {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
-	authCtx.SetAttachment(model.ConfigFileGroupNameKey, res.ReqConfigGroup.Name)
-	authCtx.SetAttachment(model.ConfigFileGroupNamespaceKey, res.ReqConfigGroup.Namespace)
+	authCtx.SetAttachment(model.ConfigFileGroupNameKey, res.ConfigGroup.Name)
+	authCtx.SetAttachment(model.ConfigFileGroupNamespaceKey, res.ConfigGroup.Namespace)
 	ownerId := utils.ParseOwnerID(ctx)
 
 	authCtx.SetAttachment(model.ResourceAttachmentKey, map[api.ResourceType][]model.ResourceEntry{
 		api.ResourceType_ConfigGroups: {
 			{
-				ID:    strconv.FormatUint(res.ConfigFileGroup.Id, 10),
+				ID:    strconv.FormatUint(res.ConfigGroup.Id.GetValue(), 10),
 				Owner: ownerId,
 			},
 		},
 	})
 
-	users := convertStringValuesToSlice(res.ReqConfigGroup.UserIds)
-	removeUses := convertStringValuesToSlice(res.ReqConfigGroup.RemoveUserIds)
+	users := utils.ConvertStringValuesToSlice(res.ConfigGroup.UserIds)
+	removeUses := utils.ConvertStringValuesToSlice(res.ConfigGroup.RemoveUserIds)
 
-	groups := convertStringValuesToSlice(res.ReqConfigGroup.GroupIds)
-	removeGroups := convertStringValuesToSlice(res.ReqConfigGroup.RemoveGroupIds)
+	groups := utils.ConvertStringValuesToSlice(res.ConfigGroup.GroupIds)
+	removeGroups := utils.ConvertStringValuesToSlice(res.ConfigGroup.RemoveGroupIds)
 
 	authCtx.SetAttachment(model.LinkUsersKey, utils.StringSliceDeDuplication(users))
 	authCtx.SetAttachment(model.RemoveLinkUsersKey, utils.StringSliceDeDuplication(removeUses))
@@ -93,18 +90,4 @@ func (s *serverAuthability) onConfigGroupResource(ctx context.Context, res *Reso
 	authCtx.SetAttachment(model.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
 
 	return s.authSvr.AfterResourceOperation(authCtx)
-}
-
-func convertStringValuesToSlice(vals []*wrapperspb.StringValue) []string {
-	ret := make([]string, 0, 4)
-
-	for index := range vals {
-		id := vals[index]
-		if strings.TrimSpace(id.GetValue()) == "" {
-			continue
-		}
-		ret = append(ret, id.GetValue())
-	}
-
-	return ret
 }

@@ -19,7 +19,6 @@ package service
 
 import (
 	"context"
-	"strings"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -45,11 +44,9 @@ type ResourceHook interface {
 
 // ResourceEvent 资源事件
 type ResourceEvent struct {
-	ReqNamespace *api.Namespace
-	Namespace    *model.Namespace
-	ReqService   *api.Service
-	Service      *model.Service
-	IsRemove     bool
+	ReqService *api.Service
+	Service    *model.Service
+	IsRemove   bool
 }
 
 // Before this function is called before the resource operation
@@ -60,43 +57,11 @@ func (svr *serverAuthAbility) Before(ctx context.Context, resourceType model.Res
 // After this function is called after the resource operation
 func (svr *serverAuthAbility) After(ctx context.Context, resourceType model.Resource, res *ResourceEvent) error {
 	switch resourceType {
-	case model.RNamespace:
-		return svr.onNamespaceResource(ctx, res)
 	case model.RService:
 		return svr.onServiceResource(ctx, res)
 	default:
 		return nil
 	}
-}
-
-// onNamespaceResource
-func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *ResourceEvent) error {
-	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
-	ownerId := utils.ParseOwnerID(ctx)
-
-	ns := res.Namespace
-	authCtx.SetAttachment(model.ResourceAttachmentKey, map[api.ResourceType][]model.ResourceEntry{
-		api.ResourceType_Namespaces: {
-			{
-				ID:    ns.Name,
-				Owner: ownerId,
-			},
-		},
-	})
-
-	users := convertStringValuesToSlice(res.ReqNamespace.UserIds)
-	removeUses := convertStringValuesToSlice(res.ReqNamespace.RemoveUserIds)
-
-	groups := convertStringValuesToSlice(res.ReqNamespace.GroupIds)
-	removeGroups := convertStringValuesToSlice(res.ReqNamespace.RemoveGroupIds)
-
-	authCtx.SetAttachment(model.LinkUsersKey, utils.StringSliceDeDuplication(users))
-	authCtx.SetAttachment(model.RemoveLinkUsersKey, utils.StringSliceDeDuplication(removeUses))
-
-	authCtx.SetAttachment(model.LinkGroupsKey, utils.StringSliceDeDuplication(groups))
-	authCtx.SetAttachment(model.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
-
-	return svr.authSvr.AfterResourceOperation(authCtx)
 }
 
 // onServiceResource 服务资源的处理，只处理服务，namespace 只由 namespace 相关的进行处理，
@@ -113,11 +78,11 @@ func (svr *serverAuthAbility) onServiceResource(ctx context.Context, res *Resour
 		},
 	})
 
-	users := convertStringValuesToSlice(res.ReqService.UserIds)
-	removeUses := convertStringValuesToSlice(res.ReqService.RemoveUserIds)
+	users := utils.ConvertStringValuesToSlice(res.ReqService.UserIds)
+	removeUses := utils.ConvertStringValuesToSlice(res.ReqService.RemoveUserIds)
 
-	groups := convertStringValuesToSlice(res.ReqService.GroupIds)
-	removeGroups := convertStringValuesToSlice(res.ReqService.RemoveGroupIds)
+	groups := utils.ConvertStringValuesToSlice(res.ReqService.GroupIds)
+	removeGroups := utils.ConvertStringValuesToSlice(res.ReqService.RemoveGroupIds)
 
 	authCtx.SetAttachment(model.LinkUsersKey, utils.StringSliceDeDuplication(users))
 	authCtx.SetAttachment(model.RemoveLinkUsersKey, utils.StringSliceDeDuplication(removeUses))
@@ -126,25 +91,4 @@ func (svr *serverAuthAbility) onServiceResource(ctx context.Context, res *Resour
 	authCtx.SetAttachment(model.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
 
 	return svr.authSvr.AfterResourceOperation(authCtx)
-}
-
-// onConfigGroupResource
-func (svr *serverAuthAbility) onConfigGroupResource(ctx context.Context, res *ResourceEvent) {
-	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
-
-	svr.authSvr.AfterResourceOperation(authCtx)
-}
-
-func convertStringValuesToSlice(vals []*wrapperspb.StringValue) []string {
-	ret := make([]string, 0, 4)
-
-	for index := range vals {
-		id := vals[index]
-		if strings.TrimSpace(id.GetValue()) == "" {
-			continue
-		}
-		ret = append(ret, id.GetValue())
-	}
-
-	return ret
 }

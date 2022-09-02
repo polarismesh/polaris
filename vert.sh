@@ -59,23 +59,23 @@ misspell -error .
 # - gofmt, goimports, golint (with exceptions for generated code), go vet,
 # go mod tidy.
 # Perform these checks on each module inside polaris-go.
-#for MOD_FILE in $(find . -name 'go.mod'); do
-#  MOD_DIR=$(dirname ${MOD_FILE})
-#  pushd ${MOD_DIR}
-#  go vet -all ./... | fail_on_output
-#  #gofmt -s -d -l . 2>&1 | fail_on_output
-#  #goimports -l . 2>&1 | not grep -vE "\.pb\.go"
-#  #golint ./... 2>&1 | not grep -vE "\.pb\.go"
-#
-#  go mod tidy
-#  git status --porcelain 2>&1 | fail_on_output ||
-#    (
-#      git status
-#      git --no-pager diff
-#      exit 1
-#    )
-#  popd
-#done
+for MOD_FILE in $(find . -name 'go.mod'); do
+ MOD_DIR=$(dirname ${MOD_FILE})
+ pushd ${MOD_DIR}
+ go vet -all ./... | fail_on_output
+ gofmt -s -d -l . 2>&1 | fail_on_output
+ goimports -l . 2>&1 | not grep -vE "\.pb\.go"
+ golint ./... 2>&1 | not grep -vE "\.pb\.go"
+
+ go mod tidy
+ git status --porcelain 2>&1 | fail_on_output ||
+   (
+     git status
+     git --no-pager diff
+     exit 1
+   )
+ popd
+done
 
 # - Collection of static analysis checks
 #

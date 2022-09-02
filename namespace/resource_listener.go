@@ -19,7 +19,6 @@ package namespace
 
 import (
 	"context"
-	"strings"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -84,11 +83,11 @@ func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *Reso
 		},
 	})
 
-	users := convertStringValuesToSlice(res.ReqNamespace.UserIds)
-	removeUses := convertStringValuesToSlice(res.ReqNamespace.RemoveUserIds)
+	users := utils.ConvertStringValuesToSlice(res.ReqNamespace.UserIds)
+	removeUses := utils.ConvertStringValuesToSlice(res.ReqNamespace.RemoveUserIds)
 
-	groups := convertStringValuesToSlice(res.ReqNamespace.GroupIds)
-	removeGroups := convertStringValuesToSlice(res.ReqNamespace.RemoveGroupIds)
+	groups := utils.ConvertStringValuesToSlice(res.ReqNamespace.GroupIds)
+	removeGroups := utils.ConvertStringValuesToSlice(res.ReqNamespace.RemoveGroupIds)
 
 	authCtx.SetAttachment(model.LinkUsersKey, utils.StringSliceDeDuplication(users))
 	authCtx.SetAttachment(model.RemoveLinkUsersKey, utils.StringSliceDeDuplication(removeUses))
@@ -97,18 +96,4 @@ func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *Reso
 	authCtx.SetAttachment(model.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
 
 	return svr.authSvr.AfterResourceOperation(authCtx)
-}
-
-func convertStringValuesToSlice(vals []*wrapperspb.StringValue) []string {
-	ret := make([]string, 0, 4)
-
-	for index := range vals {
-		id := vals[index]
-		if strings.TrimSpace(id.GetValue()) == "" {
-			continue
-		}
-		ret = append(ret, id.GetValue())
-	}
-
-	return ret
 }

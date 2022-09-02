@@ -164,11 +164,9 @@ func (s *Server) SetResourceHooks(hooks ...ResourceHook) {
 	s.hooks = hooks
 }
 
-func (s *Server) afterConfigGroupResource(ctx context.Context, req *api.ConfigFileGroup,
-	save *model.ConfigFileGroup) error {
+func (s *Server) afterConfigGroupResource(ctx context.Context, req *api.ConfigFileGroup) error {
 	event := &ResourceEvent{
-		ReqConfigGroup:  req,
-		ConfigFileGroup: save,
+		ConfigGroup: req,
 	}
 
 	for _, hook := range s.hooks {

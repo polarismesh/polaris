@@ -89,7 +89,9 @@ func (s *Server) CreateConfigFileGroup(ctx context.Context, configFileGroup *api
 		zap.String("namespace", namespace),
 		zap.String("groupName", groupName))
 
-	s.afterConfigGroupResource(ctx, configFileGroup, createdGroup)
+	// 这里设置在 config-group 的 id 信息
+	configFileGroup.Id = utils.NewUInt64Value(createdGroup.Id)
+	s.afterConfigGroupResource(ctx, configFileGroup)
 	return api.NewConfigFileGroupResponse(api.ExecuteSuccess, transferConfigFileGroupStoreModel2APIModel(createdGroup))
 }
 
@@ -318,7 +320,11 @@ func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name stri
 		return api.NewConfigFileGroupResponse(api.StoreLayerException, nil)
 	}
 
-	s.afterConfigGroupResource(ctx, &api.ConfigFileGroup{}, configGroup)
+	s.afterConfigGroupResource(ctx, &api.ConfigFileGroup{
+		Id:        utils.NewUInt64Value(configGroup.Id),
+		Namespace: utils.NewStringValue(configGroup.Namespace),
+		Name:      utils.NewStringValue(configGroup.Name),
+	})
 	return api.NewConfigFileGroupResponse(api.ExecuteSuccess, nil)
 }
 
@@ -366,7 +372,8 @@ func (s *Server) UpdateConfigFileGroup(ctx context.Context,
 		return api.NewConfigFileGroupResponse(api.StoreLayerException, configFileGroup)
 	}
 
-	if err := s.afterConfigGroupResource(ctx, configFileGroup, updatedGroup); err != nil {
+	configFileGroup.Id = utils.NewUInt64Value(fileGroup.Id)
+	if err := s.afterConfigGroupResource(ctx, configFileGroup); err != nil {
 		return api.NewConfigFileGroupResponseWithMessage(api.ExecuteException, err.Error())
 	}
 	return api.NewConfigFileGroupResponse(api.ExecuteSuccess, transferConfigFileGroupStoreModel2APIModel(updatedGroup))
