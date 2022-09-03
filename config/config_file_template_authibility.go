@@ -36,9 +36,12 @@ func (s *serverAuthability) GetConfigFileTemplate(ctx context.Context, name stri
 }
 
 // CreateConfigFileTemplate create config file template
-func (s *serverAuthability) CreateConfigFileTemplate(ctx context.Context, template *api.ConfigFileTemplate) *api.ConfigResponse {
-	authCtx := s.collectConfigFileTemplateAuthContext(ctx, []*api.ConfigFileTemplate{template}, model.Create, "CreateConfigFileTemplate")
-	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
+func (s *serverAuthability) CreateConfigFileTemplate(ctx context.Context,
+	template *api.ConfigFileTemplate) *api.ConfigResponse {
+
+	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
+		[]*api.ConfigFileTemplate{template}, model.Create, "CreateConfigFileTemplate")
+	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 

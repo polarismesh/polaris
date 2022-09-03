@@ -35,14 +35,14 @@ var _ ConfigCenterServer = (*serverAuthability)(nil)
 type serverAuthability struct {
 	targetServer *Server
 	authSvr      auth.AuthServer
-	authChecker  auth.AuthChecker
+	checker      auth.AuthChecker
 }
 
 func newServerAuthAbility(targetServer *Server, authSvr auth.AuthServer) ConfigCenterServer {
 	proxy := &serverAuthability{
 		targetServer: targetServer,
 		authSvr:      authSvr,
-		authChecker:  authSvr.GetAuthChecker(),
+		checker:      authSvr.GetAuthChecker(),
 	}
 	targetServer.SetResourceHooks(proxy)
 	return proxy
@@ -93,7 +93,9 @@ func (s *serverAuthability) collectConfigFileTemplateAuthContext(ctx context.Con
 	)
 }
 
-func (s *serverAuthability) queryConfigGroupResource(ctx context.Context, req []*api.ConfigFileGroup) map[api.ResourceType][]model.ResourceEntry {
+func (s *serverAuthability) queryConfigGroupResource(ctx context.Context,
+	req []*api.ConfigFileGroup) map[api.ResourceType][]model.ResourceEntry {
+
 	names := utils.NewStringSet()
 	namespace := req[0].Namespace.GetValue()
 	for index := range req {
@@ -101,6 +103,7 @@ func (s *serverAuthability) queryConfigGroupResource(ctx context.Context, req []
 	}
 	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, names.ToSlice())
 	if err != nil {
+		commonlog.AuthScope().Error("[Config][Server] collect config_file_group res", zap.Error(err))
 		return nil
 	}
 	ret := map[api.ResourceType][]model.ResourceEntry{
@@ -123,6 +126,7 @@ func (s *serverAuthability) queryConfigFileResource(ctx context.Context, req []*
 	}
 	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, groupNames.ToSlice())
 	if err != nil {
+		commonlog.AuthScope().Error("[Config][Server] collect config_file res", zap.Error(err))
 		return nil
 	}
 	ret := map[api.ResourceType][]model.ResourceEntry{
@@ -144,6 +148,7 @@ func (s *serverAuthability) queryConfigFileReleaseResource(ctx context.Context, 
 	}
 	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, groupNames.ToSlice())
 	if err != nil {
+		commonlog.AuthScope().Debug("[Config][Server] collect config_file res", zap.Error(err))
 		return nil
 	}
 	ret := map[api.ResourceType][]model.ResourceEntry{

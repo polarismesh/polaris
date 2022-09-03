@@ -32,7 +32,7 @@ func (s *serverAuthability) CreateConfigFileGroup(ctx context.Context,
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{configFileGroup}, model.Create, "CreateConfigFileGroup")
 
 	// 验证 token 信息
-	if _, err := s.authChecker.CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
@@ -49,7 +49,7 @@ func (s *serverAuthability) QueryConfigFileGroups(ctx context.Context, namespace
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{{Name: utils.NewStringValue(groupName),
 		Namespace: utils.NewStringValue(namespace)}}, model.Read, "QueryConfigFileGroups")
 
-	if _, err := s.authChecker.CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileGroupBatchQueryResponse(convertToErrCode(err), 0, nil)
 	}
 
@@ -67,7 +67,7 @@ func (s *serverAuthability) QueryConfigFileGroups(ctx context.Context, namespace
 			group := resp.ConfigFileGroups[index]
 			editable := true
 			// 如果鉴权能力没有开启，那就默认都可以进行编辑
-			if s.authChecker.IsOpenConsoleAuth() {
+			if s.checker.IsOpenConsoleAuth() {
 				editable = s.targetServer.caches.AuthStrategy().IsResourceEditable(principal,
 					api.ResourceType_ConfigGroups, group.Id.String())
 			}
@@ -84,7 +84,7 @@ func (s *serverAuthability) DeleteConfigFileGroup(ctx context.Context, namespace
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{{Name: utils.NewStringValue(name),
 		Namespace: utils.NewStringValue(namespace)}}, model.Delete, "DeleteConfigFileGroup")
 
-	if _, err := s.authChecker.CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
@@ -100,7 +100,7 @@ func (s *serverAuthability) UpdateConfigFileGroup(ctx context.Context,
 
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{configFileGroup}, model.Modify, "UpdateConfigFileGroup")
 
-	if _, err := s.authChecker.CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 

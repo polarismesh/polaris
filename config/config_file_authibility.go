@@ -30,7 +30,7 @@ func (s *serverAuthability) CreateConfigFile(ctx context.Context,
 	configFile *api.ConfigFile) *api.ConfigResponse {
 
 	authCtx := s.collectConfigFileAuthContext(ctx, []*api.ConfigFile{configFile}, model.Create, "CreateConfigFile")
-	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
+	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
@@ -70,7 +70,7 @@ func (s *serverAuthability) SearchConfigFile(ctx context.Context, namespace, gro
 func (s *serverAuthability) UpdateConfigFile(ctx context.Context, configFile *api.ConfigFile) *api.ConfigResponse {
 
 	authCtx := s.collectConfigFileAuthContext(ctx, []*api.ConfigFile{configFile}, model.Modify, "UpdateConfigFile")
-	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
+	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
@@ -84,8 +84,13 @@ func (s *serverAuthability) UpdateConfigFile(ctx context.Context, configFile *ap
 func (s *serverAuthability) DeleteConfigFile(ctx context.Context, namespace, group,
 	name, deleteBy string) *api.ConfigResponse {
 
-	authCtx := s.collectConfigFileAuthContext(ctx, []*api.ConfigFile{{Namespace: utils.NewStringValue(namespace), Name: utils.NewStringValue(name), Group: utils.NewStringValue(group)}}, model.Delete, "DeleteConfigFile")
-	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
+	authCtx := s.collectConfigFileAuthContext(ctx,
+		[]*api.ConfigFile{{
+			Namespace: utils.NewStringValue(namespace),
+			Name:      utils.NewStringValue(name),
+			Group:     utils.NewStringValue(group)},
+		}, model.Delete, "DeleteConfigFile")
+	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
@@ -100,7 +105,7 @@ func (s *serverAuthability) BatchDeleteConfigFile(ctx context.Context, configFil
 	operator string) *api.ConfigResponse {
 
 	authCtx := s.collectConfigFileAuthContext(ctx, configFiles, model.Delete, "BatchDeleteConfigFile")
-	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
+	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
