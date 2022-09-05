@@ -1090,21 +1090,6 @@ func preGetInstances(query map[string]string) (map[string]string, map[string]str
 	return filters, metaFilter, nil
 }
 
-func instanceLocationNeedUpdate(req *api.Location, old *api.Location) bool {
-
-	if req.GetRegion().GetValue() != old.GetRegion().GetValue() {
-		return true
-	}
-	if req.GetZone().GetValue() != old.GetZone().GetValue() {
-		return true
-	}
-	if req.GetCampus().GetValue() != old.GetCampus().GetValue() {
-		return true
-	}
-
-	return false
-}
-
 // instance metadata need update
 func instanceMetaNeedUpdate(req map[string]string, old map[string]string) bool {
 	if req == nil {
