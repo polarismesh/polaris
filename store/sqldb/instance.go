@@ -916,7 +916,7 @@ func batchDeleteInstanceMeta(tx *BaseTx, instances []*model.Instance) error {
 		builder.WriteString("?")
 		ids = append(ids, entry.ID())
 	}
-	
+
 	if len(ids) == 0 {
 		return nil
 	}

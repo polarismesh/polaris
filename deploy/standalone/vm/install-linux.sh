@@ -89,11 +89,12 @@ function installPolarisServer() {
 
   local target_polaris_server_pkg=$(find . -name "polaris-server-release*.zip")
   local polaris_server_dirname=$(basename ${target_polaris_server_pkg} .zip)
-  if [ -e ${polaris_server_dirname} ]; then
-    echo -e "${polaris_server_dirname} has exists, now remove it"
-    rm -rf ${polaris_server_dirname}
+  if [ ! -e ${polaris_server_dirname} ]; then
+    unzip ${target_polaris_server_pkg} >/dev/null
+  else
+    echo -e "${target_polaris_server_pkg} has been decompressed, skip."
   fi
-  unzip ${target_polaris_server_pkg} >/dev/null
+
 
   pushd ${polaris_server_dirname}
 
@@ -134,11 +135,11 @@ function installPolarisConsole() {
 
   local target_polaris_console_pkg=$(find . -name "polaris-console-release*.zip")
   local polaris_console_dirname=$(basename ${target_polaris_console_pkg} .zip)
-  if [ -e ${polaris_console_dirname} ]; then
-    echo -e "${polaris_console_dirname} has exists, now remove it"
-    rm -rf ${polaris_console_dirname}
+  if [ ! -e ${polaris_console_dirname} ]; then
+    unzip ${target_polaris_console_pkg} >/dev/null
+  else
+    echo -e "${target_polaris_console_pkg} has been decompressed, skip."
   fi
-  unzip ${target_polaris_console_pkg} >/dev/null
 
   pushd ${polaris_console_dirname}
 
@@ -173,11 +174,12 @@ function installPrometheus() {
 
   local target_prometheus_pkg=$(find . -name "prometheus-*.tar.gz")
   local prometheus_dirname=$(basename ${target_prometheus_pkg} .tar.gz)
-  if [ -e ${prometheus_dirname} ]; then
-    echo -e "${prometheus_dirname} has exists, now remove it"
-    rm -rf ${prometheus_dirname}
+  if [ ! -e ${prometheus_dirname} ]; then
+    tar -xf ${target_prometheus_pkg} >/dev/null
+  else
+    echo -e "${target_prometheus_pkg} has been decompressed, skip."
   fi
-  tar -xf ${target_prometheus_pkg} >/dev/null
+  
 
   pushd ${prometheus_dirname}
   echo "    http_sd_configs:" >>prometheus.yml
@@ -208,11 +210,12 @@ function installPushGateway() {
 
   local target_pgw_pkg=$(find . -name "pushgateway-*.tar.gz")
   local pgw_dirname=$(basename ${target_pgw_pkg} .tar.gz)
-  if [ -e ${pgw_dirname} ]; then
-    echo -e "${pgw_dirname} has exists, now remove it"
-    rm -rf ${pgw_dirname}
+  if [ ! -e ${pgw_dirname} ]; then
+    tar -xf ${target_pgw_pkg} >/dev/null
+  else
+    echo -e "${target_pgw_pkg} has been decompressed, skip."
   fi
-  tar -xf ${target_pgw_pkg} >/dev/null
+  
 
   pushd ${pgw_dirname}
   nohup ./pushgateway --web.enable-lifecycle --web.enable-admin-api --web.listen-address=:${pushgateway_port} >>pgw.out 2>&1 &

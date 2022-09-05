@@ -23,8 +23,5 @@ import (
 
 func Login(username, password string) (*api.LoginResponse, error) {
 
-	
 	return nil, nil
 }
-
-

@@ -20,6 +20,9 @@ package defaultauth
 import (
 	"errors"
 
+	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
@@ -27,8 +30,6 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type server struct {

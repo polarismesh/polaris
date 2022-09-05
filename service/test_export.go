@@ -20,13 +20,14 @@ package service
 import (
 	"context"
 
+	"golang.org/x/sync/singleflight"
+
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"github.com/polarismesh/polaris-server/store"
-	"golang.org/x/sync/singleflight"
 )
 
 // TestInitialize 初始化

@@ -18,7 +18,6 @@
 package main
 
 import (
-	// api-server 插件注册
 	_ "github.com/polarismesh/polaris-server/apiserver/eurekaserver"
 	_ "github.com/polarismesh/polaris-server/apiserver/grpcserver/config"
 	_ "github.com/polarismesh/polaris-server/apiserver/grpcserver/discover"
@@ -26,24 +25,20 @@ import (
 	_ "github.com/polarismesh/polaris-server/apiserver/l5pbserver"
 	_ "github.com/polarismesh/polaris-server/apiserver/prometheussd"
 	_ "github.com/polarismesh/polaris-server/apiserver/xdsserverv3"
-
 	_ "github.com/polarismesh/polaris-server/auth/defaultauth"
 	_ "github.com/polarismesh/polaris-server/cache"
-	_ "github.com/polarismesh/polaris-server/store/boltdb"
-	_ "github.com/polarismesh/polaris-server/store/sqldb"
-
 	_ "github.com/polarismesh/polaris-server/plugin/auth/defaultauth"
-	_ "github.com/polarismesh/polaris-server/plugin/cmdb/memory"
-
 	_ "github.com/polarismesh/polaris-server/plugin/auth/platform"
+	_ "github.com/polarismesh/polaris-server/plugin/cmdb/memory"
 	_ "github.com/polarismesh/polaris-server/plugin/discoverevent/local"
 	_ "github.com/polarismesh/polaris-server/plugin/discoverstat/discoverlocal"
+	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatmemory"
+	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatredis"
 	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
 	_ "github.com/polarismesh/polaris-server/plugin/password"
 	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/lrurate"
 	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/token"
 	_ "github.com/polarismesh/polaris-server/plugin/statis/local"
-
-	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatmemory"
-	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatredis"
+	_ "github.com/polarismesh/polaris-server/store/boltdb"
+	_ "github.com/polarismesh/polaris-server/store/sqldb"
 )

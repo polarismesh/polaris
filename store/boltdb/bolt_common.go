@@ -19,8 +19,9 @@ package boltdb
 
 import (
 	"github.com/boltdb/bolt"
-	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
+
+	"github.com/polarismesh/polaris-server/store"
 )
 
 type transactionFunc func(tx *bolt.Tx) ([]interface{}, error)

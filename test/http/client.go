@@ -173,7 +173,6 @@ func GetConfigQueryResponse(response *http.Response) (*api.ConfigBatchQueryRespo
 	}
 }
 
-
 // GetConfigBatchWriteResponse 获取BatchWriteResponse
 func GetConfigBatchWriteResponse(response *http.Response) (*api.ConfigBatchWriteResponse, error) {
 	// 打印回复

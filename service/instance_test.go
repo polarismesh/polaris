@@ -391,15 +391,15 @@ func TestGetInstances1(t *testing.T) {
 	}
 	defer discoverSuit.Destroy()
 
-	discover := func(t *testing.T, service *api.Service, expectCount int) *api.DiscoverResponse {
+	discover := func(t *testing.T, service *api.Service, check func(cnt int) bool) *api.DiscoverResponse {
 		time.Sleep(discoverSuit.updateCacheInterval)
 		resp := discoverSuit.server.ServiceInstancesCache(discoverSuit.defaultCtx, service)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 		discoverSuit.discoveryCheck(t, service, resp)
-		if len(resp.Instances) != expectCount {
-			t.Fatalf("error : expect %d, actual %d", expectCount, len(resp.Instances))
+		if !check(len(resp.Instances)) {
+			t.Fatalf("error : check instance cnt fail, acutal : %d", len(resp.Instances))
 		}
 		return resp
 	}
@@ -416,7 +416,9 @@ func TestGetInstances1(t *testing.T) {
 			defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 		}
 		time.Sleep(10 * time.Second)
-		discover(t, serviceResp, 10)
+		discover(t, serviceResp, func(cnt int) bool {
+			return cnt == 10
+		})
 
 		// 反注册一部分
 		for i := 1; i < 6; i++ {
@@ -424,7 +426,9 @@ func TestGetInstances1(t *testing.T) {
 		}
 
 		time.Sleep(15 * time.Second)
-		discover(t, serviceResp, 5)
+		discover(t, serviceResp, func(cnt int) bool {
+			return cnt >= 5
+		})
 	})
 	t.Run("传递revision， revision有变化则有数据，否则无数据返回", func(t *testing.T) {
 		_ = discoverSuit.server.Cache().Clear() // 为了防止影响，每个函数需要把缓存的内容清空
@@ -435,7 +439,9 @@ func TestGetInstances1(t *testing.T) {
 			_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i)
 			defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 		}
-		firstResp := discover(t, serviceResp, 5)
+		firstResp := discover(t, serviceResp, func(cnt int) bool {
+			return 5 == cnt
+		})
 
 		serviceResp.Revision = firstResp.Service.GetRevision()
 		if resp := discoverSuit.server.ServiceInstancesCache(discoverSuit.defaultCtx, serviceResp); !respSuccess(resp) {
@@ -450,7 +456,9 @@ func TestGetInstances1(t *testing.T) {
 		// 多注册一个实例，revision发生改变
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 20)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
-		discover(t, serviceResp, 6)
+		discover(t, serviceResp, func(cnt int) bool {
+			return 6 == cnt || cnt == 5
+		})
 
 	})
 }

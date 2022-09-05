@@ -226,11 +226,12 @@ func (r *RateLimit) Labels2Arguments() (map[string]*v1.MatchString, error) {
 }
 
 const (
-	labelKeyMethod        = "$method"
-	labelKeyHeader        = "$header"
-	labelKeyQuery         = "$query"
-	labelKeyCallerService = "$caller_service"
-	labelKeyCallerIP      = "$caller_ip"
+	LabelKeyPath          = "$path"
+	LabelKeyMethod        = "$method"
+	LabelKeyHeader        = "$header"
+	LabelKeyQuery         = "$query"
+	LabelKeyCallerService = "$caller_service"
+	LabelKeyCallerIP      = "$caller_ip"
 )
 
 // Arguments2Labels 将参数列表适配成旧的标签模型
@@ -242,15 +243,15 @@ func (r *RateLimit) Arguments2Labels() bool {
 			case v1.MatchArgument_CUSTOM:
 				r.Proto.Labels[argument.Key] = argument.Value
 			case v1.MatchArgument_METHOD:
-				r.Proto.Labels[labelKeyMethod] = argument.Value
+				r.Proto.Labels[LabelKeyMethod] = argument.Value
 			case v1.MatchArgument_HEADER:
-				r.Proto.Labels[labelKeyHeader+"."+argument.Key] = argument.Value
+				r.Proto.Labels[LabelKeyHeader+"."+argument.Key] = argument.Value
 			case v1.MatchArgument_QUERY:
-				r.Proto.Labels[labelKeyQuery+"."+argument.Key] = argument.Value
+				r.Proto.Labels[LabelKeyQuery+"."+argument.Key] = argument.Value
 			case v1.MatchArgument_CALLER_SERVICE:
-				r.Proto.Labels[labelKeyCallerService+"."+argument.Key] = argument.Value
+				r.Proto.Labels[LabelKeyCallerService+"."+argument.Key] = argument.Value
 			case v1.MatchArgument_CALLER_IP:
-				r.Proto.Labels[labelKeyCallerIP] = argument.Value
+				r.Proto.Labels[LabelKeyCallerIP] = argument.Value
 			default:
 				continue
 			}

@@ -6,13 +6,15 @@ package mock
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
+
 	auth "github.com/polarismesh/polaris-server/auth"
 	cache "github.com/polarismesh/polaris-server/cache"
 	v1 "github.com/polarismesh/polaris-server/common/api/v1"
 	model "github.com/polarismesh/polaris-server/common/model"
 	store "github.com/polarismesh/polaris-server/store"
-	reflect "reflect"
 )
 
 // MockAuthServer is a mock of AuthServer interface

@@ -20,8 +20,9 @@ package i18n
 import (
 	"testing"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"golang.org/x/text/language"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 func init() {

@@ -290,7 +290,7 @@ func (r *routingStore) GetRoutingConfigs(
 			return ok
 		})
 
-	var out []*model.ExtendRoutingConfig
+	out := make([]*model.ExtendRoutingConfig, 0, 4)
 
 	for id, r := range routeConf {
 		var temp model.ExtendRoutingConfig

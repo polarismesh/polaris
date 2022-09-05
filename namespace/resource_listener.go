@@ -21,10 +21,11 @@ import (
 	"context"
 	"strings"
 
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // ResourceHook The listener is placed before and after the resource operation, only normal flow

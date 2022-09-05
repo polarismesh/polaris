@@ -128,6 +128,7 @@ func (rh *configFileReleaseHistoryStore) genSelectSql() string {
 		" status, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), UNIX_TIMESTAMP(modify_time), " +
 		"IFNULL(modify_by, '') from config_file_release_history "
 }
+
 func (rh *configFileReleaseHistoryStore) transferRows(rows *sql.Rows) ([]*model.ConfigFileReleaseHistory, error) {
 	if rows == nil {
 		return nil, nil

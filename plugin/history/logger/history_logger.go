@@ -87,7 +87,7 @@ func (h *HistoryLogger) Initialize(c *plugin.ConfigEntry) error {
 		defer ticker.Stop()
 		for {
 			<-ticker.C
-			if err := log.Rotate(); err != nil{
+			if err := log.Rotate(); err != nil {
 				return
 			}
 		}
