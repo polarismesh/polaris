@@ -64,8 +64,6 @@ func (s *serverAuthability) After(ctx context.Context, resourceType model.Resour
 // onConfigGroupResource
 func (s *serverAuthability) onConfigGroupResource(ctx context.Context, res *ResourceEvent) error {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
-	authCtx.SetAttachment(model.ConfigFileGroupNameKey, res.ConfigGroup.Name)
-	authCtx.SetAttachment(model.ConfigFileGroupNamespaceKey, res.ConfigGroup.Namespace)
 	ownerId := utils.ParseOwnerID(ctx)
 
 	authCtx.SetAttachment(model.ResourceAttachmentKey, map[api.ResourceType][]model.ResourceEntry{

@@ -320,11 +320,13 @@ func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name stri
 		return api.NewConfigFileGroupResponse(api.StoreLayerException, nil)
 	}
 
-	s.afterConfigGroupResource(ctx, &api.ConfigFileGroup{
+	if err := s.afterConfigGroupResource(ctx, &api.ConfigFileGroup{
 		Id:        utils.NewUInt64Value(configGroup.Id),
 		Namespace: utils.NewStringValue(configGroup.Namespace),
 		Name:      utils.NewStringValue(configGroup.Name),
-	})
+	}); err != nil {
+		return api.NewConfigFileGroupResponse(api.ExecuteException, nil)
+	}
 	return api.NewConfigFileGroupResponse(api.ExecuteSuccess, nil)
 }
 
