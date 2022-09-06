@@ -114,7 +114,8 @@ curl http://127.0.0.1:8090
 
 (1) 基于主流框架开发的微服务接入可参考：
 
-- [Spring Cloud/Spring Boot接入](https://github.com/Tencent/spring-cloud-tencent/tree/main/spring-cloud-tencent-examples/polaris-discovery-example)
+- [Spring Cloud接入](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/SpringCloud%E5%BA%94%E7%94%A8%E6%8E%A5%E5%85%A5.html#%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C)
+- [Spring Boot接入](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/SpringBoot%E5%BA%94%E7%94%A8%E6%8E%A5%E5%85%A5.html#%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C)
 - [gRPC-Go接入](https://github.com/polarismesh/grpc-go-polaris/tree/main/examples/quickstart)
 
 (2) 主流语言微服务接入可参考：
@@ -125,14 +126,13 @@ curl http://127.0.0.1:8090
 
 (3) proxy模式的微服务接入可参考：
 
-- [Envoy接入](https://github.com/polarismesh/examples/tree/main/servicemesh/extended-bookinfo)
-- DNS接入（样例开发中）
+- [Envoy接入](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/Envoy%E7%BD%91%E6%A0%BC%E6%8E%A5%E5%85%A5.html#%E5%BF%AB%E9%80%9F%E6%8E%A5%E5%85%A5)
 
 #### 服务限流
 
 (1) 基于主流框架开发的微服务接入可参考：
 
-- [Spring Cloud/Spring Boot接入](https://github.com/Tencent/spring-cloud-tencent/tree/main/spring-cloud-tencent-examples/polaris-ratelimit-example)
+- [Spring Cloud接入](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/SpringCloud%E5%BA%94%E7%94%A8%E6%8E%A5%E5%85%A5.html#%E6%9C%8D%E5%8A%A1%E9%99%90%E6%B5%81)
 - [gRPC-Go接入](https://github.com/polarismesh/grpc-go-polaris/tree/main/examples/ratelimit/local)
 
 (2) 主流语言微服务接入可参考：
@@ -143,24 +143,23 @@ curl http://127.0.0.1:8090
 
 (3) proxy模式的微服务接入可参考：
 
-- Envoy接入（样例开发中）
+- [Nginx接入](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/Nginx%E7%BD%91%E5%85%B3%E6%8E%A5%E5%85%A5.html#%E8%AE%BF%E9%97%AE%E9%99%90%E6%B5%81)
 
 #### 流量调度
 
 (1) 基于主流框架开发的微服务接入可参考：
 
-- [Spring Cloud/Spring Boot接入](https://github.com/Tencent/spring-cloud-tencent/tree/main/spring-cloud-tencent-examples/polaris-router-featureenv-example)
+- [Spring Cloud接入](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/SpringCloud%E5%BA%94%E7%94%A8%E6%8E%A5%E5%85%A5.html#%E6%9C%8D%E5%8A%A1%E8%B7%AF%E7%94%B1)
 - [gRPC-Go接入](https://github.com/polarismesh/grpc-go-polaris/tree/main/examples/routing/version)
 
 (2) 主流语言微服务接入可参考：
 
 - [Java语言接入](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/router-example/router-multienv-example)
 - [Go语言接入](https://github.com/polarismesh/polaris-go/tree/main/examples/route/dynamic)
-- C++语言接入（样例开发中）
 
 (3) proxy模式的微服务接入可参考：
 
-- Envoy接入（样例开发中）
+- [Envoy接入](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/Envoy%E7%BD%91%E6%A0%BC%E6%8E%A5%E5%85%A5.html#%E6%B5%81%E9%87%8F%E8%B0%83%E5%BA%A6)
 
 #### 配置管理
 
