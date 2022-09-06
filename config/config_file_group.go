@@ -22,13 +22,14 @@ import (
 	"sort"
 	"strings"
 
+	"go.uber.org/zap"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
 	utils2 "github.com/polarismesh/polaris-server/config/utils"
-	"go.uber.org/zap"
 )
 
 // CreateConfigFileGroup 创建配置文件组

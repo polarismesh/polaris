@@ -53,7 +53,7 @@ type Server struct {
 
 	l5service *l5service
 
-	createServiceSingle   *singleflight.Group
+	createServiceSingle *singleflight.Group
 
 	hooks []ResourceHook
 

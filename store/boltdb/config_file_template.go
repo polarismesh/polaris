@@ -21,8 +21,9 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
-	"github.com/polarismesh/polaris-server/common/model"
 	"go.uber.org/zap"
+
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 const (

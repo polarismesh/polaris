@@ -32,11 +32,10 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"go.uber.org/zap"
 
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
-
-	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 // some options config

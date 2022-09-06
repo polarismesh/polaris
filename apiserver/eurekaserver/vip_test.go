@@ -20,13 +20,12 @@ package eurekaserver
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"bou.ke/monkey"
 	"github.com/google/uuid"
-	"github.com/polarismesh/polaris-server/service"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/service"
 )
 
 const (

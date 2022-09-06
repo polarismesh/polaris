@@ -22,12 +22,13 @@ import (
 	"errors"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 var _ ConfigCenterServer = (*Server)(nil)

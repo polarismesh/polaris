@@ -20,8 +20,9 @@ package config
 import (
 	"sync"
 
-	"github.com/polarismesh/polaris-server/common/log"
 	"go.uber.org/zap"
+
+	"github.com/polarismesh/polaris-server/common/log"
 )
 
 // Event 事件对象，包含类型和事件消息

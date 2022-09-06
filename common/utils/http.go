@@ -24,12 +24,13 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	"go.uber.org/zap"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
-	"go.uber.org/zap"
 )
 
 // parseQueryParams 解析并获取HTTP的query params

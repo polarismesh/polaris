@@ -10,9 +10,9 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       # outputPaths:
-      #   - stdout
+      # - stdout
       # errorOutputPaths:
-      #   - stderr
+      # - stderr
     auth:
       rotateOutputPath: log/polaris-auth.log
       errorRotateOutputPath: log/polaris-auth-error.log
@@ -113,6 +113,7 @@ apiservers:
       listenIP: "0.0.0.0"
       listenPort: 8090
       enablePprof: true # debug pprof
+      enableSwagger: true
       connLimit:
         openConnLimit: false
         maxConnPerHost: 128

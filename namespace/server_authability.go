@@ -21,12 +21,13 @@ import (
 	"context"
 	"errors"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/auth"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"go.uber.org/zap"
 )
 
 // serverAuthAbility 带有鉴权能力的 discoverServer

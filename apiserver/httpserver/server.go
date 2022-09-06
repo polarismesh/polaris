@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
@@ -58,7 +58,8 @@ type HTTPServer struct {
 	restart         bool
 	exitCh          chan struct{}
 
-	enablePprof bool
+	enablePprof   bool
+	enableSwagger bool
 
 	server            *http.Server
 	maintainServer    maintain.MaintainOperateServer
@@ -96,6 +97,7 @@ func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{}
 	h.listenIP = option["listenIP"].(string)
 	h.listenPort = uint32(option["listenPort"].(int))
 	h.enablePprof, _ = option["enablePprof"].(bool)
+	h.enableSwagger, _ = option["enableSwagger"].(bool)
 	// 连接数限制的配置
 	if raw, _ := option["connLimit"].(map[interface{}]interface{}); raw != nil {
 		connLimitConfig, err := connlimit.ParseConnLimitConfig(raw)
@@ -362,6 +364,10 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 
 	if h.enablePprof {
 		h.enablePprofAccess(wsContainer)
+	}
+
+	if h.enableSwagger {
+		h.enableSwaggerAPI(wsContainer)
 	}
 
 	statis := plugin.GetStatis()

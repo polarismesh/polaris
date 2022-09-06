@@ -174,7 +174,7 @@ func (bs *businessStore) GetBusinessByID(id string) (*model.Business, error) {
 	if !ok {
 		return nil, nil
 	}
-	
+
 	if !ret.Valid {
 		return nil, nil
 	}

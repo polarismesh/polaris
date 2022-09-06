@@ -22,8 +22,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/polarismesh/polaris-server/common/utils"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 func mockGrpcContext(testVal map[string]string) context.Context {

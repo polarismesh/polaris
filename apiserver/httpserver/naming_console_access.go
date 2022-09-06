@@ -22,7 +22,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/emicklei/go-restful"
+	restfulspec "github.com/emicklei/go-restful-openapi/v2"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/proto"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -73,8 +74,14 @@ func (h *HTTPServer) GetNamingConsoleAccessServer(include []string) (*restful.We
 // addDefaultReadAccess 增加默认读接口
 func (h *HTTPServer) addDefaultReadAccess(ws *restful.WebService) {
 	// 管理端接口：只包含读接口
-	ws.Route(ws.GET("/namespaces").To(h.GetNamespaces))
-	ws.Route(ws.GET("/namespace/token").To(h.GetNamespaceToken))
+	nsTags := []string{"Namespaces"}
+	ws.Route(ws.GET("/namespaces").To(h.GetNamespaces).
+		Doc("get namespaces").
+		Metadata(restfulspec.KeyOpenAPITags, nsTags))
+
+	ws.Route(ws.GET("/namespace/token").To(h.GetNamespaceToken).
+		Doc("get namespaces token").
+		Metadata(restfulspec.KeyOpenAPITags, nsTags))
 
 	ws.Route(ws.GET("/services").To(h.GetServices))
 	ws.Route(ws.GET("/services/count").To(h.GetServicesCount))

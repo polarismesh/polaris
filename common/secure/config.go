@@ -19,6 +19,7 @@ package secure
 
 import (
 	"github.com/mitchellh/mapstructure"
+
 	"github.com/polarismesh/polaris-server/common/log"
 )
 

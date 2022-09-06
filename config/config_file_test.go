@@ -191,7 +191,7 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, 1, len(rsp3.ConfigFiles))
 
 		// group为空
-		rsp4 := testSuit.testService.QueryConfigFilesByGroup(testSuit.defaultCtx, testNamespace, "",  0, 3)
+		rsp4 := testSuit.testService.QueryConfigFilesByGroup(testSuit.defaultCtx, testNamespace, "", 0, 3)
 		assert.Equal(t, api.InvalidConfigFileGroupName, rsp4.Code.GetValue())
 
 	})

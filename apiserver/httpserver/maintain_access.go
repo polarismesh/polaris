@@ -24,7 +24,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/maintain"

@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
-
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -553,10 +552,16 @@ func (s *Server) updateInstanceAttribute(req *api.Instance, instance *model.Inst
 		insProto.Metadata = req.GetMetadata()
 		needUpdate = true
 	}
+
 	if ok := instanceLocationNeedUpdate(req.GetLocation(), instance.Proto.GetLocation()); ok {
 		insProto.Location = req.Location
 		needUpdate = true
 	}
+
+	// if !needUpdate {
+	// 	// 不需要更新metadata，则置空
+	// 	insProto.Metadata = nil
+	// }
 
 	if req.GetProtocol() != nil && req.GetProtocol().GetValue() != instance.Protocol() {
 		insProto.Protocol = req.GetProtocol()

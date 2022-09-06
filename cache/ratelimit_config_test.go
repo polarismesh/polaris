@@ -23,17 +23,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
+	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/golang/protobuf/ptypes/duration"
-
-	"github.com/polarismesh/polaris-server/common/utils"
-
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-
-	"github.com/golang/mock/gomock"
-
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store/mock"
 )
 
