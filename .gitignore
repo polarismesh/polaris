@@ -3,6 +3,8 @@ polaris-server-*
 polaris-server-release*
 polaris-server-release.tar.gz
 
+!*.yaml
+
 log/
 /statis/
 /discover-statis/
