@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package v2;
+
+import "google/protobuf/any.proto";
+
+message SimpleResponse {
+  uint32 code = 1;
+  string info = 2;
+}
+
+message Response {
+  uint32 code = 1;
+  string info = 2;
+  google.protobuf.Any data = 3;
+  reserved 12 to 14, 16 to 18;
+}
+
+message BatchWriteResponse {
+  uint32 code = 1;
+  string info = 2;
+  uint32 size = 3;
+  repeated Response responses = 4;
+}
+
+message BatchQueryResponse {
+  uint32 code = 1;
+  string info = 2;
+  uint32 amount = 3;
+  uint32 size = 4;
+  repeated google.protobuf.Any data = 5;
+}

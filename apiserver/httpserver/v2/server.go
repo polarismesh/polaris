@@ -15,26 +15,28 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package httpserver
+package v2
 
 import (
-	"github.com/emicklei/go-restful/v3"
-	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris-server/namespace"
+	"github.com/polarismesh/polaris-server/service"
+	"github.com/polarismesh/polaris-server/service/healthcheck"
 )
 
-func (h *HTTPServer) GetClientServer(ws *restful.WebService) error {
-	ws.Route(ws.GET("/clients").To(h.GetReportClients))
-
-	return nil
+type HTTPServerV2 struct {
+	namespaceServer   namespace.NamespaceOperateServer
+	namingServer      service.DiscoverServer
+	healthCheckServer *healthcheck.Server
 }
 
-func (h *HTTPServer) GetReportClients(req *restful.Request, rsp *restful.Response) {
+func NewV2Server(
+	namespaceServer namespace.NamespaceOperateServer,
+	namingServer service.DiscoverServer,
+	healthCheckServer *healthcheck.Server) *HTTPServerV2 {
 
-	handler := &utils.Handler{req, rsp}
-
-	queryParams := utils.ParseQueryParams(req)
-	ctx := handler.ParseHeaderContext()
-	ret := h.namingServer.GetReportClientWithCache(ctx, queryParams)
-
-	_ = rsp.WriteAsJson(ret)
+	return &HTTPServerV2{
+		namespaceServer:   namespaceServer,
+		namingServer:      namingServer,
+		healthCheckServer: healthCheckServer,
+	}
 }

@@ -30,6 +30,7 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
 	"github.com/polarismesh/polaris-server/common/log"
 )
 
@@ -174,6 +175,30 @@ func (h *Handler) WriteHeaderAndProto(obj api.ResponseMessage) {
 		log.Error(obj.String(), zap.String("request-id", requestID))
 	}
 	if code := obj.GetCode().GetValue(); code != api.ExecuteSuccess {
+		h.Response.AddHeader(PolarisCode, fmt.Sprintf("%d", code))
+		h.Response.AddHeader(PolarisMessage, api.Code2Info(code))
+	}
+
+	h.Response.AddHeader(PolarisRequestID, requestID)
+	h.Response.WriteHeader(status)
+
+	m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
+	err := m.Marshal(h.Response, obj)
+	if err != nil {
+		log.Error(err.Error(), zap.String("request-id", requestID))
+	}
+}
+
+// WriteHeaderAndProto 返回Code和Proto
+func (h *Handler) WriteHeaderAndProtoV2(obj apiv2.ResponseMessage) {
+	requestID := h.Request.HeaderParameter(PolarisRequestID)
+	h.Request.SetAttribute(PolarisCode, obj.GetCode())
+	status := apiv2.CalcCode(obj)
+
+	if status != http.StatusOK {
+		log.Error(obj.String(), zap.String("request-id", requestID))
+	}
+	if code := obj.GetCode(); code != api.ExecuteSuccess {
 		h.Response.AddHeader(PolarisCode, fmt.Sprintf("%d", code))
 		h.Response.AddHeader(PolarisMessage, api.Code2Info(code))
 	}

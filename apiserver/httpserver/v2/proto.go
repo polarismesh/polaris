@@ -15,26 +15,22 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package httpserver
+package v2
 
 import (
-	"github.com/emicklei/go-restful/v3"
-	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/golang/protobuf/proto"
+
+	api "github.com/polarismesh/polaris-server/common/api/v2"
 )
 
-func (h *HTTPServer) GetClientServer(ws *restful.WebService) error {
-	ws.Route(ws.GET("/clients").To(h.GetReportClients))
+// RoutingArr 路由规则数组定义
+type RoutingArr []*api.Routing
 
-	return nil
-}
+// Reset reset initialization
+func (m *RoutingArr) Reset() { *m = RoutingArr{} }
 
-func (h *HTTPServer) GetReportClients(req *restful.Request, rsp *restful.Response) {
+// String return string
+func (m *RoutingArr) String() string { return proto.CompactTextString(m) }
 
-	handler := &utils.Handler{req, rsp}
-
-	queryParams := utils.ParseQueryParams(req)
-	ctx := handler.ParseHeaderContext()
-	ret := h.namingServer.GetReportClientWithCache(ctx, queryParams)
-
-	_ = rsp.WriteAsJson(ret)
-}
+// ProtoMessage return proto message
+func (*RoutingArr) ProtoMessage() {}

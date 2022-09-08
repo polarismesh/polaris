@@ -23,8 +23,13 @@ import (
 	"github.com/emicklei/go-restful/v3"
 )
 
+const (
+	defaultReadAccess string = "default-read"
+	defaultAccess     string = "default"
+)
+
 // GetCoreConsoleAccessServer 增加配置中心模块之后，namespace 作为两个模块的公共模块需要独立， restful path 以 /core 开头
-func (h *HTTPServer) GetCoreConsoleAccessServer(ws *restful.WebService, include []string) error {
+func (h *HTTPServer) GetCoreV1ConsoleAccessServer(ws *restful.WebService, include []string) error {
 	consoleAccess := []string{defaultAccess}
 
 	if len(include) == 0 {
@@ -55,15 +60,15 @@ func (h *HTTPServer) GetCoreConsoleAccessServer(ws *restful.WebService, include 
 }
 
 func (h *HTTPServer) addCoreDefaultReadAccess(ws *restful.WebService) {
-	ws.Route(ws.GET("/namespaces").To(h.GetNamespaces))
-	ws.Route(ws.GET("/namespaces/token").To(h.GetNamespaceToken))
+	ws.Route(ws.GET("/namespaces").To(h.v1Server.GetNamespaces))
+	ws.Route(ws.GET("/namespaces/token").To(h.v1Server.GetNamespaceToken))
 }
 
 func (h *HTTPServer) addCoreDefaultAccess(ws *restful.WebService) {
-	ws.Route(ws.POST("/namespaces").To(h.CreateNamespaces))
-	ws.Route(ws.POST("/namespaces/delete").To(h.DeleteNamespaces))
-	ws.Route(ws.PUT("/namespaces").To(h.UpdateNamespaces))
-	ws.Route(ws.GET("/namespaces").To(h.GetNamespaces))
-	ws.Route(ws.GET("/namespaces/token").To(h.GetNamespaceToken))
-	ws.Route(ws.PUT("/namespaces/token").To(h.UpdateNamespaceToken))
+	ws.Route(ws.POST("/namespaces").To(h.v1Server.CreateNamespaces))
+	ws.Route(ws.POST("/namespaces/delete").To(h.v1Server.DeleteNamespaces))
+	ws.Route(ws.PUT("/namespaces").To(h.v1Server.UpdateNamespaces))
+	ws.Route(ws.GET("/namespaces").To(h.v1Server.GetNamespaces))
+	ws.Route(ws.GET("/namespaces/token").To(h.v1Server.GetNamespaceToken))
+	ws.Route(ws.PUT("/namespaces/token").To(h.v1Server.UpdateNamespaceToken))
 }

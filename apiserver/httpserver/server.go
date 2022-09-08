@@ -31,6 +31,8 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris-server/apiserver"
+	v1 "github.com/polarismesh/polaris-server/apiserver/httpserver/v1"
+	v2 "github.com/polarismesh/polaris-server/apiserver/httpserver/v2"
 	"github.com/polarismesh/polaris-server/auth"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
@@ -70,6 +72,9 @@ type HTTPServer struct {
 	rateLimit         plugin.Ratelimit
 	statis            plugin.Statis
 	auth              plugin.Auth
+
+	v1Server v1.HTTPServerV1
+	v2Server v2.HTTPServerV2
 
 	authServer auth.AuthServer
 }
@@ -191,6 +196,9 @@ func (h *HTTPServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
+
+	h.v1Server = *v1.NewV1Server(h.namespaceServer, h.namingServer, h.healthCheckServer)
+	h.v2Server = *v2.NewV2Server(h.namespaceServer, h.namingServer, h.healthCheckServer)
 
 	// 初始化http server
 	address := fmt.Sprintf("%v:%v", h.listenIP, h.listenPort)
@@ -322,16 +330,22 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 			}
 		case "console":
 			if config.Enable {
-				namingService, err := h.GetNamingConsoleAccessServer(config.Include)
+				namingServiceV1, err := h.v1Server.GetNamingConsoleAccessServer(config.Include)
 				if err != nil {
 					return nil, err
 				}
-				wsContainer.Add(namingService)
+				wsContainer.Add(namingServiceV1)
+
+				namingServiceV2, err := h.v2Server.GetNamingConsoleAccessServer(config.Include)
+				if err != nil {
+					return nil, err
+				}
+				wsContainer.Add(namingServiceV2)
 
 				ws := new(restful.WebService)
 				ws.Path("/core/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
 
-				if err := h.GetCoreConsoleAccessServer(ws, config.Include); err != nil {
+				if err := h.GetCoreV1ConsoleAccessServer(ws, config.Include); err != nil {
 					return nil, err
 				}
 				if err := h.GetAuthServer(ws); err != nil {

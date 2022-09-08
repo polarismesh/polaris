@@ -15,26 +15,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package httpserver
+package v1
 
 import (
-	"github.com/emicklei/go-restful/v3"
-	"github.com/polarismesh/polaris-server/common/utils"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
 )
 
-func (h *HTTPServer) GetClientServer(ws *restful.WebService) error {
-	ws.Route(ws.GET("/clients").To(h.GetReportClients))
-
-	return nil
-}
-
-func (h *HTTPServer) GetReportClients(req *restful.Request, rsp *restful.Response) {
-
-	handler := &utils.Handler{req, rsp}
-
-	queryParams := utils.ParseQueryParams(req)
-	ctx := handler.ParseHeaderContext()
-	ret := h.namingServer.GetReportClientWithCache(ctx, queryParams)
-
-	_ = rsp.WriteAsJson(ret)
-}
+var (
+	log       = commonlog.NamingScope()
+	configLog = commonlog.ConfigScope()
+)
