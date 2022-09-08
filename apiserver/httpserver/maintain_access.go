@@ -26,6 +26,7 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 
+	"github.com/polarismesh/polaris-server/apiserver/httpserver/handler"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/maintain"
@@ -132,7 +133,7 @@ func (h *HTTPServer) FreeOSMemory(req *restful.Request, rsp *restful.Response) {
 // CleanInstance 彻底清理flag=1的实例运维接口
 // 支持一个个清理
 func (h *HTTPServer) CleanInstance(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &handler.Handler{req, rsp}
 
 	instance := &api.Instance{}
 	ctx, err := handler.Parse(instance)
@@ -147,7 +148,7 @@ func (h *HTTPServer) CleanInstance(req *restful.Request, rsp *restful.Response) 
 // GetLastHeartbeat 获取实例，上一次心跳的时间
 func (h *HTTPServer) GetLastHeartbeat(req *restful.Request, rsp *restful.Response) {
 	ctx := initContext(req)
-	handler := &Handler{req, rsp}
+	handler := &handler.Handler{req, rsp}
 	params := utils.ParseQueryParams(req)
 	instance := &api.Instance{}
 	if id, ok := params["id"]; ok && id != "" {

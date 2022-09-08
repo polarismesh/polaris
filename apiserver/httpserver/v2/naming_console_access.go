@@ -24,6 +24,7 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/proto"
 
+	"github.com/polarismesh/polaris-server/apiserver/httpserver/handler"
 	apiv1 "github.com/polarismesh/polaris-server/common/api/v1"
 	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
 	"github.com/polarismesh/polaris-server/common/log"
@@ -87,7 +88,7 @@ func (h *HTTPServerV2) addDefaultAccess(ws *restful.WebService) {
 
 // CreateRoutings 创建规则路由
 func (h *HTTPServerV2) CreateRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &utils.Handler{req, rsp}
+	handler := &handler.Handler{req, rsp}
 
 	var routings RoutingArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -106,7 +107,7 @@ func (h *HTTPServerV2) CreateRoutings(req *restful.Request, rsp *restful.Respons
 
 // DeleteRoutings 删除规则路由
 func (h *HTTPServerV2) DeleteRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &utils.Handler{req, rsp}
+	handler := &handler.Handler{req, rsp}
 
 	var routings RoutingArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -130,7 +131,7 @@ func (h *HTTPServerV2) DeleteRoutings(req *restful.Request, rsp *restful.Respons
 
 // UpdateRoutings 修改规则路由
 func (h *HTTPServerV2) UpdateRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &utils.Handler{req, rsp}
+	handler := &handler.Handler{req, rsp}
 
 	var routings RoutingArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -154,7 +155,7 @@ func (h *HTTPServerV2) UpdateRoutings(req *restful.Request, rsp *restful.Respons
 
 // GetRoutings 查询规则路由
 func (h *HTTPServerV2) GetRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &utils.Handler{req, rsp}
+	handler := &handler.Handler{req, rsp}
 
 	queryParams := utils.ParseQueryParams(req)
 	ret := h.namingServer.GetRoutingConfigsV2(handler.ParseHeaderContext(), queryParams)

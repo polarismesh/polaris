@@ -23,11 +23,12 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/polarismesh/polaris-server/apiserver/httpserver/handler"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &handler.Handler{req, rsp}
 
 	version, err := strconv.ParseUint(handler.QueryParameter("version"), 10, 64)
 	if err != nil {
@@ -47,7 +48,7 @@ func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) 
 }
 
 func (h *HTTPServer) watchConfigFile(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &handler.Handler{req, rsp}
 
 	// 1. 解析出客户端监听的配置文件列表
 	watchConfigFileRequest := &api.ClientWatchConfigFileRequest{}
