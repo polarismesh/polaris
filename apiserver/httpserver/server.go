@@ -31,7 +31,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris-server/apiserver"
-	"github.com/polarismesh/polaris-server/apiserver/httpserver/handler"
+	httpcommon "github.com/polarismesh/polaris-server/apiserver/httpserver/http"
 	v1 "github.com/polarismesh/polaris-server/apiserver/httpserver/v1"
 	v2 "github.com/polarismesh/polaris-server/apiserver/httpserver/v2"
 	"github.com/polarismesh/polaris-server/auth"
@@ -524,7 +524,7 @@ func (h *HTTPServer) enterAuth(req *restful.Request, rsp *restful.Response) erro
 			zap.String("request-id", rid),
 			zap.String("platform-id", pid),
 			zap.String("platform-token", pToken))
-		handler.HTTPResponse(req, rsp, api.NotAllowedAccess)
+		httpcommon.HTTPResponse(req, rsp, api.NotAllowedAccess)
 		return errors.New("http access is not allowed")
 	}
 	return nil
@@ -548,7 +548,7 @@ func (h *HTTPServer) enterRateLimit(req *restful.Request, rsp *restful.Response)
 	if ok := h.rateLimit.Allow(plugin.IPRatelimit, segments[0]); !ok {
 		log.Error("ip ratelimit is not allow", zap.String("client", address),
 			zap.String("request-id", rid))
-		handler.HTTPResponse(req, rsp, api.IPRateLimit)
+		httpcommon.HTTPResponse(req, rsp, api.IPRateLimit)
 		return errors.New("ip ratelimit is not allow")
 	}
 
@@ -558,7 +558,7 @@ func (h *HTTPServer) enterRateLimit(req *restful.Request, rsp *restful.Response)
 	if ok := h.rateLimit.Allow(plugin.APIRatelimit, apiName); !ok {
 		log.Error("api ratelimit is not allow", zap.String("client", address),
 			zap.String("request-id", rid), zap.String("api", apiName))
-		handler.HTTPResponse(req, rsp, api.APIRateLimit)
+		httpcommon.HTTPResponse(req, rsp, api.APIRateLimit)
 		return errors.New("api ratelimit is not allow")
 	}
 
