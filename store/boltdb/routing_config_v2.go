@@ -18,10 +18,17 @@
 package boltdb
 
 import (
+	"errors"
+	"sort"
+	"strings"
 	"time"
 
 	v2 "github.com/polarismesh/polaris-server/common/model/v2"
 	"github.com/polarismesh/polaris-server/store"
+)
+
+var (
+	MultipleRoutingV2Found error = errors.New("multiple routing v2 found")
 )
 
 const (
@@ -42,6 +49,8 @@ const (
 type routingStoreV2 struct {
 	handler BoltHandler
 }
+
+// ------------ start routing v2 --------------------
 
 // CreateRoutingConfigV2 新增一个路由配置
 func (r *routingStoreV2) CreateRoutingConfigV2(conf *v2.RoutingConfig) error {
@@ -166,12 +175,74 @@ func toRouteConfV2(m map[string]interface{}) []*v2.RoutingConfig {
 // GetRoutingConfigV2WithID 根据服务ID拉取路由配置
 func (r *routingStoreV2) GetRoutingConfigV2WithID(id string) (*v2.RoutingConfig, error) {
 
-	return nil, nil
+	ret, err := r.handler.LoadValues(tblNameRoutingV2, []string{id}, &v2.RoutingConfig{})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ret) == 0 {
+		return nil, nil
+	}
+
+	if len(ret) > 1 {
+		return nil, MultipleRoutingV2Found
+	}
+
+	val := ret[id].(*v2.RoutingConfig)
+	if !val.Valid {
+		return nil, nil
+	}
+
+	return val, nil
 }
 
 // GetRoutingConfigsV2 查询路由配置列表
 func (r *routingStoreV2) GetRoutingConfigsV2(filter map[string]string, offset uint32,
 	limit uint32) (uint32, []*v2.RoutingConfig, error) {
 
+	fields := []string{routingV2FieldID, routingV2FieldName, routingV2FieldPolicy}
+
+	ret, err := r.handler.LoadValuesByFilter(tblNameRoutingV2, fields, &v2.RoutingConfig{},
+		func(m map[string]interface{}) bool {
+			
+		})
+
+	if err != nil {
+		return 0, nil, err
+	}
+
 	return 0, nil, nil
+}
+
+func doPageRoutingV2(routeConf []*v2.RoutingConfig, offset, limit uint32) []*v2.RoutingConfig {
+
+	beginIndex := offset
+	endIndex := beginIndex + limit
+	totalCount := uint32(len(routeConf))
+	// handle invalid offset, limit
+	if totalCount == 0 {
+		return routeConf
+	}
+	if beginIndex >= endIndex {
+		return routeConf
+	}
+	if beginIndex >= totalCount {
+		return routeConf
+	}
+	if endIndex > totalCount {
+		endIndex = totalCount
+	}
+
+	sort.Slice(routeConf, func(i, j int) bool {
+		// sort by modify time
+		if routeConf[i].ModifyTime.After(routeConf[j].ModifyTime) {
+			return true
+		} else if routeConf[i].ModifyTime.Before(routeConf[j].ModifyTime) {
+			return false
+		} else {
+			return strings.Compare(routeConf[i].ID, routeConf[j].ID) < 0
+		}
+	})
+
+	return routeConf[beginIndex:endIndex]
 }
