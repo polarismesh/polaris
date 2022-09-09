@@ -78,12 +78,6 @@ bootstrap:
     enable_register: true
     isolated: false
     services:
-      - name: polaris.discover
-        protocols:
-          - service-grpc
-      - name: polaris.healthcheck
-        protocols:
-          - service-grpc
       - name: polaris.checker
         protocols:
           - service-grpc

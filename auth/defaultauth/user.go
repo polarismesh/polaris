@@ -587,6 +587,14 @@ func checkUpdateUser(req *api.User) *api.Response {
 		return api.NewUserResponse(api.BadRequest, req)
 	}
 
+	if err := checkMobile(req.Mobile); err != nil {
+		return api.NewUserResponse(api.InvalidUserMobile, req)
+	}
+
+    if err := checkEmail(req.Email); err != nil {
+        return api.NewUserResponse(api.InvalidUserEmail, req)
+	}
+
 	return nil
 }
 
