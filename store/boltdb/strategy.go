@@ -165,6 +165,7 @@ func (ss *strategyStore) updateStrategy(tx *bolt.Tx, modify *model.ModifyStrateg
 	computeResources(false, modify.AddResources, saveVal)
 	computeResources(true, modify.RemoveResources, saveVal)
 
+	saveVal.ModifyTime = time.Now()
 	if err := saveValue(tx, tblStrategy, saveVal.ID, saveVal); err != nil {
 		logger.StoreScope().Error("[Store][Strategy] update auth_strategy", zap.Error(err),
 			zap.String("id", saveVal.ID))
@@ -279,6 +280,7 @@ func (ss *strategyStore) operateStrategyResources(remove bool, resources []model
 		}
 
 		computeResources(remove, ress, rule)
+		rule.ModifyTime = time.Now()
 		if err := saveValue(tx, tblStrategy, rule.ID, rule); err != nil {
 			logger.StoreScope().Error("[Store][Strategy] operate strategy resource", zap.Error(err),
 				zap.Bool("remove", remove), zap.String("id", id))
@@ -668,6 +670,10 @@ func comparePrincipalExist(principalType, principalId string, m map[string]inter
 // GetStrategyDetailsForCache get strategy details for cache
 func (ss *strategyStore) GetStrategyDetailsForCache(mtime time.Time,
 	firstUpdate bool) ([]*model.StrategyDetail, error) {
+
+	if firstUpdate {
+		mtime = time.Time{}
+	}
 
 	ret, err := ss.handler.LoadValuesByFilter(tblStrategy, []string{StrategyFieldModifyTime}, &strategyForStore{},
 		func(m map[string]interface{}) bool {

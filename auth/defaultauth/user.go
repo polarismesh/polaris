@@ -559,7 +559,7 @@ func checkCreateUser(req *api.User) *api.Response {
 		return api.NewUserResponse(api.InvalidUserOwners, req)
 	}
 
-	if err := checkMobile(req.Mobile); err != nil {
+	if err := checkMobilePhone(req.Mobile); err != nil {
 		return api.NewUserResponse(api.InvalidUserMobile, req)
 	}
 
@@ -585,6 +585,14 @@ func checkUpdateUser(req *api.User) *api.Response {
 
 	if req.GetId() == nil || req.GetId().GetValue() == "" {
 		return api.NewUserResponse(api.BadRequest, req)
+	}
+
+	if err := checkMobilePhone(req.Mobile); err != nil {
+		return api.NewUserResponse(api.InvalidUserMobile, req)
+	}
+
+    if err := checkEmail(req.Email); err != nil {
+        return api.NewUserResponse(api.InvalidUserEmail, req)
 	}
 
 	return nil

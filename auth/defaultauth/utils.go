@@ -20,6 +20,7 @@ package defaultauth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
 	"unicode/utf8"
 
@@ -59,7 +60,6 @@ var storeCodeAPICodeMap = map[store.StatusCode]uint32{
 
 var (
 	regNameStr = regexp.MustCompile("^[\u4E00-\u9FA5A-Za-z0-9_\\-]+$")
-	regEmail   = regexp.MustCompile(`^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$`)
 )
 
 // StoreCode2APICode store code to api code
@@ -130,8 +130,8 @@ func checkOwner(owner *wrappers.StringValue) error {
 	return nil
 }
 
-// checkMobile 检查用户的 mobile 信息
-func checkMobile(mobile *wrappers.StringValue) error {
+// checkMobilePhone 检查用户的 mobile phone 信息
+func checkMobilePhone(mobile *wrappers.StringValue) error {
 	if mobile == nil {
 		return nil
 	}
@@ -140,8 +140,9 @@ func checkMobile(mobile *wrappers.StringValue) error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(mobile.GetValue()) != 11 {
-		return errors.New("invalid mobile")
+	if utf8.RuneCountInString(mobile.GetValue()) > utils.MobilePhoneLength {
+		return fmt.Errorf("invalid mobile, current is %s, length must be less than %d",
+			mobile.GetValue(), utils.MobilePhoneLength)
 	}
 
 	return nil
@@ -157,8 +158,9 @@ func checkEmail(email *wrappers.StringValue) error {
 		return nil
 	}
 
-	if ok := regEmail.MatchString(email.GetValue()); !ok {
-		return errors.New("invalid email")
+	if utf8.RuneCountInString(email.GetValue()) > utils.MaxEmailLength {
+		return fmt.Errorf("invalid email, current is %s, length must be less than %d",
+			email.GetValue(), utils.MaxEmailLength)
 	}
 
 	return nil

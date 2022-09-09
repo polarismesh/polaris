@@ -460,6 +460,10 @@ func doGroupPage(ret map[string]interface{}, offset uint32, limit uint32) []*mod
 
 // GetGroupsForCache 查询用户分组数据，主要用于Cache更新
 func (gs *groupStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*model.UserGroupDetail, error) {
+	if firstUpdate {
+		mtime = time.Time{}
+	}
+
 	ret, err := gs.handler.LoadValuesByFilter(tblGroup, []string{GroupFieldModifyTime}, &groupForStore{},
 		func(m map[string]interface{}) bool {
 			mt := m[GroupFieldModifyTime].(time.Time)

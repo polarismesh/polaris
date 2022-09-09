@@ -142,6 +142,8 @@ func (us *userStore) UpdateUser(user *model.User) error {
 	properties[UserFieldToken] = user.Token
 	properties[UserFieldTokenEnable] = user.TokenEnable
 	properties[UserFieldPassword] = user.Password
+	properties[UserFieldEmail] = user.Email
+	properties[UserFieldMobile] = user.Mobile
 	properties[UserFieldModifyTime] = time.Now()
 
 	err := us.handler.UpdateValue(tblUser, user.ID, properties)
@@ -396,6 +398,12 @@ func (us *userStore) getUsers(filters map[string]string, offset uint32, limit ui
 				}
 			}
 
+			if queryId, ok := filters["id"]; ok {
+				if queryId != saveId {
+					return false
+				}
+			}
+
 			return true
 		})
 
@@ -490,6 +498,10 @@ func (us *userStore) getGroupUsers(filters map[string]string, offset uint32, lim
 
 // GetUsersForCache
 func (us *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*model.User, error) {
+	if firstUpdate {
+		mtime = time.Time{}
+	}
+
 	ret, err := us.handler.LoadValuesByFilter(tblUser, []string{UserFieldModifyTime}, &userForStore{},
 		func(m map[string]interface{}) bool {
 			mt := m[UserFieldModifyTime].(time.Time)
