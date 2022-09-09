@@ -140,7 +140,7 @@ func checkMobilePhone(mobile *wrappers.StringValue) error {
 	}
 
 	if utf8.RuneCountInString(mobile.GetValue()) != utils.MobilePhoneLength {
-		return errors.New("invalid mobile")
+		return errors.New("invalid mobile phone")
 	}
 
 	return nil
@@ -157,7 +157,7 @@ func checkEmail(email *wrappers.StringValue) error {
 	}
 
 	if utf8.RuneCountInString(email.GetValue()) > utils.MaxEmailLength {
-		return errors.New("invalid email")
+		return errors.New("email too long")
 	}
 
 	return nil
