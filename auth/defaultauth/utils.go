@@ -20,6 +20,7 @@ package defaultauth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
 	"unicode/utf8"
 
@@ -139,8 +140,9 @@ func checkMobilePhone(mobile *wrappers.StringValue) error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(mobile.GetValue()) != utils.MobilePhoneLength {
-		return errors.New("invalid mobile phone")
+	if utf8.RuneCountInString(mobile.GetValue()) > utils.MobilePhoneLength {
+		return fmt.Errorf("invalid mobile, current is %s, length must be less than %d",
+			mobile.GetValue(), utils.MobilePhoneLength)
 	}
 
 	return nil
@@ -157,7 +159,8 @@ func checkEmail(email *wrappers.StringValue) error {
 	}
 
 	if utf8.RuneCountInString(email.GetValue()) > utils.MaxEmailLength {
-		return errors.New("email too long")
+		return fmt.Errorf("invalid email, current is %s, length must be less than %d",
+			email.GetValue(), utils.MaxEmailLength)
 	}
 
 	return nil
