@@ -91,6 +91,9 @@ const (
 	MaxPlatformNameLength   = 128
 	MaxPlatformDomainLength = 1024
 	MaxPlatformQPS          = 65535
+
+	MaxEmailLength    = 64
+	MobilePhoneLength = 11
 )
 
 var resourceNameRE = regexp.MustCompile("^[0-9A-Za-z-./:_]+$")

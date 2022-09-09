@@ -59,7 +59,6 @@ var storeCodeAPICodeMap = map[store.StatusCode]uint32{
 
 var (
 	regNameStr = regexp.MustCompile("^[\u4E00-\u9FA5A-Za-z0-9_\\-]+$")
-	regEmail   = regexp.MustCompile(`^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$`)
 )
 
 // StoreCode2APICode store code to api code
@@ -140,7 +139,7 @@ func checkMobilePhone(mobile *wrappers.StringValue) error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(mobile.GetValue()) != 11 {
+	if utf8.RuneCountInString(mobile.GetValue()) != utils.MobilePhoneLength {
 		return errors.New("invalid mobile")
 	}
 
@@ -157,7 +156,7 @@ func checkEmail(email *wrappers.StringValue) error {
 		return nil
 	}
 
-	if ok := regEmail.MatchString(email.GetValue()); !ok {
+	if utf8.RuneCountInString(email.GetValue()) > utils.MaxEmailLength {
 		return errors.New("invalid email")
 	}
 
