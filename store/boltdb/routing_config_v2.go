@@ -102,7 +102,7 @@ func (r *routingStoreV2) UpdateRoutingConfigV2(conf *v2.RoutingConfig) error {
 	properties[routingV2FieldRevision] = conf.Revision
 	properties[routingV2FieldModifyTime] = time.Now()
 
-	err := r.handler.UpdateValue(tblNameRouting, conf.ID, properties)
+	err := r.handler.UpdateValue(tblNameRoutingV2, conf.ID, properties)
 	if err != nil {
 		log.Errorf("[Store][boltdb] update route config v2 to kv error, %v", err)
 		return err
@@ -120,7 +120,7 @@ func (r *routingStoreV2) DeleteRoutingConfigV2(ruleID string) error {
 	properties[routingV2FieldValid] = false
 	properties[routingV2FieldModifyTime] = time.Now()
 
-	err := r.handler.UpdateValue(tblNameRouting, ruleID, properties)
+	err := r.handler.UpdateValue(tblNameRoutingV2, ruleID, properties)
 	if err != nil {
 		log.Errorf("[Store][boltdb] update route config v2 to kv error, %v", err)
 		return err
@@ -135,14 +135,43 @@ func (r *routingStoreV2) GetRoutingConfigsV2ForCache(mtime time.Time, firstUpdat
 		mtime = time.Time{}
 	}
 
-	
+	fields := []string{routingV2FieldModifyTime}
 
+	routes, err := r.handler.LoadValuesByFilter(tblNameRoutingV2, fields, &v2.RoutingConfig{},
+		func(m map[string]interface{}) bool {
+			rMtime, ok := m[routingV2FieldModifyTime]
+			if !ok {
+				return false
+			}
+			routeMtime := rMtime.(time.Time)
+			return !routeMtime.Before(mtime)
+		})
+	if err != nil {
+		log.Errorf("[Store][boltdb] load route config v2 from kv error, %v", err)
+		return nil, err
+	}
+
+	return toRouteConfV2(routes), nil
+}
+
+func toRouteConfV2(m map[string]interface{}) []*v2.RoutingConfig {
+	var routeConf []*v2.RoutingConfig
+	for _, r := range m {
+		routeConf = append(routeConf, r.(*v2.RoutingConfig))
+	}
+
+	return routeConf
 }
 
 // GetRoutingConfigV2WithID 根据服务ID拉取路由配置
-func (r *routingStoreV2) GetRoutingConfigV2WithID(id string) (*v2.RoutingConfig, error) {}
+func (r *routingStoreV2) GetRoutingConfigV2WithID(id string) (*v2.RoutingConfig, error) {
+
+	return nil, nil
+}
 
 // GetRoutingConfigsV2 查询路由配置列表
 func (r *routingStoreV2) GetRoutingConfigsV2(filter map[string]string, offset uint32,
 	limit uint32) (uint32, []*v2.RoutingConfig, error) {
+
+	return 0, nil, nil
 }
