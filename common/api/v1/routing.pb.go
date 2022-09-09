@@ -40,7 +40,7 @@ func (m *Routing) Reset()         { *m = Routing{} }
 func (m *Routing) String() string { return proto.CompactTextString(m) }
 func (*Routing) ProtoMessage()    {}
 func (*Routing) Descriptor() ([]byte, []int) {
-	return fileDescriptor_routing_fd42ba95ca14a6d0, []int{0}
+	return fileDescriptor_routing_562225d32d6ce1a1, []int{0}
 }
 func (m *Routing) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Routing.Unmarshal(m, b)
@@ -130,7 +130,7 @@ func (m *Route) Reset()         { *m = Route{} }
 func (m *Route) String() string { return proto.CompactTextString(m) }
 func (*Route) ProtoMessage()    {}
 func (*Route) Descriptor() ([]byte, []int) {
-	return fileDescriptor_routing_fd42ba95ca14a6d0, []int{1}
+	return fileDescriptor_routing_562225d32d6ce1a1, []int{1}
 }
 func (m *Route) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Route.Unmarshal(m, b)
@@ -180,7 +180,7 @@ func (m *Source) Reset()         { *m = Source{} }
 func (m *Source) String() string { return proto.CompactTextString(m) }
 func (*Source) ProtoMessage()    {}
 func (*Source) Descriptor() ([]byte, []int) {
-	return fileDescriptor_routing_fd42ba95ca14a6d0, []int{2}
+	return fileDescriptor_routing_562225d32d6ce1a1, []int{2}
 }
 func (m *Source) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Source.Unmarshal(m, b)
@@ -253,7 +253,7 @@ func (m *Destination) Reset()         { *m = Destination{} }
 func (m *Destination) String() string { return proto.CompactTextString(m) }
 func (*Destination) ProtoMessage()    {}
 func (*Destination) Descriptor() ([]byte, []int) {
-	return fileDescriptor_routing_fd42ba95ca14a6d0, []int{3}
+	return fileDescriptor_routing_562225d32d6ce1a1, []int{3}
 }
 func (m *Destination) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Destination.Unmarshal(m, b)
@@ -331,9 +331,9 @@ func init() {
 	proto.RegisterMapType((map[string]*MatchString)(nil), "v1.Destination.MetadataEntry")
 }
 
-func init() { proto.RegisterFile("routing.proto", fileDescriptor_routing_fd42ba95ca14a6d0) }
+func init() { proto.RegisterFile("routing.proto", fileDescriptor_routing_562225d32d6ce1a1) }
 
-var fileDescriptor_routing_fd42ba95ca14a6d0 = []byte{
+var fileDescriptor_routing_562225d32d6ce1a1 = []byte{
 	// 468 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x93, 0xc1, 0x6a, 0xdb, 0x40,
 	0x10, 0x86, 0xb1, 0x15, 0x5b, 0xf6, 0xb8, 0xa6, 0x65, 0x4f, 0x8b, 0x69, 0x4b, 0x30, 0x0d, 0xcd,

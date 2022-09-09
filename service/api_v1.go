@@ -167,6 +167,9 @@ type InstanceOperateServer interface {
 	// GetInstancesCount Get an instance quantity
 	GetInstancesCount(ctx context.Context) *api.BatchQueryResponse
 
+	// GetInstanceLabels Get an instance tag under a service
+	GetInstanceLabels(ctx context.Context, query map[string]string) *api.Response
+
 	// CleanInstance Clean up instance
 	CleanInstance(ctx context.Context, req *api.Instance) *api.Response
 }

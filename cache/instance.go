@@ -25,6 +25,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
@@ -58,6 +59,8 @@ type InstanceCache interface {
 	GetInstancesCountByServiceID(serviceID string) model.InstanceCount
 	// GetServicePorts
 	GetServicePorts(serviceID string) []string
+	// GetInstanceLabels Get the label of all instances under a service
+	GetInstanceLabels(serviceID string) *api.InstanceLabels
 }
 
 // instanceCache 实例缓存的类
@@ -425,6 +428,46 @@ func (ic *instanceCache) GetInstancesCount() int {
 	})
 
 	return count
+}
+
+// GetInstanceLabels 获取某个服务下实例的所有标签信息集合
+func (ic *instanceCache) GetInstanceLabels(serviceID string) *api.InstanceLabels {
+	if serviceID == "" {
+		return &api.InstanceLabels{}
+	}
+
+	value, ok := ic.services.Load(serviceID)
+	if !ok {
+		return &api.InstanceLabels{}
+	}
+
+	ret := &api.InstanceLabels{
+		Labels: make(map[string]*api.StringList),
+	}
+
+	tmp := make(map[string]map[string]struct{})
+	iteratorInstancesProc(value.(*sync.Map), func(key string, value *model.Instance) (bool, error) {
+		metadata := value.Metadata()
+		for k, v := range metadata {
+			if _, ok := tmp[k]; !ok {
+				tmp[k] = make(map[string]struct{})
+			}
+			tmp[k][v] = struct{}{}
+		}
+		return true, nil
+	})
+
+	for k, v := range tmp {
+		if _, ok := ret.Labels[k]; !ok {
+			ret.Labels[k] = &api.StringList{Values: make([]string, 0, 4)}
+		}
+
+		for vv := range v {
+			ret.Labels[k].Values = append(ret.Labels[k].Values, vv)
+		}
+	}
+
+	return ret
 }
 
 func (ic *instanceCache) GetServicePorts(serviceID string) []string {

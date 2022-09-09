@@ -64,6 +64,9 @@ type boltStore struct {
 	*configFileTagStore
 	*configFileTemplateStore
 
+	// v2 存储
+	*routingStoreV2
+
 	handler BoltHandler
 	start   bool
 }
@@ -280,6 +283,8 @@ func (m *boltStore) newDiscoverModuleStore() error {
 	m.rateLimitStore = &rateLimitStore{handler: m.handler}
 
 	m.circuitBreakerStore = &circuitBreakerStore{handler: m.handler}
+
+	m.routingStoreV2 = &routingStoreV2{handler: m.handler}
 
 	return nil
 }

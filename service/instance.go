@@ -711,6 +711,37 @@ func (s *Server) GetInstances(ctx context.Context, query map[string]string) *api
 	return out
 }
 
+func (s *Server) GetInstanceLabels(ctx context.Context, query map[string]string) *api.Response {
+	var (
+		serviceId string
+		namespace = DefaultNamespace
+	)
+
+	if val, ok := query["namespace"]; !ok {
+		namespace = val
+	}
+
+	if service, ok := query["service"]; ok {
+		svc := s.Cache().Service().GetServiceByName(service, namespace)
+		if svc != nil {
+			serviceId = svc.ID
+		}
+	}
+
+	if id, ok := query["service_id"]; ok {
+		serviceId = id
+	}
+
+	if serviceId == "" {
+		return api.NewResponse(api.NotFoundService)
+	}
+
+	ret := s.Cache().Instance().GetInstanceLabels(serviceId)
+	resp := api.NewResponse(api.ExecuteSuccess)
+	resp.InstanceLabels = ret
+	return resp
+}
+
 // GetInstancesCount 查询总的服务实例，不带过滤条件的
 func (s *Server) GetInstancesCount(ctx context.Context) *api.BatchQueryResponse {
 	count, err := s.storage.GetInstancesCount()

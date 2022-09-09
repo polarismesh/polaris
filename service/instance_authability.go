@@ -157,3 +157,17 @@ func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *api.Instan
 
 	return svr.targetServer.CleanInstance(ctx, req)
 }
+
+
+func (svr *serverAuthAbility) GetInstanceLabels(ctx context.Context, query map[string]string) *api.Response {
+
+	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read, "GetInstanceLabels")
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	if err != nil {
+		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.targetServer.GetInstanceLabels(ctx, query)
+}

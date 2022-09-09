@@ -580,6 +580,14 @@ func (h *HTTPServerV1) GetInstancesCount(req *restful.Request, rsp *restful.Resp
 	handler.WriteHeaderAndProto(ret)
 }
 
+// GetInstanceLabels 查询某个服务下所有实例的标签信息
+func (h *HTTPServerV1) GetInstanceLabels(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{req, rsp}
+
+	ret := h.namingServer.GetInstanceLabels(handler.ParseHeaderContext(), handler.PathParameters())
+	handler.WriteHeaderAndProto(ret)
+}
+
 // CreateRoutings 创建规则路由
 func (h *HTTPServerV1) CreateRoutings(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{req, rsp}
