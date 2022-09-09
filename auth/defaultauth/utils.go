@@ -130,8 +130,8 @@ func checkOwner(owner *wrappers.StringValue) error {
 	return nil
 }
 
-// checkMobile 检查用户的 mobile 信息
-func checkMobile(mobile *wrappers.StringValue) error {
+// checkMobilePhone 检查用户的 mobile phone 信息
+func checkMobilePhone(mobile *wrappers.StringValue) error {
 	if mobile == nil {
 		return nil
 	}
