@@ -191,12 +191,12 @@ func HTTPResponse(req *restful.Request, rsp *restful.Response, code uint32) {
 func (h *Handler) i18n(obj api.ResponseMessage) api.ResponseMessage {
 	hMsg := h.Response.Header().Get(utils.PolarisMessage)
 	info := obj.GetInfo()
-	if hMsg != info.Value {
+	if hMsg != info.GetValue() {
 		return obj
 	}
 	code := obj.GetCode()
 	msg, err := i18n.Translate(
-		code.Value, h.Request.QueryParameter("lang"), h.Request.HeaderParameter("Accept-Language"))
+		code.GetValue(), h.Request.QueryParameter("lang"), h.Request.HeaderParameter("Accept-Language"))
 	if msg == "" || err != nil {
 		return obj
 	}
