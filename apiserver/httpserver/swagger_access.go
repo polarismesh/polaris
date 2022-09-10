@@ -54,32 +54,83 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 		},
 	}
 	swo.Tags = []spec.Tag{
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "Namespaces",
 			Description: "命名空间管理"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "Services",
 			Description: "服务管理"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "Alias",
 			Description: "服务别名管理"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "Instances",
 			Description: "实例管理"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "Routing",
 			Description: "路由规则管理"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "RateLimits",
 			Description: "限流规则管理"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "RegisterInstance",
 			Description: "服务发现"}},
-		spec.Tag{TagProps: spec.TagProps{
-			Name:        "Config",
-			Description: "配置管理"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
+			Name:        "ConfigClient",
+			Description: "客户端API接口"}},
+		{TagProps: spec.TagProps{
+			Name:        "ConfigConsole",
+			Description: "服务端接口"}},
+		{TagProps: spec.TagProps{
 			Name:        "auth",
 			Description: "鉴权管理"}},
 	}
+
+	swo.SecurityDefinitions = map[string]*spec.SecurityScheme{
+		"api_key": spec.APIKeyAuth("X-Polaris-Token", "header"),
+	}
+
+	enrichSwaggerObjectSecurity(swo)
+}
+
+func enrichSwaggerObjectSecurity(swo *spec.Swagger) {
+	for p := range swo.Paths.Paths {
+		path, err := swo.Paths.JSONLookup(p)
+		if err != nil {
+			log.Errorf("skipping Security openapi spec for %s, %s", path, err.Error())
+			continue
+		}
+		pItem := path.(*spec.PathItem)
+
+		var pOption *spec.Operation
+		if pItem.Get != nil {
+			pOption = pItem.Get
+			pOption.SecuredWith("api_key")
+		}
+		if pItem.Head != nil {
+			pOption = pItem.Head
+			pOption.SecuredWith("api_key")
+		}
+		if pItem.Delete != nil {
+			pOption = pItem.Delete
+			pOption.SecuredWith("api_key")
+		}
+		if pItem.Put != nil {
+			pOption = pItem.Put
+			pOption.SecuredWith("api_key")
+		}
+		if pItem.Options != nil {
+			pOption = pItem.Options
+			pOption.SecuredWith("api_key")
+		}
+		if pItem.Patch != nil {
+			pOption = pItem.Patch
+			pOption.SecuredWith("api_key")
+		}
+		if pItem.Post != nil {
+			pOption = pItem.Post
+			pOption.SecuredWith("api_key")
+		}
+	}
+
 }

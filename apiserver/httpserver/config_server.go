@@ -20,7 +20,10 @@ package httpserver
 import (
 	"fmt"
 
+	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 const (
@@ -59,15 +62,21 @@ func (h *HTTPServer) GetConfigAccessServer(include []string) (*restful.WebServic
 }
 
 func (h *HTTPServer) bindConfigConsoleEndpoint(ws *restful.WebService) {
+	tags := []string{"ConfigConsole"}
 	// 配置文件组
-	ws.Route(ws.POST("/configfilegroups").To(h.CreateConfigFileGroup))
+	ws.Route(ws.POST("/configfilegroups").To(h.CreateConfigFileGroup).
+		Doc("创建配置文件组").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(api.ConfigFileGroup{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader X-Polaris-Token: {访问凭据}\n ```\n{\n    \"name\":\"someGroup\",\n    \"namespace\":\"someNamespace\",\n    \"comment\":\"some comment\",\n    \"createBy\":\"ledou\"\n}\n```"))
 	ws.Route(ws.GET("/configfilegroups").To(h.QueryConfigFileGroups))
 	ws.Route(ws.DELETE("/configfilegroups").To(h.DeleteConfigFileGroup))
 	ws.Route(ws.PUT("/configfilegroups").To(h.UpdateConfigFileGroup))
 
 	// 配置文件
 	ws.Route(ws.POST("/configfiles").To(h.CreateConfigFile))
-	ws.Route(ws.GET("/configfiles").To(h.GetConfigFile))
+	ws.Route(ws.GET("/configfiles").To(h.GetConfigFile).
+		Doc("拉取配置").
+		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/configfiles/by-group").To(h.QueryConfigFilesByGroup))
 	ws.Route(ws.GET("/configfiles/search").To(h.SearchConfigFile))
 	ws.Route(ws.PUT("/configfiles").To(h.UpdateConfigFile))
@@ -87,8 +96,20 @@ func (h *HTTPServer) bindConfigConsoleEndpoint(ws *restful.WebService) {
 }
 
 func (h *HTTPServer) bindConfigClientEndpoint(ws *restful.WebService) {
-	ws.Route(ws.GET("/GetConfigFile").To(h.getConfigFile))
-	ws.Route(ws.POST("/WatchConfigFile").To(h.watchConfigFile))
+	tags := []string{"ConfigClient"}
+	ws.Route(ws.GET("/GetConfigFile").To(h.getConfigFile).
+		Doc("拉取配置").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(ws.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
+		Param(ws.QueryParameter("group", "配置文件分组").DataType("string").Required(true)).
+		Param(ws.QueryParameter("fileName", "配置文件名").DataType("string").Required(true)).
+		Param(ws.QueryParameter("version", "配置文件客户端版本号，刚启动时设置为 0").DataType("integer").Required(true)))
+
+	ws.Route(ws.POST("/WatchConfigFile").To(h.watchConfigFile).
+		Doc("监听配置").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(api.ClientWatchConfigFileRequest{}, "通过 Http LongPolling 机制订阅配置变更。"))
+
 }
 
 // StopConfigServer 停止配置中心模块
