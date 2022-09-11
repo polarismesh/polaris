@@ -18,6 +18,8 @@
 package httpserver
 
 import (
+	"reflect"
+
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
@@ -101,36 +103,15 @@ func enrichSwaggerObjectSecurity(swo *spec.Swagger) {
 			continue
 		}
 		pItem := path.(*spec.PathItem)
-
 		var pOption *spec.Operation
-		if pItem.Get != nil {
-			pOption = pItem.Get
-			pOption.SecuredWith("api_key")
-		}
-		if pItem.Head != nil {
-			pOption = pItem.Head
-			pOption.SecuredWith("api_key")
-		}
-		if pItem.Delete != nil {
-			pOption = pItem.Delete
-			pOption.SecuredWith("api_key")
-		}
-		if pItem.Put != nil {
-			pOption = pItem.Put
-			pOption.SecuredWith("api_key")
-		}
-		if pItem.Options != nil {
-			pOption = pItem.Options
-			pOption.SecuredWith("api_key")
-		}
-		if pItem.Patch != nil {
-			pOption = pItem.Patch
-			pOption.SecuredWith("api_key")
-		}
-		if pItem.Post != nil {
-			pOption = pItem.Post
-			pOption.SecuredWith("api_key")
+		item := reflect.ValueOf(pItem).Elem()
+		// 枚举方法 不为nil的都给加上security头 这样才会携带X-Polaris-Token头
+		for _, m := range []string{"Get", "Post", "Put", "Patch", "Delete", "Head", "Options"} {
+			value := item.FieldByName(m)
+			if !value.IsNil() {
+				pOption = value.Interface().(*spec.Operation)
+				pOption.SecuredWith("api_key")
+			}
 		}
 	}
-
 }
