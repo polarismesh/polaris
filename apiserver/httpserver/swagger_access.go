@@ -18,9 +18,11 @@
 package httpserver
 
 import (
-	restfulspec "github.com/emicklei/go-restful-openapi/v2"
+	"reflect"
+
 	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
+	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
 )
 
 func (h *HTTPServer) enableSwaggerAPI(wsContainer *restful.Container) {
@@ -54,32 +56,62 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 		},
 	}
 	swo.Tags = []spec.Tag{
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "Namespaces",
 			Description: "命名空间管理"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "Services",
 			Description: "服务管理"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "Alias",
 			Description: "服务别名管理"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "Instances",
 			Description: "实例管理"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "Routing",
 			Description: "路由规则管理"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "RateLimits",
 			Description: "限流规则管理"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "RegisterInstance",
 			Description: "服务发现"}},
-		spec.Tag{TagProps: spec.TagProps{
-			Name:        "Config",
-			Description: "配置管理"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
+			Name:        "ConfigClient",
+			Description: "客户端API接口"}},
+		{TagProps: spec.TagProps{
+			Name:        "ConfigConsole",
+			Description: "服务端接口"}},
+		{TagProps: spec.TagProps{
 			Name:        "auth",
 			Description: "鉴权管理"}},
+	}
+
+	swo.SecurityDefinitions = map[string]*spec.SecurityScheme{
+		"api_key": spec.APIKeyAuth("X-Polaris-Token", "header"),
+	}
+
+	enrichSwaggerObjectSecurity(swo)
+}
+
+func enrichSwaggerObjectSecurity(swo *spec.Swagger) {
+	for p := range swo.Paths.Paths {
+		path, err := swo.Paths.JSONLookup(p)
+		if err != nil {
+			log.Errorf("skipping Security openapi spec for %s, %s", path, err.Error())
+			continue
+		}
+		pItem := path.(*spec.PathItem)
+		var pOption *spec.Operation
+		item := reflect.ValueOf(pItem).Elem()
+		// 枚举方法 不为nil的都给加上security头 这样才会携带X-Polaris-Token头
+		for _, m := range []string{"Get", "Post", "Put", "Patch", "Delete", "Head", "Options"} {
+			value := item.FieldByName(m)
+			if !value.IsNil() {
+				pOption = value.Interface().(*spec.Operation)
+				pOption.SecuredWith("api_key")
+			}
+		}
 	}
 }

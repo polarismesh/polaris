@@ -20,8 +20,8 @@ package httpserver
 import (
 	"fmt"
 
-	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
+	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris-server/apiserver"
