@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"net/http"
 
-	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/proto"
+	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"

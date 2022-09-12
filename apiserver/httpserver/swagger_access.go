@@ -20,9 +20,9 @@ package httpserver
 import (
 	"reflect"
 
-	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
+	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
 )
 
 func (h *HTTPServer) enableSwaggerAPI(wsContainer *restful.Container) {
