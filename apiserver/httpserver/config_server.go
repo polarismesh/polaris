@@ -21,10 +21,6 @@ import (
 	"fmt"
 
 	"github.com/emicklei/go-restful/v3"
-
-	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
-
-	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
 const (
@@ -63,120 +59,36 @@ func (h *HTTPServer) GetConfigAccessServer(include []string) (*restful.WebServic
 }
 
 func (h *HTTPServer) bindConfigConsoleEndpoint(ws *restful.WebService) {
-	tags := []string{"ConfigConsole"}
 	// 配置文件组
-	ws.Route(ws.POST("/configfilegroups").To(h.CreateConfigFileGroup).
-		Doc("创建配置文件组").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(api.ConfigFileGroup{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader X-Polaris-Token: {访问凭据}\n ```\n{\n    \"name\":\"someGroup\",\n    \"namespace\":\"someNamespace\",\n    \"comment\":\"some comment\",\n    \"createBy\":\"ledou\"\n}\n```"))
-	ws.Route(ws.GET("/configfilegroups").To(h.QueryConfigFileGroups).
-		Doc("搜索配置文件组").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(ws.QueryParameter("namespace", "命名空间，不填表示全部命名空间").DataType("string").Required(false)).
-		Param(ws.QueryParameter("group", "配置文件分组名，模糊搜索").DataType("string").Required(false)).
-		Param(ws.QueryParameter("fileName", "配置文件名称，模糊搜索").DataType("string").Required(false)).
-		Param(ws.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("int").Required(false).DefaultValue("0")).
-		Param(ws.QueryParameter("limit", "一页大小，最大为 100").DataType("int").Required(true).DefaultValue("100")))
-	ws.Route(ws.DELETE("/configfilegroups").To(h.DeleteConfigFileGroup).
-		Doc("删除配置文件").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(ws.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
-		Param(ws.QueryParameter("group", "配置文件分组").DataType("string").Required(true)))
-	ws.Route(ws.PUT("/configfilegroups").To(h.UpdateConfigFileGroup).
-		Doc("更新配置文件组").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(api.ConfigFileGroup{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader X-Polaris-Token: {访问凭据}\n ```\n{\n    \"name\":\"someGroup\",\n    \"namespace\":\"someNamespace\",\n    \"comment\":\"some comment\",\n    \"createBy\":\"ledou\"\n}\n```"))
+	ws.Route(enrichCreateConfigFileGroupApiDocs(ws.POST("/configfilegroups").To(h.CreateConfigFileGroup)))
+	ws.Route(enrichQueryConfigFileGroupsApiDocs(ws.GET("/configfilegroups").To(h.QueryConfigFileGroups)))
+	ws.Route(enrichDeleteConfigFileGroupApiDocs(ws.DELETE("/configfilegroups").To(h.DeleteConfigFileGroup)))
+	ws.Route(enrichUpdateConfigFileGroupApiDocs(ws.PUT("/configfilegroups").To(h.UpdateConfigFileGroup)))
 
 	// 配置文件
-	ws.Route(ws.POST("/configfiles").To(h.CreateConfigFile).
-		Doc("创建配置文件").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(api.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader X-Polaris-Token: {访问凭据}\n ```{\n    \"name\":\"application.properties\",\n    \"namespace\":\"someNamespace\",\n    \"group\":\"someGroup\",\n    \"content\":\"redis.cache.age=10\",\n    \"comment\":\"第一个配置文件\",\n    \"tags\":[{\"key\":\"service\", \"value\":\"helloService\"}],\n    \"createBy\":\"ledou\",\n    \"format\":\"properties\"\n}\n```\n"))
-	ws.Route(ws.GET("/configfiles").To(h.GetConfigFile).
-		Doc("拉取配置").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(ws.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
-		Param(ws.QueryParameter("group", "配置文件分组").DataType("string").Required(true)).
-		Param(ws.QueryParameter("name", "配置文件名").DataType("string").Required(true)))
-	ws.Route(ws.GET("/configfiles/by-group").To(h.QueryConfigFilesByGroup).
-		Doc("搜索配置文件").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(ws.QueryParameter("namespace", "命名空间").DataType("string").Required(false)).
-		Param(ws.QueryParameter("group", "配置文件分组").DataType("string").Required(false)).
-		Param(ws.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("int").Required(false).DefaultValue("0")).
-		Param(ws.QueryParameter("limit", "一页大小，最大为 100").DataType("int").Required(true).DefaultValue("100")))
-	ws.Route(ws.GET("/configfiles/search").To(h.SearchConfigFile).
-		Doc("搜索配置文件").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(ws.QueryParameter("namespace", "命名空间").DataType("string").Required(false)).
-		Param(ws.QueryParameter("group", "配置文件分组").DataType("string").Required(false)).
-		Param(ws.QueryParameter("name", "配置文件").DataType("string").Required(false)).
-		Param(ws.QueryParameter("tags", "格式：key1,value1,key2,value2").DataType("string").Required(false)).
-		Param(ws.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("int").Required(false).DefaultValue("0")).
-		Param(ws.QueryParameter("limit", "一页大小，最大为 100").DataType("int").Required(true).DefaultValue("100")))
-	ws.Route(ws.PUT("/configfiles").To(h.UpdateConfigFile).
-		Doc("创建配置文件").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(api.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader X-Polaris-Token: {访问凭据}\n ```{\n    \"name\":\"application.properties\",\n    \"namespace\":\"someNamespace\",\n    \"group\":\"someGroup\",\n    \"content\":\"redis.cache.age=10\",\n    \"comment\":\"第一个配置文件\",\n    \"tags\":[{\"key\":\"service\", \"value\":\"helloService\"}],\n    \"createBy\":\"ledou\",\n    \"format\":\"properties\"\n}\n```\n"))
-	ws.Route(ws.DELETE("/configfiles").To(h.DeleteConfigFile).
-		Doc("创建配置文件").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(ws.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
-		Param(ws.QueryParameter("group", "配置文件分组").DataType("string").Required(true)).
-		Param(ws.QueryParameter("name", "配置文件").DataType("string").Required(true)).
-		Param(ws.QueryParameter("deleteBy", "操作人").DataType("string").Required(false)))
-	ws.Route(ws.POST("/configfiles/batchdelete").To(h.BatchDeleteConfigFile).
-		Doc("批量删除配置文件").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(ws.QueryParameter("deleteBy", "操作人").DataType("string").Required(false)).
-		Reads(api.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader X-Polaris-Token: {访问凭据}\n```[\n     {\n         \"name\":\"application.properties\",\n         \"namespace\":\"someNamespace\",\n         \"group\":\"someGroup\"\n     }\n]\n```"))
+	ws.Route(enrichCreateConfigFileApiDocs(ws.POST("/configfiles").To(h.CreateConfigFile)))
+	ws.Route(enrichGetConfigFileApiDocs(ws.GET("/configfiles").To(h.GetConfigFile)))
+	ws.Route(enrichQueryConfigFilesByGroupApiDocs(ws.GET("/configfiles/by-group").To(h.QueryConfigFilesByGroup)))
+	ws.Route(enrichSearchConfigFileApiDocs(ws.GET("/configfiles/search").To(h.SearchConfigFile)))
+	ws.Route(enrichUpdateConfigFileApiDocs(ws.PUT("/configfiles").To(h.UpdateConfigFile)))
+	ws.Route(enrichDeleteConfigFileApiDocs(ws.DELETE("/configfiles").To(h.DeleteConfigFile)))
+	ws.Route(enrichBatchDeleteConfigFileApiDocs(ws.POST("/configfiles/batchdelete").To(h.BatchDeleteConfigFile)))
 
 	// 配置文件发布
-	ws.Route(ws.POST("/configfiles/release").To(h.PublishConfigFile).
-		Doc("发布配置文件").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(api.ConfigFileRelease{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader X-Polaris-Token: {访问凭据}\n```{\n    \"name\":\"release-002\",\n    \"fileName\":\"application.properties\",\n    \"namespace\":\"someNamespace\",\n    \"group\":\"someGroup\",\n    \"comment\":\"发布第一个配置文件\",\n    \"createBy\":\"ledou\"\n}\n```"))
-	ws.Route(ws.GET("/configfiles/release").To(h.GetConfigFileRelease).
-		Doc("获取配置文件最后一次全量发布信息").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(ws.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
-		Param(ws.QueryParameter("group", "配置文件分组").DataType("string").Required(true)).
-		Param(ws.QueryParameter("name", "配置文件").DataType("string").Required(true)))
+	ws.Route(enrichPublishConfigFileApiDocs(ws.POST("/configfiles/release").To(h.PublishConfigFile)))
+	ws.Route(enrichGetConfigFileReleaseApiDocs(ws.GET("/configfiles/release").To(h.GetConfigFileRelease)))
 
 	// 配置文件发布历史
-	ws.Route(ws.GET("/configfiles/releasehistory").To(h.GetConfigFileReleaseHistory).
-		Doc("获取配置文件发布历史记录").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(ws.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
-		Param(ws.QueryParameter("group", "配置文件分组").DataType("string").Required(false)).
-		Param(ws.QueryParameter("name", "配置文件").DataType("string").Required(false)).
-		Param(ws.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("int").Required(false).DefaultValue("0")).
-		Param(ws.QueryParameter("limit", "一页大小，最大为 100").DataType("int").Required(true).DefaultValue("100")))
+	ws.Route(enrichGetConfigFileReleaseHistoryApiDocs(ws.GET("/configfiles/releasehistory").To(h.GetConfigFileReleaseHistory)))
 
 	// config file template
-	ws.Route(ws.GET("/configfiletemplates").To(h.GetAllConfigFileTemplates).
-		Doc("获取配置模板").
-		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.POST("/configfiletemplates").To(h.CreateConfigFileTemplate).
-		Doc("创建配置模板").
-		Metadata(restfulspec.KeyOpenAPITags, tags))
+	ws.Route(enrichGetAllConfigFileTemplatesApiDocs(ws.GET("/configfiletemplates").To(h.GetAllConfigFileTemplates)))
+	ws.Route(enrichCreateConfigFileTemplateApiDocs(ws.POST("/configfiletemplates").To(h.CreateConfigFileTemplate)))
 }
 
 func (h *HTTPServer) bindConfigClientEndpoint(ws *restful.WebService) {
-	tags := []string{"ConfigClient"}
-	ws.Route(ws.GET("/GetConfigFile").To(h.getConfigFile).
-		Doc("拉取配置").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(ws.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
-		Param(ws.QueryParameter("group", "配置文件分组").DataType("string").Required(true)).
-		Param(ws.QueryParameter("fileName", "配置文件名").DataType("string").Required(true)).
-		Param(ws.QueryParameter("version", "配置文件客户端版本号，刚启动时设置为 0").DataType("integer").Required(true)))
-
-	ws.Route(ws.POST("/WatchConfigFile").To(h.watchConfigFile).
-		Doc("监听配置").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(api.ClientWatchConfigFileRequest{}, "通过 Http LongPolling 机制订阅配置变更。"))
-
+	ws.Route(enrichGetConfigFileForClientApiDocs(ws.GET("/GetConfigFile").To(h.getConfigFile)))
+	ws.Route(enrichWatchConfigFileForClientApiDocs(ws.POST("/WatchConfigFile").To(h.watchConfigFile)))
 }
 
 // StopConfigServer 停止配置中心模块
