@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/auth"
@@ -63,7 +64,12 @@ func Start(configFilePath string) {
 		return
 	}
 
-	fmt.Printf("[INFO] %+v\n", *cfg)
+	c, err := yaml.Marshal(cfg)
+	if err != nil {
+		fmt.Printf("[ERROR] config yaml marshal fail\n")
+		return
+	}
+	fmt.Printf(string(c))
 
 	// 初始化日志打印
 	err = log.Configure(cfg.Bootstrap.Logger)
