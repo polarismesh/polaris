@@ -969,14 +969,22 @@ func (d *DiscoverTestSuit) createCommonRateLimit(t *testing.T, service *api.Serv
 		Priority:  utils.NewUInt32Value(uint32(index)),
 		Resource:  api.Rule_QPS,
 		Type:      api.Rule_GLOBAL,
-		Labels: map[string]*api.MatchString{
-			fmt.Sprintf("name-%d", index): {
-				Type:  api.MatchString_EXACT,
-				Value: utils.NewStringValue(fmt.Sprintf("value-%d", index)),
+		Arguments: []*api.MatchArgument{
+			{
+				Type: api.MatchArgument_CUSTOM,
+				Key:  fmt.Sprintf("name-%d", index),
+				Value: &api.MatchString{
+					Type:  api.MatchString_EXACT,
+					Value: utils.NewStringValue(fmt.Sprintf("value-%d", index)),
+				},
 			},
-			fmt.Sprintf("name-%d", index+1): {
-				Type:  api.MatchString_REGEX,
-				Value: utils.NewStringValue(fmt.Sprintf("value-%d", index+1)),
+			{
+				Type: api.MatchArgument_CUSTOM,
+				Key:  fmt.Sprintf("name-%d", index+1),
+				Value: &api.MatchString{
+					Type:  api.MatchString_EXACT,
+					Value: utils.NewStringValue(fmt.Sprintf("value-%d", index+1)),
+				},
 			},
 		},
 		Amounts: []*api.Amount{
@@ -1182,11 +1190,11 @@ func checkRateLimit(t *testing.T, expect *api.Rule, actual *api.Rule) {
 		t.Fatal("error subset")
 	}
 
-	expectLabels, err := json.Marshal(expect.GetLabels())
+	expectLabels, err := json.Marshal(expect.GetArguments())
 	if err != nil {
 		panic(err)
 	}
-	actualLabels, err := json.Marshal(actual.GetLabels())
+	actualLabels, err := json.Marshal(actual.GetArguments())
 	if err != nil {
 		panic(err)
 	}
