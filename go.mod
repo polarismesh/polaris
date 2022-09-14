@@ -70,9 +70,9 @@ require (
 )
 
 require (
-	github.com/emicklei/go-restful-openapi/v2 v2.9.1
 	github.com/emicklei/go-restful/v3 v3.9.0
 	github.com/go-openapi/spec v0.20.7
+	github.com/polarismesh/go-restful-openapi/v2 v2.0.0-20220912105722-188c4196302c
 )
 
 require (
