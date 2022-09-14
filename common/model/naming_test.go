@@ -77,7 +77,10 @@ func TestRateLimit_Arguments2Labels(t *testing.T) {
 			},
 		},
 	}
-	rateLimit.Arguments2Labels()
+	labels := Arguments2Labels(rateLimit.Proto.GetArguments())
+	if len(labels) > 0 {
+		rateLimit.Proto.Labels = labels
+	}
 	var hasValue bool
 	var value *api.MatchString
 	value, hasValue = rateLimit.Proto.Labels["business.key"]

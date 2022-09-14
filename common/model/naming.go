@@ -235,44 +235,58 @@ const (
 )
 
 // Arguments2Labels 将参数列表适配成旧的标签模型
-func (r *RateLimit) Arguments2Labels() bool {
-	if len(r.Proto.Arguments) > 0 {
-		r.Proto.Labels = make(map[string]*v1.MatchString)
-		for _, argument := range r.Proto.Arguments {
+func Arguments2Labels(arguments []*v1.MatchArgument) map[string]*v1.MatchString {
+	if len(arguments) > 0 {
+		var labels = make(map[string]*v1.MatchString)
+		for _, argument := range arguments {
 			switch argument.Type {
 			case v1.MatchArgument_CUSTOM:
-				r.Proto.Labels[argument.Key] = argument.Value
+				labels[argument.Key] = argument.Value
 			case v1.MatchArgument_METHOD:
-				r.Proto.Labels[LabelKeyMethod] = argument.Value
+				labels[LabelKeyMethod] = argument.Value
 			case v1.MatchArgument_HEADER:
-				r.Proto.Labels[LabelKeyHeader+"."+argument.Key] = argument.Value
+				labels[LabelKeyHeader+"."+argument.Key] = argument.Value
 			case v1.MatchArgument_QUERY:
-				r.Proto.Labels[LabelKeyQuery+"."+argument.Key] = argument.Value
+				labels[LabelKeyQuery+"."+argument.Key] = argument.Value
 			case v1.MatchArgument_CALLER_SERVICE:
-				r.Proto.Labels[LabelKeyCallerService+"."+argument.Key] = argument.Value
+				labels[LabelKeyCallerService+"."+argument.Key] = argument.Value
 			case v1.MatchArgument_CALLER_IP:
-				r.Proto.Labels[LabelKeyCallerIP] = argument.Value
+				labels[LabelKeyCallerIP] = argument.Value
 			default:
 				continue
 			}
 		}
-		return true
+		return labels
 	}
-	return false
+	return nil
 }
 
-// AdaptArgumentsAndLabels 对存量标签进行兼容
+// AdaptArgumentsAndLabels 对存量标签进行兼容，同时将argument适配成标签
 func (r *RateLimit) AdaptArgumentsAndLabels() error {
 	// 新的限流规则，需要适配老的SDK使用场景
-	if !r.Arguments2Labels() {
+	labels := Arguments2Labels(r.Proto.GetArguments())
+	if len(labels) > 0 {
+		r.Proto.Labels = labels
+	} else {
+		var err error
 		// 存量限流规则，需要适配成新的规则
-		labels, err := r.Labels2Arguments()
+		labels, err = r.Labels2Arguments()
 		if nil != err {
 			return err
 		}
 		r.Proto.Labels = labels
 	}
+	return nil
+}
 
+// AdaptLabels 对存量标签进行兼容，对存量labels进行清空
+func (r *RateLimit) AdaptLabels() error {
+	// 存量限流规则，需要适配成新的规则
+	_, err := r.Labels2Arguments()
+	if nil != err {
+		return err
+	}
+	r.Proto.Labels = nil
 	return nil
 }
 
