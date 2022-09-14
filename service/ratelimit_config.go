@@ -459,7 +459,7 @@ func rateLimit2Console(
 			return nil, err
 		}
 		// 存量标签适配到参数列表
-		if err := rateLimit.AdaptArgumentsAndLabels(); err != nil {
+		if err := rateLimit.AdaptLabels(); err != nil {
 			return nil, err
 		}
 	}
