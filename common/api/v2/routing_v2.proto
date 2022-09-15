@@ -137,6 +137,9 @@ message Destination {
 
   // Whether to isolate the SET, after isolation, no traffic will be allocated
   bool isolate = 7;
+
+  // name desition name
+  string name = 8;
 }
 
 message SourceMatch {

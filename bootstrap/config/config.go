@@ -72,6 +72,7 @@ type Service struct {
 	Namespace string            `yaml:"namespace"`
 	Protocols []string          `yaml:"protocols"`
 	Metadata  map[string]string `yaml:"metadata"`
+	Hide      bool              `yaml:"hide"`
 }
 
 // APIEntries 对外提供的apiServers

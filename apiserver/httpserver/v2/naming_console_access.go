@@ -82,7 +82,7 @@ func (h *HTTPServerV2) addDefaultAccess(ws *restful.WebService) {
 	ws.Route(ws.POST("/routings/delete").To(h.DeleteRoutings))
 	ws.Route(ws.PUT("/routings").To(h.UpdateRoutings))
 	ws.Route(ws.GET("/routings").To(h.GetRoutings))
-	ws.Route(ws.GET("/routings/enable").To(h.EnableRoutings))
+	ws.Route(ws.PUT("/routings/enable").To(h.EnableRoutings))
 }
 
 // CreateRoutings 创建规则路由

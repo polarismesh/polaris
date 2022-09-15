@@ -166,11 +166,16 @@ func (rc *routingConfigCache) GetRoutingConfig(id, service, namespace string) (*
 		return nil, err
 	}
 	compositeRule, revisions := routingcommon.CompositeRoutingV1AndV2(compositeRule, v2rules)
+	if compositeRule == nil {
+		return nil, nil
+	}
+
 	revision, err := CompositeComputeRevision(revisions)
 	if err != nil {
 		log.Error("[Cache][Routing] v2=>v1 compute revisions", zap.Error(err))
 		return nil, err
 	}
+
 	compositeRule.Revision = utils.NewStringValue(revision)
 	return compositeRule, nil
 }
