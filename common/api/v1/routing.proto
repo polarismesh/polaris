@@ -19,7 +19,7 @@ message Routing {
   google.protobuf.StringValue mtime = 6;
   google.protobuf.StringValue revision = 7;
 
-  google.protobuf.StringValue service_token = 8 [json_name = "service_token"];
+  google.protobuf.StringValue service_token = 8 [ json_name = "service_token" ];
 }
 
 message Route {

@@ -18,9 +18,9 @@
 package prometheussd
 
 import (
-	"github.com/emicklei/go-restful/v3"
+	"context"
 
-	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/emicklei/go-restful/v3"
 )
 
 // GetPrometheusDiscoveryServer 注册用于promethesu服务发现的接口
@@ -50,11 +50,20 @@ func (h *PrometheusServer) addPrometheusDefaultAccess(ws *restful.WebService) {
 // GetPrometheusClients 对接 prometheus 基于 http 的 service discovery
 func (h *PrometheusServer) GetPrometheusClients(req *restful.Request, rsp *restful.Response) {
 
-	handler := &utils.Handler{req, rsp}
-
-	queryParams := utils.ParseQueryParams(req)
-	ctx := handler.ParseHeaderContext()
-	ret := h.namingServer.GetReportClientWithCache(ctx, queryParams)
+	queryParams := ParseQueryParams(req)
+	ret := h.namingServer.GetReportClientWithCache(context.Background(), queryParams)
 
 	_ = rsp.WriteAsJson(ret.Response)
+}
+
+// parseQueryParams 解析并获取HTTP的query params
+func ParseQueryParams(req *restful.Request) map[string]string {
+	queryParams := make(map[string]string)
+	for key, value := range req.Request.URL.Query() {
+		if len(value) > 0 {
+			queryParams[key] = value[0] // 暂时默认只支持一个查询
+		}
+	}
+
+	return queryParams
 }

@@ -141,6 +141,8 @@ func (us *userStore) UpdateUser(user *model.User) error {
 	properties[UserFieldComment] = user.Comment
 	properties[UserFieldToken] = user.Token
 	properties[UserFieldTokenEnable] = user.TokenEnable
+	properties[UserFieldEmail] = user.Email
+	properties[UserFieldMobile] = user.Mobile
 	properties[UserFieldPassword] = user.Password
 	properties[UserFieldModifyTime] = time.Now()
 

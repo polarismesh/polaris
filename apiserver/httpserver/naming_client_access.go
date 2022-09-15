@@ -25,6 +25,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris-server/apiserver"
+	httpcommon "github.com/polarismesh/polaris-server/apiserver/httpserver/http"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 )
 
@@ -91,7 +92,7 @@ func (h *HTTPServer) addHealthCheckAccess(ws *restful.WebService) {
 
 // ReportClient 客户端上报信息
 func (h *HTTPServer) ReportClient(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 	client := &api.Client{}
 	ctx, err := handler.Parse(client)
 	if err != nil {
@@ -104,7 +105,7 @@ func (h *HTTPServer) ReportClient(req *restful.Request, rsp *restful.Response) {
 
 // RegisterInstance 注册服务实例
 func (h *HTTPServer) RegisterInstance(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	instance := &api.Instance{}
 	ctx, err := handler.Parse(instance)
@@ -118,7 +119,7 @@ func (h *HTTPServer) RegisterInstance(req *restful.Request, rsp *restful.Respons
 
 // DeregisterInstance 反注册服务实例
 func (h *HTTPServer) DeregisterInstance(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	instance := &api.Instance{}
 	ctx, err := handler.Parse(instance)
@@ -132,7 +133,7 @@ func (h *HTTPServer) DeregisterInstance(req *restful.Request, rsp *restful.Respo
 
 // Discover 统一发现接口
 func (h *HTTPServer) Discover(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	discoverRequest := &api.DiscoverRequest{}
 	ctx, err := handler.Parse(discoverRequest)
@@ -170,7 +171,7 @@ func (h *HTTPServer) Discover(req *restful.Request, rsp *restful.Response) {
 
 // Heartbeat 服务实例心跳
 func (h *HTTPServer) Heartbeat(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	instance := &api.Instance{}
 	ctx, err := handler.Parse(instance)

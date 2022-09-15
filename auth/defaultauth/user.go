@@ -198,8 +198,8 @@ func (svr *server) UpdateUserPassword(ctx context.Context, req *api.ModifyUserPa
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ignoreOrign := utils.ParseUserRole(ctx) == model.AdminUserRole || utils.ParseUserRole(ctx) == model.OwnerUserRole
-	data, needUpdate, err := updateUserPasswordAttribute(ignoreOrign, user, req)
+	ignoreOrigin := utils.ParseUserRole(ctx) == model.AdminUserRole || utils.ParseUserRole(ctx) == model.OwnerUserRole
+	data, needUpdate, err := updateUserPasswordAttribute(ignoreOrigin, user, req)
 	if err != nil {
 		log.AuthScope().Error("[Auth][User] compute user update attribute", zap.Error(err),
 			zap.String("user", req.GetId().GetValue()))
@@ -585,6 +585,14 @@ func checkUpdateUser(req *api.User) *api.Response {
 
 	if req.GetId() == nil || req.GetId().GetValue() == "" {
 		return api.NewUserResponse(api.BadRequest, req)
+	}
+
+	if err := checkMobile(req.Mobile); err != nil {
+		return api.NewUserResponse(api.InvalidUserMobile, req)
+	}
+
+	if err := checkEmail(req.Email); err != nil {
+		return api.NewUserResponse(api.InvalidUserEmail, req)
 	}
 
 	return nil
