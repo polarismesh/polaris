@@ -46,8 +46,10 @@ func CalcCode(rm ResponseMessage) int {
 func (b *BatchWriteResponse) Collect(response *Response) {
 	// 非200的code，都归为异常
 	if CalcCode(response) != 200 {
-		b.Code = v1.ExecuteException
-		b.Info = v1.Code2Info(v1.ExecuteException)
+		if response.GetCode() >= b.GetCode() {
+			b.Code = response.GetCode()
+			b.Info = v1.Code2Info(b.GetCode())
+		}
 	}
 
 	b.Size++
