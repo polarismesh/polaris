@@ -19,4 +19,4 @@ ${PROTOC}/bin/protoc \
     --go_out=plugins=grpc:. \
     --proto_path=${PROTOC}/include \
     --proto_path=. \
-    model_v2.proto routing_v2.proto response_v2.proto
+    model.proto routing.proto request.proto response.proto grpcapi.proto

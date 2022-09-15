@@ -26,7 +26,10 @@ import (
 
 	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	v1 "github.com/polarismesh/polaris-server/apiserver/grpcserver/discover/v1"
+	v2 "github.com/polarismesh/polaris-server/apiserver/grpcserver/discover/v2"
+	apiv1 "github.com/polarismesh/polaris-server/common/api/v1"
+	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
@@ -34,10 +37,10 @@ import (
 
 var (
 	cacheTypes = map[string]struct{}{
-		api.DiscoverResponse_INSTANCE.String():        {},
-		api.DiscoverResponse_ROUTING.String():         {},
-		api.DiscoverResponse_RATE_LIMIT.String():      {},
-		api.DiscoverResponse_CIRCUIT_BREAKER.String(): {},
+		apiv1.DiscoverResponse_INSTANCE.String():        {},
+		apiv1.DiscoverResponse_ROUTING.String():         {},
+		apiv1.DiscoverResponse_RATE_LIMIT.String():      {},
+		apiv1.DiscoverResponse_CIRCUIT_BREAKER.String(): {},
 	}
 )
 
@@ -47,6 +50,9 @@ type GRPCServer struct {
 	namingServer      service.DiscoverServer
 	healthCheckServer *healthcheck.Server
 	openAPI           map[string]apiserver.APIConfig
+
+	v1server *v1.DiscoverServer
+	v2server *v2.DiscoverServer
 }
 
 // GetPort 获取端口
@@ -70,12 +76,15 @@ func (g *GRPCServer) Initialize(ctx context.Context, option map[string]interface
 
 // Run 启动GRPC API服务器
 func (g *GRPCServer) Run(errCh chan error) {
+
+
 	g.BaseGrpcServer.Run(errCh, g.GetProtocol(), func(server *grpc.Server) error {
 		for name, config := range g.openAPI {
 			switch name {
 			case "client":
 				if config.Enable {
-					api.RegisterPolarisGRPCServer(server, g)
+					apiv1.RegisterPolarisGRPCServer(server, g.v1server)
+					apiv2.RegisterPolarisGRPCServer(server, g.v2server)
 					openMethod, getErr := apiserver.GetClientOpenMethod(config.Include, g.GetProtocol())
 					if getErr != nil {
 						return getErr
@@ -160,13 +169,13 @@ func (g *GRPCServer) buildInitOptions(option map[string]interface{}) []grpcserve
 // 3. DiscoverResponse_RATE_LIMIT
 // 4. DiscoverResponse_CIRCUIT_BREAKER
 func discoverCacheConvert(m interface{}) *grpcserver.CacheObject {
-	resp, ok := m.(*api.DiscoverResponse)
+	resp, ok := m.(*apiv1.DiscoverResponse)
 
 	if !ok {
 		return nil
 	}
 
-	if resp.Code.GetValue() != api.ExecuteSuccess {
+	if resp.Code.GetValue() != apiv1.ExecuteSuccess {
 		return nil
 	}
 

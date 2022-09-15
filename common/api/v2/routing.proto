@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package v2;
 
-import "model_v2.proto";
+import "model.proto";
 
 import "google/protobuf/any.proto";
 

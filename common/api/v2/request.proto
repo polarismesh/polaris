@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package v2;
+
+message Service {
+  string name = 1;
+  string namespace = 2;
+  string revision = 3;
+}
+
+message DiscoverRequest {
+  enum DiscoverRequestType {
+    UNKNOWN = 0;
+    ROUTING = 1;
+    CIRCUIT_BREAKER = 2;
+    reserved 7 to 11;
+  }
+
+  DiscoverRequestType type = 1;
+  Service serivce = 2;
+  reserved 3 to 4;
+}

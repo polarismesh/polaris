@@ -199,3 +199,23 @@ func FormatBatchWriteResponse(response *BatchWriteResponse) *BatchWriteResponse 
 	}
 	return response
 }
+
+/**
+ * @brief 创建查询服务路由回复
+ */
+func NewDiscoverRoutingResponse(code uint32, service *Service) *DiscoverResponse {
+	return &DiscoverResponse{
+		Code:    code,
+		Info:    v1.Code2Info(code),
+		Type:    DiscoverResponse_ROUTING,
+		Service: service,
+	}
+}
+
+// 创建一个空白的discoverResponse
+func NewDiscoverResponse(code uint32) *DiscoverResponse {
+	return &DiscoverResponse{
+		Code: code,
+		Info: v1.Code2Info(code),
+	}
+}
