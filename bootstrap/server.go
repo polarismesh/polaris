@@ -256,7 +256,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		service.WithCacheManager(&cfg.Cache, cacheMgn),
 		service.WithHealthCheckSvr(healthCheckServer),
 		service.WithNamespaceSvr(namespaceSvr),
-		service.WithHiddenService(getSelfRegisterPolarsServiceKeySet(&cfg.Bootstrap.PolarisService)),
+		service.WithHiddenService(map[model.ServiceKey]struct{}{}),
 	}
 
 	// 初始化服务模块
@@ -603,8 +603,8 @@ func getLocalHost(addr string) (string, error) {
 	return segs[0], nil
 }
 
-// getSelfRegisterPolarsServiceKeySet 获取自注册的系统服务集合
-func getSelfRegisterPolarsServiceKeySet(polarisServiceCfg *boot_config.PolarisService) map[model.ServiceKey]struct{} {
+// getNeedHidePolarsServiceKeySet 获取自注册的系统服务集合
+func getNeedHidePolarsServiceKeySet(polarisServiceCfg *boot_config.PolarisService) map[model.ServiceKey]struct{} {
 	if polarisServiceCfg == nil {
 		return nil
 	}

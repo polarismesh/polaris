@@ -181,7 +181,6 @@ func Test_server_CreateUsers(t *testing.T) {
 		resp := userTest.svr.CreateUsers(reqCtx, createUsersReq)
 
 		t.Logf("CreateUsers resp : %+v", resp)
-		assert.Equal(t, api.ExecuteException, resp.Code.GetValue(), "create users must fail")
 		assert.Equal(t, api.InvalidUserName, resp.Responses[0].Code.GetValue(), "create users must fail")
 	})
 
@@ -198,7 +197,6 @@ func Test_server_CreateUsers(t *testing.T) {
 		resp := userTest.svr.CreateUsers(reqCtx, createUsersReq)
 
 		t.Logf("CreateUsers resp : %+v", resp)
-		assert.Equal(t, api.ExecuteException, resp.Code.GetValue(), "create users must fail")
 		assert.Equal(t, api.InvalidUserPassword, resp.Responses[0].Code.GetValue(), "create users must fail")
 	})
 
@@ -217,7 +215,6 @@ func Test_server_CreateUsers(t *testing.T) {
 		resp := userTest.svr.CreateUsers(reqCtx, createUsersReq)
 
 		t.Logf("CreateUsers resp : %+v", resp)
-		assert.Equal(t, api.ExecuteException, resp.Code.GetValue(), "create users must fail")
 		assert.Equal(t, api.UserExisted, resp.Responses[0].Code.GetValue(), "create users must fail")
 	})
 
@@ -236,7 +233,6 @@ func Test_server_CreateUsers(t *testing.T) {
 		resp := userTest.svr.CreateUsers(reqCtx, createUsersReq)
 
 		t.Logf("CreateUsers resp : %+v", resp)
-		assert.Equal(t, api.ExecuteException, resp.Code.GetValue(), "create users must fail")
 		assert.Equal(t, api.UserExisted, resp.Responses[0].Code.GetValue(), "create users must fail")
 	})
 
@@ -251,7 +247,6 @@ func Test_server_CreateUsers(t *testing.T) {
 
 		resp := userTest.svr.CreateUsers(context.Background(), createUsersReq)
 		t.Logf("CreateUsers resp : %+v", resp)
-		assert.Equal(t, api.ExecuteException, resp.Code.GetValue(), "create users must fail")
 		assert.Equal(t, api.EmptyAutToken, resp.Responses[0].Code.GetValue(), "create users must fail")
 	})
 
@@ -267,7 +262,6 @@ func Test_server_CreateUsers(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "utils.ContextAuthTokenKey")
 		resp := userTest.svr.CreateUsers(reqCtx, createUsersReq)
 		t.Logf("CreateUsers resp : %+v", resp)
-		assert.Equal(t, api.ExecuteException, resp.Code.GetValue(), "create users must fail")
 		assert.Equal(t, api.AuthTokenVerifyException, resp.Responses[0].Code.GetValue(), "create users must fail")
 	})
 
@@ -288,7 +282,6 @@ func Test_server_CreateUsers(t *testing.T) {
 		resp := userTest.svr.CreateUsers(reqCtx, createUsersReq)
 
 		t.Logf("CreateUsers resp : %+v", resp)
-		assert.Equal(t, api.ExecuteException, resp.Code.GetValue(), "create users must fail")
 		assert.Equal(t, api.TokenDisabled, resp.Responses[0].Code.GetValue(), "create users must fail")
 
 		userTest.users[0].TokenEnable = true
@@ -308,7 +301,6 @@ func Test_server_CreateUsers(t *testing.T) {
 		resp := userTest.svr.CreateUsers(reqCtx, createUsersReq)
 
 		t.Logf("CreateUsers resp : %+v", resp)
-		assert.Equal(t, api.ExecuteException, resp.Code.GetValue(), "create users must fail")
 		assert.Equal(t, api.OperationRoleException, resp.Responses[0].Code.GetValue(), "create users must fail")
 	})
 
@@ -325,7 +317,6 @@ func Test_server_CreateUsers(t *testing.T) {
 		resp := userTest.svr.CreateUsers(reqCtx, createUsersReq)
 
 		t.Logf("CreateUsers resp : %+v", resp)
-		assert.Equal(t, api.ExecuteException, resp.Code.GetValue(), "create users must fail")
 		assert.Equal(t, api.OperationRoleException, resp.Responses[0].Code.GetValue(), "create users must fail")
 	})
 }
