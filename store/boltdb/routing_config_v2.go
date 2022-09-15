@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/boltdb/bolt"
 	v2 "github.com/polarismesh/polaris-server/common/model/v2"
 	"github.com/polarismesh/polaris-server/store"
 )
@@ -36,6 +37,7 @@ const (
 
 	routingV2FieldID         = "ID"
 	routingV2FieldName       = "Name"
+	routingV2FieldNamespace  = "Namespace"
 	routingV2FieldPolicy     = "Policy"
 	routingV2FieldConfig     = "Config"
 	routingV2FieldEnable     = "Enable"
@@ -44,13 +46,12 @@ const (
 	routingV2FieldModifyTime = "ModifyTime"
 	routingV2FieldEnableTime = "EnableTime"
 	routingV2FieldValid      = "Valid"
+	routingV2FieldPriority   = "Priority"
 )
 
 type routingStoreV2 struct {
 	handler BoltHandler
 }
-
-// ------------ start routing v2 --------------------
 
 // CreateRoutingConfigV2 新增一个路由配置
 func (r *routingStoreV2) CreateRoutingConfigV2(conf *v2.RoutingConfig) error {
@@ -58,7 +59,7 @@ func (r *routingStoreV2) CreateRoutingConfigV2(conf *v2.RoutingConfig) error {
 		log.Errorf("[Store][boltdb] create routing config v2 missing id or revision")
 		return store.NewStatusError(store.EmptyParamsErr, "missing id or revision")
 	}
-	if conf.Name == "" || conf.Config == "" {
+	if conf.Name == "" || conf.Policy == "" || conf.Config == "" {
 		log.Errorf("[Store][boltdb] create routing config v2 missing params")
 		return store.NewStatusError(store.EmptyParamsErr, "missing some params")
 	}
@@ -72,7 +73,12 @@ func (r *routingStoreV2) CreateRoutingConfigV2(conf *v2.RoutingConfig) error {
 	conf.ModifyTime = currTime
 	conf.EnableTime = time.Time{}
 	conf.Valid = true
-	conf.Enable = false
+
+	if conf.Enable {
+		conf.EnableTime = time.Now()
+	} else {
+		conf.EnableTime = time.Time{}
+	}
 
 	err := r.handler.SaveValue(tblNameRoutingV2, conf.ID, conf)
 	if err != nil {
@@ -92,6 +98,11 @@ func (r *routingStoreV2) cleanRoutingConfig(ruleID string) error {
 	return nil
 }
 
+func (r *routingStoreV2) CreateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingConfig) error {
+
+	return nil
+}
+
 // UpdateRoutingConfigV2 更新一个路由配置
 func (r *routingStoreV2) UpdateRoutingConfigV2(conf *v2.RoutingConfig) error {
 	if conf.ID == "" || conf.Revision == "" {
@@ -108,12 +119,44 @@ func (r *routingStoreV2) UpdateRoutingConfigV2(conf *v2.RoutingConfig) error {
 	properties[routingV2FieldEnableTime] = conf.EnableTime
 	properties[routingV2FieldPolicy] = conf.Policy
 	properties[routingV2FieldConfig] = conf.Config
+	properties[routingV2FieldPriority] = conf.Priority
 	properties[routingV2FieldRevision] = conf.Revision
 	properties[routingV2FieldModifyTime] = time.Now()
 
 	err := r.handler.UpdateValue(tblNameRoutingV2, conf.ID, properties)
 	if err != nil {
 		log.Errorf("[Store][boltdb] update route config v2 to kv error, %v", err)
+		return err
+	}
+	return nil
+}
+
+func (r *routingStoreV2) UpdateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingConfig) error {
+
+	return nil
+}
+
+// EnableRouting
+func (r *routingStoreV2) EnableRouting(conf *v2.RoutingConfig) error {
+	if conf.ID == "" || conf.Revision == "" {
+		return errors.New("[Store][database] enable routing config v2 missing some params")
+	}
+
+	if conf.Enable {
+		conf.EnableTime = time.Now()
+	} else {
+		conf.EnableTime = time.Time{}
+	}
+
+	properties := make(map[string]interface{})
+	properties[routingV2FieldEnable] = conf.Enable
+	properties[routingV2FieldEnableTime] = conf.EnableTime
+	properties[routingV2FieldRevision] = conf.Revision
+	properties[routingV2FieldModifyTime] = time.Now()
+
+	err := r.handler.UpdateValue(tblNameRoutingV2, conf.ID, properties)
+	if err != nil {
+		log.Errorf("[Store][boltdb] enable route config v2 to kv error, %v", err)
 		return err
 	}
 	return nil
@@ -175,8 +218,29 @@ func toRouteConfV2(m map[string]interface{}) []*v2.RoutingConfig {
 // GetRoutingConfigV2WithID 根据服务ID拉取路由配置
 func (r *routingStoreV2) GetRoutingConfigV2WithID(id string) (*v2.RoutingConfig, error) {
 
-	ret, err := r.handler.LoadValues(tblNameRoutingV2, []string{id}, &v2.RoutingConfig{})
+	tx, err := r.handler.StartTx()
 	if err != nil {
+		return nil, err
+	}
+
+	boldTx := tx.GetDelegateTx().(*bolt.Tx)
+	return r.getRoutingConfigV2WithIDTx(boldTx, id)
+}
+
+// GetRoutingConfigV2WithID 根据服务ID拉取路由配置
+func (r *routingStoreV2) GetRoutingConfigV2WithIDTx(tx store.Tx, id string) (*v2.RoutingConfig, error) {
+
+	if tx == nil {
+		return nil, errors.New("transaction is nil")
+	}
+
+	boldTx := tx.GetDelegateTx().(*bolt.Tx)
+	return r.getRoutingConfigV2WithIDTx(boldTx, id)
+}
+
+func (r *routingStoreV2) getRoutingConfigV2WithIDTx(tx *bolt.Tx, id string) (*v2.RoutingConfig, error) {
+	ret := make(map[string]interface{})
+	if err := loadValues(tx, tblNameRoutingV2, []string{id}, &v2.RoutingConfig{}, ret); err != nil {
 		return nil, err
 	}
 
@@ -194,24 +258,6 @@ func (r *routingStoreV2) GetRoutingConfigV2WithID(id string) (*v2.RoutingConfig,
 	}
 
 	return val, nil
-}
-
-// GetRoutingConfigsV2 查询路由配置列表
-func (r *routingStoreV2) GetRoutingConfigsV2(filter map[string]string, offset uint32,
-	limit uint32) (uint32, []*v2.RoutingConfig, error) {
-
-	fields := []string{routingV2FieldID, routingV2FieldName, routingV2FieldPolicy}
-
-	ret, err := r.handler.LoadValuesByFilter(tblNameRoutingV2, fields, &v2.RoutingConfig{},
-		func(m map[string]interface{}) bool {
-			
-		})
-
-	if err != nil {
-		return 0, nil, err
-	}
-
-	return 0, nil, nil
 }
 
 func doPageRoutingV2(routeConf []*v2.RoutingConfig, offset, limit uint32) []*v2.RoutingConfig {

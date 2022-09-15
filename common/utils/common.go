@@ -34,7 +34,6 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
 )
 
@@ -382,16 +381,6 @@ func ParseIsOwner(ctx context.Context) bool {
 
 	isOwner, _ := ctx.Value(ContextIsOwnerKey).(bool)
 	return isOwner
-}
-
-// ParseUserRole 从ctx中解析用户角色
-func ParseUserRole(ctx context.Context) model.UserRoleType {
-	if ctx == nil {
-		return model.SubAccountUserRole
-	}
-
-	role, _ := ctx.Value(ContextUserRoleIDKey).(model.UserRoleType)
-	return role
 }
 
 // ParseUserID 从ctx中解析用户ID

@@ -27,6 +27,10 @@ message Route {
   // 多个Source之间的关系为或
   repeated Source sources = 1;
   repeated Destination destinations = 2;
+
+  // extendInfo 用于承载一些额外信息
+  // case 1: 升级到 v2 版本时，记录对应到 v2 版本的 id 信息
+  map<string, string> extendInfo = 3;
 }
 
 message Source {

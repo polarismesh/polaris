@@ -61,6 +61,8 @@ message Routing {
   string mtime = 9;
   // etime enable time of the rules
   string etime = 10;
+  // priority rules priority
+  uint32 priority = 11;
 }
 
 message MetadataFailover {
@@ -80,9 +82,13 @@ message MetadataFailover {
 
 // MetadataRoutingConfig metadata routing configuration
 message MetadataRoutingConfig {
-  map<string, string> labels = 1;
+  // service
+  string service = 1;
+  // namespace
+  string namespace = 2;
+  map<string, string> labels = 3;
   // When metadata not found, it will fall back to the
-  MetadataFailover failover = 2;
+  MetadataFailover failover = 4;
 }
 
 // RuleRoutingConfig routing configuration

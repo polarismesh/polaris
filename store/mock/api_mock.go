@@ -1779,6 +1779,20 @@ func (mr *MockStoreMockRecorder) GetStrategyDetailsForCache(mtime, firstUpdate i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategyDetailsForCache", reflect.TypeOf((*MockStore)(nil).GetStrategyDetailsForCache), mtime, firstUpdate)
 }
 
+// EnableRouting mocks base method
+func (m *MockStore) EnableRouting(conf *v2.RoutingConfig) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableRouting", conf)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// EnableRouting indicates an expected call of EnableRouting
+func (mr *MockStoreMockRecorder) EnableRouting(conf interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableRouting", reflect.TypeOf((*MockStore)(nil).EnableRouting), conf)
+}
+
 // CreateRoutingConfigV2 mocks base method
 func (m *MockStore) CreateRoutingConfigV2(conf *v2.RoutingConfig) error {
 	m.ctrl.T.Helper()
@@ -1793,6 +1807,20 @@ func (mr *MockStoreMockRecorder) CreateRoutingConfigV2(conf interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRoutingConfigV2", reflect.TypeOf((*MockStore)(nil).CreateRoutingConfigV2), conf)
 }
 
+// CreateRoutingConfigV2Tx mocks base method
+func (m *MockStore) CreateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingConfig) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateRoutingConfigV2Tx", tx, conf)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateRoutingConfigV2Tx indicates an expected call of CreateRoutingConfigV2Tx
+func (mr *MockStoreMockRecorder) CreateRoutingConfigV2Tx(tx, conf interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRoutingConfigV2Tx", reflect.TypeOf((*MockStore)(nil).CreateRoutingConfigV2Tx), tx, conf)
+}
+
 // UpdateRoutingConfigV2 mocks base method
 func (m *MockStore) UpdateRoutingConfigV2(conf *v2.RoutingConfig) error {
 	m.ctrl.T.Helper()
@@ -1805,6 +1833,20 @@ func (m *MockStore) UpdateRoutingConfigV2(conf *v2.RoutingConfig) error {
 func (mr *MockStoreMockRecorder) UpdateRoutingConfigV2(conf interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRoutingConfigV2", reflect.TypeOf((*MockStore)(nil).UpdateRoutingConfigV2), conf)
+}
+
+// UpdateRoutingConfigV2Tx mocks base method
+func (m *MockStore) UpdateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingConfig) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateRoutingConfigV2Tx", tx, conf)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateRoutingConfigV2Tx indicates an expected call of UpdateRoutingConfigV2Tx
+func (mr *MockStoreMockRecorder) UpdateRoutingConfigV2Tx(tx, conf interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRoutingConfigV2Tx", reflect.TypeOf((*MockStore)(nil).UpdateRoutingConfigV2Tx), tx, conf)
 }
 
 // DeleteRoutingConfigV2 mocks base method
@@ -1851,20 +1893,19 @@ func (mr *MockStoreMockRecorder) GetRoutingConfigV2WithID(id interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoutingConfigV2WithID", reflect.TypeOf((*MockStore)(nil).GetRoutingConfigV2WithID), id)
 }
 
-// GetRoutingConfigsV2 mocks base method
-func (m *MockStore) GetRoutingConfigsV2(filter map[string]string, offset, limit uint32) (uint32, []*v2.RoutingConfig, error) {
+// GetRoutingConfigV2WithIDTx mocks base method
+func (m *MockStore) GetRoutingConfigV2WithIDTx(tx store.Tx, id string) (*v2.RoutingConfig, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRoutingConfigsV2", filter, offset, limit)
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].([]*v2.RoutingConfig)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret := m.ctrl.Call(m, "GetRoutingConfigV2WithIDTx", tx, id)
+	ret0, _ := ret[0].(*v2.RoutingConfig)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// GetRoutingConfigsV2 indicates an expected call of GetRoutingConfigsV2
-func (mr *MockStoreMockRecorder) GetRoutingConfigsV2(filter, offset, limit interface{}) *gomock.Call {
+// GetRoutingConfigV2WithIDTx indicates an expected call of GetRoutingConfigV2WithIDTx
+func (mr *MockStoreMockRecorder) GetRoutingConfigV2WithIDTx(tx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoutingConfigsV2", reflect.TypeOf((*MockStore)(nil).GetRoutingConfigsV2), filter, offset, limit)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoutingConfigV2WithIDTx", reflect.TypeOf((*MockStore)(nil).GetRoutingConfigV2WithIDTx), tx, id)
 }
 
 // CreateConfigFileGroup mocks base method

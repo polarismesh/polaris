@@ -964,14 +964,17 @@ CREATE TABLE `routing_config_v2`
 (
     `id`       VARCHAR(128) PRIMARY KEY,
     `name`     VARCHAR(64) NOT NULL,
+    `namespace`     VARCHAR(64) NOT NULL,
     `policy`   VARCHAR(64) NOT NULL,
     `config`   TEXT,
     `enable`   INT         NOT NULL DEFAULT 0,
     `revision` VARCHAR(40) NOT NULL,
+    `priority`   smallint(6)    NOT NULL DEFAULT '0' comment 'ratelimit rule priority',
     `flag`     TINYINT(4)  NOT NULL DEFAULT '0',
     `ctime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `mtime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP onupdate CURRENT_TIMESTAMP,
     `etime`    timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `extend_info` VARCHAR(1024) DEFAULT '',
     PRIMARY KEY (`id`),
     KEY `mtime` (`mtime`)
 ) engine = innodb;

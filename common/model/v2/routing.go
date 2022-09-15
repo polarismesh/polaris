@@ -20,13 +20,46 @@ package v2
 import (
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
+	commontime "github.com/polarismesh/polaris-server/common/time"
+	"google.golang.org/protobuf/types/known/anypb"
 )
+
+const (
+	V2RuleIDKey = "__routing_v2_id__"
+)
+
+var (
+	_ruleRoutingTypeUrl string
+	_metaRoutingTypeUrl string
+)
+
+func init() {
+	ruleAny, _ := ptypes.MarshalAny(&apiv2.RuleRoutingConfig{})
+	metaAny, _ := ptypes.MarshalAny(&apiv2.MetadataRoutingConfig{})
+
+	_ruleRoutingTypeUrl = ruleAny.GetTypeUrl()
+	_metaRoutingTypeUrl = metaAny.GetTypeUrl()
+}
+
+// ExtendRoutingConfig 路由信息的扩展
+type ExtendRoutingConfig struct {
+	*RoutingConfig
+	// MetadataRouting 元数据路由配置
+	MetadataRouting *apiv2.MetadataRoutingConfig
+	// RuleRouting 规则路由配置
+	RuleRouting *apiv2.RuleRoutingConfig
+	// ExtendInfo 额外信息数据
+	ExtendInfo map[string]string
+}
 
 // RoutingConfig 路由规则
 type RoutingConfig struct {
 	// ID 规则唯一标识
 	ID string `json:"id"`
+	// namespace 所属的命名空间
+	Namespace string `json:"namespace"`
 	// name 规则名称
 	Name string `json:"name"`
 	// policy 规则类型
@@ -35,6 +68,8 @@ type RoutingConfig struct {
 	Config string `json:"config"`
 	// enable 路由规则是否启用
 	Enable bool `json:"enable"`
+	// priority 规则优先级
+	Priority uint32 `json:"priority"`
 	// revision 路由规则的版本信息
 	Revision string `json:"revision"`
 	// valid 路由规则是否有效，没有被逻辑删除
@@ -55,4 +90,97 @@ func (r *RoutingConfig) GetRoutingPolicy() apiv2.RoutingPolicy {
 	}
 
 	return apiv2.RoutingPolicy(v)
+}
+
+func (r *RoutingConfig) ToExpendRoutingConfig() (*ExtendRoutingConfig, error) {
+	ret := &ExtendRoutingConfig{
+		RoutingConfig: r,
+	}
+
+	policy := r.GetRoutingPolicy()
+
+	if policy == apiv2.RoutingPolicy_RulePolicy {
+		rule := &apiv2.RuleRoutingConfig{}
+		if err := ptypes.UnmarshalAny(&anypb.Any{
+			TypeUrl: _ruleRoutingTypeUrl,
+			Value:   []byte(r.Config),
+		}, rule); err != nil {
+			return nil, err
+		}
+		ret.RuleRouting = rule
+	}
+
+	if policy == apiv2.RoutingPolicy_MetadataPolicy {
+		rule := &apiv2.MetadataRoutingConfig{}
+		if err := ptypes.UnmarshalAny(&anypb.Any{
+			TypeUrl: _metaRoutingTypeUrl,
+			Value:   []byte(r.Config),
+		}, rule); err != nil {
+			return nil, err
+		}
+
+		ret.MetadataRouting = rule
+	}
+
+	return ret, nil
+}
+
+func (r *RoutingConfig) ParseFromAPI(routing *apiv2.Routing) error {
+	r.Name = routing.Name
+	r.Namespace = routing.Name
+	r.Enable = routing.Enable
+	r.Policy = routing.GetRoutingPolicy().String()
+	r.Priority = routing.Priority
+	r.Config = string(routing.GetRoutingConfig().GetValue())
+	return nil
+}
+
+func (r *RoutingConfig) ToApi() (*apiv2.Routing, error) {
+
+	typeUrl := _ruleRoutingTypeUrl
+	if r.GetRoutingPolicy() == apiv2.RoutingPolicy_MetadataPolicy {
+		typeUrl = _metaRoutingTypeUrl
+	}
+
+	return &apiv2.Routing{
+		Id:            r.ID,
+		Name:          r.Name,
+		Namespace:     r.Namespace,
+		Enable:        r.Enable,
+		RoutingPolicy: r.GetRoutingPolicy(),
+		RoutingConfig: &anypb.Any{
+			TypeUrl: typeUrl,
+			Value:   []byte(r.Config),
+		},
+		Revision: r.Revision,
+		Ctime:    commontime.Time2String(r.CreateTime),
+		Mtime:    commontime.Time2String(r.ModifyTime),
+		Etime:    commontime.Time2String(r.EnableTime),
+		Priority: r.Priority,
+	}, nil
+}
+
+// Arguments2Labels 将参数列表适配成旧的标签模型
+func (r *RoutingConfig) Arguments2Labels() bool {
+	if r.GetRoutingPolicy() == apiv2.RoutingPolicy_RulePolicy {
+
+		return true
+	}
+	return false
+}
+
+// AdaptArgumentsAndLabels 对存量标签进行兼容
+func (r *RoutingConfig) AdaptArgumentsAndLabels() error {
+	// 新的限流规则，需要适配老的SDK使用场景
+	if !r.Arguments2Labels() {
+		// 存量限流规则，需要适配成新的规则
+	}
+
+	return nil
+}
+
+// Labels2Arguments 适配老的标签到新的参数列表
+func (r *RoutingConfig) Labels2Arguments() (map[string]*apiv2.MatchString, error) {
+
+	return nil, nil
 }

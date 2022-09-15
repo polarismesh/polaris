@@ -15,52 +15,21 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package utils
+package auth
 
-type StringSet interface {
-	Add(val string)
+import (
+	"context"
 
-	Remove(val string)
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
+)
 
-	ToSlice() []string
-
-	Range(func(val string) bool)
-}
-
-func NewStringSet() StringSet {
-	return &stringSet{
-		container: make(map[string]struct{}),
-	}
-}
-
-type stringSet struct {
-	container map[string]struct{}
-}
-
-func (set *stringSet) Add(val string) {
-	set.container[val] = struct{}{}
-}
-
-func (set *stringSet) Remove(val string) {
-	delete(set.container, val)
-}
-
-func (set *stringSet) ToSlice() []string {
-	ret := make([]string, 0, len(set.container))
-
-	for k := range set.container {
-		ret = append(ret, k)
+// ParseUserRole 从ctx中解析用户角色
+func ParseUserRole(ctx context.Context) model.UserRoleType {
+	if ctx == nil {
+		return model.SubAccountUserRole
 	}
 
-	return ret
-}
-
-func (set *stringSet) Range(fn func(val string) bool) {
-
-	for k := range set.container {
-		if !fn(k) {
-			break
-		}
-	}
-
+	role, _ := ctx.Value(utils.ContextUserRoleIDKey).(model.UserRoleType)
+	return role
 }

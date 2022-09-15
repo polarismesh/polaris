@@ -25,18 +25,16 @@ import (
 
 // RouteRuleV2OperateServer Routing rules related operations
 type RouteRuleV2OperateServer interface {
-
 	// CreateRoutingConfigs Batch creation routing configuration
 	CreateRoutingConfigsV2(ctx context.Context, req []*apiv2.Routing) *apiv2.BatchWriteResponse
-
 	// DeleteRoutingConfigs Batch delete routing configuration
 	DeleteRoutingConfigsV2(ctx context.Context, req []*apiv2.Routing) *apiv2.BatchWriteResponse
-
 	// UpdateRoutingConfigs Batch update routing configuration
 	UpdateRoutingConfigsV2(ctx context.Context, req []*apiv2.Routing) *apiv2.BatchWriteResponse
-
 	// GetRoutingConfigs Inquiry route configuration to OSS
 	GetRoutingConfigsV2(ctx context.Context, query map[string]string) *apiv2.BatchQueryResponse
+	// EnableRoutings batch enable routing rules 
+	EnableRoutings(ctx context.Context, req []*apiv2.Routing) *apiv2.BatchWriteResponse
 }
 
 type DiscoverServerV2 interface {

@@ -23,12 +23,14 @@ import (
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 )
 
+// HTTPServerV2
 type HTTPServerV2 struct {
 	namespaceServer   namespace.NamespaceOperateServer
 	namingServer      service.DiscoverServer
 	healthCheckServer *healthcheck.Server
 }
 
+// NewV2Server
 func NewV2Server(
 	namespaceServer namespace.NamespaceOperateServer,
 	namingServer service.DiscoverServer,

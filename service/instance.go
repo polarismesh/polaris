@@ -30,6 +30,7 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
+	instancecommon "github.com/polarismesh/polaris-server/common/service"
 )
 
 var (
@@ -161,7 +162,7 @@ func (s *Server) asyncCreateInstance(ctx context.Context, svcId string, req *api
 		return nil, api.NewInstanceResponse(future.Code(), req)
 	}
 
-	return utils.CreateInstanceModel(svcId, req), nil
+	return instancecommon.CreateInstanceModel(svcId, req), nil
 }
 
 // 同步串行创建实例
@@ -182,7 +183,7 @@ func (s *Server) serialCreateInstance(ctx context.Context, svcId string, req *ap
 		ins.Isolate = instance.Proto.Isolate
 	}
 	// 直接同步创建服务实例
-	data := utils.CreateInstanceModel(svcId, ins)
+	data := instancecommon.CreateInstanceModel(svcId, ins)
 	if err := s.storage.AddInstance(data); err != nil {
 		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
 		return nil, wrapperInstanceStoreResponse(req, err)
