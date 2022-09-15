@@ -29,3 +29,26 @@ CREATE TABLE `config_file_template` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_name` (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='配置文件模板表';
+
+INSERT INTO `config_file_template` (`name`, `content`, `format`, `comment`, `create_time`
+	, `create_by`, `modify_time`, `modify_by`)
+VALUES ("spring-cloud-gateway-braining", '{
+    "rules":[
+        {
+            "conditions":[
+                {
+                    "key":"${http.query.uid}",
+                    "values":["10000"],
+                    "operation":"EQUALS"
+                }
+            ],
+            "labels":[
+                {
+                    "key":"env",
+                    "value":"green"
+                }
+            ]
+        }
+    ]
+}', "json", "Spring Cloud Gateway  染色规则", NOW()
+	, "polaris", NOW(), "polaris");

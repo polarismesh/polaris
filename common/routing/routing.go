@@ -77,10 +77,20 @@ func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, entries []*v2.ExtendRoutingC
 	inBounds := v1rule.GetInbounds()
 	outBounds := v1rule.GetOutbounds()
 
-	v1rule.Inbounds = append(inRoutes, inBounds...)
-	v1rule.Outbounds = append(outRoutes, outBounds...)
+	if len(inRoutes) > 0 {
+		v1rule.Inbounds = append(inRoutes, inBounds...)
+	}
+	if len(outRoutes) > 0 {
+		v1rule.Outbounds = append(outRoutes, outBounds...)
+	}
 
-	return nil, append(revisions, v1rule.GetRevision().GetValue())
+	if len(revisions) > 0 {
+		revisions = append(revisions, v1rule.GetRevision().GetValue())
+	} else {
+		revisions = []string{v1rule.GetRevision().GetValue()}
+	}
+
+	return v1rule, revisions
 }
 
 // BuildV1RoutesFromV2 根据 v2 版本的路由规则适配成 v1 版本的路由规则，分为别 inBounds 以及 outBounds

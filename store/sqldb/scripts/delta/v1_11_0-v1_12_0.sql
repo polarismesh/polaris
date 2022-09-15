@@ -37,3 +37,38 @@ CREATE TABLE `routing_config_v2`
     PRIMARY KEY (`id`),
     KEY `mtime` (`mtime`)
 ) engine = innodb;
+
+
+INSERT INTO `service` (`id`,
+                       `name`,
+                       `namespace`,
+                       `comment`,
+                       `business`,
+                       `token`,
+                       `revision`,
+                       `owner`,
+                       `flag`,
+                       `ctime`,
+                       `mtime`)
+VALUES ('1866010b40be6542db1a2cc846c7f51f',
+        'polaris.discover',
+        'Polaris',
+        'polaris discover service',
+        'polaris',
+        '2a54df30a6fd4910bdb601dd40b6d58e',
+        '5060b13df17240d8-84001e5ae0216c48',
+        'polaris',
+        0,
+        '2021-09-06 07:55:07',
+        '2021-09-06 07:55:11'),
+       ('846c1866010b40b7f51fe6542db1a2cc',
+        'polaris.healthcheck',
+        'Polaris',
+        'polaris health check service',
+        'polaris',
+        '254b202a965541a5966b725ae18a6613',
+        'aaa44f501ebb4884b0f5c005666ecca1',
+        'polaris',
+        0,
+        '2021-09-06 07:55:07',
+        '2021-09-06 07:55:11');
