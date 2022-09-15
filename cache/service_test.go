@@ -467,7 +467,7 @@ func TestServiceCache_NamespaceCount(t *testing.T) {
 		// 这个时候拉取，数据不正常
 		for i := range nsList {
 			ns := nsList[i]
-			acutalNsInsCount[ns] = int(sc.GetNamesapceCntInfo(ns).InstanceCnt.TotalInstanceCount)
+			acutalNsInsCount[ns] = int(sc.GetNamespaceCntInfo(ns).InstanceCnt.TotalInstanceCount)
 		}
 
 		fmt.Printf("expect ns-ins count : %#v\n", expectNsInsCount)
@@ -512,7 +512,7 @@ func TestServiceCache_NamespaceCount(t *testing.T) {
 			acutalNsInsCount = make(map[string]int)
 			for i := range nsList {
 				ns := nsList[i]
-				acutalNsInsCount[ns] = int(sc.GetNamesapceCntInfo(ns).InstanceCnt.TotalInstanceCount)
+				acutalNsInsCount[ns] = int(sc.GetNamespaceCntInfo(ns).InstanceCnt.TotalInstanceCount)
 			}
 			fmt.Printf("expect ns-ins count : %#v\n", expectNsInsCount)
 			fmt.Printf("acutal ns-ins count : %#v\n", acutalNsInsCount)
@@ -568,7 +568,7 @@ func TestServiceCache_NamespaceCount(t *testing.T) {
 		acutalNsCount := make(map[string]int)
 		for i := range nsList {
 			ns := nsList[i]
-			acutalNsCount[ns] = int(sc.GetNamesapceCntInfo(ns).InstanceCnt.TotalInstanceCount)
+			acutalNsCount[ns] = int(sc.GetNamespaceCntInfo(ns).InstanceCnt.TotalInstanceCount)
 		}
 
 		fmt.Printf("expect ns count : %#v\n", expectNsCount)

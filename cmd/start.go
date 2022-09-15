@@ -38,5 +38,6 @@ var (
 
 // init 解析命令参数
 func init() {
+	startCmd.InheritedFlags()
 	startCmd.PersistentFlags().StringVarP(&configFilePath, "config", "c", "polaris-server.yaml", "config file path")
 }

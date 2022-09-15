@@ -336,7 +336,7 @@ func (s *Server) GetNamespaces(ctx context.Context, query map[string][]string) *
 	out.Size = utils.NewUInt32Value(uint32(len(namespaces)))
 	for _, namespace := range namespaces {
 
-		nsCntInfo := s.caches.Service().GetNamesapceCntInfo(namespace.Name)
+		nsCntInfo := s.caches.Service().GetNamespaceCntInfo(namespace.Name)
 
 		out.AddNamespace(&api.Namespace{
 			Id:                       utils.NewStringValue(namespace.Name),

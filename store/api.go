@@ -103,7 +103,7 @@ type Transaction interface {
 type Tx interface {
 	// Commit Transaction
 	Commit() error
-	// Rollback Rollback transaction
+	// Rollback transaction
 	Rollback() error
 	// GetDelegateTx Get the original proxy transaction object.Different storage types have no business implementation
 	GetDelegateTx() interface{}
