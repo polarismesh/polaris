@@ -55,6 +55,7 @@ type Server struct {
 	discoverCh     chan eventWrapper
 	bc             *batch.Controller
 	serviceCache   cache.ServiceCache
+	instanceCache  cache.InstanceCache
 }
 
 // Initialize 初始化
@@ -120,6 +121,11 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 
 // Report heartbeat request
 func (s *Server) Report(ctx context.Context, req *api.Instance) *api.Response {
+	ins := s.instanceCache.GetInstance(req.GetId().GetValue())
+	if ins == nil {
+		return api.NewResponse(api.NotFoundResource)
+	}
+
 	return s.doReport(ctx, req)
 }
 
@@ -140,6 +146,11 @@ func GetServer() (*Server, error) {
 // SetServiceCache 设置服务缓存
 func (s *Server) SetServiceCache(serviceCache cache.ServiceCache) {
 	s.serviceCache = serviceCache
+}
+
+// SetInstanceCache 设置服务实例缓存
+func (s *Server) SetInstanceCache(instanceCache cache.InstanceCache) {
+	s.instanceCache = instanceCache
 }
 
 // CacheProvider get cache provider
