@@ -47,13 +47,11 @@ func (nc *CacheManager) watchStoreTime(ctx context.Context) {
 				log.CacheScope().Error("[Store][Time] watch store time", zap.Error(err))
 				continue
 			}
-
+			// 防止时间回退
 			if preStoreTime != 0 && preStoreTime > storeSec {
-				// 默认多查询 1 秒的数据
 				atomic.StoreInt64(&nc.storeTimeDiffSec, preStoreTime-storeSec)
 			} else {
 				preStoreTime = storeSec
-				// 默认多查询 1 秒的数据
 				atomic.StoreInt64(&nc.storeTimeDiffSec, 0)
 			}
 
