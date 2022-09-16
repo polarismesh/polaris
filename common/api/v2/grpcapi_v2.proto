@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package v2;
 
-import "request.proto";
-import "response.proto";
+import "request_v2.proto";
+import "response_v2.proto";
 
 service PolarisGRPC {
   // 统一发现接口

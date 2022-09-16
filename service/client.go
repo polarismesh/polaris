@@ -280,7 +280,7 @@ func (s *Server) GetRoutingConfigWithCache(ctx context.Context, req *api.Service
 	if svc == nil {
 		return api.NewDiscoverRoutingResponse(api.NotFoundService, req)
 	}
-	out, err := s.caches.RoutingConfig().GetRoutingConfig(svc.ID, svc.Name, svc.Namespace)
+	out, err := s.caches.RoutingConfig().GetRoutingConfigV1(svc.ID, svc.Name, svc.Namespace)
 	if err != nil {
 		log.Error("[Server][Service][Routing] discover routing", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return api.NewDiscoverRoutingResponse(api.ExecuteException, req)

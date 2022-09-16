@@ -129,6 +129,14 @@ func (s *Server) UpdateRoutingConfigsV2(ctx context.Context, req []*apiv2.Routin
 
 // updateRoutingConfigV2 更新单个路由配置
 func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apiv2.Routing) *apiv2.Response {
+	// 先判断是不是从 v1 过来的修改操作
+	extendInfo := req.GetExtendInfo()
+	if _, ok := extendInfo[v2.V1RuleIDKey]; ok {
+		resp := s.updateRoutingConfigV2FromV1(ctx, req)
+		if resp.GetCode() != apiv1.ExecuteSuccess {
+			return resp
+		}
+	}
 
 	// 检查路由配置是否存在
 	conf, err := s.storage.GetRoutingConfigV2WithID(req.Id)
@@ -285,9 +293,9 @@ func checkRoutingConfigV2(req *apiv2.Routing) *apiv2.Response {
 		return apiv2.NewRoutingResponse(api.InvalidServiceName, req)
 	}
 
-	if err := checkResourceName(utils.NewStringValue(req.GetNamespace())); err != nil {
-		return apiv2.NewRoutingResponse(api.InvalidNamespaceName, req)
-	}
+	// if err := checkResourceName(utils.NewStringValue(req.GetNamespace())); err != nil {
+	// 	return apiv2.NewRoutingResponse(api.InvalidNamespaceName, req)
+	// }
 
 	if err := CheckDbStrFieldLen(utils.NewStringValue(req.GetNamespace()),
 		MaxDbServiceNamespaceLength); err != nil {
@@ -306,6 +314,13 @@ func api2RoutingConfigV2(req *apiv2.Routing) (*v2.RoutingConfig, error) {
 		Valid:    true,
 	}
 
+	if out.ID == "" {
+		out.ID = utils.NewRoutingV2UUID()
+	}
+	if out.Revision == "" {
+		out.Revision = utils.NewV2Revision()
+	}
+
 	if err := out.ParseFromAPI(req); err != nil {
 		return nil, err
 	}
@@ -317,7 +332,10 @@ func marshalRoutingV2toAnySlice(routings []*v2.ExtendRoutingConfig) ([]*any.Any,
 	ret := make([]*any.Any, 0, len(routings))
 
 	for i := range routings {
-		entry, _ := routings[i].ToApi()
+		entry, err := routings[i].ToApi()
+		if err != nil {
+			return nil, err
+		}
 		item, err := ptypes.MarshalAny(entry)
 		if err != nil {
 			return nil, err

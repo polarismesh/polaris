@@ -27,7 +27,13 @@ import (
 )
 
 const (
-	V2RuleIDKey = "__routing_v2_id__"
+	V2RuleIDKey         = "__routing_v2_id__"
+	V1RuleIDKey         = "__routing_v1_id__"
+	V1RuleRouteIndexKey = "__routing_v1_route_index__"
+	V1RuleRouteTypeKey  = "__routing_v1_route_type__"
+
+	V1RuleInRoute  = "in"
+	V1RuleOutRoute = "out"
 )
 
 var (
@@ -52,6 +58,41 @@ type ExtendRoutingConfig struct {
 	RuleRouting *apiv2.RuleRoutingConfig
 	// ExtendInfo 额外信息数据
 	ExtendInfo map[string]string
+}
+
+func (r *ExtendRoutingConfig) ToApi() (*apiv2.Routing, error) {
+
+	var (
+		any *anypb.Any
+		err error
+	)
+
+	if r.GetRoutingPolicy() == apiv2.RoutingPolicy_MetadataPolicy {
+		any, err = ptypes.MarshalAny(r.MetadataRouting)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		any, err = ptypes.MarshalAny(r.RuleRouting)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &apiv2.Routing{
+		Id:            r.ID,
+		Name:          r.Name,
+		Namespace:     r.Namespace,
+		Enable:        r.Enable,
+		RoutingPolicy: r.GetRoutingPolicy(),
+		RoutingConfig: any,
+		Revision:      r.Revision,
+		Ctime:         commontime.Time2String(r.CreateTime),
+		Mtime:         commontime.Time2String(r.ModifyTime),
+		Etime:         commontime.Time2String(r.EnableTime),
+		Priority:      r.Priority,
+		ExtendInfo:    r.ExtendInfo,
+	}, nil
 }
 
 // RoutingConfig 路由规则
@@ -126,6 +167,8 @@ func (r *RoutingConfig) ToExpendRoutingConfig() (*ExtendRoutingConfig, error) {
 }
 
 func (r *RoutingConfig) ParseFromAPI(routing *apiv2.Routing) error {
+	r.ID = routing.Id
+	r.Revision = routing.Revision
 	r.Name = routing.Name
 	r.Namespace = routing.Name
 	r.Enable = routing.Enable
@@ -133,31 +176,6 @@ func (r *RoutingConfig) ParseFromAPI(routing *apiv2.Routing) error {
 	r.Priority = routing.Priority
 	r.Config = string(routing.GetRoutingConfig().GetValue())
 	return nil
-}
-
-func (r *RoutingConfig) ToApi() (*apiv2.Routing, error) {
-
-	typeUrl := _ruleRoutingTypeUrl
-	if r.GetRoutingPolicy() == apiv2.RoutingPolicy_MetadataPolicy {
-		typeUrl = _metaRoutingTypeUrl
-	}
-
-	return &apiv2.Routing{
-		Id:            r.ID,
-		Name:          r.Name,
-		Namespace:     r.Namespace,
-		Enable:        r.Enable,
-		RoutingPolicy: r.GetRoutingPolicy(),
-		RoutingConfig: &anypb.Any{
-			TypeUrl: typeUrl,
-			Value:   []byte(r.Config),
-		},
-		Revision: r.Revision,
-		Ctime:    commontime.Time2String(r.CreateTime),
-		Mtime:    commontime.Time2String(r.ModifyTime),
-		Etime:    commontime.Time2String(r.EnableTime),
-		Priority: r.Priority,
-	}, nil
 }
 
 // Arguments2Labels 将参数列表适配成旧的标签模型

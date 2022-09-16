@@ -212,23 +212,19 @@ type L5Store interface {
 type RoutingConfigStore interface {
 	// CreateRoutingConfig 新增一个路由配置
 	CreateRoutingConfig(conf *model.RoutingConfig) error
-
 	// UpdateRoutingConfig 更新一个路由配置
 	UpdateRoutingConfig(conf *model.RoutingConfig) error
-
 	// DeleteRoutingConfig 删除一个路由配置
 	DeleteRoutingConfig(serviceID string) error
-
+	// DeleteRoutingConfigTx 删除一个路由配置
+	DeleteRoutingConfigTx(tx Tx, serviceID string) error
 	// GetRoutingConfigsForCache 通过mtime拉取增量的路由配置信息
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetRoutingConfigsForCache(mtime time.Time, firstUpdate bool) ([]*model.RoutingConfig, error)
-
 	// GetRoutingConfigWithService 根据服务名和命名空间拉取路由配置
 	GetRoutingConfigWithService(name string, namespace string) (*model.RoutingConfig, error)
-
 	// GetRoutingConfigWithID 根据服务ID拉取路由配置
 	GetRoutingConfigWithID(id string) (*model.RoutingConfig, error)
-
 	// GetRoutingConfigs 查询路由配置列表
 	GetRoutingConfigs(filter map[string]string, offset uint32, limit uint32) (uint32, []*model.ExtendRoutingConfig, error)
 }
@@ -329,13 +325,10 @@ type PlatformStore interface {
 
 // ClientStore store interface for client info
 type ClientStore interface {
-
 	// BatchAddClients insert the client info
 	BatchAddClients(clients []*model.Client) error
-
 	// BatchDeleteClients delete the client info
 	BatchDeleteClients(ids []string) error
-
 	// GetMoreClients 根据mtime获取增量clients，返回所有store的变更信息
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetMoreClients(mtime time.Time, firstUpdate bool) (map[string]*model.Client, error)

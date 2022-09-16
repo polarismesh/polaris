@@ -26,10 +26,10 @@ import (
 // ClientV2Server Client related operation  Client operation interface definition
 type ClientV2Server interface {
 	// GetRoutingConfigWithCache User Client Get Service Routing Configuration Information
-	GetRoutingConfigWithCache(ctx context.Context, req *apiv2.Service) *apiv2.DiscoverResponse
+	GetRoutingConfigV2WithCache(ctx context.Context, req *apiv2.Service) *apiv2.DiscoverResponse
 
 	// GetCircuitBreakerWithCache Fuse configuration information for obtaining services for clients
-	GetCircuitBreakerWithCache(ctx context.Context, req *apiv2.Service) *apiv2.DiscoverResponse
+	GetCircuitBreakerV2WithCache(ctx context.Context, req *apiv2.Service) *apiv2.DiscoverResponse
 }
 
 // RouteRuleV2OperateServer Routing rules related operations

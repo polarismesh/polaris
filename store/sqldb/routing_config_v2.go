@@ -39,7 +39,7 @@ func (r *routingConfigStoreV2) CreateRoutingConfigV2(conf *v2.RoutingConfig) err
 		log.Errorf("[Store][boltdb] create routing config v2 missing id or revision")
 		return store.NewStatusError(store.EmptyParamsErr, "missing id or revision")
 	}
-	if conf.Name == "" || conf.Policy == "" || conf.Config == "" {
+	if conf.Policy == "" || conf.Config == "" {
 		log.Errorf("[Store][boltdb] create routing config v2 missing params")
 		return store.NewStatusError(store.EmptyParamsErr, "missing some params")
 	}
@@ -51,7 +51,16 @@ func (r *routingConfigStoreV2) CreateRoutingConfigV2(conf *v2.RoutingConfig) err
 		}
 
 		defer tx.Rollback()
-		return r.createRoutingConfigV2Tx(tx, conf)
+		if err := r.createRoutingConfigV2Tx(tx, conf); err != nil {
+			return err
+		}
+
+		if err := tx.Commit(); err != nil {
+			log.Errorf("[Store][database] create routing config v2(%+v) commit: %s", conf, err.Error())
+			return store.Error(err)
+		}
+
+		return nil
 	})
 
 	return store.Error(err)
@@ -61,8 +70,6 @@ func (r *routingConfigStoreV2) CreateRoutingConfigV2Tx(tx store.Tx, conf *v2.Rou
 	if tx == nil {
 		return errors.New("transaction is nil")
 	}
-
-	defer tx.Rollback()
 
 	dbTx := tx.GetDelegateTx().(*BaseTx)
 	return r.createRoutingConfigV2Tx(dbTx, conf)
@@ -87,12 +94,6 @@ func (r *routingConfigStoreV2) createRoutingConfigV2Tx(tx *BaseTx, conf *v2.Rout
 		log.Errorf("[Store][database] create routing v2(%+v) err: %s", conf, err.Error())
 		return store.Error(err)
 	}
-
-	if err := tx.Commit(); err != nil {
-		log.Errorf("[Store][database] create routing config v2(%+v) commit: %s", conf, err.Error())
-		return store.Error(err)
-	}
-
 	return nil
 }
 
@@ -106,15 +107,22 @@ func (r *routingConfigStoreV2) UpdateRoutingConfigV2(conf *v2.RoutingConfig) err
 
 	defer tx.Rollback()
 
-	return r.updateRoutingConfigV2Tx(tx, conf)
+	if err := r.updateRoutingConfigV2Tx(tx, conf); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Errorf("[Store][database] update routing config v2(%+v) commit: %s", conf, err.Error())
+		return store.Error(err)
+	}
+
+	return nil
 }
 
 func (r *routingConfigStoreV2) UpdateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingConfig) error {
 	if tx == nil {
 		return errors.New("transaction is nil")
 	}
-
-	defer tx.Rollback()
 
 	dbTx := tx.GetDelegateTx().(*BaseTx)
 	return r.updateRoutingConfigV2Tx(dbTx, conf)
@@ -137,12 +145,6 @@ func (r *routingConfigStoreV2) updateRoutingConfigV2Tx(tx *BaseTx, conf *v2.Rout
 		log.Errorf("[Store][database] update routing config v2(%+v) exec err: %s", conf, err.Error())
 		return store.Error(err)
 	}
-
-	if err := tx.Commit(); err != nil {
-		log.Errorf("[Store][database] update routing config v2(%+v) commit: %s", conf, err.Error())
-		return store.Error(err)
-	}
-
 	return nil
 }
 
@@ -225,6 +227,7 @@ func (r *routingConfigStoreV2) GetRoutingConfigV2WithID(ruleID string) (*v2.Rout
 		return nil, err
 	}
 
+	defer tx.Rollback()
 	return r.getRoutingConfigV2WithIDTx(tx, ruleID)
 }
 
@@ -236,13 +239,10 @@ func (r *routingConfigStoreV2) GetRoutingConfigV2WithIDTx(tx store.Tx, ruleID st
 	}
 
 	dbTx := tx.GetDelegateTx().(*BaseTx)
-
 	return r.getRoutingConfigV2WithIDTx(dbTx, ruleID)
 }
 
 func (r *routingConfigStoreV2) getRoutingConfigV2WithIDTx(tx *BaseTx, ruleID string) (*v2.RoutingConfig, error) {
-
-	defer tx.Rollback()
 
 	str := `select id, name, policy, config, enable, revision, flag,
 	unix_timestamp(ctime), unix_timestamp(mtime), unix_timestamp(etime)

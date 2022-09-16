@@ -53,6 +53,10 @@ func (rc *routingConfigCache) ForceUpdate() error {
 // GetRoutingConfigsV2 查询路由配置列表
 func (rc *routingConfigCache) GetRoutingConfigsV2(args *RoutingArgs) (uint32, []*v2.ExtendRoutingConfig, error) {
 
+	if err := rc.ForceUpdate(); err != nil {
+		return 0, nil, err
+	}
+
 	res := make([]*v2.ExtendRoutingConfig, 0, 8)
 	var process = func(_ string, svc *v2.ExtendRoutingConfig) {
 		if args.Namespace != "" && svc.Namespace != args.Namespace {
@@ -78,7 +82,7 @@ func (rc *routingConfigCache) GetRoutingConfigsV2(args *RoutingArgs) (uint32, []
 		process(key, value)
 	})
 
-	amount, routings := rc.sortBeforeTrim(res, args.Offset, args.Offset)
+	amount, routings := rc.sortBeforeTrim(res, args.Offset, args.Limit)
 	return amount, routings, nil
 }
 

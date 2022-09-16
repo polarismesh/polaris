@@ -71,19 +71,49 @@ func (g *GRPCServer) Initialize(ctx context.Context, option map[string]interface
 
 	g.openAPI = apiConf
 
-	return g.BaseGrpcServer.Initialize(ctx, option, g.buildInitOptions(option)...)
+	if err := g.BaseGrpcServer.Initialize(ctx, option, g.buildInitOptions(option)...); err != nil {
+		return err
+	}
+
+	// 引入功能模块和插件
+	var err error
+	if g.namingServer, err = service.GetServer(); err != nil {
+		log.Errorf("%v", err)
+		return err
+	}
+
+	if g.healthCheckServer, err = healthcheck.GetServer(); err != nil {
+		log.Errorf("%v", err)
+		return err
+	}
+
+	g.v1server = v1.NewDiscoverServer(
+		v1.WithAllowAccess(g.allowAccess),
+		v1.WithEnterRateLimit(g.enterRateLimit),
+		v1.WithHealthCheckerServer(g.healthCheckServer),
+		v1.WithNamingServer(g.namingServer),
+	)
+	g.v2server = v2.NewDiscoverServer(
+		v2.WithAllowAccess(g.allowAccess),
+		v2.WithEnterRateLimit(g.enterRateLimit),
+		v2.WithHealthCheckerServer(g.healthCheckServer),
+		v2.WithNamingServer(g.namingServer),
+	)
+
+	return nil
 }
 
 // Run 启动GRPC API服务器
 func (g *GRPCServer) Run(errCh chan error) {
-
 
 	g.BaseGrpcServer.Run(errCh, g.GetProtocol(), func(server *grpc.Server) error {
 		for name, config := range g.openAPI {
 			switch name {
 			case "client":
 				if config.Enable {
+					// 注册 v1 版本的 spec discover server
 					apiv1.RegisterPolarisGRPCServer(server, g.v1server)
+					// 注册 v2 版本的 spec discover server
 					apiv2.RegisterPolarisGRPCServer(server, g.v2server)
 					openMethod, getErr := apiserver.GetClientOpenMethod(config.Include, g.GetProtocol())
 					if getErr != nil {
@@ -96,18 +126,6 @@ func (g *GRPCServer) Run(errCh chan error) {
 				return fmt.Errorf("api %s does not exist in grpcserver", name)
 			}
 		}
-		// 引入功能模块和插件
-		var err error
-		if g.namingServer, err = service.GetServer(); err != nil {
-			log.Errorf("%v", err)
-			return err
-		}
-
-		if g.healthCheckServer, err = healthcheck.GetServer(); err != nil {
-			log.Errorf("%v", err)
-			return err
-		}
-
 		return nil
 	})
 }

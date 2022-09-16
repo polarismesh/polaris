@@ -807,6 +807,20 @@ func (mr *MockStoreMockRecorder) DeleteRoutingConfig(serviceID interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRoutingConfig", reflect.TypeOf((*MockStore)(nil).DeleteRoutingConfig), serviceID)
 }
 
+// DeleteRoutingConfigTx mocks base method
+func (m *MockStore) DeleteRoutingConfigTx(tx store.Tx, serviceID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteRoutingConfigTx", tx, serviceID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteRoutingConfigTx indicates an expected call of DeleteRoutingConfigTx
+func (mr *MockStoreMockRecorder) DeleteRoutingConfigTx(tx, serviceID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRoutingConfigTx", reflect.TypeOf((*MockStore)(nil).DeleteRoutingConfigTx), tx, serviceID)
+}
+
 // GetRoutingConfigsForCache mocks base method
 func (m *MockStore) GetRoutingConfigsForCache(mtime time.Time, firstUpdate bool) ([]*model.RoutingConfig, error) {
 	m.ctrl.T.Helper()

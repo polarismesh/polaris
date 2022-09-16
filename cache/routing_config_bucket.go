@@ -26,6 +26,15 @@ import (
 	v2 "github.com/polarismesh/polaris-server/common/model/v2"
 )
 
+type routingLevel int16
+
+const (
+	_ routingLevel = iota
+	level1RoutingV2
+	level2RoutingV2
+	level3RoutingV2
+)
+
 func newRoutingBucketV1() *routingBucketV1 {
 	return &routingBucketV1{
 		rules: make(map[string]*model.RoutingConfig),
@@ -34,8 +43,11 @@ func newRoutingBucketV1() *routingBucketV1 {
 
 func newRoutingBucketV2() *routingBucketV2 {
 	return &routingBucketV2{
-		rules:         make(map[string]*v2.ExtendRoutingConfig),
-		service2Rules: map[string]map[string]struct{}{},
+		rules:       make(map[string]*v2.ExtendRoutingConfig),
+		level1Rules: map[string]map[string]struct{}{},
+		level2Rules: map[string]map[string]struct{}{},
+		level3Rules: map[string]struct{}{},
+		v1rules:     map[string][]*v2.ExtendRoutingConfig{},
 	}
 }
 
@@ -78,8 +90,12 @@ type routingBucketV2 struct {
 	lock sync.RWMutex
 	// rules id => routing rule
 	rules map[string]*v2.ExtendRoutingConfig
-	// service2Rules service+namespace => 路由规则ID列表
-	service2Rules map[string]map[string]struct{}
+	// level1Rules service+namespace => 路由规则ID列表
+	level1Rules map[string]map[string]struct{}
+	// level2Rules 针对某个命名空间下所有服务都生效的路由规则
+	level2Rules map[string]map[string]struct{}
+	// level3Rules 针对所有命名空间下的所有服务都生效的规则
+	level3Rules map[string]struct{}
 	// v1rules v1 版本的规则自动转为 v2 版本的规则，用于 v2 接口的数据查看
 	v1rules map[string][]*v2.ExtendRoutingConfig
 }
@@ -103,13 +119,26 @@ func (b *routingBucketV2) saveV2(conf *v2.ExtendRoutingConfig) {
 	b.rules[conf.ID] = conf
 
 	handler := func(item serviceInfo) {
+		if item.GetService() == "*" && item.GetNamespace() == "*" {
+			b.level3Rules[conf.ID] = struct{}{}
+			return
+		}
+
+		if item.GetService() == "*" && item.GetNamespace() != "*" {
+			if _, ok := b.level2Rules[item.GetNamespace()]; !ok {
+				b.level2Rules[item.GetNamespace()] = map[string]struct{}{}
+			}
+			b.level1Rules[item.GetNamespace()][conf.ID] = struct{}{}
+			return
+		}
+
 		if item.GetService() != "*" && item.GetNamespace() != "*" {
 			key := buildServiceKey(item.GetNamespace(), item.GetService())
-			if _, ok := b.service2Rules[key]; !ok {
-				b.service2Rules[key] = map[string]struct{}{}
+			if _, ok := b.level1Rules[key]; !ok {
+				b.level1Rules[key] = map[string]struct{}{}
 			}
 
-			b.service2Rules[key][conf.ID] = struct{}{}
+			b.level1Rules[key][conf.ID] = struct{}{}
 		}
 	}
 
@@ -142,6 +171,10 @@ func (b *routingBucketV2) deleteV2(id string) {
 	rule := b.rules[id]
 	delete(b.rules, id)
 
+	if rule == nil {
+		return
+	}
+
 	if rule.GetRoutingPolicy() != apiv2.RoutingPolicy_RulePolicy {
 		return
 	}
@@ -149,8 +182,19 @@ func (b *routingBucketV2) deleteV2(id string) {
 		service := rule.RuleRouting.GetSources()[i].GetService()
 		namespace := rule.RuleRouting.GetSources()[i].GetNamespace()
 
-		key := buildServiceKey(namespace, service)
-		delete(b.service2Rules[key], id)
+		if service == "*" && namespace == "*" {
+			delete(b.level3Rules, id)
+		}
+
+		if service == "*" && namespace != "*" {
+			delete(b.level2Rules[namespace], id)
+		}
+
+		if service != "*" && namespace != "*" {
+			key := buildServiceKey(namespace, service)
+			delete(b.level1Rules[key], id)
+		}
+
 	}
 }
 
@@ -171,25 +215,44 @@ func (b *routingBucketV2) size() int {
 }
 
 // listByService 通过服务名称查询 v2 版本的路由规则
-func (b *routingBucketV2) listByService(service, namespace string) []*v2.ExtendRoutingConfig {
+// TODO 需要按照 l1、l2、l3 返回不同级别的路由规则
+func (b *routingBucketV2) listByService(service, namespace string) map[routingLevel][]*v2.ExtendRoutingConfig {
 
-	tmp := make(map[string]*v2.ExtendRoutingConfig)
-	ret := make([]*v2.ExtendRoutingConfig, 0, 4)
+	ret := make(map[routingLevel][]*v2.ExtendRoutingConfig)
 
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 
+	// 查询 level1 级别的 v2 版本路由规则
 	key := buildServiceKey(namespace, service)
-	ids := b.service2Rules[key]
+	ids := b.level1Rules[key]
+	level1 := make([]*v2.ExtendRoutingConfig, 0, 4)
 	for i := range ids {
-		tmp[i] = b.rules[i]
+		if v, ok := b.rules[i]; ok {
+			level1 = append(level1, v)
+		}
 	}
+	ret[level1RoutingV2] = level1
 
-	for k := range tmp {
-		ret = append(ret, tmp[k])
+	// 查询 level2 级别的 v2 版本路由规则
+	level2 := make([]*v2.ExtendRoutingConfig, 0, 4)
+	ids = b.level2Rules[namespace]
+	for k := range ids {
+		if v, ok := b.rules[k]; ok {
+			level2 = append(level2, v)
+		}
 	}
+	ret[level2RoutingV2] = level2
 
-	return nil
+	// 查询 level3 级别的 v2 版本路由规则
+	level3 := make([]*v2.ExtendRoutingConfig, 0, 4)
+	for k := range b.level3Rules {
+		if v, ok := b.rules[k]; ok {
+			level3 = append(level3, v)
+		}
+	}
+	ret[level3RoutingV2] = level3
+	return ret
 }
 
 // foreach 遍历所有的路由规则

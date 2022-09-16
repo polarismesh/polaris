@@ -19,6 +19,7 @@ package routing
 
 import (
 	"encoding/json"
+	"sort"
 
 	"github.com/golang/protobuf/ptypes"
 	apiv1 "github.com/polarismesh/polaris-server/common/api/v1"
@@ -30,11 +31,12 @@ import (
 )
 
 const (
-	LabelKeyPath     = "$path"
-	LabelKeyMethod   = "$method"
-	LabelKeyHeader   = "$header"
-	LabelKeyQuery    = "$query"
-	LabelKeyCallerIP = "$caller_ip"
+	_labelKeyPath     = "$path"
+	_labelKeyMethod   = "$method"
+	_labelKeyHeader   = "$header"
+	_labelKeyQuery    = "$query"
+	_labelKeyCallerIP = "$caller_ip"
+	_labelKeyCookie   = "$cookie"
 )
 
 // RoutingV1Config2API 把内部数据结构转换为API参数传递出去
@@ -70,24 +72,62 @@ func RoutingV1Config2API(req *model.RoutingConfig, service string, namespace str
 }
 
 // CompositeRoutingV1AndV2 合并 v1 版本的路由规则以及 v2 版本的规则路由
-func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, entries []*v2.ExtendRoutingConfig) (*apiv1.Routing, []string) {
-	inRoutes, outRoutes, revisions := BuildV1RoutesFromV2(entries)
+func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, level1, level2, level3 []*v2.ExtendRoutingConfig) (*apiv1.Routing, []string) {
+	// 先确保规则的排序是从最高优先级开始排序
+	sort.Slice(level1, func(i, j int) bool {
+		return level1[i].Priority < level1[j].Priority
+	})
+
+	// 先确保规则的排序是从最高优先级开始排序
+	sort.Slice(level2, func(i, j int) bool {
+		return level2[i].Priority < level2[j].Priority
+	})
+
+	// 先确保规则的排序是从最高优先级开始排序
+	sort.Slice(level3, func(i, j int) bool {
+		return level3[i].Priority < level3[j].Priority
+	})
+
+	level1inRoutes, level1outRoutes, level1Revisions := BuildV1RoutesFromV2(level1)
+	level2inRoutes, level2outRoutes, level2Revisions := BuildV1RoutesFromV2(level2)
+	level3inRoutes, level3outRoutes, level3Revisions := BuildV1RoutesFromV2(level3)
 
 	// 全部认为是以默认位置进行创建，即追加的方式
 	inBounds := v1rule.GetInbounds()
 	outBounds := v1rule.GetOutbounds()
 
-	if len(inRoutes) > 0 {
-		v1rule.Inbounds = append(inRoutes, inBounds...)
+	// 处理 inbounds 规则
+	if len(level1inRoutes) > 0 {
+		v1rule.Inbounds = append(level1inRoutes, inBounds...)
 	}
-	if len(outRoutes) > 0 {
-		v1rule.Outbounds = append(outRoutes, outBounds...)
+	if len(level2inRoutes) > 0 {
+		v1rule.Inbounds = append(v1rule.Inbounds, level2inRoutes...)
+	}
+	if len(level3inRoutes) > 0 {
+		v1rule.Inbounds = append(v1rule.Inbounds, level3inRoutes...)
 	}
 
-	if len(revisions) > 0 {
-		revisions = append(revisions, v1rule.GetRevision().GetValue())
-	} else {
-		revisions = []string{v1rule.GetRevision().GetValue()}
+	// 处理 outbounds 规则
+	if len(level1outRoutes) > 0 {
+		v1rule.Outbounds = append(level1outRoutes, outBounds...)
+	}
+	if len(level2outRoutes) > 0 {
+		v1rule.Outbounds = append(v1rule.Outbounds, level2outRoutes...)
+	}
+	if len(level3outRoutes) > 0 {
+		v1rule.Outbounds = append(v1rule.Outbounds, level3outRoutes...)
+	}
+
+	revisions := make([]string, 0, len(level1Revisions)+len(level2Revisions)+len(level3Revisions))
+	revisions = []string{v1rule.GetRevision().GetValue()}
+	if len(level1Revisions) > 0 {
+		revisions = append(revisions, level1Revisions...)
+	}
+	if len(level2Revisions) > 0 {
+		revisions = append(revisions, level2Revisions...)
+	}
+	if len(level3Revisions) > 0 {
+		revisions = append(revisions, level3Revisions...)
 	}
 
 	return v1rule, revisions
@@ -95,6 +135,10 @@ func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, entries []*v2.ExtendRoutingC
 
 // BuildV1RoutesFromV2 根据 v2 版本的路由规则适配成 v1 版本的路由规则，分为别 inBounds 以及 outBounds
 func BuildV1RoutesFromV2(entries []*v2.ExtendRoutingConfig) ([]*apiv1.Route, []*apiv1.Route, []string) {
+	if len(entries) == 0 {
+		return []*apiv1.Route{}, []*apiv1.Route{}, []string{}
+	}
+
 	// 将 v2rules 分为 inbound 以及 outbound
 	revisions := make([]string, 0, len(entries))
 	outRoutes := make([]*apiv1.Route, 0, 8)
@@ -212,25 +256,46 @@ func BuildInBoundsFromV2(item *v2.ExtendRoutingConfig) []*apiv1.Route {
 	}
 }
 
+func RoutingLabels2Arguments(labels map[string]*apiv1.MatchString) []*apiv2.SourceMatch {
+	if len(labels) == 0 {
+		return []*apiv2.SourceMatch{}
+	}
+
+	arguments := make([]*apiv2.SourceMatch, 0, 4)
+	for index := range labels {
+		arguments = append(arguments, &apiv2.SourceMatch{
+			Type: apiv2.SourceMatch_CUSTOM,
+			Key:  index,
+			Value: &apiv2.MatchString{
+				Type:      apiv2.MatchString_MatchStringType(labels[index].GetType()),
+				Value:     labels[index].GetValue(),
+				ValueType: apiv2.MatchString_ValueType(labels[index].GetValueType()),
+			},
+		})
+	}
+
+	return arguments
+}
+
 // RoutingArguments2Labels 将参数列表适配成旧的标签模型
 func RoutingArguments2Labels(args []*apiv2.SourceMatch) map[string]*apiv1.MatchString {
 	labels := make(map[string]*apiv1.MatchString)
 	for i := range args {
 		argument := args[i]
-
 		var key string
-
 		switch argument.Type {
 		case apiv2.SourceMatch_CUSTOM:
 			key = argument.Key
 		case apiv2.SourceMatch_METHOD:
-			key = LabelKeyMethod
+			key = _labelKeyMethod
 		case apiv2.SourceMatch_HEADER:
-			key = LabelKeyHeader + "." + argument.Key
+			key = _labelKeyHeader + "." + argument.Key
 		case apiv2.SourceMatch_QUERY:
-			key = LabelKeyQuery + "." + argument.Key
+			key = _labelKeyQuery + "." + argument.Key
 		case apiv2.SourceMatch_CALLER_IP:
-			key = LabelKeyCallerIP
+			key = _labelKeyCallerIP
+		case apiv2.SourceMatch_COOKIE:
+			key = _labelKeyCookie + "." + argument.Key
 		default:
 			continue
 		}
@@ -245,6 +310,7 @@ func RoutingArguments2Labels(args []*apiv2.SourceMatch) map[string]*apiv1.MatchS
 	return labels
 }
 
+// BuildV2Routing 构建 v2 版本的API数据对象路由规则
 func BuildV2Routing(req *apiv1.Routing, route *apiv1.Route) (*apiv2.Routing, error) {
 	rule := ConvertV1RouteToV2Route(route)
 	any, err := ptypes.MarshalAny(rule)
@@ -255,6 +321,8 @@ func BuildV2Routing(req *apiv1.Routing, route *apiv1.Route) (*apiv2.Routing, err
 	var v2Id string
 	if extendInfo := route.GetExtendInfo(); len(extendInfo) > 0 {
 		v2Id = extendInfo[v2.V2RuleIDKey]
+	} else {
+		v2Id = utils.NewRoutingV2UUID()
 	}
 
 	routing := &apiv2.Routing{
@@ -271,12 +339,15 @@ func BuildV2Routing(req *apiv1.Routing, route *apiv1.Route) (*apiv2.Routing, err
 	return routing, nil
 }
 
+// BuildV2ExtendRouting 构建 v2 版本的内部数据对象路由规则
 func BuildV2ExtendRouting(req *apiv1.Routing, route *apiv1.Route) (*v2.ExtendRoutingConfig, error) {
 	rule := ConvertV1RouteToV2Route(route)
 
 	var v2Id string
 	if extendInfo := route.GetExtendInfo(); len(extendInfo) > 0 {
 		v2Id = extendInfo[v2.V2RuleIDKey]
+	} else {
+		v2Id = utils.NewRoutingV2UUID()
 	}
 
 	routing := &v2.ExtendRoutingConfig{
@@ -286,7 +357,7 @@ func BuildV2ExtendRouting(req *apiv1.Routing, route *apiv1.Route) (*v2.ExtendRou
 			Namespace: req.GetNamespace().GetValue(),
 			Enable:    true,
 			Policy:    apiv2.RoutingPolicy_RulePolicy.String(),
-			Revision:  utils.NewV2Revision(),
+			Revision:  req.GetRevision().GetValue(),
 			Priority:  0,
 		},
 		RuleRouting: rule,
@@ -295,6 +366,7 @@ func BuildV2ExtendRouting(req *apiv1.Routing, route *apiv1.Route) (*v2.ExtendRou
 	return routing, nil
 }
 
+// ConvertV1RouteToV2Route 将 v1 版本的路由规则转为 v2 版本的路由规则
 func ConvertV1RouteToV2Route(route *apiv1.Route) *apiv2.RuleRoutingConfig {
 	v2sources := make([]*apiv2.Source, 0, len(route.GetSources()))
 	v1sources := route.GetSources()
@@ -304,20 +376,7 @@ func ConvertV1RouteToV2Route(route *apiv1.Route) *apiv2.RuleRoutingConfig {
 			Namespace: v1sources[i].GetNamespace().GetValue(),
 		}
 
-		v2metadata := make([]*apiv2.SourceMatch, 0, 4)
-		v1metedata := v1sources[i].GetMetadata()
-		for index := range v1metedata {
-			v2metadata = append(v2metadata, &apiv2.SourceMatch{
-				Type: apiv2.SourceMatch_CUSTOM,
-				Key:  index,
-				Value: &apiv2.MatchString{
-					Type:      apiv2.MatchString_MatchStringType(v1metedata[index].GetType()),
-					Value:     v1metedata[index].GetValue(),
-					ValueType: apiv2.MatchString_ValueType(v1metedata[index].GetValueType()),
-				},
-			})
-		}
-		entry.Arguments = v2metadata
+		entry.Arguments = RoutingLabels2Arguments(v1sources[i].GetMetadata())
 		v2sources = append(v2sources, entry)
 	}
 

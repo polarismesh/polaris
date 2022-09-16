@@ -23,21 +23,44 @@ import (
 )
 
 type DiscoverServer struct {
-	enterRateLimit    func(ip string, method string) uint32
-	allowAccess       func(method string) bool
 	namingServer      service.DiscoverServer
 	healthCheckServer *healthcheck.Server
+	enterRateLimit    func(ip string, method string) uint32
+	allowAccess       func(method string) bool
 }
 
-func NewDiscoverServer(enterRateLimit func(ip string, method string) uint32,
-	allowAccess func(method string) bool,
-	namingServer service.DiscoverServer,
-	healthCheckServer *healthcheck.Server) *DiscoverServer {
+func NewDiscoverServer(options ...Option) *DiscoverServer {
+	s := &DiscoverServer{}
 
-	return &DiscoverServer{
-		enterRateLimit:    enterRateLimit,
-		allowAccess:       allowAccess,
-		namingServer:      namingServer,
-		healthCheckServer: healthCheckServer,
+	for i := range options {
+		options[i](s)
+	}
+
+	return s
+}
+
+type Option func(s *DiscoverServer)
+
+func WithNamingServer(svr service.DiscoverServer) Option {
+	return func(s *DiscoverServer) {
+		s.namingServer = svr
+	}
+}
+
+func WithHealthCheckerServer(svr *healthcheck.Server) Option {
+	return func(s *DiscoverServer) {
+		s.healthCheckServer = svr
+	}
+}
+
+func WithEnterRateLimit(f func(ip string, method string) uint32) Option {
+	return func(s *DiscoverServer) {
+		s.enterRateLimit = f
+	}
+}
+
+func WithAllowAccess(f func(method string) bool) Option {
+	return func(s *DiscoverServer) {
+		s.allowAccess = f
 	}
 }

@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package v2;
 
-import "request.proto";
-import "routing.proto";
+import "request_v2.proto";
+import "routing_v2.proto";
 import "google/protobuf/any.proto";
 
 message SimpleResponse {
@@ -52,6 +52,6 @@ message DiscoverResponse {
 
   DiscoverResponseType type = 3;
   Service service = 4;
-  Routing routing = 6;
+  repeated Routing routings = 6;
   reserved 11 to 13;
 }

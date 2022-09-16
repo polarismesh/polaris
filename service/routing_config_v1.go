@@ -142,9 +142,7 @@ func (s *Server) DeleteRoutingConfig(ctx context.Context, req *api.Routing) *api
 	}
 
 	s.RecordHistory(routingRecordEntry(ctx, req, nil, model.ODelete))
-
-	// 在进行 v2 版本的删除动作
-	return s.deleteRoutingConfigV1toV2(ctx, req)
+	return api.NewResponse(api.ExecuteSuccess)
 }
 
 // UpdateRoutingConfigs 批量更新路由配置

@@ -59,12 +59,37 @@ func (r *routingStoreV2) CreateRoutingConfigV2(conf *v2.RoutingConfig) error {
 		log.Errorf("[Store][boltdb] create routing config v2 missing id or revision")
 		return store.NewStatusError(store.EmptyParamsErr, "missing id or revision")
 	}
-	if conf.Name == "" || conf.Policy == "" || conf.Config == "" {
+	if conf.Policy == "" || conf.Config == "" {
 		log.Errorf("[Store][boltdb] create routing config v2 missing params")
 		return store.NewStatusError(store.EmptyParamsErr, "missing some params")
 	}
 
-	if err := r.cleanRoutingConfig(conf.ID); err != nil {
+	return r.handler.Execute(true, func(tx *bolt.Tx) error {
+		return r.createRoutingConfigV2(tx, conf)
+	})
+}
+
+// cleanRoutingConfig 从数据库彻底清理路由配置
+func (r *routingStoreV2) cleanRoutingConfig(tx *bolt.Tx, ruleID string) error {
+	err := deleteValues(tx, tblNameRoutingV2, []string{ruleID}, false)
+	if err != nil {
+		log.Errorf("[Store][boltdb] delete invalid route config v2 error, %v", err)
+		return err
+	}
+	return nil
+}
+
+func (r *routingStoreV2) CreateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingConfig) error {
+	if tx == nil {
+		return errors.New("transaction is nil")
+	}
+
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
+	return r.createRoutingConfigV2(dbTx, conf)
+}
+
+func (r *routingStoreV2) createRoutingConfigV2(tx *bolt.Tx, conf *v2.RoutingConfig) error {
+	if err := r.cleanRoutingConfig(tx, conf.ID); err != nil {
 		return err
 	}
 
@@ -80,26 +105,11 @@ func (r *routingStoreV2) CreateRoutingConfigV2(conf *v2.RoutingConfig) error {
 		conf.EnableTime = time.Time{}
 	}
 
-	err := r.handler.SaveValue(tblNameRoutingV2, conf.ID, conf)
+	err := saveValue(tx, tblNameRoutingV2, conf.ID, conf)
 	if err != nil {
 		log.Errorf("[Store][boltdb] add routing config v2 to kv error, %v", err)
 		return err
 	}
-	return nil
-}
-
-// cleanRoutingConfig 从数据库彻底清理路由配置
-func (r *routingStoreV2) cleanRoutingConfig(ruleID string) error {
-	err := r.handler.DeleteValues(tblNameRoutingV2, []string{ruleID}, false)
-	if err != nil {
-		log.Errorf("[Store][boltdb] delete invalid route config v2 error, %v", err)
-		return err
-	}
-	return nil
-}
-
-func (r *routingStoreV2) CreateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingConfig) error {
-
 	return nil
 }
 
@@ -114,6 +124,21 @@ func (r *routingStoreV2) UpdateRoutingConfigV2(conf *v2.RoutingConfig) error {
 		return store.NewStatusError(store.EmptyParamsErr, "missing some params")
 	}
 
+	return r.handler.Execute(true, func(tx *bolt.Tx) error {
+		return r.updateRoutingConfigV2Tx(tx, conf)
+	})
+}
+
+func (r *routingStoreV2) UpdateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingConfig) error {
+	if tx == nil {
+		return errors.New("tx is nil")
+	}
+
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
+	return r.updateRoutingConfigV2Tx(dbTx, conf)
+}
+
+func (r *routingStoreV2) updateRoutingConfigV2Tx(tx *bolt.Tx, conf *v2.RoutingConfig) error {
 	properties := make(map[string]interface{})
 	properties[routingV2FieldEnable] = conf.Enable
 	properties[routingV2FieldEnableTime] = conf.EnableTime
@@ -123,16 +148,11 @@ func (r *routingStoreV2) UpdateRoutingConfigV2(conf *v2.RoutingConfig) error {
 	properties[routingV2FieldRevision] = conf.Revision
 	properties[routingV2FieldModifyTime] = time.Now()
 
-	err := r.handler.UpdateValue(tblNameRoutingV2, conf.ID, properties)
+	err := updateValue(tx, tblNameRoutingV2, conf.ID, properties)
 	if err != nil {
 		log.Errorf("[Store][boltdb] update route config v2 to kv error, %v", err)
 		return err
 	}
-	return nil
-}
-
-func (r *routingStoreV2) UpdateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingConfig) error {
-
 	return nil
 }
 
@@ -217,13 +237,14 @@ func toRouteConfV2(m map[string]interface{}) []*v2.RoutingConfig {
 
 // GetRoutingConfigV2WithID 根据服务ID拉取路由配置
 func (r *routingStoreV2) GetRoutingConfigV2WithID(id string) (*v2.RoutingConfig, error) {
-
 	tx, err := r.handler.StartTx()
 	if err != nil {
 		return nil, err
 	}
 
 	boldTx := tx.GetDelegateTx().(*bolt.Tx)
+	defer boldTx.Rollback()
+
 	return r.getRoutingConfigV2WithIDTx(boldTx, id)
 }
 
@@ -231,7 +252,7 @@ func (r *routingStoreV2) GetRoutingConfigV2WithID(id string) (*v2.RoutingConfig,
 func (r *routingStoreV2) GetRoutingConfigV2WithIDTx(tx store.Tx, id string) (*v2.RoutingConfig, error) {
 
 	if tx == nil {
-		return nil, errors.New("transaction is nil")
+		return nil, errors.New("tx is nil")
 	}
 
 	boldTx := tx.GetDelegateTx().(*bolt.Tx)

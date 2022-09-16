@@ -48,7 +48,7 @@ func (g *DiscoverServer) Discover(server apiv2.PolarisGRPC_DiscoverServer) error
 			return err
 		}
 
-		msg := fmt.Sprintf("receive grpc discover request: %s", in.GetSerivce().String())
+		msg := fmt.Sprintf("receive grpc discover v2 request: %s", in.GetSerivce().String())
 		log.Info(msg,
 			zap.String("type", apiv2.DiscoverRequest_DiscoverRequestType_name[int32(in.Type)]),
 			zap.String("client-address", clientAddress),
@@ -77,9 +77,9 @@ func (g *DiscoverServer) Discover(server apiv2.PolarisGRPC_DiscoverServer) error
 		var out *apiv2.DiscoverResponse
 		switch in.Type {
 		case apiv2.DiscoverRequest_ROUTING:
-			out = g.namingServer.GetRoutingConfigWithCache(ctx, in.Service)
+			out = g.namingServer.GetRoutingConfigV2WithCache(ctx, in.GetSerivce())
 		case apiv2.DiscoverRequest_CIRCUIT_BREAKER:
-			out = g.namingServer.GetCircuitBreakerWithCache(ctx, in.Service)
+			out = g.namingServer.GetCircuitBreakerV2WithCache(ctx, in.GetSerivce())
 		default:
 			out = apiv2.NewDiscoverRoutingResponse(apiv1.InvalidDiscoverResource, in.GetSerivce())
 		}
