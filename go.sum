@@ -335,6 +335,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/polarismesh/go-restful-openapi/v2 v2.0.0-20220912105722-188c4196302c h1:JHO1pRNbnRL0x/IXOnHCQaB7kx94LjpzlEm36BRzpQI=
 github.com/polarismesh/go-restful-openapi/v2 v2.0.0-20220912105722-188c4196302c/go.mod h1:4WhwBysTom9Eoy0hQ4W69I0FmO+T0EpjEW9/5sgHoUk=
+github.com/polarismesh/go-restful-openapi/v2 v2.0.0-20220915080537-fbc8c2ec9c38 h1:yTaogvIiOs9aNPW6RAO2J7nf/34rK2kQlKiY6dJAE1s=
+github.com/polarismesh/go-restful-openapi/v2 v2.0.0-20220915080537-fbc8c2ec9c38/go.mod h1:4WhwBysTom9Eoy0hQ4W69I0FmO+T0EpjEW9/5sgHoUk=
 github.com/posener/complete v1.1.1/go.mod h1:em0nMJCgc9GFtwrmVmEMR/ZL6WyhyjMBndrE9hABlRI=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
 github.com/prometheus/client_golang v1.0.0/go.mod h1:db9x61etRT2tGnBNRi70OPL5FsnadC4Ky3P0J6CfImo=

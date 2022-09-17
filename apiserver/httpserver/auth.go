@@ -31,35 +31,35 @@ import (
 // GetAuthServer 运维接口
 func (h *HTTPServer) GetAuthServer(ws *restful.WebService) error {
 
-	ws.Route(ws.GET("/auth/status").To(h.AuthStatus))
+	ws.Route(enrichAuthStatusApiDocs(ws.GET("/auth/status").To(h.AuthStatus)))
 
 	//
-	ws.Route(ws.POST("/user/login").To(h.Login))
-	ws.Route(ws.GET("/users").To(h.GetUsers))
-	ws.Route(ws.POST("/users").To(h.CreateUsers))
-	ws.Route(ws.POST("/users/delete").To(h.DeleteUsers))
-	ws.Route(ws.PUT("/user").To(h.UpdateUser))
-	ws.Route(ws.PUT("/user/password").To(h.UpdateUserPassword))
-	ws.Route(ws.GET("/user/token").To(h.GetUserToken))
-	ws.Route(ws.PUT("/user/token/status").To(h.UpdateUserToken))
-	ws.Route(ws.PUT("/user/token/refresh").To(h.ResetUserToken))
+	ws.Route(enrichLoginApiDocs(ws.POST("/user/login").To(h.Login)))
+	ws.Route(enrichGetUsersApiDocs(ws.GET("/users").To(h.GetUsers)))
+	ws.Route(enrichCreateUsersApiDocs(ws.POST("/users").To(h.CreateUsers)))
+	ws.Route(enrichDeleteUsersApiDocs(ws.POST("/users/delete").To(h.DeleteUsers)))
+	ws.Route(enrichUpdateUserApiDocs(ws.PUT("/user").To(h.UpdateUser)))
+	ws.Route(enrichUpdateUserPasswordApiDocs(ws.PUT("/user/password").To(h.UpdateUserPassword)))
+	ws.Route(enrichGetUserTokenApiDocs(ws.GET("/user/token").To(h.GetUserToken)))
+	ws.Route(enrichUpdateUserTokenApiDocs(ws.PUT("/user/token/status").To(h.UpdateUserToken)))
+	ws.Route(enrichResetUserTokenApiDocs(ws.PUT("/user/token/refresh").To(h.ResetUserToken)))
 
 	//
-	ws.Route(ws.POST("/usergroup").To(h.CreateGroup))
-	ws.Route(ws.PUT("/usergroups").To(h.UpdateGroups))
-	ws.Route(ws.GET("/usergroups").To(h.GetGroups))
-	ws.Route(ws.POST("/usergroups/delete").To(h.DeleteGroups))
-	ws.Route(ws.GET("/usergroup/detail").To(h.GetGroup))
-	ws.Route(ws.GET("/usergroup/token").To(h.GetGroupToken))
-	ws.Route(ws.PUT("/usergroup/token/status").To(h.UpdateGroupToken))
-	ws.Route(ws.PUT("/usergroup/token/refresh").To(h.ResetGroupToken))
+	ws.Route(enrichCreateGroupApiDocs(ws.POST("/usergroup").To(h.CreateGroup)))
+	ws.Route(enrichUpdateGroupsApiDocs(ws.PUT("/usergroups").To(h.UpdateGroups)))
+	ws.Route(enrichGetGroupsApiDocs(ws.GET("/usergroups").To(h.GetGroups)))
+	ws.Route(enrichDeleteGroupsApiDocs(ws.POST("/usergroups/delete").To(h.DeleteGroups)))
+	ws.Route(enrichGetGroupApiDocs(ws.GET("/usergroup/detail").To(h.GetGroup)))
+	ws.Route(enrichGetGroupTokenApiDocs(ws.GET("/usergroup/token").To(h.GetGroupToken)))
+	ws.Route(enrichUpdateGroupTokenApiDocs(ws.PUT("/usergroup/token/status").To(h.UpdateGroupToken)))
+	ws.Route(enrichResetGroupTokenApiDocs(ws.PUT("/usergroup/token/refresh").To(h.ResetGroupToken)))
 
-	ws.Route(ws.POST("/auth/strategy").To(h.CreateStrategy))
-	ws.Route(ws.GET("/auth/strategy/detail").To(h.GetStrategy))
-	ws.Route(ws.PUT("/auth/strategies").To(h.UpdateStrategies))
-	ws.Route(ws.POST("/auth/strategies/delete").To(h.DeleteStrategies))
-	ws.Route(ws.GET("/auth/strategies").To(h.GetStrategies))
-	ws.Route(ws.GET("/auth/principal/resources").To(h.GetPrincipalResources))
+	ws.Route(enrichCreateStrategyApiDocs(ws.POST("/auth/strategy").To(h.CreateStrategy)))
+	ws.Route(enrichGetStrategyApiDocs(ws.GET("/auth/strategy/detail").To(h.GetStrategy)))
+	ws.Route(enrichUpdateStrategiesApiDocs(ws.PUT("/auth/strategies").To(h.UpdateStrategies)))
+	ws.Route(enrichDeleteStrategiesApiDocs(ws.POST("/auth/strategies/delete").To(h.DeleteStrategies)))
+	ws.Route(enrichGetStrategiesApiDocs(ws.GET("/auth/strategies").To(h.GetStrategies)))
+	ws.Route(enrichGetPrincipalResourcesApiDocs(ws.GET("/auth/principal/resources").To(h.GetPrincipalResources)))
 
 	return nil
 }
