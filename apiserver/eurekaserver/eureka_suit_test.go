@@ -38,6 +38,8 @@ import (
 	storemock "github.com/polarismesh/polaris-server/store/mock"
 	"gopkg.in/yaml.v2"
 
+	"github.com/polarismesh/polaris-server/testdata"
+
 	// 注册相关默认插件
 	_ "github.com/polarismesh/polaris-server/plugin/auth/defaultauth"
 	_ "github.com/polarismesh/polaris-server/plugin/auth/platform"
@@ -176,10 +178,11 @@ func (d *EurekaTestSuit) initialize(t *testing.T, callback func(t *testing.T, s 
 // 加载配置
 func (d *EurekaTestSuit) loadConfig() error {
 	d.cfg = new(TestConfig)
-	confFileName := "test.yaml"
+
+	confFileName := testdata.Path("eureka_apiserver_test.yaml")
 	if os.Getenv("STORE_MODE") == "sqldb" {
 		fmt.Printf("run store mode : sqldb\n")
-		confFileName = "test_sqldb.yaml"
+		confFileName = testdata.Path("eureka_apiserver_db_test.yaml")
 	}
 	file, err := os.Open(confFileName)
 	if err != nil {
