@@ -53,6 +53,12 @@ func (s *Server) createRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 			zap.String("namespace", namespaceName), utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return api.NewRoutingResponse(api.StoreLayerException, req)
 	}
+	if svc == nil {
+		return api.NewRoutingResponse(api.NotFoundService, req)
+	}
+	if svc.IsAlias() {
+		return api.NewRoutingResponse(api.NotAllowAliasCreateRouting, req)
+	}
 
 	tx, err := s.storage.StartTx()
 	if err != nil {

@@ -235,7 +235,7 @@ func (s *Server) enableRoutings(ctx context.Context, req *apiv2.Routing) *apiv2.
 
 	conf.Enable = req.GetEnable()
 
-	if err := s.storage.UpdateRoutingConfigV2(conf); err != nil {
+	if err := s.storage.EnableRouting(conf); err != nil {
 		log.Error("[Service][Routing] enable routing config v2 store layer",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return apiv2.NewResponse(apiv1.StoreLayerException)

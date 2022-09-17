@@ -951,9 +951,9 @@ VALUES ("spring-cloud-gateway-braining", '{
 -- v1.12.0
 CREATE TABLE `routing_config_v2`
 (
-    `id`       VARCHAR(128) PRIMARY KEY,
-    `name`     VARCHAR(64) NOT NULL,
-    `namespace`     VARCHAR(64) NOT NULL,
+    `id`       VARCHAR(128) NOT NULL,
+    `name`     VARCHAR(64) NOT NULL default '',
+    `namespace`     VARCHAR(64) NOT NULL default '',
     `policy`   VARCHAR(64) NOT NULL,
     `config`   TEXT,
     `enable`   INT         NOT NULL DEFAULT 0,
@@ -961,8 +961,8 @@ CREATE TABLE `routing_config_v2`
     `priority`   smallint(6)    NOT NULL DEFAULT '0' comment 'ratelimit rule priority',
     `flag`     TINYINT(4)  NOT NULL DEFAULT '0',
     `ctime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP onupdate CURRENT_TIMESTAMP,
-    `etime`    timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `mtime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `etime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `extend_info` VARCHAR(1024) DEFAULT '',
     PRIMARY KEY (`id`),
     KEY `mtime` (`mtime`)

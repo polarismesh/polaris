@@ -25,6 +25,7 @@ import (
 
 	v2 "github.com/polarismesh/polaris-server/common/model/v2"
 	"github.com/polarismesh/polaris-server/store"
+	"go.uber.org/zap"
 )
 
 // RoutingConfigStoreV2 的实现
@@ -83,11 +84,13 @@ func (r *routingConfigStoreV2) createRoutingConfigV2Tx(tx *BaseTx, conf *v2.Rout
 	var enable int
 	if conf.Enable {
 		enable = 1
-		insertSQL = fmt.Sprint(insertSQL, "sysdate()")
+		insertSQL = fmt.Sprintf(insertSQL, "sysdate()")
 	} else {
 		enable = 0
-		insertSQL = fmt.Sprint(insertSQL, emptyEnableTime)
+		insertSQL = fmt.Sprintf(insertSQL, emptyEnableTime)
 	}
+
+	log.Debug("[Store][database] create routing v2", zap.String("sql", insertSQL))
 
 	if _, err := tx.Exec(insertSQL, conf.ID, conf.Namespace, conf.Name, conf.Policy,
 		conf.Config, enable, conf.Priority, conf.Revision); err != nil {
@@ -138,7 +141,7 @@ func (r *routingConfigStoreV2) updateRoutingConfigV2Tx(tx *BaseTx, conf *v2.Rout
 		return store.NewStatusError(store.EmptyParamsErr, "missing some params")
 	}
 
-	str := "update routing_config_v2 set policy = ?, config = ?, revision = ?, priority = ?, etime = ?, " +
+	str := "update routing_config_v2 set policy = ?, config = ?, revision = ?, priority = ?, " +
 		" mtime = sysdate() where id = ? and namespace = ?"
 	if _, err := tx.Exec(str, conf.Policy, conf.Config, conf.Revision, conf.Priority,
 		conf.ID, conf.Namespace); err != nil {
@@ -286,10 +289,12 @@ func fetchRoutingConfigV2Rows(rows *sql.Rows) ([]*v2.RoutingConfig, error) {
 
 		entry.CreateTime = time.Unix(ctime, 0)
 		entry.ModifyTime = time.Unix(mtime, 0)
+		entry.EnableTime = time.Unix(etime, 0)
 		entry.Valid = true
 		if flag == 1 {
 			entry.Valid = false
 		}
+		entry.Enable = enable == 1
 
 		out = append(out, &entry)
 	}

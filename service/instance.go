@@ -29,8 +29,8 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/common/utils"
 	instancecommon "github.com/polarismesh/polaris-server/common/service"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 var (
@@ -718,7 +718,7 @@ func (s *Server) GetInstanceLabels(ctx context.Context, query map[string]string)
 		namespace = DefaultNamespace
 	)
 
-	if val, ok := query["namespace"]; !ok {
+	if val, ok := query["namespace"]; ok {
 		namespace = val
 	}
 
