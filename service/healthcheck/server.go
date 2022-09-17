@@ -121,11 +121,6 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 
 // Report heartbeat request
 func (s *Server) Report(ctx context.Context, req *api.Instance) *api.Response {
-	ins := s.instanceCache.GetInstance(req.GetId().GetValue())
-	if ins == nil {
-		return api.NewResponse(api.NotFoundResource)
-	}
-
 	return s.doReport(ctx, req)
 }
 
