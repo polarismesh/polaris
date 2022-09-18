@@ -246,6 +246,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		return err
 	}
 	healthCheckServer.SetServiceCache(cacheMgn.Service())
+	healthCheckServer.SetInstanceCache(cacheMgn.Instance())
 
 	// 为 instance 的 cache 添加 健康检查的 Listener
 	cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})

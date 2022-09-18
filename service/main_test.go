@@ -64,6 +64,7 @@ import (
 	_ "github.com/polarismesh/polaris-server/store/boltdb"
 	"github.com/polarismesh/polaris-server/store/sqldb"
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
+	"github.com/polarismesh/polaris-server/testdata"
 )
 
 const (
@@ -111,10 +112,10 @@ func (d *DiscoverTestSuit) loadConfig() error {
 
 	d.cfg = new(TestConfig)
 
-	confFileName := "test.yaml"
+	confFileName := testdata.Path("service_test.yaml")
 	if os.Getenv("STORE_MODE") == "sqldb" {
 		fmt.Printf("run store mode : sqldb\n")
-		confFileName = "test_sqldb.yaml"
+		confFileName = testdata.Path("service_test_sqldb.yaml")
 		d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey,
 			"nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
 	}
@@ -245,6 +246,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 		panic(err)
 	}
 	healthCheckServer.SetServiceCache(cacheMgn.Service())
+	healthCheckServer.SetInstanceCache(cacheMgn.Instance())
 
 	// 为 instance 的 cache 添加 健康检查的 Listener
 	cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
