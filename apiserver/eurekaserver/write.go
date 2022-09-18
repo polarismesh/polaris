@@ -211,7 +211,14 @@ func (h *EurekaServer) updateStatus(ctx context.Context, appId string, instanceI
 
 func (h *EurekaServer) renew(ctx context.Context, appId string, instanceId string) uint32 {
 	resp := h.healthCheckServer.Report(ctx, &api.Instance{Id: &wrappers.StringValue{Value: instanceId}})
-	return resp.GetCode().GetValue()
+	code := resp.GetCode().GetValue()
+
+	// 如果目标实例存在，但是没有开启心跳，对于 eureka 来说，仍然属于心跳上报成功
+	if code == api.HeartbeatOnDisabledIns {
+		return api.ExecuteSuccess
+	}
+
+	return code
 }
 
 func (h *EurekaServer) updateMetadata(ctx context.Context, instanceId string, metadata map[string]string) uint32 {

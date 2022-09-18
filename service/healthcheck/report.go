@@ -50,6 +50,12 @@ func (s *Server) doReport(ctx context.Context, instance *api.Instance) *api.Resp
 	if errRsp != nil {
 		return errRsp
 	}
+
+	ins := s.instanceCache.GetInstance(id)
+	if ins == nil {
+		return api.NewResponse(api.NotFoundResource)
+	}
+
 	instance.Id = utils.NewStringValue(id)
 	insCache := s.cacheProvider.GetInstance(id)
 	if insCache == nil {
