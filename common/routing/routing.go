@@ -201,6 +201,9 @@ func BuildOutBoundsFromV2(item *v2.ExtendRoutingConfig) []*apiv1.Route {
 		{
 			Sources:      v1sources,
 			Destinations: v1destinations,
+			ExtendInfo: map[string]string{
+				v2.V2RuleIDKey: item.ID,
+			},
 		},
 	}
 }
@@ -252,6 +255,9 @@ func BuildInBoundsFromV2(item *v2.ExtendRoutingConfig) []*apiv1.Route {
 		{
 			Sources:      v1sources,
 			Destinations: v1destinations,
+			ExtendInfo: map[string]string{
+				v2.V2RuleIDKey: item.ID,
+			},
 		},
 	}
 }

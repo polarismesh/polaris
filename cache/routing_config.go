@@ -155,7 +155,12 @@ func (rc *routingConfigCache) GetRoutingConfigV1(id, service, namespace string) 
 		return nil, nil
 	}
 
-	v2rules := rc.bucketV2.listByService(service, namespace)
+	v2rules := rc.bucketV2.listByServiceWithPredicate(service, namespace, func(item *v2.ExtendRoutingConfig) bool {
+		if !item.Enable {
+			return false
+		}
+		return true
+	})
 	v1rules := rc.bucketV1.get(id)
 	if v2rules != nil && v1rules == nil {
 		return rc.convertRoutingV2toV1(v2rules, namespace, service), nil
@@ -187,7 +192,9 @@ func (rc *routingConfigCache) GetRoutingConfigV1(id, service, namespace string) 
 
 // GetRoutingConfigV2 根据服务信息获取该服务下的所有 v2 版本的规则路由
 func (rc *routingConfigCache) GetRoutingConfigV2(id, service, namespace string) ([]*apiv2.Routing, error) {
-	v2rules := rc.bucketV2.listByService(service, namespace)
+	v2rules := rc.bucketV2.listByServiceWithPredicate(service, namespace, func(item *v2.ExtendRoutingConfig) bool {
+		return item.Enable
+	})
 	ret := make([]*apiv2.Routing, 0, len(v2rules))
 	for level := range v2rules {
 		items := v2rules[level]
@@ -353,19 +360,16 @@ func (rc *routingConfigCache) convertRoutingV2toV1(entries map[routingLevel][]*v
 	service, namespace string) *apiv1.Routing {
 
 	level1 := entries[level1RoutingV2]
-	// 先确保规则的排序是从最高优先级开始排序
 	sort.Slice(level1, func(i, j int) bool {
 		return level1[i].Priority < level1[j].Priority
 	})
 
 	level2 := entries[level2RoutingV2]
-	// 先确保规则的排序是从最高优先级开始排序
 	sort.Slice(level2, func(i, j int) bool {
 		return level2[i].Priority < level2[j].Priority
 	})
 
 	level3 := entries[level3RoutingV2]
-	// 先确保规则的排序是从最高优先级开始排序
 	sort.Slice(level3, func(i, j int) bool {
 		return level3[i].Priority < level3[j].Priority
 	})
