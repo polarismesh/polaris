@@ -23,23 +23,32 @@ import (
 	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
 )
 
+// ClientV2Server Client related operation  Client operation interface definition
+type ClientV2Server interface {
+	// GetRoutingConfigWithCache User Client Get Service Routing Configuration Information
+	GetRoutingConfigV2WithCache(ctx context.Context, req *apiv2.Service) *apiv2.DiscoverResponse
+
+	// GetCircuitBreakerWithCache Fuse configuration information for obtaining services for clients
+	GetCircuitBreakerV2WithCache(ctx context.Context, req *apiv2.Service) *apiv2.DiscoverResponse
+}
+
 // RouteRuleV2OperateServer Routing rules related operations
 type RouteRuleV2OperateServer interface {
-
 	// CreateRoutingConfigs Batch creation routing configuration
 	CreateRoutingConfigsV2(ctx context.Context, req []*apiv2.Routing) *apiv2.BatchWriteResponse
-
 	// DeleteRoutingConfigs Batch delete routing configuration
 	DeleteRoutingConfigsV2(ctx context.Context, req []*apiv2.Routing) *apiv2.BatchWriteResponse
-
 	// UpdateRoutingConfigs Batch update routing configuration
 	UpdateRoutingConfigsV2(ctx context.Context, req []*apiv2.Routing) *apiv2.BatchWriteResponse
-
 	// GetRoutingConfigs Inquiry route configuration to OSS
 	GetRoutingConfigsV2(ctx context.Context, query map[string]string) *apiv2.BatchQueryResponse
+	// EnableRoutings batch enable routing rules
+	EnableRoutings(ctx context.Context, req []*apiv2.Routing) *apiv2.BatchWriteResponse
 }
 
 type DiscoverServerV2 interface {
-	// Routing rules operation interface definition
+	// ClientV2Server
+	ClientV2Server
+	// RouteRuleV2OperateServer Routing rules operation interface definition
 	RouteRuleV2OperateServer
 }

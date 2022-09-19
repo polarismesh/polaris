@@ -29,35 +29,22 @@ func (s *serverAuthAbility) CreateRoutingConfigsV2(ctx context.Context, req []*a
 	return s.targetServer.CreateRoutingConfigsV2(ctx, req)
 }
 
-// CreateRoutingConfigV2 创建一个路由配置
-// 创建路由配置需要锁住服务，防止服务被删除
-func (s *serverAuthAbility) CreateRoutingConfigV2(ctx context.Context, req *apiv2.Routing) *apiv2.Response {
-
-	return s.targetServer.CreateRoutingConfigV2(ctx, req)
-}
-
 // DeleteRoutingConfigsV2 批量删除路由配置
 func (s *serverAuthAbility) DeleteRoutingConfigsV2(ctx context.Context, req []*apiv2.Routing) *apiv2.BatchWriteResponse {
 
 	return s.targetServer.DeleteRoutingConfigsV2(ctx, req)
 }
 
-// DeleteRoutingConfigV2 删除一个路由配置
-func (s *serverAuthAbility) DeleteRoutingConfigV2(ctx context.Context, req *apiv2.Routing) *apiv2.Response {
-
-	return s.targetServer.DeleteRoutingConfigV2(ctx, req)
-}
-
 // UpdateRoutingConfigsV2 批量更新路由配置
 func (s *serverAuthAbility) UpdateRoutingConfigsV2(ctx context.Context, req []*apiv2.Routing) *apiv2.BatchWriteResponse {
 
-	return s.UpdateRoutingConfigsV2(ctx, req)
+	return s.targetServer.UpdateRoutingConfigsV2(ctx, req)
 }
 
-// UpdateRoutingConfigV2 更新单个路由配置
-func (s *serverAuthAbility) UpdateRoutingConfigV2(ctx context.Context, req *apiv2.Routing) *apiv2.Response {
+// EnableRoutings batch enable routing rules
+func (s *serverAuthAbility) EnableRoutings(ctx context.Context, req []*apiv2.Routing) *apiv2.BatchWriteResponse {
 
-	return s.UpdateRoutingConfigV2(ctx, req)
+	return s.targetServer.EnableRoutings(ctx, req)
 }
 
 // GetRoutingConfigs 提供给OSS的查询路由配置的接口

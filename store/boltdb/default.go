@@ -64,6 +64,9 @@ type boltStore struct {
 	*configFileTagStore
 	*configFileTemplateStore
 
+	// v2 存储
+	*routingStoreV2
+
 	handler BoltHandler
 	start   bool
 }
@@ -111,11 +114,7 @@ const (
 var (
 	namespacesToInit = []string{"default", namespacePolaris}
 	servicesToInit   = map[string]string{
-		"polaris.discover":    "1866010b40be6542db1a2cc846c7f51f",
-		"polaris.healthcheck": "846c1866010b40b7f51fe6542db1a2cc",
 		"polaris.checker":     "fbca9bfa04ae4ead86e1ecf5811e32a9",
-		"polaris.monitor":     "bbfdda174ea64e11ac862adf14593c03",
-		"polaris.config":      "e6542db1a2cc846c1866010b40b7f51f",
 	}
 
 	mainUser = &model.User{
@@ -280,6 +279,8 @@ func (m *boltStore) newDiscoverModuleStore() error {
 	m.rateLimitStore = &rateLimitStore{handler: m.handler}
 
 	m.circuitBreakerStore = &circuitBreakerStore{handler: m.handler}
+
+	m.routingStoreV2 = &routingStoreV2{handler: m.handler}
 
 	return nil
 }

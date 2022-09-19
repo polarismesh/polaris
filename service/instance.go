@@ -29,6 +29,7 @@ import (
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	instancecommon "github.com/polarismesh/polaris-server/common/service"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
@@ -161,7 +162,7 @@ func (s *Server) asyncCreateInstance(ctx context.Context, svcId string, req *api
 		return nil, api.NewInstanceResponse(future.Code(), req)
 	}
 
-	return utils.CreateInstanceModel(svcId, req), nil
+	return instancecommon.CreateInstanceModel(svcId, req), nil
 }
 
 // 同步串行创建实例
@@ -182,7 +183,7 @@ func (s *Server) serialCreateInstance(ctx context.Context, svcId string, req *ap
 		ins.Isolate = instance.Proto.Isolate
 	}
 	// 直接同步创建服务实例
-	data := utils.CreateInstanceModel(svcId, ins)
+	data := instancecommon.CreateInstanceModel(svcId, ins)
 	if err := s.storage.AddInstance(data); err != nil {
 		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
 		return nil, wrapperInstanceStoreResponse(req, err)
@@ -709,6 +710,37 @@ func (s *Server) GetInstances(ctx context.Context, query map[string]string) *api
 	out.Instances = apiInstances
 
 	return out
+}
+
+func (s *Server) GetInstanceLabels(ctx context.Context, query map[string]string) *api.Response {
+	var (
+		serviceId string
+		namespace = DefaultNamespace
+	)
+
+	if val, ok := query["namespace"]; ok {
+		namespace = val
+	}
+
+	if service, ok := query["service"]; ok {
+		svc := s.Cache().Service().GetServiceByName(service, namespace)
+		if svc != nil {
+			serviceId = svc.ID
+		}
+	}
+
+	if id, ok := query["service_id"]; ok {
+		serviceId = id
+	}
+
+	if serviceId == "" {
+		return api.NewResponse(api.NotFoundService)
+	}
+
+	ret := s.Cache().Instance().GetInstanceLabels(serviceId)
+	resp := api.NewResponse(api.ExecuteSuccess)
+	resp.InstanceLabels = ret
+	return resp
 }
 
 // GetInstancesCount 查询总的服务实例，不带过滤条件的

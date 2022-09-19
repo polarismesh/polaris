@@ -346,7 +346,34 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_Exact{Exact: matchString.GetValue().GetValue()}},
 									},
 								}
-							} else {
+							}
+							if matchString.Type == api.MatchString_NOT_EQUALS {
+								headerMatch = &route.HeaderMatcher{
+									Name: headerSubName,
+									HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_Exact{Exact: matchString.GetValue().GetValue()}},
+									},
+									InvertMatch: true,
+								}
+							}
+							if matchString.Type == api.MatchString_IN {
+								headerMatch = &route.HeaderMatcher{
+									Name: headerSubName,
+									HeaderMatchSpecifier: &route.HeaderMatcher_ContainsMatch{
+										ContainsMatch: matchString.GetValue().GetValue(),
+									},
+								}
+							}
+							if matchString.Type == api.MatchString_NOT_IN {
+								headerMatch = &route.HeaderMatcher{
+									Name: headerSubName,
+									HeaderMatchSpecifier: &route.HeaderMatcher_ContainsMatch{
+										ContainsMatch: matchString.GetValue().GetValue(),
+									},
+									InvertMatch: true,
+								}
+							}
+							if matchString.Type == api.MatchString_REGEX {
 								headerMatch = &route.HeaderMatcher{
 									Name: headerSubName,
 									HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -371,7 +398,8 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_Exact{Exact: matchString.GetValue().GetValue()}},
 									},
 								}
-							} else {
+							}
+							if matchString.Type == api.MatchString_REGEX {
 								queryMatcher = &route.QueryParameterMatcher{
 									Name: querySubName,
 									QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{

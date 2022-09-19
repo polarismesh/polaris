@@ -139,6 +139,7 @@ func (h *HTTPServerV1) addDefaultAccess(ws *restful.WebService) {
 	ws.Route(ws.PUT("/instances/isolate/host").To(h.UpdateInstancesIsolate))
 	ws.Route(ws.GET("/instances").To(h.GetInstances))
 	ws.Route(ws.GET("/instances/count").To(h.GetInstancesCount))
+	ws.Route(ws.GET("/instances/labels").To(h.GetInstanceLabels))
 
 	ws.Route(ws.POST("/routings").To(h.CreateRoutings))
 	ws.Route(ws.POST("/routings/delete").To(h.DeleteRoutings))
@@ -577,6 +578,14 @@ func (h *HTTPServerV1) GetInstancesCount(req *restful.Request, rsp *restful.Resp
 	handler := &httpcommon.Handler{req, rsp}
 
 	ret := h.namingServer.GetInstancesCount(handler.ParseHeaderContext())
+	handler.WriteHeaderAndProto(ret)
+}
+
+// GetInstanceLabels 查询某个服务下所有实例的标签信息
+func (h *HTTPServerV1) GetInstanceLabels(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{req, rsp}
+
+	ret := h.namingServer.GetInstanceLabels(handler.ParseHeaderContext(), httpcommon.ParseQueryParams(req))
 	handler.WriteHeaderAndProto(ret)
 }
 

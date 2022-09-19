@@ -19,7 +19,6 @@ package v2
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/proto"
@@ -83,6 +82,7 @@ func (h *HTTPServerV2) addDefaultAccess(ws *restful.WebService) {
 	ws.Route(ws.POST("/routings/delete").To(h.DeleteRoutings))
 	ws.Route(ws.PUT("/routings").To(h.UpdateRoutings))
 	ws.Route(ws.GET("/routings").To(h.GetRoutings))
+	ws.Route(ws.PUT("/routings/enable").To(h.EnableRoutings))
 }
 
 // CreateRoutings 创建规则路由
@@ -120,11 +120,6 @@ func (h *HTTPServerV2) DeleteRoutings(req *restful.Request, rsp *restful.Respons
 	}
 
 	ret := h.namingServer.DeleteRoutingConfigsV2(ctx, routings)
-	if code := apiv2.CalcCode(ret); code != http.StatusOK {
-		handler.WriteHeaderAndProtoV2(ret)
-		return
-	}
-
 	handler.WriteHeaderAndProtoV2(ret)
 }
 
@@ -144,11 +139,6 @@ func (h *HTTPServerV2) UpdateRoutings(req *restful.Request, rsp *restful.Respons
 	}
 
 	ret := h.namingServer.UpdateRoutingConfigsV2(ctx, routings)
-	if code := apiv2.CalcCode(ret); code != http.StatusOK {
-		handler.WriteHeaderAndProtoV2(ret)
-		return
-	}
-
 	handler.WriteHeaderAndProtoV2(ret)
 }
 
@@ -158,5 +148,24 @@ func (h *HTTPServerV2) GetRoutings(req *restful.Request, rsp *restful.Response) 
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ret := h.namingServer.GetRoutingConfigsV2(handler.ParseHeaderContext(), queryParams)
+	handler.WriteHeaderAndProtoV2(ret)
+}
+
+// EnableRoutings 查询规则路由
+func (h *HTTPServerV2) EnableRoutings(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{req, rsp}
+
+	var routings RoutingArr
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &apiv2.Routing{}
+		routings = append(routings, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProtoV2(apiv2.NewBatchWriteResponseWithMsg(apiv1.ParseException, err.Error()))
+		return
+	}
+
+	ret := h.namingServer.EnableRoutings(ctx, routings)
 	handler.WriteHeaderAndProtoV2(ret)
 }

@@ -19,6 +19,7 @@ package sqldb
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -92,6 +93,27 @@ func (rs *routingConfigStore) DeleteRoutingConfig(serviceID string) error {
 		return store.Error(err)
 	}
 
+	return nil
+}
+
+// DeleteRoutingConfigTx 删除
+func (rs *routingConfigStore) DeleteRoutingConfigTx(tx store.Tx, serviceID string) error {
+	if tx == nil {
+		return errors.New("transaction is nil")
+	}
+
+	if serviceID == "" {
+		log.Errorf("[Store][database] delete routing config missing service id")
+		return store.NewStatusError(store.EmptyParamsErr, "missing service id")
+	}
+
+	dbTx := tx.GetDelegateTx().(*BaseTx)
+
+	str := `update routing_config set flag = 1, mtime = sysdate() where id = ?`
+	if _, err := dbTx.Exec(str, serviceID); err != nil {
+		log.Errorf("[Store][database] delete routing config(%s) err: %s", serviceID, err.Error())
+		return store.Error(err)
+	}
 	return nil
 }
 

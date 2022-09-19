@@ -21,3 +21,4 @@ message DiscoverRequest {
   Service service = 2;
   reserved 3 to 4;
 }
+

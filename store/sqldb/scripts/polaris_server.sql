@@ -254,51 +254,7 @@ VALUES ('fbca9bfa04ae4ead86e1ecf5811e32a9',
         'polaris',
         0,
         '2021-09-06 07:55:07',
-        '2021-09-06 07:55:09'),
-       ('bbfdda174ea64e11ac862adf14593c03',
-        'polaris.monitor',
-        'Polaris',
-        'polaris monitor service',
-        'polaris',
-        '50b4e7d8affa4634b52523d398d1a369',
-        '3649b17283d94d7baee5fb5d8160a225',
-        'polaris',
-        0,
-        '2021-09-06 07:55:07',
-        '2021-09-06 07:55:11'),
-       ('e6542db1a2cc846c1866010b40b7f51f',
-        'polaris.config',
-        'Polaris',
-        'polaris config service',
-        'polaris',
-        'c874d9a0a4b45c82c93e6bf285518c7b',
-        '769ec01f58875088faf2cb9e44a4b2d2',
-        'polaris',
-        0,
-        '2021-09-06 07:55:07',
-        '2021-09-06 07:55:11'),
-       ('1866010b40be6542db1a2cc846c7f51f',
-        'polaris.discover',
-        'Polaris',
-        'polaris discover service',
-        'polaris',
-        '2a54df30a6fd4910bdb601dd40b6d58e',
-        '5060b13df17240d8-84001e5ae0216c48',
-        'polaris',
-        0,
-        '2021-09-06 07:55:07',
-        '2021-09-06 07:55:11'),
-       ('846c1866010b40b7f51fe6542db1a2cc',
-        'polaris.healthcheck',
-        'Polaris',
-        'polaris health check service',
-        'polaris',
-        '254b202a965541a5966b725ae18a6613',
-        'aaa44f501ebb4884b0f5c005666ecca1',
-        'polaris',
-        0,
-        '2021-09-06 07:55:07',
-        '2021-09-06 07:55:11');
+        '2021-09-06 07:55:09');
 
 -- --------------------------------------------------------
 --
@@ -935,3 +891,48 @@ CREATE TABLE `config_file_template` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_name` (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='配置文件模板表';
+
+INSERT INTO `config_file_template` (`name`, `content`, `format`, `comment`, `create_time`
+	, `create_by`, `modify_time`, `modify_by`)
+VALUES ("spring-cloud-gateway-braining", '{
+    "rules":[
+        {
+            "conditions":[
+                {
+                    "key":"${http.query.uid}",
+                    "values":["10000"],
+                    "operation":"EQUALS"
+                }
+            ],
+            "labels":[
+                {
+                    "key":"env",
+                    "value":"green"
+                }
+            ]
+        }
+    ]
+}', "json", "Spring Cloud Gateway  染色规则", NOW()
+	, "polaris", NOW(), "polaris");
+
+-- v1.12.0
+CREATE TABLE `routing_config_v2`
+(
+    `id`       VARCHAR(128) NOT NULL,
+    `name`     VARCHAR(64) NOT NULL default '',
+    `namespace`     VARCHAR(64) NOT NULL default '',
+    `policy`   VARCHAR(64) NOT NULL,
+    `config`   TEXT,
+    `enable`   INT         NOT NULL DEFAULT 0,
+    `revision` VARCHAR(40) NOT NULL,
+    `description` VARCHAR(500) NOT NULL DEFAULT '',
+    `priority`   smallint(6)    NOT NULL DEFAULT '0' comment 'ratelimit rule priority',
+    `flag`     TINYINT(4)  NOT NULL DEFAULT '0',
+    `ctime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `mtime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `etime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `extend_info` VARCHAR(1024) DEFAULT '',
+    PRIMARY KEY (`id`),
+    KEY `mtime` (`mtime`)
+) engine = innodb;
+

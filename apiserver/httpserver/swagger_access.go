@@ -21,14 +21,17 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
 	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
+	"github.com/polarismesh/polaris-server/common/version"
 )
 
 func (h *HTTPServer) enableSwaggerAPI(wsContainer *restful.Container) {
-	log.Infof("open http access for swagger API")
+	log.Infof("[HTTPServer] open http access for swagger API")
 	config := restfulspec.Config{
 		WebServices:                   wsContainer.RegisteredWebServices(), // you control what services are visible
 		APIPath:                       "/apidocs.json",
-		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
+		PostBuildSwaggerObjectHandler: enrichSwaggerObject,
+	}
+
 	wsContainer.Add(restfulspec.NewOpenAPIService(config))
 }
 
@@ -50,7 +53,7 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 					URL:  "https://github.com/polarismesh/polaris/blob/main/LICENSE",
 				},
 			},
-			Version: "v1.12.0-alpha",
+			Version: version.GetRevision(),
 		},
 	}
 	swo.Tags = []spec.Tag{

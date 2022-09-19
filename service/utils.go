@@ -89,6 +89,9 @@ const (
 
 	// ratelimit表
 	MaxDbRateLimitName = 64
+
+	// routing_config_v2 表
+	MaxDbRoutingName = 64
 )
 
 // checkResourceName 检查资源Name

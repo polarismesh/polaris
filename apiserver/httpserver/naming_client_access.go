@@ -62,9 +62,10 @@ func (h *HTTPServer) GetClientAccessServer(include []string) (*restful.WebServic
 
 // addDiscoverAccess 增加服务发现接口
 func (h *HTTPServer) addDiscoverAccess(ws *restful.WebService) {
-	tags := []string{"RegisterInstance"}
+	tags := []string{"DiscoverAccess"}
 	ws.Route(ws.POST("/ReportClient").To(h.ReportClient).
 		Doc("上报客户端").
+		Writes(&api.Client{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.POST("/Discover").To(h.Discover).
 		Doc("服务发现").
@@ -73,7 +74,7 @@ func (h *HTTPServer) addDiscoverAccess(ws *restful.WebService) {
 
 // addRegisterAccess 增加注册/反注册接口
 func (h *HTTPServer) addRegisterAccess(ws *restful.WebService) {
-	tags := []string{"Instances", "RegisterInstance"}
+	tags := []string{"Instances", "RegisterAccess"}
 	ws.Route(ws.POST("/RegisterInstance").
 		Doc("注册实例").
 		Metadata(restfulspec.KeyOpenAPITags, tags).

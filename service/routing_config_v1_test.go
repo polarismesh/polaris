@@ -169,7 +169,6 @@ func TestDeleteRoutingConfig(t *testing.T) {
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
 		_, resp := discoverSuit.createCommonRoutingConfig(t, serviceResp, 3, 0)
-		resp.ServiceToken = utils.NewStringValue(serviceResp.GetToken().GetValue())
 		discoverSuit.deleteCommonRoutingConfig(t, resp)
 		defer discoverSuit.cleanCommonRoutingConfig(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 

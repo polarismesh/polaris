@@ -46,8 +46,10 @@ func CalcCode(rm ResponseMessage) int {
 func (b *BatchWriteResponse) Collect(response *Response) {
 	// 非200的code，都归为异常
 	if CalcCode(response) != 200 {
-		b.Code = v1.ExecuteException
-		b.Info = v1.Code2Info(v1.ExecuteException)
+		if response.GetCode() >= b.GetCode() {
+			b.Code = response.GetCode()
+			b.Info = v1.Code2Info(b.GetCode())
+		}
 	}
 
 	b.Size++
@@ -196,4 +198,24 @@ func FormatBatchWriteResponse(response *BatchWriteResponse) *BatchWriteResponse 
 		response.Info = v1.Code2Info(response.Code)
 	}
 	return response
+}
+
+/**
+ * @brief 创建查询服务路由回复
+ */
+func NewDiscoverRoutingResponse(code uint32, service *Service) *DiscoverResponse {
+	return &DiscoverResponse{
+		Code:    code,
+		Info:    v1.Code2Info(code),
+		Type:    DiscoverResponse_ROUTING,
+		Service: service,
+	}
+}
+
+// 创建一个空白的discoverResponse
+func NewDiscoverResponse(code uint32) *DiscoverResponse {
+	return &DiscoverResponse{
+		Code: code,
+		Info: v1.Code2Info(code),
+	}
 }
