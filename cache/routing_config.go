@@ -32,6 +32,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 )
 
 const (
@@ -40,6 +41,7 @@ const (
 )
 
 type (
+	// RoutingIterProc 遍历路由规则的方法定义
 	RoutingIterProc func(key string, value *v2.ExtendRoutingConfig)
 
 	// RoutingConfigCache routing配置的cache接口
@@ -69,6 +71,8 @@ type (
 
 		lastMtimeV1 time.Time
 		lastMtimeV2 time.Time
+
+		singleFlight singleflight.Group
 	}
 )
 
@@ -107,23 +111,35 @@ func (rc *routingConfigCache) initBuckets() {
 
 // update 实现Cache接口的函数
 func (rc *routingConfigCache) update(storeRollbackSec time.Duration) error {
+	// 多个线程竞争，只有一个线程进行更新
+	_, err, _ := rc.singleFlight.Do("RoutingCache", func() (interface{}, error) {
+		return nil, rc.realUpdate(storeRollbackSec)
+	})
+	return err
+
+}
+
+// update 实现Cache接口的函数
+func (rc *routingConfigCache) realUpdate(storeRollbackSec time.Duration) error {
 	outV1, err := rc.storage.GetRoutingConfigsForCache(rc.lastMtimeV1.Add(storeRollbackSec), rc.firstUpdate)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache] routing config v1 cache update err: %s", err.Error())
+		log.CacheScope().Errorf("[Cache] routing config v1 cache get from store err: %s", err.Error())
 		return err
 	}
 
 	outV2, err := rc.storage.GetRoutingConfigsV2ForCache(rc.lastMtimeV2.Add(storeRollbackSec), rc.firstUpdate)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache] routing config v2 cache update err: %s", err.Error())
+		log.CacheScope().Errorf("[Cache] routing config v2 cache get from store err: %s", err.Error())
 		return err
 	}
 
 	rc.firstUpdate = false
 	if err := rc.setRoutingConfigV1(outV1); err != nil {
+		log.CacheScope().Errorf("[Cache] routing config v1 cache update err: %s", err.Error())
 		return err
 	}
 	if err := rc.setRoutingConfigV2(outV2); err != nil {
+		log.CacheScope().Errorf("[Cache] routing config v2 cache update err: %s", err.Error())
 		return err
 	}
 
@@ -149,40 +165,36 @@ func (rc *routingConfigCache) name() string {
 // GetRoutingConfig 根据ServiceID获取路由配置
 // case 1: 如果只存在 v2 的路由规则，使用 v2
 // case 2: 如果只存在 v1 的路由规则，使用 v1
-// case 3: 如果 v1 和 v2 同时存在，将 v1 规则和 v2 规则进行合并
+// case 3: 如果同时存在 v1 和 v2 的路由规则，进行合并
 func (rc *routingConfigCache) GetRoutingConfigV1(id, service, namespace string) (*apiv1.Routing, error) {
 	if id == "" && service == "" && namespace == "" {
 		return nil, nil
 	}
 
-	v2rules := rc.bucketV2.listByServiceWithPredicate(service, namespace, func(item *v2.ExtendRoutingConfig) bool {
-		if !item.Enable {
-			return false
-		}
-		return true
-	})
+	v2rules := rc.bucketV2.listByServiceWithPredicate(service, namespace,
+		// 只返回 enable 状态的路由规则进行下发
+		func(item *v2.ExtendRoutingConfig) bool {
+			return item.Enable
+		})
 	v1rules := rc.bucketV1.get(id)
 	if v2rules != nil && v1rules == nil {
 		return rc.convertRoutingV2toV1(v2rules, namespace, service), nil
 	}
 
 	if v2rules == nil && v1rules != nil {
-		return routingcommon.RoutingV1Config2API(v1rules, service, namespace)
+		return routingcommon.RoutingConfigV1ToAPI(v1rules, service, namespace)
 	}
 
-	compositeRule, err := routingcommon.RoutingV1Config2API(v1rules, service, namespace)
+	apiv1rule, err := routingcommon.RoutingConfigV1ToAPI(v1rules, service, namespace)
 	if err != nil {
 		return nil, err
 	}
-	compositeRule, revisions := routingcommon.CompositeRoutingV1AndV2(compositeRule,
+	compositeRule, revisions := routingcommon.CompositeRoutingV1AndV2(apiv1rule,
 		v2rules[level1RoutingV2], v2rules[level2RoutingV2], v2rules[level3RoutingV2])
-	if compositeRule == nil {
-		return nil, nil
-	}
 
 	revision, err := CompositeComputeRevision(revisions)
 	if err != nil {
-		log.Error("[Cache][Routing] v2=>v1 compute revisions", zap.Error(err))
+		log.CacheScope().Error("[Cache][Routing] v2=>v1 compute revisions", zap.Error(err))
 		return nil, err
 	}
 
@@ -192,9 +204,11 @@ func (rc *routingConfigCache) GetRoutingConfigV1(id, service, namespace string) 
 
 // GetRoutingConfigV2 根据服务信息获取该服务下的所有 v2 版本的规则路由
 func (rc *routingConfigCache) GetRoutingConfigV2(id, service, namespace string) ([]*apiv2.Routing, error) {
-	v2rules := rc.bucketV2.listByServiceWithPredicate(service, namespace, func(item *v2.ExtendRoutingConfig) bool {
-		return item.Enable
-	})
+	v2rules := rc.bucketV2.listByServiceWithPredicate(service, namespace,
+		func(item *v2.ExtendRoutingConfig) bool {
+			return item.Enable
+		})
+
 	ret := make([]*apiv2.Routing, 0, len(v2rules))
 	for level := range v2rules {
 		items := v2rules[level]
@@ -218,7 +232,7 @@ func (rc *routingConfigCache) IteratorRoutings(iterProc RoutingIterProc) {
 
 // GetRoutingConfigCount 获取路由配置缓存的总个数
 func (rc *routingConfigCache) GetRoutingConfigCount() int {
-	return rc.bucketV1.size() + rc.bucketV2.size()
+	return rc.bucketV2.size()
 }
 
 // setRoutingConfigV1 更新store的数据到cache中
@@ -246,9 +260,8 @@ func (rc *routingConfigCache) setRoutingConfigV1(cs []*model.RoutingConfig) erro
 		// 保存到老的 v1 缓存
 		rc.bucketV1.save(entry)
 		// 保存到新的 v2 缓存
-
 		if v2rule, err := rc.convertRoutingV1toV2(entry); err != nil {
-			log.Error("[Cache] routing parse v1 => v2", zap.String("rule-id", entry.ID), zap.Error(err))
+			log.CacheScope().Error("[Cache] routing parse v1 => v2", zap.String("rule-id", entry.ID), zap.Error(err))
 		} else {
 			rc.bucketV2.saveV1(entry, v2rule)
 		}
@@ -280,7 +293,7 @@ func (rc *routingConfigCache) setRoutingConfigV2(cs []*v2.RoutingConfig) error {
 		}
 		extendEntry, err := entry.ToExpendRoutingConfig()
 		if err != nil {
-			log.Error("[Cache] routing config v2 convert to expend", zap.Error(err))
+			log.CacheScope().Error("[Cache] routing config v2 convert to expend", zap.Error(err))
 			continue
 		}
 		rc.bucketV2.saveV2(extendEntry)
@@ -384,7 +397,7 @@ func (rc *routingConfigCache) convertRoutingV2toV1(entries map[routingLevel][]*v
 	revisions = append(revisions, level3Revisions...)
 	revision, err := CompositeComputeRevision(revisions)
 	if err != nil {
-		log.Error("[Cache][Routing] v2=>v1 compute revisions", zap.Error(err))
+		log.CacheScope().Error("[Cache][Routing] v2=>v1 compute revisions", zap.Error(err))
 		return nil
 	}
 

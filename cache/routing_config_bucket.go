@@ -29,6 +29,11 @@ import (
 type (
 	routingLevel int16
 	boundType    int16
+
+	serviceInfo interface {
+		GetNamespace() string
+		GetService() string
+	}
 )
 
 const (
@@ -64,7 +69,7 @@ func newRoutingBucketV2() *routingBucketV2 {
 	}
 }
 
-// routingBucketV1
+// routingBucketV1 v1 路由规则缓存 bucket
 type routingBucketV1 struct {
 	lock  sync.RWMutex
 	rules map[string]*model.RoutingConfig
@@ -103,7 +108,7 @@ type routingBucketV2 struct {
 	lock sync.RWMutex
 	// rules id => routing rule
 	rules map[string]*v2.ExtendRoutingConfig
-	// level1Rules service(name)+namespace => 路由规则ID列表
+	// level1Rules service(name)+namespace => 路由规则ID列表，只针对某个具体的服务有效
 	level1Rules map[string]map[string]struct{}
 	// level2Rules service(*) + namesapce =>  路由规则ID列表, 针对某个命名空间下所有服务都生效的路由规则
 	level2Rules map[boundType]map[string]map[string]struct{}
@@ -113,16 +118,11 @@ type routingBucketV2 struct {
 	v1rules map[string][]*v2.ExtendRoutingConfig
 }
 
-func (b *routingBucketV2) get(id string) *v2.ExtendRoutingConfig {
+func (b *routingBucketV2) getV2(id string) *v2.ExtendRoutingConfig {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 
 	return b.rules[id]
-}
-
-type serviceInfo interface {
-	GetNamespace() string
-	GetService() string
 }
 
 func (b *routingBucketV2) saveV2(conf *v2.ExtendRoutingConfig) {
@@ -226,7 +226,13 @@ func (b *routingBucketV2) size() int {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 
-	return len(b.rules)
+	cnt := len(b.rules)
+
+	for k := range b.v1rules {
+		cnt += len(b.v1rules[k])
+	}
+
+	return cnt
 }
 
 // listByService 通过服务名称查询 v2 版本的路由规则

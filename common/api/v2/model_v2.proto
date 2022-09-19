@@ -4,6 +4,7 @@ package v2;
 
 import "google/protobuf/wrappers.proto";
 
+// MatchString 这里的序号需要保证和 v1.MatchSrting 保持一致
 message MatchString {
   enum MatchStringType {
     // Equivalent match

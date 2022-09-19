@@ -26,11 +26,11 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	authcommon "github.com/polarismesh/polaris-server/common/auth"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
-	authcommon 	"github.com/polarismesh/polaris-server/common/auth"
 )
 
 type (
@@ -96,6 +96,7 @@ func (svr *server) UpdateStrategies(ctx context.Context, reqs []*api.ModifyAuthS
 // UpdateStrategy 实现鉴权策略的变更
 // Case 1. 修改的是默认鉴权策略的话，只能修改资源，不能添加、删除用户 or 用户组
 // Case 2. 鉴权策略只能被自己的 owner 对应的用户修改
+// Case 3. 主账户的默认策略不得修改
 func (svr *server) UpdateStrategy(ctx context.Context, req *api.ModifyAuthStrategy) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 
@@ -716,6 +717,13 @@ func (svr *server) checkUpdateStrategy(ctx context.Context, req *api.ModifyAuthS
 			len(req.RemovePrincipals.Groups) != 0 ||
 			len(req.RemovePrincipals.Users) != 0 {
 			return api.NewModifyAuthStrategyResponse(api.NotAllowModifyDefaultStrategyPrincipal, req)
+		}
+
+		// 主账户的默认策略禁止编辑
+		if len(saved.Principals) == 1 && saved.Principals[0].PrincipalRole == model.PrincipalUser {
+			if saved.Principals[0].PrincipalID == utils.ParseOwnerID(ctx) {
+				return api.NewResponse(api.NotAllowModifyOwnerDefaultStrategy)
+			}
 		}
 	}
 

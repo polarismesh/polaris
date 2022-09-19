@@ -403,7 +403,7 @@ func routingRecordEntry(ctx context.Context, req *api.Routing, md *model.Routing
 func routingV2RecordEntry(ctx context.Context, req *apiv2.Routing, md *v2.RoutingConfig,
 	opt model.OperationType) *model.RecordEntry {
 	entry := &model.RecordEntry{
-		ResourceType:  model.RRouting,
+		ResourceType:  model.RRoutingV2,
 		OperationType: opt,
 		Namespace:     req.GetNamespace(),
 		Operator:      ParseOperator(ctx),

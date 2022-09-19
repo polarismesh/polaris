@@ -425,6 +425,7 @@ const (
 	RNamespace         Resource = "Namespace"
 	RService           Resource = "Service"
 	RRouting           Resource = "Routing"
+	RRoutingV2         Resource = "RoutingV2"
 	RInstance          Resource = "Instance"
 	RRateLimit         Resource = "RateLimit"
 	RMeshResource      Resource = "MeshResource"

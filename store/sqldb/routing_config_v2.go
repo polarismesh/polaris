@@ -69,7 +69,7 @@ func (r *routingConfigStoreV2) CreateRoutingConfigV2(conf *v2.RoutingConfig) err
 
 func (r *routingConfigStoreV2) CreateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingConfig) error {
 	if tx == nil {
-		return errors.New("transaction is nil")
+		return errors.New("tx is nil")
 	}
 
 	dbTx := tx.GetDelegateTx().(*BaseTx)
@@ -79,7 +79,7 @@ func (r *routingConfigStoreV2) CreateRoutingConfigV2Tx(tx store.Tx, conf *v2.Rou
 func (r *routingConfigStoreV2) createRoutingConfigV2Tx(tx *BaseTx, conf *v2.RoutingConfig) error {
 
 	insertSQL := "INSERT INTO routing_config_v2(id, namespace, name, policy, config, enable, " +
-		" priority, revision, ctime, mtime, etime) VALUES (?,?,?,?,?,?,?,?,sysdate(),sysdate(),%s)"
+		" priority, revision, description, ctime, mtime, etime) VALUES (?,?,?,?,?,?,?,?,?,sysdate(),sysdate(),%s)"
 
 	var enable int
 	if conf.Enable {
@@ -93,7 +93,7 @@ func (r *routingConfigStoreV2) createRoutingConfigV2Tx(tx *BaseTx, conf *v2.Rout
 	log.Debug("[Store][database] create routing v2", zap.String("sql", insertSQL))
 
 	if _, err := tx.Exec(insertSQL, conf.ID, conf.Namespace, conf.Name, conf.Policy,
-		conf.Config, enable, conf.Priority, conf.Revision); err != nil {
+		conf.Config, enable, conf.Priority, conf.Revision, conf.Description); err != nil {
 		log.Errorf("[Store][database] create routing v2(%+v) err: %s", conf, err.Error())
 		return store.Error(err)
 	}
@@ -124,7 +124,7 @@ func (r *routingConfigStoreV2) UpdateRoutingConfigV2(conf *v2.RoutingConfig) err
 
 func (r *routingConfigStoreV2) UpdateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingConfig) error {
 	if tx == nil {
-		return errors.New("transaction is nil")
+		return errors.New("tx is nil")
 	}
 
 	dbTx := tx.GetDelegateTx().(*BaseTx)
@@ -141,9 +141,9 @@ func (r *routingConfigStoreV2) updateRoutingConfigV2Tx(tx *BaseTx, conf *v2.Rout
 		return store.NewStatusError(store.EmptyParamsErr, "missing some params")
 	}
 
-	str := "update routing_config_v2 set policy = ?, config = ?, revision = ?, priority = ?, " +
-		" mtime = sysdate() where id = ? and namespace = ?"
-	if _, err := tx.Exec(str, conf.Policy, conf.Config, conf.Revision, conf.Priority,
+	str := "update routing_config_v2 set name = ?, policy = ?, config = ?, revision = ?, priority = ?, " +
+		" description = ?, mtime = sysdate() where id = ? and namespace = ?"
+	if _, err := tx.Exec(str, conf.Name, conf.Policy, conf.Config, conf.Revision, conf.Priority, conf.Description,
 		conf.ID, conf.Namespace); err != nil {
 		log.Errorf("[Store][database] update routing config v2(%+v) exec err: %s", conf, err.Error())
 		return store.Error(err)
@@ -202,7 +202,7 @@ func (r *routingConfigStoreV2) DeleteRoutingConfigV2(ruleID string) error {
 // GetRoutingConfigsV2ForCache 通过mtime拉取增量的路由配置信息
 // 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 func (r *routingConfigStoreV2) GetRoutingConfigsV2ForCache(mtime time.Time, firstUpdate bool) ([]*v2.RoutingConfig, error) {
-	str := `select id, name, policy, config, enable, revision, flag,
+	str := `select id, name, policy, config, enable, revision, flag, priority, description, 
 	unix_timestamp(ctime), unix_timestamp(mtime), unix_timestamp(etime)  
 	from routing_config_v2 where mtime > FROM_UNIXTIME(?) `
 
@@ -247,7 +247,7 @@ func (r *routingConfigStoreV2) GetRoutingConfigV2WithIDTx(tx store.Tx, ruleID st
 
 func (r *routingConfigStoreV2) getRoutingConfigV2WithIDTx(tx *BaseTx, ruleID string) (*v2.RoutingConfig, error) {
 
-	str := `select id, name, policy, config, enable, revision, flag,
+	str := `select id, name, policy, config, enable, revision, flag, priority, description,
 	unix_timestamp(ctime), unix_timestamp(mtime), unix_timestamp(etime)
 	from routing_config_v2 
 	where id = ? and flag = 0`
@@ -281,7 +281,7 @@ func fetchRoutingConfigV2Rows(rows *sql.Rows) ([]*v2.RoutingConfig, error) {
 		)
 
 		err := rows.Scan(&entry.ID, &entry.Name, &entry.Policy, &entry.Config, &enable, &entry.Revision,
-			&flag, &ctime, &mtime, &etime)
+			&flag, &entry.Priority, &entry.Description, &ctime, &mtime, &etime)
 		if err != nil {
 			log.Errorf("[database][store] fetch routing config v2 scan err: %s", err.Error())
 			return nil, err

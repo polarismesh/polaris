@@ -19,13 +19,12 @@ package boltdb
 
 import (
 	"errors"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/boltdb/bolt"
 	v2 "github.com/polarismesh/polaris-server/common/model/v2"
 	"github.com/polarismesh/polaris-server/store"
+	"go.uber.org/zap"
 )
 
 var (
@@ -35,18 +34,19 @@ var (
 const (
 	tblNameRoutingV2 = "routing_config_v2"
 
-	routingV2FieldID         = "ID"
-	routingV2FieldName       = "Name"
-	routingV2FieldNamespace  = "Namespace"
-	routingV2FieldPolicy     = "Policy"
-	routingV2FieldConfig     = "Config"
-	routingV2FieldEnable     = "Enable"
-	routingV2FieldRevision   = "Revision"
-	routingV2FieldCreateTime = "CreateTime"
-	routingV2FieldModifyTime = "ModifyTime"
-	routingV2FieldEnableTime = "EnableTime"
-	routingV2FieldValid      = "Valid"
-	routingV2FieldPriority   = "Priority"
+	routingV2FieldID          = "ID"
+	routingV2FieldName        = "Name"
+	routingV2FieldNamespace   = "Namespace"
+	routingV2FieldPolicy      = "Policy"
+	routingV2FieldConfig      = "Config"
+	routingV2FieldEnable      = "Enable"
+	routingV2FieldRevision    = "Revision"
+	routingV2FieldCreateTime  = "CreateTime"
+	routingV2FieldModifyTime  = "ModifyTime"
+	routingV2FieldEnableTime  = "EnableTime"
+	routingV2FieldValid       = "Valid"
+	routingV2FieldPriority    = "Priority"
+	routingV2FieldDescription = "Description"
 )
 
 type routingStoreV2 struct {
@@ -141,11 +141,13 @@ func (r *routingStoreV2) UpdateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingCo
 func (r *routingStoreV2) updateRoutingConfigV2Tx(tx *bolt.Tx, conf *v2.RoutingConfig) error {
 	properties := make(map[string]interface{})
 	properties[routingV2FieldEnable] = conf.Enable
+	properties[routingV2FieldName] = conf.Name
 	properties[routingV2FieldEnableTime] = conf.EnableTime
 	properties[routingV2FieldPolicy] = conf.Policy
 	properties[routingV2FieldConfig] = conf.Config
 	properties[routingV2FieldPriority] = conf.Priority
 	properties[routingV2FieldRevision] = conf.Revision
+	properties[routingV2FieldDescription] = conf.Description
 	properties[routingV2FieldModifyTime] = time.Now()
 
 	err := updateValue(tx, tblNameRoutingV2, conf.ID, properties)
@@ -262,6 +264,7 @@ func (r *routingStoreV2) GetRoutingConfigV2WithIDTx(tx store.Tx, id string) (*v2
 func (r *routingStoreV2) getRoutingConfigV2WithIDTx(tx *bolt.Tx, id string) (*v2.RoutingConfig, error) {
 	ret := make(map[string]interface{})
 	if err := loadValues(tx, tblNameRoutingV2, []string{id}, &v2.RoutingConfig{}, ret); err != nil {
+		log.Errorf("[Store][boltdb] load route config v2 from kv", zap.String("routing-id", id), zap.Error(err))
 		return nil, err
 	}
 
@@ -279,37 +282,4 @@ func (r *routingStoreV2) getRoutingConfigV2WithIDTx(tx *bolt.Tx, id string) (*v2
 	}
 
 	return val, nil
-}
-
-func doPageRoutingV2(routeConf []*v2.RoutingConfig, offset, limit uint32) []*v2.RoutingConfig {
-
-	beginIndex := offset
-	endIndex := beginIndex + limit
-	totalCount := uint32(len(routeConf))
-	// handle invalid offset, limit
-	if totalCount == 0 {
-		return routeConf
-	}
-	if beginIndex >= endIndex {
-		return routeConf
-	}
-	if beginIndex >= totalCount {
-		return routeConf
-	}
-	if endIndex > totalCount {
-		endIndex = totalCount
-	}
-
-	sort.Slice(routeConf, func(i, j int) bool {
-		// sort by modify time
-		if routeConf[i].ModifyTime.After(routeConf[j].ModifyTime) {
-			return true
-		} else if routeConf[i].ModifyTime.Before(routeConf[j].ModifyTime) {
-			return false
-		} else {
-			return strings.Compare(routeConf[i].ID, routeConf[j].ID) < 0
-		}
-	})
-
-	return routeConf[beginIndex:endIndex]
 }

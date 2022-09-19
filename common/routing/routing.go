@@ -39,8 +39,8 @@ const (
 	_labelKeyCookie   = "$cookie"
 )
 
-// RoutingV1Config2API 把内部数据结构转换为API参数传递出去
-func RoutingV1Config2API(req *model.RoutingConfig, service string, namespace string) (*apiv1.Routing, error) {
+// RoutingConfigV1ToAPI 把内部数据结构转换为API参数传递出去
+func RoutingConfigV1ToAPI(req *model.RoutingConfig, service string, namespace string) (*apiv1.Routing, error) {
 	if req == nil {
 		return nil, nil
 	}
@@ -92,11 +92,10 @@ func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, level1, level2, level3 []*v2
 	level2inRoutes, level2outRoutes, level2Revisions := BuildV1RoutesFromV2(level2)
 	level3inRoutes, level3outRoutes, level3Revisions := BuildV1RoutesFromV2(level3)
 
-	// 全部认为是以默认位置进行创建，即追加的方式
 	inBounds := v1rule.GetInbounds()
 	outBounds := v1rule.GetOutbounds()
 
-	// 处理 inbounds 规则
+	// 处理 inbounds 规则，level1 cache -> v1rules -> level2 cache -> level3 cache
 	if len(level1inRoutes) > 0 {
 		v1rule.Inbounds = append(level1inRoutes, inBounds...)
 	}
@@ -107,7 +106,7 @@ func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, level1, level2, level3 []*v2
 		v1rule.Inbounds = append(v1rule.Inbounds, level3inRoutes...)
 	}
 
-	// 处理 outbounds 规则
+	// 处理 outbounds 规则，level1 cache -> v1rules -> level2 cache -> level3 cache
 	if len(level1outRoutes) > 0 {
 		v1rule.Outbounds = append(level1outRoutes, outBounds...)
 	}
@@ -118,8 +117,8 @@ func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, level1, level2, level3 []*v2
 		v1rule.Outbounds = append(v1rule.Outbounds, level3outRoutes...)
 	}
 
-	revisions := make([]string, 0, len(level1Revisions)+len(level2Revisions)+len(level3Revisions))
-	revisions = []string{v1rule.GetRevision().GetValue()}
+	revisions := make([]string, 0, 1+len(level1Revisions)+len(level2Revisions)+len(level3Revisions))
+	revisions = append(revisions, v1rule.GetRevision().GetValue())
 	if len(level1Revisions) > 0 {
 		revisions = append(revisions, level1Revisions...)
 	}
@@ -134,6 +133,7 @@ func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, level1, level2, level3 []*v2
 }
 
 // BuildV1RoutesFromV2 根据 v2 版本的路由规则适配成 v1 版本的路由规则，分为别 inBounds 以及 outBounds
+// retuen inBound outBound revisions
 func BuildV1RoutesFromV2(entries []*v2.ExtendRoutingConfig) ([]*apiv1.Route, []*apiv1.Route, []string) {
 	if len(entries) == 0 {
 		return []*apiv1.Route{}, []*apiv1.Route{}, []string{}
@@ -262,6 +262,7 @@ func BuildInBoundsFromV2(item *v2.ExtendRoutingConfig) []*apiv1.Route {
 	}
 }
 
+// RoutingLabels2Arguments 将旧的标签模型适配成参数列表
 func RoutingLabels2Arguments(labels map[string]*apiv1.MatchString) []*apiv2.SourceMatch {
 	if len(labels) == 0 {
 		return []*apiv2.SourceMatch{}
@@ -302,6 +303,8 @@ func RoutingArguments2Labels(args []*apiv2.SourceMatch) map[string]*apiv1.MatchS
 			key = _labelKeyCallerIP
 		case apiv2.SourceMatch_COOKIE:
 			key = _labelKeyCookie + "." + argument.Key
+		case apiv2.SourceMatch_PATH:
+			key = _labelKeyPath + "." + argument.Key
 		default:
 			continue
 		}
@@ -316,8 +319,8 @@ func RoutingArguments2Labels(args []*apiv2.SourceMatch) map[string]*apiv1.MatchS
 	return labels
 }
 
-// BuildV2Routing 构建 v2 版本的API数据对象路由规则
-func BuildV2Routing(req *apiv1.Routing, route *apiv1.Route) (*apiv2.Routing, error) {
+// BuildV2RoutingFromV1Route 构建 v2 版本的API数据对象路由规则
+func BuildV2RoutingFromV1Route(req *apiv1.Routing, route *apiv1.Route) (*apiv2.Routing, error) {
 	rule := ConvertV1RouteToV2Route(route)
 	any, err := ptypes.MarshalAny(rule)
 	if err != nil {
@@ -352,7 +355,8 @@ func BuildV2ExtendRouting(req *apiv1.Routing, route *apiv1.Route) (*v2.ExtendRou
 	var v2Id string
 	if extendInfo := route.GetExtendInfo(); len(extendInfo) > 0 {
 		v2Id = extendInfo[v2.V2RuleIDKey]
-	} else {
+	}
+	if v2Id == "" {
 		v2Id = utils.NewRoutingV2UUID()
 	}
 
@@ -360,7 +364,6 @@ func BuildV2ExtendRouting(req *apiv1.Routing, route *apiv1.Route) (*v2.ExtendRou
 		RoutingConfig: &v2.RoutingConfig{
 			ID:        v2Id,
 			Name:      "",
-			Namespace: req.GetNamespace().GetValue(),
 			Enable:    true,
 			Policy:    apiv2.RoutingPolicy_RulePolicy.String(),
 			Revision:  req.GetRevision().GetValue(),

@@ -39,28 +39,7 @@ CREATE TABLE `config_file_template` (
     `modify_by` varchar(32) COLLATE utf8_bin DEFAULT NULL COMMENT '最后更新人',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_name` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='配置文件模板表';
+) ENGINE=InnoDB COMMENT='配置文件模板表';
 
-INSERT INTO `config_file_template` (`name`, `content`, `format`, `comment`, `create_time`
-	, `create_by`, `modify_time`, `modify_by`)
-VALUES ("spring-cloud-gateway-braining", '{
-    "rules":[
-        {
-            "conditions":[
-                {
-                    "key":"${http.query.uid}",
-                    "values":["10000"],
-                    "operation":"EQUALS"
-                }
-            ],
-            "labels":[
-                {
-                    "key":"env",
-                    "value":"green"
-                }
-            ]
-        }
-    ]
-}', "json", "Spring Cloud Gateway  染色规则", NOW()
-	, "polaris", NOW(), "polaris");
+INSERT INTO `config_file_template` (`id`,`name`,`content`,`format`,`comment`,`create_time`,`create_by`,`modify_time`,`modify_by`) VALUES (2,'spring-cloud-gateway-braining','{\n \"rules\":[\n {\n \"conditions\":[\n {\n \"key\":\"${http.query.uid}\",\n \"values\":[\n \"10000\"\n ],\n \"operation\":\"EQUALS\"\n }\n ],\n \"labels\":[\n {\n \"key\":\"env\",\n \"value\":\"green\"\n }\n ]\n }\n ]\n}','json','Spring Cloud Gateway 染色规则','2022-08-18 10:54:46','polaris','2022-08-18 10:55:22','polaris');
 

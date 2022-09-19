@@ -27,26 +27,33 @@ import (
 )
 
 const (
-	V2RuleIDKey         = "__routing_v2_id__"
-	V1RuleIDKey         = "__routing_v1_id__"
+	// V2RuleIDKey v2 版本的规则路由 ID
+	V2RuleIDKey = "__routing_v2_id__"
+	// V1RuleIDKey v1 版本的路由规则 ID
+	V1RuleIDKey = "__routing_v1_id__"
+	// V1RuleRouteIndexKey v1 版本 route 规则在自己 route 链中的 index 信息
 	V1RuleRouteIndexKey = "__routing_v1_route_index__"
-	V1RuleRouteTypeKey  = "__routing_v1_route_type__"
-
-	V1RuleInRoute  = "in"
+	// V1RuleRouteTypeKey 标识当前 v2 路由规则在 v1 的 inBound 还是 outBound
+	V1RuleRouteTypeKey = "__routing_v1_route_type__"
+	// V1RuleInRoute inBound 类型
+	V1RuleInRoute = "in"
+	// V1RuleOutRoute outBound 类型
 	V1RuleOutRoute = "out"
 )
 
 var (
-	_ruleRoutingTypeUrl string
-	_metaRoutingTypeUrl string
+	// RuleRoutingTypeUrl 记录 anypb.Any 中关于 RuleRoutingConfig 的 url 信息
+	RuleRoutingTypeUrl string
+	// MetaRoutingTypeUrl 记录 anypb.Any 中关于 MetadataRoutingConfig 的 url 信息
+	MetaRoutingTypeUrl string
 )
 
 func init() {
 	ruleAny, _ := ptypes.MarshalAny(&apiv2.RuleRoutingConfig{})
 	metaAny, _ := ptypes.MarshalAny(&apiv2.MetadataRoutingConfig{})
 
-	_ruleRoutingTypeUrl = ruleAny.GetTypeUrl()
-	_metaRoutingTypeUrl = metaAny.GetTypeUrl()
+	RuleRoutingTypeUrl = ruleAny.GetTypeUrl()
+	MetaRoutingTypeUrl = metaAny.GetTypeUrl()
 }
 
 // ExtendRoutingConfig 路由信息的扩展
@@ -60,6 +67,7 @@ type ExtendRoutingConfig struct {
 	ExtendInfo map[string]string
 }
 
+// ToApi 转为 api 对象
 func (r *ExtendRoutingConfig) ToApi() (*apiv2.Routing, error) {
 
 	var (
@@ -91,6 +99,7 @@ func (r *ExtendRoutingConfig) ToApi() (*apiv2.Routing, error) {
 		Mtime:         commontime.Time2String(r.ModifyTime),
 		Etime:         commontime.Time2String(r.EnableTime),
 		Priority:      r.Priority,
+		Description:   r.Description,
 		ExtendInfo:    r.ExtendInfo,
 	}, nil
 }
@@ -113,6 +122,8 @@ type RoutingConfig struct {
 	Priority uint32 `json:"priority"`
 	// revision 路由规则的版本信息
 	Revision string `json:"revision"`
+	// Description 规则简单描述
+	Description string `json:"description"`
 	// valid 路由规则是否有效，没有被逻辑删除
 	Valid bool `json:"flag"`
 	// createtime 规则创建时间
@@ -123,6 +134,7 @@ type RoutingConfig struct {
 	EnableTime time.Time `json:"etime"`
 }
 
+// GetRoutingPolicy 查询路由规则类型
 func (r *RoutingConfig) GetRoutingPolicy() apiv2.RoutingPolicy {
 	v, ok := apiv2.RoutingPolicy_value[r.Policy]
 
@@ -133,6 +145,7 @@ func (r *RoutingConfig) GetRoutingPolicy() apiv2.RoutingPolicy {
 	return apiv2.RoutingPolicy(v)
 }
 
+// ToExpendRoutingConfig 转为扩展对象，提前序列化出相应的 pb struct
 func (r *RoutingConfig) ToExpendRoutingConfig() (*ExtendRoutingConfig, error) {
 	ret := &ExtendRoutingConfig{
 		RoutingConfig: r,
@@ -143,7 +156,7 @@ func (r *RoutingConfig) ToExpendRoutingConfig() (*ExtendRoutingConfig, error) {
 	if policy == apiv2.RoutingPolicy_RulePolicy {
 		rule := &apiv2.RuleRoutingConfig{}
 		if err := ptypes.UnmarshalAny(&anypb.Any{
-			TypeUrl: _ruleRoutingTypeUrl,
+			TypeUrl: RuleRoutingTypeUrl,
 			Value:   []byte(r.Config),
 		}, rule); err != nil {
 			return nil, err
@@ -154,7 +167,7 @@ func (r *RoutingConfig) ToExpendRoutingConfig() (*ExtendRoutingConfig, error) {
 	if policy == apiv2.RoutingPolicy_MetadataPolicy {
 		rule := &apiv2.MetadataRoutingConfig{}
 		if err := ptypes.UnmarshalAny(&anypb.Any{
-			TypeUrl: _metaRoutingTypeUrl,
+			TypeUrl: MetaRoutingTypeUrl,
 			Value:   []byte(r.Config),
 		}, rule); err != nil {
 			return nil, err
@@ -166,39 +179,16 @@ func (r *RoutingConfig) ToExpendRoutingConfig() (*ExtendRoutingConfig, error) {
 	return ret, nil
 }
 
+// ParseFromAPI 从 API 对象中转换出内部对象
 func (r *RoutingConfig) ParseFromAPI(routing *apiv2.Routing) error {
 	r.ID = routing.Id
 	r.Revision = routing.Revision
 	r.Name = routing.Name
-	r.Namespace = routing.Name
+	r.Namespace = routing.Namespace
 	r.Enable = routing.Enable
 	r.Policy = routing.GetRoutingPolicy().String()
 	r.Priority = routing.Priority
 	r.Config = string(routing.GetRoutingConfig().GetValue())
+	r.Description = routing.Description
 	return nil
-}
-
-// Arguments2Labels 将参数列表适配成旧的标签模型
-func (r *RoutingConfig) Arguments2Labels() bool {
-	if r.GetRoutingPolicy() == apiv2.RoutingPolicy_RulePolicy {
-
-		return true
-	}
-	return false
-}
-
-// AdaptArgumentsAndLabels 对存量标签进行兼容
-func (r *RoutingConfig) AdaptArgumentsAndLabels() error {
-	// 新的限流规则，需要适配老的SDK使用场景
-	if !r.Arguments2Labels() {
-		// 存量限流规则，需要适配成新的规则
-	}
-
-	return nil
-}
-
-// Labels2Arguments 适配老的标签到新的参数列表
-func (r *RoutingConfig) Labels2Arguments() (map[string]*apiv2.MatchString, error) {
-
-	return nil, nil
 }

@@ -53,7 +53,7 @@ func (x MatchString_MatchStringType) String() string {
 	return proto.EnumName(MatchString_MatchStringType_name, int32(x))
 }
 func (MatchString_MatchStringType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_model_v2_827560cc315d4447, []int{0, 0}
+	return fileDescriptor_model_v2_63fbe5e126956d10, []int{0, 0}
 }
 
 type MatchString_ValueType int32
@@ -79,9 +79,10 @@ func (x MatchString_ValueType) String() string {
 	return proto.EnumName(MatchString_ValueType_name, int32(x))
 }
 func (MatchString_ValueType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_model_v2_827560cc315d4447, []int{0, 1}
+	return fileDescriptor_model_v2_63fbe5e126956d10, []int{0, 1}
 }
 
+// MatchString 这里的序号需要保证和 v1.MatchSrting 保持一致
 type MatchString struct {
 	Type                 MatchString_MatchStringType `protobuf:"varint,1,opt,name=type,proto3,enum=v2.MatchString_MatchStringType" json:"type,omitempty"`
 	Value                *wrappers.StringValue       `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
@@ -95,7 +96,7 @@ func (m *MatchString) Reset()         { *m = MatchString{} }
 func (m *MatchString) String() string { return proto.CompactTextString(m) }
 func (*MatchString) ProtoMessage()    {}
 func (*MatchString) Descriptor() ([]byte, []int) {
-	return fileDescriptor_model_v2_827560cc315d4447, []int{0}
+	return fileDescriptor_model_v2_63fbe5e126956d10, []int{0}
 }
 func (m *MatchString) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MatchString.Unmarshal(m, b)
@@ -142,9 +143,9 @@ func init() {
 	proto.RegisterEnum("v2.MatchString_ValueType", MatchString_ValueType_name, MatchString_ValueType_value)
 }
 
-func init() { proto.RegisterFile("model_v2.proto", fileDescriptor_model_v2_827560cc315d4447) }
+func init() { proto.RegisterFile("model_v2.proto", fileDescriptor_model_v2_63fbe5e126956d10) }
 
-var fileDescriptor_model_v2_827560cc315d4447 = []byte{
+var fileDescriptor_model_v2_63fbe5e126956d10 = []byte{
 	// 271 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0x8f, 0x41, 0x4b, 0xc3, 0x30,
 	0x14, 0x80, 0x6d, 0xd6, 0x95, 0xf5, 0x4d, 0x6b, 0x78, 0xa7, 0x29, 0xa2, 0xa3, 0xa7, 0x9d, 0x32,
