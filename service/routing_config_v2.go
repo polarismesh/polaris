@@ -309,8 +309,8 @@ func checkRoutingConfigV2(req *apiv2.Routing) *apiv2.Response {
 		return apiv2.NewRoutingResponse(api.EmptyRequest, req)
 	}
 
-	if err := checkResourceName(utils.NewStringValue(req.GetName())); err != nil {
-		return apiv2.NewRoutingResponse(api.InvalidServiceName, req)
+	if err := CheckDbStrFieldLen(utils.NewStringValue(req.GetName()), MaxDbRoutingName); err != nil {
+		return apiv2.NewRoutingResponse(api.InvalidRoutingName, req)
 	}
 
 	if err := CheckDbStrFieldLen(utils.NewStringValue(req.GetNamespace()),

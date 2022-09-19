@@ -122,6 +122,9 @@
 400506 = "服务别名不允许绑定规则" #NotAllowAliasBindRule
 400507 = "不允许不同的命名空间绑定同一规则" #NotAllowDifferentNamespaceBindRule
 400508 = "不允许修改默认策略" #NotAllowModifyDefaultStrategyPrincipal
+400700 = "路由规则ID非法" #InvalidRoutingID
+400701 = "路由规则类型非法，只支持 (RulePolicy,MetadataPolicy)" #InvalidRoutingPolicy
+400702 = "路由名称非法" #InvalidRoutingName
 400801 = "配置文件组名非法" #InvalidConfigFileGroupName
 400802 = "配置文件名称非法" #InvalidConfigFileName
 400803 = "配置文件内容过长" #InvalidConfigFileContentLength
