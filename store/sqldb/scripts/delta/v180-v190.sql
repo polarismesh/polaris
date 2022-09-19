@@ -28,4 +28,4 @@ CREATE TABLE `config_file_template` (
     `modify_by` varchar(32) COLLATE utf8_bin DEFAULT NULL COMMENT '最后更新人',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_name` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='配置文件模板表';
+) ENGINE=InnoDB AUTO_INCREMENT=1 COMMENT='配置文件模板表';
