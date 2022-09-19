@@ -38,8 +38,8 @@ func TestI18n(t *testing.T) {
 		want string
 	}
 	tests := []args{
-		{lang: "zh", want: "执行异常"},
-		{lang: "en", want: "execute exception"},
+		{lang: "zh", want: "命名空间名称非法"},
+		{lang: "en", want: "invalid namespace name"},
 	}
 	for _, item := range tests {
 		ret, err := reqCreateIllegalNamespace(item.lang)
