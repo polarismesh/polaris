@@ -31,6 +31,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"gopkg.in/yaml.v2"
@@ -40,6 +41,7 @@ import (
 	"github.com/polarismesh/polaris-server/cache"
 	_ "github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
 	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/metrics"
 	"github.com/polarismesh/polaris-server/common/utils"
@@ -78,6 +80,7 @@ const (
 	tblCircuitBreakerRelation = "circuitbreaker_rule_relation"
 	tblPlatform               = "platform"
 	tblNameL5                 = "l5"
+	tblNameRoutingV2          = "routing_config_v2"
 )
 
 type Bootstrap struct {
@@ -138,6 +141,13 @@ func (d *DiscoverTestSuit) loadConfig() error {
 func respSuccess(resp api.ResponseMessage) bool {
 
 	ret := api.CalcCode(resp) == 200
+
+	return ret
+}
+
+// 判断一个resp是否执行成功
+func respSuccessV2(resp apiv2.ResponseMessage) bool {
+	ret := apiv2.CalcCode(resp) == 200
 
 	return ret
 }
@@ -738,6 +748,70 @@ func (d *DiscoverTestSuit) createCommonRoutingConfig(t *testing.T, service *api.
 	return conf, resp.Responses[0].GetRouting()
 }
 
+// 创建一个路由配置
+func (d *DiscoverTestSuit) createCommonRoutingConfigV2(t *testing.T, cnt int32) []*apiv2.Routing {
+	rules := make([]*apiv2.Routing, 0, cnt)
+	for i := int32(0); i < cnt; i++ {
+		matchString := &apiv2.MatchString{
+			Type:  apiv2.MatchString_EXACT,
+			Value: utils.NewStringValue(fmt.Sprintf("in-meta-value-%d", i)),
+		}
+		source := &apiv2.Source{
+			Service:   fmt.Sprintf("in-source-service-%d", i),
+			Namespace: fmt.Sprintf("in-source-service-%d", i),
+			Arguments: []*apiv2.SourceMatch{
+				&apiv2.SourceMatch{},
+			},
+		}
+		destination := &apiv2.Destination{
+			Service:   fmt.Sprintf("in-destination-service-%d", i),
+			Namespace: fmt.Sprintf("in-destination-service-%d", i),
+			Labels: map[string]*apiv2.MatchString{
+				fmt.Sprintf("in-metadata-%d", i): matchString,
+			},
+			Priority: 120,
+			Weight:   100,
+			Transfer: "abcdefg",
+		}
+
+		entry := &apiv2.RuleRoutingConfig{
+			Sources:      []*apiv2.Source{source},
+			Destinations: []*apiv2.Destination{destination},
+		}
+
+		any, err := ptypes.MarshalAny(entry)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		item := &apiv2.Routing{
+			Id:            "",
+			Name:          fmt.Sprintf("test-routing-name-%s", i),
+			Namespace:     "",
+			Enable:        false,
+			RoutingPolicy: apiv2.RoutingPolicy_RulePolicy,
+			RoutingConfig: any,
+			Revision:      "",
+			Etime:         "",
+			Priority:      0,
+			Description:   "",
+			ExtendInfo: map[string]string{
+				"": "",
+			},
+		}
+
+		rules = append(rules, item)
+	}
+	// TODO 是否应该先删除routing
+
+	resp := d.server.CreateRoutingConfigsV2(d.defaultCtx, rules)
+	if !respSuccessV2(resp) {
+		t.Fatalf("error: %+v", resp)
+	}
+
+	return rules
+}
+
 // 删除一个路由配置
 func (d *DiscoverTestSuit) deleteCommonRoutingConfig(t *testing.T, req *api.Routing) {
 	resp := d.server.DeleteRoutingConfigs(d.defaultCtx, []*api.Routing{req})
@@ -801,6 +875,61 @@ func (d *DiscoverTestSuit) cleanCommonRoutingConfig(service string, namespace st
 					panic(err)
 				}
 			}
+			dbTx.Commit()
+		}()
+	}
+}
+
+// 彻底删除一个路由配置
+func (d *DiscoverTestSuit) cleanCommonRoutingConfigV2(rules []*apiv2.Routing) {
+
+	if d.storage.Name() == sqldb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+			defer dbTx.Rollback()
+
+			str := "delete from routing_config_v2 where id in (%s)"
+
+			places := []string{}
+			args := []interface{}{}
+			for i := range rules {
+				places = append(places, "?")
+				args = append(args, rules[i].Id)
+			}
+
+			str = fmt.Sprint(str, strings.Join(places, ","))
+			// fmt.Printf("%s %s %s\n", str, service, namespace)
+			if _, err := dbTx.Exec(str, args...); err != nil {
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if d.storage.Name() == boltdb.STORENAME {
+		func() {
+
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+			defer dbTx.Rollback()
+
+			for i := range rules {
+				if err := dbTx.Bucket([]byte(tblNameRoutingV2)).DeleteBucket([]byte(rules[i].Id)); err != nil {
+					if !errors.Is(err, bolt.ErrBucketNotFound) {
+						dbTx.Rollback()
+						panic(err)
+					}
+				}
+			}
+
 			dbTx.Commit()
 		}()
 	}

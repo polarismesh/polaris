@@ -97,7 +97,7 @@ func (s *Server) createRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 		return apiv1.NewResponse(apiv1.ExecuteException)
 	}
 
-	return apiv1.NewResponse(apiv1.ExecuteSuccess)
+	return apiv1.NewRoutingResponse(apiv1.ExecuteSuccess, req)
 }
 
 // updateRoutingConfigV1toV2 这里需要兼容 v1 版本的更新路由规则动作，将 v1 的数据转为 v2 进行存储
@@ -177,7 +177,7 @@ func (s *Server) updateRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 		return apiv1.NewResponse(apiv1.ExecuteException)
 	}
 
-	return apiv1.NewResponse(apiv1.ExecuteSuccess)
+	return apiv1.NewRoutingResponse(apiv1.ExecuteSuccess, req)
 }
 
 // updateRoutingConfigV2FromV1 这里需要兼容 v1 版本的更新路由规则动作，将 v1 的数据转为 v2 进行存储
