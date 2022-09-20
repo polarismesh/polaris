@@ -925,7 +925,7 @@ func (d *DiscoverTestSuit) cleanCommonRoutingConfigV2(rules []*apiv2.Routing) {
 				args = append(args, rules[i].Id)
 			}
 
-			str = fmt.Sprint(str, strings.Join(places, ","))
+			str = fmt.Sprintf(str, strings.Join(places, ","))
 			// fmt.Printf("%s %s %s\n", str, service, namespace)
 			if _, err := dbTx.Exec(str, args...); err != nil {
 				panic(err)
