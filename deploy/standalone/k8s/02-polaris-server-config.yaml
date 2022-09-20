@@ -84,9 +84,6 @@ data:
           - name: polaris.checker
             protocols:
               - service-grpc
-          - name: polaris.config
-            protocols:
-              - config-grpc
     # apiserver配置
     apiservers:
       - name: service-eureka

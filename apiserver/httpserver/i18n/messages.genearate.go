@@ -154,6 +154,7 @@
 		 api.NotAllowModifyOwnerDefaultStrategy:     {ID: fmt.Sprint(api.NotAllowModifyOwnerDefaultStrategy)},
 		 api.InvalidRoutingID:                       {ID: fmt.Sprint(api.InvalidRoutingID)},
 		 api.InvalidRoutingPolicy:                   {ID: fmt.Sprint(api.InvalidRoutingPolicy)},
+		 api.InvalidRoutingPriority: 				 {ID: fmt.Sprint(api.InvalidRoutingPriority)},
 		 api.InvalidRoutingName:                     {ID: fmt.Sprint(api.InvalidRoutingName)},
 		 api.InvalidConfigFileGroupName:             {ID: fmt.Sprint(api.InvalidConfigFileGroupName)},
 		 api.InvalidConfigFileName:                  {ID: fmt.Sprint(api.InvalidConfigFileName)},

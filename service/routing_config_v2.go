@@ -85,6 +85,8 @@ func (s *Server) createRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 	}
 
 	s.RecordHistory(routingV2RecordEntry(ctx, req, conf, model.OCreate))
+
+	req.Id = conf.ID
 	return apiv2.NewRoutingResponse(api.ExecuteSuccess, req)
 }
 
@@ -309,6 +311,43 @@ func checkRoutingConfigV2(req *apiv2.Routing) *apiv2.Response {
 		return apiv2.NewRoutingResponse(api.EmptyRequest, req)
 	}
 
+	if err := checkRoutingNameAndNamespace(req); err != nil {
+		return err
+	}
+
+	if err := checkRoutingConfigPriorityV2(req); err != nil {
+		return err
+	}
+
+	if err := checkRoutingPolicyV2(req); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// checkUpdateRoutingConfigV2 检查路由配置基础参数有效性
+func checkUpdateRoutingConfigV2(req *apiv2.Routing) *apiv2.Response {
+	if resp := checkRoutingConfigIDV2(req); resp != nil {
+		return resp
+	}
+
+	if err := checkRoutingNameAndNamespace(req); err != nil {
+		return err
+	}
+
+	if err := checkRoutingConfigPriorityV2(req); err != nil {
+		return err
+	}
+
+	if err := checkRoutingPolicyV2(req); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func checkRoutingNameAndNamespace(req *apiv2.Routing) *apiv2.Response {
 	if err := CheckDbStrFieldLen(utils.NewStringValue(req.GetName()), MaxDbRoutingName); err != nil {
 		return apiv2.NewRoutingResponse(api.InvalidRoutingName, req)
 	}
@@ -316,20 +355,6 @@ func checkRoutingConfigV2(req *apiv2.Routing) *apiv2.Response {
 	if err := CheckDbStrFieldLen(utils.NewStringValue(req.GetNamespace()),
 		MaxDbServiceNamespaceLength); err != nil {
 		return apiv2.NewRoutingResponse(api.InvalidNamespaceName, req)
-	}
-
-	if req.GetRoutingPolicy() != apiv2.RoutingPolicy_RulePolicy {
-		return apiv2.NewRoutingResponse(api.InvalidRoutingPolicy, req)
-	}
-
-	// 自动根据 policy 补充 @type 属性
-	if req.RoutingConfig.TypeUrl == "" {
-		if req.GetRoutingPolicy() == apiv2.RoutingPolicy_RulePolicy {
-			req.RoutingConfig.TypeUrl = v2.RuleRoutingTypeUrl
-		}
-		if req.GetRoutingPolicy() == apiv2.RoutingPolicy_MetadataPolicy {
-			req.RoutingConfig.TypeUrl = v2.MetaRoutingTypeUrl
-		}
 	}
 
 	return nil
@@ -347,10 +372,21 @@ func checkRoutingConfigIDV2(req *apiv2.Routing) *apiv2.Response {
 	return nil
 }
 
-// checkUpdateRoutingConfigV2 检查路由配置基础参数有效性
-func checkUpdateRoutingConfigV2(req *apiv2.Routing) *apiv2.Response {
-	if resp := checkRoutingConfigIDV2(req); resp != nil {
-		return resp
+func checkRoutingConfigPriorityV2(req *apiv2.Routing) *apiv2.Response {
+	if req == nil {
+		return apiv2.NewRoutingResponse(api.EmptyRequest, req)
+	}
+
+	if req.Priority < 0 || req.Priority > 10 {
+		return apiv2.NewResponse(api.InvalidRoutingPriority)
+	}
+
+	return nil
+}
+
+func checkRoutingPolicyV2(req *apiv2.Routing) *apiv2.Response {
+	if req == nil {
+		return apiv2.NewRoutingResponse(api.EmptyRequest, req)
 	}
 
 	if req.GetRoutingPolicy() != apiv2.RoutingPolicy_RulePolicy {

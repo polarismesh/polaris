@@ -33,6 +33,10 @@ import (
 
 // createRoutingConfigV1toV2 这里需要兼容 v1 版本的创建路由规则动作，将 v1 的数据转为 v2 进行存储
 func (s *Server) createRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routing) *apiv1.Response {
+	if resp := checkRoutingConfig(req); resp != nil {
+		return resp
+	}
+
 	saveDatas, resp := batchBuildV2Routings(req)
 	if resp != nil {
 		return resp
@@ -82,6 +86,12 @@ func (s *Server) createRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 		data := &v2.RoutingConfig{}
 		if err := data.ParseFromAPI(item); err != nil {
 			return apiv1.NewResponse(apiv1.ExecuteException)
+		}
+		// 走 v1 接口创建的路由规则，默认开启启用
+		data.Enable = true
+		data.Priority = uint32(i)
+		if data.Priority > uint32(10) {
+			data.Priority = 10
 		}
 		if err := s.storage.CreateRoutingConfigV2Tx(tx, data); err != nil {
 			log.Error("[Routing][V2] create routing v2 from v1 into store",

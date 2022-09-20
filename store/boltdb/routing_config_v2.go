@@ -264,7 +264,7 @@ func (r *routingStoreV2) GetRoutingConfigV2WithIDTx(tx store.Tx, id string) (*v2
 func (r *routingStoreV2) getRoutingConfigV2WithIDTx(tx *bolt.Tx, id string) (*v2.RoutingConfig, error) {
 	ret := make(map[string]interface{})
 	if err := loadValues(tx, tblNameRoutingV2, []string{id}, &v2.RoutingConfig{}, ret); err != nil {
-		log.Errorf("[Store][boltdb] load route config v2 from kv", zap.String("routing-id", id), zap.Error(err))
+		log.Error("[Store][boltdb] load route config v2 from kv", zap.String("routing-id", id), zap.Error(err))
 		return nil, err
 	}
 

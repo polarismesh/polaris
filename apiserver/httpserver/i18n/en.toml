@@ -126,6 +126,7 @@
 400700 = "invalid routing id" #InvalidRoutingID
 400701 = "invalid routing policy, only support (RulePolicy,MetadataPolicy)" #InvalidRoutingPolicy
 400702 = "invalid routing name" #InvalidRoutingName
+400703 = "invalid routing priority, only support [0, 10]" #InvalidRoutingPriority
 400801 = "invalid config file group name" #InvalidConfigFileGroupName
 400802 = "invalid config file name" #InvalidConfigFileName
 400803 = "config file content too long" #InvalidConfigFileContentLength

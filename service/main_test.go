@@ -714,8 +714,8 @@ func (d *DiscoverTestSuit) createCommonRoutingConfig(t *testing.T, service *api.
 			},
 		}
 		destination := &api.Destination{
-			Service:   utils.NewStringValue(fmt.Sprintf("in-destination-service-%d", i)),
-			Namespace: utils.NewStringValue(fmt.Sprintf("in-destination-service-%d", i)),
+			Service:   service.Name,
+			Namespace: service.Namespace,
 			Metadata: map[string]*api.MatchString{
 				fmt.Sprintf("in-metadata-%d", i): matchString,
 			},
@@ -760,7 +760,7 @@ func (d *DiscoverTestSuit) createCommonRoutingConfigV2(t *testing.T, cnt int32) 
 			Service:   fmt.Sprintf("in-source-service-%d", i),
 			Namespace: fmt.Sprintf("in-source-service-%d", i),
 			Arguments: []*apiv2.SourceMatch{
-				&apiv2.SourceMatch{},
+				{},
 			},
 		}
 		destination := &apiv2.Destination{
@@ -786,7 +786,7 @@ func (d *DiscoverTestSuit) createCommonRoutingConfigV2(t *testing.T, cnt int32) 
 
 		item := &apiv2.Routing{
 			Id:            "",
-			Name:          fmt.Sprintf("test-routing-name-%s", i),
+			Name:          fmt.Sprintf("test-routing-name-%d", i),
 			Namespace:     "",
 			Enable:        false,
 			RoutingPolicy: apiv2.RoutingPolicy_RulePolicy,
@@ -820,6 +820,14 @@ func (d *DiscoverTestSuit) deleteCommonRoutingConfig(t *testing.T, req *api.Rout
 	}
 }
 
+// 删除一个路由配置
+func (d *DiscoverTestSuit) deleteCommonRoutingConfigV2(t *testing.T, req *apiv2.Routing) {
+	resp := d.server.DeleteRoutingConfigsV2(d.defaultCtx, []*apiv2.Routing{req})
+	if !respSuccessV2(resp) {
+		t.Fatalf("%s", resp.GetInfo())
+	}
+}
+
 // 更新一个路由配置
 func (d *DiscoverTestSuit) updateCommonRoutingConfig(t *testing.T, req *api.Routing) {
 	resp := d.server.UpdateRoutingConfigs(d.defaultCtx, []*api.Routing{req})
@@ -847,12 +855,16 @@ func (d *DiscoverTestSuit) cleanCommonRoutingConfig(service string, namespace st
 			if _, err := dbTx.Exec(str, service, namespace); err != nil {
 				panic(err)
 			}
+			str = "delete from routing_config_v2"
+			// fmt.Printf("%s %s %s\n", str, service, namespace)
+			if _, err := dbTx.Exec(str); err != nil {
+				panic(err)
+			}
 
 			dbTx.Commit()
 		}()
 	} else if d.storage.Name() == boltdb.STORENAME {
 		func() {
-
 			svc, err := d.storage.GetService(service, namespace)
 			if err != nil {
 				panic(err)
@@ -868,8 +880,19 @@ func (d *DiscoverTestSuit) cleanCommonRoutingConfig(service string, namespace st
 			}
 
 			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+			defer dbTx.Rollback()
 
-			if err := dbTx.Bucket([]byte(tblNameRouting)).DeleteBucket([]byte(svc.ID)); err != nil {
+			v1Bucket := dbTx.Bucket([]byte(tblNameRouting))
+			if v1Bucket != nil {
+				if err := v1Bucket.DeleteBucket([]byte(svc.ID)); err != nil {
+					if !errors.Is(err, bolt.ErrBucketNotFound) {
+						dbTx.Rollback()
+						panic(err)
+					}
+				}
+			}
+
+			if err := dbTx.DeleteBucket([]byte(tblNameRoutingV2)); err != nil {
 				if !errors.Is(err, bolt.ErrBucketNotFound) {
 					dbTx.Rollback()
 					panic(err)

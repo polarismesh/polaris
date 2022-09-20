@@ -79,6 +79,7 @@ const (
 	InvalidRoutingID                uint32 = 400700
 	InvalidRoutingPolicy            uint32 = 400701
 	InvalidRoutingName              uint32 = 400702
+	InvalidRoutingPriority			uint32 = 400703
 
 	// 网格相关错误码
 	ServicesExistedMesh  uint32 = 400170
