@@ -178,11 +178,15 @@ func (rc *routingConfigCache) GetRoutingConfigV1(id, service, namespace string) 
 		})
 	v1rules := rc.bucketV1.get(id)
 	if v2rules != nil && v1rules == nil {
-		return rc.convertRoutingV2toV1(v2rules, namespace, service), nil
+		return formatRoutingResponseV1(rc.convertRoutingV2toV1(v2rules, service, namespace)), nil
 	}
 
 	if v2rules == nil && v1rules != nil {
-		return routingcommon.RoutingConfigV1ToAPI(v1rules, service, namespace)
+		ret, err := routingcommon.RoutingConfigV1ToAPI(v1rules, service, namespace)
+		if err != nil {
+			return nil, err
+		}
+		return formatRoutingResponseV1(ret), nil
 	}
 
 	apiv1rule, err := routingcommon.RoutingConfigV1ToAPI(v1rules, service, namespace)
@@ -199,7 +203,22 @@ func (rc *routingConfigCache) GetRoutingConfigV1(id, service, namespace string) 
 	}
 
 	compositeRule.Revision = utils.NewStringValue(revision)
-	return compositeRule, nil
+	return formatRoutingResponseV1(compositeRule), nil
+}
+
+func formatRoutingResponseV1(ret *apiv1.Routing) *apiv1.Routing {
+	inBounds := ret.Inbounds
+	outBounds := ret.Outbounds
+
+	for i := range inBounds {
+		inBounds[i].ExtendInfo = nil
+	}
+
+	for i := range outBounds {
+		outBounds[i].ExtendInfo = nil
+	}
+
+	return ret
 }
 
 // GetRoutingConfigV2 根据服务信息获取该服务下的所有 v2 版本的规则路由
@@ -387,9 +406,9 @@ func (rc *routingConfigCache) convertRoutingV2toV1(entries map[routingLevel][]*v
 		return level3[i].Priority < level3[j].Priority
 	})
 
-	level1inRoutes, level1outRoutes, level1Revisions := routingcommon.BuildV1RoutesFromV2(level1)
-	level2inRoutes, level2outRoutes, level2Revisions := routingcommon.BuildV1RoutesFromV2(level2)
-	level3inRoutes, level3outRoutes, level3Revisions := routingcommon.BuildV1RoutesFromV2(level3)
+	level1inRoutes, level1outRoutes, level1Revisions := routingcommon.BuildV1RoutesFromV2(service, namespace, level1)
+	level2inRoutes, level2outRoutes, level2Revisions := routingcommon.BuildV1RoutesFromV2(service, namespace, level2)
+	level3inRoutes, level3outRoutes, level3Revisions := routingcommon.BuildV1RoutesFromV2(service, namespace, level3)
 
 	revisions := make([]string, 0, len(level1Revisions)+len(level2Revisions)+len(level3Revisions))
 	revisions = append(revisions, level1Revisions...)

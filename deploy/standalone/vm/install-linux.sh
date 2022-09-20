@@ -160,10 +160,10 @@ function installPolarisConsole() {
 
 function installPrometheus() {
   echo -e "install prometheus ... "
-  local prometheus_num=$(ps -ef | grep prometheus | grep -v grep | wc -l)
+  local prometheus_num=$(ps -ef | grep polaris-prometheus | grep -v grep | wc -l)
   if [ ${prometheus_num} -ge 1 ]; then
-    echo -e "prometheus is running, exit"
-    return -1
+    echo -e "polaris-prometheus is running, skip install polaris-prometheus"
+    return 0
   fi
 
   local prometheus_pkg_num=$(find . -name "prometheus-*.tar.gz" | wc -l)
@@ -180,7 +180,7 @@ function installPrometheus() {
     echo -e "${target_prometheus_pkg} has been decompressed, skip."
   fi
   
-
+  cp prometheus-help.sh ${prometheus_dirname}/
   pushd ${prometheus_dirname}
   echo "    http_sd_configs:" >>prometheus.yml
   echo "    - url: http://localhost:9000/prometheus/v1/clients" >>prometheus.yml
@@ -189,37 +189,11 @@ function installPrometheus() {
   echo "    static_configs:" >>prometheus.yml
   echo "    - targets: ['localhost:9091']" >>prometheus.yml
   echo "    honor_labels: true" >>prometheus.yml
-  nohup ./prometheus --web.enable-lifecycle --web.enable-admin-api --web.listen-address=:${prometheus_port} >>prometheus.out 2>&1 &
-  echo "install prometheus success"
-  popd
-}
-
-function installPushGateway() {
-  echo -e "install pushgateway ... "
-  local pgw_num=$(ps -ef | grep pushgateway | grep -v grep | wc -l)
-  if [ $pgw_num -ge 1 ]; then
-    echo -e "pushgateway is running, exit"
-    return -1
-  fi
-
-  local pgw_pkg_num=$(find . -name "pushgateway-*.tar.gz" | wc -l)
-  if [ $pgw_pkg_num != 1 ]; then
-    echo -e "number of pushgateway package not equals to 1, exit"
-    exit -1
-  fi
-
-  local target_pgw_pkg=$(find . -name "pushgateway-*.tar.gz")
-  local pgw_dirname=$(basename ${target_pgw_pkg} .tar.gz)
-  if [ ! -e ${pgw_dirname} ]; then
-    tar -xf ${target_pgw_pkg} >/dev/null
-  else
-    echo -e "${target_pgw_pkg} has been decompressed, skip."
-  fi
-  
-
-  pushd ${pgw_dirname}
-  nohup ./pushgateway --web.enable-lifecycle --web.enable-admin-api --web.listen-address=:${pushgateway_port} >>pgw.out 2>&1 &
-  echo "install pushgateway success"
+  mv prometheus polaris-prometheus
+  chmod +x polaris-prometheus
+  # nohup ./polaris-prometheus --web.enable-lifecycle --web.enable-admin-api --web.listen-address=:${prometheus_port} >>prometheus.out 2>&1 &
+  bash prometheus-help.sh start ${prometheus_port}
+  echo "install polaris-prometheus success"
   popd
 }
 
@@ -252,5 +226,3 @@ installPolarisServer
 installPolarisConsole
 # 安装Prometheus
 installPrometheus
-# 安装PushGateWay
-# installPushGateway

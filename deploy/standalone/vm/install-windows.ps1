@@ -98,31 +98,6 @@ function installPrometheus() {
     Pop-Location
 }
 
-function installPushGateway() {
-    Write-Output "install pushgateway ... "
-    $pgw_num = (Get-Process | findstr "pushgateway" | Measure-Object -Line).Lines
-    if ($pgw_num -gt 0) {
-        Write-Output "pushgateway is running, skip"
-        return
-    }
-    $pgw_pkg_num = (Get-ChildItem "pushgateway-*.zip" | Measure-Object -Line).Lines
-    if ($pgw_pkg_num -ne 1) {
-        Write-Output "number of pushgateway package not equals to 1, exit"
-        exit -1
-    }
-    $target_pgw_pkg =  (Get-ChildItem "pushgateway-*.zip")[0].Name
-    $pgw_dirname = ([io.fileinfo]$target_pgw_pkg).basename
-    if (Test-Path $pgw_dirname) {
-        Write-Output "$pgw_dirname has exists, now remove it"
-        Remove-Item $pgw_dirname -Recurse
-    }
-    Expand-Archive -Path $target_pgw_pkg -DestinationPath .
-    Push-Location $pgw_dirname
-    Start-Process -FilePath ".\\pushgateway.exe" -ArgumentList ('--web.enable-lifecycle', '--web.enable-admin-api') -RedirectStandardOutput pgw.out -RedirectStandardError pgw.err -WindowStyle Hidden
-    Write-Output "install pushgateway success"
-    Pop-Location
-}
-
 function checkPort() {
     $ports = "8080", "8090", "8091", "9090", "9091"
     foreach ($port in $ports)
@@ -145,6 +120,4 @@ installPolarisServer
 installPolarisConsole
 # 安装Prometheus
 installPrometheus
-# 安装PushGateWay
-# installPushGateway
 

@@ -125,6 +125,7 @@
 400700 = "路由规则ID非法" #InvalidRoutingID
 400701 = "路由规则类型非法，只支持 (RulePolicy,MetadataPolicy)" #InvalidRoutingPolicy
 400702 = "路由名称非法" #InvalidRoutingName
+400703 = "路由优先级非法，只支持[0, 10]" #InvalidRoutingPriority
 400801 = "配置文件组名非法" #InvalidConfigFileGroupName
 400802 = "配置文件名称非法" #InvalidConfigFileName
 400803 = "配置文件内容过长" #InvalidConfigFileContentLength

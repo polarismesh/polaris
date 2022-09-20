@@ -37,6 +37,8 @@ const (
 	_labelKeyQuery    = "$query"
 	_labelKeyCallerIP = "$caller_ip"
 	_labelKeyCookie   = "$cookie"
+
+	MatchAll = "*"
 )
 
 // RoutingConfigV1ToAPI 把内部数据结构转换为API参数传递出去
@@ -72,7 +74,9 @@ func RoutingConfigV1ToAPI(req *model.RoutingConfig, service string, namespace st
 }
 
 // CompositeRoutingV1AndV2 合并 v1 版本的路由规则以及 v2 版本的规则路由
-func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, level1, level2, level3 []*v2.ExtendRoutingConfig) (*apiv1.Routing, []string) {
+func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, level1, level2,
+	level3 []*v2.ExtendRoutingConfig) (*apiv1.Routing, []string) {
+
 	// 先确保规则的排序是从最高优先级开始排序
 	sort.Slice(level1, func(i, j int) bool {
 		return level1[i].Priority < level1[j].Priority
@@ -88,9 +92,9 @@ func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, level1, level2, level3 []*v2
 		return level3[i].Priority < level3[j].Priority
 	})
 
-	level1inRoutes, level1outRoutes, level1Revisions := BuildV1RoutesFromV2(level1)
-	level2inRoutes, level2outRoutes, level2Revisions := BuildV1RoutesFromV2(level2)
-	level3inRoutes, level3outRoutes, level3Revisions := BuildV1RoutesFromV2(level3)
+	level1inRoutes, level1outRoutes, level1Revisions := BuildV1RoutesFromV2(v1rule.Service.Value, v1rule.Namespace.Value, level1)
+	level2inRoutes, level2outRoutes, level2Revisions := BuildV1RoutesFromV2(v1rule.Service.Value, v1rule.Namespace.Value, level2)
+	level3inRoutes, level3outRoutes, level3Revisions := BuildV1RoutesFromV2(v1rule.Service.Value, v1rule.Namespace.Value, level3)
 
 	inBounds := v1rule.GetInbounds()
 	outBounds := v1rule.GetOutbounds()
@@ -134,7 +138,7 @@ func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, level1, level2, level3 []*v2
 
 // BuildV1RoutesFromV2 根据 v2 版本的路由规则适配成 v1 版本的路由规则，分为别 inBounds 以及 outBounds
 // retuen inBound outBound revisions
-func BuildV1RoutesFromV2(entries []*v2.ExtendRoutingConfig) ([]*apiv1.Route, []*apiv1.Route, []string) {
+func BuildV1RoutesFromV2(service, namespace string, entries []*v2.ExtendRoutingConfig) ([]*apiv1.Route, []*apiv1.Route, []string) {
 	if len(entries) == 0 {
 		return []*apiv1.Route{}, []*apiv1.Route{}, []string{}
 	}
@@ -147,8 +151,8 @@ func BuildV1RoutesFromV2(entries []*v2.ExtendRoutingConfig) ([]*apiv1.Route, []*
 		if !entries[i].Enable {
 			continue
 		}
-		outRoutes = append(outRoutes, BuildOutBoundsFromV2(entries[i])...)
-		inRoutes = append(inRoutes, BuildInBoundsFromV2(entries[i])...)
+		outRoutes = append(outRoutes, BuildOutBoundsFromV2(service, namespace, entries[i])...)
+		inRoutes = append(inRoutes, BuildInBoundsFromV2(service, namespace, entries[i])...)
 		revisions = append(revisions, entries[i].Revision)
 	}
 
@@ -156,19 +160,42 @@ func BuildV1RoutesFromV2(entries []*v2.ExtendRoutingConfig) ([]*apiv1.Route, []*
 }
 
 // BuildOutBoundsFromV2 根据 v2 版本的路由规则适配成 v1 版本的路由规则中的 OutBounds
-func BuildOutBoundsFromV2(item *v2.ExtendRoutingConfig) []*apiv1.Route {
+func BuildOutBoundsFromV2(service, namespace string, item *v2.ExtendRoutingConfig) []*apiv1.Route {
 	if item.GetRoutingPolicy() != apiv2.RoutingPolicy_RulePolicy {
 		return []*apiv1.Route{}
 	}
+
+	var find bool
+
+	matchService := func(source *apiv2.Source) bool {
+		if source.Service == service && source.Namespace == namespace {
+			return true
+		}
+		if source.Namespace == namespace && source.Service == MatchAll {
+			return true
+		}
+		if source.Namespace == MatchAll && source.Service == MatchAll {
+			return true
+		}
+		return false
+	}
+
 	v1sources := make([]*apiv1.Source, 0, len(item.RuleRouting.Sources))
 	sources := item.RuleRouting.Sources
 	for i := range sources {
-		entry := &apiv1.Source{
-			Service:   utils.NewStringValue(sources[i].Service),
-			Namespace: utils.NewStringValue(sources[i].Namespace),
+		if matchService(sources[i]) {
+			find = true
+			entry := &apiv1.Source{
+				Service:   utils.NewStringValue(service),
+				Namespace: utils.NewStringValue(namespace),
+			}
+			entry.Metadata = RoutingArguments2Labels(sources[i].GetArguments())
+			v1sources = append(v1sources, entry)
 		}
-		entry.Metadata = RoutingArguments2Labels(sources[i].GetArguments())
-		v1sources = append(v1sources, entry)
+	}
+
+	if !find {
+		return []*apiv1.Route{}
 	}
 
 	v1destinations := make([]*apiv1.Destination, 0, len(item.RuleRouting.Destinations))
@@ -209,10 +236,59 @@ func BuildOutBoundsFromV2(item *v2.ExtendRoutingConfig) []*apiv1.Route {
 }
 
 // BuildInBoundsFromV2 将 v2 的路由规则转为 v1 的路由规则中的 InBounds
-func BuildInBoundsFromV2(item *v2.ExtendRoutingConfig) []*apiv1.Route {
+func BuildInBoundsFromV2(service, namespace string, item *v2.ExtendRoutingConfig) []*apiv1.Route {
 	if item.GetRoutingPolicy() != apiv2.RoutingPolicy_RulePolicy {
 		return []*apiv1.Route{}
 	}
+
+	var find bool
+
+	matchService := func(destination *apiv2.Destination) bool {
+		if destination.Service == service && destination.Namespace == namespace {
+			return true
+		}
+		if destination.Namespace == namespace && destination.Service == MatchAll {
+			return true
+		}
+		if destination.Namespace == MatchAll && destination.Service == MatchAll {
+			return true
+		}
+		return false
+	}
+
+	v1destinations := make([]*apiv1.Destination, 0, len(item.RuleRouting.Destinations))
+	destinations := item.RuleRouting.Destinations
+	for i := range destinations {
+		if matchService(destinations[i]) {
+			find = true
+			entry := &apiv1.Destination{
+				Service:   utils.NewStringValue(service),
+				Namespace: utils.NewStringValue(namespace),
+				Priority:  utils.NewUInt32Value(destinations[i].GetPriority()),
+				Weight:    utils.NewUInt32Value(destinations[i].GetWeight()),
+				Transfer:  utils.NewStringValue(destinations[i].GetTransfer()),
+				Isolate:   utils.NewBoolValue(destinations[i].GetIsolate()),
+			}
+
+			v1labels := make(map[string]*apiv1.MatchString)
+			v2labels := destinations[i].GetLabels()
+			for index := range v2labels {
+				v1labels[index] = &apiv1.MatchString{
+					Type:      apiv1.MatchString_MatchStringType(v2labels[index].GetType()),
+					Value:     v2labels[index].GetValue(),
+					ValueType: apiv1.MatchString_ValueType(v2labels[index].GetValueType()),
+				}
+			}
+
+			entry.Metadata = v1labels
+			v1destinations = append(v1destinations, entry)
+		}
+	}
+
+	if !find {
+		return []*apiv1.Route{}
+	}
+
 	v1sources := make([]*apiv1.Source, 0, len(item.RuleRouting.Sources))
 	sources := item.RuleRouting.Sources
 	for i := range sources {
@@ -223,32 +299,6 @@ func BuildInBoundsFromV2(item *v2.ExtendRoutingConfig) []*apiv1.Route {
 
 		entry.Metadata = RoutingArguments2Labels(sources[i].GetArguments())
 		v1sources = append(v1sources, entry)
-	}
-
-	v1destinations := make([]*apiv1.Destination, 0, len(item.RuleRouting.Destinations))
-	destinations := item.RuleRouting.Destinations
-	for i := range destinations {
-		entry := &apiv1.Destination{
-			Service:   utils.NewStringValue(destinations[i].Service),
-			Namespace: utils.NewStringValue(destinations[i].Namespace),
-			Priority:  utils.NewUInt32Value(destinations[i].GetPriority()),
-			Weight:    utils.NewUInt32Value(destinations[i].GetWeight()),
-			Transfer:  utils.NewStringValue(destinations[i].GetTransfer()),
-			Isolate:   utils.NewBoolValue(destinations[i].GetIsolate()),
-		}
-
-		v1labels := make(map[string]*apiv1.MatchString)
-		v2labels := destinations[i].GetLabels()
-		for index := range v2labels {
-			v1labels[index] = &apiv1.MatchString{
-				Type:      apiv1.MatchString_MatchStringType(v2labels[index].GetType()),
-				Value:     v2labels[index].GetValue(),
-				ValueType: apiv1.MatchString_ValueType(v2labels[index].GetValueType()),
-			}
-		}
-
-		entry.Metadata = v1labels
-		v1destinations = append(v1destinations, entry)
 	}
 
 	return []*apiv1.Route{
@@ -337,7 +387,6 @@ func BuildV2RoutingFromV1Route(req *apiv1.Routing, route *apiv1.Route) (*apiv2.R
 	routing := &apiv2.Routing{
 		Id:            v2Id,
 		Name:          "",
-		Namespace:     req.GetNamespace().GetValue(),
 		Enable:        false,
 		RoutingPolicy: apiv2.RoutingPolicy_RulePolicy,
 		RoutingConfig: any,
@@ -362,12 +411,12 @@ func BuildV2ExtendRouting(req *apiv1.Routing, route *apiv1.Route) (*v2.ExtendRou
 
 	routing := &v2.ExtendRoutingConfig{
 		RoutingConfig: &v2.RoutingConfig{
-			ID:        v2Id,
-			Name:      "",
-			Enable:    true,
-			Policy:    apiv2.RoutingPolicy_RulePolicy.String(),
-			Revision:  req.GetRevision().GetValue(),
-			Priority:  0,
+			ID:       v2Id,
+			Name:     "",
+			Enable:   true,
+			Policy:   apiv2.RoutingPolicy_RulePolicy.String(),
+			Revision: req.GetRevision().GetValue(),
+			Priority: 0,
 		},
 		RuleRouting: rule,
 	}

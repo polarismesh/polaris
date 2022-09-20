@@ -191,6 +191,7 @@ function installPrometheus() {
   fi
   tar -xf ${target_prometheus_pkg} >/dev/null
 
+  cp prometheus-help.sh ${prometheus_dirname}/
   pushd ${prometheus_dirname}
   local push_count=$(cat prometheus.yml | grep "push-metrics" | wc -l)
   if [ $push_count -eq 0 ]; then
@@ -202,8 +203,11 @@ function installPrometheus() {
     echo "    - targets: ['localhost:9091']" >>prometheus.yml
     echo "    honor_labels: true" >>prometheus.yml
   fi
-  nohup ./prometheus --web.enable-lifecycle --web.enable-admin-api --web.listen-address=:${prometheus_port} >>prometheus.out 2>&1 &
-  echo "install prometheus success"
+  mv prometheus polaris-prometheus
+  chmod +x polaris-prometheus
+  # nohup ./polaris-prometheus --web.enable-lifecycle --web.enable-admin-api --web.listen-address=:${prometheus_port} >>prometheus.out 2>&1 &
+  bash prometheus-help.sh start ${prometheus_port}
+  echo "install polaris-prometheus success"
   popd
 }
 

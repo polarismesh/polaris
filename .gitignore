@@ -11,6 +11,7 @@ log/
 .idea
 .DS_Store
 coverage.txt
+coverage_1.cover
 
 *.swp
 *.code-workspace

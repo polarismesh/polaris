@@ -231,20 +231,6 @@ func TestDeleteService2(t *testing.T) {
 	}
 	defer discoverSuit.Destroy()
 
-	t.Run("存在路由配置的情况下，删除服务会失败", func(t *testing.T) {
-		serviceReq, serviceResp := discoverSuit.createCommonService(t, 20)
-		defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
-
-		// 创建一个服务配置
-		discoverSuit.createCommonRoutingConfig(t, serviceResp, 10, 10)
-		defer discoverSuit.cleanCommonRoutingConfig(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
-		// 删除服务
-		resp := discoverSuit.server.DeleteServices(discoverSuit.defaultCtx, []*api.Service{serviceResp})
-		if respSuccess(resp) {
-			t.Fatalf("error")
-		}
-		t.Logf("pass: %s", resp.GetInfo().GetValue())
-	})
 	t.Run("重复删除服务，返回成功", func(t *testing.T) {
 		serviceReq, serviceResp := discoverSuit.createCommonService(t, 20)
 		defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
