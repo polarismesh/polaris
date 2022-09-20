@@ -66,6 +66,32 @@ function installPolarisConsole() {
     Pop-Location
 }
 
+function installPolarisLimiter() {
+    Write-Output "install polaris limiter ... "
+    $polaris_limiter_num = (Get-Process | findstr "polaris-limiter" | Measure-Object -Line).Lines
+    if ($polaris_limiter_num -gt 0) {
+        Write-Output "polaris-limiter is running, skip"
+        return
+    }
+    $polaris_limiter_pkg_num = (Get-ChildItem "polaris-limiter-release*.zip" | Measure-Object -Line).Lines
+    if ($polaris_limiter_pkg_num -ne 1) {
+        Write-Output "number of polaris limiter package not equals to 1, exit"
+        exit -1
+    }
+    $target_polaris_limiter_pkg = (Get-ChildItem "polaris-limiter-release*.zip")[0].Name
+    $polaris_limiter_dirname = ([io.fileinfo]$target_polaris_limiter_pkg).basename
+    if (Test-Path $polaris_limiter_dirname) {
+        Write-Output "$polaris_limiter_dirname has exists, now remove it"
+        Remove-Item $polaris_limiter_dirname -Recurse
+    }
+    Expand-Archive -Path $target_polaris_limiter_pkg -DestinationPath .
+    Push-Location $polaris_limiter_dirname
+    Start-Process -FilePath ".\\polaris-limiter.exe" -ArgumentList ('start') -WindowStyle Hidden
+    Write-Output "install polaris limiter success"
+    Pop-Location
+}
+
+
 function installPrometheus() {
     Write-Output "install prometheus ... "
     $prometheus_num = (Get-Process | findstr "prometheus" | Measure-Object -Line).Lines
@@ -118,6 +144,8 @@ checkPort
 installPolarisServer
 # 安装console
 installPolarisConsole
+# 安装polaris-limiter
+installPolarisLimiter
 # 安装Prometheus
 installPrometheus
 

@@ -54,6 +54,9 @@ api_http_port=$(getProperties polaris_open_api_port)
 prometheus_port=$(getProperties prometheus_port)
 pushgateway_port=$(getProperties pushgateway_port)
 
+limiter_http_port=$(getProperties "polaris_limiter_http_port")
+limiter_grpc_port=$(getProperties "polaris_limiter_grpc_port")
+
 echo "prepare install polaris standalone..."
 
 echo "polaris-console listen port info"
@@ -94,7 +97,6 @@ function installPolarisServer() {
   else
     echo -e "${target_polaris_server_pkg} has been decompressed, skip."
   fi
-
 
   pushd ${polaris_server_dirname}
 
@@ -179,7 +181,7 @@ function installPrometheus() {
   else
     echo -e "${target_prometheus_pkg} has been decompressed, skip."
   fi
-  
+
   cp prometheus-help.sh ${prometheus_dirname}/
   pushd ${prometheus_dirname}
   echo "    http_sd_configs:" >>prometheus.yml
@@ -195,6 +197,51 @@ function installPrometheus() {
   bash prometheus-help.sh start ${prometheus_port}
   echo "install polaris-prometheus success"
   popd
+}
+
+# 安装北极星分布式限流服务端
+# 安装北极星分布式限流服务端
+function installPolarisLimiter() {
+  echo -e "install polaris limiter ... "
+  local polaris_limiter_num=$(ps -ef | grep polaris-limiter | grep -v grep | wc -l)
+  if [ $polaris_limiter_num -ge 1 ]; then
+    echo -e "polaris-limiter is running, skip."
+    return
+  fi
+
+  local polaris_limiter_tarnum=$(find . -name "polaris-limiter-release*.zip" | wc -l)
+  if [ $polaris_console_tarnum != 1 ]; then
+    echo -e "number of polaris limiter tar not equal 1, exit."
+    exit -1
+  fi
+
+  local polaris_limiter_tarname=$(find . -name "polaris-limiter-release*.zip")
+  local polaris_limiter_dirname=$(basename ${polaris_limiter_tarname} .zip)
+  if [ ! -e $polaris_limiter_dirname ]; then
+    unzip $polaris_limiter_tarname >/dev/null
+  else
+    echo -e "polaris-limiter-release.tar.gz has been decompressed, skip."
+  fi
+
+  cd ${polaris_limiter_dirname} || (
+    echo "no such directory ${polaris_limiter_dirname}"
+    exit -1
+  )
+
+  # 备份 polaris-limiter.yaml
+  cp polaris-limiter.yaml polaris-limiter.yaml.bak
+
+  # 修改监听的 polaris-limiter http 端口信息
+  sed -i "s/port: 8100/port: ${limiter_http_port}\"/g" polaris-limiter.yaml
+  # 修改监听的 polaris-limiter grpc 端口信息
+  sed -i "s/port: 8101/port: ${limiter_grpc_port}\"/g" polaris-limiter.yaml
+
+  /bin/bash ./tool/start.sh
+  echo -e "install polaris limiter finish."
+  cd ${install_path} || (
+    echo "no such directory ${install_path}"
+    exit -1
+  )
 }
 
 function checkPort() {
@@ -224,5 +271,7 @@ checkPort
 installPolarisServer
 # 安装console
 installPolarisConsole
+# 安装 polaris-limiter
+installPolarisLimiter
 # 安装Prometheus
 installPrometheus
