@@ -132,7 +132,7 @@ healthcheck:
       option:
         kvAddr: 127.0.0.1:6379 ##REDIS_ADDR##
         kvUser: ##REDIS_USER#
-        kvPasswd: "123456" ##REDIS_PWD##
+        kvPasswd: ##REDIS_PWD##
         poolSize: 200
         minIdleConns: 30
         idleTimeout: 120s
