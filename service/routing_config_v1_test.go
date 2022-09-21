@@ -19,13 +19,18 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
@@ -202,6 +207,162 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 			checkSameRoutingConfig(t, routingResps[i], out.GetRouting())
 		}
 	})
+
+	Convey("走v2接口创建路由规则，不启用查不到，启用可以查到", t, func() {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		resp := discoverSuit.createCommonRoutingConfigV2(t, 1)
+		assert.Equal(t, 1, len(resp))
+
+		svcName := fmt.Sprintf("in-source-service-%d", 0)
+		namespaceName := fmt.Sprintf("in-source-service-%d", 0)
+
+		svcResp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{{
+			Name:      utils.NewStringValue(svcName),
+			Namespace: utils.NewStringValue(namespaceName),
+		}})
+		defer discoverSuit.cleanServiceName(svcName, namespaceName)
+		if !respSuccess(svcResp) {
+			t.Fatal(svcResp.Info)
+		}
+
+		time.Sleep(discoverSuit.updateCacheInterval)
+		t.Logf("service : name=%s namespace=%s", svcName, namespaceName)
+		out := discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, &api.Service{
+			Name:      utils.NewStringValue(svcName),
+			Namespace: utils.NewStringValue(namespaceName),
+		})
+
+		assert.True(t, len(out.GetRouting().GetOutbounds()) == 0, "inBounds must be zero")
+
+		time.Sleep(discoverSuit.updateCacheInterval)
+
+		enableResp := discoverSuit.server.EnableRoutings(discoverSuit.defaultCtx, []*apiv2.Routing{
+			{
+				Id:     resp[0].Id,
+				Enable: true,
+			},
+		})
+
+		if !respSuccessV2(enableResp) {
+			t.Fatal(enableResp.Info)
+		}
+
+		time.Sleep(discoverSuit.updateCacheInterval)
+		out = discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, &api.Service{
+			Name:      utils.NewStringValue(svcName),
+			Namespace: utils.NewStringValue(namespaceName),
+		})
+
+		assert.True(t, len(out.GetRouting().GetOutbounds()) == 1, "inBounds must be one")
+	})
+
+	Convey("走v2接口创建路由规则，通配服务", t, func() {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		rules := mockRoutingV2(t, 1)
+		ruleRoutings := &apiv2.RuleRoutingConfig{
+			Sources: []*apiv2.Source{
+				{
+					Service:   "*",
+					Namespace: "*",
+					Arguments: []*apiv2.SourceMatch{
+						{
+							Type: apiv2.SourceMatch_CUSTOM,
+							Key:  "key",
+							Value: &apiv2.MatchString{
+								Type: apiv2.MatchString_EXACT,
+								Value: &wrapperspb.StringValue{
+									Value: "123",
+								},
+								ValueType: apiv2.MatchString_TEXT,
+							},
+						},
+					},
+				},
+			},
+			Destinations: []*apiv2.Destination{
+				{
+					Service:   "mock-servcie-test1",
+					Namespace: "mock-namespace-test1",
+					Labels: map[string]*apiv2.MatchString{
+						"key": {
+							Type: apiv2.MatchString_EXACT,
+							Value: &wrapperspb.StringValue{
+								Value: "value",
+							},
+							ValueType: apiv2.MatchString_TEXT,
+						},
+					},
+					Priority: 0,
+					Weight:   0,
+					Transfer: "",
+					Isolate:  false,
+					Name:     "123",
+				},
+			},
+		}
+
+		any, err := ptypes.MarshalAny(ruleRoutings)
+		if err != nil {
+			t.Fatal(err)
+			return
+		}
+		rules[0].RoutingPolicy = apiv2.RoutingPolicy_RulePolicy
+		rules[0].RoutingConfig = any
+
+		resp := discoverSuit.createCommonRoutingConfigV2WithReq(t, rules)
+		assert.Equal(t, 1, len(resp))
+
+		svcName := fmt.Sprintf("mock-source-service-%d", 0)
+		namespaceName := fmt.Sprintf("mock-source-service-%d", 0)
+
+		svcResp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{{
+			Name:      utils.NewStringValue(svcName),
+			Namespace: utils.NewStringValue(namespaceName),
+		}})
+		defer discoverSuit.cleanServiceName(svcName, namespaceName)
+		if !respSuccess(svcResp) {
+			t.Fatal(svcResp.Info)
+		}
+
+		time.Sleep(discoverSuit.updateCacheInterval)
+		t.Logf("service : name=%s namespace=%s", svcName, namespaceName)
+		out := discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, &api.Service{
+			Name:      utils.NewStringValue(svcName),
+			Namespace: utils.NewStringValue(namespaceName),
+		})
+
+		assert.True(t, len(out.GetRouting().GetOutbounds()) == 0, "inBounds must be zero")
+		time.Sleep(discoverSuit.updateCacheInterval)
+		enableResp := discoverSuit.server.EnableRoutings(discoverSuit.defaultCtx, []*apiv2.Routing{
+			{
+				Id:     resp[0].Id,
+				Enable: true,
+			},
+		})
+
+		if !respSuccessV2(enableResp) {
+			t.Fatal(enableResp.Info)
+		}
+
+		time.Sleep(discoverSuit.updateCacheInterval)
+		out = discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, &api.Service{
+			Name:      utils.NewStringValue(svcName),
+			Namespace: utils.NewStringValue(namespaceName),
+		})
+
+		assert.True(t, len(out.GetRouting().GetOutbounds()) == 1, "inBounds must be one")
+	})
+
 	Convey("服务路由数据不改变，传递了路由revision，不返回数据", t, func() {
 		discoverSuit := &DiscoverTestSuit{}
 		if err := discoverSuit.initialize(); err != nil {

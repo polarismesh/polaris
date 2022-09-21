@@ -57,6 +57,17 @@ bootstrap:
       #   - stdout
       # errorOutputPaths:
       #   - stderr
+    heartbeat:
+      rotateOutputPath: log/polaris-healthcheck.log
+      errorRotateOutputPath: log/polaris-healthcheck-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
     default:
       rotateOutputPath: log/polaris-default.log
       errorRotateOutputPath: log/polaris-default-error.log

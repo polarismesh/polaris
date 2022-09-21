@@ -79,17 +79,17 @@ func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, level1, level2,
 
 	// 先确保规则的排序是从最高优先级开始排序
 	sort.Slice(level1, func(i, j int) bool {
-		return level1[i].Priority < level1[j].Priority
+		return CompareRoutingV2(level1[i], level1[j])
 	})
 
 	// 先确保规则的排序是从最高优先级开始排序
 	sort.Slice(level2, func(i, j int) bool {
-		return level2[i].Priority < level2[j].Priority
+		return CompareRoutingV2(level2[i], level2[j])
 	})
 
 	// 先确保规则的排序是从最高优先级开始排序
 	sort.Slice(level3, func(i, j int) bool {
-		return level3[i].Priority < level3[j].Priority
+		return CompareRoutingV2(level3[i], level3[j])
 	})
 
 	level1inRoutes, level1outRoutes, level1Revisions := BuildV1RoutesFromV2(v1rule.Service.Value, v1rule.Namespace.Value, level1)
@@ -468,4 +468,11 @@ func ConvertV1RouteToV2Route(route *apiv1.Route) *apiv2.RuleRoutingConfig {
 		Sources:      v2sources,
 		Destinations: v2destinations,
 	}
+}
+
+func CompareRoutingV2(a, b *v2.ExtendRoutingConfig) bool {
+	if a.Priority != b.Priority {
+		return a.Priority < b.Priority
+	}
+	return a.CreateTime.Before(b.CreateTime)
 }

@@ -748,8 +748,7 @@ func (d *DiscoverTestSuit) createCommonRoutingConfig(t *testing.T, service *api.
 	return conf, resp.Responses[0].GetRouting()
 }
 
-// 创建一个路由配置
-func (d *DiscoverTestSuit) createCommonRoutingConfigV2(t *testing.T, cnt int32) []*apiv2.Routing {
+func mockRoutingV2(t *testing.T, cnt int32) []*apiv2.Routing {
 	rules := make([]*apiv2.Routing, 0, cnt)
 	for i := int32(0); i < cnt; i++ {
 		matchString := &apiv2.MatchString{
@@ -802,14 +801,38 @@ func (d *DiscoverTestSuit) createCommonRoutingConfigV2(t *testing.T, cnt int32) 
 
 		rules = append(rules, item)
 	}
-	// TODO 是否应该先删除routing
 
+	return rules
+}
+
+// 创建一个路由配置
+func (d *DiscoverTestSuit) createCommonRoutingConfigV2(t *testing.T, cnt int32) []*apiv2.Routing {
+	rules := mockRoutingV2(t, cnt)
+	
+	return d.createCommonRoutingConfigV2WithReq(t, rules)
+}
+
+// 创建一个路由配置
+func (d *DiscoverTestSuit) createCommonRoutingConfigV2WithReq(t *testing.T, rules []*apiv2.Routing) []*apiv2.Routing {
 	resp := d.server.CreateRoutingConfigsV2(d.defaultCtx, rules)
 	if !respSuccessV2(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
 
-	return rules
+	ret := []*apiv2.Routing{}
+	for i := range resp.GetResponses() {
+		item := resp.GetResponses()[i]
+		msg := &apiv2.Routing{}
+
+		if err := ptypes.UnmarshalAny(item.GetData(), msg); err != nil {
+			t.Fatal(err)
+			return nil
+		}
+
+		ret = append(ret, msg)
+	}
+
+	return ret
 }
 
 // 删除一个路由配置

@@ -30,12 +30,14 @@ import (
 	v2 "github.com/polarismesh/polaris-server/apiserver/grpcserver/discover/v2"
 	apiv1 "github.com/polarismesh/polaris-server/common/api/v1"
 	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
-	"github.com/polarismesh/polaris-server/common/log"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 )
 
 var (
+	namingLog = commonlog.NamingScope()
+
 	cacheTypes = map[string]struct{}{
 		apiv1.DiscoverResponse_INSTANCE.String():        {},
 		apiv1.DiscoverResponse_ROUTING.String():         {},
@@ -78,12 +80,12 @@ func (g *GRPCServer) Initialize(ctx context.Context, option map[string]interface
 	// 引入功能模块和插件
 	var err error
 	if g.namingServer, err = service.GetServer(); err != nil {
-		log.Errorf("%v", err)
+		namingLog.Errorf("%v", err)
 		return err
 	}
 
 	if g.healthCheckServer, err = healthcheck.GetServer(); err != nil {
-		log.Errorf("%v", err)
+		namingLog.Errorf("%v", err)
 		return err
 	}
 
@@ -122,7 +124,7 @@ func (g *GRPCServer) Run(errCh chan error) {
 					g.BaseGrpcServer.OpenMethod = openMethod
 				}
 			default:
-				log.Errorf("[Grpc][Discover] api %s does not exist in grpcserver", name)
+				namingLog.Errorf("[Grpc][Discover] api %s does not exist in grpcserver", name)
 				return fmt.Errorf("api %s does not exist in grpcserver", name)
 			}
 		}
@@ -170,7 +172,7 @@ func (g *GRPCServer) buildInitOptions(option map[string]interface{}) []grpcserve
 
 	cache, err := grpcserver.NewCache(option, types)
 	if err != nil {
-		log.Warn("[Grpc][Discover] new protobuf cache", zap.Error(err))
+		namingLog.Warn("[Grpc][Discover] new protobuf cache", zap.Error(err))
 	}
 
 	if cache != nil {

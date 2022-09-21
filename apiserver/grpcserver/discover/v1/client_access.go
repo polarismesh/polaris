@@ -30,8 +30,12 @@ import (
 
 	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
+)
+
+var (
+	namingLog = commonlog.NamingScope()
 )
 
 // ReportClient 客户端上报
@@ -95,7 +99,7 @@ func (g *DiscoverServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
 		}
 
 		msg := fmt.Sprintf("receive grpc discover request: %s", in.Service.String())
-		log.Info(msg,
+		namingLog.Info(msg,
 			zap.String("type", api.DiscoverRequest_DiscoverRequestType_name[int32(in.Type)]),
 			zap.String("client-address", clientAddress),
 			zap.String("user-agent", userAgent),

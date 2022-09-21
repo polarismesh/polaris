@@ -37,6 +37,7 @@ import (
 	"github.com/polarismesh/polaris-server/auth"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/metrics"
 	"github.com/polarismesh/polaris-server/common/secure"
 	"github.com/polarismesh/polaris-server/common/utils"
@@ -436,8 +437,15 @@ func (h *HTTPServer) preprocess(req *restful.Request, rsp *restful.Response) err
 	platformID := req.HeaderParameter("Platform-Id")
 	requestURL := req.Request.URL.String()
 	if !strings.Contains(requestURL, Discover) {
+		var scope *commonlog.Scope
+		if strings.Contains(requestURL, "naming") {
+			scope = namingLog
+		} else {
+			scope = configLog
+		}
+
 		// 打印请求
-		log.Info("receive request",
+		scope.Info("receive request",
 			zap.String("client-address", req.Request.RemoteAddr),
 			zap.String("user-agent", req.HeaderParameter("User-Agent")),
 			zap.String("request-id", requestID),
@@ -486,7 +494,14 @@ func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 	diff := now.Sub(startTime)
 	// 打印耗时超过1s的请求
 	if diff > time.Second {
-		log.Info("handling time > 1s",
+		var scope *commonlog.Scope
+		if strings.Contains(path, "naming") {
+			scope = namingLog
+		} else {
+			scope = configLog
+		}
+
+		scope.Info("handling time > 1s",
 			zap.String("client-address", req.Request.RemoteAddr),
 			zap.String("user-agent", req.HeaderParameter("User-Agent")),
 			zap.String("request-id", req.HeaderParameter("Request-Id")),

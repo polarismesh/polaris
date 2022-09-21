@@ -49,19 +49,19 @@ func TestCreateRoutingConfigV2(t *testing.T) {
 
 	t.Run("正常创建路由配置配置请求", func(t *testing.T) {
 		req := discoverSuit.createCommonRoutingConfigV2(t, 3)
+		defer discoverSuit.cleanCommonRoutingConfigV2(req)
 
 		// 对写进去的数据进行查询
-		time.Sleep(discoverSuit.updateCacheInterval)
+		time.Sleep(discoverSuit.updateCacheInterval * 5)
 		out := discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 		})
-		defer discoverSuit.cleanCommonRoutingConfigV2(req)
 		if !respSuccessV2(out) {
 			t.Fatalf("error: %+v", out)
 		}
 
-		assert.Equal(t, int(3), int(out.Size), "query routing size")
+		assert.Equal(t, int(3), int(out.Amount), "query routing size")
 	})
 }
 

@@ -27,8 +27,12 @@ import (
 	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/config"
+)
+
+var (
+	configLog = commonlog.ConfigScope()
 )
 
 // ConfigGRPCServer 配置中心 GRPC API 服务器
@@ -76,13 +80,13 @@ func (g *ConfigGRPCServer) Run(errCh chan error) {
 					}
 				}
 			default:
-				log.Errorf("[Config] api %s does not exist in grpcserver", name)
+				configLog.Errorf("[Config] api %s does not exist in grpcserver", name)
 				return fmt.Errorf("api %s does not exist in grpcserver", name)
 			}
 		}
 		var err error
 		if g.configServer, err = config.GetServer(); err != nil {
-			log.Errorf("[Config] %v", err)
+			configLog.Errorf("[Config] %v", err)
 			return err
 		}
 

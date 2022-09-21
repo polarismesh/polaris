@@ -26,7 +26,6 @@ import (
 	httpcommon "github.com/polarismesh/polaris-server/apiserver/httpserver/http"
 	apiv1 "github.com/polarismesh/polaris-server/common/api/v1"
 	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
-	"github.com/polarismesh/polaris-server/common/log"
 )
 
 const (
