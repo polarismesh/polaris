@@ -24,6 +24,7 @@ import (
 	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
 	"github.com/polarismesh/polaris-server/common/model"
 	v2 "github.com/polarismesh/polaris-server/common/model/v2"
+	routingcommon "github.com/polarismesh/polaris-server/common/routing"
 )
 
 type (
@@ -114,7 +115,7 @@ type routingBucketV2 struct {
 	level2Rules map[boundType]map[string]map[string]struct{}
 	// level3Rules service(*) + namesapce(*) =>  路由规则ID列表, 针对所有命名空间下的所有服务都生效的规则
 	level3Rules map[boundType]map[string]struct{}
-	// v1rules v1 版本的规则自动转为 v2 版本的规则，用于 v2 接口的数据查看
+	// v1rules service-id => []*v2.ExtendRoutingConfig v1 版本的规则自动转为 v2 版本的规则，用于 v2 接口的数据查看
 	v1rules map[string][]*v2.ExtendRoutingConfig
 }
 
@@ -132,20 +133,21 @@ func (b *routingBucketV2) saveV2(conf *v2.ExtendRoutingConfig) {
 	b.rules[conf.ID] = conf
 
 	handler := func(bt boundType, item serviceInfo) {
-		if item.GetService() == "*" && item.GetNamespace() == "*" {
+		// level3 级别 cache 处理
+		if item.GetService() == routingcommon.MatchAll && item.GetNamespace() == routingcommon.MatchAll {
 			b.level3Rules[bt][conf.ID] = struct{}{}
 			return
 		}
-
-		if item.GetService() == "*" && item.GetNamespace() != "*" {
+		// level2 级别 cache 处理
+		if item.GetService() == routingcommon.MatchAll && item.GetNamespace() != routingcommon.MatchAll {
 			if _, ok := b.level2Rules[bt][item.GetNamespace()]; !ok {
 				b.level2Rules[bt][item.GetNamespace()] = map[string]struct{}{}
 			}
 			b.level2Rules[bt][item.GetNamespace()][conf.ID] = struct{}{}
 			return
 		}
-
-		if item.GetService() != "*" && item.GetNamespace() != "*" {
+		// level1 级别 cache 处理
+		if item.GetService() != routingcommon.MatchAll && item.GetNamespace() != routingcommon.MatchAll {
 			key := buildServiceKey(item.GetNamespace(), item.GetService())
 			if _, ok := b.level1Rules[key]; !ok {
 				b.level1Rules[key] = map[string]struct{}{}
@@ -195,17 +197,17 @@ func (b *routingBucketV2) deleteV2(id string) {
 		service := rule.RuleRouting.GetSources()[i].GetService()
 		namespace := rule.RuleRouting.GetSources()[i].GetNamespace()
 
-		if service == "*" && namespace == "*" {
+		if service == routingcommon.MatchAll && namespace == routingcommon.MatchAll {
 			delete(b.level3Rules[outBound], id)
 			delete(b.level3Rules[inBound], id)
 		}
 
-		if service == "*" && namespace != "*" {
+		if service == routingcommon.MatchAll && namespace != routingcommon.MatchAll {
 			delete(b.level2Rules[outBound][namespace], id)
 			delete(b.level2Rules[inBound][namespace], id)
 		}
 
-		if service != "*" && namespace != "*" {
+		if service != routingcommon.MatchAll && namespace != routingcommon.MatchAll {
 			key := buildServiceKey(namespace, service)
 			delete(b.level1Rules[key], id)
 		}
@@ -214,11 +216,11 @@ func (b *routingBucketV2) deleteV2(id string) {
 }
 
 // deleteV1 删除 v1 的路由规则
-func (b *routingBucketV2) deleteV1(id string) {
+func (b *routingBucketV2) deleteV1(serviceId string) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
-	delete(b.v1rules, id)
+	delete(b.v1rules, serviceId)
 }
 
 // size v2 路由缓存的规则数量
@@ -235,17 +237,11 @@ func (b *routingBucketV2) size() int {
 	return cnt
 }
 
-// listByService 通过服务名称查询 v2 版本的路由规则
-func (b *routingBucketV2) listByService(service, namespace string) map[routingLevel][]*v2.ExtendRoutingConfig {
-
-	return b.listByServiceWithPredicate(service, namespace, func(item *v2.ExtendRoutingConfig) bool {
-		return true
-	})
-}
+type predicate func(item *v2.ExtendRoutingConfig) bool
 
 // listByServiceWithPredicate 通过服务名称查询 v2 版本的路由规则，同时以及 predicate 进行一些过滤
 func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
-	predicate func(item *v2.ExtendRoutingConfig) bool) map[routingLevel][]*v2.ExtendRoutingConfig {
+	predicate predicate) map[routingLevel][]*v2.ExtendRoutingConfig {
 
 	ret := make(map[routingLevel][]*v2.ExtendRoutingConfig)
 
@@ -272,13 +268,14 @@ func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
 		// 大前提：当前规则处于 level2 或者 level3 缓存中的 inBound 列表中
 		// 需要过滤掉 source 为当前的查询服务，desition 为 service(*) 或者 service(*)+namespace(*) 的情况
 		// 如果满足上述规则，那么这条规则不能作为 list 的结果
-		if bt == inBound {
-			if v.GetRoutingPolicy() == apiv2.RoutingPolicy_RulePolicy {
-				for p := range v.RuleRouting.Sources {
-					source := v.RuleRouting.Sources[p]
-					if source.Service == service && source.Namespace == namespace {
-						return false
-					}
+		if bt != inBound {
+			return true
+		}
+		if v.GetRoutingPolicy() == apiv2.RoutingPolicy_RulePolicy {
+			for p := range v.RuleRouting.Sources {
+				source := v.RuleRouting.Sources[p]
+				if source.Service == service && source.Namespace == namespace {
+					return false
 				}
 			}
 		}

@@ -206,6 +206,7 @@ func (rc *routingConfigCache) GetRoutingConfigV1(id, service, namespace string) 
 	return formatRoutingResponseV1(compositeRule), nil
 }
 
+// formatRoutingResponseV1 给客户端的缓存，不需要暴露 ExtendInfo 信息数据
 func formatRoutingResponseV1(ret *apiv1.Routing) *apiv1.Routing {
 	inBounds := ret.Inbounds
 	outBounds := ret.Outbounds
@@ -393,17 +394,17 @@ func (rc *routingConfigCache) convertRoutingV2toV1(entries map[routingLevel][]*v
 
 	level1 := entries[level1RoutingV2]
 	sort.Slice(level1, func(i, j int) bool {
-		return level1[i].Priority < level1[j].Priority
+		return routingcommon.CompareRoutingV2(level1[i], level1[j])
 	})
 
 	level2 := entries[level2RoutingV2]
 	sort.Slice(level2, func(i, j int) bool {
-		return level2[i].Priority < level2[j].Priority
+		return routingcommon.CompareRoutingV2(level2[i], level2[j])
 	})
 
 	level3 := entries[level3RoutingV2]
 	sort.Slice(level3, func(i, j int) bool {
-		return level3[i].Priority < level3[j].Priority
+		return routingcommon.CompareRoutingV2(level3[i], level3[j])
 	})
 
 	level1inRoutes, level1outRoutes, level1Revisions := routingcommon.BuildV1RoutesFromV2(service, namespace, level1)

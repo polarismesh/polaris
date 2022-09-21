@@ -51,7 +51,7 @@ type RoutingArgs struct {
 	OrderType string
 }
 
-// Update 更新配置
+// forceUpdate 更新配置
 func (rc *routingConfigCache) forceUpdate() error {
 	if err := rc.update(0); err != nil {
 		return err

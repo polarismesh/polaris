@@ -23,6 +23,8 @@ import (
 	"strings"
 	"time"
 
+	commonlog "github.com/polarismesh/polaris-server/common/log"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
@@ -63,6 +65,13 @@ func WithVirtualStreamPostProcessFunc(postprocess PostProcessFunc) initVirtualSt
 func WithVirtualStreamBaseServer(server *BaseGrpcServer) initVirtualStream {
 	return func(vStream *VirtualStream) {
 		vStream.server = server
+	}
+}
+
+// WithVirtualStreamLogger 设置 Logger
+func WithVirtualStreamLogger(log *commonlog.Scope) initVirtualStream {
+	return func(vStream *VirtualStream) {
+		vStream.log = log
 	}
 }
 
@@ -130,6 +139,8 @@ type VirtualStream struct {
 	postprocess PostProcessFunc
 
 	StartTime time.Time
+
+	log *commonlog.Scope
 }
 
 // SetHeader sets the header metadata. It may be called multiple times.
@@ -225,10 +236,16 @@ func (v *VirtualStream) handleResponse(stream grpc.ServerStream, m interface{}) 
 	}
 
 	if err := cacheVal.PrepareMessage(stream); err != nil {
+		v.log.Warn("[Grpc][ProtoCache] prepare message fail, direct send msg", zap.String("key", cacheVal.Key),
+			zap.Error(err))
 		return m
 	}
 
-	cacheVal = v.server.cache.Put(cacheVal)
+	cacheVal, ok := v.server.cache.Put(cacheVal)
+	if !ok {
+		v.log.Warn("[Grpc][ProtoCache] put cache ignore", zap.String("key", cacheVal.Key),
+			zap.String("cacheType", cacheVal.CacheType))
+	}
 	if cacheVal == nil {
 		return m
 	}

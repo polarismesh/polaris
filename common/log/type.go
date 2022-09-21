@@ -21,6 +21,8 @@ package log
 const (
 	// NamingLoggerName naming logger name, can use FindScope function to get the logger
 	NamingLoggerName = "naming"
+	// HealthCheckLoggerName heartbeat logger name, can use FindScope function to get the logger
+	HealthCheckLoggerName = "healthcheck"
 	// ConfigLoggerName config logger name, can use FindScope function to get the logger
 	ConfigLoggerName = "config"
 	// CacheLoggerName cache logger name, can use FindScope function to get the logger
@@ -29,29 +31,43 @@ const (
 	AuthLoggerName = "auth"
 	// StoreLoggerName store logger name, can use FindScope function to get the logger
 	StoreLoggerName = "store"
+	// APIServerLoggerName store logger name, can use FindScope function to get the logger
+	APIServerLoggerName = "apiserver"
 )
 
 var (
-	namingScope = RegisterScope(NamingLoggerName, "naming logging messages.", 0)
-	configScope = RegisterScope(ConfigLoggerName, "naming logging messages.", 0)
-	cacheScope  = RegisterScope(CacheLoggerName, "naming logging messages.", 0)
-	authScope   = RegisterScope(AuthLoggerName, "naming logging messages.", 0)
-	storeScope  = RegisterScope(StoreLoggerName, "store logging messages.", 0)
+	namingScope      = RegisterScope(NamingLoggerName, "naming logging messages.", 0)
+	healthcheckScope = RegisterScope(HealthCheckLoggerName, "healthcheck logging messages.", 0)
+	configScope      = RegisterScope(ConfigLoggerName, "config logging messages.", 0)
+	cacheScope       = RegisterScope(CacheLoggerName, "cache logging messages.", 0)
+	authScope        = RegisterScope(AuthLoggerName, "auth logging messages.", 0)
+	storeScope       = RegisterScope(StoreLoggerName, "store logging messages.", 0)
+	apiserverScope   = RegisterScope(APIServerLoggerName, "apiserver logging messages.", 0)
 )
 
 func allLoggerTypes() []string {
 	return []string{NamingLoggerName, ConfigLoggerName, CacheLoggerName,
-		AuthLoggerName, StoreLoggerName, DefaultLoggerName}
+		AuthLoggerName, StoreLoggerName, APIServerLoggerName, HealthCheckLoggerName, DefaultLoggerName}
+}
+
+// APIServerScope default logging scope handler
+func APIServerScope() *Scope {
+	return defaultScope
 }
 
 // DefaultScope default logging scope handler
 func DefaultScope() *Scope {
-	return defaultScope
+	return apiserverScope
 }
 
 // NamingScope naming logging scope handler
 func NamingScope() *Scope {
 	return namingScope
+}
+
+// HealthCheckScope heartbeat logging scope handler
+func HealthCheckScope() *Scope {
+	return healthcheckScope
 }
 
 // ConfigScope config logging scope handler

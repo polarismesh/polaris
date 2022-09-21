@@ -21,4 +21,4 @@ import (
 	commonlog "github.com/polarismesh/polaris-server/common/log"
 )
 
-var log = commonlog.NamingScope()
+var log = commonlog.HealthCheckScope()

@@ -22,12 +22,16 @@ import (
 	"io"
 
 	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/utils"
 	apiv1 "github.com/polarismesh/polaris-server/common/api/v1"
 	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+)
+
+var (
+	namingLog = commonlog.NamingScope()
 )
 
 // Discover 统一发现接口
@@ -49,7 +53,7 @@ func (g *DiscoverServer) Discover(server apiv2.PolarisGRPC_DiscoverServer) error
 		}
 
 		msg := fmt.Sprintf("receive grpc discover v2 request: %s", in.GetSerivce().String())
-		log.Info(msg,
+		namingLog.Info(msg,
 			zap.String("type", apiv2.DiscoverRequest_DiscoverRequestType_name[int32(in.Type)]),
 			zap.String("client-address", clientAddress),
 			zap.String("user-agent", userAgent),

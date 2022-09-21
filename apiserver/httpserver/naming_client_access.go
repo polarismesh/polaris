@@ -144,7 +144,7 @@ func (h *HTTPServer) Discover(req *restful.Request, rsp *restful.Response) {
 	}
 
 	msg := fmt.Sprintf("receive http discover request: %s", discoverRequest.Service.String())
-	log.Info(msg,
+	namingLog.Info(msg,
 		zap.String("type", api.DiscoverRequest_DiscoverRequestType_name[int32(discoverRequest.Type)]),
 		zap.String("client-address", req.Request.RemoteAddr),
 		zap.String("user-agent", req.HeaderParameter("User-Agent")),

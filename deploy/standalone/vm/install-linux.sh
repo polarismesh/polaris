@@ -70,6 +70,10 @@ echo "service_grpc_port=${service_grpc_port}"
 echo "config_grpc_port=${config_grpc_port}"
 echo "api_http_port=${api_http_port}"
 echo ""
+echo "polaris-limiter-server listen port info"
+echo "polaris_limiter_http_port=${limiter_http_port}"
+echo "polaris_limiter_grpc_port=${limiter_grpc_port}"
+echo ""
 echo "prometheus-server listen port info"
 echo "prometheus_server_port=${prometheus_port}"
 echo ""
@@ -210,7 +214,7 @@ function installPolarisLimiter() {
   fi
 
   local polaris_limiter_tarnum=$(find . -name "polaris-limiter-release*.zip" | wc -l)
-  if [ $polaris_console_tarnum != 1 ]; then
+  if [ $polaris_limiter_tarnum != 1 ]; then
     echo -e "number of polaris limiter tar not equal 1, exit."
     exit -1
   fi

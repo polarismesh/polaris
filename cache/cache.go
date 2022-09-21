@@ -460,6 +460,7 @@ func ComputeRevision(serviceRevision string, instances []*model.Instance) (strin
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
+// CompositeComputeRevision 将多个 revision 合并计算为一个
 func CompositeComputeRevision(revisions []string) (string, error) {
 	h := sha1.New()
 

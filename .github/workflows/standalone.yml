@@ -40,6 +40,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           SERVER_VERSION: ${{ github.event.inputs.server_version }}
           CONSOLE_VERSION: ${{ github.event.inputs.console_version }}
+          LIMITER_VERSION: ${{ github.event.inputs.limiter_version }}
         run: |
           if [ ${GOOS} == "kubernetes" ];then
             set -e
@@ -49,22 +50,20 @@ jobs:
             cd ${workdir}
             cd deploy/standalone
 
-            sed -i "s/##POLARIS_SERVER_VERSION##/${SERVER_VERSION}/g" 03-polaris-server.yaml
-            sed -i "s/##POLARIS_CONSOLE_VERSION##/${CONSOLE_VERSION}/g" 03-polaris-server.yaml
-            sed -i "s/##POLARIS_PROMETHEUS_VERSION##/${SERVER_VERSION}/g" 04-prometheus.yaml
-
-            cd ${cur}
+            sed -i "s/##POLARIS_SERVER_VERSION##/${SERVER_VERSION}/g" k8s/03-polaris-server.yaml
+            sed -i "s/##POLARIS_CONSOLE_VERSION##/${CONSOLE_VERSION}/g" k8s/03-polaris-server.yaml
+            sed -i "s/##POLARIS_PROMETHEUS_VERSION##/${SERVER_VERSION}/g" k8s/04-prometheus.yaml
 
             DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}
             mkdir ${DIR_NAME}
             pushd ${DIR_NAME}
-            cp ../k8s/* ./
+            cp  -rf ../k8s/* ./
             popd
 
             PACKAGE_NAME=${DIR_NAME}.zip
             zip -r ${PACKAGE_NAME} ${DIR_NAME}
+            rm -rf ${DIR_NAME}
             mv ${PACKAGE_NAME} ../../
-            echo ::set-output name=name::${PACKAGE_NAME}
 
             # ---------------------- 出 docker-compose 安装包 ---------------------- 
             cd ${workdir}
@@ -77,13 +76,13 @@ jobs:
             DOCKER_COMPOSE_DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.docker-compose
             mkdir ${DOCKER_COMPOSE_DIR_NAME}
             pushd ${DOCKER_COMPOSE_DIR_NAME}
-            cp ../docker-compose/* ./
+            cp -rf ../docker-compose/* ./
             popd
 
             DOCKER_COMPOSE_PACKAGE_NAME=${DOCKER_COMPOSE_DIR_NAME}.zip
             zip -r ${DOCKER_COMPOSE_PACKAGE_NAME} ${DOCKER_COMPOSE_DIR_NAME}
+            rm -rf ${DOCKER_COMPOSE_DIR_NAME}
             mv ${DOCKER_COMPOSE_PACKAGE_NAME} ../../
-            echo ::set-output docker_compose_name=docker_compose_name::${DOCKER_COMPOSE_PACKAGE_NAME}
 
             # ---------------------- 出 helm 安装包 ---------------------- 
             cd ${workdir}
@@ -96,13 +95,13 @@ jobs:
             HELM_DIR_NAME=polaris-helm-release_${SERVER_VERSION}.${GOOS}
             mkdir ${HELM_DIR_NAME}
             pushd ${HELM_DIR_NAME}
-            cp ../helm/* ./
+            cp  -rf ../helm/* ./
+            popd
 
             HELM_PACKAGE_NAME=${HELM_DIR_NAME}.zip
             zip -r ${HELM_PACKAGE_NAME} ${HELM_DIR_NAME}
-            mv ${HELM_PACKAGE_NAME} ../../
-            echo ::set-output helm_name=helm_name::${HELM_PACKAGE_NAME}
-            return
+            rm -rf ${HELM_DIR_NAME}
+            mv ${HELM_PACKAGE_NAME} ../
           else
             set -e
             cd deploy/standalone
@@ -114,8 +113,8 @@ jobs:
             wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris/releases/download/${SERVER_VERSION}/${SERVER_PKG_NAME} --no-check-certificate
             CONSOLE_PKG_NAME=polaris-console-release_${CONSOLE_VERSION}.${GOOS}.${GOARCH}.zip
             wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris-console/releases/download/${CONSOLE_VERSION}/${CONSOLE_PKG_NAME} --no-check-certificate
-            LIMITER_PKG_NAME=polaris-limiter-release_${CONSOLE_VERSION}.${GOOS}.${GOARCH}.zip
-            wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris-console/releases/download/${CONSOLE_VERSION}/${CONSOLE_PKG_NAME} --no-check-certificate
+            LIMITER_PKG_NAME=polaris-limiter-release_${LIMITER_VERSION}.${GOOS}.${GOARCH}.zip
+            wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris-limiter/releases/download/${LIMITER_VERSION}/${LIMITER_PKG_NAME} --no-check-certificate
             if [ ${GOOS} == "windows" ];then
               wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.zip
               mv ../vm/install-windows.bat ./install.bat
@@ -131,11 +130,12 @@ jobs:
               mv ../vm/prometheus-help.sh ./prometheus-help.sh
             fi
             popd
+            PACKAGE_NAME=${DIR_NAME}.zip
+            zip -r ${PACKAGE_NAME} ${DIR_NAME}
+            rm -rf ${DIR_NAME}
+            mv ${PACKAGE_NAME} ../../
+            echo ::set-output name=name::${PACKAGE_NAME}
           fi
-          PACKAGE_NAME=${DIR_NAME}.zip
-          zip -r ${PACKAGE_NAME} ${DIR_NAME}
-          mv ${PACKAGE_NAME} ../../
-          echo ::set-output name=name::${PACKAGE_NAME}
 
       - name: Get Release by Tag
         id: get_release_by_tag
@@ -145,32 +145,18 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.server_version }}
 
-      - name: Upload asset
-        uses: actions/upload-release-asset@v1
+      # - name: Upload asset
+      #   uses: actions/upload-release-asset@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     upload_url: ${{ steps.get_release_by_tag.outputs.upload_url }}
+      #     asset_path: ./${{ steps.build.outputs.name }}
+      #     asset_name: ${{ steps.build.outputs.name }}
+      #     asset_content_type: application/gzip
+      - name: Upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.get_release_by_tag.outputs.upload_url }}
-          asset_path: ./${{ steps.build.outputs.name }}
-          asset_name: ${{ steps.build.outputs.name }}
-          asset_content_type: application/gzip
-
-      - name: Upload docker-compose asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.get_release_by_tag.outputs.upload_url }}
-          asset_path: ./${{ steps.build.outputs.docker_compose_name }}
-          asset_name: ${{ steps.build.outputs.docker_compose_name }}
-          asset_content_type: application/gzip
-
-      - name: Upload helm asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.get_release_by_tag.outputs.upload_url }}
-          asset_path: ./${{ steps.build.outputs.helm_name }}
-          asset_name: ${{ steps.build.outputs.helm_name }}
-          asset_content_type: application/gzip
+          SERVER_VERSION: ${{ github.event.inputs.server_version }}
+        run: |
+          hub release edit $(find . -type f -name "polaris-*.zip" -printf "-a %p ") -m "" "${SERVER_VERSION}"
