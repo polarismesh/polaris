@@ -162,6 +162,7 @@ func (g *GRPCServer) allowAccess(method string) bool {
 func (g *GRPCServer) buildInitOptions(option map[string]interface{}) []grpcserver.InitOption {
 	initOptions := []grpcserver.InitOption{
 		grpcserver.WithProtocol(g.GetProtocol()),
+		grpcserver.WithLogger(namingLog),
 		grpcserver.WithMessageToCacheObject(discoverCacheConvert),
 	}
 
