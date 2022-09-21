@@ -170,6 +170,7 @@ func (s *Server) updateRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 		item.Id = utils.NewRoutingV2UUID()
 		item.Revision = utils.NewV2Revision()
 		data := &v2.RoutingConfig{}
+		data.Enable = true
 		if err := data.ParseFromAPI(item); err != nil {
 			return apiv1.NewResponse(apiv1.ExecuteException)
 		}

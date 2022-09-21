@@ -116,7 +116,6 @@ func (rc *routingConfigCache) update(storeRollbackSec time.Duration) error {
 		return nil, rc.realUpdate(storeRollbackSec)
 	})
 	return err
-
 }
 
 // update 实现Cache接口的函数

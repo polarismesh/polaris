@@ -244,6 +244,7 @@ func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
 	predicate predicate) map[routingLevel][]*v2.ExtendRoutingConfig {
 
 	ret := make(map[routingLevel][]*v2.ExtendRoutingConfig)
+	tmpRecord := map[string]struct{}{}
 
 	b.lock.RLock()
 	defer b.lock.RUnlock()
@@ -255,64 +256,43 @@ func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
 	for i := range ids {
 		if v, ok := b.rules[i]; ok && predicate(v) {
 			level1 = append(level1, v)
+			tmpRecord[v.ID] = struct{}{}
 		}
 	}
 	ret[level1RoutingV2] = level1
 
-	// 这个 filter 仅仅工作在查询 level2 以及 level3 级别的路由规则缓存时生效
-	filter := func(bt boundType, v *v2.ExtendRoutingConfig) bool {
-		if v == nil {
-			return false
+	handler := func(ids map[string]struct{}, bt boundType) []*v2.ExtendRoutingConfig {
+		ret := make([]*v2.ExtendRoutingConfig, 0, 4)
+
+		for k := range ids {
+			v := b.rules[k]
+			if v == nil {
+				continue
+			}
+			// 已经存在，不需要在重复加一次了
+			if _, ok := tmpRecord[v.ID]; ok {
+				continue
+			}
+			if !predicate(v) {
+				continue
+			}
+			ret = append(ret, v)
+			tmpRecord[v.ID] = struct{}{}
 		}
 
-		// 大前提：当前规则处于 level2 或者 level3 缓存中的 inBound 列表中
-		// 需要过滤掉 source 为当前的查询服务，desition 为 service(*) 或者 service(*)+namespace(*) 的情况
-		// 如果满足上述规则，那么这条规则不能作为 list 的结果
-		if bt != inBound {
-			return true
-		}
-		if v.GetRoutingPolicy() == apiv2.RoutingPolicy_RulePolicy {
-			for p := range v.RuleRouting.Sources {
-				source := v.RuleRouting.Sources[p]
-				if source.Service == service && source.Namespace == namespace {
-					return false
-				}
-			}
-		}
-		return predicate(v)
+		return ret
 	}
 
 	// 查询 level2 级别的 v2 版本路由规则
 	level2 := make([]*v2.ExtendRoutingConfig, 0, 4)
-	for k := range b.level2Rules[outBound][namespace] {
-		if v, ok := b.rules[k]; ok && predicate(v) {
-			level2 = append(level2, v)
-		}
-	}
-	for k := range b.level2Rules[inBound][namespace] {
-		v := b.rules[k]
-		if !filter(inBound, v) {
-			continue
-		}
-
-		level2 = append(level2, v)
-	}
+	level2 = append(level2, handler(b.level2Rules[outBound][namespace], outBound)...)
+	level2 = append(level2, handler(b.level2Rules[inBound][namespace], inBound)...)
 	ret[level2RoutingV2] = level2
 
 	// 查询 level3 级别的 v2 版本路由规则
 	level3 := make([]*v2.ExtendRoutingConfig, 0, 4)
-	for k := range b.level3Rules[outBound] {
-		if v, ok := b.rules[k]; ok && predicate(v) {
-			level3 = append(level3, v)
-		}
-	}
-	for k := range b.level3Rules[inBound] {
-		v := b.rules[k]
-		if !filter(inBound, v) {
-			continue
-		}
-		level3 = append(level3, v)
-	}
+	level3 = append(level3, handler(b.level3Rules[outBound], outBound)...)
+	level3 = append(level3, handler(b.level3Rules[inBound], inBound)...)
 	ret[level3RoutingV2] = level3
 	return ret
 
