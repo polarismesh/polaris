@@ -142,7 +142,6 @@ func (r *routingStoreV2) updateRoutingConfigV2Tx(tx *bolt.Tx, conf *v2.RoutingCo
 	properties := make(map[string]interface{})
 	properties[routingV2FieldEnable] = conf.Enable
 	properties[routingV2FieldName] = conf.Name
-	properties[routingV2FieldEnableTime] = conf.EnableTime
 	properties[routingV2FieldPolicy] = conf.Policy
 	properties[routingV2FieldConfig] = conf.Config
 	properties[routingV2FieldPriority] = conf.Priority
