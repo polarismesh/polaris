@@ -376,7 +376,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 		_, routingResp := discoverSuit.createCommonRoutingConfig(t, serviceResp, 2, 0)
 		defer discoverSuit.cleanCommonRoutingConfig(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		time.Sleep(discoverSuit.updateCacheInterval)
+		time.Sleep(discoverSuit.updateCacheInterval * 10)
 		firstResp := discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, serviceResp)
 		checkSameRoutingConfig(t, routingResp, firstResp.GetRouting())
 
