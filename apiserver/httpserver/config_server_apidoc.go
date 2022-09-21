@@ -43,8 +43,8 @@ func enrichQueryConfigFileGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteB
 		Param(restful.QueryParameter("namespace", "命名空间，不填表示全部命名空间").DataType("string").Required(false)).
 		Param(restful.QueryParameter("group", "配置文件分组名，模糊搜索").DataType("string").Required(false)).
 		Param(restful.QueryParameter("fileName", "配置文件名称，模糊搜索").DataType("string").Required(false)).
-		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("int").Required(false).DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("int").Required(true).DefaultValue("100"))
+		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("integer").Required(false).DefaultValue("0")).
+		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("integer").Required(true).DefaultValue("100"))
 }
 
 func enrichDeleteConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -84,8 +84,8 @@ func enrichQueryConfigFilesByGroupApiDocs(r *restful.RouteBuilder) *restful.Rout
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
 		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(false)).
 		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(false)).
-		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("int").Required(false).DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("int").Required(true).DefaultValue("100"))
+		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("integer").Required(false).DefaultValue("0")).
+		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("integer").Required(true).DefaultValue("100"))
 }
 
 func enrichSearchConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -96,8 +96,8 @@ func enrichSearchConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(false)).
 		Param(restful.QueryParameter("name", "配置文件").DataType("string").Required(false)).
 		Param(restful.QueryParameter("tags", "格式：key1,value1,key2,value2").DataType("string").Required(false)).
-		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("int").Required(false).DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("int").Required(true).DefaultValue("100"))
+		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("integer").Required(false).DefaultValue("0")).
+		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("integer").Required(true).DefaultValue("100"))
 }
 
 func enrichUpdateConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -148,8 +148,8 @@ func enrichGetConfigFileReleaseHistoryApiDocs(r *restful.RouteBuilder) *restful.
 		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
 		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(false)).
 		Param(restful.QueryParameter("name", "配置文件").DataType("string").Required(false)).
-		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("int").Required(false).DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("int").Required(true).DefaultValue("100"))
+		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("integer").Required(false).DefaultValue("0")).
+		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("integer").Required(true).DefaultValue("100"))
 }
 
 func enrichGetAllConfigFileTemplatesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {

@@ -57,6 +57,17 @@ bootstrap:
       #   - stdout
       # errorOutputPaths:
       #   - stderr
+    healthcheck:
+      rotateOutputPath: log/polaris-healthcheck.log
+      errorRotateOutputPath: log/polaris-healthcheck-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
     default:
       rotateOutputPath: log/polaris-default.log
       errorRotateOutputPath: log/polaris-default-error.log
@@ -78,18 +89,9 @@ bootstrap:
     enable_register: true
     isolated: false
     services:
-      - name: polaris.discover
-        protocols:
-          - service-grpc
-      - name: polaris.healthcheck
-        protocols:
-          - service-grpc
       - name: polaris.checker
         protocols:
           - service-grpc
-      - name: polaris.config
-        protocols:
-          - config-grpc
 # apiserver配置
 apiservers:
   - name: service-eureka

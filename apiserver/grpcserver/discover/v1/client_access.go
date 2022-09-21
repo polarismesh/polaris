@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package discover
+package v1
 
 import (
 	"context"
@@ -30,17 +30,21 @@ import (
 
 	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
+var (
+	namingLog = commonlog.NamingScope()
+)
+
 // ReportClient 客户端上报
-func (g *GRPCServer) ReportClient(ctx context.Context, in *api.Client) (*api.Response, error) {
+func (g *DiscoverServer) ReportClient(ctx context.Context, in *api.Client) (*api.Response, error) {
 	return g.namingServer.ReportClient(grpcserver.ConvertContext(ctx), in), nil
 }
 
 // RegisterInstance 注册服务实例
-func (g *GRPCServer) RegisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
+func (g *DiscoverServer) RegisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
 
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
 	rCtx := grpcserver.ConvertContext(ctx)
@@ -62,7 +66,7 @@ func (g *GRPCServer) RegisterInstance(ctx context.Context, in *api.Instance) (*a
 }
 
 // DeregisterInstance 反注册服务实例
-func (g *GRPCServer) DeregisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
+func (g *DiscoverServer) DeregisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
 	rCtx := grpcserver.ConvertContext(ctx)
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
@@ -77,7 +81,7 @@ func (g *GRPCServer) DeregisterInstance(ctx context.Context, in *api.Instance) (
 }
 
 // Discover 统一发现接口
-func (g *GRPCServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
+func (g *DiscoverServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
 	ctx := grpcserver.ConvertContext(server.Context())
 	clientIP, _ := ctx.Value(utils.StringContext("client-ip")).(string)
 	clientAddress, _ := ctx.Value(utils.StringContext("client-address")).(string)
@@ -95,7 +99,7 @@ func (g *GRPCServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
 		}
 
 		msg := fmt.Sprintf("receive grpc discover request: %s", in.Service.String())
-		log.Info(msg,
+		namingLog.Info(msg,
 			zap.String("type", api.DiscoverRequest_DiscoverRequestType_name[int32(in.Type)]),
 			zap.String("client-address", clientAddress),
 			zap.String("user-agent", userAgent),
@@ -144,7 +148,7 @@ func (g *GRPCServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
 }
 
 // Heartbeat 上报心跳
-func (g *GRPCServer) Heartbeat(ctx context.Context, in *api.Instance) (*api.Response, error) {
+func (g *DiscoverServer) Heartbeat(ctx context.Context, in *api.Instance) (*api.Response, error) {
 	return g.healthCheckServer.Report(grpcserver.ConvertContext(ctx), in), nil
 }
 

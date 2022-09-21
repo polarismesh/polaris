@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package v2;
+
+import "google/protobuf/wrappers.proto";
+
+// MatchString 这里的序号需要保证和 v1.MatchSrting 保持一致
+message MatchString {
+  enum MatchStringType {
+    // Equivalent match
+    EXACT = 0;
+    // Regular match
+    REGEX = 1;
+    // Not equals match
+    NOT_EQUALS = 2;
+    // Include match
+    IN = 3;
+    // Not include match
+    NOT_IN = 4;
+  }
+
+  enum ValueType {
+    TEXT = 0;
+    PARAMETER = 1;
+    VARIABLE = 2;
+  }
+
+  MatchStringType type = 1;
+  google.protobuf.StringValue value = 2;
+  ValueType value_type = 3;
+}

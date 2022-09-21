@@ -53,7 +53,7 @@ spec:
         app: polaris
     spec:
       containers:
-      - image: polarismesh/polaris-server:latest
+      - image: polarismesh/polaris-server:##POLARIS_SERVER_VERSION##
         imagePullPolicy: Always
         name: polaris-server
         resources:
@@ -66,7 +66,7 @@ spec:
         - mountPath: /root/polaris-server.yaml
           name: polaris-server-config
           subPath: polaris-server.yaml
-      - image: polarismesh/polaris-console:latest
+      - image: polarismesh/polaris-console:##POLARIS_CONSOLE_VERSION##
         imagePullPolicy: Always
         name: polaris-console
         resources:

@@ -24,13 +24,14 @@ import (
 	"github.com/golang/protobuf/proto"
 	"go.uber.org/zap"
 
+	httpcommon "github.com/polarismesh/polaris-server/apiserver/httpserver/http"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 // CreateConfigFileGroup 创建配置文件组
 func (h *HTTPServer) CreateConfigFileGroup(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	configFileGroup := &api.ConfigFileGroup{}
 	ctx, err := handler.Parse(configFileGroup)
@@ -49,7 +50,7 @@ func (h *HTTPServer) CreateConfigFileGroup(req *restful.Request, rsp *restful.Re
 
 // QueryConfigFileGroups 查询配置文件组，group 模糊搜索
 func (h *HTTPServer) QueryConfigFileGroups(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	namespace := handler.QueryParameter("namespace")
 	group := handler.QueryParameter("group")
@@ -65,7 +66,7 @@ func (h *HTTPServer) QueryConfigFileGroups(req *restful.Request, rsp *restful.Re
 
 // DeleteConfigFileGroup 删除配置文件组
 func (h *HTTPServer) DeleteConfigFileGroup(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	namespace := handler.QueryParameter("namespace")
 	group := handler.QueryParameter("group")
@@ -76,7 +77,7 @@ func (h *HTTPServer) DeleteConfigFileGroup(req *restful.Request, rsp *restful.Re
 
 // UpdateConfigFileGroup 更新配置文件组，只能更新 comment
 func (h *HTTPServer) UpdateConfigFileGroup(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	configFileGroup := &api.ConfigFileGroup{}
 	ctx, err := handler.Parse(configFileGroup)
@@ -95,7 +96,7 @@ func (h *HTTPServer) UpdateConfigFileGroup(req *restful.Request, rsp *restful.Re
 
 // CreateConfigFile 创建配置文件
 func (h *HTTPServer) CreateConfigFile(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	configFile := &api.ConfigFile{}
 	ctx, err := handler.Parse(configFile)
@@ -114,7 +115,7 @@ func (h *HTTPServer) CreateConfigFile(req *restful.Request, rsp *restful.Respons
 
 // GetConfigFile 获取单个配置文件
 func (h *HTTPServer) GetConfigFile(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	namespace := handler.QueryParameter("namespace")
 	group := handler.QueryParameter("group")
@@ -125,7 +126,7 @@ func (h *HTTPServer) GetConfigFile(req *restful.Request, rsp *restful.Response) 
 }
 
 func (h *HTTPServer) QueryConfigFilesByGroup(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	namespace := handler.QueryParameter("namespace")
 	group := handler.QueryParameter("group")
@@ -139,7 +140,7 @@ func (h *HTTPServer) QueryConfigFilesByGroup(req *restful.Request, rsp *restful.
 
 // SearchConfigFile 按照 group 和 name 模糊搜索配置文件，按照 tag 搜索，多个tag之间或的关系
 func (h *HTTPServer) SearchConfigFile(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	namespace := handler.QueryParameter("namespace")
 	group := handler.QueryParameter("group")
@@ -156,7 +157,7 @@ func (h *HTTPServer) SearchConfigFile(req *restful.Request, rsp *restful.Respons
 
 // UpdateConfigFile 更新配置文件
 func (h *HTTPServer) UpdateConfigFile(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	configFile := &api.ConfigFile{}
 	ctx, err := handler.Parse(configFile)
@@ -174,7 +175,7 @@ func (h *HTTPServer) UpdateConfigFile(req *restful.Request, rsp *restful.Respons
 
 // DeleteConfigFile 删除单个配置文件，删除配置文件也会删除配置文件发布内容，客户端将获取不到配置文件
 func (h *HTTPServer) DeleteConfigFile(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	namespace := handler.QueryParameter("namespace")
 	group := handler.QueryParameter("group")
@@ -187,7 +188,7 @@ func (h *HTTPServer) DeleteConfigFile(req *restful.Request, rsp *restful.Respons
 
 // BatchDeleteConfigFile 批量删除配置文件
 func (h *HTTPServer) BatchDeleteConfigFile(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	operator := handler.QueryParameter("deleteBy")
 
@@ -208,7 +209,7 @@ func (h *HTTPServer) BatchDeleteConfigFile(req *restful.Request, rsp *restful.Re
 
 // PublishConfigFile 发布配置文件
 func (h *HTTPServer) PublishConfigFile(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	configFile := &api.ConfigFileRelease{}
 	ctx, err := handler.Parse(configFile)
@@ -227,7 +228,7 @@ func (h *HTTPServer) PublishConfigFile(req *restful.Request, rsp *restful.Respon
 
 // GetConfigFileRelease 获取配置文件最后一次发布内容
 func (h *HTTPServer) GetConfigFileRelease(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	namespace := handler.QueryParameter("namespace")
 	group := handler.QueryParameter("group")
@@ -240,7 +241,7 @@ func (h *HTTPServer) GetConfigFileRelease(req *restful.Request, rsp *restful.Res
 
 // GetConfigFileReleaseHistory 获取配置文件发布历史，按照发布时间倒序排序
 func (h *HTTPServer) GetConfigFileReleaseHistory(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	namespace := handler.QueryParameter("namespace")
 	group := handler.QueryParameter("group")
@@ -263,7 +264,7 @@ func (h *HTTPServer) GetConfigFileReleaseHistory(req *restful.Request, rsp *rest
 
 // GetAllConfigFileTemplates get all config file template
 func (h *HTTPServer) GetAllConfigFileTemplates(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	response := h.configServer.GetAllConfigFileTemplates(handler.ParseHeaderContext())
 
@@ -272,7 +273,7 @@ func (h *HTTPServer) GetAllConfigFileTemplates(req *restful.Request, rsp *restfu
 
 // CreateConfigFileTemplate create config file template
 func (h *HTTPServer) CreateConfigFileTemplate(req *restful.Request, rsp *restful.Response) {
-	handler := &Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
 	configFileTemplate := &api.ConfigFileTemplate{}
 	ctx, err := handler.Parse(configFileTemplate)

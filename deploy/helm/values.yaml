@@ -9,7 +9,7 @@ global:
 polaris:
   image:
     repository: polarismesh/polaris-server
-    tag: latest
+    tag: ##POLARIS_SERVER_VERSION##
     pullPolicy: Always
   limit:
     cpu: "500m"
@@ -17,7 +17,7 @@ polaris:
   console:
     image:
       repository: polarismesh/polaris-console
-      tag: latest
+      tag: ##POLARIS_CONSOLE_VERSION##
       pullPolicy: Always
     limit:
       cpu: "500m"
@@ -38,6 +38,17 @@ polaris:
       # user: polaris
       password: polaris@123456 # AUTH password below redis v6.0, or ACL password from redis v6.0
       withTLS: false
+
+prometheus:
+  image:
+    repository: polarismesh/polaris-prometheus
+    tag: ##POLARIS_PROMETHEUS_VERSION##
+    pullPolicy: Always
+  pushgateway:
+    image:
+      repository: prom/pushgateway
+      tag: latest
+      pullPolicy: Always
 
 service:
   type: LoadBalancer

@@ -26,18 +26,23 @@ import (
 
 	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
+	v1 "github.com/polarismesh/polaris-server/apiserver/grpcserver/discover/v1"
+	v2 "github.com/polarismesh/polaris-server/apiserver/grpcserver/discover/v2"
+	apiv1 "github.com/polarismesh/polaris-server/common/api/v1"
+	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/service"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 )
 
 var (
+	namingLog = commonlog.NamingScope()
+
 	cacheTypes = map[string]struct{}{
-		api.DiscoverResponse_INSTANCE.String():        {},
-		api.DiscoverResponse_ROUTING.String():         {},
-		api.DiscoverResponse_RATE_LIMIT.String():      {},
-		api.DiscoverResponse_CIRCUIT_BREAKER.String(): {},
+		apiv1.DiscoverResponse_INSTANCE.String():        {},
+		apiv1.DiscoverResponse_ROUTING.String():         {},
+		apiv1.DiscoverResponse_RATE_LIMIT.String():      {},
+		apiv1.DiscoverResponse_CIRCUIT_BREAKER.String(): {},
 	}
 )
 
@@ -47,6 +52,9 @@ type GRPCServer struct {
 	namingServer      service.DiscoverServer
 	healthCheckServer *healthcheck.Server
 	openAPI           map[string]apiserver.APIConfig
+
+	v1server *v1.DiscoverServer
+	v2server *v2.DiscoverServer
 }
 
 // GetPort 获取端口
@@ -65,17 +73,50 @@ func (g *GRPCServer) Initialize(ctx context.Context, option map[string]interface
 
 	g.openAPI = apiConf
 
-	return g.BaseGrpcServer.Initialize(ctx, option, g.buildInitOptions(option)...)
+	if err := g.BaseGrpcServer.Initialize(ctx, option, g.buildInitOptions(option)...); err != nil {
+		return err
+	}
+
+	// 引入功能模块和插件
+	var err error
+	if g.namingServer, err = service.GetServer(); err != nil {
+		namingLog.Errorf("%v", err)
+		return err
+	}
+
+	if g.healthCheckServer, err = healthcheck.GetServer(); err != nil {
+		namingLog.Errorf("%v", err)
+		return err
+	}
+
+	g.v1server = v1.NewDiscoverServer(
+		v1.WithAllowAccess(g.allowAccess),
+		v1.WithEnterRateLimit(g.enterRateLimit),
+		v1.WithHealthCheckerServer(g.healthCheckServer),
+		v1.WithNamingServer(g.namingServer),
+	)
+	g.v2server = v2.NewDiscoverServer(
+		v2.WithAllowAccess(g.allowAccess),
+		v2.WithEnterRateLimit(g.enterRateLimit),
+		v2.WithHealthCheckerServer(g.healthCheckServer),
+		v2.WithNamingServer(g.namingServer),
+	)
+
+	return nil
 }
 
 // Run 启动GRPC API服务器
 func (g *GRPCServer) Run(errCh chan error) {
+
 	g.BaseGrpcServer.Run(errCh, g.GetProtocol(), func(server *grpc.Server) error {
 		for name, config := range g.openAPI {
 			switch name {
 			case "client":
 				if config.Enable {
-					api.RegisterPolarisGRPCServer(server, g)
+					// 注册 v1 版本的 spec discover server
+					apiv1.RegisterPolarisGRPCServer(server, g.v1server)
+					// 注册 v2 版本的 spec discover server
+					apiv2.RegisterPolarisGRPCServer(server, g.v2server)
 					openMethod, getErr := apiserver.GetClientOpenMethod(config.Include, g.GetProtocol())
 					if getErr != nil {
 						return getErr
@@ -83,22 +124,10 @@ func (g *GRPCServer) Run(errCh chan error) {
 					g.BaseGrpcServer.OpenMethod = openMethod
 				}
 			default:
-				log.Errorf("[Grpc][Discover] api %s does not exist in grpcserver", name)
+				namingLog.Errorf("[Grpc][Discover] api %s does not exist in grpcserver", name)
 				return fmt.Errorf("api %s does not exist in grpcserver", name)
 			}
 		}
-		// 引入功能模块和插件
-		var err error
-		if g.namingServer, err = service.GetServer(); err != nil {
-			log.Errorf("%v", err)
-			return err
-		}
-
-		if g.healthCheckServer, err = healthcheck.GetServer(); err != nil {
-			log.Errorf("%v", err)
-			return err
-		}
-
 		return nil
 	})
 }
@@ -133,6 +162,7 @@ func (g *GRPCServer) allowAccess(method string) bool {
 func (g *GRPCServer) buildInitOptions(option map[string]interface{}) []grpcserver.InitOption {
 	initOptions := []grpcserver.InitOption{
 		grpcserver.WithProtocol(g.GetProtocol()),
+		grpcserver.WithLogger(namingLog),
 		grpcserver.WithMessageToCacheObject(discoverCacheConvert),
 	}
 
@@ -143,7 +173,7 @@ func (g *GRPCServer) buildInitOptions(option map[string]interface{}) []grpcserve
 
 	cache, err := grpcserver.NewCache(option, types)
 	if err != nil {
-		log.Warn("[Grpc][Discover] new protobuf cache", zap.Error(err))
+		namingLog.Warn("[Grpc][Discover] new protobuf cache", zap.Error(err))
 	}
 
 	if cache != nil {
@@ -160,13 +190,13 @@ func (g *GRPCServer) buildInitOptions(option map[string]interface{}) []grpcserve
 // 3. DiscoverResponse_RATE_LIMIT
 // 4. DiscoverResponse_CIRCUIT_BREAKER
 func discoverCacheConvert(m interface{}) *grpcserver.CacheObject {
-	resp, ok := m.(*api.DiscoverResponse)
+	resp, ok := m.(*apiv1.DiscoverResponse)
 
 	if !ok {
 		return nil
 	}
 
-	if resp.Code.GetValue() != api.ExecuteSuccess {
+	if resp.Code.GetValue() != apiv1.ExecuteSuccess {
 		return nil
 	}
 

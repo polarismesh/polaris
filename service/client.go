@@ -25,6 +25,7 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
+	"go.uber.org/zap"
 )
 
 // CreateInstances create one instance
@@ -257,7 +258,6 @@ func (s *Server) GetRoutingConfigWithCache(ctx context.Context, req *api.Service
 	if s.caches == nil {
 		return api.NewDiscoverRoutingResponse(api.ClientAPINotOpen, req)
 	}
-	rid := ParseRequestID(ctx)
 	if req == nil {
 		return api.NewDiscoverRoutingResponse(api.EmptyRequest, req)
 	}
@@ -276,30 +276,29 @@ func (s *Server) GetRoutingConfigWithCache(ctx context.Context, req *api.Service
 	}
 
 	// 先从缓存获取ServiceID，这里返回的是源服务
-	service := s.getServiceCache(req.GetName().GetValue(), req.GetNamespace().GetValue())
-	if service == nil {
+	svc := s.getServiceCache(req.GetName().GetValue(), req.GetNamespace().GetValue())
+	if svc == nil {
 		return api.NewDiscoverRoutingResponse(api.NotFoundService, req)
 	}
-	out := s.caches.RoutingConfig().GetRoutingConfig(service.ID)
+	out, err := s.caches.RoutingConfig().GetRoutingConfigV1(svc.ID, svc.Name, svc.Namespace)
+	if err != nil {
+		log.Error("[Server][Service][Routing] discover routing", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+		return api.NewDiscoverRoutingResponse(api.ExecuteException, req)
+	}
+
 	if out == nil {
 		return resp
 	}
 
 	// 获取路由数据，并对比revision
-	if out.Revision == req.GetRevision().GetValue() {
+	if out.GetRevision().GetValue() == req.GetRevision().GetValue() {
 		return api.NewDiscoverRoutingResponse(api.DataNoChange, req)
 	}
 
 	// 数据不一致，发生了改变
 	// 数据格式转换，service只需要返回二元组与routing的revision
-	var err error
-	resp.Service.Revision = utils.NewStringValue(out.Revision)
-	resp.Routing, err = routingConfig2API(out, req.GetName().GetValue(), req.GetNamespace().GetValue())
-	if err != nil {
-		log.Error(err.Error(), ZapRequestID(rid))
-		return api.NewDiscoverRoutingResponse(api.ExecuteException, req)
-	}
-
+	resp.Service.Revision = out.GetRevision()
+	resp.Routing = out
 	return resp
 }
 

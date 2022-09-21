@@ -18,19 +18,20 @@
 package httpserver
 
 import (
-	"reflect"
-
 	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
 	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
+	"github.com/polarismesh/polaris-server/common/version"
 )
 
 func (h *HTTPServer) enableSwaggerAPI(wsContainer *restful.Container) {
-	log.Infof("open http access for swagger API")
+	log.Infof("[HTTPServer] open http access for swagger API")
 	config := restfulspec.Config{
 		WebServices:                   wsContainer.RegisteredWebServices(), // you control what services are visible
 		APIPath:                       "/apidocs.json",
-		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
+		PostBuildSwaggerObjectHandler: enrichSwaggerObject,
+	}
+
 	wsContainer.Add(restfulspec.NewOpenAPIService(config))
 }
 
@@ -52,22 +53,31 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 					URL:  "https://github.com/polarismesh/polaris/blob/main/LICENSE",
 				},
 			},
-			Version: "v1.12.0-alpha",
+			Version: version.GetRevision(),
 		},
 	}
 	swo.Tags = []spec.Tag{
 		{TagProps: spec.TagProps{
-			Name:        "Namespaces",
-			Description: "命名空间管理"}},
-		{TagProps: spec.TagProps{
-			Name:        "Services",
-			Description: "服务管理"}},
-		{TagProps: spec.TagProps{
 			Name:        "Alias",
 			Description: "服务别名管理"}},
 		{TagProps: spec.TagProps{
+			Name:        "Auth",
+			Description: "鉴权管理"}},
+		{TagProps: spec.TagProps{
+			Name:        "ConfigClient",
+			Description: "客户端API接口"}},
+		{TagProps: spec.TagProps{
+			Name:        "ConfigConsole",
+			Description: "服务端接口"}},
+		{TagProps: spec.TagProps{
+			Name:        "Client",
+			Description: "客户端"}},
+		{TagProps: spec.TagProps{
 			Name:        "Instances",
 			Description: "实例管理"}},
+		{TagProps: spec.TagProps{
+			Name:        "Namespaces",
+			Description: "命名空间管理"}},
 		{TagProps: spec.TagProps{
 			Name:        "Routing",
 			Description: "路由规则管理"}},
@@ -78,40 +88,23 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Name:        "RegisterInstance",
 			Description: "服务发现"}},
 		{TagProps: spec.TagProps{
-			Name:        "ConfigClient",
-			Description: "客户端API接口"}},
+			Name:        "Services",
+			Description: "服务管理"}},
 		{TagProps: spec.TagProps{
-			Name:        "ConfigConsole",
-			Description: "服务端接口"}},
+			Name:        "Users",
+			Description: "用户管理"}},
 		{TagProps: spec.TagProps{
-			Name:        "auth",
-			Description: "鉴权管理"}},
+			Name:        "UserGroup",
+			Description: "用户组"}},
 	}
 
 	swo.SecurityDefinitions = map[string]*spec.SecurityScheme{
 		"api_key": spec.APIKeyAuth("X-Polaris-Token", "header"),
 	}
 
-	enrichSwaggerObjectSecurity(swo)
-}
-
-func enrichSwaggerObjectSecurity(swo *spec.Swagger) {
-	for p := range swo.Paths.Paths {
-		path, err := swo.Paths.JSONLookup(p)
-		if err != nil {
-			log.Errorf("skipping Security openapi spec for %s, %s", path, err.Error())
-			continue
-		}
-		pItem := path.(*spec.PathItem)
-		var pOption *spec.Operation
-		item := reflect.ValueOf(pItem).Elem()
-		// 枚举方法 不为nil的都给加上security头 这样才会携带X-Polaris-Token头
-		for _, m := range []string{"Get", "Post", "Put", "Patch", "Delete", "Head", "Options"} {
-			value := item.FieldByName(m)
-			if !value.IsNil() {
-				pOption = value.Interface().(*spec.Operation)
-				pOption.SecuredWith("api_key")
-			}
-		}
-	}
+	var securitySetting []map[string][]string
+	apiKey := make(map[string][]string, 0)
+	apiKey["api_key"] = []string{}
+	securitySetting = append(securitySetting, apiKey)
+	swo.Security = securitySetting
 }

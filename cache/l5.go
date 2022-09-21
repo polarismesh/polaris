@@ -22,9 +22,9 @@ import (
 	"sync"
 	"time"
 
+	cl5common "github.com/polarismesh/polaris-server/common/cl5"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 )
 
@@ -148,7 +148,7 @@ func (lc *l5Cache) GetRouteByIP(ip uint32) []*model.Route {
 	entry := value.(*sync.Map)
 	entry.Range(func(key, value interface{}) bool {
 		// sidStr -> setID
-		sid, err := utils.UnmarshalSid(key.(string))
+		sid, err := cl5common.UnmarshalSid(key.(string))
 		if err != nil {
 			return true
 		}
@@ -176,7 +176,7 @@ func (lc *l5Cache) CheckRouteExisted(ip uint32, modID uint32, cmdID uint32) bool
 	entry := value.(*sync.Map)
 	found := false
 	entry.Range(func(key, value interface{}) bool {
-		sid, err := utils.UnmarshalSid(key.(string))
+		sid, err := cl5common.UnmarshalSid(key.(string))
 		if err != nil {
 			// continue range
 			return true
@@ -285,7 +285,7 @@ func (lc *l5Cache) setCL5Route(routes []*model.Route) error {
 			lastRouteFlow = item.Flow
 		}
 
-		sidStr := utils.MarshalModCmd(item.ModID, item.CmdID)
+		sidStr := cl5common.MarshalModCmd(item.ModID, item.CmdID)
 
 		// 待删除的route
 		if !item.Valid {

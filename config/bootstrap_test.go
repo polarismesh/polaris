@@ -50,6 +50,7 @@ import (
 	_ "github.com/polarismesh/polaris-server/store/boltdb"
 	"github.com/polarismesh/polaris-server/store/sqldb"
 	_ "github.com/polarismesh/polaris-server/store/sqldb"
+	"github.com/polarismesh/polaris-server/testdata"
 )
 
 type Bootstrap struct {
@@ -149,7 +150,7 @@ func (c *ConfigCenterTest) doInitialize() error {
 }
 
 func (c *ConfigCenterTest) loadBootstrapConfig() error {
-	confFileName := "test.yaml"
+	confFileName := testdata.Path("config_test.yaml")
 
 	// 初始化defaultCtx
 	c.defaultCtx = context.WithValue(c.defaultCtx, utils.StringContext("request-id"), "config-test-request-id")
@@ -157,7 +158,7 @@ func (c *ConfigCenterTest) loadBootstrapConfig() error {
 
 	if os.Getenv("STORE_MODE") == "sqldb" {
 		fmt.Printf("run store mode : sqldb\n")
-		confFileName = "test_sqldb.yaml"
+		confFileName = testdata.Path("config_test_sqldb.yaml")
 		c.defaultCtx = context.WithValue(c.defaultCtx, utils.ContextAuthTokenKey, "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
 	} else {
 		c.defaultCtx = context.WithValue(c.defaultCtx, utils.ContextAuthTokenKey, "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")

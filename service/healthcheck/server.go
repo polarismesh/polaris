@@ -55,6 +55,7 @@ type Server struct {
 	discoverCh     chan eventWrapper
 	bc             *batch.Controller
 	serviceCache   cache.ServiceCache
+	instanceCache  cache.InstanceCache
 }
 
 // Initialize 初始化
@@ -140,6 +141,11 @@ func GetServer() (*Server, error) {
 // SetServiceCache 设置服务缓存
 func (s *Server) SetServiceCache(serviceCache cache.ServiceCache) {
 	s.serviceCache = serviceCache
+}
+
+// SetInstanceCache 设置服务实例缓存
+func (s *Server) SetInstanceCache(instanceCache cache.InstanceCache) {
+	s.instanceCache = instanceCache
 }
 
 // CacheProvider get cache provider

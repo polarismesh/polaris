@@ -72,7 +72,7 @@ func TestConfigFileTemplateCRUD(t *testing.T) {
 	t.Run("query-all", func(t *testing.T) {
 		rsp := testSuit.testService.GetAllConfigFileTemplates(testSuit.defaultCtx)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
-		assert.Equal(t, 2, len(rsp.ConfigFileTemplates))
+		assert.True(t, 2 <= len(rsp.ConfigFileTemplates))
 	})
 }
 

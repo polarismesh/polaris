@@ -15,10 +15,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package grpcserver
+package v2
 
 import (
 	commonlog "github.com/polarismesh/polaris-server/common/log"
 )
 
-var log = commonlog.NamingScope()
+var (
+	log       = commonlog.APIServerScope()
+	namingLog = commonlog.NamingScope()
+	configLog = commonlog.ConfigScope()
+)

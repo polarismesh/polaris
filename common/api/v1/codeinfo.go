@@ -76,6 +76,10 @@ const (
 	InvalidCircuitBreakerBusiness   uint32 = 400166
 	InvalidCircuitBreakerDepartment uint32 = 400167
 	InvalidCircuitBreakerComment    uint32 = 400168
+	InvalidRoutingID                uint32 = 400700
+	InvalidRoutingPolicy            uint32 = 400701
+	InvalidRoutingName              uint32 = 400702
+	InvalidRoutingPriority			uint32 = 400703
 
 	// 网格相关错误码
 	ServicesExistedMesh  uint32 = 400170
@@ -182,6 +186,7 @@ const (
 	NotFoundUserGroup                      uint32 = 400314
 	NotFoundAuthStrategyRule               uint32 = 400315
 	NotAllowModifyDefaultStrategyPrincipal uint32 = 400508
+	NotAllowModifyOwnerDefaultStrategy     uint32 = 400509
 
 	EmptyAutToken   uint32 = 401002
 	TokenDisabled   uint32 = 401003
@@ -342,6 +347,13 @@ var code2info = map[uint32]string{
 	SubAccountExisted:         "some sub-account existed in owner",
 	InvalidUserID:             "invalid user-id",
 	TokenNotExisted:           "token not existed",
+
+	NotAllowModifyDefaultStrategyPrincipal: "not allow modify default strategy principal",
+	NotAllowModifyOwnerDefaultStrategy:     "not allow modify main account default strategy",
+
+	InvalidRoutingID:     "invalid routing id",
+	InvalidRoutingPolicy: "invalid routing policy, only support (RulePolicy,MetadataPolicy)",
+	InvalidRoutingName:   "invalid routing name",
 }
 
 // code to info

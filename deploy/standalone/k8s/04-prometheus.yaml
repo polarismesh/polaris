@@ -43,7 +43,7 @@ spec:
         app: polaris-prometheus
     spec:
       containers:
-      - image: polarismesh/prometheus:latest
+      - image: polarismesh/polaris-prometheus:##POLARIS_PROMETHEUS_VERSION##
         imagePullPolicy: Always
         name: polaris-prometheus
         resources:

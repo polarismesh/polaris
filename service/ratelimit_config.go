@@ -94,7 +94,7 @@ func (s *Server) CreateRateLimit(ctx context.Context, req *api.Rule, svcId strin
 	}()
 
 	// 构造底层数据结构
-	data, err := api2RateLimit(svcId, req)
+	data, err := api2RateLimit(svcId, req, nil)
 	if err != nil {
 		log.Error(err.Error(), ZapRequestID(requestID))
 		return api.NewRateLimitResponse(api.ParseRateLimitException, req)
@@ -261,7 +261,7 @@ func (s *Server) UpdateRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 		return api.NewRateLimitResponse(code, req)
 	}
 	// 构造底层数据结构
-	rateLimit, err := api2RateLimit(svcId, req)
+	rateLimit, err := api2RateLimit(svcId, req, data)
 	if err != nil {
 		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
 		return api.NewRateLimitResponse(api.ParseRateLimitException, req)
@@ -423,16 +423,18 @@ const (
 )
 
 // api2RateLimit 把API参数转化为内部数据结构
-func api2RateLimit(serviceID string, req *api.Rule) (*model.RateLimit, error) {
+func api2RateLimit(serviceID string, req *api.Rule, old *model.RateLimit) (*model.RateLimit, error) {
 	rule, err := marshalRateLimitRules(req)
 	if err != nil {
 		return nil, err
 	}
+	
 	labels := req.GetLabels()
 	var labelStr []byte
 	if len(labels) > 0 {
 		labelStr, err = json.Marshal(labels)
 	}
+
 	out := &model.RateLimit{
 		Name:      req.GetName().GetValue(),
 		ServiceID: serviceID,

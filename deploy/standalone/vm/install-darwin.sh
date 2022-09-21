@@ -53,6 +53,9 @@ api_http_port=$(getProperties "polaris_open_api_port")
 prometheus_port=$(getProperties prometheus_port)
 pushgateway_port=$(getProperties pushgateway_port)
 
+limiter_http_port=$(getProperties "polaris_limiter_http_port")
+limiter_grpc_port=$(getProperties "polaris_limiter_grpc_port")
+
 echo "prepare install polaris standalone..."
 
 echo "polaris-console listen port info"
@@ -65,6 +68,10 @@ echo "prometheus_sd_port=${prometheus_sd_port}"
 echo "service_grpc_port=${service_grpc_port}"
 echo "config_grpc_port=${config_grpc_port}"
 echo "api_http_port=${api_http_port}"
+echo ""
+echo "polaris-limiter-server listen port info"
+echo "polaris_limiter_http_port=${limiter_http_port}"
+echo "polaris_limiter_grpc_port=${limiter_grpc_port}"
 echo ""
 echo "prometheus-server listen port info"
 echo "prometheus_server_port=${prometheus_port}"
@@ -191,6 +198,7 @@ function installPrometheus() {
   fi
   tar -xf ${target_prometheus_pkg} >/dev/null
 
+  cp prometheus-help.sh ${prometheus_dirname}/
   pushd ${prometheus_dirname}
   local push_count=$(cat prometheus.yml | grep "push-metrics" | wc -l)
   if [ $push_count -eq 0 ]; then
@@ -202,38 +210,56 @@ function installPrometheus() {
     echo "    - targets: ['localhost:9091']" >>prometheus.yml
     echo "    honor_labels: true" >>prometheus.yml
   fi
-  nohup ./prometheus --web.enable-lifecycle --web.enable-admin-api --web.listen-address=:${prometheus_port} >>prometheus.out 2>&1 &
-  echo "install prometheus success"
+  mv prometheus polaris-prometheus
+  chmod +x polaris-prometheus
+  # nohup ./polaris-prometheus --web.enable-lifecycle --web.enable-admin-api --web.listen-address=:${prometheus_port} >>prometheus.out 2>&1 &
+  bash prometheus-help.sh start ${prometheus_port}
+  echo "install polaris-prometheus success"
   popd
 }
 
-function installPushGateway() {
-  echo -e "install pushgateway ... "
-  local pgw_num=$(ps -ef | grep pushgateway | grep -v grep | wc -l)
-  if [ $pgw_num -ge 1 ]; then
-    echo -e "pushgateway is running, skip"
+# 安装北极星分布式限流服务端
+function installPolarisLimiter() {
+  echo -e "install polaris limiter ... "
+  local polaris_limiter_num=$(ps -ef | grep polaris-limiter | grep -v grep | wc -l)
+  if [ $polaris_limiter_num -ge 1 ]; then
+    echo -e "polaris-limiter is running, skip."
     return
   fi
 
-  local pgw_pkg_num=$(find . -name "pushgateway-*.tar.gz" | wc -l)
-  if [ $pgw_pkg_num != 1 ]; then
-    echo -e "number of pushgateway package not equals to 1, exit"
+  local polaris_limiter_tarnum=$(find . -name "polaris-limiter-release*.zip" | wc -l)
+  if [ $polaris_limiter_tarnum != 1 ]; then
+    echo -e "number of polaris limiter tar not equal 1, exit."
     exit -1
   fi
 
-  local target_pgw_pkg=$(find . -name "pushgateway-*.tar.gz")
-  local pgw_dirname=$(basename ${target_pgw_pkg} .tar.gz)
-  if [ -e ${pgw_dirname} ]; then
-    echo -e "${pgw_dirname} has exists, now remove it"
+  local polaris_limiter_tarname=$(find . -name "polaris-limiter-release*.zip")
+  local polaris_limiter_dirname=$(basename ${polaris_limiter_tarname} .zip)
+  if [ ! -e $polaris_limiter_dirname ]; then
+    unzip $polaris_limiter_tarname >/dev/null
   else
-    tar -xf ${target_pgw_pkg}
+    echo -e "polaris-limiter-release.tar.gz has been decompressed, skip."
   fi
-  tar -xf ${target_pgw_pkg} >/dev/null
 
-  pushd ${pgw_dirname}
-  nohup ./pushgateway --web.enable-lifecycle --web.enable-admin-api --web.listen-address=:${pushgateway_port} >>pgw.out 2>&1 &
-  echo "install pushgateway success"
-  popd
+  cd ${polaris_limiter_dirname} || (
+    echo "no such directory ${polaris_limiter_dirname}"
+    exit -1
+  )
+
+  # 备份 polaris-limiter.yaml
+  cp polaris-limiter.yaml polaris-limiter.yaml.bak
+
+  # 修改监听的 polaris-limiter http 端口信息
+  sed -i "" "s/port: 8100/port: ${limiter_http_port}/g" polaris-limiter.yaml
+  # 修改监听的 polaris-limiter grpc 端口信息
+  sed -i "" "s/port: 8101/port: ${limiter_grpc_port}/g" polaris-limiter.yaml
+
+  /bin/bash ./tool/start.sh
+  echo -e "install polaris limiter finish."
+  cd ${install_path} || (
+    echo "no such directory ${install_path}"
+    exit -1
+  )
 }
 
 function checkPort() {
@@ -266,10 +292,10 @@ checkPort
 installPolarisServer
 # 安装console
 installPolarisConsole
+# 安装 polaris-limiter
+installPolarisLimiter
 # 安装Prometheus
 installPrometheus
-# 安装PushGateWay
-# installPushGateway
 
 echo "now, we finish install polaris in your mac, we will exec rollback 'sudo spctl --master-enable'"
 

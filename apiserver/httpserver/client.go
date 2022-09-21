@@ -19,8 +19,7 @@ package httpserver
 
 import (
 	"github.com/emicklei/go-restful/v3"
-
-	"github.com/polarismesh/polaris-server/common/utils"
+	httpcommon "github.com/polarismesh/polaris-server/apiserver/httpserver/http"
 )
 
 func (h *HTTPServer) GetClientServer(ws *restful.WebService) error {
@@ -31,9 +30,9 @@ func (h *HTTPServer) GetClientServer(ws *restful.WebService) error {
 
 func (h *HTTPServer) GetReportClients(req *restful.Request, rsp *restful.Response) {
 
-	handler := &utils.Handler{req, rsp}
+	handler := &httpcommon.Handler{req, rsp}
 
-	queryParams := utils.ParseQueryParams(req)
+	queryParams := httpcommon.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 	ret := h.namingServer.GetReportClientWithCache(ctx, queryParams)
 

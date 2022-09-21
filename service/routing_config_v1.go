@@ -24,7 +24,9 @@ import (
 	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
 	"github.com/polarismesh/polaris-server/common/model"
+	v2 "github.com/polarismesh/polaris-server/common/model/v2"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
@@ -47,7 +49,7 @@ func (s *Server) CreateRoutingConfigs(ctx context.Context, req []*api.Routing) *
 
 	resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
 	for _, entry := range req {
-		resp.Collect(s.CreateRoutingConfig(ctx, entry))
+		resp.Collect(s.createRoutingConfigV1toV2(ctx, entry))
 	}
 
 	return api.FormatBatchWriteResponse(resp)
@@ -133,13 +135,14 @@ func (s *Server) DeleteRoutingConfig(ctx context.Context, req *api.Routing) *api
 	}
 
 	// store操作
+	// TODO 需要进行多表事务一致性保证
 	if err := s.storage.DeleteRoutingConfig(service.ID); err != nil {
 		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
 		return wrapperRoutingStoreResponse(req, err)
 	}
 
 	s.RecordHistory(routingRecordEntry(ctx, req, nil, model.ODelete))
-	return api.NewRoutingResponse(api.ExecuteSuccess, req)
+	return api.NewResponse(api.ExecuteSuccess)
 }
 
 // UpdateRoutingConfigs 批量更新路由配置
@@ -150,7 +153,7 @@ func (s *Server) UpdateRoutingConfigs(ctx context.Context, req []*api.Routing) *
 
 	out := api.NewBatchWriteResponse(api.ExecuteSuccess)
 	for _, entry := range req {
-		resp := s.UpdateRoutingConfig(ctx, entry)
+		resp := s.updateRoutingConfigV1toV2(ctx, entry)
 		out.Collect(resp)
 	}
 
@@ -392,6 +395,24 @@ func routingRecordEntry(ctx context.Context, req *api.Routing, md *model.Routing
 	if md != nil {
 		entry.Context = fmt.Sprintf("inBounds:%s,outBounds:%s,revision:%s",
 			md.InBounds, md.OutBounds, md.Revision)
+	}
+	return entry
+}
+
+// routingV2RecordEntry 构建routingConfig的记录entry
+func routingV2RecordEntry(ctx context.Context, req *apiv2.Routing, md *v2.RoutingConfig,
+	opt model.OperationType) *model.RecordEntry {
+	entry := &model.RecordEntry{
+		ResourceType:  model.RRoutingV2,
+		OperationType: opt,
+		Namespace:     req.GetNamespace(),
+		Operator:      ParseOperator(ctx),
+		CreateTime:    time.Now(),
+	}
+
+	if md != nil {
+		entry.Context = fmt.Sprintf("name:%s,policy:%s,config:%s,revision:%s",
+			md.Name, md.GetRoutingPolicy().String(), md.Config, md.Revision)
 	}
 	return entry
 }

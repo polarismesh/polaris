@@ -460,6 +460,21 @@ func ComputeRevision(serviceRevision string, instances []*model.Instance) (strin
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
+// CompositeComputeRevision 将多个 revision 合并计算为一个
+func CompositeComputeRevision(revisions []string) (string, error) {
+	h := sha1.New()
+
+	sort.Strings(revisions)
+
+	for i := range revisions {
+		if _, err := h.Write([]byte(revisions[i])); err != nil {
+			return "", err
+		}
+	}
+
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
 // RegisterCache 注册缓存资源
 func RegisterCache(name string, index int) {
 	if _, exist := cacheSet[name]; exist {

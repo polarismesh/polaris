@@ -10,7 +10,7 @@ log/
 
 .idea
 .DS_Store
-coverage.txt
+coverage*
 
 *.swp
 *.code-workspace

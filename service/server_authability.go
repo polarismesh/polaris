@@ -29,6 +29,7 @@ import (
 	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
+	servicecommon "github.com/polarismesh/polaris-server/common/service"
 )
 
 // serverAuthAbility 带有鉴权能力的 discoverServer
@@ -218,7 +219,7 @@ func (svr *serverAuthAbility) queryServiceResource(
 	}
 
 	names := utils.NewStringSet()
-	svcSet := utils.NewServiceSet()
+	svcSet := servicecommon.NewServiceSet()
 
 	for index := range req {
 		names.Add(req[index].Namespace.GetValue())
@@ -241,7 +242,7 @@ func (svr *serverAuthAbility) queryServiceAliasResource(
 	}
 
 	names := utils.NewStringSet()
-	svcSet := utils.NewServiceSet()
+	svcSet := servicecommon.NewServiceSet()
 
 	for index := range req {
 		names.Add(req[index].Namespace.GetValue())
@@ -269,7 +270,7 @@ func (svr *serverAuthAbility) queryInstanceResource(
 	}
 
 	names := utils.NewStringSet()
-	svcSet := utils.NewServiceSet()
+	svcSet := servicecommon.NewServiceSet()
 
 	for index := range req {
 		item := req[index]
@@ -307,7 +308,7 @@ func (svr *serverAuthAbility) queryCircuitBreakerResource(
 	}
 
 	names := utils.NewStringSet()
-	svcSet := utils.NewServiceSet()
+	svcSet := servicecommon.NewServiceSet()
 
 	for index := range req {
 		svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
@@ -329,7 +330,7 @@ func (svr *serverAuthAbility) queryCircuitBreakerReleaseResource(
 	}
 
 	names := utils.NewStringSet()
-	svcSet := utils.NewServiceSet()
+	svcSet := servicecommon.NewServiceSet()
 
 	for index := range req {
 		svc := svr.Cache().Service().GetServiceByName(req[index].Service.Name.GetValue(),
@@ -352,7 +353,7 @@ func (svr *serverAuthAbility) queryRouteRuleResource(
 	}
 
 	names := utils.NewStringSet()
-	svcSet := utils.NewServiceSet()
+	svcSet := servicecommon.NewServiceSet()
 
 	for index := range req {
 		svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
@@ -375,7 +376,7 @@ func (svr *serverAuthAbility) queryRateLimitConfigResource(
 	}
 
 	names := utils.NewStringSet()
-	svcSet := utils.NewServiceSet()
+	svcSet := servicecommon.NewServiceSet()
 
 	for index := range req {
 		svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
@@ -392,7 +393,7 @@ func (svr *serverAuthAbility) queryRateLimitConfigResource(
 
 // convertToDiscoverResourceEntryMaps 通用方法，进行转换为期望的、服务相关的 ResourceEntry
 func (svr *serverAuthAbility) convertToDiscoverResourceEntryMaps(nsSet utils.StringSet,
-	svcSet *utils.ServiceSet) map[api.ResourceType][]model.ResourceEntry {
+	svcSet *servicecommon.ServiceSet) map[api.ResourceType][]model.ResourceEntry {
 	param := nsSet.ToSlice()
 	nsArr := svr.Cache().Namespace().GetNamespacesByName(param)
 

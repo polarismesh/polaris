@@ -36,6 +36,6 @@ message MatchString {
 }
 
 
-message OptionSwitch {
-  map<string, string> options = 1;
+message StringList {
+  repeated string values = 1;
 }

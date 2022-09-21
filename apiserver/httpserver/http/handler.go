@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package httpserver
+package http
 
 import (
 	"context"
@@ -32,6 +32,8 @@ import (
 
 	"github.com/polarismesh/polaris-server/apiserver/httpserver/i18n"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
+	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
@@ -178,6 +180,30 @@ func (h *Handler) WriteHeaderAndProto(obj api.ResponseMessage) {
 	}
 }
 
+// WriteHeaderAndProto 返回Code和Proto
+func (h *Handler) WriteHeaderAndProtoV2(obj apiv2.ResponseMessage) {
+	requestID := h.Request.HeaderParameter(utils.PolarisRequestID)
+	h.Request.SetAttribute(utils.PolarisCode, obj.GetCode())
+	status := apiv2.CalcCode(obj)
+
+	if status != http.StatusOK {
+		log.Error(obj.String(), zap.String("request-id", requestID))
+	}
+	if code := obj.GetCode(); code != api.ExecuteSuccess {
+		h.Response.AddHeader(utils.PolarisCode, fmt.Sprintf("%d", code))
+		h.Response.AddHeader(utils.PolarisMessage, api.Code2Info(code))
+	}
+
+	h.Response.AddHeader(utils.PolarisRequestID, requestID)
+	h.Response.WriteHeader(status)
+
+	m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
+	err := m.Marshal(h.Response, obj)
+	if err != nil {
+		log.Error(err.Error(), zap.String("request-id", requestID))
+	}
+}
+
 // HTTPResponse http答复简单封装
 func HTTPResponse(req *restful.Request, rsp *restful.Response, code uint32) {
 	handler := &Handler{req, rsp}
@@ -202,4 +228,16 @@ func (h *Handler) i18n(obj api.ResponseMessage) api.ResponseMessage {
 	}
 	*info = wrappers.StringValue{Value: msg}
 	return obj
+}
+
+// parseQueryParams 解析并获取HTTP的query params
+func ParseQueryParams(req *restful.Request) map[string]string {
+	queryParams := make(map[string]string)
+	for key, value := range req.Request.URL.Query() {
+		if len(value) > 0 {
+			queryParams[key] = value[0] // 暂时默认只支持一个查询
+		}
+	}
+
+	return queryParams
 }

@@ -65,7 +65,7 @@ func initialize(_ context.Context, cacheOpt *Config, storage store.Store) error 
 	sc := newServiceCache(storage, cacheMgn.comRevisionCh, ic)
 	cacheMgn.caches[CacheService] = sc
 	cacheMgn.caches[CacheInstance] = ic
-	cacheMgn.caches[CacheRoutingConfig] = newRoutingConfigCache(storage)
+	cacheMgn.caches[CacheRoutingConfig] = newRoutingConfigCache(storage, sc)
 	cacheMgn.caches[CacheCL5] = &l5Cache{
 		storage: storage,
 		ic:      ic,

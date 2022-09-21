@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/auth"
@@ -63,7 +64,12 @@ func Start(configFilePath string) {
 		return
 	}
 
-	fmt.Printf("[INFO] %+v\n", *cfg)
+	c, err := yaml.Marshal(cfg)
+	if err != nil {
+		fmt.Printf("[ERROR] config yaml marshal fail\n")
+		return
+	}
+	fmt.Printf(string(c))
 
 	// 初始化日志打印
 	err = log.Configure(cfg.Bootstrap.Logger)
@@ -240,6 +246,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		return err
 	}
 	healthCheckServer.SetServiceCache(cacheMgn.Service())
+	healthCheckServer.SetInstanceCache(cacheMgn.Instance())
 
 	// 为 instance 的 cache 添加 健康检查的 Listener
 	cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
@@ -256,7 +263,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		service.WithCacheManager(&cfg.Cache, cacheMgn),
 		service.WithHealthCheckSvr(healthCheckServer),
 		service.WithNamespaceSvr(namespaceSvr),
-		service.WithHiddenService(getSelfRegisterPolarsServiceKeySet(&cfg.Bootstrap.PolarisService)),
+		service.WithHiddenService(map[model.ServiceKey]struct{}{}),
 	}
 
 	// 初始化服务模块
