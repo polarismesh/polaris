@@ -167,6 +167,7 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 
 	// 作为一个整体进行Update，所有参数都要传递
 	reqModel, err := api2RoutingConfigV2(req)
+	reqModel.Revision = utils.NewV2Revision()
 	if err != nil {
 		log.Error("[Routing][V2] parse routing config v2 from request for update",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
@@ -237,6 +238,7 @@ func (s *Server) enableRoutings(ctx context.Context, req *apiv2.Routing) *apiv2.
 	}
 
 	conf.Enable = req.GetEnable()
+	conf.Revision = utils.NewV2Revision()
 
 	if err := s.storage.EnableRouting(conf); err != nil {
 		log.Error("[Routing][V2] enable routing config v2 store layer",

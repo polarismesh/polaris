@@ -466,8 +466,8 @@ func CompositeComputeRevision(revisions []string) (string, error) {
 
 	sort.Strings(revisions)
 
-	for _, revision := range revisions {
-		if _, err := h.Write([]byte(revision)); err != nil {
+	for i := range revisions {
+		if _, err := h.Write([]byte(revisions[i])); err != nil {
 			return "", err
 		}
 	}
