@@ -345,7 +345,9 @@ func (rc *routingConfigCache) convertRoutingV1toV2(rule *model.RoutingConfig) ([
 			if err != nil {
 				return nil, err
 			}
+			routing.ID = fmt.Sprintf("%sin%d", rule.ID, i)
 			routing.Revision = rule.Revision
+			routing.Enable = true
 			routing.CreateTime = rule.CreateTime
 			routing.ModifyTime = rule.ModifyTime
 			routing.EnableTime = rule.CreateTime
@@ -371,6 +373,7 @@ func (rc *routingConfigCache) convertRoutingV1toV2(rule *model.RoutingConfig) ([
 			if err != nil {
 				return nil, err
 			}
+			routing.ID = fmt.Sprintf("%sout%d", rule.ID, i)
 			routing.Revision = rule.Revision
 			routing.CreateTime = rule.CreateTime
 			routing.ModifyTime = rule.ModifyTime

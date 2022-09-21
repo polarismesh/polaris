@@ -68,6 +68,17 @@ bootstrap:
       #   - stdout
       # errorOutputPaths:
       #   - stderr
+    xdsv3:
+      rotateOutputPath: log/polaris-xdsv3.log
+      errorRotateOutputPath: log/polaris-xdsv3-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
     default:
       rotateOutputPath: log/polaris-default.log
       errorRotateOutputPath: log/polaris-default-error.log

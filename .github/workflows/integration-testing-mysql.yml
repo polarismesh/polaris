@@ -89,36 +89,6 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: make build
 
-      # Run unit tests
-      - name: run tests
-        run: |
-          export STORE_MODE=sqldb
-          echo "cur STORE MODE=${STORE_MODE}"
-
-          # 清空数据
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
-          # 初始化 polaris 数据库
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/sqldb/scripts/polaris_server.sql
-          # 临时放开 DB 的最大连接数
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
-
-          pushd ./config
-          go test -v -timeout 40m
-          popd
-
-          sleep 10s
-
-          # 清空数据
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
-          # 初始化 polaris 数据库
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/sqldb/scripts/polaris_server.sql
-          # 临时放开 DB 的最大连接数
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
-
-          pushd ./service
-          go test -v -timeout 40m
-          popd
-
       # Run interface tests
       - name: run discover interface tests
         run: |
