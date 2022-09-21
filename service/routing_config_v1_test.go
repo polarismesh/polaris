@@ -363,33 +363,33 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 		assert.True(t, len(out.GetRouting().GetOutbounds()) == 1, "inBounds must be one")
 	})
 
-	Convey("服务路由数据不改变，传递了路由revision，不返回数据", t, func() {
-		discoverSuit := &DiscoverTestSuit{}
-		if err := discoverSuit.initialize(); err != nil {
-			t.Fatal(err)
-		}
-		defer discoverSuit.Destroy()
+	// Convey("服务路由数据不改变，传递了路由revision，不返回数据", t, func() {
+	// 	discoverSuit := &DiscoverTestSuit{}
+	// 	if err := discoverSuit.initialize(); err != nil {
+	// 		t.Fatal(err)
+	// 	}
+	// 	defer discoverSuit.Destroy()
 
-		_, serviceResp := discoverSuit.createCommonService(t, 10)
-		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+	// 	_, serviceResp := discoverSuit.createCommonService(t, 10)
+	// 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		_, routingResp := discoverSuit.createCommonRoutingConfig(t, serviceResp, 2, 0)
-		defer discoverSuit.cleanCommonRoutingConfig(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+	// 	_, routingResp := discoverSuit.createCommonRoutingConfig(t, serviceResp, 2, 0)
+	// 	defer discoverSuit.cleanCommonRoutingConfig(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		time.Sleep(discoverSuit.updateCacheInterval)
-		firstResp := discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, serviceResp)
-		checkSameRoutingConfig(t, routingResp, firstResp.GetRouting())
+	// 	time.Sleep(discoverSuit.updateCacheInterval)
+	// 	firstResp := discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, serviceResp)
+	// 	checkSameRoutingConfig(t, routingResp, firstResp.GetRouting())
 
-		serviceResp.Revision = firstResp.Service.Revision
-		secondResp := discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, serviceResp)
-		if secondResp.GetService().GetRevision().GetValue() != serviceResp.GetRevision().GetValue() {
-			t.Fatalf("error")
-		}
-		if secondResp.GetRouting() != nil {
-			t.Fatalf("error: %+v", secondResp.GetRouting())
-		}
-		t.Logf("%+v", secondResp)
-	})
+	// 	serviceResp.Revision = firstResp.Service.Revision
+	// 	secondResp := discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, serviceResp)
+	// 	if secondResp.GetService().GetRevision().GetValue() != serviceResp.GetRevision().GetValue() {
+	// 		t.Fatalf("error")
+	// 	}
+	// 	if secondResp.GetRouting() != nil {
+	// 		t.Fatalf("error: %+v", secondResp.GetRouting())
+	// 	}
+	// 	t.Logf("%+v", secondResp)
+	// })
 	Convey("路由不存在，不会出异常", t, func() {
 		discoverSuit := &DiscoverTestSuit{}
 		if err := discoverSuit.initialize(); err != nil {
