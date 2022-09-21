@@ -472,7 +472,7 @@ func ConvertV1RouteToV2Route(route *apiv1.Route) *apiv2.RuleRoutingConfig {
 
 func CompareRoutingV2(a, b *v2.ExtendRoutingConfig) bool {
 	if a.Priority != b.Priority {
-		return a.Priority < b.Priority
+		return a.Priority > b.Priority
 	}
 	return a.CreateTime.Before(b.CreateTime)
 }

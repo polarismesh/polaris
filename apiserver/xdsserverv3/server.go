@@ -361,7 +361,8 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 			// 使用 sources 生成 routeMatch
 			for _, source := range inbound.Sources {
 				if source.Metadata == nil || len(source.Metadata) == 0 {
-					continue
+					matchAll = true
+					break
 				}
 				for name := range source.Metadata {
 					if name == "*" {
@@ -401,23 +402,6 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 									Name: headerSubName,
 									HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
 										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_Exact{Exact: matchString.GetValue().GetValue()}},
-									},
-									InvertMatch: true,
-								}
-							}
-							if matchString.Type == api.MatchString_IN {
-								headerMatch = &route.HeaderMatcher{
-									Name: headerSubName,
-									HeaderMatchSpecifier: &route.HeaderMatcher_ContainsMatch{
-										ContainsMatch: matchString.GetValue().GetValue(),
-									},
-								}
-							}
-							if matchString.Type == api.MatchString_NOT_IN {
-								headerMatch = &route.HeaderMatcher{
-									Name: headerSubName,
-									HeaderMatchSpecifier: &route.HeaderMatcher_ContainsMatch{
-										ContainsMatch: matchString.GetValue().GetValue(),
 									},
 									InvertMatch: true,
 								}

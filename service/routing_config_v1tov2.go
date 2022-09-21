@@ -37,11 +37,6 @@ func (s *Server) createRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 		return resp
 	}
 
-	saveDatas, resp := batchBuildV2Routings(req)
-	if resp != nil {
-		return resp
-	}
-
 	serviceTx, err := s.storage.CreateTransaction()
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
@@ -65,49 +60,7 @@ func (s *Server) createRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 		return api.NewRoutingResponse(api.NotAllowAliasCreateRouting, req)
 	}
 
-	tx, err := s.storage.StartTx()
-	if err != nil {
-		log.Error("[Service][Routing] create routing v2 from v1 open tx",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv1.NewResponse(apiv1.StoreLayerException)
-	}
-
-	defer tx.Rollback()
-
-	// 这里需要删除掉 v1 的路由规则
-	if err := s.storage.DeleteRoutingConfigTx(tx, svc.ID); err != nil {
-		log.Error("[Service][Routing] clean routing v from store",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv1.NewResponse(apiv1.StoreLayerException)
-	}
-
-	for i := range saveDatas {
-		item := saveDatas[i]
-		data := &v2.RoutingConfig{}
-		if err := data.ParseFromAPI(item); err != nil {
-			return apiv1.NewResponse(apiv1.ExecuteException)
-		}
-		// 走 v1 接口创建的路由规则，默认开启启用
-		data.Enable = true
-		data.Priority = uint32(i)
-		if data.Priority > uint32(10) {
-			data.Priority = 10
-		}
-		if err := s.storage.CreateRoutingConfigV2Tx(tx, data); err != nil {
-			log.Error("[Routing][V2] create routing v2 from v1 into store",
-				utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-			return apiv1.NewResponse(apiv1.StoreLayerException)
-		}
-		s.RecordHistory(routingV2RecordEntry(ctx, item, data, model.OCreate))
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Error("[Routing][V2] create routing v2 from v1 commit",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv1.NewResponse(apiv1.ExecuteException)
-	}
-
-	return apiv1.NewRoutingResponse(apiv1.ExecuteSuccess, req)
+	return s.saveRoutingV1toV2(ctx, svc.ID, req)
 }
 
 // updateRoutingConfigV1toV2 这里需要兼容 v1 版本的更新路由规则动作，将 v1 的数据转为 v2 进行存储
@@ -144,7 +97,12 @@ func (s *Server) updateRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 		return api.NewRoutingResponse(api.NotFoundRouting, req)
 	}
 
-	saveDatas, resp := batchBuildV2Routings(req)
+	return s.saveRoutingV1toV2(ctx, svc.ID, req)
+}
+
+// saveRoutingV1toV2 将目标的 v1 规则转为 v2 规则
+func (s *Server) saveRoutingV1toV2(ctx context.Context, svcId string, req *apiv1.Routing) *apiv1.Response {
+	inDatas, outDatas, resp := batchBuildV2Routings(req)
 	if resp != nil {
 		return resp
 	}
@@ -155,31 +113,50 @@ func (s *Server) updateRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return apiv1.NewResponse(apiv1.StoreLayerException)
 	}
-
 	defer tx.Rollback()
 
 	// 这里需要删除掉 v1 的路由规则
-	if err := s.storage.DeleteRoutingConfigTx(tx, svc.ID); err != nil {
+	if err := s.storage.DeleteRoutingConfigTx(tx, svcId); err != nil {
 		log.Error("[Service][Routing] clean routing v1 from store",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return apiv1.NewResponse(apiv1.StoreLayerException)
 	}
 
-	for i := range saveDatas {
-		item := saveDatas[i]
-		item.Id = utils.NewRoutingV2UUID()
-		item.Revision = utils.NewV2Revision()
-		data := &v2.RoutingConfig{}
-		data.Enable = true
-		if err := data.ParseFromAPI(item); err != nil {
-			return apiv1.NewResponse(apiv1.ExecuteException)
+	saveOperation := func(routings []*apiv2.Routing) *apiv1.Response {
+		priorityMax := 10
+		for i := range routings {
+			item := routings[i]
+			item.Id = utils.NewRoutingV2UUID()
+			item.Revision = utils.NewV2Revision()
+			data := &v2.RoutingConfig{}
+			if err := data.ParseFromAPI(item); err != nil {
+				return apiv1.NewResponse(apiv1.ExecuteException)
+			}
+
+			data.Enable = true
+			if priorityMax < 0 {
+				priorityMax = 10
+			}
+
+			data.Priority = uint32(priorityMax)
+			priorityMax--
+
+			if err := s.storage.CreateRoutingConfigV2Tx(tx, data); err != nil {
+				log.Error("[Routing][V2] create routing v2 from v1 into store",
+					utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+				return apiv1.NewResponse(apiv1.StoreLayerException)
+			}
+			s.RecordHistory(routingV2RecordEntry(ctx, item, data, model.OCreate))
 		}
-		if err := s.storage.CreateRoutingConfigV2Tx(tx, data); err != nil {
-			log.Error("[Routing][V2] create routing v2 from v1 into store",
-				utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-			return apiv1.NewResponse(apiv1.StoreLayerException)
-		}
-		s.RecordHistory(routingV2RecordEntry(ctx, item, data, model.OCreate))
+
+		return nil
+	}
+
+	if resp := saveOperation(inDatas); resp != nil {
+		return resp
+	}
+	if resp := saveOperation(outDatas); resp != nil {
+		return resp
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -263,26 +240,27 @@ func (s *Server) updateRoutingConfigV2FromV1(ctx context.Context, req *apiv2.Rou
 	return apiv2.NewResponse(resp.GetCode().GetValue())
 }
 
-func batchBuildV2Routings(req *apiv1.Routing) ([]*apiv2.Routing, *apiv1.Response) {
+func batchBuildV2Routings(req *apiv1.Routing) ([]*apiv2.Routing, []*apiv2.Routing, *apiv1.Response) {
 	inBounds := req.GetInbounds()
 	outBounds := req.GetOutbounds()
-	saveDatas := make([]*apiv2.Routing, 0, len(inBounds)+len(outBounds))
+	inRoutings := make([]*apiv2.Routing, 0, len(inBounds))
+	outRoutings := make([]*apiv2.Routing, 0, len(outBounds))
 	for i := range inBounds {
 		routing, err := routingcommon.BuildV2RoutingFromV1Route(req, inBounds[i])
 		if err != nil {
-			return nil, apiv1.NewResponse(apiv1.ExecuteException)
+			return nil, nil, apiv1.NewResponse(apiv1.ExecuteException)
 		}
 		routing.Name = req.GetNamespace().GetValue() + "." + req.GetService().GetValue()
-		saveDatas = append(saveDatas, routing)
+		inRoutings = append(inRoutings, routing)
 	}
 
 	for i := range outBounds {
 		routing, err := routingcommon.BuildV2RoutingFromV1Route(req, outBounds[i])
 		if err != nil {
-			return nil, apiv1.NewResponse(apiv1.ExecuteException)
+			return nil, nil, apiv1.NewResponse(apiv1.ExecuteException)
 		}
-		saveDatas = append(saveDatas, routing)
+		outRoutings = append(outRoutings, routing)
 	}
 
-	return saveDatas, nil
+	return inRoutings, outRoutings, nil
 }
