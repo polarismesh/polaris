@@ -300,8 +300,8 @@ func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
 
 // foreach 遍历所有的路由规则
 func (b *routingBucketV2) foreach(proc RoutingIterProc) {
-	b.lock.Lock()
-	defer b.lock.Unlock()
+	b.lock.RLock()
+	defer b.lock.RUnlock()
 
 	for k, v := range b.rules {
 		proc(k, v)

@@ -52,7 +52,6 @@ import (
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"go.uber.org/atomic"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/anypb"
 
@@ -60,6 +59,7 @@ import (
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/service"
@@ -94,6 +94,55 @@ type XDSServer struct {
 	registryInfo               map[string][]*ServiceInfo
 	CircuitBreakerConfigGetter CircuitBreakerConfigGetter
 	RatelimitConfigGetter      RatelimitConfigGetter
+}
+
+// Initialize 初始化
+func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{},
+	api map[string]apiserver.APIConfig,
+) error {
+	x.cache = cachev3.NewSnapshotCache(false, PolarisNodeHash{}, commonlog.XDSV3Scope())
+	x.registryInfo = make(map[string][]*ServiceInfo)
+	x.listenPort = uint32(option["listenPort"].(int))
+	x.listenIP = option["listenIP"].(string)
+
+	x.versionNum = atomic.NewUint64(0)
+	var err error
+
+	x.namingServer, err = service.GetServer()
+	if err != nil {
+		log.Errorf("%v", err)
+		return err
+	}
+
+	if raw, _ := option["connLimit"].(map[interface{}]interface{}); raw != nil {
+		connConfig, err := connlimit.ParseConnLimitConfig(raw)
+		if err != nil {
+			return err
+		}
+		x.connLimitConfig = connConfig
+	}
+
+	err = x.initRegistryInfo()
+	if err != nil {
+		log.Errorf("%v", err)
+		return err
+	}
+
+	err = x.getRegistryInfoWithCache(ctx, x.registryInfo)
+	if err != nil {
+		log.Errorf("%v", err)
+		return err
+	}
+
+	err = x.pushRegistryInfoToXDSCache(x.registryInfo)
+	if err != nil {
+		log.Errorf("%v", err)
+		return err
+	}
+
+	x.startSynTask(ctx)
+
+	return nil
 }
 
 type RatelimitConfigGetter func(serviceID string) []*model.RateLimit
@@ -837,59 +886,6 @@ func (x *XDSServer) initRegistryInfo() error {
 	for _, namespace := range namespaces {
 		x.registryInfo[namespace.Name.Value] = []*ServiceInfo{}
 	}
-
-	return nil
-}
-
-// Initialize 初始化
-func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{},
-	api map[string]apiserver.APIConfig,
-) error {
-	logger, _ := zap.NewDevelopment()
-	defer logger.Sync() // flushes buffer, if any
-	l := logger.Sugar()
-
-	x.cache = cachev3.NewSnapshotCache(false, PolarisNodeHash{}, l)
-	x.registryInfo = make(map[string][]*ServiceInfo)
-	x.listenPort = uint32(option["listenPort"].(int))
-	x.listenIP = option["listenIP"].(string)
-
-	x.versionNum = atomic.NewUint64(0)
-	var err error
-
-	x.namingServer, err = service.GetServer()
-	if err != nil {
-		log.Errorf("%v", err)
-		return err
-	}
-
-	if raw, _ := option["connLimit"].(map[interface{}]interface{}); raw != nil {
-		connConfig, err := connlimit.ParseConnLimitConfig(raw)
-		if err != nil {
-			return err
-		}
-		x.connLimitConfig = connConfig
-	}
-
-	err = x.initRegistryInfo()
-	if err != nil {
-		log.Errorf("%v", err)
-		return err
-	}
-
-	err = x.getRegistryInfoWithCache(ctx, x.registryInfo)
-	if err != nil {
-		log.Errorf("%v", err)
-		return err
-	}
-
-	err = x.pushRegistryInfoToXDSCache(x.registryInfo)
-	if err != nil {
-		log.Errorf("%v", err)
-		return err
-	}
-
-	x.startSynTask(ctx)
 
 	return nil
 }
