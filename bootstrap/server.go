@@ -194,7 +194,7 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 	}
 
 	// 最后启动 cache
-	if err := cache.Run(ctx); err != nil {
+	if err := cache.Run(cacheMgn, ctx); err != nil {
 		return err
 	}
 

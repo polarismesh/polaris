@@ -111,8 +111,8 @@ func newCacheManager(_ context.Context, cacheOpt *Config, storage store.Store) (
 	return mgr, nil
 }
 
-func Run(ctx context.Context) error {
-	if startErr := cacheMgn.Start(ctx); startErr != nil {
+func Run(cacheMgr *CacheManager, ctx context.Context) error {
+	if startErr := cacheMgr.Start(ctx); startErr != nil {
 		log.CacheScope().Errorf("[Cache][Server] start cache err: %s", startErr.Error())
 		return startErr
 	}
