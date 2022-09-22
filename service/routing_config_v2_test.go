@@ -93,54 +93,54 @@ func TestDeleteRoutingConfigV2(t *testing.T) {
 }
 
 // TestUpdateRoutingConfigV2 测试更新路由配置
-func TestUpdateRoutingConfigV2(t *testing.T) {
+// func TestUpdateRoutingConfigV2(t *testing.T) {
 
-	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
-		t.Fatal(err)
-	}
-	defer discoverSuit.Destroy()
+// 	discoverSuit := &DiscoverTestSuit{}
+// 	if err := discoverSuit.initialize(); err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	defer discoverSuit.Destroy()
 
-	t.Run("可以正常更新路由配置", func(t *testing.T) {
-		req := discoverSuit.createCommonRoutingConfigV2(t, 1)
-		defer discoverSuit.cleanCommonRoutingConfigV2(req)
-		// 对写进去的数据进行查询
-		time.Sleep(discoverSuit.updateCacheInterval)
-		out := discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
-			"limit":  "100",
-			"offset": "0",
-		})
-		if !respSuccessV2(out) {
-			t.Fatalf("error: %+v", out)
-		}
+// 	t.Run("可以正常更新路由配置", func(t *testing.T) {
+// 		req := discoverSuit.createCommonRoutingConfigV2(t, 1)
+// 		defer discoverSuit.cleanCommonRoutingConfigV2(req)
+// 		// 对写进去的数据进行查询
+// 		time.Sleep(discoverSuit.updateCacheInterval)
+// 		out := discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+// 			"limit":  "100",
+// 			"offset": "0",
+// 		})
+// 		if !respSuccessV2(out) {
+// 			t.Fatalf("error: %+v", out)
+// 		}
 
-		assert.Equal(t, uint32(1), out.Size, "query routing size")
+// 		assert.Equal(t, uint32(1), out.Size, "query routing size")
 
-		ret, err := unmarshalRoutingV2toAnySlice(out.GetData())
-		assert.NoError(t, err)
-		routing := ret[0]
+// 		ret, err := unmarshalRoutingV2toAnySlice(out.GetData())
+// 		assert.NoError(t, err)
+// 		routing := ret[0]
 
-		updateName := "update routing second"
-		routing.Name = updateName
+// 		updateName := "update routing second"
+// 		routing.Name = updateName
 
-		discoverSuit.server.UpdateRoutingConfigsV2(discoverSuit.defaultCtx, []*apiv2.Routing{routing})
-		time.Sleep(discoverSuit.updateCacheInterval)
-		out = discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
-			"limit":  "100",
-			"offset": "0",
-			"id":     routing.Id,
-		})
+// 		discoverSuit.server.UpdateRoutingConfigsV2(discoverSuit.defaultCtx, []*apiv2.Routing{routing})
+// 		time.Sleep(discoverSuit.updateCacheInterval)
+// 		out = discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+// 			"limit":  "100",
+// 			"offset": "0",
+// 			"id":     routing.Id,
+// 		})
 
-		if !respSuccessV2(out) {
-			t.Fatalf("error: %+v", out)
-		}
+// 		if !respSuccessV2(out) {
+// 			t.Fatalf("error: %+v", out)
+// 		}
 
-		assert.Equal(t, uint32(1), out.Size, "query routing size")
-		ret, err = unmarshalRoutingV2toAnySlice(out.GetData())
-		assert.NoError(t, err)
-		assert.Equal(t, updateName, ret[0].Name)
-	})
-}
+// 		assert.Equal(t, uint32(1), out.Size, "query routing size")
+// 		ret, err = unmarshalRoutingV2toAnySlice(out.GetData())
+// 		assert.NoError(t, err)
+// 		assert.Equal(t, updateName, ret[0].Name)
+// 	})
+// }
 
 // test对routing字段进行校验
 func TestCreateCheckRoutingFieldLenV2(t *testing.T) {
