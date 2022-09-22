@@ -197,11 +197,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	d.cancel = cancel
 
 	// 初始化缓存模块
-	if err := cache.TestCacheInitialize(ctx, &d.cfg.Cache, s); err != nil {
-		panic(err)
-	}
-
-	cacheMgn, err := cache.GetCacheManager()
+	cacheMgn, err := cache.TestCacheInitialize(ctx, &d.cfg.Cache, s)
 	if err != nil {
 		panic(err)
 	}

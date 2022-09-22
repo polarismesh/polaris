@@ -65,10 +65,8 @@ func TestCacheManager_Start(t *testing.T) {
 	SetCacheConfig(conf)
 
 	Convey("测试正常的更新缓存逻辑", t, func() {
-		err := TestCacheInitialize(context.Background(), &Config{Open: true}, storage)
+		c, err := TestCacheInitialize(context.Background(), &Config{Open: true}, storage)
 		So(err, ShouldBeNil)
-
-		c := cacheMgn
 		So(c, ShouldNotBeNil)
 
 		beg := time.Unix(0, 0).Add(DefaultTimeDiff)
@@ -111,8 +109,7 @@ func TestRevisionWorker(t *testing.T) {
 	defer ctl.Finish()
 
 	Convey("revision计算，chan可以正常收发", t, func() {
-		err := TestCacheInitialize(context.TODO(), &Config{Open: true}, storage)
-		nc := cacheMgn
+		nc, err := TestCacheInitialize(context.TODO(), &Config{Open: true}, storage)
 		defer func() { _ = nc.Clear() }()
 		So(err, ShouldBeNil)
 

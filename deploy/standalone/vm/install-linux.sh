@@ -236,9 +236,9 @@ function installPolarisLimiter() {
   cp polaris-limiter.yaml polaris-limiter.yaml.bak
 
   # 修改监听的 polaris-limiter http 端口信息
-  sed -i "s/port: 8100/port: ${limiter_http_port}\"/g" polaris-limiter.yaml
+  sed -i "s/port: 8100/port: ${limiter_http_port}/g" polaris-limiter.yaml
   # 修改监听的 polaris-limiter grpc 端口信息
-  sed -i "s/port: 8101/port: ${limiter_grpc_port}\"/g" polaris-limiter.yaml
+  sed -i "s/port: 8101/port: ${limiter_grpc_port}/g" polaris-limiter.yaml
 
   /bin/bash ./tool/start.sh
   echo -e "install polaris limiter finish."
