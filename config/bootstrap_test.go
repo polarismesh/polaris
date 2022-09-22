@@ -114,14 +114,9 @@ func (c *ConfigCenterTest) doInitialize() error {
 	}
 	c.storage = s
 
-	if err := cache.TestCacheInitialize(ctx, &c.cfg.Cache, s); err != nil {
-		fmt.Printf("[ERROR] configure init cache fail: %v\n", err)
-		return err
-	}
-
-	cacheMgr, err := cache.GetCacheManager()
+	cacheMgr, err := cache.TestCacheInitialize(ctx, &c.cfg.Cache, s)
 	if err != nil {
-		fmt.Printf("[ERROR] configure get cache fail: %v\n", err)
+		fmt.Printf("[ERROR] configure init cache fail: %v\n", err)
 		return err
 	}
 

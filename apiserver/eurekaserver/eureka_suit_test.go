@@ -118,11 +118,7 @@ func (d *EurekaTestSuit) initialize(t *testing.T, callback func(t *testing.T, s 
 	}
 
 	// 初始化缓存模块
-	if err := cache.TestCacheInitialize(ctx, &d.cfg.Cache, d.storage); err != nil {
-		return err
-	}
-
-	cacheMgn, err := cache.GetCacheManager()
+	cacheMgn, err := cache.TestCacheInitialize(ctx, &d.cfg.Cache, d.storage)
 	if err != nil {
 		return err
 	}

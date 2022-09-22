@@ -48,59 +48,67 @@ func Initialize(ctx context.Context, cacheOpt *Config, storage store.Store) erro
 }
 
 // initialize cache 初始化
-func initialize(_ context.Context, cacheOpt *Config, storage store.Store) error {
+func initialize(ctx context.Context, cacheOpt *Config, storage store.Store) error {
 	if !cacheOpt.Open {
 		return nil
 	}
 
+	var err error
+
+	cacheMgn, err = newCacheManager(ctx, cacheOpt, storage)
+
+	return err
+}
+
+func newCacheManager(_ context.Context, cacheOpt *Config, storage store.Store) (*CacheManager, error) {
 	SetCacheConfig(cacheOpt)
-	cacheMgn = &CacheManager{
+	mgr := &CacheManager{
 		storage:       storage,
 		caches:        make([]Cache, CacheLast),
 		comRevisionCh: make(chan *revisionNotify, RevisionChanCount),
 		revisions:     map[string]string{},
 	}
 
-	ic := newInstanceCache(storage, cacheMgn.comRevisionCh)
-	sc := newServiceCache(storage, cacheMgn.comRevisionCh, ic)
-	cacheMgn.caches[CacheService] = sc
-	cacheMgn.caches[CacheInstance] = ic
-	cacheMgn.caches[CacheRoutingConfig] = newRoutingConfigCache(storage, sc)
-	cacheMgn.caches[CacheCL5] = &l5Cache{
+	ic := newInstanceCache(storage, mgr.comRevisionCh)
+	sc := newServiceCache(storage, mgr.comRevisionCh, ic)
+	mgr.caches[CacheService] = sc
+	mgr.caches[CacheInstance] = ic
+	mgr.caches[CacheRoutingConfig] = newRoutingConfigCache(storage, sc)
+	mgr.caches[CacheCL5] = &l5Cache{
 		storage: storage,
 		ic:      ic,
 		sc:      sc,
 	}
-	cacheMgn.caches[CacheRateLimit] = newRateLimitCache(storage)
-	cacheMgn.caches[CacheCircuitBreaker] = newCircuitBreakerCache(storage)
+	mgr.caches[CacheRateLimit] = newRateLimitCache(storage)
+	mgr.caches[CacheCircuitBreaker] = newCircuitBreakerCache(storage)
 
 	notify := make(chan interface{}, 8)
 
-	cacheMgn.caches[CacheUser] = newUserCache(storage, notify)
-	cacheMgn.caches[CacheAuthStrategy] = newStrategyCache(storage, notify, cacheMgn.caches[CacheUser].(UserCache))
-	cacheMgn.caches[CacheNamespace] = newNamespaceCache(storage)
-	cacheMgn.caches[CacheClient] = newClientCache(storage)
+	mgr.caches[CacheUser] = newUserCache(storage, notify)
+	mgr.caches[CacheAuthStrategy] = newStrategyCache(storage, notify, mgr.caches[CacheUser].(UserCache))
+	mgr.caches[CacheNamespace] = newNamespaceCache(storage)
+	mgr.caches[CacheClient] = newClientCache(storage)
 
-	if len(cacheMgn.caches) != CacheLast {
-		return errors.New("some Cache implement not loaded into CacheManager")
+	if len(mgr.caches) != CacheLast {
+		return nil, errors.New("some Cache implement not loaded into CacheManager")
 	}
 
 	// call cache.addlistener here, need ensure that all of cache impl has been instantiated and loaded
-	cacheMgn.AddListener(CacheNameInstance, []Listener{
+	mgr.AddListener(CacheNameInstance, []Listener{
 		&WatchInstanceReload{
 			Handler: func(val interface{}) {
 				if svcIds, ok := val.(map[string]bool); ok {
-					cacheMgn.caches[CacheService].(*serviceCache).notifyServiceCountReload(svcIds)
+					mgr.caches[CacheService].(*serviceCache).notifyServiceCountReload(svcIds)
 				}
 			},
 		},
 	})
 
-	if err := cacheMgn.initialize(); err != nil {
-		return err
+	if err := mgr.initialize(); err != nil {
+		return nil, err
 	}
 
-	return nil
+	return mgr, nil
 }
 
 func Run(ctx context.Context) error {
