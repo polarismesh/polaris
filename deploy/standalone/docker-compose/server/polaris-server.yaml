@@ -74,23 +74,11 @@ bootstrap:
     key: sz # 全局锁
   # 注册为北极星服务
   polaris_service:
-    # probe_address: ##DB_ADDR##
+    probe_address: mysql:3306
     enable_register: true
     isolated: false
     services:
-      - name: polaris.discover
-        protocols:
-          - service-grpc
-      - name: polaris.healthcheck
-        protocols:
-          - service-grpc
       - name: polaris.checker
-        protocols:
-          - service-grpc
-      - name: polaris.config
-        protocols:
-          - config-grpc
-      - name: polaris.monitor
         protocols:
           - service-grpc
 # apiserver配置
@@ -294,7 +282,7 @@ store:
       dbName: polaris_server
       dbUser: root
       dbPwd: polaris
-      dbAddr: mysql
+      dbAddr: mysql:3306
       maxOpenConns: 300
       maxIdleConns: 50
       connMaxLifetime: 300 # 单位秒

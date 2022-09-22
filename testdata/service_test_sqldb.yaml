@@ -98,13 +98,13 @@ naming:
       queueSize: 10240
       waitTime: 32ms
       maxBatchCount: 32
-      concurrency: 64
+      concurrency: 8
     deregister:
       open: true
       queueSize: 10240
       waitTime: 32ms
       maxBatchCount: 32
-      concurrency: 64
+      concurrency: 8
 # 配置中心模块启动配置
 config:
   # 是否启动配置模块
@@ -125,7 +125,7 @@ healthcheck:
       queueSize: 10240
       waitTime: 32ms
       maxBatchCount: 32
-      concurrency: 64
+      concurrency: 16
   checkers:
     # - name: heartbeatMemory
     - name: heartbeatRedis
@@ -133,12 +133,12 @@ healthcheck:
         kvAddr: 127.0.0.1:6379 ##REDIS_ADDR##
         kvUser: ##REDIS_USER#
         kvPasswd: ##REDIS_PWD##
-        poolSize: 200
+        poolSize: 8
         minIdleConns: 30
         idleTimeout: 120s
         connectTimeout: 200ms
         msgTimeout: 200ms
-        concurrency: 200
+        concurrency: 10
         withTLS: false
 # 缓存配置
 cache:
