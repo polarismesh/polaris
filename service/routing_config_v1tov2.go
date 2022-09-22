@@ -123,7 +123,7 @@ func (s *Server) saveRoutingV1toV2(ctx context.Context, svcId string, req *apiv1
 	}
 
 	saveOperation := func(routings []*apiv2.Routing) *apiv1.Response {
-		priorityMax := 10
+		priorityMax := 0
 		for i := range routings {
 			item := routings[i]
 			item.Id = utils.NewRoutingV2UUID()
@@ -134,12 +134,12 @@ func (s *Server) saveRoutingV1toV2(ctx context.Context, svcId string, req *apiv1
 			}
 
 			data.Enable = true
-			if priorityMax < 0 {
+			if priorityMax > 10 {
 				priorityMax = 10
 			}
 
 			data.Priority = uint32(priorityMax)
-			priorityMax--
+			priorityMax++
 
 			if err := s.storage.CreateRoutingConfigV2Tx(tx, data); err != nil {
 				log.Error("[Routing][V2] create routing v2 from v1 into store",

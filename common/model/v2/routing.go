@@ -190,5 +190,14 @@ func (r *RoutingConfig) ParseFromAPI(routing *apiv2.Routing) error {
 	r.Priority = routing.Priority
 	r.Config = string(routing.GetRoutingConfig().GetValue())
 	r.Description = routing.Description
+
+	// 优先级区间范围 [0, 10]
+	if r.Priority > 10 {
+		r.Priority = 10
+	}
+	if r.Priority < 0 {
+		r.Priority = 0
+	}
+
 	return nil
 }
