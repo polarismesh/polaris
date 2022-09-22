@@ -63,7 +63,7 @@ func (cb *Callbacks) OnStreamRequest(id int64, req *discovery.DiscoveryRequest) 
 	if cb.log.DebugEnabled() {
 		marshaler := jsonpb.Marshaler{}
 		str, _ := marshaler.MarshalToString(req)
-		cb.log.Debugf("on stream %d request %s ", req.TypeUrl, str)
+		cb.log.Debugf("on stream %d type %s request %s ", id, req.TypeUrl, str)
 	}
 	return nil
 }
@@ -73,7 +73,7 @@ func (cb *Callbacks) OnStreamResponse(_ context.Context, id int64, req *discover
 		marshaler := jsonpb.Marshaler{}
 		reqstr, _ := marshaler.MarshalToString(req)
 		respstr, _ := marshaler.MarshalToString(resp)
-		cb.log.Debugf("on stream %d request %s response %s", req.TypeUrl, reqstr, respstr)
+		cb.log.Debugf("on stream %d type %s request %s response %s", id, req.TypeUrl, reqstr, respstr)
 	}
 }
 
@@ -82,7 +82,7 @@ func (cb *Callbacks) OnStreamDeltaResponse(id int64, req *discovery.DeltaDiscove
 		marshaler := jsonpb.Marshaler{}
 		reqstr, _ := marshaler.MarshalToString(req)
 		respstr, _ := marshaler.MarshalToString(resp)
-		cb.log.Debugf("on delta stream %d request %s response %s", req.TypeUrl, reqstr, respstr)
+		cb.log.Debugf("on delta stream %d type %s request %s response %s", id, req.TypeUrl, reqstr, respstr)
 	}
 }
 
@@ -90,7 +90,7 @@ func (cb *Callbacks) OnStreamDeltaRequest(id int64, req *discovery.DeltaDiscover
 	if cb.log.DebugEnabled() {
 		marshaler := jsonpb.Marshaler{}
 		str, _ := marshaler.MarshalToString(req)
-		cb.log.Debugf("on stream %d delta request %s ", req.TypeUrl, str)
+		cb.log.Debugf("on stream %d delta type %s request %s", id, req.TypeUrl, str)
 	}
 	return nil
 }
@@ -99,7 +99,7 @@ func (cb *Callbacks) OnFetchRequest(_ context.Context, req *discovery.DiscoveryR
 	if cb.log.DebugEnabled() {
 		marshaler := jsonpb.Marshaler{}
 		str, _ := marshaler.MarshalToString(req)
-		cb.log.Debugf("on fetch request %s ", req.TypeUrl, str)
+		cb.log.Debugf("on fetch type %s request %s ", req.TypeUrl, str)
 	}
 	return nil
 }
@@ -109,6 +109,6 @@ func (cb *Callbacks) OnFetchResponse(req *discovery.DiscoveryRequest, resp *disc
 		marshaler := jsonpb.Marshaler{}
 		reqstr, _ := marshaler.MarshalToString(req)
 		respstr, _ := marshaler.MarshalToString(resp)
-		cb.log.Debugf("on fetch request %s response %s", req.TypeUrl, reqstr, respstr)
+		cb.log.Debugf("on fetch type %s request %s response %s", req.TypeUrl, reqstr, respstr)
 	}
 }
