@@ -218,7 +218,7 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 	}
 	if total != 0 {
 		log.Error("the removed namespace has remain config-group", zap.String("request-id", requestID))
-		return api.NewNamespaceResponse(api.NamespaceExistedServices, req)
+		return api.NewNamespaceResponse(api.NamespaceExistedConfigGroups, req)
 	}
 
 	// 存储层操作
