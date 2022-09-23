@@ -124,7 +124,88 @@ func TestCountNamespaceService(t *testing.T) {
 	t.Logf("TestNamespaceServiceCnt success")
 
 	// 开始清理所有的数据
+}
 
+// TestDeleteNamespaceWhenHaveService 当命名空间下还有服务时进行删除命名空间的操作
+func TestDeleteNamespaceWhenHaveService(t *testing.T) {
+	t.Log("test namepsace delete when has service")
+	client := http.NewClient(httpserverAddress, httpserverVersion)
+
+	namespaces := resource.CreateNamespaces()
+
+	// 创建命名空间
+	_, err := client.CreateNamespaces(namespaces)
+	if err != nil {
+		t.Fatalf("create namespaces fail: %s", err.Error())
+	}
+	t.Log("create namepsaces success")
+
+	services := resource.CreateServices(namespaces[0])
+	if _, err = client.CreateServices(services); err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := client.DeleteNamespacesGetResp(namespaces)
+	if err != nil {
+		t.Fatalf("delete namespaces fail: %s", err.Error())
+	}
+	if resp.GetCode().GetValue() != v1.NamespaceExistedServices {
+		t.Fatalf("delete namespace need return code:NamespaceExistedServices, actual : %d, %s", int(resp.GetCode().GetValue()), resp.GetInfo().GetValue())
+	}
+
+	// 删除 service
+	if err := client.DeleteServices(services); err != nil {
+		t.Fatalf("delete service fail: %+v", err)
+	}
+
+	resp, err = client.DeleteNamespacesGetResp(namespaces)
+	if err != nil {
+		t.Fatalf("delete namespaces fail: %s", err.Error())
+	}
+	if resp.GetCode().GetValue() != v1.ExecuteSuccess {
+		t.Fatalf("delete namespace need return code:ExecuteSuccess, actual : %d, %s", int(resp.GetCode().GetValue()), resp.GetInfo().GetValue())
+	}
+}
+
+// TestDeleteNamespaceWhenHaveConfigGroup 当命名空间下还有配置时进行删除命名空间的操作
+func TestDeleteNamespaceWhenHaveConfigGroup(t *testing.T) {
+	t.Log("test namepsace interface")
+	client := http.NewClient(httpserverAddress, httpserverVersion)
+
+	namespaces := resource.CreateNamespaces()
+
+	// 创建命名空间
+	_, err := client.CreateNamespaces(namespaces)
+	if err != nil {
+		t.Fatalf("create namespaces fail: %s", err.Error())
+	}
+	t.Log("create namepsaces success")
+
+	groups := resource.MockConfigGroups(namespaces[0])
+	if _, err = client.CreateConfigGroup(groups[0]); err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := client.DeleteNamespacesGetResp(namespaces)
+	if err != nil {
+		t.Fatalf("delete namespaces fail: %s", err.Error())
+	}
+	if resp.GetCode().GetValue() != v1.NamespaceExistedConfigGroups {
+		t.Fatalf("delete namespace need return code:NamespaceExistedConfigGroups, actual : %d, %s", int(resp.GetCode().GetValue()), resp.GetInfo().GetValue())
+	}
+
+	// 删除配置分组
+	if _, err := client.DeleteConfigGroup(groups[0]); err != nil {
+		t.Fatalf("delete service fail: %+v", err)
+	}
+
+	resp, err = client.DeleteNamespacesGetResp(namespaces)
+	if err != nil {
+		t.Fatalf("delete namespaces fail: %s", err.Error())
+	}
+	if resp.GetCode().GetValue() != v1.ExecuteSuccess {
+		t.Fatalf("delete namespace need return code:ExecuteSuccess, actual : %d, %s", int(resp.GetCode().GetValue()), resp.GetInfo().GetValue())
+	}
 }
 
 func createServiceAndInstance(t *testing.T, expectRes *map[string]model.NamespaceServiceCount, client *http.Client, namespace *v1.Namespace) ([]*v1.Service, []*v1.Instance) {

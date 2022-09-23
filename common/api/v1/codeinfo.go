@@ -112,6 +112,7 @@ const (
 	NamespaceExistedCircuitBreakers uint32 = 400212
 	ServiceSubscribedByMeshes       uint32 = 400213
 	ServiceExistedFluxRateLimits    uint32 = 400214
+	NamespaceExistedConfigGroups    uint32 = 400219
 
 	NotFoundService                    uint32 = 400301
 	NotFoundRouting                    uint32 = 400302
@@ -342,6 +343,8 @@ var code2info = map[uint32]string{
 	SubAccountExisted:         "some sub-account existed in owner",
 	InvalidUserID:             "invalid user-id",
 	TokenNotExisted:           "token not existed",
+
+	NamespaceExistedConfigGroups: "some config group existed in namespace",
 }
 
 // code to info
