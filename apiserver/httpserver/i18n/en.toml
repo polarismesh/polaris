@@ -86,6 +86,7 @@
 400216 = "exist usergroup"    #UserGroupExisted
 400217 = "exist auth strategy rule"    #AuthStrategyRuleExisted
 400218 = "some sub-account existed in owner"    #SubAccountExisted
+400219 = "some config group existed in namespace" #NamespaceExistedConfigGroups
 400301 = "not found service"    #NotFoundService
 400302 = "not found routing"    #NotFoundRouting
 400303 = "not found instances"    #NotFoundInstance

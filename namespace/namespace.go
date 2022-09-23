@@ -208,6 +208,19 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 		return api.NewNamespaceResponse(api.NamespaceExistedCircuitBreakers, req)
 	}
 
+	// 判断属于该命名空间的服务是否都已经被删除
+	total, err = s.getConfigGroupCountWithNamespace(namespace.Name)
+	if err != nil {
+		log.Error("get config group count with namespace err",
+			zap.String("request-id", requestID),
+			zap.String("err", err.Error()))
+		return api.NewNamespaceResponse(api.StoreLayerException, req)
+	}
+	if total != 0 {
+		log.Error("the removed namespace has remain config-group", zap.String("request-id", requestID))
+		return api.NewNamespaceResponse(api.NamespaceExistedConfigGroups, req)
+	}
+
 	// 存储层操作
 	if err := tx.DeleteNamespace(namespace.Name); err != nil {
 		log.Error(err.Error(), zap.String("request-id", requestID))
@@ -377,6 +390,15 @@ func (s *Server) GetNamespaceToken(ctx context.Context, req *api.Namespace) *api
 func (s *Server) getServicesCountWithNamespace(namespace string) (uint32, error) {
 	filter := map[string]string{"namespace": namespace}
 	total, _, err := s.storage.GetServices(filter, nil, nil, 0, 1)
+	if err != nil {
+		return 0, err
+	}
+	return total, nil
+}
+
+// 根据命名空间查询配置分组总数
+func (s *Server) getConfigGroupCountWithNamespace(namespace string) (uint32, error) {
+	total, _, err := s.storage.QueryConfigFileGroups(namespace, "", 0, 1)
 	if err != nil {
 		return 0, err
 	}

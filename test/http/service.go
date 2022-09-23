@@ -76,7 +76,7 @@ func (c *Client) CreateServices(services []*api.Service) (*api.BatchWriteRespons
 	ret, err := GetBatchWriteResponse(response)
 	if err != nil {
 		fmt.Printf("%v\n", err)
-		return nil, err
+		return ret, err
 	}
 
 	return checkCreateServicesResponse(ret, services)
