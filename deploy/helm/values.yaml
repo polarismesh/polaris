@@ -22,7 +22,16 @@ polaris:
     limit:
       cpu: "500m"
       memory: "1000Mi"
+  limiter:
+    image:
+      repository: polarismesh/polaris-limiter
+      tag: ##POLARIS_LIMITER_VERSION##
+      pullPolicy: Always
+    limit:
+      cpu: "500m"
+      memory: "1000Mi"
   replicaCount: 1
+  limiterReplicaCount: 1
   auth:
     consoleOpen: true
     clientOpen: false
@@ -59,6 +68,8 @@ service:
   xdsv3Port: 15010
   configGrpcPort: 8093
   prometheusPort: 9000
+  limiterHttpPort: 8100
+  limiterGrpcPort: 8101
 
 monitor:
   port: 9091
