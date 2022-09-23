@@ -55,6 +55,7 @@ func (s *Server) CreateRoutingConfigs(ctx context.Context, req []*api.Routing) *
 	return api.FormatBatchWriteResponse(resp)
 }
 
+// Deprecated 该方法准备舍弃
 // CreateRoutingConfig 创建一个路由配置
 // 创建路由配置需要锁住服务，防止服务被删除
 func (s *Server) CreateRoutingConfig(ctx context.Context, req *api.Routing) *api.Response {
@@ -125,6 +126,7 @@ func (s *Server) DeleteRoutingConfigs(ctx context.Context, req []*api.Routing) *
 	return api.FormatBatchWriteResponse(out)
 }
 
+// Deprecated 该方法准备舍弃
 // DeleteRoutingConfig 删除一个路由配置
 func (s *Server) DeleteRoutingConfig(ctx context.Context, req *api.Routing) *api.Response {
 	rid := ParseRequestID(ctx)
@@ -160,6 +162,7 @@ func (s *Server) UpdateRoutingConfigs(ctx context.Context, req []*api.Routing) *
 	return api.FormatBatchWriteResponse(out)
 }
 
+// Deprecated 该方法准备舍弃
 // UpdateRoutingConfig 更新单个路由配置
 func (s *Server) UpdateRoutingConfig(ctx context.Context, req *api.Routing) *api.Response {
 	rid := ParseRequestID(ctx)
@@ -195,6 +198,7 @@ func (s *Server) UpdateRoutingConfig(ctx context.Context, req *api.Routing) *api
 	return api.NewRoutingResponse(api.ExecuteSuccess, req)
 }
 
+// Deprecated 该方法准备舍弃
 // GetRoutingConfigs 提供给OSS的查询路由配置的接口
 func (s *Server) GetRoutingConfigs(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	rid := ParseRequestID(ctx)
