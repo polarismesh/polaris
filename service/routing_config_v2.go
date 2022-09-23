@@ -112,6 +112,14 @@ func (s *Server) deleteRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 		return resp
 	}
 
+	// 判断当前的路由规则是否只是从 v1 版本中的内存中转换过来的
+	if _, ok := s.Cache().RoutingConfig().IsConvertFromV1(req.Id); ok {
+		resp := s.transferV1toV2OnEnableOrDelete(ctx, req)
+		if resp.GetCode() != apiv1.ExecuteSuccess {
+			return resp
+		}
+	}
+
 	if err := s.storage.DeleteRoutingConfigV2(req.Id); err != nil {
 		log.Error("[Routing][V2] delete routing config v2 store layer",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
@@ -302,7 +310,7 @@ func (s *Server) enableRoutings(ctx context.Context, req *apiv2.Routing) *apiv2.
 
 	// 判断当前的路由规则是否只是从 v1 版本中的内存中转换过来的
 	if _, ok := s.Cache().RoutingConfig().IsConvertFromV1(req.Id); ok {
-		resp := s.transferV1toV2OnEnableRouting(ctx, req)
+		resp := s.transferV1toV2OnEnableOrDelete(ctx, req)
 		if resp.GetCode() != apiv1.ExecuteSuccess {
 			return resp
 		}
@@ -333,7 +341,7 @@ func (s *Server) enableRoutings(ctx context.Context, req *apiv2.Routing) *apiv2.
 }
 
 // transferV1toV2OnEnableRouting 在针对 v2 规则进行启用或者禁止时，需要将 v1 规则转为 v2 规则并执行持久化存储
-func (s *Server) transferV1toV2OnEnableRouting(ctx context.Context, req *apiv2.Routing) *apiv2.Response {
+func (s *Server) transferV1toV2OnEnableOrDelete(ctx context.Context, req *apiv2.Routing) *apiv2.Response {
 	svcId, _ := s.Cache().RoutingConfig().IsConvertFromV1(req.Id)
 	v1conf, err := s.storage.GetRoutingConfigWithID(svcId)
 	if err != nil {
@@ -364,25 +372,28 @@ func (s *Server) transferV1toV2OnEnableRouting(ctx context.Context, req *apiv2.R
 			return apiv2.NewResponse(api.ExecuteException)
 		}
 
-		inDatas := make([]*apiv2.Routing, 0, len(inV2))
-		for i := range inV2 {
-			item, err := inV2[i].ToApi()
-			if err != nil {
-				log.Error("[Routing][V2] convert routing config v1 to v2, format v2 to api",
-					utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-				return apiv2.NewResponse(api.ExecuteException)
+		formatApi := func(rules []*v2.ExtendRoutingConfig) ([]*apiv2.Routing, *apiv2.Response) {
+			ret := make([]*apiv2.Routing, 0, len(rules))
+			for i := range rules {
+				item, err := rules[i].ToApi()
+				if err != nil {
+					log.Error("[Routing][V2] convert routing config v1 to v2, format v2 to api",
+						utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+					return nil, apiv2.NewResponse(api.ExecuteException)
+				}
+				ret = append(ret, item)
 			}
-			inDatas = append(inDatas, item)
+
+			return ret, nil
 		}
-		outDatas := make([]*apiv2.Routing, 0, len(inV2))
-		for i := range outV2 {
-			item, err := inV2[i].ToApi()
-			if err != nil {
-				log.Error("[Routing][V2] convert routing config v1 to v2, format v2 to api",
-					utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-				return apiv2.NewResponse(api.ExecuteException)
-			}
-			outDatas = append(outDatas, item)
+
+		inDatas, resp := formatApi(inV2)
+		if resp != nil {
+			return resp
+		}
+		outDatas, resp := formatApi(outV2)
+		if resp != nil {
+			return resp
 		}
 
 		if resp := s.saveRoutingV1toV2(ctx, svcId, inDatas, outDatas); resp.GetCode().GetValue() != apiv1.ExecuteSuccess {
