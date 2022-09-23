@@ -75,7 +75,7 @@ func (c *Client) CreateInstances(instances []*api.Instance) (*api.BatchWriteResp
 	ret, err := GetBatchWriteResponse(response)
 	if err != nil {
 		fmt.Printf("%v\n", err)
-		return nil, err
+		return ret, err
 	}
 
 	return checkCreateInstancesResponse(ret, instances)

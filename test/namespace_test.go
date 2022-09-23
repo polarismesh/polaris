@@ -146,11 +146,13 @@ func TestDeleteNamespaceWhenHaveService(t *testing.T) {
 	}
 
 	resp, err := client.DeleteNamespacesGetResp(namespaces)
-	if err != nil {
-		t.Fatalf("delete namespaces fail: %s", err.Error())
+	if resp != nil {
+		if resp.GetCode().GetValue() != v1.NamespaceExistedServices {
+			t.Fatalf("delete namespace need return code:NamespaceExistedServices, actual : %d, %s", int(resp.GetCode().GetValue()), resp.GetInfo().GetValue())
+		}
 	}
-	if resp.GetCode().GetValue() != v1.NamespaceExistedServices {
-		t.Fatalf("delete namespace need return code:NamespaceExistedServices, actual : %d, %s", int(resp.GetCode().GetValue()), resp.GetInfo().GetValue())
+	if err != nil && resp == nil {
+		t.Fatalf("delete namespaces fail: %s", err.Error())
 	}
 
 	// 删除 service
@@ -159,11 +161,13 @@ func TestDeleteNamespaceWhenHaveService(t *testing.T) {
 	}
 
 	resp, err = client.DeleteNamespacesGetResp(namespaces)
-	if err != nil {
-		t.Fatalf("delete namespaces fail: %s", err.Error())
+	if resp != nil {
+		if resp.GetCode().GetValue() != v1.ExecuteSuccess {
+			t.Fatalf("delete namespace need return code:ExecuteSuccess, actual : %d, %s", int(resp.GetCode().GetValue()), resp.GetInfo().GetValue())
+		}
 	}
-	if resp.GetCode().GetValue() != v1.ExecuteSuccess {
-		t.Fatalf("delete namespace need return code:ExecuteSuccess, actual : %d, %s", int(resp.GetCode().GetValue()), resp.GetInfo().GetValue())
+	if err != nil && resp == nil {
+		t.Fatalf("delete namespaces fail: %s", err.Error())
 	}
 }
 
@@ -187,11 +191,13 @@ func TestDeleteNamespaceWhenHaveConfigGroup(t *testing.T) {
 	}
 
 	resp, err := client.DeleteNamespacesGetResp(namespaces)
-	if err != nil {
-		t.Fatalf("delete namespaces fail: %s", err.Error())
+	if resp != nil {
+		if resp.GetCode().GetValue() != v1.NamespaceExistedConfigGroups {
+			t.Fatalf("delete namespace need return code:NamespaceExistedConfigGroups, actual : %d, %s", int(resp.GetCode().GetValue()), resp.GetInfo().GetValue())
+		}
 	}
-	if resp.GetCode().GetValue() != v1.NamespaceExistedConfigGroups {
-		t.Fatalf("delete namespace need return code:NamespaceExistedConfigGroups, actual : %d, %s", int(resp.GetCode().GetValue()), resp.GetInfo().GetValue())
+	if err != nil && resp == nil {
+		t.Fatalf("delete namespaces fail: %s", err.Error())
 	}
 
 	// 删除配置分组
@@ -200,11 +206,13 @@ func TestDeleteNamespaceWhenHaveConfigGroup(t *testing.T) {
 	}
 
 	resp, err = client.DeleteNamespacesGetResp(namespaces)
-	if err != nil {
-		t.Fatalf("delete namespaces fail: %s", err.Error())
+	if resp != nil {
+		if resp.GetCode().GetValue() != v1.ExecuteSuccess {
+			t.Fatalf("delete namespace need return code:ExecuteSuccess, actual : %d, %s", int(resp.GetCode().GetValue()), resp.GetInfo().GetValue())
+		}
 	}
-	if resp.GetCode().GetValue() != v1.ExecuteSuccess {
-		t.Fatalf("delete namespace need return code:ExecuteSuccess, actual : %d, %s", int(resp.GetCode().GetValue()), resp.GetInfo().GetValue())
+	if err != nil && resp == nil {
+		t.Fatalf("delete namespaces fail: %s", err.Error())
 	}
 }
 

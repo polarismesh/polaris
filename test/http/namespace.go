@@ -71,7 +71,7 @@ func (c *Client) CreateNamespaces(namespaces []*api.Namespace) (*api.BatchWriteR
 	ret, err := GetBatchWriteResponse(response)
 	if err != nil {
 		fmt.Printf("%v\n", err)
-		return nil, err
+		return ret, err
 	}
 
 	return checkCreateNamespacesResponse(ret, namespaces)
@@ -129,7 +129,7 @@ func (c *Client) DeleteNamespacesGetResp(namespaces []*api.Namespace) (*api.Batc
 	resp, err := GetBatchWriteResponse(response)
 	if err != nil {
 		fmt.Printf("%v\n", err)
-		return nil, err
+		return resp, err
 	}
 
 	return resp, nil
