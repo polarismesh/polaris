@@ -127,11 +127,8 @@ func TestClientGRPC_DiscoverInstance(t *testing.T) {
 
 					testMeta["version"] = instances[0].Version.GetValue()
 					testMeta["protocol"] = instances[0].Protocol.GetValue()
-					testMeta["region"] = ""
-					testMeta["zone"] = ""
-					testMeta["campus"] = ""
 
-					assert.Equalf(t, testMeta, resp.Instances[0].Metadata, "instance metadata actual : %v", instances[0].Metadata)
+					assert.True(t, resp.Instances[0].Metadata["internal-mock-label"] == "polaris-auto-mock-test", "instance metadata actual : %v", instances[0].Metadata)
 				})
 				if err != nil {
 					t.Fatalf("discover instance fail")
