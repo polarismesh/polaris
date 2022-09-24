@@ -108,6 +108,8 @@ jobs:
           echo "work_dir is $work_dir"
           cd $work_dir
 
+          cp -rf ./testdata/polaris-server.yaml $work_dir/
+
           ls -alR
 
           if [[ "$(uname)" == "Darwin" ]]; then
