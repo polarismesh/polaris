@@ -9,7 +9,7 @@ global:
 polaris:
   image:
     repository: polarismesh/polaris-server
-    tag: latest
+    tag: ##POLARIS_SERVER_VERSION##
     pullPolicy: Always
   limit:
     cpu: "500m"
@@ -17,7 +17,7 @@ polaris:
   console:
     image:
       repository: polarismesh/polaris-console
-      tag: latest
+      tag: ##POLARIS_CONSOLE_VERSION##
       pullPolicy: Always
     limit:
       cpu: "500m"

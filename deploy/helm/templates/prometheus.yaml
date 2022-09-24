@@ -48,7 +48,7 @@ spec:
             - -c
             - /root/prometheus/prometheus --config.file=/root/prometheus/prometheus.yml
               --web.enable-lifecycle --web.enable-admin-api
-          image: ccr.ccs.tencentyun.com/polaris_mesh/polaris-prometheus:1.2
+          image: polarismesh/polaris-prometheus:latest
           imagePullPolicy: Always
           name: polaris-prometheus
           resources:
@@ -59,7 +59,7 @@ spec:
             - /bin/bash
             - -c
             - /root/pushgateway/pushgateway --web.enable-lifecycle --web.enable-admin-api
-          image: ccr.ccs.tencentyun.com/polaris_mesh/polaris-pushgateway:1.1.0
+          image: prom/pushgateway:latest
           imagePullPolicy: Always
           name: polaris-pushgateway
           resources:
