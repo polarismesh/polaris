@@ -19,6 +19,7 @@ package routing
 
 import (
 	"encoding/json"
+	"fmt"
 	"sort"
 
 	"github.com/golang/protobuf/ptypes"
@@ -470,9 +471,92 @@ func ConvertV1RouteToV2Route(route *apiv1.Route) *apiv2.RuleRoutingConfig {
 	}
 }
 
+// CompareRoutingV2
 func CompareRoutingV2(a, b *v2.ExtendRoutingConfig) bool {
 	if a.Priority != b.Priority {
 		return a.Priority < b.Priority
 	}
 	return a.CreateTime.Before(b.CreateTime)
+}
+
+// ConvertRoutingV1ToV2 v1 版本的路由规则转为 v2 版本进行存储
+func ConvertRoutingV1ToExtendV2(svcName, svcNamespace string, rule *model.RoutingConfig) ([]*v2.ExtendRoutingConfig, []*v2.ExtendRoutingConfig, error) {
+	inRet := make([]*v2.ExtendRoutingConfig, 0, 4)
+	outRet := make([]*v2.ExtendRoutingConfig, 0, 4)
+
+	if rule.InBounds != "" {
+		var inBounds []*apiv1.Route
+		if err := json.Unmarshal([]byte(rule.InBounds), &inBounds); err != nil {
+			return nil, nil, err
+		}
+
+		priorityMax := 0
+
+		for i := range inBounds {
+			routing, err := BuildV2ExtendRouting(&apiv1.Routing{
+				Namespace: utils.NewStringValue(svcNamespace),
+			}, inBounds[i])
+			if err != nil {
+				return nil, nil, err
+			}
+			routing.ID = fmt.Sprintf("%sin%d", rule.ID, i)
+			routing.Revision = rule.Revision
+			routing.Enable = true
+			routing.CreateTime = rule.CreateTime
+			routing.ModifyTime = rule.ModifyTime
+			routing.EnableTime = rule.CreateTime
+			routing.ExtendInfo = map[string]string{
+				v2.V1RuleIDKey:         rule.ID,
+				v2.V1RuleRouteIndexKey: fmt.Sprintf("%d", i),
+				v2.V1RuleRouteTypeKey:  v2.V1RuleInRoute,
+			}
+
+			if priorityMax > 10 {
+				priorityMax = 10
+			}
+
+			routing.Priority = uint32(priorityMax)
+			priorityMax++
+
+			inRet = append(inRet, routing)
+		}
+	}
+	if rule.OutBounds != "" {
+		var outBounds []*apiv1.Route
+		if err := json.Unmarshal([]byte(rule.OutBounds), &outBounds); err != nil {
+			return nil, nil, err
+		}
+
+		priorityMax := 0
+
+		for i := range outBounds {
+			routing, err := BuildV2ExtendRouting(&apiv1.Routing{
+				Namespace: utils.NewStringValue(svcNamespace),
+			}, outBounds[i])
+			if err != nil {
+				return nil, nil, err
+			}
+			routing.ID = fmt.Sprintf("%sout%d", rule.ID, i)
+			routing.Revision = rule.Revision
+			routing.CreateTime = rule.CreateTime
+			routing.ModifyTime = rule.ModifyTime
+			routing.EnableTime = rule.CreateTime
+			routing.ExtendInfo = map[string]string{
+				v2.V1RuleIDKey:         rule.ID,
+				v2.V1RuleRouteIndexKey: fmt.Sprintf("%d", i),
+				v2.V1RuleRouteTypeKey:  v2.V1RuleOutRoute,
+			}
+
+			if priorityMax > 10 {
+				priorityMax = 10
+			}
+
+			routing.Priority = uint32(priorityMax)
+			priorityMax++
+
+			outRet = append(outRet, routing)
+		}
+	}
+
+	return inRet, outRet, nil
 }

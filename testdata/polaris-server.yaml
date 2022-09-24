@@ -258,20 +258,21 @@ healthcheck:
       maxBatchCount: 32
       concurrency: 64
   checkers:
-    - name: heartbeatMemory
-#  - name: heartbeatRedis
-#    option:
-#      kvAddr: ##REDIS_ADDR##
-#       # ACL user from redis v6.0, remove it if ACL is not available
-#      kvUser: ##REDIS_USER#
-#      kvPasswd: ##REDIS_PWD##
-#      poolSize: 200
-#      minIdleConns: 30
-#      idleTimeout: 120s
-#      connectTimeout: 200ms
-#      msgTimeout: 200ms
-#      concurrency: 200
-#      withTLS: false
+    # - name: heartbeatMemory
+    - name: heartbeatRedis
+      option:
+        kvAddr:
+          127.0.0.1:6379 ##REDIS_ADDR##
+          # ACL user from redis v6.0, remove it if ACL is not available
+        kvUser: ##REDIS_USER#
+        kvPasswd: ##REDIS_PWD##
+        poolSize: 200
+        minIdleConns: 30
+        idleTimeout: 120s
+        connectTimeout: 200ms
+        msgTimeout: 200ms
+        concurrency: 200
+        withTLS: false
 # 配置中心模块启动配置
 config:
   # 是否启动配置模块
@@ -302,22 +303,22 @@ cache:
 # 存储配置
 store:
   # 单机文件存储插件
-  name: boltdbStore
-  option:
-    path: ./polaris.bolt
-  ## 数据库存储插件
-  # name: defaultStore
+  # name: boltdbStore
   # option:
-  #   master:
-  #     dbType: mysql
-  #     dbName: polaris_server
-  #     dbUser: root ##DB_USER##
-  #     dbPwd: polaris ##DB_PWD##
-  #     dbAddr: 127.0.0.1:3306 ##DB_ADDR##
-  #     maxOpenConns: 300
-  #     maxIdleConns: 50
-  #     connMaxLifetime: 300 # 单位秒
-  #     txIsolationLevel: 2 #LevelReadCommitted
+  #   path: ./polaris.bolt
+  ## 数据库存储插件
+  name: defaultStore
+  option:
+    master:
+      dbType: mysql
+      dbName: polaris_server
+      dbUser: root ##DB_USER##
+      dbPwd: polaris ##DB_PWD##
+      dbAddr: "127.0.0.1:3306" ##DB_ADDR##
+      maxOpenConns: -1
+      maxIdleConns: -1
+      connMaxLifetime: 300 # 单位秒
+      txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置
 plugin:
   history:
