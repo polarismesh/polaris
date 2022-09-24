@@ -104,11 +104,11 @@ jobs:
           # 临时放开 DB 的最大连接数
           mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
 
+          cp -rf ./testdata/polaris-server.yaml $work_dir/
+
           work_dir=$(ls | grep polaris-server-release | sed -n '1p')
           echo "work_dir is $work_dir"
           cd $work_dir
-
-          cp -rf ./testdata/polaris-server.yaml $work_dir/
 
           ls -alR
 
