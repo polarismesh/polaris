@@ -124,7 +124,7 @@ func (s *Server) Report(ctx context.Context, req *api.Instance) *api.Response {
 	return s.doReport(ctx, req)
 }
 
-// Report report heartbeat request by client
+// ReportByClient report heartbeat request by client
 func (s *Server) ReportByClient(ctx context.Context, req *api.Client) *api.Response {
 	return s.doReportByClient(ctx, req)
 }

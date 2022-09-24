@@ -77,9 +77,9 @@ type ServiceIterProc func(key string, value *model.Service) (bool, error)
 type ServiceCache interface {
 	Cache
 
-	// GetNamesapceCntInfo Return to the service statistics according to the namespace,
+	// GetNamespaceCntInfo Return to the service statistics according to the namespace,
 	// 	the count statistics and health instance statistics
-	GetNamesapceCntInfo(namespace string) model.NamespaceServiceCount
+	GetNamespaceCntInfo(namespace string) model.NamespaceServiceCount
 
 	// GetAllNamespaces Return all namespaces
 	GetAllNamespaces() []string
@@ -284,9 +284,9 @@ func (sc *serviceCache) IteratorServices(iterProc ServiceIterProc) error {
 	return err
 }
 
-// GetNamesapceCntInfo Return to the service statistics according to the namespace,
+// GetNamespaceCntInfo Return to the service statistics according to the namespace,
 // 	the count statistics and health instance statistics
-func (sc *serviceCache) GetNamesapceCntInfo(namespace string) model.NamespaceServiceCount {
+func (sc *serviceCache) GetNamespaceCntInfo(namespace string) model.NamespaceServiceCount {
 	val, _ := sc.namespaceServiceCnt.Load(namespace)
 	if val == nil {
 		return model.NamespaceServiceCount{

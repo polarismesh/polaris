@@ -31,7 +31,7 @@ const (
 	maxQueryInterval = time.Second
 )
 
-// GetNow 获取当前时间，单位秒
+// GetUnixSecond 获取当前时间，单位秒
 func (t *toolStore) GetUnixSecond() (int64, error) {
 	startTime := time.Now()
 	rows, err := t.db.Query(nowSql)
