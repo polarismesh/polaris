@@ -281,7 +281,7 @@ func checkCreateConfigResponse(ret *api.ConfigResponse) (
 
 	switch {
 	case ret.GetCode().GetValue() != api.ExecuteSuccess:
-		return nil, errors.New("invalid batch code")
+		return nil, errors.New(ret.GetInfo().GetValue())
 	}
 
 	return ret, nil
@@ -292,7 +292,7 @@ func checkQueryConfigResponse(ret *api.ConfigBatchQueryResponse) (
 
 	switch {
 	case ret.GetCode().GetValue() != api.ExecuteSuccess:
-		return nil, errors.New("invalid batch code")
+		return nil, errors.New(ret.GetInfo().GetValue())
 	}
 
 	return ret, nil

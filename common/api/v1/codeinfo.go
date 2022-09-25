@@ -116,6 +116,7 @@ const (
 	NamespaceExistedCircuitBreakers uint32 = 400212
 	ServiceSubscribedByMeshes       uint32 = 400213
 	ServiceExistedFluxRateLimits    uint32 = 400214
+	NamespaceExistedConfigGroups    uint32 = 400219
 
 	NotFoundService                    uint32 = 400301
 	NotFoundRouting                    uint32 = 400302
@@ -354,6 +355,8 @@ var code2info = map[uint32]string{
 	InvalidRoutingID:     "invalid routing id",
 	InvalidRoutingPolicy: "invalid routing policy, only support (RulePolicy,MetadataPolicy)",
 	InvalidRoutingName:   "invalid routing name",
+	
+	NamespaceExistedConfigGroups: "some config group existed in namespace",
 }
 
 // code to info
