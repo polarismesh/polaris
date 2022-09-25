@@ -92,7 +92,7 @@ jobs:
             sed -i "s/##POLARIS_SERVER_VERSION##/${SERVER_VERSION}/g" helm/values.yaml
             sed -i "s/##POLARIS_CONSOLE_VERSION##/${CONSOLE_VERSION}/g" helm/values.yaml
             sed -i "s/##POLARIS_PROMETHEUS_VERSION##/${SERVER_VERSION}/g" helm/values.yaml
-            sed -i "s/##POLARIS_LIMITER_VERSION##/${LIMITER_VERSION}/g" helm/polaris-limiter.yaml
+            sed -i "s/##POLARIS_LIMITER_VERSION##/${LIMITER_VERSION}/g" helm/values.yaml
 
             HELM_DIR_NAME=polaris-helm-release_${SERVER_VERSION}.${GOOS}
             mkdir ${HELM_DIR_NAME}
