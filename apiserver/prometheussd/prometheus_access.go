@@ -23,7 +23,7 @@ import (
 	"github.com/emicklei/go-restful/v3"
 )
 
-// GetPrometheusDiscoveryServer 注册用于promethesu服务发现的接口
+// GetPrometheusDiscoveryServer 注册用于prometheus服务发现的接口
 func (h *PrometheusServer) GetPrometheusDiscoveryServer(include []string) (*restful.WebService, error) {
 	ws := new(restful.WebService)
 
@@ -38,6 +38,7 @@ func (h *PrometheusServer) addPrometheusDefaultAccess(ws *restful.WebService) {
 	ws.Route(ws.GET("/clients").To(h.GetPrometheusClients))
 }
 
+// GetPrometheusClients 对接 prometheus 基于 http 的 service discovery
 // [
 //   {
 //     "targets": [ "<host>", ... ],
@@ -47,7 +48,6 @@ func (h *PrometheusServer) addPrometheusDefaultAccess(ws *restful.WebService) {
 //   },
 //   ...
 // ]
-// GetPrometheusClients 对接 prometheus 基于 http 的 service discovery
 func (h *PrometheusServer) GetPrometheusClients(req *restful.Request, rsp *restful.Response) {
 
 	queryParams := ParseQueryParams(req)

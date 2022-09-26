@@ -1,0 +1,45 @@
+registry:
+  enable: true
+  polaris-server-address: polaris-server:8091
+  name: polaris.limiter
+  namespace: Polaris
+  health-check-enable: true
+api-servers:
+  - name: http
+    option:
+      ip: 0.0.0.0
+      port: 8100
+  - name: grpc
+    option:
+      ip: 0.0.0.0
+      port: 8101
+limit:
+  myid: 1 #节点ID，集群中不同节点需设置不同的myid
+  counter-group: 64 # 计数器分组，不同组的计数器创建时不冲突
+  max-counter: 1000000
+  max-client: 1000
+  push-worker: 4
+  slide-count: 1
+  purge-counter-interval: 30s
+  sync-remote-storage-interval: 1m
+  async-remote-wait-timeout: 200ms
+  update-remote-storage-threshold: 10m
+  flush-local-storage-threshold: 3s
+plugin:
+  statis:
+    name: file
+    option:
+      ratelimit-app-name: 294_4423_polaris-limiter-stat #限流监控
+      ratelimit_report_log_path: log/polaris-limiter-ratelimit-report.log
+      ratelimit_event_log_path: log/polaris-limiter-event.log
+      ratelimit_precision_log_path: log/polaris-limiter-stat.log
+      server-app-name: 294_11866_polaris_limit_server #服务端监控
+      server_report_log_path: log/polaris-limiter-server-report.log
+      log_interval: 60
+      precision_log_interval: 1
+logger:
+  RotateOutputPath: log/polaris-limiter.log
+  RotationMaxSize: 500
+  RotationMaxAge: 30
+  RotationMaxBackups: 100
+  level: info

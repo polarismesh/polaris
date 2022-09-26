@@ -197,11 +197,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	d.cancel = cancel
 
 	// 初始化缓存模块
-	if err := cache.TestCacheInitialize(ctx, &d.cfg.Cache, s); err != nil {
-		panic(err)
-	}
-
-	cacheMgn, err := cache.GetCacheManager()
+	cacheMgn, err := cache.TestCacheInitialize(ctx, &d.cfg.Cache, s)
 	if err != nil {
 		panic(err)
 	}
@@ -808,7 +804,7 @@ func mockRoutingV2(t *testing.T, cnt int32) []*apiv2.Routing {
 // 创建一个路由配置
 func (d *DiscoverTestSuit) createCommonRoutingConfigV2(t *testing.T, cnt int32) []*apiv2.Routing {
 	rules := mockRoutingV2(t, cnt)
-	
+
 	return d.createCommonRoutingConfigV2WithReq(t, rules)
 }
 
@@ -921,6 +917,47 @@ func (d *DiscoverTestSuit) cleanCommonRoutingConfig(service string, namespace st
 					panic(err)
 				}
 			}
+			dbTx.Commit()
+		}()
+	}
+}
+
+func (d *DiscoverTestSuit) truncateCommonRoutingConfigV2() {
+	if d.storage.Name() == sqldb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+			defer dbTx.Rollback()
+
+			str := "delete from routing_config_v2"
+			if _, err := dbTx.Exec(str); err != nil {
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if d.storage.Name() == boltdb.STORENAME {
+		func() {
+
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+			defer dbTx.Rollback()
+
+			if err := dbTx.DeleteBucket([]byte(tblNameRoutingV2)); err != nil {
+				if !errors.Is(err, bolt.ErrBucketNotFound) {
+					dbTx.Rollback()
+					panic(err)
+				}
+			}
+
 			dbTx.Commit()
 		}()
 	}

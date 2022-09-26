@@ -21,7 +21,7 @@ package log
 const (
 	// NamingLoggerName naming logger name, can use FindScope function to get the logger
 	NamingLoggerName = "naming"
-	// HealthCheckLoggerName heartbeat logger name, can use FindScope function to get the logger
+	// HealthCheckLoggerName healthcheck logger name, can use FindScope function to get the logger
 	HealthCheckLoggerName = "healthcheck"
 	// ConfigLoggerName config logger name, can use FindScope function to get the logger
 	ConfigLoggerName = "config"
@@ -31,8 +31,10 @@ const (
 	AuthLoggerName = "auth"
 	// StoreLoggerName store logger name, can use FindScope function to get the logger
 	StoreLoggerName = "store"
-	// APIServerLoggerName store logger name, can use FindScope function to get the logger
+	// APIServerLoggerName apiserver logger name, can use FindScope function to get the logger
 	APIServerLoggerName = "apiserver"
+	// XDSLoggerName xdsv3 logger name, can use FindScope function to get the logger
+	XDSLoggerName = "xdsv3"
 )
 
 var (
@@ -43,16 +45,18 @@ var (
 	authScope        = RegisterScope(AuthLoggerName, "auth logging messages.", 0)
 	storeScope       = RegisterScope(StoreLoggerName, "store logging messages.", 0)
 	apiserverScope   = RegisterScope(APIServerLoggerName, "apiserver logging messages.", 0)
+	xdsScope         = RegisterScope(XDSLoggerName, "xdsv3 logging messages.", 0)
 )
 
 func allLoggerTypes() []string {
 	return []string{NamingLoggerName, ConfigLoggerName, CacheLoggerName,
-		AuthLoggerName, StoreLoggerName, APIServerLoggerName, HealthCheckLoggerName, DefaultLoggerName}
+		AuthLoggerName, StoreLoggerName, APIServerLoggerName, HealthCheckLoggerName,
+		XDSLoggerName, DefaultLoggerName}
 }
 
-// APIServerScope default logging scope handler
+// APIServerScope apiserver logging scope handler
 func APIServerScope() *Scope {
-	return defaultScope
+	return apiserverScope
 }
 
 // DefaultScope default logging scope handler
@@ -65,7 +69,7 @@ func NamingScope() *Scope {
 	return namingScope
 }
 
-// HealthCheckScope heartbeat logging scope handler
+// HealthCheckScope healthcheck logging scope handler
 func HealthCheckScope() *Scope {
 	return healthcheckScope
 }
@@ -88,4 +92,9 @@ func AuthScope() *Scope {
 // StoreScope store logging scope handler
 func StoreScope() *Scope {
 	return storeScope
+}
+
+// XDSV3Scope xdsv3 logging scope handler
+func XDSV3Scope() *Scope {
+	return xdsScope
 }

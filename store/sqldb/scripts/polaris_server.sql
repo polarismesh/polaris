@@ -788,6 +788,8 @@ INSERT INTO `user` (`id`,
                     `token_enable`,
                     `user_type`,
                     `comment`,
+                    `mobile`,
+                    `email`,
                     `owner`)
 VALUES ('65e4789a6d5b49669adf1e9e8387549c',
         'polaris',
@@ -797,6 +799,8 @@ VALUES ('65e4789a6d5b49669adf1e9e8387549c',
         1,
         20,
         'default polaris admin account',
+        '12345678910',
+                '12345678910',
         '');
 
 -- Permissions policy inserted into Polaris-Admin

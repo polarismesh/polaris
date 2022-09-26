@@ -71,7 +71,7 @@ func (c *Client) CreateNamespaces(namespaces []*api.Namespace) (*api.BatchWriteR
 	ret, err := GetBatchWriteResponse(response)
 	if err != nil {
 		fmt.Printf("%v\n", err)
-		return nil, err
+		return ret, err
 	}
 
 	return checkCreateNamespacesResponse(ret, namespaces)
@@ -106,6 +106,33 @@ func (c *Client) DeleteNamespaces(namespaces []*api.Namespace) error {
 	}
 
 	return nil
+}
+
+// DeleteNamespaces 删除命名空间
+func (c *Client) DeleteNamespacesGetResp(namespaces []*api.Namespace) (*api.BatchWriteResponse, error) {
+	fmt.Printf("\ndelete namespaces\n")
+
+	url := fmt.Sprintf("http://%v/naming/%v/namespaces/delete", c.Address, c.Version)
+
+	body, err := JSONFromNamespaces(namespaces)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return nil, err
+	}
+
+	response, err := c.SendRequest("POST", url, body)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return nil, err
+	}
+
+	resp, err := GetBatchWriteResponse(response)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return resp, err
+	}
+
+	return resp, nil
 }
 
 // UpdateNamesapces 更新命名空间

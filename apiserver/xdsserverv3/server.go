@@ -47,12 +47,10 @@ import (
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	serverv3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
-	testv3 "github.com/envoyproxy/go-control-plane/pkg/test/v3"
 	"github.com/golang/protobuf/ptypes"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"go.uber.org/atomic"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/anypb"
 
@@ -60,6 +58,7 @@ import (
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/service"
@@ -94,6 +93,140 @@ type XDSServer struct {
 	registryInfo               map[string][]*ServiceInfo
 	CircuitBreakerConfigGetter CircuitBreakerConfigGetter
 	RatelimitConfigGetter      RatelimitConfigGetter
+}
+
+// Initialize 初始化
+func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{},
+	api map[string]apiserver.APIConfig,
+) error {
+	x.cache = cachev3.NewSnapshotCache(false, PolarisNodeHash{}, commonlog.XDSV3Scope())
+	x.registryInfo = make(map[string][]*ServiceInfo)
+	x.listenPort = uint32(option["listenPort"].(int))
+	x.listenIP = option["listenIP"].(string)
+
+	x.versionNum = atomic.NewUint64(0)
+	var err error
+
+	x.namingServer, err = service.GetServer()
+	if err != nil {
+		log.Errorf("%v", err)
+		return err
+	}
+
+	if raw, _ := option["connLimit"].(map[interface{}]interface{}); raw != nil {
+		connConfig, err := connlimit.ParseConnLimitConfig(raw)
+		if err != nil {
+			return err
+		}
+		x.connLimitConfig = connConfig
+	}
+
+	err = x.initRegistryInfo()
+	if err != nil {
+		log.Errorf("%v", err)
+		return err
+	}
+
+	err = x.getRegistryInfoWithCache(ctx, x.registryInfo)
+	if err != nil {
+		log.Errorf("%v", err)
+		return err
+	}
+
+	err = x.pushRegistryInfoToXDSCache(x.registryInfo)
+	if err != nil {
+		log.Errorf("%v", err)
+		return err
+	}
+
+	x.startSynTask(ctx)
+
+	return nil
+}
+
+// Run 启动运行
+func (x *XDSServer) Run(errCh chan error) {
+	// 启动 grpc server
+	ctx := context.Background()
+	cb := &Callbacks{log: commonlog.XDSV3Scope()}
+	srv := serverv3.NewServer(ctx, x.cache, cb)
+	var grpcOptions []grpc.ServerOption
+	grpcOptions = append(grpcOptions, grpc.MaxConcurrentStreams(1000))
+	grpcServer := grpc.NewServer(grpcOptions...)
+	x.server = grpcServer
+	address := fmt.Sprintf("%v:%v", x.listenIP, x.listenPort)
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		log.Errorf("%v", err)
+		errCh <- err
+		return
+	}
+
+	if x.connLimitConfig != nil && x.connLimitConfig.OpenConnLimit {
+		log.Infof("grpc server use max connection limit: %d, grpc max limit: %d",
+			x.connLimitConfig.MaxConnPerHost, x.connLimitConfig.MaxConnLimit)
+		listener, err = connlimit.NewListener(listener, x.GetProtocol(), x.connLimitConfig)
+		if err != nil {
+			log.Errorf("conn limit init err: %s", err.Error())
+			errCh <- err
+			return
+		}
+
+	}
+
+	registerServer(grpcServer, srv)
+
+	log.Infof("management server listening on %d\n", x.listenPort)
+
+	if err = grpcServer.Serve(listener); err != nil {
+		log.Errorf("%v", err)
+		errCh <- err
+		return
+	}
+
+	log.Info("xds server stop")
+}
+
+func registerServer(grpcServer *grpc.Server, server serverv3.Server) {
+	// register services
+	discoverygrpc.RegisterAggregatedDiscoveryServiceServer(grpcServer, server)
+	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, server)
+	clusterservice.RegisterClusterDiscoveryServiceServer(grpcServer, server)
+	routeservice.RegisterRouteDiscoveryServiceServer(grpcServer, server)
+	listenerservice.RegisterListenerDiscoveryServiceServer(grpcServer, server)
+	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, server)
+	runtimeservice.RegisterRuntimeDiscoveryServiceServer(grpcServer, server)
+}
+
+// Stop 停止服务
+func (x *XDSServer) Stop() {
+	connlimit.RemoveLimitListener(x.GetProtocol())
+	if x.server != nil {
+		x.server.Stop()
+	}
+}
+
+// Restart 重启服务
+func (x *XDSServer) Restart(option map[string]interface{}, api map[string]apiserver.APIConfig, errCh chan error) error {
+	log.Infof("restart xds server with new config: +%v", option)
+
+	x.restart = true
+	x.Stop()
+	if x.start {
+		<-x.exitCh
+	}
+
+	log.Info("old xds server has stopped, begin restarting it")
+	if err := x.Initialize(context.Background(), option, api); err != nil {
+		log.Errorf("restart grpc server err: %s", err.Error())
+		return err
+	}
+
+	log.Info("init grpc server successfully, restart it")
+	x.restart = false
+	go x.Run(errCh)
+
+	return nil
 }
 
 type RatelimitConfigGetter func(serviceID string) []*model.RateLimit
@@ -312,7 +445,8 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 			// 使用 sources 生成 routeMatch
 			for _, source := range inbound.Sources {
 				if source.Metadata == nil || len(source.Metadata) == 0 {
-					continue
+					matchAll = true
+					break
 				}
 				for name := range source.Metadata {
 					if name == "*" {
@@ -352,23 +486,6 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 									Name: headerSubName,
 									HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
 										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_Exact{Exact: matchString.GetValue().GetValue()}},
-									},
-									InvertMatch: true,
-								}
-							}
-							if matchString.Type == api.MatchString_IN {
-								headerMatch = &route.HeaderMatcher{
-									Name: headerSubName,
-									HeaderMatchSpecifier: &route.HeaderMatcher_ContainsMatch{
-										ContainsMatch: matchString.GetValue().GetValue(),
-									},
-								}
-							}
-							if matchString.Type == api.MatchString_NOT_IN {
-								headerMatch = &route.HeaderMatcher{
-									Name: headerSubName,
-									HeaderMatchSpecifier: &route.HeaderMatcher_ContainsMatch{
-										ContainsMatch: matchString.GetValue().GetValue(),
 									},
 									InvertMatch: true,
 								}
@@ -841,59 +958,6 @@ func (x *XDSServer) initRegistryInfo() error {
 	return nil
 }
 
-// Initialize 初始化
-func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{},
-	api map[string]apiserver.APIConfig,
-) error {
-	logger, _ := zap.NewDevelopment()
-	defer logger.Sync() // flushes buffer, if any
-	l := logger.Sugar()
-
-	x.cache = cachev3.NewSnapshotCache(false, PolarisNodeHash{}, l)
-	x.registryInfo = make(map[string][]*ServiceInfo)
-	x.listenPort = uint32(option["listenPort"].(int))
-	x.listenIP = option["listenIP"].(string)
-
-	x.versionNum = atomic.NewUint64(0)
-	var err error
-
-	x.namingServer, err = service.GetServer()
-	if err != nil {
-		log.Errorf("%v", err)
-		return err
-	}
-
-	if raw, _ := option["connLimit"].(map[interface{}]interface{}); raw != nil {
-		connConfig, err := connlimit.ParseConnLimitConfig(raw)
-		if err != nil {
-			return err
-		}
-		x.connLimitConfig = connConfig
-	}
-
-	err = x.initRegistryInfo()
-	if err != nil {
-		log.Errorf("%v", err)
-		return err
-	}
-
-	err = x.getRegistryInfoWithCache(ctx, x.registryInfo)
-	if err != nil {
-		log.Errorf("%v", err)
-		return err
-	}
-
-	err = x.pushRegistryInfoToXDSCache(x.registryInfo)
-	if err != nil {
-		log.Errorf("%v", err)
-		return err
-	}
-
-	x.startSynTask(ctx)
-
-	return nil
-}
-
 func (x *XDSServer) startSynTask(ctx context.Context) error {
 	// 读取 polaris 缓存数据
 	synXdsConfFunc := func() {
@@ -985,89 +1049,4 @@ func (x *XDSServer) checkUpdate(curServiceInfo, cacheServiceInfo []*ServiceInfo)
 	}
 
 	return false
-}
-
-// Run 启动运行
-func (x *XDSServer) Run(errCh chan error) {
-	// 启动 grpc server
-	ctx := context.Background()
-	cb := &testv3.Callbacks{Debug: true}
-	srv := serverv3.NewServer(ctx, x.cache, cb)
-	var grpcOptions []grpc.ServerOption
-	grpcOptions = append(grpcOptions, grpc.MaxConcurrentStreams(1000))
-	grpcServer := grpc.NewServer(grpcOptions...)
-	x.server = grpcServer
-	address := fmt.Sprintf("%v:%v", x.listenIP, x.listenPort)
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		log.Errorf("%v", err)
-		errCh <- err
-		return
-	}
-
-	if x.connLimitConfig != nil && x.connLimitConfig.OpenConnLimit {
-		log.Infof("grpc server use max connection limit: %d, grpc max limit: %d",
-			x.connLimitConfig.MaxConnPerHost, x.connLimitConfig.MaxConnLimit)
-		listener, err = connlimit.NewListener(listener, x.GetProtocol(), x.connLimitConfig)
-		if err != nil {
-			log.Errorf("conn limit init err: %s", err.Error())
-			errCh <- err
-			return
-		}
-
-	}
-
-	registerServer(grpcServer, srv)
-
-	log.Infof("management server listening on %d\n", x.listenPort)
-
-	if err = grpcServer.Serve(listener); err != nil {
-		log.Errorf("%v", err)
-		errCh <- err
-		return
-	}
-
-	log.Info("xds server stop")
-}
-
-func registerServer(grpcServer *grpc.Server, server serverv3.Server) {
-	// register services
-	discoverygrpc.RegisterAggregatedDiscoveryServiceServer(grpcServer, server)
-	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, server)
-	clusterservice.RegisterClusterDiscoveryServiceServer(grpcServer, server)
-	routeservice.RegisterRouteDiscoveryServiceServer(grpcServer, server)
-	listenerservice.RegisterListenerDiscoveryServiceServer(grpcServer, server)
-	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, server)
-	runtimeservice.RegisterRuntimeDiscoveryServiceServer(grpcServer, server)
-}
-
-// Stop 停止服务
-func (x *XDSServer) Stop() {
-	connlimit.RemoveLimitListener(x.GetProtocol())
-	if x.server != nil {
-		x.server.Stop()
-	}
-}
-
-// Restart 重启服务
-func (x *XDSServer) Restart(option map[string]interface{}, api map[string]apiserver.APIConfig, errCh chan error) error {
-	log.Infof("restart xds server with new config: +%v", option)
-
-	x.restart = true
-	x.Stop()
-	if x.start {
-		<-x.exitCh
-	}
-
-	log.Info("old xds server has stopped, begin restarting it")
-	if err := x.Initialize(context.Background(), option, api); err != nil {
-		log.Errorf("restart grpc server err: %s", err.Error())
-		return err
-	}
-
-	log.Info("init grpc server successfully, restart it")
-	x.restart = false
-	go x.Run(errCh)
-
-	return nil
 }

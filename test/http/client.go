@@ -105,11 +105,12 @@ func GetBatchWriteResponse(response *http.Response) (*api.BatchWriteResponse, er
 		fmt.Printf("%+v\n", ret)
 	} else {
 		fmt.Printf("%v\n", checkErr)
+		ret = nil
 	}
 
 	// 检查回复
 	if response.StatusCode != 200 {
-		return nil, errors.New("invalid http code")
+		return ret, fmt.Errorf("invalid http code : %d, ret code : %d", response.StatusCode, ret.GetCode().GetValue())
 	}
 
 	if checkErr == nil {

@@ -28,12 +28,12 @@ import (
 	"go.uber.org/zap"
 )
 
-// CreateInstances create one instance
+// RegisterInstance create one instance
 func (s *Server) RegisterInstance(ctx context.Context, req *api.Instance) *api.Response {
 	return s.CreateInstance(ctx, req)
 }
 
-// DeleteInstance delete onr instance
+// DeregisterInstance delete one instance
 func (s *Server) DeregisterInstance(ctx context.Context, req *api.Instance) *api.Response {
 	return s.DeleteInstance(ctx, req)
 }
@@ -121,9 +121,7 @@ func (s *Server) GetReportClientWithCache(ctx context.Context,
 	}
 }
 
-/**
- * GetServiceWithCache 根据元数据查询服务
- */
+// GetServiceWithCache 根据元数据查询服务
 func (s *Server) GetServiceWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
 	if s.caches == nil {
 		return api.NewDiscoverServiceResponse(api.ClientAPINotOpen, req)

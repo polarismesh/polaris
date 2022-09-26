@@ -76,7 +76,7 @@ func (c *Client) CreateRateLimits(rateLimits []*api.Rule) (*api.BatchWriteRespon
 	ret, err := GetBatchWriteResponse(response)
 	if err != nil {
 		fmt.Printf("%v\n", err)
-		return nil, err
+		return ret, err
 	}
 
 	return checkCreateRateLimitsResponse(ret, rateLimits)

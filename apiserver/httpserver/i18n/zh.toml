@@ -86,6 +86,7 @@
 400216 = "用户组已存在" #UserGroupExisted
 400217 = "鉴权策略规则已存在" #AuthStrategyRuleExisted
 400218 = "某些子账号已属当前拥有人" #SubAccountExisted
+400219 = "当前命名空间存在配置分组，请先删除配置分组，再删除命名空间" #NamespaceExistedConfigGroups
 400301 = "服务未找到" #NotFoundService
 400302 = "路由未找到" #NotFoundRouting
 400303 = "示例未找到" #NotFoundInstance

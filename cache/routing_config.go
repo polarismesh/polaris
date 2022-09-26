@@ -18,8 +18,6 @@
 package cache
 
 import (
-	"encoding/json"
-	"fmt"
 	"sort"
 	"time"
 
@@ -55,6 +53,8 @@ type (
 		GetRoutingConfigCount() int
 		// GetRoutingConfigsV2 查询路由配置列表
 		GetRoutingConfigsV2(args *RoutingArgs) (uint32, []*v2.ExtendRoutingConfig, error)
+		// IsConvertFromV1 当前路由规则是否是从 v1 规则转换过来的
+		IsConvertFromV1(id string) (string, bool)
 	}
 
 	// routingConfigCache 路由规则缓存
@@ -73,6 +73,9 @@ type (
 		lastMtimeV2 time.Time
 
 		singleFlight singleflight.Group
+
+		// pendingV1RuleIds 记录需要从 v1 转换到 v2 的路由规则id
+		pendingV1RuleIds map[string]struct{}
 	}
 )
 
@@ -84,9 +87,10 @@ func init() {
 // newRoutingConfigCache 返回一个操作RoutingConfigCache的对象
 func newRoutingConfigCache(s store.Store, serviceCache ServiceCache) *routingConfigCache {
 	return &routingConfigCache{
-		baseCache:    newBaseCache(),
-		storage:      s,
-		serviceCache: serviceCache,
+		baseCache:        newBaseCache(),
+		storage:          s,
+		serviceCache:     serviceCache,
+		pendingV1RuleIds: map[string]struct{}{},
 	}
 }
 
@@ -141,7 +145,7 @@ func (rc *routingConfigCache) realUpdate(storeRollbackSec time.Duration) error {
 		log.CacheScope().Errorf("[Cache] routing config v2 cache update err: %s", err.Error())
 		return err
 	}
-
+	rc.setRoutingConfigV1ToV2()
 	return nil
 }
 
@@ -273,17 +277,14 @@ func (rc *routingConfigCache) setRoutingConfigV1(cs []*model.RoutingConfig) erro
 			rc.bucketV1.delete(entry.ID)
 			// 删除转换为 v2 的缓存
 			rc.bucketV2.deleteV1(entry.ID)
+			// 删除 v1 转换到 v2 的任务id
+			delete(rc.pendingV1RuleIds, entry.ID)
 			continue
 		}
 
 		// 保存到老的 v1 缓存
 		rc.bucketV1.save(entry)
-		// 保存到新的 v2 缓存
-		if v2rule, err := rc.convertRoutingV1toV2(entry); err != nil {
-			log.CacheScope().Error("[Cache] routing parse v1 => v2", zap.String("rule-id", entry.ID), zap.Error(err))
-		} else {
-			rc.bucketV2.saveV1(entry, v2rule)
-		}
+		rc.pendingV1RuleIds[entry.ID] = struct{}{}
 	}
 
 	if rc.lastMtimeV1.Unix() < lastMtimeV1 {
@@ -324,67 +325,53 @@ func (rc *routingConfigCache) setRoutingConfigV2(cs []*v2.RoutingConfig) error {
 	return nil
 }
 
-// convertRoutingV1toV2 v1 版本的路由规则转为 v2 版本进行存储
-func (rc *routingConfigCache) convertRoutingV1toV2(rule *model.RoutingConfig) ([]*v2.ExtendRoutingConfig, error) {
-	saveDatas := make([]*v2.ExtendRoutingConfig, 0, 8)
+func (rc *routingConfigCache) setRoutingConfigV1ToV2() {
+	for id := range rc.pendingV1RuleIds {
 
+		entry := rc.bucketV1.get(id)
+
+		// 保存到新的 v2 缓存
+		if v2rule, err := rc.convertRoutingV1toV2(entry); err != nil {
+			log.CacheScope().Error("[Cache] routing parse v1 => v2, will try again next",
+				zap.String("rule-id", entry.ID), zap.Error(err))
+		} else {
+			rc.bucketV2.saveV1(entry, v2rule)
+			delete(rc.pendingV1RuleIds, id)
+		}
+	}
+
+	log.CacheScope().Infof("[Cache] convert routing parse v1 => v2 count : %d", rc.bucketV2.convertV2Size())
+}
+
+func (rc *routingConfigCache) IsConvertFromV1(id string) (string, bool) {
+	val, ok := rc.bucketV2.v1rulesToOld[id]
+	return val, ok
+}
+
+func (rc *routingConfigCache) convertRoutingV1toV2(rule *model.RoutingConfig) ([]*v2.ExtendRoutingConfig, error) {
 	svc := rc.serviceCache.GetServiceByID(rule.ID)
 	if svc == nil {
-		return nil, nil
-	}
-
-	if rule.InBounds != "" {
-		var inBounds []*apiv1.Route
-		if err := json.Unmarshal([]byte(rule.InBounds), &inBounds); err != nil {
+		_svc, err := rc.storage.GetServiceByID(rule.ID)
+		if err != nil {
 			return nil, err
 		}
-		for i := range inBounds {
-			routing, err := routingcommon.BuildV2ExtendRouting(&apiv1.Routing{
-				Namespace: utils.NewStringValue(svc.Namespace),
-			}, inBounds[i])
-			if err != nil {
-				return nil, err
-			}
-			routing.Revision = rule.Revision
-			routing.CreateTime = rule.CreateTime
-			routing.ModifyTime = rule.ModifyTime
-			routing.EnableTime = rule.CreateTime
-			routing.ExtendInfo = map[string]string{
-				v2.V1RuleIDKey:         rule.ID,
-				v2.V1RuleRouteIndexKey: fmt.Sprintf("%d", i),
-				v2.V1RuleRouteTypeKey:  v2.V1RuleInRoute,
-			}
-
-			saveDatas = append(saveDatas, routing)
+		if _svc == nil {
+			return nil, nil
 		}
+
+		svc = _svc
 	}
-	if rule.OutBounds != "" {
-		var outBounds []*apiv1.Route
-		if err := json.Unmarshal([]byte(rule.OutBounds), &outBounds); err != nil {
-			return nil, err
-		}
 
-		for i := range outBounds {
-			routing, err := routingcommon.BuildV2ExtendRouting(&apiv1.Routing{
-				Namespace: utils.NewStringValue(svc.Namespace),
-			}, outBounds[i])
-			if err != nil {
-				return nil, err
-			}
-			routing.Revision = rule.Revision
-			routing.CreateTime = rule.CreateTime
-			routing.ModifyTime = rule.ModifyTime
-			routing.EnableTime = rule.CreateTime
-			routing.ExtendInfo = map[string]string{
-				v2.V1RuleIDKey:         rule.ID,
-				v2.V1RuleRouteIndexKey: fmt.Sprintf("%d", i),
-				v2.V1RuleRouteTypeKey:  v2.V1RuleOutRoute,
-			}
-
-			saveDatas = append(saveDatas, routing)
-		}
+	in, out, err := routingcommon.ConvertRoutingV1ToExtendV2(svc.Name, svc.Namespace, rule)
+	if err != nil {
+		return nil, err
 	}
-	return saveDatas, nil
+
+	ret := make([]*v2.ExtendRoutingConfig, 0, len(in)+len(out))
+	ret = append(ret, in...)
+	ret = append(ret, out...)
+
+	return ret, nil
 }
 
 // convertRoutingV2toV1 v2 版本的路由规则转为 v1 版本进行返回给客户端，用于兼容 SDK 下发配置的场景

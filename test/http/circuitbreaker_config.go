@@ -92,7 +92,7 @@ func (c *Client) CreateCircuitBreakers(circuitBreakers []*api.CircuitBreaker) (*
 	ret, err := GetBatchWriteResponse(response)
 	if err != nil {
 		fmt.Printf("%v\n", err)
-		return nil, err
+		return ret, err
 	}
 
 	return checkCreateCircuitBreakersResponse(ret, circuitBreakers)
@@ -118,7 +118,7 @@ func (c *Client) CreateCircuitBreakerVersions(circuitBreakers []*api.CircuitBrea
 	ret, err := GetBatchWriteResponse(response)
 	if err != nil {
 		fmt.Printf("%v\n", err)
-		return nil, err
+		return ret, err
 	}
 
 	return checkCreateCircuitBreakersResponse(ret, circuitBreakers)

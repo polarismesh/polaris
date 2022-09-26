@@ -52,6 +52,21 @@ services:
     links:
       - polaris-server
       - polaris-pushgateway
+  polaris-limiter:
+    container_name: polaris-limiter
+    hostname: polaris-limiter
+    image: polarismesh/polaris-limiter:##POLARIS_LIMITER_VERSION##
+    volumes:
+      - ./limiter/polaris-limiter.yaml:/root/polaris-limiter.yaml
+    ports:
+      - "8100:8100"
+      - "8101:8101"
+    networks:
+      - backend
+    depends_on:
+      - polaris-server
+    links:
+      - polaris-server
   mysql:
     container_name: mysql
     hostname: mysql

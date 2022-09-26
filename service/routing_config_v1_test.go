@@ -320,6 +320,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 		rules[0].RoutingConfig = any
 
 		resp := discoverSuit.createCommonRoutingConfigV2WithReq(t, rules)
+		defer discoverSuit.truncateCommonRoutingConfigV2()
 		assert.Equal(t, 1, len(resp))
 
 		svcName := fmt.Sprintf("mock-source-service-%d", 0)

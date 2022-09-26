@@ -194,7 +194,7 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 	}
 
 	// 最后启动 cache
-	if err := cache.Run(ctx); err != nil {
+	if err := cache.Run(cacheMgn, ctx); err != nil {
 		return err
 	}
 
@@ -357,7 +357,7 @@ func StopServers(servers []apiserver.Apiserver) {
 	}
 }
 
-// StartBootstrapOrder 开始进入启动加锁
+// StartBootstrapInOrder 开始进入启动加锁
 // 原因：Server启动的时候会从数据库拉取大量数据，防止同时启动把DB压死
 // 还有一种场景，server全部宕机批量重启，导致数据库被压死，导致雪崩
 func StartBootstrapInOrder(s store.Store, c *boot_config.Config) (store.Transaction, error) {

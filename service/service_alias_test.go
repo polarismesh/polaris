@@ -553,17 +553,17 @@ func TestServiceAliasRelated(t *testing.T) {
 		So(respSuccess(routingResp), ShouldEqual, false)
 		t.Logf("create routing ret code(%d), info(%s)", routingResp.Code.Value, routingResp.Info.Value)
 	})
-	Convey("路由Discover，别名查询路由，返回源服务的路由信息", t, func() {
-		discoverSuit.createCommonRoutingConfig(t, serviceResp, 1, 0) // in=1, out=0
-		defer discoverSuit.cleanCommonRoutingConfig(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+	// Convey("路由Discover，别名查询路由，返回源服务的路由信息", t, func() {
+	// 	discoverSuit.createCommonRoutingConfig(t, serviceResp, 1, 0) // in=1, out=0
+	// 	defer discoverSuit.cleanCommonRoutingConfig(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		time.Sleep(discoverSuit.updateCacheInterval)
-		service := &api.Service{Name: resp.Alias.Alias, Namespace: resp.Alias.Namespace}
-		disResp := discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, service)
-		So(respSuccess(disResp), ShouldEqual, true)
-		So(len(disResp.Routing.Inbounds), ShouldEqual, 1)
-		So(len(disResp.Routing.Outbounds), ShouldEqual, 0)
-	})
+	// 	time.Sleep(discoverSuit.updateCacheInterval)
+	// 	service := &api.Service{Name: resp.Alias.Alias, Namespace: resp.Alias.Namespace}
+	// 	disResp := discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, service)
+	// 	So(respSuccess(disResp), ShouldEqual, true)
+	// 	So(len(disResp.Routing.Inbounds), ShouldEqual, 1)
+	// 	So(len(disResp.Routing.Outbounds), ShouldEqual, 0)
+	// })
 }
 
 // 测试获取别名列表

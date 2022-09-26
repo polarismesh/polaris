@@ -94,14 +94,11 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 	cfg, _ := initCache(ctrl)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
-		t.Fatal(err)
-	}
-
-	cacheMgn, err := cache.GetCacheManager()
+	cacheMgn, err := cache.TestCacheInitialize(ctx, cfg, storage)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 
 	time.Sleep(2 * time.Second)
 

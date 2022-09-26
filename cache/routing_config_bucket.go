@@ -66,7 +66,8 @@ func newRoutingBucketV2() *routingBucketV2 {
 			inBound:  {},
 			outBound: {},
 		},
-		v1rules: map[string][]*v2.ExtendRoutingConfig{},
+		v1rules:      map[string][]*v2.ExtendRoutingConfig{},
+		v1rulesToOld: map[string]string{},
 	}
 }
 
@@ -117,6 +118,8 @@ type routingBucketV2 struct {
 	level3Rules map[boundType]map[string]struct{}
 	// v1rules service-id => []*v2.ExtendRoutingConfig v1 版本的规则自动转为 v2 版本的规则，用于 v2 接口的数据查看
 	v1rules map[string][]*v2.ExtendRoutingConfig
+	// v1rulesToOld 转为 v2 规则id 对应的原本的 v1 规则id 信息
+	v1rulesToOld map[string]string
 }
 
 func (b *routingBucketV2) getV2(id string) *v2.ExtendRoutingConfig {
@@ -172,11 +175,24 @@ func (b *routingBucketV2) saveV2(conf *v2.ExtendRoutingConfig) {
 	}
 }
 
+// saveV1 保存 v1 级别的路由规则
 func (b *routingBucketV2) saveV1(v1rule *model.RoutingConfig, v2rules []*v2.ExtendRoutingConfig) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
 	b.v1rules[v1rule.ID] = v2rules
+
+	for i := range v2rules {
+		item := v2rules[i]
+		b.v1rulesToOld[item.ID] = v1rule.ID
+	}
+}
+
+func (b *routingBucketV2) convertV2Size() uint32 {
+	b.lock.RLock()
+	defer b.lock.RUnlock()
+
+	return uint32(len(b.v1rulesToOld))
 }
 
 func (b *routingBucketV2) deleteV2(id string) {
@@ -220,6 +236,15 @@ func (b *routingBucketV2) deleteV1(serviceId string) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
+	items, ok := b.v1rules[serviceId]
+	if !ok {
+		delete(b.v1rules, serviceId)
+		return
+	}
+
+	for i := range items {
+		delete(b.v1rulesToOld, items[i].ID)
+	}
 	delete(b.v1rules, serviceId)
 }
 
@@ -300,8 +325,8 @@ func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
 
 // foreach 遍历所有的路由规则
 func (b *routingBucketV2) foreach(proc RoutingIterProc) {
-	b.lock.Lock()
-	defer b.lock.Unlock()
+	b.lock.RLock()
+	defer b.lock.RUnlock()
 
 	for k, v := range b.rules {
 		proc(k, v)

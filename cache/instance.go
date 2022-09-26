@@ -57,7 +57,7 @@ type InstanceCache interface {
 	GetInstancesCount() int
 	// GetInstancesCountByServiceID 根据服务ID获取实例数
 	GetInstancesCountByServiceID(serviceID string) model.InstanceCount
-	// GetServicePorts
+	// GetServicePorts 根据服务ID获取端口号
 	GetServicePorts(serviceID string) []string
 	// GetInstanceLabels Get the label of all instances under a service
 	GetInstanceLabels(serviceID string) *api.InstanceLabels
@@ -267,7 +267,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 			item.Proto.Metadata = make(map[string]string)
 		}
 
-		item = fillIntrnalLabels(item)
+		item = fillInternalLabels(item)
 
 		ic.ids.Store(item.ID(), item)
 		if !itemExist {
@@ -302,7 +302,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 	return update, del
 }
 
-func fillIntrnalLabels(item *model.Instance) *model.Instance {
+func fillInternalLabels(item *model.Instance) *model.Instance {
 	if len(item.Version()) > 0 {
 		item.Proto.Metadata["version"] = item.Version()
 	}
