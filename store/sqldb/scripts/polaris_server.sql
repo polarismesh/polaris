@@ -930,7 +930,7 @@ CREATE TABLE `routing_config_v2`
     `enable`   INT         NOT NULL DEFAULT 0,
     `revision` VARCHAR(40) NOT NULL,
     `description` VARCHAR(500) NOT NULL DEFAULT '',
-    `priority`   smallint(6)    NOT NULL DEFAULT '0' comment 'ratelimit rule priority',
+    `priority`   smallint(6)    NOT NULL DEFAULT '0' comment 'routing rule priority',
     `flag`     TINYINT(4)  NOT NULL DEFAULT '0',
     `ctime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `mtime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
