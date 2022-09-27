@@ -97,9 +97,11 @@ func (rc *routingConfigCache) GetRoutingConfigsV2(args *RoutingArgs) (uint32, []
 		}
 
 		if args.Name != "" {
-			if args.FuzzyName && !strings.Contains(svc.Name, args.Name[0:len(args.Name)-1]) {
-				return
-			} else if args.Name != svc.Name {
+			queryName := args.Name
+			if args.FuzzyName {
+				queryName = args.Name[0 : len(args.Name)-1]
+			}
+			if !strings.Contains(svc.Name, queryName) {
 				return
 			}
 		}
