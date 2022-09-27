@@ -15,28 +15,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package model
+package discoverevent
 
-import "errors"
+import "github.com/polarismesh/polaris-server/common/model"
 
-// DiscoverEventConfig 服务实例事件插件配置
-type DiscoverEventConfig struct {
-	QueueSize     int                         `json:"queueSize"`
-	LoggerConfigs []DiscoverEventLoggerConfig `json:"logger"`
-}
-
-type DiscoverEventLoggerConfig struct {
-	Name   string                 `json:"name"`
-	Option map[string]interface{} `json:"option"`
-}
-
-// Validate 检查配置是否正确配置
-func (c *DiscoverEventConfig) Validate() error {
-	if c.QueueSize <= 0 {
-		return errors.New("QueueSize is <= 0")
-	}
-	if len(c.LoggerConfigs) == 0 {
-		return errors.New("LoggerConfig is empty")
-	}
-	return nil
+type Logger interface {
+	Log(events []model.DiscoverEvent)
 }

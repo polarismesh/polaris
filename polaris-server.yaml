@@ -323,13 +323,24 @@ plugin:
   history:
     name: HistoryLogger
   discoverEvent:
-    name: discoverEventLocal
-    # option:
-    #   queueSize: 1024
-    #   outputPath: ./discover-event
-    #   rotationMaxSize: 500
-    #   rotationMaxAge: 8
-    #   rotationMaxBackups: 100
+    name: discoverEvent
+    option:
+      queueSize: 1024
+      logger:
+        - name: local
+          option:
+            outputPath: ./discover-event
+            rotationMaxSize: 500
+            rotationMaxAge: 8
+            rotationMaxBackups: 100
+        - name: loki
+          option:
+            pushURL: http://9.134.212.203:3100/loki/api/v1/push
+            tenantID: "test"
+            labels:
+              env: "test"
+              app: "polaris"
+      
   discoverStatis:
     name: discoverLocal
     option:
