@@ -903,6 +903,10 @@ func (d *DiscoverTestSuit) createCommonRoutingConfigV2WithReq(t *testing.T, rule
 		t.Fatalf("error: %+v", resp)
 	}
 
+	if len(rules) != len(resp.GetResponses()) {
+		t.Fatal("error: create v2 routings not equal resp")
+	}
+
 	ret := []*apiv2.Routing{}
 	for i := range resp.GetResponses() {
 		item := resp.GetResponses()[i]

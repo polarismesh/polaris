@@ -99,8 +99,8 @@ func NewRoutingResponse(code uint32, routing *Routing) *Response {
 	ret, err := ptypes.MarshalAny(routing)
 	if err != nil {
 		return &Response{
-			Code: v1.ExecuteException,
-			Info: v1.Code2Info(code) + ": " + err.Error(),
+			Code: code,
+			Info: v1.Code2Info(code),
 		}
 	}
 
