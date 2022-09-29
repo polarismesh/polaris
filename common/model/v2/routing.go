@@ -100,7 +100,6 @@ func (r *ExtendRoutingConfig) ToApi() (*apiv2.Routing, error) {
 		Etime:         commontime.Time2String(r.EnableTime),
 		Priority:      r.Priority,
 		Description:   r.Description,
-		ExtendInfo:    r.ExtendInfo,
 	}, nil
 }
 
