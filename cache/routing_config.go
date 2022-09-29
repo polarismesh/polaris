@@ -221,7 +221,6 @@ func formatRoutingResponseV1(ret *apiv1.Routing) *apiv1.Routing {
 	for i := range outBounds {
 		outBounds[i].ExtendInfo = nil
 	}
-
 	return ret
 }
 

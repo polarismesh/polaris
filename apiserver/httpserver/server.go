@@ -358,11 +358,17 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 			}
 		case "client":
 			if config.Enable {
-				service, err := h.GetClientAccessServer(config.Include)
+				serviceV1, err := h.v1Server.GetClientAccessServer(config.Include)
 				if err != nil {
 					return nil, err
 				}
-				wsContainer.Add(service)
+				wsContainer.Add(serviceV1)
+
+				serviceV2, err := h.v2Server.GetClientAccessServer(config.Include)
+				if err != nil {
+					return nil, err
+				}
+				wsContainer.Add(serviceV2)
 			}
 		case "config":
 			if config.Enable {
