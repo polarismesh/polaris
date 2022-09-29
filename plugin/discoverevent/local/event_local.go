@@ -175,7 +175,7 @@ func (el *discoverEventLocal) Run() {
 		select {
 		case event := <-el.eventCh:
 			// 确保事件是顺序的
-			event.CreateTimeSec = time.Now().Unix()
+			event.CreateTime = time.Now()
 			el.curEventBuffer.Put(event)
 
 			// 触发持久化到 log 阈值
@@ -218,7 +218,7 @@ func (el *discoverEventLocal) writeToFile(eventHolder *eventBufferHolder) {
 			event.Host,
 			event.Port,
 			event.EType,
-			event.CreateTimeSec,
+			event.CreateTime.Unix(),
 			utils.LocalHost))
 	}
 }
