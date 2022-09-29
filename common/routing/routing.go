@@ -306,9 +306,6 @@ func BuildInBoundsFromV2(service, namespace string, item *v2.ExtendRoutingConfig
 		{
 			Sources:      v1sources,
 			Destinations: v1destinations,
-			ExtendInfo: map[string]string{
-				v2.V2RuleIDKey: item.ID,
-			},
 		},
 	}
 }
