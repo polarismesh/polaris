@@ -114,7 +114,7 @@ func (s *Server) deleteRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 
 	// 判断当前的路由规则是否只是从 v1 版本中的内存中转换过来的
 	if _, ok := s.Cache().RoutingConfig().IsConvertFromV1(req.Id); ok {
-		resp := s.transferV1toV2OnEnableOrDelete(ctx, req)
+		resp := s.transferV1toV2OnModify(ctx, req)
 		if resp.GetCode() != apiv1.ExecuteSuccess {
 			return resp
 		}
@@ -147,13 +147,13 @@ func (s *Server) UpdateRoutingConfigsV2(ctx context.Context, req []*apiv2.Routin
 
 // updateRoutingConfigV2 更新单个路由配置
 func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apiv2.Routing) *apiv2.Response {
-	extendInfo := req.GetExtendInfo()
 	// 如果当前待修改的 v2 路由规则，其实是从 v1 规则在 cache 中转换而来的，则需要先做以下几个步骤
 	// step 1: 将 v1 规则真实的转为 v2 规则
 	// step 2: 将本次要修改的 v2 规则，在 v1 规则中的 inBound 或者 outBound 找到对应的 route，设置其规则 ID
 	// step 3: 进行存储持久化
-	if _, ok := extendInfo[v2.V1RuleIDKey]; ok {
-		resp := s.updateRoutingConfigV2FromV1(ctx, req)
+	// 判断当前的路由规则是否只是从 v1 版本中的内存中转换过来的
+	if _, ok := s.Cache().RoutingConfig().IsConvertFromV1(req.Id); ok {
+		resp := s.transferV1toV2OnModify(ctx, req)
 		if resp.GetCode() != apiv1.ExecuteSuccess {
 			return resp
 		}
@@ -191,78 +191,6 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 
 	s.RecordHistory(routingV2RecordEntry(ctx, req, reqModel, model.OUpdate))
 	return apiv2.NewResponse(api.ExecuteSuccess)
-}
-
-// updateRoutingConfigV2FromV1 这里需要兼容 v1 版本的更新路由规则动作，将 v1 的数据转为 v2 进行存储
-func (s *Server) updateRoutingConfigV2FromV1(ctx context.Context, req *apiv2.Routing) *apiv2.Response {
-
-	extendInfo := req.GetExtendInfo()
-	val, _ := extendInfo[v2.V1RuleIDKey]
-
-	// 如果当前要修改的 v2 路由规则是从 v1 版本转换过来的，需要先做一下几个步骤
-	// stpe 1: 现将 v1 规则转换为 v2 规则存储
-	// stpe 2: 删除原本的 v1 规则
-	// step 3: 更新当前的 v2 路由规则
-	v1rule, err := s.storage.GetRoutingConfigWithID(val)
-	if err != nil {
-		log.Error("[Service][Routing] get routing config v1 store layer",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(apiv1.StoreLayerException)
-	}
-
-	if v1rule == nil {
-		return apiv2.NewResponse(apiv1.ExecuteSuccess)
-	}
-
-	svc, err := s.storage.GetServiceByID(v1rule.ID)
-	if err != nil {
-		log.Error("[Service][Routing] get routing config v1 link service store layer",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(apiv1.ExecuteException)
-	}
-	v1req, err := routingConfig2API(v1rule, svc.Name, svc.Namespace)
-	if err != nil {
-		log.Error("[Service][Routing] delete routing config v2 store layer",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(apiv1.ExecuteException)
-	}
-
-	// 由于 v1 规则的 inBound 以及 outBound 是 []*api.Route，每一个 Route 都是一条 v2 的路由规则
-	// 因此这里需要找到对应的 route，更新其 extendInfo 插入相关额外控制信息
-
-	indexStr, hasIndex := extendInfo[v2.V1RuleRouteIndexKey]
-	if hasIndex {
-		index, err := strconv.ParseInt(indexStr, 10, 64)
-		if err == nil {
-			routeType := extendInfo[v2.V1RuleRouteTypeKey]
-			if routeType == v2.V1RuleInRoute {
-				for i := range v1req.Inbounds {
-					if i == int(index) {
-						v1req.Inbounds[i].ExtendInfo = map[string]string{
-							v2.V2RuleIDKey: req.Id,
-						}
-						break
-					}
-				}
-			}
-			if routeType == v2.V1RuleOutRoute {
-				for i := range v1req.Outbounds {
-					if i == int(index) {
-						v1req.Outbounds[i].ExtendInfo = map[string]string{
-							v2.V2RuleIDKey: req.Id,
-						}
-						break
-					}
-				}
-			}
-		} else {
-			log.Error("[Service][Routing] parse route index when update v2 from v1",
-				utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		}
-	}
-
-	resp := s.createRoutingConfigV1toV2(ctx, v1req)
-	return apiv2.NewResponse(resp.GetCode().GetValue())
 }
 
 // GetRoutingConfigsV2 提供给OSS的查询路由配置的接口
@@ -310,7 +238,7 @@ func (s *Server) enableRoutings(ctx context.Context, req *apiv2.Routing) *apiv2.
 
 	// 判断当前的路由规则是否只是从 v1 版本中的内存中转换过来的
 	if _, ok := s.Cache().RoutingConfig().IsConvertFromV1(req.Id); ok {
-		resp := s.transferV1toV2OnEnableOrDelete(ctx, req)
+		resp := s.transferV1toV2OnModify(ctx, req)
 		if resp.GetCode() != apiv1.ExecuteSuccess {
 			return resp
 		}
@@ -340,8 +268,8 @@ func (s *Server) enableRoutings(ctx context.Context, req *apiv2.Routing) *apiv2.
 	return apiv2.NewResponse(api.ExecuteSuccess)
 }
 
-// transferV1toV2OnEnableRouting 在针对 v2 规则进行启用或者禁止时，需要将 v1 规则转为 v2 规则并执行持久化存储
-func (s *Server) transferV1toV2OnEnableOrDelete(ctx context.Context, req *apiv2.Routing) *apiv2.Response {
+// transferV1toV2OnModify 在针对 v2 规则进行启用或者禁止时，需要将 v1 规则转为 v2 规则并执行持久化存储
+func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apiv2.Routing) *apiv2.Response {
 	svcId, _ := s.Cache().RoutingConfig().IsConvertFromV1(req.Id)
 	v1conf, err := s.storage.GetRoutingConfigWithID(svcId)
 	if err != nil {

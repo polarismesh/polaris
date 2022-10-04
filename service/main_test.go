@@ -744,6 +744,97 @@ func (d *DiscoverTestSuit) createCommonRoutingConfig(t *testing.T, service *api.
 	return conf, resp.Responses[0].GetRouting()
 }
 
+// 创建一个路由配置
+func (d *DiscoverTestSuit) createCommonRoutingConfigV1IntoOldStore(t *testing.T, service *api.Service,
+	inCount int, outCount int) (*api.Routing, *api.Routing) {
+
+	inBounds := make([]*api.Route, 0, inCount)
+	for i := 0; i < inCount; i++ {
+		matchString := &api.MatchString{
+			Type:  api.MatchString_EXACT,
+			Value: utils.NewStringValue(fmt.Sprintf("in-meta-value-%d", i)),
+		}
+		source := &api.Source{
+			Service:   utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
+			Namespace: utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
+			Metadata: map[string]*api.MatchString{
+				fmt.Sprintf("in-metadata-%d", i): matchString,
+			},
+		}
+		destination := &api.Destination{
+			Service:   service.Name,
+			Namespace: service.Namespace,
+			Metadata: map[string]*api.MatchString{
+				fmt.Sprintf("in-metadata-%d", i): matchString,
+			},
+			Priority: utils.NewUInt32Value(120),
+			Weight:   utils.NewUInt32Value(100),
+			Transfer: utils.NewStringValue("abcdefg"),
+		}
+
+		entry := &api.Route{
+			Sources:      []*api.Source{source},
+			Destinations: []*api.Destination{destination},
+		}
+		inBounds = append(inBounds, entry)
+	}
+
+	conf := &api.Routing{
+		Service:      utils.NewStringValue(service.GetName().GetValue()),
+		Namespace:    utils.NewStringValue(service.GetNamespace().GetValue()),
+		Inbounds:     inBounds,
+		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
+	}
+
+	resp := d.server.(*serverAuthAbility).targetServer.CreateRoutingConfig(d.defaultCtx, conf)
+	if !respSuccess(resp) {
+		t.Fatalf("error: %+v", resp)
+	}
+
+	return conf, resp.GetRouting()
+}
+
+func mockRoutingV1(serviceName, serviceNamespace string, inCount int) *api.Routing {
+	inBounds := make([]*api.Route, 0, inCount)
+	for i := 0; i < inCount; i++ {
+		matchString := &api.MatchString{
+			Type:  api.MatchString_EXACT,
+			Value: utils.NewStringValue(fmt.Sprintf("in-meta-value-%d", i)),
+		}
+		source := &api.Source{
+			Service:   utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
+			Namespace: utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
+			Metadata: map[string]*api.MatchString{
+				fmt.Sprintf("in-metadata-%d", i): matchString,
+			},
+		}
+		destination := &api.Destination{
+			Service:   utils.NewStringValue(serviceName),
+			Namespace: utils.NewStringValue(serviceNamespace),
+			Metadata: map[string]*api.MatchString{
+				fmt.Sprintf("in-metadata-%d", i): matchString,
+			},
+			Priority: utils.NewUInt32Value(120),
+			Weight:   utils.NewUInt32Value(100),
+			Transfer: utils.NewStringValue("abcdefg"),
+		}
+
+		entry := &api.Route{
+			Sources:      []*api.Source{source},
+			Destinations: []*api.Destination{destination},
+		}
+		inBounds = append(inBounds, entry)
+	}
+
+	conf := &api.Routing{
+		Service:   utils.NewStringValue(serviceName),
+		Namespace: utils.NewStringValue(serviceNamespace),
+		Inbounds:  inBounds,
+	}
+
+	return conf
+}
+
 func mockRoutingV2(t *testing.T, cnt int32) []*apiv2.Routing {
 	rules := make([]*apiv2.Routing, 0, cnt)
 	for i := int32(0); i < cnt; i++ {
@@ -790,9 +881,6 @@ func mockRoutingV2(t *testing.T, cnt int32) []*apiv2.Routing {
 			Etime:         "",
 			Priority:      0,
 			Description:   "",
-			ExtendInfo: map[string]string{
-				"": "",
-			},
 		}
 
 		rules = append(rules, item)
@@ -813,6 +901,10 @@ func (d *DiscoverTestSuit) createCommonRoutingConfigV2WithReq(t *testing.T, rule
 	resp := d.server.CreateRoutingConfigsV2(d.defaultCtx, rules)
 	if !respSuccessV2(resp) {
 		t.Fatalf("error: %+v", resp)
+	}
+
+	if len(rules) != len(resp.GetResponses()) {
+		t.Fatal("error: create v2 routings not equal resp")
 	}
 
 	ret := []*apiv2.Routing{}
