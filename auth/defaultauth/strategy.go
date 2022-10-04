@@ -185,13 +185,16 @@ func (svr *server) DeleteStrategy(ctx context.Context, req *api.AuthStrategy) *a
 
 // GetStrategies 查询鉴权策略列表
 // Case 1. 如果是以资源视角来查询鉴权策略，那么就会忽略自动根据账户类型进行数据查看的限制
-// 		eg. 比如当前子账户A想要查看资源R的相关的策略，那么不在会自动注入 principal_id 以及 principal_type 的查询条件
+//
+//	eg. 比如当前子账户A想要查看资源R的相关的策略，那么不在会自动注入 principal_id 以及 principal_type 的查询条件
+//
 // Case 2. 如果是以用户视角来查询鉴权策略，如果没有带上 principal_id，那么就会根据账户类型自动注入 principal_id 以
-// 		及 principal_type 的查询条件，从而限制该账户的数据查看
-// 		eg.
-// 			a. 如果当前是超级管理账户，则按照传入的 query 进行查询即可
-// 			b. 如果当前是主账户，则自动注入 owner 字段，即只能查看策略的 owner 是自己的策略
-// 			c. 如果当前是子账户，则自动注入 principal_id 以及 principal_type 字段，即稚嫩查询与自己有关的策略
+//
+//	及 principal_type 的查询条件，从而限制该账户的数据查看
+//	eg.
+//		a. 如果当前是超级管理账户，则按照传入的 query 进行查询即可
+//		b. 如果当前是主账户，则自动注入 owner 字段，即只能查看策略的 owner 是自己的策略
+//		c. 如果当前是子账户，则自动注入 principal_id 以及 principal_type 字段，即稚嫩查询与自己有关的策略
 func (svr *server) GetStrategies(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
@@ -871,7 +874,8 @@ func (svr *server) checkResourceExist(resources *api.StrategyResources) *api.Res
 }
 
 // normalizeResource 对于资源进行归一化处理
-//  如果出现 * 的话，则该资源访问策略就是 *
+//
+//	如果出现 * 的话，则该资源访问策略就是 *
 func (svr *server) normalizeResource(resources *api.StrategyResources) *api.StrategyResources {
 	namespaces := resources.GetNamespaces()
 	for index := range namespaces {

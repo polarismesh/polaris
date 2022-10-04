@@ -70,7 +70,7 @@ func (m *shardMap) Store(instanceId string, value ItemWithChecker) {
 	shard.mutex.Unlock()
 }
 
-//PutIfAbsent to avoid storing twice when key is the same in the concurrent scenario.
+// PutIfAbsent to avoid storing twice when key is the same in the concurrent scenario.
 func (m *shardMap) PutIfAbsent(instanceId string, value ItemWithChecker) (ItemWithChecker, bool) {
 	shard := m.getShard(instanceId)
 	shard.mutex.Lock()

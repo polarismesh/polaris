@@ -428,7 +428,7 @@ func api2RateLimit(serviceID string, req *api.Rule, old *model.RateLimit) (*mode
 	if err != nil {
 		return nil, err
 	}
-	
+
 	labels := req.GetLabels()
 	var labelStr []byte
 	if len(labels) > 0 {

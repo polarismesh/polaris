@@ -21,9 +21,9 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	authcommon "github.com/polarismesh/polaris-server/common/auth"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-	authcommon "github.com/polarismesh/polaris-server/common/auth"
 )
 
 // CreateInstances create instances
@@ -158,7 +158,6 @@ func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *api.Instan
 
 	return svr.targetServer.CleanInstance(ctx, req)
 }
-
 
 func (svr *serverAuthAbility) GetInstanceLabels(ctx context.Context, query map[string]string) *api.Response {
 

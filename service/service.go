@@ -157,8 +157,9 @@ func (s *Server) DeleteServices(ctx context.Context, req []*api.Service) *api.Ba
 }
 
 // DeleteService 删除单个服务
-//  删除操作需要对服务进行加锁操作，
-//  防止有与服务关联的实例或者配置有新增的操作
+//
+//	删除操作需要对服务进行加锁操作，
+//	防止有与服务关联的实例或者配置有新增的操作
 func (s *Server) DeleteService(ctx context.Context, req *api.Service) *api.Response {
 	requestID := ParseRequestID(ctx)
 	platformID := ParsePlatformID(ctx)

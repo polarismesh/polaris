@@ -101,7 +101,6 @@ func newUserTest(t *testing.T) *UserTest {
 		t.Fatal(err)
 	}
 
-
 	time.Sleep(5 * time.Second)
 
 	checker := &defaultAuthChecker{}

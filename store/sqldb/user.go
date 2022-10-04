@@ -189,9 +189,11 @@ func (u *userStore) DeleteUser(user *model.User) error {
 
 // deleteUser Specific deletion user steps
 // step 1. Delete the user-associated policy information
-// 			a. Delete the user's default policy
-// 			b. Update the latest update time of related policies, make the Cache mechanism
-// 			c. Delete the association relationship of the user and policy
+//
+//	a. Delete the user's default policy
+//	b. Update the latest update time of related policies, make the Cache mechanism
+//	c. Delete the association relationship of the user and policy
+//
 // step 2. Delete the user group associated with this user
 func (u *userStore) deleteUser(user *model.User) error {
 

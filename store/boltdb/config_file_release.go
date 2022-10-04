@@ -286,7 +286,8 @@ func (cfr *configFileReleaseStore) DeleteConfigFileRelease(proxyTx store.Tx, nam
 }
 
 // FindConfigFileReleaseByModifyTimeAfter Get the last update time more than a certain time point,
-//    pay attention to containing Flag = 1, in order to get the deleted Release
+//
+//	pay attention to containing Flag = 1, in order to get the deleted Release
 func (cfr *configFileReleaseStore) FindConfigFileReleaseByModifyTimeAfter(
 	modifyTime time.Time) ([]*model.ConfigFileRelease, error) {
 

@@ -86,9 +86,9 @@ func TestCreateRoutingConfigV2(t *testing.T) {
 
 		// 基于服务信息查询
 		out = discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
-			"limit":  "100",
-			"offset": "0",
-			"namespace":   expendItem.RuleRouting.Sources[0].Namespace,
+			"limit":     "100",
+			"offset":    "0",
+			"namespace": expendItem.RuleRouting.Sources[0].Namespace,
 			"service":   expendItem.RuleRouting.Sources[0].Service,
 		})
 		if !respSuccessV2(out) {

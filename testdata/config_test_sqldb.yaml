@@ -122,6 +122,10 @@ cache:
     - name: strategyRule # 加载鉴权规则数据
     - name: namespace # 加载命名空间数据
     - name: client # 加载 SDK 数据
+    - name: configFile
+      option:
+        #配置文件缓存过期时间，单位s
+        expireTimeAfterWrite: 3600
 #    - name: l5 # 加载l5数据
 plugin:
   auth:

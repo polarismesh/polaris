@@ -54,7 +54,7 @@ type Config struct {
 // Server 配置中心核心服务
 type Server struct {
 	storage           store.Store
-	cache             *cache.FileCache
+	fileCache         cache.FileCache
 	caches            *cache.CacheManager
 	watchCenter       *watchCenter
 	connManager       *connManager
@@ -92,20 +92,8 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	authSvr auth.AuthServer) error {
 
 	s.storage = ss
-
-	// 初始化缓存模块
-	expireTimeAfterWrite, ok := config.Cache["expireTimeAfterWrite"]
-	if !ok {
-		expireTimeAfterWrite = defaultExpireTimeAfterWrite
-	}
-
 	s.namespaceOperator = namespaceOperator
-
-	cacheParam := cache.FileCacheParam{
-		ExpireTimeAfterWrite: expireTimeAfterWrite.(int),
-	}
-	fileCache := cache.NewFileCache(ctx, ss, cacheParam)
-	s.cache = fileCache
+	s.fileCache = cacheMgn.ConfigFile()
 
 	// 初始化事件中心
 	eventCenter := NewEventCenter()
@@ -116,7 +104,7 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	s.connManager = connMng
 
 	// 初始化发布事件扫描器
-	if err := initReleaseMessageScanner(ctx, ss, fileCache, eventCenter, time.Second); err != nil {
+	if err := initReleaseMessageScanner(ctx, ss, s.fileCache, eventCenter, time.Second); err != nil {
 		log.ConfigScope().Error("[Config][Server] init release message scanner error. ", zap.Error(err))
 		return errors.New("init config module error")
 	}
@@ -150,8 +138,8 @@ func (s *Server) WatchCenter() *watchCenter {
 }
 
 // Cache 获取配置中心缓存模块
-func (s *Server) Cache() *cache.FileCache {
-	return s.cache
+func (s *Server) Cache() cache.FileCache {
+	return s.fileCache
 }
 
 // ConnManager 获取配置中心连接管理器

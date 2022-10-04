@@ -40,13 +40,15 @@ func (h *PrometheusServer) addPrometheusDefaultAccess(ws *restful.WebService) {
 
 // GetPrometheusClients 对接 prometheus 基于 http 的 service discovery
 // [
-//   {
-//     "targets": [ "<host>", ... ],
-//     "labels": {
-//       "<labelname>": "<labelvalue>", ...
-//     }
-//   },
-//   ...
+//
+//	{
+//	  "targets": [ "<host>", ... ],
+//	  "labels": {
+//	    "<labelname>": "<labelvalue>", ...
+//	  }
+//	},
+//	...
+//
 // ]
 func (h *PrometheusServer) GetPrometheusClients(req *restful.Request, rsp *restful.Response) {
 

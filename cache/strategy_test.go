@@ -27,7 +27,6 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
-//
 func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 	t.Run("资源没有关联任何策略", func(t *testing.T) {
 		userCache := &userCache{}

@@ -43,12 +43,12 @@ type releaseMessageScanner struct {
 
 	scanInterval time.Duration
 
-	fileCache *cache.FileCache
+	fileCache cache.FileCache
 
 	eventCenter *Center
 }
 
-func initReleaseMessageScanner(ctx context.Context, storage store.Store, fileCache *cache.FileCache,
+func initReleaseMessageScanner(ctx context.Context, storage store.Store, fileCache cache.FileCache,
 	eventCenter *Center, scanInterval time.Duration) error {
 	scanner := &releaseMessageScanner{
 		storage:      storage,

@@ -85,7 +85,7 @@ func (s *Server) asyncCreateClient(ctx context.Context, req *api.Client) (*model
 		return nil, api.NewClientResponse(future.Code(), req)
 	}
 
-	return future.Client(), nil 
+	return future.Client(), nil
 }
 
 // CreateInstances create one instance

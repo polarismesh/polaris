@@ -24,8 +24,9 @@ import (
 )
 
 // CreateUsers 创建用户，只能由超级账户 or 主账户调用
-//  case 1. 超级账户调用：创建的是主账户
-//  case 2. 主账户调用：创建的是子账户
+//
+//	case 1. 超级账户调用：创建的是主账户
+//	case 2. 主账户调用：创建的是子账户
 func (svr *serverAuthAbility) CreateUsers(ctx context.Context, req []*api.User) *api.BatchWriteResponse {
 	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if rsp != nil {

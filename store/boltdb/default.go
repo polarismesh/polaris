@@ -114,7 +114,7 @@ const (
 var (
 	namespacesToInit = []string{"default", namespacePolaris}
 	servicesToInit   = map[string]string{
-		"polaris.checker":     "fbca9bfa04ae4ead86e1ecf5811e32a9",
+		"polaris.checker": "fbca9bfa04ae4ead86e1ecf5811e32a9",
 	}
 
 	mainUser = &model.User{

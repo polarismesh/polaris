@@ -60,7 +60,7 @@ func initialize(ctx context.Context, cacheOpt *Config, storage store.Store) erro
 	return err
 }
 
-func newCacheManager(_ context.Context, cacheOpt *Config, storage store.Store) (*CacheManager, error) {
+func newCacheManager(ctx context.Context, cacheOpt *Config, storage store.Store) (*CacheManager, error) {
 	SetCacheConfig(cacheOpt)
 	mgr := &CacheManager{
 		storage:       storage,
@@ -88,6 +88,7 @@ func newCacheManager(_ context.Context, cacheOpt *Config, storage store.Store) (
 	mgr.caches[CacheAuthStrategy] = newStrategyCache(storage, notify, mgr.caches[CacheUser].(UserCache))
 	mgr.caches[CacheNamespace] = newNamespaceCache(storage)
 	mgr.caches[CacheClient] = newClientCache(storage)
+	mgr.caches[CacheConfigFile] = newFileCache(ctx, storage)
 
 	if len(mgr.caches) != CacheLast {
 		return nil, errors.New("some Cache implement not loaded into CacheManager")
@@ -121,8 +122,9 @@ func Run(cacheMgr *CacheManager, ctx context.Context) error {
 }
 
 // GetCacheManager
-//  @return *CacheManager
-//  @return error
+//
+//	@return *CacheManager
+//	@return error
 func GetCacheManager() (*CacheManager, error) {
 	if !finishInit {
 		return nil, errors.New("cache has not done Initialize")

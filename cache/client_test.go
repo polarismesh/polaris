@@ -57,8 +57,8 @@ func mockClients(cnt int) map[string]*model.Client {
 				Zone:   utils.NewStringValue("zone"),
 				Campus: utils.NewStringValue("campus"),
 			},
-			Id:    utils.NewStringValue(id),
-			Stat:  []*apiv1.StatInfo{},
+			Id:   utils.NewStringValue(id),
+			Stat: []*apiv1.StatInfo{},
 		})
 
 		ret[id].SetValid(true)
@@ -113,7 +113,7 @@ func Test_clientCache_GetClientByFilter(t *testing.T) {
 		assert.NoError(t, err)
 
 		total, item, err := clientCache.GetClientsByFilter(map[string]string{
-			"id": id,
+			"id":   id,
 			"host": host,
 		}, 0, 100)
 		assert.NoError(t, err)

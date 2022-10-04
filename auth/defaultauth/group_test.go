@@ -90,7 +90,6 @@ func newGroupTest(t *testing.T) *GroupTest {
 		t.Fatal(err)
 	}
 
-
 	time.Sleep(time.Second)
 
 	checker := &defaultAuthChecker{}

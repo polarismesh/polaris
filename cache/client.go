@@ -221,7 +221,8 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (int, int) {
 }
 
 // clear
-//  @return error
+//
+//	@return error
 func (c *clientCache) clear() error {
 	c.lock.Lock()
 	c.clients = map[string]*model.Client{}

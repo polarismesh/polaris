@@ -387,7 +387,7 @@ func TestDiscoverServerV2(t *testing.T) {
 
 	t.Run("查询v2版本的路由规则", func(t *testing.T) {
 		resp := discoverSuit.server.GetRoutingConfigV2WithCache(context.Background(), &v2.Service{
-			Name: "in-source-service-1",
+			Name:      "in-source-service-1",
 			Namespace: "in-source-service-1",
 		})
 
@@ -396,4 +396,3 @@ func TestDiscoverServerV2(t *testing.T) {
 		}
 	})
 }
-

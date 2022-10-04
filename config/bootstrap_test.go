@@ -271,7 +271,7 @@ func (c *ConfigCenterTest) clearTestDataWhenUseRDS() error {
 	}
 
 	// 清理缓存
-	c.testServer.Cache().Clear()
+	c.testServer.Cache().CleanAll()
 
 	return tx.Commit()
 }

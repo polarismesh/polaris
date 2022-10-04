@@ -31,13 +31,26 @@ import (
 	"github.com/polarismesh/polaris-server/store"
 )
 
-type FileCacheParam struct {
-	ExpireTimeAfterWrite int
+const (
+	configFileCacheName = "configFile"
+)
+
+type FileCache interface {
+	Cache
+	// Get
+	Get(namespace, group, fileName string) (*Entry, bool)
+	// GetOrLoadIfAbsent
+	GetOrLoadIfAbsent(namespace, group, fileName string) (*Entry, error)
+	// Remove
+	Remove(namespace, group, fileName string)
+	// ReLoad
+	ReLoad(namespace, group, fileName string) (*Entry, error)
+	// CleanAll
+	CleanAll()
 }
 
 // FileCache 文件缓存，使用 loading cache 懒加载策略。同时写入时设置过期时间，定时清理过期的缓存。
-type FileCache struct {
-	params  FileCacheParam
+type fileCache struct {
 	storage store.Store
 	// fileId -> Entry
 	files *sync.Map
@@ -51,6 +64,10 @@ type FileCache struct {
 	removeCnt int32
 	// expireCnt
 	expireCnt int32
+	// expireTimeAfterWrite
+	expireTimeAfterWrite int
+	// ctx
+	ctx context.Context
 }
 
 // Entry 缓存实体对象
@@ -64,23 +81,50 @@ type Entry struct {
 	Empty bool
 }
 
-// NewFileCache 创建文件缓存
-func NewFileCache(ctx context.Context, storage store.Store, param FileCacheParam) *FileCache {
-	cache := &FileCache{
-		params:        param,
+// newFileCache 创建文件缓存
+func newFileCache(ctx context.Context, storage store.Store) FileCache {
+	cache := &fileCache{
 		storage:       storage,
 		files:         new(sync.Map),
 		fileLoadLocks: new(sync.Map),
+		ctx:           ctx,
 	}
-
-	go cache.startClearExpireEntryTask(ctx)
-	go cache.startLogStatusTask(ctx)
-
 	return cache
 }
 
+// initialize
+func (fc *fileCache) initialize(opt map[string]interface{}) error {
+
+	fc.expireTimeAfterWrite, _ = opt["expireTimeAfterWrite"].(int)
+
+	go fc.startClearExpireEntryTask(fc.ctx)
+	go fc.startLogStatusTask(fc.ctx)
+	return nil
+}
+
+// addListener 添加
+func (fc *fileCache) addListener(listeners []Listener) {
+
+}
+
+// update
+func (fc *fileCache) update(storeRollbackSec time.Duration) error {
+	return nil
+}
+
+// clear
+func (fc *fileCache) clear() error {
+	fc.CleanAll()
+	return nil
+}
+
+// name
+func (fc *fileCache) name() string {
+	return configFileCacheName
+}
+
 // Get 一般用于内部服务调用，所以不计入 metrics
-func (fc *FileCache) Get(namespace, group, fileName string) (*Entry, bool) {
+func (fc *fileCache) Get(namespace, group, fileName string) (*Entry, bool) {
 	fileId := utils.GenFileId(namespace, group, fileName)
 	storedEntry, ok := fc.files.Load(fileId)
 	if ok {
@@ -91,7 +135,7 @@ func (fc *FileCache) Get(namespace, group, fileName string) (*Entry, bool) {
 }
 
 // GetOrLoadIfAbsent 获取缓存，如果缓存没命中则会从数据库中加载，如果数据库里获取不到数据，则会缓存一个空对象防止缓存一直被击穿
-func (fc *FileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entry, error) {
+func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entry, error) {
 	atomic.AddInt32(&fc.getCnt, 1)
 
 	fileId := utils.GenFileId(namespace, group, fileName)
@@ -167,20 +211,20 @@ func (fc *FileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 }
 
 // Remove 删除缓存对象
-func (fc *FileCache) Remove(namespace, group, fileName string) {
+func (fc *fileCache) Remove(namespace, group, fileName string) {
 	atomic.AddInt32(&fc.removeCnt, 1)
 	fileId := utils.GenFileId(namespace, group, fileName)
 	fc.files.Delete(fileId)
 }
 
 // ReLoad 重新加载缓存
-func (fc *FileCache) ReLoad(namespace, group, fileName string) (*Entry, error) {
+func (fc *fileCache) ReLoad(namespace, group, fileName string) (*Entry, error) {
 	fc.Remove(namespace, group, fileName)
 	return fc.GetOrLoadIfAbsent(namespace, group, fileName)
 }
 
 // Clear 清空缓存，仅用于集成测试
-func (fc *FileCache) Clear() {
+func (fc *fileCache) CleanAll() {
 	fc.files.Range(func(key, _ interface{}) bool {
 		fc.files.Delete(key)
 		return true
@@ -188,13 +232,13 @@ func (fc *FileCache) Clear() {
 }
 
 // 缓存过期时间，为了避免集中失效，加上随机数。[60 ~ 70]分钟内随机失效
-func (fc *FileCache) getExpireTime() time.Time {
-	randTime := rand.Intn(10*60) + fc.params.ExpireTimeAfterWrite
+func (fc *fileCache) getExpireTime() time.Time {
+	randTime := rand.Intn(10*60) + fc.expireTimeAfterWrite
 	return time.Now().Add(time.Duration(randTime) * time.Second)
 }
 
 // 定时清理过期的缓存
-func (fc *FileCache) startClearExpireEntryTask(ctx context.Context) {
+func (fc *fileCache) startClearExpireEntryTask(ctx context.Context) {
 	t := time.NewTicker(time.Minute)
 	defer t.Stop()
 	for {
@@ -221,7 +265,7 @@ func (fc *FileCache) startClearExpireEntryTask(ctx context.Context) {
 }
 
 // print cache status at fix rate
-func (fc *FileCache) startLogStatusTask(ctx context.Context) {
+func (fc *fileCache) startLogStatusTask(ctx context.Context) {
 	t := time.NewTicker(time.Minute)
 	defer t.Stop()
 	for {
