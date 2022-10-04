@@ -62,7 +62,7 @@ func (s *Server) checkAndStoreClient(ctx context.Context, req *api.Client) *api.
 
 func (s *Server) createClient(ctx context.Context, req *api.Client) (*model.Client, *api.Response) {
 
-	if namingServer.bc == nil || !namingServer.bc.CreateInstanceOpen() {
+	if namingServer.bc == nil || !namingServer.bc.ClientRegisterOpen() {
 		return nil, nil
 	}
 	return s.asyncCreateClient(ctx, req) // 批量异步
@@ -85,7 +85,7 @@ func (s *Server) asyncCreateClient(ctx context.Context, req *api.Client) (*model
 		return nil, api.NewClientResponse(future.Code(), req)
 	}
 
-	return future.Client(), nil
+	return future.Client(), nil 
 }
 
 // CreateInstances create one instance

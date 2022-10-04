@@ -81,6 +81,7 @@ const (
 	tblPlatform               = "platform"
 	tblNameL5                 = "l5"
 	tblNameRoutingV2          = "routing_config_v2"
+	tblClient                 = "client"
 )
 
 type Bootstrap struct {
@@ -278,6 +279,48 @@ func (d *DiscoverTestSuit) Destroy() {
 
 	d.storage.Destroy()
 	time.Sleep(5 * time.Second)
+}
+
+func (d *DiscoverTestSuit) cleanReportClient() {
+	if d.storage.Name() == sqldb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+			defer dbTx.Rollback()
+
+			if _, err := dbTx.Exec("delete from client"); err != nil {
+				panic(err)
+			}
+			if _, err := dbTx.Exec("delete from client_stat"); err != nil {
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if d.storage.Name() == boltdb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+			defer dbTx.Rollback()
+
+			if err := dbTx.DeleteBucket([]byte(tblClient)); err != nil {
+				if !errors.Is(err, bolt.ErrBucketNotFound) {
+					dbTx.Rollback()
+					panic(err)
+				}
+			}
+
+			dbTx.Commit()
+		}()
+	}
 }
 
 // 从数据库彻底删除命名空间
@@ -1110,7 +1153,6 @@ func (d *DiscoverTestSuit) cleanCommonRoutingConfigV2(rules []*apiv2.Routing) {
 	}
 }
 
-//
 func (d *DiscoverTestSuit) CheckGetService(t *testing.T, expectReqs []*api.Service, actualReqs []*api.Service) {
 	if len(expectReqs) != len(actualReqs) {
 		t.Fatalf("error: %d %d", len(expectReqs), len(actualReqs))

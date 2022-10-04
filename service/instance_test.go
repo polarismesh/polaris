@@ -168,7 +168,16 @@ func TestCreateInstanceWithNoService(t *testing.T) {
 	defer discoverSuit.Destroy()
 
 	t.Run("无权限注册，可以捕获正常的错误", func(t *testing.T) {
-		_, serviceResp := discoverSuit.createCommonService(t, 900)
+		serviceReq := genMainService(900)
+		serviceReq.Namespace = utils.NewStringValue("test-auth-namespace")
+		discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
+
+		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{serviceReq})
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		serviceResp := resp.Responses[0].GetService()
+
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		var reqs []*api.Instance
 		reqs = append(reqs, &api.Instance{
@@ -187,12 +196,14 @@ func TestCreateInstanceWithNoService(t *testing.T) {
 		})
 
 		oldCtx := discoverSuit.defaultCtx
-
 		discoverSuit.defaultCtx = context.Background()
 
 		defer func() {
 			discoverSuit.defaultCtx = oldCtx
 		}()
+
+		// 等待一段时间的刷新
+		time.Sleep(discoverSuit.updateCacheInterval * 5)
 
 		resps := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, reqs)
 		if respSuccess(resps) {

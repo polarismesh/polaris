@@ -18,35 +18,18 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	v2 "github.com/polarismesh/polaris-server/common/api/v2"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
-
-// 测试client版本上报
-func TestReportClient(t *testing.T) {
-
-	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
-		t.Fatal(err)
-	}
-	defer discoverSuit.Destroy()
-
-	Convey("可以进行正常的client上报", t, func() {
-		req := &api.Client{
-			Host:    utils.NewStringValue("127.0.0.1"),
-			Type:    api.Client_SDK,
-			Version: utils.NewStringValue("v1.0.0"),
-		}
-		resp := discoverSuit.server.ReportClient(discoverSuit.defaultCtx, req)
-		So(respSuccess(resp), ShouldEqual, true)
-	})
-}
 
 // 测试discover instances
 func TestDiscoverInstances(t *testing.T) {
@@ -356,3 +339,61 @@ func TestDiscoverService2(t *testing.T) {
 		})
 	})
 }
+
+func TestDiscoverServerV2(t *testing.T) {
+
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+
+	svc := &api.Service{
+		Name:      utils.NewStringValue("in-source-service-1"),
+		Namespace: utils.NewStringValue("in-source-service-1"),
+	}
+
+	createSvcResp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{svc})
+	if !respSuccess(createSvcResp) {
+		t.Fatalf("error: %s", createSvcResp.GetInfo().GetValue())
+	}
+
+	_ = discoverSuit.createCommonRoutingConfigV2(t, 3)
+	defer discoverSuit.truncateCommonRoutingConfigV2()
+
+	time.Sleep(discoverSuit.updateCacheInterval * 5)
+
+	t.Run("空请求", func(t *testing.T) {
+		resp := discoverSuit.server.GetRoutingConfigV2WithCache(context.Background(), nil)
+
+		assert.Equal(t, api.EmptyRequest, resp.Code)
+	})
+
+	t.Run("没有带服务名", func(t *testing.T) {
+		resp := discoverSuit.server.GetRoutingConfigV2WithCache(context.Background(), &v2.Service{
+			Namespace: "string",
+		})
+
+		assert.Equal(t, api.InvalidServiceName, resp.Code)
+	})
+
+	t.Run("没有带命名空间", func(t *testing.T) {
+		resp := discoverSuit.server.GetRoutingConfigV2WithCache(context.Background(), &v2.Service{
+			Name: "string",
+		})
+
+		assert.Equal(t, api.InvalidNamespaceName, resp.Code)
+	})
+
+	t.Run("查询v2版本的路由规则", func(t *testing.T) {
+		resp := discoverSuit.server.GetRoutingConfigV2WithCache(context.Background(), &v2.Service{
+			Name: "in-source-service-1",
+			Namespace: "in-source-service-1",
+		})
+
+		if !respSuccessV2(resp) {
+			t.Fatal(resp.GetInfo())
+		}
+	})
+}
+
