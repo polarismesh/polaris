@@ -19,14 +19,17 @@ package cache
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
 )
@@ -34,6 +37,10 @@ import (
 const (
 	configFileCacheName = "configFile"
 )
+
+func init() {
+	RegisterCache(configFileCacheName, CacheConfigFile)
+}
 
 type FileCache interface {
 	Cache
@@ -45,6 +52,10 @@ type FileCache interface {
 	Remove(namespace, group, fileName string)
 	// ReLoad
 	ReLoad(namespace, group, fileName string) (*Entry, error)
+	// GetOrLoadGrouByName
+	GetOrLoadGrouByName(namespace, group string) (*model.ConfigFileGroup, error)
+	// GetOrLoadGroupById
+	GetOrLoadGroupById(id uint64) (*model.ConfigFileGroup, error)
 	// CleanAll
 	CleanAll()
 }
@@ -64,6 +75,10 @@ type fileCache struct {
 	removeCnt int32
 	// expireCnt
 	expireCnt int32
+	// configGroups
+	configGroups *configFileGroupBucket
+	//
+	singleLoadGroup singleflight.Group
 	// expireTimeAfterWrite
 	expireTimeAfterWrite int
 	// ctx
@@ -88,6 +103,7 @@ func newFileCache(ctx context.Context, storage store.Store) FileCache {
 		files:         new(sync.Map),
 		fileLoadLocks: new(sync.Map),
 		ctx:           ctx,
+		configGroups:  newConfigFileGroupBucket(),
 	}
 	return cache
 }
@@ -97,6 +113,7 @@ func (fc *fileCache) initialize(opt map[string]interface{}) error {
 
 	fc.expireTimeAfterWrite, _ = opt["expireTimeAfterWrite"].(int)
 
+	go fc.configGroups.runCleanExpire(fc.ctx, time.Minute, int64(fc.expireTimeAfterWrite))
 	go fc.startClearExpireEntryTask(fc.ctx)
 	go fc.startLogStatusTask(fc.ctx)
 	return nil
@@ -115,6 +132,7 @@ func (fc *fileCache) update(storeRollbackSec time.Duration) error {
 // clear
 func (fc *fileCache) clear() error {
 	fc.CleanAll()
+	fc.configGroups.clean()
 	return nil
 }
 
@@ -132,6 +150,65 @@ func (fc *fileCache) Get(namespace, group, fileName string) (*Entry, bool) {
 		return entry, true
 	}
 	return nil, false
+}
+
+// GetOrLoadGroupIfAbsent 获取配置分组缓存
+func (fc *fileCache) GetOrLoadGrouByName(namespace, group string) (*model.ConfigFileGroup, error) {
+	item := fc.configGroups.getGroupByName(namespace, group)
+	if item != nil {
+		return item, nil
+	}
+
+	key := namespace + utils.FileIdSeparator + group
+
+	ret, err, _ := fc.singleLoadGroup.Do(key, func() (interface{}, error) {
+		data, err := fc.storage.GetConfigFileGroup(namespace, group)
+		if err != nil {
+			return nil, err
+		}
+
+		fc.configGroups.saveGroup(namespace, group, data)
+		return data, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if ret != nil {
+		return ret.(*model.ConfigFileGroup), nil
+	}
+
+	return nil, nil
+}
+
+func (fc *fileCache) GetOrLoadGroupById(id uint64) (*model.ConfigFileGroup, error) {
+	item := fc.configGroups.getGroupById(id)
+	if item != nil {
+		return item, nil
+	}
+
+	key := fmt.Sprintf("config_group_%d", id)
+
+	ret, err, _ := fc.singleLoadGroup.Do(key, func() (interface{}, error) {
+		data, err := fc.storage.GetConfigFileGroupById(id)
+		if err != nil {
+			return nil, err
+		}
+
+		fc.configGroups.saveGroupById(id, data)
+		return data, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if ret != nil {
+		return ret.(*model.ConfigFileGroup), nil
+	}
+
+	return nil, nil
 }
 
 // GetOrLoadIfAbsent 获取缓存，如果缓存没命中则会从数据库中加载，如果数据库里获取不到数据，则会缓存一个空对象防止缓存一直被击穿

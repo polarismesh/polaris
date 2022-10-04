@@ -97,24 +97,28 @@ func (s *serverAuthability) queryConfigGroupResource(ctx context.Context,
 	req []*api.ConfigFileGroup) map[api.ResourceType][]model.ResourceEntry {
 
 	names := utils.NewStringSet()
-	namespace := req[0].Namespace.GetValue()
+	namespace := req[0].GetNamespace().GetValue()
 	for index := range req {
-		names.Add(req[index].Name.GetValue())
+		names.Add(req[index].GetName().GetValue())
 	}
 	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, names.ToSlice())
 	if err != nil {
-		commonlog.AuthScope().Error("[Config][Server] collect config_file_group res", zap.Error(err))
+		commonlog.AuthScope().Error("[Config][Server] collect config_file_group res",
+			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return nil
 	}
 	ret := map[api.ResourceType][]model.ResourceEntry{
 		api.ResourceType_ConfigGroups: entries,
 	}
-	commonlog.AuthScope().Debug("[Config][Server] collect config_file_group access res", zap.Any("res", ret))
+	commonlog.AuthScope().Debug("[Config][Server] collect config_file_group access res",
+		utils.ZapRequestIDByCtx(ctx), zap.Any("res", ret))
 	return ret
 }
 
 // queryConfigFileResource config file资源的鉴权转换为config group的鉴权
-func (s *serverAuthability) queryConfigFileResource(ctx context.Context, req []*api.ConfigFile) map[api.ResourceType][]model.ResourceEntry {
+func (s *serverAuthability) queryConfigFileResource(ctx context.Context,
+	req []*api.ConfigFile) map[api.ResourceType][]model.ResourceEntry {
+
 	if len(req) == 0 {
 		return nil
 	}
@@ -126,17 +130,21 @@ func (s *serverAuthability) queryConfigFileResource(ctx context.Context, req []*
 	}
 	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, groupNames.ToSlice())
 	if err != nil {
-		commonlog.AuthScope().Error("[Config][Server] collect config_file res", zap.Error(err))
+		commonlog.AuthScope().Error("[Config][Server] collect config_file res",
+			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return nil
 	}
 	ret := map[api.ResourceType][]model.ResourceEntry{
 		api.ResourceType_ConfigGroups: entries,
 	}
-	commonlog.AuthScope().Debug("[Config][Server] collect config_file access res", zap.Any("res", ret))
+	commonlog.AuthScope().Debug("[Config][Server] collect config_file access res",
+		utils.ZapRequestIDByCtx(ctx), zap.Any("res", ret))
 	return ret
 }
 
-func (s *serverAuthability) queryConfigFileReleaseResource(ctx context.Context, req []*api.ConfigFileRelease) map[api.ResourceType][]model.ResourceEntry {
+func (s *serverAuthability) queryConfigFileReleaseResource(ctx context.Context,
+	req []*api.ConfigFileRelease) map[api.ResourceType][]model.ResourceEntry {
+
 	if len(req) == 0 {
 		return nil
 	}
@@ -148,21 +156,31 @@ func (s *serverAuthability) queryConfigFileReleaseResource(ctx context.Context, 
 	}
 	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, groupNames.ToSlice())
 	if err != nil {
-		commonlog.AuthScope().Debug("[Config][Server] collect config_file res", zap.Error(err))
+		commonlog.AuthScope().Debug("[Config][Server] collect config_file res",
+			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return nil
 	}
 	ret := map[api.ResourceType][]model.ResourceEntry{
 		api.ResourceType_ConfigGroups: entries,
 	}
-	commonlog.AuthScope().Debug("[Config][Server] collect config_file access res", zap.Any("res", ret))
+	commonlog.AuthScope().Debug("[Config][Server] collect config_file access res",
+		utils.ZapRequestIDByCtx(ctx), zap.Any("res", ret))
 	return ret
 }
 
-func (s *serverAuthability) queryConfigGroupRsEntryByNames(ctx context.Context, namespace string, names []string) ([]model.ResourceEntry, error) {
-	configFileGroups, err := s.targetServer.storage.FindConfigFileGroups(namespace, names)
-	if err != nil {
-		return nil, err
+func (s *serverAuthability) queryConfigGroupRsEntryByNames(ctx context.Context, namespace string,
+	names []string) ([]model.ResourceEntry, error) {
+
+	configFileGroups := make([]*model.ConfigFileGroup, 0, len(names))
+	for i := range names {
+		data, err := s.targetServer.fileCache.GetOrLoadGrouByName(namespace, names[i])
+		if err != nil {
+			return nil, err
+		}
+
+		configFileGroups = append(configFileGroups, data)
 	}
+
 	entries := make([]model.ResourceEntry, 0, len(configFileGroups))
 
 	for index := range configFileGroups {

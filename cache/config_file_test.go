@@ -189,3 +189,49 @@ func assembleConfigFileRelease(configFile *model.ConfigFile) *model.ConfigFileRe
 		Version:   uint64(10),
 	}
 }
+
+func assembleConfigFileGroup() *model.ConfigFileGroup {
+	return &model.ConfigFileGroup{
+		Id:        uint64(100),
+		Name:      "test-group-name",
+		Namespace: "test-group-name",
+	}
+}
+
+func Test_ConfigFileGroupBucket(t *testing.T) {
+	t.Run("GetOrLoadGroupByName", func(t *testing.T) {
+		ctrl, s, fc := newConfigFileMockedCache(t)
+		defer func() {
+			ctrl.Finish()
+			fc.clear()
+		}()
+
+		mockGroup := assembleConfigFileGroup()
+
+		s.EXPECT().GetConfigFileGroup(gomock.Any(), gomock.Any()).Return(mockGroup, nil)
+
+		ret, err := fc.GetOrLoadGrouByName(mockGroup.Namespace, mockGroup.Name)
+
+		assert.NoError(t, err)
+		assert.Equal(t, mockGroup.Name, ret.Name)
+		assert.Equal(t, mockGroup.Namespace, ret.Namespace)
+	})
+
+	t.Run("GetOrLoadGroupById", func(t *testing.T) {
+		ctrl, s, fc := newConfigFileMockedCache(t)
+		defer func() {
+			ctrl.Finish()
+			fc.clear()
+		}()
+
+		mockGroup := assembleConfigFileGroup()
+
+		s.EXPECT().GetConfigFileGroupById(gomock.Any()).Return(mockGroup, nil)
+
+		ret, err := fc.GetOrLoadGroupById(mockGroup.Id)
+
+		assert.NoError(t, err)
+		assert.Equal(t, mockGroup.Name, ret.Name)
+		assert.Equal(t, mockGroup.Namespace, ret.Namespace)
+	})
+}

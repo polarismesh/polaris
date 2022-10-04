@@ -71,7 +71,7 @@ func (s *Server) CreateConfigFileGroup(ctx context.Context, configFileGroup *api
 		return api.NewConfigFileGroupResponse(api.ExistedResource, configFileGroup)
 	}
 
-	toCreateGroup := transferConfigFileGroupAPIModel2StoreModel(configFileGroup)
+	toCreateGroup := apiConfigFileGroup2Model(configFileGroup)
 	toCreateGroup.ModifyBy = toCreateGroup.CreateBy
 
 	createdGroup, err := s.storage.CreateConfigFileGroup(toCreateGroup)
@@ -91,8 +91,12 @@ func (s *Server) CreateConfigFileGroup(ctx context.Context, configFileGroup *api
 
 	// 这里设置在 config-group 的 id 信息
 	configFileGroup.Id = utils.NewUInt64Value(createdGroup.Id)
-	s.afterConfigGroupResource(ctx, configFileGroup)
-	return api.NewConfigFileGroupResponse(api.ExecuteSuccess, transferConfigFileGroupStoreModel2APIModel(createdGroup))
+	if err := s.afterConfigGroupResource(ctx, configFileGroup); err != nil {
+		log.ConfigScope().Error("[Config][Service] create config_file_group after resource",
+			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+		return api.NewConfigFileGroupResponse(api.ExecuteException, nil)
+	}
+	return api.NewConfigFileGroupResponse(api.ExecuteSuccess, configFileGroup2Api(createdGroup))
 }
 
 // createConfigFileGroupIfAbsent 如果不存在配置文件组，则自动创建
@@ -115,7 +119,7 @@ func (s *Server) createConfigFileGroupIfAbsent(ctx context.Context,
 	}
 
 	if group != nil {
-		return api.NewConfigFileGroupResponse(api.ExecuteSuccess, transferConfigFileGroupStoreModel2APIModel(group))
+		return api.NewConfigFileGroupResponse(api.ExecuteSuccess, configFileGroup2Api(group))
 	}
 
 	return s.CreateConfigFileGroup(ctx, configFileGroup)
@@ -235,7 +239,7 @@ func (s *Server) batchTransfer(ctx context.Context, groups []*model.ConfigFileGr
 	var result []*api.ConfigFileGroup
 
 	for _, groupStoreModel := range groups {
-		configFileGroup := transferConfigFileGroupStoreModel2APIModel(groupStoreModel)
+		configFileGroup := configFileGroup2Api(groupStoreModel)
 		// enrich config file count
 		fileCount, err := s.storage.CountByConfigFileGroup(groupStoreModel.Namespace, groupStoreModel.Name)
 		if err != nil {
@@ -325,6 +329,8 @@ func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name stri
 		Namespace: utils.NewStringValue(configGroup.Namespace),
 		Name:      utils.NewStringValue(configGroup.Name),
 	}); err != nil {
+		log.ConfigScope().Error("[Config][Service] delete config_file_group after resource",
+			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return api.NewConfigFileGroupResponse(api.ExecuteException, nil)
 	}
 	return api.NewConfigFileGroupResponse(api.ExecuteSuccess, nil)
@@ -360,7 +366,7 @@ func (s *Server) UpdateConfigFileGroup(ctx context.Context,
 	userName := utils.ParseUserName(ctx)
 	configFileGroup.ModifyBy = utils.NewStringValue(userName)
 
-	toUpdateGroup := transferConfigFileGroupAPIModel2StoreModel(configFileGroup)
+	toUpdateGroup := apiConfigFileGroup2Model(configFileGroup)
 	toUpdateGroup.ModifyBy = configFileGroup.ModifyBy.GetValue()
 
 	updatedGroup, err := s.storage.UpdateConfigFileGroup(toUpdateGroup)
@@ -376,9 +382,11 @@ func (s *Server) UpdateConfigFileGroup(ctx context.Context,
 
 	configFileGroup.Id = utils.NewUInt64Value(fileGroup.Id)
 	if err := s.afterConfigGroupResource(ctx, configFileGroup); err != nil {
-		return api.NewConfigFileGroupResponseWithMessage(api.ExecuteException, err.Error())
+		log.ConfigScope().Error("[Config][Service] update config_file_group after resource",
+			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+		return api.NewConfigFileGroupResponse(api.ExecuteException, nil)
 	}
-	return api.NewConfigFileGroupResponse(api.ExecuteSuccess, transferConfigFileGroupStoreModel2APIModel(updatedGroup))
+	return api.NewConfigFileGroupResponse(api.ExecuteSuccess, configFileGroup2Api(updatedGroup))
 }
 
 func checkConfigFileGroupParams(configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
@@ -397,7 +405,7 @@ func checkConfigFileGroupParams(configFileGroup *api.ConfigFileGroup) *api.Confi
 	return nil
 }
 
-func transferConfigFileGroupAPIModel2StoreModel(group *api.ConfigFileGroup) *model.ConfigFileGroup {
+func apiConfigFileGroup2Model(group *api.ConfigFileGroup) *model.ConfigFileGroup {
 	var comment string
 	if group.Comment != nil {
 		comment = group.Comment.Value
@@ -422,7 +430,7 @@ func transferConfigFileGroupAPIModel2StoreModel(group *api.ConfigFileGroup) *mod
 	}
 }
 
-func transferConfigFileGroupStoreModel2APIModel(group *model.ConfigFileGroup) *api.ConfigFileGroup {
+func configFileGroup2Api(group *model.ConfigFileGroup) *api.ConfigFileGroup {
 	if group == nil {
 		return nil
 	}

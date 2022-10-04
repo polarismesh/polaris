@@ -29,7 +29,8 @@ import (
 func (s *serverAuthability) CreateConfigFileGroup(ctx context.Context,
 	configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
 
-	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{configFileGroup}, model.Create, "CreateConfigFileGroup")
+	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{configFileGroup},
+		model.Create, "CreateConfigFileGroup")
 
 	// 验证 token 信息
 	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
@@ -98,7 +99,8 @@ func (s *serverAuthability) DeleteConfigFileGroup(ctx context.Context, namespace
 func (s *serverAuthability) UpdateConfigFileGroup(ctx context.Context,
 	configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
 
-	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{configFileGroup}, model.Modify, "UpdateConfigFileGroup")
+	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{configFileGroup},
+		model.Modify, "UpdateConfigFileGroup")
 
 	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())

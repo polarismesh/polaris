@@ -56,6 +56,7 @@ func (s *serverAuthability) GetConfigFileRichInfo(ctx context.Context, namespace
 
 func (s *serverAuthability) QueryConfigFilesByGroup(ctx context.Context, namespace, group string,
 	offset, limit uint32) *api.ConfigBatchQueryResponse {
+
 	return s.targetServer.QueryConfigFilesByGroup(ctx, namespace, group, offset, limit)
 }
 

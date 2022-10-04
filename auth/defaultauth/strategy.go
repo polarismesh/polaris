@@ -966,7 +966,7 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 			if !autoAllNs {
 				ns := svr.cacheMgn.Namespace().GetNamespace(res.ResID)
 				if ns == nil {
-					log.AuthScope().Error("[Auth][Strategy] not found namespace in fill-info",
+					log.AuthScope().Warn("[Auth][Strategy] not found namespace in fill-info",
 						zap.String("id", data.ID), zap.String("namespace", res.ResID))
 					continue
 				}
@@ -992,7 +992,7 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 			if !autoAllSvc {
 				svc := svr.cacheMgn.Service().GetServiceByID(res.ResID)
 				if svc == nil {
-					log.AuthScope().Error("[Auth][Strategy] not found service in fill-info",
+					log.AuthScope().Warn("[Auth][Strategy] not found service in fill-info",
 						zap.String("id", data.ID), zap.String("service", res.ResID))
 					continue
 				}
@@ -1017,18 +1017,18 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 			if !autoAllConfigGroup {
 				groupId, err := strconv.ParseUint(res.ResID, 10, 64)
 				if err != nil {
-					log.AuthScope().Error("[Auth][Strategy] invalid resource id",
+					log.AuthScope().Warn("[Auth][Strategy] invalid resource id",
 						zap.String("id", data.ID), zap.String("config_file_group", res.ResID))
 					continue
 				}
-				group, _ := svr.storage.GetConfigFileGroupById(groupId)
+				group, _ := svr.cacheMgn.ConfigFile().GetOrLoadGroupById(groupId)
 				if group == nil {
-					log.AuthScope().Error("[Auth][Strategy] not found config_file_group in fill-info",
+					log.AuthScope().Warn("[Auth][Strategy] not found config_file_group in fill-info",
 						zap.String("id", data.ID), zap.String("config_file_group", res.ResID))
 					continue
 				}
 				configGroups = append(configGroups, &api.StrategyResourceEntry{
-					Id:        utils.NewStringValue(strconv.FormatUint(group.Id, 10)),
+					Id:        utils.NewStringValue(res.ResID),
 					Namespace: utils.NewStringValue(group.Namespace),
 					Name:      utils.NewStringValue(group.Name),
 				})
