@@ -37,6 +37,7 @@ type (
 
 func newConfigFileGroupBucket() *configFileGroupBucket {
 	b := &configFileGroupBucket{
+		id2groups:   map[uint64]*configGroupEntry{},
 		name2groups: map[string]*subConfigFileGroupBucket{},
 	}
 
