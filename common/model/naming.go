@@ -504,12 +504,12 @@ const (
 
 // DiscoverEvent 服务发现事件
 type DiscoverEvent struct {
-	Namespace     string
-	Service       string
-	Host          string
-	Port          int
-	EType         DiscoverEventType
-	CreateTimeSec int64
+	Namespace  string
+	Service    string
+	Host       string
+	Port       int
+	EType      DiscoverEventType
+	CreateTime time.Time
 }
 
 // InstanceCount Service instance statistics

@@ -19,6 +19,7 @@ package local
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -31,18 +32,19 @@ func TestEventBufferTest(t *testing.T) {
 
 	expectCnt := int64(0)
 	for i := 0; i < 10; i++ {
+		now := time.Now()
 		bufferHolder.Put(model.DiscoverEvent{
-			CreateTimeSec: int64(i),
+			CreateTime: now,
 		})
 
-		expectCnt += int64(i)
+		expectCnt += now.Unix()
 	}
 
 	actualCnt := int64(0)
 
 	for bufferHolder.HasNext() {
 		event := bufferHolder.Next()
-		actualCnt += event.CreateTimeSec
+		actualCnt += event.CreateTime.Unix()
 	}
 
 	assert.Equal(t, expectCnt, actualCnt, "cnt must be equla")
@@ -51,17 +53,20 @@ func TestEventBufferTest(t *testing.T) {
 
 	expectCnt = int64(0)
 	for i := 20; i < 40; i++ {
+		now := time.Now()
 		bufferHolder.Put(model.DiscoverEvent{
-			CreateTimeSec: int64(i),
+			CreateTime: now,
 		})
 
-		expectCnt += int64(i)
+		expectCnt += now.Unix()
 	}
 
 	actualCnt = int64(0)
 
 	for bufferHolder.HasNext() {
 		event := bufferHolder.Next()
-		actualCnt += event.CreateTimeSec
+		actualCnt += event.CreateTime.Unix()
 	}
+
+	assert.Equal(t, expectCnt, actualCnt, "cnt must be equla")
 }
