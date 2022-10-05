@@ -19,6 +19,7 @@ package config
 
 import (
 	"context"
+	"fmt"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -70,7 +71,7 @@ func (s *serverAuthability) QueryConfigFileGroups(ctx context.Context, namespace
 			// 如果鉴权能力没有开启，那就默认都可以进行编辑
 			if s.checker.IsOpenConsoleAuth() {
 				editable = s.targetServer.caches.AuthStrategy().IsResourceEditable(principal,
-					api.ResourceType_ConfigGroups, group.Id.String())
+					api.ResourceType_ConfigGroups, fmt.Sprintf("%d", group.GetId().GetValue()))
 			}
 			group.Editable = utils.NewBoolValue(editable)
 		}

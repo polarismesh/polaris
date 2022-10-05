@@ -178,6 +178,10 @@ func (s *serverAuthability) queryConfigGroupRsEntryByNames(ctx context.Context, 
 			return nil, err
 		}
 
+		if data == nil {
+			continue
+		}
+
 		configFileGroups = append(configFileGroups, data)
 	}
 

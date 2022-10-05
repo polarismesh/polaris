@@ -124,7 +124,20 @@ func (b *configFileGroupBucket) runCleanExpire(ctx context.Context, interval tim
 	for {
 		select {
 		case <-ticker.C:
-			job := func() {
+			cleanId2Group := func() {
+				b.lock.Lock()
+				defer b.lock.Unlock()
+
+				tn := time.Now().Unix()
+				for i := range b.id2groups {
+					item := b.id2groups[i]
+					if item.expireTimeSec < tn {
+						delete(b.id2groups, i)
+					}
+				}
+			}
+
+			cleanName2Group := func() {
 				b.lock.RLock()
 				defer b.lock.RUnlock()
 
@@ -134,7 +147,8 @@ func (b *configFileGroupBucket) runCleanExpire(ctx context.Context, interval tim
 				}
 			}
 
-			job()
+			cleanId2Group()
+			cleanName2Group()
 		case <-ctx.Done():
 			return
 		}
@@ -162,10 +176,14 @@ func (b *subConfigFileGroupBucket) saveGroup(namespace, group string, item *mode
 	}
 
 	if entry.empty {
+		entry.item = &model.ConfigFileGroup{
+			Name:      group,
+			Namespace: namespace,
+		}
 		entry.expireTimeSec = time.Now().Add(10 * time.Second).Unix()
 	}
 
-	b.name2groups[item.Name] = entry
+	b.name2groups[group] = entry
 }
 
 func (b *subConfigFileGroupBucket) getGroupByName(group string) *model.ConfigFileGroup {
@@ -174,6 +192,9 @@ func (b *subConfigFileGroupBucket) getGroupByName(group string) *model.ConfigFil
 
 	entry, ok := b.name2groups[group]
 	if !ok {
+		return nil
+	}
+	if entry.empty {
 		return nil
 	}
 	return entry.item

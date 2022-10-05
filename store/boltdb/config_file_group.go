@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -270,15 +269,36 @@ func (fg *configFileGroupStore) FindConfigFileGroups(namespace string,
 }
 
 func (fg *configFileGroupStore) GetConfigFileGroupById(id uint64) (*model.ConfigFileGroup, error) {
-	idStr := strconv.FormatUint(id, 10)
-	keys := []string{strconv.FormatUint(id, 10)}
-	ret, err := fg.handler.LoadValues(tblConfigFileGroup, keys, &model.ConfigFileGroup{})
+
+	fields := []string{FileGroupFieldId, FileGroupFieldValid}
+
+	ret, err := fg.handler.LoadValuesByFilter(tblConfigFileGroup, fields, &model.ConfigFileGroup{},
+		func(m map[string]interface{}) bool {
+			if valid, _ := m[FileGroupFieldValid].(bool); !valid {
+				return false
+			}
+			saveId := m[FileGroupFieldId].(uint64)
+
+			return saveId == id
+		})
 	if err != nil {
 		log.Error("[ConfigFileGroup] find by id", zap.Error(err))
 		return nil, err
 	}
-	group := ret[idStr].(*model.ConfigFileGroup)
-	return group, nil
+
+	if len(ret) == 0 {
+		return nil, nil
+	}
+
+	if len(ret) > 1 {
+		return nil, ErrMultipleConfigFileGroupFound
+	}
+
+	for k := range ret {
+		return ret[k].(*model.ConfigFileGroup), nil
+	}
+
+	return nil, nil
 }
 
 // doConfigFileGroupPage 进行分页
