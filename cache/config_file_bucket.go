@@ -31,8 +31,6 @@ type (
 		expireTimeSec int64
 		empty         bool
 	}
-
-	ConfigGroupIterProc func(entry *configGroupEntry)
 )
 
 func newConfigFileGroupBucket() *configFileGroupBucket {
@@ -46,15 +44,15 @@ func newConfigFileGroupBucket() *configFileGroupBucket {
 
 type configFileGroupBucket struct {
 	lock sync.RWMutex
+	name2groups map[string]*subConfigFileGroupBucket
 
 	idlock      sync.RWMutex
 	id2groups   map[uint64]*configGroupEntry
-	name2groups map[string]*subConfigFileGroupBucket
 }
 
 func (b *configFileGroupBucket) saveGroupById(id uint64, item *model.ConfigFileGroup) {
-	b.lock.Lock()
-	defer b.lock.Unlock()
+	b.idlock.Lock()
+	defer b.idlock.Unlock()
 
 	b.id2groups[id] = &configGroupEntry{
 		item:          item,
@@ -110,23 +108,14 @@ func (b *configFileGroupBucket) getGroupById(id uint64) *model.ConfigFileGroup {
 	return item.item
 }
 
-func (b *configFileGroupBucket) IteratorConfigGroup(proc ConfigGroupIterProc) {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
-
-	for i := range b.name2groups {
-		b.name2groups[i].IteratorConfigGroup(proc)
-	}
-}
-
 func (b *configFileGroupBucket) runCleanExpire(ctx context.Context, interval time.Duration, expireTime int64) {
 	ticker := time.NewTicker(interval)
 	for {
 		select {
 		case <-ticker.C:
 			cleanId2Group := func() {
-				b.lock.Lock()
-				defer b.lock.Unlock()
+				b.idlock.Lock()
+				defer b.idlock.Unlock()
 
 				tn := time.Now().Unix()
 				for i := range b.id2groups {
@@ -198,15 +187,6 @@ func (b *subConfigFileGroupBucket) getGroupByName(group string) *model.ConfigFil
 		return nil
 	}
 	return entry.item
-}
-
-func (b *subConfigFileGroupBucket) IteratorConfigGroup(proc ConfigGroupIterProc) {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
-
-	for i := range b.name2groups {
-		proc(b.name2groups[i])
-	}
 }
 
 func (b *subConfigFileGroupBucket) cleanExpire(expire int64) {
