@@ -98,13 +98,25 @@ naming:
       queueSize: 10240
       waitTime: 32ms
       maxBatchCount: 32
-      concurrency: 16
+      concurrency: 64
     deregister:
       open: true
       queueSize: 10240
       waitTime: 32ms
       maxBatchCount: 32
-      concurrency: 16
+      concurrency: 64
+    clientRegister:
+      open: true
+      queueSize: 10240
+      waitTime: 32s
+      maxBatchCount: 1024
+      concurrency: 64
+    clientDeregister:
+      open: true
+      queueSize: 10240
+      waitTime: 32ms
+      maxBatchCount: 32
+      concurrency: 64
 # 配置中心模块启动配置
 config:
   # 是否启动配置模块
@@ -122,21 +134,9 @@ healthcheck:
       queueSize: 10240
       waitTime: 32ms
       maxBatchCount: 32
-      concurrency: 8
+      concurrency: 64
   checkers:
     - name: heartbeatMemory
-#  - name: heartbeatRedis
-#    option:
-#      kvAddr: ##REDIS_ADDR##
-#      kvUser: ##REDIS_USER#
-#      kvPasswd: ##REDIS_PWD##
-#      poolSize: 200
-#      minIdleConns: 30
-#      idleTimeout: 120s
-#      connectTimeout: 200ms
-#      msgTimeout: 200ms
-#      concurrency: 200
-#      withTLS: false
 # 缓存配置
 cache:
   open: true
@@ -149,26 +149,37 @@ cache:
       option:
         disableBusiness: false # 不加载业务服务实例
         needMeta: true # 加载实例元数据
+    - name: routingConfig # 加载路由数据
+    - name: rateLimitConfig # 加载限流数据
+    - name: circuitBreakerConfig # 加载熔断数据
+    - name: users # 加载用户、用户组数据
+    - name: strategyRule # 加载鉴权规则数据
+    - name: namespace # 加载命名空间数据
+    - name: client # 加载命名空间数据
+    - name: configFile
+      option:
+        #配置文件缓存过期时间，单位s
+        expireTimeAfterWrite: 3600
 #    - name: l5 # 加载l5数据
 # 存储配置
 store:
   # 单机文件存储插件
-  name: boltdbStore
-  option:
-    path: ./polaris.bolt
-  ## 数据库存储插件
-  # name: defaultStore
+  # name: boltdbStore
   # option:
-  #   master:
-  #     dbType: mysql
-  #     dbName: polaris_server
-  #     dbUser: root ##DB_USER##
-  #     dbPwd: polaris ##DB_PWD##
-  #     dbAddr: "127.0.0.1:3306" ##DB_ADDR##
-  #     maxOpenConns: -1
-  #     maxIdleConns: -1
-  #     connMaxLifetime: 300 # 单位秒
-  #     txIsolationLevel: 2 #LevelReadCommitted
+  #   path: ./polaris.bolt
+  ## 数据库存储插件
+  name: defaultStore
+  option:
+    master:
+      dbType: mysql
+      dbName: polaris_server
+      dbUser: root ##DB_USER##
+      dbPwd: polaris ##DB_PWD##
+      dbAddr: "127.0.0.1:3306" ##DB_ADDR##
+      maxOpenConns: -1
+      maxIdleConns: -1
+      connMaxLifetime: 300 # 单位秒
+      txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置
 plugin:
   history:

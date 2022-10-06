@@ -398,6 +398,12 @@ func (us *userStore) getUsers(filters map[string]string, offset uint32, limit ui
 				}
 			}
 
+			if queryId, ok := filters["id"]; ok {
+				if queryId != saveId {
+					return false
+				}
+			}
+
 			return true
 		})
 

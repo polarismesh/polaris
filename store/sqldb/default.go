@@ -76,7 +76,6 @@ type stableStore struct {
 	// 备数据库，提供只读
 	slave    *BaseDB
 	start    bool
-	metaTask *TaskManager
 }
 
 // Name 实现Name函数
