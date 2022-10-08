@@ -19,6 +19,7 @@ package batch
 
 import (
 	"context"
+	"time"
 
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -137,6 +138,7 @@ func (bc *Controller) AsyncCreateInstance(svcId string, instance *api.Instance, 
 		serviceId: svcId,
 		needWait:  needWait,
 		request:   instance,
+		begin:     time.Now(),
 	}
 
 	if needWait {

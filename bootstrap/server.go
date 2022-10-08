@@ -26,24 +26,25 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
-
-	"github.com/polarismesh/polaris-server/auth"
-	"github.com/polarismesh/polaris-server/cache"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/maintain"
-	"github.com/polarismesh/polaris-server/namespace"
-	"github.com/polarismesh/polaris-server/service/batch"
-	"github.com/polarismesh/polaris-server/service/healthcheck"
+	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris-server/apiserver"
+	"github.com/polarismesh/polaris-server/auth"
 	boot_config "github.com/polarismesh/polaris-server/bootstrap/config"
+	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/metrics"
+	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/common/version"
 	config_center "github.com/polarismesh/polaris-server/config"
+	"github.com/polarismesh/polaris-server/maintain"
+	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service"
+	"github.com/polarismesh/polaris-server/service/batch"
+	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"github.com/polarismesh/polaris-server/store"
 )
 
@@ -63,7 +64,12 @@ func Start(configFilePath string) {
 		return
 	}
 
-	fmt.Printf("[INFO] %+v\n", *cfg)
+	c, err := yaml.Marshal(cfg)
+	if err != nil {
+		fmt.Printf("[ERROR] config yaml marshal fail\n")
+		return
+	}
+	fmt.Printf(string(c))
 
 	// 初始化日志打印
 	err = log.Configure(cfg.Bootstrap.Logger)
@@ -82,6 +88,8 @@ func Start(configFilePath string) {
 		fmt.Printf("[ERROR] acquire localhost fail: %v\n", err)
 		return
 	}
+
+	metrics.InitMetrics()
 
 	// 设置插件配置
 	plugin.SetPluginConfig(&cfg.Plugin)
@@ -186,7 +194,7 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 	}
 
 	// 最后启动 cache
-	if err := cache.Run(ctx); err != nil {
+	if err := cache.Run(cacheMgn, ctx); err != nil {
 		return err
 	}
 
@@ -238,13 +246,28 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		return err
 	}
 	healthCheckServer.SetServiceCache(cacheMgn.Service())
+	healthCheckServer.SetInstanceCache(cacheMgn.Instance())
 
 	// 为 instance 的 cache 添加 健康检查的 Listener
 	cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
 	cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
 
+	namespaceSvr, err := namespace.GetServer()
+	if err != nil {
+		return err
+	}
+
+	opts := []service.InitOption{
+		service.WithBatchController(bc),
+		service.WithStorage(s),
+		service.WithCacheManager(&cfg.Cache, cacheMgn),
+		service.WithHealthCheckSvr(healthCheckServer),
+		service.WithNamespaceSvr(namespaceSvr),
+		service.WithHiddenService(map[model.ServiceKey]struct{}{}),
+	}
+
 	// 初始化服务模块
-	if err = service.Initialize(ctx, &cfg.Naming, &cfg.Cache, bc); err != nil {
+	if err = service.Initialize(ctx, &cfg.Naming, opts...); err != nil {
 		return err
 	}
 
@@ -259,7 +282,13 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 // StartConfigCenterComponents 启动配置中心模块
 func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config, s store.Store,
 	cacheMgn *cache.CacheManager, authMgn auth.AuthServer) error {
-	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, authMgn)
+
+	namespaceOperator, err := namespace.GetServer()
+	if err != nil {
+		return err
+	}
+
+	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, namespaceOperator, authMgn)
 }
 
 // StartServers 启动server
@@ -328,7 +357,7 @@ func StopServers(servers []apiserver.Apiserver) {
 	}
 }
 
-// StartBootstrapOrder 开始进入启动加锁
+// StartBootstrapInOrder 开始进入启动加锁
 // 原因：Server启动的时候会从数据库拉取大量数据，防止同时启动把DB压死
 // 还有一种场景，server全部宕机批量重启，导致数据库被压死，导致雪崩
 func StartBootstrapInOrder(s store.Store, c *boot_config.Config) (store.Transaction, error) {
@@ -579,4 +608,20 @@ func getLocalHost(addr string) (string, error) {
 	}
 
 	return segs[0], nil
+}
+
+// getSelfRegisterPolarsServiceKeySet 获取自注册的系统服务集合
+func getSelfRegisterPolarsServiceKeySet(polarisServiceCfg *boot_config.PolarisService) map[model.ServiceKey]struct{} {
+	if polarisServiceCfg == nil {
+		return nil
+	}
+	polarisServiceSet := make(map[model.ServiceKey]struct{})
+	for _, svc := range polarisServiceCfg.Services {
+		ns, n := svc.Namespace, svc.Name
+		if ns == "" {
+			ns = boot_config.DefaultPolarisNamespace
+		}
+		polarisServiceSet[model.ServiceKey{Namespace: ns, Name: n}] = struct{}{}
+	}
+	return polarisServiceSet
 }

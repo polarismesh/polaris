@@ -1,0 +1,136 @@
+version: '3.9'
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  vlm_data_mysql:
+    external: true
+  vlm_data_redis:
+    external: true
+
+services:
+  polaris-server:
+    container_name: polaris-server
+    hostname: polaris-server
+    image: polarismesh/polaris-server:##POLARIS_SERVER_VERSION##
+    restart: always
+    volumes:
+      - ./server/polaris-server.yaml:/root/polaris-server.yaml
+    expose: # 用于北极星集群内部访问
+      - 8090    # api-http
+      - 8091    # service-grpc
+      - 9000    # prometheus-sd
+      - 8093    # config-grpc
+      - 8761    # service-eureka
+      - 15010   # xds-v3
+    ports: # 用于其他服务访问北极星
+      - "8090:8090" # api-http
+      - "8091:8091" # service-grpc
+    networks:
+      - backend
+    links:
+      - mysql
+      - redis
+    depends_on:
+      - redis
+      - mysql
+  polaris-console:
+    container_name: polaris-console
+    hostname: polaris-console
+    image: polarismesh/polaris-console:##POLARIS_CONSOLE_VERSION##
+    volumes:
+      - ./console/polaris-console.yaml:/root/polaris-console.yaml
+    ports:
+      - "8080:8080"
+    networks:
+      - backend
+    depends_on:
+      - polaris-server
+      - polaris-pushgateway
+    links:
+      - polaris-server
+      - polaris-pushgateway
+  polaris-limiter:
+    container_name: polaris-limiter
+    hostname: polaris-limiter
+    image: polarismesh/polaris-limiter:##POLARIS_LIMITER_VERSION##
+    volumes:
+      - ./limiter/polaris-limiter.yaml:/root/polaris-limiter.yaml
+    ports:
+      - "8100:8100"
+      - "8101:8101"
+    networks:
+      - backend
+    depends_on:
+      - polaris-server
+    links:
+      - polaris-server
+  mysql:
+    container_name: mysql
+    hostname: mysql
+    platform: linux/amd64
+    build: mysql
+    restart: always
+    command: mysqld --optimizer-trace-max-mem-size=102400
+    environment:
+      - TZ=Asia/Shanghai
+      - LANG=zh_CN.utf8
+      - MYSQL_DATABASE=default
+      - MYSQL_USER=default
+      - MYSQL_PASSWORD=secret
+      - MYSQL_ROOT_PASSWORD=polaris
+    volumes:
+      - vlm_data_mysql:/var/lib/mysql
+      - ./mysql/mysqld.cnf:/etc/mysql/conf.d/custom.cnf:cached
+      - ../../../store/sqldb/scripts/polaris_server.sql:/docker-entrypoint-initdb.d/polaris_server.sql
+    ports:
+      - "3306:3306"
+    expose:
+      - 3306
+    networks:
+      - backend
+  redis:
+    image: 'bitnami/redis:latest'
+    restart: always
+    environment:
+      - REDIS_PASSWORD=polaris
+    volumes:
+      - vlm_data_redis:/data
+    networks:
+      - backend
+    expose:
+      - 6379
+  polaris-prometheus:
+    container_name: polaris-prometheus
+    hostname: polaris-prometheus
+    image: polarismesh/polaris-prometheus:##POLARIS_PROMETHEUS_VERSION##
+    networks:
+      - backend
+    expose:
+      - 9090
+    links:
+      - polaris-server # 采集北极星性能
+  polaris-pushgateway:
+    container_name: polaris-pushgateway
+    image: prom/pushgateway:latest
+    hostname: polaris-pushgateway
+    networks:
+      - backend
+    expose:
+      - 9091
+  polaris-grafana:
+    container_name: polaris-grafana
+    build: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning/:/etc/grafana/provisioning/:rw
+      - ./grafana/dashboards:/etc/grafana/dashboards/:rw
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini:rw
+    depends_on:
+      - polaris-prometheus
+      - polaris-pushgateway
+    networks:
+      - backend

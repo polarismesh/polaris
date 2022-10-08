@@ -19,8 +19,8 @@ function uninstallPolarisServer() {
   echo -e "uninstall polaris server ... "
   local polaris_server_dirname=$(find . -name "polaris-server-release*" -type d | awk 'NR==1{print}')
   if [ ! -e ${polaris_server_dirname} ]; then
-     echo -e "${polaris_server_dirname} not exists, skip"
-     return
+    echo -e "${polaris_server_dirname} not exists, skip"
+    return
   fi
   pushd ${polaris_server_dirname}
   echo -e "start to execute polaris-server uninstall script"
@@ -35,8 +35,8 @@ function uninstallPolarisConsole() {
   echo -e "uninstall polaris console ... "
   local polaris_console_dirname=$(find . -name "polaris-console-release*" -type d | awk 'NR==1{print}')
   if [ ! -e ${polaris_console_dirname} ]; then
-     echo -e "${polaris_console_dirname} not exists, skip"
-     return
+    echo -e "${polaris_console_dirname} not exists, skip"
+    return
   fi
   pushd ${polaris_console_dirname}
   echo -e "start to execute polaris-console uninstall script"
@@ -47,11 +47,27 @@ function uninstallPolarisConsole() {
   echo -e "uninstall polaris console success"
 }
 
+function uninstallPolarisLimiter() {
+  echo -e "uninstall polaris limiter ... "
+  local polaris_limiter_dirname=$(find . -name "polaris-limiter-release*" -type d | awk 'NR==1{print}')
+  if [ ! -e ${polaris_limiter_dirname} ]; then
+    echo -e "${polaris_limiter_dirname} not exists, skip"
+    return
+  fi
+  pushd ${polaris_limiter_dirname}
+  echo -e "start to execute polaris-limiter uninstall script"
+  /bin/bash ./tool/stop.sh
+  popd
+  echo -e "start to remove ${polaris_limiter_dirname}"
+  rm -rf ${polaris_limiter_dirname}
+  echo -e "uninstall polaris limiter success"
+}
+
 function uninstallPrometheus() {
-  echo -e "uninstall prometheus ... "
-  local pid=$(ps -ef | grep prometheus | grep -v grep | awk '{print $2}')
+  echo -e "uninstall polaris-prometheus ... "
+  local pid=$(ps -ef | grep polaris-prometheus | grep -v grep | awk '{print $2}')
   if [ "${pid}" != "" ]; then
-    echo -e "start to kill prometheus process ${pid}"
+    echo -e "start to kill polaris-prometheus process ${pid}"
     kill ${pid}
   fi
   local prometheus_dirname=$(find . -name "prometheus*" -type d | awk 'NR==1{print}')
@@ -59,29 +75,14 @@ function uninstallPrometheus() {
     echo -e "start to remove ${prometheus_dirname}"
     rm -rf ${prometheus_dirname}
   fi
-  echo -e "uninstall prometheus success"
+  echo -e "uninstall polaris-prometheus success"
 }
 
-function uninstallPushGateway() {
-  echo -e "uninstall pushgateway ... "
-  local pid=$(ps -ef | grep pushgateway | grep -v grep | awk '{print $2}')
-  if [ "${pid}" != "" ]; then
-    echo -e "start to kill pushgateway process ${pid}"
-    kill ${pid}
-  fi
-  local pushgateway_dirname=$(find . -name "pushgateway*" -type d | awk 'NR==1{print}')
-  if [ -e ${pushgateway_dirname} ]; then
-    echo -e "start to remove ${pushgateway_dirname}"
-    rm -rf ${pushgateway_dirname}
-  fi
-  echo -e "uninstall pushgateway success"
-}
-
-# 卸载server
+# 卸载 server
 uninstallPolarisServer
-# 安装console
+# 卸载 console
 uninstallPolarisConsole
-# 安装Prometheus
+# 卸载 limiter
+uninstallPolarisLimiter
+# 卸载 prometheus
 uninstallPrometheus
-# 安装PushGateWay
-uninstallPushGateway

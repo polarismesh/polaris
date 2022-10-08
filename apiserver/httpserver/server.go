@@ -20,21 +20,26 @@ package httpserver
 import (
 	"context"
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/secure"
 	"net"
 	"net/http"
 	"net/http/pprof"
 	"strings"
 	"time"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris-server/apiserver"
+	httpcommon "github.com/polarismesh/polaris-server/apiserver/httpserver/http"
+	v1 "github.com/polarismesh/polaris-server/apiserver/httpserver/v1"
+	v2 "github.com/polarismesh/polaris-server/apiserver/httpserver/v2"
 	"github.com/polarismesh/polaris-server/auth"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/connlimit"
+	commonlog "github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/metrics"
+	"github.com/polarismesh/polaris-server/common/secure"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/config"
 	"github.com/polarismesh/polaris-server/maintain"
@@ -57,7 +62,8 @@ type HTTPServer struct {
 	restart         bool
 	exitCh          chan struct{}
 
-	enablePprof bool
+	enablePprof   bool
+	enableSwagger bool
 
 	server            *http.Server
 	maintainServer    maintain.MaintainOperateServer
@@ -68,6 +74,9 @@ type HTTPServer struct {
 	rateLimit         plugin.Ratelimit
 	statis            plugin.Statis
 	auth              plugin.Auth
+
+	v1Server v1.HTTPServerV1
+	v2Server v2.HTTPServerV2
 
 	authServer auth.AuthServer
 }
@@ -95,6 +104,7 @@ func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{}
 	h.listenIP = option["listenIP"].(string)
 	h.listenPort = uint32(option["listenPort"].(int))
 	h.enablePprof, _ = option["enablePprof"].(bool)
+	h.enableSwagger, _ = option["enableSwagger"].(bool)
 	// 连接数限制的配置
 	if raw, _ := option["connLimit"].(map[interface{}]interface{}); raw != nil {
 		connLimitConfig, err := connlimit.ParseConnLimitConfig(raw)
@@ -120,9 +130,9 @@ func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{}
 			return err
 		}
 		h.tlsInfo = &secure.TLSInfo{
-			CertFile:      tlsConfig.Cert,
-			KeyFile:       tlsConfig.Key,
-			TrustedCAFile: tlsConfig.CaCert,
+			CertFile:      tlsConfig.CertFile,
+			KeyFile:       tlsConfig.KeyFile,
+			TrustedCAFile: tlsConfig.TrustedCAFile,
 		}
 	}
 
@@ -188,6 +198,9 @@ func (h *HTTPServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
+
+	h.v1Server = *v1.NewV1Server(h.namespaceServer, h.namingServer, h.healthCheckServer)
+	h.v2Server = *v2.NewV2Server(h.namespaceServer, h.namingServer, h.healthCheckServer)
 
 	// 初始化http server
 	address := fmt.Sprintf("%v:%v", h.listenIP, h.listenPort)
@@ -319,16 +332,22 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 			}
 		case "console":
 			if config.Enable {
-				namingService, err := h.GetNamingConsoleAccessServer(config.Include)
+				namingServiceV1, err := h.v1Server.GetNamingConsoleAccessServer(config.Include)
 				if err != nil {
 					return nil, err
 				}
-				wsContainer.Add(namingService)
+				wsContainer.Add(namingServiceV1)
+
+				namingServiceV2, err := h.v2Server.GetNamingConsoleAccessServer(config.Include)
+				if err != nil {
+					return nil, err
+				}
+				wsContainer.Add(namingServiceV2)
 
 				ws := new(restful.WebService)
 				ws.Path("/core/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
 
-				if err := h.GetCoreConsoleAccessServer(ws, config.Include); err != nil {
+				if err := h.GetCoreV1ConsoleAccessServer(ws, config.Include); err != nil {
 					return nil, err
 				}
 				if err := h.GetAuthServer(ws); err != nil {
@@ -339,11 +358,17 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 			}
 		case "client":
 			if config.Enable {
-				service, err := h.GetClientAccessServer(config.Include)
+				serviceV1, err := h.v1Server.GetClientAccessServer(config.Include)
 				if err != nil {
 					return nil, err
 				}
-				wsContainer.Add(service)
+				wsContainer.Add(serviceV1)
+
+				serviceV2, err := h.v2Server.GetClientAccessServer(config.Include)
+				if err != nil {
+					return nil, err
+				}
+				wsContainer.Add(serviceV2)
 			}
 		case "config":
 			if config.Enable {
@@ -361,6 +386,10 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 
 	if h.enablePprof {
 		h.enablePprofAccess(wsContainer)
+	}
+
+	if h.enableSwagger {
+		h.enableSwaggerAPI(wsContainer)
 	}
 
 	statis := plugin.GetStatis()
@@ -384,9 +413,7 @@ func (h *HTTPServer) enablePprofAccess(wsContainer *restful.Container) {
 func (h *HTTPServer) enablePrometheusAccess(wsContainer *restful.Container) {
 	log.Infof("open http access for prometheus")
 
-	statics := plugin.GetStatis().(*local.StatisWorker)
-
-	wsContainer.Handle("/metrics", statics.GetPrometheusHandler())
+	wsContainer.Handle("/metrics", metrics.GetHttpHandler())
 }
 
 // process 在接收和回复时统一处理请求
@@ -416,8 +443,15 @@ func (h *HTTPServer) preprocess(req *restful.Request, rsp *restful.Response) err
 	platformID := req.HeaderParameter("Platform-Id")
 	requestURL := req.Request.URL.String()
 	if !strings.Contains(requestURL, Discover) {
+		var scope *commonlog.Scope
+		if strings.Contains(requestURL, "naming") {
+			scope = namingLog
+		} else {
+			scope = configLog
+		}
+
 		// 打印请求
-		log.Info("receive request",
+		scope.Info("receive request",
 			zap.String("client-address", req.Request.RemoteAddr),
 			zap.String("user-agent", req.HeaderParameter("User-Agent")),
 			zap.String("request-id", requestID),
@@ -466,7 +500,14 @@ func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 	diff := now.Sub(startTime)
 	// 打印耗时超过1s的请求
 	if diff > time.Second {
-		log.Info("handling time > 1s",
+		var scope *commonlog.Scope
+		if strings.Contains(path, "naming") {
+			scope = namingLog
+		} else {
+			scope = configLog
+		}
+
+		scope.Info("handling time > 1s",
 			zap.String("client-address", req.Request.RemoteAddr),
 			zap.String("user-agent", req.HeaderParameter("User-Agent")),
 			zap.String("request-id", req.HeaderParameter("Request-Id")),
@@ -504,7 +545,7 @@ func (h *HTTPServer) enterAuth(req *restful.Request, rsp *restful.Response) erro
 			zap.String("request-id", rid),
 			zap.String("platform-id", pid),
 			zap.String("platform-token", pToken))
-		HTTPResponse(req, rsp, api.NotAllowedAccess)
+		httpcommon.HTTPResponse(req, rsp, api.NotAllowedAccess)
 		return errors.New("http access is not allowed")
 	}
 	return nil
@@ -528,7 +569,7 @@ func (h *HTTPServer) enterRateLimit(req *restful.Request, rsp *restful.Response)
 	if ok := h.rateLimit.Allow(plugin.IPRatelimit, segments[0]); !ok {
 		log.Error("ip ratelimit is not allow", zap.String("client", address),
 			zap.String("request-id", rid))
-		HTTPResponse(req, rsp, api.IPRateLimit)
+		httpcommon.HTTPResponse(req, rsp, api.IPRateLimit)
 		return errors.New("ip ratelimit is not allow")
 	}
 
@@ -538,7 +579,7 @@ func (h *HTTPServer) enterRateLimit(req *restful.Request, rsp *restful.Response)
 	if ok := h.rateLimit.Allow(plugin.APIRatelimit, apiName); !ok {
 		log.Error("api ratelimit is not allow", zap.String("client", address),
 			zap.String("request-id", rid), zap.String("api", apiName))
-		HTTPResponse(req, rsp, api.APIRateLimit)
+		httpcommon.HTTPResponse(req, rsp, api.APIRateLimit)
 		return errors.New("api ratelimit is not allow")
 	}
 

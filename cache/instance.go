@@ -18,12 +18,14 @@
 package cache
 
 import (
+	"strconv"
 	"sync"
 	"time"
 
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
@@ -55,26 +57,31 @@ type InstanceCache interface {
 	GetInstancesCount() int
 	// GetInstancesCountByServiceID 根据服务ID获取实例数
 	GetInstancesCountByServiceID(serviceID string) model.InstanceCount
+	// GetServicePorts 根据服务ID获取端口号
+	GetServicePorts(serviceID string) []string
+	// GetInstanceLabels Get the label of all instances under a service
+	GetInstanceLabels(serviceID string) *api.InstanceLabels
 }
 
 // instanceCache 实例缓存的类
 type instanceCache struct {
 	*baseCache
 
-	storage          store.Store
-	lastMtime        int64
-	lastMtimeLogged  int64
-	firstUpdate      bool
-	ids              *sync.Map // instanceid -> instance
-	services         *sync.Map // service id -> [instanceid ->instance]
-	instanceCounts   *sync.Map // service id -> [instanceCount]
-	revisionCh       chan *revisionNotify
-	disableBusiness  bool
-	needMeta         bool
-	systemServiceID  []string
-	singleFlight     *singleflight.Group
-	instanceCount    int64
-	lastCheckAllTime int64
+	storage            store.Store
+	lastMtime          int64
+	lastMtimeLogged    int64
+	firstUpdate        bool
+	ids                *sync.Map // instanceid -> instance
+	services           *sync.Map // service id -> [instanceid ->instance]
+	instanceCounts     *sync.Map // service id -> [instanceCount]
+	servicePortsBucket *servicePortsBucket
+	revisionCh         chan *revisionNotify
+	disableBusiness    bool
+	needMeta           bool
+	systemServiceID    []string
+	singleFlight       *singleflight.Group
+	instanceCount      int64
+	lastCheckAllTime   int64
 }
 
 func init() {
@@ -96,6 +103,10 @@ func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 	ic.ids = new(sync.Map)
 	ic.services = new(sync.Map)
 	ic.instanceCounts = new(sync.Map)
+	ic.servicePortsBucket = &servicePortsBucket{
+		lock:         sync.RWMutex{},
+		servicePorts: make(map[string]map[string]struct{}),
+	}
 	ic.lastMtime = 0
 	ic.firstUpdate = true
 	if opt == nil {
@@ -183,6 +194,7 @@ func (ic *instanceCache) clear() error {
 	ic.ids = new(sync.Map)
 	ic.services = new(sync.Map)
 	ic.instanceCounts = new(sync.Map)
+	ic.servicePortsBucket.reset()
 	ic.instanceCount = 0
 	ic.lastMtime = 0
 	return nil
@@ -255,12 +267,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 			item.Proto.Metadata = make(map[string]string)
 		}
 
-		if len(item.Version()) > 0 {
-			item.Proto.Metadata["version"] = item.Version()
-		}
-		if len(item.Protocol()) > 0 {
-			item.Proto.Metadata["protocol"] = item.Protocol()
-		}
+		item = fillInternalLabels(item)
 
 		ic.ids.Store(item.ID(), item)
 		if !itemExist {
@@ -274,6 +281,9 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 			value = new(sync.Map)
 			ic.services.Store(item.ServiceID, value)
 		}
+
+		ic.servicePortsBucket.appendPort(item.ServiceID, int(item.Port()))
+
 		value.(*sync.Map).Store(item.ID(), item)
 	}
 
@@ -290,6 +300,23 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 	ic.postProcessUpdatedServices(affect)
 	ic.manager.onEvent(affect, EventInstanceReload)
 	return update, del
+}
+
+func fillInternalLabels(item *model.Instance) *model.Instance {
+	if len(item.Version()) > 0 {
+		item.Proto.Metadata["version"] = item.Version()
+	}
+	if len(item.Protocol()) > 0 {
+		item.Proto.Metadata["protocol"] = item.Protocol()
+	}
+
+	if item.Location() != nil {
+		item.Proto.Metadata["region"] = item.Location().GetRegion().GetValue()
+		item.Proto.Metadata["zone"] = item.Location().GetZone().GetValue()
+		item.Proto.Metadata["campus"] = item.Location().GetCampus().GetValue()
+	}
+
+	return item
 }
 
 func (ic *instanceCache) postProcessUpdatedServices(affect map[string]bool) {
@@ -403,6 +430,50 @@ func (ic *instanceCache) GetInstancesCount() int {
 	return count
 }
 
+// GetInstanceLabels 获取某个服务下实例的所有标签信息集合
+func (ic *instanceCache) GetInstanceLabels(serviceID string) *api.InstanceLabels {
+	if serviceID == "" {
+		return &api.InstanceLabels{}
+	}
+
+	value, ok := ic.services.Load(serviceID)
+	if !ok {
+		return &api.InstanceLabels{}
+	}
+
+	ret := &api.InstanceLabels{
+		Labels: make(map[string]*api.StringList),
+	}
+
+	tmp := make(map[string]map[string]struct{})
+	iteratorInstancesProc(value.(*sync.Map), func(key string, value *model.Instance) (bool, error) {
+		metadata := value.Metadata()
+		for k, v := range metadata {
+			if _, ok := tmp[k]; !ok {
+				tmp[k] = make(map[string]struct{})
+			}
+			tmp[k][v] = struct{}{}
+		}
+		return true, nil
+	})
+
+	for k, v := range tmp {
+		if _, ok := ret.Labels[k]; !ok {
+			ret.Labels[k] = &api.StringList{Values: make([]string, 0, 4)}
+		}
+
+		for vv := range v {
+			ret.Labels[k].Values = append(ret.Labels[k].Values, vv)
+		}
+	}
+
+	return ret
+}
+
+func (ic *instanceCache) GetServicePorts(serviceID string) []string {
+	return ic.servicePortsBucket.listPort(serviceID)
+}
+
 // iteratorInstancesProc 迭代指定的instance数据，id->instance
 func iteratorInstancesProc(data *sync.Map, iterProc InstanceIterProc) error {
 	var cont bool
@@ -417,4 +488,52 @@ func iteratorInstancesProc(data *sync.Map, iterProc InstanceIterProc) error {
 
 	data.Range(proc)
 	return err
+}
+
+type servicePortsBucket struct {
+	lock sync.RWMutex
+	//servicePorts service-id -> []port
+	servicePorts map[string]map[string]struct{}
+}
+
+func (b *servicePortsBucket) reset() {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
+	b.servicePorts = make(map[string]map[string]struct{})
+}
+
+func (b *servicePortsBucket) appendPort(serviceID string, port int) {
+	if serviceID == "" || port == 0 {
+		return
+	}
+
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
+	if _, ok := b.servicePorts[serviceID]; !ok {
+		b.servicePorts[serviceID] = map[string]struct{}{}
+	}
+
+	ports := b.servicePorts[serviceID]
+	ports[strconv.FormatInt(int64(port), 10)] = struct{}{}
+}
+
+func (b *servicePortsBucket) listPort(serviceID string) []string {
+	b.lock.RLock()
+	defer b.lock.RUnlock()
+
+	ret := make([]string, 0, 4)
+
+	val, ok := b.servicePorts[serviceID]
+
+	if !ok {
+		return ret
+	}
+
+	for k := range val {
+		ret = append(ret, k)
+	}
+
+	return ret
 }

@@ -127,10 +127,11 @@ func (da *defaultAuth) checkAction(expect string, actual model.ResourceOperation
 }
 
 // checkAnyElementExist 检查待操作的资源是否符合鉴权资源列表的配置
-//  @param userId 当前的用户信息
-//  @param waitSearch 访问的资源
-//  @param searchMaps 鉴权策略中某一类型的资源列表信息
-//  @return bool 是否可以操作本次被访问的所有资源
+//
+//	@param userId 当前的用户信息
+//	@param waitSearch 访问的资源
+//	@param searchMaps 鉴权策略中某一类型的资源列表信息
+//	@return bool 是否可以操作本次被访问的所有资源
 func checkAnyElementExist(userId string, waitSearch []model.ResourceEntry, searchMaps *SearchMap) bool {
 	if len(waitSearch) == 0 {
 		return true

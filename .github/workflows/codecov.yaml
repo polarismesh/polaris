@@ -2,9 +2,13 @@ name: Codecov
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - release*
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+      - release*
 
 permissions:
   contents: write
@@ -14,9 +18,22 @@ env:
   GO111MODULE: on
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
+    services:
+    # Label used to access the service container
+      redis:
+        # Docker Hub image
+        image: redis
+        # Set health checks to wait until redis has started
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps port 6379 on service container to the host
+          - 6379:6379
     steps:
       # Setup the environment.
       - name: Setup Go
@@ -29,11 +46,99 @@ jobs:
         with:
           fetch-depth: 2
 
+      # close default MySQL-Server
+      - name: Shutdown default mysql
+        run: sudo service mysql stop
+
+      # run mysql server
+      - name: Create mysql database auth
+        uses: icomponent/mysql-action@master
+        with:
+          VERSION: 5.7
+          CONTAINER_NAME: mysql
+          PORT_MAPPING: 3306:3306
+          ROOT_PASSWORD: polaris
+          DATABASE: polaris_server
+
+      # Execute vert check
+      - name: Vert check
+        run: bash vert.sh -install && bash vert.sh
+
       - name: Go Test
         run: |
           # bash coverage.sh
-          go mod vendor && go test  -timeout 40m ./... -v -coverprofile=coverage.txt -coverpkg=github.com/polarismesh/polaris-server/auth/defaultauth,github.com/polarismesh/polaris-server/service,github.com/polarismesh/polaris-server/service/batch,github.com/polarismesh/polaris-server/cache,github.com/polarismesh/polaris-server/store/boltdb,github.com/polarismesh/polaris-server/store/sqldb,github.com/polarismesh/polaris-server/plugin/ratelimit/token,github.com/polarismesh/polaris-server/config,github.com/polarismesh/polaris-server/common/model
+          go mod vendor && go test  -timeout 40m ./... -v -coverprofile=coverage_1.cover -coverpkg=github.com/polarismesh/polaris-server/auth/defaultauth,github.com/polarismesh/polaris-server/service,github.com/polarismesh/polaris-server/service/batch,github.com/polarismesh/polaris-server/cache,github.com/polarismesh/polaris-server/store/boltdb,github.com/polarismesh/polaris-server/store/sqldb,github.com/polarismesh/polaris-server/plugin,github.com/polarismesh/polaris-server/config,github.com/polarismesh/polaris-server/common/model
 
+      # Run unit tests
+      - name: Go Test With DB
+        run: |
+          export STORE_MODE=sqldb
+          echo "cur STORE MODE=${STORE_MODE}"
 
-      - name: Coverage
-        run: bash <(curl -s https://codecov.io/bash)
+          # 设置严格模式
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set sql_mode='STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'";
+          # 清空数据
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
+          # 初始化 polaris 数据库
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/sqldb/scripts/polaris_server.sql
+          # 临时放开 DB 的最大连接数
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
+
+          pushd ./config
+          go mod vendor && go test -v -timeout 40m -v -coverprofile=coverage_sqldb_1.cover -coverpkg=github.com/polarismesh/polaris-server/auth/defaultauth,github.com/polarismesh/polaris-server/service,github.com/polarismesh/polaris-server/service/batch,github.com/polarismesh/polaris-server/cache,github.com/polarismesh/polaris-server/store/boltdb,github.com/polarismesh/polaris-server/store/sqldb,github.com/polarismesh/polaris-server/plugin,github.com/polarismesh/polaris-server/config,github.com/polarismesh/polaris-server/common/model
+          mv coverage_sqldb_1.cover ../
+          popd
+
+          sleep 10s
+
+          # 设置严格模式
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set sql_mode='STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'";
+          # 清空数据
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
+          # 初始化 polaris 数据库
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/sqldb/scripts/polaris_server.sql
+          # 临时放开 DB 的最大连接数
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
+
+          pushd ./service
+          go mod vendor && go test -v -timeout 40m -v -coverprofile=coverage_sqldb_2.cover -coverpkg=github.com/polarismesh/polaris-server/auth/defaultauth,github.com/polarismesh/polaris-server/service,github.com/polarismesh/polaris-server/service/batch,github.com/polarismesh/polaris-server/cache,github.com/polarismesh/polaris-server/store/boltdb,github.com/polarismesh/polaris-server/store/sqldb,github.com/polarismesh/polaris-server/plugin,github.com/polarismesh/polaris-server/config,github.com/polarismesh/polaris-server/common/model
+          mv coverage_sqldb_2.cover ../
+          popd
+
+      - name: Merge All Coverage
+        run: |
+          profile="coverage.out"
+          htmlfile="coverage.html"
+          mergecover="merge_cover"
+          mode="count"
+
+          grep -h -v "^mode:" *.cover | sort > $mergecover
+
+          cat $mergecover
+
+          echo "mode: $mode" > $profile
+          current=""
+          count=0
+          while read line; do
+              block=$(echo $line | cut -d ' ' -f1-2)
+              num=$(echo $line | cut -d ' ' -f3)
+              if [ "$current" == "" ]; then
+                  current=$block
+                  count=$num
+              elif [ "$block" == "$current" ]; then
+                  count=$(($count + $num))
+              else
+                  echo $current $count >> $profile
+                  current=$block
+                  count=$num
+              fi
+          done < $mergecover
+          
+          if [ "$current" != "" ]; then
+              echo $current $count >> $profile
+          fi
+
+          rm -rf *.cover
+
+      - name: Upload coverage reports to Codecov with GitHub Action
+        uses: codecov/codecov-action@v3

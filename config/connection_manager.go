@@ -22,9 +22,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/polarismesh/polaris-server/common/utils"
-
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 const (
@@ -43,11 +42,14 @@ type connManager struct {
 	stopWorkerFunc context.CancelFunc
 }
 
-var notModifiedResponse = &api.ConfigClientResponse{
-	Code:       utils.NewUInt32Value(api.DataNoChange),
-	ConfigFile: nil,
-}
-var cm *connManager
+var (
+	notModifiedResponse = &api.ConfigClientResponse{
+		Code:       utils.NewUInt32Value(api.DataNoChange),
+		ConfigFile: nil,
+	}
+
+	cm *connManager
+)
 
 // NewConfigConnManager 初始化连接管理器，定时响应超时的请求
 func NewConfigConnManager(ctx context.Context, watchCenter *watchCenter) *connManager {
@@ -61,23 +63,28 @@ func NewConfigConnManager(ctx context.Context, watchCenter *watchCenter) *connMa
 	return cm
 }
 
-func (c *connManager) AddConn(clientId string, watchConfigFiles []*api.ClientConfigFileInfo, finishChan chan *api.ConfigClientResponse) {
+func (c *connManager) AddConn(clientId string, files []*api.ClientConfigFileInfo) chan *api.ConfigClientResponse {
+
+	finishChan := make(chan *api.ConfigClientResponse)
+
 	cm.conns.Store(clientId, &connection{
 		finishTime:       time.Now().Add(defaultLongPollingTimeout),
 		finishChan:       finishChan,
-		watchConfigFiles: watchConfigFiles,
+		watchConfigFiles: files,
 	})
 
-	c.watchCenter.AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *api.ConfigClientResponse) bool {
+	c.watchCenter.AddWatcher(clientId, files, func(clientId string, rsp *api.ConfigClientResponse) bool {
 		connObj, ok := cm.conns.Load(clientId)
 		if ok {
 			conn := connObj.(*connection)
 			conn.finishChan <- rsp
-
+			close(conn.finishChan)
 			c.removeConn(clientId)
 		}
 		return true
 	})
+
+	return finishChan
 }
 
 func (c *connManager) removeConn(clientId string) {

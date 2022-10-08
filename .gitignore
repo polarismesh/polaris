@@ -1,4 +1,5 @@
 polaris-server
+polaris-server-*
 polaris-server-release*
 polaris-server-release.tar.gz
 
@@ -9,10 +10,12 @@ log/
 
 .idea
 .DS_Store
-coverage.txt
+coverage*
 
 *.swp
 *.code-workspace
+
+__debug_bin
 
 .vscode
 *.bolt

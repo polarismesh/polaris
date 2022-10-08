@@ -30,6 +30,7 @@ type ConfigFileModuleStore interface {
 	ConfigFileReleaseStore
 	ConfigFileReleaseHistoryStore
 	ConfigFileTagStore
+	ConfigFileTemplateStore
 }
 
 // ConfigFileGroupStore 配置文件组存储接口
@@ -52,6 +53,9 @@ type ConfigFileGroupStore interface {
 
 	// FindConfigFileGroups 获取一组配置文件组信息
 	FindConfigFileGroups(namespace string, names []string) ([]*model.ConfigFileGroup, error)
+
+	// GetConfigFileGroupById 根据Id获取文件组信息
+	GetConfigFileGroupById(id uint64) (*model.ConfigFileGroup, error)
 }
 
 // ConfigFileStore 配置文件存储接口
@@ -65,6 +69,9 @@ type ConfigFileStore interface {
 
 	// QueryConfigFiles 翻页查询配置文件，group、name可为模糊匹配
 	QueryConfigFiles(namespace, group, name string, offset, limit uint32) (uint32, []*model.ConfigFile, error)
+
+	// QueryConfigFilesByGroup query config file group's files
+	QueryConfigFilesByGroup(namespace, group string, offset, limit uint32) (uint32, []*model.ConfigFile, error)
 
 	// UpdateConfigFile 更新配置文件
 	UpdateConfigFile(tx Tx, file *model.ConfigFile) (*model.ConfigFile, error)
@@ -129,4 +136,16 @@ type ConfigFileTagStore interface {
 
 	// DeleteTagByConfigFile 删除配置文件标签
 	DeleteTagByConfigFile(tx Tx, namespace, group, fileName string) error
+}
+
+// ConfigFileTemplateStore config file template store
+type ConfigFileTemplateStore interface {
+	// QueryAllConfigFileTemplates query all config file templates
+	QueryAllConfigFileTemplates() ([]*model.ConfigFileTemplate, error)
+
+	// CreateConfigFileTemplate create config file template
+	CreateConfigFileTemplate(template *model.ConfigFileTemplate) (*model.ConfigFileTemplate, error)
+
+	// GetConfigFileTemplate get config file template by name
+	GetConfigFileTemplate(name string) (*model.ConfigFileTemplate, error)
 }

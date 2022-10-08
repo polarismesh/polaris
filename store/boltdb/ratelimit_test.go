@@ -39,13 +39,13 @@ func createTestRateLimit(id string, createId bool) *model.RateLimit {
 	return &model.RateLimit{
 		ID:         id,
 		ServiceID:  RandStringRunes(10),
-		ClusterID:  RandStringRunes(10),
 		Labels:     RandStringRunes(20),
 		Rule:       RandStringRunes(20),
 		Revision:   RandStringRunes(30),
 		Valid:      false,
 		CreateTime: time.Now(),
 		ModifyTime: time.Now(),
+		EnableTime: time.Now(),
 	}
 }
 
@@ -70,9 +70,10 @@ func Test_rateLimitStore_CreateRateLimit(t *testing.T) {
 		tVal := testVal
 		tVal.ModifyTime = tN
 		tVal.CreateTime = tN
+		tVal.EnableTime = tN
 		saveVal.ModifyTime = tN
 		saveVal.CreateTime = tN
-
+		saveVal.EnableTime = tN
 		if !reflect.DeepEqual(saveVal, tVal) {
 			t.FailNow()
 		}
@@ -125,8 +126,10 @@ func Test_rateLimitStore_UpdateRateLimit(t *testing.T) {
 
 		newVal.ModifyTime = tN
 		newVal.CreateTime = tN
+		newVal.EnableTime = tN
 		saveVal.ModifyTime = tN
 		saveVal.CreateTime = tN
+		saveVal.EnableTime = tN
 
 		if !reflect.DeepEqual(saveVal, &newVal) {
 			t.FailNow()
@@ -180,18 +183,15 @@ func Test_rateLimitStore_GetExtendRateLimits(t *testing.T) {
 			testVal := createTestRateLimit(uuid.NewString(), false)
 
 			if i%2 == 0 {
-				testVal.ServiceID = "Service_Cluster_2"
-				testVal.ClusterID = "Cluster_2"
+				testVal.Method = "Service_Cluster_2"
 				testVal.Labels = "Cluster_2@@Labels@@12345"
 				Cluster_2 = append(Cluster_2, testVal)
 			} else if i%3 == 0 {
-				testVal.ServiceID = "Service_Cluster_3"
-				testVal.ClusterID = "Cluster_3"
+				testVal.Method = "Service_Cluster_3"
 				testVal.Labels = "Cluster_3@@Labels@@67890"
 				Cluster_3 = append(Cluster_3, testVal)
 			} else if i%5 == 0 {
-				testVal.ServiceID = "Service_Cluster_5"
-				testVal.ClusterID = "Cluster_5"
+				testVal.Method = "Service_Cluster_5"
 				testVal.Labels = "Cluster_5@@Labels@@abcde"
 				Cluster_5 = append(Cluster_5, testVal)
 			}
@@ -213,9 +213,7 @@ func Test_rateLimitStore_GetExtendRateLimits(t *testing.T) {
 
 		// Test 1
 		got, got1, err := r.GetExtendRateLimits(map[string]string{
-			strings.ToLower("ClusterID"): "Cluster_2",
-			"name":                       Cluster_2[0].ServiceID,
-			"namespace":                  Cluster_2[0].ServiceID,
+			"method": "Cluster_2",
 		}, 0, 10)
 		if err != nil {
 			t.Errorf("rateLimitStore.GetExtendRateLimits() error = %v", err)
@@ -235,15 +233,19 @@ func Test_rateLimitStore_GetExtendRateLimits(t *testing.T) {
 		sort.Slice(got1, func(i, j int) bool {
 			got1Limits[i].CreateTime = tN
 			got1Limits[i].ModifyTime = tN
+			got1Limits[i].EnableTime = tN
 			got1Limits[j].CreateTime = tN
 			got1Limits[j].ModifyTime = tN
+			got1Limits[j].EnableTime = tN
 			return strings.Compare(got1Limits[i].ID, got1Limits[j].ID) < 0
 		})
 		sort.Slice(Cluster_2, func(i, j int) bool {
 			Cluster_2[i].CreateTime = tN
 			Cluster_2[i].ModifyTime = tN
+			Cluster_2[i].EnableTime = tN
 			Cluster_2[j].CreateTime = tN
 			Cluster_2[j].ModifyTime = tN
+			Cluster_2[j].EnableTime = tN
 			return strings.Compare(Cluster_2[i].ID, Cluster_2[j].ID) < 0
 		})
 		assert.ElementsMatch(t, got1Limits, Cluster_2, "result must be equal")
@@ -251,8 +253,6 @@ func Test_rateLimitStore_GetExtendRateLimits(t *testing.T) {
 		// Test 2
 		got, got1, err = r.GetExtendRateLimits(map[string]string{
 			strings.ToLower("Labels"): "Cluster_3",
-			"name":                    Cluster_3[0].ServiceID,
-			"namespace":               Cluster_3[0].ServiceID,
 		}, 0, 10)
 		if err != nil {
 			t.Errorf("rateLimitStore.GetExtendRateLimits() error = %v", err)
@@ -270,15 +270,19 @@ func Test_rateLimitStore_GetExtendRateLimits(t *testing.T) {
 		sort.Slice(got1, func(i, j int) bool {
 			got1Limits[i].CreateTime = tN
 			got1Limits[i].ModifyTime = tN
+			got1Limits[i].EnableTime = tN
 			got1Limits[j].CreateTime = tN
 			got1Limits[j].ModifyTime = tN
+			got1Limits[j].EnableTime = tN
 			return strings.Compare(got1Limits[i].ID, got1Limits[j].ID) < 0
 		})
 		sort.Slice(Cluster_3, func(i, j int) bool {
 			Cluster_3[i].CreateTime = tN
 			Cluster_3[i].ModifyTime = tN
+			Cluster_3[i].EnableTime = tN
 			Cluster_3[j].CreateTime = tN
 			Cluster_3[j].ModifyTime = tN
+			Cluster_3[j].EnableTime = tN
 			return strings.Compare(Cluster_3[i].ID, Cluster_3[j].ID) < 0
 		})
 		assert.ElementsMatch(t, got1Limits, Cluster_3, "result must be equal")
@@ -306,8 +310,10 @@ func Test_rateLimitStore_GetRateLimitWithID(t *testing.T) {
 		tN := time.Now()
 		testVal.CreateTime = tN
 		testVal.ModifyTime = tN
+		testVal.EnableTime = tN
 		saveVal.CreateTime = tN
 		saveVal.ModifyTime = tN
+		saveVal.EnableTime = tN
 
 		assert.Equal(t, testVal, saveVal, "not equal")
 	})
@@ -356,8 +362,10 @@ func Test_rateLimitStore_GetRateLimitsForCache(t *testing.T) {
 		for i := range expectList {
 			expectList[i].CreateTime = testT_1
 			expectList[i].ModifyTime = testT_1
+			expectList[i].EnableTime = testT_1
 			limits[i].CreateTime = testT_1
 			limits[i].ModifyTime = testT_1
+			limits[i].EnableTime = testT_1
 		}
 
 		assert.ElementsMatch(t, limits, expectList, "not equal")

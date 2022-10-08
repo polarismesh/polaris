@@ -20,13 +20,14 @@ package service
 import (
 	"context"
 
+	"golang.org/x/sync/singleflight"
+
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/service/batch"
 	"github.com/polarismesh/polaris-server/service/healthcheck"
 	"github.com/polarismesh/polaris-server/store"
-	"golang.org/x/sync/singleflight"
 )
 
 // TestInitialize 初始化
@@ -54,7 +55,6 @@ func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Conf
 	namingServer.l5service = &l5service{}
 
 	namingServer.createServiceSingle = &singleflight.Group{}
-	namingServer.createNamespaceSingle = &singleflight.Group{}
 
 	// 插件初始化
 	pluginInitialize()

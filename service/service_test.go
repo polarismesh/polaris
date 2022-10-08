@@ -85,7 +85,7 @@ func TestCreateService(t *testing.T) {
 	})
 	t.Run("并发创建服务", func(t *testing.T) {
 		var wg sync.WaitGroup
-		for i := 0; i < 500; i++ {
+		for i := 0; i < 50; i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
@@ -98,7 +98,7 @@ func TestCreateService(t *testing.T) {
 	t.Run("命名空间不存在，可以自动创建服务", func(t *testing.T) {
 		service := &api.Service{
 			Name:      utils.NewStringValue("abc"),
-			Namespace: utils.NewStringValue("123456"),
+			Namespace: utils.NewStringValue(utils.NewUUID()),
 			Owners:    utils.NewStringValue("my"),
 		}
 		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{service})
@@ -231,20 +231,6 @@ func TestDeleteService2(t *testing.T) {
 	}
 	defer discoverSuit.Destroy()
 
-	t.Run("存在路由配置的情况下，删除服务会失败", func(t *testing.T) {
-		serviceReq, serviceResp := discoverSuit.createCommonService(t, 20)
-		defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
-
-		// 创建一个服务配置
-		discoverSuit.createCommonRoutingConfig(t, serviceResp, 10, 10)
-		defer discoverSuit.cleanCommonRoutingConfig(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
-		// 删除服务
-		resp := discoverSuit.server.DeleteServices(discoverSuit.defaultCtx, []*api.Service{serviceResp})
-		if respSuccess(resp) {
-			t.Fatalf("error")
-		}
-		t.Logf("pass: %s", resp.GetInfo().GetValue())
-	})
 	t.Run("重复删除服务，返回成功", func(t *testing.T) {
 		serviceReq, serviceResp := discoverSuit.createCommonService(t, 20)
 		defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
@@ -951,7 +937,7 @@ func TestServiceToken(t *testing.T) {
 	})
 
 	t.Run("获取别名的token，返回源服务的token", func(t *testing.T) {
-		aliasResp := discoverSuit.createCommonAlias(serviceResp, "get.token.xxx", defaultAliasNs, api.AliasType_DEFAULT)
+		aliasResp := discoverSuit.createCommonAlias(serviceResp, fmt.Sprintf("get.token.xxx-%s", utils.NewUUID()[:8]), defaultAliasNs, api.AliasType_DEFAULT)
 		defer discoverSuit.cleanServiceName(aliasResp.Alias.Alias.Value, serviceResp.Namespace.Value)
 		t.Logf("%+v", aliasResp)
 

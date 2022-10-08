@@ -18,6 +18,7 @@
 package model
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -188,16 +189,105 @@ type ExtendRoutingConfig struct {
 
 // RateLimit 限流规则
 type RateLimit struct {
-	ID         string
-	ServiceID  string
-	ClusterID  string
+	Proto     *v1.Rule
+	ID        string
+	ServiceID string
+	Name      string
+	Method    string
+	// Labels for old compatible, will be removed later
 	Labels     string
 	Priority   uint32
 	Rule       string
 	Revision   string
+	Disable    bool
 	Valid      bool
 	CreateTime time.Time
 	ModifyTime time.Time
+	EnableTime time.Time
+}
+
+// Labels2Arguments 适配老的标签到新的参数列表
+func (r *RateLimit) Labels2Arguments() (map[string]*v1.MatchString, error) {
+	if len(r.Proto.Arguments) == 0 && len(r.Labels) > 0 {
+		var labels = make(map[string]*v1.MatchString)
+		if err := json.Unmarshal([]byte(r.Labels), &labels); err != nil {
+			return nil, err
+		}
+		for key, value := range labels {
+			r.Proto.Arguments = append(r.Proto.Arguments, &v1.MatchArgument{
+				Type:  v1.MatchArgument_CUSTOM,
+				Key:   key,
+				Value: value,
+			})
+		}
+		return labels, nil
+	}
+	return nil, nil
+}
+
+const (
+	LabelKeyPath          = "$path"
+	LabelKeyMethod        = "$method"
+	LabelKeyHeader        = "$header"
+	LabelKeyQuery         = "$query"
+	LabelKeyCallerService = "$caller_service"
+	LabelKeyCallerIP      = "$caller_ip"
+)
+
+// Arguments2Labels 将参数列表适配成旧的标签模型
+func Arguments2Labels(arguments []*v1.MatchArgument) map[string]*v1.MatchString {
+	if len(arguments) > 0 {
+		var labels = make(map[string]*v1.MatchString)
+		for _, argument := range arguments {
+			switch argument.Type {
+			case v1.MatchArgument_CUSTOM:
+				labels[argument.Key] = argument.Value
+			case v1.MatchArgument_METHOD:
+				labels[LabelKeyMethod] = argument.Value
+			case v1.MatchArgument_HEADER:
+				labels[LabelKeyHeader+"."+argument.Key] = argument.Value
+			case v1.MatchArgument_QUERY:
+				labels[LabelKeyQuery+"."+argument.Key] = argument.Value
+			case v1.MatchArgument_CALLER_SERVICE:
+				labels[LabelKeyCallerService+"."+argument.Key] = argument.Value
+			case v1.MatchArgument_CALLER_IP:
+				labels[LabelKeyCallerIP] = argument.Value
+			default:
+				continue
+			}
+		}
+		return labels
+	}
+	return nil
+}
+
+// AdaptArgumentsAndLabels 对存量标签进行兼容，同时将argument适配成标签
+func (r *RateLimit) AdaptArgumentsAndLabels() error {
+	// 新的限流规则，需要适配老的SDK使用场景
+	labels := Arguments2Labels(r.Proto.GetArguments())
+	if len(labels) > 0 {
+		r.Proto.Labels = labels
+	} else {
+		var err error
+		// 存量限流规则，需要适配成新的规则
+		labels, err = r.Labels2Arguments()
+		if nil != err {
+			return err
+		}
+		r.Proto.Labels = labels
+	}
+	return nil
+}
+
+// AdaptLabels 对存量标签进行兼容，对存量labels进行清空
+func (r *RateLimit) AdaptLabels() error {
+	// 存量限流规则，需要适配成新的规则
+	_, err := r.Labels2Arguments()
+	if nil != err {
+		return err
+	}
+	r.Proto.Labels = nil
+	return nil
 }
 
 // ExtendRateLimit 包含服务信息的限流规则
@@ -335,6 +425,7 @@ const (
 	RNamespace         Resource = "Namespace"
 	RService           Resource = "Service"
 	RRouting           Resource = "Routing"
+	RRoutingV2         Resource = "RoutingV2"
 	RInstance          Resource = "Instance"
 	RRateLimit         Resource = "RateLimit"
 	RMeshResource      Resource = "MeshResource"
@@ -345,6 +436,8 @@ const (
 	RUserGroup         Resource = "UserGroup"
 	RUserGroupRelation Resource = "UserGroupRelation"
 	RAuthStrategy      Resource = "AuthStrategy"
+	RConfigGroup       Resource = "ConfigGroup"
+	RConfigFile        Resource = "ConfigFile"
 )
 
 // ResourceType 资源类型
@@ -397,6 +490,8 @@ type DiscoverEventType string
 const (
 	// EventDiscoverNone empty discover event
 	EventDiscoverNone DiscoverEventType = "EventDiscoverNone"
+	// EventInstanceOnline instance becoming online
+	EventInstanceOnline DiscoverEventType = "EventInstanceOnline"
 	// EventInstanceTurnUnHealth Instance becomes unhealthy
 	EventInstanceTurnUnHealth DiscoverEventType = "InstanceTurnUnHealth"
 	// EventInstanceTurnHealth Instance becomes healthy
@@ -411,12 +506,12 @@ const (
 
 // DiscoverEvent 服务发现事件
 type DiscoverEvent struct {
-	Namespace     string
-	Service       string
-	Host          string
-	Port          int
-	EType         DiscoverEventType
-	CreateTimeSec int64
+	Namespace  string
+	Service    string
+	Host       string
+	Port       int
+	EType      DiscoverEventType
+	CreateTime time.Time
 }
 
 // InstanceCount Service instance statistics

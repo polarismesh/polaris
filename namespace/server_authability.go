@@ -21,16 +21,18 @@ import (
 	"context"
 	"errors"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/auth"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"go.uber.org/zap"
 )
 
 // serverAuthAbility 带有鉴权能力的 discoverServer
-//  该层会对请求参数做一些调整，根据具体的请求发起人，设置为数据对应的 owner，不可为为别人进行创建资源
+//
+//	该层会对请求参数做一些调整，根据具体的请求发起人，设置为数据对应的 owner，不可为为别人进行创建资源
 type serverAuthAbility struct {
 	targetServer *Server
 	authSvr      auth.AuthServer

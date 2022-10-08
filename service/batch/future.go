@@ -18,13 +18,21 @@
 package batch
 
 import (
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
+	"time"
+
 	"go.uber.org/zap"
+
+	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/metrics"
+	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/plugin"
 )
 
 // InstanceFuture 创建实例的异步结构体
 type InstanceFuture struct {
+	// 任务开始时间
+	begin time.Time
+	// 服务的id
 	serviceId string
 	// api请求对象
 	request *api.Instance
@@ -41,7 +49,14 @@ type InstanceFuture struct {
 }
 
 // Reply future的应答
-func (future *InstanceFuture) Reply(code uint32, result error) {
+func (future *InstanceFuture) Reply(cur time.Time, code uint32, result error) {
+
+	reportRegisInstanceCost(future.begin, cur, code)
+
+	if code == api.InstanceRegisTimeout {
+		metrics.ReportDropInstanceRegisTask()
+	}
+
 	if !future.needWait {
 		if result != nil {
 			log.Error("[Instance][Regis] receive future result", zap.String("service-id", future.serviceId),
@@ -77,6 +92,11 @@ func (future *InstanceFuture) Instance() *model.Instance {
 	return future.instance
 }
 
+// CanDrop 该 future 是否可以丢弃
+func (future *InstanceFuture) CanDrop() bool {
+	return !future.needWait
+}
+
 // Code 获取code
 func (future *InstanceFuture) Code() uint32 {
 	return future.code
@@ -84,16 +104,29 @@ func (future *InstanceFuture) Code() uint32 {
 
 // sendReply 批量答复futures
 func sendReply(futures interface{}, code uint32, result error) {
+	cur := time.Now()
+
 	switch futureType := futures.(type) {
 	case []*InstanceFuture:
 		for _, entry := range futureType {
-			entry.Reply(code, result)
+			entry.Reply(cur, code, result)
 		}
 	case map[string]*InstanceFuture:
 		for _, entry := range futureType {
-			entry.Reply(code, result)
+			entry.Reply(cur, code, result)
 		}
 	default:
 		log.Errorf("[Controller] not found reply futures type: %T", futures)
 	}
+}
+
+func reportRegisInstanceCost(begin, cur time.Time, code uint32) {
+	if code != api.ExecuteSuccess {
+		return
+	}
+	diff := cur.Sub(begin)
+	if statis := plugin.GetStatis(); statis != nil {
+		statis.AddAPICall("AsyncRegisInstance", "", int(api.ExecuteSuccess), diff.Nanoseconds())
+	}
+	metrics.ReportInstanceRegisCost(diff)
 }

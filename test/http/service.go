@@ -76,7 +76,7 @@ func (c *Client) CreateServices(services []*api.Service) (*api.BatchWriteRespons
 	ret, err := GetBatchWriteResponse(response)
 	if err != nil {
 		fmt.Printf("%v\n", err)
-		return nil, err
+		return ret, err
 	}
 
 	return checkCreateServicesResponse(ret, services)
@@ -269,7 +269,6 @@ func compareService(correctItem *api.Service, item *api.Service) bool {
 	correctCmdbMod2 := correctItem.GetCmdbMod2().GetValue()
 	correctCmdbMod3 := correctItem.GetCmdbMod3().GetValue()
 	correctComment := correctItem.GetComment().GetValue()
-	correctOwners := correctItem.GetOwners().GetValue()
 
 	name := item.GetName().GetValue()
 	namespace := item.GetNamespace().GetValue()
@@ -281,12 +280,11 @@ func compareService(correctItem *api.Service, item *api.Service) bool {
 	cmdbMod2 := item.GetCmdbMod2().GetValue()
 	cmdbMod3 := item.GetCmdbMod3().GetValue()
 	comment := item.GetComment().GetValue()
-	owners := item.GetOwners().GetValue()
 
 	if correctName == name && correctNamespace == namespace && reflect.DeepEqual(correctMeta, meta) &&
 		correctPorts == ports && correctBusiness == business && correctDepartment == department &&
 		correctCmdbMod1 == cmdbMod1 && correctCmdbMod2 == cmdbMod2 && correctCmdbMod3 == cmdbMod3 &&
-		correctComment == comment && correctOwners == owners {
+		correctComment == comment {
 		return true
 	}
 	return false

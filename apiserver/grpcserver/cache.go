@@ -22,9 +22,9 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/polarismesh/polaris-server/plugin"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
+
+	"github.com/polarismesh/polaris-server/plugin"
 )
 
 const (
@@ -40,7 +40,7 @@ type Cache interface {
 	// Get
 	Get(cacheType string, key string) *CacheObject
 	// Put
-	Put(v *CacheObject) *CacheObject
+	Put(v *CacheObject) (*CacheObject, bool)
 }
 
 // CacheObject
@@ -61,7 +61,6 @@ func (c *CacheObject) GetPreparedMessage() *grpc.PreparedMsg {
 func (c *CacheObject) PrepareMessage(stream grpc.ServerStream) error {
 	pmsg := &grpc.PreparedMsg{}
 	if err := pmsg.Encode(stream, c.OriginVal); err != nil {
-		log.Error("[Grpc][ProtoCache] prepare message", zap.String("key", c.Key), zap.Error(err))
 		return err
 	}
 	c.preparedVal = pmsg
@@ -122,9 +121,9 @@ func (pc *protobufCache) Get(cacheType string, key string) *CacheObject {
 }
 
 // Put save cache value
-func (pc *protobufCache) Put(v *CacheObject) *CacheObject {
+func (pc *protobufCache) Put(v *CacheObject) (*CacheObject, bool) {
 	if v == nil {
-		return nil
+		return nil, false
 	}
 
 	cacheType := v.CacheType
@@ -132,10 +131,9 @@ func (pc *protobufCache) Put(v *CacheObject) *CacheObject {
 
 	c, ok := pc.cahceRegistry[cacheType]
 	if !ok {
-		log.Warn("[Grpc][ProtoCache] put cache ignore", zap.String("cacheType", cacheType))
-		return nil
+		return nil, false
 	}
 
 	c.Add(key, v)
-	return v
+	return v, true
 }

@@ -1,0 +1,145 @@
+name: IntegrationTest(MySQL + Redis)
+
+on:
+  push:
+    branches:
+      - main
+      - release*
+  pull_request:
+    branches:
+      - main
+      - release*
+
+permissions:
+  contents: write
+
+# Always force the use of Go modules
+env:
+  GO111MODULE: on
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        goarch: [amd64]
+        goos: [linux]
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            vert: 1
+        exclude:
+          - os: ubuntu-latest
+            goos: windows
+          - os: ubuntu-latest
+            goos: darwin
+          - os: windows-latest
+            goos: linux
+          - os: windows-latest
+            goos: darwin
+          - os: macos-latest
+            goos: windows
+          - os: macos-latest
+            goos: linux
+
+    runs-on: ${{ matrix.os }}
+    services:
+    # Label used to access the service container
+      redis:
+        # Docker Hub image
+        image: redis
+        # Set health checks to wait until redis has started
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps port 6379 on service container to the host
+          - 6379:6379
+    steps:
+      # Setup the environment.
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17.1
+      # Checkout latest code
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      # close default MySQL-Server
+      - name: Shutdown default mysql
+        run: sudo service mysql stop
+
+      # run mysql server
+      - name: Create mysql database auth
+        uses: icomponent/mysql-action@master
+        with:
+          VERSION: 5.7
+          CONTAINER_NAME: mysql
+          PORT_MAPPING: 3306:3306
+          ROOT_PASSWORD: polaris
+          DATABASE: polaris_server
+
+      # Compile
+      - name: Build server
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: make build
+
+      # Run interface tests
+      - name: run discover interface tests
+        run: |
+          export STORE_MODE=sqldb
+          echo "cur STORE MODE=${STORE_MODE}"
+
+          # 设置严格模式
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set sql_mode='STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'";
+          # 清空数据
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
+          # 初始化 polaris 数据库
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/sqldb/scripts/polaris_server.sql
+          # 临时放开 DB 的最大连接数
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
+
+          work_dir=$(ls | grep polaris-server-release | sed -n '1p')
+          echo "work_dir is $work_dir"
+
+          cp -rf ./testdata/polaris-server.yaml $work_dir/
+
+          cd $work_dir
+
+          ls -alR
+
+          if [[ "$(uname)" == "Darwin" ]]; then
+              # Mac OS X 操作系统
+              echo "Run on MacOS"
+              sed -i '' 's/consoleOpen: true/consoleOpen: false/g' polaris-server.yaml
+          else
+              # GNU/Linux操作系统
+              echo "Run on Linux"
+              sed -i 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' polaris-server.yaml
+          fi
+
+          cat polaris-server.yaml
+
+          chmod +x ./tool/*.sh
+          ./tool/start.sh
+
+          cd ..
+          # 先测试普通的集成测试
+          pushd ./test
+          go test -count=1 -v -tags integration  -timeout 60m
+          popd
+          cd $work_dir
+          ./tool/stop.sh
+          cd ..
+
+      # - name: run config-center interface tests
+      #   run: |
+      #     # 进行配置中心的集成测试
+      #     pushd ./test/config_center
+      #     go test -count=1 -v
+      #     popd

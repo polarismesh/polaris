@@ -164,16 +164,19 @@ CREATE TABLE `routing_config`
 --
 CREATE TABLE `ratelimit_config`
 (
-    `id`         varchar(32) NOT NULL comment 'ratelimit rule ID',
-    `service_id` varchar(32) NOT NULL comment 'Service ID',
-    `cluster_id` varchar(32) NOT NULL comment 'Cluster ID, no use',
-    `labels`     text        NOT NULL comment 'Conductive flow for a specific label',
-    `priority`   smallint(6) NOT NULL DEFAULT '0' comment 'ratelimit rule priority',
-    `rule`       text        NOT NULL comment 'Current limiting rules',
-    `revision`   varchar(32) NOT NULL comment 'Limiting version',
-    `flag`       tinyint(4)  NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime`      timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`      timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    `id`         varchar(32)    NOT NULL comment 'ratelimit rule ID',
+    `name`       varchar(64)    NOT NULL comment 'ratelimt rule name',
+    `disable`     tinyint(4)    NOT NULL DEFAULT '0' comment 'ratelimit disable',
+    `service_id` varchar(32)    NOT NULL comment 'Service ID',
+    `method`     varchar(512)   NOT NULL comment 'ratelimit method',
+    `labels`     text           NOT NULL comment 'Conductive flow for a specific label',
+    `priority`   smallint(6)    NOT NULL DEFAULT '0' comment 'ratelimit rule priority',
+    `rule`       text           NOT NULL comment 'Current limiting rules',
+    `revision`   varchar(32)    NOT NULL comment 'Limiting version',
+    `flag`       tinyint(4)     NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
+    `ctime`      timestamp      NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
+    `mtime`      timestamp      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    `etime`      timestamp      NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'RateLimit rule enable time',
     PRIMARY KEY (`id`),
     KEY `mtime` (`mtime`),
     KEY `service_id` (`service_id`)
@@ -251,29 +254,7 @@ VALUES ('fbca9bfa04ae4ead86e1ecf5811e32a9',
         'polaris',
         0,
         '2021-09-06 07:55:07',
-        '2021-09-06 07:55:09'),
-       ('bbfdda174ea64e11ac862adf14593c03',
-        'polaris.monitor',
-        'Polaris',
-        'polaris monitor service',
-        'polaris',
-        '50b4e7d8affa4634b52523d398d1a369',
-        '3649b17283d94d7baee5fb5d8160a225',
-        'polaris',
-        0,
-        '2021-09-06 07:55:07',
-        '2021-09-06 07:55:11'),
-       ('e6542db1a2cc846c1866010b40b7f51f',
-        'polaris.config',
-        'Polaris',
-        'polaris config service',
-        'polaris',
-        'c874d9a0a4b45c82c93e6bf285518c7b',
-        '769ec01f58875088faf2cb9e44a4b2d2',
-        'polaris',
-        0,
-        '2021-09-06 07:55:07',
-        '2021-09-06 07:55:11');
+        '2021-09-06 07:55:09');
 
 -- --------------------------------------------------------
 --
@@ -578,60 +559,6 @@ CREATE TABLE `mesh_resource_revision`
     KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB;
 
--- --------------------------------------------------------
---
--- FLUX Rule Configuring Table structure `ratelimit_flux_rule_config`
---
-CREATE TABLE `ratelimit_flux_rule_config`
-(
-    `id`                      varchar(32)  NOT NULL,
-    `revision`                varchar(32)  NOT NULL,
-    `callee_service_id`       varchar(32)  NOT NULL,
-    `callee_service_env`      varchar(64)  NOT NULL,
-    `callee_service_name`     varchar(250) NOT NULL DEFAULT '',
-    `caller_service_business` varchar(250) NOT NULL DEFAULT '',
-    `name`                    varchar(128) NOT NULL DEFAULT '',
-    `description`             varchar(500) NOT NULL DEFAULT '',
-    `type`                    tinyint(4)   NOT NULL DEFAULT '0',
-    `set_key`                 varchar(250) NOT NULL DEFAULT '',
-    `set_alert_qps`           varchar(10)  NOT NULL DEFAULT '',
-    `set_warning_qps`         varchar(10)  NOT NULL DEFAULT '',
-    `set_remark`              varchar(500) NOT NULL DEFAULT '',
-    `default_key`             varchar(250) NOT NULL DEFAULT '',
-    `default_alert_qps`       varchar(10)  NOT NULL DEFAULT '',
-    `default_warning_qps`     varchar(10)  NOT NULL DEFAULT '',
-    `default_remark`          varchar(500) NOT NULL DEFAULT '',
-    `creator`                 varchar(32)  NOT NULL DEFAULT '',
-    `updater`                 varchar(32)  NOT NULL DEFAULT '',
-    `status`                  tinyint(4)   NOT NULL DEFAULT '0',
-    `flag`                    tinyint(4)   NOT NULL DEFAULT '0',
-    `ctime`                   timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`                   timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
-    `flux_server_id`          varchar(32)  NOT NULL DEFAULT '',
-    `monitor_server_id`       varchar(32)  NOT NULL DEFAULT '',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `unique_service` (
-                                 `callee_service_id`,
-                                 `caller_service_business`,
-                                 `set_key`
-        ),
-    KEY `mtime` (`mtime`),
-    KEY `name` (`name`),
-    KEY `creator` (`creator`),
-    KEY `callee_service` (`callee_service_env`, `callee_service_name`)
-) ENGINE = InnoDB;
-
--- --------------------------------------------------------
---
--- FLUX rule version is associated with TABLE structure `ratelimit_flux_rule_revision`
---
-CREATE TABLE `ratelimit_flux_rule_revision`
-(
-    `service_id`    varchar(32) NOT NULL comment 'Service ID',
-    `last_revision` varchar(40) NOT NULL comment 'Latest version of the FLUX rule',
-    `mtime`         timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
-    PRIMARY KEY (`service_id`)
-) ENGINE = InnoDB;
 
 -- --------------------------------------------------------
 --
@@ -861,6 +788,8 @@ INSERT INTO `user` (`id`,
                     `token_enable`,
                     `user_type`,
                     `comment`,
+                    `mobile`,
+                    `email`,
                     `owner`)
 VALUES ('65e4789a6d5b49669adf1e9e8387549c',
         'polaris',
@@ -870,6 +799,8 @@ VALUES ('65e4789a6d5b49669adf1e9e8387549c',
         1,
         20,
         'default polaris admin account',
+        '12345678910',
+                '12345678910',
         '');
 
 -- Permissions policy inserted into Polaris-Admin
@@ -948,4 +879,64 @@ CREATE TABLE `client_stat`
     `protocol`  VARCHAR(100) NOT NULL comment 'stat info transport protocol',
     `path`      VARCHAR(128) NOT NULL comment 'stat metric path',
     PRIMARY KEY (`client_id`, `target`, `port`)
-)
+) ENGINE = InnoDB;
+
+-- v1.9.0
+CREATE TABLE `config_file_template` (
+    `id` bigint(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `name` varchar(128) COLLATE utf8_bin NOT NULL COMMENT '配置文件模板名称',
+    `content` longtext COLLATE utf8_bin NOT NULL COMMENT '配置文件模板内容',
+    `format` varchar(16) COLLATE utf8_bin DEFAULT 'text' COMMENT '模板文件格式',
+    `comment` varchar(512) COLLATE utf8_bin DEFAULT NULL COMMENT '模板描述信息',
+    `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by` varchar(32) COLLATE utf8_bin DEFAULT NULL COMMENT '创建人',
+    `modify_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    `modify_by` varchar(32) COLLATE utf8_bin DEFAULT NULL COMMENT '最后更新人',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_name` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='配置文件模板表';
+
+INSERT INTO `config_file_template` (`name`, `content`, `format`, `comment`, `create_time`
+	, `create_by`, `modify_time`, `modify_by`)
+VALUES ("spring-cloud-gateway-braining", '{
+    "rules":[
+        {
+            "conditions":[
+                {
+                    "key":"${http.query.uid}",
+                    "values":["10000"],
+                    "operation":"EQUALS"
+                }
+            ],
+            "labels":[
+                {
+                    "key":"env",
+                    "value":"green"
+                }
+            ]
+        }
+    ]
+}', "json", "Spring Cloud Gateway  染色规则", NOW()
+	, "polaris", NOW(), "polaris");
+
+-- v1.12.0
+CREATE TABLE `routing_config_v2`
+(
+    `id`       VARCHAR(128) NOT NULL,
+    `name`     VARCHAR(64) NOT NULL default '',
+    `namespace`     VARCHAR(64) NOT NULL default '',
+    `policy`   VARCHAR(64) NOT NULL,
+    `config`   TEXT,
+    `enable`   INT         NOT NULL DEFAULT 0,
+    `revision` VARCHAR(40) NOT NULL,
+    `description` VARCHAR(500) NOT NULL DEFAULT '',
+    `priority`   smallint(6)    NOT NULL DEFAULT '0' comment 'ratelimit rule priority',
+    `flag`     TINYINT(4)  NOT NULL DEFAULT '0',
+    `ctime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `mtime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `etime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `extend_info` VARCHAR(1024) DEFAULT '',
+    PRIMARY KEY (`id`),
+    KEY `mtime` (`mtime`)
+) engine = innodb;
+

@@ -10,9 +10,9 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       # outputPaths:
-      #   - stdout
+      # - stdout
       # errorOutputPaths:
-      #   - stderr
+      # - stderr
     auth:
       rotateOutputPath: log/polaris-auth.log
       errorRotateOutputPath: log/polaris-auth-error.log
@@ -57,6 +57,28 @@ bootstrap:
       #   - stdout
       # errorOutputPaths:
       #   - stderr
+    healthcheck:
+      rotateOutputPath: log/polaris-healthcheck.log
+      errorRotateOutputPath: log/polaris-healthcheck-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
+    xdsv3:
+      rotateOutputPath: log/polaris-xdsv3.log
+      errorRotateOutputPath: log/polaris-xdsv3-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
     default:
       rotateOutputPath: log/polaris-default.log
       errorRotateOutputPath: log/polaris-default-error.log
@@ -81,9 +103,6 @@ bootstrap:
       - name: polaris.checker
         protocols:
           - service-grpc
-      - name: polaris.config
-        protocols:
-          - config-grpc
 # apiserver配置
 apiservers:
   - name: service-eureka
@@ -107,6 +126,7 @@ apiservers:
       listenIP: "0.0.0.0"
       listenPort: 8090
       enablePprof: true # debug pprof
+      enableSwagger: true
       connLimit:
         openConnLimit: false
         maxConnPerHost: 128
@@ -137,9 +157,9 @@ apiservers:
       enableCacheProto: true
       sizeCacheProto: 128
       tls:
-        cert: ""
-        key: ""
-        caCert: ""
+        certFile: ""
+        keyFile: ""
+        trustedCAFile: ""
     api:
       client:
         enable: true
@@ -171,11 +191,11 @@ apiservers:
         openConnLimit: false
         maxConnPerHost: 128
         maxConnLimit: 10240
-#  - name: service-l5
-#    option:
-#      listenIP: 0.0.0.0
-#      listenPort: 7779
-#      clusterName: cl5.discover
+  # - name: service-l5
+  #   option:
+  #     listenIP: 0.0.0.0
+  #     listenPort: 7779
+  #     clusterName: cl5.discover
 # 核心逻辑的配置
 auth:
   # 鉴权插件
@@ -202,6 +222,8 @@ naming:
       waitTime: 32ms
       maxBatchCount: 128
       concurrency: 128
+      dropExpireTask: true
+      taskLife: 30s
     deregister:
       open: true
       queueSize: 10240
@@ -254,9 +276,6 @@ healthcheck:
 config:
   # 是否启动配置模块
   open: true
-  cache:
-    #配置文件缓存过期时间，单位s
-    expireTimeAfterWrite: 3600
 # 缓存配置
 cache:
   open: true
@@ -276,6 +295,10 @@ cache:
     - name: strategyRule # 加载鉴权规则数据
     - name: namespace # 加载命名空间数据
     - name: client # 加载 SDK 数据
+    - name: configFile
+      option:
+        #配置文件缓存过期时间，单位s
+        expireTimeAfterWrite: 3600
 #    - name: l5 # 加载l5数据
 # 存储配置
 store:
@@ -309,6 +332,15 @@ plugin:
     #   rotationMaxSize: 500
     #   rotationMaxAge: 8
     #   rotationMaxBackups: 100
+
+    # name: discoverEventLoki
+    # option:
+      # queueSize: 1024
+      # pushURL: http://127.0.0.1:3100/loki/api/v1/push
+      # tenantID: "test"
+      # labels:
+      #   env: "test"
+      #   app: "polaris"
   discoverStatis:
     name: discoverLocal
     option:
@@ -319,10 +351,6 @@ plugin:
     option:
       interval: 60 # 统计间隔，单位为秒
       outputPath: ./statis
-    # api 调用指标数据计算上报到 prometheus
-    # name: prometheus
-    # option:
-    #   interval: 60 # 统计间隔，单位为秒
   auth:
     name: defaultAuth
   ratelimit:

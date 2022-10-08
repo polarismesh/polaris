@@ -18,7 +18,6 @@
 package local
 
 import (
-	"net/http"
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/log"
@@ -121,11 +120,6 @@ func (s *StatisWorker) AddCacheCall(component string, cacheType string, miss boo
 		count:     int32(call),
 	}
 	return nil
-}
-
-// GetPrometheusHandler 获取 prometheus http handler
-func (s *StatisWorker) GetPrometheusHandler() http.Handler {
-	return s.acs.prometheusStatis.GetHttpHandler()
 }
 
 // Run 主流程

@@ -17,6 +17,10 @@
 
 package grpcserver
 
+import (
+	commonlog "github.com/polarismesh/polaris-server/common/log"
+)
+
 type InitOption func(svr *BaseGrpcServer)
 
 // WithProtocol
@@ -37,5 +41,12 @@ func WithProtobufCache(cache Cache) InitOption {
 func WithMessageToCacheObject(convert MessageToCache) InitOption {
 	return func(svr *BaseGrpcServer) {
 		svr.convert = convert
+	}
+}
+
+// WithLogger
+func WithLogger(log *commonlog.Scope) InitOption {
+	return func(svr *BaseGrpcServer) {
+		svr.log = log
 	}
 }

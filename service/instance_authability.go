@@ -21,6 +21,7 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	authcommon "github.com/polarismesh/polaris-server/common/auth"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
@@ -73,7 +74,7 @@ func (svr *serverAuthAbility) DeleteInstancesByHost(ctx context.Context,
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	if utils.ParseUserRole(ctx) == model.SubAccountUserRole {
+	if authcommon.ParseUserRole(ctx) == model.SubAccountUserRole {
 		ret := api.NewBatchWriteResponse(api.ExecuteSuccess)
 		ret.Collect(api.NewResponse(api.NotAllowedAccess))
 		return ret
@@ -156,4 +157,17 @@ func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *api.Instan
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return svr.targetServer.CleanInstance(ctx, req)
+}
+
+func (svr *serverAuthAbility) GetInstanceLabels(ctx context.Context, query map[string]string) *api.Response {
+
+	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read, "GetInstanceLabels")
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	if err != nil {
+		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.targetServer.GetInstanceLabels(ctx, query)
 }

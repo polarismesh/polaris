@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package v2;
+
+import "request_v2.proto";
+import "routing_v2.proto";
+import "google/protobuf/any.proto";
+
+message SimpleResponse {
+  uint32 code = 1;
+  string info = 2;
+}
+
+message Response {
+  uint32 code = 1;
+  string info = 2;
+  google.protobuf.Any data = 3;
+  reserved 12 to 14, 16 to 18;
+}
+
+message BatchWriteResponse {
+  uint32 code = 1;
+  string info = 2;
+  uint32 size = 3;
+  repeated Response responses = 4;
+}
+
+message BatchQueryResponse {
+  uint32 code = 1;
+  string info = 2;
+  uint32 amount = 3;
+  uint32 size = 4;
+  repeated google.protobuf.Any data = 5;
+}
+
+message DiscoverResponse {
+  uint32 code = 1;
+  string info = 2;
+
+  enum DiscoverResponseType {
+    UNKNOWN = 0;
+    INSTANCE = 1;
+    CLUSTER = 2;
+    ROUTING = 3;
+    RATE_LIMIT = 4;
+    CIRCUIT_BREAKER = 5;
+    SERVICES = 6;
+    reserved 7 to 11;
+    reserved "MESH", "MESH_CONFIG", "FLUX_DBREFRESH", "FLUX_SDK", "FLUX_SERVER";
+    NAMESPACES = 12;
+  }
+
+  DiscoverResponseType type = 3;
+  Service service = 4;
+  repeated Routing routings = 6;
+  reserved 11 to 13;
+}

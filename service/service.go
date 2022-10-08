@@ -19,7 +19,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -88,10 +87,8 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 		return checkError
 	}
 
-	if s.namespaceSvr.AllowAutoCreate() {
-		if code, err := s.createNamespaceIfAbsent(ctx, req); err != nil {
-			return api.NewServiceResponse(code, req)
-		}
+	if code, err := s.createNamespaceIfAbsent(ctx, req); err != nil {
+		return api.NewServiceResponse(code, req)
 	}
 
 	namespaceName := req.GetNamespace().GetValue()
@@ -160,8 +157,9 @@ func (s *Server) DeleteServices(ctx context.Context, req []*api.Service) *api.Ba
 }
 
 // DeleteService 删除单个服务
-//  删除操作需要对服务进行加锁操作，
-//  防止有与服务关联的实例或者配置有新增的操作
+//
+//	删除操作需要对服务进行加锁操作，
+//	防止有与服务关联的实例或者配置有新增的操作
 func (s *Server) DeleteService(ctx context.Context, req *api.Service) *api.Response {
 	requestID := ParseRequestID(ctx)
 	platformID := ParsePlatformID(ctx)
@@ -234,7 +232,7 @@ func (s *Server) UpdateService(ctx context.Context, req *api.Service) *api.Respo
 		return resp
 	}
 
-	// [2020.02.18]如果该服务是别名服务，不允许修改 TODO
+	// [2020.02.18]If service is alias, not allowed to modify
 	if service.IsAlias() {
 		return api.NewServiceResponse(api.NotAllowAliasUpdate, req)
 	}
@@ -363,6 +361,7 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *api.
 	}
 
 	serviceArgs := parseServiceArgs(serviceFilters, serviceMetas, ctx)
+	serviceArgs.HiddenServiceSet = s.polarisServiceSet
 	err = s.caches.Service().Update()
 	if err != nil {
 		log.Errorf("[Server][Service][Query] req(%+v) update store err: %s", query, err.Error())
@@ -475,29 +474,15 @@ func (s *Server) GetServiceOwner(ctx context.Context, req []*api.Service) *api.B
 // createNamespaceIfAbsent Automatically create namespaces
 func (s *Server) createNamespaceIfAbsent(ctx context.Context, svc *api.Service) (uint32, error) {
 
-	if ns := s.caches.Namespace().GetNamespace(svc.GetNamespace().GetValue()); ns != nil {
-		return api.ExecuteSuccess, nil
-	}
-
-	apiNamespace := &api.Namespace{
+	err := s.Namespace().CreateNamespaceIfAbsent(ctx, &api.Namespace{
 		Name:   utils.NewStringValue(svc.GetNamespace().GetValue()),
 		Owners: svc.Owners,
+	})
+	if err != nil {
+		return api.ExecuteException, err
 	}
 
-	key := fmt.Sprintf("%s", svc.Namespace)
-
-	ret, err, _ := s.createNamespaceSingle.Do(key, func() (interface{}, error) {
-		resp := s.Namespace().CreateNamespace(ctx, apiNamespace)
-
-		retCode := resp.GetCode().GetValue()
-		if retCode != api.ExecuteSuccess && retCode != api.ExistedResource {
-			return retCode, errors.New(resp.GetInfo().GetValue())
-		}
-
-		return retCode, nil
-	})
-
-	return ret.(uint32), err
+	return api.ExecuteSuccess, nil
 }
 
 // createServiceModel 创建存储层服务模型
@@ -638,7 +623,7 @@ func (s *Server) getRoutingCountWithService(id string) (uint32, error) {
 // getRateLimitingCountWithService 获取服务下限流规则总数
 func (s *Server) getRateLimitingCountWithService(name string, namespace string) (uint32, error) {
 	filter := map[string]string{
-		"name":      name,
+		"service":   name,
 		"namespace": namespace,
 	}
 	total, _, err := s.storage.GetExtendRateLimits(filter, 0, 1)

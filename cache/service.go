@@ -77,9 +77,9 @@ type ServiceIterProc func(key string, value *model.Service) (bool, error)
 type ServiceCache interface {
 	Cache
 
-	// GetNamesapceCntInfo Return to the service statistics according to the namespace,
+	// GetNamespaceCntInfo Return to the service statistics according to the namespace,
 	// 	the count statistics and health instance statistics
-	GetNamesapceCntInfo(namespace string) model.NamespaceServiceCount
+	GetNamespaceCntInfo(namespace string) model.NamespaceServiceCount
 
 	// GetAllNamespaces Return all namespaces
 	GetAllNamespaces() []string
@@ -284,9 +284,10 @@ func (sc *serviceCache) IteratorServices(iterProc ServiceIterProc) error {
 	return err
 }
 
-// GetNamesapceCntInfo Return to the service statistics according to the namespace,
-// 	the count statistics and health instance statistics
-func (sc *serviceCache) GetNamesapceCntInfo(namespace string) model.NamespaceServiceCount {
+// GetNamespaceCntInfo Return to the service statistics according to the namespace,
+//
+//	the count statistics and health instance statistics
+func (sc *serviceCache) GetNamespaceCntInfo(namespace string) model.NamespaceServiceCount {
 	val, _ := sc.namespaceServiceCnt.Load(namespace)
 	if val == nil {
 		return model.NamespaceServiceCount{
@@ -414,10 +415,10 @@ Case TWO:
 1. T1, instanecache pulls and updates the instance count information, and notify ServiceCache to make a namespace count Reload
 2. T2 moments, ServiceCache pulls all of the service information
 
-- This situation, ServiceCache does not update the count, because the corresponding service object has not been cached, you need to put it in a PendingService waiting
-- Because under this case, WatchCountChangech is the first RELOAD notification from Instanecache, handled the reload notification of ServiceCache.
-- Therefore, for the reload notification of instancecache, you need to record the non-existing SVCID record in the Pending list;
-   wait for the servicecache's Reload notification. after arriving, need to handle the last legacy PENDING calculation task.
+  - This situation, ServiceCache does not update the count, because the corresponding service object has not been cached, you need to put it in a PendingService waiting
+  - Because under this case, WatchCountChangech is the first RELOAD notification from Instanecache, handled the reload notification of ServiceCache.
+  - Therefore, for the reload notification of instancecache, you need to record the non-existing SVCID record in the Pending list;
+    wait for the servicecache's Reload notification. after arriving, need to handle the last legacy PENDING calculation task.
 */
 func (sc *serviceCache) watchCountChangeCh(ctx context.Context) {
 	for {

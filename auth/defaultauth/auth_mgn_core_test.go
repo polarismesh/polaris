@@ -24,16 +24,16 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
-	storemock "github.com/polarismesh/polaris-server/store/mock"
-	"github.com/stretchr/testify/assert"
-
 	_ "github.com/polarismesh/polaris-server/plugin/auth/defaultauth"
+	storemock "github.com/polarismesh/polaris-server/store/mock"
 )
 
 func Test_defaultAuthManager_ParseToken(t *testing.T) {
@@ -65,18 +65,15 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return([]*model.UserGroupDetail{}, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, &cache.Config{
+	cacheMgn, err := cache.TestCacheInitialize(ctx, &cache.Config{
 		Open: true,
 		Resources: []cache.ConfigEntry{
 			{
 				Name: "users",
 			},
 		},
-	}, storage); err != nil {
-		t.Fatal(err)
-	}
+	}, storage)
 
-	cacheMgn, err := cache.GetCacheManager()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -229,11 +226,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 	storage.EXPECT().GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(serviceMap, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
-		t.Fatal(err)
-	}
-
-	cacheMgn, err := cache.GetCacheManager()
+	cacheMgn, err := cache.TestCacheInitialize(ctx, cfg, storage)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -473,11 +466,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 	storage.EXPECT().GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(serviceMap, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
-		t.Fatal(err)
-	}
-
-	cacheMgn, err := cache.GetCacheManager()
+	cacheMgn, err := cache.TestCacheInitialize(ctx, cfg, storage)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -667,11 +656,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 	storage.EXPECT().GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(serviceMap, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
-		t.Fatal(err)
-	}
-
-	cacheMgn, err := cache.GetCacheManager()
+	cacheMgn, err := cache.TestCacheInitialize(ctx, cfg, storage)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -881,11 +866,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 	storage.EXPECT().GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(serviceMap, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
-		t.Fatal(err)
-	}
-
-	cacheMgn, err := cache.GetCacheManager()
+	cacheMgn, err := cache.TestCacheInitialize(ctx, cfg, storage)
 	if err != nil {
 		t.Fatal(err)
 	}

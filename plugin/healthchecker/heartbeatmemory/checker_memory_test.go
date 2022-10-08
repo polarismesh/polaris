@@ -20,6 +20,9 @@ package heartbeatmemory
 import (
 	"sync"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris-server/plugin"
 )
@@ -50,4 +53,69 @@ func TestMemoryHealthChecker_Query(t *testing.T) {
 	if qr.LastHeartbeatSec != 1 {
 		t.Error()
 	}
+}
+
+func TestMemoryHealthChecker_Check(t *testing.T) {
+	mhc := MemoryHealthChecker{
+		hbRecords: new(sync.Map),
+	}
+	test := HeartbeatRecord{
+		Server:     "127.0.0.1",
+		CurTimeSec: 1,
+	}
+	mhc.hbRecords.Store("key", test)
+
+	queryRequest := plugin.CheckRequest{
+		QueryRequest: plugin.QueryRequest{
+			InstanceId: "key",
+			Host:       "127.0.0.2",
+			Port:       80,
+			Healthy:    true,
+		},
+		CurTimeSec: func() int64 {
+			return time.Now().Unix()
+		},
+		ExpireDurationSec: 15,
+	}
+	qr, err := mhc.Check(&queryRequest)
+	assert.NoError(t, err)
+	assert.False(t, qr.StayUnchanged)
+
+	queryRequest = plugin.CheckRequest{
+		QueryRequest: plugin.QueryRequest{
+			InstanceId: "key",
+			Host:       "127.0.0.2",
+			Port:       80,
+			Healthy:    false,
+		},
+		CurTimeSec: func() int64 {
+			return time.Now().Unix()
+		},
+		ExpireDurationSec: 15,
+	}
+	qr, err = mhc.Check(&queryRequest)
+	assert.NoError(t, err)
+	assert.True(t, qr.StayUnchanged)
+
+	test = HeartbeatRecord{
+		Server:     "127.0.0.1",
+		CurTimeSec: time.Now().Unix(),
+	}
+	mhc.hbRecords.Store("key", test)
+
+	queryRequest = plugin.CheckRequest{
+		QueryRequest: plugin.QueryRequest{
+			InstanceId: "key",
+			Host:       "127.0.0.2",
+			Port:       80,
+			Healthy:    false,
+		},
+		CurTimeSec: func() int64 {
+			return time.Now().Unix()
+		},
+		ExpireDurationSec: 15,
+	}
+	qr, err = mhc.Check(&queryRequest)
+	assert.NoError(t, err)
+	assert.False(t, qr.StayUnchanged)
 }

@@ -20,6 +20,7 @@ package sqldb
 import (
 	"database/sql"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,10 +33,14 @@ type configFileGroupStore struct {
 }
 
 // CreateConfigFileGroup 创建配置文件组
-func (fg *configFileGroupStore) CreateConfigFileGroup(fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
-	createSql := "insert into config_file_group(name, namespace,comment,create_time, create_by, modify_time, modify_by)" +
-		"value (?,?,?,sysdate(),?,sysdate(),?)"
-	_, err := fg.db.Exec(createSql, fileGroup.Name, fileGroup.Namespace, fileGroup.Comment, fileGroup.CreateBy, fileGroup.ModifyBy)
+func (fg *configFileGroupStore) CreateConfigFileGroup(
+	fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
+
+	createSql := "insert into config_file_group(name, namespace,comment,create_time, create_by, " +
+		" modify_time, modify_by, owner)" +
+		"value (?,?,?,sysdate(),?,sysdate(),?,?)"
+	_, err := fg.db.Exec(createSql, fileGroup.Name, fileGroup.Namespace, fileGroup.Comment,
+		fileGroup.CreateBy, fileGroup.ModifyBy, fileGroup.Owner)
 	if err != nil {
 		return nil, store.Error(err)
 	}
@@ -61,7 +66,9 @@ func (fg *configFileGroupStore) GetConfigFileGroup(namespace, name string) (*mod
 }
 
 // QueryConfigFileGroups 翻页查询配置文件组, name 为模糊匹配关键字
-func (fg *configFileGroupStore) QueryConfigFileGroups(namespace, name string, offset, limit uint32) (uint32, []*model.ConfigFileGroup, error) {
+func (fg *configFileGroupStore) QueryConfigFileGroups(namespace, name string,
+	offset, limit uint32) (uint32, []*model.ConfigFileGroup, error) {
+
 	name = "%" + name + "%"
 
 	// 全部 namespace
@@ -120,8 +127,11 @@ func (fg *configFileGroupStore) DeleteConfigFileGroup(namespace, name string) er
 }
 
 // UpdateConfigFileGroup 更新配置文件组信息
-func (fg *configFileGroupStore) UpdateConfigFileGroup(fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
-	updateSql := "update config_file_group set comment = ?, modify_time = sysdate(), modify_by = ? where namespace = ? and name = ?"
+func (fg *configFileGroupStore) UpdateConfigFileGroup(
+	fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
+
+	updateSql := "update config_file_group set comment = ?, modify_time = sysdate(), modify_by = ? " +
+		" where namespace = ? and name = ?"
 	_, err := fg.db.Exec(updateSql, fileGroup.Comment, fileGroup.ModifyBy, fileGroup.Namespace, fileGroup.Name)
 	if err != nil {
 		return nil, store.Error(err)
@@ -130,7 +140,9 @@ func (fg *configFileGroupStore) UpdateConfigFileGroup(fileGroup *model.ConfigFil
 }
 
 // FindConfigFileGroups 获取一组配置文件组信息
-func (fg *configFileGroupStore) FindConfigFileGroups(namespace string, names []string) ([]*model.ConfigFileGroup, error) {
+func (fg *configFileGroupStore) FindConfigFileGroups(namespace string,
+	names []string) ([]*model.ConfigFileGroup, error) {
+
 	querySql := fg.genConfigFileGroupSelectSql()
 	params := make([]interface{}, 0)
 
@@ -159,9 +171,26 @@ func (fg *configFileGroupStore) FindConfigFileGroups(namespace string, names []s
 	return cfgs, nil
 }
 
+func (fg *configFileGroupStore) GetConfigFileGroupById(id uint64) (*model.ConfigFileGroup, error) {
+	querySql := fg.genConfigFileGroupSelectSql()
+	querySql += fmt.Sprintf(" where id = %s", strconv.FormatUint(id, 10))
+
+	rows, err := fg.db.Query(querySql)
+	if err != nil {
+		return nil, err
+	}
+
+	cfgs, err := fg.transferRows(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfgs[0], nil
+}
+
 func (fg *configFileGroupStore) genConfigFileGroupSelectSql() string {
 	return "select id,name,namespace,IFNULL(comment,''),UNIX_TIMESTAMP(create_time),IFNULL(create_by,'')," +
-		"UNIX_TIMESTAMP(modify_time),IFNULL(modify_by,'') from config_file_group"
+		"UNIX_TIMESTAMP(modify_time),IFNULL(modify_by,''),IFNULL(owner,'') from config_file_group"
 }
 
 func (fg *configFileGroupStore) transferRows(rows *sql.Rows) ([]*model.ConfigFileGroup, error) {
@@ -175,7 +204,8 @@ func (fg *configFileGroupStore) transferRows(rows *sql.Rows) ([]*model.ConfigFil
 	for rows.Next() {
 		fileGroup := &model.ConfigFileGroup{}
 		var ctime, mtime int64
-		err := rows.Scan(&fileGroup.Id, &fileGroup.Name, &fileGroup.Namespace, &fileGroup.Comment, &ctime, &fileGroup.CreateBy, &mtime, &fileGroup.ModifyBy)
+		err := rows.Scan(&fileGroup.Id, &fileGroup.Name, &fileGroup.Namespace, &fileGroup.Comment, &ctime,
+			&fileGroup.CreateBy, &mtime, &fileGroup.ModifyBy, &fileGroup.Owner)
 		if err != nil {
 			return nil, err
 		}

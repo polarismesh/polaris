@@ -30,19 +30,24 @@ type configFileReleaseHistoryStore struct {
 }
 
 // CreateConfigFileReleaseHistory 创建配置文件发布历史记录
-func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(tx store.Tx, fileReleaseHistory *model.ConfigFileReleaseHistory) error {
-	sql := "insert into config_file_release_history(name, namespace, `group`, file_name, content, comment, md5, type, status, format, tags, " +
+func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(tx store.Tx,
+	fileReleaseHistory *model.ConfigFileReleaseHistory) error {
+
+	sql := "insert into config_file_release_history(name, namespace, `group`, file_name, content, comment, " +
+		" md5, type, status, format, tags, " +
 		"create_time, create_by, modify_time, modify_by) values " +
 		"(?,?,?,?,?,?,?,?,?,?,?,sysdate(),?,sysdate(),?)"
 	var err error
 	if tx != nil {
-		_, err = tx.GetDelegateTx().(*BaseTx).Exec(sql, fileReleaseHistory.Name, fileReleaseHistory.Namespace, fileReleaseHistory.Group,
-			fileReleaseHistory.FileName, fileReleaseHistory.Content, fileReleaseHistory.Comment, fileReleaseHistory.Md5,
+		_, err = tx.GetDelegateTx().(*BaseTx).Exec(sql, fileReleaseHistory.Name, fileReleaseHistory.Namespace,
+			fileReleaseHistory.Group, fileReleaseHistory.FileName, fileReleaseHistory.Content,
+			fileReleaseHistory.Comment, fileReleaseHistory.Md5,
 			fileReleaseHistory.Type, fileReleaseHistory.Status, fileReleaseHistory.Format, fileReleaseHistory.Tags,
 			fileReleaseHistory.CreateBy, fileReleaseHistory.ModifyBy)
 	} else {
-		_, err = rh.db.Exec(sql, fileReleaseHistory.Name, fileReleaseHistory.Namespace, fileReleaseHistory.Group,
-			fileReleaseHistory.FileName, fileReleaseHistory.Content, fileReleaseHistory.Comment, fileReleaseHistory.Md5,
+		_, err = rh.db.Exec(sql, fileReleaseHistory.Name, fileReleaseHistory.Namespace,
+			fileReleaseHistory.Group, fileReleaseHistory.FileName, fileReleaseHistory.Content,
+			fileReleaseHistory.Comment, fileReleaseHistory.Md5,
 			fileReleaseHistory.Type, fileReleaseHistory.Status, fileReleaseHistory.Format, fileReleaseHistory.Tags,
 			fileReleaseHistory.CreateBy, fileReleaseHistory.ModifyBy)
 	}
@@ -96,7 +101,9 @@ func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespa
 	return count, fileReleaseHistories, nil
 }
 
-func (rh *configFileReleaseHistoryStore) GetLatestConfigFileReleaseHistory(namespace, group, fileName string) (*model.ConfigFileReleaseHistory, error) {
+func (rh *configFileReleaseHistoryStore) GetLatestConfigFileReleaseHistory(namespace, group,
+	fileName string) (*model.ConfigFileReleaseHistory, error) {
+
 	sql := rh.genSelectSql() + "where namespace = ? and `group` = ? and file_name = ? order by id desc limit 1"
 
 	rows, err := rh.db.Query(sql, namespace, group, fileName)
@@ -117,9 +124,11 @@ func (rh *configFileReleaseHistoryStore) GetLatestConfigFileReleaseHistory(names
 }
 
 func (rh *configFileReleaseHistoryStore) genSelectSql() string {
-	return "select id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), md5, format, tags, type, status, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), UNIX_TIMESTAMP(modify_time), " +
+	return "select id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), md5, format, tags, type, " +
+		" status, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), UNIX_TIMESTAMP(modify_time), " +
 		"IFNULL(modify_by, '') from config_file_release_history "
 }
+
 func (rh *configFileReleaseHistoryStore) transferRows(rows *sql.Rows) ([]*model.ConfigFileReleaseHistory, error) {
 	if rows == nil {
 		return nil, nil
@@ -131,9 +140,11 @@ func (rh *configFileReleaseHistoryStore) transferRows(rows *sql.Rows) ([]*model.
 	for rows.Next() {
 		fileReleaseHistory := &model.ConfigFileReleaseHistory{}
 		var ctime, mtime int64
-		err := rows.Scan(&fileReleaseHistory.Id, &fileReleaseHistory.Name, &fileReleaseHistory.Namespace, &fileReleaseHistory.Group,
+		err := rows.Scan(&fileReleaseHistory.Id, &fileReleaseHistory.Name, &fileReleaseHistory.Namespace,
+			&fileReleaseHistory.Group,
 			&fileReleaseHistory.FileName, &fileReleaseHistory.Content,
-			&fileReleaseHistory.Comment, &fileReleaseHistory.Md5, &fileReleaseHistory.Format, &fileReleaseHistory.Tags,
+			&fileReleaseHistory.Comment, &fileReleaseHistory.Md5, &fileReleaseHistory.Format,
+			&fileReleaseHistory.Tags,
 			&fileReleaseHistory.Type, &fileReleaseHistory.Status,
 			&ctime, &fileReleaseHistory.CreateBy, &mtime, &fileReleaseHistory.ModifyBy)
 		if err != nil {

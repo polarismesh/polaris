@@ -43,27 +43,18 @@ spec:
         app: polaris-prometheus
     spec:
       containers:
-        - command:
-            - /bin/bash
-            - -c
-            - /root/prometheus/prometheus --config.file=/root/prometheus/prometheus.yml
-              --web.enable-lifecycle --web.enable-admin-api
-          image: ccr.ccs.tencentyun.com/polaris_mesh/polaris-prometheus:1.2
-          imagePullPolicy: Always
-          name: polaris-prometheus
-          resources:
-            limits:
-              cpu: "500m"
-              memory: 1000Mi
-        - command:
-            - /bin/bash
-            - -c
-            - /root/pushgateway/pushgateway --web.enable-lifecycle --web.enable-admin-api
-          image: ccr.ccs.tencentyun.com/polaris_mesh/polaris-pushgateway:1.1.0
-          imagePullPolicy: Always
-          name: polaris-pushgateway
-          resources:
-            limits:
-              cpu: "500m"
-              memory: 1000Mi
+      - image: {{ .Values.prometheus.image.repository }}:{{ .Values.prometheus.image.tag }}
+        imagePullPolicy: {{ .Values.prometheus.image.pullPolicy }}
+        name: polaris-prometheus
+        resources:
+          limits:
+            cpu: "500m"
+            memory: 1000Mi
+      - image: {{ .Values.prometheus.pushgateway.image.repository }}:{{ .Values.prometheus.pushgateway.image.tag }}
+        imagePullPolicy: {{ .Values.prometheus.pushgateway.image.pullPolicy }}
+        name: polaris-pushgateway
+        resources:
+          limits:
+            cpu: "500m"
+            memory: 1000Mi
       restartPolicy: Always

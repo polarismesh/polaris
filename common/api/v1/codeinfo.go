@@ -66,6 +66,7 @@ const (
 	InvalidRateLimitID              uint32 = 400151
 	InvalidRateLimitLabels          uint32 = 400152
 	InvalidRateLimitAmounts         uint32 = 400153
+	InvalidRateLimitName            uint32 = 400154
 	InvalidCircuitBreakerID         uint32 = 400160
 	InvalidCircuitBreakerVersion    uint32 = 400161
 	InvalidCircuitBreakerName       uint32 = 400162
@@ -75,6 +76,10 @@ const (
 	InvalidCircuitBreakerBusiness   uint32 = 400166
 	InvalidCircuitBreakerDepartment uint32 = 400167
 	InvalidCircuitBreakerComment    uint32 = 400168
+	InvalidRoutingID                uint32 = 400700
+	InvalidRoutingPolicy            uint32 = 400701
+	InvalidRoutingName              uint32 = 400702
+	InvalidRoutingPriority          uint32 = 400703
 
 	// 网格相关错误码
 	ServicesExistedMesh  uint32 = 400170
@@ -111,6 +116,7 @@ const (
 	NamespaceExistedCircuitBreakers uint32 = 400212
 	ServiceSubscribedByMeshes       uint32 = 400213
 	ServiceExistedFluxRateLimits    uint32 = 400214
+	NamespaceExistedConfigGroups    uint32 = 400219
 
 	NotFoundService                    uint32 = 400301
 	NotFoundRouting                    uint32 = 400302
@@ -146,6 +152,7 @@ const (
 	ParseRateLimitException            uint32 = 500005
 	ParseCircuitBreakerException       uint32 = 500006
 	HeartbeatException                 uint32 = 500007
+	InstanceRegisTimeout               uint32 = 500008
 
 	// 配置中心模块的错误码
 
@@ -156,6 +163,7 @@ const (
 	InvalidConfigFileTags          uint32 = 400805
 	InvalidWatchConfigFileFormat   uint32 = 400806
 	NotFoundResourceConfigFile     uint32 = 400807
+	InvalidConfigFileTemplateName  uint32 = 400808
 
 	// 鉴权相关错误码
 	InvalidUserOwners         uint32 = 400410
@@ -179,6 +187,7 @@ const (
 	NotFoundUserGroup                      uint32 = 400314
 	NotFoundAuthStrategyRule               uint32 = 400315
 	NotAllowModifyDefaultStrategyPrincipal uint32 = 400508
+	NotAllowModifyOwnerDefaultStrategy     uint32 = 400509
 
 	EmptyAutToken   uint32 = 401002
 	TokenDisabled   uint32 = 401003
@@ -306,6 +315,8 @@ var code2info = map[uint32]string{
 	InvalidFluxRateLimitId:             "invalid flux ratelimit id",
 	InvalidFluxRateLimitQps:            "invalid flux ratelimit qps",
 	InvalidFluxRateLimitSetKey:         "invalid flux ratelimit key",
+	InstanceRegisTimeout:               "instance async regist timeout",
+
 	// 配置中心的错误信息
 	InvalidConfigFileGroupName:     "invalid config file group name",
 	InvalidConfigFileName:          "invalid config file name",
@@ -314,6 +325,7 @@ var code2info = map[uint32]string{
 	InvalidConfigFileTags:          "invalid config file tags, tags should be pair, like key1,value1,key2,value2. and key,value should not blank",
 	InvalidWatchConfigFileFormat:   "invalid watch config file format",
 	NotFoundResourceConfigFile:     "config file not existed",
+	InvalidConfigFileTemplateName:  "invalid config file template name",
 
 	// 鉴权错误
 	NotFoundUser:             "not found user",
@@ -336,6 +348,15 @@ var code2info = map[uint32]string{
 	SubAccountExisted:         "some sub-account existed in owner",
 	InvalidUserID:             "invalid user-id",
 	TokenNotExisted:           "token not existed",
+
+	NotAllowModifyDefaultStrategyPrincipal: "not allow modify default strategy principal",
+	NotAllowModifyOwnerDefaultStrategy:     "not allow modify main account default strategy",
+
+	InvalidRoutingID:     "invalid routing id",
+	InvalidRoutingPolicy: "invalid routing policy, only support (RulePolicy,MetadataPolicy)",
+	InvalidRoutingName:   "invalid routing name",
+
+	NamespaceExistedConfigGroups: "some config group existed in namespace",
 }
 
 // code to info

@@ -141,6 +141,8 @@ func (us *userStore) UpdateUser(user *model.User) error {
 	properties[UserFieldComment] = user.Comment
 	properties[UserFieldToken] = user.Token
 	properties[UserFieldTokenEnable] = user.TokenEnable
+	properties[UserFieldEmail] = user.Email
+	properties[UserFieldMobile] = user.Mobile
 	properties[UserFieldPassword] = user.Password
 	properties[UserFieldModifyTime] = time.Now()
 
@@ -392,6 +394,12 @@ func (us *userStore) getUsers(filters map[string]string, offset uint32, limit ui
 
 			if source, ok := filters["source"]; ok {
 				if source != saveSource {
+					return false
+				}
+			}
+
+			if queryId, ok := filters["id"]; ok {
+				if queryId != saveId {
 					return false
 				}
 			}

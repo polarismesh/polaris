@@ -131,11 +131,12 @@ func (b *boltHandler) SaveValue(typ string, key string, value interface{}) error
 }
 
 // saveValue Save data to boltdb, need to display incoming transactions
-//  @param tx bolt.Tx
-//  @param typ table name
-//  @param key uniq key
-//  @param value record value
-//  @return error if save failed, return error
+//
+//	@param tx bolt.Tx
+//	@param typ table name
+//	@param key uniq key
+//	@param value record value
+//	@return error if save failed, return error
 func saveValue(tx *bolt.Tx, typ string, key string, value interface{}) error {
 	var typBucket *bolt.Bucket
 	var err error

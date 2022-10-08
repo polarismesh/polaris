@@ -36,12 +36,15 @@ func (cf *configFileStore) CreateConfigFile(tx store.Tx, file *model.ConfigFile)
 		return nil, err
 	}
 
-	createSql := "insert into config_file(name,namespace,`group`,content,comment,format,create_time,create_by,modify_time,modify_by) values " +
+	createSql := "insert into config_file(name,namespace,`group`,content,comment,format,create_time, " +
+		"create_by,modify_time,modify_by) values " +
 		"(?,?,?,?,?,?,sysdate(),?,sysdate(),?)"
 	if tx != nil {
-		_, err = tx.GetDelegateTx().(*BaseTx).Exec(createSql, file.Name, file.Namespace, file.Group, file.Content, file.Comment, file.Format, file.CreateBy, file.ModifyBy)
+		_, err = tx.GetDelegateTx().(*BaseTx).Exec(createSql, file.Name, file.Namespace, file.Group,
+			file.Content, file.Comment, file.Format, file.CreateBy, file.ModifyBy)
 	} else {
-		_, err = cf.db.Exec(createSql, file.Name, file.Namespace, file.Group, file.Content, file.Comment, file.Format, file.CreateBy, file.ModifyBy)
+		_, err = cf.db.Exec(createSql, file.Name, file.Namespace, file.Group, file.Content, file.Comment,
+			file.Format, file.CreateBy, file.ModifyBy)
 	}
 	if err != nil {
 		return nil, store.Error(err)
@@ -74,8 +77,36 @@ func (cf *configFileStore) GetConfigFile(tx store.Tx, namespace, group, name str
 	return nil, nil
 }
 
+func (cf *configFileStore) QueryConfigFilesByGroup(namespace, group string,
+	offset, limit uint32) (uint32, []*model.ConfigFile, error) {
+
+	countSql := "select count(*) from config_file where namespace = ? and `group` = ? and flag = 0"
+
+	var count uint32
+	err := cf.db.QueryRow(countSql, namespace, group).Scan(&count)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	querySql := cf.baseSelectConfigFileSql() + "where namespace = ? and `group` = ? and flag = 0 order by id " +
+		" desc limit ?,?"
+	rows, err := cf.db.Query(querySql, namespace, group, offset, limit)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	files, err := cf.transferRows(rows)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return count, files, nil
+}
+
 // QueryConfigFiles 翻页查询配置文件，group、name可为模糊匹配
-func (cf *configFileStore) QueryConfigFiles(namespace, group, name string, offset, limit uint32) (uint32, []*model.ConfigFile, error) {
+func (cf *configFileStore) QueryConfigFiles(namespace, group, name string,
+	offset, limit uint32) (uint32, []*model.ConfigFile, error) {
+
 	// 全部 namespace
 	if namespace == "" {
 		group = "%" + group + "%"
@@ -88,7 +119,8 @@ func (cf *configFileStore) QueryConfigFiles(namespace, group, name string, offse
 			return 0, nil, err
 		}
 
-		querySql := cf.baseSelectConfigFileSql() + "where `group` like ? and name like ? and flag = 0 order by id desc limit ?,?"
+		querySql := cf.baseSelectConfigFileSql() + "where `group` like ? and name like ? and flag = 0 " +
+			" order by id desc limit ?,?"
 		rows, err := cf.db.Query(querySql, group, name, offset, limit)
 		if err != nil {
 			return 0, nil, err
@@ -113,7 +145,8 @@ func (cf *configFileStore) QueryConfigFiles(namespace, group, name string, offse
 		return 0, nil, err
 	}
 
-	querySql := cf.baseSelectConfigFileSql() + "where namespace = ? and `group` like ? and name like ? and flag = 0 order by id desc limit ?,?"
+	querySql := cf.baseSelectConfigFileSql() + "where namespace = ? and `group` like ? and name like ? " +
+		" and flag = 0 order by id desc limit ?,?"
 	rows, err := cf.db.Query(querySql, namespace, group, name, offset, limit)
 	if err != nil {
 		return 0, nil, err
@@ -130,12 +163,15 @@ func (cf *configFileStore) QueryConfigFiles(namespace, group, name string, offse
 
 // UpdateConfigFile 更新配置文件
 func (cf *configFileStore) UpdateConfigFile(tx store.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
-	updateSql := "update config_file set content = ? , comment = ?, format = ?, modify_time = sysdate(), modify_by = ? where namespace = ? and `group` = ? and name = ?"
+	updateSql := "update config_file set content = ? , comment = ?, format = ?, modify_time = sysdate(), " +
+		" modify_by = ? where namespace = ? and `group` = ? and name = ?"
 	var err error
 	if tx != nil {
-		_, err = tx.GetDelegateTx().(*BaseTx).Exec(updateSql, file.Content, file.Comment, file.Format, file.ModifyBy, file.Namespace, file.Group, file.Name)
+		_, err = tx.GetDelegateTx().(*BaseTx).Exec(updateSql, file.Content, file.Comment, file.Format,
+			file.ModifyBy, file.Namespace, file.Group, file.Name)
 	} else {
-		_, err = cf.db.Exec(updateSql, file.Content, file.Comment, file.Format, file.ModifyBy, file.Namespace, file.Group, file.Name)
+		_, err = cf.db.Exec(updateSql, file.Content, file.Comment, file.Format, file.ModifyBy,
+			file.Namespace, file.Group, file.Name)
 	}
 	if err != nil {
 		return nil, store.Error(err)
@@ -169,7 +205,8 @@ func (cf *configFileStore) CountByConfigFileGroup(namespace, group string) (uint
 }
 
 func (cf *configFileStore) baseSelectConfigFileSql() string {
-	return "select id, name,namespace,`group`,content,IFNULL(comment, ''),format, UNIX_TIMESTAMP(create_time),IFNULL(create_by, ''),UNIX_TIMESTAMP(modify_time),IFNULL(modify_by, '') from config_file "
+	return "select id, name,namespace,`group`,content,IFNULL(comment, ''),format, UNIX_TIMESTAMP(create_time), " +
+		" IFNULL(create_by, ''),UNIX_TIMESTAMP(modify_time),IFNULL(modify_by, '') from config_file "
 }
 
 func (cf *configFileStore) hardDeleteConfigFile(namespace, group, name string) error {
@@ -196,7 +233,8 @@ func (cf *configFileStore) transferRows(rows *sql.Rows) ([]*model.ConfigFile, er
 	for rows.Next() {
 		file := &model.ConfigFile{}
 		var ctime, mtime int64
-		err := rows.Scan(&file.Id, &file.Name, &file.Namespace, &file.Group, &file.Content, &file.Comment, &file.Format, &ctime, &file.CreateBy, &mtime, &file.ModifyBy)
+		err := rows.Scan(&file.Id, &file.Name, &file.Namespace, &file.Group, &file.Content, &file.Comment,
+			&file.Format, &ctime, &file.CreateBy, &mtime, &file.ModifyBy)
 		if err != nil {
 			return nil, err
 		}

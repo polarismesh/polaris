@@ -23,12 +23,14 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"go.uber.org/zap"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	authcommon "github.com/polarismesh/polaris-server/common/auth"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"go.uber.org/zap"
 )
 
 type (
@@ -94,6 +96,7 @@ func (svr *server) UpdateStrategies(ctx context.Context, reqs []*api.ModifyAuthS
 // UpdateStrategy 实现鉴权策略的变更
 // Case 1. 修改的是默认鉴权策略的话，只能修改资源，不能添加、删除用户 or 用户组
 // Case 2. 鉴权策略只能被自己的 owner 对应的用户修改
+// Case 3. 主账户的默认策略不得修改
 func (svr *server) UpdateStrategy(ctx context.Context, req *api.ModifyAuthStrategy) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 
@@ -182,13 +185,16 @@ func (svr *server) DeleteStrategy(ctx context.Context, req *api.AuthStrategy) *a
 
 // GetStrategies 查询鉴权策略列表
 // Case 1. 如果是以资源视角来查询鉴权策略，那么就会忽略自动根据账户类型进行数据查看的限制
-// 		eg. 比如当前子账户A想要查看资源R的相关的策略，那么不在会自动注入 principal_id 以及 principal_type 的查询条件
+//
+//	eg. 比如当前子账户A想要查看资源R的相关的策略，那么不在会自动注入 principal_id 以及 principal_type 的查询条件
+//
 // Case 2. 如果是以用户视角来查询鉴权策略，如果没有带上 principal_id，那么就会根据账户类型自动注入 principal_id 以
-// 		及 principal_type 的查询条件，从而限制该账户的数据查看
-// 		eg.
-// 			a. 如果当前是超级管理账户，则按照传入的 query 进行查询即可
-// 			b. 如果当前是主账户，则自动注入 owner 字段，即只能查看策略的 owner 是自己的策略
-// 			c. 如果当前是子账户，则自动注入 principal_id 以及 principal_type 字段，即稚嫩查询与自己有关的策略
+//
+//	及 principal_type 的查询条件，从而限制该账户的数据查看
+//	eg.
+//		a. 如果当前是超级管理账户，则按照传入的 query 进行查询即可
+//		b. 如果当前是主账户，则自动注入 owner 字段，即只能查看策略的 owner 是自己的策略
+//		c. 如果当前是子账户，则自动注入 principal_id 以及 principal_type 字段，即稚嫩查询与自己有关的策略
 func (svr *server) GetStrategies(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
@@ -266,7 +272,7 @@ func parseStrategySearchArgs(ctx context.Context, searchFilters map[string]strin
 		}
 	}
 
-	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
 		// 如果当前账户不是 admin 角色，既不是走资源视角查看，也不是指定principal查看，那么只能查询当前操作用户被关联到的鉴权策略，
 		if _, ok := searchFilters["res_id"]; !ok {
 			// 设置 owner 参数，只能查看对应 owner 下的策略
@@ -310,7 +316,7 @@ func (svr *server) GetStrategy(ctx context.Context, req *api.AuthStrategy) *api.
 	var canView bool
 	if isOwner {
 		// 是否是本鉴权策略的 owner 账户, 或者是否是超级管理员, 是的话则快速跳过下面的检查
-		canView = (ret.Owner == userId) || utils.ParseUserRole(ctx) == model.AdminUserRole
+		canView = (ret.Owner == userId) || authcommon.ParseUserRole(ctx) == model.AdminUserRole
 	}
 
 	// 判断是否在该策略所属的成员列表中，如果自己在某个用户组，而该用户组又在这个策略的成员中，则也是可以查看的
@@ -645,7 +651,7 @@ func (svr *server) collectResEntry(ruleId string, resType api.ResourceType,
 
 // collectPrincipalEntry 将 Principal 转换为对应的 []model.Principal 数组
 func collectPrincipalEntry(ruleID string, uType model.PrincipalType, res []*api.Principal) []model.Principal {
-	principals := make([]model.Principal, len(res)+1)
+	principals := make([]model.Principal, 0, len(res)+1)
 	if len(res) == 0 {
 		return principals
 	}
@@ -697,7 +703,7 @@ func (svr *server) checkCreateStrategy(req *api.AuthStrategy) *api.Response {
 func (svr *server) checkUpdateStrategy(ctx context.Context, req *api.ModifyAuthStrategy,
 	saved *model.StrategyDetail) *api.Response {
 	userId := utils.ParseUserID(ctx)
-	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
 		if !utils.ParseIsOwner(ctx) || userId != saved.Owner {
 			log.AuthScope().Error("[Auth][Strategy] modify strategy denied, current user not owner",
 				utils.ZapRequestID(utils.ParseRequestID(ctx)),
@@ -714,6 +720,13 @@ func (svr *server) checkUpdateStrategy(ctx context.Context, req *api.ModifyAuthS
 			len(req.RemovePrincipals.Groups) != 0 ||
 			len(req.RemovePrincipals.Users) != 0 {
 			return api.NewModifyAuthStrategyResponse(api.NotAllowModifyDefaultStrategyPrincipal, req)
+		}
+
+		// 主账户的默认策略禁止编辑
+		if len(saved.Principals) == 1 && saved.Principals[0].PrincipalRole == model.PrincipalUser {
+			if saved.Principals[0].PrincipalID == utils.ParseOwnerID(ctx) {
+				return api.NewResponse(api.NotAllowModifyOwnerDefaultStrategy)
+			}
 		}
 	}
 
@@ -861,7 +874,8 @@ func (svr *server) checkResourceExist(resources *api.StrategyResources) *api.Res
 }
 
 // normalizeResource 对于资源进行归一化处理
-//  如果出现 * 的话，则该资源访问策略就是 *
+//
+//	如果出现 * 的话，则该资源访问策略就是 *
 func (svr *server) normalizeResource(resources *api.StrategyResources) *api.StrategyResources {
 	namespaces := resources.GetNamespaces()
 	for index := range namespaces {
@@ -928,8 +942,9 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 	configGroups := make([]*api.StrategyResourceEntry, 0, len(data.Resources))
 
 	var (
-		autoAllNs  bool
-		autoAllSvc bool
+		autoAllNs          bool
+		autoAllSvc         bool
+		autoAllConfigGroup bool
 	)
 
 	for index := range data.Resources {
@@ -951,7 +966,7 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 			if !autoAllNs {
 				ns := svr.cacheMgn.Namespace().GetNamespace(res.ResID)
 				if ns == nil {
-					log.AuthScope().Error("[Auth][Strategy] not found namespace in fill-info",
+					log.AuthScope().Warn("[Auth][Strategy] not found namespace in fill-info",
 						zap.String("id", data.ID), zap.String("namespace", res.ResID))
 					continue
 				}
@@ -977,7 +992,7 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 			if !autoAllSvc {
 				svc := svr.cacheMgn.Service().GetServiceByID(res.ResID)
 				if svc == nil {
-					log.AuthScope().Error("[Auth][Strategy] not found service in fill-info",
+					log.AuthScope().Warn("[Auth][Strategy] not found service in fill-info",
 						zap.String("id", data.ID), zap.String("service", res.ResID))
 					continue
 				}
@@ -988,6 +1003,36 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 				})
 			}
 		case int32(api.ResourceType_ConfigGroups):
+			if res.ResID == "*" {
+				autoAllConfigGroup = true
+				configGroups = []*api.StrategyResourceEntry{
+					{
+						Id:        utils.NewStringValue("*"),
+						Namespace: utils.NewStringValue("*"),
+						Name:      utils.NewStringValue("*"),
+					},
+				}
+				continue
+			}
+			if !autoAllConfigGroup {
+				groupId, err := strconv.ParseUint(res.ResID, 10, 64)
+				if err != nil {
+					log.AuthScope().Warn("[Auth][Strategy] invalid resource id",
+						zap.String("id", data.ID), zap.String("config_file_group", res.ResID))
+					continue
+				}
+				group, _ := svr.cacheMgn.ConfigFile().GetOrLoadGroupById(groupId)
+				if group == nil {
+					log.AuthScope().Warn("[Auth][Strategy] not found config_file_group in fill-info",
+						zap.String("id", data.ID), zap.String("config_file_group", res.ResID))
+					continue
+				}
+				configGroups = append(configGroups, &api.StrategyResourceEntry{
+					Id:        utils.NewStringValue(res.ResID),
+					Namespace: utils.NewStringValue(group.Namespace),
+					Name:      utils.NewStringValue(group.Name),
+				})
+			}
 		}
 	}
 

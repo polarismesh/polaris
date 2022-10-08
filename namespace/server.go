@@ -20,6 +20,8 @@ package namespace
 import (
 	"context"
 
+	"golang.org/x/sync/singleflight"
+
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -31,6 +33,8 @@ type Server struct {
 	storage store.Store
 
 	caches *cache.CacheManager
+
+	createNamespaceSingle *singleflight.Group
 
 	cfg     Config
 	auth    plugin.Auth

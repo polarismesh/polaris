@@ -28,11 +28,13 @@ import (
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	commonlog "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
+	servicecommon "github.com/polarismesh/polaris-server/common/service"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 // serverAuthAbility 带有鉴权能力的 discoverServer
-//  该层会对请求参数做一些调整，根据具体的请求发起人，设置为数据对应的 owner，不可为为别人进行创建资源
+//
+//	该层会对请求参数做一些调整，根据具体的请求发起人，设置为数据对应的 owner，不可为为别人进行创建资源
 type serverAuthAbility struct {
 	targetServer *Server
 	authSvr      auth.AuthServer
@@ -63,11 +65,12 @@ func (svr *serverAuthAbility) GetServiceInstanceRevision(serviceID string,
 }
 
 // collectServiceAuthContext 对于服务的处理，收集所有的与鉴权的相关信息
-//  @receiver svr serverAuthAbility
-//  @param ctx 请求上下文 ctx
-//  @param req 实际请求对象
-//  @param resourceOp 该接口的数据操作类型
-//  @return *model.AcquireContext 返回鉴权上下文
+//
+//	@receiver svr serverAuthAbility
+//	@param ctx 请求上下文 ctx
+//	@param req 实际请求对象
+//	@param resourceOp 该接口的数据操作类型
+//	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectServiceAuthContext(ctx context.Context, req []*api.Service,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 
@@ -82,11 +85,12 @@ func (svr *serverAuthAbility) collectServiceAuthContext(ctx context.Context, req
 }
 
 // collectServiceAliasAuthContext 对于服务别名的处理，收集所有的与鉴权的相关信息
-//  @receiver svr serverAuthAbility
-//  @param ctx 请求上下文 ctx
-//  @param req 实际请求对象
-//  @param resourceOp 该接口的数据操作类型
-//  @return *model.AcquireContext 返回鉴权上下文
+//
+//	@receiver svr serverAuthAbility
+//	@param ctx 请求上下文 ctx
+//	@param req 实际请求对象
+//	@param resourceOp 该接口的数据操作类型
+//	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectServiceAliasAuthContext(ctx context.Context, req []*api.ServiceAlias,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 
@@ -101,11 +105,12 @@ func (svr *serverAuthAbility) collectServiceAliasAuthContext(ctx context.Context
 }
 
 // collectInstanceAuthContext 对于服务实例的处理，收集所有的与鉴权的相关信息
-//  @receiver svr serverAuthAbility
-//  @param ctx 请求上下文 ctx
-//  @param req 实际请求对象
-//  @param resourceOp 该接口的数据操作类型
-//  @return *model.AcquireContext 返回鉴权上下文
+//
+//	@receiver svr serverAuthAbility
+//	@param ctx 请求上下文 ctx
+//	@param req 实际请求对象
+//	@param resourceOp 该接口的数据操作类型
+//	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectInstanceAuthContext(ctx context.Context, req []*api.Instance,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 
@@ -135,11 +140,12 @@ func (svr *serverAuthAbility) collectClientInstanceAuthContext(ctx context.Conte
 }
 
 // collectCircuitBreakerAuthContext 对于服务熔断的处理，收集所有的与鉴权的相关信息
-//  @receiver svr serverAuthAbility
-//  @param ctx 请求上下文 ctx
-//  @param req 实际请求对象
-//  @param resourceOp 该接口的数据操作类型
-//  @return *model.AcquireContext 返回鉴权上下文
+//
+//	@receiver svr serverAuthAbility
+//	@param ctx 请求上下文 ctx
+//	@param req 实际请求对象
+//	@param resourceOp 该接口的数据操作类型
+//	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectCircuitBreakerAuthContext(ctx context.Context, req []*api.CircuitBreaker,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 
@@ -154,11 +160,12 @@ func (svr *serverAuthAbility) collectCircuitBreakerAuthContext(ctx context.Conte
 }
 
 // collectCircuitBreakerReleaseAuthContext
-//  @receiver svr
-//  @param ctx
-//  @param req
-//  @param resourceOp
-//  @return *model.AcquireContext
+//
+//	@receiver svr
+//	@param ctx
+//	@param req
+//	@param resourceOp
+//	@return *model.AcquireContext
 func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx context.Context, req []*api.ConfigRelease,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 
@@ -173,11 +180,12 @@ func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx contex
 }
 
 // collectRouteRuleAuthContext 对于服务路由规则的处理，收集所有的与鉴权的相关信息
-//  @receiver svr serverAuthAbility
-//  @param ctx 请求上下文 ctx
-//  @param req 实际请求对象
-//  @param resourceOp 该接口的数据操作类型
-//  @return *model.AcquireContext 返回鉴权上下文
+//
+//	@receiver svr serverAuthAbility
+//	@param ctx 请求上下文 ctx
+//	@param req 实际请求对象
+//	@param resourceOp 该接口的数据操作类型
+//	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectRouteRuleAuthContext(ctx context.Context, req []*api.Routing,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 
@@ -192,11 +200,12 @@ func (svr *serverAuthAbility) collectRouteRuleAuthContext(ctx context.Context, r
 }
 
 // collectRateLimitAuthContext 对于服务限流规则的处理，收集所有的与鉴权的相关信息
-//  @receiver svr serverAuthAbility
-//  @param ctx 请求上下文 ctx
-//  @param req 实际请求对象
-//  @param resourceOp 该接口的数据操作类型
-//  @return *model.AcquireContext 返回鉴权上下文
+//
+//	@receiver svr serverAuthAbility
+//	@param ctx 请求上下文 ctx
+//	@param req 实际请求对象
+//	@param resourceOp 该接口的数据操作类型
+//	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectRateLimitAuthContext(ctx context.Context, req []*api.Rule,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 
@@ -218,7 +227,7 @@ func (svr *serverAuthAbility) queryServiceResource(
 	}
 
 	names := utils.NewStringSet()
-	svcSet := utils.NewServiceSet()
+	svcSet := servicecommon.NewServiceSet()
 
 	for index := range req {
 		names.Add(req[index].Namespace.GetValue())
@@ -241,7 +250,7 @@ func (svr *serverAuthAbility) queryServiceAliasResource(
 	}
 
 	names := utils.NewStringSet()
-	svcSet := utils.NewServiceSet()
+	svcSet := servicecommon.NewServiceSet()
 
 	for index := range req {
 		names.Add(req[index].Namespace.GetValue())
@@ -269,7 +278,7 @@ func (svr *serverAuthAbility) queryInstanceResource(
 	}
 
 	names := utils.NewStringSet()
-	svcSet := utils.NewServiceSet()
+	svcSet := servicecommon.NewServiceSet()
 
 	for index := range req {
 		item := req[index]
@@ -307,7 +316,7 @@ func (svr *serverAuthAbility) queryCircuitBreakerResource(
 	}
 
 	names := utils.NewStringSet()
-	svcSet := utils.NewServiceSet()
+	svcSet := servicecommon.NewServiceSet()
 
 	for index := range req {
 		svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
@@ -329,7 +338,7 @@ func (svr *serverAuthAbility) queryCircuitBreakerReleaseResource(
 	}
 
 	names := utils.NewStringSet()
-	svcSet := utils.NewServiceSet()
+	svcSet := servicecommon.NewServiceSet()
 
 	for index := range req {
 		svc := svr.Cache().Service().GetServiceByName(req[index].Service.Name.GetValue(),
@@ -352,7 +361,7 @@ func (svr *serverAuthAbility) queryRouteRuleResource(
 	}
 
 	names := utils.NewStringSet()
-	svcSet := utils.NewServiceSet()
+	svcSet := servicecommon.NewServiceSet()
 
 	for index := range req {
 		svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
@@ -375,7 +384,7 @@ func (svr *serverAuthAbility) queryRateLimitConfigResource(
 	}
 
 	names := utils.NewStringSet()
-	svcSet := utils.NewServiceSet()
+	svcSet := servicecommon.NewServiceSet()
 
 	for index := range req {
 		svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
@@ -392,7 +401,7 @@ func (svr *serverAuthAbility) queryRateLimitConfigResource(
 
 // convertToDiscoverResourceEntryMaps 通用方法，进行转换为期望的、服务相关的 ResourceEntry
 func (svr *serverAuthAbility) convertToDiscoverResourceEntryMaps(nsSet utils.StringSet,
-	svcSet *utils.ServiceSet) map[api.ResourceType][]model.ResourceEntry {
+	svcSet *servicecommon.ServiceSet) map[api.ResourceType][]model.ResourceEntry {
 	param := nsSet.ToSlice()
 	nsArr := svr.Cache().Namespace().GetNamespacesByName(param)
 

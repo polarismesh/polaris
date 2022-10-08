@@ -31,12 +31,11 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"go.uber.org/zap"
-
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/store"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/store"
 )
 
 // some options config
@@ -94,6 +93,8 @@ const (
 	MaxPlatformQPS          = 65535
 )
 
+var resourceNameRE = regexp.MustCompile("^[0-9A-Za-z-./:_]+$")
+
 // CheckResourceName 检查资源Name
 func CheckResourceName(name *wrappers.StringValue) error {
 	if name == nil {
@@ -104,12 +105,7 @@ func CheckResourceName(name *wrappers.StringValue) error {
 		return errors.New("empty")
 	}
 
-	regStr := "^[0-9A-Za-z-./:_]+$"
-	ok, err := regexp.MatchString(regStr, name.GetValue())
-	if err != nil {
-		return err
-	}
-	if !ok {
+	if ok := resourceNameRE.MatchString(name.GetValue()); !ok {
 		return errors.New("name contains invalid character")
 	}
 
@@ -388,16 +384,6 @@ func ParseIsOwner(ctx context.Context) bool {
 	return isOwner
 }
 
-// ParseUserRole 从ctx中解析用户角色
-func ParseUserRole(ctx context.Context) model.UserRoleType {
-	if ctx == nil {
-		return model.SubAccountUserRole
-	}
-
-	role, _ := ctx.Value(ContextUserRoleIDKey).(model.UserRoleType)
-	return role
-}
-
 // ParseUserID 从ctx中解析用户ID
 func ParseUserID(ctx context.Context) string {
 	if ctx == nil {
@@ -539,4 +525,18 @@ func CheckInstanceTetrad(req *api.Instance) (string, *api.Response) {
 		instID = id
 	}
 	return instID, nil
+}
+
+func ConvertStringValuesToSlice(vals []*wrapperspb.StringValue) []string {
+	ret := make([]string, 0, 4)
+
+	for index := range vals {
+		id := vals[index]
+		if strings.TrimSpace(id.GetValue()) == "" {
+			continue
+		}
+		ret = append(ret, id.GetValue())
+	}
+
+	return ret
 }

@@ -22,15 +22,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/polarismesh/polaris-server/common/log"
 	"go.uber.org/zap"
+
+	"github.com/polarismesh/polaris-server/common/log"
 )
 
 // watchStoreTime The timestamp change of the storage layer, whether the clock is dialed in the detection
 func (nc *CacheManager) watchStoreTime(ctx context.Context) {
 
-	ticker := time.NewTicker(time.Duration(1 * time.Second))
-
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	preStoreTime, err := nc.storage.GetUnixSecond()
@@ -47,14 +47,12 @@ func (nc *CacheManager) watchStoreTime(ctx context.Context) {
 				log.CacheScope().Error("[Store][Time] watch store time", zap.Error(err))
 				continue
 			}
-
+			// 防止时间回退
 			if preStoreTime != 0 && preStoreTime > storeSec {
-				// 默认多查询 1 秒的数据
-				atomic.StoreInt64(&nc.storeTimeDiffSec, int64(preStoreTime-storeSec))
+				atomic.StoreInt64(&nc.storeTimeDiffSec, preStoreTime-storeSec)
 			} else {
 				preStoreTime = storeSec
-				// 默认多查询 1 秒的数据
-				atomic.StoreInt64(&nc.storeTimeDiffSec, int64(0))
+				atomic.StoreInt64(&nc.storeTimeDiffSec, 0)
 			}
 
 		case <-ctx.Done():

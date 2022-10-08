@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package v2;
+
+import "request_v2.proto";
+import "response_v2.proto";
+
+service PolarisGRPC {
+  // 统一发现接口
+  rpc Discover(stream DiscoverRequest) returns (stream DiscoverResponse) {}
+}

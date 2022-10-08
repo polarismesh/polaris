@@ -24,12 +24,25 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	instancecommon "github.com/polarismesh/polaris-server/common/service"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
+)
+
+var (
+	Error_NotFoundService          = errors.New("not found service")
+	Error_SameRegisInstanceRequest = errors.New("there is the same instance request")
+	Error_RegisInstanceTimeout     = errors.New("polaris-sever regis instance busy")
+)
+
+const (
+	defaultWaitTime = 32 * time.Millisecond
+	defaultTaskLife = 30 * time.Second
 )
 
 // InstanceCtrl 批量操作实例的类
@@ -47,6 +60,9 @@ type InstanceCtrl struct {
 	// 空闲的store协程，记录每一个空闲id
 	idleStoreThread chan int
 	waitDuration    time.Duration
+
+	// 任务的有效时间
+	taskLife time.Duration
 
 	// 请求接受协程
 	queue chan *InstanceFuture
@@ -124,8 +140,6 @@ func (ctrl *InstanceCtrl) Start(ctx context.Context) {
 	ctrl.mainLoop(ctx)
 }
 
-const defaultWaitTime = 32 * time.Millisecond
-
 // newBatchInstanceCtrl 创建批量控制instance的对象
 func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.CacheManager, config *CtrlConfig) (*InstanceCtrl, error) {
 	if config == nil || !config.Open {
@@ -142,6 +156,23 @@ func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.CacheManager, con
 		duration = defaultWaitTime
 	}
 
+	taskLife := defaultTaskLife
+	if config.TaskLife != "" {
+		taskLife, err := time.ParseDuration(config.TaskLife)
+		if err != nil {
+			log.Errorf("[Batch] parse taskLife(%s) err: %s", config.TaskLife, err.Error())
+			return nil, err
+		}
+		if taskLife == 0 {
+			log.Infof("[Batch] taskLife(%s) is 0, use default %v", config.TaskLife, defaultTaskLife)
+			taskLife = defaultTaskLife
+		}
+	} else {
+		// mean not allow drop expire task
+		taskLife = time.Duration(0)
+	}
+	log.Info("[Batch] drop expire regis-instance task", zap.Bool("switch-open", taskLife == 0))
+
 	instance := &InstanceCtrl{
 		config:          config,
 		storage:         storage,
@@ -150,6 +181,7 @@ func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.CacheManager, con
 		idleStoreThread: make(chan int, config.Concurrency),
 		queue:           make(chan *InstanceFuture, config.QueueSize),
 		waitDuration:    duration,
+		taskLife:        taskLife,
 	}
 	return instance, nil
 }
@@ -227,11 +259,22 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 		return nil
 	}
 
+	cur := time.Now()
+	taskLife := ctrl.taskLife
+	dropExpire := taskLife != 0
+
 	log.Infof("[Batch] Start batch creating instances count: %d", len(futures))
 	remains := make(map[string]*InstanceFuture, len(futures))
-	for _, entry := range futures {
+	for i := range futures {
+		entry := futures[i]
+
 		if _, ok := remains[entry.request.GetId().GetValue()]; ok {
-			entry.Reply(api.SameInstanceRequest, errors.New("there is the same instance request"))
+			entry.Reply(cur, api.SameInstanceRequest, Error_SameRegisInstanceRequest)
+			continue
+		}
+
+		if dropExpire && entry.CanDrop() && entry.begin.Add(taskLife).Before(cur) {
+			entry.Reply(cur, api.InstanceRegisTimeout, Error_RegisInstanceTimeout)
 			continue
 		}
 
@@ -252,7 +295,7 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 
 	// 构造model数据
 	for _, entry := range remains {
-		ins := utils.CreateInstanceModel(entry.serviceId, entry.request)
+		ins := instancecommon.CreateInstanceModel(entry.serviceId, entry.request)
 		if _, ok := firstRegisInstances[ins.ID()]; ok {
 			ins.FirstRegis = true
 		}
@@ -315,23 +358,25 @@ func (ctrl *InstanceCtrl) heartbeatHandler(futures []*InstanceFuture) error {
 
 // deregisterHandler 反注册处理函数
 // 步骤：
-// - 从数据库中批量读取实例ID对应的实例简要信息：
-//   包括：ID，host，port，serviceName，serviceNamespace，serviceToken
-// - 对instance做存在与token的双重校验，较少与数据库的交互
+//   - 从数据库中批量读取实例ID对应的实例简要信息：
+//     包括：ID，host，port，serviceName，serviceNamespace，serviceToken
+//   - 对instance做存在与token的双重校验，较少与数据库的交互
 //   - 对于不存在的token，返回notFoundResource
 //   - 对于token校验失败的，返回校验失败
-// - 调用批量接口删除实例
+//   - 调用批量接口删除实例
 func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 	if len(futures) == 0 {
 		return nil
 	}
+
+	cur := time.Now()
 
 	log.Infof("[Batch] Start batch deregister instances count: %d", len(futures))
 	remains := make(map[string]*InstanceFuture, len(futures))
 	ids := make(map[string]bool, len(futures))
 	for _, entry := range futures {
 		if _, ok := remains[entry.request.GetId().GetValue()]; ok {
-			entry.Reply(api.SameInstanceRequest, errors.New("there is the same instance request"))
+			entry.Reply(cur, api.SameInstanceRequest, Error_SameRegisInstanceRequest)
 			continue
 		}
 
@@ -350,7 +395,7 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 		instance, ok := instances[future.request.GetId().GetValue()]
 		if !ok {
 			// 不存在，意味着不需要删除了
-			future.Reply(api.NotFoundResource, fmt.Errorf("%s", api.Code2Info(api.NotFoundResource)))
+			future.Reply(cur, api.NotFoundResource, fmt.Errorf("%s", api.Code2Info(api.NotFoundResource)))
 			delete(remains, future.request.GetId().GetValue())
 			continue
 		}
@@ -458,14 +503,14 @@ func (ctrl *InstanceCtrl) loadService(entry *InstanceFuture, name, namespace str
 		if err != nil {
 			log.Errorf("[Controller] get source service(%s, %s) token err: %s",
 				entry.request.GetService().GetValue(), entry.request.GetNamespace().GetValue(), err.Error())
-			entry.Reply(api.StoreLayerException, err)
+			entry.Reply(time.Now(), api.StoreLayerException, err)
 
 			return nil, false
 		}
 		if tmpService == nil {
 			log.Errorf("[Controller] get source service(%s, %s) token is empty, verify failed",
 				entry.request.GetService().GetValue(), entry.request.GetNamespace().GetValue())
-			entry.Reply(api.NotFoundResource, errors.New("not found service"))
+			entry.Reply(time.Now(), api.NotFoundResource, Error_NotFoundService)
 
 			return nil, false
 		}

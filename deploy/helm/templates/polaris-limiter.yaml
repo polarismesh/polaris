@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: polaris-limiter
+  name: polaris-limiter
+  namespace: {{ .Values.installation.namespace }}
+spec:
+  podManagementPolicy: OrderedReady
+  replicas: {{ .Values.polaris.limiterReplicaCount }}
+  selector:
+    matchLabels:
+      app: polaris-limiter
+  serviceName: polaris-limiter
+  template:
+    metadata:
+      labels:
+        app: polaris-limiter
+    spec:
+      containers:
+        - image: {{ .Values.polaris.limiter.image.repository }}:{{ .Values.polaris.limiter.image.tag }}
+          imagePullPolicy: {{ .Values.polaris.limiter.image.pullPolicy }}
+          name: polaris-limiter
+          resources:
+            limits:
+              cpu: {{ .Values.polaris.limiter.limit.cpu }}
+              memory: {{ .Values.polaris.limiter.limit.memory }}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /root/polaris-limiter.yaml.example
+              name: polaris-limiter-config
+              subPath: polaris-limiter.yaml
+      restartPolicy: Always
+      volumes:
+        - configMap:
+            defaultMode: 640
+            name: polaris-limiter-config
+          name: polaris-limiter-config
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate

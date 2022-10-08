@@ -45,6 +45,7 @@ var (
 	_ UserCache           = (*userCache)(nil)
 	_ StrategyCache       = (*strategyCache)(nil)
 	_ L5Cache             = (*l5Cache)(nil)
+	_ FileCache           = (*fileCache)(nil)
 )
 
 const (
@@ -60,6 +61,7 @@ const (
 	CacheAuthStrategy
 	CacheNamespace
 	CacheClient
+	CacheConfigFile
 
 	CacheLast
 )
@@ -78,6 +80,7 @@ const (
 	CacheNameAuthStrategy   CacheName = "AuthStrategy"
 	CacheNameNamespace      CacheName = "Namespace"
 	CacheNameClient         CacheName = "Client"
+	CacheNameConfigFile     CacheName = "ConfigFile"
 )
 
 var (
@@ -92,6 +95,7 @@ var (
 		CacheNameAuthStrategy:   CacheAuthStrategy,
 		CacheNameNamespace:      CacheNamespace,
 		CacheNameClient:         CacheClient,
+		CacheNameConfigFile:     CacheConfigFile,
 	}
 )
 
@@ -427,14 +431,19 @@ func (nc *CacheManager) Namespace() NamespaceCache {
 	return nc.caches[CacheNamespace].(NamespaceCache)
 }
 
-// GetStore get store
-func (nc *CacheManager) GetStore() store.Store {
-	return nc.storage
-}
-
 // Client Get client cache information
 func (nc *CacheManager) Client() ClientCache {
 	return nc.caches[CacheClient].(ClientCache)
+}
+
+// ConfigFile get config file cache information
+func (nc *CacheManager) ConfigFile() FileCache {
+	return nc.caches[CacheConfigFile].(FileCache)
+}
+
+// GetStore get store
+func (nc *CacheManager) GetStore() store.Store {
+	return nc.storage
 }
 
 // ComputeRevision 计算唯一的版本标识
@@ -453,6 +462,21 @@ func ComputeRevision(serviceRevision string, instances []*model.Instance) (strin
 	}
 	for _, revision := range slice {
 		if _, err := h.Write([]byte(revision)); err != nil {
+			return "", err
+		}
+	}
+
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+// CompositeComputeRevision 将多个 revision 合并计算为一个
+func CompositeComputeRevision(revisions []string) (string, error) {
+	h := sha1.New()
+
+	sort.Strings(revisions)
+
+	for i := range revisions {
+		if _, err := h.Write([]byte(revisions[i])); err != nil {
 			return "", err
 		}
 	}

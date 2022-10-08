@@ -25,10 +25,11 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store/mock"
-	"github.com/stretchr/testify/assert"
 )
 
 // 创建一个测试mock userCache
@@ -167,6 +168,10 @@ func TestUserCache_UpdateNormal(t *testing.T) {
 
 		deleteCnt := 0
 		for i := range users {
+			// 主账户/管理账户 不能删除，因此这里对于第一个用户需要跳过
+			if users[i].Type != model.SubAccountUserRole {
+				continue
+			}
 			if rand.Int31n(3) < 1 {
 				users[i].Valid = false
 				delete(groups[i].UserIds, users[i].ID)

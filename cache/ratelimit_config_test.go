@@ -18,13 +18,18 @@
 package cache
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/stretchr/testify/assert"
 
+	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store/mock"
 )
 
@@ -42,10 +47,67 @@ func newTestRateLimitCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *
 	return ctl, storage, rlc
 }
 
-/**
- * @brief 生成限流规则测试数据
- */
-func genModelRateLimits(beginNum, totalServices, totalRateLimits int) ([]*model.RateLimit, []*model.RateLimitRevision) {
+func buildRateLimitRuleProtoWithLabels(name string, method string) *api.Rule {
+	rule := &api.Rule{
+		Priority: utils.NewUInt32Value(0),
+		Resource: api.Rule_QPS,
+		Type:     api.Rule_LOCAL,
+		Labels: map[string]*api.MatchString{"http.method": {
+			Type:  api.MatchString_EXACT,
+			Value: utils.NewStringValue("post"),
+		}},
+		Amounts: []*api.Amount{{
+			MaxAmount:     utils.NewUInt32Value(100),
+			ValidDuration: &duration.Duration{Seconds: 1},
+		}},
+		Action:       utils.NewStringValue("reject"),
+		Disable:      utils.NewBoolValue(false),
+		RegexCombine: utils.NewBoolValue(false),
+		Failover:     api.Rule_FAILOVER_LOCAL,
+		Method: &api.MatchString{
+			Type:  api.MatchString_EXACT,
+			Value: utils.NewStringValue(method),
+		},
+		Name: utils.NewStringValue(name),
+	}
+	return rule
+}
+
+func buildRateLimitRuleProtoWithArguments(name string, method string) *api.Rule {
+	rule := &api.Rule{
+		Priority: utils.NewUInt32Value(0),
+		Resource: api.Rule_QPS,
+		Type:     api.Rule_LOCAL,
+		Arguments: []*api.MatchArgument{
+			{
+				Type: api.MatchArgument_HEADER,
+				Key:  "host",
+				Value: &api.MatchString{
+					Type:  api.MatchString_EXACT,
+					Value: utils.NewStringValue("localhost"),
+				},
+			},
+		},
+		Amounts: []*api.Amount{{
+			MaxAmount:     utils.NewUInt32Value(100),
+			ValidDuration: &duration.Duration{Seconds: 1},
+		}},
+		Action:       utils.NewStringValue("reject"),
+		Disable:      utils.NewBoolValue(false),
+		RegexCombine: utils.NewBoolValue(false),
+		Failover:     api.Rule_FAILOVER_LOCAL,
+		Method: &api.MatchString{
+			Type:  api.MatchString_EXACT,
+			Value: utils.NewStringValue(method),
+		},
+		Name: utils.NewStringValue(name),
+	}
+	return rule
+}
+
+// genRateLimitsWithLabels 生成限流规则测试数据
+func genRateLimits(
+	beginNum, totalServices, totalRateLimits int, withLabels bool) ([]*model.RateLimit, []*model.RateLimitRevision) {
 	rateLimits := make([]*model.RateLimit, 0, totalRateLimits)
 	revisions := make([]*model.RateLimitRevision, 0, totalServices)
 	rulePerService := totalRateLimits / totalServices
@@ -57,11 +119,21 @@ func genModelRateLimits(beginNum, totalServices, totalRateLimits int) ([]*model.
 		}
 		revisions = append(revisions, revision)
 		for j := 0; j < rulePerService; j++ {
+			name := fmt.Sprintf("limit-rule-%d-%d", i, j)
+			method := fmt.Sprintf("/test-%d", j)
+			var rule *api.Rule
+			if withLabels {
+				rule = buildRateLimitRuleProtoWithLabels(name, method)
+			} else {
+				rule = buildRateLimitRuleProtoWithArguments(name, method)
+			}
+			str, _ := json.Marshal(rule)
 			rateLimit := &model.RateLimit{
 				ID:        fmt.Sprintf("id-%d-%d", i, j),
 				ServiceID: fmt.Sprintf("service-%d", i),
-				ClusterID: fmt.Sprintf("cluster-%d", j),
-				Rule:      fmt.Sprintf("rule-%d-%d", i, j),
+				Name:      name,
+				Method:    method,
+				Rule:      string(str),
 				Revision:  fmt.Sprintf("revision-%d-%d", i, j),
 				Valid:     true,
 			}
@@ -93,7 +165,7 @@ func TestRateLimitUpdate(t *testing.T) {
 
 	totalServices := 5
 	totalRateLimits := 15
-	rateLimits, revisions := genModelRateLimits(0, totalServices, totalRateLimits)
+	rateLimits, revisions := genRateLimits(0, totalServices, totalRateLimits, false)
 
 	t.Run("正常更新缓存，可以获取到数据", func(t *testing.T) {
 		_ = rlc.clear()
@@ -188,14 +260,14 @@ func TestRateLimitUpdate2(t *testing.T) {
 	t.Run("更新缓存后，增加部分数据，缓存正常更新", func(t *testing.T) {
 		_ = rlc.clear()
 
-		rateLimits, revisions := genModelRateLimits(0, totalServices, totalRateLimits)
+		rateLimits, revisions := genRateLimits(0, totalServices, totalRateLimits, true)
 		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).
 			Return(rateLimits, revisions, nil)
 		if err := rlc.update(0); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
-		rateLimits, revisions = genModelRateLimits(5, totalServices, totalRateLimits)
+		rateLimits, revisions = genRateLimits(5, totalServices, totalRateLimits, true)
 		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).
 			Return(rateLimits, revisions, nil)
 		if err := rlc.update(0); err != nil {
@@ -212,7 +284,7 @@ func TestRateLimitUpdate2(t *testing.T) {
 	t.Run("更新缓存后，删除部分数据，缓存正常更新", func(t *testing.T) {
 		_ = rlc.clear()
 
-		rateLimits, revisions := genModelRateLimits(0, totalServices, totalRateLimits)
+		rateLimits, revisions := genRateLimits(0, totalServices, totalRateLimits, true)
 		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).
 			Return(rateLimits, revisions, nil)
 		if err := rlc.update(0); err != nil {
@@ -245,12 +317,12 @@ func TestGetRateLimitsByServiceID(t *testing.T) {
 	ctl, storage, rlc := newTestRateLimitCache(t)
 	defer ctl.Finish()
 
-	t.Run("通过服务ID获取数据和revision", func(t *testing.T) {
+	t.Run("通过服务ID获取数据并检查labels", func(t *testing.T) {
 		_ = rlc.clear()
 
 		totalServices := 5
 		totalRateLimits := 15
-		rateLimits, revisions := genModelRateLimits(0, totalServices, totalRateLimits)
+		rateLimits, revisions := genRateLimits(0, totalServices, totalRateLimits, true)
 
 		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).
 			Return(rateLimits, revisions, nil)
@@ -283,6 +355,44 @@ func TestGetRateLimitsByServiceID(t *testing.T) {
 			t.Log("pass")
 		} else {
 			t.Fatalf("actual last revision is %s", lastRevision)
+		}
+
+		for _, rateLimit := range rateLimits {
+			assert.Equal(t, 1, len(rateLimit.Proto.Labels))
+			assert.Equal(t, 1, len(rateLimit.Proto.Arguments))
+			for _, argument := range rateLimit.Proto.Arguments {
+				assert.Equal(t, api.MatchArgument_CUSTOM, argument.Type)
+				_, hasKey := rateLimit.Proto.Labels[argument.Key]
+				assert.True(t, hasKey)
+			}
+		}
+	})
+
+	t.Run("通过服务ID获取数据并检查argument", func(t *testing.T) {
+		_ = rlc.clear()
+
+		totalServices := 5
+		totalRateLimits := 15
+		rateLimits, revisions := genRateLimits(0, totalServices, totalRateLimits, false)
+
+		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).
+			Return(rateLimits, revisions, nil)
+		if err := rlc.update(0); err != nil {
+			t.Fatalf("error: %s", err.Error())
+		}
+
+		rateLimits = rlc.GetRateLimitByServiceID("service-1")
+		if len(rateLimits) == totalRateLimits/totalServices {
+			t.Log("pass")
+		} else {
+			t.Fatalf("expect num is %d, actual num is %d", totalRateLimits/totalServices, len(rateLimits))
+		}
+		for _, rateLimit := range rateLimits {
+			assert.Equal(t, 1, len(rateLimit.Proto.Arguments))
+			assert.Equal(t, 1, len(rateLimit.Proto.Labels))
+			labelValue, hasKey := rateLimit.Proto.Labels["$header.host"]
+			assert.True(t, hasKey)
+			assert.Equal(t, rateLimit.Proto.Arguments[0].Value.Value.GetValue(), labelValue.GetValue().GetValue())
 		}
 	})
 }

@@ -22,6 +22,8 @@ import (
 	"errors"
 	"sync"
 
+	"golang.org/x/sync/singleflight"
+
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	"github.com/polarismesh/polaris-server/plugin"
@@ -59,6 +61,7 @@ func initialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMg
 	namespaceServer.caches = cacheMgn
 	namespaceServer.storage = storage
 	namespaceServer.cfg = *nsOpt
+	namespaceServer.createNamespaceSingle = &singleflight.Group{}
 
 	// 获取History插件，注意：插件的配置在bootstrap已经设置好
 	namespaceServer.history = plugin.GetHistory()

@@ -18,10 +18,12 @@
 package boltdb
 
 import (
+	"errors"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/boltdb/bolt"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
 )
@@ -114,6 +116,30 @@ func (r *routingStore) DeleteRoutingConfig(serviceID string) error {
 	properties[routingFieldModifyTime] = time.Now()
 
 	err := r.handler.UpdateValue(tblNameRouting, serviceID, properties)
+	if err != nil {
+		log.Errorf("[Store][boltdb] delete route config to kv error, %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *routingStore) DeleteRoutingConfigTx(tx store.Tx, serviceID string) error {
+	if tx == nil {
+		return errors.New("tx is nil")
+	}
+
+	if serviceID == "" {
+		log.Errorf("[Store][boltdb] delete routing config missing service id")
+		return store.NewStatusError(store.EmptyParamsErr, "missing service id")
+	}
+
+	properties := make(map[string]interface{})
+	properties[routingFieldValid] = false
+	properties[routingFieldModifyTime] = time.Now()
+
+	boltTx := tx.GetDelegateTx().(*bolt.Tx)
+	err := updateValue(boltTx, tblNameRouting, serviceID, properties)
 	if err != nil {
 		log.Errorf("[Store][boltdb] delete route config to kv error, %v", err)
 		return err
@@ -290,7 +316,7 @@ func (r *routingStore) GetRoutingConfigs(
 			return ok
 		})
 
-	var out []*model.ExtendRoutingConfig
+	out := make([]*model.ExtendRoutingConfig, 0, 4)
 
 	for id, r := range routeConf {
 		var temp model.ExtendRoutingConfig

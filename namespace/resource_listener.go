@@ -19,12 +19,10 @@ package namespace
 
 import (
 	"context"
-	"strings"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // ResourceHook The listener is placed before and after the resource operation, only normal flow
@@ -66,7 +64,11 @@ func (svr *serverAuthAbility) After(ctx context.Context, resourceType model.Reso
 
 // onNamespaceResource
 func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *ResourceEvent) error {
-	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
+	authCtx, _ := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
+	if authCtx == nil {
+		log.Warn("[Namespace][ResourceHook] get auth context is nil, ignore", utils.ZapRequestIDByCtx(ctx))
+		return nil
+	}
 	ownerId := utils.ParseOwnerID(ctx)
 
 	ns := res.Namespace
@@ -79,11 +81,11 @@ func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *Reso
 		},
 	})
 
-	users := convertStringValuesToSlice(res.ReqNamespace.UserIds)
-	removeUses := convertStringValuesToSlice(res.ReqNamespace.RemoveUserIds)
+	users := utils.ConvertStringValuesToSlice(res.ReqNamespace.UserIds)
+	removeUses := utils.ConvertStringValuesToSlice(res.ReqNamespace.RemoveUserIds)
 
-	groups := convertStringValuesToSlice(res.ReqNamespace.GroupIds)
-	removeGroups := convertStringValuesToSlice(res.ReqNamespace.RemoveGroupIds)
+	groups := utils.ConvertStringValuesToSlice(res.ReqNamespace.GroupIds)
+	removeGroups := utils.ConvertStringValuesToSlice(res.ReqNamespace.RemoveGroupIds)
 
 	authCtx.SetAttachment(model.LinkUsersKey, utils.StringSliceDeDuplication(users))
 	authCtx.SetAttachment(model.RemoveLinkUsersKey, utils.StringSliceDeDuplication(removeUses))
@@ -92,18 +94,4 @@ func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *Reso
 	authCtx.SetAttachment(model.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
 
 	return svr.authSvr.AfterResourceOperation(authCtx)
-}
-
-func convertStringValuesToSlice(vals []*wrapperspb.StringValue) []string {
-	ret := make([]string, 0, 4)
-
-	for index := range vals {
-		id := vals[index]
-		if strings.TrimSpace(id.GetValue()) == "" {
-			continue
-		}
-		ret = append(ret, id.GetValue())
-	}
-
-	return ret
 }

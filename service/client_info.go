@@ -20,10 +20,11 @@ package service
 import (
 	"context"
 
+	"go.uber.org/zap"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"go.uber.org/zap"
 )
 
 var (
@@ -61,7 +62,7 @@ func (s *Server) checkAndStoreClient(ctx context.Context, req *api.Client) *api.
 
 func (s *Server) createClient(ctx context.Context, req *api.Client) (*model.Client, *api.Response) {
 
-	if namingServer.bc == nil || !namingServer.bc.CreateInstanceOpen() {
+	if namingServer.bc == nil || !namingServer.bc.ClientRegisterOpen() {
 		return nil, nil
 	}
 	return s.asyncCreateClient(ctx, req) // 批量异步

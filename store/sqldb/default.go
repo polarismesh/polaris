@@ -61,9 +61,13 @@ type stableStore struct {
 	*configFileReleaseStore
 	*configFileReleaseHistoryStore
 	*configFileTagStore
+	*configFileTemplateStore
 
 	//client info stores
 	*clientStore
+
+	// v2 存储
+	*routingConfigStoreV2
 
 	// 主数据库，可以进行读写
 	master *BaseDB
@@ -72,7 +76,6 @@ type stableStore struct {
 	// 备数据库，提供只读
 	slave    *BaseDB
 	start    bool
-	metaTask *TaskManager
 }
 
 // Name 实现Name函数
@@ -190,6 +193,7 @@ func parseStoreConfig(opts interface{}) (*dbConfig, error) {
 
 // Destroy 退出函数
 func (s *stableStore) Destroy() error {
+	s.start = false
 	if s.master != nil {
 		_ = s.master.Close()
 	}
@@ -199,6 +203,10 @@ func (s *stableStore) Destroy() error {
 	if s.slave != nil {
 		_ = s.slave.Close()
 	}
+
+	s.master = nil
+	s.masterTx = nil
+	s.slave = nil
 
 	return nil
 }
@@ -265,5 +273,9 @@ func (s *stableStore) newStore() {
 
 	s.configFileTagStore = &configFileTagStore{db: s.master}
 
+	s.configFileTemplateStore = &configFileTemplateStore{db: s.master}
+
 	s.clientStore = &clientStore{master: s.master, slave: s.slave}
+
+	s.routingConfigStoreV2 = &routingConfigStoreV2{master: s.master, slave: s.slave}
 }

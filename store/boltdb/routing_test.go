@@ -221,7 +221,7 @@ func TestRoutingStore_GetRoutingConfigWithService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Printf("get routing config with service %+v", rc)
+	t.Logf("get routing config with service %+v", rc)
 }
 
 func TestRoutingStore_GetRoutingConfigWithID(t *testing.T) {

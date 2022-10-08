@@ -23,13 +23,15 @@ import (
 	"strconv"
 	"time"
 
+	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	authcommon "github.com/polarismesh/polaris-server/common/auth"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
 	"github.com/polarismesh/polaris-server/common/utils"
-	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type (
@@ -75,8 +77,23 @@ func (svr *server) CreateUser(ctx context.Context, req *api.User) *api.Response 
 	}
 
 	// 如果创建的目标账户类型是非子账户，则 ownerId 需要设置为 “”
-	if convertCreateUserRole(utils.ParseUserRole(ctx)) != model.SubAccountUserRole {
+	if convertCreateUserRole(authcommon.ParseUserRole(ctx)) != model.SubAccountUserRole {
 		ownerID = ""
+	}
+
+	if ownerID != "" {
+		owner, err := svr.storage.GetUser(ownerID)
+		if err != nil {
+			log.Error("[Auth][User] get user by name and owner", utils.ZapRequestID(requestID),
+				zap.Error(err), zap.String("name", req.GetName().GetValue()))
+			return api.NewUserResponse(api.StoreLayerException, req)
+		}
+
+		if owner.Name == req.Name.GetValue() {
+			log.Error("[Auth][User] create user name is equal owner", utils.ZapRequestID(requestID),
+				zap.Error(err), zap.String("name", req.GetName().GetValue()))
+			return api.NewUserResponse(api.UserExisted, req)
+		}
 	}
 
 	// 只有通过 owner + username 才能唯一确定一个用户
@@ -96,7 +113,7 @@ func (svr *server) CreateUser(ctx context.Context, req *api.User) *api.Response 
 func (svr *server) createUser(ctx context.Context, req *api.User) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
 
-	data, err := createUserModel(req, utils.ParseUserRole(ctx))
+	data, err := createUserModel(req, authcommon.ParseUserRole(ctx))
 
 	if err != nil {
 		log.AuthScope().Error("[Auth][User] create user model", utils.ZapRequestID(requestID), zap.Error(err))
@@ -182,8 +199,8 @@ func (svr *server) UpdateUserPassword(ctx context.Context, req *api.ModifyUserPa
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ignoreOrign := utils.ParseUserRole(ctx) == model.AdminUserRole || utils.ParseUserRole(ctx) == model.OwnerUserRole
-	data, needUpdate, err := updateUserPasswordAttribute(ignoreOrign, user, req)
+	ignoreOrigin := authcommon.ParseUserRole(ctx) == model.AdminUserRole || authcommon.ParseUserRole(ctx) == model.OwnerUserRole
+	data, needUpdate, err := updateUserPasswordAttribute(ignoreOrigin, user, req)
 	if err != nil {
 		log.AuthScope().Error("[Auth][User] compute user update attribute", zap.Error(err),
 			zap.String("user", req.GetId().GetValue()))
@@ -296,7 +313,7 @@ func (svr *server) GetUsers(ctx context.Context, query map[string]string) *api.B
 	searchFilters["hide_admin"] = strconv.FormatBool(true)
 
 	// 如果不是超级管理员，查看数据有限制
-	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
 		// 设置 owner 参数，只能查看对应 owner 下的用户
 		searchFilters["owner"] = utils.ParseOwnerID(ctx)
 	}
@@ -387,7 +404,7 @@ func (svr *server) UpdateUserToken(ctx context.Context, req *api.User) *api.Resp
 		return api.NewUserResponse(api.NotAllowedAccess, req)
 	}
 
-	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
 		if user.Type != model.SubAccountUserRole {
 			return api.NewUserResponseWithMsg(api.NotAllowedAccess, "only disable sub-account token", req)
 		}
@@ -456,7 +473,7 @@ func (svr *server) ResetUserToken(ctx context.Context, req *api.User) *api.Respo
 // Case 2: 如果是主账户操作自己的子账户，通过
 // Case 3: 如果是超级账户，通过
 func checkUserViewPermission(ctx context.Context, user *model.User) bool {
-	role := utils.ParseUserRole(ctx)
+	role := authcommon.ParseUserRole(ctx)
 	if role == model.AdminUserRole {
 		log.AuthScope().Debug("check user view permission", utils.ZapRequestIDByCtx(ctx), zap.Bool("admin", true))
 		return true
@@ -569,6 +586,14 @@ func checkUpdateUser(req *api.User) *api.Response {
 
 	if req.GetId() == nil || req.GetId().GetValue() == "" {
 		return api.NewUserResponse(api.BadRequest, req)
+	}
+
+	if err := checkMobile(req.Mobile); err != nil {
+		return api.NewUserResponse(api.InvalidUserMobile, req)
+	}
+
+	if err := checkEmail(req.Email); err != nil {
+		return api.NewUserResponse(api.InvalidUserEmail, req)
 	}
 
 	return nil

@@ -22,14 +22,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 func mockConfigFile(total int, param map[string]string) []*model.ConfigFile {
 	ret := make([]*model.ConfigFile, 0, total)
-
-
 
 	for i := 0; i < total; i++ {
 
@@ -43,7 +42,6 @@ func mockConfigFile(total int, param map[string]string) []*model.ConfigFile {
 		if group == "" {
 			group = fmt.Sprintf("cpnfig-file-%d", i)
 		}
-
 
 		ret = append(ret, &model.ConfigFile{
 			Id:         0,
@@ -147,7 +145,6 @@ func Test_configFileStore(t *testing.T) {
 				assert.NoError(t, err, "%+v", err)
 				assert.Equal(t, uint64(i+1), f.Id, "expect : %d, actual : %d", (i + 1), f.Id)
 
-
 				err = s.DeleteConfigFile(nil, waitSave.Namespace, waitSave.Group, waitSave.Name)
 				assert.NoError(t, err, "%+v", err)
 
@@ -195,7 +192,6 @@ func Test_configFileStore(t *testing.T) {
 		})
 	})
 
-
 	t.Run("查询配置文件", func(t *testing.T) {
 		CreateTableDBHandlerAndRun(t, tblConfigFile, func(t *testing.T, handler BoltHandler) {
 
@@ -226,7 +222,6 @@ func Test_configFileStore(t *testing.T) {
 			assert.NoError(t, err, "%+v", err)
 			assert.Equal(t, len(mocks), int(total))
 			assert.ElementsMatch(t, results, ret)
-
 
 			total, ret, err = s.QueryConfigFiles("qweq", "qweq", "qweq", 0, 100)
 

@@ -19,7 +19,6 @@ package resource
 
 import (
 	"fmt"
-	"time"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
@@ -33,11 +32,9 @@ const (
  * @brief 创建测试命名空间
  */
 func CreateNamespaces() []*api.Namespace {
-	nowStr := time.Now().Format("2006-01-02T15:04:05.000000")
-
 	var namespaces []*api.Namespace
 	for index := 0; index < 2; index++ {
-		name := fmt.Sprintf(namespaceName, nowStr, index)
+		name := fmt.Sprintf(namespaceName, utils.NewUUID(), index)
 
 		namespace := &api.Namespace{
 			Name:    utils.NewStringValue(name),

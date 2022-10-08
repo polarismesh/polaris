@@ -29,6 +29,7 @@ import (
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/pkg/errors"
+
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
@@ -48,7 +49,7 @@ func TestServer_CreateCircuitBreakerJson(t *testing.T) {
 					Service:   &wrappers.StringValue{Value: "*"},
 					Namespace: &wrappers.StringValue{Value: "*"},
 					Labels: map[string]*api.MatchString{
-						"user": &api.MatchString{
+						"user": {
 							Type:  0,
 							Value: &wrappers.StringValue{Value: "vip"},
 						},
@@ -95,7 +96,7 @@ func TestServer_CreateCircuitBreakerJson(t *testing.T) {
 			Sources: []*api.SourceMatcher{
 				{
 					Labels: map[string]*api.MatchString{
-						"callerName": &api.MatchString{
+						"callerName": {
 							Type:  0,
 							Value: &wrappers.StringValue{Value: "xyz"},
 						},
@@ -223,7 +224,7 @@ func TestCreateCircuitBreaker(t *testing.T) {
 
 	t.Run("并发创建熔断规则，返回成功", func(t *testing.T) {
 		var wg sync.WaitGroup
-		for i := 0; i < 500; i++ {
+		for i := 0; i < 50; i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
@@ -381,7 +382,7 @@ func TestCreateCircuitBreakerVersion(t *testing.T) {
 
 	t.Run("并发创建同一个规则的多个版本，返回成功", func(t *testing.T) {
 		var wg sync.WaitGroup
-		for i := 0; i <= 500; i++ {
+		for i := 0; i <= 50; i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
@@ -611,7 +612,7 @@ func Test_DeleteCircuitBreaker(t *testing.T) {
 
 	t.Run("并发删除熔断规则，可以正常删除", func(t *testing.T) {
 		var wg sync.WaitGroup
-		for i := 1; i <= 500; i++ {
+		for i := 1; i <= 50; i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
@@ -727,7 +728,7 @@ func TestUpdateCircuitBreaker(t *testing.T) {
 	t.Run("并发更新熔断规则时,可以正常更新", func(t *testing.T) {
 		var wg sync.WaitGroup
 		errs := make(chan error)
-		for i := 1; i <= 500; i++ {
+		for i := 1; i <= 50; i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
@@ -993,8 +994,8 @@ func TestReleaseCircuitBreaker(t *testing.T) {
 
 	t.Run("并发发布同一个服务的熔断规则", func(t *testing.T) {
 		var wg sync.WaitGroup
-		wg.Add(500)
-		for i := 1; i <= 500; i++ {
+		for i := 1; i <= 50; i++ {
+			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
 
@@ -1167,7 +1168,7 @@ func TestUnBindCircuitBreaker(t *testing.T) {
 
 	t.Run("并发解绑熔断规则", func(t *testing.T) {
 		var wg sync.WaitGroup
-		for i := 1; i <= 500; i++ {
+		for i := 1; i <= 50; i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()

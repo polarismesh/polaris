@@ -66,6 +66,32 @@ function installPolarisConsole() {
     Pop-Location
 }
 
+function installPolarisLimiter() {
+    Write-Output "install polaris limiter ... "
+    $polaris_limiter_num = (Get-Process | findstr "polaris-limiter" | Measure-Object -Line).Lines
+    if ($polaris_limiter_num -gt 0) {
+        Write-Output "polaris-limiter is running, skip"
+        return
+    }
+    $polaris_limiter_pkg_num = (Get-ChildItem "polaris-limiter-release*.zip" | Measure-Object -Line).Lines
+    if ($polaris_limiter_pkg_num -ne 1) {
+        Write-Output "number of polaris limiter package not equals to 1, exit"
+        exit -1
+    }
+    $target_polaris_limiter_pkg = (Get-ChildItem "polaris-limiter-release*.zip")[0].Name
+    $polaris_limiter_dirname = ([io.fileinfo]$target_polaris_limiter_pkg).basename
+    if (Test-Path $polaris_limiter_dirname) {
+        Write-Output "$polaris_limiter_dirname has exists, now remove it"
+        Remove-Item $polaris_limiter_dirname -Recurse
+    }
+    Expand-Archive -Path $target_polaris_limiter_pkg -DestinationPath .
+    Push-Location $polaris_limiter_dirname
+    Start-Process -FilePath ".\\polaris-limiter.exe" -ArgumentList ('start') -WindowStyle Hidden
+    Write-Output "install polaris limiter success"
+    Pop-Location
+}
+
+
 function installPrometheus() {
     Write-Output "install prometheus ... "
     $prometheus_num = (Get-Process | findstr "prometheus" | Measure-Object -Line).Lines
@@ -86,6 +112,8 @@ function installPrometheus() {
     }
     Expand-Archive -Path $target_prometheus_pkg -DestinationPath .
     Push-Location $prometheus_dirname
+    Add-Content prometheus.yml "    http_sd_configs:"
+    Add-Content prometheus.yml "    - url: http://localhost:9000/prometheus/v1/clients"
     Add-Content prometheus.yml ""
     Add-Content prometheus.yml "  - job_name: 'push-metrics'"
     Add-Content prometheus.yml "    static_configs:"
@@ -93,31 +121,6 @@ function installPrometheus() {
     Add-Content prometheus.yml "    honor_labels: true"
     Start-Process -FilePath ".\\prometheus.exe" -ArgumentList ('--web.enable-lifecycle', '--web.enable-admin-api') -RedirectStandardOutput prometheus.out -RedirectStandardError prometheus.err -WindowStyle Hidden
     Write-Output "install prometheus success"
-    Pop-Location
-}
-
-function installPushGateway() {
-    Write-Output "install pushgateway ... "
-    $pgw_num = (Get-Process | findstr "pushgateway" | Measure-Object -Line).Lines
-    if ($pgw_num -gt 0) {
-        Write-Output "pushgateway is running, skip"
-        return
-    }
-    $pgw_pkg_num = (Get-ChildItem "pushgateway-*.zip" | Measure-Object -Line).Lines
-    if ($pgw_pkg_num -ne 1) {
-        Write-Output "number of pushgateway package not equals to 1, exit"
-        exit -1
-    }
-    $target_pgw_pkg =  (Get-ChildItem "pushgateway-*.zip")[0].Name
-    $pgw_dirname = ([io.fileinfo]$target_pgw_pkg).basename
-    if (Test-Path $pgw_dirname) {
-        Write-Output "$pgw_dirname has exists, now remove it"
-        Remove-Item $pgw_dirname -Recurse
-    }
-    Expand-Archive -Path $target_pgw_pkg -DestinationPath .
-    Push-Location $pgw_dirname
-    Start-Process -FilePath ".\\pushgateway.exe" -ArgumentList ('--web.enable-lifecycle', '--web.enable-admin-api') -RedirectStandardOutput pgw.out -RedirectStandardError pgw.err -WindowStyle Hidden
-    Write-Output "install pushgateway success"
     Pop-Location
 }
 
@@ -141,8 +144,8 @@ checkPort
 installPolarisServer
 # 安装console
 installPolarisConsole
+# 安装polaris-limiter
+installPolarisLimiter
 # 安装Prometheus
 installPrometheus
-# 安装PushGateWay
-installPushGateway
 

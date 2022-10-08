@@ -29,15 +29,23 @@ import (
 func NewClient(address string) (*Client, error) {
 	fmt.Printf("\nnew grpc client\n")
 
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	serviceConn, err := grpc.Dial(fmt.Sprintf("%s:%d", address, 8091), grpc.WithInsecure())
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return nil, err
+	}
+
+	configConn, err := grpc.Dial(fmt.Sprintf("%s:%d", address, 8093), grpc.WithInsecure())
 	if err != nil {
 		fmt.Printf("%v\n", err)
 		return nil, err
 	}
 
 	client := &Client{
-		Conn:   conn,
-		Worker: api.NewPolarisGRPCClient(conn),
+		Conn:         serviceConn,
+		ConfigConn:   configConn,
+		Worker:       api.NewPolarisGRPCClient(serviceConn),
+		ConfigWorker: api.NewPolarisConfigGRPCClient(configConn),
 	}
 
 	return client, nil
@@ -45,11 +53,14 @@ func NewClient(address string) (*Client, error) {
 
 // Client GRPC客户端
 type Client struct {
-	Conn   *grpc.ClientConn
-	Worker api.PolarisGRPCClient
+	Conn         *grpc.ClientConn
+	ConfigConn   *grpc.ClientConn
+	Worker       api.PolarisGRPCClient
+	ConfigWorker api.PolarisConfigGRPCClient
 }
 
 // Close 关闭连接
 func (c *Client) Close() {
 	c.Conn.Close()
+	c.ConfigConn.Close()
 }

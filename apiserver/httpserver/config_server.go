@@ -20,7 +20,7 @@ package httpserver
 import (
 	"fmt"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 )
 
 const (
@@ -60,31 +60,35 @@ func (h *HTTPServer) GetConfigAccessServer(include []string) (*restful.WebServic
 
 func (h *HTTPServer) bindConfigConsoleEndpoint(ws *restful.WebService) {
 	// 配置文件组
-	ws.Route(ws.POST("/configfilegroups").To(h.CreateConfigFileGroup))
-	ws.Route(ws.GET("/configfilegroups").To(h.QueryConfigFileGroups))
-	ws.Route(ws.DELETE("/configfilegroups").To(h.DeleteConfigFileGroup))
-	ws.Route(ws.PUT("/configfilegroups").To(h.UpdateConfigFileGroup))
+	ws.Route(enrichCreateConfigFileGroupApiDocs(ws.POST("/configfilegroups").To(h.CreateConfigFileGroup)))
+	ws.Route(enrichQueryConfigFileGroupsApiDocs(ws.GET("/configfilegroups").To(h.QueryConfigFileGroups)))
+	ws.Route(enrichDeleteConfigFileGroupApiDocs(ws.DELETE("/configfilegroups").To(h.DeleteConfigFileGroup)))
+	ws.Route(enrichUpdateConfigFileGroupApiDocs(ws.PUT("/configfilegroups").To(h.UpdateConfigFileGroup)))
 
 	// 配置文件
-	ws.Route(ws.POST("/configfiles").To(h.CreateConfigFile))
-	ws.Route(ws.GET("/configfiles").To(h.GetConfigFile))
-	ws.Route(ws.GET("/configfiles/search").To(h.SearchConfigFile))
-	ws.Route(ws.PUT("/configfiles").To(h.UpdateConfigFile))
-	ws.Route(ws.DELETE("/configfiles").To(h.DeleteConfigFile))
-	ws.Route(ws.POST("/configfiles/batchdelete").To(h.BatchDeleteConfigFile))
+	ws.Route(enrichCreateConfigFileApiDocs(ws.POST("/configfiles").To(h.CreateConfigFile)))
+	ws.Route(enrichGetConfigFileApiDocs(ws.GET("/configfiles").To(h.GetConfigFile)))
+	ws.Route(enrichQueryConfigFilesByGroupApiDocs(ws.GET("/configfiles/by-group").To(h.QueryConfigFilesByGroup)))
+	ws.Route(enrichSearchConfigFileApiDocs(ws.GET("/configfiles/search").To(h.SearchConfigFile)))
+	ws.Route(enrichUpdateConfigFileApiDocs(ws.PUT("/configfiles").To(h.UpdateConfigFile)))
+	ws.Route(enrichDeleteConfigFileApiDocs(ws.DELETE("/configfiles").To(h.DeleteConfigFile)))
+	ws.Route(enrichBatchDeleteConfigFileApiDocs(ws.POST("/configfiles/batchdelete").To(h.BatchDeleteConfigFile)))
 
 	// 配置文件发布
-	ws.Route(ws.POST("/configfiles/release").To(h.PublishConfigFile))
-	ws.Route(ws.GET("/configfiles/release").To(h.GetConfigFileRelease))
+	ws.Route(enrichPublishConfigFileApiDocs(ws.POST("/configfiles/release").To(h.PublishConfigFile)))
+	ws.Route(enrichGetConfigFileReleaseApiDocs(ws.GET("/configfiles/release").To(h.GetConfigFileRelease)))
 
 	// 配置文件发布历史
-	ws.Route(ws.GET("/configfiles/releasehistory").To(h.GetConfigFileReleaseHistory))
+	ws.Route(enrichGetConfigFileReleaseHistoryApiDocs(ws.GET("/configfiles/releasehistory").To(h.GetConfigFileReleaseHistory)))
 
+	// config file template
+	ws.Route(enrichGetAllConfigFileTemplatesApiDocs(ws.GET("/configfiletemplates").To(h.GetAllConfigFileTemplates)))
+	ws.Route(enrichCreateConfigFileTemplateApiDocs(ws.POST("/configfiletemplates").To(h.CreateConfigFileTemplate)))
 }
 
 func (h *HTTPServer) bindConfigClientEndpoint(ws *restful.WebService) {
-	ws.Route(ws.GET("/GetConfigFile").To(h.getConfigFile))
-	ws.Route(ws.POST("/WatchConfigFile").To(h.watchConfigFile))
+	ws.Route(enrichGetConfigFileForClientApiDocs(ws.GET("/GetConfigFile").To(h.getConfigFile)))
+	ws.Route(enrichWatchConfigFileForClientApiDocs(ws.POST("/WatchConfigFile").To(h.watchConfigFile)))
 }
 
 // StopConfigServer 停止配置中心模块

@@ -1,0 +1,174 @@
+syntax = "proto3";
+
+package v2;
+
+import "model_v2.proto";
+
+import "google/protobuf/any.proto";
+
+// FlowStaining 流量染色
+message FlowStaining {
+  string id = 10;
+  // flow statining rule name
+  string name = 2;
+  // rules staining rules
+  repeated StaineRule rules = 3;
+}
+
+message StaineRule {
+  // Traffic matching rules
+  repeated SourceMatch arguments = 1;
+  // Staining label
+  repeated StaineLabel labels = 2;
+  // Stain Label
+  uint32 priority = 3;
+  // rule is enabled
+  bool enable = 4;
+  // Set the percentage of traffic that needs to be dyed
+  uint32 stainePercent = 5;
+}
+
+message StaineLabel {
+  string Key = 1;
+  string Value = 2;
+}
+
+enum RoutingPolicy {
+  // Route by rule rule => RuleRoutingConfig
+  RulePolicy = 0;
+  // Route by destination metadata
+  MetadataPolicy = 1;
+}
+
+// configuration root for route
+message Routing {
+  string id = 1;
+  // route rule name
+  string name = 2;
+  // namespace namingspace of routing rules
+  string namespace = 3;
+  // Enable this router
+  bool enable = 4;
+  // Router type
+  RoutingPolicy routing_policy = 5 [ json_name = "routing_policy" ];
+  // Routing configuration for router
+  google.protobuf.Any routing_config = 6 [ json_name = "routing_config" ];
+  // revision routing version
+  string revision = 7;
+  // ctime create time of the rules
+  string ctime = 8;
+  // mtime modify time of the rules
+  string mtime = 9;
+  // etime enable time of the rules
+  string etime = 10;
+  // priority rules priority
+  uint32 priority = 11;
+  // description simple description rules
+  string description = 12;
+  // extendInfo 用于承载一些额外信息
+  // case 1: 升级到 v2 版本时，记录对应到 v1 版本的 id 信息
+  map<string, string> extendInfo = 20;
+}
+
+message MetadataFailover {
+  enum FailoverRange {
+    // ALL return all instances
+    ALL = 0;
+    // OTHERS retuen without thie labels instances
+    OTHERS = 1;
+    // OTHER_KEYS return other instances which match keys
+    OTHER_KEYS = 2;
+  }
+  // failover_range metadata route bottom type
+  FailoverRange failover_range = 1;
+  // only use to failover_range == OTHER_KEYS
+  map<string, string> labels = 2;
+}
+
+// MetadataRoutingConfig metadata routing configuration
+message MetadataRoutingConfig {
+  // service
+  string service = 1;
+  // namespace
+  string namespace = 2;
+  map<string, string> labels = 3;
+  // When metadata not found, it will fall back to the
+  MetadataFailover failover = 4;
+}
+
+// RuleRoutingConfig routing configuration
+message RuleRoutingConfig {
+  // source source info
+  repeated Source sources = 1;
+  // destination destinations info
+  repeated Destination destinations = 2;
+}
+
+message Source {
+  // Main tuning service and namespace
+  string service = 1;
+  string namespace = 2;
+
+  // Master Control Service Example Tag or Request Label
+  // Value supports regular matching
+  repeated SourceMatch arguments = 3;
+}
+
+message Destination {
+  // Templated service and namespace
+  string service = 1;
+  string namespace = 2;
+
+  // Templated service example label
+  // Value supports regular matching
+  map<string, MatchString> labels = 3;
+
+  // According to the service name and service instance Metadata Filter the
+  // qualified service instance subset Service instance subset can set priority
+  // and weight Priority: integer, range [0, 9], the highest priority is 0
+  // Weight: Integer
+  // Press priority routing, if there is high priority, low priority will not
+  // use If there is a subset of the same priority, then assign by weight
+  // Priority and weight can be not set / set up one / set two
+  // If the section is set priority, some are not set, it is considered that the
+  // priority is not set. If the part is set, some is not set, it is considered
+  // that the weight is not set to 0 If you have no weight, you think the weight
+  // is the same
+  uint32 priority = 4;
+  uint32 weight = 5;
+
+  // Forward requests to proxy service
+  string transfer = 6;
+
+  // Whether to isolate the SET, after isolation, no traffic will be allocated
+  bool isolate = 7;
+
+  // name desition name
+  string name = 8;
+}
+
+// SourceMatch
+message SourceMatch {
+  // label type for gateway request
+  enum Type {
+    // custom arguments
+    CUSTOM = 0;
+    // method, match the http post/get/put/delete or grpc method
+    METHOD = 1;
+    // header, match the http header, dubbo attachment, grpc header
+    HEADER = 2;
+    // query, match the http query, dubbo argument
+    QUERY = 3;
+    // caller host ip
+    CALLER_IP = 4;
+    // path, math the http url
+    PATH = 5;
+    // cookie match http cookie
+    COOKIE = 6;
+  }
+  Type type = 1;
+  // header key or query key
+  string key = 2;
+  // header value or query value
+  MatchString value = 3;
+}

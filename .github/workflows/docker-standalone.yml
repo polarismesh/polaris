@@ -1,32 +1,38 @@
-name: DockerImage
+name: Standalone(Docker)
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      server_version:
+        description: "tag version for polaris"
+        required: true
+      console_version:
+        description: "tag version for polaris-console"
+        required: true
 
 jobs:
   release:
-    name: Release Polaris Docker Image
+    name: Release polaris standalone docker-image
     runs-on: ubuntu-latest
     strategy:
       matrix:
         goos: [linux]
         goarch: [amd64]
+        exclude:
+          - goos: windows
+            goarch: arm64
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Get version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-
-      - name: Set up Go
-        uses: actions/setup-go@v2
         with:
-          go-version: 1.17.1
+          ref: ${{ github.event.inputs.server_version }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
+        with:
+          config-inline: |
+            insecure-entitlements = [ "network.host" ]
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
@@ -34,31 +40,56 @@ jobs:
           username: ${{ secrets.POLARIS_DOCKER_NAME }}
           password: ${{ secrets.POLARIS_DOCKER_PASSWORD }}
 
-      - name: Build Server
-        id: build-server
+      - name: Build
+        id: build
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-          DOCKER_TAG: ${{ steps.get_version.outputs.VERSION }}
+          SERVER_VERSION: ${{ github.event.inputs.server_version }}
+          CONSOLE_VERSION: ${{ github.event.inputs.console_version }}
         run: |
-          echo "docker repository : polarismesh/polaris-server-standalone, tag : ${docker_tag}"
-          bash build.sh ${DOCKER_TAG}
+          set -e
+          cd deploy/standalone
           
-          if [ $? != 0 ]; then
-              echo "build polaris-server failed"
-              exit 1
-          fi
-          cd deploy/standalone/docker
-          ls -lstrh
-          bash build.sh ${DOCKER_TAG}
+          POLARIS_GIT_PATH=https://github.com/polarismesh
+          
+          DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}
+          rm -rf ${DIR_NAME}
+          mkdir ${DIR_NAME}
+          cd ${DIR_NAME}
 
-      - name: Build Prometheus
-        id: build-prom
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          DOCKER_TAG: ${{ steps.get_version.outputs.VERSION }}
-        run: |
-          cd deploy/docker/prometheus
-          ls -lstrh
-          bash build_docker_prom.sh ${DOCKER_TAG}
+          arch_list=("amd64" "arm64")
+          platforms=""
+
+          for GOARCH in ${arch_list[@]}; do
+              SERVER_PKG_NAME=polaris-server-release_${SERVER_VERSION}.${GOOS}.${GOARCH}.zip
+              wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris/releases/download/${SERVER_VERSION}/${SERVER_PKG_NAME} --no-check-certificate
+              CONSOLE_PKG_NAME=polaris-console-release_${CONSOLE_VERSION}.${GOOS}.${GOARCH}.zip
+              wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris-console/releases/download/${CONSOLE_VERSION}/${CONSOLE_PKG_NAME} --no-check-certificate
+              
+              wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz
+              wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${GOOS}-${GOARCH}.tar.gz
+              
+              platforms+="${GOOS}/${GOARCH},"
+          done
+
+          platforms=${platforms::-1}
+          
+          cp ../vm/install-${GOOS}.sh ./install.sh
+          cp ../vm/uninstall-${GOOS}.sh ./uninstall.sh
+          cp ../vm/port.properties ./port.properties
+          cp ../vm/Dockerfile ./Dockerfile
+          
+          echo "#!/bin/bash" >"run.sh"
+          echo "" >>"run.sh"
+          echo "bash install.sh" >>"run.sh"
+          echo "while ((1))" >>"run.sh"
+          echo "do" >>"run.sh"
+          echo "   sleep 1" >>"run.sh"
+          echo "done" >>"run.sh"
+          
+          docker_repository="polarismesh"
+          docker_image="polaris-server-standalone"
+          docker_tag=${SERVER_VERSION}
+          
+          docker buildx build --network=host --build-arg SERVER_VERSION="${SERVER_VERSION}" --build-arg CONSOLE_VERSION="${CONSOLE_VERSION}" -t ${docker_repository}/${docker_image}:${docker_tag} -t ${docker_repository}/${docker_image}:latest --platform ${platforms} --push ./

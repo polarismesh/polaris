@@ -171,6 +171,31 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, 3, len(rsp5.ConfigFiles))
 	})
 
+	t.Run("step5-find-by-group", func(t *testing.T) {
+		group := "group12"
+		for i := 0; i < size; i++ {
+			rsp := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, assembleConfigFileWithFixedGroupAndRandomFileName(group))
+			assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
+		}
+
+		// 第一页
+		rsp2 := testSuit.testService.QueryConfigFilesByGroup(testSuit.defaultCtx, testNamespace, group, 0, 3)
+		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
+		assert.Equal(t, uint32(size), rsp2.Total.GetValue())
+		assert.Equal(t, 3, len(rsp2.ConfigFiles))
+
+		// 最后一页
+		rsp3 := testSuit.testService.QueryConfigFilesByGroup(testSuit.defaultCtx, testNamespace, group, 6, 3)
+		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
+		assert.Equal(t, uint32(size), rsp3.Total.GetValue())
+		assert.Equal(t, 1, len(rsp3.ConfigFiles))
+
+		// group为空
+		rsp4 := testSuit.testService.QueryConfigFilesByGroup(testSuit.defaultCtx, testNamespace, "", 0, 3)
+		assert.Equal(t, api.InvalidConfigFileGroupName, rsp4.Code.GetValue())
+
+	})
+
 	t.Run("step6-search-by-file", func(t *testing.T) {
 		file := "file1.txt"
 		for i := 0; i < size; i++ {
@@ -193,7 +218,7 @@ func TestConfigFileCRUD(t *testing.T) {
 		// group,name都为空
 		rsp4 := testSuit.testService.SearchConfigFile(testSuit.defaultCtx, testNamespace, "", "", "", 0, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
-		assert.Equal(t, uint32(size*2), rsp4.Total.GetValue()) // 总数为随机 group 和随机 fileName 总和
+		assert.Equal(t, uint32(size*3), rsp4.Total.GetValue()) // 总数为随机 group 和随机 fileName 总和
 		assert.Equal(t, 3, len(rsp4.ConfigFiles))
 
 		// fileName 模糊搜索
@@ -207,7 +232,7 @@ func TestConfigFileCRUD(t *testing.T) {
 		// 按 tag k1=v1 搜索
 		rsp := testSuit.testService.SearchConfigFile(testSuit.defaultCtx, testNamespace, "", "", "k1,v1", 0, 3)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
-		assert.Equal(t, uint32(size*2), rsp.Total.GetValue())
+		assert.Equal(t, uint32(size*3), rsp.Total.GetValue())
 		assert.Equal(t, 3, len(rsp.ConfigFiles))
 	})
 

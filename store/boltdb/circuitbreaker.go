@@ -26,10 +26,11 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 const (
@@ -576,7 +577,7 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(
 
 	if offset >= uint32(len(cbSlice)) {
 		return &model.CircuitBreakerDetail{
-			Total:               uint32(0),
+			Total:               uint32(len(retRelations)),
 			CircuitBreakerInfos: []*model.CircuitBreakerInfo{},
 		}, nil
 	}

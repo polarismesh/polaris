@@ -209,17 +209,21 @@ func updateScopes(typeName string, options *Options, cores []zapcore.Core, errSi
 	if !ok {
 		return fmt.Errorf("unknown outPutLevel '%s' specified", options.OutputLevel)
 	}
-	scope.SetOutputLevel(outPutLevel)
 
 	// update the stack tracing levels of all listed scopes
 	stackTraceLevel, ok := stringToLevel[options.StackTraceLevel]
 	if !ok {
 		return fmt.Errorf("unknown stackTraceLevel '%s' specified", options.StackTraceLevel)
 	}
+
+	lock.Lock()
+	defer lock.Unlock()
+
+	scope.SetOutputLevel(outPutLevel)
 	scope.SetStackTraceLevel(stackTraceLevel)
 
 	// update patchTable
-	pt := patchTable{
+	pt := &patchTable{
 		write: func(ent zapcore.Entry, fields []zapcore.Field) error {
 			var errs error
 			for _, core := range cores {
@@ -247,8 +251,8 @@ func updateScopes(typeName string, options *Options, cores []zapcore.Core, errSi
 		exitProcess: os.Exit,
 		errorSink:   errSink,
 	}
-	scope.pt.Store(&pt)
 
+	scope.pt = pt
 	// update the caller location setting of all listed scopes
 	scope.SetLogCallers(options.LogCaller)
 

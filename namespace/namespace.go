@@ -19,6 +19,7 @@ package namespace
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -30,7 +31,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
-func (s *Server) AllowAutoCreate() bool {
+func (s *Server) allowAutoCreate() bool {
 	return s.cfg.AutoCreate
 }
 
@@ -47,6 +48,34 @@ func (s *Server) CreateNamespaces(ctx context.Context, req []*api.Namespace) *ap
 	}
 
 	return responses
+}
+
+func (s *Server) CreateNamespaceIfAbsent(ctx context.Context, req *api.Namespace) error {
+	if !s.allowAutoCreate() {
+		return errors.New("not allow auto create namespace")
+	}
+
+	if resp := checkCreateNamespace(req); resp != nil {
+		return errors.New(resp.GetInfo().GetValue())
+	}
+
+	if val := s.caches.Namespace().GetNamespace(req.GetName().GetValue()); val != nil {
+		return nil
+	}
+
+	_, err, _ := s.createNamespaceSingle.Do(req.GetName().GetValue(), func() (interface{}, error) {
+		resp := s.CreateNamespace(ctx, req)
+
+		code := resp.GetCode().GetValue()
+
+		if code == api.ExecuteSuccess || code == api.ExistedResource {
+			return nil, nil
+		}
+
+		return nil, errors.New(resp.GetInfo().GetValue())
+	})
+
+	return err
 }
 
 // CreateNamespace 创建单个命名空间
@@ -179,6 +208,19 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 		return api.NewNamespaceResponse(api.NamespaceExistedCircuitBreakers, req)
 	}
 
+	// 判断属于该命名空间的服务是否都已经被删除
+	total, err = s.getConfigGroupCountWithNamespace(namespace.Name)
+	if err != nil {
+		log.Error("get config group count with namespace err",
+			zap.String("request-id", requestID),
+			zap.String("err", err.Error()))
+		return api.NewNamespaceResponse(api.StoreLayerException, req)
+	}
+	if total != 0 {
+		log.Error("the removed namespace has remain config-group", zap.String("request-id", requestID))
+		return api.NewNamespaceResponse(api.NamespaceExistedConfigGroups, req)
+	}
+
 	// 存储层操作
 	if err := tx.DeleteNamespace(namespace.Name); err != nil {
 		log.Error(err.Error(), zap.String("request-id", requestID))
@@ -307,7 +349,7 @@ func (s *Server) GetNamespaces(ctx context.Context, query map[string][]string) *
 	out.Size = utils.NewUInt32Value(uint32(len(namespaces)))
 	for _, namespace := range namespaces {
 
-		nsCntInfo := s.caches.Service().GetNamesapceCntInfo(namespace.Name)
+		nsCntInfo := s.caches.Service().GetNamespaceCntInfo(namespace.Name)
 
 		out.AddNamespace(&api.Namespace{
 			Id:                       utils.NewStringValue(namespace.Name),
@@ -348,6 +390,15 @@ func (s *Server) GetNamespaceToken(ctx context.Context, req *api.Namespace) *api
 func (s *Server) getServicesCountWithNamespace(namespace string) (uint32, error) {
 	filter := map[string]string{"namespace": namespace}
 	total, _, err := s.storage.GetServices(filter, nil, nil, 0, 1)
+	if err != nil {
+		return 0, err
+	}
+	return total, nil
+}
+
+// 根据命名空间查询配置分组总数
+func (s *Server) getConfigGroupCountWithNamespace(namespace string) (uint32, error) {
+	total, _, err := s.storage.QueryConfigFileGroups(namespace, "", 0, 1)
 	if err != nil {
 		return 0, err
 	}

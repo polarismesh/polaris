@@ -228,7 +228,7 @@ func (n *namespaceStore) GetNamespaces(
 	sort.Sort(sort.Reverse(namespaces))
 	startIdx := offset
 	if startIdx >= len(namespaces) {
-		return nil, 0, nil
+		return nil, uint32(len(namespaces)), nil
 	}
 	endIdx := startIdx + limit
 	if endIdx > len(namespaces) {

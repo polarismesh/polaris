@@ -56,7 +56,7 @@ func (c *Client) DeregisterInstance(instance *api.Instance) error {
 	md := metadata.Pairs("request-id", utils.NewUUID())
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	rsp, err := c.Worker.DeregisterInstance(ctx, instance)

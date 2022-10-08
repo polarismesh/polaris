@@ -40,6 +40,7 @@ message Response {
   ModifyUserGroup modifyUserGroup = 25;
   StrategyResources resources = 26;
   OptionSwitch optionSwitch = 27;
+  InstanceLabels instanceLabels = 28;
   reserved 12 to 14, 16 to 18;
 }
 
@@ -84,6 +85,7 @@ message DiscoverResponse {
     SERVICES = 6;
     reserved 7 to 11;
     reserved "MESH", "MESH_CONFIG", "FLUX_DBREFRESH", "FLUX_SDK", "FLUX_SERVER";
+    NAMESPACES = 12;
   }
 
   DiscoverResponseType type = 3;
@@ -93,5 +95,16 @@ message DiscoverResponse {
   RateLimit rateLimit = 7;
   CircuitBreaker circuitBreaker = 8;
   repeated Service services = 9;
-  reserved 10 to 13;
+  repeated Namespace namespaces = 10;
+  reserved 11 to 13;
 }
+
+
+message OptionSwitch {
+  map<string, string> options = 1;
+}
+
+message InstanceLabels {
+  map<string, StringList> labels = 1;
+}
+

@@ -55,6 +55,26 @@ function uninstallPolarisConsole {
     Write-Output "uninstall polaris console success"
 }
 
+function uninstallPolarisLimiter {
+    Write-Output "uninstall polaris-limiter ... "
+    Get-Process | ForEach-Object($_.name) {
+        if($_.name -eq "polaris-limiter") {
+            $process_pid = $_.Id
+            Write-Output "start to kill polaris-limiter process $process_pid"
+            Stop-Process -Id $process_pid
+            Start-Sleep -Seconds 2
+        }
+    }
+    $target_polaris_limiter_pkg =  (Get-ChildItem "polaris-limiter-release*.zip")[0].Name
+    $polaris_limiter_dirname = ([io.fileinfo]$target_polaris_limiter_pkg).basename
+    $exists = (Test-Path $polaris_limiter_dirname)
+    if ($exists) {
+        Write-Output "start to remove $polaris_limiter_dirname"
+        Remove-Item ".\\${polaris_limiter_dirname}" -Recurse
+    }
+    Write-Output "uninstall polaris limiter success"
+}
+
 function uninstallPrometheus {
     Write-Output "uninstall prometheus ... "
     Get-Process | ForEach-Object($_.name) {
@@ -75,32 +95,11 @@ function uninstallPrometheus {
     Write-Output "uninstall prometheus success"
 }
 
-function uninstallPushGateway {
-    Write-Output "uninstall pushgateway ... "
-    Get-Process | ForEach-Object($_.name) {
-        if($_.name -eq "pushgateway") {
-            $process_pid = $_.Id
-            Write-Output "start to kill pushgateway process $process_pid"
-            Stop-Process -Id $process_pid
-            Start-Sleep -Seconds 2
-        }
-    }
-    $target_pgw_pkg =  (Get-ChildItem "pushgateway-*.zip")[0].Name
-    $pgw_dirname = ([io.fileinfo]$target_pgw_pkg).basename
-    $exists = (Test-Path $pgw_dirname)
-    if ($exists) {
-        Write-Output "start to remove $pgw_dirname"
-        Remove-Item ".\\${pgw_dirname}" -Recurse
-        return
-    }
-    Write-Output "uninstall pushgateway success"
-}
-
-# 卸载server
+# 卸载 server
 uninstallPolarisServer
-# 安装console
+# 卸载 console
 uninstallPolarisConsole
-# 安装Prometheus
+# 卸载 limiter
+uninstallPolarisLimiter
+# 卸载 prometheus
 uninstallPrometheus
-# 安装PushGateWay
-uninstallPushGateway

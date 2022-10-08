@@ -35,66 +35,6 @@ func (m *NamespaceArr) String() string { return proto.CompactTextString(m) }
 // ProtoMessage return proto message
 func (*NamespaceArr) ProtoMessage() {}
 
-// ServiceArr 服务数组定义
-type ServiceArr []*api.Service
-
-// Reset 重置初始化
-func (m *ServiceArr) Reset() { *m = ServiceArr{} }
-
-// String return string
-func (m *ServiceArr) String() string { return proto.CompactTextString(m) }
-
-// ProtoMessage return proto message
-func (*ServiceArr) ProtoMessage() {}
-
-// InstanceArr 服务实例数组定义
-type InstanceArr []*api.Instance
-
-// Reset reset initialization
-func (m *InstanceArr) Reset() { *m = InstanceArr{} }
-
-// String
-func (m *InstanceArr) String() string { return proto.CompactTextString(m) }
-
-// ProtoMessage return proto message
-func (*InstanceArr) ProtoMessage() {}
-
-// RoutingArr 路由规则数组定义
-type RoutingArr []*api.Routing
-
-// Reset reset initialization
-func (m *RoutingArr) Reset() { *m = RoutingArr{} }
-
-// String return string
-func (m *RoutingArr) String() string { return proto.CompactTextString(m) }
-
-// ProtoMessage return proto message
-func (*RoutingArr) ProtoMessage() {}
-
-// RateLimitArr 限流规则数组定义
-type RateLimitArr []*api.Rule
-
-// Reset reset initialization
-func (m *RateLimitArr) Reset() { *m = RateLimitArr{} }
-
-// String
-func (m *RateLimitArr) String() string { return proto.CompactTextString(m) }
-
-// ProtoMessage return proto message
-func (*RateLimitArr) ProtoMessage() {}
-
-// CircuitBreakerArr 熔断规则数组定义
-type CircuitBreakerArr []*api.CircuitBreaker
-
-// Reset reset initialization
-func (m *CircuitBreakerArr) Reset() { *m = CircuitBreakerArr{} }
-
-// String
-func (m *CircuitBreakerArr) String() string { return proto.CompactTextString(m) }
-
-// ProtoMessage return proto message
-func (*CircuitBreakerArr) ProtoMessage() {}
-
 // ConfigReleaseArr 发布规则数组定义
 type ConfigReleaseArr []*api.ConfigRelease
 

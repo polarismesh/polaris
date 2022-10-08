@@ -28,6 +28,7 @@ type ConfigFileGroup struct {
 	Namespace  string
 	Comment    string
 	CreateTime time.Time
+	Owner      string
 	CreateBy   string
 	ModifyTime time.Time
 	ModifyBy   string
@@ -104,4 +105,17 @@ type ConfigFileTag struct {
 	ModifyTime time.Time
 	ModifyBy   string
 	Valid      bool
+}
+
+// ConfigFileTemplate config file template data object
+type ConfigFileTemplate struct {
+	Id         uint64
+	Name       string
+	Content    string
+	Comment    string
+	Format     string
+	CreateTime time.Time
+	CreateBy   string
+	ModifyTime time.Time
+	ModifyBy   string
 }

@@ -23,11 +23,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
+	instancecommon "github.com/polarismesh/polaris-server/common/service"
 	"github.com/polarismesh/polaris-server/common/utils"
 )
 
@@ -107,11 +109,14 @@ func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Res
 		ins.GetId().GetValue(), req.GetNamespace().GetValue(), req.GetService().GetValue(),
 		req.GetHost().GetValue(), req.GetPort().GetValue())
 	log.Info(msg, ZapRequestID(rid), ZapPlatformID(pid), zap.Duration("cost", time.Since(start)))
-	service := &model.Service{
+	svc := &model.Service{
 		Name:      req.GetService().GetValue(),
 		Namespace: req.GetNamespace().GetValue(),
 	}
-	s.RecordHistory(instanceRecordEntry(ctx, service, data, model.OCreate))
+
+	s.sendDiscoverEvent(model.EventInstanceOnline, svc.Namespace, svc.Name, req.GetHost().GetValue(),
+		int(req.GetPort().GetValue()))
+	s.RecordHistory(instanceRecordEntry(ctx, svc, data, model.OCreate))
 	out := &api.Instance{
 		Id:        ins.GetId(),
 		Service:   req.GetService(),
@@ -157,7 +162,7 @@ func (s *Server) asyncCreateInstance(ctx context.Context, svcId string, req *api
 		return nil, api.NewInstanceResponse(future.Code(), req)
 	}
 
-	return utils.CreateInstanceModel(svcId, req), nil
+	return instancecommon.CreateInstanceModel(svcId, req), nil
 }
 
 // 同步串行创建实例
@@ -178,7 +183,7 @@ func (s *Server) serialCreateInstance(ctx context.Context, svcId string, req *ap
 		ins.Isolate = instance.Proto.Isolate
 	}
 	// 直接同步创建服务实例
-	data := utils.CreateInstanceModel(svcId, ins)
+	data := instancecommon.CreateInstanceModel(svcId, ins)
 	if err := s.storage.AddInstance(data); err != nil {
 		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
 		return nil, wrapperInstanceStoreResponse(req, err)
@@ -548,6 +553,12 @@ func (s *Server) updateInstanceAttribute(req *api.Instance, instance *model.Inst
 		insProto.Metadata = req.GetMetadata()
 		needUpdate = true
 	}
+
+	if ok := instanceLocationNeedUpdate(req.GetLocation(), instance.Proto.GetLocation()); ok {
+		insProto.Location = req.Location
+		needUpdate = true
+	}
+
 	// if !needUpdate {
 	// 	// 不需要更新metadata，则置空
 	// 	insProto.Metadata = nil
@@ -598,6 +609,21 @@ func (s *Server) updateInstanceAttribute(req *api.Instance, instance *model.Inst
 	}
 
 	return needUpdate
+}
+
+func instanceLocationNeedUpdate(req *api.Location, old *api.Location) bool {
+
+	if req.GetRegion().GetValue() != old.GetRegion().GetValue() {
+		return true
+	}
+	if req.GetZone().GetValue() != old.GetZone().GetValue() {
+		return true
+	}
+	if req.GetCampus().GetValue() != old.GetCampus().GetValue() {
+		return true
+	}
+
+	return false
 }
 
 // 健康检查的更新
@@ -684,6 +710,37 @@ func (s *Server) GetInstances(ctx context.Context, query map[string]string) *api
 	out.Instances = apiInstances
 
 	return out
+}
+
+func (s *Server) GetInstanceLabels(ctx context.Context, query map[string]string) *api.Response {
+	var (
+		serviceId string
+		namespace = DefaultNamespace
+	)
+
+	if val, ok := query["namespace"]; ok {
+		namespace = val
+	}
+
+	if service, ok := query["service"]; ok {
+		svc := s.Cache().Service().GetServiceByName(service, namespace)
+		if svc != nil {
+			serviceId = svc.ID
+		}
+	}
+
+	if id, ok := query["service_id"]; ok {
+		serviceId = id
+	}
+
+	if serviceId == "" {
+		return api.NewResponse(api.NotFoundService)
+	}
+
+	ret := s.Cache().Instance().GetInstanceLabels(serviceId)
+	resp := api.NewResponse(api.ExecuteSuccess)
+	resp.InstanceLabels = ret
+	return resp
 }
 
 // GetInstancesCount 查询总的服务实例，不带过滤条件的
@@ -829,8 +886,15 @@ func (s *Server) sendDiscoverEvent(eventType model.DiscoverEventType, namespace,
 	s.PublishDiscoverEvent(event)
 }
 
+type svcName interface {
+	// GetService 获取服务名
+	GetService() *wrappers.StringValue
+	// GetNamespace 获取命名空间
+	GetNamespace() *wrappers.StringValue
+}
+
 // createServiceIfAbsent 如果服务不存在，则进行创建，并返回服务的ID信息
-func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instance) (uint32, string, error) {
+func (s *Server) createServiceIfAbsent(ctx context.Context, instance svcName) (uint32, string, error) {
 
 	svc, err := s.loadService(instance)
 	if err != nil {
@@ -875,7 +939,7 @@ func (s *Server) createServiceIfAbsent(ctx context.Context, instance *api.Instan
 	return retCode, svcId, nil
 }
 
-func (s *Server) loadService(instance *api.Instance) (*model.Service, error) {
+func (s *Server) loadService(instance svcName) (*model.Service, error) {
 
 	svc := s.caches.Service().GetServiceByName(instance.GetService().GetValue(), instance.GetNamespace().GetValue())
 

@@ -21,13 +21,13 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
+	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	logger "github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 const (
@@ -62,6 +62,10 @@ type boltStore struct {
 	*configFileReleaseStore
 	*configFileReleaseHistoryStore
 	*configFileTagStore
+	*configFileTemplateStore
+
+	// v2 存储
+	*routingStoreV2
 
 	handler BoltHandler
 	start   bool
@@ -111,12 +115,10 @@ var (
 	namespacesToInit = []string{"default", namespacePolaris}
 	servicesToInit   = map[string]string{
 		"polaris.checker": "fbca9bfa04ae4ead86e1ecf5811e32a9",
-		"polaris.monitor": "bbfdda174ea64e11ac862adf14593c03",
-		"polaris.config":  "e6542db1a2cc846c1866010b40b7f51f",
 	}
 
 	mainUser = &model.User{
-		ID:          "04ae4ead86e1ecf5811e32a9fbca9bfa",
+		ID:          "65e4789a6d5b49669adf1e9e8387549c",
 		Name:        "polaris",
 		Password:    "$2a$10$3izWuZtE5SBdAtSZci.gs.iZ2pAn9I8hEqYrC6gwJp1dyjqQnrrum",
 		Owner:       "",
@@ -124,7 +126,7 @@ var (
 		Mobile:      "",
 		Email:       "",
 		Type:        20,
-		Token:       "4azbewS+pdXvrMG1PtYV3SrcLxjmYd0IVNaX9oYziQygRnKzjcSbxl+Reg7zYQC1gRrGiLzmMY+w+aCxOYI=",
+		Token:       "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=",
 		TokenEnable: true,
 		Valid:       true,
 		Comment:     "default polaris admin account",
@@ -140,12 +142,12 @@ var (
 		Principals: []model.Principal{
 			{
 				StrategyID:    "fbca9bfa04ae4ead86e1ecf5811e32a9",
-				PrincipalID:   "04ae4ead86e1ecf5811e32a9fbca9bfa",
+				PrincipalID:   "65e4789a6d5b49669adf1e9e8387549c",
 				PrincipalRole: model.PrincipalUser,
 			},
 		},
 		Default: true,
-		Owner:   "04ae4ead86e1ecf5811e32a9fbca9bfa",
+		Owner:   "65e4789a6d5b49669adf1e9e8387549c",
 		Resources: []model.StrategyResource{
 			{
 				StrategyID: "fbca9bfa04ae4ead86e1ecf5811e32a9",
@@ -278,6 +280,8 @@ func (m *boltStore) newDiscoverModuleStore() error {
 
 	m.circuitBreakerStore = &circuitBreakerStore{handler: m.handler}
 
+	m.routingStoreV2 = &routingStoreV2{handler: m.handler}
+
 	return nil
 }
 
@@ -315,6 +319,11 @@ func (m *boltStore) newConfigModuleStore() error {
 	}
 
 	m.configFileReleaseStore, err = newConfigFileReleaseStore(m.handler)
+	if err != nil {
+		return err
+	}
+
+	m.configFileTemplateStore, err = newConfigFileTemplateStore(m.handler)
 	if err != nil {
 		return err
 	}

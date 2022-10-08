@@ -23,9 +23,10 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
-	"go.uber.org/zap"
 )
 
 const (
@@ -73,7 +74,9 @@ func newConfigFileReleaseStore(handler BoltHandler) (*configFileReleaseStore, er
 }
 
 // CreateConfigFileRelease 新建配置文件发布
-func (cfr *configFileReleaseStore) CreateConfigFileRelease(proxyTx store.Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
+func (cfr *configFileReleaseStore) CreateConfigFileRelease(proxyTx store.Tx,
+	fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
+
 	ret, err := DoTransactionIfNeed(proxyTx, cfr.handler, func(tx *bolt.Tx) ([]interface{}, error) {
 		cfr.id++
 		fileRelease.Id = cfr.id
@@ -95,7 +98,8 @@ func (cfr *configFileReleaseStore) CreateConfigFileRelease(proxyTx store.Tx, fil
 			return nil, err
 		}
 
-		data, err := cfr.getConfigFileReleaseByFlag(tx, fileRelease.Namespace, fileRelease.Group, fileRelease.FileName, false)
+		data, err := cfr.getConfigFileReleaseByFlag(tx, fileRelease.Namespace, fileRelease.Group,
+			fileRelease.FileName, false)
 		if err != nil {
 			return nil, err
 		}
@@ -119,7 +123,9 @@ func (cfr *configFileReleaseStore) CreateConfigFileRelease(proxyTx store.Tx, fil
 }
 
 // UpdateConfigFileRelease 更新配置文件发布
-func (cfr *configFileReleaseStore) UpdateConfigFileRelease(proxyTx store.Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
+func (cfr *configFileReleaseStore) UpdateConfigFileRelease(proxyTx store.Tx,
+	fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
+
 	ret, err := DoTransactionIfNeed(proxyTx, cfr.handler, func(tx *bolt.Tx) ([]interface{}, error) {
 		properties := make(map[string]interface{})
 
@@ -139,7 +145,8 @@ func (cfr *configFileReleaseStore) UpdateConfigFileRelease(proxyTx store.Tx, fil
 			return nil, err
 		}
 
-		data, err := cfr.getConfigFileReleaseByFlag(tx, fileRelease.Namespace, fileRelease.Group, fileRelease.FileName, false)
+		data, err := cfr.getConfigFileReleaseByFlag(tx, fileRelease.Namespace, fileRelease.Group,
+			fileRelease.FileName, false)
 		if err != nil {
 			return nil, err
 		}
@@ -163,7 +170,9 @@ func (cfr *configFileReleaseStore) UpdateConfigFileRelease(proxyTx store.Tx, fil
 }
 
 // GetConfigFileRelease Get the configuration file release, only the record of FLAG = 0
-func (cfr *configFileReleaseStore) GetConfigFileRelease(proxyTx store.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
+func (cfr *configFileReleaseStore) GetConfigFileRelease(proxyTx store.Tx, namespace,
+	group, fileName string) (*model.ConfigFileRelease, error) {
+
 	ret, err := DoTransactionIfNeed(proxyTx, cfr.handler, func(tx *bolt.Tx) ([]interface{}, error) {
 		data, err := cfr.getConfigFileReleaseByFlag(tx, namespace, group, fileName, false)
 		if err != nil {
@@ -188,7 +197,9 @@ func (cfr *configFileReleaseStore) GetConfigFileRelease(proxyTx store.Tx, namesp
 }
 
 // GetConfigFileReleaseWithAllFlag Get all publishing data, including deletion
-func (cfr *configFileReleaseStore) GetConfigFileReleaseWithAllFlag(proxyTx store.Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error) {
+func (cfr *configFileReleaseStore) GetConfigFileReleaseWithAllFlag(proxyTx store.Tx, namespace, group,
+	fileName string) (*model.ConfigFileRelease, error) {
+
 	ret, err := DoTransactionIfNeed(proxyTx, cfr.handler, func(tx *bolt.Tx) ([]interface{}, error) {
 		data, err := cfr.getConfigFileReleaseByFlag(tx, namespace, group, fileName, true)
 		if err != nil {
@@ -213,7 +224,9 @@ func (cfr *configFileReleaseStore) GetConfigFileReleaseWithAllFlag(proxyTx store
 }
 
 // getConfigFileReleaseByFlag Obtain data through FLAG
-func (cfr *configFileReleaseStore) getConfigFileReleaseByFlag(tx *bolt.Tx, namespace, group, fileName string, withAllFlag bool) (*model.ConfigFileRelease, error) {
+func (cfr *configFileReleaseStore) getConfigFileReleaseByFlag(tx *bolt.Tx, namespace, group, fileName string,
+	withAllFlag bool) (*model.ConfigFileRelease, error) {
+
 	key := fmt.Sprintf("%s@@%s@@%s", namespace, group, fileName)
 
 	ret := make(map[string]interface{})
@@ -242,7 +255,9 @@ func (cfr *configFileReleaseStore) getConfigFileReleaseByFlag(tx *bolt.Tx, names
 }
 
 // DeleteConfigFileRelease Delete the release data
-func (cfr *configFileReleaseStore) DeleteConfigFileRelease(proxyTx store.Tx, namespace, group, fileName, deleteBy string) error {
+func (cfr *configFileReleaseStore) DeleteConfigFileRelease(proxyTx store.Tx, namespace, group,
+	fileName, deleteBy string) error {
+
 	_, err := DoTransactionIfNeed(proxyTx, cfr.handler, func(tx *bolt.Tx) ([]interface{}, error) {
 		release, err := cfr.getConfigFileReleaseByFlag(tx, namespace, group, fileName, false)
 		if err != nil {
@@ -271,8 +286,10 @@ func (cfr *configFileReleaseStore) DeleteConfigFileRelease(proxyTx store.Tx, nam
 }
 
 // FindConfigFileReleaseByModifyTimeAfter Get the last update time more than a certain time point,
-//    pay attention to containing Flag = 1, in order to get the deleted Release
-func (cfr *configFileReleaseStore) FindConfigFileReleaseByModifyTimeAfter(modifyTime time.Time) ([]*model.ConfigFileRelease, error) {
+//
+//	pay attention to containing Flag = 1, in order to get the deleted Release
+func (cfr *configFileReleaseStore) FindConfigFileReleaseByModifyTimeAfter(
+	modifyTime time.Time) ([]*model.ConfigFileRelease, error) {
 
 	fields := []string{FileReleaseFieldModifyTime}
 

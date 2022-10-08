@@ -28,6 +28,7 @@ import (
 type ResponseMessage interface {
 	proto.Message
 	GetCode() *wrappers.UInt32Value
+	GetInfo() *wrappers.StringValue
 }
 
 /**
@@ -44,8 +45,10 @@ func CalcCode(rm ResponseMessage) int {
 func (b *BatchWriteResponse) Collect(response *Response) {
 	// 非200的code，都归为异常
 	if CalcCode(response) != 200 {
-		b.Code.Value = ExecuteException
-		b.Info.Value = code2info[ExecuteException]
+		if response.GetCode().GetValue() >= b.GetCode().GetValue() {
+			b.Code.Value = response.GetCode().GetValue()
+			b.Info.Value = code2info[b.GetCode().GetValue()]
+		}
 	}
 
 	b.Size.Value++

@@ -20,13 +20,12 @@ package eurekaserver
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"bou.ke/monkey"
 	"github.com/google/uuid"
-	"github.com/polarismesh/polaris-server/service"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris-server/service"
 )
 
 const (
@@ -120,7 +119,7 @@ func mockGetVipInstances(namingServer service.DiscoverServer, svcId string) ([]*
 	return retValue, uuid.NewString(), nil
 }
 
-//TestBuildApplicationsForVip test method for BuildApplicationsForVip
+// TestBuildApplicationsForVip test method for BuildApplicationsForVip
 func TestBuildApplicationsForVip(t *testing.T) {
 	doVipFunctionMock()
 	builder := &ApplicationsBuilder{
@@ -176,7 +175,7 @@ func mockGetSvipInstances(namingServer service.DiscoverServer, svcId string) ([]
 	return retValue, uuid.NewString(), nil
 }
 
-//TestBuildApplicationsForSVip test method for BuildApplicationsForVip
+// TestBuildApplicationsForSVip test method for BuildApplicationsForVip
 func TestBuildApplicationsForSvip(t *testing.T) {
 	doSVipFunctionMock()
 	builder := &ApplicationsBuilder{

@@ -12,7 +12,8 @@ RUN set -eux && \
     echo "Asia/Shanghai" > /etc/timezone && \
     date
 
-COPY polaris-server /root/polaris-server
+ARG TARGETARCH
+COPY polaris-server-${TARGETARCH} /root/polaris-server
 
 WORKDIR /root
 

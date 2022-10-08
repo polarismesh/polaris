@@ -32,14 +32,17 @@ type configFileTagStore struct {
 
 // CreateConfigFileTag 创建配置文件标签
 func (t *configFileTagStore) CreateConfigFileTag(tx store.Tx, fileTag *model.ConfigFileTag) error {
-	insertSql := "insert into config_file_tag(`key`,`value`,namespace,`group`,file_name,create_time,create_by,modify_time,modify_by)" +
+	insertSql := "insert into config_file_tag(`key`,`value`,namespace,`group`,file_name,create_time, " +
+		" create_by,modify_time,modify_by)" +
 		"values(?,?,?,?,?,sysdate(),?,sysdate(),?)"
 
 	var err error
 	if tx != nil {
-		_, err = tx.GetDelegateTx().(*BaseTx).Exec(insertSql, fileTag.Key, fileTag.Value, fileTag.Namespace, fileTag.Group, fileTag.FileName, fileTag.CreateBy, fileTag.ModifyBy)
+		_, err = tx.GetDelegateTx().(*BaseTx).Exec(insertSql, fileTag.Key, fileTag.Value, fileTag.Namespace,
+			fileTag.Group, fileTag.FileName, fileTag.CreateBy, fileTag.ModifyBy)
 	} else {
-		_, err = t.db.Exec(insertSql, fileTag.Key, fileTag.Value, fileTag.Namespace, fileTag.Group, fileTag.FileName, fileTag.CreateBy, fileTag.ModifyBy)
+		_, err = t.db.Exec(insertSql, fileTag.Key, fileTag.Value, fileTag.Namespace,
+			fileTag.Group, fileTag.FileName, fileTag.CreateBy, fileTag.ModifyBy)
 	}
 	if err != nil {
 		return store.Error(err)
@@ -48,7 +51,9 @@ func (t *configFileTagStore) CreateConfigFileTag(tx store.Tx, fileTag *model.Con
 }
 
 // QueryConfigFileByTag 通过标签查询配置文件
-func (t *configFileTagStore) QueryConfigFileByTag(namespace, group, fileName string, tags ...string) ([]*model.ConfigFileTag, error) {
+func (t *configFileTagStore) QueryConfigFileByTag(namespace, group, fileName string,
+	tags ...string) ([]*model.ConfigFileTag, error) {
+
 	group = "%" + group + "%"
 	fileName = "%" + fileName + "%"
 	querySql := t.baseSelectSql() + " where namespace = ? and `group` like ? and file_name like ? "
@@ -93,7 +98,8 @@ func (t *configFileTagStore) QueryTagByConfigFile(namespace, group, fileName str
 
 // DeleteConfigFileTag 删除配置文件标签
 func (t *configFileTagStore) DeleteConfigFileTag(tx store.Tx, namespace, group, fileName, key, value string) error {
-	deleteSql := "delete from config_file_tag where `key` = ? and `value` = ? and namespace = ? and `group` = ? and file_name = ?"
+	deleteSql := "delete from config_file_tag where `key` = ? and `value` = ? and namespace = ? " +
+		" and `group` = ? and file_name = ?"
 	var err error
 	if tx != nil {
 		_, err = tx.GetDelegateTx().(*BaseTx).Exec(deleteSql, key, value, namespace, group, fileName)
@@ -120,8 +126,10 @@ func (t *configFileTagStore) DeleteTagByConfigFile(tx store.Tx, namespace, group
 	}
 	return nil
 }
+
 func (t *configFileTagStore) baseSelectSql() string {
-	return "select id, `key`,`value`,namespace,`group`,file_name,UNIX_TIMESTAMP(create_time),IFNULL(create_by, ''),UNIX_TIMESTAMP(modify_time),IFNULL(modify_by, '') from config_file_tag"
+	return "select id, `key`,`value`,namespace,`group`,file_name,UNIX_TIMESTAMP(create_time), " +
+		" IFNULL(create_by, ''),UNIX_TIMESTAMP(modify_time),IFNULL(modify_by, '') from config_file_tag"
 }
 
 func (t *configFileTagStore) transferRows(rows *sql.Rows) ([]*model.ConfigFileTag, error) {
@@ -135,7 +143,8 @@ func (t *configFileTagStore) transferRows(rows *sql.Rows) ([]*model.ConfigFileTa
 	for rows.Next() {
 		tag := &model.ConfigFileTag{}
 		var ctime, mtime int64
-		err := rows.Scan(&tag.Id, &tag.Key, &tag.Value, &tag.Namespace, &tag.Group, &tag.FileName, &ctime, &tag.CreateBy, &mtime, &tag.ModifyBy)
+		err := rows.Scan(&tag.Id, &tag.Key, &tag.Value, &tag.Namespace, &tag.Group, &tag.FileName,
+			&ctime, &tag.CreateBy, &mtime, &tag.ModifyBy)
 		if err != nil {
 			return nil, err
 		}

@@ -25,6 +25,9 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	"github.com/polarismesh/polaris-server/auth"
 	"github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
@@ -33,8 +36,6 @@ import (
 	"github.com/polarismesh/polaris-server/plugin"
 	_ "github.com/polarismesh/polaris-server/plugin/auth/defaultauth"
 	storemock "github.com/polarismesh/polaris-server/store/mock"
-	"github.com/stretchr/testify/assert"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type StrategyTest struct {
@@ -93,11 +94,7 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 	cfg, _ := initCache(ctrl)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := cache.TestCacheInitialize(ctx, cfg, storage); err != nil {
-		t.Fatal(err)
-	}
-
-	cacheMgn, err := cache.GetCacheManager()
+	cacheMgn, err := cache.TestCacheInitialize(ctx, cfg, storage)
 	if err != nil {
 		t.Fatal(err)
 	}

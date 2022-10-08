@@ -24,6 +24,7 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	authcommon "github.com/polarismesh/polaris-server/common/auth"
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	commontime "github.com/polarismesh/polaris-server/common/time"
@@ -168,7 +169,7 @@ func (svr *server) DeleteGroup(ctx context.Context, req *api.UserGroup) *api.Res
 		return api.NewGroupResponse(api.ExecuteSuccess, req)
 	}
 
-	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
 		if group.Owner != userID {
 			return api.NewResponse(api.NotAllowedAccess)
 		}
@@ -235,7 +236,7 @@ func parseGroupSearchArgs(ctx context.Context, query map[string]string) (map[str
 	}
 
 	// 如果当前不是管理员角色的话，只能查询该用户所关联的用户组列表以及自己创建的用户组
-	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
 		if !utils.ParseIsOwner(ctx) {
 			searchFilters["user_id"] = utils.ParseUserID(ctx)
 		}
@@ -256,7 +257,7 @@ func (svr *server) GetGroup(ctx context.Context, req *api.UserGroup) *api.Respon
 		return errResp
 	}
 
-	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
 		userID := utils.ParseUserID(ctx)
 		isGroupOwner := group.Owner == userID
 		_, find := group.UserIds[userID]
@@ -282,7 +283,7 @@ func (svr *server) GetGroupToken(ctx context.Context, req *api.UserGroup) *api.R
 		return errResp
 	}
 
-	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
 		userID := utils.ParseUserID(ctx)
 		isGroupOwner := groupCache.Owner == userID
 		_, find := groupCache.UserIds[userID]
@@ -312,7 +313,7 @@ func (svr *server) UpdateGroupToken(ctx context.Context, req *api.UserGroup) *ap
 		return errResp
 	}
 
-	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
 		userID := utils.ParseUserID(ctx)
 		if group.Owner != userID {
 			return api.NewResponse(api.NotAllowedAccess)
@@ -475,7 +476,7 @@ func (svr *server) checkUpdateGroup(ctx context.Context, req *api.ModifyUserGrou
 	// 1.管理员
 	// 2.自己在这个用户组里面
 	// 3.自己是这个用户组的owner角色
-	if utils.ParseUserRole(ctx) != model.AdminUserRole {
+	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
 		_, inGroup := group.UserIds[userID]
 		if !inGroup && group.Owner != userID {
 			return api.NewResponse(api.NotAllowedAccess)

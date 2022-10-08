@@ -81,8 +81,9 @@ func (holder *eventBufferHolder) HasNext() bool {
 }
 
 // Next 返回下一个元素
-//  @return model.DiscoverEvent 元素
-//  @return bool 是否还有下一个元素可以继续读取
+//
+//	@return model.DiscoverEvent 元素
+//	@return bool 是否还有下一个元素可以继续读取
 func (holder *eventBufferHolder) Next() model.DiscoverEvent {
 
 	event := holder.buffer[holder.readCursor]
@@ -175,7 +176,7 @@ func (el *discoverEventLocal) Run() {
 		select {
 		case event := <-el.eventCh:
 			// 确保事件是顺序的
-			event.CreateTimeSec = time.Now().Unix()
+			event.CreateTime = time.Now()
 			el.curEventBuffer.Put(event)
 
 			// 触发持久化到 log 阈值
@@ -218,7 +219,7 @@ func (el *discoverEventLocal) writeToFile(eventHolder *eventBufferHolder) {
 			event.Host,
 			event.Port,
 			event.EType,
-			event.CreateTimeSec,
+			event.CreateTime.Unix(),
 			utils.LocalHost))
 	}
 }

@@ -21,45 +21,37 @@ import (
 	"time"
 
 	"github.com/polarismesh/polaris-server/common/model"
+	v2 "github.com/polarismesh/polaris-server/common/model/v2"
 )
 
 // NamingModuleStore Service discovery, governance center module storage interface
 type NamingModuleStore interface {
 	// BusinessStore 服务业务集接口
 	BusinessStore
-
 	// ServiceStore 服务接口
 	ServiceStore
-
 	// InstanceStore 实例接口
 	InstanceStore
-
 	// RoutingConfigStore 路由配置接口
 	RoutingConfigStore
-
 	// L5Store L5扩展接口
 	L5Store
-
 	// RateLimitStore 限流规则接口
 	RateLimitStore
-
 	// RateLimitStore 熔断规则接口
 	CircuitBreakerStore
-
 	// PlatformStore 平台信息接口
 	PlatformStore
-
 	// ToolStore 函数及工具接口
 	ToolStore
-
 	// UserStore 用户接口
 	UserStore
-
 	// GroupStore 用户组接口
 	GroupStore
-
 	// StrategyStore 鉴权策略接口
 	StrategyStore
+	// RoutingConfigStoreV2 路由策略 v2 接口
+	RoutingConfigStoreV2
 }
 
 // BusinessStore 业务集存储接口
@@ -220,23 +212,19 @@ type L5Store interface {
 type RoutingConfigStore interface {
 	// CreateRoutingConfig 新增一个路由配置
 	CreateRoutingConfig(conf *model.RoutingConfig) error
-
 	// UpdateRoutingConfig 更新一个路由配置
 	UpdateRoutingConfig(conf *model.RoutingConfig) error
-
 	// DeleteRoutingConfig 删除一个路由配置
 	DeleteRoutingConfig(serviceID string) error
-
+	// DeleteRoutingConfigTx 删除一个路由配置
+	DeleteRoutingConfigTx(tx Tx, serviceID string) error
 	// GetRoutingConfigsForCache 通过mtime拉取增量的路由配置信息
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetRoutingConfigsForCache(mtime time.Time, firstUpdate bool) ([]*model.RoutingConfig, error)
-
 	// GetRoutingConfigWithService 根据服务名和命名空间拉取路由配置
 	GetRoutingConfigWithService(name string, namespace string) (*model.RoutingConfig, error)
-
 	// GetRoutingConfigWithID 根据服务ID拉取路由配置
 	GetRoutingConfigWithID(id string) (*model.RoutingConfig, error)
-
 	// GetRoutingConfigs 查询路由配置列表
 	GetRoutingConfigs(filter map[string]string, offset uint32, limit uint32) (uint32, []*model.ExtendRoutingConfig, error)
 }
@@ -248,6 +236,9 @@ type RateLimitStore interface {
 
 	// UpdateRateLimit 更新限流规则
 	UpdateRateLimit(limiting *model.RateLimit) error
+
+	// EnableRateLimit 启用限流规则
+	EnableRateLimit(limit *model.RateLimit) error
 
 	// DeleteRateLimit 删除限流规则
 	DeleteRateLimit(limiting *model.RateLimit) error
@@ -334,14 +325,34 @@ type PlatformStore interface {
 
 // ClientStore store interface for client info
 type ClientStore interface {
-
 	// BatchAddClients insert the client info
 	BatchAddClients(clients []*model.Client) error
-
 	// BatchDeleteClients delete the client info
 	BatchDeleteClients(ids []string) error
-
 	// GetMoreClients 根据mtime获取增量clients，返回所有store的变更信息
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetMoreClients(mtime time.Time, firstUpdate bool) (map[string]*model.Client, error)
+}
+
+// RoutingConfigStoreV2 路由配置表的存储接口
+type RoutingConfigStoreV2 interface {
+	// EnableRouting 设置路由规则是否启用
+	EnableRouting(conf *v2.RoutingConfig) error
+	// CreateRoutingConfigV2 新增一个路由配置
+	CreateRoutingConfigV2(conf *v2.RoutingConfig) error
+	// CreateRoutingConfigV2Tx 新增一个路由配置
+	CreateRoutingConfigV2Tx(tx Tx, conf *v2.RoutingConfig) error
+	// UpdateRoutingConfigV2 更新一个路由配置
+	UpdateRoutingConfigV2(conf *v2.RoutingConfig) error
+	// UpdateRoutingConfigV2Tx 更新一个路由配置
+	UpdateRoutingConfigV2Tx(tx Tx, conf *v2.RoutingConfig) error
+	// DeleteRoutingConfigV2 删除一个路由配置
+	DeleteRoutingConfigV2(serviceID string) error
+	// GetRoutingConfigsV2ForCache 通过mtime拉取增量的路由配置信息
+	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
+	GetRoutingConfigsV2ForCache(mtime time.Time, firstUpdate bool) ([]*v2.RoutingConfig, error)
+	// GetRoutingConfigV2WithID 根据服务ID拉取路由配置
+	GetRoutingConfigV2WithID(id string) (*v2.RoutingConfig, error)
+	// GetRoutingConfigV2WithIDTx 根据服务ID拉取路由配置
+	GetRoutingConfigV2WithIDTx(tx Tx, id string) (*v2.RoutingConfig, error)
 }

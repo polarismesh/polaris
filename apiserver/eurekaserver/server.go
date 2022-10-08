@@ -21,18 +21,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/polarismesh/polaris-server/common/secure"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris-server/apiserver"
 	"github.com/polarismesh/polaris-server/common/connlimit"
+	"github.com/polarismesh/polaris-server/common/secure"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/plugin"
 	"github.com/polarismesh/polaris-server/service"
@@ -191,9 +191,9 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 			return err
 		}
 		h.tlsInfo = &secure.TLSInfo{
-			CertFile:      tlsConfig.Cert,
-			KeyFile:       tlsConfig.Key,
-			TrustedCAFile: tlsConfig.CaCert,
+			CertFile:      tlsConfig.CertFile,
+			KeyFile:       tlsConfig.KeyFile,
+			TrustedCAFile: tlsConfig.TrustedCAFile,
 		}
 	}
 

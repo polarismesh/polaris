@@ -1,0 +1,95 @@
+name: IntegrationTest(BoltDB)
+
+on:
+  push:
+    branches:
+      - main
+      - release*
+  pull_request:
+    branches:
+      - main
+      - release*
+
+permissions:
+  contents: write
+
+# Always force the use of Go modules
+env:
+  GO111MODULE: on
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        goarch: [amd64]
+        goos: [linux, darwin]
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            vert: 1
+        exclude:
+          - os: ubuntu-latest
+            goos: windows
+          - os: ubuntu-latest
+            goos: darwin
+          - os: windows-latest
+            goos: linux
+          - os: windows-latest
+            goos: darwin
+          - os: macos-latest
+            goos: windows
+          - os: macos-latest
+            goos: linux
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      # Setup the environment.
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17.1
+      # Checkout latest code
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      # Compile
+      - name: Build server
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: make build
+
+      # Run interface tests
+      - name: run discover interface tests
+        run: |
+          work_dir=$(ls | grep polaris-server-release | sed -n '1p')
+          echo "work_dir is $work_dir"
+          cd $work_dir
+
+          ls -alR
+
+          if [[ "$(uname)" == "Darwin" ]]; then
+              # Mac OS X 操作系统
+              echo "Run on MacOS"
+              sed -i '' 's/consoleOpen: true/consoleOpen: false/g' polaris-server.yaml
+          else
+              # GNU/Linux操作系统
+              echo "Run on Linux"
+              sed -i 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' polaris-server.yaml
+          fi
+
+          cat polaris-server.yaml
+
+          chmod +x ./tool/*.sh
+          ./tool/start.sh
+
+          cd ..
+          # 先测试普通的集成测试
+          pushd ./test
+          go test -count=1 -v -tags integration
+          popd
+          cd $work_dir
+          ./tool/stop.sh
+          cd ..

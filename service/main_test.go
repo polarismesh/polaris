@@ -31,41 +31,42 @@ import (
 
 	"github.com/boltdb/bolt"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris-server/auth"
+	_ "github.com/polarismesh/polaris-server/auth/defaultauth"
 	"github.com/polarismesh/polaris-server/cache"
+	_ "github.com/polarismesh/polaris-server/cache"
 	api "github.com/polarismesh/polaris-server/common/api/v1"
+	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
 	commonlog "github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris-server/common/metrics"
 	"github.com/polarismesh/polaris-server/common/utils"
 	"github.com/polarismesh/polaris-server/namespace"
 	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/service/batch"
-	"github.com/polarismesh/polaris-server/service/healthcheck"
-	"github.com/polarismesh/polaris-server/store"
-	"github.com/polarismesh/polaris-server/store/boltdb"
-	"github.com/polarismesh/polaris-server/store/sqldb"
-
-	_ "github.com/polarismesh/polaris-server/auth/defaultauth"
-	_ "github.com/polarismesh/polaris-server/cache"
-	_ "github.com/polarismesh/polaris-server/store/boltdb"
-	_ "github.com/polarismesh/polaris-server/store/sqldb"
-
 	_ "github.com/polarismesh/polaris-server/plugin/auth/defaultauth"
-	_ "github.com/polarismesh/polaris-server/plugin/cmdb/memory"
-
 	_ "github.com/polarismesh/polaris-server/plugin/auth/platform"
+	_ "github.com/polarismesh/polaris-server/plugin/cmdb/memory"
 	_ "github.com/polarismesh/polaris-server/plugin/discoverevent/local"
 	_ "github.com/polarismesh/polaris-server/plugin/discoverstat/discoverlocal"
+	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatmemory"
+	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatredis"
 	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
 	_ "github.com/polarismesh/polaris-server/plugin/password"
 	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/lrurate"
 	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/token"
 	_ "github.com/polarismesh/polaris-server/plugin/statis/local"
-
-	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatmemory"
-	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatredis"
+	"github.com/polarismesh/polaris-server/service/batch"
+	"github.com/polarismesh/polaris-server/service/healthcheck"
+	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris-server/store/boltdb"
+	_ "github.com/polarismesh/polaris-server/store/boltdb"
+	"github.com/polarismesh/polaris-server/store/sqldb"
+	_ "github.com/polarismesh/polaris-server/store/sqldb"
+	"github.com/polarismesh/polaris-server/testdata"
 )
 
 const (
@@ -79,6 +80,8 @@ const (
 	tblCircuitBreakerRelation = "circuitbreaker_rule_relation"
 	tblPlatform               = "platform"
 	tblNameL5                 = "l5"
+	tblNameRoutingV2          = "routing_config_v2"
+	tblClient                 = "client"
 )
 
 type Bootstrap struct {
@@ -113,11 +116,12 @@ func (d *DiscoverTestSuit) loadConfig() error {
 
 	d.cfg = new(TestConfig)
 
-	confFileName := "test.yaml"
+	confFileName := testdata.Path("service_test.yaml")
 	if os.Getenv("STORE_MODE") == "sqldb" {
-		fmt.Printf("run store mode : sqldb")
-		confFileName = "test_sqldb.yaml"
-		d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey, "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
+		fmt.Printf("run store mode : sqldb\n")
+		confFileName = testdata.Path("service_test_sqldb.yaml")
+		d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey,
+			"nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
 	}
 	file, err := os.Open(confFileName)
 	if err != nil {
@@ -142,13 +146,21 @@ func respSuccess(resp api.ResponseMessage) bool {
 	return ret
 }
 
+// 判断一个resp是否执行成功
+func respSuccessV2(resp apiv2.ResponseMessage) bool {
+	ret := apiv2.CalcCode(resp) == 200
+
+	return ret
+}
+
 type options func(cfg *TestConfig)
 
 // 内部初始化函数
 func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	// 初始化defaultCtx
 	d.defaultCtx = context.WithValue(context.Background(), utils.StringContext("request-id"), "test-1")
-	d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey, "4azbewS+pdXvrMG1PtYV3SrcLxjmYd0IVNaX9oYziQygRnKzjcSbxl+Reg7zYQC1gRrGiLzmMY+w+aCxOYI=")
+	d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey,
+		"nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
 
 	if err := os.RemoveAll("polaris.bolt"); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
@@ -172,6 +184,8 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	commonlog.StoreScope().SetOutputLevel(commonlog.ErrorLevel)
 	commonlog.AuthScope().SetOutputLevel(commonlog.ErrorLevel)
 
+	metrics.InitMetrics()
+
 	// 初始化存储层
 	store.SetStoreConfig(&d.cfg.Store)
 	s, _ := store.TestGetStore()
@@ -184,11 +198,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	d.cancel = cancel
 
 	// 初始化缓存模块
-	if err := cache.TestCacheInitialize(ctx, &d.cfg.Cache, s); err != nil {
-		panic(err)
-	}
-
-	cacheMgn, err := cache.GetCacheManager()
+	cacheMgn, err := cache.TestCacheInitialize(ctx, &d.cfg.Cache, s)
 	if err != nil {
 		panic(err)
 	}
@@ -243,6 +253,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 		panic(err)
 	}
 	healthCheckServer.SetServiceCache(cacheMgn.Service())
+	healthCheckServer.SetInstanceCache(cacheMgn.Instance())
 
 	// 为 instance 的 cache 添加 健康检查的 Listener
 	cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
@@ -264,9 +275,52 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 
 func (d *DiscoverTestSuit) Destroy() {
 	d.cancel()
-	d.storage.Destroy()
-
 	time.Sleep(5 * time.Second)
+
+	d.storage.Destroy()
+	time.Sleep(5 * time.Second)
+}
+
+func (d *DiscoverTestSuit) cleanReportClient() {
+	if d.storage.Name() == sqldb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+			defer dbTx.Rollback()
+
+			if _, err := dbTx.Exec("delete from client"); err != nil {
+				panic(err)
+			}
+			if _, err := dbTx.Exec("delete from client_stat"); err != nil {
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if d.storage.Name() == boltdb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+			defer dbTx.Rollback()
+
+			if err := dbTx.DeleteBucket([]byte(tblClient)); err != nil {
+				if !errors.Is(err, bolt.ErrBucketNotFound) {
+					dbTx.Rollback()
+					panic(err)
+				}
+			}
+
+			dbTx.Commit()
+		}()
+	}
 }
 
 // 从数据库彻底删除命名空间
@@ -277,30 +331,26 @@ func (d *DiscoverTestSuit) cleanNamespace(name string) {
 
 	log.Infof("clean namespace: %s", name)
 
-	s, err := store.GetStore()
-	if err != nil {
-		panic(err)
-	}
-
-	if s.Name() == sqldb.STORENAME {
+	if d.storage.Name() == sqldb.STORENAME {
 		str := "delete from namespace where name = ?"
 		func() {
-			tx, err := s.StartTx()
+			tx, err := d.storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
 
 			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+			defer dbTx.Rollback()
 
-			if _, err := dbTx.Exec(str); err != nil {
+			if _, err := dbTx.Exec(str, name); err != nil {
 				panic(err)
 			}
 
 			dbTx.Commit()
 		}()
-	} else if s.Name() == boltdb.STORENAME {
+	} else if d.storage.Name() == boltdb.STORENAME {
 		func() {
-			tx, err := s.StartTx()
+			tx, err := d.storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -703,8 +753,8 @@ func (d *DiscoverTestSuit) createCommonRoutingConfig(t *testing.T, service *api.
 			},
 		}
 		destination := &api.Destination{
-			Service:   utils.NewStringValue(fmt.Sprintf("in-destination-service-%d", i)),
-			Namespace: utils.NewStringValue(fmt.Sprintf("in-destination-service-%d", i)),
+			Service:   service.Name,
+			Namespace: service.Namespace,
 			Metadata: map[string]*api.MatchString{
 				fmt.Sprintf("in-metadata-%d", i): matchString,
 			},
@@ -737,11 +787,198 @@ func (d *DiscoverTestSuit) createCommonRoutingConfig(t *testing.T, service *api.
 	return conf, resp.Responses[0].GetRouting()
 }
 
+// 创建一个路由配置
+func (d *DiscoverTestSuit) createCommonRoutingConfigV1IntoOldStore(t *testing.T, service *api.Service,
+	inCount int, outCount int) (*api.Routing, *api.Routing) {
+
+	inBounds := make([]*api.Route, 0, inCount)
+	for i := 0; i < inCount; i++ {
+		matchString := &api.MatchString{
+			Type:  api.MatchString_EXACT,
+			Value: utils.NewStringValue(fmt.Sprintf("in-meta-value-%d", i)),
+		}
+		source := &api.Source{
+			Service:   utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
+			Namespace: utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
+			Metadata: map[string]*api.MatchString{
+				fmt.Sprintf("in-metadata-%d", i): matchString,
+			},
+		}
+		destination := &api.Destination{
+			Service:   service.Name,
+			Namespace: service.Namespace,
+			Metadata: map[string]*api.MatchString{
+				fmt.Sprintf("in-metadata-%d", i): matchString,
+			},
+			Priority: utils.NewUInt32Value(120),
+			Weight:   utils.NewUInt32Value(100),
+			Transfer: utils.NewStringValue("abcdefg"),
+		}
+
+		entry := &api.Route{
+			Sources:      []*api.Source{source},
+			Destinations: []*api.Destination{destination},
+		}
+		inBounds = append(inBounds, entry)
+	}
+
+	conf := &api.Routing{
+		Service:      utils.NewStringValue(service.GetName().GetValue()),
+		Namespace:    utils.NewStringValue(service.GetNamespace().GetValue()),
+		Inbounds:     inBounds,
+		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
+	}
+
+	resp := d.server.(*serverAuthAbility).targetServer.CreateRoutingConfig(d.defaultCtx, conf)
+	if !respSuccess(resp) {
+		t.Fatalf("error: %+v", resp)
+	}
+
+	return conf, resp.GetRouting()
+}
+
+func mockRoutingV1(serviceName, serviceNamespace string, inCount int) *api.Routing {
+	inBounds := make([]*api.Route, 0, inCount)
+	for i := 0; i < inCount; i++ {
+		matchString := &api.MatchString{
+			Type:  api.MatchString_EXACT,
+			Value: utils.NewStringValue(fmt.Sprintf("in-meta-value-%d", i)),
+		}
+		source := &api.Source{
+			Service:   utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
+			Namespace: utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
+			Metadata: map[string]*api.MatchString{
+				fmt.Sprintf("in-metadata-%d", i): matchString,
+			},
+		}
+		destination := &api.Destination{
+			Service:   utils.NewStringValue(serviceName),
+			Namespace: utils.NewStringValue(serviceNamespace),
+			Metadata: map[string]*api.MatchString{
+				fmt.Sprintf("in-metadata-%d", i): matchString,
+			},
+			Priority: utils.NewUInt32Value(120),
+			Weight:   utils.NewUInt32Value(100),
+			Transfer: utils.NewStringValue("abcdefg"),
+		}
+
+		entry := &api.Route{
+			Sources:      []*api.Source{source},
+			Destinations: []*api.Destination{destination},
+		}
+		inBounds = append(inBounds, entry)
+	}
+
+	conf := &api.Routing{
+		Service:   utils.NewStringValue(serviceName),
+		Namespace: utils.NewStringValue(serviceNamespace),
+		Inbounds:  inBounds,
+	}
+
+	return conf
+}
+
+func mockRoutingV2(t *testing.T, cnt int32) []*apiv2.Routing {
+	rules := make([]*apiv2.Routing, 0, cnt)
+	for i := int32(0); i < cnt; i++ {
+		matchString := &apiv2.MatchString{
+			Type:  apiv2.MatchString_EXACT,
+			Value: utils.NewStringValue(fmt.Sprintf("in-meta-value-%d", i)),
+		}
+		source := &apiv2.Source{
+			Service:   fmt.Sprintf("in-source-service-%d", i),
+			Namespace: fmt.Sprintf("in-source-service-%d", i),
+			Arguments: []*apiv2.SourceMatch{
+				{},
+			},
+		}
+		destination := &apiv2.Destination{
+			Service:   fmt.Sprintf("in-destination-service-%d", i),
+			Namespace: fmt.Sprintf("in-destination-service-%d", i),
+			Labels: map[string]*apiv2.MatchString{
+				fmt.Sprintf("in-metadata-%d", i): matchString,
+			},
+			Priority: 120,
+			Weight:   100,
+			Transfer: "abcdefg",
+		}
+
+		entry := &apiv2.RuleRoutingConfig{
+			Sources:      []*apiv2.Source{source},
+			Destinations: []*apiv2.Destination{destination},
+		}
+
+		any, err := ptypes.MarshalAny(entry)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		item := &apiv2.Routing{
+			Id:            "",
+			Name:          fmt.Sprintf("test-routing-name-%d", i),
+			Namespace:     "",
+			Enable:        false,
+			RoutingPolicy: apiv2.RoutingPolicy_RulePolicy,
+			RoutingConfig: any,
+			Revision:      "",
+			Etime:         "",
+			Priority:      0,
+			Description:   "",
+		}
+
+		rules = append(rules, item)
+	}
+
+	return rules
+}
+
+// 创建一个路由配置
+func (d *DiscoverTestSuit) createCommonRoutingConfigV2(t *testing.T, cnt int32) []*apiv2.Routing {
+	rules := mockRoutingV2(t, cnt)
+
+	return d.createCommonRoutingConfigV2WithReq(t, rules)
+}
+
+// 创建一个路由配置
+func (d *DiscoverTestSuit) createCommonRoutingConfigV2WithReq(t *testing.T, rules []*apiv2.Routing) []*apiv2.Routing {
+	resp := d.server.CreateRoutingConfigsV2(d.defaultCtx, rules)
+	if !respSuccessV2(resp) {
+		t.Fatalf("error: %+v", resp)
+	}
+
+	if len(rules) != len(resp.GetResponses()) {
+		t.Fatal("error: create v2 routings not equal resp")
+	}
+
+	ret := []*apiv2.Routing{}
+	for i := range resp.GetResponses() {
+		item := resp.GetResponses()[i]
+		msg := &apiv2.Routing{}
+
+		if err := ptypes.UnmarshalAny(item.GetData(), msg); err != nil {
+			t.Fatal(err)
+			return nil
+		}
+
+		ret = append(ret, msg)
+	}
+
+	return ret
+}
+
 // 删除一个路由配置
 func (d *DiscoverTestSuit) deleteCommonRoutingConfig(t *testing.T, req *api.Routing) {
 	resp := d.server.DeleteRoutingConfigs(d.defaultCtx, []*api.Routing{req})
 	if !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
+	}
+}
+
+// 删除一个路由配置
+func (d *DiscoverTestSuit) deleteCommonRoutingConfigV2(t *testing.T, req *apiv2.Routing) {
+	resp := d.server.DeleteRoutingConfigsV2(d.defaultCtx, []*apiv2.Routing{req})
+	if !respSuccessV2(resp) {
+		t.Fatalf("%s", resp.GetInfo())
 	}
 }
 
@@ -772,12 +1009,16 @@ func (d *DiscoverTestSuit) cleanCommonRoutingConfig(service string, namespace st
 			if _, err := dbTx.Exec(str, service, namespace); err != nil {
 				panic(err)
 			}
+			str = "delete from routing_config_v2"
+			// fmt.Printf("%s %s %s\n", str, service, namespace)
+			if _, err := dbTx.Exec(str); err != nil {
+				panic(err)
+			}
 
 			dbTx.Commit()
 		}()
 	} else if d.storage.Name() == boltdb.STORENAME {
 		func() {
-
 			svc, err := d.storage.GetService(service, namespace)
 			if err != nil {
 				panic(err)
@@ -793,8 +1034,19 @@ func (d *DiscoverTestSuit) cleanCommonRoutingConfig(service string, namespace st
 			}
 
 			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+			defer dbTx.Rollback()
 
-			if err := dbTx.Bucket([]byte(tblNameRouting)).DeleteBucket([]byte(svc.ID)); err != nil {
+			v1Bucket := dbTx.Bucket([]byte(tblNameRouting))
+			if v1Bucket != nil {
+				if err := v1Bucket.DeleteBucket([]byte(svc.ID)); err != nil {
+					if !errors.Is(err, bolt.ErrBucketNotFound) {
+						dbTx.Rollback()
+						panic(err)
+					}
+				}
+			}
+
+			if err := dbTx.DeleteBucket([]byte(tblNameRoutingV2)); err != nil {
 				if !errors.Is(err, bolt.ErrBucketNotFound) {
 					dbTx.Rollback()
 					panic(err)
@@ -805,7 +1057,102 @@ func (d *DiscoverTestSuit) cleanCommonRoutingConfig(service string, namespace st
 	}
 }
 
-//
+func (d *DiscoverTestSuit) truncateCommonRoutingConfigV2() {
+	if d.storage.Name() == sqldb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+			defer dbTx.Rollback()
+
+			str := "delete from routing_config_v2"
+			if _, err := dbTx.Exec(str); err != nil {
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if d.storage.Name() == boltdb.STORENAME {
+		func() {
+
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+			defer dbTx.Rollback()
+
+			if err := dbTx.DeleteBucket([]byte(tblNameRoutingV2)); err != nil {
+				if !errors.Is(err, bolt.ErrBucketNotFound) {
+					dbTx.Rollback()
+					panic(err)
+				}
+			}
+
+			dbTx.Commit()
+		}()
+	}
+}
+
+// 彻底删除一个路由配置
+func (d *DiscoverTestSuit) cleanCommonRoutingConfigV2(rules []*apiv2.Routing) {
+
+	if d.storage.Name() == sqldb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+			defer dbTx.Rollback()
+
+			str := "delete from routing_config_v2 where id in (%s)"
+
+			places := []string{}
+			args := []interface{}{}
+			for i := range rules {
+				places = append(places, "?")
+				args = append(args, rules[i].Id)
+			}
+
+			str = fmt.Sprintf(str, strings.Join(places, ","))
+			// fmt.Printf("%s %s %s\n", str, service, namespace)
+			if _, err := dbTx.Exec(str, args...); err != nil {
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if d.storage.Name() == boltdb.STORENAME {
+		func() {
+
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+			defer dbTx.Rollback()
+
+			for i := range rules {
+				if err := dbTx.Bucket([]byte(tblNameRoutingV2)).DeleteBucket([]byte(rules[i].Id)); err != nil {
+					if !errors.Is(err, bolt.ErrBucketNotFound) {
+						dbTx.Rollback()
+						panic(err)
+					}
+				}
+			}
+
+			dbTx.Commit()
+		}()
+	}
+}
+
 func (d *DiscoverTestSuit) CheckGetService(t *testing.T, expectReqs []*api.Service, actualReqs []*api.Service) {
 	if len(expectReqs) != len(actualReqs) {
 		t.Fatalf("error: %d %d", len(expectReqs), len(actualReqs))
@@ -964,19 +1311,28 @@ func serviceCheck(t *testing.T, expect *api.Service, actual *api.Service) {
 func (d *DiscoverTestSuit) createCommonRateLimit(t *testing.T, service *api.Service, index int) (*api.Rule, *api.Rule) {
 	// 先不考虑Cluster
 	rateLimit := &api.Rule{
+		Name:      &wrappers.StringValue{Value: fmt.Sprintf("rule_name_%d", index)},
 		Service:   service.GetName(),
 		Namespace: service.GetNamespace(),
 		Priority:  utils.NewUInt32Value(uint32(index)),
 		Resource:  api.Rule_QPS,
 		Type:      api.Rule_GLOBAL,
-		Labels: map[string]*api.MatchString{
-			fmt.Sprintf("name-%d", index): {
-				Type:  api.MatchString_EXACT,
-				Value: utils.NewStringValue(fmt.Sprintf("value-%d", index)),
+		Arguments: []*api.MatchArgument{
+			{
+				Type: api.MatchArgument_CUSTOM,
+				Key:  fmt.Sprintf("name-%d", index),
+				Value: &api.MatchString{
+					Type:  api.MatchString_EXACT,
+					Value: utils.NewStringValue(fmt.Sprintf("value-%d", index)),
+				},
 			},
-			fmt.Sprintf("name-%d", index+1): {
-				Type:  api.MatchString_REGEX,
-				Value: utils.NewStringValue(fmt.Sprintf("value-%d", index+1)),
+			{
+				Type: api.MatchArgument_CUSTOM,
+				Key:  fmt.Sprintf("name-%d", index+1),
+				Value: &api.MatchString{
+					Type:  api.MatchString_EXACT,
+					Value: utils.NewStringValue(fmt.Sprintf("value-%d", index+1)),
+				},
 			},
 		},
 		Amounts: []*api.Amount{
@@ -1151,21 +1507,21 @@ func updateRateLimitContent(rateLimit *api.Rule, index int) {
 func checkRateLimit(t *testing.T, expect *api.Rule, actual *api.Rule) {
 	switch {
 	case expect.GetId().GetValue() != actual.GetId().GetValue():
-		t.Fatal("error id")
+		t.Fatalf("error id, expect %s, actual %s", expect.GetId().GetValue(), actual.GetId().GetValue())
 	case expect.GetService().GetValue() != actual.GetService().GetValue():
-		t.Fatal("error service")
+		t.Fatalf("error service, expect %s, actual %s", expect.GetService().GetValue(), actual.GetService().GetValue())
 	case expect.GetNamespace().GetValue() != actual.GetNamespace().GetValue():
-		t.Fatal("error namespace")
+		t.Fatalf("error namespace, expect %s, actual %s", expect.GetNamespace().GetValue(), actual.GetNamespace().GetValue())
 	case expect.GetPriority().GetValue() != actual.GetPriority().GetValue():
-		t.Fatal("error priority")
+		t.Fatalf("error priority, expect %v, actual %v", expect.GetPriority().GetValue(), actual.GetPriority().GetValue())
 	case expect.GetResource() != actual.GetResource():
-		t.Fatal("error resource")
+		t.Fatalf("error resource, expect %v, actual %v", expect.GetResource(), actual.GetResource())
 	case expect.GetType() != actual.GetType():
-		t.Fatal("error type")
+		t.Fatalf("error type, expect %v, actual %v", expect.GetType(), actual.GetType())
 	case expect.GetDisable().GetValue() != actual.GetDisable().GetValue():
-		t.Fatal("error disable")
+		t.Fatalf("error disable, expect %v, actual %v", expect.GetDisable().GetValue(), actual.GetDisable().GetValue())
 	case expect.GetAction().GetValue() != actual.GetAction().GetValue():
-		t.Fatal("error action")
+		t.Fatalf("error action, expect %s, actual %s", expect.GetAction().GetValue(), actual.GetAction().GetValue())
 	default:
 		break
 	}
@@ -1182,11 +1538,11 @@ func checkRateLimit(t *testing.T, expect *api.Rule, actual *api.Rule) {
 		t.Fatal("error subset")
 	}
 
-	expectLabels, err := json.Marshal(expect.GetLabels())
+	expectLabels, err := json.Marshal(expect.GetArguments())
 	if err != nil {
 		panic(err)
 	}
-	actualLabels, err := json.Marshal(actual.GetLabels())
+	actualLabels, err := json.Marshal(actual.GetArguments())
 	if err != nil {
 		panic(err)
 	}
@@ -1204,18 +1560,6 @@ func checkRateLimit(t *testing.T, expect *api.Rule, actual *api.Rule) {
 	}
 	if string(expectAmounts) != string(actualAmounts) {
 		t.Fatal("error amounts")
-	}
-
-	expectReport, err := json.Marshal(expect.GetReport())
-	if err != nil {
-		panic(err)
-	}
-	actualReport, err := json.Marshal(actual.GetReport())
-	if err != nil {
-		panic(err)
-	}
-	if string(expectReport) != string(actualReport) {
-		t.Fatal("error report")
 	}
 }
 
@@ -1439,7 +1783,6 @@ func (d *DiscoverTestSuit) cleanCircuitBreaker(id, version string) {
 
 			str := `delete from circuitbreaker_rule where id = ? and version = ?`
 			if _, err := dbTx.Exec(str, id, version); err != nil {
-				tx.Rollback()
 				panic(err)
 			}
 
