@@ -24,8 +24,8 @@ import (
 
 	"go.uber.org/zap"
 
-	commontime "github.com/polarismesh/polaris-server/common/time"
-	"github.com/polarismesh/polaris-server/plugin"
+	commontime "github.com/polarismesh/polaris/common/time"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 // CacheCall 接口调用

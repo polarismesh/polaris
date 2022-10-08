@@ -27,8 +27,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/service"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/service"
 )
 
 // ApplicationsRespCache 全量服务缓存

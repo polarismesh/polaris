@@ -20,9 +20,9 @@ package service
 import (
 	"context"
 
-	"github.com/polarismesh/polaris-server/common/api/l5"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris/common/api/l5"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 )
 
 // CircuitBreakerOperateServer Melting rule related treatment

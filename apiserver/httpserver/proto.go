@@ -20,7 +20,7 @@ package httpserver
 import (
 	"github.com/golang/protobuf/proto"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // NamespaceArr 命名空间数组定义

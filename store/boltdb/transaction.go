@@ -18,7 +18,7 @@
 package boltdb
 
 import (
-	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris/common/model"
 )
 
 type transaction struct {

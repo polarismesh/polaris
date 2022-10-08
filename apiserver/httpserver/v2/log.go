@@ -18,7 +18,7 @@
 package v2
 
 import (
-	commonlog "github.com/polarismesh/polaris-server/common/log"
+	commonlog "github.com/polarismesh/polaris/common/log"
 )
 
 var (

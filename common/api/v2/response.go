@@ -20,7 +20,7 @@ package v2
 import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	v1 "github.com/polarismesh/polaris-server/common/api/v1"
+	v1 "github.com/polarismesh/polaris/common/api/v1"
 )
 
 /**

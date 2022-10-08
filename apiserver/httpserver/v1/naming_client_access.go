@@ -24,9 +24,9 @@ import (
 	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris-server/apiserver"
-	httpcommon "github.com/polarismesh/polaris-server/apiserver/httpserver/http"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris/apiserver"
+	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // GetClientAccessServer get client access server

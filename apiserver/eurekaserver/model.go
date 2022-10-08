@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris/common/model"
 )
 
 // PortWrapper 端口包装类

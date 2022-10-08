@@ -18,7 +18,7 @@
 package discover
 
 import (
-	"github.com/polarismesh/polaris-server/apiserver"
+	"github.com/polarismesh/polaris/apiserver"
 )
 
 // init 自注册到API服务器插槽

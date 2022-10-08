@@ -22,7 +22,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 func Test_checkPassword(t *testing.T) {

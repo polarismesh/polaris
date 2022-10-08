@@ -21,8 +21,8 @@ import (
 	"context"
 	"time"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/plugin"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 const clientPrefix = "c_"

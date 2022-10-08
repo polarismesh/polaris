@@ -18,8 +18,8 @@
 package batch
 
 import (
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/store"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/store"
 )
 
 var storeCodeAPICodeMap = map[store.StatusCode]uint32{

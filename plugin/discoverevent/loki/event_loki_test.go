@@ -20,7 +20,7 @@ package loki
 import (
 	"testing"
 
-	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris/plugin"
 	"github.com/stretchr/testify/assert"
 )
 

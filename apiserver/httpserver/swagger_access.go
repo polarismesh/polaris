@@ -21,7 +21,7 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
 	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
-	"github.com/polarismesh/polaris-server/common/version"
+	"github.com/polarismesh/polaris/common/version"
 )
 
 func (h *HTTPServer) enableSwaggerAPI(wsContainer *restful.Container) {

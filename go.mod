@@ -1,4 +1,4 @@
-module github.com/polarismesh/polaris-server
+module github.com/polarismesh/polaris
 
 go 1.17
 

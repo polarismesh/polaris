@@ -22,7 +22,7 @@ import (
 	"fmt"
 
 	ii18n "github.com/nicksnyder/go-i18n/v2/i18n"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 func init() {

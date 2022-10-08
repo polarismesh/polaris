@@ -20,9 +20,9 @@ package local
 import (
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/metrics"
-	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/metrics"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // PrometheusStatis is a struct for prometheus statistics

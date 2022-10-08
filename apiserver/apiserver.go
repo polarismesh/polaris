@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris/common/log"
 )
 
 const (

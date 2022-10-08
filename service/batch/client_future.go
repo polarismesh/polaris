@@ -18,8 +18,8 @@
 package batch
 
 import (
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 )
 
 // InstanceFuture 创建实例的异步结构体
