@@ -181,7 +181,7 @@ func createApiMockUser(total int, prefix ...string) []*api.User {
 
 	for i := range models {
 		users = append(users, &api.User{
-			Name:     utils.NewStringValue(models[i].Name),
+			Name:     utils.NewStringValue("test-" + models[i].Name),
 			Password: utils.NewStringValue("123456"),
 			Source:   utils.NewStringValue("Polaris"),
 			Comment:  utils.NewStringValue(models[i].Comment),
@@ -205,7 +205,7 @@ func createMockUserGroup(users []*model.User) []*model.UserGroupDetail {
 		groups = append(groups, &model.UserGroupDetail{
 			UserGroup: &model.UserGroup{
 				ID:          id,
-				Name:        fmt.Sprintf("group-%d", i),
+				Name:        fmt.Sprintf("test-group-%d", i),
 				Owner:       users[0].ID,
 				Token:       token,
 				TokenEnable: true,
