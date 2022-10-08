@@ -23,8 +23,8 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/plugin"
+	"github.com/polarismesh/polaris/store"
 )
 
 const (

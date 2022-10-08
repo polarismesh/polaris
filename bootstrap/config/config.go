@@ -24,16 +24,16 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/polarismesh/polaris-server/apiserver"
-	"github.com/polarismesh/polaris-server/auth"
-	"github.com/polarismesh/polaris-server/cache"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/config"
-	"github.com/polarismesh/polaris-server/namespace"
-	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/service"
-	"github.com/polarismesh/polaris-server/service/healthcheck"
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/apiserver"
+	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/cache"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/config"
+	"github.com/polarismesh/polaris/namespace"
+	"github.com/polarismesh/polaris/plugin"
+	"github.com/polarismesh/polaris/service"
+	"github.com/polarismesh/polaris/service/healthcheck"
+	"github.com/polarismesh/polaris/store"
 )
 
 // Config 配置

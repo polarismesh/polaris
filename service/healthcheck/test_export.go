@@ -22,9 +22,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/service/batch"
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/plugin"
+	"github.com/polarismesh/polaris/service/batch"
+	"github.com/polarismesh/polaris/store"
 )
 
 func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Controller, storage store.Store) (*Server, error) {

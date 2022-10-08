@@ -23,10 +23,10 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris-server/cache"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/cache"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/store"
 )
 
 const (

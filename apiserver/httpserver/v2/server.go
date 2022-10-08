@@ -18,9 +18,9 @@
 package v2
 
 import (
-	"github.com/polarismesh/polaris-server/namespace"
-	"github.com/polarismesh/polaris-server/service"
-	"github.com/polarismesh/polaris-server/service/healthcheck"
+	"github.com/polarismesh/polaris/namespace"
+	"github.com/polarismesh/polaris/service"
+	"github.com/polarismesh/polaris/service/healthcheck"
 )
 
 // HTTPServerV2

@@ -22,7 +22,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris/common/log"
 )
 
 // Config 连接限制配置

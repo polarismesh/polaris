@@ -27,7 +27,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/text/language"
 
-	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris/common/log"
 )
 
 var (

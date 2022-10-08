@@ -28,10 +28,10 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 
-	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	commonlog "github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris/apiserver/grpcserver"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	commonlog "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 var (

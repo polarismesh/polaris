@@ -25,9 +25,9 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/test/http"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/test/http"
 )
 
 //TestI18n 测试国际化信息

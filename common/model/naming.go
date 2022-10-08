@@ -23,7 +23,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	v1 "github.com/polarismesh/polaris-server/common/api/v1"
+	v1 "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // Namespace 命名空间结构体

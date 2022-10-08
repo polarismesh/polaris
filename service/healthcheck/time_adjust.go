@@ -22,7 +22,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/store"
 )
 
 const adjustInterval = 60 * time.Second

@@ -9,9 +9,9 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
-	model "github.com/polarismesh/polaris-server/common/model"
-	v2 "github.com/polarismesh/polaris-server/common/model/v2"
-	store "github.com/polarismesh/polaris-server/store"
+	model "github.com/polarismesh/polaris/common/model"
+	v2 "github.com/polarismesh/polaris/common/model/v2"
+	store "github.com/polarismesh/polaris/store"
 )
 
 // MockStore is a mock of Store interface.

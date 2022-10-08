@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v2"
 
-	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 func Test_UnmarshalClusterConfig(t *testing.T) {

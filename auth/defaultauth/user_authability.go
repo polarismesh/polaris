@@ -20,7 +20,7 @@ package defaultauth
 import (
 	"context"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // CreateUsers 创建用户，只能由超级账户 or 主账户调用

@@ -25,7 +25,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 var (

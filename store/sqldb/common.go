@@ -21,7 +21,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/store"
 )
 
 // QueryHandler is the interface that wraps the basic Query method.

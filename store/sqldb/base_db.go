@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 // db抛出的异常，需要重试的字符串组

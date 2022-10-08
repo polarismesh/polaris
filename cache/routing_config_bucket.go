@@ -21,10 +21,10 @@ import (
 	"fmt"
 	"sync"
 
-	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
-	"github.com/polarismesh/polaris-server/common/model"
-	v2 "github.com/polarismesh/polaris-server/common/model/v2"
-	routingcommon "github.com/polarismesh/polaris-server/common/routing"
+	apiv2 "github.com/polarismesh/polaris/common/api/v2"
+	"github.com/polarismesh/polaris/common/model"
+	v2 "github.com/polarismesh/polaris/common/model/v2"
+	routingcommon "github.com/polarismesh/polaris/common/routing"
 )
 
 type (

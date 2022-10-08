@@ -18,7 +18,7 @@
 package defaultauth
 
 import (
-	"github.com/polarismesh/polaris-server/auth"
+	"github.com/polarismesh/polaris/auth"
 )
 
 const (

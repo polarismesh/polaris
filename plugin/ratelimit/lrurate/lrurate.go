@@ -20,7 +20,7 @@ package lrurate
 import (
 	"errors"
 
-	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 const (

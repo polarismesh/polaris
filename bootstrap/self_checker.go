@@ -22,9 +22,9 @@ import (
 	"sync"
 	"time"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/service/healthcheck"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/service/healthcheck"
 )
 
 type SelfHeathChecker struct {

@@ -17,7 +17,7 @@
 
 package sqldb
 
-import "github.com/polarismesh/polaris-server/store"
+import "github.com/polarismesh/polaris/store"
 
 type Tx struct {
 	delegateTx *BaseTx

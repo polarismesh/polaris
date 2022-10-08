@@ -27,11 +27,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/test/grpc"
-	"github.com/polarismesh/polaris-server/test/http"
-	"github.com/polarismesh/polaris-server/test/resource"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/test/grpc"
+	"github.com/polarismesh/polaris/test/http"
+	"github.com/polarismesh/polaris/test/resource"
 )
 
 /**

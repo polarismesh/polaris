@@ -28,10 +28,10 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris-server/apiserver"
-	"github.com/polarismesh/polaris-server/common/connlimit"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/service"
+	"github.com/polarismesh/polaris/apiserver"
+	"github.com/polarismesh/polaris/common/connlimit"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/service"
 )
 
 // PrometheusServer HTTP API服务器

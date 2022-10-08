@@ -24,7 +24,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris/common/log"
 )
 
 // watchStoreTime The timestamp change of the storage layer, whether the clock is dialed in the detection

@@ -26,8 +26,8 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris-server/auth"
-	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 const (

@@ -24,7 +24,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris/common/model"
 )
 
 func mockConfigFileGroup(total int) []*model.ConfigFileGroup {

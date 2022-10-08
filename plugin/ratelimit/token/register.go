@@ -17,7 +17,7 @@
 
 package token
 
-import "github.com/polarismesh/polaris-server/plugin"
+import "github.com/polarismesh/polaris/plugin"
 
 const (
 	PluginName = "token-bucket"

@@ -18,7 +18,7 @@
 package http
 
 import (
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 func Login(username, password string) (*api.LoginResponse, error) {

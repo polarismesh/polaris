@@ -20,7 +20,7 @@ package cache
 import (
 	"testing"
 
-	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris/common/model"
 )
 
 func Test_matchServiceFilter_ignoreServiceCI(t *testing.T) {

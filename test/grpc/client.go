@@ -22,7 +22,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // NewClient 创建GRPC客户端

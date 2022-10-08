@@ -25,9 +25,9 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	"github.com/polarismesh/polaris-server/apiserver/httpserver/i18n"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris/apiserver/httpserver/i18n"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 func init() {

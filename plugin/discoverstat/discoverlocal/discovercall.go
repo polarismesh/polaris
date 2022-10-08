@@ -23,7 +23,7 @@ import (
 
 	"go.uber.org/zap"
 
-	commontime "github.com/polarismesh/polaris-server/common/time"
+	commontime "github.com/polarismesh/polaris/common/time"
 )
 
 // DiscoverCall 服务发现统计

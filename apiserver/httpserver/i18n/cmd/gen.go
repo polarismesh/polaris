@@ -16,7 +16,7 @@ import (
 	"strings"
 	"text/template"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 func main() {

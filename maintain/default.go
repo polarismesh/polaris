@@ -21,9 +21,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/polarismesh/polaris-server/auth"
-	"github.com/polarismesh/polaris-server/service"
-	"github.com/polarismesh/polaris-server/service/healthcheck"
+	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/service"
+	"github.com/polarismesh/polaris/service/healthcheck"
 )
 
 var (

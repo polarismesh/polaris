@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 const (

@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris/common/model"
 )
 
 // Cl5ServerCluster cl5集群的ctx的key

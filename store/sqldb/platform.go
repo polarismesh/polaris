@@ -22,8 +22,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/store"
 )
 
 // platformStore 的实现

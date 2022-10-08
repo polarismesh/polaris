@@ -24,8 +24,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/service"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/service"
 )
 
 const (

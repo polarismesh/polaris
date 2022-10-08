@@ -22,8 +22,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/polarismesh/polaris-server/apiserver"
-	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris/apiserver"
+	"github.com/polarismesh/polaris/common/log"
 )
 
 var winSignals = []os.Signal{

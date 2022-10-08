@@ -30,11 +30,11 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris-server/apiserver/httpserver/i18n"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris/apiserver/httpserver/i18n"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	apiv2 "github.com/polarismesh/polaris/common/api/v2"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // Handler HTTP请求/回复处理器

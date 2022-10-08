@@ -24,7 +24,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 func buildBaseInstance(instance *InstanceInfo, namespace string, appId string) *api.Instance {

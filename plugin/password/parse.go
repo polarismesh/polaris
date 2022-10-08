@@ -17,7 +17,7 @@
 
 package password
 
-import "github.com/polarismesh/polaris-server/plugin"
+import "github.com/polarismesh/polaris/plugin"
 
 const (
 	PluginName = "localParse"
