@@ -26,7 +26,7 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // JSONFromCircuitBreakers marshals a slice of circuit breakers to JSON. 熔断规则数组转JSON

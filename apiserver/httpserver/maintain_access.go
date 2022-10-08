@@ -26,10 +26,10 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 
-	httpcommon "github.com/polarismesh/polaris-server/apiserver/httpserver/http"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/maintain"
+	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/maintain"
 )
 
 // GetMaintainAccessServer 运维接口

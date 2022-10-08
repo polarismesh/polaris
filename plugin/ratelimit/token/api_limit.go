@@ -23,7 +23,7 @@ import (
 
 	"golang.org/x/time/rate"
 
-	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris/common/log"
 )
 
 // apiRatelimit 接口限流类

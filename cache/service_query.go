@@ -22,8 +22,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/store"
 )
 
 // ServiceArgs 服务查询条件

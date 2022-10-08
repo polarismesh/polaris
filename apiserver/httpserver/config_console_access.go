@@ -24,9 +24,9 @@ import (
 	"github.com/golang/protobuf/proto"
 	"go.uber.org/zap"
 
-	httpcommon "github.com/polarismesh/polaris-server/apiserver/httpserver/http"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
+	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // CreateConfigFileGroup 创建配置文件组

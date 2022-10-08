@@ -20,7 +20,7 @@ package grpc
 import (
 	"context"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 func (c *Client) GetConfigFile(ctx context.Context, in *api.ClientConfigFileInfo) (*api.ConfigClientResponse, error) {

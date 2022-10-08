@@ -30,7 +30,7 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"github.com/polarismesh/polaris-server/common/connlimit/mock_net"
+	"github.com/polarismesh/polaris/common/connlimit/mock_net"
 )
 
 // TestConnLimit 模拟一下连接限制

@@ -20,8 +20,8 @@ package maintain
 import (
 	"context"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 )
 
 var _ MaintainOperateServer = (*serverAuthAbility)(nil)

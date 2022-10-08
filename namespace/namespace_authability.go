@@ -20,9 +20,9 @@ package namespace
 import (
 	"context"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/common/utils"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 func (svr *serverAuthAbility) CreateNamespaceIfAbsent(ctx context.Context, req *api.Namespace) error {

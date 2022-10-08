@@ -22,10 +22,10 @@ import (
 
 	"go.uber.org/zap"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/metrics"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/plugin"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/metrics"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 // InstanceFuture 创建实例的异步结构体

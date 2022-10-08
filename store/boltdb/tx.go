@@ -20,7 +20,7 @@ package boltdb
 import (
 	"github.com/boltdb/bolt"
 
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/store"
 )
 
 type Tx struct {

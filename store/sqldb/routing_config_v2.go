@@ -23,8 +23,8 @@ import (
 	"fmt"
 	"time"
 
-	v2 "github.com/polarismesh/polaris-server/common/model/v2"
-	"github.com/polarismesh/polaris-server/store"
+	v2 "github.com/polarismesh/polaris/common/model/v2"
+	"github.com/polarismesh/polaris/store"
 	"go.uber.org/zap"
 )
 

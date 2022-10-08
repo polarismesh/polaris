@@ -20,7 +20,7 @@ package lrurate
 import (
 	"testing"
 
-	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 // getEntry 获取初始化的entry

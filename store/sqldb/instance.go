@@ -23,9 +23,9 @@ import (
 	"strings"
 	"time"
 
-	v1 "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/store"
+	v1 "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/store"
 )
 
 // instanceStore 实现了InstanceStore接口

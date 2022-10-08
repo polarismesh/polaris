@@ -21,7 +21,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris/common/log"
 )
 
 // limitListener limit obj for Listener

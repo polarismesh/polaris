@@ -25,7 +25,7 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // JSONFromNamespaces 将命名空间数组转换为JSON

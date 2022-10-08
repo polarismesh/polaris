@@ -18,12 +18,12 @@
 package service
 
 import (
-	"github.com/polarismesh/polaris-server/cache"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/namespace"
-	"github.com/polarismesh/polaris-server/service/batch"
-	"github.com/polarismesh/polaris-server/service/healthcheck"
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/cache"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/namespace"
+	"github.com/polarismesh/polaris/service/batch"
+	"github.com/polarismesh/polaris/service/healthcheck"
+	"github.com/polarismesh/polaris/store"
 )
 
 type InitOption func(s *Server)

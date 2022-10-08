@@ -20,7 +20,7 @@ package v2
 import (
 	"github.com/golang/protobuf/proto"
 
-	api "github.com/polarismesh/polaris-server/common/api/v2"
+	api "github.com/polarismesh/polaris/common/api/v2"
 )
 
 // RoutingArr 路由规则数组定义

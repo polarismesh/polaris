@@ -24,7 +24,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 // TestNewResourceRatelimit 测试新建

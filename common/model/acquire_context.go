@@ -20,7 +20,7 @@ package model
 import (
 	"context"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // AcquireContext 每次鉴权请求上下文信息

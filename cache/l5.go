@@ -22,10 +22,10 @@ import (
 	"sync"
 	"time"
 
-	cl5common "github.com/polarismesh/polaris-server/common/cl5"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/store"
+	cl5common "github.com/polarismesh/polaris/common/cl5"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/store"
 )
 
 const (

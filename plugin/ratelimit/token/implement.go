@@ -18,8 +18,8 @@
 package token
 
 import (
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 // initialize 插件初始化函数

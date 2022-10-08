@@ -19,7 +19,7 @@ package httpserver
 
 import (
 	"github.com/emicklei/go-restful/v3"
-	httpcommon "github.com/polarismesh/polaris-server/apiserver/httpserver/http"
+	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
 )
 
 func (h *HTTPServer) GetClientServer(ws *restful.WebService) error {

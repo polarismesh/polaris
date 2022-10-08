@@ -26,9 +26,9 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	v2 "github.com/polarismesh/polaris-server/common/api/v2"
-	"github.com/polarismesh/polaris-server/common/utils"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	v2 "github.com/polarismesh/polaris/common/api/v2"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // 测试discover instances

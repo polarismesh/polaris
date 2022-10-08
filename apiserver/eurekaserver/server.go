@@ -30,13 +30,13 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris-server/apiserver"
-	"github.com/polarismesh/polaris-server/common/connlimit"
-	"github.com/polarismesh/polaris-server/common/secure"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/service"
-	"github.com/polarismesh/polaris-server/service/healthcheck"
+	"github.com/polarismesh/polaris/apiserver"
+	"github.com/polarismesh/polaris/common/connlimit"
+	"github.com/polarismesh/polaris/common/secure"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin"
+	"github.com/polarismesh/polaris/service"
+	"github.com/polarismesh/polaris/service/healthcheck"
 )
 
 const (

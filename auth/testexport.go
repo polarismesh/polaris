@@ -22,8 +22,8 @@ import (
 	"errors"
 	"log"
 
-	"github.com/polarismesh/polaris-server/cache"
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/cache"
+	"github.com/polarismesh/polaris/store"
 )
 
 // TestInitialize 包裹了初始化函数，在 Initialize 的时候会在自动调用，全局初始化一次

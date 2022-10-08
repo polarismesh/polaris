@@ -10,11 +10,11 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 
-	auth "github.com/polarismesh/polaris-server/auth"
-	cache "github.com/polarismesh/polaris-server/cache"
-	v1 "github.com/polarismesh/polaris-server/common/api/v1"
-	model "github.com/polarismesh/polaris-server/common/model"
-	store "github.com/polarismesh/polaris-server/store"
+	auth "github.com/polarismesh/polaris/auth"
+	cache "github.com/polarismesh/polaris/cache"
+	v1 "github.com/polarismesh/polaris/common/api/v1"
+	model "github.com/polarismesh/polaris/common/model"
+	store "github.com/polarismesh/polaris/store"
 )
 
 // MockAuthServer is a mock of AuthServer interface

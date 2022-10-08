@@ -20,8 +20,8 @@ package heartbeatmemory
 import (
 	"sync"
 
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 // 把操作记录记录到日志文件中
