@@ -134,7 +134,8 @@ func diffTags(a, b map[string]map[string]struct{}) []string {
 }
 
 // QueryConfigFileByTags Inquire the configuration file through the label, the relationship between multiple TAGs,
-//  TAGS format: K1, V1, K2, V2, K3, V3 ...
+//
+//	TAGS format: K1, V1, K2, V2, K3, V3 ...
 func (s *Server) queryConfigFileByTags(ctx context.Context, namespace, group, fileName string, offset, limit uint32,
 	tags ...string) (int, []*model.ConfigFileTag, error) {
 

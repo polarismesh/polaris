@@ -53,6 +53,9 @@ type ConfigFileGroupStore interface {
 
 	// FindConfigFileGroups 获取一组配置文件组信息
 	FindConfigFileGroups(namespace string, names []string) ([]*model.ConfigFileGroup, error)
+
+	// GetConfigFileGroupById 根据Id获取文件组信息
+	GetConfigFileGroupById(id uint64) (*model.ConfigFileGroup, error)
 }
 
 // ConfigFileStore 配置文件存储接口

@@ -121,9 +121,6 @@ naming:
 config:
   # 是否启动配置模块
   open: true
-  cache:
-    #配置文件缓存过期时间，单位s
-    expireTimeAfterWrite: 3600
 # 健康检查的配置
 healthcheck:
   open: true
@@ -140,18 +137,6 @@ healthcheck:
       concurrency: 64
   checkers:
     - name: heartbeatMemory
-#  - name: heartbeatRedis
-#    option:
-#      kvAddr: ##REDIS_ADDR##
-#      kvUser: ##REDIS_USER#
-#      kvPasswd: ##REDIS_PWD##
-#      poolSize: 200
-#      minIdleConns: 30
-#      idleTimeout: 120s
-#      connectTimeout: 200ms
-#      msgTimeout: 200ms
-#      concurrency: 200
-#      withTLS: false
 # 缓存配置
 cache:
   open: true
@@ -170,7 +155,7 @@ cache:
     - name: users # 加载用户、用户组数据
     - name: strategyRule # 加载鉴权规则数据
     - name: namespace # 加载命名空间数据
-    - name: client # 加载上报的客户端数据
+    - name: client # 加载命名空间数据
     - name: configFile
       option:
         #配置文件缓存过期时间，单位s
@@ -179,22 +164,22 @@ cache:
 # 存储配置
 store:
   # 单机文件存储插件
-  name: boltdbStore
-  option:
-    path: ./polaris.bolt
-  ## 数据库存储插件
-  # name: defaultStore
+  # name: boltdbStore
   # option:
-  #   master:
-  #     dbType: mysql
-  #     dbName: polaris_server
-  #     dbUser: root ##DB_USER##
-  #     dbPwd: polaris ##DB_PWD##
-  #     dbAddr: "127.0.0.1:3306" ##DB_ADDR##
-  #     maxOpenConns: -1
-  #     maxIdleConns: -1
-  #     connMaxLifetime: 300 # 单位秒
-  #     txIsolationLevel: 2 #LevelReadCommitted
+  #   path: ./polaris.bolt
+  ## 数据库存储插件
+  name: defaultStore
+  option:
+    master:
+      dbType: mysql
+      dbName: polaris_server
+      dbUser: root ##DB_USER##
+      dbPwd: polaris ##DB_PWD##
+      dbAddr: "127.0.0.1:3306" ##DB_ADDR##
+      maxOpenConns: -1
+      maxIdleConns: -1
+      connMaxLifetime: 300 # 单位秒
+      txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置
 plugin:
   history:

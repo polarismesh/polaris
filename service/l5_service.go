@@ -28,8 +28,8 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	"github.com/polarismesh/polaris-server/common/api/l5"
-	"github.com/polarismesh/polaris-server/common/model"
 	cl5common "github.com/polarismesh/polaris-server/common/cl5"
+	"github.com/polarismesh/polaris-server/common/model"
 )
 
 var (

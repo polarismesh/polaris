@@ -231,7 +231,6 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 		t.Fatal(err)
 	}
 
-
 	defer func() {
 		cancel()
 		cacheMgn.Clear()
@@ -472,7 +471,6 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 		t.Fatal(err)
 	}
 
-
 	defer func() {
 		cancel()
 		cacheMgn.Clear()
@@ -662,7 +660,6 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 
 	defer func() {
 		cancel()
@@ -873,7 +870,6 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 
 	defer func() {
 		cancel()

@@ -291,9 +291,10 @@ func (r *rateLimitStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool
 }
 
 // createRateLimit save model.RateLimit and model.RateLimitRevision
-//  @receiver r *rateLimitStore
-//  @param limit current limiting configuration data to be saved
-//  @return error
+//
+//	@receiver r *rateLimitStore
+//	@param limit current limiting configuration data to be saved
+//	@return error
 func (r *rateLimitStore) createRateLimit(limit *model.RateLimit) error {
 	handler := r.handler
 	return handler.Execute(true, func(tx *bolt.Tx) error {
@@ -324,9 +325,10 @@ func (r *rateLimitStore) createRateLimit(limit *model.RateLimit) error {
 }
 
 // enableRateLimit
-//  @receiver r
-//  @param limit
-//  @return error
+//
+//	@receiver r
+//	@param limit
+//	@return error
 func (r *rateLimitStore) enableRateLimit(limit *model.RateLimit) error {
 	handler := r.handler
 	return handler.Execute(true, func(tx *bolt.Tx) error {
@@ -367,9 +369,10 @@ func (r *rateLimitStore) enableRateLimit(limit *model.RateLimit) error {
 }
 
 // updateRateLimit
-//  @receiver r
-//  @param limit
-//  @return error
+//
+//	@receiver r
+//	@param limit
+//	@return error
 func (r *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 	handler := r.handler
 	return handler.Execute(true, func(tx *bolt.Tx) error {
@@ -415,9 +418,10 @@ func (r *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 }
 
 // deleteRateLimit
-//  @receiver r
-//  @param limit
-//  @return error
+//
+//	@receiver r
+//	@param limit
+//	@return error
 func (r *rateLimitStore) deleteRateLimit(limit *model.RateLimit) error {
 	handler := r.handler
 

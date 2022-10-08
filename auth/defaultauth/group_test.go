@@ -90,7 +90,6 @@ func newGroupTest(t *testing.T) *GroupTest {
 		t.Fatal(err)
 	}
 
-
 	time.Sleep(time.Second)
 
 	checker := &defaultAuthChecker{}
@@ -610,5 +609,103 @@ func Test_server_RefreshGroupToken(t *testing.T) {
 		})
 
 		assert.True(t, batchResp.Code.Value == v1.NotAllowedAccess, batchResp.Info.GetValue())
+	})
+}
+
+func Test_AuthServer_NormalOperateUserGroup(t *testing.T) {
+	suit := &AuthTestSuit{}
+	if err := suit.initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer suit.Destroy()
+
+	users := createApiMockUser(10, "test")
+	for i := range users {
+		users[i].Id = utils.NewStringValue(utils.NewUUID())
+	}
+
+	groups := createMockApiUserGroup([]*api.User{users[0]})
+
+	t.Run("正常创建用户组", func(t *testing.T) {
+		bresp := suit.server.CreateUsers(suit.defaultCtx, users)
+		if !respSuccess(bresp) {
+			t.Fatal(bresp.GetInfo().GetValue())
+		}
+
+		time.Sleep(suit.updateCacheInterval)
+
+		resp := suit.server.CreateGroup(suit.defaultCtx, groups[0])
+
+		if !respSuccess(resp) {
+			t.Fatal(resp.GetInfo().GetValue())
+		}
+
+		groups[0].Id = utils.NewStringValue(resp.GetUserGroup().Id.Value)
+	})
+
+	t.Run("正常更新用户组", func(t *testing.T) {
+
+		time.Sleep(time.Second)
+
+		req := []*api.ModifyUserGroup{
+			&v1.ModifyUserGroup{
+				Id:   utils.NewStringValue(groups[0].GetId().GetValue()),
+				Name: utils.NewStringValue(groups[0].GetName().GetValue()),
+				Comment: &wrapperspb.StringValue{
+					Value: "update user group",
+				},
+				AddRelations: &v1.UserGroupRelation{
+					Users: users[3:],
+				},
+			},
+		}
+
+		resp := suit.server.UpdateGroups(suit.defaultCtx, req)
+		if !respSuccess(resp) {
+			t.Fatal(resp.GetInfo().GetValue())
+		}
+
+		time.Sleep(suit.updateCacheInterval)
+
+		qresp := suit.server.GetGroup(suit.defaultCtx, groups[0])
+
+		if !respSuccess(resp) {
+			t.Fatal(resp.GetInfo().GetValue())
+		}
+
+		assert.Equal(t, req[0].GetComment().GetValue(), qresp.GetUserGroup().GetComment().GetValue())
+		assert.Equal(t, len(users[3:])+1, len(qresp.GetUserGroup().GetRelation().GetUsers()))
+	})
+
+	t.Run("正常更新用户组Token", func(t *testing.T) {
+		resp := suit.server.ResetGroupToken(suit.defaultCtx, groups[0])
+
+		if !respSuccess(resp) {
+			t.Fatal(resp.GetInfo().GetValue())
+		}
+
+		time.Sleep(suit.updateCacheInterval)
+
+		qresp := suit.server.GetGroupToken(suit.defaultCtx, groups[0])
+		if !respSuccess(qresp) {
+			t.Fatal(resp.GetInfo().GetValue())
+		}
+		assert.Equal(t, resp.GetUserGroup().GetAuthToken().GetValue(), qresp.GetUserGroup().GetAuthToken().GetValue())
+	})
+
+	t.Run("正常删除用户组", func(t *testing.T) {
+		resp := suit.server.DeleteGroups(suit.defaultCtx, groups)
+
+		if !respSuccess(resp) {
+			t.Fatal(resp.GetInfo().GetValue())
+		}
+
+		qresp := suit.server.GetGroup(suit.defaultCtx, groups[0])
+
+		if respSuccess(qresp) {
+			t.Fatal(resp.GetInfo().GetValue())
+		}
+
+		assert.Equal(t, v1.NotFoundUserGroup, qresp.GetCode().GetValue())
 	})
 }

@@ -83,7 +83,7 @@ func (s *Server) GetReportClientWithCache(ctx context.Context,
 		}
 	}
 
-	targets := make([]model.PrometheusTarget, 0)
+	targets := make([]model.PrometheusTarget, 0, 8)
 
 	expectSchema := map[string]struct{}{
 		"http":  {},

@@ -99,7 +99,6 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 		t.Fatal(err)
 	}
 
-
 	time.Sleep(2 * time.Second)
 
 	checker := &defaultAuthChecker{}

@@ -20,6 +20,7 @@ package sqldb
 import (
 	"database/sql"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -36,10 +37,10 @@ func (fg *configFileGroupStore) CreateConfigFileGroup(
 	fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
 
 	createSql := "insert into config_file_group(name, namespace,comment,create_time, create_by, " +
-		" modify_time, modify_by)" +
-		"value (?,?,?,sysdate(),?,sysdate(),?)"
+		" modify_time, modify_by, owner)" +
+		"value (?,?,?,sysdate(),?,sysdate(),?,?)"
 	_, err := fg.db.Exec(createSql, fileGroup.Name, fileGroup.Namespace, fileGroup.Comment,
-		fileGroup.CreateBy, fileGroup.ModifyBy)
+		fileGroup.CreateBy, fileGroup.ModifyBy, fileGroup.Owner)
 	if err != nil {
 		return nil, store.Error(err)
 	}
@@ -170,9 +171,26 @@ func (fg *configFileGroupStore) FindConfigFileGroups(namespace string,
 	return cfgs, nil
 }
 
+func (fg *configFileGroupStore) GetConfigFileGroupById(id uint64) (*model.ConfigFileGroup, error) {
+	querySql := fg.genConfigFileGroupSelectSql()
+	querySql += fmt.Sprintf(" where id = %s", strconv.FormatUint(id, 10))
+
+	rows, err := fg.db.Query(querySql)
+	if err != nil {
+		return nil, err
+	}
+
+	cfgs, err := fg.transferRows(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfgs[0], nil
+}
+
 func (fg *configFileGroupStore) genConfigFileGroupSelectSql() string {
 	return "select id,name,namespace,IFNULL(comment,''),UNIX_TIMESTAMP(create_time),IFNULL(create_by,'')," +
-		"UNIX_TIMESTAMP(modify_time),IFNULL(modify_by,'') from config_file_group"
+		"UNIX_TIMESTAMP(modify_time),IFNULL(modify_by,''),IFNULL(owner,'') from config_file_group"
 }
 
 func (fg *configFileGroupStore) transferRows(rows *sql.Rows) ([]*model.ConfigFileGroup, error) {
@@ -187,7 +205,7 @@ func (fg *configFileGroupStore) transferRows(rows *sql.Rows) ([]*model.ConfigFil
 		fileGroup := &model.ConfigFileGroup{}
 		var ctime, mtime int64
 		err := rows.Scan(&fileGroup.Id, &fileGroup.Name, &fileGroup.Namespace, &fileGroup.Comment, &ctime,
-			&fileGroup.CreateBy, &mtime, &fileGroup.ModifyBy)
+			&fileGroup.CreateBy, &mtime, &fileGroup.ModifyBy, &fileGroup.Owner)
 		if err != nil {
 			return nil, err
 		}

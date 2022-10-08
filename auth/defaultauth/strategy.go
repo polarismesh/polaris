@@ -185,13 +185,16 @@ func (svr *server) DeleteStrategy(ctx context.Context, req *api.AuthStrategy) *a
 
 // GetStrategies 查询鉴权策略列表
 // Case 1. 如果是以资源视角来查询鉴权策略，那么就会忽略自动根据账户类型进行数据查看的限制
-// 		eg. 比如当前子账户A想要查看资源R的相关的策略，那么不在会自动注入 principal_id 以及 principal_type 的查询条件
+//
+//	eg. 比如当前子账户A想要查看资源R的相关的策略，那么不在会自动注入 principal_id 以及 principal_type 的查询条件
+//
 // Case 2. 如果是以用户视角来查询鉴权策略，如果没有带上 principal_id，那么就会根据账户类型自动注入 principal_id 以
-// 		及 principal_type 的查询条件，从而限制该账户的数据查看
-// 		eg.
-// 			a. 如果当前是超级管理账户，则按照传入的 query 进行查询即可
-// 			b. 如果当前是主账户，则自动注入 owner 字段，即只能查看策略的 owner 是自己的策略
-// 			c. 如果当前是子账户，则自动注入 principal_id 以及 principal_type 字段，即稚嫩查询与自己有关的策略
+//
+//	及 principal_type 的查询条件，从而限制该账户的数据查看
+//	eg.
+//		a. 如果当前是超级管理账户，则按照传入的 query 进行查询即可
+//		b. 如果当前是主账户，则自动注入 owner 字段，即只能查看策略的 owner 是自己的策略
+//		c. 如果当前是子账户，则自动注入 principal_id 以及 principal_type 字段，即稚嫩查询与自己有关的策略
 func (svr *server) GetStrategies(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
@@ -871,7 +874,8 @@ func (svr *server) checkResourceExist(resources *api.StrategyResources) *api.Res
 }
 
 // normalizeResource 对于资源进行归一化处理
-//  如果出现 * 的话，则该资源访问策略就是 *
+//
+//	如果出现 * 的话，则该资源访问策略就是 *
 func (svr *server) normalizeResource(resources *api.StrategyResources) *api.StrategyResources {
 	namespaces := resources.GetNamespaces()
 	for index := range namespaces {
@@ -938,8 +942,9 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 	configGroups := make([]*api.StrategyResourceEntry, 0, len(data.Resources))
 
 	var (
-		autoAllNs  bool
-		autoAllSvc bool
+		autoAllNs          bool
+		autoAllSvc         bool
+		autoAllConfigGroup bool
 	)
 
 	for index := range data.Resources {
@@ -961,7 +966,7 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 			if !autoAllNs {
 				ns := svr.cacheMgn.Namespace().GetNamespace(res.ResID)
 				if ns == nil {
-					log.AuthScope().Error("[Auth][Strategy] not found namespace in fill-info",
+					log.AuthScope().Warn("[Auth][Strategy] not found namespace in fill-info",
 						zap.String("id", data.ID), zap.String("namespace", res.ResID))
 					continue
 				}
@@ -987,7 +992,7 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 			if !autoAllSvc {
 				svc := svr.cacheMgn.Service().GetServiceByID(res.ResID)
 				if svc == nil {
-					log.AuthScope().Error("[Auth][Strategy] not found service in fill-info",
+					log.AuthScope().Warn("[Auth][Strategy] not found service in fill-info",
 						zap.String("id", data.ID), zap.String("service", res.ResID))
 					continue
 				}
@@ -998,6 +1003,36 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 				})
 			}
 		case int32(api.ResourceType_ConfigGroups):
+			if res.ResID == "*" {
+				autoAllConfigGroup = true
+				configGroups = []*api.StrategyResourceEntry{
+					{
+						Id:        utils.NewStringValue("*"),
+						Namespace: utils.NewStringValue("*"),
+						Name:      utils.NewStringValue("*"),
+					},
+				}
+				continue
+			}
+			if !autoAllConfigGroup {
+				groupId, err := strconv.ParseUint(res.ResID, 10, 64)
+				if err != nil {
+					log.AuthScope().Warn("[Auth][Strategy] invalid resource id",
+						zap.String("id", data.ID), zap.String("config_file_group", res.ResID))
+					continue
+				}
+				group, _ := svr.cacheMgn.ConfigFile().GetOrLoadGroupById(groupId)
+				if group == nil {
+					log.AuthScope().Warn("[Auth][Strategy] not found config_file_group in fill-info",
+						zap.String("id", data.ID), zap.String("config_file_group", res.ResID))
+					continue
+				}
+				configGroups = append(configGroups, &api.StrategyResourceEntry{
+					Id:        utils.NewStringValue(res.ResID),
+					Namespace: utils.NewStringValue(group.Namespace),
+					Name:      utils.NewStringValue(group.Name),
+				})
+			}
 		}
 	}
 

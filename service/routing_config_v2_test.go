@@ -78,6 +78,23 @@ func TestCreateRoutingConfigV2(t *testing.T) {
 		}
 
 		assert.Equal(t, int(1), int(out.Amount), "query routing size")
+
+		item, err := api2RoutingConfigV2(req[0])
+		assert.NoError(t, err)
+		expendItem, err := item.ToExpendRoutingConfig()
+		assert.NoError(t, err)
+
+		// 基于服务信息查询
+		out = discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+			"limit":     "100",
+			"offset":    "0",
+			"namespace": expendItem.RuleRouting.Sources[0].Namespace,
+			"service":   expendItem.RuleRouting.Sources[0].Service,
+		})
+		if !respSuccessV2(out) {
+			t.Fatalf("error: %+v", out)
+		}
+
 	})
 }
 

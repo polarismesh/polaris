@@ -46,7 +46,7 @@ func NewGroupResponse(code uint32, user *UserGroup) *Response {
 	}
 }
 
-//  NewModifyGroupResponse 创建修改用户组的响应信息
+// NewModifyGroupResponse 创建修改用户组的响应信息
 func NewModifyGroupResponse(code uint32, group *ModifyUserGroup) *Response {
 	return &Response{
 		Code:            &wrappers.UInt32Value{Value: code},

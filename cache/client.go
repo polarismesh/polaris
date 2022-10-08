@@ -221,7 +221,8 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (int, int) {
 }
 
 // clear
-//  @return error
+//
+//	@return error
 func (c *clientCache) clear() error {
 	c.lock.Lock()
 	c.clients = map[string]*model.Client{}
@@ -267,6 +268,7 @@ func (c *clientCache) GetClientsByFilter(filters map[string]string, offset, limi
 	host, hasHost := filters["host"]
 	clientType, hasType := filters["type"]
 	version, hasVer := filters["version"]
+	id, hasId := filters["id"]
 
 	c.IteratorClients(func(_ string, value *model.Client) bool {
 		if hasHost && value.Proto().GetHost().GetValue() != host {
@@ -275,7 +277,10 @@ func (c *clientCache) GetClientsByFilter(filters map[string]string, offset, limi
 		if hasType && value.Proto().GetType().String() != clientType {
 			return true
 		}
-		if hasVer && value.Proto().GetVersion().String() != version {
+		if hasVer && value.Proto().GetVersion().GetValue() != version {
+			return true
+		}
+		if hasId && value.Proto().GetId().GetValue() != id {
 			return true
 		}
 

@@ -15,10 +15,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package namespace
+package config
 
 import (
 	"context"
+	"strconv"
 
 	api "github.com/polarismesh/polaris-server/common/api/v1"
 	"github.com/polarismesh/polaris-server/common/model"
@@ -42,50 +43,43 @@ type ResourceHook interface {
 
 // ResourceEvent 资源事件
 type ResourceEvent struct {
-	ReqNamespace *api.Namespace
-	Namespace    *model.Namespace
-	IsRemove     bool
+	ConfigGroup *api.ConfigFileGroup
 }
 
 // Before this function is called before the resource operation
-func (svr *serverAuthAbility) Before(ctx context.Context, resourceType model.Resource) {
+func (s *serverAuthability) Before(ctx context.Context, resourceType model.Resource) {
 	// do nothing
 }
 
 // After this function is called after the resource operation
-func (svr *serverAuthAbility) After(ctx context.Context, resourceType model.Resource, res *ResourceEvent) error {
+func (s *serverAuthability) After(ctx context.Context, resourceType model.Resource, res *ResourceEvent) error {
 	switch resourceType {
-	case model.RNamespace:
-		return svr.onNamespaceResource(ctx, res)
+	case model.RConfigGroup:
+		return s.onConfigGroupResource(ctx, res)
 	default:
 		return nil
 	}
 }
 
-// onNamespaceResource
-func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *ResourceEvent) error {
-	authCtx, _ := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
-	if authCtx == nil {
-		log.Warn("[Namespace][ResourceHook] get auth context is nil, ignore", utils.ZapRequestIDByCtx(ctx))
-		return nil
-	}
+// onConfigGroupResource
+func (s *serverAuthability) onConfigGroupResource(ctx context.Context, res *ResourceEvent) error {
+	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
 	ownerId := utils.ParseOwnerID(ctx)
 
-	ns := res.Namespace
 	authCtx.SetAttachment(model.ResourceAttachmentKey, map[api.ResourceType][]model.ResourceEntry{
-		api.ResourceType_Namespaces: {
+		api.ResourceType_ConfigGroups: {
 			{
-				ID:    ns.Name,
+				ID:    strconv.FormatUint(res.ConfigGroup.Id.GetValue(), 10),
 				Owner: ownerId,
 			},
 		},
 	})
 
-	users := utils.ConvertStringValuesToSlice(res.ReqNamespace.UserIds)
-	removeUses := utils.ConvertStringValuesToSlice(res.ReqNamespace.RemoveUserIds)
+	users := utils.ConvertStringValuesToSlice(res.ConfigGroup.UserIds)
+	removeUses := utils.ConvertStringValuesToSlice(res.ConfigGroup.RemoveUserIds)
 
-	groups := utils.ConvertStringValuesToSlice(res.ReqNamespace.GroupIds)
-	removeGroups := utils.ConvertStringValuesToSlice(res.ReqNamespace.RemoveGroupIds)
+	groups := utils.ConvertStringValuesToSlice(res.ConfigGroup.GroupIds)
+	removeGroups := utils.ConvertStringValuesToSlice(res.ConfigGroup.RemoveGroupIds)
 
 	authCtx.SetAttachment(model.LinkUsersKey, utils.StringSliceDeDuplication(users))
 	authCtx.SetAttachment(model.RemoveLinkUsersKey, utils.StringSliceDeDuplication(removeUses))
@@ -93,5 +87,5 @@ func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *Reso
 	authCtx.SetAttachment(model.LinkGroupsKey, utils.StringSliceDeDuplication(groups))
 	authCtx.SetAttachment(model.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
 
-	return svr.authSvr.AfterResourceOperation(authCtx)
+	return s.authSvr.AfterResourceOperation(authCtx)
 }

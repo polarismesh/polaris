@@ -50,7 +50,8 @@ func (h *HTTPServer) GetMaintainAccessServer() *restful.WebService {
 
 // GetServerConnections 查看server的连接数
 // query参数：protocol，必须，查看指定协议server
-//           host，可选，查看指定host
+//
+//	host，可选，查看指定host
 func (h *HTTPServer) GetServerConnections(req *restful.Request, rsp *restful.Response) {
 	ctx := initContext(req)
 	params := httpcommon.ParseQueryParams(req)

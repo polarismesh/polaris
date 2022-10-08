@@ -39,7 +39,7 @@ var (
 // TestGetAndRemoveAndReloadConfigFile 组合测试获取、删除、重载缓存
 func TestGetAndRemoveAndReloadConfigFile(t *testing.T) {
 	control, mockedStorage, fileCache := newConfigFileMockedCache(t)
-	fileCache.Clear()
+	fileCache.clear()
 	defer control.Finish()
 
 	// Mock 数据
@@ -88,7 +88,7 @@ func TestGetAndRemoveAndReloadConfigFile(t *testing.T) {
 func TestConcurrentGetConfigFile(t *testing.T) {
 	control, mockedStorage, fileCache := newConfigFileMockedCache(t)
 	defer control.Finish()
-	defer fileCache.Clear()
+	defer fileCache.clear()
 
 	// Mock 数据
 	configFile := assembleConfigFile()
@@ -110,7 +110,7 @@ func TestConcurrentGetConfigFile(t *testing.T) {
 // TestUpdateCache 测试配置发布时，更新缓存
 func TestUpdateCache(t *testing.T) {
 	control, mockedStorage, fileCache := newConfigFileMockedCache(t)
-	fileCache.Clear()
+	fileCache.clear()
 	defer control.Finish()
 
 	// Mock 数据
@@ -160,12 +160,10 @@ func TestUpdateCache(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 }
 
-func newConfigFileMockedCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *FileCache) {
+func newConfigFileMockedCache(t *testing.T) (*gomock.Controller, *mock.MockStore, FileCache) {
 	control := gomock.NewController(t)
 	mockedStorage := mock.NewMockStore(control)
-	fileCache := NewFileCache(context.Background(), mockedStorage, FileCacheParam{
-		ExpireTimeAfterWrite: 60000,
-	})
+	fileCache := newFileCache(context.Background(), mockedStorage)
 
 	return control, mockedStorage, fileCache
 }
@@ -190,4 +188,50 @@ func assembleConfigFileRelease(configFile *model.ConfigFile) *model.ConfigFileRe
 		Content:   configFile.Content,
 		Version:   uint64(10),
 	}
+}
+
+func assembleConfigFileGroup() *model.ConfigFileGroup {
+	return &model.ConfigFileGroup{
+		Id:        uint64(100),
+		Name:      "test-group-name",
+		Namespace: "test-group-name",
+	}
+}
+
+func Test_ConfigFileGroupBucket(t *testing.T) {
+	t.Run("GetOrLoadGroupByName", func(t *testing.T) {
+		ctrl, s, fc := newConfigFileMockedCache(t)
+		defer func() {
+			ctrl.Finish()
+			fc.clear()
+		}()
+
+		mockGroup := assembleConfigFileGroup()
+
+		s.EXPECT().GetConfigFileGroup(gomock.Any(), gomock.Any()).Return(mockGroup, nil)
+
+		ret, err := fc.GetOrLoadGrouByName(mockGroup.Namespace, mockGroup.Name)
+
+		assert.NoError(t, err)
+		assert.Equal(t, mockGroup.Name, ret.Name)
+		assert.Equal(t, mockGroup.Namespace, ret.Namespace)
+	})
+
+	t.Run("GetOrLoadGroupById", func(t *testing.T) {
+		ctrl, s, fc := newConfigFileMockedCache(t)
+		defer func() {
+			ctrl.Finish()
+			fc.clear()
+		}()
+
+		mockGroup := assembleConfigFileGroup()
+
+		s.EXPECT().GetConfigFileGroupById(gomock.Any()).Return(mockGroup, nil)
+
+		ret, err := fc.GetOrLoadGroupById(mockGroup.Id)
+
+		assert.NoError(t, err)
+		assert.Equal(t, mockGroup.Name, ret.Name)
+		assert.Equal(t, mockGroup.Namespace, ret.Namespace)
+	})
 }

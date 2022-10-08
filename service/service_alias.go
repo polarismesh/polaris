@@ -122,8 +122,9 @@ func (s *Server) checkPointServiceAlias(tx store.Transaction, req *api.ServiceAl
 }
 
 // DeleteServiceAlias 删除服务别名
-//  需要带上源服务name，namespace，token
-//  另外一种删除别名的方式，是直接调用删除服务的接口，也是可行的
+//
+//	需要带上源服务name，namespace，token
+//	另外一种删除别名的方式，是直接调用删除服务的接口，也是可行的
 func (s *Server) DeleteServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
 	if resp := checkDeleteServiceAliasReq(ctx, req); resp != nil {
 		return resp
