@@ -18,7 +18,6 @@
 package logger
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/natefinch/lumberjack"
@@ -26,7 +25,6 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	"github.com/polarismesh/polaris/common/model"
-	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/plugin"
 )
 
@@ -105,17 +103,5 @@ func (h *HistoryLogger) Initialize(c *plugin.ConfigEntry) error {
 
 // Record 记录操作记录到日志中
 func (h *HistoryLogger) Record(entry *model.RecordEntry) {
-	var str string
-	switch model.GetResourceType(entry.ResourceType) {
-	case model.ServiceType:
-		str = fmt.Sprintf("resource_type=%s;operation_type=%s;namespace=%s;service=%s;context=%s;operator=%s;ctime=%s",
-			string(entry.ResourceType), string(entry.OperationType), entry.Namespace, entry.Service,
-			entry.Context, entry.Operator, commontime.Time2String(entry.CreateTime))
-	case model.MeshType:
-		str = fmt.Sprintf(
-			"resource_type=%s;operation_type=%s;mesh_id=%s;revision=%s;context=%s;operator=%s;ctime=%s",
-			string(entry.ResourceType), string(entry.OperationType), entry.MeshID, entry.Revision,
-			entry.Context, entry.Operator, commontime.Time2String(entry.CreateTime))
-	}
-	h.logger.Info(str)
+	h.logger.Info(entry.String())
 }
