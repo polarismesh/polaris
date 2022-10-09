@@ -19,11 +19,13 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	v1 "github.com/polarismesh/polaris/common/api/v1"
+	commontime "github.com/polarismesh/polaris/common/time"
 )
 
 // Namespace 命名空间结构体
@@ -482,6 +484,22 @@ type RecordEntry struct {
 	UserGroup     string
 	StrategyName  string
 	CreateTime    time.Time
+}
+
+func (r *RecordEntry) String() string {
+	var str string
+	switch GetResourceType(r.ResourceType) {
+	case ServiceType:
+		str = fmt.Sprintf("resource_type=%s;operation_type=%s;namespace=%s;service=%s;context=%s;operator=%s;ctime=%s",
+			string(r.ResourceType), string(r.OperationType), r.Namespace, r.Service,
+			r.Context, r.Operator, commontime.Time2String(r.CreateTime))
+	case MeshType:
+		str = fmt.Sprintf(
+			"resource_type=%s;operation_type=%s;mesh_id=%s;revision=%s;context=%s;operator=%s;ctime=%s",
+			string(r.ResourceType), string(r.OperationType), r.MeshID, r.Revision,
+			r.Context, r.Operator, commontime.Time2String(r.CreateTime))
+	}
+	return str
 }
 
 // DiscoverEventType 探测事件类型

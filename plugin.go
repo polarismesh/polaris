@@ -36,6 +36,7 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatmemory"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatredis"
 	_ "github.com/polarismesh/polaris/plugin/history/logger"
+	_ "github.com/polarismesh/polaris/plugin/history/loki"
 	_ "github.com/polarismesh/polaris/plugin/password"
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/lrurate"
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/token"
