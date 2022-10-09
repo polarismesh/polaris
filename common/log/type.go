@@ -35,6 +35,26 @@ const (
 	APIServerLoggerName = "apiserver"
 	// XDSLoggerName xdsv3 logger name, can use FindScope function to get the logger
 	XDSLoggerName = "xdsv3"
+
+	PluginAuthPlatformName = "authPlatform"
+
+	PluginDiscoverEventName = "discoverEventLocal"
+
+	PluginDiscoverEventLokiName = "discoverEventLoki"
+
+	PluginDiscoverStatName = "discoverStat"
+
+	PluginHealthcheckName = "healthcheck"
+
+	PluginRateLimitName = "rateLimit"
+
+	PluginStatisName = "statis"
+
+	PluginCmdbName = "cmdb"
+
+	PluginHistoryName = "history"
+
+	PluginPasswordName = "password"
 )
 
 var (

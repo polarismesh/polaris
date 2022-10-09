@@ -20,7 +20,7 @@ package heartbeatmemory
 import (
 	"sync"
 
-	"github.com/polarismesh/polaris/common/log"
+	commonLog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/plugin"
 )
 
@@ -29,6 +29,8 @@ const (
 	// PluginName plugin name
 	PluginName = "heartbeatMemory"
 )
+
+var log = commonLog.GetScopeByName(commonLog.PluginHealthcheckName)
 
 // HeartbeatRecord record for heartbeat
 type HeartbeatRecord struct {

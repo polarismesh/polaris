@@ -20,7 +20,6 @@ package local
 import (
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/utils"
 )

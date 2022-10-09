@@ -31,7 +31,7 @@ import (
 	"github.com/polarismesh/polaris/plugin"
 )
 
-var log = commonlog.HealthCheckScope()
+var log = commonlog.GetScopeByName(commonlog.PluginHealthcheckName)
 
 // 把操作记录记录到日志文件中
 const (

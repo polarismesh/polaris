@@ -23,12 +23,13 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris/common/log"
+	commonLog "github.com/polarismesh/polaris/common/log"
 )
 
 var (
 	// 插件初始化原子变量
 	authOnce = &sync.Once{}
+	authLog  = commonLog.GetScopeByName(commonLog.AuthLoggerName)
 )
 
 // Auth AUTH插件接口
@@ -48,13 +49,13 @@ func GetAuth() Auth {
 
 	plugin, exist := pluginSet[c.Name]
 	if !exist {
-		log.Error("[Plugin][Auth] not found", zap.String("name", c.Name))
+		authLog.Error("[Plugin][Auth] not found", zap.String("name", c.Name))
 		return nil
 	}
 
 	authOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			log.Errorf("plugin init err: %s", err.Error())
+			authLog.Errorf("plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})

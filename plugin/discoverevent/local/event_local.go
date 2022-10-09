@@ -20,11 +20,9 @@ package local
 import (
 	"encoding/json"
 	"fmt"
-	"path/filepath"
+	commonLog "github.com/polarismesh/polaris/common/log"
 	"sync"
 	"time"
-
-	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -38,6 +36,7 @@ const (
 
 var (
 	emptyModelDiscoverEvent = model.DiscoverEvent{}
+	log                     = commonLog.GetScopeByName(commonLog.PluginDiscoverEventName)
 )
 
 func init() {
@@ -99,7 +98,6 @@ func (holder *eventBufferHolder) Size() int {
 
 type discoverEventLocal struct {
 	eventCh        chan model.DiscoverEvent
-	eventLog       *zap.Logger
 	bufferPool     *sync.Pool
 	curEventBuffer *eventBufferHolder
 	cursor         int
@@ -130,12 +128,6 @@ func (el *discoverEventLocal) Initialize(conf *plugin.ConfigEntry) error {
 	}
 
 	el.eventCh = make(chan model.DiscoverEvent, config.QueueSize)
-	el.eventLog = newLogger(
-		filepath.Join(config.OutputPath, "discoverevent.log"),
-		config.RotationMaxSize,
-		config.RotationMaxBackups,
-		config.RotationMaxAge,
-	)
 
 	el.syncLock = &sync.Mutex{}
 	el.bufferPool = &sync.Pool{
@@ -212,7 +204,7 @@ func (el *discoverEventLocal) writeToFile(eventHolder *eventBufferHolder) {
 	for eventHolder.HasNext() {
 		event := eventHolder.Next()
 
-		el.eventLog.Info(fmt.Sprintf(
+		log.Info(fmt.Sprintf(
 			"%s|%s|%s|%d|%s|%d|%s",
 			event.Namespace,
 			event.Service,

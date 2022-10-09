@@ -21,9 +21,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/polarismesh/polaris/common/log"
+	commonLog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/plugin"
 )
+
+var log = commonLog.GetScopeByName(commonLog.PluginDiscoverStatName)
 
 // init 注册服务发现统计插件
 func init() {
@@ -50,13 +52,10 @@ func (d *DiscoverStatisWorker) Initialize(conf *plugin.ConfigEntry) error {
 	interval, _ := conf.Option["interval"].(int)
 	d.interval = time.Duration(interval) * time.Second
 
-	outputPath, _ := conf.Option["outputPath"].(string)
-
 	// 初始化
 	d.dcc = make(chan *DiscoverCall, 1024)
 	d.dcs = &DiscoverCallStatis{
 		statis: make(map[Service]time.Time),
-		logger: newLogger(outputPath + "/" + "discovercall.log"),
 	}
 
 	go d.Run()

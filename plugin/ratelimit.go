@@ -21,7 +21,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/polarismesh/polaris/common/log"
+	commonLog "github.com/polarismesh/polaris/common/log"
 )
 
 // RatelimitType rate limit type
@@ -51,6 +51,7 @@ var RatelimitStr = map[RatelimitType]string{
 
 var (
 	rateLimitOnce = sync.Once{}
+	rateLimitLog  = commonLog.GetScopeByName(commonLog.PluginRateLimitName)
 )
 
 // Ratelimit Ratelimit插件接口
@@ -74,7 +75,7 @@ func GetRatelimit() Ratelimit {
 
 	rateLimitOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			log.Errorf("plugin init err: %s", err.Error())
+			rateLimitLog.Errorf("plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})

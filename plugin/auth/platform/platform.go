@@ -20,12 +20,12 @@ package platform
 import (
 	"database/sql"
 	"fmt"
+	commonLog "github.com/polarismesh/polaris/common/log"
 	"sync"
 	"time"
 
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/plugin"
@@ -37,6 +37,8 @@ const (
 	// DefaultTimeDiff default time diff
 	DefaultTimeDiff = -1 * time.Second * 5
 )
+
+var log = commonLog.GetScopeByName(commonLog.PluginAuthPlatformName)
 
 // init 初始化注册函数
 func init() {

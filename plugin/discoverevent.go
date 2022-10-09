@@ -21,12 +21,13 @@ import (
 	"os"
 	"sync"
 
-	"github.com/polarismesh/polaris/common/log"
+	commonLog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 )
 
 var (
 	discoverEventOnce = &sync.Once{}
+	discoverEventLog  = commonLog.GetScopeByName(commonLog.PluginDiscoverEventName)
 )
 
 // DiscoverChannel is used to receive discover events from the agent
@@ -48,7 +49,7 @@ func GetDiscoverEvent() DiscoverChannel {
 
 	discoverEventOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			log.Errorf("plugin init err: %s", err.Error())
+			discoverEventLog.Errorf("plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})
