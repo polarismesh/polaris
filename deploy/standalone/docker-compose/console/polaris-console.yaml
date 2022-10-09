@@ -8,7 +8,8 @@ webServer:
   mode: "release"
   listenIP: "0.0.0.0"
   listenPort: 8080
-  namingURL: "/naming/v1"
+  namingV1URL: "/naming/v1"
+  namingV2URL: "/naming/v2"
   authURL: "/core/v1"
   requestURL: "/naming/v1"
   configURL: "/config/v1"
