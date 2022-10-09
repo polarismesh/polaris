@@ -81,7 +81,7 @@ func generateI18nMessageSrc(fileName string) {
 
 func getSrcCodeInfo() []errCodeItem {
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, "../../../../common/api/v1/codeinfo.go", nil, parser.ParseComments)
+	f, err := parser.ParseFile(fset, "../../../common/api/v1/codeinfo.go", nil, parser.ParseComments)
 	if err != nil {
 		panic(err)
 	}

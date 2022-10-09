@@ -219,7 +219,7 @@ func (d *AuthTestSuit) cleanAllUser() {
 
 			defer dbTx.Rollback()
 
-			if _, err := dbTx.Exec("delete from user"); err != nil {
+			if _, err := dbTx.Exec("delete from user where name like 'test%'"); err != nil {
 				dbTx.Rollback()
 				panic(err)
 			}
@@ -259,7 +259,7 @@ func (d *AuthTestSuit) cleanAllUserGroup() {
 
 			defer dbTx.Rollback()
 
-			if _, err := dbTx.Exec("delete from user_group"); err != nil {
+			if _, err := dbTx.Exec("delete from user_group where name like 'test%'"); err != nil {
 				dbTx.Rollback()
 				panic(err)
 			}
@@ -304,15 +304,15 @@ func (d *AuthTestSuit) cleanAllAuthStrategy() {
 
 			defer dbTx.Rollback()
 
-			if _, err := dbTx.Exec("delete from auth_strategy"); err != nil {
+			if _, err := dbTx.Exec("delete from auth_strategy where id != 'fbca9bfa04ae4ead86e1ecf5811e32a9'"); err != nil {
 				dbTx.Rollback()
 				panic(err)
 			}
-			if _, err := dbTx.Exec("delete from auth_principal"); err != nil {
+			if _, err := dbTx.Exec("delete from auth_principal where strategy_id != 'fbca9bfa04ae4ead86e1ecf5811e32a9'"); err != nil {
 				dbTx.Rollback()
 				panic(err)
 			}
-			if _, err := dbTx.Exec("delete from auth_strategy_resource"); err != nil {
+			if _, err := dbTx.Exec("delete from auth_strategy_resource where strategy_id != 'fbca9bfa04ae4ead86e1ecf5811e32a9'"); err != nil {
 				dbTx.Rollback()
 				panic(err)
 			}
