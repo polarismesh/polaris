@@ -22,12 +22,12 @@ import (
 
 	"go.uber.org/zap"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/common/time"
-	"github.com/polarismesh/polaris-server/common/utils"
-	utils2 "github.com/polarismesh/polaris-server/config/utils"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/time"
+	"github.com/polarismesh/polaris/common/utils"
+	utils2 "github.com/polarismesh/polaris/config/utils"
 )
 
 // PublishConfigFile 发布配置文件
@@ -136,8 +136,7 @@ func (s *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.C
 
 		s.recordReleaseHistory(ctx, createdFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
 
-		return api.NewConfigFileReleaseResponse(api.ExecuteSuccess,
-			transferConfigFileReleaseStoreModel2APIModel(createdFileRelease))
+		return api.NewConfigFileReleaseResponse(api.ExecuteSuccess, configFileRelease2Api(createdFileRelease))
 	}
 
 	// 更新发布
@@ -169,8 +168,7 @@ func (s *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.C
 
 	s.recordReleaseHistory(ctx, updatedFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
 
-	return api.NewConfigFileReleaseResponse(api.ExecuteSuccess,
-		transferConfigFileReleaseStoreModel2APIModel(updatedFileRelease))
+	return api.NewConfigFileReleaseResponse(api.ExecuteSuccess, configFileRelease2Api(updatedFileRelease))
 }
 
 // GetConfigFileRelease 获取配置文件发布内容
@@ -201,8 +199,7 @@ func (s *Server) GetConfigFileRelease(ctx context.Context, namespace, group, fil
 		return api.NewConfigFileResponse(api.StoreLayerException, nil)
 	}
 
-	return api.NewConfigFileReleaseResponse(api.ExecuteSuccess,
-		transferConfigFileReleaseStoreModel2APIModel(fileRelease))
+	return api.NewConfigFileReleaseResponse(api.ExecuteSuccess, configFileRelease2Api(fileRelease))
 }
 
 // DeleteConfigFileRelease 删除配置文件发布，删除配置文件的时候，同步删除配置文件发布数据
@@ -335,7 +332,7 @@ func transferConfigFileReleaseAPIModel2StoreModel(release *api.ConfigFileRelease
 	}
 }
 
-func transferConfigFileReleaseStoreModel2APIModel(release *model.ConfigFileRelease) *api.ConfigFileRelease {
+func configFileRelease2Api(release *model.ConfigFileRelease) *api.ConfigFileRelease {
 	if release == nil {
 		return nil
 	}

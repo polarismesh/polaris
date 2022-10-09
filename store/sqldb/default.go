@@ -23,8 +23,8 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/plugin"
+	"github.com/polarismesh/polaris/store"
 )
 
 const (
@@ -76,7 +76,6 @@ type stableStore struct {
 	// 备数据库，提供只读
 	slave    *BaseDB
 	start    bool
-	metaTask *TaskManager
 }
 
 // Name 实现Name函数

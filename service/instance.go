@@ -27,10 +27,10 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
-	instancecommon "github.com/polarismesh/polaris-server/common/service"
-	"github.com/polarismesh/polaris-server/common/utils"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	instancecommon "github.com/polarismesh/polaris/common/service"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 var (

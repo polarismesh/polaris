@@ -20,18 +20,18 @@ package config
 import (
 	"context"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // GetConfigFileReleaseHistory 获取配置文件发布历史记录
-func (s *serverAuthibility) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset,
+func (s *serverAuthability) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset,
 	limit uint32, endId uint64) *api.ConfigBatchQueryResponse {
 
 	return s.targetServer.GetConfigFileReleaseHistory(ctx, namespace, group, fileName, offset, limit, endId)
 }
 
 // GetConfigFileLatestReleaseHistory 获取配置文件最后一次发布记录
-func (s *serverAuthibility) GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group,
+func (s *serverAuthability) GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group,
 	fileName string) *api.ConfigResponse {
 
 	return s.targetServer.GetConfigFileLatestReleaseHistory(ctx, namespace, group, fileName)

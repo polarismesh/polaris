@@ -21,8 +21,8 @@ import (
 	"sort"
 	"strings"
 
-	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
-	v2 "github.com/polarismesh/polaris-server/common/model/v2"
+	apiv2 "github.com/polarismesh/polaris/common/api/v2"
+	v2 "github.com/polarismesh/polaris/common/model/v2"
 )
 
 // RoutingArgs 路由规则查询参数

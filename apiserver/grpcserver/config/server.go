@@ -24,11 +24,11 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/polarismesh/polaris-server/apiserver"
-	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	commonlog "github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/config"
+	"github.com/polarismesh/polaris/apiserver"
+	"github.com/polarismesh/polaris/apiserver/grpcserver"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	commonlog "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/config"
 )
 
 var (

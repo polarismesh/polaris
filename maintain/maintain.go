@@ -23,9 +23,9 @@ import (
 	"runtime/debug"
 	"time"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/connlimit"
-	commonlog "github.com/polarismesh/polaris-server/common/log"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/connlimit"
+	commonlog "github.com/polarismesh/polaris/common/log"
 )
 
 func (s *Server) GetServerConnections(_ context.Context, req *ConnReq) (*ConnCountResp, error) {

@@ -21,10 +21,10 @@ import (
 	"context"
 	"errors"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/store"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/store"
 )
 
 const (

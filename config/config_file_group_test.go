@@ -22,7 +22,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 var (

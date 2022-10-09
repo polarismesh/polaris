@@ -25,11 +25,11 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"go.uber.org/zap"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
-	commontime "github.com/polarismesh/polaris-server/common/time"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/store"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	commontime "github.com/polarismesh/polaris/common/time"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/store"
 )
 
 var (
@@ -122,8 +122,9 @@ func (s *Server) checkPointServiceAlias(tx store.Transaction, req *api.ServiceAl
 }
 
 // DeleteServiceAlias 删除服务别名
-//  需要带上源服务name，namespace，token
-//  另外一种删除别名的方式，是直接调用删除服务的接口，也是可行的
+//
+//	需要带上源服务name，namespace，token
+//	另外一种删除别名的方式，是直接调用删除服务的接口，也是可行的
 func (s *Server) DeleteServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
 	if resp := checkDeleteServiceAliasReq(ctx, req); resp != nil {
 		return resp

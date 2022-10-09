@@ -26,10 +26,10 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 
-	httpcommon "github.com/polarismesh/polaris-server/apiserver/httpserver/http"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/maintain"
+	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/maintain"
 )
 
 // GetMaintainAccessServer 运维接口
@@ -50,7 +50,8 @@ func (h *HTTPServer) GetMaintainAccessServer() *restful.WebService {
 
 // GetServerConnections 查看server的连接数
 // query参数：protocol，必须，查看指定协议server
-//           host，可选，查看指定host
+//
+//	host，可选，查看指定host
 func (h *HTTPServer) GetServerConnections(req *restful.Request, rsp *restful.Response) {
 	ctx := initContext(req)
 	params := httpcommon.ParseQueryParams(req)

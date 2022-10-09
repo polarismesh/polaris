@@ -21,7 +21,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/polarismesh/polaris-server/common/log"
+	"github.com/polarismesh/polaris/common/log"
 )
 
 // ReportRequest report heartbeat request

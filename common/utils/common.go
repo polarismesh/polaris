@@ -31,10 +31,11 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/store"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/store"
 )
 
 // some options config
@@ -524,4 +525,18 @@ func CheckInstanceTetrad(req *api.Instance) (string, *api.Response) {
 		instID = id
 	}
 	return instID, nil
+}
+
+func ConvertStringValuesToSlice(vals []*wrapperspb.StringValue) []string {
+	ret := make([]string, 0, 4)
+
+	for index := range vals {
+		id := vals[index]
+		if strings.TrimSpace(id.GetValue()) == "" {
+			continue
+		}
+		ret = append(ret, id.GetValue())
+	}
+
+	return ret
 }

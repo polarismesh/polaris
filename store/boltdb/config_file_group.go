@@ -28,8 +28,8 @@ import (
 	"github.com/boltdb/bolt"
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/store"
 )
 
 const (
@@ -266,6 +266,39 @@ func (fg *configFileGroupStore) FindConfigFileGroups(namespace string,
 	}
 
 	return groups, nil
+}
+
+func (fg *configFileGroupStore) GetConfigFileGroupById(id uint64) (*model.ConfigFileGroup, error) {
+
+	fields := []string{FileGroupFieldId, FileGroupFieldValid}
+
+	ret, err := fg.handler.LoadValuesByFilter(tblConfigFileGroup, fields, &model.ConfigFileGroup{},
+		func(m map[string]interface{}) bool {
+			if valid, _ := m[FileGroupFieldValid].(bool); !valid {
+				return false
+			}
+			saveId := m[FileGroupFieldId].(uint64)
+
+			return saveId == id
+		})
+	if err != nil {
+		log.Error("[ConfigFileGroup] find by id", zap.Error(err))
+		return nil, err
+	}
+
+	if len(ret) == 0 {
+		return nil, nil
+	}
+
+	if len(ret) > 1 {
+		return nil, ErrMultipleConfigFileGroupFound
+	}
+
+	for k := range ret {
+		return ret[k].(*model.ConfigFileGroup), nil
+	}
+
+	return nil, nil
 }
 
 // doConfigFileGroupPage 进行分页

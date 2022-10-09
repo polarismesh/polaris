@@ -23,8 +23,8 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"golang.org/x/time/rate"
 
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 // 资源限制器

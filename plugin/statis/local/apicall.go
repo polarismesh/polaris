@@ -25,9 +25,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris-server/common/log"
-	commontime "github.com/polarismesh/polaris-server/common/time"
-	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris/common/log"
+	commontime "github.com/polarismesh/polaris/common/time"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 // APICall 接口调用

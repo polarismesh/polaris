@@ -20,10 +20,9 @@ package config
 import (
 	"testing"
 
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/stretchr/testify/assert"
-
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/utils"
 )
 
 // TestConfigFileTemplateCRUD the base test for config file template

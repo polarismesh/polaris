@@ -22,11 +22,11 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris-server/cache"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/utils"
-	utils2 "github.com/polarismesh/polaris-server/config/utils"
+	"github.com/polarismesh/polaris/cache"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/utils"
+	utils2 "github.com/polarismesh/polaris/config/utils"
 )
 
 type (
@@ -53,7 +53,7 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 		zap.String("group", group), zap.String("file", fileName))
 
 	// 从缓存中获取配置内容
-	entry, err := s.cache.GetOrLoadIfAbsent(namespace, group, fileName)
+	entry, err := s.fileCache.GetOrLoadIfAbsent(namespace, group, fileName)
 
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] get or load config file from cache error.",
@@ -69,7 +69,7 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 
 	// 客户端版本号大于服务端版本号，服务端需要重新加载缓存
 	if clientVersion > entry.Version {
-		entry, err = s.cache.ReLoad(namespace, group, fileName)
+		entry, err = s.fileCache.ReLoad(namespace, group, fileName)
 		if err != nil {
 			log.ConfigScope().Error("[Config][Service] reload config file error.",
 				zap.String("requestId", requestID),
@@ -139,7 +139,7 @@ func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api
 		}
 
 		// 从缓存中获取最新的配置文件信息
-		entry, err := s.cache.GetOrLoadIfAbsent(namespace, group, fileName)
+		entry, err := s.fileCache.GetOrLoadIfAbsent(namespace, group, fileName)
 
 		if err != nil {
 			log.ConfigScope().Error("[Config][Service] get or load config file from cache error.",

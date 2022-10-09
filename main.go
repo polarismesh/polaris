@@ -20,7 +20,7 @@ package main
 import (
 	_ "go.uber.org/automaxprocs"
 
-	"github.com/polarismesh/polaris-server/cmd"
+	"github.com/polarismesh/polaris/cmd"
 )
 
 func main() {

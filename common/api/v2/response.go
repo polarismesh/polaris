@@ -20,7 +20,7 @@ package v2
 import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	v1 "github.com/polarismesh/polaris-server/common/api/v1"
+	v1 "github.com/polarismesh/polaris/common/api/v1"
 )
 
 /**
@@ -99,8 +99,8 @@ func NewRoutingResponse(code uint32, routing *Routing) *Response {
 	ret, err := ptypes.MarshalAny(routing)
 	if err != nil {
 		return &Response{
-			Code: v1.ExecuteException,
-			Info: v1.Code2Info(code) + ": " + err.Error(),
+			Code: code,
+			Info: v1.Code2Info(code),
 		}
 	}
 

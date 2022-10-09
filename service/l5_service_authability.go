@@ -20,7 +20,7 @@ package service
 import (
 	"context"
 
-	"github.com/polarismesh/polaris-server/common/api/l5"
+	"github.com/polarismesh/polaris/common/api/l5"
 )
 
 // SyncByAgentCmd 根据sid获取路由信息

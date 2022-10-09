@@ -20,9 +20,9 @@ package local
 import (
 	"time"
 
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/plugin"
+	"github.com/polarismesh/polaris/store"
 )
 
 // init 注册统计插件

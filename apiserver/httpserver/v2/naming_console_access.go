@@ -23,9 +23,9 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/proto"
 
-	httpcommon "github.com/polarismesh/polaris-server/apiserver/httpserver/http"
-	apiv1 "github.com/polarismesh/polaris-server/common/api/v1"
-	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
+	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
+	apiv1 "github.com/polarismesh/polaris/common/api/v1"
+	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 )
 
 const (

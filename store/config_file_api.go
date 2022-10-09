@@ -20,7 +20,7 @@ package store
 import (
 	"time"
 
-	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris/common/model"
 )
 
 // ConfigFileModuleStore 配置中心模块存储接口
@@ -53,6 +53,9 @@ type ConfigFileGroupStore interface {
 
 	// FindConfigFileGroups 获取一组配置文件组信息
 	FindConfigFileGroups(namespace string, names []string) ([]*model.ConfigFileGroup, error)
+
+	// GetConfigFileGroupById 根据Id获取文件组信息
+	GetConfigFileGroupById(id uint64) (*model.ConfigFileGroup, error)
 }
 
 // ConfigFileStore 配置文件存储接口

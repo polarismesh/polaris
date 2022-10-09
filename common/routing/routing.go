@@ -23,12 +23,12 @@ import (
 	"sort"
 
 	"github.com/golang/protobuf/ptypes"
-	apiv1 "github.com/polarismesh/polaris-server/common/api/v1"
-	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
-	"github.com/polarismesh/polaris-server/common/model"
-	v2 "github.com/polarismesh/polaris-server/common/model/v2"
-	commontime "github.com/polarismesh/polaris-server/common/time"
-	"github.com/polarismesh/polaris-server/common/utils"
+	apiv1 "github.com/polarismesh/polaris/common/api/v1"
+	apiv2 "github.com/polarismesh/polaris/common/api/v2"
+	"github.com/polarismesh/polaris/common/model"
+	v2 "github.com/polarismesh/polaris/common/model/v2"
+	commontime "github.com/polarismesh/polaris/common/time"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 const (
@@ -306,9 +306,6 @@ func BuildInBoundsFromV2(service, namespace string, item *v2.ExtendRoutingConfig
 		{
 			Sources:      v1sources,
 			Destinations: v1destinations,
-			ExtendInfo: map[string]string{
-				v2.V2RuleIDKey: item.ID,
-			},
 		},
 	}
 }

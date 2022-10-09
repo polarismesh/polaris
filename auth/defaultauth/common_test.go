@@ -24,12 +24,12 @@ import (
 	"github.com/golang/mock/gomock"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/polarismesh/polaris-server/cache"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/plugin"
-	storemock "github.com/polarismesh/polaris-server/store/mock"
+	"github.com/polarismesh/polaris/cache"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin"
+	storemock "github.com/polarismesh/polaris/store/mock"
 )
 
 func reset(strict bool) {
@@ -174,6 +174,25 @@ func createMockUser(total int, prefix ...string) []*model.User {
 	return users
 }
 
+func createApiMockUser(total int, prefix ...string) []*api.User {
+	users := make([]*api.User, 0, total)
+
+	models := createMockUser(total, prefix...)
+
+	for i := range models {
+		users = append(users, &api.User{
+			Name:     utils.NewStringValue("test-" + models[i].Name),
+			Password: utils.NewStringValue("123456"),
+			Source:   utils.NewStringValue("Polaris"),
+			Comment:  utils.NewStringValue(models[i].Comment),
+			Mobile:   utils.NewStringValue(models[i].Mobile),
+			Email:    utils.NewStringValue(models[i].Email),
+		})
+	}
+
+	return users
+}
+
 func createMockUserGroup(users []*model.User) []*model.UserGroupDetail {
 	groups := make([]*model.UserGroupDetail, 0, len(users))
 
@@ -186,7 +205,7 @@ func createMockUserGroup(users []*model.User) []*model.UserGroupDetail {
 		groups = append(groups, &model.UserGroupDetail{
 			UserGroup: &model.UserGroup{
 				ID:          id,
-				Name:        fmt.Sprintf("group-%d", i),
+				Name:        fmt.Sprintf("test-group-%d", i),
 				Owner:       users[0].ID,
 				Token:       token,
 				TokenEnable: true,
@@ -202,6 +221,35 @@ func createMockUserGroup(users []*model.User) []*model.UserGroupDetail {
 	}
 
 	return groups
+}
+
+// createMockApiUserGroup
+func createMockApiUserGroup(users []*api.User) []*api.UserGroup {
+	musers := make([]*model.User, 0, len(users))
+	for i := range users {
+		musers = append(musers, &model.User{
+			ID: users[i].GetId().GetValue(),
+		})
+	}
+
+	models := createMockUserGroup(musers)
+	ret := make([]*api.UserGroup, 0, len(models))
+
+	for i := range models {
+		ret = append(ret, &api.UserGroup{
+			Name:    utils.NewStringValue(models[i].Name),
+			Comment: utils.NewStringValue(models[i].Comment),
+			Relation: &api.UserGroupRelation{
+				Users: []*api.User{
+					{
+						Id: utils.NewStringValue(users[i].GetId().GetValue()),
+					},
+				},
+			},
+		})
+	}
+
+	return ret
 }
 
 func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, services []*model.Service) ([]*model.StrategyDetail, []*model.StrategyDetail) {

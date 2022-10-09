@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 // init 注册服务发现统计插件

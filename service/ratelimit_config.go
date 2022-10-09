@@ -25,10 +25,10 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
-	commontime "github.com/polarismesh/polaris-server/common/time"
-	"github.com/polarismesh/polaris-server/common/utils"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	commontime "github.com/polarismesh/polaris/common/time"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 var (
@@ -428,7 +428,7 @@ func api2RateLimit(serviceID string, req *api.Rule, old *model.RateLimit) (*mode
 	if err != nil {
 		return nil, err
 	}
-	
+
 	labels := req.GetLabels()
 	var labelStr []byte
 	if len(labels) > 0 {

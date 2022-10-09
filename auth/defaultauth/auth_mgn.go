@@ -21,11 +21,11 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/polarismesh/polaris-server/auth"
-	"github.com/polarismesh/polaris-server/cache"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/cache"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/plugin"
+	"github.com/polarismesh/polaris/store"
 )
 
 // defaultAuthChecker 北极星自带的默认鉴权中心

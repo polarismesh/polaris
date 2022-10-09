@@ -26,14 +26,14 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/polarismesh/polaris-server/auth"
-	"github.com/polarismesh/polaris-server/cache"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/plugin"
-	_ "github.com/polarismesh/polaris-server/plugin/auth/defaultauth"
-	storemock "github.com/polarismesh/polaris-server/store/mock"
+	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/cache"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin"
+	_ "github.com/polarismesh/polaris/plugin/auth/defaultauth"
+	storemock "github.com/polarismesh/polaris/store/mock"
 )
 
 func Test_defaultAuthManager_ParseToken(t *testing.T) {
@@ -230,7 +230,6 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 
 	defer func() {
 		cancel()
@@ -472,7 +471,6 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 		t.Fatal(err)
 	}
 
-
 	defer func() {
 		cancel()
 		cacheMgn.Clear()
@@ -662,7 +660,6 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 
 	defer func() {
 		cancel()
@@ -873,7 +870,6 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 
 	defer func() {
 		cancel()

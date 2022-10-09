@@ -24,7 +24,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"google.golang.org/grpc"
 
-	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 const (

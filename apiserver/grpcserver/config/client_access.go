@@ -20,8 +20,8 @@ package config
 import (
 	"context"
 
-	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	"github.com/polarismesh/polaris/apiserver/grpcserver"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // GetConfigFile 拉取配置

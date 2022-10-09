@@ -20,7 +20,7 @@ package model
 import (
 	"context"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // AcquireContext 每次鉴权请求上下文信息
@@ -52,8 +52,9 @@ var (
 )
 
 // NewAcquireContext 创建一个请求响应
-//  @param options
-//  @return *AcquireContext
+//
+//	@param options
+//	@return *AcquireContext
 func NewAcquireContext(options ...acquireContextOption) *AcquireContext {
 	authCtx := &AcquireContext{
 		attachment:      make(map[string]interface{}),
@@ -75,8 +76,9 @@ func NewAcquireContext(options ...acquireContextOption) *AcquireContext {
 }
 
 // WithRequestContext 设置请求上下文
-//  @param ctx
-//  @return acquireContextOption
+//
+//	@param ctx
+//	@return acquireContextOption
 func WithRequestContext(ctx context.Context) acquireContextOption {
 	return func(authCtx *AcquireContext) {
 		authCtx.requestContext = ctx
@@ -84,8 +86,9 @@ func WithRequestContext(ctx context.Context) acquireContextOption {
 }
 
 // WithToken 设置请求 token
-//  @param token
-//  @return acquireContextOption
+//
+//	@param token
+//	@return acquireContextOption
 func WithToken(token string) acquireContextOption {
 	return func(authCtx *AcquireContext) {
 		authCtx.token = token
@@ -93,8 +96,9 @@ func WithToken(token string) acquireContextOption {
 }
 
 // WithModule 设置本次请求的模块
-//  @param module
-//  @return acquireContextOption
+//
+//	@param module
+//	@return acquireContextOption
 func WithModule(module BzModule) acquireContextOption {
 	return func(authCtx *AcquireContext) {
 		authCtx.module = module
@@ -109,8 +113,9 @@ func WithMethod(method string) acquireContextOption {
 }
 
 // WithOperation 设置本次的操作类型
-//  @param operation
-//  @return acquireContextOption
+//
+//	@param operation
+//	@return acquireContextOption
 func WithOperation(operation ResourceOperation) acquireContextOption {
 	return func(authCtx *AcquireContext) {
 		authCtx.operation = operation
@@ -118,8 +123,9 @@ func WithOperation(operation ResourceOperation) acquireContextOption {
 }
 
 // WithAccessResources 设置本次访问的资源
-//  @param accessResources
-//  @return acquireContextOption
+//
+//	@param accessResources
+//	@return acquireContextOption
 func WithAccessResources(accessResources map[api.ResourceType][]ResourceEntry) acquireContextOption {
 	return func(authCtx *AcquireContext) {
 		authCtx.accessResources = accessResources
@@ -127,8 +133,9 @@ func WithAccessResources(accessResources map[api.ResourceType][]ResourceEntry) a
 }
 
 // WithAttachment 设置本次请求的额外携带信息
-//  @param attachment
-//  @return acquireContextOption
+//
+//	@param attachment
+//	@return acquireContextOption
 func WithAttachment(attachment map[string]interface{}) acquireContextOption {
 	return func(authCtx *AcquireContext) {
 		for k, v := range attachment {
@@ -152,50 +159,57 @@ func WithFromClient() acquireContextOption {
 }
 
 // GetRequestContext 获取 context.Context
-//  @receiver authCtx
-//  @return context.Context
+//
+//	@receiver authCtx
+//	@return context.Context
 func (authCtx *AcquireContext) GetRequestContext() context.Context {
 	return authCtx.requestContext
 }
 
 // SetRequestContext 重新设置 context.Context
-//  @receiver authCtx
-//  @param requestContext
+//
+//	@receiver authCtx
+//	@param requestContext
 func (authCtx *AcquireContext) SetRequestContext(requestContext context.Context) {
 	authCtx.requestContext = requestContext
 }
 
 // GetToken 获取本次请求的 token
-//  @receiver authCtx
-//  @return string
+//
+//	@receiver authCtx
+//	@return string
 func (authCtx *AcquireContext) GetToken() string {
 	return authCtx.token
 }
 
 // GetModule 获取请求的模块
-//  @receiver authCtx
-//  @return BzModule
+//
+//	@receiver authCtx
+//	@return BzModule
 func (authCtx *AcquireContext) GetModule() BzModule {
 	return authCtx.module
 }
 
 // GetOperation 获取本次操作的类型
-//  @receiver authCtx
-//  @return ResourceOperation
+//
+//	@receiver authCtx
+//	@return ResourceOperation
 func (authCtx *AcquireContext) GetOperation() ResourceOperation {
 	return authCtx.operation
 }
 
 // GetAccessResources 获取本次请求的资源
-//  @receiver authCtx
-//  @return map
+//
+//	@receiver authCtx
+//	@return map
 func (authCtx *AcquireContext) GetAccessResources() map[api.ResourceType][]ResourceEntry {
 	return authCtx.accessResources
 }
 
 // SetAccessResources 设置本次请求的资源
-//  @receiver authCtx
-//  @param accessRes
+//
+//	@receiver authCtx
+//	@param accessRes
 func (authCtx *AcquireContext) SetAccessResources(accessRes map[api.ResourceType][]ResourceEntry) {
 	authCtx.accessResources = accessRes
 }

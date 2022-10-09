@@ -20,7 +20,7 @@ package service
 import (
 	"context"
 
-	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
+	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 )
 
 // GetRoutingConfigV2WithCache User Client Get Service Routing Configuration Information

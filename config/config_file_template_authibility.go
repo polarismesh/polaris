@@ -20,26 +20,33 @@ package config
 import (
 	"context"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // GetAllConfigFileTemplates get all config file templates
-func (s *serverAuthibility) GetAllConfigFileTemplates(ctx context.Context) *api.ConfigBatchQueryResponse {
+func (s *serverAuthability) GetAllConfigFileTemplates(ctx context.Context) *api.ConfigBatchQueryResponse {
 	return s.targetServer.GetAllConfigFileTemplates(ctx)
 }
 
 // GetConfigFileTemplate get config file template
-func (s *serverAuthibility) GetConfigFileTemplate(ctx context.Context, name string) *api.ConfigResponse {
+func (s *serverAuthability) GetConfigFileTemplate(ctx context.Context, name string) *api.ConfigResponse {
 	return s.targetServer.GetConfigFileTemplate(ctx, name)
 }
 
 // CreateConfigFileTemplate create config file template
-func (s *serverAuthibility) CreateConfigFileTemplate(ctx context.Context, template *api.ConfigFileTemplate) *api.ConfigResponse {
-	authCtx := s.collectBaseTokenInfo(ctx)
-	if err := s.authChecker.VerifyCredential(authCtx); err != nil {
+func (s *serverAuthability) CreateConfigFileTemplate(ctx context.Context,
+	template *api.ConfigFileTemplate) *api.ConfigResponse {
+
+	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
+		[]*api.ConfigFileTemplate{template}, model.Create, "CreateConfigFileTemplate")
+	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return s.targetServer.CreateConfigFileTemplate(ctx, template)
 }

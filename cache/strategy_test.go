@@ -23,11 +23,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 )
 
-//
 func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 	t.Run("资源没有关联任何策略", func(t *testing.T) {
 		userCache := &userCache{}

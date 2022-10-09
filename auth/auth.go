@@ -23,8 +23,8 @@ import (
 	"log"
 	"sync"
 
-	"github.com/polarismesh/polaris-server/cache"
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/cache"
+	"github.com/polarismesh/polaris/store"
 )
 
 // Config 鉴权能力的相关配置参数

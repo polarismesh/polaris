@@ -20,8 +20,8 @@ package auth
 import (
 	"context"
 
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/common/utils"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // ParseUserRole 从ctx中解析用户角色

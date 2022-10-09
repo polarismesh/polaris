@@ -20,7 +20,7 @@
 
 USE `polaris_server`;
 
-ALTER TABLE `ratelimit_config` CHANGE `cluster_id` `name` varchar(64) NOT NULL;
+ALTER TABLE `ratelimit_config` ADD COLUMN `name` varchar(64) NOT NULL;
 ALTER TABLE `ratelimit_config` ADD COLUMN `disable` tinyint(4)  NOT NULL DEFAULT '0';
 ALTER TABLE `ratelimit_config` ADD COLUMN `etime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE `ratelimit_config` ADD COLUMN `method` varchar(512)   NOT NULL;

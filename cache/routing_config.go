@@ -21,14 +21,14 @@ import (
 	"sort"
 	"time"
 
-	apiv1 "github.com/polarismesh/polaris-server/common/api/v1"
-	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/model"
-	v2 "github.com/polarismesh/polaris-server/common/model/v2"
-	routingcommon "github.com/polarismesh/polaris-server/common/routing"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/store"
+	apiv1 "github.com/polarismesh/polaris/common/api/v1"
+	apiv2 "github.com/polarismesh/polaris/common/api/v2"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/model"
+	v2 "github.com/polarismesh/polaris/common/model/v2"
+	routingcommon "github.com/polarismesh/polaris/common/routing"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/store"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 )
@@ -221,7 +221,6 @@ func formatRoutingResponseV1(ret *apiv1.Routing) *apiv1.Routing {
 	for i := range outBounds {
 		outBounds[i].ExtendInfo = nil
 	}
-
 	return ret
 }
 

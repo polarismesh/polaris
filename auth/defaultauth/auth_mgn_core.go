@@ -24,10 +24,10 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/common/utils"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // IsOpenConsoleAuth 针对控制台是否开启了操作鉴权
@@ -95,13 +95,14 @@ func (d *defaultAuthChecker) checkMaintainPermission(preCtx *model.AcquireContex
 }
 
 // CheckPermission 执行检查动作判断是否有权限
-// 	step 1. 判断是否开启了鉴权
-// 	step 2. 对token进行检查判断
-// 		case 1. 如果 token 被禁用
-// 				a. 读操作，直接放通
-// 				b. 写操作，快速失败
-// 	step 3. 拉取token对应的操作者相关信息，注入到请求上下文中
-// 	step 4. 进行权限检查
+//
+//	step 1. 判断是否开启了鉴权
+//	step 2. 对token进行检查判断
+//		case 1. 如果 token 被禁用
+//				a. 读操作，直接放通
+//				b. 写操作，快速失败
+//	step 3. 拉取token对应的操作者相关信息，注入到请求上下文中
+//	step 4. 进行权限检查
 func (d *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (bool, error) {
 	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
 	if err := d.VerifyCredential(authCtx); err != nil {
@@ -172,7 +173,7 @@ func canDowngradeAnonymous(authCtx *model.AcquireContext, err error) bool {
 // step 1. 首先对 token 进行解析，获取相关的数据信息，注入到整个的 AcquireContext 中
 // step 2. 最后对 token 进行一些验证步骤的执行
 // step 3. 兜底措施：如果开启了鉴权的非严格模式，则根据错误的类型，判断是否转为匿名用户进行访问
-// 		- 如果不是访问权限控制相关模块（用户、用户组、权限策略），不得转为匿名用户
+//   - 如果不是访问权限控制相关模块（用户、用户组、权限策略），不得转为匿名用户
 func (d *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) error {
 	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
 

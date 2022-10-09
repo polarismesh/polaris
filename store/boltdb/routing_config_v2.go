@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
-	v2 "github.com/polarismesh/polaris-server/common/model/v2"
-	"github.com/polarismesh/polaris-server/store"
+	v2 "github.com/polarismesh/polaris/common/model/v2"
+	"github.com/polarismesh/polaris/store"
 	"go.uber.org/zap"
 )
 
@@ -119,7 +119,7 @@ func (r *routingStoreV2) UpdateRoutingConfigV2(conf *v2.RoutingConfig) error {
 		log.Errorf("[Store][boltdb] update routing config v2 missing id or revision")
 		return store.NewStatusError(store.EmptyParamsErr, "missing id or revision")
 	}
-	if conf.Name == "" || conf.Config == "" {
+	if conf.Policy == "" || conf.Config == "" {
 		log.Errorf("[Store][boltdb] create routing config v2 missing params")
 		return store.NewStatusError(store.EmptyParamsErr, "missing some params")
 	}

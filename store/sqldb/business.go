@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris/common/model"
 )
 
 // businessStore 实现BusinessStore接口

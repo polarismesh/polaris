@@ -24,15 +24,15 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
-	"github.com/polarismesh/polaris-server/apiserver"
-	"github.com/polarismesh/polaris-server/apiserver/grpcserver"
-	v1 "github.com/polarismesh/polaris-server/apiserver/grpcserver/discover/v1"
-	v2 "github.com/polarismesh/polaris-server/apiserver/grpcserver/discover/v2"
-	apiv1 "github.com/polarismesh/polaris-server/common/api/v1"
-	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
-	commonlog "github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/service"
-	"github.com/polarismesh/polaris-server/service/healthcheck"
+	"github.com/polarismesh/polaris/apiserver"
+	"github.com/polarismesh/polaris/apiserver/grpcserver"
+	v1 "github.com/polarismesh/polaris/apiserver/grpcserver/discover/v1"
+	v2 "github.com/polarismesh/polaris/apiserver/grpcserver/discover/v2"
+	apiv1 "github.com/polarismesh/polaris/common/api/v1"
+	apiv2 "github.com/polarismesh/polaris/common/api/v2"
+	commonlog "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/service"
+	"github.com/polarismesh/polaris/service/healthcheck"
 )
 
 var (

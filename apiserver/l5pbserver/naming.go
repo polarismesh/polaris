@@ -28,8 +28,8 @@ import (
 	"github.com/golang/protobuf/proto"
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris-server/common/api/l5"
-	l5common "github.com/polarismesh/polaris-server/common/cl5"
+	"github.com/polarismesh/polaris/common/api/l5"
+	l5common "github.com/polarismesh/polaris/common/cl5"
 )
 
 type l5Code uint32

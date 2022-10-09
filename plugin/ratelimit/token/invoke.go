@@ -18,7 +18,7 @@
 package token
 
 import (
-	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 // tokenBucket 实现Plugin接口

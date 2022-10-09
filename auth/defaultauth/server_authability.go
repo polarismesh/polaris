@@ -18,12 +18,12 @@
 package defaultauth
 
 import (
-	"github.com/polarismesh/polaris-server/auth"
-	"github.com/polarismesh/polaris-server/cache"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/plugin"
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/cache"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/plugin"
+	"github.com/polarismesh/polaris/store"
 )
 
 // serverAuthAbility 带鉴权能力的 server

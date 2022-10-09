@@ -24,10 +24,10 @@ import (
 
 	"go.uber.org/zap"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/common/utils"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // createConfigFileTags 创建配置文件标签，tags 格式：k1,v1,k2,v2,k3,v3...
@@ -134,7 +134,8 @@ func diffTags(a, b map[string]map[string]struct{}) []string {
 }
 
 // QueryConfigFileByTags Inquire the configuration file through the label, the relationship between multiple TAGs,
-//  TAGS format: K1, V1, K2, V2, K3, V3 ...
+//
+//	TAGS format: K1, V1, K2, V2, K3, V3 ...
 func (s *Server) queryConfigFileByTags(ctx context.Context, namespace, group, fileName string, offset, limit uint32,
 	tags ...string) (int, []*model.ConfigFileTag, error) {
 

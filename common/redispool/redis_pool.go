@@ -27,8 +27,8 @@ import (
 
 	"github.com/go-redis/redis/v8"
 
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/plugin"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 const (

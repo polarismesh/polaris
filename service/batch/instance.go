@@ -26,12 +26,12 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris-server/cache"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	"github.com/polarismesh/polaris-server/common/model"
-	instancecommon "github.com/polarismesh/polaris-server/common/service"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/cache"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	instancecommon "github.com/polarismesh/polaris/common/service"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/store"
 )
 
 var (
@@ -358,12 +358,12 @@ func (ctrl *InstanceCtrl) heartbeatHandler(futures []*InstanceFuture) error {
 
 // deregisterHandler 反注册处理函数
 // 步骤：
-// - 从数据库中批量读取实例ID对应的实例简要信息：
-//   包括：ID，host，port，serviceName，serviceNamespace，serviceToken
-// - 对instance做存在与token的双重校验，较少与数据库的交互
+//   - 从数据库中批量读取实例ID对应的实例简要信息：
+//     包括：ID，host，port，serviceName，serviceNamespace，serviceToken
+//   - 对instance做存在与token的双重校验，较少与数据库的交互
 //   - 对于不存在的token，返回notFoundResource
 //   - 对于token校验失败的，返回校验失败
-// - 调用批量接口删除实例
+//   - 调用批量接口删除实例
 func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 	if len(futures) == 0 {
 		return nil

@@ -24,11 +24,13 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris-server/auth"
-	"github.com/polarismesh/polaris-server/cache"
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/namespace"
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/cache"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/namespace"
+	"github.com/polarismesh/polaris/store"
 )
 
 var _ ConfigCenterServer = (*Server)(nil)
@@ -52,11 +54,14 @@ type Config struct {
 // Server 配置中心核心服务
 type Server struct {
 	storage           store.Store
-	cache             *cache.FileCache
+	fileCache         cache.FileCache
+	caches            *cache.CacheManager
 	watchCenter       *watchCenter
 	connManager       *connManager
 	namespaceOperator namespace.NamespaceOperateServer
 	initialized       bool
+
+	hooks []ResourceHook
 }
 
 // Initialize 初始化配置中心模块
@@ -87,20 +92,8 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	authSvr auth.AuthServer) error {
 
 	s.storage = ss
-
-	// 初始化缓存模块
-	expireTimeAfterWrite, ok := config.Cache["expireTimeAfterWrite"]
-	if !ok {
-		expireTimeAfterWrite = defaultExpireTimeAfterWrite
-	}
-
 	s.namespaceOperator = namespaceOperator
-
-	cacheParam := cache.FileCacheParam{
-		ExpireTimeAfterWrite: expireTimeAfterWrite.(int),
-	}
-	fileCache := cache.NewFileCache(ctx, ss, cacheParam)
-	s.cache = fileCache
+	s.fileCache = cacheMgn.ConfigFile()
 
 	// 初始化事件中心
 	eventCenter := NewEventCenter()
@@ -111,10 +104,12 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	s.connManager = connMng
 
 	// 初始化发布事件扫描器
-	if err := initReleaseMessageScanner(ctx, ss, fileCache, eventCenter, time.Second); err != nil {
+	if err := initReleaseMessageScanner(ctx, ss, s.fileCache, eventCenter, time.Second); err != nil {
 		log.ConfigScope().Error("[Config][Server] init release message scanner error. ", zap.Error(err))
 		return errors.New("init config module error")
 	}
+
+	s.caches = cacheMgn
 
 	log.ConfigScope().Infof("[Config][Server] startup config module success.")
 	return nil
@@ -143,11 +138,29 @@ func (s *Server) WatchCenter() *watchCenter {
 }
 
 // Cache 获取配置中心缓存模块
-func (s *Server) Cache() *cache.FileCache {
-	return s.cache
+func (s *Server) Cache() cache.FileCache {
+	return s.fileCache
 }
 
 // ConnManager 获取配置中心连接管理器
 func (s *Server) ConnManager() *connManager {
 	return s.connManager
+}
+
+// SetResourceHooks 设置资源钩子
+func (s *Server) SetResourceHooks(hooks ...ResourceHook) {
+	s.hooks = hooks
+}
+
+func (s *Server) afterConfigGroupResource(ctx context.Context, req *api.ConfigFileGroup) error {
+	event := &ResourceEvent{
+		ConfigGroup: req,
+	}
+
+	for _, hook := range s.hooks {
+		if err := hook.After(ctx, model.RConfigGroup, event); err != nil {
+			return err
+		}
+	}
+	return nil
 }

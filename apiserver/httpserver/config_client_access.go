@@ -23,8 +23,8 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	httpcommon "github.com/polarismesh/polaris-server/apiserver/httpserver/http"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) {

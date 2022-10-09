@@ -23,11 +23,11 @@ import (
 	"github.com/boltdb/bolt"
 	"go.uber.org/zap"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	logger "github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/store"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	logger "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/store"
 )
 
 const (
@@ -114,7 +114,7 @@ const (
 var (
 	namespacesToInit = []string{"default", namespacePolaris}
 	servicesToInit   = map[string]string{
-		"polaris.checker":     "fbca9bfa04ae4ead86e1ecf5811e32a9",
+		"polaris.checker": "fbca9bfa04ae4ead86e1ecf5811e32a9",
 	}
 
 	mainUser = &model.User{

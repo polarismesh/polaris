@@ -23,7 +23,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	v1 "github.com/polarismesh/polaris-server/common/api/v1"
+	v1 "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // Namespace 命名空间结构体
@@ -436,6 +436,8 @@ const (
 	RUserGroup         Resource = "UserGroup"
 	RUserGroupRelation Resource = "UserGroupRelation"
 	RAuthStrategy      Resource = "AuthStrategy"
+	RConfigGroup       Resource = "ConfigGroup"
+	RConfigFile        Resource = "ConfigFile"
 )
 
 // ResourceType 资源类型
@@ -504,12 +506,12 @@ const (
 
 // DiscoverEvent 服务发现事件
 type DiscoverEvent struct {
-	Namespace     string
-	Service       string
-	Host          string
-	Port          int
-	EType         DiscoverEventType
-	CreateTimeSec int64
+	Namespace  string
+	Service    string
+	Host       string
+	Port       int
+	EType      DiscoverEventType
+	CreateTime time.Time
 }
 
 // InstanceCount Service instance statistics

@@ -25,9 +25,9 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/store"
+	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/store"
 )
 
 const (
@@ -285,7 +285,8 @@ func (sc *serviceCache) IteratorServices(iterProc ServiceIterProc) error {
 }
 
 // GetNamespaceCntInfo Return to the service statistics according to the namespace,
-// 	the count statistics and health instance statistics
+//
+//	the count statistics and health instance statistics
 func (sc *serviceCache) GetNamespaceCntInfo(namespace string) model.NamespaceServiceCount {
 	val, _ := sc.namespaceServiceCnt.Load(namespace)
 	if val == nil {
@@ -414,10 +415,10 @@ Case TWO:
 1. T1, instanecache pulls and updates the instance count information, and notify ServiceCache to make a namespace count Reload
 2. T2 moments, ServiceCache pulls all of the service information
 
-- This situation, ServiceCache does not update the count, because the corresponding service object has not been cached, you need to put it in a PendingService waiting
-- Because under this case, WatchCountChangech is the first RELOAD notification from Instanecache, handled the reload notification of ServiceCache.
-- Therefore, for the reload notification of instancecache, you need to record the non-existing SVCID record in the Pending list;
-   wait for the servicecache's Reload notification. after arriving, need to handle the last legacy PENDING calculation task.
+  - This situation, ServiceCache does not update the count, because the corresponding service object has not been cached, you need to put it in a PendingService waiting
+  - Because under this case, WatchCountChangech is the first RELOAD notification from Instanecache, handled the reload notification of ServiceCache.
+  - Therefore, for the reload notification of instancecache, you need to record the non-existing SVCID record in the Pending list;
+    wait for the servicecache's Reload notification. after arriving, need to handle the last legacy PENDING calculation task.
 */
 func (sc *serviceCache) watchCountChangeCh(ctx context.Context) {
 	for {

@@ -25,11 +25,11 @@ import (
 
 	"go.uber.org/zap"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	logger "github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/model"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/store"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	logger "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/store"
 )
 
 var (
@@ -189,9 +189,11 @@ func (u *userStore) DeleteUser(user *model.User) error {
 
 // deleteUser Specific deletion user steps
 // step 1. Delete the user-associated policy information
-// 			a. Delete the user's default policy
-// 			b. Update the latest update time of related policies, make the Cache mechanism
-// 			c. Delete the association relationship of the user and policy
+//
+//	a. Delete the user's default policy
+//	b. Update the latest update time of related policies, make the Cache mechanism
+//	c. Delete the association relationship of the user and policy
+//
 // step 2. Delete the user group associated with this user
 func (u *userStore) deleteUser(user *model.User) error {
 

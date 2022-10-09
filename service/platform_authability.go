@@ -20,7 +20,7 @@ package service
 import (
 	"context"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // CreatePlatforms creates platforms

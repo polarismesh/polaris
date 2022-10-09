@@ -36,37 +36,37 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"gopkg.in/yaml.v2"
 
-	"github.com/polarismesh/polaris-server/auth"
-	_ "github.com/polarismesh/polaris-server/auth/defaultauth"
-	"github.com/polarismesh/polaris-server/cache"
-	_ "github.com/polarismesh/polaris-server/cache"
-	api "github.com/polarismesh/polaris-server/common/api/v1"
-	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
-	commonlog "github.com/polarismesh/polaris-server/common/log"
-	"github.com/polarismesh/polaris-server/common/metrics"
-	"github.com/polarismesh/polaris-server/common/utils"
-	"github.com/polarismesh/polaris-server/namespace"
-	"github.com/polarismesh/polaris-server/plugin"
-	_ "github.com/polarismesh/polaris-server/plugin/auth/defaultauth"
-	_ "github.com/polarismesh/polaris-server/plugin/auth/platform"
-	_ "github.com/polarismesh/polaris-server/plugin/cmdb/memory"
-	_ "github.com/polarismesh/polaris-server/plugin/discoverevent/local"
-	_ "github.com/polarismesh/polaris-server/plugin/discoverstat/discoverlocal"
-	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatmemory"
-	_ "github.com/polarismesh/polaris-server/plugin/healthchecker/heartbeatredis"
-	_ "github.com/polarismesh/polaris-server/plugin/history/logger"
-	_ "github.com/polarismesh/polaris-server/plugin/password"
-	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/lrurate"
-	_ "github.com/polarismesh/polaris-server/plugin/ratelimit/token"
-	_ "github.com/polarismesh/polaris-server/plugin/statis/local"
-	"github.com/polarismesh/polaris-server/service/batch"
-	"github.com/polarismesh/polaris-server/service/healthcheck"
-	"github.com/polarismesh/polaris-server/store"
-	"github.com/polarismesh/polaris-server/store/boltdb"
-	_ "github.com/polarismesh/polaris-server/store/boltdb"
-	"github.com/polarismesh/polaris-server/store/sqldb"
-	_ "github.com/polarismesh/polaris-server/store/sqldb"
-	"github.com/polarismesh/polaris-server/testdata"
+	"github.com/polarismesh/polaris/auth"
+	_ "github.com/polarismesh/polaris/auth/defaultauth"
+	"github.com/polarismesh/polaris/cache"
+	_ "github.com/polarismesh/polaris/cache"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	apiv2 "github.com/polarismesh/polaris/common/api/v2"
+	commonlog "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/metrics"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/namespace"
+	"github.com/polarismesh/polaris/plugin"
+	_ "github.com/polarismesh/polaris/plugin/auth/defaultauth"
+	_ "github.com/polarismesh/polaris/plugin/auth/platform"
+	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
+	_ "github.com/polarismesh/polaris/plugin/discoverevent/local"
+	_ "github.com/polarismesh/polaris/plugin/discoverstat/discoverlocal"
+	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatmemory"
+	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatredis"
+	_ "github.com/polarismesh/polaris/plugin/history/logger"
+	_ "github.com/polarismesh/polaris/plugin/password"
+	_ "github.com/polarismesh/polaris/plugin/ratelimit/lrurate"
+	_ "github.com/polarismesh/polaris/plugin/ratelimit/token"
+	_ "github.com/polarismesh/polaris/plugin/statis/local"
+	"github.com/polarismesh/polaris/service/batch"
+	"github.com/polarismesh/polaris/service/healthcheck"
+	"github.com/polarismesh/polaris/store"
+	"github.com/polarismesh/polaris/store/boltdb"
+	_ "github.com/polarismesh/polaris/store/boltdb"
+	"github.com/polarismesh/polaris/store/sqldb"
+	_ "github.com/polarismesh/polaris/store/sqldb"
+	"github.com/polarismesh/polaris/testdata"
 )
 
 const (
@@ -81,6 +81,7 @@ const (
 	tblPlatform               = "platform"
 	tblNameL5                 = "l5"
 	tblNameRoutingV2          = "routing_config_v2"
+	tblClient                 = "client"
 )
 
 type Bootstrap struct {
@@ -278,6 +279,48 @@ func (d *DiscoverTestSuit) Destroy() {
 
 	d.storage.Destroy()
 	time.Sleep(5 * time.Second)
+}
+
+func (d *DiscoverTestSuit) cleanReportClient() {
+	if d.storage.Name() == sqldb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+			defer dbTx.Rollback()
+
+			if _, err := dbTx.Exec("delete from client"); err != nil {
+				panic(err)
+			}
+			if _, err := dbTx.Exec("delete from client_stat"); err != nil {
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if d.storage.Name() == boltdb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+			defer dbTx.Rollback()
+
+			if err := dbTx.DeleteBucket([]byte(tblClient)); err != nil {
+				if !errors.Is(err, bolt.ErrBucketNotFound) {
+					dbTx.Rollback()
+					panic(err)
+				}
+			}
+
+			dbTx.Commit()
+		}()
+	}
 }
 
 // 从数据库彻底删除命名空间
@@ -744,6 +787,97 @@ func (d *DiscoverTestSuit) createCommonRoutingConfig(t *testing.T, service *api.
 	return conf, resp.Responses[0].GetRouting()
 }
 
+// 创建一个路由配置
+func (d *DiscoverTestSuit) createCommonRoutingConfigV1IntoOldStore(t *testing.T, service *api.Service,
+	inCount int, outCount int) (*api.Routing, *api.Routing) {
+
+	inBounds := make([]*api.Route, 0, inCount)
+	for i := 0; i < inCount; i++ {
+		matchString := &api.MatchString{
+			Type:  api.MatchString_EXACT,
+			Value: utils.NewStringValue(fmt.Sprintf("in-meta-value-%d", i)),
+		}
+		source := &api.Source{
+			Service:   utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
+			Namespace: utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
+			Metadata: map[string]*api.MatchString{
+				fmt.Sprintf("in-metadata-%d", i): matchString,
+			},
+		}
+		destination := &api.Destination{
+			Service:   service.Name,
+			Namespace: service.Namespace,
+			Metadata: map[string]*api.MatchString{
+				fmt.Sprintf("in-metadata-%d", i): matchString,
+			},
+			Priority: utils.NewUInt32Value(120),
+			Weight:   utils.NewUInt32Value(100),
+			Transfer: utils.NewStringValue("abcdefg"),
+		}
+
+		entry := &api.Route{
+			Sources:      []*api.Source{source},
+			Destinations: []*api.Destination{destination},
+		}
+		inBounds = append(inBounds, entry)
+	}
+
+	conf := &api.Routing{
+		Service:      utils.NewStringValue(service.GetName().GetValue()),
+		Namespace:    utils.NewStringValue(service.GetNamespace().GetValue()),
+		Inbounds:     inBounds,
+		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
+	}
+
+	resp := d.server.(*serverAuthAbility).targetServer.CreateRoutingConfig(d.defaultCtx, conf)
+	if !respSuccess(resp) {
+		t.Fatalf("error: %+v", resp)
+	}
+
+	return conf, resp.GetRouting()
+}
+
+func mockRoutingV1(serviceName, serviceNamespace string, inCount int) *api.Routing {
+	inBounds := make([]*api.Route, 0, inCount)
+	for i := 0; i < inCount; i++ {
+		matchString := &api.MatchString{
+			Type:  api.MatchString_EXACT,
+			Value: utils.NewStringValue(fmt.Sprintf("in-meta-value-%d", i)),
+		}
+		source := &api.Source{
+			Service:   utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
+			Namespace: utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
+			Metadata: map[string]*api.MatchString{
+				fmt.Sprintf("in-metadata-%d", i): matchString,
+			},
+		}
+		destination := &api.Destination{
+			Service:   utils.NewStringValue(serviceName),
+			Namespace: utils.NewStringValue(serviceNamespace),
+			Metadata: map[string]*api.MatchString{
+				fmt.Sprintf("in-metadata-%d", i): matchString,
+			},
+			Priority: utils.NewUInt32Value(120),
+			Weight:   utils.NewUInt32Value(100),
+			Transfer: utils.NewStringValue("abcdefg"),
+		}
+
+		entry := &api.Route{
+			Sources:      []*api.Source{source},
+			Destinations: []*api.Destination{destination},
+		}
+		inBounds = append(inBounds, entry)
+	}
+
+	conf := &api.Routing{
+		Service:   utils.NewStringValue(serviceName),
+		Namespace: utils.NewStringValue(serviceNamespace),
+		Inbounds:  inBounds,
+	}
+
+	return conf
+}
+
 func mockRoutingV2(t *testing.T, cnt int32) []*apiv2.Routing {
 	rules := make([]*apiv2.Routing, 0, cnt)
 	for i := int32(0); i < cnt; i++ {
@@ -790,9 +924,6 @@ func mockRoutingV2(t *testing.T, cnt int32) []*apiv2.Routing {
 			Etime:         "",
 			Priority:      0,
 			Description:   "",
-			ExtendInfo: map[string]string{
-				"": "",
-			},
 		}
 
 		rules = append(rules, item)
@@ -813,6 +944,10 @@ func (d *DiscoverTestSuit) createCommonRoutingConfigV2WithReq(t *testing.T, rule
 	resp := d.server.CreateRoutingConfigsV2(d.defaultCtx, rules)
 	if !respSuccessV2(resp) {
 		t.Fatalf("error: %+v", resp)
+	}
+
+	if len(rules) != len(resp.GetResponses()) {
+		t.Fatal("error: create v2 routings not equal resp")
 	}
 
 	ret := []*apiv2.Routing{}
@@ -1018,7 +1153,6 @@ func (d *DiscoverTestSuit) cleanCommonRoutingConfigV2(rules []*apiv2.Routing) {
 	}
 }
 
-//
 func (d *DiscoverTestSuit) CheckGetService(t *testing.T, expectReqs []*api.Service, actualReqs []*api.Service) {
 	if len(expectReqs) != len(actualReqs) {
 		t.Fatalf("error: %d %d", len(expectReqs), len(actualReqs))

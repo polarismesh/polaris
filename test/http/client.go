@@ -26,7 +26,7 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 
-	api "github.com/polarismesh/polaris-server/common/api/v1"
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // NewClient 创建HTTP客户端

@@ -21,8 +21,8 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
-	apiv2 "github.com/polarismesh/polaris-server/common/api/v2"
-	commontime "github.com/polarismesh/polaris-server/common/time"
+	apiv2 "github.com/polarismesh/polaris/common/api/v2"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
@@ -100,7 +100,6 @@ func (r *ExtendRoutingConfig) ToApi() (*apiv2.Routing, error) {
 		Etime:         commontime.Time2String(r.EnableTime),
 		Priority:      r.Priority,
 		Description:   r.Description,
-		ExtendInfo:    r.ExtendInfo,
 	}, nil
 }
 

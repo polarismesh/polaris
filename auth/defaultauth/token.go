@@ -28,7 +28,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/polarismesh/polaris-server/common/model"
+	"github.com/polarismesh/polaris/common/model"
 )
 
 // OperatorInfo 根据 token 解析出来的具体额外信息
