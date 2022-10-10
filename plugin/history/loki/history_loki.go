@@ -17,6 +17,8 @@
 
 package loki
 
+//go:generate gotests -w -all history_loki.go
+
 import (
 	"time"
 
@@ -24,33 +26,35 @@ import (
 	"github.com/polarismesh/polaris/plugin"
 )
 
+// 把操作记录记录到Loki
 const (
-	PluginName       string = "discoverEventLoki"
+	// PluginName plugin name
+	PluginName       string = "HistoryLoki"
 	defaultBatchSize int    = 512
 	defaultQueueSize int    = 1024
 )
 
 func init() {
-	d := &discoverEventLoki{}
-	plugin.RegisterPlugin(d.Name(), d)
+	h := &HistoryLoki{}
+	plugin.RegisterPlugin(h.Name(), h)
 }
 
-type discoverEventLoki struct {
-	eventCh  chan model.DiscoverEvent
-	stopCh   chan struct{}
-	eventLog *LokiLogger
+type HistoryLoki struct {
+	entryCh chan *model.RecordEntry
+	stopCh  chan struct{}
+	logger  *LokiLogger
 }
 
 // Name 插件名称
 // @return string 返回插件名称
-func (d *discoverEventLoki) Name() string {
+func (h *HistoryLoki) Name() string {
 	return PluginName
 }
 
-// Initialize 根据配置文件进行初始化插件 discoverEventLoki
+// Initialize 根据配置文件进行初始化插件 HistoryLoki
 // @param conf 配置文件内容
 // @return error 初始化失败，返回 error 信息
-func (d *discoverEventLoki) Initialize(conf *plugin.ConfigEntry) error {
+func (h *HistoryLoki) Initialize(conf *plugin.ConfigEntry) error {
 	var queueSize = defaultQueueSize
 	if val, ok := conf.Option["queueSize"]; ok {
 		queueSize, _ = val.(int)
@@ -59,23 +63,23 @@ func (d *discoverEventLoki) Initialize(conf *plugin.ConfigEntry) error {
 	if err != nil {
 		return err
 	}
-	d.eventLog = lokiLogger
-	d.eventCh = make(chan model.DiscoverEvent, queueSize)
-	d.stopCh = make(chan struct{})
-	go d.Run()
+	h.logger = lokiLogger
+	h.entryCh = make(chan *model.RecordEntry, queueSize)
+	h.stopCh = make(chan struct{})
+	go h.Run()
 	return nil
 }
 
 // Destroy 执行插件销毁
-func (d *discoverEventLoki) Destroy() error {
-	close(d.stopCh)
+func (h *HistoryLoki) Destroy() error {
+	close(h.stopCh)
 	return nil
 }
 
-// PublishEvent 发布一个服务事件
-func (d *discoverEventLoki) PublishEvent(event model.DiscoverEvent) {
+// Record 记录操作记录
+func (h *HistoryLoki) Record(entry *model.RecordEntry) {
 	select {
-	case d.eventCh <- event:
+	case h.entryCh <- entry:
 		return
 	default:
 		// do nothing
@@ -83,36 +87,34 @@ func (d *discoverEventLoki) PublishEvent(event model.DiscoverEvent) {
 }
 
 // Run 执行主逻辑
-func (d *discoverEventLoki) Run() {
+func (h *HistoryLoki) Run() {
 	// 定时刷新事件到日志的定时器
 	syncInterval := time.NewTicker(time.Duration(10) * time.Second)
 	defer syncInterval.Stop()
 
-	batch := make([]model.DiscoverEvent, 0, defaultBatchSize)
+	batch := make([]*model.RecordEntry, 0, defaultBatchSize)
 	batchSize := 0
 
 	for {
 		select {
-		case event := <-d.eventCh:
-			// 确保事件是顺序的
-			event.CreateTime = time.Now()
-			batch = append(batch, event)
+		case entry := <-h.entryCh:
+			batch = append(batch, entry)
 			batchSize++
 			// 触发批量生产发送 log 阈值
 			if batchSize == defaultBatchSize {
-				d.eventLog.Log(batch[:batchSize])
-				batch = make([]model.DiscoverEvent, 0, defaultBatchSize)
+				h.logger.Log(batch[:batchSize])
+				batch = make([]*model.RecordEntry, 0, defaultBatchSize)
 				batchSize = 0
 			}
 		case <-syncInterval.C:
 			if batchSize > 0 {
-				d.eventLog.Log(batch[:batchSize])
-				batch = make([]model.DiscoverEvent, 0, defaultBatchSize)
+				h.logger.Log(batch[:batchSize])
+				batch = make([]*model.RecordEntry, 0, defaultBatchSize)
 				batchSize = 0
 			}
-		case <-d.stopCh:
+		case <-h.stopCh:
 			if batchSize > 0 {
-				d.eventLog.Log(batch[:batchSize])
+				h.logger.Log(batch[:batchSize])
 			}
 			return
 		}

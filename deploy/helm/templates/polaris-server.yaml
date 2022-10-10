@@ -73,7 +73,6 @@ spec:
         - image: {{.Values.polaris.console.image.repository}}:{{.Values.polaris.console.image.tag}}
           imagePullPolicy: {{ .Values.polaris.console.image.pullPolicy }}
           name: polaris-console
-          command: ["/bin/bash", "-ce", "tail -f /dev/null"]
           resources:
             limits:
               cpu: {{ .Values.polaris.console.limit.cpu }}
