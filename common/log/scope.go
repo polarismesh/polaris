@@ -333,3 +333,12 @@ func (s *Scope) SetLogCallers(logCallers bool) {
 func (s *Scope) GetLogCallers() bool {
 	return s.logCallers
 }
+
+// Sync 调用log的Sync方法
+func (s *Scope) Sync() error {
+	pt := s.getPathTable()
+	if pt != nil && pt.sync != nil {
+		return pt.sync()
+	}
+	return nil
+}

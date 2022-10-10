@@ -18,12 +18,7 @@
 package logger
 
 import (
-	"time"
-
-	"github.com/natefinch/lumberjack"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-
+	commonLog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/plugin"
 )
@@ -34,6 +29,8 @@ const (
 	PluginName = "HistoryLogger"
 )
 
+var log = commonLog.GetScopeByName(commonLog.PluginHistoryName)
+
 // init 初始化注册函数
 func init() {
 	plugin.RegisterPlugin(PluginName, &HistoryLogger{})
@@ -41,7 +38,6 @@ func init() {
 
 // HistoryLogger 历史记录logger
 type HistoryLogger struct {
-	logger *zap.Logger
 }
 
 // Name 返回插件名字
@@ -51,57 +47,15 @@ func (h *HistoryLogger) Name() string {
 
 // Destroy 销毁插件
 func (h *HistoryLogger) Destroy() error {
-	return h.logger.Sync()
+	return log.Sync()
 }
 
 // Initialize 插件初始化
 func (h *HistoryLogger) Initialize(c *plugin.ConfigEntry) error {
-	// 日志的encode
-	encCfg := zapcore.EncoderConfig{
-		TimeKey: "time",
-		// LevelKey:       "level",
-		NameKey:        "scope",
-		CallerKey:      "caller",
-		MessageKey:     "msg",
-		StacktraceKey:  "stack",
-		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.LowercaseLevelEncoder,
-		EncodeCaller:   zapcore.ShortCallerEncoder,
-		EncodeDuration: zapcore.StringDurationEncoder,
-		// EncodeTime:     TimeEncoder,
-	}
-
-	// 同步到文件中的配置 TODO，参数来自于外部配置文件
-	log := &lumberjack.Logger{
-		Filename:   "./log/polaris-history.log", // TODO
-		MaxSize:    100,                         // megabytes TODO
-		MaxBackups: 50,
-		MaxAge:     15, // days TODO
-		LocalTime:  true,
-	}
-	go func() {
-		duration := 24 * time.Hour
-		ticker := time.NewTicker(duration)
-		defer ticker.Stop()
-		for {
-			<-ticker.C
-			if err := log.Rotate(); err != nil {
-				return
-			}
-		}
-	}()
-	w := zapcore.AddSync(log)
-	// multiSync := zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), w)
-
-	// 日志
-	core := zapcore.NewCore(zapcore.NewConsoleEncoder(encCfg), w, zap.DebugLevel)
-	logger := zap.New(core)
-	h.logger = logger
-
 	return nil
 }
 
 // Record 记录操作记录到日志中
 func (h *HistoryLogger) Record(entry *model.RecordEntry) {
-	h.logger.Info(entry.String())
+	log.Info(entry.String())
 }
