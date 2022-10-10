@@ -97,7 +97,6 @@ func GetScopeByName(name string) *Scope {
 	if s == nil {
 		s = scopes[DefaultLoggerName]
 	}
-	s.Infof("scope-------------------> %v", scopes)
 	return s
 }
 

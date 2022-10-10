@@ -63,7 +63,6 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      rotationMaxDuration: 2
       outputLevel: info
       # outputPaths:
       #   - stdout
@@ -86,7 +85,6 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      rotationMaxDuration: 1
       outputLevel: info
       # outputPaths:
       #   - stdout

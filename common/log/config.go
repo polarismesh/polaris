@@ -276,12 +276,11 @@ func Configure(optionsMap map[string]*Options) error {
 			return err
 		}
 		if options.RotationMaxDuration != 0 {
-			fmt.Printf("node-----------------------> duration{%d}", options.RotationMaxDuration)
 			node := NewNode(func() {
-				//TODO 处理异常
-				fmt.Printf("excute task ----------------%s", typeName)
-				l.Rotate()
-			}, time.Duration(options.RotationMaxDuration)*time.Minute)
+				if err := l.Rotate(); err != nil {
+					return
+				}
+			}, time.Duration(options.RotationMaxDuration)*time.Hour)
 			q.Add(node)
 		}
 		if err = updateScopes(typeName, options, cores, errSink); err != nil {
