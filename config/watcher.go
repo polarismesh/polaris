@@ -23,7 +23,6 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	utils2 "github.com/polarismesh/polaris/config/utils"
@@ -76,7 +75,7 @@ func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*api.Clien
 	for _, file := range watchConfigFiles {
 		watchFileId := utils.GenFileId(file.Namespace.GetValue(), file.Group.GetValue(), file.FileName.GetValue())
 
-		log.ConfigScope().Info("[Config][Watcher] add watcher.", zap.Any("client-id", clientId),
+		log.Info("[Config][Watcher] add watcher.", zap.Any("client-id", clientId),
 			zap.String("watch-file-id", watchFileId), zap.Uint64("client-version", file.Version.GetValue()))
 
 		watchers, ok := wc.configFileWatchers.Load(watchFileId)
@@ -126,7 +125,7 @@ func (wc *watchCenter) handleMessage() {
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
-				log.ConfigScope().Error("[Config][Watcher] handler config release message error.",
+				log.Error("[Config][Watcher] handler config release message error.",
 					zap.Any("error", err))
 			}
 		}()
@@ -140,7 +139,7 @@ func (wc *watchCenter) handleMessage() {
 func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.ConfigFileRelease) {
 	watchFileId := utils.GenFileId(publishConfigFile.Namespace, publishConfigFile.Group, publishConfigFile.FileName)
 
-	log.ConfigScope().Info("[Config][Watcher] received config file publish message.", zap.String("file", watchFileId))
+	log.Info("[Config][Watcher] received config file publish message.", zap.String("file", watchFileId))
 
 	watchers, ok := wc.configFileWatchers.Load(watchFileId)
 	if !ok {
@@ -155,13 +154,13 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.ConfigFileRelea
 
 		c := watchCtx.(*watchContext)
 		if c.ClientVersion < publishConfigFile.Version {
-			log.ConfigScope().Info("[Config][Watcher] notify to client.",
+			log.Info("[Config][Watcher] notify to client.",
 				zap.String("file", watchFileId),
 				zap.String("clientId", clientId.(string)),
 				zap.Uint64("version", publishConfigFile.Version))
 			c.fileReleaseCb(clientId.(string), response)
 		} else {
-			log.ConfigScope().Info("[Config][Watcher] notify to client ignore.",
+			log.Info("[Config][Watcher] notify to client ignore.",
 				zap.String("file", watchFileId),
 				zap.String("clientId", clientId.(string)),
 				zap.Uint64("client-version", c.ClientVersion),

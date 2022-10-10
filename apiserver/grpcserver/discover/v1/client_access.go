@@ -35,7 +35,7 @@ import (
 )
 
 var (
-	namingLog = commonlog.NamingScope()
+	namingLog = commonlog.GetScopeByName(commonlog.NamingLoggerName)
 )
 
 // ReportClient 客户端上报

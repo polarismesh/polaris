@@ -23,7 +23,6 @@ import (
 	"time"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -97,7 +96,7 @@ func (rlc *rateLimitCache) update(storeRollbackSec time.Duration) error {
 	rateLimits, revisions, err := rlc.storage.GetRateLimitsForCache(rlc.lastTime.Add(storeRollbackSec),
 		rlc.firstUpdate)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache] rate limit cache update err: %s", err.Error())
+		log.Errorf("[Cache] rate limit cache update err: %s", err.Error())
 		return err
 	}
 	rlc.firstUpdate = false

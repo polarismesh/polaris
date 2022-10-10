@@ -27,7 +27,6 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/store"
@@ -105,13 +104,13 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 
 	// 初始化发布事件扫描器
 	if err := initReleaseMessageScanner(ctx, ss, s.fileCache, eventCenter, time.Second); err != nil {
-		log.ConfigScope().Error("[Config][Server] init release message scanner error. ", zap.Error(err))
+		log.Error("[Config][Server] init release message scanner error. ", zap.Error(err))
 		return errors.New("init config module error")
 	}
 
 	s.caches = cacheMgn
 
-	log.ConfigScope().Infof("[Config][Server] startup config module success.")
+	log.Infof("[Config][Server] startup config module success.")
 	return nil
 }
 

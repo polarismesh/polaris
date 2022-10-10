@@ -110,12 +110,12 @@ func (u *userStore) addUser(user *model.User) error {
 	}
 
 	if err := createDefaultStrategy(tx, model.PrincipalUser, user.ID, user.Name, user.Owner); err != nil {
-		logger.StoreScope().Error("[Auth][User] create default strategy", zap.Error(err))
+		log.Error("[Auth][User] create default strategy", zap.Error(err))
 		return store.Error(err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Errorf("[Store][User] add user tx commit err: %s", err.Error())
+		log.Errorf("[Store][User] add user tx commit err: %s", err.Error())
 		return store.Error(err)
 	}
 	return nil
@@ -167,7 +167,7 @@ func (u *userStore) updateUser(user *model.User) error {
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Errorf("[Store][User] update user tx commit err: %s", err.Error())
+		log.Errorf("[Store][User] update user tx commit err: %s", err.Error())
 		return err
 	}
 
@@ -209,23 +209,23 @@ func (u *userStore) deleteUser(user *model.User) error {
 	}
 
 	if _, err = tx.Exec("UPDATE user SET flag = 1 WHERE id = ?", user.ID); err != nil {
-		logger.StoreScope().Error("[Store][User] update set user flag", zap.Error(err))
+		log.Error("[Store][User] update set user flag", zap.Error(err))
 		return err
 	}
 
 	if _, err = tx.Exec("UPDATE user_group SET mtime = sysdate() WHERE id IN (SELECT DISTINCT group_id FROM "+
 		" user_group_relation WHERE user_id = ?)", user.ID); err != nil {
-		logger.StoreScope().Error("[Store][User] update usergroup mtime", zap.Error(err))
+		log.Error("[Store][User] update usergroup mtime", zap.Error(err))
 		return err
 	}
 
 	if _, err = tx.Exec("DELETE FROM user_group_relation WHERE user_id = ?", user.ID); err != nil {
-		logger.StoreScope().Error("[Store][User] delete usergroup relation", zap.Error(err))
+		log.Error("[Store][User] delete usergroup relation", zap.Error(err))
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Error("[Store][User] delete user tx commit", zap.Error(err))
+		log.Error("[Store][User] delete user tx commit", zap.Error(err))
 		return err
 	}
 	return nil
@@ -236,7 +236,7 @@ func (u *userStore) GetSubCount(user *model.User) (uint32, error) {
 
 	count, err := queryEntryCount(u.master, countSql, []interface{}{user.ID})
 	if err != nil {
-		logger.StoreScope().Error("[Store][User] count sub-account", zap.String("owner", user.Owner), zap.Error(err))
+		log.Error("[Store][User] count sub-account", zap.String("owner", user.Owner), zap.Error(err))
 	}
 
 	return count, err
@@ -342,7 +342,7 @@ func (u *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
 	for rows.Next() {
 		user, err := fetchRown2User(rows)
 		if err != nil {
-			logger.StoreScope().Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
+			log.Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
 			return nil, store.Error(err)
 		}
 		users = append(users, user)
@@ -421,7 +421,7 @@ func (u *userStore) listUsers(filters map[string]string, offset uint32, limit ui
 	getSql += " ORDER BY mtime LIMIT ? , ?"
 	getArgs := append(args, offset, limit)
 
-	users, err := u.collectUsers(u.master.Query, getSql, getArgs, logger.StoreScope())
+	users, err := u.collectUsers(u.master.Query, getSql, getArgs, log)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -480,7 +480,7 @@ func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, lim
 	querySql += " ORDER BY u.mtime LIMIT ? , ?"
 	args = append(args, offset, limit)
 
-	users, err := u.collectUsers(u.master.Query, querySql, args, logger.StoreScope())
+	users, err := u.collectUsers(u.master.Query, querySql, args, log)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -505,7 +505,7 @@ func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mode
 		args = append(args, timeToTimestamp(mtime))
 	}
 
-	users, err := u.collectUsers(u.master.Query, querySql, args, logger.CacheScope())
+	users, err := u.collectUsers(u.master.Query, querySql, args, cacheLog)
 	if err != nil {
 		return nil, err
 	}
@@ -592,10 +592,10 @@ func fetchRown2User(rows *sql.Rows) (*model.User, error) {
 }
 
 func (u *userStore) cleanInValidUser(name, owner string) error {
-	logger.StoreScope().Infof("[Store][User] clean user, name=(%s), owner=(%s)", name, owner)
+	log.Infof("[Store][User] clean user, name=(%s), owner=(%s)", name, owner)
 	str := "delete from user where name = ? and owner = ? and flag = 1"
 	if _, err := u.master.Exec(str, name, owner); err != nil {
-		logger.StoreScope().Errorf("[Store][User] clean user(%s) err: %s", name, err.Error())
+		log.Errorf("[Store][User] clean user(%s) err: %s", name, err.Error())
 		return err
 	}
 
@@ -605,13 +605,13 @@ func (u *userStore) cleanInValidUser(name, owner string) error {
 func checkAffectedRows(label string, result sql.Result, count int64) error {
 	n, err := result.RowsAffected()
 	if err != nil {
-		logger.StoreScope().Errorf("[Store][%s] get rows affected err: %s", label, err.Error())
+		log.Errorf("[Store][%s] get rows affected err: %s", label, err.Error())
 		return err
 	}
 
 	if n == count {
 		return nil
 	}
-	logger.StoreScope().Errorf("[Store][%s] get rows affected result(%d) is not match expect(%d)", label, n, count)
+	log.Errorf("[Store][%s] get rows affected result(%d) is not match expect(%d)", label, n, count)
 	return store.NewStatusError(store.AffectedRowsNotMatch, "affected rows not match")
 }

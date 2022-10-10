@@ -23,7 +23,6 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"go.uber.org/zap"
@@ -103,14 +102,14 @@ func (s *serverAuthability) queryConfigGroupResource(ctx context.Context,
 	}
 	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, names.ToSlice())
 	if err != nil {
-		commonlog.AuthScope().Error("[Config][Server] collect config_file_group res",
+		authLog.Error("[Config][Server] collect config_file_group res",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return nil
 	}
 	ret := map[api.ResourceType][]model.ResourceEntry{
 		api.ResourceType_ConfigGroups: entries,
 	}
-	commonlog.AuthScope().Debug("[Config][Server] collect config_file_group access res",
+	authLog.Debug("[Config][Server] collect config_file_group access res",
 		utils.ZapRequestIDByCtx(ctx), zap.Any("res", ret))
 	return ret
 }
@@ -130,14 +129,14 @@ func (s *serverAuthability) queryConfigFileResource(ctx context.Context,
 	}
 	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, groupNames.ToSlice())
 	if err != nil {
-		commonlog.AuthScope().Error("[Config][Server] collect config_file res",
+		authLog.Error("[Config][Server] collect config_file res",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return nil
 	}
 	ret := map[api.ResourceType][]model.ResourceEntry{
 		api.ResourceType_ConfigGroups: entries,
 	}
-	commonlog.AuthScope().Debug("[Config][Server] collect config_file access res",
+	authLog.Debug("[Config][Server] collect config_file access res",
 		utils.ZapRequestIDByCtx(ctx), zap.Any("res", ret))
 	return ret
 }
@@ -156,14 +155,14 @@ func (s *serverAuthability) queryConfigFileReleaseResource(ctx context.Context,
 	}
 	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, groupNames.ToSlice())
 	if err != nil {
-		commonlog.AuthScope().Debug("[Config][Server] collect config_file res",
+		authLog.Debug("[Config][Server] collect config_file res",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return nil
 	}
 	ret := map[api.ResourceType][]model.ResourceEntry{
 		api.ResourceType_ConfigGroups: entries,
 	}
-	commonlog.AuthScope().Debug("[Config][Server] collect config_file access res",
+	authLog.Debug("[Config][Server] collect config_file access res",
 		utils.ZapRequestIDByCtx(ctx), zap.Any("res", ret))
 	return ret
 }

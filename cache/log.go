@@ -15,13 +15,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package boltdb
+package cache
 
-import (
-	commonlog "github.com/polarismesh/polaris/common/log"
-)
+import commonLog "github.com/polarismesh/polaris/common/log"
 
 var (
-	log     = commonlog.GetScopeByName(commonlog.StoreLoggerName)
-	authLog = commonlog.GetScopeByName(commonlog.AuthLoggerName)
+	log       = commonLog.GetScopeByName(commonLog.CacheLoggerName)
+	configLog = commonLog.GetScopeByName(commonLog.ConfigLoggerName)
 )

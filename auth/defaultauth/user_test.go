@@ -29,7 +29,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
+	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -61,8 +61,8 @@ func newUserTest(t *testing.T) *UserTest {
 	reset(false)
 	ctrl := gomock.NewController(t)
 
-	log.AuthScope().SetOutputLevel(log.DebugLevel)
-	log.CacheScope().SetOutputLevel(log.DebugLevel)
+	commonlog.GetScopeByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.DebugLevel)
+	commonlog.GetScopeByName(commonlog.ConfigLoggerName).SetOutputLevel(commonlog.DebugLevel)
 
 	users := createMockUser(10, "one")
 	newUsers := createMockUser(10, "two")

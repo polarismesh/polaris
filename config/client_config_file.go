@@ -24,7 +24,6 @@ import (
 
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/utils"
 	utils2 "github.com/polarismesh/polaris/config/utils"
 )
@@ -48,7 +47,7 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 
 	requestID := utils.ParseRequestID(ctx)
 
-	log.ConfigScope().Info("[Config][Service] load config file from cache.",
+	log.Info("[Config][Service] load config file from cache.",
 		zap.String("requestId", requestID), zap.String("namespace", namespace),
 		zap.String("group", group), zap.String("file", fileName))
 
@@ -56,7 +55,7 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 	entry, err := s.fileCache.GetOrLoadIfAbsent(namespace, group, fileName)
 
 	if err != nil {
-		log.ConfigScope().Error("[Config][Service] get or load config file from cache error.",
+		log.Error("[Config][Service] get or load config file from cache error.",
 			zap.String("requestId", requestID),
 			zap.Error(err))
 
@@ -71,7 +70,7 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 	if clientVersion > entry.Version {
 		entry, err = s.fileCache.ReLoad(namespace, group, fileName)
 		if err != nil {
-			log.ConfigScope().Error("[Config][Service] reload config file error.",
+			log.Error("[Config][Service] reload config file error.",
 				zap.String("requestId", requestID),
 				zap.Error(err))
 
@@ -79,7 +78,7 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 		}
 	}
 
-	log.ConfigScope().Info("[Config][Client] client get config file success.",
+	log.Info("[Config][Client] client get config file success.",
 		zap.String("requestId", requestID),
 		zap.String("client", utils.ParseClientAddress(ctx)),
 		zap.String("file", fileName),
@@ -142,7 +141,7 @@ func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api
 		entry, err := s.fileCache.GetOrLoadIfAbsent(namespace, group, fileName)
 
 		if err != nil {
-			log.ConfigScope().Error("[Config][Service] get or load config file from cache error.",
+			log.Error("[Config][Service] get or load config file from cache error.",
 				zap.String("requestId", requestID),
 				zap.String("fileName", fileName),
 				zap.Error(err))

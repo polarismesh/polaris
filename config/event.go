@@ -21,8 +21,6 @@ import (
 	"sync"
 
 	"go.uber.org/zap"
-
-	"github.com/polarismesh/polaris/common/log"
 )
 
 // Event 事件对象，包含类型和事件消息
@@ -99,13 +97,13 @@ func (c *Center) handleEvent(e Event) {
 
 	for _, cb := range callback.getCbs() {
 		if !cb(e) {
-			log.ConfigScope().Errorf("[Common][Event] cb message error. event = %+v", e)
+			log.Errorf("[Common][Event] cb message error. event = %+v", e)
 		}
 	}
 }
 
 func (c *Center) recovery() {
 	if err := recover(); err != nil {
-		log.ConfigScope().Error("[Common][Event] handler event error.", zap.Any("error", err))
+		log.Error("[Common][Event] handler event error.", zap.Any("error", err))
 	}
 }

@@ -25,7 +25,6 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -121,7 +120,7 @@ func (d *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (boo
 
 	strategies, err := d.findStrategies(operatorInfo)
 	if err != nil {
-		log.AuthScope().Error("[Auth][Checker] find strategies when check permission", utils.ZapRequestID(reqId),
+		log.Error("[Auth][Checker] find strategies when check permission", utils.ZapRequestID(reqId),
 			zap.Error(err), zap.Any("token", operatorInfo.String()))
 		return false, err
 	}
@@ -130,20 +129,20 @@ func (d *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (boo
 
 	noResourceNeedCheck := d.removeNoStrategyResources(authCtx)
 	if !noResourceNeedCheck && len(strategies) == 0 {
-		log.AuthScope().Error("[Auth][Checker]", utils.ZapRequestID(reqId),
+		log.Error("[Auth][Checker]", utils.ZapRequestID(reqId),
 			zap.String("msg", "need check resource is not empty, but strategies is empty"))
 		return false, errors.New("no permission")
 	}
 
-	log.AuthScope().Info("[Auth][Checker] check permission args", zap.Any("resources", authCtx.GetAccessResources()),
+	log.Info("[Auth][Checker] check permission args", zap.Any("resources", authCtx.GetAccessResources()),
 		zap.Any("strategies", strategies))
 
 	ok, err := d.authPlugin.CheckPermission(authCtx, strategies)
 	if err != nil {
-		log.AuthScope().Error("[Auth][Checker] check permission args", utils.ZapRequestID(reqId),
+		log.Error("[Auth][Checker] check permission args", utils.ZapRequestID(reqId),
 			zap.String("method", authCtx.GetMethod()), zap.Any("resources", authCtx.GetAccessResources()),
 			zap.Any("strategies", strategies))
-		log.AuthScope().Error("[Auth][Checker] check permission when request arrive", utils.ZapRequestID(reqId),
+		log.Error("[Auth][Checker] check permission when request arrive", utils.ZapRequestID(reqId),
 			zap.Error(err))
 	}
 
@@ -180,13 +179,13 @@ func (d *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) err
 	checkErr := func() error {
 		operator, err := d.decodeToken(authCtx.GetToken())
 		if err != nil {
-			log.AuthScope().Error("[Auth][Checker] decode token", zap.Error(err))
+			log.Error("[Auth][Checker] decode token", zap.Error(err))
 			return model.ErrorTokenInvalid
 		}
 
 		ownerId, isOwner, err := d.checkToken(&operator)
 		if err != nil {
-			log.AuthScope().Errorf("[Auth][Checker] check token err : %s", errors.WithStack(err).Error())
+			log.Errorf("[Auth][Checker] check token err : %s", errors.WithStack(err).Error())
 			return err
 		}
 
@@ -204,7 +203,7 @@ func (d *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) err
 		authCtx.SetRequestContext(ctx)
 		d.parseOperatorInfo(operator, authCtx)
 		if operator.Disable {
-			log.AuthScope().Warn("[Auth][Checker] token already disabled", utils.ZapRequestID(reqId),
+			log.Warn("[Auth][Checker] token already disabled", utils.ZapRequestID(reqId),
 				zap.Any("token", operator.String()))
 		}
 		return nil
@@ -214,7 +213,7 @@ func (d *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) err
 		if !canDowngradeAnonymous(authCtx, checkErr) {
 			return checkErr
 		}
-		log.AuthScope().Warn("[Auth][Checker] parse operator info, downgrade to anonymous", utils.ZapRequestID(reqId),
+		log.Warn("[Auth][Checker] parse operator info, downgrade to anonymous", utils.ZapRequestID(reqId),
 			zap.Error(checkErr))
 		// 操作者信息解析失败，降级为匿名用户
 		authCtx.SetAttachment(model.TokenDetailInfoKey, newAnonymous())
@@ -425,13 +424,13 @@ func (d *defaultAuthChecker) removeNoStrategyResources(authCtx *model.AcquireCon
 		newAccessRes[api.ResourceType_ConfigGroups] = newCfgRes
 	}
 
-	log.AuthScope().Info("[Auth][Checker] remove no link strategy final result", utils.ZapRequestID(reqId),
+	log.Info("[Auth][Checker] remove no link strategy final result", utils.ZapRequestID(reqId),
 		zap.Any("resource", newAccessRes))
 
 	authCtx.SetAccessResources(newAccessRes)
 	noResourceNeedCheck := authCtx.IsAccessResourceEmpty()
 	if noResourceNeedCheck {
-		log.AuthScope().Debug("[Auth][Checker]", utils.ZapRequestID(reqId),
+		log.Debug("[Auth][Checker]", utils.ZapRequestID(reqId),
 			zap.String("msg", "need check permission resource is empty"))
 	}
 

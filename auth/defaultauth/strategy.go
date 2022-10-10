@@ -14,6 +14,7 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
+
 package defaultauth
 
 import (
@@ -27,7 +28,6 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	authcommon "github.com/polarismesh/polaris/common/auth"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -69,12 +69,12 @@ func (svr *server) CreateStrategy(ctx context.Context, req *api.AuthStrategy) *a
 
 	data := svr.createAuthStrategyModel(req)
 	if err := svr.storage.AddStrategy(data); err != nil {
-		log.AuthScope().Error("[Auth][Strategy] create strategy into store", utils.ZapRequestID(requestID),
+		log.Error("[Auth][Strategy] create strategy into store", utils.ZapRequestID(requestID),
 			zap.Error(err))
 		return api.NewResponse(StoreCode2APICode(err))
 	}
 
-	log.AuthScope().Info("[Auth][Strategy] create strategy", utils.ZapRequestID(requestID),
+	log.Info("[Auth][Strategy] create strategy", utils.ZapRequestID(requestID),
 		zap.String("name", req.Name.GetValue()))
 	svr.RecordHistory(authStrategyRecordEntry(ctx, req, data, model.OCreate))
 
@@ -102,7 +102,7 @@ func (svr *server) UpdateStrategy(ctx context.Context, req *api.ModifyAuthStrate
 
 	strategy, err := svr.storage.GetStrategyDetail(req.GetId().GetValue())
 	if err != nil {
-		log.AuthScope().Error("[Auth][Strategy] get strategy from store", utils.ZapRequestID(requestID),
+		log.Error("[Auth][Strategy] get strategy from store", utils.ZapRequestID(requestID),
 			zap.Error(err))
 		return api.NewModifyAuthStrategyResponse(api.StoreLayerException, req)
 	}
@@ -121,12 +121,12 @@ func (svr *server) UpdateStrategy(ctx context.Context, req *api.ModifyAuthStrate
 	}
 
 	if err := svr.storage.UpdateStrategy(data); err != nil {
-		log.AuthScope().Error("[Auth][Strategy] update strategy into store",
+		log.Error("[Auth][Strategy] update strategy into store",
 			utils.ZapRequestID(requestID), zap.Error(err))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.AuthScope().Info("[Auth][Strategy] update strategy into store", utils.ZapRequestID(requestID),
+	log.Info("[Auth][Strategy] update strategy into store", utils.ZapRequestID(requestID),
 		zap.String("name", strategy.Name))
 	svr.RecordHistory(authModifyStrategyRecordEntry(ctx, req, data, model.OUpdate))
 
@@ -152,7 +152,7 @@ func (svr *server) DeleteStrategy(ctx context.Context, req *api.AuthStrategy) *a
 
 	strategy, err := svr.storage.GetStrategyDetail(req.GetId().GetValue())
 	if err != nil {
-		log.AuthScope().Error("[Auth][Strategy] get strategy from store", utils.ZapRequestID(requestID),
+		log.Error("[Auth][Strategy] get strategy from store", utils.ZapRequestID(requestID),
 			zap.Error(err))
 		return api.NewAuthStrategyResponse(api.StoreLayerException, req)
 	}
@@ -162,7 +162,7 @@ func (svr *server) DeleteStrategy(ctx context.Context, req *api.AuthStrategy) *a
 	}
 
 	if strategy.Default {
-		log.AuthScope().Error("[Auth][Strategy] delete default strategy is denied", utils.ZapRequestID(requestID))
+		log.Error("[Auth][Strategy] delete default strategy is denied", utils.ZapRequestID(requestID))
 		return api.NewAuthStrategyResponseWithMsg(api.BadRequest, "default strategy can't delete", req)
 	}
 
@@ -171,12 +171,12 @@ func (svr *server) DeleteStrategy(ctx context.Context, req *api.AuthStrategy) *a
 	}
 
 	if err := svr.storage.DeleteStrategy(req.GetId().GetValue()); err != nil {
-		log.AuthScope().Error("[Auth][Strategy] delete strategy from store",
+		log.Error("[Auth][Strategy] delete strategy from store",
 			utils.ZapRequestID(requestID), zap.Error(err))
 		return api.NewResponse(StoreCode2APICode(err))
 	}
 
-	log.AuthScope().Info("[Auth][Strategy] delete strategy from store", utils.ZapRequestID(requestID),
+	log.Info("[Auth][Strategy] delete strategy from store", utils.ZapRequestID(requestID),
 		zap.String("name", req.Name.GetValue()))
 	svr.RecordHistory(authStrategyRecordEntry(ctx, req, strategy, model.ODelete))
 
@@ -199,7 +199,7 @@ func (svr *server) GetStrategies(ctx context.Context, query map[string]string) *
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
 
-	log.AuthScope().Debug("[Auth][Strategy] origin get strategies query params", utils.ZapRequestID(requestID),
+	log.Debug("[Auth][Strategy] origin get strategies query params", utils.ZapRequestID(requestID),
 		utils.ZapPlatformID(platformID), zap.Any("query", query))
 
 	showDetail := query["show_detail"]
@@ -207,7 +207,7 @@ func (svr *server) GetStrategies(ctx context.Context, query map[string]string) *
 	searchFilters := make(map[string]string, len(query))
 	for key, value := range query {
 		if _, ok := StrategyFilterAttributes[key]; !ok {
-			log.AuthScope().Errorf("[Auth][Strategy] get strategies attribute(%s) it not allowed", key)
+			log.Errorf("[Auth][Strategy] get strategies attribute(%s) it not allowed", key)
 			return api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
 		}
 		searchFilters[key] = value
@@ -223,7 +223,7 @@ func (svr *server) GetStrategies(ctx context.Context, query map[string]string) *
 
 	total, strategies, err := svr.storage.GetStrategies(searchFilters, offset, limit)
 	if err != nil {
-		log.AuthScope().Error("[Auth][Strategy] get strategies from store", zap.Any("query", searchFilters),
+		log.Error("[Auth][Strategy] get strategies from store", zap.Any("query", searchFilters),
 			zap.Error(err))
 		return api.NewBatchQueryResponse(api.StoreLayerException)
 	}
@@ -233,7 +233,7 @@ func (svr *server) GetStrategies(ctx context.Context, query map[string]string) *
 	resp.Size = utils.NewUInt32Value(uint32(len(strategies)))
 
 	if strings.Compare(showDetail, "true") == 0 {
-		log.AuthScope().Info("[Auth][Strategy] fill strategy detail", utils.ZapRequestID(requestID))
+		log.Info("[Auth][Strategy] fill strategy detail", utils.ZapRequestID(requestID))
 		resp.AuthStrategies = enhancedAuthStrategy2Api(strategies, svr.authStrategyFull2Api)
 	} else {
 		resp.AuthStrategies = enhancedAuthStrategy2Api(strategies, svr.authStrategy2Api)
@@ -305,7 +305,7 @@ func (svr *server) GetStrategy(ctx context.Context, req *api.AuthStrategy) *api.
 
 	ret, err := svr.storage.GetStrategyDetail(req.GetId().GetValue())
 	if err != nil {
-		log.AuthScope().Error("[Auth][Strategy] get strategt from store",
+		log.Error("[Auth][Strategy] get strategt from store",
 			utils.ZapRequestID(requestID), zap.Error(err))
 		return api.NewResponse(api.StoreLayerException)
 	}
@@ -337,7 +337,7 @@ func (svr *server) GetStrategy(ctx context.Context, req *api.AuthStrategy) *api.
 	}
 
 	if !canView {
-		log.AuthScope().Error("[Auth][Strategy] get strategy detail denied",
+		log.Error("[Auth][Strategy] get strategy detail denied",
 			utils.ZapRequestID(requestID),
 			zap.String("user", userId),
 			zap.String("strategy", req.Id.Value),
@@ -384,7 +384,7 @@ func (svr *server) GetPrincipalResources(ctx context.Context, query map[string]s
 		for i := range groupIds {
 			res, err := svr.storage.GetStrategyResources(groupIds[i], model.PrincipalGroup)
 			if err != nil {
-				log.AuthScope().Error("[Auth][Strategy] get principal link resource", utils.ZapRequestID(requestID),
+				log.Error("[Auth][Strategy] get principal link resource", utils.ZapRequestID(requestID),
 					zap.String("principal-id", principalId), zap.Any("principal-role", principalRole), zap.Error(err))
 				return api.NewResponse(api.StoreLayerException)
 			}
@@ -394,7 +394,7 @@ func (svr *server) GetPrincipalResources(ctx context.Context, query map[string]s
 
 	pResources, err := svr.storage.GetStrategyResources(principalId, model.PrincipalType(principalRole))
 	if err != nil {
-		log.AuthScope().Error("[Auth][Strategy] get principal link resource", utils.ZapRequestID(requestID),
+		log.Error("[Auth][Strategy] get principal link resource", utils.ZapRequestID(requestID),
 			zap.String("principal-id", principalId), zap.Any("principal-role", principalRole), zap.Error(err))
 		return api.NewResponse(api.StoreLayerException)
 	}
@@ -705,7 +705,7 @@ func (svr *server) checkUpdateStrategy(ctx context.Context, req *api.ModifyAuthS
 	userId := utils.ParseUserID(ctx)
 	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
 		if !utils.ParseIsOwner(ctx) || userId != saved.Owner {
-			log.AuthScope().Error("[Auth][Strategy] modify strategy denied, current user not owner",
+			log.Error("[Auth][Strategy] modify strategy denied, current user not owner",
 				utils.ZapRequestID(utils.ParseRequestID(ctx)),
 				zap.String("user", userId),
 				zap.String("owner", saved.Owner),
@@ -966,7 +966,7 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 			if !autoAllNs {
 				ns := svr.cacheMgn.Namespace().GetNamespace(res.ResID)
 				if ns == nil {
-					log.AuthScope().Warn("[Auth][Strategy] not found namespace in fill-info",
+					log.Warn("[Auth][Strategy] not found namespace in fill-info",
 						zap.String("id", data.ID), zap.String("namespace", res.ResID))
 					continue
 				}
@@ -992,7 +992,7 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 			if !autoAllSvc {
 				svc := svr.cacheMgn.Service().GetServiceByID(res.ResID)
 				if svc == nil {
-					log.AuthScope().Warn("[Auth][Strategy] not found service in fill-info",
+					log.Warn("[Auth][Strategy] not found service in fill-info",
 						zap.String("id", data.ID), zap.String("service", res.ResID))
 					continue
 				}
@@ -1017,13 +1017,13 @@ func (svr *server) fillResourceInfo(resp *api.AuthStrategy, data *model.Strategy
 			if !autoAllConfigGroup {
 				groupId, err := strconv.ParseUint(res.ResID, 10, 64)
 				if err != nil {
-					log.AuthScope().Warn("[Auth][Strategy] invalid resource id",
+					log.Warn("[Auth][Strategy] invalid resource id",
 						zap.String("id", data.ID), zap.String("config_file_group", res.ResID))
 					continue
 				}
 				group, _ := svr.cacheMgn.ConfigFile().GetOrLoadGroupById(groupId)
 				if group == nil {
-					log.AuthScope().Warn("[Auth][Strategy] not found config_file_group in fill-info",
+					log.Warn("[Auth][Strategy] not found config_file_group in fill-info",
 						zap.String("id", data.ID), zap.String("config_file_group", res.ResID))
 					continue
 				}

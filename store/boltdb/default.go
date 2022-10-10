@@ -24,7 +24,6 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	logger "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -218,7 +217,7 @@ func (m *boltStore) initAuthStoreData() error {
 			user = mainUser
 			// 添加主账户主体信息
 			if err := saveValue(tx, tblUser, user.ID, converToUserStore(user)); err != nil {
-				logger.AuthScope().Error("[Store][User] save user fail", zap.Error(err), zap.String("name", user.Name))
+				authLog.Error("[Store][User] save user fail", zap.Error(err), zap.String("name", user.Name))
 				return err
 			}
 		}
@@ -232,7 +231,7 @@ func (m *boltStore) initAuthStoreData() error {
 			strategy := mainDefaultStrategy
 			// 添加主账户的默认鉴权策略信息
 			if err := saveValue(tx, tblStrategy, strategy.ID, convertForStrategyStore(strategy)); err != nil {
-				logger.AuthScope().Error("[Store][Strategy] save auth_strategy", zap.Error(err),
+				authLog.Error("[Store][Strategy] save auth_strategy", zap.Error(err),
 					zap.String("name", strategy.Name), zap.String("owner", strategy.Owner))
 				return err
 			}

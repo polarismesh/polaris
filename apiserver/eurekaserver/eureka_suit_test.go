@@ -97,11 +97,11 @@ func (d *EurekaTestSuit) initialize(t *testing.T, callback func(t *testing.T, s 
 
 	_ = commonlog.Configure(d.cfg.Bootstrap.Logger)
 
-	commonlog.DefaultScope().SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.NamingScope().SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.CacheScope().SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.StoreScope().SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.AuthScope().SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeByName(commonlog.DefaultLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeByName(commonlog.NamingLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeByName(commonlog.ConfigLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 
 	plugin.SetPluginConfig(&d.cfg.Plugin)
 

@@ -26,7 +26,6 @@ import (
 	"github.com/boltdb/bolt"
 	"go.uber.org/zap"
 
-	logger "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -109,13 +108,13 @@ func (us *userStore) addUser(user *model.User) error {
 
 	// 添加用户的默认策略
 	if err := createDefaultStrategy(tx, model.PrincipalUser, user.ID, user.Name, owner); err != nil {
-		logger.StoreScope().Error("[Store][User] create user default strategy fail", zap.Error(err),
+		log.Error("[Store][User] create user default strategy fail", zap.Error(err),
 			zap.String("name", user.Name))
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Error("[Store][User] save user tx commit fail", zap.Error(err),
+		log.Error("[Store][User] save user tx commit fail", zap.Error(err),
 			zap.String("name", user.Name))
 		return err
 	}
@@ -125,7 +124,7 @@ func (us *userStore) addUser(user *model.User) error {
 func (us *userStore) addUserMain(tx *bolt.Tx, user *model.User) error {
 	// 添加用户信息
 	if err := saveValue(tx, tblUser, user.ID, converToUserStore(user)); err != nil {
-		logger.StoreScope().Error("[Store][User] save user fail", zap.Error(err), zap.String("name", user.Name))
+		log.Error("[Store][User] save user fail", zap.Error(err), zap.String("name", user.Name))
 		return err
 	}
 	return nil
@@ -148,7 +147,7 @@ func (us *userStore) UpdateUser(user *model.User) error {
 
 	err := us.handler.UpdateValue(tblUser, user.ID, properties)
 	if err != nil {
-		logger.StoreScope().Error("[Store][User] update user fail", zap.Error(err), zap.String("id", user.ID))
+		log.Error("[Store][User] update user fail", zap.Error(err), zap.String("id", user.ID))
 		return err
 	}
 
@@ -178,7 +177,7 @@ func (us *userStore) deleteUser(user *model.User) error {
 	properties[UserFieldModifyTime] = time.Now()
 
 	if err := updateValue(tx, tblUser, user.ID, properties); err != nil {
-		logger.StoreScope().Error("[Store][User] delete user by id", zap.Error(err), zap.String("id", user.ID))
+		log.Error("[Store][User] delete user by id", zap.Error(err), zap.String("id", user.ID))
 		return err
 	}
 
@@ -192,7 +191,7 @@ func (us *userStore) deleteUser(user *model.User) error {
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Error("[Store][User] delete user tx commit", zap.Error(err), zap.String("id", user.ID))
+		log.Error("[Store][User] delete user tx commit", zap.Error(err), zap.String("id", user.ID))
 		return err
 	}
 
@@ -226,7 +225,7 @@ func (us *userStore) getUser(tx *bolt.Tx, id string) (*model.User, error) {
 
 	ret := make(map[string]interface{})
 	if err := loadValues(tx, tblUser, []string{id}, &userForStore{}, ret); err != nil {
-		logger.StoreScope().Error("[Store][User] get user by id", zap.Error(err), zap.String("id", id))
+		log.Error("[Store][User] get user by id", zap.Error(err), zap.String("id", id))
 		return nil, err
 	}
 	if len(ret) == 0 {
@@ -259,7 +258,7 @@ func (us *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
 			return saveName == name && saveOwner == ownerId
 		})
 	if err != nil {
-		logger.StoreScope().Error("[Store][User] get user by name", zap.Error(err), zap.String("name", name),
+		log.Error("[Store][User] get user by name", zap.Error(err), zap.String("name", name),
 			zap.String("owner", ownerId))
 		return nil, err
 	}
@@ -292,7 +291,7 @@ func (us *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
 
 	ret, err := us.handler.LoadValues(tblUser, ids, &userForStore{})
 	if err != nil {
-		logger.StoreScope().Error("[Store][User] get user by ids", zap.Error(err), zap.Any("ids", ids))
+		log.Error("[Store][User] get user by ids", zap.Error(err), zap.Any("ids", ids))
 		return nil, err
 	}
 	if len(ret) == 0 {
@@ -329,7 +328,7 @@ func (us *userStore) GetSubCount(user *model.User) (uint32, error) {
 		})
 
 	if err != nil {
-		logger.StoreScope().Error("[Store][User] get user sub count", zap.Error(err), zap.String("id", user.ID))
+		log.Error("[Store][User] get user sub count", zap.Error(err), zap.String("id", user.ID))
 		return 0, err
 	}
 
@@ -408,7 +407,7 @@ func (us *userStore) getUsers(filters map[string]string, offset uint32, limit ui
 		})
 
 	if err != nil {
-		logger.StoreScope().Error("[Store][User] get users", zap.Error(err), zap.Any("filters", filters))
+		log.Error("[Store][User] get users", zap.Error(err), zap.Any("filters", filters))
 		return 0, nil, err
 	}
 	if len(ret) == 0 {
@@ -427,7 +426,7 @@ func (us *userStore) getGroupUsers(filters map[string]string, offset uint32, lim
 
 	ret, err := us.handler.LoadValues(tblGroup, []string{groupId}, &groupForStore{})
 	if err != nil {
-		logger.StoreScope().Error("[Store][User] get user groups", zap.Error(err), zap.Any("filters", filters))
+		log.Error("[Store][User] get user groups", zap.Error(err), zap.Any("filters", filters))
 		return 0, nil, err
 	}
 	if len(ret) == 0 {
@@ -445,7 +444,7 @@ func (us *userStore) getGroupUsers(filters map[string]string, offset uint32, lim
 
 	ret, err = us.handler.LoadValues(tblUser, userIds, &userForStore{})
 	if err != nil {
-		logger.StoreScope().Error("[Store][User] get all users", zap.Error(err))
+		log.Error("[Store][User] get all users", zap.Error(err))
 		return 0, nil, err
 	}
 
@@ -505,7 +504,7 @@ func (us *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mod
 			return !isBefore
 		})
 	if err != nil {
-		logger.StoreScope().Error("[Store][User] get users for cache", zap.Error(err))
+		log.Error("[Store][User] get users for cache", zap.Error(err))
 		return nil, err
 	}
 

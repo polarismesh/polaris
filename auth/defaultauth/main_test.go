@@ -155,11 +155,11 @@ func (d *AuthTestSuit) initialize(opts ...options) error {
 
 	_ = commonlog.Configure(d.cfg.Bootstrap.Logger)
 
-	commonlog.DefaultScope().SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.NamingScope().SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.CacheScope().SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.StoreScope().SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.AuthScope().SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeByName(commonlog.DefaultLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeByName(commonlog.NamingLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeByName(commonlog.ConfigLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 
 	metrics.InitMetrics()
 
@@ -290,7 +290,6 @@ func (d *AuthTestSuit) cleanAllUserGroup() {
 		}()
 	}
 }
-
 
 func (d *AuthTestSuit) cleanAllAuthStrategy() {
 	if d.storage.Name() == sqldb.STORENAME {

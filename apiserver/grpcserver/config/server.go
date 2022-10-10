@@ -32,7 +32,7 @@ import (
 )
 
 var (
-	configLog = commonlog.ConfigScope()
+	configLog = commonlog.GetScopeByName(commonlog.ConfigLoggerName)
 )
 
 // ConfigGRPCServer 配置中心 GRPC API 服务器

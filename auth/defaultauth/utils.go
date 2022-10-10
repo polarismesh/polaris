@@ -27,7 +27,6 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -172,7 +171,7 @@ func (svr *serverAuthAbility) verifyAuth(ctx context.Context, isWrite bool,
 	authToken := utils.ParseAuthToken(ctx)
 
 	if authToken == "" {
-		log.AuthScope().Error("[Auth][Server] auth token is empty", utils.ZapRequestID(reqId))
+		log.Error("[Auth][Server] auth token is empty", utils.ZapRequestID(reqId))
 		return nil, api.NewResponse(api.EmptyAutToken)
 	}
 
@@ -187,7 +186,7 @@ func (svr *serverAuthAbility) verifyAuth(ctx context.Context, isWrite bool,
 	// 		i. 如果当前只是一个数据的读取操作，则放通
 	// 		ii. 如果当前是一个数据的写操作，则只能允许处于正常的 token 进行操作
 	if err := svr.authMgn.VerifyCredential(authCtx); err != nil {
-		log.AuthScope().Error("[Auth][Server] verify auth token", utils.ZapRequestID(reqId),
+		log.Error("[Auth][Server] verify auth token", utils.ZapRequestID(reqId),
 			zap.Error(err))
 		return nil, api.NewResponse(api.AuthTokenVerifyException)
 	}
@@ -195,18 +194,18 @@ func (svr *serverAuthAbility) verifyAuth(ctx context.Context, isWrite bool,
 	tokenInfo := authCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo)
 
 	if isWrite && tokenInfo.Disable {
-		log.AuthScope().Error("[Auth][Server] token is disabled", utils.ZapRequestID(reqId),
+		log.Error("[Auth][Server] token is disabled", utils.ZapRequestID(reqId),
 			zap.String("operation", authCtx.GetMethod()))
 		return nil, api.NewResponse(api.TokenDisabled)
 	}
 
 	if !tokenInfo.IsUserToken {
-		log.AuthScope().Error("[Auth][Server] only user role can access this API", utils.ZapRequestID(reqId))
+		log.Error("[Auth][Server] only user role can access this API", utils.ZapRequestID(reqId))
 		return nil, api.NewResponse(api.OperationRoleException)
 	}
 
 	if needOwner && IsSubAccount(tokenInfo) {
-		log.AuthScope().Error("[Auth][Server] only admin/owner account can access this API", utils.ZapRequestID(reqId))
+		log.Error("[Auth][Server] only admin/owner account can access this API", utils.ZapRequestID(reqId))
 		return nil, api.NewResponse(api.OperationRoleException)
 	}
 

@@ -23,7 +23,6 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -65,7 +64,7 @@ func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.Co
 	err := s.storage.CreateConfigFileReleaseHistory(s.getTx(ctx), releaseHistory)
 
 	if err != nil {
-		log.ConfigScope().Error("[Config][Service] create config file release history error.",
+		log.Error("[Config][Service] create config file release history error.",
 			zap.String("request-id", utils.ParseRequestID(ctx)),
 			zap.String("namespace", fileRelease.Namespace),
 			zap.String("group", fileRelease.Group),
@@ -86,7 +85,7 @@ func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, gro
 		group, fileName, offset, limit, endId)
 
 	if err != nil {
-		log.ConfigScope().Error("[Config][Service] get config file release history error.",
+		log.Error("[Config][Service] get config file release history error.",
 			zap.String("request-id", utils.ParseRequestID(ctx)),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
@@ -127,7 +126,7 @@ func (s *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespac
 	history, err := s.storage.GetLatestConfigFileReleaseHistory(namespace, group, fileName)
 
 	if err != nil {
-		log.ConfigScope().Error("[Config][Service] get latest config file release error",
+		log.Error("[Config][Service] get latest config file release error",
 			zap.String("request-id", utils.ParseRequestID(ctx)),
 			zap.String("namespace", namespace),
 			zap.String("group", group),

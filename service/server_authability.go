@@ -20,13 +20,11 @@ package service
 import (
 	"context"
 	"errors"
-
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	servicecommon "github.com/polarismesh/polaris/common/service"
 	"github.com/polarismesh/polaris/common/utils"
@@ -238,7 +236,7 @@ func (svr *serverAuthAbility) queryServiceResource(
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	commonlog.AuthScope().Debug("[Auth][Server] collect service access res", zap.Any("res", ret))
+	authLog.Debug("[Auth][Server] collect service access res", zap.Any("res", ret))
 	return ret
 }
 
@@ -265,7 +263,7 @@ func (svr *serverAuthAbility) queryServiceAliasResource(
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	commonlog.AuthScope().Debug("[Auth][Server] collect service alias access res", zap.Any("res", ret))
+	authLog.Debug("[Auth][Server] collect service alias access res", zap.Any("res", ret))
 	return ret
 }
 
@@ -304,7 +302,7 @@ func (svr *serverAuthAbility) queryInstanceResource(
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	commonlog.AuthScope().Debug("[Auth][Server] collect instance access res", zap.Any("res", ret))
+	authLog.Debug("[Auth][Server] collect instance access res", zap.Any("res", ret))
 	return ret
 }
 
@@ -326,7 +324,7 @@ func (svr *serverAuthAbility) queryCircuitBreakerResource(
 		}
 	}
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	commonlog.AuthScope().Debug("[Auth][Server] collect circuit-breaker access res", zap.Any("res", ret))
+	authLog.Debug("[Auth][Server] collect circuit-breaker access res", zap.Any("res", ret))
 	return ret
 }
 
@@ -349,7 +347,7 @@ func (svr *serverAuthAbility) queryCircuitBreakerReleaseResource(
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	commonlog.AuthScope().Debug("[Auth][Server] collect circuit-breaker-release access res", zap.Any("res", ret))
+	authLog.Debug("[Auth][Server] collect circuit-breaker-release access res", zap.Any("res", ret))
 	return ret
 }
 
@@ -372,7 +370,7 @@ func (svr *serverAuthAbility) queryRouteRuleResource(
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	commonlog.AuthScope().Debug("[Auth][Server] collect route-rule access res", zap.Any("res", ret))
+	authLog.Debug("[Auth][Server] collect route-rule access res", zap.Any("res", ret))
 	return ret
 }
 
@@ -395,7 +393,7 @@ func (svr *serverAuthAbility) queryRateLimitConfigResource(
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	commonlog.AuthScope().Debug("[Auth][Server] collect rate-limit access res", zap.Any("res", ret))
+	authLog.Debug("[Auth][Server] collect rate-limit access res", zap.Any("res", ret))
 	return ret
 }
 

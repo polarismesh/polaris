@@ -36,7 +36,7 @@ import (
 )
 
 var (
-	namingLog = commonlog.NamingScope()
+	namingLog = commonlog.GetScopeByName(commonlog.NamingLoggerName)
 
 	cacheTypes = map[string]struct{}{
 		apiv1.DiscoverResponse_INSTANCE.String():        {},

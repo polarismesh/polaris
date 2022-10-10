@@ -23,7 +23,6 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -54,7 +53,7 @@ func (s *Server) CreateConfigFileTemplate(ctx context.Context, template *api.Con
 
 	if err != nil {
 		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
-		log.ConfigScope().Error("[Config][Service] create config file template error.",
+		log.Error("[Config][Service] create config file template error.",
 			zap.String("request-id", requestID),
 			zap.Error(err))
 		return api.NewConfigFileTemplateResponse(api.StoreLayerException, template)
@@ -72,7 +71,7 @@ func (s *Server) GetConfigFileTemplate(ctx context.Context, name string) *api.Co
 	template, err := s.storage.GetConfigFileTemplate(name)
 	if err != nil {
 		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
-		log.ConfigScope().Error("[Config][Service] get config file template error.",
+		log.Error("[Config][Service] get config file template error.",
 			zap.String("request-id", requestID),
 			zap.String("name", name),
 			zap.Error(err))
@@ -93,7 +92,7 @@ func (s *Server) GetAllConfigFileTemplates(ctx context.Context) *api.ConfigBatch
 
 	if err != nil {
 		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
-		log.ConfigScope().Error("[Config][Service]query all config file templates error.",
+		log.Error("[Config][Service]query all config file templates error.",
 			zap.String("request-id", requestID),
 			zap.Error(err))
 
