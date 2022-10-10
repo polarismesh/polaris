@@ -18,6 +18,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/polarismesh/polaris/bootstrap"
@@ -30,8 +32,14 @@ var (
 		Use:   "start",
 		Short: "start running",
 		Long:  "start running",
-		Run: func(c *cobra.Command, args []string) {
-			bootstrap.Start(configFilePath)
+		Run: func(_ *cobra.Command, _ []string) {
+			config, err := bootstrap.Start(configFilePath)
+			if err != nil {
+				fmt.Printf("[ERROR] %v\n", err)
+			}
+
+			fmt.Println(config)
+			fmt.Println("finish starting server")
 		},
 	}
 )

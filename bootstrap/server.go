@@ -19,13 +19,13 @@ package bootstrap
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"strings"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/apiserver"
@@ -55,27 +55,22 @@ var (
 )
 
 // Start 启动
-func Start(configFilePath string) {
+func Start(configFilePath string) (string, error) {
 	// 加载配置
 	ConfigFilePath = configFilePath
 	cfg, err := boot_config.Load(configFilePath)
 	if err != nil {
-		fmt.Printf("[ERROR] load config fail\n")
-		return
+		return "", errors.Wrap(err, "load config fail")
 	}
 
-	c, err := yaml.Marshal(cfg)
+	config, err := yaml.Marshal(cfg)
 	if err != nil {
-		fmt.Printf("[ERROR] config yaml marshal fail\n")
-		return
+		return "", errors.Wrap(err, "config yaml marshal fail")
 	}
-	fmt.Printf(string(c))
 
 	// 初始化日志打印
-	err = log.Configure(cfg.Bootstrap.Logger)
-	if err != nil {
-		fmt.Printf("[ERROR] configure logger fail: %v\n", err)
-		return
+	if err = log.Configure(cfg.Bootstrap.Logger); err != nil {
+		return "", errors.Wrap(err, "configure logger fail")
 	}
 
 	// 初始化
@@ -85,8 +80,7 @@ func Start(configFilePath string) {
 	// 获取本地IP地址
 	ctx, err = acquireLocalhost(ctx, &cfg.Bootstrap.PolarisService)
 	if err != nil {
-		fmt.Printf("[ERROR] acquire localhost fail: %v\n", err)
-		return
+		return "", errors.Wrap(err, "acquire localhost fail")
 	}
 
 	metrics.InitMetrics()
@@ -95,12 +89,11 @@ func Start(configFilePath string) {
 	plugin.SetPluginConfig(&cfg.Plugin)
 
 	// 初始化存储层
-	store.SetStoreConfig(&cfg.Store)
 	var s store.Store
+	store.SetStoreConfig(&cfg.Store)
 	s, err = store.GetStore()
 	if err != nil {
-		fmt.Printf("[ERROR] get store fail: %v", err)
-		return
+		return "", errors.Wrap(err, "get store fail")
 	}
 
 	// 开启进入启动流程，初始化插件，加载数据等
@@ -108,29 +101,27 @@ func Start(configFilePath string) {
 	tx, err = StartBootstrapInOrder(s, cfg)
 	if err != nil {
 		// 多次尝试加锁失败
-		fmt.Printf("[ERROR] bootstrap fail: %v\n", err)
-		return
+		return "", errors.Wrap(err, "bootstrap fail")
 	}
-	err = StartComponents(ctx, cfg)
-	if err != nil {
-		fmt.Printf("[ERROR] start components fail: %v\n", err)
-		return
+
+	if err = StartComponents(ctx, cfg); err != nil {
+		return "", errors.Wrap(err, "start components fail")
 	}
+
 	errCh := make(chan error, len(cfg.APIServers))
 	servers, err := StartServers(ctx, cfg, errCh)
 	if err != nil {
-		fmt.Printf("[ERROR] start servers fail: %v\n", err)
-		return
+		return "", errors.Wrap(err, "start servers fail")
 	}
 
 	if err := polarisServiceRegister(&cfg.Bootstrap.PolarisService, cfg.APIServers); err != nil {
-		fmt.Printf("[ERROR] register polaris service fail: %v\n", err)
-		return
+		return "", errors.Wrap(err, "register polaris service fail")
 	}
 	_ = FinishBootstrapOrder(tx) // 启动完成，解锁
-	fmt.Println("finish starting server")
 
 	RunMainLoop(servers, errCh)
+
+	return string(config), nil
 }
 
 // StartComponents start health check and naming components
