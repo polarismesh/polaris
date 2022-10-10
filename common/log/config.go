@@ -61,7 +61,7 @@ func init() {
 }
 
 // prepZap is a utility function used by the Configure function.
-func prepZap(options *Options) ([]zapcore.Core, zapcore.Core, zapcore.WriteSyncer, error) {
+func prepZap(options *Options) ([]zapcore.Core, zapcore.Core, zapcore.WriteSyncer, *lumberjack.Logger, error) {
 	encCfg := zapcore.EncoderConfig{
 		TimeKey:        "time",
 		LevelKey:       "level",
@@ -84,34 +84,36 @@ func prepZap(options *Options) ([]zapcore.Core, zapcore.Core, zapcore.WriteSynce
 	}
 
 	var rotateSink zapcore.WriteSyncer
+	var l *lumberjack.Logger
 	if len(options.RotateOutputPath) > 0 {
-		rotateSink = zapcore.AddSync(&lumberjack.Logger{
+		l = &lumberjack.Logger{
 			Filename:   options.RotateOutputPath,
 			MaxSize:    options.RotationMaxSize,
 			MaxBackups: options.RotationMaxBackups,
 			MaxAge:     options.RotationMaxAge,
-		})
+		}
+		rotateSink = zapcore.AddSync(l)
 	}
 
 	err := createPathIfNotExist(options.ErrorOutputPaths...)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	errSink, closeErrorSink, err := zap.Open(options.ErrorOutputPaths...)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	var outputSink zapcore.WriteSyncer
 	if len(options.OutputPaths) > 0 {
 		err := createPathIfNotExist(options.OutputPaths...)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 		outputSink, _, err = zap.Open(options.OutputPaths...)
 		if err != nil {
 			closeErrorSink()
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 	}
 
@@ -156,7 +158,7 @@ func prepZap(options *Options) ([]zapcore.Core, zapcore.Core, zapcore.WriteSynce
 	if errCore != nil {
 		cores = append(cores, errCore)
 	}
-	return cores, zapcore.NewCore(enc, sink, enabler), errSink, nil
+	return cores, zapcore.NewCore(enc, sink, enabler), errSink, l, nil
 }
 
 func formatDate(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
@@ -266,13 +268,22 @@ func updateScopes(typeName string, options *Options, cores []zapcore.Core, errSi
 // You typically call this once at process startup.
 // Configure Once this call returns, the logging system is ready to accept data.
 func Configure(optionsMap map[string]*Options) error {
+	q := NewDelayRotateQueue()
 	for typeName, options := range optionsMap {
 		setDefaultOption(options)
-		cores, captureCore, errSink, err := prepZap(options)
+		cores, captureCore, errSink, l, err := prepZap(options)
 		if err != nil {
 			return err
 		}
-
+		if options.RotationMaxDuration != 0 {
+			fmt.Printf("node-----------------------> duration{%d}", options.RotationMaxDuration)
+			node := NewNode(func() {
+				//TODO 处理异常
+				fmt.Printf("excute task ----------------%s", typeName)
+				l.Rotate()
+			}, time.Duration(options.RotationMaxDuration)*time.Minute)
+			q.Add(node)
+		}
 		if err = updateScopes(typeName, options, cores, errSink); err != nil {
 			return err
 		}
@@ -306,6 +317,7 @@ func Configure(optionsMap map[string]*Options) error {
 			}
 		}
 	}
+	go q.Execute()
 	return nil
 }
 

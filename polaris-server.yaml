@@ -63,6 +63,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
+      rotationMaxDuration: 2
       outputLevel: info
       # outputPaths:
       #   - stdout
@@ -85,6 +86,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
+      rotationMaxDuration: 1
       outputLevel: info
       # outputPaths:
       #   - stdout
@@ -355,12 +357,10 @@ plugin:
     name: discoverLocal
     option:
       interval: 60 # 统计间隔，单位为秒
-      outputPath: ./discover-statis
   statis:
     name: local
     option:
       interval: 60 # 统计间隔，单位为秒
-      outputPath: ./statis
   auth:
     name: defaultAuth
   ratelimit:

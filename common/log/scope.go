@@ -93,11 +93,11 @@ func FindScope(scope string) *Scope {
 func GetScopeByName(name string) *Scope {
 	lock.RLock()
 	defer lock.RUnlock()
-
 	s := scopes[name]
 	if s == nil {
 		s = scopes[DefaultLoggerName]
 	}
+	s.Infof("scope-------------------> %v", scopes)
 	return s
 }
 

@@ -22,7 +22,7 @@ const (
 	// NamingLoggerName naming logger name, can use FindScope function to get the logger
 	NamingLoggerName = "naming"
 	// HealthCheckLoggerName healthcheck logger name, can use FindScope function to get the logger
-	HealthCheckLoggerName = "healthcheck"
+	//HealthCheckLoggerName = "healthcheck"
 	// ConfigLoggerName config logger name, can use FindScope function to get the logger
 	ConfigLoggerName = "config"
 	// CacheLoggerName cache logger name, can use FindScope function to get the logger
@@ -59,7 +59,7 @@ const (
 
 var (
 	namingScope      = RegisterScope(NamingLoggerName, "naming logging messages.", 0)
-	healthcheckScope = RegisterScope(HealthCheckLoggerName, "healthcheck logging messages.", 0)
+	healthcheckScope = RegisterScope(PluginHealthcheckName, "healthcheck logging messages.", 0)
 	configScope      = RegisterScope(ConfigLoggerName, "config logging messages.", 0)
 	cacheScope       = RegisterScope(CacheLoggerName, "cache logging messages.", 0)
 	authScope        = RegisterScope(AuthLoggerName, "auth logging messages.", 0)
@@ -70,8 +70,10 @@ var (
 
 func allLoggerTypes() []string {
 	return []string{NamingLoggerName, ConfigLoggerName, CacheLoggerName,
-		AuthLoggerName, StoreLoggerName, APIServerLoggerName, HealthCheckLoggerName,
-		XDSLoggerName, DefaultLoggerName}
+		AuthLoggerName, StoreLoggerName, APIServerLoggerName, XDSLoggerName,
+		PluginDiscoverEventName, PluginAuthPlatformName, PluginDiscoverEventLokiName,
+		PluginDiscoverStatName, PluginHealthcheckName, PluginRateLimitName,
+		PluginStatisName, PluginCmdbName, PluginHistoryName, PluginPasswordName, DefaultLoggerName}
 }
 
 // APIServerScope apiserver logging scope handler
