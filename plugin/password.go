@@ -24,9 +24,7 @@ import (
 	"github.com/polarismesh/polaris/common/log"
 )
 
-var (
-	passwordOnce = &sync.Once{}
-)
+var passwordOnce sync.Once
 
 // ParsePassword 密码插件
 type ParsePassword interface {

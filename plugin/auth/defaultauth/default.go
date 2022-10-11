@@ -27,7 +27,7 @@ const (
 
 var (
 	// emptyVal 空对象，占位而已
-	emptyVal struct{} = struct{}{}
+	emptyVal = struct{}{}
 )
 
 // 自注册到插件列表

@@ -29,9 +29,9 @@ import (
 // 把操作记录记录到Loki
 const (
 	// PluginName plugin name
-	PluginName       string = "HistoryLoki"
-	defaultBatchSize int    = 512
-	defaultQueueSize int    = 1024
+	PluginName       = "HistoryLoki"
+	defaultBatchSize = 512
+	defaultQueueSize = 1024
 )
 
 func init() {
@@ -65,7 +65,7 @@ func (h *HistoryLoki) Initialize(conf *plugin.ConfigEntry) error {
 	}
 	h.logger = lokiLogger
 	h.entryCh = make(chan *model.RecordEntry, queueSize)
-	h.stopCh = make(chan struct{})
+	h.stopCh = make(chan struct{}, 1)
 	go h.Run()
 	return nil
 }

@@ -25,7 +25,7 @@ import (
 var (
 	pluginSet = make(map[string]Plugin)
 	config    = &Config{}
-	once      = &sync.Once{}
+	once      sync.Once
 )
 
 // RegisterPlugin 注册插件

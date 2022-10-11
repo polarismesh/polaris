@@ -25,9 +25,9 @@ import (
 )
 
 const (
-	PluginName       string = "discoverEventLoki"
-	defaultBatchSize int    = 512
-	defaultQueueSize int    = 1024
+	PluginName       = "discoverEventLoki"
+	defaultBatchSize = 512
+	defaultQueueSize = 1024
 )
 
 func init() {
@@ -61,7 +61,7 @@ func (d *discoverEventLoki) Initialize(conf *plugin.ConfigEntry) error {
 	}
 	d.eventLog = lokiLogger
 	d.eventCh = make(chan model.DiscoverEvent, queueSize)
-	d.stopCh = make(chan struct{})
+	d.stopCh = make(chan struct{}, 1)
 	go d.Run()
 	return nil
 }

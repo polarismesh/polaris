@@ -157,8 +157,9 @@ func (l *LokiLogger) Log(entries []*model.RecordEntry) {
 		log.Errorf("[History][LokiLogger] send request error: %v", err)
 		return
 	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusNoContent {
-		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Errorf("[History][LokiLogger] read resp body error: %v", err)

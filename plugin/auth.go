@@ -26,10 +26,8 @@ import (
 	"github.com/polarismesh/polaris/common/log"
 )
 
-var (
-	// 插件初始化原子变量
-	authOnce = &sync.Once{}
-)
+// 插件初始化原子变量
+var authOnce sync.Once
 
 // Auth AUTH插件接口
 type Auth interface {

@@ -49,9 +49,7 @@ var RatelimitStr = map[RatelimitType]string{
 	InstanceRatelimit: "instance-limit",
 }
 
-var (
-	rateLimitOnce = sync.Once{}
-)
+var rateLimitOnce sync.Once
 
 // Ratelimit Ratelimit插件接口
 type Ratelimit interface {

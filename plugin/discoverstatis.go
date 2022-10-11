@@ -25,9 +25,7 @@ import (
 	"github.com/polarismesh/polaris/common/log"
 )
 
-var (
-	discoverStatisOnce = &sync.Once{}
-)
+var discoverStatisOnce sync.Once
 
 // DiscoverStatis 服务发现统计插件接口
 type DiscoverStatis interface {

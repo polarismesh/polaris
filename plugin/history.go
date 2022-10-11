@@ -25,10 +25,8 @@ import (
 	"github.com/polarismesh/polaris/common/model"
 )
 
-var (
-	// 插件初始化原子变量
-	historyOnce = &sync.Once{}
-)
+// 插件初始化原子变量
+var historyOnce sync.Once
 
 // History 历史记录插件
 type History interface {

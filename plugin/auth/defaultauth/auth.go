@@ -65,29 +65,25 @@ func (da *defaultAuth) Allow(platformID, platformToken string) bool {
 
 // CheckPermission 权限检查
 func (da *defaultAuth) CheckPermission(reqCtx interface{}, authRule interface{}) (bool, error) {
-
 	ctx, ok := reqCtx.(*model.AcquireContext)
 	if !ok {
 		return false, ErrorInvalidParameter
 	}
 
 	userId := utils.ParseUserID(ctx.GetRequestContext())
-	strategies, ok := authRule.([]*model.StrategyDetail)
-
+	strategies, _ := authRule.([]*model.StrategyDetail)
 	if len(strategies) == 0 {
 		return true, nil
 	}
 
 	reqRes := ctx.GetAccessResources()
 	var (
-		checkNamespace   bool = false
-		checkService     bool = true
-		checkConfigGroup bool = true
+		checkNamespace   = false
+		checkService     = true
+		checkConfigGroup = true
 	)
 
-	for index := range strategies {
-		rule := strategies[index]
-
+	for _, rule := range strategies {
 		if !da.checkAction(rule.Action, ctx.GetOperation()) {
 			continue
 		}
@@ -133,18 +129,15 @@ func (da *defaultAuth) checkAction(expect string, actual model.ResourceOperation
 //	@param searchMaps 鉴权策略中某一类型的资源列表信息
 //	@return bool 是否可以操作本次被访问的所有资源
 func checkAnyElementExist(userId string, waitSearch []model.ResourceEntry, searchMaps *SearchMap) bool {
-	if len(waitSearch) == 0 {
-		return true
-	}
-	if searchMaps.passAll {
+	if len(waitSearch) == 0 || searchMaps.passAll {
 		return true
 	}
 
-	for i := range waitSearch {
-		entry := waitSearch[i]
+	for _, entry := range waitSearch {
 		if entry.Owner == userId {
 			continue
 		}
+
 		if _, ok := searchMaps.items[entry.ID]; !ok {
 			return false
 		}
@@ -168,8 +161,7 @@ func buildSearchMap(ss []model.StrategyResource) []*SearchMap {
 		passAll: false,
 	}
 
-	for i := range ss {
-		val := ss[i]
+	for _, val := range ss {
 		if val.ResType == int32(api.ResourceType_Namespaces) {
 			nsSearchMaps.items[val.ResID] = emptyVal
 			nsSearchMaps.passAll = (val.ResID == "*") || nsSearchMaps.passAll

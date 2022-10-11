@@ -25,9 +25,7 @@ import (
 	"github.com/polarismesh/polaris/common/model"
 )
 
-var (
-	discoverEventOnce = &sync.Once{}
-)
+var discoverEventOnce sync.Once
 
 // DiscoverChannel is used to receive discover events from the agent
 type DiscoverChannel interface {
