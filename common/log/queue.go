@@ -67,6 +67,8 @@ func NewDelayRotateQueue() *DelayRotateQueue {
 
 // Add 加入队列
 func (queue *DelayRotateQueue) Add(node *Node) {
+	queue.queueLock.Lock()
+	defer queue.queueLock.Unlock()
 	if queue.state != StateRunnable {
 		//已经开始运行不允许再添加新的节点
 		return
@@ -78,8 +80,6 @@ func (queue *DelayRotateQueue) enq(node *Node) {
 	if node == nil || node.rotate < 0 {
 		return
 	}
-	queue.queueLock.Lock()
-	defer queue.queueLock.Unlock()
 	//队列数量增加
 	queue.queueSize++
 
@@ -109,15 +109,19 @@ func (queue *DelayRotateQueue) enq(node *Node) {
 
 // Execute 执行队列延时任务
 func (queue *DelayRotateQueue) Execute() {
+	queue.queueLock.Lock()
+	defer queue.queueLock.Unlock()
+	if queue.state == StateRunning {
+		return
+	}
+	if queue.head == nil {
+		//队列没有节点不允许执行
+		return
+	}
+	queue.state = StateRunning
+	queue.queueLock.Unlock()
 	for {
-		if queue.head == nil {
-			//队列没有节点不允许执行
-			queue.state = StateRunnable
-			return
-		}
-		queue.state = StateRunning
 		<-queue.head.t.C
-		queue.queueLock.Lock()
 		//重置节点
 		executeNode := queue.head
 		executeNode.expTime = time.Now().Add(executeNode.rotate).UnixMilli()
@@ -125,14 +129,12 @@ func (queue *DelayRotateQueue) Execute() {
 		//移除队首节点
 		if executeNode.next == nil || executeNode.expTime <= executeNode.next.expTime {
 			//只有一个节点或者重置后的节点依然能排在队首就不用出队了
-			queue.queueLock.Unlock()
 			executeNode.task()
 			continue
 		}
 		queue.head = executeNode.next
 		queue.head.prev = nil
 		executeNode.next = nil
-		queue.queueLock.Unlock()
 		//重新归队
 		queue.enq(executeNode)
 		//执行队列任务
