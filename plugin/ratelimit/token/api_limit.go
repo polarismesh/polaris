@@ -29,7 +29,7 @@ import (
 // apiRatelimit 接口限流类
 type apiRatelimit struct {
 	rules  map[string]*BucketRatelimit // 存储规则
-	apis   *sync.Map                   // 存储api -> apiLimiter
+	apis   sync.Map                    // 存储api -> apiLimiter
 	config *APILimitConfig
 }
 
@@ -67,7 +67,7 @@ func (art *apiRatelimit) parseRules(rules []*RateLimitRule) error {
 		return errors.New("invalid api rate limit config, rules are empty")
 	}
 
-	art.rules = make(map[string]*BucketRatelimit)
+	art.rules = make(map[string]*BucketRatelimit, len(rules))
 	for _, entry := range rules {
 		if entry.Name == "" {
 			return errors.New("invalid api rate limit config, some rules name are empty")
@@ -90,7 +90,6 @@ func (art *apiRatelimit) parseApis(apis []*APILimitInfo) error {
 		return errors.New("invalid api rate limit config, apis are empty")
 	}
 
-	art.apis = new(sync.Map)
 	for _, entry := range apis {
 		if entry.Name == "" {
 			return errors.New("invalid api rate limit config, api name is empty")
@@ -98,6 +97,7 @@ func (art *apiRatelimit) parseApis(apis []*APILimitInfo) error {
 		if entry.Rule == "" {
 			return errors.New("invalid api rate limit config, api rule is empty")
 		}
+
 		limit, ok := art.rules[entry.Rule]
 		if !ok {
 			return errors.New("invalid api rate limit config, api rule is not found")

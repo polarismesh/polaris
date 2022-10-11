@@ -152,14 +152,16 @@ func (l *LokiLogger) Log(events []model.DiscoverEvent) {
 		log.Errorf("[Discoverevent][LokiLogger] marshal push request error: %v", err)
 		return
 	}
+
 	buf = snappy.Encode(nil, buf)
 	resp, err := l.send(context.Background(), buf)
 	if err != nil {
 		log.Errorf("[Discoverevent][LokiLogger] send request error: %v", err)
 		return
 	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusNoContent {
-		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Errorf("[Discoverevent][LokiLogger] read resp body error: %v", err)
@@ -178,6 +180,7 @@ func (l *LokiLogger) send(ctx context.Context, reqBody []byte) (*http.Response, 
 	if err != nil {
 		return nil, err
 	}
+
 	req = req.WithContext(ctx)
 	req.Header.Set("Content-Type", contentType)
 	if l.tenantID != "" {

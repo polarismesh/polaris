@@ -149,9 +149,7 @@ func (s *StatisWorker) Run() {
 	time.Sleep(time.Duration(diff) * time.Second)
 
 	ticker := time.NewTicker(s.interval)
-	defer func() {
-		ticker.Stop()
-	}()
+	defer ticker.Stop()
 
 	for {
 		select {

@@ -35,7 +35,7 @@ const (
 	// PluginName plugin name
 	PluginName = "platform"
 	// DefaultTimeDiff default time diff
-	DefaultTimeDiff = -1 * time.Second * 5
+	DefaultTimeDiff = -5 * time.Second
 )
 
 // init 初始化注册函数

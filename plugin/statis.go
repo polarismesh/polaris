@@ -24,9 +24,7 @@ import (
 	"github.com/polarismesh/polaris/common/log"
 )
 
-var (
-	statisOnce = &sync.Once{}
-)
+var statisOnce sync.Once
 
 const (
 	ComponentServer = "server"
