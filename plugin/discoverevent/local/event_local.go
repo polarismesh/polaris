@@ -36,7 +36,7 @@ const (
 
 var (
 	emptyModelDiscoverEvent = model.DiscoverEvent{}
-	log                     = commonLog.GetScopeByName(commonLog.PluginDiscoverEventName)
+	log                     = commonLog.GetScopeByName(commonLog.DiscoverEventLoggerName)
 )
 
 func init() {

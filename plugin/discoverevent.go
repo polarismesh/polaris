@@ -27,7 +27,7 @@ import (
 
 var (
 	discoverEventOnce = &sync.Once{}
-	discoverEventLog  = commonLog.GetScopeByName(commonLog.PluginDiscoverEventName)
+	discoverEventLog  = commonLog.GetScopeByName(commonLog.DiscoverEventLoggerName)
 )
 
 // DiscoverChannel is used to receive discover events from the agent

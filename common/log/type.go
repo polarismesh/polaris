@@ -33,41 +33,32 @@ const (
 	APIServerLoggerName = "apiserver"
 	// XDSLoggerName xdsv3 logger name, can use FindScope function to get the logger
 	XDSLoggerName = "xdsv3"
-
-	PluginAuthPlatformName = "authPlatform"
-
-	PluginDiscoverEventName = "discoverEventLocal"
-
-	PluginDiscoverEventLokiName = "discoverEventLoki"
-
-	PluginDiscoverStatName = "discoverStat"
-
-	PluginHealthcheckName = "healthcheck"
-
-	PluginRateLimitName = "rateLimit"
-
-	PluginStatisName = "statis"
-
-	PluginCmdbName = "cmdb"
-
-	PluginHistoryName = "history"
-
-	PluginPasswordName = "password"
-)
-
-var (
-	xdsScope = RegisterScope(XDSLoggerName, "xdsv3 logging messages.", 0)
+	// AuthPlatformLoggerName platform logger name, can use FindScope function to get the logger
+	AuthPlatformLoggerName = "platform"
+	// DiscoverEventLoggerName discoverEventLocal logger name, can use FindScope function to get the logger
+	DiscoverEventLoggerName = "discoverEventLocal"
+	// DiscoverEventLokiLoggerName discoverEventLoki logger name, can use FindScope function to get the logger
+	DiscoverEventLokiLoggerName = "discoverEventLoki"
+	// DiscoverStatLoggerName discoverStat logger name, can use FindScope function to get the logger
+	DiscoverStatLoggerName = "discoverStat"
+	// HealthcheckLoggerName healthcheck logger name, can use FindScope function to get the logger
+	HealthcheckLoggerName = "healthcheck"
+	// RateLimitLoggerName rateLimit logger name, can use FindScope function to get the logger
+	RateLimitLoggerName = "rateLimit"
+	// StatisLoggerName statis logger name, can use FindScope function to get the logger
+	StatisLoggerName = "statis"
+	// CmdbLoggerName cmdb logger name, can use FindScope function to get the logger
+	CmdbLoggerName = "cmdb"
+	// HistoryLoggerName history logger name, can use FindScope function to get the logger
+	HistoryLoggerName = "history"
+	// PasswordLoggerName password logger name, can use FindScope function to get the logger
+	PasswordLoggerName = "password"
 )
 
 func allLoggerTypes() []string {
 	return []string{NamingLoggerName, ConfigLoggerName, CacheLoggerName,
 		AuthLoggerName, StoreLoggerName, APIServerLoggerName, XDSLoggerName,
-		PluginDiscoverEventName, PluginAuthPlatformName, PluginDiscoverEventLokiName,
-		PluginDiscoverStatName, PluginHealthcheckName, PluginRateLimitName,
-		PluginStatisName, PluginCmdbName, PluginHistoryName, PluginPasswordName, DefaultLoggerName}
-}
-
-// XDSV3Scope xdsv3 logging scope handler
-func XDSV3Scope() *Scope {
-	return xdsScope
+		DiscoverEventLoggerName, AuthPlatformLoggerName, DiscoverEventLokiLoggerName,
+		DiscoverStatLoggerName, HealthcheckLoggerName, RateLimitLoggerName, StatisLoggerName, CmdbLoggerName,
+		HistoryLoggerName, PasswordLoggerName, DefaultLoggerName}
 }

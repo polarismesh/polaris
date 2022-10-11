@@ -26,7 +26,7 @@ import (
 
 var (
 	passwordOnce = &sync.Once{}
-	passwordLog  = commonLog.GetScopeByName(commonLog.PluginPasswordName)
+	passwordLog  = commonLog.GetScopeByName(commonLog.PasswordLoggerName)
 )
 
 // ParsePassword 密码插件

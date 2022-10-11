@@ -41,7 +41,7 @@ const (
 	defaultTimeout = 10 * time.Second
 )
 
-var log = commonLog.GetScopeByName(commonLog.PluginDiscoverEventLokiName)
+var log = commonLog.GetScopeByName(commonLog.DiscoverEventLokiLoggerName)
 
 // LokiLoggerConfig Loki 日志器配置
 type LokiLoggerConfig struct {

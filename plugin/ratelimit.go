@@ -51,7 +51,7 @@ var RatelimitStr = map[RatelimitType]string{
 
 var (
 	rateLimitOnce = sync.Once{}
-	rateLimitLog  = commonLog.GetScopeByName(commonLog.PluginRateLimitName)
+	rateLimitLog  = commonLog.GetScopeByName(commonLog.RateLimitLoggerName)
 )
 
 // Ratelimit Ratelimit插件接口

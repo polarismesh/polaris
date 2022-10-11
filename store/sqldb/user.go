@@ -26,7 +26,6 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	logger "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -421,7 +420,7 @@ func (u *userStore) listUsers(filters map[string]string, offset uint32, limit ui
 	getSql += " ORDER BY mtime LIMIT ? , ?"
 	getArgs := append(args, offset, limit)
 
-	users, err := u.collectUsers(u.master.Query, getSql, getArgs, log)
+	users, err := u.collectUsers(u.master.Query, getSql, getArgs)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -480,7 +479,7 @@ func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, lim
 	querySql += " ORDER BY u.mtime LIMIT ? , ?"
 	args = append(args, offset, limit)
 
-	users, err := u.collectUsers(u.master.Query, querySql, args, log)
+	users, err := u.collectUsers(u.master.Query, querySql, args)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -505,7 +504,7 @@ func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mode
 		args = append(args, timeToTimestamp(mtime))
 	}
 
-	users, err := u.collectUsers(u.master.Query, querySql, args, cacheLog)
+	users, err := u.collectUsers(u.master.Query, querySql, args)
 	if err != nil {
 		return nil, err
 	}
@@ -514,12 +513,11 @@ func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mode
 }
 
 // collectUsers General query user list
-func (u *userStore) collectUsers(handler QueryHandler, querySql string, args []interface{},
-	scope *logger.Scope) ([]*model.User, error) {
+func (u *userStore) collectUsers(handler QueryHandler, querySql string, args []interface{}) ([]*model.User, error) {
 
 	rows, err := u.master.Query(querySql, args...)
 	if err != nil {
-		scope.Error("[Store][User] list user ", zap.String("query sql", querySql), zap.Any("args", args))
+		log.Error("[Store][User] list user ", zap.String("query sql", querySql), zap.Any("args", args))
 		return nil, store.Error(err)
 	}
 	defer rows.Close()
@@ -528,7 +526,7 @@ func (u *userStore) collectUsers(handler QueryHandler, querySql string, args []i
 	for rows.Next() {
 		user, err := fetchRown2User(rows)
 		if err != nil {
-			scope.Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
+			log.Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
 			return nil, store.Error(err)
 		}
 		users = append(users, user)

@@ -30,7 +30,7 @@ const (
 	PluginName = "heartbeatMemory"
 )
 
-var log = commonLog.GetScopeByName(commonLog.PluginHealthcheckName)
+var log = commonLog.GetScopeByName(commonLog.HealthcheckLoggerName)
 
 // HeartbeatRecord record for heartbeat
 type HeartbeatRecord struct {

@@ -27,7 +27,7 @@ import (
 
 var (
 	discoverStatisOnce = &sync.Once{}
-	discoverStatLog    = commonLog.GetScopeByName(commonLog.PluginDiscoverStatName)
+	discoverStatLog    = commonLog.GetScopeByName(commonLog.DiscoverStatLoggerName)
 )
 
 // DiscoverStatis 服务发现统计插件接口

@@ -203,9 +203,8 @@ func formatDate(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 func updateScopes(typeName string, options *Options, cores []zapcore.Core, errSink zapcore.WriteSyncer) error {
 	scope := FindScope(typeName)
 	if scope == nil {
-		//对于配置文件里有但是还没注册的日志配置进行注册
+		//对还没注册的日志配置进行注册
 		scope = RegisterScope(typeName, fmt.Sprintf("%s logging messages.", typeName), 0)
-		//return fmt.Errorf("unknown logger name '%s' specified", typeName)
 	}
 
 	// update the output levels of all listed scopes
@@ -268,20 +267,20 @@ func updateScopes(typeName string, options *Options, cores []zapcore.Core, errSi
 // You typically call this once at process startup.
 // Configure Once this call returns, the logging system is ready to accept data.
 func Configure(optionsMap map[string]*Options) error {
-	q := NewDelayRotateQueue()
+	rotateTaskQueue := NewDelayRotateQueue()
 	for typeName, options := range optionsMap {
 		setDefaultOption(options)
-		cores, captureCore, errSink, l, err := prepZap(options)
+		cores, captureCore, errSink, log, err := prepZap(options)
 		if err != nil {
 			return err
 		}
 		if options.RotationMaxDuration != 0 {
 			node := NewNode(func() {
-				if err := l.Rotate(); err != nil {
+				if err := log.Rotate(); err != nil {
 					return
 				}
 			}, time.Duration(options.RotationMaxDuration)*time.Hour)
-			q.Add(node)
+			rotateTaskQueue.Add(node)
 		}
 		if err = updateScopes(typeName, options, cores, errSink); err != nil {
 			return err
@@ -316,7 +315,7 @@ func Configure(optionsMap map[string]*Options) error {
 			}
 		}
 	}
-	go q.Execute()
+	go rotateTaskQueue.Execute()
 	return nil
 }
 
