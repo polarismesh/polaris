@@ -32,9 +32,9 @@ import (
 
 var (
 	server          NamespaceOperateServer
-	namespaceServer *Server = new(Server)
-	once                    = sync.Once{}
-	finishInit              = false
+	namespaceServer = &Server{}
+	once            sync.Once
+	finishInit      bool
 )
 
 type Config struct {
@@ -56,8 +56,7 @@ func Initialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMg
 	return nil
 }
 
-func initialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
-
+func initialize(_ context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
 	namespaceServer.caches = cacheMgn
 	namespaceServer.storage = storage
 	namespaceServer.cfg = *nsOpt

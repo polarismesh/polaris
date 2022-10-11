@@ -25,6 +25,9 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
+var _ NamespaceOperateServer = (*serverAuthAbility)(nil)
+
+// CreateNamespaceIfAbsent Create a single name space
 func (svr *serverAuthAbility) CreateNamespaceIfAbsent(ctx context.Context, req *api.Namespace) error {
 	return svr.targetServer.CreateNamespaceIfAbsent(ctx, req)
 }
@@ -42,8 +45,7 @@ func (svr *serverAuthAbility) CreateNamespace(ctx context.Context, req *api.Name
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	// 填充 ownerId 信息数据
-	ownerId := utils.ParseOwnerID(ctx)
-	if len(ownerId) > 0 {
+	if ownerId := utils.ParseOwnerID(ctx); len(ownerId) > 0 {
 		req.Owners = utils.NewStringValue(ownerId)
 	}
 
