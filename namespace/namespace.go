@@ -31,8 +31,6 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-var _ NamespaceOperateServer = (*Server)(nil)
-
 func (s *Server) allowAutoCreate() bool {
 	return s.cfg.AutoCreate
 }
