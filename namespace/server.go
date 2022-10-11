@@ -29,6 +29,8 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var _ NamespaceOperateServer = (*Server)(nil)
+
 type Server struct {
 	storage store.Store
 

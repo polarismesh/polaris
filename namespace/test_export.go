@@ -28,11 +28,9 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-func TestInitialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.CacheManager,
+func TestInitialize(_ context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.CacheManager,
 	authSvr auth.AuthServer) (NamespaceOperateServer, error) {
-
-	namespaceServer := new(Server)
-
+	namespaceServer := &Server{}
 	namespaceServer.caches = cacheMgn
 	namespaceServer.storage = storage
 	namespaceServer.cfg = *nsOpt
