@@ -50,7 +50,7 @@ var RatelimitStr = map[RatelimitType]string{
 }
 
 var (
-	rateLimitOnce = sync.Once{}
+	rateLimitOnce sync.Once
 	rateLimitLog  = commonLog.GetScopeByName(commonLog.RateLimitLoggerName)
 )
 

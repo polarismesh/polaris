@@ -27,7 +27,7 @@ import (
 
 var (
 	// 插件初始化原子变量
-	historyOnce = &sync.Once{}
+	historyOnce sync.Once
 	historyLog  = commonLog.GetScopeByName(commonLog.HistoryLoggerName)
 )
 

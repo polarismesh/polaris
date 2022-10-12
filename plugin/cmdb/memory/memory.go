@@ -62,14 +62,11 @@ func (m *Memory) GetLocation(host string) (*model.Location, error) {
 
 // Range 实现CMDB插件接口
 func (m *Memory) Range(handler func(host string, location *model.Location) (bool, error)) error {
-	cont, err := handler("", nil)
+	_, err := handler("", nil)
 	if err != nil {
 		return err
 	}
 
-	if !cont {
-		return nil
-	}
 	return nil
 }
 

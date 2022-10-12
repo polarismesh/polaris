@@ -59,7 +59,7 @@ const (
 
 var (
 	// metricDescList Metrics Description Defines the list
-	metricDescList []metricDesc = []metricDesc{
+	metricDescList = []metricDesc{
 		{
 			Name:       MetricForClientRqTotal,
 			Help:       "total number of client requests",

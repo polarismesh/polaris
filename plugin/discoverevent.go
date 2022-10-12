@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	discoverEventOnce = &sync.Once{}
+	discoverEventOnce sync.Once
 	discoverEventLog  = commonLog.GetScopeByName(commonLog.DiscoverEventLoggerName)
 )
 

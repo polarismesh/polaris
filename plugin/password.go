@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	passwordOnce = &sync.Once{}
+	passwordOnce sync.Once
 	passwordLog  = commonLog.GetScopeByName(commonLog.PasswordLoggerName)
 )
 

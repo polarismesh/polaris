@@ -30,14 +30,10 @@ import (
 )
 
 const (
-	PluginName        string = "discoverEventLocal"
-	defaultBufferSize int    = 1024
+	PluginName        = "discoverEventLocal"
+	defaultBufferSize = 1024
 )
-
-var (
-	emptyModelDiscoverEvent = model.DiscoverEvent{}
-	log                     = commonLog.GetScopeByName(commonLog.DiscoverEventLoggerName)
-)
+var log = commonLog.GetScopeByName(commonLog.DiscoverEventLoggerName)
 
 func init() {
 	d := &discoverEventLocal{}
@@ -98,10 +94,10 @@ func (holder *eventBufferHolder) Size() int {
 
 type discoverEventLocal struct {
 	eventCh        chan model.DiscoverEvent
-	bufferPool     *sync.Pool
+	bufferPool     sync.Pool
 	curEventBuffer *eventBufferHolder
 	cursor         int
-	syncLock       *sync.Mutex
+	syncLock       sync.Mutex
 }
 
 // Name 插件名称
@@ -129,8 +125,7 @@ func (el *discoverEventLocal) Initialize(conf *plugin.ConfigEntry) error {
 
 	el.eventCh = make(chan model.DiscoverEvent, config.QueueSize)
 
-	el.syncLock = &sync.Mutex{}
-	el.bufferPool = &sync.Pool{
+	el.bufferPool = sync.Pool{
 		New: func() interface{} {
 			return newEventBufferHolder(defaultBufferSize)
 		},
@@ -160,9 +155,9 @@ func (el *discoverEventLocal) PublishEvent(event model.DiscoverEvent) {
 
 // Run 执行主逻辑
 func (el *discoverEventLocal) Run() {
-
 	// 定时刷新事件到日志的定时器
 	syncInterval := time.NewTicker(time.Duration(10) * time.Second)
+	defer syncInterval.Stop()
 
 	for {
 		select {
@@ -191,19 +186,15 @@ func (el *discoverEventLocal) switchEventBuffer() {
 
 // writeToFile 事件落盘
 func (el *discoverEventLocal) writeToFile(eventHolder *eventBufferHolder) {
-
 	el.syncLock.Lock()
-
 	defer func() {
 		el.syncLock.Unlock()
 		eventHolder.Reset()
 		el.bufferPool.Put(eventHolder)
-
 	}()
 
 	for eventHolder.HasNext() {
 		event := eventHolder.Next()
-
 		log.Info(fmt.Sprintf(
 			"%s|%s|%s|%d|%s|%d|%s",
 			event.Namespace,

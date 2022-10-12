@@ -137,7 +137,7 @@ func (m *LRURate) Destroy() error {
 
 // Allow 实现CMDB插件接口
 func (m *LRURate) Allow(rateType plugin.RatelimitType, id string) bool {
-	switch plugin.RatelimitType(rateType) {
+	switch rateType {
 	case plugin.IPRatelimit:
 		return allowIP(id)
 	case plugin.ServiceRatelimit:

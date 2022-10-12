@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	discoverStatisOnce = &sync.Once{}
+	discoverStatisOnce sync.Once
 	discoverStatLog    = commonLog.GetScopeByName(commonLog.DiscoverStatLoggerName)
 )
 

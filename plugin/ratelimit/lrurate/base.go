@@ -54,11 +54,8 @@ func hash(str string) uint32 {
 // allowIP ip限流
 func allowIP(id string) bool {
 	key := hash(id)
-
 	ipLruCache.ContainsOrAdd(key, rate.NewLimiter(rate.Limit(rateLimitIPRate), rateLimitIPBurst))
-
-	value, ok := ipLruCache.Get(key)
-	if ok {
+	if value, ok := ipLruCache.Get(key); ok {
 		return value.(*rate.Limiter).Allow()
 	}
 
@@ -68,11 +65,8 @@ func allowIP(id string) bool {
 // allowService service限流
 func allowService(id string) bool {
 	key := hash(id)
-
 	serviceLruCache.ContainsOrAdd(key, rate.NewLimiter(rate.Limit(rateLimitServiceRate), rateLimitServiceBurst))
-
-	value, ok := serviceLruCache.Get(key)
-	if ok {
+	if value, ok := serviceLruCache.Get(key); ok {
 		return value.(*rate.Limiter).Allow()
 	}
 
