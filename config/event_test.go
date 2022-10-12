@@ -18,7 +18,6 @@
 package config
 
 import (
-	"log"
 	"strconv"
 	"sync"
 	"testing"
@@ -33,12 +32,12 @@ func TestCenter_WatchEvent(t *testing.T) {
 			defer wg.Done()
 			cb := func(event Event) bool {
 				event.Message = i
-				log.Println("handler event: ", event.EventType, "msg:", event.Message)
+				log.Infof("handler event: %s msg:%s", event.EventType, event.Message)
 				return true
 			}
 
 			eventType := "test_" + strconv.Itoa(i)
-			log.Println("eventType2: ", eventType)
+			log.Infof("eventType2: %s", eventType)
 			c.WatchEvent(eventType, cb)
 		}(i, &wg)
 
@@ -46,7 +45,7 @@ func TestCenter_WatchEvent(t *testing.T) {
 			defer wg.Done()
 
 			eventType := "test_" + strconv.Itoa(i)
-			log.Println("eventType: ", eventType)
+			log.Infof("eventType: %s", eventType)
 			c.handleEvent(Event{
 				EventType: eventType,
 			})
@@ -54,5 +53,5 @@ func TestCenter_WatchEvent(t *testing.T) {
 	}
 
 	wg.Wait()
-	log.Println("test event watch end")
+	log.Infof("test event watch end")
 }

@@ -34,7 +34,6 @@ import (
 	"github.com/polarismesh/polaris/cache"
 	_ "github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
@@ -100,7 +99,7 @@ func (c *ConfigCenterTest) doInitialize() error {
 	if err := c.loadBootstrapConfig(); err != nil {
 		return err
 	}
-	_ = log.Configure(c.cfg.Bootstrap.Logger)
+	_ = commonlog.Configure(c.cfg.Bootstrap.Logger)
 	ctx, cancel := context.WithCancel(context.Background())
 	c.cancel = cancel
 	plugin.SetPluginConfig(&c.cfg.Plugin)
