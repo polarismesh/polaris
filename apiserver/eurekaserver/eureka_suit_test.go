@@ -25,22 +25,14 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"gopkg.in/yaml.v2"
+
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
-	"github.com/polarismesh/polaris/service"
-	"github.com/polarismesh/polaris/service/batch"
-	"github.com/polarismesh/polaris/service/healthcheck"
-	"github.com/polarismesh/polaris/store"
-	storemock "github.com/polarismesh/polaris/store/mock"
-	"gopkg.in/yaml.v2"
-
-	"github.com/polarismesh/polaris/testdata"
-
-	// 注册相关默认插件
 	_ "github.com/polarismesh/polaris/plugin/auth/defaultauth"
 	_ "github.com/polarismesh/polaris/plugin/auth/platform"
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
@@ -53,8 +45,14 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/lrurate"
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/token"
 	_ "github.com/polarismesh/polaris/plugin/statis/local"
+	"github.com/polarismesh/polaris/service"
+	"github.com/polarismesh/polaris/service/batch"
+	"github.com/polarismesh/polaris/service/healthcheck"
+	"github.com/polarismesh/polaris/store"
 	_ "github.com/polarismesh/polaris/store/boltdb"
+	storemock "github.com/polarismesh/polaris/store/mock"
 	_ "github.com/polarismesh/polaris/store/sqldb"
+	"github.com/polarismesh/polaris/testdata"
 )
 
 type Bootstrap struct {

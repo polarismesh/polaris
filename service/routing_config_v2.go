@@ -23,6 +23,8 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
@@ -32,7 +34,6 @@ import (
 	routingcommon "github.com/polarismesh/polaris/common/routing"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
-	"go.uber.org/zap"
 )
 
 var (

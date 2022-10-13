@@ -20,10 +20,11 @@ package service
 import (
 	"context"
 
+	"go.uber.org/zap"
+
 	api "github.com/polarismesh/polaris/common/api/v1"
 	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 	"github.com/polarismesh/polaris/common/utils"
-	"go.uber.org/zap"
 )
 
 // GetRoutingConfigWithCache User Client Get Service Routing Configuration Information

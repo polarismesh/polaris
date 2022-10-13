@@ -20,9 +20,10 @@ package loki
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/plugin"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestHistoryLoki_Name(t *testing.T) {
