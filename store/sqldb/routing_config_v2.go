@@ -23,9 +23,10 @@ import (
 	"fmt"
 	"time"
 
+	"go.uber.org/zap"
+
 	v2 "github.com/polarismesh/polaris/common/model/v2"
 	"github.com/polarismesh/polaris/store"
-	"go.uber.org/zap"
 )
 
 // RoutingConfigStoreV2 的实现

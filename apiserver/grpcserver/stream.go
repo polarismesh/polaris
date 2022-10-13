@@ -23,11 +23,12 @@ import (
 	"strings"
 	"time"
 
-	commonlog "github.com/polarismesh/polaris/common/log"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
+
+	commonlog "github.com/polarismesh/polaris/common/log"
 )
 
 // initVirtualStream 对 VirtualStream 的一些初始化动作

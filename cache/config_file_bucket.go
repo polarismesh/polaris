@@ -43,11 +43,11 @@ func newConfigFileGroupBucket() *configFileGroupBucket {
 }
 
 type configFileGroupBucket struct {
-	lock sync.RWMutex
+	lock        sync.RWMutex
 	name2groups map[string]*subConfigFileGroupBucket
 
-	idlock      sync.RWMutex
-	id2groups   map[uint64]*configGroupEntry
+	idlock    sync.RWMutex
+	id2groups map[uint64]*configGroupEntry
 }
 
 func (b *configFileGroupBucket) saveGroupById(id uint64, item *model.ConfigFileGroup) {
