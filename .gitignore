@@ -23,3 +23,6 @@ __debug_bin
 /vendor
 .codecc
 *.log
+
+style_tool/
+goimports-reviser

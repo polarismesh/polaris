@@ -23,10 +23,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/stretchr/testify/assert"
 )
 
 func mockReportClients(cnt int) []*apiv1.Client {

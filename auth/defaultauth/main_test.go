@@ -26,6 +26,8 @@ import (
 
 	"github.com/boltdb/bolt"
 	_ "github.com/go-sql-driver/mysql"
+	"gopkg.in/yaml.v2"
+
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	_ "github.com/polarismesh/polaris/cache"
@@ -55,7 +57,6 @@ import (
 	"github.com/polarismesh/polaris/store/sqldb"
 	_ "github.com/polarismesh/polaris/store/sqldb"
 	"github.com/polarismesh/polaris/testdata"
-	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -290,7 +291,6 @@ func (d *AuthTestSuit) cleanAllUserGroup() {
 		}()
 	}
 }
-
 
 func (d *AuthTestSuit) cleanAllAuthStrategy() {
 	if d.storage.Name() == sqldb.STORENAME {

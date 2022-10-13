@@ -21,9 +21,10 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
+
 	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 	commontime "github.com/polarismesh/polaris/common/time"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 const (

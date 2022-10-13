@@ -74,8 +74,8 @@ type stableStore struct {
 	// 对主数据库的事务操作，可读写
 	masterTx *BaseDB
 	// 备数据库，提供只读
-	slave    *BaseDB
-	start    bool
+	slave *BaseDB
+	start bool
 }
 
 // Name 实现Name函数

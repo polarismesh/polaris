@@ -22,10 +22,11 @@ import (
 	"fmt"
 	"strings"
 
+	"go.uber.org/zap"
+
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
-	"go.uber.org/zap"
 )
 
 // RegisterInstance create one instance

@@ -34,7 +34,7 @@ spec:
       restartPolicy: Always
       volumes:
         - configMap:
-            defaultMode: 640
+            defaultMode: 0640
             name: polaris-limiter-config
           name: polaris-limiter-config
   updateStrategy:
