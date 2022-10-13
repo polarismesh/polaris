@@ -20,10 +20,10 @@ package local
 import (
 	"encoding/json"
 	"fmt"
-	commonLog "github.com/polarismesh/polaris/common/log"
 	"sync"
 	"time"
 
+	commonLog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -33,6 +33,7 @@ const (
 	PluginName        = "discoverEventLocal"
 	defaultBufferSize = 1024
 )
+
 var log = commonLog.GetScopeByName(commonLog.DiscoverEventLoggerName)
 
 func init() {

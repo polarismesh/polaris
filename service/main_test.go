@@ -180,7 +180,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 
 	commonlog.GetScopeByName(commonlog.DefaultLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 	commonlog.GetScopeByName(commonlog.NamingLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeByName(commonlog.ConfigLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeByName(commonlog.CacheLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 	commonlog.GetScopeByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 	commonlog.GetScopeByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 

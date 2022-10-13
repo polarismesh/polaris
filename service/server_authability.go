@@ -20,6 +20,7 @@ package service
 import (
 	"context"
 	"errors"
+
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
