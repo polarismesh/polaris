@@ -210,3 +210,21 @@ func TestSelect(t *testing.T) {
 		}
 	}
 }
+
+func TestRotationTask(t *testing.T) {
+	tw := New(time.Second, 5, "")
+	tw.Start()
+	rotationCallback(tw, 1, 0)
+	time.Sleep(11 * time.Second)
+}
+
+func rotationCallback(tw *TimeWheel, rotationMaxDurationForHour int64, runTimes int) {
+	tw.AddTask(uint32(rotationMaxDurationForHour*time.Second.Milliseconds()), nil, func(i interface{}) {
+		fmt.Println(time.Now())
+		if runTimes > 8 {
+			return
+		}
+		runTimes++
+		rotationCallback(tw, rotationMaxDurationForHour, runTimes)
+	})
+}
