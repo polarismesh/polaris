@@ -24,7 +24,7 @@ import (
 	"github.com/polarismesh/polaris/common/model"
 )
 
-var cmdbLog = commonLog.GetScopeByName(commonLog.CmdbLoggerName)
+var cmdbLog = commonLog.GetScopeOrDefaultByName(commonLog.CmdbLoggerName)
 
 // CMDB CMDB插件接口
 type CMDB interface {

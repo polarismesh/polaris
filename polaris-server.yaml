@@ -151,7 +151,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      rotationMaxDuration: 24
+      rotationMaxDurationForHour: 1
       outputLevel: info
       # outputPaths:
       #   - stdout

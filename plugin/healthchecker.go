@@ -24,7 +24,7 @@ import (
 	commonLog "github.com/polarismesh/polaris/common/log"
 )
 
-var healthcheckLog = commonLog.GetScopeByName(commonLog.HealthcheckLoggerName)
+var healthcheckLog = commonLog.GetScopeOrDefaultByName(commonLog.HealthcheckLoggerName)
 
 // ReportRequest report heartbeat request
 type ReportRequest struct {

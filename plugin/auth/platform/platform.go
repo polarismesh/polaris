@@ -38,7 +38,7 @@ const (
 	DefaultTimeDiff = -5 * time.Second
 )
 
-var log = commonLog.GetScopeByName(commonLog.AuthPlatformLoggerName)
+var log = commonLog.GetScopeOrDefaultByName(commonLog.AuthPlatformLoggerName)
 
 // init 初始化注册函数
 func init() {

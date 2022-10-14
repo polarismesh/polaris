@@ -99,7 +99,7 @@ type XDSServer struct {
 func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{},
 	api map[string]apiserver.APIConfig,
 ) error {
-	x.cache = cachev3.NewSnapshotCache(false, PolarisNodeHash{}, commonlog.GetScopeByName(commonlog.XDSLoggerName))
+	x.cache = cachev3.NewSnapshotCache(false, PolarisNodeHash{}, commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName))
 	x.registryInfo = make(map[string][]*ServiceInfo)
 	x.listenPort = uint32(option["listenPort"].(int))
 	x.listenIP = option["listenIP"].(string)
@@ -148,7 +148,7 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 func (x *XDSServer) Run(errCh chan error) {
 	// 启动 grpc server
 	ctx := context.Background()
-	cb := &Callbacks{log: commonlog.GetScopeByName(commonlog.XDSLoggerName)}
+	cb := &Callbacks{log: commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName)}
 	srv := serverv3.NewServer(ctx, x.cache, cb)
 	var grpcOptions []grpc.ServerOption
 	grpcOptions = append(grpcOptions, grpc.MaxConcurrentStreams(1000))

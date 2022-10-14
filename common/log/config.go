@@ -27,6 +27,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/polarismesh/polaris/common/timewheel"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
@@ -262,25 +264,30 @@ func updateScopes(typeName string, options *Options, cores []zapcore.Core, errSi
 	return nil
 }
 
+func logRotationSyncCallback(tw *timewheel.TimeWheel, rotationMaxDurationForHour int64, log *lumberjack.Logger) {
+	tw.AddTask(uint32(rotationMaxDurationForHour*time.Minute.Milliseconds()), nil, func(i interface{}) {
+		if err := log.Rotate(); err != nil {
+			return
+		}
+		logRotationSyncCallback(tw, rotationMaxDurationForHour, log)
+	})
+}
+
 // Configure .
 // nolint: staticcheck
 // You typically call this once at process startup.
 // Configure Once this call returns, the logging system is ready to accept data.
 func Configure(optionsMap map[string]*Options) error {
-	rotateTaskQueue := NewDelayRotateQueue()
+	tw := timewheel.New(time.Minute, 5, "log rotation sync")
+	tw.Start()
 	for typeName, options := range optionsMap {
 		setDefaultOption(options)
 		cores, captureCore, errSink, log, err := prepZap(options)
 		if err != nil {
 			return err
 		}
-		if options.RotationMaxDuration != 0 {
-			node := NewNode(func() {
-				if err := log.Rotate(); err != nil {
-					return
-				}
-			}, time.Duration(options.RotationMaxDuration)*time.Hour)
-			rotateTaskQueue.Add(node)
+		if options.RotationMaxDurationForHour != 0 {
+			logRotationSyncCallback(tw, int64(options.RotationMaxDurationForHour), log)
 		}
 		if err = updateScopes(typeName, options, cores, errSink); err != nil {
 			return err
@@ -315,7 +322,6 @@ func Configure(optionsMap map[string]*Options) error {
 			}
 		}
 	}
-	go rotateTaskQueue.Execute()
 	return nil
 }
 

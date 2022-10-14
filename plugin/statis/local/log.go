@@ -19,4 +19,4 @@ package local
 
 import commonLog "github.com/polarismesh/polaris/common/log"
 
-var log = commonLog.GetScopeByName(commonLog.StatisLoggerName)
+var log = commonLog.GetScopeOrDefaultByName(commonLog.StatisLoggerName)

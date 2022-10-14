@@ -26,6 +26,8 @@ import (
 
 	"github.com/boltdb/bolt"
 	_ "github.com/go-sql-driver/mysql"
+	"gopkg.in/yaml.v2"
+
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	_ "github.com/polarismesh/polaris/cache"
@@ -55,7 +57,6 @@ import (
 	"github.com/polarismesh/polaris/store/sqldb"
 	_ "github.com/polarismesh/polaris/store/sqldb"
 	"github.com/polarismesh/polaris/testdata"
-	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -155,11 +156,11 @@ func (d *AuthTestSuit) initialize(opts ...options) error {
 
 	_ = commonlog.Configure(d.cfg.Bootstrap.Logger)
 
-	commonlog.GetScopeByName(commonlog.DefaultLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeByName(commonlog.NamingLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeByName(commonlog.ConfigLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.DefaultLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.ConfigLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 
 	metrics.InitMetrics()
 

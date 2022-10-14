@@ -25,7 +25,7 @@ import (
 	"github.com/polarismesh/polaris/plugin"
 )
 
-var log = commonLog.GetScopeByName(commonLog.DiscoverStatLoggerName)
+var log = commonLog.GetScopeOrDefaultByName(commonLog.DiscoverStatLoggerName)
 
 // init 注册服务发现统计插件
 func init() {

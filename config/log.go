@@ -20,6 +20,6 @@ package config
 import commonLog "github.com/polarismesh/polaris/common/log"
 
 var (
-	log     = commonLog.GetScopeByName(commonLog.ConfigLoggerName)
-	authLog = commonLog.GetScopeByName(commonLog.AuthLoggerName)
+	log     = commonLog.GetScopeOrDefaultByName(commonLog.ConfigLoggerName)
+	authLog = commonLog.GetScopeOrDefaultByName(commonLog.AuthLoggerName)
 )

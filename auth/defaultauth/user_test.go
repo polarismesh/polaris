@@ -61,8 +61,8 @@ func newUserTest(t *testing.T) *UserTest {
 	reset(false)
 	ctrl := gomock.NewController(t)
 
-	commonlog.GetScopeByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.DebugLevel)
-	commonlog.GetScopeByName(commonlog.ConfigLoggerName).SetOutputLevel(commonlog.DebugLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.DebugLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.ConfigLoggerName).SetOutputLevel(commonlog.DebugLevel)
 
 	users := createMockUser(10, "one")
 	newUsers := createMockUser(10, "two")

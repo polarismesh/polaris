@@ -22,6 +22,6 @@ import (
 )
 
 var (
-	log      = commonlog.GetScopeByName(commonlog.StoreLoggerName)
-	cacheLog = commonlog.GetScopeByName(commonlog.CacheLoggerName)
+	log      = commonlog.GetScopeOrDefaultByName(commonlog.StoreLoggerName)
+	cacheLog = commonlog.GetScopeOrDefaultByName(commonlog.CacheLoggerName)
 )

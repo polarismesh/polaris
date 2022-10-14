@@ -21,4 +21,4 @@ import (
 	commonlog "github.com/polarismesh/polaris/common/log"
 )
 
-var log = commonlog.GetScopeByName(commonlog.NamingLoggerName)
+var log = commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName)

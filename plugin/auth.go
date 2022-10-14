@@ -29,7 +29,7 @@ import (
 var (
 	// 插件初始化原子变量
 	authOnce sync.Once
-	authLog  = commonLog.GetScopeByName(commonLog.AuthLoggerName)
+	authLog  = commonLog.GetScopeOrDefaultByName(commonLog.AuthLoggerName)
 )
 
 // Auth AUTH插件接口

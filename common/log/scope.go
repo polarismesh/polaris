@@ -90,7 +90,7 @@ func FindScope(scope string) *Scope {
 	return s
 }
 
-func GetScopeByName(name string) *Scope {
+func GetScopeOrDefaultByName(name string) *Scope {
 	lock.RLock()
 	defer lock.RUnlock()
 	s := scopes[name]

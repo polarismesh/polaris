@@ -31,6 +31,7 @@ import (
 	"github.com/golang/snappy"
 	"github.com/grafana/loki/pkg/logproto"
 	json "github.com/json-iterator/go"
+
 	commonLog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -41,7 +42,7 @@ const (
 	defaultTimeout = 10 * time.Second
 )
 
-var log = commonLog.GetScopeByName(commonLog.DiscoverEventLokiLoggerName)
+var log = commonLog.GetScopeOrDefaultByName(commonLog.DiscoverEventLokiLoggerName)
 
 // LokiLoggerConfig Loki 日志器配置
 type LokiLoggerConfig struct {

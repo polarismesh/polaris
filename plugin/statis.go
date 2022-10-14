@@ -26,7 +26,7 @@ import (
 
 var (
 	statisOnce sync.Once
-	statisLog  = commonLog.GetScopeByName(commonLog.StatisLoggerName)
+	statisLog  = commonLog.GetScopeOrDefaultByName(commonLog.StatisLoggerName)
 )
 
 const (

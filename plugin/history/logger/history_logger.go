@@ -29,7 +29,7 @@ const (
 	PluginName = "HistoryLogger"
 )
 
-var log = commonLog.GetScopeByName(commonLog.HistoryLoggerName)
+var log = commonLog.GetScopeOrDefaultByName(commonLog.HistoryLoggerName)
 
 // init 初始化注册函数
 func init() {

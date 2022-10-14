@@ -178,11 +178,11 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 
 	_ = commonlog.Configure(d.cfg.Bootstrap.Logger)
 
-	commonlog.GetScopeByName(commonlog.DefaultLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeByName(commonlog.NamingLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeByName(commonlog.CacheLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.DefaultLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.CacheLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 
 	metrics.InitMetrics()
 

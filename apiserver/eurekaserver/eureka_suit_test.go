@@ -25,6 +25,8 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"gopkg.in/yaml.v2"
+
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	commonlog "github.com/polarismesh/polaris/common/log"
@@ -36,7 +38,6 @@ import (
 	"github.com/polarismesh/polaris/service/healthcheck"
 	"github.com/polarismesh/polaris/store"
 	storemock "github.com/polarismesh/polaris/store/mock"
-	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/testdata"
 
@@ -97,11 +98,11 @@ func (d *EurekaTestSuit) initialize(t *testing.T, callback func(t *testing.T, s 
 
 	_ = commonlog.Configure(d.cfg.Bootstrap.Logger)
 
-	commonlog.GetScopeByName(commonlog.DefaultLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeByName(commonlog.NamingLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeByName(commonlog.ConfigLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.DefaultLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.ConfigLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 
 	plugin.SetPluginConfig(&d.cfg.Plugin)
 
