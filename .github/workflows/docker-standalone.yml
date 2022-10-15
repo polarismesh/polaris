@@ -50,6 +50,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           SERVER_VERSION: ${{ github.event.inputs.server_version }}
           CONSOLE_VERSION: ${{ github.event.inputs.console_version }}
+          LIMITER_VERSION: ${{ github.event.inputs.limiter_version }}
         run: |
           set -e
           cd deploy/standalone
