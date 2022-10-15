@@ -62,7 +62,7 @@ jobs:
           mkdir ${DIR_NAME}
           cd ${DIR_NAME}
 
-          arch_list=("amd64")
+          arch_list=("amd64" "arm64")
           platforms=""
 
           for GOARCH in ${arch_list[@]}; do
