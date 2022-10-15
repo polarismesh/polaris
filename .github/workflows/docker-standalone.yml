@@ -62,7 +62,7 @@ jobs:
           mkdir ${DIR_NAME}
           cd ${DIR_NAME}
 
-          arch_list=("amd64" "arm64")
+          arch_list=("amd64")
           platforms=""
 
           for GOARCH in ${arch_list[@]}; do
@@ -98,4 +98,4 @@ jobs:
           docker_image="polaris-server-standalone"
           docker_tag=${SERVER_VERSION}
           
-          docker buildx build --network=host --build-arg SERVER_VERSION="${SERVER_VERSION}" --build-arg CONSOLE_VERSION="${CONSOLE_VERSION}" -t ${docker_repository}/${docker_image}:${docker_tag} -t ${docker_repository}/${docker_image}:latest --platform ${platforms} --push ./
+          docker buildx build --network=host --build-arg SERVER_VERSION="${SERVER_VERSION}" --build-arg CONSOLE_VERSION="${CONSOLE_VERSION}" --build-arg LIMITER_VERSION="${LIMITER_VERSION}" -t ${docker_repository}/${docker_image}:${docker_tag} -t ${docker_repository}/${docker_image}:latest --platform ${platforms} --push ./
