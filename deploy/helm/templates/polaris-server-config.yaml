@@ -135,6 +135,7 @@ data:
           listenIP: "0.0.0.0"
           listenPort: {{ .Values.service.httpPort }}
           enablePprof: true # debug pprof
+          enablePprof: true # debug pprof
           connLimit:
             openConnLimit: false
             maxConnPerHost: 128
