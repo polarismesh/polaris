@@ -129,6 +129,7 @@ data:
           listenIP: "0.0.0.0"
           listenPort: 8090
           enablePprof: true # debug pprof
+          enableSwagger: true # debug pprof
           connLimit:
             openConnLimit: false
             maxConnPerHost: 128
