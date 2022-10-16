@@ -13,16 +13,25 @@ English | [简体中文](./README-zh.md)
 
 README：
 
-- [Introduction](#introduction)
-- [Getting started](#getting-started)
-  - [Installation](#installation)
-  - [Examples](#examples)
-- [Document](#document)
-  - [OpenAPI](#openapi)
-  - [Benchmark Report](#benchmark-report)
-  - [Official Document](#official-document)
-- [Chat group](#chat-group)
-- [Contribution](#contribution)
+- [Polaris: Service Discovery and Governance](#polaris-service-discovery-and-governance)
+  - [Introduction](#introduction)
+  - [Getting started](#getting-started)
+    - [Installation](#installation)
+      - [Download package](#download-package)
+      - [Start server](#start-server)
+      - [Verify installation](#verify-installation)
+    - [Examples](#examples)
+      - [Service Discovery and HealthCheck](#service-discovery-and-healthcheck)
+      - [RateLimit](#ratelimit)
+      - [Flow Control](#flow-control)
+      - [Configuration management](#configuration-management)
+      - [More details](#more-details)
+  - [Document](#document)
+    - [OpenAPI](#openapi)
+    - [Benchmark Report](#benchmark-report)
+    - [Official Document](#official-document)
+  - [Chat group](#chat-group)
+  - [Contribution](#contribution)
 
 Principle or user manual can visit [website](https://polarismesh.cn/) to learn more
 
@@ -87,7 +96,7 @@ cd polaris-standalone-release_v1.11.0-beta.2.linux
 Under Linux/Unix/Mac platform, use those commands to start polaris standalone server:
 
 ```
-./install.sh
+bash install.sh
 ```
 
 Under Windows platform, use those commands to start polaris standalone server:
