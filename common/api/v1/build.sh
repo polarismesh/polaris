@@ -12,13 +12,27 @@
 #
 # ProtoPackageIsVersion并非表示proto2/proto3
 
+CURRENT_OS=$(uname -s)
+CURRENT_ARCH=$(uname -m)
 PROTOC=../protoc
+PROTO_FILES="model.proto client.proto service.proto routing.proto ratelimit.proto circuitbreaker.proto configrelease.proto \
+             platform.proto request.proto response.proto grpcapi.proto config_file.proto config_file_response.proto \
+             grpc_config_api.proto auth.proto"
 
-${PROTOC}/bin/protoc \
---plugin=protoc-gen-go=${PROTOC}/bin/protoc-gen-go \
---go_out=plugins=grpc:. \
---proto_path=${PROTOC}/include \
---proto_path=. \
-model.proto client.proto service.proto routing.proto ratelimit.proto circuitbreaker.proto configrelease.proto \
-platform.proto request.proto response.proto grpcapi.proto config_file.proto config_file_response.proto \
-grpc_config_api.proto  auth.proto
+if [ "$CURRENT_ARCH" != "x86_64" ]; then
+    echo "Current only support x86_64"
+    exit 1
+fi
+
+if [ "$CURRENT_OS" == "Linux" ]; then
+    ${PROTOC}/bin/protoc \
+    --plugin=protoc-gen-go=${PROTOC}/bin/protoc-gen-go \
+    --go_out=plugins=grpc:. \
+    --proto_path=${PROTOC}/include \
+    --proto_path=. \
+    ${PROTO_FILES}
+
+    ${PROTOC}/bin/protoc-go-inject-tag -input="*.pb.go"
+else
+    docker run --rm -it -v "$(dirname $(pwd))":/app --workdir /app/v1 debian:buster ./build.sh
+fi
