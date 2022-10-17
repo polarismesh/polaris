@@ -60,7 +60,7 @@ func New(interval time.Duration, slotNum int, name string) *TimeWheel {
 		interval:   interval,
 		slots:      make([]*list.List, slotNum),
 		locks:      make([]sync.Mutex, slotNum),
-		currentPos: 0,
+		currentPos: -1,
 		slotNum:    slotNum,
 		stopCh:     make(chan struct{}, 1),
 	}
@@ -98,6 +98,8 @@ func (tw *TimeWheel) start() {
 
 // taskRunner 时间轮到期处理函数
 func (tw *TimeWheel) taskRunner() {
+	tw.currentPos++
+
 	l := tw.slots[tw.currentPos]
 	tw.locks[tw.currentPos].Lock()
 	// execNum := tw.scanAddRunTask(l)
@@ -106,11 +108,9 @@ func (tw *TimeWheel) taskRunner() {
 
 	// log.Debugf("%s task start time:%d, use time:%v, exec num:%d", tw.name, now.Unix(), time.Since(now), execNum)
 	if tw.currentPos == tw.slotNum-1 {
-		tw.currentPos = 0
+		tw.currentPos = -1
 		return
 	}
-
-	tw.currentPos++
 }
 
 // AddTask 新增时间轮任务
@@ -127,7 +127,7 @@ func (tw *TimeWheel) AddTask(delayMilli uint32, data interface{}, cb Callback) {
 
 // scanAddRunTask 运行时间轮任务
 func (tw *TimeWheel) scanAddRunTask(l *list.List) int {
-	if l == nil {
+	if l == nil || l.Len() == 0 {
 		return 0
 	}
 
