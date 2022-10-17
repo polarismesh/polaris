@@ -26,7 +26,6 @@ import (
 
 var (
 	statisOnce sync.Once
-	statisLog  = commonLog.GetScopeOrDefaultByName(commonLog.StatisLoggerName)
 )
 
 const (
@@ -58,7 +57,7 @@ func GetStatis() Statis {
 
 	statisOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			statisLog.Errorf("plugin init err: %s", err.Error())
+			commonLog.GetScopeOrDefaultByName(c.Name).Errorf("plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})

@@ -34,7 +34,7 @@ const (
 	defaultBufferSize = 1024
 )
 
-var log = commonLog.GetScopeOrDefaultByName(commonLog.DiscoverEventLoggerName)
+var log = commonLog.RegisterScope(PluginName, "", 0)
 
 func init() {
 	d := &discoverEventLocal{}

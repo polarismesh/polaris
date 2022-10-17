@@ -27,7 +27,6 @@ import (
 
 var (
 	discoverEventOnce sync.Once
-	discoverEventLog  = commonLog.GetScopeOrDefaultByName(commonLog.DiscoverEventLoggerName)
 )
 
 // DiscoverChannel is used to receive discover events from the agent
@@ -49,7 +48,7 @@ func GetDiscoverEvent() DiscoverChannel {
 
 	discoverEventOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			discoverEventLog.Errorf("plugin init err: %s", err.Error())
+			commonLog.GetScopeOrDefaultByName(c.Name).Errorf("plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})

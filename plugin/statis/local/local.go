@@ -24,6 +24,10 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+const (
+	PluginName = "local"
+)
+
 // init 注册统计插件
 func init() {
 	s := &StatisWorker{}
@@ -43,7 +47,7 @@ type StatisWorker struct {
 
 // Name 获取统计插件名称
 func (s *StatisWorker) Name() string {
-	return "local"
+	return PluginName
 }
 
 // Initialize 初始化统计插件

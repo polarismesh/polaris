@@ -265,7 +265,7 @@ func updateScopes(typeName string, options *Options, cores []zapcore.Core, errSi
 }
 
 func logRotationSyncCallback(tw *timewheel.TimeWheel, rotationMaxDurationForHour int64, log *lumberjack.Logger) {
-	tw.AddTask(uint32(rotationMaxDurationForHour*time.Minute.Milliseconds()), nil, func(i interface{}) {
+	tw.AddTask(uint32(rotationMaxDurationForHour*time.Hour.Milliseconds()), nil, func(i interface{}) {
 		if err := log.Rotate(); err != nil {
 			return
 		}

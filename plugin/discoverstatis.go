@@ -27,7 +27,6 @@ import (
 
 var (
 	discoverStatisOnce sync.Once
-	discoverStatLog    = commonLog.GetScopeOrDefaultByName(commonLog.DiscoverStatLoggerName)
 )
 
 // DiscoverStatis 服务发现统计插件接口
@@ -49,7 +48,7 @@ func GetDiscoverStatis() DiscoverStatis {
 
 	discoverStatisOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			discoverStatLog.Errorf("plugin init err: %s", err.Error())
+			commonLog.GetScopeOrDefaultByName(c.Name).Errorf("plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})

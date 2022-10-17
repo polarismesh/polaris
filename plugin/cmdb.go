@@ -24,8 +24,6 @@ import (
 	"github.com/polarismesh/polaris/common/model"
 )
 
-var cmdbLog = commonLog.GetScopeOrDefaultByName(commonLog.CmdbLoggerName)
-
 // CMDB CMDB插件接口
 type CMDB interface {
 	Plugin
@@ -56,7 +54,7 @@ func GetCMDB() CMDB {
 
 	once.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			cmdbLog.Errorf("plugin init err: %s", err.Error())
+			commonLog.GetScopeOrDefaultByName(c.Name).Errorf("plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})

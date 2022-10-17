@@ -22,6 +22,7 @@ package loki
 import (
 	"time"
 
+	commonLog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/plugin"
 )
@@ -33,6 +34,8 @@ const (
 	defaultBatchSize = 512
 	defaultQueueSize = 1024
 )
+
+var log = commonLog.RegisterScope(PluginName, "", 0)
 
 func init() {
 	h := &HistoryLoki{}

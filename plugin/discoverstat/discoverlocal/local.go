@@ -25,7 +25,11 @@ import (
 	"github.com/polarismesh/polaris/plugin"
 )
 
-var log = commonLog.GetScopeOrDefaultByName(commonLog.DiscoverStatLoggerName)
+const (
+	PluginName = "discoverLocal"
+)
+
+var log = commonLog.RegisterScope(PluginName, "", 0)
 
 // init 注册服务发现统计插件
 func init() {
@@ -43,7 +47,7 @@ type DiscoverStatisWorker struct {
 
 // Name 获取插件名称
 func (d *DiscoverStatisWorker) Name() string {
-	return "discoverLocal"
+	return PluginName
 }
 
 // Initialize 初始化服务发现统计插件

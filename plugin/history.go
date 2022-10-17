@@ -28,7 +28,6 @@ import (
 var (
 	// 插件初始化原子变量
 	historyOnce sync.Once
-	historyLog  = commonLog.GetScopeOrDefaultByName(commonLog.HistoryLoggerName)
 )
 
 // History 历史记录插件
@@ -47,7 +46,7 @@ func GetHistory() History {
 
 	historyOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			historyLog.Errorf("plugin init err: %s", err.Error())
+			commonLog.GetScopeOrDefaultByName(c.Name).Errorf("plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})

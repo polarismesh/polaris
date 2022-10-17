@@ -19,4 +19,4 @@ package token
 
 import commonLog "github.com/polarismesh/polaris/common/log"
 
-var log = commonLog.GetScopeOrDefaultByName(commonLog.RateLimitLoggerName)
+var log = commonLog.RegisterScope(PluginName, "", 0)

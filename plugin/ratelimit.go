@@ -51,7 +51,6 @@ var RatelimitStr = map[RatelimitType]string{
 
 var (
 	rateLimitOnce sync.Once
-	rateLimitLog  = commonLog.GetScopeOrDefaultByName(commonLog.RateLimitLoggerName)
 )
 
 // Ratelimit Ratelimit插件接口
@@ -75,7 +74,7 @@ func GetRatelimit() Ratelimit {
 
 	rateLimitOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			rateLimitLog.Errorf("plugin init err: %s", err.Error())
+			commonLog.GetScopeOrDefaultByName(c.Name).Errorf("plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})

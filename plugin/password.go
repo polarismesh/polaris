@@ -26,7 +26,6 @@ import (
 
 var (
 	passwordOnce sync.Once
-	passwordLog  = commonLog.GetScopeOrDefaultByName(commonLog.PasswordLoggerName)
 )
 
 // ParsePassword 密码插件
@@ -45,7 +44,7 @@ func GetParsePassword() ParsePassword {
 
 	passwordOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			passwordLog.Errorf("plugin init err: %s", err.Error())
+			commonLog.GetScopeOrDefaultByName(c.Name).Errorf("plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})

@@ -29,7 +29,6 @@ import (
 var (
 	// 插件初始化原子变量
 	authOnce sync.Once
-	authLog  = commonLog.GetScopeOrDefaultByName(commonLog.AuthLoggerName)
 )
 
 // Auth AUTH插件接口
@@ -49,13 +48,13 @@ func GetAuth() Auth {
 
 	plugin, exist := pluginSet[c.Name]
 	if !exist {
-		authLog.Error("[Plugin][Auth] not found", zap.String("name", c.Name))
+		commonLog.GetScopeOrDefaultByName(c.Name).Error("[Plugin][Auth] not found", zap.String("name", c.Name))
 		return nil
 	}
 
 	authOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			authLog.Errorf("plugin init err: %s", err.Error())
+			commonLog.GetScopeOrDefaultByName(c.Name).Errorf("plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})
