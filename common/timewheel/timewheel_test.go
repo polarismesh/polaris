@@ -222,6 +222,7 @@ func TestRotationTask(t *testing.T) {
 	rotationCallback(t, tw, 10, 0, time.Now().UnixMilli())
 	rotationCallback(t, tw, 12, 0, time.Now().UnixMilli())
 	time.Sleep(62 * time.Second)
+	tw.Stop()
 }
 
 func rotationCallback(t *testing.T, tw *TimeWheel, intervalSecond int64, runTimes int, lastTime int64) {
