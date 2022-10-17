@@ -19,7 +19,9 @@ package timewheel
 
 import (
 	"fmt"
+	"math"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -216,16 +218,28 @@ func TestSelect(t *testing.T) {
 func TestRotationTask(t *testing.T) {
 	tw := New(time.Second, 5, "")
 	tw.Start()
-	rotationCallback(t, tw, 1, 0, time.Now().UnixMilli())
-	rotationCallback(t, tw, 3, 0, time.Now().UnixMilli())
-	rotationCallback(t, tw, 5, 0, time.Now().UnixMilli())
-	rotationCallback(t, tw, 10, 0, time.Now().UnixMilli())
-	rotationCallback(t, tw, 12, 0, time.Now().UnixMilli())
-	time.Sleep(62 * time.Second)
+	wg := &sync.WaitGroup{}
+	wg.Add(5)
+	t.Run("", func(t *testing.T) {
+		rotationCallback(t, wg, tw, 1, 0, time.Now().UnixMilli())
+	})
+	t.Run("", func(t *testing.T) {
+		rotationCallback(t, wg, tw, 3, 0, time.Now().UnixMilli())
+	})
+	t.Run("", func(t *testing.T) {
+		rotationCallback(t, wg, tw, 5, 0, time.Now().UnixMilli())
+	})
+	t.Run("", func(t *testing.T) {
+		rotationCallback(t, wg, tw, 10, 0, time.Now().UnixMilli())
+	})
+	t.Run("", func(t *testing.T) {
+		rotationCallback(t, wg, tw, 12, 0, time.Now().UnixMilli())
+	})
+	wg.Wait()
 	tw.Stop()
 }
 
-func rotationCallback(t *testing.T, tw *TimeWheel, intervalSecond int64, runTimes int, lastTime int64) {
+func rotationCallback(t *testing.T, wg *sync.WaitGroup, tw *TimeWheel, intervalSecond int64, runTimes int, lastTime int64) {
 	tw.AddTask(uint32(intervalSecond*time.Second.Milliseconds()), nil, func(i interface{}) {
 		//0.800-1.200
 		fmt.Println(time.Now())
@@ -234,11 +248,13 @@ func rotationCallback(t *testing.T, tw *TimeWheel, intervalSecond int64, runTime
 			//首次减去时间轮启动的刻度时间
 			interval = interval - tw.interval.Milliseconds()
 		}
-		assert.True(t, interval > intervalSecond*1000+-200 && interval < intervalSecond*1000+200)
+		diff := math.Abs(float64(interval - intervalSecond*1000))
+		assert.True(t, diff < 200)
 		if runTimes > 3 {
+			wg.Done()
 			return
 		}
 		runTimes++
-		rotationCallback(t, tw, intervalSecond, runTimes, time.Now().UnixMilli())
+		rotationCallback(t, wg, tw, intervalSecond, runTimes, time.Now().UnixMilli())
 	})
 }
