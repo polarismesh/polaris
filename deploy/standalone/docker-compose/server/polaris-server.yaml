@@ -57,6 +57,28 @@ bootstrap:
       #   - stdout
       # errorOutputPaths:
       #   - stderr
+    healthcheck:
+      rotateOutputPath: log/polaris-healthcheck.log
+      errorRotateOutputPath: log/polaris-healthcheck-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
+    xdsv3:
+      rotateOutputPath: log/polaris-xdsv3.log
+      errorRotateOutputPath: log/polaris-xdsv3-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
     default:
       rotateOutputPath: log/polaris-default.log
       errorRotateOutputPath: log/polaris-default-error.log
@@ -104,6 +126,7 @@ apiservers:
       listenIP: "0.0.0.0"
       listenPort: 8090
       enablePprof: true # debug pprof
+      enableSwagger: true # debug pprof
       connLimit:
         openConnLimit: false
         maxConnPerHost: 128
