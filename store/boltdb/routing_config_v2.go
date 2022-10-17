@@ -22,9 +22,10 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
+	"go.uber.org/zap"
+
 	v2 "github.com/polarismesh/polaris/common/model/v2"
 	"github.com/polarismesh/polaris/store"
-	"go.uber.org/zap"
 )
 
 var (

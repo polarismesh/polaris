@@ -54,8 +54,6 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/lrurate"
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/token"
 	_ "github.com/polarismesh/polaris/plugin/statis/local"
-	_ "github.com/polarismesh/polaris/store/boltdb"
-	_ "github.com/polarismesh/polaris/store/sqldb"
 )
 
 type Bootstrap struct {

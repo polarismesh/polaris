@@ -2,8 +2,10 @@
 
 [![Build Status](https://github.com/polarismesh/polaris/actions/workflows/codecov.yaml/badge.svg)](https://github.com/PolarisMesh/polaris/actions/workflows/codecov.yaml)
 [![codecov.io](https://codecov.io/gh/polarismesh/polaris/branch/main/graph/badge.svg)](https://codecov.io/gh/polarismesh/polaris?branch=main)
+[![Docker Pulls](https://img.shields.io/docker/pulls/polarismesh/polaris-server)](https://hub.docker.com/repository/docker/polarismesh/polaris-server/general)
 [![Contributors](https://img.shields.io/github/contributors/polarismesh/polaris)](https://github.com/polarismesh/polaris/graphs/contributors)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/polarismesh/polaris?style=flat-square)](https://github.com/polarismesh/polaris)
 
 <img src="logo.svg" width="10%" height="10%" />
 
@@ -13,16 +15,25 @@ English | [简体中文](./README-zh.md)
 
 README：
 
-- [Introduction](#introduction)
-- [Getting started](#getting-started)
-  - [Installation](#installation)
-  - [Examples](#examples)
-- [Document](#document)
-  - [OpenAPI](#openapi)
-  - [Benchmark Report](#benchmark-report)
-  - [Official Document](#official-document)
-- [Chat group](#chat-group)
-- [Contribution](#contribution)
+- [Polaris: Service Discovery and Governance](#polaris-service-discovery-and-governance)
+  - [Introduction](#introduction)
+  - [Getting started](#getting-started)
+    - [Installation](#installation)
+      - [Download package](#download-package)
+      - [Start server](#start-server)
+      - [Verify installation](#verify-installation)
+    - [Examples](#examples)
+      - [Service Discovery and HealthCheck](#service-discovery-and-healthcheck)
+      - [RateLimit](#ratelimit)
+      - [Flow Control](#flow-control)
+      - [Configuration management](#configuration-management)
+      - [More details](#more-details)
+  - [Document](#document)
+    - [OpenAPI](#openapi)
+    - [Benchmark Report](#benchmark-report)
+    - [Official Document](#official-document)
+  - [Chat group](#chat-group)
+  - [Contribution](#contribution)
 
 Principle or user manual can visit [website](https://polarismesh.cn/) to learn more
 
@@ -87,7 +98,7 @@ cd polaris-standalone-release_v1.11.0-beta.2.linux
 Under Linux/Unix/Mac platform, use those commands to start polaris standalone server:
 
 ```
-./install.sh
+bash install.sh
 ```
 
 Under Windows platform, use those commands to start polaris standalone server:

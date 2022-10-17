@@ -23,11 +23,12 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store/mock"
-	"github.com/stretchr/testify/assert"
 )
 
 func newTestClientCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *clientCache) {

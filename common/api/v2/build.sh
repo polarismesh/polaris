@@ -12,11 +12,25 @@
 #
 # ProtoPackageIsVersion并非表示proto2/proto3
 
+CURRENT_OS=$(uname -s)
+CURRENT_ARCH=$(uname -m)
 PROTOC=../protoc
+PROTO_FILES="model_v2.proto routing_v2.proto request_v2.proto response_v2.proto grpcapi_v2.proto"
 
-${PROTOC}/bin/protoc \
+if [ "$CURRENT_ARCH" != "x86_64" ]; then
+    echo "Current only support x86_64"
+    exit 1
+fi
+
+if [ "$CURRENT_OS" == "Linux" ]; then
+    ${PROTOC}/bin/protoc \
     --plugin=protoc-gen-go=${PROTOC}/bin/protoc-gen-go \
     --go_out=plugins=grpc:. \
     --proto_path=${PROTOC}/include \
     --proto_path=. \
-    model_v2.proto routing_v2.proto request_v2.proto response_v2.proto grpcapi_v2.proto
+    ${PROTO_FILES}
+
+    ${PROTOC}/bin/protoc-go-inject-tag -input="*.pb.go"
+else
+    docker run --rm -it -v "$(dirname $(pwd))":/app --workdir /app/v2 debian:buster ./build.sh
+fi

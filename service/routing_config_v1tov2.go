@@ -20,6 +20,8 @@ package service
 import (
 	"context"
 
+	"go.uber.org/zap"
+
 	api "github.com/polarismesh/polaris/common/api/v1"
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 	apiv2 "github.com/polarismesh/polaris/common/api/v2"
@@ -27,7 +29,6 @@ import (
 	v2 "github.com/polarismesh/polaris/common/model/v2"
 	routingcommon "github.com/polarismesh/polaris/common/routing"
 	"github.com/polarismesh/polaris/common/utils"
-	"go.uber.org/zap"
 )
 
 // createRoutingConfigV1toV2 这里需要兼容 v1 版本的创建路由规则动作，将 v1 的数据转为 v2 进行存储
