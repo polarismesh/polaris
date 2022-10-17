@@ -22,6 +22,8 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // test timewheel task run
@@ -212,19 +214,25 @@ func TestSelect(t *testing.T) {
 }
 
 func TestRotationTask(t *testing.T) {
-	tw := New(time.Second, 5, "")
-	tw.Start()
-	rotationCallback(tw, 1, 0)
+	for i := 0; i < 100; i++ {
+		go func() {
+			tw := New(time.Second, 5, "")
+			tw.Start()
+			rotationCallback(t, tw, 1, 0, time.Now().UnixMilli())
+		}()
+	}
 	time.Sleep(11 * time.Second)
 }
 
-func rotationCallback(tw *TimeWheel, rotationMaxDurationForHour int64, runTimes int) {
-	tw.AddTask(uint32(rotationMaxDurationForHour*time.Second.Milliseconds()), nil, func(i interface{}) {
+func rotationCallback(t *testing.T, tw *TimeWheel, rotationMaxDurationForSecond int64, runTimes int, lastTime int64) {
+	tw.AddTask(uint32(rotationMaxDurationForSecond*time.Second.Milliseconds()), nil, func(i interface{}) {
+		//0.990-1.010
 		fmt.Println(time.Now())
+		assert.True(t, time.Now().UnixMilli()-lastTime > 990 && time.Now().UnixMilli()-lastTime < 1010)
 		if runTimes > 8 {
 			return
 		}
 		runTimes++
-		rotationCallback(tw, rotationMaxDurationForHour, runTimes)
+		rotationCallback(t, tw, rotationMaxDurationForSecond, runTimes, time.Now().UnixMilli())
 	})
 }
