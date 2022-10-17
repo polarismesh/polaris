@@ -22,6 +22,8 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // test timewheel task run
@@ -209,4 +211,33 @@ func TestSelect(t *testing.T) {
 			return
 		}
 	}
+}
+
+func TestRotationTask(t *testing.T) {
+	tw := New(time.Second, 5, "")
+	tw.Start()
+	rotationCallback(t, tw, 1, 0, time.Now().UnixMilli())
+	rotationCallback(t, tw, 3, 0, time.Now().UnixMilli())
+	rotationCallback(t, tw, 5, 0, time.Now().UnixMilli())
+	rotationCallback(t, tw, 10, 0, time.Now().UnixMilli())
+	rotationCallback(t, tw, 12, 0, time.Now().UnixMilli())
+	time.Sleep(62 * time.Second)
+}
+
+func rotationCallback(t *testing.T, tw *TimeWheel, intervalSecond int64, runTimes int, lastTime int64) {
+	tw.AddTask(uint32(intervalSecond*time.Second.Milliseconds()), nil, func(i interface{}) {
+		//0.800-1.200
+		fmt.Println(time.Now())
+		interval := time.Now().UnixMilli() - lastTime
+		if runTimes == 0 {
+			//首次减去时间轮启动的刻度时间
+			interval = interval - tw.interval.Milliseconds()
+		}
+		assert.True(t, interval > intervalSecond*1000+-200 && interval < intervalSecond*1000+200)
+		if runTimes > 3 {
+			return
+		}
+		runTimes++
+		rotationCallback(t, tw, intervalSecond, runTimes, time.Now().UnixMilli())
+	})
 }
