@@ -556,6 +556,13 @@ func createDefaultStrategy(tx *BaseTx, role model.PrincipalType, id, name, owner
 		Comment:   "Default Strategy",
 	}
 
+	// 需要清理过期的 auth_strategy
+	cleanInvalidRule := "DELETE FROM auth_strategy WHERE name = ? AND owner = ? AND flag = 1 AND `default` = ?"
+	if _, err := tx.Exec(cleanInvalidRule, []interface{}{strategy.Name, strategy.Owner,
+		strategy.Default}...); err != nil {
+		return err
+	}
+
 	// Save policy master information
 	saveMainSql := "INSERT INTO auth_strategy(`id`, `name`, `action`, `owner`, `comment`, `flag`, " +
 		" `default`, `revision`) VALUES (?,?,?,?,?,?,?,?)"
