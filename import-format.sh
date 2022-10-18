@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# 格式化 go.mod
+go mod tidy -compat=1.17
+
+
+# 处理 go imports 的格式化
 rm -rf style_tool
 rm -rf goimports-reviser
 
@@ -15,4 +20,5 @@ cd ../
 
 find . -name "*.go" -type f | grep -v .pb.go|grep -v test/tools/tools.go | grep -v ./plugin.go | xargs -I {} goimports-reviser -rm-unused -format {} -project-name github.com/polarismesh/polaris
 
+# 处理 go 代码格式化
 go fmt ./...

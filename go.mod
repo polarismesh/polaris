@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	bou.ke/monkey v1.0.2
-	github.com/BurntSushi/toml v1.0.0
+	github.com/BurntSushi/toml v1.2.0
 	github.com/boltdb/bolt v1.3.1
 	github.com/emicklei/go-restful/v3 v3.9.0
 	github.com/envoyproxy/go-control-plane v0.10.2-0.20220325020618-49ff273808a1
@@ -28,19 +28,21 @@ require (
 	github.com/prometheus/client_golang v1.12.2
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/spf13/cobra v1.2.1
-	github.com/stretchr/testify v1.7.0
-	go.uber.org/atomic v1.9.0
+	github.com/stretchr/testify v1.8.0
+	go.uber.org/atomic v1.10.0
 	go.uber.org/automaxprocs v1.4.0
-	go.uber.org/zap v1.19.1
+	go.uber.org/zap v1.23.0
 	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
-	golang.org/x/net v0.0.0-20220630215102-69896b714898
+	golang.org/x/net v0.0.0-20221014081412-f15817d10f9b
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/text v0.3.7
+	golang.org/x/text v0.3.8
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11
-	google.golang.org/grpc v1.49.0
-	google.golang.org/protobuf v1.28.0
+	google.golang.org/grpc v1.50.1
+	google.golang.org/protobuf v1.28.1
 	gopkg.in/yaml.v2 v2.4.0
 )
+
+require github.com/polaris-contrib/polaris-server-plugin-discoverevent-loki v0.0.0-20221018030204-8c516eef5d01
 
 // Indirect dependencies group
 require (
@@ -55,7 +57,6 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.20.0 // indirect
 	github.com/go-openapi/swag v0.19.15 // indirect
-	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20191106031601-ce3c9ade29de // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
@@ -73,9 +74,9 @@ require (
 	github.com/smartystreets/assertions v1.0.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	go.uber.org/goleak v1.1.12 // indirect
-	go.uber.org/multierr v1.7.0 // indirect
-	golang.org/x/sys v0.0.0-20220702020025-31831981b65f // indirect
-	google.golang.org/genproto v0.0.0-20220630174209-ad1d48641aa7 // indirect
+	go.uber.org/multierr v1.8.0 // indirect
+	golang.org/x/sys v0.0.0-20221013171732-95e765b1cc43 // indirect
+	google.golang.org/genproto v0.0.0-20221014213838-99cd37c6964a // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

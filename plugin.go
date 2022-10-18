@@ -31,7 +31,6 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/auth/platform"
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
 	_ "github.com/polarismesh/polaris/plugin/discoverevent/local"
-	_ "github.com/polarismesh/polaris/plugin/discoverevent/loki"
 	_ "github.com/polarismesh/polaris/plugin/discoverstat/discoverlocal"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatmemory"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatredis"
@@ -43,4 +42,7 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/statis/local"
 	_ "github.com/polarismesh/polaris/store/boltdb"
 	_ "github.com/polarismesh/polaris/store/sqldb"
+
+	// third plugins
+	_ "github.com/polaris-contrib/polaris-server-plugin-discoverevent-loki"
 )
