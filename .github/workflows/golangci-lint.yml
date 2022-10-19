@@ -40,3 +40,4 @@ jobs:
         with:
           go_version: "1.18"
           golangci_lint_version: "v1.46.2" # use latest version by default
+          fail_on_error: true
