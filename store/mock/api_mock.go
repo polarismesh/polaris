@@ -366,20 +366,6 @@ func (mr *MockStoreMockRecorder) CreateConfigFileTemplate(template interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConfigFileTemplate", reflect.TypeOf((*MockStore)(nil).CreateConfigFileTemplate), template)
 }
 
-// CreatePlatform mocks base method.
-func (m *MockStore) CreatePlatform(platform *model.Platform) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreatePlatform", platform)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreatePlatform indicates an expected call of CreatePlatform.
-func (mr *MockStoreMockRecorder) CreatePlatform(platform interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePlatform", reflect.TypeOf((*MockStore)(nil).CreatePlatform), platform)
-}
-
 // CreateRateLimit mocks base method.
 func (m *MockStore) CreateRateLimit(limiting *model.RateLimit) error {
 	m.ctrl.T.Helper()
@@ -561,20 +547,6 @@ func (m *MockStore) DeleteMasterCircuitBreaker(id string) error {
 func (mr *MockStoreMockRecorder) DeleteMasterCircuitBreaker(id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMasterCircuitBreaker", reflect.TypeOf((*MockStore)(nil).DeleteMasterCircuitBreaker), id)
-}
-
-// DeletePlatform mocks base method.
-func (m *MockStore) DeletePlatform(id string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeletePlatform", id)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeletePlatform indicates an expected call of DeletePlatform.
-func (mr *MockStoreMockRecorder) DeletePlatform(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePlatform", reflect.TypeOf((*MockStore)(nil).DeletePlatform), id)
 }
 
 // DeleteRateLimit mocks base method.
@@ -1376,37 +1348,6 @@ func (m *MockStore) GetNamespaces(filter map[string][]string, offset, limit int)
 func (mr *MockStoreMockRecorder) GetNamespaces(filter, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespaces", reflect.TypeOf((*MockStore)(nil).GetNamespaces), filter, offset, limit)
-}
-
-// GetPlatformById mocks base method.
-func (m *MockStore) GetPlatformById(id string) (*model.Platform, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPlatformById", id)
-	ret0, _ := ret[0].(*model.Platform)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPlatformById indicates an expected call of GetPlatformById.
-func (mr *MockStoreMockRecorder) GetPlatformById(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlatformById", reflect.TypeOf((*MockStore)(nil).GetPlatformById), id)
-}
-
-// GetPlatforms mocks base method.
-func (m *MockStore) GetPlatforms(query map[string]string, offset, limit uint32) (uint32, []*model.Platform, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPlatforms", query, offset, limit)
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].([]*model.Platform)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetPlatforms indicates an expected call of GetPlatforms.
-func (mr *MockStoreMockRecorder) GetPlatforms(query, offset, limit interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlatforms", reflect.TypeOf((*MockStore)(nil).GetPlatforms), query, offset, limit)
 }
 
 // GetRateLimitWithID mocks base method.
@@ -2292,20 +2233,6 @@ func (m *MockStore) UpdateNamespaceToken(name, token string) error {
 func (mr *MockStoreMockRecorder) UpdateNamespaceToken(name, token interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNamespaceToken", reflect.TypeOf((*MockStore)(nil).UpdateNamespaceToken), name, token)
-}
-
-// UpdatePlatform mocks base method.
-func (m *MockStore) UpdatePlatform(platform *model.Platform) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdatePlatform", platform)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdatePlatform indicates an expected call of UpdatePlatform.
-func (mr *MockStoreMockRecorder) UpdatePlatform(platform interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePlatform", reflect.TypeOf((*MockStore)(nil).UpdatePlatform), platform)
 }
 
 // UpdateRateLimit mocks base method.

@@ -356,21 +356,6 @@ type CircuitBreakerInfo struct {
 	Services       []*Service
 }
 
-// Platform 平台信息
-type Platform struct {
-	ID         string
-	Name       string
-	Domain     string
-	QPS        uint32
-	Token      string
-	Owner      string
-	Department string
-	Comment    string
-	Valid      bool
-	CreateTime time.Time
-	ModifyTime time.Time
-}
-
 // Int2bool 整数转换为bool值
 func Int2bool(entry int) bool {
 

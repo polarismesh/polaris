@@ -42,14 +42,12 @@ func init() {
 // stableStore 实现了Store接口
 type stableStore struct {
 	*namespaceStore
-	*businessStore
 	*serviceStore
 	*instanceStore
 	*routingConfigStore
 	*l5Store
 	*rateLimitStore
 	*circuitBreakerStore
-	*platformStore
 	*toolStore
 	*userStore
 	*groupStore
@@ -237,8 +235,6 @@ func (s *stableStore) StartTx() (store.Tx, error) {
 func (s *stableStore) newStore() {
 	s.namespaceStore = &namespaceStore{db: s.master}
 
-	s.businessStore = &businessStore{db: s.master}
-
 	s.serviceStore = &serviceStore{master: s.master, slave: s.slave}
 
 	s.instanceStore = &instanceStore{master: s.master, slave: s.slave}
@@ -250,8 +246,6 @@ func (s *stableStore) newStore() {
 	s.rateLimitStore = &rateLimitStore{db: s.master}
 
 	s.circuitBreakerStore = &circuitBreakerStore{master: s.master, slave: s.slave}
-
-	s.platformStore = &platformStore{master: s.master}
 
 	s.toolStore = &toolStore{db: s.master}
 
