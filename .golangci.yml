@@ -13,65 +13,95 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-linters-settings:
-  govet:
-    check-shadowing: false
-  golint:
-    min-confidence: 0
-  gocyclo:
-    min-complexity: 10
-  maligned:
-    suggest-new: true
-  dupl:
-    threshold: 100
-  goconst:
-    min-len: 2
-    min-occurrences: 2
-  depguard:
-    list-type: blacklist
-    packages:
-      # logging is allowed only by logutils.Log, logrus
-      # is allowed to use only in logutils package
-      - github.com/sirupsen/logrus
-  misspell:
-    locale: US
-  lll:
-    line-length: 140
-  goimports:
-    local-prefixes: github.com/golangci/golangci-lint
-  gocritic:
-    enabled-tags:
-      - performance
-      - style
-      - experimental
-    disabled-checks:
-      - wrapperFunc
+run:
+  issues-exit-code: 1 #Default
+  tests: true #Default
 
 linters:
+  # Disable everything by default so upgrades to not include new "default
+  # enabled" linters.
   disable-all: true
+  # Specifically enable linters we want to use.
   enable:
+#    - deadcode
+#    - errcheck
+#    - funlen
+#    - gocritic
+#    - gofmt
+    - goimports
+#    - gosimple
     - govet
-    - staticcheck
-    - ineffassign
+    - godot
+#    - ineffassign
     - misspell
-
-run:
-  skip-dirs:
-    - test/testdata_etc
-    - pkg/golinters/goanalysis/(checker|passes)
+#    - revive
+#    - staticcheck
+#    - structcheck
+    - typecheck
+#    - unused
+#    - varcheck
 
 issues:
   exclude-rules:
-    - text: "weak cryptographic primitive"
+    # helpers in tests often (rightfully) pass a *testing.T as their first argument
+    - path: _test\.go
+      text: "context.Context should be the first parameter of a function"
       linters:
-        - gosec
-    - linters:
-        - staticcheck
-      text: "SA1019:"
+        - revive
+        - gomnd
+    # Yes, they are, but it's okay in a test
+    - path: _test\.go
+      text: "exported func.*returns unexported type.*which can be annoying to use"
+      linters:
+        - revive
 
-# golangci.com configuration
-# https://github.com/golangci/golangci/wiki/Configuration
-service:
-  golangci-lint-version: 1.16.x # use the fixed version to not introduce new linters unexpectedly
-  prepare:
-    - echo "here I can run custom commands, but no preparation needed for this repo"
+    # https://github.com/go-critic/go-critic/issues/926
+    - linters:
+        - gocritic
+      text: "unnecessaryDefer:"
+
+linters-settings:
+  misspell:
+    locale: US
+    ignore-words:
+      - cancelled
+  goimports:
+    local-prefixes: github.com/polarismesh/polaris-go
+  godot:
+    # Comments to be checked: `declarations`, `toplevel`, or `all`.
+    # Default: declarations
+    scope: toplevel
+    exclude:
+      # Exclude sentence fragments for lists.
+      - '^[ ]*[-•]'
+      # Exclude sentences prefixing a list.
+      - ':$'
+    # Check that each sentence ends with a period.
+    # Default: true
+    period: false
+    # Check that each sentence starts with a capital letter.
+    # Default: false
+    capital: false
+  revive:
+    ignore-generated-header: true
+    severity: warning
+    rules:
+      - name: atomic
+      - name: line-length-limit
+        severity: error
+        arguments: [195]
+      - name: unhandled-error
+        arguments : ["fmt.Printf", "myFunction"]
+  funlen:
+    # Checks the number of lines in a function.
+    # If lower than 0, disable the check.
+    # Default: 60
+    lines: 120
+    # Checks the number of statements in a function.
+    # If lower than 0, disable the check.
+    # Default: 40
+    statements: 40
+  goconst:
+    # Ignore test files.
+    # Default: false
+    ignore-tests: true
