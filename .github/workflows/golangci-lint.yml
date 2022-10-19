@@ -13,23 +13,30 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-FROM alpine:3.13.6
-
-RUN sed -i 's!http://dl-cdn.alpinelinux.org/!https://mirrors.tencent.com/!g' /etc/apk/repositories
-
-RUN set -eux && \
-    apk add tcpdump && \
-    apk add tzdata && \
-    apk add busybox-extras && \
-    apk add curl && \
-    apk add bash && \
-    cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
-    echo "Asia/Shanghai" > /etc/timezone && \
-    date
-
-ARG TARGETARCH
-COPY polaris-server-${TARGETARCH} /root/polaris-server
-
-WORKDIR /root
-
-CMD ["/root/polaris-server", "start"]
+name: golangci-lint
+on:
+  push:
+    branches:
+      - main
+      - release*
+  pull_request:
+    branches:
+      - main
+      - release*
+permissions:
+  contents: read
+  # Optional: allow read access to pull request. Use with `only-new-issues` option.
+  # pull-requests: read
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.17
+      - uses: actions/checkout@v3
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.29

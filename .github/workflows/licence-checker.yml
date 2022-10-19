@@ -13,23 +13,26 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-FROM alpine:3.13.6
+name: License checker
 
-RUN sed -i 's!http://dl-cdn.alpinelinux.org/!https://mirrors.tencent.com/!g' /etc/apk/repositories
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
-RUN set -eux && \
-    apk add tcpdump && \
-    apk add tzdata && \
-    apk add busybox-extras && \
-    apk add curl && \
-    apk add bash && \
-    cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
-    echo "Asia/Shanghai" > /etc/timezone && \
-    date
+jobs:
+  check-license:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
 
-ARG TARGETARCH
-COPY polaris-server-${TARGETARCH} /root/polaris-server
-
-WORKDIR /root
-
-CMD ["/root/polaris-server", "start"]
+      - name: Check License Header
+        uses: apache/skywalking-eyes@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          log: info
+          config: .licenserc.yaml
