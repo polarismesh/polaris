@@ -39,8 +39,8 @@ import (
 
 // Handler HTTP请求/回复处理器
 type Handler struct {
-	*restful.Request
-	*restful.Response
+	Request  *restful.Request
+	Response *restful.Response
 }
 
 // ParseArray 解析PB数组对象

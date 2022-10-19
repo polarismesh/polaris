@@ -52,11 +52,11 @@ func (h *HTTPServer) CreateConfigFileGroup(req *restful.Request, rsp *restful.Re
 func (h *HTTPServer) QueryConfigFileGroups(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{req, rsp}
 
-	namespace := handler.QueryParameter("namespace")
-	group := handler.QueryParameter("group")
-	fileName := handler.QueryParameter("fileName")
-	offset, _ := strconv.ParseUint(handler.QueryParameter("offset"), 10, 64)
-	limit, _ := strconv.ParseUint(handler.QueryParameter("limit"), 10, 64)
+	namespace := handler.Request.QueryParameter("namespace")
+	group := handler.Request.QueryParameter("group")
+	fileName := handler.Request.QueryParameter("fileName")
+	offset, _ := strconv.ParseUint(handler.Request.QueryParameter("offset"), 10, 64)
+	limit, _ := strconv.ParseUint(handler.Request.QueryParameter("limit"), 10, 64)
 
 	response := h.configServer.QueryConfigFileGroups(handler.ParseHeaderContext(), namespace, group, fileName,
 		uint32(offset), uint32(limit))
@@ -68,8 +68,8 @@ func (h *HTTPServer) QueryConfigFileGroups(req *restful.Request, rsp *restful.Re
 func (h *HTTPServer) DeleteConfigFileGroup(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{req, rsp}
 
-	namespace := handler.QueryParameter("namespace")
-	group := handler.QueryParameter("group")
+	namespace := handler.Request.QueryParameter("namespace")
+	group := handler.Request.QueryParameter("group")
 
 	response := h.configServer.DeleteConfigFileGroup(handler.ParseHeaderContext(), namespace, group)
 	handler.WriteHeaderAndProto(response)
@@ -117,9 +117,9 @@ func (h *HTTPServer) CreateConfigFile(req *restful.Request, rsp *restful.Respons
 func (h *HTTPServer) GetConfigFile(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{req, rsp}
 
-	namespace := handler.QueryParameter("namespace")
-	group := handler.QueryParameter("group")
-	name := handler.QueryParameter("name")
+	namespace := handler.Request.QueryParameter("namespace")
+	group := handler.Request.QueryParameter("group")
+	name := handler.Request.QueryParameter("name")
 
 	response := h.configServer.GetConfigFileRichInfo(handler.ParseHeaderContext(), namespace, group, name)
 	handler.WriteHeaderAndProto(response)
@@ -128,10 +128,10 @@ func (h *HTTPServer) GetConfigFile(req *restful.Request, rsp *restful.Response) 
 func (h *HTTPServer) QueryConfigFilesByGroup(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{req, rsp}
 
-	namespace := handler.QueryParameter("namespace")
-	group := handler.QueryParameter("group")
-	offset, _ := strconv.ParseUint(handler.QueryParameter("offset"), 10, 64)
-	limit, _ := strconv.ParseUint(handler.QueryParameter("limit"), 10, 64)
+	namespace := handler.Request.QueryParameter("namespace")
+	group := handler.Request.QueryParameter("group")
+	offset, _ := strconv.ParseUint(handler.Request.QueryParameter("offset"), 10, 64)
+	limit, _ := strconv.ParseUint(handler.Request.QueryParameter("limit"), 10, 64)
 
 	response := h.configServer.QueryConfigFilesByGroup(handler.ParseHeaderContext(), namespace, group,
 		uint32(offset), uint32(limit))
@@ -142,12 +142,12 @@ func (h *HTTPServer) QueryConfigFilesByGroup(req *restful.Request, rsp *restful.
 func (h *HTTPServer) SearchConfigFile(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{req, rsp}
 
-	namespace := handler.QueryParameter("namespace")
-	group := handler.QueryParameter("group")
-	name := handler.QueryParameter("name")
-	tags := handler.QueryParameter("tags")
-	offset, _ := strconv.ParseUint(handler.QueryParameter("offset"), 10, 64)
-	limit, _ := strconv.ParseUint(handler.QueryParameter("limit"), 10, 64)
+	namespace := handler.Request.QueryParameter("namespace")
+	group := handler.Request.QueryParameter("group")
+	name := handler.Request.QueryParameter("name")
+	tags := handler.Request.QueryParameter("tags")
+	offset, _ := strconv.ParseUint(handler.Request.QueryParameter("offset"), 10, 64)
+	limit, _ := strconv.ParseUint(handler.Request.QueryParameter("limit"), 10, 64)
 
 	response := h.configServer.SearchConfigFile(handler.ParseHeaderContext(), namespace, group, name, tags,
 		uint32(offset), uint32(limit))
@@ -177,10 +177,10 @@ func (h *HTTPServer) UpdateConfigFile(req *restful.Request, rsp *restful.Respons
 func (h *HTTPServer) DeleteConfigFile(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{req, rsp}
 
-	namespace := handler.QueryParameter("namespace")
-	group := handler.QueryParameter("group")
-	name := handler.QueryParameter("name")
-	operator := handler.QueryParameter("deleteBy")
+	namespace := handler.Request.QueryParameter("namespace")
+	group := handler.Request.QueryParameter("group")
+	name := handler.Request.QueryParameter("name")
+	operator := handler.Request.QueryParameter("deleteBy")
 
 	response := h.configServer.DeleteConfigFile(handler.ParseHeaderContext(), namespace, group, name, operator)
 	handler.WriteHeaderAndProto(response)
@@ -190,7 +190,7 @@ func (h *HTTPServer) DeleteConfigFile(req *restful.Request, rsp *restful.Respons
 func (h *HTTPServer) BatchDeleteConfigFile(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{req, rsp}
 
-	operator := handler.QueryParameter("deleteBy")
+	operator := handler.Request.QueryParameter("deleteBy")
 
 	var configFiles ConfigFileArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -230,9 +230,9 @@ func (h *HTTPServer) PublishConfigFile(req *restful.Request, rsp *restful.Respon
 func (h *HTTPServer) GetConfigFileRelease(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{req, rsp}
 
-	namespace := handler.QueryParameter("namespace")
-	group := handler.QueryParameter("group")
-	name := handler.QueryParameter("name")
+	namespace := handler.Request.QueryParameter("namespace")
+	group := handler.Request.QueryParameter("group")
+	name := handler.Request.QueryParameter("name")
 
 	response := h.configServer.GetConfigFileRelease(handler.ParseHeaderContext(), namespace, group, name)
 
@@ -243,12 +243,12 @@ func (h *HTTPServer) GetConfigFileRelease(req *restful.Request, rsp *restful.Res
 func (h *HTTPServer) GetConfigFileReleaseHistory(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{req, rsp}
 
-	namespace := handler.QueryParameter("namespace")
-	group := handler.QueryParameter("group")
-	name := handler.QueryParameter("name")
-	endIdStr := handler.QueryParameter("endId")
-	offset, _ := strconv.ParseUint(handler.QueryParameter("offset"), 10, 64)
-	limit, _ := strconv.ParseUint(handler.QueryParameter("limit"), 10, 64)
+	namespace := handler.Request.QueryParameter("namespace")
+	group := handler.Request.QueryParameter("group")
+	name := handler.Request.QueryParameter("name")
+	endIdStr := handler.Request.QueryParameter("endId")
+	offset, _ := strconv.ParseUint(handler.Request.QueryParameter("offset"), 10, 64)
+	limit, _ := strconv.ParseUint(handler.Request.QueryParameter("limit"), 10, 64)
 	var endId uint64
 	if endIdStr == "" {
 		endId = 0

@@ -30,15 +30,15 @@ import (
 func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{req, rsp}
 
-	version, err := strconv.ParseUint(handler.QueryParameter("version"), 10, 64)
+	version, err := strconv.ParseUint(handler.Request.QueryParameter("version"), 10, 64)
 	if err != nil {
 		handler.WriteHeaderAndProto(api.NewConfigClientResponseWithMessage(api.BadRequest, "version must be number"))
 	}
 
 	configFile := &api.ClientConfigFileInfo{
-		Namespace: &wrapperspb.StringValue{Value: handler.QueryParameter("namespace")},
-		Group:     &wrapperspb.StringValue{Value: handler.QueryParameter("group")},
-		FileName:  &wrapperspb.StringValue{Value: handler.QueryParameter("fileName")},
+		Namespace: &wrapperspb.StringValue{Value: handler.Request.QueryParameter("namespace")},
+		Group:     &wrapperspb.StringValue{Value: handler.Request.QueryParameter("group")},
+		FileName:  &wrapperspb.StringValue{Value: handler.Request.QueryParameter("fileName")},
 		Version:   &wrapperspb.UInt64Value{Value: version},
 	}
 
