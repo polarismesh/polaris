@@ -72,7 +72,10 @@ func (h *HTTPServer) QueryConfigFileGroups(req *restful.Request, rsp *restful.Re
 
 // DeleteConfigFileGroup 删除配置文件组
 func (h *HTTPServer) DeleteConfigFileGroup(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	namespace := handler.Request.QueryParameter("namespace")
 	group := handler.Request.QueryParameter("group")
