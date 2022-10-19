@@ -61,9 +61,11 @@ header: # `header` section is configurations for source codes license header.
     - ".gitignore"
     - "Makefile"
     - "Dockerfile"
+    - "**/*.pb.go"
     - "version"
     - ".golangci.yml"
     - ".github"
+    - "deploy"
   comment: on-failure # on what condition license-eye will comment on the pull request, `on-failure`, `always`, `never`.
 
   # license-location-threshold specifies the index threshold where the license header can be located,
