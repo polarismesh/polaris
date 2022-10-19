@@ -15,11 +15,6 @@
 
 name: golangci-lint
 on:
-  push:
-    branches:
-      - main
-      - release*
-      - feature/**
   pull_request:
     branches:
       - main
