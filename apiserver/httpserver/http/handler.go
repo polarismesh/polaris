@@ -206,7 +206,10 @@ func (h *Handler) WriteHeaderAndProtoV2(obj apiv2.ResponseMessage) {
 
 // HTTPResponse http答复简单封装
 func HTTPResponse(req *restful.Request, rsp *restful.Response, code uint32) {
-	handler := &Handler{req, rsp}
+	handler := &Handler{
+		Request:  req,
+		Response: rsp,
+	}
 	resp := api.NewResponse(code)
 	handler.WriteHeaderAndProto(resp)
 }
