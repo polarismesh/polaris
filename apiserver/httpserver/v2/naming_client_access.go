@@ -64,7 +64,10 @@ func (h *HTTPServerV2) addDiscoverAccess(ws *restful.WebService) {
 
 // Discover 统一发现接口
 func (h *HTTPServerV2) Discover(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	discoverRequest := &apiv2.DiscoverRequest{}
 	ctx, err := handler.Parse(discoverRequest)

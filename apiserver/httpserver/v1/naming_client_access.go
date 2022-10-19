@@ -93,7 +93,10 @@ func (h *HTTPServerV1) addHealthCheckAccess(ws *restful.WebService) {
 
 // ReportClient 客户端上报信息
 func (h *HTTPServerV1) ReportClient(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 	client := &api.Client{}
 	ctx, err := handler.Parse(client)
 	if err != nil {
@@ -106,7 +109,10 @@ func (h *HTTPServerV1) ReportClient(req *restful.Request, rsp *restful.Response)
 
 // RegisterInstance 注册服务实例
 func (h *HTTPServerV1) RegisterInstance(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	instance := &api.Instance{}
 	ctx, err := handler.Parse(instance)
@@ -120,7 +126,10 @@ func (h *HTTPServerV1) RegisterInstance(req *restful.Request, rsp *restful.Respo
 
 // DeregisterInstance 反注册服务实例
 func (h *HTTPServerV1) DeregisterInstance(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	instance := &api.Instance{}
 	ctx, err := handler.Parse(instance)
@@ -134,7 +143,10 @@ func (h *HTTPServerV1) DeregisterInstance(req *restful.Request, rsp *restful.Res
 
 // Discover 统一发现接口
 func (h *HTTPServerV1) Discover(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	discoverRequest := &api.DiscoverRequest{}
 	ctx, err := handler.Parse(discoverRequest)
@@ -172,7 +184,10 @@ func (h *HTTPServerV1) Discover(req *restful.Request, rsp *restful.Response) {
 
 // Heartbeat 服务实例心跳
 func (h *HTTPServerV1) Heartbeat(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	instance := &api.Instance{}
 	ctx, err := handler.Parse(instance)

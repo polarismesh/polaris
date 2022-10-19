@@ -86,7 +86,10 @@ func (h *HTTPServerV2) addDefaultAccess(ws *restful.WebService) {
 
 // CreateRoutings 创建规则路由
 func (h *HTTPServerV2) CreateRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var routings RoutingArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -105,7 +108,10 @@ func (h *HTTPServerV2) CreateRoutings(req *restful.Request, rsp *restful.Respons
 
 // DeleteRoutings 删除规则路由
 func (h *HTTPServerV2) DeleteRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var routings RoutingArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -124,7 +130,10 @@ func (h *HTTPServerV2) DeleteRoutings(req *restful.Request, rsp *restful.Respons
 
 // UpdateRoutings 修改规则路由
 func (h *HTTPServerV2) UpdateRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var routings RoutingArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -143,7 +152,10 @@ func (h *HTTPServerV2) UpdateRoutings(req *restful.Request, rsp *restful.Respons
 
 // GetRoutings 查询规则路由
 func (h *HTTPServerV2) GetRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ret := h.namingServer.GetRoutingConfigsV2(handler.ParseHeaderContext(), queryParams)
@@ -152,7 +164,10 @@ func (h *HTTPServerV2) GetRoutings(req *restful.Request, rsp *restful.Response) 
 
 // EnableRoutings 查询规则路由
 func (h *HTTPServerV2) EnableRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var routings RoutingArr
 	ctx, err := handler.ParseArray(func() proto.Message {

@@ -28,7 +28,10 @@ import (
 )
 
 func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	version, err := strconv.ParseUint(handler.Request.QueryParameter("version"), 10, 64)
 	if err != nil {
@@ -48,7 +51,10 @@ func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) 
 }
 
 func (h *HTTPServer) watchConfigFile(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	// 1. 解析出客户端监听的配置文件列表
 	watchConfigFileRequest := &api.ClientWatchConfigFileRequest{}
