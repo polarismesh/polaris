@@ -323,14 +323,6 @@ store:
 plugin:
   history:
     name: HistoryLogger
-    # name: HistoryLoki
-    # option:
-    #   queueSize: 1024
-    #   pushURL: http://127.0.0.1:3100/loki/api/v1/push
-    #   tenantID: "test"
-    #   labels:
-    #     env: "test"
-    #     app: "polaris"
   discoverEvent:
     name: discoverEventLocal
     # option:
@@ -339,15 +331,6 @@ plugin:
     #   rotationMaxSize: 500
     #   rotationMaxAge: 8
     #   rotationMaxBackups: 100
-
-    # name: discoverEventLoki
-    # option:
-      # queueSize: 1024
-      # pushURL: http://127.0.0.1:3100/loki/api/v1/push
-      # tenantID: "test"
-      # labels:
-      #   env: "test"
-      #   app: "polaris"
   discoverStatis:
     name: discoverLocal
     option:
