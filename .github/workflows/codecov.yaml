@@ -147,8 +147,7 @@ jobs:
 
       - name: Merge All Coverage
         run: |
-          profile="coverage.out"
-          htmlfile="coverage.html"
+          profile="coverage.txt"
           mergecover="merge_cover"
           mode="count"
 
@@ -179,6 +178,7 @@ jobs:
           fi
 
           rm -rf *.cover
+          rm -rf merge_cover
 
       - name: Upload coverage reports to Codecov with GitHub Action
         uses: codecov/codecov-action@v3
