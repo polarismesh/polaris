@@ -15,7 +15,7 @@
 
 run:
   issues-exit-code: 1 #Default
-  tests: true #Default
+  tests: false #Default
 
 linters:
   # Disable everything by default so upgrades to not include new "default
