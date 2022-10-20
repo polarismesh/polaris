@@ -494,7 +494,10 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 								headerMatch = &route.HeaderMatcher{
 									Name: headerSubName,
 									HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_SafeRegex{SafeRegex: &v32.RegexMatcher{Regex: matchString.GetValue().GetValue()}}},
+										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_SafeRegex{
+											SafeRegex: &v32.RegexMatcher{
+												EngineType: &v32.RegexMatcher_GoogleRe2{GoogleRe2: &v32.RegexMatcher_GoogleRE2{}},
+												Regex:      matchString.GetValue().GetValue()}}},
 									},
 								}
 							}
@@ -520,7 +523,10 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 								queryMatcher = &route.QueryParameterMatcher{
 									Name: querySubName,
 									QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{
-										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_SafeRegex{SafeRegex: &v32.RegexMatcher{Regex: matchString.GetValue().GetValue()}}},
+										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_SafeRegex{SafeRegex: &v32.RegexMatcher{
+											EngineType: &v32.RegexMatcher_GoogleRe2{GoogleRe2: &v32.RegexMatcher_GoogleRE2{}},
+											Regex:      matchString.GetValue().GetValue(),
+										}}},
 									},
 								}
 							}

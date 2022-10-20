@@ -13,28 +13,29 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-#!/bin/bash
+name: golangci-lint
+on:
+  push:
+    branches:
+      - main
+      - release*
+  pull_request:
+    branches:
+      - main
+      - release*
 
-curpath=$(pwd)
-
-if [ "${0:0:1}" == "/" ]; then
-    dir=$(dirname "$0")
-else
-    dir=$(pwd)/$(dirname "$0")
-fi
-
-cd $dir/..
-workdir=$(pwd)
-
-#------------------------------------------------------
-source tool/include
-
-pids=$(ps -ef | grep -w "$cmdline" | grep -v "grep" | awk '{print $2}')
-array=($pids)
-if [ "${#array[@]}" == "0" ]; then
-    start
-fi
-
-#------------------------------------------------------
-
-cd $curpath
+jobs:
+  golangci:
+    strategy:
+      matrix:
+        go-version: [1.17.x,1.18.x]
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v3
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3.2.0
+        with:
+          # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
+          version: latest

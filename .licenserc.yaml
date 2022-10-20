@@ -1,0 +1,85 @@
+# Tencent is pleased to support the open source community by making Polaris available.
+#
+# Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
+#
+# Licensed under the BSD 3-Clause License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software distributed
+# under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+# CONDITIONS OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the License.
+
+header: # `header` section is configurations for source codes license header.
+  license:
+    spdx-id: BSD-3-Clause # the spdx id of the license, it's convenient when your license is standard SPDX license.
+    copyright-owner: Tencent # the copyright owner to replace the [owner] in the `spdx-id` template.
+    content:
+      | # `license` will be used as the content when `fix` command needs to insert a license header.
+      Tencent is pleased to support the open source community by making Polaris available.
+
+      Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
+
+      Licensed under the BSD 3-Clause License (the "License");
+      you may not use this file except in compliance with the License.
+      You may obtain a copy of the License at
+
+      https://opensource.org/licenses/BSD-3-Clause
+
+      Unless required by applicable law or agreed to in writing, software distributed
+      under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+      CONDITIONS OF ANY KIND, either express or implied. See the License for the
+      specific language governing permissions and limitations under the License.
+    # `pattern` is optional regexp if all the file headers are the same as `license` or the license of `spdx-id` and `copyright-owner`.
+    pattern: |
+      Tencent is pleased to support the open source community by making Polaris available.
+
+      Copyright \(C\) 2019 THL A29 Limited, a Tencent company. All rights reserved.
+
+      Licensed under the BSD 3-Clause License \(the "License"\);
+      you may not use this file except in compliance with the License.
+      You may obtain a copy of the License at
+
+      https://opensource.org/licenses/BSD-3-Clause
+
+      Unless required by applicable law or agreed to in writing, software distributed
+      under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+      CONDITIONS OF ANY KIND, either express or implied. See the License for the
+      specific language governing permissions and limitations under the License.
+  paths: # `paths` are the path list that will be checked (and fixed) by license-eye, default is ['**'].
+    - "**"
+
+  paths-ignore: # `paths-ignore` are the path list that will be ignored by license-eye.
+    - "**/*.md"
+    - "**/testdata/**"
+    - "**/go.mod"
+    - "**/go.sum"
+    - "LICENSE"
+    - ".gitignore"
+    - "Makefile"
+    - "Dockerfile"
+    - "**/*.pb.go"
+    - "version"
+    - ".golangci.yml"
+    - ".github"
+    - "deploy"
+    - "**/*.proto"
+    - "logo.svg"
+    - "common/api/protoc"
+  comment: on-failure # on what condition license-eye will comment on the pull request, `on-failure`, `always`, `never`.
+
+  # license-location-threshold specifies the index threshold where the license header can be located,
+  # after all, a "header" cannot be TOO far from the file start.
+  license-location-threshold: 80
+  language:
+    Go:
+      extensions:
+        - ".go"
+      comment_style_id: SlashAsterisk
+
+dependency:
+  files:
+    - go.mod

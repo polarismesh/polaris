@@ -134,7 +134,10 @@ func (h *HTTPServer) FreeOSMemory(req *restful.Request, rsp *restful.Response) {
 // CleanInstance 彻底清理flag=1的实例运维接口
 // 支持一个个清理
 func (h *HTTPServer) CleanInstance(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	instance := &api.Instance{}
 	ctx, err := handler.Parse(instance)
@@ -149,7 +152,10 @@ func (h *HTTPServer) CleanInstance(req *restful.Request, rsp *restful.Response) 
 // GetLastHeartbeat 获取实例，上一次心跳的时间
 func (h *HTTPServer) GetLastHeartbeat(req *restful.Request, rsp *restful.Response) {
 	ctx := initContext(req)
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 	params := httpcommon.ParseQueryParams(req)
 	instance := &api.Instance{}
 	if id, ok := params["id"]; ok && id != "" {
