@@ -138,17 +138,6 @@ bootstrap:
       #   - stdout
       # errorOutputPaths:
       #   - stderr
-    discoverEventLoki:
-      rotateOutputPath: log/polaris-discovereventloki.log
-      errorRotateOutputPath: log/polaris-discovereventloki-error.log
-      rotationMaxSize: 100
-      rotationMaxBackups: 10
-      rotationMaxAge: 7
-      outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
     discoverLocal:
       rotateOutputPath: log/polaris-discoverstat.log
       errorRotateOutputPath: log/polaris-discoverstat-error.log
@@ -194,17 +183,6 @@ bootstrap:
       #   - stdout
       # errorOutputPaths:
       #   - stderr
-    HistoryLoki:
-      rotateOutputPath: log/polaris-historyloki.log
-      errorRotateOutputPath: log/polaris-historyloki-error.log
-      rotationMaxSize: 100
-      rotationMaxBackups: 10
-      rotationMaxAge: 7
-      outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderrHistoryLoki
     default:
       rotateOutputPath: log/polaris-default.log
       errorRotateOutputPath: log/polaris-default-error.log
