@@ -180,5 +180,8 @@ jobs:
           rm -rf *.cover
           rm -rf merge_cover
 
-      - name: Upload coverage reports to Codecov with GitHub Action
+      - name: Upload Codecov
         uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true 
