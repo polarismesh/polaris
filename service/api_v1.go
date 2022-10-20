@@ -205,25 +205,6 @@ type ClientServer interface {
 	GetCircuitBreakerWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse
 }
 
-// PlatformOperateServer Position of the platform
-type PlatformOperateServer interface {
-
-	// CreatePlatforms Batch creation related platform
-	CreatePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse
-
-	// UpdatePlatforms Batch update platform information
-	UpdatePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse
-
-	// DeletePlatforms Batch delete platform information
-	DeletePlatforms(ctx context.Context, req []*api.Platform) *api.BatchWriteResponse
-
-	// GetPlatforms Get a list of platforms
-	GetPlatforms(ctx context.Context, query map[string]string) *api.BatchQueryResponse
-
-	// GetPlatformToken Get the platform token
-	GetPlatformToken(ctx context.Context, req *api.Platform) *api.Response
-}
-
 // L5OperateServer L5 related operations
 type L5OperateServer interface {
 

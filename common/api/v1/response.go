@@ -202,26 +202,6 @@ func NewConfigResponse(code uint32, configRelease *ConfigRelease) *Response {
 }
 
 /**
- * @brief 创建回复带平台信息
- */
-func NewPlatformResponse(code uint32, platform *Platform) *Response {
-	return &Response{
-		Code:     &wrappers.UInt32Value{Value: code},
-		Info:     &wrappers.StringValue{Value: code2info[code]},
-		Platform: platform,
-	}
-}
-
-/**
- * @brief 创建带详细信息的平台回复信息
- */
-func NewPlatformResponseWithMsg(code uint32, platform *Platform, msg string) *Response {
-	response := NewPlatformResponse(code, platform)
-	response.Info.Value += ": " + msg
-	return response
-}
-
-/**
  * @brief 创建批量回复
  */
 func NewBatchWriteResponse(code uint32) *BatchWriteResponse {

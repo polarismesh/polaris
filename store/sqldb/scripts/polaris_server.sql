@@ -350,27 +350,6 @@ CREATE TABLE `circuitbreaker_rule_relation`
 
 -- --------------------------------------------------------
 --
--- Table structure `platform`
---
-CREATE TABLE `platform`
-(
-    `id`         varchar(32)   NOT NULL comment 'Platform ID',
-    `name`       varchar(128)  NOT NULL comment 'Platform name',
-    `domain`     varchar(1024) NOT NULL comment 'Platform domain name',
-    `qps`        smallint(6)   NOT NULL comment 'QPS restrictions set for a platform',
-    `token`      varchar(32)   NOT NULL comment 'Platform token',
-    `owner`      varchar(1024) NOT NULL comment 'Platform is responsible for Owner',
-    `department` varchar(1024)          DEFAULT NULL comment 'Platform department',
-    `comment`    varchar(1024)          DEFAULT NULL comment 'Platform description',
-    `flag`       tinyint(4)    NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime`      timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`      timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
-    PRIMARY KEY (`id`),
-    KEY `mtime` (`mtime`)
-) ENGINE = InnoDB;
-
--- --------------------------------------------------------
---
 -- Table structure `t_ip_config`
 --
 CREATE TABLE `t_ip_config`

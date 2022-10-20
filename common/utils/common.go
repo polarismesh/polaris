@@ -85,12 +85,6 @@ const (
 	MaxDbCircuitbreakerComment    = 1024
 	MaxDbCircuitbreakerOwner      = 1024
 	MaxDbCircuitbreakerVersion    = 32
-
-	// platform表
-	MaxPlatformIDLength     = 32
-	MaxPlatformNameLength   = 128
-	MaxPlatformDomainLength = 1024
-	MaxPlatformQPS          = 65535
 )
 
 var resourceNameRE = regexp.MustCompile("^[0-9A-Za-z-./:_]+$")
