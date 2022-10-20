@@ -23,21 +23,22 @@ linters:
   disable-all: true
   # Specifically enable linters we want to use.
   enable:
+   - funlen
+   - gofmt
+   - goimports
+   - gocyclo
+   - govet
+   - godot
+   - typecheck
+   - misspell
 #    - deadcode
 #    - errcheck
-#    - funlen
 #    - gocritic
-#    - gofmt
-    - goimports
-#    - gosimple
-    - govet
-    - godot
 #    - ineffassign
-    - misspell
+#    - gosimple
 #    - revive
 #    - staticcheck
 #    - structcheck
-    - typecheck
 #    - unused
 #    - varcheck
 
@@ -104,8 +105,4 @@ linters-settings:
   goconst:
     # Ignore test files.
     # Default: false
-<<<<<<< HEAD
     ignore-tests: true
-=======
-    ignore-tests: true
->>>>>>> 2161c95... fix:调整license-checker的触发
