@@ -38,8 +38,6 @@ type DiscoverServer interface {
 	ClientServer
 	// Get cache management
 	Cache() *cache.CacheManager
-	// Platform-related operation
-	PlatformOperateServer
 	// L5 related operations
 	L5OperateServer
 	// GetServiceInstanceRevision Get the version of the service

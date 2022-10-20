@@ -26,8 +26,6 @@ import (
 
 // NamingModuleStore Service discovery, governance center module storage interface
 type NamingModuleStore interface {
-	// BusinessStore 服务业务集接口
-	BusinessStore
 	// ServiceStore 服务接口
 	ServiceStore
 	// InstanceStore 实例接口
@@ -40,8 +38,6 @@ type NamingModuleStore interface {
 	RateLimitStore
 	// RateLimitStore 熔断规则接口
 	CircuitBreakerStore
-	// PlatformStore 平台信息接口
-	PlatformStore
 	// ToolStore 函数及工具接口
 	ToolStore
 	// UserStore 用户接口
@@ -52,30 +48,6 @@ type NamingModuleStore interface {
 	StrategyStore
 	// RoutingConfigStoreV2 路由策略 v2 接口
 	RoutingConfigStoreV2
-}
-
-// BusinessStore 业务集存储接口
-type BusinessStore interface {
-	// AddBusiness 增加一个业务集
-	AddBusiness(business *model.Business) error
-
-	// DeleteBusiness 删除一个业务集
-	DeleteBusiness(bid string) error
-
-	// UpdateBusiness 更新业务集
-	UpdateBusiness(business *model.Business) error
-
-	// UpdateBusinessToken 更新业务集token
-	UpdateBusinessToken(bid string, token string) error
-
-	// ListBusiness 查询owner下业务集
-	ListBusiness(owner string) ([]*model.Business, error)
-
-	// GetBusinessByID 根据业务集ID获取业务集详情
-	GetBusinessByID(id string) (*model.Business, error)
-
-	// GetMoreBusiness 根据mtime获取增量数据
-	GetMoreBusiness(mtime time.Time) ([]*model.Business, error)
 }
 
 // ServiceStore 服务存储接口
@@ -303,24 +275,6 @@ type CircuitBreakerStore interface {
 
 	// GetCircuitBreakersByService 根据服务获取熔断规则
 	GetCircuitBreakersByService(name string, namespace string) (*model.CircuitBreaker, error)
-}
-
-// PlatformStore 平台信息的存储接口
-type PlatformStore interface {
-	// CreatePlatform 新增平台信息
-	CreatePlatform(platform *model.Platform) error
-
-	// UpdatePlatform 更新平台信息
-	UpdatePlatform(platform *model.Platform) error
-
-	// DeletePlatform 删除平台信息
-	DeletePlatform(id string) error
-
-	// GetPlatformById 查询平台信息
-	GetPlatformById(id string) (*model.Platform, error)
-
-	// GetPlatforms 根据过滤条件查询平台信息
-	GetPlatforms(query map[string]string, offset uint32, limit uint32) (uint32, []*model.Platform, error)
 }
 
 // ClientStore store interface for client info

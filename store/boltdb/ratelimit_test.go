@@ -18,6 +18,7 @@
 package boltdb
 
 import (
+	"math/rand"
 	"reflect"
 	"sort"
 	"strings"
@@ -29,6 +30,16 @@ import (
 
 	"github.com/polarismesh/polaris/common/model"
 )
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func RandStringRunes(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
+}
 
 func createTestRateLimit(id string, createId bool) *model.RateLimit {
 
