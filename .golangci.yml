@@ -1,3 +1,107 @@
+# Tencent is pleased to support the open source community by making Polaris available.
+#
+# Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
+#
+# Licensed under the BSD 3-Clause License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software distributed
+# under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+# CONDITIONS OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the License.
+
+run:
+  issues-exit-code: 1 #Default
+  tests: true #Default
+
 linters:
-  disable:
-    - errcheck
+  # Disable everything by default so upgrades to not include new "default
+  # enabled" linters.
+  disable-all: true
+  # Specifically enable linters we want to use.
+  enable:
+#    - deadcode
+#    - errcheck
+#    - funlen
+#    - gocritic
+#    - gofmt
+    - goimports
+#    - gosimple
+    - govet
+    - godot
+#    - ineffassign
+    - misspell
+#    - revive
+#    - staticcheck
+#    - structcheck
+    - typecheck
+#    - unused
+#    - varcheck
+
+issues:
+  exclude-rules:
+    # helpers in tests often (rightfully) pass a *testing.T as their first argument
+    - path: _test\.go
+      text: "context.Context should be the first parameter of a function"
+      linters:
+        - revive
+        - gomnd
+    # Yes, they are, but it's okay in a test
+    - path: _test\.go
+      text: "exported func.*returns unexported type.*which can be annoying to use"
+      linters:
+        - revive
+
+    # https://github.com/go-critic/go-critic/issues/926
+    - linters:
+        - gocritic
+      text: "unnecessaryDefer:"
+
+linters-settings:
+  misspell:
+    locale: US
+    ignore-words:
+      - cancelled
+  goimports:
+    local-prefixes: github.com/polarismesh/polaris-go
+  godot:
+    # Comments to be checked: `declarations`, `toplevel`, or `all`.
+    # Default: declarations
+    scope: toplevel
+    exclude:
+      # Exclude sentence fragments for lists.
+      - '^[ ]*[-•]'
+      # Exclude sentences prefixing a list.
+      - ':$'
+    # Check that each sentence ends with a period.
+    # Default: true
+    period: false
+    # Check that each sentence starts with a capital letter.
+    # Default: false
+    capital: false
+  revive:
+    ignore-generated-header: true
+    severity: warning
+    rules:
+      - name: atomic
+      - name: line-length-limit
+        severity: error
+        arguments: [195]
+      - name: unhandled-error
+        arguments : ["fmt.Printf", "myFunction"]
+  funlen:
+    # Checks the number of lines in a function.
+    # If lower than 0, disable the check.
+    # Default: 60
+    lines: 120
+    # Checks the number of statements in a function.
+    # If lower than 0, disable the check.
+    # Default: 40
+    statements: 40
+  goconst:
+    # Ignore test files.
+    # Default: false
+    ignore-tests: true

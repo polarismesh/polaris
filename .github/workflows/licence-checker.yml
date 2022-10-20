@@ -13,28 +13,28 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-#!/bin/bash
+name: License checker
 
-curpath=$(pwd)
+on:
+  push:
+    branches:
+      - main
+      - release*
+  pull_request:
+    branches:
+      - main
+      - release*
 
-if [ "${0:0:1}" == "/" ]; then
-    dir=$(dirname "$0")
-else
-    dir=$(pwd)/$(dirname "$0")
-fi
+jobs:
+  check-license:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
 
-cd $dir/..
-workdir=$(pwd)
-
-#------------------------------------------------------
-source tool/include
-
-pids=$(ps -ef | grep -w "$cmdline" | grep -v "grep" | awk '{print $2}')
-array=($pids)
-if [ "${#array[@]}" == "0" ]; then
-    start
-fi
-
-#------------------------------------------------------
-
-cd $curpath
+      - name: Check License Header
+        uses: apache/skywalking-eyes@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          log: info
+          config: .licenserc.yaml

@@ -39,8 +39,8 @@ import (
 
 // Handler HTTP请求/回复处理器
 type Handler struct {
-	*restful.Request
-	*restful.Response
+	Request  *restful.Request
+	Response *restful.Response
 }
 
 // ParseArray 解析PB数组对象
@@ -206,7 +206,10 @@ func (h *Handler) WriteHeaderAndProtoV2(obj apiv2.ResponseMessage) {
 
 // HTTPResponse http答复简单封装
 func HTTPResponse(req *restful.Request, rsp *restful.Response, code uint32) {
-	handler := &Handler{req, rsp}
+	handler := &Handler{
+		Request:  req,
+		Response: rsp,
+	}
 	resp := api.NewResponse(code)
 	handler.WriteHeaderAndProto(resp)
 }
