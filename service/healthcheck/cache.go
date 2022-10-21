@@ -232,7 +232,7 @@ func (c *CacheProvider) OnCreated(value interface{}) {
 		if c.isSelfServiceInstance(instProto) {
 			storeServiceInstance(newInstanceWithChecker(actual, nil), c.selfServiceInstances)
 			c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
-			//return
+			// return
 		}
 		hcEnable, checker := c.isHealthCheckEnable(instProto)
 		if !hcEnable {
@@ -275,9 +275,9 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 			if compareAndStoreServiceInstance(newInstanceWithChecker(actual, nil), c.selfServiceInstances) {
 				c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
 			}
-			//return
+			// return
 		}
-		//check exists
+		// check exists
 		instanceId := actual.ID()
 		value, exists := c.healthCheckInstances.Load(instanceId)
 		hcEnable, checker := c.isHealthCheckEnable(instProto)
@@ -328,7 +328,7 @@ func (c *CacheProvider) OnDeleted(value interface{}) {
 		if c.isSelfServiceInstance(instProto) {
 			deleteServiceInstance(instProto, c.selfServiceInstances)
 			c.sendEvent(CacheEvent{selfServiceInstancesChanged: true})
-			//return
+			// return
 		}
 		if !instProto.GetEnableHealthCheck().GetValue() || instProto.GetHealthCheck() == nil {
 			return

@@ -30,11 +30,11 @@ require (
 	go.uber.org/atomic v1.10.0
 	go.uber.org/automaxprocs v1.4.0
 	go.uber.org/zap v1.23.0
-	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
-	golang.org/x/net v0.0.0-20221014081412-f15817d10f9b
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/text v0.3.8
-	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11
+	golang.org/x/crypto v0.1.0
+	golang.org/x/net v0.1.0
+	golang.org/x/sync v0.1.0
+	golang.org/x/text v0.4.0
+	golang.org/x/time v0.1.1-0.20221020023724-80b9fac54d29
 	google.golang.org/grpc v1.50.1
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/yaml.v2 v2.4.0
@@ -74,7 +74,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	go.uber.org/goleak v1.1.12 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/sys v0.0.0-20221013171732-95e765b1cc43 // indirect
+	golang.org/x/sys v0.1.0 // indirect
 	google.golang.org/genproto v0.0.0-20221014213838-99cd37c6964a // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

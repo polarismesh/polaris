@@ -65,9 +65,9 @@ func (s *Server) afterNamespaceResource(ctx context.Context, req *api.Namespace,
 }
 
 // RecordHistory server对外提供history插件的简单封装
-func (svr *Server) RecordHistory(entry *model.RecordEntry) {
+func (s *Server) RecordHistory(entry *model.RecordEntry) {
 	// 如果插件没有初始化，那么不记录history
-	if svr.history == nil {
+	if s.history == nil {
 		return
 	}
 	// 如果数据为空，则不需要打印了
@@ -76,7 +76,7 @@ func (svr *Server) RecordHistory(entry *model.RecordEntry) {
 	}
 
 	// 调用插件记录history
-	svr.history.Record(entry)
+	s.history.Record(entry)
 }
 
 // SetResourceHooks 返回Cache

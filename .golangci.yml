@@ -26,17 +26,20 @@ linters:
    - funlen
    - gofmt
    - goimports
+   - goconst
+   - gocritic
    - gocyclo
    - govet
    - godot
    - typecheck
    - misspell
+   - revive
+   - stylecheck
 #    - deadcode
 #    - errcheck
 #    - gocritic
 #    - ineffassign
 #    - gosimple
-#    - revive
 #    - staticcheck
 #    - structcheck
 #    - unused
@@ -67,7 +70,7 @@ linters-settings:
     ignore-words:
       - cancelled
   goimports:
-    local-prefixes: github.com/polarismesh/polaris-go
+    local-prefixes: github.com/polarismesh/polaris
   godot:
     # Comments to be checked: `declarations`, `toplevel`, or `all`.
     # Default: declarations
@@ -106,3 +109,24 @@ linters-settings:
     # Ignore test files.
     # Default: false
     ignore-tests: true
+  gocritic:
+    disabled-checks:
+      - ifElseChain
+  stylecheck:
+    # Select the Go version to target.
+    # Default: 1.13
+    # Deprecated: use the global `run.go` instead.
+    go: "1.17"
+    # STxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
+    # Default: ["*"]
+    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022"]
+    # https://staticcheck.io/docs/configuration/options/#dot_import_whitelist
+    # Default: ["github.com/mmcloughlin/avo/build", "github.com/mmcloughlin/avo/operand", "github.com/mmcloughlin/avo/reg"]
+    dot-import-whitelist:
+      - fmt
+    # https://staticcheck.io/docs/configuration/options/#initialisms
+    # Default: ["ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "QPS", "RAM", "RPC", "SLA", "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", "UDP", "UI", "GID", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XMPP", "XSRF", "XSS", "SIP", "RTP", "AMQP", "DB", "TS"]
+    initialisms: ["ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "QPS", "RAM", "RPC", "SLA", "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", "UDP", "UI", "GID", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XMPP", "XSRF", "XSS", "SIP", "RTP", "AMQP", "DB", "TS"]
+    # https://staticcheck.io/docs/configuration/options/#http_status_code_whitelist
+    # Default: ["200", "400", "404", "500"]
+    http-status-code-whitelist: ["200", "400", "404", "500"]
