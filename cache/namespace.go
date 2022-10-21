@@ -110,7 +110,7 @@ func (nsCache *namespaceCache) realUpdate(storeRollbackSec time.Duration) error 
 		return err
 	}
 	nsCache.firstUpdate = false
-	nsCache.setNamespaces(ret)
+	_ = nsCache.setNamespaces(ret)
 	return nil
 }
 

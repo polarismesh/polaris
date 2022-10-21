@@ -232,7 +232,7 @@ func (ins *instanceStore) CleanInstance(instanceID string) error {
 // DeleteInstance 删除一个实例，删除实例实际上是把flag置为1
 func (ins *instanceStore) DeleteInstance(instanceID string) error {
 	if instanceID == "" {
-		return errors.New("Delete Instance Missing instance id")
+		return errors.New("delete Instance Missing instance id")
 	}
 
 	str := "update instance set flag = 1, mtime = sysdate() where `id` = ?"

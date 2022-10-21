@@ -50,7 +50,7 @@ func dumpSnapShotJSON(snapshot cache.ResourceSnapshot) []byte {
 func yamlEncode(any interface{}) []byte {
 	data, _ := json.Marshal(any)
 	o := make(map[string]interface{})
-	json.Unmarshal(data, &o)
+	_ = json.Unmarshal(data, &o)
 	data, _ = yaml.Marshal(o)
 	return data
 }

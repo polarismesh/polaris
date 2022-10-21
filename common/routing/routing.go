@@ -477,7 +477,7 @@ func CompareRoutingV2(a, b *v2.ExtendRoutingConfig) bool {
 	return a.CreateTime.Before(b.CreateTime)
 }
 
-// ConvertRoutingV1ToV2 v1 版本的路由规则转为 v2 版本进行存储
+// ConvertRoutingV1ToExtendV2 v1 版本的路由规则转为 v2 版本进行存储
 func ConvertRoutingV1ToExtendV2(svcName, svcNamespace string, rule *model.RoutingConfig) ([]*v2.ExtendRoutingConfig, []*v2.ExtendRoutingConfig, error) {
 	inRet := make([]*v2.ExtendRoutingConfig, 0, 4)
 	outRet := make([]*v2.ExtendRoutingConfig, 0, 4)

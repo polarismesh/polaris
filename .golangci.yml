@@ -16,6 +16,14 @@
 run:
   issues-exit-code: 1 #Default
   tests: false #Default
+  skip-dirs: # 设置要忽略的目录
+    - test
+    - .*~
+    - api/swagger/docs
+  skip-files: # 设置不需要检查的go源码文件，支持正则匹配
+    - ".*.my.go$"
+    - ".*.pb.go$"
+    - _test.go
 
 linters:
   # Disable everything by default so upgrades to not include new "default
@@ -34,7 +42,7 @@ linters:
    - typecheck
    - misspell
    - revive
-   - stylecheck
+#   - stylecheck
 #    - deadcode
 #    - errcheck
 #    - gocritic
@@ -93,40 +101,53 @@ linters-settings:
       - name: atomic
       - name: line-length-limit
         severity: error
-        arguments: [195]
+        arguments: [480]
       - name: unhandled-error
-        arguments : ["fmt.Printf", "myFunction"]
+        severity: warning
+        disabled: false
+        arguments : ["fmt.Printf", "myFunction", "builder.WriteString","buf.WriteByte","buf.WriteRune","buf.WriteString","buf.WriteTo","buf.Write","fmt.Println","iteratorInstancesProc","buffer.Write","buffer.WriteString","h.Write"]
   funlen:
     # Checks the number of lines in a function.
     # If lower than 0, disable the check.
     # Default: 60
-    lines: 120
+    lines: 210
     # Checks the number of statements in a function.
     # If lower than 0, disable the check.
     # Default: 40
-    statements: 0
+    statements: -1
   goconst:
+    # Minimal length of string constant.
+    # Default: 3
+    min-len: 2
+    # Minimum occurrences of constant string count to trigger issue.
+    # Default: 3
+    # For subsequent optimization, the value is reduced.
+    min-occurrences: 72
     # Ignore test files.
     # Default: false
     ignore-tests: true
+    # Look for existing constants matching the values.
+    # Default: true
+    match-constant: false
+    # Search also for duplicated numbers.
+    # Default: false
+    numbers: true
+    # Minimum value, only works with goconst.numbers
+    # Default: 3
+    min: 5
+    # Maximum value, only works with goconst.numbers
+    # Default: 3
+    max: 20
+    # Ignore when constant is not used as function argument.
+    # Default: true
+    ignore-calls: false
   gocritic:
     disabled-checks:
       - ifElseChain
-  stylecheck:
-    # Select the Go version to target.
-    # Default: 1.13
-    # Deprecated: use the global `run.go` instead.
-    go: "1.17"
-    # STxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
-    # Default: ["*"]
-    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022"]
-    # https://staticcheck.io/docs/configuration/options/#dot_import_whitelist
-    # Default: ["github.com/mmcloughlin/avo/build", "github.com/mmcloughlin/avo/operand", "github.com/mmcloughlin/avo/reg"]
-    dot-import-whitelist:
-      - fmt
-    # https://staticcheck.io/docs/configuration/options/#initialisms
-    # Default: ["ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "QPS", "RAM", "RPC", "SLA", "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", "UDP", "UI", "GID", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XMPP", "XSRF", "XSS", "SIP", "RTP", "AMQP", "DB", "TS"]
-    initialisms: ["ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "QPS", "RAM", "RPC", "SLA", "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", "UDP", "UI", "GID", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XMPP", "XSRF", "XSS", "SIP", "RTP", "AMQP", "DB", "TS"]
-    # https://staticcheck.io/docs/configuration/options/#http_status_code_whitelist
-    # Default: ["200", "400", "404", "500"]
-    http-status-code-whitelist: ["200", "400", "404", "500"]
+      - assignOp
+      - appendAssign
+      - singleCaseSwitch
+  gocyclo:
+    # Minimal code complexity to report.
+    # Default: 30 (but we recommend 10-20)
+    min-complexity: 60

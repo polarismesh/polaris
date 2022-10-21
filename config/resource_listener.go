@@ -64,13 +64,12 @@ func (s *serverAuthability) After(ctx context.Context, resourceType model.Resour
 // onConfigGroupResource
 func (s *serverAuthability) onConfigGroupResource(ctx context.Context, res *ResourceEvent) error {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
-	ownerId := utils.ParseOwnerID(ctx)
 
 	authCtx.SetAttachment(model.ResourceAttachmentKey, map[api.ResourceType][]model.ResourceEntry{
 		api.ResourceType_ConfigGroups: {
 			{
 				ID:    strconv.FormatUint(res.ConfigGroup.Id.GetValue(), 10),
-				Owner: ownerId,
+				Owner: utils.ParseOwnerID(ctx),
 			},
 		},
 	})

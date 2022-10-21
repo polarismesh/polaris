@@ -495,7 +495,7 @@ func populateDefaultRuleValue(rule *api.Rule) {
 }
 
 func copyRateLimitProto(rateLimit *model.RateLimit, rule *api.Rule) {
-	//copy proto values
+	// copy proto values
 	rule.Method = rateLimit.Proto.Method
 	rule.Arguments = rateLimit.Proto.Arguments
 	rule.Labels = rateLimit.Proto.Labels

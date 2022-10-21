@@ -28,8 +28,11 @@ import (
 )
 
 const (
-	SystemNamespace        = "Polaris"
-	STORENAME              = "defaultStore"
+	// SystemNamespace system namespace
+	SystemNamespace = "Polaris"
+	// STORENAME database storage name
+	STORENAME = "defaultStore"
+	// DefaultConnMaxLifetime default maximum connection lifetime
 	DefaultConnMaxLifetime = 60 * 30 // 默认是30分钟
 )
 
@@ -61,7 +64,7 @@ type stableStore struct {
 	*configFileTagStore
 	*configFileTemplateStore
 
-	//client info stores
+	// client info stores
 	*clientStore
 
 	// v2 存储

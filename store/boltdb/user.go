@@ -67,7 +67,7 @@ const (
 )
 
 var (
-	MultipleUserFound error = errors.New("multiple user found")
+	MultipleUserFound = errors.New("multiple user found")
 )
 
 // userStore

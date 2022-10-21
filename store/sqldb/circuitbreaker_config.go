@@ -430,7 +430,9 @@ func (c *circuitBreakerStore) ListReleaseCircuitBreakers(filters map[string]stri
 		log.Errorf("[Store][CircuitBreaker] list tag circuitBreakers query err: %s", err.Error())
 		return nil, err
 	}
-	defer func() { rows.Close() }()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var ctime, mtime int64
 	for rows.Next() {
