@@ -69,14 +69,12 @@ func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *Reso
 		log.Warn("[Namespace][ResourceHook] get auth context is nil, ignore", utils.ZapRequestIDByCtx(ctx))
 		return nil
 	}
-	ownerId := utils.ParseOwnerID(ctx)
 
-	ns := res.Namespace
 	authCtx.SetAttachment(model.ResourceAttachmentKey, map[api.ResourceType][]model.ResourceEntry{
 		api.ResourceType_Namespaces: {
 			{
-				ID:    ns.Name,
-				Owner: ownerId,
+				ID:    res.Namespace.Name,
+				Owner: utils.ParseOwnerID(ctx),
 			},
 		},
 	})

@@ -29,7 +29,6 @@ import (
 
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_extensions_common_ratelimit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
@@ -139,7 +138,7 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 		return err
 	}
 
-	x.startSynTask(ctx)
+	_ = x.startSynTask(ctx)
 
 	return nil
 }
@@ -251,7 +250,7 @@ func parseNodeID(nodeID string) (namespace string, uuid string, hostip string) {
 }
 
 // ID id 的格式是 namespace/uuid~hostIp
-func (PolarisNodeHash) ID(node *envoy_config_core_v3.Node) string {
+func (PolarisNodeHash) ID(node *core.Node) string {
 	if node == nil {
 		return ""
 	}
@@ -781,9 +780,9 @@ func (x *XDSServer) pushRegistryInfoToXDSCache(registryInfo map[string][]*Servic
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
 
 	for ns, services := range registryInfo {
-		x.makeSnapshot(ns, versionLocal, services)
-		x.makePermissiveSnapshot(ns, versionLocal, services)
-		x.makeStrictSnapshot(ns, versionLocal, services)
+		_ = x.makeSnapshot(ns, versionLocal, services)
+		_ = x.makePermissiveSnapshot(ns, versionLocal, services)
+		_ = x.makeStrictSnapshot(ns, versionLocal, services)
 	}
 	return nil
 }
@@ -1006,7 +1005,7 @@ func (x *XDSServer) startSynTask(ctx context.Context) error {
 		}
 
 		if len(needPush) > 0 {
-			x.pushRegistryInfoToXDSCache(needPush)
+			_ = x.pushRegistryInfoToXDSCache(needPush)
 		}
 	}
 

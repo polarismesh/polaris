@@ -185,6 +185,7 @@ func (s *Server) GetConfigFileRichInfo(ctx context.Context, namespace, group, na
 	return api.NewConfigFileResponse(api.ExecuteSuccess, configFileBaseInfo)
 }
 
+// QueryConfigFilesByGroup querying configuration files
 func (s *Server) QueryConfigFilesByGroup(ctx context.Context, namespace, group string,
 	offset, limit uint32) *api.ConfigBatchQueryResponse {
 
@@ -252,7 +253,6 @@ func (s *Server) SearchConfigFile(ctx context.Context, namespace, group, name, t
 	}
 
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
-
 	count, files, err := s.queryConfigFileByTags(ctx, namespace, group, name, offset, limit, tagKVs...)
 	if err != nil {
 		log.ConfigScope().Error("[Config][Service] query config file tags error.",

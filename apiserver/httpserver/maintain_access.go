@@ -73,7 +73,7 @@ func (h *HTTPServer) GetServerConnStats(req *restful.Request, rsp *restful.Respo
 	ctx := initContext(req)
 	params := httpcommon.ParseQueryParams(req)
 
-	var amount int = 0
+	var amount int
 	if amountStr, ok := params["amount"]; ok {
 		if n, err := strconv.Atoi(amountStr); err == nil {
 			amount = n

@@ -22,7 +22,6 @@ import (
 
 	"go.uber.org/zap"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 	"github.com/polarismesh/polaris/common/model"
@@ -40,7 +39,7 @@ func (s *Server) createRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 	serviceTx, err := s.storage.CreateTransaction()
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
-		return api.NewRoutingResponse(api.StoreLayerException, req)
+		return apiv1.NewRoutingResponse(apiv1.StoreLayerException, req)
 	}
 	// 释放对于服务的锁
 	defer serviceTx.Commit()
@@ -51,13 +50,13 @@ func (s *Server) createRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 	if err != nil {
 		log.Error("[Service][Routing] get read lock for service", zap.String("service", serviceName),
 			zap.String("namespace", namespaceName), utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return api.NewRoutingResponse(api.StoreLayerException, req)
+		return apiv1.NewRoutingResponse(apiv1.StoreLayerException, req)
 	}
 	if svc == nil {
-		return api.NewRoutingResponse(api.NotFoundService, req)
+		return apiv1.NewRoutingResponse(apiv1.NotFoundService, req)
 	}
 	if svc.IsAlias() {
-		return api.NewRoutingResponse(api.NotAllowAliasCreateRouting, req)
+		return apiv1.NewRoutingResponse(apiv1.NotAllowAliasCreateRouting, req)
 	}
 
 	inDatas, outDatas, resp := batchBuildV2Routings(req)
@@ -83,7 +82,7 @@ func (s *Server) updateRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 	serviceTx, err := s.storage.CreateTransaction()
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
-		return api.NewRoutingResponse(api.StoreLayerException, req)
+		return apiv1.NewRoutingResponse(apiv1.StoreLayerException, req)
 	}
 	// 释放对于服务的锁
 	defer serviceTx.Commit()
@@ -93,17 +92,17 @@ func (s *Server) updateRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 	if err != nil {
 		log.Error("[Service][Routing] get service x-lock", zap.String("service", svc.Name),
 			zap.String("namespace", svc.Namespace), utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return api.NewRoutingResponse(api.StoreLayerException, req)
+		return apiv1.NewRoutingResponse(apiv1.StoreLayerException, req)
 	}
 
 	// 检查路由配置是否存在
 	conf, err := s.storage.GetRoutingConfigWithService(svc.Name, svc.Namespace)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
-		return api.NewRoutingResponse(api.StoreLayerException, req)
+		return apiv1.NewRoutingResponse(apiv1.StoreLayerException, req)
 	}
 	if conf == nil {
-		return api.NewRoutingResponse(api.NotFoundRouting, req)
+		return apiv1.NewRoutingResponse(apiv1.NotFoundRouting, req)
 	}
 
 	inDatas, outDatas, resp := batchBuildV2Routings(req)

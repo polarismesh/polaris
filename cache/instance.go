@@ -492,7 +492,7 @@ func iteratorInstancesProc(data *sync.Map, iterProc InstanceIterProc) error {
 
 type servicePortsBucket struct {
 	lock sync.RWMutex
-	//servicePorts service-id -> []port
+	// servicePorts service-id -> []port
 	servicePorts map[string]map[string]struct{}
 }
 
