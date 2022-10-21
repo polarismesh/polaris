@@ -177,11 +177,7 @@ jobs:
               echo $current $count >> $profile
           fi
 
-          rm -rf *.cover
-          rm -rf merge_cover
-
       - name: Upload Codecov
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          verbose: true 
