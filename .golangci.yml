@@ -15,7 +15,7 @@
 
 run:
   issues-exit-code: 1 #Default
-  tests: true #Default
+  tests: false #Default
 
 linters:
   # Disable everything by default so upgrades to not include new "default
@@ -23,21 +23,22 @@ linters:
   disable-all: true
   # Specifically enable linters we want to use.
   enable:
+   - funlen
+   - gofmt
+   - goimports
+   - gocyclo
+   - govet
+   - godot
+   - typecheck
+   - misspell
 #    - deadcode
 #    - errcheck
-#    - funlen
 #    - gocritic
-#    - gofmt
-    - goimports
-#    - gosimple
-    - govet
-    - godot
 #    - ineffassign
-    - misspell
+#    - gosimple
 #    - revive
 #    - staticcheck
 #    - structcheck
-    - typecheck
 #    - unused
 #    - varcheck
 
@@ -100,7 +101,7 @@ linters-settings:
     # Checks the number of statements in a function.
     # If lower than 0, disable the check.
     # Default: 40
-    statements: 40
+    statements: 0
   goconst:
     # Ignore test files.
     # Default: false
