@@ -145,38 +145,6 @@ jobs:
           mv coverage_sqldb_1.cover ../../
           popd
 
-      - name: Merge All Coverage
-        run: |
-          profile="coverage.txt"
-          mergecover="merge_cover"
-          mode="count"
-
-          grep -h -v "^mode:" *.cover | sort > $mergecover
-
-          cat $mergecover
-
-          echo "mode: $mode" > $profile
-          current=""
-          count=0
-          while read line; do
-              block=$(echo $line | cut -d ' ' -f1-2)
-              num=$(echo $line | cut -d ' ' -f3)
-              if [ "$current" == "" ]; then
-                  current=$block
-                  count=$num
-              elif [ "$block" == "$current" ]; then
-                  count=$(($count + $num))
-              else
-                  echo $current $count >> $profile
-                  current=$block
-                  count=$num
-              fi
-          done < $mergecover
-
-          if [ "$current" != "" ]; then
-              echo $current $count >> $profile
-          fi
-
       - name: Upload Codecov
         uses: codecov/codecov-action@v3
         with:
