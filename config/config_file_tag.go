@@ -25,7 +25,6 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -43,7 +42,7 @@ func (s *Server) createConfigFileTags(ctx context.Context, namespace, group,
 	// 1. 获取已存储的 tags
 	storedTags, err := s.storage.QueryTagByConfigFile(namespace, group, fileName)
 	if err != nil {
-		log.ConfigScope().Error("[Config][Service] query config file tags error.",
+		log.Error("[Config][Service] query config file tags error.",
 			zap.String("request-id", requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
@@ -145,7 +144,7 @@ func (s *Server) queryConfigFileByTags(ctx context.Context, namespace, group, fi
 
 	files, err := s.storage.QueryConfigFileByTag(namespace, group, fileName, tags...)
 	if err != nil {
-		log.ConfigScope().Error("[Config][Service] query config file by tags error.",
+		log.Error("[Config][Service] query config file by tags error.",
 			zap.String("request-id", utils.ParseRequestID(ctx)),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
@@ -215,7 +214,7 @@ func (s *Server) queryTagsByConfigFileWithAPIModels(ctx context.Context, namespa
 // deleteTagByConfigFile 删除配置文件的所有标签
 func (s *Server) deleteTagByConfigFile(ctx context.Context, namespace, group, fileName string) error {
 	if err := s.storage.DeleteTagByConfigFile(s.getTx(ctx), namespace, group, fileName); err != nil {
-		log.ConfigScope().Error("[Config][Service] query config file tags error.",
+		log.Error("[Config][Service] query config file tags error.",
 			zap.String("request-id", utils.ParseRequestID(ctx)),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
@@ -248,7 +247,7 @@ func (s *Server) doCreateConfigFileTags(ctx context.Context, namespace, group, f
 				ModifyBy:  operator,
 			})
 			if err != nil {
-				log.ConfigScope().Error("[Config][Service] create config file tag error.",
+				log.Error("[Config][Service] create config file tag error.",
 					zap.String("request-id", utils.ParseRequestID(ctx)),
 					zap.String("namespace", namespace),
 					zap.String("group", group),
@@ -273,7 +272,7 @@ func (s *Server) doDeleteConfigFileTags(ctx context.Context, namespace, group, f
 		} else {
 			err := s.storage.DeleteConfigFileTag(s.getTx(ctx), namespace, group, fileName, key, t)
 			if err != nil {
-				log.ConfigScope().Error("[Config][Service] delete config file tag error.",
+				log.Error("[Config][Service] delete config file tag error.",
 					zap.String("request-id", utils.ParseRequestID(ctx)),
 					zap.String("namespace", namespace),
 					zap.String("group", group),

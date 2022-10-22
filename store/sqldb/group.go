@@ -24,7 +24,6 @@ import (
 
 	"go.uber.org/zap"
 
-	logger "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -98,22 +97,22 @@ func (u *groupStore) addGroup(group *model.UserGroupDetail) error {
 		group.Comment,
 		0,
 	}...); err != nil {
-		logger.StoreScope().Errorf("[Store][Group] add usergroup err: %s", err.Error())
+		log.Errorf("[Store][Group] add usergroup err: %s", err.Error())
 		return err
 	}
 
 	if err := u.addGroupRelation(tx, group.ID, group.ToUserIdSlice()); err != nil {
-		logger.StoreScope().Errorf("[Store][Group] add usergroup relation err: %s", err.Error())
+		log.Errorf("[Store][Group] add usergroup relation err: %s", err.Error())
 		return err
 	}
 
 	if err := createDefaultStrategy(tx, model.PrincipalGroup, group.ID, group.Name, group.Owner); err != nil {
-		logger.StoreScope().Errorf("[Store][Group] add usergroup default strategy err: %s", err.Error())
+		log.Errorf("[Store][Group] add usergroup default strategy err: %s", err.Error())
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Errorf("[Store][Group] add usergroup tx commit err: %s", err.Error())
+		log.Errorf("[Store][Group] add usergroup tx commit err: %s", err.Error())
 		return err
 	}
 	return nil
@@ -150,14 +149,14 @@ func (u *groupStore) updateGroup(group *model.ModifyUserGroup) error {
 	// 更新用户-用户组关联数据
 	if len(group.AddUserIds) != 0 {
 		if err := u.addGroupRelation(tx, group.ID, group.AddUserIds); err != nil {
-			logger.StoreScope().Errorf("[Store][Group] add usergroup relation err: %s", err.Error())
+			log.Errorf("[Store][Group] add usergroup relation err: %s", err.Error())
 			return err
 		}
 	}
 
 	if len(group.RemoveUserIds) != 0 {
 		if err := u.removeGroupRelation(tx, group.ID, group.RemoveUserIds); err != nil {
-			logger.StoreScope().Errorf("[Store][Group] remove usergroup relation err: %s", err.Error())
+			log.Errorf("[Store][Group] remove usergroup relation err: %s", err.Error())
 			return err
 		}
 	}
@@ -170,12 +169,12 @@ func (u *groupStore) updateGroup(group *model.ModifyUserGroup) error {
 		tokenEnable,
 		group.ID,
 	}...); err != nil {
-		logger.StoreScope().Errorf("[Store][Group] update usergroup main err: %s", err.Error())
+		log.Errorf("[Store][Group] update usergroup main err: %s", err.Error())
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Errorf("[Store][Group] update usergroup tx commit err: %s", err.Error())
+		log.Errorf("[Store][Group] update usergroup tx commit err: %s", err.Error())
 		return err
 	}
 
@@ -208,24 +207,24 @@ func (u *groupStore) deleteUserGroup(group *model.UserGroupDetail) error {
 	if _, err = tx.Exec("DELETE FROM user_group_relation WHERE group_id = ?", []interface{}{
 		group.ID,
 	}...); err != nil {
-		logger.StoreScope().Errorf("[Store][Group] clean usergroup relation err: %s", err.Error())
+		log.Errorf("[Store][Group] clean usergroup relation err: %s", err.Error())
 		return err
 	}
 
 	if _, err = tx.Exec("UPDATE user_group SET flag = 1, mtime = sysdate() WHERE id = ?", []interface{}{
 		group.ID,
 	}...); err != nil {
-		logger.StoreScope().Errorf("[Store][Group] remove usergroup err: %s", err.Error())
+		log.Errorf("[Store][Group] remove usergroup err: %s", err.Error())
 		return err
 	}
 
 	if err := cleanLinkStrategy(tx, model.PrincipalGroup, group.ID, group.Owner); err != nil {
-		logger.StoreScope().Errorf("[Store][Group] clean usergroup default strategy err: %s", err.Error())
+		log.Errorf("[Store][Group] clean usergroup default strategy err: %s", err.Error())
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Errorf("[Store][Group] delete usergroupr tx commit err: %s", err.Error())
+		log.Errorf("[Store][Group] delete usergroupr tx commit err: %s", err.Error())
 		return err
 	}
 	return nil
@@ -441,7 +440,7 @@ func (u *groupStore) collectGroupsFromRows(handler QueryHandler, querySql string
 	args []interface{}) ([]*model.UserGroup, error) {
 	rows, err := u.master.Query(querySql, args...)
 	if err != nil {
-		logger.StoreScope().Error("[Store][Group] list group", zap.String("query sql", querySql), zap.Any("args", args))
+		log.Error("[Store][Group] list group", zap.String("query sql", querySql), zap.Any("args", args))
 		return nil, err
 	}
 	defer rows.Close()
@@ -450,7 +449,7 @@ func (u *groupStore) collectGroupsFromRows(handler QueryHandler, querySql string
 	for rows.Next() {
 		group, err := fetchRown2UserGroup(rows)
 		if err != nil {
-			logger.StoreScope().Errorf("[Store][Group] list group by user fetch rows scan err: %s", err.Error())
+			log.Errorf("[Store][Group] list group by user fetch rows scan err: %s", err.Error())
 			return nil, err
 		}
 		groups = append(groups, group)
@@ -595,11 +594,11 @@ func fetchRown2UserGroup(rows *sql.Rows) (*model.UserGroup, error) {
 
 // cleanInValidUserGroup 清理无效的用户组数据
 func (u *groupStore) cleanInValidGroup(name, owner string) error {
-	logger.StoreScope().Infof("[Store][User] clean usergroup(%s)", name)
+	log.Infof("[Store][User] clean usergroup(%s)", name)
 
 	str := "delete from user_group where name = ? and flag = 1"
 	if _, err := u.master.Exec(str, name); err != nil {
-		logger.StoreScope().Errorf("[Store][User] clean usergroup(%s) err: %s", name, err.Error())
+		log.Errorf("[Store][User] clean usergroup(%s) err: %s", name, err.Error())
 		return err
 	}
 

@@ -90,6 +90,16 @@ func FindScope(scope string) *Scope {
 	return s
 }
 
+func GetScopeOrDefaultByName(name string) *Scope {
+	lock.RLock()
+	defer lock.RUnlock()
+	s := scopes[name]
+	if s == nil {
+		s = scopes[DefaultLoggerName]
+	}
+	return s
+}
+
 // Scopes returns a snapshot of the currently defined set of scopes
 func Scopes() map[string]*Scope {
 	lock.RLock()
@@ -322,4 +332,13 @@ func (s *Scope) SetLogCallers(logCallers bool) {
 // GetLogCallers returns the output level associated with the scope.
 func (s *Scope) GetLogCallers() bool {
 	return s.logCallers
+}
+
+// Sync 调用log的Sync方法
+func (s *Scope) Sync() error {
+	pt := s.getPathTable()
+	if pt != nil && pt.sync != nil {
+		return pt.sync()
+	}
+	return nil
 }

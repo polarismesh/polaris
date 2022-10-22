@@ -21,8 +21,6 @@ import (
 	"fmt"
 
 	"github.com/mitchellh/mapstructure"
-
-	"github.com/polarismesh/polaris/common/log"
 )
 
 // Config 限流配置类

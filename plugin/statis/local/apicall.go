@@ -23,9 +23,6 @@ import (
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
-
-	"github.com/polarismesh/polaris/common/log"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/plugin"
 )
@@ -57,18 +54,13 @@ type ComponentStatics struct {
 
 	statis map[string]*APICallStatisItem
 
-	logger *zap.Logger
-
 	apiCallStatis *APICallStatis
 }
 
-func newComponentStatics(outputPath string, component string, statis *APICallStatis) *ComponentStatics {
-	fileName := "apicall.log"
-	fileName = fmt.Sprintf("%s-%s", component, fileName)
+func newComponentStatics(statis *APICallStatis) *ComponentStatics {
 	return &ComponentStatics{
 		mutex:         &sync.Mutex{},
 		statis:        make(map[string]*APICallStatisItem),
-		logger:        newLogger(outputPath + "/" + fileName),
 		apiCallStatis: statis,
 	}
 }
@@ -118,7 +110,7 @@ func (c *ComponentStatics) printStatics(staticsSlice []*APICallStatisItem, start
 			float64(item.accTime)/float64(item.count)/1e6,
 		)
 	}
-	c.logger.Info(msg)
+	log.Info(msg)
 }
 
 // log and print the statics messages
@@ -126,7 +118,7 @@ func (c *ComponentStatics) log() {
 	startTime := time.Now()
 	startStr := commontime.Time2String(startTime)
 	if len(c.statis) == 0 {
-		c.logger.Info(fmt.Sprintf("Statis %s: No API Call\n", startStr))
+		log.Info(fmt.Sprintf("Statis %s: No API Call\n", startStr))
 		return
 	}
 	defer func() {
@@ -150,7 +142,7 @@ func (c *ComponentStatics) collect() {
 	startTime := time.Now()
 	startStr := commontime.Time2String(startTime)
 	if len(c.statis) == 0 {
-		c.logger.Info(fmt.Sprintf("Statis %s: No API Call\n", startStr))
+		log.Info(fmt.Sprintf("Statis %s: No API Call\n", startStr))
 		return
 	}
 	defer func() {
@@ -196,13 +188,13 @@ type APICallStatis struct {
 	prometheusStatis *PrometheusStatis
 }
 
-func newAPICallStatis(outputPath string, prometheusStatis *PrometheusStatis) (*APICallStatis, error) {
+func newAPICallStatis(prometheusStatis *PrometheusStatis) (*APICallStatis, error) {
 	value := &APICallStatis{
 		components: make(map[string]*ComponentStatics),
 	}
 	componentNames := []string{plugin.ComponentServer, plugin.ComponentRedis}
 	for _, componentName := range componentNames {
-		value.components[componentName] = newComponentStatics(outputPath, componentName, value)
+		value.components[componentName] = newComponentStatics(value)
 	}
 
 	value.prometheusStatis = prometheusStatis

@@ -24,7 +24,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/cache"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -73,7 +72,7 @@ func (s *releaseMessageScanner) scanAtFirstTime() error {
 
 	releases, err := s.storage.FindConfigFileReleaseByModifyTimeAfter(t)
 	if err != nil {
-		log.ConfigScope().Error("[Config][Scanner] scan config file release error.", zap.Error(err))
+		log.Error("[Config][Scanner] scan config file release error.", zap.Error(err))
 		return err
 	}
 
@@ -81,12 +80,12 @@ func (s *releaseMessageScanner) scanAtFirstTime() error {
 		return nil
 	}
 
-	log.ConfigScope().Info("[Config][Scanner] scan config file release count at first time. ",
+	log.Info("[Config][Scanner] scan config file release count at first time. ",
 		zap.Int("count", len(releases)))
 
 	err = s.handlerReleases(true, releases)
 	if err != nil {
-		log.ConfigScope().Error("[Config][Scanner] handler release message error.", zap.Error(err))
+		log.Error("[Config][Scanner] handler release message error.", zap.Error(err))
 		return err
 	}
 
@@ -106,13 +105,13 @@ func (s *releaseMessageScanner) startScanTask(ctx context.Context) {
 			releases, err := s.storage.FindConfigFileReleaseByModifyTimeAfter(scanIdx)
 
 			if err != nil {
-				log.ConfigScope().Error("[Config][Scanner] scan config file release error.", zap.Error(err))
+				log.Error("[Config][Scanner] scan config file release error.", zap.Error(err))
 				continue
 			}
 
 			err = s.handlerReleases(false, releases)
 			if err != nil {
-				log.ConfigScope().Error("[Config][Scanner] handler release message error.", zap.Error(err))
+				log.Error("[Config][Scanner] handler release message error.", zap.Error(err))
 			}
 		}
 	}
@@ -162,7 +161,7 @@ func (s *releaseMessageScanner) handlerReleases(firstTime bool, releases []*mode
 	s.lastScannerTime = maxModifyTime
 
 	if newReleaseCnt > 0 {
-		log.ConfigScope().Info("[Config][Scanner] scan config file release count. ", zap.Int("count", len(releases)))
+		log.Info("[Config][Scanner] scan config file release count. ", zap.Int("count", len(releases)))
 	}
 
 	return nil

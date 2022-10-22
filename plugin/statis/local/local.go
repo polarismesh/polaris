@@ -20,9 +20,12 @@ package local
 import (
 	"time"
 
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
+)
+
+const (
+	PluginName = "local"
 )
 
 // init 注册统计插件
@@ -44,7 +47,7 @@ type StatisWorker struct {
 
 // Name 获取统计插件名称
 func (s *StatisWorker) Name() string {
-	return "local"
+	return PluginName
 }
 
 // Initialize 初始化统计插件
@@ -54,8 +57,6 @@ func (s *StatisWorker) Initialize(conf *plugin.ConfigEntry) error {
 	interval := conf.Option["interval"].(int)
 	s.interval = time.Duration(interval) * time.Second
 
-	outputPath := conf.Option["outputPath"].(string)
-
 	// 初始化 prometheus 输出
 	prometheusStatis, err := NewPrometheusStatis()
 	if err != nil {
@@ -64,14 +65,14 @@ func (s *StatisWorker) Initialize(conf *plugin.ConfigEntry) error {
 
 	// 初始化接口调用统计
 	s.acc = make(chan *APICall, 1024)
-	s.acs, err = newAPICallStatis(outputPath, prometheusStatis)
+	s.acs, err = newAPICallStatis(prometheusStatis)
 	if err != nil {
 		return err
 	}
 	go s.Run()
 
 	s.cacheCall = make(chan *CacheCall, 1024)
-	s.cacheStatis, err = newCacheCallStatis(outputPath, prometheusStatis)
+	s.cacheStatis, err = newCacheCallStatis(prometheusStatis)
 
 	return nil
 }

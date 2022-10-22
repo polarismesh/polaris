@@ -27,7 +27,6 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -255,13 +254,13 @@ func (sc *strategyCache) realUpdate(storeRollbackSec time.Duration) error {
 	lastMtime := time.Unix(sc.lastUpdateTime, 0)
 	strategys, err := sc.storage.GetStrategyDetailsForCache(lastMtime.Add(storeRollbackSec), sc.firstUpdate)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][AuthStrategy] refresh auth strategy cache err: %s", err.Error())
+		log.Errorf("[Cache][AuthStrategy] refresh auth strategy cache err: %s", err.Error())
 		return err
 	}
 
 	sc.firstUpdate = false
 	add, update, del := sc.setStrategys(strategys)
-	log.CacheScope().Info("[Cache][AuthStrategy] get more auth strategy",
+	log.Info("[Cache][AuthStrategy] get more auth strategy",
 		zap.Int("add", add), zap.Int("update", update), zap.Int("delete", del),
 		zap.Time("last", lastMtime), zap.Duration("used", time.Now().Sub(start)))
 	return nil

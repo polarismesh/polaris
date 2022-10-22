@@ -21,8 +21,6 @@ package log
 const (
 	// NamingLoggerName naming logger name, can use FindScope function to get the logger
 	NamingLoggerName = "naming"
-	// HealthCheckLoggerName healthcheck logger name, can use FindScope function to get the logger
-	HealthCheckLoggerName = "healthcheck"
 	// ConfigLoggerName config logger name, can use FindScope function to get the logger
 	ConfigLoggerName = "config"
 	// CacheLoggerName cache logger name, can use FindScope function to get the logger
@@ -35,66 +33,12 @@ const (
 	APIServerLoggerName = "apiserver"
 	// XDSLoggerName xdsv3 logger name, can use FindScope function to get the logger
 	XDSLoggerName = "xdsv3"
-)
-
-var (
-	namingScope      = RegisterScope(NamingLoggerName, "naming logging messages.", 0)
-	healthcheckScope = RegisterScope(HealthCheckLoggerName, "healthcheck logging messages.", 0)
-	configScope      = RegisterScope(ConfigLoggerName, "config logging messages.", 0)
-	cacheScope       = RegisterScope(CacheLoggerName, "cache logging messages.", 0)
-	authScope        = RegisterScope(AuthLoggerName, "auth logging messages.", 0)
-	storeScope       = RegisterScope(StoreLoggerName, "store logging messages.", 0)
-	apiserverScope   = RegisterScope(APIServerLoggerName, "apiserver logging messages.", 0)
-	xdsScope         = RegisterScope(XDSLoggerName, "xdsv3 logging messages.", 0)
+	// HealthcheckLoggerName healthcheck logger name, can use FindScope function to get the logger
+	HealthcheckLoggerName = "healthcheck"
 )
 
 func allLoggerTypes() []string {
 	return []string{NamingLoggerName, ConfigLoggerName, CacheLoggerName,
-		AuthLoggerName, StoreLoggerName, APIServerLoggerName, HealthCheckLoggerName,
-		XDSLoggerName, DefaultLoggerName}
-}
-
-// APIServerScope apiserver logging scope handler
-func APIServerScope() *Scope {
-	return apiserverScope
-}
-
-// DefaultScope default logging scope handler
-func DefaultScope() *Scope {
-	return apiserverScope
-}
-
-// NamingScope naming logging scope handler
-func NamingScope() *Scope {
-	return namingScope
-}
-
-// HealthCheckScope healthcheck logging scope handler
-func HealthCheckScope() *Scope {
-	return healthcheckScope
-}
-
-// ConfigScope config logging scope handler
-func ConfigScope() *Scope {
-	return configScope
-}
-
-// CacheScope cache logging scope handler
-func CacheScope() *Scope {
-	return cacheScope
-}
-
-// AuthScope auth logging scope handler
-func AuthScope() *Scope {
-	return authScope
-}
-
-// StoreScope store logging scope handler
-func StoreScope() *Scope {
-	return storeScope
-}
-
-// XDSV3Scope xdsv3 logging scope handler
-func XDSV3Scope() *Scope {
-	return xdsScope
+		AuthLoggerName, StoreLoggerName, APIServerLoggerName, XDSLoggerName,
+		HealthcheckLoggerName, DefaultLoggerName}
 }

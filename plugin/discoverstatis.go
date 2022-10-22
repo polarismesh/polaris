@@ -22,10 +22,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/polarismesh/polaris/common/log"
+	commonLog "github.com/polarismesh/polaris/common/log"
 )
 
-var discoverStatisOnce sync.Once
+var (
+	discoverStatisOnce sync.Once
+)
 
 // DiscoverStatis 服务发现统计插件接口
 type DiscoverStatis interface {
@@ -46,7 +48,7 @@ func GetDiscoverStatis() DiscoverStatis {
 
 	discoverStatisOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			log.Errorf("plugin init err: %s", err.Error())
+			commonLog.GetScopeOrDefaultByName(c.Name).Errorf("plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})

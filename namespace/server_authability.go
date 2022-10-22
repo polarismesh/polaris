@@ -25,7 +25,6 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -88,7 +87,7 @@ func (svr *serverAuthAbility) queryNamespaceResource(
 	ret := map[api.ResourceType][]model.ResourceEntry{
 		api.ResourceType_Namespaces: temp,
 	}
-	commonlog.AuthScope().Debug("[Auth][Server] collect namespace access res", zap.Any("res", ret))
+	authLog.Debug("[Auth][Server] collect namespace access res", zap.Any("res", ret))
 	return ret
 }
 

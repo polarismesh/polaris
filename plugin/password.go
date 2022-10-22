@@ -21,10 +21,12 @@ import (
 	"os"
 	"sync"
 
-	"github.com/polarismesh/polaris/common/log"
+	commonLog "github.com/polarismesh/polaris/common/log"
 )
 
-var passwordOnce sync.Once
+var (
+	passwordOnce sync.Once
+)
 
 // ParsePassword 密码插件
 type ParsePassword interface {
@@ -42,7 +44,7 @@ func GetParsePassword() ParsePassword {
 
 	passwordOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			log.Errorf("plugin init err: %s", err.Error())
+			commonLog.GetScopeOrDefaultByName(c.Name).Errorf("plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})

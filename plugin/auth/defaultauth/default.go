@@ -18,6 +18,7 @@
 package defaultauth
 
 import (
+	commonLog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/plugin"
 )
 
@@ -28,6 +29,8 @@ const (
 var (
 	// emptyVal 空对象，占位而已
 	emptyVal = struct{}{}
+
+	_ = commonLog.RegisterScope(PluginName, "plugin auth log", 0)
 )
 
 // 自注册到插件列表

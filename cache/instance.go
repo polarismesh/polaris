@@ -26,7 +26,6 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -154,13 +153,13 @@ func (ic *instanceCache) checkAll() {
 	}()
 	count, err := ic.storage.GetInstancesCount()
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][Instance] get instance count from storage err: %s", err.Error())
+		log.Errorf("[Cache][Instance] get instance count from storage err: %s", err.Error())
 		return
 	}
 	if ic.instanceCount == int64(count) {
 		return
 	}
-	log.CacheScope().Infof(
+	log.Infof(
 		"[Cache][Instance] instance count not match, expect %d, actual %d, fallback to load all",
 		count, ic.instanceCount)
 	ic.lastMtime = 0
@@ -174,7 +173,7 @@ func (ic *instanceCache) realUpdate(storeRollbackSec time.Duration) error {
 	lastMtime := ic.LastMtime().Add(storeRollbackSec)
 	instances, err := ic.storage.GetMoreInstances(lastMtime, ic.firstUpdate, ic.needMeta, ic.systemServiceID)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][Instance] update get storage more err: %s", err.Error())
+		log.Errorf("[Cache][Instance] update get storage more err: %s", err.Error())
 		return err
 	}
 
@@ -182,7 +181,7 @@ func (ic *instanceCache) realUpdate(storeRollbackSec time.Duration) error {
 	update, del := ic.setInstances(instances)
 	timeDiff := time.Since(start)
 	if timeDiff > 1*time.Second {
-		log.CacheScope().Info("[Cache][Instance] get more instances",
+		log.Info("[Cache][Instance] get more instances",
 			zap.Int("update", update), zap.Int("delete", del),
 			zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
 	}
@@ -214,7 +213,7 @@ func (ic *instanceCache) LastMtime() time.Time {
 func (ic *instanceCache) getSystemServices() ([]*model.Service, error) {
 	services, err := ic.storage.GetSystemServices()
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][Instance] get system services err: %s", err.Error())
+		log.Errorf("[Cache][Instance] get system services err: %s", err.Error())
 		return nil, err
 	}
 	return services, nil
@@ -236,7 +235,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 	for _, item := range ins {
 		progress++
 		if progress%50000 == 0 {
-			log.CacheScope().Infof("[Cache][Instance] set instances progress: %d / %d", progress, len(ins))
+			log.Infof("[Cache][Instance] set instances progress: %d / %d", progress, len(ins))
 		}
 		modifyTime := item.ModifyTime.Unix()
 		if lastMtime < modifyTime {
@@ -288,12 +287,12 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 	}
 
 	if ic.lastMtime != lastMtime {
-		log.CacheScope().Infof("[Cache][Instance] instance lastMtime update from %s to %s",
+		log.Infof("[Cache][Instance] instance lastMtime update from %s to %s",
 			time.Unix(ic.lastMtime, 0), time.Unix(lastMtime, 0))
 		ic.lastMtime = lastMtime
 	}
 	if ic.instanceCount != instanceCount {
-		log.CacheScope().Infof("[Cache][Instance] instance count update from %d to %d",
+		log.Infof("[Cache][Instance] instance count update from %d to %d",
 			ic.instanceCount, instanceCount)
 		ic.instanceCount = instanceCount
 	}
@@ -325,7 +324,7 @@ func (ic *instanceCache) postProcessUpdatedServices(affect map[string]bool) {
 		ic.revisionCh <- newRevisionNotify(serviceID, true)
 		progress++
 		if progress%10000 == 0 {
-			log.CacheScope().Infof("[Cache][Instance] revision notify progress(%d / %d)", progress, len(affect))
+			log.Infof("[Cache][Instance] revision notify progress(%d / %d)", progress, len(affect))
 		}
 		// 构建服务数量统计
 		value, ok := ic.services.Load(serviceID)

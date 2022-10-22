@@ -25,7 +25,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -199,13 +198,13 @@ func (sc *serviceCache) realUpdate(storeRollbackSec time.Duration) error {
 	services, err := sc.storage.GetMoreServices(lastMtime.Add(storeRollbackSec),
 		sc.firstUpdate, sc.disableBusiness, sc.needMeta)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][Service] update services err: %s", err.Error())
+		log.Errorf("[Cache][Service] update services err: %s", err.Error())
 		return err
 	}
 
 	sc.firstUpdate = false
 	update, del := sc.setServices(services)
-	log.CacheScope().Info(
+	log.Info(
 		"[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
 		zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
 	return nil
@@ -356,7 +355,7 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 	for _, service := range services {
 		progress++
 		if progress%20000 == 0 {
-			log.CacheScope().Infof(
+			log.Infof(
 				"[Cache][Service] update service item progress(%d / %d)", progress, len(services))
 		}
 		serviceMtime := service.ModifyTime.Unix()

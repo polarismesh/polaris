@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	log       = commonlog.APIServerScope()
-	namingLog = commonlog.NamingScope()
-	configLog = commonlog.ConfigScope()
+	log       = commonlog.GetScopeOrDefaultByName(commonlog.APIServerLoggerName)
+	namingLog = commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName)
+	configLog = commonlog.GetScopeOrDefaultByName(commonlog.ConfigLoggerName)
 )

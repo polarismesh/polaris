@@ -32,7 +32,7 @@ import (
 )
 
 var (
-	namingLog = commonlog.NamingScope()
+	namingLog = commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName)
 )
 
 // Discover 统一发现接口

@@ -27,7 +27,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -331,27 +330,27 @@ func (uc *userCache) realUpdate(storeRollbackSec time.Duration) error {
 	userlastMtime := time.Unix(uc.lastUserCacheUpdateTime, 0)
 	users, err := uc.storage.GetUsersForCache(userlastMtime.Add(storeRollbackSec), uc.userCacheFirstUpdate)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][User] update user err: %s", err.Error())
+		log.Errorf("[Cache][User] update user err: %s", err.Error())
 		return err
 	}
 
 	grouplastMtime := time.Unix(uc.lastGroupCacheUpdateTime, 0)
 	groups, err := uc.storage.GetGroupsForCache(grouplastMtime.Add(DefaultTimeDiff), uc.groupCacheFirstUpdate)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][Group] update group err: %s", err.Error())
+		log.Errorf("[Cache][Group] update group err: %s", err.Error())
 		return err
 	}
 
 	uc.userCacheFirstUpdate = false
 	uc.groupCacheFirstUpdate = false
 	refreshRet := uc.setUserAndGroups(users, groups)
-	log.CacheScope().Info("[Cache][User] get more user",
+	log.Info("[Cache][User] get more user",
 		zap.Int("add", refreshRet.userAdd),
 		zap.Int("update", refreshRet.userUpdate),
 		zap.Int("delete", refreshRet.userDel),
 		zap.Time("last", userlastMtime), zap.Duration("used", time.Now().Sub(start)))
 
-	log.CacheScope().Info("[Cache][Group] get more group",
+	log.Info("[Cache][Group] get more group",
 		zap.Int("add", refreshRet.groupAdd),
 		zap.Int("update", refreshRet.groupUpdate),
 		zap.Int("delete", refreshRet.groupDel),

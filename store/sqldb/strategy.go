@@ -25,7 +25,6 @@ import (
 
 	"go.uber.org/zap"
 
-	logger "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -84,12 +83,12 @@ func (s *strategyStore) addStrategy(strategy *model.StrategyDetail) error {
 	}
 
 	if err := s.addStrategyPrincipals(tx, strategy.ID, strategy.Principals); err != nil {
-		logger.StoreScope().Error("[Store][Strategy] add auth_strategy principals", zap.Error(err))
+		log.Error("[Store][Strategy] add auth_strategy principals", zap.Error(err))
 		return err
 	}
 
 	if err := s.addStrategyResources(tx, strategy.ID, strategy.Resources); err != nil {
-		logger.StoreScope().Error("[Store][Strategy] add auth_strategy resources", zap.Error(err))
+		log.Error("[Store][Strategy] add auth_strategy resources", zap.Error(err))
 		return err
 	}
 
@@ -101,12 +100,12 @@ func (s *strategyStore) addStrategy(strategy *model.StrategyDetail) error {
 			strategy.ID, strategy.Name, strategy.Action, strategy.Owner, strategy.Comment,
 			0, isDefault, strategy.Revision}...,
 	); err != nil {
-		logger.StoreScope().Error("[Store][Strategy] add auth_strategy main info", zap.Error(err))
+		log.Error("[Store][Strategy] add auth_strategy main info", zap.Error(err))
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Errorf("[Store][Strategy] add auth_strategy tx commit err: %s", err.Error())
+		log.Errorf("[Store][Strategy] add auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
 
@@ -136,33 +135,33 @@ func (s *strategyStore) updateStrategy(strategy *model.ModifyStrategyDetail) err
 
 	// 调整 principal 信息
 	if err := s.addStrategyPrincipals(tx, strategy.ID, strategy.AddPrincipals); err != nil {
-		logger.StoreScope().Errorf("[Store][Strategy] add strategy principal err: %s", err.Error())
+		log.Errorf("[Store][Strategy] add strategy principal err: %s", err.Error())
 		return err
 	}
 	if err := s.deleteStrategyPrincipals(tx, strategy.ID, strategy.RemovePrincipals); err != nil {
-		logger.StoreScope().Errorf("[Store][Strategy] remove strategy principal err: %s", err.Error())
+		log.Errorf("[Store][Strategy] remove strategy principal err: %s", err.Error())
 		return err
 	}
 
 	// 调整鉴权资源信息
 	if err := s.addStrategyResources(tx, strategy.ID, strategy.AddResources); err != nil {
-		logger.StoreScope().Errorf("[Store][Strategy] add strategy resource err: %s", err.Error())
+		log.Errorf("[Store][Strategy] add strategy resource err: %s", err.Error())
 		return err
 	}
 	if err := s.deleteStrategyResources(tx, strategy.ID, strategy.RemoveResources); err != nil {
-		logger.StoreScope().Errorf("[Store][Strategy] remove strategy resource err: %s", err.Error())
+		log.Errorf("[Store][Strategy] remove strategy resource err: %s", err.Error())
 		return err
 	}
 
 	// 保存策略主信息
 	saveMainSql := "UPDATE auth_strategy SET action = ?, comment = ?, mtime = sysdate() WHERE id = ?"
 	if _, err = tx.Exec(saveMainSql, []interface{}{strategy.Action, strategy.Comment, strategy.ID}...); err != nil {
-		logger.StoreScope().Error("[Store][Strategy] update strategy main info", zap.Error(err))
+		log.Error("[Store][Strategy] update strategy main info", zap.Error(err))
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Errorf("[Store][Strategy] update auth_strategy tx commit err: %s", err.Error())
+		log.Errorf("[Store][Strategy] update auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
 
@@ -209,7 +208,7 @@ func (s *strategyStore) deleteStrategy(id string) error {
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Errorf("[Store][Strategy] delete auth_strategy tx commit err: %s", err.Error())
+		log.Errorf("[Store][Strategy] delete auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
 	return nil
@@ -234,7 +233,7 @@ func (s *strategyStore) addStrategyPrincipals(tx *BaseTx, id string, principals 
 
 	savePrincipalSql += strings.Join(values, ",")
 
-	logger.StoreScope().Debug("[Store][Strategy] add strategy principal", zap.String("sql", savePrincipalSql),
+	log.Debug("[Store][Strategy] add strategy principal", zap.String("sql", savePrincipalSql),
 		zap.Any("args", args))
 
 	_, err := tx.Exec(savePrincipalSql, args...)
@@ -285,7 +284,7 @@ func (s *strategyStore) addStrategyResources(tx *BaseTx, id string, resources []
 
 	saveResSql += strings.Join(values, ",")
 
-	logger.StoreScope().Debug("[Store][Strategy] add strategy resources", zap.String("sql", saveResSql),
+	log.Debug("[Store][Strategy] add strategy resources", zap.String("sql", saveResSql),
 		zap.Any("args", args))
 	_, err := tx.Exec(saveResSql, args...)
 	return err
@@ -345,7 +344,7 @@ func (s *strategyStore) LooseAddStrategyResources(resources []model.StrategyReso
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Errorf("[Store][Strategy] add auth_strategy tx commit err: %s", err.Error())
+		log.Errorf("[Store][Strategy] add auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
 
@@ -380,7 +379,7 @@ func (s *strategyStore) RemoveStrategyResources(resources []model.StrategyResour
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Errorf("[Store][Strategy] add auth_strategy tx commit err: %s", err.Error())
+		log.Errorf("[Store][Strategy] add auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
 
@@ -585,12 +584,12 @@ func (s *strategyStore) queryStrategies(
 func (s *strategyStore) collectStrategies(handler QueryHandler, querySql string,
 	args []interface{}, showDetail bool) ([]*model.StrategyDetail, error) {
 
-	logger.StoreScope().Debug("[Store][Strategy] get simple strategies", zap.String("query sql", querySql),
+	log.Debug("[Store][Strategy] get simple strategies", zap.String("query sql", querySql),
 		zap.Any("args", args))
 
 	rows, err := handler(querySql, args...)
 	if err != nil {
-		logger.StoreScope().Error("[Store][Strategy] get simple strategies", zap.String("query sql", querySql),
+		log.Error("[Store][Strategy] get simple strategies", zap.String("query sql", querySql),
 			zap.Any("args", args))
 		return nil, store.Error(err)
 	}
@@ -695,7 +694,7 @@ func (s *strategyStore) GetStrategyResources(principalId string,
 		case sql.ErrNoRows:
 			return nil, nil
 		default:
-			logger.StoreScope().Error("[Store][Strategy] get principal link resource", zap.String("sql", querySql),
+			log.Error("[Store][Strategy] get principal link resource", zap.String("sql", querySql),
 				zap.String("principal-id", principalId), zap.Any("principal-type", principalRole))
 			return nil, store.Error(err)
 		}
@@ -722,7 +721,7 @@ func (s *strategyStore) getStrategyPrincipals(queryHander QueryHandler, id strin
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
-			logger.StoreScope().Info("[Store][Strategy] not found link principals", zap.String("strategy-id", id))
+			log.Info("[Store][Strategy] not found link principals", zap.String("strategy-id", id))
 			return nil, nil
 		default:
 			return nil, store.Error(err)
@@ -749,7 +748,7 @@ func (s *strategyStore) getStrategyResources(queryHander QueryHandler, id string
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
-			logger.StoreScope().Info("[Store][Strategy] not found link resources", zap.String("strategy-id", id))
+			log.Info("[Store][Strategy] not found link resources", zap.String("strategy-id", id))
 			return nil, nil
 		default:
 			return nil, store.Error(err)
@@ -797,7 +796,7 @@ func fetchRown2StrategyDetail(rows *sql.Rows) (*model.StrategyDetail, error) {
 
 // cleanInvalidStrategy 按名称清理鉴权策略
 func (s *strategyStore) cleanInvalidStrategy(name, owner string) error {
-	logger.StoreScope().Info("[Store][Strategy] clean invalid auth_strategy",
+	log.Info("[Store][Strategy] clean invalid auth_strategy",
 		zap.String("name", name), zap.String("owner", owner))
 
 	tx, err := s.master.Begin()
@@ -808,11 +807,11 @@ func (s *strategyStore) cleanInvalidStrategy(name, owner string) error {
 
 	str := "delete from auth_strategy where name = ? and owner = ? and flag = 1"
 	if _, err = tx.Exec(str, name, owner); err != nil {
-		logger.StoreScope().Errorf("[Store][Strategy] clean invalid auth_strategy(%s) err: %s", name, err.Error())
+		log.Errorf("[Store][Strategy] clean invalid auth_strategy(%s) err: %s", name, err.Error())
 		return err
 	}
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Errorf("[Store][Strategy] clean invalid auth_strategy tx commit err: %s", err.Error())
+		log.Errorf("[Store][Strategy] clean invalid auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
 	return nil

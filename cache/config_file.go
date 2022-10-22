@@ -28,7 +28,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -243,7 +242,7 @@ func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 
 	file, err := fc.storage.GetConfigFileRelease(nil, namespace, group, fileName)
 	if err != nil {
-		log.ConfigScope().Error("[Config][Cache] load config file release error.",
+		configLog.Error("[Config][Cache] load config file release error.",
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -253,7 +252,7 @@ func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 
 	// 数据库中没有该对象, 为了避免对象不存在时，一直击穿数据库，所以缓存空对象
 	if file == nil {
-		log.ConfigScope().Warn("[Config][Cache] load config file release not found.",
+		configLog.Warn("[Config][Cache] load config file release not found.",
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -336,7 +335,7 @@ func (fc *fileCache) startClearExpireEntryTask(ctx context.Context) {
 			})
 
 			if curExpiredFileCnt > 0 {
-				log.ConfigScope().Info("[Config][Cache] clear expired file cache.", zap.Int("count", curExpiredFileCnt))
+				configLog.Info("[Config][Cache] clear expired file cache.", zap.Int("count", curExpiredFileCnt))
 			}
 
 			atomic.AddInt32(&fc.expireCnt, int32(curExpiredFileCnt))
@@ -353,7 +352,7 @@ func (fc *fileCache) startLogStatusTask(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			log.ConfigScope().Info("[Config][Cache] cache status:",
+			configLog.Info("[Config][Cache] cache status:",
 				zap.Int32("getCnt", atomic.LoadInt32(&fc.getCnt)),
 				zap.Int32("loadCnt", atomic.LoadInt32(&fc.loadCnt)),
 				zap.Int32("removeCnt", atomic.LoadInt32(&fc.removeCnt)),

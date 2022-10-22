@@ -21,8 +21,6 @@ import (
 	"bytes"
 	"time"
 
-	"go.uber.org/zap"
-
 	commontime "github.com/polarismesh/polaris/common/time"
 )
 
@@ -42,8 +40,6 @@ type Service struct {
 // DiscoverCallStatis 服务发现统计条目
 type DiscoverCallStatis struct {
 	statis map[Service]time.Time
-
-	logger *zap.Logger
 }
 
 // add 添加服务发现统计数据
@@ -75,7 +71,7 @@ func (d *DiscoverCallStatis) log() {
 		buffer.WriteString("\n")
 	}
 
-	d.logger.Info(buffer.String())
+	log.Info(buffer.String())
 	// Reset for every tick
 	d.statis = make(map[Service]time.Time)
 }

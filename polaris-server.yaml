@@ -94,6 +94,84 @@ bootstrap:
       #   - stdout
       # errorOutputPaths:
       #   - stderr
+    apiserver:
+      rotateOutputPath: log/polaris-apiserver.log
+      errorRotateOutputPath: log/polaris-apiserver-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
+    defaultAuth:
+      rotateOutputPath: log/polaris-defaultauth.log
+      errorRotateOutputPath: log/polaris-password-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
+    discoverEventLocal:
+      rotateOutputPath: log/polaris-discoverevent.log
+      errorRotateOutputPath: log/polaris-discoverevent-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
+    discoverLocal:
+      rotateOutputPath: log/polaris-discoverstat.log
+      errorRotateOutputPath: log/polaris-discoverstat-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
+    token-bucket:
+      rotateOutputPath: log/polaris-ratelimit.log
+      errorRotateOutputPath: log/polaris-ratelimit-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
+    local:
+      rotateOutputPath: log/polaris-statis.log
+      errorRotateOutputPath: log/polaris-statis-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
+    HistoryLogger:
+      rotateOutputPath: log/polaris-history.log
+      errorRotateOutputPath: log/polaris-history-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      rotationMaxDurationForHour: 24
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
     default:
       rotateOutputPath: log/polaris-default.log
       errorRotateOutputPath: log/polaris-default-error.log
@@ -350,12 +428,10 @@ plugin:
     name: discoverLocal
     option:
       interval: 60 # 统计间隔，单位为秒
-      outputPath: ./discover-statis
   statis:
     name: local
     option:
       interval: 60 # 统计间隔，单位为秒
-      outputPath: ./statis
   auth:
     name: defaultAuth
   ratelimit:

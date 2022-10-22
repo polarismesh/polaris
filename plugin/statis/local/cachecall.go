@@ -22,8 +22,6 @@ import (
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
-
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/plugin"
 )
@@ -50,18 +48,13 @@ type ComponentCacheStatics struct {
 
 	statis map[string]*CacheCallStatisItem
 
-	logger *zap.Logger
-
 	CacheCallStatis *CacheCallStatis
 }
 
-func newComponentCacheStatics(outputPath string, component string, statis *CacheCallStatis) *ComponentCacheStatics {
-	fileName := "cachecall.log"
-	fileName = fmt.Sprintf("%s-%s", component, fileName)
+func newComponentCacheStatics(statis *CacheCallStatis) *ComponentCacheStatics {
 	return &ComponentCacheStatics{
 		mutex:           &sync.Mutex{},
 		statis:          make(map[string]*CacheCallStatisItem),
-		logger:          newLogger(outputPath + "/" + fileName),
 		CacheCallStatis: statis,
 	}
 }
@@ -100,7 +93,7 @@ func (c *ComponentCacheStatics) printStatics(staticsSlice []*CacheCallStatisItem
 			float64(item.hitCount)/float64(item.hitCount+item.missCount),
 		)
 	}
-	c.logger.Info(msg)
+	log.Info(msg)
 }
 
 // log and print the statics messages
@@ -125,14 +118,14 @@ type CacheCallStatis struct {
 	prometheusStatis *PrometheusStatis
 }
 
-func newCacheCallStatis(outputPath string, prometheusStatis *PrometheusStatis) (*CacheCallStatis, error) {
+func newCacheCallStatis(prometheusStatis *PrometheusStatis) (*CacheCallStatis, error) {
 	value := &CacheCallStatis{
 		components: make(map[string]*ComponentCacheStatics),
 	}
 
 	componentNames := []string{plugin.ComponentProtobufCache}
 	for _, componentName := range componentNames {
-		value.components[componentName] = newComponentCacheStatics(outputPath, componentName, value)
+		value.components[componentName] = newComponentCacheStatics(value)
 	}
 
 	value.prometheusStatis = prometheusStatis

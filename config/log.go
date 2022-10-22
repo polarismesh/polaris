@@ -15,10 +15,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package healthcheck
+package config
 
-import (
-	commonlog "github.com/polarismesh/polaris/common/log"
+import commonLog "github.com/polarismesh/polaris/common/log"
+
+var (
+	log     = commonLog.GetScopeOrDefaultByName(commonLog.ConfigLoggerName)
+	authLog = commonLog.GetScopeOrDefaultByName(commonLog.AuthLoggerName)
 )
-
-var log = commonlog.GetScopeOrDefaultByName(commonlog.HealthcheckLoggerName)

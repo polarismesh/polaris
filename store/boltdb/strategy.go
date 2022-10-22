@@ -28,7 +28,6 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	logger "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -105,19 +104,19 @@ func (ss *strategyStore) AddStrategy(strategy *model.StrategyDetail) error {
 
 func (ss *strategyStore) addStrategy(tx *bolt.Tx, strategy *model.StrategyDetail) error {
 	if err := ss.cleanInvalidStrategy(tx, strategy.Name, strategy.Owner); err != nil {
-		logger.StoreScope().Error("[Store][Strategy] clean invalid auth_strategy", zap.Error(err),
+		log.Error("[Store][Strategy] clean invalid auth_strategy", zap.Error(err),
 			zap.String("name", strategy.Name), zap.Any("owner", strategy.Owner))
 		return err
 	}
 
 	if err := saveValue(tx, tblStrategy, strategy.ID, convertForStrategyStore(strategy)); err != nil {
-		logger.StoreScope().Error("[Store][Strategy] save auth_strategy", zap.Error(err),
+		log.Error("[Store][Strategy] save auth_strategy", zap.Error(err),
 			zap.String("name", strategy.Name), zap.String("owner", strategy.Owner))
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Error("[Store][Strategy] clean invalid auth_strategy tx commit", zap.Error(err),
+		log.Error("[Store][Strategy] clean invalid auth_strategy tx commit", zap.Error(err),
 			zap.String("name", strategy.Name), zap.String("owner", strategy.Owner))
 		return err
 	}
@@ -168,13 +167,13 @@ func (ss *strategyStore) updateStrategy(tx *bolt.Tx, modify *model.ModifyStrateg
 	saveVal.ModifyTime = time.Now()
 
 	if err := saveValue(tx, tblStrategy, saveVal.ID, saveVal); err != nil {
-		logger.StoreScope().Error("[Store][Strategy] update auth_strategy", zap.Error(err),
+		log.Error("[Store][Strategy] update auth_strategy", zap.Error(err),
 			zap.String("id", saveVal.ID))
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Error("[Store][Strategy] update auth_strategy tx commit", zap.Error(err),
+		log.Error("[Store][Strategy] update auth_strategy tx commit", zap.Error(err),
 			zap.String("id", saveVal.ID))
 		return err
 	}
@@ -243,7 +242,7 @@ func (ss *strategyStore) DeleteStrategy(id string) error {
 	properties[StrategyFieldModifyTime] = time.Now()
 
 	if err := ss.handler.UpdateValue(tblStrategy, id, properties); err != nil {
-		logger.StoreScope().Error("[Store][Strategy] delete auth_strategy", zap.Error(err), zap.String("id", id))
+		log.Error("[Store][Strategy] delete auth_strategy", zap.Error(err), zap.String("id", id))
 		return err
 	}
 
@@ -283,14 +282,14 @@ func (ss *strategyStore) operateStrategyResources(remove bool, resources []model
 		computeResources(remove, ress, rule)
 		rule.ModifyTime = time.Now()
 		if err := saveValue(tx, tblStrategy, rule.ID, rule); err != nil {
-			logger.StoreScope().Error("[Store][Strategy] operate strategy resource", zap.Error(err),
+			log.Error("[Store][Strategy] operate strategy resource", zap.Error(err),
 				zap.Bool("remove", remove), zap.String("id", id))
 			return err
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Error("[Store][Strategy] update auth_strategy resource tx commit",
+		log.Error("[Store][Strategy] update auth_strategy resource tx commit",
 			zap.Error(err), zap.Bool("remove", remove))
 		return err
 	}
@@ -302,7 +301,7 @@ func loadStrategyById(tx *bolt.Tx, id string) (*strategyForStore, error) {
 	values := make(map[string]interface{})
 
 	if err := loadValues(tx, tblStrategy, []string{id}, &strategyForStore{}, values); err != nil {
-		logger.StoreScope().Error("[Store][Strategy] get auth_strategy by id", zap.Error(err),
+		log.Error("[Store][Strategy] get auth_strategy by id", zap.Error(err),
 			zap.String("id", id))
 		return nil, err
 	}
@@ -481,7 +480,7 @@ func (ss *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
 		})
 
 	if err != nil {
-		logger.StoreScope().Error("[Store][Strategy] get default auth_strategy by principal", zap.Error(err),
+		log.Error("[Store][Strategy] get default auth_strategy by principal", zap.Error(err),
 			zap.String("principal-id", principalId), zap.String("principal", principalType.String()))
 		return nil, err
 	}
@@ -582,7 +581,7 @@ func (ss *strategyStore) listStrategies(filters map[string]string, offset uint32
 		})
 
 	if err != nil {
-		logger.StoreScope().Error("[Store][Strategy] get auth_strategy for list", zap.Error(err))
+		log.Error("[Store][Strategy] get auth_strategy for list", zap.Error(err))
 		return 0, nil, err
 	}
 
@@ -679,7 +678,7 @@ func (ss *strategyStore) GetStrategyDetailsForCache(mtime time.Time,
 			return isAfter
 		})
 	if err != nil {
-		logger.StoreScope().Error("[Store][Strategy] get auth_strategy for cache", zap.Error(err))
+		log.Error("[Store][Strategy] get auth_strategy for cache", zap.Error(err))
 		return nil, err
 	}
 
@@ -714,7 +713,7 @@ func (ss *strategyStore) cleanInvalidStrategy(tx *bolt.Tx, name, owner string) e
 		}, values)
 
 	if err != nil {
-		logger.StoreScope().Error("[Store][Strategy] clean invalid auth_strategy", zap.Error(err),
+		log.Error("[Store][Strategy] clean invalid auth_strategy", zap.Error(err),
 			zap.String("name", name), zap.Any("owner", owner))
 		return err
 	}
@@ -780,7 +779,7 @@ func cleanLinkStrategy(tx *bolt.Tx, role model.PrincipalType, principalId, owner
 		}, values)
 
 	if err != nil {
-		logger.StoreScope().Error("[Store][Strategy] load link auth_strategy", zap.Error(err),
+		log.Error("[Store][Strategy] load link auth_strategy", zap.Error(err),
 			zap.String("principal-id", principalId), zap.Any("principal-type", role))
 		return err
 	}
@@ -799,7 +798,7 @@ func cleanLinkStrategy(tx *bolt.Tx, role model.PrincipalType, principalId, owner
 		properties[StrategyFieldModifyTime] = time.Now()
 
 		if err := updateValue(tx, tblStrategy, k, properties); err != nil {
-			logger.StoreScope().Error("[Store][Strategy] clean link auth_strategy", zap.Error(err),
+			log.Error("[Store][Strategy] clean link auth_strategy", zap.Error(err),
 				zap.String("principal-id", principalId), zap.Any("principal-type", role))
 			return err
 		}

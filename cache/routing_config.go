@@ -26,7 +26,6 @@ import (
 
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 	apiv2 "github.com/polarismesh/polaris/common/api/v2"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	v2 "github.com/polarismesh/polaris/common/model/v2"
 	routingcommon "github.com/polarismesh/polaris/common/routing"
@@ -127,23 +126,23 @@ func (rc *routingConfigCache) update(storeRollbackSec time.Duration) error {
 func (rc *routingConfigCache) realUpdate(storeRollbackSec time.Duration) error {
 	outV1, err := rc.storage.GetRoutingConfigsForCache(rc.lastMtimeV1.Add(storeRollbackSec), rc.firstUpdate)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache] routing config v1 cache get from store err: %s", err.Error())
+		log.Errorf("[Cache] routing config v1 cache get from store err: %s", err.Error())
 		return err
 	}
 
 	outV2, err := rc.storage.GetRoutingConfigsV2ForCache(rc.lastMtimeV2.Add(storeRollbackSec), rc.firstUpdate)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache] routing config v2 cache get from store err: %s", err.Error())
+		log.Errorf("[Cache] routing config v2 cache get from store err: %s", err.Error())
 		return err
 	}
 
 	rc.firstUpdate = false
 	if err := rc.setRoutingConfigV1(outV1); err != nil {
-		log.CacheScope().Errorf("[Cache] routing config v1 cache update err: %s", err.Error())
+		log.Errorf("[Cache] routing config v1 cache update err: %s", err.Error())
 		return err
 	}
 	if err := rc.setRoutingConfigV2(outV2); err != nil {
-		log.CacheScope().Errorf("[Cache] routing config v2 cache update err: %s", err.Error())
+		log.Errorf("[Cache] routing config v2 cache update err: %s", err.Error())
 		return err
 	}
 	rc.setRoutingConfigV1ToV2()
@@ -202,7 +201,7 @@ func (rc *routingConfigCache) GetRoutingConfigV1(id, service, namespace string) 
 
 	revision, err := CompositeComputeRevision(revisions)
 	if err != nil {
-		log.CacheScope().Error("[Cache][Routing] v2=>v1 compute revisions", zap.Error(err))
+		log.Error("[Cache][Routing] v2=>v1 compute revisions", zap.Error(err))
 		return nil, err
 	}
 
@@ -313,7 +312,7 @@ func (rc *routingConfigCache) setRoutingConfigV2(cs []*v2.RoutingConfig) error {
 		}
 		extendEntry, err := entry.ToExpendRoutingConfig()
 		if err != nil {
-			log.CacheScope().Error("[Cache] routing config v2 convert to expend", zap.Error(err))
+			log.Error("[Cache] routing config v2 convert to expend", zap.Error(err))
 			continue
 		}
 		rc.bucketV2.saveV2(extendEntry)
@@ -332,7 +331,7 @@ func (rc *routingConfigCache) setRoutingConfigV1ToV2() {
 
 		// 保存到新的 v2 缓存
 		if v2rule, err := rc.convertRoutingV1toV2(entry); err != nil {
-			log.CacheScope().Error("[Cache] routing parse v1 => v2, will try again next",
+			log.Error("[Cache] routing parse v1 => v2, will try again next",
 				zap.String("rule-id", entry.ID), zap.Error(err))
 		} else {
 			rc.bucketV2.saveV1(entry, v2rule)
@@ -340,7 +339,7 @@ func (rc *routingConfigCache) setRoutingConfigV1ToV2() {
 		}
 	}
 
-	log.CacheScope().Infof("[Cache] convert routing parse v1 => v2 count : %d", rc.bucketV2.convertV2Size())
+	log.Infof("[Cache] convert routing parse v1 => v2 count : %d", rc.bucketV2.convertV2Size())
 }
 
 func (rc *routingConfigCache) IsConvertFromV1(id string) (string, bool) {
@@ -403,7 +402,7 @@ func (rc *routingConfigCache) convertRoutingV2toV1(entries map[routingLevel][]*v
 	revisions = append(revisions, level3Revisions...)
 	revision, err := CompositeComputeRevision(revisions)
 	if err != nil {
-		log.CacheScope().Error("[Cache][Routing] v2=>v1 compute revisions", zap.Error(err))
+		log.Error("[Cache][Routing] v2=>v1 compute revisions", zap.Error(err))
 		return nil
 	}
 

@@ -25,7 +25,6 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	authcommon "github.com/polarismesh/polaris/common/auth"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -65,7 +64,7 @@ func (svr *server) CreateGroup(ctx context.Context, req *api.UserGroup) *api.Res
 	// 根据 owner + groupname 确定唯一的用户组信息
 	group, err := svr.storage.GetGroupByName(req.Name.GetValue(), ownerID)
 	if err != nil {
-		log.AuthScope().Error("get group when create", utils.ZapRequestID(requestID),
+		log.Error("get group when create", utils.ZapRequestID(requestID),
 			utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewGroupResponse(api.StoreLayerException, req)
 	}
@@ -76,17 +75,17 @@ func (svr *server) CreateGroup(ctx context.Context, req *api.UserGroup) *api.Res
 
 	data, err := createGroupModel(req)
 	if err != nil {
-		log.AuthScope().Error("create group model", utils.ZapRequestID(requestID),
+		log.Error("create group model", utils.ZapRequestID(requestID),
 			utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewResponseWithMsg(api.ExecuteException, err.Error())
 	}
 
 	if err := svr.storage.AddGroup(data); err != nil {
-		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.AuthScope().Info("create group", zap.String("name", req.Name.GetValue()), utils.ZapRequestID(requestID),
+	log.Info("create group", zap.String("name", req.Name.GetValue()), utils.ZapRequestID(requestID),
 		utils.ZapPlatformID(platformID))
 	svr.RecordHistory(userGroupRecordEntry(ctx, req, data.UserGroup, model.OCreate))
 
@@ -125,17 +124,17 @@ func (svr *server) UpdateGroup(ctx context.Context, req *api.ModifyUserGroup) *a
 
 	modifyReq, needUpdate := updateGroupAttribute(ctx, data.UserGroup, req)
 	if !needUpdate {
-		log.AuthScope().Info("update group data no change, no need update",
+		log.Info("update group data no change, no need update",
 			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.String("group", req.String()))
 		return api.NewModifyGroupResponse(api.NoNeedUpdate, req)
 	}
 
 	if err := svr.storage.UpdateGroup(modifyReq); err != nil {
-		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.AuthScope().Info("update group", zap.String("name", data.Name), utils.ZapRequestID(requestID),
+	log.Info("update group", zap.String("name", data.Name), utils.ZapRequestID(requestID),
 		utils.ZapPlatformID(platformID))
 	svr.RecordHistory(modifyUserGroupRecordEntry(ctx, req, data.UserGroup, model.OUpdateGroup))
 
@@ -162,7 +161,7 @@ func (svr *server) DeleteGroup(ctx context.Context, req *api.UserGroup) *api.Res
 
 	group, err := svr.storage.GetGroup(req.GetId().GetValue())
 	if err != nil {
-		log.AuthScope().Error("get group from store", utils.ZapRequestID(requestID), zap.Error(err))
+		log.Error("get group from store", utils.ZapRequestID(requestID), zap.Error(err))
 		return api.NewGroupResponse(api.StoreLayerException, req)
 	}
 	if group == nil {
@@ -176,11 +175,11 @@ func (svr *server) DeleteGroup(ctx context.Context, req *api.UserGroup) *api.Res
 	}
 
 	if err := svr.storage.DeleteGroup(group); err != nil {
-		log.AuthScope().Error("delete group from store", utils.ZapRequestID(requestID), zap.Error(err))
+		log.Error("delete group from store", utils.ZapRequestID(requestID), zap.Error(err))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.AuthScope().Info("delete group", utils.ZapRequestID(requestID), zap.String("name", req.Name.GetValue()))
+	log.Info("delete group", utils.ZapRequestID(requestID), zap.String("name", req.Name.GetValue()))
 	svr.RecordHistory(userGroupRecordEntry(ctx, req, group.UserGroup, model.ODelete))
 
 	return api.NewGroupResponse(api.ExecuteSuccess, req)
@@ -190,7 +189,7 @@ func (svr *server) DeleteGroup(ctx context.Context, req *api.UserGroup) *api.Res
 func (svr *server) GetGroups(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	requestID := utils.ParseRequestID(ctx)
 
-	log.AuthScope().Info("[Auth][Group] origin get groups query params",
+	log.Info("[Auth][Group] origin get groups query params",
 		utils.ZapRequestID(requestID), zap.Any("query", query))
 
 	var (
@@ -210,7 +209,7 @@ func (svr *server) GetGroups(ctx context.Context, query map[string]string) *api.
 
 	total, groups, err := svr.storage.GetGroups(searchFilters, offset, limit)
 	if err != nil {
-		log.AuthScope().Errorf("[Auth][Group] get groups req(%+v) store err: %s", query, err.Error())
+		log.Errorf("[Auth][Group] get groups req(%+v) store err: %s", query, err.Error())
 		return api.NewBatchQueryResponse(api.StoreLayerException)
 	}
 
@@ -228,7 +227,7 @@ func parseGroupSearchArgs(ctx context.Context, query map[string]string) (map[str
 	searchFilters := make(map[string]string, len(query))
 	for key, value := range query {
 		if _, ok := UserLinkGroupAttributes[key]; !ok {
-			log.AuthScope().Errorf("[Auth][Group] get groups attribute(%s) it not allowed", key)
+			log.Errorf("[Auth][Group] get groups attribute(%s) it not allowed", key)
 			return nil, api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
 		}
 
@@ -262,7 +261,7 @@ func (svr *server) GetGroup(ctx context.Context, req *api.UserGroup) *api.Respon
 		isGroupOwner := group.Owner == userID
 		_, find := group.UserIds[userID]
 		if !isGroupOwner && !find {
-			log.AuthScope().Error("can't see group info", zap.String("user", userID),
+			log.Error("can't see group info", zap.String("user", userID),
 				zap.String("group", req.GetId().GetValue()), zap.Bool("group-owner", isGroupOwner),
 				zap.Bool("in-group", find))
 			return api.NewResponse(api.NotAllowedAccess)
@@ -288,7 +287,7 @@ func (svr *server) GetGroupToken(ctx context.Context, req *api.UserGroup) *api.R
 		isGroupOwner := groupCache.Owner == userID
 		_, find := groupCache.UserIds[userID]
 		if !isGroupOwner && !find {
-			log.AuthScope().Error("can't see group token", zap.String("user", userID),
+			log.Error("can't see group token", zap.String("user", userID),
 				zap.String("group", req.GetId().GetValue()), zap.Bool("group-owner", isGroupOwner),
 				zap.Bool("in-group", find))
 			return api.NewResponse(api.NotAllowedAccess)
@@ -331,11 +330,11 @@ func (svr *server) UpdateGroupToken(ctx context.Context, req *api.UserGroup) *ap
 	}
 
 	if err := svr.storage.UpdateGroup(modifyReq); err != nil {
-		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.AuthScope().Info("update group token", zap.String("id", req.Id.GetValue()),
+	log.Info("update group token", zap.String("id", req.Id.GetValue()),
 		zap.Bool("enable", group.TokenEnable), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 	svr.RecordHistory(userGroupRecordEntry(ctx, req, group.UserGroup, model.OUpdateToken))
 
@@ -360,7 +359,7 @@ func (svr *server) ResetGroupToken(ctx context.Context, req *api.UserGroup) *api
 
 	newToken, err := createGroupToken(group.ID)
 	if err != nil {
-		log.AuthScope().Error("reset group token", utils.ZapRequestID(requestID),
+		log.Error("reset group token", utils.ZapRequestID(requestID),
 			utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewResponseWithMsg(api.ExecuteException, err.Error())
 	}
@@ -375,11 +374,11 @@ func (svr *server) ResetGroupToken(ctx context.Context, req *api.UserGroup) *api
 	}
 
 	if err := svr.storage.UpdateGroup(modifyReq); err != nil {
-		log.AuthScope().Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewResponseWithMsg(StoreCode2APICode(err), err.Error())
 	}
 
-	log.AuthScope().Info("reset group token", zap.String("group-id", req.Id.GetValue()),
+	log.Info("reset group token", zap.String("group-id", req.Id.GetValue()),
 		utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 	svr.RecordHistory(userGroupRecordEntry(ctx, req, group.UserGroup, model.OUpdate))
 
