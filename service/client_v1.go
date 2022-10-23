@@ -154,7 +154,7 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *api.Service) *api
 	}
 
 	if err := s.caches.Service().IteratorServices(serviceIterProc); err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 		return api.NewDiscoverServiceResponse(api.ExecuteException, req)
 	}
 
@@ -307,7 +307,7 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *api.Service) *a
 		return api.NewDiscoverRoutingResponse(api.ClientAPINotOpen, req)
 	}
 
-	requestID := ParseRequestID(ctx)
+	requestID := utils.ParseRequestID(ctx)
 
 	if req == nil {
 		return api.NewDiscoverRateLimitResponse(api.EmptyRequest, req)
@@ -364,7 +364,7 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *api.Service) *a
 
 	err := s.caches.RateLimit().GetRateLimit(service.ID, rateLimitIterProc)
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 		return api.NewDiscoverRateLimitResponse(api.ExecuteException, req)
 	}
 
@@ -376,7 +376,7 @@ func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *api.Servic
 	if s.caches == nil {
 		return api.NewDiscoverCircuitBreakerResponse(api.ClientAPINotOpen, req)
 	}
-	requestID := ParseRequestID(ctx)
+	requestID := utils.ParseRequestID(ctx)
 	if req == nil {
 		return api.NewDiscoverCircuitBreakerResponse(api.EmptyRequest, req)
 	}
@@ -416,7 +416,7 @@ func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *api.Servic
 	resp.Service.Revision = utils.NewStringValue(out.CircuitBreaker.Revision)
 	resp.CircuitBreaker, err = circuitBreaker2ClientAPI(out, req.GetName().GetValue(), req.GetNamespace().GetValue())
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 		return api.NewDiscoverCircuitBreakerResponse(api.ExecuteException, req)
 	}
 	return resp

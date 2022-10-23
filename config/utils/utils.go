@@ -14,6 +14,8 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
+
+// Package utils contains some common functions
 package utils
 
 import (
@@ -44,11 +46,11 @@ var (
 // CheckResourceName 检查资源名称
 func CheckResourceName(name *wrappers.StringValue) error {
 	if name == nil {
-		return errors.New("nil")
+		return errors.New(utils.NilErrString)
 	}
 
 	if name.GetValue() == "" {
-		return errors.New("empty")
+		return errors.New(utils.EmptyErrString)
 	}
 
 	if ok := regSourceName.MatchString(name.GetValue()); !ok {
@@ -61,11 +63,11 @@ func CheckResourceName(name *wrappers.StringValue) error {
 // CheckFileName 校验文件名
 func CheckFileName(name *wrappers.StringValue) error {
 	if name == nil {
-		return errors.New("nil")
+		return errors.New(utils.NilErrString)
 	}
 
 	if name.GetValue() == "" {
-		return errors.New("empty")
+		return errors.New(utils.EmptyErrString)
 	}
 
 	if ok := regFileName.MatchString(name.GetValue()); !ok {

@@ -65,7 +65,7 @@ func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.Co
 
 	if err != nil {
 		log.Error("[Config][Service] create config file release history error.",
-			zap.String("request-id", utils.ParseRequestID(ctx)),
+			utils.ZapRequestIDByCtx(ctx),
 			zap.String("namespace", fileRelease.Namespace),
 			zap.String("group", fileRelease.Group),
 			zap.String("fileName", fileRelease.FileName),
@@ -86,7 +86,7 @@ func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, gro
 
 	if err != nil {
 		log.Error("[Config][Service] get config file release history error.",
-			zap.String("request-id", utils.ParseRequestID(ctx)),
+			utils.ZapRequestIDByCtx(ctx),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -127,7 +127,7 @@ func (s *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespac
 
 	if err != nil {
 		log.Error("[Config][Service] get latest config file release error",
-			zap.String("request-id", utils.ParseRequestID(ctx)),
+			utils.ZapRequestIDByCtx(ctx),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),

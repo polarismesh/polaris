@@ -454,7 +454,7 @@ func (h *HTTPServer) preprocess(req *restful.Request, rsp *restful.Response) err
 		scope.Info("receive request",
 			zap.String("client-address", req.Request.RemoteAddr),
 			zap.String("user-agent", req.HeaderParameter("User-Agent")),
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("platform-id", platformID),
 			zap.String("method", req.Request.Method),
 			zap.String("url", requestURL),
@@ -510,7 +510,7 @@ func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 		scope.Info("handling time > 1s",
 			zap.String("client-address", req.Request.RemoteAddr),
 			zap.String("user-agent", req.HeaderParameter("User-Agent")),
-			zap.String("request-id", req.HeaderParameter("Request-Id")),
+			utils.ZapRequestID(req.HeaderParameter("Request-Id")),
 			zap.String("method", req.Request.Method),
 			zap.String("url", req.Request.URL.String()),
 			zap.Duration("handling-time", diff),
@@ -542,7 +542,7 @@ func (h *HTTPServer) enterAuth(req *restful.Request, rsp *restful.Response) erro
 	if !h.auth.IsWhiteList(segments[0]) && !h.auth.Allow(pid, pToken) {
 		log.Error("http access is not allowed",
 			zap.String("client", address),
-			zap.String("request-id", rid),
+			utils.ZapRequestID(rid),
 			zap.String("platform-id", pid),
 			zap.String("platform-token", pToken))
 		httpcommon.HTTPResponse(req, rsp, api.NotAllowedAccess)
@@ -568,7 +568,7 @@ func (h *HTTPServer) enterRateLimit(req *restful.Request, rsp *restful.Response)
 	}
 	if ok := h.rateLimit.Allow(plugin.IPRatelimit, segments[0]); !ok {
 		log.Error("ip ratelimit is not allow", zap.String("client", address),
-			zap.String("request-id", rid))
+			utils.ZapRequestID(rid))
 		httpcommon.HTTPResponse(req, rsp, api.IPRateLimit)
 		return errors.New("ip ratelimit is not allow")
 	}
@@ -578,7 +578,7 @@ func (h *HTTPServer) enterRateLimit(req *restful.Request, rsp *restful.Response)
 		strings.TrimSuffix(req.Request.URL.Path, "/"))
 	if ok := h.rateLimit.Allow(plugin.APIRatelimit, apiName); !ok {
 		log.Error("api ratelimit is not allow", zap.String("client", address),
-			zap.String("request-id", rid), zap.String("api", apiName))
+			utils.ZapRequestID(rid), zap.String("api", apiName))
 		httpcommon.HTTPResponse(req, rsp, api.APIRateLimit)
 		return errors.New("api ratelimit is not allow")
 	}

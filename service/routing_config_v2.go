@@ -335,7 +335,7 @@ func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apiv2.Routing)
 // parseServiceArgs 解析服务的查询条件
 func parseRoutingArgs(query map[string]string, ctx context.Context) (*cache.RoutingArgs, *apiv2.Response) {
 	// 先处理offset和limit
-	offset, limit, err := ParseOffsetAndLimit(query)
+	offset, limit, err := utils.ParseOffsetAndLimit(query)
 	if err != nil {
 		return nil, apiv2.NewResponse(apiv1.InvalidParameter)
 	}
@@ -432,11 +432,11 @@ func checkUpdateRoutingConfigV2(req *apiv2.Routing) *apiv2.Response {
 }
 
 func checkRoutingNameAndNamespace(req *apiv2.Routing) *apiv2.Response {
-	if err := CheckDbStrFieldLen(utils.NewStringValue(req.GetName()), MaxDbRoutingName); err != nil {
+	if err := utils.CheckDbStrFieldLen(utils.NewStringValue(req.GetName()), MaxDbRoutingName); err != nil {
 		return apiv2.NewRoutingResponse(apiv1.InvalidRoutingName, req)
 	}
 
-	if err := CheckDbStrFieldLen(utils.NewStringValue(req.GetNamespace()),
+	if err := utils.CheckDbStrFieldLen(utils.NewStringValue(req.GetNamespace()),
 		MaxDbServiceNamespaceLength); err != nil {
 		return apiv2.NewRoutingResponse(apiv1.InvalidNamespaceName, req)
 	}

@@ -243,13 +243,13 @@ func (b *BaseGrpcServer) streamInterceptor(srv interface{}, ss grpc.ServerStream
 
 	err = handler(srv, stream)
 	if err != nil {
-		status, ok := status.FromError(err)
-		if ok && status.Code() == codes.Canceled {
+		fromError, ok := status.FromError(err)
+		if ok && fromError.Code() == codes.Canceled {
 			// 存在非EOF读错误或者写错误
 			b.log.Info("[API-Server][GRPC] handler stream is canceled by client",
 				zap.String("client-address", stream.ClientAddress),
 				zap.String("user-agent", stream.UserAgent),
-				zap.String("request-id", stream.RequestID),
+				utils.ZapRequestID(stream.RequestID),
 				zap.String("method", stream.Method),
 				zap.Error(err),
 			)
@@ -258,7 +258,7 @@ func (b *BaseGrpcServer) streamInterceptor(srv interface{}, ss grpc.ServerStream
 			b.log.Error("[API-Server][GRPC] handler stream",
 				zap.String("client-address", stream.ClientAddress),
 				zap.String("user-agent", stream.UserAgent),
-				zap.String("request-id", stream.RequestID),
+				utils.ZapRequestID(stream.RequestID),
 				zap.String("method", stream.Method),
 				zap.Error(err),
 			)
@@ -282,7 +282,7 @@ func (b *BaseGrpcServer) preprocess(stream *VirtualStream, isPrint bool) error {
 		b.log.Info("[API-Server][GRPC] receive request",
 			zap.String("client-address", stream.ClientAddress),
 			zap.String("user-agent", stream.UserAgent),
-			zap.String("request-id", stream.RequestID),
+			utils.ZapRequestID(stream.RequestID),
 			zap.String("method", stream.Method),
 		)
 	}
@@ -305,7 +305,7 @@ func (b *BaseGrpcServer) postprocess(stream *VirtualStream, m interface{}) {
 			b.log.Error("[API-Server][GRPC] send response",
 				zap.String("client-address", stream.ClientAddress),
 				zap.String("user-agent", stream.UserAgent),
-				zap.String("request-id", stream.RequestID),
+				utils.ZapRequestID(stream.RequestID),
 				zap.String("method", stream.Method),
 				zap.String("response", response.String()),
 			)
@@ -320,7 +320,7 @@ func (b *BaseGrpcServer) postprocess(stream *VirtualStream, m interface{}) {
 			b.log.Error("[API-Server][GRPC] send response",
 				zap.String("client-address", stream.ClientAddress),
 				zap.String("user-agent", stream.UserAgent),
-				zap.String("request-id", stream.RequestID),
+				utils.ZapRequestID(stream.RequestID),
 				zap.String("method", stream.Method),
 				zap.String("response", response.String()),
 			)
@@ -336,7 +336,7 @@ func (b *BaseGrpcServer) postprocess(stream *VirtualStream, m interface{}) {
 		b.log.Info("[API-Server][GRPC] handling time > 1s",
 			zap.String("client-address", stream.ClientAddress),
 			zap.String("user-agent", stream.UserAgent),
-			zap.String("request-id", stream.RequestID),
+			utils.ZapRequestID(stream.RequestID),
 			zap.String("method", stream.Method),
 			zap.Duration("handling-time", diff),
 		)

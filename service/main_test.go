@@ -649,7 +649,7 @@ func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *api.Service, 
 	}
 
 	// repeated
-	InstanceID, _ := CalculateInstanceID(instanceReq.GetNamespace().GetValue(), instanceReq.GetService().GetValue(),
+	InstanceID, _ := utils.CalculateInstanceID(instanceReq.GetNamespace().GetValue(), instanceReq.GetService().GetValue(),
 		instanceReq.GetVpcId().GetValue(), instanceReq.GetHost().GetValue(), instanceReq.GetPort().GetValue())
 	d.cleanInstance(InstanceID)
 	t.Logf("repeatd create instance(%s)", InstanceID)
@@ -690,7 +690,7 @@ func (d *DiscoverTestSuit) addInstance(t *testing.T, ins *api.Instance) (
 	resp := d.server.CreateInstances(d.defaultCtx, []*api.Instance{ins})
 	if !respSuccess(resp) {
 		if resp.GetCode().GetValue() == api.ExistedResource {
-			id, _ := CalculateInstanceID(ins.GetNamespace().GetValue(), ins.GetService().GetValue(),
+			id, _ := utils.CalculateInstanceID(ins.GetNamespace().GetValue(), ins.GetService().GetValue(),
 				ins.GetHost().GetValue(), ins.GetHost().GetValue(), ins.GetPort().GetValue())
 			d.cleanInstance(id)
 		}

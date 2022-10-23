@@ -92,11 +92,11 @@ var resourceNameRE = regexp.MustCompile("^[0-9A-Za-z-./:_]+$")
 // CheckResourceName 检查资源Name
 func CheckResourceName(name *wrappers.StringValue) error {
 	if name == nil {
-		return errors.New("nil")
+		return errors.New(NilErrString)
 	}
 
 	if name.GetValue() == "" {
-		return errors.New("empty")
+		return errors.New(EmptyErrString)
 	}
 
 	if ok := resourceNameRE.MatchString(name.GetValue()); !ok {
@@ -109,11 +109,11 @@ func CheckResourceName(name *wrappers.StringValue) error {
 // CheckResourceOwners 检查资源Owners
 func CheckResourceOwners(owners *wrappers.StringValue) error {
 	if owners == nil {
-		return errors.New("nil")
+		return errors.New(NilErrString)
 	}
 
 	if owners.GetValue() == "" {
-		return errors.New("empty")
+		return errors.New(EmptyErrString)
 	}
 
 	if utf8.RuneCountInString(owners.GetValue()) > MaxOwnersLength {
@@ -126,11 +126,11 @@ func CheckResourceOwners(owners *wrappers.StringValue) error {
 // CheckInstanceHost 检查服务实例Host
 func CheckInstanceHost(host *wrappers.StringValue) error {
 	if host == nil {
-		return errors.New("nil")
+		return errors.New(NilErrString)
 	}
 
 	if host.GetValue() == "" {
-		return errors.New("empty")
+		return errors.New(EmptyErrString)
 	}
 
 	return nil
@@ -139,11 +139,11 @@ func CheckInstanceHost(host *wrappers.StringValue) error {
 // CheckInstancePort 检查服务实例Port
 func CheckInstancePort(port *wrappers.UInt32Value) error {
 	if port == nil {
-		return errors.New("nil")
+		return errors.New(NilErrString)
 	}
 
 	if port.GetValue() < 0 {
-		return errors.New("empty")
+		return errors.New(EmptyErrString)
 	}
 
 	return nil
@@ -350,6 +350,7 @@ func ParseRequestID(ctx context.Context) string {
 	return rid
 }
 
+// ParseClientAddress 从ctx中获取客户端地址
 func ParseClientAddress(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -465,6 +466,11 @@ func ZapPlatformID(id string) zap.Field {
 	return zap.String("platform-id", id)
 }
 
+// ZapInstanceID 生成instanceID的日志描述
+func ZapInstanceID(id string) zap.Field {
+	return zap.String("instance-id", id)
+}
+
 // CheckDbStrFieldLen 检查name字段是否超过DB中对应字段的最大字符长度限制
 func CheckDbStrFieldLen(param *wrappers.StringValue, dbLen int) error {
 	if param.GetValue() != "" && utf8.RuneCountInString(param.GetValue()) > dbLen {
@@ -521,6 +527,7 @@ func CheckInstanceTetrad(req *api.Instance) (string, *api.Response) {
 	return instID, nil
 }
 
+// ConvertStringValuesToSlice 转换StringValues为字符串切片
 func ConvertStringValuesToSlice(vals []*wrapperspb.StringValue) []string {
 	ret := make([]string, 0, 4)
 

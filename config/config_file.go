@@ -56,7 +56,7 @@ func (s *Server) CreateConfigFile(ctx context.Context, configFile *api.ConfigFil
 		Name: utils.NewStringValue(namespace),
 	}); err != nil {
 		log.Error("[Config][Service] create config file error because of create namespace failed.",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("name", name),
@@ -80,7 +80,7 @@ func (s *Server) CreateConfigFile(ctx context.Context, configFile *api.ConfigFil
 
 	if err != nil {
 		log.Error("[Config][Service] get config file error.",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("name", name),
@@ -100,7 +100,7 @@ func (s *Server) CreateConfigFile(ctx context.Context, configFile *api.ConfigFil
 	createdFile, err := s.storage.CreateConfigFile(s.getTx(ctx), fileStoreModel)
 	if err != nil {
 		log.Error("[Config][Service] create config file error.",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("name", name),
@@ -116,7 +116,7 @@ func (s *Server) CreateConfigFile(ctx context.Context, configFile *api.ConfigFil
 
 	// 创建成功
 	log.Info("[Config][Service] create config file success.",
-		zap.String("request-id", requestID),
+		utils.ZapRequestID(requestID),
 		zap.String("namespace", namespace),
 		zap.String("group", group),
 		zap.String("name", name),
@@ -142,7 +142,7 @@ func (s *Server) GetConfigFileBaseInfo(ctx context.Context, namespace, group, na
 	file, err := s.storage.GetConfigFile(s.getTx(ctx), namespace, group, name)
 	if err != nil {
 		log.Error("[Config][Service] get config file error.",
-			zap.String("request-id", utils.ParseRequestID(ctx)),
+			utils.ZapRequestIDByCtx(ctx),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("name", name),
@@ -165,7 +165,7 @@ func (s *Server) GetConfigFileRichInfo(ctx context.Context, namespace, group, na
 	configFileBaseInfoRsp := s.GetConfigFileBaseInfo(ctx, namespace, group, name)
 	if configFileBaseInfoRsp.Code.GetValue() != api.ExecuteSuccess {
 		log.Error("[Config][Service] get config file release error.",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("name", name))
@@ -203,7 +203,7 @@ func (s *Server) QueryConfigFilesByGroup(ctx context.Context, namespace, group s
 	count, files, err := s.storage.QueryConfigFilesByGroup(namespace, group, offset, limit)
 	if err != nil {
 		log.Error("[Config][Service]get config files by group error.",
-			zap.String("request-id", utils.ParseRequestID(ctx)),
+			utils.ZapRequestIDByCtx(ctx),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.Error(err))
@@ -255,7 +255,7 @@ func (s *Server) SearchConfigFile(ctx context.Context, namespace, group, name, t
 	count, files, err := s.queryConfigFileByTags(ctx, namespace, group, name, offset, limit, tagKVs...)
 	if err != nil {
 		log.Error("[Config][Service] query config file tags error.",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", name),
@@ -284,7 +284,7 @@ func (s *Server) queryConfigFileWithoutTags(ctx context.Context, namespace, grou
 	count, files, err := s.storage.QueryConfigFiles(namespace, group, name, offset, limit)
 	if err != nil {
 		log.Error("[Config][Service]search config file error.",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("name", name),
@@ -326,7 +326,7 @@ func (s *Server) UpdateConfigFile(ctx context.Context, configFile *api.ConfigFil
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 	if err != nil {
 		log.Error("[Config][Service] get config file error.",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("name", name),
@@ -352,7 +352,7 @@ func (s *Server) UpdateConfigFile(ctx context.Context, configFile *api.ConfigFil
 	updatedFile, err := s.storage.UpdateConfigFile(s.getTx(ctx), toUpdateFile)
 	if err != nil {
 		log.Error("[Config][Service] update config file error.",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("name", name),
@@ -389,7 +389,7 @@ func (s *Server) DeleteConfigFile(ctx context.Context, namespace, group, name, d
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
 	log.Info("[Config][Service] delete config file.",
-		zap.String("request-id", requestID),
+		utils.ZapRequestID(requestID),
 		zap.String("namespace", namespace),
 		zap.String("group", group),
 		zap.String("name", name))
@@ -397,7 +397,7 @@ func (s *Server) DeleteConfigFile(ctx context.Context, namespace, group, name, d
 	file, err := s.storage.GetConfigFile(nil, namespace, group, name)
 	if err != nil {
 		log.Error("[Config][Service] get config file error.",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("name", name),
@@ -426,7 +426,7 @@ func (s *Server) DeleteConfigFile(ctx context.Context, namespace, group, name, d
 	err = s.storage.DeleteConfigFile(tx, namespace, group, name)
 	if err != nil {
 		log.Error("[Config][Service] delete config file error.",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("name", name),
@@ -438,7 +438,7 @@ func (s *Server) DeleteConfigFile(ctx context.Context, namespace, group, name, d
 	err = s.deleteTagByConfigFile(newCtx, namespace, group, name)
 	if err != nil {
 		log.Error("[Config][Service] delete config file tags error.",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("name", name),
@@ -449,7 +449,7 @@ func (s *Server) DeleteConfigFile(ctx context.Context, namespace, group, name, d
 	err = tx.Commit()
 	if err != nil {
 		log.Error("[Config][Service] commit delete config file tx error.",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("name", name),
@@ -571,7 +571,7 @@ func (s *Server) createOrUpdateConfigFileTags(ctx context.Context, configFile *a
 	err := s.createConfigFileTags(ctx, namespace, group, name, operator, tags...)
 	if err != nil {
 		log.Error("[Config][Service] create or update config file tags error.",
-			zap.String("request-id", utils.ParseRequestID(ctx)),
+			utils.ZapRequestIDByCtx(ctx),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", name),
@@ -590,7 +590,7 @@ func (s *Server) fillReleaseAndTags(ctx context.Context, file *api.ConfigFile) (
 	latestReleaseRsp := s.GetConfigFileLatestReleaseHistory(ctx, namespace, group, name)
 	if latestReleaseRsp.Code.GetValue() != api.ExecuteSuccess {
 		log.Error("[Config][Service] get config file latest release error.",
-			zap.String("request-id", utils.ParseRequestID(ctx)),
+			utils.ZapRequestIDByCtx(ctx),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("name", name))
@@ -619,7 +619,7 @@ func (s *Server) fillReleaseAndTags(ctx context.Context, file *api.ConfigFile) (
 	tags, err := s.queryTagsByConfigFileWithAPIModels(ctx, namespace, group, name)
 	if err != nil {
 		log.Error("[Config][Service] create config file error.",
-			zap.String("request-id", utils.ParseRequestID(ctx)),
+			utils.ZapRequestIDByCtx(ctx),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("name", name),

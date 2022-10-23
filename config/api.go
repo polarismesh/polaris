@@ -24,10 +24,12 @@ import (
 )
 
 type (
+	// WatchCallback 监听回调函数
 	WatchCallback func() *api.ConfigClientResponse
 )
 
 const (
+	// MaxPageSize 最大分页大小
 	MaxPageSize = 100
 )
 

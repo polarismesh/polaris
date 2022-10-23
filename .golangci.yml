@@ -122,7 +122,7 @@ linters-settings:
     # Minimum occurrences of constant string count to trigger issue.
     # Default: 3
     # For subsequent optimization, the value is reduced.
-    min-occurrences: 72
+    min-occurrences: 50
     # Ignore test files.
     # Default: false
     ignore-tests: true
