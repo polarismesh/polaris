@@ -43,7 +43,7 @@ func (s *Server) createConfigFileTags(ctx context.Context, namespace, group,
 	storedTags, err := s.storage.QueryTagByConfigFile(namespace, group, fileName)
 	if err != nil {
 		log.Error("[Config][Service] query config file tags error.",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -145,7 +145,7 @@ func (s *Server) queryConfigFileByTags(ctx context.Context, namespace, group, fi
 	files, err := s.storage.QueryConfigFileByTag(namespace, group, fileName, tags...)
 	if err != nil {
 		log.Error("[Config][Service] query config file by tags error.",
-			zap.String("request-id", utils.ParseRequestID(ctx)),
+			utils.ZapRequestIDByCtx(ctx),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -215,7 +215,7 @@ func (s *Server) queryTagsByConfigFileWithAPIModels(ctx context.Context, namespa
 func (s *Server) deleteTagByConfigFile(ctx context.Context, namespace, group, fileName string) error {
 	if err := s.storage.DeleteTagByConfigFile(s.getTx(ctx), namespace, group, fileName); err != nil {
 		log.Error("[Config][Service] query config file tags error.",
-			zap.String("request-id", utils.ParseRequestID(ctx)),
+			utils.ZapRequestIDByCtx(ctx),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -248,7 +248,7 @@ func (s *Server) doCreateConfigFileTags(ctx context.Context, namespace, group, f
 			})
 			if err != nil {
 				log.Error("[Config][Service] create config file tag error.",
-					zap.String("request-id", utils.ParseRequestID(ctx)),
+					utils.ZapRequestIDByCtx(ctx),
 					zap.String("namespace", namespace),
 					zap.String("group", group),
 					zap.String("fileName", fileName),
@@ -273,7 +273,7 @@ func (s *Server) doDeleteConfigFileTags(ctx context.Context, namespace, group, f
 			err := s.storage.DeleteConfigFileTag(s.getTx(ctx), namespace, group, fileName, key, t)
 			if err != nil {
 				log.Error("[Config][Service] delete config file tag error.",
-					zap.String("request-id", utils.ParseRequestID(ctx)),
+					utils.ZapRequestIDByCtx(ctx),
 					zap.String("namespace", namespace),
 					zap.String("group", group),
 					zap.String("fileName", fileName),

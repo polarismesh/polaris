@@ -73,11 +73,11 @@ func StoreCode2APICode(err error) uint32 {
 // checkName 名称检查
 func checkName(name *wrappers.StringValue) error {
 	if name == nil {
-		return errors.New("nil")
+		return errors.New(utils.NilErrString)
 	}
 
 	if name.GetValue() == "" {
-		return errors.New("empty")
+		return errors.New(utils.EmptyErrString)
 	}
 
 	if name.GetValue() == "polariadmin" {
@@ -98,11 +98,11 @@ func checkName(name *wrappers.StringValue) error {
 // checkPassword 密码检查
 func checkPassword(password *wrappers.StringValue) error {
 	if password == nil {
-		return errors.New("nil")
+		return errors.New(utils.NilErrString)
 	}
 
 	if password.GetValue() == "" {
-		return errors.New("empty")
+		return errors.New(utils.EmptyErrString)
 	}
 
 	if pLen := len(password.GetValue()); pLen < 6 || pLen > 17 {
@@ -115,11 +115,11 @@ func checkPassword(password *wrappers.StringValue) error {
 // checkOwner 检查用户的 owner 信息
 func checkOwner(owner *wrappers.StringValue) error {
 	if owner == nil {
-		return errors.New("nil")
+		return errors.New(utils.NilErrString)
 	}
 
 	if owner.GetValue() == "" {
-		return errors.New("empty")
+		return errors.New(utils.EmptyErrString)
 	}
 
 	if utf8.RuneCountInString(owner.GetValue()) > utils.MaxOwnersLength {

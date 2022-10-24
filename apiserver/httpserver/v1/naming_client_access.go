@@ -27,6 +27,7 @@ import (
 	"github.com/polarismesh/polaris/apiserver"
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // GetClientAccessServer get client access server
@@ -160,7 +161,7 @@ func (h *HTTPServerV1) Discover(req *restful.Request, rsp *restful.Response) {
 		zap.String("type", api.DiscoverRequest_DiscoverRequestType_name[int32(discoverRequest.Type)]),
 		zap.String("client-address", req.Request.RemoteAddr),
 		zap.String("user-agent", req.HeaderParameter("User-Agent")),
-		zap.String("request-id", req.HeaderParameter("Request-Id")),
+		utils.ZapRequestID(req.HeaderParameter("Request-Id")),
 	)
 
 	var ret *api.DiscoverResponse

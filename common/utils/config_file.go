@@ -43,6 +43,7 @@ const (
 	FileIdSeparator = "+"
 )
 
+// IsValidFileFormat 判断文件格式是否合法
 func IsValidFileFormat(format string) bool {
 	return format == FileFormatText || format == FileFormatYaml || format == FileFormatXml ||
 		format == FileFormatJson || format == FileFormatHtml || format == FileFormatProperties

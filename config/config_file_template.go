@@ -54,7 +54,7 @@ func (s *Server) CreateConfigFileTemplate(ctx context.Context, template *api.Con
 	if err != nil {
 		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 		log.Error("[Config][Service] create config file template error.",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.Error(err))
 		return api.NewConfigFileTemplateResponse(api.StoreLayerException, template)
 	}
@@ -63,6 +63,7 @@ func (s *Server) CreateConfigFileTemplate(ctx context.Context, template *api.Con
 		transferConfigFileTemplateStoreModel2APIModel(createdTemplate))
 }
 
+// GetConfigFileTemplate get config file template by name
 func (s *Server) GetConfigFileTemplate(ctx context.Context, name string) *api.ConfigResponse {
 	if len(name) == 0 {
 		return api.NewConfigFileTemplateResponse(api.InvalidConfigFileTemplateName, nil)
@@ -72,7 +73,7 @@ func (s *Server) GetConfigFileTemplate(ctx context.Context, name string) *api.Co
 	if err != nil {
 		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 		log.Error("[Config][Service] get config file template error.",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("name", name),
 			zap.Error(err))
 		return api.NewConfigFileTemplateResponse(api.StoreLayerException, nil)
@@ -93,7 +94,7 @@ func (s *Server) GetAllConfigFileTemplates(ctx context.Context) *api.ConfigBatch
 	if err != nil {
 		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 		log.Error("[Config][Service]query all config file templates error.",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.Error(err))
 
 		return api.NewConfigFileTemplateBatchQueryResponse(api.StoreLayerException, 0, nil)

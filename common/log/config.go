@@ -205,7 +205,7 @@ func formatDate(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 func updateScopes(typeName string, options *Options, cores []zapcore.Core, errSink zapcore.WriteSyncer) error {
 	scope := FindScope(typeName)
 	if scope == nil {
-		//对还没注册的日志配置进行注册
+		// 对还没注册的日志配置进行注册
 		scope = RegisterScope(typeName, fmt.Sprintf("%s logging messages.", typeName), 0)
 	}
 

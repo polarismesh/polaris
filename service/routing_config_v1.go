@@ -55,19 +55,20 @@ func (s *Server) CreateRoutingConfigs(ctx context.Context, req []*api.Routing) *
 	return api.FormatBatchWriteResponse(resp)
 }
 
-// Deprecated 该方法准备舍弃
+// CreateRoutingConfig 创建一个路由配置
+// Deprecated: 该方法准备舍弃
 // CreateRoutingConfig 创建一个路由配置
 // 创建路由配置需要锁住服务，防止服务被删除
 func (s *Server) CreateRoutingConfig(ctx context.Context, req *api.Routing) *api.Response {
-	rid := ParseRequestID(ctx)
-	pid := ParsePlatformID(ctx)
+	rid := utils.ParseRequestID(ctx)
+	pid := utils.ParsePlatformID(ctx)
 	if resp := checkRoutingConfig(req); resp != nil {
 		return resp
 	}
 
 	tx, err := s.storage.CreateTransaction()
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
+		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return api.NewRoutingResponse(api.StoreLayerException, req)
 	}
 	defer func() { _ = tx.Commit() }()
@@ -76,7 +77,7 @@ func (s *Server) CreateRoutingConfig(ctx context.Context, req *api.Routing) *api
 	namespaceName := req.GetNamespace().GetValue()
 	service, err := tx.RLockService(serviceName, namespaceName)
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
+		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return api.NewRoutingResponse(api.StoreLayerException, req)
 	}
 	if service == nil {
@@ -89,7 +90,7 @@ func (s *Server) CreateRoutingConfig(ctx context.Context, req *api.Routing) *api
 	// 检查路由配置是否已经存在了
 	routingConfig, err := s.storage.GetRoutingConfigWithService(service.Name, service.Namespace)
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
+		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return api.NewRoutingResponse(api.StoreLayerException, req)
 	}
 	if routingConfig != nil {
@@ -99,11 +100,11 @@ func (s *Server) CreateRoutingConfig(ctx context.Context, req *api.Routing) *api
 	// 构造底层数据结构，并且写入store
 	conf, err := api2RoutingConfig(service.ID, req)
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
+		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return api.NewRoutingResponse(api.ExecuteException, req)
 	}
 	if err := s.storage.CreateRoutingConfig(conf); err != nil {
-		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
+		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return wrapperRoutingStoreResponse(req, err)
 	}
 
@@ -126,11 +127,12 @@ func (s *Server) DeleteRoutingConfigs(ctx context.Context, req []*api.Routing) *
 	return api.FormatBatchWriteResponse(out)
 }
 
-// Deprecated 该方法准备舍弃
+// DeleteRoutingConfig 删除一个路由配置
+// Deprecated: 该方法准备舍弃
 // DeleteRoutingConfig 删除一个路由配置
 func (s *Server) DeleteRoutingConfig(ctx context.Context, req *api.Routing) *api.Response {
-	rid := ParseRequestID(ctx)
-	pid := ParsePlatformID(ctx)
+	rid := utils.ParseRequestID(ctx)
+	pid := utils.ParsePlatformID(ctx)
 	service, resp := s.routingConfigCommonCheck(ctx, req)
 	if resp != nil {
 		return resp
@@ -139,7 +141,7 @@ func (s *Server) DeleteRoutingConfig(ctx context.Context, req *api.Routing) *api
 	// store操作
 	// TODO 需要进行多表事务一致性保证
 	if err := s.storage.DeleteRoutingConfig(service.ID); err != nil {
-		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
+		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return wrapperRoutingStoreResponse(req, err)
 	}
 
@@ -162,11 +164,12 @@ func (s *Server) UpdateRoutingConfigs(ctx context.Context, req []*api.Routing) *
 	return api.FormatBatchWriteResponse(out)
 }
 
-// Deprecated 该方法准备舍弃
+// UpdateRoutingConfig 更新一个路由配置
+// Deprecated: 该方法准备舍弃
 // UpdateRoutingConfig 更新单个路由配置
 func (s *Server) UpdateRoutingConfig(ctx context.Context, req *api.Routing) *api.Response {
-	rid := ParseRequestID(ctx)
-	pid := ParsePlatformID(ctx)
+	rid := utils.ParseRequestID(ctx)
+	pid := utils.ParsePlatformID(ctx)
 	service, resp := s.routingConfigCommonCheck(ctx, req)
 	if resp != nil {
 		return resp
@@ -175,7 +178,7 @@ func (s *Server) UpdateRoutingConfig(ctx context.Context, req *api.Routing) *api
 	// 检查路由配置是否存在
 	conf, err := s.storage.GetRoutingConfigWithService(service.Name, service.Namespace)
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
+		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return api.NewRoutingResponse(api.StoreLayerException, req)
 	}
 	if conf == nil {
@@ -185,12 +188,12 @@ func (s *Server) UpdateRoutingConfig(ctx context.Context, req *api.Routing) *api
 	// 作为一个整体进行Update，所有参数都要传递
 	reqModel, err := api2RoutingConfig(service.ID, req)
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
+		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return api.NewRoutingResponse(api.ParseRoutingException, req)
 	}
 
 	if err := s.storage.UpdateRoutingConfig(reqModel); err != nil {
-		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
+		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return wrapperRoutingStoreResponse(req, err)
 	}
 
@@ -198,14 +201,15 @@ func (s *Server) UpdateRoutingConfig(ctx context.Context, req *api.Routing) *api
 	return api.NewRoutingResponse(api.ExecuteSuccess, req)
 }
 
-// Deprecated 该方法准备舍弃
+// GetRoutingConfigs 批量获取路由配置
+// Deprecated: 该方法准备舍弃
 // GetRoutingConfigs 提供给OSS的查询路由配置的接口
 func (s *Server) GetRoutingConfigs(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
-	rid := ParseRequestID(ctx)
-	pid := ParsePlatformID(ctx)
+	rid := utils.ParseRequestID(ctx)
+	pid := utils.ParsePlatformID(ctx)
 
 	// 先处理offset和limit
-	offset, limit, err := ParseOffsetAndLimit(query)
+	offset, limit, err := utils.ParseOffsetAndLimit(query)
 	if err != nil {
 		return api.NewBatchQueryResponse(api.InvalidParameter)
 	}
@@ -228,7 +232,7 @@ func (s *Server) GetRoutingConfigs(ctx context.Context, query map[string]string)
 	// 可以根据name和namespace过滤
 	total, routings, err := s.storage.GetRoutingConfigs(filter, offset, limit)
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
+		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return api.NewBatchQueryResponse(api.StoreLayerException)
 	}
 
@@ -240,7 +244,7 @@ func (s *Server) GetRoutingConfigs(ctx context.Context, query map[string]string)
 	for _, entry := range routings {
 		routing, err := routingConfig2API(entry.Config, entry.ServiceName, entry.NamespaceName)
 		if err != nil {
-			log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
+			log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 			return api.NewBatchQueryResponse(api.ParseRoutingException)
 		}
 		resp.Routings = append(resp.Routings, routing)
@@ -255,14 +259,14 @@ func (s *Server) routingConfigCommonCheck(ctx context.Context, req *api.Routing)
 		return nil, resp
 	}
 
-	rid := ParseRequestID(ctx)
-	pid := ParsePlatformID(ctx)
+	rid := utils.ParseRequestID(ctx)
+	pid := utils.ParsePlatformID(ctx)
 	serviceName := req.GetService().GetValue()
 	namespaceName := req.GetNamespace().GetValue()
 
 	service, err := s.storage.GetService(serviceName, namespaceName)
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(rid), ZapPlatformID(pid))
+		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return nil, api.NewRoutingResponse(api.StoreLayerException, req)
 	}
 	if service == nil {
@@ -285,13 +289,13 @@ func checkRoutingConfig(req *api.Routing) *api.Response {
 		return api.NewRoutingResponse(api.InvalidNamespaceName, req)
 	}
 
-	if err := CheckDbStrFieldLen(req.GetService(), MaxDbServiceNameLength); err != nil {
+	if err := utils.CheckDbStrFieldLen(req.GetService(), MaxDbServiceNameLength); err != nil {
 		return api.NewRoutingResponse(api.InvalidServiceName, req)
 	}
-	if err := CheckDbStrFieldLen(req.GetNamespace(), MaxDbServiceNamespaceLength); err != nil {
+	if err := utils.CheckDbStrFieldLen(req.GetNamespace(), MaxDbServiceNamespaceLength); err != nil {
 		return api.NewRoutingResponse(api.InvalidNamespaceName, req)
 	}
-	if err := CheckDbStrFieldLen(req.GetServiceToken(), MaxDbServiceToken); err != nil {
+	if err := utils.CheckDbStrFieldLen(req.GetServiceToken(), MaxDbServiceToken); err != nil {
 		return api.NewRoutingResponse(api.InvalidServiceToken, req)
 	}
 
@@ -304,7 +308,7 @@ func parseServiceRoutingToken(ctx context.Context, req *api.Routing) string {
 		return reqToken
 	}
 
-	return ParseToken(ctx)
+	return utils.ParseToken(ctx)
 }
 
 // api2RoutingConfig 把API参数转换为内部的数据结构
@@ -392,7 +396,7 @@ func routingRecordEntry(ctx context.Context, req *api.Routing, md *model.Routing
 		OperationType: opt,
 		Namespace:     req.GetNamespace().GetValue(),
 		Service:       req.GetService().GetValue(),
-		Operator:      ParseOperator(ctx),
+		Operator:      utils.ParseOperator(ctx),
 		CreateTime:    time.Now(),
 	}
 
@@ -410,7 +414,7 @@ func routingV2RecordEntry(ctx context.Context, req *apiv2.Routing, md *v2.Routin
 		ResourceType:  model.RRoutingV2,
 		OperationType: opt,
 		Namespace:     req.GetNamespace(),
-		Operator:      ParseOperator(ctx),
+		Operator:      utils.ParseOperator(ctx),
 		CreateTime:    time.Now(),
 	}
 

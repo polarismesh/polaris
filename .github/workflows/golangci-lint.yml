@@ -19,10 +19,12 @@ on:
     branches:
       - main
       - release*
+      - feature/**
   pull_request:
     branches:
       - main
       - release*
+      - feature/**
 
 jobs:
   golangci:

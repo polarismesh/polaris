@@ -31,6 +31,7 @@ import (
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/common/connlimit"
 	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service"
 )
 
@@ -256,7 +257,7 @@ func (h *PrometheusServer) postProcess(req *restful.Request, _ *restful.Response
 		log.Info("[API-Server][Prometheus] handling time > 1s",
 			zap.String("client-address", req.Request.RemoteAddr),
 			zap.String("user-agent", req.HeaderParameter("User-Agent")),
-			zap.String("request-id", req.HeaderParameter("Request-Id")),
+			utils.ZapRequestID(req.HeaderParameter("Request-Id")),
 			zap.String("method", req.Request.Method),
 			zap.String("url", path),
 			zap.Duration("handling-time", diff),

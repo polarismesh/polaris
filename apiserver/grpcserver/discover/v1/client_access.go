@@ -103,7 +103,7 @@ func (g *DiscoverServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
 			zap.String("type", api.DiscoverRequest_DiscoverRequestType_name[int32(in.Type)]),
 			zap.String("client-address", clientAddress),
 			zap.String("user-agent", userAgent),
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 		)
 
 		// 是否允许访问
