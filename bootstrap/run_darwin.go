@@ -31,29 +31,28 @@ var darwinSignals = []os.Signal{
 	syscall.SIGSEGV, syscall.SIGUSR1,
 }
 
-// RunMainLoop server主循环
-func RunMainLoop(servers []apiserver.Apiserver, errCh chan error) {
+// WaitSignal 等待信号量或err chan 从而执行restart或平滑退出
+func WaitSignal(servers []apiserver.Apiserver, errCh chan error) {
 	defer StopServers(servers)
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, darwinSignals...)
-	for {
-		select {
-		case s := <-ch:
-			// restart信号
-			if s.(syscall.Signal) == syscall.SIGUSR1 {
-				// 注意：重启失败，退出程序
-				if err := RestartServers(errCh); err != nil {
-					log.Errorf("restart servers err: %s", err.Error())
-					return
-				}
+
+	select {
+	case s := <-ch:
+		// restart信号
+		if s.(syscall.Signal) == syscall.SIGUSR1 {
+			// 注意：重启失败，退出程序
+			if err := RestartServers(errCh); err != nil {
+				log.Errorf("restart servers err: %s", err.Error())
+				return
 			}
 
-			log.Infof("catch signal(%+v), stop servers", s)
-			return
-		case err := <-errCh:
-			log.Errorf("catch api server err: %s", err.Error())
-			return
+			log.Infof("restart servers success: %+v", s)
+		} else {
+			log.Infof("catch signal(%s), stop servers", s.String())
 		}
+	case err := <-errCh:
+		log.Errorf("catch api server err: %s", err.Error())
 	}
 }
