@@ -38,16 +38,19 @@ import (
 var (
 	// RoutingConfigV2FilterAttrs router config filter attrs
 	RoutingConfigV2FilterAttrs = map[string]bool{
-		"id":             true,
-		"name":           true,
-		"service":        true,
-		"namespace":      true,
-		"source_service": true,
-		"enable":         true,
-		"offset":         true,
-		"limit":          true,
-		"order_field":    true,
-		"order_type":     true,
+		"id":                    true,
+		"name":                  true,
+		"service":               true,
+		"namespace":             true,
+		"source_service":        true,
+		"destination_service":   true,
+		"source_namespace":      true,
+		"destination_namespace": true,
+		"enable":                true,
+		"offset":                true,
+		"limit":                 true,
+		"order_field":           true,
+		"order_type":            true,
 	}
 )
 
@@ -352,13 +355,23 @@ func parseRoutingArgs(query map[string]string, ctx context.Context) (*cache.Rout
 	res := &cache.RoutingArgs{
 		Filter:     filter,
 		ID:         filter["id"],
-		Namespace:  filter["namespace"],
-		Service:    filter["service"],
 		OrderField: filter["order_field"],
 		OrderType:  filter["order_type"],
 		Offset:     offset,
 		Limit:      limit,
 	}
+
+	if _, ok := filter["service"]; ok {
+		res.Namespace = filter["namespace"]
+		res.Service = filter["service"]
+	} else {
+		res.SourceService = filter["source_service"]
+		res.SourceNamespace = filter["source_namespace"]
+
+		res.DestinationService = filter["destination_service"]
+		res.DestinationNamespace = filter["destination_namespace"]
+	}
+
 	var ok bool
 	if res.Name, ok = filter["name"]; ok && store.IsWildName(res.Name) {
 		log.Infof("[Routing][V2][Query] fuzzy search with name %s", res.Name)

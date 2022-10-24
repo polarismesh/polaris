@@ -45,7 +45,7 @@ const (
 	RateLimitFieldClusterID  string = "ClusterID"
 	RateLimitFieldEnableTime string = "EnableTime"
 	RateLimitFieldName       string = "Name"
-	RateLimitFieldDisable    string = "disable"
+	RateLimitFieldDisable    string = "Disable"
 	RateLimitFieldMethod     string = "Method"
 	RateLimitFieldLabels     string = "Labels"
 	RateLimitFieldPriority   string = "Priority"

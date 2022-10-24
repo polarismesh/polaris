@@ -524,6 +524,7 @@ func rateLimit2Client(
 	rule.Namespace = utils.NewStringValue(namespace)
 	rule.Priority = utils.NewUInt32Value(rateLimit.Priority)
 	rule.Revision = utils.NewStringValue(rateLimit.Revision)
+	rule.Disable = utils.NewBoolValue(rateLimit.Disable)
 	copyRateLimitProto(rateLimit, rule)
 	return rule, nil
 }

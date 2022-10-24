@@ -23,6 +23,7 @@ import (
 
 	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 	v2 "github.com/polarismesh/polaris/common/model/v2"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // RoutingArgs 路由规则查询参数
@@ -35,10 +36,18 @@ type RoutingArgs struct {
 	Name string
 	// FuzzyName
 	FuzzyName bool
-	// Namespace 服务所在的 namespace
-	Namespace string
-	// Service 服务名称
+	// Service 主调 or 被调服务名称
 	Service string
+	// Namespace 主调 or 被调服务所在命名空间
+	Namespace string
+	// SourceService 主调服务
+	SourceService string
+	// SourceNamespace 主调服务所在命名空间
+	SourceNamespace string
+	// DestinationService 被调服务
+	DestinationService string
+	// DestinationNamespace 被调服务所在命名空间
+	DestinationNamespace string
 	// Enable
 	Enable *bool
 	// Offset
@@ -59,40 +68,107 @@ func (rc *routingConfigCache) forceUpdate() error {
 	return nil
 }
 
+func queryRoutingRuleV2ByService(rule *v2.ExtendRoutingConfig, sourceNamespace, sourceService,
+	destNamespace, destService string, both bool) bool {
+
+	var (
+		sourceFind bool
+		destFind   bool
+	)
+
+	hasSourceSvc := len(sourceService) != 0
+	hasSourceNamespace := len(sourceNamespace) != 0
+	hasDestSvc := len(destService) != 0
+	hasDestNamespace := len(destNamespace) != 0
+
+	sourceService, isWildSourceSvc := utils.ParseWildName(sourceService)
+	sourceNamespace, isWildSourceNamespace := utils.ParseWildName(sourceNamespace)
+	destService, isWildDestSvc := utils.ParseWildName(destService)
+	destNamespace, isWildDestNamespace := utils.ParseWildName(destNamespace)
+
+	sources := rule.RuleRouting.GetSources()
+	for i := range sources {
+		item := sources[i]
+		if hasSourceSvc {
+			if isWildSourceSvc {
+				if !strings.Contains(item.Service, sourceService) {
+					continue
+				}
+			} else if item.Service != sourceService {
+				continue
+			}
+		}
+		if hasSourceNamespace {
+			if isWildSourceNamespace {
+				if !strings.Contains(item.Namespace, sourceNamespace) {
+					continue
+				}
+			} else if item.Namespace != sourceNamespace {
+				continue
+			}
+		}
+		sourceFind = true
+		break
+	}
+
+	destinations := rule.RuleRouting.GetDestinations()
+	for i := range destinations {
+		item := destinations[i]
+		if hasDestSvc {
+			if isWildDestSvc && !strings.Contains(item.Service, destService) {
+				continue
+			}
+			if item.Service != destService {
+				continue
+			}
+		}
+		if hasDestNamespace {
+			if isWildDestNamespace && !strings.Contains(item.Namespace, destNamespace) {
+				continue
+			}
+			if item.Namespace != destNamespace {
+				continue
+			}
+		}
+		destFind = true
+		break
+	}
+
+	if both {
+		return sourceFind && destFind
+	}
+	return sourceFind || destFind
+}
+
 // GetRoutingConfigsV2 查询路由配置列表
 func (rc *routingConfigCache) GetRoutingConfigsV2(args *RoutingArgs) (uint32, []*v2.ExtendRoutingConfig, error) {
 	if err := rc.forceUpdate(); err != nil {
 		return 0, nil, err
 	}
+	hasSourceQuery := len(args.SourceService) != 0 || len(args.SourceNamespace) != 0
+	hasDestQuery := len(args.DestinationService) != 0 || len(args.DestinationNamespace) != 0
 
 	res := make([]*v2.ExtendRoutingConfig, 0, 8)
+
 	var process = func(_ string, svc *v2.ExtendRoutingConfig) {
 		if args.ID != "" && args.ID != svc.ID {
 			return
 		}
 
-		if args.Namespace != "" && args.Service != "" && svc.GetRoutingPolicy() == apiv2.RoutingPolicy_RulePolicy {
-			var find bool
-			sources := svc.RuleRouting.GetSources()
-			for i := range sources {
-				item := sources[i]
-				if item.Service == args.Service && item.Namespace == args.Namespace {
-					find = true
-					break
+		if svc.GetRoutingPolicy() == apiv2.RoutingPolicy_RulePolicy {
+			// 主被调服务都查询
+			if args.Namespace != "" && args.Service != "" {
+				if !queryRoutingRuleV2ByService(svc, args.Namespace, args.Service,
+					args.Namespace, args.Service, false) {
+					return
 				}
 			}
 
-			destinations := svc.RuleRouting.GetDestinations()
-			for i := range destinations {
-				item := destinations[i]
-				if item.Service == args.Service && item.Namespace == args.Namespace {
-					find = true
-					break
+			if hasSourceQuery || hasDestQuery {
+				if !queryRoutingRuleV2ByService(svc, args.Namespace, args.Service, args.Namespace,
+					args.Service, hasSourceQuery && hasDestQuery) {
+					return
 				}
-			}
-
-			if !find {
-				return
 			}
 		}
 

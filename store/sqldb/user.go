@@ -606,17 +606,3 @@ func (u *userStore) cleanInValidUser(name, owner string) error {
 
 	return nil
 }
-
-func checkAffectedRows(label string, result sql.Result, count int64) error {
-	n, err := result.RowsAffected()
-	if err != nil {
-		log.Errorf("[Store][%s] get rows affected err: %s", label, err.Error())
-		return err
-	}
-
-	if n == count {
-		return nil
-	}
-	log.Errorf("[Store][%s] get rows affected result(%d) is not match expect(%d)", label, n, count)
-	return store.NewStatusError(store.AffectedRowsNotMatch, "affected rows not match")
-}

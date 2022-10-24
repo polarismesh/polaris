@@ -34,3 +34,9 @@ var (
 		return mgr, err
 	}
 )
+
+// TestRefresh only for test
+func (nc *CacheManager) TestRefresh() error {
+	nc.clear()
+	return nc.update()
+}

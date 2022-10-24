@@ -703,9 +703,46 @@ func Test_AuthServer_NormalOperateUserGroup(t *testing.T) {
 		qresp := suit.server.GetGroup(suit.defaultCtx, groups[0])
 
 		if respSuccess(qresp) {
-			t.Fatal(resp.GetInfo().GetValue())
+			t.Fatal(qresp.GetInfo().GetValue())
 		}
 
 		assert.Equal(t, v1.NotFoundUserGroup, qresp.GetCode().GetValue())
+	})
+
+	t.Run("正常查询某个用户组下的用户列表", func(t *testing.T) {
+		qresp := suit.server.GetUsers(suit.defaultCtx, map[string]string{
+			"group_id": groups[0].GetId().GetValue(),
+		})
+
+		if respSuccess(qresp) {
+			t.Fatal(qresp.GetInfo().GetValue())
+		}
+
+		assert.True(t, len(qresp.GetUsers()) == 1)
+		assert.Equal(t, users[0].GetId().GetValue(), qresp.GetUsers()[0].Id.GetValue())
+	})
+
+	t.Run("正常查询用户组列表", func(t *testing.T) {
+		qresp := suit.server.GetGroups(suit.defaultCtx, map[string]string{})
+
+		if respSuccess(qresp) {
+			t.Fatal(qresp.GetInfo().GetValue())
+		}
+
+		assert.True(t, len(qresp.GetUserGroups()) == 1)
+		assert.Equal(t, groups[0].GetId().GetValue(), qresp.GetUserGroups()[0].Id.GetValue())
+	})
+
+	t.Run("查询某个用户所在的所有分组", func(t *testing.T) {
+		qresp := suit.server.GetGroups(suit.defaultCtx, map[string]string{
+			"user_id": users[0].GetId().GetValue(),
+		})
+
+		if respSuccess(qresp) {
+			t.Fatal(qresp.GetInfo().GetValue())
+		}
+
+		assert.True(t, len(qresp.GetUserGroups()) == 1)
+		assert.Equal(t, groups[0].GetId().GetValue(), qresp.GetUserGroups()[0].Id.GetValue())
 	})
 }

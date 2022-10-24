@@ -854,6 +854,11 @@ func Test_AuthServer_NormalOperateUser(t *testing.T) {
 		}
 	})
 
+	t.Run("非正常创建用户-直接操作存储层", func(t *testing.T) {
+		err := suit.storage.AddUser(&model.User{})
+		assert.Error(t, err)
+	})
+
 	t.Run("正常更新用户", func(t *testing.T) {
 		users[0].Comment = utils.NewStringValue("update user comment")
 		resp := suit.server.UpdateUser(suit.defaultCtx, users[0])
