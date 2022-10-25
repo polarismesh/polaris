@@ -57,6 +57,7 @@ func WaitSignal(servers []apiserver.Apiserver, errCh chan error) {
 					return
 				}
 
+				log.Infof("restart servers success: %s", s.String())
 				// 重启成功，就需要监听信号量然后执行相应的操作
 				signal.Notify(ch, darwinSignals...)
 				break label
