@@ -22,7 +22,7 @@ require (
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/nicksnyder/go-i18n/v2 v2.2.0
 	github.com/pkg/errors v0.9.1
-	github.com/polarismesh/go-restful-openapi/v2 v2.0.0-20220915080537-fbc8c2ec9c38
+	github.com/polarismesh/go-restful-openapi/v2 v2.0.0-20220928152401-083908d10219
 	github.com/prometheus/client_golang v1.12.2
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/spf13/cobra v1.2.1

@@ -37,14 +37,14 @@ func (h *HTTPServer) GetMaintainAccessServer() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.Path("/maintain/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/apiserver/conn").To(h.GetServerConnections))
-	ws.Route(ws.GET("/apiserver/conn/stats").To(h.GetServerConnStats))
-	ws.Route(ws.POST("apiserver/conn/close").To(h.CloseConnections))
-	ws.Route(ws.POST("/memory/free").To(h.FreeOSMemory))
-	ws.Route(ws.POST("/instance/clean").Consumes(restful.MIME_JSON).To(h.CleanInstance))
-	ws.Route(ws.GET("/instance/heartbeat").To(h.GetLastHeartbeat))
-	ws.Route(ws.GET("/log/outputlevel").To(h.GetLogOutputLevel))
-	ws.Route(ws.PUT("/log/outputlevel").To(h.SetLogOutputLevel))
+	ws.Route(enrichGetServerConnectionsApiDocs(ws.GET("/apiserver/conn").To(h.GetServerConnections)))
+	ws.Route(enrichGetServerConnStatsApiDocs(ws.GET("/apiserver/conn/stats").To(h.GetServerConnStats)))
+	ws.Route(enrichCloseConnectionsApiDocs(ws.POST("apiserver/conn/close").To(h.CloseConnections)))
+	ws.Route(enrichFreeOSMemoryApiDocs(ws.POST("/memory/free").To(h.FreeOSMemory)))
+	ws.Route(enrichCleanInstanceApiDocs(ws.POST("/instance/clean").To(h.CleanInstance)))
+	ws.Route(enrichGetLastHeartbeatApiDocs(ws.GET("/instance/heartbeat").To(h.GetLastHeartbeat)))
+	ws.Route(enrichGetLogOutputLevelApiDocs(ws.GET("/log/outputlevel").To(h.GetLogOutputLevel)))
+	ws.Route(enrichSetLogOutputLevelApiDocs(ws.PUT("/log/outputlevel").To(h.SetLogOutputLevel)))
 	return ws
 }
 
