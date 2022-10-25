@@ -38,21 +38,31 @@ func WaitSignal(servers []apiserver.Apiserver, errCh chan error) {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, darwinSignals...)
 
-	select {
-	case s := <-ch:
-		// restart信号
-		if s.(syscall.Signal) == syscall.SIGUSR1 {
-			// 注意：重启失败，退出程序
-			if err := RestartServers(errCh); err != nil {
-				log.Errorf("restart servers err: %s", err.Error())
-				return
-			}
+	go func() {
+	label:
+		for {
+			select {
+			case s := <-ch:
+				// restart信号
+				if s.(syscall.Signal) == syscall.SIGUSR1 {
+					// 注意：重启失败，退出程序
+					if err := RestartServers(errCh); err != nil {
+						log.Errorf("restart servers err: %s", err.Error())
+						return
+					}
 
-			log.Infof("restart servers success: %+v", s)
-		} else {
-			log.Infof("catch signal(%s), stop servers", s.String())
+					log.Infof("restart servers success: %+v", s)
+					break label
+				}
+
+				log.Infof("catch signal(%s), stop servers", s.String())
+				return
+			case err := <-errCh:
+				log.Errorf("catch api server err: %s", err.Error())
+				return
+			default:
+				// server is running...
+			}
 		}
-	case err := <-errCh:
-		log.Errorf("catch api server err: %s", err.Error())
-	}
+	}()
 }
