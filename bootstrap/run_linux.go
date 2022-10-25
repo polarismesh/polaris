@@ -62,8 +62,6 @@ label:
 		case err := <-errCh:
 			log.Errorf("catch api server err: %s", err.Error())
 			return
-		default:
-			// server is running...
 		}
 	}
 }
