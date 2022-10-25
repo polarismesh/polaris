@@ -46,7 +46,7 @@ func WaitSignal(servers []apiserver.Apiserver, errCh chan error) {
 		for {
 			select {
 			case s := <-ch:
-				if s.(syscall.Signal) != syscall.SIGUSR1 { // 非重启信号量
+				if s2, ok := s.(syscall.Signal); ok && s2 != syscall.SIGUSR1 { // 非重启信号量
 					log.Infof("catch signal(%s), stop servers", s.String())
 					return
 				}
