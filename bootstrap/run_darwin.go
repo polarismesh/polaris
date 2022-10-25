@@ -41,31 +41,29 @@ func WaitSignal(servers []apiserver.Apiserver, errCh chan error) {
 	// 监听信号量
 	signal.Notify(ch, darwinSignals...)
 
-	go func() {
-	label:
-		for {
-			select {
-			case s := <-ch:
-				if s2, ok := s.(syscall.Signal); ok && s2 == syscall.SIGUSR1 { // 重启信号量
-					if err := RestartServers(errCh); err != nil { // 重启失败，直接退出
-						log.Errorf("restart servers err: %s", err.Error())
-						return
-					}
-
-					log.Infof("restart servers success: %s", s.String())
-					// 重启成功，就需要监听信号量然后执行相应的操作
-					signal.Notify(ch, darwinSignals...)
-					break label
+label:
+	for {
+		select {
+		case s := <-ch:
+			if s2, ok := s.(syscall.Signal); ok && s2 == syscall.SIGUSR1 { // 重启信号量
+				if err := RestartServers(errCh); err != nil { // 重启失败，直接退出
+					log.Errorf("restart servers err: %s", err.Error())
+					return
 				}
 
-				log.Infof("catch signal(%s), stop servers", s.String())
-				return
-			case err := <-errCh:
-				log.Errorf("catch api server err: %s", err.Error())
-				return
-			default:
-				// server is running...
+				log.Infof("restart servers success: %s", s.String())
+				// 重启成功，就需要监听信号量然后执行相应的操作
+				signal.Notify(ch, darwinSignals...)
+				break label
 			}
+
+			log.Infof("catch signal(%s), stop servers", s.String())
+			return
+		case err := <-errCh:
+			log.Errorf("catch api server err: %s", err.Error())
+			return
+		default:
+			// server is running...
 		}
-	}()
+	}
 }
