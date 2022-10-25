@@ -77,6 +77,9 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Name:        "Instances",
 			Description: "实例管理"}},
 		{TagProps: spec.TagProps{
+			Name:        "Maintain",
+			Description: "运维接口"}},
+		{TagProps: spec.TagProps{
 			Name:        "Namespaces",
 			Description: "命名空间管理"}},
 		{TagProps: spec.TagProps{
