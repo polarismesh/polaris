@@ -26,37 +26,40 @@ import (
 	"github.com/polarismesh/polaris/common/log"
 )
 
-var linuxSignals = []os.Signal{
-	syscall.SIGINT, syscall.SIGTERM,
-	syscall.SIGSEGV, syscall.SIGUSR1,
-}
+var (
+	linuxSignals = []os.Signal{
+		syscall.SIGINT, syscall.SIGTERM,
+		syscall.SIGSEGV, syscall.SIGUSR1,
+	}
+	ch = make(chan os.Signal, 1)
+)
 
 // WaitSignal 等待信号量或err chan 从而执行restart或平滑退出
 func WaitSignal(servers []apiserver.Apiserver, errCh chan error) {
 	defer StopServers(servers)
 
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, linuxSignals...)
+	// 监听信号量
+	signal.Notify(ch, darwinSignals...)
 
 	go func() {
 	label:
 		for {
 			select {
 			case s := <-ch:
-				// restart信号
-				if s.(syscall.Signal) == syscall.SIGUSR1 {
-					// 注意：重启失败，退出程序
-					if err := RestartServers(errCh); err != nil {
-						log.Errorf("restart servers err: %s", err.Error())
-						return
-					}
-
-					log.Infof("restart servers success: %+v", s)
-					break label
+				if s.(syscall.Signal) != syscall.SIGUSR1 { // 非重启信号量
+					log.Infof("catch signal(%s), stop servers", s.String())
+					return
 				}
 
-				log.Infof("catch signal(%s), stop servers", s.String())
-				return
+				// 重启信号量
+				if err := RestartServers(errCh); err != nil {
+					log.Errorf("restart servers err: %s", err.Error())
+					return
+				}
+
+				// 重启成功，就需要监听信号量然后执行相应的操作
+				signal.Notify(ch, darwinSignals...)
+				break label
 			case err := <-errCh:
 				log.Errorf("catch api server err: %s", err.Error())
 				return

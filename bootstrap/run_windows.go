@@ -26,16 +26,18 @@ import (
 	"github.com/polarismesh/polaris/common/log"
 )
 
-var winSignals = []os.Signal{
-	syscall.SIGINT, syscall.SIGTERM,
-	syscall.SIGSEGV,
-}
+var (
+	winSignals = []os.Signal{
+		syscall.SIGINT, syscall.SIGTERM,
+		syscall.SIGSEGV,
+	}
+	ch = make(chan os.Signal, 1)
+)
 
 // WaitSignal 等待信号量或err chan 从而执行restart或平滑退出
 func WaitSignal(servers []apiserver.Apiserver, errCh chan error) {
 	defer StopServers(servers)
 
-	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, winSignals...)
 
 	select {
