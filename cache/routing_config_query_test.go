@@ -254,6 +254,60 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			},
 			want: true,
 		},
+		{
+			name: "(命名空间模糊+服务名精确查询)-或",
+			args: args{
+				rule: &v2.ExtendRoutingConfig{
+					RuleRouting: &apiv2.RuleRoutingConfig{
+						Sources: []*apiv2.Source{
+							{
+								Service:   "test-1",
+								Namespace: "test-1",
+							},
+						},
+						Destinations: []*apiv2.Destination{
+							{
+								Service:   "test-1",
+								Namespace: "test-1",
+							},
+						},
+					},
+				},
+				sourceNamespace: "te*",
+				sourceService:   "test-1",
+				destNamespace:   "",
+				destService:     "",
+				both:            false,
+			},
+			want: true,
+		},
+		{
+			name: "(命名空间模糊+服务名精确查询)-或",
+			args: args{
+				rule: &v2.ExtendRoutingConfig{
+					RuleRouting: &apiv2.RuleRoutingConfig{
+						Sources: []*apiv2.Source{
+							{
+								Service:   "test-1",
+								Namespace: "test-1",
+							},
+						},
+						Destinations: []*apiv2.Destination{
+							{
+								Service:   "test-1",
+								Namespace: "test-1",
+							},
+						},
+					},
+				},
+				sourceNamespace: "",
+				sourceService:   "",
+				destNamespace:   "tese*",
+				destService:     "test-1",
+				both:            false,
+			},
+			want: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

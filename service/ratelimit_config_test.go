@@ -470,6 +470,10 @@ func TestUpdateRateLimit(t *testing.T) {
 			var ok bool
 			for i := 0; i < 3; i++ {
 				discoverResp := discoverSuit.server.GetRateLimitWithCache(discoverSuit.defaultCtx, serviceResp)
+				if !respSuccess(discoverResp) {
+					t.Fatalf("error: %s", resp.GetInfo().GetValue())
+				}
+
 				for i := range discoverResp.GetRateLimit().GetRules() {
 					rule := discoverResp.GetRateLimit().GetRules()[i]
 					if rule.GetId().GetValue() == rateLimitResp.GetId().GetValue() {

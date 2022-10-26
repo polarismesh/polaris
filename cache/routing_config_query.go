@@ -34,8 +34,6 @@ type RoutingArgs struct {
 	ID string
 	// Name 条件中的服务名
 	Name string
-	// FuzzyName
-	FuzzyName bool
 	// Service 主调 or 被调服务名称
 	Service string
 	// Namespace 主调 or 被调服务所在命名空间
@@ -87,51 +85,55 @@ func queryRoutingRuleV2ByService(rule *v2.ExtendRoutingConfig, sourceNamespace, 
 	destNamespace, isWildDestNamespace := utils.ParseWildName(destNamespace)
 
 	sources := rule.RuleRouting.GetSources()
-	for i := range sources {
-		item := sources[i]
-		if hasSourceSvc {
-			if isWildSourceSvc {
-				if !strings.Contains(item.Service, sourceService) {
+	if hasSourceNamespace || hasSourceSvc {
+		for i := range sources {
+			item := sources[i]
+			if hasSourceSvc {
+				if isWildSourceSvc {
+					if !strings.Contains(item.Service, sourceService) {
+						continue
+					}
+				} else if item.Service != sourceService {
 					continue
 				}
-			} else if item.Service != sourceService {
-				continue
 			}
-		}
-		if hasSourceNamespace {
-			if isWildSourceNamespace {
-				if !strings.Contains(item.Namespace, sourceNamespace) {
+			if hasSourceNamespace {
+				if isWildSourceNamespace {
+					if !strings.Contains(item.Namespace, sourceNamespace) {
+						continue
+					}
+				} else if item.Namespace != sourceNamespace {
 					continue
 				}
-			} else if item.Namespace != sourceNamespace {
-				continue
 			}
+			sourceFind = true
+			break
 		}
-		sourceFind = true
-		break
 	}
 
 	destinations := rule.RuleRouting.GetDestinations()
-	for i := range destinations {
-		item := destinations[i]
-		if hasDestSvc {
-			if isWildDestSvc && !strings.Contains(item.Service, destService) {
-				continue
+	if hasDestNamespace || hasDestSvc {
+		for i := range destinations {
+			item := destinations[i]
+			if hasDestSvc {
+				if isWildDestSvc && !strings.Contains(item.Service, destService) {
+					continue
+				}
+				if item.Service != destService {
+					continue
+				}
 			}
-			if item.Service != destService {
-				continue
+			if hasDestNamespace {
+				if isWildDestNamespace && !strings.Contains(item.Namespace, destNamespace) {
+					continue
+				}
+				if item.Namespace != destNamespace {
+					continue
+				}
 			}
+			destFind = true
+			break
 		}
-		if hasDestNamespace {
-			if isWildDestNamespace && !strings.Contains(item.Namespace, destNamespace) {
-				continue
-			}
-			if item.Namespace != destNamespace {
-				continue
-			}
-		}
-		destFind = true
-		break
 	}
 
 	if both {
@@ -165,16 +167,19 @@ func (rc *routingConfigCache) GetRoutingConfigsV2(args *RoutingArgs) (uint32, []
 			}
 
 			if hasSourceQuery || hasDestQuery {
-				if !queryRoutingRuleV2ByService(svc, args.Namespace, args.Service, args.Namespace,
-					args.Service, hasSourceQuery && hasDestQuery) {
+				if !queryRoutingRuleV2ByService(svc, args.SourceNamespace, args.SourceService, args.DestinationNamespace,
+					args.DestinationService, hasSourceQuery && hasDestQuery) {
 					return
 				}
 			}
 		}
 
 		if args.Name != "" {
-			if args.FuzzyName && !strings.Contains(svc.Name, args.Name[0:len(args.Name)-1]) {
-				return
+			name, fuzzy := utils.ParseWildName(args.Name)
+			if fuzzy {
+				if !strings.Contains(svc.Name, name) {
+					return
+				}
 			} else if args.Name != svc.Name {
 				return
 			}

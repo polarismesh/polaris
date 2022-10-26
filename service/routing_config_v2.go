@@ -32,7 +32,6 @@ import (
 	v2 "github.com/polarismesh/polaris/common/model/v2"
 	routingcommon "github.com/polarismesh/polaris/common/routing"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/store"
 )
 
 var (
@@ -354,6 +353,7 @@ func parseRoutingArgs(query map[string]string, ctx context.Context) (*cache.Rout
 
 	res := &cache.RoutingArgs{
 		Filter:     filter,
+		Name:       filter["name"],
 		ID:         filter["id"],
 		OrderField: filter["order_field"],
 		OrderType:  filter["order_type"],
@@ -372,11 +372,6 @@ func parseRoutingArgs(query map[string]string, ctx context.Context) (*cache.Rout
 		res.DestinationNamespace = filter["destination_namespace"]
 	}
 
-	var ok bool
-	if res.Name, ok = filter["name"]; ok && store.IsWildName(res.Name) {
-		log.Infof("[Routing][V2][Query] fuzzy search with name %s", res.Name)
-		res.FuzzyName = true
-	}
 	if enableStr, ok := filter["enable"]; ok {
 		enable, err := strconv.ParseBool(enableStr)
 		if err == nil {
