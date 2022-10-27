@@ -130,7 +130,8 @@ func Start(configFilePath string) {
 	_ = FinishBootstrapOrder(tx) // 启动完成，解锁
 	fmt.Println("finish starting server")
 
-	RunMainLoop(servers, errCh)
+	// 等待信号量
+	WaitSignal(servers, errCh)
 }
 
 // StartComponents start health check and naming components

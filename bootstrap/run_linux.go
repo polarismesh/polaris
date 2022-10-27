@@ -26,33 +26,38 @@ import (
 	"github.com/polarismesh/polaris/common/log"
 )
 
-var linuxSignals = []os.Signal{
-	syscall.SIGINT, syscall.SIGTERM,
-	syscall.SIGSEGV, syscall.SIGUSR1,
-}
+var (
+	linuxSignals = []os.Signal{
+		syscall.SIGINT, syscall.SIGTERM,
+		syscall.SIGSEGV, syscall.SIGUSR1,
+	}
+	ch = make(chan os.Signal, 1)
+)
 
-// RunMainLoop server主循环
-func RunMainLoop(servers []apiserver.Apiserver, errCh chan error) {
+// WaitSignal 等待信号量或err chan 从而执行restart或平滑退出
+func WaitSignal(servers []apiserver.Apiserver, errCh chan error) {
 	defer StopServers(servers)
 
-	ch := make(chan os.Signal, 1)
+	// 监听信号量
 	signal.Notify(ch, linuxSignals...)
+
+label:
 	for {
 		select {
 		case s := <-ch:
-			// restart信号
-			if s.(syscall.Signal) == syscall.SIGUSR1 {
-				// 注意：重启失败，退出程序
-				if err := RestartServers(errCh); err != nil {
+			if s2, ok := s.(syscall.Signal); ok && s2 == syscall.SIGUSR1 { // 重启信号量
+				if err := RestartServers(errCh); err != nil { // 重启失败，直接退出
 					log.Errorf("restart servers err: %s", err.Error())
 					return
-				} else {
-					log.Infof("restart servers success: %+v", s)
-					continue
 				}
+
+				log.Infof("restart servers success: %s", s.String())
+				// 重启成功，就需要监听信号量然后执行相应的操作
+				signal.Notify(ch, linuxSignals...)
+				break label
 			}
 
-			log.Infof("catch signal(%+v), stop servers", s)
+			log.Infof("catch signal(%s), stop servers", s.String())
 			return
 		case err := <-errCh:
 			log.Errorf("catch api server err: %s", err.Error())
