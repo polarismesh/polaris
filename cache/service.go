@@ -117,8 +117,8 @@ type serviceCache struct {
 	lastMtime           int64
 	lastMtimeLogged     int64
 	firstUpdate         bool
-	ids                 *sync.Map // serviceid -> service
-	names               *sync.Map // spacename -> [serviceName -> service]
+	ids                 *sync.Map // service_id -> service
+	names               *sync.Map // namespace -> [serviceName -> service]
 	cl5Sid2Name         *sync.Map // 兼容Cl5，sid -> name
 	cl5Names            *sync.Map // 兼容Cl5，name -> service
 	revisionCh          chan *revisionNotify
@@ -128,7 +128,7 @@ type serviceCache struct {
 	instCache           InstanceCache
 	countChangeCh       chan map[string]bool // Counting information requires a change event channel
 	pendingServices     map[string]int8
-	namespaceServiceCnt *sync.Map // namespce -> model.NamespaceServiceCount
+	namespaceServiceCnt *sync.Map // namespace -> model.NamespaceServiceCount
 	cancel              context.CancelFunc
 }
 

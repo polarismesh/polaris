@@ -41,9 +41,10 @@ func init() {
 	RegisterCache(configFileCacheName, CacheConfigFile)
 }
 
+// FileCache file cache
 type FileCache interface {
 	Cache
-	// Get
+	// Get 通过ns,group,filename获取 Entry
 	Get(namespace, group, fileName string) (*Entry, bool)
 	// GetOrLoadIfAbsent
 	GetOrLoadIfAbsent(namespace, group, fileName string) (*Entry, error)
@@ -51,8 +52,8 @@ type FileCache interface {
 	Remove(namespace, group, fileName string)
 	// ReLoad
 	ReLoad(namespace, group, fileName string) (*Entry, error)
-	// GetOrLoadGrouByName
-	GetOrLoadGrouByName(namespace, group string) (*model.ConfigFileGroup, error)
+	// GetOrLoadGroupByName
+	GetOrLoadGroupByName(namespace, group string) (*model.ConfigFileGroup, error)
 	// GetOrLoadGroupById
 	GetOrLoadGroupById(id uint64) (*model.ConfigFileGroup, error)
 	// CleanAll
@@ -63,9 +64,9 @@ type FileCache interface {
 type fileCache struct {
 	storage store.Store
 	// fileId -> Entry
-	files *sync.Map
+	files sync.Map
 	// fileId -> lock
-	fileLoadLocks *sync.Map
+	fileLoadLocks sync.Map
 	// loadCnt
 	loadCnt int32
 	// getCnt
@@ -98,11 +99,9 @@ type Entry struct {
 // newFileCache 创建文件缓存
 func newFileCache(ctx context.Context, storage store.Store) FileCache {
 	cache := &fileCache{
-		storage:       storage,
-		files:         new(sync.Map),
-		fileLoadLocks: new(sync.Map),
-		ctx:           ctx,
-		configGroups:  newConfigFileGroupBucket(),
+		storage:      storage,
+		ctx:          ctx,
+		configGroups: newConfigFileGroupBucket(),
 	}
 	return cache
 }
@@ -122,12 +121,12 @@ func (fc *fileCache) initialize(opt map[string]interface{}) error {
 }
 
 // addListener 添加
-func (fc *fileCache) addListener(listeners []Listener) {
+func (fc *fileCache) addListener(_ []Listener) {
 
 }
 
 // update
-func (fc *fileCache) update(storeRollbackSec time.Duration) error {
+func (fc *fileCache) update(_ time.Duration) error {
 	return nil
 }
 
@@ -154,8 +153,8 @@ func (fc *fileCache) Get(namespace, group, fileName string) (*Entry, bool) {
 	return nil, false
 }
 
-// GetOrLoadGroupIfAbsent 获取配置分组缓存
-func (fc *fileCache) GetOrLoadGrouByName(namespace, group string) (*model.ConfigFileGroup, error) {
+// GetOrLoadGroupByName 获取配置分组缓存
+func (fc *fileCache) GetOrLoadGroupByName(namespace, group string) (*model.ConfigFileGroup, error) {
 	item := fc.configGroups.getGroupByName(namespace, group)
 	if item != nil {
 		return item, nil
@@ -271,7 +270,6 @@ func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 		Md5:        file.Md5,
 		Version:    file.Version,
 		ExpireTime: fc.getExpireTime(),
-		Empty:      false,
 	}
 
 	// 缓存不存在，则直接存入缓存
@@ -302,7 +300,7 @@ func (fc *fileCache) ReLoad(namespace, group, fileName string) (*Entry, error) {
 	return fc.GetOrLoadIfAbsent(namespace, group, fileName)
 }
 
-// Clear 清空缓存，仅用于集成测试
+// CleanAll 清空缓存，仅用于集成测试
 func (fc *fileCache) CleanAll() {
 	fc.files.Range(func(key, _ interface{}) bool {
 		fc.files.Delete(key)

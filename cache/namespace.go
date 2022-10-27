@@ -31,7 +31,7 @@ import (
 
 const (
 	// NamespaceName l5 name
-	NamespaceName string = "namespace"
+	NamespaceName = "namespace"
 )
 
 func init() {
@@ -168,9 +168,7 @@ func (nsCache *namespaceCache) GetNamespace(id string) *model.Namespace {
 //	@return error
 func (nsCache *namespaceCache) GetNamespacesByName(names []string) []*model.Namespace {
 	nsArr := make([]*model.Namespace, 0, len(names))
-
-	for index := range names {
-		name := names[index]
+	for _, name := range names {
 		if ns := nsCache.GetNamespace(name); ns != nil {
 			nsArr = append(nsArr, ns)
 		}
@@ -184,7 +182,6 @@ func (nsCache *namespaceCache) GetNamespacesByName(names []string) []*model.Name
 //	@receiver nsCache
 //	@return []*model.Namespace
 func (nsCache *namespaceCache) GetNamespaceList() []*model.Namespace {
-
 	nsArr := make([]*model.Namespace, 0, 8)
 
 	nsCache.ids.Range(func(key, value interface{}) bool {
@@ -195,5 +192,4 @@ func (nsCache *namespaceCache) GetNamespaceList() []*model.Namespace {
 	})
 
 	return nsArr
-
 }

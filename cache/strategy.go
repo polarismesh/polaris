@@ -36,7 +36,7 @@ func init() {
 }
 
 const (
-	StrategyRuleName string = "strategyRule"
+	StrategyRuleName = "strategyRule"
 )
 
 // StrategyCache is a cache for strategy rules.
@@ -461,7 +461,7 @@ func (sc *strategyCache) postProcessPrincipalCh() {
 				sc.groupid2Strategy.deleteAllLink(principal.PrincipalID)
 			}
 		}
-	case <-time.After(time.Duration(100 * time.Millisecond)):
+	case <-time.After(100 * time.Millisecond):
 		return
 	}
 }
@@ -585,7 +585,7 @@ func (sc *strategyCache) getStrategyDetails(uid string, gid string) []*model.Str
 		}
 	}
 
-	if strategyIds != nil {
+	if len(strategyIds) > 0 {
 		result := make([]*model.StrategyDetail, 0, 16)
 		for i := range strategyIds {
 			strategy, ok := sc.strategys.get(strategyIds[i])

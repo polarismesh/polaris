@@ -445,7 +445,7 @@ func (ic *instanceCache) GetInstanceLabels(serviceID string) *api.InstanceLabels
 	}
 
 	tmp := make(map[string]map[string]struct{})
-	iteratorInstancesProc(value.(*sync.Map), func(key string, value *model.Instance) (bool, error) {
+	_ = iteratorInstancesProc(value.(*sync.Map), func(key string, value *model.Instance) (bool, error) {
 		metadata := value.Metadata()
 		for k, v := range metadata {
 			if _, ok := tmp[k]; !ok {
@@ -475,8 +475,11 @@ func (ic *instanceCache) GetServicePorts(serviceID string) []string {
 
 // iteratorInstancesProc 迭代指定的instance数据，id->instance
 func iteratorInstancesProc(data *sync.Map, iterProc InstanceIterProc) error {
-	var cont bool
-	var err error
+	var (
+		cont bool
+		err  error
+	)
+
 	proc := func(k, v interface{}) bool {
 		cont, err = iterProc(k.(string), v.(*model.Instance))
 		if err != nil {

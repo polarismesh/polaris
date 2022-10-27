@@ -50,7 +50,7 @@ var (
 const (
 	// CacheNamespace int = iota
 	// CacheBusiness
-	CacheService int = iota
+	CacheService = iota
 	CacheInstance
 	CacheRoutingConfig
 	CacheCL5
@@ -100,7 +100,7 @@ var (
 
 const (
 	// DefaultTimeDiff default time diff
-	DefaultTimeDiff = -1 * time.Second * 10
+	DefaultTimeDiff = -10 * time.Second
 )
 
 type Args struct {
@@ -299,25 +299,23 @@ func (nc *CacheManager) revisionWorker(ctx context.Context) {
 	log.Infof("[Cache] compute revision worker start")
 	defer log.Infof("[Cache] compute revision worker done")
 
-	processFn := func() {
-		for {
-			select {
-			case req := <-nc.comRevisionCh:
-				if ok := nc.processRevisionWorker(req); !ok {
-					continue
-				}
-
-				// 每个计算完，等待2ms
-				time.Sleep(time.Millisecond * 2)
-			case <-ctx.Done():
-				return
-			}
-		}
-	}
-
 	// 启动多个协程来计算revision，后续可以通过启动参数控制
 	for i := 0; i < RevisionConcurrenceCount; i++ {
-		go processFn()
+		go func() {
+			for {
+				select {
+				case req := <-nc.comRevisionCh:
+					if ok := nc.processRevisionWorker(req); !ok {
+						continue
+					}
+
+					// 每个计算完，等待2ms
+					time.Sleep(2 * time.Millisecond)
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
 	}
 }
 

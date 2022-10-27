@@ -95,16 +95,13 @@ func newRoutingConfigCache(s store.Store, serviceCache ServiceCache) *routingCon
 }
 
 // initialize 实现Cache接口的函数
-func (rc *routingConfigCache) initialize(opt map[string]interface{}) error {
+func (rc *routingConfigCache) initialize(_ map[string]interface{}) error {
 	rc.firstUpdate = true
 
 	rc.initBuckets()
 	rc.lastMtimeV1 = time.Unix(0, 0)
 	rc.lastMtimeV2 = time.Unix(0, 0)
 
-	if opt == nil {
-		return nil
-	}
 	return nil
 }
 
@@ -165,7 +162,7 @@ func (rc *routingConfigCache) name() string {
 	return RoutingConfigName
 }
 
-// GetRoutingConfig 根据ServiceID获取路由配置
+// GetRoutingConfigV1 根据ServiceID获取路由配置
 // case 1: 如果只存在 v2 的路由规则，使用 v2
 // case 2: 如果只存在 v1 的路由规则，使用 v1
 // case 3: 如果同时存在 v1 和 v2 的路由规则，进行合并
@@ -225,7 +222,7 @@ func formatRoutingResponseV1(ret *apiv1.Routing) *apiv1.Routing {
 }
 
 // GetRoutingConfigV2 根据服务信息获取该服务下的所有 v2 版本的规则路由
-func (rc *routingConfigCache) GetRoutingConfigV2(id, service, namespace string) ([]*apiv2.Routing, error) {
+func (rc *routingConfigCache) GetRoutingConfigV2(_, service, namespace string) ([]*apiv2.Routing, error) {
 	v2rules := rc.bucketV2.listByServiceWithPredicate(service, namespace,
 		func(item *v2.ExtendRoutingConfig) bool {
 			return item.Enable

@@ -46,13 +46,13 @@ type configFileGroupBucket struct {
 	lock        sync.RWMutex
 	name2groups map[string]*subConfigFileGroupBucket
 
-	idlock    sync.RWMutex
+	idLock    sync.RWMutex
 	id2groups map[uint64]*configGroupEntry
 }
 
 func (b *configFileGroupBucket) saveGroupById(id uint64, item *model.ConfigFileGroup) {
-	b.idlock.Lock()
-	defer b.idlock.Unlock()
+	b.idLock.Lock()
+	defer b.idLock.Unlock()
 
 	b.id2groups[id] = &configGroupEntry{
 		item:          item,
@@ -66,19 +66,14 @@ func (b *configFileGroupBucket) saveGroupById(id uint64, item *model.ConfigFileG
 }
 
 func (b *configFileGroupBucket) saveGroup(namespace, group string, item *model.ConfigFileGroup) {
-	func() {
-		b.lock.Lock()
-		defer b.lock.Unlock()
+	b.lock.Lock()
+	defer b.lock.Unlock()
 
-		if _, ok := b.name2groups[namespace]; !ok {
-			b.name2groups[namespace] = &subConfigFileGroupBucket{
-				name2groups: make(map[string]*configGroupEntry),
-			}
+	if _, ok := b.name2groups[namespace]; !ok {
+		b.name2groups[namespace] = &subConfigFileGroupBucket{
+			name2groups: make(map[string]*configGroupEntry),
 		}
-	}()
-
-	b.lock.RLock()
-	defer b.lock.RUnlock()
+	}
 
 	sub := b.name2groups[namespace]
 	sub.saveGroup(namespace, group, item)
@@ -114,8 +109,8 @@ func (b *configFileGroupBucket) runCleanExpire(ctx context.Context, interval tim
 		select {
 		case <-ticker.C:
 			cleanId2Group := func() {
-				b.idlock.Lock()
-				defer b.idlock.Unlock()
+				b.idLock.Lock()
+				defer b.idLock.Unlock()
 
 				tn := time.Now().Unix()
 				for i := range b.id2groups {
@@ -189,7 +184,7 @@ func (b *subConfigFileGroupBucket) getGroupByName(group string) *model.ConfigFil
 	return entry.item
 }
 
-func (b *subConfigFileGroupBucket) cleanExpire(expire int64) {
+func (b *subConfigFileGroupBucket) cleanExpire(_ int64) {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 

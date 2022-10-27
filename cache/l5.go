@@ -86,22 +86,15 @@ func init() {
 }
 
 // initialize 初始化函数
-func (lc *l5Cache) initialize(opt map[string]interface{}) error {
-	lc.lastRouteFlow = 0
-	lc.lastPolicyFlow = 0
-	lc.lastSectionFlow = 0
-	lc.lastIPConfigFlow = 0
+func (lc *l5Cache) initialize(_ map[string]interface{}) error {
 	lc.routeList = new(sync.Map)
 	lc.policyList = new(sync.Map)
 	lc.sectionList = new(sync.Map)
 	lc.ipConfigList = new(sync.Map)
-	if opt == nil {
-		return nil
-	}
 	return nil
 }
 
-func (lc *l5Cache) update(storeRollbackSec time.Duration) error {
+func (lc *l5Cache) update(_ time.Duration) error {
 	err := lc.updateCL5Route()
 	if err != nil {
 		log.Errorf("[Cache][CL5] update l5 route cache err: %s", err.Error())
@@ -137,7 +130,7 @@ func (lc *l5Cache) name() string {
 
 // GetRouteByIP 根据Ip获取访问关系
 func (lc *l5Cache) GetRouteByIP(ip uint32) []*model.Route {
-	out := make([]*model.Route, 0)
+	out := make([]*model.Route, 0, 10)
 	value, ok := lc.routeList.Load(ip)
 	if !ok {
 		// 该ip不存在访问关系，则返回一个空数组

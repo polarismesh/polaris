@@ -36,9 +36,9 @@ func init() {
 }
 
 const (
-	UsersName string = "users"
+	UsersName = "users"
 
-	NameLinkOwnerTemp string = "%s@%s"
+	NameLinkOwnerTemp = "%s@%s"
 )
 
 // UserCache User information cache
@@ -284,7 +284,7 @@ func newUserCache(storage store.Store, notifyCh chan interface{}) UserCache {
 }
 
 // initialize
-func (uc *userCache) initialize(c map[string]interface{}) error {
+func (uc *userCache) initialize(_ map[string]interface{}) error {
 	uc.initBuckets()
 	uc.adminUser = atomic.Value{}
 
