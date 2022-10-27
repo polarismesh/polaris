@@ -19,6 +19,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"testing"
@@ -356,9 +357,8 @@ func TestUpdateRateLimit(t *testing.T) {
 	_, rateLimitResp := discoverSuit.createCommonRateLimit(t, serviceResp, 1)
 	defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 
-	updateRateLimitContent(rateLimitResp, 2)
-
 	t.Run("更新单个限流规则，可以正常更新", func(t *testing.T) {
+		updateRateLimitContent(rateLimitResp, 2)
 		discoverSuit.updateRateLimit(t, rateLimitResp)
 		filters := map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
@@ -435,6 +435,21 @@ func TestUpdateRateLimit(t *testing.T) {
 
 		t.Log("pass")
 	})
+}
+
+func TestDisableRateLimit(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+
+	_, serviceResp := discoverSuit.createCommonService(t, 0)
+	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+	defer discoverSuit.cleanRateLimitRevision(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+
+	_, rateLimitResp := discoverSuit.createCommonRateLimit(t, serviceResp, 1)
+	defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 
 	t.Run("反复启用禁止限流规则, 正常下发客户端", func(t *testing.T) {
 		_, rateLimitResp := discoverSuit.createCommonRateLimit(t, serviceResp, 10000)
@@ -445,13 +460,14 @@ func TestUpdateRateLimit(t *testing.T) {
 		})
 
 		check := func(label string, disable bool) {
-			t.Logf("start run : %s", label)
 			ruleContents := []*api.Rule{
 				{
 					Id:      utils.NewStringValue(rateLimitResp.GetId().GetValue()),
 					Disable: utils.NewBoolValue(disable),
 				},
 			}
+
+			t.Logf("start run : %s", label)
 			if resp := discoverSuit.server.EnableRateLimits(discoverSuit.defaultCtx, ruleContents); !respSuccess(resp) {
 				t.Fatalf("error: %s", resp.GetInfo().GetValue())
 			}
@@ -462,6 +478,11 @@ func TestUpdateRateLimit(t *testing.T) {
 			if !respSuccess(resp) {
 				t.Fatalf("error : %s", resp.GetInfo().GetValue())
 			}
+			assert.Equal(t, 1, len(resp.GetRateLimits()))
+
+			data, _ := json.Marshal(resp.GetRateLimits())
+			t.Logf("find target ratelimit rule from store : %s", string(data))
+
 			assert.Equal(t, rateLimitResp.GetId().GetValue(), resp.GetRateLimits()[0].GetId().GetValue())
 			assert.Equal(t, disable, resp.GetRateLimits()[0].GetDisable().GetValue())
 
@@ -474,9 +495,13 @@ func TestUpdateRateLimit(t *testing.T) {
 					t.Fatalf("error: %s", resp.GetInfo().GetValue())
 				}
 
+				assert.True(t, len(discoverResp.GetRateLimit().GetRules()) > 0)
+
 				for i := range discoverResp.GetRateLimit().GetRules() {
 					rule := discoverResp.GetRateLimit().GetRules()[i]
 					if rule.GetId().GetValue() == rateLimitResp.GetId().GetValue() {
+						data, _ := json.Marshal(rule)
+						t.Logf("find target ratelimit rule from cache : %s", string(data))
 						if disable == rule.GetDisable().GetValue() {
 							ok = true
 							break
@@ -487,6 +512,8 @@ func TestUpdateRateLimit(t *testing.T) {
 			}
 			if !ok {
 				t.Fatalf("%s match ratelimit disable status", label)
+			} else {
+				t.Logf("start run : success : %s %s", rateLimitResp.GetId().GetValue(), resp.GetRateLimits()[0].GetId().GetValue())
 			}
 		}
 

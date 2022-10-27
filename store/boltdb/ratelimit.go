@@ -238,11 +238,15 @@ func (r *rateLimitStore) GetRateLimitWithID(id string) (*model.RateLimit, error)
 func (r *rateLimitStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, []*model.RateLimitRevision, error) {
 	handler := r.handler
 
+	if firstUpdate {
+		mtime = time.Time{}
+	}
+
 	serviceIds := make(map[string]struct{})
 	limitResults, err := handler.LoadValuesByFilter(tblRateLimitConfig, []string{RateConfFieldMtime, RateConfFieldServiceID}, &model.RateLimit{},
 		func(m map[string]interface{}) bool {
 			mt := m[RateConfFieldMtime].(time.Time)
-			isAfter := mt.After(mtime)
+			isAfter := !mt.Before(mtime)
 			if isAfter {
 				serviceIds[m[RateConfFieldServiceID].(string)] = struct{}{}
 			}
@@ -339,9 +343,9 @@ func (r *rateLimitStore) enableRateLimit(limit *model.RateLimit) error {
 		properties[RateLimitFieldRevision] = limit.Revision
 		properties[RateLimitFieldModifyTime] = time.Now()
 		if limit.Disable {
-			properties[RateLimitFieldModifyTime] = time.Unix(0, 0)
+			properties[RateLimitFieldEnableTime] = time.Unix(0, 0)
 		} else {
-			properties[RateLimitFieldModifyTime] = time.Now()
+			properties[RateLimitFieldEnableTime] = time.Now()
 		}
 		// create ratelimit_config
 		if err := updateValue(tx, tblRateLimitConfig, limit.ID, properties); err != nil {
@@ -388,9 +392,9 @@ func (r *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 		properties[RateLimitFieldRevision] = limit.Revision
 		properties[RateLimitFieldModifyTime] = time.Now()
 		if limit.Disable {
-			properties[RateLimitFieldModifyTime] = time.Unix(0, 0)
+			properties[RateLimitFieldEnableTime] = time.Unix(0, 0)
 		} else {
-			properties[RateLimitFieldModifyTime] = time.Now()
+			properties[RateLimitFieldEnableTime] = time.Now()
 		}
 		// create ratelimit_config
 		if err := updateValue(tx, tblRateLimitConfig, limit.ID, properties); err != nil {

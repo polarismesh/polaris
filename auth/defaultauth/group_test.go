@@ -693,6 +693,53 @@ func Test_AuthServer_NormalOperateUserGroup(t *testing.T) {
 		assert.Equal(t, resp.GetUserGroup().GetAuthToken().GetValue(), qresp.GetUserGroup().GetAuthToken().GetValue())
 	})
 
+	t.Run("正常查询某个用户组下的用户列表", func(t *testing.T) {
+		qresp := suit.server.GetUsers(suit.defaultCtx, map[string]string{
+			"group_id": groups[0].GetId().GetValue(),
+		})
+
+		if !respSuccess(qresp) {
+			t.Fatal(qresp.GetInfo().GetValue())
+		}
+
+		assert.Equal(t, 8, len(qresp.GetUsers()))
+
+		expectUsers := []string{users[0].Id.Value}
+		for _, u := range users[3:] {
+			expectUsers = append(expectUsers, u.Id.Value)
+		}
+
+		retUsers := []string{}
+		for i := range qresp.GetUsers() {
+			retUsers = append(retUsers, qresp.GetUsers()[i].Id.Value)
+		}
+		assert.ElementsMatch(t, expectUsers, retUsers)
+	})
+
+	t.Run("正常查询用户组列表", func(t *testing.T) {
+		qresp := suit.server.GetGroups(suit.defaultCtx, map[string]string{})
+
+		if !respSuccess(qresp) {
+			t.Fatal(qresp.GetInfo().GetValue())
+		}
+
+		assert.True(t, len(qresp.GetUserGroups()) == 1)
+		assert.Equal(t, groups[0].GetId().GetValue(), qresp.GetUserGroups()[0].Id.GetValue())
+	})
+
+	t.Run("查询某个用户所在的所有分组", func(t *testing.T) {
+		qresp := suit.server.GetGroups(suit.defaultCtx, map[string]string{
+			"user_id": users[0].GetId().GetValue(),
+		})
+
+		if !respSuccess(qresp) {
+			t.Fatal(qresp.GetInfo().GetValue())
+		}
+
+		assert.True(t, len(qresp.GetUserGroups()) == 1)
+		assert.Equal(t, groups[0].GetId().GetValue(), qresp.GetUserGroups()[0].Id.GetValue())
+	})
+
 	t.Run("正常删除用户组", func(t *testing.T) {
 		resp := suit.server.DeleteGroups(suit.defaultCtx, groups)
 
@@ -707,42 +754,5 @@ func Test_AuthServer_NormalOperateUserGroup(t *testing.T) {
 		}
 
 		assert.Equal(t, v1.NotFoundUserGroup, qresp.GetCode().GetValue())
-	})
-
-	t.Run("正常查询某个用户组下的用户列表", func(t *testing.T) {
-		qresp := suit.server.GetUsers(suit.defaultCtx, map[string]string{
-			"group_id": groups[0].GetId().GetValue(),
-		})
-
-		if respSuccess(qresp) {
-			t.Fatal(qresp.GetInfo().GetValue())
-		}
-
-		assert.True(t, len(qresp.GetUsers()) == 1)
-		assert.Equal(t, users[0].GetId().GetValue(), qresp.GetUsers()[0].Id.GetValue())
-	})
-
-	t.Run("正常查询用户组列表", func(t *testing.T) {
-		qresp := suit.server.GetGroups(suit.defaultCtx, map[string]string{})
-
-		if respSuccess(qresp) {
-			t.Fatal(qresp.GetInfo().GetValue())
-		}
-
-		assert.True(t, len(qresp.GetUserGroups()) == 1)
-		assert.Equal(t, groups[0].GetId().GetValue(), qresp.GetUserGroups()[0].Id.GetValue())
-	})
-
-	t.Run("查询某个用户所在的所有分组", func(t *testing.T) {
-		qresp := suit.server.GetGroups(suit.defaultCtx, map[string]string{
-			"user_id": users[0].GetId().GetValue(),
-		})
-
-		if respSuccess(qresp) {
-			t.Fatal(qresp.GetInfo().GetValue())
-		}
-
-		assert.True(t, len(qresp.GetUserGroups()) == 1)
-		assert.Equal(t, groups[0].GetId().GetValue(), qresp.GetUserGroups()[0].Id.GetValue())
 	})
 }
