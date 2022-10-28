@@ -173,7 +173,7 @@ func (s *serverAuthability) queryConfigGroupRsEntryByNames(ctx context.Context, 
 
 	configFileGroups := make([]*model.ConfigFileGroup, 0, len(names))
 	for i := range names {
-		data, err := s.targetServer.fileCache.GetOrLoadGrouByName(namespace, names[i])
+		data, err := s.targetServer.fileCache.GetOrLoadGroupByName(namespace, names[i])
 		if err != nil {
 			return nil, err
 		}

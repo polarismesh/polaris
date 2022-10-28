@@ -35,7 +35,7 @@ type RoutingArgs struct {
 	Name string
 	// FuzzyName
 	FuzzyName bool
-	// Namesapce 服务所在的 namespace
+	// Namespace 服务所在的 namespace
 	Namespace string
 	// Service 服务名称
 	Service string
@@ -144,24 +144,27 @@ func (rc *routingConfigCache) sortBeforeTrim(routings []*v2.ExtendRoutingConfig,
 }
 
 func orderByRoutingModifyTime(a, b *v2.ExtendRoutingConfig, asc bool) bool {
-	ap := a.Priority
-	bp := b.Priority
+	if a.Priority < b.Priority {
+		return asc
+	}
 
-	if ap < bp {
-		return true && asc
+	if a.Priority > b.Priority {
+		// false && asc always false
+		return false
 	}
-	if ap > bp {
-		return false && asc
-	}
+
 	return strings.Compare(a.ID, b.ID) < 0 && asc
 }
 
 func orderByRoutingPriority(a, b *v2.ExtendRoutingConfig, asc bool) bool {
 	if a.ModifyTime.After(b.ModifyTime) {
-		return true && asc
-	} else if a.ModifyTime.Before(b.ModifyTime) {
-		return false && asc
-	} else {
-		return strings.Compare(a.ID, b.ID) < 0 && asc
+		return asc
 	}
+
+	if a.ModifyTime.Before(b.ModifyTime) {
+		// false && asc always false
+		return false
+	}
+
+	return strings.Compare(a.ID, b.ID) < 0 && asc
 }

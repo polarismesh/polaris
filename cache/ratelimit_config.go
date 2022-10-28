@@ -80,14 +80,11 @@ func newRateLimitCache(s store.Store) *rateLimitCache {
 }
 
 // initialize 实现Cache接口的initialize函数
-func (rlc *rateLimitCache) initialize(opt map[string]interface{}) error {
+func (rlc *rateLimitCache) initialize(_ map[string]interface{}) error {
 	rlc.ids = new(sync.Map)
 	rlc.revisions = new(sync.Map)
 	rlc.lastTime = time.Unix(0, 0)
 	rlc.firstUpdate = true
-	if opt == nil {
-		return nil
-	}
 	return nil
 }
 
@@ -185,8 +182,10 @@ func (rlc *rateLimitCache) GetRateLimit(serviceID string, rateLimitIterProc Rate
 		return nil
 	}
 
-	var result bool
-	var err error
+	var (
+		result bool
+		err    error
+	)
 	f := func(k, v interface{}) bool {
 		result, err = rateLimitIterProc(k.(string), v.(*model.RateLimit))
 		if err != nil {

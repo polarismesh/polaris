@@ -112,9 +112,9 @@ type routingBucketV2 struct {
 	rules map[string]*v2.ExtendRoutingConfig
 	// level1Rules service(name)+namespace => 路由规则ID列表，只针对某个具体的服务有效
 	level1Rules map[string]map[string]struct{}
-	// level2Rules service(*) + namesapce =>  路由规则ID列表, 针对某个命名空间下所有服务都生效的路由规则
+	// level2Rules service(*) + namespace =>  路由规则ID列表, 针对某个命名空间下所有服务都生效的路由规则
 	level2Rules map[boundType]map[string]map[string]struct{}
-	// level3Rules service(*) + namesapce(*) =>  路由规则ID列表, 针对所有命名空间下的所有服务都生效的规则
+	// level3Rules service(*) + namespace(*) =>  路由规则ID列表, 针对所有命名空间下的所有服务都生效的规则
 	level3Rules map[boundType]map[string]struct{}
 	// v1rules service-id => []*v2.ExtendRoutingConfig v1 版本的规则自动转为 v2 版本的规则，用于 v2 接口的数据查看
 	v1rules map[string][]*v2.ExtendRoutingConfig

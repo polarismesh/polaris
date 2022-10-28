@@ -210,7 +210,7 @@ func Test_ConfigFileGroupBucket(t *testing.T) {
 
 		s.EXPECT().GetConfigFileGroup(gomock.Any(), gomock.Any()).Return(mockGroup, nil)
 
-		ret, err := fc.GetOrLoadGrouByName(mockGroup.Namespace, mockGroup.Name)
+		ret, err := fc.GetOrLoadGroupByName(mockGroup.Namespace, mockGroup.Name)
 
 		assert.NoError(t, err)
 		assert.Equal(t, mockGroup.Name, ret.Name)

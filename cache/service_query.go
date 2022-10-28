@@ -179,12 +179,15 @@ func sortBeforeTrim(services []*model.Service, offset, limit uint32) (uint32, []
 	sort.Slice(services, func(i, j int) bool {
 		if services[i].Mtime > services[j].Mtime {
 			return true
-		} else if services[i].Mtime < services[j].Mtime {
-			return false
-		} else {
-			return strings.Compare(services[i].ID, services[j].ID) < 0
 		}
+
+		if services[i].Mtime < services[j].Mtime {
+			return false
+		}
+
+		return strings.Compare(services[i].ID, services[j].ID) < 0
 	})
+
 	endIdx := offset + limit
 	if endIdx > amount {
 		endIdx = amount
