@@ -460,6 +460,11 @@ func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, lim
 		if newK, ok := userLinkGroupAttributeMapping[k]; ok {
 			k = newK
 		}
+
+		if k == "ug.owner" {
+			k = "u.owner"
+		}
+
 		if utils.IsWildName(v) {
 			querySql += " AND " + k + " like ?"
 			countSql += " AND " + k + " like ?"
