@@ -258,3 +258,44 @@ func rotationCallback(t *testing.T, wg *sync.WaitGroup, tw *TimeWheel, intervalS
 		rotationCallback(t, wg, tw, intervalSecond, runTimes, time.Now().UnixMilli())
 	})
 }
+
+func TestForceCloseMode(t *testing.T) {
+	a := 1
+	tw := New(time.Second, 5, "force close").ForceCloseMode()
+	tw.Start()
+	tw.AddTask(uint32(2*time.Second.Milliseconds()), nil, func(i interface{}) {
+		time.Sleep(5 * time.Second)
+		a = 2
+		fmt.Println("run end")
+	})
+	tw.AddTask(uint32(2*time.Second.Milliseconds()), nil, func(i interface{}) {
+		time.Sleep(6 * time.Second)
+		a = 2
+		fmt.Println("task2 run end")
+	})
+	time.Sleep(4 * time.Second)
+	tw.Stop()
+	fmt.Println("tw is stop")
+	assert.True(t, a == 1)
+}
+
+func TestWaitCloseMode(t *testing.T) {
+	a := 1
+	tw := New(time.Second, 5, "force close")
+	tw.Start()
+	tw.AddTask(uint32(2*time.Second.Milliseconds()), nil, func(i interface{}) {
+		time.Sleep(5 * time.Second)
+		a = 2
+		fmt.Println("task1 run end")
+	})
+
+	tw.AddTask(uint32(2*time.Second.Milliseconds()), nil, func(i interface{}) {
+		time.Sleep(6 * time.Second)
+		a = 2
+		fmt.Println("task2 run end")
+	})
+	time.Sleep(4 * time.Second)
+	tw.Stop()
+	fmt.Println("tw is stop")
+	assert.True(t, a == 2)
+}

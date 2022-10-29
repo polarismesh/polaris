@@ -28,14 +28,16 @@ import (
 
 // TimeWheel 时间轮结构体
 type TimeWheel struct {
-	name       string
-	interval   time.Duration
-	ticker     *time.Ticker
-	currentPos int
-	slots      []*list.List
-	locks      []sync.Mutex
-	slotNum    int
-	stopCh     chan struct{}
+	name            string
+	interval        time.Duration
+	ticker          *time.Ticker
+	currentPos      int
+	slots           []*list.List
+	locks           []sync.Mutex
+	slotNum         int
+	stopCh          chan struct{}
+	wg              sync.WaitGroup
+	waitTaskOnClose bool
 }
 
 // Callback 时间轮回调函数定义
@@ -56,13 +58,14 @@ func New(interval time.Duration, slotNum int, name string) *TimeWheel {
 	}
 
 	timeWheel := &TimeWheel{
-		name:       name,
-		interval:   interval,
-		slots:      make([]*list.List, slotNum),
-		locks:      make([]sync.Mutex, slotNum),
-		currentPos: -1,
-		slotNum:    slotNum,
-		stopCh:     make(chan struct{}, 1),
+		name:            name,
+		interval:        interval,
+		slots:           make([]*list.List, slotNum),
+		locks:           make([]sync.Mutex, slotNum),
+		currentPos:      -1,
+		slotNum:         slotNum,
+		stopCh:          make(chan struct{}, 1),
+		waitTaskOnClose: true,
 	}
 
 	for i := 0; i < slotNum; i++ {
@@ -70,6 +73,11 @@ func New(interval time.Duration, slotNum int, name string) *TimeWheel {
 	}
 
 	return timeWheel
+}
+
+func (tw *TimeWheel) ForceCloseMode() *TimeWheel {
+	tw.waitTaskOnClose = false
+	return tw
 }
 
 // Start 启动时间轮
@@ -81,6 +89,9 @@ func (tw *TimeWheel) Start() {
 // Stop 停止时间轮
 func (tw *TimeWheel) Stop() {
 	close(tw.stopCh)
+	if tw.waitTaskOnClose {
+		tw.wg.Wait()
+	}
 }
 
 // start 时间轮运转函数
@@ -140,7 +151,13 @@ func (tw *TimeWheel) scanAddRunTask(l *list.List) int {
 			continue
 		}
 
-		go task.callback(task.taskData)
+		go func() {
+			if tw.waitTaskOnClose {
+				tw.wg.Add(1)
+				defer tw.wg.Done()
+			}
+			task.callback(task.taskData)
+		}()
 		next := item.Next()
 		l.Remove(item)
 		item = next
