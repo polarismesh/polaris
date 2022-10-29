@@ -19,6 +19,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -357,6 +358,9 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *api.Service) *a
 		rateLimit, err := rateLimit2Client(req.GetName().GetValue(), req.GetNamespace().GetValue(), value)
 		if err != nil {
 			return false, err
+		}
+		if rateLimit == nil {
+			return false, errors.New("ratelimit is nil")
 		}
 		resp.RateLimit.Rules = append(resp.RateLimit.Rules, rateLimit)
 		return true, nil
