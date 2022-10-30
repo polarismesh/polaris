@@ -300,7 +300,6 @@ func (s *strategyStore) deleteStrategyResources(tx *BaseTx, id string,
 		); err != nil {
 			return err
 		}
-
 	}
 	return nil
 }

@@ -151,7 +151,6 @@ func (svr *serverAuthAbility) GetNamespaces(ctx context.Context, query map[strin
 
 	resp := svr.targetServer.GetNamespaces(ctx, query)
 	if len(resp.Namespaces) != 0 {
-
 		principal := model.Principal{
 			PrincipalID:   utils.ParseUserID(ctx),
 			PrincipalRole: model.PrincipalUser,
