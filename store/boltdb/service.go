@@ -39,7 +39,7 @@ type serviceStore struct {
 }
 
 var (
-	MultipleSvcFound = errors.New("multiple service find")
+	ErrMultipleSvcFound = errors.New("multiple service find")
 )
 
 const (
@@ -558,7 +558,7 @@ func (ss *serviceStore) getServiceByNameAndNsIgnoreValid(name string, namespace 
 
 	if len(svc) > 1 {
 		log.Errorf("[Store][boltdb] multiple services found %v", svc)
-		return nil, MultipleSvcFound
+		return nil, ErrMultipleSvcFound
 	}
 
 	if len(svc) == 0 {
@@ -594,7 +594,7 @@ func (ss *serviceStore) getServiceByID(id string) (*model.Service, error) {
 
 	if len(svc) > 1 {
 		log.Errorf("[Store][boltdb] multiple services found %v", svc)
-		return nil, MultipleSvcFound
+		return nil, ErrMultipleSvcFound
 	}
 
 	svcRet := svc[id].(*model.Service)

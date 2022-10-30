@@ -96,12 +96,12 @@ func (s *Server) RecordHistory(entry *model.RecordEntry) {
 }
 
 // RecordDiscoverStatis 打印服务发现统计
-func (s *Server) RecordDiscoverStatis(service, namespace string) {
+func (s *Server) RecordDiscoverStatis(service, namespaces string) {
 	if s.discoverStatis == nil {
 		return
 	}
 
-	_ = s.discoverStatis.AddDiscoverCall(service, namespace, time.Now())
+	_ = s.discoverStatis.AddDiscoverCall(service, namespaces, time.Now())
 }
 
 // PublishDiscoverEvent 发布服务事件

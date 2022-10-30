@@ -81,7 +81,6 @@ func (holder *eventBufferHolder) HasNext() bool {
 //	@return model.DiscoverEvent 元素
 //	@return bool 是否还有下一个元素可以继续读取
 func (holder *eventBufferHolder) Next() model.DiscoverEvent {
-
 	event := holder.buffer[holder.readCursor]
 	holder.readCursor++
 

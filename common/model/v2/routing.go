@@ -70,7 +70,6 @@ type ExtendRoutingConfig struct {
 
 // ToApi 转为 api 对象
 func (r *ExtendRoutingConfig) ToApi() (*apiv2.Routing, error) {
-
 	var (
 		any *anypb.Any
 		err error
@@ -194,9 +193,6 @@ func (r *RoutingConfig) ParseFromAPI(routing *apiv2.Routing) error {
 	// 优先级区间范围 [0, 10]
 	if r.Priority > 10 {
 		r.Priority = 10
-	}
-	if r.Priority < 0 {
-		r.Priority = 0
 	}
 
 	return nil

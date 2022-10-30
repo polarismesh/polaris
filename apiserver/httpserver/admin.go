@@ -32,5 +32,5 @@ func (h *HTTPServer) GetAdminServer() *restful.WebService {
 
 // index  URL: "/"
 func (h *HTTPServer) index(_ *restful.Request, rsp *restful.Response) {
-	rsp.Write([]byte("Polaris Server"))
+	_, _ = rsp.Write([]byte("Polaris Server"))
 }

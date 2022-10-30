@@ -96,7 +96,7 @@ type XDSServer struct {
 
 // Initialize 初始化
 func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{},
-	api map[string]apiserver.APIConfig,
+	apiConf map[string]apiserver.APIConfig,
 ) error {
 	x.cache = cachev3.NewSnapshotCache(false, PolarisNodeHash{}, commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName))
 	x.registryInfo = make(map[string][]*ServiceInfo)
@@ -206,7 +206,7 @@ func (x *XDSServer) Stop() {
 }
 
 // Restart 重启服务
-func (x *XDSServer) Restart(option map[string]interface{}, api map[string]apiserver.APIConfig, errCh chan error) error {
+func (x *XDSServer) Restart(option map[string]interface{}, apiConf map[string]apiserver.APIConfig, errCh chan error) error {
 	log.Infof("restart xds server with new config: +%v", option)
 
 	x.restart = true
@@ -216,7 +216,7 @@ func (x *XDSServer) Restart(option map[string]interface{}, api map[string]apiser
 	}
 
 	log.Info("old xds server has stopped, begin restarting it")
-	if err := x.Initialize(context.Background(), option, api); err != nil {
+	if err := x.Initialize(context.Background(), option, apiConf); err != nil {
 		log.Errorf("restart grpc server err: %s", err.Error())
 		return err
 	}
@@ -237,15 +237,15 @@ type PolarisNodeHash struct{}
 // 1. namespace/uuid~hostIp
 var nodeIDFormat = regexp.MustCompile(`^(\S+)\/([^~]+)~([^~]+)$`)
 
-func parseNodeID(nodeID string) (namespace string, uuid string, hostip string) {
+func parseNodeID(nodeID string) (polarisNamespace, uuid, hostIP string) {
 	groups := nodeIDFormat.FindStringSubmatch(nodeID)
 	if len(groups) == 0 {
 		// invalid node format
 		return
 	}
-	namespace = groups[1]
+	polarisNamespace = groups[1]
 	uuid = groups[2]
-	hostip = groups[3]
+	hostIP = groups[3]
 	return
 }
 
@@ -386,10 +386,10 @@ func getEndpointMetaFromPolarisIns(ins *api.Instance) *core.Metadata {
 func makeEndpoints(services []*ServiceInfo) []types.Resource {
 	var clusterLoads []types.Resource
 
-	for _, service := range services {
+	for _, serviceInfo := range services {
 
 		var lbEndpoints []*endpoint.LbEndpoint
-		for _, instance := range service.Instances {
+		for _, instance := range serviceInfo.Instances {
 			// 只加入健康的实例
 			if instance.Healthy.Value {
 				ep := &endpoint.LbEndpoint{
@@ -416,7 +416,7 @@ func makeEndpoints(services []*ServiceInfo) []types.Resource {
 		}
 
 		cla := &endpoint.ClusterLoadAssignment{
-			ClusterName: service.Name,
+			ClusterName: serviceInfo.Name,
 			Endpoints: []*endpoint.LocalityLbEndpoints{
 				{
 					LbEndpoints: lbEndpoints,
@@ -725,20 +725,20 @@ func makeLocalRateLimit(conf []*model.RateLimit) map[string]*anypb.Any {
 }
 
 func (x *XDSServer) makeVirtualHosts(services []*ServiceInfo) []types.Resource {
-	// 每个 polaris service 对应一个 virtualHost
+	// 每个 polaris serviceInfo 对应一个 virtualHost
 	var routeConfs []types.Resource
 	var hosts []*route.VirtualHost
 
-	for _, service := range services {
+	for _, serviceInfo := range services {
 		ratelimitGetter := x.RatelimitConfigGetter
 		if ratelimitGetter == nil {
 			ratelimitGetter = x.namingServer.Cache().RateLimit().GetRateLimitByServiceID
 		}
-		rateLimitConf := ratelimitGetter(service.ID)
+		rateLimitConf := ratelimitGetter(serviceInfo.ID)
 		hosts = append(hosts, &route.VirtualHost{
-			Name:                 service.Name,
-			Domains:              generateServiceDomains(service),
-			Routes:               makeRoutes(service),
+			Name:                 serviceInfo.Name,
+			Domains:              generateServiceDomains(serviceInfo),
+			Routes:               makeRoutes(serviceInfo),
 			TypedPerFilterConfig: makeLocalRateLimit(rateLimitConf),
 		})
 	}
@@ -955,9 +955,9 @@ func (x *XDSServer) initRegistryInfo() error {
 		return fmt.Errorf("error to init registry info %s", resp.Code)
 	}
 	namespaces := resp.Namespaces
-	// 启动时，获取全量的 namespace 信息，用来推送空配置
-	for _, namespace := range namespaces {
-		x.registryInfo[namespace.Name.Value] = []*ServiceInfo{}
+	// 启动时，获取全量的 n 信息，用来推送空配置
+	for _, n := range namespaces {
+		x.registryInfo[n.Name.Value] = []*ServiceInfo{}
 	}
 
 	return nil

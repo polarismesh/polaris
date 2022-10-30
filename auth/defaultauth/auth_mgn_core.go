@@ -297,19 +297,18 @@ func (d *defaultAuthChecker) checkToken(tokenInfo *OperatorInfo) (string, bool, 
 		}
 
 		return user.Owner, false, nil
-	} else {
-		group := d.Cache().User().GetGroup(id)
-		if group == nil {
-			return "", false, model.ErrorNoUserGroup
-		}
-
-		if tokenInfo.Origin != group.Token {
-			return "", false, model.ErrorTokenNotExist
-		}
-
-		tokenInfo.Disable = !group.TokenEnable
-		return group.Owner, false, nil
 	}
+	group := d.Cache().User().GetGroup(id)
+	if group == nil {
+		return "", false, model.ErrorNoUserGroup
+	}
+
+	if tokenInfo.Origin != group.Token {
+		return "", false, model.ErrorTokenNotExist
+	}
+
+	tokenInfo.Disable = !group.TokenEnable
+	return group.Owner, false, nil
 }
 
 // findStrategiesByUserID 根据 user-id 查找相关联的鉴权策略（用户自己的 + 用户所在用户组的）
@@ -336,7 +335,7 @@ func (d *defaultAuthChecker) findStrategiesByUserID(userId string) []*model.Stra
 		ret = append(ret, val)
 	}
 
-	return rules
+	return ret
 }
 
 // findStrategies Inquire about TOKEN information, the actual all-associated authentication strategy

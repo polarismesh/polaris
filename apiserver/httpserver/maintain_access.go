@@ -119,7 +119,7 @@ func (h *HTTPServer) CloseConnections(req *restful.Request, rsp *restful.Respons
 	}
 
 	if err := h.maintainServer.CloseConnections(ctx, connReqs); err != nil {
-		rsp.WriteError(http.StatusBadRequest, err)
+		_ = rsp.WriteError(http.StatusBadRequest, err)
 	}
 }
 
@@ -127,7 +127,7 @@ func (h *HTTPServer) CloseConnections(req *restful.Request, rsp *restful.Respons
 func (h *HTTPServer) FreeOSMemory(req *restful.Request, rsp *restful.Response) {
 	ctx := initContext(req)
 	if err := h.maintainServer.FreeOSMemory(ctx); err != nil {
-		rsp.WriteError(http.StatusBadRequest, err)
+		_ = rsp.WriteError(http.StatusBadRequest, err)
 	}
 }
 

@@ -227,7 +227,6 @@ func (b *routingBucketV2) deleteV2(id string) {
 			key := buildServiceKey(namespace, service)
 			delete(b.level1Rules[key], id)
 		}
-
 	}
 }
 
@@ -320,7 +319,6 @@ func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
 	level3 = append(level3, handler(b.level3Rules[inBound], inBound)...)
 	ret[level3RoutingV2] = level3
 	return ret
-
 }
 
 // foreach 遍历所有的路由规则

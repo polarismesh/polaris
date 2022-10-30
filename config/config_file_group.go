@@ -128,7 +128,7 @@ func (s *Server) createConfigFileGroupIfAbsent(ctx context.Context,
 func (s *Server) QueryConfigFileGroups(ctx context.Context, namespace, groupName,
 	fileName string, offset, limit uint32) *api.ConfigBatchQueryResponse {
 
-	if offset < 0 || limit <= 0 || limit > MaxPageSize {
+	if limit > MaxPageSize {
 		return api.NewConfigFileGroupBatchQueryResponse(api.InvalidParameter, 0, nil)
 	}
 

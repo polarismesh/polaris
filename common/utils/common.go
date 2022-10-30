@@ -142,10 +142,6 @@ func CheckInstancePort(port *wrappers.UInt32Value) error {
 		return errors.New(NilErrString)
 	}
 
-	if port.GetValue() < 0 {
-		return errors.New(EmptyErrString)
-	}
-
 	return nil
 }
 

@@ -445,7 +445,6 @@ func (s *Server) getSourceServiceID(service *model.Service) string {
 	}
 
 	return service.ID
-
 }
 
 // 根据服务名获取服务缓存数据

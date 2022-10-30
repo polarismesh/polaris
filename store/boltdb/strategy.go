@@ -97,7 +97,9 @@ func (ss *strategyStore) AddStrategy(strategy *model.StrategyDetail) error {
 	}
 	tx := proxy.GetDelegateTx().(*bolt.Tx)
 
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	return ss.addStrategy(tx, strategy)
 }
@@ -137,7 +139,9 @@ func (ss *strategyStore) UpdateStrategy(strategy *model.ModifyStrategyDetail) er
 	}
 	tx := proxy.GetDelegateTx().(*bolt.Tx)
 
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	ret, err := loadStrategyById(tx, strategy.ID)
 	if err != nil {
@@ -266,10 +270,11 @@ func (ss *strategyStore) operateStrategyResources(remove bool, resources []model
 	}
 	tx := proxy.GetDelegateTx().(*bolt.Tx)
 
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	resMap := buildResMap(resources)
-
 	for id, ress := range resMap {
 		rule, err := loadStrategyById(tx, id)
 		if err != nil {
@@ -351,8 +356,9 @@ func (ss *strategyStore) GetStrategyDetail(id string) (*model.StrategyDetail, er
 		return nil, err
 	}
 	tx := proxy.GetDelegateTx().(*bolt.Tx)
-
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	return ss.getStrategyDetail(tx, id)
 }
@@ -706,8 +712,8 @@ func (ss *strategyStore) cleanInvalidStrategy(tx *bolt.Tx, name, owner string) e
 				return false
 			}
 
-			saveName, _ := m[StrategyFieldName]
-			saveOwner, _ := m[StrategyFieldOwner]
+			saveName := m[StrategyFieldName]
+			saveOwner := m[StrategyFieldOwner]
 
 			return saveName == name && saveOwner == owner
 		}, values)

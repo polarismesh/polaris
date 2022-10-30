@@ -96,7 +96,9 @@ func (fg *configFileGroupStore) createConfigFileGroup(
 	}
 	tx := proxy.GetDelegateTx().(*bolt.Tx)
 
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	fg.id++
 	fileGroup.Id = fg.id

@@ -212,11 +212,11 @@ func (h *PrometheusServer) createRestfulContainer() (*restful.Container, error) 
 
 	wsContainer.Filter(h.process)
 
-	service, err := h.GetPrometheusDiscoveryServer([]string{})
+	discoveryServer, err := h.GetPrometheusDiscoveryServer([]string{})
 	if err != nil {
 		return nil, err
 	}
-	wsContainer.Add(service)
+	wsContainer.Add(discoveryServer)
 
 	return wsContainer, nil
 }

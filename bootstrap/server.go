@@ -514,21 +514,21 @@ func selfRegister(
 	}
 
 	name := boot_config.DefaultPolarisName
-	namespace := boot_config.DefaultPolarisNamespace
+	polarisNamespace := boot_config.DefaultPolarisNamespace
 	if polarisService.Name != "" {
 		name = polarisService.Name
 	}
 
 	if polarisService.Namespace != "" {
-		namespace = polarisService.Namespace
+		polarisNamespace = polarisService.Namespace
 	}
 
-	svc, err := storage.GetService(name, namespace)
+	svc, err := storage.GetService(name, polarisNamespace)
 	if err != nil {
 		return err
 	}
 	if svc == nil {
-		return fmt.Errorf("self service(%s) in namespace(%s) not found", name, namespace)
+		return fmt.Errorf("self service(%s) in polarisNamespace(%s) not found", name, polarisNamespace)
 	}
 
 	metadata := polarisService.Metadata
@@ -540,7 +540,7 @@ func selfRegister(
 
 	req := &api.Instance{
 		Service:           utils.NewStringValue(name),
-		Namespace:         utils.NewStringValue(namespace),
+		Namespace:         utils.NewStringValue(polarisNamespace),
 		Host:              utils.NewStringValue(host),
 		Port:              utils.NewUInt32Value(port),
 		Protocol:          utils.NewStringValue(protocol),
@@ -568,7 +568,6 @@ func selfRegister(
 		if api.CalcCode(resp) != 200 {
 			return fmt.Errorf("%s", resp.GetInfo().GetValue())
 		}
-
 	}
 	SelfServiceInstance = append(SelfServiceInstance, req)
 

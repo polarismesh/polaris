@@ -102,7 +102,7 @@ func NewCache(options map[string]interface{}, cacheType []string) (Cache, error)
 	}, nil
 }
 
-// Get get value by cacheType and key
+// Get value by cacheType and key
 func (pc *protobufCache) Get(cacheType string, key string) *CacheObject {
 	c, ok := pc.cahceRegistry[cacheType]
 	if !ok {
@@ -111,7 +111,7 @@ func (pc *protobufCache) Get(cacheType string, key string) *CacheObject {
 
 	val, exist := c.Get(key)
 
-	plugin.GetStatis().AddCacheCall(plugin.ComponentProtobufCache, cacheType, exist, 1)
+	_ = plugin.GetStatis().AddCacheCall(plugin.ComponentProtobufCache, cacheType, exist, 1)
 
 	if val == nil {
 		return nil

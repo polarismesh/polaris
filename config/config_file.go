@@ -196,7 +196,7 @@ func (s *Server) QueryConfigFilesByGroup(ctx context.Context, namespace, group s
 		return api.NewConfigFileBatchQueryResponse(api.InvalidConfigFileGroupName, 0, nil)
 	}
 
-	if offset < 0 || limit <= 0 || limit > MaxPageSize {
+	if limit > MaxPageSize {
 		return api.NewConfigFileBatchQueryResponse(api.InvalidParameter, 0, nil)
 	}
 
@@ -236,7 +236,7 @@ func (s *Server) SearchConfigFile(ctx context.Context, namespace, group, name, t
 		return api.NewConfigFileBatchQueryResponse(api.InvalidNamespaceName, 0, nil)
 	}
 
-	if offset < 0 || limit <= 0 || limit > MaxPageSize {
+	if limit > MaxPageSize {
 		return api.NewConfigFileBatchQueryResponse(api.InvalidParameter, 0, nil)
 	}
 

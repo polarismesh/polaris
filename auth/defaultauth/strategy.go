@@ -422,7 +422,6 @@ func enhancedAuthStrategy2Api(s []*model.StrategyDetail, fn StrategyDetail2Api) 
 	for k := range s {
 		out = append(out, fn(s[k]))
 	}
-
 	return out
 }
 
@@ -478,7 +477,6 @@ func (svr *server) authStrategyFull2Api(data *model.StrategyDetail) *api.AuthStr
 
 	svr.fillPrincipalInfo(out, data)
 	svr.fillResourceInfo(out, data)
-
 	return out
 }
 

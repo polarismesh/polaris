@@ -348,13 +348,13 @@ func (uc *userCache) realUpdate(storeRollbackSec time.Duration) error {
 		zap.Int("add", refreshRet.userAdd),
 		zap.Int("update", refreshRet.userUpdate),
 		zap.Int("delete", refreshRet.userDel),
-		zap.Time("last", userlastMtime), zap.Duration("used", time.Now().Sub(start)))
+		zap.Time("last", userlastMtime), zap.Duration("used", time.Since(start)))
 
 	log.Info("[Cache][Group] get more group",
 		zap.Int("add", refreshRet.groupAdd),
 		zap.Int("update", refreshRet.groupUpdate),
 		zap.Int("delete", refreshRet.groupDel),
-		zap.Time("last", grouplastMtime), zap.Duration("used", time.Now().Sub(start)))
+		zap.Time("last", grouplastMtime), zap.Duration("used", time.Since(start)))
 	return nil
 }
 

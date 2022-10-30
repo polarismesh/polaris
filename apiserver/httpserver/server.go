@@ -98,9 +98,9 @@ func (h *HTTPServer) GetProtocol() string {
 
 // Initialize 初始化HTTP API服务器
 func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{},
-	api map[string]apiserver.APIConfig) error {
+	apiConf map[string]apiserver.APIConfig) error {
 	h.option = option
-	h.openAPI = api
+	h.openAPI = apiConf
 	h.listenIP = option["listenIP"].(string)
 	h.listenPort = uint32(option["listenPort"].(int))
 	h.enablePprof, _ = option["enablePprof"].(bool)
@@ -118,9 +118,9 @@ func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{}
 		h.rateLimit = rateLimit
 	}
 
-	if auth := plugin.GetAuth(); auth != nil {
-		log.Infof("http server open the auth")
-		h.auth = auth
+	if getAuth := plugin.GetAuth(); getAuth != nil {
+		log.Infof("http server open the getAuth")
+		h.auth = getAuth
 	}
 
 	// tls 配置信息
@@ -267,7 +267,7 @@ func (h *HTTPServer) Stop() {
 }
 
 // Restart restart server
-func (h *HTTPServer) Restart(option map[string]interface{}, api map[string]apiserver.APIConfig,
+func (h *HTTPServer) Restart(option map[string]interface{}, apiConf map[string]apiserver.APIConfig,
 	errCh chan error) error {
 	log.Infof("restart httpserver new config: %+v", option)
 	// 备份一下option
@@ -287,7 +287,7 @@ func (h *HTTPServer) Restart(option map[string]interface{}, api map[string]apise
 	log.Infof("old httpserver has stopped, begin restart httpserver")
 
 	ctx := context.Background()
-	if err := h.Initialize(ctx, option, api); err != nil {
+	if err := h.Initialize(ctx, option, apiConf); err != nil {
 		h.restart = false
 		if initErr := h.Initialize(ctx, backupOption, backupAPI); initErr != nil {
 			log.Errorf("start httpserver with backup cfg err: %s", initErr.Error())
@@ -323,22 +323,22 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 
 	wsContainer.Filter(h.process)
 
-	for name, config := range h.openAPI {
+	for name, apiConfig := range h.openAPI {
 		switch name {
 		case "admin":
-			if config.Enable {
+			if apiConfig.Enable {
 				wsContainer.Add(h.GetAdminServer())
 				wsContainer.Add(h.GetMaintainAccessServer())
 			}
 		case "console":
-			if config.Enable {
-				namingServiceV1, err := h.v1Server.GetNamingConsoleAccessServer(config.Include)
+			if apiConfig.Enable {
+				namingServiceV1, err := h.v1Server.GetNamingConsoleAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}
 				wsContainer.Add(namingServiceV1)
 
-				namingServiceV2, err := h.v2Server.GetNamingConsoleAccessServer(config.Include)
+				namingServiceV2, err := h.v2Server.GetNamingConsoleAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}
@@ -347,7 +347,7 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 				ws := new(restful.WebService)
 				ws.Path("/core/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
 
-				if err := h.GetCoreV1ConsoleAccessServer(ws, config.Include); err != nil {
+				if err := h.GetCoreV1ConsoleAccessServer(ws, apiConfig.Include); err != nil {
 					return nil, err
 				}
 				if err := h.GetAuthServer(ws); err != nil {
@@ -357,22 +357,22 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 				wsContainer.Add(ws)
 			}
 		case "client":
-			if config.Enable {
-				serviceV1, err := h.v1Server.GetClientAccessServer(config.Include)
+			if apiConfig.Enable {
+				serviceV1, err := h.v1Server.GetClientAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}
 				wsContainer.Add(serviceV1)
 
-				serviceV2, err := h.v2Server.GetClientAccessServer(config.Include)
+				serviceV2, err := h.v2Server.GetClientAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}
 				wsContainer.Add(serviceV2)
 			}
-		case "config":
-			if config.Enable {
-				consoleService, err := h.GetConfigAccessServer(config.Include)
+		case "apiConfig":
+			if apiConfig.Enable {
+				consoleService, err := h.GetConfigAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}

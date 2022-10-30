@@ -124,7 +124,7 @@ func (rs *routingConfigStore) GetRoutingConfigsForCache(
 			flag, unix_timestamp(ctime), unix_timestamp(mtime)  
 			from routing_config where mtime > FROM_UNIXTIME(?)`
 	if firstUpdate {
-		str += " and flag != 1" // nolint
+		str += " and flag != 1"
 	}
 	rows, err := rs.slave.Query(str, timeToTimestamp(mtime))
 	if err != nil {

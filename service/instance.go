@@ -355,9 +355,7 @@ func (s *Server) DeleteInstanceByHost(ctx context.Context, req *api.Instance) *a
 			instance.Service(),
 			instance.Host(),
 			int(instance.Port()))
-
 	}
-
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
 }
 
@@ -870,7 +868,6 @@ func (s *Server) packCmdb(instance *api.Instance) {
 	if err == nil && location != nil {
 		instance.Location = location.Proto
 	}
-
 }
 
 func (s *Server) sendDiscoverEvent(eventType model.DiscoverEventType, namespace, service, host string, port int) {

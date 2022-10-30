@@ -170,7 +170,7 @@ func saveValue(tx *bolt.Tx, typ string, key string, value interface{}) error {
 				return err
 			}
 		}
-		bucket.Put([]byte(toBucketField(DataValidFieldName)), encodeBoolBuffer(true))
+		_ = bucket.Put([]byte(toBucketField(DataValidFieldName)), encodeBoolBuffer(true))
 	}
 	return err
 }

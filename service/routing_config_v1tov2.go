@@ -42,7 +42,9 @@ func (s *Server) createRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 		return apiv1.NewRoutingResponse(apiv1.StoreLayerException, req)
 	}
 	// 释放对于服务的锁
-	defer serviceTx.Commit()
+	defer func() {
+		_ = serviceTx.Commit()
+	}()
 
 	serviceName := req.GetService().GetValue()
 	namespaceName := req.GetNamespace().GetValue()
@@ -85,7 +87,9 @@ func (s *Server) updateRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 		return apiv1.NewRoutingResponse(apiv1.StoreLayerException, req)
 	}
 	// 释放对于服务的锁
-	defer serviceTx.Commit()
+	defer func() {
+		_ = serviceTx.Commit()
+	}()
 
 	// 需要禁止对 v1 规则的并发修改
 	_, err = serviceTx.LockService(svc.Name, svc.Namespace)
@@ -127,7 +131,9 @@ func (s *Server) saveRoutingV1toV2(ctx context.Context, svcId string,
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return apiv1.NewResponse(apiv1.StoreLayerException)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	// 这里需要删除掉 v1 的路由规则
 	if err := s.storage.DeleteRoutingConfigTx(tx, svcId); err != nil {

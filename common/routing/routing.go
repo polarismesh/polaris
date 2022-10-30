@@ -78,7 +78,6 @@ func RoutingConfigV1ToAPI(req *model.RoutingConfig, service string, namespace st
 // CompositeRoutingV1AndV2 合并 v1 版本的路由规则以及 v2 版本的规则路由
 func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, level1, level2,
 	level3 []*v2.ExtendRoutingConfig) (*apiv1.Routing, []string) {
-
 	// 先确保规则的排序是从最高优先级开始排序
 	sort.Slice(level1, func(i, j int) bool {
 		return CompareRoutingV2(level1[i], level1[j])

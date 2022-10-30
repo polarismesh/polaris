@@ -213,9 +213,8 @@ func (rc *routingConfigCache) sortBeforeTrim(routings []*v2.ExtendRoutingConfig,
 		asc := strings.ToLower(args.OrderType) == "asc" || args.OrderType == ""
 		if strings.ToLower(args.OrderField) == "priority" {
 			return orderByRoutingPriority(routings[i], routings[j], asc)
-		} else {
-			return orderByRoutingModifyTime(routings[i], routings[j], asc)
 		}
+		return orderByRoutingModifyTime(routings[i], routings[j], asc)
 	})
 	endIdx := args.Offset + args.Limit
 	if endIdx > amount {

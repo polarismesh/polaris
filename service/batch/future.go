@@ -126,7 +126,7 @@ func reportRegisInstanceCost(begin, cur time.Time, code uint32) {
 	}
 	diff := cur.Sub(begin)
 	if statis := plugin.GetStatis(); statis != nil {
-		statis.AddAPICall("AsyncRegisInstance", "", int(api.ExecuteSuccess), diff.Nanoseconds())
+		_ = statis.AddAPICall("AsyncRegisInstance", "", int(api.ExecuteSuccess), diff.Nanoseconds())
 	}
 	metrics.ReportInstanceRegisCost(diff)
 }

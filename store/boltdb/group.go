@@ -85,7 +85,9 @@ func (gs *groupStore) AddGroup(group *model.UserGroupDetail) error {
 	}
 	tx := proxy.GetDelegateTx().(*bolt.Tx)
 
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	if err := gs.cleanInValidGroup(tx, group.Name, group.Owner); err != nil {
 		log.Error("[Store][Group] clean invalid usergroup", zap.Error(err),
@@ -146,7 +148,9 @@ func (gs *groupStore) updateGroup(group *model.ModifyUserGroup) error {
 	}
 	tx := proxy.GetDelegateTx().(*bolt.Tx)
 
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	values := make(map[string]interface{})
 
@@ -216,7 +220,9 @@ func (gs *groupStore) deleteGroup(group *model.UserGroupDetail) error {
 	}
 	tx := proxy.GetDelegateTx().(*bolt.Tx)
 
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	properties := make(map[string]interface{})
 	properties[GroupFieldValid] = false
@@ -293,8 +299,8 @@ func (gs *groupStore) GetGroupByName(name, owner string) (*model.UserGroup, erro
 				return false
 			}
 
-			saveName, _ := m[GroupFieldName]
-			saveOwner, _ := m[GroupFieldOwner]
+			saveName := m[GroupFieldName]
+			saveOwner := m[GroupFieldOwner]
 
 			return saveName == name && saveOwner == owner
 		})
@@ -402,7 +408,7 @@ func (gs *groupStore) listGroupByUser(filters map[string]string, offset uint32, 
 				}
 			}
 
-			saveOwner, _ := m[GroupFieldOwner]
+			saveOwner := m[GroupFieldOwner]
 			saveVal, ok := m[GroupFieldUserIds]
 			if !ok {
 				return false
@@ -495,8 +501,8 @@ func (gs *groupStore) cleanInValidGroup(tx *bolt.Tx, name, owner string) error {
 				return false
 			}
 
-			saveName, _ := m[GroupFieldName]
-			saveOwner, _ := m[GroupFieldOwner]
+			saveName := m[GroupFieldName]
+			saveOwner := m[GroupFieldOwner]
 
 			return saveName == name && saveOwner == owner
 		}, values)

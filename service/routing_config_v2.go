@@ -469,7 +469,7 @@ func checkRoutingConfigPriorityV2(req *apiv2.Routing) *apiv2.Response {
 		return apiv2.NewRoutingResponse(apiv1.EmptyRequest, req)
 	}
 
-	if req.Priority < 0 || req.Priority > 10 {
+	if req.Priority > 10 {
 		return apiv2.NewResponse(apiv1.InvalidRoutingPriority)
 	}
 

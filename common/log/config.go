@@ -27,14 +27,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/polarismesh/polaris/common/timewheel"
-
 	"github.com/hashicorp/go-multierror"
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zapgrpc"
 	"google.golang.org/grpc/grpclog"
+
+	"github.com/polarismesh/polaris/common/timewheel"
 )
 
 // none is used to disable logging output as well as to disable stack tracing.
@@ -274,7 +274,6 @@ func logRotationSyncCallback(tw *timewheel.TimeWheel, rotationMaxDurationForHour
 }
 
 // Configure .
-// nolint: staticcheck
 // You typically call this once at process startup.
 // Configure Once this call returns, the logging system is ready to accept data.
 func Configure(optionsMap map[string]*Options) error {

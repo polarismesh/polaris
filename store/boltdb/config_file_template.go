@@ -74,7 +74,9 @@ func (cf *configFileTemplateStore) GetConfigFileTemplate(name string) (*model.Co
 	}
 	tx := proxy.GetDelegateTx().(*bolt.Tx)
 
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	values := make(map[string]interface{})
 	if err = loadValues(tx, tblConfigFileTemplate, []string{name}, &model.ConfigFileTemplate{}, values); err != nil {
@@ -109,7 +111,9 @@ func (cf *configFileTemplateStore) CreateConfigFileTemplate(
 	}
 	tx := proxy.GetDelegateTx().(*bolt.Tx)
 
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	cf.id++
 	template.Id = cf.id

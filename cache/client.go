@@ -103,7 +103,7 @@ func (c *clientCache) initialize(_ map[string]interface{}) error {
 // update 更新缓存函数
 func (c *clientCache) update(storeRollbackSec time.Duration) error {
 	// 一分钟update一次
-	timeDiff := time.Now().Sub(c.lastUpdateTime).Minutes()
+	timeDiff := time.Since(c.lastUpdateTime).Minutes()
 	if !c.firstUpdate && 1 > timeDiff {
 		log.Debug("[Cache][Client] update get storage ignore", zap.Float64("time-diff", timeDiff))
 		return nil

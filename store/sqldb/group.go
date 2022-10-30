@@ -320,10 +320,9 @@ func (u *groupStore) GetGroups(filters map[string]string, offset uint32, limit u
 	// 如果本次请求参数携带了 user_id，那么就是查询这个用户所关联的所有用户组
 	if _, ok := filters["user_id"]; ok {
 		return u.listGroupByUser(filters, offset, limit)
-	} else {
-		// 正常查询用户组信息
-		return u.listSimpleGroups(filters, offset, limit)
 	}
+	// 正常查询用户组信息
+	return u.listSimpleGroups(filters, offset, limit)
 }
 
 // listSimpleGroups 正常的用户组查询

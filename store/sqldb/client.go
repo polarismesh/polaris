@@ -110,7 +110,7 @@ func (cs *clientStore) GetMoreClients(mtime time.Time, firstUpdate bool) (map[st
 		 from client left join client_stat on client.id = client_stat.client_id `
 	str += " where client.mtime >= FROM_UNIXTIME(?)"
 	if firstUpdate {
-		str += " and flag != 1" // nolint
+		str += " and flag != 1"
 	}
 	rows, err := cs.slave.Query(str, timeToTimestamp(mtime))
 	if err != nil {

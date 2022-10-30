@@ -39,5 +39,5 @@ func init() {
 
 // Execute 执行命令行解析
 func Execute() {
-	rootCmd.Execute()
+	_ = rootCmd.Execute()
 }

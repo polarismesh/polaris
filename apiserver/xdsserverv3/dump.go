@@ -38,20 +38,30 @@ func dumpSnapShot(snapshot cache.ResourceSnapshot) []byte {
 }
 
 func dumpSnapShotJSON(snapshot cache.ResourceSnapshot) []byte {
-	data, _ := json.Marshal(map[string]interface{}{
+	data, err := json.Marshal(map[string]interface{}{
 		"endpoints": toJSONArray(snapshot.GetResources(res.EndpointType)),
 		"clusters":  toJSONArray(snapshot.GetResources(res.ClusterType)),
 		"routers":   toJSONArray(snapshot.GetResources(res.RouteType)),
 		"listeners": toJSONArray(snapshot.GetResources(res.ListenerType)),
 	})
+	if err != nil {
+		return nil
+	}
 	return data
 }
 
 func yamlEncode(any interface{}) []byte {
-	data, _ := json.Marshal(any)
+	data, err := json.Marshal(any)
+	if err != nil {
+		return nil
+	}
 	o := make(map[string]interface{})
-	_ = json.Unmarshal(data, &o)
-	data, _ = yaml.Marshal(o)
+	if err = json.Unmarshal(data, &o); err != nil {
+		return nil
+	}
+	if data, err = yaml.Marshal(o); err != nil {
+		return nil
+	}
 	return data
 }
 

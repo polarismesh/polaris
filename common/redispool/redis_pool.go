@@ -149,7 +149,7 @@ func NewPool(ctx context.Context, config *Config, statis plugin.Statis, opts ...
 }
 
 // Get 使用连接池，向redis发起Get请求
-func (p *Pool) Get(id string) *Resp { // nolint
+func (p *Pool) Get(id string) *Resp {
 	if err := p.checkRedisDead(); err != nil {
 		return &Resp{Err: err}
 	}
@@ -161,7 +161,7 @@ func (p *Pool) Get(id string) *Resp { // nolint
 }
 
 // Sdd 使用连接池，向redis发起Sdd请求
-func (p *Pool) Sdd(id string, members []string) *Resp { // nolint
+func (p *Pool) Sdd(id string, members []string) *Resp {
 	if err := p.checkRedisDead(); err != nil {
 		return &Resp{Err: err}
 	}
@@ -174,7 +174,7 @@ func (p *Pool) Sdd(id string, members []string) *Resp { // nolint
 }
 
 // Srem 使用连接池，向redis发起Srem请求
-func (p *Pool) Srem(id string, members []string) *Resp { // nolint
+func (p *Pool) Srem(id string, members []string) *Resp {
 	if err := p.checkRedisDead(); err != nil {
 		return &Resp{Err: err}
 	}
@@ -195,7 +195,7 @@ type RedisObject interface {
 }
 
 // Set 使用连接池，向redis发起Set请求
-func (p *Pool) Set(id string, redisObj RedisObject) *Resp { // nolint
+func (p *Pool) Set(id string, redisObj RedisObject) *Resp {
 	if err := p.checkRedisDead(); err != nil {
 		return &Resp{Err: err}
 	}
@@ -208,7 +208,7 @@ func (p *Pool) Set(id string, redisObj RedisObject) *Resp { // nolint
 }
 
 // Del 使用连接池，向redis发起Del请求
-func (p *Pool) Del(id string) *Resp { // nolint
+func (p *Pool) Del(id string) *Resp {
 	if err := p.checkRedisDead(); err != nil {
 		return &Resp{Err: err}
 	}

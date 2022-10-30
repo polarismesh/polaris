@@ -80,8 +80,8 @@ func (fg *configFileGroupStore) QueryConfigFileGroups(namespace, name string,
 			return count, nil, err
 		}
 
-		sql := fg.genConfigFileGroupSelectSql() + " where name like ? order by id desc limit ?,?"
-		rows, err := fg.db.Query(sql, name, offset, limit)
+		s := fg.genConfigFileGroupSelectSql() + " where name like ? order by id desc limit ?,?"
+		rows, err := fg.db.Query(s, name, offset, limit)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -101,8 +101,8 @@ func (fg *configFileGroupStore) QueryConfigFileGroups(namespace, name string,
 		return count, nil, err
 	}
 
-	sql := fg.genConfigFileGroupSelectSql() + " where namespace=? and name like ? order by id desc limit ?,? "
-	rows, err := fg.db.Query(sql, namespace, name, offset, limit)
+	s := fg.genConfigFileGroupSelectSql() + " where namespace=? and name like ? order by id desc limit ?,? "
+	rows, err := fg.db.Query(s, namespace, name, offset, limit)
 	if err != nil {
 		return 0, nil, err
 	}

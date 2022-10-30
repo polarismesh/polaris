@@ -158,7 +158,6 @@ func (cf *configFileStore) QueryConfigFiles(namespace, group, name string,
 	}
 
 	return count, files, nil
-
 }
 
 // UpdateConfigFile 更新配置文件

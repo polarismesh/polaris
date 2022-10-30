@@ -61,11 +61,9 @@ func (set *stringSet) ToSlice() []string {
 }
 
 func (set *stringSet) Range(fn func(val string) bool) {
-
 	for k := range set.container {
 		if !fn(k) {
 			break
 		}
 	}
-
 }

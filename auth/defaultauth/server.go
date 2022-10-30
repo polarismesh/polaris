@@ -216,10 +216,11 @@ func (svr *server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 		return errors.New("not found default strategy rule")
 	}
 
-	strategyResource := make([]model.StrategyResource, 0)
-	resources := afterCtx.GetAttachment(model.ResourceAttachmentKey).(map[api.ResourceType][]model.ResourceEntry)
-
-	strategyId := strategy.ID
+	var (
+		strategyResource = make([]model.StrategyResource, 0)
+		resources        = afterCtx.GetAttachment(model.ResourceAttachmentKey).(map[api.ResourceType][]model.ResourceEntry)
+		strategyId       = strategy.ID
+	)
 
 	// 资源删除时，清理该资源与所有策略的关联关系
 	if afterCtx.GetOperation() == model.Delete {
@@ -238,8 +239,7 @@ func (svr *server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 	}
 
 	if afterCtx.GetOperation() == model.Delete || cleanRealtion {
-		err = svr.storage.RemoveStrategyResources(strategyResource)
-		if err != nil {
+		if err = svr.storage.RemoveStrategyResources(strategyResource); err != nil {
 			log.Error("[Auth][Server] remove default strategy resource",
 				zap.String("owner", ownerId), zap.String("id", id),
 				zap.String("type", model.PrincipalNames[uType]), zap.Error(err))
@@ -247,15 +247,13 @@ func (svr *server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 		}
 
 		return nil
-	} else {
-		// 如果是写操作，那么采用松添加操作进行新增资源的添加操作(仅忽略主键冲突的错误)
-		err = svr.storage.LooseAddStrategyResources(strategyResource)
-		if err != nil {
-			log.Error("[Auth][Server] update default strategy resource",
-				zap.String("owner", ownerId), zap.String("id", id), zap.String("id", id),
-				zap.String("type", model.PrincipalNames[uType]), zap.Error(err))
-			return err
-		}
+	}
+	// 如果是写操作，那么采用松添加操作进行新增资源的添加操作(仅忽略主键冲突的错误)
+	if err = svr.storage.LooseAddStrategyResources(strategyResource); err != nil {
+		log.Error("[Auth][Server] update default strategy resource",
+			zap.String("owner", ownerId), zap.String("id", id), zap.String("id", id),
+			zap.String("type", model.PrincipalNames[uType]), zap.Error(err))
+		return err
 	}
 
 	return nil
