@@ -166,7 +166,6 @@ func checkEmail(email *wrappers.StringValue) error {
 // verifyAuth 用于 user、group 以及 strategy 模块的鉴权工作检查
 func (svr *serverAuthAbility) verifyAuth(ctx context.Context, isWrite bool,
 	needOwner bool) (context.Context, *api.Response) {
-
 	reqId := utils.ParseRequestID(ctx)
 	authToken := utils.ParseAuthToken(ctx)
 

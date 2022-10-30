@@ -158,7 +158,6 @@ func (s *Server) allowInstanceAccess(instanceID string) bool {
 
 func (s *Server) afterServiceResource(ctx context.Context, req *api.Service, save *model.Service,
 	remove bool) error {
-
 	event := &ResourceEvent{
 		ReqService: req,
 		Service:    save,

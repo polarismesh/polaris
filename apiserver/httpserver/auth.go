@@ -30,9 +30,7 @@ import (
 
 // GetAuthServer 运维接口
 func (h *HTTPServer) GetAuthServer(ws *restful.WebService) error {
-
 	ws.Route(enrichAuthStatusApiDocs(ws.GET("/auth/status").To(h.AuthStatus)))
-
 	//
 	ws.Route(enrichLoginApiDocs(ws.POST("/user/login").To(h.Login)))
 	ws.Route(enrichGetUsersApiDocs(ws.GET("/users").To(h.GetUsers)))
@@ -43,7 +41,6 @@ func (h *HTTPServer) GetAuthServer(ws *restful.WebService) error {
 	ws.Route(enrichGetUserTokenApiDocs(ws.GET("/user/token").To(h.GetUserToken)))
 	ws.Route(enrichUpdateUserTokenApiDocs(ws.PUT("/user/token/status").To(h.UpdateUserToken)))
 	ws.Route(enrichResetUserTokenApiDocs(ws.PUT("/user/token/refresh").To(h.ResetUserToken)))
-
 	//
 	ws.Route(enrichCreateGroupApiDocs(ws.POST("/usergroup").To(h.CreateGroup)))
 	ws.Route(enrichUpdateGroupsApiDocs(ws.PUT("/usergroups").To(h.UpdateGroups)))

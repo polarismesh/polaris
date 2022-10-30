@@ -323,9 +323,7 @@ func (rc *routingConfigCache) setRoutingConfigV2(cs []*v2.RoutingConfig) error {
 
 func (rc *routingConfigCache) setRoutingConfigV1ToV2() {
 	for id := range rc.pendingV1RuleIds {
-
 		entry := rc.bucketV1.get(id)
-
 		// 保存到新的 v2 缓存
 		if v2rule, err := rc.convertRoutingV1toV2(entry); err != nil {
 			log.Error("[Cache] routing parse v1 => v2, will try again next",
@@ -373,7 +371,6 @@ func (rc *routingConfigCache) convertRoutingV1toV2(rule *model.RoutingConfig) ([
 // convertRoutingV2toV1 v2 版本的路由规则转为 v1 版本进行返回给客户端，用于兼容 SDK 下发配置的场景
 func (rc *routingConfigCache) convertRoutingV2toV1(entries map[routingLevel][]*v2.ExtendRoutingConfig,
 	service, namespace string) *apiv1.Routing {
-
 	level1 := entries[level1RoutingV2]
 	sort.Slice(level1, func(i, j int) bool {
 		return routingcommon.CompareRoutingV2(level1[i], level1[j])

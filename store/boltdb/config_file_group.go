@@ -163,12 +163,11 @@ func (fg *configFileGroupStore) GetConfigFileGroup(namespace, name string) (*mod
 // QueryConfigFileGroups 翻页查询配置文件组, name 为模糊匹配关键字
 func (fg *configFileGroupStore) QueryConfigFileGroups(namespace, name string, offset, limit uint32) (uint32,
 	[]*model.ConfigFileGroup, error) {
-
-	fields := []string{FileGroupFieldNamespace, FileGroupFieldName, FileGroupFieldValid}
-
-	hasNs := len(namespace) != 0
-	hasName := len(name) != 0
-
+	var (
+		fields  = []string{FileGroupFieldNamespace, FileGroupFieldName, FileGroupFieldValid}
+		hasNs   = len(namespace) != 0
+		hasName = len(name) != 0
+	)
 	ret, err := fg.handler.LoadValuesByFilter(tblConfigFileGroup, fields, &model.ConfigFileGroup{},
 		func(m map[string]interface{}) bool {
 			valid, ok := m[FileGroupFieldValid].(bool)
@@ -207,7 +206,6 @@ func (fg *configFileGroupStore) DeleteConfigFileGroup(namespace, name string) er
 	}
 
 	key := fmt.Sprintf("%s@@%s", namespace, name)
-
 	properties := make(map[string]interface{})
 	properties[FileGroupFieldValid] = false
 	properties[FileGroupFieldModifyTime] = time.Now()
@@ -223,7 +221,6 @@ func (fg *configFileGroupStore) DeleteConfigFileGroup(namespace, name string) er
 // UpdateConfigFileGroup 更新配置文件组信息
 func (fg *configFileGroupStore) UpdateConfigFileGroup(
 	fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
-
 	if fileGroup.Namespace == "" || fileGroup.Name == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, "ConfigFileGroup miss some param")
 	}
@@ -245,9 +242,7 @@ func (fg *configFileGroupStore) UpdateConfigFileGroup(
 // FindConfigFileGroups 查询配置文件组
 func (fg *configFileGroupStore) FindConfigFileGroups(namespace string,
 	names []string) ([]*model.ConfigFileGroup, error) {
-
 	keys := make([]string, 0, len(names))
-
 	for i := range names {
 		keys = append(keys, fmt.Sprintf("%s@@%s", namespace, names[i]))
 	}
@@ -267,9 +262,7 @@ func (fg *configFileGroupStore) FindConfigFileGroups(namespace string,
 }
 
 func (fg *configFileGroupStore) GetConfigFileGroupById(id uint64) (*model.ConfigFileGroup, error) {
-
 	fields := []string{FileGroupFieldId, FileGroupFieldValid}
-
 	ret, err := fg.handler.LoadValuesByFilter(tblConfigFileGroup, fields, &model.ConfigFileGroup{},
 		func(m map[string]interface{}) bool {
 			if valid, _ := m[FileGroupFieldValid].(bool); !valid {
@@ -301,13 +294,12 @@ func (fg *configFileGroupStore) GetConfigFileGroupById(id uint64) (*model.Config
 
 // doConfigFileGroupPage 进行分页
 func doConfigFileGroupPage(ret map[string]interface{}, offset, limit uint32) []*model.ConfigFileGroup {
-
-	groups := make([]*model.ConfigFileGroup, 0, len(ret))
-
-	beginIndex := offset
-	endIndex := beginIndex + limit
-	totalCount := uint32(len(ret))
-
+	var (
+		groups     = make([]*model.ConfigFileGroup, 0, len(ret))
+		beginIndex = offset
+		endIndex   = beginIndex + limit
+		totalCount = uint32(len(ret))
+	)
 	if totalCount == 0 {
 		return groups
 	}

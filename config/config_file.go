@@ -187,7 +187,6 @@ func (s *Server) GetConfigFileRichInfo(ctx context.Context, namespace, group, na
 // QueryConfigFilesByGroup querying configuration files
 func (s *Server) QueryConfigFilesByGroup(ctx context.Context, namespace, group string,
 	offset, limit uint32) *api.ConfigBatchQueryResponse {
-
 	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileBatchQueryResponse(api.InvalidNamespaceName, 0, nil)
 	}
@@ -231,7 +230,6 @@ func (s *Server) QueryConfigFilesByGroup(ctx context.Context, namespace, group s
 // SearchConfigFile 查询配置文件
 func (s *Server) SearchConfigFile(ctx context.Context, namespace, group, name, tags string,
 	offset, limit uint32) *api.ConfigBatchQueryResponse {
-
 	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileBatchQueryResponse(api.InvalidNamespaceName, 0, nil)
 	}
@@ -279,7 +277,6 @@ func (s *Server) SearchConfigFile(ctx context.Context, namespace, group, name, t
 
 func (s *Server) queryConfigFileWithoutTags(ctx context.Context, namespace, group, name string,
 	offset, limit uint32) *api.ConfigBatchQueryResponse {
-
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 	count, files, err := s.storage.QueryConfigFiles(namespace, group, name, offset, limit)
 	if err != nil {
@@ -463,7 +460,6 @@ func (s *Server) DeleteConfigFile(ctx context.Context, namespace, group, name, d
 // BatchDeleteConfigFile 批量删除配置文件
 func (s *Server) BatchDeleteConfigFile(ctx context.Context, configFiles []*api.ConfigFile,
 	operator string) *api.ConfigResponse {
-
 	if len(configFiles) == 0 {
 		api.NewConfigFileResponse(api.ExecuteSuccess, nil)
 	}
@@ -558,12 +554,13 @@ func transferConfigFileStoreModel2APIModel(file *model.ConfigFile) *api.ConfigFi
 
 func (s *Server) createOrUpdateConfigFileTags(ctx context.Context, configFile *api.ConfigFile,
 	operator string) (*api.ConfigResponse, bool) {
+	var (
+		namespace = configFile.Namespace.GetValue()
+		group     = configFile.Group.GetValue()
+		name      = configFile.Name.GetValue()
+		tags      = make([]string, 0, len(configFile.Tags)*2)
+	)
 
-	namespace := configFile.Namespace.GetValue()
-	group := configFile.Group.GetValue()
-	name := configFile.Name.GetValue()
-
-	tags := make([]string, 0, len(configFile.Tags)*2)
 	for _, tag := range configFile.Tags {
 		tags = append(tags, tag.Key.GetValue())
 		tags = append(tags, tag.Value.GetValue())

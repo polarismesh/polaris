@@ -356,7 +356,7 @@ linters-settings:
   whitespace:
     # Enforces newlines (or comments) after every multi-line if statement.
     # Default: false
-    multi-if: true
+    multi-if: false
     # Enforces newlines (or comments) after every multi-line function signature.
     # Default: false
     multi-func: false

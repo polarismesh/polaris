@@ -368,7 +368,6 @@ func (r *rateLimitStore) enableRateLimit(limit *model.RateLimit) error {
 
 		return nil
 	})
-
 }
 
 // updateRateLimit
@@ -417,7 +416,6 @@ func (r *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 
 		return nil
 	})
-
 }
 
 // deleteRateLimit

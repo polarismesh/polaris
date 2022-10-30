@@ -340,7 +340,6 @@ func (d *defaultAuthChecker) findStrategiesByUserID(userId string) []*model.Stra
 
 // findStrategies Inquire about TOKEN information, the actual all-associated authentication strategy
 func (d *defaultAuthChecker) findStrategies(tokenInfo OperatorInfo) ([]*model.StrategyDetail, error) {
-
 	if IsEmptyOperator(tokenInfo) {
 		return make([]*model.StrategyDetail, 0), nil
 	}

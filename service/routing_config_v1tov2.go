@@ -124,7 +124,6 @@ func (s *Server) updateRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 // saveRoutingV1toV2 将目标的 v1 规则转为 v2 规则
 func (s *Server) saveRoutingV1toV2(ctx context.Context, svcId string,
 	inRules, outRules []*apiv2.Routing) *apiv1.Response {
-
 	tx, err := s.storage.StartTx()
 	if err != nil {
 		log.Error("[Service][Routing] create routing v2 from v1 open tx",

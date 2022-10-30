@@ -32,22 +32,17 @@ import (
 var _ NamespaceOperateServer = (*Server)(nil)
 
 type Server struct {
-	storage store.Store
-
-	caches *cache.CacheManager
-
+	storage               store.Store
+	caches                *cache.CacheManager
 	createNamespaceSingle *singleflight.Group
-
-	cfg     Config
-	auth    plugin.Auth
-	history plugin.History
-
-	hooks []ResourceHook
+	cfg                   Config
+	auth                  plugin.Auth
+	history               plugin.History
+	hooks                 []ResourceHook
 }
 
 func (s *Server) afterNamespaceResource(ctx context.Context, req *api.Namespace, save *model.Namespace,
 	remove bool) error {
-
 	event := &ResourceEvent{
 		ReqNamespace: req,
 		Namespace:    save,

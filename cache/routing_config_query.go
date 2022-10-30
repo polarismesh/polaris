@@ -68,7 +68,6 @@ func (rc *routingConfigCache) forceUpdate() error {
 
 func queryRoutingRuleV2ByService(rule *v2.ExtendRoutingConfig, sourceNamespace, sourceService,
 	destNamespace, destService string, both bool) bool {
-
 	var (
 		sourceFind bool
 		destFind   bool

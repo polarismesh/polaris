@@ -266,7 +266,6 @@ type predicate func(item *v2.ExtendRoutingConfig) bool
 // listByServiceWithPredicate 通过服务名称查询 v2 版本的路由规则，同时以及 predicate 进行一些过滤
 func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
 	predicate predicate) map[routingLevel][]*v2.ExtendRoutingConfig {
-
 	ret := make(map[routingLevel][]*v2.ExtendRoutingConfig)
 	tmpRecord := map[string]struct{}{}
 

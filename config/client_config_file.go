@@ -89,9 +89,7 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 
 func (s *Server) WatchConfigFiles(ctx context.Context,
 	request *api.ClientWatchConfigFileRequest) (WatchCallback, error) {
-
 	clientAddr := utils.ParseClientAddress(ctx)
-
 	watchFiles := request.GetWatchFiles()
 	// 2. 检查客户端是否有版本落后
 	if resp := s.doCheckClientConfigFile(ctx, watchFiles, compareByVersion); resp.Code.GetValue() != api.DataNoChange {
@@ -125,7 +123,6 @@ func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api
 	}
 
 	requestID := utils.ParseRequestID(ctx)
-
 	for _, configFile := range configFiles {
 		namespace := configFile.Namespace.GetValue()
 		group := configFile.Group.GetValue()

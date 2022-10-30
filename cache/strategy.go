@@ -233,7 +233,6 @@ func (sc *strategyCache) initBuckets() {
 
 func (sc *strategyCache) initialize(c map[string]interface{}) error {
 	sc.initBuckets()
-
 	sc.singleFlight = new(singleflight.Group)
 	sc.firstUpdate = true
 	sc.lastUpdateTime = 0
@@ -272,12 +271,7 @@ func (sc *strategyCache) realUpdate(storeRollbackSec time.Duration) error {
 // step 1. 先处理resource以及principal的数据更新情况（主要是为了能够获取到新老数据进行对比计算）
 // step 2. 处理真正的 strategy 的缓存更新
 func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (int, int, int) {
-
-	var (
-		add    int
-		remove int
-		update int
-	)
+	var add, remove, update int
 
 	sc.handlerResourceStrategy(strategies)
 	sc.handlerPrincipalStrategy(strategies)
@@ -301,7 +295,6 @@ func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (int, 
 	}
 
 	sc.postProcessPrincipalCh()
-
 	return add, update, remove
 }
 
@@ -391,7 +384,6 @@ func (sc *strategyCache) handlerResourceStrategy(strategies []*model.StrategyDet
 
 // handlerPrincipalStrategy
 func (sc *strategyCache) handlerPrincipalStrategy(strategies []*model.StrategyDetail) {
-
 	for index := range strategies {
 		rule := strategies[index]
 		// 计算 uid -> auth rule
@@ -512,7 +504,6 @@ func (sc *strategyCache) checkResourceEditable(strategIds []string, principal mo
 // IsResourceEditable 判断当前资源是否可以操作
 // 这里需要考虑两种情况，一种是 “ * ” 策略，另一种是明确指出了具体的资源ID的策略
 func (sc *strategyCache) IsResourceEditable(principal model.Principal, resType api.ResourceType, resId string) bool {
-
 	var (
 		valAll, val []string
 		ok          bool
@@ -561,12 +552,10 @@ func (sc *strategyCache) IsResourceEditable(principal model.Principal, resType a
 }
 
 func (sc *strategyCache) GetStrategyDetailsByUID(uid string) []*model.StrategyDetail {
-
 	return sc.getStrategyDetails(uid, "")
 }
 
 func (sc *strategyCache) GetStrategyDetailsByGroupID(groupid string) []*model.StrategyDetail {
-
 	return sc.getStrategyDetails("", groupid)
 }
 

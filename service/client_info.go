@@ -61,7 +61,6 @@ func (s *Server) checkAndStoreClient(ctx context.Context, req *api.Client) *api.
 }
 
 func (s *Server) createClient(ctx context.Context, req *api.Client) (*model.Client, *api.Response) {
-
 	if namingServer.bc == nil || !namingServer.bc.ClientRegisterOpen() {
 		return nil, nil
 	}

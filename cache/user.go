@@ -390,9 +390,7 @@ func (uc *userCache) setUserAndGroups(users []*model.User,
 
 // handlerUserCacheUpdate 处理用户信息更新
 func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult, users []*model.User,
-	filter func(user *model.User) bool,
-	ownerSupplier func(user *model.User) *model.User) {
-
+	filter func(user *model.User) bool, ownerSupplier func(user *model.User) *model.User) {
 	for i := range users {
 		user := users[i]
 		if user.Type == model.AdminUserRole {
@@ -435,7 +433,6 @@ func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult,
 // handlerGroupCacheUpdate 处理用户组信息更新
 func (uc *userCache) handlerGroupCacheUpdate(ret *userAndGroupCacheRefreshResult,
 	groups []*model.UserGroupDetail) {
-
 	// 更新 groups 数据信息
 	for i := range groups {
 		group := groups[i]

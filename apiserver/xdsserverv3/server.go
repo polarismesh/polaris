@@ -170,7 +170,6 @@ func (x *XDSServer) Run(errCh chan error) {
 			errCh <- err
 			return
 		}
-
 	}
 
 	registerServer(grpcServer, srv)
