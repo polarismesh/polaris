@@ -26,7 +26,7 @@ scrape_configs:
     # scheme defaults to 'http'.
 
     static_configs:
-      - targets: ["localhost:9090"]
+      - targets: [ "localhost:9090" ]
 
     http_sd_configs:
       - url: http://polaris:9000/prometheus/v1/clients

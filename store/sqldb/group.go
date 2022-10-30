@@ -133,7 +133,6 @@ func (u *groupStore) UpdateGroup(group *model.ModifyUserGroup) error {
 }
 
 func (u *groupStore) updateGroup(group *model.ModifyUserGroup) error {
-
 	tx, err := u.master.Begin()
 	if err != nil {
 		return err
@@ -196,7 +195,6 @@ func (u *groupStore) DeleteGroup(group *model.UserGroupDetail) error {
 }
 
 func (u *groupStore) deleteUserGroup(group *model.UserGroupDetail) error {
-
 	tx, err := u.master.Begin()
 	if err != nil {
 		return err
@@ -278,7 +276,6 @@ func (u *groupStore) GetGroup(groupId string) (*model.UserGroupDetail, error) {
 
 // GetGroupByName 根据 owner、name 获取用户组
 func (u *groupStore) GetGroupByName(name, owner string) (*model.UserGroup, error) {
-
 	if name == "" || owner == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"get usergroup missing some params, name=%s, owner=%s", name, owner))

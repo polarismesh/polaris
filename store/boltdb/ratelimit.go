@@ -325,7 +325,6 @@ func (r *rateLimitStore) createRateLimit(limit *model.RateLimit) error {
 
 		return nil
 	})
-
 }
 
 // enableRateLimit

@@ -538,7 +538,6 @@ func convertForGroupStore(group *model.UserGroupDetail) *groupForStore {
 		ModifyTime:  group.ModifyTime,
 		UserIds:     userIds,
 	}
-
 }
 
 func convertForGroupDetail(group *groupForStore) *model.UserGroupDetail {

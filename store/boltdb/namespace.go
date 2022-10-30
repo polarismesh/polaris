@@ -211,7 +211,6 @@ func (n *namespaceStore) GetNamespaces(
 				if isFind = compare(ns.Owner); !isFind {
 					break
 				}
-
 			}
 			if index == NameAttribute {
 				if isFind = compare(ns.Name); !isFind {

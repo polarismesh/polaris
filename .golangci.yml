@@ -158,7 +158,7 @@ linters-settings:
         disabled: false
         arguments: [ 80,0 ]
       - name: file-header
-        arguments: ["Tencent is pleased to support the open source community by making Polaris available."]
+        arguments: [ "Tencent is pleased to support the open source community by making Polaris available." ]
       - name: exported
         severity: warning
         disabled: true
@@ -260,6 +260,10 @@ linters-settings:
         funcs:
           - pkg.MyFunc
           - context.WithCancel
+          - context.WithDeadline
+          - context.WithTimeout
+          - context.WithValue
+          - sort.Reverse
         # Comma-separated list of names of methods of type func() string whose results must be used
         # (in addition to default Error,String)
         # Default []
@@ -315,7 +319,7 @@ linters-settings:
     go: "1.15"
     # SAxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
     # Default: ["*"]
-    checks: [ "all","-SA1019","-SA4015","-SA1029","-SA1016","-SA9003","-SA4006","-SA6003","-SA1004","-SA4009","-SA6002","-SA4017","-SA4021","-SA1006","-SA4010"]
+    checks: [ "all","-SA1019","-SA4015","-SA1029","-SA1016","-SA9003","-SA4006","-SA6003","-SA1004","-SA4009","-SA6002","-SA4017","-SA4021","-SA1006","-SA4010" ]
 
   # https://golangci-lint.run/usage/linters/#gofmt
   gofmt:
@@ -325,7 +329,7 @@ linters-settings:
     # Apply the rewrite rules to the source before reformatting.
     # https://pkg.go.dev/cmd/gofmt
     # Default: []
-    rewrite-rules: []
+    rewrite-rules: [ ]
 
   # https://golangci-lint.run/usage/linters/#gci
   gci:
@@ -355,4 +359,4 @@ linters-settings:
     multi-if: true
     # Enforces newlines (or comments) after every multi-line function signature.
     # Default: false
-    multi-func: true
+    multi-func: false
