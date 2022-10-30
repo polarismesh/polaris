@@ -315,7 +315,7 @@ linters-settings:
     go: "1.15"
     # SAxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
     # Default: ["*"]
-    checks: [ "all","-SA1019","-SA4015","-SA1029","-SA1016","-SA9003","-SA4006","-SA6003","-SA1004","-SA4009","-SA6002","-SA4017","-SA4021","-SA1006"]
+    checks: [ "all","-SA1019","-SA4015","-SA1029","-SA1016","-SA9003","-SA4006","-SA6003","-SA1004","-SA4009","-SA6002","-SA4017","-SA4021","-SA1006","-SA4010"]
 
   # https://golangci-lint.run/usage/linters/#gofmt
   gofmt:
