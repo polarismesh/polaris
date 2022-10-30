@@ -234,7 +234,6 @@ func (svr *server) DeleteUsers(ctx context.Context, reqs []*api.User) *api.Batch
 	}
 
 	return resp
-
 }
 
 // DeleteUser 删除用户
@@ -244,7 +243,6 @@ func (svr *server) DeleteUsers(ctx context.Context, reqs []*api.User) *api.Batch
 // Case 4. 超级账户角色下，可以删除任意账户
 func (svr *server) DeleteUser(ctx context.Context, req *api.User) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
-
 	user, err := svr.storage.GetUser(req.Id.GetValue())
 	if err != nil {
 		log.Error("[Auth][User] get user from store", utils.ZapRequestID(requestID), zap.Error(err))
@@ -290,16 +288,15 @@ func (svr *server) DeleteUser(ctx context.Context, req *api.User) *api.Response 
 // GetUsers 查询用户列表
 func (svr *server) GetUsers(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	requestID := utils.ParseRequestID(ctx)
-
 	log.Debug("[Auth][User] origin get users query params",
 		utils.ZapRequestID(requestID), zap.Any("query", query))
 
 	var (
 		offset, limit uint32
 		err           error
+		searchFilters = make(map[string]string, len(query)+1)
 	)
 
-	searchFilters := make(map[string]string, len(query)+1)
 	for key, value := range query {
 		if _, ok := UserFilterAttributes[key]; !ok {
 			log.Errorf("[Auth][User] attribute(%s) it not allowed", key)
@@ -310,7 +307,6 @@ func (svr *server) GetUsers(ctx context.Context, query map[string]string) *api.B
 	}
 
 	searchFilters["hide_admin"] = strconv.FormatBool(true)
-
 	// 如果不是超级管理员，查看数据有限制
 	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
 		// 设置 owner 参数，只能查看对应 owner 下的用户
@@ -344,7 +340,6 @@ func (svr *server) GetUsers(ctx context.Context, query map[string]string) *api.B
 // GetUserToken 获取用户 token
 func (svr *server) GetUserToken(ctx context.Context, req *api.User) *api.Response {
 	var user *model.User
-
 	if req.GetId().GetValue() != "" {
 		user = svr.cacheMgn.User().GetUserByID(req.GetId().GetValue())
 	} else if req.GetName().GetValue() != "" {
@@ -385,7 +380,6 @@ func (svr *server) GetUserToken(ctx context.Context, req *api.User) *api.Respons
 // UpdateUserToken 更新用户 token
 func (svr *server) UpdateUserToken(ctx context.Context, req *api.User) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
-
 	if checkErrResp := checkUpdateUser(req); checkErrResp != nil {
 		return checkErrResp
 	}
@@ -427,7 +421,6 @@ func (svr *server) UpdateUserToken(ctx context.Context, req *api.User) *api.Resp
 // ResetUserToken 重置用户 token
 func (svr *server) ResetUserToken(ctx context.Context, req *api.User) *api.Response {
 	requestID := utils.ParseRequestID(ctx)
-
 	if checkErrResp := checkUpdateUser(req); checkErrResp != nil {
 		return checkErrResp
 	}

@@ -316,7 +316,6 @@ func parsePortWrapper(info *InstanceInfo, instance *model.Instance) {
 
 		info.Port.Port = insePort
 		info.Port.Enabled = insePortEnabled
-
 	} else {
 		protocol := instance.Proto.GetProtocol().GetValue()
 		port := instance.Proto.GetPort().GetValue()
@@ -324,8 +323,7 @@ func parsePortWrapper(info *InstanceInfo, instance *model.Instance) {
 			info.SecurePort.Port = int(port)
 			info.SecurePort.Enabled = "true"
 			if len(instance.Metadata()) > 0 {
-				insecurePortStr, ok := instance.Metadata()[MetadataInsecurePort]
-				if ok {
+				if insecurePortStr, ok := instance.Metadata()[MetadataInsecurePort]; ok {
 					insecurePort, _ := strconv.Atoi(insecurePortStr)
 					if insecurePort > 0 {
 						info.Port.Port = insecurePort
@@ -341,9 +339,11 @@ func parsePortWrapper(info *InstanceInfo, instance *model.Instance) {
 }
 
 func parseLeaseInfo(leaseInfo *LeaseInfo, instance *model.Instance) {
-	metadata := instance.Proto.GetMetadata()
-	var durationInSec int
-	var renewIntervalSec int
+	var (
+		metadata         = instance.Proto.GetMetadata()
+		durationInSec    int
+		renewIntervalSec int
+	)
 	if metadata != nil {
 		durationInSecStr, ok := metadata[MetadataDuration]
 		if ok {

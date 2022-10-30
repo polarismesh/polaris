@@ -413,7 +413,6 @@ func (svr *server) GetPrincipalResources(ctx context.Context, query map[string]s
 	})
 
 	return api.NewStrategyResourcesResponse(api.ExecuteSuccess, tmp.Resources)
-
 }
 
 // enhancedAuthStrategy2Api
