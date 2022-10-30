@@ -204,7 +204,6 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 
 func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s store.Store,
 	cacheMgn *cache.CacheManager, authMgn auth.AuthServer) error {
-	var err error
 	// 批量控制器
 	namingBatchConfig, err := batch.ParseBatchConfig(cfg.Naming.Batch)
 	if err != nil {
@@ -270,8 +269,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		return err
 	}
 
-	_, err = service.GetServer()
-	if err != nil {
+	if _, err = service.GetServer(); err != nil {
 		return err
 	}
 
@@ -325,7 +323,6 @@ func RestartServers(errCh chan error) error {
 	log.Infof("new config: %+v", cfg)
 
 	// 把配置的每个apiserver，进行重启
-
 	for _, protocol := range cfg.APIServers {
 		server, exist := apiserver.Slots[protocol.Name]
 		if !exist {

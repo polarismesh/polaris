@@ -127,13 +127,13 @@ func (s *StatisWorker) AddCacheCall(component string, cacheType string, miss boo
 func (s *StatisWorker) Run() {
 	getStore, err := store.GetStore()
 	if err != nil {
-		log.Errorf("[APICall] get getStore error, %v", err)
+		log.Errorf("[APICall] get store error, %v", err)
 		return
 	}
 
 	nowSeconds, err := getStore.GetUnixSecond()
 	if err != nil {
-		log.Errorf("[APICall] get now second from getStore error, %v", err)
+		log.Errorf("[APICall] get now second from store error, %v", err)
 		return
 	}
 	if nowSeconds == 0 {

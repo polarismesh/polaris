@@ -100,8 +100,10 @@ func (nsCache *namespaceCache) update(storeRollbackSec time.Duration) error {
 }
 
 func (nsCache *namespaceCache) realUpdate(storeRollbackSec time.Duration) error {
-	lastMtime := time.Unix(nsCache.lastTime, 0).Add(storeRollbackSec)
-	ret, err := nsCache.storage.GetMoreNamespaces(lastMtime)
+	var (
+		lastMtime = time.Unix(nsCache.lastTime, 0).Add(storeRollbackSec)
+		ret, err  = nsCache.storage.GetMoreNamespaces(lastMtime)
+	)
 	if err != nil {
 		log.Error("[Cache][Namespace] get storage more", zap.Error(err))
 		return err
