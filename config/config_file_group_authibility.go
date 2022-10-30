@@ -29,7 +29,6 @@ import (
 // CreateConfigFileGroup 创建配置文件组
 func (s *serverAuthability) CreateConfigFileGroup(ctx context.Context,
 	configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
-
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{configFileGroup},
 		model.Create, "CreateConfigFileGroup")
 
@@ -47,7 +46,6 @@ func (s *serverAuthability) CreateConfigFileGroup(ctx context.Context,
 // QueryConfigFileGroups 查询配置文件组
 func (s *serverAuthability) QueryConfigFileGroups(ctx context.Context, namespace, groupName,
 	fileName string, offset, limit uint32) *api.ConfigBatchQueryResponse {
-
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{{Name: utils.NewStringValue(groupName),
 		Namespace: utils.NewStringValue(namespace)}}, model.Read, "QueryConfigFileGroups")
 
@@ -59,7 +57,6 @@ func (s *serverAuthability) QueryConfigFileGroups(ctx context.Context, namespace
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	resp := s.targetServer.QueryConfigFileGroups(ctx, namespace, groupName, fileName, offset, limit)
-
 	if len(resp.ConfigFileGroups) != 0 {
 		principal := model.Principal{
 			PrincipalID:   utils.ParseUserID(ctx),
@@ -82,7 +79,6 @@ func (s *serverAuthability) QueryConfigFileGroups(ctx context.Context, namespace
 
 // DeleteConfigFileGroup 删除配置文件组
 func (s *serverAuthability) DeleteConfigFileGroup(ctx context.Context, namespace, name string) *api.ConfigResponse {
-
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{{Name: utils.NewStringValue(name),
 		Namespace: utils.NewStringValue(namespace)}}, model.Delete, "DeleteConfigFileGroup")
 
@@ -99,7 +95,6 @@ func (s *serverAuthability) DeleteConfigFileGroup(ctx context.Context, namespace
 // UpdateConfigFileGroup 更新配置文件组
 func (s *serverAuthability) UpdateConfigFileGroup(ctx context.Context,
 	configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
-
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{configFileGroup},
 		model.Modify, "UpdateConfigFileGroup")
 

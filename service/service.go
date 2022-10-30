@@ -473,7 +473,6 @@ func (s *Server) GetServiceOwner(ctx context.Context, req []*api.Service) *api.B
 
 // createNamespaceIfAbsent Automatically create namespaces
 func (s *Server) createNamespaceIfAbsent(ctx context.Context, svc *api.Service) (uint32, error) {
-
 	err := s.Namespace().CreateNamespaceIfAbsent(ctx, &api.Namespace{
 		Name:   utils.NewStringValue(svc.GetNamespace().GetValue()),
 		Owners: svc.Owners,
@@ -487,7 +486,7 @@ func (s *Server) createNamespaceIfAbsent(ctx context.Context, svc *api.Service) 
 
 // createServiceModel 创建存储层服务模型
 func (s *Server) createServiceModel(req *api.Service) *model.Service {
-	service := &model.Service{
+	return &model.Service{
 		ID:         utils.NewUUID(),
 		Name:       req.GetName().GetValue(),
 		Namespace:  req.GetNamespace().GetValue(),
@@ -504,8 +503,6 @@ func (s *Server) createServiceModel(req *api.Service) *model.Service {
 		Token:      utils.NewUUID(),
 		Revision:   utils.NewUUID(),
 	}
-
-	return service
 }
 
 // updateServiceAttribute 修改服务属性
@@ -515,9 +512,12 @@ func (s *Server) updateServiceAttribute(req *api.Service, service *model.Service
 		return api.NewServiceResponse(api.InvalidMetadata, req), false, false
 	}
 
-	needUpdate := false
-	needNewRevision := false
-	needUpdateOwner := false
+	var (
+		needUpdate      = false
+		needNewRevision = false
+		needUpdateOwner = false
+	)
+
 	if req.GetMetadata() != nil {
 		if need := serviceMetaNeedUpdate(req, service); need {
 			needUpdate = need

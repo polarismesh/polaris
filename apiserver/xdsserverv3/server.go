@@ -384,9 +384,7 @@ func getEndpointMetaFromPolarisIns(ins *api.Instance) *core.Metadata {
 
 func makeEndpoints(services []*ServiceInfo) []types.Resource {
 	var clusterLoads []types.Resource
-
 	for _, serviceInfo := range services {
-
 		var lbEndpoints []*endpoint.LbEndpoint
 		for _, instance := range serviceInfo.Instances {
 			// 只加入健康的实例
@@ -435,7 +433,6 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 	// 路由目前只处理 inbounds
 	if serviceInfo.Routing != nil && len(serviceInfo.Routing.Inbounds) > 0 {
 		for _, inbound := range serviceInfo.Routing.Inbounds {
-
 			routeMatch := &route.RouteMatch{
 				PathSpecifier: &route.RouteMatch_Prefix{Prefix: "/"},
 			}
@@ -541,7 +538,6 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 
 			// 使用 destinations 生成 weightedClusters。makeClusters() 也使用这个字段生成对应的 subset
 			for _, destination := range inbound.Destinations {
-
 				fields := make(map[string]*_struct.Value)
 				for k, v := range destination.Metadata {
 					fields[k] = &_struct.Value{
@@ -562,7 +558,6 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 						},
 					},
 				})
-
 				totalWeight += destination.Weight.Value
 			}
 
@@ -627,7 +622,6 @@ func generateServiceDomains(serviceInfo *ServiceInfo) []string {
 		domain+K8sDnsResolveSuffixSvcClusterLocal)
 
 	resDomains := domains
-
 	// 上面各种服务名加服务端口
 	ports := strings.Split(serviceInfo.Ports, ",")
 	for _, port := range ports {
@@ -892,7 +886,6 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 	// 遍历每一个服务，获取路由、熔断策略和全量的服务实例信息
 	for _, v := range registryInfo {
 		for _, svc := range v {
-
 			s := &api.Service{
 				Name: &wrappers.StringValue{
 					Value: svc.Name,

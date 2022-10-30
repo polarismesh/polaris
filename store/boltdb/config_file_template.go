@@ -18,126 +18,124 @@
 package boltdb
 
 import (
-    "time"
-    
-    "github.com/boltdb/bolt"
-    "go.uber.org/zap"
-    
-    "github.com/polarismesh/polaris/common/model"
+	"time"
+
+	"github.com/boltdb/bolt"
+	"go.uber.org/zap"
+
+	"github.com/polarismesh/polaris/common/model"
 )
 
 const (
-    tblConfigFileTemplate   string = "ConfigFileTemplate"
-    tblConfigFileTemplateID string = "ConfigFileTemplateID"
+	tblConfigFileTemplate   string = "ConfigFileTemplate"
+	tblConfigFileTemplateID string = "ConfigFileTemplateID"
 )
 
 type configFileTemplateStore struct {
-    id      uint64
-    handler BoltHandler
+	id      uint64
+	handler BoltHandler
 }
 
 func newConfigFileTemplateStore(handler BoltHandler) (*configFileTemplateStore, error) {
-    s := &configFileTemplateStore{handler: handler, id: 0}
-    ret, err := handler.LoadValues(tblConfigFileTemplateID, []string{tblConfigFileTemplateID}, &IDHolder{})
-    if err != nil {
-        return nil, err
-    }
-    if len(ret) == 0 {
-        return s, nil
-    }
-    val := ret[tblConfigFileTemplateID].(*IDHolder)
-    s.id = val.ID
-    return s, nil
+	s := &configFileTemplateStore{handler: handler, id: 0}
+	ret, err := handler.LoadValues(tblConfigFileTemplateID, []string{tblConfigFileTemplateID}, &IDHolder{})
+	if err != nil {
+		return nil, err
+	}
+	if len(ret) == 0 {
+		return s, nil
+	}
+	val := ret[tblConfigFileTemplateID].(*IDHolder)
+	s.id = val.ID
+	return s, nil
 }
 
 // QueryAllConfigFileTemplates query all config file templates
 func (cf *configFileTemplateStore) QueryAllConfigFileTemplates() ([]*model.ConfigFileTemplate, error) {
-    ret, err := cf.handler.LoadValuesAll(tblConfigFileTemplate, &model.ConfigFileTemplate{})
-    if err != nil {
-        return nil, err
-    }
-    if len(ret) == 0 {
-        return nil, nil
-    }
-    var templates []*model.ConfigFileTemplate
-    for _, v := range ret {
-        templates = append(templates, v.(*model.ConfigFileTemplate))
-    }
-    return templates, nil
+	ret, err := cf.handler.LoadValuesAll(tblConfigFileTemplate, &model.ConfigFileTemplate{})
+	if err != nil {
+		return nil, err
+	}
+	if len(ret) == 0 {
+		return nil, nil
+	}
+	var templates []*model.ConfigFileTemplate
+	for _, v := range ret {
+		templates = append(templates, v.(*model.ConfigFileTemplate))
+	}
+	return templates, nil
 }
 
 // GetConfigFileTemplate get config file template
 func (cf *configFileTemplateStore) GetConfigFileTemplate(name string) (*model.ConfigFileTemplate, error) {
-    proxy, err := cf.handler.StartTx()
-    if err != nil {
-        return nil, err
-    }
-    tx := proxy.GetDelegateTx().(*bolt.Tx)
-    
-    defer func() {
-        _ = tx.Rollback()
-    }()
-    
-    values := make(map[string]interface{})
-    if err = loadValues(tx, tblConfigFileTemplate, []string{name}, &model.ConfigFileTemplate{}, values); err != nil {
-        return nil, err
-    }
-    
-    err = tx.Commit()
-    if err != nil {
-        return nil, err
-    }
-    
-    if len(values) == 0 {
-        return nil, nil
-    }
-    
-    if len(values) > 1 {
-        return nil, ErrMultipleConfigFileFound
-    }
-    
-    data := values[name].(*model.ConfigFileTemplate)
-    
-    return data, nil
+	proxy, err := cf.handler.StartTx()
+	if err != nil {
+		return nil, err
+	}
+	tx := proxy.GetDelegateTx().(*bolt.Tx)
+
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	values := make(map[string]interface{})
+	if err = loadValues(tx, tblConfigFileTemplate, []string{name}, &model.ConfigFileTemplate{}, values); err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(values) == 0 {
+		return nil, nil
+	}
+
+	if len(values) > 1 {
+		return nil, ErrMultipleConfigFileFound
+	}
+
+	data := values[name].(*model.ConfigFileTemplate)
+
+	return data, nil
 }
 
 // CreateConfigFileTemplate create config file template
 func (cf *configFileTemplateStore) CreateConfigFileTemplate(
-    template *model.ConfigFileTemplate) (*model.ConfigFileTemplate, error) {
-    proxy, err := cf.handler.StartTx()
-    if err != nil {
-        return nil, err
-    }
-    tx := proxy.GetDelegateTx().(*bolt.Tx)
-    
-    defer func() {
-        _ = tx.Rollback()
-    }()
-    
-    cf.id++
-    template.Id = cf.id
-    template.CreateTime = time.Now()
-    template.ModifyTime = time.Now()
-    
-    if err := saveValue(tx, tblConfigFileTemplateID, tblConfigFileTemplateID, &IDHolder{
-        ID: cf.id,
-    }); err != nil {
-        log.Error("[ConfigFileTemplate] save auto_increment id", zap.Error(err))
-        return nil, err
-    }
-    
-    key := template.Name
-    
-    if err := saveValue(tx, tblConfigFileTemplate, key, template); err != nil {
-        log.Error("[ConfigFileTemplate] save error", zap.Error(err))
-        return nil, err
-    }
-    
-    err = tx.Commit()
-    if err != nil {
-        log.Error("[ConfigFileTemplate] commit error", zap.Error(err))
-        return nil, err
-    }
-    
-    return template, nil
+	template *model.ConfigFileTemplate) (*model.ConfigFileTemplate, error) {
+	proxy, err := cf.handler.StartTx()
+	if err != nil {
+		return nil, err
+	}
+	tx := proxy.GetDelegateTx().(*bolt.Tx)
+
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	cf.id++
+	template.Id = cf.id
+	template.CreateTime = time.Now()
+	template.ModifyTime = time.Now()
+
+	if err := saveValue(tx, tblConfigFileTemplateID, tblConfigFileTemplateID, &IDHolder{
+		ID: cf.id,
+	}); err != nil {
+		log.Error("[ConfigFileTemplate] save auto_increment id", zap.Error(err))
+		return nil, err
+	}
+
+	key := template.Name
+	if err := saveValue(tx, tblConfigFileTemplate, key, template); err != nil {
+		log.Error("[ConfigFileTemplate] save error", zap.Error(err))
+		return nil, err
+	}
+
+	if err = tx.Commit(); err != nil {
+		log.Error("[ConfigFileTemplate] commit error", zap.Error(err))
+		return nil, err
+	}
+
+	return template, nil
 }

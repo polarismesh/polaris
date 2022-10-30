@@ -53,7 +53,6 @@ func (t *configFileTagStore) CreateConfigFileTag(tx store.Tx, fileTag *model.Con
 // QueryConfigFileByTag 通过标签查询配置文件
 func (t *configFileTagStore) QueryConfigFileByTag(namespace, group, fileName string,
 	tags ...string) ([]*model.ConfigFileTag, error) {
-
 	group = "%" + group + "%"
 	fileName = "%" + fileName + "%"
 	querySql := t.baseSelectSql() + " where namespace = ? and `group` like ? and file_name like ? "
