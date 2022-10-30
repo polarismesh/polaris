@@ -57,5 +57,4 @@ func (nc *CacheManager) watchStoreTime(ctx context.Context) {
 			return
 		}
 	}
-
 }

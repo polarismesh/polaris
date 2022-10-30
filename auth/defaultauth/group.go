@@ -486,7 +486,6 @@ func (svr *server) checkUpdateGroup(ctx context.Context, req *api.ModifyUserGrou
 			return api.NewResponseWithMsg(api.NotAllowedAccess, "only main account can remove user from usergroup")
 		}
 	}
-
 	return nil
 }
 
@@ -501,21 +500,21 @@ func (svr *server) fillGroupUserCount(groups []*api.UserGroup) {
 		} else {
 			group.UserCount = utils.NewUInt32Value(uint32(len(cacheVal.UserIds)))
 		}
-
 	}
-
 }
 
 // updateGroupAttribute 更新计算用户组更新时的结构体数据，并判断是否需要执行更新操作
 func updateGroupAttribute(ctx context.Context, old *model.UserGroup, newUser *api.ModifyUserGroup) (
 	*model.ModifyUserGroup, bool) {
-	var needUpdate bool
-	ret := &model.ModifyUserGroup{
-		ID:          old.ID,
-		Token:       old.Token,
-		TokenEnable: old.TokenEnable,
-		Comment:     old.Comment,
-	}
+	var (
+		needUpdate bool
+		ret        = &model.ModifyUserGroup{
+			ID:          old.ID,
+			Token:       old.Token,
+			TokenEnable: old.TokenEnable,
+			Comment:     old.Comment,
+		}
+	)
 
 	// 只有 owner 可以修改这个属性
 	if utils.ParseIsOwner(ctx) {
@@ -558,13 +557,13 @@ func enhancedGroups2Api(groups []*model.UserGroup, handler UserGroup2Api) []*api
 }
 
 // createGroupModel 创建用户组的存储模型
-func createGroupModel(req *api.UserGroup) (*model.UserGroupDetail, error) {
+func createGroupModel(req *api.UserGroup) (group *model.UserGroupDetail, err error) {
 	ids := make(map[string]struct{}, len(req.GetRelation().GetUsers()))
 	for index := range req.GetRelation().GetUsers() {
 		ids[req.GetRelation().GetUsers()[index].GetId().GetValue()] = struct{}{}
 	}
 
-	group := &model.UserGroupDetail{
+	group = &model.UserGroupDetail{
 		UserGroup: &model.UserGroup{
 			ID:          utils.NewUUID(),
 			Name:        req.GetName().GetValue(),
@@ -578,13 +577,9 @@ func createGroupModel(req *api.UserGroup) (*model.UserGroupDetail, error) {
 		UserIds: ids,
 	}
 
-	newToken, err := createGroupToken(group.ID)
-	if err != nil {
+	if group.Token, err = createGroupToken(group.ID); err != nil {
 		return nil, err
 	}
-
-	group.Token = newToken
-
 	return group, nil
 }
 

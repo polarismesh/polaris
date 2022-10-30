@@ -169,7 +169,6 @@ func (cf *configFileStore) getConfigFile(tx *bolt.Tx, namespace, group, name str
 
 func (cf *configFileStore) QueryConfigFilesByGroup(namespace, group string,
 	offset, limit uint32) (uint32, []*model.ConfigFile, error) {
-
 	fields := []string{FileFieldNamespace, FileFieldGroup, FileFieldValid}
 
 	hasNs := len(namespace) != 0
@@ -205,7 +204,6 @@ func (cf *configFileStore) QueryConfigFilesByGroup(namespace, group string,
 // QueryConfigFiles 翻页查询配置文件，group、name可为模糊匹配
 func (cf *configFileStore) QueryConfigFiles(namespace, group, name string,
 	offset, limit uint32) (uint32, []*model.ConfigFile, error) {
-
 	fields := []string{FileFieldNamespace, FileFieldGroup, FileFieldName, FileFieldValid}
 
 	hasNs := len(namespace) != 0
@@ -295,7 +293,6 @@ func (cf *configFileStore) DeleteConfigFile(proxyTx store.Tx, namespace, group, 
 
 // CountByConfigFileGroup 统计配置文件组下的配置文件数量
 func (cf *configFileStore) CountByConfigFileGroup(namespace, group string) (uint64, error) {
-
 	hasNs := len(namespace) != 0
 	hasGroup := len(group) != 0
 
@@ -330,9 +327,7 @@ func (cf *configFileStore) CountByConfigFileGroup(namespace, group string) (uint
 
 // doConfigFilePage 进行分页
 func doConfigFilePage(ret map[string]interface{}, offset, limit uint32) []*model.ConfigFile {
-
 	files := make([]*model.ConfigFile, 0, len(ret))
-
 	beginIndex := offset
 	endIndex := beginIndex + limit
 	totalCount := uint32(len(ret))
@@ -358,5 +353,4 @@ func doConfigFilePage(ret map[string]interface{}, offset, limit uint32) []*model
 	})
 
 	return files[beginIndex:endIndex]
-
 }

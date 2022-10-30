@@ -333,5 +333,4 @@ func doConfigFileGroupPage(ret map[string]interface{}, offset, limit uint32) []*
 	})
 
 	return groups[beginIndex:endIndex]
-
 }
