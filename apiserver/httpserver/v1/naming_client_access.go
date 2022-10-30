@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	"github.com/emicklei/go-restful/v3"
-	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/apiserver"
@@ -63,33 +62,19 @@ func (h *HTTPServerV1) GetClientAccessServer(include []string) (*restful.WebServ
 
 // addDiscoverAccess 增加服务发现接口
 func (h *HTTPServerV1) addDiscoverAccess(ws *restful.WebService) {
-	tags := []string{"DiscoverAccess"}
-	ws.Route(ws.POST("/ReportClient").To(h.ReportClient).
-		Doc("上报客户端").
-		Writes(&api.Client{}).
-		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.POST("/Discover").To(h.Discover).
-		Doc("服务发现").
-		Metadata(restfulspec.KeyOpenAPITags, tags))
+	ws.Route(enrichReportClientApiDocs(ws.POST("/ReportClient").To(h.ReportClient)))
+	ws.Route(enrichDiscoverApiDocs(ws.POST("/Discover").To(h.Discover)))
 }
 
 // addRegisterAccess 增加注册/反注册接口
 func (h *HTTPServerV1) addRegisterAccess(ws *restful.WebService) {
-	tags := []string{"Instances", "RegisterAccess"}
-	ws.Route(ws.POST("/RegisterInstance").
-		Doc("注册实例").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		To(h.RegisterInstance))
-
-	ws.Route(ws.POST("/DeregisterInstance").
-		Doc("移除注册实例").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		To(h.DeregisterInstance))
+	ws.Route(enrichRegisterInstanceApiDocs(ws.POST("/RegisterInstance").To(h.RegisterInstance)))
+	ws.Route(enrichDeregisterInstanceApiDocs(ws.POST("/DeregisterInstance").To(h.DeregisterInstance)))
 }
 
 // addHealthCheckAccess 增加健康检查接口
 func (h *HTTPServerV1) addHealthCheckAccess(ws *restful.WebService) {
-	ws.Route(ws.POST("/Heartbeat").To(h.Heartbeat))
+	ws.Route(enrichHeartbeatApiDocs(ws.POST("/Heartbeat").To(h.Heartbeat)))
 }
 
 // ReportClient 客户端上报信息
