@@ -209,5 +209,4 @@ func doConfigFileHistoryPage(ret map[string]interface{}, offset, limit uint32) [
 	})
 
 	return histories[beginIndex:endIndex]
-
 }

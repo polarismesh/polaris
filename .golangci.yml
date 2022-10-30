@@ -327,7 +327,7 @@ linters-settings:
     # Default: []
     rewrite-rules: []
 
-  #https://golangci-lint.run/usage/linters/#gci
+  # https://golangci-lint.run/usage/linters/#gci
   gci:
     # Section configuration to compare against.
     # Section names are case-insensitive and may contain parameters in ().
@@ -347,3 +347,12 @@ linters-settings:
     # If `true`, make the section order the same as the order of `sections`.
     # Default: false
     custom-order: true
+
+  # https://golangci-lint.run/usage/linters/#whitespace
+  whitespace:
+    # Enforces newlines (or comments) after every multi-line if statement.
+    # Default: false
+    multi-if: true
+    # Enforces newlines (or comments) after every multi-line function signature.
+    # Default: false
+    multi-func: true

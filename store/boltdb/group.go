@@ -284,14 +284,12 @@ func (gs *groupStore) GetGroup(groupID string) (*model.UserGroupDetail, error) {
 
 // GetGroupByName get a group by name
 func (gs *groupStore) GetGroupByName(name, owner string) (*model.UserGroup, error) {
-
 	if name == "" || owner == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"get usergroup missing some params, name=%s, owner=%s", name, owner))
 	}
 
 	fields := []string{GroupFieldName, GroupFieldOwner, GroupFieldValid}
-
 	values, err := gs.handler.LoadValuesByFilter(tblGroup, fields, &groupForStore{},
 		func(m map[string]interface{}) bool {
 			valid, ok := m[GroupFieldValid].(bool)
@@ -334,15 +332,12 @@ func (gs *groupStore) GetGroups(filters map[string]string, offset uint32,
 	}
 	// 正常查询用户组信息
 	return gs.listSimpleGroups(filters, offset, limit)
-
 }
 
 // listSimpleGroups Normal user group query
 func (gs *groupStore) listSimpleGroups(filters map[string]string, offset uint32, limit uint32) (uint32,
 	[]*model.UserGroup, error) {
-
 	fields := []string{GroupFieldID, GroupFieldOwner, GroupFieldName, GroupFieldValid}
-
 	values, err := gs.handler.LoadValuesByFilter(tblGroup, fields, &groupForStore{},
 		func(m map[string]interface{}) bool {
 			valid, ok := m[GroupFieldValid].(bool)

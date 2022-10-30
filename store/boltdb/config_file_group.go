@@ -79,7 +79,6 @@ func newConfigFileGroupStore(handler BoltHandler) (*configFileGroupStore, error)
 // CreateConfigFileGroup 创建配置文件组
 func (fg *configFileGroupStore) CreateConfigFileGroup(
 	fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
-
 	if fileGroup.Namespace == "" || fileGroup.Name == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, "ConfigFileGroup miss some param")
 	}
@@ -89,13 +88,11 @@ func (fg *configFileGroupStore) CreateConfigFileGroup(
 
 func (fg *configFileGroupStore) createConfigFileGroup(
 	fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
-
 	proxy, err := fg.handler.StartTx()
 	if err != nil {
 		return nil, err
 	}
 	tx := proxy.GetDelegateTx().(*bolt.Tx)
-
 	defer func() {
 		_ = tx.Rollback()
 	}()
@@ -135,7 +132,6 @@ func (fg *configFileGroupStore) GetConfigFileGroup(namespace, name string) (*mod
 	}
 
 	key := fmt.Sprintf("%s@@%s", namespace, name)
-
 	ret, err := fg.handler.LoadValues(tblConfigFileGroup, []string{key}, &model.ConfigFileGroup{})
 	if err != nil {
 		log.Error("[ConfigFileGroup] find by namespace and name", zap.Error(err))
