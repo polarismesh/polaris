@@ -74,7 +74,7 @@ linters:
     - staticcheck   # It's a set of rules from staticcheck. It's not the same thing as the staticcheck binary.
     - typecheck     # Like the front-end of a Go compiler, parses and type-checks Go code
     - usestdlibvars # A linter that detect the possibility to use variables/constants from the Go standard library.
-    - whitespace    # Tool for detection of leading and trailing whitespace
+    #- whitespace    # Tool for detection of leading and trailing whitespace
 
 
 issues:
