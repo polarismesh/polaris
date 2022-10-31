@@ -28,16 +28,28 @@ import (
 
 // TimeWheel 时间轮结构体
 type TimeWheel struct {
-	name            string
-	interval        time.Duration
-	ticker          *time.Ticker
-	currentPos      int
-	slots           []*list.List
-	locks           []sync.Mutex
-	slotNum         int
-	stopCh          chan struct{}
-	wg              sync.WaitGroup
+	name       string
+	interval   time.Duration
+	ticker     *time.Ticker
+	currentPos int
+	slots      []*list.List
+	locks      []sync.Mutex
+	slotNum    int
+	stopCh     chan struct{}
+	wg         sync.WaitGroup
+	opts       options
+}
+
+type options struct {
 	waitTaskOnClose bool
+}
+
+type Option func(*options)
+
+func WithWaitTaskOnClose(waitTaskOnClose bool) Option {
+	return func(o *options) {
+		o.waitTaskOnClose = waitTaskOnClose
+	}
 }
 
 // Callback 时间轮回调函数定义
@@ -52,20 +64,27 @@ type Task struct {
 }
 
 // New 初始化时间轮
-func New(interval time.Duration, slotNum int, name string) *TimeWheel {
+func New(interval time.Duration, slotNum int, name string, opts ...Option) *TimeWheel {
 	if interval <= 0 || slotNum <= 0 {
 		return nil
 	}
+	op := options{
+		waitTaskOnClose: true,
+	}
+
+	for _, option := range opts {
+		option(&op)
+	}
 
 	timeWheel := &TimeWheel{
-		name:            name,
-		interval:        interval,
-		slots:           make([]*list.List, slotNum),
-		locks:           make([]sync.Mutex, slotNum),
-		currentPos:      -1,
-		slotNum:         slotNum,
-		stopCh:          make(chan struct{}, 1),
-		waitTaskOnClose: true,
+		name:       name,
+		interval:   interval,
+		slots:      make([]*list.List, slotNum),
+		locks:      make([]sync.Mutex, slotNum),
+		currentPos: -1,
+		slotNum:    slotNum,
+		stopCh:     make(chan struct{}, 1),
+		opts:       op,
 	}
 
 	for i := 0; i < slotNum; i++ {
@@ -73,11 +92,6 @@ func New(interval time.Duration, slotNum int, name string) *TimeWheel {
 	}
 
 	return timeWheel
-}
-
-func (tw *TimeWheel) ForceCloseMode() *TimeWheel {
-	tw.waitTaskOnClose = false
-	return tw
 }
 
 // Start 启动时间轮
@@ -89,7 +103,7 @@ func (tw *TimeWheel) Start() {
 // Stop 停止时间轮
 func (tw *TimeWheel) Stop() {
 	close(tw.stopCh)
-	if tw.waitTaskOnClose {
+	if tw.opts.waitTaskOnClose {
 		tw.wg.Wait()
 	}
 }
@@ -152,7 +166,7 @@ func (tw *TimeWheel) scanAddRunTask(l *list.List) int {
 		}
 
 		go func() {
-			if tw.waitTaskOnClose {
+			if tw.opts.waitTaskOnClose {
 				tw.wg.Add(1)
 				defer tw.wg.Done()
 			}

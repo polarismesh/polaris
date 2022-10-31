@@ -261,7 +261,7 @@ func rotationCallback(t *testing.T, wg *sync.WaitGroup, tw *TimeWheel, intervalS
 
 func TestForceCloseMode(t *testing.T) {
 	a := 1
-	tw := New(time.Second, 5, "force close").ForceCloseMode()
+	tw := New(time.Second, 5, "force close", WithWaitTaskOnClose(false))
 	tw.Start()
 	tw.AddTask(uint32(2*time.Second.Milliseconds()), nil, func(i interface{}) {
 		time.Sleep(5 * time.Second)
