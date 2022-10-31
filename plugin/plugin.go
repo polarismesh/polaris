@@ -49,6 +49,10 @@ type Plugin interface {
 	Destroy() error
 }
 
+// RemotePlugin 远程插件
+type RemotePlugin interface {
+}
+
 // ConfigEntry 单个插件配置
 type ConfigEntry struct {
 	Name   string                 `yaml:"name"`

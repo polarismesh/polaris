@@ -40,8 +40,17 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
+require github.com/hashicorp/go-plugin v1.4.5
+
 require (
+	github.com/fatih/color v1.7.0 // indirect
 	github.com/google/go-cmp v0.5.8 // indirect
+	github.com/hashicorp/go-hclog v0.14.1 // indirect
+	github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb // indirect
+	github.com/mattn/go-colorable v0.1.4 // indirect
+	github.com/mattn/go-isatty v0.0.10 // indirect
+	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
+	github.com/oklog/run v1.0.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
 
