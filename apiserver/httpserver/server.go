@@ -119,7 +119,7 @@ func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{}
 	}
 
 	if getAuth := plugin.GetAuth(); getAuth != nil {
-		log.Infof("http server open the getAuth")
+		log.Infof("http server open the Auth")
 		h.auth = getAuth
 	}
 
@@ -370,7 +370,7 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 				}
 				wsContainer.Add(serviceV2)
 			}
-		case "apiConfig":
+		case "config":
 			if apiConfig.Enable {
 				consoleService, err := h.GetConfigAccessServer(apiConfig.Include)
 				if err != nil {
@@ -491,7 +491,6 @@ func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 	code, ok := req.Attribute(utils.PolarisCode).(uint32)
 
 	recordApiCall := true
-
 	if !ok {
 		code = uint32(rsp.StatusCode())
 		recordApiCall = code != http.StatusNotFound
