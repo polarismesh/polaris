@@ -522,7 +522,7 @@ func selfRegister(
 		return err
 	}
 	if svc == nil {
-		return fmt.Errorf("self service(%s) in polarisNamespace(%s) not found", name, polarisNamespace)
+		return fmt.Errorf("self service(%s) in namespace(%s) not found", name, polarisNamespace)
 	}
 
 	metadata := polarisService.Metadata
@@ -593,7 +593,9 @@ func getLocalHost(addr string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	localAddr := conn.LocalAddr().String() // ip:port
 	segs := strings.Split(localAddr, ":")

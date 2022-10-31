@@ -94,23 +94,24 @@ const (
 // Load 加载配置
 func Load(filePath string) (*Config, error) {
 	if filePath == "" {
-		err := errors.New("invalid conf file path")
+		err := errors.New("invalid config file path")
 		fmt.Printf("[ERROR] %v\n", err)
 		return nil, err
 	}
 
-	fmt.Printf("[INFO] load conf from %v\n", filePath)
+	fmt.Printf("[INFO] load config from %v\n", filePath)
 
 	file, err := os.Open(filePath)
 	if err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	conf := &Config{}
-	err = yaml.NewDecoder(file).Decode(conf)
-	if err != nil {
+	if err = yaml.NewDecoder(file).Decode(conf); err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
 		return nil, err
 	}
