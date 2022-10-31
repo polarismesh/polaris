@@ -53,13 +53,16 @@ func dumpSnapShotJSON(snapshot cache.ResourceSnapshot) []byte {
 func yamlEncode(any interface{}) []byte {
 	data, err := json.Marshal(any)
 	if err != nil {
+		log.Errorf("yaml encode json marshal failed error %v", err)
 		return nil
 	}
 	o := make(map[string]interface{})
 	if err = json.Unmarshal(data, &o); err != nil {
+		log.Errorf("yaml encode json unmarshal failed error %v", err)
 		return nil
 	}
 	if data, err = yaml.Marshal(o); err != nil {
+		log.Errorf("yaml encode yaml marshal failed error %v", err)
 		return nil
 	}
 	return data

@@ -947,7 +947,7 @@ func (x *XDSServer) initRegistryInfo() error {
 		return fmt.Errorf("error to init registry info %s", resp.Code)
 	}
 	namespaces := resp.Namespaces
-	// 启动时，获取全量的 n 信息，用来推送空配置
+	// 启动时，获取全量的 namespace 信息，用来推送空配置
 	for _, n := range namespaces {
 		x.registryInfo[n.Name.Value] = []*ServiceInfo{}
 	}
