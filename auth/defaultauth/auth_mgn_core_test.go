@@ -31,8 +31,6 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/plugin"
-	_ "github.com/polarismesh/polaris/plugin/auth/defaultauth"
 	storemock "github.com/polarismesh/polaris/store/mock"
 )
 
@@ -92,14 +90,13 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 		},
 	}, cacheMgn)
 	checker.cacheMgn = cacheMgn
-	checker.authPlugin = plugin.GetAuth()
 
 	t.Run("主账户正常情况", func(t *testing.T) {
 		reset(false)
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[0].Token),
 		)
 
 		err = checker.VerifyCredential(authCtx)
@@ -114,10 +111,10 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 		users[1].TokenEnable = false
 		// 让 cache 可以刷新到
 		time.Sleep(time.Second)
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[1].Token),
 		)
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
@@ -129,10 +126,10 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 
 	t.Run("权限检查非严格模式-错误的token字符串-降级为匿名用户", func(t *testing.T) {
 		reset(false)
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
 		)
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
@@ -141,10 +138,10 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 	})
 
 	t.Run("权限检查非严格模式-空token字符串-降级为匿名用户", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(""),
 		)
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
@@ -154,11 +151,11 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 
 	t.Run("权限检查非严格模式-错误的token字符串-访问鉴权模块", func(t *testing.T) {
 		reset(false)
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithModule(model.AuthModule),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
 		)
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
@@ -166,11 +163,11 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 	})
 
 	t.Run("权限检查非严格模式-空token字符串-访问鉴权模块", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithModule(model.AuthModule),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(""),
 		)
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
@@ -179,10 +176,10 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 
 	t.Run("权限检查严格模式-token非法-不允许降级为匿名用户", func(t *testing.T) {
 		reset(true)
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
 		)
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
@@ -192,10 +189,10 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 
 	t.Run("权限检查严格模式-token为空-不允许降级为匿名用户", func(t *testing.T) {
 		reset(true)
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(""),
 		)
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
@@ -241,15 +238,14 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 
 	checker := &defaultAuthChecker{}
 	checker.cacheMgn = cacheMgn
-	checker.authPlugin = plugin.GetAuth()
 
 	freeIndex := len(users) + len(groups) + 1
 
 	t.Run("权限检查非严格模式-主账户资源访问检查", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[0].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -268,10 +264,10 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 	})
 
 	t.Run("权限检查非严格模式-子账户资源访问检查（无操作权限）", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[1].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -290,10 +286,10 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 	})
 
 	t.Run("权限检查非严格模式-子账户资源访问检查（有操作权限）", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[1].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -312,10 +308,10 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 	})
 
 	t.Run("权限检查非严格模式-子账户资源访问检查（资源无绑定策略）", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[1].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -334,10 +330,10 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 	})
 
 	t.Run("权限检查非严格模式-子账户访问用户组资源检查（属于用户组成员）", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[1].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -356,10 +352,10 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 	})
 
 	t.Run("权限检查非严格模式-子账户访问用户组资源检查（不属于用户组成员）", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[1].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -378,10 +374,11 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 	})
 
 	t.Run("权限检查非严格模式-用户组访问组内成员资源检查", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groups[1].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(groups[1].Token),
+			// model.WithToken(groups[1].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -400,10 +397,10 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 	})
 
 	t.Run("权限检查非严格模式-token非法-匿名账户资源访问检查（资源无绑定策略）", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "users[1].Token")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken("users[1].Token"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -422,10 +419,10 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 	})
 
 	t.Run("权限检查非严格模式-token为空-匿名账户资源访问检查（资源无绑定策略）", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(""),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -481,15 +478,15 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 
 	checker := &defaultAuthChecker{}
 	checker.cacheMgn = cacheMgn
-	checker.authPlugin = plugin.GetAuth()
 
 	freeIndex := len(users) + len(groups) + 1
 
 	t.Run("权限检查严格模式-主账户操作资源", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[0].Token),
+			// model.WithToken(users[0].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -508,10 +505,11 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 	})
 
 	t.Run("权限检查严格模式-子账户操作资源（无操作权限）", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[1].Token),
+			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -529,10 +527,11 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 	})
 
 	t.Run("权限检查严格模式-子账户操作资源（有操作权限）", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[1].Token),
+			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -550,10 +549,11 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 	})
 
 	t.Run("权限检查严格模式-token非法-匿名账户操作资源（资源有策略）", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
+			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -571,10 +571,11 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 	})
 
 	t.Run("权限检查严格模式-token为空-匿名账户操作资源（资源有策略）", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(""),
+			// model.WithToken(""),
 			model.WithModule(model.DiscoverModule),
 			model.WithOperation(model.Create),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -592,10 +593,11 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 	})
 
 	t.Run("权限检查严格模式-token非法-匿名账户操作资源（资源没有策略）", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
+			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -613,10 +615,11 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 	})
 
 	t.Run("权限检查严格模式-token为空-匿名账户操作资源（资源没有策略）", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(""),
+			// model.WithToken(""),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -671,15 +674,15 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 
 	checker := &defaultAuthChecker{}
 	checker.cacheMgn = cacheMgn
-	checker.authPlugin = plugin.GetAuth()
 
 	freeIndex := len(users) + len(groups) + 1
 
 	t.Run("权限检查非严格模式-主账户正常读操作", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[0].Token),
+			// model.WithToken(users[0].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -697,10 +700,11 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 	})
 
 	t.Run("权限检查非严格模式-子账户正常读操作-资源有权限", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[1].Token),
+			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -718,10 +722,11 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 	})
 
 	t.Run("权限检查非严格模式-子账户正常读操作-资源无权限", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[1].Token),
+			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -739,10 +744,11 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 	})
 
 	t.Run("权限检查非严格模式-子账户正常读操作-资源无绑定策略", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[1].Token),
+			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -760,10 +766,11 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 	})
 
 	t.Run("权限检查非严格模式-匿名账户正常读操作-token为空-资源有策略", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(""),
+			// model.WithToken(""),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -781,10 +788,11 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 	})
 
 	t.Run("权限检查非严格模式-匿名账户正常读操作-token为空-资源无策略", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(""),
+			// model.WithToken(""),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -802,10 +810,11 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 	})
 
 	t.Run("权限检查非严格模式-匿名账户正常读操作-token非法-资源有策略", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
+			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -823,10 +832,11 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 	})
 
 	t.Run("权限检查非严格模式-匿名账户正常读操作-token非法-资源无策略", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
+			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -881,15 +891,15 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 
 	checker := &defaultAuthChecker{}
 	checker.cacheMgn = cacheMgn
-	checker.authPlugin = plugin.GetAuth()
 
 	freeIndex := len(users) + len(groups) + 1
 
 	t.Run("权限检查严格模式-主账户正常读操作", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[0].Token),
+			// model.WithToken(users[0].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -907,10 +917,11 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 	})
 
 	t.Run("权限检查严格模式-子账户正常读操作-资源有权限", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[1].Token),
+			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -928,10 +939,11 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 	})
 
 	t.Run("权限检查严格模式-子账户正常读操作-资源无权限", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[1].Token),
+			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -949,10 +961,11 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 	})
 
 	t.Run("权限检查严格模式-子账户正常读操作-资源无绑定策略", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(users[1].Token),
+			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -970,10 +983,11 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 	})
 
 	t.Run("权限检查严格模式-匿名账户正常读操作-token为空-资源有策略", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(""),
+			// model.WithToken(""),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -991,10 +1005,11 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 	})
 
 	t.Run("权限检查严格模式-匿名账户正常读操作-token为空-资源无策略", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken(""),
+			// model.WithToken(""),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -1012,10 +1027,11 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 	})
 
 	t.Run("权限检查严格模式-匿名账户正常读操作-token非法-资源有策略", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
+			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
@@ -1033,10 +1049,11 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 	})
 
 	t.Run("权限检查严格模式-匿名账户正常读操作-token非法-资源无策略", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(context.Background()),
+			model.WithRequestContext(ctx),
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
+			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{

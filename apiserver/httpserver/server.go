@@ -73,7 +73,7 @@ type HTTPServer struct {
 	healthCheckServer *healthcheck.Server
 	rateLimit         plugin.Ratelimit
 	statis            plugin.Statis
-	auth              plugin.Auth
+	whitelist         plugin.Whitelist
 
 	v1Server v1.HTTPServerV1
 	v2Server v2.HTTPServerV2
@@ -118,9 +118,9 @@ func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{}
 		h.rateLimit = rateLimit
 	}
 
-	if getAuth := plugin.GetAuth(); getAuth != nil {
-		log.Infof("http server open the Auth")
-		h.auth = getAuth
+	if whitelist := plugin.GetWhitelist(); whitelist != nil {
+		log.Infof("http server open the whitelist")
+		h.whitelist = whitelist
 	}
 
 	// tls 配置信息
@@ -523,27 +523,22 @@ func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 
 // enterAuth 访问鉴权
 func (h *HTTPServer) enterAuth(req *restful.Request, rsp *restful.Response) error {
-	// 判断鉴权插件是否开启
-	if h.auth == nil {
+	// 判断白名单插件是否开启
+	if h.whitelist == nil {
 		return nil
 	}
 
 	rid := req.HeaderParameter("Request-Id")
-	pid := req.HeaderParameter("Platform-Id")
-	pToken := req.HeaderParameter("Platform-Token")
 
 	address := req.Request.RemoteAddr
 	segments := strings.Split(address, ":")
 	if len(segments) != 2 {
 		return nil
 	}
-
-	if !h.auth.IsWhiteList(segments[0]) && !h.auth.Allow(pid, pToken) {
+	if !h.whitelist.Contain(segments[0]) {
 		log.Error("http access is not allowed",
 			zap.String("client", address),
-			utils.ZapRequestID(rid),
-			zap.String("platform-id", pid),
-			zap.String("platform-token", pToken))
+			utils.ZapRequestID(rid))
 		httpcommon.HTTPResponse(req, rsp, api.NotAllowedAccess)
 		return errors.New("http access is not allowed")
 	}

@@ -27,7 +27,6 @@ import (
 	_ "github.com/polarismesh/polaris/apiserver/xdsserverv3"
 	_ "github.com/polarismesh/polaris/auth/defaultauth"
 	_ "github.com/polarismesh/polaris/cache"
-	_ "github.com/polarismesh/polaris/plugin/auth/defaultauth"
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
 	_ "github.com/polarismesh/polaris/plugin/discoverevent/local"
 	_ "github.com/polarismesh/polaris/plugin/discoverstat/discoverlocal"
@@ -38,6 +37,7 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/lrurate"
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/token"
 	_ "github.com/polarismesh/polaris/plugin/statis/local"
+	_ "github.com/polarismesh/polaris/plugin/whitelist"
 	_ "github.com/polarismesh/polaris/store/boltdb"
 	_ "github.com/polarismesh/polaris/store/sqldb"
 )

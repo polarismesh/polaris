@@ -29,6 +29,14 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
+var (
+	// ErrorNotAllowedAccess 鉴权失败
+	ErrorNotAllowedAccess error = errors.New(api.Code2Info(api.NotAllowedAccess))
+
+	// ErrorInvalidParameter 不合法的参数
+	ErrorInvalidParameter error = errors.New(api.Code2Info(api.InvalidParameter))
+)
+
 // IsOpenConsoleAuth 针对控制台是否开启了操作鉴权
 func (d *defaultAuthChecker) IsOpenConsoleAuth() bool {
 	return AuthOption.ConsoleOpen
@@ -137,7 +145,7 @@ func (d *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (boo
 	log.Info("[Auth][Checker] check permission args", zap.Any("resources", authCtx.GetAccessResources()),
 		zap.Any("strategies", strategies))
 
-	ok, err := d.authPlugin.CheckPermission(authCtx, strategies)
+	ok, err := d.doCheckPermission(authCtx, strategies)
 	if err != nil {
 		log.Error("[Auth][Checker] check permission args", utils.ZapRequestID(reqId),
 			zap.String("method", authCtx.GetMethod()), zap.Any("resources", authCtx.GetAccessResources()),
@@ -177,7 +185,8 @@ func (d *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) err
 	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
 
 	checkErr := func() error {
-		operator, err := d.decodeToken(authCtx.GetToken())
+		authToken := utils.ParseAuthToken(authCtx.GetRequestContext())
+		operator, err := d.decodeToken(authToken)
 		if err != nil {
 			log.Error("[Auth][Checker] decode token", zap.Error(err))
 			return model.ErrorTokenInvalid
@@ -433,4 +442,119 @@ func (d *defaultAuthChecker) removeNoStrategyResources(authCtx *model.AcquireCon
 	}
 
 	return noResourceNeedCheck
+}
+
+// doCheckPermission 执行权限检查
+func (d *defaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext, strategies []*model.StrategyDetail) (bool, error) {
+	if len(strategies) == 0 {
+		return true, nil
+	}
+
+	userId := utils.ParseUserID(authCtx.GetRequestContext())
+
+	reqRes := authCtx.GetAccessResources()
+	var (
+		checkNamespace   = false
+		checkService     = true
+		checkConfigGroup = true
+	)
+
+	for _, rule := range strategies {
+		if !d.checkAction(rule.Action, authCtx.GetOperation()) {
+			continue
+		}
+		searchMaps := buildSearchMap(rule.Resources)
+
+		// 检查 namespace
+		checkNamespace = checkAnyElementExist(userId, reqRes[api.ResourceType_Namespaces], searchMaps[0])
+		// 检查 service
+		if authCtx.GetModule() == model.DiscoverModule {
+			checkService = checkAnyElementExist(userId, reqRes[api.ResourceType_Services], searchMaps[1])
+		}
+		// 检查 config_group
+		if authCtx.GetModule() == model.ConfigModule {
+			checkConfigGroup = checkAnyElementExist(userId, reqRes[api.ResourceType_ConfigGroups], searchMaps[2])
+		}
+
+		if checkNamespace && (checkService && checkConfigGroup) {
+			return true, nil
+		}
+	}
+	return false, ErrorNotAllowedAccess
+}
+
+// checkAction 检查操作是否和策略匹配
+func (d *defaultAuthChecker) checkAction(expect string, actual model.ResourceOperation) bool {
+	return true
+}
+
+// checkAnyElementExist 检查待操作的资源是否符合鉴权资源列表的配置
+//
+//	@param userId 当前的用户信息
+//	@param waitSearch 访问的资源
+//	@param searchMaps 鉴权策略中某一类型的资源列表信息
+//	@return bool 是否可以操作本次被访问的所有资源
+func checkAnyElementExist(userId string, waitSearch []model.ResourceEntry, searchMaps *searchMap) bool {
+	if len(waitSearch) == 0 || searchMaps.passAll {
+		return true
+	}
+
+	for _, entry := range waitSearch {
+		if entry.Owner == userId {
+			continue
+		}
+
+		if _, ok := searchMaps.items[entry.ID]; !ok {
+			return false
+		}
+	}
+
+	return true
+}
+
+// buildSearchMap 构建搜索 map
+func buildSearchMap(ss []model.StrategyResource) []*searchMap {
+	// emptyVal 空对象，占位而已
+	var emptyVal = struct{}{}
+
+	nsSearchMaps := &searchMap{
+		items:   make(map[string]interface{}),
+		passAll: false,
+	}
+	svcSearchMaps := &searchMap{
+		items:   make(map[string]interface{}),
+		passAll: false,
+	}
+	cfgSearchMaps := &searchMap{
+		items:   make(map[string]interface{}),
+		passAll: false,
+	}
+
+	for _, val := range ss {
+		if val.ResType == int32(api.ResourceType_Namespaces) {
+			nsSearchMaps.items[val.ResID] = emptyVal
+			nsSearchMaps.passAll = (val.ResID == "*") || nsSearchMaps.passAll
+			continue
+		}
+		if val.ResType == int32(api.ResourceType_Services) {
+			svcSearchMaps.items[val.ResID] = emptyVal
+			svcSearchMaps.passAll = (val.ResID == "*") || nsSearchMaps.passAll
+			continue
+		}
+		if val.ResType == int32(api.ResourceType_ConfigGroups) {
+			cfgSearchMaps.items[val.ResID] = emptyVal
+			cfgSearchMaps.passAll = (val.ResID == "*") || nsSearchMaps.passAll
+			continue
+		}
+	}
+
+	return []*searchMap{nsSearchMaps, svcSearchMaps, cfgSearchMaps}
+}
+
+// searchMap 权限搜索map
+type searchMap struct {
+	// 某个资源策略的去重map
+	items map[string]interface{}
+	// 该资源策略是否允许全部操作
+	passAll bool
 }

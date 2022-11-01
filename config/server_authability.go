@@ -52,7 +52,6 @@ func (s *serverAuthability) collectConfigFileAuthContext(ctx context.Context, re
 	op model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.ConfigModule),
 		model.WithOperation(op),
 		model.WithMethod(methodName),
@@ -64,7 +63,6 @@ func (s *serverAuthability) collectConfigFileReleaseAuthContext(ctx context.Cont
 	op model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.ConfigModule),
 		model.WithOperation(op),
 		model.WithMethod(methodName),
@@ -76,7 +74,6 @@ func (s *serverAuthability) collectConfigGroupAuthContext(ctx context.Context, r
 	op model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.ConfigModule),
 		model.WithOperation(op),
 		model.WithMethod(methodName),
@@ -88,7 +85,6 @@ func (s *serverAuthability) collectConfigFileTemplateAuthContext(ctx context.Con
 	op model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.ConfigModule),
 	)
 }

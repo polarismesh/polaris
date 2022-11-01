@@ -75,7 +75,6 @@ func (svr *serverAuthAbility) collectServiceAuthContext(ctx context.Context, req
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
 		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryServiceResource(req)),
@@ -94,7 +93,6 @@ func (svr *serverAuthAbility) collectServiceAliasAuthContext(ctx context.Context
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
 		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryServiceAliasResource(req)),
@@ -113,7 +111,6 @@ func (svr *serverAuthAbility) collectInstanceAuthContext(ctx context.Context, re
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
 		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryInstanceResource(req)),
@@ -126,7 +123,6 @@ func (svr *serverAuthAbility) collectClientInstanceAuthContext(ctx context.Conte
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
 		model.WithMethod(methodName),
 		model.WithFromClient(),
@@ -146,7 +142,6 @@ func (svr *serverAuthAbility) collectCircuitBreakerAuthContext(ctx context.Conte
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
 		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryCircuitBreakerResource(req)),
@@ -165,7 +160,6 @@ func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx contex
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
 		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryCircuitBreakerReleaseResource(req)),
@@ -184,7 +178,6 @@ func (svr *serverAuthAbility) collectRouteRuleAuthContext(ctx context.Context, r
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
 		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryRouteRuleResource(req)),
@@ -203,7 +196,6 @@ func (svr *serverAuthAbility) collectRateLimitAuthContext(ctx context.Context, r
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
 		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryRateLimitConfigResource(req)),

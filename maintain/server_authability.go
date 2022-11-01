@@ -24,7 +24,6 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
-	"github.com/polarismesh/polaris/common/utils"
 )
 
 // serverAuthAbility 带有鉴权能力的 maintainServer
@@ -49,7 +48,6 @@ func (svr *serverAuthAbility) collectMaintainAuthContext(ctx context.Context, re
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.MaintainModule),
 		model.WithMethod(methodName),
 	)
