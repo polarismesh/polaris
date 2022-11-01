@@ -18,9 +18,9 @@
 package main
 
 import (
-	_ "go.uber.org/automaxprocs"
-
 	"github.com/polarismesh/polaris/cmd"
+
+	_ "go.uber.org/automaxprocs"
 )
 
 func main() {

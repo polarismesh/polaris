@@ -73,12 +73,12 @@ func (d *DiscoverStatisWorker) Destroy() error {
 }
 
 // AddDiscoverCall 上报请求
-func (d *DiscoverStatisWorker) AddDiscoverCall(service, namespace string, time time.Time) error {
+func (d *DiscoverStatisWorker) AddDiscoverCall(service, namespace string, tt time.Time) error {
 	select {
 	case d.dcc <- &DiscoverCall{
 		service:   service,
 		namespace: namespace,
-		time:      time,
+		time:      tt,
 	}:
 	default:
 		log.Errorf("[DiscoverStatis] service: %s, namespace: %s is not captured", service, namespace)

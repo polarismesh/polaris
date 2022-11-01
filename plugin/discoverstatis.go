@@ -34,7 +34,7 @@ type DiscoverStatis interface {
 	Plugin
 
 	// AddDiscoverCall 添加发现调用
-	AddDiscoverCall(service, namespace string, time time.Time) error
+	AddDiscoverCall(service, namespace string, tt time.Time) error
 }
 
 // GetDiscoverStatis 获取服务发现统计插件

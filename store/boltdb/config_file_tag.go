@@ -94,10 +94,10 @@ func (t *configFileTagStore) CreateConfigFileTag(proxyTx store.Tx, fileTag *mode
 // QueryConfigFileByTag 通过标签查询配置文件
 func (t *configFileTagStore) QueryConfigFileByTag(namespace, group, fileName string,
 	tags ...string) ([]*model.ConfigFileTag, error) {
-
-	fields := []string{TagFieldNamespace, TagFieldGroup, TagFieldFileName, TagFieldKey, TagFieldValue}
-
-	tagSearchMap := make(map[string]string)
+	var (
+		fields       = []string{TagFieldNamespace, TagFieldGroup, TagFieldFileName, TagFieldKey, TagFieldValue}
+		tagSearchMap = make(map[string]string)
+	)
 	for i := 0; i < len(tags); i = i + 2 {
 		tagSearchMap[tags[i]] = tags[i+1]
 	}
@@ -141,9 +141,7 @@ func (t *configFileTagStore) QueryConfigFileByTag(namespace, group, fileName str
 
 // QueryTagByConfigFile 查询配置文件标签
 func (t *configFileTagStore) QueryTagByConfigFile(namespace, group, fileName string) ([]*model.ConfigFileTag, error) {
-
 	fields := []string{TagFieldNamespace, TagFieldGroup, TagFieldFileName}
-
 	ret, err := t.handler.LoadValuesByFilter(tbleConfigFileTag, fields, &model.ConfigFileTag{},
 		func(m map[string]interface{}) bool {
 			saveNs, _ := m[TagFieldNamespace].(string)
@@ -173,7 +171,6 @@ func (t *configFileTagStore) QueryTagByConfigFile(namespace, group, fileName str
 // DeleteConfigFileTag 删除配置文件标签
 func (t *configFileTagStore) DeleteConfigFileTag(proxyTx store.Tx, namespace, group,
 	fileName, key, value string) error {
-
 	_, err := DoTransactionIfNeed(proxyTx, t.handler, func(tx *bolt.Tx) ([]interface{}, error) {
 		dataKey := fmt.Sprintf("%s@%s@%s@%s@%s", key, value, namespace, group, fileName)
 
@@ -190,7 +187,6 @@ func (t *configFileTagStore) DeleteConfigFileTag(proxyTx store.Tx, namespace, gr
 func (t *configFileTagStore) DeleteTagByConfigFile(proxyTx store.Tx, namespace, group, fileName string) error {
 	_, err := DoTransactionIfNeed(proxyTx, t.handler, func(tx *bolt.Tx) ([]interface{}, error) {
 		fields := []string{TagFieldNamespace, TagFieldGroup, TagFieldFileName}
-
 		ret := make(map[string]interface{})
 		err := loadValuesByFilter(tx, tbleConfigFileTag, fields, &model.ConfigFileTag{},
 			func(m map[string]interface{}) bool {
@@ -210,7 +206,6 @@ func (t *configFileTagStore) DeleteTagByConfigFile(proxyTx store.Tx, namespace, 
 		}
 
 		keys := make([]string, 0, len(ret))
-
 		for _, v := range ret {
 			dataKey := fmt.Sprintf("%s@%s@%s@%s@%s",
 				v.(*model.ConfigFileTag).Key, v.(*model.ConfigFileTag).Value, namespace, group, fileName)

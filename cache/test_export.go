@@ -37,6 +37,6 @@ var (
 
 // TestRefresh only for test
 func (nc *CacheManager) TestRefresh() error {
-	nc.clear()
+	_ = nc.clear()
 	return nc.update()
 }

@@ -36,9 +36,9 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        goarch: [amd64]
-        goos: [linux, darwin]
+        os: [ ubuntu-latest, macos-latest ]
+        goarch: [ amd64 ]
+        goos: [ linux, darwin ]
         include:
           - os: ubuntu-latest
             goos: linux

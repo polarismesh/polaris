@@ -91,7 +91,6 @@ type ServiceKey struct {
 
 // IsAlias 便捷函数封装
 func (s *Service) IsAlias() bool {
-
 	return s.Reference != ""
 }
 
@@ -358,7 +357,6 @@ type CircuitBreakerInfo struct {
 
 // Int2bool 整数转换为bool值
 func Int2bool(entry int) bool {
-
 	return entry != 0
 }
 
@@ -373,7 +371,6 @@ func StatusBoolToInt(value bool) int {
 // store的flag转换为valid
 // flag==1为无效，其他情况为有效
 func flag2valid(flag int) bool {
-
 	return flag != 1
 }
 
@@ -395,10 +392,10 @@ const (
 	OUpdateIsolate OperationType = "UpdateIsolate"
 
 	// OGetToken 查看token
-	OGetToken OperationType = "GetToken" // nolint
+	OGetToken OperationType = "GetToken"
 
 	// OUpdateToken 更新token
-	OUpdateToken OperationType = "UpdateToken" // nolint
+	OUpdateToken OperationType = "UpdateToken"
 
 	// OUpdateGroup 更新用户-用户组关联关系
 	OUpdateGroup OperationType = "UpdateGroup"

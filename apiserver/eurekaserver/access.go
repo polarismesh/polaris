@@ -255,9 +255,8 @@ func writeResponse(acceptValues map[string]bool, appsRespCache *ApplicationsResp
 			}
 			_, err = rsp.Write(appsRespCache.XmlBytes)
 			return err
-		} else {
-			err = rsp.WriteAsXml(appsRespCache.AppsResp.Applications)
 		}
+		err = rsp.WriteAsXml(appsRespCache.AppsResp.Applications)
 	}
 	return err
 }

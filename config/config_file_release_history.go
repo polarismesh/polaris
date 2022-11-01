@@ -77,7 +77,7 @@ func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.Co
 func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset,
 	limit uint32, endId uint64) *api.ConfigBatchQueryResponse {
 
-	if offset < 0 || limit <= 0 || limit > MaxPageSize {
+	if limit > MaxPageSize {
 		return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.InvalidParameter, 0, nil)
 	}
 

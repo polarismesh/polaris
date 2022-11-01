@@ -34,8 +34,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [linux, windows, darwin, kubernetes]
-        goarch: [amd64, arm64]
+        goos: [ linux, windows, darwin, kubernetes ]
+        goarch: [ amd64, arm64 ]
         exclude:
           - goos: windows
             goarch: arm64

@@ -159,11 +159,10 @@ func buildMetricLabels(call *APICall, item *APICallStatisItem) map[string]string
 			LabelForApi:      call.api,
 			LabelForProtocol: call.protocol,
 		}
-	} else {
-		return map[string]string{
-			LabelForErrCode:  fmt.Sprintf("%d", item.code),
-			LabelForApi:      item.api,
-			LabelForProtocol: item.protocol,
-		}
+	}
+	return map[string]string{
+		LabelForErrCode:  fmt.Sprintf("%d", item.code),
+		LabelForApi:      item.api,
+		LabelForProtocol: item.protocol,
 	}
 }

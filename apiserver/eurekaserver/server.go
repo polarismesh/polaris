@@ -418,7 +418,6 @@ func (h *EurekaServer) postproccess(req *restful.Request, rsp *restful.Response)
 
 // getEurekaApi 聚合 eureka 接口，不暴露服务名和实例 id
 func getEurekaApi(method, path string) string {
-
 	if path == "" {
 		return ""
 	}

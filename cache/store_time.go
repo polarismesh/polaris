@@ -27,7 +27,6 @@ import (
 
 // watchStoreTime The timestamp change of the storage layer, whether the clock is dialed in the detection
 func (nc *CacheManager) watchStoreTime(ctx context.Context) {
-
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
@@ -57,5 +56,4 @@ func (nc *CacheManager) watchStoreTime(ctx context.Context) {
 			return
 		}
 	}
-
 }

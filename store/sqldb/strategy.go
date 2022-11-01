@@ -70,7 +70,6 @@ func (s *strategyStore) AddStrategy(strategy *model.StrategyDetail) error {
 }
 
 func (s *strategyStore) addStrategy(strategy *model.StrategyDetail) error {
-
 	tx, err := s.master.Begin()
 	if err != nil {
 		return err
@@ -126,7 +125,6 @@ func (s *strategyStore) UpdateStrategy(strategy *model.ModifyStrategyDetail) err
 }
 
 func (s *strategyStore) updateStrategy(strategy *model.ModifyStrategyDetail) error {
-
 	tx, err := s.master.Begin()
 	if err != nil {
 		return err
@@ -181,7 +179,6 @@ func (s *strategyStore) DeleteStrategy(id string) error {
 }
 
 func (s *strategyStore) deleteStrategy(id string) error {
-
 	tx, err := s.master.Begin()
 	if err != nil {
 		return err
@@ -216,7 +213,6 @@ func (s *strategyStore) deleteStrategy(id string) error {
 
 // addStrategyPrincipals
 func (s *strategyStore) addStrategyPrincipals(tx *BaseTx, id string, principals []model.Principal) error {
-
 	if len(principals) == 0 {
 		return nil
 	}
@@ -243,7 +239,6 @@ func (s *strategyStore) addStrategyPrincipals(tx *BaseTx, id string, principals 
 // deleteStrategyPrincipals
 func (s *strategyStore) deleteStrategyPrincipals(tx *BaseTx, id string,
 	principals []model.Principal) error {
-
 	if len(principals) == 0 {
 		return nil
 	}
@@ -268,7 +263,6 @@ func (s *strategyStore) addStrategyResources(tx *BaseTx, id string, resources []
 	}
 
 	saveResSql := "REPLACE INTO auth_strategy_resource(strategy_id, res_type, res_id) VALUES "
-
 	values := make([]string, 0)
 	args := make([]interface{}, 0)
 
@@ -283,7 +277,6 @@ func (s *strategyStore) addStrategyResources(tx *BaseTx, id string, resources []
 	}
 
 	saveResSql += strings.Join(values, ",")
-
 	log.Debug("[Store][Strategy] add strategy resources", zap.String("sql", saveResSql),
 		zap.Any("args", args))
 	_, err := tx.Exec(saveResSql, args...)
@@ -307,12 +300,11 @@ func (s *strategyStore) deleteStrategyResources(tx *BaseTx, id string,
 		); err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
 
-// LooseAddStrategyResources
+// LooseAddStrategyResources loose add strategy resources
 func (s *strategyStore) LooseAddStrategyResources(resources []model.StrategyResource) error {
 	tx, err := s.master.Begin()
 	if err != nil {
@@ -351,7 +343,7 @@ func (s *strategyStore) LooseAddStrategyResources(resources []model.StrategyReso
 	return nil
 }
 
-// RemoveStrategyResources
+// RemoveStrategyResources 删除策略的资源
 func (s *strategyStore) RemoveStrategyResources(resources []model.StrategyResource) error {
 	tx, err := s.master.Begin()
 	if err != nil {
@@ -386,7 +378,7 @@ func (s *strategyStore) RemoveStrategyResources(resources []model.StrategyResour
 	return nil
 }
 
-// GetStrategyDetail
+// GetStrategyDetail 获取策略详情
 func (s *strategyStore) GetStrategyDetail(id string) (*model.StrategyDetail, error) {
 	if id == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
@@ -401,7 +393,7 @@ func (s *strategyStore) GetStrategyDetail(id string) (*model.StrategyDetail, err
 	return s.getStrategyDetail(row)
 }
 
-// GetDefaultStrategyDetailByPrincipal
+// GetDefaultStrategyDetailByPrincipal 获取默认策略
 func (s *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
 	principalType model.PrincipalType) (*model.StrategyDetail, error) {
 
@@ -426,7 +418,6 @@ func (s *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
 	 `
 
 	row := s.master.QueryRow(querySql, principalId, int(principalType))
-
 	return s.getStrategyDetail(row)
 }
 
@@ -466,17 +457,15 @@ func (s *strategyStore) getStrategyDetail(row *sql.Row) (*model.StrategyDetail, 
 	return ret, nil
 }
 
-// GetStrategies
+// GetStrategies 获取策略列表
 func (s *strategyStore) GetStrategies(filters map[string]string, offset uint32, limit uint32) (uint32,
 	[]*model.StrategyDetail, error) {
-
 	showDetail := filters["show_detail"]
 	delete(filters, "show_detail")
 
 	filters["ag.flag"] = "0"
 
 	return s.listStrategies(filters, offset, limit, showDetail == "true")
-
 }
 
 // listStrategies
@@ -521,7 +510,6 @@ func (s *strategyStore) queryStrategies(
 	filters map[string]string, mapping map[string]string,
 	querySqlPrefix string, countSqlPrefix string,
 	offset uint32, limit uint32, showDetail bool) (uint32, []*model.StrategyDetail, error) {
-
 	querySql := querySqlPrefix
 	countSql := countSqlPrefix
 
@@ -583,7 +571,6 @@ func (s *strategyStore) queryStrategies(
 // collectStrategies 执行真正的 sql 并从 rows 中获取策略列表
 func (s *strategyStore) collectStrategies(handler QueryHandler, querySql string,
 	args []interface{}, showDetail bool) ([]*model.StrategyDetail, error) {
-
 	log.Debug("[Store][Strategy] get simple strategies", zap.String("query sql", querySql),
 		zap.Any("args", args))
 
@@ -593,7 +580,9 @@ func (s *strategyStore) collectStrategies(handler QueryHandler, querySql string,
 			zap.Any("args", args))
 		return nil, store.Error(err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	idMap := make(map[string]struct{})
 
@@ -628,12 +617,10 @@ func (s *strategyStore) collectStrategies(handler QueryHandler, querySql string,
 	}
 
 	return ret, nil
-
 }
 
 func (s *strategyStore) GetStrategyDetailsForCache(mtime time.Time,
 	firstUpdate bool) ([]*model.StrategyDetail, error) {
-
 	tx, err := s.slave.Begin()
 	if err != nil {
 		return nil, store.Error(err)
@@ -653,7 +640,9 @@ func (s *strategyStore) GetStrategyDetailsForCache(mtime time.Time,
 	if err != nil {
 		return nil, store.Error(err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	ret := make([]*model.StrategyDetail, 0)
 	for rows.Next() {

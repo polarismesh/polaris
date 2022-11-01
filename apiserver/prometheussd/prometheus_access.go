@@ -51,14 +51,13 @@ func (h *PrometheusServer) addPrometheusDefaultAccess(ws *restful.WebService) {
 //
 // ]
 func (h *PrometheusServer) GetPrometheusClients(req *restful.Request, rsp *restful.Response) {
-
 	queryParams := ParseQueryParams(req)
 	ret := h.namingServer.GetReportClientWithCache(context.Background(), queryParams)
 
 	_ = rsp.WriteAsJson(ret.Response)
 }
 
-// parseQueryParams 解析并获取HTTP的query params
+// ParseQueryParams 解析并获取HTTP的query params
 func ParseQueryParams(req *restful.Request) map[string]string {
 	queryParams := make(map[string]string)
 	for key, value := range req.Request.URL.Query() {

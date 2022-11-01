@@ -840,7 +840,6 @@ func Test_parseStrategySearchArgs(t *testing.T) {
 	}
 }
 
-
 func Test_AuthServer_NormalOperateStrategy(t *testing.T) {
 	suit := &AuthTestSuit{}
 	if err := suit.initialize(); err != nil {
@@ -916,4 +915,3 @@ func Test_AuthServer_NormalOperateStrategy(t *testing.T) {
 		assert.Equal(t, resp.GetUser().GetAuthToken().GetValue(), qresp.GetUser().GetAuthToken().GetValue())
 	})
 }
-

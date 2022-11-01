@@ -170,7 +170,7 @@ func (rls *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 	}()
 
 	etimeStr := limitToEtimeStr(limit)
-	str := fmt.Sprintf(`update ratelimit_config set name = ?, service_id=?, disable = ?, method= ?, 
+	str := fmt.Sprintf(`update ratelimit_config set name = ?, service_id=?, disable = ?, method= ?,
 			labels = ?, priority = ?, rule = ?, revision = ?, mtime = sysdate(), etime=%s where id = ?`, etimeStr)
 	if _, err := tx.Exec(str, limit.Name, limit.ServiceID, limit.Disable,
 		limit.Method, limit.Labels, limit.Priority, limit.Rule, limit.Revision, limit.ID); err != nil {
@@ -298,7 +298,7 @@ func (rls *rateLimitStore) GetRateLimitsForCache(mtime time.Time,
 			unix_timestamp(ratelimit_config.etime), last_revision from ratelimit_config, ratelimit_revision 
 			where ratelimit_config.mtime > FROM_UNIXTIME(?) and ratelimit_config.service_id = ratelimit_revision.service_id`
 	if firstUpdate {
-		str += " and flag != 1" // nolint
+		str += " and flag != 1"
 	}
 	rows, err := rls.db.Query(str, timeToTimestamp(mtime))
 	if err != nil {
@@ -378,7 +378,7 @@ func (rls *rateLimitStore) GetExtendRateLimits(
 // getBriefRateLimits 获取列表的概要信息
 func (rls *rateLimitStore) getBriefRateLimits(
 	filter map[string]string, offset uint32, limit uint32) ([]*model.ExtendRateLimit, error) {
-	str := `select service.name, service.namespace, ratelimit_config.id, ratelimit_config.name, ratelimit_config.disable, 
+	str := `select service.name, service.namespace, ratelimit_config.id, ratelimit_config.name, ratelimit_config.disable,
             ratelimit_config.service_id, ratelimit_config.method, unix_timestamp(ratelimit_config.ctime), 
 			unix_timestamp(ratelimit_config.mtime), unix_timestamp(ratelimit_config.etime) 
 			from ratelimit_config, service where service_id = service.id and ratelimit_config.flag = 0`
@@ -434,7 +434,7 @@ func fetchBriefRateLimitRows(rows *sql.Rows) ([]*model.ExtendRateLimit, error) {
 // getExpandRateLimits 根据过滤条件获取限流规则
 func (rls *rateLimitStore) getExpandRateLimits(
 	filter map[string]string, offset uint32, limit uint32) ([]*model.ExtendRateLimit, error) {
-	str := `select service.name, service.namespace, ratelimit_config.id, ratelimit_config.name, ratelimit_config.disable, 
+	str := `select service.name, service.namespace, ratelimit_config.id, ratelimit_config.name, ratelimit_config.disable,
             ratelimit_config.service_id, ratelimit_config.method, ratelimit_config.labels, 
             ratelimit_config.priority, ratelimit_config.rule, ratelimit_config.revision, 
             unix_timestamp(ratelimit_config.ctime), unix_timestamp(ratelimit_config.mtime), unix_timestamp(ratelimit_config.etime) 

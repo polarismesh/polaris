@@ -103,7 +103,7 @@ func (c *clientCache) initialize(_ map[string]interface{}) error {
 // update 更新缓存函数
 func (c *clientCache) update(storeRollbackSec time.Duration) error {
 	// 一分钟update一次
-	timeDiff := time.Now().Sub(c.lastUpdateTime).Minutes()
+	timeDiff := time.Since(c.lastUpdateTime).Minutes()
 	if !c.firstUpdate && 1 > timeDiff {
 		log.Debug("[Cache][Client] update get storage ignore", zap.Float64("time-diff", timeDiff))
 		return nil
@@ -262,13 +262,13 @@ func (c *clientCache) IteratorClients(iterProc ClientIterProc) {
 // GetClientsByFilter Query client information
 func (c *clientCache) GetClientsByFilter(filters map[string]string, offset, limit uint32) (uint32,
 	[]*model.Client, error) {
-
-	ret := make([]*model.Client, 0, 16)
-	host, hasHost := filters["host"]
-	clientType, hasType := filters["type"]
-	version, hasVer := filters["version"]
-	id, hasId := filters["id"]
-
+	var (
+		ret                 = make([]*model.Client, 0, 16)
+		host, hasHost       = filters["host"]
+		clientType, hasType = filters["type"]
+		version, hasVer     = filters["version"]
+		id, hasId           = filters["id"]
+	)
 	c.IteratorClients(func(_ string, value *model.Client) bool {
 		if hasHost && value.Proto().GetHost().GetValue() != host {
 			return true
@@ -287,8 +287,7 @@ func (c *clientCache) GetClientsByFilter(filters map[string]string, offset, limi
 		return true
 	})
 
-	amount := uint32(len(ret))
-	return amount, doClientPage(ret, offset, limit), nil
+	return uint32(len(ret)), doClientPage(ret, offset, limit), nil
 }
 
 // doClientPage 进行分页, 仅用于控制台查询时的排序

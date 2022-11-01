@@ -35,9 +35,9 @@ import (
 )
 
 var (
-	Error_NotFoundService          = errors.New("not found service")
-	Error_SameRegisInstanceRequest = errors.New("there is the same instance request")
-	Error_RegisInstanceTimeout     = errors.New("polaris-sever regis instance busy")
+	ErrorNotFoundService          = errors.New("not found service")
+	ErrorSameRegIsInstanceRequest = errors.New("there is the same instance request")
+	ErrorRegIsInstanceTimeout     = errors.New("polaris-sever regis instance busy")
 )
 
 const (
@@ -269,12 +269,12 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 		entry := futures[i]
 
 		if _, ok := remains[entry.request.GetId().GetValue()]; ok {
-			entry.Reply(cur, api.SameInstanceRequest, Error_SameRegisInstanceRequest)
+			entry.Reply(cur, api.SameInstanceRequest, ErrorSameRegIsInstanceRequest)
 			continue
 		}
 
 		if dropExpire && entry.CanDrop() && entry.begin.Add(taskLife).Before(cur) {
-			entry.Reply(cur, api.InstanceRegisTimeout, Error_RegisInstanceTimeout)
+			entry.Reply(cur, api.InstanceRegisTimeout, ErrorRegIsInstanceTimeout)
 			continue
 		}
 
@@ -370,13 +370,12 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 	}
 
 	cur := time.Now()
-
 	log.Infof("[Batch] Start batch deregister instances count: %d", len(futures))
 	remains := make(map[string]*InstanceFuture, len(futures))
 	ids := make(map[string]bool, len(futures))
 	for _, entry := range futures {
 		if _, ok := remains[entry.request.GetId().GetValue()]; ok {
-			entry.Reply(cur, api.SameInstanceRequest, Error_SameRegisInstanceRequest)
+			entry.Reply(cur, api.SameInstanceRequest, ErrorSameRegIsInstanceRequest)
 			continue
 		}
 
@@ -425,7 +424,6 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 
 // batchRestoreInstanceIsolate 批量恢复实例的隔离状态，以请求为准，请求如果不存在，就以数据库为准
 func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*InstanceFuture) (map[string]struct{}, error) {
-
 	if len(futures) == 0 {
 		return nil, nil
 	}
@@ -472,7 +470,6 @@ func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*Instan
 // 返回：过滤后的futures, 实例ID->ServiceID, error
 func (ctrl *InstanceCtrl) batchVerifyInstances(futures map[string]*InstanceFuture) (
 	map[string]*InstanceFuture, map[string]string, error) {
-
 	if len(futures) == 0 {
 		return nil, nil, nil
 	}
@@ -510,7 +507,7 @@ func (ctrl *InstanceCtrl) loadService(entry *InstanceFuture, name, namespace str
 		if tmpService == nil {
 			log.Errorf("[Controller] get source service(%s, %s) token is empty, verify failed",
 				entry.request.GetService().GetValue(), entry.request.GetNamespace().GetValue())
-			entry.Reply(time.Now(), api.NotFoundResource, Error_NotFoundService)
+			entry.Reply(time.Now(), api.NotFoundResource, ErrorNotFoundService)
 
 			return nil, false
 		}

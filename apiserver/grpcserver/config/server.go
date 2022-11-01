@@ -54,8 +54,8 @@ func (g *ConfigGRPCServer) GetProtocol() string {
 
 // Initialize 初始化GRPC API服务器
 func (g *ConfigGRPCServer) Initialize(ctx context.Context, option map[string]interface{},
-	api map[string]apiserver.APIConfig) error {
-	g.openAPI = api
+	apiConf map[string]apiserver.APIConfig) error {
+	g.openAPI = apiConf
 	return g.BaseGrpcServer.Initialize(ctx, option,
 		grpcserver.WithProtocol(g.GetProtocol()),
 		grpcserver.WithLogger(configLog),
@@ -103,10 +103,10 @@ func (g *ConfigGRPCServer) Stop() {
 }
 
 // Restart 重启Server
-func (g *ConfigGRPCServer) Restart(option map[string]interface{}, api map[string]apiserver.APIConfig,
+func (g *ConfigGRPCServer) Restart(option map[string]interface{}, apiConf map[string]apiserver.APIConfig,
 	errCh chan error) error {
 	initFunc := func() error {
-		return g.Initialize(context.Background(), option, api)
+		return g.Initialize(context.Background(), option, apiConf)
 	}
 	runFunc := func() {
 		g.Run(errCh)

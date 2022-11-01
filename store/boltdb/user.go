@@ -35,38 +35,39 @@ const (
 	// 用户数据 scope
 	tblUser string = "user"
 
-	// 用户ID字段
+	// UserFieldID 用户ID字段
 	UserFieldID string = "ID"
-	// 用户名字段
+	// UserFieldName 用户名字段
 	UserFieldName string = "Name"
-	// 用户密码字段
+	// UserFieldPassword 用户密码字段
 	UserFieldPassword string = "Password"
-	// 用户Owner字段
+	// UserFieldOwner 用户Owner字段
 	UserFieldOwner string = "Owner"
-	// 用户来源字段
+	// UserFieldSource 用户来源字段
 	UserFieldSource string = "Source"
-	// 用户类型字段
+	// UserFieldType 用户类型字段
 	UserFieldType string = "Type"
-	// 用户Token字段
+	// UserFieldToken 用户Token字段
 	UserFieldToken string = "Token"
-	// 用户Token是否可用字段
+	// UserFieldTokenEnable 用户Token是否可用字段
 	UserFieldTokenEnable string = "TokenEnable"
-	// 用户逻辑删除字段
+	// UserFieldValid 用户逻辑删除字段
 	UserFieldValid string = "Valid"
-	// 用户备注字段
+	// UserFieldComment 用户备注字段
 	UserFieldComment string = "Comment"
-	// 用户创建时间字段
+	// UserFieldCreateTime 用户创建时间字段
 	UserFieldCreateTime string = "CreateTime"
-	// 用户修改时间字段
+	// UserFieldModifyTime 用户修改时间字段
 	UserFieldModifyTime string = "ModifyTime"
-	// 用户手机号信息
+	// UserFieldMobile 用户手机号信息
 	UserFieldMobile string = "Mobile"
-	// 用户邮箱信息
+	// UserFieldEmail 用户邮箱信息
 	UserFieldEmail string = "Email"
 )
 
 var (
-	MultipleUserFound = errors.New("multiple user found")
+	// ErrMultipleUserFound 多个用户
+	ErrMultipleUserFound = errors.New("multiple user found")
 )
 
 // userStore
@@ -94,7 +95,9 @@ func (us *userStore) addUser(user *model.User) error {
 	}
 	tx := proxy.GetDelegateTx().(*bolt.Tx)
 
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	owner := user.Owner
 	if owner == "" {
@@ -170,7 +173,9 @@ func (us *userStore) deleteUser(user *model.User) error {
 	}
 	tx := proxy.GetDelegateTx().(*bolt.Tx)
 
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	properties := make(map[string]interface{})
 	properties[UserFieldValid] = false
@@ -194,13 +199,11 @@ func (us *userStore) deleteUser(user *model.User) error {
 		log.Error("[Store][User] delete user tx commit", zap.Error(err), zap.String("id", user.ID))
 		return err
 	}
-
 	return nil
 }
 
-// GetUser
+// GetUser 获取用户
 func (us *userStore) GetUser(id string) (*model.User, error) {
-
 	if id == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, "get user missing some params")
 	}
@@ -210,15 +213,15 @@ func (us *userStore) GetUser(id string) (*model.User, error) {
 		return nil, err
 	}
 	tx := proxy.GetDelegateTx().(*bolt.Tx)
-
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	return us.getUser(tx, id)
 }
 
-// GetUser
+// GetUser 获取用户
 func (us *userStore) getUser(tx *bolt.Tx, id string) (*model.User, error) {
-
 	if id == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, "get user missing some params")
 	}
@@ -232,7 +235,7 @@ func (us *userStore) getUser(tx *bolt.Tx, id string) (*model.User, error) {
 		return nil, nil
 	}
 	if len(ret) > 1 {
-		return nil, MultipleUserFound
+		return nil, ErrMultipleUserFound
 	}
 
 	user := ret[id].(*userForStore)
@@ -243,7 +246,7 @@ func (us *userStore) getUser(tx *bolt.Tx, id string) (*model.User, error) {
 	return converToUserModel(user), nil
 }
 
-// GetUserByName
+// GetUserByName 获取用户
 func (us *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
 	if name == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, "get user missing some params")
@@ -266,7 +269,7 @@ func (us *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
 		return nil, nil
 	}
 	if len(ret) > 1 {
-		return nil, MultipleUserFound
+		return nil, ErrMultipleUserFound
 	}
 
 	var id string
@@ -299,7 +302,6 @@ func (us *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
 	}
 
 	users := make([]*model.User, 0, len(ids))
-
 	for k := range ret {
 		user := ret[k].(*userForStore)
 		if !user.Valid {
@@ -313,9 +315,7 @@ func (us *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
 
 // GetSubCount 获取子账户的个数
 func (us *userStore) GetSubCount(user *model.User) (uint32, error) {
-
 	ownerId := user.ID
-
 	ret, err := us.handler.LoadValuesByFilter(tblUser, []string{UserFieldOwner, UserFieldValid}, &userForStore{},
 		func(m map[string]interface{}) bool {
 			valid, ok := m[UserFieldValid].(bool)
@@ -337,7 +337,6 @@ func (us *userStore) GetSubCount(user *model.User) (uint32, error) {
 
 // GetUsers 获取用户列表
 func (us *userStore) GetUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error) {
-
 	if _, ok := filters["group_id"]; ok {
 		return us.getGroupUsers(filters, offset, limit)
 	}
@@ -350,9 +349,7 @@ func (us *userStore) GetUsers(filters map[string]string, offset uint32, limit ui
 // "owner":  1,
 // "source": 1,
 func (us *userStore) getUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error) {
-
 	fields := []string{UserFieldID, UserFieldName, UserFieldOwner, UserFieldSource, UserFieldValid, UserFieldType}
-
 	ret, err := us.handler.LoadValuesByFilter(tblUser, fields, &userForStore{},
 		func(m map[string]interface{}) bool {
 
@@ -415,12 +412,10 @@ func (us *userStore) getUsers(filters map[string]string, offset uint32, limit ui
 	}
 
 	return uint32(len(ret)), doUserPage(ret, offset, limit), nil
-
 }
 
 // getGroupUsers 获取某个用户组下的所有用户列表数据信息
 func (us *userStore) getGroupUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error) {
-
 	groupId := filters["group_id"]
 	delete(filters, "group_id")
 
@@ -495,7 +490,7 @@ func (us *userStore) getGroupUsers(filters map[string]string, offset uint32, lim
 	return uint32(len(ret)), doUserPage(users, offset, limit), err
 }
 
-// GetUsersForCache
+// GetUsersForCache 获取所有用户信息
 func (us *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*model.User, error) {
 	ret, err := us.handler.LoadValuesByFilter(tblUser, []string{UserFieldModifyTime}, &userForStore{},
 		func(m map[string]interface{}) bool {
@@ -509,7 +504,6 @@ func (us *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mod
 	}
 
 	users := make([]*model.User, 0, len(ret))
-
 	for k := range ret {
 		val := ret[k]
 		users = append(users, converToUserModel(val.(*userForStore)))
@@ -520,9 +514,7 @@ func (us *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mod
 
 // doPage 进行分页
 func doUserPage(ret map[string]interface{}, offset, limit uint32) []*model.User {
-
 	users := make([]*model.User, 0, len(ret))
-
 	beginIndex := offset
 	endIndex := beginIndex + limit
 	totalCount := uint32(len(ret))
@@ -548,7 +540,6 @@ func doUserPage(ret map[string]interface{}, offset, limit uint32) []*model.User 
 	})
 
 	return users[beginIndex:endIndex]
-
 }
 
 func converToUserStore(user *model.User) *userForStore {

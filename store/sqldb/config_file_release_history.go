@@ -32,20 +32,19 @@ type configFileReleaseHistoryStore struct {
 // CreateConfigFileReleaseHistory 创建配置文件发布历史记录
 func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(tx store.Tx,
 	fileReleaseHistory *model.ConfigFileReleaseHistory) error {
-
-	sql := "insert into config_file_release_history(name, namespace, `group`, file_name, content, comment, " +
+	s := "insert into config_file_release_history(name, namespace, `group`, file_name, content, comment, " +
 		" md5, type, status, format, tags, " +
 		"create_time, create_by, modify_time, modify_by) values " +
 		"(?,?,?,?,?,?,?,?,?,?,?,sysdate(),?,sysdate(),?)"
 	var err error
 	if tx != nil {
-		_, err = tx.GetDelegateTx().(*BaseTx).Exec(sql, fileReleaseHistory.Name, fileReleaseHistory.Namespace,
+		_, err = tx.GetDelegateTx().(*BaseTx).Exec(s, fileReleaseHistory.Name, fileReleaseHistory.Namespace,
 			fileReleaseHistory.Group, fileReleaseHistory.FileName, fileReleaseHistory.Content,
 			fileReleaseHistory.Comment, fileReleaseHistory.Md5,
 			fileReleaseHistory.Type, fileReleaseHistory.Status, fileReleaseHistory.Format, fileReleaseHistory.Tags,
 			fileReleaseHistory.CreateBy, fileReleaseHistory.ModifyBy)
 	} else {
-		_, err = rh.db.Exec(sql, fileReleaseHistory.Name, fileReleaseHistory.Namespace,
+		_, err = rh.db.Exec(s, fileReleaseHistory.Name, fileReleaseHistory.Namespace,
 			fileReleaseHistory.Group, fileReleaseHistory.FileName, fileReleaseHistory.Content,
 			fileReleaseHistory.Comment, fileReleaseHistory.Md5,
 			fileReleaseHistory.Type, fileReleaseHistory.Status, fileReleaseHistory.Format, fileReleaseHistory.Tags,
@@ -103,10 +102,8 @@ func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespa
 
 func (rh *configFileReleaseHistoryStore) GetLatestConfigFileReleaseHistory(namespace, group,
 	fileName string) (*model.ConfigFileReleaseHistory, error) {
-
-	sql := rh.genSelectSql() + "where namespace = ? and `group` = ? and file_name = ? order by id desc limit 1"
-
-	rows, err := rh.db.Query(sql, namespace, group, fileName)
+	s := rh.genSelectSql() + "where namespace = ? and `group` = ? and file_name = ? order by id desc limit 1"
+	rows, err := rh.db.Query(s, namespace, group, fileName)
 	if err != nil {
 		return nil, err
 	}

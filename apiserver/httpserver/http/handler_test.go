@@ -68,8 +68,8 @@ func Test_i18n(t *testing.T) {
 		h.Response.AddHeader(utils.PolarisMessage, item.hMsg)
 		resp := api.NewResponse(code)
 		resp.Info = &wrappers.StringValue{Value: item.rMsg}
-		if msg := h.i18n(resp).GetInfo().Value; msg != item.wMsg {
-			t.Errorf("handler.i18n() = %v, want %v", msg, item.wMsg)
+		if msg := h.i18nAction(resp).GetInfo().Value; msg != item.wMsg {
+			t.Errorf("handler.i18nAction() = %v, want %v", msg, item.wMsg)
 		}
 	}
 }

@@ -222,7 +222,6 @@ func decodeMapBuffer(bucket *bolt.Bucket) (map[string]string, error) {
 		return nil, err
 	}
 	return values, nil
-
 }
 
 func encodeTimeBuffer(timeValue time.Time) []byte {

@@ -94,14 +94,14 @@ func CheckContentLength(content string) error {
 }
 
 // GenConfigFileResponse 为客户端生成响应对象
-func GenConfigFileResponse(namespace, group, fileName, content, md5 string, version uint64) *api.ConfigClientResponse {
+func GenConfigFileResponse(namespace, group, fileName, content, md5str string, version uint64) *api.ConfigClientResponse {
 	configFile := &api.ClientConfigFileInfo{
 		Namespace: utils.NewStringValue(namespace),
 		Group:     utils.NewStringValue(group),
 		FileName:  utils.NewStringValue(fileName),
 		Content:   utils.NewStringValue(content),
 		Version:   utils.NewUInt64Value(version),
-		Md5:       utils.NewStringValue(md5),
+		Md5:       utils.NewStringValue(md5str),
 	}
 	return api.NewConfigClientResponse(api.ExecuteSuccess, configFile)
 }
@@ -125,7 +125,10 @@ func ToTagJsonStr(tags []*api.ConfigFileTag) string {
 		})
 	}
 
-	bytes, _ := json.Marshal(kvs)
+	bytes, err := json.Marshal(kvs)
+	if err != nil {
+		return "[]"
+	}
 	return string(bytes)
 }
 

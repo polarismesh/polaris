@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"os"
 
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/auth"
@@ -106,14 +106,15 @@ func Load(filePath string) (*Config, error) {
 		fmt.Printf("[ERROR] %v\n", err)
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
-	config := &Config{}
-	err = yaml.NewDecoder(file).Decode(config)
-	if err != nil {
+	conf := &Config{}
+	if err = yaml.NewDecoder(file).Decode(conf); err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
 		return nil, err
 	}
 
-	return config, nil
+	return conf, nil
 }

@@ -72,7 +72,6 @@ func (svr *serverAuthAbility) GetServiceInstanceRevision(serviceID string,
 //	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectServiceAuthContext(ctx context.Context, req []*api.Service,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
@@ -92,7 +91,6 @@ func (svr *serverAuthAbility) collectServiceAuthContext(ctx context.Context, req
 //	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectServiceAliasAuthContext(ctx context.Context, req []*api.ServiceAlias,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
@@ -112,7 +110,6 @@ func (svr *serverAuthAbility) collectServiceAliasAuthContext(ctx context.Context
 //	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectInstanceAuthContext(ctx context.Context, req []*api.Instance,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
@@ -126,7 +123,6 @@ func (svr *serverAuthAbility) collectInstanceAuthContext(ctx context.Context, re
 // collectClientInstanceAuthContext 对于服务实例的处理，收集所有的与鉴权的相关信息
 func (svr *serverAuthAbility) collectClientInstanceAuthContext(ctx context.Context, req []*api.Instance,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
@@ -147,7 +143,6 @@ func (svr *serverAuthAbility) collectClientInstanceAuthContext(ctx context.Conte
 //	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectCircuitBreakerAuthContext(ctx context.Context, req []*api.CircuitBreaker,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
@@ -167,7 +162,6 @@ func (svr *serverAuthAbility) collectCircuitBreakerAuthContext(ctx context.Conte
 //	@return *model.AcquireContext
 func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx context.Context, req []*api.ConfigRelease,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
@@ -187,7 +181,6 @@ func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx contex
 //	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectRouteRuleAuthContext(ctx context.Context, req []*api.Routing,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
@@ -207,7 +200,6 @@ func (svr *serverAuthAbility) collectRouteRuleAuthContext(ctx context.Context, r
 //	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectRateLimitAuthContext(ctx context.Context, req []*api.Rule,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
@@ -401,10 +393,11 @@ func (svr *serverAuthAbility) queryRateLimitConfigResource(
 // convertToDiscoverResourceEntryMaps 通用方法，进行转换为期望的、服务相关的 ResourceEntry
 func (svr *serverAuthAbility) convertToDiscoverResourceEntryMaps(nsSet utils.StringSet,
 	svcSet *servicecommon.ServiceSet) map[api.ResourceType][]model.ResourceEntry {
-	param := nsSet.ToSlice()
-	nsArr := svr.Cache().Namespace().GetNamespacesByName(param)
-
-	nsRet := make([]model.ResourceEntry, 0, len(nsArr))
+	var (
+		param = nsSet.ToSlice()
+		nsArr = svr.Cache().Namespace().GetNamespacesByName(param)
+		nsRet = make([]model.ResourceEntry, 0, len(nsArr))
+	)
 	for index := range nsArr {
 		ns := nsArr[index]
 		nsRet = append(nsRet, model.ResourceEntry{

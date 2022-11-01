@@ -68,7 +68,7 @@ func (c *ComponentCacheStatics) add(ac *CacheCall) {
 		}
 	}
 
-	item, _ = c.statis[index]
+	item = c.statis[index]
 	if ac.miss {
 		item.missCount += int64(ac.count)
 	} else {
@@ -98,7 +98,6 @@ func (c *ComponentCacheStatics) printStatics(staticsSlice []*CacheCallStatisItem
 
 // log and print the statics messages
 func (c *ComponentCacheStatics) log() {
-
 	if len(c.statis) == 0 {
 		return
 	}

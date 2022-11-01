@@ -74,7 +74,6 @@ func (b *BaseGrpcServer) GetPort() uint32 {
 
 // Initialize init the gRPC server
 func (b *BaseGrpcServer) Initialize(ctx context.Context, conf map[string]interface{}, initOptions ...InitOption) error {
-
 	for i := range initOptions {
 		initOptions[i](b)
 	}
@@ -147,7 +146,6 @@ func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer InitS
 			errCh <- err
 			return
 		}
-
 	}
 
 	// 指定使用服务端证书创建一个 TLS credentials
@@ -195,7 +193,6 @@ var notPrintableMethods = map[string]bool{
 
 func (b *BaseGrpcServer) unaryInterceptor(ctx context.Context, req interface{},
 	info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (rsp interface{}, err error) {
-
 	stream := newVirtualStream(ctx,
 		WithVirtualStreamBaseServer(b),
 		WithVirtualStreamLogger(b.log),
@@ -232,7 +229,6 @@ func (b *BaseGrpcServer) unaryInterceptor(ctx context.Context, req interface{},
 
 func (b *BaseGrpcServer) streamInterceptor(srv interface{}, ss grpc.ServerStream,
 	info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
-
 	stream := newVirtualStream(ss.Context(),
 		WithVirtualStreamBaseServer(b),
 		WithVirtualStreamServerStream(ss),
@@ -266,7 +262,6 @@ func (b *BaseGrpcServer) streamInterceptor(srv interface{}, ss grpc.ServerStream
 
 		_ = b.statis.AddAPICall(stream.Method, "gRPC", stream.Code, 0)
 	}
-
 	return
 }
 

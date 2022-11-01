@@ -131,10 +131,8 @@ func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Res
 // createInstance store operate
 func (s *Server) createInstance(ctx context.Context, req *api.Instance, ins *api.Instance) (
 	*model.Instance, *api.Response) {
-
 	// create service if absent
 	code, svcId, err := s.createServiceIfAbsent(ctx, req)
-
 	if err != nil {
 		return nil, api.NewInstanceResponse(code, req)
 	}
@@ -151,7 +149,6 @@ func (s *Server) createInstance(ctx context.Context, req *api.Instance, ins *api
 // ins 包含了req数据与instanceID，serviceToken
 func (s *Server) asyncCreateInstance(ctx context.Context, svcId string, req *api.Instance, ins *api.Instance) (
 	*model.Instance, *api.Response) {
-
 	allowAsyncRegis, _ := ctx.Value(utils.ContextOpenAsyncRegis).(bool)
 	future := s.bc.AsyncCreateInstance(svcId, ins, !allowAsyncRegis)
 
@@ -355,9 +352,7 @@ func (s *Server) DeleteInstanceByHost(ctx context.Context, req *api.Instance) *a
 			instance.Service(),
 			instance.Host(),
 			int(instance.Port()))
-
 	}
-
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
 }
 
@@ -612,7 +607,6 @@ func (s *Server) updateInstanceAttribute(req *api.Instance, instance *model.Inst
 }
 
 func instanceLocationNeedUpdate(req *api.Location, old *api.Location) bool {
-
 	if req.GetRegion().GetValue() != old.GetRegion().GetValue() {
 		return true
 	}
@@ -870,7 +864,6 @@ func (s *Server) packCmdb(instance *api.Instance) {
 	if err == nil && location != nil {
 		instance.Location = location.Proto
 	}
-
 }
 
 func (s *Server) sendDiscoverEvent(eventType model.DiscoverEventType, namespace, service, host string, port int) {
@@ -895,7 +888,6 @@ type svcName interface {
 
 // createServiceIfAbsent 如果服务不存在，则进行创建，并返回服务的ID信息
 func (s *Server) createServiceIfAbsent(ctx context.Context, instance svcName) (uint32, string, error) {
-
 	svc, err := s.loadService(instance)
 	if err != nil {
 		return api.ExecuteException, "", err
@@ -920,29 +912,23 @@ func (s *Server) createServiceIfAbsent(ctx context.Context, instance svcName) (u
 	}
 
 	key := fmt.Sprintf("%s:%s", simpleService.Namespace, simpleService.Name)
-
 	ret, _, _ := s.createServiceSingle.Do(key, func() (interface{}, error) {
 		resp := s.CreateService(ctx, simpleService)
 		return resp, nil
 	})
 
 	resp := ret.(*api.Response)
-
 	retCode := resp.GetCode().GetValue()
-
 	if retCode != api.ExecuteSuccess && retCode != api.ExistedResource {
 		return retCode, "", errors.New(resp.GetInfo().GetValue())
 	}
 
 	svcId := resp.Service.Id.GetValue()
-
 	return retCode, svcId, nil
 }
 
 func (s *Server) loadService(instance svcName) (*model.Service, error) {
-
 	svc := s.caches.Service().GetServiceByName(instance.GetService().GetValue(), instance.GetNamespace().GetValue())
-
 	if svc != nil {
 		if svc.IsAlias() {
 			return nil, errors.New("service is alias")
@@ -1256,7 +1242,6 @@ func CheckDbInstanceFieldLen(req *api.Instance) (*api.Response, bool) {
 
 func diffInstanceEvent(req *api.Instance, save *model.Instance) []model.DiscoverEventType {
 	eventTypes := make([]model.DiscoverEventType, 0)
-
 	if req.Isolate != nil && save.Isolate() != req.Isolate.GetValue() {
 		if req.Isolate.GetValue() {
 			eventTypes = append(eventTypes, model.EventInstanceOpenIsolate)

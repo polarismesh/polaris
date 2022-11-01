@@ -331,7 +331,6 @@ func (l *Listener) release(conn *Conn) {
 		delete(c.actives, conn.address)
 		c.mu.Unlock()
 	}
-
 }
 
 // 增加监听server的连接计数

@@ -25,7 +25,7 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-// CreateInstances create one instance
+// RegisterInstance create one instance
 func (svr *serverAuthAbility) RegisterInstance(ctx context.Context, req *api.Instance) *api.Response {
 	authCtx := svr.collectClientInstanceAuthContext(ctx, []*api.Instance{req}, model.Create, "RegisterInstance")
 
@@ -41,7 +41,7 @@ func (svr *serverAuthAbility) RegisterInstance(ctx context.Context, req *api.Ins
 	return svr.targetServer.RegisterInstance(ctx, req)
 }
 
-// DeleteInstance delete onr instance
+// DeregisterInstance delete onr instance
 func (svr *serverAuthAbility) DeregisterInstance(ctx context.Context, req *api.Instance) *api.Response {
 	authCtx := svr.collectClientInstanceAuthContext(ctx, []*api.Instance{req}, model.Create, "DeregisterInstance")
 

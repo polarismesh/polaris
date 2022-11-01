@@ -261,7 +261,6 @@ func (sc *serviceCache) GetServiceByName(name string, namespace string) *model.S
 
 // CleanNamespace 清除Namespace对应的服务缓存
 func (sc *serviceCache) CleanNamespace(namespace string) {
-
 	sc.names.Delete(namespace)
 }
 
@@ -456,7 +455,6 @@ func (sc *serviceCache) watchCountChangeCh(ctx context.Context) {
 }
 
 func (sc *serviceCache) postProcessUpdatedServices(affect map[string]bool) {
-
 	progress := 0
 	for namespace := range affect {
 		progress++
@@ -512,7 +510,6 @@ func (sc *serviceCache) updateCl5SidAndNames(service *model.Service) {
 	cl5Name := genCl5Name(cl5NameMeta)
 	sc.cl5Sid2Name.Store(sid, cl5Name)
 	sc.cl5Names.Store(cl5Name, service)
-
 }
 
 // genCl5Name 兼容cl5Name

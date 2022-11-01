@@ -108,7 +108,6 @@ func newFileCache(ctx context.Context, storage store.Store) FileCache {
 
 // initialize
 func (fc *fileCache) initialize(opt map[string]interface{}) error {
-
 	fc.expireTimeAfterWrite, _ = opt["expireTimeAfterWrite"].(int)
 	if fc.expireTimeAfterWrite == 0 {
 		fc.expireTimeAfterWrite = 3600

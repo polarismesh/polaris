@@ -173,7 +173,7 @@ func (h *Handler) WriteHeaderAndProto(obj api.ResponseMessage) {
 	h.Response.WriteHeader(status)
 
 	m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
-	err := m.Marshal(h.Response, h.i18n(obj))
+	err := m.Marshal(h.Response, h.i18nAction(obj))
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
 	}
@@ -213,10 +213,10 @@ func HTTPResponse(req *restful.Request, rsp *restful.Response, code uint32) {
 	handler.WriteHeaderAndProto(resp)
 }
 
-// i18n 依据resp.code进行国际化resp.info信息
+// i18nAction 依据resp.code进行国际化resp.info信息
 // 当与header中的信息不匹配时, 则使用原文, 后续通过新定义code的方式增量解决
 // 当header的msg 与 resp.info一致时, 根据resp.code国际化信息
-func (h *Handler) i18n(obj api.ResponseMessage) api.ResponseMessage {
+func (h *Handler) i18nAction(obj api.ResponseMessage) api.ResponseMessage {
 	hMsg := h.Response.Header().Get(utils.PolarisMessage)
 	info := obj.GetInfo()
 	if hMsg != info.GetValue() {

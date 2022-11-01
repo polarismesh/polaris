@@ -102,8 +102,8 @@ func Test_rateLimitStore_CreateRateLimitWithBadParam(t *testing.T) {
 		if err := store.CreateRateLimit(testVal); err == nil {
 			t.Fatalf("rateLimitStore.CreateRateLimit() need to return error")
 		} else {
-			if strings.Compare(BadParamError.Error(), err.Error()) != 0 {
-				t.Fatalf("error msg must : %s", BadParamError.Error())
+			if strings.Compare(ErrBadParam.Error(), err.Error()) != 0 {
+				t.Fatalf("error msg must : %s", ErrBadParam.Error())
 			}
 		}
 	})

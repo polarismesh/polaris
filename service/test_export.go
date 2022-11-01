@@ -34,11 +34,8 @@ import (
 func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, bc *batch.Controller,
 	cacheMgr *cache.CacheManager, storage store.Store, namespaceSvr namespace.NamespaceOperateServer,
 	healthSvr *healthcheck.Server, authSvr auth.AuthServer) (DiscoverServer, error) {
-
 	namingServer.healthServer = healthSvr
-
 	namingServer.storage = storage
-
 	// 注入命名空间管理模块
 	namingServer.namespaceSvr = namespaceSvr
 
@@ -50,14 +47,10 @@ func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Conf
 	}
 
 	namingServer.bc = bc
-
 	// l5service
 	namingServer.l5service = &l5service{}
-
 	namingServer.createServiceSingle = &singleflight.Group{}
-
 	// 插件初始化
 	pluginInitialize()
-
 	return newServerAuthAbility(namingServer, authSvr), nil
 }

@@ -74,7 +74,9 @@ func (cf *configFileTemplateStore) GetConfigFileTemplate(name string) (*model.Co
 	}
 	tx := proxy.GetDelegateTx().(*bolt.Tx)
 
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	values := make(map[string]interface{})
 	if err = loadValues(tx, tblConfigFileTemplate, []string{name}, &model.ConfigFileTemplate{}, values); err != nil {
@@ -102,14 +104,15 @@ func (cf *configFileTemplateStore) GetConfigFileTemplate(name string) (*model.Co
 // CreateConfigFileTemplate create config file template
 func (cf *configFileTemplateStore) CreateConfigFileTemplate(
 	template *model.ConfigFileTemplate) (*model.ConfigFileTemplate, error) {
-
 	proxy, err := cf.handler.StartTx()
 	if err != nil {
 		return nil, err
 	}
 	tx := proxy.GetDelegateTx().(*bolt.Tx)
 
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	cf.id++
 	template.Id = cf.id
@@ -124,14 +127,12 @@ func (cf *configFileTemplateStore) CreateConfigFileTemplate(
 	}
 
 	key := template.Name
-
 	if err := saveValue(tx, tblConfigFileTemplate, key, template); err != nil {
 		log.Error("[ConfigFileTemplate] save error", zap.Error(err))
 		return nil, err
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err = tx.Commit(); err != nil {
 		log.Error("[ConfigFileTemplate] commit error", zap.Error(err))
 		return nil, err
 	}

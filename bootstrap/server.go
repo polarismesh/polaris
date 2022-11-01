@@ -204,9 +204,6 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 
 func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s store.Store,
 	cacheMgn *cache.CacheManager, authMgn auth.AuthServer) error {
-
-	var err error
-
 	// 批量控制器
 	namingBatchConfig, err := batch.ParseBatchConfig(cfg.Naming.Batch)
 	if err != nil {
@@ -272,8 +269,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		return err
 	}
 
-	_, err = service.GetServer()
-	if err != nil {
+	if _, err = service.GetServer(); err != nil {
 		return err
 	}
 
@@ -283,7 +279,6 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 // StartConfigCenterComponents 启动配置中心模块
 func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config, s store.Store,
 	cacheMgn *cache.CacheManager, authMgn auth.AuthServer) error {
-
 	namespaceOperator, err := namespace.GetServer()
 	if err != nil {
 		return err
@@ -328,7 +323,6 @@ func RestartServers(errCh chan error) error {
 	log.Infof("new config: %+v", cfg)
 
 	// 把配置的每个apiserver，进行重启
-
 	for _, protocol := range cfg.APIServers {
 		server, exist := apiserver.Slots[protocol.Name]
 		if !exist {
@@ -514,21 +508,21 @@ func selfRegister(
 	}
 
 	name := boot_config.DefaultPolarisName
-	namespace := boot_config.DefaultPolarisNamespace
+	polarisNamespace := boot_config.DefaultPolarisNamespace
 	if polarisService.Name != "" {
 		name = polarisService.Name
 	}
 
 	if polarisService.Namespace != "" {
-		namespace = polarisService.Namespace
+		polarisNamespace = polarisService.Namespace
 	}
 
-	svc, err := storage.GetService(name, namespace)
+	svc, err := storage.GetService(name, polarisNamespace)
 	if err != nil {
 		return err
 	}
 	if svc == nil {
-		return fmt.Errorf("self service(%s) in namespace(%s) not found", name, namespace)
+		return fmt.Errorf("self service(%s) in namespace(%s) not found", name, polarisNamespace)
 	}
 
 	metadata := polarisService.Metadata
@@ -540,7 +534,7 @@ func selfRegister(
 
 	req := &api.Instance{
 		Service:           utils.NewStringValue(name),
-		Namespace:         utils.NewStringValue(namespace),
+		Namespace:         utils.NewStringValue(polarisNamespace),
 		Host:              utils.NewStringValue(host),
 		Port:              utils.NewUInt32Value(port),
 		Protocol:          utils.NewStringValue(protocol),
@@ -568,7 +562,6 @@ func selfRegister(
 		if api.CalcCode(resp) != 200 {
 			return fmt.Errorf("%s", resp.GetInfo().GetValue())
 		}
-
 	}
 	SelfServiceInstance = append(SelfServiceInstance, req)
 
@@ -600,7 +593,9 @@ func getLocalHost(addr string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	localAddr := conn.LocalAddr().String() // ip:port
 	segs := strings.Split(localAddr, ":")

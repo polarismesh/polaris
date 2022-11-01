@@ -35,7 +35,6 @@ type (
 // GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
 func (s *Server) GetConfigFileForClient(ctx context.Context,
 	client *api.ClientConfigFileInfo) *api.ConfigClientResponse {
-
 	namespace := client.GetNamespace().GetValue()
 	group := client.GetGroup().GetValue()
 	fileName := client.GetFileName().GetValue()
@@ -90,9 +89,7 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 
 func (s *Server) WatchConfigFiles(ctx context.Context,
 	request *api.ClientWatchConfigFileRequest) (WatchCallback, error) {
-
 	clientAddr := utils.ParseClientAddress(ctx)
-
 	watchFiles := request.GetWatchFiles()
 	// 2. 检查客户端是否有版本落后
 	if resp := s.doCheckClientConfigFile(ctx, watchFiles, compareByVersion); resp.Code.GetValue() != api.DataNoChange {
@@ -126,7 +123,6 @@ func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api
 	}
 
 	requestID := utils.ParseRequestID(ctx)
-
 	for _, configFile := range configFiles {
 		namespace := configFile.Namespace.GetValue()
 		group := configFile.Group.GetValue()

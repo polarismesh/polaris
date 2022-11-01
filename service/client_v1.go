@@ -77,7 +77,6 @@ func (s *Server) ReportClient(ctx context.Context, req *api.Client) *api.Respons
 // GetReportClientWithCache Used for client acquisition service information
 func (s *Server) GetReportClientWithCache(ctx context.Context,
 	query map[string]string) *model.PrometheusDiscoveryResponse {
-
 	if s.caches == nil {
 		return &model.PrometheusDiscoveryResponse{
 			Code:     api.NotFoundInstance,
@@ -86,7 +85,6 @@ func (s *Server) GetReportClientWithCache(ctx context.Context,
 	}
 
 	targets := make([]model.PrometheusTarget, 0, 8)
-
 	expectSchema := map[string]struct{}{
 		"http":  {},
 		"https": {},
@@ -445,7 +443,6 @@ func (s *Server) getSourceServiceID(service *model.Service) string {
 	}
 
 	return service.ID
-
 }
 
 // 根据服务名获取服务缓存数据

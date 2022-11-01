@@ -48,11 +48,9 @@ func getParamFromEurekaRequestHeader(req *restful.Request, headerName string) st
 	headerValue := req.HeaderParameter(headerName)
 	if len(headerValue) > 0 {
 		return headerValue
-	} else {
-		headerValue = req.HeaderParameter(strings.ToLower(headerName))
-		return headerValue
 	}
-
+	headerValue = req.HeaderParameter(strings.ToLower(headerName))
+	return headerValue
 }
 
 func getAuthFromEurekaRequestHeader(req *restful.Request) (string, error) {

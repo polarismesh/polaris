@@ -21,10 +21,10 @@ import (
 	"errors"
 	"fmt"
 
-	_ "github.com/go-sql-driver/mysql"
-
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 const (
