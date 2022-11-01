@@ -59,9 +59,6 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 	}
 	swo.Tags = []spec.Tag{
 		{TagProps: spec.TagProps{
-			Name:        "Alias",
-			Description: "服务别名管理"}},
-		{TagProps: spec.TagProps{
 			Name:        "Auth",
 			Description: "鉴权管理"}},
 		{TagProps: spec.TagProps{
@@ -71,8 +68,8 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Name:        "ConfigConsole",
 			Description: "服务端接口"}},
 		{TagProps: spec.TagProps{
-			Name:        "Client",
-			Description: "客户端"}},
+			Name:        "CircuitBreakers",
+			Description: "熔断限流"}},
 		{TagProps: spec.TagProps{
 			Name:        "Instances",
 			Description: "实例管理"}},
@@ -83,7 +80,7 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Name:        "Namespaces",
 			Description: "命名空间管理"}},
 		{TagProps: spec.TagProps{
-			Name:        "Routing",
+			Name:        "RoutingRules",
 			Description: "路由规则管理"}},
 		{TagProps: spec.TagProps{
 			Name:        "RateLimits",

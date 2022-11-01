@@ -57,9 +57,10 @@ func (h *HTTPServerV2) GetClientAccessServer(include []string) (*restful.WebServ
 
 // addDiscoverAccess 增加服务发现接口
 func (h *HTTPServerV2) addDiscoverAccess(ws *restful.WebService) {
-	tags := []string{"DiscoverAccess"}
+	tags := []string{"RegisterInstance"}
 	ws.Route(ws.POST("/Discover").To(h.Discover).
 		Doc("服务发现").
+		Operation("v2Discover").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 }
 
