@@ -414,6 +414,10 @@ store:
   #     txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置
 plugin:
+  # whitelist:
+  #   name: whitelist
+  #   option:
+  #     ip: [127.0.0.1]
   history:
     name: HistoryLogger
   discoverEvent:
@@ -432,8 +436,6 @@ plugin:
     name: local
     option:
       interval: 60 # 统计间隔，单位为秒
-  auth:
-    name: defaultAuth
   ratelimit:
     name: token-bucket
     option:

@@ -63,7 +63,7 @@ type Config struct {
 	Statis               ConfigEntry `yaml:"statis"`
 	DiscoverStatis       ConfigEntry `yaml:"discoverStatis"`
 	ParsePassword        ConfigEntry `yaml:"parsePassword"`
-	Auth                 ConfigEntry `yaml:"auth"`
+	Whitelist            ConfigEntry `yaml:"whitelist"`
 	MeshResourceValidate ConfigEntry `yaml:"meshResourceValidate"`
 	DiscoverEvent        ConfigEntry `yaml:"discoverEvent"`
 }

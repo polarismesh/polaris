@@ -49,7 +49,6 @@ type Server struct {
 	ratelimit      plugin.Ratelimit
 	discoverStatis plugin.DiscoverStatis
 	discoverEvent  plugin.DiscoverChannel
-	auth           plugin.Auth
 
 	l5service *l5service
 

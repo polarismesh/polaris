@@ -15,32 +15,36 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package plugin
 
 import (
-	"testing"
+	"os"
+	"sync"
 
-	"github.com/polarismesh/polaris/common/model"
+	commonLog "github.com/polarismesh/polaris/common/log"
 )
 
-func Test_checkAnyElementExist(t *testing.T) {
-	type args struct {
-		userId     string
-		waitSearch []model.ResourceEntry
-		searchMaps *SearchMap
+var whitelistOnce sync.Once
+
+// Whitelist 白名单接口
+type Whitelist interface {
+	Plugin
+
+	Contain(entry interface{}) bool
+}
+
+// GetWhitelist 获取Whitelist插件
+func GetWhitelist() Whitelist {
+	c := &config.Whitelist
+	plugin, exist := pluginSet[c.Name]
+	if !exist {
+		return nil
 	}
-	tests := []struct {
-		name string
-		args args
-		want bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := checkAnyElementExist(tt.args.userId, tt.args.waitSearch, tt.args.searchMaps); got != tt.want {
-				t.Errorf("checkAnyElementExist() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	whitelistOnce.Do(func() {
+		if err := plugin.Initialize(c); err != nil {
+			commonLog.GetScopeOrDefaultByName(c.Name).Errorf("plugin init err: %s", err.Error())
+			os.Exit(-1)
+		}
+	})
+	return plugin.(Whitelist)
 }

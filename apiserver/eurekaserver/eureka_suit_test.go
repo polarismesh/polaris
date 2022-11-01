@@ -42,7 +42,6 @@ import (
 	"github.com/polarismesh/polaris/testdata"
 
 	// 注册相关默认插件
-	_ "github.com/polarismesh/polaris/plugin/auth/defaultauth"
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
 	_ "github.com/polarismesh/polaris/plugin/discoverevent/local"
 	_ "github.com/polarismesh/polaris/plugin/discoverstat/discoverlocal"

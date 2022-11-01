@@ -176,7 +176,6 @@ func (svr *serverAuthAbility) verifyAuth(ctx context.Context, isWrite bool,
 
 	authCtx := model.NewAcquireContext(
 		model.WithRequestContext(ctx),
-		model.WithToken(authToken),
 		model.WithModule(model.AuthModule),
 	)
 

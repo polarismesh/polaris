@@ -55,7 +55,6 @@ func (svr *serverAuthAbility) collectNamespaceAuthContext(ctx context.Context, r
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.CoreModule),
 		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryNamespaceResource(req)),

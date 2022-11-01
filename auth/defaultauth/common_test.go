@@ -28,25 +28,14 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/plugin"
 	storemock "github.com/polarismesh/polaris/store/mock"
 )
 
 func reset(strict bool) {
-	initDefaultAuth()
 	AuthOption = DefaultAuthConfig()
 	AuthOption.ClientOpen = true
 	AuthOption.ConsoleOpen = true
 	AuthOption.Strict = strict
-}
-
-func initDefaultAuth() {
-	// 设置好默认的鉴权策略插件
-	plugin.SetPluginConfig(&plugin.Config{
-		Auth: plugin.ConfigEntry{
-			Name: "defaultAuth",
-		},
-	})
 }
 
 func initCache(ctrl *gomock.Controller) (*cache.Config, *storemock.MockStore) {

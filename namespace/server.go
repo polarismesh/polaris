@@ -36,7 +36,6 @@ type Server struct {
 	caches                *cache.CacheManager
 	createNamespaceSingle *singleflight.Group
 	cfg                   Config
-	auth                  plugin.Auth
 	history               plugin.History
 	hooks                 []ResourceHook
 }

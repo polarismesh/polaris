@@ -457,23 +457,3 @@ func CheckDbMetaDataFieldLen(metaData map[string]string) error {
 	}
 	return nil
 }
-
-// verifyAuthByPlatform 使用平台ID鉴权
-func (s *Server) verifyAuthByPlatform(ctx context.Context, sPlatformID string) bool {
-	// 判断平台鉴权插件是否开启
-	if s.auth == nil {
-		return false
-	}
-	// 若服务无平台ID，则采用默认方式鉴权
-	if sPlatformID == "" {
-		return false
-	}
-
-	platformID := utils.ParsePlatformID(ctx)
-	platformToken := utils.ParsePlatformToken(ctx)
-
-	if s.auth.Allow(platformID, platformToken) && platformID == sPlatformID {
-		return true
-	}
-	return false
-}

@@ -38,7 +38,6 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
-	_ "github.com/polarismesh/polaris/plugin/auth/defaultauth"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatmemory"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatredis"
 	_ "github.com/polarismesh/polaris/plugin/history/logger"

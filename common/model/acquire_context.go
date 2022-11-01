@@ -27,8 +27,6 @@ import (
 type AcquireContext struct {
 	// RequestContext 请求上下文
 	requestContext context.Context
-	// Token 本次请求的访问凭据
-	token string
 	// Module 来自那个业务层（服务注册与服务治理、配置模块）
 	module BzModule
 	// Method 操作函数
@@ -82,16 +80,6 @@ func NewAcquireContext(options ...acquireContextOption) *AcquireContext {
 func WithRequestContext(ctx context.Context) acquireContextOption {
 	return func(authCtx *AcquireContext) {
 		authCtx.requestContext = ctx
-	}
-}
-
-// WithToken 设置请求 token
-//
-//	@param token
-//	@return acquireContextOption
-func WithToken(token string) acquireContextOption {
-	return func(authCtx *AcquireContext) {
-		authCtx.token = token
 	}
 }
 
@@ -172,14 +160,6 @@ func (authCtx *AcquireContext) GetRequestContext() context.Context {
 //	@param requestContext
 func (authCtx *AcquireContext) SetRequestContext(requestContext context.Context) {
 	authCtx.requestContext = requestContext
-}
-
-// GetToken 获取本次请求的 token
-//
-//	@receiver authCtx
-//	@return string
-func (authCtx *AcquireContext) GetToken() string {
-	return authCtx.token
 }
 
 // GetModule 获取请求的模块
