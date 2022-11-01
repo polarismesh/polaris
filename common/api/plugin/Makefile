@@ -17,4 +17,4 @@
 
 protoc:
 	go install github.com/golang/protobuf/protoc-gen-go@latest
-	protoc --proto_path=./proto --go_out=plugins=grpc:./proto ./proto/*.proto
+	protoc --proto_path=./ -I ../protoc/include/ --go_out=plugins=grpc:./ *.proto

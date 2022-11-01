@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/go-plugin"
 	"google.golang.org/grpc"
 
-	"github.com/polarismesh/polaris/common/remoteplugin/proto"
+	pluginapi "github.com/polarismesh/polaris/common/api/plugin"
 )
 
 var pluginSet = make(map[string]*Client)
@@ -45,7 +45,7 @@ var PluginMap = map[string]plugin.Plugin{
 
 // Service is a service that Implemented by plugin main process
 type Service interface {
-	Call(request *proto.Request) (*proto.Response, error)
+	Call(ctx context.Context, request *pluginapi.Request) (*pluginapi.Response, error)
 }
 
 // Plugin is the implementation of plugin.GRPCPlugin, so we can serve/consume this.
@@ -56,11 +56,11 @@ type Plugin struct {
 
 // GRPCServer implements plugin.Plugin GRPCServer method.
 func (p *Plugin) GRPCServer(_ *plugin.GRPCBroker, s *grpc.Server) error {
-	proto.RegisterPluginServer(s, &server{Backend: p.Backend})
+	pluginapi.RegisterPluginServer(s, &server{Backend: p.Backend})
 	return nil
 }
 
 // GRPCClient implements plugin.Plugin GRPCClient method.
 func (p *Plugin) GRPCClient(_ context.Context, _ *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
-	return &client{PluginClient: proto.NewPluginClient(c)}, nil
+	return &client{PluginClient: pluginapi.NewPluginClient(c)}, nil
 }

@@ -9,8 +9,8 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 
+	rp "github.com/polarismesh/polaris/common/api/plugin"
 	"github.com/polarismesh/polaris/common/log"
-	"github.com/polarismesh/polaris/common/remoteplugin/proto"
 )
 
 // server plugin server.
@@ -19,30 +19,28 @@ type server struct {
 }
 
 // Call calls plugin backend server.
-func (s *server) Call(ctx context.Context, req *proto.Request) (*proto.Response, error) {
-	return s.Backend.Call(req)
-}
-
-// gracefulExit check context and graceful exit.
-func gracefulExit(ctx context.Context) {
-	go func() {
-		ticker := time.NewTicker(time.Second * 5)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-			case <-ctx.Done():
-				log.Info("polaris server exited, stop plugin server")
-				os.Exit(0)
-			}
-		}
-	}()
+func (s *server) Call(ctx context.Context, req *rp.Request) (*rp.Response, error) {
+	return s.Backend.Call(ctx, req)
 }
 
 // Serve is a function used to serve a plugin
-func Serve(ctx context.Context, service Service) {
-	gracefulExit(ctx)
+func Serve(ctx context.Context, svc Service) {
+	go serve(svc)
 
+	ticker := time.NewTicker(time.Second * 5)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+		case <-ctx.Done():
+			log.Info("polaris server exited, stop plugin server")
+			os.Exit(0)
+		}
+	}
+}
+
+func serve(svc Service) {
 	p := os.Getenv("PLUGIN_PROCS")
 	if procs, err := strconv.Atoi(p); err == nil {
 		runtime.GOMAXPROCS(procs)
@@ -51,7 +49,7 @@ func Serve(ctx context.Context, service Service) {
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: Handshake,
 		Plugins: map[string]plugin.Plugin{
-			"POLARIS_SERVER": &Plugin{Backend: service},
+			"POLARIS_SERVER": &Plugin{Backend: svc},
 		},
 		GRPCServer: plugin.DefaultGRPCServer,
 	})

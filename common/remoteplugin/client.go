@@ -28,7 +28,7 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 
-	"github.com/polarismesh/polaris/common/remoteplugin/proto"
+	plugin2 "github.com/polarismesh/polaris/common/api/plugin"
 )
 
 // Config remote plugin config
@@ -41,7 +41,7 @@ type Config struct {
 
 // client wraps a remote plugin client.
 type client struct {
-	proto.PluginClient
+	plugin2.PluginClient
 }
 
 // Client is a plugin client, It's primarily used to call request.
@@ -57,7 +57,7 @@ type Client struct {
 }
 
 // Call invokes the function synchronously.
-func (c *Client) Call(ctx context.Context, request *proto.Request) (*proto.Response, error) {
+func (c *Client) Call(ctx context.Context, request *plugin2.Request) (*plugin2.Response, error) {
 	if err := c.Check(); err != nil {
 		return nil, err
 	}

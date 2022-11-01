@@ -20,23 +20,32 @@ package proto;
 
 option  java_package = "cn.polaris.plugin.remote";
 option  java_multiple_files = false;
-option  java_outer_classname = "plugin";
-option  go_package = "./;proto";
+option  java_outer_classname = "rate_limit";
+option  go_package = "./;plugin";
 
-
-// Request polaris remote plugin request from polaris-server.
-message Request {
-  string type = 1;
-  bytes body = 2;
+// RatelimitType rate limit type
+enum RatelimitType{
+  // IPRatelimit ip-based rate limit type.
+  IPRatelimit = 0;
+  // APIRatelimit api-based rate limit type.
+  APIRatelimit = 1;
+  // ServiceRatelimit service-based rate limit type.
+  ServiceRatelimit = 2;
+  // InstanceRatelimit instance-based rate limit type.
+  InstanceRatelimit = 3;
 }
 
-// Response polaris remote plugin response from third remote plugin.
-message Response {
-  bytes body = 1;
-  int32 status = 2;
+// RateLimitRequest rate limit remote plugin request.
+message RateLimitRequest {
+  // Type which rate limit type.
+  RatelimitType type = 1;
+  // Key represents for api name or api identification.
+  string key = 2;
 }
 
-// Plugin polaris remote plugin service.
-service Plugin {
-  rpc Call(Request) returns (Response);
+// RateLimitResponse rate limit remote plugin response.
+message RateLimitResponse {
+  // Allow if allow current req set true, else set false.
+  bool allow = 1;
 }
+
