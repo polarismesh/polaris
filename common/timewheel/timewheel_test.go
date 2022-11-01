@@ -19,9 +19,13 @@ package timewheel
 
 import (
 	"fmt"
+	"math"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // test timewheel task run
@@ -209,4 +213,89 @@ func TestSelect(t *testing.T) {
 			return
 		}
 	}
+}
+
+func TestRotationTask(t *testing.T) {
+	tw := New(time.Second, 5, "")
+	tw.Start()
+	wg := &sync.WaitGroup{}
+	wg.Add(5)
+	t.Run("", func(t *testing.T) {
+		rotationCallback(t, wg, tw, 1, 0, time.Now().UnixMilli())
+	})
+	t.Run("", func(t *testing.T) {
+		rotationCallback(t, wg, tw, 3, 0, time.Now().UnixMilli())
+	})
+	t.Run("", func(t *testing.T) {
+		rotationCallback(t, wg, tw, 5, 0, time.Now().UnixMilli())
+	})
+	t.Run("", func(t *testing.T) {
+		rotationCallback(t, wg, tw, 10, 0, time.Now().UnixMilli())
+	})
+	t.Run("", func(t *testing.T) {
+		rotationCallback(t, wg, tw, 12, 0, time.Now().UnixMilli())
+	})
+	wg.Wait()
+	tw.Stop()
+}
+
+func rotationCallback(t *testing.T, wg *sync.WaitGroup, tw *TimeWheel, intervalSecond int64, runTimes int, lastTime int64) {
+	tw.AddTask(uint32(intervalSecond*time.Second.Milliseconds()), nil, func(i interface{}) {
+		//0.800-1.200
+		fmt.Println(time.Now())
+		interval := time.Now().UnixMilli() - lastTime
+		if runTimes == 0 {
+			//首次减去时间轮启动的刻度时间
+			interval = interval - tw.interval.Milliseconds()
+		}
+		diff := math.Abs(float64(interval - intervalSecond*1000))
+		assert.True(t, diff < 200)
+		if runTimes > 3 {
+			wg.Done()
+			return
+		}
+		runTimes++
+		rotationCallback(t, wg, tw, intervalSecond, runTimes, time.Now().UnixMilli())
+	})
+}
+
+func TestForceCloseMode(t *testing.T) {
+	a := 1
+	tw := New(time.Second, 5, "force close", WithWaitTaskOnClose(false))
+	tw.Start()
+	tw.AddTask(uint32(2*time.Second.Milliseconds()), nil, func(i interface{}) {
+		time.Sleep(5 * time.Second)
+		a = 2
+		fmt.Println("run end")
+	})
+	tw.AddTask(uint32(2*time.Second.Milliseconds()), nil, func(i interface{}) {
+		time.Sleep(6 * time.Second)
+		a = 2
+		fmt.Println("task2 run end")
+	})
+	time.Sleep(4 * time.Second)
+	tw.Stop()
+	fmt.Println("tw is stop")
+	assert.True(t, a == 1)
+}
+
+func TestWaitCloseMode(t *testing.T) {
+	a := 1
+	tw := New(time.Second, 5, "force close")
+	tw.Start()
+	tw.AddTask(uint32(2*time.Second.Milliseconds()), nil, func(i interface{}) {
+		time.Sleep(5 * time.Second)
+		a = 2
+		fmt.Println("task1 run end")
+	})
+
+	tw.AddTask(uint32(2*time.Second.Milliseconds()), nil, func(i interface{}) {
+		time.Sleep(6 * time.Second)
+		a = 2
+		fmt.Println("task2 run end")
+	})
+	time.Sleep(4 * time.Second)
+	tw.Stop()
+	fmt.Println("tw is stop")
+	assert.True(t, a == 2)
 }
