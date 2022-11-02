@@ -31,30 +31,48 @@ const (
 	PluginRumModelRemote = "remote"
 )
 
-// Config remote plugin config
-type Config struct {
-	// Name is the plugin unique and exclusive name
-	Name string
+// RemoteConfig remote plugin config.
+type RemoteConfig struct {
+	// Address GRPC Service Address
+	Address string
+}
+
+// LocalConfig local plugin config.
+type LocalConfig struct {
 	// Path is the plugin absolute file path to load.
 	Path string
-	// Mode is the plugin serverImp running mode, support local and remote.
-	Mode string
 	// MaxProcs the max proc number, current plugin can use.
 	MaxProcs int
 	// Args plugin args
 	Args []string
 }
 
+// Config remote plugin config
+type Config struct {
+	// Name is the plugin unique and exclusive name
+	Name string
+	// Mode is the plugin serverImp running mode, support local and remote.
+	Mode string
+	// Remote remote plugin config
+	Remote RemoteConfig
+	// Local local plugin config
+	Local LocalConfig
+}
+
 // repairConfig repairs config.
 func (c *Config) repairConfig() {
-	if c.MaxProcs == 0 {
-		c.MaxProcs = 1
+	if c.Local.MaxProcs == 0 {
+		c.Local.MaxProcs = 1
+	}
+
+	if c.Local.MaxProcs == 0 && c.Local.MaxProcs >= 4 {
+		c.Local.MaxProcs = 4
 	}
 }
 
 // pluginLoadPath 插件加载路径
 func (c *Config) pluginLoadPath() (string, error) {
-	fullPath := c.Path
+	fullPath := c.Local.Path
 	if fullPath == "" {
 		// Use plugin name and using relative path to load plugin.
 		dir, err := filepath.Abs(filepath.Dir(os.Args[0]))

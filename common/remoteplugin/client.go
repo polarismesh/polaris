@@ -21,6 +21,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
+	"os"
 	"os/exec"
 	"sync"
 
@@ -37,12 +39,13 @@ type client struct {
 // Client is a plugin client, It's primarily used to call request.
 type Client struct {
 	sync.Mutex
-	pluginName   string         // the name of the plugin, used for manage.
-	pluginPath   string         // the full path of the plugin, go-plugin cmd start plugin according plugin path.
-	on           bool           // represents the plugin is opened or not.
-	enable       bool           // represents the plugin is enabled or not
-	service      *client        // service is the plugin-grpc-service client, polaris-serverImp run in grpc-client side.
-	config       *Config        // the setup config of the plugin
+	pluginName   string  // the name of the plugin, used for manage.
+	pluginPath   string  // the full path of the plugin, go-plugin cmd start plugin according plugin path.
+	on           bool    // represents the plugin is opened or not.
+	enable       bool    // represents the plugin is enabled or not
+	service      *client // service is the plugin-grpc-service client, polaris-serverImp run in grpc-client side.
+	config       *Config // the setup config of the plugin
+	address      string
 	pluginClient *plugin.Client // the go-plugin client, polaris-serverImp run in grpc-client side.
 }
 
@@ -80,9 +83,10 @@ func newClient(config *Config) (*Client, error) {
 	c := new(Client)
 	c.enable = true
 	c.pluginName = config.Name
+	config.repairConfig()
 	if config.Mode == PluginRumModelRemote {
+		c.address = config.Remote.Address
 	} else {
-		config.repairConfig()
 		fullPath, err := config.pluginLoadPath()
 		if err != nil {
 			return nil, err
@@ -123,7 +127,11 @@ func (c *Client) recreate() error {
 	if c.config.Mode == PluginRumModelLocal {
 		pluginClient = c.recreateLocal()
 	} else if c.config.Mode == PluginRumModelRemote {
-
+		var err error
+		pluginClient, err = c.recreateRemote()
+		if err != nil {
+			return err
+		}
 	} else {
 		return fmt.Errorf("unkown plugin run mode: %s", c.config.Mode)
 	}
@@ -146,19 +154,34 @@ func (c *Client) recreate() error {
 }
 
 func (c *Client) recreateLocal() *plugin.Client {
-	cmd := exec.Command(c.pluginPath, c.config.Args...)
-
-	procs := 1
-	if c.config != nil && c.config.MaxProcs >= 0 && c.config.MaxProcs <= 4 {
-		procs = c.config.MaxProcs
-	}
-	cmd.Env = append(cmd.Env, fmt.Sprintf("PLUGIN_PROCS=%d", procs))
+	cmd := exec.Command(c.pluginPath, c.config.Local.Args...)
+	cmd.Env = append(cmd.Env, fmt.Sprintf("PLUGIN_PROCS=%d", c.config.Local.MaxProcs))
 	pluginClient := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig:  Handshake,
-		Plugins:          PluginMap,
+		Plugins:          PluginMap, // keep default for setup.
 		Cmd:              cmd,
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 	})
 
 	return pluginClient
+}
+
+func (c *Client) recreateRemote() (*plugin.Client, error) {
+	addr, err := net.ResolveTCPAddr("tcp", c.config.Remote.Address)
+	if err != nil {
+		return nil, err
+	}
+	pluginClient := plugin.NewClient(&plugin.ClientConfig{
+		HandshakeConfig: Handshake,
+		Plugins:         PluginMap, // keep default for setup.
+		Reattach: &plugin.ReattachConfig{
+			Protocol:        plugin.ProtocolGRPC,
+			ProtocolVersion: int(Handshake.ProtocolVersion),
+			Addr:            addr,
+			Pid:             os.Getpid(),
+		},
+		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+	})
+
+	return pluginClient, nil
 }
