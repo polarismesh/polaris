@@ -8,21 +8,23 @@ import (
 	"google.golang.org/grpc"
 
 	pluginapi "github.com/polarismesh/polaris/common/api/plugin"
+	"github.com/polarismesh/polaris/common/log"
 )
 
 var pluginSet = make(map[string]*Client)
 var locker sync.Mutex
 
 // Register called by plugin client and start up the plugin main process.
-func Register(name string, config *Config) (*Client, error) {
+func Register(config *Config) (*Client, error) {
 	locker.Lock()
 	defer locker.Unlock()
 
+	name := config.Name
 	if c, ok := pluginSet[name]; ok {
 		return c, nil
 	}
 
-	c, err := newClient(name, config)
+	c, err := newClient(config)
 	if err != nil {
 		return nil, err
 	}
@@ -43,20 +45,29 @@ var PluginMap = map[string]plugin.Plugin{
 	"POLARIS_SERVER": &Plugin{},
 }
 
-// Service is a service that Implemented by plugin main process
-type Service interface {
-	Call(ctx context.Context, request *pluginapi.Request) (*pluginapi.Response, error)
-}
+// Plugin must implement plugin.GRPCPlugin
+var _ plugin.GRPCPlugin = (*Plugin)(nil)
 
 // Plugin is the implementation of plugin.GRPCPlugin, so we can serve/consume this.
 type Plugin struct {
 	plugin.Plugin
-	Backend Service
+	Name     string
+	IsRemote bool
+	Backend  Service
+}
+
+// NewPlugin returns a new Plugin.
+func NewPlugin(name string, backend Service) *Plugin {
+	return &Plugin{Name: name, Backend: backend}
 }
 
 // GRPCServer implements plugin.Plugin GRPCServer method.
 func (p *Plugin) GRPCServer(_ *plugin.GRPCBroker, s *grpc.Server) error {
-	pluginapi.RegisterPluginServer(s, &server{Backend: p.Backend})
+	if p.IsRemote {
+		log.Infof("plugin %s running in remote mode, skip grpc serverImp setup", p.Name)
+		return nil
+	}
+	pluginapi.RegisterPluginServer(s, &serverImp{Backend: p.Backend})
 	return nil
 }
 

@@ -11,16 +11,16 @@ import (
 	"github.com/polarismesh/polaris/common/remoteplugin"
 )
 
-type filter struct{}
+type rateLimiter struct{}
 
-func (s *filter) Call(ctx context.Context, request *plugin.Request) (*plugin.Response, error) {
+func (s *rateLimiter) Call(_ context.Context, request *plugin.Request) (*plugin.Response, error) {
 	var rateLimitRequest plugin.RateLimitRequest
 	err := anypb.UnmarshalTo(request.GetPayload(), &rateLimitRequest, proto.UnmarshalOptions{})
 	if err != nil {
 		log.Fatalf("fail to unmarshal rate limit request: %+v", err)
 	}
 
-	reply := &plugin.RateLimitResponse{Allow: true}
+	reply := &plugin.RateLimitResponse{Allow: false}
 	replyAny, _ := anypb.New(reply)
 	data, err := proto.Marshal(reply)
 	if err != nil {
@@ -34,5 +34,8 @@ func (s *filter) Call(ctx context.Context, request *plugin.Request) (*plugin.Res
 }
 
 func main() {
-	remoteplugin.Serve(context.Background(), &filter{})
+	remoteplugin.Serve(
+		context.Background(),
+		remoteplugin.ServerConfig{PluginName: "rate-limit-server-v2"},
+		&rateLimiter{})
 }

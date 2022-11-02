@@ -21,27 +21,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"sync"
 
 	"github.com/hashicorp/go-plugin"
 
-	plugin2 "github.com/polarismesh/polaris/common/api/plugin"
+	pluginapi "github.com/polarismesh/polaris/common/api/plugin"
 )
-
-// Config remote plugin config
-type Config struct {
-	// MaxProcs the max proc number, current plugin can use.
-	MaxProcs int
-	// Args plugin args
-	Args []string
-}
 
 // client wraps a remote plugin client.
 type client struct {
-	plugin2.PluginClient
+	pluginapi.PluginClient
 }
 
 // Client is a plugin client, It's primarily used to call request.
@@ -51,13 +41,13 @@ type Client struct {
 	pluginPath   string         // the full path of the plugin, go-plugin cmd start plugin according plugin path.
 	on           bool           // represents the plugin is opened or not.
 	enable       bool           // represents the plugin is enabled or not
-	service      *client        // service is the plugin-grpc-service client, polaris-server run in grpc-client side.
+	service      *client        // service is the plugin-grpc-service client, polaris-serverImp run in grpc-client side.
 	config       *Config        // the setup config of the plugin
-	pluginClient *plugin.Client // the go-plugin client, polaris-server run in grpc-client side.
+	pluginClient *plugin.Client // the go-plugin client, polaris-serverImp run in grpc-client side.
 }
 
 // Call invokes the function synchronously.
-func (c *Client) Call(ctx context.Context, request *plugin2.Request) (*plugin2.Response, error) {
+func (c *Client) Call(ctx context.Context, request *pluginapi.Request) (*pluginapi.Response, error) {
 	if err := c.Check(); err != nil {
 		return nil, err
 	}
@@ -85,6 +75,29 @@ func (c *Client) open() error {
 	return c.Check()
 }
 
+// newClient returns a new client
+func newClient(config *Config) (*Client, error) {
+	c := new(Client)
+	c.enable = true
+	c.pluginName = config.Name
+	if config.Mode == PluginRumModelRemote {
+	} else {
+		config.repairConfig()
+		fullPath, err := config.pluginLoadPath()
+		if err != nil {
+			return nil, err
+		}
+		c.pluginPath = fullPath
+	}
+
+	c.config = config
+	if err := c.Check(); err != nil {
+		return nil, fmt.Errorf("fail to check client: %w", err)
+	}
+	return c, nil
+}
+
+// Check checks client still alive, create if not alive
 func (c *Client) Check() error {
 	c.Lock()
 	defer c.Unlock()
@@ -93,24 +106,27 @@ func (c *Client) Check() error {
 		return errors.New("plugin " + c.pluginName + " disable")
 	}
 
+	// plugin still alive, return as early as possible.
 	if c.pluginClient != nil && !c.pluginClient.Exited() {
 		return nil
 	}
+
+	return c.recreate()
+}
+
+// recreate
+func (c *Client) recreate() error {
 	c.on = false
 
-	cmd := exec.Command(c.pluginPath, c.config.Args...)
+	var pluginClient *plugin.Client
 
-	procs := 1
-	if c.config != nil && c.config.MaxProcs >= 0 && c.config.MaxProcs <= 4 {
-		procs = c.config.MaxProcs
+	if c.config.Mode == PluginRumModelLocal {
+		pluginClient = c.recreateLocal()
+	} else if c.config.Mode == PluginRumModelRemote {
+
+	} else {
+		return fmt.Errorf("unkown plugin run mode: %s", c.config.Mode)
 	}
-	cmd.Env = append(cmd.Env, fmt.Sprintf("PLUGIN_PROCS=%d", procs))
-	pluginClient := plugin.NewClient(&plugin.ClientConfig{
-		HandshakeConfig:  Handshake,
-		Plugins:          PluginMap,
-		Cmd:              cmd,
-		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-	})
 
 	rpcClient, err := pluginClient.Client()
 	if err != nil {
@@ -129,29 +145,20 @@ func (c *Client) Check() error {
 	return nil
 }
 
-// newClient new client
-func newClient(name string, config *Config) (*Client, error) {
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		return nil, err
-	}
+func (c *Client) recreateLocal() *plugin.Client {
+	cmd := exec.Command(c.pluginPath, c.config.Args...)
 
-	fullName := dir + string(os.PathSeparator) + name
-	if _, err = os.Stat(fullName); err != nil {
-		return nil, fmt.Errorf("check plugin fiel stat error: %w", err)
+	procs := 1
+	if c.config != nil && c.config.MaxProcs >= 0 && c.config.MaxProcs <= 4 {
+		procs = c.config.MaxProcs
 	}
+	cmd.Env = append(cmd.Env, fmt.Sprintf("PLUGIN_PROCS=%d", procs))
+	pluginClient := plugin.NewClient(&plugin.ClientConfig{
+		HandshakeConfig:  Handshake,
+		Plugins:          PluginMap,
+		Cmd:              cmd,
+		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+	})
 
-	c := new(Client)
-	c.enable = true
-	c.pluginName = name
-	c.pluginPath = fullName
-	c.config = config
-	if c.config == nil {
-		c.config = &Config{1, nil}
-	}
-
-	if err = c.Check(); err != nil {
-		return nil, fmt.Errorf("fail to check client: %w", err)
-	}
-	return c, nil
+	return pluginClient
 }
