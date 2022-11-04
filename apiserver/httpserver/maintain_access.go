@@ -162,13 +162,13 @@ func (h *HTTPServer) BatchCleanInstances(req *restful.Request, rsp *restful.Resp
 	}
 
 	if count, err := h.maintainServer.BatchCleanInstances(ctx, param.BatchSize); err != nil {
-		rsp.WriteError(http.StatusInternalServerError, err)
+		_ = rsp.WriteError(http.StatusInternalServerError, err)
 	} else {
 		var ret struct {
 			RowsAffected uint32 `json:"rows_affected"`
 		}
 		ret.RowsAffected = count
-		rsp.WriteAsJson(ret)
+		_ = rsp.WriteAsJson(ret)
 	}
 
 }
