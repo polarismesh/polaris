@@ -76,6 +76,16 @@ func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *api.Instan
 	return svr.targetServer.CleanInstance(ctx, req)
 }
 
+func (svr *serverAuthAbility) BatchCleanInstances(ctx context.Context, batchSize uint32) (uint32, error) {
+	authCtx := svr.collectMaintainAuthContext(ctx, model.Delete, "BatchCleanInstances")
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	if err != nil {
+		return 0, err
+	}
+
+	return svr.targetServer.BatchCleanInstances(ctx, batchSize)
+}
+
 func (svr *serverAuthAbility) GetLastHeartbeat(ctx context.Context, req *api.Instance) *api.Response {
 	authCtx := svr.collectMaintainAuthContext(ctx, model.Read, "GetLastHeartbeat")
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)

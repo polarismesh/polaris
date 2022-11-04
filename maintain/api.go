@@ -63,6 +63,9 @@ type MaintainOperateServer interface {
 	// CleanInstance Clean deleted instance
 	CleanInstance(ctx context.Context, req *api.Instance) *api.Response
 
+	// BatchCleanInstances Batch clean deleted instances
+	BatchCleanInstances(ctx context.Context, batchSize uint32) (uint32, error)
+
 	// GetLastHeartbeat Get last heartbeat
 	GetLastHeartbeat(ctx context.Context, req *api.Instance) *api.Response
 

@@ -266,6 +266,21 @@ func (mr *MockStoreMockRecorder) CleanInstance(instanceID interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanInstance", reflect.TypeOf((*MockStore)(nil).CleanInstance), instanceID)
 }
 
+// BatchCleanDeletedInstances mocks base method.
+func (m *MockStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchCleanDeletedInstances", batchSize)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BatchCleanDeletedInstances indicates an expected call of BatchCleanDeletedInstances.
+func (mr *MockStoreMockRecorder) BatchCleanDeletedInstances(batchSize interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchCleanDeletedInstances", reflect.TypeOf((*MockStore)(nil).BatchCleanDeletedInstances), batchSize)
+}
+
 // CountByConfigFileGroup mocks base method.
 func (m *MockStore) CountByConfigFileGroup(namespace, group string) (uint64, error) {
 	m.ctrl.T.Helper()

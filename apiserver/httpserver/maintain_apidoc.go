@@ -71,6 +71,13 @@ func enrichCleanInstanceApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichCleanInstanceApiNotes)
 }
 
+func enrichBatchCleanInstancesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("彻底清理flag=1的实例").
+		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
+		Notes(enrichBatchCleanInstancesApiNotes)
+}
+
 func enrichGetLastHeartbeatApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取上一次心跳的时间").

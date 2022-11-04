@@ -24,6 +24,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
+	"github.com/polarismesh/polaris/store"
 )
 
 var (
@@ -33,12 +34,12 @@ var (
 )
 
 // Initialize 初始化
-func Initialize(ctx context.Context, namingService service.DiscoverServer, healthCheckServer *healthcheck.Server) error {
+func Initialize(ctx context.Context, namingService service.DiscoverServer, healthCheckServer *healthcheck.Server, storage store.Store) error {
 	if finishInit {
 		return nil
 	}
 
-	err := initialize(ctx, namingService, healthCheckServer)
+	err := initialize(ctx, namingService, healthCheckServer, storage)
 	if err != nil {
 		return err
 	}
@@ -47,7 +48,7 @@ func Initialize(ctx context.Context, namingService service.DiscoverServer, healt
 	return nil
 }
 
-func initialize(_ context.Context, namingService service.DiscoverServer, healthCheckServer *healthcheck.Server) error {
+func initialize(_ context.Context, namingService service.DiscoverServer, healthCheckServer *healthcheck.Server, storage store.Store) error {
 	authServer, err := auth.GetAuthServer()
 	if err != nil {
 		return err
@@ -55,6 +56,7 @@ func initialize(_ context.Context, namingService service.DiscoverServer, healthC
 
 	maintainServer.namingServer = namingService
 	maintainServer.healthCheckServer = healthCheckServer
+	maintainServer.storage = storage
 
 	server = newServerAuthAbility(maintainServer, authServer)
 	return nil

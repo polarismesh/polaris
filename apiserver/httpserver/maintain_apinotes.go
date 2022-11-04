@@ -108,6 +108,20 @@ Header Content-Type: application/json
 ~~~
 
 `
+	enrichBatchCleanInstancesApiNotes = `
+请求示例：
+
+~~~
+POST /maintain/v1/instance/batchclean
+Header X-Polaris-Token: {访问凭据}
+Header Content-Type: application/json
+
+{
+    "batch_size": 100
+}
+~~~
+
+`
 	enrichGetLastHeartbeatApiNotes = `
 请求示例：
 

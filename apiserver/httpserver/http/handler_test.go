@@ -18,8 +18,10 @@
 package http
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/emicklei/go-restful/v3"
@@ -72,4 +74,28 @@ func Test_i18n(t *testing.T) {
 			t.Errorf("handler.i18nAction() = %v, want %v", msg, item.wMsg)
 		}
 	}
+}
+
+func Test_ParseJsonBody(t *testing.T) {
+	type TestJsonObject struct {
+		Text string `json:"text"`
+	}
+
+	expectText := "this is a test"
+
+	httpReq, _ := http.NewRequest(
+		http.MethodPost,
+		"http://example.com",
+		strings.NewReader(fmt.Sprintf("{\"text\": \"%s\"}", expectText)))
+	req := restful.NewRequest(httpReq)
+
+	testResult := TestJsonObject{}
+	err := ParseJsonBody(req, &testResult)
+	if err != nil {
+		t.Errorf("ParseJsonBody err %v, want %v", err, expectText)
+	}
+	if testResult.Text != expectText {
+		t.Errorf("ParseJsonBody = %v, want %v", testResult.Text, expectText)
+	}
+
 }

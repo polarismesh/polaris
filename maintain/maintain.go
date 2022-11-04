@@ -135,6 +135,10 @@ func (s *Server) CleanInstance(ctx context.Context, req *api.Instance) *api.Resp
 	return s.namingServer.CleanInstance(ctx, req)
 }
 
+func (s *Server) BatchCleanInstances(ctx context.Context, batchSize uint32) (uint32, error) {
+	return s.storage.BatchCleanDeletedInstances(batchSize)
+}
+
 func (s *Server) GetLastHeartbeat(_ context.Context, req *api.Instance) *api.Response {
 	return s.healthCheckServer.GetLastHeartbeat(req)
 }

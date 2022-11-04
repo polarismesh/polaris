@@ -15,21 +15,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package maintain
+package boltdb
 
-import (
-	"sync"
+type maintainStore struct {
+	handler BoltHandler
+}
 
-	"github.com/polarismesh/polaris/service"
-	"github.com/polarismesh/polaris/service/healthcheck"
-	"github.com/polarismesh/polaris/store"
-)
-
-var _ MaintainOperateServer = (*Server)(nil)
-
-type Server struct {
-	mu                sync.Mutex
-	namingServer      service.DiscoverServer
-	healthCheckServer *healthcheck.Server
-	storage           store.Store
+// BatchCleanDeletedInstances
+func (m *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
+	return 0, nil
 }

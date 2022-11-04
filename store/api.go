@@ -51,6 +51,9 @@ type Store interface {
 
 	// ClientStore Client the central module storage interface
 	ClientStore
+
+	// MaintainStore Maintain inteface
+	MaintainStore
 }
 
 // NamespaceStore Namespace storage interface
