@@ -232,13 +232,13 @@ apiservers:
         enable: true
       console:
         enable: true
-        include: [default]
+        include: [ default ]
       client:
         enable: true
-        include: [discover, register, healthcheck]
+        include: [ discover, register, healthcheck ]
       config:
         enable: true
-        include: [default]
+        include: [ default ]
   - name: service-grpc
     option:
       listenIP: "0.0.0.0"
@@ -256,7 +256,7 @@ apiservers:
     api:
       client:
         enable: true
-        include: [discover, register, healthcheck]
+        include: [ discover, register, healthcheck ]
   - name: config-grpc
     option:
       listenIP: "0.0.0.0"
@@ -435,44 +435,10 @@ plugin:
   auth:
     name: defaultAuth
   ratelimit:
-    name: token-bucket
+    name: remote-rate-limit
     option:
-      remote-conf: false # 是否使用远程配置
-      ip-limit: # ip级限流，全局
-        open: true # 系统是否开启ip级限流
-        global:
-          open: true
-          bucket: 300 # 最高峰值
-          rate: 200 # 平均一个IP每秒的请求数
-        resource-cache-amount: 1024 # 最大缓存的IP个数
-        white-list: [127.0.0.1]
-      instance-limit:
-        open: true
-        global:
-          bucket: 200
-          rate: 100
-        resource-cache-amount: 1024
-      api-limit: # 接口级限流
-        open: false # 是否开启接口限流，全局开关，只有为true，才代表系统的限流开启。默认关闭
-        rules:
-          - name: store-read
-            limit:
-              open: true # 接口的全局配置，如果在api子项中，不配置，则该接口依据global来做限制
-              bucket: 2000 # 令牌桶最大值
-              rate: 1000 # 每秒产生的令牌数
-          - name: store-write
-            limit:
-              open: true
-              bucket: 1000
-              rate: 500
-        apis:
-          - name: "POST:/v1/naming/services"
-            rule: store-write
-          - name: "PUT:/v1/naming/services"
-            rule: store-write
-          - name: "POST:/v1/naming/services/delete"
-            rule: store-write
-          - name: "GET:/v1/naming/services"
-            rule: store-read
-          - name: "GET:/v1/naming/services/count"
-            rule: store-read
+      name: rate-limit-server-v2
+      mode: local
+      local:
+        path: "/Users/shugenniu/opensources/polarismesh/polaris-plugin-sdk/examples/remote-rate-limit-server-v2"
+        max-procs: 4

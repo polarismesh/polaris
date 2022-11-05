@@ -1,0 +1,9 @@
+plugin:
+  ratelimit:
+    name: remote-rate-limit
+    option:
+      name: rate-limit-server-v2
+      mode: local
+      local:
+        path: "../polaris-plugin-sdk/examples/remote-rate-limit-server-v2"
+        max-procs: 4

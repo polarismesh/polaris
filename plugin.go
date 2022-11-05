@@ -36,6 +36,7 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/history/logger"
 	_ "github.com/polarismesh/polaris/plugin/password"
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/lrurate"
+	_ "github.com/polarismesh/polaris/plugin/ratelimit/remote"
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/token"
 	_ "github.com/polarismesh/polaris/plugin/statis/local"
 	_ "github.com/polarismesh/polaris/store/boltdb"
