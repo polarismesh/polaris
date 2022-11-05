@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/auth"
@@ -52,6 +51,8 @@ var (
 	SelfServiceInstance = make([]*api.Instance, 0)
 	ConfigFilePath      = ""
 	selfHeathChecker    *SelfHeathChecker
+
+	ServerCond = NewApiServerCond()
 )
 
 // Start 启动
@@ -64,12 +65,12 @@ func Start(configFilePath string) {
 		return
 	}
 
-	c, err := yaml.Marshal(cfg)
-	if err != nil {
-		fmt.Printf("[ERROR] config yaml marshal fail\n")
-		return
-	}
-	fmt.Printf(string(c))
+	//c, err := yaml.Marshal(cfg)
+	//if err != nil {
+	//	fmt.Printf("[ERROR] config yaml marshal fail\n")
+	//	return
+	//}
+	//fmt.Printf(string(c))
 
 	// 初始化日志打印
 	err = log.Configure(cfg.Bootstrap.Logger)
@@ -292,6 +293,9 @@ func StartServers(ctx context.Context, cfg *boot_config.Config, errCh chan error
 	[]apiserver.Apiserver, error) {
 	// 启动API服务器
 	var servers []apiserver.Apiserver
+
+	serverCnt := 0
+
 	for _, protocol := range cfg.APIServers {
 		slot, exist := apiserver.Slots[protocol.Name]
 		if !exist {
@@ -307,7 +311,9 @@ func StartServers(ctx context.Context, cfg *boot_config.Config, errCh chan error
 
 		servers = append(servers, slot)
 		go slot.Run(errCh)
+		serverCnt++
 	}
+	ServerCond.Wait(serverCnt)
 
 	return servers, nil
 }

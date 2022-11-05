@@ -33,6 +33,7 @@ import (
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 
+	"github.com/polarismesh/polaris/bootstrap"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/connlimit"
 	commonlog "github.com/polarismesh/polaris/common/log"
@@ -119,7 +120,7 @@ func (b *BaseGrpcServer) Stop(protocol string) {
 
 // Run server main loop
 func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer InitServer) {
-	b.log.Infof("[API-Server] start %s server", protocol)
+	b.log.Infof("[API-Server] start %s server condCnt:%d", protocol, bootstrap.ServerCond.GetCnt())
 	b.exitCh = make(chan struct{})
 	b.start = true
 	defer func() {
