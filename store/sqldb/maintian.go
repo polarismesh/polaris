@@ -28,15 +28,17 @@ type maintainStore struct {
 func (maintain *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
 	log.Infof("[Store][database] batch clean soft deleted instances(%d)", batchSize)
 	mainStr := "delete from instance where flag = 1 limit ?"
-	if result, err := maintain.master.Exec(mainStr, batchSize); err != nil {
+	result, err := maintain.master.Exec(mainStr, batchSize)
+	if err != nil {
 		log.Errorf("[Store][database] batch clean soft deleted instances(%d), err: %s", batchSize, err.Error())
 		return 0, store.Error(err)
-	} else {
-		if rows, err := result.RowsAffected(); err != nil {
-			log.Warnf("[Store][database] batch clean soft deleted instances(%d), get RowsAffected err: %s", batchSize, err.Error())
-			return 0, store.Error(err)
-		} else {
-			return uint32(rows), nil
-		}
 	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		log.Warnf("[Store][database] batch clean soft deleted instances(%d), get RowsAffected err: %s", batchSize, err.Error())
+		return 0, store.Error(err)
+	}
+
+	return uint32(rows), nil
 }
