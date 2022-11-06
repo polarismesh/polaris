@@ -440,5 +440,5 @@ plugin:
       name: rate-limit-server-v2
       mode: local
       local:
-        path: "/Users/shugenniu/opensources/polarismesh/polaris-plugin-sdk/examples/remote-rate-limit-server-v2"
+        path: "../polaris-server-remote-plugin-common/remote-rate-limit-server-v2"
         max-procs: 4

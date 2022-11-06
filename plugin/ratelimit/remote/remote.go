@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/mitchellh/mapstructure"
-	"github.com/polarismesh/polaris-plugin-sdk"
-	pluginapi "github.com/polarismesh/polaris-plugin-sdk/api/plugin"
-	"github.com/polarismesh/polaris-plugin-sdk/client"
+	"github.com/polaris-contrib/polaris-server-remote-plugin-common"
+	"github.com/polaris-contrib/polaris-server-remote-plugin-common/api"
+	"github.com/polaris-contrib/polaris-server-remote-plugin-common/client"
 
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/plugin"
@@ -71,16 +71,16 @@ func (r *RateLimiter) Destroy() error {
 }
 
 // rateLimitTypes converts ...
-var rateLimitTypes = map[plugin.RatelimitType]pluginapi.RatelimitType{
-	plugin.IPRatelimit:       pluginapi.RatelimitType_IPRatelimit,
-	plugin.APIRatelimit:      pluginapi.RatelimitType_APIRatelimit,
-	plugin.ServiceRatelimit:  pluginapi.RatelimitType_ServiceRatelimit,
-	plugin.InstanceRatelimit: pluginapi.RatelimitType_InstanceRatelimit,
+var rateLimitTypes = map[plugin.RatelimitType]api.RatelimitType{
+	plugin.IPRatelimit:       api.RatelimitType_IPRatelimit,
+	plugin.APIRatelimit:      api.RatelimitType_APIRatelimit,
+	plugin.ServiceRatelimit:  api.RatelimitType_ServiceRatelimit,
+	plugin.InstanceRatelimit: api.RatelimitType_InstanceRatelimit,
 }
 
 // Allow 实现是否放行判断逻辑
 func (r *RateLimiter) Allow(typ plugin.RatelimitType, key string) bool {
-	req, err := pluginsdk.MarshalRequest(&pluginapi.RateLimitPluginRequest{
+	req, err := pluginsdk.MarshalRequest(&api.RateLimitPluginRequest{
 		Type: rateLimitTypes[typ],
 		Key:  key,
 	})
@@ -97,7 +97,7 @@ func (r *RateLimiter) Allow(typ plugin.RatelimitType, key string) bool {
 		return false
 	}
 
-	var reply pluginapi.RateLimitPluginResponse
+	var reply api.RateLimitPluginResponse
 	if err = pluginsdk.UnmarshalResponse(response, &reply); err != nil {
 		log.Errorf("[RateLimit] %w", err)
 		return false

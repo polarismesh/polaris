@@ -22,7 +22,7 @@ require (
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/nicksnyder/go-i18n/v2 v2.2.0
 	github.com/pkg/errors v0.9.1
-	github.com/polarismesh/polaris-plugin-sdk v1.0.0
+	github.com/polaris-contrib/polaris-server-remote-plugin-common v1.0.0
 	github.com/polarismesh/go-restful-openapi/v2 v2.0.0-20220928152401-083908d10219
 	github.com/prometheus/client_golang v1.12.2
 	github.com/smartystreets/goconvey v1.6.4
@@ -41,11 +41,9 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-replace (
-	github.com/polarismesh/polaris-plugin-sdk  => ../polaris-plugin-sdk
-)
+replace github.com/polaris-contrib/polaris-server-remote-plugin-common => ../polaris-server-remote-plugin-common
 
-require github.com/hashicorp/go-plugin v1.4.5
+require github.com/hashicorp/go-plugin v1.4.5 // indirect
 
 require (
 	github.com/fatih/color v1.7.0 // indirect
