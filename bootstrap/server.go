@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/auth"
@@ -65,12 +66,12 @@ func Start(configFilePath string) {
 		return
 	}
 
-	//c, err := yaml.Marshal(cfg)
-	//if err != nil {
-	//	fmt.Printf("[ERROR] config yaml marshal fail\n")
-	//	return
-	//}
-	//fmt.Printf(string(c))
+	c, err := yaml.Marshal(cfg)
+	if err != nil {
+		fmt.Printf("[ERROR] config yaml marshal fail\n")
+		return
+	}
+	fmt.Printf(string(c))
 
 	// 初始化日志打印
 	err = log.Configure(cfg.Bootstrap.Logger)
@@ -313,9 +314,8 @@ func StartServers(ctx context.Context, cfg *boot_config.Config, errCh chan error
 		go slot.Run(errCh)
 		serverCnt++
 	}
-	ServerCond.Wait(serverCnt)
-
-	return servers, nil
+	err := ServerCond.Wait(serverCnt)
+	return servers, err
 }
 
 // RestartServers 重启server

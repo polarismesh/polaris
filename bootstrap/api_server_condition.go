@@ -1,8 +1,24 @@
+/**
+ * Tencent is pleased to support the open source community by making Polaris available.
+ *
+ * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the BSD 3-Clause License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed
+ * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package bootstrap
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -17,38 +33,38 @@ type ApiServerCondition struct {
 
 // NewApiServerCond 初始化一个 ApiServerCondition指针
 func NewApiServerCond() *ApiServerCondition {
-	fmt.Printf("NewApiServerCond \n")
+	log.Infof("NewApiServerCond \n")
 	var condLock sync.Mutex
 	return &ApiServerCondition{cond: sync.NewCond(&condLock)}
 }
 
 // Incr 增加Condition的Cnt
 func (cc *ApiServerCondition) Incr(serverName string) {
-	fmt.Printf("ApiServerCondition1 -> server:%s Cnt:%d \n", serverName, cc.cnt)
+	log.Infof("ApiServerCondition1 -> server:%s Cnt:%d \n", serverName, cc.cnt)
 	cc.cond.L.Lock()
 	cc.cnt++
 	cc.cond.L.Unlock()
-	fmt.Printf("ApiServerCondition2 -> server:%s Cnt:%d \n", serverName, cc.cnt)
+	log.Infof("ApiServerCondition2 -> server:%s Cnt:%d \n", serverName, cc.cnt)
 	cc.cond.Broadcast()
 }
 
 func (cc *ApiServerCondition) Set(i int) {
-	fmt.Printf("ApiServerCondition1 -> Set:%d Cnt:%d \n", i, cc.cnt)
+	log.Infof("ApiServerCondition1 -> Set:%d Cnt:%d \n", i, cc.cnt)
 	cc.cond.L.Lock()
 	cc.cnt = i
 	cc.cond.L.Unlock()
-	fmt.Printf("ApiServerCondition2 -> Set:%d Cnt:%d \n", i, cc.cnt)
+	log.Infof("ApiServerCondition2 -> Set:%d Cnt:%d \n", i, cc.cnt)
 	cc.cond.Broadcast()
 }
 
 func (cc *ApiServerCondition) GetCnt() int {
-	fmt.Printf("ApiServerCondition->GetCnt cnt:%d \n", cc.cnt)
+	log.Infof("ApiServerCondition->GetCnt cnt:%d \n", cc.cnt)
 	return cc.cnt
 
 }
 
 func (cc *ApiServerCondition) Wait(cnt int) error {
-	fmt.Printf("ApiServerCondition->wait cnt:%d \n", cnt)
+	log.Infof("ApiServerCondition->wait cnt:%d \n", cnt)
 	cc.cond.L.Lock()
 
 	// 超时
@@ -62,7 +78,6 @@ func (cc *ApiServerCondition) Wait(cnt int) error {
 	for cc.cnt < cnt {
 		log.Infof("BeforeApiServerCondition->wait cnt:%d \n", cc.cnt)
 		cc.cond.Wait()
-		log.Infof("AfterApiServerCondition->wait cnt:%d \n", cc.cnt)
 	}
 	cc.cond.L.Unlock()
 
