@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -52,8 +53,7 @@ var (
 	SelfServiceInstance = make([]*api.Instance, 0)
 	ConfigFilePath      = ""
 	selfHeathChecker    *SelfHeathChecker
-
-	ServerCond = NewApiServerCond()
+	ApiServerWaitGroup  = new(sync.WaitGroup)
 )
 
 // Start 启动
@@ -295,7 +295,7 @@ func StartServers(ctx context.Context, cfg *boot_config.Config, errCh chan error
 	// 启动API服务器
 	var servers []apiserver.Apiserver
 
-	serverCnt := 0
+	// 等待所有ApiServer都监听完成
 
 	for _, protocol := range cfg.APIServers {
 		slot, exist := apiserver.Slots[protocol.Name]
@@ -311,11 +311,11 @@ func StartServers(ctx context.Context, cfg *boot_config.Config, errCh chan error
 		}
 
 		servers = append(servers, slot)
+		ApiServerWaitGroup.Add(1)
 		go slot.Run(errCh)
-		serverCnt++
 	}
-	err := ServerCond.Wait(serverCnt)
-	return servers, err
+	ApiServerWaitGroup.Wait()
+	return servers, nil
 }
 
 // RestartServers 重启server

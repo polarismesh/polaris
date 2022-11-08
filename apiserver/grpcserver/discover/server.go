@@ -107,7 +107,7 @@ func (g *GRPCServer) Initialize(ctx context.Context, option map[string]interface
 // Run 启动GRPC API服务器
 func (g *GRPCServer) Run(errCh chan error) {
 	g.BaseGrpcServer.Run(errCh, g.GetProtocol(), func(server *grpc.Server) error {
-		defer bootstrap.ServerCond.Incr(g.GetProtocol())
+		defer bootstrap.ApiServerWaitGroup.Done()
 		for name, config := range g.openAPI {
 			switch name {
 			case "client":

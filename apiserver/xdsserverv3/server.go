@@ -161,7 +161,7 @@ func (x *XDSServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
-	bootstrap.ServerCond.Incr(x.GetProtocol())
+	bootstrap.ApiServerWaitGroup.Done()
 
 	if x.connLimitConfig != nil && x.connLimitConfig.OpenConnLimit {
 		log.Infof("grpc server use max connection limit: %d, grpc max limit: %d",

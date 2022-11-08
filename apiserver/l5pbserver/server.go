@@ -106,7 +106,7 @@ func (l *L5pbserver) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
-	bootstrap.ServerCond.Incr(l.GetProtocol())
+	bootstrap.ApiServerWaitGroup.Done()
 	l.listener = listener
 
 	for {

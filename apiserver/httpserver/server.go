@@ -221,7 +221,7 @@ func (h *HTTPServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
-	bootstrap.ServerCond.Incr(h.GetProtocol())
+	bootstrap.ApiServerWaitGroup.Done()
 
 	ln = &tcpKeepAliveListener{ln.(*net.TCPListener)}
 	// 开启最大连接数限制
