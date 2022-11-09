@@ -18,12 +18,14 @@
 package local
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
 
-	commonLog "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/eventhub"
+	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -34,7 +36,7 @@ const (
 	defaultBufferSize = 1024
 )
 
-var log = commonLog.RegisterScope(PluginName, "", 0)
+var log = commonlog.RegisterScope(PluginName, "", 0)
 
 func init() {
 	d := &discoverEventLocal{}
@@ -133,6 +135,10 @@ func (el *discoverEventLocal) Initialize(conf *plugin.ConfigEntry) error {
 
 	el.switchEventBuffer()
 
+	if err := eventhub.Subscribe(eventhub.DiscoverEventTopic, PluginName, el.Handler); err != nil {
+		return err
+	}
+
 	go el.Run()
 
 	return nil
@@ -140,6 +146,13 @@ func (el *discoverEventLocal) Initialize(conf *plugin.ConfigEntry) error {
 
 // Destroy 执行插件销毁
 func (el *discoverEventLocal) Destroy() error {
+	eventhub.Unsubscribe(eventhub.DiscoverEventTopic, PluginName)
+	return nil
+}
+
+func (el *discoverEventLocal) Handler(ctx context.Context, event interface{}) error {
+	discoverEvent, _ := event.(model.DiscoverEvent)
+	el.eventCh <- discoverEvent
 	return nil
 }
 

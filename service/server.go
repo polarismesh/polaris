@@ -25,6 +25,7 @@ import (
 
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
@@ -105,11 +106,7 @@ func (s *Server) RecordDiscoverStatis(service, discoverNamespace string) {
 
 // PublishDiscoverEvent 发布服务事件
 func (s *Server) PublishDiscoverEvent(event model.DiscoverEvent) {
-	if s.discoverEvent == nil {
-		return
-	}
-
-	s.discoverEvent.PublishEvent(event)
+	eventhub.Publish(eventhub.DiscoverEventTopic, event)
 }
 
 // GetServiceInstanceRevision 获取服务实例的revision
