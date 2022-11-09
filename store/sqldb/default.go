@@ -154,24 +154,22 @@ func parseDatabaseConf(opt map[string]interface{}) (*dbConfig, *dbConfig, error)
 // parseStoreConfig 解析store的配置
 func parseStoreConfig(opts interface{}) (*dbConfig, error) {
 	obj, ok := opts.(map[interface{}]interface{})
-	if !ok {
-		return nil, errors.New("database config is error")
-	}
-	dbType, _ := obj["dbType"].(string)
-	dbUser, _ := obj["dbUser"].(string)
-	dbPwd, _ := obj["dbPwd"].(string)
-	dbAddr, _ := obj["dbAddr"].(string)
-	dbName, _ := obj["dbName"].(string)
-	if dbType == "" || dbUser == "" || dbPwd == "" || dbAddr == "" || dbName == "" {
-		return nil, fmt.Errorf("config Plugin %s missing database param", STORENAME)
+
+	needCheckFields := map[string]string{"dbType": "", "dbUser": "", "dbPwd": "", "dbAddr": "", "dbName": ""}
+
+	for key := range needCheckFields {
+		needCheckFields[key], ok = obj[key].(string)
+		if !ok {
+			return nil, fmt.Errorf("config Plugin %s:%s type must be string", STORENAME, key)
+		}
 	}
 
 	c := &dbConfig{
-		dbType: dbType,
-		dbUser: dbUser,
-		dbPwd:  dbPwd,
-		dbAddr: dbAddr,
-		dbName: dbName,
+		dbType: needCheckFields["dbType"],
+		dbUser: needCheckFields["dbUser"],
+		dbPwd:  needCheckFields["dbPwd"],
+		dbAddr: needCheckFields["dbAddr"],
+		dbName: needCheckFields["dbName"],
 	}
 	if maxOpenConns, _ := obj["maxOpenConns"].(int); maxOpenConns > 0 {
 		c.maxOpenConns = maxOpenConns
