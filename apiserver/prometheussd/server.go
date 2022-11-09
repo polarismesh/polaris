@@ -25,10 +25,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/emicklei/go-restful/v3"
+	restful "github.com/emicklei/go-restful/v3"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/apiserver"
+	"github.com/polarismesh/polaris/bootstrap"
 	"github.com/polarismesh/polaris/common/connlimit"
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/utils"
@@ -115,6 +116,7 @@ func (h *PrometheusServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
+	bootstrap.ApiServerWaitGroup.Done()
 
 	ln = &tcpKeepAliveListener{ln.(*net.TCPListener)}
 	// 开启最大连接数限制
@@ -207,7 +209,7 @@ func (h *PrometheusServer) createRestfulContainer() (*restful.Container, error) 
 		Container:      wsContainer}
 	wsContainer.Filter(cors.Filter)
 
-	// Add container filter to respond to OPTIONS
+	// Incr container filter to respond to OPTIONS
 	wsContainer.Filter(wsContainer.OPTIONSFilter)
 
 	wsContainer.Filter(h.process)
