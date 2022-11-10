@@ -33,15 +33,6 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
-	"github.com/polarismesh/polaris/service"
-	"github.com/polarismesh/polaris/service/batch"
-	"github.com/polarismesh/polaris/service/healthcheck"
-	"github.com/polarismesh/polaris/store"
-	storemock "github.com/polarismesh/polaris/store/mock"
-
-	"github.com/polarismesh/polaris/testdata"
-
-	// 注册相关默认插件
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
 	_ "github.com/polarismesh/polaris/plugin/discoverevent/local"
 	_ "github.com/polarismesh/polaris/plugin/discoverstat/discoverlocal"
@@ -52,6 +43,12 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/lrurate"
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/token"
 	_ "github.com/polarismesh/polaris/plugin/statis/local"
+	"github.com/polarismesh/polaris/service"
+	"github.com/polarismesh/polaris/service/batch"
+	"github.com/polarismesh/polaris/service/healthcheck"
+	"github.com/polarismesh/polaris/store"
+	storemock "github.com/polarismesh/polaris/store/mock"
+	"github.com/polarismesh/polaris/testdata"
 )
 
 type Bootstrap struct {

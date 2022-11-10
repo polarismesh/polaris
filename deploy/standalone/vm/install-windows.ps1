@@ -35,6 +35,12 @@ function installPolarisServer() {
     }
     Expand-Archive -Path $target_polaris_server_pkg -DestinationPath .
     Push-Location $polaris_server_dirname
+    sed "polaris-server.yaml" "listenPort: 8761" "listenPort: ${eureka_port}"
+    sed "polaris-server.yaml" "listenPort: 15010" "listenPort: ${xdsv3_port}"
+    sed "polaris-server.yaml" "listenPort: 9000" "listenPort: ${prometheus_sd_port}"
+    sed "polaris-server.yaml" "listenPort: 8091" "listenPort: ${service_grpc_port}"
+    sed "polaris-server.yaml" "listenPort: 8093" "listenPort: ${config_grpc_port}"
+    sed "polaris-server.yaml" "listenPort: 8090" "listenPort: ${api_http_port}"
     Start-Process -FilePath ".\\polaris-server.exe" -ArgumentList ('start') -WindowStyle Hidden
     Write-Output "install polaris server success"
     Pop-Location
@@ -61,6 +67,9 @@ function installPolarisConsole() {
     }
     Expand-Archive -Path $target_polaris_console_pkg -DestinationPath .
     Push-Location $polaris_console_dirname
+    sed "polaris-console.yaml" "listenPort: 8080" "listenPort: ${console_port}"
+    sed "polaris-console.yaml" "address: '127.0.0.1:8090'" "address: '127.0.0.1:'${api_http_port}'"
+    sed "polaris-console.yaml" "address: '127.0.0.1:9090'" "address: '127.0.0.1:'${prometheus_port}'"
     Start-Process -FilePath ".\\polaris-console.exe" -ArgumentList ('start') -WindowStyle Hidden
     Write-Output "install polaris console success"
     Pop-Location
@@ -86,6 +95,8 @@ function installPolarisLimiter() {
     }
     Expand-Archive -Path $target_polaris_limiter_pkg -DestinationPath .
     Push-Location $polaris_limiter_dirname
+    sed "polaris-limiter.yaml" "port: 8100" "port: ${limiter_http_port}"
+    sed "polaris-limiter.yaml" "port: 8101" "port: ${limiter_grpc_port}"
     Start-Process -FilePath ".\\polaris-limiter.exe" -ArgumentList ('start') -WindowStyle Hidden
     Write-Output "install polaris limiter success"
     Pop-Location
@@ -124,8 +135,23 @@ function installPrometheus() {
     Pop-Location
 }
 
+$fileContent = Get-Content port.properties
+$fileContent = $fileContent -join [Environment]::NewLine
+$config = ConvertFrom-StringData($fileContent)
+$console_port = $config.'polaris_console_port'
+$eureka_port = $config.'polaris_eureka_port'
+$xdsv3_port = $config.'polaris_xdsv3_port'
+$prometheus_sd_port = $config.'polaris_prometheus_sd_port'
+$service_grpc_port = $config.'polaris_service_grpc_port'
+$config_grpc_port = $config.'polaris_config_grpc_port'
+$api_http_port = $config.'polaris_open_api_port'
+$prometheus_port = $config.'prometheus_port'
+$pushgateway_port = $config.'pushgateway_port'
+$limiter_http_port = $config.'polaris_limiter_http_port'
+$limiter_grpc_port = $config.'polaris_limiter_grpc_port'
+
 function checkPort() {
-    $ports = "8080", "8090", "8091", "9090", "9091"
+    $ports = $console_port, $eureka_port, $xdsv3_port, $prometheus_sd_port, $service_grpc_port, $config_grpc_port, $api_http_port, $prometheus_port, $pushgateway_port, $limiter_http_port,$limiter_grpc_port
     foreach ($port in $ports)
     {
         $processInfo = netstat -ano | findstr "LISTENING" | findstr $port
@@ -137,6 +163,18 @@ function checkPort() {
         }
     }
 }
+
+function sed($Filename, $Oldvalue, $Newvalue) {
+    if (Test-Path $Filename) {
+        $content = get-content $Filename
+        clear-content $Filename
+        foreach($line in $content) {
+            $liner=$line.Replace($Oldvalue, $Newvalue)
+            Add-content $Filename -Value $liner
+        }
+    }
+}
+
 
 # 检查端口占用
 checkPort

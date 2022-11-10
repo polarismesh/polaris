@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/emicklei/go-restful/v3"
+	restful "github.com/emicklei/go-restful/v3"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
@@ -35,6 +35,7 @@ import (
 	v1 "github.com/polarismesh/polaris/apiserver/httpserver/v1"
 	v2 "github.com/polarismesh/polaris/apiserver/httpserver/v2"
 	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/bootstrap"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/connlimit"
 	commonlog "github.com/polarismesh/polaris/common/log"
@@ -220,6 +221,7 @@ func (h *HTTPServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
+	bootstrap.ApiServerWaitGroup.Done()
 
 	ln = &tcpKeepAliveListener{ln.(*net.TCPListener)}
 	// 开启最大连接数限制
@@ -318,7 +320,7 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 		Container:      wsContainer}
 	wsContainer.Filter(cors.Filter)
 
-	// Add container filter to respond to OPTIONS
+	// Incr container filter to respond to OPTIONS
 	wsContainer.Filter(wsContainer.OPTIONSFilter)
 
 	wsContainer.Filter(h.process)
