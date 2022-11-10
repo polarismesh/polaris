@@ -70,7 +70,7 @@ func (r *routingStore) CreateRoutingConfig(conf *model.RoutingConfig) error {
 
 // cleanRoutingConfig 从数据库彻底清理路由配置
 func (r *routingStore) cleanRoutingConfig(serviceID string) error {
-	err := r.handler.DeleteValues(tblNameRouting, []string{serviceID}, false)
+	err := r.handler.DeleteValues(tblNameRouting, []string{serviceID})
 	if err != nil {
 		log.Errorf("[Store][boltdb] delete invalid route config error, %v", err)
 		return err

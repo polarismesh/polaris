@@ -515,7 +515,7 @@ func (gs *groupStore) cleanInValidGroup(tx *bolt.Tx, name, owner string) error {
 		keys = append(keys, k)
 	}
 
-	return deleteValues(tx, tblGroup, keys, false)
+	return deleteValues(tx, tblGroup, keys)
 }
 
 func convertForGroupStore(group *model.UserGroupDetail) *groupForStore {

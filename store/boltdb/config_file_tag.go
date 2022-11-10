@@ -174,7 +174,7 @@ func (t *configFileTagStore) DeleteConfigFileTag(proxyTx store.Tx, namespace, gr
 	_, err := DoTransactionIfNeed(proxyTx, t.handler, func(tx *bolt.Tx) ([]interface{}, error) {
 		dataKey := fmt.Sprintf("%s@%s@%s@%s@%s", key, value, namespace, group, fileName)
 
-		if err := deleteValues(tx, tbleConfigFileTag, []string{dataKey}, false); err != nil {
+		if err := deleteValues(tx, tbleConfigFileTag, []string{dataKey}); err != nil {
 			return nil, err
 		}
 		return nil, nil
@@ -212,7 +212,7 @@ func (t *configFileTagStore) DeleteTagByConfigFile(proxyTx store.Tx, namespace, 
 			keys = append(keys, dataKey)
 		}
 
-		if err := deleteValues(tx, tbleConfigFileTag, keys, false); err != nil {
+		if err := deleteValues(tx, tbleConfigFileTag, keys); err != nil {
 			return nil, err
 		}
 

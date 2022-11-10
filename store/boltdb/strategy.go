@@ -733,7 +733,7 @@ func (ss *strategyStore) cleanInvalidStrategy(tx *bolt.Tx, name, owner string) e
 		keys = append(keys, k)
 	}
 
-	return deleteValues(tx, tblStrategy, keys, false)
+	return deleteValues(tx, tblStrategy, keys)
 }
 
 func createDefaultStrategy(tx *bolt.Tx, role model.PrincipalType, principalId, name, owner string) error {

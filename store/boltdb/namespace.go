@@ -99,7 +99,7 @@ func (n *namespaceStore) AddNamespace(namespace *model.Namespace) error {
 }
 
 func (n *namespaceStore) cleanNamespace(name string) error {
-	if err := n.handler.DeleteValues(tblNameNamespace, []string{name}, false); err != nil {
+	if err := n.handler.DeleteValues(tblNameNamespace, []string{name}); err != nil {
 		log.Errorf("[Store][boltdb] delete invalid namespace error, %+v", err)
 		return err
 	}

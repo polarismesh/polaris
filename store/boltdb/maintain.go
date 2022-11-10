@@ -23,5 +23,5 @@ type maintainStore struct {
 
 // BatchCleanDeletedInstances
 func (m *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
-	return 0, nil
+	return m.handler.BatchDeleteInvalidValues(tblNameInstance, batchSize)
 }
