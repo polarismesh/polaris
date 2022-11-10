@@ -138,7 +138,7 @@ func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, level1, level2,
 }
 
 // BuildV1RoutesFromV2 根据 v2 版本的路由规则适配成 v1 版本的路由规则，分为别 inBounds 以及 outBounds
-// retuen inBound outBound revisions
+// return inBound outBound revisions
 func BuildV1RoutesFromV2(service, namespace string, entries []*v2.ExtendRoutingConfig) ([]*apiv1.Route, []*apiv1.Route, []string) {
 	if len(entries) == 0 {
 		return []*apiv1.Route{}, []*apiv1.Route{}, []string{}
@@ -468,7 +468,7 @@ func ConvertV1RouteToV2Route(route *apiv1.Route) *apiv2.RuleRoutingConfig {
 	}
 }
 
-// CompareRoutingV2
+// CompareRoutingV2 比较两个路由的优先级。
 func CompareRoutingV2(a, b *v2.ExtendRoutingConfig) bool {
 	if a.Priority != b.Priority {
 		return a.Priority < b.Priority
