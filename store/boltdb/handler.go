@@ -51,9 +51,6 @@ type BoltHandler interface {
 	// DeleteValues delete data object by unique key
 	DeleteValues(typ string, key []string) error
 
-	// BatchCleanInvalidValues batch delete invalid values
-	BatchDeleteInvalidValues(typ string, batchSize uint32) (uint32, error)
-
 	// UpdateValue update properties of data object
 	UpdateValue(typ string, key string, properties map[string]interface{}) error
 
@@ -401,72 +398,19 @@ func (b *boltHandler) DeleteValues(typ string, keys []string) error {
 }
 
 func deleteValues(tx *bolt.Tx, typ string, keys []string) error {
-	keyBytes := make([][]byte, len(keys))
-	for i := range keys {
-		keyBytes[i] = []byte(keys[i])
-	}
-	return deleteValues0(tx, typ, keyBytes)
-}
-
-func deleteValues0(tx *bolt.Tx, typ string, keys [][]byte) error {
 	typeBucket := tx.Bucket([]byte(typ))
 	if typeBucket == nil {
 		return nil
 	}
 	for _, key := range keys {
-		if subBucket := typeBucket.Bucket(key); subBucket != nil {
-			if err := typeBucket.DeleteBucket(key); err != nil {
+		keyBytes := []byte(key)
+		if subBucket := typeBucket.Bucket(keyBytes); subBucket != nil {
+			if err := typeBucket.DeleteBucket(keyBytes); err != nil {
 				return err
 			}
 		}
 	}
 	return nil
-}
-
-func (b *boltHandler) BatchDeleteInvalidValues(typ string, batchSize uint32) (count uint32, err error) {
-	var toDeleteKeys [][]byte
-	err = b.db.View(func(tx *bolt.Tx) error {
-		typeBucket := tx.Bucket([]byte(typ))
-		if typeBucket == nil {
-			return nil
-		}
-
-		c := typeBucket.Cursor()
-		for k, _ := c.First(); k != nil; k, _ = c.Next() {
-			subBucket := typeBucket.Bucket(k)
-			if subBucket == nil {
-				continue
-			}
-			data := subBucket.Get([]byte(toBucketField(DataValidFieldName)))
-			if len(data) == 0 {
-				continue
-			}
-			val, err := decodeBoolBuffer(DataValidFieldName, data)
-			if err != nil {
-				return err
-			}
-			if !val {
-				toDeleteKeys = append(toDeleteKeys, k)
-				count++
-			}
-			if count >= batchSize {
-				break
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return
-	}
-	if len(toDeleteKeys) == 0 {
-		return
-	}
-
-	err = b.db.Update(func(tx *bolt.Tx) error {
-		return deleteValues0(tx, typ, toDeleteKeys)
-	})
-
-	return
 }
 
 func getBucket(tx *bolt.Tx, typ string, key string) *bolt.Bucket {

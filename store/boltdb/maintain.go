@@ -17,11 +17,42 @@
 
 package boltdb
 
+import "github.com/polarismesh/polaris/common/model"
+
 type maintainStore struct {
 	handler BoltHandler
 }
 
 // BatchCleanDeletedInstances
 func (m *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
-	return m.handler.BatchDeleteInvalidValues(tblNameInstance, batchSize)
+	fields := []string{insFieldValid}
+	values, err := m.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
+		func(m map[string]interface{}) bool {
+			valid, ok := m[insFieldValid]
+			if ok && !valid.(bool) {
+				return true
+			}
+			return false
+		})
+	if err != nil {
+		return 0, err
+	}
+	if len(values) == 0 {
+		return 0, nil
+	}
+
+	var count uint32 = 0
+	keys := make([]string, 0, batchSize)
+	for k := range values {
+		keys = append(keys, k)
+		count++
+		if count >= batchSize {
+			break
+		}
+	}
+	err = m.handler.DeleteValues(tblNameInstance, keys)
+	if err != nil {
+		return count, err
+	}
+	return count, nil
 }
