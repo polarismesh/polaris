@@ -220,3 +220,4 @@ curl http://127.0.0.1:8090
 如果你有好的意见或建议，欢迎给我们提 Issues 或 Pull Requests，为提升北极星的开发体验贡献力量。
 
 详见：[CONTRIBUTING.md](CONTRIBUTING.md)
+测试PR-TencentCI 门禁全流程
