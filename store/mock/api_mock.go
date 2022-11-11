@@ -22,14 +22,13 @@
 package mock
 
 import (
-	"reflect"
-	"time"
+	reflect "reflect"
+	time "time"
 
-	"github.com/golang/mock/gomock"
-
-	"github.com/polarismesh/polaris/common/model"
+	gomock "github.com/golang/mock/gomock"
+	model "github.com/polarismesh/polaris/common/model"
 	v2 "github.com/polarismesh/polaris/common/model/v2"
-	"github.com/polarismesh/polaris/store"
+	store "github.com/polarismesh/polaris/store"
 )
 
 // MockStore is a mock of Store interface.
@@ -53,20 +52,6 @@ func NewMockStore(ctrl *gomock.Controller) *MockStore {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockStore) EXPECT() *MockStoreMockRecorder {
 	return m.recorder
-}
-
-// AddBusiness mocks base method.
-func (m *MockStore) AddBusiness(business *model.Business) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddBusiness", business)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddBusiness indicates an expected call of AddBusiness.
-func (mr *MockStoreMockRecorder) AddBusiness(business interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBusiness", reflect.TypeOf((*MockStore)(nil).AddBusiness), business)
 }
 
 // AddGroup mocks base method.
@@ -179,6 +164,21 @@ func (m *MockStore) BatchAddInstances(instances []*model.Instance) error {
 func (mr *MockStoreMockRecorder) BatchAddInstances(instances interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchAddInstances", reflect.TypeOf((*MockStore)(nil).BatchAddInstances), instances)
+}
+
+// BatchCleanDeletedInstances mocks base method.
+func (m *MockStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchCleanDeletedInstances", batchSize)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BatchCleanDeletedInstances indicates an expected call of BatchCleanDeletedInstances.
+func (mr *MockStoreMockRecorder) BatchCleanDeletedInstances(batchSize interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchCleanDeletedInstances", reflect.TypeOf((*MockStore)(nil).BatchCleanDeletedInstances), batchSize)
 }
 
 // BatchDeleteClients mocks base method.
@@ -452,20 +452,6 @@ func (m *MockStore) CreateTransaction() (store.Transaction, error) {
 func (mr *MockStoreMockRecorder) CreateTransaction() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransaction", reflect.TypeOf((*MockStore)(nil).CreateTransaction))
-}
-
-// DeleteBusiness mocks base method.
-func (m *MockStore) DeleteBusiness(bid string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteBusiness", bid)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteBusiness indicates an expected call of DeleteBusiness.
-func (mr *MockStoreMockRecorder) DeleteBusiness(bid interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBusiness", reflect.TypeOf((*MockStore)(nil).DeleteBusiness), bid)
 }
 
 // DeleteConfigFile mocks base method.
@@ -791,21 +777,6 @@ func (m *MockStore) GenNextL5Sid(layoutID uint32) (string, error) {
 func (mr *MockStoreMockRecorder) GenNextL5Sid(layoutID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenNextL5Sid", reflect.TypeOf((*MockStore)(nil).GenNextL5Sid), layoutID)
-}
-
-// GetBusinessByID mocks base method.
-func (m *MockStore) GetBusinessByID(id string) (*model.Business, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBusinessByID", id)
-	ret0, _ := ret[0].(*model.Business)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetBusinessByID indicates an expected call of GetBusinessByID.
-func (mr *MockStoreMockRecorder) GetBusinessByID(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBusinessByID", reflect.TypeOf((*MockStore)(nil).GetBusinessByID), id)
 }
 
 // GetCircuitBreaker mocks base method.
@@ -1184,21 +1155,6 @@ func (m *MockStore) GetLatestConfigFileReleaseHistory(namespace, group, fileName
 func (mr *MockStoreMockRecorder) GetLatestConfigFileReleaseHistory(namespace, group, fileName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestConfigFileReleaseHistory", reflect.TypeOf((*MockStore)(nil).GetLatestConfigFileReleaseHistory), namespace, group, fileName)
-}
-
-// GetMoreBusiness mocks base method.
-func (m *MockStore) GetMoreBusiness(mtime time.Time) ([]*model.Business, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMoreBusiness", mtime)
-	ret0, _ := ret[0].([]*model.Business)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMoreBusiness indicates an expected call of GetMoreBusiness.
-func (mr *MockStoreMockRecorder) GetMoreBusiness(mtime interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreBusiness", reflect.TypeOf((*MockStore)(nil).GetMoreBusiness), mtime)
 }
 
 // GetMoreClients mocks base method.
@@ -1807,21 +1763,6 @@ func (mr *MockStoreMockRecorder) Initialize(c interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockStore)(nil).Initialize), c)
 }
 
-// ListBusiness mocks base method.
-func (m *MockStore) ListBusiness(owner string) ([]*model.Business, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListBusiness", owner)
-	ret0, _ := ret[0].([]*model.Business)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListBusiness indicates an expected call of ListBusiness.
-func (mr *MockStoreMockRecorder) ListBusiness(owner interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBusiness", reflect.TypeOf((*MockStore)(nil).ListBusiness), owner)
-}
-
 // ListMasterCircuitBreakers mocks base method.
 func (m *MockStore) ListMasterCircuitBreakers(filters map[string]string, offset, limit uint32) (*model.CircuitBreakerDetail, error) {
 	m.ctrl.T.Helper()
@@ -2107,34 +2048,6 @@ func (m *MockStore) UnbindCircuitBreaker(serviceID, ruleID, ruleVersion string) 
 func (mr *MockStoreMockRecorder) UnbindCircuitBreaker(serviceID, ruleID, ruleVersion interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnbindCircuitBreaker", reflect.TypeOf((*MockStore)(nil).UnbindCircuitBreaker), serviceID, ruleID, ruleVersion)
-}
-
-// UpdateBusiness mocks base method.
-func (m *MockStore) UpdateBusiness(business *model.Business) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateBusiness", business)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateBusiness indicates an expected call of UpdateBusiness.
-func (mr *MockStoreMockRecorder) UpdateBusiness(business interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBusiness", reflect.TypeOf((*MockStore)(nil).UpdateBusiness), business)
-}
-
-// UpdateBusinessToken mocks base method.
-func (m *MockStore) UpdateBusinessToken(bid, token string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateBusinessToken", bid, token)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateBusinessToken indicates an expected call of UpdateBusinessToken.
-func (mr *MockStoreMockRecorder) UpdateBusinessToken(bid, token interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBusinessToken", reflect.TypeOf((*MockStore)(nil).UpdateBusinessToken), bid, token)
 }
 
 // UpdateCircuitBreaker mocks base method.

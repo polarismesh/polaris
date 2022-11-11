@@ -49,7 +49,7 @@ type BoltHandler interface {
 	SaveValue(typ string, key string, object interface{}) error
 
 	// DeleteValues delete data object by unique key
-	DeleteValues(typ string, key []string, logicDelete bool) error
+	DeleteValues(typ string, key []string) error
 
 	// UpdateValue update properties of data object
 	UpdateValue(typ string, key string, properties map[string]interface{}) error
@@ -388,16 +388,16 @@ func (b *boltHandler) Close() error {
 }
 
 // DeleteValues delete data object by unique key
-func (b *boltHandler) DeleteValues(typ string, keys []string, logicDelete bool) error {
+func (b *boltHandler) DeleteValues(typ string, keys []string) error {
 	if len(keys) == 0 {
 		return nil
 	}
 	return b.db.Update(func(tx *bolt.Tx) error {
-		return deleteValues(tx, typ, keys, logicDelete)
+		return deleteValues(tx, typ, keys)
 	})
 }
 
-func deleteValues(tx *bolt.Tx, typ string, keys []string, logicDelete bool) error {
+func deleteValues(tx *bolt.Tx, typ string, keys []string) error {
 	typeBucket := tx.Bucket([]byte(typ))
 	if typeBucket == nil {
 		return nil
@@ -405,14 +405,8 @@ func deleteValues(tx *bolt.Tx, typ string, keys []string, logicDelete bool) erro
 	for _, key := range keys {
 		keyBytes := []byte(key)
 		if subBucket := typeBucket.Bucket(keyBytes); subBucket != nil {
-			if logicDelete {
-				if err := subBucket.Put([]byte(toBucketField(DataValidFieldName)), encodeBoolBuffer(false)); err != nil {
-					return err
-				}
-			} else {
-				if err := typeBucket.DeleteBucket(keyBytes); err != nil {
-					return err
-				}
+			if err := typeBucket.DeleteBucket(keyBytes); err != nil {
+				return err
 			}
 		}
 	}
@@ -481,7 +475,7 @@ func (b *boltHandler) CountValues(typ string) (int, error) {
 			canCount := true
 
 			if subBucket != nil {
-				data := subBucket.Get([]byte(DataValidFieldName))
+				data := subBucket.Get([]byte(toBucketField(DataValidFieldName)))
 				if len(data) == 0 {
 					canCount = true
 				} else {

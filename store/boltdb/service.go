@@ -804,7 +804,7 @@ func (ss *serviceStore) cleanInValidService(name, namespace string) error {
 		return nil
 	}
 
-	if err := ss.handler.DeleteValues(tblNameService, []string{old.ID}, false); err != nil {
+	if err := ss.handler.DeleteValues(tblNameService, []string{old.ID}); err != nil {
 		log.Errorf("[Store][boltdb] delete invalid service error, %+v", err)
 		return err
 	}

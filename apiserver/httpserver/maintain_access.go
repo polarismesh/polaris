@@ -20,7 +20,6 @@ package httpserver
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -42,6 +41,7 @@ func (h *HTTPServer) GetMaintainAccessServer() *restful.WebService {
 	ws.Route(enrichCloseConnectionsApiDocs(ws.POST("apiserver/conn/close").To(h.CloseConnections)))
 	ws.Route(enrichFreeOSMemoryApiDocs(ws.POST("/memory/free").To(h.FreeOSMemory)))
 	ws.Route(enrichCleanInstanceApiDocs(ws.POST("/instance/clean").To(h.CleanInstance)))
+	ws.Route(enrichBatchCleanInstancesApiDocs(ws.POST("/instance/batchclean").To(h.BatchCleanInstances)))
 	ws.Route(enrichGetLastHeartbeatApiDocs(ws.GET("/instance/heartbeat").To(h.GetLastHeartbeat)))
 	ws.Route(enrichGetLogOutputLevelApiDocs(ws.GET("/log/outputlevel").To(h.GetLogOutputLevel)))
 	ws.Route(enrichSetLogOutputLevelApiDocs(ws.PUT("/log/outputlevel").To(h.SetLogOutputLevel)))
@@ -149,6 +149,30 @@ func (h *HTTPServer) CleanInstance(req *restful.Request, rsp *restful.Response) 
 	handler.WriteHeaderAndProto(h.maintainServer.CleanInstance(ctx, instance))
 }
 
+func (h *HTTPServer) BatchCleanInstances(req *restful.Request, rsp *restful.Response) {
+	ctx := initContext(req)
+
+	var param struct {
+		BatchSize uint32 `json:"batch_size"`
+	}
+
+	if err := httpcommon.ParseJsonBody(req, &param); err != nil {
+		_ = rsp.WriteError(http.StatusBadRequest, err)
+		return
+	}
+
+	if count, err := h.maintainServer.BatchCleanInstances(ctx, param.BatchSize); err != nil {
+		_ = rsp.WriteError(http.StatusInternalServerError, err)
+	} else {
+		var ret struct {
+			RowsAffected uint32 `json:"rows_affected"`
+		}
+		ret.RowsAffected = count
+		_ = rsp.WriteAsJson(ret)
+	}
+
+}
+
 // GetLastHeartbeat 获取实例，上一次心跳的时间
 func (h *HTTPServer) GetLastHeartbeat(req *restful.Request, rsp *restful.Response) {
 	ctx := initContext(req)
@@ -193,12 +217,8 @@ func (h *HTTPServer) SetLogOutputLevel(req *restful.Request, rsp *restful.Respon
 		Scope string `json:"scope"`
 		Level string `json:"level"`
 	}
-	body, err := ioutil.ReadAll(req.Request.Body)
-	if err != nil {
-		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
-		return
-	}
-	if err := json.Unmarshal(body, &scopeLogLevel); err != nil {
+
+	if err := httpcommon.ParseJsonBody(req, &scopeLogLevel); err != nil {
 		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
 		return
 	}

@@ -89,7 +89,7 @@ func (c *circuitBreakerStore) CreateCircuitBreaker(cb *model.CircuitBreaker) err
 
 // cleanCircuitBreaker 彻底清理熔断规则
 func (c *circuitBreakerStore) cleanCircuitBreaker(id string, version string) error {
-	if err := c.handler.DeleteValues(tblCircuitBreaker, []string{c.buildKey(id, version)}, false); err != nil {
+	if err := c.handler.DeleteValues(tblCircuitBreaker, []string{c.buildKey(id, version)}); err != nil {
 		log.Errorf("[Store][circuitBreaker] clean invalid circuit-breaker(%s, %s) err: %s",
 			id, version, err.Error())
 		return store.Error(err)

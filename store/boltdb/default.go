@@ -64,6 +64,9 @@ type boltStore struct {
 	// v2 存储
 	*routingStoreV2
 
+	// maintain store
+	*maintainStore
+
 	handler BoltHandler
 	start   bool
 }
@@ -261,6 +264,10 @@ func (m *boltStore) newStore() error {
 		return err
 	}
 
+	if err := m.newMaintainModuleStore(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -322,6 +329,12 @@ func (m *boltStore) newConfigModuleStore() error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (m *boltStore) newMaintainModuleStore() error {
+	m.maintainStore = &maintainStore{handler: m.handler}
 
 	return nil
 }

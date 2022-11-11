@@ -70,6 +70,9 @@ type stableStore struct {
 	// v2 存储
 	*routingConfigStoreV2
 
+	// maintain store
+	*maintainStore
+
 	// 主数据库，可以进行读写
 	master *BaseDB
 	// 对主数据库的事务操作，可读写
@@ -271,4 +274,6 @@ func (s *stableStore) newStore() {
 	s.clientStore = &clientStore{master: s.master, slave: s.slave}
 
 	s.routingConfigStoreV2 = &routingConfigStoreV2{master: s.master, slave: s.slave}
+
+	s.maintainStore = &maintainStore{master: s.master}
 }

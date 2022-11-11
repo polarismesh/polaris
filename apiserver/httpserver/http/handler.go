@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -242,4 +243,16 @@ func ParseQueryParams(req *restful.Request) map[string]string {
 	}
 
 	return queryParams
+}
+
+// ParseJsonBody parse http body as json object
+func ParseJsonBody(req *restful.Request, value interface{}) error {
+	body, err := ioutil.ReadAll(req.Request.Body)
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(body, value); err != nil {
+		return err
+	}
+	return nil
 }
