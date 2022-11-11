@@ -27,7 +27,6 @@ import (
 func TestEurekaServer_RegisterApplication(t *testing.T) {
 	client := eureka.NewClient([]string{
 		"http://127.0.0.1:8761/eureka", //From a spring boot based eureka server
-
 	})
 	instance := eureka.NewInstanceInfo("TEST.COM", "instanceId", "69.172.200.23", 80, 30, false) //Create a new instance to register
 	instance.Metadata = &eureka.MetaData{
