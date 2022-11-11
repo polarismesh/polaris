@@ -43,14 +43,17 @@ type Store interface {
 	// NamespaceStore Service namespace interface
 	NamespaceStore
 
-	//NamingModuleStore Service Registration Discovery Module Storage Interface
+	// NamingModuleStore Service Registration Discovery Module Storage Interface
 	NamingModuleStore
 
-	//ConfigFileModuleStore Configure the central module storage interface
+	// ConfigFileModuleStore Configure the central module storage interface
 	ConfigFileModuleStore
 
-	//ClientStore Client the central module storage interface
+	// ClientStore Client the central module storage interface
 	ClientStore
+
+	// MaintainStore Maintain inteface
+	MaintainStore
 }
 
 // NamespaceStore Namespace storage interface

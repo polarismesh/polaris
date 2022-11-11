@@ -26,29 +26,30 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/cache"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 	"github.com/polarismesh/polaris/common/model"
 	v2 "github.com/polarismesh/polaris/common/model/v2"
 	routingcommon "github.com/polarismesh/polaris/common/routing"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/store"
 )
 
 var (
 	// RoutingConfigV2FilterAttrs router config filter attrs
 	RoutingConfigV2FilterAttrs = map[string]bool{
-		"id":             true,
-		"name":           true,
-		"service":        true,
-		"namespace":      true,
-		"source_service": true,
-		"enable":         true,
-		"offset":         true,
-		"limit":          true,
-		"order_field":    true,
-		"order_type":     true,
+		"id":                    true,
+		"name":                  true,
+		"service":               true,
+		"namespace":             true,
+		"source_service":        true,
+		"destination_service":   true,
+		"source_namespace":      true,
+		"destination_namespace": true,
+		"enable":                true,
+		"offset":                true,
+		"limit":                 true,
+		"order_field":           true,
+		"order_type":            true,
 	}
 )
 
@@ -77,19 +78,19 @@ func (s *Server) createRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 	if err != nil {
 		log.Error("[Routing][V2] parse routing config v2 from request for create",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(api.ExecuteException)
+		return apiv2.NewResponse(apiv1.ExecuteException)
 	}
 
 	if err := s.storage.CreateRoutingConfigV2(conf); err != nil {
 		log.Error("[Routing][V2] create routing config v2 store layer",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(api.StoreLayerException)
+		return apiv2.NewResponse(apiv1.StoreLayerException)
 	}
 
 	s.RecordHistory(routingV2RecordEntry(ctx, req, conf, model.OCreate))
 
 	req.Id = conf.ID
-	return apiv2.NewRoutingResponse(api.ExecuteSuccess, req)
+	return apiv2.NewRoutingResponse(apiv1.ExecuteSuccess, req)
 }
 
 // DeleteRoutingConfigsV2 批量删除路由配置
@@ -124,11 +125,11 @@ func (s *Server) deleteRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 	if err := s.storage.DeleteRoutingConfigV2(req.Id); err != nil {
 		log.Error("[Routing][V2] delete routing config v2 store layer",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(api.StoreLayerException)
+		return apiv2.NewResponse(apiv1.StoreLayerException)
 	}
 
 	s.RecordHistory(routingV2RecordEntry(ctx, req, nil, model.ODelete))
-	return apiv2.NewRoutingResponse(api.ExecuteSuccess, req)
+	return apiv2.NewRoutingResponse(apiv1.ExecuteSuccess, req)
 }
 
 // UpdateRoutingConfigsV2 批量更新路由配置
@@ -169,10 +170,10 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 	if err != nil {
 		log.Error("[Routing][V2] get routing config v2 store layer",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(api.StoreLayerException)
+		return apiv2.NewResponse(apiv1.StoreLayerException)
 	}
 	if conf == nil {
-		return apiv2.NewResponse(api.NotFoundRouting)
+		return apiv2.NewResponse(apiv1.NotFoundRouting)
 	}
 
 	// 作为一个整体进行Update，所有参数都要传递
@@ -181,7 +182,7 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 	if err != nil {
 		log.Error("[Routing][V2] parse routing config v2 from request for update",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(api.ExecuteException)
+		return apiv2.NewResponse(apiv1.ExecuteException)
 	}
 
 	if err := s.storage.UpdateRoutingConfigV2(reqModel); err != nil {
@@ -191,7 +192,7 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 	}
 
 	s.RecordHistory(routingV2RecordEntry(ctx, req, reqModel, model.OUpdate))
-	return apiv2.NewResponse(api.ExecuteSuccess)
+	return apiv2.NewResponse(apiv1.ExecuteSuccess)
 }
 
 // GetRoutingConfigsV2 提供给OSS的查询路由配置的接口
@@ -204,17 +205,17 @@ func (s *Server) GetRoutingConfigsV2(ctx context.Context, query map[string]strin
 	total, ret, err := s.Cache().RoutingConfig().GetRoutingConfigsV2(args)
 	if err != nil {
 		log.Error("[Routing][V2] query routing list from cache", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewBatchQueryResponse(api.ExecuteException)
+		return apiv2.NewBatchQueryResponse(apiv1.ExecuteException)
 	}
 
 	data, err := marshalRoutingV2toAnySlice(ret)
 	if err != nil {
 		log.Error("[Routing][V2] marshal routing list to anypb.Any list",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewBatchQueryResponse(api.ExecuteException)
+		return apiv2.NewBatchQueryResponse(apiv1.ExecuteException)
 	}
 
-	resp := apiv2.NewBatchQueryResponse(api.ExecuteSuccess)
+	resp := apiv2.NewBatchQueryResponse(apiv1.ExecuteSuccess)
 	resp.Amount = total
 	resp.Size = uint32(len(ret))
 	resp.Data = data
@@ -250,10 +251,10 @@ func (s *Server) enableRoutings(ctx context.Context, req *apiv2.Routing) *apiv2.
 	if err != nil {
 		log.Error("[Routing][V2] get routing config v2 store layer",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(api.StoreLayerException)
+		return apiv2.NewResponse(apiv1.StoreLayerException)
 	}
 	if conf == nil {
-		return apiv2.NewResponse(api.NotFoundRouting)
+		return apiv2.NewResponse(apiv1.NotFoundRouting)
 	}
 
 	conf.Enable = req.GetEnable()
@@ -266,7 +267,7 @@ func (s *Server) enableRoutings(ctx context.Context, req *apiv2.Routing) *apiv2.
 	}
 
 	s.RecordHistory(routingV2RecordEntry(ctx, req, conf, model.OUpdate))
-	return apiv2.NewResponse(api.ExecuteSuccess)
+	return apiv2.NewResponse(apiv1.ExecuteSuccess)
 }
 
 // transferV1toV2OnModify 在针对 v2 规则进行启用或者禁止时，需要将 v1 规则转为 v2 规则并执行持久化存储
@@ -276,7 +277,7 @@ func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apiv2.Routing)
 	if err != nil {
 		log.Error("[Routing][V2] get routing config v1 store layer",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(api.StoreLayerException)
+		return apiv2.NewResponse(apiv1.StoreLayerException)
 	}
 	if v1conf != nil {
 		svc := s.Cache().Service().GetServiceByID(svcId)
@@ -290,7 +291,7 @@ func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apiv2.Routing)
 		if svc == nil {
 			log.Error("[Routing][V2] convert routing config v1 to v2 find svc",
 				utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-			return apiv2.NewResponse(api.NotFoundService)
+			return apiv2.NewResponse(apiv1.NotFoundService)
 		}
 
 		// 这里需要将 apiModel 的 id 全部生成一遍 extendInfo 信息
@@ -298,7 +299,7 @@ func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apiv2.Routing)
 		if err != nil {
 			log.Error("[Routing][V2] convert routing config v1 to v2",
 				utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-			return apiv2.NewResponse(api.ExecuteException)
+			return apiv2.NewResponse(apiv1.ExecuteException)
 		}
 
 		formatApi := func(rules []*v2.ExtendRoutingConfig) ([]*apiv2.Routing, *apiv2.Response) {
@@ -308,7 +309,7 @@ func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apiv2.Routing)
 				if err != nil {
 					log.Error("[Routing][V2] convert routing config v1 to v2, format v2 to api",
 						utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-					return nil, apiv2.NewResponse(api.ExecuteException)
+					return nil, apiv2.NewResponse(apiv1.ExecuteException)
 				}
 				ret = append(ret, item)
 			}
@@ -336,35 +337,41 @@ func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apiv2.Routing)
 // parseServiceArgs 解析服务的查询条件
 func parseRoutingArgs(query map[string]string, ctx context.Context) (*cache.RoutingArgs, *apiv2.Response) {
 	// 先处理offset和limit
-	offset, limit, err := ParseOffsetAndLimit(query)
+	offset, limit, err := utils.ParseOffsetAndLimit(query)
 	if err != nil {
-		return nil, apiv2.NewResponse(api.InvalidParameter)
+		return nil, apiv2.NewResponse(apiv1.InvalidParameter)
 	}
 
 	filter := make(map[string]string)
 	for key, value := range query {
 		if _, ok := RoutingConfigV2FilterAttrs[key]; !ok {
 			log.Errorf("[Routing][V2][Query] attribute(%s) is not allowed", key)
-			return nil, apiv2.NewResponse(api.InvalidParameter)
+			return nil, apiv2.NewResponse(apiv1.InvalidParameter)
 		}
 		filter[key] = value
 	}
 
 	res := &cache.RoutingArgs{
 		Filter:     filter,
+		Name:       filter["name"],
 		ID:         filter["id"],
-		Namespace:  filter["namespace"],
-		Service:    filter["service"],
 		OrderField: filter["order_field"],
 		OrderType:  filter["order_type"],
 		Offset:     offset,
 		Limit:      limit,
 	}
-	var ok bool
-	if res.Name, ok = filter["name"]; ok && store.IsWildName(res.Name) {
-		log.Infof("[Routing][V2][Query] fuzzy search with name %s", res.Name)
-		res.FuzzyName = true
+
+	if _, ok := filter["service"]; ok {
+		res.Namespace = filter["namespace"]
+		res.Service = filter["service"]
+	} else {
+		res.SourceService = filter["source_service"]
+		res.SourceNamespace = filter["source_namespace"]
+
+		res.DestinationService = filter["destination_service"]
+		res.DestinationNamespace = filter["destination_namespace"]
 	}
+
 	if enableStr, ok := filter["enable"]; ok {
 		enable, err := strconv.ParseBool(enableStr)
 		if err == nil {
@@ -393,7 +400,7 @@ func checkBatchRoutingConfigV2(req []*apiv2.Routing) *apiv2.BatchWriteResponse {
 // checkRoutingConfig 检查路由配置基础参数有效性
 func checkRoutingConfigV2(req *apiv2.Routing) *apiv2.Response {
 	if req == nil {
-		return apiv2.NewRoutingResponse(api.EmptyRequest, req)
+		return apiv2.NewRoutingResponse(apiv1.EmptyRequest, req)
 	}
 
 	if err := checkRoutingNameAndNamespace(req); err != nil {
@@ -433,13 +440,13 @@ func checkUpdateRoutingConfigV2(req *apiv2.Routing) *apiv2.Response {
 }
 
 func checkRoutingNameAndNamespace(req *apiv2.Routing) *apiv2.Response {
-	if err := CheckDbStrFieldLen(utils.NewStringValue(req.GetName()), MaxDbRoutingName); err != nil {
-		return apiv2.NewRoutingResponse(api.InvalidRoutingName, req)
+	if err := utils.CheckDbStrFieldLen(utils.NewStringValue(req.GetName()), MaxDbRoutingName); err != nil {
+		return apiv2.NewRoutingResponse(apiv1.InvalidRoutingName, req)
 	}
 
-	if err := CheckDbStrFieldLen(utils.NewStringValue(req.GetNamespace()),
+	if err := utils.CheckDbStrFieldLen(utils.NewStringValue(req.GetNamespace()),
 		MaxDbServiceNamespaceLength); err != nil {
-		return apiv2.NewRoutingResponse(api.InvalidNamespaceName, req)
+		return apiv2.NewRoutingResponse(apiv1.InvalidNamespaceName, req)
 	}
 
 	return nil
@@ -447,11 +454,11 @@ func checkRoutingNameAndNamespace(req *apiv2.Routing) *apiv2.Response {
 
 func checkRoutingConfigIDV2(req *apiv2.Routing) *apiv2.Response {
 	if req == nil {
-		return apiv2.NewRoutingResponse(api.EmptyRequest, req)
+		return apiv2.NewRoutingResponse(apiv1.EmptyRequest, req)
 	}
 
 	if req.Id == "" {
-		return apiv2.NewResponse(api.InvalidRoutingID)
+		return apiv2.NewResponse(apiv1.InvalidRoutingID)
 	}
 
 	return nil
@@ -459,11 +466,11 @@ func checkRoutingConfigIDV2(req *apiv2.Routing) *apiv2.Response {
 
 func checkRoutingConfigPriorityV2(req *apiv2.Routing) *apiv2.Response {
 	if req == nil {
-		return apiv2.NewRoutingResponse(api.EmptyRequest, req)
+		return apiv2.NewRoutingResponse(apiv1.EmptyRequest, req)
 	}
 
-	if req.Priority < 0 || req.Priority > 10 {
-		return apiv2.NewResponse(api.InvalidRoutingPriority)
+	if req.Priority > 10 {
+		return apiv2.NewResponse(apiv1.InvalidRoutingPriority)
 	}
 
 	return nil
@@ -471,11 +478,11 @@ func checkRoutingConfigPriorityV2(req *apiv2.Routing) *apiv2.Response {
 
 func checkRoutingPolicyV2(req *apiv2.Routing) *apiv2.Response {
 	if req == nil {
-		return apiv2.NewRoutingResponse(api.EmptyRequest, req)
+		return apiv2.NewRoutingResponse(apiv1.EmptyRequest, req)
 	}
 
 	if req.GetRoutingPolicy() != apiv2.RoutingPolicy_RulePolicy {
-		return apiv2.NewRoutingResponse(api.InvalidRoutingPolicy, req)
+		return apiv2.NewRoutingResponse(apiv1.InvalidRoutingPolicy, req)
 	}
 
 	// 自动根据 policy 补充 @type 属性

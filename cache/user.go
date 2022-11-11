@@ -27,7 +27,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -37,9 +36,9 @@ func init() {
 }
 
 const (
-	UsersName string = "users"
+	UsersName = "users"
 
-	NameLinkOwnerTemp string = "%s@%s"
+	NameLinkOwnerTemp = "%s@%s"
 )
 
 // UserCache User information cache
@@ -285,7 +284,7 @@ func newUserCache(storage store.Store, notifyCh chan interface{}) UserCache {
 }
 
 // initialize
-func (uc *userCache) initialize(c map[string]interface{}) error {
+func (uc *userCache) initialize(_ map[string]interface{}) error {
 	uc.initBuckets()
 	uc.adminUser = atomic.Value{}
 
@@ -331,31 +330,31 @@ func (uc *userCache) realUpdate(storeRollbackSec time.Duration) error {
 	userlastMtime := time.Unix(uc.lastUserCacheUpdateTime, 0)
 	users, err := uc.storage.GetUsersForCache(userlastMtime.Add(storeRollbackSec), uc.userCacheFirstUpdate)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][User] update user err: %s", err.Error())
+		log.Errorf("[Cache][User] update user err: %s", err.Error())
 		return err
 	}
 
 	grouplastMtime := time.Unix(uc.lastGroupCacheUpdateTime, 0)
 	groups, err := uc.storage.GetGroupsForCache(grouplastMtime.Add(DefaultTimeDiff), uc.groupCacheFirstUpdate)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][Group] update group err: %s", err.Error())
+		log.Errorf("[Cache][Group] update group err: %s", err.Error())
 		return err
 	}
 
 	uc.userCacheFirstUpdate = false
 	uc.groupCacheFirstUpdate = false
 	refreshRet := uc.setUserAndGroups(users, groups)
-	log.CacheScope().Info("[Cache][User] get more user",
+	log.Info("[Cache][User] get more user",
 		zap.Int("add", refreshRet.userAdd),
 		zap.Int("update", refreshRet.userUpdate),
 		zap.Int("delete", refreshRet.userDel),
-		zap.Time("last", userlastMtime), zap.Duration("used", time.Now().Sub(start)))
+		zap.Time("last", userlastMtime), zap.Duration("used", time.Since(start)))
 
-	log.CacheScope().Info("[Cache][Group] get more group",
+	log.Info("[Cache][Group] get more group",
 		zap.Int("add", refreshRet.groupAdd),
 		zap.Int("update", refreshRet.groupUpdate),
 		zap.Int("delete", refreshRet.groupDel),
-		zap.Time("last", grouplastMtime), zap.Duration("used", time.Now().Sub(start)))
+		zap.Time("last", grouplastMtime), zap.Duration("used", time.Since(start)))
 	return nil
 }
 
@@ -391,9 +390,7 @@ func (uc *userCache) setUserAndGroups(users []*model.User,
 
 // handlerUserCacheUpdate 处理用户信息更新
 func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult, users []*model.User,
-	filter func(user *model.User) bool,
-	ownerSupplier func(user *model.User) *model.User) {
-
+	filter func(user *model.User) bool, ownerSupplier func(user *model.User) *model.User) {
 	for i := range users {
 		user := users[i]
 		if user.Type == model.AdminUserRole {
@@ -436,7 +433,6 @@ func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult,
 // handlerGroupCacheUpdate 处理用户组信息更新
 func (uc *userCache) handlerGroupCacheUpdate(ret *userAndGroupCacheRefreshResult,
 	groups []*model.UserGroupDetail) {
-
 	// 更新 groups 数据信息
 	for i := range groups {
 		group := groups[i]

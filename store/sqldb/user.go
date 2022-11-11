@@ -26,7 +26,6 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	logger "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -110,12 +109,12 @@ func (u *userStore) addUser(user *model.User) error {
 	}
 
 	if err := createDefaultStrategy(tx, model.PrincipalUser, user.ID, user.Name, user.Owner); err != nil {
-		logger.StoreScope().Error("[Auth][User] create default strategy", zap.Error(err))
+		log.Error("[Auth][User] create default strategy", zap.Error(err))
 		return store.Error(err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Errorf("[Store][User] add user tx commit err: %s", err.Error())
+		log.Errorf("[Store][User] add user tx commit err: %s", err.Error())
 		return store.Error(err)
 	}
 	return nil
@@ -167,7 +166,7 @@ func (u *userStore) updateUser(user *model.User) error {
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Errorf("[Store][User] update user tx commit err: %s", err.Error())
+		log.Errorf("[Store][User] update user tx commit err: %s", err.Error())
 		return err
 	}
 
@@ -196,7 +195,6 @@ func (u *userStore) DeleteUser(user *model.User) error {
 //
 // step 2. Delete the user group associated with this user
 func (u *userStore) deleteUser(user *model.User) error {
-
 	tx, err := u.master.Begin()
 	if err != nil {
 		return err
@@ -209,52 +207,56 @@ func (u *userStore) deleteUser(user *model.User) error {
 	}
 
 	if _, err = tx.Exec("UPDATE user SET flag = 1 WHERE id = ?", user.ID); err != nil {
-		logger.StoreScope().Error("[Store][User] update set user flag", zap.Error(err))
+		log.Error("[Store][User] update set user flag", zap.Error(err))
 		return err
 	}
 
 	if _, err = tx.Exec("UPDATE user_group SET mtime = sysdate() WHERE id IN (SELECT DISTINCT group_id FROM "+
 		" user_group_relation WHERE user_id = ?)", user.ID); err != nil {
-		logger.StoreScope().Error("[Store][User] update usergroup mtime", zap.Error(err))
+		log.Error("[Store][User] update usergroup mtime", zap.Error(err))
 		return err
 	}
 
 	if _, err = tx.Exec("DELETE FROM user_group_relation WHERE user_id = ?", user.ID); err != nil {
-		logger.StoreScope().Error("[Store][User] delete usergroup relation", zap.Error(err))
+		log.Error("[Store][User] delete usergroup relation", zap.Error(err))
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		logger.StoreScope().Error("[Store][User] delete user tx commit", zap.Error(err))
+		log.Error("[Store][User] delete user tx commit", zap.Error(err))
 		return err
 	}
 	return nil
 }
 
+// GetSubCount get user's sub count
 func (u *userStore) GetSubCount(user *model.User) (uint32, error) {
-	countSql := "SELECT COUNT(*) FROM user WHERE owner = ? AND flag = 0"
+	var (
+		countSql   = "SELECT COUNT(*) FROM user WHERE owner = ? AND flag = 0"
+		count, err = queryEntryCount(u.master, countSql, []interface{}{user.ID})
+	)
 
-	count, err := queryEntryCount(u.master, countSql, []interface{}{user.ID})
 	if err != nil {
-		logger.StoreScope().Error("[Store][User] count sub-account", zap.String("owner", user.Owner), zap.Error(err))
+		log.Error("[Store][User] count sub-account", zap.String("owner", user.Owner), zap.Error(err))
 	}
 
 	return count, err
 }
 
+// GetUser get user by user id
 func (u *userStore) GetUser(id string) (*model.User, error) {
-
 	var tokenEnable, userType int
-
 	getSql := `
 		 SELECT u.id, u.name, u.password, u.owner, u.comment, u.source, u.token, u.token_enable, 
 		 	u.user_type, u.mobile, u.email
 		 FROM user u
 		 WHERE u.flag = 0 AND u.id = ? 
 	  `
-	row := u.master.QueryRow(getSql, id)
+	var (
+		row  = u.master.QueryRow(getSql, id)
+		user = new(model.User)
+	)
 
-	user := new(model.User)
 	if err := row.Scan(&user.ID, &user.Name, &user.Password, &user.Owner, &user.Comment, &user.Source,
 		&user.Token, &tokenEnable, &userType, &user.Mobile, &user.Email); err != nil {
 		switch err {
@@ -265,9 +267,8 @@ func (u *userStore) GetUser(id string) (*model.User, error) {
 		}
 	}
 
-	user.TokenEnable = (tokenEnable == 1)
+	user.TokenEnable = tokenEnable == 1
 	user.Type = model.UserRoleType(userType)
-
 	return user, nil
 }
 
@@ -282,10 +283,11 @@ func (u *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
 			  AND u.owner = ? 
 	  `
 
-	row := u.master.QueryRow(getSql, name, ownerId)
-
-	user := new(model.User)
-	var tokenEnable, userType int
+	var (
+		row                   = u.master.QueryRow(getSql, name, ownerId)
+		user                  = new(model.User)
+		tokenEnable, userType int
+	)
 
 	if err := row.Scan(&user.ID, &user.Name, &user.Password, &user.Owner, &user.Comment, &user.Source,
 		&user.Token, &tokenEnable, &userType, &user.Mobile, &user.Email); err != nil {
@@ -297,15 +299,13 @@ func (u *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
 		}
 	}
 
-	user.TokenEnable = (tokenEnable == 1)
+	user.TokenEnable = tokenEnable == 1
 	user.Type = model.UserRoleType(userType)
 	return user, nil
-
 }
 
 // GetUserByIds Get user list data according to user ID
 func (u *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
-
 	if len(ids) == 0 {
 		return nil, nil
 	}
@@ -336,13 +336,15 @@ func (u *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
 	if err != nil {
 		return nil, store.Error(err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	users := make([]*model.User, 0)
 	for rows.Next() {
 		user, err := fetchRown2User(rows)
 		if err != nil {
-			logger.StoreScope().Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
+			log.Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
 			return nil, store.Error(err)
 		}
 		users = append(users, user)
@@ -356,19 +358,15 @@ func (u *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
 // Case 2. From the perspective of the user group, query is the list of users involved under a user group.
 func (u *userStore) GetUsers(filters map[string]string, offset uint32, limit uint32) (uint32,
 	[]*model.User, error) {
-
 	if _, ok := filters["group_id"]; ok {
 		return u.listGroupUsers(filters, offset, limit)
 	}
-
 	return u.listUsers(filters, offset, limit)
-
 }
 
 // listUsers Query user list information
 func (u *userStore) listUsers(filters map[string]string, offset uint32, limit uint32) (uint32,
 	[]*model.User, error) {
-
 	countSql := "SELECT COUNT(*) FROM user WHERE flag = 0 "
 	getSql := `
 	  SELECT id, name, password, owner, comment, source
@@ -392,12 +390,12 @@ func (u *userStore) listUsers(filters map[string]string, offset uint32, limit ui
 			countSql += " AND "
 			if k == NameAttribute {
 				if utils.IsWildName(v) {
-					getSql += (" " + k + " like ? ")
-					countSql += (" " + k + " like ? ")
+					getSql += " " + k + " like ? "
+					countSql += " " + k + " like ? "
 					args = append(args, "%"+v[:len(v)-1]+"%")
 				} else {
-					getSql += (" " + k + " = ? ")
-					countSql += (" " + k + " = ? ")
+					getSql += " " + k + " = ? "
+					countSql += " " + k + " = ? "
 					args = append(args, v)
 				}
 			} else if k == OwnerAttribute {
@@ -406,8 +404,8 @@ func (u *userStore) listUsers(filters map[string]string, offset uint32, limit ui
 				args = append(args, v, v)
 				continue
 			} else {
-				getSql += (" " + k + " = ? ")
-				countSql += (" " + k + " = ? ")
+				getSql += " " + k + " = ? "
+				countSql += " " + k + " = ? "
 				args = append(args, v)
 			}
 		}
@@ -421,7 +419,7 @@ func (u *userStore) listUsers(filters map[string]string, offset uint32, limit ui
 	getSql += " ORDER BY mtime LIMIT ? , ?"
 	getArgs := append(args, offset, limit)
 
-	users, err := u.collectUsers(u.master.Query, getSql, getArgs, logger.StoreScope())
+	users, err := u.collectUsers(u.master.Query, getSql, getArgs)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -461,6 +459,11 @@ func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, lim
 		if newK, ok := userLinkGroupAttributeMapping[k]; ok {
 			k = newK
 		}
+
+		if k == "ug.owner" {
+			k = "u.owner"
+		}
+
 		if utils.IsWildName(v) {
 			querySql += " AND " + k + " like ?"
 			countSql += " AND " + k + " like ?"
@@ -480,7 +483,7 @@ func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, lim
 	querySql += " ORDER BY u.mtime LIMIT ? , ?"
 	args = append(args, offset, limit)
 
-	users, err := u.collectUsers(u.master.Query, querySql, args, logger.StoreScope())
+	users, err := u.collectUsers(u.master.Query, querySql, args)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -490,9 +493,7 @@ func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, lim
 
 // GetUsersForCache Get user information, mainly for cache
 func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*model.User, error) {
-
 	args := make([]interface{}, 0)
-
 	querySql := `
 	  SELECT u.id, u.name, u.password, u.owner, u.comment, u.source
 		  , u.token, u.token_enable, user_type, UNIX_TIMESTAMP(u.ctime)
@@ -505,7 +506,7 @@ func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mode
 		args = append(args, timeToTimestamp(mtime))
 	}
 
-	users, err := u.collectUsers(u.master.Query, querySql, args, logger.CacheScope())
+	users, err := u.collectUsers(u.master.Query, querySql, args)
 	if err != nil {
 		return nil, err
 	}
@@ -514,21 +515,20 @@ func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mode
 }
 
 // collectUsers General query user list
-func (u *userStore) collectUsers(handler QueryHandler, querySql string, args []interface{},
-	scope *logger.Scope) ([]*model.User, error) {
-
+func (u *userStore) collectUsers(handler QueryHandler, querySql string, args []interface{}) ([]*model.User, error) {
 	rows, err := u.master.Query(querySql, args...)
 	if err != nil {
-		scope.Error("[Store][User] list user ", zap.String("query sql", querySql), zap.Any("args", args))
+		log.Error("[Store][User] list user ", zap.String("query sql", querySql), zap.Any("args", args))
 		return nil, store.Error(err)
 	}
-	defer rows.Close()
-
+	defer func() {
+		_ = rows.Close()
+	}()
 	users := make([]*model.User, 0)
 	for rows.Next() {
 		user, err := fetchRown2User(rows)
 		if err != nil {
-			scope.Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
+			log.Errorf("[Store][User] fetch user rows scan err: %s", err.Error())
 			return nil, store.Error(err)
 		}
 		users = append(users, user)
@@ -538,7 +538,6 @@ func (u *userStore) collectUsers(handler QueryHandler, querySql string, args []i
 }
 
 func createDefaultStrategy(tx *BaseTx, role model.PrincipalType, id, name, owner string) error {
-
 	if strings.Compare(owner, "") == 0 {
 		owner = id
 	}
@@ -554,6 +553,13 @@ func createDefaultStrategy(tx *BaseTx, role model.PrincipalType, id, name, owner
 		Resources: []model.StrategyResource{},
 		Valid:     true,
 		Comment:   "Default Strategy",
+	}
+
+	// 需要清理过期的 auth_strategy
+	cleanInvalidRule := "DELETE FROM auth_strategy WHERE name = ? AND owner = ? AND flag = 1 AND `default` = ?"
+	if _, err := tx.Exec(cleanInvalidRule, []interface{}{strategy.Name, strategy.Owner,
+		strategy.Default}...); err != nil {
+		return err
 	}
 
 	// Save policy master information
@@ -572,11 +578,12 @@ func createDefaultStrategy(tx *BaseTx, role model.PrincipalType, id, name, owner
 }
 
 func fetchRown2User(rows *sql.Rows) (*model.User, error) {
-	var ctime, mtime int64
-	var flag, tokenEnable, userType int
-	user := new(model.User)
-	err := rows.Scan(&user.ID, &user.Name, &user.Password, &user.Owner, &user.Comment, &user.Source, &user.Token,
-		&tokenEnable, &userType, &ctime, &mtime, &flag, &user.Mobile, &user.Email)
+	var (
+		ctime, mtime                int64
+		flag, tokenEnable, userType int
+		user                        = new(model.User)
+		err                         = rows.Scan(&user.ID, &user.Name, &user.Password, &user.Owner, &user.Comment, &user.Source, &user.Token, &tokenEnable, &userType, &ctime, &mtime, &flag, &user.Mobile, &user.Email)
+	)
 
 	if err != nil {
 		return nil, err
@@ -592,26 +599,12 @@ func fetchRown2User(rows *sql.Rows) (*model.User, error) {
 }
 
 func (u *userStore) cleanInValidUser(name, owner string) error {
-	logger.StoreScope().Infof("[Store][User] clean user, name=(%s), owner=(%s)", name, owner)
+	log.Infof("[Store][User] clean user, name=(%s), owner=(%s)", name, owner)
 	str := "delete from user where name = ? and owner = ? and flag = 1"
 	if _, err := u.master.Exec(str, name, owner); err != nil {
-		logger.StoreScope().Errorf("[Store][User] clean user(%s) err: %s", name, err.Error())
+		log.Errorf("[Store][User] clean user(%s) err: %s", name, err.Error())
 		return err
 	}
 
 	return nil
-}
-
-func checkAffectedRows(label string, result sql.Result, count int64) error {
-	n, err := result.RowsAffected()
-	if err != nil {
-		logger.StoreScope().Errorf("[Store][%s] get rows affected err: %s", label, err.Error())
-		return err
-	}
-
-	if n == count {
-		return nil
-	}
-	logger.StoreScope().Errorf("[Store][%s] get rows affected result(%d) is not match expect(%d)", label, n, count)
-	return store.NewStatusError(store.AffectedRowsNotMatch, "affected rows not match")
 }

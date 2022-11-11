@@ -1,3 +1,20 @@
+/*
+ * Tencent is pleased to support the open source community by making Polaris available.
+ *
+ * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the BSD 3-Clause License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed
+ * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 SET
     SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 
@@ -329,27 +346,6 @@ CREATE TABLE `circuitbreaker_rule_relation`
     KEY `mtime` (`mtime`),
     KEY `rule_id` (`rule_id`),
     CONSTRAINT `circuitbreaker_rule_relation_ibfk_1` FOREIGN KEY (`service_id`) REFERENCES `service` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE = InnoDB;
-
--- --------------------------------------------------------
---
--- Table structure `platform`
---
-CREATE TABLE `platform`
-(
-    `id`         varchar(32)   NOT NULL comment 'Platform ID',
-    `name`       varchar(128)  NOT NULL comment 'Platform name',
-    `domain`     varchar(1024) NOT NULL comment 'Platform domain name',
-    `qps`        smallint(6)   NOT NULL comment 'QPS restrictions set for a platform',
-    `token`      varchar(32)   NOT NULL comment 'Platform token',
-    `owner`      varchar(1024) NOT NULL comment 'Platform is responsible for Owner',
-    `department` varchar(1024)          DEFAULT NULL comment 'Platform department',
-    `comment`    varchar(1024)          DEFAULT NULL comment 'Platform description',
-    `flag`       tinyint(4)    NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime`      timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`      timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
-    PRIMARY KEY (`id`),
-    KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB;
 
 -- --------------------------------------------------------

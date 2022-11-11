@@ -72,8 +72,8 @@ func (s *Server) CreateRateLimits(ctx context.Context, request []*api.Rule) *api
 
 // CreateRateLimit 创建限流规则
 func (s *Server) CreateRateLimit(ctx context.Context, req *api.Rule, svcId string) *api.Response {
-	requestID := ParseRequestID(ctx)
-	platformID := ParsePlatformID(ctx)
+	requestID := utils.ParseRequestID(ctx)
+	platformID := utils.ParsePlatformID(ctx)
 
 	// 参数校验
 	if resp := checkRateLimitParams(req); resp != nil {
@@ -86,7 +86,7 @@ func (s *Server) CreateRateLimit(ctx context.Context, req *api.Rule, svcId strin
 
 	tx, err := s.storage.CreateTransaction()
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewRateLimitResponse(api.StoreLayerException, req)
 	}
 	defer func() {
@@ -96,20 +96,20 @@ func (s *Server) CreateRateLimit(ctx context.Context, req *api.Rule, svcId strin
 	// 构造底层数据结构
 	data, err := api2RateLimit(svcId, req, nil)
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 		return api.NewRateLimitResponse(api.ParseRateLimitException, req)
 	}
 	data.ID = utils.NewUUID()
 
 	// 存储层操作
 	if err := s.storage.CreateRateLimit(data); err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return wrapperRateLimitStoreResponse(req, err)
 	}
 
 	msg := fmt.Sprintf("create rate limit rule: id=%v, namespace=%v, service=%v, name=%v",
 		data.ID, req.GetNamespace().GetValue(), req.GetService().GetValue(), req.GetName().GetValue())
-	log.Info(msg, ZapRequestID(requestID), ZapPlatformID(platformID))
+	log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 
 	s.RecordHistory(rateLimitRecordEntry(ctx, req.GetNamespace().GetValue(), req.GetService().GetValue(),
 		data, model.OCreate))
@@ -134,8 +134,8 @@ func (s *Server) DeleteRateLimits(ctx context.Context, request []*api.Rule) *api
 
 // DeleteRateLimit 删除单个限流规则
 func (s *Server) DeleteRateLimit(ctx context.Context, req *api.Rule) *api.Response {
-	requestID := ParseRequestID(ctx)
-	platformID := ParsePlatformID(ctx)
+	requestID := utils.ParseRequestID(ctx)
+	platformID := utils.ParsePlatformID(ctx)
 
 	// 参数校验
 	if resp := checkRevisedRateLimitParams(req); resp != nil {
@@ -156,13 +156,13 @@ func (s *Server) DeleteRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 
 	// 存储层操作
 	if err := s.storage.DeleteRateLimit(rateLimit); err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return wrapperRateLimitStoreResponse(req, err)
 	}
 
 	msg := fmt.Sprintf("delete rate limit rule: id=%v, namespace=%v, service=%v, name=%v",
 		rateLimit.ID, req.GetNamespace().GetValue(), req.GetService().GetValue(), rateLimit.Labels)
-	log.Info(msg, ZapRequestID(requestID), ZapPlatformID(platformID))
+	log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 
 	s.RecordHistory(
 		rateLimitRecordEntry(ctx, req.GetNamespace().GetValue(), req.GetService().GetValue(), rateLimit, model.ODelete))
@@ -183,8 +183,8 @@ func (s *Server) EnableRateLimits(ctx context.Context, request []*api.Rule) *api
 
 // EnableRateLimit 启用限流规则
 func (s *Server) EnableRateLimit(ctx context.Context, req *api.Rule) *api.Response {
-	requestID := ParseRequestID(ctx)
-	platformID := ParsePlatformID(ctx)
+	requestID := utils.ParseRequestID(ctx)
+	platformID := utils.ParsePlatformID(ctx)
 
 	// 参数校验
 	if resp := checkRevisedRateLimitParams(req); resp != nil {
@@ -205,13 +205,13 @@ func (s *Server) EnableRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 	rateLimit.Revision = utils.NewUUID()
 
 	if err := s.storage.EnableRateLimit(rateLimit); err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return wrapperRateLimitStoreResponse(req, err)
 	}
 
 	msg := fmt.Sprintf("enable rate limit: id=%v, disable=%v",
 		rateLimit.ID, rateLimit.Disable)
-	log.Info(msg, ZapRequestID(requestID), ZapPlatformID(platformID))
+	log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 
 	s.RecordHistory(rateLimitRecordEntry(ctx, "", "", rateLimit, model.OUpdate))
 	return api.NewRateLimitResponse(api.ExecuteSuccess, req)
@@ -233,8 +233,8 @@ func (s *Server) UpdateRateLimits(ctx context.Context, request []*api.Rule) *api
 
 // UpdateRateLimit 更新限流规则
 func (s *Server) UpdateRateLimit(ctx context.Context, req *api.Rule) *api.Response {
-	requestID := ParseRequestID(ctx)
-	platformID := ParsePlatformID(ctx)
+	requestID := utils.ParseRequestID(ctx)
+	platformID := utils.ParsePlatformID(ctx)
 
 	// 参数校验
 	if resp := checkRevisedRateLimitParams(req); resp != nil {
@@ -263,18 +263,18 @@ func (s *Server) UpdateRateLimit(ctx context.Context, req *api.Rule) *api.Respon
 	// 构造底层数据结构
 	rateLimit, err := api2RateLimit(svcId, req, data)
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return api.NewRateLimitResponse(api.ParseRateLimitException, req)
 	}
 	rateLimit.ID = data.ID
 	if err := s.storage.UpdateRateLimit(rateLimit); err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID), ZapPlatformID(platformID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		return wrapperRateLimitStoreResponse(req, err)
 	}
 
 	msg := fmt.Sprintf("update rate limit: id=%v, namespace=%v, service=%v, name=%v",
 		rateLimit.ID, req.GetNamespace().GetValue(), req.GetService().GetValue(), rateLimit.Name)
-	log.Info(msg, ZapRequestID(requestID), ZapPlatformID(platformID))
+	log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 
 	s.RecordHistory(rateLimitRecordEntry(ctx, req.GetNamespace().GetValue(), req.GetService().GetValue(), rateLimit, model.OUpdate))
 	return api.NewRateLimitResponse(api.ExecuteSuccess, req)
@@ -289,7 +289,7 @@ func (s *Server) GetRateLimits(ctx context.Context, query map[string]string) *ap
 		}
 	}
 	// 处理offset和limit
-	offset, limit, err := ParseOffsetAndLimit(query)
+	offset, limit, err := utils.ParseOffsetAndLimit(query)
 	if err != nil {
 		return api.NewBatchQueryResponse(api.InvalidParameter)
 	}
@@ -332,11 +332,11 @@ func checkBatchRateLimits(req []*api.Rule) *api.BatchWriteResponse {
 // checkRateLimitValid 检查限流规则是否允许修改/删除
 func (s *Server) checkRateLimitValid(ctx context.Context, serviceID string, req *api.Rule) (
 	*model.Service, *api.Response) {
-	requestID := ParseRequestID(ctx)
+	requestID := utils.ParseRequestID(ctx)
 
 	service, err := s.storage.GetServiceByID(serviceID)
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 		return nil, api.NewRateLimitResponse(api.StoreLayerException, req)
 	}
 
@@ -362,13 +362,13 @@ func checkRateLimitParams(req *api.Rule) *api.Response {
 
 // checkRateLimitParams 检查限流规则基础参数
 func checkRateLimitParamsDbLen(req *api.Rule) *api.Response {
-	if err := CheckDbStrFieldLen(req.GetService(), MaxDbServiceNameLength); err != nil {
+	if err := utils.CheckDbStrFieldLen(req.GetService(), MaxDbServiceNameLength); err != nil {
 		return api.NewRateLimitResponse(api.InvalidServiceName, req)
 	}
-	if err := CheckDbStrFieldLen(req.GetNamespace(), MaxDbServiceNamespaceLength); err != nil {
+	if err := utils.CheckDbStrFieldLen(req.GetNamespace(), MaxDbServiceNamespaceLength); err != nil {
 		return api.NewRateLimitResponse(api.InvalidNamespaceName, req)
 	}
-	if err := CheckDbStrFieldLen(req.GetName(), MaxDbRateLimitName); err != nil {
+	if err := utils.CheckDbStrFieldLen(req.GetName(), MaxDbRateLimitName); err != nil {
 		return api.NewRateLimitResponse(api.InvalidRateLimitName, req)
 	}
 	return nil
@@ -383,7 +383,7 @@ func checkRateLimitRuleParams(requestID string, req *api.Rule) *api.Response {
 		d := amount.GetValidDuration()
 		duration, err := ptypes.Duration(d)
 		if err != nil {
-			log.Error(err.Error(), ZapRequestID(requestID))
+			log.Error(err.Error(), utils.ZapRequestID(requestID))
 			return api.NewRateLimitResponse(api.InvalidRateLimitAmounts, req)
 		}
 		durations[duration] = true
@@ -409,7 +409,7 @@ func checkRevisedRateLimitParams(req *api.Rule) *api.Response {
 func (s *Server) checkRateLimitExisted(id, requestID string, req *api.Rule) (*model.RateLimit, *api.Response) {
 	rateLimit, err := s.storage.GetRateLimitWithID(id)
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 		return nil, api.NewRateLimitResponse(api.StoreLayerException, req)
 	}
 	if rateLimit == nil {
@@ -495,7 +495,7 @@ func populateDefaultRuleValue(rule *api.Rule) {
 }
 
 func copyRateLimitProto(rateLimit *model.RateLimit, rule *api.Rule) {
-	//copy proto values
+	// copy proto values
 	rule.Method = rateLimit.Proto.Method
 	rule.Arguments = rateLimit.Proto.Arguments
 	rule.Labels = rateLimit.Proto.Labels
@@ -524,6 +524,7 @@ func rateLimit2Client(
 	rule.Namespace = utils.NewStringValue(namespace)
 	rule.Priority = utils.NewUInt32Value(rateLimit.Priority)
 	rule.Revision = utils.NewStringValue(rateLimit.Revision)
+	rule.Disable = utils.NewBoolValue(rateLimit.Disable)
 	copyRateLimitProto(rateLimit, rule)
 	return rule, nil
 }
@@ -561,7 +562,7 @@ func rateLimitRecordEntry(ctx context.Context, namespace string, service string,
 		OperationType: opt,
 		Namespace:     namespace,
 		Service:       service,
-		Operator:      ParseOperator(ctx),
+		Operator:      utils.ParseOperator(ctx),
 		CreateTime:    time.Now(),
 	}
 

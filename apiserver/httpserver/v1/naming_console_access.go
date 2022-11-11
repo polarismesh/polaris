@@ -24,7 +24,6 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/proto"
-	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
 
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -75,99 +74,97 @@ func (h *HTTPServerV1) GetNamingConsoleAccessServer(include []string) (*restful.
 // addDefaultReadAccess 增加默认读接口
 func (h *HTTPServerV1) addDefaultReadAccess(ws *restful.WebService) {
 	// 管理端接口：只包含读接口
-	nsTags := []string{"Namespaces"}
-	ws.Route(ws.GET("/namespaces").To(h.GetNamespaces).
-		Doc("get namespaces").
-		Metadata(restfulspec.KeyOpenAPITags, nsTags))
+	ws.Route(enrichGetNamespacesApiDocs(ws.GET("/namespaces").To(h.GetNamespaces)))
 
-	ws.Route(ws.GET("/namespace/token").To(h.GetNamespaceToken).
-		Doc("get namespaces token").
-		Metadata(restfulspec.KeyOpenAPITags, nsTags))
+	ws.Route(enrichGetNamespaceTokenApiDocs(ws.GET("/namespace/token").To(h.GetNamespaceToken)))
 
-	ws.Route(ws.GET("/services").To(h.GetServices))
-	ws.Route(ws.GET("/services/count").To(h.GetServicesCount))
-	ws.Route(ws.GET("/service/token").To(h.GetServiceToken))
-	ws.Route(ws.POST("/service/alias").To(h.CreateServiceAlias))
-	ws.Route(ws.GET("/service/aliases").To(h.GetServiceAliases))
-	ws.Route(ws.GET("/service/circuitbreaker").To(h.GetCircuitBreakerByService))
-	ws.Route(ws.POST("/service/owner").To(h.GetServiceOwner))
+	ws.Route(enrichGetServicesApiDocs(ws.GET("/services").To(h.GetServices)))
+	ws.Route(enrichGetServicesCountApiDocs(ws.GET("/services/count").To(h.GetServicesCount)))
+	ws.Route(enrichGetServiceTokenApiDocs(ws.GET("/service/token").To(h.GetServiceToken)))
+	ws.Route(enrichCreateServiceAliasApiDocs(ws.POST("/service/alias").To(h.CreateServiceAlias)))
+	ws.Route(enrichGetServiceAliasesApiDocs(ws.GET("/service/aliases").To(h.GetServiceAliases)))
+	ws.Route(enrichGetCircuitBreakerByServiceApiDocs(ws.GET("/service/circuitbreaker").To(h.GetCircuitBreakerByService)))
+	ws.Route(enrichGetServiceOwnerApiDocs(ws.POST("/service/owner").To(h.GetServiceOwner)))
 
-	ws.Route(ws.GET("/instances").To(h.GetInstances))
-	ws.Route(ws.GET("/instances/count").To(h.GetInstancesCount))
+	ws.Route(enrichGetInstancesApiDocs(ws.GET("/instances").To(h.GetInstances)))
+	ws.Route(enrichGetInstancesCountApiDocs(ws.GET("/instances/count").To(h.GetInstancesCount)))
 
-	ws.Route(ws.POST("/routings").To(h.CreateRoutings))
-	ws.Route(ws.GET("/routings").To(h.GetRoutings))
+	ws.Route(enrichCreateRoutingsApiDocs(ws.POST("/routings").To(h.CreateRoutings)))
+	ws.Route(enrichGetRoutingsApiDocs(ws.GET("/routings").To(h.GetRoutings)))
 
-	ws.Route(ws.POST("/ratelimits").To(h.CreateRateLimits))
-	ws.Route(ws.GET("/ratelimits").To(h.GetRateLimits))
+	ws.Route(enrichCreateRateLimitsApiDocs(ws.POST("/ratelimits").To(h.CreateRateLimits)))
+	ws.Route(enrichGetRateLimitsApiDocs(ws.GET("/ratelimits").To(h.GetRateLimits)))
 
-	ws.Route(ws.GET("/circuitbreaker").To(h.GetCircuitBreaker))
-	ws.Route(ws.GET("/circuitbreaker/versions").To(h.GetCircuitBreakerVersions))
-	ws.Route(ws.GET("/circuitbreakers/master").To(h.GetMasterCircuitBreakers))
-	ws.Route(ws.GET("/circuitbreakers/release").To(h.GetReleaseCircuitBreakers))
-	ws.Route(ws.GET("/circuitbreaker/token").To(h.GetCircuitBreakerToken))
+	ws.Route(enrichGetCircuitBreakersApiDocs(ws.GET("/circuitbreaker").To(h.GetCircuitBreaker)))
+	ws.Route(enrichGetCircuitBreakerVersionsApiDocs(ws.GET("/circuitbreaker/versions").To(h.GetCircuitBreakerVersions)))
+	ws.Route(enrichGetMasterCircuitBreakersApiDocs(ws.GET("/circuitbreakers/master").To(h.GetMasterCircuitBreakers)))
+	ws.Route(enrichGetReleaseCircuitBreakersApiDocs(ws.GET("/circuitbreakers/release").To(h.GetReleaseCircuitBreakers)))
+	ws.Route(enrichGetCircuitBreakerTokensApiDocs(ws.GET("/circuitbreaker/token").To(h.GetCircuitBreakerToken)))
 }
 
 // addDefaultAccess 增加默认接口
 func (h *HTTPServerV1) addDefaultAccess(ws *restful.WebService) {
 	// 管理端接口：增删改查请求全部操作存储层
-	ws.Route(ws.POST("/namespaces").To(h.CreateNamespaces))
-	ws.Route(ws.POST("/namespaces/delete").To(h.DeleteNamespaces))
-	ws.Route(ws.PUT("/namespaces").To(h.UpdateNamespaces))
-	ws.Route(ws.GET("/namespaces").To(h.GetNamespaces))
-	ws.Route(ws.GET("/namespace/token").To(h.GetNamespaceToken))
-	ws.Route(ws.PUT("/namespace/token").To(h.UpdateNamespaceToken))
+	ws.Route(enrichCreateNamespacesApiDocs(ws.POST("/namespaces").To(h.CreateNamespaces)))
+	ws.Route(enrichDeleteNamespacesApiDocs(ws.POST("/namespaces/delete").To(h.DeleteNamespaces)))
+	ws.Route(enrichUpdateNamespacesApiDocs(ws.PUT("/namespaces").To(h.UpdateNamespaces)))
+	ws.Route(enrichGetNamespacesApiDocs(ws.GET("/namespaces").To(h.GetNamespaces)))
+	ws.Route(enrichGetNamespaceTokenApiDocs(ws.GET("/namespace/token").To(h.GetNamespaceToken)))
+	ws.Route(enrichUpdateNamespaceTokenApiDocs(ws.PUT("/namespace/token").To(h.UpdateNamespaceToken)))
 
-	ws.Route(ws.POST("/services").To(h.CreateServices))
-	ws.Route(ws.POST("/services/delete").To(h.DeleteServices))
-	ws.Route(ws.PUT("/services").To(h.UpdateServices))
-	ws.Route(ws.GET("/services").To(h.GetServices))
-	ws.Route(ws.GET("/services/count").To(h.GetServicesCount))
-	ws.Route(ws.GET("/service/token").To(h.GetServiceToken))
-	ws.Route(ws.PUT("/service/token").To(h.UpdateServiceToken))
-	ws.Route(ws.POST("/service/alias").To(h.CreateServiceAlias))
-	ws.Route(ws.PUT("/service/alias").To(h.UpdateServiceAlias))
-	ws.Route(ws.GET("/service/aliases").To(h.GetServiceAliases))
-	ws.Route(ws.POST("/service/aliases/delete").To(h.DeleteServiceAliases))
-	ws.Route(ws.GET("/service/circuitbreaker").To(h.GetCircuitBreakerByService))
-	ws.Route(ws.POST("/service/owner").To(h.GetServiceOwner))
+	ws.Route(enrichCreateServicesApiDocs(ws.POST("/services").To(h.CreateServices)))
+	ws.Route(enrichDeleteServicesApiDocs(ws.POST("/services/delete").To(h.DeleteServices)))
+	ws.Route(enrichUpdateServicesApiDocs(ws.PUT("/services").To(h.UpdateServices)))
+	ws.Route(enrichGetServicesApiDocs(ws.GET("/services").To(h.GetServices)))
+	ws.Route(enrichGetServicesCountApiDocs(ws.GET("/services/count").To(h.GetServicesCount)))
+	ws.Route(enrichGetServiceTokenApiDocs(ws.GET("/service/token").To(h.GetServiceToken)))
+	ws.Route(enrichUpdateServiceTokenApiDocs(ws.PUT("/service/token").To(h.UpdateServiceToken)))
+	ws.Route(enrichCreateServiceAliasApiDocs(ws.POST("/service/alias").To(h.CreateServiceAlias)))
+	ws.Route(enrichUpdateServiceAliasApiDocs(ws.PUT("/service/alias").To(h.UpdateServiceAlias)))
+	ws.Route(enrichGetServiceAliasesApiDocs(ws.GET("/service/aliases").To(h.GetServiceAliases)))
+	ws.Route(enrichDeleteServiceAliasesApiDocs(ws.POST("/service/aliases/delete").To(h.DeleteServiceAliases)))
+	ws.Route(enrichGetCircuitBreakerByServiceApiDocs(ws.GET("/service/circuitbreaker").To(h.GetCircuitBreakerByService)))
+	ws.Route(enrichGetServiceOwnerApiDocs(ws.POST("/service/owner").To(h.GetServiceOwner)))
 
-	ws.Route(ws.POST("/instances").To(h.CreateInstances))
-	ws.Route(ws.POST("/instances/delete").To(h.DeleteInstances))
-	ws.Route(ws.POST("/instances/delete/host").To(h.DeleteInstancesByHost))
-	ws.Route(ws.PUT("/instances").To(h.UpdateInstances))
-	ws.Route(ws.PUT("/instances/isolate/host").To(h.UpdateInstancesIsolate))
-	ws.Route(ws.GET("/instances").To(h.GetInstances))
-	ws.Route(ws.GET("/instances/count").To(h.GetInstancesCount))
-	ws.Route(ws.GET("/instances/labels").To(h.GetInstanceLabels))
+	ws.Route(enrichCreateInstancesApiDocs(ws.POST("/instances").To(h.CreateInstances)))
+	ws.Route(enrichDeleteInstancesApiDocs(ws.POST("/instances/delete").To(h.DeleteInstances)))
+	ws.Route(enrichDeleteInstancesByHostApiDocs(ws.POST("/instances/delete/host").To(h.DeleteInstancesByHost)))
+	ws.Route(enrichUpdateInstancesApiDocs(ws.PUT("/instances").To(h.UpdateInstances)))
+	ws.Route(enrichUpdateInstancesIsolateApiDocs(ws.PUT("/instances/isolate/host").To(h.UpdateInstancesIsolate)))
+	ws.Route(enrichGetInstancesApiDocs(ws.GET("/instances").To(h.GetInstances)))
+	ws.Route(enrichGetInstancesCountApiDocs(ws.GET("/instances/count").To(h.GetInstancesCount)))
+	ws.Route(enrichGetInstanceLabelsApiDocs(ws.GET("/instances/labels").To(h.GetInstanceLabels)))
 
-	ws.Route(ws.POST("/routings").To(h.CreateRoutings))
-	ws.Route(ws.POST("/routings/delete").To(h.DeleteRoutings))
-	ws.Route(ws.PUT("/routings").To(h.UpdateRoutings))
-	ws.Route(ws.GET("/routings").To(h.GetRoutings))
+	ws.Route(enrichCreateRoutingsApiDocs(ws.POST("/routings").To(h.CreateRoutings)))
+	ws.Route(enrichDeleteRoutingsApiDocs(ws.POST("/routings/delete").To(h.DeleteRoutings)))
+	ws.Route(enrichUpdateRoutingsApiDocs(ws.PUT("/routings").To(h.UpdateRoutings)))
+	ws.Route(enrichGetRoutingsApiDocs(ws.GET("/routings").To(h.GetRoutings)))
 
-	ws.Route(ws.POST("/ratelimits").To(h.CreateRateLimits))
-	ws.Route(ws.POST("/ratelimits/delete").To(h.DeleteRateLimits))
-	ws.Route(ws.PUT("/ratelimits").To(h.UpdateRateLimits))
-	ws.Route(ws.GET("/ratelimits").To(h.GetRateLimits))
-	ws.Route(ws.PUT("/ratelimits/enable").To(h.EnableRateLimits))
+	ws.Route(enrichCreateRateLimitsApiDocs(ws.POST("/ratelimits").To(h.CreateRateLimits)))
+	ws.Route(enrichDeleteRateLimitsApiDocs(ws.POST("/ratelimits/delete").To(h.DeleteRateLimits)))
+	ws.Route(enrichUpdateRateLimitsApiDocs(ws.PUT("/ratelimits").To(h.UpdateRateLimits)))
+	ws.Route(enrichGetRateLimitsApiDocs(ws.GET("/ratelimits").To(h.GetRateLimits)))
+	ws.Route(enrichEnableRateLimitsApiDocs(ws.PUT("/ratelimits/enable").To(h.EnableRateLimits)))
 
-	ws.Route(ws.POST("/circuitbreakers").To(h.CreateCircuitBreakers))
-	ws.Route(ws.POST("/circuitbreakers/version").To(h.CreateCircuitBreakerVersions))
-	ws.Route(ws.POST("/circuitbreakers/delete").To(h.DeleteCircuitBreakers))
-	ws.Route(ws.PUT("/circuitbreakers").To(h.UpdateCircuitBreakers))
-	ws.Route(ws.POST("/circuitbreakers/release").To(h.ReleaseCircuitBreakers))
-	ws.Route(ws.POST("/circuitbreakers/unbind").To(h.UnBindCircuitBreakers))
-	ws.Route(ws.GET("/circuitbreaker").To(h.GetCircuitBreaker))
-	ws.Route(ws.GET("/circuitbreaker/versions").To(h.GetCircuitBreakerVersions))
-	ws.Route(ws.GET("/circuitbreakers/master").To(h.GetMasterCircuitBreakers))
-	ws.Route(ws.GET("/circuitbreakers/release").To(h.GetReleaseCircuitBreakers))
-	ws.Route(ws.GET("/circuitbreaker/token").To(h.GetCircuitBreakerToken))
+	ws.Route(enrichCreateCircuitBreakersApiDocs(ws.POST("/circuitbreakers").To(h.CreateCircuitBreakers)))
+	ws.Route(enrichCreateCircuitBreakerVersionsApiDocs(ws.POST("/circuitbreakers/version").To(h.CreateCircuitBreakerVersions)))
+	ws.Route(enrichDeleteCircuitBreakersApiDocs(ws.POST("/circuitbreakers/delete").To(h.DeleteCircuitBreakers)))
+	ws.Route(enrichUpdateCircuitBreakersApiDocs(ws.PUT("/circuitbreakers").To(h.UpdateCircuitBreakers)))
+	ws.Route(enrichReleaseCircuitBreakersApiDocs(ws.POST("/circuitbreakers/release").To(h.ReleaseCircuitBreakers)))
+	ws.Route(enrichUnBindCircuitBreakersApiDocs(ws.POST("/circuitbreakers/unbind").To(h.UnBindCircuitBreakers)))
+	ws.Route(enrichGetCircuitBreakersApiDocs(ws.GET("/circuitbreaker").To(h.GetCircuitBreaker)))
+	ws.Route(enrichGetCircuitBreakerVersionsApiDocs(ws.GET("/circuitbreaker/versions").To(h.GetCircuitBreakerVersions)))
+	ws.Route(enrichGetMasterCircuitBreakersApiDocs(ws.GET("/circuitbreakers/master").To(h.GetMasterCircuitBreakers)))
+	ws.Route(enrichGetReleaseCircuitBreakersApiDocs(ws.GET("/circuitbreakers/release").To(h.GetReleaseCircuitBreakers)))
+	ws.Route(enrichGetCircuitBreakerTokensApiDocs(ws.GET("/circuitbreaker/token").To(h.GetCircuitBreakerToken)))
 }
 
 // CreateNamespaces 创建命名空间
 func (h *HTTPServerV1) CreateNamespaces(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var namespaces NamespaceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -185,7 +182,10 @@ func (h *HTTPServerV1) CreateNamespaces(req *restful.Request, rsp *restful.Respo
 
 // DeleteNamespaces 删除命名空间
 func (h *HTTPServerV1) DeleteNamespaces(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var namespaces NamespaceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -209,7 +209,10 @@ func (h *HTTPServerV1) DeleteNamespaces(req *restful.Request, rsp *restful.Respo
 
 // UpdateNamespaces 修改命名空间
 func (h *HTTPServerV1) UpdateNamespaces(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var namespaces NamespaceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -233,7 +236,10 @@ func (h *HTTPServerV1) UpdateNamespaces(req *restful.Request, rsp *restful.Respo
 
 // GetNamespaces 查询命名空间
 func (h *HTTPServerV1) GetNamespaces(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	ret := h.namespaceServer.GetNamespaces(handler.ParseHeaderContext(), req.Request.URL.Query())
 	handler.WriteHeaderAndProto(ret)
@@ -241,7 +247,10 @@ func (h *HTTPServerV1) GetNamespaces(req *restful.Request, rsp *restful.Response
 
 // GetNamespaceToken 命名空间token的获取
 func (h *HTTPServerV1) GetNamespaceToken(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	token := req.HeaderParameter("Polaris-Token")
 	ctx := context.WithValue(context.Background(), utils.StringContext("polaris-token"), token)
@@ -258,7 +267,10 @@ func (h *HTTPServerV1) GetNamespaceToken(req *restful.Request, rsp *restful.Resp
 
 // UpdateNamespaceToken 更新命名空间的token
 func (h *HTTPServerV1) UpdateNamespaceToken(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var namespace api.Namespace
 	ctx, err := handler.Parse(&namespace)
@@ -273,7 +285,10 @@ func (h *HTTPServerV1) UpdateNamespaceToken(req *restful.Request, rsp *restful.R
 
 // CreateServices 创建服务
 func (h *HTTPServerV1) CreateServices(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var services ServiceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -291,7 +306,10 @@ func (h *HTTPServerV1) CreateServices(req *restful.Request, rsp *restful.Respons
 
 // DeleteServices 删除服务
 func (h *HTTPServerV1) DeleteServices(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var services ServiceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -315,7 +333,10 @@ func (h *HTTPServerV1) DeleteServices(req *restful.Request, rsp *restful.Respons
 
 // UpdateServices 修改服务
 func (h *HTTPServerV1) UpdateServices(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var services ServiceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -338,7 +359,10 @@ func (h *HTTPServerV1) UpdateServices(req *restful.Request, rsp *restful.Respons
 
 // GetServices 查询服务
 func (h *HTTPServerV1) GetServices(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
@@ -348,14 +372,20 @@ func (h *HTTPServerV1) GetServices(req *restful.Request, rsp *restful.Response) 
 
 // GetServicesCount 查询服务总数
 func (h *HTTPServerV1) GetServicesCount(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 	ret := h.namingServer.GetServicesCount(handler.ParseHeaderContext())
 	handler.WriteHeaderAndProto(ret)
 }
 
 // GetServiceToken 获取服务token
 func (h *HTTPServerV1) GetServiceToken(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 	token := req.HeaderParameter("Polaris-Token")
 	ctx := context.WithValue(context.Background(), utils.StringContext("polaris-token"), token)
 
@@ -372,7 +402,10 @@ func (h *HTTPServerV1) GetServiceToken(req *restful.Request, rsp *restful.Respon
 
 // UpdateServiceToken 更新服务token
 func (h *HTTPServerV1) UpdateServiceToken(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var service api.Service
 	ctx, err := handler.Parse(&service)
@@ -386,7 +419,10 @@ func (h *HTTPServerV1) UpdateServiceToken(req *restful.Request, rsp *restful.Res
 
 // CreateServiceAlias service alias
 func (h *HTTPServerV1) CreateServiceAlias(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var alias api.ServiceAlias
 	ctx, err := handler.Parse(&alias)
@@ -400,7 +436,10 @@ func (h *HTTPServerV1) CreateServiceAlias(req *restful.Request, rsp *restful.Res
 
 // UpdateServiceAlias 修改服务别名
 func (h *HTTPServerV1) UpdateServiceAlias(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var alias api.ServiceAlias
 	ctx, err := handler.Parse(&alias)
@@ -420,7 +459,10 @@ func (h *HTTPServerV1) UpdateServiceAlias(req *restful.Request, rsp *restful.Res
 
 // DeleteServiceAliases 删除服务别名
 func (h *HTTPServerV1) DeleteServiceAliases(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var aliases ServiceAliasArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -443,7 +485,10 @@ func (h *HTTPServerV1) DeleteServiceAliases(req *restful.Request, rsp *restful.R
 
 // GetServiceAliases 根据源服务获取服务别名
 func (h *HTTPServerV1) GetServiceAliases(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ret := h.namingServer.GetServiceAliases(handler.ParseHeaderContext(), queryParams)
@@ -452,7 +497,10 @@ func (h *HTTPServerV1) GetServiceAliases(req *restful.Request, rsp *restful.Resp
 
 // CreateInstances 创建服务实例
 func (h *HTTPServerV1) CreateInstances(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var instances InstanceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -470,7 +518,10 @@ func (h *HTTPServerV1) CreateInstances(req *restful.Request, rsp *restful.Respon
 
 // DeleteInstances 删除服务实例
 func (h *HTTPServerV1) DeleteInstances(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var instances InstanceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -494,7 +545,10 @@ func (h *HTTPServerV1) DeleteInstances(req *restful.Request, rsp *restful.Respon
 
 // DeleteInstancesByHost 根据host删除服务实例
 func (h *HTTPServerV1) DeleteInstancesByHost(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var instances InstanceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -518,7 +572,10 @@ func (h *HTTPServerV1) DeleteInstancesByHost(req *restful.Request, rsp *restful.
 
 // UpdateInstances 修改服务实例
 func (h *HTTPServerV1) UpdateInstances(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var instances InstanceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -542,7 +599,10 @@ func (h *HTTPServerV1) UpdateInstances(req *restful.Request, rsp *restful.Respon
 
 // UpdateInstancesIsolate 修改服务实例的隔离状态
 func (h *HTTPServerV1) UpdateInstancesIsolate(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var instances InstanceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -566,7 +626,10 @@ func (h *HTTPServerV1) UpdateInstancesIsolate(req *restful.Request, rsp *restful
 
 // GetInstances 查询服务实例
 func (h *HTTPServerV1) GetInstances(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ret := h.namingServer.GetInstances(handler.ParseHeaderContext(), queryParams)
@@ -575,7 +638,10 @@ func (h *HTTPServerV1) GetInstances(req *restful.Request, rsp *restful.Response)
 
 // GetInstancesCount 查询服务实例
 func (h *HTTPServerV1) GetInstancesCount(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	ret := h.namingServer.GetInstancesCount(handler.ParseHeaderContext())
 	handler.WriteHeaderAndProto(ret)
@@ -583,7 +649,10 @@ func (h *HTTPServerV1) GetInstancesCount(req *restful.Request, rsp *restful.Resp
 
 // GetInstanceLabels 查询某个服务下所有实例的标签信息
 func (h *HTTPServerV1) GetInstanceLabels(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	ret := h.namingServer.GetInstanceLabels(handler.ParseHeaderContext(), httpcommon.ParseQueryParams(req))
 	handler.WriteHeaderAndProto(ret)
@@ -591,7 +660,10 @@ func (h *HTTPServerV1) GetInstanceLabels(req *restful.Request, rsp *restful.Resp
 
 // CreateRoutings 创建规则路由
 func (h *HTTPServerV1) CreateRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var routings RoutingArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -610,7 +682,10 @@ func (h *HTTPServerV1) CreateRoutings(req *restful.Request, rsp *restful.Respons
 
 // DeleteRoutings 删除规则路由
 func (h *HTTPServerV1) DeleteRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var routings RoutingArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -634,7 +709,10 @@ func (h *HTTPServerV1) DeleteRoutings(req *restful.Request, rsp *restful.Respons
 
 // UpdateRoutings 修改规则路由
 func (h *HTTPServerV1) UpdateRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var routings RoutingArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -658,7 +736,10 @@ func (h *HTTPServerV1) UpdateRoutings(req *restful.Request, rsp *restful.Respons
 
 // GetRoutings 查询规则路由
 func (h *HTTPServerV1) GetRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ret := h.namingServer.GetRoutingConfigs(handler.ParseHeaderContext(), queryParams)
@@ -667,7 +748,10 @@ func (h *HTTPServerV1) GetRoutings(req *restful.Request, rsp *restful.Response) 
 
 // CreateRateLimits 创建限流规则
 func (h *HTTPServerV1) CreateRateLimits(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var rateLimits RateLimitArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -685,7 +769,10 @@ func (h *HTTPServerV1) CreateRateLimits(req *restful.Request, rsp *restful.Respo
 
 // DeleteRateLimits 删除限流规则
 func (h *HTTPServerV1) DeleteRateLimits(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var rateLimits RateLimitArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -708,7 +795,10 @@ func (h *HTTPServerV1) DeleteRateLimits(req *restful.Request, rsp *restful.Respo
 
 // EnableRateLimits 激活限流规则
 func (h *HTTPServerV1) EnableRateLimits(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 	var rateLimits RateLimitArr
 	ctx, err := handler.ParseArray(func() proto.Message {
 		msg := &api.Rule{}
@@ -730,7 +820,10 @@ func (h *HTTPServerV1) EnableRateLimits(req *restful.Request, rsp *restful.Respo
 
 // UpdateRateLimits 修改限流规则
 func (h *HTTPServerV1) UpdateRateLimits(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var rateLimits RateLimitArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -754,7 +847,10 @@ func (h *HTTPServerV1) UpdateRateLimits(req *restful.Request, rsp *restful.Respo
 
 // GetRateLimits 查询限流规则
 func (h *HTTPServerV1) GetRateLimits(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ret := h.namingServer.GetRateLimits(handler.ParseHeaderContext(), queryParams)
@@ -763,7 +859,10 @@ func (h *HTTPServerV1) GetRateLimits(req *restful.Request, rsp *restful.Response
 
 // CreateCircuitBreakers 创建熔断规则
 func (h *HTTPServerV1) CreateCircuitBreakers(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var circuitBreakers CircuitBreakerArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -782,7 +881,10 @@ func (h *HTTPServerV1) CreateCircuitBreakers(req *restful.Request, rsp *restful.
 
 // CreateCircuitBreakerVersions 创建熔断规则版本
 func (h *HTTPServerV1) CreateCircuitBreakerVersions(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var circuitBreakers CircuitBreakerArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -800,7 +902,10 @@ func (h *HTTPServerV1) CreateCircuitBreakerVersions(req *restful.Request, rsp *r
 
 // DeleteCircuitBreakers 删除熔断规则
 func (h *HTTPServerV1) DeleteCircuitBreakers(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var circuitBreakers CircuitBreakerArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -823,7 +928,10 @@ func (h *HTTPServerV1) DeleteCircuitBreakers(req *restful.Request, rsp *restful.
 
 // UpdateCircuitBreakers 修改熔断规则
 func (h *HTTPServerV1) UpdateCircuitBreakers(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var circuitBreakers CircuitBreakerArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -846,7 +954,10 @@ func (h *HTTPServerV1) UpdateCircuitBreakers(req *restful.Request, rsp *restful.
 
 // ReleaseCircuitBreakers 发布熔断规则
 func (h *HTTPServerV1) ReleaseCircuitBreakers(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var configRelease ConfigReleaseArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -869,7 +980,10 @@ func (h *HTTPServerV1) ReleaseCircuitBreakers(req *restful.Request, rsp *restful
 
 // UnBindCircuitBreakers 解绑熔断规则
 func (h *HTTPServerV1) UnBindCircuitBreakers(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var configRelease ConfigReleaseArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -892,7 +1006,10 @@ func (h *HTTPServerV1) UnBindCircuitBreakers(req *restful.Request, rsp *restful.
 
 // GetCircuitBreaker 根据id和version获取熔断规则
 func (h *HTTPServerV1) GetCircuitBreaker(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ret := h.namingServer.GetCircuitBreaker(handler.ParseHeaderContext(), queryParams)
@@ -901,7 +1018,10 @@ func (h *HTTPServerV1) GetCircuitBreaker(req *restful.Request, rsp *restful.Resp
 
 // GetCircuitBreakerVersions 查询熔断规则的所有版本
 func (h *HTTPServerV1) GetCircuitBreakerVersions(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ret := h.namingServer.GetCircuitBreakerVersions(handler.ParseHeaderContext(), queryParams)
@@ -910,7 +1030,10 @@ func (h *HTTPServerV1) GetCircuitBreakerVersions(req *restful.Request, rsp *rest
 
 // GetMasterCircuitBreakers 查询master熔断规则
 func (h *HTTPServerV1) GetMasterCircuitBreakers(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ret := h.namingServer.GetMasterCircuitBreakers(handler.ParseHeaderContext(), queryParams)
@@ -919,7 +1042,10 @@ func (h *HTTPServerV1) GetMasterCircuitBreakers(req *restful.Request, rsp *restf
 
 // GetReleaseCircuitBreakers 根据规则id查询已发布的熔断规则
 func (h *HTTPServerV1) GetReleaseCircuitBreakers(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ret := h.namingServer.GetReleaseCircuitBreakers(handler.ParseHeaderContext(), queryParams)
@@ -928,7 +1054,10 @@ func (h *HTTPServerV1) GetReleaseCircuitBreakers(req *restful.Request, rsp *rest
 
 // GetCircuitBreakerByService 根据服务查询绑定熔断规则
 func (h *HTTPServerV1) GetCircuitBreakerByService(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ret := h.namingServer.GetCircuitBreakerByService(handler.ParseHeaderContext(), queryParams)
@@ -937,7 +1066,10 @@ func (h *HTTPServerV1) GetCircuitBreakerByService(req *restful.Request, rsp *res
 
 // GetServiceOwner 根据服务获取服务负责人
 func (h *HTTPServerV1) GetServiceOwner(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var services ServiceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -955,7 +1087,10 @@ func (h *HTTPServerV1) GetServiceOwner(req *restful.Request, rsp *restful.Respon
 
 // GetCircuitBreakerToken 获取熔断规则token
 func (h *HTTPServerV1) GetCircuitBreakerToken(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 	token := req.HeaderParameter("Polaris-Token")
 	ctx := context.WithValue(context.Background(), utils.StringContext("polaris-token"), token)
 

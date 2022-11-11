@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -28,7 +29,6 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/apiserver/httpserver/i18n"
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -39,8 +39,8 @@ import (
 
 // Handler HTTP请求/回复处理器
 type Handler struct {
-	*restful.Request
-	*restful.Response
+	Request  *restful.Request
+	Response *restful.Response
 }
 
 // ParseArray 解析PB数组对象
@@ -51,14 +51,14 @@ func (h *Handler) ParseArray(createMessage func() proto.Message) (context.Contex
 	// read open bracket
 	_, err := jsonDecoder.Token()
 	if err != nil {
-		log.Error(err.Error(), zap.String("request-id", requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 		return nil, err
 	}
 	for jsonDecoder.More() {
 		protoMessage := createMessage()
 		err := jsonpb.UnmarshalNext(jsonDecoder, protoMessage)
 		if err != nil {
-			log.Error(err.Error(), zap.String("request-id", requestID))
+			log.Error(err.Error(), utils.ZapRequestID(requestID))
 			return nil, err
 		}
 	}
@@ -101,7 +101,7 @@ func (h *Handler) postParseMessage(requestID string) (context.Context, error) {
 func (h *Handler) Parse(message proto.Message) (context.Context, error) {
 	requestID := h.Request.HeaderParameter("Request-Id")
 	if err := jsonpb.Unmarshal(h.Request.Request.Body, message); err != nil {
-		log.Error(err.Error(), zap.String("request-id", requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 		return nil, err
 	}
 	return h.postParseMessage(requestID)
@@ -164,7 +164,7 @@ func (h *Handler) WriteHeaderAndProto(obj api.ResponseMessage) {
 	status := api.CalcCode(obj)
 
 	if status != http.StatusOK {
-		log.Error(obj.String(), zap.String("request-id", requestID))
+		log.Error(obj.String(), utils.ZapRequestID(requestID))
 	}
 	if code := obj.GetCode().GetValue(); code != api.ExecuteSuccess {
 		h.Response.AddHeader(utils.PolarisCode, fmt.Sprintf("%d", code))
@@ -174,20 +174,20 @@ func (h *Handler) WriteHeaderAndProto(obj api.ResponseMessage) {
 	h.Response.WriteHeader(status)
 
 	m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
-	err := m.Marshal(h.Response, h.i18n(obj))
+	err := m.Marshal(h.Response, h.i18nAction(obj))
 	if err != nil {
-		log.Error(err.Error(), zap.String("request-id", requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 	}
 }
 
-// WriteHeaderAndProto 返回Code和Proto
+// WriteHeaderAndProtoV2 返回Code和Proto
 func (h *Handler) WriteHeaderAndProtoV2(obj apiv2.ResponseMessage) {
 	requestID := h.Request.HeaderParameter(utils.PolarisRequestID)
 	h.Request.SetAttribute(utils.PolarisCode, obj.GetCode())
 	status := apiv2.CalcCode(obj)
 
 	if status != http.StatusOK {
-		log.Error(obj.String(), zap.String("request-id", requestID))
+		log.Error(obj.String(), utils.ZapRequestID(requestID))
 	}
 	if code := obj.GetCode(); code != api.ExecuteSuccess {
 		h.Response.AddHeader(utils.PolarisCode, fmt.Sprintf("%d", code))
@@ -200,21 +200,24 @@ func (h *Handler) WriteHeaderAndProtoV2(obj apiv2.ResponseMessage) {
 	m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
 	err := m.Marshal(h.Response, obj)
 	if err != nil {
-		log.Error(err.Error(), zap.String("request-id", requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 	}
 }
 
 // HTTPResponse http答复简单封装
 func HTTPResponse(req *restful.Request, rsp *restful.Response, code uint32) {
-	handler := &Handler{req, rsp}
+	handler := &Handler{
+		Request:  req,
+		Response: rsp,
+	}
 	resp := api.NewResponse(code)
 	handler.WriteHeaderAndProto(resp)
 }
 
-// i18n 依据resp.code进行国际化resp.info信息
+// i18nAction 依据resp.code进行国际化resp.info信息
 // 当与header中的信息不匹配时, 则使用原文, 后续通过新定义code的方式增量解决
 // 当header的msg 与 resp.info一致时, 根据resp.code国际化信息
-func (h *Handler) i18n(obj api.ResponseMessage) api.ResponseMessage {
+func (h *Handler) i18nAction(obj api.ResponseMessage) api.ResponseMessage {
 	hMsg := h.Response.Header().Get(utils.PolarisMessage)
 	info := obj.GetInfo()
 	if hMsg != info.GetValue() {
@@ -230,7 +233,7 @@ func (h *Handler) i18n(obj api.ResponseMessage) api.ResponseMessage {
 	return obj
 }
 
-// parseQueryParams 解析并获取HTTP的query params
+// ParseQueryParams 解析并获取HTTP的query params
 func ParseQueryParams(req *restful.Request) map[string]string {
 	queryParams := make(map[string]string)
 	for key, value := range req.Request.URL.Query() {
@@ -240,4 +243,16 @@ func ParseQueryParams(req *restful.Request) map[string]string {
 	}
 
 	return queryParams
+}
+
+// ParseJsonBody parse http body as json object
+func ParseJsonBody(req *restful.Request, value interface{}) error {
+	body, err := ioutil.ReadAll(req.Request.Body)
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(body, value); err != nil {
+		return err
+	}
+	return nil
 }

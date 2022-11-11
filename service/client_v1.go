@@ -19,6 +19,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -76,7 +77,6 @@ func (s *Server) ReportClient(ctx context.Context, req *api.Client) *api.Respons
 // GetReportClientWithCache Used for client acquisition service information
 func (s *Server) GetReportClientWithCache(ctx context.Context,
 	query map[string]string) *model.PrometheusDiscoveryResponse {
-
 	if s.caches == nil {
 		return &model.PrometheusDiscoveryResponse{
 			Code:     api.NotFoundInstance,
@@ -85,7 +85,6 @@ func (s *Server) GetReportClientWithCache(ctx context.Context,
 	}
 
 	targets := make([]model.PrometheusTarget, 0, 8)
-
 	expectSchema := map[string]struct{}{
 		"http":  {},
 		"https": {},
@@ -154,7 +153,7 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *api.Service) *api
 	}
 
 	if err := s.caches.Service().IteratorServices(serviceIterProc); err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 		return api.NewDiscoverServiceResponse(api.ExecuteException, req)
 	}
 
@@ -307,7 +306,7 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *api.Service) *a
 		return api.NewDiscoverRoutingResponse(api.ClientAPINotOpen, req)
 	}
 
-	requestID := ParseRequestID(ctx)
+	requestID := utils.ParseRequestID(ctx)
 
 	if req == nil {
 		return api.NewDiscoverRateLimitResponse(api.EmptyRequest, req)
@@ -358,13 +357,16 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *api.Service) *a
 		if err != nil {
 			return false, err
 		}
+		if rateLimit == nil {
+			return false, errors.New("ratelimit is nil")
+		}
 		resp.RateLimit.Rules = append(resp.RateLimit.Rules, rateLimit)
 		return true, nil
 	}
 
 	err := s.caches.RateLimit().GetRateLimit(service.ID, rateLimitIterProc)
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 		return api.NewDiscoverRateLimitResponse(api.ExecuteException, req)
 	}
 
@@ -376,7 +378,7 @@ func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *api.Servic
 	if s.caches == nil {
 		return api.NewDiscoverCircuitBreakerResponse(api.ClientAPINotOpen, req)
 	}
-	requestID := ParseRequestID(ctx)
+	requestID := utils.ParseRequestID(ctx)
 	if req == nil {
 		return api.NewDiscoverCircuitBreakerResponse(api.EmptyRequest, req)
 	}
@@ -416,7 +418,7 @@ func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *api.Servic
 	resp.Service.Revision = utils.NewStringValue(out.CircuitBreaker.Revision)
 	resp.CircuitBreaker, err = circuitBreaker2ClientAPI(out, req.GetName().GetValue(), req.GetNamespace().GetValue())
 	if err != nil {
-		log.Error(err.Error(), ZapRequestID(requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 		return api.NewDiscoverCircuitBreakerResponse(api.ExecuteException, req)
 	}
 	return resp
@@ -441,7 +443,6 @@ func (s *Server) getSourceServiceID(service *model.Service) string {
 	}
 
 	return service.ID
-
 }
 
 // 根据服务名获取服务缓存数据

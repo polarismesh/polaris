@@ -33,7 +33,6 @@ func NewV1Server(
 	namespaceServer namespace.NamespaceOperateServer,
 	namingServer service.DiscoverServer,
 	healthCheckServer *healthcheck.Server) *HTTPServerV1 {
-
 	return &HTTPServerV1{
 		namespaceServer:   namespaceServer,
 		namingServer:      namingServer,

@@ -20,7 +20,6 @@ package local
 import (
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -33,12 +32,12 @@ type PrometheusStatis struct {
 
 // NewPrometheusStatis 初始化 PrometheusStatis
 func NewPrometheusStatis() (*PrometheusStatis, error) {
-	statis := &PrometheusStatis{}
-	statis.metricVecCaches = make(map[string]interface{})
-	statis.registry = metrics.GetRegistry()
+	statis := &PrometheusStatis{
+		registry:        metrics.GetRegistry(),
+		metricVecCaches: make(map[string]interface{}),
+	}
 
-	err := statis.registerMetrics()
-	if err != nil {
+	if err := statis.registerMetrics(); err != nil {
 		return nil, err
 	}
 
@@ -46,7 +45,7 @@ func NewPrometheusStatis() (*PrometheusStatis, error) {
 }
 
 // registerMetrics Registers the interface invocation-related observability metrics
-func (statis *PrometheusStatis) registerMetrics() error {
+func (s *PrometheusStatis) registerMetrics() error {
 	for _, desc := range metricDescList {
 		var collector prometheus.Collector
 		switch desc.MetricType {
@@ -59,12 +58,12 @@ func (statis *PrometheusStatis) registerMetrics() error {
 			continue
 		}
 
-		err := statis.registry.Register(collector)
+		err := s.registry.Register(collector)
 		if err != nil {
 			log.Errorf("[APICall] register prometheus collector error, %v", err)
 			return err
 		}
-		statis.metricVecCaches[desc.Name] = collector
+		s.metricVecCaches[desc.Name] = collector
 	}
 	return nil
 }
@@ -78,9 +77,10 @@ func (a *APICallStatis) collectMetricData(staticsSlice []*APICallStatisItem) {
 	statInfos := make([]*MetricData, 0, len(staticsSlice)*metricsNumber)
 
 	for _, item := range staticsSlice {
-
-		var maxTime, avgTime, rqTime, rqCount, minTime float64
-		var deleteFlag bool
+		var (
+			maxTime, avgTime, rqTime, rqCount, minTime float64
+			deleteFlag                                 bool
+		)
 
 		if item.count == 0 && item.zeroDuration > maxZeroDuration {
 			deleteFlag = true
@@ -129,25 +129,21 @@ func (a *APICallStatis) collectMetricData(staticsSlice []*APICallStatisItem) {
 }
 
 // collectMetricData
-func (statis *PrometheusStatis) collectMetricData(statInfos []*MetricData) {
-
+func (s *PrometheusStatis) collectMetricData(statInfos []*MetricData) {
 	if len(statInfos) == 0 {
 		return
 	}
 
 	// prometheus-sdk 本身做了pull时数据一致性的保证，这里不需要自己在进行额外的保护动作
-
 	// 清理掉当前的存量数据
-
 	for _, statInfo := range statInfos {
-
 		if len(statInfo.Labels) == 0 {
 			statInfo.Labels = make(map[string]string)
 		}
 
 		// Set a public label information: Polaris node information
 		statInfo.Labels[LabelForPolarisServerInstance] = utils.LocalHost
-		metricVec := statis.metricVecCaches[statInfo.Name]
+		metricVec := s.metricVecCaches[statInfo.Name]
 
 		if metricVec == nil {
 			continue
@@ -162,10 +158,9 @@ func (statis *PrometheusStatis) collectMetricData(statInfos []*MetricData) {
 			}
 		}
 	}
-
 }
 
 // GetRegistry return prometheus.Registry instance
-func (statis *PrometheusStatis) GetRegistry() *prometheus.Registry {
-	return statis.registry
+func (s *PrometheusStatis) GetRegistry() *prometheus.Registry {
+	return s.registry
 }

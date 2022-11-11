@@ -35,7 +35,7 @@ import (
 )
 
 var (
-	namingLog = commonlog.NamingScope()
+	namingLog = commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName)
 )
 
 // ReportClient 客户端上报
@@ -45,7 +45,6 @@ func (g *DiscoverServer) ReportClient(ctx context.Context, in *api.Client) (*api
 
 // RegisterInstance 注册服务实例
 func (g *DiscoverServer) RegisterInstance(ctx context.Context, in *api.Instance) (*api.Response, error) {
-
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
 	rCtx := grpcserver.ConvertContext(ctx)
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
@@ -103,7 +102,7 @@ func (g *DiscoverServer) Discover(server api.PolarisGRPC_DiscoverServer) error {
 			zap.String("type", api.DiscoverRequest_DiscoverRequestType_name[int32(in.Type)]),
 			zap.String("client-address", clientAddress),
 			zap.String("user-agent", userAgent),
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 		)
 
 		// 是否允许访问

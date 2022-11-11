@@ -41,7 +41,7 @@ func DoTransactionIfNeed(sTx store.Tx, handler BoltHandler, handle transactionFu
 	tx := sTx.GetDelegateTx().(*bolt.Tx)
 	defer func() {
 		if autoManageTx {
-			tx.Rollback()
+			_ = tx.Rollback()
 		}
 	}()
 

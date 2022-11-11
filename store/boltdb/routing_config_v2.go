@@ -29,7 +29,8 @@ import (
 )
 
 var (
-	MultipleRoutingV2Found error = errors.New("multiple routing v2 found")
+	// ErrMultipleRoutingV2Found 多个路由配置
+	ErrMultipleRoutingV2Found = errors.New("multiple routing v2 found")
 )
 
 const (
@@ -72,7 +73,7 @@ func (r *routingStoreV2) CreateRoutingConfigV2(conf *v2.RoutingConfig) error {
 
 // cleanRoutingConfig 从数据库彻底清理路由配置
 func (r *routingStoreV2) cleanRoutingConfig(tx *bolt.Tx, ruleID string) error {
-	err := deleteValues(tx, tblNameRoutingV2, []string{ruleID}, false)
+	err := deleteValues(tx, tblNameRoutingV2, []string{ruleID})
 	if err != nil {
 		log.Errorf("[Store][boltdb] delete invalid route config v2 error, %v", err)
 		return err
@@ -245,12 +246,14 @@ func (r *routingStoreV2) GetRoutingConfigV2WithID(id string) (*v2.RoutingConfig,
 	}
 
 	boldTx := tx.GetDelegateTx().(*bolt.Tx)
-	defer boldTx.Rollback()
+	defer func() {
+		_ = boldTx.Rollback()
+	}()
 
 	return r.getRoutingConfigV2WithIDTx(boldTx, id)
 }
 
-// GetRoutingConfigV2WithID 根据服务ID拉取路由配置
+// GetRoutingConfigV2WithIDTx 根据服务ID拉取路由配置
 func (r *routingStoreV2) GetRoutingConfigV2WithIDTx(tx store.Tx, id string) (*v2.RoutingConfig, error) {
 
 	if tx == nil {
@@ -273,7 +276,7 @@ func (r *routingStoreV2) getRoutingConfigV2WithIDTx(tx *bolt.Tx, id string) (*v2
 	}
 
 	if len(ret) > 1 {
-		return nil, MultipleRoutingV2Found
+		return nil, ErrMultipleRoutingV2Found
 	}
 
 	val := ret[id].(*v2.RoutingConfig)

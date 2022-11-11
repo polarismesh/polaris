@@ -32,7 +32,7 @@ import (
 )
 
 var (
-	namingLog = commonlog.NamingScope()
+	namingLog = commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName)
 )
 
 // Discover 统一发现接口
@@ -58,7 +58,7 @@ func (g *DiscoverServer) Discover(server apiv2.PolarisGRPC_DiscoverServer) error
 			zap.String("type", apiv2.DiscoverRequest_DiscoverRequestType_name[int32(in.Type)]),
 			zap.String("client-address", clientAddress),
 			zap.String("user-agent", userAgent),
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 		)
 
 		// 是否允许访问

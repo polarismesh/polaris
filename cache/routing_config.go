@@ -26,7 +26,6 @@ import (
 
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 	apiv2 "github.com/polarismesh/polaris/common/api/v2"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	v2 "github.com/polarismesh/polaris/common/model/v2"
 	routingcommon "github.com/polarismesh/polaris/common/routing"
@@ -96,16 +95,13 @@ func newRoutingConfigCache(s store.Store, serviceCache ServiceCache) *routingCon
 }
 
 // initialize 实现Cache接口的函数
-func (rc *routingConfigCache) initialize(opt map[string]interface{}) error {
+func (rc *routingConfigCache) initialize(_ map[string]interface{}) error {
 	rc.firstUpdate = true
 
 	rc.initBuckets()
 	rc.lastMtimeV1 = time.Unix(0, 0)
 	rc.lastMtimeV2 = time.Unix(0, 0)
 
-	if opt == nil {
-		return nil
-	}
 	return nil
 }
 
@@ -127,23 +123,23 @@ func (rc *routingConfigCache) update(storeRollbackSec time.Duration) error {
 func (rc *routingConfigCache) realUpdate(storeRollbackSec time.Duration) error {
 	outV1, err := rc.storage.GetRoutingConfigsForCache(rc.lastMtimeV1.Add(storeRollbackSec), rc.firstUpdate)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache] routing config v1 cache get from store err: %s", err.Error())
+		log.Errorf("[Cache] routing config v1 cache get from store err: %s", err.Error())
 		return err
 	}
 
 	outV2, err := rc.storage.GetRoutingConfigsV2ForCache(rc.lastMtimeV2.Add(storeRollbackSec), rc.firstUpdate)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache] routing config v2 cache get from store err: %s", err.Error())
+		log.Errorf("[Cache] routing config v2 cache get from store err: %s", err.Error())
 		return err
 	}
 
 	rc.firstUpdate = false
 	if err := rc.setRoutingConfigV1(outV1); err != nil {
-		log.CacheScope().Errorf("[Cache] routing config v1 cache update err: %s", err.Error())
+		log.Errorf("[Cache] routing config v1 cache update err: %s", err.Error())
 		return err
 	}
 	if err := rc.setRoutingConfigV2(outV2); err != nil {
-		log.CacheScope().Errorf("[Cache] routing config v2 cache update err: %s", err.Error())
+		log.Errorf("[Cache] routing config v2 cache update err: %s", err.Error())
 		return err
 	}
 	rc.setRoutingConfigV1ToV2()
@@ -166,7 +162,7 @@ func (rc *routingConfigCache) name() string {
 	return RoutingConfigName
 }
 
-// GetRoutingConfig 根据ServiceID获取路由配置
+// GetRoutingConfigV1 根据ServiceID获取路由配置
 // case 1: 如果只存在 v2 的路由规则，使用 v2
 // case 2: 如果只存在 v1 的路由规则，使用 v1
 // case 3: 如果同时存在 v1 和 v2 的路由规则，进行合并
@@ -202,7 +198,7 @@ func (rc *routingConfigCache) GetRoutingConfigV1(id, service, namespace string) 
 
 	revision, err := CompositeComputeRevision(revisions)
 	if err != nil {
-		log.CacheScope().Error("[Cache][Routing] v2=>v1 compute revisions", zap.Error(err))
+		log.Error("[Cache][Routing] v2=>v1 compute revisions", zap.Error(err))
 		return nil, err
 	}
 
@@ -226,7 +222,7 @@ func formatRoutingResponseV1(ret *apiv1.Routing) *apiv1.Routing {
 }
 
 // GetRoutingConfigV2 根据服务信息获取该服务下的所有 v2 版本的规则路由
-func (rc *routingConfigCache) GetRoutingConfigV2(id, service, namespace string) ([]*apiv2.Routing, error) {
+func (rc *routingConfigCache) GetRoutingConfigV2(_, service, namespace string) ([]*apiv2.Routing, error) {
 	v2rules := rc.bucketV2.listByServiceWithPredicate(service, namespace,
 		func(item *v2.ExtendRoutingConfig) bool {
 			return item.Enable
@@ -313,7 +309,7 @@ func (rc *routingConfigCache) setRoutingConfigV2(cs []*v2.RoutingConfig) error {
 		}
 		extendEntry, err := entry.ToExpendRoutingConfig()
 		if err != nil {
-			log.CacheScope().Error("[Cache] routing config v2 convert to expend", zap.Error(err))
+			log.Error("[Cache] routing config v2 convert to expend", zap.Error(err))
 			continue
 		}
 		rc.bucketV2.saveV2(extendEntry)
@@ -327,12 +323,10 @@ func (rc *routingConfigCache) setRoutingConfigV2(cs []*v2.RoutingConfig) error {
 
 func (rc *routingConfigCache) setRoutingConfigV1ToV2() {
 	for id := range rc.pendingV1RuleIds {
-
 		entry := rc.bucketV1.get(id)
-
 		// 保存到新的 v2 缓存
 		if v2rule, err := rc.convertRoutingV1toV2(entry); err != nil {
-			log.CacheScope().Error("[Cache] routing parse v1 => v2, will try again next",
+			log.Error("[Cache] routing parse v1 => v2, will try again next",
 				zap.String("rule-id", entry.ID), zap.Error(err))
 		} else {
 			rc.bucketV2.saveV1(entry, v2rule)
@@ -340,7 +334,7 @@ func (rc *routingConfigCache) setRoutingConfigV1ToV2() {
 		}
 	}
 
-	log.CacheScope().Infof("[Cache] convert routing parse v1 => v2 count : %d", rc.bucketV2.convertV2Size())
+	log.Infof("[Cache] convert routing parse v1 => v2 count : %d", rc.bucketV2.convertV2Size())
 }
 
 func (rc *routingConfigCache) IsConvertFromV1(id string) (string, bool) {
@@ -377,7 +371,6 @@ func (rc *routingConfigCache) convertRoutingV1toV2(rule *model.RoutingConfig) ([
 // convertRoutingV2toV1 v2 版本的路由规则转为 v1 版本进行返回给客户端，用于兼容 SDK 下发配置的场景
 func (rc *routingConfigCache) convertRoutingV2toV1(entries map[routingLevel][]*v2.ExtendRoutingConfig,
 	service, namespace string) *apiv1.Routing {
-
 	level1 := entries[level1RoutingV2]
 	sort.Slice(level1, func(i, j int) bool {
 		return routingcommon.CompareRoutingV2(level1[i], level1[j])
@@ -403,7 +396,7 @@ func (rc *routingConfigCache) convertRoutingV2toV1(entries map[routingLevel][]*v
 	revisions = append(revisions, level3Revisions...)
 	revision, err := CompositeComputeRevision(revisions)
 	if err != nil {
-		log.CacheScope().Error("[Cache][Routing] v2=>v1 compute revisions", zap.Error(err))
+		log.Error("[Cache][Routing] v2=>v1 compute revisions", zap.Error(err))
 		return nil
 	}
 

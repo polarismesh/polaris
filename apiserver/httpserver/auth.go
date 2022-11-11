@@ -30,9 +30,7 @@ import (
 
 // GetAuthServer 运维接口
 func (h *HTTPServer) GetAuthServer(ws *restful.WebService) error {
-
 	ws.Route(enrichAuthStatusApiDocs(ws.GET("/auth/status").To(h.AuthStatus)))
-
 	//
 	ws.Route(enrichLoginApiDocs(ws.POST("/user/login").To(h.Login)))
 	ws.Route(enrichGetUsersApiDocs(ws.GET("/users").To(h.GetUsers)))
@@ -43,7 +41,6 @@ func (h *HTTPServer) GetAuthServer(ws *restful.WebService) error {
 	ws.Route(enrichGetUserTokenApiDocs(ws.GET("/user/token").To(h.GetUserToken)))
 	ws.Route(enrichUpdateUserTokenApiDocs(ws.PUT("/user/token/status").To(h.UpdateUserToken)))
 	ws.Route(enrichResetUserTokenApiDocs(ws.PUT("/user/token/refresh").To(h.ResetUserToken)))
-
 	//
 	ws.Route(enrichCreateGroupApiDocs(ws.POST("/usergroup").To(h.CreateGroup)))
 	ws.Route(enrichUpdateGroupsApiDocs(ws.PUT("/usergroups").To(h.UpdateGroups)))
@@ -66,7 +63,10 @@ func (h *HTTPServer) GetAuthServer(ws *restful.WebService) error {
 
 // AuthStatus auth status
 func (h *HTTPServer) AuthStatus(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	checker := h.authServer.GetAuthChecker()
 
@@ -83,7 +83,10 @@ func (h *HTTPServer) AuthStatus(req *restful.Request, rsp *restful.Response) {
 
 // Login 登陆函数
 func (h *HTTPServer) Login(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	loginReq := &api.LoginRequest{}
 
@@ -98,7 +101,10 @@ func (h *HTTPServer) Login(req *restful.Request, rsp *restful.Response) {
 
 // CreateUsers 批量创建用户
 func (h *HTTPServer) CreateUsers(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var users UserArr
 
@@ -117,7 +123,10 @@ func (h *HTTPServer) CreateUsers(req *restful.Request, rsp *restful.Response) {
 
 // UpdateUser 更新用户
 func (h *HTTPServer) UpdateUser(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	user := &api.User{}
 
@@ -132,7 +141,10 @@ func (h *HTTPServer) UpdateUser(req *restful.Request, rsp *restful.Response) {
 
 // UpdateUserPassword 更新用户
 func (h *HTTPServer) UpdateUserPassword(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	user := &api.ModifyUserPassword{}
 
@@ -147,7 +159,10 @@ func (h *HTTPServer) UpdateUserPassword(req *restful.Request, rsp *restful.Respo
 
 // DeleteUsers 批量删除用户
 func (h *HTTPServer) DeleteUsers(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var users UserArr
 
@@ -166,7 +181,10 @@ func (h *HTTPServer) DeleteUsers(req *restful.Request, rsp *restful.Response) {
 
 // GetUsers 查询用户
 func (h *HTTPServer) GetUsers(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
@@ -176,7 +194,10 @@ func (h *HTTPServer) GetUsers(req *restful.Request, rsp *restful.Response) {
 
 // GetUserToken 获取这个用户所关联的所有用户组列表信息，支持翻页
 func (h *HTTPServer) GetUserToken(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 	queryParams := httpcommon.ParseQueryParams(req)
 
 	user := &api.User{
@@ -188,7 +209,10 @@ func (h *HTTPServer) GetUserToken(req *restful.Request, rsp *restful.Response) {
 
 // UpdateUserToken 更改用户的token
 func (h *HTTPServer) UpdateUserToken(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	user := &api.User{}
 
@@ -203,7 +227,10 @@ func (h *HTTPServer) UpdateUserToken(req *restful.Request, rsp *restful.Response
 
 // ResetUserToken 重置用户 token
 func (h *HTTPServer) ResetUserToken(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	user := &api.User{}
 
@@ -218,7 +245,10 @@ func (h *HTTPServer) ResetUserToken(req *restful.Request, rsp *restful.Response)
 
 // CreateGroup 创建用户组
 func (h *HTTPServer) CreateGroup(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	group := &api.UserGroup{}
 
@@ -233,7 +263,10 @@ func (h *HTTPServer) CreateGroup(req *restful.Request, rsp *restful.Response) {
 
 // UpdateGroups 更新用户组
 func (h *HTTPServer) UpdateGroups(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var groups ModifyGroupArr
 
@@ -252,7 +285,10 @@ func (h *HTTPServer) UpdateGroups(req *restful.Request, rsp *restful.Response) {
 
 // DeleteGroups 删除用户组
 func (h *HTTPServer) DeleteGroups(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var groups GroupArr
 
@@ -271,7 +307,10 @@ func (h *HTTPServer) DeleteGroups(req *restful.Request, rsp *restful.Response) {
 
 // GetGroups 获取用户组列表
 func (h *HTTPServer) GetGroups(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
@@ -281,7 +320,10 @@ func (h *HTTPServer) GetGroups(req *restful.Request, rsp *restful.Response) {
 
 // GetGroup 获取用户组详细
 func (h *HTTPServer) GetGroup(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
@@ -295,7 +337,10 @@ func (h *HTTPServer) GetGroup(req *restful.Request, rsp *restful.Response) {
 
 // GetGroupToken 获取用户组 token
 func (h *HTTPServer) GetGroupToken(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
@@ -309,7 +354,10 @@ func (h *HTTPServer) GetGroupToken(req *restful.Request, rsp *restful.Response) 
 
 // UpdateGroupToken 更新用户组 token
 func (h *HTTPServer) UpdateGroupToken(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	group := &api.UserGroup{}
 
@@ -324,7 +372,10 @@ func (h *HTTPServer) UpdateGroupToken(req *restful.Request, rsp *restful.Respons
 
 // ResetGroupToken 重置用户组 token
 func (h *HTTPServer) ResetGroupToken(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	group := &api.UserGroup{}
 
@@ -339,7 +390,10 @@ func (h *HTTPServer) ResetGroupToken(req *restful.Request, rsp *restful.Response
 
 // CreateStrategy 创建鉴权策略
 func (h *HTTPServer) CreateStrategy(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	strategy := &api.AuthStrategy{}
 
@@ -354,7 +408,10 @@ func (h *HTTPServer) CreateStrategy(req *restful.Request, rsp *restful.Response)
 
 // UpdateStrategies 更新鉴权策略
 func (h *HTTPServer) UpdateStrategies(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var strategies ModifyStrategyArr
 
@@ -373,7 +430,10 @@ func (h *HTTPServer) UpdateStrategies(req *restful.Request, rsp *restful.Respons
 
 // DeleteStrategies 批量删除鉴权策略
 func (h *HTTPServer) DeleteStrategies(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var strategies StrategyArr
 
@@ -392,7 +452,10 @@ func (h *HTTPServer) DeleteStrategies(req *restful.Request, rsp *restful.Respons
 
 // GetStrategies 批量获取鉴权策略
 func (h *HTTPServer) GetStrategies(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
@@ -402,7 +465,10 @@ func (h *HTTPServer) GetStrategies(req *restful.Request, rsp *restful.Response) 
 
 // GetStrategy 获取鉴权策略详细
 func (h *HTTPServer) GetStrategy(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
@@ -416,7 +482,10 @@ func (h *HTTPServer) GetStrategy(req *restful.Request, rsp *restful.Response) {
 
 // GetPrincipalResources 获取鉴权策略详细
 func (h *HTTPServer) GetPrincipalResources(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()

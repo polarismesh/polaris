@@ -24,7 +24,6 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	logger "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -36,7 +35,6 @@ const (
 
 type boltStore struct {
 	*namespaceStore
-	*businessStore
 	*clientStore
 
 	// 服务注册发现、治理
@@ -45,7 +43,6 @@ type boltStore struct {
 	*l5Store
 	*routingStore
 	*rateLimitStore
-	*platformStore
 	*circuitBreakerStore
 
 	// 工具
@@ -66,6 +63,9 @@ type boltStore struct {
 
 	// v2 存储
 	*routingStoreV2
+
+	// maintain store
+	*maintainStore
 
 	handler BoltHandler
 	start   bool
@@ -218,7 +218,7 @@ func (m *boltStore) initAuthStoreData() error {
 			user = mainUser
 			// 添加主账户主体信息
 			if err := saveValue(tx, tblUser, user.ID, converToUserStore(user)); err != nil {
-				logger.AuthScope().Error("[Store][User] save user fail", zap.Error(err), zap.String("name", user.Name))
+				authLog.Error("[Store][User] save user fail", zap.Error(err), zap.String("name", user.Name))
 				return err
 			}
 		}
@@ -232,7 +232,7 @@ func (m *boltStore) initAuthStoreData() error {
 			strategy := mainDefaultStrategy
 			// 添加主账户的默认鉴权策略信息
 			if err := saveValue(tx, tblStrategy, strategy.ID, convertForStrategyStore(strategy)); err != nil {
-				logger.AuthScope().Error("[Store][Strategy] save auth_strategy", zap.Error(err),
+				authLog.Error("[Store][Strategy] save auth_strategy", zap.Error(err),
 					zap.String("name", strategy.Name), zap.String("owner", strategy.Owner))
 				return err
 			}
@@ -252,8 +252,6 @@ func (m *boltStore) newStore() error {
 	if err = m.namespaceStore.InitData(); err != nil {
 		return err
 	}
-	m.businessStore = &businessStore{handler: m.handler}
-	m.platformStore = &platformStore{handler: m.handler}
 	m.clientStore = &clientStore{handler: m.handler}
 
 	if err := m.newDiscoverModuleStore(); err != nil {
@@ -263,6 +261,10 @@ func (m *boltStore) newStore() error {
 		return err
 	}
 	if err := m.newConfigModuleStore(); err != nil {
+		return err
+	}
+
+	if err := m.newMaintainModuleStore(); err != nil {
 		return err
 	}
 
@@ -327,6 +329,12 @@ func (m *boltStore) newConfigModuleStore() error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (m *boltStore) newMaintainModuleStore() error {
+	m.maintainStore = &maintainStore{handler: m.handler}
 
 	return nil
 }

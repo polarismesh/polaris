@@ -148,12 +148,6 @@ func pluginInitialize() {
 	if namingServer.discoverEvent == nil {
 		log.Warnf("Not found DiscoverEvent Plugin")
 	}
-
-	// 获取鉴权插件
-	namingServer.auth = plugin.GetAuth()
-	if namingServer.auth == nil {
-		log.Warnf("Not found Auth Plugin")
-	}
 }
 
 // NewUUID 返回一个随机的UUID

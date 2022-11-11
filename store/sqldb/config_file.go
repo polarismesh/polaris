@@ -79,11 +79,12 @@ func (cf *configFileStore) GetConfigFile(tx store.Tx, namespace, group, name str
 
 func (cf *configFileStore) QueryConfigFilesByGroup(namespace, group string,
 	offset, limit uint32) (uint32, []*model.ConfigFile, error) {
+	var (
+		countSql = "select count(*) from config_file where namespace = ? and `group` = ? and flag = 0"
+		count    uint32
+		err      = cf.db.QueryRow(countSql, namespace, group).Scan(&count)
+	)
 
-	countSql := "select count(*) from config_file where namespace = ? and `group` = ? and flag = 0"
-
-	var count uint32
-	err := cf.db.QueryRow(countSql, namespace, group).Scan(&count)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -106,7 +107,6 @@ func (cf *configFileStore) QueryConfigFilesByGroup(namespace, group string,
 // QueryConfigFiles 翻页查询配置文件，group、name可为模糊匹配
 func (cf *configFileStore) QueryConfigFiles(namespace, group, name string,
 	offset, limit uint32) (uint32, []*model.ConfigFile, error) {
-
 	// 全部 namespace
 	if namespace == "" {
 		group = "%" + group + "%"
@@ -158,7 +158,6 @@ func (cf *configFileStore) QueryConfigFiles(namespace, group, name string,
 	}
 
 	return count, files, nil
-
 }
 
 // UpdateConfigFile 更新配置文件

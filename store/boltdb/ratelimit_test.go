@@ -18,6 +18,7 @@
 package boltdb
 
 import (
+	"math/rand"
 	"reflect"
 	"sort"
 	"strings"
@@ -29,6 +30,16 @@ import (
 
 	"github.com/polarismesh/polaris/common/model"
 )
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func RandStringRunes(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
+}
 
 func createTestRateLimit(id string, createId bool) *model.RateLimit {
 
@@ -91,8 +102,8 @@ func Test_rateLimitStore_CreateRateLimitWithBadParam(t *testing.T) {
 		if err := store.CreateRateLimit(testVal); err == nil {
 			t.Fatalf("rateLimitStore.CreateRateLimit() need to return error")
 		} else {
-			if strings.Compare(BadParamError.Error(), err.Error()) != 0 {
-				t.Fatalf("error msg must : %s", BadParamError.Error())
+			if strings.Compare(ErrBadParam.Error(), err.Error()) != 0 {
+				t.Fatalf("error msg must : %s", ErrBadParam.Error())
 			}
 		}
 	})
@@ -325,7 +336,7 @@ func Test_rateLimitStore_GetRateLimitsForCache(t *testing.T) {
 			handler: handler,
 		}
 
-		vals := make([]*model.RateLimit, 0)
+		vals := make([]*model.RateLimit, 0, 10)
 
 		tN := time.Now().Add(time.Duration(-30) * time.Minute)
 
@@ -341,7 +352,7 @@ func Test_rateLimitStore_GetRateLimitsForCache(t *testing.T) {
 
 		testT_1 := time.Now().Add(time.Duration(-5) * time.Minute)
 
-		limits, _, err := r.GetRateLimitsForCache(testT_1, true)
+		limits, _, err := r.GetRateLimitsForCache(testT_1, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -350,14 +361,12 @@ func Test_rateLimitStore_GetRateLimitsForCache(t *testing.T) {
 
 		for i := range vals {
 			item := vals[i]
-			if item.ModifyTime.After(testT_1) {
+			if !item.ModifyTime.Before(testT_1) {
 				expectList = append(expectList, item)
 			}
 		}
 
-		if len(limits) != len(expectList) {
-			t.Fatalf("len(limits) not equal len(expectList)")
-		}
+		assert.Equal(t, len(expectList), len(limits), "len(limits) not equal len(expectList)")
 
 		for i := range expectList {
 			expectList[i].CreateTime = testT_1

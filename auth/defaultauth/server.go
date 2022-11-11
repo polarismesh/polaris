@@ -25,7 +25,6 @@ import (
 
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -44,7 +43,7 @@ func (svr *server) initialize() error {
 	// 获取History插件，注意：插件的配置在bootstrap已经设置好
 	svr.history = plugin.GetHistory()
 	if svr.history == nil {
-		log.AuthScope().Warnf("Not Found History Log Plugin")
+		log.Warnf("Not Found History Log Plugin")
 	}
 
 	return nil
@@ -131,7 +130,7 @@ func (svr *server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 		}
 	}
 
-	log.AuthScope().Info("[Auth][Server] add resource to principal default strategy",
+	log.Info("[Auth][Server] add resource to principal default strategy",
 		zap.Any("resource", afterCtx.GetAttachment(model.ResourceAttachmentKey)),
 		zap.Any("add_user", addUserIds), zap.Any("add_group", addGroupIds), zap.Any("remove_user", removeUserIds),
 		zap.Any("remove_group", removeGroupIds),
@@ -139,21 +138,21 @@ func (svr *server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 
 	// 添加某些用户、用户组与资源的默认授权关系
 	if err := svr.handleUserStrategy(addUserIds, afterCtx, false); err != nil {
-		log.AuthScope().Error("[Auth][Server] add user link resource", zap.Error(err))
+		log.Error("[Auth][Server] add user link resource", zap.Error(err))
 		return err
 	}
 	if err := svr.handleGroupStrategy(addGroupIds, afterCtx, false); err != nil {
-		log.AuthScope().Error("[Auth][Server] add group link resource", zap.Error(err))
+		log.Error("[Auth][Server] add group link resource", zap.Error(err))
 		return err
 	}
 
 	// 清理某些用户、用户组与资源的默认授权关系
 	if err := svr.handleUserStrategy(removeUserIds, afterCtx, true); err != nil {
-		log.AuthScope().Error("[Auth][Server] remove user link resource", zap.Error(err))
+		log.Error("[Auth][Server] remove user link resource", zap.Error(err))
 		return err
 	}
 	if err := svr.handleGroupStrategy(removeGroupIds, afterCtx, true); err != nil {
-		log.AuthScope().Error("[Auth][Server] remove group link resource", zap.Error(err))
+		log.Error("[Auth][Server] remove group link resource", zap.Error(err))
 		return err
 	}
 
@@ -208,7 +207,7 @@ func (svr *server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 	// Get the default policy rules
 	strategy, err := svr.storage.GetDefaultStrategyDetailByPrincipal(id, uType)
 	if err != nil {
-		log.AuthScope().Error("[Auth][Server] get default strategy",
+		log.Error("[Auth][Server] get default strategy",
 			zap.String("owner", ownerId), zap.String("id", id), zap.Error(err))
 		return err
 	}
@@ -217,10 +216,11 @@ func (svr *server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 		return errors.New("not found default strategy rule")
 	}
 
-	strategyResource := make([]model.StrategyResource, 0)
-	resources := afterCtx.GetAttachment(model.ResourceAttachmentKey).(map[api.ResourceType][]model.ResourceEntry)
-
-	strategyId := strategy.ID
+	var (
+		strategyResource = make([]model.StrategyResource, 0)
+		resources        = afterCtx.GetAttachment(model.ResourceAttachmentKey).(map[api.ResourceType][]model.ResourceEntry)
+		strategyId       = strategy.ID
+	)
 
 	// 资源删除时，清理该资源与所有策略的关联关系
 	if afterCtx.GetOperation() == model.Delete {
@@ -239,24 +239,21 @@ func (svr *server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 	}
 
 	if afterCtx.GetOperation() == model.Delete || cleanRealtion {
-		err = svr.storage.RemoveStrategyResources(strategyResource)
-		if err != nil {
-			log.AuthScope().Error("[Auth][Server] remove default strategy resource",
+		if err = svr.storage.RemoveStrategyResources(strategyResource); err != nil {
+			log.Error("[Auth][Server] remove default strategy resource",
 				zap.String("owner", ownerId), zap.String("id", id),
 				zap.String("type", model.PrincipalNames[uType]), zap.Error(err))
 			return err
 		}
 
 		return nil
-	} else {
-		// 如果是写操作，那么采用松添加操作进行新增资源的添加操作(仅忽略主键冲突的错误)
-		err = svr.storage.LooseAddStrategyResources(strategyResource)
-		if err != nil {
-			log.AuthScope().Error("[Auth][Server] update default strategy resource",
-				zap.String("owner", ownerId), zap.String("id", id), zap.String("id", id),
-				zap.String("type", model.PrincipalNames[uType]), zap.Error(err))
-			return err
-		}
+	}
+	// 如果是写操作，那么采用松添加操作进行新增资源的添加操作(仅忽略主键冲突的错误)
+	if err = svr.storage.LooseAddStrategyResources(strategyResource); err != nil {
+		log.Error("[Auth][Server] update default strategy resource",
+			zap.String("owner", ownerId), zap.String("id", id), zap.String("id", id),
+			zap.String("type", model.PrincipalNames[uType]), zap.Error(err))
+		return err
 	}
 
 	return nil

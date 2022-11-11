@@ -1,3 +1,18 @@
+# Tencent is pleased to support the open source community by making Polaris available.
+#
+# Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
+#
+# Licensed under the BSD 3-Clause License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software distributed
+# under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+# CONDITIONS OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the License.
+
 #!/bin/bash
 
 # 安装protoc和protoc-gen-go插件
@@ -12,11 +27,25 @@
 #
 # ProtoPackageIsVersion并非表示proto2/proto3
 
+CURRENT_OS=$(uname -s)
+CURRENT_ARCH=$(uname -m)
 PROTOC=../protoc
+PROTO_FILES="model_v2.proto routing_v2.proto request_v2.proto response_v2.proto grpcapi_v2.proto"
 
-${PROTOC}/bin/protoc \
+if [ "$CURRENT_ARCH" != "x86_64" ]; then
+    echo "Current only support x86_64"
+    exit 1
+fi
+
+if [ "$CURRENT_OS" == "Linux" ]; then
+    ${PROTOC}/bin/protoc \
     --plugin=protoc-gen-go=${PROTOC}/bin/protoc-gen-go \
     --go_out=plugins=grpc:. \
     --proto_path=${PROTOC}/include \
     --proto_path=. \
-    model_v2.proto routing_v2.proto request_v2.proto response_v2.proto grpcapi_v2.proto
+    ${PROTO_FILES}
+
+    ${PROTOC}/bin/protoc-go-inject-tag -input="*.pb.go"
+else
+    docker run --rm -it -v "$(dirname $(pwd))":/app --workdir /app/v2 debian:buster ./build.sh
+fi

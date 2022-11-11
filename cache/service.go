@@ -25,7 +25,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -118,8 +117,8 @@ type serviceCache struct {
 	lastMtime           int64
 	lastMtimeLogged     int64
 	firstUpdate         bool
-	ids                 *sync.Map // serviceid -> service
-	names               *sync.Map // spacename -> [serviceName -> service]
+	ids                 *sync.Map // service_id -> service
+	names               *sync.Map // namespace -> [serviceName -> service]
 	cl5Sid2Name         *sync.Map // 兼容Cl5，sid -> name
 	cl5Names            *sync.Map // 兼容Cl5，name -> service
 	revisionCh          chan *revisionNotify
@@ -129,7 +128,7 @@ type serviceCache struct {
 	instCache           InstanceCache
 	countChangeCh       chan map[string]bool // Counting information requires a change event channel
 	pendingServices     map[string]int8
-	namespaceServiceCnt *sync.Map // namespce -> model.NamespaceServiceCount
+	namespaceServiceCnt *sync.Map // namespace -> model.NamespaceServiceCount
 	cancel              context.CancelFunc
 }
 
@@ -199,13 +198,13 @@ func (sc *serviceCache) realUpdate(storeRollbackSec time.Duration) error {
 	services, err := sc.storage.GetMoreServices(lastMtime.Add(storeRollbackSec),
 		sc.firstUpdate, sc.disableBusiness, sc.needMeta)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][Service] update services err: %s", err.Error())
+		log.Errorf("[Cache][Service] update services err: %s", err.Error())
 		return err
 	}
 
 	sc.firstUpdate = false
 	update, del := sc.setServices(services)
-	log.CacheScope().Info(
+	log.Info(
 		"[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
 		zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
 	return nil
@@ -262,7 +261,6 @@ func (sc *serviceCache) GetServiceByName(name string, namespace string) *model.S
 
 // CleanNamespace 清除Namespace对应的服务缓存
 func (sc *serviceCache) CleanNamespace(namespace string) {
-
 	sc.names.Delete(namespace)
 }
 
@@ -356,7 +354,7 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 	for _, service := range services {
 		progress++
 		if progress%20000 == 0 {
-			log.CacheScope().Infof(
+			log.Infof(
 				"[Cache][Service] update service item progress(%d / %d)", progress, len(services))
 		}
 		serviceMtime := service.ModifyTime.Unix()
@@ -457,7 +455,6 @@ func (sc *serviceCache) watchCountChangeCh(ctx context.Context) {
 }
 
 func (sc *serviceCache) postProcessUpdatedServices(affect map[string]bool) {
-
 	progress := 0
 	for namespace := range affect {
 		progress++
@@ -513,7 +510,6 @@ func (sc *serviceCache) updateCl5SidAndNames(service *model.Service) {
 	cl5Name := genCl5Name(cl5NameMeta)
 	sc.cl5Sid2Name.Store(sid, cl5Name)
 	sc.cl5Names.Store(cl5Name, service)
-
 }
 
 // genCl5Name 兼容cl5Name

@@ -27,7 +27,6 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -74,11 +73,11 @@ func StoreCode2APICode(err error) uint32 {
 // checkName 名称检查
 func checkName(name *wrappers.StringValue) error {
 	if name == nil {
-		return errors.New("nil")
+		return errors.New(utils.NilErrString)
 	}
 
 	if name.GetValue() == "" {
-		return errors.New("empty")
+		return errors.New(utils.EmptyErrString)
 	}
 
 	if name.GetValue() == "polariadmin" {
@@ -99,11 +98,11 @@ func checkName(name *wrappers.StringValue) error {
 // checkPassword 密码检查
 func checkPassword(password *wrappers.StringValue) error {
 	if password == nil {
-		return errors.New("nil")
+		return errors.New(utils.NilErrString)
 	}
 
 	if password.GetValue() == "" {
-		return errors.New("empty")
+		return errors.New(utils.EmptyErrString)
 	}
 
 	if pLen := len(password.GetValue()); pLen < 6 || pLen > 17 {
@@ -116,11 +115,11 @@ func checkPassword(password *wrappers.StringValue) error {
 // checkOwner 检查用户的 owner 信息
 func checkOwner(owner *wrappers.StringValue) error {
 	if owner == nil {
-		return errors.New("nil")
+		return errors.New(utils.NilErrString)
 	}
 
 	if owner.GetValue() == "" {
-		return errors.New("empty")
+		return errors.New(utils.EmptyErrString)
 	}
 
 	if utf8.RuneCountInString(owner.GetValue()) > utils.MaxOwnersLength {
@@ -167,18 +166,16 @@ func checkEmail(email *wrappers.StringValue) error {
 // verifyAuth 用于 user、group 以及 strategy 模块的鉴权工作检查
 func (svr *serverAuthAbility) verifyAuth(ctx context.Context, isWrite bool,
 	needOwner bool) (context.Context, *api.Response) {
-
 	reqId := utils.ParseRequestID(ctx)
 	authToken := utils.ParseAuthToken(ctx)
 
 	if authToken == "" {
-		log.AuthScope().Error("[Auth][Server] auth token is empty", utils.ZapRequestID(reqId))
+		log.Error("[Auth][Server] auth token is empty", utils.ZapRequestID(reqId))
 		return nil, api.NewResponse(api.EmptyAutToken)
 	}
 
 	authCtx := model.NewAcquireContext(
 		model.WithRequestContext(ctx),
-		model.WithToken(authToken),
 		model.WithModule(model.AuthModule),
 	)
 
@@ -187,7 +184,7 @@ func (svr *serverAuthAbility) verifyAuth(ctx context.Context, isWrite bool,
 	// 		i. 如果当前只是一个数据的读取操作，则放通
 	// 		ii. 如果当前是一个数据的写操作，则只能允许处于正常的 token 进行操作
 	if err := svr.authMgn.VerifyCredential(authCtx); err != nil {
-		log.AuthScope().Error("[Auth][Server] verify auth token", utils.ZapRequestID(reqId),
+		log.Error("[Auth][Server] verify auth token", utils.ZapRequestID(reqId),
 			zap.Error(err))
 		return nil, api.NewResponse(api.AuthTokenVerifyException)
 	}
@@ -195,18 +192,18 @@ func (svr *serverAuthAbility) verifyAuth(ctx context.Context, isWrite bool,
 	tokenInfo := authCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo)
 
 	if isWrite && tokenInfo.Disable {
-		log.AuthScope().Error("[Auth][Server] token is disabled", utils.ZapRequestID(reqId),
+		log.Error("[Auth][Server] token is disabled", utils.ZapRequestID(reqId),
 			zap.String("operation", authCtx.GetMethod()))
 		return nil, api.NewResponse(api.TokenDisabled)
 	}
 
 	if !tokenInfo.IsUserToken {
-		log.AuthScope().Error("[Auth][Server] only user role can access this API", utils.ZapRequestID(reqId))
+		log.Error("[Auth][Server] only user role can access this API", utils.ZapRequestID(reqId))
 		return nil, api.NewResponse(api.OperationRoleException)
 	}
 
 	if needOwner && IsSubAccount(tokenInfo) {
-		log.AuthScope().Error("[Auth][Server] only admin/owner account can access this API", utils.ZapRequestID(reqId))
+		log.Error("[Auth][Server] only admin/owner account can access this API", utils.ZapRequestID(reqId))
 		return nil, api.NewResponse(api.OperationRoleException)
 	}
 

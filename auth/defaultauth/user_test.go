@@ -29,10 +29,9 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
+	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/plugin"
 	storemock "github.com/polarismesh/polaris/store/mock"
 )
 
@@ -61,8 +60,8 @@ func newUserTest(t *testing.T) *UserTest {
 	reset(false)
 	ctrl := gomock.NewController(t)
 
-	log.AuthScope().SetOutputLevel(log.DebugLevel)
-	log.CacheScope().SetOutputLevel(log.DebugLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.DebugLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.ConfigLoggerName).SetOutputLevel(commonlog.DebugLevel)
 
 	users := createMockUser(10, "one")
 	newUsers := createMockUser(10, "two")
@@ -105,7 +104,6 @@ func newUserTest(t *testing.T) *UserTest {
 
 	checker := &defaultAuthChecker{}
 	checker.cacheMgn = cacheMgn
-	checker.authPlugin = plugin.GetAuth()
 
 	svr := &serverAuthAbility{
 		authMgn: checker,
@@ -852,6 +850,11 @@ func Test_AuthServer_NormalOperateUser(t *testing.T) {
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
 		}
+	})
+
+	t.Run("非正常创建用户-直接操作存储层", func(t *testing.T) {
+		err := suit.storage.AddUser(&model.User{})
+		assert.Error(t, err)
 	})
 
 	t.Run("正常更新用户", func(t *testing.T) {

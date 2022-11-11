@@ -20,12 +20,10 @@ package local
 import (
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
-
+	commonLog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -35,6 +33,8 @@ const (
 	PluginName        = "discoverEventLocal"
 	defaultBufferSize = 1024
 )
+
+var log = commonLog.RegisterScope(PluginName, "", 0)
 
 func init() {
 	d := &discoverEventLocal{}
@@ -81,7 +81,6 @@ func (holder *eventBufferHolder) HasNext() bool {
 //	@return model.DiscoverEvent 元素
 //	@return bool 是否还有下一个元素可以继续读取
 func (holder *eventBufferHolder) Next() model.DiscoverEvent {
-
 	event := holder.buffer[holder.readCursor]
 	holder.readCursor++
 
@@ -95,7 +94,6 @@ func (holder *eventBufferHolder) Size() int {
 
 type discoverEventLocal struct {
 	eventCh        chan model.DiscoverEvent
-	eventLog       *zap.Logger
 	bufferPool     sync.Pool
 	curEventBuffer *eventBufferHolder
 	cursor         int
@@ -126,12 +124,6 @@ func (el *discoverEventLocal) Initialize(conf *plugin.ConfigEntry) error {
 	}
 
 	el.eventCh = make(chan model.DiscoverEvent, config.QueueSize)
-	el.eventLog = newLogger(
-		filepath.Join(config.OutputPath, "discoverevent.log"),
-		config.RotationMaxSize,
-		config.RotationMaxBackups,
-		config.RotationMaxAge,
-	)
 
 	el.bufferPool = sync.Pool{
 		New: func() interface{} {
@@ -203,7 +195,7 @@ func (el *discoverEventLocal) writeToFile(eventHolder *eventBufferHolder) {
 
 	for eventHolder.HasNext() {
 		event := eventHolder.Next()
-		el.eventLog.Info(fmt.Sprintf(
+		log.Info(fmt.Sprintf(
 			"%s|%s|%s|%d|%s|%d|%s",
 			event.Namespace,
 			event.Service,

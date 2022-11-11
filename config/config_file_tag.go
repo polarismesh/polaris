@@ -11,7 +11,7 @@
  *
  * Unless required by applicable law or agreed to in writing, software distributed
  * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or Serveried. See the License for the
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 
@@ -25,7 +25,6 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -43,8 +42,8 @@ func (s *Server) createConfigFileTags(ctx context.Context, namespace, group,
 	// 1. 获取已存储的 tags
 	storedTags, err := s.storage.QueryTagByConfigFile(namespace, group, fileName)
 	if err != nil {
-		log.ConfigScope().Error("[Config][Service] query config file tags error.",
-			zap.String("request-id", requestID),
+		log.Error("[Config][Service] query config file tags error.",
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -99,9 +98,7 @@ func (s *Server) createConfigFileTags(ctx context.Context, namespace, group,
 // diffTags Compare data from A and B more than B.
 func diffTags(a, b map[string]map[string]struct{}) []string {
 	tmp := make(map[string]map[string]struct{})
-
 	for key, values := range a {
-
 		existVals := b[key]
 		if len(existVals) == 0 {
 			tmp[key] = a[key]
@@ -121,13 +118,10 @@ func diffTags(a, b map[string]map[string]struct{}) []string {
 	}
 
 	ret := make([]string, 0, 4)
-
 	for k, vs := range tmp {
-
 		for v := range vs {
 			ret = append(ret, k, v)
 		}
-
 	}
 
 	return ret
@@ -138,15 +132,14 @@ func diffTags(a, b map[string]map[string]struct{}) []string {
 //	TAGS format: K1, V1, K2, V2, K3, V3 ...
 func (s *Server) queryConfigFileByTags(ctx context.Context, namespace, group, fileName string, offset, limit uint32,
 	tags ...string) (int, []*model.ConfigFileTag, error) {
-
 	if len(tags)%2 != 0 {
 		return 0, nil, errors.New("tags param must be key,value pair, like key1,value1,key2,value2")
 	}
 
 	files, err := s.storage.QueryConfigFileByTag(namespace, group, fileName, tags...)
 	if err != nil {
-		log.ConfigScope().Error("[Config][Service] query config file by tags error.",
-			zap.String("request-id", utils.ParseRequestID(ctx)),
+		log.Error("[Config][Service] query config file by tags error.",
+			utils.ZapRequestIDByCtx(ctx),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -163,9 +156,7 @@ func (s *Server) queryConfigFileByTags(ctx context.Context, namespace, group, fi
 
 	for i := range files {
 		file := files[i]
-
 		k := fmt.Sprintf("%s@%s@%s", file.Namespace, file.Group, file.FileName)
-
 		if _, ok := temp[k]; !ok {
 			ret = append(ret, file)
 			temp[k] = struct{}{}
@@ -191,7 +182,6 @@ func (s *Server) queryConfigFileByTags(ctx context.Context, namespace, group, fi
 // QueryTagsByConfigFileWithAPIModels 查询标签，返回API对象
 func (s *Server) queryTagsByConfigFileWithAPIModels(ctx context.Context, namespace,
 	group, fileName string) ([]*api.ConfigFileTag, error) {
-
 	tags, err := s.storage.QueryTagByConfigFile(namespace, group, fileName)
 	if err != nil {
 		return nil, err
@@ -202,7 +192,6 @@ func (s *Server) queryTagsByConfigFileWithAPIModels(ctx context.Context, namespa
 	}
 
 	tagAPIModels := make([]*api.ConfigFileTag, 0, len(tags))
-
 	for _, tag := range tags {
 		tagAPIModels = append(tagAPIModels, &api.ConfigFileTag{
 			Key:   utils.NewStringValue(tag.Key),
@@ -215,8 +204,8 @@ func (s *Server) queryTagsByConfigFileWithAPIModels(ctx context.Context, namespa
 // deleteTagByConfigFile 删除配置文件的所有标签
 func (s *Server) deleteTagByConfigFile(ctx context.Context, namespace, group, fileName string) error {
 	if err := s.storage.DeleteTagByConfigFile(s.getTx(ctx), namespace, group, fileName); err != nil {
-		log.ConfigScope().Error("[Config][Service] query config file tags error.",
-			zap.String("request-id", utils.ParseRequestID(ctx)),
+		log.Error("[Config][Service] query config file tags error.",
+			utils.ZapRequestIDByCtx(ctx),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -228,7 +217,6 @@ func (s *Server) deleteTagByConfigFile(ctx context.Context, namespace, group, fi
 
 func (s *Server) doCreateConfigFileTags(ctx context.Context, namespace, group, fileName,
 	operator string, tags ...string) error {
-
 	if len(tags) == 0 {
 		return nil
 	}
@@ -248,8 +236,8 @@ func (s *Server) doCreateConfigFileTags(ctx context.Context, namespace, group, f
 				ModifyBy:  operator,
 			})
 			if err != nil {
-				log.ConfigScope().Error("[Config][Service] create config file tag error.",
-					zap.String("request-id", utils.ParseRequestID(ctx)),
+				log.Error("[Config][Service] create config file tag error.",
+					utils.ZapRequestIDByCtx(ctx),
 					zap.String("namespace", namespace),
 					zap.String("group", group),
 					zap.String("fileName", fileName),
@@ -273,8 +261,8 @@ func (s *Server) doDeleteConfigFileTags(ctx context.Context, namespace, group, f
 		} else {
 			err := s.storage.DeleteConfigFileTag(s.getTx(ctx), namespace, group, fileName, key, t)
 			if err != nil {
-				log.ConfigScope().Error("[Config][Service] delete config file tag error.",
-					zap.String("request-id", utils.ParseRequestID(ctx)),
+				log.Error("[Config][Service] delete config file tag error.",
+					utils.ZapRequestIDByCtx(ctx),
 					zap.String("namespace", namespace),
 					zap.String("group", group),
 					zap.String("fileName", fileName),

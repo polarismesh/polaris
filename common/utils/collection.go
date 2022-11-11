@@ -15,8 +15,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
+// Package utils contains common utility functions
 package utils
 
+// StringSet is a set of strings
 type StringSet interface {
 	Add(val string)
 
@@ -27,6 +29,7 @@ type StringSet interface {
 	Range(func(val string) bool)
 }
 
+// NewStringSet returns a new StringSet
 func NewStringSet() StringSet {
 	return &stringSet{
 		container: make(map[string]struct{}),
@@ -37,10 +40,12 @@ type stringSet struct {
 	container map[string]struct{}
 }
 
+// Add adds a string to the set
 func (set *stringSet) Add(val string) {
 	set.container[val] = struct{}{}
 }
 
+// Remove removes a string from the set
 func (set *stringSet) Remove(val string) {
 	delete(set.container, val)
 }
@@ -56,11 +61,9 @@ func (set *stringSet) ToSlice() []string {
 }
 
 func (set *stringSet) Range(fn func(val string) bool) {
-
 	for k := range set.container {
 		if !fn(k) {
 			break
 		}
 	}
-
 }

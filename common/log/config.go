@@ -33,6 +33,8 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zapgrpc"
 	"google.golang.org/grpc/grpclog"
+
+	"github.com/polarismesh/polaris/common/timewheel"
 )
 
 // none is used to disable logging output as well as to disable stack tracing.
@@ -61,7 +63,7 @@ func init() {
 }
 
 // prepZap is a utility function used by the Configure function.
-func prepZap(options *Options) ([]zapcore.Core, zapcore.Core, zapcore.WriteSyncer, error) {
+func prepZap(options *Options) ([]zapcore.Core, zapcore.Core, zapcore.WriteSyncer, *lumberjack.Logger, error) {
 	encCfg := zapcore.EncoderConfig{
 		TimeKey:        "time",
 		LevelKey:       "level",
@@ -84,34 +86,36 @@ func prepZap(options *Options) ([]zapcore.Core, zapcore.Core, zapcore.WriteSynce
 	}
 
 	var rotateSink zapcore.WriteSyncer
+	var l *lumberjack.Logger
 	if len(options.RotateOutputPath) > 0 {
-		rotateSink = zapcore.AddSync(&lumberjack.Logger{
+		l = &lumberjack.Logger{
 			Filename:   options.RotateOutputPath,
 			MaxSize:    options.RotationMaxSize,
 			MaxBackups: options.RotationMaxBackups,
 			MaxAge:     options.RotationMaxAge,
-		})
+		}
+		rotateSink = zapcore.AddSync(l)
 	}
 
 	err := createPathIfNotExist(options.ErrorOutputPaths...)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	errSink, closeErrorSink, err := zap.Open(options.ErrorOutputPaths...)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	var outputSink zapcore.WriteSyncer
 	if len(options.OutputPaths) > 0 {
 		err := createPathIfNotExist(options.OutputPaths...)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 		outputSink, _, err = zap.Open(options.OutputPaths...)
 		if err != nil {
 			closeErrorSink()
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 	}
 
@@ -156,7 +160,7 @@ func prepZap(options *Options) ([]zapcore.Core, zapcore.Core, zapcore.WriteSynce
 	if errCore != nil {
 		cores = append(cores, errCore)
 	}
-	return cores, zapcore.NewCore(enc, sink, enabler), errSink, nil
+	return cores, zapcore.NewCore(enc, sink, enabler), errSink, l, nil
 }
 
 func formatDate(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
@@ -201,7 +205,8 @@ func formatDate(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 func updateScopes(typeName string, options *Options, cores []zapcore.Core, errSink zapcore.WriteSyncer) error {
 	scope := FindScope(typeName)
 	if scope == nil {
-		return fmt.Errorf("unknown logger name '%s' specified", typeName)
+		// 对还没注册的日志配置进行注册
+		scope = RegisterScope(typeName, fmt.Sprintf("%s logging messages.", typeName), 0)
 	}
 
 	// update the output levels of all listed scopes
@@ -259,18 +264,30 @@ func updateScopes(typeName string, options *Options, cores []zapcore.Core, errSi
 	return nil
 }
 
+func logRotationSyncCallback(tw *timewheel.TimeWheel, rotationMaxDurationForHour int64, log *lumberjack.Logger) {
+	tw.AddTask(uint32(rotationMaxDurationForHour*time.Hour.Milliseconds()), nil, func(i interface{}) {
+		if err := log.Rotate(); err != nil {
+			return
+		}
+		logRotationSyncCallback(tw, rotationMaxDurationForHour, log)
+	})
+}
+
 // Configure .
-// nolint: staticcheck
 // You typically call this once at process startup.
 // Configure Once this call returns, the logging system is ready to accept data.
 func Configure(optionsMap map[string]*Options) error {
+	tw := timewheel.New(time.Minute, 5, "log rotation sync")
+	tw.Start()
 	for typeName, options := range optionsMap {
 		setDefaultOption(options)
-		cores, captureCore, errSink, err := prepZap(options)
+		cores, captureCore, errSink, log, err := prepZap(options)
 		if err != nil {
 			return err
 		}
-
+		if options.RotationMaxDurationForHour != 0 {
+			logRotationSyncCallback(tw, int64(options.RotationMaxDurationForHour), log)
+		}
 		if err = updateScopes(typeName, options, cores, errSink); err != nil {
 			return err
 		}

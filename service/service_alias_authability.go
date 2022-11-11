@@ -89,7 +89,6 @@ func (svr *serverAuthAbility) GetServiceAliases(ctx context.Context,
 
 	resp := svr.targetServer.GetServiceAliases(ctx, query)
 	if len(resp.Aliases) != 0 {
-
 		// 对于服务别名，则是参考源服务是否有编辑权限
 		principal := model.Principal{
 			PrincipalID:   utils.ParseUserID(ctx),

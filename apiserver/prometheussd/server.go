@@ -25,12 +25,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/emicklei/go-restful/v3"
+	restful "github.com/emicklei/go-restful/v3"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/apiserver"
+	"github.com/polarismesh/polaris/bootstrap"
 	"github.com/polarismesh/polaris/common/connlimit"
 	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service"
 )
 
@@ -114,6 +116,7 @@ func (h *PrometheusServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
+	bootstrap.ApiServerWaitGroup.Done()
 
 	ln = &tcpKeepAliveListener{ln.(*net.TCPListener)}
 	// 开启最大连接数限制
@@ -206,16 +209,16 @@ func (h *PrometheusServer) createRestfulContainer() (*restful.Container, error) 
 		Container:      wsContainer}
 	wsContainer.Filter(cors.Filter)
 
-	// Add container filter to respond to OPTIONS
+	// Incr container filter to respond to OPTIONS
 	wsContainer.Filter(wsContainer.OPTIONSFilter)
 
 	wsContainer.Filter(h.process)
 
-	service, err := h.GetPrometheusDiscoveryServer([]string{})
+	discoveryServer, err := h.GetPrometheusDiscoveryServer([]string{})
 	if err != nil {
 		return nil, err
 	}
-	wsContainer.Add(service)
+	wsContainer.Add(discoveryServer)
 
 	return wsContainer, nil
 }
@@ -256,7 +259,7 @@ func (h *PrometheusServer) postProcess(req *restful.Request, _ *restful.Response
 		log.Info("[API-Server][Prometheus] handling time > 1s",
 			zap.String("client-address", req.Request.RemoteAddr),
 			zap.String("user-agent", req.HeaderParameter("User-Agent")),
-			zap.String("request-id", req.HeaderParameter("Request-Id")),
+			utils.ZapRequestID(req.HeaderParameter("Request-Id")),
 			zap.String("method", req.Request.Method),
 			zap.String("url", path),
 			zap.Duration("handling-time", diff),

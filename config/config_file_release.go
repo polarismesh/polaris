@@ -11,7 +11,7 @@
  *
  * Unless required by applicable law or agreed to in writing, software distributed
  * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or Serveried. See the License for the
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 
@@ -23,7 +23,6 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -62,8 +61,8 @@ func (s *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.C
 
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 	if err != nil {
-		log.ConfigScope().Error("[Config][Service] get config file error.",
-			zap.String("request-id", requestID),
+		log.Error("[Config][Service] get config file error.",
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -83,8 +82,8 @@ func (s *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.C
 	// 获取 configFileRelease 信息
 	managedFileRelease, err := s.storage.GetConfigFileReleaseWithAllFlag(tx, namespace, group, fileName)
 	if err != nil {
-		log.ConfigScope().Error("[Config][Service] get config file release error.",
-			zap.String("request-id", requestID),
+		log.Error("[Config][Service] get config file release error.",
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -122,8 +121,8 @@ func (s *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.C
 
 		createdFileRelease, err := s.storage.CreateConfigFileRelease(tx, fileRelease)
 		if err != nil {
-			log.ConfigScope().Error("[Config][Service] create config file release error.",
-				zap.String("request-id", requestID),
+			log.Error("[Config][Service] create config file release error.",
+				utils.ZapRequestID(requestID),
 				zap.String("namespace", namespace),
 				zap.String("group", group),
 				zap.String("fileName", fileName),
@@ -154,8 +153,8 @@ func (s *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.C
 
 	updatedFileRelease, err := s.storage.UpdateConfigFileRelease(tx, fileRelease)
 	if err != nil {
-		log.ConfigScope().Error("[Config][Service] update config file release error.",
-			zap.String("request-id", requestID),
+		log.Error("[Config][Service] update config file release error.",
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -189,8 +188,8 @@ func (s *Server) GetConfigFileRelease(ctx context.Context, namespace, group, fil
 
 	if err != nil {
 		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
-		log.ConfigScope().Error("[Config][Service]get config file release error.",
-			zap.String("request-id", requestID),
+		log.Error("[Config][Service]get config file release error.",
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -239,8 +238,8 @@ func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace,
 		releaseModel.Name = releaseName
 		_, err := s.storage.UpdateConfigFileRelease(s.getTx(ctx), releaseModel)
 		if err != nil {
-			log.ConfigScope().Error("[Config][Service] update release name error when delete release.",
-				zap.String("request-id", requestID),
+			log.Error("[Config][Service] update release name error when delete release.",
+				utils.ZapRequestID(requestID),
 				zap.String("namespace", namespace),
 				zap.String("group", group),
 				zap.String("fileName", fileName),
@@ -252,8 +251,8 @@ func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace,
 	err := s.storage.DeleteConfigFileRelease(s.getTx(ctx), namespace, group, fileName, deleteBy)
 
 	if err != nil {
-		log.ConfigScope().Error("[Config][Service] delete config file release error.",
-			zap.String("request-id", requestID),
+		log.Error("[Config][Service] delete config file release error.",
+			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),

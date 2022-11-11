@@ -78,7 +78,6 @@ func RoutingConfigV1ToAPI(req *model.RoutingConfig, service string, namespace st
 // CompositeRoutingV1AndV2 合并 v1 版本的路由规则以及 v2 版本的规则路由
 func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, level1, level2,
 	level3 []*v2.ExtendRoutingConfig) (*apiv1.Routing, []string) {
-
 	// 先确保规则的排序是从最高优先级开始排序
 	sort.Slice(level1, func(i, j int) bool {
 		return CompareRoutingV2(level1[i], level1[j])
@@ -139,7 +138,7 @@ func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, level1, level2,
 }
 
 // BuildV1RoutesFromV2 根据 v2 版本的路由规则适配成 v1 版本的路由规则，分为别 inBounds 以及 outBounds
-// retuen inBound outBound revisions
+// return inBound outBound revisions
 func BuildV1RoutesFromV2(service, namespace string, entries []*v2.ExtendRoutingConfig) ([]*apiv1.Route, []*apiv1.Route, []string) {
 	if len(entries) == 0 {
 		return []*apiv1.Route{}, []*apiv1.Route{}, []string{}
@@ -469,7 +468,7 @@ func ConvertV1RouteToV2Route(route *apiv1.Route) *apiv2.RuleRoutingConfig {
 	}
 }
 
-// CompareRoutingV2
+// CompareRoutingV2 比较两个路由的优先级。
 func CompareRoutingV2(a, b *v2.ExtendRoutingConfig) bool {
 	if a.Priority != b.Priority {
 		return a.Priority < b.Priority
@@ -477,7 +476,7 @@ func CompareRoutingV2(a, b *v2.ExtendRoutingConfig) bool {
 	return a.CreateTime.Before(b.CreateTime)
 }
 
-// ConvertRoutingV1ToV2 v1 版本的路由规则转为 v2 版本进行存储
+// ConvertRoutingV1ToExtendV2 v1 版本的路由规则转为 v2 版本进行存储
 func ConvertRoutingV1ToExtendV2(svcName, svcNamespace string, rule *model.RoutingConfig) ([]*v2.ExtendRoutingConfig, []*v2.ExtendRoutingConfig, error) {
 	inRet := make([]*v2.ExtendRoutingConfig, 0, 4)
 	outRet := make([]*v2.ExtendRoutingConfig, 0, 4)

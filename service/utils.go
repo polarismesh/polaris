@@ -90,7 +90,7 @@ const (
 	// ratelimit表
 	MaxDbRateLimitName = 64
 
-	// routing_config_v2 表
+	// MaxDbRoutingName routing_config_v2 表
 	MaxDbRoutingName = 64
 )
 
@@ -99,11 +99,11 @@ var resourceNameRE = regexp.MustCompile("^[0-9A-Za-z-./:_]+$")
 
 func checkResourceName(name *wrappers.StringValue) error {
 	if name == nil {
-		return errors.New("nil")
+		return errors.New(utils.NilErrString)
 	}
 
 	if len(name.GetValue()) == 0 {
-		return errors.New("empty")
+		return errors.New(utils.EmptyErrString)
 	}
 
 	ok := resourceNameRE.MatchString(name.GetValue())
@@ -117,11 +117,11 @@ func checkResourceName(name *wrappers.StringValue) error {
 // checkResourceOwners 检查资源Owners
 func checkResourceOwners(owners *wrappers.StringValue) error {
 	if owners == nil {
-		return errors.New("nil")
+		return errors.New(utils.NilErrString)
 	}
 
 	if owners.GetValue() == "" {
-		return errors.New("empty")
+		return errors.New(utils.EmptyErrString)
 	}
 
 	if utf8.RuneCountInString(owners.GetValue()) > MaxOwnersLength {
@@ -134,11 +134,11 @@ func checkResourceOwners(owners *wrappers.StringValue) error {
 // checkInstanceHost 检查服务实例Host
 func checkInstanceHost(host *wrappers.StringValue) error {
 	if host == nil {
-		return errors.New("nil")
+		return errors.New(utils.NilErrString)
 	}
 
 	if host.GetValue() == "" {
-		return errors.New("empty")
+		return errors.New(utils.EmptyErrString)
 	}
 
 	return nil
@@ -147,11 +147,11 @@ func checkInstanceHost(host *wrappers.StringValue) error {
 // checkInstancePort 检查服务实例Port
 func checkInstancePort(port *wrappers.UInt32Value) error {
 	if port == nil {
-		return errors.New("nil")
+		return errors.New(utils.NilErrString)
 	}
 
 	if port.GetValue() <= 0 {
-		return errors.New("empty")
+		return errors.New(utils.EmptyErrString)
 	}
 
 	return nil
@@ -253,6 +253,7 @@ func storeError2Response(err error) *api.Response {
 }
 
 // CalculateInstanceID 计算实例ID
+// Deprecated: use common/utils.CalculateInstanceID instead
 func CalculateInstanceID(namespace string, service string, vpcID string, host string, port uint32) (string, error) {
 	h := sha1.New()
 	var str string
@@ -272,11 +273,13 @@ func CalculateInstanceID(namespace string, service string, vpcID string, host st
 }
 
 // CalculateRuleID 计算规则ID
+// Deprecated: use common/utils.CalculateRuleID instead
 func CalculateRuleID(name, namespace string) string {
 	return name + "." + namespace
 }
 
 // ParseQueryOffset 格式化处理offset参数
+// Deprecated: use common/utils.ParseQueryOffset instead
 func ParseQueryOffset(offset string) (uint32, error) {
 	if offset == "" {
 		return QueryDefaultOffset, nil
@@ -293,6 +296,7 @@ func ParseQueryOffset(offset string) (uint32, error) {
 }
 
 // ParseQueryLimit 格式化处理limit参数
+// Deprecated: use common/utils.ParseQueryLimit instead
 func ParseQueryLimit(limit string) (uint32, error) {
 	if limit == "" {
 		return QueryDefaultLimit, nil
@@ -312,6 +316,7 @@ func ParseQueryLimit(limit string) (uint32, error) {
 }
 
 // ParseOffsetAndLimit 统一格式化处理Offset和limit参数
+// Deprecated: use common/utils.ParseOffsetAndLimit instead
 func ParseOffsetAndLimit(query map[string]string) (uint32, uint32, error) {
 	ofs, err := ParseQueryOffset(query["offset"])
 	if err != nil {
@@ -330,6 +335,7 @@ func ParseOffsetAndLimit(query map[string]string) (uint32, uint32, error) {
 }
 
 // ParseInstanceArgs 解析服务实例的 ip 和 port 查询参数
+// Deprecated: use common/utils.ParseInstanceArgs instead
 func ParseInstanceArgs(query map[string]string) (*store.InstanceArgs, error) {
 	if len(query) == 0 {
 		return nil, nil
@@ -357,6 +363,7 @@ func ParseInstanceArgs(query map[string]string) (*store.InstanceArgs, error) {
 }
 
 // ParseRequestID 从ctx中获取Request-ID
+// Deprecated: use common/utils.ParseRequestID instead
 func ParseRequestID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -366,6 +373,7 @@ func ParseRequestID(ctx context.Context) string {
 }
 
 // ParseToken 从ctx中获取token
+// Deprecated: use common/utils.ParseToken instead
 func ParseToken(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -376,6 +384,7 @@ func ParseToken(ctx context.Context) string {
 }
 
 // ParseOperator 从ctx中获取operator
+// Deprecated: use common/utils.ParseOperator instead
 func ParseOperator(ctx context.Context) string {
 	defaultOperator := "Polaris"
 	if ctx == nil {
@@ -390,6 +399,7 @@ func ParseOperator(ctx context.Context) string {
 }
 
 // ParsePlatformID 从ctx中获取Platform-Id
+// Deprecated: use common/utils.ParsePlatformID instead
 func ParsePlatformID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -399,6 +409,7 @@ func ParsePlatformID(ctx context.Context) string {
 }
 
 // ParsePlatformToken 从ctx中获取Platform-Token
+// Deprecated: use common/utils.ParsePlatformToken instead
 func ParsePlatformToken(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -408,21 +419,25 @@ func ParsePlatformToken(ctx context.Context) string {
 }
 
 // ZapRequestID 生成Request-ID的日志描述
+// Deprecated: use common/utils.ZapRequestID instead
 func ZapRequestID(id string) zap.Field {
 	return zap.String("request-id", id)
 }
 
 // ZapPlatformID 生成Platform-ID的日志描述
+// Deprecated: use common/utils.ZapPlatformID instead
 func ZapPlatformID(id string) zap.Field {
 	return zap.String("platform-id", id)
 }
 
 // ZapInstanceID 生成instanceID的日志描述
+// Deprecated: use common/utils.ZapInstanceID instead
 func ZapInstanceID(id string) zap.Field {
 	return zap.String("instance", id)
 }
 
 // CheckDbStrFieldLen 检查name字段是否超过DB中对应字段的最大字符长度限制
+// Deprecated: use common/utils.CheckDbStrFieldLen instead
 func CheckDbStrFieldLen(param *wrappers.StringValue, dbLen int) error {
 	if param.GetValue() != "" && utf8.RuneCountInString(param.GetValue()) > dbLen {
 		errMsg := fmt.Sprintf("length of %s is over %d", param.GetValue(), dbLen)
@@ -432,6 +447,7 @@ func CheckDbStrFieldLen(param *wrappers.StringValue, dbLen int) error {
 }
 
 // CheckDbMetaDataFieldLen 检查metadata的K,V是否超过DB中对应字段的最大字符长度限制
+// Deprecated: use common/utils.CheckDbMetaDataFieldLen instead
 func CheckDbMetaDataFieldLen(metaData map[string]string) error {
 	for k, v := range metaData {
 		if utf8.RuneCountInString(k) > 128 || utf8.RuneCountInString(v) > 4096 {
@@ -440,24 +456,4 @@ func CheckDbMetaDataFieldLen(metaData map[string]string) error {
 		}
 	}
 	return nil
-}
-
-// verifyAuthByPlatform 使用平台ID鉴权
-func (s *Server) verifyAuthByPlatform(ctx context.Context, sPlatformID string) bool {
-	// 判断平台鉴权插件是否开启
-	if s.auth == nil {
-		return false
-	}
-	// 若服务无平台ID，则采用默认方式鉴权
-	if sPlatformID == "" {
-		return false
-	}
-
-	platformID := ParsePlatformID(ctx)
-	platformToken := ParsePlatformToken(ctx)
-
-	if s.auth.Allow(platformID, platformToken) && platformID == sPlatformID {
-		return true
-	}
-	return false
 }

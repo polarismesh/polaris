@@ -87,7 +87,6 @@ func (cs *clientStore) BatchAddClients(clients []*model.Client) error {
 func (cs *clientStore) BatchDeleteClients(ids []string) error {
 	err := cs.handler.Execute(true, func(tx *bolt.Tx) error {
 		for i := range ids {
-
 			properties := make(map[string]interface{})
 			properties[ClientFieldValid] = false
 			properties[ClientFieldMtime] = time.Now()
@@ -106,14 +105,11 @@ func (cs *clientStore) BatchDeleteClients(ids []string) error {
 
 // GetMoreClients 根据mtime获取增量clients，返回所有store的变更信息
 func (cs *clientStore) GetMoreClients(mtime time.Time, firstUpdate bool) (map[string]*model.Client, error) {
-
 	fields := []string{ClientFieldMtime}
-
 	ret, err := cs.handler.LoadValuesByFilter(tblClient, fields, &clientObject{}, func(m map[string]interface{}) bool {
 		if firstUpdate {
 			return true
 		}
-
 		return m[ClientFieldMtime].(time.Time).After(mtime)
 	})
 
@@ -123,7 +119,6 @@ func (cs *clientStore) GetMoreClients(mtime time.Time, firstUpdate bool) (map[st
 	}
 
 	clients := make(map[string]*model.Client, len(ret))
-
 	for k, v := range ret {
 		client, err := convertToModelClient(v.(*clientObject))
 		if err != nil {
@@ -143,9 +138,7 @@ func convertToClientObject(client *model.Client) (*clientObject, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	tn := time.Now()
-
 	return &clientObject{
 		Host:    client.Proto().Host.Value,
 		Type:    client.Proto().Type.String(),

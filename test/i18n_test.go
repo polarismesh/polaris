@@ -30,7 +30,7 @@ import (
 	"github.com/polarismesh/polaris/test/http"
 )
 
-//TestI18n 测试国际化信息
+// TestI18n 测试国际化信息
 func TestI18n(t *testing.T) {
 	t.Log("test i18n")
 	type args struct {

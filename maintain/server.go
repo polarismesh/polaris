@@ -22,6 +22,7 @@ import (
 
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
+	"github.com/polarismesh/polaris/store"
 )
 
 var _ MaintainOperateServer = (*Server)(nil)
@@ -30,4 +31,5 @@ type Server struct {
 	mu                sync.Mutex
 	namingServer      service.DiscoverServer
 	healthCheckServer *healthcheck.Server
+	storage           store.Store
 }

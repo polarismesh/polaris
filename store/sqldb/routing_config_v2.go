@@ -52,7 +52,9 @@ func (r *routingConfigStoreV2) CreateRoutingConfigV2(conf *v2.RoutingConfig) err
 			return err
 		}
 
-		defer tx.Rollback()
+		defer func() {
+			_ = tx.Rollback()
+		}()
 		if err := r.createRoutingConfigV2Tx(tx, conf); err != nil {
 			return err
 		}
@@ -109,7 +111,9 @@ func (r *routingConfigStoreV2) UpdateRoutingConfigV2(conf *v2.RoutingConfig) err
 		return err
 	}
 
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	if err := r.updateRoutingConfigV2Tx(tx, conf); err != nil {
 		return err
@@ -203,12 +207,12 @@ func (r *routingConfigStoreV2) DeleteRoutingConfigV2(ruleID string) error {
 // GetRoutingConfigsV2ForCache 通过mtime拉取增量的路由配置信息
 // 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 func (r *routingConfigStoreV2) GetRoutingConfigsV2ForCache(mtime time.Time, firstUpdate bool) ([]*v2.RoutingConfig, error) {
-	str := `select id, name, policy, config, enable, revision, flag, priority, description, 
+	str := `select id, name, policy, config, enable, revision, flag, priority, description,
 	unix_timestamp(ctime), unix_timestamp(mtime), unix_timestamp(etime)  
 	from routing_config_v2 where mtime > FROM_UNIXTIME(?) `
 
 	if firstUpdate {
-		str += " and flag != 1" // nolint
+		str += " and flag != 1"
 	}
 	rows, err := r.slave.Query(str, timeToTimestamp(mtime))
 	if err != nil {
@@ -231,11 +235,13 @@ func (r *routingConfigStoreV2) GetRoutingConfigV2WithID(ruleID string) (*v2.Rout
 		return nil, err
 	}
 
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 	return r.getRoutingConfigV2WithIDTx(tx, ruleID)
 }
 
-// GetRoutingConfigV2WithIDTx
+// GetRoutingConfigV2WithIDTx 根据服务ID拉取路由配置
 func (r *routingConfigStoreV2) GetRoutingConfigV2WithIDTx(tx store.Tx, ruleID string) (*v2.RoutingConfig, error) {
 
 	if tx == nil {

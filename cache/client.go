@@ -25,7 +25,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -104,9 +103,9 @@ func (c *clientCache) initialize(_ map[string]interface{}) error {
 // update 更新缓存函数
 func (c *clientCache) update(storeRollbackSec time.Duration) error {
 	// 一分钟update一次
-	timeDiff := time.Now().Sub(c.lastUpdateTime).Minutes()
+	timeDiff := time.Since(c.lastUpdateTime).Minutes()
 	if !c.firstUpdate && 1 > timeDiff {
-		log.CacheScope().Debug("[Cache][Client] update get storage ignore", zap.Float64("time-diff", timeDiff))
+		log.Debug("[Cache][Client] update get storage ignore", zap.Float64("time-diff", timeDiff))
 		return nil
 	}
 
@@ -128,7 +127,7 @@ func (c *clientCache) realUpdate(storeRollbackSec time.Duration) error {
 	lastMtime := c.LastMtime().Add(storeRollbackSec)
 	clients, err := c.storage.GetMoreClients(lastMtime, c.firstUpdate)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][Client] update get storage more err: %s", err.Error())
+		log.Errorf("[Cache][Client] update get storage more err: %s", err.Error())
 		return err
 	}
 
@@ -136,7 +135,7 @@ func (c *clientCache) realUpdate(storeRollbackSec time.Duration) error {
 	update, del := c.setClients(clients)
 	timeDiff := time.Since(start)
 	if timeDiff > 1*time.Second {
-		log.CacheScope().Info("[Cache][Client] get more clients",
+		log.Info("[Cache][Client] get more clients",
 			zap.Int("update", update), zap.Int("delete", del),
 			zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
 	}
@@ -180,7 +179,7 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (int, int) {
 	for _, client := range clients {
 		progress++
 		if progress%50000 == 0 {
-			log.CacheScope().Infof("[Cache][Client] set clients progress: %d / %d", progress, len(clients))
+			log.Infof("[Cache][Client] set clients progress: %d / %d", progress, len(clients))
 		}
 
 		modifyTime := client.ModifyTime().Unix()
@@ -212,7 +211,7 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (int, int) {
 	}
 
 	if c.lastMtime != lastMtime {
-		log.CacheScope().Infof("[Cache][Client] Client lastMtime update from %s to %s",
+		log.Infof("[Cache][Client] Client lastMtime update from %s to %s",
 			time.Unix(c.lastMtime, 0), time.Unix(lastMtime, 0))
 		c.lastMtime = lastMtime
 	}
@@ -263,13 +262,13 @@ func (c *clientCache) IteratorClients(iterProc ClientIterProc) {
 // GetClientsByFilter Query client information
 func (c *clientCache) GetClientsByFilter(filters map[string]string, offset, limit uint32) (uint32,
 	[]*model.Client, error) {
-
-	ret := make([]*model.Client, 0, 16)
-	host, hasHost := filters["host"]
-	clientType, hasType := filters["type"]
-	version, hasVer := filters["version"]
-	id, hasId := filters["id"]
-
+	var (
+		ret                 = make([]*model.Client, 0, 16)
+		host, hasHost       = filters["host"]
+		clientType, hasType = filters["type"]
+		version, hasVer     = filters["version"]
+		id, hasId           = filters["id"]
+	)
 	c.IteratorClients(func(_ string, value *model.Client) bool {
 		if hasHost && value.Proto().GetHost().GetValue() != host {
 			return true
@@ -288,8 +287,7 @@ func (c *clientCache) GetClientsByFilter(filters map[string]string, offset, limi
 		return true
 	})
 
-	amount := uint32(len(ret))
-	return amount, doClientPage(ret, offset, limit), nil
+	return uint32(len(ret)), doClientPage(ret, offset, limit), nil
 }
 
 // doClientPage 进行分页, 仅用于控制台查询时的排序

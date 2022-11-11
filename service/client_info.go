@@ -61,7 +61,6 @@ func (s *Server) checkAndStoreClient(ctx context.Context, req *api.Client) *api.
 }
 
 func (s *Server) createClient(ctx context.Context, req *api.Client) (*model.Client, *api.Response) {
-
 	if namingServer.bc == nil || !namingServer.bc.ClientRegisterOpen() {
 		return nil, nil
 	}
@@ -77,8 +76,8 @@ func (s *Server) asyncCreateClient(ctx context.Context, req *api.Client) (*model
 	pid := utils.ParsePlatformID(ctx)
 	future := s.bc.AsyncRegisterClient(req)
 	if err := future.Wait(); err != nil {
-		log.Error("[Server][ReportClient] async create client", zap.Error(err), ZapRequestID(rid),
-			ZapPlatformID(pid))
+		log.Error("[Server][ReportClient] async create client", zap.Error(err), utils.ZapRequestID(rid),
+			utils.ZapPlatformID(pid))
 		if future.Code() == api.ExistedResource {
 			req.Id = utils.NewStringValue(req.GetId().GetValue())
 		}
@@ -88,7 +87,7 @@ func (s *Server) asyncCreateClient(ctx context.Context, req *api.Client) (*model
 	return future.Client(), nil
 }
 
-// CreateInstances create one instance
+// GetReportClients create one instance
 func (s *Server) GetReportClients(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
 	searchFilters := make(map[string]string)
 	var (

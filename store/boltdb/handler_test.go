@@ -105,7 +105,7 @@ func TestBoltHandler_DeleteNamespace(t *testing.T) {
 	nsValue := &model.Namespace{
 		Name: "Test",
 	}
-	err = handler.DeleteValues(tblNameNamespace, []string{nsValue.Name}, false)
+	err = handler.DeleteValues(tblNameNamespace, []string{nsValue.Name})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +151,7 @@ func TestBoltHandler_Service(t *testing.T) {
 		return true
 	})
 
-	err = handler.DeleteValues("service", []string{svcValue.ID}, false)
+	err = handler.DeleteValues("service", []string{svcValue.ID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +186,7 @@ func TestBoltHandler_Location(t *testing.T) {
 	targetLocValue := locValues[id]
 	targetLoc := targetLocValue.(*model.Location)
 	fmt.Printf("loaded loc is %+v\n", targetLoc)
-	err = handler.DeleteValues("location", []string{id}, false)
+	err = handler.DeleteValues("location", []string{id})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -248,10 +248,27 @@ func TestBoltHandler_CountValues(t *testing.T) {
 	if nCount != count {
 		t.Fatalf("count not match, expect cnt=%d, actual cnt=%d", count, nCount)
 	}
-	err = handler.DeleteValues("service", ids, false)
+
+	properties := make(map[string]interface{})
+	properties[svcFieldValid] = false
+	err = handler.UpdateValue(tblService, "idSvcCount1", properties)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	nCount, err = handler.CountValues(tblService)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if nCount != count-1 {
+		t.Fatalf("count not match, expect cnt=%d, actual cnt=%d", count-1, nCount)
+	}
+
+	err = handler.DeleteValues("service", ids)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 }
 
 func TestBoltHandler_LoadValuesByFilter(t *testing.T) {
@@ -299,7 +316,7 @@ func TestBoltHandler_LoadValuesByFilter(t *testing.T) {
 	if len(values) != 2 {
 		t.Fatal("filter count not match 2")
 	}
-	err = handler.DeleteValues("service", ids, false)
+	err = handler.DeleteValues("service", ids)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -349,7 +366,7 @@ func TestBoltHandler_IterateFields(t *testing.T) {
 	if len(names) != count {
 		t.Fatalf("iterate count not match %d", count)
 	}
-	err = handler.DeleteValues("service", ids, false)
+	err = handler.DeleteValues("service", ids)
 	if err != nil {
 		t.Fatal(err)
 	}

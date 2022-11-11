@@ -21,9 +21,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/polarismesh/polaris/common/log"
+	commonLog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/plugin"
 )
+
+const (
+	PluginName = "discoverLocal"
+)
+
+var log = commonLog.RegisterScope(PluginName, "", 0)
 
 // init 注册服务发现统计插件
 func init() {
@@ -41,7 +47,7 @@ type DiscoverStatisWorker struct {
 
 // Name 获取插件名称
 func (d *DiscoverStatisWorker) Name() string {
-	return "discoverLocal"
+	return PluginName
 }
 
 // Initialize 初始化服务发现统计插件
@@ -50,13 +56,10 @@ func (d *DiscoverStatisWorker) Initialize(conf *plugin.ConfigEntry) error {
 	interval, _ := conf.Option["interval"].(int)
 	d.interval = time.Duration(interval) * time.Second
 
-	outputPath, _ := conf.Option["outputPath"].(string)
-
 	// 初始化
 	d.dcc = make(chan *DiscoverCall, 1024)
 	d.dcs = &DiscoverCallStatis{
 		statis: make(map[Service]time.Time),
-		logger: newLogger(outputPath + "/" + "discovercall.log"),
 	}
 
 	go d.Run()
@@ -70,12 +73,12 @@ func (d *DiscoverStatisWorker) Destroy() error {
 }
 
 // AddDiscoverCall 上报请求
-func (d *DiscoverStatisWorker) AddDiscoverCall(service, namespace string, time time.Time) error {
+func (d *DiscoverStatisWorker) AddDiscoverCall(service, namespace string, tt time.Time) error {
 	select {
 	case d.dcc <- &DiscoverCall{
 		service:   service,
 		namespace: namespace,
-		time:      time,
+		time:      tt,
 	}:
 	default:
 		log.Errorf("[DiscoverStatis] service: %s, namespace: %s is not captured", service, namespace)

@@ -31,8 +31,8 @@ import (
 )
 
 var (
-	BadParamError       = errors.New("missing some params")
-	MultipleResultError = errors.New("multiple ratelimit find")
+	ErrBadParam       = errors.New("missing some params")
+	ErrMultipleResult = errors.New("multiple ratelimit find")
 )
 
 const (
@@ -45,7 +45,7 @@ const (
 	RateLimitFieldClusterID  string = "ClusterID"
 	RateLimitFieldEnableTime string = "EnableTime"
 	RateLimitFieldName       string = "Name"
-	RateLimitFieldDisable    string = "disable"
+	RateLimitFieldDisable    string = "Disable"
 	RateLimitFieldMethod     string = "Method"
 	RateLimitFieldLabels     string = "Labels"
 	RateLimitFieldPriority   string = "Priority"
@@ -71,7 +71,7 @@ type rateLimitStore struct {
 func (r *rateLimitStore) CreateRateLimit(limit *model.RateLimit) error {
 	if limit.ID == "" || limit.ServiceID == "" || limit.Revision == "" {
 		log.Error("[Store][boltdb] create ratelimit missing some params")
-		return BadParamError
+		return ErrBadParam
 	}
 
 	tNow := time.Now()
@@ -92,7 +92,7 @@ func (r *rateLimitStore) CreateRateLimit(limit *model.RateLimit) error {
 func (r *rateLimitStore) UpdateRateLimit(limit *model.RateLimit) error {
 	if limit.ID == "" || limit.ServiceID == "" || limit.Revision == "" {
 		log.Error("[Store][boltdb] update ratelimit missing some params")
-		return BadParamError
+		return ErrBadParam
 	}
 
 	return r.updateRateLimit(limit)
@@ -102,7 +102,7 @@ func (r *rateLimitStore) UpdateRateLimit(limit *model.RateLimit) error {
 func (r *rateLimitStore) EnableRateLimit(limit *model.RateLimit) error {
 	if limit.ID == "" || limit.ServiceID == "" || limit.Revision == "" {
 		log.Error("[Store][boltdb] update ratelimit missing some params")
-		return BadParamError
+		return ErrBadParam
 	}
 	return r.enableRateLimit(limit)
 }
@@ -111,7 +111,7 @@ func (r *rateLimitStore) EnableRateLimit(limit *model.RateLimit) error {
 func (r *rateLimitStore) DeleteRateLimit(limit *model.RateLimit) error {
 	if limit.ID == "" || limit.ServiceID == "" || limit.Revision == "" {
 		log.Error("[Store][boltdb] delete ratelimit missing some params")
-		return BadParamError
+		return ErrBadParam
 	}
 
 	return r.deleteRateLimit(limit)
@@ -207,7 +207,7 @@ func (r *rateLimitStore) GetExtendRateLimits(
 // GetRateLimitWithID 根据限流ID拉取限流规则
 func (r *rateLimitStore) GetRateLimitWithID(id string) (*model.RateLimit, error) {
 	if id == "" {
-		return nil, BadParamError
+		return nil, ErrBadParam
 	}
 
 	handler := r.handler
@@ -219,7 +219,7 @@ func (r *rateLimitStore) GetRateLimitWithID(id string) (*model.RateLimit, error)
 	}
 
 	if len(result) > 1 {
-		return nil, MultipleResultError
+		return nil, ErrMultipleResult
 	}
 
 	if len(result) == 0 {
@@ -238,11 +238,15 @@ func (r *rateLimitStore) GetRateLimitWithID(id string) (*model.RateLimit, error)
 func (r *rateLimitStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, []*model.RateLimitRevision, error) {
 	handler := r.handler
 
+	if firstUpdate {
+		mtime = time.Time{}
+	}
+
 	serviceIds := make(map[string]struct{})
 	limitResults, err := handler.LoadValuesByFilter(tblRateLimitConfig, []string{RateConfFieldMtime, RateConfFieldServiceID}, &model.RateLimit{},
 		func(m map[string]interface{}) bool {
 			mt := m[RateConfFieldMtime].(time.Time)
-			isAfter := mt.After(mtime)
+			isAfter := !mt.Before(mtime)
 			if isAfter {
 				serviceIds[m[RateConfFieldServiceID].(string)] = struct{}{}
 			}
@@ -321,7 +325,6 @@ func (r *rateLimitStore) createRateLimit(limit *model.RateLimit) error {
 
 		return nil
 	})
-
 }
 
 // enableRateLimit
@@ -339,9 +342,9 @@ func (r *rateLimitStore) enableRateLimit(limit *model.RateLimit) error {
 		properties[RateLimitFieldRevision] = limit.Revision
 		properties[RateLimitFieldModifyTime] = time.Now()
 		if limit.Disable {
-			properties[RateLimitFieldModifyTime] = time.Unix(0, 0)
+			properties[RateLimitFieldEnableTime] = time.Unix(0, 0)
 		} else {
-			properties[RateLimitFieldModifyTime] = time.Now()
+			properties[RateLimitFieldEnableTime] = time.Now()
 		}
 		// create ratelimit_config
 		if err := updateValue(tx, tblRateLimitConfig, limit.ID, properties); err != nil {
@@ -365,7 +368,6 @@ func (r *rateLimitStore) enableRateLimit(limit *model.RateLimit) error {
 
 		return nil
 	})
-
 }
 
 // updateRateLimit
@@ -388,9 +390,9 @@ func (r *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 		properties[RateLimitFieldRevision] = limit.Revision
 		properties[RateLimitFieldModifyTime] = time.Now()
 		if limit.Disable {
-			properties[RateLimitFieldModifyTime] = time.Unix(0, 0)
+			properties[RateLimitFieldEnableTime] = time.Unix(0, 0)
 		} else {
-			properties[RateLimitFieldModifyTime] = time.Now()
+			properties[RateLimitFieldEnableTime] = time.Now()
 		}
 		// create ratelimit_config
 		if err := updateValue(tx, tblRateLimitConfig, limit.ID, properties); err != nil {
@@ -414,7 +416,6 @@ func (r *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 
 		return nil
 	})
-
 }
 
 // deleteRateLimit

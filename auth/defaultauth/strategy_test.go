@@ -33,8 +33,6 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/plugin"
-	_ "github.com/polarismesh/polaris/plugin/auth/defaultauth"
 	storemock "github.com/polarismesh/polaris/store/mock"
 )
 
@@ -112,7 +110,6 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 		},
 	}, cacheMgn)
 	checker.cacheMgn = cacheMgn
-	checker.authPlugin = plugin.GetAuth()
 
 	svr := &serverAuthAbility{
 		authMgn: checker,
@@ -838,4 +835,80 @@ func Test_parseStrategySearchArgs(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_AuthServer_NormalOperateStrategy(t *testing.T) {
+	suit := &AuthTestSuit{}
+	if err := suit.initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer suit.Destroy()
+
+	users := createApiMockUser(10, "test")
+
+	t.Run("正常创建用户", func(t *testing.T) {
+		resp := suit.server.CreateUsers(suit.defaultCtx, users)
+
+		if !respSuccess(resp) {
+			t.Fatal(resp.GetInfo().GetValue())
+		}
+	})
+
+	t.Run("正常更新用户", func(t *testing.T) {
+		users[0].Comment = utils.NewStringValue("update user comment")
+		resp := suit.server.UpdateUser(suit.defaultCtx, users[0])
+
+		if !respSuccess(resp) {
+			t.Fatal(resp.GetInfo().GetValue())
+		}
+
+		qresp := suit.server.GetUsers(suit.defaultCtx, map[string]string{
+			"id": users[0].GetId().GetValue(),
+		})
+
+		if !respSuccess(resp) {
+			t.Fatal(resp.GetInfo().GetValue())
+		}
+
+		assert.Equal(t, 1, int(qresp.Amount.GetValue()))
+		assert.Equal(t, 1, int(qresp.Size.GetValue()))
+
+		retUsers := qresp.GetUsers()[0]
+		assert.Equal(t, users[0].GetComment().GetValue(), retUsers.GetComment().GetValue())
+	})
+
+	t.Run("正常删除用户", func(t *testing.T) {
+		resp := suit.server.DeleteUsers(suit.defaultCtx, []*api.User{users[3]})
+
+		if !respSuccess(resp) {
+			t.Fatal(resp.GetInfo().GetValue())
+		}
+
+		qresp := suit.server.GetUsers(suit.defaultCtx, map[string]string{
+			"id": users[3].GetId().GetValue(),
+		})
+
+		if !respSuccess(resp) {
+			t.Fatal(resp.GetInfo().GetValue())
+		}
+
+		assert.Equal(t, 0, int(qresp.Amount.GetValue()))
+		assert.Equal(t, 0, int(qresp.Size.GetValue()))
+	})
+
+	t.Run("正常更新用户Token", func(t *testing.T) {
+		resp := suit.server.ResetUserToken(suit.defaultCtx, users[0])
+
+		if !respSuccess(resp) {
+			t.Fatal(resp.GetInfo().GetValue())
+		}
+
+		time.Sleep(suit.updateCacheInterval)
+
+		qresp := suit.server.GetUserToken(suit.defaultCtx, users[0])
+		if !respSuccess(qresp) {
+			t.Fatal(resp.GetInfo().GetValue())
+		}
+		assert.Equal(t, resp.GetUser().GetAuthToken().GetValue(), qresp.GetUser().GetAuthToken().GetValue())
+	})
 }

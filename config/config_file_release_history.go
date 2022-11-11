@@ -11,7 +11,7 @@
  *
  * Unless required by applicable law or agreed to in writing, software distributed
  * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or Serveried. See the License for the
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 
@@ -23,7 +23,6 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -65,8 +64,8 @@ func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.Co
 	err := s.storage.CreateConfigFileReleaseHistory(s.getTx(ctx), releaseHistory)
 
 	if err != nil {
-		log.ConfigScope().Error("[Config][Service] create config file release history error.",
-			zap.String("request-id", utils.ParseRequestID(ctx)),
+		log.Error("[Config][Service] create config file release history error.",
+			utils.ZapRequestIDByCtx(ctx),
 			zap.String("namespace", fileRelease.Namespace),
 			zap.String("group", fileRelease.Group),
 			zap.String("fileName", fileRelease.FileName),
@@ -78,7 +77,7 @@ func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.Co
 func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset,
 	limit uint32, endId uint64) *api.ConfigBatchQueryResponse {
 
-	if offset < 0 || limit <= 0 || limit > MaxPageSize {
+	if limit > MaxPageSize {
 		return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.InvalidParameter, 0, nil)
 	}
 
@@ -86,8 +85,8 @@ func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, gro
 		group, fileName, offset, limit, endId)
 
 	if err != nil {
-		log.ConfigScope().Error("[Config][Service] get config file release history error.",
-			zap.String("request-id", utils.ParseRequestID(ctx)),
+		log.Error("[Config][Service] get config file release history error.",
+			utils.ZapRequestIDByCtx(ctx),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -127,8 +126,8 @@ func (s *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespac
 	history, err := s.storage.GetLatestConfigFileReleaseHistory(namespace, group, fileName)
 
 	if err != nil {
-		log.ConfigScope().Error("[Config][Service] get latest config file release error",
-			zap.String("request-id", utils.ParseRequestID(ctx)),
+		log.Error("[Config][Service] get latest config file release error",
+			utils.ZapRequestIDByCtx(ctx),
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),

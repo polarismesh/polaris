@@ -28,7 +28,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -42,9 +41,10 @@ func init() {
 	RegisterCache(configFileCacheName, CacheConfigFile)
 }
 
+// FileCache file cache
 type FileCache interface {
 	Cache
-	// Get
+	// Get 通过ns,group,filename获取 Entry
 	Get(namespace, group, fileName string) (*Entry, bool)
 	// GetOrLoadIfAbsent
 	GetOrLoadIfAbsent(namespace, group, fileName string) (*Entry, error)
@@ -52,8 +52,8 @@ type FileCache interface {
 	Remove(namespace, group, fileName string)
 	// ReLoad
 	ReLoad(namespace, group, fileName string) (*Entry, error)
-	// GetOrLoadGrouByName
-	GetOrLoadGrouByName(namespace, group string) (*model.ConfigFileGroup, error)
+	// GetOrLoadGroupByName
+	GetOrLoadGroupByName(namespace, group string) (*model.ConfigFileGroup, error)
 	// GetOrLoadGroupById
 	GetOrLoadGroupById(id uint64) (*model.ConfigFileGroup, error)
 	// CleanAll
@@ -64,9 +64,9 @@ type FileCache interface {
 type fileCache struct {
 	storage store.Store
 	// fileId -> Entry
-	files *sync.Map
+	files sync.Map
 	// fileId -> lock
-	fileLoadLocks *sync.Map
+	fileLoadLocks sync.Map
 	// loadCnt
 	loadCnt int32
 	// getCnt
@@ -99,18 +99,15 @@ type Entry struct {
 // newFileCache 创建文件缓存
 func newFileCache(ctx context.Context, storage store.Store) FileCache {
 	cache := &fileCache{
-		storage:       storage,
-		files:         new(sync.Map),
-		fileLoadLocks: new(sync.Map),
-		ctx:           ctx,
-		configGroups:  newConfigFileGroupBucket(),
+		storage:      storage,
+		ctx:          ctx,
+		configGroups: newConfigFileGroupBucket(),
 	}
 	return cache
 }
 
 // initialize
 func (fc *fileCache) initialize(opt map[string]interface{}) error {
-
 	fc.expireTimeAfterWrite, _ = opt["expireTimeAfterWrite"].(int)
 	if fc.expireTimeAfterWrite == 0 {
 		fc.expireTimeAfterWrite = 3600
@@ -123,12 +120,12 @@ func (fc *fileCache) initialize(opt map[string]interface{}) error {
 }
 
 // addListener 添加
-func (fc *fileCache) addListener(listeners []Listener) {
+func (fc *fileCache) addListener(_ []Listener) {
 
 }
 
 // update
-func (fc *fileCache) update(storeRollbackSec time.Duration) error {
+func (fc *fileCache) update(_ time.Duration) error {
 	return nil
 }
 
@@ -155,8 +152,8 @@ func (fc *fileCache) Get(namespace, group, fileName string) (*Entry, bool) {
 	return nil, false
 }
 
-// GetOrLoadGroupIfAbsent 获取配置分组缓存
-func (fc *fileCache) GetOrLoadGrouByName(namespace, group string) (*model.ConfigFileGroup, error) {
+// GetOrLoadGroupByName 获取配置分组缓存
+func (fc *fileCache) GetOrLoadGroupByName(namespace, group string) (*model.ConfigFileGroup, error) {
 	item := fc.configGroups.getGroupByName(namespace, group)
 	if item != nil {
 		return item, nil
@@ -243,7 +240,7 @@ func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 
 	file, err := fc.storage.GetConfigFileRelease(nil, namespace, group, fileName)
 	if err != nil {
-		log.ConfigScope().Error("[Config][Cache] load config file release error.",
+		configLog.Error("[Config][Cache] load config file release error.",
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -253,7 +250,7 @@ func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 
 	// 数据库中没有该对象, 为了避免对象不存在时，一直击穿数据库，所以缓存空对象
 	if file == nil {
-		log.ConfigScope().Warn("[Config][Cache] load config file release not found.",
+		configLog.Warn("[Config][Cache] load config file release not found.",
 			zap.String("namespace", namespace),
 			zap.String("group", group),
 			zap.String("fileName", fileName),
@@ -272,7 +269,6 @@ func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 		Md5:        file.Md5,
 		Version:    file.Version,
 		ExpireTime: fc.getExpireTime(),
-		Empty:      false,
 	}
 
 	// 缓存不存在，则直接存入缓存
@@ -303,7 +299,7 @@ func (fc *fileCache) ReLoad(namespace, group, fileName string) (*Entry, error) {
 	return fc.GetOrLoadIfAbsent(namespace, group, fileName)
 }
 
-// Clear 清空缓存，仅用于集成测试
+// CleanAll 清空缓存，仅用于集成测试
 func (fc *fileCache) CleanAll() {
 	fc.files.Range(func(key, _ interface{}) bool {
 		fc.files.Delete(key)
@@ -336,7 +332,7 @@ func (fc *fileCache) startClearExpireEntryTask(ctx context.Context) {
 			})
 
 			if curExpiredFileCnt > 0 {
-				log.ConfigScope().Info("[Config][Cache] clear expired file cache.", zap.Int("count", curExpiredFileCnt))
+				configLog.Info("[Config][Cache] clear expired file cache.", zap.Int("count", curExpiredFileCnt))
 			}
 
 			atomic.AddInt32(&fc.expireCnt, int32(curExpiredFileCnt))
@@ -353,7 +349,7 @@ func (fc *fileCache) startLogStatusTask(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			log.ConfigScope().Info("[Config][Cache] cache status:",
+			configLog.Info("[Config][Cache] cache status:",
 				zap.Int32("getCnt", atomic.LoadInt32(&fc.getCnt)),
 				zap.Int32("loadCnt", atomic.LoadInt32(&fc.loadCnt)),
 				zap.Int32("removeCnt", atomic.LoadInt32(&fc.removeCnt)),

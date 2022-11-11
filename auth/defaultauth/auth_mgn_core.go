@@ -25,9 +25,16 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+)
+
+var (
+	// ErrorNotAllowedAccess 鉴权失败
+	ErrorNotAllowedAccess error = errors.New(api.Code2Info(api.NotAllowedAccess))
+
+	// ErrorInvalidParameter 不合法的参数
+	ErrorInvalidParameter error = errors.New(api.Code2Info(api.InvalidParameter))
 )
 
 // IsOpenConsoleAuth 针对控制台是否开启了操作鉴权
@@ -121,7 +128,7 @@ func (d *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (boo
 
 	strategies, err := d.findStrategies(operatorInfo)
 	if err != nil {
-		log.AuthScope().Error("[Auth][Checker] find strategies when check permission", utils.ZapRequestID(reqId),
+		log.Error("[Auth][Checker] find strategies when check permission", utils.ZapRequestID(reqId),
 			zap.Error(err), zap.Any("token", operatorInfo.String()))
 		return false, err
 	}
@@ -130,20 +137,20 @@ func (d *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (boo
 
 	noResourceNeedCheck := d.removeNoStrategyResources(authCtx)
 	if !noResourceNeedCheck && len(strategies) == 0 {
-		log.AuthScope().Error("[Auth][Checker]", utils.ZapRequestID(reqId),
+		log.Error("[Auth][Checker]", utils.ZapRequestID(reqId),
 			zap.String("msg", "need check resource is not empty, but strategies is empty"))
 		return false, errors.New("no permission")
 	}
 
-	log.AuthScope().Info("[Auth][Checker] check permission args", zap.Any("resources", authCtx.GetAccessResources()),
+	log.Info("[Auth][Checker] check permission args", zap.Any("resources", authCtx.GetAccessResources()),
 		zap.Any("strategies", strategies))
 
-	ok, err := d.authPlugin.CheckPermission(authCtx, strategies)
+	ok, err := d.doCheckPermission(authCtx, strategies)
 	if err != nil {
-		log.AuthScope().Error("[Auth][Checker] check permission args", utils.ZapRequestID(reqId),
+		log.Error("[Auth][Checker] check permission args", utils.ZapRequestID(reqId),
 			zap.String("method", authCtx.GetMethod()), zap.Any("resources", authCtx.GetAccessResources()),
 			zap.Any("strategies", strategies))
-		log.AuthScope().Error("[Auth][Checker] check permission when request arrive", utils.ZapRequestID(reqId),
+		log.Error("[Auth][Checker] check permission when request arrive", utils.ZapRequestID(reqId),
 			zap.Error(err))
 	}
 
@@ -178,15 +185,16 @@ func (d *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) err
 	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
 
 	checkErr := func() error {
-		operator, err := d.decodeToken(authCtx.GetToken())
+		authToken := utils.ParseAuthToken(authCtx.GetRequestContext())
+		operator, err := d.decodeToken(authToken)
 		if err != nil {
-			log.AuthScope().Error("[Auth][Checker] decode token", zap.Error(err))
+			log.Error("[Auth][Checker] decode token", zap.Error(err))
 			return model.ErrorTokenInvalid
 		}
 
 		ownerId, isOwner, err := d.checkToken(&operator)
 		if err != nil {
-			log.AuthScope().Errorf("[Auth][Checker] check token err : %s", errors.WithStack(err).Error())
+			log.Errorf("[Auth][Checker] check token err : %s", errors.WithStack(err).Error())
 			return err
 		}
 
@@ -204,7 +212,7 @@ func (d *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) err
 		authCtx.SetRequestContext(ctx)
 		d.parseOperatorInfo(operator, authCtx)
 		if operator.Disable {
-			log.AuthScope().Warn("[Auth][Checker] token already disabled", utils.ZapRequestID(reqId),
+			log.Warn("[Auth][Checker] token already disabled", utils.ZapRequestID(reqId),
 				zap.Any("token", operator.String()))
 		}
 		return nil
@@ -214,7 +222,7 @@ func (d *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) err
 		if !canDowngradeAnonymous(authCtx, checkErr) {
 			return checkErr
 		}
-		log.AuthScope().Warn("[Auth][Checker] parse operator info, downgrade to anonymous", utils.ZapRequestID(reqId),
+		log.Warn("[Auth][Checker] parse operator info, downgrade to anonymous", utils.ZapRequestID(reqId),
 			zap.Error(checkErr))
 		// 操作者信息解析失败，降级为匿名用户
 		authCtx.SetAttachment(model.TokenDetailInfoKey, newAnonymous())
@@ -298,19 +306,18 @@ func (d *defaultAuthChecker) checkToken(tokenInfo *OperatorInfo) (string, bool, 
 		}
 
 		return user.Owner, false, nil
-	} else {
-		group := d.Cache().User().GetGroup(id)
-		if group == nil {
-			return "", false, model.ErrorNoUserGroup
-		}
-
-		if tokenInfo.Origin != group.Token {
-			return "", false, model.ErrorTokenNotExist
-		}
-
-		tokenInfo.Disable = !group.TokenEnable
-		return group.Owner, false, nil
 	}
+	group := d.Cache().User().GetGroup(id)
+	if group == nil {
+		return "", false, model.ErrorNoUserGroup
+	}
+
+	if tokenInfo.Origin != group.Token {
+		return "", false, model.ErrorTokenNotExist
+	}
+
+	tokenInfo.Disable = !group.TokenEnable
+	return group.Owner, false, nil
 }
 
 // findStrategiesByUserID 根据 user-id 查找相关联的鉴权策略（用户自己的 + 用户所在用户组的）
@@ -337,12 +344,11 @@ func (d *defaultAuthChecker) findStrategiesByUserID(userId string) []*model.Stra
 		ret = append(ret, val)
 	}
 
-	return rules
+	return ret
 }
 
 // findStrategies Inquire about TOKEN information, the actual all-associated authentication strategy
 func (d *defaultAuthChecker) findStrategies(tokenInfo OperatorInfo) ([]*model.StrategyDetail, error) {
-
 	if IsEmptyOperator(tokenInfo) {
 		return make([]*model.StrategyDetail, 0), nil
 	}
@@ -425,15 +431,130 @@ func (d *defaultAuthChecker) removeNoStrategyResources(authCtx *model.AcquireCon
 		newAccessRes[api.ResourceType_ConfigGroups] = newCfgRes
 	}
 
-	log.AuthScope().Info("[Auth][Checker] remove no link strategy final result", utils.ZapRequestID(reqId),
+	log.Info("[Auth][Checker] remove no link strategy final result", utils.ZapRequestID(reqId),
 		zap.Any("resource", newAccessRes))
 
 	authCtx.SetAccessResources(newAccessRes)
 	noResourceNeedCheck := authCtx.IsAccessResourceEmpty()
 	if noResourceNeedCheck {
-		log.AuthScope().Debug("[Auth][Checker]", utils.ZapRequestID(reqId),
+		log.Debug("[Auth][Checker]", utils.ZapRequestID(reqId),
 			zap.String("msg", "need check permission resource is empty"))
 	}
 
 	return noResourceNeedCheck
+}
+
+// doCheckPermission 执行权限检查
+func (d *defaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext, strategies []*model.StrategyDetail) (bool, error) {
+	if len(strategies) == 0 {
+		return true, nil
+	}
+
+	userId := utils.ParseUserID(authCtx.GetRequestContext())
+
+	reqRes := authCtx.GetAccessResources()
+	var (
+		checkNamespace   = false
+		checkService     = true
+		checkConfigGroup = true
+	)
+
+	for _, rule := range strategies {
+		if !d.checkAction(rule.Action, authCtx.GetOperation()) {
+			continue
+		}
+		searchMaps := buildSearchMap(rule.Resources)
+
+		// 检查 namespace
+		checkNamespace = checkAnyElementExist(userId, reqRes[api.ResourceType_Namespaces], searchMaps[0])
+		// 检查 service
+		if authCtx.GetModule() == model.DiscoverModule {
+			checkService = checkAnyElementExist(userId, reqRes[api.ResourceType_Services], searchMaps[1])
+		}
+		// 检查 config_group
+		if authCtx.GetModule() == model.ConfigModule {
+			checkConfigGroup = checkAnyElementExist(userId, reqRes[api.ResourceType_ConfigGroups], searchMaps[2])
+		}
+
+		if checkNamespace && (checkService && checkConfigGroup) {
+			return true, nil
+		}
+	}
+	return false, ErrorNotAllowedAccess
+}
+
+// checkAction 检查操作是否和策略匹配
+func (d *defaultAuthChecker) checkAction(expect string, actual model.ResourceOperation) bool {
+	return true
+}
+
+// checkAnyElementExist 检查待操作的资源是否符合鉴权资源列表的配置
+//
+//	@param userId 当前的用户信息
+//	@param waitSearch 访问的资源
+//	@param searchMaps 鉴权策略中某一类型的资源列表信息
+//	@return bool 是否可以操作本次被访问的所有资源
+func checkAnyElementExist(userId string, waitSearch []model.ResourceEntry, searchMaps *searchMap) bool {
+	if len(waitSearch) == 0 || searchMaps.passAll {
+		return true
+	}
+
+	for _, entry := range waitSearch {
+		if entry.Owner == userId {
+			continue
+		}
+
+		if _, ok := searchMaps.items[entry.ID]; !ok {
+			return false
+		}
+	}
+
+	return true
+}
+
+// buildSearchMap 构建搜索 map
+func buildSearchMap(ss []model.StrategyResource) []*searchMap {
+	// emptyVal 空对象，占位而已
+	var emptyVal = struct{}{}
+
+	nsSearchMaps := &searchMap{
+		items:   make(map[string]interface{}),
+		passAll: false,
+	}
+	svcSearchMaps := &searchMap{
+		items:   make(map[string]interface{}),
+		passAll: false,
+	}
+	cfgSearchMaps := &searchMap{
+		items:   make(map[string]interface{}),
+		passAll: false,
+	}
+
+	for _, val := range ss {
+		if val.ResType == int32(api.ResourceType_Namespaces) {
+			nsSearchMaps.items[val.ResID] = emptyVal
+			nsSearchMaps.passAll = (val.ResID == "*") || nsSearchMaps.passAll
+			continue
+		}
+		if val.ResType == int32(api.ResourceType_Services) {
+			svcSearchMaps.items[val.ResID] = emptyVal
+			svcSearchMaps.passAll = (val.ResID == "*") || nsSearchMaps.passAll
+			continue
+		}
+		if val.ResType == int32(api.ResourceType_ConfigGroups) {
+			cfgSearchMaps.items[val.ResID] = emptyVal
+			cfgSearchMaps.passAll = (val.ResID == "*") || nsSearchMaps.passAll
+			continue
+		}
+	}
+
+	return []*searchMap{nsSearchMaps, svcSearchMaps, cfgSearchMaps}
+}
+
+// searchMap 权限搜索map
+type searchMap struct {
+	// 某个资源策略的去重map
+	items map[string]interface{}
+	// 该资源策略是否允许全部操作
+	passAll bool
 }

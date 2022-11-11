@@ -52,6 +52,7 @@ func (s *Server) CreateNamespaces(ctx context.Context, req []*api.Namespace) *ap
 	return responses
 }
 
+// CreateNamespaceIfAbsent 创建命名空间，如果不存在
 func (s *Server) CreateNamespaceIfAbsent(ctx context.Context, req *api.Namespace) error {
 	if !s.allowAutoCreate() {
 		return errors.New("not allow auto create namespace")
@@ -94,7 +95,7 @@ func (s *Server) CreateNamespace(ctx context.Context, req *api.Namespace) *api.R
 	// 检查是否存在
 	namespace, err := s.storage.GetNamespace(namespaceName)
 	if err != nil {
-		log.Error(err.Error(), zap.String("request-id", requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 		return api.NewNamespaceResponse(api.StoreLayerException, req)
 	}
 	if namespace != nil {
@@ -106,12 +107,12 @@ func (s *Server) CreateNamespace(ctx context.Context, req *api.Namespace) *api.R
 
 	// 存储层操作
 	if err := s.storage.AddNamespace(data); err != nil {
-		log.Error(err.Error(), zap.String("request-id", requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 		return api.NewNamespaceResponse(api.StoreLayerException, req)
 	}
 
 	msg := fmt.Sprintf("create namespace: name=%s", namespaceName)
-	log.Info(msg, zap.String("request-id", requestID))
+	log.Info(msg, utils.ZapRequestID(requestID))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.OCreate))
 
 	out := &api.Namespace{
@@ -119,7 +120,7 @@ func (s *Server) CreateNamespace(ctx context.Context, req *api.Namespace) *api.R
 		Token: utils.NewStringValue(data.Token),
 	}
 
-	s.afterNamespaceResource(ctx, req, data, false)
+	_ = s.afterNamespaceResource(ctx, req, data, false)
 
 	return api.NewNamespaceResponse(api.ExecuteSuccess, out)
 }
@@ -172,7 +173,7 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 	// 检查是否存在
 	namespace, err := tx.LockNamespace(req.GetName().GetValue())
 	if err != nil {
-		log.Error(err.Error(), zap.String("request-id", requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 		return api.NewNamespaceResponse(api.StoreLayerException, req)
 	}
 	if namespace == nil {
@@ -188,12 +189,12 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 	total, err := s.getServicesCountWithNamespace(namespace.Name)
 	if err != nil {
 		log.Error("get services count with namespace err",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("err", err.Error()))
 		return api.NewNamespaceResponse(api.StoreLayerException, req)
 	}
 	if total != 0 {
-		log.Error("the removed namespace has remain services", zap.String("request-id", requestID))
+		log.Error("the removed namespace has remain services", utils.ZapRequestID(requestID))
 		return api.NewNamespaceResponse(api.NamespaceExistedServices, req)
 	}
 
@@ -201,12 +202,12 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 	total, err = s.getCircuitBreakerCountWithNamespace(namespace.Name)
 	if err != nil {
 		log.Error("get circuitBreakers count with namespace err",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("err", err.Error()))
 		return api.NewNamespaceResponse(api.StoreLayerException, req)
 	}
 	if total != 0 {
-		log.Error("the removed namespace has remain circuitBreakers", zap.String("request-id", requestID))
+		log.Error("the removed namespace has remain circuitBreakers", utils.ZapRequestID(requestID))
 		return api.NewNamespaceResponse(api.NamespaceExistedCircuitBreakers, req)
 	}
 
@@ -214,28 +215,28 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 	total, err = s.getConfigGroupCountWithNamespace(namespace.Name)
 	if err != nil {
 		log.Error("get config group count with namespace err",
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("err", err.Error()))
 		return api.NewNamespaceResponse(api.StoreLayerException, req)
 	}
 	if total != 0 {
-		log.Error("the removed namespace has remain config-group", zap.String("request-id", requestID))
+		log.Error("the removed namespace has remain config-group", utils.ZapRequestID(requestID))
 		return api.NewNamespaceResponse(api.NamespaceExistedConfigGroups, req)
 	}
 
 	// 存储层操作
 	if err := tx.DeleteNamespace(namespace.Name); err != nil {
-		log.Error(err.Error(), zap.String("request-id", requestID))
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
 		return api.NewNamespaceResponse(api.StoreLayerException, req)
 	}
 
 	s.caches.Service().CleanNamespace(namespace.Name)
 
 	msg := fmt.Sprintf("delete namespace: name=%s", namespace.Name)
-	log.Info(msg, zap.String("request-id", requestID))
+	log.Info(msg, utils.ZapRequestID(requestID))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.ODelete))
 
-	s.afterNamespaceResource(ctx, req, &model.Namespace{Name: req.GetName().GetValue()}, true)
+	_ = s.afterNamespaceResource(ctx, req, &model.Namespace{Name: req.GetName().GetValue()}, true)
 
 	return api.NewNamespaceResponse(api.ExecuteSuccess, req)
 }
@@ -274,12 +275,12 @@ func (s *Server) UpdateNamespace(ctx context.Context, req *api.Namespace) *api.R
 
 	// 存储层操作
 	if err := s.storage.UpdateNamespace(namespace); err != nil {
-		log.Error(err.Error(), zap.String("request-id", rid))
+		log.Error(err.Error(), utils.ZapRequestID(rid))
 		return api.NewNamespaceResponse(api.StoreLayerException, req)
 	}
 
 	msg := fmt.Sprintf("update namespace: name=%s", namespace.Name)
-	log.Info(msg, zap.String("request-id", rid))
+	log.Info(msg, utils.ZapRequestID(rid))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.OUpdate))
 
 	if err := s.afterNamespaceResource(ctx, req, namespace, false); err != nil {
@@ -318,12 +319,12 @@ func (s *Server) UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *
 
 	// 存储层操作
 	if err := s.storage.UpdateNamespaceToken(namespace.Name, token); err != nil {
-		log.Error(err.Error(), zap.String("request-id", rid))
+		log.Error(err.Error(), utils.ZapRequestID(rid))
 		return api.NewNamespaceResponse(api.StoreLayerException, req)
 	}
 
 	msg := fmt.Sprintf("update namespace token: name=%s", namespace.Name)
-	log.Info(msg, zap.String("request-id", rid))
+	log.Info(msg, utils.ZapRequestID(rid))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.OUpdateToken))
 
 	out := &api.Namespace{
@@ -350,9 +351,7 @@ func (s *Server) GetNamespaces(ctx context.Context, query map[string][]string) *
 	out.Amount = utils.NewUInt32Value(amount)
 	out.Size = utils.NewUInt32Value(uint32(len(namespaces)))
 	for _, namespace := range namespaces {
-
 		nsCntInfo := s.caches.Service().GetNamespaceCntInfo(namespace.Name)
-
 		out.AddNamespace(&api.Namespace{
 			Id:                       utils.NewStringValue(namespace.Name),
 			Name:                     utils.NewStringValue(namespace.Name),

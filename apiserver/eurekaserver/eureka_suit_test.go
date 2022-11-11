@@ -33,8 +33,6 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
-	_ "github.com/polarismesh/polaris/plugin/auth/defaultauth"
-	_ "github.com/polarismesh/polaris/plugin/auth/platform"
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
 	_ "github.com/polarismesh/polaris/plugin/discoverevent/local"
 	_ "github.com/polarismesh/polaris/plugin/discoverstat/discoverlocal"
@@ -49,9 +47,7 @@ import (
 	"github.com/polarismesh/polaris/service/batch"
 	"github.com/polarismesh/polaris/service/healthcheck"
 	"github.com/polarismesh/polaris/store"
-	_ "github.com/polarismesh/polaris/store/boltdb"
 	storemock "github.com/polarismesh/polaris/store/mock"
-	_ "github.com/polarismesh/polaris/store/sqldb"
 	"github.com/polarismesh/polaris/testdata"
 )
 
@@ -95,11 +91,11 @@ func (d *EurekaTestSuit) initialize(t *testing.T, callback func(t *testing.T, s 
 
 	_ = commonlog.Configure(d.cfg.Bootstrap.Logger)
 
-	commonlog.DefaultScope().SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.NamingScope().SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.CacheScope().SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.StoreScope().SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.AuthScope().SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.DefaultLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.ConfigLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 
 	plugin.SetPluginConfig(&d.cfg.Plugin)
 

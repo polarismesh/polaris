@@ -49,7 +49,7 @@ const (
 func (i *instanceStore) AddInstance(instance *model.Instance) error {
 	initInstance([]*model.Instance{instance})
 	// Before adding new data, you must clean up the old data
-	if err := i.handler.DeleteValues(tblNameInstance, []string{instance.ID()}, true); err != nil {
+	if err := i.handler.DeleteValues(tblNameInstance, []string{instance.ID()}); err != nil {
 		log.Errorf("[Store][boltdb] delete instance to kv error, %v", err)
 		return err
 	}
@@ -75,7 +75,7 @@ func (i *instanceStore) BatchAddInstances(instances []*model.Instance) error {
 	}
 
 	// clear old instances
-	if err := i.handler.DeleteValues(tblNameInstance, insIds, true); err != nil {
+	if err := i.handler.DeleteValues(tblNameInstance, insIds); err != nil {
 		log.Errorf("[Store][boltdb] save instance to kv error, %v", err)
 		return err
 	}
@@ -146,7 +146,7 @@ func (i *instanceStore) BatchDeleteInstances(ids []interface{}) error {
 
 // CleanInstance Delete an instance
 func (i *instanceStore) CleanInstance(instanceID string) error {
-	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}, true); err != nil {
+	if err := i.handler.DeleteValues(tblNameInstance, []string{instanceID}); err != nil {
 		log.Errorf("[Store][boltdb] delete instance from kv error, %v", err)
 		return err
 	}

@@ -11,7 +11,7 @@
  *
  * Unless required by applicable law or agreed to in writing, software distributed
  * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or serverAuthibilityied. See the License for the
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 
@@ -26,13 +26,11 @@ import (
 // GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
 func (s *serverAuthability) GetConfigFileForClient(ctx context.Context,
 	fileInfo *api.ClientConfigFileInfo) *api.ConfigClientResponse {
-
 	return s.targetServer.GetConfigFileForClient(ctx, fileInfo)
 }
 
-// WatchConfigFiles
+// WatchConfigFiles 监听配置文件变化
 func (s *serverAuthability) WatchConfigFiles(ctx context.Context,
 	request *api.ClientWatchConfigFileRequest) (WatchCallback, error) {
-
 	return s.targetServer.WatchConfigFiles(ctx, request)
 }

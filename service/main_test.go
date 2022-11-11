@@ -47,8 +47,6 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
-	_ "github.com/polarismesh/polaris/plugin/auth/defaultauth"
-	_ "github.com/polarismesh/polaris/plugin/auth/platform"
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
 	_ "github.com/polarismesh/polaris/plugin/discoverevent/local"
 	_ "github.com/polarismesh/polaris/plugin/discoverstat/discoverlocal"
@@ -78,7 +76,6 @@ const (
 	tblRateLimitRevision      = "ratelimit_revision"
 	tblCircuitBreaker         = "circuitbreaker_rule"
 	tblCircuitBreakerRelation = "circuitbreaker_rule_relation"
-	tblPlatform               = "platform"
 	tblNameL5                 = "l5"
 	tblNameRoutingV2          = "routing_config_v2"
 	tblClient                 = "client"
@@ -178,11 +175,11 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 
 	_ = commonlog.Configure(d.cfg.Bootstrap.Logger)
 
-	commonlog.DefaultScope().SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.NamingScope().SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.CacheScope().SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.StoreScope().SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.AuthScope().SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.DefaultLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.CacheLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 
 	metrics.InitMetrics()
 
@@ -651,7 +648,7 @@ func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *api.Service, 
 	}
 
 	// repeated
-	InstanceID, _ := CalculateInstanceID(instanceReq.GetNamespace().GetValue(), instanceReq.GetService().GetValue(),
+	InstanceID, _ := utils.CalculateInstanceID(instanceReq.GetNamespace().GetValue(), instanceReq.GetService().GetValue(),
 		instanceReq.GetVpcId().GetValue(), instanceReq.GetHost().GetValue(), instanceReq.GetPort().GetValue())
 	d.cleanInstance(InstanceID)
 	t.Logf("repeatd create instance(%s)", InstanceID)
@@ -692,7 +689,7 @@ func (d *DiscoverTestSuit) addInstance(t *testing.T, ins *api.Instance) (
 	resp := d.server.CreateInstances(d.defaultCtx, []*api.Instance{ins})
 	if !respSuccess(resp) {
 		if resp.GetCode().GetValue() == api.ExistedResource {
-			id, _ := CalculateInstanceID(ins.GetNamespace().GetValue(), ins.GetService().GetValue(),
+			id, _ := utils.CalculateInstanceID(ins.GetNamespace().GetValue(), ins.GetService().GetValue(),
 				ins.GetHost().GetValue(), ins.GetHost().GetValue(), ins.GetPort().GetValue())
 			d.cleanInstance(id)
 		}

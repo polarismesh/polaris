@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/emicklei/go-restful/v3"
+	restful "github.com/emicklei/go-restful/v3"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
@@ -35,6 +35,7 @@ import (
 	v1 "github.com/polarismesh/polaris/apiserver/httpserver/v1"
 	v2 "github.com/polarismesh/polaris/apiserver/httpserver/v2"
 	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/bootstrap"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/connlimit"
 	commonlog "github.com/polarismesh/polaris/common/log"
@@ -73,7 +74,7 @@ type HTTPServer struct {
 	healthCheckServer *healthcheck.Server
 	rateLimit         plugin.Ratelimit
 	statis            plugin.Statis
-	auth              plugin.Auth
+	whitelist         plugin.Whitelist
 
 	v1Server v1.HTTPServerV1
 	v2Server v2.HTTPServerV2
@@ -98,9 +99,9 @@ func (h *HTTPServer) GetProtocol() string {
 
 // Initialize 初始化HTTP API服务器
 func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{},
-	api map[string]apiserver.APIConfig) error {
+	apiConf map[string]apiserver.APIConfig) error {
 	h.option = option
-	h.openAPI = api
+	h.openAPI = apiConf
 	h.listenIP = option["listenIP"].(string)
 	h.listenPort = uint32(option["listenPort"].(int))
 	h.enablePprof, _ = option["enablePprof"].(bool)
@@ -118,9 +119,9 @@ func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{}
 		h.rateLimit = rateLimit
 	}
 
-	if auth := plugin.GetAuth(); auth != nil {
-		log.Infof("http server open the auth")
-		h.auth = auth
+	if whitelist := plugin.GetWhitelist(); whitelist != nil {
+		log.Infof("http server open the whitelist")
+		h.whitelist = whitelist
 	}
 
 	// tls 配置信息
@@ -220,6 +221,7 @@ func (h *HTTPServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
+	bootstrap.ApiServerWaitGroup.Done()
 
 	ln = &tcpKeepAliveListener{ln.(*net.TCPListener)}
 	// 开启最大连接数限制
@@ -267,7 +269,7 @@ func (h *HTTPServer) Stop() {
 }
 
 // Restart restart server
-func (h *HTTPServer) Restart(option map[string]interface{}, api map[string]apiserver.APIConfig,
+func (h *HTTPServer) Restart(option map[string]interface{}, apiConf map[string]apiserver.APIConfig,
 	errCh chan error) error {
 	log.Infof("restart httpserver new config: %+v", option)
 	// 备份一下option
@@ -287,7 +289,7 @@ func (h *HTTPServer) Restart(option map[string]interface{}, api map[string]apise
 	log.Infof("old httpserver has stopped, begin restart httpserver")
 
 	ctx := context.Background()
-	if err := h.Initialize(ctx, option, api); err != nil {
+	if err := h.Initialize(ctx, option, apiConf); err != nil {
 		h.restart = false
 		if initErr := h.Initialize(ctx, backupOption, backupAPI); initErr != nil {
 			log.Errorf("start httpserver with backup cfg err: %s", initErr.Error())
@@ -318,27 +320,27 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 		Container:      wsContainer}
 	wsContainer.Filter(cors.Filter)
 
-	// Add container filter to respond to OPTIONS
+	// Incr container filter to respond to OPTIONS
 	wsContainer.Filter(wsContainer.OPTIONSFilter)
 
 	wsContainer.Filter(h.process)
 
-	for name, config := range h.openAPI {
+	for name, apiConfig := range h.openAPI {
 		switch name {
 		case "admin":
-			if config.Enable {
+			if apiConfig.Enable {
 				wsContainer.Add(h.GetAdminServer())
 				wsContainer.Add(h.GetMaintainAccessServer())
 			}
 		case "console":
-			if config.Enable {
-				namingServiceV1, err := h.v1Server.GetNamingConsoleAccessServer(config.Include)
+			if apiConfig.Enable {
+				namingServiceV1, err := h.v1Server.GetNamingConsoleAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}
 				wsContainer.Add(namingServiceV1)
 
-				namingServiceV2, err := h.v2Server.GetNamingConsoleAccessServer(config.Include)
+				namingServiceV2, err := h.v2Server.GetNamingConsoleAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}
@@ -347,7 +349,7 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 				ws := new(restful.WebService)
 				ws.Path("/core/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
 
-				if err := h.GetCoreV1ConsoleAccessServer(ws, config.Include); err != nil {
+				if err := h.GetCoreV1ConsoleAccessServer(ws, apiConfig.Include); err != nil {
 					return nil, err
 				}
 				if err := h.GetAuthServer(ws); err != nil {
@@ -357,22 +359,22 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 				wsContainer.Add(ws)
 			}
 		case "client":
-			if config.Enable {
-				serviceV1, err := h.v1Server.GetClientAccessServer(config.Include)
+			if apiConfig.Enable {
+				serviceV1, err := h.v1Server.GetClientAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}
 				wsContainer.Add(serviceV1)
 
-				serviceV2, err := h.v2Server.GetClientAccessServer(config.Include)
+				serviceV2, err := h.v2Server.GetClientAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}
 				wsContainer.Add(serviceV2)
 			}
 		case "config":
-			if config.Enable {
-				consoleService, err := h.GetConfigAccessServer(config.Include)
+			if apiConfig.Enable {
+				consoleService, err := h.GetConfigAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}
@@ -454,7 +456,7 @@ func (h *HTTPServer) preprocess(req *restful.Request, rsp *restful.Response) err
 		scope.Info("receive request",
 			zap.String("client-address", req.Request.RemoteAddr),
 			zap.String("user-agent", req.HeaderParameter("User-Agent")),
-			zap.String("request-id", requestID),
+			utils.ZapRequestID(requestID),
 			zap.String("platform-id", platformID),
 			zap.String("method", req.Request.Method),
 			zap.String("url", requestURL),
@@ -491,7 +493,6 @@ func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 	code, ok := req.Attribute(utils.PolarisCode).(uint32)
 
 	recordApiCall := true
-
 	if !ok {
 		code = uint32(rsp.StatusCode())
 		recordApiCall = code != http.StatusNotFound
@@ -510,7 +511,7 @@ func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 		scope.Info("handling time > 1s",
 			zap.String("client-address", req.Request.RemoteAddr),
 			zap.String("user-agent", req.HeaderParameter("User-Agent")),
-			zap.String("request-id", req.HeaderParameter("Request-Id")),
+			utils.ZapRequestID(req.HeaderParameter("Request-Id")),
 			zap.String("method", req.Request.Method),
 			zap.String("url", req.Request.URL.String()),
 			zap.Duration("handling-time", diff),
@@ -524,27 +525,22 @@ func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 
 // enterAuth 访问鉴权
 func (h *HTTPServer) enterAuth(req *restful.Request, rsp *restful.Response) error {
-	// 判断鉴权插件是否开启
-	if h.auth == nil {
+	// 判断白名单插件是否开启
+	if h.whitelist == nil {
 		return nil
 	}
 
 	rid := req.HeaderParameter("Request-Id")
-	pid := req.HeaderParameter("Platform-Id")
-	pToken := req.HeaderParameter("Platform-Token")
 
 	address := req.Request.RemoteAddr
 	segments := strings.Split(address, ":")
 	if len(segments) != 2 {
 		return nil
 	}
-
-	if !h.auth.IsWhiteList(segments[0]) && !h.auth.Allow(pid, pToken) {
+	if !h.whitelist.Contain(segments[0]) {
 		log.Error("http access is not allowed",
 			zap.String("client", address),
-			zap.String("request-id", rid),
-			zap.String("platform-id", pid),
-			zap.String("platform-token", pToken))
+			utils.ZapRequestID(rid))
 		httpcommon.HTTPResponse(req, rsp, api.NotAllowedAccess)
 		return errors.New("http access is not allowed")
 	}
@@ -568,7 +564,7 @@ func (h *HTTPServer) enterRateLimit(req *restful.Request, rsp *restful.Response)
 	}
 	if ok := h.rateLimit.Allow(plugin.IPRatelimit, segments[0]); !ok {
 		log.Error("ip ratelimit is not allow", zap.String("client", address),
-			zap.String("request-id", rid))
+			utils.ZapRequestID(rid))
 		httpcommon.HTTPResponse(req, rsp, api.IPRateLimit)
 		return errors.New("ip ratelimit is not allow")
 	}
@@ -578,7 +574,7 @@ func (h *HTTPServer) enterRateLimit(req *restful.Request, rsp *restful.Response)
 		strings.TrimSuffix(req.Request.URL.Path, "/"))
 	if ok := h.rateLimit.Allow(plugin.APIRatelimit, apiName); !ok {
 		log.Error("api ratelimit is not allow", zap.String("client", address),
-			zap.String("request-id", rid), zap.String("api", apiName))
+			utils.ZapRequestID(rid), zap.String("api", apiName))
 		httpcommon.HTTPResponse(req, rsp, api.APIRateLimit)
 		return errors.New("api ratelimit is not allow")
 	}

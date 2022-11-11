@@ -25,14 +25,13 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
 
 const (
 	// NamespaceName l5 name
-	NamespaceName string = "namespace"
+	NamespaceName = "namespace"
 )
 
 func init() {
@@ -101,16 +100,16 @@ func (nsCache *namespaceCache) update(storeRollbackSec time.Duration) error {
 }
 
 func (nsCache *namespaceCache) realUpdate(storeRollbackSec time.Duration) error {
-
-	lastMtime := time.Unix(nsCache.lastTime, 0).Add(storeRollbackSec)
-
-	ret, err := nsCache.storage.GetMoreNamespaces(lastMtime)
+	var (
+		lastMtime = time.Unix(nsCache.lastTime, 0).Add(storeRollbackSec)
+		ret, err  = nsCache.storage.GetMoreNamespaces(lastMtime)
+	)
 	if err != nil {
-		log.CacheScope().Error("[Cache][Namespace] get storage more", zap.Error(err))
+		log.Error("[Cache][Namespace] get storage more", zap.Error(err))
 		return err
 	}
 	nsCache.firstUpdate = false
-	nsCache.setNamespaces(ret)
+	_ = nsCache.setNamespaces(ret)
 	return nil
 }
 
@@ -169,9 +168,7 @@ func (nsCache *namespaceCache) GetNamespace(id string) *model.Namespace {
 //	@return error
 func (nsCache *namespaceCache) GetNamespacesByName(names []string) []*model.Namespace {
 	nsArr := make([]*model.Namespace, 0, len(names))
-
-	for index := range names {
-		name := names[index]
+	for _, name := range names {
 		if ns := nsCache.GetNamespace(name); ns != nil {
 			nsArr = append(nsArr, ns)
 		}
@@ -185,7 +182,6 @@ func (nsCache *namespaceCache) GetNamespacesByName(names []string) []*model.Name
 //	@receiver nsCache
 //	@return []*model.Namespace
 func (nsCache *namespaceCache) GetNamespaceList() []*model.Namespace {
-
 	nsArr := make([]*model.Namespace, 0, 8)
 
 	nsCache.ids.Range(func(key, value interface{}) bool {
@@ -196,5 +192,4 @@ func (nsCache *namespaceCache) GetNamespaceList() []*model.Namespace {
 	})
 
 	return nsArr
-
 }

@@ -26,13 +26,14 @@ import (
 
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/apiserver/grpcserver"
+	"github.com/polarismesh/polaris/bootstrap"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/config"
 )
 
 var (
-	configLog = commonlog.ConfigScope()
+	configLog = commonlog.GetScopeOrDefaultByName(commonlog.ConfigLoggerName)
 )
 
 // ConfigGRPCServer 配置中心 GRPC API 服务器
@@ -54,8 +55,8 @@ func (g *ConfigGRPCServer) GetProtocol() string {
 
 // Initialize 初始化GRPC API服务器
 func (g *ConfigGRPCServer) Initialize(ctx context.Context, option map[string]interface{},
-	api map[string]apiserver.APIConfig) error {
-	g.openAPI = api
+	apiConf map[string]apiserver.APIConfig) error {
+	g.openAPI = apiConf
 	return g.BaseGrpcServer.Initialize(ctx, option,
 		grpcserver.WithProtocol(g.GetProtocol()),
 		grpcserver.WithLogger(configLog),
@@ -65,6 +66,7 @@ func (g *ConfigGRPCServer) Initialize(ctx context.Context, option map[string]int
 // Run 启动GRPC API服务器
 func (g *ConfigGRPCServer) Run(errCh chan error) {
 	g.BaseGrpcServer.Run(errCh, g.GetProtocol(), func(server *grpc.Server) error {
+		defer bootstrap.ApiServerWaitGroup.Done()
 		for name, apiConfig := range g.openAPI {
 			switch name {
 			case "client":
@@ -103,10 +105,10 @@ func (g *ConfigGRPCServer) Stop() {
 }
 
 // Restart 重启Server
-func (g *ConfigGRPCServer) Restart(option map[string]interface{}, api map[string]apiserver.APIConfig,
+func (g *ConfigGRPCServer) Restart(option map[string]interface{}, apiConf map[string]apiserver.APIConfig,
 	errCh chan error) error {
 	initFunc := func() error {
-		return g.Initialize(context.Background(), option, api)
+		return g.Initialize(context.Background(), option, apiConf)
 	}
 	runFunc := func() {
 		g.Run(errCh)

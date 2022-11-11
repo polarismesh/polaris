@@ -28,6 +28,7 @@ import (
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	apiv2 "github.com/polarismesh/polaris/common/api/v2"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // GetClientAccessServer get client access server
@@ -56,15 +57,19 @@ func (h *HTTPServerV2) GetClientAccessServer(include []string) (*restful.WebServ
 
 // addDiscoverAccess 增加服务发现接口
 func (h *HTTPServerV2) addDiscoverAccess(ws *restful.WebService) {
-	tags := []string{"DiscoverAccess"}
+	tags := []string{"RegisterInstance"}
 	ws.Route(ws.POST("/Discover").To(h.Discover).
 		Doc("服务发现").
+		Operation("v2Discover").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 }
 
 // Discover 统一发现接口
 func (h *HTTPServerV2) Discover(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	discoverRequest := &apiv2.DiscoverRequest{}
 	ctx, err := handler.Parse(discoverRequest)
@@ -78,7 +83,7 @@ func (h *HTTPServerV2) Discover(req *restful.Request, rsp *restful.Response) {
 		zap.String("type", api.DiscoverRequest_DiscoverRequestType_name[int32(discoverRequest.Type)]),
 		zap.String("client-address", req.Request.RemoteAddr),
 		zap.String("user-agent", req.HeaderParameter("User-Agent")),
-		zap.String("request-id", req.HeaderParameter("Request-Id")),
+		utils.ZapRequestID(req.HeaderParameter("Request-Id")),
 	)
 
 	var ret *apiv2.DiscoverResponse

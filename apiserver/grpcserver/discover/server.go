@@ -28,6 +28,7 @@ import (
 	"github.com/polarismesh/polaris/apiserver/grpcserver"
 	v1 "github.com/polarismesh/polaris/apiserver/grpcserver/discover/v1"
 	v2 "github.com/polarismesh/polaris/apiserver/grpcserver/discover/v2"
+	"github.com/polarismesh/polaris/bootstrap"
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 	commonlog "github.com/polarismesh/polaris/common/log"
@@ -36,7 +37,7 @@ import (
 )
 
 var (
-	namingLog = commonlog.NamingScope()
+	namingLog = commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName)
 
 	cacheTypes = map[string]struct{}{
 		apiv1.DiscoverResponse_INSTANCE.String():        {},
@@ -70,9 +71,7 @@ func (g *GRPCServer) GetProtocol() string {
 // Initialize 初始化GRPC API服务器
 func (g *GRPCServer) Initialize(ctx context.Context, option map[string]interface{},
 	apiConf map[string]apiserver.APIConfig) error {
-
 	g.openAPI = apiConf
-
 	if err := g.BaseGrpcServer.Initialize(ctx, option, g.buildInitOptions(option)...); err != nil {
 		return err
 	}
@@ -107,8 +106,8 @@ func (g *GRPCServer) Initialize(ctx context.Context, option map[string]interface
 
 // Run 启动GRPC API服务器
 func (g *GRPCServer) Run(errCh chan error) {
-
 	g.BaseGrpcServer.Run(errCh, g.GetProtocol(), func(server *grpc.Server) error {
+		defer bootstrap.ApiServerWaitGroup.Done()
 		for name, config := range g.openAPI {
 			switch name {
 			case "client":

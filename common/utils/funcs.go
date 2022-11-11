@@ -54,6 +54,18 @@ func IsWildName(name string) bool {
 	return length >= 1 && name[length-1:length] == "*"
 }
 
+// ParseWildName 判断是否为格式化查询条件并且返回真正的查询信息
+func ParseWildName(name string) (string, bool) {
+	length := len(name)
+	ok := length >= 1 && name[length-1:length] == "*"
+
+	if ok {
+		return name[:len(name)-1], ok
+	}
+
+	return name, false
+}
+
 // NewUUID 返回一个随机的UUID
 func NewUUID() string {
 	uuidBytes := uuid.New()

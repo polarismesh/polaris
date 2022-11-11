@@ -20,7 +20,6 @@ package httpserver
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -37,14 +36,15 @@ func (h *HTTPServer) GetMaintainAccessServer() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.Path("/maintain/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/apiserver/conn").To(h.GetServerConnections))
-	ws.Route(ws.GET("/apiserver/conn/stats").To(h.GetServerConnStats))
-	ws.Route(ws.POST("apiserver/conn/close").To(h.CloseConnections))
-	ws.Route(ws.POST("/memory/free").To(h.FreeOSMemory))
-	ws.Route(ws.POST("/instance/clean").Consumes(restful.MIME_JSON).To(h.CleanInstance))
-	ws.Route(ws.GET("/instance/heartbeat").To(h.GetLastHeartbeat))
-	ws.Route(ws.GET("/log/outputlevel").To(h.GetLogOutputLevel))
-	ws.Route(ws.PUT("/log/outputlevel").To(h.SetLogOutputLevel))
+	ws.Route(enrichGetServerConnectionsApiDocs(ws.GET("/apiserver/conn").To(h.GetServerConnections)))
+	ws.Route(enrichGetServerConnStatsApiDocs(ws.GET("/apiserver/conn/stats").To(h.GetServerConnStats)))
+	ws.Route(enrichCloseConnectionsApiDocs(ws.POST("apiserver/conn/close").To(h.CloseConnections)))
+	ws.Route(enrichFreeOSMemoryApiDocs(ws.POST("/memory/free").To(h.FreeOSMemory)))
+	ws.Route(enrichCleanInstanceApiDocs(ws.POST("/instance/clean").To(h.CleanInstance)))
+	ws.Route(enrichBatchCleanInstancesApiDocs(ws.POST("/instance/batchclean").To(h.BatchCleanInstances)))
+	ws.Route(enrichGetLastHeartbeatApiDocs(ws.GET("/instance/heartbeat").To(h.GetLastHeartbeat)))
+	ws.Route(enrichGetLogOutputLevelApiDocs(ws.GET("/log/outputlevel").To(h.GetLogOutputLevel)))
+	ws.Route(enrichSetLogOutputLevelApiDocs(ws.PUT("/log/outputlevel").To(h.SetLogOutputLevel)))
 	return ws
 }
 
@@ -73,7 +73,7 @@ func (h *HTTPServer) GetServerConnStats(req *restful.Request, rsp *restful.Respo
 	ctx := initContext(req)
 	params := httpcommon.ParseQueryParams(req)
 
-	var amount int = 0
+	var amount int
 	if amountStr, ok := params["amount"]; ok {
 		if n, err := strconv.Atoi(amountStr); err == nil {
 			amount = n
@@ -119,7 +119,7 @@ func (h *HTTPServer) CloseConnections(req *restful.Request, rsp *restful.Respons
 	}
 
 	if err := h.maintainServer.CloseConnections(ctx, connReqs); err != nil {
-		rsp.WriteError(http.StatusBadRequest, err)
+		_ = rsp.WriteError(http.StatusBadRequest, err)
 	}
 }
 
@@ -127,14 +127,17 @@ func (h *HTTPServer) CloseConnections(req *restful.Request, rsp *restful.Respons
 func (h *HTTPServer) FreeOSMemory(req *restful.Request, rsp *restful.Response) {
 	ctx := initContext(req)
 	if err := h.maintainServer.FreeOSMemory(ctx); err != nil {
-		rsp.WriteError(http.StatusBadRequest, err)
+		_ = rsp.WriteError(http.StatusBadRequest, err)
 	}
 }
 
 // CleanInstance 彻底清理flag=1的实例运维接口
 // 支持一个个清理
 func (h *HTTPServer) CleanInstance(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	instance := &api.Instance{}
 	ctx, err := handler.Parse(instance)
@@ -146,10 +149,37 @@ func (h *HTTPServer) CleanInstance(req *restful.Request, rsp *restful.Response) 
 	handler.WriteHeaderAndProto(h.maintainServer.CleanInstance(ctx, instance))
 }
 
+func (h *HTTPServer) BatchCleanInstances(req *restful.Request, rsp *restful.Response) {
+	ctx := initContext(req)
+
+	var param struct {
+		BatchSize uint32 `json:"batch_size"`
+	}
+
+	if err := httpcommon.ParseJsonBody(req, &param); err != nil {
+		_ = rsp.WriteError(http.StatusBadRequest, err)
+		return
+	}
+
+	if count, err := h.maintainServer.BatchCleanInstances(ctx, param.BatchSize); err != nil {
+		_ = rsp.WriteError(http.StatusInternalServerError, err)
+	} else {
+		var ret struct {
+			RowsAffected uint32 `json:"rows_affected"`
+		}
+		ret.RowsAffected = count
+		_ = rsp.WriteAsJson(ret)
+	}
+
+}
+
 // GetLastHeartbeat 获取实例，上一次心跳的时间
 func (h *HTTPServer) GetLastHeartbeat(req *restful.Request, rsp *restful.Response) {
 	ctx := initContext(req)
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 	params := httpcommon.ParseQueryParams(req)
 	instance := &api.Instance{}
 	if id, ok := params["id"]; ok && id != "" {
@@ -187,12 +217,8 @@ func (h *HTTPServer) SetLogOutputLevel(req *restful.Request, rsp *restful.Respon
 		Scope string `json:"scope"`
 		Level string `json:"level"`
 	}
-	body, err := ioutil.ReadAll(req.Request.Body)
-	if err != nil {
-		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
-		return
-	}
-	if err := json.Unmarshal(body, &scopeLogLevel); err != nil {
+
+	if err := httpcommon.ParseJsonBody(req, &scopeLogLevel); err != nil {
 		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
 		return
 	}

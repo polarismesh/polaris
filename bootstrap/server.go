@@ -23,10 +23,11 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/auth"
@@ -52,6 +53,7 @@ var (
 	SelfServiceInstance = make([]*api.Instance, 0)
 	ConfigFilePath      = ""
 	selfHeathChecker    *SelfHeathChecker
+	ApiServerWaitGroup  = new(sync.WaitGroup)
 )
 
 // Start 启动
@@ -130,7 +132,8 @@ func Start(configFilePath string) {
 	_ = FinishBootstrapOrder(tx) // 启动完成，解锁
 	fmt.Println("finish starting server")
 
-	RunMainLoop(servers, errCh)
+	// 等待信号量
+	WaitSignal(servers, errCh)
 }
 
 // StartComponents start health check and naming components
@@ -189,7 +192,7 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 	}
 
 	// 初始化运维操作模块
-	if err := maintain.Initialize(ctx, namingSvr, healthCheckServer); err != nil {
+	if err := maintain.Initialize(ctx, namingSvr, healthCheckServer, s); err != nil {
 		return err
 	}
 
@@ -203,9 +206,6 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 
 func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s store.Store,
 	cacheMgn *cache.CacheManager, authMgn auth.AuthServer) error {
-
-	var err error
-
 	// 批量控制器
 	namingBatchConfig, err := batch.ParseBatchConfig(cfg.Naming.Batch)
 	if err != nil {
@@ -271,8 +271,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		return err
 	}
 
-	_, err = service.GetServer()
-	if err != nil {
+	if _, err = service.GetServer(); err != nil {
 		return err
 	}
 
@@ -282,7 +281,6 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 // StartConfigCenterComponents 启动配置中心模块
 func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config, s store.Store,
 	cacheMgn *cache.CacheManager, authMgn auth.AuthServer) error {
-
 	namespaceOperator, err := namespace.GetServer()
 	if err != nil {
 		return err
@@ -296,6 +294,9 @@ func StartServers(ctx context.Context, cfg *boot_config.Config, errCh chan error
 	[]apiserver.Apiserver, error) {
 	// 启动API服务器
 	var servers []apiserver.Apiserver
+
+	// 等待所有ApiServer都监听完成
+
 	for _, protocol := range cfg.APIServers {
 		slot, exist := apiserver.Slots[protocol.Name]
 		if !exist {
@@ -310,9 +311,10 @@ func StartServers(ctx context.Context, cfg *boot_config.Config, errCh chan error
 		}
 
 		servers = append(servers, slot)
+		ApiServerWaitGroup.Add(1)
 		go slot.Run(errCh)
 	}
-
+	ApiServerWaitGroup.Wait()
 	return servers, nil
 }
 
@@ -327,7 +329,6 @@ func RestartServers(errCh chan error) error {
 	log.Infof("new config: %+v", cfg)
 
 	// 把配置的每个apiserver，进行重启
-
 	for _, protocol := range cfg.APIServers {
 		server, exist := apiserver.Slots[protocol.Name]
 		if !exist {
@@ -513,21 +514,21 @@ func selfRegister(
 	}
 
 	name := boot_config.DefaultPolarisName
-	namespace := boot_config.DefaultPolarisNamespace
+	polarisNamespace := boot_config.DefaultPolarisNamespace
 	if polarisService.Name != "" {
 		name = polarisService.Name
 	}
 
 	if polarisService.Namespace != "" {
-		namespace = polarisService.Namespace
+		polarisNamespace = polarisService.Namespace
 	}
 
-	svc, err := storage.GetService(name, namespace)
+	svc, err := storage.GetService(name, polarisNamespace)
 	if err != nil {
 		return err
 	}
 	if svc == nil {
-		return fmt.Errorf("self service(%s) in namespace(%s) not found", name, namespace)
+		return fmt.Errorf("self service(%s) in namespace(%s) not found", name, polarisNamespace)
 	}
 
 	metadata := polarisService.Metadata
@@ -539,7 +540,7 @@ func selfRegister(
 
 	req := &api.Instance{
 		Service:           utils.NewStringValue(name),
-		Namespace:         utils.NewStringValue(namespace),
+		Namespace:         utils.NewStringValue(polarisNamespace),
 		Host:              utils.NewStringValue(host),
 		Port:              utils.NewUInt32Value(port),
 		Protocol:          utils.NewStringValue(protocol),
@@ -567,7 +568,6 @@ func selfRegister(
 		if api.CalcCode(resp) != 200 {
 			return fmt.Errorf("%s", resp.GetInfo().GetValue())
 		}
-
 	}
 	SelfServiceInstance = append(SelfServiceInstance, req)
 
@@ -599,7 +599,9 @@ func getLocalHost(addr string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	localAddr := conn.LocalAddr().String() // ip:port
 	segs := strings.Split(localAddr, ":")

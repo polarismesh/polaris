@@ -410,14 +410,13 @@ func (ss *serviceStore) GetMoreServices(mtime time.Time, firstUpdate, disableBus
 			return nil, err
 		}
 		return services, nil
-	} else {
-		services, err := getMoreServiceMain(ss.slave.Query, mtime, firstUpdate, disableBusiness)
-		if err != nil {
-			log.Errorf("[Store][database] get more service main err: %s", err.Error())
-			return nil, err
-		}
-		return services, nil
 	}
+	services, err := getMoreServiceMain(ss.slave.Query, mtime, firstUpdate, disableBusiness)
+	if err != nil {
+		log.Errorf("[Store][database] get more service main err: %s", err.Error())
+		return nil, err
+	}
+	return services, nil
 }
 
 // GetSystemServices 获取系统服务
@@ -843,7 +842,7 @@ func getMoreServiceMain(queryHandler QueryHandler, mtime time.Time,
 		args = append(args, SystemNamespace)
 	}
 	if firstUpdate {
-		str += " and flag != 1" // nolint
+		str += " and flag != 1"
 	}
 	rows, err := queryHandler(str, args...)
 	if err != nil {
@@ -1004,7 +1003,7 @@ func addServiceMeta(tx *BaseTx, id string, meta map[string]string) error {
 	for key, value := range meta {
 		cnt++
 		if cnt == len(meta) {
-			str += "(?, ?, ?, sysdate(), sysdate())" // nolint
+			str += "(?, ?, ?, sysdate(), sysdate())"
 		} else {
 			str += "(?, ?, ?, sysdate(), sysdate()),"
 		}

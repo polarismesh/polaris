@@ -23,19 +23,16 @@ import (
 	"time"
 
 	"go.uber.org/zap"
-
-	"github.com/polarismesh/polaris/common/log"
 )
 
 // watchStoreTime The timestamp change of the storage layer, whether the clock is dialed in the detection
 func (nc *CacheManager) watchStoreTime(ctx context.Context) {
-
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	preStoreTime, err := nc.storage.GetUnixSecond()
 	if err != nil {
-		log.CacheScope().Error("[Store][Time] watch store time", zap.Error(err))
+		log.Error("[Store][Time] watch store time", zap.Error(err))
 	}
 
 	for {
@@ -44,7 +41,7 @@ func (nc *CacheManager) watchStoreTime(ctx context.Context) {
 
 			storeSec, err := nc.storage.GetUnixSecond()
 			if err != nil {
-				log.CacheScope().Error("[Store][Time] watch store time", zap.Error(err))
+				log.Error("[Store][Time] watch store time", zap.Error(err))
 				continue
 			}
 			// 防止时间回退
@@ -59,5 +56,4 @@ func (nc *CacheManager) watchStoreTime(ctx context.Context) {
 			return
 		}
 	}
-
 }

@@ -39,7 +39,7 @@ type serviceStore struct {
 }
 
 var (
-	MultipleSvcFound error = errors.New("multiple service find")
+	ErrMultipleSvcFound = errors.New("multiple service find")
 )
 
 const (
@@ -558,7 +558,7 @@ func (ss *serviceStore) getServiceByNameAndNsIgnoreValid(name string, namespace 
 
 	if len(svc) > 1 {
 		log.Errorf("[Store][boltdb] multiple services found %v", svc)
-		return nil, MultipleSvcFound
+		return nil, ErrMultipleSvcFound
 	}
 
 	if len(svc) == 0 {
@@ -594,7 +594,7 @@ func (ss *serviceStore) getServiceByID(id string) (*model.Service, error) {
 
 	if len(svc) > 1 {
 		log.Errorf("[Store][boltdb] multiple services found %v", svc)
-		return nil, MultipleSvcFound
+		return nil, ErrMultipleSvcFound
 	}
 
 	svcRet := svc[id].(*model.Service)
@@ -723,10 +723,9 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				}
 				if utils.IsWildName(namespace) {
 					return strings.Contains(svcNs.(string), namespace[0:len(namespace)-1])
-				} else {
-					if svcNs.(string) != namespace {
-						return false
-					}
+				}
+				if svcNs.(string) != namespace {
+					return false
 				}
 			}
 
@@ -738,10 +737,9 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				}
 				if utils.IsWildName(name) {
 					return strings.Contains(svcName.(string), name[0:len(name)-1])
-				} else {
-					if svcName.(string) != name {
-						return false
-					}
+				}
+				if svcName.(string) != name {
+					return false
 				}
 			}
 
@@ -766,10 +764,9 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				}
 				if utils.IsWildName(department) {
 					return strings.Contains(svcDepartment.(string), department[0:len(department)-1])
-				} else {
-					if svcDepartment.(string) != department {
-						return false
-					}
+				}
+				if svcDepartment.(string) != department {
+					return false
 				}
 			}
 
@@ -780,10 +777,9 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				}
 				if utils.IsWildName(business) {
 					return strings.Contains(svcBusiness.(string), business[0:len(business)-1])
-				} else {
-					if svcBusiness.(string) != business {
-						return false
-					}
+				}
+				if svcBusiness.(string) != business {
+					return false
 				}
 			}
 
@@ -808,7 +804,7 @@ func (ss *serviceStore) cleanInValidService(name, namespace string) error {
 		return nil
 	}
 
-	if err := ss.handler.DeleteValues(tblNameService, []string{old.ID}, false); err != nil {
+	if err := ss.handler.DeleteValues(tblNameService, []string{old.ID}); err != nil {
 		log.Errorf("[Store][boltdb] delete invalid service error, %+v", err)
 		return err
 	}

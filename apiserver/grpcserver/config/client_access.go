@@ -27,18 +27,14 @@ import (
 // GetConfigFile 拉取配置
 func (g *ConfigGRPCServer) GetConfigFile(ctx context.Context,
 	configFile *api.ClientConfigFileInfo) (*api.ConfigClientResponse, error) {
-
 	ctx = grpcserver.ConvertContext(ctx)
-
 	response := g.configServer.GetConfigFileForClient(ctx, configFile)
-
 	return response, nil
 }
 
 // WatchConfigFiles 订阅配置变更
 func (g *ConfigGRPCServer) WatchConfigFiles(ctx context.Context,
 	request *api.ClientWatchConfigFileRequest) (*api.ConfigClientResponse, error) {
-
 	ctx = grpcserver.ConvertContext(ctx)
 
 	// 阻塞等待响应

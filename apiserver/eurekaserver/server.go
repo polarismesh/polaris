@@ -27,10 +27,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/emicklei/go-restful/v3"
+	restful "github.com/emicklei/go-restful/v3"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/apiserver"
+	"github.com/polarismesh/polaris/bootstrap"
 	"github.com/polarismesh/polaris/common/connlimit"
 	"github.com/polarismesh/polaris/common/secure"
 	"github.com/polarismesh/polaris/common/utils"
@@ -253,6 +254,8 @@ func (h *EurekaServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
+	bootstrap.ApiServerWaitGroup.Done()
+
 	ln = &tcpKeepAliveListener{ln.(*net.TCPListener)}
 	// 开启最大连接数限制
 	if h.connLimitConfig != nil && h.connLimitConfig.OpenConnLimit {
@@ -418,7 +421,6 @@ func (h *EurekaServer) postproccess(req *restful.Request, rsp *restful.Response)
 
 // getEurekaApi 聚合 eureka 接口，不暴露服务名和实例 id
 func getEurekaApi(method, path string) string {
-
 	if path == "" {
 		return ""
 	}

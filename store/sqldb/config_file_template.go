@@ -32,7 +32,6 @@ type configFileTemplateStore struct {
 // CreateConfigFileTemplate create config file template
 func (cf *configFileTemplateStore) CreateConfigFileTemplate(
 	template *model.ConfigFileTemplate) (*model.ConfigFileTemplate, error) {
-
 	createSql := "insert into config_file_template(name,content,comment,format,create_time,create_by, " +
 		" modify_time,modify_by) values " +
 		"(?,?,?,?,sysdate(),?,sysdate(),?)"
@@ -87,10 +86,11 @@ func (cf *configFileTemplateStore) transferRows(rows *sql.Rows) ([]*model.Config
 	if rows == nil {
 		return nil, nil
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var templates []*model.ConfigFileTemplate
-
 	for rows.Next() {
 		template := &model.ConfigFileTemplate{}
 		var ctime, mtime int64

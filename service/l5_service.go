@@ -263,7 +263,6 @@ func (s *Server) getCalleeByRoute(route *model.Route) []*model.Callee {
 	hasInstance := false
 	_ = s.caches.Instance().IteratorInstancesWithService(service.ID,
 		func(_ string, entry *model.Instance) (b bool, e error) {
-
 			// 过滤掉不健康或者隔离状态的server
 			if !entry.Healthy() || entry.Isolate() {
 				return false, nil
@@ -308,7 +307,6 @@ func (s *Server) getCalleeByRoute(route *model.Route) []*model.Callee {
 
 			// 转换ipStr to int
 			ip := ParseIPStr2IntV2(entry.Host())
-
 			callee := &model.Callee{
 				ModID:  route.ModID,
 				CmdID:  route.CmdID,

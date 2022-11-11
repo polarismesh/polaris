@@ -232,7 +232,7 @@ func (ins *instanceStore) CleanInstance(instanceID string) error {
 // DeleteInstance 删除一个实例，删除实例实际上是把flag置为1
 func (ins *instanceStore) DeleteInstance(instanceID string) error {
 	if instanceID == "" {
-		return errors.New("Delete Instance Missing instance id")
+		return errors.New("delete Instance Missing instance id")
 	}
 
 	str := "update instance set flag = 1, mtime = sysdate() where `id` = ?"
@@ -469,13 +469,12 @@ func (ins *instanceStore) GetMoreInstances(mtime time.Time, firstUpdate, needMet
 			return nil, err
 		}
 		return instances, nil
-	} else {
-		instances, err := ins.getMoreInstancesMain(mtime, firstUpdate, serviceID)
-		if err != nil {
-			return nil, err
-		}
-		return instances, nil
 	}
+	instances, err := ins.getMoreInstancesMain(mtime, firstUpdate, serviceID)
+	if err != nil {
+		return nil, err
+	}
+	return instances, nil
 }
 
 // GetInstanceMeta 根据实例ID获取实例的metadata
@@ -672,7 +671,7 @@ func (ins *instanceStore) getMoreInstancesMain(mtime time.Time, firstUpdate bool
 	args = append(args, timeToTimestamp(mtime))
 
 	if firstUpdate {
-		str += " and flag != 1" // nolint
+		str += " and flag != 1"
 	}
 
 	if len(serviceID) > 0 {
@@ -871,7 +870,6 @@ func batchAddInstanceCheck(tx *BaseTx, instances []*model.Instance) error {
 	}
 	_, err := tx.Exec(str, args...)
 	return err
-
 }
 
 // addInstanceMeta 往表中加入instance meta数据
@@ -886,7 +884,7 @@ func addInstanceMeta(tx *BaseTx, id string, meta map[string]string) error {
 	for key, value := range meta {
 		cnt++
 		if cnt == len(meta) {
-			str += "(?, ?, ?, sysdate(), sysdate())" // nolint
+			str += "(?, ?, ?, sysdate(), sysdate())"
 		} else {
 			str += "(?, ?, ?, sysdate(), sysdate()), "
 		}
@@ -940,7 +938,7 @@ func batchAddInstanceMeta(tx *BaseTx, instances []*model.Instance) error {
 			if !first {
 				str += ","
 			}
-			str += "(?, ?, ?, sysdate(), sysdate())" // nolint
+			str += "(?, ?, ?, sysdate(), sysdate())"
 			first = false
 			args = append(args, entry.ID(), key, value)
 		}
@@ -1128,7 +1126,6 @@ func fetchInstanceMetaRows(instances map[string]*model.Instance, rows *sql.Rows)
 	}
 
 	return nil
-
 }
 
 // genInstanceSelectSQL 生成instance的select sql语句

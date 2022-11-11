@@ -27,7 +27,6 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -37,7 +36,7 @@ func init() {
 }
 
 const (
-	StrategyRuleName string = "strategyRule"
+	StrategyRuleName = "strategyRule"
 )
 
 // StrategyCache is a cache for strategy rules.
@@ -234,7 +233,6 @@ func (sc *strategyCache) initBuckets() {
 
 func (sc *strategyCache) initialize(c map[string]interface{}) error {
 	sc.initBuckets()
-
 	sc.singleFlight = new(singleflight.Group)
 	sc.firstUpdate = true
 	sc.lastUpdateTime = 0
@@ -251,19 +249,21 @@ func (sc *strategyCache) update(storeRollbackSec time.Duration) error {
 
 func (sc *strategyCache) realUpdate(storeRollbackSec time.Duration) error {
 	// 获取几秒前的全部数据
-	start := time.Now()
-	lastMtime := time.Unix(sc.lastUpdateTime, 0)
-	strategys, err := sc.storage.GetStrategyDetailsForCache(lastMtime.Add(storeRollbackSec), sc.firstUpdate)
+	var (
+		start          = time.Now()
+		lastMtime      = time.Unix(sc.lastUpdateTime, 0)
+		strategys, err = sc.storage.GetStrategyDetailsForCache(lastMtime.Add(storeRollbackSec), sc.firstUpdate)
+	)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][AuthStrategy] refresh auth strategy cache err: %s", err.Error())
+		log.Errorf("[Cache][AuthStrategy] refresh auth strategy cache err: %s", err.Error())
 		return err
 	}
 
 	sc.firstUpdate = false
 	add, update, del := sc.setStrategys(strategys)
-	log.CacheScope().Info("[Cache][AuthStrategy] get more auth strategy",
+	log.Info("[Cache][AuthStrategy] get more auth strategy",
 		zap.Int("add", add), zap.Int("update", update), zap.Int("delete", del),
-		zap.Time("last", lastMtime), zap.Duration("used", time.Now().Sub(start)))
+		zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
 	return nil
 }
 
@@ -271,12 +271,7 @@ func (sc *strategyCache) realUpdate(storeRollbackSec time.Duration) error {
 // step 1. 先处理resource以及principal的数据更新情况（主要是为了能够获取到新老数据进行对比计算）
 // step 2. 处理真正的 strategy 的缓存更新
 func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (int, int, int) {
-
-	var (
-		add    int
-		remove int
-		update int
-	)
+	var add, remove, update int
 
 	sc.handlerResourceStrategy(strategies)
 	sc.handlerPrincipalStrategy(strategies)
@@ -300,7 +295,6 @@ func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (int, 
 	}
 
 	sc.postProcessPrincipalCh()
-
 	return add, update, remove
 }
 
@@ -390,7 +384,6 @@ func (sc *strategyCache) handlerResourceStrategy(strategies []*model.StrategyDet
 
 // handlerPrincipalStrategy
 func (sc *strategyCache) handlerPrincipalStrategy(strategies []*model.StrategyDetail) {
-
 	for index := range strategies {
 		rule := strategies[index]
 		// 计算 uid -> auth rule
@@ -462,7 +455,7 @@ func (sc *strategyCache) postProcessPrincipalCh() {
 				sc.groupid2Strategy.deleteAllLink(principal.PrincipalID)
 			}
 		}
-	case <-time.After(time.Duration(100 * time.Millisecond)):
+	case <-time.After(100 * time.Millisecond):
 		return
 	}
 }
@@ -511,7 +504,6 @@ func (sc *strategyCache) checkResourceEditable(strategIds []string, principal mo
 // IsResourceEditable 判断当前资源是否可以操作
 // 这里需要考虑两种情况，一种是 “ * ” 策略，另一种是明确指出了具体的资源ID的策略
 func (sc *strategyCache) IsResourceEditable(principal model.Principal, resType api.ResourceType, resId string) bool {
-
 	var (
 		valAll, val []string
 		ok          bool
@@ -560,12 +552,10 @@ func (sc *strategyCache) IsResourceEditable(principal model.Principal, resType a
 }
 
 func (sc *strategyCache) GetStrategyDetailsByUID(uid string) []*model.StrategyDetail {
-
 	return sc.getStrategyDetails(uid, "")
 }
 
 func (sc *strategyCache) GetStrategyDetailsByGroupID(groupid string) []*model.StrategyDetail {
-
 	return sc.getStrategyDetails("", groupid)
 }
 
@@ -586,7 +576,7 @@ func (sc *strategyCache) getStrategyDetails(uid string, gid string) []*model.Str
 		}
 	}
 
-	if strategyIds != nil {
+	if len(strategyIds) > 0 {
 		result := make([]*model.StrategyDetail, 0, 16)
 		for i := range strategyIds {
 			strategy, ok := sc.strategys.get(strategyIds[i])

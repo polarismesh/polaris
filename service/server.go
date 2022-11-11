@@ -49,7 +49,6 @@ type Server struct {
 	ratelimit      plugin.Ratelimit
 	discoverStatis plugin.DiscoverStatis
 	discoverEvent  plugin.DiscoverChannel
-	auth           plugin.Auth
 
 	l5service *l5service
 
@@ -96,12 +95,12 @@ func (s *Server) RecordHistory(entry *model.RecordEntry) {
 }
 
 // RecordDiscoverStatis 打印服务发现统计
-func (s *Server) RecordDiscoverStatis(service, namespace string) {
+func (s *Server) RecordDiscoverStatis(service, discoverNamespace string) {
 	if s.discoverStatis == nil {
 		return
 	}
 
-	_ = s.discoverStatis.AddDiscoverCall(service, namespace, time.Now())
+	_ = s.discoverStatis.AddDiscoverCall(service, discoverNamespace, time.Now())
 }
 
 // PublishDiscoverEvent 发布服务事件
@@ -115,8 +114,7 @@ func (s *Server) PublishDiscoverEvent(event model.DiscoverEvent) {
 
 // GetServiceInstanceRevision 获取服务实例的revision
 func (s *Server) GetServiceInstanceRevision(serviceID string, instances []*model.Instance) (string, error) {
-	revision := s.caches.GetServiceInstanceRevision(serviceID)
-	if revision != "" {
+	if revision := s.caches.GetServiceInstanceRevision(serviceID); revision != "" {
 		return revision, nil
 	}
 
@@ -158,7 +156,6 @@ func (s *Server) allowInstanceAccess(instanceID string) bool {
 
 func (s *Server) afterServiceResource(ctx context.Context, req *api.Service, save *model.Service,
 	remove bool) error {
-
 	event := &ResourceEvent{
 		ReqService: req,
 		Service:    save,

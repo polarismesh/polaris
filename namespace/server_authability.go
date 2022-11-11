@@ -25,7 +25,6 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -53,11 +52,9 @@ func newServerAuthAbility(targetServer *Server, authSvr auth.AuthServer) Namespa
 // collectNamespaceAuthContext 对于命名空间的处理，收集所有的与鉴权的相关信息
 func (svr *serverAuthAbility) collectNamespaceAuthContext(ctx context.Context, req []*api.Namespace,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.CoreModule),
 		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryNamespaceResource(req)),
@@ -67,7 +64,6 @@ func (svr *serverAuthAbility) collectNamespaceAuthContext(ctx context.Context, r
 // queryNamespaceResource 根据所给的 namespace 信息，收集对应的 ResourceEntry 列表
 func (svr *serverAuthAbility) queryNamespaceResource(
 	req []*api.Namespace) map[api.ResourceType][]model.ResourceEntry {
-
 	names := utils.NewStringSet()
 	for index := range req {
 		names.Add(req[index].Name.GetValue())
@@ -88,7 +84,7 @@ func (svr *serverAuthAbility) queryNamespaceResource(
 	ret := map[api.ResourceType][]model.ResourceEntry{
 		api.ResourceType_Namespaces: temp,
 	}
-	commonlog.AuthScope().Debug("[Auth][Server] collect namespace access res", zap.Any("res", ret))
+	authLog.Debug("[Auth][Server] collect namespace access res", zap.Any("res", ret))
 	return ret
 }
 

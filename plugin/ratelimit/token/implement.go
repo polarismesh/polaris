@@ -18,7 +18,6 @@
 package token
 
 import (
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/plugin"
 )
 

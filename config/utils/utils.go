@@ -14,6 +14,8 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
+
+// Package utils contains some common functions
 package utils
 
 import (
@@ -44,11 +46,11 @@ var (
 // CheckResourceName 检查资源名称
 func CheckResourceName(name *wrappers.StringValue) error {
 	if name == nil {
-		return errors.New("nil")
+		return errors.New(utils.NilErrString)
 	}
 
 	if name.GetValue() == "" {
-		return errors.New("empty")
+		return errors.New(utils.EmptyErrString)
 	}
 
 	if ok := regSourceName.MatchString(name.GetValue()); !ok {
@@ -61,11 +63,11 @@ func CheckResourceName(name *wrappers.StringValue) error {
 // CheckFileName 校验文件名
 func CheckFileName(name *wrappers.StringValue) error {
 	if name == nil {
-		return errors.New("nil")
+		return errors.New(utils.NilErrString)
 	}
 
 	if name.GetValue() == "" {
-		return errors.New("empty")
+		return errors.New(utils.EmptyErrString)
 	}
 
 	if ok := regFileName.MatchString(name.GetValue()); !ok {
@@ -92,14 +94,14 @@ func CheckContentLength(content string) error {
 }
 
 // GenConfigFileResponse 为客户端生成响应对象
-func GenConfigFileResponse(namespace, group, fileName, content, md5 string, version uint64) *api.ConfigClientResponse {
+func GenConfigFileResponse(namespace, group, fileName, content, md5str string, version uint64) *api.ConfigClientResponse {
 	configFile := &api.ClientConfigFileInfo{
 		Namespace: utils.NewStringValue(namespace),
 		Group:     utils.NewStringValue(group),
 		FileName:  utils.NewStringValue(fileName),
 		Content:   utils.NewStringValue(content),
 		Version:   utils.NewUInt64Value(version),
-		Md5:       utils.NewStringValue(md5),
+		Md5:       utils.NewStringValue(md5str),
 	}
 	return api.NewConfigClientResponse(api.ExecuteSuccess, configFile)
 }
@@ -123,7 +125,10 @@ func ToTagJsonStr(tags []*api.ConfigFileTag) string {
 		})
 	}
 
-	bytes, _ := json.Marshal(kvs)
+	bytes, err := json.Marshal(kvs)
+	if err != nil {
+		return "[]"
+	}
 	return string(bytes)
 }
 

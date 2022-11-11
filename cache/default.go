@@ -1,5 +1,5 @@
 /**
- * Tencent is pleased to support the open source community by making CL5 available.
+ * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
  *
@@ -22,7 +22,6 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -114,7 +113,7 @@ func newCacheManager(ctx context.Context, cacheOpt *Config, storage store.Store)
 
 func Run(cacheMgr *CacheManager, ctx context.Context) error {
 	if startErr := cacheMgr.Start(ctx); startErr != nil {
-		log.CacheScope().Errorf("[Cache][Server] start cache err: %s", startErr.Error())
+		log.Errorf("[Cache][Server] start cache err: %s", startErr.Error())
 		return startErr
 	}
 

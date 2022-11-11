@@ -35,16 +35,15 @@ type serverAuthAbility struct {
 // Initialize 执行初始化动作
 func (svr *serverAuthAbility) Initialize(authOpt *auth.Config, storage store.Store,
 	cacheMgn *cache.CacheManager) error {
-
-	history := plugin.GetHistory()
-
-	authMgn := &defaultAuthChecker{}
+	var (
+		history = plugin.GetHistory()
+		authMgn = &defaultAuthChecker{}
+	)
 	if err := authMgn.Initialize(authOpt, cacheMgn); err != nil {
 		return err
 	}
 
 	svr.authMgn = authMgn
-
 	svr.target = &server{
 		storage:  storage,
 		history:  history,

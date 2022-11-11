@@ -5,5 +5,5 @@
 在`./store`目录执行
 
 ```
-mockgen -source=api.go -aux_files github.com/polarismesh/polaris-server/store=config_file_api.go,github.com/polarismesh/polaris-server/store=discover_api.go,github.com/polarismesh/polaris-server/store=auth_api.go -destination=mock/api_mock.go -package=mock
+mockgen -source=api.go -aux_files github.com/polarismesh/polaris/store=config_file_api.go,github.com/polarismesh/polaris/store=discover_api.go,github.com/polarismesh/polaris/store=auth_api.go,github.com/polarismesh/polaris/store=maintain_api.go -destination=mock/api_mock.go -package=mock
 ```

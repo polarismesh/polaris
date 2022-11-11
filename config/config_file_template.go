@@ -1,4 +1,4 @@
-/*
+/**
  * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -23,7 +23,6 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -54,8 +53,8 @@ func (s *Server) CreateConfigFileTemplate(ctx context.Context, template *api.Con
 
 	if err != nil {
 		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
-		log.ConfigScope().Error("[Config][Service] create config file template error.",
-			zap.String("request-id", requestID),
+		log.Error("[Config][Service] create config file template error.",
+			utils.ZapRequestID(requestID),
 			zap.Error(err))
 		return api.NewConfigFileTemplateResponse(api.StoreLayerException, template)
 	}
@@ -64,6 +63,7 @@ func (s *Server) CreateConfigFileTemplate(ctx context.Context, template *api.Con
 		transferConfigFileTemplateStoreModel2APIModel(createdTemplate))
 }
 
+// GetConfigFileTemplate get config file template by name
 func (s *Server) GetConfigFileTemplate(ctx context.Context, name string) *api.ConfigResponse {
 	if len(name) == 0 {
 		return api.NewConfigFileTemplateResponse(api.InvalidConfigFileTemplateName, nil)
@@ -72,8 +72,8 @@ func (s *Server) GetConfigFileTemplate(ctx context.Context, name string) *api.Co
 	template, err := s.storage.GetConfigFileTemplate(name)
 	if err != nil {
 		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
-		log.ConfigScope().Error("[Config][Service] get config file template error.",
-			zap.String("request-id", requestID),
+		log.Error("[Config][Service] get config file template error.",
+			utils.ZapRequestID(requestID),
 			zap.String("name", name),
 			zap.Error(err))
 		return api.NewConfigFileTemplateResponse(api.StoreLayerException, nil)
@@ -93,8 +93,8 @@ func (s *Server) GetAllConfigFileTemplates(ctx context.Context) *api.ConfigBatch
 
 	if err != nil {
 		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
-		log.ConfigScope().Error("[Config][Service]query all config file templates error.",
-			zap.String("request-id", requestID),
+		log.Error("[Config][Service]query all config file templates error.",
+			utils.ZapRequestID(requestID),
 			zap.Error(err))
 
 		return api.NewConfigFileTemplateBatchQueryResponse(api.StoreLayerException, 0, nil)

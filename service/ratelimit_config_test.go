@@ -19,16 +19,69 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/stretchr/testify/assert"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
+
+type CacheListener struct {
+	onCreated      func(value interface{})
+	onUpdated      func(value interface{})
+	onDeleted      func(value interface{})
+	onBatchCreated func(value interface{})
+	onBatchUpdated func(value interface{})
+	onBatchDeleted func(value interface{})
+}
+
+// OnCreated callback when cache value created
+func (l *CacheListener) OnCreated(value interface{}) {
+	if l.onCreated != nil {
+		l.onCreated(value)
+	}
+}
+
+// OnUpdated callback when cache value updated
+func (l *CacheListener) OnUpdated(value interface{}) {
+	if l.onUpdated != nil {
+		l.onUpdated(value)
+	}
+}
+
+// OnDeleted callback when cache value deleted
+func (l *CacheListener) OnDeleted(value interface{}) {
+	if l.onDeleted != nil {
+		l.onDeleted(value)
+	}
+}
+
+// OnBatchCreated callback when cache value created
+func (l *CacheListener) OnBatchCreated(value interface{}) {
+	if l.onBatchCreated != nil {
+		l.onBatchCreated(value)
+	}
+}
+
+// OnBatchUpdated callback when cache value updated
+func (l *CacheListener) OnBatchUpdated(value interface{}) {
+	if l.onBatchUpdated != nil {
+		l.onBatchUpdated(value)
+	}
+}
+
+// OnBatchDeleted callback when cache value deleted
+func (l *CacheListener) OnBatchDeleted(value interface{}) {
+	if l.onBatchDeleted != nil {
+		l.onBatchDeleted(value)
+	}
+}
 
 /**
  * @brief 测试创建限流规则
@@ -304,9 +357,8 @@ func TestUpdateRateLimit(t *testing.T) {
 	_, rateLimitResp := discoverSuit.createCommonRateLimit(t, serviceResp, 1)
 	defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 
-	updateRateLimitContent(rateLimitResp, 2)
-
 	t.Run("更新单个限流规则，可以正常更新", func(t *testing.T) {
+		updateRateLimitContent(rateLimitResp, 2)
 		discoverSuit.updateRateLimit(t, rateLimitResp)
 		filters := map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
@@ -316,6 +368,7 @@ func TestUpdateRateLimit(t *testing.T) {
 		if !respSuccess(resp) {
 			t.Fatalf("error")
 		}
+		assert.True(t, len(resp.GetRateLimits()) > 0)
 		checkRateLimit(t, rateLimitResp, resp.GetRateLimits()[0])
 	})
 
@@ -329,9 +382,7 @@ func TestUpdateRateLimit(t *testing.T) {
 	})
 
 	t.Run("更新限流规则时，没有传递token，正常", func(t *testing.T) {
-
 		oldCtx := discoverSuit.defaultCtx
-
 		discoverSuit.defaultCtx = context.Background()
 
 		defer func() {
@@ -384,28 +435,97 @@ func TestUpdateRateLimit(t *testing.T) {
 
 		t.Log("pass")
 	})
+}
 
-	t.Run("启用限流规则", func(t *testing.T) {
+func TestDisableRateLimit(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
 
-		oldCtx := discoverSuit.defaultCtx
+	_, serviceResp := discoverSuit.createCommonService(t, 0)
+	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+	defer discoverSuit.cleanRateLimitRevision(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		discoverSuit.defaultCtx = context.Background()
+	_, rateLimitResp := discoverSuit.createCommonRateLimit(t, serviceResp, 1)
+	defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 
-		defer func() {
-			discoverSuit.defaultCtx = oldCtx
-		}()
+	t.Run("反复启用禁止限流规则, 正常下发客户端", func(t *testing.T) {
+		_, rateLimitResp := discoverSuit.createCommonRateLimit(t, serviceResp, 10000)
+		defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
+		delay := time.NewTimer(time.Second)
+		t.Cleanup(func() {
+			delay.Stop()
+		})
 
-		ruleContents := []*api.Rule{
-			{
-				Id:      utils.NewStringValue(rateLimitResp.GetId().GetValue()),
-				Disable: utils.NewBoolValue(true),
-			},
+		check := func(label string, disable bool) {
+			ruleContents := []*api.Rule{
+				{
+					Id:      utils.NewStringValue(rateLimitResp.GetId().GetValue()),
+					Disable: utils.NewBoolValue(disable),
+				},
+			}
+
+			t.Logf("start run : %s", label)
+			if resp := discoverSuit.server.EnableRateLimits(discoverSuit.defaultCtx, ruleContents); !respSuccess(resp) {
+				t.Fatalf("error: %s", resp.GetInfo().GetValue())
+			}
+			filters := map[string]string{
+				"id": rateLimitResp.GetId().GetValue(),
+			}
+			resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
+			if !respSuccess(resp) {
+				t.Fatalf("error : %s", resp.GetInfo().GetValue())
+			}
+			assert.Equal(t, 1, len(resp.GetRateLimits()))
+
+			data, _ := json.Marshal(resp.GetRateLimits())
+			t.Logf("find target ratelimit rule from store : %s", string(data))
+
+			assert.Equal(t, rateLimitResp.GetId().GetValue(), resp.GetRateLimits()[0].GetId().GetValue())
+			assert.Equal(t, disable, resp.GetRateLimits()[0].GetDisable().GetValue())
+
+			time.Sleep(10 * time.Second)
+
+			var ok bool
+			for i := 0; i < 3; i++ {
+				discoverResp := discoverSuit.server.GetRateLimitWithCache(discoverSuit.defaultCtx, serviceResp)
+				if !respSuccess(discoverResp) {
+					t.Fatalf("error: %s", resp.GetInfo().GetValue())
+				}
+
+				assert.True(t, len(discoverResp.GetRateLimit().GetRules()) > 0)
+
+				for i := range discoverResp.GetRateLimit().GetRules() {
+					rule := discoverResp.GetRateLimit().GetRules()[i]
+					if rule.GetId().GetValue() == rateLimitResp.GetId().GetValue() {
+						data, _ := json.Marshal(rule)
+						t.Logf("find target ratelimit rule from cache : %s", string(data))
+						if disable == rule.GetDisable().GetValue() {
+							ok = true
+							break
+						}
+						time.Sleep(time.Second)
+					}
+				}
+			}
+			if !ok {
+				t.Fatalf("%s match ratelimit disable status", label)
+			} else {
+				t.Logf("start run : success : %s %s", rateLimitResp.GetId().GetValue(), resp.GetRateLimits()[0].GetId().GetValue())
+			}
 		}
-		if resp := discoverSuit.server.EnableRateLimits(discoverSuit.defaultCtx, ruleContents); !respSuccess(resp) {
-			t.Logf("pass: %s", resp.GetInfo().GetValue())
-		} else {
-			t.Fatalf("error")
-		}
+
+		check("禁用限流规则", true)
+		time.Sleep(time.Second)
+		check("启用限流规则", false)
+		time.Sleep(time.Second)
+		check("禁用限流规则", true)
+		time.Sleep(time.Second)
+		check("启用限流规则", false)
+		time.Sleep(time.Second)
+
 	})
 }
 
@@ -525,49 +645,6 @@ func TestGetRateLimit(t *testing.T) {
 			t.Fatalf("expect num is %d, actual num is %d", serviceNum, resp.GetSize().GetValue())
 		}
 	})
-
-	// t.Run("查询限流规则，过滤条件为arguments中的key", func(t *testing.T) {
-	// 	filters := map[string]string{
-	// 		"labels": labelsKey,
-	// 	}
-	// 	resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
-	// 	if !respSuccess(resp) {
-	// 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
-	// 	}
-	// 	if resp.GetSize().GetValue() != uint32(serviceNum) {
-	// 		t.Fatalf("expect num is %d, actual num is %d", serviceNum, resp.GetSize().GetValue())
-	// 	}
-	// })
-
-	// t.Run("查询限流规则，过滤条件为arguments中的value", func(t *testing.T) {
-	// 	filters := map[string]string{
-	// 		"labels": labelsValue.GetValue().GetValue(),
-	// 	}
-	// 	resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
-	// 	if !respSuccess(resp) {
-	// 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
-	// 	}
-	// 	if resp.GetSize().GetValue() != uint32(serviceNum) {
-	// 		t.Fatalf("expect num is %d, actual num is %d", serviceNum, resp.GetSize().GetValue())
-	// 	}
-	// })
-
-	// t.Run("查询限流规则，过滤条件为arguments中的key和value", func(t *testing.T) {
-	// 	labelsString, err := json.Marshal(labels)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	filters := map[string]string{
-	// 		"labels": string(labelsString),
-	// 	}
-	// 	resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
-	// 	if !respSuccess(resp) {
-	// 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
-	// 	}
-	// 	if resp.GetSize().GetValue() != uint32(serviceNum) {
-	// 		t.Fatalf("expect num is %d, actual num is %d", serviceNum, resp.GetSize().GetValue())
-	// 	}
-	// })
 
 	t.Run("查询限流规则，offset为负数，返回错误", func(t *testing.T) {
 		filters := map[string]string{

@@ -21,10 +21,12 @@ import (
 	"os"
 	"sync"
 
-	"github.com/polarismesh/polaris/common/log"
+	commonLog "github.com/polarismesh/polaris/common/log"
 )
 
-var statisOnce sync.Once
+var (
+	statisOnce sync.Once
+)
 
 const (
 	ComponentServer = "server"
@@ -55,7 +57,7 @@ func GetStatis() Statis {
 
 	statisOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			log.Errorf("plugin init err: %s", err.Error())
+			commonLog.GetScopeOrDefaultByName(c.Name).Errorf("plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})

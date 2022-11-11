@@ -30,12 +30,11 @@ type HTTPServerV2 struct {
 	healthCheckServer *healthcheck.Server
 }
 
-// NewV2Server
+// NewV2Server 创建V2版本的HTTPServer
 func NewV2Server(
 	namespaceServer namespace.NamespaceOperateServer,
 	namingServer service.DiscoverServer,
 	healthCheckServer *healthcheck.Server) *HTTPServerV2 {
-
 	return &HTTPServerV2{
 		namespaceServer:   namespaceServer,
 		namingServer:      namingServer,

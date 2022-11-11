@@ -26,7 +26,6 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	servicecommon "github.com/polarismesh/polaris/common/service"
 	"github.com/polarismesh/polaris/common/utils"
@@ -73,11 +72,9 @@ func (svr *serverAuthAbility) GetServiceInstanceRevision(serviceID string,
 //	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectServiceAuthContext(ctx context.Context, req []*api.Service,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
 		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryServiceResource(req)),
@@ -93,11 +90,9 @@ func (svr *serverAuthAbility) collectServiceAuthContext(ctx context.Context, req
 //	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectServiceAliasAuthContext(ctx context.Context, req []*api.ServiceAlias,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
 		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryServiceAliasResource(req)),
@@ -113,11 +108,9 @@ func (svr *serverAuthAbility) collectServiceAliasAuthContext(ctx context.Context
 //	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectInstanceAuthContext(ctx context.Context, req []*api.Instance,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
 		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryInstanceResource(req)),
@@ -127,11 +120,9 @@ func (svr *serverAuthAbility) collectInstanceAuthContext(ctx context.Context, re
 // collectClientInstanceAuthContext 对于服务实例的处理，收集所有的与鉴权的相关信息
 func (svr *serverAuthAbility) collectClientInstanceAuthContext(ctx context.Context, req []*api.Instance,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
 		model.WithMethod(methodName),
 		model.WithFromClient(),
@@ -148,11 +139,9 @@ func (svr *serverAuthAbility) collectClientInstanceAuthContext(ctx context.Conte
 //	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectCircuitBreakerAuthContext(ctx context.Context, req []*api.CircuitBreaker,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
 		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryCircuitBreakerResource(req)),
@@ -168,11 +157,9 @@ func (svr *serverAuthAbility) collectCircuitBreakerAuthContext(ctx context.Conte
 //	@return *model.AcquireContext
 func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx context.Context, req []*api.ConfigRelease,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
 		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryCircuitBreakerReleaseResource(req)),
@@ -188,11 +175,9 @@ func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx contex
 //	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectRouteRuleAuthContext(ctx context.Context, req []*api.Routing,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
 		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryRouteRuleResource(req)),
@@ -208,11 +193,9 @@ func (svr *serverAuthAbility) collectRouteRuleAuthContext(ctx context.Context, r
 //	@return *model.AcquireContext 返回鉴权上下文
 func (svr *serverAuthAbility) collectRateLimitAuthContext(ctx context.Context, req []*api.Rule,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
-		model.WithToken(utils.ParseAuthToken(ctx)),
 		model.WithModule(model.DiscoverModule),
 		model.WithMethod(methodName),
 		model.WithAccessResources(svr.queryRateLimitConfigResource(req)),
@@ -238,7 +221,7 @@ func (svr *serverAuthAbility) queryServiceResource(
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	commonlog.AuthScope().Debug("[Auth][Server] collect service access res", zap.Any("res", ret))
+	authLog.Debug("[Auth][Server] collect service access res", zap.Any("res", ret))
 	return ret
 }
 
@@ -265,7 +248,7 @@ func (svr *serverAuthAbility) queryServiceAliasResource(
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	commonlog.AuthScope().Debug("[Auth][Server] collect service alias access res", zap.Any("res", ret))
+	authLog.Debug("[Auth][Server] collect service alias access res", zap.Any("res", ret))
 	return ret
 }
 
@@ -304,7 +287,7 @@ func (svr *serverAuthAbility) queryInstanceResource(
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	commonlog.AuthScope().Debug("[Auth][Server] collect instance access res", zap.Any("res", ret))
+	authLog.Debug("[Auth][Server] collect instance access res", zap.Any("res", ret))
 	return ret
 }
 
@@ -326,7 +309,7 @@ func (svr *serverAuthAbility) queryCircuitBreakerResource(
 		}
 	}
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	commonlog.AuthScope().Debug("[Auth][Server] collect circuit-breaker access res", zap.Any("res", ret))
+	authLog.Debug("[Auth][Server] collect circuit-breaker access res", zap.Any("res", ret))
 	return ret
 }
 
@@ -349,7 +332,7 @@ func (svr *serverAuthAbility) queryCircuitBreakerReleaseResource(
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	commonlog.AuthScope().Debug("[Auth][Server] collect circuit-breaker-release access res", zap.Any("res", ret))
+	authLog.Debug("[Auth][Server] collect circuit-breaker-release access res", zap.Any("res", ret))
 	return ret
 }
 
@@ -372,7 +355,7 @@ func (svr *serverAuthAbility) queryRouteRuleResource(
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	commonlog.AuthScope().Debug("[Auth][Server] collect route-rule access res", zap.Any("res", ret))
+	authLog.Debug("[Auth][Server] collect route-rule access res", zap.Any("res", ret))
 	return ret
 }
 
@@ -395,17 +378,18 @@ func (svr *serverAuthAbility) queryRateLimitConfigResource(
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	commonlog.AuthScope().Debug("[Auth][Server] collect rate-limit access res", zap.Any("res", ret))
+	authLog.Debug("[Auth][Server] collect rate-limit access res", zap.Any("res", ret))
 	return ret
 }
 
 // convertToDiscoverResourceEntryMaps 通用方法，进行转换为期望的、服务相关的 ResourceEntry
 func (svr *serverAuthAbility) convertToDiscoverResourceEntryMaps(nsSet utils.StringSet,
 	svcSet *servicecommon.ServiceSet) map[api.ResourceType][]model.ResourceEntry {
-	param := nsSet.ToSlice()
-	nsArr := svr.Cache().Namespace().GetNamespacesByName(param)
-
-	nsRet := make([]model.ResourceEntry, 0, len(nsArr))
+	var (
+		param = nsSet.ToSlice()
+		nsArr = svr.Cache().Namespace().GetNamespacesByName(param)
+		nsRet = make([]model.ResourceEntry, 0, len(nsArr))
+	)
 	for index := range nsArr {
 		ns := nsArr[index]
 		nsRet = append(nsRet, model.ResourceEntry{

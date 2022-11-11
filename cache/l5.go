@@ -23,7 +23,6 @@ import (
 	"time"
 
 	cl5common "github.com/polarismesh/polaris/common/cl5"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -87,33 +86,26 @@ func init() {
 }
 
 // initialize 初始化函数
-func (lc *l5Cache) initialize(opt map[string]interface{}) error {
-	lc.lastRouteFlow = 0
-	lc.lastPolicyFlow = 0
-	lc.lastSectionFlow = 0
-	lc.lastIPConfigFlow = 0
+func (lc *l5Cache) initialize(_ map[string]interface{}) error {
 	lc.routeList = new(sync.Map)
 	lc.policyList = new(sync.Map)
 	lc.sectionList = new(sync.Map)
 	lc.ipConfigList = new(sync.Map)
-	if opt == nil {
-		return nil
-	}
 	return nil
 }
 
-func (lc *l5Cache) update(storeRollbackSec time.Duration) error {
+func (lc *l5Cache) update(_ time.Duration) error {
 	err := lc.updateCL5Route()
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][CL5] update l5 route cache err: %s", err.Error())
+		log.Errorf("[Cache][CL5] update l5 route cache err: %s", err.Error())
 	}
 	err = lc.updateCL5Policy()
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][CL5] update l5 policy cache err: %s", err.Error())
+		log.Errorf("[Cache][CL5] update l5 policy cache err: %s", err.Error())
 	}
 	err = lc.updateCL5Section()
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][CL5] update l5 section cache err: %s", err.Error())
+		log.Errorf("[Cache][CL5] update l5 section cache err: %s", err.Error())
 	}
 	return err
 }
@@ -138,7 +130,7 @@ func (lc *l5Cache) name() string {
 
 // GetRouteByIP 根据Ip获取访问关系
 func (lc *l5Cache) GetRouteByIP(ip uint32) []*model.Route {
-	out := make([]*model.Route, 0)
+	out := make([]*model.Route, 0, 10)
 	value, ok := lc.routeList.Load(ip)
 	if !ok {
 		// 该ip不存在访问关系，则返回一个空数组
@@ -233,7 +225,7 @@ func (lc *l5Cache) GetIPConfig(ip uint32) *model.IPConfig {
 func (lc *l5Cache) updateCL5Route() error {
 	routes, err := lc.storage.GetMoreL5Routes(lc.lastRouteFlow)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][CL5] get l5 route from storage err: %s", err.Error())
+		log.Errorf("[Cache][CL5] get l5 route from storage err: %s", err.Error())
 		return err
 	}
 
@@ -244,7 +236,7 @@ func (lc *l5Cache) updateCL5Route() error {
 func (lc *l5Cache) updateCL5Policy() error {
 	policies, err := lc.storage.GetMoreL5Policies(lc.lastPolicyFlow)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][CL5] get l5 policy from storage err: %s", err.Error())
+		log.Errorf("[Cache][CL5] get l5 policy from storage err: %s", err.Error())
 		return err
 	}
 
@@ -255,7 +247,7 @@ func (lc *l5Cache) updateCL5Policy() error {
 func (lc *l5Cache) updateCL5Section() error {
 	sections, err := lc.storage.GetMoreL5Sections(lc.lastSectionFlow)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][CL5] get l5 section from storage err: %s", err.Error())
+		log.Errorf("[Cache][CL5] get l5 section from storage err: %s", err.Error())
 		return err
 	}
 
@@ -266,7 +258,7 @@ func (lc *l5Cache) updateCL5Section() error {
 func (lc *l5Cache) updateCL5IPConfig() error {
 	ipConfigs, err := lc.storage.GetMoreL5IPConfigs(lc.lastIPConfigFlow)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][CL5] get l5 ip config from storage err: %s", err.Error())
+		log.Errorf("[Cache][CL5] get l5 ip config from storage err: %s", err.Error())
 		return err
 	}
 

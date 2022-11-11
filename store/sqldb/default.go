@@ -28,8 +28,11 @@ import (
 )
 
 const (
-	SystemNamespace        = "Polaris"
-	STORENAME              = "defaultStore"
+	// SystemNamespace system namespace
+	SystemNamespace = "Polaris"
+	// STORENAME database storage name
+	STORENAME = "defaultStore"
+	// DefaultConnMaxLifetime default maximum connection lifetime
 	DefaultConnMaxLifetime = 60 * 30 // 默认是30分钟
 )
 
@@ -42,14 +45,12 @@ func init() {
 // stableStore 实现了Store接口
 type stableStore struct {
 	*namespaceStore
-	*businessStore
 	*serviceStore
 	*instanceStore
 	*routingConfigStore
 	*l5Store
 	*rateLimitStore
 	*circuitBreakerStore
-	*platformStore
 	*toolStore
 	*userStore
 	*groupStore
@@ -63,11 +64,14 @@ type stableStore struct {
 	*configFileTagStore
 	*configFileTemplateStore
 
-	//client info stores
+	// client info stores
 	*clientStore
 
 	// v2 存储
 	*routingConfigStoreV2
+
+	// maintain store
+	*maintainStore
 
 	// 主数据库，可以进行读写
 	master *BaseDB
@@ -153,24 +157,22 @@ func parseDatabaseConf(opt map[string]interface{}) (*dbConfig, *dbConfig, error)
 // parseStoreConfig 解析store的配置
 func parseStoreConfig(opts interface{}) (*dbConfig, error) {
 	obj, ok := opts.(map[interface{}]interface{})
-	if !ok {
-		return nil, errors.New("database config is error")
-	}
-	dbType, _ := obj["dbType"].(string)
-	dbUser, _ := obj["dbUser"].(string)
-	dbPwd, _ := obj["dbPwd"].(string)
-	dbAddr, _ := obj["dbAddr"].(string)
-	dbName, _ := obj["dbName"].(string)
-	if dbType == "" || dbUser == "" || dbPwd == "" || dbAddr == "" || dbName == "" {
-		return nil, fmt.Errorf("config Plugin %s missing database param", STORENAME)
+
+	needCheckFields := map[string]string{"dbType": "", "dbUser": "", "dbPwd": "", "dbAddr": "", "dbName": ""}
+
+	for key := range needCheckFields {
+		needCheckFields[key], ok = obj[key].(string)
+		if !ok {
+			return nil, fmt.Errorf("config Plugin %s:%s type must be string", STORENAME, key)
+		}
 	}
 
 	c := &dbConfig{
-		dbType: dbType,
-		dbUser: dbUser,
-		dbPwd:  dbPwd,
-		dbAddr: dbAddr,
-		dbName: dbName,
+		dbType: needCheckFields["dbType"],
+		dbUser: needCheckFields["dbUser"],
+		dbPwd:  needCheckFields["dbPwd"],
+		dbAddr: needCheckFields["dbAddr"],
+		dbName: needCheckFields["dbName"],
 	}
 	if maxOpenConns, _ := obj["maxOpenConns"].(int); maxOpenConns > 0 {
 		c.maxOpenConns = maxOpenConns
@@ -237,8 +239,6 @@ func (s *stableStore) StartTx() (store.Tx, error) {
 func (s *stableStore) newStore() {
 	s.namespaceStore = &namespaceStore{db: s.master}
 
-	s.businessStore = &businessStore{db: s.master}
-
 	s.serviceStore = &serviceStore{master: s.master, slave: s.slave}
 
 	s.instanceStore = &instanceStore{master: s.master, slave: s.slave}
@@ -250,8 +250,6 @@ func (s *stableStore) newStore() {
 	s.rateLimitStore = &rateLimitStore{db: s.master}
 
 	s.circuitBreakerStore = &circuitBreakerStore{master: s.master, slave: s.slave}
-
-	s.platformStore = &platformStore{master: s.master}
 
 	s.toolStore = &toolStore{db: s.master}
 
@@ -276,4 +274,6 @@ func (s *stableStore) newStore() {
 	s.clientStore = &clientStore{master: s.master, slave: s.slave}
 
 	s.routingConfigStoreV2 = &routingConfigStoreV2{master: s.master, slave: s.slave}
+
+	s.maintainStore = &maintainStore{master: s.master}
 }

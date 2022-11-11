@@ -11,7 +11,7 @@
  *
  * Unless required by applicable law or agreed to in writing, software distributed
  * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or Serveried. See the License for the
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 
@@ -24,7 +24,6 @@ import (
 
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/utils"
 	utils2 "github.com/polarismesh/polaris/config/utils"
 )
@@ -36,7 +35,6 @@ type (
 // GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
 func (s *Server) GetConfigFileForClient(ctx context.Context,
 	client *api.ClientConfigFileInfo) *api.ConfigClientResponse {
-
 	namespace := client.GetNamespace().GetValue()
 	group := client.GetGroup().GetValue()
 	fileName := client.GetFileName().GetValue()
@@ -48,7 +46,7 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 
 	requestID := utils.ParseRequestID(ctx)
 
-	log.ConfigScope().Info("[Config][Service] load config file from cache.",
+	log.Info("[Config][Service] load config file from cache.",
 		zap.String("requestId", requestID), zap.String("namespace", namespace),
 		zap.String("group", group), zap.String("file", fileName))
 
@@ -56,7 +54,7 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 	entry, err := s.fileCache.GetOrLoadIfAbsent(namespace, group, fileName)
 
 	if err != nil {
-		log.ConfigScope().Error("[Config][Service] get or load config file from cache error.",
+		log.Error("[Config][Service] get or load config file from cache error.",
 			zap.String("requestId", requestID),
 			zap.Error(err))
 
@@ -71,7 +69,7 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 	if clientVersion > entry.Version {
 		entry, err = s.fileCache.ReLoad(namespace, group, fileName)
 		if err != nil {
-			log.ConfigScope().Error("[Config][Service] reload config file error.",
+			log.Error("[Config][Service] reload config file error.",
 				zap.String("requestId", requestID),
 				zap.Error(err))
 
@@ -79,7 +77,7 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 		}
 	}
 
-	log.ConfigScope().Info("[Config][Client] client get config file success.",
+	log.Info("[Config][Client] client get config file success.",
 		zap.String("requestId", requestID),
 		zap.String("client", utils.ParseClientAddress(ctx)),
 		zap.String("file", fileName),
@@ -91,9 +89,7 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 
 func (s *Server) WatchConfigFiles(ctx context.Context,
 	request *api.ClientWatchConfigFileRequest) (WatchCallback, error) {
-
 	clientAddr := utils.ParseClientAddress(ctx)
-
 	watchFiles := request.GetWatchFiles()
 	// 2. 检查客户端是否有版本落后
 	if resp := s.doCheckClientConfigFile(ctx, watchFiles, compareByVersion); resp.Code.GetValue() != api.DataNoChange {
@@ -127,7 +123,6 @@ func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api
 	}
 
 	requestID := utils.ParseRequestID(ctx)
-
 	for _, configFile := range configFiles {
 		namespace := configFile.Namespace.GetValue()
 		group := configFile.Group.GetValue()
@@ -142,7 +137,7 @@ func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api
 		entry, err := s.fileCache.GetOrLoadIfAbsent(namespace, group, fileName)
 
 		if err != nil {
-			log.ConfigScope().Error("[Config][Service] get or load config file from cache error.",
+			log.Error("[Config][Service] get or load config file from cache error.",
 				zap.String("requestId", requestID),
 				zap.String("fileName", fileName),
 				zap.Error(err))

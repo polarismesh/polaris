@@ -119,7 +119,6 @@ func (svr *serverAuthAbility) UpdateInstancesIsolate(ctx context.Context,
 func (svr *serverAuthAbility) GetInstances(ctx context.Context,
 	query map[string]string) *api.BatchQueryResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read, "GetInstances")
-
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchQueryResponseWithMsg(convertToErrCode(err), err.Error())
@@ -134,7 +133,6 @@ func (svr *serverAuthAbility) GetInstances(ctx context.Context,
 // GetInstancesCount get instances to count
 func (svr *serverAuthAbility) GetInstancesCount(ctx context.Context) *api.BatchQueryResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read, "GetInstancesCount")
-
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchQueryResponseWithMsg(convertToErrCode(err), err.Error())
@@ -160,7 +158,6 @@ func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *api.Instan
 }
 
 func (svr *serverAuthAbility) GetInstanceLabels(ctx context.Context, query map[string]string) *api.Response {
-
 	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read, "GetInstanceLabels")
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {

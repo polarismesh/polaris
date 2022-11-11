@@ -21,7 +21,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -79,7 +78,7 @@ func (c *circuitBreakerCache) update(storeRollbackSec time.Duration) error {
 	lastTime := c.lastTime.Add(storeRollbackSec)
 	out, err := c.storage.GetCircuitBreakerForCache(lastTime, c.firstUpdate)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache] circuit breaker config cache update err:%s", err.Error())
+		log.Errorf("[Cache] circuit breaker config cache update err:%s", err.Error())
 		return err
 	}
 

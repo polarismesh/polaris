@@ -30,8 +30,10 @@ func (h *HTTPServer) GetClientServer(ws *restful.WebService) error {
 }
 
 func (h *HTTPServer) GetReportClients(req *restful.Request, rsp *restful.Response) {
-
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()

@@ -50,9 +50,7 @@ type InstanceFuture struct {
 
 // Reply future的应答
 func (future *InstanceFuture) Reply(cur time.Time, code uint32, result error) {
-
 	reportRegisInstanceCost(future.begin, cur, code)
-
 	if code == api.InstanceRegisTimeout {
 		metrics.ReportDropInstanceRegisTask()
 	}
@@ -66,7 +64,6 @@ func (future *InstanceFuture) Reply(cur time.Time, code uint32, result error) {
 	}
 
 	future.code = code
-
 	select {
 	case future.result <- result:
 	default:
@@ -105,7 +102,6 @@ func (future *InstanceFuture) Code() uint32 {
 // sendReply 批量答复futures
 func sendReply(futures interface{}, code uint32, result error) {
 	cur := time.Now()
-
 	switch futureType := futures.(type) {
 	case []*InstanceFuture:
 		for _, entry := range futureType {
@@ -126,7 +122,7 @@ func reportRegisInstanceCost(begin, cur time.Time, code uint32) {
 	}
 	diff := cur.Sub(begin)
 	if statis := plugin.GetStatis(); statis != nil {
-		statis.AddAPICall("AsyncRegisInstance", "", int(api.ExecuteSuccess), diff.Nanoseconds())
+		_ = statis.AddAPICall("AsyncRegisInstance", "", int(api.ExecuteSuccess), diff.Nanoseconds())
 	}
 	metrics.ReportInstanceRegisCost(diff)
 }

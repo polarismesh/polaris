@@ -22,7 +22,6 @@ import (
 
 	"go.uber.org/zap"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 	"github.com/polarismesh/polaris/common/model"
@@ -40,10 +39,12 @@ func (s *Server) createRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 	serviceTx, err := s.storage.CreateTransaction()
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
-		return api.NewRoutingResponse(api.StoreLayerException, req)
+		return apiv1.NewRoutingResponse(apiv1.StoreLayerException, req)
 	}
 	// 释放对于服务的锁
-	defer serviceTx.Commit()
+	defer func() {
+		_ = serviceTx.Commit()
+	}()
 
 	serviceName := req.GetService().GetValue()
 	namespaceName := req.GetNamespace().GetValue()
@@ -51,13 +52,13 @@ func (s *Server) createRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 	if err != nil {
 		log.Error("[Service][Routing] get read lock for service", zap.String("service", serviceName),
 			zap.String("namespace", namespaceName), utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return api.NewRoutingResponse(api.StoreLayerException, req)
+		return apiv1.NewRoutingResponse(apiv1.StoreLayerException, req)
 	}
 	if svc == nil {
-		return api.NewRoutingResponse(api.NotFoundService, req)
+		return apiv1.NewRoutingResponse(apiv1.NotFoundService, req)
 	}
 	if svc.IsAlias() {
-		return api.NewRoutingResponse(api.NotAllowAliasCreateRouting, req)
+		return apiv1.NewRoutingResponse(apiv1.NotAllowAliasCreateRouting, req)
 	}
 
 	inDatas, outDatas, resp := batchBuildV2Routings(req)
@@ -83,27 +84,29 @@ func (s *Server) updateRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 	serviceTx, err := s.storage.CreateTransaction()
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
-		return api.NewRoutingResponse(api.StoreLayerException, req)
+		return apiv1.NewRoutingResponse(apiv1.StoreLayerException, req)
 	}
 	// 释放对于服务的锁
-	defer serviceTx.Commit()
+	defer func() {
+		_ = serviceTx.Commit()
+	}()
 
 	// 需要禁止对 v1 规则的并发修改
 	_, err = serviceTx.LockService(svc.Name, svc.Namespace)
 	if err != nil {
 		log.Error("[Service][Routing] get service x-lock", zap.String("service", svc.Name),
 			zap.String("namespace", svc.Namespace), utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return api.NewRoutingResponse(api.StoreLayerException, req)
+		return apiv1.NewRoutingResponse(apiv1.StoreLayerException, req)
 	}
 
 	// 检查路由配置是否存在
 	conf, err := s.storage.GetRoutingConfigWithService(svc.Name, svc.Namespace)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
-		return api.NewRoutingResponse(api.StoreLayerException, req)
+		return apiv1.NewRoutingResponse(apiv1.StoreLayerException, req)
 	}
 	if conf == nil {
-		return api.NewRoutingResponse(api.NotFoundRouting, req)
+		return apiv1.NewRoutingResponse(apiv1.NotFoundRouting, req)
 	}
 
 	inDatas, outDatas, resp := batchBuildV2Routings(req)
@@ -121,14 +124,15 @@ func (s *Server) updateRoutingConfigV1toV2(ctx context.Context, req *apiv1.Routi
 // saveRoutingV1toV2 将目标的 v1 规则转为 v2 规则
 func (s *Server) saveRoutingV1toV2(ctx context.Context, svcId string,
 	inRules, outRules []*apiv2.Routing) *apiv1.Response {
-
 	tx, err := s.storage.StartTx()
 	if err != nil {
 		log.Error("[Service][Routing] create routing v2 from v1 open tx",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return apiv1.NewResponse(apiv1.StoreLayerException)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	// 这里需要删除掉 v1 的路由规则
 	if err := s.storage.DeleteRoutingConfigTx(tx, svcId); err != nil {

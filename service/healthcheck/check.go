@@ -105,7 +105,6 @@ func (i *itemValue) eventExpired() (int64, bool) {
 
 func newCheckScheduler(ctx context.Context, slotNum int,
 	minCheckInterval time.Duration, maxCheckInterval time.Duration) *CheckScheduler {
-
 	scheduler := &CheckScheduler{
 		rwMutex:             &sync.RWMutex{},
 		scheduledInstances:  make(map[string]*itemValue),

@@ -1,5 +1,5 @@
 /**
- * Tencent is pleased to support the open source community by making CL5 available.
+ * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
  *
@@ -34,3 +34,9 @@ var (
 		return mgr, err
 	}
 )
+
+// TestRefresh only for test
+func (nc *CacheManager) TestRefresh() error {
+	_ = nc.clear()
+	return nc.update()
+}

@@ -23,7 +23,6 @@ import (
 	"time"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -81,14 +80,11 @@ func newRateLimitCache(s store.Store) *rateLimitCache {
 }
 
 // initialize 实现Cache接口的initialize函数
-func (rlc *rateLimitCache) initialize(opt map[string]interface{}) error {
+func (rlc *rateLimitCache) initialize(_ map[string]interface{}) error {
 	rlc.ids = new(sync.Map)
 	rlc.revisions = new(sync.Map)
 	rlc.lastTime = time.Unix(0, 0)
 	rlc.firstUpdate = true
-	if opt == nil {
-		return nil
-	}
 	return nil
 }
 
@@ -97,7 +93,7 @@ func (rlc *rateLimitCache) update(storeRollbackSec time.Duration) error {
 	rateLimits, revisions, err := rlc.storage.GetRateLimitsForCache(rlc.lastTime.Add(storeRollbackSec),
 		rlc.firstUpdate)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache] rate limit cache update err: %s", err.Error())
+		log.Errorf("[Cache] rate limit cache update err: %s", err.Error())
 		return err
 	}
 	rlc.firstUpdate = false
@@ -186,8 +182,10 @@ func (rlc *rateLimitCache) GetRateLimit(serviceID string, rateLimitIterProc Rate
 		return nil
 	}
 
-	var result bool
-	var err error
+	var (
+		result bool
+		err    error
+	)
 	f := func(k, v interface{}) bool {
 		result, err = rateLimitIterProc(k.(string), v.(*model.RateLimit))
 		if err != nil {

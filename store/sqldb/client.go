@@ -110,7 +110,7 @@ func (cs *clientStore) GetMoreClients(mtime time.Time, firstUpdate bool) (map[st
 		 from client left join client_stat on client.id = client_stat.client_id `
 	str += " where client.mtime >= FROM_UNIXTIME(?)"
 	if firstUpdate {
-		str += " and flag != 1" // nolint
+		str += " and flag != 1"
 	}
 	rows, err := cs.slave.Query(str, timeToTimestamp(mtime))
 	if err != nil {
@@ -359,7 +359,7 @@ func addClientMain(tx *BaseTx, client *model.Client) error {
 }
 
 func batchAddClientMain(tx *BaseTx, clients []*model.Client) error {
-	str := `replace into client(id, host, type, version, region, zone, campus, flag, ctime, mtime) 
+	str := `replace into client(id, host, type, version, region, zone, campus, flag, ctime, mtime)
 		 values`
 	first := true
 	args := make([]interface{}, 0)
@@ -436,7 +436,7 @@ func addClientStat(tx *BaseTx, client *model.Client) error {
 }
 
 func updateClientMain(tx *BaseTx, client *model.Client) error {
-	str := `update client set host = ?, 
+	str := `update client set host = ?,
 	 type = ?, version = ?, region = ?, zone = ?, campus = ?, mtime = sysdate() where id = ?`
 
 	_, err := tx.Exec(str,

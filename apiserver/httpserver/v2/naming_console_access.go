@@ -71,22 +71,25 @@ func (h *HTTPServerV2) GetNamingConsoleAccessServer(include []string) (*restful.
 
 // addDefaultReadAccess 增加默认读接口
 func (h *HTTPServerV2) addDefaultReadAccess(ws *restful.WebService) {
-	ws.Route(ws.POST("/routings").To(h.CreateRoutings))
-	ws.Route(ws.GET("/routings").To(h.GetRoutings))
+	ws.Route(enrichCreateRoutingsApiDocs(ws.POST("/routings").To(h.CreateRoutings)))
+	ws.Route(enrichGetRoutingsApiDocs(ws.GET("/routings").To(h.GetRoutings)))
 }
 
 // addDefaultAccess 增加默认接口
 func (h *HTTPServerV2) addDefaultAccess(ws *restful.WebService) {
-	ws.Route(ws.POST("/routings").To(h.CreateRoutings))
-	ws.Route(ws.POST("/routings/delete").To(h.DeleteRoutings))
-	ws.Route(ws.PUT("/routings").To(h.UpdateRoutings))
-	ws.Route(ws.GET("/routings").To(h.GetRoutings))
-	ws.Route(ws.PUT("/routings/enable").To(h.EnableRoutings))
+	ws.Route(enrichCreateRoutingsApiDocs(ws.POST("/routings").To(h.CreateRoutings)))
+	ws.Route(enrichDeleteRoutingsApiDocs(ws.POST("/routings/delete").To(h.DeleteRoutings)))
+	ws.Route(enrichUpdateRoutingsApiDocs(ws.PUT("/routings").To(h.UpdateRoutings)))
+	ws.Route(enrichGetRoutingsApiDocs(ws.GET("/routings").To(h.GetRoutings)))
+	ws.Route(enrichEnableRoutingsApiDocs(ws.PUT("/routings/enable").To(h.EnableRoutings)))
 }
 
 // CreateRoutings 创建规则路由
 func (h *HTTPServerV2) CreateRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var routings RoutingArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -105,7 +108,10 @@ func (h *HTTPServerV2) CreateRoutings(req *restful.Request, rsp *restful.Respons
 
 // DeleteRoutings 删除规则路由
 func (h *HTTPServerV2) DeleteRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var routings RoutingArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -124,7 +130,10 @@ func (h *HTTPServerV2) DeleteRoutings(req *restful.Request, rsp *restful.Respons
 
 // UpdateRoutings 修改规则路由
 func (h *HTTPServerV2) UpdateRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var routings RoutingArr
 	ctx, err := handler.ParseArray(func() proto.Message {
@@ -143,7 +152,10 @@ func (h *HTTPServerV2) UpdateRoutings(req *restful.Request, rsp *restful.Respons
 
 // GetRoutings 查询规则路由
 func (h *HTTPServerV2) GetRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ret := h.namingServer.GetRoutingConfigsV2(handler.ParseHeaderContext(), queryParams)
@@ -152,7 +164,10 @@ func (h *HTTPServerV2) GetRoutings(req *restful.Request, rsp *restful.Response) 
 
 // EnableRoutings 查询规则路由
 func (h *HTTPServerV2) EnableRoutings(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	var routings RoutingArr
 	ctx, err := handler.ParseArray(func() proto.Message {

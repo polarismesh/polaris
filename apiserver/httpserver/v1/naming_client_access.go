@@ -21,12 +21,12 @@ import (
 	"fmt"
 
 	"github.com/emicklei/go-restful/v3"
-	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/apiserver"
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // GetClientAccessServer get client access server
@@ -62,38 +62,27 @@ func (h *HTTPServerV1) GetClientAccessServer(include []string) (*restful.WebServ
 
 // addDiscoverAccess 增加服务发现接口
 func (h *HTTPServerV1) addDiscoverAccess(ws *restful.WebService) {
-	tags := []string{"DiscoverAccess"}
-	ws.Route(ws.POST("/ReportClient").To(h.ReportClient).
-		Doc("上报客户端").
-		Writes(&api.Client{}).
-		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.POST("/Discover").To(h.Discover).
-		Doc("服务发现").
-		Metadata(restfulspec.KeyOpenAPITags, tags))
+	ws.Route(enrichReportClientApiDocs(ws.POST("/ReportClient").To(h.ReportClient)))
+	ws.Route(enrichDiscoverApiDocs(ws.POST("/Discover").To(h.Discover)))
 }
 
 // addRegisterAccess 增加注册/反注册接口
 func (h *HTTPServerV1) addRegisterAccess(ws *restful.WebService) {
-	tags := []string{"Instances", "RegisterAccess"}
-	ws.Route(ws.POST("/RegisterInstance").
-		Doc("注册实例").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		To(h.RegisterInstance))
-
-	ws.Route(ws.POST("/DeregisterInstance").
-		Doc("移除注册实例").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		To(h.DeregisterInstance))
+	ws.Route(enrichRegisterInstanceApiDocs(ws.POST("/RegisterInstance").To(h.RegisterInstance)))
+	ws.Route(enrichDeregisterInstanceApiDocs(ws.POST("/DeregisterInstance").To(h.DeregisterInstance)))
 }
 
 // addHealthCheckAccess 增加健康检查接口
 func (h *HTTPServerV1) addHealthCheckAccess(ws *restful.WebService) {
-	ws.Route(ws.POST("/Heartbeat").To(h.Heartbeat))
+	ws.Route(enrichHeartbeatApiDocs(ws.POST("/Heartbeat").To(h.Heartbeat)))
 }
 
 // ReportClient 客户端上报信息
 func (h *HTTPServerV1) ReportClient(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 	client := &api.Client{}
 	ctx, err := handler.Parse(client)
 	if err != nil {
@@ -106,7 +95,10 @@ func (h *HTTPServerV1) ReportClient(req *restful.Request, rsp *restful.Response)
 
 // RegisterInstance 注册服务实例
 func (h *HTTPServerV1) RegisterInstance(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	instance := &api.Instance{}
 	ctx, err := handler.Parse(instance)
@@ -120,7 +112,10 @@ func (h *HTTPServerV1) RegisterInstance(req *restful.Request, rsp *restful.Respo
 
 // DeregisterInstance 反注册服务实例
 func (h *HTTPServerV1) DeregisterInstance(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	instance := &api.Instance{}
 	ctx, err := handler.Parse(instance)
@@ -134,7 +129,10 @@ func (h *HTTPServerV1) DeregisterInstance(req *restful.Request, rsp *restful.Res
 
 // Discover 统一发现接口
 func (h *HTTPServerV1) Discover(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	discoverRequest := &api.DiscoverRequest{}
 	ctx, err := handler.Parse(discoverRequest)
@@ -148,7 +146,7 @@ func (h *HTTPServerV1) Discover(req *restful.Request, rsp *restful.Response) {
 		zap.String("type", api.DiscoverRequest_DiscoverRequestType_name[int32(discoverRequest.Type)]),
 		zap.String("client-address", req.Request.RemoteAddr),
 		zap.String("user-agent", req.HeaderParameter("User-Agent")),
-		zap.String("request-id", req.HeaderParameter("Request-Id")),
+		utils.ZapRequestID(req.HeaderParameter("Request-Id")),
 	)
 
 	var ret *api.DiscoverResponse
@@ -172,7 +170,10 @@ func (h *HTTPServerV1) Discover(req *restful.Request, rsp *restful.Response) {
 
 // Heartbeat 服务实例心跳
 func (h *HTTPServerV1) Heartbeat(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{req, rsp}
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
 
 	instance := &api.Instance{}
 	ctx, err := handler.Parse(instance)
