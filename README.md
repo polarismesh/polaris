@@ -15,31 +15,25 @@ English | [简体中文](./README-zh.md)
 
 README：
 
-- [Polaris: Service Discovery and Governance](#polaris-service-discovery-and-governance)
-  - [Introduction](#introduction)
-  - [Getting started](#getting-started)
-    - [Installation](#installation)
-      - [Download package](#download-package)
-      - [Start server](#start-server)
-      - [Verify installation](#verify-installation)
-    - [Examples](#examples)
-      - [Service Discovery and HealthCheck](#service-discovery-and-healthcheck)
-      - [RateLimit](#ratelimit)
-      - [Flow Control](#flow-control)
-      - [Configuration management](#configuration-management)
-      - [More details](#more-details)
-  - [Document](#document)
-    - [OpenAPI](#openapi)
-    - [Benchmark Report](#benchmark-report)
-    - [Official Document](#official-document)
-  - [Chat group](#chat-group)
-  - [Contribution](#contribution)
+- [Introduction](#introduction)
+- [Getting started](#getting-started)
+  - [Download package](#download-package)
+  - [Start server](#start-server)
+  - [Verify installation](#verify-installation)
+- [Examples](#examples)
+  - [Service Discovery and HealthCheck](#service-discovery-and-healthcheck)
+  - [RateLimit](#ratelimit)
+  - [Flow Control](#flow-control)
+  - [Configuration management](#configuration-management)
+  - [More details](#more-details)
+- [Chat group](#chat-group)
+- [Contribution](#contribution)
 
-Principle or user manual can visit [website](https://polarismesh.cn/) to learn more
+visit [website](https://polarismesh.cn/) to learn more
 
 ## Introduction
 
-<img src="https://raw.githubusercontent.com/polarismesh/website/main/content/zh-cn/docs/北极星是什么/图片/简介/第一印象.png" width="800" />
+<img src="https://raw.githubusercontent.com/polarismesh/website/main/content/zh-cn/docs/北极星是什么//简介图片/第一印象.png" width="800" />
 
 Polaris is a cloud-native service discovery and governance center. It can be used to solve the problem of service
 connection, fault tolerance, traffic control and secure in distributed and microservice architecture.
@@ -77,9 +71,7 @@ Features:
 
 ## Getting started
 
-### Installation
-
-#### Download package
+### Download package
 
 You can download the latest standalone package from the addresses below, be aware of to choose the package named ```polaris-standalone-release-*.zip```, and filter the packages by os (windows10: windows, mac: darwin, Linux/Unix: linux).
 
@@ -93,7 +85,7 @@ unzip polaris-standalone-release_v1.11.0-beta.2.linux.amd64.zip
 cd polaris-standalone-release_v1.11.0-beta.2.linux 
 ```
 
-#### Start server
+### Start server
 
 Under Linux/Unix/Mac platform, use those commands to start polaris standalone server:
 
@@ -107,7 +99,7 @@ Under Windows platform, use those commands to start polaris standalone server:
 install.bat
 ```
 
-#### Verify installation
+### Verify installation
 
 ```shell script
 curl http://127.0.0.1:8090
@@ -117,11 +109,11 @@ Return text is 'Polaris Server', proof features run smoothly
 
 If you want to learn more installation methods (changing ports, docker installation, cluster instanllation etc.), please refer: [Installation Guide](https://polarismesh.cn/docs/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/%E5%AE%89%E8%A3%85%E6%9C%8D%E5%8A%A1%E7%AB%AF/%E5%AE%89%E8%A3%85%E5%8D%95%E6%9C%BA%E7%89%88/#%E5%8D%95%E6%9C%BA%E7%89%88%E5%AE%89%E8%A3%85)
 
-### Examples
+## Examples
 
 Polaris supports microservices built with multi-language, multi-framework, multi-mode (proxyless / proxy)  to access。
 
-#### Service Discovery and HealthCheck
+### Service Discovery and HealthCheck
 
 (1) rpc framework examples:
 
@@ -139,7 +131,7 @@ Polaris supports microservices built with multi-language, multi-framework, multi
 
 - [Envoy Example](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/k8s%E5%92%8C%E7%BD%91%E6%A0%BC%E4%BB%A3%E7%90%86/envoy%E7%BD%91%E6%A0%BC%E6%8E%A5%E5%85%A5/#%E5%BF%AB%E9%80%9F%E6%8E%A5%E5%85%A5)
 
-#### RateLimit
+### RateLimit
 
 (1) rpc framework examples:
 
@@ -157,7 +149,7 @@ Polaris supports microservices built with multi-language, multi-framework, multi
 
 - [Nginx Example](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/%E7%BD%91%E5%85%B3/%E4%BD%BF%E7%94%A8nginx/#%E8%AE%BF%E9%97%AE%E9%99%90%E6%B5%81)
 
-#### Flow Control
+### Flow Control
 
 (1) rpc framework examples:
 
@@ -174,7 +166,7 @@ Polaris supports microservices built with multi-language, multi-framework, multi
 - [Envoy Example](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/k8s%E5%92%8C%E7%BD%91%E6%A0%BC%E4%BB%A3%E7%90%86/envoy%E7%BD%91%E6%A0%BC%E6%8E%A5%E5%85%A5/#%E6%B5%81%E9%87%8F%E8%B0%83%E5%BA%A6)
 
 
-#### Configuration management
+### Configuration management
 
 (1) rpc framework examples:
 
@@ -185,23 +177,9 @@ Polaris supports microservices built with multi-language, multi-framework, multi
 - [Java Example](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/configuration-example)
 - [Go Example](https://github.com/polarismesh/polaris-go/tree/main/examples/configuration)
 
-#### More details
+### More details
 
 More capabilities：[User Manual](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/)
-
-## Document
-
-### OpenAPI
-
-[API Manual](https://polarismesh.cn/docs/%E5%8F%82%E8%80%83%E6%96%87%E6%A1%A3/%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3/open_api/)
-
-### Benchmark Report
-
-[Benchmark](https://polarismesh.cn/docs/%E5%8F%82%E8%80%83%E6%96%87%E6%A1%A3/%E6%B5%8B%E8%AF%95%E6%8A%A5%E5%91%8A/%E6%9C%8D%E5%8A%A1%E7%AB%AF%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95%E6%8A%A5%E5%91%8A/)
-
-### Official Document
-
-If you want more capablities intruductions, architecture design and best pratises, please refer：[polarismesh.cn](https://polarismesh.cn/docs/%E5%8C%97%E6%9E%81%E6%98%9F%E6%98%AF%E4%BB%80%E4%B9%88/%E7%AE%80%E4%BB%8B/)
 
 ## Chat group
 
