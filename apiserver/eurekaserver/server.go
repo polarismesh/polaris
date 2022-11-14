@@ -151,7 +151,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 	api map[string]apiserver.APIConfig) error {
 	h.listenIP = option[optionListenIP].(string)
 	h.listenPort = uint32(option[optionListenPort].(int))
-	h.ignoreUpLow = option[optionIgnoreUpLow].(bool)
+	h.ignoreUpLow, _ = option[optionIgnoreUpLow].(bool)
 	h.option = option
 	h.openAPI = api
 
