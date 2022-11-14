@@ -15,31 +15,25 @@
 
 README：
 
-- [北极星：服务发现和治理](#北极星服务发现和治理)
-  - [介绍](#介绍)
-  - [快速入门](#快速入门)
-    - [安装部署](#安装部署)
-      - [下载单机版](#下载单机版)
-      - [启动服务端](#启动服务端)
-      - [验证安装](#验证安装)
-    - [使用样例](#使用样例)
-      - [服务注册发现和健康检查](#服务注册发现和健康检查)
-      - [服务限流](#服务限流)
-      - [流量调度](#流量调度)
-      - [配置管理](#配置管理)
-      - [更多指南](#更多指南)
-  - [详细文档](#详细文档)
-    - [OpenAPI参考](#openapi参考)
-    - [性能测试报告](#性能测试报告)
-    - [官网文档](#官网文档)
-  - [交流群](#交流群)
-  - [参与贡献](#参与贡献)
+- [介绍](#介绍)
+- [快速入门](#快速入门)
+  - [下载单机版](#下载单机版)
+  - [启动服务端](#启动服务端)
+  - [验证安装](#验证安装)
+- [使用样例](#使用样例)
+  - [服务注册发现和健康检查](#服务注册发现和健康检查)
+  - [服务限流](#服务限流)
+  - [流量调度](#流量调度)
+  - [配置管理](#配置管理)
+  - [更多指南](#更多指南)
+- [交流群](#交流群)
+- [参与贡献](#参与贡献)
 
-北极星原理介绍及相关实践文档请见[北极星官网](https://polarismesh.cn/)
+更多文档请查看[北极星官网](https://polarismesh.cn/)
 
 ## 介绍
 
-<img src="https://raw.githubusercontent.com/polarismesh/website/main/docs/zh/doc/北极星是什么/图片/简介/第一印象.png" width="800" />
+<img src="https://raw.githubusercontent.com/polarismesh/website/main/content/zh-cn/docs/北极星是什么/简介图片/第一印象.png" width="800" />
 
 北极星是一个支持多语言、多框架的云原生服务发现和治理中心，解决分布式和微服务架构中的服务可见、故障容错、流量控制和安全问题。
 
@@ -77,9 +71,7 @@ README：
 
 ## 快速入门
 
-### 安装部署
-
-#### 下载单机版
+### 下载单机版
 
 可以从以下地址获取最新版本进行下载，下载时候请选择包名为```polaris-standalone-release-*.zip```的软件包，并且根据当前操作系统进行筛选（windows10选择windows，mac选择darwin，Linux/Unix选择linux）。
 
@@ -93,7 +85,7 @@ unzip polaris-standalone-release_v1.11.0-beta.2.linux.amd64.zip
 cd polaris-standalone-release_v1.11.0-beta.2.linux 
 ```
 
-#### 启动服务端
+### 启动服务端
 
 在Linux/Unix/Mac平台下，执行以下命令启动北极星单机版：
 
@@ -107,7 +99,7 @@ bash install.sh
 install.bat
 ```
 
-#### 验证安装
+### 验证安装
 
 ```shell
 curl http://127.0.0.1:8090
@@ -115,18 +107,18 @@ curl http://127.0.0.1:8090
 
 返回Polaris Server，证明功能正常
 
-如需了解更多安装方式（如修改安装端口、容器化安装、集群版本安装等），可参考：[部署手册](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/%E5%AE%89%E8%A3%85%E6%9C%8D%E5%8A%A1%E7%AB%AF/%E5%AE%89%E8%A3%85%E5%8D%95%E6%9C%BA%E7%89%88.html#%E5%8D%95%E6%9C%BA%E7%89%88%E5%AE%89%E8%A3%85)
+如需了解更多安装方式（如修改安装端口、容器化安装、集群版本安装等），可参考：[部署手册](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/%E6%9C%8D%E5%8A%A1%E7%AB%AF%E5%AE%89%E8%A3%85/%E5%8D%95%E6%9C%BA%E7%89%88%E5%AE%89%E8%A3%85/)
 
-### 使用样例
+## 使用样例
 
 北极星支持多语言、多框架、多形态（proxyless及proxy）的微服务进行接入。
 
-#### 服务注册发现和健康检查
+### 服务注册发现和健康检查
 
 (1) 基于主流框架开发的微服务接入可参考：
 
-- [Spring Cloud接入](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/SpringCloud%E5%BA%94%E7%94%A8%E6%8E%A5%E5%85%A5.html#%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C)
-- [Spring Boot接入](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/SpringBoot%E5%BA%94%E7%94%A8%E6%8E%A5%E5%85%A5.html#%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C)
+- [Spring Cloud接入](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/java%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91/spring-cloud/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/)
+- [Spring Boot接入](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/java%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91/spring-boot/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/)
 - [gRPC-Go接入](https://github.com/polarismesh/grpc-go-polaris/tree/main/examples/quickstart)
 
 (2) 主流语言微服务接入可参考：
@@ -137,13 +129,13 @@ curl http://127.0.0.1:8090
 
 (3) proxy模式的微服务接入可参考：
 
-- [Envoy接入](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/Envoy%E7%BD%91%E6%A0%BC%E6%8E%A5%E5%85%A5.html#%E5%BF%AB%E9%80%9F%E6%8E%A5%E5%85%A5)
+- [Envoy接入](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/k8s%E5%92%8C%E7%BD%91%E6%A0%BC%E4%BB%A3%E7%90%86/envoy%E7%BD%91%E6%A0%BC%E6%8E%A5%E5%85%A5/#%E5%BF%AB%E9%80%9F%E6%8E%A5%E5%85%A5)
 
-#### 服务限流
+### 服务限流
 
 (1) 基于主流框架开发的微服务接入可参考：
 
-- [Spring Cloud接入](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/SpringCloud%E5%BA%94%E7%94%A8%E6%8E%A5%E5%85%A5.html#%E6%9C%8D%E5%8A%A1%E9%99%90%E6%B5%81)
+- [Spring Cloud接入](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/java%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91/spring-cloud/%E6%9C%8D%E5%8A%A1%E9%99%90%E6%B5%81/)
 - [gRPC-Go接入](https://github.com/polarismesh/grpc-go-polaris/tree/main/examples/ratelimit/local)
 
 (2) 主流语言微服务接入可参考：
@@ -154,13 +146,13 @@ curl http://127.0.0.1:8090
 
 (3) proxy模式的微服务接入可参考：
 
-- [Nginx接入](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/Nginx%E7%BD%91%E5%85%B3%E6%8E%A5%E5%85%A5.html#%E8%AE%BF%E9%97%AE%E9%99%90%E6%B5%81)
+- [Nginx接入](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/%E7%BD%91%E5%85%B3/%E4%BD%BF%E7%94%A8nginx/#%E8%AE%BF%E9%97%AE%E9%99%90%E6%B5%81)
 
-#### 流量调度
+### 流量调度
 
 (1) 基于主流框架开发的微服务接入可参考：
 
-- [Spring Cloud接入](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/SpringCloud%E5%BA%94%E7%94%A8%E6%8E%A5%E5%85%A5.html#%E6%9C%8D%E5%8A%A1%E8%B7%AF%E7%94%B1)
+- [Spring Cloud接入](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/java%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91/spring-cloud/%E5%8A%A8%E6%80%81%E8%B7%AF%E7%94%B1/)
 - [gRPC-Go接入](https://github.com/polarismesh/grpc-go-polaris/tree/main/examples/routing/version)
 
 (2) 主流语言微服务接入可参考：
@@ -170,9 +162,9 @@ curl http://127.0.0.1:8090
 
 (3) proxy模式的微服务接入可参考：
 
-- [Envoy接入](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/Envoy%E7%BD%91%E6%A0%BC%E6%8E%A5%E5%85%A5.html#%E6%B5%81%E9%87%8F%E8%B0%83%E5%BA%A6)
+- [Envoy接入](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/k8s%E5%92%8C%E7%BD%91%E6%A0%BC%E4%BB%A3%E7%90%86/envoy%E7%BD%91%E6%A0%BC%E6%8E%A5%E5%85%A5/#%E6%B5%81%E9%87%8F%E8%B0%83%E5%BA%A6)
 
-#### 配置管理
+### 配置管理
 
 (1) 基于主流框架开发的微服务接入可参考：
 
@@ -183,23 +175,9 @@ curl http://127.0.0.1:8090
 - [Java语言接入](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/configuration-example)
 - [Go语言接入](https://github.com/polarismesh/polaris-go/tree/main/examples/configuration)
 
-#### 更多指南
+### 更多指南
 
-更多功能使用指引可参考：[使用指南](https://polarismesh.cn/zh/doc/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/%E6%A6%82%E8%BF%B0.html#%E6%A6%82%E8%BF%B0)
-
-## 详细文档
-
-### OpenAPI参考
-
-[接口手册](https://polarismesh.cn/zh/doc/%E5%8F%82%E8%80%83%E6%96%87%E6%A1%A3/%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3/%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%E7%AE%A1%E7%90%86.html#%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%E7%AE%A1%E7%90%86)
-
-### 性能测试报告
-
-[性能报告](https://polarismesh.cn/zh/doc/%E5%8F%82%E8%80%83%E6%96%87%E6%A1%A3/%E6%80%A7%E8%83%BD%E6%8A%A5%E5%91%8A/%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95%E6%8A%A5%E5%91%8A.html#polaris%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95%E6%8A%A5%E5%91%8A)
-
-### 官网文档
-
-如需更多详细功能介绍、架构介绍、最佳实践，可参考：[官网文档入口](https://polarismesh.cn/zh/doc/%E5%8C%97%E6%9E%81%E6%98%9F%E6%98%AF%E4%BB%80%E4%B9%88/%E7%AE%80%E4%BB%8B.html)
+更多功能使用指引可参考：[使用指南](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/)
 
 ## 交流群
 
