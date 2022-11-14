@@ -116,6 +116,7 @@ var (
 type EurekaServer struct {
 	server                 *http.Server
 	namingServer           service.DiscoverServer
+	ignoreUpLow            bool // 如果开启忽略大小写则统一转成小写,避免在迁移过程中 由EurekaServer注册上来的服务,在其他协议里发现不了。
 	healthCheckServer      *healthcheck.Server
 	connLimitConfig        *connlimit.Config
 	tlsInfo                *secure.TLSInfo
@@ -150,6 +151,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 	api map[string]apiserver.APIConfig) error {
 	h.listenIP = option[optionListenIP].(string)
 	h.listenPort = uint32(option[optionListenPort].(int))
+	h.ignoreUpLow, _ = option[optionIgnoreUpLow].(bool)
 	h.option = option
 	h.openAPI = api
 
@@ -213,7 +215,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 
 // Run 启动HTTP API服务器
 func (h *EurekaServer) Run(errCh chan error) {
-	log.Infof("start eurekaserver")
+	log.Infof("start EurekaServer")
 	h.exitCh = make(chan struct{})
 	h.start = true
 	defer func() {

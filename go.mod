@@ -41,7 +41,10 @@ require (
 )
 
 require (
+	github.com/ArthurHlt/go-eureka-client v1.1.0
 	github.com/google/go-cmp v0.5.8 // indirect
+	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
+	github.com/sirupsen/logrus v1.6.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
 

@@ -28,6 +28,7 @@ const (
 	optionConnLimit              = "connLimit"
 	optionTLS                    = "tls"
 	optionEnableSelfPreservation = "enableSelfPreservation"
+	optionIgnoreUpLow            = "ignoreUpLow"
 )
 
 const (
