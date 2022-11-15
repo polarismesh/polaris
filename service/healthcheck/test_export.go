@@ -59,7 +59,6 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 
 	testServer.localHost = hcOpt.LocalHost
 	testServer.history = plugin.GetHistory()
-	testServer.discoverEvent = plugin.GetDiscoverEvent()
 
 	testServer.cacheProvider = newCacheProvider(hcOpt.Service, testServer)
 	testServer.timeAdjuster = newTimeAdjuster(ctx, storage)
