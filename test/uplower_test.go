@@ -29,16 +29,22 @@ import (
 
 // TestEurekaServer_RegisterApplication 测试EurekaServer大小写
 func TestEurekaServer_RegisterApplication(t *testing.T) {
+	var err error
 	client := eureka.NewClient([]string{
 		"http://127.0.0.1:8761/eureka", //From a spring boot based eureka server
 	})
 	appId := "testAPP"
-	instance := eureka.NewInstanceInfo("TEST", appId, "69.172.200.23", 80, 30, false) //Create a new instance to register
+	//err = client.UnregisterInstance(appId, "4d5c2ab8417452dbd62619359e6116d1eec42a52")
+	//if err != nil {
+	//	t.Fatalf("Eureka UnregisterInstance Error:%+v", err)
+	//}
+
+	instance := eureka.NewInstanceInfo("TEST", appId, "1.1.1.1", 80, 30, false) //Create a new instance to register
 	instance.Metadata = &eureka.MetaData{
 		Map: make(map[string]string),
 	}
 	instance.Metadata.Map["foo"] = "bar" //add metadata for example
-	var err error
+
 	err = client.RegisterInstance(appId, instance) // Register new instance in your eureka(s)
 	if err != nil {
 		t.Fatal(err)
@@ -47,9 +53,10 @@ func TestEurekaServer_RegisterApplication(t *testing.T) {
 	applications, _ := client.GetApplications() // Retrieves all applications from eureka server(s)
 	t.Log(applications)
 
-	time.Sleep(time.Second)
+	time.Sleep(3 * time.Second)
 	_, err = client.GetApplication(appId)
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("Eureka GetApplication Error:%+v", err)
 	}
+
 }
