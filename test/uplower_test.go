@@ -44,18 +44,17 @@ func TestEurekaServer_RegisterApplication(t *testing.T) {
 	application, err := client.GetApplication(instance.App) // retrieve the application "test"
 	t.Log(application)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
 	ins, err := client.GetInstance(instance.App, instance.HostName) // retrieve the instance from "test.com" inside "test"" app
 	t.Log(ins)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
 	err = client.SendHeartbeat(instance.App, instance.HostName) // say to eureka that your app is alive (here you must send heartbeat before 30 sec)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
-
 }
