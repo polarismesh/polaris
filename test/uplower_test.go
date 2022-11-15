@@ -35,7 +35,7 @@ func TestEurekaServer_RegisterApplication(t *testing.T) {
 	instance.Metadata.Map["foo"] = "bar"                  //add metadata for example
 	err := client.RegisterInstance("ServiceID", instance) // Register new instance in your eureka(s)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
 	applications, _ := client.GetApplications() // Retrieves all applications from eureka server(s)
