@@ -49,7 +49,7 @@ func TestEurekaServer_RegisterApplication(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(3 * time.Second)
+	time.Sleep(15 * time.Second)
 
 	applications, _ := client.GetApplications() // Retrieves all applications from eureka server(s)
 	t.Log(applications)
