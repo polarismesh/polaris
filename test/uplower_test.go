@@ -22,6 +22,7 @@ package test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ArthurHlt/go-eureka-client/eureka"
 )
@@ -31,7 +32,7 @@ func TestEurekaServer_RegisterApplication(t *testing.T) {
 	client := eureka.NewClient([]string{
 		"http://127.0.0.1:8761/eureka", //From a spring boot based eureka server
 	})
-	appId := "MYAPP"
+	appId := "testAPP"
 	instance := eureka.NewInstanceInfo("TEST", appId, "69.172.200.23", 80, 30, false) //Create a new instance to register
 	instance.Metadata = &eureka.MetaData{
 		Map: make(map[string]string),
@@ -46,6 +47,7 @@ func TestEurekaServer_RegisterApplication(t *testing.T) {
 	applications, _ := client.GetApplications() // Retrieves all applications from eureka server(s)
 	t.Log(applications)
 
+	time.Sleep(time.Second)
 	_, err = client.GetApplication(appId)
 	if err != nil {
 		t.Error(err)
