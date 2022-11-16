@@ -28,6 +28,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	instancecommon "github.com/polarismesh/polaris/common/service"
 	"github.com/polarismesh/polaris/common/utils"
@@ -866,9 +867,9 @@ func (s *Server) packCmdb(instance *api.Instance) {
 	}
 }
 
-func (s *Server) sendDiscoverEvent(eventType model.DiscoverEventType, namespace, service, host string, port int) {
+func (s *Server) sendDiscoverEvent(eventType model.InstanceEventType, namespace, service, host string, port int) {
 	// 发布隔离状态变化事件
-	event := model.DiscoverEvent{
+	event := model.InstanceEvent{
 		Namespace: namespace,
 		Service:   service,
 		Host:      host,
@@ -876,7 +877,7 @@ func (s *Server) sendDiscoverEvent(eventType model.DiscoverEventType, namespace,
 		EType:     eventType,
 	}
 
-	s.PublishDiscoverEvent(event)
+	eventhub.Publish(eventhub.InstanceEventTopic, event)
 }
 
 type svcName interface {
@@ -1240,8 +1241,8 @@ func CheckDbInstanceFieldLen(req *api.Instance) (*api.Response, bool) {
 	return nil, false
 }
 
-func diffInstanceEvent(req *api.Instance, save *model.Instance) []model.DiscoverEventType {
-	eventTypes := make([]model.DiscoverEventType, 0)
+func diffInstanceEvent(req *api.Instance, save *model.Instance) []model.InstanceEventType {
+	eventTypes := make([]model.InstanceEventType, 0)
 	if req.Isolate != nil && save.Isolate() != req.Isolate.GetValue() {
 		if req.Isolate.GetValue() {
 			eventTypes = append(eventTypes, model.EventInstanceOpenIsolate)

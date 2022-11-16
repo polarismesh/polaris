@@ -24,7 +24,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/polarismesh/polaris/common/eventhub"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -47,7 +46,7 @@ type eventBufferHolder struct {
 	writeCursor int
 	readCursor  int
 	size        int
-	buffer      []model.DiscoverEvent
+	buffer      []model.InstanceEvent
 }
 
 func newEventBufferHolder(cap int) *eventBufferHolder {
@@ -55,7 +54,7 @@ func newEventBufferHolder(cap int) *eventBufferHolder {
 		writeCursor: 0,
 		readCursor:  0,
 		size:        0,
-		buffer:      make([]model.DiscoverEvent, cap),
+		buffer:      make([]model.InstanceEvent, cap),
 	}
 }
 
@@ -67,7 +66,7 @@ func (holder *eventBufferHolder) Reset() {
 }
 
 // Put 放入一个 model.DiscoverEvent
-func (holder *eventBufferHolder) Put(event model.DiscoverEvent) {
+func (holder *eventBufferHolder) Put(event model.InstanceEvent) {
 	holder.buffer[holder.writeCursor] = event
 	holder.size++
 	holder.writeCursor++
@@ -82,7 +81,7 @@ func (holder *eventBufferHolder) HasNext() bool {
 //
 //	@return model.DiscoverEvent 元素
 //	@return bool 是否还有下一个元素可以继续读取
-func (holder *eventBufferHolder) Next() model.DiscoverEvent {
+func (holder *eventBufferHolder) Next() model.InstanceEvent {
 	event := holder.buffer[holder.readCursor]
 	holder.readCursor++
 
@@ -95,11 +94,13 @@ func (holder *eventBufferHolder) Size() int {
 }
 
 type discoverEventLocal struct {
-	eventCh        chan model.DiscoverEvent
+	eventCh        chan model.InstanceEvent
 	bufferPool     sync.Pool
 	curEventBuffer *eventBufferHolder
 	cursor         int
 	syncLock       sync.Mutex
+	eventHandler   func(eventHolder *eventBufferHolder)
+	cancel         context.CancelFunc
 }
 
 // Name 插件名称
@@ -125,8 +126,8 @@ func (el *discoverEventLocal) Initialize(conf *plugin.ConfigEntry) error {
 		return err
 	}
 
-	el.eventCh = make(chan model.DiscoverEvent, config.QueueSize)
-
+	el.eventCh = make(chan model.InstanceEvent, config.QueueSize)
+	el.eventHandler = el.writeToFile
 	el.bufferPool = sync.Pool{
 		New: func() interface{} {
 			return newEventBufferHolder(defaultBufferSize)
@@ -134,30 +135,23 @@ func (el *discoverEventLocal) Initialize(conf *plugin.ConfigEntry) error {
 	}
 
 	el.switchEventBuffer()
+	ctx, cancel := context.WithCancel(context.Background())
+	go el.Run(ctx)
 
-	if err := eventhub.Subscribe(eventhub.DiscoverEventTopic, PluginName, el.Handler); err != nil {
-		return err
-	}
-
-	go el.Run()
-
+	el.cancel = cancel
 	return nil
 }
 
 // Destroy 执行插件销毁
 func (el *discoverEventLocal) Destroy() error {
-	eventhub.Unsubscribe(eventhub.DiscoverEventTopic, PluginName)
-	return nil
-}
-
-func (el *discoverEventLocal) Handler(ctx context.Context, event interface{}) error {
-	discoverEvent, _ := event.(model.DiscoverEvent)
-	el.eventCh <- discoverEvent
+	if el.cancel != nil {
+		el.cancel()
+	}
 	return nil
 }
 
 // PublishEvent 发布一个服务事件
-func (el *discoverEventLocal) PublishEvent(event model.DiscoverEvent) {
+func (el *discoverEventLocal) PublishEvent(event model.InstanceEvent) {
 	select {
 	case el.eventCh <- event:
 		return
@@ -167,27 +161,33 @@ func (el *discoverEventLocal) PublishEvent(event model.DiscoverEvent) {
 }
 
 // Run 执行主逻辑
-func (el *discoverEventLocal) Run() {
+func (el *discoverEventLocal) Run(ctx context.Context) {
 	// 定时刷新事件到日志的定时器
 	syncInterval := time.NewTicker(time.Duration(10) * time.Second)
 	defer syncInterval.Stop()
 
+REWATCH:
 	for {
 		select {
 		case event := <-el.eventCh:
+			if event.EType == model.EventInstanceSendHeartbeat {
+				break REWATCH
+			}
+
 			// 确保事件是顺序的
 			event.CreateTime = time.Now()
 			el.curEventBuffer.Put(event)
 
 			// 触发持久化到 log 阈值
 			if el.curEventBuffer.Size() == defaultBufferSize {
-				go el.writeToFile(el.curEventBuffer)
-
+				go el.eventHandler(el.curEventBuffer)
 				el.switchEventBuffer()
 			}
 		case <-syncInterval.C:
-			go el.writeToFile(el.curEventBuffer)
+			go el.eventHandler(el.curEventBuffer)
 			el.switchEventBuffer()
+		case <-ctx.Done():
+			return
 		}
 	}
 }

@@ -19,6 +19,6 @@ package eventhub
 
 // 事件主题
 const (
-	// DiscoverEventTopic 服务发现事件主题
-	DiscoverEventTopic string = "discover_event"
+	// InstanceEventTopic 服务发现事件主题
+	InstanceEventTopic string = "instance_event"
 )
