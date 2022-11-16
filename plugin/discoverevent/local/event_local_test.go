@@ -23,8 +23,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/polarismesh/polaris/common/model"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/polarismesh/polaris/common/model"
 )
 
 func Test_discoverEventLocal_Run(t *testing.T) {

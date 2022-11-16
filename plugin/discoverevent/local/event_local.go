@@ -166,12 +166,11 @@ func (el *discoverEventLocal) Run(ctx context.Context) {
 	syncInterval := time.NewTicker(time.Duration(10) * time.Second)
 	defer syncInterval.Stop()
 
-REWATCH:
 	for {
 		select {
 		case event := <-el.eventCh:
 			if event.EType == model.EventInstanceSendHeartbeat {
-				break REWATCH
+				break
 			}
 
 			// 确保事件是顺序的
