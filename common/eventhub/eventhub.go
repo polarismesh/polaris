@@ -45,7 +45,7 @@ type eventHub struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	topics map[string]*topic
-	mu     sync.Mutex
+	mu     sync.RWMutex
 }
 
 // Publish pushlish event to topic
@@ -101,8 +101,11 @@ func (e *eventHub) createTopic(name string) *topic {
 }
 
 func (e *eventHub) getTopic(name string) *topic {
+	e.mu.RLock()
 	if t, ok := e.topics[name]; ok {
+		e.mu.RUnlock()
 		return t
 	}
+	e.mu.RUnlock()
 	return e.createTopic(name)
 }
