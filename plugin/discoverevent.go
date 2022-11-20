@@ -33,8 +33,7 @@ var (
 type DiscoverChannel interface {
 	Plugin
 	// PublishEvent 发布一个服务事件
-	//  @param event 服务事件信息
-	PublishEvent(event model.DiscoverEvent)
+	PublishEvent(event model.InstanceEvent)
 }
 
 // GetDiscoverEvent 获取服务发现事件插件

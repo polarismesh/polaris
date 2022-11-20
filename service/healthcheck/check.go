@@ -541,7 +541,7 @@ func setInsDbStatus(instance *model.Instance, healthStatus bool) uint32 {
 	// 这里为了避免多次发送重复的事件，对实例原本的health 状态以及 healthStatus 状态进行对比，不一致才
 	// 发布服务实例变更事件
 	if instance.Healthy() != healthStatus {
-		event := model.DiscoverEvent{
+		event := model.InstanceEvent{
 			Namespace: instance.Namespace(),
 			Service:   instance.Service(),
 			Host:      instance.Host(),
@@ -555,7 +555,7 @@ func setInsDbStatus(instance *model.Instance, healthStatus bool) uint32 {
 			event.EType = model.EventInstanceTurnUnHealth
 		}
 
-		server.PublishDiscoverEvent(instance.ServiceID, event)
+		server.publishInstanceEvent(instance.ServiceID, event)
 	}
 
 	server.RecordHistory(instanceRecordEntry(recordInstance, model.OUpdate))

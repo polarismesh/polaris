@@ -33,7 +33,7 @@ func TestEventBufferTest(t *testing.T) {
 	expectCnt := int64(0)
 	for i := 0; i < 10; i++ {
 		now := time.Now()
-		bufferHolder.Put(model.DiscoverEvent{
+		bufferHolder.Put(model.InstanceEvent{
 			CreateTime: now,
 		})
 
@@ -54,7 +54,7 @@ func TestEventBufferTest(t *testing.T) {
 	expectCnt = int64(0)
 	for i := 20; i < 40; i++ {
 		now := time.Now()
-		bufferHolder.Put(model.DiscoverEvent{
+		bufferHolder.Put(model.InstanceEvent{
 			CreateTime: now,
 		})
 
