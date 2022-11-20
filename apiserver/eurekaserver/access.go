@@ -24,7 +24,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/emicklei/go-restful/v3"
+	restful "github.com/emicklei/go-restful/v3"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
@@ -143,7 +143,8 @@ func writePolarisStatusCode(req *restful.Request, statusCode uint32) {
 
 // GetApplication 拉取单个服务实例信息
 func (h *EurekaServer) GetApplication(req *restful.Request, rsp *restful.Response) {
-	appId := strings.ToUpper(req.PathParameter(ParamAppId))
+	appId := h.formatName(req.PathParameter(ParamAppId))
+
 	remoteAddr := req.Request.RemoteAddr
 	appsRespCache := h.worker.GetCachedAppsWithLoad()
 	apps := appsRespCache.AppsResp.Applications
@@ -171,7 +172,7 @@ func (h *EurekaServer) GetApplication(req *restful.Request, rsp *restful.Respons
 // GetAppInstance 拉取应用下某个实例的信息
 func (h *EurekaServer) GetAppInstance(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
-	appId := strings.ToUpper(req.PathParameter(ParamAppId))
+	appId := h.formatName(req.PathParameter(ParamAppId))
 	if len(appId) == 0 {
 		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
@@ -326,7 +327,8 @@ func checkRegisterRequest(registrationRequest *RegistrationRequest, req *restful
 // RegisterApplication 服务注册
 func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
-	appId := strings.ToUpper(req.PathParameter(ParamAppId))
+	appId := h.formatName(req.PathParameter(ParamAppId))
+
 	if len(appId) == 0 {
 		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
@@ -650,4 +652,14 @@ func (h *EurekaServer) QueryBySVipAddress(req *restful.Request, rsp *restful.Res
 	if err := writeResponse(parseAcceptValue(acceptValue), appsRespCache, req, rsp); nil != err {
 		log.Errorf("[EurekaServer]fail to write svip applications, client: %s, err: %v", remoteAddr, err)
 	}
+}
+
+func (h *EurekaServer) formatName(appId string) string {
+	// 如果开启忽略大小写 则统一转成小写,
+	if h.ignoreUpLow {
+		appId = strings.ToLower(appId)
+	} else {
+		appId = strings.ToUpper(appId)
+	}
+	return appId
 }

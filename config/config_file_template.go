@@ -147,8 +147,5 @@ func checkConfigFileTemplateParam(template *api.ConfigFileTemplate) *api.ConfigR
 	if len(template.Content.GetValue()) == 0 {
 		return api.NewConfigFileTemplateResponseWithMessage(api.BadRequest, "content can not be blank.")
 	}
-	if !utils.IsValidFileFormat(template.Format.GetValue()) {
-		return api.NewConfigFileTemplateResponse(api.InvalidConfigFileFormat, template)
-	}
 	return nil
 }

@@ -48,7 +48,6 @@ type Server struct {
 	history        plugin.History
 	ratelimit      plugin.Ratelimit
 	discoverStatis plugin.DiscoverStatis
-	discoverEvent  plugin.DiscoverChannel
 
 	l5service *l5service
 
@@ -101,15 +100,6 @@ func (s *Server) RecordDiscoverStatis(service, discoverNamespace string) {
 	}
 
 	_ = s.discoverStatis.AddDiscoverCall(service, discoverNamespace, time.Now())
-}
-
-// PublishDiscoverEvent 发布服务事件
-func (s *Server) PublishDiscoverEvent(event model.DiscoverEvent) {
-	if s.discoverEvent == nil {
-		return
-	}
-
-	s.discoverEvent.PublishEvent(event)
 }
 
 // GetServiceInstanceRevision 获取服务实例的revision

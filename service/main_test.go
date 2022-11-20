@@ -42,6 +42,7 @@ import (
 	_ "github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	apiv2 "github.com/polarismesh/polaris/common/api/v2"
+	"github.com/polarismesh/polaris/common/eventhub"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/utils"
@@ -182,6 +183,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 
 	metrics.InitMetrics()
+	eventhub.InitEventHub()
 
 	// 初始化存储层
 	store.SetStoreConfig(&d.cfg.Store)

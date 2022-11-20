@@ -490,10 +490,6 @@ func checkConfigFileParams(configFile *api.ConfigFile, checkFormat bool) *api.Co
 		return api.NewConfigFileResponse(api.InvalidConfigFileContentLength, configFile)
 	}
 
-	if checkFormat && !utils.IsValidFileFormat(configFile.Format.GetValue()) {
-		return api.NewConfigFileResponse(api.InvalidConfigFileFormat, configFile)
-	}
-
 	if len(configFile.Tags) > 0 {
 		for _, tag := range configFile.Tags {
 			if tag.Key.GetValue() == "" || tag.Value.GetValue() == "" {

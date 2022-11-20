@@ -27,6 +27,7 @@ import (
 
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -171,11 +172,8 @@ func (s *Server) RecordHistory(entry *model.RecordEntry) {
 	s.history.Record(entry)
 }
 
-// PublishDiscoverEvent 发布服务事件
-func (s *Server) PublishDiscoverEvent(serviceID string, event model.DiscoverEvent) {
-	if s.discoverEvent == nil {
-		return
-	}
+// publishInstanceEvent 发布服务事件
+func (s *Server) publishInstanceEvent(serviceID string, event model.InstanceEvent) {
 	s.discoverCh <- eventWrapper{
 		ServiceID: serviceID,
 		Event:     event,
@@ -183,10 +181,6 @@ func (s *Server) PublishDiscoverEvent(serviceID string, event model.DiscoverEven
 }
 
 func (s *Server) receiveEventAndPush() {
-	if s.discoverEvent == nil {
-		return
-	}
-
 	for wrapper := range s.discoverCh {
 		var (
 			svcID   = wrapper.ServiceID
@@ -204,7 +198,7 @@ func (s *Server) receiveEventAndPush() {
 		event.Namespace = service.Namespace
 		event.Service = service.Name
 
-		s.discoverEvent.PublishEvent(event)
+		eventhub.Publish(eventhub.InstanceEventTopic, event)
 	}
 }
 
@@ -252,5 +246,5 @@ func currentTimeSec() int64 {
 
 type eventWrapper struct {
 	ServiceID string
-	Event     model.DiscoverEvent
+	Event     model.InstanceEvent
 }

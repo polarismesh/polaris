@@ -39,7 +39,7 @@ func mockReportClients(cnt int) []*apiv1.Client {
 			Type:     apiv1.Client_SDK,
 			Version:  utils.NewStringValue("v1.0.0"),
 			Location: &apiv1.Location{},
-			Id:       utils.NewStringValue(NewUUID()),
+			Id:       utils.NewStringValue(utils.NewUUID()),
 			Stat: []*apiv1.StatInfo{
 				{
 					Target:   utils.NewStringValue(model.StatReportPrometheus),

@@ -43,9 +43,9 @@ metadata:
 spec:
   podManagementPolicy: OrderedReady
   {{- if eq .Values.global.mode "cluster" }}
-  replicas: 1
-  {{- else }}
   replicas: {{ .Values.polaris.replicaCount }}
+  {{- else }}
+  replicas: 1
   {{- end }}
   selector:
     matchLabels:

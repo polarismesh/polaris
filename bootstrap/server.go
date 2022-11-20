@@ -34,6 +34,7 @@ import (
 	boot_config "github.com/polarismesh/polaris/bootstrap/config"
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
@@ -92,6 +93,8 @@ func Start(configFilePath string) {
 	}
 
 	metrics.InitMetrics()
+
+	eventhub.InitEventHub()
 
 	// 设置插件配置
 	plugin.SetPluginConfig(&cfg.Plugin)
