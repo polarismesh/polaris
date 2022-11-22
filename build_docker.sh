@@ -1,3 +1,4 @@
+#!/bin/bash
 # Tencent is pleased to support the open source community by making Polaris available.
 #
 # Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -13,7 +14,6 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-#!/bin/bash
 
 if [ $# != 1 ]; then
     echo "e.g.: bash $0 v1.0"
