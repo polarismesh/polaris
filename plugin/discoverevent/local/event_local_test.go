@@ -19,6 +19,8 @@ package local
 
 import (
 	"context"
+	"github.com/golang/protobuf/ptypes/wrappers"
+	api "github.com/polarismesh/polaris/common/api/v1"
 	"sync"
 	"testing"
 	"time"
@@ -66,19 +68,25 @@ func Test_discoverEventLocal_Run(t *testing.T) {
 
 	for i := 0; i < totalCnt; i++ {
 		l.PublishEvent(model.InstanceEvent{
-			Namespace:  "DemoNamespace",
-			Service:    "DemoService",
-			Host:       "127.0.0.1",
-			Port:       8080,
+			Id:        "123456",
+			Namespace: "DemoNamespace",
+			Service:   "DemoService",
+			Instance: &api.Instance{
+				Host: &wrappers.StringValue{Value: "127.0.0.1"},
+				Port: &wrappers.UInt32Value{Value: 8080},
+			},
 			EType:      model.EventInstanceCloseIsolate,
 			CreateTime: time.Time{},
 		})
 
 		l.PublishEvent(model.InstanceEvent{
-			Namespace:  "DemoNamespace",
-			Service:    "DemoService",
-			Host:       "127.0.0.1",
-			Port:       8080,
+			Id:        "111111",
+			Namespace: "DemoNamespace",
+			Service:   "DemoService",
+			Instance: &api.Instance{
+				Host: &wrappers.StringValue{Value: "127.0.0.1"},
+				Port: &wrappers.UInt32Value{Value: 8080},
+			},
 			EType:      model.EventInstanceSendHeartbeat,
 			CreateTime: time.Time{},
 		})

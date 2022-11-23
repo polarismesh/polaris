@@ -24,7 +24,7 @@ import (
 	"net/http"
 	"strings"
 
-	restful "github.com/emicklei/go-restful/v3"
+	"github.com/emicklei/go-restful/v3"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
@@ -113,6 +113,8 @@ func (h *EurekaServer) addDiscoverAccess(ws *restful.WebService) {
 	// Query for all instances under a particular secure vip address
 	ws.Route(ws.GET(fmt.Sprintf("/svips/{%s}", ParamSVip)).To(h.QueryBySVipAddress)).
 		Param(ws.PathParameter(ParamSVip, "svipAddress").DataType("string"))
+	// Query for handling batch replication request
+	ws.Route(ws.POST("/peerreplication/batch").To(h.BatchReplication))
 }
 
 func parseAcceptValue(acceptValue string) map[string]bool {
@@ -279,6 +281,27 @@ func (h *EurekaServer) GetDeltaApplications(req *restful.Request, rsp *restful.R
 	}
 }
 
+func convertInstancePorts(instance *InstanceInfo) error {
+	var err error
+	if nil != instance.Port {
+		if err = instance.Port.convertPortValue(); nil != err {
+			return err
+		}
+		if err = instance.Port.convertEnableValue(); nil != err {
+			return err
+		}
+	}
+	if nil != instance.SecurePort {
+		if err = instance.SecurePort.convertPortValue(); nil != err {
+			return err
+		}
+		if err = instance.SecurePort.convertEnableValue(); nil != err {
+			return err
+		}
+	}
+	return nil
+}
+
 func checkRegisterRequest(registrationRequest *RegistrationRequest, req *restful.Request, rsp *restful.Response) bool {
 	var err error
 	remoteAddr := req.Request.RemoteAddr
@@ -289,37 +312,12 @@ func checkRegisterRequest(registrationRequest *RegistrationRequest, req *restful
 		writeHeader(http.StatusBadRequest, rsp)
 		return false
 	}
-	if nil != registrationRequest.Instance.Port {
-		if err = registrationRequest.Instance.Port.convertPortValue(); nil != err {
-			log.Errorf("[EUREKA-SERVER] fail to parse instance register request, "+
-				"invalid insecure port value, client: %s, err: %v", remoteAddr, err)
-			writePolarisStatusCode(req, api.InvalidInstancePort)
-			writeHeader(http.StatusBadRequest, rsp)
-			return false
-		}
-		if err = registrationRequest.Instance.Port.convertEnableValue(); nil != err {
-			log.Errorf("[EUREKA-SERVER] fail to parse instance register request, "+
-				"invalid insecure enable value, client: %s, err: %v", remoteAddr, err)
-			writePolarisStatusCode(req, api.InvalidInstancePort)
-			writeHeader(http.StatusBadRequest, rsp)
-			return false
-		}
-	}
-	if nil != registrationRequest.Instance.SecurePort {
-		if err = registrationRequest.Instance.SecurePort.convertPortValue(); nil != err {
-			log.Errorf("[EUREKA-SERVER] fail to parse instance register request, "+
-				"invalid secure port value, client: %s, err: %v", remoteAddr, err)
-			writePolarisStatusCode(req, api.InvalidInstancePort)
-			writeHeader(http.StatusBadRequest, rsp)
-			return false
-		}
-		if err = registrationRequest.Instance.SecurePort.convertEnableValue(); nil != err {
-			log.Errorf("[EUREKA-SERVER] fail to parse instance register request, "+
-				"invalid secure enable value, client: %s, err: %v", remoteAddr, err)
-			writePolarisStatusCode(req, api.InvalidInstancePort)
-			writeHeader(http.StatusBadRequest, rsp)
-			return false
-		}
+	err = convertInstancePorts(registrationRequest.Instance)
+	if nil != err {
+		log.Errorf("[EUREKA-SERVER] fail to parse instance register request, "+
+			"invalid port value, client: %s, err: %v", remoteAddr, err)
+		writePolarisStatusCode(req, api.InvalidInstancePort)
+		writeHeader(http.StatusBadRequest, rsp)
 	}
 	return true
 }
@@ -370,7 +368,7 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 
 	log.Infof("[EUREKA-SERVER]received instance register request, client: %s, instId: %s, appId: %s, ipAddr: %s",
 		remoteAddr, registrationRequest.Instance.InstanceId, appId, registrationRequest.Instance.IpAddr)
-	code := h.registerInstances(ctx, appId, registrationRequest.Instance)
+	code := h.registerInstances(ctx, appId, registrationRequest.Instance, false)
 	if code == api.ExecuteSuccess || code == api.ExistedResource || code == api.SameInstanceRequest {
 		log.Infof("[EUREKA-SERVER]instance (instId=%s, appId=%s) has been registered successfully, code is %d",
 			registrationRequest.Instance.InstanceId, appId, code)
@@ -457,6 +455,11 @@ func (h *EurekaServer) DeleteStatus(req *restful.Request, rsp *restful.Response)
 		log.Infof("[EUREKA-SERVER]instance status (instId=%s, appId=%s) has been deleted successfully",
 			instId, appId)
 		writeHeader(http.StatusOK, rsp)
+		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
+			AppName: appId,
+			Id:      instId,
+			Action:  actionDeleteStatusOverride,
+		})
 		return
 	}
 	log.Errorf("[EUREKA-SERVER]instance status (instId=%s, appId=%s) has been deleted failed, code is %d",
@@ -491,6 +494,12 @@ func (h *EurekaServer) RenewInstance(req *restful.Request, rsp *restful.Response
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess || code == api.HeartbeatExceedLimit {
 		writeHeader(http.StatusOK, rsp)
+		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
+			AppName: appId,
+			Id:      instId,
+			Status:  "UP",
+			Action:  actionHeartbeat,
+		})
 		return
 	}
 	log.Errorf("[EUREKA-SERVER]instance (instId=%s, appId=%s) heartbeat failed, code is %d",
@@ -529,6 +538,11 @@ func (h *EurekaServer) CancelInstance(req *restful.Request, rsp *restful.Respons
 		writeHeader(http.StatusOK, rsp)
 		log.Infof("[EUREKA-SERVER]instance (instId=%s, appId=%s) has been deregistered successfully, code is %d",
 			instId, appId, code)
+		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
+			AppName: appId,
+			Id:      instId,
+			Action:  actionCancel,
+		})
 		return
 	}
 	log.Errorf("[EUREKA-SERVER]instance (instId=%s, appId=%s) has been deregistered failed, code is %d",
@@ -656,7 +670,7 @@ func (h *EurekaServer) QueryBySVipAddress(req *restful.Request, rsp *restful.Res
 
 func (h *EurekaServer) formatName(appId string) string {
 	// 如果开启忽略大小写 则统一转成小写,
-	if h.ignoreUpLow {
+	if h.caseSensitive {
 		appId = strings.ToLower(appId)
 	} else {
 		appId = strings.ToUpper(appId)

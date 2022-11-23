@@ -542,10 +542,10 @@ func setInsDbStatus(instance *model.Instance, healthStatus bool) uint32 {
 	// 发布服务实例变更事件
 	if instance.Healthy() != healthStatus {
 		event := model.InstanceEvent{
+			Id:        id,
 			Namespace: instance.Namespace(),
 			Service:   instance.Service(),
-			Host:      instance.Host(),
-			Port:      int(instance.Port()),
+			Instance:  instance.Proto,
 		}
 
 		// 实例状态变化进行 DiscoverEvent 输出

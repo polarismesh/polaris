@@ -208,11 +208,12 @@ func (el *discoverEventLocal) writeToFile(eventHolder *eventBufferHolder) {
 	for eventHolder.HasNext() {
 		event := eventHolder.Next()
 		log.Info(fmt.Sprintf(
-			"%s|%s|%s|%d|%s|%d|%s",
+			"%s|%s|%s|%s|%d|%s|%d|%s",
+			event.Id,
 			event.Namespace,
 			event.Service,
-			event.Host,
-			event.Port,
+			event.Instance.GetHost(),
+			event.Instance.GetPort(),
 			event.EType,
 			event.CreateTime.Unix(),
 			utils.LocalHost))

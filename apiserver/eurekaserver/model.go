@@ -63,25 +63,27 @@ func (p *PortWrapper) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 	return nil
 }
 
-func (p *PortWrapper) convertPortValue() error {
-	if jsonNumber, ok := p.Port.(json.Number); ok {
+func convertIntValue(value interface{}) (int, error) {
+	if jsonNumber, ok := value.(json.Number); ok {
 		realPort, err := jsonNumber.Int64()
 		if err != nil {
-			return err
+			return 0, err
 		}
-		p.RealPort = int(realPort)
-		return nil
+		return int(realPort), nil
 	}
-	if floatValue, ok := p.Port.(float64); ok {
-		p.RealPort = int(floatValue)
-		return nil
+	if floatValue, ok := value.(float64); ok {
+		return int(floatValue), nil
 	}
-	if strValue, ok := p.Port.(string); ok {
-		var err error
-		p.RealPort, err = strconv.Atoi(strValue)
-		return err
+	if strValue, ok := value.(string); ok {
+		return strconv.Atoi(strValue)
 	}
-	return fmt.Errorf("unknow type of port value, type is %v", reflect.TypeOf(p.Port))
+	return 0, fmt.Errorf("unknow type of port value, type is %v", reflect.TypeOf(value))
+}
+
+func (p *PortWrapper) convertPortValue() error {
+	var err error
+	p.RealPort, err = convertIntValue(p.Port)
+	return err
 }
 
 func (p *PortWrapper) convertEnableValue() error {
@@ -404,3 +406,30 @@ func (a *Applications) GetInstance(instId string) *InstanceInfo {
 
 // StringMap is a map[string]string.
 type StringMap map[string]interface{}
+
+// ReplicationInstance request for instance replicate
+type ReplicationInstance struct {
+	AppName            string        `json:"appName"`
+	Id                 string        `json:"id"`
+	LastDirtyTimestamp int64         `json:"lastDirtyTimestamp"`
+	OverriddenStatus   string        `json:"overriddenStatus"`
+	Status             string        `json:"status"`
+	InstanceInfo       *InstanceInfo `json:"instanceInfo"`
+	Action             string        `json:"action"`
+}
+
+// ReplicationList instances list to replicate
+type ReplicationList struct {
+	ReplicationList []*ReplicationInstance `json:"replicationList"`
+}
+
+// ReplicationInstanceResponse response for instance replicate process
+type ReplicationInstanceResponse struct {
+	StatusCode     int           `json:"statusCode"`
+	ResponseEntity *InstanceInfo `json:"responseEntity"`
+}
+
+// ReplicationListResponse list for replicate instance response
+type ReplicationListResponse struct {
+	ResponseList []*ReplicationInstanceResponse `json:"responseList"`
+}
