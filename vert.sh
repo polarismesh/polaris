@@ -1,3 +1,4 @@
+#!/bin/bash
 # Tencent is pleased to support the open source community by making Polaris available.
 #
 # Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -14,7 +15,6 @@
 # specific language governing permissions and limitations under the License.
 
 
-#!/bin/bash
 
 set -ex         # Exit on error; debugging enabled.
 set -o pipefail # Fail a pipe if any sub-command fails.
