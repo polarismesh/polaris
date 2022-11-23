@@ -81,7 +81,7 @@ func (h *HTTPServer) AuthStatus(req *restful.Request, rsp *restful.Response) {
 	handler.WriteHeaderAndProto(resp)
 }
 
-// Login 登陆函数
+// Login 登录函数
 func (h *HTTPServer) Login(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{
 		Request:  req,
