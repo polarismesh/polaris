@@ -100,7 +100,7 @@ func NewStrategyResourcesResponse(code uint32, ret *StrategyResources) *Response
 	}
 }
 
-// NewLoginResponse 创建登陆响应体
+// NewLoginResponse 创建登录响应体
 func NewLoginResponse(code uint32, loginResponse *LoginResponse) *Response {
 	return &Response{
 		Code:          &wrappers.UInt32Value{Value: code},

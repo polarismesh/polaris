@@ -33,7 +33,7 @@ visit [website](https://polarismesh.cn/) to learn more
 
 ## Introduction
 
-<img src="https://raw.githubusercontent.com/polarismesh/website/main/content/zh-cn/docs/北极星是什么//简介图片/第一印象.png" width="800" />
+<img src="https://raw.githubusercontent.com/polarismesh/website/main/content/zh-cn/docs/北极星是什么/图片/第一印象.png" width="800" />
 
 Polaris is a cloud-native service discovery and governance center. It can be used to solve the problem of service
 connection, fault tolerance, traffic control and secure in distributed and microservice architecture.

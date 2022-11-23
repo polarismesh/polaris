@@ -484,33 +484,35 @@ func (r *RecordEntry) String() string {
 	return str
 }
 
-// DiscoverEventType 探测事件类型
-type DiscoverEventType string
+// InstanceEventType 探测事件类型
+type InstanceEventType string
 
 const (
 	// EventDiscoverNone empty discover event
-	EventDiscoverNone DiscoverEventType = "EventDiscoverNone"
+	EventDiscoverNone InstanceEventType = "EventDiscoverNone"
 	// EventInstanceOnline instance becoming online
-	EventInstanceOnline DiscoverEventType = "InstanceOnline"
+	EventInstanceOnline InstanceEventType = "InstanceOnline"
 	// EventInstanceTurnUnHealth Instance becomes unhealthy
-	EventInstanceTurnUnHealth DiscoverEventType = "InstanceTurnUnHealth"
+	EventInstanceTurnUnHealth InstanceEventType = "InstanceTurnUnHealth"
 	// EventInstanceTurnHealth Instance becomes healthy
-	EventInstanceTurnHealth DiscoverEventType = "InstanceTurnHealth"
+	EventInstanceTurnHealth InstanceEventType = "InstanceTurnHealth"
 	// EventInstanceOpenIsolate Instance is in isolation
-	EventInstanceOpenIsolate DiscoverEventType = "InstanceOpenIsolate"
+	EventInstanceOpenIsolate InstanceEventType = "InstanceOpenIsolate"
 	// EventInstanceCloseIsolate Instance shutdown isolation state
-	EventInstanceCloseIsolate DiscoverEventType = "InstanceCloseIsolate"
+	EventInstanceCloseIsolate InstanceEventType = "InstanceCloseIsolate"
 	// EventInstanceOffline Instance offline
-	EventInstanceOffline DiscoverEventType = "InstanceOffline"
+	EventInstanceOffline InstanceEventType = "InstanceOffline"
+	// EventInstanceSendHeartbeat Instance send heartbeat package to server
+	EventInstanceSendHeartbeat InstanceEventType = "InstanceSendHeartbeat"
 )
 
-// DiscoverEvent 服务发现事件
-type DiscoverEvent struct {
+// InstanceEvent 服务实例事件
+type InstanceEvent struct {
 	Namespace  string
 	Service    string
 	Host       string
 	Port       int
-	EType      DiscoverEventType
+	EType      InstanceEventType
 	CreateTime time.Time
 }
 

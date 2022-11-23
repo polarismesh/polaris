@@ -34,7 +34,7 @@ GET /core/v1/auth/status
 {
 	"code": 200000,
 	"info": "execute success",
-	"optionSwitch": 
+	"optionSwitch":
 	{
 		"auth": "true"
 	}
@@ -385,7 +385,7 @@ Header X-Polaris-Token: {访问凭据}
 ~~~
 `
 	enrichLoginApiNotes = `
-用于控制台进行用户登陆操作
+用于控制台进行用户登录操作
 
 请求示例：
 

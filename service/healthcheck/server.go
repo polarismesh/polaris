@@ -172,8 +172,8 @@ func (s *Server) RecordHistory(entry *model.RecordEntry) {
 	s.history.Record(entry)
 }
 
-// PublishDiscoverEvent 发布服务事件
-func (s *Server) PublishDiscoverEvent(serviceID string, event model.DiscoverEvent) {
+// publishInstanceEvent 发布服务事件
+func (s *Server) publishInstanceEvent(serviceID string, event model.InstanceEvent) {
 	s.discoverCh <- eventWrapper{
 		ServiceID: serviceID,
 		Event:     event,
@@ -198,7 +198,7 @@ func (s *Server) receiveEventAndPush() {
 		event.Namespace = service.Namespace
 		event.Service = service.Name
 
-		eventhub.Publish(eventhub.DiscoverEventTopic, event)
+		eventhub.Publish(eventhub.InstanceEventTopic, event)
 	}
 }
 
@@ -246,5 +246,5 @@ func currentTimeSec() int64 {
 
 type eventWrapper struct {
 	ServiceID string
-	Event     model.DiscoverEvent
+	Event     model.InstanceEvent
 }
