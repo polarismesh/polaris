@@ -126,6 +126,12 @@ func (s *stableStore) Initialize(conf *store.Config) error {
 
 	s.start = true
 	s.newStore()
+
+	if err := s.maintainStore.StartLeaderElection(); err != nil {
+		log.Errorf("[Store][database] leader election start failed")
+		return err
+	}
+	log.Infof("[Store][database] leader election start successfully")
 	return nil
 }
 
@@ -202,6 +208,10 @@ func (s *stableStore) Destroy() error {
 	}
 	if s.slave != nil {
 		_ = s.slave.Close()
+	}
+
+	if s.maintainStore != nil {
+		s.maintainStore.StopLeaderElection()
 	}
 
 	s.master = nil

@@ -18,6 +18,8 @@
 package store
 
 type MaintainStore interface {
+	// IsLeader whether it is leader node
+	IsLeader() bool
 
 	// BatchCleanDeletedInstances batch clean soft deleted instances
 	BatchCleanDeletedInstances(batchSize uint32) (uint32, error)
