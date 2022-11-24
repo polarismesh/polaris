@@ -27,12 +27,13 @@ import (
 	"strings"
 	"time"
 
-	restful "github.com/emicklei/go-restful/v3"
+	"github.com/emicklei/go-restful/v3"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/bootstrap"
 	"github.com/polarismesh/polaris/common/connlimit"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/secure"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -61,6 +62,7 @@ const (
 	MetadataInsecurePortEnabled = "internal-eureka-insecure-port-enabled"
 	MetadataSecurePort          = "internal-eureka-secure-port"
 	MetadataSecurePortEnabled   = "internal-eureka-secure-port-enabled"
+	MetadataReplicate           = "internal-eureka-replicate"
 
 	ServerEureka = "eureka"
 
@@ -116,7 +118,7 @@ var (
 type EurekaServer struct {
 	server                 *http.Server
 	namingServer           service.DiscoverServer
-	ignoreUpLow            bool // 如果开启忽略大小写则统一转成小写,避免在迁移过程中 由EurekaServer注册上来的服务,在其他协议里发现不了。
+	caseSensitive          bool // 如果开启忽略大小写则统一转成小写,避免在迁移过程中 由EurekaServer注册上来的服务,在其他协议里发现不了。
 	healthCheckServer      *healthcheck.Server
 	connLimitConfig        *connlimit.Config
 	tlsInfo                *secure.TLSInfo
@@ -134,6 +136,7 @@ type EurekaServer struct {
 	refreshInterval        time.Duration
 	deltaExpireInterval    time.Duration
 	enableSelfPreservation bool
+	replicateWorker        *ReplicateWorker
 }
 
 // GetPort 获取端口
@@ -151,7 +154,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 	api map[string]apiserver.APIConfig) error {
 	h.listenIP = option[optionListenIP].(string)
 	h.listenPort = uint32(option[optionListenPort].(int))
-	h.ignoreUpLow, _ = option[optionIgnoreUpLow].(bool)
+	h.caseSensitive, _ = option[optionCaseSensitive].(bool)
 	h.option = option
 	h.openAPI = api
 
@@ -163,6 +166,20 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 		}
 	}
 	h.namespace = namespace
+
+	if replicatePeersValue, ok := option[optionPeerNodesToReplicate]; ok {
+		replicatePeerObjs := replicatePeersValue.([]interface{})
+		if len(replicatePeerObjs) > 0 {
+			replicatePeers := make([]string, 0, len(replicatePeerObjs))
+			for _, replicatePeerObj := range replicatePeerObjs {
+				replicatePeers = append(replicatePeers, replicatePeerObj.(string))
+			}
+			h.replicateWorker = NewReplicateWorker(ctx, replicatePeers)
+			if err := eventhub.Subscribe(eventhub.InstanceEventTopic, "eureka-replication", h.handleInstanceEvent); nil != err {
+				return err
+			}
+		}
+	}
 
 	var refreshInterval int
 	if value, ok := option[optionRefreshInterval]; ok {
@@ -286,7 +303,7 @@ func (h *EurekaServer) Run(errCh chan error) {
 		}
 		return
 	}
-	log.Infof("eurekaserver stop")
+	log.Infof("EurekaServer stop")
 }
 
 // 创建handler

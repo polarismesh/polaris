@@ -508,10 +508,10 @@ const (
 
 // InstanceEvent 服务实例事件
 type InstanceEvent struct {
+	Id         string
 	Namespace  string
 	Service    string
-	Host       string
-	Port       int
+	Instance   *v1.Instance
 	EType      InstanceEventType
 	CreateTime time.Time
 }

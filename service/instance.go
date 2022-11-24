@@ -114,9 +114,14 @@ func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Res
 		Name:      req.GetService().GetValue(),
 		Namespace: req.GetNamespace().GetValue(),
 	}
-
-	s.sendDiscoverEvent(model.EventInstanceOnline, svc.Namespace, svc.Name, req.GetHost().GetValue(),
-		int(req.GetPort().GetValue()))
+	s.sendDiscoverEvent(model.InstanceEvent{
+		Id:         instanceID,
+		Namespace:  svc.Namespace,
+		Service:    svc.Name,
+		Instance:   &ins,
+		EType:      model.EventInstanceOnline,
+		CreateTime: time.Time{},
+	})
 	s.RecordHistory(instanceRecordEntry(ctx, svc, data, model.OCreate))
 	out := &api.Instance{
 		Id:        ins.GetId(),
@@ -264,11 +269,14 @@ func (s *Server) serialDeleteInstance(ctx context.Context, req *api.Instance, in
 		instance.ID(), service.Namespace, service.Name, instance.Host(), instance.Port())
 	log.Info(msg, utils.ZapRequestID(rid), utils.ZapPlatformID(pid), zap.Duration("cost", time.Since(start)))
 	s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.ODelete))
-
-	s.sendDiscoverEvent(model.EventInstanceOffline, service.Namespace,
-		service.Name,
-		instance.Host(),
-		int(instance.Port()))
+	s.sendDiscoverEvent(model.InstanceEvent{
+		Id:         instance.ID(),
+		Namespace:  service.Namespace,
+		Service:    service.Name,
+		Instance:   instance.Proto,
+		EType:      model.EventInstanceOffline,
+		CreateTime: time.Time{},
+	})
 
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
 }
@@ -297,9 +305,14 @@ func (s *Server) asyncDeleteInstance(ctx context.Context, req *api.Instance, ins
 	log.Info(msg, utils.ZapRequestID(rid), utils.ZapPlatformID(pid), zap.Duration("cost", time.Since(start)))
 	service := &model.Service{Name: instance.Service(), Namespace: instance.Namespace()}
 	s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.ODelete))
-
-	s.sendDiscoverEvent(model.EventInstanceOffline, service.Namespace, service.Name, instance.Host(),
-		int(instance.Port()))
+	s.sendDiscoverEvent(model.InstanceEvent{
+		Id:         instance.ID(),
+		Namespace:  service.Namespace,
+		Service:    service.Name,
+		Instance:   instance.Proto,
+		EType:      model.EventInstanceOffline,
+		CreateTime: time.Time{},
+	})
 
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
 }
@@ -348,11 +361,14 @@ func (s *Server) DeleteInstanceByHost(ctx context.Context, req *api.Instance) *a
 			instance.ID(), service.Namespace, service.Name, instance.Host(), instance.Port())
 		log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 		s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.ODelete))
-
-		s.sendDiscoverEvent(model.EventInstanceOffline, instance.Namespace(),
-			instance.Service(),
-			instance.Host(),
-			int(instance.Port()))
+		s.sendDiscoverEvent(model.InstanceEvent{
+			Id:         instance.ID(),
+			Namespace:  service.Namespace,
+			Service:    service.Name,
+			Instance:   instance.Proto,
+			EType:      model.EventInstanceOffline,
+			CreateTime: time.Time{},
+		})
 	}
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
 }
@@ -402,7 +418,14 @@ func (s *Server) UpdateInstance(ctx context.Context, req *api.Instance) *api.Res
 	s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.OUpdate))
 
 	for i := range eventTypes {
-		s.sendDiscoverEvent(eventTypes[i], service.Namespace, service.Name, instance.Host(), int(instance.Port()))
+		s.sendDiscoverEvent(model.InstanceEvent{
+			Id:         instance.ID(),
+			Namespace:  service.Namespace,
+			Service:    service.Name,
+			Instance:   instance.Proto,
+			EType:      eventTypes[i],
+			CreateTime: time.Time{},
+		})
 	}
 
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
@@ -482,8 +505,14 @@ func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *
 			if req.Isolate.GetValue() {
 				eventType = model.EventInstanceOpenIsolate
 			}
-			s.sendDiscoverEvent(eventType, req.Namespace.GetValue(), req.Service.GetValue(), req.Host.GetValue(),
-				int(req.Port.GetValue()))
+			s.sendDiscoverEvent(model.InstanceEvent{
+				Id:         instance.ID(),
+				Namespace:  req.Namespace.GetValue(),
+				Service:    req.Service.GetValue(),
+				Instance:   instance.Proto,
+				EType:      eventType,
+				CreateTime: time.Time{},
+			})
 		}
 	}
 
@@ -867,15 +896,8 @@ func (s *Server) packCmdb(instance *api.Instance) {
 	}
 }
 
-func (s *Server) sendDiscoverEvent(eventType model.InstanceEventType, namespace, service, host string, port int) {
+func (s *Server) sendDiscoverEvent(event model.InstanceEvent) {
 	// 发布隔离状态变化事件
-	event := model.InstanceEvent{
-		Namespace: namespace,
-		Service:   service,
-		Host:      host,
-		Port:      port,
-		EType:     eventType,
-	}
 
 	eventhub.Publish(eventhub.InstanceEventTopic, event)
 }

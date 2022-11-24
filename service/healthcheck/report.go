@@ -78,9 +78,9 @@ func (s *Server) doReport(ctx context.Context, instance *api.Instance) *api.Resp
 	err := checker.Report(request)
 
 	s.publishInstanceEvent(ins.ServiceID, model.InstanceEvent{
-		Host:  ins.Host(),
-		Port:  int(ins.Port()),
-		EType: model.EventInstanceSendHeartbeat,
+		Id:       ins.ID(),
+		Instance: instance,
+		EType:    model.EventInstanceSendHeartbeat,
 	})
 
 	if err != nil {
