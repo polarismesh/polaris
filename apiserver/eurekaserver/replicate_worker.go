@@ -22,10 +22,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/emicklei/go-restful/v3"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/emicklei/go-restful/v3"
 
 	"github.com/polarismesh/polaris/common/version"
 )
