@@ -23,10 +23,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/emicklei/go-restful/v3"
-	"github.com/polarismesh/polaris/common/version"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/polarismesh/polaris/common/version"
 )
 
 type ReplicateWorker struct {
