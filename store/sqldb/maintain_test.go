@@ -71,6 +71,74 @@ func TestMaintainStore_LeaderElection_Follower2(t *testing.T) {
 	}
 }
 
+func TestMaintainStore_LeaderElection_Follower3(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockStore := NewMockLeaderElectionStore(ctrl)
+	mockStore.EXPECT().CheckMtimeExpired(DefaultElectKey, int32(LeaseTime)).Return(false, errors.New("err"))
+	ctx, cancel := context.WithCancel(context.TODO())
+	le := leaderElectionStateMachine{
+		leStore:    mockStore,
+		leaderFlag: 0,
+		version:    0,
+		ctx:        ctx,
+		cancel:     cancel,
+	}
+
+	le.tick()
+	if le.isLeaderAtomic() {
+		t.Error("expect stay follower state")
+	}
+}
+
+func TestMaintainStore_LeaderElection_Follower4(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockStore := NewMockLeaderElectionStore(ctrl)
+	mockStore.EXPECT().CheckMtimeExpired(DefaultElectKey, int32(LeaseTime)).Return(true, nil)
+	mockStore.EXPECT().GetVersion(DefaultElectKey).Return(int64(0), errors.New("err"))
+
+	ctx, cancel := context.WithCancel(context.TODO())
+	le := leaderElectionStateMachine{
+		leStore:    mockStore,
+		leaderFlag: 0,
+		version:    0,
+		ctx:        ctx,
+		cancel:     cancel,
+	}
+
+	le.tick()
+	if le.isLeaderAtomic() {
+		t.Error("expect stay follower state")
+	}
+}
+
+func TestMaintainStore_LeaderElection_Follower5(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockStore := NewMockLeaderElectionStore(ctrl)
+	mockStore.EXPECT().CheckMtimeExpired(DefaultElectKey, int32(LeaseTime)).Return(true, nil)
+	mockStore.EXPECT().GetVersion(DefaultElectKey).Return(int64(0), nil)
+	mockStore.EXPECT().CompareAndSwapVersion(DefaultElectKey, int64(0), int64(1), "127.0.0.1").Return(false, errors.New("err"))
+
+	ctx, cancel := context.WithCancel(context.TODO())
+	le := leaderElectionStateMachine{
+		leStore:    mockStore,
+		leaderFlag: 0,
+		version:    0,
+		ctx:        ctx,
+		cancel:     cancel,
+	}
+
+	le.tick()
+	if le.isLeaderAtomic() {
+		t.Error("expect stay follower state")
+	}
+}
+
 func TestMaintainStore_LeaderElection_FollowerToLeader(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
