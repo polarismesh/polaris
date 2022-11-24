@@ -65,12 +65,13 @@ func (r *ReplicateWorker) batchReplicate() {
 		case task := <-r.taskChannel:
 			batchTasks = append(batchTasks, task)
 			if len(batchTasks) == batchReplicateSize {
-				//replicate at once
+				// replicate at once when batch size reach max threshold
 				r.doBatchReplicate(batchTasks)
 				batchTasks = make([]*ReplicationInstance, 0)
 			}
 		case <-batchTicker.C:
 			if len(batchTasks) > 0 {
+				// replicate when time interval reached
 				r.doBatchReplicate(batchTasks)
 				batchTasks = make([]*ReplicationInstance, 0)
 			}
@@ -96,7 +97,7 @@ func (r *ReplicateWorker) doBatchReplicate(tasks []*ReplicationInstance) {
 	}
 	jsonData, err := json.Marshal(request)
 	if nil != err {
-		log.Errorf("[EUREKA-SERVER] fail to marshal replicate tasks: %v", request, err)
+		log.Errorf("[EUREKA-SERVER] fail to marshal replicate tasks: %v", err)
 		return
 	}
 	replicateInfo := make([]string, 0, len(tasks))
@@ -118,7 +119,7 @@ func (r *ReplicateWorker) doReplicateToPeer(peer string, tasks []*ReplicationIns
 		return
 	}
 	for i, respInstance := range response.ResponseList {
-		if respInstance.StatusCode == 404 {
+		if respInstance.StatusCode == http.StatusNotFound {
 			task := tasks[i]
 			if task.Action == actionHeartbeat {
 				log.Infof("[EUREKA-SERVER] instance %s of service %s not exists in %s, do register", task.Id, task.AppName, peer)
@@ -151,7 +152,7 @@ func sendHttpRequest(peer string, jsonData []byte, replicateInfo []string) (*Rep
 	req.Header.Set(restful.HEADER_Accept, restful.MIME_JSON)
 	response, err := client.Do(req)
 	if err != nil {
-		log.Errorf("[EUREKA-SERVER] fail to send replicate request: %v", peer, err)
+		log.Errorf("[EUREKA-SERVER] fail to send replicate request: %v", err)
 		return nil, err
 	}
 	respStr, _ := io.ReadAll(response.Body)

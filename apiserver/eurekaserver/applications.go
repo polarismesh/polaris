@@ -178,8 +178,7 @@ func (a *ApplicationsBuilder) constructApplication(app *Application, instances [
 		if !instance.Healthy() && !fallbackUnhealthy {
 			continue
 		}
-		var instanceInfo *InstanceInfo
-		instanceInfo = buildInstance(app.Name, instance.Proto, instance.ModifyTime.UnixNano()/1e6)
+		instanceInfo := buildInstance(app.Name, instance.Proto, instance.ModifyTime.UnixNano()/1e6)
 		instanceInfo.RealInstances[instance.Revision()] = instance
 		status := instanceInfo.Status
 		app.StatusCounts[status] = app.StatusCounts[status] + 1

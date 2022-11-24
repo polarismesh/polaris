@@ -212,8 +212,8 @@ func (el *discoverEventLocal) writeToFile(eventHolder *eventBufferHolder) {
 			event.Id,
 			event.Namespace,
 			event.Service,
-			event.Instance.GetHost(),
-			event.Instance.GetPort(),
+			event.Instance.GetHost().GetValue(),
+			event.Instance.GetPort().GetValue(),
 			event.EType,
 			event.CreateTime.Unix(),
 			utils.LocalHost))
