@@ -936,3 +936,16 @@ CREATE TABLE `routing_config_v2`
     KEY `mtime` (`mtime`)
 ) engine = innodb;
 
+CREATE TABLE `leader_election`
+(
+    `elect_key` VARCHAR(128) NOT NULL,
+    `version`   BIGINT NOT NULL DEFAULT 0,
+    `leader`    VARCHAR(128) NOT NULL,
+    `ctime`     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `mtime`     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`elect_key`),
+	KEY `version` (`version`)
+) engine = innodb;
+
+INSERT INTO `leader_election` (`elect_key`, `leader`)
+VALUES ("polaris-server", "127.0.0.1");

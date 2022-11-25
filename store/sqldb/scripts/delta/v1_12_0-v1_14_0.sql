@@ -1,4 +1,4 @@
-/**
+/*
  * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -14,13 +14,21 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
+--
+-- Database: `polaris_server`
+--
+USE `polaris_server`;
 
-package store
+CREATE TABLE `leader_election`
+(
+    `elect_key` VARCHAR(128) NOT NULL,
+    `version`   BIGINT NOT NULL DEFAULT 0,
+    `leader`    VARCHAR(128) NOT NULL,
+    `ctime`     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `mtime`     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`elect_key`),
+	KEY `version` (`version`)
+) engine = innodb;
 
-type MaintainStore interface {
-	// IsLeader whether it is leader node
-	IsLeader() bool
-
-	// BatchCleanDeletedInstances batch clean soft deleted instances
-	BatchCleanDeletedInstances(batchSize uint32) (uint32, error)
-}
+INSERT INTO `leader_election` (`elect_key`, `leader`)
+VALUES ("polaris-server", "127.0.0.1");

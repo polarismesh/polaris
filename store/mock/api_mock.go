@@ -26,7 +26,6 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
-
 	model "github.com/polarismesh/polaris/common/model"
 	v2 "github.com/polarismesh/polaris/common/model/v2"
 	store "github.com/polarismesh/polaris/store"
@@ -1762,6 +1761,20 @@ func (m *MockStore) Initialize(c *store.Config) error {
 func (mr *MockStoreMockRecorder) Initialize(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockStore)(nil).Initialize), c)
+}
+
+// IsLeader mocks base method.
+func (m *MockStore) IsLeader() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsLeader")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsLeader indicates an expected call of IsLeader.
+func (mr *MockStoreMockRecorder) IsLeader() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsLeader", reflect.TypeOf((*MockStore)(nil).IsLeader))
 }
 
 // ListMasterCircuitBreakers mocks base method.
