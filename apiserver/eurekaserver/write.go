@@ -21,6 +21,7 @@ import (
 	"context"
 	"math"
 	"strconv"
+	"strings"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
@@ -171,7 +172,12 @@ func convertEurekaInstance(instance *InstanceInfo, namespace string, appId strin
 	return targetInstance
 }
 
+func formatWriteName(appId string) string {
+	return strings.ToLower(appId)
+}
+
 func (h *EurekaServer) registerInstances(ctx context.Context, appId string, instance *InstanceInfo, replicated bool) uint32 {
+	appId = formatWriteName(appId)
 	// 1. 先转换数据结构
 	totalInstance := convertEurekaInstance(instance, h.namespace, appId, replicated)
 	// 3. 注册实例

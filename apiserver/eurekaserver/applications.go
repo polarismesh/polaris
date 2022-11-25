@@ -72,6 +72,10 @@ func getCacheInstances(namingServer service.DiscoverServer, svcId string) ([]*mo
 	return instances, revision, err
 }
 
+func formatReadName(appId string) string {
+	return strings.ToUpper(appId)
+}
+
 // BuildApplications build applications cache with compare to the latest cache
 func (a *ApplicationsBuilder) BuildApplications(oldAppsCache *ApplicationsRespCache) *ApplicationsRespCache {
 	// 获取所有的服务数据
@@ -91,8 +95,9 @@ func (a *ApplicationsBuilder) BuildApplications(oldAppsCache *ApplicationsRespCa
 			continue
 		}
 		instCount += len(instances)
-		svcToRevision[newService.Name] = revision
-		svcToToInstances[newService.Name] = instances
+		svcName := formatReadName(newService.Name)
+		svcToRevision[svcName] = revision
+		svcToToInstances[svcName] = instances
 	}
 	// 比较并构建Applications缓存
 	hashBuilder := make(map[string]int)
@@ -390,13 +395,13 @@ func buildInstance(appName string, instance *api.Instance, lastModifyTime int64)
 		},
 		RealInstances: make(map[string]*model.Instance),
 	}
-	instanceInfo.AppName = appName
 	// 属于eureka注册的实例
 	instanceInfo.InstanceId = eurekaInstanceId
 	metadata := instance.GetMetadata()
 	if metadata == nil {
 		metadata = map[string]string{}
 	}
+	instanceInfo.AppName = appName
 	if hostName, ok := metadata[MetadataHostName]; ok {
 		instanceInfo.HostName = hostName
 	}
