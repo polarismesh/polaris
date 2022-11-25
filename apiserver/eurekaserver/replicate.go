@@ -20,7 +20,6 @@ package eurekaserver
 import (
 	"context"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/emicklei/go-restful/v3"
@@ -91,7 +90,7 @@ func (h *EurekaServer) BatchReplication(req *restful.Request, rsp *restful.Respo
 }
 
 func (h *EurekaServer) dispatch(replicationInstance *ReplicationInstance, token string) (*ReplicationInstanceResponse, uint32) {
-	appName := replicationInstance.AppName
+	appName := formatReadName(replicationInstance.AppName)
 	ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, token)
 	var code uint32
 	log.Debugf("[EurekaServer]dispatch replicate request %+v", replicationInstance)
@@ -180,7 +179,7 @@ func (h *EurekaServer) handleInstanceEvent(ctx context.Context, i interface{}) e
 	if !h.shouldReplicate(e) {
 		return nil
 	}
-	appName := strings.ToUpper(e.Service)
+	appName := formatReadName(e.Service)
 	curTimeMilli := time.Now().UnixMilli()
 	switch e.EType {
 	case model.EventInstanceOnline:
