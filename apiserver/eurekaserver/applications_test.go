@@ -247,7 +247,7 @@ func TestApplicationsBuilder_BuildApplicationsSelfPreservation(t *testing.T) {
 	assert.Equal(t, unhealthySvcCount, len(applications))
 	for _, application := range applications {
 		serviceName := svcName{
-			name:      application.Name,
+			name:      strings.ToLower(application.Name),
 			namespace: DefaultNamespace,
 		}
 		svc, ok := mockUnhealthyServices[serviceName]
