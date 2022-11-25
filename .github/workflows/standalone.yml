@@ -68,7 +68,7 @@ jobs:
             sed -i "s/##POLARIS_SERVER_VERSION##/${SERVER_VERSION}/g" k8s/03-polaris-server.yaml
             sed -i "s/##POLARIS_CONSOLE_VERSION##/${CONSOLE_VERSION}/g" k8s/03-polaris-server.yaml
             sed -i "s/##POLARIS_PROMETHEUS_VERSION##/${SERVER_VERSION}/g" k8s/04-prometheus.yaml
-            sed -i "s/##POLARIS_LIMITER_VERSION##/${LIMITER_VERSION}/g" k8s/05-polaris-limiter.yaml
+            sed -i "s/##POLARIS_LIMITER_VERSION##/${LIMITER_VERSION}/g" k8s/06-polaris-limiter.yaml
 
             DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}
             mkdir ${DIR_NAME}
