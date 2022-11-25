@@ -72,10 +72,6 @@ func getCacheInstances(namingServer service.DiscoverServer, svcId string) ([]*mo
 	return instances, revision, err
 }
 
-func formatReadName(appId string) string {
-	return strings.ToUpper(appId)
-}
-
 // BuildApplications build applications cache with compare to the latest cache
 func (a *ApplicationsBuilder) BuildApplications(oldAppsCache *ApplicationsRespCache) *ApplicationsRespCache {
 	// 获取所有的服务数据

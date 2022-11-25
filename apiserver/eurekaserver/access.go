@@ -325,7 +325,7 @@ func checkRegisterRequest(registrationRequest *RegistrationRequest, req *restful
 // RegisterApplication 服务注册
 func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
-	appId := req.PathParameter(ParamAppId)
+	appId := readAppIdFromRequest(req)
 
 	if len(appId) == 0 {
 		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
@@ -385,7 +385,7 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 // UpdateStatus 更新服务状态
 func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
-	appId := req.PathParameter(ParamAppId)
+	appId := readAppIdFromRequest(req)
 	if len(appId) == 0 {
 		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
@@ -429,7 +429,7 @@ func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response)
 // DeleteStatus 关闭强制隔离
 func (h *EurekaServer) DeleteStatus(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
-	appId := req.PathParameter(ParamAppId)
+	appId := readAppIdFromRequest(req)
 	if len(appId) == 0 {
 		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
@@ -474,7 +474,7 @@ func (h *EurekaServer) DeleteStatus(req *restful.Request, rsp *restful.Response)
 // RenewInstance 更新实例状态
 func (h *EurekaServer) RenewInstance(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
-	appId := req.PathParameter(ParamAppId)
+	appId := readAppIdFromRequest(req)
 	if len(appId) == 0 {
 		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
@@ -513,7 +513,7 @@ func (h *EurekaServer) RenewInstance(req *restful.Request, rsp *restful.Response
 
 // CancelInstance 实例反注册
 func (h *EurekaServer) CancelInstance(req *restful.Request, rsp *restful.Response) {
-	appId := req.PathParameter(ParamAppId)
+	appId := readAppIdFromRequest(req)
 	remoteAddr := req.Request.RemoteAddr
 	if len(appId) == 0 {
 		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
@@ -584,7 +584,7 @@ func (h *EurekaServer) GetInstance(req *restful.Request, rsp *restful.Response) 
 // UpdateMetadata updateStatus instance metadata
 func (h *EurekaServer) UpdateMetadata(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
-	appId := req.PathParameter(ParamAppId)
+	appId := readAppIdFromRequest(req)
 	if len(appId) == 0 {
 		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")

@@ -21,7 +21,6 @@ import (
 	"context"
 	"math"
 	"strconv"
-	"strings"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
@@ -170,10 +169,6 @@ func convertEurekaInstance(instance *InstanceInfo, namespace string, appId strin
 	targetInstance.Metadata[MetadataSecurePort] = strconv.Itoa(securePort)
 	targetInstance.Metadata[MetadataSecurePortEnabled] = strconv.FormatBool(secureEnable)
 	return targetInstance
-}
-
-func formatWriteName(appId string) string {
-	return strings.ToLower(appId)
 }
 
 func (h *EurekaServer) registerInstances(ctx context.Context, appId string, instance *InstanceInfo, replicated bool) uint32 {
