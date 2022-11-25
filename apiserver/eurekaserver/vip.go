@@ -66,7 +66,6 @@ func BuildApplicationsForVip(key *VipCacheKey, appsCache *ApplicationsRespCache)
 						StatusCounts: make(map[string]int),
 					}
 					toReturn.Application = append(toReturn.Application, appToAdd)
-					toReturn.ApplicationMap[application.Name] = appToAdd
 				}
 				appToAdd.Instance = append(appToAdd.Instance, instance)
 				instCount++

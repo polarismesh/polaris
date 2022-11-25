@@ -118,7 +118,6 @@ var (
 type EurekaServer struct {
 	server                 *http.Server
 	namingServer           service.DiscoverServer
-	caseSensitive          bool // 如果开启忽略大小写则统一转成小写,避免在迁移过程中 由EurekaServer注册上来的服务,在其他协议里发现不了。
 	healthCheckServer      *healthcheck.Server
 	connLimitConfig        *connlimit.Config
 	tlsInfo                *secure.TLSInfo
@@ -154,7 +153,6 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 	api map[string]apiserver.APIConfig) error {
 	h.listenIP = option[optionListenIP].(string)
 	h.listenPort = uint32(option[optionListenPort].(int))
-	h.caseSensitive, _ = option[optionCaseSensitive].(bool)
 	h.option = option
 	h.openAPI = api
 

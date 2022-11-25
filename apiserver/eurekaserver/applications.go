@@ -91,8 +91,9 @@ func (a *ApplicationsBuilder) BuildApplications(oldAppsCache *ApplicationsRespCa
 			continue
 		}
 		instCount += len(instances)
-		svcToRevision[newService.Name] = revision
-		svcToToInstances[newService.Name] = instances
+		svcName := formatReadName(newService.Name)
+		svcToRevision[svcName] = revision
+		svcToToInstances[svcName] = instances
 	}
 	// 比较并构建Applications缓存
 	hashBuilder := make(map[string]int)
@@ -397,6 +398,7 @@ func buildInstance(appName string, instance *api.Instance, lastModifyTime int64)
 	if metadata == nil {
 		metadata = map[string]string{}
 	}
+	instanceInfo.AppName = appName
 	if hostName, ok := metadata[MetadataHostName]; ok {
 		instanceInfo.HostName = hostName
 	}
