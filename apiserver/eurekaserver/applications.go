@@ -391,6 +391,7 @@ func buildInstance(appName string, instance *api.Instance, lastModifyTime int64)
 		},
 		RealInstances: make(map[string]*model.Instance),
 	}
+	instanceInfo.AppName = appName
 	// 属于eureka注册的实例
 	instanceInfo.InstanceId = eurekaInstanceId
 	metadata := instance.GetMetadata()
