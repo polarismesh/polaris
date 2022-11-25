@@ -145,7 +145,7 @@ func writePolarisStatusCode(req *restful.Request, statusCode uint32) {
 
 // GetApplication 拉取单个服务实例信息
 func (h *EurekaServer) GetApplication(req *restful.Request, rsp *restful.Response) {
-	appId := req.PathParameter(ParamAppId)
+	appId := readAppIdFromRequest(req)
 
 	remoteAddr := req.Request.RemoteAddr
 	appsRespCache := h.worker.GetCachedAppsWithLoad()
@@ -174,7 +174,7 @@ func (h *EurekaServer) GetApplication(req *restful.Request, rsp *restful.Respons
 // GetAppInstance 拉取应用下某个实例的信息
 func (h *EurekaServer) GetAppInstance(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
-	appId := req.PathParameter(ParamAppId)
+	appId := readAppIdFromRequest(req)
 	if len(appId) == 0 {
 		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
