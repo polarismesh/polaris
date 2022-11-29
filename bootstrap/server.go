@@ -425,8 +425,10 @@ func FinishBootstrapOrder(tx store.Transaction) error {
 
 func genContext() context.Context {
 	ctx := context.Background()
+	reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 	ctx = context.WithValue(ctx, utils.StringContext("request-id"), fmt.Sprintf("self-%d", time.Now().Nanosecond()))
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, &model.AcquireContext{})
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, model.NewAcquireContext(
+		model.WithOperation(model.Read), model.WithModule(model.BootstrapModule), model.WithRequestContext(reqCtx)))
 	return ctx
 }
 
