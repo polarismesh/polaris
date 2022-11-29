@@ -455,11 +455,6 @@ func (h *EurekaServer) DeleteStatus(req *restful.Request, rsp *restful.Response)
 		log.Infof("[EUREKA-SERVER]instance status (instId=%s, appId=%s) has been deleted successfully",
 			instId, appId)
 		writeHeader(http.StatusOK, rsp)
-		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
-			AppName: appId,
-			Id:      instId,
-			Action:  actionDeleteStatusOverride,
-		})
 		return
 	}
 	log.Errorf("[EUREKA-SERVER]instance status (instId=%s, appId=%s) has been deleted failed, code is %d",
@@ -494,12 +489,6 @@ func (h *EurekaServer) RenewInstance(req *restful.Request, rsp *restful.Response
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess || code == api.HeartbeatExceedLimit {
 		writeHeader(http.StatusOK, rsp)
-		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
-			AppName: appId,
-			Id:      instId,
-			Status:  "UP",
-			Action:  actionHeartbeat,
-		})
 		return
 	}
 	log.Errorf("[EUREKA-SERVER]instance (instId=%s, appId=%s) heartbeat failed, code is %d",
@@ -538,11 +527,6 @@ func (h *EurekaServer) CancelInstance(req *restful.Request, rsp *restful.Respons
 		writeHeader(http.StatusOK, rsp)
 		log.Infof("[EUREKA-SERVER]instance (instId=%s, appId=%s) has been deregistered successfully, code is %d",
 			instId, appId, code)
-		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
-			AppName: appId,
-			Id:      instId,
-			Action:  actionCancel,
-		})
 		return
 	}
 	log.Errorf("[EUREKA-SERVER]instance (instId=%s, appId=%s) has been deregistered failed, code is %d",

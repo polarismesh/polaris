@@ -124,7 +124,8 @@ func (r *ReplicateWorker) doReplicateToPeer(peer string, tasks []*ReplicationIns
 		if respInstance.StatusCode == http.StatusNotFound {
 			task := tasks[i]
 			if task.Action == actionHeartbeat {
-				log.Infof("[EUREKA-SERVER] instance %s of service %s not exists in %s, do register", task.Id, task.AppName, peer)
+				log.Infof("[EUREKA-SERVER] instance %s of service %s not exists in %s, do register instance info %+v",
+					task.Id, task.AppName, peer, task.InstanceInfo)
 				// do the re-register
 				registerTask := &ReplicationInstance{
 					AppName:            task.AppName,
