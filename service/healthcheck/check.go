@@ -624,3 +624,54 @@ func instanceRecordEntry(ins *model.Instance, opt model.OperationType) *model.Re
 	}
 	return entry
 }
+
+func (s *Server) doCheckSelfServiceInstances() {
+	s.cacheProvider.selfServiceInstances.Range(func(instanceId string, value ItemWithChecker) {
+		s.doCheckSelfServiceInstance(value.GetInstance())
+	})
+}
+
+func (s *Server) doCheckSelfServiceInstance(cachedInstance *model.Instance) {
+	hcEnable, checker := s.cacheProvider.isHealthCheckEnable(cachedInstance.Proto)
+	if !hcEnable {
+		log.Warnf("[Health Check][Check] selfService instance %s:%d not enable healthcheck",
+			cachedInstance.Host(), cachedInstance.Port())
+		return
+	}
+
+	request := &plugin.CheckRequest{
+		QueryRequest: plugin.QueryRequest{
+			InstanceId: cachedInstance.ID(),
+			Host:       cachedInstance.Host(),
+			Port:       cachedInstance.Port(),
+			Healthy:    cachedInstance.Healthy(),
+		},
+		CurTimeSec:        currentTimeSec,
+		ExpireDurationSec: getExpireDurationSec(cachedInstance.Proto),
+	}
+	checkResp, err := checker.Check(request)
+	if err != nil {
+		log.Errorf("[Health Check][Check]fail to check selfService instance %s:%d, id is %s, err is %v",
+			cachedInstance.Host(), cachedInstance.Port(), cachedInstance.ID(), err)
+		return
+	}
+	if !checkResp.StayUnchanged {
+		code := setInsDbStatus(cachedInstance, checkResp.Healthy)
+		if checkResp.Healthy {
+			// from unhealthy to healthy
+			log.Infof(
+				"[Health Check][Check]selfService instance change from unhealthy to healthy, id is %s, address is %s:%d",
+				cachedInstance.ID(), cachedInstance.Host(), cachedInstance.Port())
+		} else {
+			// from healthy to unhealthy
+			log.Infof(
+				"[Health Check][Check]selfService instance change from healthy to unhealthy, id is %s, address is %s:%d",
+				cachedInstance.ID(), cachedInstance.Host(), cachedInstance.Port())
+		}
+		if code != api.ExecuteSuccess {
+			log.Errorf(
+				"[Health Check][Check]fail to update selfService instance, id is %s, address is %s:%d, code is %d",
+				cachedInstance.ID(), cachedInstance.Host(), cachedInstance.Port(), code)
+		}
+	}
+}

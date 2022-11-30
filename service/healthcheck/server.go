@@ -120,6 +120,11 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 	return nil
 }
 
+// CheckSelfServiceInstances
+func (s *Server) CheckSelfServiceInstances() {
+	s.doCheckSelfServiceInstances()
+}
+
 // Report heartbeat request
 func (s *Server) Report(ctx context.Context, req *api.Instance) *api.Response {
 	return s.doReport(ctx, req)

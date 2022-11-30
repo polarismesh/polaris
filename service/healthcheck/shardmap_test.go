@@ -22,6 +22,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+
+	"github.com/polarismesh/polaris/common/model"
 )
 
 const Parallelism = 1024 //  Used to represent the amount of  Concurrency
@@ -242,4 +244,37 @@ func BenchmarkSharedMap1024(b *testing.B) {
 			m.Delete(strconv.Itoa(int(key)))
 		}
 	})
+}
+
+func TestShardMap_PutIfAbsent(t *testing.T) {
+	m := NewShardMap(8)
+	instId1 := "id1"
+	item1 := InstanceWithChecker{
+		instance: &model.Instance{
+			ServiceID: "a",
+		},
+		checker:   nil,
+		hashValue: hashString(instId1),
+	}
+	_, isNew := m.PutIfAbsent(instId1, &item1)
+	if !isNew {
+		t.Error("not exist in map, should put it")
+	}
+
+	item2 := InstanceWithChecker{
+		instance: &model.Instance{
+			ServiceID: "b",
+		},
+		checker:   nil,
+		hashValue: hashString(instId1),
+	}
+
+	pre, isNew := m.PutIfAbsent(instId1, &item2)
+	if isNew {
+		t.Error("already exist in map, should not put it")
+	}
+	if pre.GetInstance().ServiceID != "a" {
+		t.Error("already exist in map, should return pre item")
+	}
+
 }
