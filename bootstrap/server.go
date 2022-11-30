@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/auth"
@@ -425,7 +425,10 @@ func FinishBootstrapOrder(tx store.Transaction) error {
 
 func genContext() context.Context {
 	ctx := context.Background()
+	reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 	ctx = context.WithValue(ctx, utils.StringContext("request-id"), fmt.Sprintf("self-%d", time.Now().Nanosecond()))
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, model.NewAcquireContext(
+		model.WithOperation(model.Read), model.WithModule(model.BootstrapModule), model.WithRequestContext(reqCtx)))
 	return ctx
 }
 
@@ -511,10 +514,6 @@ func selfRegister(
 	if err != nil {
 		return err
 	}
-	storage, err := store.GetStore()
-	if err != nil {
-		return err
-	}
 
 	name := boot_config.DefaultPolarisName
 	polarisNamespace := boot_config.DefaultPolarisNamespace
@@ -524,14 +523,6 @@ func selfRegister(
 
 	if polarisService.Namespace != "" {
 		polarisNamespace = polarisService.Namespace
-	}
-
-	svc, err := storage.GetService(name, polarisNamespace)
-	if err != nil {
-		return err
-	}
-	if svc == nil {
-		return fmt.Errorf("self service(%s) in namespace(%s) not found", name, polarisNamespace)
 	}
 
 	metadata := polarisService.Metadata
@@ -547,7 +538,6 @@ func selfRegister(
 		Host:              utils.NewStringValue(host),
 		Port:              utils.NewUInt32Value(port),
 		Protocol:          utils.NewStringValue(protocol),
-		ServiceToken:      utils.NewStringValue(svc.Token),
 		Version:           utils.NewStringValue(version.Get()),
 		EnableHealthCheck: utils.NewBoolValue(true),
 		Isolate:           utils.NewBoolValue(isolated),
