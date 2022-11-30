@@ -49,12 +49,15 @@ const (
 func (h *EurekaServer) BatchReplication(req *restful.Request, rsp *restful.Response) {
 	log.Infof("[EUREKA-SERVER] received replicate request %+v", req)
 	sourceSvrName := req.HeaderParameter(headerIdentityName)
+	remoteAddr := req.Request.RemoteAddr
 	if sourceSvrName == valueIdentityName {
 		// we should not process the replication from polaris
-		writeHeader(http.StatusOK, rsp)
+		batchResponse := &ReplicationListResponse{ResponseList: []*ReplicationInstanceResponse{}}
+		if err := writeEurekaResponse(restful.MIME_JSON, batchResponse, req, rsp); nil != err {
+			log.Errorf("[EurekaServer]fail to write replicate response, client: %s, err: %v", remoteAddr, err)
+		}
 		return
 	}
-	remoteAddr := req.Request.RemoteAddr
 	replicateRequest := &ReplicationList{}
 	var err error
 	err = req.ReadEntity(replicateRequest)
@@ -62,18 +65,18 @@ func (h *EurekaServer) BatchReplication(req *restful.Request, rsp *restful.Respo
 		log.Errorf("[EUREKA-SERVER] fail to parse peer replicate request, uri: %s, client: %s, err: %v",
 			req.Request.RequestURI, remoteAddr, err)
 		writePolarisStatusCode(req, api.ParseException)
-		writeHeader(http.StatusOK, rsp)
+		writeHeader(http.StatusBadRequest, rsp)
 		return
 	}
 	token, err := getAuthFromEurekaRequestHeader(req)
 	if err != nil {
 		log.Infof("[EUREKA-SERVER]replicate request get basic auth info fail, code is %d", api.ExecuteException)
 		writePolarisStatusCode(req, api.ExecuteException)
-		writeHeader(http.StatusOK, rsp)
+		writeHeader(http.StatusForbidden, rsp)
 		return
 	}
-	batchResponse := &ReplicationListResponse{}
-	var resultCode uint32
+	batchResponse := &ReplicationListResponse{ResponseList: []*ReplicationInstanceResponse{}}
+	var resultCode = api.ExecuteSuccess
 	for _, instanceInfo := range replicateRequest.ReplicationList {
 		resp, code := h.dispatch(instanceInfo, token)
 		if code != api.ExecuteSuccess {
@@ -83,8 +86,7 @@ func (h *EurekaServer) BatchReplication(req *restful.Request, rsp *restful.Respo
 		}
 		batchResponse.ResponseList = append(batchResponse.ResponseList, resp)
 	}
-	writePolarisStatusCode(req, resultCode)
-	if err := writeEurekaResponse(restful.MIME_JSON, batchResponse, req, rsp); nil != err {
+	if err := writeEurekaResponseWithCode(restful.MIME_JSON, batchResponse, req, rsp, resultCode); nil != err {
 		log.Errorf("[EurekaServer]fail to write replicate response, client: %s, err: %v", remoteAddr, err)
 	}
 }
