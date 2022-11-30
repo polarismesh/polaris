@@ -220,7 +220,12 @@ func (h *EurekaServer) GetAppInstance(req *restful.Request, rsp *restful.Respons
 }
 
 func writeEurekaResponse(acceptValue string, output interface{}, req *restful.Request, rsp *restful.Response) error {
-	writePolarisStatusCode(req, api.ExecuteSuccess)
+	return writeEurekaResponseWithCode(acceptValue, output, req, rsp, api.ExecuteSuccess)
+}
+
+func writeEurekaResponseWithCode(
+	acceptValue string, output interface{}, req *restful.Request, rsp *restful.Response, statusCode uint32) error {
+	writePolarisStatusCode(req, statusCode)
 	var err error
 	if len(acceptValue) > 0 && acceptValue == restful.MIME_JSON {
 		err = rsp.WriteAsJson(output)
