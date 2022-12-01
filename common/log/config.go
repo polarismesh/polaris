@@ -292,33 +292,32 @@ func Configure(optionsMap map[string]*Options) error {
 			return err
 		}
 
-		if typeName == DefaultLoggerName {
-			opts := []zap.Option{
-				zap.ErrorOutput(errSink),
-				zap.AddCallerSkip(1),
-			}
+		opts := []zap.Option{
+			zap.ErrorOutput(errSink),
+		}
 
-			if defaultScope.GetLogCallers() {
-				opts = append(opts, zap.AddCaller())
-			}
+		scope := FindScope(typeName)
+		if defaultScope.GetLogCallers() {
+			opts = append(opts, zap.AddCaller())
+			opts = append(opts, zap.AddCallerSkip(1))
+		}
 
-			l := defaultScope.GetStackTraceLevel()
-			if l != NoneLevel {
-				opts = append(opts, zap.AddStacktrace(levelToZap[l]))
-			}
+		l := scope.GetStackTraceLevel()
+		if l != NoneLevel {
+			opts = append(opts, zap.AddStacktrace(levelToZap[l]))
+		}
 
-			captureLogger := zap.New(captureCore, opts...)
+		captureLogger := zap.New(captureCore, opts...)
 
-			// capture global zap logging and force it through our logger
-			_ = zap.ReplaceGlobals(captureLogger)
+		// capture global zap logging and force it through our logger
+		_ = zap.ReplaceGlobals(captureLogger)
 
-			// capture standard golang "log" package output and force it through our logger
-			_ = zap.RedirectStdLog(captureLogger)
+		// capture standard golang "log" package output and force it through our logger
+		_ = zap.RedirectStdLog(captureLogger)
 
-			// capture gRPC logging
-			if options.LogGrpc {
-				grpclog.SetLogger(zapgrpc.NewLogger(captureLogger.WithOptions(zap.AddCallerSkip(2))))
-			}
+		// capture gRPC logging
+		if options.LogGrpc {
+			grpclog.SetLogger(zapgrpc.NewLogger(captureLogger.WithOptions(zap.AddCallerSkip(2))))
 		}
 	}
 	return nil

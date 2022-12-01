@@ -63,8 +63,7 @@ import (
 	"github.com/polarismesh/polaris/store"
 	"github.com/polarismesh/polaris/store/boltdb"
 	_ "github.com/polarismesh/polaris/store/boltdb"
-	"github.com/polarismesh/polaris/store/sqldb"
-	_ "github.com/polarismesh/polaris/store/sqldb"
+	sqldb "github.com/polarismesh/polaris/store/mysql"
 	"github.com/polarismesh/polaris/testdata"
 )
 

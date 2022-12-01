@@ -39,5 +39,5 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/statis/local"
 	_ "github.com/polarismesh/polaris/plugin/whitelist"
 	_ "github.com/polarismesh/polaris/store/boltdb"
-	_ "github.com/polarismesh/polaris/store/sqldb"
+	_ "github.com/polarismesh/polaris/store/mysql"
 )

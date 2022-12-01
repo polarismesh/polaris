@@ -1,8 +1,4 @@
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: polaris-server-config
-  namespace: {{ .Values.installation.namespace }}
 data:
   polaris-server.yaml: |-
     # server启动引导配置
@@ -10,18 +6,18 @@ data:
       # 全局日志
       logger:
         config:
-          rotateOutputPath: log/polaris-config.log
+          rotateOutputPath: log/runtime/polaris-config.log
           errorRotateOutputPath: log/polaris-config-error.log
           rotationMaxSize: 100
           rotationMaxBackups: 10
           rotationMaxAge: 7
           outputLevel: info
           outputPaths:
-            - stdout
+          - stdout
           errorOutputPaths:
-            - stderr
+          - stderr
         auth:
-          rotateOutputPath: log/polaris-auth.log
+          rotateOutputPath: log/runtime/polaris-auth.log
           errorRotateOutputPath: log/polaris-auth-error.log
           rotationMaxSize: 100
           rotationMaxBackups: 10
@@ -32,7 +28,7 @@ data:
           errorOutputPaths:
             - stderr
         store:
-          rotateOutputPath: log/polaris-store.log
+          rotateOutputPath: log/runtime/polaris-store.log
           errorRotateOutputPath: log/polaris-store-error.log
           rotationMaxSize: 100
           rotationMaxBackups: 10
@@ -43,7 +39,7 @@ data:
           errorOutputPaths:
             - stderr
         cache:
-          rotateOutputPath: log/polaris-cache.log
+          rotateOutputPath: log/runtime/polaris-cache.log
           errorRotateOutputPath: log/polaris-cache-error.log
           rotationMaxSize: 100
           rotationMaxBackups: 10
@@ -54,7 +50,7 @@ data:
           errorOutputPaths:
             - stderr
         naming:
-          rotateOutputPath: log/polaris-naming.log
+          rotateOutputPath: log/runtime/polaris-naming.log
           errorRotateOutputPath: log/polaris-naming-error.log
           rotationMaxSize: 100
           rotationMaxBackups: 10
@@ -65,7 +61,7 @@ data:
           errorOutputPaths:
             - stderr
         healthcheck:
-          rotateOutputPath: log/polaris-healthcheck.log
+          rotateOutputPath: log/runtime/polaris-healthcheck.log
           errorRotateOutputPath: log/polaris-healthcheck-error.log
           rotationMaxSize: 100
           rotationMaxBackups: 10
@@ -76,7 +72,7 @@ data:
           errorOutputPaths:
             - stderr
         xdsv3:
-          rotateOutputPath: log/polaris-xdsv3.log
+          rotateOutputPath: log/runtime/polaris-xdsv3.log
           errorRotateOutputPath: log/polaris-xdsv3-error.log
           rotationMaxSize: 100
           rotationMaxBackups: 10
@@ -86,8 +82,75 @@ data:
             - stdout
           errorOutputPaths:
             - stderr
+        apiserver:
+          rotateOutputPath: log/runtime/polaris-apiserver.log
+          errorRotateOutputPath: log/polaris-apiserver-error.log
+          rotationMaxSize: 100
+          rotationMaxBackups: 10
+          rotationMaxAge: 7
+          outputLevel: info
+          outputPaths:
+            - stdout
+          errorOutputPaths:
+            - stderr
+        discoverEventLocal:
+          rotateOutputPath: log/event/polaris-discoverevent.log
+          errorRotateOutputPath: log/polaris-discoverevent-error.log
+          rotationMaxSize: 100
+          rotationMaxBackups: 10
+          rotationMaxAge: 7
+          outputLevel: info
+          outputPaths:
+            - stdout
+          errorOutputPaths:
+            - stderr
+        discoverLocal:
+          rotateOutputPath: log/statis/polaris-discoverstat.log
+          errorRotateOutputPath: log/polaris-discoverstat-error.log
+          rotationMaxSize: 100
+          rotationMaxBackups: 10
+          rotationMaxAge: 7
+          outputLevel: info
+          outputPaths:
+            - stdout
+          errorOutputPaths:
+            - stderr
+        token-bucket:
+          rotateOutputPath: log/runtime/polaris-ratelimit.log
+          errorRotateOutputPath: log/polaris-ratelimit-error.log
+          rotationMaxSize: 100
+          rotationMaxBackups: 10
+          rotationMaxAge: 7
+          outputLevel: info
+          outputPaths:
+            - stdout
+          errorOutputPaths:
+            - stderr
+        local:
+          rotateOutputPath: log/statis/polaris-statis.log
+          errorRotateOutputPath: log/polaris-statis-error.log
+          rotationMaxSize: 100
+          rotationMaxBackups: 10
+          rotationMaxAge: 7
+          outputLevel: info
+          outputPaths:
+            - stdout
+          errorOutputPaths:
+            - stderr
+        HistoryLogger:
+          rotateOutputPath: log/operation/polaris-history.log
+          errorRotateOutputPath: log/polaris-history-error.log
+          rotationMaxSize: 100
+          rotationMaxBackups: 10
+          rotationMaxAge: 7
+          rotationMaxDurationForHour: 24
+          outputLevel: info
+          outputPaths:
+            - stdout
+          errorOutputPaths:
+            - stderr
         default:
-          rotateOutputPath: log/polaris-default.log
+          rotateOutputPath: log/runtime/polaris-default.log
           errorRotateOutputPath: log/polaris-default-error.log
           rotationMaxSize: 100
           rotationMaxBackups: 10
@@ -103,9 +166,7 @@ data:
         key: sz # 全局锁
       # 注册为北极星服务
       polaris_service:
-        {{- if eq .Values.global.mode "cluster" }}
-        probe_address: {{ .Values.polaris.storage.db.address }}
-        {{- end }}
+        probe_address: ##DB_ADDR##
         enable_register: true
         isolated: false
         services:
@@ -117,7 +178,7 @@ data:
       - name: service-eureka
         option:
           listenIP: "0.0.0.0"
-          listenPort: {{ .Values.service.eurekaPort }}
+          listenPort: 8761
           namespace: default
           owner: polaris
           refreshInterval: 10
@@ -133,9 +194,9 @@ data:
       - name: api-http # 协议名，全局唯一
         option:
           listenIP: "0.0.0.0"
-          listenPort: {{ .Values.service.httpPort }}
+          listenPort: 8090
           enablePprof: true # debug pprof
-          enableSwagger: true
+          enableSwagger: true # debug pprof
           connLimit:
             openConnLimit: false
             maxConnPerHost: 128
@@ -158,7 +219,7 @@ data:
       - name: service-grpc
         option:
           listenIP: "0.0.0.0"
-          listenPort: {{ .Values.service.serviceGrpcPort }}
+          listenPort: 8091
           connLimit:
             openConnLimit: false
             maxConnPerHost: 128
@@ -170,7 +231,7 @@ data:
       - name: config-grpc
         option:
           listenIP: "0.0.0.0"
-          listenPort: {{ .Values.service.configGrpcPort }}
+          listenPort: 8093
           connLimit:
             openConnLimit: false
             maxConnPerHost: 128
@@ -181,7 +242,7 @@ data:
       - name: xds-v3
         option:
           listenIP: "0.0.0.0"
-          listenPort: {{ .Values.service.xdsv3Port }}
+          listenPort: 15010
           connLimit:
             openConnLimit: false
             maxConnPerHost: 128
@@ -189,7 +250,7 @@ data:
       - name: prometheus-sd
         option:
           listenIP: "0.0.0.0"
-          listenPort: {{ .Values.service.prometheusPort }}
+          listenPort: 9000
           connLimit:
             openConnLimit: false
             maxConnPerHost: 128
@@ -204,8 +265,8 @@ data:
       name: defaultAuth
       option:
         salt: polarismesh@2021
-        consoleOpen: {{ .Values.polaris.auth.consoleOpen }}
-        clientOpen: {{ .Values.polaris.auth.clientOpen }}
+        consoleOpen: true
+        clientOpen: false
     namespace:
       autoCreate: true
     naming:
@@ -259,26 +320,20 @@ data:
           maxBatchCount: 32
           concurrency: 64
       checkers:
-    {{- if eq .Values.global.mode "cluster" }}
-        - name: heartbeatRedis
-          option:
-            kvAddr: {{ .Values.polaris.storage.redis.address }}
-            {{- if .Values.polaris.storage.redis.user }}
-            kvUser: {{ .Values.polaris.storage.redis.user }}
-            {{- end }}
-            {{- if .Values.polaris.storage.redis.password }}
-            kvPasswd: {{ .Values.polaris.storage.redis.password }}
-            {{- end }}
-            poolSize: 200
-            minIdleConns: 30
-            idleTimeout: 120s
-            connectTimeout: 200ms
-            msgTimeout: 200ms
-            concurrency: 200
-            withTLS: {{ .Values.polaris.storage.redis.withTLS | default false }}
-    {{- else }}
         - name: heartbeatMemory
-    {{- end }}
+    #  - name: heartbeatRedis
+    #    option:
+    #      kvAddr: ##REDIS_ADDR##
+    #      # ACL user from redis v6.0, remove it if ACL is not available
+    #      kvUser: ##REDIS_USER#
+    #      kvPasswd: ##REDIS_PWD##
+    #      poolSize: 200
+    #      minIdleConns: 30
+    #      idleTimeout: 120s
+    #      connectTimeout: 200ms
+    #      msgTimeout: 200ms
+    #      concurrency: 200
+    #      withTLS: false
     # 缓存配置
     cache:
       open: true
@@ -301,28 +356,23 @@ data:
     #    - name: l5 # 加载l5数据
     # 存储配置
     store:
-    {{- if eq .Values.global.mode "cluster" }}
-    # 数据库存储插件
-    {{- with .Values.polaris.storage.db }}
-      name: defaultStore
-      option:
-        master:
-          dbType: mysql
-          dbUser: {{ .user }}
-          dbPwd: {{ .password }}
-          dbAddr: {{ .address }}
-          dbName: {{ .name }}
-          maxOpenConns: -1
-          maxIdleConns: -1
-          connMaxLifetime: 300 # 单位秒
-          txIsolationLevel: 2 #LevelReadCommitted
-    {{- end }}
-    {{- else }}
-    # 单机文件存储插件
+      # 单机文件存储插件
       name: boltdbStore
       option:
         path: ./polaris.bolt
-    {{- end }}
+      ## 数据库存储插件
+      # name: defaultStore
+      # option:
+      #   master:
+      #     dbType: mysql
+      #     dbName: polaris_server
+      #     dbUser: ##DB_USER##
+      #     dbPwd: ##DB_PWD##
+      #     dbAddr: ##DB_ADDR##
+      #     maxOpenConns: -1
+      #     maxIdleConns: -1
+      #     connMaxLifetime: 300 # 单位秒
+      #     txIsolationLevel: 2 #LevelReadCommitted
     # 插件配置
     plugin:
       history:
@@ -394,4 +444,7 @@ data:
               - name: "GET:/v1/naming/services/count"
                 rule: store-read
 
-
+kind: ConfigMap
+metadata:
+  name: polaris-server-config
+  namespace: polaris-system

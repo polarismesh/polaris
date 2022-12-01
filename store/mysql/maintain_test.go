@@ -23,13 +23,14 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/polarismesh/polaris/store/mock"
 )
 
 func TestMaintainStore_LeaderElection_Follower1(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockStore := NewMockLeaderElectionStore(ctrl)
+	mockStore := mock.NewMockLeaderElectionStore(ctrl)
 	mockStore.EXPECT().CheckMtimeExpired(DefaultElectKey, int32(LeaseTime)).Return(false, nil)
 
 	ctx, cancel := context.WithCancel(context.TODO())
@@ -51,7 +52,7 @@ func TestMaintainStore_LeaderElection_Follower2(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockStore := NewMockLeaderElectionStore(ctrl)
+	mockStore := mock.NewMockLeaderElectionStore(ctrl)
 	mockStore.EXPECT().CheckMtimeExpired(DefaultElectKey, int32(LeaseTime)).Return(true, nil)
 	mockStore.EXPECT().GetVersion(DefaultElectKey).Return(int64(0), nil)
 	mockStore.EXPECT().CompareAndSwapVersion(DefaultElectKey, int64(0), int64(1), "127.0.0.1").Return(false, nil)
@@ -75,7 +76,7 @@ func TestMaintainStore_LeaderElection_Follower3(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockStore := NewMockLeaderElectionStore(ctrl)
+	mockStore := mock.NewMockLeaderElectionStore(ctrl)
 	mockStore.EXPECT().CheckMtimeExpired(DefaultElectKey, int32(LeaseTime)).Return(false, errors.New("err"))
 	ctx, cancel := context.WithCancel(context.TODO())
 	le := leaderElectionStateMachine{
@@ -96,7 +97,7 @@ func TestMaintainStore_LeaderElection_Follower4(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockStore := NewMockLeaderElectionStore(ctrl)
+	mockStore := mock.NewMockLeaderElectionStore(ctrl)
 	mockStore.EXPECT().CheckMtimeExpired(DefaultElectKey, int32(LeaseTime)).Return(true, nil)
 	mockStore.EXPECT().GetVersion(DefaultElectKey).Return(int64(0), errors.New("err"))
 
@@ -119,7 +120,7 @@ func TestMaintainStore_LeaderElection_Follower5(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockStore := NewMockLeaderElectionStore(ctrl)
+	mockStore := mock.NewMockLeaderElectionStore(ctrl)
 	mockStore.EXPECT().CheckMtimeExpired(DefaultElectKey, int32(LeaseTime)).Return(true, nil)
 	mockStore.EXPECT().GetVersion(DefaultElectKey).Return(int64(0), nil)
 	mockStore.EXPECT().CompareAndSwapVersion(DefaultElectKey, int64(0), int64(1), "127.0.0.1").Return(false, errors.New("err"))
@@ -143,7 +144,7 @@ func TestMaintainStore_LeaderElection_FollowerToLeader(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockStore := NewMockLeaderElectionStore(ctrl)
+	mockStore := mock.NewMockLeaderElectionStore(ctrl)
 	mockStore.EXPECT().CheckMtimeExpired(DefaultElectKey, int32(LeaseTime)).Return(true, nil)
 	mockStore.EXPECT().GetVersion(DefaultElectKey).Return(int64(42), nil)
 	mockStore.EXPECT().CompareAndSwapVersion(DefaultElectKey, int64(42), int64(43), "127.0.0.1").Return(true, nil)
@@ -170,7 +171,7 @@ func TestMaintainStore_LeaderElection_Leader1(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockStore := NewMockLeaderElectionStore(ctrl)
+	mockStore := mock.NewMockLeaderElectionStore(ctrl)
 	mockStore.EXPECT().CompareAndSwapVersion(DefaultElectKey, int64(42), int64(43), "127.0.0.1").Return(true, nil)
 
 	ctx, cancel := context.WithCancel(context.TODO())
@@ -195,7 +196,7 @@ func TestMaintainStore_LeaderElection_LeaderToFollower1(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockStore := NewMockLeaderElectionStore(ctrl)
+	mockStore := mock.NewMockLeaderElectionStore(ctrl)
 	mockStore.EXPECT().CompareAndSwapVersion(DefaultElectKey, int64(42), int64(43), "127.0.0.1").Return(true, errors.New("err"))
 
 	ctx, cancel := context.WithCancel(context.TODO())
@@ -217,7 +218,7 @@ func TestMaintainStore_LeaderElection_LeaderToFollower2(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockStore := NewMockLeaderElectionStore(ctrl)
+	mockStore := mock.NewMockLeaderElectionStore(ctrl)
 	mockStore.EXPECT().CompareAndSwapVersion(DefaultElectKey, int64(42), int64(43), "127.0.0.1").Return(false, nil)
 
 	ctx, cancel := context.WithCancel(context.TODO())
