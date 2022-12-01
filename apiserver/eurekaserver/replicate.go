@@ -94,7 +94,7 @@ func (h *EurekaServer) BatchReplication(req *restful.Request, rsp *restful.Respo
 func (h *EurekaServer) dispatch(replicationInstance *ReplicationInstance, token string) (*ReplicationInstanceResponse, uint32) {
 	appName := formatReadName(replicationInstance.AppName)
 	ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, token)
-	var code uint32
+	var retCode = api.ExecuteSuccess
 	log.Debugf("[EurekaServer]dispatch replicate request %+v", replicationInstance)
 	if nil != replicationInstance.InstanceInfo {
 		_ = convertInstancePorts(replicationInstance.InstanceInfo)
@@ -104,33 +104,38 @@ func (h *EurekaServer) dispatch(replicationInstance *ReplicationInstance, token 
 	switch replicationInstance.Action {
 	case actionRegister:
 		instanceInfo := replicationInstance.InstanceInfo
-		code = h.registerInstances(ctx, appName, instanceInfo, true)
-		if code == api.ExecuteSuccess || code == api.ExistedResource || code == api.SameInstanceRequest {
-			code = api.ExecuteSuccess
+		retCode = h.registerInstances(ctx, appName, instanceInfo, true)
+		if retCode == api.ExecuteSuccess || retCode == api.ExistedResource || retCode == api.SameInstanceRequest {
+			retCode = api.ExecuteSuccess
 		}
 	case actionHeartbeat:
 		instanceId := replicationInstance.Id
-		code = h.renew(ctx, appName, instanceId)
-		if code == api.ExecuteSuccess || code == api.HeartbeatExceedLimit {
-			code = api.ExecuteSuccess
+		retCode = h.renew(ctx, appName, instanceId)
+		if retCode == api.ExecuteSuccess || retCode == api.HeartbeatExceedLimit {
+			retCode = api.ExecuteSuccess
 		}
 	case actionCancel:
 		instanceId := replicationInstance.Id
-		code = h.deregisterInstance(ctx, appName, instanceId)
-		if code == api.ExecuteSuccess || code == api.NotFoundResource || code == api.SameInstanceRequest {
-			code = api.ExecuteSuccess
+		retCode = h.deregisterInstance(ctx, appName, instanceId)
+		if retCode == api.ExecuteSuccess || retCode == api.NotFoundResource || retCode == api.SameInstanceRequest {
+			retCode = api.ExecuteSuccess
 		}
 	case actionStatusUpdate:
 		status := replicationInstance.Status
 		instanceId := replicationInstance.Id
-		code = h.updateStatus(ctx, appName, instanceId, status)
+		retCode = h.updateStatus(ctx, appName, instanceId, status)
 	case actionDeleteStatusOverride:
 		instanceId := replicationInstance.Id
-		code = h.updateStatus(ctx, appName, instanceId, StatusUp)
+		retCode = h.updateStatus(ctx, appName, instanceId, StatusUp)
+	}
+
+	statusCode := http.StatusOK
+	if retCode == api.NotFoundResource {
+		statusCode = http.StatusNotFound
 	}
 	return &ReplicationInstanceResponse{
-		StatusCode: http.StatusOK,
-	}, code
+		StatusCode: statusCode,
+	}, retCode
 }
 
 func eventToInstance(event *model.InstanceEvent, appName string, curTimeMilli int64) *InstanceInfo {
