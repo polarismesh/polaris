@@ -4,7 +4,7 @@ bootstrap:
   logger:
     config:
       rotateOutputPath: log/runtime/polaris-config.log
-      errorRotateOutputPath: log/polaris-config-error.log
+      errorRotateOutputPath: log/runtime/polaris-config-error.log
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
@@ -15,7 +15,7 @@ bootstrap:
       # - stderr
     auth:
       rotateOutputPath: log/runtime/polaris-auth.log
-      errorRotateOutputPath: log/polaris-auth-error.log
+      errorRotateOutputPath: log/runtime/polaris-auth-error.log
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
@@ -26,7 +26,7 @@ bootstrap:
       #   - stderr
     store:
       rotateOutputPath: log/runtime/polaris-store.log
-      errorRotateOutputPath: log/polaris-store-error.log
+      errorRotateOutputPath: log/runtime/polaris-store-error.log
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
@@ -37,7 +37,7 @@ bootstrap:
       #   - stderr
     cache:
       rotateOutputPath: log/runtime/polaris-cache.log
-      errorRotateOutputPath: log/polaris-cache-error.log
+      errorRotateOutputPath: log/runtime/polaris-cache-error.log
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
@@ -48,7 +48,7 @@ bootstrap:
       #   - stderr
     naming:
       rotateOutputPath: log/runtime/polaris-naming.log
-      errorRotateOutputPath: log/polaris-naming-error.log
+      errorRotateOutputPath: log/runtime/polaris-naming-error.log
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
@@ -59,7 +59,7 @@ bootstrap:
       #   - stderr
     healthcheck:
       rotateOutputPath: log/runtime/polaris-healthcheck.log
-      errorRotateOutputPath: log/polaris-healthcheck-error.log
+      errorRotateOutputPath: log/runtime/polaris-healthcheck-error.log
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
@@ -81,29 +81,7 @@ bootstrap:
       #   - stderr
     apiserver:
       rotateOutputPath: log/runtime/polaris-apiserver.log
-      errorRotateOutputPath: log/polaris-apiserver-error.log
-      rotationMaxSize: 100
-      rotationMaxBackups: 10
-      rotationMaxAge: 7
-      outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
-    discoverEventLocal:
-      rotateOutputPath: log/event/polaris-discoverevent.log
-      errorRotateOutputPath: log/polaris-discoverevent-error.log
-      rotationMaxSize: 100
-      rotationMaxBackups: 10
-      rotationMaxAge: 7
-      outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
-    discoverLocal:
-      rotateOutputPath: log/statis/polaris-discoverstat.log
-      errorRotateOutputPath: log/polaris-discoverstat-error.log
+      errorRotateOutputPath: log/runtime/polaris-apiserver-error.log
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
@@ -114,7 +92,40 @@ bootstrap:
       #   - stderr
     token-bucket:
       rotateOutputPath: log/runtime/polaris-ratelimit.log
-      errorRotateOutputPath: log/polaris-ratelimit-error.log
+      errorRotateOutputPath: log/runtime/polaris-ratelimit-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
+    default:
+      rotateOutputPath: log/runtime/polaris-default.log
+      errorRotateOutputPath: log/runtime/polaris-default-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
+    discoverEventLocal:
+      rotateOutputPath: log/event/polaris-discoverevent.log
+      errorRotateOutputPath: log/event/polaris-discoverevent-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
+    discoverLocal:
+      rotateOutputPath: log/statis/polaris-discoverstat.log
+      errorRotateOutputPath: log/statis/polaris-discoverstat-error.log
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
@@ -125,7 +136,7 @@ bootstrap:
       #   - stderr
     local:
       rotateOutputPath: log/statis/polaris-statis.log
-      errorRotateOutputPath: log/polaris-statis-error.log
+      errorRotateOutputPath: log/statis/polaris-statis-error.log
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
@@ -136,23 +147,13 @@ bootstrap:
       #   - stderr
     HistoryLogger:
       rotateOutputPath: log/operation/polaris-history.log
-      errorRotateOutputPath: log/polaris-history-error.log
+      errorRotateOutputPath: log/operation/polaris-history-error.log
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
       rotationMaxDurationForHour: 24
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
-    default:
-      rotateOutputPath: log/runtime/polaris-default.log
-      errorRotateOutputPath: log/polaris-default-error.log
-      rotationMaxSize: 100
-      rotationMaxBackups: 10
-      rotationMaxAge: 7
-      outputLevel: info
+      logCaller: false
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
