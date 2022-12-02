@@ -902,17 +902,18 @@ func addInstanceMeta(tx *BaseTx, id string, meta map[string]string) error {
 func batchDeleteInstanceMeta(tx *BaseTx, instances []*model.Instance) error {
 	ids := make([]interface{}, 0, len(instances))
 	builder := strings.Builder{}
-	for idx, entry := range instances {
+	for _, entry := range instances {
 		// If instance is first registration, no need to participate in the following METADATA cleaning action
 		if entry.FirstRegis {
 			continue
 		}
-
-		if idx > 0 {
+		
+		ids = append(ids, entry.ID())
+		
+		if len(ids) > 1 {
 			builder.WriteString(",")
 		}
 		builder.WriteString("?")
-		ids = append(ids, entry.ID())
 	}
 
 	if len(ids) == 0 {
