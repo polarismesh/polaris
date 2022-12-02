@@ -907,9 +907,9 @@ func batchDeleteInstanceMeta(tx *BaseTx, instances []*model.Instance) error {
 		if entry.FirstRegis {
 			continue
 		}
-		
+
 		ids = append(ids, entry.ID())
-		
+
 		if len(ids) > 1 {
 			builder.WriteString(",")
 		}
