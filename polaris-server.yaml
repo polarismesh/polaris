@@ -181,7 +181,6 @@ bootstrap:
         - stdout
       errorOutputPaths:
         - stderr
-  #
   startInOrder:
     open: true
     key: sz
