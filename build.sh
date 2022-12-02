@@ -70,7 +70,7 @@ go build -o ${bin_name} -ldflags="-X ${package}.Version=${version} -X ${package}
 mkdir -p ${folder_name}
 cp ${bin_name} ${folder_name}
 mkdir -p ${folder_name}/${sqldb_res}
-cp -r ${sqldb_res}/scripts ${folder_name}/${sqldb_res}
+cp -r ${sqldb_res}/scripts/* ${folder_name}/${sqldb_res}
 cp -r tool ${folder_name}/
 cp -r conf ${folder_name}/
 zip -r "${pkg_name}" ${folder_name}
