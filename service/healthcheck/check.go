@@ -372,6 +372,13 @@ func (c *CheckScheduler) checkCallbackClient(value interface{}) {
 	}
 	instanceValue.mutex.Lock()
 	defer instanceValue.mutex.Unlock()
+
+	cachedClient := server.cacheProvider.GetClient(clientId)
+	if cachedClient == nil {
+		log.Infof("[Health Check][Check]client %s has been deleted", instanceValue.id)
+		return
+	}
+
 	var checkResp *plugin.CheckResponse
 	var err error
 	defer func() {
@@ -381,11 +388,7 @@ func (c *CheckScheduler) checkCallbackClient(value interface{}) {
 			c.addUnHealthyCallback(instanceValue)
 		}
 	}()
-	cachedClient := server.cacheProvider.GetClient(clientId)
-	if cachedClient == nil {
-		log.Infof("[Health Check][Check]client %s has been deleted", instanceValue.id)
-		return
-	}
+
 	request := &plugin.CheckRequest{
 		QueryRequest: plugin.QueryRequest{
 			InstanceId: toClientId(instanceValue.id),
@@ -427,6 +430,12 @@ func (c *CheckScheduler) checkCallbackInstance(value interface{}) {
 	instanceValue.mutex.Lock()
 	defer instanceValue.mutex.Unlock()
 
+	cachedInstance := server.cacheProvider.GetInstance(instanceId)
+	if cachedInstance == nil {
+		log.Infof("[Health Check][Check]instance %s has been deleted", instanceValue.id)
+		return
+	}
+
 	var checkResp *plugin.CheckResponse
 	var err error
 	defer func() {
@@ -437,11 +446,6 @@ func (c *CheckScheduler) checkCallbackInstance(value interface{}) {
 		}
 	}()
 
-	cachedInstance := server.cacheProvider.GetInstance(instanceId)
-	if cachedInstance == nil {
-		log.Infof("[Health Check][Check]instance %s has been deleted", instanceValue.id)
-		return
-	}
 	request := &plugin.CheckRequest{
 		QueryRequest: plugin.QueryRequest{
 			InstanceId: instanceValue.id,
