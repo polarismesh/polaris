@@ -25,15 +25,20 @@ import (
 	"github.com/golang/mock/gomock"
 )
 
+const (
+	TestElectKey = "test-key"
+)
+
 func TestMaintainStore_LeaderElection_Follower1(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockStore := NewMockLeaderElectionStore(ctrl)
-	mockStore.EXPECT().CheckMtimeExpired(DefaultElectKey, int32(LeaseTime)).Return(false, nil)
+	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(false, nil)
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	le := leaderElectionStateMachine{
+		electKey:   TestElectKey,
 		leStore:    mockStore,
 		leaderFlag: 0,
 		version:    0,
@@ -52,12 +57,13 @@ func TestMaintainStore_LeaderElection_Follower2(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStore := NewMockLeaderElectionStore(ctrl)
-	mockStore.EXPECT().CheckMtimeExpired(DefaultElectKey, int32(LeaseTime)).Return(true, nil)
-	mockStore.EXPECT().GetVersion(DefaultElectKey).Return(int64(0), nil)
-	mockStore.EXPECT().CompareAndSwapVersion(DefaultElectKey, int64(0), int64(1), "127.0.0.1").Return(false, nil)
+	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(true, nil)
+	mockStore.EXPECT().GetVersion(TestElectKey).Return(int64(0), nil)
+	mockStore.EXPECT().CompareAndSwapVersion(TestElectKey, int64(0), int64(1), "127.0.0.1").Return(false, nil)
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	le := leaderElectionStateMachine{
+		electKey:   TestElectKey,
 		leStore:    mockStore,
 		leaderFlag: 0,
 		version:    0,
@@ -76,9 +82,10 @@ func TestMaintainStore_LeaderElection_Follower3(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStore := NewMockLeaderElectionStore(ctrl)
-	mockStore.EXPECT().CheckMtimeExpired(DefaultElectKey, int32(LeaseTime)).Return(false, errors.New("err"))
+	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(false, errors.New("err"))
 	ctx, cancel := context.WithCancel(context.TODO())
 	le := leaderElectionStateMachine{
+		electKey:   TestElectKey,
 		leStore:    mockStore,
 		leaderFlag: 0,
 		version:    0,
@@ -97,11 +104,12 @@ func TestMaintainStore_LeaderElection_Follower4(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStore := NewMockLeaderElectionStore(ctrl)
-	mockStore.EXPECT().CheckMtimeExpired(DefaultElectKey, int32(LeaseTime)).Return(true, nil)
-	mockStore.EXPECT().GetVersion(DefaultElectKey).Return(int64(0), errors.New("err"))
+	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(true, nil)
+	mockStore.EXPECT().GetVersion(TestElectKey).Return(int64(0), errors.New("err"))
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	le := leaderElectionStateMachine{
+		electKey:   TestElectKey,
 		leStore:    mockStore,
 		leaderFlag: 0,
 		version:    0,
@@ -120,12 +128,13 @@ func TestMaintainStore_LeaderElection_Follower5(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStore := NewMockLeaderElectionStore(ctrl)
-	mockStore.EXPECT().CheckMtimeExpired(DefaultElectKey, int32(LeaseTime)).Return(true, nil)
-	mockStore.EXPECT().GetVersion(DefaultElectKey).Return(int64(0), nil)
-	mockStore.EXPECT().CompareAndSwapVersion(DefaultElectKey, int64(0), int64(1), "127.0.0.1").Return(false, errors.New("err"))
+	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(true, nil)
+	mockStore.EXPECT().GetVersion(TestElectKey).Return(int64(0), nil)
+	mockStore.EXPECT().CompareAndSwapVersion(TestElectKey, int64(0), int64(1), "127.0.0.1").Return(false, errors.New("err"))
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	le := leaderElectionStateMachine{
+		electKey:   TestElectKey,
 		leStore:    mockStore,
 		leaderFlag: 0,
 		version:    0,
@@ -144,12 +153,13 @@ func TestMaintainStore_LeaderElection_FollowerToLeader(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStore := NewMockLeaderElectionStore(ctrl)
-	mockStore.EXPECT().CheckMtimeExpired(DefaultElectKey, int32(LeaseTime)).Return(true, nil)
-	mockStore.EXPECT().GetVersion(DefaultElectKey).Return(int64(42), nil)
-	mockStore.EXPECT().CompareAndSwapVersion(DefaultElectKey, int64(42), int64(43), "127.0.0.1").Return(true, nil)
+	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(true, nil)
+	mockStore.EXPECT().GetVersion(TestElectKey).Return(int64(42), nil)
+	mockStore.EXPECT().CompareAndSwapVersion(TestElectKey, int64(42), int64(43), "127.0.0.1").Return(true, nil)
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	le := leaderElectionStateMachine{
+		electKey:   TestElectKey,
 		leStore:    mockStore,
 		leaderFlag: 0,
 		version:    0,
@@ -171,10 +181,11 @@ func TestMaintainStore_LeaderElection_Leader1(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStore := NewMockLeaderElectionStore(ctrl)
-	mockStore.EXPECT().CompareAndSwapVersion(DefaultElectKey, int64(42), int64(43), "127.0.0.1").Return(true, nil)
+	mockStore.EXPECT().CompareAndSwapVersion(TestElectKey, int64(42), int64(43), "127.0.0.1").Return(true, nil)
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	le := leaderElectionStateMachine{
+		electKey:   TestElectKey,
 		leStore:    mockStore,
 		leaderFlag: 1,
 		version:    42,
@@ -196,10 +207,11 @@ func TestMaintainStore_LeaderElection_LeaderToFollower1(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStore := NewMockLeaderElectionStore(ctrl)
-	mockStore.EXPECT().CompareAndSwapVersion(DefaultElectKey, int64(42), int64(43), "127.0.0.1").Return(true, errors.New("err"))
+	mockStore.EXPECT().CompareAndSwapVersion(TestElectKey, int64(42), int64(43), "127.0.0.1").Return(true, errors.New("err"))
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	le := leaderElectionStateMachine{
+		electKey:   TestElectKey,
 		leStore:    mockStore,
 		leaderFlag: 1,
 		version:    42,
@@ -218,10 +230,11 @@ func TestMaintainStore_LeaderElection_LeaderToFollower2(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStore := NewMockLeaderElectionStore(ctrl)
-	mockStore.EXPECT().CompareAndSwapVersion(DefaultElectKey, int64(42), int64(43), "127.0.0.1").Return(false, nil)
+	mockStore.EXPECT().CompareAndSwapVersion(TestElectKey, int64(42), int64(43), "127.0.0.1").Return(false, nil)
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	le := leaderElectionStateMachine{
+		electKey:   TestElectKey,
 		leStore:    mockStore,
 		leaderFlag: 1,
 		version:    42,

@@ -25,7 +25,6 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/service/healthcheck"
-	"github.com/polarismesh/polaris/store"
 )
 
 type SelfHeathChecker struct {
@@ -34,16 +33,11 @@ type SelfHeathChecker struct {
 	cancel    context.CancelFunc
 	wg        *sync.WaitGroup
 	hcServer  *healthcheck.Server
-	storage   store.Store
 }
 
 func NewSelfHeathChecker(instances []*api.Instance, interval int) (*SelfHeathChecker, error) {
 	hcServer, err := healthcheck.GetServer()
 	if nil != err {
-		return nil, err
-	}
-	storage, err := store.GetStore()
-	if err != nil {
 		return nil, err
 	}
 	for _, instance := range instances {
@@ -54,7 +48,6 @@ func NewSelfHeathChecker(instances []*api.Instance, interval int) (*SelfHeathChe
 		instances: instances,
 		interval:  interval,
 		hcServer:  hcServer,
-		storage:   storage,
 	}, nil
 }
 
@@ -79,11 +72,6 @@ func (s *SelfHeathChecker) Start() {
 						instance.GetHost().GetValue(), instance.GetPort().GetValue(),
 						rsp.GetCode().GetValue(), rsp.GetInfo().GetValue())
 				}
-			}
-
-			if s.storage.IsLeader() {
-				log.Info("[Bootstrap] i am leader, check health of selfService instances")
-				s.hcServer.CheckSelfServiceInstances()
 			}
 		}
 	}

@@ -117,12 +117,28 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 	server.discoverCh = make(chan eventWrapper, 32)
 	go server.receiveEventAndPush()
 
+	if err = eventhub.Subscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker", server.checkSelfServiceInstances); err != nil {
+		return err
+	}
+	if err = server.storage.StartLeaderElection(server.cacheProvider.selfService); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-// CheckSelfServiceInstances
-func (s *Server) CheckSelfServiceInstances() {
-	s.doCheckSelfServiceInstances()
+// checkSelfServiceInstances
+func (s *Server) checkSelfServiceInstances(ctx context.Context, i interface{}) error {
+	e := i.(store.LeaderChangeEvent)
+	if e.Key != s.cacheProvider.selfService {
+		return nil
+	}
+
+	if e.Leader {
+		log.Info("[healthcheck] i am leader, check health of selfService instances")
+		s.doCheckSelfServiceInstances()
+	}
+	return nil
 }
 
 // Report heartbeat request

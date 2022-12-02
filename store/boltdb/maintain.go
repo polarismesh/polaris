@@ -17,14 +17,31 @@
 
 package boltdb
 
-import "github.com/polarismesh/polaris/common/model"
+import (
+	"time"
+
+	"github.com/polarismesh/polaris/common/eventhub"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/store"
+)
 
 type maintainStore struct {
 	handler BoltHandler
 }
 
+// StartLeaderElection
+func (m *maintainStore) StartLeaderElection(key string) error {
+	go func() {
+		ticker := time.NewTicker(1 * time.Second)
+		for range ticker.C {
+			eventhub.Publish(eventhub.LeaderChangeEventTopic, store.LeaderChangeEvent{Key: key, Leader: true})
+		}
+	}()
+	return nil
+}
+
 // IsLeader
-func (m *maintainStore) IsLeader() bool {
+func (m *maintainStore) IsLeader(key string) bool {
 	return true
 }
 
