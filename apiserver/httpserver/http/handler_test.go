@@ -33,8 +33,8 @@ import (
 )
 
 func init() {
-	i18n.LoadI18nMessageFile("../i18n/en.toml")
-	i18n.LoadI18nMessageFile("../i18n/zh.toml")
+	i18n.LoadI18nMessageFile("../../../conf/i18n/en.toml")
+	i18n.LoadI18nMessageFile("../../../conf/i18n/zh.toml")
 }
 
 func Test_i18n(t *testing.T) {
