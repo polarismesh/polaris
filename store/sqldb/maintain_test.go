@@ -247,3 +247,78 @@ func TestMaintainStore_LeaderElection_LeaderToFollower2(t *testing.T) {
 		t.Error("expect to follower state")
 	}
 }
+
+func TestMaintainStore_StartLeaderElection1(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockStore := NewMockLeaderElectionStore(ctrl)
+	mockStore.EXPECT().CreateLeaderElection(TestElectKey).Return(errors.New("err"))
+
+	m := &maintainStore{
+		leStore: mockStore,
+		leMap:   make(map[string]*leaderElectionStateMachine),
+	}
+
+	err := m.StartLeaderElection(TestElectKey)
+	if err == nil {
+		t.Errorf("should start failed")
+	}
+	_, ok := m.leMap[TestElectKey]
+	if ok {
+		t.Errorf("should not in map")
+	}
+}
+
+func TestMaintainStore_StartLeaderElection2(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockStore := NewMockLeaderElectionStore(ctrl)
+	mockStore.EXPECT().CreateLeaderElection(TestElectKey).Return(nil)
+
+	m := &maintainStore{
+		leStore: mockStore,
+		leMap:   make(map[string]*leaderElectionStateMachine),
+	}
+
+	err := m.StartLeaderElection(TestElectKey)
+	if err != nil {
+		t.Errorf("should start success")
+	}
+	le, ok := m.leMap[TestElectKey]
+	if !ok {
+		t.Errorf("should in map")
+	}
+
+	le.cancel()
+}
+
+func TestMaintainStore_StartLeaderElection3(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockStore := NewMockLeaderElectionStore(ctrl)
+	mockStore.EXPECT().CreateLeaderElection(TestElectKey).Return(nil)
+
+	m := &maintainStore{
+		leStore: mockStore,
+		leMap:   make(map[string]*leaderElectionStateMachine),
+	}
+
+	err := m.StartLeaderElection(TestElectKey)
+	if err != nil {
+		t.Errorf("should start success")
+	}
+	le, ok := m.leMap[TestElectKey]
+	if !ok {
+		t.Errorf("should in map")
+	}
+
+	err = m.StartLeaderElection(TestElectKey)
+	if err != nil {
+		t.Errorf("expect no err if already started")
+	}
+
+	le.cancel()
+}

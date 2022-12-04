@@ -281,8 +281,5 @@ func (s *stableStore) newStore() {
 
 	s.routingConfigStoreV2 = &routingConfigStoreV2{master: s.master, slave: s.slave}
 
-	s.maintainStore = &maintainStore{
-		master: s.master,
-		leMap:  make(map[string]*leaderElectionStateMachine),
-	}
+	s.maintainStore = newMaintainStore(s.master)
 }

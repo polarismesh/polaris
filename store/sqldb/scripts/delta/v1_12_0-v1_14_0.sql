@@ -29,6 +29,3 @@ CREATE TABLE `leader_election`
     PRIMARY KEY (`elect_key`),
 	KEY `version` (`version`)
 ) engine = innodb;
-
-INSERT INTO `leader_election` (`elect_key`, `leader`)
-VALUES ("polaris-server", "127.0.0.1");

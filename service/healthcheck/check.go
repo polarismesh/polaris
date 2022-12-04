@@ -32,6 +32,7 @@ import (
 	"github.com/polarismesh/polaris/common/timewheel"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
+	"github.com/polarismesh/polaris/store"
 )
 
 const (
@@ -625,14 +626,48 @@ func instanceRecordEntry(ins *model.Instance, opt model.OperationType) *model.Re
 	return entry
 }
 
-func (s *Server) doCheckSelfServiceInstances() {
-	s.cacheProvider.selfServiceInstances.Range(func(instanceId string, value ItemWithChecker) {
-		s.doCheckSelfServiceInstance(value.GetInstance())
-	})
+type leaderChangeEventHandler struct {
+	cacheProvider    *CacheProvider
+	lastTime         time.Time
+	minCheckInterval time.Duration
 }
 
-func (s *Server) doCheckSelfServiceInstance(cachedInstance *model.Instance) {
-	hcEnable, checker := s.cacheProvider.isHealthCheckEnable(cachedInstance.Proto)
+// newLeaderChangeEventHandler
+func newLeaderChangeEventHandler(cacheProvider *CacheProvider, minCheckInterval time.Duration) *leaderChangeEventHandler {
+	return &leaderChangeEventHandler{
+		cacheProvider:    cacheProvider,
+		lastTime:         time.Now(),
+		minCheckInterval: minCheckInterval,
+	}
+}
+
+// checkSelfServiceInstances
+func (handler *leaderChangeEventHandler) checkSelfServiceInstances(ctx context.Context, i interface{}) error {
+	e := i.(store.LeaderChangeEvent)
+	if e.Key != store.ELECTION_KEY_SELF_SERVICE_CHECKER {
+		return nil
+	}
+
+	if !e.Leader {
+		return nil
+	}
+
+	now := time.Now()
+	nextCheckTime := handler.lastTime.Add(minCheckInterval)
+	if now.Before(nextCheckTime) {
+		return nil
+	}
+
+	log.Debug("[healthcheck] i am leader, check health of selfService instances")
+	handler.lastTime = now
+	handler.cacheProvider.selfServiceInstances.Range(func(instanceId string, value ItemWithChecker) {
+		handler.doCheckSelfServiceInstance(value.GetInstance())
+	})
+	return nil
+}
+
+func (handler *leaderChangeEventHandler) doCheckSelfServiceInstance(cachedInstance *model.Instance) {
+	hcEnable, checker := handler.cacheProvider.isHealthCheckEnable(cachedInstance.Proto)
 	if !hcEnable {
 		log.Warnf("[Health Check][Check] selfService instance %s:%d not enable healthcheck",
 			cachedInstance.Host(), cachedInstance.Port())

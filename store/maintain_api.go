@@ -17,6 +17,10 @@
 
 package store
 
+const (
+	ELECTION_KEY_SELF_SERVICE_CHECKER = "polaris.checker"
+)
+
 type MaintainStore interface {
 	// StartLeaderElection start leader election
 	StartLeaderElection(key string) error

@@ -35,9 +35,18 @@ const (
 
 // maintainStore implement MaintainStore interface
 type maintainStore struct {
-	master *BaseDB
-	leMap  map[string]*leaderElectionStateMachine
-	mutex  sync.Mutex
+	master  *BaseDB
+	leStore LeaderElectionStore
+	leMap   map[string]*leaderElectionStateMachine
+	mutex   sync.Mutex
+}
+
+func newMaintainStore(master *BaseDB) *maintainStore {
+	return &maintainStore{
+		master:  master,
+		leStore: &leaderElectionStore{master: master},
+		leMap:   make(map[string]*leaderElectionStateMachine),
+	}
 }
 
 // LeaderElectionStore store inteface
@@ -236,7 +245,7 @@ func (m *maintainStore) StartLeaderElection(key string) error {
 	ctx, cancel := context.WithCancel(context.TODO())
 	le := &leaderElectionStateMachine{
 		electKey:   key,
-		leStore:    &leaderElectionStore{master: m.master},
+		leStore:    m.leStore,
 		leaderFlag: 0,
 		version:    0,
 		ctx:        ctx,
