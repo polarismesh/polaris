@@ -25,6 +25,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/golang/protobuf/jsonpb"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
@@ -113,7 +114,6 @@ func (s *Server) CreateNamespace(ctx context.Context, req *api.Namespace) *api.R
 
 	msg := fmt.Sprintf("create namespace: name=%s", namespaceName)
 	log.Info(msg, utils.ZapRequestID(requestID))
-	s.RecordHistory(namespaceRecordEntry(ctx, req, model.OCreate))
 
 	out := &api.Namespace{
 		Name:  req.GetName(),
@@ -519,11 +519,15 @@ func parseNamespaceToken(ctx context.Context, req *api.Namespace) string {
 
 // 生成命名空间的记录entry
 func namespaceRecordEntry(ctx context.Context, req *api.Namespace, opt model.OperationType) *model.RecordEntry {
+	marshaler := jsonpb.Marshaler{}
+	datail, _ := marshaler.MarshalToString(req)
 	return &model.RecordEntry{
 		ResourceType:  model.RNamespace,
-		OperationType: opt,
+		ResourceName:  req.GetName().GetValue(),
 		Namespace:     req.GetName().GetValue(),
+		OperationType: opt,
 		Operator:      utils.ParseOperator(ctx),
-		CreateTime:    time.Now(),
+		Detail:        datail,
+		HappenTime:    time.Now(),
 	}
 }

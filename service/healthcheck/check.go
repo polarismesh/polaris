@@ -19,7 +19,6 @@ package healthcheck
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -529,16 +528,6 @@ func setInsDbStatus(instance *model.Instance, healthStatus bool) uint32 {
 	if code != api.ExecuteSuccess {
 		return code
 	}
-	recordInstance := &model.Instance{
-		Proto: &api.Instance{
-			Host:     instance.Proto.GetId(),
-			Port:     instance.Proto.GetPort(),
-			Priority: instance.Proto.GetPriority(),
-			Weight:   instance.Proto.GetWeight(),
-			Healthy:  utils.NewBoolValue(healthStatus),
-			Isolate:  instance.Proto.GetIsolate(),
-		},
-	}
 
 	// 这里为了避免多次发送重复的事件，对实例原本的health 状态以及 healthStatus 状态进行对比，不一致才
 	// 发布服务实例变更事件
@@ -560,7 +549,6 @@ func setInsDbStatus(instance *model.Instance, healthStatus bool) uint32 {
 		server.publishInstanceEvent(instance.ServiceID, event)
 	}
 
-	server.RecordHistory(instanceRecordEntry(recordInstance, model.OUpdate))
 	return code
 }
 
@@ -600,144 +588,4 @@ func (s *Server) serialSetInsDbStatus(ins *api.Instance, healthStatus bool) uint
 		return api.StoreLayerException
 	}
 	return api.ExecuteSuccess
-}
-
-// instanceRecordEntry generate instance record entry
-func instanceRecordEntry(ins *model.Instance, opt model.OperationType) *model.RecordEntry {
-	if ins == nil {
-		return nil
-	}
-	entry := &model.RecordEntry{
-		ResourceType:  model.RInstance,
-		OperationType: opt,
-		Namespace:     ins.Proto.GetNamespace().GetValue(),
-		Service:       ins.Proto.GetService().GetValue(),
-		Operator:      "Polaris",
-		CreateTime:    time.Now(),
-	}
-	if opt == model.OCreate || opt == model.OUpdate {
-		entry.Context = fmt.Sprintf("host:%s,port:%d,weight:%d,healthy:%v,isolate:%v,priority:%d,meta:%+v",
-			ins.Host(), ins.Port(), ins.Weight(), ins.Healthy(), ins.Isolate(),
-			ins.Priority(), ins.Metadata())
-	} else if opt == model.OUpdateIsolate {
-		entry.Context = fmt.Sprintf("host:%s,port=%d,isolate:%v", ins.Host(), ins.Port(), ins.Isolate())
-	} else {
-		entry.Context = fmt.Sprintf("host:%s,port:%d", ins.Host(), ins.Port())
-	}
-	return entry
-}
-
-type leaderChangeEventHandler struct {
-	cacheProvider    *CacheProvider
-	ctx              context.Context
-	cancel           context.CancelFunc
-	minCheckInterval time.Duration
-}
-
-// newLeaderChangeEventHandler
-func newLeaderChangeEventHandler(cacheProvider *CacheProvider, minCheckInterval time.Duration) *leaderChangeEventHandler {
-	return &leaderChangeEventHandler{
-		cacheProvider:    cacheProvider,
-		minCheckInterval: minCheckInterval,
-	}
-}
-
-// checkSelfServiceInstances
-func (handler *leaderChangeEventHandler) handle(ctx context.Context, i interface{}) error {
-	e := i.(store.LeaderChangeEvent)
-	if e.Key != store.ELECTION_KEY_SELF_SERVICE_CHECKER {
-		return nil
-	}
-
-	if e.Leader {
-		handler.startCheckSelfServiceInstances()
-	} else {
-		handler.stopCheckSelfServiceInstances()
-	}
-	return nil
-}
-
-// startCheckSelfServiceInstances
-func (handler *leaderChangeEventHandler) startCheckSelfServiceInstances() {
-	if handler.ctx != nil {
-		log.Warn("[healthcheck] receive unexpected leader state event")
-		return
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	handler.ctx = ctx
-	handler.cancel = cancel
-	go func() {
-		log.Info("[healthcheck] i am leader, start check health of selfService instances")
-		ticker := time.NewTicker(handler.minCheckInterval)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				handler.cacheProvider.selfServiceInstances.Range(func(instanceId string, value ItemWithChecker) {
-					handler.doCheckSelfServiceInstance(value.GetInstance())
-				})
-			case <-ctx.Done():
-				log.Info("[healthcheck] stop check health of selfService instances")
-				return
-			}
-		}
-	}()
-}
-
-// startCheckSelfServiceInstances
-func (handler *leaderChangeEventHandler) stopCheckSelfServiceInstances() {
-	if handler.ctx == nil {
-		log.Warn("[healthcheck] receive unexpected follower state event")
-		return
-	}
-	handler.cancel()
-	handler.ctx = nil
-	handler.cancel = nil
-}
-
-// startCheckSelfServiceInstances
-func (handler *leaderChangeEventHandler) doCheckSelfServiceInstance(cachedInstance *model.Instance) {
-	hcEnable, checker := handler.cacheProvider.isHealthCheckEnable(cachedInstance.Proto)
-	if !hcEnable {
-		log.Warnf("[Health Check][Check] selfService instance %s:%d not enable healthcheck",
-			cachedInstance.Host(), cachedInstance.Port())
-		return
-	}
-
-	request := &plugin.CheckRequest{
-		QueryRequest: plugin.QueryRequest{
-			InstanceId: cachedInstance.ID(),
-			Host:       cachedInstance.Host(),
-			Port:       cachedInstance.Port(),
-			Healthy:    cachedInstance.Healthy(),
-		},
-		CurTimeSec:        currentTimeSec,
-		ExpireDurationSec: getExpireDurationSec(cachedInstance.Proto),
-	}
-	checkResp, err := checker.Check(request)
-	if err != nil {
-		log.Errorf("[Health Check][Check]fail to check selfService instance %s:%d, id is %s, err is %v",
-			cachedInstance.Host(), cachedInstance.Port(), cachedInstance.ID(), err)
-		return
-	}
-	if !checkResp.StayUnchanged {
-		code := setInsDbStatus(cachedInstance, checkResp.Healthy)
-		if checkResp.Healthy {
-			// from unhealthy to healthy
-			log.Infof(
-				"[Health Check][Check]selfService instance change from unhealthy to healthy, id is %s, address is %s:%d",
-				cachedInstance.ID(), cachedInstance.Host(), cachedInstance.Port())
-		} else {
-			// from healthy to unhealthy
-			log.Infof(
-				"[Health Check][Check]selfService instance change from healthy to unhealthy, id is %s, address is %s:%d",
-				cachedInstance.ID(), cachedInstance.Host(), cachedInstance.Port())
-		}
-		if code != api.ExecuteSuccess {
-			log.Errorf(
-				"[Health Check][Check]fail to update selfService instance, id is %s, address is %s:%d, code is %d",
-				cachedInstance.ID(), cachedInstance.Host(), cachedInstance.Port(), code)
-		}
-	}
 }

@@ -28,7 +28,9 @@ import (
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
+	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -60,7 +62,8 @@ type Server struct {
 	namespaceOperator namespace.NamespaceOperateServer
 	initialized       bool
 
-	hooks []ResourceHook
+	history plugin.History
+	hooks   []ResourceHook
 }
 
 // Initialize 初始化配置中心模块
@@ -101,6 +104,12 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	// 初始化连接管理器
 	connMng := NewConfigConnManager(ctx, s.watchCenter)
 	s.connManager = connMng
+
+	// 获取History插件，注意：插件的配置在bootstrap已经设置好
+	s.history = plugin.GetHistory()
+	if s.history == nil {
+		log.Warnf("Not Found History Log Plugin")
+	}
 
 	// 初始化发布事件扫描器
 	if err := initReleaseMessageScanner(ctx, ss, s.fileCache, eventCenter, time.Second); err != nil {
@@ -162,4 +171,23 @@ func (s *Server) afterConfigGroupResource(ctx context.Context, req *api.ConfigFi
 		}
 	}
 	return nil
+}
+
+// RecordHistory server对外提供history插件的简单封装
+func (s *Server) RecordHistory(ctx context.Context, entry *model.RecordEntry) {
+	// 如果插件没有初始化，那么不记录history
+	if s.history == nil {
+		return
+	}
+	// 如果数据为空，则不需要打印了
+	if entry == nil {
+		return
+	}
+
+	fromClient, _ := ctx.Value(utils.ContextIsFromClient).(bool)
+	if fromClient {
+		return
+	}
+	// 调用插件记录history
+	s.history.Record(entry)
 }

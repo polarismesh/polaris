@@ -26,6 +26,7 @@ import (
 
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 )
@@ -208,14 +209,14 @@ func (el *discoverEventLocal) writeToFile(eventHolder *eventBufferHolder) {
 	for eventHolder.HasNext() {
 		event := eventHolder.Next()
 		log.Info(fmt.Sprintf(
-			"%s|%s|%s|%s|%d|%s|%d|%s",
+			"%s|%s|%s|%s|%d|%s|%s|%s",
 			event.Id,
 			event.Namespace,
 			event.Service,
 			event.Instance.GetHost().GetValue(),
 			event.Instance.GetPort().GetValue(),
 			event.EType,
-			event.CreateTime.Unix(),
+			commontime.Time2String(event.CreateTime),
 			utils.LocalHost))
 	}
 }

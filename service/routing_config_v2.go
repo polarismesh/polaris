@@ -87,7 +87,7 @@ func (s *Server) createRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 		return apiv2.NewResponse(apiv1.StoreLayerException)
 	}
 
-	s.RecordHistory(routingV2RecordEntry(ctx, req, conf, model.OCreate))
+	s.RecordHistory(ctx, routingV2RecordEntry(ctx, req, conf, model.OCreate))
 
 	req.Id = conf.ID
 	return apiv2.NewRoutingResponse(apiv1.ExecuteSuccess, req)
@@ -128,7 +128,7 @@ func (s *Server) deleteRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 		return apiv2.NewResponse(apiv1.StoreLayerException)
 	}
 
-	s.RecordHistory(routingV2RecordEntry(ctx, req, nil, model.ODelete))
+	s.RecordHistory(ctx, routingV2RecordEntry(ctx, req, nil, model.ODelete))
 	return apiv2.NewRoutingResponse(apiv1.ExecuteSuccess, req)
 }
 
@@ -191,7 +191,7 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 		return apiv2.NewResponse(apiv1.StoreLayerException)
 	}
 
-	s.RecordHistory(routingV2RecordEntry(ctx, req, reqModel, model.OUpdate))
+	s.RecordHistory(ctx, routingV2RecordEntry(ctx, req, reqModel, model.OUpdate))
 	return apiv2.NewResponse(apiv1.ExecuteSuccess)
 }
 
@@ -266,7 +266,7 @@ func (s *Server) enableRoutings(ctx context.Context, req *apiv2.Routing) *apiv2.
 		return apiv2.NewResponse(apiv1.StoreLayerException)
 	}
 
-	s.RecordHistory(routingV2RecordEntry(ctx, req, conf, model.OUpdate))
+	s.RecordHistory(ctx, routingV2RecordEntry(ctx, req, conf, model.OUpdate))
 	return apiv2.NewResponse(apiv1.ExecuteSuccess)
 }
 

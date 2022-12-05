@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"go.uber.org/zap"
 
@@ -125,7 +126,7 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 	msg := fmt.Sprintf("create service: namespace=%v, name=%v, meta=%+v",
 		namespaceName, serviceName, req.GetMetadata())
 	log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-	s.RecordHistory(serviceRecordEntry(ctx, req, data, model.OCreate))
+	s.RecordHistory(ctx, serviceRecordEntry(ctx, req, data, model.OCreate))
 
 	out := &api.Service{
 		Id:        utils.NewStringValue(data.ID),
@@ -194,7 +195,7 @@ func (s *Server) DeleteService(ctx context.Context, req *api.Service) *api.Respo
 
 	msg := fmt.Sprintf("delete service: namespace=%v, name=%v", namespaceName, serviceName)
 	log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-	s.RecordHistory(serviceRecordEntry(ctx, req, nil, model.ODelete))
+	s.RecordHistory(ctx, serviceRecordEntry(ctx, req, nil, model.ODelete))
 
 	if err := s.afterServiceResource(ctx, req, service, true); err != nil {
 		return api.NewServiceResponse(api.ExecuteException, req)
@@ -263,7 +264,7 @@ func (s *Server) UpdateService(ctx context.Context, req *api.Service) *api.Respo
 
 	msg := fmt.Sprintf("update service: namespace=%v, name=%v", service.Namespace, service.Name)
 	log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-	s.RecordHistory(serviceRecordEntry(ctx, req, service, model.OUpdate))
+	s.RecordHistory(ctx, serviceRecordEntry(ctx, req, service, model.OUpdate))
 
 	if err := s.afterServiceResource(ctx, req, service, false); err != nil {
 		return api.NewServiceResponse(api.ExecuteException, req)
@@ -301,7 +302,7 @@ func (s *Server) UpdateServiceToken(ctx context.Context, req *api.Service) *api.
 	log.Info("update service token", zap.String("namespace", service.Namespace),
 		zap.String("name", service.Name), zap.String("service-id", service.ID),
 		utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-	s.RecordHistory(serviceRecordEntry(ctx, req, service, model.OUpdateToken))
+	s.RecordHistory(ctx, serviceRecordEntry(ctx, req, service, model.OUpdateToken))
 
 	// 填充新的token返回
 	out := &api.Service{
@@ -974,16 +975,18 @@ func parseRequestToken(ctx context.Context, value string) string {
 // serviceRecordEntry 生成服务的记录entry
 func serviceRecordEntry(ctx context.Context, req *api.Service, md *model.Service,
 	operationType model.OperationType) *model.RecordEntry {
+
+	marshaler := jsonpb.Marshaler{}
+	detail, _ := marshaler.MarshalToString(req)
+
 	entry := &model.RecordEntry{
 		ResourceType:  model.RService,
-		OperationType: operationType,
+		ResourceName:  req.GetName().GetValue(),
 		Namespace:     req.GetNamespace().GetValue(),
-		Service:       req.GetName().GetValue(),
+		OperationType: operationType,
 		Operator:      utils.ParseOperator(ctx),
-		CreateTime:    time.Now(),
-	}
-	if md != nil {
-		entry.Context = fmt.Sprintf("platformID:%s,meta:%+v,revision:%s", md.PlatformID, md.Meta, md.Revision)
+		Detail:        detail,
+		HappenTime:    time.Now(),
 	}
 
 	return entry

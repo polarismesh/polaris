@@ -21,12 +21,14 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"go.uber.org/zap"
 
+	"github.com/gogo/protobuf/jsonpb"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
-	"github.com/polarismesh/polaris/common/time"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	utils2 "github.com/polarismesh/polaris/config/utils"
 )
@@ -121,6 +123,8 @@ func (s *Server) CreateConfigFile(ctx context.Context, configFile *api.ConfigFil
 		zap.String("group", group),
 		zap.String("name", name),
 		zap.Error(err))
+
+	s.RecordHistory(ctx, configFileRecordEntry(ctx, configFile, model.OCreate))
 
 	return api.NewConfigFileResponse(api.ExecuteSuccess, transferConfigFileStoreModel2APIModel(createdFile))
 }
@@ -366,6 +370,8 @@ func (s *Server) UpdateConfigFile(ctx context.Context, configFile *api.ConfigFil
 	baseFile := transferConfigFileStoreModel2APIModel(updatedFile)
 	baseFile, err = s.fillReleaseAndTags(ctx, baseFile)
 
+	s.RecordHistory(ctx, configFileRecordEntry(ctx, configFile, model.OUpdate))
+
 	return api.NewConfigFileResponse(api.ExecuteSuccess, baseFile)
 }
 
@@ -420,8 +426,7 @@ func (s *Server) DeleteConfigFile(ctx context.Context, namespace, group, name, d
 	}
 
 	// 2. 删除配置文件
-	err = s.storage.DeleteConfigFile(tx, namespace, group, name)
-	if err != nil {
+	if err = s.storage.DeleteConfigFile(tx, namespace, group, name); err != nil {
 		log.Error("[Config][Service] delete config file error.",
 			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
@@ -432,8 +437,7 @@ func (s *Server) DeleteConfigFile(ctx context.Context, namespace, group, name, d
 	}
 
 	// 3. 删除配置文件关联的 tag
-	err = s.deleteTagByConfigFile(newCtx, namespace, group, name)
-	if err != nil {
+	if err = s.deleteTagByConfigFile(newCtx, namespace, group, name); err != nil {
 		log.Error("[Config][Service] delete config file tags error.",
 			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
@@ -443,8 +447,7 @@ func (s *Server) DeleteConfigFile(ctx context.Context, namespace, group, name, d
 		return api.NewConfigFileResponse(api.StoreLayerException, nil)
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		log.Error("[Config][Service] commit delete config file tx error.",
 			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
@@ -453,6 +456,12 @@ func (s *Server) DeleteConfigFile(ctx context.Context, namespace, group, name, d
 			zap.Error(err))
 		return api.NewConfigFileResponse(api.StoreLayerException, nil)
 	}
+
+	s.RecordHistory(ctx, configFileRecordEntry(ctx, &api.ConfigFile{
+		Namespace: utils.NewStringValue(namespace),
+		Group:     utils.NewStringValue(group),
+		Name:      utils.NewStringValue(name),
+	}, model.ODelete))
 
 	return api.NewConfigFileResponse(api.ExecuteSuccess, nil)
 }
@@ -542,9 +551,9 @@ func transferConfigFileStoreModel2APIModel(file *model.ConfigFile) *api.ConfigFi
 		Comment:    utils.NewStringValue(file.Comment),
 		Format:     utils.NewStringValue(file.Format),
 		CreateBy:   utils.NewStringValue(file.CreateBy),
-		CreateTime: utils.NewStringValue(time.Time2String(file.CreateTime)),
+		CreateTime: utils.NewStringValue(commontime.Time2String(file.CreateTime)),
 		ModifyBy:   utils.NewStringValue(file.ModifyBy),
-		ModifyTime: utils.NewStringValue(time.Time2String(file.ModifyTime)),
+		ModifyTime: utils.NewStringValue(commontime.Time2String(file.ModifyTime)),
 	}
 }
 
@@ -622,4 +631,23 @@ func (s *Server) fillReleaseAndTags(ctx context.Context, file *api.ConfigFile) (
 
 	file.Tags = tags
 	return file, nil
+}
+
+// configFileRecordEntry 生成服务的记录entry
+func configFileRecordEntry(ctx context.Context, req *api.ConfigFile, operationType model.OperationType) *model.RecordEntry {
+
+	marshaler := jsonpb.Marshaler{}
+	detail, _ := marshaler.MarshalToString(req)
+
+	entry := &model.RecordEntry{
+		ResourceType:  model.RConfigFile,
+		ResourceName:  req.GetName().GetValue(),
+		Namespace:     req.GetNamespace().GetValue(),
+		OperationType: operationType,
+		Operator:      utils.ParseOperator(ctx),
+		Detail:        detail,
+		HappenTime:    time.Now(),
+	}
+
+	return entry
 }

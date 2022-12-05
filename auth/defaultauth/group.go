@@ -19,10 +19,12 @@ package defaultauth
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.uber.org/zap"
 
+	"github.com/gogo/protobuf/jsonpb"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	authcommon "github.com/polarismesh/polaris/common/auth"
 	"github.com/polarismesh/polaris/common/model"
@@ -642,42 +644,57 @@ func (svr *server) userGroupDetail2Api(group *model.UserGroupDetail) *api.UserGr
 }
 
 // userGroupRecordEntry 生成用户组的记录entry
-func userGroupRecordEntry(ctx context.Context, _ *api.UserGroup, md *model.UserGroup,
+func userGroupRecordEntry(ctx context.Context, req *api.UserGroup, md *model.UserGroup,
 	operationType model.OperationType) *model.RecordEntry {
+
+	marshaler := jsonpb.Marshaler{}
+	datail, _ := marshaler.MarshalToString(req)
+
 	entry := &model.RecordEntry{
 		ResourceType:  model.RUserGroup,
-		UserGroup:     md.Name,
+		ResourceName:  fmt.Sprintf("%s(%s)", md.Name, md.ID),
 		OperationType: operationType,
 		Operator:      utils.ParseOperator(ctx),
-		CreateTime:    time.Now(),
+		Detail:        datail,
+		HappenTime:    time.Now(),
 	}
 
 	return entry
 }
 
 // 生成修改用户组的记录entry
-func modifyUserGroupRecordEntry(ctx context.Context, _ *api.ModifyUserGroup, md *model.UserGroup,
+func modifyUserGroupRecordEntry(ctx context.Context, req *api.ModifyUserGroup, md *model.UserGroup,
 	operationType model.OperationType) *model.RecordEntry {
+
+	marshaler := jsonpb.Marshaler{}
+	detail, _ := marshaler.MarshalToString(req)
+
 	entry := &model.RecordEntry{
 		ResourceType:  model.RUserGroup,
-		UserGroup:     md.Name,
+		ResourceName:  fmt.Sprintf("%s(%s)", md.Name, md.ID),
 		OperationType: operationType,
 		Operator:      utils.ParseOperator(ctx),
-		CreateTime:    time.Now(),
+		Detail:        detail,
+		HappenTime:    time.Now(),
 	}
 
 	return entry
 }
 
 // 生成用户-用户组关联关系的记录entry
-func userRelationRecordEntry(ctx context.Context, _ *api.UserGroupRelation, md *model.UserGroup,
+func userRelationRecordEntry(ctx context.Context, req *api.UserGroupRelation, md *model.UserGroup,
 	operationType model.OperationType) *model.RecordEntry {
+
+	marshaler := jsonpb.Marshaler{}
+	detail, _ := marshaler.MarshalToString(req)
+
 	entry := &model.RecordEntry{
 		ResourceType:  model.RUserGroupRelation,
-		UserGroup:     md.Name,
+		ResourceName:  fmt.Sprintf("%s(%s)", md.Name, md.ID),
 		OperationType: operationType,
 		Operator:      utils.ParseOperator(ctx),
-		CreateTime:    time.Now(),
+		Detail:        detail,
+		HappenTime:    time.Now(),
 	}
 
 	return entry

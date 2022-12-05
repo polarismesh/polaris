@@ -21,12 +21,14 @@ import (
 	"context"
 	"sort"
 	"strings"
+	"time"
 
 	"go.uber.org/zap"
 
+	"github.com/gogo/protobuf/jsonpb"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
-	"github.com/polarismesh/polaris/common/time"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	utils2 "github.com/polarismesh/polaris/config/utils"
 )
@@ -94,6 +96,9 @@ func (s *Server) CreateConfigFileGroup(ctx context.Context, configFileGroup *api
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return api.NewConfigFileGroupResponse(api.ExecuteException, nil)
 	}
+
+	s.RecordHistory(ctx, configGroupRecordEntry(ctx, configFileGroup, createdGroup, model.OCreate))
+
 	return api.NewConfigFileGroupResponse(api.ExecuteSuccess, configFileGroup2Api(createdGroup))
 }
 
@@ -328,6 +333,11 @@ func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name stri
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return api.NewConfigFileGroupResponse(api.ExecuteException, nil)
 	}
+	s.RecordHistory(ctx, configGroupRecordEntry(ctx, &api.ConfigFileGroup{
+		Namespace: utils.NewStringValue(namespace),
+		Name:      utils.NewStringValue(name),
+	}, configGroup, model.ODelete))
+
 	return api.NewConfigFileGroupResponse(api.ExecuteSuccess, nil)
 }
 
@@ -380,6 +390,9 @@ func (s *Server) UpdateConfigFileGroup(ctx context.Context,
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return api.NewConfigFileGroupResponse(api.ExecuteException, nil)
 	}
+
+	s.RecordHistory(ctx, configGroupRecordEntry(ctx, configFileGroup, fileGroup, model.OUpdate))
+
 	return api.NewConfigFileGroupResponse(api.ExecuteSuccess, configFileGroup2Api(updatedGroup))
 }
 
@@ -436,7 +449,27 @@ func configFileGroup2Api(group *model.ConfigFileGroup) *api.ConfigFileGroup {
 		Owner:      utils.NewStringValue(group.Owner),
 		CreateBy:   utils.NewStringValue(group.CreateBy),
 		ModifyBy:   utils.NewStringValue(group.ModifyBy),
-		CreateTime: utils.NewStringValue(time.Time2String(group.CreateTime)),
-		ModifyTime: utils.NewStringValue(time.Time2String(group.ModifyTime)),
+		CreateTime: utils.NewStringValue(commontime.Time2String(group.CreateTime)),
+		ModifyTime: utils.NewStringValue(commontime.Time2String(group.ModifyTime)),
 	}
+}
+
+// configGroupRecordEntry 生成服务的记录entry
+func configGroupRecordEntry(ctx context.Context, req *api.ConfigFileGroup, md *model.ConfigFileGroup,
+	operationType model.OperationType) *model.RecordEntry {
+
+	marshaler := jsonpb.Marshaler{}
+	detail, _ := marshaler.MarshalToString(req)
+
+	entry := &model.RecordEntry{
+		ResourceType:  model.RConfigGroup,
+		ResourceName:  req.GetName().GetValue(),
+		Namespace:     req.GetNamespace().GetValue(),
+		OperationType: operationType,
+		Operator:      utils.ParseOperator(ctx),
+		Detail:        detail,
+		HappenTime:    time.Now(),
+	}
+
+	return entry
 }

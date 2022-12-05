@@ -19,12 +19,14 @@ package config
 
 import (
 	"context"
+	"time"
 
 	"go.uber.org/zap"
 
+	"github.com/gogo/protobuf/jsonpb"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
-	"github.com/polarismesh/polaris/common/time"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	utils2 "github.com/polarismesh/polaris/config/utils"
 )
@@ -133,6 +135,7 @@ func (s *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.C
 			return api.NewConfigFileResponse(api.StoreLayerException, nil)
 		}
 
+		s.RecordHistory(ctx, configFileReleaseRecordEntry(ctx, configFileRelease, createdFileRelease, model.OCreate))
 		s.recordReleaseHistory(ctx, createdFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
 
 		return api.NewConfigFileReleaseResponse(api.ExecuteSuccess, configFileRelease2Api(createdFileRelease))
@@ -166,6 +169,7 @@ func (s *Server) PublishConfigFile(ctx context.Context, configFileRelease *api.C
 	}
 
 	s.recordReleaseHistory(ctx, updatedFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
+	s.RecordHistory(ctx, configFileReleaseRecordEntry(ctx, configFileRelease, updatedFileRelease, model.OCreate))
 
 	return api.NewConfigFileReleaseResponse(api.ExecuteSuccess, configFileRelease2Api(updatedFileRelease))
 }
@@ -269,13 +273,20 @@ func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace,
 		return api.NewConfigFileResponse(api.StoreLayerException, nil)
 	}
 
-	s.recordReleaseHistory(ctx, &model.ConfigFileRelease{
+	data := &model.ConfigFileRelease{
 		Name:      releaseName,
 		Namespace: namespace,
 		Group:     group,
 		FileName:  fileName,
 		ModifyBy:  deleteBy,
-	}, utils.ReleaseTypeDelete, utils.ReleaseStatusSuccess)
+	}
+	s.recordReleaseHistory(ctx, data, utils.ReleaseTypeDelete, utils.ReleaseStatusSuccess)
+	s.RecordHistory(ctx, configFileReleaseRecordEntry(ctx, &api.ConfigFileRelease{
+		Namespace: utils.NewStringValue(namespace),
+		Name:      utils.NewStringValue(releaseName),
+		Group:     utils.NewStringValue(group),
+		FileName:  utils.NewStringValue(fileName),
+	}, data, model.ODelete))
 
 	return api.NewConfigFileReleaseResponse(api.ExecuteSuccess, nil)
 }
@@ -347,8 +358,28 @@ func configFileRelease2Api(release *model.ConfigFileRelease) *api.ConfigFileRele
 		Md5:        utils.NewStringValue(release.Md5),
 		Version:    utils.NewUInt64Value(release.Version),
 		CreateBy:   utils.NewStringValue(release.CreateBy),
-		CreateTime: utils.NewStringValue(time.Time2String(release.CreateTime)),
+		CreateTime: utils.NewStringValue(commontime.Time2String(release.CreateTime)),
 		ModifyBy:   utils.NewStringValue(release.ModifyBy),
-		ModifyTime: utils.NewStringValue(time.Time2String(release.ModifyTime)),
+		ModifyTime: utils.NewStringValue(commontime.Time2String(release.ModifyTime)),
 	}
+}
+
+// configFileReleaseRecordEntry 生成服务的记录entry
+func configFileReleaseRecordEntry(ctx context.Context, req *api.ConfigFileRelease, md *model.ConfigFileRelease,
+	operationType model.OperationType) *model.RecordEntry {
+
+	marshaler := jsonpb.Marshaler{}
+	detail, _ := marshaler.MarshalToString(req)
+
+	entry := &model.RecordEntry{
+		ResourceType:  model.RConfigFileRelease,
+		ResourceName:  req.GetName().GetValue(),
+		Namespace:     req.GetNamespace().GetValue(),
+		OperationType: operationType,
+		Operator:      utils.ParseOperator(ctx),
+		Detail:        detail,
+		HappenTime:    time.Now(),
+	}
+
+	return entry
 }
