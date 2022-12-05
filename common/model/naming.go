@@ -410,6 +410,7 @@ const (
 	RService           Resource = "Service"
 	RRouting           Resource = "Routing"
 	RRoutingV2         Resource = "RoutingV2"
+	RCircuitBreaker    Resource = "CircuitBreaker"
 	RInstance          Resource = "Instance"
 	RRateLimit         Resource = "RateLimit"
 	RMeshResource      Resource = "MeshResource"

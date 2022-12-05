@@ -373,6 +373,7 @@ func (c *CheckScheduler) checkCallbackClient(value interface{}) {
 	}
 	instanceValue.mutex.Lock()
 	defer instanceValue.mutex.Unlock()
+
 	var checkResp *plugin.CheckResponse
 	var err error
 	defer func() {

@@ -115,7 +115,7 @@ jobs:
           # 清空数据
           mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
           # 初始化 polaris 数据库
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/sqldb/scripts/polaris_server.sql
+          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/mysql/scripts/polaris_server.sql
           # 临时放开 DB 的最大连接数
           mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
 
@@ -138,7 +138,7 @@ jobs:
               sed -i 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' polaris-server.yaml
           fi
 
-          cat polaris-server.yaml
+          cat conf/polaris-server.yaml
 
           chmod +x ./tool/*.sh
           ./tool/start.sh

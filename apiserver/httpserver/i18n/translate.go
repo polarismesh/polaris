@@ -38,8 +38,8 @@ var (
 func init() {
 	bundle = ii18n.NewBundle(language.English)
 	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
-	LoadI18nMessageFile("apiserver/httpserver/i18n/zh.toml")
-	LoadI18nMessageFile("apiserver/httpserver/i18n/en.toml")
+	LoadI18nMessageFile("conf/i18n/zh.toml")
+	LoadI18nMessageFile("conf/i18n/en.toml")
 }
 
 // LoadI18nMessageFile 加载i18n配置文件

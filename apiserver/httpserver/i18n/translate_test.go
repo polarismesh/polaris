@@ -26,8 +26,8 @@ import (
 )
 
 func init() {
-	LoadI18nMessageFile("en.toml")
-	LoadI18nMessageFile("zh.toml")
+	LoadI18nMessageFile("../../../conf/i18n/en.toml")
+	LoadI18nMessageFile("../../../conf/i18n/zh.toml")
 }
 
 func Test_Translate(t *testing.T) {

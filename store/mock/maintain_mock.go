@@ -19,7 +19,7 @@
 // Source: maintain.go
 
 // Package sqldb is a generated GoMock package.
-package sqldb
+package mock
 
 import (
 	reflect "reflect"
