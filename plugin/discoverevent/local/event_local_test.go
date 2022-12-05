@@ -19,14 +19,14 @@ package local
 
 import (
 	"context"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/stretchr/testify/assert"
 
+	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 )
 

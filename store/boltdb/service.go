@@ -31,7 +31,6 @@ import (
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
-	"github.com/polarismesh/polaris/store/sqldb"
 )
 
 type serviceStore struct {
@@ -276,7 +275,7 @@ func (ss *serviceStore) GetMoreServices(
 				if !ok {
 					return false
 				}
-				if serviceNs.(string) != sqldb.SystemNamespace {
+				if serviceNs.(string) != SystemNamespace {
 					return false
 				}
 			}
@@ -453,7 +452,7 @@ func (ss *serviceStore) GetSystemServices() ([]*model.Service, error) {
 			if !ok {
 				return false
 			}
-			if svcNamespace.(string) == sqldb.SystemNamespace {
+			if svcNamespace.(string) == SystemNamespace {
 				return true
 			}
 			return false

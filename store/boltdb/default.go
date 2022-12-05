@@ -30,7 +30,12 @@ import (
 )
 
 const (
+	// SystemNamespace system namespace
+	SystemNamespace = "Polaris"
+	// STORENAME database storage name
 	STORENAME = "boltdbStore"
+	// DefaultConnMaxLifetime default maximum connection lifetime
+	DefaultConnMaxLifetime = 60 * 30 // 默认是30分钟
 )
 
 type boltStore struct {
