@@ -128,7 +128,10 @@ func (s *Server) deleteRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 		return apiv2.NewResponse(apiv1.StoreLayerException)
 	}
 
-	s.RecordHistory(ctx, routingV2RecordEntry(ctx, req, nil, model.ODelete))
+	s.RecordHistory(ctx, routingV2RecordEntry(ctx, req, &v2.RoutingConfig{
+		ID:   req.GetId(),
+		Name: req.GetName(),
+	}, model.ODelete))
 	return apiv2.NewRoutingResponse(apiv1.ExecuteSuccess, req)
 }
 
