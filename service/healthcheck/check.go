@@ -629,7 +629,8 @@ func instanceRecordEntry(ins *model.Instance, opt model.OperationType) *model.Re
 
 type leaderChangeEventHandler struct {
 	cacheProvider    *CacheProvider
-	lastTime         time.Time
+	ctx              context.Context
+	cancel           context.CancelFunc
 	minCheckInterval time.Duration
 }
 
@@ -637,36 +638,65 @@ type leaderChangeEventHandler struct {
 func newLeaderChangeEventHandler(cacheProvider *CacheProvider, minCheckInterval time.Duration) *leaderChangeEventHandler {
 	return &leaderChangeEventHandler{
 		cacheProvider:    cacheProvider,
-		lastTime:         time.Now(),
 		minCheckInterval: minCheckInterval,
 	}
 }
 
 // checkSelfServiceInstances
-func (handler *leaderChangeEventHandler) checkSelfServiceInstances(ctx context.Context, i interface{}) error {
+func (handler *leaderChangeEventHandler) handle(ctx context.Context, i interface{}) error {
 	e := i.(store.LeaderChangeEvent)
 	if e.Key != store.ELECTION_KEY_SELF_SERVICE_CHECKER {
 		return nil
 	}
 
-	if !e.Leader {
-		return nil
+	if e.Leader {
+		handler.startCheckSelfServiceInstances()
+	} else {
+		handler.stopCheckSelfServiceInstances()
 	}
-
-	now := time.Now()
-	nextCheckTime := handler.lastTime.Add(minCheckInterval)
-	if now.Before(nextCheckTime) {
-		return nil
-	}
-
-	log.Debug("[healthcheck] i am leader, check health of selfService instances")
-	handler.lastTime = now
-	handler.cacheProvider.selfServiceInstances.Range(func(instanceId string, value ItemWithChecker) {
-		handler.doCheckSelfServiceInstance(value.GetInstance())
-	})
 	return nil
 }
 
+// startCheckSelfServiceInstances
+func (handler *leaderChangeEventHandler) startCheckSelfServiceInstances() {
+	if handler.ctx != nil {
+		log.Warn("[healthcheck] receive unexpected leader state event")
+		return
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	handler.ctx = ctx
+	handler.cancel = cancel
+	go func() {
+		log.Info("[healthcheck] i am leader, start check health of selfService instances")
+		ticker := time.NewTicker(handler.minCheckInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				handler.cacheProvider.selfServiceInstances.Range(func(instanceId string, value ItemWithChecker) {
+					handler.doCheckSelfServiceInstance(value.GetInstance())
+				})
+			case <-ctx.Done():
+				log.Info("[healthcheck] stop check health of selfService instances")
+				return
+			}
+		}
+	}()
+}
+
+// startCheckSelfServiceInstances
+func (handler *leaderChangeEventHandler) stopCheckSelfServiceInstances() {
+	if handler.ctx == nil {
+		log.Warn("[healthcheck] receive unexpected follower state event")
+		return
+	}
+	handler.cancel()
+	handler.ctx = nil
+	handler.cancel = nil
+}
+
+// startCheckSelfServiceInstances
 func (handler *leaderChangeEventHandler) doCheckSelfServiceInstance(cachedInstance *model.Instance) {
 	hcEnable, checker := handler.cacheProvider.isHealthCheckEnable(cachedInstance.Proto)
 	if !hcEnable {

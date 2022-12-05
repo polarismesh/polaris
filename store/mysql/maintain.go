@@ -97,12 +97,12 @@ func (l *leaderElectionStore) CompareAndSwapVersion(key string, curVersion int64
 	mainStr := "update leader_election set leader = ?, version = ? where elect_key = ? and version = ?"
 	result, err := l.master.DB.Exec(mainStr, leader, newVersion, key, curVersion)
 	if err != nil {
-		log.Errorf("[Store][database] compare and swap version, err: %s", err.Error())
+		log.Errorf("[Store][database] compare and swap version (%s), err: %s", key, err.Error())
 		return false, store.Error(err)
 	}
 	rows, err := result.RowsAffected()
 	if err != nil {
-		log.Errorf("[Store][database] compare and swap version, get RowsAffected err: %s", err.Error())
+		log.Errorf("[Store][database] compare and swap version (%s), get RowsAffected err: %s", key, err.Error())
 		return false, store.Error(err)
 	}
 	return (rows > 0), nil
@@ -138,16 +138,16 @@ func isLeader(flag int32) bool {
 
 // mainLoop
 func (le *leaderElectionStateMachine) mainLoop() {
-	log.Infof("[Store][database] leader election started")
+	log.Infof("[Store][database] leader election started (%s)", le.electKey)
 	ticker := time.NewTicker(TickTime * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
 			le.tick()
-			le.publishLeaderChangeEvent()
 		case <-le.ctx.Done():
-			log.Infof("[Store][database] leader election stopped")
+			log.Infof("[Store][database] leader election stopped (%s)", le.electKey)
+			le.changeToFollower()
 			return
 		}
 	}
@@ -158,7 +158,7 @@ func (le *leaderElectionStateMachine) tick() {
 	if le.isLeader() {
 		r, err := le.heartbeat()
 		if err != nil {
-			log.Errorf("[Store][database] leader heartbeat err (%s), change to follower state", err.Error())
+			log.Errorf("[Store][database] leader heartbeat err (%s), change to follower state (%s)", err.Error(), le.electKey)
 			le.changeToFollower()
 			return
 		}
@@ -168,7 +168,7 @@ func (le *leaderElectionStateMachine) tick() {
 	} else {
 		dead, err := le.checkLeaderDead()
 		if err != nil {
-			log.Errorf("[Store][database] check leader dead err (%s), stay follower state", err.Error())
+			log.Errorf("[Store][database] check leader dead err (%s), stay follower state (%s)", err.Error(), le.electKey)
 			return
 		}
 		if !dead {
@@ -176,7 +176,7 @@ func (le *leaderElectionStateMachine) tick() {
 		}
 		r, err := le.elect()
 		if err != nil {
-			log.Errorf("[Store][database] elect leader err (%s), stay follower state", err.Error())
+			log.Errorf("[Store][database] elect leader err (%s), stay follower state (%s)", err.Error(), le.electKey)
 			return
 		}
 		if r {
@@ -191,14 +191,16 @@ func (le *leaderElectionStateMachine) publishLeaderChangeEvent() {
 
 // changeToLeader
 func (le *leaderElectionStateMachine) changeToLeader() {
-	log.Infof("[Store][database] change from follower to leader")
+	log.Infof("[Store][database] change from follower to leader (%s)", le.electKey)
 	atomic.StoreInt32(&le.leaderFlag, 1)
+	le.publishLeaderChangeEvent()
 }
 
 // changeToFollower
 func (le *leaderElectionStateMachine) changeToFollower() {
-	log.Infof("[Store][database] change from leader to follower")
+	log.Infof("[Store][database] change from leader to follower (%s)", le.electKey)
 	atomic.StoreInt32(&le.leaderFlag, 0)
+	le.publishLeaderChangeEvent()
 }
 
 // checkLeaderDead
@@ -273,6 +275,8 @@ func (m *maintainStore) StopLeaderElections() {
 
 // IsLeader
 func (maintain *maintainStore) IsLeader(key string) bool {
+	maintain.mutex.Lock()
+	defer maintain.mutex.Unlock()
 	le, ok := maintain.leMap[key]
 	if !ok {
 		return false

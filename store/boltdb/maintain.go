@@ -18,7 +18,7 @@
 package boltdb
 
 import (
-	"time"
+	"sync"
 
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
@@ -27,22 +27,31 @@ import (
 
 type maintainStore struct {
 	handler BoltHandler
+	leMap   map[string]bool
+	mutex   sync.Mutex
 }
 
 // StartLeaderElection
 func (m *maintainStore) StartLeaderElection(key string) error {
-	go func() {
-		ticker := time.NewTicker(1 * time.Second)
-		for range ticker.C {
-			eventhub.Publish(eventhub.LeaderChangeEventTopic, store.LeaderChangeEvent{Key: key, Leader: true})
-		}
-	}()
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	_, ok := m.leMap[key]
+	if ok {
+		return nil
+	}
+	m.leMap[key] = true
+	eventhub.Publish(eventhub.LeaderChangeEventTopic, store.LeaderChangeEvent{Key: key, Leader: true})
 	return nil
 }
 
 // IsLeader
 func (m *maintainStore) IsLeader(key string) bool {
-	return true
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	_, ok := m.leMap[key]
+	return ok
 }
 
 // BatchCleanDeletedInstances

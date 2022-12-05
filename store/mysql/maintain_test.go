@@ -20,16 +20,25 @@ package sqldb
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/store/mock"
 )
 
 const (
 	TestElectKey = "test-key"
 )
+
+func setup() {
+	eventhub.InitEventHub()
+}
+
+func teardown() {
+}
 
 func TestMaintainStore_LeaderElection_Follower1(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -288,12 +297,12 @@ func TestMaintainStore_StartLeaderElection2(t *testing.T) {
 	if err != nil {
 		t.Errorf("should start success")
 	}
-	le, ok := m.leMap[TestElectKey]
+	_, ok := m.leMap[TestElectKey]
 	if !ok {
 		t.Errorf("should in map")
 	}
 
-	le.cancel()
+	m.StopLeaderElections()
 }
 
 func TestMaintainStore_StartLeaderElection3(t *testing.T) {
@@ -312,7 +321,7 @@ func TestMaintainStore_StartLeaderElection3(t *testing.T) {
 	if err != nil {
 		t.Errorf("should start success")
 	}
-	le, ok := m.leMap[TestElectKey]
+	_, ok := m.leMap[TestElectKey]
 	if !ok {
 		t.Errorf("should in map")
 	}
@@ -322,5 +331,12 @@ func TestMaintainStore_StartLeaderElection3(t *testing.T) {
 		t.Errorf("expect no err if already started")
 	}
 
-	le.cancel()
+	m.StopLeaderElections()
+}
+
+func TestMain(m *testing.M) {
+	setup()
+	code := m.Run()
+	teardown()
+	os.Exit(code)
 }
