@@ -17,15 +17,41 @@
 
 package boltdb
 
-import "github.com/polarismesh/polaris/common/model"
+import (
+	"sync"
+
+	"github.com/polarismesh/polaris/common/eventhub"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/store"
+)
 
 type maintainStore struct {
 	handler BoltHandler
+	leMap   map[string]bool
+	mutex   sync.Mutex
+}
+
+// StartLeaderElection
+func (m *maintainStore) StartLeaderElection(key string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	_, ok := m.leMap[key]
+	if ok {
+		return nil
+	}
+	m.leMap[key] = true
+	eventhub.Publish(eventhub.LeaderChangeEventTopic, store.LeaderChangeEvent{Key: key, Leader: true})
+	return nil
 }
 
 // IsLeader
-func (m *maintainStore) IsLeader() bool {
-	return true
+func (m *maintainStore) IsLeader(key string) bool {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	_, ok := m.leMap[key]
+	return ok
 }
 
 // BatchCleanDeletedInstances

@@ -80,6 +80,20 @@ func (mr *MockLeaderElectionStoreMockRecorder) CompareAndSwapVersion(key, curVer
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompareAndSwapVersion", reflect.TypeOf((*MockLeaderElectionStore)(nil).CompareAndSwapVersion), key, curVersion, newVersion, leader)
 }
 
+// CreateLeaderElection mocks base method.
+func (m *MockLeaderElectionStore) CreateLeaderElection(key string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateLeaderElection", key)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateLeaderElection indicates an expected call of CreateLeaderElection.
+func (mr *MockLeaderElectionStoreMockRecorder) CreateLeaderElection(key interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLeaderElection", reflect.TypeOf((*MockLeaderElectionStore)(nil).CreateLeaderElection), key)
+}
+
 // GetVersion mocks base method.
 func (m *MockLeaderElectionStore) GetVersion(key string) (int64, error) {
 	m.ctrl.T.Helper()

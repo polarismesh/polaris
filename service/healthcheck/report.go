@@ -60,6 +60,9 @@ func (s *Server) doReport(ctx context.Context, instance *api.Instance) *api.Resp
 	instance.Id = utils.NewStringValue(id)
 	insCache := s.cacheProvider.GetInstance(id)
 	if insCache == nil {
+		insCache = s.cacheProvider.GetSelfServiceInstance(id)
+	}
+	if insCache == nil {
 		return api.NewInstanceResponse(api.HeartbeatOnDisabledIns, instance)
 	}
 	checker, ok := s.checkers[int32(insCache.HealthCheck().GetType())]

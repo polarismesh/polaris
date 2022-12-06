@@ -21,4 +21,6 @@ package eventhub
 const (
 	// InstanceEventTopic 服务发现事件主题
 	InstanceEventTopic = "instance_event"
+	// LeaderChangeEventTopic
+	LeaderChangeEventTopic = "leader_change_event"
 )

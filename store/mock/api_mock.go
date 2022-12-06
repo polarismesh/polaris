@@ -1765,17 +1765,17 @@ func (mr *MockStoreMockRecorder) Initialize(c interface{}) *gomock.Call {
 }
 
 // IsLeader mocks base method.
-func (m *MockStore) IsLeader() bool {
+func (m *MockStore) IsLeader(key string) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsLeader")
+	ret := m.ctrl.Call(m, "IsLeader", key)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
 // IsLeader indicates an expected call of IsLeader.
-func (mr *MockStoreMockRecorder) IsLeader() *gomock.Call {
+func (mr *MockStoreMockRecorder) IsLeader(key interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsLeader", reflect.TypeOf((*MockStore)(nil).IsLeader))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsLeader", reflect.TypeOf((*MockStore)(nil).IsLeader), key)
 }
 
 // ListMasterCircuitBreakers mocks base method.
@@ -2020,6 +2020,20 @@ func (m *MockStore) SetL5Extend(serviceID string, meta map[string]interface{}) (
 func (mr *MockStoreMockRecorder) SetL5Extend(serviceID, meta interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetL5Extend", reflect.TypeOf((*MockStore)(nil).SetL5Extend), serviceID, meta)
+}
+
+// StartLeaderElection mocks base method.
+func (m *MockStore) StartLeaderElection(key string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StartLeaderElection", key)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// StartLeaderElection indicates an expected call of StartLeaderElection.
+func (mr *MockStoreMockRecorder) StartLeaderElection(key interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartLeaderElection", reflect.TypeOf((*MockStore)(nil).StartLeaderElection), key)
 }
 
 // StartTx mocks base method.

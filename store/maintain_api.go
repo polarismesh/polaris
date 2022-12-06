@@ -17,10 +17,23 @@
 
 package store
 
+const (
+	ELECTION_KEY_SELF_SERVICE_CHECKER = "polaris.checker"
+)
+
 type MaintainStore interface {
+	// StartLeaderElection start leader election
+	StartLeaderElection(key string) error
+
 	// IsLeader whether it is leader node
-	IsLeader() bool
+	IsLeader(key string) bool
 
 	// BatchCleanDeletedInstances batch clean soft deleted instances
 	BatchCleanDeletedInstances(batchSize uint32) (uint32, error)
+}
+
+// LeaderChangeEvent
+type LeaderChangeEvent struct {
+	Key    string
+	Leader bool
 }

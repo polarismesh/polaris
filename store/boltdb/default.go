@@ -339,7 +339,7 @@ func (m *boltStore) newConfigModuleStore() error {
 }
 
 func (m *boltStore) newMaintainModuleStore() error {
-	m.maintainStore = &maintainStore{handler: m.handler}
+	m.maintainStore = &maintainStore{handler: m.handler, leMap: make(map[string]bool)}
 
 	return nil
 }
