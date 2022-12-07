@@ -18,6 +18,7 @@
 package model
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -506,6 +507,9 @@ const (
 	EventInstanceSendHeartbeat InstanceEventType = "InstanceSendHeartbeat"
 )
 
+// CtxEventKeyMetadata 用于将metadata从Context中传入并取出
+const CtxEventKeyMetadata = "ctx_event_metadata"
+
 // InstanceEvent 服务实例事件
 type InstanceEvent struct {
 	Id         string
@@ -514,6 +518,16 @@ type InstanceEvent struct {
 	Instance   *v1.Instance
 	EType      InstanceEventType
 	CreateTime time.Time
+	MetaData   map[string]string
+}
+
+// InjectMetadata 从context中获取metadata并注入到事件对象
+func (i *InstanceEvent) InjectMetadata(ctx context.Context) {
+	value := ctx.Value(CtxEventKeyMetadata)
+	if nil == value {
+		return
+	}
+	i.MetaData = value.(map[string]string)
 }
 
 // InstanceCount Service instance statistics

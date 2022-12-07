@@ -124,7 +124,7 @@ func TestEurekaServer_renew(t *testing.T) {
 		svr := &EurekaServer{
 			healthCheckServer: eurekaSuit.healthSvr,
 		}
-		code := svr.renew(context.Background(), "", insId)
+		code := svr.renew(context.Background(), "", insId, false)
 		assert.Equalf(t, api.ExecuteSuccess, code, "code need success, actual : %d", code)
 	})
 
@@ -132,7 +132,7 @@ func TestEurekaServer_renew(t *testing.T) {
 		svr := &EurekaServer{
 			healthCheckServer: eurekaSuit.healthSvr,
 		}
-		code := svr.renew(context.Background(), "", disableBeatInsId)
+		code := svr.renew(context.Background(), "", disableBeatInsId, false)
 		assert.Equalf(t, api.ExecuteSuccess, code, "code need success, actual : %d", code)
 	})
 
@@ -140,7 +140,7 @@ func TestEurekaServer_renew(t *testing.T) {
 		svr := &EurekaServer{
 			healthCheckServer: eurekaSuit.healthSvr,
 		}
-		code := svr.renew(context.Background(), "", utils.NewUUID())
+		code := svr.renew(context.Background(), "", utils.NewUUID(), false)
 		assert.Equalf(t, api.NotFoundResource, code, "code need notfound, actual : %d", code)
 	})
 
