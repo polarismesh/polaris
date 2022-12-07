@@ -70,7 +70,7 @@ func RegisterScope(name string, description string, callerSkip int) *Scope {
 		}
 		s.SetOutputLevel(InfoLevel)
 		s.SetStackTraceLevel(NoneLevel)
-		s.SetLogCallers(false)
+		s.SetDisableLogCaller(true)
 		if name != DefaultLoggerName {
 			s.nameToEmit = name
 		}
@@ -287,7 +287,7 @@ func (s *Scope) emit(level zapcore.Level, dumpStack bool, msg string, fields []z
 		LoggerName: s.nameToEmit,
 	}
 
-	if s.GetLogCallers() {
+	if !s.GetDisableLogCaller() {
 		e.Caller = zapcore.NewEntryCaller(runtime.Caller(s.callerSkip + callerSkipOffset))
 	}
 
@@ -324,13 +324,13 @@ func (s *Scope) GetStackTraceLevel() Level {
 	return s.stackTraceLevel
 }
 
-// SetLogCallers adjusts the output level associated with the scope.
-func (s *Scope) SetLogCallers(logCallers bool) {
+// SetDisableLogCaller adjusts the output level associated with the scope.
+func (s *Scope) SetDisableLogCaller(logCallers bool) {
 	s.logCallers = logCallers
 }
 
-// GetLogCallers returns the output level associated with the scope.
-func (s *Scope) GetLogCallers() bool {
+// GetDisableLogCaller returns the output level associated with the scope.
+func (s *Scope) GetDisableLogCaller() bool {
 	return s.logCallers
 }
 
