@@ -67,7 +67,8 @@ func (h *HTTPServer) watchConfigFile(req *restful.Request, rsp *restful.Response
 	// 阻塞等待响应
 	callback, err := h.configServer.WatchConfigFiles(handler.ParseHeaderContext(), watchConfigFileRequest)
 	if err != nil {
-
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ExecuteException, err.Error()))
+		return
 	}
 
 	handler.WriteHeaderAndProto(callback())
