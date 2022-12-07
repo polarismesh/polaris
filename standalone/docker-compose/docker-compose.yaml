@@ -17,7 +17,7 @@ services:
     image: polarismesh/polaris-server:##POLARIS_SERVER_VERSION##
     restart: always
     volumes:
-      - ./server/polaris-server.yaml:/root/polaris-server.yaml
+      - ./server/polaris-server.yaml:/root/conf/polaris-server.yaml
     expose: # 用于北极星集群内部访问
       - 8090    # api-http
       - 8091    # service-grpc
