@@ -128,9 +128,10 @@ type Options struct {
 	// RotationMaxDurationForHour
 	RotationMaxDurationForHour int `yaml:"rotationMaxDurationForHour"`
 
-	OutputLevel     string `yaml:"outputLevel"`
-	StackTraceLevel string `yaml:"stackTraceLevel"`
-	LogCaller       bool   `yaml:"logCaller"`
+	OutputLevel      string `yaml:"outputLevel"`
+	StackTraceLevel  string `yaml:"stackTraceLevel"`
+	DisableLogCaller bool   `yaml:"disableLogCaller"`
+	OnlyContent      bool   `yaml:"onlyContent"`
 }
 
 // DefaultOptions returns a new set of options, initialized to the defaults

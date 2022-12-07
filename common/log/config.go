@@ -78,6 +78,13 @@ func prepZap(options *Options) ([]zapcore.Core, zapcore.Core, zapcore.WriteSynce
 		EncodeTime:     formatDate,
 	}
 
+	if options.OnlyContent {
+		encCfg.EncodeLevel = func(l zapcore.Level, pae zapcore.PrimitiveArrayEncoder) {}
+		encCfg.EncodeCaller = func(ec zapcore.EntryCaller, pae zapcore.PrimitiveArrayEncoder) {}
+		encCfg.EncodeName = func(s string, pae zapcore.PrimitiveArrayEncoder) {}
+		encCfg.EncodeTime = func(t time.Time, pae zapcore.PrimitiveArrayEncoder) {}
+	}
+
 	var enc zapcore.Encoder
 	if options.JSONEncoding {
 		enc = zapcore.NewJSONEncoder(encCfg)
@@ -259,7 +266,7 @@ func updateScopes(typeName string, options *Options, cores []zapcore.Core, errSi
 
 	scope.pt = pt
 	// update the caller location setting of all listed scopes
-	scope.SetLogCallers(options.LogCaller)
+	scope.SetDisableLogCaller(options.DisableLogCaller)
 
 	return nil
 }
@@ -292,34 +299,66 @@ func Configure(optionsMap map[string]*Options) error {
 			return err
 		}
 
-		if typeName == DefaultLoggerName {
-			opts := []zap.Option{
-				zap.ErrorOutput(errSink),
+		targetScope := scopes[typeName]
+
+		opts := []zap.Option{
+			zap.ErrorOutput(errSink),
+		}
+
+		if !targetScope.GetDisableLogCaller() {
+			opts = append(opts,
 				zap.AddCallerSkip(1),
-			}
+				zap.AddCaller(),
+			)
+		}
 
-			if defaultScope.GetLogCallers() {
-				opts = append(opts, zap.AddCaller())
-			}
+		l := targetScope.GetStackTraceLevel()
+		if l != NoneLevel {
+			opts = append(opts, zap.AddStacktrace(levelToZap[l]))
+		}
 
-			l := defaultScope.GetStackTraceLevel()
-			if l != NoneLevel {
-				opts = append(opts, zap.AddStacktrace(levelToZap[l]))
-			}
+		captureLogger := zap.New(captureCore, opts...)
 
-			captureLogger := zap.New(captureCore, opts...)
-
+		if typeName == DefaultLoggerName {
 			// capture global zap logging and force it through our logger
 			_ = zap.ReplaceGlobals(captureLogger)
-
 			// capture standard golang "log" package output and force it through our logger
 			_ = zap.RedirectStdLog(captureLogger)
-
-			// capture gRPC logging
-			if options.LogGrpc {
-				grpclog.SetLogger(zapgrpc.NewLogger(captureLogger.WithOptions(zap.AddCallerSkip(2))))
-			}
 		}
+
+		// capture gRPC logging
+		if options.LogGrpc {
+			grpclog.SetLogger(zapgrpc.NewLogger(captureLogger.WithOptions(zap.AddCallerSkip(2))))
+		}
+
+		// if typeName == DefaultLoggerName {
+		// 	opts := []zap.Option{
+		// 		zap.ErrorOutput(errSink),
+		// 		zap.AddCallerSkip(1),
+		// 	}
+
+		// 	if defaultScope.GetLogCallers() {
+		// 		opts = append(opts, zap.AddCaller())
+		// 	}
+
+		// 	l := defaultScope.GetStackTraceLevel()
+		// 	if l != NoneLevel {
+		// 		opts = append(opts, zap.AddStacktrace(levelToZap[l]))
+		// 	}
+
+		// 	captureLogger := zap.New(captureCore, opts...)
+
+		// 	// capture global zap logging and force it through our logger
+		// 	_ = zap.ReplaceGlobals(captureLogger)
+
+		// 	// capture standard golang "log" package output and force it through our logger
+		// 	_ = zap.RedirectStdLog(captureLogger)
+
+		// 	// capture gRPC logging
+		// 	if options.LogGrpc {
+		// 		grpclog.SetLogger(zapgrpc.NewLogger(captureLogger.WithOptions(zap.AddCallerSkip(2))))
+		// 	}
+		// }
 	}
 	return nil
 }
@@ -341,8 +380,6 @@ func setDefaultOption(options *Options) {
 	if options.StackTraceLevel == "" {
 		options.StackTraceLevel = levelToString[defaultStackTraceLevel]
 	}
-	// 默认打开
-	options.LogCaller = true
 }
 
 // Sync flushes any buffered log entries.

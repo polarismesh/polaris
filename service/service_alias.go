@@ -100,7 +100,7 @@ func (s *Server) CreateServiceAlias(ctx context.Context, req *api.ServiceAlias) 
 		out.Alias = utils.NewStringValue(input.Name)
 	}
 	record := &api.Service{Name: out.Alias, Namespace: out.AliasNamespace}
-	s.RecordHistory(serviceRecordEntry(ctx, record, input, model.OCreate))
+	s.RecordHistory(ctx, serviceRecordEntry(ctx, record, input, model.OCreate))
 	return api.NewServiceAliasResponse(api.ExecuteSuccess, out)
 }
 
@@ -237,7 +237,7 @@ func (s *Server) UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) 
 		req.GetService().GetValue(), req.GetNamespace().GetValue(), req.GetAlias().GetValue()), utils.ZapRequestID(rid))
 
 	record := &api.Service{Name: req.Alias, Namespace: req.Namespace}
-	s.RecordHistory(serviceRecordEntry(ctx, record, alias, model.OUpdate))
+	s.RecordHistory(ctx, serviceRecordEntry(ctx, record, alias, model.OUpdate))
 
 	return api.NewServiceAliasResponse(api.ExecuteSuccess, req)
 }

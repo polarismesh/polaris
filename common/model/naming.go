@@ -19,13 +19,11 @@ package model
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	v1 "github.com/polarismesh/polaris/common/api/v1"
-	commontime "github.com/polarismesh/polaris/common/time"
 )
 
 // Namespace 命名空间结构体
@@ -372,149 +370,6 @@ func StatusBoolToInt(value bool) int {
 // flag==1为无效，其他情况为有效
 func flag2valid(flag int) bool {
 	return flag != 1
-}
-
-// OperationType 操作类型
-type OperationType string
-
-// 定义包含的操作类型
-const (
-	// OCreate 新建
-	OCreate OperationType = "Create"
-
-	// ODelete 删除
-	ODelete OperationType = "Delete"
-
-	// OUpdate 更新
-	OUpdate OperationType = "Update"
-
-	// OUpdateIsolate 更新隔离状态
-	OUpdateIsolate OperationType = "UpdateIsolate"
-
-	// OGetToken 查看token
-	OGetToken OperationType = "GetToken"
-
-	// OUpdateToken 更新token
-	OUpdateToken OperationType = "UpdateToken"
-
-	// OUpdateGroup 更新用户-用户组关联关系
-	OUpdateGroup OperationType = "UpdateGroup"
-)
-
-// Resource 操作资源
-type Resource string
-
-// 定义包含的资源类型
-const (
-	RNamespace         Resource = "Namespace"
-	RService           Resource = "Service"
-	RRouting           Resource = "Routing"
-	RRoutingV2         Resource = "RoutingV2"
-	RCircuitBreaker    Resource = "CircuitBreaker"
-	RInstance          Resource = "Instance"
-	RRateLimit         Resource = "RateLimit"
-	RMeshResource      Resource = "MeshResource"
-	RMesh              Resource = "Mesh"
-	RMeshService       Resource = "MeshService"
-	RFluxRateLimit     Resource = "FluxRateLimit"
-	RUser              Resource = "User"
-	RUserGroup         Resource = "UserGroup"
-	RUserGroupRelation Resource = "UserGroupRelation"
-	RAuthStrategy      Resource = "AuthStrategy"
-	RConfigGroup       Resource = "ConfigGroup"
-	RConfigFile        Resource = "ConfigFile"
-)
-
-// ResourceType 资源类型
-type ResourceType int
-
-const (
-	// MeshType 网格类型资源
-	MeshType ResourceType = iota
-	// ServiceType 北极星服务类型资源
-	ServiceType
-)
-
-// ResourceTypeMap resource type map
-var ResourceTypeMap = map[Resource]ResourceType{
-	RNamespace:    ServiceType,
-	RService:      ServiceType,
-	RRouting:      ServiceType,
-	RInstance:     ServiceType,
-	RRateLimit:    ServiceType,
-	RMesh:         MeshType,
-	RMeshResource: MeshType,
-	RMeshService:  MeshType,
-}
-
-// GetResourceType 获取资源的大类型
-func GetResourceType(r Resource) ResourceType {
-	return ResourceTypeMap[r]
-}
-
-// RecordEntry 操作记录entry
-type RecordEntry struct {
-	ResourceType  Resource
-	OperationType OperationType
-	Namespace     string
-	Service       string
-	MeshID        string
-	MeshName      string
-	Context       string
-	Operator      string
-	Revision      string
-	Username      string
-	UserGroup     string
-	StrategyName  string
-	CreateTime    time.Time
-}
-
-func (r *RecordEntry) String() string {
-	var str string
-	switch GetResourceType(r.ResourceType) {
-	case ServiceType:
-		str = fmt.Sprintf("resource_type=%s;operation_type=%s;namespace=%s;service=%s;context=%s;operator=%s;ctime=%s",
-			string(r.ResourceType), string(r.OperationType), r.Namespace, r.Service,
-			r.Context, r.Operator, commontime.Time2String(r.CreateTime))
-	case MeshType:
-		str = fmt.Sprintf(
-			"resource_type=%s;operation_type=%s;mesh_id=%s;revision=%s;context=%s;operator=%s;ctime=%s",
-			string(r.ResourceType), string(r.OperationType), r.MeshID, r.Revision,
-			r.Context, r.Operator, commontime.Time2String(r.CreateTime))
-	}
-	return str
-}
-
-// InstanceEventType 探测事件类型
-type InstanceEventType string
-
-const (
-	// EventDiscoverNone empty discover event
-	EventDiscoverNone InstanceEventType = "EventDiscoverNone"
-	// EventInstanceOnline instance becoming online
-	EventInstanceOnline InstanceEventType = "InstanceOnline"
-	// EventInstanceTurnUnHealth Instance becomes unhealthy
-	EventInstanceTurnUnHealth InstanceEventType = "InstanceTurnUnHealth"
-	// EventInstanceTurnHealth Instance becomes healthy
-	EventInstanceTurnHealth InstanceEventType = "InstanceTurnHealth"
-	// EventInstanceOpenIsolate Instance is in isolation
-	EventInstanceOpenIsolate InstanceEventType = "InstanceOpenIsolate"
-	// EventInstanceCloseIsolate Instance shutdown isolation state
-	EventInstanceCloseIsolate InstanceEventType = "InstanceCloseIsolate"
-	// EventInstanceOffline Instance offline
-	EventInstanceOffline InstanceEventType = "InstanceOffline"
-	// EventInstanceSendHeartbeat Instance send heartbeat package to server
-	EventInstanceSendHeartbeat InstanceEventType = "InstanceSendHeartbeat"
-)
-
-// InstanceEvent 服务实例事件
-type InstanceEvent struct {
-	Id         string
-	Namespace  string
-	Service    string
-	Instance   *v1.Instance
-	EType      InstanceEventType
-	CreateTime time.Time
 }
 
 // InstanceCount Service instance statistics

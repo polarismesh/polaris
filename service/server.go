@@ -26,6 +26,7 @@ import (
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service/batch"
@@ -79,7 +80,7 @@ func (s *Server) SetResourceHooks(hooks ...ResourceHook) {
 }
 
 // RecordHistory server对外提供history插件的简单封装
-func (s *Server) RecordHistory(entry *model.RecordEntry) {
+func (s *Server) RecordHistory(ctx context.Context, entry *model.RecordEntry) {
 	// 如果插件没有初始化，那么不记录history
 	if s.history == nil {
 		return
@@ -89,6 +90,10 @@ func (s *Server) RecordHistory(entry *model.RecordEntry) {
 		return
 	}
 
+	fromClient, _ := ctx.Value(utils.ContextIsFromClient).(bool)
+	if fromClient {
+		return
+	}
 	// 调用插件记录history
 	s.history.Record(entry)
 }

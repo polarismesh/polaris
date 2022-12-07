@@ -20,6 +20,7 @@ package logger
 import (
 	commonLog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 )
 
@@ -57,5 +58,6 @@ func (h *HistoryLogger) Initialize(c *plugin.ConfigEntry) error {
 
 // Record 记录操作记录到日志中
 func (h *HistoryLogger) Record(entry *model.RecordEntry) {
+	entry.Server = utils.LocalHost
 	log.Info(entry.String())
 }

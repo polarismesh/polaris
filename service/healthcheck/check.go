@@ -19,7 +19,6 @@ package healthcheck
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -529,16 +528,6 @@ func setInsDbStatus(instance *model.Instance, healthStatus bool) uint32 {
 	if code != api.ExecuteSuccess {
 		return code
 	}
-	recordInstance := &model.Instance{
-		Proto: &api.Instance{
-			Host:     instance.Proto.GetId(),
-			Port:     instance.Proto.GetPort(),
-			Priority: instance.Proto.GetPriority(),
-			Weight:   instance.Proto.GetWeight(),
-			Healthy:  utils.NewBoolValue(healthStatus),
-			Isolate:  instance.Proto.GetIsolate(),
-		},
-	}
 
 	// 这里为了避免多次发送重复的事件，对实例原本的health 状态以及 healthStatus 状态进行对比，不一致才
 	// 发布服务实例变更事件
@@ -560,7 +549,6 @@ func setInsDbStatus(instance *model.Instance, healthStatus bool) uint32 {
 		server.publishInstanceEvent(instance.ServiceID, event)
 	}
 
-	server.RecordHistory(instanceRecordEntry(recordInstance, model.OUpdate))
 	return code
 }
 
@@ -600,31 +588,6 @@ func (s *Server) serialSetInsDbStatus(ins *api.Instance, healthStatus bool) uint
 		return api.StoreLayerException
 	}
 	return api.ExecuteSuccess
-}
-
-// instanceRecordEntry generate instance record entry
-func instanceRecordEntry(ins *model.Instance, opt model.OperationType) *model.RecordEntry {
-	if ins == nil {
-		return nil
-	}
-	entry := &model.RecordEntry{
-		ResourceType:  model.RInstance,
-		OperationType: opt,
-		Namespace:     ins.Proto.GetNamespace().GetValue(),
-		Service:       ins.Proto.GetService().GetValue(),
-		Operator:      "Polaris",
-		CreateTime:    time.Now(),
-	}
-	if opt == model.OCreate || opt == model.OUpdate {
-		entry.Context = fmt.Sprintf("host:%s,port:%d,weight:%d,healthy:%v,isolate:%v,priority:%d,meta:%+v",
-			ins.Host(), ins.Port(), ins.Weight(), ins.Healthy(), ins.Isolate(),
-			ins.Priority(), ins.Metadata())
-	} else if opt == model.OUpdateIsolate {
-		entry.Context = fmt.Sprintf("host:%s,port=%d,isolate:%v", ins.Host(), ins.Port(), ins.Isolate())
-	} else {
-		entry.Context = fmt.Sprintf("host:%s,port:%d", ins.Host(), ins.Port())
-	}
-	return entry
 }
 
 type leaderChangeEventHandler struct {
