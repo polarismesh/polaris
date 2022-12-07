@@ -590,7 +590,6 @@ func (s *Server) serialSetInsDbStatus(ins *api.Instance, healthStatus bool) uint
 	return api.ExecuteSuccess
 }
 
-
 type leaderChangeEventHandler struct {
 	cacheProvider    *CacheProvider
 	ctx              context.Context
