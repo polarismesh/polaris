@@ -28,6 +28,7 @@ services:
     ports: # 用于其他服务访问北极星
       - "8090:8090" # api-http
       - "8091:8091" # service-grpc
+      - "8093:8093" # service-grpc
     networks:
       - backend
     links:
