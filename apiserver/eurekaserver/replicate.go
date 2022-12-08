@@ -20,6 +20,7 @@ package eurekaserver
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/emicklei/go-restful/v3"
@@ -110,23 +111,23 @@ func (h *EurekaServer) dispatch(replicationInstance *ReplicationInstance, token 
 		}
 	case actionHeartbeat:
 		instanceId := replicationInstance.Id
-		retCode = h.renew(ctx, appName, instanceId)
+		retCode = h.renew(ctx, appName, instanceId, true)
 		if retCode == api.ExecuteSuccess || retCode == api.HeartbeatExceedLimit {
 			retCode = api.ExecuteSuccess
 		}
 	case actionCancel:
 		instanceId := replicationInstance.Id
-		retCode = h.deregisterInstance(ctx, appName, instanceId)
+		retCode = h.deregisterInstance(ctx, appName, instanceId, true)
 		if retCode == api.ExecuteSuccess || retCode == api.NotFoundResource || retCode == api.SameInstanceRequest {
 			retCode = api.ExecuteSuccess
 		}
 	case actionStatusUpdate:
 		status := replicationInstance.Status
 		instanceId := replicationInstance.Id
-		retCode = h.updateStatus(ctx, appName, instanceId, status)
+		retCode = h.updateStatus(ctx, appName, instanceId, status, true)
 	case actionDeleteStatusOverride:
 		instanceId := replicationInstance.Id
-		retCode = h.updateStatus(ctx, appName, instanceId, StatusUp)
+		retCode = h.updateStatus(ctx, appName, instanceId, StatusUp, true)
 	}
 
 	statusCode := http.StatusOK
@@ -171,11 +172,12 @@ func (h *EurekaServer) shouldReplicate(e model.InstanceEvent) bool {
 		// only process the service in same namespace
 		return false
 	}
-	metadata := e.Instance.GetMetadata()
+	metadata := e.MetaData
 	if len(metadata) > 0 {
-		if _, ok := metadata[MetadataReplicate]; ok {
+		if value, ok := metadata[MetadataReplicate]; ok {
 			// we should not replicate around
-			return false
+			isReplicate, _ := strconv.ParseBool(value)
+			return !isReplicate
 		}
 	}
 	return true

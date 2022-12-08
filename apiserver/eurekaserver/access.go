@@ -415,7 +415,7 @@ func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response)
 		writeHeader(http.StatusOK, rsp)
 		return
 	}
-	code := h.updateStatus(context.Background(), appId, instId, status)
+	code := h.updateStatus(context.Background(), appId, instId, status, false)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess {
 		log.Infof("[EUREKA-SERVER]instance (instId=%s, appId=%s) has been updated successfully", instId, appId)
@@ -454,7 +454,7 @@ func (h *EurekaServer) DeleteStatus(req *restful.Request, rsp *restful.Response)
 	log.Infof("[EUREKA-SERVER]received instance status delete request, client: %s, instId=%s, appId=%s",
 		remoteAddr, instId, appId)
 
-	code := h.updateStatus(context.Background(), appId, instId, StatusUp)
+	code := h.updateStatus(context.Background(), appId, instId, StatusUp, false)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess {
 		log.Infof("[EUREKA-SERVER]instance status (instId=%s, appId=%s) has been deleted successfully",
@@ -490,7 +490,7 @@ func (h *EurekaServer) RenewInstance(req *restful.Request, rsp *restful.Response
 		writeHeader(http.StatusBadRequest, rsp)
 		return
 	}
-	code := h.renew(context.Background(), appId, instId)
+	code := h.renew(context.Background(), appId, instId, false)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess || code == api.HeartbeatExceedLimit {
 		writeHeader(http.StatusOK, rsp)
@@ -526,7 +526,7 @@ func (h *EurekaServer) CancelInstance(req *restful.Request, rsp *restful.Respons
 	}
 	log.Infof("[EUREKA-SERVER]received instance deregistered request, client: %s, instId: %s, appId: %s",
 		remoteAddr, instId, appId)
-	code := h.deregisterInstance(context.Background(), appId, instId)
+	code := h.deregisterInstance(context.Background(), appId, instId, false)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess || code == api.NotFoundResource || code == api.SameInstanceRequest {
 		writeHeader(http.StatusOK, rsp)
