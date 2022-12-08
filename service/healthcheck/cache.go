@@ -336,7 +336,7 @@ func (c *CacheProvider) OnDeleted(value interface{}) {
 		deleteServiceInstance(instProto, c.healthCheckInstances)
 		c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 	case *model.Client:
-		deleteClient(actual.Proto(), c.healthCheckInstances)
+		deleteClient(actual.Proto(), c.healthCheckClients)
 		c.sendEvent(CacheEvent{healthCheckClientChanged: true})
 	}
 }

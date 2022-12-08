@@ -13,7 +13,7 @@ rem under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 rem CONDITIONS OF ANY KIND, either express or implied. See the License for the
 rem specific language governing permissions and limitations under the License.
 
-setlocal*
+setlocal
 set "CURRENT_DIR=%cd%"
 rem powershell -c "Set-ExecutionPolicy RemoteSigned"
 echo allowed to use powershell
