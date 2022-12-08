@@ -82,7 +82,7 @@ jobs:
       - name: Go Test
         run: |
           # bash coverage.sh
-          go mod vendor && go test  -timeout 40m ./... -v -covermode=count -coverprofile=coverage_1.cover -coverpkg=github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/sqldb,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/common/model
+          go mod vendor && go test  -timeout 40m ./... -v -covermode=count -coverprofile=coverage_1.cover -coverpkg=github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/service/healthcheck,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/mysql,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/common/model
 
       # Run unit tests
       - name: Go Test With DB
@@ -101,7 +101,7 @@ jobs:
           mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
 
           pushd ./config
-          go mod vendor && go test -v -timeout 40m -v -covermode=count -coverprofile=coverage_sqldb_2.cover -coverpkg=github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/sqldb,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/common/model
+          go mod vendor && go test -v -timeout 40m -v -covermode=count -coverprofile=coverage_sqldb_2.cover -coverpkg=github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/service/healthcheck,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/mysql,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/common/model
           mv coverage_sqldb_2.cover ../
           popd
 
@@ -121,7 +121,7 @@ jobs:
           mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
 
           pushd ./service
-          go mod vendor && go test -v -timeout 40m -v -covermode=count -coverprofile=coverage_sqldb_3.cover -coverpkg=github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/sqldb,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/common/model
+          go mod vendor && go test -v -timeout 40m -v -covermode=count -coverprofile=coverage_sqldb_3.cover -coverpkg=github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/service/healthcheck,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/mysql,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/common/model
           mv coverage_sqldb_3.cover ../
           popd
 
@@ -141,7 +141,7 @@ jobs:
           mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
 
           pushd ./auth/defaultauth
-          go mod vendor && go test -v -timeout 40m -v -covermode=count -coverprofile=coverage_sqldb_1.cover -coverpkg=github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/sqldb,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/common/model
+          go mod vendor && go test -v -timeout 40m -v -covermode=count -coverprofile=coverage_sqldb_1.cover -coverpkg=github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/service/healthcheck,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/mysql,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/common/model
           mv coverage_sqldb_1.cover ../../
           popd
 
