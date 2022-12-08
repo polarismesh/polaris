@@ -15,19 +15,20 @@ English | [简体中文](./README-zh.md)
 
 README：
 
-- [Introduction](#introduction)
-- [Getting started](#getting-started)
-  - [Download package](#download-package)
-  - [Start server](#start-server)
-  - [Verify installation](#verify-installation)
-- [Examples](#examples)
-  - [Service Discovery and HealthCheck](#service-discovery-and-healthcheck)
-  - [RateLimit](#ratelimit)
-  - [Flow Control](#flow-control)
-  - [Configuration management](#configuration-management)
-  - [More details](#more-details)
-- [Chat group](#chat-group)
-- [Contribution](#contribution)
+- [Polaris: Service Discovery and Governance](#polaris-service-discovery-and-governance)
+  - [Introduction](#introduction)
+  - [Getting started](#getting-started)
+    - [Download package](#download-package)
+    - [Start server](#start-server)
+    - [Verify installation](#verify-installation)
+  - [Examples](#examples)
+    - [Service Discovery and HealthCheck](#service-discovery-and-healthcheck)
+    - [RateLimit](#ratelimit)
+    - [Flow Control](#flow-control)
+    - [Configuration management](#configuration-management)
+    - [More details](#more-details)
+  - [Chat group](#chat-group)
+  - [Contribution](#contribution)
 
 visit [website](https://polarismesh.cn/) to learn more
 
@@ -120,6 +121,7 @@ Polaris supports microservices built with multi-language, multi-framework, multi
 - [Spring Cloud Example](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/java%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91/spring-cloud/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/)
 - [Spring Boot Example](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/java%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91/spring-boot/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/)
 - [gRPC-Go Example](https://github.com/polarismesh/grpc-go-polaris/tree/main/examples/quickstart)
+- [dubbogo Example](https://github.com/apache/dubbo-go-samples/tree/master/polaris)
 
 (2) multi-language examples:
 
