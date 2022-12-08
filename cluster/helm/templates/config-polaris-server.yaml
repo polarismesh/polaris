@@ -308,9 +308,6 @@ data:
     config:
       # 是否启动配置模块
       open: true
-      cache:
-        #配置文件缓存过期时间，单位s
-        expireTimeAfterWrite: 3600
     # 健康检查的配置
     healthcheck:
       open: true
@@ -365,6 +362,10 @@ data:
         - name: strategyRule
         - name: namespace
         - name: client
+        - name: configFile
+          option:
+            #配置文件缓存过期时间，单位s
+            expireTimeAfterWrite: 3600
     #    - name: l5 # 加载l5数据
     # 存储配置
     store:
