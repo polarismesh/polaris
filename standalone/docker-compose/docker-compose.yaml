@@ -28,6 +28,7 @@ services:
     ports: # 用于其他服务访问北极星
       - "8090:8090" # api-http
       - "8091:8091" # service-grpc
+      - "8093:8093" # service-grpc
     networks:
       - backend
     links:
@@ -84,7 +85,7 @@ services:
     volumes:
       - vlm_data_mysql:/var/lib/mysql
       - ./mysql/mysqld.cnf:/etc/mysql/conf.d/custom.cnf:cached
-      - ../../../store/sqldb/scripts/polaris_server.sql:/docker-entrypoint-initdb.d/polaris_server.sql
+      - ../../store/mysql/scripts/polaris_server.sql:/docker-entrypoint-initdb.d/polaris_server.sql
     ports:
       - "3306:3306"
     expose:
