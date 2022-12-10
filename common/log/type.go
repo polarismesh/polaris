@@ -35,10 +35,12 @@ const (
 	XDSLoggerName = "xdsv3"
 	// HealthcheckLoggerName healthcheck logger name, can use FindScope function to get the logger
 	HealthcheckLoggerName = "healthcheck"
+	// SystemOperationLoggerName system operation logger name, can use FindScope function to get the logger
+	SystemOperationLoggerName = "sysop"
 )
 
 func allLoggerTypes() []string {
 	return []string{NamingLoggerName, ConfigLoggerName, CacheLoggerName,
 		AuthLoggerName, StoreLoggerName, APIServerLoggerName, XDSLoggerName,
-		HealthcheckLoggerName, DefaultLoggerName}
+		HealthcheckLoggerName, SystemOperationLoggerName, DefaultLoggerName}
 }

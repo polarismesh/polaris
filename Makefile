@@ -49,8 +49,8 @@ help: ## Display this help.
 
 .PHONY: build
 build: ## Build binary and tarball.
-	bash ./build.sh $(VERSION)
+	bash ./release/build.sh $(VERSION)
 
 .PHONY: build-docker
 build-docker: ## Build polaris-server docker images.
-	bash ./build_docker.sh $(IMAGE_TAG)
+	bash ./release/build_docker.sh $(IMAGE_TAG)
