@@ -24,15 +24,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-
-	"github.com/polarismesh/polaris/common/utils"
 )
 
 var (
 	registry = prometheus.NewRegistry()
-
-	instanceAsyncRegisCost  prometheus.Histogram
-	instanceRegisTaskExpire prometheus.Counter
 )
 
 func GetRegistry() *prometheus.Registry {
@@ -49,24 +44,12 @@ func GetHttpHandler() http.Handler {
 }
 
 func InitMetrics() {
-	instanceAsyncRegisCost = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name: "instance_regis_cost_time",
-		Help: "instance regis cost time",
-		ConstLabels: map[string]string{
-			"polaris_server_instance": utils.LocalHost,
-		},
-	})
-
-	instanceRegisTaskExpire = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "instance_regis_task_expire",
-		Help: "instance regis task expire that server drop it",
-		ConstLabels: map[string]string{
-			"polaris_server_instance": utils.LocalHost,
-		},
-	})
-
 	_ = registry.Register(instanceAsyncRegisCost)
 	_ = registry.Register(instanceRegisTaskExpire)
+
+	_ = registry.Register(redisReadFailure)
+	_ = registry.Register(redisWriteFailure)
+	_ = registry.Register(redisAliveStatus)
 }
 
 // ReportInstanceRegisCost Total time to report the short-term registered task of the reporting instance
@@ -77,4 +60,24 @@ func ReportInstanceRegisCost(cost time.Duration) {
 // ReportDropInstanceRegisTask Record the number of registered tasks discarded
 func ReportDropInstanceRegisTask() {
 	instanceRegisTaskExpire.Inc()
+}
+
+// ReportRedisReadFailure report redis exec read operatio failure
+func ReportRedisReadFailure() {
+	redisReadFailure.Inc()
+}
+
+// ReportRedisWriteFailure report redis exec write operatio failure
+func ReportRedisWriteFailure() {
+	redisWriteFailure.Inc()
+}
+
+// ReportRedisIsDead report redis alive status is dead
+func ReportRedisIsDead() {
+	redisAliveStatus.Set(0)
+}
+
+// ReportRedisIsDead report redis alive status is health
+func ReportRedisIsAlive() {
+	redisAliveStatus.Set(1)
 }

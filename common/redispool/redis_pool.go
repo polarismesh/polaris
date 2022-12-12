@@ -28,6 +28,7 @@ import (
 	"github.com/go-redis/redis/v8"
 
 	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/plugin"
 )
 
@@ -221,8 +222,10 @@ func (p *Pool) Del(id string) *Resp {
 
 func (p *Pool) checkRedisDead() error {
 	if atomic.LoadUint32(&p.redisDead) == 1 {
+		metrics.ReportRedisIsDead()
 		return fmt.Errorf("redis %s is dead", p.config.KvAddr)
 	}
+	metrics.ReportRedisIsAlive()
 	return nil
 }
 
@@ -390,6 +393,15 @@ func (p *Pool) handleTaskWithRetries(task *Task) *Resp {
 		}
 		log.Errorf("[RedisPool] fail to handle task %s, retry count %d, err is %v", *task, i, resp.Err)
 	}
+	if resp.Err != nil {
+		switch task.taskType {
+		case Set, Del, Sadd, Srem:
+			metrics.ReportRedisWriteFailure()
+		default:
+			metrics.ReportRedisReadFailure()
+		}
+	}
+
 	return resp
 }
 
