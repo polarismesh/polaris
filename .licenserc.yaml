@@ -68,8 +68,7 @@ header: # `header` section is configurations for source codes license header.
     - "deploy"
     - "**/*.proto"
     - "logo.svg"
-    - "standalone"
-    - "cluster"
+    - "release"
     - "common/api/protoc"
   comment: on-failure # on what condition license-eye will comment on the pull request, `on-failure`, `always`, `never`.
 

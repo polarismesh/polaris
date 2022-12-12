@@ -27,7 +27,7 @@ if [[ $(uname) == 'Darwin' ]]; then
   }
 fi
 
-workdir=$(dirname $(realpath $0))
+workdir=$(dirname $(dirname $(realpath $0)))
 version=$(cat version 2>/dev/null)
 bin_name="polaris-server"
 
@@ -51,7 +51,8 @@ folder_name="polaris-server-release_${version}.${GOOS}.${GOARCH}"
 pkg_name="${folder_name}.zip"
 echo "GOOS is ${GOOS}, binary name is ${bin_name}"
 
-cd $workdir
+echo "workdir=${workdir}"
+cd ${workdir}
 
 # 清理环境
 rm -rf ${folder_name}
@@ -71,7 +72,7 @@ mkdir -p ${folder_name}
 cp ${bin_name} ${folder_name}
 mkdir -p ${folder_name}/${sqldb_res}
 cp -r ${sqldb_res}/scripts/* ${folder_name}/${sqldb_res}
-cp -r tool ${folder_name}/
-cp -r conf ${folder_name}/
+cp -r release/tool ${folder_name}/
+cp -r release/conf ${folder_name}/
 zip -r "${pkg_name}" ${folder_name}
 md5sum ${pkg_name} >"${pkg_name}.md5sum"
