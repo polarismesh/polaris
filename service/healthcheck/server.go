@@ -165,6 +165,16 @@ func (s *Server) CacheProvider() (*CacheProvider, error) {
 	return s.cacheProvider, nil
 }
 
+// ListCheckerServer get checker server instance list
+func (s *Server) ListCheckerServer() []*model.Instance {
+	ret := make([]*model.Instance, 0, s.cacheProvider.selfServiceInstances.Count())
+	s.cacheProvider.selfServiceInstances.Range(func(instanceId string, value ItemWithChecker) {
+		ret = append(ret, value.GetInstance())
+	})
+
+	return ret
+}
+
 // RecordHistory server对外提供history插件的简单封装
 func (s *Server) RecordHistory(entry *model.RecordEntry) {
 	// 如果插件没有初始化，那么不记录history

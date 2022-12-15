@@ -34,8 +34,11 @@ import (
 	"google.golang.org/grpc/status"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/connlimit"
+	connhook "github.com/polarismesh/polaris/common/conn/hook"
+	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	commonlog "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/metrics"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/secure"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -55,6 +58,8 @@ type BaseGrpcServer struct {
 	exitCh          chan struct{}
 
 	protocol string
+
+	bz model.BzModule
 
 	server     *grpc.Server
 	statis     plugin.Statis
@@ -147,6 +152,11 @@ func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer InitS
 			return
 		}
 	}
+
+	b.log.Infof("[API-Server][GRPC] open connection counter net.Listener")
+	listener = connhook.NewHookListener(listener, &connCounterHook{
+		bz: b.bz,
+	})
 
 	// 指定使用服务端证书创建一个 TLS credentials
 	var creds credentials.TransportCredentials
@@ -435,3 +445,29 @@ func ConvertContext(ctx context.Context) context.Context {
 
 	return ctx
 }
+
+type connCounterHook struct {
+	bz model.BzModule
+}
+
+func (h *connCounterHook) OnAccept(conn net.Conn) {
+	if h.bz == model.DiscoverModule {
+		metrics.AddDiscoveryClientConn()
+	}
+	if h.bz == model.ConfigModule {
+		metrics.AddConfigurationClientConn()
+	}
+	metrics.AddSDKClient()
+}
+
+func (h *connCounterHook) OnRelease(conn net.Conn) {
+	if h.bz == model.DiscoverModule {
+		metrics.RemoveDiscoveryClientConn()
+	}
+	if h.bz == model.ConfigModule {
+		metrics.RemoveConfigurationClientConn()
+	}
+	metrics.RemoveSDKClient()
+}
+
+func (h *connCounterHook) OnClose() {}

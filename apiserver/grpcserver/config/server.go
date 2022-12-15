@@ -29,6 +29,7 @@ import (
 	"github.com/polarismesh/polaris/bootstrap"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	commonlog "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/config"
 )
 
@@ -58,6 +59,7 @@ func (g *ConfigGRPCServer) Initialize(ctx context.Context, option map[string]int
 	apiConf map[string]apiserver.APIConfig) error {
 	g.openAPI = apiConf
 	return g.BaseGrpcServer.Initialize(ctx, option,
+		grpcserver.WithModule(model.ConfigModule),
 		grpcserver.WithProtocol(g.GetProtocol()),
 		grpcserver.WithLogger(configLog),
 	)

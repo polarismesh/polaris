@@ -50,6 +50,10 @@ func InitMetrics() {
 	_ = registry.Register(redisReadFailure)
 	_ = registry.Register(redisWriteFailure)
 	_ = registry.Register(redisAliveStatus)
+
+	_ = registry.Register(discoveryConnTotal)
+	_ = registry.Register(configurationConnTotal)
+	_ = registry.Register(sdkClientTotal)
 }
 
 // ReportInstanceRegisCost Total time to report the short-term registered task of the reporting instance
@@ -80,4 +84,49 @@ func ReportRedisIsDead() {
 // ReportRedisIsDead report redis alive status is health
 func ReportRedisIsAlive() {
 	redisAliveStatus.Set(1)
+}
+
+// AddDiscoveryClientConn add discovery client connection number
+func AddDiscoveryClientConn() {
+	discoveryConnTotal.Inc()
+}
+
+// RemoveDiscoveryClientConn remove discovery client connection number
+func RemoveDiscoveryClientConn() {
+	discoveryConnTotal.Dec()
+}
+
+// ResetDiscoveryClientConn reset discovery client connection number
+func ResetDiscoveryClientConn() {
+	discoveryConnTotal.Set(0)
+}
+
+// AddConfigurationClientConn add configuration client connection number
+func AddConfigurationClientConn() {
+	configurationConnTotal.Inc()
+}
+
+// RemoveConfigurationClientConn remove configuration client connection number
+func RemoveConfigurationClientConn() {
+	configurationConnTotal.Dec()
+}
+
+// ResetConfigurationClientConn reset configuration client connection number
+func ResetConfigurationClientConn() {
+	configurationConnTotal.Set(0)
+}
+
+// AddSDKClient add client connection number
+func AddSDKClient() {
+	sdkClientTotal.Inc()
+}
+
+// RemoveSDKClient remove client connection number
+func RemoveSDKClient() {
+	sdkClientTotal.Dec()
+}
+
+// ResetSDKClient reset client connection number
+func ResetSDKClient() {
+	sdkClientTotal.Set(0)
 }

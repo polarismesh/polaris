@@ -37,7 +37,7 @@ func (h *HTTPServer) GetReportClients(req *restful.Request, rsp *restful.Respons
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
-	ret := h.namingServer.GetReportClientWithCache(ctx, queryParams)
+	ret := h.namingServer.GetPrometheusTargets(ctx, queryParams)
 
 	_ = rsp.WriteAsJson(ret)
 }

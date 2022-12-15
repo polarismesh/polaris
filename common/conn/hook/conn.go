@@ -15,13 +15,38 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package prometheussd
+package connhook
 
 import (
-	"github.com/polarismesh/polaris/apiserver"
+	"net"
+	"sync"
 )
 
-// init 自注册到API服务器插槽
-func init() {
-	_ = apiserver.Register("prometheus-sd", &PrometheusServer{})
+// Conn 包装net.Conn
+// 目的：拦截Close操作，用于listener计数的Release以及activeConns的删除
+type Conn struct {
+	net.Conn
+	releaseOnce sync.Once
+	closed      bool
+	listener    *HookListener
+}
+
+// Close 包装net.Conn.Close, 用于连接计数
+func (c *Conn) Close() error {
+	if c.closed {
+		return nil
+	}
+
+	err := c.Conn.Close()
+	c.releaseOnce.Do(func() {
+		// 调用监听的listener，释放计数以及activeConns
+		// 保证只执行一次
+		c.closed = true
+
+		for i := range c.listener.hooks {
+			c.listener.hooks[i].OnRelease(c)
+		}
+
+	})
+	return err
 }

@@ -186,8 +186,8 @@ type ClientServer interface {
 	// ReportClient Client gets geographic location information
 	ReportClient(ctx context.Context, req *api.Client) *api.Response
 
-	// GetReportClientWithCache Used to obtain the ReportClient information and serve as the SD result of Prometheus
-	GetReportClientWithCache(ctx context.Context, query map[string]string) *model.PrometheusDiscoveryResponse
+	// GetPrometheusTargets Used to obtain the ReportClient information and serve as the SD result of Prometheus
+	GetPrometheusTargets(ctx context.Context, query map[string]string) *model.PrometheusDiscoveryResponse
 
 	// GetServiceWithCache Used for client acquisition service information
 	GetServiceWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse
