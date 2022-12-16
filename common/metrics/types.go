@@ -24,6 +24,20 @@ import (
 )
 
 var (
+	metricsPort int32
+)
+
+func SetMetricsPort(port int32) {
+	metricsPort = port
+}
+
+func GetMetricsPort() int32 {
+	return metricsPort
+}
+
+// instance astbc registry metrics
+var (
+	// instanceAsyncRegisCost 实例异步注册任务耗费时间
 	instanceAsyncRegisCost = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name: "instance_regis_cost_time",
 		Help: "instance regis cost time",
@@ -32,6 +46,7 @@ var (
 		},
 	})
 
+	// instanceRegisTaskExpire 实例异步注册任务超时无效事件
 	instanceRegisTaskExpire = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "instance_regis_task_expire",
 		Help: "instance regis task expire that server drop it",
@@ -62,6 +77,36 @@ var (
 	redisAliveStatus = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "redis_alive_status",
 		Help: "polaris redis alive status",
+		ConstLabels: map[string]string{
+			"polaris_server_instance": utils.LocalHost,
+		},
+	})
+)
+
+// client tcp connection metrics
+var (
+	// discoveryConnTotal 服务发现客户端链接数量
+	discoveryConnTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "discovery_conn_total",
+		Help: "polaris discovery client connection total",
+		ConstLabels: map[string]string{
+			"polaris_server_instance": utils.LocalHost,
+		},
+	})
+
+	// configurationConnTotal 配置中心客户端链接数量
+	configurationConnTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "config_conn_total",
+		Help: "polaris configuration client connection total",
+		ConstLabels: map[string]string{
+			"polaris_server_instance": utils.LocalHost,
+		},
+	})
+
+	// sdkClientTotal 客户端链接数量
+	sdkClientTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "sdk_client_total",
+		Help: "polaris client connection total",
 		ConstLabels: map[string]string{
 			"polaris_server_instance": utils.LocalHost,
 		},

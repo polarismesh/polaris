@@ -37,7 +37,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/bootstrap"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/connlimit"
+	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/secure"
@@ -137,6 +137,7 @@ func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{}
 		}
 	}
 
+	metrics.SetMetricsPort(int32(h.listenPort))
 	return nil
 }
 
@@ -355,6 +356,12 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 				if err := h.GetAuthServer(ws); err != nil {
 					return nil, err
 				}
+
+				prometheusSvc, err := h.GetPrometheusDiscoveryServer(apiConfig.Include)
+				if err != nil {
+					return nil, err
+				}
+				wsContainer.Add(prometheusSvc)
 
 				wsContainer.Add(ws)
 			}

@@ -32,7 +32,7 @@ import (
 
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/bootstrap"
-	"github.com/polarismesh/polaris/common/connlimit"
+	"github.com/polarismesh/polaris/common/conn/limit"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/secure"
 	"github.com/polarismesh/polaris/common/utils"

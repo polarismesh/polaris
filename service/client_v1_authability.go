@@ -63,8 +63,8 @@ func (svr *serverAuthAbility) ReportClient(ctx context.Context, req *api.Client)
 }
 
 // GetReportClientWithCache Used for client acquisition service information
-func (svr *serverAuthAbility) GetReportClientWithCache(ctx context.Context, query map[string]string) *model.PrometheusDiscoveryResponse {
-	return svr.targetServer.GetReportClientWithCache(ctx, query)
+func (svr *serverAuthAbility) GetPrometheusTargets(ctx context.Context, query map[string]string) *model.PrometheusDiscoveryResponse {
+	return svr.targetServer.GetPrometheusTargets(ctx, query)
 }
 
 // GetServiceWithCache is the interface for getting service with cache

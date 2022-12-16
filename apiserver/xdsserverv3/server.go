@@ -57,7 +57,7 @@ import (
 	"github.com/polarismesh/polaris/bootstrap"
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/connlimit"
+	"github.com/polarismesh/polaris/common/conn/limit"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/namespace"
