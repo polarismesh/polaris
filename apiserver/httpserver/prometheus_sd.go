@@ -21,6 +21,7 @@ import (
 	"context"
 
 	"github.com/emicklei/go-restful/v3"
+
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
 )
 
@@ -31,6 +32,7 @@ func (h *HTTPServer) GetPrometheusDiscoveryServer(include []string) (*restful.We
 	h.addPrometheusDefaultAccess(ws)
 	return ws, nil
 }
+
 func (h *HTTPServer) addPrometheusDefaultAccess(ws *restful.WebService) {
 	ws.Route(ws.GET("/clients").To(h.GetPrometheusClients))
 }
