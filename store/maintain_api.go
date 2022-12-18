@@ -17,6 +17,8 @@
 
 package store
 
+import "github.com/polarismesh/polaris/common/model"
+
 const (
 	ELECTION_KEY_SELF_SERVICE_CHECKER = "polaris.checker"
 )
@@ -27,6 +29,12 @@ type MaintainStore interface {
 
 	// IsLeader whether it is leader node
 	IsLeader(key string) bool
+
+	// ListLeaderElections list all leaderelection
+	ListLeaderElections() ([]*model.LeaderElection, error)
+
+	// ReleaseLeaderElection force release leader status
+	ReleaseLeaderElection(key string) error
 
 	// BatchCleanDeletedInstances batch clean soft deleted instances
 	BatchCleanDeletedInstances(batchSize uint32) (uint32, error)

@@ -21,7 +21,8 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/conn/limit"
+	connlimit "github.com/polarismesh/polaris/common/conn/limit"
+	"github.com/polarismesh/polaris/common/model"
 )
 
 type ConnReq struct {
@@ -74,4 +75,10 @@ type MaintainOperateServer interface {
 
 	// SetLogOutputLevel Set log output level by scope
 	SetLogOutputLevel(ctx context.Context, scope string, level string) error
+
+	// ListLeaderElections
+	ListLeaderElections(ctx context.Context) ([]*model.LeaderElection, error)
+
+	// ReleaseLeaderElection
+	ReleaseLeaderElection(ctx context.Context, electKey string) error
 }
