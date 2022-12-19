@@ -66,13 +66,13 @@ func (m *maintainStore) ListLeaderElections() ([]*model.LeaderElection, error) {
 	defer m.mutex.Unlock()
 
 	var out []*model.LeaderElection
-	for k := range m.leMap {
+	for k, v := range m.leMap {
 		item := &model.LeaderElection{
 			ElectKey: k,
 			Host:     utils.LocalHost,
 			Ctime:    0,
 			Mtime:    time.Now().Unix(),
-			Valid:    true,
+			Valid:    v,
 		}
 		item.CreateTime = time.Unix(item.Ctime, 0)
 		item.ModifyTime = time.Unix(item.Mtime, 0)

@@ -382,6 +382,32 @@ func TestMaintainStore_ReleaseLeaderElection1(t *testing.T) {
 	}
 }
 
+func TestMaintainStore_ReleaseLeaderElection2(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockStore := mock.NewMockLeaderElectionStore(ctrl)
+	mockStore.EXPECT().CreateLeaderElection(TestElectKey).Return(nil)
+
+	m := &maintainStore{
+		leStore: mockStore,
+		leMap:   make(map[string]*leaderElectionStateMachine),
+	}
+
+	err := m.ReleaseLeaderElection(TestElectKey)
+	if err == nil {
+		t.Error("expect err when release not existed key")
+	}
+
+	_ = m.StartLeaderElection(TestElectKey)
+	err = m.ReleaseLeaderElection(TestElectKey)
+	if err != nil {
+		t.Errorf("unexpect err: %v", err)
+	}
+
+	m.StopLeaderElections()
+}
+
 func TestMain(m *testing.M) {
 	setup()
 	code := m.Run()
