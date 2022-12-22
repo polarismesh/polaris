@@ -144,6 +144,9 @@ func (s *Server) createInstance(ctx context.Context, req *api.Instance, ins *api
 		return nil, api.NewInstanceResponse(code, req)
 	}
 
+	// 填充实例的地理位置信息
+	s.packCmdb(ins)
+
 	if namingServer.bc == nil || !namingServer.bc.CreateInstanceOpen() {
 		return s.serialCreateInstance(ctx, svcId, req, ins) // 单个同步
 	}
