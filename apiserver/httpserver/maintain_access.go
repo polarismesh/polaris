@@ -253,13 +253,11 @@ func (h *HTTPServer) ReleaseLeaderElection(req *restful.Request, rsp *restful.Re
 	var releasedElection struct {
 		ElectKey string `json:"ElectKey"`
 	}
-	err := httpcommon.ParseJsonBody(req, &releasedElection)
-	if err != nil {
+	if err := httpcommon.ParseJsonBody(req, &releasedElection); err != nil {
 		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
 		return
 	}
-	err = h.maintainServer.ReleaseLeaderElection(ctx, releasedElection.ElectKey)
-	if err != nil {
+	if err := h.maintainServer.ReleaseLeaderElection(ctx, releasedElection.ElectKey); err != nil {
 		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
 		return
 	}
