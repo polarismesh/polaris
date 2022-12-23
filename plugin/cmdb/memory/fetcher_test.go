@@ -22,8 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/polarismesh/polaris/plugin/cmdb/memory/mock"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/polarismesh/polaris/plugin/cmdb/memory/mock"
 )
 
 func Test_fetcher_GetIPs(t *testing.T) {

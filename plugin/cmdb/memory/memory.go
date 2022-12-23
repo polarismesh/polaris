@@ -23,10 +23,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"go.uber.org/zap"
+
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/plugin"
-	"go.uber.org/zap"
 )
 
 const (

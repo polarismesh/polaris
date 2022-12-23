@@ -21,9 +21,10 @@ import (
 	"net"
 	"strings"
 
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	v1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // IPType ip type
