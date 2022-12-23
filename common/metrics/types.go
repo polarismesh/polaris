@@ -60,7 +60,7 @@ var (
 var (
 	redisReadFailure = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "redis_read_failure",
-		Help: "polaris exec redis read operation success",
+		Help: "polaris exec redis read operation failure",
 		ConstLabels: map[string]string{
 			"polaris_server_instance": utils.LocalHost,
 		},
@@ -68,7 +68,7 @@ var (
 
 	redisWriteFailure = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "redis_write_failure",
-		Help: "polaris exec redis write operation success",
+		Help: "polaris exec redis write operation failure",
 		ConstLabels: map[string]string{
 			"polaris_server_instance": utils.LocalHost,
 		},
