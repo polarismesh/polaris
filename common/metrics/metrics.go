@@ -62,6 +62,8 @@ func InitMetrics() {
 	_ = registry.Register(sdkClientTotal)
 
 	go func() {
+		lastRedisReadFailureReport.Store(time.Now())
+		lastRedisWriteFailureReport.Store(time.Now())
 		ticker := time.NewTicker(time.Minute)
 		for range ticker.C {
 			tn := time.Now()
