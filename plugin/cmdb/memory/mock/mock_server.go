@@ -82,7 +82,9 @@ func RunMockCMDBServer(cnt int) (int, net.Listener) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", handle)
-	go http.Serve(ln, mux)
+	go func() {
+		_ = http.Serve(ln, mux)
+	}()
 	return port, ln
 }
 
@@ -120,8 +122,12 @@ func handle(w http.ResponseWriter, r *http.Request) {
 			Info: err.Error(),
 		}
 
-		ret, _ := json.Marshal(resp)
-		_, _ = w.Write(ret)
+		if ret, err := json.Marshal(resp); err != nil {
+			log.Printf("json marshal %+v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			_, _ = w.Write(ret)
+		}
 		return
 	}
 
@@ -132,8 +138,12 @@ func handle(w http.ResponseWriter, r *http.Request) {
 			Info: err.Error(),
 		}
 
-		ret, _ := json.Marshal(resp)
-		_, _ = w.Write(ret)
+		if ret, err := json.Marshal(resp); err != nil {
+			log.Printf("json marshal %+v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			_, _ = w.Write(ret)
+		}
 		return
 	}
 
@@ -150,8 +160,12 @@ func handle(w http.ResponseWriter, r *http.Request) {
 			Data:  []IPInfo{},
 		}
 
-		ret, _ := json.Marshal(resp)
-		_, _ = w.Write(ret)
+		if ret, err := json.Marshal(resp); err != nil {
+			log.Printf("json marshal %+v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			_, _ = w.Write(ret)
+		}
 		return
 	}
 	if int(end) > len(IPInfos) {
@@ -167,8 +181,12 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		Data:  values,
 	}
 
-	ret, _ := json.Marshal(resp)
-	_, _ = w.Write(ret)
+	if ret, err := json.Marshal(resp); err != nil {
+		log.Printf("json marshal %+v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		_, _ = w.Write(ret)
+	}
 	return
 }
 

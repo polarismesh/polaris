@@ -102,11 +102,14 @@ func (f *fetcher) getFromRemote() ([]IPInfo, error) {
 			break
 		}
 		pageNo++
-		body, _ := json.Marshal(Request{
+		body, err := json.Marshal(Request{
 			RequestID: requestId,
 			PageNo:    int64(pageNo),
 			PageSize:  100,
 		})
+		if err != nil {
+			return nil, err
+		}
 		hreq, err := http.NewRequest(http.MethodPost, f.url, bytes.NewBuffer(body))
 		if err != nil {
 			return nil, err
