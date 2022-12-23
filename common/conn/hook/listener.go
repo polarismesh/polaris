@@ -21,9 +21,13 @@ import (
 	"net"
 )
 
+// Hook Hook
 type Hook interface {
+	// OnAccept call when net.Conn accept
 	OnAccept(conn net.Conn)
+	// OnRelease call when net.Conn release
 	OnRelease(conn net.Conn)
+	// OnClose call when net.Listener close
 	OnClose()
 }
 
@@ -34,6 +38,7 @@ func NewHookListener(l net.Listener, hooks ...Hook) net.Listener {
 	}
 }
 
+// HookListener net.Listener can add hook
 type HookListener struct {
 	hooks  []Hook
 	target net.Listener

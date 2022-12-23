@@ -28,6 +28,9 @@ import (
 
 var (
 	registry = prometheus.NewRegistry()
+
+	lastRedisReadFailureReport  time.Time
+	lastRedisWriteFailureReport time.Time
 )
 
 func GetRegistry() *prometheus.Registry {
@@ -54,6 +57,19 @@ func InitMetrics() {
 	_ = registry.Register(discoveryConnTotal)
 	_ = registry.Register(configurationConnTotal)
 	_ = registry.Register(sdkClientTotal)
+
+	go func() {
+		ticker := time.NewTicker(time.Minute)
+		for range ticker.C {
+			tn := time.Now()
+			if tn.Sub(lastRedisReadFailureReport) > time.Minute {
+				redisReadFailure.Set(0)
+			}
+			if tn.Sub(lastRedisWriteFailureReport) > time.Minute {
+				redisWriteFailure.Set(0)
+			}
+		}
+	}()
 }
 
 // ReportInstanceRegisCost Total time to report the short-term registered task of the reporting instance
@@ -68,11 +84,13 @@ func ReportDropInstanceRegisTask() {
 
 // ReportRedisReadFailure report redis exec read operatio failure
 func ReportRedisReadFailure() {
+	lastRedisReadFailureReport = time.Now()
 	redisReadFailure.Inc()
 }
 
 // ReportRedisWriteFailure report redis exec write operatio failure
 func ReportRedisWriteFailure() {
+	lastRedisWriteFailureReport = time.Now()
 	redisWriteFailure.Inc()
 }
 
@@ -81,7 +99,7 @@ func ReportRedisIsDead() {
 	redisAliveStatus.Set(0)
 }
 
-// ReportRedisIsDead report redis alive status is health
+// ReportRedisIsAlive report redis alive status is health
 func ReportRedisIsAlive() {
 	redisAliveStatus.Set(1)
 }

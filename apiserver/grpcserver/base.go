@@ -470,4 +470,8 @@ func (h *connCounterHook) OnRelease(conn net.Conn) {
 	metrics.RemoveSDKClient()
 }
 
-func (h *connCounterHook) OnClose() {}
+func (h *connCounterHook) OnClose() {
+	metrics.ResetDiscoveryClientConn()
+	metrics.ResetConfigurationClientConn()
+	metrics.ResetSDKClient()
+}
