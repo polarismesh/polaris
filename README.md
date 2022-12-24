@@ -15,26 +15,22 @@ English | [简体中文](./README-zh.md)
 
 README：
 
-- [Polaris: Service Discovery and Governance](#polaris-service-discovery-and-governance)
-  - [Introduction](#introduction)
-  - [Getting started](#getting-started)
-    - [Download package](#download-package)
-    - [Start server](#start-server)
-    - [Verify installation](#verify-installation)
-  - [Examples](#examples)
-    - [Service Discovery and HealthCheck](#service-discovery-and-healthcheck)
-    - [RateLimit](#ratelimit)
-    - [Flow Control](#flow-control)
-    - [Configuration management](#configuration-management)
-    - [More details](#more-details)
-  - [Chat group](#chat-group)
-  - [Contribution](#contribution)
+- [Introduction](#introduction)
+- [Getting started](#getting-started)
+  - [Download package](#download-package)
+  - [Start server](#start-server)
+  - [Verify installation](#verify-installation)
+- [Examples](#examples)
+  - [Service Discovery and HealthCheck](#service-discovery-and-healthcheck)
+  - [RateLimit](#ratelimit)
+  - [Flow Control](#flow-control)
+  - [Configuration management](#configuration-management)
+  - [More details](#more-details)
+- [Chat group](#chat-group)
 
 visit [website](https://polarismesh.cn/) to learn more
 
 ## Introduction
-
-<img src="https://raw.githubusercontent.com/polarismesh/website/main/content/zh-cn/docs/北极星是什么/图片/第一印象.png" width="800" />
 
 Polaris is a cloud-native service discovery and governance center. It can be used to solve the problem of service
 connection, fault tolerance, traffic control and secure in distributed and microservice architecture.
@@ -187,11 +183,4 @@ More capabilities：[User Manual](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8
 
 Please scan the QR code to join the chat group.
 
-<img src="https://main.qcloudimg.com/raw/bff4285d70498058caa212805b83a620.jpg" width="30%" height="30%" />
-
-## Contribution
-
-If you have good comments or suggestions, please give us Issues or Pull Requests to contribute to improve the
-development experience of Polaris Mesh.
-
-<br>see details：[CONTRIBUTING.md](./CONTRIBUTING.md)
+<img src="https://main.qcloudimg.com/raw/bff4285d70498058caa212805b83a620.jpg" width="20%" height="20%" />
