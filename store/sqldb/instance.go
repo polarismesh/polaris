@@ -904,9 +904,9 @@ func batchDeleteInstanceMeta(tx *BaseTx, instances []*model.Instance) error {
 	builder := strings.Builder{}
 	for _, entry := range instances {
 		// If instance is first registration, no need to participate in the following METADATA cleaning action
-		if entry.FirstRegis {
-			continue
-		}
+		// if entry.FirstRegis {
+		// 	continue
+		// }
 
 		ids = append(ids, entry.ID())
 
