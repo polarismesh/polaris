@@ -168,7 +168,7 @@ func (fg *configFileGroupStore) FindConfigFileGroups(namespace string,
 
 func (fg *configFileGroupStore) GetConfigFileGroupById(id uint64) (*model.ConfigFileGroup, error) {
 	querySql := fg.genConfigFileGroupSelectSql()
-	querySql += fmt.Sprintf(" where id = %s", strconv.FormatUint(id, 10))
+	querySql += fmt.Sprintf(" where id = %d", id)
 
 	rows, err := fg.db.Query(querySql)
 	if err != nil {
@@ -178,6 +178,9 @@ func (fg *configFileGroupStore) GetConfigFileGroupById(id uint64) (*model.Config
 	cfgs, err := fg.transferRows(rows)
 	if err != nil {
 		return nil, err
+	}
+	if len(cfgs) == 0 {
+		return nil, nil
 	}
 
 	return cfgs[0], nil
