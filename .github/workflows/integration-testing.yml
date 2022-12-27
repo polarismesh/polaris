@@ -100,8 +100,9 @@ jobs:
           chmod +x ./tool/*.sh
           ./tool/start.sh
 
-          sleep 10s
+          sleep 120s
 
+          ls -alR
           cat ./log/runtime/polaris-default.log
 
           cd ..
