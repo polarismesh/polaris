@@ -76,6 +76,19 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: make build
 
+      - uses: webiny/action-post-run@3.0.0
+        id: post-run-command
+        with:
+          run: |
+            work_dir=$(ls | grep polaris-server-release | sed -n '1p')
+            echo "work_dir is $work_dir"
+
+            cp -rf ./testdata/polaris-server.yaml $work_dir/
+
+            cd $work_dir
+            ls -alR
+            cat ./log/runtime/polaris-default.log
+
       # Run interface tests
       - name: run discover interface tests
         run: |
@@ -114,15 +127,3 @@ jobs:
           ./tool/stop.sh
           cd ..
 
-      - uses: webiny/action-post-run@3.0.0
-        id: post-run-command
-        with:
-          run: |
-            work_dir=$(ls | grep polaris-server-release | sed -n '1p')
-            echo "work_dir is $work_dir"
-
-            cp -rf ./testdata/polaris-server.yaml $work_dir/
-
-            cd $work_dir
-            ls -alR
-            cat ./log/runtime/polaris-default.log
