@@ -143,6 +143,10 @@ jobs:
           chmod +x ./tool/*.sh
           ./tool/start.sh
 
+          sleep 10s
+
+          cat ./log/runtime/polaris-default.log
+
           cd ..
           # 先测试普通的集成测试
           pushd ./test

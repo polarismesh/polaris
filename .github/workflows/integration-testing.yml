@@ -64,7 +64,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.17.1
+          go-version: 1.19
       # Checkout latest code
       - name: Checkout repo
         uses: actions/checkout@v2
@@ -99,6 +99,10 @@ jobs:
 
           chmod +x ./tool/*.sh
           ./tool/start.sh
+
+          sleep 10s
+
+          cat ./log/runtime/polaris-default.log
 
           cd ..
           # 先测试普通的集成测试
