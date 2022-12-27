@@ -143,10 +143,6 @@ jobs:
           chmod +x ./tool/*.sh
           ./tool/start.sh
 
-          sleep 120s
-
-          cat ./log/runtime/polaris-default.log
-
           cd ..
           # 先测试普通的集成测试
           pushd ./test
@@ -155,6 +151,20 @@ jobs:
           cd $work_dir
           ./tool/stop.sh
           cd ..
+
+      - uses: webiny/action-post-run@3.0.0
+        id: post-run-command
+        with:
+          run: |
+            work_dir=$(ls | grep polaris-server-release | sed -n '1p')
+            echo "work_dir is $work_dir"
+
+            cp -rf ./testdata/polaris-server.yaml $work_dir/
+
+            cd $work_dir
+            ls -alR
+            cat ./log/runtime/polaris-default.log
+
 
       # - name: run config-center interface tests
       #   run: |
