@@ -143,6 +143,11 @@ jobs:
           chmod +x ./tool/*.sh
           ./tool/start.sh
 
+          sleep 120s
+          ls -alR
+          cat ./log/stdout
+          grep -nr "error" ./log/runtime/*
+
           cd ..
           # 先测试普通的集成测试
           pushd ./test
@@ -151,6 +156,8 @@ jobs:
           cd $work_dir
           ./tool/stop.sh
           cd ..
+
+
 
       # - name: run config-center interface tests
       #   run: |

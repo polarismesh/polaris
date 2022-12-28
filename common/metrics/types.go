@@ -58,17 +58,17 @@ var (
 
 // redis metrics
 var (
-	redisReadFailure = prometheus.NewCounter(prometheus.CounterOpts{
+	redisReadFailure = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "redis_read_failure",
-		Help: "polaris exec redis read operation success",
+		Help: "polaris exec redis read operation failure",
 		ConstLabels: map[string]string{
 			"polaris_server_instance": utils.LocalHost,
 		},
 	})
 
-	redisWriteFailure = prometheus.NewCounter(prometheus.CounterOpts{
+	redisWriteFailure = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "redis_write_failure",
-		Help: "polaris exec redis write operation success",
+		Help: "polaris exec redis write operation failure",
 		ConstLabels: map[string]string{
 			"polaris_server_instance": utils.LocalHost,
 		},

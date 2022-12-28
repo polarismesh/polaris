@@ -85,7 +85,7 @@ bootstrap:
       #   - stderr
     xdsv3:
       rotateOutputPath: log/runtime/polaris-xdsv3.log
-      errorRotateOutputPath: log/polaris-xdsv3-error.log
+      errorRotateOutputPath: log/runtime/polaris-xdsv3-error.log
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
@@ -170,6 +170,17 @@ bootstrap:
       rotationMaxDurationForHour: 24
       outputLevel: info
       onlyContent: true
+      # outputPaths:
+      #   - stdout
+      # errorOutputPaths:
+      #   - stderr
+    cmdb:
+      rotateOutputPath: log/runtime/polaris-cmdb.log
+      errorRotateOutputPath: log/runtime/polaris-cmdb-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 10
+      rotationMaxAge: 7
+      outputLevel: info
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -401,6 +412,11 @@ plugin:
   #   name: whitelist
   #   option:
   #     ip: [127.0.0.1]
+  cmdb:
+    name: memory
+    option:
+      url: "http://127.0.0.1:36247"
+      interval: 60s
   history:
     name: HistoryLogger
   discoverEvent:
