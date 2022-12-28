@@ -23,19 +23,38 @@ webServer:
   mode: "release"
   listenIP: "0.0.0.0"
   listenPort: 8080
+  jwt:
+    secretKey: "polarismesh@2021"
+    expired: 1800
   namingV1URL: "/naming/v1"
   namingV2URL: "/naming/v2"
   authURL: "/core/v1"
-  requestURL: "/naming/v1"
   configURL: "/config/v1"
   monitorURL: "/api/v1"
   webPath: "web/dist/"
 polarisServer:
-  address: "polaris-server:8090"
-  polarisToken: "polaris@12345678"
+  address: "127.0.0.1:8090"
+  polarisToken: "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I="
 monitorServer:
-  address: "polaris-prometheus:9090"
-oaAuthority:
-  enableOAAuth: false
-hrData:
-  enableHrData: false
+  address: "127.0.0.1:9090"
+# eventServer:
+#   requestUrl:
+#   timeout: 5s
+# operationServer:
+#   requestUrl:
+#   timeout: 5s
+# 存储配置
+store:
+  # 数据库存储插件
+  name: defaultStore
+  option:
+    master:
+      dbType: mysql
+      dbName: polaris_console
+      dbUser: root
+      dbPwd: polaris
+      dbAddr: mysql:3306
+      maxOpenConns: 300
+      maxIdleConns: 50
+      connMaxLifetime: 300 # 单位秒
+      txIsolationLevel: 2 #LevelReadCommitted

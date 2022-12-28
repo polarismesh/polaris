@@ -121,7 +121,7 @@ data:
             - stderr
         discoverEventLocal:
           rotateOutputPath: log/event/polaris-discoverevent.log
-          errorRotateOutputPath: log/polaris-discoverevent-error.log
+          errorRotateOutputPath: log/event/polaris-discoverevent-error.log
           rotationMaxSize: 100
           rotationMaxBackups: 10
           rotationMaxAge: 7
@@ -253,14 +253,6 @@ data:
             openConnLimit: false
             maxConnPerHost: 128
             maxConnLimit: 10240
-      - name: prometheus-sd
-        option:
-          listenIP: "0.0.0.0"
-          listenPort: {{ .Values.service.prometheusPort }}
-          connLimit:
-            openConnLimit: false
-            maxConnPerHost: 128
-            maxConnLimit: 10240
     #  - name: service-l5
     #    option:
     #      listenIP: 0.0.0.0
@@ -371,7 +363,7 @@ data:
     store:
     {{- if eq .Values.global.mode "cluster" }}
     # 数据库存储插件
-    {{- with .Values.polaris.storage.db }}
+    {{- with .Values.polaris.storage.db.server }}
       name: defaultStore
       option:
         master:

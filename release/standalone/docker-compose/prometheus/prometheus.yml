@@ -16,5 +16,5 @@ scrape_configs:
     static_configs:
       - targets: [ "polaris-pushgateway:9091" ]
   - job_name: "polaris-server"
-    static_configs:
-      - targets: [ "polaris-server:9090" ]
+    http_sd_configs:
+      - url: "polaris-server:8090/prometheus/v1/clients"

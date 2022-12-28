@@ -27,9 +27,6 @@ spec:
     - port: {{ .Values.service.eurekaPort }}
       name: service-eureka
       targetPort: {{ .Values.service.eurekaPort }}
-    - port: {{ .Values.service.prometheusPort }}
-      name: prometheus-sd
-      targetPort: {{ .Values.service.prometheusPort }}
   selector:
     app: polaris
 ---

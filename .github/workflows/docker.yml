@@ -69,6 +69,6 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           DOCKER_TAG: ${{ steps.get_version.outputs.VERSION }}
         run: |
-          cd deploy/docker/prometheus
+          cd release/standalone/docker/prometheus
           ls -lstrh
           bash build_docker_prom.sh ${DOCKER_TAG}

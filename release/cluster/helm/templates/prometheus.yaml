@@ -46,10 +46,17 @@ spec:
       - image: {{ .Values.prometheus.image.repository }}:{{ .Values.prometheus.image.tag }}
         imagePullPolicy: {{ .Values.prometheus.image.pullPolicy }}
         name: polaris-prometheus
+        args:
+          - '--config.file=/etc/prometheus/prometheus.yaml'
+          - '--web.enable-lifecycle'
         resources:
           limits:
             cpu: "500m"
             memory: 1000Mi
+        volumeMounts:
+          - mountPath: /etc/prometheus/prometheus.yaml
+            name: polaris-prometheus-config
+            subPath: prometheus.yaml
       - image: {{ .Values.prometheus.pushgateway.image.repository }}:{{ .Values.prometheus.pushgateway.image.tag }}
         imagePullPolicy: {{ .Values.prometheus.pushgateway.image.pullPolicy }}
         name: polaris-pushgateway
@@ -58,3 +65,8 @@ spec:
             cpu: "500m"
             memory: 1000Mi
       restartPolicy: Always
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: polaris-prometheus-config
+          name: polaris-prometheus-config
