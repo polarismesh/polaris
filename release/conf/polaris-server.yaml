@@ -85,7 +85,7 @@ bootstrap:
       #   - stderr
     xdsv3:
       rotateOutputPath: log/runtime/polaris-xdsv3.log
-      errorRotateOutputPath: log/polaris-xdsv3-error.log
+      errorRotateOutputPath: log/runtime/polaris-xdsv3-error.log
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
