@@ -19,11 +19,14 @@ package sqldb
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/polarismesh/polaris/common/eventhub"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
@@ -59,6 +62,8 @@ type LeaderElectionStore interface {
 	CompareAndSwapVersion(key string, curVersion int64, newVersion int64, leader string) (bool, error)
 	// CheckMtimeExpired check mtime expired
 	CheckMtimeExpired(key string, leaseTime int32) (bool, error)
+	// ListLeaderElections list all leaderelection
+	ListLeaderElections() ([]*model.LeaderElection, error)
 }
 
 // leaderElectionStore
@@ -121,14 +126,68 @@ func (l *leaderElectionStore) CheckMtimeExpired(key string, leaseTime int32) (bo
 	return (count > 0), store.Error(err)
 }
 
+// ListLeaderElection
+func (l *leaderElectionStore) ListLeaderElections() ([]*model.LeaderElection, error) {
+	log.Info("[Store][database] list leader election")
+	mainStr := "select elect_key, leader, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) from leader_election"
+
+	rows, err := l.master.Query(mainStr)
+	if err != nil {
+		log.Errorf("[Store][database] list leader election query err: %s", err.Error())
+		return nil, store.Error(err)
+	}
+
+	return fetchLeaderElectionRows(rows)
+}
+
+func fetchLeaderElectionRows(rows *sql.Rows) ([]*model.LeaderElection, error) {
+	if rows == nil {
+		return nil, nil
+	}
+	defer rows.Close()
+
+	var out []*model.LeaderElection
+
+	for rows.Next() {
+		space := &model.LeaderElection{}
+		err := rows.Scan(
+			&space.ElectKey,
+			&space.Host,
+			&space.Ctime,
+			&space.Mtime)
+		if err != nil {
+			log.Errorf("[Store][database] fetch leader election rows scan err: %s", err.Error())
+			return nil, err
+		}
+
+		space.CreateTime = time.Unix(space.Ctime, 0)
+		space.ModifyTime = time.Unix(space.Mtime, 0)
+		space.Valid = checkLeaderValid(space.Mtime)
+		out = append(out, space)
+	}
+	if err := rows.Err(); err != nil {
+		log.Errorf("[Store][database] fetch leader election rows next err: %s", err.Error())
+		return nil, err
+	}
+
+	return out, nil
+}
+
+func checkLeaderValid(mtime int64) bool {
+	delta := time.Now().Unix() - mtime
+	return delta <= LeaseTime
+}
+
 // leaderElectionStateMachine
 type leaderElectionStateMachine struct {
-	electKey   string
-	leStore    LeaderElectionStore
-	leaderFlag int32
-	version    int64
-	ctx        context.Context
-	cancel     context.CancelFunc
+	electKey         string
+	leStore          LeaderElectionStore
+	leaderFlag       int32
+	version          int64
+	ctx              context.Context
+	cancel           context.CancelFunc
+	releaseSignal    int32
+	releaseTickLimit int32
 }
 
 // isLeader
@@ -155,7 +214,19 @@ func (le *leaderElectionStateMachine) mainLoop() {
 
 // tick
 func (le *leaderElectionStateMachine) tick() {
+	if le.checkReleaseTickLimit() {
+		log.Infof("[Store][database] abandon leader election in this tick (%s)", le.electKey)
+		return
+	}
+	shouldRelease := le.checkAndClearReleaseSignal()
+
 	if le.isLeader() {
+		if shouldRelease {
+			log.Infof("[Store][database] release leader election (%s)", le.electKey)
+			le.changeToFollower()
+			le.setReleaseTickLimit()
+			return
+		}
 		r, err := le.heartbeat()
 		if err != nil {
 			log.Errorf("[Store][database] leader heartbeat err (%s), change to follower state (%s)", err.Error(), le.electKey)
@@ -235,6 +306,26 @@ func (le *leaderElectionStateMachine) isLeaderAtomic() bool {
 	return isLeader(atomic.LoadInt32(&le.leaderFlag))
 }
 
+func (le *leaderElectionStateMachine) setReleaseSignal() {
+	atomic.StoreInt32(&le.releaseSignal, 1)
+}
+
+func (le *leaderElectionStateMachine) checkAndClearReleaseSignal() bool {
+	return atomic.CompareAndSwapInt32(&le.releaseSignal, 1, 0)
+}
+
+func (le *leaderElectionStateMachine) checkReleaseTickLimit() bool {
+	if le.releaseTickLimit > 0 {
+		le.releaseTickLimit = le.releaseTickLimit - 1
+		return true
+	}
+	return false
+}
+
+func (le *leaderElectionStateMachine) setReleaseTickLimit() {
+	le.releaseTickLimit = LeaseTime / TickTime * 3
+}
+
 // StartLeaderElection
 func (m *maintainStore) StartLeaderElection(key string) error {
 	m.mutex.Lock()
@@ -246,12 +337,14 @@ func (m *maintainStore) StartLeaderElection(key string) error {
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	le := &leaderElectionStateMachine{
-		electKey:   key,
-		leStore:    m.leStore,
-		leaderFlag: 0,
-		version:    0,
-		ctx:        ctx,
-		cancel:     cancel,
+		electKey:         key,
+		leStore:          m.leStore,
+		leaderFlag:       0,
+		version:          0,
+		ctx:              ctx,
+		cancel:           cancel,
+		releaseSignal:    0,
+		releaseTickLimit: 0,
 	}
 	err := le.leStore.CreateLeaderElection(key)
 	if err != nil {
@@ -282,6 +375,24 @@ func (maintain *maintainStore) IsLeader(key string) bool {
 		return false
 	}
 	return le.isLeaderAtomic()
+}
+
+// ListLeaderElections
+func (maintain *maintainStore) ListLeaderElections() ([]*model.LeaderElection, error) {
+	return maintain.leStore.ListLeaderElections()
+}
+
+// ReleaseLeaderElection
+func (maintain *maintainStore) ReleaseLeaderElection(key string) error {
+	maintain.mutex.Lock()
+	defer maintain.mutex.Unlock()
+	le, ok := maintain.leMap[key]
+	if !ok {
+		return fmt.Errorf("LeaderElection(%s) not started", key)
+	}
+
+	le.setReleaseSignal()
+	return nil
 }
 
 // BatchCleanDeletedInstances batch clean soft deleted instances

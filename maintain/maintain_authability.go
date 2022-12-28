@@ -115,3 +115,23 @@ func (svr *serverAuthAbility) SetLogOutputLevel(ctx context.Context, scope strin
 
 	return svr.targetServer.SetLogOutputLevel(ctx, scope, level)
 }
+
+func (svr *serverAuthAbility) ListLeaderElections(ctx context.Context) ([]*model.LeaderElection, error) {
+	authCtx := svr.collectMaintainAuthContext(ctx, model.Read, "ListLeaderElections")
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	return svr.targetServer.ListLeaderElections(ctx)
+}
+
+func (svr *serverAuthAbility) ReleaseLeaderElection(ctx context.Context, electKey string) error {
+	authCtx := svr.collectMaintainAuthContext(ctx, model.Modify, "ReleaseLeaderElection")
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	if err != nil {
+		return err
+	}
+
+	return svr.targetServer.ReleaseLeaderElection(ctx, electKey)
+}

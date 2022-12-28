@@ -1778,6 +1778,21 @@ func (mr *MockStoreMockRecorder) IsLeader(key interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsLeader", reflect.TypeOf((*MockStore)(nil).IsLeader), key)
 }
 
+// ListLeaderElections mocks base method.
+func (m *MockStore) ListLeaderElections() ([]*model.LeaderElection, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListLeaderElections")
+	ret0, _ := ret[0].([]*model.LeaderElection)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListLeaderElections indicates an expected call of ListLeaderElections.
+func (mr *MockStoreMockRecorder) ListLeaderElections() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListLeaderElections", reflect.TypeOf((*MockStore)(nil).ListLeaderElections))
+}
+
 // ListMasterCircuitBreakers mocks base method.
 func (m *MockStore) ListMasterCircuitBreakers(filters map[string]string, offset, limit uint32) (*model.CircuitBreakerDetail, error) {
 	m.ctrl.T.Helper()
@@ -1977,6 +1992,20 @@ func (m *MockStore) ReleaseCircuitBreaker(circuitBreakerRelation *model.CircuitB
 func (mr *MockStoreMockRecorder) ReleaseCircuitBreaker(circuitBreakerRelation interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseCircuitBreaker", reflect.TypeOf((*MockStore)(nil).ReleaseCircuitBreaker), circuitBreakerRelation)
+}
+
+// ReleaseLeaderElection mocks base method.
+func (m *MockStore) ReleaseLeaderElection(key string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReleaseLeaderElection", key)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReleaseLeaderElection indicates an expected call of ReleaseLeaderElection.
+func (mr *MockStoreMockRecorder) ReleaseLeaderElection(key interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseLeaderElection", reflect.TypeOf((*MockStore)(nil).ReleaseLeaderElection), key)
 }
 
 // RemoveStrategyResources mocks base method.

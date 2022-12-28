@@ -104,3 +104,17 @@ func enrichSetLogOutputLevelApiDocs(r *restful.RouteBuilder) *restful.RouteBuild
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Notes(enrichSetLogOutputLevelApiNotes)
 }
+
+func enrichListLeaderElectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("获取选主的结果").
+		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
+		Notes(enrichListLeaderElectionsApiNotes)
+}
+
+func enrichReleaseLeaderElectionApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("主动放弃主身份").
+		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
+		Notes(enrichReleaseLeaderElectionApiNotes)
+}

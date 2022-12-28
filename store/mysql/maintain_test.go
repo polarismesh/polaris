@@ -334,6 +334,80 @@ func TestMaintainStore_StartLeaderElection3(t *testing.T) {
 	m.StopLeaderElections()
 }
 
+func TestMaintainStore_ReleaseLeaderElection1(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockStore := mock.NewMockLeaderElectionStore(ctrl)
+	mockStore.EXPECT().CompareAndSwapVersion(TestElectKey, int64(42), int64(43), "127.0.0.1").Return(true, nil)
+
+	ctx, cancel := context.WithCancel(context.TODO())
+	le := leaderElectionStateMachine{
+		electKey:         TestElectKey,
+		leStore:          mockStore,
+		leaderFlag:       1,
+		version:          42,
+		ctx:              ctx,
+		cancel:           cancel,
+		releaseSignal:    0,
+		releaseTickLimit: 0,
+	}
+
+	le.tick()
+	if !le.isLeaderAtomic() {
+		t.Error("expect stay leader state")
+	}
+
+	le.setReleaseSignal()
+	le.tick()
+	if le.isLeaderAtomic() {
+		t.Error("expect to follower state")
+	}
+
+	limit := le.releaseTickLimit
+	for i := 0; i < int(limit); i++ {
+		le.tick()
+		if le.isLeaderAtomic() {
+			t.Error("expect stay follower state")
+		}
+	}
+
+	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(true, nil)
+	mockStore.EXPECT().GetVersion(TestElectKey).Return(int64(101), nil)
+	mockStore.EXPECT().CompareAndSwapVersion(TestElectKey, int64(101), int64(102), "127.0.0.1").Return(true, nil)
+
+	le.tick()
+	if !le.isLeaderAtomic() {
+		t.Error("expect to leader state")
+	}
+}
+
+func TestMaintainStore_ReleaseLeaderElection2(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockStore := mock.NewMockLeaderElectionStore(ctrl)
+	mockStore.EXPECT().CreateLeaderElection(TestElectKey).Return(nil)
+
+	m := &maintainStore{
+		leStore: mockStore,
+		leMap:   make(map[string]*leaderElectionStateMachine),
+	}
+
+	err := m.ReleaseLeaderElection(TestElectKey)
+	if err == nil {
+		t.Error("expect err when release not existed key")
+	}
+
+	_ = m.StartLeaderElection(TestElectKey)
+	err = m.ReleaseLeaderElection(TestElectKey)
+	if err != nil {
+		t.Errorf("unexpect err: %v", err)
+	}
+
+	m.StopLeaderElections()
+}
+
 func TestMain(m *testing.M) {
 	setup()
 	code := m.Run()

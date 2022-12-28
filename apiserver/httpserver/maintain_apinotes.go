@@ -176,4 +176,37 @@ Header X-Polaris-Token: {访问凭据}
     "level": "info"
 }
 `
+	enrichListLeaderElectionsApiNotes = `
+请求示例：
+
+~~~
+GET /maintain/v1/leaders
+Header X-Polaris-Token: {访问凭据}
+~~~
+
+返回示例：
+~~~
+[
+ {
+  "ElectKey": "polaris.checker",
+  "Host": "127.0.0.1",
+  "Ctime": 1669994957,
+  "CreateTime": "2022-12-02T23:29:17+08:00",
+  "Mtime": 1671288397,
+  "ModifyTime": "2022-12-17T22:46:37+08:00",
+  "Valid": true
+ }
+]
+`
+	enrichReleaseLeaderElectionApiNotes = `
+请求示例：
+
+~~~
+POST /maintain/v1/leaders/release
+Header X-Polaris-Token: {访问凭据}
+
+{
+    "ElectKey": "polaris.checker"
+}
+`
 )

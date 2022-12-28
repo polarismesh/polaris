@@ -26,9 +26,17 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 )
+
+func setup() {
+	eventhub.InitEventHub()
+}
+
+func teardown() {
+}
 
 func TestMaintainStore_BatchCleanDeletedInstances(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
@@ -106,4 +114,57 @@ func TestMaintainStore_BatchCleanDeletedInstances(t *testing.T) {
 		t.Fatalf("count not match, expect cnt=%d, actual cnt=%d", 2, count)
 	}
 
+}
+
+func TestMaintainStore_StartLeaderElection(t *testing.T) {
+	key := "TestElectKey"
+	mstore := &maintainStore{handler: nil, leMap: make(map[string]bool)}
+	isLeader := mstore.IsLeader(key)
+	if isLeader {
+		t.Error("expect follower state")
+	}
+
+	mstore.StartLeaderElection(key)
+	isLeader = mstore.IsLeader(key)
+	if !isLeader {
+		t.Error("expect leader state")
+	}
+}
+
+func TestMaintainStore_ReleaseLeaderElection(t *testing.T) {
+	key := "TestElectKey"
+	mstore := &maintainStore{handler: nil, leMap: make(map[string]bool)}
+	mstore.StartLeaderElection(key)
+	mstore.ReleaseLeaderElection(key)
+	isLeader := mstore.IsLeader(key)
+	if isLeader {
+		t.Error("expect follower state")
+	}
+}
+
+func TestMaintainStore_ListLeaderElections(t *testing.T) {
+	key := "TestElectKey"
+	mstore := &maintainStore{handler: nil, leMap: make(map[string]bool)}
+	mstore.StartLeaderElection(key)
+
+	out, err := mstore.ListLeaderElections()
+	if err != nil {
+		t.Errorf("should not err: %v", err)
+	}
+
+	if len(out) != 1 {
+		t.Error("expect one leader election")
+	}
+
+	if out[0].ElectKey != key {
+		t.Errorf("expect key: %s, actual key: %s", key, out[0].ElectKey)
+	}
+
+}
+
+func TestMain(m *testing.M) {
+	setup()
+	code := m.Run()
+	teardown()
+	os.Exit(code)
 }
