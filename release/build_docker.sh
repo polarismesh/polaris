@@ -50,4 +50,4 @@ if [ ${pre_release} == 0 ]; then
   extra_tags="-t ${docker_repository}/polaris-server:latest"
 fi
 
-docker buildx build --network=host -t ${docker_repository}/polaris-server:${docker_tag} ${extra_tags} --platform ${platforms} --push ./
+docker buildx build -f ./release/Dockerfile --network=host -t ${docker_repository}/polaris-server:${docker_tag} ${extra_tags} --platform ${platforms} --push ./

@@ -37,10 +37,16 @@ polaris:
     clientOpen: false
   storage:
     db:
-      address: localhost:3306
-      name: polaris_server
-      user: root
-      password: polaris@123456
+      server:
+        address: localhost:3306
+        name: polaris_server
+        user: root
+        password: polaris@123456
+      console:
+        address: localhost:3306
+        name: polaris_console
+        user: root
+        password: polaris@123456
     redis:
       address: localhost:6379
       # ACL user from redis v6.0, remove it if ACL is not available
@@ -67,7 +73,6 @@ service:
   serviceGrpcPort: 8091
   xdsv3Port: 15010
   configGrpcPort: 8093
-  prometheusPort: 9000
   limiterHttpPort: 8100
   limiterGrpcPort: 8101
 

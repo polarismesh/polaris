@@ -54,3 +54,7 @@ build: ## Build binary and tarball.
 .PHONY: build-docker
 build-docker: ## Build polaris-server docker images.
 	bash ./release/build_docker.sh $(IMAGE_TAG)
+
+.PHONY: clean
+clean: ## Clean polaris-server make data.
+	@rm -rf polaris-server-release_*
