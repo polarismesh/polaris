@@ -33,7 +33,10 @@ func enrichCreateConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteB
 	return r.
 		Doc("创建配置文件组").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Reads(api.ConfigFileGroup{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader X-Polaris-Token: {访问凭据}\n ```\n{\n    \"name\":\"someGroup\",\n    \"namespace\":\"someNamespace\",\n    \"comment\":\"some comment\",\n    \"createBy\":\"ledou\"\n}\n```")
+		Reads(api.ConfigFileGroup{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
+			" X-Polaris-Token: {访问凭据}\n ```\n{\n    \"name\":\"someGroup\",\n  "+
+			"  \"namespace\":\"someNamespace\",\n    \"comment\":\"some comment\",\n  "+
+			"  \"createBy\":\"ledou\"\n}\n```")
 }
 
 func enrichQueryConfigFileGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -43,8 +46,10 @@ func enrichQueryConfigFileGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteB
 		Param(restful.QueryParameter("namespace", "命名空间，不填表示全部命名空间").DataType("string").Required(false)).
 		Param(restful.QueryParameter("group", "配置文件分组名，模糊搜索").DataType("string").Required(false)).
 		Param(restful.QueryParameter("fileName", "配置文件名称，模糊搜索").DataType("string").Required(false)).
-		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("integer").Required(false).DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("integer").Required(true).DefaultValue("100"))
+		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("integer").
+			Required(false).DefaultValue("0")).
+		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("integer").
+			Required(true).DefaultValue("100"))
 }
 
 func enrichDeleteConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -59,14 +64,22 @@ func enrichUpdateConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteB
 	return r.
 		Doc("更新配置文件组").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Reads(api.ConfigFileGroup{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader X-Polaris-Token: {访问凭据}\n ```\n{\n    \"name\":\"someGroup\",\n    \"namespace\":\"someNamespace\",\n    \"comment\":\"some comment\",\n    \"createBy\":\"ledou\"\n}\n```")
+		Reads(api.ConfigFileGroup{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
+			" X-Polaris-Token: {访问凭据}\n ```\n{\n    \"name\":\"someGroup\",\n  "+
+			"  \"namespace\":\"someNamespace\",\n    \"comment\":\"some comment\",\n  "+
+			"   \"createBy\":\"ledou\"\n}\n```")
 }
 
 func enrichCreateConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("创建配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Reads(api.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader X-Polaris-Token: {访问凭据}\n ```{\n    \"name\":\"application.properties\",\n    \"namespace\":\"someNamespace\",\n    \"group\":\"someGroup\",\n    \"content\":\"redis.cache.age=10\",\n    \"comment\":\"第一个配置文件\",\n    \"tags\":[{\"key\":\"service\", \"value\":\"helloService\"}],\n    \"createBy\":\"ledou\",\n    \"format\":\"properties\"\n}\n```\n")
+		Reads(api.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
+			" X-Polaris-Token: {访问凭据}\n ```{\n    \"name\":\"application.properties\",\n   "+
+			" \"namespace\":\"someNamespace\",\n    \"group\":\"someGroup\",\n   "+
+			" \"content\":\"redis.cache.age=10\",\n    \"comment\":\"第一个配置文件\",\n  "+
+			"  \"tags\":[{\"key\":\"service\", \"value\":\"helloService\"}],\n  "+
+			"  \"createBy\":\"ledou\",\n    \"format\":\"properties\"\n}\n```\n")
 }
 
 func enrichGetConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -84,8 +97,10 @@ func enrichQueryConfigFilesByGroupApiDocs(r *restful.RouteBuilder) *restful.Rout
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
 		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(false)).
 		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(false)).
-		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("integer").Required(false).DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("integer").Required(true).DefaultValue("100"))
+		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("integer").
+			Required(false).DefaultValue("0")).
+		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("integer").
+			Required(true).DefaultValue("100"))
 }
 
 func enrichSearchConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -96,15 +111,22 @@ func enrichSearchConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(false)).
 		Param(restful.QueryParameter("name", "配置文件").DataType("string").Required(false)).
 		Param(restful.QueryParameter("tags", "格式：key1,value1,key2,value2").DataType("string").Required(false)).
-		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("integer").Required(false).DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("integer").Required(true).DefaultValue("100"))
+		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("integer").
+			Required(false).DefaultValue("0")).
+		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("integer").
+			Required(true).DefaultValue("100"))
 }
 
 func enrichUpdateConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("创建配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Reads(api.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader X-Polaris-Token: {访问凭据}\n ```{\n    \"name\":\"application.properties\",\n    \"namespace\":\"someNamespace\",\n    \"group\":\"someGroup\",\n    \"content\":\"redis.cache.age=10\",\n    \"comment\":\"第一个配置文件\",\n    \"tags\":[{\"key\":\"service\", \"value\":\"helloService\"}],\n    \"createBy\":\"ledou\",\n    \"format\":\"properties\"\n}\n```\n")
+		Reads(api.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
+			" X-Polaris-Token: {访问凭据}\n ```{\n    \"name\":\"application.properties\",\n   "+
+			" \"namespace\":\"someNamespace\",\n    \"group\":\"someGroup\",\n   "+
+			" \"content\":\"redis.cache.age=10\",\n    \"comment\":\"第一个配置文件\",\n   "+
+			" \"tags\":[{\"key\":\"service\", \"value\":\"helloService\"}],\n   "+
+			" \"createBy\":\"ledou\",\n    \"format\":\"properties\"\n}\n```\n")
 }
 
 func enrichDeleteConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -122,14 +144,19 @@ func enrichBatchDeleteConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteB
 		Doc("批量删除配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
 		Param(restful.QueryParameter("deleteBy", "操作人").DataType("string").Required(false)).
-		Reads(api.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader X-Polaris-Token: {访问凭据}\n```[\n     {\n         \"name\":\"application.properties\",\n         \"namespace\":\"someNamespace\",\n         \"group\":\"someGroup\"\n     }\n]\n```")
+		Reads(api.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
+			" X-Polaris-Token: {访问凭据}\n```[\n     {\n         \"name\":\"application.properties\",\n "+
+			"        \"namespace\":\"someNamespace\",\n         \"group\":\"someGroup\"\n     }\n]\n```")
 }
 
 func enrichPublishConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("发布配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Reads(api.ConfigFileRelease{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader X-Polaris-Token: {访问凭据}\n```{\n    \"name\":\"release-002\",\n    \"fileName\":\"application.properties\",\n    \"namespace\":\"someNamespace\",\n    \"group\":\"someGroup\",\n    \"comment\":\"发布第一个配置文件\",\n    \"createBy\":\"ledou\"\n}\n```")
+		Reads(api.ConfigFileRelease{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
+			" X-Polaris-Token: {访问凭据}\n```{\n    \"name\":\"release-002\",\n   "+
+			" \"fileName\":\"application.properties\",\n    \"namespace\":\"someNamespace\",\n   "+
+			" \"group\":\"someGroup\",\n    \"comment\":\"发布第一个配置文件\",\n    \"createBy\":\"ledou\"\n}\n```")
 }
 
 func enrichGetConfigFileReleaseApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -148,8 +175,10 @@ func enrichGetConfigFileReleaseHistoryApiDocs(r *restful.RouteBuilder) *restful.
 		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
 		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(false)).
 		Param(restful.QueryParameter("name", "配置文件").DataType("string").Required(false)).
-		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("integer").Required(false).DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("integer").Required(true).DefaultValue("100"))
+		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("integer").
+			Required(false).DefaultValue("0")).
+		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("integer").
+			Required(true).DefaultValue("100"))
 }
 
 func enrichGetAllConfigFileTemplatesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -171,7 +200,8 @@ func enrichGetConfigFileForClientApiDocs(r *restful.RouteBuilder) *restful.Route
 		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
 		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(true)).
 		Param(restful.QueryParameter("fileName", "配置文件名").DataType("string").Required(true)).
-		Param(restful.QueryParameter("version", "配置文件客户端版本号，刚启动时设置为 0").DataType("integer").Required(true))
+		Param(restful.QueryParameter("version", "配置文件客户端版本号，刚启动时设置为 0").
+			DataType("integer").Required(true))
 }
 
 func enrichWatchConfigFileForClientApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {

@@ -27,7 +27,9 @@ import (
 )
 
 // TestInitialize 包裹了初始化函数，在 Initialize 的时候会在自动调用，全局初始化一次
-func TestInitialize(_ context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) (AuthServer, error) {
+func TestInitialize(_ context.Context, authOpt *Config, storage store.Store,
+	cacheMgn *cache.CacheManager) (AuthServer, error) {
+
 	name := authOpt.Name
 	if name == "" {
 		return nil, errors.New("auth manager Name is empty")

@@ -200,7 +200,8 @@ func (svr *server) UpdateUserPassword(ctx context.Context, req *api.ModifyUserPa
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ignoreOrigin := authcommon.ParseUserRole(ctx) == model.AdminUserRole || authcommon.ParseUserRole(ctx) == model.OwnerUserRole
+	ignoreOrigin := authcommon.ParseUserRole(ctx) == model.AdminUserRole ||
+		authcommon.ParseUserRole(ctx) == model.OwnerUserRole
 	data, needUpdate, err := updateUserPasswordAttribute(ignoreOrigin, user, req)
 	if err != nil {
 		log.Error("[Auth][User] compute user update attribute", zap.Error(err),
@@ -621,7 +622,9 @@ func updateUserAttribute(old *model.User, newUser *api.User) (*model.User, bool,
 }
 
 // updateUserAttribute 更新用户密码信息，如果用户的密码被更新
-func updateUserPasswordAttribute(isAdmin bool, user *model.User, req *api.ModifyUserPassword) (*model.User, bool, error) {
+func updateUserPasswordAttribute(isAdmin bool, user *model.User,
+	req *api.ModifyUserPassword) (*model.User, bool, error) {
+
 	needUpdate := false
 
 	if err := checkPassword(req.NewPassword); err != nil {

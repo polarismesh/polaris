@@ -98,7 +98,8 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 	// 检查命名空间是否存在
 	namespace, err := s.storage.GetNamespace(namespaceName)
 	if err != nil {
-		log.Error("[Service] get namespace fail", utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
+		log.Error("[Service] get namespace fail", utils.ZapRequestID(requestID),
+			utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewServiceResponse(api.StoreLayerException, req)
 	}
 	if namespace == nil {
@@ -108,7 +109,8 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 	// 检查是否存在
 	service, err := s.storage.GetService(serviceName, namespaceName)
 	if err != nil {
-		log.Error("[Service] get service fail", utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
+		log.Error("[Service] get service fail", utils.ZapRequestID(requestID),
+			utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewServiceResponse(api.StoreLayerException, req)
 	}
 	if service != nil {
@@ -119,7 +121,8 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 	// 存储层操作
 	data := s.createServiceModel(req)
 	if err := s.storage.AddService(data); err != nil {
-		log.Error("[Service] save service fail", utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
+		log.Error("[Service] save service fail", utils.ZapRequestID(requestID),
+			utils.ZapPlatformID(platformID), zap.Error(err))
 		return wrapperServiceStoreResponse(req, err)
 	}
 

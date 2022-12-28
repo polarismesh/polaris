@@ -235,15 +235,19 @@ func (r *rateLimitStore) GetRateLimitWithID(id string) (*model.RateLimit, error)
 }
 
 // GetRateLimitsForCache 根据修改时间拉取增量限流规则及最新版本号
-func (r *rateLimitStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, []*model.RateLimitRevision, error) {
+func (r *rateLimitStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit,
+	[]*model.RateLimitRevision, error) {
 	handler := r.handler
 
 	if firstUpdate {
 		mtime = time.Time{}
 	}
 
-	serviceIds := make(map[string]struct{})
-	limitResults, err := handler.LoadValuesByFilter(tblRateLimitConfig, []string{RateConfFieldMtime, RateConfFieldServiceID}, &model.RateLimit{},
+	var (
+		serviceIds = make(map[string]struct{})
+		fields     = []string{RateConfFieldMtime, RateConfFieldServiceID}
+	)
+	limitResults, err := handler.LoadValuesByFilter(tblRateLimitConfig, fields, &model.RateLimit{},
 		func(m map[string]interface{}) bool {
 			mt := m[RateConfFieldMtime].(time.Time)
 			isAfter := !mt.Before(mtime)

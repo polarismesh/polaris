@@ -400,24 +400,29 @@ func (sc *serviceCache) notifyServiceCountReload(svcIds map[string]bool) {
 	sc.countChangeCh <- svcIds
 }
 
-/*
-Two Case
+// watchCountChangeCh
+// Two Case
+// Case ONE:
+//  1. T1, ServiceCache pulls all of the service information
+//  2. T2 time, instanecache pulls and updates the instance count information, and notify ServiceCache to
+//     count the namespace count Reload
 
-Case ONE:
-1. T1, ServiceCache pulls all of the service information
-2. T2 time, instanecache pulls and updates the instance count information, and notify ServiceCache to count the namespace count Reload
+// - In this case, the instancecache notifies the servicecache, ServiceCache is a fixed count update.
 
-- In this case, the instancecache notifies the servicecache, ServiceCache is a fixed count update.
+// Case TWO:
 
-Case TWO:
-1. T1, instanecache pulls and updates the instance count information, and notify ServiceCache to make a namespace count Reload
-2. T2 moments, ServiceCache pulls all of the service information
+//  1. T1, instanecache pulls and updates the instance count information, and notify ServiceCache to
+//     make a namespace count Reload
 
-  - This situation, ServiceCache does not update the count, because the corresponding service object has not been cached, you need to put it in a PendingService waiting
-  - Because under this case, WatchCountChangech is the first RELOAD notification from Instanecache, handled the reload notification of ServiceCache.
-  - Therefore, for the reload notification of instancecache, you need to record the non-existing SVCID record in the Pending list;
-    wait for the servicecache's Reload notification. after arriving, need to handle the last legacy PENDING calculation task.
-*/
+//  2. T2 moments, ServiceCache pulls all of the service information
+
+// - This situation, ServiceCache does not update the count, because the corresponding service object
+// has not been cached, you need to put it in a PendingService waiting
+// - Because under this case, WatchCountChangech is the first RELOAD notification from Instanecache,
+// handled the reload notification of ServiceCache.
+// - Therefore, for the reload notification of instancecache, you need to record the non-existing SVCID
+// record in the Pending list; wait for the servicecache's Reload notification. after arriving,
+// need to handle the last legacy PENDING calculation task.
 func (sc *serviceCache) watchCountChangeCh(ctx context.Context) {
 	for {
 		select {

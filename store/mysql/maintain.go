@@ -97,7 +97,9 @@ func (l *leaderElectionStore) GetVersion(key string) (int64, error) {
 }
 
 // CompareAndSwapVersion
-func (l *leaderElectionStore) CompareAndSwapVersion(key string, curVersion int64, newVersion int64, leader string) (bool, error) {
+func (l *leaderElectionStore) CompareAndSwapVersion(key string, curVersion int64, newVersion int64,
+	leader string) (bool, error) {
+
 	log.Debugf("[Store][database] compare and swap version (%s, %d, %d, %s)", key, curVersion, newVersion, leader)
 	mainStr := "update leader_election set leader = ?, version = ? where elect_key = ? and version = ?"
 	result, err := l.master.DB.Exec(mainStr, leader, newVersion, key, curVersion)
@@ -116,7 +118,8 @@ func (l *leaderElectionStore) CompareAndSwapVersion(key string, curVersion int64
 // CheckMtimeExpired
 func (l *leaderElectionStore) CheckMtimeExpired(key string, leaseTime int32) (bool, error) {
 	log.Debugf("[Store][database] check mtime expired (%s, %d)", key, leaseTime)
-	mainStr := "select count(1) from leader_election where elect_key = ? and mtime < FROM_UNIXTIME(UNIX_TIMESTAMP(SYSDATE()) - ?)"
+	mainStr := "select count(1) from leader_election where elect_key = ? and mtime < " +
+		" FROM_UNIXTIME(UNIX_TIMESTAMP(SYSDATE()) - ?)"
 
 	var count int32
 	err := l.master.DB.QueryRow(mainStr, key, leaseTime).Scan(&count)
@@ -229,7 +232,8 @@ func (le *leaderElectionStateMachine) tick() {
 		}
 		r, err := le.heartbeat()
 		if err != nil {
-			log.Errorf("[Store][database] leader heartbeat err (%s), change to follower state (%s)", err.Error(), le.electKey)
+			log.Errorf("[Store][database] leader heartbeat err (%s), change to follower state (%s)",
+				err.Error(), le.electKey)
 			le.changeToFollower()
 			return
 		}
@@ -239,7 +243,8 @@ func (le *leaderElectionStateMachine) tick() {
 	} else {
 		dead, err := le.checkLeaderDead()
 		if err != nil {
-			log.Errorf("[Store][database] check leader dead err (%s), stay follower state (%s)", err.Error(), le.electKey)
+			log.Errorf("[Store][database] check leader dead err (%s), stay follower state (%s)",
+				err.Error(), le.electKey)
 			return
 		}
 		if !dead {
@@ -407,7 +412,8 @@ func (maintain *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uin
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		log.Warnf("[Store][database] batch clean soft deleted instances(%d), get RowsAffected err: %s", batchSize, err.Error())
+		log.Warnf("[Store][database] batch clean soft deleted instances(%d), get RowsAffected err: %s",
+			batchSize, err.Error())
 		return 0, store.Error(err)
 	}
 

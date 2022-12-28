@@ -310,7 +310,8 @@ func (ss *serviceStore) GetServiceAliases(
 	var totalCount uint32
 
 	// find all alias service with filters
-	fields := []string{SvcFieldReference, SvcFieldValid, SvcFieldName, SvcFieldNamespace, SvcFieldMeta, SvcFieldDepartment, SvcFieldBusiness}
+	fields := []string{SvcFieldReference, SvcFieldValid, SvcFieldName, SvcFieldNamespace,
+		SvcFieldMeta, SvcFieldDepartment, SvcFieldBusiness}
 	for k := range filter {
 		fields = append(fields, k)
 	}
@@ -668,7 +669,8 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 		}
 	}
 
-	fields := []string{SvcFieldValid, SvcFieldNamespace, SvcFieldName, SvcFieldMeta, SvcFieldDepartment, SvcFieldBusiness, SvcFieldReference}
+	fields := []string{SvcFieldValid, SvcFieldNamespace, SvcFieldName, SvcFieldMeta, SvcFieldDepartment,
+		SvcFieldBusiness, SvcFieldReference}
 	if len(insFiltersIds) > 0 {
 		fields = append(fields, SvcFieldID)
 	}

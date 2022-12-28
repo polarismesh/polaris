@@ -437,7 +437,8 @@ func (rls *rateLimitStore) getExpandRateLimits(
 	str := `select service.name, service.namespace, ratelimit_config.id, ratelimit_config.name, ratelimit_config.disable,
             ratelimit_config.service_id, ratelimit_config.method, ratelimit_config.labels, 
             ratelimit_config.priority, ratelimit_config.rule, ratelimit_config.revision, 
-            unix_timestamp(ratelimit_config.ctime), unix_timestamp(ratelimit_config.mtime), unix_timestamp(ratelimit_config.etime) 
+            unix_timestamp(ratelimit_config.ctime), unix_timestamp(ratelimit_config.mtime), 
+			unix_timestamp(ratelimit_config.etime) 
 			from ratelimit_config, service 
 			where service_id = service.id and ratelimit_config.flag = 0`
 

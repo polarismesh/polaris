@@ -171,7 +171,9 @@ func convertEurekaInstance(instance *InstanceInfo, namespace string, appId strin
 	return targetInstance
 }
 
-func (h *EurekaServer) registerInstances(ctx context.Context, appId string, instance *InstanceInfo, replicated bool) uint32 {
+func (h *EurekaServer) registerInstances(ctx context.Context, appId string, instance *InstanceInfo,
+	replicated bool) uint32 {
+
 	appId = formatWriteName(appId)
 	// 1. 先转换数据结构
 	totalInstance := convertEurekaInstance(instance, h.namespace, appId, replicated)

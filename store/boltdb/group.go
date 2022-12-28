@@ -378,7 +378,8 @@ func (gs *groupStore) listSimpleGroups(filters map[string]string, offset uint32,
 }
 
 // listGroupByUser 查询某个用户下所关联的用户组信息
-func (gs *groupStore) listGroupByUser(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.UserGroup, error) {
+func (gs *groupStore) listGroupByUser(filters map[string]string, offset uint32,
+	limit uint32) (uint32, []*model.UserGroup, error) {
 
 	var (
 		userID            = filters["user_id"]

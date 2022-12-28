@@ -81,14 +81,19 @@ func enrichUpdateNamespaceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBu
 func enrichGetServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("获取服务列表").
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).
-		Param(restful.QueryParameter("name", "服务名").DataType("string").Required(false).DefaultValue("demo-service")).
-		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(false).DefaultValue("default")).
+		Param(restful.QueryParameter("name", "服务名").DataType("string").Required(false).
+			DefaultValue("demo-service")).
+		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(false).
+			DefaultValue("default")).
 		Param(restful.QueryParameter("business", "业务，默认模糊查询").DataType("string").Required(false)).
 		Param(restful.QueryParameter("department", "部门").DataType("string").Required(false)).
 		Param(restful.QueryParameter("host", "实例IP，**多个IP以英文逗号分隔**").DataType("string").Required(false)).
-		Param(restful.QueryParameter("port", "**实例端口**，**多个端口以英文逗号分隔** ").DataType("string").Required(false)).
-		Param(restful.QueryParameter("keys", "服务元数据名，keys和values需要同时填写，目前只支持查询一组元数据。").DataType("string").Required(false)).
-		Param(restful.QueryParameter("values", "服务元数据名，keys和values需要同时填写，目前只支持查询一组元数据。").DataType("string").Required(false)).
+		Param(restful.QueryParameter("port", "**实例端口**，**多个端口以英文逗号分隔** ").DataType("string").
+			Required(false)).
+		Param(restful.QueryParameter("keys", "服务元数据名，keys和values需要同时填写，目前只支持查询一组元数据。").
+			DataType("string").Required(false)).
+		Param(restful.QueryParameter("values", "服务元数据名，keys和values需要同时填写，目前只支持查询一组元数据。").
+			DataType("string").Required(false)).
 		Param(restful.QueryParameter("offset", "查询偏移量").DataType("integer").Required(false).DefaultValue("0")).
 		Param(restful.QueryParameter("limit", "查询条数，**最多查询100条**").DataType("integer").Required(false)).
 		Notes(enrichGetServicesApiNotes)
@@ -272,8 +277,10 @@ func enrichGetRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Param(restful.PathParameter("service", "服务名称").DataType("string").Required(false)).
 		Param(restful.PathParameter("namespace", "命名空间").DataType("string").Required(false)).
-		Param(restful.PathParameter("offset", "分页的起始位置，默认为0").DataType("integer").Required(false).DefaultValue("0")).
-		Param(restful.PathParameter("limit", "每页行数，默认100").DataType("integer").Required(false).DefaultValue("100")).
+		Param(restful.PathParameter("offset", "分页的起始位置，默认为0").DataType("integer").Required(false).
+			DefaultValue("0")).
+		Param(restful.PathParameter("limit", "每页行数，默认100").DataType("integer").Required(false).
+			DefaultValue("100")).
 		Notes(enrichGetRoutingsApiNotes)
 }
 
@@ -306,10 +313,14 @@ func enrichGetRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Param(restful.PathParameter("service", "服务名称").DataType("string").Required(false)).
 		Param(restful.PathParameter("namespace", "命名空间").DataType("string").Required(false)).
 		Param(restful.PathParameter("method", "限流接口名，默认为模糊匹配 ").DataType("string").Required(false)).
-		Param(restful.PathParameter("disable", "规则是否启用，true为不启用，false为启用").DataType("boolean").Required(false)).
-		Param(restful.PathParameter("brief", "是否只显示概要信息，brief=true时，则不返回规则详情，只返回规则列表概要信息，默认为false").DataType("boolean").Required(false).DefaultValue("false")).
-		Param(restful.PathParameter("offset", "分页的起始位置，默认为0").DataType("integer").Required(false).DefaultValue("0")).
-		Param(restful.PathParameter("limit", "每页行数，默认100  ").DataType("integer").Required(false).DefaultValue("100")).
+		Param(restful.PathParameter("disable", "规则是否启用，true为不启用，false为启用").DataType("boolean").
+			Required(false)).
+		Param(restful.PathParameter("brief", "是否只显示概要信息，brief=true时，只返回规则列表概要信息，默认为false").
+			DataType("boolean").Required(false).DefaultValue("false")).
+		Param(restful.PathParameter("offset", "分页的起始位置，默认为0").DataType("integer").Required(false).
+			DefaultValue("0")).
+		Param(restful.PathParameter("limit", "每页行数，默认100  ").DataType("integer").Required(false).
+			DefaultValue("100")).
 		Notes(enrichGetRateLimitsApiNotes)
 }
 

@@ -132,14 +132,14 @@ Header X-Polaris-Token: {访问凭据}
 
 请求参数：
 
-| 参数名              | 类型               | 描述                                                              | 是否必填 |
-| ------------------- | ------------------ | ----------------------------------------------------------------- | -------- |
-| id                  | string             | 实例id 如果存在id，后面参数可以不填名                                   | 否       |
-| service             | string             | 服务名                                                            | 否       |
-| namespace           | string             | 命名空间                                                          | 否       |
-| host                | string             | 实例的IP                                                          | 否       |
-| port                | string             | 实例的端口                                                        | 否       |
-| vpc_id              | string             | VPC ID                                                            | 否       |
+| 参数名              | 类型               | 描述                                       | 是否必填 |
+| ------------------- | ------------------ | ------------------------------------------ | -------- |
+| id                  | string             | 实例id 如果存在id，后面参数可以不填名            | 否       |
+| service             | string             | 服务名                                     | 否       |
+| namespace           | string             | 命名空间                                   | 否       |
+| host                | string             | 实例的IP                                   | 否       |
+| port                | string             | 实例的端口                                 | 否       |
+| vpc_id              | string             | VPC ID                                     | 否       |
 `
 	enrichGetLogOutputLevelApiNotes = `
 请求示例：

@@ -62,8 +62,10 @@ func (svr *serverAuthAbility) ReportClient(ctx context.Context, req *api.Client)
 	return svr.targetServer.ReportClient(ctx, req)
 }
 
-// GetReportClientWithCache Used for client acquisition service information
-func (svr *serverAuthAbility) GetPrometheusTargets(ctx context.Context, query map[string]string) *model.PrometheusDiscoveryResponse {
+// GetPrometheusTargets Used for client acquisition service information
+func (svr *serverAuthAbility) GetPrometheusTargets(ctx context.Context,
+	query map[string]string) *model.PrometheusDiscoveryResponse {
+
 	return svr.targetServer.GetPrometheusTargets(ctx, query)
 }
 

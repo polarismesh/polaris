@@ -108,7 +108,8 @@ func NewConfigFileTemplateResponseWithMessage(code uint32, message string) *Conf
 	}
 }
 
-func NewConfigFileTemplateBatchQueryResponse(code uint32, total uint32, configFileTemplates []*ConfigFileTemplate) *ConfigBatchQueryResponse {
+func NewConfigFileTemplateBatchQueryResponse(code uint32, total uint32,
+	configFileTemplates []*ConfigFileTemplate) *ConfigBatchQueryResponse {
 	return &ConfigBatchQueryResponse{
 		Code:                &wrappers.UInt32Value{Value: code},
 		Info:                &wrappers.StringValue{Value: code2info[code]},
@@ -132,7 +133,8 @@ func NewConfigFileReleaseResponseWithMessage(code uint32, message string) *Confi
 	}
 }
 
-func NewConfigFileReleaseHistoryResponse(code uint32, configFileReleaseHistory *ConfigFileReleaseHistory) *ConfigResponse {
+func NewConfigFileReleaseHistoryResponse(code uint32,
+	configFileReleaseHistory *ConfigFileReleaseHistory) *ConfigResponse {
 	return &ConfigResponse{
 		Code:                     &wrappers.UInt32Value{Value: code},
 		Info:                     &wrappers.StringValue{Value: code2info[code]},

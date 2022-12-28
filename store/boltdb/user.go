@@ -415,7 +415,9 @@ func (us *userStore) getUsers(filters map[string]string, offset uint32, limit ui
 }
 
 // getGroupUsers 获取某个用户组下的所有用户列表数据信息
-func (us *userStore) getGroupUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error) {
+func (us *userStore) getGroupUsers(filters map[string]string, offset uint32, limit uint32) (uint32,
+	[]*model.User, error) {
+
 	groupId := filters["group_id"]
 	delete(filters, "group_id")
 
