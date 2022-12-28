@@ -143,6 +143,10 @@ jobs:
           chmod +x ./tool/*.sh
           ./tool/start.sh
 
+          sleep 120s
+          ls -alR
+          grep -nr "error" ./log/runtime/*
+
           cd ..
           # 先测试普通的集成测试
           pushd ./test

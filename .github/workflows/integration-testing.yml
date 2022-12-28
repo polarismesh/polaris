@@ -101,9 +101,8 @@ jobs:
           ./tool/start.sh
 
           sleep 120s
-
           ls -alR
-          cat ./log/runtime/polaris-default.log
+          grep -nr "error" ./log/runtime/*
 
           cd ..
           # 先测试普通的集成测试
