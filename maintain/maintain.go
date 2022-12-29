@@ -175,7 +175,7 @@ func (svr *Server) GetCMDBInfo(ctx context.Context) ([]model.LocationView, error
 	}
 
 	ret := make([]model.LocationView, 0, 32)
-	cmdb.Range(func(host string, location *model.Location) (bool, error) {
+	_ = cmdb.Range(func(host string, location *model.Location) (bool, error) {
 		ret = append(ret, model.LocationView{
 			IP:       host,
 			Region:   location.Proto.GetRegion().GetValue(),
