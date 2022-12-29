@@ -30,6 +30,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
@@ -1979,4 +1980,84 @@ func TestCheckInstanceParam(t *testing.T) {
 			t.Fatalf("%+v", resp)
 		}
 	})
+}
+
+func Test_isEmptyLocation(t *testing.T) {
+	type args struct {
+		loc *api.Location
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "test-1",
+			args: args{
+				loc: &api.Location{},
+			},
+			want: true,
+		},
+		{
+			name: "test-2",
+			args: args{
+				loc: &api.Location{
+					Region: &wrapperspb.StringValue{
+						Value: "Region",
+					},
+					Zone: &wrapperspb.StringValue{
+						Value: "Zone",
+					},
+					Campus: &wrapperspb.StringValue{
+						Value: "",
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "test-2",
+			args: args{
+				loc: &api.Location{
+					Region: &wrapperspb.StringValue{
+						Value: "",
+					},
+					Zone: &wrapperspb.StringValue{
+						Value: "Zone",
+					},
+					Campus: &wrapperspb.StringValue{
+						Value: "Campus",
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "test-2",
+			args: args{
+				loc: nil,
+			},
+			want: true,
+		},
+		{
+			name: "test-2",
+			args: args{
+				loc: &api.Location{
+					Region: nil,
+					Zone: &wrapperspb.StringValue{
+						Value: "Zone",
+					},
+					Campus: nil,
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isEmptyLocation(tt.args.loc); got != tt.want {
+				t.Errorf("isEmptyLocation() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

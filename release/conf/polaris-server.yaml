@@ -415,7 +415,7 @@ plugin:
   cmdb:
     name: memory
     option:
-      url: "http://127.0.0.1:35323"
+      url: "http://127.0.0.1:35225"
       interval: 60s
   history:
     name: HistoryLogger
