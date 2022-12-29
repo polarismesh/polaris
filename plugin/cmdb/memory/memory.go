@@ -118,24 +118,30 @@ func (m *Memory) GetLocation(host string) (*model.Location, error) {
 }
 
 func (m *Memory) doFetch(ctx context.Context, interval time.Duration) {
+	work := func() {
+		ret, ips, err := m.fetcher.GetIPs()
+		if err != nil {
+			log.Error("[CMDB][Memory] fetch data from remote fail", zap.Error(err))
+			return
+		}
+
+		data, err := json.Marshal(ret)
+		if err != nil {
+			log.Error("[CMDB][Memory] marshal receive cmdb data", zap.Error(err))
+		} else {
+			log.Infof("[CMDB][Memory] receive cmdb data \n%s\n", string(data))
+		}
+
+		m.IPs.Store(&ips)
+	}
+
+	work()
+
 	ticker := time.NewTicker(interval)
 	for {
 		select {
 		case <-ticker.C:
-			ret, ips, err := m.fetcher.GetIPs()
-			if err != nil {
-				log.Error("[CMDB][Memory] fetch data from remote fail", zap.Error(err))
-				continue
-			}
-
-			data, err := json.Marshal(ret)
-			if err != nil {
-				log.Error("[CMDB][Memory] marshal receive cmdb data", zap.Error(err))
-			} else {
-				log.Infof("[CMDB][Memory] receive cmdb data \n%s\n", string(data))
-			}
-
-			m.IPs.Store(&ips)
+			work()
 		case <-ctx.Done():
 			return
 		}

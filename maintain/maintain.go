@@ -27,6 +27,7 @@ import (
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 func (s *Server) GetServerConnections(_ context.Context, req *ConnReq) (*ConnCountResp, error) {
@@ -165,4 +166,27 @@ func (s *Server) ListLeaderElections(_ context.Context) ([]*model.LeaderElection
 func (s *Server) ReleaseLeaderElection(_ context.Context, electKey string) error {
 	return s.storage.ReleaseLeaderElection(electKey)
 
+}
+
+func (svr *Server) GetCMDBInfo(ctx context.Context) ([]model.LocationView, error) {
+	cmdb := plugin.GetCMDB()
+	if cmdb == nil {
+		return []model.LocationView{}, nil
+	}
+
+	ret := make([]model.LocationView, 0, 32)
+	cmdb.Range(func(host string, location *model.Location) (bool, error) {
+		ret = append(ret, model.LocationView{
+			IP:       host,
+			Region:   location.Proto.GetRegion().GetValue(),
+			Zone:     location.Proto.GetZone().GetValue(),
+			Campus:   location.Proto.GetCampus().GetValue(),
+			RegionID: location.RegionID,
+			ZoneID:   location.ZoneID,
+			CampusID: location.CampusID,
+		})
+		return true, nil
+	})
+
+	return ret, nil
 }

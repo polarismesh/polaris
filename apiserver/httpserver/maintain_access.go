@@ -48,6 +48,7 @@ func (h *HTTPServer) GetMaintainAccessServer() *restful.WebService {
 	ws.Route(enrichSetLogOutputLevelApiDocs(ws.PUT("/log/outputlevel").To(h.SetLogOutputLevel)))
 	ws.Route(enrichListLeaderElectionsApiDocs(ws.GET("/leaders").To(h.ListLeaderElections)))
 	ws.Route(enrichReleaseLeaderElectionApiDocs(ws.POST("/leaders/release").To(h.ReleaseLeaderElection)))
+	ws.Route(ws.GET("/cmdb/info").To(h.GetCMDBInfo))
 	return ws
 }
 
@@ -262,6 +263,17 @@ func (h *HTTPServer) ReleaseLeaderElection(req *restful.Request, rsp *restful.Re
 		return
 	}
 	_ = rsp.WriteEntity("ok")
+}
+
+func (h *HTTPServer) GetCMDBInfo(req *restful.Request, rsp *restful.Response) {
+	ctx := initContext(req)
+
+	ret, err := h.maintainServer.GetCMDBInfo(ctx)
+	if err != nil {
+		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
+		return
+	}
+	_ = rsp.WriteAsJson(ret)
 }
 
 func initContext(req *restful.Request) context.Context {
