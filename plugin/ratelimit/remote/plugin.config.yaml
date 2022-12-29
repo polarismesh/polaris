@@ -4,6 +4,6 @@ plugin:
     option:
       name: rate-limit-server-v2
       mode: companion
-      remote:
+      companion:
         path: "../polaris-server-remote-plugin-common/examples/remote-rate-limit-server-v2"
         max-procs: 4

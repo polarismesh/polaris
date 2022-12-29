@@ -36,6 +36,7 @@ import (
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/pluggable"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/common/version"
 	config_center "github.com/polarismesh/polaris/config"
@@ -64,12 +65,12 @@ func Start(configFilePath string) {
 		return
 	}
 
-	c, err := yaml.Marshal(cfg)
+	_, err = yaml.Marshal(cfg)
 	if err != nil {
 		fmt.Printf("[ERROR] config yaml marshal fail\n")
 		return
 	}
-	fmt.Printf(string(c))
+	//fmt.Printf(string(c))
 
 	// 初始化日志打印
 	err = log.Configure(cfg.Bootstrap.Logger)
@@ -90,6 +91,12 @@ func Start(configFilePath string) {
 	}
 
 	metrics.InitMetrics()
+
+	// 加载可插拔插件
+	if err = pluggable.Discover(ctx); err != nil {
+		fmt.Printf("[ERROR] discover pluggable plugin fail: %+v", err)
+		return
+	}
 
 	// 设置插件配置
 	plugin.SetPluginConfig(&cfg.Plugin)

@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"os"
 
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/auth"
@@ -99,7 +99,7 @@ func Load(filePath string) (*Config, error) {
 		return nil, err
 	}
 
-	fmt.Printf("[INFO] load config from %v\n", filePath)
+	//fmt.Printf("[INFO] load config from %v\n", filePath)
 
 	file, err := os.Open(filePath)
 	if err != nil {

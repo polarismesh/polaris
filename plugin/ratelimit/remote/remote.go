@@ -30,7 +30,7 @@ var _ plugin.Ratelimit = (*RateLimiter)(nil)
 // RateLimiter 远程限流插件
 type RateLimiter struct {
 	cfg    *client.Config
-	client *client.Client
+	client client.Client
 }
 
 // Name 返回插件名

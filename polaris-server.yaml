@@ -435,10 +435,11 @@ plugin:
   auth:
     name: defaultAuth
   ratelimit:
-    name: remote-rate-limit
-    option:
-      name: rate-limit-server-v2
-      mode: local
-      local:
-        path: "../polaris-server-remote-plugin-common/remote-rate-limit-server-v2"
-        max-procs: 4
+    name: pluggable-rate-limit
+#    name: remote-rate-limit
+#    option:
+#      name: rate-limit-server-v2
+#      mode: companion
+#      companion:
+#        path: ../polaris-server-remote-plugin-common/remote-rate-limit-server-v2
+#        max-procs: 4

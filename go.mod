@@ -6,7 +6,7 @@ require (
 	bou.ke/monkey v1.0.2
 	github.com/BurntSushi/toml v1.2.0
 	github.com/boltdb/bolt v1.3.1
-	github.com/emicklei/go-restful/v3 v3.9.0
+	github.com/emicklei/go-restful/v3 v3.10.0
 	github.com/envoyproxy/go-control-plane v0.10.2-0.20220325020618-49ff273808a1
 	github.com/go-openapi/spec v0.20.7
 	github.com/go-redis/redis/v8 v8.11.5
@@ -45,7 +45,10 @@ replace github.com/polaris-contrib/polaris-server-remote-plugin-common => ../pol
 
 require github.com/hashicorp/go-plugin v1.4.6 // indirect
 
-require github.com/hashicorp/go-hclog v1.3.1
+require (
+	github.com/hashicorp/go-hclog v1.3.1
+	github.com/jhump/protoreflect v1.6.0
+)
 
 require (
 	github.com/fatih/color v1.13.0 // indirect
