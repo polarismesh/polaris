@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"time"
 
-	pluginsdk "github.com/polaris-contrib/polaris-server-remote-plugin-common"
 	"github.com/polaris-contrib/polaris-server-remote-plugin-common/api"
+	"google.golang.org/grpc"
 
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/pluggable"
@@ -38,7 +38,7 @@ const (
 // 插件注册
 func init() {
 	pluggable.AddOnFinished(
-		api.Plugin_ServiceDesc.ServiceName,
+		api.RateLimiter_ServiceDesc.ServiceName,
 		func(name string, dialer pluggable.GRPCConnectionDialer) {
 			log.Infof("[Pluggable] registering rate limit plugin %s", name)
 			plugin.RegisterPlugin(PluginName, newGRPCRateLimiter(dialer))
@@ -49,13 +49,20 @@ func init() {
 // newGRPCRateLimiter creates a new grpc rate limiter.
 func newGRPCRateLimiter(dialer pluggable.GRPCConnectionDialer) *RateLimiter {
 	return &RateLimiter{
-		GRPCConnector: pluggable.NewGRPCConnectorWithDialer(dialer, api.NewPluginClient),
+		GRPCConnector: pluggable.NewGRPCConnectorWithDialer(
+			dialer,
+			func(connInterface grpc.ClientConnInterface) pluggable.GRPCPluginClient {
+				client := api.NewRateLimiterClient(connInterface)
+				return client.(pluggable.GRPCPluginClient)
+			},
+		),
 	}
 }
 
 // RateLimiter pluggable rate limit plugin
 type RateLimiter struct {
 	*pluggable.GRPCConnector
+	client api.RateLimiterClient
 }
 
 // Name returns the name of the plugin.
@@ -72,6 +79,12 @@ func (r *RateLimiter) Initialize(c *plugin.ConfigEntry) error {
 	if err := r.Ping(context.Background()); err != nil {
 		return fmt.Errorf("[Pluggable] failed to ping plugin server: %w", err)
 	}
+
+	client, ok := r.Client.(api.RateLimiterClient)
+	if !ok {
+		return fmt.Errorf("[Pluggable] failed to convert client to rate limiter client")
+	}
+	r.client = client
 
 	log.Infof("[Pluggable] initialized pluggable rate limit plugin")
 	return nil
@@ -98,22 +111,14 @@ func (r *RateLimiter) Allow(typ plugin.RatelimitType, key string) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	req, err := pluginsdk.MarshalRequest(&api.RateLimitPluginRequest{
+	req := &api.RateLimitRequest{
 		Type: rateLimitTypes[typ],
 		Key:  key,
-	})
-
-	rsp, err := r.Call(ctx, req)
+	}
+	rsp, err := r.client.Allow(ctx, req)
 	if err != nil {
 		log.Errorf("[Pluggable] fail to request plugin server, get error: %v", err)
 		return false
 	}
-
-	var reply api.RateLimitPluginResponse
-	if err = pluginsdk.UnmarshalResponse(rsp, &reply); err != nil {
-		log.Errorf("[Pluggable] unmarshal response go error: %v", err)
-		return false
-	}
-
-	return reply.GetAllow()
+	return rsp.GetAllow()
 }

@@ -57,12 +57,19 @@ func SocketDialContext(ctx context.Context, socket string, opts ...grpc.DialOpti
 	return grpcConn, nil
 }
 
+// GRPCPluginClient defines the interface for a grpc plugin client, so all grpc plugin service must implement the
+// Ping method, and polaris server will call it to check the health of the plugin.
+type GRPCPluginClient interface {
+	Ping(ctx context.Context, in *api.PingRequest, opts ...grpc.CallOption) (*api.PongResponse, error)
+}
+
 // GRPCConnector is a connector that uses underlying gRPC protocol for common operations.
 type GRPCConnector struct {
-	client        api.PluginClient
+	// Client is the client that is used to communicate with the plugin, exposed for plugin logic layer.
+	Client        GRPCPluginClient
 	dialer        GRPCConnectionDialer
 	conn          *grpc.ClientConn
-	clientFactory func(grpc.ClientConnInterface) api.PluginClient
+	clientFactory func(grpc.ClientConnInterface) GRPCPluginClient
 }
 
 // Dial opens a grpcConnection and creates a new client instance.
@@ -73,7 +80,7 @@ func (g *GRPCConnector) Dial(ctx context.Context, name string) error {
 	}
 	g.conn = grpcConn
 
-	g.client = g.clientFactory(grpcConn)
+	g.Client = g.clientFactory(grpcConn)
 	return nil
 }
 
@@ -87,13 +94,8 @@ func socketDialer(socket string, additionalOpts ...grpc.DialOption) GRPCConnecti
 // Ping pings the grpc component.
 // It uses "WaitForReady" avoiding failing in transient failures.
 func (g *GRPCConnector) Ping(ctx context.Context) error {
-	_, err := g.client.Ping(ctx, &api.PingRequest{}, grpc.WaitForReady(true))
+	_, err := g.Client.Ping(ctx, &api.PingRequest{}, grpc.WaitForReady(true))
 	return err
-}
-
-// Call calls the given function with the given arguments.
-func (g *GRPCConnector) Call(ctx context.Context, req *api.Request) (*api.Response, error) {
-	return g.client.Call(ctx, req)
 }
 
 // Close closes the underlying gRPC connection.
@@ -103,7 +105,7 @@ func (g *GRPCConnector) Close() error {
 
 // NewGRPCConnectorWithDialer creates a new grpc connector for the given client factory and dialer.
 func NewGRPCConnectorWithDialer(
-	dialer GRPCConnectionDialer, factory func(grpc.ClientConnInterface) api.PluginClient) *GRPCConnector {
+	dialer GRPCConnectionDialer, factory func(grpc.ClientConnInterface) GRPCPluginClient) *GRPCConnector {
 	return &GRPCConnector{
 		dialer:        dialer,
 		clientFactory: factory,

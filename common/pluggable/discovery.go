@@ -64,6 +64,17 @@ func Discovery(ctx context.Context) error {
 	return nil
 }
 
+func finished(services []pluginService) {
+	for _, svc := range services {
+		cb, ok := onFinished[svc.protoRef]
+		if !ok {
+			continue
+		}
+		cb(svc.name, svc.dialer)
+		log.Infof("discovered pluggable component service: ", svc.protoRef)
+	}
+}
+
 // pluginService represents a service found by the discovery process.
 type pluginService struct {
 	name     string
@@ -173,17 +184,6 @@ func reflectionConnectionCleanup(conn *grpc.ClientConn, client *grpcreflect.Clie
 		if err != nil {
 			log.Errorf("error closing grpc reflection connection: %v", err)
 		}
-	}
-}
-
-func finished(services []pluginService) {
-	for _, svc := range services {
-		cb, ok := onFinished[svc.protoRef]
-		if !ok {
-			continue
-		}
-		cb(svc.name, svc.dialer)
-		log.Infof("discovered pluggable component service: ", svc.protoRef)
 	}
 }
 
