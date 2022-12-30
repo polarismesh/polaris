@@ -51,6 +51,7 @@ help: ## Display this help.
 #build: ## Build binary and tarball.
 #	bash ./release/build.sh $(VERSION)
 
+
 .PHONY: build-docker
 build-docker: ## Build polaris-server docker images.
 	bash ./release/build_docker.sh $(IMAGE_TAG)
