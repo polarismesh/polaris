@@ -82,7 +82,7 @@ func (m *shardMap) PutIfAbsent(instanceId string, value ItemWithChecker) (ItemWi
 		return oldValue, true
 	}
 	shard.mutex.Unlock()
-	return value, false
+	return oldValue, false
 }
 
 // Load loads the values under the instanceId.

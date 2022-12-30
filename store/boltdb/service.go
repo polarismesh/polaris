@@ -31,7 +31,6 @@ import (
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
-	"github.com/polarismesh/polaris/store/sqldb"
 )
 
 type serviceStore struct {
@@ -276,7 +275,7 @@ func (ss *serviceStore) GetMoreServices(
 				if !ok {
 					return false
 				}
-				if serviceNs.(string) != sqldb.SystemNamespace {
+				if serviceNs.(string) != SystemNamespace {
 					return false
 				}
 			}
@@ -311,7 +310,8 @@ func (ss *serviceStore) GetServiceAliases(
 	var totalCount uint32
 
 	// find all alias service with filters
-	fields := []string{SvcFieldReference, SvcFieldValid, SvcFieldName, SvcFieldNamespace, SvcFieldMeta, SvcFieldDepartment, SvcFieldBusiness}
+	fields := []string{SvcFieldReference, SvcFieldValid, SvcFieldName, SvcFieldNamespace,
+		SvcFieldMeta, SvcFieldDepartment, SvcFieldBusiness}
 	for k := range filter {
 		fields = append(fields, k)
 	}
@@ -453,7 +453,7 @@ func (ss *serviceStore) GetSystemServices() ([]*model.Service, error) {
 			if !ok {
 				return false
 			}
-			if svcNamespace.(string) == sqldb.SystemNamespace {
+			if svcNamespace.(string) == SystemNamespace {
 				return true
 			}
 			return false
@@ -669,7 +669,8 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 		}
 	}
 
-	fields := []string{SvcFieldValid, SvcFieldNamespace, SvcFieldName, SvcFieldMeta, SvcFieldDepartment, SvcFieldBusiness, SvcFieldReference}
+	fields := []string{SvcFieldValid, SvcFieldNamespace, SvcFieldName, SvcFieldMeta, SvcFieldDepartment,
+		SvcFieldBusiness, SvcFieldReference}
 	if len(insFiltersIds) > 0 {
 		fields = append(fields, SvcFieldID)
 	}

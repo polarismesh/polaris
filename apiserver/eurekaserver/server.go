@@ -27,12 +27,13 @@ import (
 	"strings"
 	"time"
 
-	restful "github.com/emicklei/go-restful/v3"
+	"github.com/emicklei/go-restful/v3"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/bootstrap"
-	"github.com/polarismesh/polaris/common/connlimit"
+	"github.com/polarismesh/polaris/common/conn/limit"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/secure"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -61,6 +62,7 @@ const (
 	MetadataInsecurePortEnabled = "internal-eureka-insecure-port-enabled"
 	MetadataSecurePort          = "internal-eureka-secure-port"
 	MetadataSecurePortEnabled   = "internal-eureka-secure-port-enabled"
+	MetadataReplicate           = "internal-eureka-replicate"
 
 	ServerEureka = "eureka"
 
@@ -133,6 +135,7 @@ type EurekaServer struct {
 	refreshInterval        time.Duration
 	deltaExpireInterval    time.Duration
 	enableSelfPreservation bool
+	replicateWorker        *ReplicateWorker
 }
 
 // GetPort 获取端口
@@ -161,6 +164,20 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 		}
 	}
 	h.namespace = namespace
+
+	if replicatePeersValue, ok := option[optionPeerNodesToReplicate]; ok {
+		replicatePeerObjs := replicatePeersValue.([]interface{})
+		if len(replicatePeerObjs) > 0 {
+			replicatePeers := make([]string, 0, len(replicatePeerObjs))
+			for _, replicatePeerObj := range replicatePeerObjs {
+				replicatePeers = append(replicatePeers, replicatePeerObj.(string))
+			}
+			h.replicateWorker = NewReplicateWorker(ctx, replicatePeers)
+			if err := eventhub.Subscribe(eventhub.InstanceEventTopic, "eureka-replication", h.handleInstanceEvent); nil != err {
+				return err
+			}
+		}
+	}
 
 	var refreshInterval int
 	if value, ok := option[optionRefreshInterval]; ok {
@@ -213,7 +230,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 
 // Run 启动HTTP API服务器
 func (h *EurekaServer) Run(errCh chan error) {
-	log.Infof("start eurekaserver")
+	log.Infof("start EurekaServer")
 	h.exitCh = make(chan struct{})
 	h.start = true
 	defer func() {
@@ -284,7 +301,7 @@ func (h *EurekaServer) Run(errCh chan error) {
 		}
 		return
 	}
-	log.Infof("eurekaserver stop")
+	log.Infof("EurekaServer stop")
 }
 
 // 创建handler

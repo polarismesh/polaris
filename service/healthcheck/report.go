@@ -22,6 +22,7 @@ import (
 	"time"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 )
@@ -59,6 +60,9 @@ func (s *Server) doReport(ctx context.Context, instance *api.Instance) *api.Resp
 	instance.Id = utils.NewStringValue(id)
 	insCache := s.cacheProvider.GetInstance(id)
 	if insCache == nil {
+		insCache = s.cacheProvider.GetSelfServiceInstance(id)
+	}
+	if insCache == nil {
 		return api.NewInstanceResponse(api.HeartbeatOnDisabledIns, instance)
 	}
 	checker, ok := s.checkers[int32(insCache.HealthCheck().GetType())]
@@ -75,10 +79,18 @@ func (s *Server) doReport(ctx context.Context, instance *api.Instance) *api.Resp
 		CurTimeSec: time.Now().Unix() - s.timeAdjuster.GetDiff(),
 	}
 	err := checker.Report(request)
+
+	s.publishInstanceEvent(ins.ServiceID, model.InstanceEvent{
+		Id:       ins.ID(),
+		Instance: instance,
+		EType:    model.EventInstanceSendHeartbeat,
+	})
+
 	if err != nil {
 		log.Errorf("[Heartbeat][Server]fail to do report for %s:%d, id is %s, err is %v",
 			insCache.Host(), insCache.Port(), id, err)
 		return api.NewInstanceResponse(api.HeartbeatException, instance)
 	}
+
 	return api.NewInstanceResponse(api.ExecuteSuccess, instance)
 }

@@ -22,6 +22,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 var _ MaintainOperateServer = (*serverAuthAbility)(nil)
@@ -33,6 +34,9 @@ func (svr *serverAuthAbility) GetServerConnections(ctx context.Context, req *Con
 		return nil, err
 	}
 
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.GetServerConnections(ctx, req)
 }
 
@@ -42,6 +46,9 @@ func (svr *serverAuthAbility) GetServerConnStats(ctx context.Context, req *ConnR
 	if err != nil {
 		return nil, err
 	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return svr.targetServer.GetServerConnStats(ctx, req)
 }
@@ -53,6 +60,9 @@ func (svr *serverAuthAbility) CloseConnections(ctx context.Context, reqs []ConnR
 		return err
 	}
 
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.CloseConnections(ctx, reqs)
 }
 
@@ -63,6 +73,9 @@ func (svr *serverAuthAbility) FreeOSMemory(ctx context.Context) error {
 		return err
 	}
 
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.FreeOSMemory(ctx)
 }
 
@@ -72,6 +85,9 @@ func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *api.Instan
 	if err != nil {
 		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return svr.targetServer.CleanInstance(ctx, req)
 }
@@ -93,6 +109,9 @@ func (svr *serverAuthAbility) GetLastHeartbeat(ctx context.Context, req *api.Ins
 		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.GetLastHeartbeat(ctx, req)
 }
 
@@ -102,6 +121,9 @@ func (svr *serverAuthAbility) GetLogOutputLevel(ctx context.Context) (map[string
 	if err != nil {
 		return nil, err
 	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return svr.targetServer.GetLogOutputLevel(ctx)
 }
@@ -114,4 +136,43 @@ func (svr *serverAuthAbility) SetLogOutputLevel(ctx context.Context, scope strin
 	}
 
 	return svr.targetServer.SetLogOutputLevel(ctx, scope, level)
+}
+
+func (svr *serverAuthAbility) ListLeaderElections(ctx context.Context) ([]*model.LeaderElection, error) {
+	authCtx := svr.collectMaintainAuthContext(ctx, model.Read, "ListLeaderElections")
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.targetServer.ListLeaderElections(ctx)
+}
+
+func (svr *serverAuthAbility) ReleaseLeaderElection(ctx context.Context, electKey string) error {
+	authCtx := svr.collectMaintainAuthContext(ctx, model.Modify, "ReleaseLeaderElection")
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	if err != nil {
+		return err
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.targetServer.ReleaseLeaderElection(ctx, electKey)
+}
+
+func (svr *serverAuthAbility) GetCMDBInfo(ctx context.Context) ([]model.LocationView, error) {
+	authCtx := svr.collectMaintainAuthContext(ctx, model.Read, "GetCMDBInfo")
+	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.targetServer.GetCMDBInfo(ctx)
 }

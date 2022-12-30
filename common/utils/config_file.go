@@ -43,12 +43,6 @@ const (
 	FileIdSeparator = "+"
 )
 
-// IsValidFileFormat 判断文件格式是否合法
-func IsValidFileFormat(format string) bool {
-	return format == FileFormatText || format == FileFormatYaml || format == FileFormatXml ||
-		format == FileFormatJson || format == FileFormatHtml || format == FileFormatProperties
-}
-
 // GenFileId 生成文件 Id
 func GenFileId(namespace, group, fileName string) string {
 	return namespace + FileIdSeparator + group + FileIdSeparator + fileName

@@ -21,7 +21,8 @@ import (
 	"context"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/connlimit"
+	connlimit "github.com/polarismesh/polaris/common/conn/limit"
+	"github.com/polarismesh/polaris/common/model"
 )
 
 type ConnReq struct {
@@ -47,31 +48,28 @@ type ConnStatsResp struct {
 
 // MaintainOperateServer Maintain related operation
 type MaintainOperateServer interface {
-
 	// GetServerConnections Get connection count
 	GetServerConnections(ctx context.Context, req *ConnReq) (*ConnCountResp, error)
-
 	// GetServerConnStats 获取连接缓存里面的统计信息
 	GetServerConnStats(ctx context.Context, req *ConnReq) (*ConnStatsResp, error)
-
 	// CloseConnections Close connection by ip
 	CloseConnections(ctx context.Context, reqs []ConnReq) error
-
 	// FreeOSMemory Free system memory
 	FreeOSMemory(ctx context.Context) error
-
 	// CleanInstance Clean deleted instance
 	CleanInstance(ctx context.Context, req *api.Instance) *api.Response
-
 	// BatchCleanInstances Batch clean deleted instances
 	BatchCleanInstances(ctx context.Context, batchSize uint32) (uint32, error)
-
 	// GetLastHeartbeat Get last heartbeat
 	GetLastHeartbeat(ctx context.Context, req *api.Instance) *api.Response
-
 	// GetLogOutputLevel Get log output level
 	GetLogOutputLevel(ctx context.Context) (map[string]string, error)
-
 	// SetLogOutputLevel Set log output level by scope
 	SetLogOutputLevel(ctx context.Context, scope string, level string) error
+	// ListLeaderElections
+	ListLeaderElections(ctx context.Context) ([]*model.LeaderElection, error)
+	// ReleaseLeaderElection
+	ReleaseLeaderElection(ctx context.Context, electKey string) error
+	// GetCMDBInfo get cmdb info
+	GetCMDBInfo(ctx context.Context) ([]model.LocationView, error)
 }

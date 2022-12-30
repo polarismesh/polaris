@@ -1,0 +1,83 @@
+# Default values for polaris.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  # mode: standalone
+  mode: cluster
+
+polaris:
+  image:
+    repository: polarismesh/polaris-server
+    tag: ##POLARIS_SERVER_VERSION##
+    pullPolicy: Always
+  limit:
+    cpu: "500m"
+    memory: "1000Mi"
+  console:
+    image:
+      repository: polarismesh/polaris-console
+      tag: ##POLARIS_CONSOLE_VERSION##
+      pullPolicy: Always
+    limit:
+      cpu: "500m"
+      memory: "1000Mi"
+  limiter:
+    image:
+      repository: polarismesh/polaris-limiter
+      tag: ##POLARIS_LIMITER_VERSION##
+      pullPolicy: Always
+    limit:
+      cpu: "500m"
+      memory: "1000Mi"
+  replicaCount: 1
+  limiterReplicaCount: 1
+  auth:
+    consoleOpen: true
+    clientOpen: false
+  storage:
+    db:
+      server:
+        address: localhost:3306
+        name: polaris_server
+        user: root
+        password: polaris@123456
+      console:
+        address: localhost:3306
+        name: polaris_console
+        user: root
+        password: polaris@123456
+    redis:
+      address: localhost:6379
+      # ACL user from redis v6.0, remove it if ACL is not available
+      # user: polaris
+      password: polaris@123456 # AUTH password below redis v6.0, or ACL password from redis v6.0
+      withTLS: false
+
+prometheus:
+  image:
+    repository: polarismesh/polaris-prometheus
+    tag: ##POLARIS_PROMETHEUS_VERSION##
+    pullPolicy: Always
+  pushgateway:
+    image:
+      repository: prom/pushgateway
+      tag: latest
+      pullPolicy: Always
+
+service:
+  type: LoadBalancer
+  webPort: 8080
+  eurekaPort: 8761
+  httpPort: 8090
+  serviceGrpcPort: 8091
+  xdsv3Port: 15010
+  configGrpcPort: 8093
+  limiterHttpPort: 8100
+  limiterGrpcPort: 8101
+
+monitor:
+  port: 9091
+
+installation:
+  namespace: polaris-system

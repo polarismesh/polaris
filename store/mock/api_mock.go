@@ -26,6 +26,7 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
+
 	model "github.com/polarismesh/polaris/common/model"
 	v2 "github.com/polarismesh/polaris/common/model/v2"
 	store "github.com/polarismesh/polaris/store"
@@ -1763,6 +1764,35 @@ func (mr *MockStoreMockRecorder) Initialize(c interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockStore)(nil).Initialize), c)
 }
 
+// IsLeader mocks base method.
+func (m *MockStore) IsLeader(key string) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsLeader", key)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsLeader indicates an expected call of IsLeader.
+func (mr *MockStoreMockRecorder) IsLeader(key interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsLeader", reflect.TypeOf((*MockStore)(nil).IsLeader), key)
+}
+
+// ListLeaderElections mocks base method.
+func (m *MockStore) ListLeaderElections() ([]*model.LeaderElection, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListLeaderElections")
+	ret0, _ := ret[0].([]*model.LeaderElection)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListLeaderElections indicates an expected call of ListLeaderElections.
+func (mr *MockStoreMockRecorder) ListLeaderElections() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListLeaderElections", reflect.TypeOf((*MockStore)(nil).ListLeaderElections))
+}
+
 // ListMasterCircuitBreakers mocks base method.
 func (m *MockStore) ListMasterCircuitBreakers(filters map[string]string, offset, limit uint32) (*model.CircuitBreakerDetail, error) {
 	m.ctrl.T.Helper()
@@ -1964,6 +1994,20 @@ func (mr *MockStoreMockRecorder) ReleaseCircuitBreaker(circuitBreakerRelation in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseCircuitBreaker", reflect.TypeOf((*MockStore)(nil).ReleaseCircuitBreaker), circuitBreakerRelation)
 }
 
+// ReleaseLeaderElection mocks base method.
+func (m *MockStore) ReleaseLeaderElection(key string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReleaseLeaderElection", key)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReleaseLeaderElection indicates an expected call of ReleaseLeaderElection.
+func (mr *MockStoreMockRecorder) ReleaseLeaderElection(key interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseLeaderElection", reflect.TypeOf((*MockStore)(nil).ReleaseLeaderElection), key)
+}
+
 // RemoveStrategyResources mocks base method.
 func (m *MockStore) RemoveStrategyResources(resources []model.StrategyResource) error {
 	m.ctrl.T.Helper()
@@ -2005,6 +2049,20 @@ func (m *MockStore) SetL5Extend(serviceID string, meta map[string]interface{}) (
 func (mr *MockStoreMockRecorder) SetL5Extend(serviceID, meta interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetL5Extend", reflect.TypeOf((*MockStore)(nil).SetL5Extend), serviceID, meta)
+}
+
+// StartLeaderElection mocks base method.
+func (m *MockStore) StartLeaderElection(key string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StartLeaderElection", key)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// StartLeaderElection indicates an expected call of StartLeaderElection.
+func (mr *MockStoreMockRecorder) StartLeaderElection(key interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartLeaderElection", reflect.TypeOf((*MockStore)(nil).StartLeaderElection), key)
 }
 
 // StartTx mocks base method.

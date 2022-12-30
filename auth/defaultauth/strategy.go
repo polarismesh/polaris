@@ -19,10 +19,12 @@ package defaultauth
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"go.uber.org/zap"
 
@@ -748,12 +750,17 @@ func (svr *server) checkUpdateStrategy(ctx context.Context, req *api.ModifyAuthS
 // authStrategyRecordEntry 转换为鉴权策略的记录结构体
 func authStrategyRecordEntry(ctx context.Context, req *api.AuthStrategy, md *model.StrategyDetail,
 	operationType model.OperationType) *model.RecordEntry {
+
+	marshaler := jsonpb.Marshaler{}
+	detail, _ := marshaler.MarshalToString(req)
+
 	entry := &model.RecordEntry{
 		ResourceType:  model.RAuthStrategy,
-		StrategyName:  md.Name,
+		ResourceName:  fmt.Sprintf("%s(%s)", md.Name, md.ID),
 		OperationType: operationType,
 		Operator:      utils.ParseOperator(ctx),
-		CreateTime:    time.Now(),
+		Detail:        detail,
+		HappenTime:    time.Now(),
 	}
 
 	return entry
@@ -762,12 +769,17 @@ func authStrategyRecordEntry(ctx context.Context, req *api.AuthStrategy, md *mod
 // authModifyStrategyRecordEntry
 func authModifyStrategyRecordEntry(ctx context.Context, req *api.ModifyAuthStrategy, md *model.ModifyStrategyDetail,
 	operationType model.OperationType) *model.RecordEntry {
+
+	marshaler := jsonpb.Marshaler{}
+	detail, _ := marshaler.MarshalToString(req)
+
 	entry := &model.RecordEntry{
 		ResourceType:  model.RAuthStrategy,
-		StrategyName:  md.ID,
+		ResourceName:  fmt.Sprintf("%s(%s)", md.Name, md.ID),
 		OperationType: operationType,
 		Operator:      utils.ParseOperator(ctx),
-		CreateTime:    time.Now(),
+		Detail:        detail,
+		HappenTime:    time.Now(),
 	}
 
 	return entry

@@ -104,7 +104,8 @@ type StrategyStore interface {
 	GetStrategyResources(principalId string, principalRole model.PrincipalType) ([]model.StrategyResource, error)
 
 	// GetDefaultStrategyDetailByPrincipal Get a default policy for a Principal
-	GetDefaultStrategyDetailByPrincipal(principalId string, principalType model.PrincipalType) (*model.StrategyDetail, error)
+	GetDefaultStrategyDetailByPrincipal(principalId string,
+		principalType model.PrincipalType) (*model.StrategyDetail, error)
 
 	// GetStrategyDetail Get strategy details
 	GetStrategyDetail(id string) (*model.StrategyDetail, error)

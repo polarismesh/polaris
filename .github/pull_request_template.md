@@ -3,12 +3,15 @@ Fixes #
 
 **To help us figure out who should review this PR, please put an X in all the areas that this PR affects.**
 
+- [ ] ApiServer
+- [ ] Auth
 - [ ] Configuration
+- [ ] Naming
+- [ ] HealthCheck
+- [ ] Metrics
 - [ ] Docs
 - [ ] Installation
 - [ ] Performance and Scalability
-- [ ] Naming
-- [ ] HealthCheck
 - [ ] Test and Release
 
 **Please check any characteristics that apply to this pull request.**

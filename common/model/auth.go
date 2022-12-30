@@ -164,6 +164,8 @@ const (
 	AuthModule
 	// MaintainModule 运维操作模块
 	MaintainModule
+	// BootstrapModule 初始化模块
+	BootstrapModule
 )
 
 // UserRoleType 用户角色类型

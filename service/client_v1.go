@@ -26,17 +26,20 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 // RegisterInstance create one instance
 func (s *Server) RegisterInstance(ctx context.Context, req *api.Instance) *api.Response {
+	ctx = context.WithValue(ctx, utils.ContextIsFromClient, true)
 	return s.CreateInstance(ctx, req)
 }
 
 // DeregisterInstance delete one instance
 func (s *Server) DeregisterInstance(ctx context.Context, req *api.Instance) *api.Response {
+	ctx = context.WithValue(ctx, utils.ContextIsFromClient, true)
 	return s.DeleteInstance(ctx, req)
 }
 
@@ -74,8 +77,8 @@ func (s *Server) ReportClient(ctx context.Context, req *api.Client) *api.Respons
 	return api.NewClientResponse(api.ExecuteSuccess, out)
 }
 
-// GetReportClientWithCache Used for client acquisition service information
-func (s *Server) GetReportClientWithCache(ctx context.Context,
+// GetPrometheusTargets Used for client acquisition service information
+func (s *Server) GetPrometheusTargets(ctx context.Context,
 	query map[string]string) *model.PrometheusDiscoveryResponse {
 	if s.caches == nil {
 		return &model.PrometheusDiscoveryResponse{
@@ -114,6 +117,21 @@ func (s *Server) GetReportClientWithCache(ctx context.Context,
 
 		return true
 	})
+
+	// 加入北极星集群自身
+	checkers := s.healthServer.ListCheckerServer()
+	for i := range checkers {
+		checker := checkers[i]
+		target := model.PrometheusTarget{
+			Targets: []string{fmt.Sprintf("%s:%d", checker.Host(), metrics.GetMetricsPort())},
+			Labels: map[string]string{
+				"__metrics_path__":         "/metrics",
+				"__scheme__":               "http",
+				"__meta_polaris_client_id": checker.ID(),
+			},
+		}
+		targets = append(targets, target)
+	}
 
 	return &model.PrometheusDiscoveryResponse{
 		Code:     api.ExecuteSuccess,

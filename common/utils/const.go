@@ -63,6 +63,12 @@ const (
 	ContextOpenAsyncRegis = StringContext("client-asyncRegis")
 	// ContextGrpcHeader grpc header key
 	ContextGrpcHeader = StringContext("grpc-header")
+	// ContextIsFromClient is from client
+	ContextIsFromClient = StringContext("from-client")
+	// ContextIsFromSystem is from polaris system
+	ContextIsFromSystem = StringContext("from-system")
+	// ContextOperator operator info
+	ContextOperator = StringContext("operator")
 )
 
 const (

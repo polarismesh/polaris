@@ -49,7 +49,7 @@ func (svr *server) initialize() error {
 	return nil
 }
 
-// Login 登陆动作
+// Login 登录动作
 func (svr *server) Login(req *api.LoginRequest) *api.Response {
 	username := req.GetName().GetValue()
 	ownerName := req.GetOwner().GetValue()

@@ -29,7 +29,7 @@ import (
 var (
 	linuxSignals = []os.Signal{
 		syscall.SIGINT, syscall.SIGTERM,
-		syscall.SIGSEGV, syscall.SIGUSR1,
+		syscall.SIGSEGV, syscall.SIGUSR1, syscall.SIGUSR2,
 	}
 	ch = make(chan os.Signal, 1)
 )
@@ -41,24 +41,23 @@ func WaitSignal(servers []apiserver.Apiserver, errCh chan error) {
 	// 监听信号量
 	signal.Notify(ch, linuxSignals...)
 
-label:
 	for {
 		select {
 		case s := <-ch:
-			if s2, ok := s.(syscall.Signal); ok && s2 == syscall.SIGUSR1 { // 重启信号量
-				if err := RestartServers(errCh); err != nil { // 重启失败，直接退出
+			switch s {
+			case syscall.SIGUSR1, syscall.SIGUSR2:
+				// 重启服务
+				if err := RestartServers(errCh); err != nil { // 如果重启失败，直接退出
 					log.Errorf("restart servers err: %s", err.Error())
 					return
 				}
 
+				// todo 重启后需要重新监听信号量，等待重启或平滑退出
 				log.Infof("restart servers success: %s", s.String())
-				// 重启成功，就需要监听信号量然后执行相应的操作
-				signal.Notify(ch, linuxSignals...)
-				break label
+			default:
+				log.Infof("catch signal(%s), stop servers", s.String())
+				return
 			}
-
-			log.Infof("catch signal(%s), stop servers", s.String())
-			return
 		case err := <-errCh:
 			log.Errorf("catch api server err: %s", err.Error())
 			return

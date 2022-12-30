@@ -20,9 +20,11 @@ package defaultauth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
@@ -198,7 +200,8 @@ func (svr *server) UpdateUserPassword(ctx context.Context, req *api.ModifyUserPa
 		return api.NewResponse(api.NotAllowedAccess)
 	}
 
-	ignoreOrigin := authcommon.ParseUserRole(ctx) == model.AdminUserRole || authcommon.ParseUserRole(ctx) == model.OwnerUserRole
+	ignoreOrigin := authcommon.ParseUserRole(ctx) == model.AdminUserRole ||
+		authcommon.ParseUserRole(ctx) == model.OwnerUserRole
 	data, needUpdate, err := updateUserPasswordAttribute(ignoreOrigin, user, req)
 	if err != nil {
 		log.Error("[Auth][User] compute user update attribute", zap.Error(err),
@@ -413,7 +416,7 @@ func (svr *server) UpdateUserToken(ctx context.Context, req *api.User) *api.Resp
 
 	log.Info("[Auth][User] update user token", utils.ZapRequestID(requestID),
 		zap.String("id", req.Id.GetValue()), zap.Bool("enable", req.TokenEnable.GetValue()))
-	svr.RecordHistory(userRecordEntry(ctx, req, user, model.OUpdate))
+	svr.RecordHistory(userRecordEntry(ctx, req, user, model.OUpdateToken))
 
 	return api.NewUserResponse(api.ExecuteSuccess, req)
 }
@@ -453,7 +456,7 @@ func (svr *server) ResetUserToken(ctx context.Context, req *api.User) *api.Respo
 
 	log.Info("[Auth][User] reset user token", utils.ZapRequestID(requestID),
 		zap.String("id", req.Id.GetValue()))
-	svr.RecordHistory(userRecordEntry(ctx, req, user, model.OUpdate))
+	svr.RecordHistory(userRecordEntry(ctx, req, user, model.OUpdateToken))
 
 	req.AuthToken = utils.NewStringValue(user.Token)
 
@@ -521,14 +524,19 @@ func user2Api(user *model.User) *api.User {
 }
 
 // 生成用户的记录entry
-func userRecordEntry(ctx context.Context, _ *api.User, md *model.User,
+func userRecordEntry(ctx context.Context, req *api.User, md *model.User,
 	operationType model.OperationType) *model.RecordEntry {
+
+	marshaler := jsonpb.Marshaler{}
+	detail, _ := marshaler.MarshalToString(req)
+
 	entry := &model.RecordEntry{
 		ResourceType:  model.RUser,
-		Username:      md.Name,
+		ResourceName:  fmt.Sprintf("%s(%s)", md.Name, md.ID),
 		OperationType: operationType,
 		Operator:      utils.ParseOperator(ctx),
-		CreateTime:    time.Now(),
+		Detail:        detail,
+		HappenTime:    time.Now(),
 	}
 
 	return entry
@@ -614,7 +622,9 @@ func updateUserAttribute(old *model.User, newUser *api.User) (*model.User, bool,
 }
 
 // updateUserAttribute 更新用户密码信息，如果用户的密码被更新
-func updateUserPasswordAttribute(isAdmin bool, user *model.User, req *api.ModifyUserPassword) (*model.User, bool, error) {
+func updateUserPasswordAttribute(isAdmin bool, user *model.User,
+	req *api.ModifyUserPassword) (*model.User, bool, error) {
+
 	needUpdate := false
 
 	if err := checkPassword(req.NewPassword); err != nil {

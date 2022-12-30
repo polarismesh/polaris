@@ -28,6 +28,8 @@ const (
 	optionConnLimit              = "connLimit"
 	optionTLS                    = "tls"
 	optionEnableSelfPreservation = "enableSelfPreservation"
+	optionCaseSensitive          = "caseSensitive"
+	optionPeerNodesToReplicate   = "peersToReplicate"
 )
 
 const (

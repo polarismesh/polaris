@@ -168,7 +168,7 @@ func (s *Server) saveRoutingV1toV2(ctx context.Context, svcId string,
 					utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 				return apiv1.NewResponse(apiv1.StoreLayerException)
 			}
-			s.RecordHistory(routingV2RecordEntry(ctx, item, data, model.OCreate))
+			s.RecordHistory(ctx, routingV2RecordEntry(ctx, item, data, model.OCreate))
 		}
 
 		return nil

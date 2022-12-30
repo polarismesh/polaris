@@ -81,7 +81,8 @@ type NamespaceStore interface {
 	GetMoreNamespaces(mtime time.Time) ([]*model.Namespace, error)
 }
 
-// Transaction Transaction interface, does not support multi-level concurrency operation, currently only support a single price serial operation
+// Transaction Transaction interface, does not support multi-level concurrency operation,
+// currently only support a single price serial operation
 type Transaction interface {
 	// Commit Transaction
 	Commit() error

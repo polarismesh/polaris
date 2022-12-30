@@ -26,6 +26,7 @@ import (
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service/batch"
@@ -48,7 +49,6 @@ type Server struct {
 	history        plugin.History
 	ratelimit      plugin.Ratelimit
 	discoverStatis plugin.DiscoverStatis
-	discoverEvent  plugin.DiscoverChannel
 
 	l5service *l5service
 
@@ -80,7 +80,7 @@ func (s *Server) SetResourceHooks(hooks ...ResourceHook) {
 }
 
 // RecordHistory server对外提供history插件的简单封装
-func (s *Server) RecordHistory(entry *model.RecordEntry) {
+func (s *Server) RecordHistory(ctx context.Context, entry *model.RecordEntry) {
 	// 如果插件没有初始化，那么不记录history
 	if s.history == nil {
 		return
@@ -90,6 +90,10 @@ func (s *Server) RecordHistory(entry *model.RecordEntry) {
 		return
 	}
 
+	fromClient, _ := ctx.Value(utils.ContextIsFromClient).(bool)
+	if fromClient {
+		return
+	}
 	// 调用插件记录history
 	s.history.Record(entry)
 }
@@ -101,15 +105,6 @@ func (s *Server) RecordDiscoverStatis(service, discoverNamespace string) {
 	}
 
 	_ = s.discoverStatis.AddDiscoverCall(service, discoverNamespace, time.Now())
-}
-
-// PublishDiscoverEvent 发布服务事件
-func (s *Server) PublishDiscoverEvent(event model.DiscoverEvent) {
-	if s.discoverEvent == nil {
-		return
-	}
-
-	s.discoverEvent.PublishEvent(event)
 }
 
 // GetServiceInstanceRevision 获取服务实例的revision

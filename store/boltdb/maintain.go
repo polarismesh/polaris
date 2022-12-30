@@ -17,10 +17,86 @@
 
 package boltdb
 
-import "github.com/polarismesh/polaris/common/model"
+import (
+	"fmt"
+	"sync"
+	"time"
+
+	"github.com/polarismesh/polaris/common/eventhub"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/store"
+)
 
 type maintainStore struct {
 	handler BoltHandler
+	leMap   map[string]bool
+	mutex   sync.Mutex
+}
+
+// StartLeaderElection
+func (m *maintainStore) StartLeaderElection(key string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	_, ok := m.leMap[key]
+	if ok {
+		return nil
+	}
+	m.leMap[key] = true
+	eventhub.Publish(eventhub.LeaderChangeEventTopic, store.LeaderChangeEvent{Key: key, Leader: true})
+	return nil
+}
+
+// IsLeader
+func (m *maintainStore) IsLeader(key string) bool {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	v, ok := m.leMap[key]
+	if ok {
+		return v
+	}
+	return false
+}
+
+// ListLeaderElections
+func (m *maintainStore) ListLeaderElections() ([]*model.LeaderElection, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	var out []*model.LeaderElection
+	for k, v := range m.leMap {
+		item := &model.LeaderElection{
+			ElectKey: k,
+			Host:     utils.LocalHost,
+			Ctime:    0,
+			Mtime:    time.Now().Unix(),
+			Valid:    v,
+		}
+		item.CreateTime = time.Unix(item.Ctime, 0)
+		item.ModifyTime = time.Unix(item.Mtime, 0)
+
+		out = append(out, item)
+	}
+	return out, nil
+}
+
+// ReleaseLeaderElection
+func (m *maintainStore) ReleaseLeaderElection(key string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	v, ok := m.leMap[key]
+	if !ok {
+		return fmt.Errorf("LeaderElection(%s) not started", key)
+	}
+
+	if v {
+		m.leMap[key] = false
+		eventhub.Publish(eventhub.LeaderChangeEventTopic, store.LeaderChangeEvent{Key: key, Leader: false})
+	}
+
+	return nil
 }
 
 // BatchCleanDeletedInstances

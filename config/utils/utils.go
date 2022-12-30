@@ -94,7 +94,9 @@ func CheckContentLength(content string) error {
 }
 
 // GenConfigFileResponse 为客户端生成响应对象
-func GenConfigFileResponse(namespace, group, fileName, content, md5str string, version uint64) *api.ConfigClientResponse {
+func GenConfigFileResponse(namespace, group, fileName, content, md5str string,
+	version uint64) *api.ConfigClientResponse {
+
 	configFile := &api.ClientConfigFileInfo{
 		Namespace: utils.NewStringValue(namespace),
 		Group:     utils.NewStringValue(group),

@@ -27,6 +27,7 @@ import (
 
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -116,6 +117,15 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 	server.discoverCh = make(chan eventWrapper, 32)
 	go server.receiveEventAndPush()
 
+	leaderChangeEventHandler := newLeaderChangeEventHandler(server.cacheProvider, hcOpt.MinCheckInterval)
+	if err = eventhub.Subscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker",
+		leaderChangeEventHandler.handle); err != nil {
+		return err
+	}
+	if err = server.storage.StartLeaderElection(store.ELECTION_KEY_SELF_SERVICE_CHECKER); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -156,6 +166,16 @@ func (s *Server) CacheProvider() (*CacheProvider, error) {
 	return s.cacheProvider, nil
 }
 
+// ListCheckerServer get checker server instance list
+func (s *Server) ListCheckerServer() []*model.Instance {
+	ret := make([]*model.Instance, 0, s.cacheProvider.selfServiceInstances.Count())
+	s.cacheProvider.selfServiceInstances.Range(func(instanceId string, value ItemWithChecker) {
+		ret = append(ret, value.GetInstance())
+	})
+
+	return ret
+}
+
 // RecordHistory server对外提供history插件的简单封装
 func (s *Server) RecordHistory(entry *model.RecordEntry) {
 	// 如果插件没有初始化，那么不记录history
@@ -171,11 +191,8 @@ func (s *Server) RecordHistory(entry *model.RecordEntry) {
 	s.history.Record(entry)
 }
 
-// PublishDiscoverEvent 发布服务事件
-func (s *Server) PublishDiscoverEvent(serviceID string, event model.DiscoverEvent) {
-	if s.discoverEvent == nil {
-		return
-	}
+// publishInstanceEvent 发布服务事件
+func (s *Server) publishInstanceEvent(serviceID string, event model.InstanceEvent) {
 	s.discoverCh <- eventWrapper{
 		ServiceID: serviceID,
 		Event:     event,
@@ -183,10 +200,6 @@ func (s *Server) PublishDiscoverEvent(serviceID string, event model.DiscoverEven
 }
 
 func (s *Server) receiveEventAndPush() {
-	if s.discoverEvent == nil {
-		return
-	}
-
 	for wrapper := range s.discoverCh {
 		var (
 			svcID   = wrapper.ServiceID
@@ -204,7 +217,7 @@ func (s *Server) receiveEventAndPush() {
 		event.Namespace = service.Namespace
 		event.Service = service.Name
 
-		s.discoverEvent.PublishEvent(event)
+		eventhub.Publish(eventhub.InstanceEventTopic, event)
 	}
 }
 
@@ -252,5 +265,5 @@ func currentTimeSec() int64 {
 
 type eventWrapper struct {
 	ServiceID string
-	Event     model.DiscoverEvent
+	Event     model.InstanceEvent
 }

@@ -27,6 +27,7 @@ import (
 
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/maintain"
 )
@@ -45,6 +46,9 @@ func (h *HTTPServer) GetMaintainAccessServer() *restful.WebService {
 	ws.Route(enrichGetLastHeartbeatApiDocs(ws.GET("/instance/heartbeat").To(h.GetLastHeartbeat)))
 	ws.Route(enrichGetLogOutputLevelApiDocs(ws.GET("/log/outputlevel").To(h.GetLogOutputLevel)))
 	ws.Route(enrichSetLogOutputLevelApiDocs(ws.PUT("/log/outputlevel").To(h.SetLogOutputLevel)))
+	ws.Route(enrichListLeaderElectionsApiDocs(ws.GET("/leaders").To(h.ListLeaderElections)))
+	ws.Route(enrichReleaseLeaderElectionApiDocs(ws.POST("/leaders/release").To(h.ReleaseLeaderElection)))
+	ws.Route(ws.GET("/cmdb/info").To(h.GetCMDBInfo))
 	return ws
 }
 
@@ -229,6 +233,47 @@ func (h *HTTPServer) SetLogOutputLevel(req *restful.Request, rsp *restful.Respon
 	}
 
 	_ = rsp.WriteEntity("ok")
+}
+
+func (h *HTTPServer) ListLeaderElections(req *restful.Request, rsp *restful.Response) {
+	ctx := initContext(req)
+	leaders, err := h.maintainServer.ListLeaderElections(ctx)
+	if err != nil {
+		_ = rsp.WriteError(http.StatusBadRequest, err)
+		return
+	}
+	if leaders == nil {
+		leaders = []*model.LeaderElection{}
+	}
+
+	_ = rsp.WriteAsJson(leaders)
+}
+
+func (h *HTTPServer) ReleaseLeaderElection(req *restful.Request, rsp *restful.Response) {
+	ctx := initContext(req)
+	var releasedElection struct {
+		ElectKey string `json:"ElectKey"`
+	}
+	if err := httpcommon.ParseJsonBody(req, &releasedElection); err != nil {
+		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := h.maintainServer.ReleaseLeaderElection(ctx, releasedElection.ElectKey); err != nil {
+		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
+		return
+	}
+	_ = rsp.WriteEntity("ok")
+}
+
+func (h *HTTPServer) GetCMDBInfo(req *restful.Request, rsp *restful.Response) {
+	ctx := initContext(req)
+
+	ret, err := h.maintainServer.GetCMDBInfo(ctx)
+	if err != nil {
+		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
+		return
+	}
+	_ = rsp.WriteAsJson(ret)
 }
 
 func initContext(req *restful.Request) context.Context {

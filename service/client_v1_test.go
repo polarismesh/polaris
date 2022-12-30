@@ -39,7 +39,7 @@ func mockReportClients(cnt int) []*apiv1.Client {
 			Type:     apiv1.Client_SDK,
 			Version:  utils.NewStringValue("v1.0.0"),
 			Location: &apiv1.Location{},
-			Id:       utils.NewStringValue(NewUUID()),
+			Id:       utils.NewStringValue(utils.NewUUID()),
 			Stat: []*apiv1.StatInfo{
 				{
 					Target:   utils.NewStringValue(model.StatReportPrometheus),
@@ -98,7 +98,7 @@ func TestServer_GetReportClient(t *testing.T) {
 		time.Sleep(discoverSuit.updateCacheInterval * 5)
 		t.Log("finish sleep to wait cache refresh")
 
-		resp := discoverSuit.server.GetReportClientWithCache(context.Background(), map[string]string{})
+		resp := discoverSuit.server.GetPrometheusTargets(context.Background(), map[string]string{})
 		assert.Equal(t, apiv1.ExecuteSuccess, resp.Code)
 		assert.True(t, len(resp.Response) >= 0 && len(resp.Response) <= 5)
 	})

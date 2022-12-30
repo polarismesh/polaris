@@ -1,0 +1,96 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: polaris
+  namespace: {{ .Values.installation.namespace }}
+  labels:
+    app: polaris
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.httpPort }}
+      name: http-server
+      targetPort: {{ .Values.service.httpPort }}
+    - port: {{ .Values.service.serviceGrpcPort }}
+      name: service-grpc
+      targetPort: {{ .Values.service.serviceGrpcPort }}
+    - port: {{ .Values.service.webPort }}
+      name: web-server
+      targetPort: {{ .Values.service.webPort }}
+    - port: {{ .Values.service.xdsv3Port }}
+      name: xds-v3
+      targetPort: {{ .Values.service.xdsv3Port }}
+    - port: {{ .Values.service.configGrpcPort }}
+      name: config-grpc
+      targetPort: {{ .Values.service.configGrpcPort }}
+    - port: {{ .Values.service.eurekaPort }}
+      name: service-eureka
+      targetPort: {{ .Values.service.eurekaPort }}
+  selector:
+    app: polaris
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: polaris
+  name: polaris
+  namespace: {{ .Values.installation.namespace }}
+spec:
+  podManagementPolicy: OrderedReady
+  {{- if eq .Values.global.mode "cluster" }}
+  replicas: {{ .Values.polaris.replicaCount }}
+  {{- else }}
+  replicas: 1
+  {{- end }}
+  selector:
+    matchLabels:
+      app: polaris
+  serviceName: polaris
+  template:
+    metadata:
+      labels:
+        app: polaris
+    spec:
+      containers:
+        - image: {{.Values.polaris.image.repository}}:{{.Values.polaris.image.tag}}
+          imagePullPolicy: {{ .Values.polaris.image.pullPolicy }}
+          name: polaris-server
+          resources:
+            limits:
+              cpu: {{ .Values.polaris.limit.cpu }}
+              memory: {{ .Values.polaris.limit.memory }}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /root/conf/polaris-server.yaml
+              name: polaris-server-config
+              subPath: polaris-server.yaml
+        - image: {{.Values.polaris.console.image.repository}}:{{.Values.polaris.console.image.tag}}
+          imagePullPolicy: {{ .Values.polaris.console.image.pullPolicy }}
+          name: polaris-console
+          resources:
+            limits:
+              cpu: {{ .Values.polaris.console.limit.cpu }}
+              memory: {{ .Values.polaris.console.limit.memory }}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /root/polaris-console.yaml
+              name: polaris-console-config
+              subPath: polaris-console.yaml
+      restartPolicy: Always
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: polaris-console-config
+          name: polaris-console-config
+        - configMap:
+            defaultMode: 420
+            name: polaris-server-config
+          name: polaris-server-config
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate

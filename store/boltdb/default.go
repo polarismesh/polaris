@@ -30,7 +30,12 @@ import (
 )
 
 const (
+	// SystemNamespace system namespace
+	SystemNamespace = "Polaris"
+	// STORENAME database storage name
 	STORENAME = "boltdbStore"
+	// DefaultConnMaxLifetime default maximum connection lifetime
+	DefaultConnMaxLifetime = 60 * 30 // 默认是30分钟
 )
 
 type boltStore struct {
@@ -334,7 +339,7 @@ func (m *boltStore) newConfigModuleStore() error {
 }
 
 func (m *boltStore) newMaintainModuleStore() error {
-	m.maintainStore = &maintainStore{handler: m.handler}
+	m.maintainStore = &maintainStore{handler: m.handler, leMap: make(map[string]bool)}
 
 	return nil
 }

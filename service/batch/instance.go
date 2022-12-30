@@ -73,7 +73,9 @@ type InstanceCtrl struct {
 }
 
 // NewBatchRegisterCtrl 注册实例批量操作对象
-func NewBatchRegisterCtrl(storage store.Store, cacheMgn *cache.CacheManager, config *CtrlConfig) (*InstanceCtrl, error) {
+func NewBatchRegisterCtrl(storage store.Store, cacheMgn *cache.CacheManager,
+	config *CtrlConfig) (*InstanceCtrl, error) {
+
 	register, err := newBatchInstanceCtrl(storage, cacheMgn, config)
 	if err != nil {
 		return nil, err
@@ -141,7 +143,9 @@ func (ctrl *InstanceCtrl) Start(ctx context.Context) {
 }
 
 // newBatchInstanceCtrl 创建批量控制instance的对象
-func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.CacheManager, config *CtrlConfig) (*InstanceCtrl, error) {
+func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.CacheManager,
+	config *CtrlConfig) (*InstanceCtrl, error) {
+
 	if config == nil || !config.Open {
 		return nil, nil
 	}

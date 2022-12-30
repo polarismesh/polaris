@@ -1,0 +1,72 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: polaris-prometheus
+  namespace: polaris-system
+spec:
+  ports:
+  - name: polaris-prometheus
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+  - name: polaris-pushgateway
+    port: 9091
+    protocol: TCP
+    targetPort: 9091
+  selector:
+    app: polaris-prometheus
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: polaris-prometheus
+  name: polaris-prometheus
+  namespace: polaris-system
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: polaris-prometheus
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: polaris-prometheus
+    spec:
+      containers:
+      - image: polarismesh/polaris-prometheus:##POLARIS_PROMETHEUS_VERSION##
+        imagePullPolicy: Always
+        name: polaris-prometheus
+        args:
+          - '--config.file=/etc/prometheus/prometheus.yaml'
+          - '--web.enable-lifecycle'
+        resources:
+          limits:
+            cpu: "500m"
+            memory: 1000Mi
+        volumeMounts:
+          - mountPath: /etc/prometheus/prometheus.yaml
+            name: polaris-prometheus-config
+            subPath: prometheus.yaml
+      - image: prom/pushgateway:latest
+        imagePullPolicy: Always
+        name: polaris-pushgateway
+        resources:
+          limits:
+            cpu: "500m"
+            memory: 1000Mi
+      restartPolicy: Always
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: polaris-prometheus-config
+          name: polaris-prometheus-config

@@ -17,8 +17,9 @@
 
 package defaultauth
 
-import commonLog "github.com/polarismesh/polaris/common/log"
+import commonlog "github.com/polarismesh/polaris/common/log"
 
 var (
-	log = commonLog.GetScopeOrDefaultByName(commonLog.AuthLoggerName)
+	log      = commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName)
+	sysOplog = commonlog.GetScopeOrDefaultByName(commonlog.SystemOperationLoggerName)
 )

@@ -27,6 +27,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/service"
 )
@@ -90,8 +91,9 @@ func (a *ApplicationsBuilder) BuildApplications(oldAppsCache *ApplicationsRespCa
 			continue
 		}
 		instCount += len(instances)
-		svcToRevision[newService.Name] = revision
-		svcToToInstances[newService.Name] = instances
+		svcName := formatReadName(newService.Name)
+		svcToRevision[svcName] = revision
+		svcToToInstances[svcName] = instances
 	}
 	// 比较并构建Applications缓存
 	hashBuilder := make(map[string]int)
@@ -177,11 +179,7 @@ func (a *ApplicationsBuilder) constructApplication(app *Application, instances [
 		if !instance.Healthy() && !fallbackUnhealthy {
 			continue
 		}
-		var (
-			instanceInfo     *InstanceInfo
-			eurekaInstanceId = instance.Proto.GetId().GetValue()
-		)
-		instanceInfo = buildInstance(app, eurekaInstanceId, instance)
+		instanceInfo := buildInstance(app.Name, instance.Proto, instance.ModifyTime.UnixNano()/1e6)
 		instanceInfo.RealInstances[instance.Revision()] = instance
 		status := instanceInfo.Status
 		app.StatusCounts[status] = app.StatusCounts[status] + 1
@@ -274,19 +272,29 @@ func (a *ApplicationsBuilder) buildDeltaApps(oldAppsCache *ApplicationsRespCache
 	return constructResponseCache(newDeltaApps, instCount, true)
 }
 
-func parseStatus(instance *model.Instance) string {
-	if instance.Proto.GetIsolate().GetValue() {
+func parseStatus(instance *api.Instance) string {
+	if instance.GetIsolate().GetValue() {
 		return StatusOutOfService
 	}
 	return StatusUp
 }
 
-func parsePortWrapper(info *InstanceInfo, instance *model.Instance) {
-	securePort, securePortOk := instance.Metadata()[MetadataSecurePort]
-	securePortEnabled, securePortEnabledOk := instance.Metadata()[MetadataSecurePortEnabled]
-	insecurePort, insecurePortOk := instance.Metadata()[MetadataInsecurePort]
-	insecurePortEnabled, insecurePortEnabledOk := instance.Metadata()[MetadataInsecurePortEnabled]
-
+func parsePortWrapper(info *InstanceInfo, instance *api.Instance) {
+	metadata := instance.GetMetadata()
+	var securePortOk bool
+	var securePortEnabledOk bool
+	var securePort string
+	var securePortEnabled string
+	var insecurePortOk bool
+	var insecurePortEnabledOk bool
+	var insecurePort string
+	var insecurePortEnabled string
+	if len(metadata) > 0 {
+		securePort, securePortOk = instance.GetMetadata()[MetadataSecurePort]
+		securePortEnabled, securePortEnabledOk = instance.GetMetadata()[MetadataSecurePortEnabled]
+		insecurePort, insecurePortOk = instance.GetMetadata()[MetadataInsecurePort]
+		insecurePortEnabled, insecurePortEnabledOk = instance.GetMetadata()[MetadataInsecurePortEnabled]
+	}
 	if securePortOk && securePortEnabledOk && insecurePortOk && insecurePortEnabledOk {
 		// if metadata contains all port/securePort,port.enabled/securePort.enabled
 		sePort, err := strconv.Atoi(securePort)
@@ -317,13 +325,13 @@ func parsePortWrapper(info *InstanceInfo, instance *model.Instance) {
 		info.Port.Port = insePort
 		info.Port.Enabled = insePortEnabled
 	} else {
-		protocol := instance.Proto.GetProtocol().GetValue()
-		port := instance.Proto.GetPort().GetValue()
+		protocol := instance.GetProtocol().GetValue()
+		port := instance.GetPort().GetValue()
 		if protocol == SecureProtocol {
 			info.SecurePort.Port = int(port)
 			info.SecurePort.Enabled = "true"
-			if len(instance.Metadata()) > 0 {
-				if insecurePortStr, ok := instance.Metadata()[MetadataInsecurePort]; ok {
+			if len(metadata) > 0 {
+				if insecurePortStr, ok := metadata[MetadataInsecurePort]; ok {
 					insecurePort, _ := strconv.Atoi(insecurePortStr)
 					if insecurePort > 0 {
 						info.Port.Port = insecurePort
@@ -338,9 +346,9 @@ func parsePortWrapper(info *InstanceInfo, instance *model.Instance) {
 	}
 }
 
-func parseLeaseInfo(leaseInfo *LeaseInfo, instance *model.Instance) {
+func parseLeaseInfo(leaseInfo *LeaseInfo, instance *api.Instance) {
 	var (
-		metadata         = instance.Proto.GetMetadata()
+		metadata         = instance.GetMetadata()
 		durationInSec    int
 		renewIntervalSec int
 	)
@@ -362,7 +370,8 @@ func parseLeaseInfo(leaseInfo *LeaseInfo, instance *model.Instance) {
 	}
 }
 
-func buildInstance(app *Application, eurekaInstanceId string, instance *model.Instance) *InstanceInfo {
+func buildInstance(appName string, instance *api.Instance, lastModifyTime int64) *InstanceInfo {
+	eurekaInstanceId := instance.GetId().GetValue()
 	instanceInfo := &InstanceInfo{
 		CountryId: DefaultCountryIdInt,
 		Port: &PortWrapper{
@@ -382,17 +391,18 @@ func buildInstance(app *Application, eurekaInstanceId string, instance *model.In
 		},
 		RealInstances: make(map[string]*model.Instance),
 	}
-	instanceInfo.AppName = app.Name
+	instanceInfo.AppName = appName
 	// 属于eureka注册的实例
 	instanceInfo.InstanceId = eurekaInstanceId
-	metadata := instance.Metadata()
+	metadata := instance.GetMetadata()
 	if metadata == nil {
 		metadata = map[string]string{}
 	}
+	instanceInfo.AppName = appName
 	if hostName, ok := metadata[MetadataHostName]; ok {
 		instanceInfo.HostName = hostName
 	}
-	instanceInfo.IpAddr = instance.Proto.GetHost().GetValue()
+	instanceInfo.IpAddr = instance.GetHost().GetValue()
 	instanceInfo.Status = parseStatus(instance)
 	instanceInfo.OverriddenStatus = StatusUnknown
 	parsePortWrapper(instanceInfo, instance)
@@ -435,22 +445,22 @@ func buildInstance(app *Application, eurekaInstanceId string, instance *model.In
 		instanceInfo.SecureVipAddress = address
 	}
 	if instanceInfo.VipAddress == "" {
-		instanceInfo.VipAddress = app.Name
+		instanceInfo.VipAddress = appName
 	}
 	if instanceInfo.HostName == "" {
-		instanceInfo.HostName = instance.Proto.GetHost().GetValue()
+		instanceInfo.HostName = instance.GetHost().GetValue()
 	}
 	buildLocationInfo(instanceInfo, instance)
-	instanceInfo.LastUpdatedTimestamp = strconv.Itoa(int(instance.ModifyTime.UnixNano() / 1e6))
+	instanceInfo.LastUpdatedTimestamp = strconv.Itoa(int(lastModifyTime))
 	instanceInfo.ActionType = ActionAdded
 	return instanceInfo
 }
 
-func buildLocationInfo(instanceInfo *InstanceInfo, instance *model.Instance) {
+func buildLocationInfo(instanceInfo *InstanceInfo, instance *api.Instance) {
 	var region string
 	var zone string
 	var campus string
-	if location := instance.Location(); location != nil {
+	if location := instance.GetLocation(); location != nil {
 		region = location.GetRegion().GetValue()
 		zone = location.GetZone().GetValue()
 		campus = location.GetCampus().GetValue()

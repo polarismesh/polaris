@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gogo/protobuf/jsonpb"
+
 	api "github.com/polarismesh/polaris/common/api/v1"
 	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 	"github.com/polarismesh/polaris/common/model"
@@ -108,7 +110,7 @@ func (s *Server) CreateRoutingConfig(ctx context.Context, req *api.Routing) *api
 		return wrapperRoutingStoreResponse(req, err)
 	}
 
-	s.RecordHistory(routingRecordEntry(ctx, req, conf, model.OCreate))
+	s.RecordHistory(ctx, routingRecordEntry(ctx, req, service, conf, model.OCreate))
 	return api.NewRoutingResponse(api.ExecuteSuccess, req)
 }
 
@@ -145,7 +147,7 @@ func (s *Server) DeleteRoutingConfig(ctx context.Context, req *api.Routing) *api
 		return wrapperRoutingStoreResponse(req, err)
 	}
 
-	s.RecordHistory(routingRecordEntry(ctx, req, nil, model.ODelete))
+	s.RecordHistory(ctx, routingRecordEntry(ctx, req, service, nil, model.ODelete))
 	return api.NewResponse(api.ExecuteSuccess)
 }
 
@@ -197,7 +199,7 @@ func (s *Server) UpdateRoutingConfig(ctx context.Context, req *api.Routing) *api
 		return wrapperRoutingStoreResponse(req, err)
 	}
 
-	s.RecordHistory(routingRecordEntry(ctx, req, reqModel, model.OUpdate))
+	s.RecordHistory(ctx, routingRecordEntry(ctx, req, service, reqModel, model.OUpdate))
 	return api.NewRoutingResponse(api.ExecuteSuccess, req)
 }
 
@@ -389,38 +391,40 @@ func checkBatchRoutingConfig(req []*api.Routing) *api.BatchWriteResponse {
 }
 
 // routingRecordEntry 构建routingConfig的记录entry
-func routingRecordEntry(ctx context.Context, req *api.Routing, md *model.RoutingConfig,
+func routingRecordEntry(ctx context.Context, req *api.Routing, svc *model.Service, md *model.RoutingConfig,
 	opt model.OperationType) *model.RecordEntry {
+
+	marshaler := jsonpb.Marshaler{}
+	detail, _ := marshaler.MarshalToString(req)
+
 	entry := &model.RecordEntry{
 		ResourceType:  model.RRouting,
+		ResourceName:  fmt.Sprintf("%s(%s)", svc.Name, svc.ID),
+		Namespace:     svc.Namespace,
 		OperationType: opt,
-		Namespace:     req.GetNamespace().GetValue(),
-		Service:       req.GetService().GetValue(),
 		Operator:      utils.ParseOperator(ctx),
-		CreateTime:    time.Now(),
+		Detail:        detail,
+		HappenTime:    time.Now(),
 	}
 
-	if md != nil {
-		entry.Context = fmt.Sprintf("inBounds:%s,outBounds:%s,revision:%s",
-			md.InBounds, md.OutBounds, md.Revision)
-	}
 	return entry
 }
 
 // routingV2RecordEntry 构建routingConfig的记录entry
 func routingV2RecordEntry(ctx context.Context, req *apiv2.Routing, md *v2.RoutingConfig,
 	opt model.OperationType) *model.RecordEntry {
-	entry := &model.RecordEntry{
-		ResourceType:  model.RRoutingV2,
-		OperationType: opt,
-		Namespace:     req.GetNamespace(),
-		Operator:      utils.ParseOperator(ctx),
-		CreateTime:    time.Now(),
-	}
 
-	if md != nil {
-		entry.Context = fmt.Sprintf("name:%s,policy:%s,config:%s,revision:%s",
-			md.Name, md.GetRoutingPolicy().String(), md.Config, md.Revision)
+	marshaler := jsonpb.Marshaler{}
+	detail, _ := marshaler.MarshalToString(req)
+
+	entry := &model.RecordEntry{
+		ResourceType:  model.RRouting,
+		ResourceName:  fmt.Sprintf("%s(%s)", md.Name, md.ID),
+		Namespace:     req.GetNamespace(),
+		OperationType: opt,
+		Operator:      utils.ParseOperator(ctx),
+		Detail:        detail,
+		HappenTime:    time.Now(),
 	}
 	return entry
 }

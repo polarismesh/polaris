@@ -19,14 +19,14 @@ package service
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"sync"
 
-	"github.com/google/uuid"
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/common/eventhub"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/plugin"
 )
 
@@ -143,15 +143,19 @@ func pluginInitialize() {
 		log.Warnf("Not Found Discover Statis Plugin")
 	}
 
-	// 获取服务事件插件
-	namingServer.discoverEvent = plugin.GetDiscoverEvent()
-	if namingServer.discoverEvent == nil {
+	subscriber := plugin.GetDiscoverEvent()
+	if subscriber == nil {
 		log.Warnf("Not found DiscoverEvent Plugin")
+		return
 	}
-}
 
-// NewUUID 返回一个随机的UUID
-func NewUUID() string {
-	uuidBytes := uuid.New()
-	return hex.EncodeToString(uuidBytes[:])
+	if err := eventhub.Subscribe(eventhub.InstanceEventTopic, subscriber.Name(),
+		func(ctx context.Context, i interface{}) error {
+			e := i.(model.InstanceEvent)
+			subscriber.PublishEvent(e)
+			return nil
+		}); err != nil {
+		log.Warnf("register DiscoverEvent into eventhub:%s %v", subscriber.Name(), err)
+	}
+
 }

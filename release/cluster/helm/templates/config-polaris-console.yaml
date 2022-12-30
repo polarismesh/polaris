@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: polaris-console-config
+  namespace: {{ .Values.installation.namespace }}
+data:
+  polaris-console.yaml: |-
+    logger:
+      RotateOutputPath: log/polaris-console.log
+      RotationMaxSize: 500
+      RotationMaxAge: 30
+      RotationMaxBackups: 100
+      level: info
+    webServer:
+      mode: "release"
+      listenIP: "0.0.0.0"
+      listenPort: {{ .Values.service.webPort }}
+      jwt:
+        secretKey: "polarismesh@2021"
+        expired: 1800
+      namingV1URL: "/naming/v1"
+      namingV2URL: "/naming/v2"
+      authURL: "/core/v1"
+      configURL: "/config/v1"
+      monitorURL: "/api/v1"
+      webPath: "web/dist/"
+    polarisServer:
+      address: "127.0.0.1:{{ .Values.service.httpPort }}"
+      polarisToken: "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I="
+    monitorServer:
+      address: "polaris-prometheus:9090"
+    # eventServer:
+    #   requestUrl:
+    #   timeout: 5s
+    # operationServer:
+    #   requestUrl:
+    #   timeout: 5s
+    # 存储配置
+    store:
+    {{- if eq .Values.global.mode "cluster" }}
+    # 数据库存储插件
+    {{- with .Values.polaris.storage.db.console }}
+      name: defaultStore
+      option:
+        master:
+          dbType: mysql
+          dbUser: {{ .user }}
+          dbPwd: {{ .password }}
+          dbAddr: {{ .address }}
+          dbName: {{ .name }}
+          maxOpenConns: -1
+          maxIdleConns: -1
+          connMaxLifetime: 300 # 单位秒
+          txIsolationLevel: 2 #LevelReadCommitted
+    {{- end }}
+    {{- else }}
+    # 单机文件存储插件
+      name: boltdbStore
+      option:
+        path: ./polaris.bolt
+    {{- end }}

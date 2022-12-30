@@ -113,6 +113,8 @@ func (h *EurekaServer) addDiscoverAccess(ws *restful.WebService) {
 	// Query for all instances under a particular secure vip address
 	ws.Route(ws.GET(fmt.Sprintf("/svips/{%s}", ParamSVip)).To(h.QueryBySVipAddress)).
 		Param(ws.PathParameter(ParamSVip, "svipAddress").DataType("string"))
+	// Query for handling batch replication request
+	ws.Route(ws.POST("/peerreplication/batch").To(h.BatchReplication))
 }
 
 func parseAcceptValue(acceptValue string) map[string]bool {
@@ -143,7 +145,8 @@ func writePolarisStatusCode(req *restful.Request, statusCode uint32) {
 
 // GetApplication 拉取单个服务实例信息
 func (h *EurekaServer) GetApplication(req *restful.Request, rsp *restful.Response) {
-	appId := strings.ToUpper(req.PathParameter(ParamAppId))
+	appId := readAppIdFromRequest(req)
+
 	remoteAddr := req.Request.RemoteAddr
 	appsRespCache := h.worker.GetCachedAppsWithLoad()
 	apps := appsRespCache.AppsResp.Applications
@@ -171,7 +174,7 @@ func (h *EurekaServer) GetApplication(req *restful.Request, rsp *restful.Respons
 // GetAppInstance 拉取应用下某个实例的信息
 func (h *EurekaServer) GetAppInstance(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
-	appId := strings.ToUpper(req.PathParameter(ParamAppId))
+	appId := readAppIdFromRequest(req)
 	if len(appId) == 0 {
 		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
@@ -217,7 +220,12 @@ func (h *EurekaServer) GetAppInstance(req *restful.Request, rsp *restful.Respons
 }
 
 func writeEurekaResponse(acceptValue string, output interface{}, req *restful.Request, rsp *restful.Response) error {
-	writePolarisStatusCode(req, api.ExecuteSuccess)
+	return writeEurekaResponseWithCode(acceptValue, output, req, rsp, api.ExecuteSuccess)
+}
+
+func writeEurekaResponseWithCode(
+	acceptValue string, output interface{}, req *restful.Request, rsp *restful.Response, statusCode uint32) error {
+	writePolarisStatusCode(req, statusCode)
 	var err error
 	if len(acceptValue) > 0 && acceptValue == restful.MIME_JSON {
 		err = rsp.WriteAsJson(output)
@@ -278,6 +286,27 @@ func (h *EurekaServer) GetDeltaApplications(req *restful.Request, rsp *restful.R
 	}
 }
 
+func convertInstancePorts(instance *InstanceInfo) error {
+	var err error
+	if nil != instance.Port {
+		if err = instance.Port.convertPortValue(); nil != err {
+			return err
+		}
+		if err = instance.Port.convertEnableValue(); nil != err {
+			return err
+		}
+	}
+	if nil != instance.SecurePort {
+		if err = instance.SecurePort.convertPortValue(); nil != err {
+			return err
+		}
+		if err = instance.SecurePort.convertEnableValue(); nil != err {
+			return err
+		}
+	}
+	return nil
+}
+
 func checkRegisterRequest(registrationRequest *RegistrationRequest, req *restful.Request, rsp *restful.Response) bool {
 	var err error
 	remoteAddr := req.Request.RemoteAddr
@@ -288,37 +317,12 @@ func checkRegisterRequest(registrationRequest *RegistrationRequest, req *restful
 		writeHeader(http.StatusBadRequest, rsp)
 		return false
 	}
-	if nil != registrationRequest.Instance.Port {
-		if err = registrationRequest.Instance.Port.convertPortValue(); nil != err {
-			log.Errorf("[EUREKA-SERVER] fail to parse instance register request, "+
-				"invalid insecure port value, client: %s, err: %v", remoteAddr, err)
-			writePolarisStatusCode(req, api.InvalidInstancePort)
-			writeHeader(http.StatusBadRequest, rsp)
-			return false
-		}
-		if err = registrationRequest.Instance.Port.convertEnableValue(); nil != err {
-			log.Errorf("[EUREKA-SERVER] fail to parse instance register request, "+
-				"invalid insecure enable value, client: %s, err: %v", remoteAddr, err)
-			writePolarisStatusCode(req, api.InvalidInstancePort)
-			writeHeader(http.StatusBadRequest, rsp)
-			return false
-		}
-	}
-	if nil != registrationRequest.Instance.SecurePort {
-		if err = registrationRequest.Instance.SecurePort.convertPortValue(); nil != err {
-			log.Errorf("[EUREKA-SERVER] fail to parse instance register request, "+
-				"invalid secure port value, client: %s, err: %v", remoteAddr, err)
-			writePolarisStatusCode(req, api.InvalidInstancePort)
-			writeHeader(http.StatusBadRequest, rsp)
-			return false
-		}
-		if err = registrationRequest.Instance.SecurePort.convertEnableValue(); nil != err {
-			log.Errorf("[EUREKA-SERVER] fail to parse instance register request, "+
-				"invalid secure enable value, client: %s, err: %v", remoteAddr, err)
-			writePolarisStatusCode(req, api.InvalidInstancePort)
-			writeHeader(http.StatusBadRequest, rsp)
-			return false
-		}
+	err = convertInstancePorts(registrationRequest.Instance)
+	if nil != err {
+		log.Errorf("[EUREKA-SERVER] fail to parse instance register request, "+
+			"invalid port value, client: %s, err: %v", remoteAddr, err)
+		writePolarisStatusCode(req, api.InvalidInstancePort)
+		writeHeader(http.StatusBadRequest, rsp)
 	}
 	return true
 }
@@ -326,7 +330,8 @@ func checkRegisterRequest(registrationRequest *RegistrationRequest, req *restful
 // RegisterApplication 服务注册
 func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
-	appId := strings.ToUpper(req.PathParameter(ParamAppId))
+	appId := readAppIdFromRequest(req)
+
 	if len(appId) == 0 {
 		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
@@ -368,7 +373,7 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 
 	log.Infof("[EUREKA-SERVER]received instance register request, client: %s, instId: %s, appId: %s, ipAddr: %s",
 		remoteAddr, registrationRequest.Instance.InstanceId, appId, registrationRequest.Instance.IpAddr)
-	code := h.registerInstances(ctx, appId, registrationRequest.Instance)
+	code := h.registerInstances(ctx, appId, registrationRequest.Instance, false)
 	if code == api.ExecuteSuccess || code == api.ExistedResource || code == api.SameInstanceRequest {
 		log.Infof("[EUREKA-SERVER]instance (instId=%s, appId=%s) has been registered successfully, code is %d",
 			registrationRequest.Instance.InstanceId, appId, code)
@@ -385,7 +390,7 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 // UpdateStatus 更新服务状态
 func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
-	appId := req.PathParameter(ParamAppId)
+	appId := readAppIdFromRequest(req)
 	if len(appId) == 0 {
 		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
@@ -429,7 +434,7 @@ func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response)
 // DeleteStatus 关闭强制隔离
 func (h *EurekaServer) DeleteStatus(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
-	appId := req.PathParameter(ParamAppId)
+	appId := readAppIdFromRequest(req)
 	if len(appId) == 0 {
 		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
@@ -469,7 +474,7 @@ func (h *EurekaServer) DeleteStatus(req *restful.Request, rsp *restful.Response)
 // RenewInstance 更新实例状态
 func (h *EurekaServer) RenewInstance(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
-	appId := req.PathParameter(ParamAppId)
+	appId := readAppIdFromRequest(req)
 	if len(appId) == 0 {
 		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
@@ -502,7 +507,7 @@ func (h *EurekaServer) RenewInstance(req *restful.Request, rsp *restful.Response
 
 // CancelInstance 实例反注册
 func (h *EurekaServer) CancelInstance(req *restful.Request, rsp *restful.Response) {
-	appId := req.PathParameter(ParamAppId)
+	appId := readAppIdFromRequest(req)
 	remoteAddr := req.Request.RemoteAddr
 	if len(appId) == 0 {
 		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
@@ -568,7 +573,7 @@ func (h *EurekaServer) GetInstance(req *restful.Request, rsp *restful.Response) 
 // UpdateMetadata updateStatus instance metadata
 func (h *EurekaServer) UpdateMetadata(req *restful.Request, rsp *restful.Response) {
 	remoteAddr := req.Request.RemoteAddr
-	appId := req.PathParameter(ParamAppId)
+	appId := readAppIdFromRequest(req)
 	if len(appId) == 0 {
 		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")

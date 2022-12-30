@@ -21,7 +21,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -129,6 +131,7 @@ func (s *Server) CreateCircuitBreaker(ctx context.Context, req *api.CircuitBreak
 	log.Info(msg, utils.ZapRequestID(requestID))
 
 	// todo 记录操作记录
+	s.RecordHistory(ctx, circuitBreakerRecordEntry(ctx, req, data, model.OCreate))
 
 	// 返回请求结果
 	req.Id = utils.NewStringValue(data.ID)
@@ -219,6 +222,7 @@ func (s *Server) CreateCircuitBreakerVersion(ctx context.Context, req *api.Circu
 	log.Info(msg, utils.ZapRequestID(requestID))
 
 	// todo 记录操作记录
+	s.RecordHistory(ctx, circuitBreakerRecordEntry(ctx, req, data, model.OCreate))
 
 	return api.NewCircuitBreakerResponse(api.ExecuteSuccess, req)
 }
@@ -248,7 +252,8 @@ func (s *Server) DeleteCircuitBreaker(ctx context.Context, req *api.CircuitBreak
 	}
 
 	// 检查熔断规则是否存在并鉴权
-	if _, resp := s.checkCircuitBreakerValid(ctx, req, id, req.GetVersion().GetValue()); resp != nil {
+	saveData, resp := s.checkCircuitBreakerValid(ctx, req, id, req.GetVersion().GetValue())
+	if resp != nil {
 		if resp.GetCode().GetValue() == api.NotFoundCircuitBreaker {
 			return api.NewCircuitBreakerResponse(api.ExecuteSuccess, req)
 		}
@@ -256,14 +261,15 @@ func (s *Server) DeleteCircuitBreaker(ctx context.Context, req *api.CircuitBreak
 	}
 
 	if req.GetVersion().GetValue() == Master {
-		return s.deleteMasterCircuitBreaker(requestID, id, req)
+		return s.deleteMasterCircuitBreaker(ctx, requestID, id, saveData, req)
 	}
 
-	return s.deleteTagCircuitBreaker(requestID, id, req)
+	return s.deleteTagCircuitBreaker(ctx, requestID, id, saveData, req)
 }
 
 // deleteMasterCircuitBreaker 删除master熔断规则
-func (s *Server) deleteMasterCircuitBreaker(requestID string, id string, req *api.CircuitBreaker) *api.Response {
+func (s *Server) deleteMasterCircuitBreaker(ctx context.Context, requestID string, id string,
+	save *model.CircuitBreaker, req *api.CircuitBreaker) *api.Response {
 	// 检查规则是否有绑定服务
 	relations, err := s.storage.GetCircuitBreakerMasterRelation(id)
 	if err != nil {
@@ -286,6 +292,7 @@ func (s *Server) deleteMasterCircuitBreaker(requestID string, id string, req *ap
 	log.Info(msg, utils.ZapRequestID(requestID))
 
 	// todo 操作记录
+	s.RecordHistory(ctx, circuitBreakerRecordEntry(ctx, req, save, model.ODelete))
 
 	return api.NewCircuitBreakerResponse(api.ExecuteSuccess, req)
 }
@@ -293,7 +300,8 @@ func (s *Server) deleteMasterCircuitBreaker(requestID string, id string, req *ap
 /**
  * @brief 删除熔断规则版本
  */
-func (s *Server) deleteTagCircuitBreaker(requestID string, id string, req *api.CircuitBreaker) *api.Response {
+func (s *Server) deleteTagCircuitBreaker(ctx context.Context, requestID string, id string,
+	save *model.CircuitBreaker, req *api.CircuitBreaker) *api.Response {
 	// 检查规则是否有绑定服务
 	relation, err := s.storage.GetCircuitBreakerRelation(id, req.GetVersion().GetValue())
 	if err != nil {
@@ -316,6 +324,7 @@ func (s *Server) deleteTagCircuitBreaker(requestID string, id string, req *api.C
 	log.Info(msg, utils.ZapRequestID(requestID))
 
 	// todo 操作记录
+	s.RecordHistory(ctx, circuitBreakerRecordEntry(ctx, req, save, model.ODelete))
 
 	return api.NewCircuitBreakerResponse(api.ExecuteSuccess, req)
 }
@@ -377,6 +386,7 @@ func (s *Server) UpdateCircuitBreaker(ctx context.Context, req *api.CircuitBreak
 	log.Info(msg, utils.ZapRequestID(requestID))
 
 	// todo 记录操作记录
+	s.RecordHistory(ctx, circuitBreakerRecordEntry(ctx, req, circuitBreaker, model.OUpdate))
 
 	return api.NewCircuitBreakerResponse(api.ExecuteSuccess, req)
 }
@@ -505,6 +515,8 @@ func (s *Server) ReleaseCircuitBreaker(ctx context.Context, req *api.ConfigRelea
 	log.Info(msg, utils.ZapRequestID(requestID))
 
 	// todo 操作记录
+	s.RecordHistory(ctx, circuitBreakerReleaseRecordEntry(ctx, req,
+		&model.CircuitBreaker{Namespace: service.Namespace, Name: service.Name}, model.OUpdate))
 
 	return api.NewConfigResponse(api.ExecuteSuccess, req)
 }
@@ -1180,4 +1192,38 @@ func CheckDbCircuitBreakerFieldLen(req *api.CircuitBreaker) (*api.Response, bool
 	}
 
 	return nil, false
+}
+
+// circuitBreakerRecordEntry 构建 CircuitBreaker 的记录entry
+func circuitBreakerRecordEntry(ctx context.Context, req *api.CircuitBreaker,
+	md *model.CircuitBreaker, opt model.OperationType) *model.RecordEntry {
+	marshaler := jsonpb.Marshaler{}
+	detail, _ := marshaler.MarshalToString(req)
+	entry := &model.RecordEntry{
+		ResourceType:  model.RRouting,
+		ResourceName:  fmt.Sprintf("%s(%s)", md.Name, md.ID),
+		Namespace:     req.GetNamespace().GetValue(),
+		OperationType: opt,
+		Operator:      utils.ParseOperator(ctx),
+		Detail:        detail,
+		HappenTime:    time.Now(),
+	}
+	return entry
+}
+
+// circuitBreakerReleaseRecordEntry 构建 CircuitBreaker 的记录entry
+func circuitBreakerReleaseRecordEntry(ctx context.Context, req *api.ConfigRelease,
+	md *model.CircuitBreaker, opt model.OperationType) *model.RecordEntry {
+	marshaler := jsonpb.Marshaler{}
+	detail, _ := marshaler.MarshalToString(req)
+	entry := &model.RecordEntry{
+		ResourceType:  model.RRouting,
+		ResourceName:  fmt.Sprintf("%s(%s)", md.Name, md.ID),
+		Namespace:     req.GetCircuitBreaker().GetNamespace().GetValue(),
+		OperationType: opt,
+		Operator:      utils.ParseOperator(ctx),
+		Detail:        detail,
+		HappenTime:    time.Now(),
+	}
+	return entry
 }

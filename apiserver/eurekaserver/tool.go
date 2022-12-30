@@ -71,3 +71,16 @@ func writeHeader(httpStatus int, rsp *restful.Response) {
 	rsp.AddHeader(restful.HEADER_ContentType, restful.MIME_XML)
 	rsp.WriteHeader(httpStatus)
 }
+
+func formatWriteName(appId string) string {
+	return strings.ToLower(appId)
+}
+
+func formatReadName(appId string) string {
+	return strings.ToUpper(appId)
+}
+
+func readAppIdFromRequest(req *restful.Request) string {
+	appId := req.PathParameter(ParamAppId)
+	return formatReadName(appId)
+}

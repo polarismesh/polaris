@@ -28,6 +28,7 @@ import (
 	"github.com/go-redis/redis/v8"
 
 	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/plugin"
 )
 
@@ -330,10 +331,12 @@ func (p *Pool) checkRedis(wg *sync.WaitGroup) {
 				}
 			}
 			if errCount >= errCountThreshold {
+				metrics.ReportRedisIsDead()
 				if atomic.CompareAndSwapUint32(&p.redisDead, 0, 1) {
 					atomic.StoreInt64(&p.recoverTimeSec, 0)
 				}
 			} else {
+				metrics.ReportRedisIsAlive()
 				if atomic.CompareAndSwapUint32(&p.redisDead, 1, 0) {
 					atomic.StoreInt64(&p.recoverTimeSec, time.Now().Unix())
 				}
@@ -431,6 +434,12 @@ func (p *Pool) afterHandleTask(startTime time.Time, command string, task *Task, 
 	code := callResultOk
 	if resp.Err != nil {
 		code = callResultFail
+		switch task.taskType {
+		case Set, Del, Sadd, Srem:
+			metrics.ReportRedisWriteFailure()
+		default:
+			metrics.ReportRedisReadFailure()
+		}
 	}
 	if p.statis != nil {
 		_ = p.statis.AddRedisCall(command, code, costDuration.Nanoseconds())

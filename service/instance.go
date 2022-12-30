@@ -23,11 +23,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	instancecommon "github.com/polarismesh/polaris/common/service"
 	"github.com/polarismesh/polaris/common/utils"
@@ -113,10 +115,15 @@ func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Res
 		Name:      req.GetService().GetValue(),
 		Namespace: req.GetNamespace().GetValue(),
 	}
-
-	s.sendDiscoverEvent(model.EventInstanceOnline, svc.Namespace, svc.Name, req.GetHost().GetValue(),
-		int(req.GetPort().GetValue()))
-	s.RecordHistory(instanceRecordEntry(ctx, svc, data, model.OCreate))
+	s.sendDiscoverEvent(model.InstanceEvent{
+		Id:         instanceID,
+		Namespace:  svc.Namespace,
+		Service:    svc.Name,
+		Instance:   &ins,
+		EType:      model.EventInstanceOnline,
+		CreateTime: time.Time{},
+	})
+	s.RecordHistory(ctx, instanceRecordEntry(ctx, req, svc, data, model.OCreate))
 	out := &api.Instance{
 		Id:        ins.GetId(),
 		Service:   req.GetService(),
@@ -136,6 +143,9 @@ func (s *Server) createInstance(ctx context.Context, req *api.Instance, ins *api
 	if err != nil {
 		return nil, api.NewInstanceResponse(code, req)
 	}
+
+	// 填充实例的地理位置信息
+	s.packCmdb(ins)
 
 	if namingServer.bc == nil || !namingServer.bc.CreateInstanceOpen() {
 		return s.serialCreateInstance(ctx, svcId, req, ins) // 单个同步
@@ -262,12 +272,15 @@ func (s *Server) serialDeleteInstance(ctx context.Context, req *api.Instance, in
 	msg := fmt.Sprintf("delete instance: id=%v, namespace=%v, service=%v, host=%v, port=%v",
 		instance.ID(), service.Namespace, service.Name, instance.Host(), instance.Port())
 	log.Info(msg, utils.ZapRequestID(rid), utils.ZapPlatformID(pid), zap.Duration("cost", time.Since(start)))
-	s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.ODelete))
-
-	s.sendDiscoverEvent(model.EventInstanceOffline, service.Namespace,
-		service.Name,
-		instance.Host(),
-		int(instance.Port()))
+	s.RecordHistory(ctx, instanceRecordEntry(ctx, req, service, instance, model.ODelete))
+	s.sendDiscoverEvent(model.InstanceEvent{
+		Id:         instance.ID(),
+		Namespace:  service.Namespace,
+		Service:    service.Name,
+		Instance:   instance.Proto,
+		EType:      model.EventInstanceOffline,
+		CreateTime: time.Time{},
+	})
 
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
 }
@@ -295,10 +308,15 @@ func (s *Server) asyncDeleteInstance(ctx context.Context, req *api.Instance, ins
 		instance.ID(), instance.Namespace(), instance.Service(), instance.Host(), instance.Port())
 	log.Info(msg, utils.ZapRequestID(rid), utils.ZapPlatformID(pid), zap.Duration("cost", time.Since(start)))
 	service := &model.Service{Name: instance.Service(), Namespace: instance.Namespace()}
-	s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.ODelete))
-
-	s.sendDiscoverEvent(model.EventInstanceOffline, service.Namespace, service.Name, instance.Host(),
-		int(instance.Port()))
+	s.RecordHistory(ctx, instanceRecordEntry(ctx, req, service, instance, model.ODelete))
+	s.sendDiscoverEvent(model.InstanceEvent{
+		Id:         instance.ID(),
+		Namespace:  service.Namespace,
+		Service:    service.Name,
+		Instance:   instance.Proto,
+		EType:      model.EventInstanceOffline,
+		CreateTime: time.Time{},
+	})
 
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
 }
@@ -346,12 +364,15 @@ func (s *Server) DeleteInstanceByHost(ctx context.Context, req *api.Instance) *a
 		msg := fmt.Sprintf("delete instance: id=%v, namespace=%v, service=%v, host=%v, port=%v",
 			instance.ID(), service.Namespace, service.Name, instance.Host(), instance.Port())
 		log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.ODelete))
-
-		s.sendDiscoverEvent(model.EventInstanceOffline, instance.Namespace(),
-			instance.Service(),
-			instance.Host(),
-			int(instance.Port()))
+		s.RecordHistory(ctx, instanceRecordEntry(ctx, req, service, instance, model.ODelete))
+		s.sendDiscoverEvent(model.InstanceEvent{
+			Id:         instance.ID(),
+			Namespace:  service.Namespace,
+			Service:    service.Name,
+			Instance:   instance.Proto,
+			EType:      model.EventInstanceOffline,
+			CreateTime: time.Time{},
+		})
 	}
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
 }
@@ -398,10 +419,17 @@ func (s *Server) UpdateInstance(ctx context.Context, req *api.Instance) *api.Res
 		instance.ID(), service.Namespace, service.Name, instance.Host(),
 		instance.Port(), instance.Healthy())
 	log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-	s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.OUpdate))
+	s.RecordHistory(ctx, instanceRecordEntry(ctx, req, service, instance, model.OUpdate))
 
 	for i := range eventTypes {
-		s.sendDiscoverEvent(eventTypes[i], service.Namespace, service.Name, instance.Host(), int(instance.Port()))
+		s.sendDiscoverEvent(model.InstanceEvent{
+			Id:         instance.ID(),
+			Namespace:  service.Namespace,
+			Service:    service.Name,
+			Instance:   instance.Proto,
+			EType:      eventTypes[i],
+			CreateTime: time.Time{},
+		})
 	}
 
 	return api.NewInstanceResponse(api.ExecuteSuccess, req)
@@ -473,7 +501,7 @@ func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *
 		msg := fmt.Sprintf("update instance: id=%v, namespace=%v, service=%v, host=%v, port=%v, isolate=%v",
 			instance.ID(), service.Namespace, service.Name, instance.Host(), instance.Port(), instance.Isolate())
 		log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		s.RecordHistory(instanceRecordEntry(ctx, service, instance, model.OUpdateIsolate))
+		s.RecordHistory(ctx, instanceRecordEntry(ctx, req, service, instance, model.OUpdateIsolate))
 
 		// 比对下更新前后的 isolate 状态
 		if req.Isolate != nil && instance.Isolate() != req.Isolate.GetValue() {
@@ -481,8 +509,14 @@ func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *
 			if req.Isolate.GetValue() {
 				eventType = model.EventInstanceOpenIsolate
 			}
-			s.sendDiscoverEvent(eventType, req.Namespace.GetValue(), req.Service.GetValue(), req.Host.GetValue(),
-				int(req.Port.GetValue()))
+			s.sendDiscoverEvent(model.InstanceEvent{
+				Id:         instance.ID(),
+				Namespace:  req.Namespace.GetValue(),
+				Service:    req.Service.GetValue(),
+				Instance:   instance.Proto,
+				EType:      eventType,
+				CreateTime: time.Time{},
+			})
 		}
 	}
 
@@ -853,30 +887,37 @@ func (s *Server) getInstance(service *api.Service, instance *api.Instance) *api.
 
 // 获取cmdb
 func (s *Server) packCmdb(instance *api.Instance) {
-	if instance == nil || instance.GetLocation() != nil {
+	if s.cmdb == nil {
 		return
 	}
-	if s.cmdb == nil {
+	if instance == nil || !isEmptyLocation(instance.GetLocation()) {
 		return
 	}
 
 	location, err := s.cmdb.GetLocation(instance.GetHost().GetValue())
-	if err == nil && location != nil {
+	if err != nil {
+		log.Error("[Instance] pack cmdb info fail",
+			zap.String("namespace", instance.GetNamespace().GetValue()),
+			zap.String("service", instance.GetService().GetValue()),
+			zap.String("host", instance.GetHost().GetValue()),
+			zap.Uint32("port", instance.GetPort().GetValue()))
+		return
+	}
+	if location != nil {
 		instance.Location = location.Proto
 	}
 }
 
-func (s *Server) sendDiscoverEvent(eventType model.DiscoverEventType, namespace, service, host string, port int) {
-	// 发布隔离状态变化事件
-	event := model.DiscoverEvent{
-		Namespace: namespace,
-		Service:   service,
-		Host:      host,
-		Port:      port,
-		EType:     eventType,
-	}
+func isEmptyLocation(loc *api.Location) bool {
+	return loc == nil || (loc.GetRegion().GetValue() == "" &&
+		loc.GetZone().GetValue() == "" &&
+		loc.GetCampus().GetValue() == "")
+}
 
-	s.PublishDiscoverEvent(event)
+func (s *Server) sendDiscoverEvent(event model.InstanceEvent) {
+	// 发布隔离状态变化事件
+
+	eventhub.Publish(eventhub.InstanceEventTopic, event)
 }
 
 type svcName interface {
@@ -1182,27 +1223,21 @@ func wrapperInstanceStoreResponse(instance *api.Instance, err error) *api.Respon
 }
 
 // 生成instance的记录entry
-func instanceRecordEntry(ctx context.Context, service *model.Service, ins *model.Instance,
+func instanceRecordEntry(ctx context.Context, req *api.Instance, service *model.Service, ins *model.Instance,
 	opt model.OperationType) *model.RecordEntry {
 	if service == nil || ins == nil {
 		return nil
 	}
+	marshaler := jsonpb.Marshaler{}
+	datail, _ := marshaler.MarshalToString(req)
 	entry := &model.RecordEntry{
 		ResourceType:  model.RInstance,
-		OperationType: opt,
+		ResourceName:  fmt.Sprintf("%s(%s:%d)", service.Name, ins.Host(), ins.Port()),
 		Namespace:     service.Namespace,
-		Service:       service.Name,
+		OperationType: opt,
 		Operator:      utils.ParseOperator(ctx),
-		CreateTime:    time.Now(),
-	}
-	if opt == model.OCreate || opt == model.OUpdate {
-		entry.Context = fmt.Sprintf("host:%s,port:%d,weight:%d,healthy:%v,isolate:%v,priority:%d,meta:%+v",
-			ins.Host(), ins.Port(), ins.Weight(), ins.Healthy(), ins.Isolate(),
-			ins.Priority(), ins.Metadata())
-	} else if opt == model.OUpdateIsolate {
-		entry.Context = fmt.Sprintf("host:%s,port=%d,isolate:%v", ins.Host(), ins.Port(), ins.Isolate())
-	} else {
-		entry.Context = fmt.Sprintf("host:%s,port:%d", ins.Host(), ins.Port())
+		Detail:        datail,
+		HappenTime:    time.Now(),
 	}
 	return entry
 }
@@ -1240,8 +1275,8 @@ func CheckDbInstanceFieldLen(req *api.Instance) (*api.Response, bool) {
 	return nil, false
 }
 
-func diffInstanceEvent(req *api.Instance, save *model.Instance) []model.DiscoverEventType {
-	eventTypes := make([]model.DiscoverEventType, 0)
+func diffInstanceEvent(req *api.Instance, save *model.Instance) []model.InstanceEventType {
+	eventTypes := make([]model.InstanceEventType, 0)
 	if req.Isolate != nil && save.Isolate() != req.Isolate.GetValue() {
 		if req.Isolate.GetValue() {
 			eventTypes = append(eventTypes, model.EventInstanceOpenIsolate)

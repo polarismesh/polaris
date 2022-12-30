@@ -27,7 +27,9 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Controller, storage store.Store) (*Server, error) {
+func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Controller,
+	storage store.Store) (*Server, error) {
+
 	testServer := new(Server)
 
 	if !hcOpt.Open {
@@ -47,7 +49,8 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 			// The same health type check plugin can only exist in one
 			_, exist := testServer.checkers[int32(checker.Type())]
 			if exist {
-				return nil, fmt.Errorf("[healthcheck]duplicate healthchecker %s, checkType %d", entry.Name, checker.Type())
+				return nil, fmt.Errorf("[healthcheck]duplicate healthchecker %s, checkType %d",
+					entry.Name, checker.Type())
 			}
 
 			testServer.checkers[int32(checker.Type())] = checker
@@ -59,7 +62,6 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 
 	testServer.localHost = hcOpt.LocalHost
 	testServer.history = plugin.GetHistory()
-	testServer.discoverEvent = plugin.GetDiscoverEvent()
 
 	testServer.cacheProvider = newCacheProvider(hcOpt.Service, testServer)
 	testServer.timeAdjuster = newTimeAdjuster(ctx, storage)

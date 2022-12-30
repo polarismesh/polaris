@@ -147,7 +147,7 @@ func (d *Dispatcher) reloadManagedClients() {
 	log.Infof("[Health Check][Dispatcher]count %d clients has been dispatched to %s, total is %d",
 		len(nextClients), d.svr.localHost, d.svr.cacheProvider.healthCheckInstances.Count())
 	originClients := d.managedClients
-	d.managedClients = originClients
+	d.managedClients = nextClients
 	if len(nextClients) > 0 {
 		for id, client := range nextClients {
 			if len(originClients) == 0 {

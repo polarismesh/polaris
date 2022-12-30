@@ -40,7 +40,7 @@ type AuthServer interface {
 	// AfterResourceOperation 操作完资源的后置处理逻辑
 	AfterResourceOperation(afterCtx *model.AcquireContext) error
 
-	// Login 登陆动作
+	// Login 登录动作
 	Login(req *api.LoginRequest) *api.Response
 
 	// UserOperator 用户操作

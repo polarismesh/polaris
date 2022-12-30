@@ -27,7 +27,7 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
-func buildBaseInstance(instance *InstanceInfo, namespace string, appId string) *api.Instance {
+func buildBaseInstance(instance *InstanceInfo, namespace string, appId string, replicated bool) *api.Instance {
 	targetInstance := &api.Instance{}
 	eurekaMetadata := make(map[string]string)
 
@@ -64,6 +64,9 @@ func buildBaseInstance(instance *InstanceInfo, namespace string, appId string) *
 	}
 	if len(instance.SecureVipAddress) > 0 {
 		eurekaMetadata[MetadataSecureVipAddress] = instance.SecureVipAddress
+	}
+	if replicated {
+		eurekaMetadata[MetadataReplicate] = "true"
 	}
 	targetInstance.Id = &wrappers.StringValue{Value: instance.InstanceId}
 	targetInstance.Metadata = eurekaMetadata
@@ -133,7 +136,7 @@ func buildStatus(instance *InstanceInfo, targetInstance *api.Instance) {
 	}
 }
 
-func convertEurekaInstance(instance *InstanceInfo, namespace string, appId string) *api.Instance {
+func convertEurekaInstance(instance *InstanceInfo, namespace string, appId string, replicated bool) *api.Instance {
 	var secureEnable bool
 	var securePort int
 	var insecureEnable bool
@@ -156,7 +159,7 @@ func convertEurekaInstance(instance *InstanceInfo, namespace string, appId strin
 		insecurePort = DefaultInsecurePort
 	}
 
-	targetInstance := buildBaseInstance(instance, namespace, appId)
+	targetInstance := buildBaseInstance(instance, namespace, appId, replicated)
 
 	// 同时打开2个端口，通过medata保存http端口
 	targetInstance.Protocol = &wrappers.StringValue{Value: InsecureProtocol}
@@ -168,9 +171,12 @@ func convertEurekaInstance(instance *InstanceInfo, namespace string, appId strin
 	return targetInstance
 }
 
-func (h *EurekaServer) registerInstances(ctx context.Context, appId string, instance *InstanceInfo) uint32 {
+func (h *EurekaServer) registerInstances(ctx context.Context, appId string, instance *InstanceInfo,
+	replicated bool) uint32 {
+
+	appId = formatWriteName(appId)
 	// 1. 先转换数据结构
-	totalInstance := convertEurekaInstance(instance, h.namespace, appId)
+	totalInstance := convertEurekaInstance(instance, h.namespace, appId, replicated)
 	// 3. 注册实例
 	resp := h.namingServer.RegisterInstance(ctx, totalInstance)
 	// 4. 注册成功，则返回
