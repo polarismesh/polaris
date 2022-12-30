@@ -445,7 +445,9 @@ func (d *defaultAuthChecker) removeNoStrategyResources(authCtx *model.AcquireCon
 }
 
 // doCheckPermission 执行权限检查
-func (d *defaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext, strategies []*model.StrategyDetail) (bool, error) {
+func (d *defaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext,
+	strategies []*model.StrategyDetail) (bool, error) {
+
 	if len(strategies) == 0 {
 		return true, nil
 	}

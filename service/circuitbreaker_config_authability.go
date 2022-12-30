@@ -22,6 +22,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // CreateCircuitBreakers creates circuit breakers
@@ -33,6 +34,9 @@ func (svr *serverAuthAbility) CreateCircuitBreakers(ctx context.Context,
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return svr.targetServer.CreateCircuitBreakers(ctx, reqs)
 }
@@ -47,6 +51,9 @@ func (svr *serverAuthAbility) CreateCircuitBreakerVersions(ctx context.Context,
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
 
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.CreateCircuitBreakerVersions(ctx, reqs)
 }
 
@@ -59,6 +66,9 @@ func (svr *serverAuthAbility) DeleteCircuitBreakers(ctx context.Context,
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return svr.targetServer.DeleteCircuitBreakers(ctx, reqs)
 }
@@ -86,6 +96,9 @@ func (svr *serverAuthAbility) ReleaseCircuitBreakers(ctx context.Context,
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
 
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.ReleaseCircuitBreakers(ctx, reqs)
 }
 
@@ -98,6 +111,9 @@ func (svr *serverAuthAbility) UnBindCircuitBreakers(ctx context.Context,
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
 	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return svr.targetServer.UnBindCircuitBreakers(ctx, reqs)
 }

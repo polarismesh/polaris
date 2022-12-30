@@ -93,9 +93,12 @@ func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, level1, level2,
 		return CompareRoutingV2(level3[i], level3[j])
 	})
 
-	level1inRoutes, level1outRoutes, level1Revisions := BuildV1RoutesFromV2(v1rule.Service.Value, v1rule.Namespace.Value, level1)
-	level2inRoutes, level2outRoutes, level2Revisions := BuildV1RoutesFromV2(v1rule.Service.Value, v1rule.Namespace.Value, level2)
-	level3inRoutes, level3outRoutes, level3Revisions := BuildV1RoutesFromV2(v1rule.Service.Value, v1rule.Namespace.Value, level3)
+	level1inRoutes, level1outRoutes, level1Revisions := BuildV1RoutesFromV2(v1rule.Service.Value,
+		v1rule.Namespace.Value, level1)
+	level2inRoutes, level2outRoutes, level2Revisions := BuildV1RoutesFromV2(v1rule.Service.Value,
+		v1rule.Namespace.Value, level2)
+	level3inRoutes, level3outRoutes, level3Revisions := BuildV1RoutesFromV2(v1rule.Service.Value,
+		v1rule.Namespace.Value, level3)
 
 	inBounds := v1rule.GetInbounds()
 	outBounds := v1rule.GetOutbounds()
@@ -139,7 +142,9 @@ func CompositeRoutingV1AndV2(v1rule *apiv1.Routing, level1, level2,
 
 // BuildV1RoutesFromV2 根据 v2 版本的路由规则适配成 v1 版本的路由规则，分为别 inBounds 以及 outBounds
 // return inBound outBound revisions
-func BuildV1RoutesFromV2(service, namespace string, entries []*v2.ExtendRoutingConfig) ([]*apiv1.Route, []*apiv1.Route, []string) {
+func BuildV1RoutesFromV2(service, namespace string, entries []*v2.ExtendRoutingConfig) ([]*apiv1.Route,
+	[]*apiv1.Route, []string) {
+
 	if len(entries) == 0 {
 		return []*apiv1.Route{}, []*apiv1.Route{}, []string{}
 	}
@@ -477,7 +482,9 @@ func CompareRoutingV2(a, b *v2.ExtendRoutingConfig) bool {
 }
 
 // ConvertRoutingV1ToExtendV2 v1 版本的路由规则转为 v2 版本进行存储
-func ConvertRoutingV1ToExtendV2(svcName, svcNamespace string, rule *model.RoutingConfig) ([]*v2.ExtendRoutingConfig, []*v2.ExtendRoutingConfig, error) {
+func ConvertRoutingV1ToExtendV2(svcName, svcNamespace string, rule *model.RoutingConfig) ([]*v2.ExtendRoutingConfig,
+	[]*v2.ExtendRoutingConfig, error) {
+
 	inRet := make([]*v2.ExtendRoutingConfig, 0, 4)
 	outRet := make([]*v2.ExtendRoutingConfig, 0, 4)
 

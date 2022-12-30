@@ -39,7 +39,8 @@ type ConfigFileGroupOperate interface {
 	CreateConfigFileGroup(ctx context.Context, configFileGroup *api.ConfigFileGroup) *api.ConfigResponse
 
 	// QueryConfigFileGroups 查询配置文件组, namespace 为完全匹配，groupName 为模糊匹配, fileName 为模糊匹配文件名
-	QueryConfigFileGroups(ctx context.Context, namespace, groupName, fileName string, offset, limit uint32) *api.ConfigBatchQueryResponse
+	QueryConfigFileGroups(ctx context.Context, namespace, groupName, fileName string,
+		offset, limit uint32) *api.ConfigBatchQueryResponse
 
 	// DeleteConfigFileGroup 删除配置文件组
 	DeleteConfigFileGroup(ctx context.Context, namespace, name string) *api.ConfigResponse
@@ -60,10 +61,12 @@ type ConfigFileOperate interface {
 	GetConfigFileRichInfo(ctx context.Context, namespace, group, name string) *api.ConfigResponse
 
 	// QueryConfigFilesByGroup query file group's config file
-	QueryConfigFilesByGroup(ctx context.Context, namespace, group string, offset, limit uint32) *api.ConfigBatchQueryResponse
+	QueryConfigFilesByGroup(ctx context.Context, namespace, group string,
+		offset, limit uint32) *api.ConfigBatchQueryResponse
 
 	// SearchConfigFile 按 group 和 name 模糊搜索配置文件
-	SearchConfigFile(ctx context.Context, namespace, group, name, tags string, offset, limit uint32) *api.ConfigBatchQueryResponse
+	SearchConfigFile(ctx context.Context, namespace, group, name, tags string,
+		offset, limit uint32) *api.ConfigBatchQueryResponse
 
 	// UpdateConfigFile 更新配置文件
 	UpdateConfigFile(ctx context.Context, configFile *api.ConfigFile) *api.ConfigResponse
@@ -90,7 +93,8 @@ type ConfigFileReleaseOperate interface {
 // ConfigFileReleaseHistoryOperate 配置文件发布历史接口
 type ConfigFileReleaseHistoryOperate interface {
 	// GetConfigFileReleaseHistory 获取配置文件的发布历史
-	GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset, limit uint32, endId uint64) *api.ConfigBatchQueryResponse
+	GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset,
+		limit uint32, endId uint64) *api.ConfigBatchQueryResponse
 
 	// GetConfigFileLatestReleaseHistory 获取最后一次发布记录
 	GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group, fileName string) *api.ConfigResponse

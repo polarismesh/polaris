@@ -57,7 +57,7 @@ import (
 	"github.com/polarismesh/polaris/bootstrap"
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/conn/limit"
+	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/namespace"
@@ -99,7 +99,8 @@ type XDSServer struct {
 func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{},
 	apiConf map[string]apiserver.APIConfig,
 ) error {
-	x.cache = cachev3.NewSnapshotCache(false, PolarisNodeHash{}, commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName))
+	x.cache = cachev3.NewSnapshotCache(false, PolarisNodeHash{},
+		commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName))
 	x.registryInfo = make(map[string][]*ServiceInfo)
 	x.listenPort = uint32(option["listenPort"].(int))
 	x.listenIP = option["listenIP"].(string)
@@ -207,7 +208,9 @@ func (x *XDSServer) Stop() {
 }
 
 // Restart 重启服务
-func (x *XDSServer) Restart(option map[string]interface{}, apiConf map[string]apiserver.APIConfig, errCh chan error) error {
+func (x *XDSServer) Restart(option map[string]interface{}, apiConf map[string]apiserver.APIConfig,
+	errCh chan error) error {
+
 	log.Infof("restart xds server with new config: +%v", option)
 
 	x.restart = true
@@ -351,11 +354,14 @@ func makeOutlierDetection(conf *model.ServiceWithCircuitBreaker) *cluster.Outlie
 		outlierDetection := &cluster.OutlierDetection{}
 
 		if consecutiveErrConfig != nil {
-			outlierDetection.Consecutive_5Xx = &wrappers.UInt32Value{Value: consecutiveErrConfig.ConsecutiveErrorToOpen.Value}
+			outlierDetection.Consecutive_5Xx = &wrappers.UInt32Value{
+				Value: consecutiveErrConfig.ConsecutiveErrorToOpen.Value}
 		}
 		if errorRateConfig != nil {
-			outlierDetection.FailurePercentageRequestVolume = &wrappers.UInt32Value{Value: errorRateConfig.RequestVolumeThreshold.Value}
-			outlierDetection.FailurePercentageThreshold = &wrappers.UInt32Value{Value: errorRateConfig.ErrorRateToOpen.Value}
+			outlierDetection.FailurePercentageRequestVolume = &wrappers.UInt32Value{
+				Value: errorRateConfig.RequestVolumeThreshold.Value}
+			outlierDetection.FailurePercentageThreshold = &wrappers.UInt32Value{
+				Value: errorRateConfig.ErrorRateToOpen.Value}
 		}
 
 		return outlierDetection
@@ -474,7 +480,9 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 								headerMatch = &route.HeaderMatcher{
 									Name: headerSubName,
 									HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_Exact{Exact: matchString.GetValue().GetValue()}},
+										StringMatch: &v32.StringMatcher{
+											MatchPattern: &v32.StringMatcher_Exact{
+												Exact: matchString.GetValue().GetValue()}},
 									},
 								}
 							}
@@ -482,7 +490,9 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 								headerMatch = &route.HeaderMatcher{
 									Name: headerSubName,
 									HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_Exact{Exact: matchString.GetValue().GetValue()}},
+										StringMatch: &v32.StringMatcher{
+											MatchPattern: &v32.StringMatcher_Exact{
+												Exact: matchString.GetValue().GetValue()}},
 									},
 									InvertMatch: true,
 								}
@@ -493,8 +503,9 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 									HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
 										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_SafeRegex{
 											SafeRegex: &v32.RegexMatcher{
-												EngineType: &v32.RegexMatcher_GoogleRe2{GoogleRe2: &v32.RegexMatcher_GoogleRE2{}},
-												Regex:      matchString.GetValue().GetValue()}}},
+												EngineType: &v32.RegexMatcher_GoogleRe2{
+													GoogleRe2: &v32.RegexMatcher_GoogleRE2{}},
+												Regex: matchString.GetValue().GetValue()}}},
 									},
 								}
 							}
@@ -512,7 +523,9 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 								queryMatcher = &route.QueryParameterMatcher{
 									Name: querySubName,
 									QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{
-										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_Exact{Exact: matchString.GetValue().GetValue()}},
+										StringMatch: &v32.StringMatcher{
+											MatchPattern: &v32.StringMatcher_Exact{
+												Exact: matchString.GetValue().GetValue()}},
 									},
 								}
 							}
@@ -520,10 +533,12 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 								queryMatcher = &route.QueryParameterMatcher{
 									Name: querySubName,
 									QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{
-										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_SafeRegex{SafeRegex: &v32.RegexMatcher{
-											EngineType: &v32.RegexMatcher_GoogleRe2{GoogleRe2: &v32.RegexMatcher_GoogleRE2{}},
-											Regex:      matchString.GetValue().GetValue(),
-										}}},
+										StringMatch: &v32.StringMatcher{
+											MatchPattern: &v32.StringMatcher_SafeRegex{SafeRegex: &v32.RegexMatcher{
+												EngineType: &v32.RegexMatcher_GoogleRe2{
+													GoogleRe2: &v32.RegexMatcher_GoogleRE2{}},
+												Regex: matchString.GetValue().GetValue(),
+											}}},
 									},
 								}
 							}

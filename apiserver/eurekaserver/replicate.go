@@ -81,7 +81,8 @@ func (h *EurekaServer) BatchReplication(req *restful.Request, rsp *restful.Respo
 		resp, code := h.dispatch(instanceInfo, token)
 		if code != api.ExecuteSuccess {
 			resultCode = code
-			log.Warnf("[EUREKA-SERVER] fail to process replicate instance request, code is %d, action %s, instance %s, app %s",
+			log.Warnf("[EUREKA-SERVER] fail to process replicate instance request, code is %d, "+
+				" action %s, instance %s, app %s",
 				code, instanceInfo.Action, instanceInfo.Id, instanceInfo.AppName)
 		}
 		batchResponse.ResponseList = append(batchResponse.ResponseList, resp)
@@ -91,7 +92,8 @@ func (h *EurekaServer) BatchReplication(req *restful.Request, rsp *restful.Respo
 	}
 }
 
-func (h *EurekaServer) dispatch(replicationInstance *ReplicationInstance, token string) (*ReplicationInstanceResponse, uint32) {
+func (h *EurekaServer) dispatch(replicationInstance *ReplicationInstance,
+	token string) (*ReplicationInstanceResponse, uint32) {
 	appName := formatReadName(replicationInstance.AppName)
 	ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, token)
 	var retCode = api.ExecuteSuccess
@@ -99,7 +101,8 @@ func (h *EurekaServer) dispatch(replicationInstance *ReplicationInstance, token 
 	if nil != replicationInstance.InstanceInfo {
 		_ = convertInstancePorts(replicationInstance.InstanceInfo)
 		log.Debugf("[EurekaServer]dispatch replicate instance %+v, port %+v, sport %+v",
-			replicationInstance.InstanceInfo, replicationInstance.InstanceInfo.Port, replicationInstance.InstanceInfo.SecurePort)
+			replicationInstance.InstanceInfo, replicationInstance.InstanceInfo.Port,
+			replicationInstance.InstanceInfo.SecurePort)
 	}
 	switch replicationInstance.Action {
 	case actionRegister:

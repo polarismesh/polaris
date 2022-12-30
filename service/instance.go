@@ -887,17 +887,31 @@ func (s *Server) getInstance(service *api.Service, instance *api.Instance) *api.
 
 // 获取cmdb
 func (s *Server) packCmdb(instance *api.Instance) {
-	if instance == nil || instance.GetLocation() != nil {
+	if s.cmdb == nil {
 		return
 	}
-	if s.cmdb == nil {
+	if instance == nil || !isEmptyLocation(instance.GetLocation()) {
 		return
 	}
 
 	location, err := s.cmdb.GetLocation(instance.GetHost().GetValue())
-	if err == nil && location != nil {
+	if err != nil {
+		log.Error("[Instance] pack cmdb info fail",
+			zap.String("namespace", instance.GetNamespace().GetValue()),
+			zap.String("service", instance.GetService().GetValue()),
+			zap.String("host", instance.GetHost().GetValue()),
+			zap.Uint32("port", instance.GetPort().GetValue()))
+		return
+	}
+	if location != nil {
 		instance.Location = location.Proto
 	}
+}
+
+func isEmptyLocation(loc *api.Location) bool {
+	return loc == nil || (loc.GetRegion().GetValue() == "" &&
+		loc.GetZone().GetValue() == "" &&
+		loc.GetCampus().GetValue() == "")
 }
 
 func (s *Server) sendDiscoverEvent(event model.InstanceEvent) {

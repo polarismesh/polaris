@@ -634,7 +634,8 @@ func (s *Server) fillReleaseAndTags(ctx context.Context, file *api.ConfigFile) (
 }
 
 // configFileRecordEntry 生成服务的记录entry
-func configFileRecordEntry(ctx context.Context, req *api.ConfigFile, operationType model.OperationType) *model.RecordEntry {
+func configFileRecordEntry(ctx context.Context, req *api.ConfigFile,
+	operationType model.OperationType) *model.RecordEntry {
 
 	marshaler := jsonpb.Marshaler{}
 	detail, _ := marshaler.MarshalToString(req)

@@ -83,7 +83,8 @@ func (h *HTTPServerV1) addDefaultReadAccess(ws *restful.WebService) {
 	ws.Route(enrichGetServiceTokenApiDocs(ws.GET("/service/token").To(h.GetServiceToken)))
 	ws.Route(enrichCreateServiceAliasApiDocs(ws.POST("/service/alias").To(h.CreateServiceAlias)))
 	ws.Route(enrichGetServiceAliasesApiDocs(ws.GET("/service/aliases").To(h.GetServiceAliases)))
-	ws.Route(enrichGetCircuitBreakerByServiceApiDocs(ws.GET("/service/circuitbreaker").To(h.GetCircuitBreakerByService)))
+	ws.Route(enrichGetCircuitBreakerByServiceApiDocs(ws.GET("/service/circuitbreaker").
+		To(h.GetCircuitBreakerByService)))
 	ws.Route(enrichGetServiceOwnerApiDocs(ws.POST("/service/owner").To(h.GetServiceOwner)))
 
 	ws.Route(enrichGetInstancesApiDocs(ws.GET("/instances").To(h.GetInstances)))
@@ -96,9 +97,12 @@ func (h *HTTPServerV1) addDefaultReadAccess(ws *restful.WebService) {
 	ws.Route(enrichGetRateLimitsApiDocs(ws.GET("/ratelimits").To(h.GetRateLimits)))
 
 	ws.Route(enrichGetCircuitBreakersApiDocs(ws.GET("/circuitbreaker").To(h.GetCircuitBreaker)))
-	ws.Route(enrichGetCircuitBreakerVersionsApiDocs(ws.GET("/circuitbreaker/versions").To(h.GetCircuitBreakerVersions)))
-	ws.Route(enrichGetMasterCircuitBreakersApiDocs(ws.GET("/circuitbreakers/master").To(h.GetMasterCircuitBreakers)))
-	ws.Route(enrichGetReleaseCircuitBreakersApiDocs(ws.GET("/circuitbreakers/release").To(h.GetReleaseCircuitBreakers)))
+	ws.Route(enrichGetCircuitBreakerVersionsApiDocs(ws.GET("/circuitbreaker/versions").
+		To(h.GetCircuitBreakerVersions)))
+	ws.Route(enrichGetMasterCircuitBreakersApiDocs(ws.GET("/circuitbreakers/master").
+		To(h.GetMasterCircuitBreakers)))
+	ws.Route(enrichGetReleaseCircuitBreakersApiDocs(ws.GET("/circuitbreakers/release").
+		To(h.GetReleaseCircuitBreakers)))
 	ws.Route(enrichGetCircuitBreakerTokensApiDocs(ws.GET("/circuitbreaker/token").To(h.GetCircuitBreakerToken)))
 }
 
@@ -123,7 +127,8 @@ func (h *HTTPServerV1) addDefaultAccess(ws *restful.WebService) {
 	ws.Route(enrichUpdateServiceAliasApiDocs(ws.PUT("/service/alias").To(h.UpdateServiceAlias)))
 	ws.Route(enrichGetServiceAliasesApiDocs(ws.GET("/service/aliases").To(h.GetServiceAliases)))
 	ws.Route(enrichDeleteServiceAliasesApiDocs(ws.POST("/service/aliases/delete").To(h.DeleteServiceAliases)))
-	ws.Route(enrichGetCircuitBreakerByServiceApiDocs(ws.GET("/service/circuitbreaker").To(h.GetCircuitBreakerByService)))
+	ws.Route(enrichGetCircuitBreakerByServiceApiDocs(ws.GET("/service/circuitbreaker").
+		To(h.GetCircuitBreakerByService)))
 	ws.Route(enrichGetServiceOwnerApiDocs(ws.POST("/service/owner").To(h.GetServiceOwner)))
 
 	ws.Route(enrichCreateInstancesApiDocs(ws.POST("/instances").To(h.CreateInstances)))
@@ -147,15 +152,19 @@ func (h *HTTPServerV1) addDefaultAccess(ws *restful.WebService) {
 	ws.Route(enrichEnableRateLimitsApiDocs(ws.PUT("/ratelimits/enable").To(h.EnableRateLimits)))
 
 	ws.Route(enrichCreateCircuitBreakersApiDocs(ws.POST("/circuitbreakers").To(h.CreateCircuitBreakers)))
-	ws.Route(enrichCreateCircuitBreakerVersionsApiDocs(ws.POST("/circuitbreakers/version").To(h.CreateCircuitBreakerVersions)))
+	ws.Route(enrichCreateCircuitBreakerVersionsApiDocs(ws.POST("/circuitbreakers/version").
+		To(h.CreateCircuitBreakerVersions)))
 	ws.Route(enrichDeleteCircuitBreakersApiDocs(ws.POST("/circuitbreakers/delete").To(h.DeleteCircuitBreakers)))
 	ws.Route(enrichUpdateCircuitBreakersApiDocs(ws.PUT("/circuitbreakers").To(h.UpdateCircuitBreakers)))
 	ws.Route(enrichReleaseCircuitBreakersApiDocs(ws.POST("/circuitbreakers/release").To(h.ReleaseCircuitBreakers)))
 	ws.Route(enrichUnBindCircuitBreakersApiDocs(ws.POST("/circuitbreakers/unbind").To(h.UnBindCircuitBreakers)))
 	ws.Route(enrichGetCircuitBreakersApiDocs(ws.GET("/circuitbreaker").To(h.GetCircuitBreaker)))
-	ws.Route(enrichGetCircuitBreakerVersionsApiDocs(ws.GET("/circuitbreaker/versions").To(h.GetCircuitBreakerVersions)))
-	ws.Route(enrichGetMasterCircuitBreakersApiDocs(ws.GET("/circuitbreakers/master").To(h.GetMasterCircuitBreakers)))
-	ws.Route(enrichGetReleaseCircuitBreakersApiDocs(ws.GET("/circuitbreakers/release").To(h.GetReleaseCircuitBreakers)))
+	ws.Route(enrichGetCircuitBreakerVersionsApiDocs(ws.GET("/circuitbreaker/versions").
+		To(h.GetCircuitBreakerVersions)))
+	ws.Route(enrichGetMasterCircuitBreakersApiDocs(ws.GET("/circuitbreakers/master").
+		To(h.GetMasterCircuitBreakers)))
+	ws.Route(enrichGetReleaseCircuitBreakersApiDocs(ws.GET("/circuitbreakers/release").
+		To(h.GetReleaseCircuitBreakers)))
 	ws.Route(enrichGetCircuitBreakerTokensApiDocs(ws.GET("/circuitbreaker/token").To(h.GetCircuitBreakerToken)))
 }
 

@@ -69,7 +69,8 @@ func (cb *Callbacks) OnStreamRequest(id int64, req *discovery.DiscoveryRequest) 
 	return nil
 }
 
-func (cb *Callbacks) OnStreamResponse(_ context.Context, id int64, req *discovery.DiscoveryRequest, resp *discovery.DiscoveryResponse) {
+func (cb *Callbacks) OnStreamResponse(_ context.Context, id int64, req *discovery.DiscoveryRequest,
+	resp *discovery.DiscoveryResponse) {
 	if cb.log.DebugEnabled() {
 		marshaler := jsonpb.Marshaler{}
 		reqstr, _ := marshaler.MarshalToString(req)
@@ -78,7 +79,8 @@ func (cb *Callbacks) OnStreamResponse(_ context.Context, id int64, req *discover
 	}
 }
 
-func (cb *Callbacks) OnStreamDeltaResponse(id int64, req *discovery.DeltaDiscoveryRequest, resp *discovery.DeltaDiscoveryResponse) {
+func (cb *Callbacks) OnStreamDeltaResponse(id int64, req *discovery.DeltaDiscoveryRequest,
+	resp *discovery.DeltaDiscoveryResponse) {
 	if cb.log.DebugEnabled() {
 		marshaler := jsonpb.Marshaler{}
 		reqstr, _ := marshaler.MarshalToString(req)

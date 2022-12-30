@@ -603,7 +603,9 @@ func (c *circuitBreakerStore) GetCircuitBreakersByService(
 	return c.GetCircuitBreaker(relation.RuleID, relation.RuleVersion)
 }
 
-func (c *circuitBreakerStore) getCircuitBreakerRelationByServiceId(serviceID string) (*model.CircuitBreakerRelation, error) {
+func (c *circuitBreakerStore) getCircuitBreakerRelationByServiceId(
+	serviceID string) (*model.CircuitBreakerRelation, error) {
+
 	var (
 		dbOp        = c.handler
 		result, err = dbOp.LoadValues(tblCircuitBreakerRelation, []string{serviceID}, &model.CircuitBreakerRelation{})
@@ -617,7 +619,7 @@ func (c *circuitBreakerStore) getCircuitBreakerRelationByServiceId(serviceID str
 	}
 
 	if len(result) != 1 {
-		return nil, fmt.Errorf("[Store][CircuitBreaker] service_id=%s expect get one, but actual more then one, impossible", serviceID)
+		return nil, fmt.Errorf("[Store][CircuitBreaker] service_id=%s expect get one, but more then one", serviceID)
 	}
 
 	ret := result[serviceID].(*model.CircuitBreakerRelation)

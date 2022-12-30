@@ -149,11 +149,12 @@ func pluginInitialize() {
 		return
 	}
 
-	if err := eventhub.Subscribe(eventhub.InstanceEventTopic, subscriber.Name(), func(ctx context.Context, i interface{}) error {
-		e := i.(model.InstanceEvent)
-		subscriber.PublishEvent(e)
-		return nil
-	}); err != nil {
+	if err := eventhub.Subscribe(eventhub.InstanceEventTopic, subscriber.Name(),
+		func(ctx context.Context, i interface{}) error {
+			e := i.(model.InstanceEvent)
+			subscriber.PublishEvent(e)
+			return nil
+		}); err != nil {
 		log.Warnf("register DiscoverEvent into eventhub:%s %v", subscriber.Name(), err)
 	}
 

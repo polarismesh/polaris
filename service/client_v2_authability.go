@@ -24,11 +24,15 @@ import (
 )
 
 // GetRoutingConfigV2WithCache User Client Get Service Routing Configuration Information
-func (svr *serverAuthAbility) GetRoutingConfigV2WithCache(ctx context.Context, req *apiv2.Service) *apiv2.DiscoverResponse {
+func (svr *serverAuthAbility) GetRoutingConfigV2WithCache(ctx context.Context,
+	req *apiv2.Service) *apiv2.DiscoverResponse {
+
 	return svr.targetServer.GetRoutingConfigV2WithCache(ctx, req)
 }
 
 // GetCircuitBreakerV2WithCache Fuse configuration information for obtaining services for clients
-func (svr *serverAuthAbility) GetCircuitBreakerV2WithCache(ctx context.Context, req *apiv2.Service) *apiv2.DiscoverResponse {
+func (svr *serverAuthAbility) GetCircuitBreakerV2WithCache(ctx context.Context,
+	req *apiv2.Service) *apiv2.DiscoverResponse {
+
 	return svr.targetServer.GetCircuitBreakerV2WithCache(ctx, req)
 }

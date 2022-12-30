@@ -104,7 +104,9 @@ func (s *Server) CreateServiceAlias(ctx context.Context, req *api.ServiceAlias) 
 	return api.NewServiceAliasResponse(api.ExecuteSuccess, out)
 }
 
-func (s *Server) checkPointServiceAlias(tx store.Transaction, req *api.ServiceAlias, rid string) (*model.Service, *api.Response, bool) {
+func (s *Server) checkPointServiceAlias(tx store.Transaction, req *api.ServiceAlias,
+	rid string) (*model.Service, *api.Response, bool) {
+
 	// 检查指向服务是否存在以及是否为别名
 	service, err := tx.LockService(req.GetService().GetValue(), req.GetNamespace().GetValue())
 	if err != nil {

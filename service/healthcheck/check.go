@@ -598,7 +598,9 @@ type leaderChangeEventHandler struct {
 }
 
 // newLeaderChangeEventHandler
-func newLeaderChangeEventHandler(cacheProvider *CacheProvider, minCheckInterval time.Duration) *leaderChangeEventHandler {
+func newLeaderChangeEventHandler(cacheProvider *CacheProvider,
+	minCheckInterval time.Duration) *leaderChangeEventHandler {
+
 	return &leaderChangeEventHandler{
 		cacheProvider:    cacheProvider,
 		minCheckInterval: minCheckInterval,

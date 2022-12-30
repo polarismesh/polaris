@@ -582,7 +582,9 @@ func fetchRown2User(rows *sql.Rows) (*model.User, error) {
 		ctime, mtime                int64
 		flag, tokenEnable, userType int
 		user                        = new(model.User)
-		err                         = rows.Scan(&user.ID, &user.Name, &user.Password, &user.Owner, &user.Comment, &user.Source, &user.Token, &tokenEnable, &userType, &ctime, &mtime, &flag, &user.Mobile, &user.Email)
+		err                         = rows.Scan(&user.ID, &user.Name, &user.Password, &user.Owner,
+			&user.Comment, &user.Source, &user.Token, &tokenEnable, &userType, &ctime, &mtime,
+			&flag, &user.Mobile, &user.Email)
 	)
 
 	if err != nil {
