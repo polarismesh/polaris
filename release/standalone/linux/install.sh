@@ -208,6 +208,7 @@ function installPrometheus() {
 function installPolarisLimiter() {
   echo -e "install polaris limiter ... "
   local polaris_limiter_num=$(ps -ef | grep polaris-limiter | grep -v grep | wc -l)
+  local base_dir=$(echo $(pwd))
   if [ $polaris_limiter_num -ge 1 ]; then
     echo -e "polaris-limiter is running, skip."
     return
@@ -240,6 +241,7 @@ function installPolarisLimiter() {
   /bin/bash ./tool/start.sh
   echo -e "install polaris limiter finish."
   popd
+  cd ${base_dir}
 }
 
 function checkPort() {
