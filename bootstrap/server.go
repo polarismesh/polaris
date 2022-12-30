@@ -38,6 +38,7 @@ import (
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/pluggable"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/common/version"
 	config_center "github.com/polarismesh/polaris/config"
@@ -95,6 +96,12 @@ func Start(configFilePath string) {
 	metrics.InitMetrics()
 
 	eventhub.InitEventHub()
+
+	// 加载可插拔插件
+	if err = pluggable.Discovery(ctx); err != nil {
+		fmt.Printf("[ERROR] discover pluggable plugin fail: %+v", err)
+		return
+	}
 
 	// 设置插件配置
 	plugin.SetPluginConfig(&cfg.Plugin)
