@@ -227,10 +227,7 @@ function installPolarisLimiter() {
     echo -e "polaris-limiter-release.tar.gz has been decompressed, skip."
   fi
 
-  cd ${polaris_limiter_dirname} || (
-    echo "no such directory ${polaris_limiter_dirname}"
-    exit -1
-  )
+  pushd ${polaris_limiter_dirname}
 
   # 备份 polaris-limiter.yaml
   cp polaris-limiter.yaml polaris-limiter.yaml.bak
@@ -242,10 +239,7 @@ function installPolarisLimiter() {
 
   /bin/bash ./tool/start.sh
   echo -e "install polaris limiter finish."
-  cd ${install_path} || (
-    echo "no such directory ${install_path}"
-    exit -1
-  )
+  popd
 }
 
 function checkPort() {
@@ -255,7 +249,6 @@ function checkPort() {
     echo "" >&2
     exit 1
   fi
-  keyLength=$(echo ${key} | awk '{print length($0)}')
   lineNumStr=$(cat ${proFilePath} | wc -l)
   lineNum=$((${lineNumStr}))
   for ((i = 1; i <= ${lineNum}; i++)); do
@@ -265,6 +258,8 @@ function checkPort() {
     if [ "${pid}" != "" ]; then
       echo "port ${port} already used, you can modify port.properties to adjust port"
       exit -1
+	else
+      echo "port ${port} is checked ,and is not used"	
     fi
   done
 }
