@@ -19,6 +19,7 @@ package sqldb
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -26,6 +27,10 @@ import (
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
+)
+
+var (
+	ErrMultipleConfigFileGroupFound error = errors.New("multiple config_file_group found")
 )
 
 type configFileGroupStore struct {
@@ -178,6 +183,14 @@ func (fg *configFileGroupStore) GetConfigFileGroupById(id uint64) (*model.Config
 	cfgs, err := fg.transferRows(rows)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(cfgs) == 0 {
+		return nil, nil
+	}
+
+	if len(cfgs) > 1 {
+		return nil, ErrMultipleConfigFileGroupFound
 	}
 
 	return cfgs[0], nil
