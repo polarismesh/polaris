@@ -17,35 +17,8 @@
 
 package plugin
 
-import (
-	"os"
-	"sync"
-)
+import commonlog "github.com/polarismesh/polaris/common/log"
 
 var (
-	passwordOnce sync.Once
+	log = commonlog.GetScopeOrDefaultByName("plugin")
 )
-
-// ParsePassword Password plug -in
-type ParsePassword interface {
-	Plugin
-	ParsePassword(cipher string) (string, error)
-}
-
-// GetParsePassword Get the parsing password plug -in
-func GetParsePassword() ParsePassword {
-	c := &config.ParsePassword
-	plugin, exist := pluginSet[c.Name]
-	if !exist {
-		return nil
-	}
-
-	passwordOnce.Do(func() {
-		if err := plugin.Initialize(c); err != nil {
-			log.Errorf("ParsePassword plugin init err: %s", err.Error())
-			os.Exit(-1)
-		}
-	})
-
-	return plugin.(ParsePassword)
-}

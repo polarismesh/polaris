@@ -369,15 +369,9 @@ data:
     # 插件配置
     plugin:
       history:
-        name: HistoryLogger
+        - name: HistoryLogger
       discoverEvent:
-        name: discoverEventLocal
-        # option:
-        #   queueSize: 1024
-        #   outputPath: ./discover-event
-        #   rotationMaxSize: 500
-        #   rotationMaxAge: 8
-        #   rotationMaxBackups: 100
+        - name: discoverEventLocal
       discoverStatis:
         name: discoverLocal
         option:
@@ -392,8 +386,6 @@ data:
         # name: prometheus
         # option:
         #   interval: 60 # 统计间隔，单位为秒
-      auth:
-        name: defaultAuth
       ratelimit:
         name: token-bucket
         option:
