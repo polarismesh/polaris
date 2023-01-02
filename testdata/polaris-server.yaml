@@ -417,9 +417,9 @@ plugin:
       url: "http://127.0.0.1:36247"
       interval: 60s
   history:
-    name: HistoryLogger
+    - name: HistoryLogger
   discoverEvent:
-    name: discoverEventLocal
+    - name: discoverEventLocal
     # option:
     #   queueSize: 1024
     #   outputPath: ./discover-event

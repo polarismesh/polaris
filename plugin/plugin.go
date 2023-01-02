@@ -57,13 +57,13 @@ type ConfigEntry struct {
 
 // Config 插件配置
 type Config struct {
-	CMDB                 ConfigEntry `yaml:"cmdb"`
-	RateLimit            ConfigEntry `yaml:"ratelimit"`
+	CMDB                 ConfigEntry   `yaml:"cmdb"`
+	RateLimit            ConfigEntry   `yaml:"ratelimit"`
 	History              []ConfigEntry `yaml:"history"`
-	Statis               ConfigEntry `yaml:"statis"`
-	DiscoverStatis       ConfigEntry `yaml:"discoverStatis"`
-	ParsePassword        ConfigEntry `yaml:"parsePassword"`
-	Whitelist            ConfigEntry `yaml:"whitelist"`
-	MeshResourceValidate ConfigEntry `yaml:"meshResourceValidate"`
+	Statis               ConfigEntry   `yaml:"statis"`
+	DiscoverStatis       ConfigEntry   `yaml:"discoverStatis"`
+	ParsePassword        ConfigEntry   `yaml:"parsePassword"`
+	Whitelist            ConfigEntry   `yaml:"whitelist"`
+	MeshResourceValidate ConfigEntry   `yaml:"meshResourceValidate"`
 	DiscoverEvent        []ConfigEntry `yaml:"discoverEvent"`
 }

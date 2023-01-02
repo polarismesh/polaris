@@ -887,7 +887,6 @@ func getRealServicesList(originServices map[string]*model.Service, offset, limit
 	return services[beginIndex:endIndex]
 }
 
-
 func doPageAliasServices(originServices []*model.ServiceAlias, offset, limit uint32) []*model.ServiceAlias {
 	services := make([]*model.ServiceAlias, 0)
 	beginIndex := offset
@@ -925,7 +924,6 @@ func doPageAliasServices(originServices []*model.ServiceAlias, offset, limit uin
 
 	return services[beginIndex:endIndex]
 }
-
 
 func initService(s *model.Service) {
 	current := time.Now()
