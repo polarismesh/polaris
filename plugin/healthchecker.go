@@ -20,11 +20,7 @@ package plugin
 import (
 	"os"
 	"sync"
-
-	commonLog "github.com/polarismesh/polaris/common/log"
 )
-
-var healthcheckLog = commonLog.GetScopeOrDefaultByName(commonLog.HealthcheckLoggerName)
 
 // ReportRequest report heartbeat request
 type ReportRequest struct {
@@ -108,7 +104,7 @@ func GetHealthChecker(name string, cfg *ConfigEntry) HealthChecker {
 
 	healthCheckOnce.Do(func() {
 		if err := plugin.Initialize(cfg); err != nil {
-			healthcheckLog.Errorf("plugin init err: %s", err.Error())
+			log.Errorf("HealthChecker plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})

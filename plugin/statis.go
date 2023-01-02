@@ -20,8 +20,6 @@ package plugin
 import (
 	"os"
 	"sync"
-
-	commonLog "github.com/polarismesh/polaris/common/log"
 )
 
 var (
@@ -35,7 +33,7 @@ const (
 	ComponentProtobufCache = "protobuf"
 )
 
-// Statis 统计插件接口
+// Statis Statistical plugin interface
 type Statis interface {
 	Plugin
 
@@ -46,7 +44,7 @@ type Statis interface {
 	AddCacheCall(component string, cacheType string, miss bool, call int) error
 }
 
-// GetStatis 获取统计插件
+// GetStatis Get statistical plugin
 func GetStatis() Statis {
 	c := &config.Statis
 
@@ -57,7 +55,7 @@ func GetStatis() Statis {
 
 	statisOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			commonLog.GetScopeOrDefaultByName(c.Name).Errorf("plugin init err: %s", err.Error())
+			log.Errorf("Statis plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})

@@ -13,9 +13,9 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-# server启动引导配置
+# server Start guidance configuration
 bootstrap:
-  # 全局日志
+  # Global log
   logger:
     config:
       rotateOutputPath: log/runtime/polaris-config.log
@@ -185,11 +185,11 @@ bootstrap:
       #   - stdout
       # errorOutputPaths:
       #   - stderr
-  # 按顺序启动server
+  # Start the server in order
   startInOrder:
-    open: true # 是否开启，默认是关闭
-    key: sz # 全局锁
-  # 注册为北极星服务
+    open: true # Whether to open, the default is closed
+    key: sz # Global lock
+  # Register as Arctic Star Service
   polaris_service:
     # probe_address: ##DB_ADDR##
     enable_register: true
@@ -198,7 +198,7 @@ bootstrap:
       - name: polaris.checker
         protocols:
           - service-grpc
-# apiserver配置
+# apiserver Configuration
 apiservers:
   - name: service-eureka
     option:
@@ -216,7 +216,7 @@ apiservers:
         whiteList: 127.0.0.1
         purgeCounterInterval: 10s
         purgeCounterExpired: 5s
-  - name: api-http # 协议名，全局唯一
+  - name: api-http # Agreement name, the only global situation
     option:
       listenIP: "0.0.0.0"
       listenPort: 8090
@@ -283,25 +283,25 @@ apiservers:
   #     listenIP: 0.0.0.0
   #     listenPort: 7779
   #     clusterName: cl5.discover
-# 核心逻辑的配置
+# Core logic configuration
 auth:
-  # 鉴权插件
+  # Inspection plug -in
   name: defaultAuth
   option:
-    # token 加密的 salt，鉴权解析 token 时需要依靠这个 salt 去解密 token 的信息
-    # salt 的长度需要满足以下任意一个：len(salt) in [16, 24, 32]
+    # Token encrypted SALT, you need to rely on this SALT to decrypt the information of the Token when analyzing the Token
+    # The length of SALT needs to satisfy the following one：len(salt) in [16, 24, 32]
     salt: polarismesh@2021
-    # 控制台鉴权能力开关，默认开启
+    # Console power switch, open default
     consoleOpen: true
-    # 客户端鉴权能力开关, 默认关闭
+    # Customer inspection ability switch, default shutdown
     clientOpen: false
 namespace:
-  # 是否允许自动创建命名空间
+  # Whether to allow automatic creation of naming space
   autoCreate: true
 naming:
   auth:
     open: false
-  # 批量控制器
+  # Batch controller
   batch:
     register:
       open: true
@@ -329,7 +329,7 @@ naming:
       waitTime: 32ms
       maxBatchCount: 32
       concurrency: 64
-# 健康检查的配置
+# Configuration of health check
 healthcheck:
   open: true
   service: polaris.checker
@@ -359,41 +359,41 @@ healthcheck:
 #      msgTimeout: 200ms
 #      concurrency: 200
 #      withTLS: false
-# 配置中心模块启动配置
+# Configuration center module start configuration
 config:
-  # 是否启动配置模块
+  # Whether to start the configuration module
   open: true
-# 缓存配置
+# Cache configuration
 cache:
   open: true
   resources:
-    - name: service # 加载服务数据
+    - name: service # Load service data
       option:
-        disableBusiness: false # 不加载业务服务
-        needMeta: true # 加载服务元数据
-    - name: instance # 加载实例数据
+        disableBusiness: false # Do not load business services
+        needMeta: true # Load service metadata
+    - name: instance # Load instance data
       option:
-        disableBusiness: false # 不加载业务服务实例
-        needMeta: true # 加载实例元数据
-    - name: routingConfig # 加载路由数据
-    - name: rateLimitConfig # 加载限流数据
-    - name: circuitBreakerConfig # 加载熔断数据
-    - name: users # 加载用户、用户组数据
-    - name: strategyRule # 加载鉴权规则数据
-    - name: namespace # 加载命名空间数据
-    - name: client # 加载 SDK 数据
+        disableBusiness: false # Do not load business service examples
+        needMeta: true # Load instance metadata
+    - name: routingConfig # Load route data
+    - name: rateLimitConfig # Load current limit data
+    - name: circuitBreakerConfig # Load the fuse data
+    - name: users # Load user and user group data
+    - name: strategyRule # Loading the rules of appraisal
+    - name: namespace # Load the naming space data
+    - name: client # Load Client-SDK instance data
     - name: configFile
       option:
-        #配置文件缓存过期时间，单位s
+        # Configuration file cache expires time, unit S
         expireTimeAfterWrite: 3600
-#    - name: l5 # 加载l5数据
-# 存储配置
+#    - name: l5 # Load L5 data
+# Storage configuration
 store:
-  # 单机文件存储插件
+  # Single -machine file storage plug -in
   name: boltdbStore
   option:
     path: ./polaris.bolt
-  ## 数据库存储插件
+  ## Database storage plugin
   # name: defaultStore
   # option:
   #   master:
@@ -404,7 +404,7 @@ store:
   #     dbAddr: ##DB_ADDR##
   #     maxOpenConns: 300
   #     maxIdleConns: 50
-  #     connMaxLifetime: 300 # 单位秒
+  #     connMaxLifetime: 300 # Unit second
   #     txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置
 plugin:
@@ -418,34 +418,28 @@ plugin:
       url: "http://127.0.0.1:35225"
       interval: 60s
   history:
-    name: HistoryLogger
+    - name: HistoryLogger
   discoverEvent:
-    name: discoverEventLocal
-    # option:
-    #   queueSize: 1024
-    #   outputPath: ./discover-event
-    #   rotationMaxSize: 500
-    #   rotationMaxAge: 8
-    #   rotationMaxBackups: 100
+    - name: discoverEventLocal
   discoverStatis:
     name: discoverLocal
     option:
-      interval: 60 # 统计间隔，单位为秒
+      interval: 60 # Statistical interval, the unit is second
   statis:
     name: local
     option:
-      interval: 60 # 统计间隔，单位为秒
+      interval: 60 # Statistical interval, the unit is second
   ratelimit:
     name: token-bucket
     option:
-      remote-conf: false # 是否使用远程配置
-      ip-limit: # ip级限流，全局
-        open: true # 系统是否开启ip级限流
+      remote-conf: false # Whether to use remote configuration
+      ip-limit: # IP -level current, global
+        open: true # Whether the system opens IP -level current limit
         global:
           open: true
-          bucket: 300 # 最高峰值
-          rate: 200 # 平均一个IP每秒的请求数
-        resource-cache-amount: 1024 # 最大缓存的IP个数
+          bucket: 300 # Maximum peak
+          rate: 200 # The average number of requests per second of IP
+        resource-cache-amount: 1024 # Number of IP of the maximum cache
         white-list: [127.0.0.1]
       instance-limit:
         open: true
@@ -453,14 +447,14 @@ plugin:
           bucket: 200
           rate: 100
         resource-cache-amount: 1024
-      api-limit: # 接口级限流
-        open: false # 是否开启接口限流，全局开关，只有为true，才代表系统的限流开启。默认关闭
+      api-limit: # Interface-level current limit
+        open: false # Whether to turn on the interface restriction and global switch, only for TRUE can it represent the flow restriction on the system.By default
         rules:
           - name: store-read
             limit:
-              open: true # 接口的全局配置，如果在api子项中，不配置，则该接口依据global来做限制
-              bucket: 2000 # 令牌桶最大值
-              rate: 1000 # 每秒产生的令牌数
+              open: true # The global configuration of the interface, if in the API sub -item, is not configured, the interface will be limited according to Global
+              bucket: 2000 # The maximum value of token barrels
+              rate: 1000 # The number of token generated per second
           - name: store-write
             limit:
               open: true

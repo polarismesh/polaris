@@ -20,20 +20,20 @@ package plugin
 import (
 	"os"
 	"sync"
-
-	commonLog "github.com/polarismesh/polaris/common/log"
 )
 
-var whitelistOnce sync.Once
+var (
+	whitelistOnce sync.Once
+)
 
-// Whitelist 白名单接口
+// Whitelist White list interface
 type Whitelist interface {
 	Plugin
 
 	Contain(entry interface{}) bool
 }
 
-// GetWhitelist 获取Whitelist插件
+// GetWhitelist Get the whitelist plug -in
 func GetWhitelist() Whitelist {
 	c := &config.Whitelist
 	plugin, exist := pluginSet[c.Name]
@@ -42,7 +42,7 @@ func GetWhitelist() Whitelist {
 	}
 	whitelistOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			commonLog.GetScopeOrDefaultByName(c.Name).Errorf("plugin init err: %s", err.Error())
+			log.Errorf("Whitelist plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})

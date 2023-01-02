@@ -307,14 +307,75 @@ func (ss *serviceStore) GetMoreServices(
 func (ss *serviceStore) GetServiceAliases(
 	filter map[string]string, offset uint32, limit uint32) (uint32, []*model.ServiceAlias, error) {
 
-	var totalCount uint32
-
 	// find all alias service with filters
 	fields := []string{SvcFieldReference, SvcFieldValid, SvcFieldName, SvcFieldNamespace,
 		SvcFieldMeta, SvcFieldDepartment, SvcFieldBusiness}
 	for k := range filter {
 		fields = append(fields, k)
 	}
+
+	referenceService, services, err := ss.getServiceAliases(filter, fields)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	// find source service for every alias
+	fields = []string{SvcFieldID, SvcFieldName, SvcFieldNamespace, SvcFieldValid}
+
+	svcName, hasSvcName := filter["service"]
+	svcNs, hasSvcNs := filter["namespace"]
+
+	refServices, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
+		func(m map[string]interface{}) bool {
+			if valid, _ := m[SvcFieldValid].(bool); !valid {
+				return false
+			}
+
+			if hasSvcName && m[SvcFieldName].(string) != svcName {
+				return false
+			}
+
+			if hasSvcNs && m[SvcFieldNamespace].(string) != svcNs {
+				return false
+			}
+
+			_, ok := referenceService[m[SvcFieldID].(string)]
+			return ok
+		})
+
+	var serviceAlias []*model.ServiceAlias
+	for _, service := range services {
+
+		if _, ok := refServices[service.Reference]; !ok {
+			continue
+		}
+
+		alias := model.ServiceAlias{}
+		alias.ID = service.ID
+		alias.Alias = service.Name
+		alias.AliasNamespace = service.Namespace
+		alias.ServiceID = service.Reference
+		alias.Service = refServices[service.Reference].(*model.Service).Name
+		alias.ModifyTime = service.ModifyTime
+		alias.CreateTime = service.CreateTime
+		alias.Comment = service.Comment
+		alias.Namespace = refServices[service.Reference].(*model.Service).Namespace
+		alias.Owner = service.Owner
+
+		serviceAlias = append(serviceAlias, &alias)
+	}
+
+	return uint32(len(serviceAlias)), doPageAliasServices(serviceAlias, offset, limit), nil
+}
+
+func (ss *serviceStore) getServiceAliases(
+	filter map[string]string, fields []string) (map[string]bool, map[string]*model.Service, error) {
+	aliasName, isAliasName := filter["alias"]
+	aliasNamespace, isAliasNamespace := filter["alias_namespace"]
+	keys, isKeys := filter["keys"]
+	values, isValues := filter["values"]
+	department, isDepartment := filter["department"]
+	business, isBusiness := filter["business"]
 
 	referenceService := make(map[string]bool)
 	services, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
@@ -328,19 +389,24 @@ func (ss *serviceStore) GetServiceAliases(
 				return false
 			}
 
-			name, isName := filter["alias"]
-			keys, isKeys := filter["keys"]
-			values, isValues := filter["values"]
-			department, isDepartment := filter["department"]
-			business, isBusiness := filter["business"]
-
 			// filter by other
-			if isName {
+			if isAliasName {
 				svcName, _ := m[SvcFieldName].(string)
-				if utils.IsWildName(name) && !strings.Contains(svcName, name[:len(name)-1]) {
+				aliasName, isWild := utils.ParseWildName(aliasName)
+				if isWild && !strings.Contains(svcName, aliasName) {
 					return false
 				}
-				if svcName != name {
+				if svcName != aliasName {
+					return false
+				}
+			}
+			if isAliasNamespace {
+				svcNamespace, _ := m[SvcFieldNamespace].(string)
+				aliasNamespace, isWild := utils.ParseWildName(aliasNamespace)
+				if isWild && !strings.Contains(svcNamespace, aliasNamespace) {
+					return false
+				}
+				if svcNamespace != aliasNamespace {
 					return false
 				}
 			}
@@ -382,64 +448,18 @@ func (ss *serviceStore) GetServiceAliases(
 		})
 	if err != nil {
 		log.Errorf("[Store][boltdb] load service from kv error, %v", err)
-		return 0, nil, err
+		return nil, nil, err
 	}
 	if len(services) == 0 {
-		return 0, []*model.ServiceAlias{}, nil
+		return referenceService, map[string]*model.Service{}, nil
 	}
 
-	totalCount = uint32(len(services))
-
-	// find source service for every alias
-	fields = []string{SvcFieldID, SvcFieldName, SvcFieldNamespace, SvcFieldValid}
-
-	svcName, hasSvcName := filter["service"]
-	svcNs, hasSvcNs := filter["namespace"]
-
-	refServices, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
-		func(m map[string]interface{}) bool {
-			if valid, _ := m[SvcFieldValid].(bool); !valid {
-				return false
-			}
-
-			if hasSvcName && m[SvcFieldName].(string) != svcName {
-				return false
-			}
-
-			if hasSvcNs && m[SvcFieldNamespace].(string) != svcNs {
-				return false
-			}
-
-			_, ok := referenceService[m[SvcFieldID].(string)]
-			return ok
-		})
-
-	// sort and limit
-	s := getRealServicesList(services, offset, limit)
-
-	var serviceAlias []*model.ServiceAlias
-	for _, service := range s {
-
-		if _, ok := refServices[service.Reference]; !ok {
-			continue
-		}
-
-		alias := model.ServiceAlias{}
-		alias.ID = service.ID
-		alias.Alias = service.Name
-		alias.AliasNamespace = service.Namespace
-		alias.ServiceID = service.Reference
-		alias.Service = refServices[service.Reference].(*model.Service).Name
-		alias.ModifyTime = service.ModifyTime
-		alias.CreateTime = service.CreateTime
-		alias.Comment = service.Comment
-		alias.Namespace = refServices[service.Reference].(*model.Service).Namespace
-		alias.Owner = service.Owner
-
-		serviceAlias = append(serviceAlias, &alias)
+	ret := make(map[string]*model.Service, len(services))
+	for k := range services {
+		ret[k] = services[k].(*model.Service)
 	}
 
-	return totalCount, serviceAlias, nil
+	return referenceService, ret, nil
 }
 
 // GetSystemServices get system services
@@ -463,7 +483,12 @@ func (ss *serviceStore) GetSystemServices() ([]*model.Service, error) {
 		return nil, err
 	}
 
-	return getRealServicesList(services, 0, uint32(len(services))), nil
+	ret := make(map[string]*model.Service, len(services))
+	for k := range services {
+		ret[k] = services[k].(*model.Service)
+	}
+
+	return getRealServicesList(ret, 0, uint32(len(services))), nil
 }
 
 // GetServicesBatch get service id and other information in batch
@@ -509,7 +534,12 @@ func (ss *serviceStore) GetServicesBatch(services []*model.Service) ([]*model.Se
 		return nil, err
 	}
 
-	return getRealServicesList(svcs, 0, uint32(len(services))), nil
+	ret := make(map[string]*model.Service, len(svcs))
+	for k := range svcs {
+		ret[k] = svcs[k].(*model.Service)
+	}
+
+	return getRealServicesList(ret, 0, uint32(len(services))), nil
 }
 
 func (ss *serviceStore) getServiceByNameAndNs(name string, namespace string) (*model.Service, error) {
@@ -791,7 +821,13 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 		return 0, nil, err
 	}
 	totalCount := len(svcs)
-	return uint32(totalCount), getRealServicesList(svcs, offset, limit), nil
+
+	ret := make(map[string]*model.Service, len(svcs))
+	for k := range svcs {
+		ret[k] = svcs[k].(*model.Service)
+	}
+
+	return uint32(totalCount), getRealServicesList(ret, offset, limit), nil
 }
 
 func (ss *serviceStore) cleanInValidService(name, namespace string) error {
@@ -813,7 +849,7 @@ func (ss *serviceStore) cleanInValidService(name, namespace string) error {
 	return nil
 }
 
-func getRealServicesList(originServices map[string]interface{}, offset, limit uint32) []*model.Service {
+func getRealServicesList(originServices map[string]*model.Service, offset, limit uint32) []*model.Service {
 	services := make([]*model.Service, 0)
 	beginIndex := offset
 	endIndex := beginIndex + limit
@@ -833,7 +869,7 @@ func getRealServicesList(originServices map[string]interface{}, offset, limit ui
 	}
 
 	for _, s := range originServices {
-		services = append(services, s.(*model.Service))
+		services = append(services, s)
 	}
 
 	sort.Slice(services, func(i, j int) bool {
@@ -850,6 +886,46 @@ func getRealServicesList(originServices map[string]interface{}, offset, limit ui
 
 	return services[beginIndex:endIndex]
 }
+
+
+func doPageAliasServices(originServices []*model.ServiceAlias, offset, limit uint32) []*model.ServiceAlias {
+	services := make([]*model.ServiceAlias, 0)
+	beginIndex := offset
+	endIndex := beginIndex + limit
+	totalCount := uint32(len(originServices))
+	// handle special offset, limit
+	if totalCount == 0 {
+		return services
+	}
+	if beginIndex >= endIndex {
+		return services
+	}
+	if beginIndex >= totalCount {
+		return services
+	}
+	if endIndex > totalCount {
+		endIndex = totalCount
+	}
+
+	for i := range originServices {
+		services = append(services, originServices[i])
+	}
+
+	sort.Slice(services, func(i, j int) bool {
+		// sort by modifyTime
+		if services[i].ModifyTime.After(services[j].ModifyTime) {
+			return true
+		} else if services[i].ModifyTime.Before(services[j].ModifyTime) {
+			return false
+		} else {
+			// compare id if modifyTime is the same
+			return services[i].ID < services[j].ID
+		}
+	})
+
+	return services[beginIndex:endIndex]
+}
+
 
 func initService(s *model.Service) {
 	current := time.Now()

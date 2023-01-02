@@ -20,24 +20,22 @@ package plugin
 import (
 	"os"
 	"sync"
-
-	commonLog "github.com/polarismesh/polaris/common/log"
 )
 
 // RatelimitType rate limit type
 type RatelimitType int
 
 const (
-	// IPRatelimit 基于ip的流控
+	// IPRatelimit Based on IP flow control
 	IPRatelimit RatelimitType = iota + 1
 
-	// APIRatelimit 基于接口级限流
+	// APIRatelimit Based on interface-level flow control
 	APIRatelimit
 
-	// ServiceRatelimit 基于service的流控
+	// ServiceRatelimit Based on Service flow control
 	ServiceRatelimit
 
-	// InstanceRatelimit 基于Instance的限流
+	// InstanceRatelimit Based on Instance flow control
 	InstanceRatelimit
 )
 
@@ -53,17 +51,18 @@ var (
 	rateLimitOnce sync.Once
 )
 
-// Ratelimit Ratelimit插件接口
+// Ratelimit Ratelimit plugin interface
 type Ratelimit interface {
 	Plugin
 
-	// Allow 是否允许访问, true: 允许, false: 不允许 TODO
-	// 参数rateType即限流类型，id为限流的key
-	// 如果rateType为RatelimitIP则id为ip, rateType为RatelimitService则id为ip_namespace_service或ip_serviceId
+	// Allow Whether to allow access, true: allow, FALSE: not allowing Todo
+	// - Parameter ratingype is the type of current limits, and the ID is the key that limits the current
+	// - If RateType is Ratelimitip, the ID is IP, RateType is Ratelimitservice, and the ID is
+	//  IP_NAMESPACE_SERVICE or IP_SERVICEID
 	Allow(typ RatelimitType, key string) bool
 }
 
-// GetRatelimit 获取RateLimit插件
+// GetRatelimit Get the Ratelimit plugin
 func GetRatelimit() Ratelimit {
 	c := &config.RateLimit
 
@@ -74,7 +73,7 @@ func GetRatelimit() Ratelimit {
 
 	rateLimitOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			commonLog.GetScopeOrDefaultByName(c.Name).Errorf("plugin init err: %s", err.Error())
+			log.Errorf("Ratelimit plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})

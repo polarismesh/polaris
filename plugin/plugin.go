@@ -59,11 +59,11 @@ type ConfigEntry struct {
 type Config struct {
 	CMDB                 ConfigEntry `yaml:"cmdb"`
 	RateLimit            ConfigEntry `yaml:"ratelimit"`
-	History              ConfigEntry `yaml:"history"`
+	History              []ConfigEntry `yaml:"history"`
 	Statis               ConfigEntry `yaml:"statis"`
 	DiscoverStatis       ConfigEntry `yaml:"discoverStatis"`
 	ParsePassword        ConfigEntry `yaml:"parsePassword"`
 	Whitelist            ConfigEntry `yaml:"whitelist"`
 	MeshResourceValidate ConfigEntry `yaml:"meshResourceValidate"`
-	DiscoverEvent        ConfigEntry `yaml:"discoverEvent"`
+	DiscoverEvent        []ConfigEntry `yaml:"discoverEvent"`
 }
