@@ -1764,6 +1764,20 @@ func (mr *MockStoreMockRecorder) Initialize(c interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockStore)(nil).Initialize), c)
 }
 
+// IsLeader mocks base method.
+func (m *MockStore) IsLeader() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsLeader")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsLeader indicates an expected call of IsLeader.
+func (mr *MockStoreMockRecorder) IsLeader() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsLeader", reflect.TypeOf((*MockStore)(nil).IsLeader))
+}
+
 // ListMasterCircuitBreakers mocks base method.
 func (m *MockStore) ListMasterCircuitBreakers(filters map[string]string, offset, limit uint32) (*model.CircuitBreakerDetail, error) {
 	m.ctrl.T.Helper()

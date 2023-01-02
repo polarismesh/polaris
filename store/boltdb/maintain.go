@@ -23,6 +23,11 @@ type maintainStore struct {
 	handler BoltHandler
 }
 
+// IsLeader
+func (m *maintainStore) IsLeader() bool {
+	return true
+}
+
 // BatchCleanDeletedInstances
 func (m *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
 	fields := []string{insFieldValid}
