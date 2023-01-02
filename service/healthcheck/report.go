@@ -79,7 +79,7 @@ func (s *Server) doReport(ctx context.Context, instance *api.Instance) *api.Resp
 
 	event := &model.InstanceEvent{
 		Id:       ins.ID(),
-		Instance: instance,
+		Instance: ins.Proto,
 		EType:    model.EventInstanceSendHeartbeat,
 	}
 	event.InjectMetadata(ctx)

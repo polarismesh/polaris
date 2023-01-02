@@ -76,6 +76,13 @@ func (h *EurekaServer) BatchReplication(req *restful.Request, rsp *restful.Respo
 		writeHeader(http.StatusForbidden, rsp)
 		return
 	}
+	batchResponse, resultCode := h.doBatchReplicate(replicateRequest, token)
+	if err := writeEurekaResponseWithCode(restful.MIME_JSON, batchResponse, req, rsp, resultCode); nil != err {
+		log.Errorf("[EurekaServer]fail to write replicate response, client: %s, err: %v", remoteAddr, err)
+	}
+}
+
+func (h *EurekaServer) doBatchReplicate(replicateRequest *ReplicationList, token string) (*ReplicationListResponse, uint32) {
 	batchResponse := &ReplicationListResponse{ResponseList: []*ReplicationInstanceResponse{}}
 	var resultCode = api.ExecuteSuccess
 	for _, instanceInfo := range replicateRequest.ReplicationList {
@@ -87,9 +94,7 @@ func (h *EurekaServer) BatchReplication(req *restful.Request, rsp *restful.Respo
 		}
 		batchResponse.ResponseList = append(batchResponse.ResponseList, resp)
 	}
-	if err := writeEurekaResponseWithCode(restful.MIME_JSON, batchResponse, req, rsp, resultCode); nil != err {
-		log.Errorf("[EurekaServer]fail to write replicate response, client: %s, err: %v", remoteAddr, err)
-	}
+	return batchResponse, resultCode
 }
 
 func (h *EurekaServer) dispatch(replicationInstance *ReplicationInstance, token string) (*ReplicationInstanceResponse, uint32) {
