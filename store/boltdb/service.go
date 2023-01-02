@@ -925,7 +925,6 @@ func doPageAliasServices(originServices []*model.ServiceAlias, offset, limit uin
 	return services[beginIndex:endIndex]
 }
 
-
 func initService(s *model.Service) {
 	current := time.Now()
 	if s != nil {
