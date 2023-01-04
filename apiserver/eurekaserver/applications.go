@@ -128,8 +128,10 @@ func (a *ApplicationsBuilder) BuildApplications(oldAppsCache *ApplicationsRespCa
 				hashBuilder[status] = hashBuilder[status] + count
 			}
 		}
-		newApps.Application = append(newApps.Application, targetApp)
-		newApps.ApplicationMap[targetApp.Name] = targetApp
+		if len(targetApp.Instance) > 0 {
+			newApps.Application = append(newApps.Application, targetApp)
+			newApps.ApplicationMap[targetApp.Name] = targetApp
+		}
 	}
 	if oldApps != nil && len(oldApps.Application) != len(newApps.Application) {
 		changed = true
@@ -244,7 +246,7 @@ func (a *ApplicationsBuilder) buildDeltaApps(oldAppsCache *ApplicationsRespCache
 				}
 				// 修改，需要比较实例的变更
 				diffApp := diffApplication(oldApplication, application)
-				if diffApp != nil {
+				if diffApp != nil && len(diffApp.Instance) > 0 {
 					newDeltaApps.Application = append(newDeltaApps.Application, diffApp)
 					instCount += len(diffApp.Instance)
 				}
