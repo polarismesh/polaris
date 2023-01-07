@@ -172,7 +172,7 @@ func (d *EurekaTestSuit) loadConfig() error {
 	confFileName := testdata.Path("eureka_apiserver_test.yaml")
 	if os.Getenv("STORE_MODE") == "sqldb" {
 		fmt.Printf("run store mode : sqldb\n")
-		confFileName = testdata.Path("eureka_apiserver_db_test.yaml")
+		confFileName = testdata.Path("eureka_apiserver_test_sqldb.yaml")
 	}
 	file, err := os.Open(confFileName)
 	if err != nil {
