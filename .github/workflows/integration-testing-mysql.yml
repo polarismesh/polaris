@@ -145,8 +145,8 @@ jobs:
 
           sleep 120s
           ls -alR
-          cat ./log/stdout
-          grep -nr "error" ./log/runtime/*
+          cat ./log/stdout 2>&1
+          grep -nr "error" ./log/runtime/* 2>&1
 
           cd ..
           ls -lstrh

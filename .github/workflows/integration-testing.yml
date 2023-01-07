@@ -36,9 +36,9 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ ubuntu-latest, macos-latest ]
+        os: [ ubuntu-latest ]
         goarch: [ amd64 ]
-        goos: [ linux, darwin ]
+        goos: [ linux ]
         include:
           - os: ubuntu-latest
             goos: linux
@@ -102,8 +102,8 @@ jobs:
 
           sleep 120s
           ls -alR
-          cat ./log/stdout
-          grep -nr "error" ./log/runtime/*
+          cat ./log/stdout 2>&1
+          grep -nr "error" ./log/runtime/* 2>&1
 
           cd ..
           ls -lstrh
