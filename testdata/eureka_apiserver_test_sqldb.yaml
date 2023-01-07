@@ -25,10 +25,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      # - stdout
-      # errorOutputPaths:
-      # - stderr
+      outputPaths:
+      - stdout
+      errorOutputPaths:
+      - stderr
     auth:
       rotateOutputPath: log/runtime/polaris-auth.log
       errorRotateOutputPath: log/runtime/polaris-auth-error.log
@@ -36,10 +36,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+      - stdout
+      errorOutputPaths:
+      - stderr
     store:
       rotateOutputPath: log/runtime/polaris-store.log
       errorRotateOutputPath: log/runtime/polaris-store-error.log
@@ -47,10 +47,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+      - stdout
+      errorOutputPaths:
+      - stderr
     cache:
       rotateOutputPath: log/runtime/polaris-cache.log
       errorRotateOutputPath: log/runtime/polaris-cache-error.log
@@ -58,10 +58,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+      - stdout
+      errorOutputPaths:
+      - stderr
     naming:
       rotateOutputPath: log/runtime/polaris-naming.log
       errorRotateOutputPath: log/runtime/polaris-naming-error.log
@@ -69,10 +69,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+      - stdout
+      errorOutputPaths:
+      - stderr
     healthcheck:
       rotateOutputPath: log/runtime/polaris-healthcheck.log
       errorRotateOutputPath: log/runtime/polaris-healthcheck-error.log
@@ -80,10 +80,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+      - stdout
+      errorOutputPaths:
+      - stderr
     xdsv3:
       rotateOutputPath: log/runtime/polaris-xdsv3.log
       errorRotateOutputPath: log/polaris-xdsv3-error.log
@@ -91,10 +91,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+      - stdout
+      errorOutputPaths:
+      - stderr
     apiserver:
       rotateOutputPath: log/runtime/polaris-apiserver.log
       errorRotateOutputPath: log/runtime/polaris-apiserver-error.log
@@ -102,10 +102,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+      - stdout
+      errorOutputPaths:
+      - stderr
     token-bucket:
       rotateOutputPath: log/runtime/polaris-ratelimit.log
       errorRotateOutputPath: log/runtime/polaris-ratelimit-error.log
@@ -113,10 +113,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+      - stdout
+      errorOutputPaths:
+      - stderr
     default:
       rotateOutputPath: log/runtime/polaris-default.log
       errorRotateOutputPath: log/runtime/polaris-default-error.log
@@ -124,10 +124,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+      - stdout
+      errorOutputPaths:
+      - stderr
     discoverEventLocal:
       rotateOutputPath: log/event/polaris-discoverevent.log
       errorRotateOutputPath: log/event/polaris-discoverevent-error.log
@@ -136,10 +136,10 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       onlyContent: true
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+      - stdout
+      errorOutputPaths:
+      - stderr
     discoverLocal:
       rotateOutputPath: log/statis/polaris-discoverstat.log
       errorRotateOutputPath: log/statis/polaris-discoverstat-error.log
@@ -147,10 +147,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+      - stdout
+      errorOutputPaths:
+      - stderr
     local:
       rotateOutputPath: log/statis/polaris-statis.log
       errorRotateOutputPath: log/statis/polaris-statis-error.log
@@ -158,10 +158,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+      - stdout
+      errorOutputPaths:
+      - stderr
     HistoryLogger:
       rotateOutputPath: log/operation/polaris-history.log
       errorRotateOutputPath: log/operation/polaris-history-error.log
@@ -171,10 +171,10 @@ bootstrap:
       rotationMaxDurationForHour: 24
       outputLevel: info
       onlyContent: true
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+      - stdout
+      errorOutputPaths:
+      - stderr
     cmdb:
       rotateOutputPath: log/runtime/polaris-cmdb.log
       errorRotateOutputPath: log/runtime/polaris-cmdb-error.log
@@ -182,10 +182,10 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       outputLevel: info
-      # outputPaths:
-      #   - stdout
-      # errorOutputPaths:
-      #   - stderr
+      outputPaths:
+      - stdout
+      errorOutputPaths:
+      - stderr
 #  - name: l5pbserver
 #    option:
 #      listenIP: 0.0.0.0

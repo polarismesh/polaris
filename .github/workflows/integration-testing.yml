@@ -106,6 +106,7 @@ jobs:
           grep -nr "error" ./log/runtime/*
 
           cd ..
+          ls -lstrh
           # 先测试普通的集成测试
           pushd ./test
           go test -count=1 -v -tags integration

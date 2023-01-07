@@ -131,11 +131,11 @@ jobs:
           if [[ "$(uname)" == "Darwin" ]]; then
               # Mac OS X 操作系统
               echo "Run on MacOS"
-              sed -i '' 's/consoleOpen: true/consoleOpen: false/g' polaris-server.yaml
+              sed -i '' 's/consoleOpen: true/consoleOpen: false/g' conf/polaris-server.yaml
           else
               # GNU/Linux操作系统
               echo "Run on Linux"
-              sed -i 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' polaris-server.yaml
+              sed -i 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' conf/polaris-server.yaml
           fi
 
           cat conf/polaris-server.yaml
@@ -149,6 +149,7 @@ jobs:
           grep -nr "error" ./log/runtime/*
 
           cd ..
+          ls -lstrh
           # 先测试普通的集成测试
           pushd ./test
           go test -count=1 -v -tags integration  -timeout 60m
