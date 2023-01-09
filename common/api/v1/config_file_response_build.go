@@ -23,7 +23,8 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 )
 
-func NewConfigClientResponse(code apimodel.Code, configFile *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
+func NewConfigClientResponse(
+	code apimodel.Code, configFile *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
 	return &apiconfig.ConfigClientResponse{
 		Code:       &wrappers.UInt32Value{Value: uint32(code)},
 		Info:       &wrappers.StringValue{Value: code2info[uint32(code)]},
@@ -38,7 +39,8 @@ func NewConfigClientResponseWithMessage(code apimodel.Code, message string) *api
 	}
 }
 
-func NewConfigFileGroupResponse(code apimodel.Code, configFileGroup *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse {
+func NewConfigFileGroupResponse(
+	code apimodel.Code, configFileGroup *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse {
 	return &apiconfig.ConfigResponse{
 		Code:            &wrappers.UInt32Value{Value: uint32(code)},
 		Info:            &wrappers.StringValue{Value: code2info[uint32(code)]},
@@ -88,7 +90,8 @@ func NewConfigFileResponseWithMessage(code apimodel.Code, message string) *apico
 	}
 }
 
-func NewConfigFileBatchQueryResponse(code apimodel.Code, total uint32, configFiles []*apiconfig.ConfigFile) *apiconfig.ConfigBatchQueryResponse {
+func NewConfigFileBatchQueryResponse(
+	code apimodel.Code, total uint32, configFiles []*apiconfig.ConfigFile) *apiconfig.ConfigBatchQueryResponse {
 	return &apiconfig.ConfigBatchQueryResponse{
 		Code:        &wrappers.UInt32Value{Value: uint32(code)},
 		Info:        &wrappers.StringValue{Value: code2info[uint32(code)]},
@@ -97,7 +100,8 @@ func NewConfigFileBatchQueryResponse(code apimodel.Code, total uint32, configFil
 	}
 }
 
-func NewConfigFileTemplateResponse(code apimodel.Code, template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
+func NewConfigFileTemplateResponse(
+	code apimodel.Code, template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
 	return &apiconfig.ConfigResponse{
 		Code:               &wrappers.UInt32Value{Value: uint32(code)},
 		Info:               &wrappers.StringValue{Value: code2info[uint32(code)]},
@@ -112,7 +116,8 @@ func NewConfigFileTemplateResponseWithMessage(code apimodel.Code, message string
 	}
 }
 
-func NewConfigFileTemplateBatchQueryResponse(code apimodel.Code, total uint32, configFileTemplates []*apiconfig.ConfigFileTemplate) *apiconfig.ConfigBatchQueryResponse {
+func NewConfigFileTemplateBatchQueryResponse(code apimodel.Code, total uint32,
+	configFileTemplates []*apiconfig.ConfigFileTemplate) *apiconfig.ConfigBatchQueryResponse {
 	return &apiconfig.ConfigBatchQueryResponse{
 		Code:                &wrappers.UInt32Value{Value: uint32(code)},
 		Info:                &wrappers.StringValue{Value: code2info[uint32(code)]},
@@ -121,7 +126,8 @@ func NewConfigFileTemplateBatchQueryResponse(code apimodel.Code, total uint32, c
 	}
 }
 
-func NewConfigFileReleaseResponse(code apimodel.Code, configFileRelease *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
+func NewConfigFileReleaseResponse(
+	code apimodel.Code, configFileRelease *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
 	return &apiconfig.ConfigResponse{
 		Code:              &wrappers.UInt32Value{Value: uint32(code)},
 		Info:              &wrappers.StringValue{Value: code2info[uint32(code)]},
@@ -136,7 +142,8 @@ func NewConfigFileReleaseResponseWithMessage(code apimodel.Code, message string)
 	}
 }
 
-func NewConfigFileReleaseHistoryResponse(code apimodel.Code, configFileReleaseHistory *apiconfig.ConfigFileReleaseHistory) *apiconfig.ConfigResponse {
+func NewConfigFileReleaseHistoryResponse(
+	code apimodel.Code, configFileReleaseHistory *apiconfig.ConfigFileReleaseHistory) *apiconfig.ConfigResponse {
 	return &apiconfig.ConfigResponse{
 		Code:                     &wrappers.UInt32Value{Value: uint32(code)},
 		Info:                     &wrappers.StringValue{Value: code2info[uint32(code)]},

@@ -121,7 +121,8 @@ func NewAuthStrategyResponse(code apimodel.Code, req *apisecurity.AuthStrategy) 
 }
 
 // NewAuthStrategyResponseWithMsg 创建鉴权策略响应体并自定义Info
-func NewAuthStrategyResponseWithMsg(code apimodel.Code, msg string, req *apisecurity.AuthStrategy) *apiservice.Response {
+func NewAuthStrategyResponseWithMsg(
+	code apimodel.Code, msg string, req *apisecurity.AuthStrategy) *apiservice.Response {
 	return &apiservice.Response{
 		Code:         &wrappers.UInt32Value{Value: uint32(code)},
 		Info:         &wrappers.StringValue{Value: msg},

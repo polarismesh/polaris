@@ -18,18 +18,16 @@
 package model
 
 import (
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	commontime "github.com/polarismesh/polaris/common/time"
 )
 
-/**
- * Client 客户端上报信息表
- */
+// Client 客户端上报信息表
 type Client struct {
 	proto      *apiservice.Client
 	valid      bool
