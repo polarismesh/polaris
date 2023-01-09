@@ -21,9 +21,11 @@
 package test
 
 import (
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"testing"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/test/http"
 	"github.com/polarismesh/polaris/test/resource"
 )
@@ -35,9 +37,9 @@ const (
 )
 
 type (
-	DiscoveryRunner func(t *testing.T, clientHttp *http.Client, namespaces []*api.Namespace, services []*api.Service)
+	DiscoveryRunner func(t *testing.T, clientHttp *http.Client, namespaces []*apimodel.Namespace, services []*apiservice.Service)
 
-	ConfigRunner func(t *testing.T, clientHttp *http.Client, namespaces []*api.Namespace, configGroups []*api.ConfigFileGroup)
+	ConfigRunner func(t *testing.T, clientHttp *http.Client, namespaces []*apimodel.Namespace, configGroups []*apiconfig.ConfigFileGroup)
 )
 
 func DiscoveryRunAndInitResource(t *testing.T, runner DiscoveryRunner) {

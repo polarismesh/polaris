@@ -21,6 +21,9 @@
 package test
 
 import (
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"testing"
 	"time"
 
@@ -39,7 +42,7 @@ import (
  */
 func TestClientGRPC_DiscoverInstance(t *testing.T) {
 	DiscoveryRunAndInitResource(t,
-		func(t *testing.T, clientHttp *http.Client, namespaces []*api.Namespace, services []*api.Service) {
+		func(t *testing.T, clientHttp *http.Client, namespaces []*apimodel.Namespace, services []*apiservice.Service) {
 			clientGRPC, err := grpc.NewClient(grpcServerAddress)
 			if err != nil {
 				t.Fatalf("new grpc client fail")
@@ -72,7 +75,7 @@ func TestClientGRPC_DiscoverInstance(t *testing.T) {
 			var revision string
 			t.Run("GRPC——首次发现实例", func(t *testing.T) {
 				// 查询服务实例
-				err = clientGRPC.Discover(api.DiscoverRequest_INSTANCE, services[0], func(resp *api.DiscoverResponse) {
+				err = clientGRPC.Discover(apiservice.DiscoverRequest_INSTANCE, services[0], func(resp *apiservice.DiscoverResponse) {
 					assert.Equal(t, api.ExecuteSuccess, resp.Code.GetValue(), "discover instance must be success")
 					assert.Equal(t, 1, len(resp.Instances), "instance size must not be zero")
 					revision = resp.Service.GetRevision().GetValue()
@@ -89,7 +92,7 @@ func TestClientGRPC_DiscoverInstance(t *testing.T) {
 				copySvc := &(*services[0])
 				copySvc.Revision = utils.NewStringValue(revision)
 
-				err = clientGRPC.Discover(api.DiscoverRequest_INSTANCE, copySvc, func(resp *api.DiscoverResponse) {
+				err = clientGRPC.Discover(apiservice.DiscoverRequest_INSTANCE, copySvc, func(resp *apiservice.DiscoverResponse) {
 					assert.Equal(t, api.DataNoChange, resp.Code.GetValue(), "discover instance must be datanotchange")
 				})
 				if err != nil {
@@ -115,13 +118,13 @@ func TestClientGRPC_DiscoverInstance(t *testing.T) {
 				copyIns := &(*instances[0])
 				copyIns.Metadata = testMeta
 
-				if err := clientHttp.UpdateInstances([]*api.Instance{copyIns}); err != nil {
+				if err := clientHttp.UpdateInstances([]*apiservice.Instance{copyIns}); err != nil {
 					t.Fatalf("update instance fail : %s", err)
 				}
 
 				time.Sleep(5 * time.Second)
 
-				err = clientGRPC.Discover(api.DiscoverRequest_INSTANCE, services[0], func(resp *api.DiscoverResponse) {
+				err = clientGRPC.Discover(apiservice.DiscoverRequest_INSTANCE, services[0], func(resp *apiservice.DiscoverResponse) {
 					assert.Equal(t, api.ExecuteSuccess, resp.Code.GetValue(), "discover instance must be success")
 					assert.Equal(t, 1, len(resp.Instances), "instance size must not be zero")
 
@@ -145,7 +148,7 @@ func TestClientGRPC_DiscoverInstance(t *testing.T) {
 
 				time.Sleep(2 * time.Second)
 
-				err = clientGRPC.Discover(api.DiscoverRequest_INSTANCE, services[0], func(resp *api.DiscoverResponse) {
+				err = clientGRPC.Discover(apiservice.DiscoverRequest_INSTANCE, services[0], func(resp *apiservice.DiscoverResponse) {
 					assert.Equalf(t, api.ExecuteSuccess, resp.Code.GetValue(),
 						"discover instance must success, actual code: %d", resp.GetCode().GetValue())
 					assert.Equal(t, 0, len(resp.Instances), "instance size must be zero")
@@ -158,7 +161,7 @@ func TestClientGRPC_DiscoverInstance(t *testing.T) {
 
 func TestClientGRPC_DiscoverServices(t *testing.T) {
 	DiscoveryRunAndInitResource(t,
-		func(t *testing.T, clientHttp *http.Client, namespaces []*api.Namespace, services []*api.Service) {
+		func(t *testing.T, clientHttp *http.Client, namespaces []*apimodel.Namespace, services []*apiservice.Service) {
 			clientGRPC, err := grpc.NewClient(grpcServerAddress)
 			if err != nil {
 				t.Fatalf("new grpc client fail")
@@ -169,9 +172,9 @@ func TestClientGRPC_DiscoverServices(t *testing.T) {
 			newSvcs := resource.CreateServices(newNs[0])
 
 			t.Run("命名空间下未创建服务", func(t *testing.T) {
-				resp, err := clientGRPC.DiscoverRequest(&api.DiscoverRequest{
-					Type: api.DiscoverRequest_SERVICES,
-					Service: &api.Service{
+				resp, err := clientGRPC.DiscoverRequest(&apiservice.DiscoverRequest{
+					Type: apiservice.DiscoverRequest_SERVICES,
+					Service: &apiservice.Service{
 						Namespace: &wrapperspb.StringValue{Value: newNs[0].Name.Value},
 					},
 				})
@@ -193,9 +196,9 @@ func TestClientGRPC_DiscoverServices(t *testing.T) {
 
 				time.Sleep(5 * time.Second)
 
-				resp, err := clientGRPC.DiscoverRequest(&api.DiscoverRequest{
-					Type: api.DiscoverRequest_SERVICES,
-					Service: &api.Service{
+				resp, err := clientGRPC.DiscoverRequest(&apiservice.DiscoverRequest{
+					Type: apiservice.DiscoverRequest_SERVICES,
+					Service: &apiservice.Service{
 						Namespace: &wrapperspb.StringValue{Value: newNs[0].Name.Value},
 					},
 				})
@@ -213,7 +216,7 @@ func TestClientGRPC_DiscoverServices(t *testing.T) {
 
 func Test_QueryGroups(t *testing.T) {
 	ConfigCenterRunAndInitResource(t,
-		func(t *testing.T, clientHttp *http.Client, namespaces []*api.Namespace, configGroups []*api.ConfigFileGroup) {
+		func(t *testing.T, clientHttp *http.Client, namespaces []*apimodel.Namespace, configGroups []*apiconfig.ConfigFileGroup) {
 
 		})
 }

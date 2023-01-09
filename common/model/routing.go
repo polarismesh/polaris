@@ -18,10 +18,10 @@
 package model
 
 import (
-	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	commontime "github.com/polarismesh/polaris/common/time"

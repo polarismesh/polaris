@@ -21,12 +21,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-	"time"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
@@ -360,7 +361,7 @@ func faultDetectRule2api(fdRule *model.FaultDetectRule) (*apifault.FaultDetectRu
 			return nil, err
 		}
 	} else {
-		//brief search, to display the services in list result
+		// brief search, to display the services in list result
 		fdRule.Proto.TargetService = &apifault.FaultDetectRule_DestinationService{
 			Service:   fdRule.DstService,
 			Namespace: fdRule.DstNamespace,

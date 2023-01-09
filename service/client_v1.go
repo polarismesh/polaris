@@ -21,14 +21,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"strings"
 
-	"go.uber.org/zap"
-
+	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/metrics"
@@ -570,7 +569,12 @@ func (s *Server) GetRouterConfigWithCache(ctx context.Context, req *apiservice.S
 
 	// 数据不一致，发生了改变
 	// 数据格式转换，service只需要返回二元组与routing的revision
-	resp.Service.Revision = &wrappers.StringValue{Value: utils.NewV2Revision()}
-	//resp.Routing = out
+	revision := utils.NewV2Revision()
+	resp.Service.Revision = &wrappers.StringValue{Value: revision}
+
+	resp.Routing = &apitraffic.Routing{
+		Rules:    out,
+		Revision: utils.NewStringValue(revision),
+	}
 	return resp
 }
