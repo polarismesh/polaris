@@ -188,3 +188,16 @@ func RetryTransaction(label string, handle func() error) error {
 	})
 	return err
 }
+
+func (b *BaseDB) processWithTransaction(label string, handle func(*BaseTx) error) error {
+	tx, err := b.Begin()
+	if err != nil {
+		log.Errorf("[Store][database] %s begin tx err: %s", label, err.Error())
+		return err
+	}
+
+	defer func() {
+		_ = tx.Rollback()
+	}()
+	return handle(tx)
+}

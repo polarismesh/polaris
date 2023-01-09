@@ -19,10 +19,11 @@ package resource
 
 import (
 	"fmt"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -32,12 +33,12 @@ const (
 	configFileNameTemp = "file-%s-%d"
 )
 
-func MockConfigGroups(ns *api.Namespace) []*api.ConfigFileGroup {
-	ret := make([]*api.ConfigFileGroup, 0, totalGroups)
+func MockConfigGroups(ns *apimodel.Namespace) []*apiconfig.ConfigFileGroup {
+	ret := make([]*apiconfig.ConfigFileGroup, 0, totalGroups)
 
 	for i := 0; i < totalGroups; i++ {
 
-		ret = append(ret, &api.ConfigFileGroup{
+		ret = append(ret, &apiconfig.ConfigFileGroup{
 			Name: &wrapperspb.StringValue{
 				Value: fmt.Sprintf(confiGroupNameTemp, utils.NewUUID(), i),
 			},
@@ -54,12 +55,12 @@ func MockConfigGroups(ns *api.Namespace) []*api.ConfigFileGroup {
 	return ret
 }
 
-func MockConfigFiles(group *api.ConfigFileGroup) []*api.ConfigFile {
-	ret := make([]*api.ConfigFile, 0, totalGroups)
+func MockConfigFiles(group *apiconfig.ConfigFileGroup) []*apiconfig.ConfigFile {
+	ret := make([]*apiconfig.ConfigFile, 0, totalGroups)
 
 	for i := 0; i < totalGroups; i++ {
 
-		ret = append(ret, &api.ConfigFile{
+		ret = append(ret, &apiconfig.ConfigFile{
 			Name: &wrapperspb.StringValue{
 				Value: fmt.Sprintf(confiGroupNameTemp, utils.NewUUID(), i),
 			},
@@ -74,7 +75,7 @@ func MockConfigFiles(group *api.ConfigFileGroup) []*api.ConfigFile {
 			Status: &wrapperspb.StringValue{
 				Value: utils.ReleaseStatusToRelease,
 			},
-			Tags: []*api.ConfigFileTag{},
+			Tags: []*apiconfig.ConfigFileTag{},
 		})
 
 	}

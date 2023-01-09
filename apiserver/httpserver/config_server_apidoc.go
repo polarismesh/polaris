@@ -20,8 +20,7 @@ package httpserver
 import (
 	"github.com/emicklei/go-restful/v3"
 	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
-
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 )
 
 var (
@@ -33,7 +32,7 @@ func enrichCreateConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteB
 	return r.
 		Doc("创建配置文件组").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Reads(api.ConfigFileGroup{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
+		Reads(apiconfig.ConfigFileGroup{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
 			" X-Polaris-Token: {访问凭据}\n ```\n{\n    \"name\":\"someGroup\",\n  "+
 			"  \"namespace\":\"someNamespace\",\n    \"comment\":\"some comment\",\n  "+
 			"  \"createBy\":\"ledou\"\n}\n```")
@@ -64,7 +63,7 @@ func enrichUpdateConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteB
 	return r.
 		Doc("更新配置文件组").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Reads(api.ConfigFileGroup{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
+		Reads(apiconfig.ConfigFileGroup{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
 			" X-Polaris-Token: {访问凭据}\n ```\n{\n    \"name\":\"someGroup\",\n  "+
 			"  \"namespace\":\"someNamespace\",\n    \"comment\":\"some comment\",\n  "+
 			"   \"createBy\":\"ledou\"\n}\n```")
@@ -74,7 +73,7 @@ func enrichCreateConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 	return r.
 		Doc("创建配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Reads(api.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
+		Reads(apiconfig.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
 			" X-Polaris-Token: {访问凭据}\n ```{\n    \"name\":\"application.properties\",\n   "+
 			" \"namespace\":\"someNamespace\",\n    \"group\":\"someGroup\",\n   "+
 			" \"content\":\"redis.cache.age=10\",\n    \"comment\":\"第一个配置文件\",\n  "+
@@ -121,7 +120,7 @@ func enrichUpdateConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 	return r.
 		Doc("创建配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Reads(api.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
+		Reads(apiconfig.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
 			" X-Polaris-Token: {访问凭据}\n ```{\n    \"name\":\"application.properties\",\n   "+
 			" \"namespace\":\"someNamespace\",\n    \"group\":\"someGroup\",\n   "+
 			" \"content\":\"redis.cache.age=10\",\n    \"comment\":\"第一个配置文件\",\n   "+
@@ -144,7 +143,7 @@ func enrichBatchDeleteConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteB
 		Doc("批量删除配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
 		Param(restful.QueryParameter("deleteBy", "操作人").DataType("string").Required(false)).
-		Reads(api.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
+		Reads(apiconfig.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
 			" X-Polaris-Token: {访问凭据}\n```[\n     {\n         \"name\":\"application.properties\",\n "+
 			"        \"namespace\":\"someNamespace\",\n         \"group\":\"someGroup\"\n     }\n]\n```")
 }
@@ -153,7 +152,7 @@ func enrichPublishConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuild
 	return r.
 		Doc("发布配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Reads(api.ConfigFileRelease{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
+		Reads(apiconfig.ConfigFileRelease{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
 			" X-Polaris-Token: {访问凭据}\n```{\n    \"name\":\"release-002\",\n   "+
 			" \"fileName\":\"application.properties\",\n    \"namespace\":\"someNamespace\",\n   "+
 			" \"group\":\"someGroup\",\n    \"comment\":\"发布第一个配置文件\",\n    \"createBy\":\"ledou\"\n}\n```")
@@ -208,5 +207,5 @@ func enrichWatchConfigFileForClientApiDocs(r *restful.RouteBuilder) *restful.Rou
 	return r.
 		Doc("监听配置").
 		Metadata(restfulspec.KeyOpenAPITags, configClientApiTags).
-		Reads(api.ClientWatchConfigFileRequest{}, "通过 Http LongPolling 机制订阅配置变更。")
+		Reads(apiconfig.ClientWatchConfigFileRequest{}, "通过 Http LongPolling 机制订阅配置变更。")
 }

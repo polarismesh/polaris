@@ -19,11 +19,13 @@ package resource
 
 import (
 	"fmt"
+	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -35,10 +37,10 @@ const (
 /**
  * @brief 创建测试熔断规则
  */
-func CreateCircuitBreakers(namespace *api.Namespace) []*api.CircuitBreaker {
-	var circuitBreakers []*api.CircuitBreaker
+func CreateCircuitBreakers(namespace *apimodel.Namespace) []*apifault.CircuitBreaker {
+	var circuitBreakers []*apifault.CircuitBreaker
 	for index := 0; index < 2; index++ {
-		circuitBreaker := &api.CircuitBreaker{
+		circuitBreaker := &apifault.CircuitBreaker{
 			Name:       utils.NewStringValue(fmt.Sprintf(circuitBreakerName, index)),
 			Namespace:  namespace.GetName(),
 			Business:   utils.NewStringValue("test"),
@@ -48,18 +50,18 @@ func CreateCircuitBreakers(namespace *api.Namespace) []*api.CircuitBreaker {
 		}
 		ruleNum := 2
 		// 填充source规则
-		sources := make([]*api.SourceMatcher, 0, ruleNum)
+		sources := make([]*apifault.SourceMatcher, 0, ruleNum)
 		for i := 0; i < ruleNum; i++ {
-			source := &api.SourceMatcher{
+			source := &apifault.SourceMatcher{
 				Service:   utils.NewStringValue(fmt.Sprintf("service-test-%d", i)),
 				Namespace: utils.NewStringValue(fmt.Sprintf("namespace-test-%d", i)),
-				Labels: map[string]*api.MatchString{
+				Labels: map[string]*apimodel.MatchString{
 					fmt.Sprintf("name-%d", i): {
-						Type:  api.MatchString_EXACT,
+						Type:  apimodel.MatchString_EXACT,
 						Value: utils.NewStringValue(fmt.Sprintf("value-%d", i)),
 					},
 					fmt.Sprintf("name-%d", i+1): {
-						Type:  api.MatchString_REGEX,
+						Type:  apimodel.MatchString_REGEX,
 						Value: utils.NewStringValue(fmt.Sprintf("value-%d", i+1)),
 					},
 				},
@@ -68,18 +70,18 @@ func CreateCircuitBreakers(namespace *api.Namespace) []*api.CircuitBreaker {
 		}
 
 		// 填充destination规则
-		destinations := make([]*api.DestinationSet, 0, ruleNum)
+		destinations := make([]*apifault.DestinationSet, 0, ruleNum)
 		for i := 0; i < ruleNum; i++ {
-			destination := &api.DestinationSet{
+			destination := &apifault.DestinationSet{
 				Service:   utils.NewStringValue(fmt.Sprintf("service-test-%d", i)),
 				Namespace: utils.NewStringValue(fmt.Sprintf("namespace-test-%d", i)),
-				Metadata: map[string]*api.MatchString{
+				Metadata: map[string]*apimodel.MatchString{
 					fmt.Sprintf("name-%d", i): {
-						Type:  api.MatchString_EXACT,
+						Type:  apimodel.MatchString_EXACT,
 						Value: utils.NewStringValue(fmt.Sprintf("value-%d", i)),
 					},
 					fmt.Sprintf("name-%d", i+1): {
-						Type:  api.MatchString_REGEX,
+						Type:  apimodel.MatchString_REGEX,
 						Value: utils.NewStringValue(fmt.Sprintf("value-%d", i+1)),
 					},
 				},
@@ -98,18 +100,18 @@ func CreateCircuitBreakers(namespace *api.Namespace) []*api.CircuitBreaker {
 		}
 
 		// 填充inbound规则
-		inbounds := make([]*api.CbRule, 0, ruleNum)
+		inbounds := make([]*apifault.CbRule, 0, ruleNum)
 		for i := 0; i < ruleNum; i++ {
-			inbound := &api.CbRule{
+			inbound := &apifault.CbRule{
 				Sources:      sources,
 				Destinations: destinations,
 			}
 			inbounds = append(inbounds, inbound)
 		}
 		// 填充outbound规则
-		outbounds := make([]*api.CbRule, 0, ruleNum)
+		outbounds := make([]*apifault.CbRule, 0, ruleNum)
 		for i := 0; i < ruleNum; i++ {
-			outbound := &api.CbRule{
+			outbound := &apifault.CbRule{
 				Sources:      sources,
 				Destinations: destinations,
 			}
@@ -125,11 +127,11 @@ func CreateCircuitBreakers(namespace *api.Namespace) []*api.CircuitBreaker {
 /**
  * @brief 更新测试熔断规则
  */
-func UpdateCircuitBreakers(circuitBreakers []*api.CircuitBreaker) {
+func UpdateCircuitBreakers(circuitBreakers []*apifault.CircuitBreaker) {
 	for _, item := range circuitBreakers {
-		item.Inbounds = []*api.CbRule{
+		item.Inbounds = []*apifault.CbRule{
 			{
-				Sources: []*api.SourceMatcher{
+				Sources: []*apifault.SourceMatcher{
 					{
 						Service: &wrappers.StringValue{
 							Value: "testSvc",
@@ -138,9 +140,9 @@ func UpdateCircuitBreakers(circuitBreakers []*api.CircuitBreaker) {
 				},
 			},
 		}
-		item.Outbounds = []*api.CbRule{
+		item.Outbounds = []*apifault.CbRule{
 			{
-				Sources: []*api.SourceMatcher{
+				Sources: []*apifault.SourceMatcher{
 					{
 						Service: &wrappers.StringValue{
 							Value: "testSvc1",
@@ -155,11 +157,11 @@ func UpdateCircuitBreakers(circuitBreakers []*api.CircuitBreaker) {
 /**
  * @brief 创建熔断规则版本
  */
-func CreateCircuitBreakerVersions(circuitBreakers []*api.CircuitBreaker) []*api.CircuitBreaker {
-	var newCircuitBreakers []*api.CircuitBreaker
+func CreateCircuitBreakerVersions(circuitBreakers []*apifault.CircuitBreaker) []*apifault.CircuitBreaker {
+	var newCircuitBreakers []*apifault.CircuitBreaker
 
 	for index, item := range circuitBreakers {
-		newCircuitBreaker := &api.CircuitBreaker{
+		newCircuitBreaker := &apifault.CircuitBreaker{
 			Id:        item.GetId(),
 			Name:      item.GetName(),
 			Namespace: item.GetNamespace(),
@@ -175,10 +177,10 @@ func CreateCircuitBreakerVersions(circuitBreakers []*api.CircuitBreaker) []*api.
 /**
  * @brief 创建测试发布熔断规则
  */
-func CreateConfigRelease(services []*api.Service, circuitBreakers []*api.CircuitBreaker) []*api.ConfigRelease {
-	var configReleases []*api.ConfigRelease
+func CreateConfigRelease(services []*apiservice.Service, circuitBreakers []*apifault.CircuitBreaker) []*apiservice.ConfigRelease {
+	var configReleases []*apiservice.ConfigRelease
 	for index := 0; index < 2; index++ {
-		configRelease := &api.ConfigRelease{
+		configRelease := &apiservice.ConfigRelease{
 			Service:        services[index],
 			CircuitBreaker: circuitBreakers[index],
 		}

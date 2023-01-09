@@ -19,6 +19,8 @@ package service
 
 import (
 	"context"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
@@ -26,9 +28,8 @@ import (
 )
 
 // CreateServiceAlias creates a service alias
-func (svr *serverAuthAbility) CreateServiceAlias(ctx context.Context,
-	req *api.ServiceAlias) *api.Response {
-	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Create, "CreateServiceAlias")
+func (svr *serverAuthAbility) CreateServiceAlias(ctx context.Context, req *apiservice.ServiceAlias) *apiservice.Response {
+	authCtx := svr.collectServiceAliasAuthContext(ctx, []*apiservice.ServiceAlias{req}, model.Create, "CreateServiceAlias")
 
 	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
 		return api.NewServiceAliasResponse(convertToErrCode(err), req)
@@ -48,7 +49,7 @@ func (svr *serverAuthAbility) CreateServiceAlias(ctx context.Context,
 
 // DeleteServiceAliases deletes service aliases
 func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context,
-	reqs []*api.ServiceAlias) *api.BatchWriteResponse {
+	reqs []*apiservice.ServiceAlias) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, reqs, model.Delete, "DeleteServiceAliases")
 
 	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
@@ -62,8 +63,8 @@ func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context,
 }
 
 // UpdateServiceAlias updates service alias
-func (svr *serverAuthAbility) UpdateServiceAlias(ctx context.Context, req *api.ServiceAlias) *api.Response {
-	authCtx := svr.collectServiceAliasAuthContext(ctx, []*api.ServiceAlias{req}, model.Modify, "UpdateServiceAlias")
+func (svr *serverAuthAbility) UpdateServiceAlias(ctx context.Context, req *apiservice.ServiceAlias) *apiservice.Response {
+	authCtx := svr.collectServiceAliasAuthContext(ctx, []*apiservice.ServiceAlias{req}, model.Modify, "UpdateServiceAlias")
 
 	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
 		return api.NewServiceAliasResponse(convertToErrCode(err), req)
@@ -77,7 +78,7 @@ func (svr *serverAuthAbility) UpdateServiceAlias(ctx context.Context, req *api.S
 
 // GetServiceAliases gets service aliases
 func (svr *serverAuthAbility) GetServiceAliases(ctx context.Context,
-	query map[string]string) *api.BatchQueryResponse {
+	query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, nil, model.Read, "GetServiceAliases")
 
 	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
@@ -104,7 +105,7 @@ func (svr *serverAuthAbility) GetServiceAliases(ctx context.Context,
 			// 如果鉴权能力没有开启，那就默认都可以进行编辑
 			if svr.authMgn.IsOpenConsoleAuth() {
 				editable = svr.Cache().AuthStrategy().IsResourceEditable(principal,
-					api.ResourceType_Services, svc.ID)
+					apisecurity.ResourceType_Services, svc.ID)
 			}
 			alias.Editable = utils.NewBoolValue(editable)
 		}

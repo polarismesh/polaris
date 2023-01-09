@@ -34,13 +34,13 @@ import (
 type CircuitBreakerConfigGetter func(id string) *model.ServiceWithCircuitBreaker
 
 func (x *XDSServer) makeCluster(service *ServiceInfo) *cluster.Cluster {
-	var circuitBreakerConf *model.ServiceWithCircuitBreaker
-
-	if x.CircuitBreakerConfigGetter != nil {
-		circuitBreakerConf = x.CircuitBreakerConfigGetter(service.ID)
-	} else {
-		circuitBreakerConf = x.namingServer.Cache().CircuitBreaker().GetCircuitBreakerConfig(service.ID)
-	}
+	//var circuitBreakerConf *model.ServiceWithCircuitBreaker
+	//
+	//if x.CircuitBreakerConfigGetter != nil {
+	//	circuitBreakerConf = x.CircuitBreakerConfigGetter(service.ID)
+	//} else {
+	//	circuitBreakerConf = x.namingServer.Cache().CircuitBreaker().GetCircuitBreakerConfig(service.ID)
+	//}
 
 	return &cluster.Cluster{
 		Name:                 service.Name,
@@ -56,8 +56,8 @@ func (x *XDSServer) makeCluster(service *ServiceInfo) *cluster.Cluster {
 			},
 		},
 
-		LbSubsetConfig:   makeLbSubsetConfig(service),
-		OutlierDetection: makeOutlierDetection(circuitBreakerConf),
+		LbSubsetConfig: makeLbSubsetConfig(service),
+		//OutlierDetection: makeOutlierDetection(circuitBreakerConf),
 	}
 }
 

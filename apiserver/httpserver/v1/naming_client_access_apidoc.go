@@ -20,8 +20,7 @@ package v1
 import (
 	"github.com/emicklei/go-restful/v3"
 	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
-
-	v1 "github.com/polarismesh/polaris/common/api/v1"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 var (
@@ -32,7 +31,7 @@ func enrichReportClientApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("上报客户端信息").
 		Metadata(restfulspec.KeyOpenAPITags, registerInstanceApiTags).
 		Doc("上报客户端").
-		Reads(v1.Client{}).
+		Reads(apiservice.Client{}).
 		Notes(enrichReportClientApiNotes)
 }
 

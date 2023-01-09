@@ -21,12 +21,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"io"
 	"net/http"
 
 	"github.com/golang/protobuf/jsonpb"
-
-	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // NewClient 创建HTTP客户端
@@ -95,11 +95,11 @@ func (c *Client) CompleteURL(url string, params map[string][]interface{}) string
 }
 
 // GetBatchWriteResponse 获取BatchWriteResponse
-func GetBatchWriteResponse(response *http.Response) (*api.BatchWriteResponse, error) {
+func GetBatchWriteResponse(response *http.Response) (*apiservice.BatchWriteResponse, error) {
 	// 打印回复
 	fmt.Printf("http code: %v\n", response.StatusCode)
 
-	ret := &api.BatchWriteResponse{}
+	ret := &apiservice.BatchWriteResponse{}
 	checkErr := jsonpb.Unmarshal(response.Body, ret)
 	if checkErr == nil {
 		fmt.Printf("%+v\n", ret)
@@ -122,11 +122,11 @@ func GetBatchWriteResponse(response *http.Response) (*api.BatchWriteResponse, er
 	}
 }
 
-func GetConfigResponse(response *http.Response) (*api.ConfigResponse, error) {
+func GetConfigResponse(response *http.Response) (*apiconfig.ConfigResponse, error) {
 	// 打印回复
 	fmt.Printf("http code: %v\n", response.StatusCode)
 
-	ret := &api.ConfigResponse{}
+	ret := &apiconfig.ConfigResponse{}
 	checkErr := jsonpb.Unmarshal(response.Body, ret)
 	if checkErr == nil {
 		fmt.Printf("%+v\n", ret)
@@ -148,11 +148,11 @@ func GetConfigResponse(response *http.Response) (*api.ConfigResponse, error) {
 	}
 }
 
-func GetConfigQueryResponse(response *http.Response) (*api.ConfigBatchQueryResponse, error) {
+func GetConfigQueryResponse(response *http.Response) (*apiconfig.ConfigBatchQueryResponse, error) {
 	// 打印回复
 	fmt.Printf("http code: %v\n", response.StatusCode)
 
-	ret := &api.ConfigBatchQueryResponse{}
+	ret := &apiconfig.ConfigBatchQueryResponse{}
 	checkErr := jsonpb.Unmarshal(response.Body, ret)
 	if checkErr == nil {
 		fmt.Printf("%+v\n", ret)
@@ -175,11 +175,11 @@ func GetConfigQueryResponse(response *http.Response) (*api.ConfigBatchQueryRespo
 }
 
 // GetConfigBatchWriteResponse 获取BatchWriteResponse
-func GetConfigBatchWriteResponse(response *http.Response) (*api.ConfigBatchWriteResponse, error) {
+func GetConfigBatchWriteResponse(response *http.Response) (*apiconfig.ConfigBatchWriteResponse, error) {
 	// 打印回复
 	fmt.Printf("http code: %v\n", response.StatusCode)
 
-	ret := &api.ConfigBatchWriteResponse{}
+	ret := &apiconfig.ConfigBatchWriteResponse{}
 	checkErr := jsonpb.Unmarshal(response.Body, ret)
 	if checkErr == nil {
 		fmt.Printf("%+v\n", ret)
@@ -202,11 +202,11 @@ func GetConfigBatchWriteResponse(response *http.Response) (*api.ConfigBatchWrite
 }
 
 // GetBatchQueryResponse 获取BatchQueryResponse
-func GetBatchQueryResponse(response *http.Response) (*api.BatchQueryResponse, error) {
+func GetBatchQueryResponse(response *http.Response) (*apiservice.BatchQueryResponse, error) {
 	// 打印回复
 	fmt.Printf("http code: %v\n", response.StatusCode)
 
-	ret := &api.BatchQueryResponse{}
+	ret := &apiservice.BatchQueryResponse{}
 	checkErr := jsonpb.Unmarshal(response.Body, ret)
 	if checkErr == nil {
 		fmt.Printf("%+v\n", ret)
@@ -229,11 +229,11 @@ func GetBatchQueryResponse(response *http.Response) (*api.BatchQueryResponse, er
 }
 
 // GetSimpleResponse 获取SimpleResponse
-func GetSimpleResponse(response *http.Response) (*api.Response, error) {
+func GetSimpleResponse(response *http.Response) (*apiservice.Response, error) {
 	// 打印回复
 	fmt.Printf("http code: %v\n", response.StatusCode)
 
-	ret := &api.Response{}
+	ret := &apiservice.Response{}
 	checkErr := jsonpb.Unmarshal(response.Body, ret)
 	if checkErr == nil {
 		fmt.Printf("%+v\n", ret)

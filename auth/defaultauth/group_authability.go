@@ -19,12 +19,15 @@ package defaultauth
 
 import (
 	"context"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // CreateGroup creates a group.
-func (svr *serverAuthAbility) CreateGroup(ctx context.Context, group *api.UserGroup) *api.Response {
+func (svr *serverAuthAbility) CreateGroup(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
 	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if rsp != nil {
 		rsp.UserGroup = group
@@ -36,11 +39,11 @@ func (svr *serverAuthAbility) CreateGroup(ctx context.Context, group *api.UserGr
 
 // UpdateGroups updates groups.
 func (svr *serverAuthAbility) UpdateGroups(ctx context.Context,
-	reqs []*api.ModifyUserGroup) *api.BatchWriteResponse {
+	reqs []*apisecurity.ModifyUserGroup) *apiservice.BatchWriteResponse {
 	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if rsp != nil {
-		resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
-		resp.Collect(rsp)
+		resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
+		api.Collect(resp, rsp)
 		return resp
 	}
 
@@ -49,11 +52,11 @@ func (svr *serverAuthAbility) UpdateGroups(ctx context.Context,
 
 // DeleteGroups deletes groups.
 func (svr *serverAuthAbility) DeleteGroups(ctx context.Context,
-	reqs []*api.UserGroup) *api.BatchWriteResponse {
+	reqs []*apisecurity.UserGroup) *apiservice.BatchWriteResponse {
 	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if rsp != nil {
-		resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
-		resp.Collect(rsp)
+		resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
+		api.Collect(resp, rsp)
 		return resp
 	}
 
@@ -62,17 +65,17 @@ func (svr *serverAuthAbility) DeleteGroups(ctx context.Context,
 
 // GetGroups 查看用户组列表
 func (svr *serverAuthAbility) GetGroups(ctx context.Context,
-	query map[string]string) *api.BatchQueryResponse {
+	query map[string]string) *apiservice.BatchQueryResponse {
 	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if rsp != nil {
-		return api.NewBatchQueryResponseWithMsg(rsp.GetCode().Value, rsp.Info.Value)
+		return api.NewAuthBatchQueryResponseWithMsg(apimodel.Code(rsp.GetCode().Value), rsp.Info.Value)
 	}
 
 	return svr.target.GetGroups(ctx, query)
 }
 
 // GetGroup 查看用户组
-func (svr *serverAuthAbility) GetGroup(ctx context.Context, req *api.UserGroup) *api.Response {
+func (svr *serverAuthAbility) GetGroup(ctx context.Context, req *apisecurity.UserGroup) *apiservice.Response {
 	ctx, rsp := svr.verifyAuth(ctx, WriteOp, NotOwner)
 	if rsp != nil {
 		return rsp
@@ -82,7 +85,7 @@ func (svr *serverAuthAbility) GetGroup(ctx context.Context, req *api.UserGroup) 
 }
 
 // GetGroupToken 获取用户组token
-func (svr *serverAuthAbility) GetGroupToken(ctx context.Context, req *api.UserGroup) *api.Response {
+func (svr *serverAuthAbility) GetGroupToken(ctx context.Context, req *apisecurity.UserGroup) *apiservice.Response {
 	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if rsp != nil {
 		return rsp
@@ -92,7 +95,7 @@ func (svr *serverAuthAbility) GetGroupToken(ctx context.Context, req *api.UserGr
 }
 
 // UpdateGroupToken 更新用户组token
-func (svr *serverAuthAbility) UpdateGroupToken(ctx context.Context, group *api.UserGroup) *api.Response {
+func (svr *serverAuthAbility) UpdateGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
 	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if rsp != nil {
 		rsp.UserGroup = group
@@ -103,7 +106,7 @@ func (svr *serverAuthAbility) UpdateGroupToken(ctx context.Context, group *api.U
 }
 
 // ResetGroupToken 重置用户组token
-func (svr *serverAuthAbility) ResetGroupToken(ctx context.Context, group *api.UserGroup) *api.Response {
+func (svr *serverAuthAbility) ResetGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
 	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if rsp != nil {
 		rsp.UserGroup = group

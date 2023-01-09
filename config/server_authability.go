@@ -19,12 +19,13 @@ package config
 
 import (
 	"context"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"strconv"
 
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -48,7 +49,7 @@ func newServerAuthAbility(targetServer *Server, authSvr auth.AuthServer) ConfigC
 	return proxy
 }
 
-func (s *serverAuthability) collectConfigFileAuthContext(ctx context.Context, req []*api.ConfigFile,
+func (s *serverAuthability) collectConfigFileAuthContext(ctx context.Context, req []*apiconfig.ConfigFile,
 	op model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
@@ -59,7 +60,7 @@ func (s *serverAuthability) collectConfigFileAuthContext(ctx context.Context, re
 	)
 }
 
-func (s *serverAuthability) collectConfigFileReleaseAuthContext(ctx context.Context, req []*api.ConfigFileRelease,
+func (s *serverAuthability) collectConfigFileReleaseAuthContext(ctx context.Context, req []*apiconfig.ConfigFileRelease,
 	op model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
@@ -70,7 +71,7 @@ func (s *serverAuthability) collectConfigFileReleaseAuthContext(ctx context.Cont
 	)
 }
 
-func (s *serverAuthability) collectConfigGroupAuthContext(ctx context.Context, req []*api.ConfigFileGroup,
+func (s *serverAuthability) collectConfigGroupAuthContext(ctx context.Context, req []*apiconfig.ConfigFileGroup,
 	op model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
@@ -81,7 +82,7 @@ func (s *serverAuthability) collectConfigGroupAuthContext(ctx context.Context, r
 	)
 }
 
-func (s *serverAuthability) collectConfigFileTemplateAuthContext(ctx context.Context, req []*api.ConfigFileTemplate,
+func (s *serverAuthability) collectConfigFileTemplateAuthContext(ctx context.Context, req []*apiconfig.ConfigFileTemplate,
 	op model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
@@ -90,7 +91,7 @@ func (s *serverAuthability) collectConfigFileTemplateAuthContext(ctx context.Con
 }
 
 func (s *serverAuthability) queryConfigGroupResource(ctx context.Context,
-	req []*api.ConfigFileGroup) map[api.ResourceType][]model.ResourceEntry {
+	req []*apiconfig.ConfigFileGroup) map[apisecurity.ResourceType][]model.ResourceEntry {
 
 	names := utils.NewStringSet()
 	namespace := req[0].GetNamespace().GetValue()
@@ -103,8 +104,8 @@ func (s *serverAuthability) queryConfigGroupResource(ctx context.Context,
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return nil
 	}
-	ret := map[api.ResourceType][]model.ResourceEntry{
-		api.ResourceType_ConfigGroups: entries,
+	ret := map[apisecurity.ResourceType][]model.ResourceEntry{
+		apisecurity.ResourceType_ConfigGroups: entries,
 	}
 	authLog.Debug("[Config][Server] collect config_file_group access res",
 		utils.ZapRequestIDByCtx(ctx), zap.Any("res", ret))
@@ -113,7 +114,7 @@ func (s *serverAuthability) queryConfigGroupResource(ctx context.Context,
 
 // queryConfigFileResource config file资源的鉴权转换为config group的鉴权
 func (s *serverAuthability) queryConfigFileResource(ctx context.Context,
-	req []*api.ConfigFile) map[api.ResourceType][]model.ResourceEntry {
+	req []*apiconfig.ConfigFile) map[apisecurity.ResourceType][]model.ResourceEntry {
 
 	if len(req) == 0 {
 		return nil
@@ -130,8 +131,8 @@ func (s *serverAuthability) queryConfigFileResource(ctx context.Context,
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return nil
 	}
-	ret := map[api.ResourceType][]model.ResourceEntry{
-		api.ResourceType_ConfigGroups: entries,
+	ret := map[apisecurity.ResourceType][]model.ResourceEntry{
+		apisecurity.ResourceType_ConfigGroups: entries,
 	}
 	authLog.Debug("[Config][Server] collect config_file access res",
 		utils.ZapRequestIDByCtx(ctx), zap.Any("res", ret))
@@ -139,7 +140,7 @@ func (s *serverAuthability) queryConfigFileResource(ctx context.Context,
 }
 
 func (s *serverAuthability) queryConfigFileReleaseResource(ctx context.Context,
-	req []*api.ConfigFileRelease) map[api.ResourceType][]model.ResourceEntry {
+	req []*apiconfig.ConfigFileRelease) map[apisecurity.ResourceType][]model.ResourceEntry {
 
 	if len(req) == 0 {
 		return nil
@@ -156,8 +157,8 @@ func (s *serverAuthability) queryConfigFileReleaseResource(ctx context.Context,
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return nil
 	}
-	ret := map[api.ResourceType][]model.ResourceEntry{
-		api.ResourceType_ConfigGroups: entries,
+	ret := map[apisecurity.ResourceType][]model.ResourceEntry{
+		apisecurity.ResourceType_ConfigGroups: entries,
 	}
 	authLog.Debug("[Config][Server] collect config_file access res",
 		utils.ZapRequestIDByCtx(ctx), zap.Any("res", ret))

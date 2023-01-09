@@ -19,12 +19,11 @@ package httpserver
 
 import (
 	"github.com/golang/protobuf/proto"
-
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 )
 
 // UserArr 命名空间数组定义
-type UserArr []*api.User
+type UserArr []*apisecurity.User
 
 // Reset 清空数组
 func (m *UserArr) Reset() { *m = UserArr{} }
@@ -36,7 +35,7 @@ func (m *UserArr) String() string { return proto.CompactTextString(m) }
 func (*UserArr) ProtoMessage() {}
 
 // GroupArr 命名空间数组定义
-type GroupArr []*api.UserGroup
+type GroupArr []*apisecurity.UserGroup
 
 // Reset 清空数组
 func (m *GroupArr) Reset() { *m = GroupArr{} }
@@ -48,7 +47,7 @@ func (m *GroupArr) String() string { return proto.CompactTextString(m) }
 func (*GroupArr) ProtoMessage() {}
 
 // ModifyGroupArr 命名空间数组定义
-type ModifyGroupArr []*api.ModifyUserGroup
+type ModifyGroupArr []*apisecurity.ModifyUserGroup
 
 // Reset 清空数组
 func (m *ModifyGroupArr) Reset() { *m = ModifyGroupArr{} }
@@ -60,7 +59,7 @@ func (m *ModifyGroupArr) String() string { return proto.CompactTextString(m) }
 func (*ModifyGroupArr) ProtoMessage() {}
 
 // StrategyArr 命名空间数组定义
-type StrategyArr []*api.AuthStrategy
+type StrategyArr []*apisecurity.AuthStrategy
 
 // Reset 清空数组
 func (m *StrategyArr) Reset() { *m = StrategyArr{} }
@@ -72,7 +71,7 @@ func (m *StrategyArr) String() string { return proto.CompactTextString(m) }
 func (*StrategyArr) ProtoMessage() {}
 
 // ModifyStrategyArr 命名空间数组定义
-type ModifyStrategyArr []*api.ModifyAuthStrategy
+type ModifyStrategyArr []*apisecurity.ModifyAuthStrategy
 
 // Reset 清空数组
 func (m *ModifyStrategyArr) Reset() { *m = ModifyStrategyArr{} }
@@ -84,7 +83,7 @@ func (m *ModifyStrategyArr) String() string { return proto.CompactTextString(m) 
 func (*ModifyStrategyArr) ProtoMessage() {}
 
 // AuthResourceArr 命名空间数组定义
-type AuthResourceArr []*api.StrategyResources
+type AuthResourceArr []*apisecurity.StrategyResources
 
 // Reset 清空数组
 func (m *AuthResourceArr) Reset() { *m = AuthResourceArr{} }

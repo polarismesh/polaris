@@ -20,8 +20,8 @@ package httpserver
 import (
 	"github.com/emicklei/go-restful/v3"
 	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/maintain"
 )
 
@@ -67,7 +67,7 @@ func enrichCleanInstanceApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("彻底清理flag=1的实例").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
-		Reads(api.Instance{}).
+		Reads(apiservice.Instance{}).
 		Notes(enrichCleanInstanceApiNotes)
 }
 

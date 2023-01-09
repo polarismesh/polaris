@@ -19,6 +19,9 @@ package service
 
 import (
 	"context"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
@@ -26,12 +29,12 @@ import (
 )
 
 // CreateRateLimits creates rate limits for a namespace.
-func (svr *serverAuthAbility) CreateRateLimits(ctx context.Context, reqs []*api.Rule) *api.BatchWriteResponse {
+func (svr *serverAuthAbility) CreateRateLimits(ctx context.Context, reqs []*apitraffic.Rule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Create, "CreateRateLimits")
 
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -41,12 +44,12 @@ func (svr *serverAuthAbility) CreateRateLimits(ctx context.Context, reqs []*api.
 }
 
 // DeleteRateLimits deletes rate limits for a namespace.
-func (svr *serverAuthAbility) DeleteRateLimits(ctx context.Context, reqs []*api.Rule) *api.BatchWriteResponse {
+func (svr *serverAuthAbility) DeleteRateLimits(ctx context.Context, reqs []*apitraffic.Rule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Delete, "DeleteRateLimits")
 
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -56,12 +59,12 @@ func (svr *serverAuthAbility) DeleteRateLimits(ctx context.Context, reqs []*api.
 }
 
 // UpdateRateLimits updates rate limits for a namespace.
-func (svr *serverAuthAbility) UpdateRateLimits(ctx context.Context, reqs []*api.Rule) *api.BatchWriteResponse {
+func (svr *serverAuthAbility) UpdateRateLimits(ctx context.Context, reqs []*apitraffic.Rule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Modify, "UpdateRateLimits")
 
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -71,12 +74,12 @@ func (svr *serverAuthAbility) UpdateRateLimits(ctx context.Context, reqs []*api.
 }
 
 // EnableRateLimits 启用限流规则
-func (svr *serverAuthAbility) EnableRateLimits(ctx context.Context, reqs []*api.Rule) *api.BatchWriteResponse {
+func (svr *serverAuthAbility) EnableRateLimits(ctx context.Context, reqs []*apitraffic.Rule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, nil, model.Read, "EnableRateLimits")
 
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -86,12 +89,12 @@ func (svr *serverAuthAbility) EnableRateLimits(ctx context.Context, reqs []*api.
 }
 
 // GetRateLimits gets rate limits for a namespace.
-func (svr *serverAuthAbility) GetRateLimits(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+func (svr *serverAuthAbility) GetRateLimits(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, nil, model.Read, "GetRateLimits")
 
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchQueryResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return api.NewBatchQueryResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()

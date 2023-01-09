@@ -18,20 +18,22 @@
 package batch
 
 import (
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+
 	"github.com/polarismesh/polaris/common/model"
 )
 
 // InstanceFuture 创建实例的异步结构体
 type ClientFuture struct {
-	request *api.Client   // api请求对象
-	client  *model.Client // 从数据库中读取到的model信息
-	code    uint32        // 记录对外API的错误码
-	result  chan error    // 执行成功/失败的应答chan
+	request *apiservice.Client // api请求对象
+	client  *model.Client      // 从数据库中读取到的model信息
+	code    apimodel.Code      // 记录对外API的错误码
+	result  chan error         // 执行成功/失败的应答chan
 }
 
 // Reply future的应答
-func (future *ClientFuture) Reply(code uint32, result error) {
+func (future *ClientFuture) Reply(code apimodel.Code, result error) {
 	future.code = code
 
 	select {
@@ -57,12 +59,12 @@ func (future *ClientFuture) Client() *model.Client {
 }
 
 // Code 获取code
-func (future *ClientFuture) Code() uint32 {
+func (future *ClientFuture) Code() apimodel.Code {
 	return future.code
 }
 
 // SendReply 批量答复futures
-func SendClientReply(futures interface{}, code uint32, result error) {
+func SendClientReply(futures interface{}, code apimodel.Code, result error) {
 	switch futureType := futures.(type) {
 	case []*ClientFuture:
 		for _, entry := range futureType {

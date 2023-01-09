@@ -21,10 +21,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	"go.uber.org/zap"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -181,7 +181,7 @@ func (s *Server) queryConfigFileByTags(ctx context.Context, namespace, group, fi
 
 // QueryTagsByConfigFileWithAPIModels 查询标签，返回API对象
 func (s *Server) queryTagsByConfigFileWithAPIModels(ctx context.Context, namespace,
-	group, fileName string) ([]*api.ConfigFileTag, error) {
+	group, fileName string) ([]*apiconfig.ConfigFileTag, error) {
 	tags, err := s.storage.QueryTagByConfigFile(namespace, group, fileName)
 	if err != nil {
 		return nil, err
@@ -191,9 +191,9 @@ func (s *Server) queryTagsByConfigFileWithAPIModels(ctx context.Context, namespa
 		return nil, nil
 	}
 
-	tagAPIModels := make([]*api.ConfigFileTag, 0, len(tags))
+	tagAPIModels := make([]*apiconfig.ConfigFileTag, 0, len(tags))
 	for _, tag := range tags {
-		tagAPIModels = append(tagAPIModels, &api.ConfigFileTag{
+		tagAPIModels = append(tagAPIModels, &apiconfig.ConfigFileTag{
 			Key:   utils.NewStringValue(tag.Key),
 			Value: utils.NewStringValue(tag.Value),
 		})

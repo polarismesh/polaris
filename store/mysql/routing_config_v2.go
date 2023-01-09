@@ -25,7 +25,7 @@ import (
 
 	"go.uber.org/zap"
 
-	v2 "github.com/polarismesh/polaris/common/model/v2"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -36,7 +36,7 @@ type routingConfigStoreV2 struct {
 }
 
 // CreateRoutingConfigV2 新增一个路由配置
-func (r *routingConfigStoreV2) CreateRoutingConfigV2(conf *v2.RoutingConfig) error {
+func (r *routingConfigStoreV2) CreateRoutingConfigV2(conf *model.RouterConfig) error {
 	if conf.ID == "" || conf.Revision == "" {
 		log.Errorf("[Store][boltdb] create routing config v2 missing id or revision")
 		return store.NewStatusError(store.EmptyParamsErr, "missing id or revision")
@@ -70,7 +70,7 @@ func (r *routingConfigStoreV2) CreateRoutingConfigV2(conf *v2.RoutingConfig) err
 	return store.Error(err)
 }
 
-func (r *routingConfigStoreV2) CreateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingConfig) error {
+func (r *routingConfigStoreV2) CreateRoutingConfigV2Tx(tx store.Tx, conf *model.RouterConfig) error {
 	if tx == nil {
 		return errors.New("tx is nil")
 	}
@@ -79,7 +79,7 @@ func (r *routingConfigStoreV2) CreateRoutingConfigV2Tx(tx store.Tx, conf *v2.Rou
 	return r.createRoutingConfigV2Tx(dbTx, conf)
 }
 
-func (r *routingConfigStoreV2) createRoutingConfigV2Tx(tx *BaseTx, conf *v2.RoutingConfig) error {
+func (r *routingConfigStoreV2) createRoutingConfigV2Tx(tx *BaseTx, conf *model.RouterConfig) error {
 
 	insertSQL := "INSERT INTO routing_config_v2(id, namespace, name, policy, config, enable, " +
 		" priority, revision, description, ctime, mtime, etime) VALUES (?,?,?,?,?,?,?,?,?,sysdate(),sysdate(),%s)"
@@ -104,7 +104,7 @@ func (r *routingConfigStoreV2) createRoutingConfigV2Tx(tx *BaseTx, conf *v2.Rout
 }
 
 // UpdateRoutingConfigV2 更新一个路由配置
-func (r *routingConfigStoreV2) UpdateRoutingConfigV2(conf *v2.RoutingConfig) error {
+func (r *routingConfigStoreV2) UpdateRoutingConfigV2(conf *model.RouterConfig) error {
 
 	tx, err := r.master.Begin()
 	if err != nil {
@@ -127,7 +127,7 @@ func (r *routingConfigStoreV2) UpdateRoutingConfigV2(conf *v2.RoutingConfig) err
 	return nil
 }
 
-func (r *routingConfigStoreV2) UpdateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingConfig) error {
+func (r *routingConfigStoreV2) UpdateRoutingConfigV2Tx(tx store.Tx, conf *model.RouterConfig) error {
 	if tx == nil {
 		return errors.New("tx is nil")
 	}
@@ -136,7 +136,7 @@ func (r *routingConfigStoreV2) UpdateRoutingConfigV2Tx(tx store.Tx, conf *v2.Rou
 	return r.updateRoutingConfigV2Tx(dbTx, conf)
 }
 
-func (r *routingConfigStoreV2) updateRoutingConfigV2Tx(tx *BaseTx, conf *v2.RoutingConfig) error {
+func (r *routingConfigStoreV2) updateRoutingConfigV2Tx(tx *BaseTx, conf *model.RouterConfig) error {
 	if conf.ID == "" || conf.Revision == "" {
 		log.Errorf("[Store][database] update routing config v2 missing id or revision")
 		return store.NewStatusError(store.EmptyParamsErr, "missing id or revision")
@@ -157,7 +157,7 @@ func (r *routingConfigStoreV2) updateRoutingConfigV2Tx(tx *BaseTx, conf *v2.Rout
 }
 
 // EnableRateLimit 启用限流规则
-func (r *routingConfigStoreV2) EnableRouting(conf *v2.RoutingConfig) error {
+func (r *routingConfigStoreV2) EnableRouting(conf *model.RouterConfig) error {
 	if conf.ID == "" || conf.Revision == "" {
 		return errors.New("[Store][database] enable routing config v2 missing some params")
 	}
@@ -206,9 +206,7 @@ func (r *routingConfigStoreV2) DeleteRoutingConfigV2(ruleID string) error {
 
 // GetRoutingConfigsV2ForCache 通过mtime拉取增量的路由配置信息
 // 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
-func (r *routingConfigStoreV2) GetRoutingConfigsV2ForCache(mtime time.Time,
-	firstUpdate bool) ([]*v2.RoutingConfig, error) {
-
+func (r *routingConfigStoreV2) GetRoutingConfigsV2ForCache(mtime time.Time, firstUpdate bool) ([]*model.RouterConfig, error) {
 	str := `select id, name, policy, config, enable, revision, flag, priority, description,
 	unix_timestamp(ctime), unix_timestamp(mtime), unix_timestamp(etime)  
 	from routing_config_v2 where mtime > FROM_UNIXTIME(?) `
@@ -230,7 +228,7 @@ func (r *routingConfigStoreV2) GetRoutingConfigsV2ForCache(mtime time.Time,
 }
 
 // GetRoutingConfigV2WithID 根据服务ID拉取路由配置
-func (r *routingConfigStoreV2) GetRoutingConfigV2WithID(ruleID string) (*v2.RoutingConfig, error) {
+func (r *routingConfigStoreV2) GetRoutingConfigV2WithID(ruleID string) (*model.RouterConfig, error) {
 
 	tx, err := r.master.Begin()
 	if err != nil {
@@ -244,7 +242,7 @@ func (r *routingConfigStoreV2) GetRoutingConfigV2WithID(ruleID string) (*v2.Rout
 }
 
 // GetRoutingConfigV2WithIDTx 根据服务ID拉取路由配置
-func (r *routingConfigStoreV2) GetRoutingConfigV2WithIDTx(tx store.Tx, ruleID string) (*v2.RoutingConfig, error) {
+func (r *routingConfigStoreV2) GetRoutingConfigV2WithIDTx(tx store.Tx, ruleID string) (*model.RouterConfig, error) {
 
 	if tx == nil {
 		return nil, errors.New("transaction is nil")
@@ -254,7 +252,7 @@ func (r *routingConfigStoreV2) GetRoutingConfigV2WithIDTx(tx store.Tx, ruleID st
 	return r.getRoutingConfigV2WithIDTx(dbTx, ruleID)
 }
 
-func (r *routingConfigStoreV2) getRoutingConfigV2WithIDTx(tx *BaseTx, ruleID string) (*v2.RoutingConfig, error) {
+func (r *routingConfigStoreV2) getRoutingConfigV2WithIDTx(tx *BaseTx, ruleID string) (*model.RouterConfig, error) {
 
 	str := `select id, name, policy, config, enable, revision, flag, priority, description,
 	unix_timestamp(ctime), unix_timestamp(mtime), unix_timestamp(etime)
@@ -279,12 +277,12 @@ func (r *routingConfigStoreV2) getRoutingConfigV2WithIDTx(tx *BaseTx, ruleID str
 }
 
 // fetchRoutingConfigRows 读取数据库的数据，并且释放rows
-func fetchRoutingConfigV2Rows(rows *sql.Rows) ([]*v2.RoutingConfig, error) {
+func fetchRoutingConfigV2Rows(rows *sql.Rows) ([]*model.RouterConfig, error) {
 	defer rows.Close()
-	var out []*v2.RoutingConfig
+	var out []*model.RouterConfig
 	for rows.Next() {
 		var (
-			entry               v2.RoutingConfig
+			entry               model.RouterConfig
 			flag, enable        int
 			ctime, mtime, etime int64
 		)

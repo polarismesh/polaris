@@ -17,184 +17,186 @@
 
 package v1
 
+import apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+
 // 北极星错误码
 // 六位构成，前面三位参照HTTP Status的标准
 // 后面三位，依据内部的具体错误自定义
 const (
-	ExecuteSuccess                  uint32 = 200000
-	DataNoChange                    uint32 = 200001
-	NoNeedUpdate                    uint32 = 200002
-	BadRequest                      uint32 = 400000
-	ParseException                  uint32 = 400001
-	EmptyRequest                    uint32 = 400002
-	BatchSizeOverLimit              uint32 = 400003
-	InvalidDiscoverResource         uint32 = 400004
-	InvalidRequestID                uint32 = 400100
-	InvalidUserName                 uint32 = 400101
-	InvalidUserToken                uint32 = 400102
-	InvalidParameter                uint32 = 400103
-	EmptyQueryParameter             uint32 = 400104
-	InvalidQueryInsParameter        uint32 = 400105
-	InvalidNamespaceName            uint32 = 400110
-	InvalidNamespaceOwners          uint32 = 400111
-	InvalidNamespaceToken           uint32 = 400112
-	InvalidServiceName              uint32 = 400120
-	InvalidServiceOwners            uint32 = 400121
-	InvalidServiceToken             uint32 = 400122
-	InvalidServiceMetadata          uint32 = 400123
-	InvalidServicePorts             uint32 = 400124
-	InvalidServiceBusiness          uint32 = 400125
-	InvalidServiceDepartment        uint32 = 400126
-	InvalidServiceCMDB              uint32 = 400127
-	InvalidServiceComment           uint32 = 400128
-	InvalidServiceAliasComment      uint32 = 400129
-	InvalidInstanceID               uint32 = 400130
-	InvalidInstanceHost             uint32 = 400131
-	InvalidInstancePort             uint32 = 400132
-	InvalidServiceAlias             uint32 = 400133
-	InvalidNamespaceWithAlias       uint32 = 400134
-	InvalidServiceAliasOwners       uint32 = 400135
-	InvalidInstanceProtocol         uint32 = 400136
-	InvalidInstanceVersion          uint32 = 400137
-	InvalidInstanceLogicSet         uint32 = 400138
-	InvalidInstanceIsolate          uint32 = 400139
-	HealthCheckNotOpen              uint32 = 400140
-	HeartbeatOnDisabledIns          uint32 = 400141
-	HeartbeatExceedLimit            uint32 = 400142
-	HeartbeatTypeNotFound           uint32 = 400143
-	InvalidMetadata                 uint32 = 400150
-	InvalidRateLimitID              uint32 = 400151
-	InvalidRateLimitLabels          uint32 = 400152
-	InvalidRateLimitAmounts         uint32 = 400153
-	InvalidRateLimitName            uint32 = 400154
-	InvalidCircuitBreakerID         uint32 = 400160
-	InvalidCircuitBreakerVersion    uint32 = 400161
-	InvalidCircuitBreakerName       uint32 = 400162
-	InvalidCircuitBreakerNamespace  uint32 = 400163
-	InvalidCircuitBreakerOwners     uint32 = 400164
-	InvalidCircuitBreakerToken      uint32 = 400165
-	InvalidCircuitBreakerBusiness   uint32 = 400166
-	InvalidCircuitBreakerDepartment uint32 = 400167
-	InvalidCircuitBreakerComment    uint32 = 400168
-	InvalidRoutingID                uint32 = 400700
-	InvalidRoutingPolicy            uint32 = 400701
-	InvalidRoutingName              uint32 = 400702
-	InvalidRoutingPriority          uint32 = 400703
+	ExecuteSuccess                  = uint32(apimodel.Code_ExecuteSuccess)
+	DataNoChange                    = uint32(apimodel.Code_DataNoChange)
+	NoNeedUpdate                    = uint32(apimodel.Code_NoNeedUpdate)
+	BadRequest                      = uint32(apimodel.Code_BadRequest)
+	ParseException                  = uint32(apimodel.Code_ParseException)
+	EmptyRequest                    = uint32(apimodel.Code_EmptyRequest)
+	BatchSizeOverLimit              = uint32(apimodel.Code_BatchSizeOverLimit)
+	InvalidDiscoverResource         = uint32(apimodel.Code_InvalidDiscoverResource)
+	InvalidRequestID                = uint32(apimodel.Code_InvalidRequestID)
+	InvalidUserName                 = uint32(apimodel.Code_InvalidUserName)
+	InvalidUserToken                = uint32(apimodel.Code_InvalidUserToken)
+	InvalidParameter                = uint32(apimodel.Code_InvalidParameter)
+	EmptyQueryParameter             = uint32(apimodel.Code_EmptyQueryParameter)
+	InvalidQueryInsParameter        = uint32(apimodel.Code_InvalidQueryInsParameter)
+	InvalidNamespaceName            = uint32(apimodel.Code_InvalidNamespaceName)
+	InvalidNamespaceOwners          = uint32(apimodel.Code_InvalidNamespaceOwners)
+	InvalidNamespaceToken           = uint32(apimodel.Code_InvalidNamespaceToken)
+	InvalidServiceName              = uint32(apimodel.Code_InvalidServiceName)
+	InvalidServiceOwners            = uint32(apimodel.Code_InvalidServiceOwners)
+	InvalidServiceToken             = uint32(apimodel.Code_InvalidServiceToken)
+	InvalidServiceMetadata          = uint32(apimodel.Code_InvalidServiceMetadata)
+	InvalidServicePorts             = uint32(apimodel.Code_InvalidServicePorts)
+	InvalidServiceBusiness          = uint32(apimodel.Code_InvalidServiceBusiness)
+	InvalidServiceDepartment        = uint32(apimodel.Code_InvalidServiceDepartment)
+	InvalidServiceCMDB              = uint32(apimodel.Code_InvalidServiceCMDB)
+	InvalidServiceComment           = uint32(apimodel.Code_InvalidServiceComment)
+	InvalidServiceAliasComment      = uint32(apimodel.Code_InvalidServiceAliasComment)
+	InvalidInstanceID               = uint32(apimodel.Code_InvalidInstanceID)
+	InvalidInstanceHost             = uint32(apimodel.Code_InvalidInstanceHost)
+	InvalidInstancePort             = uint32(apimodel.Code_InvalidInstancePort)
+	InvalidServiceAlias             = uint32(apimodel.Code_InvalidServiceAlias)
+	InvalidNamespaceWithAlias       = uint32(apimodel.Code_InvalidNamespaceWithAlias)
+	InvalidServiceAliasOwners       = uint32(apimodel.Code_InvalidServiceAliasOwners)
+	InvalidInstanceProtocol         = uint32(apimodel.Code_InvalidInstanceProtocol)
+	InvalidInstanceVersion          = uint32(apimodel.Code_InvalidInstanceVersion)
+	InvalidInstanceLogicSet         = uint32(apimodel.Code_InvalidInstanceLogicSet)
+	InvalidInstanceIsolate          = uint32(apimodel.Code_InvalidInstanceIsolate)
+	HealthCheckNotOpen              = uint32(apimodel.Code_HealthCheckNotOpen)
+	HeartbeatOnDisabledIns          = uint32(apimodel.Code_HeartbeatOnDisabledIns)
+	HeartbeatExceedLimit            = uint32(apimodel.Code_HeartbeatExceedLimit)
+	HeartbeatTypeNotFound           = uint32(apimodel.Code_HeartbeatTypeNotFound)
+	InvalidMetadata                 = uint32(apimodel.Code_InvalidMetadata)
+	InvalidRateLimitID              = uint32(apimodel.Code_InvalidRateLimitID)
+	InvalidRateLimitLabels          = uint32(apimodel.Code_InvalidRateLimitLabels)
+	InvalidRateLimitAmounts         = uint32(apimodel.Code_InvalidRateLimitAmounts)
+	InvalidRateLimitName            = uint32(apimodel.Code_InvalidRateLimitName)
+	InvalidCircuitBreakerID         = uint32(apimodel.Code_InvalidCircuitBreakerID)
+	InvalidCircuitBreakerVersion    = uint32(apimodel.Code_InvalidCircuitBreakerVersion)
+	InvalidCircuitBreakerName       = uint32(apimodel.Code_InvalidCircuitBreakerName)
+	InvalidCircuitBreakerNamespace  = uint32(apimodel.Code_InvalidCircuitBreakerNamespace)
+	InvalidCircuitBreakerOwners     = uint32(apimodel.Code_InvalidCircuitBreakerOwners)
+	InvalidCircuitBreakerToken      = uint32(apimodel.Code_InvalidCircuitBreakerToken)
+	InvalidCircuitBreakerBusiness   = uint32(apimodel.Code_InvalidCircuitBreakerBusiness)
+	InvalidCircuitBreakerDepartment = uint32(apimodel.Code_InvalidCircuitBreakerDepartment)
+	InvalidCircuitBreakerComment    = uint32(apimodel.Code_InvalidCircuitBreakerComment)
+	InvalidRoutingID                = uint32(apimodel.Code_InvalidRoutingID)
+	InvalidRoutingPolicy            = uint32(apimodel.Code_InvalidRoutingPolicy)
+	InvalidRoutingName              = uint32(apimodel.Code_InvalidRoutingName)
+	InvalidRoutingPriority          = uint32(apimodel.Code_InvalidRoutingPriority)
 
 	// 网格相关错误码
-	ServicesExistedMesh  uint32 = 400170
-	ResourcesExistedMesh uint32 = 400171
-	InvalidMeshParameter uint32 = 400172
+	ServicesExistedMesh  = uint32(apimodel.Code_ServicesExistedMesh)
+	ResourcesExistedMesh = uint32(apimodel.Code_ResourcesExistedMesh)
+	InvalidMeshParameter = uint32(apimodel.Code_InvalidMeshParameter)
 
 	// 平台信息相关错误码
-	InvalidPlatformID         uint32 = 400180
-	InvalidPlatformName       uint32 = 400181
-	InvalidPlatformDomain     uint32 = 400182
-	InvalidPlatformQPS        uint32 = 400183
-	InvalidPlatformToken      uint32 = 400184
-	InvalidPlatformOwner      uint32 = 400185
-	InvalidPlatformDepartment uint32 = 400186
-	InvalidPlatformComment    uint32 = 400187
-	NotFoundPlatform          uint32 = 400188
+	InvalidPlatformID         = uint32(apimodel.Code_InvalidPlatformID)
+	InvalidPlatformName       = uint32(apimodel.Code_InvalidPlatformName)
+	InvalidPlatformDomain     = uint32(apimodel.Code_InvalidPlatformDomain)
+	InvalidPlatformQPS        = uint32(apimodel.Code_InvalidPlatformQPS)
+	InvalidPlatformToken      = uint32(apimodel.Code_InvalidPlatformToken)
+	InvalidPlatformOwner      = uint32(apimodel.Code_InvalidPlatformOwner)
+	InvalidPlatformDepartment = uint32(apimodel.Code_InvalidPlatformDepartment)
+	InvalidPlatformComment    = uint32(apimodel.Code_InvalidPlatformComment)
+	NotFoundPlatform          = uint32(apimodel.Code_NotFoundPlatform)
 
 	// flux相关错误码
-	InvalidFluxRateLimitId     uint32 = 400190
-	InvalidFluxRateLimitQps    uint32 = 400191
-	InvalidFluxRateLimitSetKey uint32 = 400192
+	InvalidFluxRateLimitId     = uint32(apimodel.Code_InvalidFluxRateLimitId)
+	InvalidFluxRateLimitQps    = uint32(apimodel.Code_InvalidFluxRateLimitQps)
+	InvalidFluxRateLimitSetKey = uint32(apimodel.Code_InvalidFluxRateLimitSetKey)
 
-	ExistedResource                 uint32 = 400201
-	NotFoundResource                uint32 = 400202
-	NamespaceExistedServices        uint32 = 400203
-	ServiceExistedInstances         uint32 = 400204
-	ServiceExistedRoutings          uint32 = 400205
-	ServiceExistedRateLimits        uint32 = 400206
-	ExistReleasedConfig             uint32 = 400207
-	SameInstanceRequest             uint32 = 400208
-	ServiceExistedCircuitBreakers   uint32 = 400209
-	ServiceExistedAlias             uint32 = 400210
-	NamespaceExistedMeshResources   uint32 = 400211
-	NamespaceExistedCircuitBreakers uint32 = 400212
-	ServiceSubscribedByMeshes       uint32 = 400213
-	ServiceExistedFluxRateLimits    uint32 = 400214
-	NamespaceExistedConfigGroups    uint32 = 400219
+	ExistedResource                 = uint32(apimodel.Code_ExistedResource)
+	NotFoundResource                = uint32(apimodel.Code_NotFoundResource)
+	NamespaceExistedServices        = uint32(apimodel.Code_NamespaceExistedServices)
+	ServiceExistedInstances         = uint32(apimodel.Code_ServiceExistedInstances)
+	ServiceExistedRoutings          = uint32(apimodel.Code_ServiceExistedRoutings)
+	ServiceExistedRateLimits        = uint32(apimodel.Code_ServiceExistedRateLimits)
+	ExistReleasedConfig             = uint32(apimodel.Code_ExistReleasedConfig)
+	SameInstanceRequest             = uint32(apimodel.Code_SameInstanceRequest)
+	ServiceExistedCircuitBreakers   = uint32(apimodel.Code_ServiceExistedCircuitBreakers)
+	ServiceExistedAlias             = uint32(apimodel.Code_ServiceExistedAlias)
+	NamespaceExistedMeshResources   = uint32(apimodel.Code_NamespaceExistedMeshResources)
+	NamespaceExistedCircuitBreakers = uint32(apimodel.Code_NamespaceExistedCircuitBreakers)
+	ServiceSubscribedByMeshes       = uint32(apimodel.Code_ServiceSubscribedByMeshes)
+	ServiceExistedFluxRateLimits    = uint32(apimodel.Code_ServiceExistedFluxRateLimits)
+	NamespaceExistedConfigGroups    = uint32(apimodel.Code_NamespaceExistedConfigGroups)
 
-	NotFoundService                    uint32 = 400301
-	NotFoundRouting                    uint32 = 400302
-	NotFoundInstance                   uint32 = 400303
-	NotFoundServiceAlias               uint32 = 400304
-	NotFoundNamespace                  uint32 = 400305
-	NotFoundSourceService              uint32 = 400306
-	NotFoundRateLimit                  uint32 = 400307
-	NotFoundCircuitBreaker             uint32 = 400308
-	NotFoundMasterConfig               uint32 = 400309
-	NotFoundTagConfig                  uint32 = 400310
-	NotFoundTagConfigOrService         uint32 = 400311
-	ClientAPINotOpen                   uint32 = 400401
-	NotAllowBusinessService            uint32 = 400402
-	NotAllowAliasUpdate                uint32 = 400501
-	NotAllowAliasCreateInstance        uint32 = 400502
-	NotAllowAliasCreateRouting         uint32 = 400503
-	NotAllowCreateAliasForAlias        uint32 = 400504
-	NotAllowAliasCreateRateLimit       uint32 = 400505
-	NotAllowAliasBindRule              uint32 = 400506
-	NotAllowDifferentNamespaceBindRule uint32 = 400507
-	Unauthorized                       uint32 = 401000
-	NotAllowedAccess                   uint32 = 401001
-	IPRateLimit                        uint32 = 403001
-	APIRateLimit                       uint32 = 403002
-	CMDBNotFindHost                    uint32 = 404001
-	DataConflict                       uint32 = 409000
-	InstanceTooManyRequests            uint32 = 429001
-	ExecuteException                   uint32 = 500000
-	StoreLayerException                uint32 = 500001
-	CMDBPluginException                uint32 = 500002
-	ParseRoutingException              uint32 = 500004
-	ParseRateLimitException            uint32 = 500005
-	ParseCircuitBreakerException       uint32 = 500006
-	HeartbeatException                 uint32 = 500007
-	InstanceRegisTimeout               uint32 = 500008
+	NotFoundService                    = uint32(apimodel.Code_NotFoundService)
+	NotFoundRouting                    = uint32(apimodel.Code_NotFoundRouting)
+	NotFoundInstance                   = uint32(apimodel.Code_NotFoundInstance)
+	NotFoundServiceAlias               = uint32(apimodel.Code_NotFoundServiceAlias)
+	NotFoundNamespace                  = uint32(apimodel.Code_NotFoundNamespace)
+	NotFoundSourceService              = uint32(apimodel.Code_NotFoundSourceService)
+	NotFoundRateLimit                  = uint32(apimodel.Code_NotFoundRateLimit)
+	NotFoundCircuitBreaker             = uint32(apimodel.Code_NotFoundCircuitBreaker)
+	NotFoundMasterConfig               = uint32(apimodel.Code_NotFoundMasterConfig)
+	NotFoundTagConfig                  = uint32(apimodel.Code_NotFoundTagConfig)
+	NotFoundTagConfigOrService         = uint32(apimodel.Code_NotFoundTagConfigOrService)
+	ClientAPINotOpen                   = uint32(apimodel.Code_ClientAPINotOpen)
+	NotAllowBusinessService            = uint32(apimodel.Code_NotAllowBusinessService)
+	NotAllowAliasUpdate                = uint32(apimodel.Code_NotAllowAliasUpdate)
+	NotAllowAliasCreateInstance        = uint32(apimodel.Code_NotAllowAliasCreateInstance)
+	NotAllowAliasCreateRouting         = uint32(apimodel.Code_NotAllowAliasCreateRouting)
+	NotAllowCreateAliasForAlias        = uint32(apimodel.Code_NotAllowCreateAliasForAlias)
+	NotAllowAliasCreateRateLimit       = uint32(apimodel.Code_NotAllowAliasCreateRateLimit)
+	NotAllowAliasBindRule              = uint32(apimodel.Code_NotAllowAliasBindRule)
+	NotAllowDifferentNamespaceBindRule = uint32(apimodel.Code_NotAllowDifferentNamespaceBindRule)
+	Unauthorized                       = uint32(apimodel.Code_Unauthorized)
+	NotAllowedAccess                   = uint32(apimodel.Code_NotAllowedAccess)
+	IPRateLimit                        = uint32(apimodel.Code_IPRateLimit)
+	APIRateLimit                       = uint32(apimodel.Code_APIRateLimit)
+	CMDBNotFindHost                    = uint32(apimodel.Code_CMDBNotFindHost)
+	DataConflict                       = uint32(apimodel.Code_DataConflict)
+	InstanceTooManyRequests            = uint32(apimodel.Code_InstanceTooManyRequests)
+	ExecuteException                   = uint32(apimodel.Code_ExecuteException)
+	StoreLayerException                = uint32(apimodel.Code_StoreLayerException)
+	CMDBPluginException                = uint32(apimodel.Code_CMDBPluginException)
+	ParseRoutingException              = uint32(apimodel.Code_ParseRoutingException)
+	ParseRateLimitException            = uint32(apimodel.Code_ParseRateLimitException)
+	ParseCircuitBreakerException       = uint32(apimodel.Code_ParseCircuitBreakerException)
+	HeartbeatException                 = uint32(apimodel.Code_HeartbeatException)
+	InstanceRegisTimeout               = uint32(apimodel.Code_InstanceRegisTimeout)
 
 	// 配置中心模块的错误码
 
-	InvalidConfigFileGroupName     uint32 = 400801
-	InvalidConfigFileName          uint32 = 400802
-	InvalidConfigFileContentLength uint32 = 400803
-	InvalidConfigFileFormat        uint32 = 400804
-	InvalidConfigFileTags          uint32 = 400805
-	InvalidWatchConfigFileFormat   uint32 = 400806
-	NotFoundResourceConfigFile     uint32 = 400807
-	InvalidConfigFileTemplateName  uint32 = 400808
+	InvalidConfigFileGroupName     = uint32(apimodel.Code_InvalidConfigFileGroupName)
+	InvalidConfigFileName          = uint32(apimodel.Code_InvalidConfigFileName)
+	InvalidConfigFileContentLength = uint32(apimodel.Code_InvalidConfigFileContentLength)
+	InvalidConfigFileFormat        = uint32(apimodel.Code_InvalidConfigFileFormat)
+	InvalidConfigFileTags          = uint32(apimodel.Code_InvalidConfigFileTags)
+	InvalidWatchConfigFileFormat   = uint32(apimodel.Code_InvalidWatchConfigFileFormat)
+	NotFoundResourceConfigFile     = uint32(apimodel.Code_NotFoundResourceConfigFile)
+	InvalidConfigFileTemplateName  = uint32(apimodel.Code_InvalidConfigFileTemplateName)
 
 	// 鉴权相关错误码
-	InvalidUserOwners         uint32 = 400410
-	InvalidUserID             uint32 = 400411
-	InvalidUserPassword       uint32 = 400412
-	InvalidUserMobile         uint32 = 400413
-	InvalidUserEmail          uint32 = 400414
-	InvalidUserGroupOwners    uint32 = 400420
-	InvalidUserGroupID        uint32 = 400421
-	InvalidAuthStrategyOwners uint32 = 400430
-	InvalidAuthStrategyName   uint32 = 400431
-	InvalidAuthStrategyID     uint32 = 400432
-	InvalidPrincipalType      uint32 = 400440
+	InvalidUserOwners         = uint32(apimodel.Code_InvalidUserOwners)
+	InvalidUserID             = uint32(apimodel.Code_InvalidUserID)
+	InvalidUserPassword       = uint32(apimodel.Code_InvalidUserPassword)
+	InvalidUserMobile         = uint32(apimodel.Code_InvalidUserMobile)
+	InvalidUserEmail          = uint32(apimodel.Code_InvalidUserEmail)
+	InvalidUserGroupOwners    = uint32(apimodel.Code_InvalidUserGroupOwners)
+	InvalidUserGroupID        = uint32(apimodel.Code_InvalidUserGroupID)
+	InvalidAuthStrategyOwners = uint32(apimodel.Code_InvalidAuthStrategyOwners)
+	InvalidAuthStrategyName   = uint32(apimodel.Code_InvalidAuthStrategyName)
+	InvalidAuthStrategyID     = uint32(apimodel.Code_InvalidAuthStrategyID)
+	InvalidPrincipalType      = uint32(apimodel.Code_InvalidPrincipalType)
 
-	UserExisted                            uint32 = 400215
-	UserGroupExisted                       uint32 = 400216
-	AuthStrategyRuleExisted                uint32 = 400217
-	SubAccountExisted                      uint32 = 400218
-	NotFoundUser                           uint32 = 400312
-	NotFoundOwnerUser                      uint32 = 400313
-	NotFoundUserGroup                      uint32 = 400314
-	NotFoundAuthStrategyRule               uint32 = 400315
-	NotAllowModifyDefaultStrategyPrincipal uint32 = 400508
-	NotAllowModifyOwnerDefaultStrategy     uint32 = 400509
+	UserExisted                            = uint32(apimodel.Code_UserExisted)
+	UserGroupExisted                       = uint32(apimodel.Code_UserGroupExisted)
+	AuthStrategyRuleExisted                = uint32(apimodel.Code_AuthStrategyRuleExisted)
+	SubAccountExisted                      = uint32(apimodel.Code_SubAccountExisted)
+	NotFoundUser                           = uint32(apimodel.Code_NotFoundUser)
+	NotFoundOwnerUser                      = uint32(apimodel.Code_NotFoundOwnerUser)
+	NotFoundUserGroup                      = uint32(apimodel.Code_NotFoundUserGroup)
+	NotFoundAuthStrategyRule               = uint32(apimodel.Code_NotFoundAuthStrategyRule)
+	NotAllowModifyDefaultStrategyPrincipal = uint32(apimodel.Code_NotAllowModifyDefaultStrategyPrincipal)
+	NotAllowModifyOwnerDefaultStrategy     = uint32(apimodel.Code_NotAllowModifyOwnerDefaultStrategy)
 
-	EmptyAutToken   uint32 = 401002
-	TokenDisabled   uint32 = 401003
-	TokenNotExisted uint32 = 401004
+	EmptyAutToken   = uint32(apimodel.Code_EmptyAutToken)
+	TokenDisabled   = uint32(apimodel.Code_TokenDisabled)
+	TokenNotExisted = uint32(apimodel.Code_TokenNotExisted)
 
-	AuthTokenVerifyException uint32 = 500100
-	OperationRoleException   uint32 = 500101
+	AuthTokenVerifyException = uint32(apimodel.Code_AuthTokenForbidden)
+	OperationRoleException   = uint32(apimodel.Code_OperationRoleForbidden)
 )
 
 // code to string
@@ -322,11 +324,10 @@ var code2info = map[uint32]string{
 	InvalidConfigFileName:          "invalid config file name",
 	InvalidConfigFileContentLength: "config file content too long",
 	InvalidConfigFileFormat:        "invalid config file format, support json,xml,html,properties,text,yaml",
-	InvalidConfigFileTags: "invalid config file tags, tags should be pair, like key1,value1,key2,value2. " +
-		"and key,value should not blank",
-	InvalidWatchConfigFileFormat:  "invalid watch config file format",
-	NotFoundResourceConfigFile:    "config file not existed",
-	InvalidConfigFileTemplateName: "invalid config file template name",
+	InvalidConfigFileTags:          "invalid config file tags, tags should be pair, like key1,value1,key2,value2. and key,value should not blank",
+	InvalidWatchConfigFileFormat:   "invalid watch config file format",
+	NotFoundResourceConfigFile:     "config file not existed",
+	InvalidConfigFileTemplateName:  "invalid config file template name",
 
 	// 鉴权错误
 	NotFoundUser:             "not found user",

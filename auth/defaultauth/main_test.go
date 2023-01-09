@@ -32,7 +32,6 @@ import (
 	"github.com/polarismesh/polaris/cache"
 	_ "github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/utils"
@@ -118,13 +117,6 @@ func (d *AuthTestSuit) loadConfig() error {
 func respSuccess(resp api.ResponseMessage) bool {
 
 	ret := api.CalcCode(resp) == 200
-
-	return ret
-}
-
-// 判断一个resp是否执行成功
-func respSuccessV2(resp apiv2.ResponseMessage) bool {
-	ret := apiv2.CalcCode(resp) == 200
 
 	return ret
 }

@@ -19,11 +19,10 @@ package service
 
 import (
 	"context"
-
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 // GetReportClients query report client info
-func (svr *serverAuthAbility) GetReportClients(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+func (svr *serverAuthAbility) GetReportClients(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	return svr.targetServer.GetReportClients(ctx, query)
 }

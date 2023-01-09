@@ -18,9 +18,9 @@
 package http
 
 import (
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 )
 
-func Login(username, password string) (*api.LoginResponse, error) {
+func Login(username, password string) (*apisecurity.LoginResponse, error) {
 	return nil, nil
 }

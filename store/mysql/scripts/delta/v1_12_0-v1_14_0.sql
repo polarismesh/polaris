@@ -29,3 +29,47 @@ CREATE TABLE `leader_election`
     PRIMARY KEY (`elect_key`),
 	KEY `version` (`version`)
 ) engine = innodb;
+
+-- v1.14.0
+CREATE TABLE `circuitbreaker_rule_v2`
+(
+    `id`                VARCHAR(128) NOT NULL,
+    `name`              VARCHAR(64)  NOT NULL,
+    `namespace`         VARCHAR(64)  NOT NULL default '',
+    `enable`            INT          NOT NULL DEFAULT 0,
+    `revision`          VARCHAR(40)  NOT NULL,
+    `description`       VARCHAR(1024) NOT NULL DEFAULT '',
+    `level`             INT          NOT NULL,
+    `srcService`        VARCHAR(128) NOT NULL,
+    `srcNamespace`      VARCHAR(64)  NOT NULL,
+    `dstService`        VARCHAR(128) NOT NULL,
+    `dstNamespace`      VARCHAR(64)  NOT NULL,
+    `dstMethod`         VARCHAR(128) NOT NULL,
+    `config`            TEXT,
+    `flag`              TINYINT(4)   NOT NULL DEFAULT '0',
+    `ctime`             TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `mtime`             TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `etime`             TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `name` (`name`),
+    KEY `mtime` (`mtime`)
+) engine = innodb;
+
+CREATE TABLE `fault_detect_rule`
+(
+    `id`            VARCHAR(128) NOT NULL,
+    `name`          VARCHAR(64)  NOT NULL,
+    `namespace`     VARCHAR(64)  NOT NULL default 'default',
+    `revision`      VARCHAR(40)  NOT NULL,
+    `description`   VARCHAR(1024) NOT NULL DEFAULT '',
+    `dstService`    VARCHAR(128) NOT NULL,
+    `dstNamespace`  VARCHAR(64)  NOT NULL,
+    `dstMethod`     VARCHAR(128) NOT NULL,
+    `config`        TEXT,
+    `flag`          TINYINT(4)   NOT NULL DEFAULT '0',
+    `ctime`         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `mtime`         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `name` (`name`),
+    KEY `mtime` (`mtime`)
+) engine = innodb;

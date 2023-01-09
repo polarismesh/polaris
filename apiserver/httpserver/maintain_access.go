@@ -20,6 +20,8 @@ package httpserver
 import (
 	"context"
 	"encoding/json"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"net/http"
 	"strconv"
 
@@ -143,10 +145,10 @@ func (h *HTTPServer) CleanInstance(req *restful.Request, rsp *restful.Response) 
 		Response: rsp,
 	}
 
-	instance := &api.Instance{}
+	instance := &apiservice.Instance{}
 	ctx, err := handler.Parse(instance)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -185,7 +187,7 @@ func (h *HTTPServer) GetLastHeartbeat(req *restful.Request, rsp *restful.Respons
 		Response: rsp,
 	}
 	params := httpcommon.ParseQueryParams(req)
-	instance := &api.Instance{}
+	instance := &apiservice.Instance{}
 	if id, ok := params["id"]; ok && id != "" {
 		instance.Id = utils.NewStringValue(id)
 	} else {

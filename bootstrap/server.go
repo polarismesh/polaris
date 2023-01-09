@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"net"
 	"strings"
 	"sync"
@@ -51,7 +52,7 @@ import (
 )
 
 var (
-	SelfServiceInstance = make([]*api.Instance, 0)
+	SelfServiceInstance = make([]*apiservice.Instance, 0)
 	ConfigFilePath      = ""
 	selfHeathChecker    *SelfHeathChecker
 	ApiServerWaitGroup  = new(sync.WaitGroup)
@@ -532,7 +533,7 @@ func selfRegister(
 	metadata[model.MetaKeyBuildRevision] = version.GetRevision()
 	metadata[model.MetaKeyPolarisService] = name
 
-	req := &api.Instance{
+	req := &apiservice.Instance{
 		Service:           utils.NewStringValue(name),
 		Namespace:         utils.NewStringValue(polarisNamespace),
 		Host:              utils.NewStringValue(host),
@@ -541,9 +542,9 @@ func selfRegister(
 		Version:           utils.NewStringValue(version.Get()),
 		EnableHealthCheck: utils.NewBoolValue(true),
 		Isolate:           utils.NewBoolValue(isolated),
-		HealthCheck: &api.HealthCheck{
-			Type: api.HealthCheck_HEARTBEAT,
-			Heartbeat: &api.HeartbeatHealthCheck{
+		HealthCheck: &apiservice.HealthCheck{
+			Type: apiservice.HealthCheck_HEARTBEAT,
+			Heartbeat: &apiservice.HeartbeatHealthCheck{
 				Ttl: &wrappers.UInt32Value{Value: uint32(hbInterval)},
 			},
 		},

@@ -18,11 +18,12 @@
 package model
 
 import (
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	commontime "github.com/polarismesh/polaris/common/time"
 )
 
@@ -30,18 +31,18 @@ import (
  * Client 客户端上报信息表
  */
 type Client struct {
-	proto      *api.Client
+	proto      *apiservice.Client
 	valid      bool
 	modifyTime time.Time
 }
 
-func NewClient(req *api.Client) *Client {
+func NewClient(req *apiservice.Client) *Client {
 	return &Client{
 		proto: req,
 	}
 }
 
-func (c *Client) Proto() *api.Client {
+func (c *Client) Proto() *apiservice.Client {
 	return c.proto
 }
 
@@ -82,12 +83,12 @@ type ClientStatStore struct {
 // Store2Instance store的数据转换为组合了api的数据结构
 func Store2Client(is *ClientStore) *Client {
 	ins := &Client{
-		proto: &api.Client{
+		proto: &apiservice.Client{
 			Id:      &wrappers.StringValue{Value: is.ID},
 			Host:    &wrappers.StringValue{Value: is.Host},
 			Version: &wrappers.StringValue{Value: is.Version},
-			Type:    api.Client_ClientType(api.Client_ClientType_value[is.Type]),
-			Location: &api.Location{
+			Type:    apiservice.Client_ClientType(apiservice.Client_ClientType_value[is.Type]),
+			Location: &apimodel.Location{
 				Campus: &wrappers.StringValue{Value: is.Campus},
 				Zone:   &wrappers.StringValue{Value: is.Zone},
 				Region: &wrappers.StringValue{Value: is.Region},
@@ -105,12 +106,12 @@ func Store2Client(is *ClientStore) *Client {
 	return ins
 }
 
-func Store2ClientStat(clientStatStore *ClientStatStore) *api.StatInfo {
+func Store2ClientStat(clientStatStore *ClientStatStore) *apiservice.StatInfo {
 	if len(clientStatStore.Target) == 0 && clientStatStore.Port == 0 && len(clientStatStore.Path) == 0 &&
 		len(clientStatStore.Protocol) == 0 {
 		return nil
 	}
-	statInfo := &api.StatInfo{}
+	statInfo := &apiservice.StatInfo{}
 	statInfo.Path = &wrappers.StringValue{Value: clientStatStore.Path}
 	statInfo.Protocol = &wrappers.StringValue{Value: clientStatStore.Protocol}
 	statInfo.Port = &wrappers.UInt32Value{Value: clientStatStore.Port}

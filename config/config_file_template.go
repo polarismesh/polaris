@@ -19,6 +19,8 @@ package config
 
 import (
 	"context"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	"go.uber.org/zap"
 
@@ -30,7 +32,7 @@ import (
 )
 
 // CreateConfigFileTemplate create config file template
-func (s *Server) CreateConfigFileTemplate(ctx context.Context, template *api.ConfigFileTemplate) *api.ConfigResponse {
+func (s *Server) CreateConfigFileTemplate(ctx context.Context, template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
 	if checkRsp := checkConfigFileTemplateParam(template); checkRsp != nil {
 		return checkRsp
 	}
@@ -41,7 +43,7 @@ func (s *Server) CreateConfigFileTemplate(ctx context.Context, template *api.Con
 
 	rsp := s.GetConfigFileTemplate(ctx, template.Name.GetValue())
 	if rsp.Code.Value == api.ExecuteSuccess {
-		return api.NewConfigFileTemplateResponseWithMessage(api.BadRequest, "config file template existed")
+		return api.NewConfigFileTemplateResponseWithMessage(apimodel.Code_BadRequest, "config file template existed")
 	}
 	if rsp.Code.Value != api.NotFoundResource {
 		return rsp
@@ -56,17 +58,17 @@ func (s *Server) CreateConfigFileTemplate(ctx context.Context, template *api.Con
 		log.Error("[Config][Service] create config file template error.",
 			utils.ZapRequestID(requestID),
 			zap.Error(err))
-		return api.NewConfigFileTemplateResponse(api.StoreLayerException, template)
+		return api.NewConfigFileTemplateResponse(apimodel.Code_StoreLayerException, template)
 	}
 
-	return api.NewConfigFileTemplateResponse(api.ExecuteSuccess,
+	return api.NewConfigFileTemplateResponse(apimodel.Code_ExecuteSuccess,
 		transferConfigFileTemplateStoreModel2APIModel(createdTemplate))
 }
 
 // GetConfigFileTemplate get config file template by name
-func (s *Server) GetConfigFileTemplate(ctx context.Context, name string) *api.ConfigResponse {
+func (s *Server) GetConfigFileTemplate(ctx context.Context, name string) *apiconfig.ConfigResponse {
 	if len(name) == 0 {
-		return api.NewConfigFileTemplateResponse(api.InvalidConfigFileTemplateName, nil)
+		return api.NewConfigFileTemplateResponse(apimodel.Code_InvalidConfigFileTemplateName, nil)
 	}
 
 	template, err := s.storage.GetConfigFileTemplate(name)
@@ -76,19 +78,19 @@ func (s *Server) GetConfigFileTemplate(ctx context.Context, name string) *api.Co
 			utils.ZapRequestID(requestID),
 			zap.String("name", name),
 			zap.Error(err))
-		return api.NewConfigFileTemplateResponse(api.StoreLayerException, nil)
+		return api.NewConfigFileTemplateResponse(apimodel.Code_StoreLayerException, nil)
 	}
 
 	if template == nil {
-		return api.NewConfigFileTemplateResponse(api.NotFoundResource, nil)
+		return api.NewConfigFileTemplateResponse(apimodel.Code_NotFoundResource, nil)
 	}
 
-	return api.NewConfigFileTemplateResponse(api.ExecuteSuccess,
+	return api.NewConfigFileTemplateResponse(apimodel.Code_ExecuteSuccess,
 		transferConfigFileTemplateStoreModel2APIModel(template))
 }
 
 // GetAllConfigFileTemplates get all config file templates
-func (s *Server) GetAllConfigFileTemplates(ctx context.Context) *api.ConfigBatchQueryResponse {
+func (s *Server) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.ConfigBatchQueryResponse {
 	templates, err := s.storage.QueryAllConfigFileTemplates()
 
 	if err != nil {
@@ -97,22 +99,22 @@ func (s *Server) GetAllConfigFileTemplates(ctx context.Context) *api.ConfigBatch
 			utils.ZapRequestID(requestID),
 			zap.Error(err))
 
-		return api.NewConfigFileTemplateBatchQueryResponse(api.StoreLayerException, 0, nil)
+		return api.NewConfigFileTemplateBatchQueryResponse(apimodel.Code_StoreLayerException, 0, nil)
 	}
 
 	if len(templates) == 0 {
-		return api.NewConfigFileTemplateBatchQueryResponse(api.ExecuteSuccess, 0, nil)
+		return api.NewConfigFileTemplateBatchQueryResponse(apimodel.Code_ExecuteSuccess, 0, nil)
 	}
 
-	var apiTemplates []*api.ConfigFileTemplate
+	var apiTemplates []*apiconfig.ConfigFileTemplate
 	for _, template := range templates {
 		apiTemplates = append(apiTemplates, transferConfigFileTemplateStoreModel2APIModel(template))
 	}
-	return api.NewConfigFileTemplateBatchQueryResponse(api.ExecuteSuccess, uint32(len(templates)), apiTemplates)
+	return api.NewConfigFileTemplateBatchQueryResponse(apimodel.Code_ExecuteSuccess, uint32(len(templates)), apiTemplates)
 }
 
-func transferConfigFileTemplateStoreModel2APIModel(template *model.ConfigFileTemplate) *api.ConfigFileTemplate {
-	return &api.ConfigFileTemplate{
+func transferConfigFileTemplateStoreModel2APIModel(template *model.ConfigFileTemplate) *apiconfig.ConfigFileTemplate {
+	return &apiconfig.ConfigFileTemplate{
 		Id:         utils.NewUInt64Value(template.Id),
 		Name:       utils.NewStringValue(template.Name),
 		Content:    utils.NewStringValue(template.Content),
@@ -125,7 +127,7 @@ func transferConfigFileTemplateStoreModel2APIModel(template *model.ConfigFileTem
 	}
 }
 
-func transferConfigFileTemplateAPIModel2StoreModel(template *api.ConfigFileTemplate) *model.ConfigFileTemplate {
+func transferConfigFileTemplateAPIModel2StoreModel(template *apiconfig.ConfigFileTemplate) *model.ConfigFileTemplate {
 	return &model.ConfigFileTemplate{
 		Id:       template.Id.GetValue(),
 		Name:     template.Name.GetValue(),
@@ -137,15 +139,15 @@ func transferConfigFileTemplateAPIModel2StoreModel(template *api.ConfigFileTempl
 	}
 }
 
-func checkConfigFileTemplateParam(template *api.ConfigFileTemplate) *api.ConfigResponse {
+func checkConfigFileTemplateParam(template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
 	if err := utils2.CheckFileName(template.GetName()); err != nil {
-		return api.NewConfigFileTemplateResponse(api.InvalidConfigFileTemplateName, template)
+		return api.NewConfigFileTemplateResponse(apimodel.Code_InvalidConfigFileTemplateName, template)
 	}
 	if err := utils2.CheckContentLength(template.Content.GetValue()); err != nil {
-		return api.NewConfigFileTemplateResponse(api.InvalidConfigFileContentLength, template)
+		return api.NewConfigFileTemplateResponse(apimodel.Code_InvalidConfigFileContentLength, template)
 	}
 	if len(template.Content.GetValue()) == 0 {
-		return api.NewConfigFileTemplateResponseWithMessage(api.BadRequest, "content can not be blank.")
+		return api.NewConfigFileTemplateResponseWithMessage(apimodel.Code_BadRequest, "content can not be blank.")
 	}
 	return nil
 }

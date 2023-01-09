@@ -19,6 +19,7 @@ package bootstrap
 
 import (
 	"context"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"sync"
 	"time"
 
@@ -28,14 +29,14 @@ import (
 )
 
 type SelfHeathChecker struct {
-	instances []*api.Instance
+	instances []*apiservice.Instance
 	interval  int
 	cancel    context.CancelFunc
 	wg        *sync.WaitGroup
 	hcServer  *healthcheck.Server
 }
 
-func NewSelfHeathChecker(instances []*api.Instance, interval int) (*SelfHeathChecker, error) {
+func NewSelfHeathChecker(instances []*apiservice.Instance, interval int) (*SelfHeathChecker, error) {
 	hcServer, err := healthcheck.GetServer()
 	if nil != err {
 		return nil, err

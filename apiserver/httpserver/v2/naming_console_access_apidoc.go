@@ -20,8 +20,7 @@ package v2
 import (
 	"github.com/emicklei/go-restful/v3"
 	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
-
-	apiv2 "github.com/polarismesh/polaris/common/api/v2"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 )
 
 var (
@@ -32,7 +31,7 @@ func enrichCreateRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder 
 	return r.Doc("创建路由规则").
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Operation("v2CreateRoutings").
-		Reads([]apiv2.Routing{}).
+		Reads([]apitraffic.RouteRule{}).
 		Notes(enrichCreateRoutingsApiNotes)
 }
 
@@ -47,7 +46,7 @@ func enrichUpdateRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder 
 	return r.Doc("更新路由规则").
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Operation("v2UpdateRoutings").
-		Reads([]apiv2.Routing{}).
+		Reads([]apitraffic.RouteRule{}).
 		Notes(enrichUpdateRoutingsApiNotes)
 }
 

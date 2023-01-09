@@ -19,10 +19,10 @@ package grpc
 
 import (
 	"fmt"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	"google.golang.org/grpc"
-
-	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // NewClient 创建GRPC客户端
@@ -44,8 +44,8 @@ func NewClient(address string) (*Client, error) {
 	client := &Client{
 		Conn:         serviceConn,
 		ConfigConn:   configConn,
-		Worker:       api.NewPolarisGRPCClient(serviceConn),
-		ConfigWorker: api.NewPolarisConfigGRPCClient(configConn),
+		Worker:       apiservice.NewPolarisGRPCClient(serviceConn),
+		ConfigWorker: apiconfig.NewPolarisConfigGRPCClient(configConn),
 	}
 
 	return client, nil
@@ -55,8 +55,8 @@ func NewClient(address string) (*Client, error) {
 type Client struct {
 	Conn         *grpc.ClientConn
 	ConfigConn   *grpc.ClientConn
-	Worker       api.PolarisGRPCClient
-	ConfigWorker api.PolarisConfigGRPCClient
+	Worker       apiservice.PolarisGRPCClient
+	ConfigWorker apiconfig.PolarisConfigGRPCClient
 }
 
 // Close 关闭连接

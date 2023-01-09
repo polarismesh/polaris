@@ -18,6 +18,8 @@
 package eurekaserver
 
 import (
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"strconv"
 	"strings"
 	"testing"
@@ -28,7 +30,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/service"
 )
@@ -72,7 +73,7 @@ func buildServices(count int, namespace string, services map[svcName]*model.Serv
 
 func buildMockInstance(idx int, svc *model.Service, healthy bool, vipAddresses string, svipAddresses string) *model.Instance {
 	instance := &model.Instance{
-		Proto: &api.Instance{
+		Proto: &apiservice.Instance{
 			Id:                &wrappers.StringValue{Value: uuid.NewString()},
 			Service:           &wrappers.StringValue{Value: svc.Name},
 			Namespace:         &wrappers.StringValue{Value: svc.Namespace},
@@ -82,12 +83,12 @@ func buildMockInstance(idx int, svc *model.Service, healthy bool, vipAddresses s
 			Version:           &wrappers.StringValue{Value: "1.0.0"},
 			Weight:            &wrappers.UInt32Value{Value: 100},
 			EnableHealthCheck: &wrappers.BoolValue{Value: true},
-			HealthCheck: &api.HealthCheck{Type: api.HealthCheck_HEARTBEAT, Heartbeat: &api.HeartbeatHealthCheck{
+			HealthCheck: &apiservice.HealthCheck{Type: apiservice.HealthCheck_HEARTBEAT, Heartbeat: &apiservice.HeartbeatHealthCheck{
 				Ttl: nil,
 			}},
 			Healthy: &wrappers.BoolValue{Value: healthy},
 			Isolate: &wrappers.BoolValue{Value: false},
-			Location: &api.Location{
+			Location: &apimodel.Location{
 				Region: &wrappers.StringValue{Value: "South China"},
 				Zone:   &wrappers.StringValue{Value: "ShangHai"},
 				Campus: &wrappers.StringValue{Value: "CampusOne"},

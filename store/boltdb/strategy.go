@@ -20,6 +20,7 @@ package boltdb
 import (
 	"errors"
 	"fmt"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"sort"
 	"strings"
 	"time"
@@ -27,7 +28,6 @@ import (
 	"github.com/boltdb/bolt"
 	"go.uber.org/zap"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -207,7 +207,7 @@ func computePrincipals(remove bool, principals []model.Principal, saveVal *strat
 func computeResources(remove bool, resources []model.StrategyResource, saveVal *strategyForStore) {
 	for i := range resources {
 		resource := resources[i]
-		if resource.ResType == int32(api.ResourceType_Namespaces) {
+		if resource.ResType == int32(apisecurity.ResourceType_Namespaces) {
 			if remove {
 				delete(saveVal.NsResources, resource.ResID)
 			} else {
@@ -215,7 +215,7 @@ func computeResources(remove bool, resources []model.StrategyResource, saveVal *
 			}
 			continue
 		}
-		if resource.ResType == int32(api.ResourceType_Services) {
+		if resource.ResType == int32(apisecurity.ResourceType_Services) {
 			if remove {
 				delete(saveVal.SvcResources, resource.ResID)
 			} else {
@@ -223,7 +223,7 @@ func computeResources(remove bool, resources []model.StrategyResource, saveVal *
 			}
 			continue
 		}
-		if resource.ResType == int32(api.ResourceType_ConfigGroups) {
+		if resource.ResType == int32(apisecurity.ResourceType_ConfigGroups) {
 			if remove {
 				delete(saveVal.CfgResources, resource.ResID)
 			} else {
@@ -426,7 +426,7 @@ func collectStrategyResources(rule *strategyForStore) []model.StrategyResource {
 	for id := range rule.NsResources {
 		ret = append(ret, model.StrategyResource{
 			StrategyID: rule.ID,
-			ResType:    int32(api.ResourceType_Namespaces),
+			ResType:    int32(apisecurity.ResourceType_Namespaces),
 			ResID:      id,
 		})
 	}
@@ -434,7 +434,7 @@ func collectStrategyResources(rule *strategyForStore) []model.StrategyResource {
 	for id := range rule.SvcResources {
 		ret = append(ret, model.StrategyResource{
 			StrategyID: rule.ID,
-			ResType:    int32(api.ResourceType_Services),
+			ResType:    int32(apisecurity.ResourceType_Services),
 			ResID:      id,
 		})
 	}
@@ -442,7 +442,7 @@ func collectStrategyResources(rule *strategyForStore) []model.StrategyResource {
 	for id := range rule.CfgResources {
 		ret = append(ret, model.StrategyResource{
 			StrategyID: rule.ID,
-			ResType:    int32(api.ResourceType_ConfigGroups),
+			ResType:    int32(apisecurity.ResourceType_ConfigGroups),
 			ResID:      id,
 		})
 	}
@@ -740,7 +740,7 @@ func createDefaultStrategy(tx *bolt.Tx, role model.PrincipalType, principalId, n
 	strategy := &model.StrategyDetail{
 		ID:        utils.NewUUID(),
 		Name:      model.BuildDefaultStrategyName(role, name),
-		Action:    api.AuthAction_READ_WRITE.String(),
+		Action:    apisecurity.AuthAction_READ_WRITE.String(),
 		Default:   true,
 		Owner:     owner,
 		Revision:  utils.NewUUID(),
@@ -839,11 +839,11 @@ func convertForStrategyStore(strategy *model.StrategyDetail) *strategyForStore {
 	for i := range resources {
 		res := resources[i]
 		switch res.ResType {
-		case int32(api.ResourceType_Namespaces):
+		case int32(apisecurity.ResourceType_Namespaces):
 			ns[res.ResID] = ""
-		case int32(api.ResourceType_Services):
+		case int32(apisecurity.ResourceType_Services):
 			svc[res.ResID] = ""
-		case int32(api.ResourceType_ConfigGroups):
+		case int32(apisecurity.ResourceType_ConfigGroups):
 			cfg[res.ResID] = ""
 		}
 	}
@@ -888,7 +888,7 @@ func convertForStrategyDetail(strategy *strategyForStore) *model.StrategyDetail 
 		})
 	}
 
-	fillRes := func(idMap map[string]string, resType api.ResourceType) []model.StrategyResource {
+	fillRes := func(idMap map[string]string, resType apisecurity.ResourceType) []model.StrategyResource {
 		res := make([]model.StrategyResource, 0, len(idMap))
 
 		for id := range idMap {
@@ -902,9 +902,9 @@ func convertForStrategyDetail(strategy *strategyForStore) *model.StrategyDetail 
 		return res
 	}
 
-	resources = append(resources, fillRes(strategy.NsResources, api.ResourceType_Namespaces)...)
-	resources = append(resources, fillRes(strategy.SvcResources, api.ResourceType_Services)...)
-	resources = append(resources, fillRes(strategy.CfgResources, api.ResourceType_ConfigGroups)...)
+	resources = append(resources, fillRes(strategy.NsResources, apisecurity.ResourceType_Namespaces)...)
+	resources = append(resources, fillRes(strategy.SvcResources, apisecurity.ResourceType_Services)...)
+	resources = append(resources, fillRes(strategy.CfgResources, apisecurity.ResourceType_ConfigGroups)...)
 
 	return &model.StrategyDetail{
 		ID:         strategy.ID,

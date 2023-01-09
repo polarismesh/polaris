@@ -20,6 +20,10 @@ package v1
 import (
 	"context"
 	"fmt"
+	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"net/http"
 
 	"github.com/emicklei/go-restful/v3"
@@ -81,7 +85,6 @@ func (h *HTTPServerV1) addDefaultReadAccess(ws *restful.WebService) {
 	ws.Route(enrichGetServicesApiDocs(ws.GET("/services").To(h.GetServices)))
 	ws.Route(enrichGetServicesCountApiDocs(ws.GET("/services/count").To(h.GetServicesCount)))
 	ws.Route(enrichGetServiceTokenApiDocs(ws.GET("/service/token").To(h.GetServiceToken)))
-	ws.Route(enrichCreateServiceAliasApiDocs(ws.POST("/service/alias").To(h.CreateServiceAlias)))
 	ws.Route(enrichGetServiceAliasesApiDocs(ws.GET("/service/aliases").To(h.GetServiceAliases)))
 	ws.Route(enrichGetCircuitBreakerByServiceApiDocs(ws.GET("/service/circuitbreaker").
 		To(h.GetCircuitBreakerByService)))
@@ -90,10 +93,8 @@ func (h *HTTPServerV1) addDefaultReadAccess(ws *restful.WebService) {
 	ws.Route(enrichGetInstancesApiDocs(ws.GET("/instances").To(h.GetInstances)))
 	ws.Route(enrichGetInstancesCountApiDocs(ws.GET("/instances/count").To(h.GetInstancesCount)))
 
-	ws.Route(enrichCreateRoutingsApiDocs(ws.POST("/routings").To(h.CreateRoutings)))
 	ws.Route(enrichGetRoutingsApiDocs(ws.GET("/routings").To(h.GetRoutings)))
 
-	ws.Route(enrichCreateRateLimitsApiDocs(ws.POST("/ratelimits").To(h.CreateRateLimits)))
 	ws.Route(enrichGetRateLimitsApiDocs(ws.GET("/ratelimits").To(h.GetRateLimits)))
 
 	ws.Route(enrichGetCircuitBreakersApiDocs(ws.GET("/circuitbreaker").To(h.GetCircuitBreaker)))
@@ -104,6 +105,10 @@ func (h *HTTPServerV1) addDefaultReadAccess(ws *restful.WebService) {
 	ws.Route(enrichGetReleaseCircuitBreakersApiDocs(ws.GET("/circuitbreakers/release").
 		To(h.GetReleaseCircuitBreakers)))
 	ws.Route(enrichGetCircuitBreakerTokensApiDocs(ws.GET("/circuitbreaker/token").To(h.GetCircuitBreakerToken)))
+
+	ws.Route(enrichGetCircuitBreakerRulesApiDocs(ws.GET("/circuitbreaker/rules").To(h.GetCircuitBreakerRules)))
+
+	ws.Route(enrichGetFaultDetectRulesApiDocs(ws.GET("/faultdetectors").To(h.GetFaultDetectRules)))
 }
 
 // addDefaultAccess 增加默认接口
@@ -166,6 +171,17 @@ func (h *HTTPServerV1) addDefaultAccess(ws *restful.WebService) {
 	ws.Route(enrichGetReleaseCircuitBreakersApiDocs(ws.GET("/circuitbreakers/release").
 		To(h.GetReleaseCircuitBreakers)))
 	ws.Route(enrichGetCircuitBreakerTokensApiDocs(ws.GET("/circuitbreaker/token").To(h.GetCircuitBreakerToken)))
+
+	ws.Route(enrichGetCircuitBreakerRulesApiDocs(ws.GET("/circuitbreaker/rules").To(h.GetCircuitBreakerRules)))
+	ws.Route(enrichCreateCircuitBreakerRulesApiDocs(ws.POST("/circuitbreaker/rules").To(h.CreateCircuitBreakerRules)))
+	ws.Route(enrichUpdateCircuitBreakerRulesApiDocs(ws.PUT("/circuitbreaker/rules").To(h.UpdateCircuitBreakerRules)))
+	ws.Route(enrichDeleteCircuitBreakerRulesApiDocs(ws.POST("/circuitbreaker/rules/delete").To(h.DeleteCircuitBreakerRules)))
+	ws.Route(enrichEnableCircuitBreakerRulesApiDocs(ws.PUT("/circuitbreaker/rules/enable").To(h.EnableCircuitBreakerRules)))
+
+	ws.Route(enrichGetFaultDetectRulesApiDocs(ws.GET("/faultdetectors").To(h.GetFaultDetectRules)))
+	ws.Route(enrichCreateFaultDetectRulesApiDocs(ws.POST("/faultdetectors").To(h.CreateFaultDetectRules)))
+	ws.Route(enrichUpdateFaultDetectRulesApiDocs(ws.PUT("/faultdetectors").To(h.UpdateFaultDetectRules)))
+	ws.Route(enrichDeleteFaultDetectRulesApiDocs(ws.POST("/faultdetectors/delete").To(h.DeleteFaultDetectRules)))
 }
 
 // CreateNamespaces 创建命名空间
@@ -177,12 +193,12 @@ func (h *HTTPServerV1) CreateNamespaces(req *restful.Request, rsp *restful.Respo
 
 	var namespaces NamespaceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Namespace{}
+		msg := &apimodel.Namespace{}
 		namespaces = append(namespaces, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -198,12 +214,12 @@ func (h *HTTPServerV1) DeleteNamespaces(req *restful.Request, rsp *restful.Respo
 
 	var namespaces NamespaceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Namespace{}
+		msg := &apimodel.Namespace{}
 		namespaces = append(namespaces, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -225,12 +241,12 @@ func (h *HTTPServerV1) UpdateNamespaces(req *restful.Request, rsp *restful.Respo
 
 	var namespaces NamespaceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Namespace{}
+		msg := &apimodel.Namespace{}
 		namespaces = append(namespaces, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -265,7 +281,7 @@ func (h *HTTPServerV1) GetNamespaceToken(req *restful.Request, rsp *restful.Resp
 	ctx := context.WithValue(context.Background(), utils.StringContext("polaris-token"), token)
 
 	queryParams := httpcommon.ParseQueryParams(req)
-	namespace := &api.Namespace{
+	namespace := &apimodel.Namespace{
 		Name:  utils.NewStringValue(queryParams["name"]),
 		Token: utils.NewStringValue(queryParams["token"]),
 	}
@@ -281,10 +297,10 @@ func (h *HTTPServerV1) UpdateNamespaceToken(req *restful.Request, rsp *restful.R
 		Response: rsp,
 	}
 
-	var namespace api.Namespace
+	var namespace apimodel.Namespace
 	ctx, err := handler.Parse(&namespace)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -301,12 +317,12 @@ func (h *HTTPServerV1) CreateServices(req *restful.Request, rsp *restful.Respons
 
 	var services ServiceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Service{}
+		msg := &apiservice.Service{}
 		services = append(services, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -322,12 +338,12 @@ func (h *HTTPServerV1) DeleteServices(req *restful.Request, rsp *restful.Respons
 
 	var services ServiceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Service{}
+		msg := &apiservice.Service{}
 		services = append(services, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -349,12 +365,12 @@ func (h *HTTPServerV1) UpdateServices(req *restful.Request, rsp *restful.Respons
 
 	var services ServiceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Service{}
+		msg := &apiservice.Service{}
 		services = append(services, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -399,7 +415,7 @@ func (h *HTTPServerV1) GetServiceToken(req *restful.Request, rsp *restful.Respon
 	ctx := context.WithValue(context.Background(), utils.StringContext("polaris-token"), token)
 
 	queryParams := httpcommon.ParseQueryParams(req)
-	service := &api.Service{
+	service := &apiservice.Service{
 		Name:      utils.NewStringValue(queryParams["name"]),
 		Namespace: utils.NewStringValue(queryParams["namespace"]),
 		Token:     utils.NewStringValue(queryParams["token"]),
@@ -416,10 +432,10 @@ func (h *HTTPServerV1) UpdateServiceToken(req *restful.Request, rsp *restful.Res
 		Response: rsp,
 	}
 
-	var service api.Service
+	var service apiservice.Service
 	ctx, err := handler.Parse(&service)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -433,10 +449,10 @@ func (h *HTTPServerV1) CreateServiceAlias(req *restful.Request, rsp *restful.Res
 		Response: rsp,
 	}
 
-	var alias api.ServiceAlias
+	var alias apiservice.ServiceAlias
 	ctx, err := handler.Parse(&alias)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -450,10 +466,10 @@ func (h *HTTPServerV1) UpdateServiceAlias(req *restful.Request, rsp *restful.Res
 		Response: rsp,
 	}
 
-	var alias api.ServiceAlias
+	var alias apiservice.ServiceAlias
 	ctx, err := handler.Parse(&alias)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -475,12 +491,12 @@ func (h *HTTPServerV1) DeleteServiceAliases(req *restful.Request, rsp *restful.R
 
 	var aliases ServiceAliasArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.ServiceAlias{}
+		msg := &apiservice.ServiceAlias{}
 		aliases = append(aliases, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 	ret := h.namingServer.DeleteServiceAliases(ctx, aliases)
@@ -513,12 +529,12 @@ func (h *HTTPServerV1) CreateInstances(req *restful.Request, rsp *restful.Respon
 
 	var instances InstanceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Instance{}
+		msg := &apiservice.Instance{}
 		instances = append(instances, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -534,12 +550,12 @@ func (h *HTTPServerV1) DeleteInstances(req *restful.Request, rsp *restful.Respon
 
 	var instances InstanceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Instance{}
+		msg := &apiservice.Instance{}
 		instances = append(instances, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -561,12 +577,12 @@ func (h *HTTPServerV1) DeleteInstancesByHost(req *restful.Request, rsp *restful.
 
 	var instances InstanceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Instance{}
+		msg := &apiservice.Instance{}
 		instances = append(instances, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -588,12 +604,12 @@ func (h *HTTPServerV1) UpdateInstances(req *restful.Request, rsp *restful.Respon
 
 	var instances InstanceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Instance{}
+		msg := &apiservice.Instance{}
 		instances = append(instances, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -615,12 +631,12 @@ func (h *HTTPServerV1) UpdateInstancesIsolate(req *restful.Request, rsp *restful
 
 	var instances InstanceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Instance{}
+		msg := &apiservice.Instance{}
 		instances = append(instances, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -676,12 +692,12 @@ func (h *HTTPServerV1) CreateRoutings(req *restful.Request, rsp *restful.Respons
 
 	var routings RoutingArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Routing{}
+		msg := &apitraffic.Routing{}
 		routings = append(routings, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -698,12 +714,12 @@ func (h *HTTPServerV1) DeleteRoutings(req *restful.Request, rsp *restful.Respons
 
 	var routings RoutingArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Routing{}
+		msg := &apitraffic.Routing{}
 		routings = append(routings, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -725,12 +741,12 @@ func (h *HTTPServerV1) UpdateRoutings(req *restful.Request, rsp *restful.Respons
 
 	var routings RoutingArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Routing{}
+		msg := &apitraffic.Routing{}
 		routings = append(routings, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -764,12 +780,12 @@ func (h *HTTPServerV1) CreateRateLimits(req *restful.Request, rsp *restful.Respo
 
 	var rateLimits RateLimitArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Rule{}
+		msg := &apitraffic.Rule{}
 		rateLimits = append(rateLimits, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -785,12 +801,12 @@ func (h *HTTPServerV1) DeleteRateLimits(req *restful.Request, rsp *restful.Respo
 
 	var rateLimits RateLimitArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Rule{}
+		msg := &apitraffic.Rule{}
 		rateLimits = append(rateLimits, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -810,12 +826,12 @@ func (h *HTTPServerV1) EnableRateLimits(req *restful.Request, rsp *restful.Respo
 	}
 	var rateLimits RateLimitArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Rule{}
+		msg := &apitraffic.Rule{}
 		rateLimits = append(rateLimits, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 	ret := h.namingServer.EnableRateLimits(ctx, rateLimits)
@@ -836,12 +852,12 @@ func (h *HTTPServerV1) UpdateRateLimits(req *restful.Request, rsp *restful.Respo
 
 	var rateLimits RateLimitArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Rule{}
+		msg := &apitraffic.Rule{}
 		rateLimits = append(rateLimits, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -875,12 +891,12 @@ func (h *HTTPServerV1) CreateCircuitBreakers(req *restful.Request, rsp *restful.
 
 	var circuitBreakers CircuitBreakerArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.CircuitBreaker{}
+		msg := &apifault.CircuitBreaker{}
 		circuitBreakers = append(circuitBreakers, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -897,12 +913,12 @@ func (h *HTTPServerV1) CreateCircuitBreakerVersions(req *restful.Request, rsp *r
 
 	var circuitBreakers CircuitBreakerArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.CircuitBreaker{}
+		msg := &apifault.CircuitBreaker{}
 		circuitBreakers = append(circuitBreakers, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchQueryResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchQueryResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -918,12 +934,12 @@ func (h *HTTPServerV1) DeleteCircuitBreakers(req *restful.Request, rsp *restful.
 
 	var circuitBreakers CircuitBreakerArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.CircuitBreaker{}
+		msg := &apifault.CircuitBreaker{}
 		circuitBreakers = append(circuitBreakers, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -944,12 +960,12 @@ func (h *HTTPServerV1) UpdateCircuitBreakers(req *restful.Request, rsp *restful.
 
 	var circuitBreakers CircuitBreakerArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.CircuitBreaker{}
+		msg := &apifault.CircuitBreaker{}
 		circuitBreakers = append(circuitBreakers, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -970,12 +986,12 @@ func (h *HTTPServerV1) ReleaseCircuitBreakers(req *restful.Request, rsp *restful
 
 	var configRelease ConfigReleaseArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.ConfigRelease{}
+		msg := &apiservice.ConfigRelease{}
 		configRelease = append(configRelease, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -996,12 +1012,12 @@ func (h *HTTPServerV1) UnBindCircuitBreakers(req *restful.Request, rsp *restful.
 
 	var configRelease ConfigReleaseArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.ConfigRelease{}
+		msg := &apiservice.ConfigRelease{}
 		configRelease = append(configRelease, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -1082,12 +1098,12 @@ func (h *HTTPServerV1) GetServiceOwner(req *restful.Request, rsp *restful.Respon
 
 	var services ServiceArr
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.Service{}
+		msg := &apiservice.Service{}
 		services = append(services, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -1104,11 +1120,208 @@ func (h *HTTPServerV1) GetCircuitBreakerToken(req *restful.Request, rsp *restful
 	ctx := context.WithValue(context.Background(), utils.StringContext("polaris-token"), token)
 
 	queryParams := httpcommon.ParseQueryParams(req)
-	circuitBreaker := &api.CircuitBreaker{
+	circuitBreaker := &apifault.CircuitBreaker{
 		Id:      utils.NewStringValue(queryParams["id"]),
 		Version: utils.NewStringValue("master"),
 		Token:   utils.NewStringValue(queryParams["token"]),
 	}
 	ret := h.namingServer.GetCircuitBreakerToken(ctx, circuitBreaker)
+	handler.WriteHeaderAndProto(ret)
+}
+
+// CreateCircuitBreakerRules create the circuitbreaker rues
+func (h *HTTPServerV1) CreateCircuitBreakerRules(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	var circuitBreakerRules CircuitBreakerRuleAttr
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &apifault.CircuitBreakerRule{}
+		circuitBreakerRules = append(circuitBreakerRules, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	handler.WriteHeaderAndProto(h.namingServer.CreateCircuitBreakerRules(ctx, circuitBreakerRules))
+}
+
+// DeleteCircuitBreakerRules delete the circuitbreaker rues
+func (h *HTTPServerV1) DeleteCircuitBreakerRules(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	var circuitBreakerRules CircuitBreakerRuleAttr
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &apifault.CircuitBreakerRule{}
+		circuitBreakerRules = append(circuitBreakerRules, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	ret := h.namingServer.DeleteCircuitBreakerRules(ctx, circuitBreakerRules)
+	if code := api.CalcCode(ret); code != http.StatusOK {
+		handler.WriteHeaderAndProto(ret)
+		return
+	}
+	handler.WriteHeaderAndProto(ret)
+}
+
+// EnableCircuitBreakerRules enable the circuitbreaker rues
+func (h *HTTPServerV1) EnableCircuitBreakerRules(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+	var circuitBreakerRules CircuitBreakerRuleAttr
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &apifault.CircuitBreakerRule{}
+		circuitBreakerRules = append(circuitBreakerRules, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+	ret := h.namingServer.EnableCircuitBreakerRules(ctx, circuitBreakerRules)
+	if code := api.CalcCode(ret); code != http.StatusOK {
+		handler.WriteHeaderAndProto(ret)
+		return
+	}
+
+	handler.WriteHeaderAndProto(ret)
+}
+
+// UpdateCircuitBreakerRules update the circuitbreaker rues
+func (h *HTTPServerV1) UpdateCircuitBreakerRules(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	var circuitBreakerRules CircuitBreakerRuleAttr
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &apifault.CircuitBreakerRule{}
+		circuitBreakerRules = append(circuitBreakerRules, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	ret := h.namingServer.UpdateCircuitBreakerRules(ctx, circuitBreakerRules)
+	if code := api.CalcCode(ret); code != http.StatusOK {
+		handler.WriteHeaderAndProto(ret)
+		return
+	}
+
+	handler.WriteHeaderAndProto(ret)
+}
+
+// GetCircuitBreakerRules query the circuitbreaker rues
+func (h *HTTPServerV1) GetCircuitBreakerRules(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	queryParams := httpcommon.ParseQueryParams(req)
+	ret := h.namingServer.GetCircuitBreakerRules(handler.ParseHeaderContext(), queryParams)
+	handler.WriteHeaderAndProto(ret)
+}
+
+// CreateFaultDetectRules create the fault detect rues
+func (h *HTTPServerV1) CreateFaultDetectRules(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	var faultDetectRules FaultDetectRuleAttr
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &apifault.FaultDetectRule{}
+		faultDetectRules = append(faultDetectRules, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	handler.WriteHeaderAndProto(h.namingServer.CreateFaultDetectRules(ctx, faultDetectRules))
+}
+
+// DeleteFaultDetectRules delete the fault detect rues
+func (h *HTTPServerV1) DeleteFaultDetectRules(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	var faultDetectRules FaultDetectRuleAttr
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &apifault.FaultDetectRule{}
+		faultDetectRules = append(faultDetectRules, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	ret := h.namingServer.DeleteFaultDetectRules(ctx, faultDetectRules)
+	if code := api.CalcCode(ret); code != http.StatusOK {
+		handler.WriteHeaderAndProto(ret)
+		return
+	}
+	handler.WriteHeaderAndProto(ret)
+}
+
+// UpdateFaultDetectRules update the fault detect rues
+func (h *HTTPServerV1) UpdateFaultDetectRules(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	var faultDetectRules FaultDetectRuleAttr
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &apifault.FaultDetectRule{}
+		faultDetectRules = append(faultDetectRules, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	ret := h.namingServer.UpdateFaultDetectRules(ctx, faultDetectRules)
+	if code := api.CalcCode(ret); code != http.StatusOK {
+		handler.WriteHeaderAndProto(ret)
+		return
+	}
+
+	handler.WriteHeaderAndProto(ret)
+}
+
+// GetFaultDetectRules query the fault detect rues
+func (h *HTTPServerV1) GetFaultDetectRules(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	queryParams := httpcommon.ParseQueryParams(req)
+	ret := h.namingServer.GetFaultDetectRules(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }

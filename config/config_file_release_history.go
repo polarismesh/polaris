@@ -19,6 +19,8 @@ package config
 
 import (
 	"context"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	"go.uber.org/zap"
 
@@ -75,10 +77,10 @@ func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.Co
 
 // GetConfigFileReleaseHistory 获取配置文件发布历史记录
 func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset,
-	limit uint32, endId uint64) *api.ConfigBatchQueryResponse {
+	limit uint32, endId uint64) *apiconfig.ConfigBatchQueryResponse {
 
 	if limit > MaxPageSize {
-		return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.InvalidParameter, 0, nil)
+		return api.NewConfigFileReleaseHistoryBatchQueryResponse(apimodel.Code_InvalidParameter, 0, nil)
 	}
 
 	count, releaseHistories, err := s.storage.QueryConfigFileReleaseHistories(namespace,
@@ -91,36 +93,36 @@ func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, gro
 			zap.String("group", group),
 			zap.String("fileName", fileName),
 			zap.Error(err))
-		return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.StoreLayerException, 0, nil)
+		return api.NewConfigFileReleaseHistoryBatchQueryResponse(apimodel.Code_StoreLayerException, 0, nil)
 	}
 
 	if len(releaseHistories) == 0 {
-		return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.ExecuteSuccess, count, nil)
+		return api.NewConfigFileReleaseHistoryBatchQueryResponse(apimodel.Code_ExecuteSuccess, count, nil)
 	}
 
-	var apiReleaseHistory []*api.ConfigFileReleaseHistory
+	var apiReleaseHistory []*apiconfig.ConfigFileReleaseHistory
 	for _, history := range releaseHistories {
 		historyAPIModel := transferReleaseHistoryStoreModel2APIModel(history)
 		apiReleaseHistory = append(apiReleaseHistory, historyAPIModel)
 	}
 
-	return api.NewConfigFileReleaseHistoryBatchQueryResponse(api.ExecuteSuccess, count, apiReleaseHistory)
+	return api.NewConfigFileReleaseHistoryBatchQueryResponse(apimodel.Code_ExecuteSuccess, count, apiReleaseHistory)
 }
 
 // GetConfigFileLatestReleaseHistory 获取配置文件最后一次发布记录
 func (s *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group,
-	fileName string) *api.ConfigResponse {
+	fileName string) *apiconfig.ConfigResponse {
 
 	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
-		return api.NewConfigFileReleaseHistoryResponse(api.InvalidNamespaceName, nil)
+		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
 
 	if err := utils2.CheckResourceName(utils.NewStringValue(group)); err != nil {
-		return api.NewConfigFileReleaseHistoryResponse(api.InvalidNamespaceName, nil)
+		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
 
 	if err := utils2.CheckFileName(utils.NewStringValue(fileName)); err != nil {
-		return api.NewConfigFileReleaseHistoryResponse(api.InvalidNamespaceName, nil)
+		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
 
 	history, err := s.storage.GetLatestConfigFileReleaseHistory(namespace, group, fileName)
@@ -133,20 +135,20 @@ func (s *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespac
 			zap.String("fileName", fileName),
 			zap.Error(err),
 		)
-		return api.NewConfigFileReleaseHistoryResponse(api.StoreLayerException, nil)
+		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_StoreLayerException, nil)
 	}
 
-	return api.NewConfigFileReleaseHistoryResponse(api.ExecuteSuccess,
+	return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_ExecuteSuccess,
 		transferReleaseHistoryStoreModel2APIModel(history))
 }
 
 func transferReleaseHistoryStoreModel2APIModel(
-	releaseHistory *model.ConfigFileReleaseHistory) *api.ConfigFileReleaseHistory {
+	releaseHistory *model.ConfigFileReleaseHistory) *apiconfig.ConfigFileReleaseHistory {
 
 	if releaseHistory == nil {
 		return nil
 	}
-	return &api.ConfigFileReleaseHistory{
+	return &apiconfig.ConfigFileReleaseHistory{
 		Id:         utils.NewUInt64Value(releaseHistory.Id),
 		Name:       utils.NewStringValue(releaseHistory.Name),
 		Namespace:  utils.NewStringValue(releaseHistory.Namespace),

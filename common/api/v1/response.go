@@ -20,6 +20,11 @@ package v1
 import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 /**
@@ -42,57 +47,34 @@ func CalcCode(rm ResponseMessage) int {
 /**
  * @brief BatchWriteResponse添加Response
  */
-func (b *BatchWriteResponse) Collect(response *Response) {
+func Collect(batchWriteResponse *apiservice.BatchWriteResponse, response *apiservice.Response) {
 	// 非200的code，都归为异常
 	if CalcCode(response) != 200 {
-		if response.GetCode().GetValue() >= b.GetCode().GetValue() {
-			b.Code.Value = response.GetCode().GetValue()
-			b.Info.Value = code2info[b.GetCode().GetValue()]
+		if response.GetCode().GetValue() >= batchWriteResponse.GetCode().GetValue() {
+			batchWriteResponse.Code.Value = response.GetCode().GetValue()
+			batchWriteResponse.Info.Value = code2info[batchWriteResponse.GetCode().GetValue()]
 		}
 	}
 
-	b.Size.Value++
-	b.Responses = append(b.Responses, response)
+	batchWriteResponse.Size.Value++
+	batchWriteResponse.Responses = append(batchWriteResponse.Responses, response)
 }
 
-/**
- * @brief BatchWriteResponse添加Response
- */
-func (b *BatchWriteResponse) CollectBatch(response []*Response) {
-	for _, resp := range response {
-		b.Collect(resp)
-	}
-}
-
-/**
- * @brief BatchQueryResponse添加命名空间
- */
-func (b *BatchQueryResponse) AddNamespace(namespace *Namespace) {
+// AddNamespace BatchQueryResponse添加命名空间
+func AddNamespace(b *apiservice.BatchQueryResponse, namespace *apimodel.Namespace) {
 	b.Namespaces = append(b.Namespaces, namespace)
 }
 
-/**
- * @brief 创建简单回复
- */
-func NewSimpleResponse(code uint32) *SimpleResponse {
-	return &SimpleResponse{
-		Code: &wrappers.UInt32Value{Value: code},
-		Info: &wrappers.StringValue{Value: code2info[code]},
+// NewResponse 创建回复
+func NewResponse(code apimodel.Code) *apiservice.Response {
+	return &apiservice.Response{
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: code2info[uint32(code)]},
 	}
 }
 
-/**
- * @brief 创建回复
- */
-func NewResponse(code uint32) *Response {
-	return &Response{
-		Code: &wrappers.UInt32Value{Value: code},
-		Info: &wrappers.StringValue{Value: code2info[code]},
-	}
-}
-
-// 带上具体的错误信息
-func NewResponseWithMsg(code uint32, msg string) *Response {
+// NewResponseWithMsg 带上具体的错误信息
+func NewResponseWithMsg(code apimodel.Code, msg string) *apiservice.Response {
 	resp := NewResponse(code)
 	resp.Info.Value += ": " + msg
 	return resp
@@ -101,10 +83,10 @@ func NewResponseWithMsg(code uint32, msg string) *Response {
 /**
  * @brief 创建回复带客户端信息
  */
-func NewClientResponse(code uint32, client *Client) *Response {
-	return &Response{
-		Code:   &wrappers.UInt32Value{Value: code},
-		Info:   &wrappers.StringValue{Value: code2info[code]},
+func NewClientResponse(code apimodel.Code, client *apiservice.Client) *apiservice.Response {
+	return &apiservice.Response{
+		Code:   &wrappers.UInt32Value{Value: uint32(code)},
+		Info:   &wrappers.StringValue{Value: code2info[uint32(code)]},
 		Client: client,
 	}
 }
@@ -112,10 +94,10 @@ func NewClientResponse(code uint32, client *Client) *Response {
 /**
  * @brief 创建回复带命名空间信息
  */
-func NewNamespaceResponse(code uint32, namespace *Namespace) *Response {
-	return &Response{
-		Code:      &wrappers.UInt32Value{Value: code},
-		Info:      &wrappers.StringValue{Value: code2info[code]},
+func NewNamespaceResponse(code apimodel.Code, namespace *apimodel.Namespace) *apiservice.Response {
+	return &apiservice.Response{
+		Code:      &wrappers.UInt32Value{Value: uint32(code)},
+		Info:      &wrappers.StringValue{Value: code2info[uint32(code)]},
 		Namespace: namespace,
 	}
 }
@@ -123,16 +105,16 @@ func NewNamespaceResponse(code uint32, namespace *Namespace) *Response {
 /**
  * @brief 创建回复带服务信息
  */
-func NewServiceResponse(code uint32, service *Service) *Response {
-	return &Response{
-		Code:    &wrappers.UInt32Value{Value: code},
-		Info:    &wrappers.StringValue{Value: code2info[code]},
+func NewServiceResponse(code apimodel.Code, service *apiservice.Service) *apiservice.Response {
+	return &apiservice.Response{
+		Code:    &wrappers.UInt32Value{Value: uint32(code)},
+		Info:    &wrappers.StringValue{Value: code2info[uint32(code)]},
 		Service: service,
 	}
 }
 
 // 创建带别名信息的答复
-func NewServiceAliasResponse(code uint32, alias *ServiceAlias) *Response {
+func NewServiceAliasResponse(code apimodel.Code, alias *apiservice.ServiceAlias) *apiservice.Response {
 	resp := NewResponse(code)
 	resp.Alias = alias
 	return resp
@@ -141,16 +123,16 @@ func NewServiceAliasResponse(code uint32, alias *ServiceAlias) *Response {
 /**
  * @brief 创建回复带服务实例信息
  */
-func NewInstanceResponse(code uint32, instance *Instance) *Response {
-	return &Response{
-		Code:     &wrappers.UInt32Value{Value: code},
-		Info:     &wrappers.StringValue{Value: code2info[code]},
+func NewInstanceResponse(code apimodel.Code, instance *apiservice.Instance) *apiservice.Response {
+	return &apiservice.Response{
+		Code:     &wrappers.UInt32Value{Value: uint32(code)},
+		Info:     &wrappers.StringValue{Value: code2info[uint32(code)]},
 		Instance: instance,
 	}
 }
 
 // 创建带自定义error的服务实例response
-func NewInstanceRespWithError(code uint32, err error, instance *Instance) *Response {
+func NewInstanceRespWithError(code apimodel.Code, err error, instance *apiservice.Instance) *apiservice.Response {
 	resp := NewInstanceResponse(code, instance)
 	resp.Info.Value += " : " + err.Error()
 
@@ -160,21 +142,37 @@ func NewInstanceRespWithError(code uint32, err error, instance *Instance) *Respo
 /**
  * @brief 创建回复带服务路由信息
  */
-func NewRoutingResponse(code uint32, routing *Routing) *Response {
-	return &Response{
-		Code:    &wrappers.UInt32Value{Value: code},
-		Info:    &wrappers.StringValue{Value: code2info[code]},
+func NewRoutingResponse(code apimodel.Code, routing *apitraffic.Routing) *apiservice.Response {
+	return &apiservice.Response{
+		Code:    &wrappers.UInt32Value{Value: uint32(code)},
+		Info:    &wrappers.StringValue{Value: code2info[uint32(code)]},
 		Routing: routing,
 	}
 }
 
-/**
- * @brief 创建回复带限流规则信息
- */
-func NewRateLimitResponse(code uint32, rule *Rule) *Response {
-	return &Response{
-		Code:      &wrappers.UInt32Value{Value: code},
-		Info:      &wrappers.StringValue{Value: code2info[code]},
+// NewAnyDataResponse create the response with data with any type
+func NewAnyDataResponse(code apimodel.Code, msg proto.Message) *apiservice.Response {
+	ret, err := anypb.New(proto.MessageV2(msg))
+	if err != nil {
+		return NewResponse(code)
+	}
+	return &apiservice.Response{
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: code2info[uint32(code)]},
+		Data: ret,
+	}
+}
+
+// NewRouterResponse 创建带新版本路由的返回
+func NewRouterResponse(code apimodel.Code, router *apitraffic.RouteRule) *apiservice.Response {
+	return NewAnyDataResponse(code, router)
+}
+
+// NewRateLimitResponse 创建回复带限流规则信息
+func NewRateLimitResponse(code apimodel.Code, rule *apitraffic.Rule) *apiservice.Response {
+	return &apiservice.Response{
+		Code:      &wrappers.UInt32Value{Value: uint32(code)},
+		Info:      &wrappers.StringValue{Value: code2info[uint32(code)]},
 		RateLimit: rule,
 	}
 }
@@ -182,10 +180,10 @@ func NewRateLimitResponse(code uint32, rule *Rule) *Response {
 /**
  * @brief 创建回复带熔断规则信息
  */
-func NewCircuitBreakerResponse(code uint32, circuitBreaker *CircuitBreaker) *Response {
-	return &Response{
-		Code:           &wrappers.UInt32Value{Value: code},
-		Info:           &wrappers.StringValue{Value: code2info[code]},
+func NewCircuitBreakerResponse(code apimodel.Code, circuitBreaker *apifault.CircuitBreaker) *apiservice.Response {
+	return &apiservice.Response{
+		Code:           &wrappers.UInt32Value{Value: uint32(code)},
+		Info:           &wrappers.StringValue{Value: code2info[uint32(code)]},
 		CircuitBreaker: circuitBreaker,
 	}
 }
@@ -193,10 +191,10 @@ func NewCircuitBreakerResponse(code uint32, circuitBreaker *CircuitBreaker) *Res
 /**
  * @brief 创建回复带发布信息
  */
-func NewConfigResponse(code uint32, configRelease *ConfigRelease) *Response {
-	return &Response{
-		Code:          &wrappers.UInt32Value{Value: code},
-		Info:          &wrappers.StringValue{Value: code2info[code]},
+func NewConfigResponse(code apimodel.Code, configRelease *apiservice.ConfigRelease) *apiservice.Response {
+	return &apiservice.Response{
+		Code:          &wrappers.UInt32Value{Value: uint32(code)},
+		Info:          &wrappers.StringValue{Value: code2info[uint32(code)]},
 		ConfigRelease: configRelease,
 	}
 }
@@ -204,10 +202,10 @@ func NewConfigResponse(code uint32, configRelease *ConfigRelease) *Response {
 /**
  * @brief 创建批量回复
  */
-func NewBatchWriteResponse(code uint32) *BatchWriteResponse {
-	return &BatchWriteResponse{
-		Code: &wrappers.UInt32Value{Value: code},
-		Info: &wrappers.StringValue{Value: code2info[code]},
+func NewBatchWriteResponse(code apimodel.Code) *apiservice.BatchWriteResponse {
+	return &apiservice.BatchWriteResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: code2info[uint32(code)]},
 		Size: &wrappers.UInt32Value{Value: 0},
 	}
 }
@@ -215,49 +213,55 @@ func NewBatchWriteResponse(code uint32) *BatchWriteResponse {
 /**
  * @brief 创建带详细信息的批量回复
  */
-func NewBatchWriteResponseWithMsg(code uint32, msg string) *BatchWriteResponse {
+func NewBatchWriteResponseWithMsg(code apimodel.Code, msg string) *apiservice.BatchWriteResponse {
 	resp := NewBatchWriteResponse(code)
 	resp.Info.Value += ": " + msg
 	return resp
 }
 
-/**
- * @brief 创建批量查询回复
- */
-func NewBatchQueryResponse(code uint32) *BatchQueryResponse {
-	return &BatchQueryResponse{
-		Code:   &wrappers.UInt32Value{Value: code},
-		Info:   &wrappers.StringValue{Value: code2info[code]},
+// NewBatchQueryResponse create the batch query responses
+func NewBatchQueryResponse(code apimodel.Code) *apiservice.BatchQueryResponse {
+	return &apiservice.BatchQueryResponse{
+		Code:   &wrappers.UInt32Value{Value: uint32(code)},
+		Info:   &wrappers.StringValue{Value: code2info[uint32(code)]},
 		Amount: &wrappers.UInt32Value{Value: 0},
 		Size:   &wrappers.UInt32Value{Value: 0},
 	}
 }
 
-/**
- * @brief 创建带详细信息的批量查询回复
- */
-func NewBatchQueryResponseWithMsg(code uint32, msg string) *BatchQueryResponse {
+// NewBatchQueryResponseWithMsg create the batch query responses with message
+func NewBatchQueryResponseWithMsg(code apimodel.Code, msg string) *apiservice.BatchQueryResponse {
 	resp := NewBatchQueryResponse(code)
 	resp.Info.Value += ": " + msg
 	return resp
 }
 
+// AddAnyDataIntoBatchQuery add message as any data array
+func AddAnyDataIntoBatchQuery(resp *apiservice.BatchQueryResponse, message proto.Message) error {
+	ret, err := anypb.New(proto.MessageV2(message))
+	if err != nil {
+		return err
+	}
+	resp.Data = append(resp.Data, ret)
+	return nil
+}
+
 // 创建一个空白的discoverResponse
-func NewDiscoverResponse(code uint32) *DiscoverResponse {
-	return &DiscoverResponse{
-		Code: &wrappers.UInt32Value{Value: code},
-		Info: &wrappers.StringValue{Value: code2info[code]},
+func NewDiscoverResponse(code apimodel.Code) *apiservice.DiscoverResponse {
+	return &apiservice.DiscoverResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: code2info[uint32(code)]},
 	}
 }
 
 /**
  * @brief 创建查询服务回复
  */
-func NewDiscoverServiceResponse(code uint32, service *Service) *DiscoverResponse {
-	return &DiscoverResponse{
-		Code:    &wrappers.UInt32Value{Value: code},
-		Info:    &wrappers.StringValue{Value: code2info[code]},
-		Type:    DiscoverResponse_SERVICES,
+func NewDiscoverServiceResponse(code apimodel.Code, service *apiservice.Service) *apiservice.DiscoverResponse {
+	return &apiservice.DiscoverResponse{
+		Code:    &wrappers.UInt32Value{Value: uint32(code)},
+		Info:    &wrappers.StringValue{Value: code2info[uint32(code)]},
+		Type:    apiservice.DiscoverResponse_SERVICES,
 		Service: service,
 	}
 }
@@ -265,11 +269,11 @@ func NewDiscoverServiceResponse(code uint32, service *Service) *DiscoverResponse
 /**
  * @brief 创建查询服务实例回复
  */
-func NewDiscoverInstanceResponse(code uint32, service *Service) *DiscoverResponse {
-	return &DiscoverResponse{
-		Code:    &wrappers.UInt32Value{Value: code},
-		Info:    &wrappers.StringValue{Value: code2info[code]},
-		Type:    DiscoverResponse_INSTANCE,
+func NewDiscoverInstanceResponse(code apimodel.Code, service *apiservice.Service) *apiservice.DiscoverResponse {
+	return &apiservice.DiscoverResponse{
+		Code:    &wrappers.UInt32Value{Value: uint32(code)},
+		Info:    &wrappers.StringValue{Value: code2info[uint32(code)]},
+		Type:    apiservice.DiscoverResponse_INSTANCE,
 		Service: service,
 	}
 }
@@ -277,11 +281,11 @@ func NewDiscoverInstanceResponse(code uint32, service *Service) *DiscoverRespons
 /**
  * @brief 创建查询服务路由回复
  */
-func NewDiscoverRoutingResponse(code uint32, service *Service) *DiscoverResponse {
-	return &DiscoverResponse{
-		Code:    &wrappers.UInt32Value{Value: code},
-		Info:    &wrappers.StringValue{Value: code2info[code]},
-		Type:    DiscoverResponse_ROUTING,
+func NewDiscoverRoutingResponse(code apimodel.Code, service *apiservice.Service) *apiservice.DiscoverResponse {
+	return &apiservice.DiscoverResponse{
+		Code:    &wrappers.UInt32Value{Value: uint32(code)},
+		Info:    &wrappers.StringValue{Value: code2info[uint32(code)]},
+		Type:    apiservice.DiscoverResponse_ROUTING,
 		Service: service,
 	}
 }
@@ -289,11 +293,11 @@ func NewDiscoverRoutingResponse(code uint32, service *Service) *DiscoverResponse
 /**
  * @brief 创建查询限流规则回复
  */
-func NewDiscoverRateLimitResponse(code uint32, service *Service) *DiscoverResponse {
-	return &DiscoverResponse{
-		Code:    &wrappers.UInt32Value{Value: code},
-		Info:    &wrappers.StringValue{Value: code2info[code]},
-		Type:    DiscoverResponse_RATE_LIMIT,
+func NewDiscoverRateLimitResponse(code apimodel.Code, service *apiservice.Service) *apiservice.DiscoverResponse {
+	return &apiservice.DiscoverResponse{
+		Code:    &wrappers.UInt32Value{Value: uint32(code)},
+		Info:    &wrappers.StringValue{Value: code2info[uint32(code)]},
+		Type:    apiservice.DiscoverResponse_RATE_LIMIT,
 		Service: service,
 	}
 }
@@ -301,11 +305,23 @@ func NewDiscoverRateLimitResponse(code uint32, service *Service) *DiscoverRespon
 /**
  * @brief 创建查询熔断规则回复
  */
-func NewDiscoverCircuitBreakerResponse(code uint32, service *Service) *DiscoverResponse {
-	return &DiscoverResponse{
-		Code:    &wrappers.UInt32Value{Value: code},
-		Info:    &wrappers.StringValue{Value: code2info[code]},
-		Type:    DiscoverResponse_CIRCUIT_BREAKER,
+func NewDiscoverCircuitBreakerResponse(code apimodel.Code, service *apiservice.Service) *apiservice.DiscoverResponse {
+	return &apiservice.DiscoverResponse{
+		Code:    &wrappers.UInt32Value{Value: uint32(code)},
+		Info:    &wrappers.StringValue{Value: code2info[uint32(code)]},
+		Type:    apiservice.DiscoverResponse_CIRCUIT_BREAKER,
+		Service: service,
+	}
+}
+
+/**
+ * @brief 创建查询探测规则回复
+ */
+func NewDiscoverFaultDetectorResponse(code apimodel.Code, service *apiservice.Service) *apiservice.DiscoverResponse {
+	return &apiservice.DiscoverResponse{
+		Code:    &wrappers.UInt32Value{Value: uint32(code)},
+		Info:    &wrappers.StringValue{Value: code2info[uint32(code)]},
+		Type:    apiservice.DiscoverResponse_FAULT_DETECTOR,
 		Service: service,
 	}
 }
@@ -314,7 +330,7 @@ func NewDiscoverCircuitBreakerResponse(code uint32, service *Service) *DiscoverR
 // batch操作
 // 如果所有子错误码一致，那么使用子错误码
 // 如果包含任意一个5xx，那么返回500
-func FormatBatchWriteResponse(response *BatchWriteResponse) *BatchWriteResponse {
+func FormatBatchWriteResponse(response *apiservice.BatchWriteResponse) *apiservice.BatchWriteResponse {
 	var code uint32
 	for _, resp := range response.Responses {
 		if code == 0 {

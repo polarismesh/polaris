@@ -18,11 +18,12 @@
 package batch
 
 import (
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"time"
 
 	"go.uber.org/zap"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/plugin"
@@ -35,11 +36,11 @@ type InstanceFuture struct {
 	// 服务的id
 	serviceId string
 	// api请求对象
-	request *api.Instance
+	request *apiservice.Instance
 	// 从数据库中读取到的model信息
 	instance *model.Instance
 	// 记录对外API的错误码
-	code uint32
+	code apimodel.Code
 	// 这个 future 是否会被外部调用 Wait 接口
 	needWait bool
 	// 执行成功/失败的应答chan
@@ -49,9 +50,9 @@ type InstanceFuture struct {
 }
 
 // Reply future的应答
-func (future *InstanceFuture) Reply(cur time.Time, code uint32, result error) {
+func (future *InstanceFuture) Reply(cur time.Time, code apimodel.Code, result error) {
 	reportRegisInstanceCost(future.begin, cur, code)
-	if code == api.InstanceRegisTimeout {
+	if code == apimodel.Code_InstanceRegisTimeout {
 		metrics.ReportDropInstanceRegisTask()
 	}
 
@@ -95,12 +96,12 @@ func (future *InstanceFuture) CanDrop() bool {
 }
 
 // Code 获取code
-func (future *InstanceFuture) Code() uint32 {
+func (future *InstanceFuture) Code() apimodel.Code {
 	return future.code
 }
 
 // sendReply 批量答复futures
-func sendReply(futures interface{}, code uint32, result error) {
+func sendReply(futures interface{}, code apimodel.Code, result error) {
 	cur := time.Now()
 	switch futureType := futures.(type) {
 	case []*InstanceFuture:
@@ -116,13 +117,13 @@ func sendReply(futures interface{}, code uint32, result error) {
 	}
 }
 
-func reportRegisInstanceCost(begin, cur time.Time, code uint32) {
-	if code != api.ExecuteSuccess {
+func reportRegisInstanceCost(begin, cur time.Time, code apimodel.Code) {
+	if code != apimodel.Code_ExecuteSuccess {
 		return
 	}
 	diff := cur.Sub(begin)
 	if statis := plugin.GetStatis(); statis != nil {
-		_ = statis.AddAPICall("AsyncRegisInstance", "", int(api.ExecuteSuccess), diff.Nanoseconds())
+		_ = statis.AddAPICall("AsyncRegisInstance", "", int(apimodel.Code_ExecuteSuccess), diff.Nanoseconds())
 	}
 	metrics.ReportInstanceRegisCost(diff)
 }

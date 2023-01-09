@@ -19,16 +19,17 @@ package service
 
 import (
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"testing"
 	"time"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 // create
-func (d *DiscoverTestSuit) createCommonNamespace(t *testing.T, id int) (*api.Namespace, *api.Namespace) {
-	req := &api.Namespace{
+func (d *DiscoverTestSuit) createCommonNamespace(t *testing.T, id int) (*apimodel.Namespace, *apimodel.Namespace) {
+	req := &apimodel.Namespace{
 		Name:    utils.NewStringValue(fmt.Sprintf("namespace-%d", id)),
 		Comment: utils.NewStringValue(fmt.Sprintf("comment-%d", id)),
 		Owners:  utils.NewStringValue(fmt.Sprintf("owner-%d", id)),
@@ -49,7 +50,7 @@ func (d *DiscoverTestSuit) createCommonNamespace(t *testing.T, id int) (*api.Nam
 }
 
 // remove
-func (d *DiscoverTestSuit) removeCommonNamespaces(t *testing.T, req []*api.Namespace) {
+func (d *DiscoverTestSuit) removeCommonNamespaces(t *testing.T, req []*apimodel.Namespace) {
 	resp := d.namespaceSvr.DeleteNamespaces(d.defaultCtx, req)
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -57,7 +58,7 @@ func (d *DiscoverTestSuit) removeCommonNamespaces(t *testing.T, req []*api.Names
 }
 
 // update
-func (d *DiscoverTestSuit) updateCommonNamespaces(t *testing.T, req []*api.Namespace) {
+func (d *DiscoverTestSuit) updateCommonNamespaces(t *testing.T, req []*apimodel.Namespace) {
 	resp := d.namespaceSvr.UpdateNamespaces(d.defaultCtx, req)
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -84,7 +85,7 @@ func TestCreateNamespace(t *testing.T) {
 		defer discoverSuit.cleanNamespace(req.GetName().GetValue())
 
 		// remove
-		discoverSuit.removeCommonNamespaces(t, []*api.Namespace{resp})
+		discoverSuit.removeCommonNamespaces(t, []*apimodel.Namespace{resp})
 		apiResp := discoverSuit.namespaceSvr.CreateNamespace(discoverSuit.defaultCtx, req)
 		if !respSuccess(apiResp) {
 			t.Fatalf("error: %s", apiResp.GetInfo().GetValue())
@@ -100,8 +101,8 @@ func TestCreateNamespace(t *testing.T) {
 		_, serviceResp := discoverSuit.createCommonService(t, 100)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		discoverSuit.removeCommonServices(t, []*api.Service{serviceResp})
-		discoverSuit.removeCommonNamespaces(t, []*api.Namespace{namespaceResp})
+		discoverSuit.removeCommonServices(t, []*apiservice.Service{serviceResp})
+		discoverSuit.removeCommonNamespaces(t, []*apimodel.Namespace{namespaceResp})
 
 		_, namespaceResp = discoverSuit.createCommonNamespace(t, 10)
 		defer discoverSuit.cleanNamespace(namespaceResp.GetName().GetValue())
@@ -120,7 +121,7 @@ func TestRemoveNamespace(t *testing.T) {
 		_, resp := discoverSuit.createCommonNamespace(t, 99)
 		defer discoverSuit.cleanNamespace(resp.GetName().GetValue())
 
-		discoverSuit.removeCommonNamespaces(t, []*api.Namespace{resp})
+		discoverSuit.removeCommonNamespaces(t, []*apimodel.Namespace{resp})
 		out := discoverSuit.namespaceSvr.GetNamespaces(discoverSuit.defaultCtx, map[string][]string{"name": {resp.GetName().GetValue()}})
 		if !respSuccess(out) {
 			t.Fatalf("error: %s", out.GetInfo().GetValue())
@@ -131,7 +132,7 @@ func TestRemoveNamespace(t *testing.T) {
 	})
 
 	t.Run("批量删除命名空间", func(t *testing.T) {
-		var reqs []*api.Namespace
+		var reqs []*apimodel.Namespace
 		for i := 0; i < 20; i++ {
 			_, resp := discoverSuit.createCommonNamespace(t, i)
 			defer discoverSuit.cleanNamespace(resp.GetName().GetValue())
@@ -147,18 +148,18 @@ func TestRemoveNamespace(t *testing.T) {
 		_, namespaceResp := discoverSuit.createCommonNamespace(t, 100)
 		defer discoverSuit.cleanNamespace(namespaceResp.GetName().GetValue())
 
-		serviceReq := &api.Service{
+		serviceReq := &apiservice.Service{
 			Name:      utils.NewStringValue("abc"),
 			Namespace: namespaceResp.GetName(),
 			Owners:    utils.NewStringValue("123"),
 		}
-		if resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{serviceReq}); !respSuccess(resp) {
+		if resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{serviceReq}); !respSuccess(resp) {
 			t.Fatalf("errror: %s", resp.GetInfo().GetValue())
 		}
 		defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 
 		resp := discoverSuit.namespaceSvr.DeleteNamespace(discoverSuit.defaultCtx, namespaceResp)
-		if resp.GetCode().GetValue() != api.NamespaceExistedServices {
+		if resp.GetCode().GetValue() != uint32(apimodel.Code_NamespaceExistedServices) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 		t.Logf("%s", resp.GetInfo().GetValue())
@@ -182,7 +183,7 @@ func TestUpdateNamespace(t *testing.T) {
 		req.Token = resp.Token
 		req.Comment = utils.NewStringValue("new-comment")
 
-		discoverSuit.updateCommonNamespaces(t, []*api.Namespace{req})
+		discoverSuit.updateCommonNamespaces(t, []*apimodel.Namespace{req})
 		t.Logf("pass")
 	})
 }

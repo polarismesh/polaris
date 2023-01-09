@@ -19,40 +19,42 @@ package resource
 
 import (
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
 	"github.com/golang/protobuf/ptypes/duration"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 /**
  * @brief 创建测试限流规则
  */
-func CreateRateLimits(services []*api.Service) []*api.Rule {
-	var rateLimits []*api.Rule
+func CreateRateLimits(services []*apiservice.Service) []*apitraffic.Rule {
+	var rateLimits []*apitraffic.Rule
 	for index := 0; index < 2; index++ {
-		rateLimit := &api.Rule{
+		rateLimit := &apitraffic.Rule{
 			Name:      utils.NewStringValue(fmt.Sprintf("rlimit-%d", index)),
 			Service:   services[index].GetName(),
 			Namespace: services[index].GetNamespace(),
 			Priority:  utils.NewUInt32Value(uint32(index)),
-			Resource:  api.Rule_CONCURRENCY,
-			Type:      api.Rule_LOCAL,
-			Arguments: []*api.MatchArgument{{
-				Type: api.MatchArgument_CUSTOM,
+			Resource:  apitraffic.Rule_CONCURRENCY,
+			Type:      apitraffic.Rule_LOCAL,
+			Arguments: []*apitraffic.MatchArgument{{
+				Type: apitraffic.MatchArgument_CUSTOM,
 				Key:  fmt.Sprintf("name-%d", index),
-				Value: &api.MatchString{
-					Type:  api.MatchString_REGEX,
+				Value: &apimodel.MatchString{
+					Type:  apimodel.MatchString_REGEX,
 					Value: utils.NewStringValue(fmt.Sprintf("value-%d", index)),
 				},
-			}, {Type: api.MatchArgument_CUSTOM,
+			}, {Type: apitraffic.MatchArgument_CUSTOM,
 				Key: fmt.Sprintf("name-%d", index+1),
-				Value: &api.MatchString{
-					Type:  api.MatchString_EXACT,
+				Value: &apimodel.MatchString{
+					Type:  apimodel.MatchString_EXACT,
 					Value: utils.NewStringValue(fmt.Sprintf("value-%d", index+1)),
 				}}},
-			Amounts: []*api.Amount{
+			Amounts: []*apitraffic.Amount{
 				{
 					MaxAmount: utils.NewUInt32Value(uint32(index)),
 					ValidDuration: &duration.Duration{
@@ -63,10 +65,10 @@ func CreateRateLimits(services []*api.Service) []*api.Rule {
 			},
 			Action:  utils.NewStringValue("REJECT"),
 			Disable: utils.NewBoolValue(true),
-			Adjuster: &api.AmountAdjuster{
-				Climb: &api.ClimbConfig{
+			Adjuster: &apitraffic.AmountAdjuster{
+				Climb: &apitraffic.ClimbConfig{
 					Enable: utils.NewBoolValue(true),
-					Metric: &api.ClimbConfig_MetricConfig{
+					Metric: &apitraffic.ClimbConfig_MetricConfig{
 						Window: &duration.Duration{
 							Seconds: int64(index),
 							Nanos:   int32(index),
@@ -80,8 +82,8 @@ func CreateRateLimits(services []*api.Service) []*api.Rule {
 				},
 			},
 			RegexCombine: utils.NewBoolValue(true),
-			AmountMode:   api.Rule_SHARE_EQUALLY,
-			Failover:     api.Rule_FAILOVER_PASS,
+			AmountMode:   apitraffic.Rule_SHARE_EQUALLY,
+			Failover:     apitraffic.Rule_FAILOVER_PASS,
 		}
 		rateLimits = append(rateLimits, rateLimit)
 	}
@@ -91,14 +93,14 @@ func CreateRateLimits(services []*api.Service) []*api.Rule {
 /**
  * @brief 更新测试限流规则
  */
-func UpdateRateLimits(rateLimits []*api.Rule) {
+func UpdateRateLimits(rateLimits []*apitraffic.Rule) {
 	for _, rateLimit := range rateLimits {
-		rateLimit.Arguments = []*api.MatchArgument{
+		rateLimit.Arguments = []*apitraffic.MatchArgument{
 			{
-				Type: api.MatchArgument_CUSTOM,
+				Type: apitraffic.MatchArgument_CUSTOM,
 				Key:  "key1",
-				Value: &api.MatchString{
-					Type:  api.MatchString_REGEX,
+				Value: &apimodel.MatchString{
+					Type:  apimodel.MatchString_REGEX,
 					Value: utils.NewStringValue("value-1"),
 				},
 			},

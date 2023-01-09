@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	"github.com/golang/protobuf/jsonpb"
 
@@ -30,7 +31,7 @@ import (
 /**
  * @brief 实例数组转JSON
  */
-func JSONFromConfigGroup(group *api.ConfigFileGroup) (*bytes.Buffer, error) {
+func JSONFromConfigGroup(group *apiconfig.ConfigFileGroup) (*bytes.Buffer, error) {
 	m := jsonpb.Marshaler{Indent: " "}
 
 	buffer := bytes.NewBuffer([]byte{})
@@ -42,7 +43,7 @@ func JSONFromConfigGroup(group *api.ConfigFileGroup) (*bytes.Buffer, error) {
 	return buffer, nil
 }
 
-func JSONFromConfigFile(file *api.ConfigFile) (*bytes.Buffer, error) {
+func JSONFromConfigFile(file *apiconfig.ConfigFile) (*bytes.Buffer, error) {
 	m := jsonpb.Marshaler{Indent: " "}
 
 	buffer := bytes.NewBuffer([]byte{})
@@ -54,7 +55,7 @@ func JSONFromConfigFile(file *api.ConfigFile) (*bytes.Buffer, error) {
 	return buffer, nil
 }
 
-func JSONFromConfigFileRelease(file *api.ConfigFileRelease) (*bytes.Buffer, error) {
+func JSONFromConfigFileRelease(file *apiconfig.ConfigFileRelease) (*bytes.Buffer, error) {
 	m := jsonpb.Marshaler{Indent: " "}
 
 	buffer := bytes.NewBuffer([]byte{})
@@ -66,7 +67,7 @@ func JSONFromConfigFileRelease(file *api.ConfigFileRelease) (*bytes.Buffer, erro
 	return buffer, nil
 }
 
-func (c *Client) CreateConfigGroup(group *api.ConfigFileGroup) (*api.ConfigResponse, error) {
+func (c *Client) CreateConfigGroup(group *apiconfig.ConfigFileGroup) (*apiconfig.ConfigResponse, error) {
 	fmt.Printf("\ncreate config_file_groups\n")
 
 	url := fmt.Sprintf("http://%v/config/%v/configfilegroups", c.Address, c.Version)
@@ -92,7 +93,7 @@ func (c *Client) CreateConfigGroup(group *api.ConfigFileGroup) (*api.ConfigRespo
 	return checkCreateConfigResponse(ret)
 }
 
-func (c *Client) UpdateConfigGroup(group *api.ConfigFileGroup) (*api.ConfigResponse, error) {
+func (c *Client) UpdateConfigGroup(group *apiconfig.ConfigFileGroup) (*apiconfig.ConfigResponse, error) {
 	fmt.Printf("\nupdate config_file_groups\n")
 
 	url := fmt.Sprintf("http://%v/config/%v/configfilegroups", c.Address, c.Version)
@@ -118,7 +119,7 @@ func (c *Client) UpdateConfigGroup(group *api.ConfigFileGroup) (*api.ConfigRespo
 	return checkCreateConfigResponse(ret)
 }
 
-func (c *Client) QueryConfigGroup(group *api.ConfigFileGroup, offset, limit int64) (*api.ConfigBatchQueryResponse, error) {
+func (c *Client) QueryConfigGroup(group *apiconfig.ConfigFileGroup, offset, limit int64) (*apiconfig.ConfigBatchQueryResponse, error) {
 	fmt.Printf("\nquery config_file_groups\n")
 
 	url := fmt.Sprintf("http://%v/config/%v/configfilegroups?namespace=%s&group=%s&fileName=%s&offset=%d&limit=%d",
@@ -145,7 +146,7 @@ func (c *Client) QueryConfigGroup(group *api.ConfigFileGroup, offset, limit int6
 	return checkQueryConfigResponse(ret)
 }
 
-func (c *Client) DeleteConfigGroup(group *api.ConfigFileGroup) (*api.ConfigResponse, error) {
+func (c *Client) DeleteConfigGroup(group *apiconfig.ConfigFileGroup) (*apiconfig.ConfigResponse, error) {
 	fmt.Printf("\ndelete config_file_groups\n")
 
 	url := fmt.Sprintf("http://%v/config/%v/configfilegroups?namespace=%s&group=%s", c.Address, c.Version, group.Namespace.GetValue(), group.Name.GetValue())
@@ -171,7 +172,7 @@ func (c *Client) DeleteConfigGroup(group *api.ConfigFileGroup) (*api.ConfigRespo
 	return checkCreateConfigResponse(ret)
 }
 
-func (c *Client) CreateConfigFile(file *api.ConfigFile) (*api.ConfigResponse, error) {
+func (c *Client) CreateConfigFile(file *apiconfig.ConfigFile) (*apiconfig.ConfigResponse, error) {
 	fmt.Printf("\ncreate config_file\n")
 
 	url := fmt.Sprintf("http://%v/config/%v/configfiles", c.Address, c.Version)
@@ -197,7 +198,7 @@ func (c *Client) CreateConfigFile(file *api.ConfigFile) (*api.ConfigResponse, er
 	return checkCreateConfigResponse(ret)
 }
 
-func (c *Client) UpdateConfigFile(file *api.ConfigFile) (*api.ConfigResponse, error) {
+func (c *Client) UpdateConfigFile(file *apiconfig.ConfigFile) (*apiconfig.ConfigResponse, error) {
 	fmt.Printf("\nupdate config_file\n")
 
 	url := fmt.Sprintf("http://%v/config/%v/configfiles", c.Address, c.Version)
@@ -223,7 +224,7 @@ func (c *Client) UpdateConfigFile(file *api.ConfigFile) (*api.ConfigResponse, er
 	return checkCreateConfigResponse(ret)
 }
 
-func (c *Client) DeleteConfigFile(file *api.ConfigFile) (*api.ConfigResponse, error) {
+func (c *Client) DeleteConfigFile(file *apiconfig.ConfigFile) (*apiconfig.ConfigResponse, error) {
 	fmt.Printf("\ndelete config_file\n")
 
 	url := fmt.Sprintf("http://%v/config/%v/configfiles?namespace=%s&group=%s&name=%s", c.Address, c.Version,
@@ -250,7 +251,7 @@ func (c *Client) DeleteConfigFile(file *api.ConfigFile) (*api.ConfigResponse, er
 	return checkCreateConfigResponse(ret)
 }
 
-func (c *Client) CreateConfigFileRelease(file *api.ConfigFileRelease) (*api.ConfigResponse, error) {
+func (c *Client) CreateConfigFileRelease(file *apiconfig.ConfigFileRelease) (*apiconfig.ConfigResponse, error) {
 	fmt.Printf("\ncreate config_file_release\n")
 
 	url := fmt.Sprintf("http://%v/config/%v/configfiles/release", c.Address, c.Version)
@@ -276,8 +277,8 @@ func (c *Client) CreateConfigFileRelease(file *api.ConfigFileRelease) (*api.Conf
 	return checkCreateConfigResponse(ret)
 }
 
-func checkCreateConfigResponse(ret *api.ConfigResponse) (
-	*api.ConfigResponse, error) {
+func checkCreateConfigResponse(ret *apiconfig.ConfigResponse) (
+	*apiconfig.ConfigResponse, error) {
 
 	switch {
 	case ret.GetCode().GetValue() != api.ExecuteSuccess:
@@ -287,8 +288,8 @@ func checkCreateConfigResponse(ret *api.ConfigResponse) (
 	return ret, nil
 }
 
-func checkQueryConfigResponse(ret *api.ConfigBatchQueryResponse) (
-	*api.ConfigBatchQueryResponse, error) {
+func checkQueryConfigResponse(ret *apiconfig.ConfigBatchQueryResponse) (
+	*apiconfig.ConfigBatchQueryResponse, error) {
 
 	switch {
 	case ret.GetCode().GetValue() != api.ExecuteSuccess:

@@ -18,12 +18,18 @@
 package config
 
 import (
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
+)
+
+const (
+	templateName1 = "t1"
+	templateName2 = "t2"
 )
 
 // TestConfigFileTemplateCRUD the base test for config file template
@@ -39,13 +45,12 @@ func TestConfigFileTemplateCRUD(t *testing.T) {
 		}
 	}()
 
-	templateName := "t1"
 	t.Run("first-query", func(t *testing.T) {
-		queryRsp := testSuit.testService.GetConfigFileTemplate(testSuit.defaultCtx, templateName)
+		queryRsp := testSuit.testService.GetConfigFileTemplate(testSuit.defaultCtx, templateName1)
 		assert.Equal(t, api.NotFoundResource, queryRsp.Code.Value)
 	})
 
-	template1 := assembleConfigFileTemplate(templateName)
+	template1 := assembleConfigFileTemplate(templateName1)
 	t.Run("first-create", func(t *testing.T) {
 		createRsp := testSuit.testService.CreateConfigFileTemplate(testSuit.defaultCtx, template1)
 		assert.Equal(t, api.ExecuteSuccess, createRsp.Code.GetValue())
@@ -55,7 +60,7 @@ func TestConfigFileTemplateCRUD(t *testing.T) {
 	})
 
 	t.Run("second-query", func(t *testing.T) {
-		queryRsp := testSuit.testService.GetConfigFileTemplate(testSuit.defaultCtx, templateName)
+		queryRsp := testSuit.testService.GetConfigFileTemplate(testSuit.defaultCtx, templateName1)
 		assert.Equal(t, api.ExecuteSuccess, queryRsp.Code.Value)
 		assert.Equal(t, template1.Name.GetValue(), queryRsp.ConfigFileTemplate.Name.GetValue())
 		assert.Equal(t, template1.Content.GetValue(), queryRsp.ConfigFileTemplate.Content.GetValue())
@@ -63,7 +68,7 @@ func TestConfigFileTemplateCRUD(t *testing.T) {
 		assert.Equal(t, template1.Format.GetValue(), queryRsp.ConfigFileTemplate.Format.GetValue())
 	})
 
-	template2 := assembleConfigFileTemplate("t2")
+	template2 := assembleConfigFileTemplate(templateName2)
 	t.Run("second-create", func(t *testing.T) {
 		createRsp := testSuit.testService.CreateConfigFileTemplate(testSuit.defaultCtx, template2)
 		assert.Equal(t, api.ExecuteSuccess, createRsp.Code.GetValue())
@@ -76,8 +81,8 @@ func TestConfigFileTemplateCRUD(t *testing.T) {
 	})
 }
 
-func assembleConfigFileTemplate(name string) *api.ConfigFileTemplate {
-	return &api.ConfigFileTemplate{
+func assembleConfigFileTemplate(name string) *apiconfig.ConfigFileTemplate {
+	return &apiconfig.ConfigFileTemplate{
 		Name:     utils.NewStringValue(name),
 		Content:  utils.NewStringValue("some content"),
 		Comment:  utils.NewStringValue("comment"),

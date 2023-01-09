@@ -19,11 +19,11 @@ package healthcheck
 
 import (
 	"context"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 )
 
@@ -113,7 +113,7 @@ func compareBuckets(src map[Bucket]bool, dst map[Bucket]bool) bool {
 
 func (d *Dispatcher) reloadSelfContinuum() bool {
 	nextBuckets := make(map[Bucket]bool)
-	d.svr.cacheProvider.RangeSelfServiceInstances(func(instance *api.Instance) {
+	d.svr.cacheProvider.RangeSelfServiceInstances(func(instance *apiservice.Instance) {
 		if instance.GetIsolate().GetValue() || !instance.GetHealthy().GetValue() {
 			return
 		}

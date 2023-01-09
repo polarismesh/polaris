@@ -22,6 +22,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"io"
 
 	"github.com/golang/protobuf/jsonpb"
@@ -30,7 +32,7 @@ import (
 )
 
 // JSONFromCircuitBreakers marshals a slice of circuit breakers to JSON. 熔断规则数组转JSON
-func JSONFromCircuitBreakers(circuitBreakers []*api.CircuitBreaker) (*bytes.Buffer, error) {
+func JSONFromCircuitBreakers(circuitBreakers []*apifault.CircuitBreaker) (*bytes.Buffer, error) {
 	m := jsonpb.Marshaler{Indent: " "}
 
 	buffer := bytes.NewBuffer([]byte{})
@@ -51,7 +53,7 @@ func JSONFromCircuitBreakers(circuitBreakers []*api.CircuitBreaker) (*bytes.Buff
 }
 
 // JSONFromConfigReleases marshals a slice of config releases to JSON. 配置发布规则数组转JSON
-func JSONFromConfigReleases(configReleases []*api.ConfigRelease) (*bytes.Buffer, error) {
+func JSONFromConfigReleases(configReleases []*apiservice.ConfigRelease) (*bytes.Buffer, error) {
 	m := jsonpb.Marshaler{Indent: " "}
 
 	buffer := bytes.NewBuffer([]byte{})
@@ -72,7 +74,7 @@ func JSONFromConfigReleases(configReleases []*api.ConfigRelease) (*bytes.Buffer,
 }
 
 // CreateCircuitBreakers creates a slice of circuit breakers from JSON. 创建熔断规则
-func (c *Client) CreateCircuitBreakers(circuitBreakers []*api.CircuitBreaker) (*api.BatchWriteResponse, error) {
+func (c *Client) CreateCircuitBreakers(circuitBreakers []*apifault.CircuitBreaker) (*apiservice.BatchWriteResponse, error) {
 	fmt.Printf("\ncreate circuit breakers\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/circuitbreakers", c.Address, c.Version)
@@ -99,7 +101,7 @@ func (c *Client) CreateCircuitBreakers(circuitBreakers []*api.CircuitBreaker) (*
 }
 
 // CreateCircuitBreakerVersions creates a slice of circuit breakers from JSON. 创建熔断规则版本
-func (c *Client) CreateCircuitBreakerVersions(circuitBreakers []*api.CircuitBreaker) (*api.BatchWriteResponse, error) {
+func (c *Client) CreateCircuitBreakerVersions(circuitBreakers []*apifault.CircuitBreaker) (*apiservice.BatchWriteResponse, error) {
 	fmt.Printf("\ncreate circuit breaker versions\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/circuitbreakers/version", c.Address, c.Version)
@@ -125,7 +127,7 @@ func (c *Client) CreateCircuitBreakerVersions(circuitBreakers []*api.CircuitBrea
 }
 
 // UpdateCircuitBreakers 更新熔断规则
-func (c *Client) UpdateCircuitBreakers(circuitBreakers []*api.CircuitBreaker) error {
+func (c *Client) UpdateCircuitBreakers(circuitBreakers []*apifault.CircuitBreaker) error {
 	fmt.Printf("\nupdate circuit breakers\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/circuitbreakers", c.Address, c.Version)
@@ -157,7 +159,7 @@ func (c *Client) UpdateCircuitBreakers(circuitBreakers []*api.CircuitBreaker) er
 /**
  * @brief 删除熔断规则
  */
-func (c *Client) DeleteCircuitBreakers(circuitBreakers []*api.CircuitBreaker) error {
+func (c *Client) DeleteCircuitBreakers(circuitBreakers []*apifault.CircuitBreaker) error {
 	fmt.Printf("\ndelete circuit breakers\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/circuitbreakers/delete", c.Address, c.Version)
@@ -189,7 +191,7 @@ func (c *Client) DeleteCircuitBreakers(circuitBreakers []*api.CircuitBreaker) er
 /**
  * @brief 发布熔断规则
  */
-func (c *Client) ReleaseCircuitBreakers(configReleases []*api.ConfigRelease) error {
+func (c *Client) ReleaseCircuitBreakers(configReleases []*apiservice.ConfigRelease) error {
 	fmt.Printf("\nrelease circuit breakers\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/circuitbreakers/release", c.Address, c.Version)
@@ -221,7 +223,7 @@ func (c *Client) ReleaseCircuitBreakers(configReleases []*api.ConfigRelease) err
 /**
  * @brief 解绑熔断规则
  */
-func (c *Client) UnbindCircuitBreakers(configReleases []*api.ConfigRelease) error {
+func (c *Client) UnbindCircuitBreakers(configReleases []*apiservice.ConfigRelease) error {
 	fmt.Printf("\nunbind circuit breakers\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/circuitbreakers/unbind", c.Address, c.Version)
@@ -253,7 +255,7 @@ func (c *Client) UnbindCircuitBreakers(configReleases []*api.ConfigRelease) erro
 /**
  * @brief 根据id和version查询熔断规则
  */
-func (c *Client) GetCircuitBreaker(masterCircuitBreaker, circuitBreaker *api.CircuitBreaker) error {
+func (c *Client) GetCircuitBreaker(masterCircuitBreaker, circuitBreaker *apifault.CircuitBreaker) error {
 	fmt.Printf("\nget circuit breaker by id and version\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/circuitbreaker", c.Address, c.Version)
@@ -308,7 +310,7 @@ func (c *Client) GetCircuitBreaker(masterCircuitBreaker, circuitBreaker *api.Cir
 /**
  * @brief 查询熔断规则的已发布规则及服务
  */
-func (c *Client) GetCircuitBreakersRelease(circuitBreaker *api.CircuitBreaker, correctService *api.Service) error {
+func (c *Client) GetCircuitBreakersRelease(circuitBreaker *apifault.CircuitBreaker, correctService *apiservice.Service) error {
 	fmt.Printf("\nget circuit breaker release\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/circuitbreakers/release", c.Address, c.Version)
@@ -378,7 +380,7 @@ func (c *Client) GetCircuitBreakersRelease(circuitBreaker *api.CircuitBreaker, c
 /**
  * @brief 查询熔断规则所有版本
  */
-func (c *Client) GetCircuitBreakerVersions(circuitBreaker *api.CircuitBreaker) error {
+func (c *Client) GetCircuitBreakerVersions(circuitBreaker *apifault.CircuitBreaker) error {
 	fmt.Printf("\nget circuit breaker versions\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/circuitbreaker/versions", c.Address, c.Version)
@@ -444,8 +446,8 @@ func (c *Client) GetCircuitBreakerVersions(circuitBreaker *api.CircuitBreaker) e
 /**
  * @brief 查询服务绑定的熔断规则
  */
-func (c *Client) GetCircuitBreakerByService(service *api.Service, masterCircuitBreaker,
-	circuitBreaker *api.CircuitBreaker) error {
+func (c *Client) GetCircuitBreakerByService(service *apiservice.Service, masterCircuitBreaker,
+	circuitBreaker *apifault.CircuitBreaker) error {
 	fmt.Printf("\nget circuit breaker by service\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/service/circuitbreaker", c.Address, c.Version)
@@ -501,8 +503,8 @@ func (c *Client) GetCircuitBreakerByService(service *api.Service, masterCircuitB
 /**
  * @brief 检查创建熔断规则的回复
  */
-func checkCreateCircuitBreakersResponse(ret *api.BatchWriteResponse, circuitBreakers []*api.CircuitBreaker) (
-	*api.BatchWriteResponse, error) {
+func checkCreateCircuitBreakersResponse(ret *apiservice.BatchWriteResponse, circuitBreakers []*apifault.CircuitBreaker) (
+	*apiservice.BatchWriteResponse, error) {
 	switch {
 	case ret.GetCode().GetValue() != api.ExecuteSuccess:
 		return nil, errors.New("invalid batch code")
@@ -533,7 +535,7 @@ func checkCreateCircuitBreakersResponse(ret *api.BatchWriteResponse, circuitBrea
 /**
  * @brief 比较circuit breaker是否相等
  */
-func compareCircuitBreaker(correctItem, correctMaster *api.CircuitBreaker, item *api.CircuitBreaker) (bool, error) {
+func compareCircuitBreaker(correctItem, correctMaster *apifault.CircuitBreaker, item *apifault.CircuitBreaker) (bool, error) {
 	switch {
 	case item.GetId() == nil || item.GetId().GetValue() == "":
 		return false, errors.New("error id")

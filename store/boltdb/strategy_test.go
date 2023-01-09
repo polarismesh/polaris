@@ -19,13 +19,13 @@ package boltdb
 
 import (
 	"fmt"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -37,7 +37,7 @@ func createTestStrategy(num int) []*model.StrategyDetail {
 		ret = append(ret, &model.StrategyDetail{
 			ID:      fmt.Sprintf("strategy-%d", i),
 			Name:    fmt.Sprintf("strategy-%d", i),
-			Action:  api.AuthAction_READ_WRITE.String(),
+			Action:  apisecurity.AuthAction_READ_WRITE.String(),
 			Comment: fmt.Sprintf("strategy-%d", i),
 			Principals: []model.Principal{
 				{
@@ -51,7 +51,7 @@ func createTestStrategy(num int) []*model.StrategyDetail {
 			Resources: []model.StrategyResource{
 				{
 					StrategyID: "",
-					ResType:    int32(api.ResourceType_Namespaces),
+					ResType:    int32(apisecurity.ResourceType_Namespaces),
 					ResID:      fmt.Sprintf("namespace_%d", i),
 				},
 			},
@@ -100,7 +100,7 @@ func Test_strategyStore_UpdateStrategy(t *testing.T) {
 			AddResources: []model.StrategyResource{
 				{
 					StrategyID: rules[0].ID,
-					ResType:    int32(api.ResourceType_Services),
+					ResType:    int32(apisecurity.ResourceType_Services),
 					ResID:      utils.NewUUID(),
 				},
 			},
@@ -146,7 +146,7 @@ func Test_strategyStore_RemoveStrategyResources(t *testing.T) {
 		err = ss.RemoveStrategyResources([]model.StrategyResource{
 			{
 				StrategyID: rules[0].ID,
-				ResType:    int32(api.ResourceType_Namespaces),
+				ResType:    int32(apisecurity.ResourceType_Namespaces),
 				ResID:      "namespace_0",
 			},
 		})
@@ -159,7 +159,7 @@ func Test_strategyStore_RemoveStrategyResources(t *testing.T) {
 			t.Logf("resource=%#v", res)
 			assert.NotEqual(t, res, model.StrategyResource{
 				StrategyID: rules[0].ID,
-				ResType:    int32(api.ResourceType_Namespaces),
+				ResType:    int32(apisecurity.ResourceType_Namespaces),
 				ResID:      "namespace_0",
 			})
 		}
@@ -177,7 +177,7 @@ func Test_strategyStore_LooseAddStrategyResources(t *testing.T) {
 		err = ss.LooseAddStrategyResources([]model.StrategyResource{
 			{
 				StrategyID: rules[0].ID,
-				ResType:    int32(api.ResourceType_Namespaces),
+				ResType:    int32(apisecurity.ResourceType_Namespaces),
 				ResID:      "namespace_1",
 			},
 		})
@@ -192,7 +192,7 @@ func Test_strategyStore_LooseAddStrategyResources(t *testing.T) {
 			res.StrategyID = rules[0].ID
 			if reflect.DeepEqual(res, model.StrategyResource{
 				StrategyID: rules[0].ID,
-				ResType:    int32(api.ResourceType_Namespaces),
+				ResType:    int32(apisecurity.ResourceType_Namespaces),
 				ResID:      "namespace_1",
 			}) {
 				ans = append(ans, res)
@@ -239,7 +239,7 @@ func Test_strategyStore_GetStrategyResources(t *testing.T) {
 		assert.ElementsMatch(t, []model.StrategyResource{
 			{
 				StrategyID: "strategy-1",
-				ResType:    int32(api.ResourceType_Namespaces),
+				ResType:    int32(apisecurity.ResourceType_Namespaces),
 				ResID:      "namespace_1",
 			},
 		}, res)

@@ -19,12 +19,15 @@ package defaultauth
 
 import (
 	"context"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // CreateStrategy creates a new strategy.
-func (svr *serverAuthAbility) CreateStrategy(ctx context.Context, strategy *api.AuthStrategy) *api.Response {
+func (svr *serverAuthAbility) CreateStrategy(ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response {
 	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if rsp != nil {
 		rsp.AuthStrategy = strategy
@@ -36,11 +39,11 @@ func (svr *serverAuthAbility) CreateStrategy(ctx context.Context, strategy *api.
 
 // UpdateStrategies update a strategy.
 func (svr *serverAuthAbility) UpdateStrategies(ctx context.Context,
-	reqs []*api.ModifyAuthStrategy) *api.BatchWriteResponse {
+	reqs []*apisecurity.ModifyAuthStrategy) *apiservice.BatchWriteResponse {
 	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if rsp != nil {
-		resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
-		resp.Collect(rsp)
+		resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
+		api.Collect(resp, rsp)
 		return resp
 	}
 
@@ -49,11 +52,11 @@ func (svr *serverAuthAbility) UpdateStrategies(ctx context.Context,
 
 // DeleteStrategies delete strategy.
 func (svr *serverAuthAbility) DeleteStrategies(ctx context.Context,
-	reqs []*api.AuthStrategy) *api.BatchWriteResponse {
+	reqs []*apisecurity.AuthStrategy) *apiservice.BatchWriteResponse {
 	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if rsp != nil {
-		resp := api.NewBatchWriteResponse(api.ExecuteSuccess)
-		resp.Collect(rsp)
+		resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
+		api.Collect(resp, rsp)
 		return resp
 	}
 
@@ -62,17 +65,17 @@ func (svr *serverAuthAbility) DeleteStrategies(ctx context.Context,
 
 // GetStrategies get strategy list .
 func (svr *serverAuthAbility) GetStrategies(ctx context.Context,
-	query map[string]string) *api.BatchQueryResponse {
+	query map[string]string) *apiservice.BatchQueryResponse {
 	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if rsp != nil {
-		return api.NewBatchQueryResponseWithMsg(rsp.GetCode().Value, rsp.Info.Value)
+		return api.NewAuthBatchQueryResponseWithMsg(apimodel.Code(rsp.GetCode().Value), rsp.Info.Value)
 	}
 
 	return svr.target.GetStrategies(ctx, query)
 }
 
 // GetStrategy get strategy.
-func (svr *serverAuthAbility) GetStrategy(ctx context.Context, strategy *api.AuthStrategy) *api.Response {
+func (svr *serverAuthAbility) GetStrategy(ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response {
 	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if rsp != nil {
 		return rsp
@@ -82,7 +85,7 @@ func (svr *serverAuthAbility) GetStrategy(ctx context.Context, strategy *api.Aut
 }
 
 // GetPrincipalResources get principal resources.
-func (svr *serverAuthAbility) GetPrincipalResources(ctx context.Context, query map[string]string) *api.Response {
+func (svr *serverAuthAbility) GetPrincipalResources(ctx context.Context, query map[string]string) *apiservice.Response {
 	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if rsp != nil {
 		return rsp

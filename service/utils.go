@@ -23,6 +23,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/golang/protobuf/proto"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"io"
 	"regexp"
 	"strconv"
@@ -87,11 +89,13 @@ const (
 	MaxPlatformDomainLength = 1024
 	MaxPlatformQPS          = 65535
 
+	MaxRuleName = 64
+
 	// ratelimit表
-	MaxDbRateLimitName = 64
+	MaxDbRateLimitName = MaxRuleName
 
 	// MaxDbRoutingName routing_config_v2 表
-	MaxDbRoutingName = 64
+	MaxDbRoutingName = MaxRuleName
 )
 
 // checkResourceName 检查资源Name
@@ -245,11 +249,24 @@ func checkQueryLimit(limit []string) (int, error) {
 }
 
 // storeError2Response store code
-func storeError2Response(err error) *api.Response {
+func storeError2Response(err error) *apiservice.Response {
 	if err == nil {
 		return nil
 	}
 	return api.NewResponseWithMsg(batch.StoreCode2APICode(err), err.Error())
+}
+
+// storeError2AnyResponse store code
+func storeError2AnyResponse(err error, msg proto.Message) *apiservice.Response {
+	if err == nil {
+		return nil
+	}
+	if nil == msg {
+		return api.NewResponseWithMsg(batch.StoreCode2APICode(err), err.Error())
+	}
+	resp := api.NewAnyDataResponse(batch.StoreCode2APICode(err), msg)
+	resp.Info = &wrappers.StringValue{Value: err.Error()}
+	return resp
 }
 
 // CalculateInstanceID 计算实例ID

@@ -20,6 +20,7 @@ package batch
 import (
 	"context"
 	"fmt"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"sync"
 	"testing"
 
@@ -27,7 +28,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	amock "github.com/polarismesh/polaris/auth/mock"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -107,7 +107,7 @@ func sendAsyncCreateInstance(bc *Controller) error {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
-			future := bc.AsyncCreateInstance(utils.NewUUID(), &api.Instance{
+			future := bc.AsyncCreateInstance(utils.NewUUID(), &apiservice.Instance{
 				Id:           utils.NewStringValue(fmt.Sprintf("%d", index)),
 				ServiceToken: utils.NewStringValue(fmt.Sprintf("%d", index)),
 			}, true)

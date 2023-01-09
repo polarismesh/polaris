@@ -45,18 +45,17 @@ func newTestCircuitBreakerCache(t *testing.T) (*gomock.Controller, *mock.MockSto
 /**
  * @brief 生成熔断规则测试数据
  */
-func genModelCircuitBreakers(beginNum, total int) []*model.ServiceWithCircuitBreaker {
-	out := make([]*model.ServiceWithCircuitBreaker, 0, total)
+func genModelCircuitBreakers(beginNum, total int) []*model.CircuitBreakerRule {
+	out := make([]*model.CircuitBreakerRule, 0, total)
 
 	for i := beginNum; i < total+beginNum; i++ {
-		item := &model.ServiceWithCircuitBreaker{
-			ServiceID: fmt.Sprintf("id-%d", i),
-			CircuitBreaker: &model.CircuitBreaker{
-				ID:      fmt.Sprintf("id-%d", i),
-				Version: fmt.Sprintf("version-%d", i),
-			},
-			Valid:      true,
-			ModifyTime: time.Unix(int64(i), 0),
+		item := &model.CircuitBreakerRule{
+			ID:           fmt.Sprintf("id-%d", i),
+			Name:         fmt.Sprintf("rule-%d", i),
+			DstService:   fmt.Sprintf("svc-%d", i),
+			DstNamespace: "test",
+			Valid:        true,
+			ModifyTime:   time.Unix(int64(i), 0),
 		}
 		out = append(out, item)
 	}
@@ -67,13 +66,7 @@ func genModelCircuitBreakers(beginNum, total int) []*model.ServiceWithCircuitBre
  * @brief 统计缓存中的熔断数据
  */
 func getCircuitBreakerCount(cbc *circuitBreakerCache) int {
-	count := 0
-	proc := func(k, v interface{}) bool {
-		count++
-		return true
-	}
-	cbc.GetCircuitBreakerCount(proc)
-	return count
+	return cbc.GetCircuitBreakerCount()
 }
 
 /**
@@ -89,7 +82,7 @@ func TestCircuitBreakersUpdate(t *testing.T) {
 	t.Run("正常更新缓存，可以获取到数据", func(t *testing.T) {
 		_ = cbc.clear()
 
-		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
+		storage.EXPECT().GetCircuitBreakerRulesForCache(gomock.Any(), cbc.firstUpdate).
 			Return(serviceWithCircuitBreakers, nil)
 		if err := cbc.update(0); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -106,7 +99,7 @@ func TestCircuitBreakersUpdate(t *testing.T) {
 	t.Run("缓存数据为空", func(t *testing.T) {
 		_ = cbc.clear()
 
-		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
+		storage.EXPECT().GetCircuitBreakerRulesForCache(gomock.Any(), cbc.firstUpdate).
 			Return(nil, nil)
 		if err := cbc.update(0); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -124,7 +117,7 @@ func TestCircuitBreakersUpdate(t *testing.T) {
 
 		currentTime := time.Unix(100, 0)
 		serviceWithCircuitBreakers[0].ModifyTime = currentTime
-		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
+		storage.EXPECT().GetCircuitBreakerRulesForCache(gomock.Any(), cbc.firstUpdate).
 			Return(serviceWithCircuitBreakers, nil)
 		if err := cbc.update(0); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -138,7 +131,7 @@ func TestCircuitBreakersUpdate(t *testing.T) {
 	})
 
 	t.Run("数据库返回错误, update错误", func(t *testing.T) {
-		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
+		storage.EXPECT().GetCircuitBreakerRulesForCache(gomock.Any(), cbc.firstUpdate).
 			Return(nil, fmt.Errorf("storage error"))
 		if err := cbc.update(0); err != nil {
 			t.Log("pass")
@@ -161,14 +154,14 @@ func TestCircuitBreakerUpdate2(t *testing.T) {
 		_ = cbc.clear()
 
 		serviceWithCircuitBreakers := genModelCircuitBreakers(0, total)
-		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
+		storage.EXPECT().GetCircuitBreakerRulesForCache(gomock.Any(), cbc.firstUpdate).
 			Return(serviceWithCircuitBreakers, nil)
 		if err := cbc.update(0); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
 		serviceWithCircuitBreakers = genModelCircuitBreakers(10, total)
-		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
+		storage.EXPECT().GetCircuitBreakerRulesForCache(gomock.Any(), cbc.firstUpdate).
 			Return(serviceWithCircuitBreakers, nil)
 		if err := cbc.update(0); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -185,7 +178,7 @@ func TestCircuitBreakerUpdate2(t *testing.T) {
 		_ = cbc.clear()
 
 		serviceWithCircuitBreakers := genModelCircuitBreakers(0, total)
-		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
+		storage.EXPECT().GetCircuitBreakerRulesForCache(gomock.Any(), cbc.firstUpdate).
 			Return(serviceWithCircuitBreakers, nil)
 		if err := cbc.update(0); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -195,7 +188,7 @@ func TestCircuitBreakerUpdate2(t *testing.T) {
 			serviceWithCircuitBreakers[i].Valid = false
 		}
 
-		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
+		storage.EXPECT().GetCircuitBreakerRulesForCache(gomock.Any(), cbc.firstUpdate).
 			Return(serviceWithCircuitBreakers, nil)
 		if err := cbc.update(0); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -205,34 +198,6 @@ func TestCircuitBreakerUpdate2(t *testing.T) {
 			t.Log("pass")
 		} else {
 			t.Fatalf("actual count is %d", getCircuitBreakerCount(cbc))
-		}
-	})
-}
-
-/**
- * TestGetCircuitBreakerByServiceID 根据服务id获取熔断规则数据
- */
-func TestGetCircuitBreakerByServiceID(t *testing.T) {
-	ctl, storage, cbc := newTestCircuitBreakerCache(t)
-	defer ctl.Finish()
-
-	t.Run("通过服务ID获取数据", func(t *testing.T) {
-		_ = cbc.clear()
-
-		total := 10
-		serviceWithCircuitBreakers := genModelCircuitBreakers(0, total)
-		storage.EXPECT().GetCircuitBreakerForCache(gomock.Any(), cbc.firstUpdate).
-			Return(serviceWithCircuitBreakers, nil)
-		if err := cbc.update(0); err != nil {
-			t.Fatalf("error: %s", err.Error())
-		}
-
-		cb := cbc.GetCircuitBreakerConfig(serviceWithCircuitBreakers[0].ServiceID)
-		expectCb := serviceWithCircuitBreakers[0].CircuitBreaker
-		if cb.CircuitBreaker.ID == expectCb.ID && cb.CircuitBreaker.Version == expectCb.Version {
-			t.Log("pass")
-		} else {
-			t.Fatalf("error circuit breaker is %+v", cb)
 		}
 	})
 }

@@ -19,6 +19,7 @@ package cache
 
 import (
 	"fmt"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"math"
 	"sync"
 	"time"
@@ -26,7 +27,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -52,10 +52,10 @@ type StrategyCache interface {
 	GetStrategyDetailsByGroupID(groupId string) []*model.StrategyDetail
 
 	// IsResourceLinkStrategy 该资源是否关联了鉴权策略
-	IsResourceLinkStrategy(resType api.ResourceType, resId string) bool
+	IsResourceLinkStrategy(resType apisecurity.ResourceType, resId string) bool
 
 	// IsResourceEditable 判断该资源是否可以操作
-	IsResourceEditable(principal model.Principal, resType api.ResourceType, resId string) bool
+	IsResourceEditable(principal model.Principal, resType apisecurity.ResourceType, resId string) bool
 }
 
 // strategyCache
@@ -323,19 +323,19 @@ func buildEnchanceStrategyDetail(strategy *model.StrategyDetail) *model.Strategy
 func (sc *strategyCache) handlerResourceStrategy(strategies []*model.StrategyDetail) {
 	operateLink := func(resType int32, resId, strategyId string, remove bool) {
 		switch resType {
-		case int32(api.ResourceType_Namespaces):
+		case int32(apisecurity.ResourceType_Namespaces):
 			if remove {
 				sc.namespace2Strategy.delete(resId, strategyId)
 			} else {
 				sc.namespace2Strategy.save(resId, strategyId)
 			}
-		case int32(api.ResourceType_Services):
+		case int32(apisecurity.ResourceType_Services):
 			if remove {
 				sc.service2Strategy.delete(resId, strategyId)
 			} else {
 				sc.service2Strategy.save(resId, strategyId)
 			}
-		case int32(api.ResourceType_ConfigGroups):
+		case int32(apisecurity.ResourceType_ConfigGroups):
 			if remove {
 				sc.configGroup2Strategy.delete(resId, strategyId)
 			} else {
@@ -503,19 +503,19 @@ func (sc *strategyCache) checkResourceEditable(strategIds []string, principal mo
 
 // IsResourceEditable 判断当前资源是否可以操作
 // 这里需要考虑两种情况，一种是 “ * ” 策略，另一种是明确指出了具体的资源ID的策略
-func (sc *strategyCache) IsResourceEditable(principal model.Principal, resType api.ResourceType, resId string) bool {
+func (sc *strategyCache) IsResourceEditable(principal model.Principal, resType apisecurity.ResourceType, resId string) bool {
 	var (
 		valAll, val []string
 		ok          bool
 	)
 	switch resType {
-	case api.ResourceType_Namespaces:
+	case apisecurity.ResourceType_Namespaces:
 		val, ok = sc.namespace2Strategy.get(resId)
 		valAll, _ = sc.namespace2Strategy.get("*")
-	case api.ResourceType_Services:
+	case apisecurity.ResourceType_Services:
 		val, ok = sc.service2Strategy.get(resId)
 		valAll, _ = sc.service2Strategy.get("*")
-	case api.ResourceType_ConfigGroups:
+	case apisecurity.ResourceType_ConfigGroups:
 		val, ok = sc.configGroup2Strategy.get(resId)
 		valAll, _ = sc.configGroup2Strategy.get("*")
 	}
@@ -592,15 +592,15 @@ func (sc *strategyCache) getStrategyDetails(uid string, gid string) []*model.Str
 }
 
 // IsResourceLinkStrategy 校验
-func (sc *strategyCache) IsResourceLinkStrategy(resType api.ResourceType, resId string) bool {
+func (sc *strategyCache) IsResourceLinkStrategy(resType apisecurity.ResourceType, resId string) bool {
 	switch resType {
-	case api.ResourceType_Namespaces:
+	case apisecurity.ResourceType_Namespaces:
 		val, ok := sc.namespace2Strategy.get(resId)
 		return ok && hasLinkRule(val)
-	case api.ResourceType_Services:
+	case apisecurity.ResourceType_Services:
 		val, ok := sc.service2Strategy.get(resId)
 		return ok && hasLinkRule(val)
-	case api.ResourceType_ConfigGroups:
+	case apisecurity.ResourceType_ConfigGroups:
 		val, ok := sc.configGroup2Strategy.get(resId)
 		return ok && hasLinkRule(val)
 	default:

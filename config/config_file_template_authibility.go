@@ -19,6 +19,7 @@ package config
 
 import (
 	"context"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
@@ -26,21 +27,21 @@ import (
 )
 
 // GetAllConfigFileTemplates get all config file templates
-func (s *serverAuthability) GetAllConfigFileTemplates(ctx context.Context) *api.ConfigBatchQueryResponse {
+func (s *serverAuthability) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.ConfigBatchQueryResponse {
 	return s.targetServer.GetAllConfigFileTemplates(ctx)
 }
 
 // GetConfigFileTemplate get config file template
-func (s *serverAuthability) GetConfigFileTemplate(ctx context.Context, name string) *api.ConfigResponse {
+func (s *serverAuthability) GetConfigFileTemplate(ctx context.Context, name string) *apiconfig.ConfigResponse {
 	return s.targetServer.GetConfigFileTemplate(ctx, name)
 }
 
 // CreateConfigFileTemplate create config file template
 func (s *serverAuthability) CreateConfigFileTemplate(ctx context.Context,
-	template *api.ConfigFileTemplate) *api.ConfigResponse {
+	template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
 
 	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
-		[]*api.ConfigFileTemplate{template}, model.Create, "CreateConfigFileTemplate")
+		[]*apiconfig.ConfigFileTemplate{template}, model.Create, "CreateConfigFileTemplate")
 	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}

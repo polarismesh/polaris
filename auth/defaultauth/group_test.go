@@ -19,6 +19,7 @@ package defaultauth
 
 import (
 	"context"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"testing"
 	"time"
 
@@ -28,7 +29,6 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	v1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -140,7 +140,7 @@ func Test_server_CreateGroup(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroupByName(gomock.Any(), gomock.Any()).Return(nil, nil)
 
-		resp := groupTest.svr.CreateGroup(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.CreateGroup(reqCtx, &apisecurity.UserGroup{
 			Id:   utils.NewStringValue(groups[0].ID),
 			Name: utils.NewStringValue(groups[0].Name),
 		})
@@ -156,7 +156,7 @@ func Test_server_CreateGroup(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroupByName(gomock.Any(), gomock.Any()).Return(groups[0].UserGroup, nil)
 
-		resp := groupTest.svr.CreateGroup(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.CreateGroup(reqCtx, &apisecurity.UserGroup{
 			Id:   utils.NewStringValue(groups[0].ID),
 			Name: utils.NewStringValue(groups[0].Name),
 		})
@@ -170,7 +170,7 @@ func Test_server_CreateGroup(t *testing.T) {
 		groups := createMockUserGroup(groupTest.users[:1])
 		groups[0].ID = utils.NewUUID()
 
-		resp := groupTest.svr.CreateGroup(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.CreateGroup(reqCtx, &apisecurity.UserGroup{
 			Id:   utils.NewStringValue(groups[0].ID),
 			Name: utils.NewStringValue(groups[0].Name),
 		})
@@ -183,7 +183,7 @@ func Test_server_CreateGroup(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[1], nil)
 
-		resp := groupTest.svr.GetGroup(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.GetGroup(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[1].ID),
 		})
 
@@ -195,7 +195,7 @@ func Test_server_CreateGroup(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[3], nil)
 
-		resp := groupTest.svr.GetGroup(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.GetGroup(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[3].ID),
 		})
 
@@ -207,7 +207,7 @@ func Test_server_CreateGroup(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[1], nil)
 
-		resp := groupTest.svr.GetGroup(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.GetGroup(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[1].ID),
 		})
 
@@ -219,7 +219,7 @@ func Test_server_CreateGroup(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[2], nil)
 
-		resp := groupTest.svr.GetGroup(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.GetGroup(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[2].ID),
 		})
 
@@ -236,7 +236,7 @@ func Test_server_GetGroup(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[1], nil)
 
-		resp := groupTest.svr.GetGroup(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.GetGroup(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[1].ID),
 		})
 
@@ -248,7 +248,7 @@ func Test_server_GetGroup(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.newGroups[0], nil)
 
-		resp := groupTest.svr.GetGroup(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.GetGroup(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.newGroups[0].ID),
 		})
 
@@ -260,7 +260,7 @@ func Test_server_GetGroup(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[1], nil)
 
-		resp := groupTest.svr.GetGroup(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.GetGroup(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[1].ID),
 		})
 
@@ -272,7 +272,7 @@ func Test_server_GetGroup(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[2], nil)
 
-		resp := groupTest.svr.GetGroup(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.GetGroup(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[2].ID),
 		})
 
@@ -291,14 +291,14 @@ func Test_server_UpdateGroup(t *testing.T) {
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[1], nil)
 		groupTest.storage.EXPECT().UpdateGroup(gomock.Any()).Return(nil)
 
-		req := &v1.ModifyUserGroup{
+		req := &apisecurity.ModifyUserGroup{
 			Id: utils.NewStringValue(groupTest.groups[1].ID),
 			Comment: &wrapperspb.StringValue{
 				Value: "new test group",
 			},
-			AddRelations: &v1.UserGroupRelation{
+			AddRelations: &apisecurity.UserGroupRelation{
 				GroupId: utils.NewStringValue(groupTest.groups[1].ID),
-				Users: []*v1.User{
+				Users: []*apisecurity.User{
 					{
 						Id: utils.NewStringValue(groupTest.users[2].ID),
 					},
@@ -307,9 +307,9 @@ func Test_server_UpdateGroup(t *testing.T) {
 					},
 				},
 			},
-			RemoveRelations: &v1.UserGroupRelation{
+			RemoveRelations: &apisecurity.UserGroupRelation{
 				GroupId: utils.NewStringValue(groupTest.groups[1].ID),
-				Users: []*v1.User{
+				Users: []*apisecurity.User{
 					{
 						Id: utils.NewStringValue(groupTest.users[5].ID),
 					},
@@ -317,7 +317,7 @@ func Test_server_UpdateGroup(t *testing.T) {
 			},
 		}
 
-		resp := groupTest.svr.UpdateGroups(reqCtx, []*v1.ModifyUserGroup{req})
+		resp := groupTest.svr.UpdateGroups(reqCtx, []*apisecurity.ModifyUserGroup{req})
 
 		assert.True(t, resp.Responses[0].Code.GetValue() == v1.ExecuteSuccess, resp.Responses[0].Info.GetValue())
 	})
@@ -327,14 +327,14 @@ func Test_server_UpdateGroup(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.newGroups[1], nil)
 
-		req := &v1.ModifyUserGroup{
+		req := &apisecurity.ModifyUserGroup{
 			Id: utils.NewStringValue(groupTest.newGroups[0].ID),
 			Comment: &wrapperspb.StringValue{
 				Value: "new test group",
 			},
-			AddRelations: &v1.UserGroupRelation{
+			AddRelations: &apisecurity.UserGroupRelation{
 				GroupId: utils.NewStringValue(groupTest.groups[0].ID),
-				Users: []*v1.User{
+				Users: []*apisecurity.User{
 					{
 						Id: utils.NewStringValue(groupTest.users[2].ID),
 					},
@@ -343,9 +343,9 @@ func Test_server_UpdateGroup(t *testing.T) {
 					},
 				},
 			},
-			RemoveRelations: &v1.UserGroupRelation{
+			RemoveRelations: &apisecurity.UserGroupRelation{
 				GroupId: utils.NewStringValue(groupTest.groups[0].ID),
-				Users: []*v1.User{
+				Users: []*apisecurity.User{
 					{
 						Id: utils.NewStringValue(groupTest.users[5].ID),
 					},
@@ -353,21 +353,21 @@ func Test_server_UpdateGroup(t *testing.T) {
 			},
 		}
 
-		resp := groupTest.svr.UpdateGroups(reqCtx, []*v1.ModifyUserGroup{req})
+		resp := groupTest.svr.UpdateGroups(reqCtx, []*apisecurity.ModifyUserGroup{req})
 		assert.True(t, resp.Responses[0].Code.GetValue() == v1.NotAllowedAccess, resp.Responses[0].Info.GetValue())
 	})
 
 	t.Run("子账户更新用户组", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[1].Token)
 
-		req := &v1.ModifyUserGroup{
+		req := &apisecurity.ModifyUserGroup{
 			Id: utils.NewStringValue(groupTest.groups[2].ID),
 			Comment: &wrapperspb.StringValue{
 				Value: "new test group",
 			},
-			AddRelations: &v1.UserGroupRelation{
+			AddRelations: &apisecurity.UserGroupRelation{
 				GroupId: utils.NewStringValue(groupTest.groups[2].ID),
-				Users: []*v1.User{
+				Users: []*apisecurity.User{
 					{
 						Id: utils.NewStringValue(groupTest.users[2].ID),
 					},
@@ -376,9 +376,9 @@ func Test_server_UpdateGroup(t *testing.T) {
 					},
 				},
 			},
-			RemoveRelations: &v1.UserGroupRelation{
+			RemoveRelations: &apisecurity.UserGroupRelation{
 				GroupId: utils.NewStringValue(groupTest.groups[2].ID),
-				Users: []*v1.User{
+				Users: []*apisecurity.User{
 					{
 						Id: utils.NewStringValue(groupTest.users[5].ID),
 					},
@@ -386,7 +386,7 @@ func Test_server_UpdateGroup(t *testing.T) {
 			},
 		}
 
-		resp := groupTest.svr.UpdateGroups(reqCtx, []*v1.ModifyUserGroup{req})
+		resp := groupTest.svr.UpdateGroups(reqCtx, []*apisecurity.ModifyUserGroup{req})
 		assert.True(t, resp.Responses[0].GetCode().Value == v1.OperationRoleException, resp.Responses[0].Info.GetValue())
 	})
 
@@ -395,14 +395,14 @@ func Test_server_UpdateGroup(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[2], nil)
 
-		req := &v1.ModifyUserGroup{
+		req := &apisecurity.ModifyUserGroup{
 			Id:              utils.NewStringValue(groupTest.groups[2].ID),
 			Comment:         &wrapperspb.StringValue{Value: groupTest.groups[2].Comment},
-			AddRelations:    &v1.UserGroupRelation{},
-			RemoveRelations: &v1.UserGroupRelation{},
+			AddRelations:    &apisecurity.UserGroupRelation{},
+			RemoveRelations: &apisecurity.UserGroupRelation{},
 		}
 
-		resp := groupTest.svr.UpdateGroups(reqCtx, []*v1.ModifyUserGroup{req})
+		resp := groupTest.svr.UpdateGroups(reqCtx, []*apisecurity.ModifyUserGroup{req})
 		assert.True(t, resp.Responses[0].GetCode().Value == v1.NoNeedUpdate, resp.Responses[0].Info.GetValue())
 	})
 
@@ -416,7 +416,7 @@ func Test_server_GetGroupToken(t *testing.T) {
 	t.Run("主账户去查询owner为自己的用户组", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[0].Token)
 
-		resp := groupTest.svr.GetGroupToken(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.GetGroupToken(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[1].ID),
 		})
 
@@ -426,7 +426,7 @@ func Test_server_GetGroupToken(t *testing.T) {
 	t.Run("主账户去查询owner不是自己的用户组", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerTwo.Token)
 
-		resp := groupTest.svr.GetGroupToken(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.GetGroupToken(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[1].ID),
 		})
 
@@ -436,7 +436,7 @@ func Test_server_GetGroupToken(t *testing.T) {
 	t.Run("子账户去查询自己所在的用户组", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[1].Token)
 
-		resp := groupTest.svr.GetGroupToken(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.GetGroupToken(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[1].ID),
 		})
 
@@ -446,7 +446,7 @@ func Test_server_GetGroupToken(t *testing.T) {
 	t.Run("子账户去查询自己不在的用户组", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[1].Token)
 
-		resp := groupTest.svr.GetGroupToken(reqCtx, &v1.UserGroup{
+		resp := groupTest.svr.GetGroupToken(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[2].ID),
 		})
 
@@ -466,7 +466,7 @@ func Test_server_DeleteGroup(t *testing.T) {
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
 		groupTest.storage.EXPECT().DeleteGroup(gomock.Any()).Return(nil)
 
-		batchResp := groupTest.svr.DeleteGroups(reqCtx, []*api.UserGroup{
+		batchResp := groupTest.svr.DeleteGroups(reqCtx, []*apisecurity.UserGroup{
 			{
 				Id: utils.NewStringValue(groupTest.groups[0].ID),
 			},
@@ -481,7 +481,7 @@ func Test_server_DeleteGroup(t *testing.T) {
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(nil, nil)
 		groupTest.storage.EXPECT().DeleteGroup(gomock.Any()).Return(nil)
 
-		batchResp := groupTest.svr.DeleteGroups(reqCtx, []*api.UserGroup{
+		batchResp := groupTest.svr.DeleteGroups(reqCtx, []*apisecurity.UserGroup{
 			{
 				Id: utils.NewStringValue(groupTest.groups[0].ID),
 			},
@@ -496,7 +496,7 @@ func Test_server_DeleteGroup(t *testing.T) {
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
 		groupTest.storage.EXPECT().DeleteGroup(gomock.Any()).Return(nil)
 
-		batchResp := groupTest.svr.DeleteGroups(reqCtx, []*api.UserGroup{
+		batchResp := groupTest.svr.DeleteGroups(reqCtx, []*apisecurity.UserGroup{
 			{
 				Id: utils.NewStringValue(groupTest.groups[0].ID),
 			},
@@ -511,7 +511,7 @@ func Test_server_DeleteGroup(t *testing.T) {
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
 		groupTest.storage.EXPECT().DeleteGroup(gomock.Any()).Return(nil)
 
-		batchResp := groupTest.svr.DeleteGroups(reqCtx, []*api.UserGroup{
+		batchResp := groupTest.svr.DeleteGroups(reqCtx, []*apisecurity.UserGroup{
 			{
 				Id: utils.NewStringValue(groupTest.groups[0].ID),
 			},
@@ -534,7 +534,7 @@ func Test_server_UpdateGroupToken(t *testing.T) {
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
 		groupTest.storage.EXPECT().UpdateGroup(gomock.Any()).Return(nil)
 
-		batchResp := groupTest.svr.UpdateGroupToken(reqCtx, &api.UserGroup{
+		batchResp := groupTest.svr.UpdateGroupToken(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[2].ID),
 		})
 
@@ -546,7 +546,7 @@ func Test_server_UpdateGroupToken(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
 
-		batchResp := groupTest.svr.UpdateGroupToken(reqCtx, &api.UserGroup{
+		batchResp := groupTest.svr.UpdateGroupToken(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[2].ID),
 		})
 
@@ -558,7 +558,7 @@ func Test_server_UpdateGroupToken(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
 
-		batchResp := groupTest.svr.UpdateGroupToken(reqCtx, &api.UserGroup{
+		batchResp := groupTest.svr.UpdateGroupToken(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[2].ID),
 		})
 
@@ -578,7 +578,7 @@ func Test_server_RefreshGroupToken(t *testing.T) {
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
 		groupTest.storage.EXPECT().UpdateGroup(gomock.Any()).Return(nil)
 
-		batchResp := groupTest.svr.ResetGroupToken(reqCtx, &api.UserGroup{
+		batchResp := groupTest.svr.ResetGroupToken(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[2].ID),
 		})
 
@@ -590,7 +590,7 @@ func Test_server_RefreshGroupToken(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
 
-		batchResp := groupTest.svr.ResetGroupToken(reqCtx, &api.UserGroup{
+		batchResp := groupTest.svr.ResetGroupToken(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[2].ID),
 		})
 
@@ -602,7 +602,7 @@ func Test_server_RefreshGroupToken(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
 
-		batchResp := groupTest.svr.ResetGroupToken(reqCtx, &api.UserGroup{
+		batchResp := groupTest.svr.ResetGroupToken(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[2].ID),
 		})
 
@@ -622,7 +622,7 @@ func Test_AuthServer_NormalOperateUserGroup(t *testing.T) {
 		users[i].Id = utils.NewStringValue(utils.NewUUID())
 	}
 
-	groups := createMockApiUserGroup([]*api.User{users[0]})
+	groups := createMockApiUserGroup([]*apisecurity.User{users[0]})
 
 	t.Run("正常创建用户组", func(t *testing.T) {
 		bresp := suit.server.CreateUsers(suit.defaultCtx, users)
@@ -645,14 +645,14 @@ func Test_AuthServer_NormalOperateUserGroup(t *testing.T) {
 
 		time.Sleep(time.Second)
 
-		req := []*api.ModifyUserGroup{
-			&v1.ModifyUserGroup{
+		req := []*apisecurity.ModifyUserGroup{
+			&apisecurity.ModifyUserGroup{
 				Id:   utils.NewStringValue(groups[0].GetId().GetValue()),
 				Name: utils.NewStringValue(groups[0].GetName().GetValue()),
 				Comment: &wrapperspb.StringValue{
 					Value: "update user group",
 				},
-				AddRelations: &v1.UserGroupRelation{
+				AddRelations: &apisecurity.UserGroupRelation{
 					Users: users[3:],
 				},
 			},

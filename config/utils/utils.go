@@ -24,6 +24,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"regexp"
 	"strconv"
 	"strings"
@@ -94,10 +96,8 @@ func CheckContentLength(content string) error {
 }
 
 // GenConfigFileResponse 为客户端生成响应对象
-func GenConfigFileResponse(namespace, group, fileName, content, md5str string,
-	version uint64) *api.ConfigClientResponse {
-
-	configFile := &api.ClientConfigFileInfo{
+func GenConfigFileResponse(namespace, group, fileName, content, md5str string, version uint64) *apiconfig.ConfigClientResponse {
+	configFile := &apiconfig.ClientConfigFileInfo{
 		Namespace: utils.NewStringValue(namespace),
 		Group:     utils.NewStringValue(group),
 		FileName:  utils.NewStringValue(fileName),
@@ -105,7 +105,7 @@ func GenConfigFileResponse(namespace, group, fileName, content, md5str string,
 		Version:   utils.NewUInt64Value(version),
 		Md5:       utils.NewStringValue(md5str),
 	}
-	return api.NewConfigClientResponse(api.ExecuteSuccess, configFile)
+	return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, configFile)
 }
 
 type kv struct {
@@ -114,7 +114,7 @@ type kv struct {
 }
 
 // ToTagJsonStr 把 Tags 转化成 Json 字符串
-func ToTagJsonStr(tags []*api.ConfigFileTag) string {
+func ToTagJsonStr(tags []*apiconfig.ConfigFileTag) string {
 	if len(tags) == 0 {
 		return "[]"
 	}
@@ -135,7 +135,7 @@ func ToTagJsonStr(tags []*api.ConfigFileTag) string {
 }
 
 // FromTagJson 从 Tags Json 字符串里反序列化出 Tags
-func FromTagJson(tagStr string) []*api.ConfigFileTag {
+func FromTagJson(tagStr string) []*apiconfig.ConfigFileTag {
 	if tagStr == "" {
 		return nil
 	}
@@ -146,9 +146,9 @@ func FromTagJson(tagStr string) []*api.ConfigFileTag {
 		return nil
 	}
 
-	tags := make([]*api.ConfigFileTag, 0, len(kvs))
+	tags := make([]*apiconfig.ConfigFileTag, 0, len(kvs))
 	for _, val := range kvs {
-		tags = append(tags, &api.ConfigFileTag{
+		tags = append(tags, &apiconfig.ConfigFileTag{
 			Key:   utils.NewStringValue(val.Key),
 			Value: utils.NewStringValue(val.Value),
 		})

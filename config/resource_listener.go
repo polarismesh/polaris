@@ -19,9 +19,10 @@ package config
 
 import (
 	"context"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"strconv"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -43,7 +44,7 @@ type ResourceHook interface {
 
 // ResourceEvent 资源事件
 type ResourceEvent struct {
-	ConfigGroup *api.ConfigFileGroup
+	ConfigGroup *apiconfig.ConfigFileGroup
 }
 
 // Before this function is called before the resource operation
@@ -65,8 +66,8 @@ func (s *serverAuthability) After(ctx context.Context, resourceType model.Resour
 func (s *serverAuthability) onConfigGroupResource(ctx context.Context, res *ResourceEvent) error {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
 
-	authCtx.SetAttachment(model.ResourceAttachmentKey, map[api.ResourceType][]model.ResourceEntry{
-		api.ResourceType_ConfigGroups: {
+	authCtx.SetAttachment(model.ResourceAttachmentKey, map[apisecurity.ResourceType][]model.ResourceEntry{
+		apisecurity.ResourceType_ConfigGroups: {
 			{
 				ID:    strconv.FormatUint(res.ConfigGroup.Id.GetValue(), 10),
 				Owner: utils.ParseOwnerID(ctx),

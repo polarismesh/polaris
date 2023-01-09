@@ -19,6 +19,7 @@ package config
 
 import (
 	"context"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
@@ -27,8 +28,8 @@ import (
 
 // CreateConfigFile 创建配置文件
 func (s *serverAuthability) CreateConfigFile(ctx context.Context,
-	configFile *api.ConfigFile) *api.ConfigResponse {
-	authCtx := s.collectConfigFileAuthContext(ctx, []*api.ConfigFile{configFile}, model.Create, "CreateConfigFile")
+	configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+	authCtx := s.collectConfigFileAuthContext(ctx, []*apiconfig.ConfigFile{configFile}, model.Create, "CreateConfigFile")
 	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
@@ -41,30 +42,30 @@ func (s *serverAuthability) CreateConfigFile(ctx context.Context,
 
 // GetConfigFileBaseInfo 获取配置文件，只返回基础元信息
 func (s *serverAuthability) GetConfigFileBaseInfo(ctx context.Context, namespace,
-	group, name string) *api.ConfigResponse {
+	group, name string) *apiconfig.ConfigResponse {
 	return s.targetServer.GetConfigFileBaseInfo(ctx, namespace, group, name)
 }
 
 // GetConfigFileRichInfo 获取单个配置文件基础信息，包含发布状态等信息
 func (s *serverAuthability) GetConfigFileRichInfo(ctx context.Context, namespace,
-	group, name string) *api.ConfigResponse {
+	group, name string) *apiconfig.ConfigResponse {
 	return s.targetServer.GetConfigFileRichInfo(ctx, namespace, group, name)
 }
 
 func (s *serverAuthability) QueryConfigFilesByGroup(ctx context.Context, namespace, group string,
-	offset, limit uint32) *api.ConfigBatchQueryResponse {
+	offset, limit uint32) *apiconfig.ConfigBatchQueryResponse {
 	return s.targetServer.QueryConfigFilesByGroup(ctx, namespace, group, offset, limit)
 }
 
 // SearchConfigFile 查询配置文件
 func (s *serverAuthability) SearchConfigFile(ctx context.Context, namespace, group, name,
-	tags string, offset, limit uint32) *api.ConfigBatchQueryResponse {
+	tags string, offset, limit uint32) *apiconfig.ConfigBatchQueryResponse {
 	return s.targetServer.SearchConfigFile(ctx, namespace, group, name, tags, offset, limit)
 }
 
 // UpdateConfigFile 更新配置文件
-func (s *serverAuthability) UpdateConfigFile(ctx context.Context, configFile *api.ConfigFile) *api.ConfigResponse {
-	authCtx := s.collectConfigFileAuthContext(ctx, []*api.ConfigFile{configFile}, model.Modify, "UpdateConfigFile")
+func (s *serverAuthability) UpdateConfigFile(ctx context.Context, configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+	authCtx := s.collectConfigFileAuthContext(ctx, []*apiconfig.ConfigFile{configFile}, model.Modify, "UpdateConfigFile")
 	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
@@ -77,9 +78,9 @@ func (s *serverAuthability) UpdateConfigFile(ctx context.Context, configFile *ap
 
 // DeleteConfigFile 删除配置文件，删除配置文件同时会通知客户端 Not_Found
 func (s *serverAuthability) DeleteConfigFile(ctx context.Context, namespace, group,
-	name, deleteBy string) *api.ConfigResponse {
+	name, deleteBy string) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigFileAuthContext(ctx,
-		[]*api.ConfigFile{{
+		[]*apiconfig.ConfigFile{{
 			Namespace: utils.NewStringValue(namespace),
 			Name:      utils.NewStringValue(name),
 			Group:     utils.NewStringValue(group)},
@@ -95,8 +96,8 @@ func (s *serverAuthability) DeleteConfigFile(ctx context.Context, namespace, gro
 }
 
 // BatchDeleteConfigFile 批量删除配置文件
-func (s *serverAuthability) BatchDeleteConfigFile(ctx context.Context, configFiles []*api.ConfigFile,
-	operator string) *api.ConfigResponse {
+func (s *serverAuthability) BatchDeleteConfigFile(ctx context.Context, configFiles []*apiconfig.ConfigFile,
+	operator string) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigFileAuthContext(ctx, configFiles, model.Delete, "BatchDeleteConfigFile")
 	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())

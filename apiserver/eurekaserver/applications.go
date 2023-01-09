@@ -21,13 +21,13 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"sort"
 	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/service"
 )
@@ -272,14 +272,14 @@ func (a *ApplicationsBuilder) buildDeltaApps(oldAppsCache *ApplicationsRespCache
 	return constructResponseCache(newDeltaApps, instCount, true)
 }
 
-func parseStatus(instance *api.Instance) string {
+func parseStatus(instance *apiservice.Instance) string {
 	if instance.GetIsolate().GetValue() {
 		return StatusOutOfService
 	}
 	return StatusUp
 }
 
-func parsePortWrapper(info *InstanceInfo, instance *api.Instance) {
+func parsePortWrapper(info *InstanceInfo, instance *apiservice.Instance) {
 	metadata := instance.GetMetadata()
 	var securePortOk bool
 	var securePortEnabledOk bool
@@ -346,7 +346,7 @@ func parsePortWrapper(info *InstanceInfo, instance *api.Instance) {
 	}
 }
 
-func parseLeaseInfo(leaseInfo *LeaseInfo, instance *api.Instance) {
+func parseLeaseInfo(leaseInfo *LeaseInfo, instance *apiservice.Instance) {
 	var (
 		metadata         = instance.GetMetadata()
 		durationInSec    int
@@ -370,7 +370,7 @@ func parseLeaseInfo(leaseInfo *LeaseInfo, instance *api.Instance) {
 	}
 }
 
-func buildInstance(appName string, instance *api.Instance, lastModifyTime int64) *InstanceInfo {
+func buildInstance(appName string, instance *apiservice.Instance, lastModifyTime int64) *InstanceInfo {
 	eurekaInstanceId := instance.GetId().GetValue()
 	instanceInfo := &InstanceInfo{
 		CountryId: DefaultCountryIdInt,
@@ -456,7 +456,7 @@ func buildInstance(appName string, instance *api.Instance, lastModifyTime int64)
 	return instanceInfo
 }
 
-func buildLocationInfo(instanceInfo *InstanceInfo, instance *api.Instance) {
+func buildLocationInfo(instanceInfo *InstanceInfo, instance *apiservice.Instance) {
 	var region string
 	var zone string
 	var campus string

@@ -19,15 +19,14 @@ package grpc
 
 import (
 	"context"
-
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 )
 
-func (c *Client) GetConfigFile(ctx context.Context, in *api.ClientConfigFileInfo) (*api.ConfigClientResponse, error) {
+func (c *Client) GetConfigFile(ctx context.Context, in *apiconfig.ClientConfigFileInfo) (*apiconfig.ConfigClientResponse, error) {
 	return nil, nil
 }
 
 // 订阅配置变更
-func (c *Client) WatchConfigFiles(ctx context.Context, in *api.ClientWatchConfigFileRequest) (*api.ConfigClientResponse, error) {
+func (c *Client) WatchConfigFiles(ctx context.Context, in *apiconfig.ClientWatchConfigFileRequest) (*apiconfig.ConfigClientResponse, error) {
 	return nil, nil
 }

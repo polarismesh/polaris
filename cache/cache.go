@@ -22,6 +22,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"hash"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -61,6 +62,7 @@ const (
 	CacheNamespace
 	CacheClient
 	CacheConfigFile
+	CacheFaultDetector
 
 	CacheLast
 )
@@ -413,6 +415,11 @@ func (nc *CacheManager) CircuitBreaker() CircuitBreakerCache {
 	return nc.caches[CacheCircuitBreaker].(CircuitBreakerCache)
 }
 
+// FaultDetector 获取探测规则缓存信息
+func (nc *CacheManager) FaultDetector() FaultDetectCache {
+	return nc.caches[CacheFaultDetector].(FaultDetectCache)
+}
+
 // User Get user information cache information
 func (nc *CacheManager) User() UserCache {
 	return nc.caches[CacheUser].(UserCache)
@@ -457,12 +464,15 @@ func ComputeRevision(serviceRevision string, instances []*model.Instance) (strin
 	if len(slice) > 0 {
 		slice.Sort()
 	}
+	return ComputeRevisionBySlice(h, slice)
+}
+
+func ComputeRevisionBySlice(h hash.Hash, slice []string) (string, error) {
 	for _, revision := range slice {
 		if _, err := h.Write([]byte(revision)); err != nil {
 			return "", err
 		}
 	}
-
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 

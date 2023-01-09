@@ -21,6 +21,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"time"
 
 	"github.com/golang/protobuf/jsonpb"
@@ -39,22 +41,22 @@ func (s *Server) allowAutoCreate() bool {
 }
 
 // CreateNamespaces 批量创建命名空间
-func (s *Server) CreateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
+func (s *Server) CreateNamespaces(ctx context.Context, req []*apimodel.Namespace) *apiservice.BatchWriteResponse {
 	if checkError := checkBatchNamespace(req); checkError != nil {
 		return checkError
 	}
 
-	responses := api.NewBatchWriteResponse(api.ExecuteSuccess)
+	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, namespace := range req {
 		response := s.CreateNamespace(ctx, namespace)
-		responses.Collect(response)
+		api.Collect(responses, response)
 	}
 
 	return responses
 }
 
 // CreateNamespaceIfAbsent 创建命名空间，如果不存在
-func (s *Server) CreateNamespaceIfAbsent(ctx context.Context, req *api.Namespace) error {
+func (s *Server) CreateNamespaceIfAbsent(ctx context.Context, req *apimodel.Namespace) error {
 	if !s.allowAutoCreate() {
 		return errors.New("not allow auto create namespace")
 	}
@@ -72,7 +74,7 @@ func (s *Server) CreateNamespaceIfAbsent(ctx context.Context, req *api.Namespace
 
 		code := resp.GetCode().GetValue()
 
-		if code == api.ExecuteSuccess || code == api.ExistedResource {
+		if code == uint32(apimodel.Code_ExecuteSuccess) || code == uint32(apimodel.Code_ExistedResource) {
 			return nil, nil
 		}
 
@@ -83,7 +85,7 @@ func (s *Server) CreateNamespaceIfAbsent(ctx context.Context, req *api.Namespace
 }
 
 // CreateNamespace 创建单个命名空间
-func (s *Server) CreateNamespace(ctx context.Context, req *api.Namespace) *api.Response {
+func (s *Server) CreateNamespace(ctx context.Context, req *apimodel.Namespace) *apiservice.Response {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
 	// 参数检查
@@ -97,10 +99,10 @@ func (s *Server) CreateNamespace(ctx context.Context, req *api.Namespace) *api.R
 	namespace, err := s.storage.GetNamespace(namespaceName)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return api.NewNamespaceResponse(api.StoreLayerException, req)
+		return api.NewNamespaceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if namespace != nil {
-		return api.NewNamespaceResponse(api.ExistedResource, req)
+		return api.NewNamespaceResponse(apimodel.Code_ExistedResource, req)
 	}
 
 	//
@@ -109,26 +111,26 @@ func (s *Server) CreateNamespace(ctx context.Context, req *api.Namespace) *api.R
 	// 存储层操作
 	if err := s.storage.AddNamespace(data); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return api.NewNamespaceResponse(api.StoreLayerException, req)
+		return api.NewNamespaceResponse(apimodel.Code_StoreLayerException, req)
 	}
 
 	msg := fmt.Sprintf("create namespace: name=%s", namespaceName)
 	log.Info(msg, utils.ZapRequestID(requestID))
 
-	out := &api.Namespace{
+	out := &apimodel.Namespace{
 		Name:  req.GetName(),
 		Token: utils.NewStringValue(data.Token),
 	}
 
 	_ = s.afterNamespaceResource(ctx, req, data, false)
 
-	return api.NewNamespaceResponse(api.ExecuteSuccess, out)
+	return api.NewNamespaceResponse(apimodel.Code_ExecuteSuccess, out)
 }
 
 /**
  * @brief 创建存储层命名空间模型
  */
-func (s *Server) createNamespaceModel(req *api.Namespace) *model.Namespace {
+func (s *Server) createNamespaceModel(req *apimodel.Namespace) *model.Namespace {
 	namespace := &model.Namespace{
 		Name:    req.GetName().GetValue(),
 		Comment: req.GetComment().GetValue(),
@@ -140,22 +142,22 @@ func (s *Server) createNamespaceModel(req *api.Namespace) *model.Namespace {
 }
 
 // DeleteNamespaces 批量删除命名空间
-func (s *Server) DeleteNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
+func (s *Server) DeleteNamespaces(ctx context.Context, req []*apimodel.Namespace) *apiservice.BatchWriteResponse {
 	if checkError := checkBatchNamespace(req); checkError != nil {
 		return checkError
 	}
 
-	responses := api.NewBatchWriteResponse(api.ExecuteSuccess)
+	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, namespace := range req {
 		response := s.DeleteNamespace(ctx, namespace)
-		responses.Collect(response)
+		api.Collect(responses, response)
 	}
 
 	return responses
 }
 
 // DeleteNamespace 删除单个命名空间
-func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.Response {
+func (s *Server) DeleteNamespace(ctx context.Context, req *apimodel.Namespace) *apiservice.Response {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 
 	// 参数检查
@@ -166,7 +168,7 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 	tx, err := s.storage.CreateTransaction()
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return api.NewNamespaceResponse(api.StoreLayerException, req)
+		return api.NewNamespaceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	defer func() { _ = tx.Commit() }()
 
@@ -174,10 +176,10 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 	namespace, err := tx.LockNamespace(req.GetName().GetValue())
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return api.NewNamespaceResponse(api.StoreLayerException, req)
+		return api.NewNamespaceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if namespace == nil {
-		return api.NewNamespaceResponse(api.ExecuteSuccess, req)
+		return api.NewNamespaceResponse(apimodel.Code_ExecuteSuccess, req)
 	}
 
 	// // 鉴权
@@ -191,11 +193,11 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 		log.Error("get services count with namespace err",
 			utils.ZapRequestID(requestID),
 			zap.String("err", err.Error()))
-		return api.NewNamespaceResponse(api.StoreLayerException, req)
+		return api.NewNamespaceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if total != 0 {
 		log.Error("the removed namespace has remain services", utils.ZapRequestID(requestID))
-		return api.NewNamespaceResponse(api.NamespaceExistedServices, req)
+		return api.NewNamespaceResponse(apimodel.Code_NamespaceExistedServices, req)
 	}
 
 	// 判断属于该命名空间的熔断规则是否都已经被删除
@@ -204,11 +206,11 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 		log.Error("get circuitBreakers count with namespace err",
 			utils.ZapRequestID(requestID),
 			zap.String("err", err.Error()))
-		return api.NewNamespaceResponse(api.StoreLayerException, req)
+		return api.NewNamespaceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if total != 0 {
 		log.Error("the removed namespace has remain circuitBreakers", utils.ZapRequestID(requestID))
-		return api.NewNamespaceResponse(api.NamespaceExistedCircuitBreakers, req)
+		return api.NewNamespaceResponse(apimodel.Code_NamespaceExistedCircuitBreakers, req)
 	}
 
 	// 判断属于该命名空间的服务是否都已经被删除
@@ -217,17 +219,17 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 		log.Error("get config group count with namespace err",
 			utils.ZapRequestID(requestID),
 			zap.String("err", err.Error()))
-		return api.NewNamespaceResponse(api.StoreLayerException, req)
+		return api.NewNamespaceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if total != 0 {
 		log.Error("the removed namespace has remain config-group", utils.ZapRequestID(requestID))
-		return api.NewNamespaceResponse(api.NamespaceExistedConfigGroups, req)
+		return api.NewNamespaceResponse(apimodel.Code_NamespaceExistedConfigGroups, req)
 	}
 
 	// 存储层操作
 	if err := tx.DeleteNamespace(namespace.Name); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return api.NewNamespaceResponse(api.StoreLayerException, req)
+		return api.NewNamespaceResponse(apimodel.Code_StoreLayerException, req)
 	}
 
 	s.caches.Service().CleanNamespace(namespace.Name)
@@ -238,26 +240,26 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *api.Namespace) *api.R
 
 	_ = s.afterNamespaceResource(ctx, req, &model.Namespace{Name: req.GetName().GetValue()}, true)
 
-	return api.NewNamespaceResponse(api.ExecuteSuccess, req)
+	return api.NewNamespaceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
 // UpdateNamespaces 批量修改命名空间
-func (s *Server) UpdateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse {
+func (s *Server) UpdateNamespaces(ctx context.Context, req []*apimodel.Namespace) *apiservice.BatchWriteResponse {
 	if checkError := checkBatchNamespace(req); checkError != nil {
 		return checkError
 	}
 
-	responses := api.NewBatchWriteResponse(api.ExecuteSuccess)
+	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, namespace := range req {
 		response := s.UpdateNamespace(ctx, namespace)
-		responses.Collect(response)
+		api.Collect(responses, response)
 	}
 
 	return responses
 }
 
 // UpdateNamespace 修改单个命名空间
-func (s *Server) UpdateNamespace(ctx context.Context, req *api.Namespace) *api.Response {
+func (s *Server) UpdateNamespace(ctx context.Context, req *apimodel.Namespace) *apiservice.Response {
 	// 参数检查
 	if resp := checkReviseNamespace(ctx, req); resp != nil {
 		return resp
@@ -276,7 +278,7 @@ func (s *Server) UpdateNamespace(ctx context.Context, req *api.Namespace) *api.R
 	// 存储层操作
 	if err := s.storage.UpdateNamespace(namespace); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid))
-		return api.NewNamespaceResponse(api.StoreLayerException, req)
+		return api.NewNamespaceResponse(apimodel.Code_StoreLayerException, req)
 	}
 
 	msg := fmt.Sprintf("update namespace: name=%s", namespace.Name)
@@ -284,16 +286,16 @@ func (s *Server) UpdateNamespace(ctx context.Context, req *api.Namespace) *api.R
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.OUpdate))
 
 	if err := s.afterNamespaceResource(ctx, req, namespace, false); err != nil {
-		return api.NewNamespaceResponse(api.ExecuteException, req)
+		return api.NewNamespaceResponse(apimodel.Code_ExecuteException, req)
 	}
 
-	return api.NewNamespaceResponse(api.ExecuteSuccess, req)
+	return api.NewNamespaceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
 /**
  * @brief 修改命名空间属性
  */
-func (s *Server) updateNamespaceAttribute(req *api.Namespace, namespace *model.Namespace) {
+func (s *Server) updateNamespaceAttribute(req *apimodel.Namespace, namespace *model.Namespace) {
 	if req.GetComment() != nil {
 		namespace.Comment = req.GetComment().GetValue()
 	}
@@ -304,7 +306,7 @@ func (s *Server) updateNamespaceAttribute(req *api.Namespace, namespace *model.N
 }
 
 // UpdateNamespaceToken 更新命名空间token
-func (s *Server) UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response {
+func (s *Server) UpdateNamespaceToken(ctx context.Context, req *apimodel.Namespace) *apiservice.Response {
 	if resp := checkReviseNamespace(ctx, req); resp != nil {
 		return resp
 	}
@@ -320,23 +322,23 @@ func (s *Server) UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *
 	// 存储层操作
 	if err := s.storage.UpdateNamespaceToken(namespace.Name, token); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid))
-		return api.NewNamespaceResponse(api.StoreLayerException, req)
+		return api.NewNamespaceResponse(apimodel.Code_StoreLayerException, req)
 	}
 
 	msg := fmt.Sprintf("update namespace token: name=%s", namespace.Name)
 	log.Info(msg, utils.ZapRequestID(rid))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.OUpdateToken))
 
-	out := &api.Namespace{
+	out := &apimodel.Namespace{
 		Name:  req.GetName(),
 		Token: utils.NewStringValue(token),
 	}
 
-	return api.NewNamespaceResponse(api.ExecuteSuccess, out)
+	return api.NewNamespaceResponse(apimodel.Code_ExecuteSuccess, out)
 }
 
 // GetNamespaces 查询命名空间
-func (s *Server) GetNamespaces(ctx context.Context, query map[string][]string) *api.BatchQueryResponse {
+func (s *Server) GetNamespaces(ctx context.Context, query map[string][]string) *apiservice.BatchQueryResponse {
 	filter, offset, limit, checkError := checkGetNamespace(query)
 	if checkError != nil {
 		return checkError
@@ -344,15 +346,15 @@ func (s *Server) GetNamespaces(ctx context.Context, query map[string][]string) *
 
 	namespaces, amount, err := s.storage.GetNamespaces(filter, offset, limit)
 	if err != nil {
-		return api.NewBatchQueryResponse(api.StoreLayerException)
+		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
 	}
 
-	out := api.NewBatchQueryResponse(api.ExecuteSuccess)
+	out := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
 	out.Amount = utils.NewUInt32Value(amount)
 	out.Size = utils.NewUInt32Value(uint32(len(namespaces)))
 	for _, namespace := range namespaces {
 		nsCntInfo := s.caches.Service().GetNamespaceCntInfo(namespace.Name)
-		out.AddNamespace(&api.Namespace{
+		api.AddNamespace(out, &apimodel.Namespace{
 			Id:                       utils.NewStringValue(namespace.Name),
 			Name:                     utils.NewStringValue(namespace.Name),
 			Comment:                  utils.NewStringValue(namespace.Comment),
@@ -368,7 +370,7 @@ func (s *Server) GetNamespaces(ctx context.Context, query map[string][]string) *
 }
 
 // GetNamespaceToken 获取命名空间的token
-func (s *Server) GetNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response {
+func (s *Server) GetNamespaceToken(ctx context.Context, req *apimodel.Namespace) *apiservice.Response {
 	if resp := checkReviseNamespace(ctx, req); resp != nil {
 		return resp
 	}
@@ -380,11 +382,11 @@ func (s *Server) GetNamespaceToken(ctx context.Context, req *api.Namespace) *api
 
 	// s.RecordHistory(namespaceRecordEntry(ctx, req, model.OGetToken))
 	// 构造返回数据
-	out := &api.Namespace{
+	out := &apimodel.Namespace{
 		Name:  req.GetName(),
 		Token: utils.NewStringValue(namespace.Token),
 	}
-	return api.NewNamespaceResponse(api.ExecuteSuccess, out)
+	return api.NewNamespaceResponse(apimodel.Code_ExecuteSuccess, out)
 }
 
 // 根据命名空间查询服务总数
@@ -417,7 +419,7 @@ func (s *Server) getCircuitBreakerCountWithNamespace(namespace string) (uint32, 
 }
 
 // 检查namespace的权限，并且返回namespace
-func (s *Server) checkNamespaceAuthority(ctx context.Context, req *api.Namespace) (*model.Namespace, *api.Response) {
+func (s *Server) checkNamespaceAuthority(ctx context.Context, req *apimodel.Namespace) (*model.Namespace, *apiservice.Response) {
 	rid := utils.ParseRequestID(ctx)
 	namespaceName := req.GetName().GetValue()
 	// namespaceToken := parseNamespaceToken(ctx, req)
@@ -426,10 +428,10 @@ func (s *Server) checkNamespaceAuthority(ctx context.Context, req *api.Namespace
 	namespace, err := s.storage.GetNamespace(namespaceName)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid))
-		return nil, api.NewNamespaceResponse(api.StoreLayerException, req)
+		return nil, api.NewNamespaceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if namespace == nil {
-		return nil, api.NewNamespaceResponse(api.NotFoundResource, req)
+		return nil, api.NewNamespaceResponse(apimodel.Code_NotFoundResource, req)
 	}
 
 	// 鉴权
@@ -441,45 +443,45 @@ func (s *Server) checkNamespaceAuthority(ctx context.Context, req *api.Namespace
 }
 
 // 检查批量请求
-func checkBatchNamespace(req []*api.Namespace) *api.BatchWriteResponse {
+func checkBatchNamespace(req []*apimodel.Namespace) *apiservice.BatchWriteResponse {
 	if len(req) == 0 {
-		return api.NewBatchWriteResponse(api.EmptyRequest)
+		return api.NewBatchWriteResponse(apimodel.Code_EmptyRequest)
 	}
 
 	if len(req) > utils.MaxBatchSize {
-		return api.NewBatchWriteResponse(api.BatchSizeOverLimit)
+		return api.NewBatchWriteResponse(apimodel.Code_BatchSizeOverLimit)
 	}
 
 	return nil
 }
 
 // 检查创建命名空间请求参数
-func checkCreateNamespace(req *api.Namespace) *api.Response {
+func checkCreateNamespace(req *apimodel.Namespace) *apiservice.Response {
 	if req == nil {
-		return api.NewNamespaceResponse(api.EmptyRequest, req)
+		return api.NewNamespaceResponse(apimodel.Code_EmptyRequest, req)
 	}
 
 	if err := utils.CheckResourceName(req.GetName()); err != nil {
-		return api.NewNamespaceResponse(api.InvalidNamespaceName, req)
+		return api.NewNamespaceResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
 
 	return nil
 }
 
 // 检查删除/修改命名空间请求参数
-func checkReviseNamespace(ctx context.Context, req *api.Namespace) *api.Response {
+func checkReviseNamespace(ctx context.Context, req *apimodel.Namespace) *apiservice.Response {
 	if req == nil {
-		return api.NewNamespaceResponse(api.EmptyRequest, req)
+		return api.NewNamespaceResponse(apimodel.Code_EmptyRequest, req)
 	}
 
 	if err := utils.CheckResourceName(req.GetName()); err != nil {
-		return api.NewNamespaceResponse(api.InvalidNamespaceName, req)
+		return api.NewNamespaceResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
 	return nil
 }
 
 // 检查查询命名空间请求参数
-func checkGetNamespace(query map[string][]string) (map[string][]string, int, int, *api.BatchQueryResponse) {
+func checkGetNamespace(query map[string][]string) (map[string][]string, int, int, *apiservice.BatchQueryResponse) {
 	filter := make(map[string][]string)
 
 	if value := query["name"]; len(value) > 0 {
@@ -492,12 +494,12 @@ func checkGetNamespace(query map[string][]string) (map[string][]string, int, int
 
 	offset, err := utils.CheckQueryOffset(query["offset"])
 	if err != nil {
-		return nil, 0, 0, api.NewBatchQueryResponse(api.InvalidParameter)
+		return nil, 0, 0, api.NewBatchQueryResponse(apimodel.Code_InvalidParameter)
 	}
 
 	limit, err := utils.CheckQueryLimit(query["limit"])
 	if err != nil {
-		return nil, 0, 0, api.NewBatchQueryResponse(api.InvalidParameter)
+		return nil, 0, 0, api.NewBatchQueryResponse(apimodel.Code_InvalidParameter)
 	}
 
 	return filter, offset, limit, nil
@@ -505,7 +507,7 @@ func checkGetNamespace(query map[string][]string) (map[string][]string, int, int
 
 // 返回命名空间请求的token
 // 默认先从req中获取，不存在，则使用header的
-func parseNamespaceToken(ctx context.Context, req *api.Namespace) string {
+func parseNamespaceToken(ctx context.Context, req *apimodel.Namespace) string {
 	if reqToken := req.GetToken().GetValue(); reqToken != "" {
 		return reqToken
 	}
@@ -518,7 +520,7 @@ func parseNamespaceToken(ctx context.Context, req *api.Namespace) string {
 }
 
 // 生成命名空间的记录entry
-func namespaceRecordEntry(ctx context.Context, req *api.Namespace, opt model.OperationType) *model.RecordEntry {
+func namespaceRecordEntry(ctx context.Context, req *apimodel.Namespace, opt model.OperationType) *model.RecordEntry {
 	marshaler := jsonpb.Marshaler{}
 	datail, _ := marshaler.MarshalToString(req)
 	return &model.RecordEntry{

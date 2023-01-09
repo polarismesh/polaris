@@ -18,6 +18,8 @@
 package cache
 
 import (
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"strconv"
 	"sync"
 	"time"
@@ -25,7 +27,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -59,7 +60,7 @@ type InstanceCache interface {
 	// GetServicePorts 根据服务ID获取端口号
 	GetServicePorts(serviceID string) []string
 	// GetInstanceLabels Get the label of all instances under a service
-	GetInstanceLabels(serviceID string) *api.InstanceLabels
+	GetInstanceLabels(serviceID string) *apiservice.InstanceLabels
 }
 
 // instanceCache 实例缓存的类
@@ -430,18 +431,18 @@ func (ic *instanceCache) GetInstancesCount() int {
 }
 
 // GetInstanceLabels 获取某个服务下实例的所有标签信息集合
-func (ic *instanceCache) GetInstanceLabels(serviceID string) *api.InstanceLabels {
+func (ic *instanceCache) GetInstanceLabels(serviceID string) *apiservice.InstanceLabels {
 	if serviceID == "" {
-		return &api.InstanceLabels{}
+		return &apiservice.InstanceLabels{}
 	}
 
 	value, ok := ic.services.Load(serviceID)
 	if !ok {
-		return &api.InstanceLabels{}
+		return &apiservice.InstanceLabels{}
 	}
 
-	ret := &api.InstanceLabels{
-		Labels: make(map[string]*api.StringList),
+	ret := &apiservice.InstanceLabels{
+		Labels: make(map[string]*apimodel.StringList),
 	}
 
 	tmp := make(map[string]map[string]struct{})
@@ -458,7 +459,7 @@ func (ic *instanceCache) GetInstanceLabels(serviceID string) *api.InstanceLabels
 
 	for k, v := range tmp {
 		if _, ok := ret.Labels[k]; !ok {
-			ret.Labels[k] = &api.StringList{Values: make([]string, 0, 4)}
+			ret.Labels[k] = &apimodel.StringList{Values: make([]string, 0, 4)}
 		}
 
 		for vv := range v {

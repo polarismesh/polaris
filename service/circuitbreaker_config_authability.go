@@ -19,6 +19,9 @@ package service
 
 import (
 	"context"
+	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
@@ -27,12 +30,12 @@ import (
 
 // CreateCircuitBreakers creates circuit breakers
 func (svr *serverAuthAbility) CreateCircuitBreakers(ctx context.Context,
-	reqs []*api.CircuitBreaker) *api.BatchWriteResponse {
+	reqs []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerAuthContext(ctx, reqs, model.Create, "CreateCircuitBreakers")
 
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -43,12 +46,12 @@ func (svr *serverAuthAbility) CreateCircuitBreakers(ctx context.Context,
 
 // CreateCircuitBreakerVersions creates circuit breaker versions
 func (svr *serverAuthAbility) CreateCircuitBreakerVersions(ctx context.Context,
-	reqs []*api.CircuitBreaker) *api.BatchWriteResponse {
+	reqs []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerAuthContext(ctx, reqs, model.Create, "CreateCircuitBreakerVersions")
 
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -59,12 +62,12 @@ func (svr *serverAuthAbility) CreateCircuitBreakerVersions(ctx context.Context,
 
 // DeleteCircuitBreakers delete circuit breakers
 func (svr *serverAuthAbility) DeleteCircuitBreakers(ctx context.Context,
-	reqs []*api.CircuitBreaker) *api.BatchWriteResponse {
+	reqs []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerAuthContext(ctx, reqs, model.Delete, "DeleteCircuitBreakers")
 
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -75,12 +78,12 @@ func (svr *serverAuthAbility) DeleteCircuitBreakers(ctx context.Context,
 
 // UpdateCircuitBreakers update circuit breakers
 func (svr *serverAuthAbility) UpdateCircuitBreakers(ctx context.Context,
-	reqs []*api.CircuitBreaker) *api.BatchWriteResponse {
+	reqs []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerAuthContext(ctx, reqs, model.Modify, "UpdateCircuitBreakers")
 
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
 
 	return svr.targetServer.UpdateCircuitBreakers(ctx, reqs)
@@ -88,12 +91,12 @@ func (svr *serverAuthAbility) UpdateCircuitBreakers(ctx context.Context,
 
 // ReleaseCircuitBreakers release circuit breakers
 func (svr *serverAuthAbility) ReleaseCircuitBreakers(ctx context.Context,
-	reqs []*api.ConfigRelease) *api.BatchWriteResponse {
+	reqs []*apiservice.ConfigRelease) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerReleaseAuthContext(ctx, reqs, model.Create, "ReleaseCircuitBreakers")
 
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -104,12 +107,12 @@ func (svr *serverAuthAbility) ReleaseCircuitBreakers(ctx context.Context,
 
 // UnBindCircuitBreakers unbind circuit breakers
 func (svr *serverAuthAbility) UnBindCircuitBreakers(ctx context.Context,
-	reqs []*api.ConfigRelease) *api.BatchWriteResponse {
+	reqs []*apiservice.ConfigRelease) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerReleaseAuthContext(ctx, reqs, model.Modify, "UnBindCircuitBreakers")
 
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(api.NotAllowedAccess, err.Error())
+		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -120,35 +123,35 @@ func (svr *serverAuthAbility) UnBindCircuitBreakers(ctx context.Context,
 
 // GetCircuitBreaker get circuit breaker
 func (svr *serverAuthAbility) GetCircuitBreaker(ctx context.Context,
-	query map[string]string) *api.BatchQueryResponse {
+	query map[string]string) *apiservice.BatchQueryResponse {
 	return svr.targetServer.GetCircuitBreaker(ctx, query)
 }
 
 // GetCircuitBreakerVersions get circuit breaker versions
 func (svr *serverAuthAbility) GetCircuitBreakerVersions(ctx context.Context,
-	query map[string]string) *api.BatchQueryResponse {
+	query map[string]string) *apiservice.BatchQueryResponse {
 	return svr.targetServer.GetCircuitBreakerVersions(ctx, query)
 }
 
 // GetMasterCircuitBreakers get master circuit breakers
 func (svr *serverAuthAbility) GetMasterCircuitBreakers(ctx context.Context,
-	query map[string]string) *api.BatchQueryResponse {
+	query map[string]string) *apiservice.BatchQueryResponse {
 	return svr.targetServer.GetMasterCircuitBreakers(ctx, query)
 }
 
 // GetReleaseCircuitBreakers get release circuit breakers
 func (svr *serverAuthAbility) GetReleaseCircuitBreakers(ctx context.Context,
-	query map[string]string) *api.BatchQueryResponse {
+	query map[string]string) *apiservice.BatchQueryResponse {
 	return svr.targetServer.GetReleaseCircuitBreakers(ctx, query)
 }
 
 // GetCircuitBreakerByService get circuit breaker by service
 func (svr *serverAuthAbility) GetCircuitBreakerByService(ctx context.Context,
-	query map[string]string) *api.BatchQueryResponse {
+	query map[string]string) *apiservice.BatchQueryResponse {
 	return svr.targetServer.GetCircuitBreakerByService(ctx, query)
 }
 
 // GetCircuitBreakerToken get circuit breaker token
-func (svr *serverAuthAbility) GetCircuitBreakerToken(ctx context.Context, req *api.CircuitBreaker) *api.Response {
+func (svr *serverAuthAbility) GetCircuitBreakerToken(ctx context.Context, req *apifault.CircuitBreaker) *apiservice.Response {
 	return svr.targetServer.GetCircuitBreakerToken(ctx, req)
 }

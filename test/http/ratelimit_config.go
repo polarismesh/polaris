@@ -22,6 +22,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"io"
 
 	"github.com/golang/protobuf/jsonpb"
@@ -33,7 +35,7 @@ import (
 /**
  * @brief 限流规则数组转JSON
  */
-func JSONFromRateLimits(rateLimits []*api.Rule) (*bytes.Buffer, error) {
+func JSONFromRateLimits(rateLimits []*apitraffic.Rule) (*bytes.Buffer, error) {
 	m := jsonpb.Marshaler{Indent: " "}
 
 	buffer := bytes.NewBuffer([]byte{})
@@ -56,7 +58,7 @@ func JSONFromRateLimits(rateLimits []*api.Rule) (*bytes.Buffer, error) {
 /**
  * @brief 创建限流规则
  */
-func (c *Client) CreateRateLimits(rateLimits []*api.Rule) (*api.BatchWriteResponse, error) {
+func (c *Client) CreateRateLimits(rateLimits []*apitraffic.Rule) (*apiservice.BatchWriteResponse, error) {
 	fmt.Printf("\ncreate rate limits\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/ratelimits", c.Address, c.Version)
@@ -85,7 +87,7 @@ func (c *Client) CreateRateLimits(rateLimits []*api.Rule) (*api.BatchWriteRespon
 /**
  * @brief 删除限流规则
  */
-func (c *Client) DeleteRateLimits(rateLimits []*api.Rule) error {
+func (c *Client) DeleteRateLimits(rateLimits []*apitraffic.Rule) error {
 	fmt.Printf("\ndelete rate limits\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/ratelimits/delete", c.Address, c.Version)
@@ -117,7 +119,7 @@ func (c *Client) DeleteRateLimits(rateLimits []*api.Rule) error {
 /**
  * @brief 更新限流规则
  */
-func (c *Client) UpdateRateLimits(rateLimits []*api.Rule) error {
+func (c *Client) UpdateRateLimits(rateLimits []*apitraffic.Rule) error {
 	fmt.Printf("\nupdate rate limits\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/ratelimits", c.Address, c.Version)
@@ -147,14 +149,14 @@ func (c *Client) UpdateRateLimits(rateLimits []*api.Rule) error {
 }
 
 // EnableRateLimits 启用限流规则
-func (c *Client) EnableRateLimits(rateLimits []*api.Rule) error {
+func (c *Client) EnableRateLimits(rateLimits []*apitraffic.Rule) error {
 	fmt.Printf("\nenable rate limits\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/ratelimits/enable", c.Address, c.Version)
 
-	rateLimitsEnable := make([]*api.Rule, 0, len(rateLimits))
+	rateLimitsEnable := make([]*apitraffic.Rule, 0, len(rateLimits))
 	for _, rateLimit := range rateLimits {
-		rateLimitsEnable = append(rateLimitsEnable, &api.Rule{
+		rateLimitsEnable = append(rateLimitsEnable, &apitraffic.Rule{
 			Id:      rateLimit.GetId(),
 			Disable: &wrappers.BoolValue{Value: true},
 		})
@@ -186,7 +188,7 @@ func (c *Client) EnableRateLimits(rateLimits []*api.Rule) error {
 /**
  * @brief 查询限流规则
  */
-func (c *Client) GetRateLimits(rateLimits []*api.Rule) error {
+func (c *Client) GetRateLimits(rateLimits []*apitraffic.Rule) error {
 	fmt.Printf("\nget rate limits\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/ratelimits", c.Address, c.Version)
@@ -221,7 +223,7 @@ func (c *Client) GetRateLimits(rateLimits []*api.Rule) error {
 		return errors.New("invalid batch size")
 	}
 
-	collection := make(map[string]*api.Rule)
+	collection := make(map[string]*apitraffic.Rule)
 	for _, rateLimit := range rateLimits {
 		collection[rateLimit.GetService().GetValue()] = rateLimit
 	}
@@ -248,8 +250,8 @@ func (c *Client) GetRateLimits(rateLimits []*api.Rule) error {
 /**
  * @brief 检查创建限流规则的回复
  */
-func checkCreateRateLimitsResponse(ret *api.BatchWriteResponse, rateLimits []*api.Rule) (
-	*api.BatchWriteResponse, error) {
+func checkCreateRateLimitsResponse(ret *apiservice.BatchWriteResponse, rateLimits []*apitraffic.Rule) (
+	*apiservice.BatchWriteResponse, error) {
 	switch {
 	case ret.GetCode().GetValue() != api.ExecuteSuccess:
 		return nil, errors.New("invalid batch code")
@@ -277,7 +279,7 @@ func checkCreateRateLimitsResponse(ret *api.BatchWriteResponse, rateLimits []*ap
 /**
  * @brief 比较rate limit是否相等
  */
-func compareRateLimit(correctItem *api.Rule, item *api.Rule) (bool, error) {
+func compareRateLimit(correctItem *apitraffic.Rule, item *apitraffic.Rule) (bool, error) {
 	switch {
 	case (correctItem.GetId().GetValue()) != "" && (correctItem.GetId().GetValue() != item.GetId().GetValue()):
 		return false, fmt.Errorf(

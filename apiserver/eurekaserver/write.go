@@ -19,6 +19,8 @@ package eurekaserver
 
 import (
 	"context"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"math"
 	"strconv"
 
@@ -27,8 +29,8 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
-func buildBaseInstance(instance *InstanceInfo, namespace string, appId string, replicated bool) *api.Instance {
-	targetInstance := &api.Instance{}
+func buildBaseInstance(instance *InstanceInfo, namespace string, appId string, replicated bool) *apiservice.Instance {
+	targetInstance := &apiservice.Instance{}
 	eurekaMetadata := make(map[string]string)
 
 	eurekaMetadata[MetadataRegisterFrom] = ServerEureka
@@ -74,7 +76,7 @@ func buildBaseInstance(instance *InstanceInfo, namespace string, appId string, r
 	targetInstance.Namespace = &wrappers.StringValue{Value: namespace}
 	targetInstance.Host = &wrappers.StringValue{Value: instance.IpAddr}
 	if instance.Metadata != nil && len(instance.Metadata.Meta) > 0 {
-		targetInstance.Location = &api.Location{}
+		targetInstance.Location = &apimodel.Location{}
 		for k, v := range instance.Metadata.Meta {
 			strValue := ObjectToString(v)
 			switch k {
@@ -94,7 +96,7 @@ func buildBaseInstance(instance *InstanceInfo, namespace string, appId string, r
 	return targetInstance
 }
 
-func buildHealthCheck(instance *InstanceInfo, targetInstance *api.Instance, eurekaMetadata map[string]string) {
+func buildHealthCheck(instance *InstanceInfo, targetInstance *apiservice.Instance, eurekaMetadata map[string]string) {
 	leaseInfo := instance.LeaseInfo
 	var durationInSecs int
 	var renewalIntervalInSecs int
@@ -118,13 +120,13 @@ func buildHealthCheck(instance *InstanceInfo, targetInstance *api.Instance, eure
 	ttl := uint32(math.Min(durationMin, float64(renewalIntervalInSecs)))
 
 	targetInstance.EnableHealthCheck = &wrappers.BoolValue{Value: true}
-	targetInstance.HealthCheck = &api.HealthCheck{
-		Type:      api.HealthCheck_HEARTBEAT,
-		Heartbeat: &api.HeartbeatHealthCheck{Ttl: &wrappers.UInt32Value{Value: ttl}},
+	targetInstance.HealthCheck = &apiservice.HealthCheck{
+		Type:      apiservice.HealthCheck_HEARTBEAT,
+		Heartbeat: &apiservice.HeartbeatHealthCheck{Ttl: &wrappers.UInt32Value{Value: ttl}},
 	}
 }
 
-func buildStatus(instance *InstanceInfo, targetInstance *api.Instance) {
+func buildStatus(instance *InstanceInfo, targetInstance *apiservice.Instance) {
 	// 由于eureka的实例都会自动报心跳，心跳由北极星接管，因此客户端报上来的人工状态OUT_OF_SERVICE，通过isolate来进行代替
 	status := instance.Status
 	if status == "OUT_OF_SERVICE" {
@@ -136,7 +138,7 @@ func buildStatus(instance *InstanceInfo, targetInstance *api.Instance) {
 	}
 }
 
-func convertEurekaInstance(instance *InstanceInfo, namespace string, appId string, replicated bool) *api.Instance {
+func convertEurekaInstance(instance *InstanceInfo, namespace string, appId string, replicated bool) *apiservice.Instance {
 	var secureEnable bool
 	var securePort int
 	var insecureEnable bool
@@ -185,10 +187,10 @@ func (h *EurekaServer) registerInstances(ctx context.Context, appId string, inst
 	}
 	// 5. 如果报服务不存在，对服务进行注册
 	if resp.Code.Value == api.NotFoundResource {
-		svc := &api.Service{}
+		svc := &apiservice.Service{}
 		svc.Namespace = &wrappers.StringValue{Value: h.namespace}
 		svc.Name = &wrappers.StringValue{Value: appId}
-		svcResp := h.namingServer.CreateServices(ctx, []*api.Service{svc})
+		svcResp := h.namingServer.CreateServices(ctx, []*apiservice.Service{svc})
 		svcCreateCode := svcResp.GetCode().GetValue()
 		if svcCreateCode != api.ExecuteSuccess && svcCreateCode != api.ExistedResource {
 			return svcCreateCode
@@ -201,7 +203,7 @@ func (h *EurekaServer) registerInstances(ctx context.Context, appId string, inst
 }
 
 func (h *EurekaServer) deregisterInstance(ctx context.Context, appId string, instanceId string) uint32 {
-	resp := h.namingServer.DeregisterInstance(ctx, &api.Instance{Id: &wrappers.StringValue{Value: instanceId}})
+	resp := h.namingServer.DeregisterInstance(ctx, &apiservice.Instance{Id: &wrappers.StringValue{Value: instanceId}})
 	return resp.GetCode().GetValue()
 }
 
@@ -211,12 +213,12 @@ func (h *EurekaServer) updateStatus(ctx context.Context, appId string, instanceI
 		isolated = true
 	}
 	resp := h.namingServer.UpdateInstances(ctx,
-		[]*api.Instance{{Id: &wrappers.StringValue{Value: instanceId}, Isolate: &wrappers.BoolValue{Value: isolated}}})
+		[]*apiservice.Instance{{Id: &wrappers.StringValue{Value: instanceId}, Isolate: &wrappers.BoolValue{Value: isolated}}})
 	return resp.GetCode().GetValue()
 }
 
 func (h *EurekaServer) renew(ctx context.Context, appId string, instanceId string) uint32 {
-	resp := h.healthCheckServer.Report(ctx, &api.Instance{Id: &wrappers.StringValue{Value: instanceId}})
+	resp := h.healthCheckServer.Report(ctx, &apiservice.Instance{Id: &wrappers.StringValue{Value: instanceId}})
 	code := resp.GetCode().GetValue()
 
 	// 如果目标实例存在，但是没有开启心跳，对于 eureka 来说，仍然属于心跳上报成功
@@ -229,6 +231,6 @@ func (h *EurekaServer) renew(ctx context.Context, appId string, instanceId strin
 
 func (h *EurekaServer) updateMetadata(ctx context.Context, instanceId string, metadata map[string]string) uint32 {
 	resp := h.namingServer.UpdateInstances(ctx,
-		[]*api.Instance{{Id: &wrappers.StringValue{Value: instanceId}, Metadata: metadata}})
+		[]*apiservice.Instance{{Id: &wrappers.StringValue{Value: instanceId}, Metadata: metadata}})
 	return resp.GetCode().GetValue()
 }

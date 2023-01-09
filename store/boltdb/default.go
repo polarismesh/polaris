@@ -18,12 +18,12 @@
 package boltdb
 
 import (
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"time"
 
 	"github.com/boltdb/bolt"
 	"go.uber.org/zap"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -38,6 +38,25 @@ const (
 	DefaultConnMaxLifetime = 60 * 30 // 默认是30分钟
 )
 
+const (
+	svcSpecificQueryKeyService   = "service"
+	svcSpecificQueryKeyNamespace = "serviceNamespace"
+	exactName                    = "exactName"
+	excludeId                    = "excludeId"
+)
+
+const (
+	CommonFieldValid       = "Valid"
+	CommonFieldEnableTime  = "EnableTime"
+	CommonFieldModifyTime  = "ModifyTime"
+	CommonFieldRevision    = "Revision"
+	CommonFieldID          = "ID"
+	CommonFieldName        = "Name"
+	CommonFieldNamespace   = "Namespace"
+	CommonFieldDescription = "Description"
+	CommonFieldEnable      = "Enable"
+)
+
 type boltStore struct {
 	*namespaceStore
 	*clientStore
@@ -49,6 +68,7 @@ type boltStore struct {
 	*routingStore
 	*rateLimitStore
 	*circuitBreakerStore
+	*faultDetectStore
 
 	// 工具
 	*toolStore
@@ -156,17 +176,17 @@ var (
 		Resources: []model.StrategyResource{
 			{
 				StrategyID: "fbca9bfa04ae4ead86e1ecf5811e32a9",
-				ResType:    int32(api.ResourceType_Namespaces),
+				ResType:    int32(apisecurity.ResourceType_Namespaces),
 				ResID:      "*",
 			},
 			{
 				StrategyID: "fbca9bfa04ae4ead86e1ecf5811e32a9",
-				ResType:    int32(api.ResourceType_Services),
+				ResType:    int32(apisecurity.ResourceType_Services),
 				ResID:      "*",
 			},
 			{
 				StrategyID: "fbca9bfa04ae4ead86e1ecf5811e32a9",
-				ResType:    int32(api.ResourceType_ConfigGroups),
+				ResType:    int32(apisecurity.ResourceType_ConfigGroups),
 				ResID:      "*",
 			},
 		},
@@ -286,6 +306,8 @@ func (m *boltStore) newDiscoverModuleStore() error {
 	m.rateLimitStore = &rateLimitStore{handler: m.handler}
 
 	m.circuitBreakerStore = &circuitBreakerStore{handler: m.handler}
+
+	m.faultDetectStore = &faultDetectStore{handler: m.handler}
 
 	m.routingStoreV2 = &routingStoreV2{handler: m.handler}
 

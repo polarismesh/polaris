@@ -19,10 +19,10 @@ package batch
 
 import (
 	"context"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"time"
 
 	"github.com/polarismesh/polaris/cache"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -133,7 +133,7 @@ func (bc *Controller) ClientDeregisterOpen() bool {
 }
 
 // AsyncCreateInstance 异步创建实例，返回一个future，根据future获取创建结果
-func (bc *Controller) AsyncCreateInstance(svcId string, instance *api.Instance, needWait bool) *InstanceFuture {
+func (bc *Controller) AsyncCreateInstance(svcId string, instance *apiservice.Instance, needWait bool) *InstanceFuture {
 	future := &InstanceFuture{
 		serviceId: svcId,
 		needWait:  needWait,
@@ -151,7 +151,7 @@ func (bc *Controller) AsyncCreateInstance(svcId string, instance *api.Instance, 
 }
 
 // AsyncDeleteInstance 异步合并反注册
-func (bc *Controller) AsyncDeleteInstance(instance *api.Instance) *InstanceFuture {
+func (bc *Controller) AsyncDeleteInstance(instance *apiservice.Instance) *InstanceFuture {
 	future := &InstanceFuture{
 		request:  instance,
 		result:   make(chan error, 1),
@@ -163,7 +163,7 @@ func (bc *Controller) AsyncDeleteInstance(instance *api.Instance) *InstanceFutur
 }
 
 // AsyncHeartbeat 异步心跳
-func (bc *Controller) AsyncHeartbeat(instance *api.Instance, healthy bool) *InstanceFuture {
+func (bc *Controller) AsyncHeartbeat(instance *apiservice.Instance, healthy bool) *InstanceFuture {
 	future := &InstanceFuture{
 		request:  instance,
 		result:   make(chan error, 1),
@@ -176,7 +176,7 @@ func (bc *Controller) AsyncHeartbeat(instance *api.Instance, healthy bool) *Inst
 }
 
 // AsyncRegisterClient 异步合并反注册
-func (bc *Controller) AsyncRegisterClient(client *api.Client) *ClientFuture {
+func (bc *Controller) AsyncRegisterClient(client *apiservice.Client) *ClientFuture {
 	future := &ClientFuture{
 		request: client,
 		result:  make(chan error, 1),
@@ -187,7 +187,7 @@ func (bc *Controller) AsyncRegisterClient(client *api.Client) *ClientFuture {
 }
 
 // AsyncDeregisterClient 异步合并反注册
-func (bc *Controller) AsyncDeregisterClient(client *api.Client) *ClientFuture {
+func (bc *Controller) AsyncDeregisterClient(client *apiservice.Client) *ClientFuture {
 	future := &ClientFuture{
 		request: client,
 		result:  make(chan error, 1),

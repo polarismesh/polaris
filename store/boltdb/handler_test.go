@@ -19,6 +19,7 @@ package boltdb
 
 import (
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -28,7 +29,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	v1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 )
 
@@ -165,7 +165,7 @@ func TestBoltHandler_Location(t *testing.T) {
 	defer handler.Close()
 	id := "12345"
 	locValue := &model.Location{
-		Proto: &v1.Location{
+		Proto: &apimodel.Location{
 			Region: &wrappers.StringValue{Value: "huabei"},
 			Zone:   &wrappers.StringValue{Value: "shenzhen"},
 			Campus: &wrappers.StringValue{Value: "longgang1"},

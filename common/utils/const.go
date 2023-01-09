@@ -76,4 +76,6 @@ const (
 	EmptyErrString = "empty"
 	// NilErrString null pointer error string
 	NilErrString = "nil"
+	// MatchAll rule match all service or namespace value
+	MatchAll = "*"
 )

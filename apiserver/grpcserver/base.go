@@ -20,6 +20,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"net"
 	"net/http"
 	"strings"
@@ -220,13 +221,13 @@ func (b *BaseGrpcServer) unaryInterceptor(ctx context.Context, req interface{},
 
 		// 判断是否允许访问
 		if ok := b.AllowAccess(stream.Method); !ok {
-			rsp = api.NewResponse(api.ClientAPINotOpen)
+			rsp = api.NewResponse(apimodel.Code_ClientAPINotOpen)
 			return
 		}
 
 		// handler执行前，限流
-		if code := b.EnterRatelimit(stream.ClientIP, stream.Method); code != api.ExecuteSuccess {
-			rsp = api.NewResponse(code)
+		if code := b.EnterRatelimit(stream.ClientIP, stream.Method); code != uint32(api.ExecuteSuccess) {
+			rsp = api.NewResponse(apimodel.Code(code))
 			return
 		}
 		rsp, err = handler(ctx, req)

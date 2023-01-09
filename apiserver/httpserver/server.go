@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	restful "github.com/emicklei/go-restful/v3"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
@@ -372,12 +372,6 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 					return nil, err
 				}
 				wsContainer.Add(serviceV1)
-
-				serviceV2, err := h.v2Server.GetClientAccessServer(apiConfig.Include)
-				if err != nil {
-					return nil, err
-				}
-				wsContainer.Add(serviceV2)
 			}
 		case "config":
 			if apiConfig.Enable {

@@ -19,8 +19,9 @@ package service
 
 import (
 	"context"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -42,7 +43,7 @@ type ResourceHook interface {
 
 // ResourceEvent 资源事件
 type ResourceEvent struct {
-	ReqService *api.Service
+	ReqService *apiservice.Service
 	Service    *model.Service
 	IsRemove   bool
 }
@@ -67,8 +68,8 @@ func (svr *serverAuthAbility) onServiceResource(ctx context.Context, res *Resour
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
 	ownerId := utils.ParseOwnerID(ctx)
 
-	authCtx.SetAttachment(model.ResourceAttachmentKey, map[api.ResourceType][]model.ResourceEntry{
-		api.ResourceType_Services: {
+	authCtx.SetAttachment(model.ResourceAttachmentKey, map[apisecurity.ResourceType][]model.ResourceEntry{
+		apisecurity.ResourceType_Services: {
 			{
 				ID:    res.Service.ID,
 				Owner: ownerId,

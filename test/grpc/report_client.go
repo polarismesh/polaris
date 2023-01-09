@@ -20,16 +20,16 @@ package grpc
 import (
 	"context"
 	"fmt"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"time"
 
 	"google.golang.org/grpc/metadata"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 // ReportClient 上报客户端信息
-func (c *Client) ReportClient(client *api.Client) error {
+func (c *Client) ReportClient(client *apiservice.Client) error {
 	fmt.Printf("\nreport client\n")
 
 	md := metadata.Pairs("request-id", utils.NewUUID())

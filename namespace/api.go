@@ -19,28 +19,28 @@ package namespace
 
 import (
 	"context"
-
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 // NamespaceOperateServer Namespace related operation
 type NamespaceOperateServer interface {
 	// CreateNamespace Create a single name space
-	CreateNamespace(ctx context.Context, req *api.Namespace) *api.Response
+	CreateNamespace(ctx context.Context, req *apimodel.Namespace) *apiservice.Response
 	// CreateNamespaces Batch creation namespace
-	CreateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse
+	CreateNamespaces(ctx context.Context, req []*apimodel.Namespace) *apiservice.BatchWriteResponse
 	// DeleteNamespace Delete a single namespace
-	DeleteNamespace(ctx context.Context, req *api.Namespace) *api.Response
+	DeleteNamespace(ctx context.Context, req *apimodel.Namespace) *apiservice.Response
 	// DeleteNamespaces Batch delete namespace
-	DeleteNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse
+	DeleteNamespaces(ctx context.Context, req []*apimodel.Namespace) *apiservice.BatchWriteResponse
 	// UpdateNamespaces Batch update naming space
-	UpdateNamespaces(ctx context.Context, req []*api.Namespace) *api.BatchWriteResponse
+	UpdateNamespaces(ctx context.Context, req []*apimodel.Namespace) *apiservice.BatchWriteResponse
 	// UpdateNamespaceToken Update token with namespace
-	UpdateNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response
+	UpdateNamespaceToken(ctx context.Context, req *apimodel.Namespace) *apiservice.Response
 	// GetNamespaces Get a list of namespaces
-	GetNamespaces(ctx context.Context, query map[string][]string) *api.BatchQueryResponse
+	GetNamespaces(ctx context.Context, query map[string][]string) *apiservice.BatchQueryResponse
 	// GetNamespaceToken Get the token with namespace
-	GetNamespaceToken(ctx context.Context, req *api.Namespace) *api.Response
+	GetNamespaceToken(ctx context.Context, req *apimodel.Namespace) *apiservice.Response
 	// CreateNamespaceIfAbsent Create a single name space
-	CreateNamespaceIfAbsent(ctx context.Context, req *api.Namespace) error
+	CreateNamespaceIfAbsent(ctx context.Context, req *apimodel.Namespace) error
 }

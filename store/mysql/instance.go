@@ -20,10 +20,10 @@ package sqldb
 import (
 	"database/sql"
 	"errors"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"strings"
 	"time"
 
-	v1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -757,8 +757,8 @@ func (ins *instanceStore) batchAcquireInstanceMetadata(instances []interface{}) 
 	// 这里会有两层循环，后续可以优化 TODO
 	for id, meta := range out {
 		for _, ele := range instances {
-			if id == ele.(*v1.Instance).GetId().GetValue() {
-				ele.(*v1.Instance).Metadata = meta
+			if id == ele.(*apiservice.Instance).GetId().GetValue() {
+				ele.(*apiservice.Instance).Metadata = meta
 				break
 			}
 		}
@@ -783,7 +783,7 @@ func batchQueryMetadata(queryHandler QueryHandler, instances []interface{}) (*sq
 		} else {
 			str += ",?"
 		}
-		args = append(args, ele.(*v1.Instance).GetId().GetValue())
+		args = append(args, ele.(*apiservice.Instance).GetId().GetValue())
 	}
 	str += ")"
 

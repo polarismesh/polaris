@@ -19,13 +19,14 @@ package cache
 
 import (
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	v1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store/mock"
@@ -52,11 +53,11 @@ func genModelInstances(label string, total int) map[string]*model.Instance {
 	out := make(map[string]*model.Instance)
 	for i := 0; i < total; i++ {
 		entry := &model.Instance{
-			Proto: &v1.Instance{
+			Proto: &apiservice.Instance{
 				Id:   utils.NewStringValue(fmt.Sprintf("instanceID-%s-%d", label, i)),
 				Host: utils.NewStringValue(fmt.Sprintf("host-%s-%d", label, i)),
 				Port: utils.NewUInt32Value(uint32(i + 10)),
-				Location: &v1.Location{
+				Location: &apimodel.Location{
 					Region: utils.NewStringValue("china"),
 					Zone:   utils.NewStringValue("ap-shenzheng"),
 					Campus: utils.NewStringValue("ap-shenzheng-1"),

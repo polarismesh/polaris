@@ -24,7 +24,7 @@ import (
 	"github.com/boltdb/bolt"
 	"go.uber.org/zap"
 
-	v2 "github.com/polarismesh/polaris/common/model/v2"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -56,7 +56,7 @@ type routingStoreV2 struct {
 }
 
 // CreateRoutingConfigV2 新增一个路由配置
-func (r *routingStoreV2) CreateRoutingConfigV2(conf *v2.RoutingConfig) error {
+func (r *routingStoreV2) CreateRoutingConfigV2(conf *model.RouterConfig) error {
 	if conf.ID == "" || conf.Revision == "" {
 		log.Errorf("[Store][boltdb] create routing config v2 missing id or revision")
 		return store.NewStatusError(store.EmptyParamsErr, "missing id or revision")
@@ -81,7 +81,7 @@ func (r *routingStoreV2) cleanRoutingConfig(tx *bolt.Tx, ruleID string) error {
 	return nil
 }
 
-func (r *routingStoreV2) CreateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingConfig) error {
+func (r *routingStoreV2) CreateRoutingConfigV2Tx(tx store.Tx, conf *model.RouterConfig) error {
 	if tx == nil {
 		return errors.New("transaction is nil")
 	}
@@ -90,7 +90,7 @@ func (r *routingStoreV2) CreateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingCo
 	return r.createRoutingConfigV2(dbTx, conf)
 }
 
-func (r *routingStoreV2) createRoutingConfigV2(tx *bolt.Tx, conf *v2.RoutingConfig) error {
+func (r *routingStoreV2) createRoutingConfigV2(tx *bolt.Tx, conf *model.RouterConfig) error {
 	if err := r.cleanRoutingConfig(tx, conf.ID); err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func (r *routingStoreV2) createRoutingConfigV2(tx *bolt.Tx, conf *v2.RoutingConf
 }
 
 // UpdateRoutingConfigV2 更新一个路由配置
-func (r *routingStoreV2) UpdateRoutingConfigV2(conf *v2.RoutingConfig) error {
+func (r *routingStoreV2) UpdateRoutingConfigV2(conf *model.RouterConfig) error {
 	if conf.ID == "" || conf.Revision == "" {
 		log.Errorf("[Store][boltdb] update routing config v2 missing id or revision")
 		return store.NewStatusError(store.EmptyParamsErr, "missing id or revision")
@@ -131,7 +131,7 @@ func (r *routingStoreV2) UpdateRoutingConfigV2(conf *v2.RoutingConfig) error {
 	})
 }
 
-func (r *routingStoreV2) UpdateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingConfig) error {
+func (r *routingStoreV2) UpdateRoutingConfigV2Tx(tx store.Tx, conf *model.RouterConfig) error {
 	if tx == nil {
 		return errors.New("tx is nil")
 	}
@@ -140,7 +140,7 @@ func (r *routingStoreV2) UpdateRoutingConfigV2Tx(tx store.Tx, conf *v2.RoutingCo
 	return r.updateRoutingConfigV2Tx(dbTx, conf)
 }
 
-func (r *routingStoreV2) updateRoutingConfigV2Tx(tx *bolt.Tx, conf *v2.RoutingConfig) error {
+func (r *routingStoreV2) updateRoutingConfigV2Tx(tx *bolt.Tx, conf *model.RouterConfig) error {
 	properties := make(map[string]interface{})
 	properties[routingV2FieldEnable] = conf.Enable
 	properties[routingV2FieldName] = conf.Name
@@ -160,7 +160,7 @@ func (r *routingStoreV2) updateRoutingConfigV2Tx(tx *bolt.Tx, conf *v2.RoutingCo
 }
 
 // EnableRouting
-func (r *routingStoreV2) EnableRouting(conf *v2.RoutingConfig) error {
+func (r *routingStoreV2) EnableRouting(conf *model.RouterConfig) error {
 	if conf.ID == "" || conf.Revision == "" {
 		return errors.New("[Store][database] enable routing config v2 missing some params")
 	}
@@ -205,14 +205,14 @@ func (r *routingStoreV2) DeleteRoutingConfigV2(ruleID string) error {
 
 // GetRoutingConfigsV2ForCache 通过mtime拉取增量的路由配置信息
 // 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
-func (r *routingStoreV2) GetRoutingConfigsV2ForCache(mtime time.Time, firstUpdate bool) ([]*v2.RoutingConfig, error) {
+func (r *routingStoreV2) GetRoutingConfigsV2ForCache(mtime time.Time, firstUpdate bool) ([]*model.RouterConfig, error) {
 	if firstUpdate {
 		mtime = time.Time{}
 	}
 
 	fields := []string{routingV2FieldModifyTime}
 
-	routes, err := r.handler.LoadValuesByFilter(tblNameRoutingV2, fields, &v2.RoutingConfig{},
+	routes, err := r.handler.LoadValuesByFilter(tblNameRoutingV2, fields, &model.RouterConfig{},
 		func(m map[string]interface{}) bool {
 			rMtime, ok := m[routingV2FieldModifyTime]
 			if !ok {
@@ -229,17 +229,17 @@ func (r *routingStoreV2) GetRoutingConfigsV2ForCache(mtime time.Time, firstUpdat
 	return toRouteConfV2(routes), nil
 }
 
-func toRouteConfV2(m map[string]interface{}) []*v2.RoutingConfig {
-	var routeConf []*v2.RoutingConfig
+func toRouteConfV2(m map[string]interface{}) []*model.RouterConfig {
+	var routeConf []*model.RouterConfig
 	for _, r := range m {
-		routeConf = append(routeConf, r.(*v2.RoutingConfig))
+		routeConf = append(routeConf, r.(*model.RouterConfig))
 	}
 
 	return routeConf
 }
 
 // GetRoutingConfigV2WithID 根据服务ID拉取路由配置
-func (r *routingStoreV2) GetRoutingConfigV2WithID(id string) (*v2.RoutingConfig, error) {
+func (r *routingStoreV2) GetRoutingConfigV2WithID(id string) (*model.RouterConfig, error) {
 	tx, err := r.handler.StartTx()
 	if err != nil {
 		return nil, err
@@ -254,7 +254,7 @@ func (r *routingStoreV2) GetRoutingConfigV2WithID(id string) (*v2.RoutingConfig,
 }
 
 // GetRoutingConfigV2WithIDTx 根据服务ID拉取路由配置
-func (r *routingStoreV2) GetRoutingConfigV2WithIDTx(tx store.Tx, id string) (*v2.RoutingConfig, error) {
+func (r *routingStoreV2) GetRoutingConfigV2WithIDTx(tx store.Tx, id string) (*model.RouterConfig, error) {
 
 	if tx == nil {
 		return nil, errors.New("tx is nil")
@@ -264,9 +264,9 @@ func (r *routingStoreV2) GetRoutingConfigV2WithIDTx(tx store.Tx, id string) (*v2
 	return r.getRoutingConfigV2WithIDTx(boldTx, id)
 }
 
-func (r *routingStoreV2) getRoutingConfigV2WithIDTx(tx *bolt.Tx, id string) (*v2.RoutingConfig, error) {
+func (r *routingStoreV2) getRoutingConfigV2WithIDTx(tx *bolt.Tx, id string) (*model.RouterConfig, error) {
 	ret := make(map[string]interface{})
-	if err := loadValues(tx, tblNameRoutingV2, []string{id}, &v2.RoutingConfig{}, ret); err != nil {
+	if err := loadValues(tx, tblNameRoutingV2, []string{id}, &model.RouterConfig{}, ret); err != nil {
 		log.Error("[Store][boltdb] load route config v2 from kv", zap.String("routing-id", id), zap.Error(err))
 		return nil, err
 	}
@@ -279,7 +279,7 @@ func (r *routingStoreV2) getRoutingConfigV2WithIDTx(tx *bolt.Tx, id string) (*v2
 		return nil, ErrMultipleRoutingV2Found
 	}
 
-	val := ret[id].(*v2.RoutingConfig)
+	val := ret[id].(*model.RouterConfig)
 	if !val.Valid {
 		return nil, nil
 	}

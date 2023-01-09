@@ -19,8 +19,9 @@ package resource
 
 import (
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -29,13 +30,13 @@ const (
 )
 
 // CreateServices creates services
-func CreateServices(namespace *api.Namespace) []*api.Service {
+func CreateServices(namespace *apimodel.Namespace) []*apiservice.Service {
 
-	var services []*api.Service
+	var services []*apiservice.Service
 	for index := 0; index < 2; index++ {
 		name := fmt.Sprintf(serviceName, utils.NewUUID(), index)
 
-		service := &api.Service{
+		service := &apiservice.Service{
 			Name:       utils.NewStringValue(name),
 			Namespace:  namespace.GetName(),
 			Metadata:   map[string]string{"test": "test"},
@@ -55,7 +56,7 @@ func CreateServices(namespace *api.Namespace) []*api.Service {
 }
 
 // UpdateServices 更新测试服务
-func UpdateServices(services []*api.Service) {
+func UpdateServices(services []*apiservice.Service) {
 	for _, service := range services {
 		service.Metadata = map[string]string{"update": "update"}
 		service.Ports = utils.NewStringValue("4,4")

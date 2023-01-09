@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"io"
 	"reflect"
 	"time"
@@ -33,7 +34,7 @@ import (
 /**
  * @brief 服务数组转JSON
  */
-func JSONFromServices(services []*api.Service) (*bytes.Buffer, error) {
+func JSONFromServices(services []*apiservice.Service) (*bytes.Buffer, error) {
 	m := jsonpb.Marshaler{Indent: " "}
 
 	buffer := bytes.NewBuffer([]byte{})
@@ -56,7 +57,7 @@ func JSONFromServices(services []*api.Service) (*bytes.Buffer, error) {
 /**
  * @brief 创建服务
  */
-func (c *Client) CreateServices(services []*api.Service) (*api.BatchWriteResponse, error) {
+func (c *Client) CreateServices(services []*apiservice.Service) (*apiservice.BatchWriteResponse, error) {
 	fmt.Printf("\ncreate services\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/services", c.Address, c.Version)
@@ -85,7 +86,7 @@ func (c *Client) CreateServices(services []*api.Service) (*api.BatchWriteRespons
 /**
  * @brief 删除服务
  */
-func (c *Client) DeleteServices(services []*api.Service) error {
+func (c *Client) DeleteServices(services []*apiservice.Service) error {
 	fmt.Printf("\ndelete services\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/services/delete", c.Address, c.Version)
@@ -118,7 +119,7 @@ func (c *Client) DeleteServices(services []*api.Service) error {
 /**
  * @brief 更新服务
  */
-func (c *Client) UpdateServices(services []*api.Service) error {
+func (c *Client) UpdateServices(services []*apiservice.Service) error {
 	fmt.Printf("\nupdate services\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/services", c.Address, c.Version)
@@ -151,7 +152,7 @@ func (c *Client) UpdateServices(services []*api.Service) error {
 /**
  * @brief 查询服务
  */
-func (c *Client) GetServices(services []*api.Service) error {
+func (c *Client) GetServices(services []*apiservice.Service) error {
 	fmt.Printf("\nget services\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/services", c.Address, c.Version)
@@ -186,7 +187,7 @@ func (c *Client) GetServices(services []*api.Service) error {
 		return errors.New("invalid batch size")
 	}
 
-	collection := make(map[string]*api.Service)
+	collection := make(map[string]*apiservice.Service)
 	for _, service := range services {
 		collection[service.GetName().GetValue()] = service
 	}
@@ -211,9 +212,9 @@ func (c *Client) GetServices(services []*api.Service) error {
 /**
  * @brief 检查创建服务的回复
  */
-func checkCreateServicesResponse(ret *api.BatchWriteResponse, services []*api.Service) (
+func checkCreateServicesResponse(ret *apiservice.BatchWriteResponse, services []*apiservice.Service) (
 	// #lizard forgives
-	*api.BatchWriteResponse, error) {
+	*apiservice.BatchWriteResponse, error) {
 	if ret.GetCode() == nil || ret.GetCode().GetValue() != api.ExecuteSuccess {
 		return nil, errors.New("invalid batch code")
 	}
@@ -258,7 +259,7 @@ func checkCreateServicesResponse(ret *api.BatchWriteResponse, services []*api.Se
 /**
  * @brief 比较service是否相等
  */
-func compareService(correctItem *api.Service, item *api.Service) bool {
+func compareService(correctItem *apiservice.Service, item *apiservice.Service) bool {
 	correctName := correctItem.GetName().GetValue()
 	correctNamespace := correctItem.GetNamespace().GetValue()
 	correctMeta := correctItem.GetMetadata()

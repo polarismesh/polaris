@@ -19,6 +19,8 @@ package service
 
 import (
 	"context"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	"go.uber.org/zap"
 
@@ -37,11 +39,11 @@ var (
 	}
 )
 
-func (s *Server) checkAndStoreClient(ctx context.Context, req *api.Client) *api.Response {
+func (s *Server) checkAndStoreClient(ctx context.Context, req *apiservice.Client) *apiservice.Response {
 	clientId := req.GetId().GetValue()
 	var needStore bool
 	client := s.caches.Client().GetClient(clientId)
-	var resp *api.Response
+	var resp *apiservice.Response
 	if nil == client {
 		needStore = true
 	} else {
@@ -60,7 +62,7 @@ func (s *Server) checkAndStoreClient(ctx context.Context, req *api.Client) *api.
 	return s.HealthServer().ReportByClient(context.Background(), req)
 }
 
-func (s *Server) createClient(ctx context.Context, req *api.Client) (*model.Client, *api.Response) {
+func (s *Server) createClient(ctx context.Context, req *apiservice.Client) (*model.Client, *apiservice.Response) {
 	if namingServer.bc == nil || !namingServer.bc.ClientRegisterOpen() {
 		return nil, nil
 	}
@@ -71,24 +73,24 @@ func (s *Server) createClient(ctx context.Context, req *api.Client) (*model.Clie
 // 底层函数会合并create请求，增加并发创建的吞吐
 // req 原始请求
 // ins 包含了req数据与instanceID，serviceToken
-func (s *Server) asyncCreateClient(ctx context.Context, req *api.Client) (*model.Client, *api.Response) {
+func (s *Server) asyncCreateClient(ctx context.Context, req *apiservice.Client) (*model.Client, *apiservice.Response) {
 	rid := utils.ParseRequestID(ctx)
 	pid := utils.ParsePlatformID(ctx)
 	future := s.bc.AsyncRegisterClient(req)
 	if err := future.Wait(); err != nil {
 		log.Error("[Server][ReportClient] async create client", zap.Error(err), utils.ZapRequestID(rid),
 			utils.ZapPlatformID(pid))
-		if future.Code() == api.ExistedResource {
+		if future.Code() == apimodel.Code_ExistedResource {
 			req.Id = utils.NewStringValue(req.GetId().GetValue())
 		}
-		return nil, api.NewClientResponse(future.Code(), req)
+		return nil, api.NewClientResponse(apimodel.Code(future.Code()), req)
 	}
 
 	return future.Client(), nil
 }
 
 // GetReportClients create one instance
-func (s *Server) GetReportClients(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+func (s *Server) GetReportClients(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	searchFilters := make(map[string]string)
 	var (
 		offset, limit uint32
@@ -98,7 +100,7 @@ func (s *Server) GetReportClients(ctx context.Context, query map[string]string) 
 	for key, value := range query {
 		if _, ok := clientFilterAttributes[key]; !ok {
 			log.Errorf("[Server][Client] attribute(%s) it not allowed", key)
-			return api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
+			return api.NewBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, key+" is not allowed")
 		}
 		searchFilters[key] = value
 	}
@@ -110,27 +112,27 @@ func (s *Server) GetReportClients(ctx context.Context, query map[string]string) 
 
 	offset, limit, err = utils.ParseOffsetAndLimit(searchFilters)
 	if err != nil {
-		return api.NewBatchQueryResponse(api.InvalidParameter)
+		return api.NewBatchQueryResponse(apimodel.Code_InvalidParameter)
 	}
 
 	total, services, err := s.caches.Client().GetClientsByFilter(searchFilters, offset, limit)
 	if err != nil {
 		log.Errorf("[Server][Client][Query] req(%+v) store err: %s", query, err.Error())
-		return api.NewBatchQueryResponse(api.StoreLayerException)
+		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
 	}
 
-	resp := api.NewBatchQueryResponse(api.ExecuteSuccess)
+	resp := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
 	resp.Amount = utils.NewUInt32Value(total)
 	resp.Size = utils.NewUInt32Value(uint32(len(services)))
 	resp.Clients = enhancedClients2Api(clients, client2Api)
 	return resp
 }
 
-type Client2Api func(client *model.Client) *api.Client
+type Client2Api func(client *model.Client) *apiservice.Client
 
 // client 数组转为[]*api.Client
-func enhancedClients2Api(clients []*model.Client, handler Client2Api) []*api.Client {
-	out := make([]*api.Client, 0, len(clients))
+func enhancedClients2Api(clients []*model.Client, handler Client2Api) []*apiservice.Client {
+	out := make([]*apiservice.Client, 0, len(clients))
 	for _, entry := range clients {
 		outUser := handler(entry)
 		out = append(out, outUser)
@@ -139,7 +141,7 @@ func enhancedClients2Api(clients []*model.Client, handler Client2Api) []*api.Cli
 }
 
 // model.Client 转为 api.Client
-func client2Api(client *model.Client) *api.Client {
+func client2Api(client *model.Client) *apiservice.Client {
 	if client == nil {
 		return nil
 	}
@@ -147,7 +149,7 @@ func client2Api(client *model.Client) *api.Client {
 	return out
 }
 
-func clientEquals(client1 *api.Client, client2 *api.Client) bool {
+func clientEquals(client1 *apiservice.Client, client2 *apiservice.Client) bool {
 	if client1.GetId().GetValue() != client2.GetId().GetValue() {
 		return false
 	}

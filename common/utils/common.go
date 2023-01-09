@@ -23,6 +23,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"io"
 	"regexp"
 	"strconv"
@@ -469,8 +471,13 @@ func ZapInstanceID(id string) zap.Field {
 
 // CheckDbStrFieldLen 检查name字段是否超过DB中对应字段的最大字符长度限制
 func CheckDbStrFieldLen(param *wrappers.StringValue, dbLen int) error {
-	if param.GetValue() != "" && utf8.RuneCountInString(param.GetValue()) > dbLen {
-		errMsg := fmt.Sprintf("length of %s is over %d", param.GetValue(), dbLen)
+	return CheckDbRawStrFieldLen(param.GetValue(), dbLen)
+}
+
+// CheckDbRawStrFieldLen 检查name字段是否超过DB中对应字段的最大字符长度限制
+func CheckDbRawStrFieldLen(param string, dbLen int) error {
+	if param != "" && utf8.RuneCountInString(param) > dbLen {
+		errMsg := fmt.Sprintf("length of %s is over %d", param, dbLen)
 		return errors.New(errMsg)
 	}
 	return nil
@@ -489,21 +496,21 @@ func CheckDbMetaDataFieldLen(metaData map[string]string) error {
 }
 
 // CheckInstanceTetrad 根据服务实例四元组计算ID
-func CheckInstanceTetrad(req *api.Instance) (string, *api.Response) {
+func CheckInstanceTetrad(req *apiservice.Instance) (string, *apiservice.Response) {
 	if err := CheckResourceName(req.GetService()); err != nil {
-		return "", api.NewInstanceResponse(api.InvalidServiceName, req)
+		return "", api.NewInstanceResponse(apimodel.Code_InvalidServiceName, req)
 	}
 
 	if err := CheckResourceName(req.GetNamespace()); err != nil {
-		return "", api.NewInstanceResponse(api.InvalidNamespaceName, req)
+		return "", api.NewInstanceResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
 
 	if err := CheckInstanceHost(req.GetHost()); err != nil {
-		return "", api.NewInstanceResponse(api.InvalidInstanceHost, req)
+		return "", api.NewInstanceResponse(apimodel.Code_InvalidInstanceHost, req)
 	}
 
 	if err := CheckInstancePort(req.GetPort()); err != nil {
-		return "", api.NewInstanceResponse(api.InvalidInstancePort, req)
+		return "", api.NewInstanceResponse(apimodel.Code_InvalidInstancePort, req)
 	}
 
 	var instID = req.GetId().GetValue()
@@ -516,7 +523,7 @@ func CheckInstanceTetrad(req *api.Instance) (string, *api.Response) {
 			req.GetPort().GetValue(),
 		)
 		if err != nil {
-			return "", api.NewInstanceResponse(api.ExecuteException, req)
+			return "", api.NewInstanceResponse(apimodel.Code_ExecuteException, req)
 		}
 		instID = id
 	}

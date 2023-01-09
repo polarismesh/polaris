@@ -19,6 +19,7 @@ package config
 
 import (
 	"context"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"sync"
 	"time"
 
@@ -32,8 +33,8 @@ const (
 
 type connection struct {
 	finishTime       time.Time
-	finishChan       chan *api.ConfigClientResponse
-	watchConfigFiles []*api.ClientConfigFileInfo
+	finishChan       chan *apiconfig.ConfigClientResponse
+	watchConfigFiles []*apiconfig.ClientConfigFileInfo
 }
 
 type connManager struct {
@@ -43,7 +44,7 @@ type connManager struct {
 }
 
 var (
-	notModifiedResponse = &api.ConfigClientResponse{
+	notModifiedResponse = &apiconfig.ConfigClientResponse{
 		Code:       utils.NewUInt32Value(api.DataNoChange),
 		ConfigFile: nil,
 	}
@@ -63,9 +64,9 @@ func NewConfigConnManager(ctx context.Context, watchCenter *watchCenter) *connMa
 	return cm
 }
 
-func (c *connManager) AddConn(clientId string, files []*api.ClientConfigFileInfo) chan *api.ConfigClientResponse {
+func (c *connManager) AddConn(clientId string, files []*apiconfig.ClientConfigFileInfo) chan *apiconfig.ConfigClientResponse {
 
-	finishChan := make(chan *api.ConfigClientResponse)
+	finishChan := make(chan *apiconfig.ConfigClientResponse)
 
 	cm.conns.Store(clientId, &connection{
 		finishTime:       time.Now().Add(defaultLongPollingTimeout),
@@ -73,7 +74,7 @@ func (c *connManager) AddConn(clientId string, files []*api.ClientConfigFileInfo
 		watchConfigFiles: files,
 	})
 
-	c.watchCenter.AddWatcher(clientId, files, func(clientId string, rsp *api.ConfigClientResponse) bool {
+	c.watchCenter.AddWatcher(clientId, files, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
 		connObj, ok := cm.conns.Load(clientId)
 		if ok {
 			conn := connObj.(*connection)

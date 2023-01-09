@@ -19,8 +19,8 @@ package resource
 
 import (
 	"fmt"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -31,10 +31,10 @@ const (
 /**
  * @brief 创建客户端
  */
-func CreateClient(index uint32) *api.Client {
-	return &api.Client{
+func CreateClient(index uint32) *apiservice.Client {
+	return &apiservice.Client{
 		Host:    utils.NewStringValue(fmt.Sprintf(clientHost, index, index, index, index)),
-		Type:    api.Client_SDK,
+		Type:    apiservice.Client_SDK,
 		Version: utils.NewStringValue("8.8.8"),
 	}
 }

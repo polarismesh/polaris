@@ -55,6 +55,7 @@ type stableStore struct {
 	*userStore
 	*groupStore
 	*strategyStore
+	*faultDetectRuleStore
 
 	// 配置中心stores
 	*configFileGroupStore
@@ -265,6 +266,8 @@ func (s *stableStore) newStore() {
 
 	s.strategyStore = &strategyStore{master: s.master, slave: s.slave}
 
+	s.faultDetectRuleStore = &faultDetectRuleStore{master: s.master, slave: s.slave}
+
 	s.configFileGroupStore = &configFileGroupStore{db: s.master}
 
 	s.configFileStore = &configFileStore{db: s.master}
@@ -282,4 +285,12 @@ func (s *stableStore) newStore() {
 	s.routingConfigStoreV2 = &routingConfigStoreV2{master: s.master, slave: s.slave}
 
 	s.maintainStore = newMaintainStore(s.master)
+}
+
+func buildEtimeStr(enable bool) string {
+	etimeStr := "sysdate()"
+	if !enable {
+		etimeStr = emptyEnableTime
+	}
+	return etimeStr
 }

@@ -18,9 +18,9 @@
 package service
 
 import (
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"strings"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -98,7 +98,7 @@ func (set *ServiceSet) Range(fn func(val *model.Service) bool) {
 }
 
 // CreateInstanceModel 创建存储层服务实例模型
-func CreateInstanceModel(serviceID string, req *api.Instance) *model.Instance {
+func CreateInstanceModel(serviceID string, req *apiservice.Instance) *model.Instance {
 	// 默认为健康的
 	healthy := true
 	if req.GetHealthy() != nil {
@@ -121,7 +121,7 @@ func CreateInstanceModel(serviceID string, req *api.Instance) *model.Instance {
 		ServiceID: serviceID,
 	}
 
-	protoIns := &api.Instance{
+	protoIns := &apiservice.Instance{
 		Id:       req.GetId(),
 		Host:     utils.NewStringValue(strings.TrimSpace(req.GetHost().GetValue())),
 		VpcId:    req.GetVpcId(),
@@ -144,7 +144,7 @@ func CreateInstanceModel(serviceID string, req *api.Instance) *model.Instance {
 		(req.GetEnableHealthCheck() == nil || req.GetEnableHealthCheck().GetValue()) {
 		protoIns.EnableHealthCheck = utils.NewBoolValue(true)
 		protoIns.HealthCheck = req.HealthCheck
-		protoIns.HealthCheck.Type = api.HealthCheck_HEARTBEAT
+		protoIns.HealthCheck.Type = apiservice.HealthCheck_HEARTBEAT
 		// ttl range: (0, 60]
 		ttl := protoIns.GetHealthCheck().GetHeartbeat().GetTtl().GetValue()
 		if ttl == 0 || ttl > 60 {

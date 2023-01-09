@@ -20,8 +20,7 @@ package httpserver
 import (
 	"github.com/emicklei/go-restful/v3"
 	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
-
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 )
 
 var (
@@ -41,7 +40,7 @@ func enrichCreateStrategyApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder 
 	return r.
 		Doc("创建鉴权策略").
 		Metadata(restfulspec.KeyOpenAPITags, authApiTags).
-		Reads(api.AuthStrategy{}, "create auth strategy").
+		Reads(apisecurity.AuthStrategy{}, "create auth strategy").
 		Notes(enrichCreateStrategyApiNotes)
 }
 
@@ -49,7 +48,7 @@ func enrichUpdateStrategiesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 	return r.
 		Doc("更新鉴权策略").
 		Metadata(restfulspec.KeyOpenAPITags, authApiTags).
-		Reads(api.AuthStrategy{}, "update auth strategy").
+		Reads(apisecurity.AuthStrategy{}, "update auth strategy").
 		Notes(enrichUpdateStrategiesApiNotes)
 }
 
@@ -59,8 +58,7 @@ func enrichGetStrategiesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Metadata(restfulspec.KeyOpenAPITags, authApiTags).
 		Param(restful.QueryParameter("id", "策略ID").DataType("string").Required(false)).
 		Param(restful.QueryParameter("name", "策略名称, 当前仅提供全模糊搜索").DataType("string").Required(false)).
-		Param(restful.QueryParameter("default", "“0” 查询自定义策略；“1” 查询默认策略；不填则为查询（默认+自定义）鉴权策略").
-			DataType("string").Required(false)).
+		Param(restful.QueryParameter("default", "“0” 查询自定义策略；“1” 查询默认策略；不填则为查询（默认+自定义）鉴权策略").DataType("string").Required(false)).
 		Param(restful.QueryParameter("res_id", "资源ID").DataType("string").Required(false)).
 		Param(restful.QueryParameter("res_type", "资源类型, namespace、service、config_group").DataType("string").
 			Required(false)).
@@ -94,7 +92,7 @@ func enrichDeleteStrategiesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 	return r.
 		Doc("删除鉴权策略").
 		Metadata(restfulspec.KeyOpenAPITags, authApiTags).
-		Reads(api.AuthStrategy{}, "delete auth strategy").
+		Reads(apisecurity.AuthStrategy{}, "delete auth strategy").
 		Notes(enrichDeleteStrategiesApiNotes)
 }
 
@@ -102,7 +100,7 @@ func enrichLoginApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("用户登录").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
-		Reads(api.LoginRequest{}, "用户登录接口").
+		Reads(apisecurity.LoginRequest{}, "用户登录接口").
 		Notes(enrichLoginApiNotes)
 }
 
@@ -125,7 +123,7 @@ func enrichCreateUsersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("创建用户").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
-		Reads(api.User{}, "create user").
+		Reads(apisecurity.User{}, "create user").
 		Notes(enrichCreateUsersApiNotes)
 }
 
@@ -133,7 +131,7 @@ func enrichDeleteUsersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("删除用户").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
-		Reads(api.User{}, "delete user").
+		Reads(apisecurity.User{}, "delete user").
 		Notes(enrichDeleteUsersApiNotes)
 }
 
@@ -141,7 +139,7 @@ func enrichUpdateUserApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("更新用户").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
-		Reads(api.User{}, "update user").
+		Reads(apisecurity.User{}, "update user").
 		Notes(enrichUpdateUserApiNotes)
 }
 
@@ -149,7 +147,7 @@ func enrichUpdateUserPasswordApiDocs(r *restful.RouteBuilder) *restful.RouteBuil
 	return r.
 		Doc("更新用户密码").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
-		Reads(api.ModifyUserPassword{}, "update user password").
+		Reads(apisecurity.ModifyUserPassword{}, "update user password").
 		Notes(enrichUpdateUserPasswordApiNotes)
 }
 
@@ -165,7 +163,7 @@ func enrichUpdateUserTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder
 	return r.
 		Doc("更新用户Token").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
-		Reads(api.User{}, "update user token").
+		Reads(apisecurity.User{}, "update user token").
 		Notes(enrichUpdateUserTokenApiNotes)
 }
 
@@ -173,7 +171,7 @@ func enrichResetUserTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder 
 	return r.
 		Doc("重置用户Token").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
-		Reads(api.User{}, "reset user token").
+		Reads(apisecurity.User{}, "reset user token").
 		Notes(enrichResetUserTokenApiNotes)
 }
 
@@ -181,7 +179,7 @@ func enrichCreateGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("创建用户组").
 		Metadata(restfulspec.KeyOpenAPITags, userGroupApiTags).
-		Reads(api.UserGroup{}, "create group").
+		Reads(apisecurity.UserGroup{}, "create group").
 		Notes(enrichCreateGroupApiNotes)
 }
 
@@ -189,7 +187,7 @@ func enrichUpdateGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("更新用户组").
 		Metadata(restfulspec.KeyOpenAPITags, userGroupApiTags).
-		Reads(api.UserGroup{}, "update group").
+		Reads(apisecurity.UserGroup{}, "update group").
 		Notes(enrichUpdateGroupsApiNotes)
 }
 
@@ -227,7 +225,7 @@ func enrichDeleteGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("删除用户组").
 		Metadata(restfulspec.KeyOpenAPITags, userGroupApiTags).
-		Reads(api.UserGroup{}, "delete group").
+		Reads(apisecurity.UserGroup{}, "delete group").
 		Notes(enrichDeleteGroupsApiNotes)
 }
 
@@ -235,7 +233,7 @@ func enrichUpdateGroupTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 	return r.
 		Doc("更新用户组 token").
 		Metadata(restfulspec.KeyOpenAPITags, userGroupApiTags).
-		Reads(api.UserGroup{}, "update user group token").
+		Reads(apisecurity.UserGroup{}, "update user group token").
 		Notes(enrichUpdateGroupTokenApiNotes)
 }
 
@@ -243,6 +241,6 @@ func enrichResetGroupTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder
 	return r.
 		Doc("重置用户组 token").
 		Metadata(restfulspec.KeyOpenAPITags, userGroupApiTags).
-		Reads(api.UserGroup{}, "reset user group token").
+		Reads(apisecurity.UserGroup{}, "reset user group token").
 		Notes(enrichResetGroupTokenApiNotes)
 }

@@ -19,6 +19,7 @@ package eurekaserver
 
 import (
 	"context"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"net/http"
 	"time"
 
@@ -142,7 +143,7 @@ func (h *EurekaServer) dispatch(replicationInstance *ReplicationInstance,
 }
 
 func eventToInstance(event *model.InstanceEvent, appName string, curTimeMilli int64) *InstanceInfo {
-	instance := &api.Instance{
+	instance := &apiservice.Instance{
 		Id:                &wrappers.StringValue{Value: event.Id},
 		Host:              &wrappers.StringValue{Value: event.Instance.GetHost().GetValue()},
 		Port:              &wrappers.UInt32Value{Value: event.Instance.GetPort().GetValue()},

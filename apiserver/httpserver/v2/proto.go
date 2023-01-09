@@ -19,12 +19,11 @@ package v2
 
 import (
 	"github.com/golang/protobuf/proto"
-
-	api "github.com/polarismesh/polaris/common/api/v2"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 )
 
 // RoutingArr 路由规则数组定义
-type RoutingArr []*api.Routing
+type RoutingArr []*apitraffic.RouteRule
 
 // Reset reset initialization
 func (m *RoutingArr) Reset() { *m = RoutingArr{} }

@@ -19,6 +19,7 @@ package maintain
 
 import (
 	"context"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
@@ -79,7 +80,7 @@ func (svr *serverAuthAbility) FreeOSMemory(ctx context.Context) error {
 	return svr.targetServer.FreeOSMemory(ctx)
 }
 
-func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *api.Instance) *api.Response {
+func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	authCtx := svr.collectMaintainAuthContext(ctx, model.Delete, "CleanInstance")
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {
@@ -102,7 +103,7 @@ func (svr *serverAuthAbility) BatchCleanInstances(ctx context.Context, batchSize
 	return svr.targetServer.BatchCleanInstances(ctx, batchSize)
 }
 
-func (svr *serverAuthAbility) GetLastHeartbeat(ctx context.Context, req *api.Instance) *api.Response {
+func (svr *serverAuthAbility) GetLastHeartbeat(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	authCtx := svr.collectMaintainAuthContext(ctx, model.Read, "GetLastHeartbeat")
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {

@@ -18,9 +18,11 @@
 package defaultauth
 
 import (
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
@@ -55,7 +57,7 @@ func (svr *serverAuthAbility) Initialize(authOpt *auth.Config, storage store.Sto
 }
 
 // Login login servers
-func (svr *serverAuthAbility) Login(req *api.LoginRequest) *api.Response {
+func (svr *serverAuthAbility) Login(req *apisecurity.LoginRequest) *apiservice.Response {
 	return svr.target.Login(req)
 }
 

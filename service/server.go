@@ -19,12 +19,12 @@ package service
 
 import (
 	"context"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"time"
 
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris/cache"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
@@ -149,7 +149,7 @@ func (s *Server) allowInstanceAccess(instanceID string) bool {
 	return s.ratelimit.Allow(plugin.InstanceRatelimit, instanceID)
 }
 
-func (s *Server) afterServiceResource(ctx context.Context, req *api.Service, save *model.Service,
+func (s *Server) afterServiceResource(ctx context.Context, req *apiservice.Service, save *model.Service,
 	remove bool) error {
 	event := &ResourceEvent{
 		ReqService: req,

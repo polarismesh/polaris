@@ -19,8 +19,7 @@ package model
 
 import (
 	"context"
-
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 )
 
 // AcquireContext 每次鉴权请求上下文信息
@@ -34,7 +33,7 @@ type AcquireContext struct {
 	// Operation 本次操作涉及的动作
 	operation ResourceOperation
 	// Resources 本次
-	accessResources map[api.ResourceType][]ResourceEntry
+	accessResources map[apisecurity.ResourceType][]ResourceEntry
 	// Attachment 携带信息，用于操作完权限检查和资源操作的后置处理逻辑，解决信息需要二次查询问题
 	attachment map[string]interface{}
 	// fromClient 是否来自客户端的请求
@@ -56,7 +55,7 @@ var (
 func NewAcquireContext(options ...acquireContextOption) *AcquireContext {
 	authCtx := &AcquireContext{
 		attachment:      make(map[string]interface{}),
-		accessResources: make(map[api.ResourceType][]ResourceEntry),
+		accessResources: make(map[apisecurity.ResourceType][]ResourceEntry),
 		module:          UnknowModule,
 	}
 
@@ -114,7 +113,7 @@ func WithOperation(operation ResourceOperation) acquireContextOption {
 //
 //	@param accessResources
 //	@return acquireContextOption
-func WithAccessResources(accessResources map[api.ResourceType][]ResourceEntry) acquireContextOption {
+func WithAccessResources(accessResources map[apisecurity.ResourceType][]ResourceEntry) acquireContextOption {
 	return func(authCtx *AcquireContext) {
 		authCtx.accessResources = accessResources
 	}
@@ -182,7 +181,7 @@ func (authCtx *AcquireContext) GetOperation() ResourceOperation {
 //
 //	@receiver authCtx
 //	@return map
-func (authCtx *AcquireContext) GetAccessResources() map[api.ResourceType][]ResourceEntry {
+func (authCtx *AcquireContext) GetAccessResources() map[apisecurity.ResourceType][]ResourceEntry {
 	return authCtx.accessResources
 }
 
@@ -190,7 +189,7 @@ func (authCtx *AcquireContext) GetAccessResources() map[api.ResourceType][]Resou
 //
 //	@receiver authCtx
 //	@param accessRes
-func (authCtx *AcquireContext) SetAccessResources(accessRes map[api.ResourceType][]ResourceEntry) {
+func (authCtx *AcquireContext) SetAccessResources(accessRes map[apisecurity.ResourceType][]ResourceEntry) {
 	authCtx.accessResources = accessRes
 }
 
@@ -225,9 +224,9 @@ func (authCtx *AcquireContext) IsFromConsole() bool {
 
 // IsAccessResourceEmpty 判断当前待访问的资源，是否为空
 func (authCtx *AcquireContext) IsAccessResourceEmpty() bool {
-	nsEmpty := len(authCtx.accessResources[api.ResourceType_Namespaces]) == 0
-	svcEmpty := len(authCtx.accessResources[api.ResourceType_Services]) == 0
-	cfgEmpty := len(authCtx.accessResources[api.ResourceType_ConfigGroups]) == 0
+	nsEmpty := len(authCtx.accessResources[apisecurity.ResourceType_Namespaces]) == 0
+	svcEmpty := len(authCtx.accessResources[apisecurity.ResourceType_Services]) == 0
+	cfgEmpty := len(authCtx.accessResources[apisecurity.ResourceType_ConfigGroups]) == 0
 
 	return nsEmpty && svcEmpty && cfgEmpty
 }

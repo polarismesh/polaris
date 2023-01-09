@@ -19,18 +19,17 @@ package config
 
 import (
 	"context"
-
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 )
 
 // GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
 func (s *serverAuthability) GetConfigFileForClient(ctx context.Context,
-	fileInfo *api.ClientConfigFileInfo) *api.ConfigClientResponse {
+	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
 	return s.targetServer.GetConfigFileForClient(ctx, fileInfo)
 }
 
 // WatchConfigFiles 监听配置文件变化
 func (s *serverAuthability) WatchConfigFiles(ctx context.Context,
-	request *api.ClientWatchConfigFileRequest) (WatchCallback, error) {
+	request *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error) {
 	return s.targetServer.WatchConfigFiles(ctx, request)
 }
