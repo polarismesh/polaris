@@ -80,6 +80,8 @@ linters:
 
 
 issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
   exclude-rules:
     # helpers in tests often (rightfully) pass a *testing.T as their first argument
     - path: _test\.go

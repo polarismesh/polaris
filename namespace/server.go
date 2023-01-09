@@ -19,8 +19,8 @@ package namespace
 
 import (
 	"context"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris/cache"

@@ -20,12 +20,12 @@ package defaultauth
 import (
 	"context"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -100,7 +100,8 @@ func (svr *server) CreateGroup(ctx context.Context, req *apisecurity.UserGroup) 
 }
 
 // UpdateGroups 批量修改用户组
-func (svr *server) UpdateGroups(ctx context.Context, groups []*apisecurity.ModifyUserGroup) *apiservice.BatchWriteResponse {
+func (svr *server) UpdateGroups(
+	ctx context.Context, groups []*apisecurity.ModifyUserGroup) *apiservice.BatchWriteResponse {
 	resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for index := range groups {
 		req := groups[index]
@@ -228,7 +229,8 @@ func (svr *server) GetGroups(ctx context.Context, query map[string]string) *apis
 	return resp
 }
 
-func parseGroupSearchArgs(ctx context.Context, query map[string]string) (map[string]string, *apiservice.BatchQueryResponse) {
+func parseGroupSearchArgs(
+	ctx context.Context, query map[string]string) (map[string]string, *apiservice.BatchQueryResponse) {
 	searchFilters := make(map[string]string, len(query))
 	for key, value := range query {
 		if _, ok := UserLinkGroupAttributes[key]; !ok {
@@ -488,7 +490,8 @@ func (svr *server) checkUpdateGroup(ctx context.Context, req *apisecurity.Modify
 
 		// 如果当前用户只是在这个组里面，但不是该用户组的owner，那只能添加用户，不能删除用户
 		if inGroup && !isOwner && len(req.GetRemoveRelations().GetUsers()) != 0 {
-			return api.NewAuthResponseWithMsg(apimodel.Code_NotAllowedAccess, "only main account can remove user from usergroup")
+			return api.NewAuthResponseWithMsg(
+				apimodel.Code_NotAllowedAccess, "only main account can remove user from usergroup")
 		}
 	}
 	return nil

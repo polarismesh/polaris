@@ -19,10 +19,10 @@ package defaultauth
 
 import (
 	"errors"
+
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
@@ -68,7 +68,8 @@ func (svr *server) Login(req *apisecurity.LoginRequest) *apiservice.Response {
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.GetPassword().GetValue()))
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return api.NewAuthResponseWithMsg(apimodel.Code_NotAllowedAccess, model.ErrorWrongUsernameOrPassword.Error())
+			return api.NewAuthResponseWithMsg(
+				apimodel.Code_NotAllowedAccess, model.ErrorWrongUsernameOrPassword.Error())
 		}
 		return api.NewAuthResponseWithMsg(apimodel.Code_ExecuteException, model.ErrorWrongUsernameOrPassword.Error())
 	}
@@ -135,7 +136,8 @@ func (svr *server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 
 	log.Info("[Auth][Server] add resource to principal default strategy",
 		zap.Any("resource", afterCtx.GetAttachment(model.ResourceAttachmentKey)),
-		zap.Any("add_user", addUserIds), zap.Any("add_group", addGroupIds), zap.Any("remove_user", removeUserIds),
+		zap.Any("add_user", addUserIds),
+		zap.Any("add_group", addGroupIds), zap.Any("remove_user", removeUserIds),
 		zap.Any("remove_group", removeGroupIds),
 	)
 
@@ -221,8 +223,9 @@ func (svr *server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 
 	var (
 		strategyResource = make([]model.StrategyResource, 0)
-		resources        = afterCtx.GetAttachment(model.ResourceAttachmentKey).(map[apisecurity.ResourceType][]model.ResourceEntry)
-		strategyId       = strategy.ID
+		resources        = afterCtx.GetAttachment(
+			model.ResourceAttachmentKey).(map[apisecurity.ResourceType][]model.ResourceEntry)
+		strategyId = strategy.ID
 	)
 
 	// 资源删除时，清理该资源与所有策略的关联关系

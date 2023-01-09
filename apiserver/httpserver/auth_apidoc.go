@@ -56,18 +56,26 @@ func enrichGetStrategiesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("查询鉴权策略列表").
 		Metadata(restfulspec.KeyOpenAPITags, authApiTags).
-		Param(restful.QueryParameter("id", "策略ID").DataType("string").Required(false)).
-		Param(restful.QueryParameter("name", "策略名称, 当前仅提供全模糊搜索").DataType("string").Required(false)).
-		Param(restful.QueryParameter("default", "“0” 查询自定义策略；“1” 查询默认策略；不填则为查询（默认+自定义）鉴权策略").DataType("string").Required(false)).
-		Param(restful.QueryParameter("res_id", "资源ID").DataType("string").Required(false)).
-		Param(restful.QueryParameter("res_type", "资源类型, namespace、service、config_group").DataType("string").
+		Param(restful.QueryParameter("id", "策略ID").DataType("string").
 			Required(false)).
-		Param(restful.QueryParameter("principal_id", "成员ID").DataType("string").Required(false)).
-		Param(restful.QueryParameter("principal_type", "成员类型, user、group").DataType("string").Required(false)).
-		Param(restful.QueryParameter("show_detail", "是否显示策略详细").DataType("boolean").Required(false)).
-		Param(restful.QueryParameter("offset", "查询偏移量, 默认为0").DataType("integer").Required(false).
-			DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "本次查询条数, 最大为100").DataType("integer").Required(false)).
+		Param(restful.QueryParameter("name", "策略名称, 当前仅提供全模糊搜索").DataType("string").
+			Required(false)).
+		Param(restful.QueryParameter("default", "“0” 查询自定义策略；“1” 查询默认策略；"+
+			"不填则为查询（默认+自定义）鉴权策略").DataType("string").Required(false)).
+		Param(restful.QueryParameter("res_id", "资源ID").DataType("string").
+			Required(false)).
+		Param(restful.QueryParameter("res_type", "资源类型, namespace、service、config_group").
+			DataType("string").Required(false)).
+		Param(restful.QueryParameter("principal_id", "成员ID").DataType("string").
+			Required(false)).
+		Param(restful.QueryParameter("principal_type", "成员类型, user、group").
+			DataType("string").Required(false)).
+		Param(restful.QueryParameter("show_detail", "是否显示策略详细").DataType("boolean").
+			Required(false)).
+		Param(restful.QueryParameter("offset", "查询偏移量, 默认为0").DataType("integer").
+			Required(false).DefaultValue("0")).
+		Param(restful.QueryParameter("limit", "本次查询条数, 最大为100").DataType("integer").
+			Required(false)).
 		Notes(enrichGetStrategiesApiNotes)
 }
 

@@ -48,7 +48,8 @@ func checkBatchFaultDetectRules(req []*apifault.FaultDetectRule) *apiservice.Bat
 }
 
 // CreateFaultDetectRules Create a FaultDetect rule
-func (s *Server) CreateFaultDetectRules(ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
+func (s *Server) CreateFaultDetectRules(
+	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 	if checkErr := checkBatchFaultDetectRules(request); checkErr != nil {
 		return checkErr
 	}
@@ -62,7 +63,8 @@ func (s *Server) CreateFaultDetectRules(ctx context.Context, request []*apifault
 }
 
 // DeleteFaultDetectRules Delete current Fault Detect rules
-func (s *Server) DeleteFaultDetectRules(ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
+func (s *Server) DeleteFaultDetectRules(
+	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 	if checkErr := checkBatchFaultDetectRules(request); checkErr != nil {
 		return checkErr
 	}
@@ -76,7 +78,8 @@ func (s *Server) DeleteFaultDetectRules(ctx context.Context, request []*apifault
 }
 
 // UpdateFaultDetectRules Modify the FaultDetect rule
-func (s *Server) UpdateFaultDetectRules(ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
+func (s *Server) UpdateFaultDetectRules(
+	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 	if checkErr := checkBatchFaultDetectRules(request); checkErr != nil {
 		return checkErr
 	}
@@ -89,7 +92,8 @@ func (s *Server) UpdateFaultDetectRules(ctx context.Context, request []*apifault
 	return api.FormatBatchWriteResponse(responses)
 }
 
-func checkFaultDetectRuleParams(req *apifault.FaultDetectRule, idRequired bool, nameRequired bool) *apiservice.Response {
+func checkFaultDetectRuleParams(
+	req *apifault.FaultDetectRule, idRequired bool, nameRequired bool) *apiservice.Response {
 	if req == nil {
 		return api.NewResponse(apimodel.Code_EmptyRequest)
 	}
@@ -109,7 +113,8 @@ func checkFaultDetectRuleParamsDbLen(req *apifault.FaultDetectRule) *apiservice.
 	if err := utils.CheckDbRawStrFieldLen(req.GetTargetService().GetService(), MaxDbServiceNameLength); err != nil {
 		return api.NewResponse(apimodel.Code_InvalidServiceName)
 	}
-	if err := utils.CheckDbRawStrFieldLen(req.GetTargetService().GetNamespace(), MaxDbServiceNamespaceLength); err != nil {
+	if err := utils.CheckDbRawStrFieldLen(
+		req.GetTargetService().GetNamespace(), MaxDbServiceNamespaceLength); err != nil {
 		return api.NewResponse(apimodel.Code_InvalidNamespaceName)
 	}
 	if err := utils.CheckDbRawStrFieldLen(req.GetName(), MaxRuleName); err != nil {

@@ -19,9 +19,9 @@ package config
 
 import (
 	"context"
+
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -32,7 +32,8 @@ import (
 )
 
 // CreateConfigFileTemplate create config file template
-func (s *Server) CreateConfigFileTemplate(ctx context.Context, template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
+func (s *Server) CreateConfigFileTemplate(
+	ctx context.Context, template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
 	if checkRsp := checkConfigFileTemplateParam(template); checkRsp != nil {
 		return checkRsp
 	}
@@ -43,7 +44,8 @@ func (s *Server) CreateConfigFileTemplate(ctx context.Context, template *apiconf
 
 	rsp := s.GetConfigFileTemplate(ctx, template.Name.GetValue())
 	if rsp.Code.Value == api.ExecuteSuccess {
-		return api.NewConfigFileTemplateResponseWithMessage(apimodel.Code_BadRequest, "config file template existed")
+		return api.NewConfigFileTemplateResponseWithMessage(
+			apimodel.Code_BadRequest, "config file template existed")
 	}
 	if rsp.Code.Value != api.NotFoundResource {
 		return rsp

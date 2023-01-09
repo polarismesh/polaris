@@ -18,10 +18,10 @@
 package cache
 
 import (
-	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"sort"
 	"time"
 
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 

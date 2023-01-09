@@ -48,7 +48,8 @@ func checkBatchCircuitBreakerRules(req []*apifault.CircuitBreakerRule) *apiservi
 }
 
 // CreateCircuitBreakerRules Create a CircuitBreaker rule
-func (s *Server) CreateCircuitBreakerRules(ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
+func (s *Server) CreateCircuitBreakerRules(
+	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
 	if checkErr := checkBatchCircuitBreakerRules(request); checkErr != nil {
 		return checkErr
 	}
@@ -62,7 +63,8 @@ func (s *Server) CreateCircuitBreakerRules(ctx context.Context, request []*apifa
 }
 
 // CreateCircuitBreakerRule Create a CircuitBreaker rule
-func (s *Server) createCircuitBreakerRule(ctx context.Context, request *apifault.CircuitBreakerRule) *apiservice.Response {
+func (s *Server) createCircuitBreakerRule(
+	ctx context.Context, request *apifault.CircuitBreakerRule) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
 	if resp := checkCircuitBreakerRuleParams(request, false, true); resp != nil {
 		return resp
@@ -100,7 +102,8 @@ func (s *Server) createCircuitBreakerRule(ctx context.Context, request *apifault
 	return api.NewAnyDataResponse(apimodel.Code_ExecuteSuccess, request)
 }
 
-func checkCircuitBreakerRuleParams(req *apifault.CircuitBreakerRule, idRequired bool, nameRequired bool) *apiservice.Response {
+func checkCircuitBreakerRuleParams(
+	req *apifault.CircuitBreakerRule, idRequired bool, nameRequired bool) *apiservice.Response {
 	if req == nil {
 		return api.NewResponse(apimodel.Code_EmptyRequest)
 	}
@@ -117,10 +120,12 @@ func checkCircuitBreakerRuleParams(req *apifault.CircuitBreakerRule, idRequired 
 }
 
 func checkCircuitBreakerRuleParamsDbLen(req *apifault.CircuitBreakerRule) *apiservice.Response {
-	if err := utils.CheckDbRawStrFieldLen(req.RuleMatcher.GetSource().GetService(), MaxDbServiceNameLength); err != nil {
+	if err := utils.CheckDbRawStrFieldLen(
+		req.RuleMatcher.GetSource().GetService(), MaxDbServiceNameLength); err != nil {
 		return api.NewResponse(apimodel.Code_InvalidServiceName)
 	}
-	if err := utils.CheckDbRawStrFieldLen(req.RuleMatcher.GetSource().GetNamespace(), MaxDbServiceNamespaceLength); err != nil {
+	if err := utils.CheckDbRawStrFieldLen(
+		req.RuleMatcher.GetSource().GetNamespace(), MaxDbServiceNamespaceLength); err != nil {
 		return api.NewResponse(apimodel.Code_InvalidNamespaceName)
 	}
 	if err := utils.CheckDbRawStrFieldLen(req.GetName(), MaxRuleName); err != nil {
@@ -174,7 +179,8 @@ var (
 )
 
 // DeleteCircuitBreakerRules Delete current CircuitBreaker rules
-func (s *Server) DeleteCircuitBreakerRules(ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
+func (s *Server) DeleteCircuitBreakerRules(
+	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
 	if err := checkBatchCircuitBreakerRules(request); err != nil {
 		return err
 	}
@@ -188,7 +194,8 @@ func (s *Server) DeleteCircuitBreakerRules(ctx context.Context, request []*apifa
 }
 
 // deleteCircuitBreakerRule delete current CircuitBreaker rule
-func (s *Server) deleteCircuitBreakerRule(ctx context.Context, request *apifault.CircuitBreakerRule) *apiservice.Response {
+func (s *Server) deleteCircuitBreakerRule(
+	ctx context.Context, request *apifault.CircuitBreakerRule) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
 	if resp := checkCircuitBreakerRuleParams(request, true, false); resp != nil {
 		return resp
@@ -210,13 +217,15 @@ func (s *Server) deleteCircuitBreakerRule(ctx context.Context, request *apifault
 		request.GetId(), request.GetName(), request.GetNamespace())
 	log.Info(msg, utils.ZapRequestID(requestID))
 
-	cbRule := &model.CircuitBreakerRule{ID: request.GetId(), Name: request.GetName(), Namespace: request.GetNamespace()}
+	cbRule := &model.CircuitBreakerRule{
+		ID: request.GetId(), Name: request.GetName(), Namespace: request.GetNamespace()}
 	s.RecordHistory(ctx, circuitBreakerRuleRecordEntry(ctx, request, cbRule, model.ODelete))
 	return api.NewAnyDataResponse(apimodel.Code_ExecuteSuccess, cbRuleId)
 }
 
 // EnableCircuitBreakerRules Enable the CircuitBreaker rule
-func (s *Server) EnableCircuitBreakerRules(ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
+func (s *Server) EnableCircuitBreakerRules(
+	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
 	if err := checkBatchCircuitBreakerRules(request); err != nil {
 		return err
 	}
@@ -229,7 +238,8 @@ func (s *Server) EnableCircuitBreakerRules(ctx context.Context, request []*apifa
 	return api.FormatBatchWriteResponse(responses)
 }
 
-func (s *Server) enableCircuitBreakerRule(ctx context.Context, request *apifault.CircuitBreakerRule) *apiservice.Response {
+func (s *Server) enableCircuitBreakerRule(
+	ctx context.Context, request *apifault.CircuitBreakerRule) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
 	if resp := checkCircuitBreakerRuleParams(request, true, false); resp != nil {
 		return resp
@@ -255,7 +265,8 @@ func (s *Server) enableCircuitBreakerRule(ctx context.Context, request *apifault
 }
 
 // UpdateCircuitBreakerRules Modify the CircuitBreaker rule
-func (s *Server) UpdateCircuitBreakerRules(ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
+func (s *Server) UpdateCircuitBreakerRules(
+	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
 	if err := checkBatchCircuitBreakerRules(request); err != nil {
 		return err
 	}
@@ -268,7 +279,8 @@ func (s *Server) UpdateCircuitBreakerRules(ctx context.Context, request []*apifa
 	return api.FormatBatchWriteResponse(responses)
 }
 
-func (s *Server) updateCircuitBreakerRule(ctx context.Context, request *apifault.CircuitBreakerRule) *apiservice.Response {
+func (s *Server) updateCircuitBreakerRule(
+	ctx context.Context, request *apifault.CircuitBreakerRule) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
 	if resp := checkCircuitBreakerRuleParams(request, true, true); resp != nil {
 		return resp

@@ -23,13 +23,12 @@ import (
 	"io"
 	"strings"
 
+	modeapi "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
-
-	modeapi "github.com/polarismesh/specification/source/go/api/v1/model"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	"github.com/polarismesh/polaris/apiserver/grpcserver"
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -68,7 +67,8 @@ func (g *DiscoverServer) RegisterInstance(ctx context.Context, in *apiservice.In
 }
 
 // DeregisterInstance 反注册服务实例
-func (g *DiscoverServer) DeregisterInstance(ctx context.Context, in *apiservice.Instance) (*apiservice.Response, error) {
+func (g *DiscoverServer) DeregisterInstance(
+	ctx context.Context, in *apiservice.Instance) (*apiservice.Response, error) {
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
 	rCtx := grpcserver.ConvertContext(ctx)
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))

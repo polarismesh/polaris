@@ -19,11 +19,11 @@ package cache
 
 import (
 	"fmt"
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"math"
 	"sync"
 	"time"
 
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
@@ -503,7 +503,8 @@ func (sc *strategyCache) checkResourceEditable(strategIds []string, principal mo
 
 // IsResourceEditable 判断当前资源是否可以操作
 // 这里需要考虑两种情况，一种是 “ * ” 策略，另一种是明确指出了具体的资源ID的策略
-func (sc *strategyCache) IsResourceEditable(principal model.Principal, resType apisecurity.ResourceType, resId string) bool {
+func (sc *strategyCache) IsResourceEditable(
+	principal model.Principal, resType apisecurity.ResourceType, resId string) bool {
 	var (
 		valAll, val []string
 		ok          bool

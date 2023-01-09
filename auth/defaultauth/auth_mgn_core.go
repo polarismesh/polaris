@@ -19,10 +19,10 @@ package defaultauth
 
 import (
 	"context"
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"strings"
 
 	"github.com/pkg/errors"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"

@@ -18,8 +18,9 @@
 package service
 
 import (
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"strings"
+
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"

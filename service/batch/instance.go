@@ -21,10 +21,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/cache"

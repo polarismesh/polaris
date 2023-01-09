@@ -21,10 +21,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -106,7 +106,8 @@ func (s *Server) CreateServiceAlias(ctx context.Context, req *apiservice.Service
 	return api.NewServiceAliasResponse(apimodel.Code_ExecuteSuccess, out)
 }
 
-func (s *Server) checkPointServiceAlias(tx store.Transaction, req *apiservice.ServiceAlias, rid string) (*model.Service, *apiservice.Response, bool) {
+func (s *Server) checkPointServiceAlias(
+	tx store.Transaction, req *apiservice.ServiceAlias, rid string) (*model.Service, *apiservice.Response, bool) {
 	// 检查指向服务是否存在以及是否为别名
 	service, err := tx.LockService(req.GetService().GetValue(), req.GetNamespace().GetValue())
 	if err != nil {
@@ -165,7 +166,8 @@ func checkBatchAlias(req []*apiservice.ServiceAlias) *apiservice.BatchWriteRespo
 }
 
 // DeleteServiceAliases 删除服务别名列表
-func (s *Server) DeleteServiceAliases(ctx context.Context, req []*apiservice.ServiceAlias) *apiservice.BatchWriteResponse {
+func (s *Server) DeleteServiceAliases(
+	ctx context.Context, req []*apiservice.ServiceAlias) *apiservice.BatchWriteResponse {
 	if checkError := checkBatchAlias(req); checkError != nil {
 		return checkError
 	}

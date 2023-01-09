@@ -18,10 +18,11 @@
 package boltdb
 
 import (
-	"github.com/boltdb/bolt"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/boltdb/bolt"
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
@@ -190,7 +191,8 @@ var (
 )
 
 // GetFaultDetectRules get all circuitbreaker rules by query and limit
-func (c *faultDetectStore) GetFaultDetectRules(filter map[string]string, offset uint32, limit uint32) (uint32, []*model.FaultDetectRule, error) {
+func (c *faultDetectStore) GetFaultDetectRules(
+	filter map[string]string, offset uint32, limit uint32) (uint32, []*model.FaultDetectRule, error) {
 	svc, hasSvc := filter[svcSpecificQueryKeyService]
 	delete(filter, svcSpecificQueryKeyService)
 	svcNs, hasSvcNs := filter[svcSpecificQueryKeyNamespace]
@@ -291,14 +293,16 @@ func sublistFaultDetectRules(cbRules []*model.FaultDetectRule, offset, limit uin
 }
 
 // GetFaultDetectRulesForCache get increment circuitbreaker rules
-func (c *faultDetectStore) GetFaultDetectRulesForCache(mtime time.Time, firstUpdate bool) ([]*model.FaultDetectRule, error) {
+func (c *faultDetectStore) GetFaultDetectRulesForCache(
+	mtime time.Time, firstUpdate bool) ([]*model.FaultDetectRule, error) {
 	handler := c.handler
 
 	if firstUpdate {
 		mtime = time.Time{}
 	}
 
-	results, err := handler.LoadValuesByFilter(tblFaultDetectRule, []string{CommonFieldModifyTime}, &model.CircuitBreakerRule{},
+	results, err := handler.LoadValuesByFilter(
+		tblFaultDetectRule, []string{CommonFieldModifyTime}, &model.CircuitBreakerRule{},
 		func(m map[string]interface{}) bool {
 			mt := m[CommonFieldModifyTime].(time.Time)
 			isAfter := !mt.Before(mtime)

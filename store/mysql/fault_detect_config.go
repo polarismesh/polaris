@@ -155,7 +155,8 @@ func (f *faultDetectRuleStore) HasFaultDetectRuleByName(name string, namespace s
 }
 
 // HasFaultDetectRuleByNameExcludeId check fault detect rule exists by name not this id
-func (f *faultDetectRuleStore) HasFaultDetectRuleByNameExcludeId(name string, namespace string, id string) (bool, error) {
+func (f *faultDetectRuleStore) HasFaultDetectRuleByNameExcludeId(
+	name string, namespace string, id string) (bool, error) {
 	queryParams := map[string]string{exactName: name, "namespace": namespace, excludeId: id}
 	count, err := f.getFaultDetectRulesCount(queryParams)
 	if nil != err {
@@ -165,7 +166,8 @@ func (f *faultDetectRuleStore) HasFaultDetectRuleByNameExcludeId(name string, na
 }
 
 // GetFaultDetectRules get all fault detect rules by query and limit
-func (f *faultDetectRuleStore) GetFaultDetectRules(filter map[string]string, offset uint32, limit uint32) (uint32, []*model.FaultDetectRule, error) {
+func (f *faultDetectRuleStore) GetFaultDetectRules(
+	filter map[string]string, offset uint32, limit uint32) (uint32, []*model.FaultDetectRule, error) {
 	var out []*model.FaultDetectRule
 	var err error
 
@@ -189,7 +191,8 @@ func (f *faultDetectRuleStore) GetFaultDetectRules(filter map[string]string, off
 }
 
 // GetFaultDetectRulesForCache get increment circuitbreaker rules
-func (f *faultDetectRuleStore) GetFaultDetectRulesForCache(mtime time.Time, firstUpdate bool) ([]*model.FaultDetectRule, error) {
+func (f *faultDetectRuleStore) GetFaultDetectRulesForCache(
+	mtime time.Time, firstUpdate bool) ([]*model.FaultDetectRule, error) {
 	str := queryFaultDetectCacheSql
 	if firstUpdate {
 		str += " and flag != 1"

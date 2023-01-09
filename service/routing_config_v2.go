@@ -19,14 +19,14 @@ package service
 
 import (
 	"context"
+	"strconv"
+
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
-	"strconv"
-
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/cache"
@@ -56,7 +56,8 @@ var (
 )
 
 // CreateRoutingConfigsV2 批量创建路由配置
-func (s *Server) CreateRoutingConfigsV2(ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
+func (s *Server) CreateRoutingConfigsV2(
+	ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 	if err := checkBatchRoutingConfigV2(req); err != nil {
 		return err
 	}
@@ -96,7 +97,8 @@ func (s *Server) createRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 }
 
 // DeleteRoutingConfigsV2 批量删除路由配置
-func (s *Server) DeleteRoutingConfigsV2(ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
+func (s *Server) DeleteRoutingConfigsV2(
+	ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 	if err := checkBatchRoutingConfigV2(req); err != nil {
 		return err
 	}
@@ -138,7 +140,8 @@ func (s *Server) deleteRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 }
 
 // UpdateRoutingConfigsV2 批量更新路由配置
-func (s *Server) UpdateRoutingConfigsV2(ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
+func (s *Server) UpdateRoutingConfigsV2(
+	ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 	if err := checkBatchRoutingConfigV2(req); err != nil {
 		return err
 	}

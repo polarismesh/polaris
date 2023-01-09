@@ -24,13 +24,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
@@ -96,7 +96,8 @@ func CheckContentLength(content string) error {
 }
 
 // GenConfigFileResponse 为客户端生成响应对象
-func GenConfigFileResponse(namespace, group, fileName, content, md5str string, version uint64) *apiconfig.ConfigClientResponse {
+func GenConfigFileResponse(
+	namespace, group, fileName, content, md5str string, version uint64) *apiconfig.ConfigClientResponse {
 	configFile := &apiconfig.ClientConfigFileInfo{
 		Namespace: utils.NewStringValue(namespace),
 		Group:     utils.NewStringValue(group),

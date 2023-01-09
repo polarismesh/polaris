@@ -20,13 +20,13 @@ package boltdb
 import (
 	"errors"
 	"fmt"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/common/model"
@@ -462,7 +462,8 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 		ins := v.(*model.Instance)
 		service, ok := svcRets[ins.ServiceID]
 		if !ok {
-			log.Errorf("[Store][boltdb] no found instance relate service, instance-id: %s, service-id: %s", ins.ID(), ins.ServiceID)
+			log.Errorf("[Store][boltdb] no found instance relate service, "+
+				"instance-id: %s, service-id: %s", ins.ID(), ins.ServiceID)
 			return 0, nil, errors.New("no found instance relate service")
 		}
 		ins.Proto.Service = wrapperspb.String(service.(*model.Service).Name)

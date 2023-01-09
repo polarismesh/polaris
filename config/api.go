@@ -19,6 +19,7 @@ package config
 
 import (
 	"context"
+
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 )
 
@@ -38,7 +39,8 @@ type ConfigFileGroupOperate interface {
 	CreateConfigFileGroup(ctx context.Context, configFileGroup *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse
 
 	// QueryConfigFileGroups 查询配置文件组, namespace 为完全匹配，groupName 为模糊匹配, fileName 为模糊匹配文件名
-	QueryConfigFileGroups(ctx context.Context, namespace, groupName, fileName string, offset, limit uint32) *apiconfig.ConfigBatchQueryResponse
+	QueryConfigFileGroups(ctx context.Context,
+		namespace, groupName, fileName string, offset, limit uint32) *apiconfig.ConfigBatchQueryResponse
 
 	// DeleteConfigFileGroup 删除配置文件组
 	DeleteConfigFileGroup(ctx context.Context, namespace, name string) *apiconfig.ConfigResponse
@@ -59,10 +61,12 @@ type ConfigFileOperate interface {
 	GetConfigFileRichInfo(ctx context.Context, namespace, group, name string) *apiconfig.ConfigResponse
 
 	// QueryConfigFilesByGroup query file group's config file
-	QueryConfigFilesByGroup(ctx context.Context, namespace, group string, offset, limit uint32) *apiconfig.ConfigBatchQueryResponse
+	QueryConfigFilesByGroup(ctx context.Context,
+		namespace, group string, offset, limit uint32) *apiconfig.ConfigBatchQueryResponse
 
 	// SearchConfigFile 按 group 和 name 模糊搜索配置文件
-	SearchConfigFile(ctx context.Context, namespace, group, name, tags string, offset, limit uint32) *apiconfig.ConfigBatchQueryResponse
+	SearchConfigFile(ctx context.Context,
+		namespace, group, name, tags string, offset, limit uint32) *apiconfig.ConfigBatchQueryResponse
 
 	// UpdateConfigFile 更新配置文件
 	UpdateConfigFile(ctx context.Context, configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse
@@ -71,7 +75,8 @@ type ConfigFileOperate interface {
 	DeleteConfigFile(ctx context.Context, namespace, group, name, deleteBy string) *apiconfig.ConfigResponse
 
 	// BatchDeleteConfigFile 批量删除配置文件
-	BatchDeleteConfigFile(ctx context.Context, configFiles []*apiconfig.ConfigFile, operator string) *apiconfig.ConfigResponse
+	BatchDeleteConfigFile(ctx context.Context,
+		configFiles []*apiconfig.ConfigFile, operator string) *apiconfig.ConfigResponse
 }
 
 // ConfigFileReleaseOperate 配置文件发布接口
@@ -89,13 +94,14 @@ type ConfigFileReleaseOperate interface {
 // ConfigFileReleaseHistoryOperate 配置文件发布历史接口
 type ConfigFileReleaseHistoryOperate interface {
 	// GetConfigFileReleaseHistory 获取配置文件的发布历史
-	GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset, limit uint32, endId uint64) *apiconfig.ConfigBatchQueryResponse
+	GetConfigFileReleaseHistory(ctx context.Context,
+		namespace, group, fileName string, offset, limit uint32, endId uint64) *apiconfig.ConfigBatchQueryResponse
 
 	// GetConfigFileLatestReleaseHistory 获取最后一次发布记录
 	GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group, fileName string) *apiconfig.ConfigResponse
 }
 
-// ConfigFileClientAPI 给客户端提供服务接口，不同的上层协议抽象的公共服务逻辑
+// ConfigFileClientOperate 给客户端提供服务接口，不同的上层协议抽象的公共服务逻辑
 type ConfigFileClientOperate interface {
 	// GetConfigFileForClient 获取配置文件
 	GetConfigFileForClient(ctx context.Context, configFile *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse

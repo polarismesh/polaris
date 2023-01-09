@@ -20,9 +20,9 @@ package config
 import (
 	"context"
 	"errors"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"time"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"

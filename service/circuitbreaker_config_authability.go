@@ -19,6 +19,7 @@ package service
 
 import (
 	"context"
+
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -152,6 +153,7 @@ func (svr *serverAuthAbility) GetCircuitBreakerByService(ctx context.Context,
 }
 
 // GetCircuitBreakerToken get circuit breaker token
-func (svr *serverAuthAbility) GetCircuitBreakerToken(ctx context.Context, req *apifault.CircuitBreaker) *apiservice.Response {
+func (svr *serverAuthAbility) GetCircuitBreakerToken(
+	ctx context.Context, req *apifault.CircuitBreaker) *apiservice.Response {
 	return svr.targetServer.GetCircuitBreakerToken(ctx, req)
 }

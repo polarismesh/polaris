@@ -20,14 +20,14 @@ package v1
 import (
 	"context"
 	"fmt"
-	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"net/http"
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/proto"
+	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -104,7 +104,8 @@ func (h *HTTPServerV1) addDefaultReadAccess(ws *restful.WebService) {
 		To(h.GetMasterCircuitBreakers)))
 	ws.Route(enrichGetReleaseCircuitBreakersApiDocs(ws.GET("/circuitbreakers/release").
 		To(h.GetReleaseCircuitBreakers)))
-	ws.Route(enrichGetCircuitBreakerTokensApiDocs(ws.GET("/circuitbreaker/token").To(h.GetCircuitBreakerToken)))
+	ws.Route(enrichGetCircuitBreakerTokensApiDocs(
+		ws.GET("/circuitbreaker/token").To(h.GetCircuitBreakerToken)))
 
 	ws.Route(enrichGetCircuitBreakerRulesApiDocs(ws.GET("/circuitbreaker/rules").To(h.GetCircuitBreakerRules)))
 
@@ -138,9 +139,11 @@ func (h *HTTPServerV1) addDefaultAccess(ws *restful.WebService) {
 
 	ws.Route(enrichCreateInstancesApiDocs(ws.POST("/instances").To(h.CreateInstances)))
 	ws.Route(enrichDeleteInstancesApiDocs(ws.POST("/instances/delete").To(h.DeleteInstances)))
-	ws.Route(enrichDeleteInstancesByHostApiDocs(ws.POST("/instances/delete/host").To(h.DeleteInstancesByHost)))
+	ws.Route(enrichDeleteInstancesByHostApiDocs(
+		ws.POST("/instances/delete/host").To(h.DeleteInstancesByHost)))
 	ws.Route(enrichUpdateInstancesApiDocs(ws.PUT("/instances").To(h.UpdateInstances)))
-	ws.Route(enrichUpdateInstancesIsolateApiDocs(ws.PUT("/instances/isolate/host").To(h.UpdateInstancesIsolate)))
+	ws.Route(enrichUpdateInstancesIsolateApiDocs(
+		ws.PUT("/instances/isolate/host").To(h.UpdateInstancesIsolate)))
 	ws.Route(enrichGetInstancesApiDocs(ws.GET("/instances").To(h.GetInstances)))
 	ws.Route(enrichGetInstancesCountApiDocs(ws.GET("/instances/count").To(h.GetInstancesCount)))
 	ws.Route(enrichGetInstanceLabelsApiDocs(ws.GET("/instances/labels").To(h.GetInstanceLabels)))
@@ -159,10 +162,14 @@ func (h *HTTPServerV1) addDefaultAccess(ws *restful.WebService) {
 	ws.Route(enrichCreateCircuitBreakersApiDocs(ws.POST("/circuitbreakers").To(h.CreateCircuitBreakers)))
 	ws.Route(enrichCreateCircuitBreakerVersionsApiDocs(ws.POST("/circuitbreakers/version").
 		To(h.CreateCircuitBreakerVersions)))
-	ws.Route(enrichDeleteCircuitBreakersApiDocs(ws.POST("/circuitbreakers/delete").To(h.DeleteCircuitBreakers)))
-	ws.Route(enrichUpdateCircuitBreakersApiDocs(ws.PUT("/circuitbreakers").To(h.UpdateCircuitBreakers)))
-	ws.Route(enrichReleaseCircuitBreakersApiDocs(ws.POST("/circuitbreakers/release").To(h.ReleaseCircuitBreakers)))
-	ws.Route(enrichUnBindCircuitBreakersApiDocs(ws.POST("/circuitbreakers/unbind").To(h.UnBindCircuitBreakers)))
+	ws.Route(enrichDeleteCircuitBreakersApiDocs(
+		ws.POST("/circuitbreakers/delete").To(h.DeleteCircuitBreakers)))
+	ws.Route(enrichUpdateCircuitBreakersApiDocs(
+		ws.PUT("/circuitbreakers").To(h.UpdateCircuitBreakers)))
+	ws.Route(enrichReleaseCircuitBreakersApiDocs(
+		ws.POST("/circuitbreakers/release").To(h.ReleaseCircuitBreakers)))
+	ws.Route(enrichUnBindCircuitBreakersApiDocs(
+		ws.POST("/circuitbreakers/unbind").To(h.UnBindCircuitBreakers)))
 	ws.Route(enrichGetCircuitBreakersApiDocs(ws.GET("/circuitbreaker").To(h.GetCircuitBreaker)))
 	ws.Route(enrichGetCircuitBreakerVersionsApiDocs(ws.GET("/circuitbreaker/versions").
 		To(h.GetCircuitBreakerVersions)))
@@ -170,18 +177,25 @@ func (h *HTTPServerV1) addDefaultAccess(ws *restful.WebService) {
 		To(h.GetMasterCircuitBreakers)))
 	ws.Route(enrichGetReleaseCircuitBreakersApiDocs(ws.GET("/circuitbreakers/release").
 		To(h.GetReleaseCircuitBreakers)))
-	ws.Route(enrichGetCircuitBreakerTokensApiDocs(ws.GET("/circuitbreaker/token").To(h.GetCircuitBreakerToken)))
+	ws.Route(enrichGetCircuitBreakerTokensApiDocs(
+		ws.GET("/circuitbreaker/token").To(h.GetCircuitBreakerToken)))
 
-	ws.Route(enrichGetCircuitBreakerRulesApiDocs(ws.GET("/circuitbreaker/rules").To(h.GetCircuitBreakerRules)))
-	ws.Route(enrichCreateCircuitBreakerRulesApiDocs(ws.POST("/circuitbreaker/rules").To(h.CreateCircuitBreakerRules)))
-	ws.Route(enrichUpdateCircuitBreakerRulesApiDocs(ws.PUT("/circuitbreaker/rules").To(h.UpdateCircuitBreakerRules)))
-	ws.Route(enrichDeleteCircuitBreakerRulesApiDocs(ws.POST("/circuitbreaker/rules/delete").To(h.DeleteCircuitBreakerRules)))
-	ws.Route(enrichEnableCircuitBreakerRulesApiDocs(ws.PUT("/circuitbreaker/rules/enable").To(h.EnableCircuitBreakerRules)))
+	ws.Route(enrichGetCircuitBreakerRulesApiDocs(
+		ws.GET("/circuitbreaker/rules").To(h.GetCircuitBreakerRules)))
+	ws.Route(enrichCreateCircuitBreakerRulesApiDocs(
+		ws.POST("/circuitbreaker/rules").To(h.CreateCircuitBreakerRules)))
+	ws.Route(enrichUpdateCircuitBreakerRulesApiDocs(
+		ws.PUT("/circuitbreaker/rules").To(h.UpdateCircuitBreakerRules)))
+	ws.Route(enrichDeleteCircuitBreakerRulesApiDocs(
+		ws.POST("/circuitbreaker/rules/delete").To(h.DeleteCircuitBreakerRules)))
+	ws.Route(enrichEnableCircuitBreakerRulesApiDocs(
+		ws.PUT("/circuitbreaker/rules/enable").To(h.EnableCircuitBreakerRules)))
 
 	ws.Route(enrichGetFaultDetectRulesApiDocs(ws.GET("/faultdetectors").To(h.GetFaultDetectRules)))
 	ws.Route(enrichCreateFaultDetectRulesApiDocs(ws.POST("/faultdetectors").To(h.CreateFaultDetectRules)))
 	ws.Route(enrichUpdateFaultDetectRulesApiDocs(ws.PUT("/faultdetectors").To(h.UpdateFaultDetectRules)))
-	ws.Route(enrichDeleteFaultDetectRulesApiDocs(ws.POST("/faultdetectors/delete").To(h.DeleteFaultDetectRules)))
+	ws.Route(enrichDeleteFaultDetectRulesApiDocs(
+		ws.POST("/faultdetectors/delete").To(h.DeleteFaultDetectRules)))
 }
 
 // CreateNamespaces 创建命名空间

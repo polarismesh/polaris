@@ -19,6 +19,7 @@ package service
 
 import (
 	"context"
+
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
@@ -147,7 +148,8 @@ func (svr *serverAuthAbility) GetInstancesCount(ctx context.Context) *apiservice
 
 // CleanInstance clean instance
 func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
-	authCtx := svr.collectInstanceAuthContext(ctx, []*apiservice.Instance{req}, model.Delete, "CleanInstance")
+	authCtx := svr.collectInstanceAuthContext(
+		ctx, []*apiservice.Instance{req}, model.Delete, "CleanInstance")
 
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)
 	if err != nil {

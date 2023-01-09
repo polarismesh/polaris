@@ -19,10 +19,10 @@ package config
 
 import (
 	"context"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"strconv"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
@@ -82,8 +82,8 @@ func (s *serverAuthability) collectConfigGroupAuthContext(ctx context.Context, r
 	)
 }
 
-func (s *serverAuthability) collectConfigFileTemplateAuthContext(ctx context.Context, req []*apiconfig.ConfigFileTemplate,
-	op model.ResourceOperation, methodName string) *model.AcquireContext {
+func (s *serverAuthability) collectConfigFileTemplateAuthContext(ctx context.Context,
+	req []*apiconfig.ConfigFileTemplate, op model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithModule(model.ConfigModule),

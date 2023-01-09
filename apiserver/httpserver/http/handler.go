@@ -22,15 +22,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"io/ioutil"
 	"net/http"
 	"strings"
 
-	"github.com/emicklei/go-restful/v3"
+	restful "github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	"github.com/polarismesh/polaris/apiserver/httpserver/i18n"
 	api "github.com/polarismesh/polaris/common/api/v1"

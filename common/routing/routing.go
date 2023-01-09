@@ -20,11 +20,11 @@ package routing
 import (
 	"encoding/json"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"sort"
 
 	"github.com/golang/protobuf/ptypes"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
@@ -92,9 +92,12 @@ func CompositeRoutingV1AndV2(v1rule *apitraffic.Routing, level1, level2,
 		return CompareRoutingV2(level3[i], level3[j])
 	})
 
-	level1inRoutes, level1outRoutes, level1Revisions := BuildV1RoutesFromV2(v1rule.Service.Value, v1rule.Namespace.Value, level1)
-	level2inRoutes, level2outRoutes, level2Revisions := BuildV1RoutesFromV2(v1rule.Service.Value, v1rule.Namespace.Value, level2)
-	level3inRoutes, level3outRoutes, level3Revisions := BuildV1RoutesFromV2(v1rule.Service.Value, v1rule.Namespace.Value, level3)
+	level1inRoutes, level1outRoutes, level1Revisions :=
+		BuildV1RoutesFromV2(v1rule.Service.Value, v1rule.Namespace.Value, level1)
+	level2inRoutes, level2outRoutes, level2Revisions :=
+		BuildV1RoutesFromV2(v1rule.Service.Value, v1rule.Namespace.Value, level2)
+	level3inRoutes, level3outRoutes, level3Revisions :=
+		BuildV1RoutesFromV2(v1rule.Service.Value, v1rule.Namespace.Value, level3)
 
 	inBounds := v1rule.GetInbounds()
 	outBounds := v1rule.GetOutbounds()
@@ -138,7 +141,8 @@ func CompositeRoutingV1AndV2(v1rule *apitraffic.Routing, level1, level2,
 
 // BuildV1RoutesFromV2 根据 v2 版本的路由规则适配成 v1 版本的路由规则，分为别 inBounds 以及 outBounds
 // return inBound outBound revisions
-func BuildV1RoutesFromV2(service, namespace string, entries []*model.ExtendRouterConfig) ([]*apitraffic.Route, []*apitraffic.Route, []string) {
+func BuildV1RoutesFromV2(service, namespace string,
+	entries []*model.ExtendRouterConfig) ([]*apitraffic.Route, []*apitraffic.Route, []string) {
 	if len(entries) == 0 {
 		return []*apitraffic.Route{}, []*apitraffic.Route{}, []string{}
 	}
@@ -477,7 +481,8 @@ func CompareRoutingV2(a, b *model.ExtendRouterConfig) bool {
 }
 
 // ConvertRoutingV1ToExtendV2 v1 版本的路由规则转为 v2 版本进行存储
-func ConvertRoutingV1ToExtendV2(svcName, svcNamespace string, rule *model.RoutingConfig) ([]*model.ExtendRouterConfig, []*model.ExtendRouterConfig, error) {
+func ConvertRoutingV1ToExtendV2(svcName, svcNamespace string,
+	rule *model.RoutingConfig) ([]*model.ExtendRouterConfig, []*model.ExtendRouterConfig, error) {
 	inRet := make([]*model.ExtendRouterConfig, 0, 4)
 	outRet := make([]*model.ExtendRouterConfig, 0, 4)
 

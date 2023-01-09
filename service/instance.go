@@ -21,12 +21,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -159,7 +159,8 @@ func (s *Server) createInstance(ctx context.Context, req *apiservice.Instance, i
 // 底层函数会合并create请求，增加并发创建的吞吐
 // req 原始请求
 // ins 包含了req数据与instanceID，serviceToken
-func (s *Server) asyncCreateInstance(ctx context.Context, svcId string, req *apiservice.Instance, ins *apiservice.Instance) (
+func (s *Server) asyncCreateInstance(
+	ctx context.Context, svcId string, req *apiservice.Instance, ins *apiservice.Instance) (
 	*model.Instance, *apiservice.Response) {
 	allowAsyncRegis, _ := ctx.Value(utils.ContextOpenAsyncRegis).(bool)
 	future := s.bc.AsyncCreateInstance(svcId, ins, !allowAsyncRegis)
@@ -177,14 +178,16 @@ func (s *Server) asyncCreateInstance(ctx context.Context, svcId string, req *api
 // 同步串行创建实例
 // req为原始的请求体
 // ins包括了req的内容，并且填充了instanceID与serviceToken
-func (s *Server) serialCreateInstance(ctx context.Context, svcId string, req *apiservice.Instance, ins *apiservice.Instance) (
+func (s *Server) serialCreateInstance(
+	ctx context.Context, svcId string, req *apiservice.Instance, ins *apiservice.Instance) (
 	*model.Instance, *apiservice.Response) {
 	rid := utils.ParseRequestID(ctx)
 	pid := utils.ParsePlatformID(ctx)
 
 	instance, err := s.storage.GetInstance(ins.GetId().GetValue())
 	if err != nil {
-		log.Error("[Instance] get instance from store", utils.ZapRequestID(rid), utils.ZapPlatformID(pid), zap.Error(err))
+		log.Error("[Instance] get instance from store",
+			utils.ZapRequestID(rid), utils.ZapPlatformID(pid), zap.Error(err))
 		return nil, api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	// 如果存在，则替换实例的属性数据，但是需要保留用户设置的隔离状态，以免出现关键状态丢失
@@ -235,7 +238,8 @@ func (s *Server) DeleteInstance(ctx context.Context, req *apiservice.Instance) *
 // 删除实例的store操作
 // req 原始请求
 // ins 填充了instanceID与serviceToken
-func (s *Server) deleteInstance(ctx context.Context, req *apiservice.Instance, ins *apiservice.Instance) *apiservice.Response {
+func (s *Server) deleteInstance(
+	ctx context.Context, req *apiservice.Instance, ins *apiservice.Instance) *apiservice.Response {
 	if s.bc == nil || !s.bc.DeleteInstanceOpen() {
 		return s.serialDeleteInstance(ctx, req, ins)
 	}
@@ -245,7 +249,8 @@ func (s *Server) deleteInstance(ctx context.Context, req *apiservice.Instance, i
 
 // 串行删除实例
 // 返回实例所属的服务和resp
-func (s *Server) serialDeleteInstance(ctx context.Context, req *apiservice.Instance, ins *apiservice.Instance) *apiservice.Response {
+func (s *Server) serialDeleteInstance(
+	ctx context.Context, req *apiservice.Instance, ins *apiservice.Instance) *apiservice.Response {
 	start := time.Now()
 	// 检查服务实例是否存在
 	rid := utils.ParseRequestID(ctx)
@@ -289,7 +294,8 @@ func (s *Server) serialDeleteInstance(ctx context.Context, req *apiservice.Insta
 
 // 异步删除实例
 // 返回实例所属的服务和resp
-func (s *Server) asyncDeleteInstance(ctx context.Context, req *apiservice.Instance, ins *apiservice.Instance) *apiservice.Response {
+func (s *Server) asyncDeleteInstance(
+	ctx context.Context, req *apiservice.Instance, ins *apiservice.Instance) *apiservice.Response {
 	start := time.Now()
 	rid := utils.ParseRequestID(ctx)
 	pid := utils.ParsePlatformID(ctx)
@@ -324,7 +330,8 @@ func (s *Server) asyncDeleteInstance(ctx context.Context, req *apiservice.Instan
 }
 
 // DeleteInstancesByHost 根据host批量删除服务实例
-func (s *Server) DeleteInstancesByHost(ctx context.Context, req []*apiservice.Instance) *apiservice.BatchWriteResponse {
+func (s *Server) DeleteInstancesByHost(
+	ctx context.Context, req []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	if checkError := checkBatchInstance(req); checkError != nil {
 		return checkError
 	}
@@ -439,7 +446,8 @@ func (s *Server) UpdateInstance(ctx context.Context, req *apiservice.Instance) *
 
 // UpdateInstancesIsolate 批量修改服务实例隔离状态
 // @note 必填参数为service+namespace+host
-func (s *Server) UpdateInstancesIsolate(ctx context.Context, req []*apiservice.Instance) *apiservice.BatchWriteResponse {
+func (s *Server) UpdateInstancesIsolate(
+	ctx context.Context, req []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	if checkError := checkBatchInstance(req); checkError != nil {
 		return checkError
 	}
@@ -805,7 +813,8 @@ func (s *Server) CleanInstance(ctx context.Context, req *apiservice.Instance) *a
 		return resp
 	}
 	if err := s.storage.CleanInstance(instanceID); err != nil {
-		log.Error("Clean instance", zap.String("err", err.Error()), utils.ZapRequestID(utils.ParseRequestID(ctx)))
+		log.Error("Clean instance",
+			zap.String("err", err.Error()), utils.ZapRequestID(utils.ParseRequestID(ctx)))
 		return api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
 	}
 
@@ -946,7 +955,8 @@ func (s *Server) createRawServiceIfAbsent(ctx context.Context, instance rawSvcNa
 	return s.createServiceIfAbsent(ctx, instance.GetNamespace(), instance.GetService())
 }
 
-func (s *Server) createServiceIfAbsent(ctx context.Context, namespace string, svcName string) (apimodel.Code, string, error) {
+func (s *Server) createServiceIfAbsent(
+	ctx context.Context, namespace string, svcName string) (apimodel.Code, string, error) {
 	if len(namespace) == 0 || namespace == utils.MatchAll {
 		return apimodel.Code_ExecuteSuccess, "", nil
 	}
@@ -1154,13 +1164,14 @@ func preGetInstances(query map[string]string) (map[string]string, map[string]str
 	for key, value := range query {
 		if _, ok := InstanceFilterAttributes[key]; !ok {
 			log.Errorf("[Server][Instance][Query] attribute(%s) is not allowed", key)
-			return nil, metaFilter, api.NewBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, key+" is not allowed")
+			return nil, metaFilter, api.NewBatchQueryResponseWithMsg(
+				apimodel.Code_InvalidParameter, key+" is not allowed")
 		}
 
 		if value == "" {
 			log.Errorf("[Server][Instance][Query] attribute(%s: %s) is not allowed empty", key, value)
-			return nil, metaFilter,
-				api.NewBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, "the value for "+key+" is empty")
+			return nil, metaFilter, api.NewBatchQueryResponseWithMsg(
+				apimodel.Code_InvalidParameter, "the value for "+key+" is empty")
 		}
 		if attr, ok := InsFilter2toreAttr[key]; ok {
 			key = attr

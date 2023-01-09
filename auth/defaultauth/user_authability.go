@@ -19,6 +19,7 @@ package defaultauth
 
 import (
 	"context"
+
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -54,7 +55,8 @@ func (svr *serverAuthAbility) UpdateUser(ctx context.Context, user *apisecurity.
 }
 
 // UpdateUserPassword 更新用户信息
-func (svr *serverAuthAbility) UpdateUserPassword(ctx context.Context, req *apisecurity.ModifyUserPassword) *apiservice.Response {
+func (svr *serverAuthAbility) UpdateUserPassword(
+	ctx context.Context, req *apisecurity.ModifyUserPassword) *apiservice.Response {
 	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if rsp != nil {
 		return rsp
@@ -64,7 +66,8 @@ func (svr *serverAuthAbility) UpdateUserPassword(ctx context.Context, req *apise
 }
 
 // DeleteUsers 批量删除用户，只能由超级账户 or 主账户操作
-func (svr *serverAuthAbility) DeleteUsers(ctx context.Context, reqs []*apisecurity.User) *apiservice.BatchWriteResponse {
+func (svr *serverAuthAbility) DeleteUsers(
+	ctx context.Context, reqs []*apisecurity.User) *apiservice.BatchWriteResponse {
 	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if rsp != nil {
 		resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)

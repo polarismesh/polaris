@@ -18,10 +18,10 @@
 package boltdb
 
 import (
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"time"
 
 	"github.com/boltdb/bolt"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"
@@ -30,6 +30,7 @@ import (
 )
 
 const (
+
 	// SystemNamespace system namespace
 	SystemNamespace = "Polaris"
 	// STORENAME database storage name

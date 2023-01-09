@@ -311,7 +311,8 @@ type CircuitBreakerStore interface {
 	HasCircuitBreakerRuleByNameExcludeId(name string, namespace string, id string) (bool, error)
 
 	// GetCircuitBreakerRules get all circuitbreaker rules by query and limit
-	GetCircuitBreakerRules(filter map[string]string, offset uint32, limit uint32) (uint32, []*model.CircuitBreakerRule, error)
+	GetCircuitBreakerRules(
+		filter map[string]string, offset uint32, limit uint32) (uint32, []*model.CircuitBreakerRule, error)
 
 	// GetCircuitBreakerRulesForCache get increment circuitbreaker rules
 	GetCircuitBreakerRulesForCache(mtime time.Time, firstUpdate bool) ([]*model.CircuitBreakerRule, error)

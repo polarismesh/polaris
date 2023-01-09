@@ -18,11 +18,11 @@
 package httpserver
 
 import (
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"strconv"
 
 	"github.com/emicklei/go-restful/v3"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
@@ -37,7 +37,8 @@ func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) 
 
 	version, err := strconv.ParseUint(handler.Request.QueryParameter("version"), 10, 64)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewConfigClientResponseWithMessage(apimodel.Code_BadRequest, "version must be number"))
+		handler.WriteHeaderAndProto(api.NewConfigClientResponseWithMessage(
+			apimodel.Code_BadRequest, "version must be number"))
 	}
 
 	configFile := &apiconfig.ClientConfigFileInfo{

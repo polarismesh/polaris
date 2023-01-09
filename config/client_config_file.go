@@ -19,9 +19,9 @@ package config
 
 import (
 	"context"
+
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/cache"
@@ -43,7 +43,8 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 	clientVersion := client.GetVersion().GetValue()
 
 	if namespace == "" || group == "" || fileName == "" {
-		return api.NewConfigClientResponseWithMessage(apimodel.Code_BadRequest, "namespace & group & fileName can not be empty")
+		return api.NewConfigClientResponseWithMessage(
+			apimodel.Code_BadRequest, "namespace & group & fileName can not be empty")
 	}
 
 	requestID := utils.ParseRequestID(ctx)
@@ -60,7 +61,8 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 			zap.String("requestId", requestID),
 			zap.Error(err))
 
-		return api.NewConfigClientResponseWithMessage(apimodel.Code_ExecuteException, "load config file error")
+		return api.NewConfigClientResponseWithMessage(
+			apimodel.Code_ExecuteException, "load config file error")
 	}
 
 	if entry.Empty {
@@ -75,7 +77,8 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 				zap.String("requestId", requestID),
 				zap.Error(err))
 
-			return api.NewConfigClientResponseWithMessage(apimodel.Code_ExecuteException, "load config file error")
+			return api.NewConfigClientResponseWithMessage(
+				apimodel.Code_ExecuteException, "load config file error")
 		}
 	}
 

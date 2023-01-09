@@ -20,12 +20,12 @@ package service
 import (
 	"context"
 	"errors"
+
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
-
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
@@ -159,8 +159,8 @@ func (svr *serverAuthAbility) collectCircuitBreakerAuthContext(ctx context.Conte
 //	@param req
 //	@param resourceOp
 //	@return *model.AcquireContext
-func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx context.Context, req []*apiservice.ConfigRelease,
-	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
+func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx context.Context,
+	req []*apiservice.ConfigRelease, resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),

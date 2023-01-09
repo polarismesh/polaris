@@ -19,10 +19,10 @@ package service
 
 import (
 	"context"
+
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
-
 	"go.uber.org/zap"
 
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
@@ -67,7 +67,8 @@ func (s *Server) createRoutingConfigV1toV2(ctx context.Context, req *apitraffic.
 		return resp
 	}
 
-	if resp := s.saveRoutingV1toV2(ctx, svc.ID, inDatas, outDatas); resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
+	if resp := s.saveRoutingV1toV2(ctx, svc.ID, inDatas, outDatas); resp.GetCode().GetValue() != uint32(
+		apimodel.Code_ExecuteSuccess) {
 		return resp
 	}
 
@@ -115,7 +116,8 @@ func (s *Server) updateRoutingConfigV1toV2(ctx context.Context, req *apitraffic.
 		return resp
 	}
 
-	if resp := s.saveRoutingV1toV2(ctx, svc.ID, inDatas, outDatas); resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
+	if resp := s.saveRoutingV1toV2(ctx, svc.ID, inDatas, outDatas); resp.GetCode().GetValue() != uint32(
+		apimodel.Code_ExecuteSuccess) {
 		return resp
 	}
 
@@ -191,7 +193,8 @@ func (s *Server) saveRoutingV1toV2(ctx context.Context, svcId string,
 	return apiv1.NewResponse(apimodel.Code_ExecuteSuccess)
 }
 
-func batchBuildV2Routings(req *apitraffic.Routing) ([]*apitraffic.RouteRule, []*apitraffic.RouteRule, *apiservice.Response) {
+func batchBuildV2Routings(
+	req *apitraffic.Routing) ([]*apitraffic.RouteRule, []*apitraffic.RouteRule, *apiservice.Response) {
 	inBounds := req.GetInbounds()
 	outBounds := req.GetOutbounds()
 	inRoutings := make([]*apitraffic.RouteRule, 0, len(inBounds))

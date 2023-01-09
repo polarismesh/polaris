@@ -19,8 +19,9 @@ package cache
 
 import (
 	"fmt"
-	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"sync"
+
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
 	"github.com/polarismesh/polaris/common/model"
 	routingcommon "github.com/polarismesh/polaris/common/routing"

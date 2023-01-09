@@ -19,6 +19,7 @@ package config
 
 import (
 	"context"
+
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -29,7 +30,8 @@ import (
 // CreateConfigFile 创建配置文件
 func (s *serverAuthability) CreateConfigFile(ctx context.Context,
 	configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	authCtx := s.collectConfigFileAuthContext(ctx, []*apiconfig.ConfigFile{configFile}, model.Create, "CreateConfigFile")
+	authCtx := s.collectConfigFileAuthContext(
+		ctx, []*apiconfig.ConfigFile{configFile}, model.Create, "CreateConfigFile")
 	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
@@ -64,8 +66,10 @@ func (s *serverAuthability) SearchConfigFile(ctx context.Context, namespace, gro
 }
 
 // UpdateConfigFile 更新配置文件
-func (s *serverAuthability) UpdateConfigFile(ctx context.Context, configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	authCtx := s.collectConfigFileAuthContext(ctx, []*apiconfig.ConfigFile{configFile}, model.Modify, "UpdateConfigFile")
+func (s *serverAuthability) UpdateConfigFile(
+	ctx context.Context, configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+	authCtx := s.collectConfigFileAuthContext(
+		ctx, []*apiconfig.ConfigFile{configFile}, model.Modify, "UpdateConfigFile")
 	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}

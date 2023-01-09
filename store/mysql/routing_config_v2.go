@@ -206,7 +206,8 @@ func (r *routingConfigStoreV2) DeleteRoutingConfigV2(ruleID string) error {
 
 // GetRoutingConfigsV2ForCache 通过mtime拉取增量的路由配置信息
 // 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
-func (r *routingConfigStoreV2) GetRoutingConfigsV2ForCache(mtime time.Time, firstUpdate bool) ([]*model.RouterConfig, error) {
+func (r *routingConfigStoreV2) GetRoutingConfigsV2ForCache(
+	mtime time.Time, firstUpdate bool) ([]*model.RouterConfig, error) {
 	str := `select id, name, policy, config, enable, revision, flag, priority, description,
 	unix_timestamp(ctime), unix_timestamp(mtime), unix_timestamp(etime)  
 	from routing_config_v2 where mtime > FROM_UNIXTIME(?) `

@@ -21,11 +21,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"time"
 
 	"github.com/golang/protobuf/jsonpb"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -419,7 +419,8 @@ func (s *Server) getCircuitBreakerCountWithNamespace(namespace string) (uint32, 
 }
 
 // 检查namespace的权限，并且返回namespace
-func (s *Server) checkNamespaceAuthority(ctx context.Context, req *apimodel.Namespace) (*model.Namespace, *apiservice.Response) {
+func (s *Server) checkNamespaceAuthority(
+	ctx context.Context, req *apimodel.Namespace) (*model.Namespace, *apiservice.Response) {
 	rid := utils.ParseRequestID(ctx)
 	namespaceName := req.GetName().GetValue()
 	// namespaceToken := parseNamespaceToken(ctx, req)

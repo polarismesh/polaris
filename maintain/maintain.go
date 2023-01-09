@@ -20,9 +20,10 @@ package maintain
 import (
 	"context"
 	"errors"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"runtime/debug"
 	"time"
+
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	commonlog "github.com/polarismesh/polaris/common/log"

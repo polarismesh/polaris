@@ -21,13 +21,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
@@ -409,7 +409,8 @@ func checkRevisedRateLimitParams(req *apitraffic.Rule) *apiservice.Response {
 }
 
 // checkRateLimitExisted 检查限流规则是否存在
-func (s *Server) checkRateLimitExisted(id, requestID string, req *apitraffic.Rule) (*model.RateLimit, *apiservice.Response) {
+func (s *Server) checkRateLimitExisted(
+	id, requestID string, req *apitraffic.Rule) (*model.RateLimit, *apiservice.Response) {
 	rateLimit, err := s.storage.GetRateLimitWithID(id)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))

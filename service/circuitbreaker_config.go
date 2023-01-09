@@ -21,13 +21,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -78,7 +78,8 @@ var (
 )
 
 // CreateCircuitBreakers 批量创建熔断规则
-func (s *Server) CreateCircuitBreakers(ctx context.Context, req []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
+func (s *Server) CreateCircuitBreakers(
+	ctx context.Context, req []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
 	if checkErr := checkBatchCircuitBreakers(req); checkErr != nil {
 		return checkErr
 	}
@@ -146,7 +147,8 @@ func (s *Server) CreateCircuitBreaker(ctx context.Context, req *apifault.Circuit
 }
 
 // CreateCircuitBreakerVersions 批量创建熔断规则版本
-func (s *Server) CreateCircuitBreakerVersions(ctx context.Context, req []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
+func (s *Server) CreateCircuitBreakerVersions(
+	ctx context.Context, req []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
 	if checkErr := checkBatchCircuitBreakers(req); checkErr != nil {
 		return checkErr
 	}
@@ -232,7 +234,8 @@ func (s *Server) CreateCircuitBreakerVersion(ctx context.Context, req *apifault.
 }
 
 // DeleteCircuitBreakers 批量删除熔断规则
-func (s *Server) DeleteCircuitBreakers(ctx context.Context, req []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
+func (s *Server) DeleteCircuitBreakers(
+	ctx context.Context, req []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
 	if checkErr := checkBatchCircuitBreakers(req); checkErr != nil {
 		return checkErr
 	}
@@ -334,7 +337,8 @@ func (s *Server) deleteTagCircuitBreaker(ctx context.Context, requestID string, 
 }
 
 // UpdateCircuitBreakers 批量修改熔断规则
-func (s *Server) UpdateCircuitBreakers(ctx context.Context, req []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
+func (s *Server) UpdateCircuitBreakers(
+	ctx context.Context, req []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
 	if checkErr := checkBatchCircuitBreakers(req); checkErr != nil {
 		return checkErr
 	}
@@ -449,7 +453,8 @@ func (s *Server) updateCircuitBreakerAttribute(req *apifault.CircuitBreaker, cir
 }
 
 // ReleaseCircuitBreakers 批量发布熔断规则
-func (s *Server) ReleaseCircuitBreakers(ctx context.Context, req []*apiservice.ConfigRelease) *apiservice.BatchWriteResponse {
+func (s *Server) ReleaseCircuitBreakers(
+	ctx context.Context, req []*apiservice.ConfigRelease) *apiservice.BatchWriteResponse {
 	if checkErr := checkBatchConfigRelease(req); checkErr != nil {
 		return checkErr
 	}
@@ -526,7 +531,8 @@ func (s *Server) ReleaseCircuitBreaker(ctx context.Context, req *apiservice.Conf
 }
 
 // UnBindCircuitBreakers 批量解绑熔断规则
-func (s *Server) UnBindCircuitBreakers(ctx context.Context, req []*apiservice.ConfigRelease) *apiservice.BatchWriteResponse {
+func (s *Server) UnBindCircuitBreakers(
+	ctx context.Context, req []*apiservice.ConfigRelease) *apiservice.BatchWriteResponse {
 	if checkErr := checkBatchConfigRelease(req); checkErr != nil {
 		return checkErr
 	}
@@ -638,7 +644,8 @@ func (s *Server) GetCircuitBreaker(ctx context.Context, query map[string]string)
 }
 
 // GetCircuitBreakerVersions 根据id查询熔断规则所有版本
-func (s *Server) GetCircuitBreakerVersions(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+func (s *Server) GetCircuitBreakerVersions(
+	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	// 必填参数：id
 	if _, ok := query[ID]; !ok {
 		log.Errorf("params %s is not in querying circuit breaker", ID)
@@ -665,7 +672,8 @@ func (s *Server) GetCircuitBreakerVersions(ctx context.Context, query map[string
 }
 
 // GetMasterCircuitBreakers 查询master熔断规则
-func (s *Server) GetMasterCircuitBreakers(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+func (s *Server) GetMasterCircuitBreakers(
+	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	for key := range query {
 		if _, ok := MasterCircuitBreakers[key]; !ok {
 			log.Errorf("params %s is not allowed in querying master circuit breakers", key)
@@ -689,7 +697,8 @@ func (s *Server) GetMasterCircuitBreakers(ctx context.Context, query map[string]
 }
 
 // GetReleaseCircuitBreakers 根据规则id查询已发布规则
-func (s *Server) GetReleaseCircuitBreakers(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+func (s *Server) GetReleaseCircuitBreakers(
+	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	// 必须参数：id
 	if _, ok := query[ID]; !ok {
 		log.Errorf("params %s is not in querying release circuit breakers", ID)
@@ -747,7 +756,8 @@ func genCircuitBreakersResult(c *model.CircuitBreakerDetail) *apiservice.BatchQu
 }
 
 // GetCircuitBreakerByService 根据服务查询绑定熔断规则
-func (s *Server) GetCircuitBreakerByService(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+func (s *Server) GetCircuitBreakerByService(
+	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	// 必须参数：service和namespace
 	for key := range ServiceParams {
 		if _, ok := query[key]; !ok {
@@ -957,7 +967,8 @@ func (s *Server) checkCircuitBreakerValid(ctx context.Context, req *apifault.Cir
 }
 
 // checkService 判断服务是否可用并鉴权
-func (s *Server) checkService(ctx context.Context, req *apiservice.ConfigRelease) (*model.Service, *apiservice.Response) {
+func (s *Server) checkService(
+	ctx context.Context, req *apiservice.ConfigRelease) (*model.Service, *apiservice.Response) {
 	requestID := utils.ParseRequestID(ctx)
 	serviceName := req.GetService().GetName().GetValue()
 	namespaceName := req.GetService().GetNamespace().GetValue()
@@ -1074,7 +1085,8 @@ func circuitBreaker2API(req *model.CircuitBreaker) (*apifault.CircuitBreaker, er
 }
 
 // circuitBreaker2ClientAPI 把内部数据结构转化为客户端API参数
-func circuitBreaker2ClientAPI(req *model.ServiceWithCircuitBreakerRules, service string, namespace string) (*apifault.CircuitBreaker, error) {
+func circuitBreaker2ClientAPI(
+	req *model.ServiceWithCircuitBreakerRules, service string, namespace string) (*apifault.CircuitBreaker, error) {
 	if req == nil {
 		return nil, nil
 	}

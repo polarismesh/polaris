@@ -20,10 +20,10 @@ package sqldb
 import (
 	"database/sql"
 	"fmt"
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"strings"
 	"time"
 
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"

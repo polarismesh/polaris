@@ -19,6 +19,7 @@ package defaultauth
 
 import (
 	"context"
+
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -27,7 +28,8 @@ import (
 )
 
 // CreateStrategy creates a new strategy.
-func (svr *serverAuthAbility) CreateStrategy(ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response {
+func (svr *serverAuthAbility) CreateStrategy(
+	ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response {
 	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
 	if rsp != nil {
 		rsp.AuthStrategy = strategy
@@ -75,7 +77,8 @@ func (svr *serverAuthAbility) GetStrategies(ctx context.Context,
 }
 
 // GetStrategy get strategy.
-func (svr *serverAuthAbility) GetStrategy(ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response {
+func (svr *serverAuthAbility) GetStrategy(
+	ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response {
 	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
 	if rsp != nil {
 		return rsp

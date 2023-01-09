@@ -18,9 +18,9 @@
 package config
 
 import (
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"sync"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"

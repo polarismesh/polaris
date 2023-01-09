@@ -19,12 +19,13 @@ package v2
 
 import (
 	"fmt"
+	"io"
+	"strings"
+
 	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/proto"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
-	"io"
-	"strings"
 
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
 	v1 "github.com/polarismesh/polaris/apiserver/httpserver/v1"

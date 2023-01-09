@@ -130,10 +130,12 @@ func (f *faultDetectCache) GetFaultDetectConfig(name string, namespace string) *
 	return f.allWildcardRules
 }
 
-func (f *faultDetectCache) checkServiceSpecificCache(name string, namespace string) *model.ServiceWithFaultDetectRules {
+func (f *faultDetectCache) checkServiceSpecificCache(
+	name string, namespace string) *model.ServiceWithFaultDetectRules {
 	f.lock.RLock()
 	defer f.lock.RUnlock()
-	log.Infof("checkServiceSpecificCache name %s, namespace %s, values %v", name, namespace, f.svcSpecificRules)
+	log.Infof(
+		"checkServiceSpecificCache name %s, namespace %s, values %v", name, namespace, f.svcSpecificRules)
 	svcRules, ok := f.svcSpecificRules[namespace]
 	log.Infof("svcSpecificRules for ns %s, values %v", name, svcRules)
 	if ok {
@@ -220,7 +222,8 @@ func (f *faultDetectCache) deleteFaultDetectRuleFromServiceCache(id string, svcK
 	}
 }
 
-func (f *faultDetectCache) storeAndReloadFaultDetectRules(svcRules *model.ServiceWithFaultDetectRules, cbRule *model.FaultDetectRule) {
+func (f *faultDetectCache) storeAndReloadFaultDetectRules(
+	svcRules *model.ServiceWithFaultDetectRules, cbRule *model.FaultDetectRule) {
 	svcRules.AddFaultDetectRule(cbRule)
 	f.reloadRevision(svcRules)
 }
@@ -232,7 +235,8 @@ func createAndStoreServiceWithFaultDetectRules(svcKey model.ServiceKey, key stri
 	return rules
 }
 
-func (f *faultDetectCache) storeFaultDetectRuleToServiceCache(entry *model.FaultDetectRule, svcKeys map[model.ServiceKey]bool) {
+func (f *faultDetectCache) storeFaultDetectRuleToServiceCache(
+	entry *model.FaultDetectRule, svcKeys map[model.ServiceKey]bool) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 	if len(svcKeys) == 0 {

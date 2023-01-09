@@ -18,10 +18,10 @@
 package memory
 
 import (
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"net"
 	"strings"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/common/model"

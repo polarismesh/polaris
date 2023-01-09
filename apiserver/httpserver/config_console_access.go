@@ -18,12 +18,12 @@
 package httpserver
 
 import (
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"strconv"
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/proto"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
 
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"

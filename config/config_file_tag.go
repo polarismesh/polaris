@@ -21,8 +21,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"

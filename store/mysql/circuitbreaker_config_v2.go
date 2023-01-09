@@ -42,18 +42,19 @@ const (
 			values(?,?,?,?,?,?,?,?,?,?,?,?,?, sysdate(),sysdate(), %s)`
 	updateCircuitBreakerRuleSql = `update circuitbreaker_rule_v2 set name = ?, namespace=?, enable = ?, revision= ?,
 			description = ?, level = ?, config = ?, mtime = sysdate(), etime=%s where id = ?`
-	deleteCircuitBreakerRuleSql    = `update circuitbreaker_rule_v2 set flag = 1, mtime = sysdate() where id = ?`
-	enableCircuitBreakerRuleSql    = `update circuitbreaker_rule_v2 set enable = ?, revision = ?, mtime = sysdate(), etime=%s where id = ?`
+	deleteCircuitBreakerRuleSql = `update circuitbreaker_rule_v2 set flag = 1, mtime = sysdate() where id = ?`
+	enableCircuitBreakerRuleSql = `update circuitbreaker_rule_v2 set enable = ?, revision = ?, mtime = sysdate(), 
+			etime=%s where id = ?`
 	countCircuitBreakerRuleSql     = `select count(*) from circuitbreaker_rule_v2 where flag = 0`
-	queryCircuitBreakerRuleFullSql = `select id, name, namespace, enable, revision, description, level, srcService, srcNamespace, dstService, 
-			dstNamespace, dstMethod, config, unix_timestamp(ctime), unix_timestamp(mtime), unix_timestamp(etime)
+	queryCircuitBreakerRuleFullSql = `select id, name, namespace, enable, revision, description, level, srcService, 
+			srcNamespace, dstService, dstNamespace, dstMethod, config, unix_timestamp(ctime), unix_timestamp(mtime), 
+			unix_timestamp(etime) from circuitbreaker_rule_v2 where flag = 0`
+	queryCircuitBreakerRuleBriefSql = `select id, name, namespace, enable, revision, level, srcService, srcNamespace, 
+			dstService, dstNamespace, dstMethod, unix_timestamp(ctime), unix_timestamp(mtime), unix_timestamp(etime)
 			from circuitbreaker_rule_v2 where flag = 0`
-	queryCircuitBreakerRuleBriefSql = `select id, name, namespace, enable, revision, level, srcService, srcNamespace, dstService, 
-			dstNamespace, dstMethod, unix_timestamp(ctime), unix_timestamp(mtime), unix_timestamp(etime)
-			from circuitbreaker_rule_v2 where flag = 0`
-	queryCircuitBreakerRuleCacheSql = `select id, name, namespace, enable, revision, description, level, srcService, srcNamespace, dstService, 
-			dstNamespace, dstMethod, config, flag, unix_timestamp(ctime), unix_timestamp(mtime), unix_timestamp(etime)
-			from circuitbreaker_rule_v2 where mtime > FROM_UNIXTIME(?)`
+	queryCircuitBreakerRuleCacheSql = `select id, name, namespace, enable, revision, description, level, srcService, 
+			srcNamespace, dstService, dstNamespace, dstMethod, config, flag, unix_timestamp(ctime), 
+			unix_timestamp(mtime), unix_timestamp(etime) from circuitbreaker_rule_v2 where mtime > FROM_UNIXTIME(?)`
 )
 
 func (c *circuitBreakerStore) CreateCircuitBreakerRule(cbRule *model.CircuitBreakerRule) error {
@@ -68,9 +69,9 @@ func (c *circuitBreakerStore) createCircuitBreakerRule(cbRule *model.CircuitBrea
 	return c.master.processWithTransaction(labelCreateCircuitBreakerRule, func(tx *BaseTx) error {
 		etimeStr := buildEtimeStr(cbRule.Enable)
 		str := fmt.Sprintf(insertCircuitBreakerRuleSql, etimeStr)
-		if _, err := tx.Exec(str, cbRule.ID, cbRule.Name, cbRule.Namespace, cbRule.Enable, cbRule.Revision, cbRule.Description,
-			cbRule.Level, cbRule.SrcService, cbRule.SrcNamespace, cbRule.DstService, cbRule.DstNamespace, cbRule.DstMethod,
-			cbRule.Rule); err != nil {
+		if _, err := tx.Exec(str, cbRule.ID, cbRule.Name, cbRule.Namespace, cbRule.Enable, cbRule.Revision,
+			cbRule.Description, cbRule.Level, cbRule.SrcService, cbRule.SrcNamespace, cbRule.DstService,
+			cbRule.DstNamespace, cbRule.DstMethod, cbRule.Rule); err != nil {
 			log.Errorf("[Store][database] fail to %s exec sql, err: %s", labelCreateCircuitBreakerRule, err.Error())
 			return err
 		}
@@ -124,7 +125,8 @@ func (c *circuitBreakerStore) DeleteCircuitBreakerRule(id string) error {
 func (c *circuitBreakerStore) deleteCircuitBreakerRule(id string) error {
 	return c.master.processWithTransaction(labelDeleteCircuitBreakerRule, func(tx *BaseTx) error {
 		if _, err := tx.Exec(deleteCircuitBreakerRuleSql, id); err != nil {
-			log.Errorf("[Store][database] fail to %s exec sql, err: %s", labelDeleteCircuitBreakerRule, err.Error())
+			log.Errorf(
+				"[Store][database] fail to %s exec sql, err: %s", labelDeleteCircuitBreakerRule, err.Error())
 			return err
 		}
 
@@ -158,7 +160,8 @@ func (c *circuitBreakerStore) HasCircuitBreakerRuleByName(name string, namespace
 }
 
 // HasCircuitBreakerRuleByNameExcludeId check circuitbreaker rule exists by name exclude id
-func (c *circuitBreakerStore) HasCircuitBreakerRuleByNameExcludeId(name string, namespace string, id string) (bool, error) {
+func (c *circuitBreakerStore) HasCircuitBreakerRuleByNameExcludeId(
+	name string, namespace string, id string) (bool, error) {
 	queryParams := map[string]string{exactName: name, "namespace": namespace, excludeId: id}
 	count, err := c.getCircuitBreakerRulesCount(queryParams)
 	if nil != err {
@@ -175,8 +178,8 @@ func fetchCircuitBreakerRuleRows(rows *sql.Rows) ([]*model.CircuitBreakerRule, e
 		var flag int
 		var ctime, mtime, etime int64
 		err := rows.Scan(&cbRule.ID, &cbRule.Name, &cbRule.Namespace, &cbRule.Enable, &cbRule.Revision,
-			&cbRule.Description, &cbRule.Level, &cbRule.SrcService, &cbRule.SrcNamespace, &cbRule.DstService, &cbRule.DstNamespace,
-			&cbRule.DstMethod, &cbRule.Rule, &flag, &ctime, &mtime, &etime)
+			&cbRule.Description, &cbRule.Level, &cbRule.SrcService, &cbRule.SrcNamespace, &cbRule.DstService,
+			&cbRule.DstNamespace, &cbRule.DstMethod, &cbRule.Rule, &flag, &ctime, &mtime, &etime)
 		if err != nil {
 			log.Errorf("[Store][database] fetch circuitbreaker rule scan err: %s", err.Error())
 			return nil, err
@@ -369,8 +372,8 @@ func fetchFullCircuitBreakerRules(rows *sql.Rows) ([]*model.CircuitBreakerRule, 
 		var cbRule model.CircuitBreakerRule
 		var ctime, mtime, etime int64
 		err := rows.Scan(&cbRule.ID, &cbRule.Name, &cbRule.Namespace, &cbRule.Enable, &cbRule.Revision,
-			&cbRule.Description, &cbRule.Level, &cbRule.SrcService, &cbRule.SrcNamespace, &cbRule.DstService, &cbRule.DstNamespace,
-			&cbRule.DstMethod, &cbRule.Rule, &ctime, &mtime, &etime)
+			&cbRule.Description, &cbRule.Level, &cbRule.SrcService, &cbRule.SrcNamespace, &cbRule.DstService,
+			&cbRule.DstNamespace, &cbRule.DstMethod, &cbRule.Rule, &ctime, &mtime, &etime)
 		if err != nil {
 			log.Errorf("[Store][database] fetch full circuitbreaker rule scan err: %s", err.Error())
 			return nil, err
@@ -404,7 +407,8 @@ func (c *circuitBreakerStore) getCircuitBreakerRulesCount(filter map[string]stri
 }
 
 // GetCircuitBreakerRulesForCache list circuitbreaker rules by query
-func (c *circuitBreakerStore) GetCircuitBreakerRulesForCache(mtime time.Time, firstUpdate bool) ([]*model.CircuitBreakerRule, error) {
+func (c *circuitBreakerStore) GetCircuitBreakerRulesForCache(
+	mtime time.Time, firstUpdate bool) ([]*model.CircuitBreakerRule, error) {
 	str := queryCircuitBreakerRuleCacheSql
 	if firstUpdate {
 		str += " and flag != 1"
@@ -436,7 +440,8 @@ func (c *circuitBreakerStore) enableCircuitBreakerRule(cbRule *model.CircuitBrea
 		etimeStr := buildEtimeStr(cbRule.Enable)
 		str := fmt.Sprintf(enableCircuitBreakerRuleSql, etimeStr)
 		if _, err := tx.Exec(str, cbRule.Enable, cbRule.Revision, cbRule.ID); err != nil {
-			log.Errorf("[Store][database] fail to %s exec sql, err: %s", labelEnableCircuitBreakerRule, err.Error())
+			log.Errorf(
+				"[Store][database] fail to %s exec sql, err: %s", labelEnableCircuitBreakerRule, err.Error())
 			return err
 		}
 

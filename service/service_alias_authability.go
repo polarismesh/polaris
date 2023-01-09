@@ -19,6 +19,7 @@ package service
 
 import (
 	"context"
+
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
@@ -28,8 +29,10 @@ import (
 )
 
 // CreateServiceAlias creates a service alias
-func (svr *serverAuthAbility) CreateServiceAlias(ctx context.Context, req *apiservice.ServiceAlias) *apiservice.Response {
-	authCtx := svr.collectServiceAliasAuthContext(ctx, []*apiservice.ServiceAlias{req}, model.Create, "CreateServiceAlias")
+func (svr *serverAuthAbility) CreateServiceAlias(
+	ctx context.Context, req *apiservice.ServiceAlias) *apiservice.Response {
+	authCtx := svr.collectServiceAliasAuthContext(
+		ctx, []*apiservice.ServiceAlias{req}, model.Create, "CreateServiceAlias")
 
 	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
 		return api.NewServiceAliasResponse(convertToErrCode(err), req)
@@ -63,8 +66,10 @@ func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context,
 }
 
 // UpdateServiceAlias updates service alias
-func (svr *serverAuthAbility) UpdateServiceAlias(ctx context.Context, req *apiservice.ServiceAlias) *apiservice.Response {
-	authCtx := svr.collectServiceAliasAuthContext(ctx, []*apiservice.ServiceAlias{req}, model.Modify, "UpdateServiceAlias")
+func (svr *serverAuthAbility) UpdateServiceAlias(
+	ctx context.Context, req *apiservice.ServiceAlias) *apiservice.Response {
+	authCtx := svr.collectServiceAliasAuthContext(
+		ctx, []*apiservice.ServiceAlias{req}, model.Modify, "UpdateServiceAlias")
 
 	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
 		return api.NewServiceAliasResponse(convertToErrCode(err), req)

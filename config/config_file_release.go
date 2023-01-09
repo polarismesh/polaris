@@ -21,9 +21,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/gogo/protobuf/jsonpb"
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	"github.com/gogo/protobuf/jsonpb"
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -34,7 +34,8 @@ import (
 )
 
 // PublishConfigFile 发布配置文件
-func (s *Server) PublishConfigFile(ctx context.Context, configFileRelease *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
+func (s *Server) PublishConfigFile(
+	ctx context.Context, configFileRelease *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
 	namespace := configFileRelease.Namespace.GetValue()
 	group := configFileRelease.Group.GetValue()
 	fileName := configFileRelease.FileName.GetValue()
@@ -140,7 +141,8 @@ func (s *Server) PublishConfigFile(ctx context.Context, configFileRelease *apico
 		s.RecordHistory(ctx, configFileReleaseRecordEntry(ctx, configFileRelease, createdFileRelease, model.OCreate))
 		s.recordReleaseHistory(ctx, createdFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
 
-		return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, configFileRelease2Api(createdFileRelease))
+		return api.NewConfigFileReleaseResponse(
+			apimodel.Code_ExecuteSuccess, configFileRelease2Api(createdFileRelease))
 	}
 
 	// 更新发布
@@ -177,7 +179,8 @@ func (s *Server) PublishConfigFile(ctx context.Context, configFileRelease *apico
 }
 
 // GetConfigFileRelease 获取配置文件发布内容
-func (s *Server) GetConfigFileRelease(ctx context.Context, namespace, group, fileName string) *apiconfig.ConfigResponse {
+func (s *Server) GetConfigFileRelease(
+	ctx context.Context, namespace, group, fileName string) *apiconfig.ConfigResponse {
 	if err := utils2.CheckFileName(utils.NewStringValue(fileName)); err != nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileName, nil)
 	}

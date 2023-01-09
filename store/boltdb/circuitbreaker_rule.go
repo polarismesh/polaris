@@ -18,11 +18,12 @@
 package boltdb
 
 import (
-	"github.com/boltdb/bolt"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/boltdb/bolt"
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
@@ -154,7 +155,8 @@ func (c *circuitBreakerStore) HasCircuitBreakerRuleByName(name string, namespace
 }
 
 // HasCircuitBreakerRuleByNameExcludeId check circuitbreaker rule exists for name not this id
-func (c *circuitBreakerStore) HasCircuitBreakerRuleByNameExcludeId(name string, namespace string, id string) (bool, error) {
+func (c *circuitBreakerStore) HasCircuitBreakerRuleByNameExcludeId(
+	name string, namespace string, id string) (bool, error) {
 	filter := map[string]string{
 		exactName:   name,
 		"namespace": namespace,
@@ -177,9 +179,9 @@ const (
 )
 
 var (
-	cbSearchFields = []string{
-		CommonFieldID, CommonFieldName, CommonFieldNamespace, CommonFieldDescription, CbFieldLevel, CbFieldSrcService, CbFieldSrcNamespace,
-		CbFieldDstService, CbFieldDstNamespace, CbFieldDstMethod, CommonFieldEnable, CommonFieldValid,
+	cbSearchFields = []string{CommonFieldID, CommonFieldName, CommonFieldNamespace, CommonFieldDescription,
+		CbFieldLevel, CbFieldSrcService, CbFieldSrcNamespace, CbFieldDstService, CbFieldDstNamespace,
+		CbFieldDstMethod, CommonFieldEnable, CommonFieldValid,
 	}
 	cbBlurSearchFields = map[string]bool{
 		CommonFieldName:        true,
@@ -191,7 +193,8 @@ var (
 )
 
 // GetCircuitBreakerRules get all circuitbreaker rules by query and limit
-func (c *circuitBreakerStore) GetCircuitBreakerRules(filter map[string]string, offset uint32, limit uint32) (uint32, []*model.CircuitBreakerRule, error) {
+func (c *circuitBreakerStore) GetCircuitBreakerRules(
+	filter map[string]string, offset uint32, limit uint32) (uint32, []*model.CircuitBreakerRule, error) {
 	svc, hasSvc := filter[svcSpecificQueryKeyService]
 	delete(filter, svcSpecificQueryKeyService)
 	svcNs, hasSvcNs := filter[svcSpecificQueryKeyNamespace]
@@ -208,11 +211,11 @@ func (c *circuitBreakerStore) GetCircuitBreakerRules(filter map[string]string, o
 				return false
 			}
 			if hasSvc && hasSvcNs {
-				srcServiceValue := m[CbFieldSrcService]
-				srcNamespaceValue := m[CbFieldSrcNamespace]
-				dstServiceValue := m[CbFieldDstService]
-				dstNamespaceValue := m[CbFieldDstNamespace]
-				if !((srcServiceValue == svc && srcNamespaceValue == svcNs) || (dstServiceValue == svc && dstNamespaceValue == svcNs)) {
+				srcSvcValue := m[CbFieldSrcService]
+				srcNsValue := m[CbFieldSrcNamespace]
+				dstSvcValue := m[CbFieldDstService]
+				dstNsValue := m[CbFieldDstNamespace]
+				if !((srcSvcValue == svc && srcNsValue == svcNs) || (dstSvcValue == svc && dstNsValue == svcNs)) {
 					return false
 				}
 			}
@@ -314,14 +317,16 @@ func sublistCircuitBreakerRules(cbRules []*model.CircuitBreakerRule, offset, lim
 }
 
 // GetCircuitBreakerRulesForCache get increment circuitbreaker rules
-func (c *circuitBreakerStore) GetCircuitBreakerRulesForCache(mtime time.Time, firstUpdate bool) ([]*model.CircuitBreakerRule, error) {
+func (c *circuitBreakerStore) GetCircuitBreakerRulesForCache(
+	mtime time.Time, firstUpdate bool) ([]*model.CircuitBreakerRule, error) {
 	handler := c.handler
 
 	if firstUpdate {
 		mtime = time.Time{}
 	}
 
-	results, err := handler.LoadValuesByFilter(tblCircuitBreakerRule, []string{CommonFieldModifyTime}, &model.CircuitBreakerRule{},
+	results, err := handler.LoadValuesByFilter(
+		tblCircuitBreakerRule, []string{CommonFieldModifyTime}, &model.CircuitBreakerRule{},
 		func(m map[string]interface{}) bool {
 			mt := m[CommonFieldModifyTime].(time.Time)
 			isAfter := !mt.Before(mtime)

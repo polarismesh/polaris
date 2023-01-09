@@ -21,13 +21,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"strconv"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
@@ -625,7 +625,8 @@ func updateUserAttribute(old *model.User, newUser *apisecurity.User) (*model.Use
 }
 
 // updateUserAttribute 更新用户密码信息，如果用户的密码被更新
-func updateUserPasswordAttribute(isAdmin bool, user *model.User, req *apisecurity.ModifyUserPassword) (*model.User, bool, error) {
+func updateUserPasswordAttribute(
+	isAdmin bool, user *model.User, req *apisecurity.ModifyUserPassword) (*model.User, bool, error) {
 	needUpdate := false
 
 	if err := checkPassword(req.NewPassword); err != nil {

@@ -19,12 +19,12 @@ package eurekaserver
 
 import (
 	"context"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"net/http"
 	"time"
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"

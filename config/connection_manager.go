@@ -19,9 +19,10 @@ package config
 
 import (
 	"context"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"sync"
 	"time"
+
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
@@ -64,7 +65,8 @@ func NewConfigConnManager(ctx context.Context, watchCenter *watchCenter) *connMa
 	return cm
 }
 
-func (c *connManager) AddConn(clientId string, files []*apiconfig.ClientConfigFileInfo) chan *apiconfig.ConfigClientResponse {
+func (c *connManager) AddConn(
+	clientId string, files []*apiconfig.ClientConfigFileInfo) chan *apiconfig.ConfigClientResponse {
 
 	finishChan := make(chan *apiconfig.ConfigClientResponse)
 

@@ -21,11 +21,10 @@ import (
 	"context"
 	"fmt"
 
-	"go.uber.org/zap"
-	"google.golang.org/grpc"
-
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
 
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/apiserver/grpcserver"

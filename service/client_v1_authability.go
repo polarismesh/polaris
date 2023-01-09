@@ -19,6 +19,7 @@ package service
 
 import (
 	"context"
+
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -28,7 +29,8 @@ import (
 
 // RegisterInstance create one instance
 func (svr *serverAuthAbility) RegisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
-	authCtx := svr.collectClientInstanceAuthContext(ctx, []*apiservice.Instance{req}, model.Create, "RegisterInstance")
+	authCtx := svr.collectClientInstanceAuthContext(
+		ctx, []*apiservice.Instance{req}, model.Create, "RegisterInstance")
 
 	_, err := svr.authMgn.CheckClientPermission(authCtx)
 	if err != nil {
@@ -44,7 +46,8 @@ func (svr *serverAuthAbility) RegisterInstance(ctx context.Context, req *apiserv
 
 // DeregisterInstance delete onr instance
 func (svr *serverAuthAbility) DeregisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
-	authCtx := svr.collectClientInstanceAuthContext(ctx, []*apiservice.Instance{req}, model.Create, "DeregisterInstance")
+	authCtx := svr.collectClientInstanceAuthContext(
+		ctx, []*apiservice.Instance{req}, model.Create, "DeregisterInstance")
 
 	_, err := svr.authMgn.CheckClientPermission(authCtx)
 	if err != nil {
@@ -71,31 +74,37 @@ func (svr *serverAuthAbility) GetPrometheusTargets(ctx context.Context,
 }
 
 // GetServiceWithCache is the interface for getting service with cache
-func (svr *serverAuthAbility) GetServiceWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+func (svr *serverAuthAbility) GetServiceWithCache(
+	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	return svr.targetServer.GetServiceWithCache(ctx, req)
 }
 
 // ServiceInstancesCache is the interface for getting service instances cache
-func (svr *serverAuthAbility) ServiceInstancesCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+func (svr *serverAuthAbility) ServiceInstancesCache(
+	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	return svr.targetServer.ServiceInstancesCache(ctx, req)
 }
 
 // GetRoutingConfigWithCache is the interface for getting routing config with cache
-func (svr *serverAuthAbility) GetRoutingConfigWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+func (svr *serverAuthAbility) GetRoutingConfigWithCache(
+	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	return svr.targetServer.GetRoutingConfigWithCache(ctx, req)
 }
 
 // GetRateLimitWithCache is the interface for getting rate limit with cache
-func (svr *serverAuthAbility) GetRateLimitWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+func (svr *serverAuthAbility) GetRateLimitWithCache(
+	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	return svr.targetServer.GetRateLimitWithCache(ctx, req)
 }
 
 // GetCircuitBreakerWithCache is the interface for getting a circuit breaker with cache
-func (svr *serverAuthAbility) GetCircuitBreakerWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+func (svr *serverAuthAbility) GetCircuitBreakerWithCache(
+	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	return svr.targetServer.GetCircuitBreakerWithCache(ctx, req)
 }
 
 // GetRouterConfigWithCache User Client Get Service Routing Configuration Information
-func (svr *serverAuthAbility) GetRouterConfigWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+func (svr *serverAuthAbility) GetRouterConfigWithCache(
+	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	return svr.targetServer.GetRouterConfigWithCache(ctx, req)
 }

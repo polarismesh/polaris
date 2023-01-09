@@ -19,26 +19,32 @@ package service
 
 import (
 	"context"
+
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
-func (svr *serverAuthAbility) CreateCircuitBreakerRules(ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
+func (svr *serverAuthAbility) CreateCircuitBreakerRules(
+	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
 	return svr.targetServer.CreateCircuitBreakerRules(ctx, request)
 }
 
-func (svr *serverAuthAbility) DeleteCircuitBreakerRules(ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
+func (svr *serverAuthAbility) DeleteCircuitBreakerRules(
+	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
 	return svr.targetServer.DeleteCircuitBreakerRules(ctx, request)
 }
 
-func (svr *serverAuthAbility) EnableCircuitBreakerRules(ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
+func (svr *serverAuthAbility) EnableCircuitBreakerRules(
+	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
 	return svr.targetServer.EnableCircuitBreakerRules(ctx, request)
 }
 
-func (svr *serverAuthAbility) UpdateCircuitBreakerRules(ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
+func (svr *serverAuthAbility) UpdateCircuitBreakerRules(
+	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
 	return svr.targetServer.UpdateCircuitBreakerRules(ctx, request)
 }
 
-func (svr *serverAuthAbility) GetCircuitBreakerRules(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+func (svr *serverAuthAbility) GetCircuitBreakerRules(
+	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	return svr.targetServer.GetCircuitBreakerRules(ctx, query)
 }

@@ -19,9 +19,10 @@ package bootstrap
 
 import (
 	"context"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"sync"
 	"time"
+
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/log"

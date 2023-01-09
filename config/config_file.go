@@ -20,12 +20,12 @@ package config
 import (
 	"context"
 	"errors"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"strings"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -378,7 +378,8 @@ func (s *Server) UpdateConfigFile(ctx context.Context, configFile *apiconfig.Con
 }
 
 // DeleteConfigFile 删除配置文件，删除配置文件同时会通知客户端 Not_Found
-func (s *Server) DeleteConfigFile(ctx context.Context, namespace, group, name, deleteBy string) *apiconfig.ConfigResponse {
+func (s *Server) DeleteConfigFile(
+	ctx context.Context, namespace, group, name, deleteBy string) *apiconfig.ConfigResponse {
 	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}

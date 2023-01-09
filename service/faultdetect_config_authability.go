@@ -19,26 +19,32 @@ package service
 
 import (
 	"context"
+
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
-func (svr *serverAuthAbility) CreateFaultDetectRules(ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
+func (svr *serverAuthAbility) CreateFaultDetectRules(
+	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 	return svr.targetServer.CreateFaultDetectRules(ctx, request)
 }
 
-func (svr *serverAuthAbility) DeleteFaultDetectRules(ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
+func (svr *serverAuthAbility) DeleteFaultDetectRules(
+	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 	return svr.targetServer.DeleteFaultDetectRules(ctx, request)
 }
 
-func (svr *serverAuthAbility) UpdateFaultDetectRules(ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
+func (svr *serverAuthAbility) UpdateFaultDetectRules(
+	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 	return svr.targetServer.UpdateFaultDetectRules(ctx, request)
 }
 
-func (svr *serverAuthAbility) GetFaultDetectRules(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+func (svr *serverAuthAbility) GetFaultDetectRules(
+	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	return svr.targetServer.GetFaultDetectRules(ctx, query)
 }
 
-func (svr *serverAuthAbility) GetFaultDetectWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+func (svr *serverAuthAbility) GetFaultDetectWithCache(
+	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	return svr.targetServer.GetFaultDetectWithCache(ctx, req)
 }

@@ -19,13 +19,13 @@ package config
 
 import (
 	"context"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -36,7 +36,8 @@ import (
 )
 
 // CreateConfigFileGroup 创建配置文件组
-func (s *Server) CreateConfigFileGroup(ctx context.Context, configFileGroup *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse {
+func (s *Server) CreateConfigFileGroup(
+	ctx context.Context, configFileGroup *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse {
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 	if checkError := checkConfigFileGroupParams(configFileGroup); checkError != nil {
 		return checkError
@@ -238,7 +239,8 @@ func (s *Server) queryByFileName(ctx context.Context, namespace, groupName,
 	return api.NewConfigFileGroupBatchQueryResponse(apimodel.Code_ExecuteSuccess, uint32(total), groupAPIModels)
 }
 
-func (s *Server) batchTransfer(ctx context.Context, groups []*model.ConfigFileGroup) ([]*apiconfig.ConfigFileGroup, error) {
+func (s *Server) batchTransfer(
+	ctx context.Context, groups []*model.ConfigFileGroup) ([]*apiconfig.ConfigFileGroup, error) {
 	var result []*apiconfig.ConfigFileGroup
 	for _, groupStoreModel := range groups {
 		configFileGroup := configFileGroup2Api(groupStoreModel)

@@ -21,13 +21,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"net"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/apiserver"

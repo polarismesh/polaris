@@ -21,12 +21,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
@@ -257,7 +257,8 @@ func (s *Server) GetRoutingConfigs(ctx context.Context, query map[string]string)
 }
 
 // routingConfigCommonCheck 路由配置操作的公共检查
-func (s *Server) routingConfigCommonCheck(ctx context.Context, req *apitraffic.Routing) (*model.Service, *apiservice.Response) {
+func (s *Server) routingConfigCommonCheck(
+	ctx context.Context, req *apitraffic.Routing) (*model.Service, *apiservice.Response) {
 	if resp := checkRoutingConfig(req); resp != nil {
 		return nil, resp
 	}

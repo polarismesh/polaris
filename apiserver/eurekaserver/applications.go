@@ -21,12 +21,13 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"sort"
 	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/service"

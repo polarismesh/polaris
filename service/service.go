@@ -20,12 +20,12 @@ package service
 import (
 	"context"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/cache"
@@ -100,7 +100,8 @@ func (s *Server) CreateService(ctx context.Context, req *apiservice.Service) *ap
 	// 检查命名空间是否存在
 	namespace, err := s.storage.GetNamespace(namespaceName)
 	if err != nil {
-		log.Error("[Service] get namespace fail", utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
+		log.Error("[Service] get namespace fail",
+			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewServiceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if namespace == nil {
@@ -110,7 +111,8 @@ func (s *Server) CreateService(ctx context.Context, req *apiservice.Service) *ap
 	// 检查是否存在
 	service, err := s.storage.GetService(serviceName, namespaceName)
 	if err != nil {
-		log.Error("[Service] get service fail", utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
+		log.Error("[Service] get service fail",
+			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
 		return api.NewServiceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if service != nil {
@@ -121,7 +123,8 @@ func (s *Server) CreateService(ctx context.Context, req *apiservice.Service) *ap
 	// 存储层操作
 	data := s.createServiceModel(req)
 	if err := s.storage.AddService(data); err != nil {
-		log.Error("[Service] save service fail", utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
+		log.Error("[Service] save service fail",
+			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
 		return wrapperServiceStoreResponse(req, err)
 	}
 
@@ -329,7 +332,8 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 		// 元数据value允许为空
 		if key != "values" && value == "" {
 			log.Errorf("[Server][Service][Query] attribute(%s: %s) is not allowed empty", key, value)
-			return api.NewBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, "the value for "+key+" is empty")
+			return api.NewBatchQueryResponseWithMsg(
+				apimodel.Code_InvalidParameter, "the value for "+key+" is empty")
 		}
 		switch {
 		case typ == serviceFilter:
@@ -509,7 +513,8 @@ func (s *Server) createServiceModel(req *apiservice.Service) *model.Service {
 }
 
 // updateServiceAttribute 修改服务属性
-func (s *Server) updateServiceAttribute(req *apiservice.Service, service *model.Service) (*apiservice.Response, bool, bool) {
+func (s *Server) updateServiceAttribute(
+	req *apiservice.Service, service *model.Service) (*apiservice.Response, bool, bool) {
 	// 待更新的参数检查
 	if err := checkMetadata(req.GetMetadata()); err != nil {
 		return api.NewServiceResponse(apimodel.Code_InvalidMetadata, req), false, false

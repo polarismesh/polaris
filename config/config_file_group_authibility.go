@@ -20,6 +20,7 @@ package config
 import (
 	"context"
 	"fmt"
+
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 
@@ -80,7 +81,8 @@ func (s *serverAuthability) QueryConfigFileGroups(ctx context.Context, namespace
 }
 
 // DeleteConfigFileGroup 删除配置文件组
-func (s *serverAuthability) DeleteConfigFileGroup(ctx context.Context, namespace, name string) *apiconfig.ConfigResponse {
+func (s *serverAuthability) DeleteConfigFileGroup(
+	ctx context.Context, namespace, name string) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*apiconfig.ConfigFileGroup{{Name: utils.NewStringValue(name),
 		Namespace: utils.NewStringValue(namespace)}}, model.Delete, "DeleteConfigFileGroup")
 

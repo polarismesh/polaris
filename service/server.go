@@ -19,9 +19,9 @@ package service
 
 import (
 	"context"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"time"
 
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris/cache"

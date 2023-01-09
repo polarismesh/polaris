@@ -117,7 +117,8 @@ func (c *circuitBreakerCache) name() string {
 }
 
 // GetCircuitBreakerConfig 根据serviceID获取熔断规则
-func (c *circuitBreakerCache) GetCircuitBreakerConfig(name string, namespace string) *model.ServiceWithCircuitBreakerRules {
+func (c *circuitBreakerCache) GetCircuitBreakerConfig(
+	name string, namespace string) *model.ServiceWithCircuitBreakerRules {
 	// check service specific
 	rules := c.checkServiceSpecificCache(name, namespace)
 	if nil != rules {
@@ -130,7 +131,8 @@ func (c *circuitBreakerCache) GetCircuitBreakerConfig(name string, namespace str
 	return c.allWildcardRules
 }
 
-func (c *circuitBreakerCache) checkServiceSpecificCache(name string, namespace string) *model.ServiceWithCircuitBreakerRules {
+func (c *circuitBreakerCache) checkServiceSpecificCache(
+	name string, namespace string) *model.ServiceWithCircuitBreakerRules {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	svcRules, ok := c.circuitBreakers[namespace]
@@ -167,7 +169,8 @@ func (c *circuitBreakerCache) reloadRevision(svcRules *model.ServiceWithCircuitB
 	svcRules.Revision = revision
 }
 
-func (c *circuitBreakerCache) deleteAndReloadCircuitBreakerRules(svcRules *model.ServiceWithCircuitBreakerRules, id string) {
+func (c *circuitBreakerCache) deleteAndReloadCircuitBreakerRules(
+	svcRules *model.ServiceWithCircuitBreakerRules, id string) {
 	svcRules.DelCircuitBreakerRule(id)
 	c.reloadRevision(svcRules)
 }
@@ -218,7 +221,8 @@ func (c *circuitBreakerCache) deleteCircuitBreakerFromServiceCache(id string, sv
 	}
 }
 
-func (c *circuitBreakerCache) storeAndReloadCircuitBreakerRules(svcRules *model.ServiceWithCircuitBreakerRules, cbRule *model.CircuitBreakerRule) {
+func (c *circuitBreakerCache) storeAndReloadCircuitBreakerRules(
+	svcRules *model.ServiceWithCircuitBreakerRules, cbRule *model.CircuitBreakerRule) {
 	svcRules.AddCircuitBreakerRule(cbRule)
 	c.reloadRevision(svcRules)
 }
@@ -230,7 +234,8 @@ func createAndStoreServiceWithCircuitBreakerRules(svcKey model.ServiceKey, key s
 	return rules
 }
 
-func (c *circuitBreakerCache) storeCircuitBreakerToServiceCache(entry *model.CircuitBreakerRule, svcKeys map[model.ServiceKey]bool) {
+func (c *circuitBreakerCache) storeCircuitBreakerToServiceCache(
+	entry *model.CircuitBreakerRule, svcKeys map[model.ServiceKey]bool) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if len(svcKeys) == 0 {

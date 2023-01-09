@@ -20,15 +20,15 @@ package defaultauth
 import (
 	"context"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -87,7 +87,8 @@ func (svr *server) CreateStrategy(ctx context.Context, req *apisecurity.AuthStra
 }
 
 // UpdateStrategies 批量修改鉴权
-func (svr *server) UpdateStrategies(ctx context.Context, reqs []*apisecurity.ModifyAuthStrategy) *apiservice.BatchWriteResponse {
+func (svr *server) UpdateStrategies(
+	ctx context.Context, reqs []*apisecurity.ModifyAuthStrategy) *apiservice.BatchWriteResponse {
 	resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 
 	for index := range reqs {
@@ -139,7 +140,8 @@ func (svr *server) UpdateStrategy(ctx context.Context, req *apisecurity.ModifyAu
 }
 
 // DeleteStrategies 批量删除鉴权策略
-func (svr *server) DeleteStrategies(ctx context.Context, reqs []*apisecurity.AuthStrategy) *apiservice.BatchWriteResponse {
+func (svr *server) DeleteStrategies(
+	ctx context.Context, reqs []*apisecurity.AuthStrategy) *apiservice.BatchWriteResponse {
 	resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for index := range reqs {
 		ret := svr.DeleteStrategy(ctx, reqs[index])
@@ -557,7 +559,8 @@ func (svr *server) updateAuthStrategyAttribute(ctx context.Context, strategy *ap
 }
 
 // computeResourceChange 计算资源的变化情况，判断是否涉及变更
-func (svr *server) computeResourceChange(modify *model.ModifyStrategyDetail, strategy *apisecurity.ModifyAuthStrategy) bool {
+func (svr *server) computeResourceChange(
+	modify *model.ModifyStrategyDetail, strategy *apisecurity.ModifyAuthStrategy) bool {
 	var needUpdate bool
 	addResEntry := make([]model.StrategyResource, 0)
 	addResEntry = append(addResEntry, svr.collectResEntry(modify.ID, apisecurity.ResourceType_Namespaces,
@@ -770,7 +773,8 @@ func authStrategyRecordEntry(ctx context.Context, req *apisecurity.AuthStrategy,
 }
 
 // authModifyStrategyRecordEntry
-func authModifyStrategyRecordEntry(ctx context.Context, req *apisecurity.ModifyAuthStrategy, md *model.ModifyStrategyDetail,
+func authModifyStrategyRecordEntry(
+	ctx context.Context, req *apisecurity.ModifyAuthStrategy, md *model.ModifyStrategyDetail,
 	operationType model.OperationType) *model.RecordEntry {
 
 	marshaler := jsonpb.Marshaler{}
