@@ -20,12 +20,12 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"net"
 	"net/http"
 	"strings"
 	"time"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -199,7 +199,7 @@ func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer InitS
 }
 
 var notPrintableMethods = map[string]bool{
-	"/v1.PolarisGRPC/Heartbeat": true,
+	"/polaris.v1.PolarisGRPC/Heartbeat": true,
 }
 
 func (b *BaseGrpcServer) unaryInterceptor(ctx context.Context, req interface{},

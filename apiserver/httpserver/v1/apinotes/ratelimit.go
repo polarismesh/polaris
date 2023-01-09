@@ -111,7 +111,7 @@ Header X-Polaris-Token: {访问凭据}
 | regex_combine   | bool          | 合并计算配额，对于匹配到同一条正则表达式规则的多个不同的请求进行合并计算，默认为false | 否       |
 | disable         | bool          | 是否启用该限流规则，默认为false（启用）                      | 否       |
 | action          | string        | 限流效果，支持REJECT（直接拒绝）,UNIRATE（匀速排队），默认REJECT | 否       |
-| failover        | string        | 失败降级措施，仅分布式限流有效，当远程token服务出现故障时，本地如何降级。支持FAILOVER_LOCAL（降级到单机限流），FAILOVER_PASS（直接通过）。默认FAILOVER_LOCAL | 否       |
+| failover        | string        | 失败降级措施，仅分布式限流有效，当远程token服务出现故障时，本地如何降级。 | 否       |
 | max_queue_delay | int           | 最大排队时长，单位秒，仅对匀速排队生效。默认1秒              | 否       |
 
 > Amount结构参数
@@ -132,9 +132,9 @@ Header X-Polaris-Token: {访问凭据}
 
 | 参数名 | 类型        | 描述                                                         | 是否必填 |
 | ------ | ----------- | ------------------------------------------------------------ | -------- |
-| type   | string      | 参数类型，枚举，支持：CUSTOM（自定义，默认），METHOD（方法），HEADER（请求头），QUERY（请求参数），CALLER_SERVICE（主调方服务），CALLER_IP（主调方IP） | 是       |
+| type   | string      | 参数类型，枚举，支持：CUSTOM，METHOD，HEADER，QUERY，CALLER_SERVICE，CALLER_IP | 是       |
 | key    | string      | 参数键，对于HEADER、QUERY、CUSTOM，对应的是key值；对于CALLER_SERVICE，对应的是服务的命名空间值 | 是       |
-| value  | MatchString | 参数值，对于HEADER、QUERY、CUSTOM，对应的是key所关联的value；对于CALLER_SERVICE，对应的是服务名，其他类型则是具体的值，支持多种匹配模式（见MatchString的定义） | 是       |
+| value  | MatchString | 参数值，对于HEADER、QUERY、CUSTOM，对应的是key所关联的value；对于CALLER_SERVICE，对应的是服务名，其他类型则是具体的值 | 是  |
 `
 	EnrichDeleteRateLimitsApiNotes = `
 请求示例：

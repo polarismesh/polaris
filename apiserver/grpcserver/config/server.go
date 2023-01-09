@@ -20,9 +20,9 @@ package config
 import (
 	"context"
 	"fmt"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"strings"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"google.golang.org/grpc"
 
 	"github.com/polarismesh/polaris/apiserver"
@@ -134,7 +134,7 @@ func getConfigClientOpenMethod(protocol string) (map[string]bool, error) {
 	openMethod := make(map[string]bool)
 
 	for _, item := range openMethods {
-		method := "/v1.PolarisConfig" + strings.ToUpper(protocol) + "/" + item
+		method := "/polaris.v1.PolarisConfig" + strings.ToUpper(protocol) + "/" + item
 		openMethod[method] = true
 	}
 

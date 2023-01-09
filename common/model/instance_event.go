@@ -18,8 +18,9 @@
 package model
 
 import (
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"time"
+
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 // InstanceEventType 探测事件类型

@@ -25,7 +25,7 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	tlstrans "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	resource "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/polarismesh/polaris/common/model"
@@ -34,14 +34,6 @@ import (
 type CircuitBreakerConfigGetter func(id string) *model.ServiceWithCircuitBreaker
 
 func (x *XDSServer) makeCluster(service *ServiceInfo) *cluster.Cluster {
-	//var circuitBreakerConf *model.ServiceWithCircuitBreaker
-	//
-	//if x.CircuitBreakerConfigGetter != nil {
-	//	circuitBreakerConf = x.CircuitBreakerConfigGetter(service.ID)
-	//} else {
-	//	circuitBreakerConf = x.namingServer.Cache().CircuitBreaker().GetCircuitBreakerConfig(service.ID)
-	//}
-
 	return &cluster.Cluster{
 		Name:                 service.Name,
 		ConnectTimeout:       ptypes.DurationProto(5 * time.Second),

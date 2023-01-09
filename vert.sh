@@ -68,7 +68,7 @@ not git grep -L "\(Copyright (C) [0-9]\{4,\} THL A29 Limited, a Tencent company.
 #not grep -r 'func Test[^(]' test/*.go
 
 # - Do not import x/net/context.
-git grep -l 'x/net/context' -- "*.go"
+#git grep -l 'x/net/context' -- "*.go"
 
 misspell -error .
 
