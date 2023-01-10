@@ -93,7 +93,7 @@ func GetClientOpenMethod(include []string, protocol string) (map[string]bool, er
 	for _, item := range include {
 		if methods, ok := clientAccess[item]; ok {
 			for _, method := range methods {
-				method = "/polaris.v1.Polaris" + strings.ToUpper(protocol) + "/" + method
+				method = "/v1.Polaris" + strings.ToUpper(protocol) + "/" + method
 				openMethod[method] = true
 			}
 		} else {

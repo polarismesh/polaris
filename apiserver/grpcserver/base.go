@@ -199,7 +199,7 @@ func (b *BaseGrpcServer) Run(errCh chan error, protocol string, initServer InitS
 }
 
 var notPrintableMethods = map[string]bool{
-	"/polaris.v1.PolarisGRPC/Heartbeat": true,
+	"/v1.PolarisGRPC/Heartbeat": true,
 }
 
 func (b *BaseGrpcServer) unaryInterceptor(ctx context.Context, req interface{},

@@ -134,7 +134,7 @@ func getConfigClientOpenMethod(protocol string) (map[string]bool, error) {
 	openMethod := make(map[string]bool)
 
 	for _, item := range openMethods {
-		method := "/polaris.v1.PolarisConfig" + strings.ToUpper(protocol) + "/" + item
+		method := "/v1.PolarisConfig" + strings.ToUpper(protocol) + "/" + item
 		openMethod[method] = true
 	}
 
