@@ -18,13 +18,17 @@
 package model
 
 import (
+	"strings"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+	protoV2 "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	commontime "github.com/polarismesh/polaris/common/time"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 const (
@@ -47,6 +51,10 @@ var (
 	RuleRoutingTypeUrl string
 	// MetaRoutingTypeUrl 记录 anypb.Any 中关于 MetadataRoutingConfig 的 url 信息
 	MetaRoutingTypeUrl string
+	// RuleRoutingTypeUrlV2 记录 anypb.Any 中关于 RuleRoutingConfigV2 的 url 信息
+	// RuleRoutingTypeUrlV2 string
+	// MetaRoutingTypeUrlV2 记录 anypb.Any 中关于 MetadataRoutingConfigV2 的 url 信息
+	// MetaRoutingTypeUrlV2 string
 )
 
 func init() {
@@ -55,6 +63,12 @@ func init() {
 
 	RuleRoutingTypeUrl = ruleAny.GetTypeUrl()
 	MetaRoutingTypeUrl = metaAny.GetTypeUrl()
+
+	// ruleAnyV2, _ := ptypes.MarshalAny(&v2.RuleRoutingConfig{})
+	// metaAnyV2, _ := ptypes.MarshalAny(&v2.MetadataRoutingConfig{})
+	// RuleRoutingTypeUrlV2 = ruleAnyV2.GetTypeUrl()
+	// MetaRoutingTypeUrlV2 = metaAnyV2.GetTypeUrl()
+
 }
 
 // ExtendRouterConfig 路由信息的扩展
@@ -150,36 +164,101 @@ func (r *RouterConfig) ToExpendRoutingConfig() (*ExtendRouterConfig, error) {
 		RouterConfig: r,
 	}
 
+	configText := r.Config
+	if len(configText) == 0 {
+		return ret, nil
+	}
 	policy := r.GetRoutingPolicy()
-
-	if policy == apitraffic.RoutingPolicy_RulePolicy {
-		rule := &apitraffic.RuleRoutingConfig{}
-		if err := ptypes.UnmarshalAny(&anypb.Any{
-			TypeUrl: RuleRoutingTypeUrl,
-			Value:   []byte(r.Config),
-		}, rule); err != nil {
-			return nil, err
+	var err error
+	if strings.HasPrefix(configText, "{") {
+		//process with json
+		switch policy {
+		case apitraffic.RoutingPolicy_RulePolicy:
+			rule := &apitraffic.RuleRoutingConfig{}
+			if err = utils.UnmarshalFromJsonString(rule, configText); nil != err {
+				return nil, err
+			}
+			ret.RuleRouting = rule
+			break
+		case apitraffic.RoutingPolicy_MetadataPolicy:
+			rule := &apitraffic.MetadataRoutingConfig{}
+			if err = utils.UnmarshalFromJsonString(rule, configText); nil != err {
+				return nil, err
+			}
+			ret.MetadataRouting = rule
+			break
 		}
-		ret.RuleRouting = rule
+		return ret, nil
 	}
 
-	if policy == apitraffic.RoutingPolicy_MetadataPolicy {
-		rule := &apitraffic.MetadataRoutingConfig{}
-		if err := ptypes.UnmarshalAny(&anypb.Any{
-			TypeUrl: MetaRoutingTypeUrl,
-			Value:   []byte(r.Config),
-		}, rule); err != nil {
-			return nil, err
-		}
-
-		ret.MetadataRouting = rule
+	err = r.parseBinaryAnyMessage(policy, ret)
+	if err != nil {
+		return nil, err
 	}
-
 	return ret, nil
 }
 
-// ParseFromAPI 从 API 对象中转换出内部对象
-func (r *RouterConfig) ParseFromAPI(routing *apitraffic.RouteRule) error {
+func (r *RouterConfig) parseBinaryAnyMessage(
+	policy apitraffic.RoutingPolicy, ret *ExtendRouterConfig) error {
+	// parse v1 binary
+	switch policy {
+	case apitraffic.RoutingPolicy_RulePolicy:
+		rule := &apitraffic.RuleRoutingConfig{}
+		anyMsg := &anypb.Any{
+			TypeUrl: RuleRoutingTypeUrl,
+			Value:   []byte(r.Config),
+		}
+		if err := unmarshalToAny(anyMsg, rule); nil != err {
+			// parse v2 binary
+			//ruleV2 := &v2.RuleRoutingConfig{}
+			//anyMsg = &anypb.Any{
+			//	TypeUrl: RuleRoutingTypeUrlV2,
+			//	Value:   []byte(r.Config),
+			//}
+			//if err = unmarshalToAny(anyMsg, ruleV2); nil != err {
+			//	return err
+			//}
+			//if err = utils.ConvertSameStructureMessage(ruleV2, rule); nil != err {
+			//	return err
+			//}
+			return err
+		}
+		ret.RuleRouting = rule
+	case apitraffic.RoutingPolicy_MetadataPolicy:
+		rule := &apitraffic.MetadataRoutingConfig{}
+		anyMsg := &anypb.Any{
+			TypeUrl: MetaRoutingTypeUrl,
+			Value:   []byte(r.Config),
+		}
+		if err := unmarshalToAny(anyMsg, rule); nil != err {
+			// parse v2 binary
+			//ruleV2 := &v2.MetadataRoutingConfig{}
+			//anyMsg = &anypb.Any{
+			//	TypeUrl: MetaRoutingTypeUrlV2,
+			//	Value:   []byte(r.Config),
+			//}
+			//if err = unmarshalToAny(anyMsg, ruleV2); nil != err {
+			//	return err
+			//}
+			//if err = utils.ConvertSameStructureMessage(ruleV2, rule); nil != err {
+			//	return err
+			//}
+			return err
+		}
+		ret.MetadataRouting = rule
+	}
+	return nil
+}
+
+// ParseRouteRuleFromAPI 从 API 对象中转换出内部对象
+func (r *RouterConfig) ParseRouteRuleFromAPI(routing *apitraffic.RouteRule) error {
+	ruleMessage, err := ParseRouteRuleAnyToMessage(routing.RoutingPolicy, routing.RoutingConfig)
+	if nil != err {
+		return err
+	}
+	if r.Config, err = utils.MarshalToJsonString(ruleMessage); nil != err {
+		return err
+	}
 	r.ID = routing.Id
 	r.Revision = routing.Revision
 	r.Name = routing.Name
@@ -187,7 +266,6 @@ func (r *RouterConfig) ParseFromAPI(routing *apitraffic.RouteRule) error {
 	r.Enable = routing.Enable
 	r.Policy = routing.GetRoutingPolicy().String()
 	r.Priority = routing.Priority
-	r.Config = string(routing.GetRoutingConfig().GetValue())
 	r.Description = routing.Description
 
 	// 优先级区间范围 [0, 10]
@@ -196,4 +274,31 @@ func (r *RouterConfig) ParseFromAPI(routing *apitraffic.RouteRule) error {
 	}
 
 	return nil
+}
+
+func unmarshalToAny(anyMessage *anypb.Any, message proto.Message) error {
+	return anypb.UnmarshalTo(anyMessage, proto.MessageV2(message),
+		protoV2.UnmarshalOptions{AllowPartial: true, DiscardUnknown: true})
+}
+
+// ParseRouteRuleAnyToMessage convert the any routing proto to message object
+func ParseRouteRuleAnyToMessage(policy apitraffic.RoutingPolicy, anyMessage *anypb.Any) (proto.Message, error) {
+	var rule proto.Message
+	switch policy {
+	case apitraffic.RoutingPolicy_RulePolicy:
+		rule = &apitraffic.RuleRoutingConfig{}
+		if err := unmarshalToAny(anyMessage, rule); err != nil {
+			return nil, err
+		}
+		break
+	case apitraffic.RoutingPolicy_MetadataPolicy:
+		rule = &apitraffic.MetadataRoutingConfig{}
+		if err := unmarshalToAny(anyMessage, rule); err != nil {
+			return nil, err
+		}
+		break
+	default:
+		break
+	}
+	return rule, nil
 }

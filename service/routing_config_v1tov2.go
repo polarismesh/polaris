@@ -153,7 +153,7 @@ func (s *Server) saveRoutingV1toV2(ctx context.Context, svcId string,
 			}
 			item.Revision = utils.NewV2Revision()
 			data := &model.RouterConfig{}
-			if err := data.ParseFromAPI(item); err != nil {
+			if err := data.ParseRouteRuleFromAPI(item); err != nil {
 				return apiv1.NewResponse(apimodel.Code_ExecuteException)
 			}
 

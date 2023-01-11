@@ -37,7 +37,6 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/log"
-	"github.com/polarismesh/polaris/store"
 )
 
 // some options config
@@ -310,33 +309,6 @@ func ParseOffsetAndLimit(query map[string]string) (uint32, uint32, error) {
 	delete(query, "limit")
 
 	return ofs, lmt, nil
-}
-
-// ParseInstanceArgs 解析服务实例的 ip 和 port 查询参数
-func ParseInstanceArgs(query map[string]string) (*store.InstanceArgs, error) {
-	if len(query) == 0 {
-		return nil, nil
-	}
-	hosts, ok := query["host"]
-	if !ok {
-		return nil, fmt.Errorf("port parameter can not be used alone without host")
-	}
-	res := &store.InstanceArgs{}
-	res.Hosts = strings.Split(hosts, ",")
-	ports, ok := query["port"]
-	if !ok {
-		return res, nil
-	}
-
-	portSlices := strings.Split(ports, ",")
-	for _, portStr := range portSlices {
-		port, err := strconv.ParseUint(portStr, 10, 32)
-		if err != nil {
-			return nil, fmt.Errorf("%s can not parse as uint, err is %s", portStr, err.Error())
-		}
-		res.Ports = append(res.Ports, uint32(port))
-	}
-	return res, nil
 }
 
 // ParseRequestID 从ctx中获取Request-ID

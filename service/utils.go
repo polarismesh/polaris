@@ -352,7 +352,6 @@ func ParseOffsetAndLimit(query map[string]string) (uint32, uint32, error) {
 }
 
 // ParseInstanceArgs 解析服务实例的 ip 和 port 查询参数
-// Deprecated: use common/utils.ParseInstanceArgs instead
 func ParseInstanceArgs(query map[string]string) (*store.InstanceArgs, error) {
 	if len(query) == 0 {
 		return nil, nil

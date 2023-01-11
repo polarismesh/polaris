@@ -90,7 +90,7 @@ func (h *HTTPServerV2) addDefaultAccess(ws *restful.WebService) {
 
 const (
 	deprecatedRoutingV2TypeUrl = "type.googleapis.com/v2."
-	newRoutingV2TypeUrl        = "type.googleapis.com/polaris.v1."
+	newRoutingV2TypeUrl        = "type.googleapis.com/v1."
 )
 
 func (h *HTTPServerV2) replaceV2TypeUrl(req *restful.Request) (string, error) {

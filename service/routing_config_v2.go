@@ -519,7 +519,7 @@ func api2RoutingConfigV2(req *apitraffic.RouteRule) (*model.RouterConfig, error)
 		req.Revision = utils.NewV2Revision()
 	}
 
-	if err := out.ParseFromAPI(req); err != nil {
+	if err := out.ParseRouteRuleFromAPI(req); err != nil {
 		return nil, err
 	}
 	return out, nil

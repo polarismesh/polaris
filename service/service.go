@@ -349,7 +349,7 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 		}
 	}
 
-	instanceArgs, err := utils.ParseInstanceArgs(instanceFilters)
+	instanceArgs, err := ParseInstanceArgs(instanceFilters)
 	if err != nil {
 		log.Errorf("[Server][Service][Query] instance args error: %s", err.Error())
 		return api.NewBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, err.Error())
