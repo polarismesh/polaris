@@ -232,17 +232,17 @@ func (r *RouterConfig) parseBinaryAnyMessage(
 		}
 		if err := unmarshalToAny(anyMsg, rule); nil != err {
 			// parse v2 binary
-			//ruleV2 := &v2.MetadataRoutingConfig{}
-			//anyMsg = &anypb.Any{
-			//	TypeUrl: MetaRoutingTypeUrlV2,
-			//	Value:   []byte(r.Config),
-			//}
-			//if err = unmarshalToAny(anyMsg, ruleV2); nil != err {
-			//	return err
-			//}
-			//if err = utils.ConvertSameStructureMessage(ruleV2, rule); nil != err {
-			//	return err
-			//}
+			// ruleV2 := &v2.MetadataRoutingConfig{}
+			// anyMsg = &anypb.Any{
+			//	 TypeUrl: MetaRoutingTypeUrlV2,
+			//	 Value:   []byte(r.Config),
+			// }
+			// if err = unmarshalToAny(anyMsg, ruleV2); nil != err {
+			//	 return err
+			// }
+			// if err = utils.ConvertSameStructureMessage(ruleV2, rule); nil != err {
+			//	 return err
+			// }
 			return err
 		}
 		ret.MetadataRouting = rule
