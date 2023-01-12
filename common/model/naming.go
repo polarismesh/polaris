@@ -19,11 +19,13 @@ package model
 
 import (
 	"encoding/json"
+	"sync"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
-
-	v1 "github.com/polarismesh/polaris/common/api/v1"
+	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 )
 
 // Namespace 命名空间结构体
@@ -144,7 +146,7 @@ type LocationStore struct {
 
 // Location cmdb信息，对应内存结构体
 type Location struct {
-	Proto    *v1.Location
+	Proto    *apimodel.Location
 	RegionID uint32
 	ZoneID   uint32
 	CampusID uint32
@@ -165,7 +167,7 @@ type LocationView struct {
 // Store2Location 转成内存数据结构
 func Store2Location(s *LocationStore) *Location {
 	return &Location{
-		Proto: &v1.Location{
+		Proto: &apimodel.Location{
 			Region: &wrappers.StringValue{Value: s.Region},
 			Zone:   &wrappers.StringValue{Value: s.Zone},
 			Campus: &wrappers.StringValue{Value: s.Campus},
@@ -199,7 +201,7 @@ type ExtendRoutingConfig struct {
 
 // RateLimit 限流规则
 type RateLimit struct {
-	Proto     *v1.Rule
+	Proto     *apitraffic.Rule
 	ID        string
 	ServiceID string
 	Name      string
@@ -217,15 +219,15 @@ type RateLimit struct {
 }
 
 // Labels2Arguments 适配老的标签到新的参数列表
-func (r *RateLimit) Labels2Arguments() (map[string]*v1.MatchString, error) {
+func (r *RateLimit) Labels2Arguments() (map[string]*apimodel.MatchString, error) {
 	if len(r.Proto.Arguments) == 0 && len(r.Labels) > 0 {
-		var labels = make(map[string]*v1.MatchString)
+		var labels = make(map[string]*apimodel.MatchString)
 		if err := json.Unmarshal([]byte(r.Labels), &labels); err != nil {
 			return nil, err
 		}
 		for key, value := range labels {
-			r.Proto.Arguments = append(r.Proto.Arguments, &v1.MatchArgument{
-				Type:  v1.MatchArgument_CUSTOM,
+			r.Proto.Arguments = append(r.Proto.Arguments, &apitraffic.MatchArgument{
+				Type:  apitraffic.MatchArgument_CUSTOM,
 				Key:   key,
 				Value: value,
 			})
@@ -245,22 +247,22 @@ const (
 )
 
 // Arguments2Labels 将参数列表适配成旧的标签模型
-func Arguments2Labels(arguments []*v1.MatchArgument) map[string]*v1.MatchString {
+func Arguments2Labels(arguments []*apitraffic.MatchArgument) map[string]*apimodel.MatchString {
 	if len(arguments) > 0 {
-		var labels = make(map[string]*v1.MatchString)
+		var labels = make(map[string]*apimodel.MatchString)
 		for _, argument := range arguments {
 			switch argument.Type {
-			case v1.MatchArgument_CUSTOM:
+			case apitraffic.MatchArgument_CUSTOM:
 				labels[argument.Key] = argument.Value
-			case v1.MatchArgument_METHOD:
+			case apitraffic.MatchArgument_METHOD:
 				labels[LabelKeyMethod] = argument.Value
-			case v1.MatchArgument_HEADER:
+			case apitraffic.MatchArgument_HEADER:
 				labels[LabelKeyHeader+"."+argument.Key] = argument.Value
-			case v1.MatchArgument_QUERY:
+			case apitraffic.MatchArgument_QUERY:
 				labels[LabelKeyQuery+"."+argument.Key] = argument.Value
-			case v1.MatchArgument_CALLER_SERVICE:
+			case apitraffic.MatchArgument_CALLER_SERVICE:
 				labels[LabelKeyCallerService+"."+argument.Key] = argument.Value
-			case v1.MatchArgument_CALLER_IP:
+			case apitraffic.MatchArgument_CALLER_IP:
 				labels[LabelKeyCallerIP] = argument.Value
 			default:
 				continue
@@ -342,6 +344,102 @@ type ServiceWithCircuitBreaker struct {
 	ModifyTime     time.Time
 }
 
+// ServiceWithCircuitBreakerRules 与服务关系绑定的熔断规则
+type ServiceWithCircuitBreakerRules struct {
+	mutex               sync.RWMutex
+	Service             ServiceKey
+	circuitBreakerRules map[string]*CircuitBreakerRule
+	Revision            string
+}
+
+func NewServiceWithCircuitBreakerRules(svcKey ServiceKey) *ServiceWithCircuitBreakerRules {
+	return &ServiceWithCircuitBreakerRules{
+		Service:             svcKey,
+		circuitBreakerRules: make(map[string]*CircuitBreakerRule),
+	}
+}
+
+func (s *ServiceWithCircuitBreakerRules) AddCircuitBreakerRule(rule *CircuitBreakerRule) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.circuitBreakerRules[rule.ID] = rule
+}
+
+func (s *ServiceWithCircuitBreakerRules) DelCircuitBreakerRule(id string) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	delete(s.circuitBreakerRules, id)
+}
+
+func (s *ServiceWithCircuitBreakerRules) IterateCircuitBreakerRules(callback func(*CircuitBreakerRule)) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	for _, rule := range s.circuitBreakerRules {
+		callback(rule)
+	}
+}
+
+func (s *ServiceWithCircuitBreakerRules) CountCircuitBreakerRules() int {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	return len(s.circuitBreakerRules)
+}
+
+func (s *ServiceWithCircuitBreakerRules) Clear() {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.circuitBreakerRules = make(map[string]*CircuitBreakerRule)
+	s.Revision = ""
+}
+
+// ServiceWithFaultDetectRules 与服务关系绑定的探测规则
+type ServiceWithFaultDetectRules struct {
+	mutex            sync.RWMutex
+	Service          ServiceKey
+	faultDetectRules map[string]*FaultDetectRule
+	Revision         string
+}
+
+func NewServiceWithFaultDetectRules(svcKey ServiceKey) *ServiceWithFaultDetectRules {
+	return &ServiceWithFaultDetectRules{
+		Service:          svcKey,
+		faultDetectRules: make(map[string]*FaultDetectRule),
+	}
+}
+
+func (s *ServiceWithFaultDetectRules) AddFaultDetectRule(rule *FaultDetectRule) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.faultDetectRules[rule.ID] = rule
+}
+
+func (s *ServiceWithFaultDetectRules) DelFaultDetectRule(id string) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	delete(s.faultDetectRules, id)
+}
+
+func (s *ServiceWithFaultDetectRules) IterateFaultDetectRules(callback func(*FaultDetectRule)) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	for _, rule := range s.faultDetectRules {
+		callback(rule)
+	}
+}
+
+func (s *ServiceWithFaultDetectRules) CountFaultDetectRules() int {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	return len(s.faultDetectRules)
+}
+
+func (s *ServiceWithFaultDetectRules) Clear() {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.faultDetectRules = make(map[string]*FaultDetectRule)
+	s.Revision = ""
+}
+
 // CircuitBreakerRelation 熔断规则绑定关系
 type CircuitBreakerRelation struct {
 	ServiceID   string
@@ -397,4 +495,43 @@ type NamespaceServiceCount struct {
 	ServiceCount uint32
 	// InstanceCnt 实例健康数/实例总数
 	InstanceCnt *InstanceCount
+}
+
+// CircuitBreakerRule 熔断规则
+type CircuitBreakerRule struct {
+	Proto        *apifault.CircuitBreakerRule
+	ID           string
+	Name         string
+	Namespace    string
+	Description  string
+	Level        int
+	SrcService   string
+	SrcNamespace string
+	DstService   string
+	DstNamespace string
+	DstMethod    string
+	Rule         string
+	Revision     string
+	Enable       bool
+	Valid        bool
+	CreateTime   time.Time
+	ModifyTime   time.Time
+	EnableTime   time.Time
+}
+
+// FaultDetectRule 故障探测规则
+type FaultDetectRule struct {
+	Proto        *apifault.FaultDetectRule
+	ID           string
+	Name         string
+	Namespace    string
+	Description  string
+	DstService   string
+	DstNamespace string
+	DstMethod    string
+	Rule         string
+	Revision     string
+	Valid        bool
+	CreateTime   time.Time
+	ModifyTime   time.Time
 }

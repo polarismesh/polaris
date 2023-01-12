@@ -20,13 +20,13 @@ package cache
 import (
 	"context"
 	"fmt"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
 
-	v1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store/mock"
@@ -169,7 +169,7 @@ func TestComputeRevision(t *testing.T) {
 		instances := make([]*model.Instance, 0, 6)
 		for i := 0; i < 6; i++ {
 			instances = append(instances, &model.Instance{
-				Proto: &v1.Instance{
+				Proto: &apiservice.Instance{
 					Revision: utils.NewStringValue(fmt.Sprintf("revision-%d", i)),
 				},
 			})
@@ -201,7 +201,7 @@ func TestComputeRevision(t *testing.T) {
 	})
 
 	Convey("instances内容改变，返回改变", t, func() {
-		instance := &model.Instance{Proto: &v1.Instance{Revision: utils.NewStringValue("123456")}}
+		instance := &model.Instance{Proto: &apiservice.Instance{Revision: utils.NewStringValue("123456")}}
 		lhs, err := ComputeRevision("123", []*model.Instance{instance})
 		So(err, ShouldBeNil)
 		So(lhs, ShouldNotBeEmpty)

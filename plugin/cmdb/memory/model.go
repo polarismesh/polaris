@@ -21,9 +21,9 @@ import (
 	"net"
 	"strings"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	v1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 )
 
@@ -89,7 +89,7 @@ func NewIP(info IPInfo) (IP, error) {
 	ip.IP = info.IP
 	ip.Type = info.Type
 	ip.loc = &model.Location{
-		Proto: &v1.Location{
+		Proto: &apimodel.Location{
 			Region: &wrapperspb.StringValue{
 				Value: info.Region.Name,
 			},

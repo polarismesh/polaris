@@ -20,6 +20,7 @@ package defaultauth
 import (
 	"context"
 	"errors"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"testing"
 	"time"
 
@@ -28,7 +29,6 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	storemock "github.com/polarismesh/polaris/store/mock"
@@ -248,8 +248,8 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
 						Owner: services[0].Owner,
@@ -270,8 +270,8 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
 						Owner: services[0].Owner,
@@ -292,8 +292,8 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[1].ID,
 						Owner: services[1].Owner,
@@ -314,8 +314,8 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
 						Owner: services[freeIndex].Owner,
@@ -336,8 +336,8 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[(len(users)-1)+2].ID,
 						Owner: services[(len(users)-1)+2].Owner,
@@ -358,8 +358,8 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[(len(users)-1)+4].ID,
 						Owner: services[(len(users)-1)+4].Owner,
@@ -381,8 +381,8 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			// model.WithToken(groups[1].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
 						Owner: services[0].Owner,
@@ -403,8 +403,8 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
 						Owner: services[freeIndex].Owner,
@@ -425,8 +425,8 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
 						Owner: services[freeIndex].Owner,
@@ -489,8 +489,8 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 			// model.WithToken(users[0].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
 						Owner: services[0].Owner,
@@ -512,8 +512,8 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
 						Owner: services[0].Owner,
@@ -534,8 +534,8 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[1].ID,
 						Owner: services[1].Owner,
@@ -556,8 +556,8 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[1].ID,
 						Owner: services[1].Owner,
@@ -578,8 +578,8 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 			// model.WithToken(""),
 			model.WithModule(model.DiscoverModule),
 			model.WithOperation(model.Create),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[1].ID,
 						Owner: services[1].Owner,
@@ -600,8 +600,8 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
 						Owner: services[freeIndex].Owner,
@@ -622,8 +622,8 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 			// model.WithToken(""),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
 						Owner: services[freeIndex].Owner,
@@ -685,8 +685,8 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 			// model.WithToken(users[0].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
 						Owner: services[0].Owner,
@@ -707,8 +707,8 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[1].ID,
 						Owner: services[1].Owner,
@@ -729,8 +729,8 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
 						Owner: services[0].Owner,
@@ -751,8 +751,8 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
 						Owner: services[freeIndex].Owner,
@@ -773,8 +773,8 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 			// model.WithToken(""),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
 						Owner: services[0].Owner,
@@ -795,8 +795,8 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 			// model.WithToken(""),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
 						Owner: services[freeIndex].Owner,
@@ -817,8 +817,8 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
 						Owner: services[0].Owner,
@@ -839,8 +839,8 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
 						Owner: services[freeIndex].Owner,
@@ -902,8 +902,8 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 			// model.WithToken(users[0].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
 						Owner: services[0].Owner,
@@ -924,8 +924,8 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[1].ID,
 						Owner: services[1].Owner,
@@ -946,8 +946,8 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
 						Owner: services[0].Owner,
@@ -968,8 +968,8 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
 						Owner: services[freeIndex].Owner,
@@ -990,8 +990,8 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 			// model.WithToken(""),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
 						Owner: services[0].Owner,
@@ -1012,8 +1012,8 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 			// model.WithToken(""),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
 						Owner: services[freeIndex].Owner,
@@ -1034,8 +1034,8 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
 						Owner: services[0].Owner,
@@ -1056,8 +1056,8 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[api.ResourceType][]model.ResourceEntry{
-				api.ResourceType_Services: {
+			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
 						Owner: services[freeIndex].Owner,

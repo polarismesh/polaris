@@ -20,7 +20,9 @@ package namespace
 import (
 	"context"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -42,7 +44,7 @@ type ResourceHook interface {
 
 // ResourceEvent 资源事件
 type ResourceEvent struct {
-	ReqNamespace *api.Namespace
+	ReqNamespace *apimodel.Namespace
 	Namespace    *model.Namespace
 	IsRemove     bool
 }
@@ -70,8 +72,8 @@ func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *Reso
 		return nil
 	}
 
-	authCtx.SetAttachment(model.ResourceAttachmentKey, map[api.ResourceType][]model.ResourceEntry{
-		api.ResourceType_Namespaces: {
+	authCtx.SetAttachment(model.ResourceAttachmentKey, map[apisecurity.ResourceType][]model.ResourceEntry{
+		apisecurity.ResourceType_Namespaces: {
 			{
 				ID:    res.Namespace.Name,
 				Owner: utils.ParseOwnerID(ctx),

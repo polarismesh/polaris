@@ -21,6 +21,8 @@ import (
 	"strconv"
 
 	"github.com/emicklei/go-restful/v3"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
@@ -35,10 +37,11 @@ func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) 
 
 	version, err := strconv.ParseUint(handler.Request.QueryParameter("version"), 10, 64)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewConfigClientResponseWithMessage(api.BadRequest, "version must be number"))
+		handler.WriteHeaderAndProto(api.NewConfigClientResponseWithMessage(
+			apimodel.Code_BadRequest, "version must be number"))
 	}
 
-	configFile := &api.ClientConfigFileInfo{
+	configFile := &apiconfig.ClientConfigFileInfo{
 		Namespace: &wrapperspb.StringValue{Value: handler.Request.QueryParameter("namespace")},
 		Group:     &wrapperspb.StringValue{Value: handler.Request.QueryParameter("group")},
 		FileName:  &wrapperspb.StringValue{Value: handler.Request.QueryParameter("fileName")},
@@ -57,17 +60,18 @@ func (h *HTTPServer) watchConfigFile(req *restful.Request, rsp *restful.Response
 	}
 
 	// 1. 解析出客户端监听的配置文件列表
-	watchConfigFileRequest := &api.ClientWatchConfigFileRequest{}
+	watchConfigFileRequest := &apiconfig.ClientWatchConfigFileRequest{}
+
 	_, err := handler.Parse(watchConfigFileRequest)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
 	// 阻塞等待响应
 	callback, err := h.configServer.WatchConfigFiles(handler.ParseHeaderContext(), watchConfigFileRequest)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ExecuteException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ExecuteException, err.Error()))
 		return
 	}
 

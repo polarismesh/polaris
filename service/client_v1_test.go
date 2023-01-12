@@ -19,6 +19,8 @@ package service
 
 import (
 	"context"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"sync"
 	"testing"
 	"time"
@@ -30,17 +32,17 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-func mockReportClients(cnt int) []*apiv1.Client {
-	ret := make([]*apiv1.Client, 0, 4)
+func mockReportClients(cnt int) []*apiservice.Client {
+	ret := make([]*apiservice.Client, 0, 4)
 
 	for i := 0; i < cnt; i++ {
-		ret = append(ret, &apiv1.Client{
+		ret = append(ret, &apiservice.Client{
 			Host:     utils.NewStringValue("127.0.0.1"),
-			Type:     apiv1.Client_SDK,
+			Type:     apiservice.Client_SDK,
 			Version:  utils.NewStringValue("v1.0.0"),
-			Location: &apiv1.Location{},
+			Location: &apimodel.Location{},
 			Id:       utils.NewStringValue(utils.NewUUID()),
-			Stat: []*apiv1.StatInfo{
+			Stat: []*apiservice.StatInfo{
 				{
 					Target:   utils.NewStringValue(model.StatReportPrometheus),
 					Port:     utils.NewUInt32Value(uint32(1000 + i)),
@@ -86,7 +88,7 @@ func TestServer_GetReportClient(t *testing.T) {
 		wait := sync.WaitGroup{}
 		wait.Add(5)
 		for i := range clients {
-			go func(client *apiv1.Client) {
+			go func(client *apiservice.Client) {
 				defer wait.Done()
 				resp := discoverSuit.server.ReportClient(discoverSuit.defaultCtx, client)
 				assert.True(t, respSuccess(resp), resp.GetInfo().GetValue())

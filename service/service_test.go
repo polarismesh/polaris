@@ -21,6 +21,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"strconv"
 	"sync"
 	"testing"
@@ -58,7 +60,7 @@ func TestCreateService(t *testing.T) {
 		serviceReq, _ := discoverSuit.createCommonService(t, 9)
 		defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 
-		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{serviceReq})
+		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{serviceReq})
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
@@ -70,14 +72,14 @@ func TestCreateService(t *testing.T) {
 		serviceReq, serviceResp := discoverSuit.createCommonService(t, 100)
 		defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 
-		req := &api.Service{
+		req := &apiservice.Service{
 			Name:      utils.NewStringValue(serviceResp.GetName().GetValue()),
 			Namespace: utils.NewStringValue(serviceResp.GetNamespace().GetValue()),
 			Token:     utils.NewStringValue(serviceResp.GetToken().GetValue()),
 		}
-		discoverSuit.removeCommonServices(t, []*api.Service{req})
+		discoverSuit.removeCommonServices(t, []*apiservice.Service{req})
 
-		if resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{serviceReq}); !respSuccess(resp) {
+		if resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{serviceReq}); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 
@@ -96,19 +98,19 @@ func TestCreateService(t *testing.T) {
 		wg.Wait()
 	})
 	t.Run("命名空间不存在，可以自动创建服务", func(t *testing.T) {
-		service := &api.Service{
+		service := &apiservice.Service{
 			Name:      utils.NewStringValue("abc"),
 			Namespace: utils.NewStringValue(utils.NewUUID()),
 			Owners:    utils.NewStringValue("my"),
 		}
-		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{service})
+		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{service})
 		if !respSuccess(resp) {
 			t.Fatalf("error")
 		}
 		t.Logf("pass: %s", resp.GetInfo().GetValue())
 	})
 	t.Run("创建服务，metadata个数太多，报错", func(t *testing.T) {
-		svc := &api.Service{
+		svc := &apiservice.Service{
 			Name:      utils.NewStringValue("999"),
 			Namespace: utils.NewStringValue("Polaris"),
 			Owners:    utils.NewStringValue("my"),
@@ -117,7 +119,7 @@ func TestCreateService(t *testing.T) {
 		for i := 0; i < MaxMetadataLength+1; i++ {
 			svc.Metadata[fmt.Sprintf("aa-%d", i)] = "value"
 		}
-		if resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{svc}); !respSuccess(resp) {
+		if resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{svc}); !respSuccess(resp) {
 			t.Logf("%s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatalf("error")
@@ -138,7 +140,7 @@ func TestRemoveServices(t *testing.T) {
 		serviceReq, serviceResp := discoverSuit.createCommonService(t, 59)
 		defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 
-		req := &api.Service{
+		req := &apiservice.Service{
 			Name:      utils.NewStringValue(serviceResp.GetName().GetValue()),
 			Namespace: utils.NewStringValue(serviceResp.GetNamespace().GetValue()),
 			Token:     utils.NewStringValue(serviceResp.GetToken().GetValue()),
@@ -146,7 +148,7 @@ func TestRemoveServices(t *testing.T) {
 
 		// wait for data cache
 		time.Sleep(time.Second * 2)
-		discoverSuit.removeCommonServices(t, []*api.Service{req})
+		discoverSuit.removeCommonServices(t, []*apiservice.Service{req})
 		out := discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{"name": req.GetName().GetValue()})
 		if !respSuccess(out) {
 			t.Fatalf(out.GetInfo().GetValue())
@@ -157,11 +159,11 @@ func TestRemoveServices(t *testing.T) {
 	})
 
 	t.Run("删除多个服务，删除成功", func(t *testing.T) {
-		var reqs []*api.Service
+		var reqs []*apiservice.Service
 		for i := 0; i < 100; i++ {
 			serviceReq, serviceResp := discoverSuit.createCommonService(t, i)
 			defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
-			req := &api.Service{
+			req := &apiservice.Service{
 				Name:      utils.NewStringValue(serviceResp.GetName().GetValue()),
 				Namespace: utils.NewStringValue(serviceResp.GetNamespace().GetValue()),
 				Token:     utils.NewStringValue(serviceResp.GetToken().GetValue()),
@@ -178,12 +180,12 @@ func TestRemoveServices(t *testing.T) {
 		serviceReq, serviceResp := discoverSuit.createCommonService(t, 19)
 		defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 
-		req := &api.Service{
+		req := &apiservice.Service{
 			Name:      utils.NewStringValue(serviceResp.GetName().GetValue()),
 			Namespace: utils.NewStringValue(serviceResp.GetNamespace().GetValue()),
 			Token:     utils.NewStringValue(serviceResp.GetToken().GetValue()),
 		}
-		discoverSuit.removeCommonServices(t, []*api.Service{req})
+		discoverSuit.removeCommonServices(t, []*apiservice.Service{req})
 	})
 	// TODO 需要具体排查为什么在 github-action 无法跑过
 	// t.Run("创建服务和实例，删除服务，删除失败", func(t *testing.T) {
@@ -193,7 +195,7 @@ func TestRemoveServices(t *testing.T) {
 	// 	_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 100)
 	// 	defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
-	// 	resp := discoverSuit.server.DeleteServices(discoverSuit.defaultCtx, []*api.Service{serviceResp})
+	// 	resp := discoverSuit.server.DeleteServices(discoverSuit.defaultCtx, []*apiservice.Service{serviceResp})
 	// 	if !respSuccess(resp) {
 	// 		t.Logf("pass: %s", resp.GetInfo().GetValue())
 	// 	} else {
@@ -206,17 +208,17 @@ func TestRemoveServices(t *testing.T) {
 		for i := 0; i < 20; i++ {
 			serviceReq, serviceResp := discoverSuit.createCommonService(t, i)
 			defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
-			req := &api.Service{
+			req := &apiservice.Service{
 				Name:      utils.NewStringValue(serviceResp.GetName().GetValue()),
 				Namespace: utils.NewStringValue(serviceResp.GetNamespace().GetValue()),
 				Token:     utils.NewStringValue(serviceResp.GetToken().GetValue()),
 			}
 
 			wg.Add(1)
-			go func(reqs []*api.Service) {
+			go func(reqs []*apiservice.Service) {
 				defer wg.Done()
 				discoverSuit.removeCommonServices(t, reqs)
-			}([]*api.Service{req})
+			}([]*apiservice.Service{req})
 		}
 		wg.Wait()
 	})
@@ -235,20 +237,20 @@ func TestDeleteService2(t *testing.T) {
 		serviceReq, serviceResp := discoverSuit.createCommonService(t, 20)
 		defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 
-		discoverSuit.removeCommonServices(t, []*api.Service{serviceResp})
-		discoverSuit.removeCommonServices(t, []*api.Service{serviceResp})
+		discoverSuit.removeCommonServices(t, []*apiservice.Service{serviceResp})
+		discoverSuit.removeCommonServices(t, []*apiservice.Service{serviceResp})
 	})
 	t.Run("存在别名的情况下，删除服务会失败", func(t *testing.T) {
 		serviceReq, serviceResp := discoverSuit.createCommonService(t, 20)
 		defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 
-		aliasResp1 := discoverSuit.createCommonAlias(serviceResp, "", defaultAliasNs, api.AliasType_CL5SID)
+		aliasResp1 := discoverSuit.createCommonAlias(serviceResp, "", defaultAliasNs, apiservice.AliasType_CL5SID)
 		defer discoverSuit.cleanServiceName(aliasResp1.Alias.Alias.Value, serviceResp.Namespace.Value)
-		aliasResp2 := discoverSuit.createCommonAlias(serviceResp, "", defaultAliasNs, api.AliasType_CL5SID)
+		aliasResp2 := discoverSuit.createCommonAlias(serviceResp, "", defaultAliasNs, apiservice.AliasType_CL5SID)
 		defer discoverSuit.cleanServiceName(aliasResp2.Alias.Alias.Value, serviceResp.Namespace.Value)
 
 		// 删除服务
-		resp := discoverSuit.server.DeleteServices(discoverSuit.defaultCtx, []*api.Service{serviceResp})
+		resp := discoverSuit.server.DeleteServices(discoverSuit.defaultCtx, []*apiservice.Service{serviceResp})
 		if respSuccess(resp) {
 			t.Fatalf("error")
 		}
@@ -266,7 +268,7 @@ func TestGetServiceOwner(t *testing.T) {
 	defer discoverSuit.Destroy()
 
 	t.Run("服务个数为0，返回错误", func(t *testing.T) {
-		var reqs []*api.Service
+		var reqs []*apiservice.Service
 		if resp := discoverSuit.server.GetServiceOwner(discoverSuit.defaultCtx, reqs); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
@@ -275,9 +277,9 @@ func TestGetServiceOwner(t *testing.T) {
 	})
 
 	t.Run("服务个数超过100，返回错误", func(t *testing.T) {
-		reqs := make([]*api.Service, 0, 101)
+		reqs := make([]*apiservice.Service, 0, 101)
 		for i := 0; i < 101; i++ {
-			req := &api.Service{
+			req := &apiservice.Service{
 				Namespace: utils.NewStringValue("Test"),
 				Name:      utils.NewStringValue("test"),
 			}
@@ -291,9 +293,9 @@ func TestGetServiceOwner(t *testing.T) {
 	})
 
 	t.Run("查询100个超长服务名的服务负责人，数据库不会报错", func(t *testing.T) {
-		reqs := make([]*api.Service, 0, 100)
+		reqs := make([]*apiservice.Service, 0, 100)
 		for i := 0; i < 100; i++ {
-			req := &api.Service{
+			req := &apiservice.Service{
 				Namespace: utils.NewStringValue("Development"),
 				Name:      utils.NewStringValue(genSpecialStr(128)),
 			}
@@ -323,7 +325,7 @@ func TestGetService(t *testing.T) {
 	})
 	t.Run("查询服务列表，只有limit和offset，可以正常返回预计个数的服务", func(t *testing.T) {
 		total := 20
-		reqs := make([]*api.Service, 0, total)
+		reqs := make([]*apiservice.Service, 0, total)
 		for i := 0; i < total; i++ {
 			serviceReq, _ := discoverSuit.createCommonService(t, i+10)
 			reqs = append(reqs, serviceReq)
@@ -366,7 +368,7 @@ func TestGetService(t *testing.T) {
 		for i := 0; i < total; i++ {
 			_, serviceResp := discoverSuit.createCommonService(t, i+102)
 			defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
-			aliasResp := discoverSuit.createCommonAlias(serviceResp, "", defaultAliasNs, api.AliasType_CL5SID)
+			aliasResp := discoverSuit.createCommonAlias(serviceResp, "", defaultAliasNs, apiservice.AliasType_CL5SID)
 			defer discoverSuit.cleanServiceName(aliasResp.Alias.Alias.Value, serviceResp.Namespace.Value)
 		}
 		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{"business": "business-102"})
@@ -472,7 +474,7 @@ func TestGetService3(t *testing.T) {
 	defer discoverSuit.Destroy()
 
 	t.Run("根据服务名，可以正常过滤", func(t *testing.T) {
-		var reqs []*api.Service
+		var reqs []*apiservice.Service
 		serviceReq, _ := discoverSuit.createCommonService(t, 100)
 		reqs = append(reqs, serviceReq)
 		defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
@@ -481,7 +483,7 @@ func TestGetService3(t *testing.T) {
 		defer discoverSuit.cleanNamespace(namespaceReq.GetName().GetValue())
 
 		serviceReq.Namespace = utils.NewStringValue(namespaceReq.GetName().GetValue())
-		if resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{serviceReq}); !respSuccess(resp) {
+		if resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{serviceReq}); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 		reqs = append(reqs, serviceReq)
@@ -554,7 +556,7 @@ func TestGetServices4(t *testing.T) {
 			serviceReq, serviceResp := discoverSuit.createCommonService(t, i+5)
 			defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 			if i%2 == 0 {
-				discoverSuit.removeCommonServices(t, []*api.Service{serviceResp})
+				discoverSuit.removeCommonServices(t, []*apiservice.Service{serviceResp})
 			}
 		}
 
@@ -588,7 +590,7 @@ func TestGetServices4(t *testing.T) {
 		}
 		service3 := genMainService(3)
 		service3.Metadata = map[string]string{"key3": "value3"}
-		if resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{service1, service2, service3}); !respSuccess(resp) {
+		if resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{service1, service2, service3}); !respSuccess(resp) {
 			t.Fatalf("error: %+v", resp)
 		}
 		defer discoverSuit.cleanServiceName(service1.GetName().GetValue(), service1.GetNamespace().GetValue())
@@ -625,7 +627,7 @@ func TestGetServices5(t *testing.T) {
 	}
 	defer discoverSuit.Destroy()
 
-	getServiceCheck := func(resp *api.BatchQueryResponse, amount, size uint32) {
+	getServiceCheck := func(resp *apiservice.BatchQueryResponse, amount, size uint32) {
 		t.Logf("gocheck resp: %v", resp)
 		convey.So(respSuccess(resp), convey.ShouldEqual, true)
 		convey.So(resp.GetAmount().GetValue(), convey.ShouldEqual, amount)
@@ -646,7 +648,7 @@ func TestGetServices5(t *testing.T) {
 
 		// 同host的实例，对应一个服务，那么返回值也是一个
 		instanceReq.Port.Value = 999
-		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*api.Instance{instanceReq})
+		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq})
 		convey.So(respSuccess(resp), convey.ShouldEqual, true)
 		defer discoverSuit.cleanInstance(resp.Responses[0].Instance.GetId().GetValue())
 		convey.Convey("check-2", func() { getServiceCheck(discoverSuit.server.GetServices(context.Background(), query), 1, 1) })
@@ -694,7 +696,7 @@ func TestGetServices5(t *testing.T) {
 	})
 	convey.Convey("多个服务，对应同个host，返回多个服务", t, func() {
 		count := 10
-		var instance *api.Instance
+		var instance *apiservice.Instance
 		for i := 0; i < count; i++ {
 			_, serviceResp := discoverSuit.createCommonService(t, i)
 			defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -727,7 +729,7 @@ func TestUpdateService(t *testing.T) {
 	_, serviceResp := discoverSuit.createCommonService(t, 200)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 	t.Run("正常更新服务，所有属性都生效", func(t *testing.T) {
-		updateReq := &api.Service{
+		updateReq := &apiservice.Service{
 			Name:      serviceResp.Name,
 			Namespace: serviceResp.Namespace,
 			Metadata: map[string]string{
@@ -745,7 +747,7 @@ func TestUpdateService(t *testing.T) {
 			Owners:     utils.NewStringValue("new-owner"),
 			Token:      serviceResp.Token,
 		}
-		resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{updateReq})
+		resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{updateReq})
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -770,7 +772,7 @@ func TestUpdateService(t *testing.T) {
 		for i := 0; i < MaxMetadataLength+1; i++ {
 			serviceResp.Metadata[fmt.Sprintf("update-%d", i)] = "abc"
 		}
-		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{serviceResp}); !respSuccess(resp) {
+		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{serviceResp}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatalf("error")
@@ -778,7 +780,7 @@ func TestUpdateService(t *testing.T) {
 	})
 	t.Run("更新服务，metadata为空，长度为0，则删除所有metadata", func(t *testing.T) {
 		serviceResp.Metadata = make(map[string]string)
-		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{serviceResp}); !respSuccess(resp) {
+		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{serviceResp}); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 		getResp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, map[string]string{"name": serviceResp.Name.Value})
@@ -790,16 +792,16 @@ func TestUpdateService(t *testing.T) {
 		}
 	})
 	t.Run("更新服务，不允许更新别名", func(t *testing.T) {
-		aliasResp := discoverSuit.createCommonAlias(serviceResp, "update.service.alias.xxx", defaultAliasNs, api.AliasType_DEFAULT)
+		aliasResp := discoverSuit.createCommonAlias(serviceResp, "update.service.alias.xxx", defaultAliasNs, apiservice.AliasType_DEFAULT)
 		defer discoverSuit.cleanServiceName(aliasResp.Alias.Alias.Value, serviceResp.Namespace.Value)
 
-		aliasService := &api.Service{
+		aliasService := &apiservice.Service{
 			Name:       aliasResp.Alias.Alias,
 			Namespace:  serviceResp.Namespace,
 			Department: utils.NewStringValue("123"),
 			Token:      serviceResp.Token,
 		}
-		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{aliasService}); respSuccess(resp) {
+		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{aliasService}); respSuccess(resp) {
 			t.Fatalf("error: update alias success")
 		} else {
 			t.Logf("update alias return: %s", resp.GetInfo().GetValue())
@@ -819,41 +821,41 @@ func TestNoNeedUpdateService(t *testing.T) {
 	_, serviceResp := discoverSuit.createCommonService(t, 500)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 	t.Run("数据没有任意变更，返回不需要变更", func(t *testing.T) {
-		resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{serviceResp})
+		resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{serviceResp})
 		if resp.GetCode().GetValue() != api.NoNeedUpdate {
 			t.Fatalf("error: %+v", resp)
 		}
 	})
-	req := &api.Service{
+	req := &apiservice.Service{
 		Name:      serviceResp.Name,
 		Namespace: serviceResp.Namespace,
 		Token:     serviceResp.Token,
 	}
 	t.Run("metadata为空，不需要变更", func(t *testing.T) {
 		req.Metadata = nil
-		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{req}); resp.GetCode().GetValue() != api.NoNeedUpdate {
+		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{req}); resp.GetCode().GetValue() != api.NoNeedUpdate {
 			t.Fatalf("error: %+v", resp)
 		}
 		req.Comment = serviceResp.Comment
-		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{req}); resp.GetCode().GetValue() != api.NoNeedUpdate {
+		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{req}); resp.GetCode().GetValue() != api.NoNeedUpdate {
 			t.Fatalf("error: %+v", resp)
 		}
 	})
 	t.Run("metadata不为空，但是没变更，也不需要更新", func(t *testing.T) {
 		req.Metadata = serviceResp.Metadata
-		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{req}); resp.GetCode().GetValue() != api.NoNeedUpdate {
+		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{req}); resp.GetCode().GetValue() != api.NoNeedUpdate {
 			t.Fatalf("error: %+v", resp)
 		}
 	})
 	t.Run("其他字段更新，metadata没有更新，不需要更新metadata", func(t *testing.T) {
 		req.Metadata = serviceResp.Metadata
 		req.Comment = utils.NewStringValue("1357986420")
-		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{req}); resp.GetCode().GetValue() != api.ExecuteSuccess {
+		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{req}); resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 			t.Fatalf("error: %+v", resp)
 		}
 	})
 	t.Run("只有一个字段变更，service就执行变更操作", func(t *testing.T) {
-		baseReq := api.Service{
+		baseReq := apiservice.Service{
 			Name:      serviceResp.Name,
 			Namespace: serviceResp.Namespace,
 			Token:     serviceResp.Token,
@@ -861,49 +863,49 @@ func TestNoNeedUpdateService(t *testing.T) {
 
 		r := baseReq
 		r.Ports = utils.NewStringValue("90909090")
-		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{&r}); resp.GetCode().GetValue() != api.ExecuteSuccess {
+		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{&r}); resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 			t.Fatalf("error: %+v", resp)
 		}
 
 		r = baseReq
 		r.Business = utils.NewStringValue("new-business")
-		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{&r}); resp.GetCode().GetValue() != api.ExecuteSuccess {
+		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{&r}); resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 			t.Fatalf("error: %+v", resp)
 		}
 
 		r = baseReq
 		r.Department = utils.NewStringValue("new-department-1")
-		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{&r}); resp.GetCode().GetValue() != api.ExecuteSuccess {
+		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{&r}); resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 			t.Fatalf("error: %+v", resp)
 		}
 
 		r = baseReq
 		r.CmdbMod1 = utils.NewStringValue("new-CmdbMod1-1")
-		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{&r}); resp.GetCode().GetValue() != api.ExecuteSuccess {
+		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{&r}); resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 			t.Fatalf("error: %+v", resp)
 		}
 
 		r = baseReq
 		r.CmdbMod2 = utils.NewStringValue("new-CmdbMod2-1")
-		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{&r}); resp.GetCode().GetValue() != api.ExecuteSuccess {
+		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{&r}); resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 			t.Fatalf("error: %+v", resp)
 		}
 
 		r = baseReq
 		r.CmdbMod3 = utils.NewStringValue("new-CmdbMod3-1")
-		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{&r}); resp.GetCode().GetValue() != api.ExecuteSuccess {
+		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{&r}); resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 			t.Fatalf("error: %+v", resp)
 		}
 
 		r = baseReq
 		r.Comment = utils.NewStringValue("new-Comment-1")
-		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{&r}); resp.GetCode().GetValue() != api.ExecuteSuccess {
+		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{&r}); resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 			t.Fatalf("error: %+v", resp)
 		}
 
 		r = baseReq
 		r.Owners = utils.NewStringValue("new-Owners-1")
-		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*api.Service{&r}); resp.GetCode().GetValue() != api.ExecuteSuccess {
+		if resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{&r}); resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 			t.Fatalf("error: %+v", resp)
 		}
 	})
@@ -921,7 +923,7 @@ func TestServiceToken(t *testing.T) {
 	_, serviceResp := discoverSuit.createCommonService(t, 200)
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 	t.Run("可以正常获取serviceToken", func(t *testing.T) {
-		req := &api.Service{
+		req := &apiservice.Service{
 			Name:      serviceResp.GetName(),
 			Namespace: serviceResp.GetNamespace(),
 			Token:     serviceResp.GetToken(),
@@ -937,11 +939,11 @@ func TestServiceToken(t *testing.T) {
 	})
 
 	t.Run("获取别名的token，返回源服务的token", func(t *testing.T) {
-		aliasResp := discoverSuit.createCommonAlias(serviceResp, fmt.Sprintf("get.token.xxx-%s", utils.NewUUID()[:8]), defaultAliasNs, api.AliasType_DEFAULT)
+		aliasResp := discoverSuit.createCommonAlias(serviceResp, fmt.Sprintf("get.token.xxx-%s", utils.NewUUID()[:8]), defaultAliasNs, apiservice.AliasType_DEFAULT)
 		defer discoverSuit.cleanServiceName(aliasResp.Alias.Alias.Value, serviceResp.Namespace.Value)
 		t.Logf("%+v", aliasResp)
 
-		req := &api.Service{
+		req := &apiservice.Service{
 			Name:      aliasResp.Alias.Alias,
 			Namespace: aliasResp.Alias.AliasNamespace,
 			Token:     serviceResp.GetToken(),
@@ -967,10 +969,10 @@ func TestServiceToken(t *testing.T) {
 	})
 
 	t.Run("alias不允许更新token", func(t *testing.T) {
-		aliasResp := discoverSuit.createCommonAlias(serviceResp, "update.token.xxx", defaultAliasNs, api.AliasType_DEFAULT)
+		aliasResp := discoverSuit.createCommonAlias(serviceResp, "update.token.xxx", defaultAliasNs, apiservice.AliasType_DEFAULT)
 		defer discoverSuit.cleanServiceName(aliasResp.Alias.Alias.Value, serviceResp.Namespace.Value)
 
-		req := &api.Service{
+		req := &apiservice.Service{
 			Name:      aliasResp.Alias.Alias,
 			Namespace: serviceResp.Namespace,
 			Token:     serviceResp.Token,
@@ -984,59 +986,59 @@ func TestServiceToken(t *testing.T) {
 // 测试response格式化
 func TestFormatBatchWriteResponse(t *testing.T) {
 	t.Run("同样的错误码，返回一个错误码4XX", func(t *testing.T) {
-		responses := api.NewBatchWriteResponse(api.ExecuteSuccess)
+		responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 		for i := 0; i < 10; i++ {
-			responses.Collect(api.NewResponse(api.NotFoundService))
+			api.Collect(responses, api.NewResponse(apimodel.Code_NotFoundService))
 		}
 
 		responses = api.FormatBatchWriteResponse(responses)
-		if responses.GetCode().GetValue() != api.NotFoundService {
+		if responses.GetCode().GetValue() != uint32(apimodel.Code_NotFoundService) {
 			t.Fatalf("%+v", responses)
 		}
 	})
 	t.Run("同样的错误码，返回一个错误码5XX", func(t *testing.T) {
-		responses := api.NewBatchWriteResponse(api.ExecuteSuccess)
+		responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 		for i := 0; i < 10; i++ {
-			responses.Collect(api.NewResponse(api.StoreLayerException))
+			api.Collect(responses, api.NewResponse(apimodel.Code_StoreLayerException))
 		}
 
 		responses = api.FormatBatchWriteResponse(responses)
-		if responses.GetCode().GetValue() != api.StoreLayerException {
+		if responses.GetCode().GetValue() != uint32(apimodel.Code_StoreLayerException) {
 			t.Fatalf("%+v", responses)
 		}
 	})
 	t.Run("有5XX和2XX，返回5XX", func(t *testing.T) {
-		responses := api.NewBatchWriteResponse(api.ExecuteSuccess)
-		responses.Collect(api.NewResponse(api.ExecuteSuccess))
-		responses.Collect(api.NewResponse(api.NotFoundNamespace))
-		responses.Collect(api.NewResponse(api.ParseRateLimitException))
-		responses.Collect(api.NewResponse(api.ParseException))
+		responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
+		api.Collect(responses, api.NewResponse(apimodel.Code_ExecuteSuccess))
+		api.Collect(responses, api.NewResponse(apimodel.Code_NotFoundNamespace))
+		api.Collect(responses, api.NewResponse(apimodel.Code_ParseRateLimitException))
+		api.Collect(responses, api.NewResponse(apimodel.Code_ParseException))
 		responses = api.FormatBatchWriteResponse(responses)
 		if responses.GetCode().GetValue() != api.ExecuteException {
 			t.Fatalf("%+v", responses)
 		}
 	})
 	t.Run("没有5XX，有4XX，返回4XX", func(t *testing.T) {
-		responses := api.NewBatchWriteResponse(api.ExecuteSuccess)
-		responses.Collect(api.NewResponse(api.ExecuteSuccess))
-		responses.Collect(api.NewResponse(api.NotFoundNamespace))
-		responses.Collect(api.NewResponse(api.NoNeedUpdate))
-		responses.Collect(api.NewResponse(api.InvalidInstanceID))
-		responses.Collect(api.NewResponse(api.ExecuteSuccess))
+		responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
+		api.Collect(responses, api.NewResponse(apimodel.Code_ExecuteSuccess))
+		api.Collect(responses, api.NewResponse(apimodel.Code_NotFoundNamespace))
+		api.Collect(responses, api.NewResponse(apimodel.Code_NoNeedUpdate))
+		api.Collect(responses, api.NewResponse(apimodel.Code_InvalidInstanceID))
+		api.Collect(responses, api.NewResponse(apimodel.Code_ExecuteSuccess))
 		responses = api.FormatBatchWriteResponse(responses)
 		if responses.GetCode().GetValue() != api.BadRequest {
 			t.Fatalf("%+v", responses)
 		}
 	})
 	t.Run("全是2XX", func(t *testing.T) {
-		responses := api.NewBatchWriteResponse(api.ExecuteSuccess)
-		responses.Collect(api.NewResponse(api.ExecuteSuccess))
-		responses.Collect(api.NewResponse(api.NoNeedUpdate))
-		responses.Collect(api.NewResponse(api.DataNoChange))
-		responses.Collect(api.NewResponse(api.NoNeedUpdate))
-		responses.Collect(api.NewResponse(api.ExecuteSuccess))
+		responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
+		api.Collect(responses, api.NewResponse(apimodel.Code_ExecuteSuccess))
+		api.Collect(responses, api.NewResponse(apimodel.Code_NoNeedUpdate))
+		api.Collect(responses, api.NewResponse(apimodel.Code_DataNoChange))
+		api.Collect(responses, api.NewResponse(apimodel.Code_NoNeedUpdate))
+		api.Collect(responses, api.NewResponse(apimodel.Code_ExecuteSuccess))
 		responses = api.FormatBatchWriteResponse(responses)
-		if responses.GetCode().GetValue() != api.ExecuteSuccess {
+		if responses.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 			t.Fatalf("%+v", responses)
 		}
 	})
@@ -1056,7 +1058,7 @@ func TestCheckServiceFieldLen(t *testing.T) {
 		str := genSpecialStr(129)
 		oldName := service.Name
 		service.Name = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{service})
+		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{service})
 		service.Name = oldName
 		if resp.Code.Value != api.InvalidServiceName {
 			t.Fatalf("%+v", resp)
@@ -1066,7 +1068,7 @@ func TestCheckServiceFieldLen(t *testing.T) {
 		str := genSpecialStr(129)
 		oldNameSpace := service.Namespace
 		service.Namespace = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{service})
+		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{service})
 		service.Namespace = oldNameSpace
 		if resp.Code.Value != api.InvalidNamespaceName {
 			t.Fatalf("%+v", resp)
@@ -1076,7 +1078,7 @@ func TestCheckServiceFieldLen(t *testing.T) {
 		str := genSpecialStr(129)
 		oldMetadata := service.Metadata
 		oldMetadata[str] = str
-		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{service})
+		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{service})
 		service.Metadata = make(map[string]string)
 		if resp.Code.Value != api.InvalidMetadata {
 			t.Fatalf("%+v", resp)
@@ -1086,7 +1088,7 @@ func TestCheckServiceFieldLen(t *testing.T) {
 		str := genSpecialStr(8193)
 		oldPort := service.Ports
 		service.Ports = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{service})
+		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{service})
 		service.Ports = oldPort
 		if resp.Code.Value != api.InvalidServicePorts {
 			t.Fatalf("%+v", resp)
@@ -1096,7 +1098,7 @@ func TestCheckServiceFieldLen(t *testing.T) {
 		str := genSpecialStr(129)
 		oldBusiness := service.Business
 		service.Business = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{service})
+		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{service})
 		service.Business = oldBusiness
 		if resp.Code.Value != api.InvalidServiceBusiness {
 			t.Fatalf("%+v", resp)
@@ -1106,7 +1108,7 @@ func TestCheckServiceFieldLen(t *testing.T) {
 		str := genSpecialStr(1025)
 		oldDepartment := service.Department
 		service.Department = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{service})
+		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{service})
 		service.Department = oldDepartment
 		if resp.Code.Value != api.InvalidServiceDepartment {
 			t.Fatalf("%+v", resp)
@@ -1116,7 +1118,7 @@ func TestCheckServiceFieldLen(t *testing.T) {
 		str := genSpecialStr(1025)
 		oldCMDB := service.CmdbMod1
 		service.CmdbMod1 = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{service})
+		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{service})
 		service.CmdbMod1 = oldCMDB
 		if resp.Code.Value != api.InvalidServiceCMDB {
 			t.Fatalf("%+v", resp)
@@ -1126,7 +1128,7 @@ func TestCheckServiceFieldLen(t *testing.T) {
 		str := genSpecialStr(1025)
 		oldComment := service.Comment
 		service.Comment = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{service})
+		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{service})
 		service.Comment = oldComment
 		if resp.Code.Value != api.InvalidServiceComment {
 			t.Fatalf("%+v", resp)
@@ -1136,7 +1138,7 @@ func TestCheckServiceFieldLen(t *testing.T) {
 		str := genSpecialStr(2049)
 		oldToken := service.Token
 		service.Token = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{service})
+		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{service})
 		service.Token = oldToken
 		if resp.Code.Value != api.InvalidServiceToken {
 			t.Fatalf("%+v", resp)
@@ -1145,7 +1147,7 @@ func TestCheckServiceFieldLen(t *testing.T) {
 	t.Run("检测字段为空指针", func(t *testing.T) {
 		oldName := service.Name
 		service.Name = nil
-		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{service})
+		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{service})
 		service.Name = oldName
 		if resp.Code.Value != api.InvalidServiceName {
 			t.Fatalf("%+v", resp)
@@ -1154,7 +1156,7 @@ func TestCheckServiceFieldLen(t *testing.T) {
 	t.Run("检测字段为空", func(t *testing.T) {
 		oldName := service.Name
 		service.Name = utils.NewStringValue("")
-		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{service})
+		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{service})
 		service.Name = oldName
 		if resp.Code.Value != api.InvalidServiceName {
 			t.Fatalf("%+v", resp)

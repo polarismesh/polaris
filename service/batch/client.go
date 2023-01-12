@@ -22,7 +22,8 @@ import (
 	"errors"
 	"time"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -197,7 +198,7 @@ func (ctrl *ClientCtrl) registerHandler(futures []*ClientFuture) error {
 		return err
 	}
 
-	SendClientReply(futures, api.ExecuteSuccess, nil)
+	SendClientReply(futures, apimodel.Code_ExecuteSuccess, nil)
 	return nil
 }
 
@@ -223,6 +224,6 @@ func (ctrl *ClientCtrl) deregisterHandler(futures []*ClientFuture) error {
 		return err
 	}
 
-	SendClientReply(futures, api.ExecuteSuccess, nil)
+	SendClientReply(futures, apimodel.Code_ExecuteSuccess, nil)
 	return nil
 }

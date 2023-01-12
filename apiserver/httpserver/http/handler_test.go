@@ -19,6 +19,7 @@ package http
 
 import (
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -68,7 +69,7 @@ func Test_i18n(t *testing.T) {
 		})
 		h.Response = restful.NewResponse(httptest.NewRecorder())
 		h.Response.AddHeader(utils.PolarisMessage, item.hMsg)
-		resp := api.NewResponse(code)
+		resp := api.NewResponse(apimodel.Code(code))
 		resp.Info = &wrappers.StringValue{Value: item.rMsg}
 		if msg := h.i18nAction(resp).GetInfo().Value; msg != item.wMsg {
 			t.Errorf("handler.i18nAction() = %v, want %v", msg, item.wMsg)

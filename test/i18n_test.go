@@ -21,11 +21,12 @@ package test
 
 import (
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"testing"
 
 	"github.com/golang/protobuf/jsonpb"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/test/http"
 )
@@ -52,10 +53,10 @@ func TestI18n(t *testing.T) {
 	}
 }
 
-func reqCreateIllegalNamespace(lang string) (*api.BatchWriteResponse, error) {
+func reqCreateIllegalNamespace(lang string) (*apiservice.BatchWriteResponse, error) {
 	c := http.NewClient(httpserverAddress, httpserverVersion)
 	url := fmt.Sprintf("http://%v/naming/%v/namespaces?lang=%s", c.Address, c.Version, lang)
-	body, err := http.JSONFromNamespaces([]*api.Namespace{{
+	body, err := http.JSONFromNamespaces([]*apimodel.Namespace{{
 		Name:    utils.NewStringValue("+$#@+"),
 		Comment: utils.NewStringValue("test"),
 		Owners:  utils.NewStringValue("test"),
@@ -67,7 +68,7 @@ func reqCreateIllegalNamespace(lang string) (*api.BatchWriteResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	ret := &api.BatchWriteResponse{}
+	ret := &apiservice.BatchWriteResponse{}
 	if ierr := jsonpb.Unmarshal(response.Body, ret); ierr != nil {
 		return nil, ierr
 	}

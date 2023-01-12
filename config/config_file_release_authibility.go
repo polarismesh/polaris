@@ -20,6 +20,8 @@ package config
 import (
 	"context"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -27,10 +29,10 @@ import (
 
 // PublishConfigFile 发布配置文件
 func (s *serverAuthability) PublishConfigFile(ctx context.Context,
-	configFileRelease *api.ConfigFileRelease) *api.ConfigResponse {
+	configFileRelease *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx,
-		[]*api.ConfigFileRelease{configFileRelease}, model.Create, "PublishConfigFile")
+		[]*apiconfig.ConfigFileRelease{configFileRelease}, model.Create, "PublishConfigFile")
 
 	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
@@ -44,16 +46,16 @@ func (s *serverAuthability) PublishConfigFile(ctx context.Context,
 
 // GetConfigFileRelease 获取配置文件发布内容
 func (s *serverAuthability) GetConfigFileRelease(ctx context.Context,
-	namespace, group, fileName string) *api.ConfigResponse {
+	namespace, group, fileName string) *apiconfig.ConfigResponse {
 
 	return s.targetServer.GetConfigFileRelease(ctx, namespace, group, fileName)
 }
 
 // DeleteConfigFileRelease 删除配置文件发布，删除配置文件的时候，同步删除配置文件发布数据
 func (s *serverAuthability) DeleteConfigFileRelease(ctx context.Context, namespace,
-	group, fileName, deleteBy string) *api.ConfigResponse {
+	group, fileName, deleteBy string) *apiconfig.ConfigResponse {
 
-	req := []*api.ConfigFileRelease{
+	req := []*apiconfig.ConfigFileRelease{
 		{
 			Namespace: utils.NewStringValue(namespace),
 			Group:     utils.NewStringValue(group),

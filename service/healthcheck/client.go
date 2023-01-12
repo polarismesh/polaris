@@ -21,6 +21,9 @@ import (
 	"context"
 	"time"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/plugin"
 )
@@ -31,13 +34,13 @@ func toClientId(instanceId string) string {
 	return clientPrefix + instanceId
 }
 
-func (s *Server) doReportByClient(ctx context.Context, client *api.Client) *api.Response {
+func (s *Server) doReportByClient(ctx context.Context, client *apiservice.Client) *apiservice.Response {
 	if len(s.checkers) == 0 {
-		return api.NewResponse(api.HealthCheckNotOpen)
+		return api.NewResponse(apimodel.Code_HealthCheckNotOpen)
 	}
-	checker, ok := s.checkers[int32(api.HealthCheck_HEARTBEAT)]
+	checker, ok := s.checkers[int32(apiservice.HealthCheck_HEARTBEAT)]
 	if !ok {
-		return api.NewClientResponse(api.HeartbeatTypeNotFound, client)
+		return api.NewClientResponse(apimodel.Code_HeartbeatTypeNotFound, client)
 	}
 	request := &plugin.ReportRequest{
 		QueryRequest: plugin.QueryRequest{
@@ -51,7 +54,7 @@ func (s *Server) doReportByClient(ctx context.Context, client *api.Client) *api.
 	if err != nil {
 		log.Errorf("[Heartbeat][Server]fail to do report client for %s, id is %s, err is %v",
 			client.GetHost().GetValue(), client.GetId().GetValue(), err)
-		return api.NewClientResponse(api.HeartbeatException, client)
+		return api.NewClientResponse(apimodel.Code_HeartbeatException, client)
 	}
-	return api.NewClientResponse(api.ExecuteSuccess, client)
+	return api.NewClientResponse(apimodel.Code_ExecuteSuccess, client)
 }

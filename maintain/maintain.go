@@ -23,7 +23,8 @@ import (
 	"runtime/debug"
 	"time"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
@@ -133,7 +134,7 @@ func (s *Server) FreeOSMemory(_ context.Context) error {
 	return nil
 }
 
-func (s *Server) CleanInstance(ctx context.Context, req *api.Instance) *api.Response {
+func (s *Server) CleanInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	return s.namingServer.CleanInstance(ctx, req)
 }
 
@@ -141,7 +142,7 @@ func (s *Server) BatchCleanInstances(ctx context.Context, batchSize uint32) (uin
 	return s.storage.BatchCleanDeletedInstances(batchSize)
 }
 
-func (s *Server) GetLastHeartbeat(_ context.Context, req *api.Instance) *api.Response {
+func (s *Server) GetLastHeartbeat(_ context.Context, req *apiservice.Instance) *apiservice.Response {
 	return s.healthCheckServer.GetLastHeartbeat(req)
 }
 

@@ -19,8 +19,8 @@ package resource
 
 import (
 	"fmt"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -31,12 +31,12 @@ const (
 /**
  * @brief 创建测试服务实例
  */
-func CreateInstances(service *api.Service) []*api.Instance {
-	var instances []*api.Instance
+func CreateInstances(service *apiservice.Service) []*apiservice.Instance {
+	var instances []*apiservice.Instance
 	for index := 0; index < 2; index++ {
 		host := fmt.Sprintf(instanceHost, index, index, index, index)
 
-		instance := &api.Instance{
+		instance := &apiservice.Instance{
 			Service:   service.GetName(),
 			Namespace: service.GetNamespace(),
 			Host:      utils.NewStringValue(host),
@@ -45,9 +45,9 @@ func CreateInstances(service *api.Service) []*api.Instance {
 			Version:   utils.NewStringValue("8.8.8"),
 			Priority:  utils.NewUInt32Value(8),
 			Weight:    utils.NewUInt32Value(8),
-			HealthCheck: &api.HealthCheck{
-				Type: api.HealthCheck_HEARTBEAT,
-				Heartbeat: &api.HeartbeatHealthCheck{
+			HealthCheck: &apiservice.HealthCheck{
+				Type: apiservice.HealthCheck_HEARTBEAT,
+				Heartbeat: &apiservice.HeartbeatHealthCheck{
 					Ttl: utils.NewUInt32Value(8),
 				},
 			},
@@ -66,7 +66,7 @@ func CreateInstances(service *api.Service) []*api.Instance {
 /**
  * @brief 更新测试服务实例
  */
-func UpdateInstances(instances []*api.Instance) {
+func UpdateInstances(instances []*apiservice.Instance) {
 	for _, instance := range instances {
 		instance.Protocol = utils.NewStringValue("update")
 		instance.Version = utils.NewStringValue("4.4.4")

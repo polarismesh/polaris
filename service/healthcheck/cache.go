@@ -20,7 +20,8 @@ package healthcheck
 import (
 	"runtime"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/plugin"
 )
@@ -59,7 +60,7 @@ func newCacheProvider(selfService string, svr *Server) *CacheProvider {
 	}
 }
 
-func (c *CacheProvider) isSelfServiceInstance(instance *api.Instance) bool {
+func (c *CacheProvider) isSelfServiceInstance(instance *apiservice.Instance) bool {
 	metadata := instance.GetMetadata()
 	if svcName, ok := metadata[model.MetaKeyPolarisService]; ok {
 		return svcName == c.selfService
@@ -102,7 +103,7 @@ func storeServiceInstance(instanceWithChecker *InstanceWithChecker, values *shar
 	return true
 }
 
-func deleteServiceInstance(instance *api.Instance, values *shardMap) bool {
+func deleteServiceInstance(instance *apiservice.Instance, values *shardMap) bool {
 	instanceId := instance.GetId().GetValue()
 	ok := values.DeleteIfExist(instanceId)
 	if ok {
@@ -131,7 +132,7 @@ func storeClient(clientWithChecker *ClientWithChecker, values *shardMap) bool {
 	return true
 }
 
-func deleteClient(client *api.Client, values *shardMap) bool {
+func deleteClient(client *apiservice.Client, values *shardMap) bool {
 	instanceId := client.GetId().GetValue()
 	ok := values.DeleteIfExist(instanceId)
 	if ok {
@@ -241,7 +242,7 @@ func (c *CacheProvider) OnCreated(value interface{}) {
 		storeServiceInstance(newInstanceWithChecker(actual, checker), c.healthCheckInstances)
 		c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 	case *model.Client:
-		checker, ok := c.getHealthChecker(api.HealthCheck_HEARTBEAT)
+		checker, ok := c.getHealthChecker(apiservice.HealthCheck_HEARTBEAT)
 		if !ok {
 			return
 		}
@@ -250,12 +251,12 @@ func (c *CacheProvider) OnCreated(value interface{}) {
 	}
 }
 
-func (c *CacheProvider) getHealthChecker(hcType api.HealthCheck_HealthCheckType) (plugin.HealthChecker, bool) {
+func (c *CacheProvider) getHealthChecker(hcType apiservice.HealthCheck_HealthCheckType) (plugin.HealthChecker, bool) {
 	checker, ok := c.svr.checkers[int32(hcType)]
 	return checker, ok
 }
 
-func (c *CacheProvider) isHealthCheckEnable(instance *api.Instance) (bool, plugin.HealthChecker) {
+func (c *CacheProvider) isHealthCheckEnable(instance *apiservice.Instance) (bool, plugin.HealthChecker) {
 	if !instance.GetEnableHealthCheck().GetValue() || instance.GetHealthCheck() == nil {
 		return false, nil
 	}
@@ -310,7 +311,7 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 			c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 		}
 	case *model.Client:
-		checker, ok := c.getHealthChecker(api.HealthCheck_HEARTBEAT)
+		checker, ok := c.getHealthChecker(apiservice.HealthCheck_HEARTBEAT)
 		if !ok {
 			return
 		}
@@ -371,7 +372,7 @@ func (c *CacheProvider) RangeHealthCheckClients(check func(itemChecker ItemWithC
 }
 
 // RangeSelfServiceInstances range loop selfServiceInstances
-func (c *CacheProvider) RangeSelfServiceInstances(check func(instance *api.Instance)) {
+func (c *CacheProvider) RangeSelfServiceInstances(check func(instance *apiservice.Instance)) {
 	c.selfServiceInstances.Range(func(instanceId string, value ItemWithChecker) {
 		check(value.GetInstance().Proto)
 	})

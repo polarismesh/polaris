@@ -23,13 +23,15 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/cache"
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
-	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 	"github.com/polarismesh/polaris/common/model"
-	v2 "github.com/polarismesh/polaris/common/model/v2"
 	routingcommon "github.com/polarismesh/polaris/common/routing"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -54,21 +56,22 @@ var (
 )
 
 // CreateRoutingConfigsV2 批量创建路由配置
-func (s *Server) CreateRoutingConfigsV2(ctx context.Context, req []*apiv2.Routing) *apiv2.BatchWriteResponse {
+func (s *Server) CreateRoutingConfigsV2(
+	ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 	if err := checkBatchRoutingConfigV2(req); err != nil {
 		return err
 	}
 
-	resp := apiv2.NewBatchWriteResponse(apiv1.ExecuteSuccess)
+	resp := apiv1.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, entry := range req {
-		resp.Collect(s.createRoutingConfigV2(ctx, entry))
+		apiv1.Collect(resp, s.createRoutingConfigV2(ctx, entry))
 	}
 
-	return apiv2.FormatBatchWriteResponse(resp)
+	return apiv1.FormatBatchWriteResponse(resp)
 }
 
 // createRoutingConfigV2 创建一个路由配置
-func (s *Server) createRoutingConfigV2(ctx context.Context, req *apiv2.Routing) *apiv2.Response {
+func (s *Server) createRoutingConfigV2(ctx context.Context, req *apitraffic.RouteRule) *apiservice.Response {
 	if resp := checkRoutingConfigV2(req); resp != nil {
 		return resp
 	}
@@ -78,38 +81,39 @@ func (s *Server) createRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 	if err != nil {
 		log.Error("[Routing][V2] parse routing config v2 from request for create",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(apiv1.ExecuteException)
+		return apiv1.NewResponse(apimodel.Code_ExecuteException)
 	}
 
 	if err := s.storage.CreateRoutingConfigV2(conf); err != nil {
 		log.Error("[Routing][V2] create routing config v2 store layer",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(apiv1.StoreLayerException)
+		return apiv1.NewResponse(apimodel.Code_StoreLayerException)
 	}
 
 	s.RecordHistory(ctx, routingV2RecordEntry(ctx, req, conf, model.OCreate))
 
 	req.Id = conf.ID
-	return apiv2.NewRoutingResponse(apiv1.ExecuteSuccess, req)
+	return apiv1.NewRouterResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
 // DeleteRoutingConfigsV2 批量删除路由配置
-func (s *Server) DeleteRoutingConfigsV2(ctx context.Context, req []*apiv2.Routing) *apiv2.BatchWriteResponse {
+func (s *Server) DeleteRoutingConfigsV2(
+	ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 	if err := checkBatchRoutingConfigV2(req); err != nil {
 		return err
 	}
 
-	out := apiv2.NewBatchWriteResponse(apiv1.ExecuteSuccess)
+	out := apiv1.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, entry := range req {
 		resp := s.deleteRoutingConfigV2(ctx, entry)
-		out.Collect(resp)
+		apiv1.Collect(out, resp)
 	}
 
-	return apiv2.FormatBatchWriteResponse(out)
+	return apiv1.FormatBatchWriteResponse(out)
 }
 
 // DeleteRoutingConfigV2 删除一个路由配置
-func (s *Server) deleteRoutingConfigV2(ctx context.Context, req *apiv2.Routing) *apiv2.Response {
+func (s *Server) deleteRoutingConfigV2(ctx context.Context, req *apitraffic.RouteRule) *apiservice.Response {
 	if resp := checkRoutingConfigIDV2(req); resp != nil {
 		return resp
 	}
@@ -117,7 +121,7 @@ func (s *Server) deleteRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 	// 判断当前的路由规则是否只是从 v1 版本中的内存中转换过来的
 	if _, ok := s.Cache().RoutingConfig().IsConvertFromV1(req.Id); ok {
 		resp := s.transferV1toV2OnModify(ctx, req)
-		if resp.GetCode() != apiv1.ExecuteSuccess {
+		if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 			return resp
 		}
 	}
@@ -125,33 +129,34 @@ func (s *Server) deleteRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 	if err := s.storage.DeleteRoutingConfigV2(req.Id); err != nil {
 		log.Error("[Routing][V2] delete routing config v2 store layer",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(apiv1.StoreLayerException)
+		return apiv1.NewResponse(apimodel.Code_StoreLayerException)
 	}
 
-	s.RecordHistory(ctx, routingV2RecordEntry(ctx, req, &v2.RoutingConfig{
+	s.RecordHistory(ctx, routingV2RecordEntry(ctx, req, &model.RouterConfig{
 		ID:   req.GetId(),
 		Name: req.GetName(),
 	}, model.ODelete))
-	return apiv2.NewRoutingResponse(apiv1.ExecuteSuccess, req)
+	return apiv1.NewRouterResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
 // UpdateRoutingConfigsV2 批量更新路由配置
-func (s *Server) UpdateRoutingConfigsV2(ctx context.Context, req []*apiv2.Routing) *apiv2.BatchWriteResponse {
+func (s *Server) UpdateRoutingConfigsV2(
+	ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 	if err := checkBatchRoutingConfigV2(req); err != nil {
 		return err
 	}
 
-	out := apiv2.NewBatchWriteResponse(apiv1.ExecuteSuccess)
+	out := apiv1.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, entry := range req {
 		resp := s.updateRoutingConfigV2(ctx, entry)
-		out.Collect(resp)
+		apiv1.Collect(out, resp)
 	}
 
-	return apiv2.FormatBatchWriteResponse(out)
+	return apiv1.FormatBatchWriteResponse(out)
 }
 
 // updateRoutingConfigV2 更新单个路由配置
-func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apiv2.Routing) *apiv2.Response {
+func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apitraffic.RouteRule) *apiservice.Response {
 	// 如果当前待修改的 v2 路由规则，其实是从 v1 规则在 cache 中转换而来的，则需要先做以下几个步骤
 	// step 1: 将 v1 规则真实的转为 v2 规则
 	// step 2: 将本次要修改的 v2 规则，在 v1 规则中的 inBound 或者 outBound 找到对应的 route，设置其规则 ID
@@ -159,7 +164,7 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 	// 判断当前的路由规则是否只是从 v1 版本中的内存中转换过来的
 	if _, ok := s.Cache().RoutingConfig().IsConvertFromV1(req.Id); ok {
 		resp := s.transferV1toV2OnModify(ctx, req)
-		if resp.GetCode() != apiv1.ExecuteSuccess {
+		if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 			return resp
 		}
 	}
@@ -173,10 +178,10 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 	if err != nil {
 		log.Error("[Routing][V2] get routing config v2 store layer",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(apiv1.StoreLayerException)
+		return apiv1.NewResponse(apimodel.Code_StoreLayerException)
 	}
 	if conf == nil {
-		return apiv2.NewResponse(apiv1.NotFoundRouting)
+		return apiv1.NewResponse(apimodel.Code_NotFoundRouting)
 	}
 
 	// 作为一个整体进行Update，所有参数都要传递
@@ -185,58 +190,58 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apiv2.Routing) 
 	if err != nil {
 		log.Error("[Routing][V2] parse routing config v2 from request for update",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(apiv1.ExecuteException)
+		return apiv1.NewResponse(apimodel.Code_ExecuteException)
 	}
 
 	if err := s.storage.UpdateRoutingConfigV2(reqModel); err != nil {
 		log.Error("[Routing][V2] update routing config v2 store layer",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(apiv1.StoreLayerException)
+		return apiv1.NewResponse(apimodel.Code_StoreLayerException)
 	}
 
 	s.RecordHistory(ctx, routingV2RecordEntry(ctx, req, reqModel, model.OUpdate))
-	return apiv2.NewResponse(apiv1.ExecuteSuccess)
+	return apiv1.NewResponse(apimodel.Code_ExecuteSuccess)
 }
 
 // GetRoutingConfigsV2 提供给OSS的查询路由配置的接口
-func (s *Server) GetRoutingConfigsV2(ctx context.Context, query map[string]string) *apiv2.BatchQueryResponse {
+func (s *Server) GetRoutingConfigsV2(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	args, presp := parseRoutingArgs(query, ctx)
 	if presp != nil {
-		return apiv2.NewBatchQueryResponse(presp.GetCode())
+		return apiv1.NewBatchQueryResponse(apimodel.Code(presp.GetCode().GetValue()))
 	}
 
 	total, ret, err := s.Cache().RoutingConfig().GetRoutingConfigsV2(args)
 	if err != nil {
 		log.Error("[Routing][V2] query routing list from cache", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewBatchQueryResponse(apiv1.ExecuteException)
+		return apiv1.NewBatchQueryResponse(apimodel.Code_ExecuteException)
 	}
 
-	data, err := marshalRoutingV2toAnySlice(ret)
+	routers, err := marshalRoutingV2toAnySlice(ret)
 	if err != nil {
 		log.Error("[Routing][V2] marshal routing list to anypb.Any list",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewBatchQueryResponse(apiv1.ExecuteException)
+		return apiv1.NewBatchQueryResponse(apimodel.Code_ExecuteException)
 	}
 
-	resp := apiv2.NewBatchQueryResponse(apiv1.ExecuteSuccess)
-	resp.Amount = total
-	resp.Size = uint32(len(ret))
-	resp.Data = data
+	resp := apiv1.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
+	resp.Amount = &wrappers.UInt32Value{Value: total}
+	resp.Size = &wrappers.UInt32Value{Value: uint32(len(ret))}
+	resp.Data = routers
 	return resp
 }
 
 // EnableRoutings batch enable routing rules
-func (s *Server) EnableRoutings(ctx context.Context, req []*apiv2.Routing) *apiv2.BatchWriteResponse {
-	out := apiv2.NewBatchWriteResponse(apiv1.ExecuteSuccess)
+func (s *Server) EnableRoutings(ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
+	out := apiv1.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, entry := range req {
 		resp := s.enableRoutings(ctx, entry)
-		out.Collect(resp)
+		apiv1.Collect(out, resp)
 	}
 
-	return apiv2.FormatBatchWriteResponse(out)
+	return apiv1.FormatBatchWriteResponse(out)
 }
 
-func (s *Server) enableRoutings(ctx context.Context, req *apiv2.Routing) *apiv2.Response {
+func (s *Server) enableRoutings(ctx context.Context, req *apitraffic.RouteRule) *apiservice.Response {
 	if resp := checkRoutingConfigIDV2(req); resp != nil {
 		return resp
 	}
@@ -244,7 +249,7 @@ func (s *Server) enableRoutings(ctx context.Context, req *apiv2.Routing) *apiv2.
 	// 判断当前的路由规则是否只是从 v1 版本中的内存中转换过来的
 	if _, ok := s.Cache().RoutingConfig().IsConvertFromV1(req.Id); ok {
 		resp := s.transferV1toV2OnModify(ctx, req)
-		if resp.GetCode() != apiv1.ExecuteSuccess {
+		if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 			return resp
 		}
 	}
@@ -254,10 +259,10 @@ func (s *Server) enableRoutings(ctx context.Context, req *apiv2.Routing) *apiv2.
 	if err != nil {
 		log.Error("[Routing][V2] get routing config v2 store layer",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(apiv1.StoreLayerException)
+		return apiv1.NewResponse(apimodel.Code_StoreLayerException)
 	}
 	if conf == nil {
-		return apiv2.NewResponse(apiv1.NotFoundRouting)
+		return apiv1.NewResponse(apimodel.Code_NotFoundRouting)
 	}
 
 	conf.Enable = req.GetEnable()
@@ -266,21 +271,21 @@ func (s *Server) enableRoutings(ctx context.Context, req *apiv2.Routing) *apiv2.
 	if err := s.storage.EnableRouting(conf); err != nil {
 		log.Error("[Routing][V2] enable routing config v2 store layer",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(apiv1.StoreLayerException)
+		return apiv1.NewResponse(apimodel.Code_StoreLayerException)
 	}
 
 	s.RecordHistory(ctx, routingV2RecordEntry(ctx, req, conf, model.OUpdate))
-	return apiv2.NewResponse(apiv1.ExecuteSuccess)
+	return apiv1.NewResponse(apimodel.Code_ExecuteSuccess)
 }
 
 // transferV1toV2OnModify 在针对 v2 规则进行启用或者禁止时，需要将 v1 规则转为 v2 规则并执行持久化存储
-func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apiv2.Routing) *apiv2.Response {
+func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apitraffic.RouteRule) *apiservice.Response {
 	svcId, _ := s.Cache().RoutingConfig().IsConvertFromV1(req.Id)
 	v1conf, err := s.storage.GetRoutingConfigWithID(svcId)
 	if err != nil {
 		log.Error("[Routing][V2] get routing config v1 store layer",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv2.NewResponse(apiv1.StoreLayerException)
+		return apiv1.NewResponse(apimodel.Code_StoreLayerException)
 	}
 	if v1conf != nil {
 		svc := s.Cache().Service().GetServiceByID(svcId)
@@ -294,7 +299,7 @@ func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apiv2.Routing)
 		if svc == nil {
 			log.Error("[Routing][V2] convert routing config v1 to v2 find svc",
 				utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-			return apiv2.NewResponse(apiv1.NotFoundService)
+			return apiv1.NewResponse(apimodel.Code_NotFoundService)
 		}
 
 		// 这里需要将 apiModel 的 id 全部生成一遍 extendInfo 信息
@@ -302,17 +307,17 @@ func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apiv2.Routing)
 		if err != nil {
 			log.Error("[Routing][V2] convert routing config v1 to v2",
 				utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-			return apiv2.NewResponse(apiv1.ExecuteException)
+			return apiv1.NewResponse(apimodel.Code_ExecuteException)
 		}
 
-		formatApi := func(rules []*v2.ExtendRoutingConfig) ([]*apiv2.Routing, *apiv2.Response) {
-			ret := make([]*apiv2.Routing, 0, len(rules))
+		formatApi := func(rules []*model.ExtendRouterConfig) ([]*apitraffic.RouteRule, *apiservice.Response) {
+			ret := make([]*apitraffic.RouteRule, 0, len(rules))
 			for i := range rules {
 				item, err := rules[i].ToApi()
 				if err != nil {
 					log.Error("[Routing][V2] convert routing config v1 to v2, format v2 to api",
 						utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-					return nil, apiv2.NewResponse(apiv1.ExecuteException)
+					return nil, apiv1.NewResponse(apimodel.Code_ExecuteException)
 				}
 				ret = append(ret, item)
 			}
@@ -330,26 +335,26 @@ func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apiv2.Routing)
 		}
 
 		if resp := s.saveRoutingV1toV2(ctx, svcId, inDatas, outDatas); resp.GetCode().GetValue() != apiv1.ExecuteSuccess {
-			return apiv2.NewResponse(resp.GetCode().GetValue())
+			return apiv1.NewResponse(apimodel.Code(resp.GetCode().GetValue()))
 		}
 	}
 
-	return apiv2.NewResponse(apiv1.ExecuteSuccess)
+	return apiv1.NewResponse(apimodel.Code_ExecuteSuccess)
 }
 
 // parseServiceArgs 解析服务的查询条件
-func parseRoutingArgs(query map[string]string, ctx context.Context) (*cache.RoutingArgs, *apiv2.Response) {
+func parseRoutingArgs(query map[string]string, ctx context.Context) (*cache.RoutingArgs, *apiservice.Response) {
 	// 先处理offset和limit
 	offset, limit, err := utils.ParseOffsetAndLimit(query)
 	if err != nil {
-		return nil, apiv2.NewResponse(apiv1.InvalidParameter)
+		return nil, apiv1.NewResponse(apimodel.Code_InvalidParameter)
 	}
 
 	filter := make(map[string]string)
 	for key, value := range query {
 		if _, ok := RoutingConfigV2FilterAttrs[key]; !ok {
 			log.Errorf("[Routing][V2][Query] attribute(%s) is not allowed", key)
-			return nil, apiv2.NewResponse(apiv1.InvalidParameter)
+			return nil, apiv1.NewResponse(apimodel.Code_InvalidParameter)
 		}
 		filter[key] = value
 	}
@@ -388,22 +393,22 @@ func parseRoutingArgs(query map[string]string, ctx context.Context) (*cache.Rout
 }
 
 // checkBatchRoutingConfig 检查批量请求
-func checkBatchRoutingConfigV2(req []*apiv2.Routing) *apiv2.BatchWriteResponse {
+func checkBatchRoutingConfigV2(req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 	if len(req) == 0 {
-		return apiv2.NewBatchWriteResponse(apiv1.EmptyRequest)
+		return apiv1.NewBatchWriteResponse(apimodel.Code_EmptyRequest)
 	}
 
 	if len(req) > MaxBatchSize {
-		return apiv2.NewBatchWriteResponse(apiv1.BatchSizeOverLimit)
+		return apiv1.NewBatchWriteResponse(apimodel.Code_BatchSizeOverLimit)
 	}
 
 	return nil
 }
 
 // checkRoutingConfig 检查路由配置基础参数有效性
-func checkRoutingConfigV2(req *apiv2.Routing) *apiv2.Response {
+func checkRoutingConfigV2(req *apitraffic.RouteRule) *apiservice.Response {
 	if req == nil {
-		return apiv2.NewRoutingResponse(apiv1.EmptyRequest, req)
+		return apiv1.NewRouterResponse(apimodel.Code_EmptyRequest, req)
 	}
 
 	if err := checkRoutingNameAndNamespace(req); err != nil {
@@ -422,7 +427,7 @@ func checkRoutingConfigV2(req *apiv2.Routing) *apiv2.Response {
 }
 
 // checkUpdateRoutingConfigV2 检查路由配置基础参数有效性
-func checkUpdateRoutingConfigV2(req *apiv2.Routing) *apiv2.Response {
+func checkUpdateRoutingConfigV2(req *apitraffic.RouteRule) *apiservice.Response {
 	if resp := checkRoutingConfigIDV2(req); resp != nil {
 		return resp
 	}
@@ -442,59 +447,59 @@ func checkUpdateRoutingConfigV2(req *apiv2.Routing) *apiv2.Response {
 	return nil
 }
 
-func checkRoutingNameAndNamespace(req *apiv2.Routing) *apiv2.Response {
+func checkRoutingNameAndNamespace(req *apitraffic.RouteRule) *apiservice.Response {
 	if err := utils.CheckDbStrFieldLen(utils.NewStringValue(req.GetName()), MaxDbRoutingName); err != nil {
-		return apiv2.NewRoutingResponse(apiv1.InvalidRoutingName, req)
+		return apiv1.NewRouterResponse(apimodel.Code_InvalidRoutingName, req)
 	}
 
 	if err := utils.CheckDbStrFieldLen(utils.NewStringValue(req.GetNamespace()),
 		MaxDbServiceNamespaceLength); err != nil {
-		return apiv2.NewRoutingResponse(apiv1.InvalidNamespaceName, req)
+		return apiv1.NewRouterResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
 
 	return nil
 }
 
-func checkRoutingConfigIDV2(req *apiv2.Routing) *apiv2.Response {
+func checkRoutingConfigIDV2(req *apitraffic.RouteRule) *apiservice.Response {
 	if req == nil {
-		return apiv2.NewRoutingResponse(apiv1.EmptyRequest, req)
+		return apiv1.NewRouterResponse(apimodel.Code_EmptyRequest, req)
 	}
 
 	if req.Id == "" {
-		return apiv2.NewResponse(apiv1.InvalidRoutingID)
+		return apiv1.NewResponse(apimodel.Code_InvalidRoutingID)
 	}
 
 	return nil
 }
 
-func checkRoutingConfigPriorityV2(req *apiv2.Routing) *apiv2.Response {
+func checkRoutingConfigPriorityV2(req *apitraffic.RouteRule) *apiservice.Response {
 	if req == nil {
-		return apiv2.NewRoutingResponse(apiv1.EmptyRequest, req)
+		return apiv1.NewRouterResponse(apimodel.Code_EmptyRequest, req)
 	}
 
 	if req.Priority > 10 {
-		return apiv2.NewResponse(apiv1.InvalidRoutingPriority)
+		return apiv1.NewResponse(apimodel.Code_InvalidRoutingPriority)
 	}
 
 	return nil
 }
 
-func checkRoutingPolicyV2(req *apiv2.Routing) *apiv2.Response {
+func checkRoutingPolicyV2(req *apitraffic.RouteRule) *apiservice.Response {
 	if req == nil {
-		return apiv2.NewRoutingResponse(apiv1.EmptyRequest, req)
+		return apiv1.NewRouterResponse(apimodel.Code_EmptyRequest, req)
 	}
 
-	if req.GetRoutingPolicy() != apiv2.RoutingPolicy_RulePolicy {
-		return apiv2.NewRoutingResponse(apiv1.InvalidRoutingPolicy, req)
+	if req.GetRoutingPolicy() != apitraffic.RoutingPolicy_RulePolicy {
+		return apiv1.NewRouterResponse(apimodel.Code_InvalidRoutingPolicy, req)
 	}
 
 	// 自动根据 policy 补充 @type 属性
 	if req.RoutingConfig.TypeUrl == "" {
-		if req.GetRoutingPolicy() == apiv2.RoutingPolicy_RulePolicy {
-			req.RoutingConfig.TypeUrl = v2.RuleRoutingTypeUrl
+		if req.GetRoutingPolicy() == apitraffic.RoutingPolicy_RulePolicy {
+			req.RoutingConfig.TypeUrl = model.RuleRoutingTypeUrl
 		}
-		if req.GetRoutingPolicy() == apiv2.RoutingPolicy_MetadataPolicy {
-			req.RoutingConfig.TypeUrl = v2.MetaRoutingTypeUrl
+		if req.GetRoutingPolicy() == apitraffic.RoutingPolicy_MetadataPolicy {
+			req.RoutingConfig.TypeUrl = model.MetaRoutingTypeUrl
 		}
 	}
 
@@ -502,8 +507,8 @@ func checkRoutingPolicyV2(req *apiv2.Routing) *apiv2.Response {
 }
 
 // api2RoutingConfig 把API参数转换为内部的数据结构
-func api2RoutingConfigV2(req *apiv2.Routing) (*v2.RoutingConfig, error) {
-	out := &v2.RoutingConfig{
+func api2RoutingConfigV2(req *apitraffic.RouteRule) (*model.RouterConfig, error) {
+	out := &model.RouterConfig{
 		Valid: true,
 	}
 
@@ -514,14 +519,14 @@ func api2RoutingConfigV2(req *apiv2.Routing) (*v2.RoutingConfig, error) {
 		req.Revision = utils.NewV2Revision()
 	}
 
-	if err := out.ParseFromAPI(req); err != nil {
+	if err := out.ParseRouteRuleFromAPI(req); err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
 // marshalRoutingV2toAnySlice 转换为 []*anypb.Any 数组
-func marshalRoutingV2toAnySlice(routings []*v2.ExtendRoutingConfig) ([]*any.Any, error) {
+func marshalRoutingV2toAnySlice(routings []*model.ExtendRouterConfig) ([]*any.Any, error) {
 	ret := make([]*any.Any, 0, len(routings))
 
 	for i := range routings {

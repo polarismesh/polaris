@@ -20,7 +20,8 @@ package maintain
 import (
 	"context"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	"github.com/polarismesh/polaris/common/model"
 )
@@ -57,11 +58,13 @@ type MaintainOperateServer interface {
 	// FreeOSMemory Free system memory
 	FreeOSMemory(ctx context.Context) error
 	// CleanInstance Clean deleted instance
-	CleanInstance(ctx context.Context, req *api.Instance) *api.Response
+	CleanInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response
+
 	// BatchCleanInstances Batch clean deleted instances
 	BatchCleanInstances(ctx context.Context, batchSize uint32) (uint32, error)
 	// GetLastHeartbeat Get last heartbeat
-	GetLastHeartbeat(ctx context.Context, req *api.Instance) *api.Response
+	GetLastHeartbeat(ctx context.Context, req *apiservice.Instance) *apiservice.Response
+
 	// GetLogOutputLevel Get log output level
 	GetLogOutputLevel(ctx context.Context) (map[string]string, error)
 	// SetLogOutputLevel Set log output level by scope

@@ -23,13 +23,14 @@ package mock
 
 import (
 	context "context"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
 
 	auth "github.com/polarismesh/polaris/auth"
 	cache "github.com/polarismesh/polaris/cache"
-	v1 "github.com/polarismesh/polaris/common/api/v1"
 	model "github.com/polarismesh/polaris/common/model"
 	store "github.com/polarismesh/polaris/store"
 )
@@ -114,10 +115,10 @@ func (mr *MockAuthServerMockRecorder) AfterResourceOperation(afterCtx interface{
 }
 
 // Login mocks base method
-func (m *MockAuthServer) Login(req *v1.LoginRequest) *v1.Response {
+func (m *MockAuthServer) Login(req *apisecurity.LoginRequest) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Login", req)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -128,10 +129,10 @@ func (mr *MockAuthServerMockRecorder) Login(req interface{}) *gomock.Call {
 }
 
 // CreateUsers mocks base method
-func (m *MockAuthServer) CreateUsers(ctx context.Context, users []*v1.User) *v1.BatchWriteResponse {
+func (m *MockAuthServer) CreateUsers(ctx context.Context, users []*apisecurity.User) *apiservice.BatchWriteResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateUsers", ctx, users)
-	ret0, _ := ret[0].(*v1.BatchWriteResponse)
+	ret0, _ := ret[0].(*apiservice.BatchWriteResponse)
 	return ret0
 }
 
@@ -142,10 +143,10 @@ func (mr *MockAuthServerMockRecorder) CreateUsers(ctx, users interface{}) *gomoc
 }
 
 // UpdateUser mocks base method
-func (m *MockAuthServer) UpdateUser(ctx context.Context, user *v1.User) *v1.Response {
+func (m *MockAuthServer) UpdateUser(ctx context.Context, user *apisecurity.User) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUser", ctx, user)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -156,10 +157,10 @@ func (mr *MockAuthServerMockRecorder) UpdateUser(ctx, user interface{}) *gomock.
 }
 
 // UpdateUserPassword mocks base method
-func (m *MockAuthServer) UpdateUserPassword(ctx context.Context, req *v1.ModifyUserPassword) *v1.Response {
+func (m *MockAuthServer) UpdateUserPassword(ctx context.Context, req *apisecurity.ModifyUserPassword) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUserPassword", ctx, req)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -170,10 +171,10 @@ func (mr *MockAuthServerMockRecorder) UpdateUserPassword(ctx, req interface{}) *
 }
 
 // DeleteUsers mocks base method
-func (m *MockAuthServer) DeleteUsers(ctx context.Context, users []*v1.User) *v1.BatchWriteResponse {
+func (m *MockAuthServer) DeleteUsers(ctx context.Context, users []*apisecurity.User) *apiservice.BatchWriteResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteUsers", ctx, users)
-	ret0, _ := ret[0].(*v1.BatchWriteResponse)
+	ret0, _ := ret[0].(*apiservice.BatchWriteResponse)
 	return ret0
 }
 
@@ -184,10 +185,10 @@ func (mr *MockAuthServerMockRecorder) DeleteUsers(ctx, users interface{}) *gomoc
 }
 
 // GetUsers mocks base method
-func (m *MockAuthServer) GetUsers(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+func (m *MockAuthServer) GetUsers(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUsers", ctx, query)
-	ret0, _ := ret[0].(*v1.BatchQueryResponse)
+	ret0, _ := ret[0].(*apiservice.BatchQueryResponse)
 	return ret0
 }
 
@@ -198,10 +199,10 @@ func (mr *MockAuthServerMockRecorder) GetUsers(ctx, query interface{}) *gomock.C
 }
 
 // GetUserToken mocks base method
-func (m *MockAuthServer) GetUserToken(ctx context.Context, user *v1.User) *v1.Response {
+func (m *MockAuthServer) GetUserToken(ctx context.Context, user *apisecurity.User) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserToken", ctx, user)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -212,10 +213,10 @@ func (mr *MockAuthServerMockRecorder) GetUserToken(ctx, user interface{}) *gomoc
 }
 
 // UpdateUserToken mocks base method
-func (m *MockAuthServer) UpdateUserToken(ctx context.Context, user *v1.User) *v1.Response {
+func (m *MockAuthServer) UpdateUserToken(ctx context.Context, user *apisecurity.User) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUserToken", ctx, user)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -226,10 +227,10 @@ func (mr *MockAuthServerMockRecorder) UpdateUserToken(ctx, user interface{}) *go
 }
 
 // ResetUserToken mocks base method
-func (m *MockAuthServer) ResetUserToken(ctx context.Context, user *v1.User) *v1.Response {
+func (m *MockAuthServer) ResetUserToken(ctx context.Context, user *apisecurity.User) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResetUserToken", ctx, user)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -240,10 +241,10 @@ func (mr *MockAuthServerMockRecorder) ResetUserToken(ctx, user interface{}) *gom
 }
 
 // CreateGroup mocks base method
-func (m *MockAuthServer) CreateGroup(ctx context.Context, group *v1.UserGroup) *v1.Response {
+func (m *MockAuthServer) CreateGroup(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateGroup", ctx, group)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -254,10 +255,10 @@ func (mr *MockAuthServerMockRecorder) CreateGroup(ctx, group interface{}) *gomoc
 }
 
 // UpdateGroups mocks base method
-func (m *MockAuthServer) UpdateGroups(ctx context.Context, groups []*v1.ModifyUserGroup) *v1.BatchWriteResponse {
+func (m *MockAuthServer) UpdateGroups(ctx context.Context, groups []*apisecurity.ModifyUserGroup) *apiservice.BatchWriteResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateGroups", ctx, groups)
-	ret0, _ := ret[0].(*v1.BatchWriteResponse)
+	ret0, _ := ret[0].(*apiservice.BatchWriteResponse)
 	return ret0
 }
 
@@ -268,10 +269,10 @@ func (mr *MockAuthServerMockRecorder) UpdateGroups(ctx, groups interface{}) *gom
 }
 
 // DeleteGroups mocks base method
-func (m *MockAuthServer) DeleteGroups(ctx context.Context, group []*v1.UserGroup) *v1.BatchWriteResponse {
+func (m *MockAuthServer) DeleteGroups(ctx context.Context, group []*apisecurity.UserGroup) *apiservice.BatchWriteResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteGroups", ctx, group)
-	ret0, _ := ret[0].(*v1.BatchWriteResponse)
+	ret0, _ := ret[0].(*apiservice.BatchWriteResponse)
 	return ret0
 }
 
@@ -282,10 +283,10 @@ func (mr *MockAuthServerMockRecorder) DeleteGroups(ctx, group interface{}) *gomo
 }
 
 // GetGroups mocks base method
-func (m *MockAuthServer) GetGroups(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+func (m *MockAuthServer) GetGroups(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroups", ctx, query)
-	ret0, _ := ret[0].(*v1.BatchQueryResponse)
+	ret0, _ := ret[0].(*apiservice.BatchQueryResponse)
 	return ret0
 }
 
@@ -296,10 +297,10 @@ func (mr *MockAuthServerMockRecorder) GetGroups(ctx, query interface{}) *gomock.
 }
 
 // GetGroup mocks base method
-func (m *MockAuthServer) GetGroup(ctx context.Context, req *v1.UserGroup) *v1.Response {
+func (m *MockAuthServer) GetGroup(ctx context.Context, req *apisecurity.UserGroup) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroup", ctx, req)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -310,10 +311,10 @@ func (mr *MockAuthServerMockRecorder) GetGroup(ctx, req interface{}) *gomock.Cal
 }
 
 // GetGroupToken mocks base method
-func (m *MockAuthServer) GetGroupToken(ctx context.Context, group *v1.UserGroup) *v1.Response {
+func (m *MockAuthServer) GetGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroupToken", ctx, group)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -324,10 +325,10 @@ func (mr *MockAuthServerMockRecorder) GetGroupToken(ctx, group interface{}) *gom
 }
 
 // UpdateGroupToken mocks base method
-func (m *MockAuthServer) UpdateGroupToken(ctx context.Context, group *v1.UserGroup) *v1.Response {
+func (m *MockAuthServer) UpdateGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateGroupToken", ctx, group)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -338,10 +339,10 @@ func (mr *MockAuthServerMockRecorder) UpdateGroupToken(ctx, group interface{}) *
 }
 
 // ResetGroupToken mocks base method
-func (m *MockAuthServer) ResetGroupToken(ctx context.Context, group *v1.UserGroup) *v1.Response {
+func (m *MockAuthServer) ResetGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResetGroupToken", ctx, group)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -352,10 +353,10 @@ func (mr *MockAuthServerMockRecorder) ResetGroupToken(ctx, group interface{}) *g
 }
 
 // CreateStrategy mocks base method
-func (m *MockAuthServer) CreateStrategy(ctx context.Context, strategy *v1.AuthStrategy) *v1.Response {
+func (m *MockAuthServer) CreateStrategy(ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateStrategy", ctx, strategy)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -366,10 +367,10 @@ func (mr *MockAuthServerMockRecorder) CreateStrategy(ctx, strategy interface{}) 
 }
 
 // UpdateStrategies mocks base method
-func (m *MockAuthServer) UpdateStrategies(ctx context.Context, reqs []*v1.ModifyAuthStrategy) *v1.BatchWriteResponse {
+func (m *MockAuthServer) UpdateStrategies(ctx context.Context, reqs []*apisecurity.ModifyAuthStrategy) *apiservice.BatchWriteResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateStrategies", ctx, reqs)
-	ret0, _ := ret[0].(*v1.BatchWriteResponse)
+	ret0, _ := ret[0].(*apiservice.BatchWriteResponse)
 	return ret0
 }
 
@@ -380,10 +381,10 @@ func (mr *MockAuthServerMockRecorder) UpdateStrategies(ctx, reqs interface{}) *g
 }
 
 // DeleteStrategies mocks base method
-func (m *MockAuthServer) DeleteStrategies(ctx context.Context, reqs []*v1.AuthStrategy) *v1.BatchWriteResponse {
+func (m *MockAuthServer) DeleteStrategies(ctx context.Context, reqs []*apisecurity.AuthStrategy) *apiservice.BatchWriteResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteStrategies", ctx, reqs)
-	ret0, _ := ret[0].(*v1.BatchWriteResponse)
+	ret0, _ := ret[0].(*apiservice.BatchWriteResponse)
 	return ret0
 }
 
@@ -394,10 +395,10 @@ func (mr *MockAuthServerMockRecorder) DeleteStrategies(ctx, reqs interface{}) *g
 }
 
 // GetStrategies mocks base method
-func (m *MockAuthServer) GetStrategies(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+func (m *MockAuthServer) GetStrategies(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStrategies", ctx, query)
-	ret0, _ := ret[0].(*v1.BatchQueryResponse)
+	ret0, _ := ret[0].(*apiservice.BatchQueryResponse)
 	return ret0
 }
 
@@ -408,10 +409,10 @@ func (mr *MockAuthServerMockRecorder) GetStrategies(ctx, query interface{}) *gom
 }
 
 // GetStrategy mocks base method
-func (m *MockAuthServer) GetStrategy(ctx context.Context, strategy *v1.AuthStrategy) *v1.Response {
+func (m *MockAuthServer) GetStrategy(ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStrategy", ctx, strategy)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -422,10 +423,10 @@ func (mr *MockAuthServerMockRecorder) GetStrategy(ctx, strategy interface{}) *go
 }
 
 // GetPrincipalResources mocks base method
-func (m *MockAuthServer) GetPrincipalResources(ctx context.Context, query map[string]string) *v1.Response {
+func (m *MockAuthServer) GetPrincipalResources(ctx context.Context, query map[string]string) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPrincipalResources", ctx, query)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -554,10 +555,10 @@ func (m *MockUserOperator) EXPECT() *MockUserOperatorMockRecorder {
 }
 
 // CreateUsers mocks base method
-func (m *MockUserOperator) CreateUsers(ctx context.Context, users []*v1.User) *v1.BatchWriteResponse {
+func (m *MockUserOperator) CreateUsers(ctx context.Context, users []*apisecurity.User) *apiservice.BatchWriteResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateUsers", ctx, users)
-	ret0, _ := ret[0].(*v1.BatchWriteResponse)
+	ret0, _ := ret[0].(*apiservice.BatchWriteResponse)
 	return ret0
 }
 
@@ -568,10 +569,10 @@ func (mr *MockUserOperatorMockRecorder) CreateUsers(ctx, users interface{}) *gom
 }
 
 // UpdateUser mocks base method
-func (m *MockUserOperator) UpdateUser(ctx context.Context, user *v1.User) *v1.Response {
+func (m *MockUserOperator) UpdateUser(ctx context.Context, user *apisecurity.User) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUser", ctx, user)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -582,10 +583,10 @@ func (mr *MockUserOperatorMockRecorder) UpdateUser(ctx, user interface{}) *gomoc
 }
 
 // UpdateUserPassword mocks base method
-func (m *MockUserOperator) UpdateUserPassword(ctx context.Context, req *v1.ModifyUserPassword) *v1.Response {
+func (m *MockUserOperator) UpdateUserPassword(ctx context.Context, req *apisecurity.ModifyUserPassword) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUserPassword", ctx, req)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -596,10 +597,10 @@ func (mr *MockUserOperatorMockRecorder) UpdateUserPassword(ctx, req interface{})
 }
 
 // DeleteUsers mocks base method
-func (m *MockUserOperator) DeleteUsers(ctx context.Context, users []*v1.User) *v1.BatchWriteResponse {
+func (m *MockUserOperator) DeleteUsers(ctx context.Context, users []*apisecurity.User) *apiservice.BatchWriteResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteUsers", ctx, users)
-	ret0, _ := ret[0].(*v1.BatchWriteResponse)
+	ret0, _ := ret[0].(*apiservice.BatchWriteResponse)
 	return ret0
 }
 
@@ -610,10 +611,10 @@ func (mr *MockUserOperatorMockRecorder) DeleteUsers(ctx, users interface{}) *gom
 }
 
 // GetUsers mocks base method
-func (m *MockUserOperator) GetUsers(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+func (m *MockUserOperator) GetUsers(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUsers", ctx, query)
-	ret0, _ := ret[0].(*v1.BatchQueryResponse)
+	ret0, _ := ret[0].(*apiservice.BatchQueryResponse)
 	return ret0
 }
 
@@ -624,10 +625,10 @@ func (mr *MockUserOperatorMockRecorder) GetUsers(ctx, query interface{}) *gomock
 }
 
 // GetUserToken mocks base method
-func (m *MockUserOperator) GetUserToken(ctx context.Context, user *v1.User) *v1.Response {
+func (m *MockUserOperator) GetUserToken(ctx context.Context, user *apisecurity.User) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserToken", ctx, user)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -638,10 +639,10 @@ func (mr *MockUserOperatorMockRecorder) GetUserToken(ctx, user interface{}) *gom
 }
 
 // UpdateUserToken mocks base method
-func (m *MockUserOperator) UpdateUserToken(ctx context.Context, user *v1.User) *v1.Response {
+func (m *MockUserOperator) UpdateUserToken(ctx context.Context, user *apisecurity.User) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUserToken", ctx, user)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -652,10 +653,10 @@ func (mr *MockUserOperatorMockRecorder) UpdateUserToken(ctx, user interface{}) *
 }
 
 // ResetUserToken mocks base method
-func (m *MockUserOperator) ResetUserToken(ctx context.Context, user *v1.User) *v1.Response {
+func (m *MockUserOperator) ResetUserToken(ctx context.Context, user *apisecurity.User) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResetUserToken", ctx, user)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -689,10 +690,10 @@ func (m *MockGroupOperator) EXPECT() *MockGroupOperatorMockRecorder {
 }
 
 // CreateGroup mocks base method
-func (m *MockGroupOperator) CreateGroup(ctx context.Context, group *v1.UserGroup) *v1.Response {
+func (m *MockGroupOperator) CreateGroup(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateGroup", ctx, group)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -703,10 +704,10 @@ func (mr *MockGroupOperatorMockRecorder) CreateGroup(ctx, group interface{}) *go
 }
 
 // UpdateGroups mocks base method
-func (m *MockGroupOperator) UpdateGroups(ctx context.Context, groups []*v1.ModifyUserGroup) *v1.BatchWriteResponse {
+func (m *MockGroupOperator) UpdateGroups(ctx context.Context, groups []*apisecurity.ModifyUserGroup) *apiservice.BatchWriteResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateGroups", ctx, groups)
-	ret0, _ := ret[0].(*v1.BatchWriteResponse)
+	ret0, _ := ret[0].(*apiservice.BatchWriteResponse)
 	return ret0
 }
 
@@ -717,10 +718,10 @@ func (mr *MockGroupOperatorMockRecorder) UpdateGroups(ctx, groups interface{}) *
 }
 
 // DeleteGroups mocks base method
-func (m *MockGroupOperator) DeleteGroups(ctx context.Context, group []*v1.UserGroup) *v1.BatchWriteResponse {
+func (m *MockGroupOperator) DeleteGroups(ctx context.Context, group []*apisecurity.UserGroup) *apiservice.BatchWriteResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteGroups", ctx, group)
-	ret0, _ := ret[0].(*v1.BatchWriteResponse)
+	ret0, _ := ret[0].(*apiservice.BatchWriteResponse)
 	return ret0
 }
 
@@ -731,10 +732,10 @@ func (mr *MockGroupOperatorMockRecorder) DeleteGroups(ctx, group interface{}) *g
 }
 
 // GetGroups mocks base method
-func (m *MockGroupOperator) GetGroups(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+func (m *MockGroupOperator) GetGroups(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroups", ctx, query)
-	ret0, _ := ret[0].(*v1.BatchQueryResponse)
+	ret0, _ := ret[0].(*apiservice.BatchQueryResponse)
 	return ret0
 }
 
@@ -745,10 +746,10 @@ func (mr *MockGroupOperatorMockRecorder) GetGroups(ctx, query interface{}) *gomo
 }
 
 // GetGroup mocks base method
-func (m *MockGroupOperator) GetGroup(ctx context.Context, req *v1.UserGroup) *v1.Response {
+func (m *MockGroupOperator) GetGroup(ctx context.Context, req *apisecurity.UserGroup) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroup", ctx, req)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -759,10 +760,10 @@ func (mr *MockGroupOperatorMockRecorder) GetGroup(ctx, req interface{}) *gomock.
 }
 
 // GetGroupToken mocks base method
-func (m *MockGroupOperator) GetGroupToken(ctx context.Context, group *v1.UserGroup) *v1.Response {
+func (m *MockGroupOperator) GetGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroupToken", ctx, group)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -773,10 +774,10 @@ func (mr *MockGroupOperatorMockRecorder) GetGroupToken(ctx, group interface{}) *
 }
 
 // UpdateGroupToken mocks base method
-func (m *MockGroupOperator) UpdateGroupToken(ctx context.Context, group *v1.UserGroup) *v1.Response {
+func (m *MockGroupOperator) UpdateGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateGroupToken", ctx, group)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -787,10 +788,10 @@ func (mr *MockGroupOperatorMockRecorder) UpdateGroupToken(ctx, group interface{}
 }
 
 // ResetGroupToken mocks base method
-func (m *MockGroupOperator) ResetGroupToken(ctx context.Context, group *v1.UserGroup) *v1.Response {
+func (m *MockGroupOperator) ResetGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResetGroupToken", ctx, group)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -824,10 +825,10 @@ func (m *MockStrategyOperator) EXPECT() *MockStrategyOperatorMockRecorder {
 }
 
 // CreateStrategy mocks base method
-func (m *MockStrategyOperator) CreateStrategy(ctx context.Context, strategy *v1.AuthStrategy) *v1.Response {
+func (m *MockStrategyOperator) CreateStrategy(ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateStrategy", ctx, strategy)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -838,10 +839,10 @@ func (mr *MockStrategyOperatorMockRecorder) CreateStrategy(ctx, strategy interfa
 }
 
 // UpdateStrategies mocks base method
-func (m *MockStrategyOperator) UpdateStrategies(ctx context.Context, reqs []*v1.ModifyAuthStrategy) *v1.BatchWriteResponse {
+func (m *MockStrategyOperator) UpdateStrategies(ctx context.Context, reqs []*apisecurity.ModifyAuthStrategy) *apiservice.BatchWriteResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateStrategies", ctx, reqs)
-	ret0, _ := ret[0].(*v1.BatchWriteResponse)
+	ret0, _ := ret[0].(*apiservice.BatchWriteResponse)
 	return ret0
 }
 
@@ -852,10 +853,10 @@ func (mr *MockStrategyOperatorMockRecorder) UpdateStrategies(ctx, reqs interface
 }
 
 // DeleteStrategies mocks base method
-func (m *MockStrategyOperator) DeleteStrategies(ctx context.Context, reqs []*v1.AuthStrategy) *v1.BatchWriteResponse {
+func (m *MockStrategyOperator) DeleteStrategies(ctx context.Context, reqs []*apisecurity.AuthStrategy) *apiservice.BatchWriteResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteStrategies", ctx, reqs)
-	ret0, _ := ret[0].(*v1.BatchWriteResponse)
+	ret0, _ := ret[0].(*apiservice.BatchWriteResponse)
 	return ret0
 }
 
@@ -866,10 +867,10 @@ func (mr *MockStrategyOperatorMockRecorder) DeleteStrategies(ctx, reqs interface
 }
 
 // GetStrategies mocks base method
-func (m *MockStrategyOperator) GetStrategies(ctx context.Context, query map[string]string) *v1.BatchQueryResponse {
+func (m *MockStrategyOperator) GetStrategies(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStrategies", ctx, query)
-	ret0, _ := ret[0].(*v1.BatchQueryResponse)
+	ret0, _ := ret[0].(*apiservice.BatchQueryResponse)
 	return ret0
 }
 
@@ -880,10 +881,10 @@ func (mr *MockStrategyOperatorMockRecorder) GetStrategies(ctx, query interface{}
 }
 
 // GetStrategy mocks base method
-func (m *MockStrategyOperator) GetStrategy(ctx context.Context, strategy *v1.AuthStrategy) *v1.Response {
+func (m *MockStrategyOperator) GetStrategy(ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStrategy", ctx, strategy)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 
@@ -894,10 +895,10 @@ func (mr *MockStrategyOperatorMockRecorder) GetStrategy(ctx, strategy interface{
 }
 
 // GetPrincipalResources mocks base method
-func (m *MockStrategyOperator) GetPrincipalResources(ctx context.Context, query map[string]string) *v1.Response {
+func (m *MockStrategyOperator) GetPrincipalResources(ctx context.Context, query map[string]string) *apiservice.Response {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPrincipalResources", ctx, query)
-	ret0, _ := ret[0].(*v1.Response)
+	ret0, _ := ret[0].(*apiservice.Response)
 	return ret0
 }
 

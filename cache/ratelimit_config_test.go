@@ -20,6 +20,8 @@ package cache
 import (
 	"encoding/json"
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"testing"
 	"time"
 
@@ -27,7 +29,6 @@ import (
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/stretchr/testify/assert"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store/mock"
@@ -47,25 +48,25 @@ func newTestRateLimitCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *
 	return ctl, storage, rlc
 }
 
-func buildRateLimitRuleProtoWithLabels(name string, method string) *api.Rule {
-	rule := &api.Rule{
+func buildRateLimitRuleProtoWithLabels(name string, method string) *apitraffic.Rule {
+	rule := &apitraffic.Rule{
 		Priority: utils.NewUInt32Value(0),
-		Resource: api.Rule_QPS,
-		Type:     api.Rule_LOCAL,
-		Labels: map[string]*api.MatchString{"http.method": {
-			Type:  api.MatchString_EXACT,
+		Resource: apitraffic.Rule_QPS,
+		Type:     apitraffic.Rule_LOCAL,
+		Labels: map[string]*apimodel.MatchString{"http.method": {
+			Type:  apimodel.MatchString_EXACT,
 			Value: utils.NewStringValue("post"),
 		}},
-		Amounts: []*api.Amount{{
+		Amounts: []*apitraffic.Amount{{
 			MaxAmount:     utils.NewUInt32Value(100),
 			ValidDuration: &duration.Duration{Seconds: 1},
 		}},
 		Action:       utils.NewStringValue("reject"),
 		Disable:      utils.NewBoolValue(false),
 		RegexCombine: utils.NewBoolValue(false),
-		Failover:     api.Rule_FAILOVER_LOCAL,
-		Method: &api.MatchString{
-			Type:  api.MatchString_EXACT,
+		Failover:     apitraffic.Rule_FAILOVER_LOCAL,
+		Method: &apimodel.MatchString{
+			Type:  apimodel.MatchString_EXACT,
 			Value: utils.NewStringValue(method),
 		},
 		Name: utils.NewStringValue(name),
@@ -73,31 +74,31 @@ func buildRateLimitRuleProtoWithLabels(name string, method string) *api.Rule {
 	return rule
 }
 
-func buildRateLimitRuleProtoWithArguments(name string, method string) *api.Rule {
-	rule := &api.Rule{
+func buildRateLimitRuleProtoWithArguments(name string, method string) *apitraffic.Rule {
+	rule := &apitraffic.Rule{
 		Priority: utils.NewUInt32Value(0),
-		Resource: api.Rule_QPS,
-		Type:     api.Rule_LOCAL,
-		Arguments: []*api.MatchArgument{
+		Resource: apitraffic.Rule_QPS,
+		Type:     apitraffic.Rule_LOCAL,
+		Arguments: []*apitraffic.MatchArgument{
 			{
-				Type: api.MatchArgument_HEADER,
+				Type: apitraffic.MatchArgument_HEADER,
 				Key:  "host",
-				Value: &api.MatchString{
-					Type:  api.MatchString_EXACT,
+				Value: &apimodel.MatchString{
+					Type:  apimodel.MatchString_EXACT,
 					Value: utils.NewStringValue("localhost"),
 				},
 			},
 		},
-		Amounts: []*api.Amount{{
+		Amounts: []*apitraffic.Amount{{
 			MaxAmount:     utils.NewUInt32Value(100),
 			ValidDuration: &duration.Duration{Seconds: 1},
 		}},
 		Action:       utils.NewStringValue("reject"),
 		Disable:      utils.NewBoolValue(false),
 		RegexCombine: utils.NewBoolValue(false),
-		Failover:     api.Rule_FAILOVER_LOCAL,
-		Method: &api.MatchString{
-			Type:  api.MatchString_EXACT,
+		Failover:     apitraffic.Rule_FAILOVER_LOCAL,
+		Method: &apimodel.MatchString{
+			Type:  apimodel.MatchString_EXACT,
 			Value: utils.NewStringValue(method),
 		},
 		Name: utils.NewStringValue(name),
@@ -121,7 +122,7 @@ func genRateLimits(
 		for j := 0; j < rulePerService; j++ {
 			name := fmt.Sprintf("limit-rule-%d-%d", i, j)
 			method := fmt.Sprintf("/test-%d", j)
-			var rule *api.Rule
+			var rule *apitraffic.Rule
 			if withLabels {
 				rule = buildRateLimitRuleProtoWithLabels(name, method)
 			} else {
@@ -361,7 +362,7 @@ func TestGetRateLimitsByServiceID(t *testing.T) {
 			assert.Equal(t, 1, len(rateLimit.Proto.Labels))
 			assert.Equal(t, 1, len(rateLimit.Proto.Arguments))
 			for _, argument := range rateLimit.Proto.Arguments {
-				assert.Equal(t, api.MatchArgument_CUSTOM, argument.Type)
+				assert.Equal(t, apitraffic.MatchArgument_CUSTOM, argument.Type)
 				_, hasKey := rateLimit.Proto.Labels[argument.Key]
 				assert.True(t, hasKey)
 			}

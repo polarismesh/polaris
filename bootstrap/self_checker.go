@@ -22,20 +22,22 @@ import (
 	"sync"
 	"time"
 
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/service/healthcheck"
 )
 
 type SelfHeathChecker struct {
-	instances []*api.Instance
+	instances []*apiservice.Instance
 	interval  int
 	cancel    context.CancelFunc
 	wg        *sync.WaitGroup
 	hcServer  *healthcheck.Server
 }
 
-func NewSelfHeathChecker(instances []*api.Instance, interval int) (*SelfHeathChecker, error) {
+func NewSelfHeathChecker(instances []*apiservice.Instance, interval int) (*SelfHeathChecker, error) {
 	hcServer, err := healthcheck.GetServer()
 	if nil != err {
 		return nil, err

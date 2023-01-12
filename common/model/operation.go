@@ -50,19 +50,21 @@ type Resource string
 
 // 定义包含的资源类型
 const (
-	RNamespace         Resource = "Namespace"
-	RService           Resource = "Service"
-	RRouting           Resource = "Routing"
-	RCircuitBreaker    Resource = "CircuitBreaker"
-	RInstance          Resource = "Instance"
-	RRateLimit         Resource = "RateLimit"
-	RUser              Resource = "User"
-	RUserGroup         Resource = "UserGroup"
-	RUserGroupRelation Resource = "UserGroupRelation"
-	RAuthStrategy      Resource = "AuthStrategy"
-	RConfigGroup       Resource = "ConfigGroup"
-	RConfigFile        Resource = "ConfigFile"
-	RConfigFileRelease Resource = "ConfigFileRelease"
+	RNamespace          Resource = "Namespace"
+	RService            Resource = "Service"
+	RRouting            Resource = "Routing"
+	RCircuitBreaker     Resource = "CircuitBreaker"
+	RInstance           Resource = "Instance"
+	RRateLimit          Resource = "RateLimit"
+	RUser               Resource = "User"
+	RUserGroup          Resource = "UserGroup"
+	RUserGroupRelation  Resource = "UserGroupRelation"
+	RAuthStrategy       Resource = "AuthStrategy"
+	RConfigGroup        Resource = "ConfigGroup"
+	RConfigFile         Resource = "ConfigFile"
+	RConfigFileRelease  Resource = "ConfigFileRelease"
+	RCircuitBreakerRule Resource = "CircuitBreakerRule"
+	RFaultDetectRule    Resource = "FaultDetectRule"
 )
 
 // RecordEntry 操作记录entry

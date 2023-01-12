@@ -19,6 +19,7 @@ package eurekaserver
 
 import (
 	"context"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"testing"
 	"time"
 
@@ -36,14 +37,14 @@ func TestEurekaServer_renew(t *testing.T) {
 
 	ins := &model.Instance{
 		ServiceID: utils.NewUUID(),
-		Proto: &api.Instance{
+		Proto: &apiservice.Instance{
 			Service:   utils.NewStringValue("echo"),
 			Namespace: utils.NewStringValue("default"),
 			Host:      utils.NewStringValue("127.0.0.1"),
 			Port:      utils.NewUInt32Value(8080),
-			HealthCheck: &api.HealthCheck{
-				Type: api.HealthCheck_HEARTBEAT,
-				Heartbeat: &api.HeartbeatHealthCheck{
+			HealthCheck: &apiservice.HealthCheck{
+				Type: apiservice.HealthCheck_HEARTBEAT,
+				Heartbeat: &apiservice.HeartbeatHealthCheck{
 					Ttl: &wrapperspb.UInt32Value{
 						Value: 5,
 					},
@@ -63,14 +64,14 @@ func TestEurekaServer_renew(t *testing.T) {
 
 	disableBeatIns := &model.Instance{
 		ServiceID: utils.NewUUID(),
-		Proto: &api.Instance{
+		Proto: &apiservice.Instance{
 			Service:   utils.NewStringValue("echo"),
 			Namespace: utils.NewStringValue("default"),
 			Host:      utils.NewStringValue("127.0.0.2"),
 			Port:      utils.NewUInt32Value(8081),
-			HealthCheck: &api.HealthCheck{
-				Type: api.HealthCheck_HEARTBEAT,
-				Heartbeat: &api.HeartbeatHealthCheck{
+			HealthCheck: &apiservice.HealthCheck{
+				Type: apiservice.HealthCheck_HEARTBEAT,
+				Heartbeat: &apiservice.HeartbeatHealthCheck{
 					Ttl: &wrapperspb.UInt32Value{
 						Value: 5,
 					},

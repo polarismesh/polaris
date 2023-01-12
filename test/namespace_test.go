@@ -21,6 +21,8 @@
 package test
 
 import (
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"testing"
 	"time"
 
@@ -216,7 +218,7 @@ func TestDeleteNamespaceWhenHaveConfigGroup(t *testing.T) {
 	}
 }
 
-func createServiceAndInstance(t *testing.T, expectRes *map[string]model.NamespaceServiceCount, client *http.Client, namespace *v1.Namespace) ([]*v1.Service, []*v1.Instance) {
+func createServiceAndInstance(t *testing.T, expectRes *map[string]model.NamespaceServiceCount, client *http.Client, namespace *apimodel.Namespace) ([]*apiservice.Service, []*apiservice.Instance) {
 	services := resource.CreateServices(namespace)
 
 	_, err := client.CreateServices(services)
@@ -230,7 +232,7 @@ func createServiceAndInstance(t *testing.T, expectRes *map[string]model.Namespac
 		InstanceCnt:  &model.InstanceCount{},
 	}
 
-	finalInstances := make([]*v1.Instance, 0)
+	finalInstances := make([]*apiservice.Instance, 0)
 
 	for _, service := range services {
 		instances := resource.CreateInstances(service)

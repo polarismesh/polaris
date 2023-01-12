@@ -19,6 +19,7 @@ package defaultauth
 
 import (
 	"context"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -179,13 +180,13 @@ func Test_CreateStrategy(t *testing.T) {
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
 		strategyId := utils.NewUUID()
 
-		resp := strategyTest.svr.CreateStrategy(valCtx, &api.AuthStrategy{
+		resp := strategyTest.svr.CreateStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyId},
 			Name: &wrapperspb.StringValue{
 				Value: "正常创建鉴权策略",
 			},
-			Principals: &api.Principals{
-				Users: []*api.Principal{{
+			Principals: &apisecurity.Principals{
+				Users: []*apisecurity.Principal{{
 					Id: &wrapperspb.StringValue{
 						Value: strategyTest.users[1].ID,
 					},
@@ -193,15 +194,15 @@ func Test_CreateStrategy(t *testing.T) {
 						Value: strategyTest.users[1].Name,
 					},
 				}},
-				Groups: []*api.Principal{},
+				Groups: []*apisecurity.Principal{},
 			},
-			Resources: &api.StrategyResources{
+			Resources: &apisecurity.StrategyResources{
 				StrategyId: &wrapperspb.StringValue{
 					Value: strategyId,
 				},
-				Namespaces:   []*api.StrategyResourceEntry{},
-				Services:     []*api.StrategyResourceEntry{},
-				ConfigGroups: []*api.StrategyResourceEntry{},
+				Namespaces:   []*apisecurity.StrategyResourceEntry{},
+				Services:     []*apisecurity.StrategyResourceEntry{},
+				ConfigGroups: []*apisecurity.StrategyResourceEntry{},
 			},
 			Action: 0,
 		})
@@ -213,13 +214,13 @@ func Test_CreateStrategy(t *testing.T) {
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[1].Token)
 		strategyId := utils.NewUUID()
 
-		resp := strategyTest.svr.CreateStrategy(valCtx, &api.AuthStrategy{
+		resp := strategyTest.svr.CreateStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyId},
 			Name: &wrapperspb.StringValue{
 				Value: "创建鉴权策略-非owner用户发起",
 			},
-			Principals: &api.Principals{
-				Users: []*api.Principal{{
+			Principals: &apisecurity.Principals{
+				Users: []*apisecurity.Principal{{
 					Id: &wrapperspb.StringValue{
 						Value: strategyTest.users[1].ID,
 					},
@@ -227,15 +228,15 @@ func Test_CreateStrategy(t *testing.T) {
 						Value: strategyTest.users[1].Name,
 					},
 				}},
-				Groups: []*api.Principal{},
+				Groups: []*apisecurity.Principal{},
 			},
-			Resources: &api.StrategyResources{
+			Resources: &apisecurity.StrategyResources{
 				StrategyId: &wrapperspb.StringValue{
 					Value: strategyId,
 				},
-				Namespaces:   []*api.StrategyResourceEntry{},
-				Services:     []*api.StrategyResourceEntry{},
-				ConfigGroups: []*api.StrategyResourceEntry{},
+				Namespaces:   []*apisecurity.StrategyResourceEntry{},
+				Services:     []*apisecurity.StrategyResourceEntry{},
+				ConfigGroups: []*apisecurity.StrategyResourceEntry{},
 			},
 			Action: 0,
 		})
@@ -247,13 +248,13 @@ func Test_CreateStrategy(t *testing.T) {
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
 		strategyId := utils.NewUUID()
 
-		resp := strategyTest.svr.CreateStrategy(valCtx, &api.AuthStrategy{
+		resp := strategyTest.svr.CreateStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyId},
 			Name: &wrapperspb.StringValue{
 				Value: "创建鉴权策略-关联用户不存在",
 			},
-			Principals: &api.Principals{
-				Users: []*api.Principal{{
+			Principals: &apisecurity.Principals{
+				Users: []*apisecurity.Principal{{
 					Id: &wrapperspb.StringValue{
 						Value: utils.NewUUID(),
 					},
@@ -261,15 +262,15 @@ func Test_CreateStrategy(t *testing.T) {
 						Value: "user-1",
 					},
 				}},
-				Groups: []*api.Principal{},
+				Groups: []*apisecurity.Principal{},
 			},
-			Resources: &api.StrategyResources{
+			Resources: &apisecurity.StrategyResources{
 				StrategyId: &wrapperspb.StringValue{
 					Value: strategyId,
 				},
-				Namespaces:   []*api.StrategyResourceEntry{},
-				Services:     []*api.StrategyResourceEntry{},
-				ConfigGroups: []*api.StrategyResourceEntry{},
+				Namespaces:   []*apisecurity.StrategyResourceEntry{},
+				Services:     []*apisecurity.StrategyResourceEntry{},
+				ConfigGroups: []*apisecurity.StrategyResourceEntry{},
 			},
 			Action: 0,
 		})
@@ -281,13 +282,13 @@ func Test_CreateStrategy(t *testing.T) {
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
 		strategyId := utils.NewUUID()
 
-		resp := strategyTest.svr.CreateStrategy(valCtx, &api.AuthStrategy{
+		resp := strategyTest.svr.CreateStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyId},
 			Name: &wrapperspb.StringValue{
 				Value: "创建鉴权策略-关联用户组不存在",
 			},
-			Principals: &api.Principals{
-				Groups: []*api.Principal{{
+			Principals: &apisecurity.Principals{
+				Groups: []*apisecurity.Principal{{
 					Id: &wrapperspb.StringValue{
 						Value: utils.NewUUID(),
 					},
@@ -296,13 +297,13 @@ func Test_CreateStrategy(t *testing.T) {
 					},
 				}},
 			},
-			Resources: &api.StrategyResources{
+			Resources: &apisecurity.StrategyResources{
 				StrategyId: &wrapperspb.StringValue{
 					Value: strategyId,
 				},
-				Namespaces:   []*api.StrategyResourceEntry{},
-				Services:     []*api.StrategyResourceEntry{},
-				ConfigGroups: []*api.StrategyResourceEntry{},
+				Namespaces:   []*apisecurity.StrategyResourceEntry{},
+				Services:     []*apisecurity.StrategyResourceEntry{},
+				ConfigGroups: []*apisecurity.StrategyResourceEntry{},
 			},
 			Action: 0,
 		})
@@ -323,7 +324,7 @@ func Test_UpdateStrategy(t *testing.T) {
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
 		strategyId := strategyTest.strategies[0].ID
 
-		resp := strategyTest.svr.UpdateStrategies(valCtx, []*api.ModifyAuthStrategy{
+		resp := strategyTest.svr.UpdateStrategies(valCtx, []*apisecurity.ModifyAuthStrategy{
 			{
 				Id: &wrapperspb.StringValue{
 					Value: strategyId,
@@ -331,43 +332,43 @@ func Test_UpdateStrategy(t *testing.T) {
 				Name: &wrapperspb.StringValue{
 					Value: strategyTest.strategies[0].Name,
 				},
-				AddPrincipals: &api.Principals{
-					Users: []*api.Principal{
+				AddPrincipals: &apisecurity.Principals{
+					Users: []*apisecurity.Principal{
 						{
 							Id: &wrapperspb.StringValue{Value: strategyTest.users[2].ID},
 						},
 					},
 				},
-				RemovePrincipals: &api.Principals{
-					Users: []*api.Principal{
+				RemovePrincipals: &apisecurity.Principals{
+					Users: []*apisecurity.Principal{
 						{
 							Id: &wrapperspb.StringValue{Value: strategyTest.users[3].ID},
 						},
 					},
 				},
-				AddResources: &api.StrategyResources{
+				AddResources: &apisecurity.StrategyResources{
 					StrategyId: &wrapperspb.StringValue{
 						Value: strategyId,
 					},
-					Namespaces: []*api.StrategyResourceEntry{
+					Namespaces: []*apisecurity.StrategyResourceEntry{
 						{Id: &wrapperspb.StringValue{Value: strategyTest.namespaces[0].Name}},
 					},
-					Services: []*api.StrategyResourceEntry{
+					Services: []*apisecurity.StrategyResourceEntry{
 						{Id: &wrapperspb.StringValue{Value: strategyTest.services[0].ID}},
 					},
-					ConfigGroups: []*api.StrategyResourceEntry{},
+					ConfigGroups: []*apisecurity.StrategyResourceEntry{},
 				},
-				RemoveResources: &api.StrategyResources{
+				RemoveResources: &apisecurity.StrategyResources{
 					StrategyId: &wrapperspb.StringValue{
 						Value: strategyId,
 					},
-					Namespaces: []*api.StrategyResourceEntry{
+					Namespaces: []*apisecurity.StrategyResourceEntry{
 						{Id: &wrapperspb.StringValue{Value: strategyTest.namespaces[1].Name}},
 					},
-					Services: []*api.StrategyResourceEntry{
+					Services: []*apisecurity.StrategyResourceEntry{
 						{Id: &wrapperspb.StringValue{Value: strategyTest.services[1].ID}},
 					},
-					ConfigGroups: []*api.StrategyResourceEntry{},
+					ConfigGroups: []*apisecurity.StrategyResourceEntry{},
 				},
 			},
 		})
@@ -379,7 +380,7 @@ func Test_UpdateStrategy(t *testing.T) {
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[1].Token)
 		strategyId := utils.NewUUID()
 
-		resp := strategyTest.svr.UpdateStrategies(valCtx, []*api.ModifyAuthStrategy{
+		resp := strategyTest.svr.UpdateStrategies(valCtx, []*apisecurity.ModifyAuthStrategy{
 			{
 				Id: &wrapperspb.StringValue{
 					Value: strategyId,
@@ -387,29 +388,29 @@ func Test_UpdateStrategy(t *testing.T) {
 				Name: &wrapperspb.StringValue{
 					Value: strategyTest.strategies[0].Name,
 				},
-				AddPrincipals: &api.Principals{
-					Users:  []*api.Principal{},
-					Groups: []*api.Principal{},
+				AddPrincipals: &apisecurity.Principals{
+					Users:  []*apisecurity.Principal{},
+					Groups: []*apisecurity.Principal{},
 				},
-				RemovePrincipals: &api.Principals{
-					Users:  []*api.Principal{},
-					Groups: []*api.Principal{},
+				RemovePrincipals: &apisecurity.Principals{
+					Users:  []*apisecurity.Principal{},
+					Groups: []*apisecurity.Principal{},
 				},
-				AddResources: &api.StrategyResources{
+				AddResources: &apisecurity.StrategyResources{
 					StrategyId: &wrapperspb.StringValue{
 						Value: "",
 					},
-					Namespaces:   []*api.StrategyResourceEntry{},
-					Services:     []*api.StrategyResourceEntry{},
-					ConfigGroups: []*api.StrategyResourceEntry{},
+					Namespaces:   []*apisecurity.StrategyResourceEntry{},
+					Services:     []*apisecurity.StrategyResourceEntry{},
+					ConfigGroups: []*apisecurity.StrategyResourceEntry{},
 				},
-				RemoveResources: &api.StrategyResources{
+				RemoveResources: &apisecurity.StrategyResources{
 					StrategyId: &wrapperspb.StringValue{
 						Value: "",
 					},
-					Namespaces:   []*api.StrategyResourceEntry{},
-					Services:     []*api.StrategyResourceEntry{},
-					ConfigGroups: []*api.StrategyResourceEntry{},
+					Namespaces:   []*apisecurity.StrategyResourceEntry{},
+					Services:     []*apisecurity.StrategyResourceEntry{},
+					ConfigGroups: []*apisecurity.StrategyResourceEntry{},
 				},
 			},
 		})
@@ -425,11 +426,11 @@ func Test_UpdateStrategy(t *testing.T) {
 
 		strategyId := strategyTest.defaultStrategies[0].ID
 
-		resp := strategyTest.svr.UpdateStrategies(valCtx, []*api.ModifyAuthStrategy{
+		resp := strategyTest.svr.UpdateStrategies(valCtx, []*apisecurity.ModifyAuthStrategy{
 			{
 				Id: &wrapperspb.StringValue{Value: strategyId},
-				AddPrincipals: &api.Principals{
-					Users: []*api.Principal{
+				AddPrincipals: &apisecurity.Principals{
+					Users: []*apisecurity.Principal{
 						{
 							Id: &wrapperspb.StringValue{Value: utils.NewUUID()},
 						},
@@ -456,11 +457,11 @@ func Test_UpdateStrategy(t *testing.T) {
 
 		strategyId := strategyTest.strategies[2].ID
 
-		resp := strategyTest.svr.UpdateStrategies(valCtx, []*api.ModifyAuthStrategy{
+		resp := strategyTest.svr.UpdateStrategies(valCtx, []*apisecurity.ModifyAuthStrategy{
 			{
 				Id: &wrapperspb.StringValue{Value: strategyId},
-				AddPrincipals: &api.Principals{
-					Users: []*api.Principal{
+				AddPrincipals: &apisecurity.Principals{
+					Users: []*apisecurity.Principal{
 						{
 							Id: &wrapperspb.StringValue{Value: utils.NewUUID()},
 						},
@@ -480,11 +481,11 @@ func Test_UpdateStrategy(t *testing.T) {
 
 		strategyId := strategyTest.strategies[0].ID
 
-		resp := strategyTest.svr.UpdateStrategies(valCtx, []*api.ModifyAuthStrategy{
+		resp := strategyTest.svr.UpdateStrategies(valCtx, []*apisecurity.ModifyAuthStrategy{
 			{
 				Id: &wrapperspb.StringValue{Value: strategyId},
-				AddPrincipals: &api.Principals{
-					Users: []*api.Principal{
+				AddPrincipals: &apisecurity.Principals{
+					Users: []*apisecurity.Principal{
 						{
 							Id: &wrapperspb.StringValue{Value: utils.NewUUID()},
 						},
@@ -504,11 +505,11 @@ func Test_UpdateStrategy(t *testing.T) {
 
 		strategyId := strategyTest.strategies[0].ID
 
-		resp := strategyTest.svr.UpdateStrategies(valCtx, []*api.ModifyAuthStrategy{
+		resp := strategyTest.svr.UpdateStrategies(valCtx, []*apisecurity.ModifyAuthStrategy{
 			{
 				Id: &wrapperspb.StringValue{Value: strategyId},
-				AddPrincipals: &api.Principals{
-					Groups: []*api.Principal{
+				AddPrincipals: &apisecurity.Principals{
+					Groups: []*apisecurity.Principal{
 						{
 							Id: &wrapperspb.StringValue{Value: utils.NewUUID()},
 						},
@@ -528,11 +529,11 @@ func Test_UpdateStrategy(t *testing.T) {
 
 		strategyId := strategyTest.defaultStrategies[0].ID
 
-		resp := strategyTest.svr.UpdateStrategies(valCtx, []*api.ModifyAuthStrategy{
+		resp := strategyTest.svr.UpdateStrategies(valCtx, []*apisecurity.ModifyAuthStrategy{
 			{
 				Id: &wrapperspb.StringValue{Value: strategyId},
-				AddPrincipals: &api.Principals{
-					Users: []*api.Principal{
+				AddPrincipals: &apisecurity.Principals{
+					Users: []*apisecurity.Principal{
 						{
 							Id: &wrapperspb.StringValue{Value: strategyTest.users[3].ID},
 						},
@@ -559,7 +560,7 @@ func Test_DeleteStrategy(t *testing.T) {
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
 
-		resp := strategyTest.svr.DeleteStrategies(valCtx, []*api.AuthStrategy{
+		resp := strategyTest.svr.DeleteStrategies(valCtx, []*apisecurity.AuthStrategy{
 			{Id: &wrapperspb.StringValue{Value: strategyTest.strategies[index].ID}},
 		})
 
@@ -569,7 +570,7 @@ func Test_DeleteStrategy(t *testing.T) {
 	t.Run("删除鉴权策略-非owner用户发起", func(t *testing.T) {
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[1].Token)
 
-		resp := strategyTest.svr.DeleteStrategies(valCtx, []*api.AuthStrategy{
+		resp := strategyTest.svr.DeleteStrategies(valCtx, []*apisecurity.AuthStrategy{
 			{Id: &wrapperspb.StringValue{Value: strategyTest.strategies[rand.Intn(len(strategyTest.strategies))].ID}},
 		})
 
@@ -584,7 +585,7 @@ func Test_DeleteStrategy(t *testing.T) {
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
 
-		resp := strategyTest.svr.DeleteStrategies(valCtx, []*api.AuthStrategy{
+		resp := strategyTest.svr.DeleteStrategies(valCtx, []*apisecurity.AuthStrategy{
 			{Id: &wrapperspb.StringValue{Value: strategyTest.strategies[index].ID}},
 		})
 
@@ -598,7 +599,7 @@ func Test_DeleteStrategy(t *testing.T) {
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
 
-		resp := strategyTest.svr.DeleteStrategies(valCtx, []*api.AuthStrategy{
+		resp := strategyTest.svr.DeleteStrategies(valCtx, []*apisecurity.AuthStrategy{
 			{Id: &wrapperspb.StringValue{Value: strategyTest.defaultStrategies[index].ID}},
 		})
 
@@ -619,7 +620,7 @@ func Test_DeleteStrategy(t *testing.T) {
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
 
-		resp := strategyTest.svr.DeleteStrategies(valCtx, []*api.AuthStrategy{
+		resp := strategyTest.svr.DeleteStrategies(valCtx, []*apisecurity.AuthStrategy{
 			{Id: &wrapperspb.StringValue{Value: strategyTest.strategies[index].ID}},
 		})
 
@@ -636,7 +637,7 @@ func Test_GetStrategy(t *testing.T) {
 		// 主账户查询自己的策略
 		strategyTest.storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategyTest.strategies[0], nil)
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
-		resp := strategyTest.svr.GetStrategy(valCtx, &api.AuthStrategy{
+		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[0].ID},
 		})
 		assert.Equal(t, api.ExecuteSuccess, resp.Code.GetValue(), resp.Info.GetValue())
@@ -644,7 +645,7 @@ func Test_GetStrategy(t *testing.T) {
 		// 主账户查询自己自账户的策略
 		strategyTest.storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategyTest.strategies[1], nil)
 		valCtx = context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
-		resp = strategyTest.svr.GetStrategy(valCtx, &api.AuthStrategy{
+		resp = strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[1].ID},
 		})
 		assert.Equal(t, api.ExecuteSuccess, resp.Code.GetValue(), resp.Info.GetValue())
@@ -664,7 +665,7 @@ func Test_GetStrategy(t *testing.T) {
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
 
-		resp := strategyTest.svr.GetStrategy(valCtx, &api.AuthStrategy{
+		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[0].ID},
 		})
 
@@ -677,7 +678,7 @@ func Test_GetStrategy(t *testing.T) {
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[1].Token)
 
-		resp := strategyTest.svr.GetStrategy(valCtx, &api.AuthStrategy{
+		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[1].ID},
 		})
 
@@ -689,7 +690,7 @@ func Test_GetStrategy(t *testing.T) {
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[1].Token)
 
-		resp := strategyTest.svr.GetStrategy(valCtx, &api.AuthStrategy{
+		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[len(strategyTest.users)-1+2].ID},
 		})
 
@@ -701,7 +702,7 @@ func Test_GetStrategy(t *testing.T) {
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[1].Token)
 
-		resp := strategyTest.svr.GetStrategy(valCtx, &api.AuthStrategy{
+		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[2].ID},
 		})
 
@@ -713,7 +714,7 @@ func Test_GetStrategy(t *testing.T) {
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[1].Token)
 
-		resp := strategyTest.svr.GetStrategy(valCtx, &api.AuthStrategy{
+		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: utils.NewUUID()},
 		})
 
@@ -878,7 +879,7 @@ func Test_AuthServer_NormalOperateStrategy(t *testing.T) {
 	})
 
 	t.Run("正常删除用户", func(t *testing.T) {
-		resp := suit.server.DeleteUsers(suit.defaultCtx, []*api.User{users[3]})
+		resp := suit.server.DeleteUsers(suit.defaultCtx, []*apisecurity.User{users[3]})
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())

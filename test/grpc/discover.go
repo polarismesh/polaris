@@ -20,17 +20,17 @@ package grpc
 import (
 	"context"
 	"fmt"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"io"
 	"time"
 
 	"google.golang.org/grpc/metadata"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 // Discover 统一发现函数
-func (c *Client) Discover(drt api.DiscoverRequest_DiscoverRequestType, service *api.Service, hook func(resp *api.DiscoverResponse)) error {
+func (c *Client) Discover(drt apiservice.DiscoverRequest_DiscoverRequestType, service *apiservice.Service, hook func(resp *apiservice.DiscoverResponse)) error {
 	fmt.Printf("\ndiscover\n")
 
 	md := metadata.Pairs("request-id", utils.NewUUID())
@@ -45,7 +45,7 @@ func (c *Client) Discover(drt api.DiscoverRequest_DiscoverRequestType, service *
 		return err
 	}
 
-	request := &api.DiscoverRequest{
+	request := &apiservice.DiscoverRequest{
 		Type:    drt,
 		Service: service,
 	}
@@ -72,7 +72,7 @@ func (c *Client) Discover(drt api.DiscoverRequest_DiscoverRequestType, service *
 }
 
 // DiscoverRequest 统一发现函数
-func (c *Client) DiscoverRequest(request *api.DiscoverRequest) (*api.DiscoverResponse, error) {
+func (c *Client) DiscoverRequest(request *apiservice.DiscoverRequest) (*apiservice.DiscoverResponse, error) {
 	fmt.Printf("\ndiscover\n")
 
 	md := metadata.Pairs("request-id", utils.NewUUID())
@@ -93,7 +93,7 @@ func (c *Client) DiscoverRequest(request *api.DiscoverRequest) (*api.DiscoverRes
 	}
 	worker.CloseSend()
 
-	var latestResp *api.DiscoverResponse
+	var latestResp *apiservice.DiscoverResponse
 
 	for {
 		rsp, err := worker.Recv()

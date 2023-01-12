@@ -19,13 +19,14 @@ package discover
 
 import (
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"reflect"
 	"testing"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/apiserver/grpcserver"
-	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 func Test_discoverCacheConvert(t *testing.T) {
@@ -40,12 +41,12 @@ func Test_discoverCacheConvert(t *testing.T) {
 		{
 			name: "DiscoverResponse_INSTANCE",
 			args: args{
-				m: &api.DiscoverResponse{
+				m: &apiservice.DiscoverResponse{
 					Code: &wrapperspb.UInt32Value{
-						Value: api.ExecuteSuccess,
+						Value: uint32(apimodel.Code_ExecuteSuccess),
 					},
-					Type: api.DiscoverResponse_INSTANCE,
-					Service: &api.Service{
+					Type: apiservice.DiscoverResponse_INSTANCE,
+					Service: &apiservice.Service{
 						Name: &wrapperspb.StringValue{
 							Value: "test",
 						},
@@ -56,16 +57,16 @@ func Test_discoverCacheConvert(t *testing.T) {
 							Value: "test",
 						},
 					},
-					Instances: []*api.Instance{},
+					Instances: []*apiservice.Instance{},
 				},
 			},
 			want: &grpcserver.CacheObject{
-				OriginVal: &api.DiscoverResponse{
+				OriginVal: &apiservice.DiscoverResponse{
 					Code: &wrapperspb.UInt32Value{
-						Value: api.ExecuteSuccess,
+						Value: uint32(apimodel.Code_ExecuteSuccess),
 					},
-					Type: api.DiscoverResponse_INSTANCE,
-					Service: &api.Service{
+					Type: apiservice.DiscoverResponse_INSTANCE,
+					Service: &apiservice.Service{
 						Name: &wrapperspb.StringValue{
 							Value: "test",
 						},
@@ -76,21 +77,21 @@ func Test_discoverCacheConvert(t *testing.T) {
 							Value: "test",
 						},
 					},
-					Instances: []*api.Instance{},
+					Instances: []*apiservice.Instance{},
 				},
-				CacheType: api.DiscoverResponse_INSTANCE.String(),
+				CacheType: apiservice.DiscoverResponse_INSTANCE.String(),
 				Key:       fmt.Sprintf("%s-%s-%s", "test", "test", "test"),
 			},
 		},
 		{
 			name: "DiscoverResponse_SERVICES",
 			args: args{
-				m: &api.DiscoverResponse{
+				m: &apiservice.DiscoverResponse{
 					Code: &wrapperspb.UInt32Value{
-						Value: api.ExecuteSuccess,
+						Value: uint32(apimodel.Code_ExecuteSuccess),
 					},
-					Type: api.DiscoverResponse_SERVICES,
-					Service: &api.Service{
+					Type: apiservice.DiscoverResponse_SERVICES,
+					Service: &apiservice.Service{
 						Name: &wrapperspb.StringValue{
 							Value: "",
 						},
@@ -108,12 +109,12 @@ func Test_discoverCacheConvert(t *testing.T) {
 		{
 			name: "DiscoverResponse_RATE_LIMIT",
 			args: args{
-				m: &api.DiscoverResponse{
+				m: &apiservice.DiscoverResponse{
 					Code: &wrapperspb.UInt32Value{
-						Value: api.ExecuteSuccess,
+						Value: uint32(apimodel.Code_ExecuteSuccess),
 					},
-					Type: api.DiscoverResponse_RATE_LIMIT,
-					Service: &api.Service{
+					Type: apiservice.DiscoverResponse_RATE_LIMIT,
+					Service: &apiservice.Service{
 						Name: &wrapperspb.StringValue{
 							Value: "test",
 						},
@@ -127,12 +128,12 @@ func Test_discoverCacheConvert(t *testing.T) {
 				},
 			},
 			want: &grpcserver.CacheObject{
-				OriginVal: &api.DiscoverResponse{
+				OriginVal: &apiservice.DiscoverResponse{
 					Code: &wrapperspb.UInt32Value{
-						Value: api.ExecuteSuccess,
+						Value: uint32(apimodel.Code_ExecuteSuccess),
 					},
-					Type: api.DiscoverResponse_RATE_LIMIT,
-					Service: &api.Service{
+					Type: apiservice.DiscoverResponse_RATE_LIMIT,
+					Service: &apiservice.Service{
 						Name: &wrapperspb.StringValue{
 							Value: "test",
 						},
@@ -144,7 +145,7 @@ func Test_discoverCacheConvert(t *testing.T) {
 						},
 					},
 				},
-				CacheType: api.DiscoverResponse_RATE_LIMIT.String(),
+				CacheType: apiservice.DiscoverResponse_RATE_LIMIT.String(),
 				Key:       fmt.Sprintf("%s-%s-%s", "test", "test", "test"),
 			},
 		},

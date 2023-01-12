@@ -19,11 +19,11 @@ package cache
 
 import (
 	"fmt"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 )
 
@@ -41,7 +41,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		ret := strategyCache.IsResourceEditable(model.Principal{
 			PrincipalID:   "user-1",
 			PrincipalRole: model.PrincipalUser,
-		}, api.ResourceType_Namespaces, "namespace-1")
+		}, apisecurity.ResourceType_Namespaces, "namespace-1")
 
 		assert.True(t, ret, "must be true")
 	})
@@ -78,7 +78,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		ret := strategyCache.IsResourceEditable(model.Principal{
 			PrincipalID:   "user-1",
 			PrincipalRole: model.PrincipalUser,
-		}, api.ResourceType_Namespaces, "namespace-1")
+		}, apisecurity.ResourceType_Namespaces, "namespace-1")
 
 		assert.True(t, ret, "must be true")
 	})
@@ -95,7 +95,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		ret := strategyCache.IsResourceEditable(model.Principal{
 			PrincipalID:   "user-20",
 			PrincipalRole: model.PrincipalUser,
-		}, api.ResourceType_Namespaces, "namespace-1")
+		}, apisecurity.ResourceType_Namespaces, "namespace-1")
 
 		assert.False(t, ret, "must be false")
 	})
@@ -126,7 +126,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		ret := strategyCache.IsResourceEditable(model.Principal{
 			PrincipalID:   "user-1",
 			PrincipalRole: model.PrincipalUser,
-		}, api.ResourceType_Namespaces, "namespace-1")
+		}, apisecurity.ResourceType_Namespaces, "namespace-1")
 
 		assert.True(t, ret, "must be true")
 	})
@@ -184,7 +184,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		ret := strategyCache.IsResourceEditable(model.Principal{
 			PrincipalID:   "user-1",
 			PrincipalRole: model.PrincipalUser,
-		}, api.ResourceType_Namespaces, "namespace-1")
+		}, apisecurity.ResourceType_Namespaces, "namespace-1")
 
 		assert.True(t, ret, "must be true")
 
@@ -207,7 +207,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		ret = strategyCache.IsResourceEditable(model.Principal{
 			PrincipalID:   "user-1",
 			PrincipalRole: model.PrincipalUser,
-		}, api.ResourceType_Namespaces, "namespace-1")
+		}, apisecurity.ResourceType_Namespaces, "namespace-1")
 
 		assert.False(t, ret, "must be false")
 	})
@@ -309,7 +309,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		ret := strategyCache.IsResourceEditable(model.Principal{
 			PrincipalID:   "user-1",
 			PrincipalRole: model.PrincipalUser,
-		}, api.ResourceType_Namespaces, "namespace-1")
+		}, apisecurity.ResourceType_Namespaces, "namespace-1")
 
 		assert.True(t, ret, "must be true")
 
@@ -321,7 +321,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		ret = strategyCache.IsResourceEditable(model.Principal{
 			PrincipalID:   "user-1",
 			PrincipalRole: model.PrincipalUser,
-		}, api.ResourceType_Namespaces, "namespace-1")
+		}, apisecurity.ResourceType_Namespaces, "namespace-1")
 
 		assert.False(t, ret, "must be false")
 	})

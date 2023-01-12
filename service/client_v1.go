@@ -23,6 +23,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -32,21 +36,21 @@ import (
 )
 
 // RegisterInstance create one instance
-func (s *Server) RegisterInstance(ctx context.Context, req *api.Instance) *api.Response {
+func (s *Server) RegisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	ctx = context.WithValue(ctx, utils.ContextIsFromClient, true)
 	return s.CreateInstance(ctx, req)
 }
 
 // DeregisterInstance delete one instance
-func (s *Server) DeregisterInstance(ctx context.Context, req *api.Instance) *api.Response {
+func (s *Server) DeregisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	ctx = context.WithValue(ctx, utils.ContextIsFromClient, true)
 	return s.DeleteInstance(ctx, req)
 }
 
 // ReportClient 客户端上报信息
-func (s *Server) ReportClient(ctx context.Context, req *api.Client) *api.Response {
+func (s *Server) ReportClient(ctx context.Context, req *apiservice.Client) *apiservice.Response {
 	if s.caches == nil {
-		return api.NewResponse(api.ClientAPINotOpen)
+		return api.NewResponse(apimodel.Code_ClientAPINotOpen)
 	}
 
 	// 客户端信息不写入到DB中
@@ -57,11 +61,11 @@ func (s *Server) ReportClient(ctx context.Context, req *api.Client) *api.Respons
 		location, err := s.cmdb.GetLocation(host)
 		if err != nil {
 			log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
-			return api.NewClientResponse(api.CMDBPluginException, req)
+			return api.NewClientResponse(apimodel.Code_CMDBPluginException, req)
 		}
 
 		if location == nil {
-			return api.NewClientResponse(api.CMDBNotFindHost, req)
+			return api.NewClientResponse(apimodel.Code_CMDBNotFindHost, req)
 		}
 		req.Location = location.Proto
 	}
@@ -70,11 +74,11 @@ func (s *Server) ReportClient(ctx context.Context, req *api.Client) *api.Respons
 	if len(req.GetId().GetValue()) > 0 {
 		return s.checkAndStoreClient(ctx, req)
 	}
-	out := &api.Client{
+	out := &apiservice.Client{
 		Host:     req.GetHost(),
 		Location: req.Location,
 	}
-	return api.NewClientResponse(api.ExecuteSuccess, out)
+	return api.NewClientResponse(apimodel.Code_ExecuteSuccess, out)
 }
 
 // GetPrometheusTargets Used for client acquisition service information
@@ -140,13 +144,13 @@ func (s *Server) GetPrometheusTargets(ctx context.Context,
 }
 
 // GetServiceWithCache 根据元数据查询服务
-func (s *Server) GetServiceWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
+func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	if s.caches == nil {
-		return api.NewDiscoverServiceResponse(api.ClientAPINotOpen, req)
+		return api.NewDiscoverServiceResponse(apimodel.Code_ClientAPINotOpen, req)
 	}
 
 	if req == nil {
-		return api.NewDiscoverServiceResponse(api.EmptyRequest, req)
+		return api.NewDiscoverServiceResponse(apimodel.Code_EmptyRequest, req)
 	}
 	// 可根据business查询服务
 	// if len(req.GetMetadata()) == 0 && len(req.Business.GetValue()) == 0 {
@@ -155,13 +159,13 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *api.Service) *api
 
 	requestID := utils.ParseRequestID(ctx)
 
-	resp := api.NewDiscoverServiceResponse(api.ExecuteSuccess, req)
+	resp := api.NewDiscoverServiceResponse(apimodel.Code_ExecuteSuccess, req)
 
-	resp.Services = []*api.Service{}
+	resp.Services = []*apiservice.Service{}
 
 	serviceIterProc := func(key string, value *model.Service) (bool, error) {
 		if checkServiceMetadata(req.GetMetadata(), value, req.Business.GetValue(), req.Namespace.GetValue()) {
-			service := &api.Service{
+			service := &apiservice.Service{
 				Name:      utils.NewStringValue(value.Name),
 				Namespace: utils.NewStringValue(value.Namespace),
 			}
@@ -172,7 +176,7 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *api.Service) *api
 
 	if err := s.caches.Service().IteratorServices(serviceIterProc); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return api.NewDiscoverServiceResponse(api.ExecuteException, req)
+		return api.NewDiscoverServiceResponse(apimodel.Code_ExecuteException, req)
 	}
 
 	return resp
@@ -204,19 +208,19 @@ func checkServiceMetadata(requestMeta map[string]string, service *model.Service,
 }
 
 // ServiceInstancesCache 根据服务名查询服务实例列表
-func (s *Server) ServiceInstancesCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
+func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	if req == nil {
-		return api.NewDiscoverInstanceResponse(api.EmptyRequest, req)
+		return api.NewDiscoverInstanceResponse(apimodel.Code_EmptyRequest, req)
 	}
 	if s.caches == nil {
-		return api.NewDiscoverInstanceResponse(api.ClientAPINotOpen, req)
+		return api.NewDiscoverInstanceResponse(apimodel.Code_ClientAPINotOpen, req)
 	}
 
 	serviceName := req.GetName().GetValue()
 	namespaceName := req.GetNamespace().GetValue()
 
 	if serviceName == "" {
-		return api.NewDiscoverInstanceResponse(api.InvalidServiceName, req)
+		return api.NewDiscoverInstanceResponse(apimodel.Code_InvalidServiceName, req)
 	}
 
 	// 消费服务为了兼容，可以不带namespace，server端使用默认的namespace
@@ -228,7 +232,7 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *api.Service) *a
 	service := s.getServiceCache(serviceName, namespaceName)
 	if service == nil {
 		log.Errorf("[Server][Service][Instance] not found name(%s) namespace(%s) service", serviceName, namespaceName)
-		return api.NewDiscoverInstanceResponse(api.NotFoundResource, req)
+		return api.NewDiscoverInstanceResponse(apimodel.Code_NotFoundResource, req)
 	}
 	s.RecordDiscoverStatis(service.Name, service.Namespace)
 	// 获取revision，如果revision一致，则不返回内容，直接返回一个状态码
@@ -242,22 +246,22 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *api.Service) *a
 		if revisionErr != nil {
 			log.Errorf("[Server][Service][Instance] compute revision service(%s) err: %s",
 				service.ID, revisionErr.Error())
-			return api.NewDiscoverInstanceResponse(api.ExecuteException, req)
+			return api.NewDiscoverInstanceResponse(apimodel.Code_ExecuteException, req)
 		}
 	}
 	if revision == req.GetRevision().GetValue() {
-		return api.NewDiscoverInstanceResponse(api.DataNoChange, req)
+		return api.NewDiscoverInstanceResponse(apimodel.Code_DataNoChange, req)
 	}
 
 	// revision不一致，重新获取数据
 	// 填充service数据
-	resp := api.NewDiscoverInstanceResponse(api.ExecuteSuccess, service2Api(service))
+	resp := api.NewDiscoverInstanceResponse(apimodel.Code_ExecuteSuccess, service2Api(service))
 	// 填充新的revision TODO
 	resp.Service.Revision.Value = revision
 	resp.Service.Namespace = req.GetNamespace()
 	resp.Service.Name = req.GetName() // 别名场景，response需要保持和request的服务名一致
 	// 填充instance数据
-	resp.Instances = make([]*api.Instance, 0) // TODO
+	resp.Instances = make([]*apiservice.Instance, 0) // TODO
 	_ = s.caches.Instance().
 		IteratorInstancesWithService(service.ID, // service已经是源服务
 			func(key string, value *model.Instance) (b bool, e error) {
@@ -270,23 +274,23 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *api.Service) *a
 }
 
 // GetRoutingConfigWithCache 获取缓存中的路由配置信息
-func (s *Server) GetRoutingConfigWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
+func (s *Server) GetRoutingConfigWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	if s.caches == nil {
-		return api.NewDiscoverRoutingResponse(api.ClientAPINotOpen, req)
+		return api.NewDiscoverRoutingResponse(apimodel.Code_ClientAPINotOpen, req)
 	}
 	if req == nil {
-		return api.NewDiscoverRoutingResponse(api.EmptyRequest, req)
+		return api.NewDiscoverRoutingResponse(apimodel.Code_EmptyRequest, req)
 	}
 
 	if req.GetName().GetValue() == "" {
-		return api.NewDiscoverRoutingResponse(api.InvalidServiceName, req)
+		return api.NewDiscoverRoutingResponse(apimodel.Code_InvalidServiceName, req)
 	}
 	if req.GetNamespace().GetValue() == "" {
-		return api.NewDiscoverRoutingResponse(api.InvalidNamespaceName, req)
+		return api.NewDiscoverRoutingResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
 
-	resp := api.NewDiscoverRoutingResponse(api.ExecuteSuccess, nil)
-	resp.Service = &api.Service{
+	resp := api.NewDiscoverRoutingResponse(apimodel.Code_ExecuteSuccess, nil)
+	resp.Service = &apiservice.Service{
 		Name:      req.GetName(),
 		Namespace: req.GetNamespace(),
 	}
@@ -294,12 +298,12 @@ func (s *Server) GetRoutingConfigWithCache(ctx context.Context, req *api.Service
 	// 先从缓存获取ServiceID，这里返回的是源服务
 	svc := s.getServiceCache(req.GetName().GetValue(), req.GetNamespace().GetValue())
 	if svc == nil {
-		return api.NewDiscoverRoutingResponse(api.NotFoundService, req)
+		return api.NewDiscoverRoutingResponse(apimodel.Code_NotFoundService, req)
 	}
 	out, err := s.caches.RoutingConfig().GetRoutingConfigV1(svc.ID, svc.Name, svc.Namespace)
 	if err != nil {
 		log.Error("[Server][Service][Routing] discover routing", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return api.NewDiscoverRoutingResponse(api.ExecuteException, req)
+		return api.NewDiscoverRoutingResponse(apimodel.Code_ExecuteException, req)
 	}
 
 	if out == nil {
@@ -308,7 +312,7 @@ func (s *Server) GetRoutingConfigWithCache(ctx context.Context, req *api.Service
 
 	// 获取路由数据，并对比revision
 	if out.GetRevision().GetValue() == req.GetRevision().GetValue() {
-		return api.NewDiscoverRoutingResponse(api.DataNoChange, req)
+		return api.NewDiscoverRoutingResponse(apimodel.Code_DataNoChange, req)
 	}
 
 	// 数据不一致，发生了改变
@@ -319,33 +323,33 @@ func (s *Server) GetRoutingConfigWithCache(ctx context.Context, req *api.Service
 }
 
 // GetRateLimitWithCache 获取缓存中的限流规则信息
-func (s *Server) GetRateLimitWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
+func (s *Server) GetRateLimitWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	if s.caches == nil {
-		return api.NewDiscoverRoutingResponse(api.ClientAPINotOpen, req)
+		return api.NewDiscoverRoutingResponse(apimodel.Code_ClientAPINotOpen, req)
 	}
 
 	requestID := utils.ParseRequestID(ctx)
 
 	if req == nil {
-		return api.NewDiscoverRateLimitResponse(api.EmptyRequest, req)
+		return api.NewDiscoverRateLimitResponse(apimodel.Code_EmptyRequest, req)
 	}
 
 	if req.GetName().GetValue() == "" {
-		return api.NewDiscoverRateLimitResponse(api.InvalidServiceName, req)
+		return api.NewDiscoverRateLimitResponse(apimodel.Code_InvalidServiceName, req)
 	}
 	if req.GetNamespace().GetValue() == "" {
-		return api.NewDiscoverRateLimitResponse(api.InvalidNamespaceName, req)
+		return api.NewDiscoverRateLimitResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
 
 	// 获取源服务
 	service := s.getServiceCache(req.GetName().GetValue(), req.GetNamespace().GetValue())
 	if service == nil {
-		return api.NewDiscoverRateLimitResponse(api.NotFoundService, req)
+		return api.NewDiscoverRateLimitResponse(apimodel.Code_NotFoundService, req)
 	}
 
-	resp := api.NewDiscoverRateLimitResponse(api.ExecuteSuccess, nil)
+	resp := api.NewDiscoverRateLimitResponse(apimodel.Code_ExecuteSuccess, nil)
 	// 服务名和request保持一致
-	resp.Service = &api.Service{
+	resp.Service = &apiservice.Service{
 		Name:      req.GetName(),
 		Namespace: req.GetNamespace(),
 	}
@@ -359,15 +363,15 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *api.Service) *a
 	}
 
 	if req.GetRevision().GetValue() == lastRevision {
-		return api.NewDiscoverRateLimitResponse(api.DataNoChange, req)
+		return api.NewDiscoverRateLimitResponse(apimodel.Code_DataNoChange, req)
 	}
 
 	// 获取限流规则数据
 	resp.Service.Revision = utils.NewStringValue(lastRevision) // 更新revision
 
-	resp.RateLimit = &api.RateLimit{
+	resp.RateLimit = &apitraffic.RateLimit{
 		Revision: utils.NewStringValue(lastRevision),
-		Rules:    []*api.Rule{},
+		Rules:    []*apitraffic.Rule{},
 	}
 
 	rateLimitIterProc := func(key string, value *model.RateLimit) (bool, error) {
@@ -385,59 +389,95 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *api.Service) *a
 	err := s.caches.RateLimit().GetRateLimit(service.ID, rateLimitIterProc)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return api.NewDiscoverRateLimitResponse(api.ExecuteException, req)
+		return api.NewDiscoverRateLimitResponse(apimodel.Code_ExecuteException, req)
 	}
 
 	return resp
 }
 
-// GetCircuitBreakerWithCache 获取缓存中的熔断规则信息
-func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
+func (s *Server) GetFaultDetectWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	if s.caches == nil {
-		return api.NewDiscoverCircuitBreakerResponse(api.ClientAPINotOpen, req)
+		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_ClientAPINotOpen, req)
 	}
 	requestID := utils.ParseRequestID(ctx)
 	if req == nil {
-		return api.NewDiscoverCircuitBreakerResponse(api.EmptyRequest, req)
+		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_EmptyRequest, req)
 	}
 
 	if req.GetName().GetValue() == "" {
-		return api.NewDiscoverCircuitBreakerResponse(api.InvalidServiceName, req)
+		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_InvalidServiceName, req)
 	}
 	if req.GetNamespace().GetValue() == "" {
-		return api.NewDiscoverCircuitBreakerResponse(api.InvalidNamespaceName, req)
+		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
-
-	// 获取源服务
-	service := s.getServiceCache(req.GetName().GetValue(), req.GetNamespace().GetValue())
-	if service == nil {
-		return api.NewDiscoverCircuitBreakerResponse(api.NotFoundService, req)
-	}
-
-	resp := api.NewDiscoverCircuitBreakerResponse(api.ExecuteSuccess, nil)
+	resp := api.NewDiscoverFaultDetectorResponse(apimodel.Code_ExecuteSuccess, nil)
 	// 服务名和request保持一致
-	resp.Service = &api.Service{
+	resp.Service = &apiservice.Service{
 		Name:      req.GetName(),
 		Namespace: req.GetNamespace(),
 	}
 
-	out := s.caches.CircuitBreaker().GetCircuitBreakerConfig(service.ID)
+	out := s.caches.FaultDetector().GetFaultDetectConfig(req.GetName().GetValue(), req.GetNamespace().GetValue())
+	if out == nil {
+		return resp
+	}
+
+	if req.GetRevision().GetValue() == out.Revision {
+		return api.NewDiscoverFaultDetectorResponse(apimodel.Code_DataNoChange, req)
+	}
+
+	// 数据不一致，发生了改变
+	var err error
+	resp.Service.Revision = utils.NewStringValue(out.Revision)
+	resp.FaultDetector, err = faultDetectRule2ClientAPI(out)
+	if err != nil {
+		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_ExecuteException, req)
+	}
+	return resp
+}
+
+// GetCircuitBreakerWithCache 获取缓存中的熔断规则信息
+func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+	if s.caches == nil {
+		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_ClientAPINotOpen, req)
+	}
+	requestID := utils.ParseRequestID(ctx)
+	if req == nil {
+		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_EmptyRequest, req)
+	}
+
+	if req.GetName().GetValue() == "" {
+		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_InvalidServiceName, req)
+	}
+	if req.GetNamespace().GetValue() == "" {
+		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_InvalidNamespaceName, req)
+	}
+
+	resp := api.NewDiscoverCircuitBreakerResponse(apimodel.Code_ExecuteSuccess, nil)
+	// 服务名和request保持一致
+	resp.Service = &apiservice.Service{
+		Name:      req.GetName(),
+		Namespace: req.GetNamespace(),
+	}
+
+	out := s.caches.CircuitBreaker().GetCircuitBreakerConfig(req.GetName().GetValue(), req.GetNamespace().GetValue())
 	if out == nil {
 		return resp
 	}
 
 	// 获取熔断规则数据，并对比revision
-	if req.GetRevision().GetValue() == out.CircuitBreaker.Revision {
-		return api.NewDiscoverCircuitBreakerResponse(api.DataNoChange, req)
+	if len(req.GetRevision().GetValue()) > 0 && req.GetRevision().GetValue() == out.Revision {
+		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_DataNoChange, req)
 	}
 
 	// 数据不一致，发生了改变
 	var err error
-	resp.Service.Revision = utils.NewStringValue(out.CircuitBreaker.Revision)
+	resp.Service.Revision = utils.NewStringValue(out.Revision)
 	resp.CircuitBreaker, err = circuitBreaker2ClientAPI(out, req.GetName().GetValue(), req.GetNamespace().GetValue())
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return api.NewDiscoverCircuitBreakerResponse(api.ExecuteException, req)
+		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_ExecuteException, req)
 	}
 	return resp
 }
@@ -483,4 +523,58 @@ func (s *Server) getServiceCache(name string, namespace string) *model.Service {
 		service.Meta = make(map[string]string)
 	}
 	return service
+}
+
+// GetRouterConfigWithCache User Client Get Service Routing Configuration Information
+func (s *Server) GetRouterConfigWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+	if s.caches == nil {
+		return api.NewDiscoverRoutingResponse(apimodel.Code_ClientAPINotOpen, req)
+	}
+	if req == nil {
+		return api.NewDiscoverRoutingResponse(apimodel.Code_EmptyRequest, req)
+	}
+
+	if req.GetName().GetValue() == "" {
+		return api.NewDiscoverRoutingResponse(apimodel.Code_InvalidServiceName, req)
+	}
+	if req.GetNamespace().GetValue() == "" {
+		return api.NewDiscoverRoutingResponse(apimodel.Code_InvalidNamespaceName, req)
+	}
+
+	resp := api.NewDiscoverRoutingResponse(apimodel.Code_ExecuteSuccess, nil)
+	resp.Service = &apiservice.Service{
+		Name:      req.GetName(),
+		Namespace: req.GetNamespace(),
+	}
+
+	// 先从缓存获取ServiceID，这里返回的是源服务
+	svc := s.getServiceCache(req.GetName().GetValue(), req.GetNamespace().GetValue())
+	if svc == nil {
+		return api.NewDiscoverRoutingResponse(apimodel.Code_NotFoundService, req)
+	}
+	out, err := s.caches.RoutingConfig().GetRoutingConfigV2(svc.ID, svc.Name, svc.Namespace)
+	if err != nil {
+		log.Error("[Server][Service][Routing] discover routing v2", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+		return api.NewDiscoverRoutingResponse(apimodel.Code_ExecuteException, req)
+	}
+
+	if out == nil {
+		return resp
+	}
+
+	// // 获取路由数据，并对比revision
+	// if out.GetRevision() == req.GetRevision() {
+	// 	return apiv2.NewDiscoverRoutingResponse(api.DataNoChange, req)
+	// }
+
+	// 数据不一致，发生了改变
+	// 数据格式转换，service只需要返回二元组与routing的revision
+	revision := utils.NewV2Revision()
+	resp.Service.Revision = &wrappers.StringValue{Value: revision}
+
+	resp.Routing = &apitraffic.Routing{
+		Rules:    out,
+		Revision: utils.NewStringValue(revision),
+	}
+	return resp
 }

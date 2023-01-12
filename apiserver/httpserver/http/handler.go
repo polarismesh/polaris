@@ -18,6 +18,7 @@
 package http
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -25,14 +26,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/emicklei/go-restful/v3"
+	restful "github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	"github.com/polarismesh/polaris/apiserver/httpserver/i18n"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -45,9 +46,18 @@ type Handler struct {
 
 // ParseArray 解析PB数组对象
 func (h *Handler) ParseArray(createMessage func() proto.Message) (context.Context, error) {
-	requestID := h.Request.HeaderParameter("Request-Id")
-
 	jsonDecoder := json.NewDecoder(h.Request.Request.Body)
+	return h.parseArray(createMessage, jsonDecoder)
+}
+
+// ParseArrayByText 通过字符串解析PB数组对象
+func (h *Handler) ParseArrayByText(createMessage func() proto.Message, text string) (context.Context, error) {
+	jsonDecoder := json.NewDecoder(bytes.NewBuffer([]byte(text)))
+	return h.parseArray(createMessage, jsonDecoder)
+}
+
+func (h *Handler) parseArray(createMessage func() proto.Message, jsonDecoder *json.Decoder) (context.Context, error) {
+	requestID := h.Request.HeaderParameter("Request-Id")
 	// read open bracket
 	_, err := jsonDecoder.Token()
 	if err != nil {
@@ -181,15 +191,15 @@ func (h *Handler) WriteHeaderAndProto(obj api.ResponseMessage) {
 }
 
 // WriteHeaderAndProtoV2 返回Code和Proto
-func (h *Handler) WriteHeaderAndProtoV2(obj apiv2.ResponseMessage) {
+func (h *Handler) WriteHeaderAndProtoV2(obj api.ResponseMessage) {
 	requestID := h.Request.HeaderParameter(utils.PolarisRequestID)
 	h.Request.SetAttribute(utils.PolarisCode, obj.GetCode())
-	status := apiv2.CalcCode(obj)
+	status := api.CalcCode(obj)
 
 	if status != http.StatusOK {
 		log.Error(obj.String(), utils.ZapRequestID(requestID))
 	}
-	if code := obj.GetCode(); code != api.ExecuteSuccess {
+	if code := obj.GetCode().GetValue(); code != api.ExecuteSuccess {
 		h.Response.AddHeader(utils.PolarisCode, fmt.Sprintf("%d", code))
 		h.Response.AddHeader(utils.PolarisMessage, api.Code2Info(code))
 	}
@@ -210,7 +220,7 @@ func HTTPResponse(req *restful.Request, rsp *restful.Response, code uint32) {
 		Request:  req,
 		Response: rsp,
 	}
-	resp := api.NewResponse(code)
+	resp := api.NewResponse(apimodel.Code(code))
 	handler.WriteHeaderAndProto(resp)
 }
 

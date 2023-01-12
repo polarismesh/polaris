@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/cache"
@@ -273,12 +274,12 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 		entry := futures[i]
 
 		if _, ok := remains[entry.request.GetId().GetValue()]; ok {
-			entry.Reply(cur, api.SameInstanceRequest, ErrorSameRegIsInstanceRequest)
+			entry.Reply(cur, apimodel.Code_SameInstanceRequest, ErrorSameRegIsInstanceRequest)
 			continue
 		}
 
 		if dropExpire && entry.CanDrop() && entry.begin.Add(taskLife).Before(cur) {
-			entry.Reply(cur, api.InstanceRegisTimeout, ErrorRegIsInstanceTimeout)
+			entry.Reply(cur, apimodel.Code_InstanceRegisTimeout, ErrorRegIsInstanceTimeout)
 			continue
 		}
 
@@ -312,11 +313,11 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 		instances = append(instances, entry.instance)
 	}
 	if err := ctrl.storage.BatchAddInstances(instances); err != nil {
-		sendReply(remains, StoreCode2APICode(err), err)
+		sendReply(remains, apimodel.Code(StoreCode2APICode(err)), err)
 		return err
 	}
 
-	sendReply(remains, api.ExecuteSuccess, nil)
+	sendReply(remains, apimodel.Code_ExecuteSuccess, nil)
 	return nil
 }
 
@@ -352,11 +353,11 @@ func (ctrl *InstanceCtrl) heartbeatHandler(futures []*InstanceFuture) error {
 		err := ctrl.storage.BatchSetInstanceHealthStatus(idValues, model.StatusBoolToInt(healthy), utils.NewUUID())
 		if err != nil {
 			log.Errorf("[Batch] batch healthy check instances err: %s", err.Error())
-			sendReply(futures, api.StoreLayerException, err)
+			sendReply(futures, apimodel.Code_StoreLayerException, err)
 			return err
 		}
 	}
-	sendReply(futures, api.ExecuteSuccess, nil)
+	sendReply(futures, apimodel.Code_ExecuteSuccess, nil)
 	return nil
 }
 
@@ -379,7 +380,7 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 	ids := make(map[string]bool, len(futures))
 	for _, entry := range futures {
 		if _, ok := remains[entry.request.GetId().GetValue()]; ok {
-			entry.Reply(cur, api.SameInstanceRequest, ErrorSameRegIsInstanceRequest)
+			entry.Reply(cur, apimodel.Code_SameInstanceRequest, ErrorSameRegIsInstanceRequest)
 			continue
 		}
 
@@ -391,14 +392,14 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 	instances, err := ctrl.storage.GetInstancesBrief(ids)
 	if err != nil {
 		log.Errorf("[Batch] get instances service token err: %s", err.Error())
-		sendReply(remains, api.StoreLayerException, err)
+		sendReply(remains, apimodel.Code_StoreLayerException, err)
 		return err
 	}
 	for _, future := range futures {
 		instance, ok := instances[future.request.GetId().GetValue()]
 		if !ok {
 			// 不存在，意味着不需要删除了
-			future.Reply(cur, api.NotFoundResource, fmt.Errorf("%s", api.Code2Info(api.NotFoundResource)))
+			future.Reply(cur, apimodel.Code_NotFoundResource, fmt.Errorf("%s", api.Code2Info(api.NotFoundResource)))
 			delete(remains, future.request.GetId().GetValue())
 			continue
 		}
@@ -418,11 +419,11 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 	}
 	if err := ctrl.storage.BatchDeleteInstances(args); err != nil {
 		log.Errorf("[Batch] batch delete instances err: %s", err.Error())
-		sendReply(remains, api.StoreLayerException, err)
+		sendReply(remains, apimodel.Code_StoreLayerException, err)
 		return err
 	}
 
-	sendReply(remains, api.ExecuteSuccess, nil)
+	sendReply(remains, apimodel.Code_ExecuteSuccess, nil)
 	return nil
 }
 
@@ -441,7 +442,7 @@ func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*Instan
 	var err error
 	if id2Isolate, err = ctrl.storage.BatchGetInstanceIsolate(ids); err != nil {
 		log.Errorf("[Batch] check instances existed storage err: %s", err.Error())
-		sendReply(futures, api.StoreLayerException, err)
+		sendReply(futures, apimodel.Code_StoreLayerException, err)
 		return nil, err
 	}
 
@@ -504,14 +505,14 @@ func (ctrl *InstanceCtrl) loadService(entry *InstanceFuture, name, namespace str
 		if err != nil {
 			log.Errorf("[Controller] get source service(%s, %s) token err: %s",
 				entry.request.GetService().GetValue(), entry.request.GetNamespace().GetValue(), err.Error())
-			entry.Reply(time.Now(), api.StoreLayerException, err)
+			entry.Reply(time.Now(), apimodel.Code_StoreLayerException, err)
 
 			return nil, false
 		}
 		if tmpService == nil {
 			log.Errorf("[Controller] get source service(%s, %s) token is empty, verify failed",
 				entry.request.GetService().GetValue(), entry.request.GetNamespace().GetValue())
-			entry.Reply(time.Now(), api.NotFoundResource, ErrorNotFoundService)
+			entry.Reply(time.Now(), apimodel.Code_NotFoundResource, ErrorNotFoundService)
 
 			return nil, false
 		}

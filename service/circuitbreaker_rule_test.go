@@ -1,0 +1,215 @@
+/**
+ * Tencent is pleased to support the open source community by making Polaris available.
+ *
+ * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the BSD 3-Clause License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed
+ * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
+package service
+
+import (
+	"fmt"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/wrappers"
+	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"github.com/stretchr/testify/assert"
+	"sync"
+	"testing"
+)
+
+func buildUnnamedCircuitBreakerRule() *apifault.CircuitBreakerRule {
+	return &apifault.CircuitBreakerRule{
+		Namespace:   DefaultNamespace,
+		Enable:      true,
+		Description: "comment me",
+		Level:       apifault.Level_GROUP,
+		RuleMatcher: &apifault.RuleMatcher{
+			Source: &apifault.RuleMatcher_SourceService{
+				Service:   "testSrcService",
+				Namespace: "test",
+			},
+			Destination: &apifault.RuleMatcher_DestinationService{
+				Service:   "testDestService",
+				Namespace: "test",
+				Method:    &apimodel.MatchString{Type: apimodel.MatchString_IN, Value: &wrappers.StringValue{Value: "/foo"}},
+			},
+		},
+	}
+}
+
+func buildCircuitBreakerRule(index int) *apifault.CircuitBreakerRule {
+	return &apifault.CircuitBreakerRule{
+		Name:        fmt.Sprintf("test-circuitbreaker-rule-%d", index),
+		Namespace:   DefaultNamespace,
+		Enable:      true,
+		Description: "comment me",
+		Level:       apifault.Level_GROUP,
+		RuleMatcher: &apifault.RuleMatcher{
+			Source: &apifault.RuleMatcher_SourceService{
+				Service:   "testSrcService",
+				Namespace: "test",
+			},
+			Destination: &apifault.RuleMatcher_DestinationService{
+				Service:   "testDestService",
+				Namespace: "test",
+				Method:    &apimodel.MatchString{Type: apimodel.MatchString_IN, Value: &wrappers.StringValue{Value: "/foo"}},
+			},
+		},
+		ErrorConditions: []*apifault.ErrorCondition{
+			{
+				InputType: apifault.ErrorCondition_RET_CODE,
+				Condition: &apimodel.MatchString{Type: apimodel.MatchString_IN, Value: &wrappers.StringValue{Value: "400, 500"}},
+			},
+			{
+				InputType: apifault.ErrorCondition_DELAY,
+				Condition: &apimodel.MatchString{Type: apimodel.MatchString_EXACT, Value: &wrappers.StringValue{Value: "500"}},
+			},
+		},
+		TriggerCondition: []*apifault.TriggerCondition{
+			{
+				TriggerType: apifault.TriggerCondition_CONSECUTIVE_ERROR,
+				ErrorCount:  10,
+			},
+			{
+				TriggerType:  apifault.TriggerCondition_ERROR_RATE,
+				ErrorPercent: 50,
+				Interval:     30,
+			},
+		},
+		MaxEjectionPercent: 90,
+		RecoverCondition: &apifault.RecoverCondition{
+			ConsecutiveSuccess: 3,
+			SleepWindow:        60,
+		},
+		FaultDetectConfig: &apifault.FaultDetectConfig{Enable: true},
+		FallbackConfig: &apifault.FallbackConfig{
+			Enable: true,
+			Response: &apifault.FallbackResponse{
+				Code: 500,
+				Headers: []*apifault.FallbackResponse_MessageHeader{
+					{
+						Key:   "x-redirect",
+						Value: "test.com",
+					},
+				},
+				Body: "<h>Too many request</h>",
+			},
+		},
+	}
+}
+
+const testCount = 5
+
+func createCircuitBreakerRules(discoverSuit *DiscoverTestSuit, count int) ([]*apifault.CircuitBreakerRule, *apiservice.BatchWriteResponse) {
+	cbRules := make([]*apifault.CircuitBreakerRule, 0, count)
+	for i := 0; i < count; i++ {
+		cbRule := buildCircuitBreakerRule(i)
+		cbRules = append(cbRules, cbRule)
+	}
+	resp := discoverSuit.server.CreateCircuitBreakerRules(discoverSuit.defaultCtx, cbRules)
+	return cbRules, resp
+}
+
+func cleanCircuitBreakerRules(discoverSuit *DiscoverTestSuit, response *apiservice.BatchWriteResponse) {
+	cbRules := parseResponseToCircuitBreakerRules(response)
+	if len(cbRules) == 0 {
+		return
+	}
+	discoverSuit.server.DeleteCircuitBreakerRules(discoverSuit.defaultCtx, cbRules)
+}
+
+func checkCircuitBreakerRuleResponse(t *testing.T, requests []*apifault.CircuitBreakerRule, response *apiservice.BatchWriteResponse) {
+	assertions := assert.New(t)
+	assertions.Equal(len(requests), len(response.Responses))
+	for _, resp := range response.Responses {
+		assertions.Equal(uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue())
+		msg := &apifault.CircuitBreakerRule{}
+		err := ptypes.UnmarshalAny(resp.GetData(), msg)
+		assertions.Nil(err)
+		assertions.True(len(msg.GetId()) > 0)
+	}
+}
+
+func parseResponseToCircuitBreakerRules(response *apiservice.BatchWriteResponse) []*apifault.CircuitBreakerRule {
+	cbRules := make([]*apifault.CircuitBreakerRule, 0, len(response.GetResponses()))
+	for _, resp := range response.GetResponses() {
+		if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
+			continue
+		}
+		msg := &apifault.CircuitBreakerRule{}
+		_ = ptypes.UnmarshalAny(resp.GetData(), msg)
+		cbRules = append(cbRules, msg)
+	}
+	return cbRules
+}
+
+// TestCreateCircuitBreakerRule test create circuitbreaker rule
+func TestCreateCircuitBreakerRule(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+
+	t.Run("正常创建熔断规则，返回成功", func(t *testing.T) {
+		cbRules, resp := createCircuitBreakerRules(discoverSuit, testCount)
+		defer cleanCircuitBreakerRules(discoverSuit, resp)
+		checkCircuitBreakerRuleResponse(t, cbRules, resp)
+	})
+
+	t.Run("重复创建熔断规则，返回错误", func(t *testing.T) {
+		cbRules, firstResp := createCircuitBreakerRules(discoverSuit, 1)
+		defer cleanCircuitBreakerRules(discoverSuit, firstResp)
+		checkCircuitBreakerRuleResponse(t, cbRules, firstResp)
+
+		if resp := discoverSuit.server.CreateCircuitBreakerRules(discoverSuit.defaultCtx, cbRules); !respSuccess(resp) {
+			t.Logf("pass: %s", resp.GetInfo().GetValue())
+		} else {
+			t.Fatal("error, duplicate rule can not be passed")
+		}
+	})
+
+	t.Run("创建熔断规则，删除，再创建，返回成功", func(t *testing.T) {
+		cbRules, firstResp := createCircuitBreakerRules(discoverSuit, 1)
+		cleanCircuitBreakerRules(discoverSuit, firstResp)
+		cbRules, resp := createCircuitBreakerRules(discoverSuit, 1)
+		defer cleanCircuitBreakerRules(discoverSuit, resp)
+		checkCircuitBreakerRuleResponse(t, cbRules, resp)
+	})
+
+	t.Run("创建熔断规则时，没有传递规则名，返回错误", func(t *testing.T) {
+		cbRule := buildUnnamedCircuitBreakerRule()
+		if resp := discoverSuit.server.CreateCircuitBreakerRules(discoverSuit.defaultCtx, []*apifault.CircuitBreakerRule{cbRule}); !respSuccess(resp) {
+			t.Logf("pass: %s", resp.GetInfo().GetValue())
+		} else {
+			t.Fatal("error, unnamed rule can not be passed")
+		}
+	})
+
+	t.Run("并发创建熔断规则，返回成功", func(t *testing.T) {
+		var wg sync.WaitGroup
+		for i := 0; i < 50; i++ {
+			wg.Add(1)
+			go func(index int) {
+				defer wg.Done()
+				cbRule := buildCircuitBreakerRule(index)
+				cbRules := []*apifault.CircuitBreakerRule{cbRule}
+				resp := discoverSuit.server.CreateCircuitBreakerRules(discoverSuit.defaultCtx, cbRules)
+				cleanCircuitBreakerRules(discoverSuit, resp)
+			}(i)
+		}
+		wg.Wait()
+	})
+}

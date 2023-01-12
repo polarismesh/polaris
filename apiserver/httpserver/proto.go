@@ -19,12 +19,13 @@ package httpserver
 
 import (
 	"github.com/golang/protobuf/proto"
-
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 // NamespaceArr 命名空间数组定义
-type NamespaceArr []*api.Namespace
+type NamespaceArr []*apimodel.Namespace
 
 // Reset 重置初始化
 func (m *NamespaceArr) Reset() { *m = NamespaceArr{} }
@@ -36,7 +37,7 @@ func (m *NamespaceArr) String() string { return proto.CompactTextString(m) }
 func (*NamespaceArr) ProtoMessage() {}
 
 // ConfigReleaseArr 发布规则数组定义
-type ConfigReleaseArr []*api.ConfigRelease
+type ConfigReleaseArr []*apiservice.ConfigRelease
 
 // Reset reset initialization
 func (m *ConfigReleaseArr) Reset() { *m = ConfigReleaseArr{} }
@@ -47,20 +48,8 @@ func (m *ConfigReleaseArr) String() string { return proto.CompactTextString(m) }
 // ProtoMessage return proto message
 func (*ConfigReleaseArr) ProtoMessage() {}
 
-// PlatformArr 平台数组定义
-type PlatformArr []*api.Platform
-
-// Reset proto reset
-func (m *PlatformArr) Reset() { *m = PlatformArr{} }
-
-// String proto string
-func (m *PlatformArr) String() string { return proto.CompactTextString(m) }
-
-// ProtoMessage proto message
-func (m *PlatformArr) ProtoMessage() {}
-
 // ServiceAliasArr 服务实例数组定义
-type ServiceAliasArr []*api.ServiceAlias
+type ServiceAliasArr []*apiservice.ServiceAlias
 
 // Reset reset initialization
 func (m *ServiceAliasArr) Reset() { *m = ServiceAliasArr{} }
@@ -72,7 +61,7 @@ func (m *ServiceAliasArr) String() string { return proto.CompactTextString(m) }
 func (*ServiceAliasArr) ProtoMessage() {}
 
 // ConfigFileArr 配置文件数组定义
-type ConfigFileArr []*api.ConfigFile
+type ConfigFileArr []*apiconfig.ConfigFile
 
 // Reset reset initialization
 func (m *ConfigFileArr) Reset() { *m = ConfigFileArr{} }

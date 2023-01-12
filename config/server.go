@@ -22,11 +22,11 @@ import (
 	"errors"
 	"time"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
@@ -160,7 +160,7 @@ func (s *Server) SetResourceHooks(hooks ...ResourceHook) {
 	s.hooks = hooks
 }
 
-func (s *Server) afterConfigGroupResource(ctx context.Context, req *api.ConfigFileGroup) error {
+func (s *Server) afterConfigGroupResource(ctx context.Context, req *apiconfig.ConfigFileGroup) error {
 	event := &ResourceEvent{
 		ConfigGroup: req,
 	}

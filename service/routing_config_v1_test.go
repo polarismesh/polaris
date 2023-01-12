@@ -20,6 +20,9 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"reflect"
 	"testing"
 	"time"
@@ -30,18 +33,17 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 // 检查routingConfig前后是否一致
-func checkSameRoutingConfig(t *testing.T, lhs *api.Routing, rhs *api.Routing) {
+func checkSameRoutingConfig(t *testing.T, lhs *apitraffic.Routing, rhs *apitraffic.Routing) {
 	if lhs.GetService().GetValue() != rhs.GetService().GetValue() ||
 		lhs.GetNamespace().GetValue() != rhs.GetNamespace().GetValue() {
 		t.Fatalf("error: (%s), (%s)", lhs, rhs)
 	}
 
-	checkFunc := func(in []*api.Route, out []*api.Route) bool {
+	checkFunc := func(in []*apitraffic.Route, out []*apitraffic.Route) bool {
 		if len(in) == 0 && len(out) == 0 {
 			return true
 		}
@@ -68,8 +70,8 @@ func checkSameRoutingConfig(t *testing.T, lhs *api.Routing, rhs *api.Routing) {
 			return false
 		}
 
-		inRoutes := []*api.Route{}
-		outRoutes := []*api.Route{}
+		inRoutes := []*apitraffic.Route{}
+		outRoutes := []*apitraffic.Route{}
 
 		if err := json.Unmarshal(inStr, &inRoutes); err != nil {
 			t.Fatal(err)
@@ -140,18 +142,18 @@ func TestCreateRoutingConfig2(t *testing.T) {
 		_, serviceResp := discoverSuit.createCommonService(t, 20)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		req := &api.Routing{}
-		resp := discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*api.Routing{req})
+		req := &apitraffic.Routing{}
+		resp := discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*apitraffic.Routing{req})
 		So(respSuccess(resp), ShouldEqual, false)
 		t.Logf("%s", resp.GetInfo().GetValue())
 
 		req.Service = serviceResp.Name
-		resp = discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*api.Routing{req})
+		resp = discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*apitraffic.Routing{req})
 		So(respSuccess(resp), ShouldEqual, false)
 		t.Logf("%s", resp.GetInfo().GetValue())
 
 		req.Namespace = serviceResp.Namespace
-		resp = discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*api.Routing{req})
+		resp = discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*apitraffic.Routing{req})
 		defer discoverSuit.cleanCommonRoutingConfig(req.GetService().GetValue(), req.GetNamespace().GetValue())
 		So(respSuccess(resp), ShouldEqual, true)
 		t.Logf("%s", resp.GetInfo().GetValue())
@@ -167,11 +169,11 @@ func TestCreateRoutingConfig2(t *testing.T) {
 		_, serviceResp := discoverSuit.createCommonService(t, 120)
 		discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		req := &api.Routing{}
+		req := &apitraffic.Routing{}
 		req.Service = serviceResp.Name
 		req.Namespace = serviceResp.Namespace
 		req.ServiceToken = serviceResp.Token
-		resp := discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*api.Routing{req})
+		resp := discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*apitraffic.Routing{req})
 		So(respSuccess(resp), ShouldEqual, false)
 		t.Logf("%s", resp.GetInfo().GetValue())
 	})
@@ -188,8 +190,8 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 		defer discoverSuit.Destroy()
 
 		total := 20
-		serviceResps := make([]*api.Service, 0, total)
-		routingResps := make([]*api.Routing, 0, total)
+		serviceResps := make([]*apiservice.Service, 0, total)
+		routingResps := make([]*apitraffic.Routing, 0, total)
 		for i := 0; i < total; i++ {
 			_, resp := discoverSuit.createCommonService(t, i)
 			defer discoverSuit.cleanServiceName(resp.GetName().GetValue(), resp.GetNamespace().GetValue())
@@ -221,7 +223,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 		svcName := fmt.Sprintf("in-source-service-%d", 0)
 		namespaceName := fmt.Sprintf("in-source-service-%d", 0)
 
-		svcResp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{{
+		svcResp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{{
 			Name:      utils.NewStringValue(svcName),
 			Namespace: utils.NewStringValue(namespaceName),
 		}})
@@ -232,7 +234,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 
 		time.Sleep(discoverSuit.updateCacheInterval)
 		t.Logf("service : name=%s namespace=%s", svcName, namespaceName)
-		out := discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, &api.Service{
+		out := discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, &apiservice.Service{
 			Name:      utils.NewStringValue(svcName),
 			Namespace: utils.NewStringValue(namespaceName),
 		})
@@ -241,19 +243,19 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 
 		time.Sleep(discoverSuit.updateCacheInterval)
 
-		enableResp := discoverSuit.server.EnableRoutings(discoverSuit.defaultCtx, []*apiv2.Routing{
+		enableResp := discoverSuit.server.EnableRoutings(discoverSuit.defaultCtx, []*apitraffic.RouteRule{
 			{
 				Id:     resp[0].Id,
 				Enable: true,
 			},
 		})
 
-		if !respSuccessV2(enableResp) {
+		if !respSuccess(enableResp) {
 			t.Fatal(enableResp.Info)
 		}
 
 		time.Sleep(discoverSuit.updateCacheInterval)
-		out = discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, &api.Service{
+		out = discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, &apiservice.Service{
 			Name:      utils.NewStringValue(svcName),
 			Namespace: utils.NewStringValue(namespaceName),
 		})
@@ -269,37 +271,37 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 		defer discoverSuit.Destroy()
 
 		rules := mockRoutingV2(t, 1)
-		ruleRoutings := &apiv2.RuleRoutingConfig{
-			Sources: []*apiv2.Source{
+		ruleRoutings := &apitraffic.RuleRoutingConfig{
+			Sources: []*apitraffic.SourceService{
 				{
 					Service:   "*",
 					Namespace: "*",
-					Arguments: []*apiv2.SourceMatch{
+					Arguments: []*apitraffic.SourceMatch{
 						{
-							Type: apiv2.SourceMatch_CUSTOM,
+							Type: apitraffic.SourceMatch_CUSTOM,
 							Key:  "key",
-							Value: &apiv2.MatchString{
-								Type: apiv2.MatchString_EXACT,
+							Value: &apimodel.MatchString{
+								Type: apimodel.MatchString_EXACT,
 								Value: &wrapperspb.StringValue{
 									Value: "123",
 								},
-								ValueType: apiv2.MatchString_TEXT,
+								ValueType: apimodel.MatchString_TEXT,
 							},
 						},
 					},
 				},
 			},
-			Destinations: []*apiv2.Destination{
+			Destinations: []*apitraffic.DestinationGroup{
 				{
 					Service:   "mock-servcie-test1",
 					Namespace: "mock-namespace-test1",
-					Labels: map[string]*apiv2.MatchString{
+					Labels: map[string]*apimodel.MatchString{
 						"key": {
-							Type: apiv2.MatchString_EXACT,
+							Type: apimodel.MatchString_EXACT,
 							Value: &wrapperspb.StringValue{
 								Value: "value",
 							},
-							ValueType: apiv2.MatchString_TEXT,
+							ValueType: apimodel.MatchString_TEXT,
 						},
 					},
 					Priority: 0,
@@ -316,7 +318,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 			t.Fatal(err)
 			return
 		}
-		rules[0].RoutingPolicy = apiv2.RoutingPolicy_RulePolicy
+		rules[0].RoutingPolicy = apitraffic.RoutingPolicy_RulePolicy
 		rules[0].RoutingConfig = any
 
 		resp := discoverSuit.createCommonRoutingConfigV2WithReq(t, rules)
@@ -326,7 +328,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 		svcName := fmt.Sprintf("mock-source-service-%d", 0)
 		namespaceName := fmt.Sprintf("mock-source-service-%d", 0)
 
-		svcResp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*api.Service{{
+		svcResp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{{
 			Name:      utils.NewStringValue(svcName),
 			Namespace: utils.NewStringValue(namespaceName),
 		}})
@@ -337,26 +339,26 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 
 		time.Sleep(discoverSuit.updateCacheInterval)
 		t.Logf("service : name=%s namespace=%s", svcName, namespaceName)
-		out := discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, &api.Service{
+		out := discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, &apiservice.Service{
 			Name:      utils.NewStringValue(svcName),
 			Namespace: utils.NewStringValue(namespaceName),
 		})
 
 		assert.True(t, len(out.GetRouting().GetOutbounds()) == 0, "inBounds must be zero")
 		time.Sleep(discoverSuit.updateCacheInterval)
-		enableResp := discoverSuit.server.EnableRoutings(discoverSuit.defaultCtx, []*apiv2.Routing{
+		enableResp := discoverSuit.server.EnableRoutings(discoverSuit.defaultCtx, []*apitraffic.RouteRule{
 			{
 				Id:     resp[0].Id,
 				Enable: true,
 			},
 		})
 
-		if !respSuccessV2(enableResp) {
+		if !respSuccess(enableResp) {
 			t.Fatal(enableResp.Info)
 		}
 
 		time.Sleep(discoverSuit.updateCacheInterval)
-		out = discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, &api.Service{
+		out = discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, &apiservice.Service{
 			Name:      utils.NewStringValue(svcName),
 			Namespace: utils.NewStringValue(namespaceName),
 		})
@@ -416,7 +418,7 @@ func TestCheckRoutingFieldLen(t *testing.T) {
 	}
 	defer discoverSuit.Destroy()
 
-	req := &api.Routing{
+	req := &apitraffic.Routing{
 		ServiceToken: utils.NewStringValue("test"),
 		Service:      utils.NewStringValue("test"),
 		Namespace:    utils.NewStringValue("default"),
@@ -426,7 +428,7 @@ func TestCheckRoutingFieldLen(t *testing.T) {
 		str := genSpecialStr(129)
 		oldName := req.Service
 		req.Service = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*api.Routing{req})
+		resp := discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*apitraffic.Routing{req})
 		req.Service = oldName
 		if resp.Code.Value != api.InvalidServiceName {
 			t.Fatalf("%+v", resp)
@@ -436,7 +438,7 @@ func TestCheckRoutingFieldLen(t *testing.T) {
 		str := genSpecialStr(129)
 		oldNamespace := req.Namespace
 		req.Namespace = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*api.Routing{req})
+		resp := discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*apitraffic.Routing{req})
 		req.Namespace = oldNamespace
 		if resp.Code.Value != api.InvalidNamespaceName {
 			t.Fatalf("%+v", resp)
@@ -446,7 +448,7 @@ func TestCheckRoutingFieldLen(t *testing.T) {
 		str := genSpecialStr(2049)
 		oldServiceToken := req.ServiceToken
 		req.ServiceToken = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*api.Routing{req})
+		resp := discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*apitraffic.Routing{req})
 		req.ServiceToken = oldServiceToken
 		if resp.Code.Value != api.InvalidServiceToken {
 			t.Fatalf("%+v", resp)

@@ -22,12 +22,12 @@ import (
 	"fmt"
 	"strings"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"google.golang.org/grpc"
 
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/apiserver/grpcserver"
 	"github.com/polarismesh/polaris/bootstrap"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/config"
@@ -73,7 +73,7 @@ func (g *ConfigGRPCServer) Run(errCh chan error) {
 			switch name {
 			case "client":
 				if apiConfig.Enable {
-					api.RegisterPolarisConfigGRPCServer(server, g)
+					apiconfig.RegisterPolarisConfigGRPCServer(server, g)
 					openMethod, getErr := getConfigClientOpenMethod(g.GetProtocol())
 					if getErr != nil {
 						return getErr

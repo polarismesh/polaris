@@ -23,6 +23,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"os"
 	"strconv"
 	"strings"
@@ -41,7 +45,6 @@ import (
 	"github.com/polarismesh/polaris/cache"
 	_ "github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 	"github.com/polarismesh/polaris/common/eventhub"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
@@ -139,13 +142,6 @@ func (d *DiscoverTestSuit) loadConfig() error {
 func respSuccess(resp api.ResponseMessage) bool {
 
 	ret := api.CalcCode(resp) == 200
-
-	return ret
-}
-
-// 判断一个resp是否执行成功
-func respSuccessV2(resp apiv2.ResponseMessage) bool {
-	ret := apiv2.CalcCode(resp) == 200
 
 	return ret
 }
@@ -441,7 +437,7 @@ func (d *DiscoverTestSuit) cleanServiceName(name string, namespace string) {
 }
 
 // clean services
-func (d *DiscoverTestSuit) cleanServices(services []*api.Service) {
+func (d *DiscoverTestSuit) cleanServices(services []*apiservice.Service) {
 
 	if d.storage.Name() == sqldb.STORENAME {
 		func() {
@@ -547,7 +543,7 @@ func (d *DiscoverTestSuit) cleanInstance(instanceID string) {
 }
 
 // 增加一个服务
-func (d *DiscoverTestSuit) createCommonService(t *testing.T, id int) (*api.Service, *api.Service) {
+func (d *DiscoverTestSuit) createCommonService(t *testing.T, id int) (*apiservice.Service, *apiservice.Service) {
 	serviceReq := genMainService(id)
 	for i := 0; i < 10; i++ {
 		k := fmt.Sprintf("key-%d-%d", id, i)
@@ -557,7 +553,7 @@ func (d *DiscoverTestSuit) createCommonService(t *testing.T, id int) (*api.Servi
 
 	d.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 
-	resp := d.server.CreateServices(d.defaultCtx, []*api.Service{serviceReq})
+	resp := d.server.CreateServices(d.defaultCtx, []*apiservice.Service{serviceReq})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
@@ -566,8 +562,8 @@ func (d *DiscoverTestSuit) createCommonService(t *testing.T, id int) (*api.Servi
 }
 
 // 生成服务的主要数据
-func genMainService(id int) *api.Service {
-	return &api.Service{
+func genMainService(id int) *apiservice.Service {
+	return &apiservice.Service{
 		Name:       utils.NewStringValue(fmt.Sprintf("test-service-%d", id)),
 		Namespace:  utils.NewStringValue(DefaultNamespace),
 		Metadata:   make(map[string]string),
@@ -583,23 +579,23 @@ func genMainService(id int) *api.Service {
 }
 
 // removeCommonService
-func (d *DiscoverTestSuit) removeCommonServices(t *testing.T, req []*api.Service) {
+func (d *DiscoverTestSuit) removeCommonServices(t *testing.T, req []*apiservice.Service) {
 	if resp := d.server.DeleteServices(d.defaultCtx, req); !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 }
 
 // removeCommonService
-func (d *DiscoverTestSuit) removeCommonServiceAliases(t *testing.T, req []*api.ServiceAlias) {
+func (d *DiscoverTestSuit) removeCommonServiceAliases(t *testing.T, req []*apiservice.ServiceAlias) {
 	if resp := d.server.DeleteServiceAliases(d.defaultCtx, req); !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 }
 
 // 新增一个实例
-func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *api.Service, id int) (
-	*api.Instance, *api.Instance) {
-	instanceReq := &api.Instance{
+func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *apiservice.Service, id int) (
+	*apiservice.Instance, *apiservice.Instance) {
+	instanceReq := &apiservice.Instance{
 		ServiceToken: utils.NewStringValue(svc.GetToken().GetValue()),
 		Service:      utils.NewStringValue(svc.GetName().GetValue()),
 		Namespace:    utils.NewStringValue(svc.GetNamespace().GetValue()),
@@ -610,9 +606,9 @@ func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *api.Service, 
 		Version:      utils.NewStringValue(fmt.Sprintf("version-%d", id)),
 		Priority:     utils.NewUInt32Value(1 + uint32(id)%10),
 		Weight:       utils.NewUInt32Value(1 + uint32(id)%1000),
-		HealthCheck: &api.HealthCheck{
-			Type: api.HealthCheck_HEARTBEAT,
-			Heartbeat: &api.HeartbeatHealthCheck{
+		HealthCheck: &apiservice.HealthCheck{
+			Type: apiservice.HealthCheck_HEARTBEAT,
+			Heartbeat: &apiservice.HeartbeatHealthCheck{
 				Ttl: utils.NewUInt32Value(3),
 			},
 		},
@@ -639,7 +635,7 @@ func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *api.Service, 
 		},
 	}
 
-	resp := d.server.CreateInstances(d.defaultCtx, []*api.Instance{instanceReq})
+	resp := d.server.CreateInstances(d.defaultCtx, []*apiservice.Instance{instanceReq})
 	if respSuccess(resp) {
 		return instanceReq, resp.Responses[0].GetInstance()
 	}
@@ -653,7 +649,7 @@ func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *api.Service, 
 		instanceReq.GetVpcId().GetValue(), instanceReq.GetHost().GetValue(), instanceReq.GetPort().GetValue())
 	d.cleanInstance(InstanceID)
 	t.Logf("repeatd create instance(%s)", InstanceID)
-	resp = d.server.CreateInstances(d.defaultCtx, []*api.Instance{instanceReq})
+	resp = d.server.CreateInstances(d.defaultCtx, []*apiservice.Instance{instanceReq})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
@@ -662,9 +658,9 @@ func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *api.Service, 
 }
 
 // 指定 IP 和端口为一个服务创建实例
-func (d *DiscoverTestSuit) addHostPortInstance(t *testing.T, service *api.Service, host string, port uint32) (
-	*api.Instance, *api.Instance) {
-	instanceReq := &api.Instance{
+func (d *DiscoverTestSuit) addHostPortInstance(t *testing.T, service *apiservice.Service, host string, port uint32) (
+	*apiservice.Instance, *apiservice.Instance) {
+	instanceReq := &apiservice.Instance{
 		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
 		Service:      utils.NewStringValue(service.GetName().GetValue()),
 		Namespace:    utils.NewStringValue(service.GetNamespace().GetValue()),
@@ -673,7 +669,7 @@ func (d *DiscoverTestSuit) addHostPortInstance(t *testing.T, service *api.Servic
 		Healthy:      utils.NewBoolValue(true),
 		Isolate:      utils.NewBoolValue(false),
 	}
-	resp := d.server.CreateInstances(d.defaultCtx, []*api.Instance{instanceReq})
+	resp := d.server.CreateInstances(d.defaultCtx, []*apiservice.Instance{instanceReq})
 	if respSuccess(resp) {
 		return instanceReq, resp.Responses[0].GetInstance()
 	}
@@ -685,9 +681,9 @@ func (d *DiscoverTestSuit) addHostPortInstance(t *testing.T, service *api.Servic
 }
 
 // 添加一个实例
-func (d *DiscoverTestSuit) addInstance(t *testing.T, ins *api.Instance) (
-	*api.Instance, *api.Instance) {
-	resp := d.server.CreateInstances(d.defaultCtx, []*api.Instance{ins})
+func (d *DiscoverTestSuit) addInstance(t *testing.T, ins *apiservice.Instance) (
+	*apiservice.Instance, *apiservice.Instance) {
+	resp := d.server.CreateInstances(d.defaultCtx, []*apiservice.Instance{ins})
 	if !respSuccess(resp) {
 		if resp.GetCode().GetValue() == api.ExistedResource {
 			id, _ := utils.CalculateInstanceID(ins.GetNamespace().GetValue(), ins.GetService().GetValue(),
@@ -698,7 +694,7 @@ func (d *DiscoverTestSuit) addInstance(t *testing.T, ins *api.Instance) (
 		return ins, resp.Responses[0].GetInstance()
 	}
 
-	resp = d.server.CreateInstances(d.defaultCtx, []*api.Instance{ins})
+	resp = d.server.CreateInstances(d.defaultCtx, []*apiservice.Instance{ins})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
@@ -707,13 +703,13 @@ func (d *DiscoverTestSuit) addInstance(t *testing.T, ins *api.Instance) (
 }
 
 // 删除一个实例
-func (d *DiscoverTestSuit) removeCommonInstance(t *testing.T, service *api.Service, instanceID string) {
-	req := &api.Instance{
+func (d *DiscoverTestSuit) removeCommonInstance(t *testing.T, service *apiservice.Service, instanceID string) {
+	req := &apiservice.Instance{
 		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
 		Id:           utils.NewStringValue(instanceID),
 	}
 
-	resp := d.server.DeleteInstances(d.defaultCtx, []*api.Instance{req})
+	resp := d.server.DeleteInstances(d.defaultCtx, []*apiservice.Instance{req})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
@@ -721,8 +717,8 @@ func (d *DiscoverTestSuit) removeCommonInstance(t *testing.T, service *api.Servi
 }
 
 // 通过四元组或者五元组删除实例
-func (d *DiscoverTestSuit) removeInstanceWithAttrs(t *testing.T, service *api.Service, instance *api.Instance) {
-	req := &api.Instance{
+func (d *DiscoverTestSuit) removeInstanceWithAttrs(t *testing.T, service *apiservice.Service, instance *apiservice.Instance) {
+	req := &apiservice.Instance{
 		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
 		Service:      utils.NewStringValue(service.GetName().GetValue()),
 		Namespace:    utils.NewStringValue(service.GetNamespace().GetValue()),
@@ -730,30 +726,30 @@ func (d *DiscoverTestSuit) removeInstanceWithAttrs(t *testing.T, service *api.Se
 		Host:         utils.NewStringValue(instance.GetHost().GetValue()),
 		Port:         utils.NewUInt32Value(instance.GetPort().GetValue()),
 	}
-	if resp := d.server.DeleteInstances(d.defaultCtx, []*api.Instance{req}); !respSuccess(resp) {
+	if resp := d.server.DeleteInstances(d.defaultCtx, []*apiservice.Instance{req}); !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 }
 
 // 创建一个路由配置
-func (d *DiscoverTestSuit) createCommonRoutingConfig(t *testing.T, service *api.Service, inCount int, outCount int) (*api.Routing, *api.Routing) {
-	inBounds := make([]*api.Route, 0, inCount)
+func (d *DiscoverTestSuit) createCommonRoutingConfig(t *testing.T, service *apiservice.Service, inCount int, outCount int) (*apitraffic.Routing, *apitraffic.Routing) {
+	inBounds := make([]*apitraffic.Route, 0, inCount)
 	for i := 0; i < inCount; i++ {
-		matchString := &api.MatchString{
-			Type:  api.MatchString_EXACT,
+		matchString := &apimodel.MatchString{
+			Type:  apimodel.MatchString_EXACT,
 			Value: utils.NewStringValue(fmt.Sprintf("in-meta-value-%d", i)),
 		}
-		source := &api.Source{
+		source := &apitraffic.Source{
 			Service:   utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
 			Namespace: utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
-			Metadata: map[string]*api.MatchString{
+			Metadata: map[string]*apimodel.MatchString{
 				fmt.Sprintf("in-metadata-%d", i): matchString,
 			},
 		}
-		destination := &api.Destination{
+		destination := &apitraffic.Destination{
 			Service:   service.Name,
 			Namespace: service.Namespace,
-			Metadata: map[string]*api.MatchString{
+			Metadata: map[string]*apimodel.MatchString{
 				fmt.Sprintf("in-metadata-%d", i): matchString,
 			},
 			Priority: utils.NewUInt32Value(120),
@@ -761,14 +757,14 @@ func (d *DiscoverTestSuit) createCommonRoutingConfig(t *testing.T, service *api.
 			Transfer: utils.NewStringValue("abcdefg"),
 		}
 
-		entry := &api.Route{
-			Sources:      []*api.Source{source},
-			Destinations: []*api.Destination{destination},
+		entry := &apitraffic.Route{
+			Sources:      []*apitraffic.Source{source},
+			Destinations: []*apitraffic.Destination{destination},
 		}
 		inBounds = append(inBounds, entry)
 	}
 
-	conf := &api.Routing{
+	conf := &apitraffic.Routing{
 		Service:      utils.NewStringValue(service.GetName().GetValue()),
 		Namespace:    utils.NewStringValue(service.GetNamespace().GetValue()),
 		Inbounds:     inBounds,
@@ -777,7 +773,7 @@ func (d *DiscoverTestSuit) createCommonRoutingConfig(t *testing.T, service *api.
 
 	// TODO 是否应该先删除routing
 
-	resp := d.server.CreateRoutingConfigs(d.defaultCtx, []*api.Routing{conf})
+	resp := d.server.CreateRoutingConfigs(d.defaultCtx, []*apitraffic.Routing{conf})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
@@ -786,26 +782,26 @@ func (d *DiscoverTestSuit) createCommonRoutingConfig(t *testing.T, service *api.
 }
 
 // 创建一个路由配置
-func (d *DiscoverTestSuit) createCommonRoutingConfigV1IntoOldStore(t *testing.T, service *api.Service,
-	inCount int, outCount int) (*api.Routing, *api.Routing) {
+func (d *DiscoverTestSuit) createCommonRoutingConfigV1IntoOldStore(t *testing.T, service *apiservice.Service,
+	inCount int, outCount int) (*apitraffic.Routing, *apitraffic.Routing) {
 
-	inBounds := make([]*api.Route, 0, inCount)
+	inBounds := make([]*apitraffic.Route, 0, inCount)
 	for i := 0; i < inCount; i++ {
-		matchString := &api.MatchString{
-			Type:  api.MatchString_EXACT,
+		matchString := &apimodel.MatchString{
+			Type:  apimodel.MatchString_EXACT,
 			Value: utils.NewStringValue(fmt.Sprintf("in-meta-value-%d", i)),
 		}
-		source := &api.Source{
+		source := &apitraffic.Source{
 			Service:   utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
 			Namespace: utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
-			Metadata: map[string]*api.MatchString{
+			Metadata: map[string]*apimodel.MatchString{
 				fmt.Sprintf("in-metadata-%d", i): matchString,
 			},
 		}
-		destination := &api.Destination{
+		destination := &apitraffic.Destination{
 			Service:   service.Name,
 			Namespace: service.Namespace,
-			Metadata: map[string]*api.MatchString{
+			Metadata: map[string]*apimodel.MatchString{
 				fmt.Sprintf("in-metadata-%d", i): matchString,
 			},
 			Priority: utils.NewUInt32Value(120),
@@ -813,14 +809,14 @@ func (d *DiscoverTestSuit) createCommonRoutingConfigV1IntoOldStore(t *testing.T,
 			Transfer: utils.NewStringValue("abcdefg"),
 		}
 
-		entry := &api.Route{
-			Sources:      []*api.Source{source},
-			Destinations: []*api.Destination{destination},
+		entry := &apitraffic.Route{
+			Sources:      []*apitraffic.Source{source},
+			Destinations: []*apitraffic.Destination{destination},
 		}
 		inBounds = append(inBounds, entry)
 	}
 
-	conf := &api.Routing{
+	conf := &apitraffic.Routing{
 		Service:      utils.NewStringValue(service.GetName().GetValue()),
 		Namespace:    utils.NewStringValue(service.GetNamespace().GetValue()),
 		Inbounds:     inBounds,
@@ -835,24 +831,24 @@ func (d *DiscoverTestSuit) createCommonRoutingConfigV1IntoOldStore(t *testing.T,
 	return conf, resp.GetRouting()
 }
 
-func mockRoutingV1(serviceName, serviceNamespace string, inCount int) *api.Routing {
-	inBounds := make([]*api.Route, 0, inCount)
+func mockRoutingV1(serviceName, serviceNamespace string, inCount int) *apitraffic.Routing {
+	inBounds := make([]*apitraffic.Route, 0, inCount)
 	for i := 0; i < inCount; i++ {
-		matchString := &api.MatchString{
-			Type:  api.MatchString_EXACT,
+		matchString := &apimodel.MatchString{
+			Type:  apimodel.MatchString_EXACT,
 			Value: utils.NewStringValue(fmt.Sprintf("in-meta-value-%d", i)),
 		}
-		source := &api.Source{
+		source := &apitraffic.Source{
 			Service:   utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
 			Namespace: utils.NewStringValue(fmt.Sprintf("in-source-service-%d", i)),
-			Metadata: map[string]*api.MatchString{
+			Metadata: map[string]*apimodel.MatchString{
 				fmt.Sprintf("in-metadata-%d", i): matchString,
 			},
 		}
-		destination := &api.Destination{
+		destination := &apitraffic.Destination{
 			Service:   utils.NewStringValue(serviceName),
 			Namespace: utils.NewStringValue(serviceNamespace),
-			Metadata: map[string]*api.MatchString{
+			Metadata: map[string]*apimodel.MatchString{
 				fmt.Sprintf("in-metadata-%d", i): matchString,
 			},
 			Priority: utils.NewUInt32Value(120),
@@ -860,14 +856,14 @@ func mockRoutingV1(serviceName, serviceNamespace string, inCount int) *api.Routi
 			Transfer: utils.NewStringValue("abcdefg"),
 		}
 
-		entry := &api.Route{
-			Sources:      []*api.Source{source},
-			Destinations: []*api.Destination{destination},
+		entry := &apitraffic.Route{
+			Sources:      []*apitraffic.Source{source},
+			Destinations: []*apitraffic.Destination{destination},
 		}
 		inBounds = append(inBounds, entry)
 	}
 
-	conf := &api.Routing{
+	conf := &apitraffic.Routing{
 		Service:   utils.NewStringValue(serviceName),
 		Namespace: utils.NewStringValue(serviceNamespace),
 		Inbounds:  inBounds,
@@ -876,24 +872,24 @@ func mockRoutingV1(serviceName, serviceNamespace string, inCount int) *api.Routi
 	return conf
 }
 
-func mockRoutingV2(t *testing.T, cnt int32) []*apiv2.Routing {
-	rules := make([]*apiv2.Routing, 0, cnt)
+func mockRoutingV2(t *testing.T, cnt int32) []*apitraffic.RouteRule {
+	rules := make([]*apitraffic.RouteRule, 0, cnt)
 	for i := int32(0); i < cnt; i++ {
-		matchString := &apiv2.MatchString{
-			Type:  apiv2.MatchString_EXACT,
+		matchString := &apimodel.MatchString{
+			Type:  apimodel.MatchString_EXACT,
 			Value: utils.NewStringValue(fmt.Sprintf("in-meta-value-%d", i)),
 		}
-		source := &apiv2.Source{
+		source := &apitraffic.SourceService{
 			Service:   fmt.Sprintf("in-source-service-%d", i),
 			Namespace: fmt.Sprintf("in-source-service-%d", i),
-			Arguments: []*apiv2.SourceMatch{
+			Arguments: []*apitraffic.SourceMatch{
 				{},
 			},
 		}
-		destination := &apiv2.Destination{
+		destination := &apitraffic.DestinationGroup{
 			Service:   fmt.Sprintf("in-destination-service-%d", i),
 			Namespace: fmt.Sprintf("in-destination-service-%d", i),
-			Labels: map[string]*apiv2.MatchString{
+			Labels: map[string]*apimodel.MatchString{
 				fmt.Sprintf("in-metadata-%d", i): matchString,
 			},
 			Priority: 120,
@@ -901,9 +897,9 @@ func mockRoutingV2(t *testing.T, cnt int32) []*apiv2.Routing {
 			Transfer: "abcdefg",
 		}
 
-		entry := &apiv2.RuleRoutingConfig{
-			Sources:      []*apiv2.Source{source},
-			Destinations: []*apiv2.Destination{destination},
+		entry := &apitraffic.RuleRoutingConfig{
+			Sources:      []*apitraffic.SourceService{source},
+			Destinations: []*apitraffic.DestinationGroup{destination},
 		}
 
 		any, err := ptypes.MarshalAny(entry)
@@ -911,12 +907,12 @@ func mockRoutingV2(t *testing.T, cnt int32) []*apiv2.Routing {
 			t.Fatal(err)
 		}
 
-		item := &apiv2.Routing{
+		item := &apitraffic.RouteRule{
 			Id:            "",
 			Name:          fmt.Sprintf("test-routing-name-%d", i),
 			Namespace:     "",
 			Enable:        false,
-			RoutingPolicy: apiv2.RoutingPolicy_RulePolicy,
+			RoutingPolicy: apitraffic.RoutingPolicy_RulePolicy,
 			RoutingConfig: any,
 			Revision:      "",
 			Etime:         "",
@@ -931,16 +927,16 @@ func mockRoutingV2(t *testing.T, cnt int32) []*apiv2.Routing {
 }
 
 // 创建一个路由配置
-func (d *DiscoverTestSuit) createCommonRoutingConfigV2(t *testing.T, cnt int32) []*apiv2.Routing {
+func (d *DiscoverTestSuit) createCommonRoutingConfigV2(t *testing.T, cnt int32) []*apitraffic.RouteRule {
 	rules := mockRoutingV2(t, cnt)
 
 	return d.createCommonRoutingConfigV2WithReq(t, rules)
 }
 
 // 创建一个路由配置
-func (d *DiscoverTestSuit) createCommonRoutingConfigV2WithReq(t *testing.T, rules []*apiv2.Routing) []*apiv2.Routing {
+func (d *DiscoverTestSuit) createCommonRoutingConfigV2WithReq(t *testing.T, rules []*apitraffic.RouteRule) []*apitraffic.RouteRule {
 	resp := d.server.CreateRoutingConfigsV2(d.defaultCtx, rules)
-	if !respSuccessV2(resp) {
+	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
 
@@ -948,10 +944,10 @@ func (d *DiscoverTestSuit) createCommonRoutingConfigV2WithReq(t *testing.T, rule
 		t.Fatal("error: create v2 routings not equal resp")
 	}
 
-	ret := []*apiv2.Routing{}
+	ret := []*apitraffic.RouteRule{}
 	for i := range resp.GetResponses() {
 		item := resp.GetResponses()[i]
-		msg := &apiv2.Routing{}
+		msg := &apitraffic.RouteRule{}
 
 		if err := ptypes.UnmarshalAny(item.GetData(), msg); err != nil {
 			t.Fatal(err)
@@ -965,24 +961,24 @@ func (d *DiscoverTestSuit) createCommonRoutingConfigV2WithReq(t *testing.T, rule
 }
 
 // 删除一个路由配置
-func (d *DiscoverTestSuit) deleteCommonRoutingConfig(t *testing.T, req *api.Routing) {
-	resp := d.server.DeleteRoutingConfigs(d.defaultCtx, []*api.Routing{req})
+func (d *DiscoverTestSuit) deleteCommonRoutingConfig(t *testing.T, req *apitraffic.Routing) {
+	resp := d.server.DeleteRoutingConfigs(d.defaultCtx, []*apitraffic.Routing{req})
 	if !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
 }
 
 // 删除一个路由配置
-func (d *DiscoverTestSuit) deleteCommonRoutingConfigV2(t *testing.T, req *apiv2.Routing) {
-	resp := d.server.DeleteRoutingConfigsV2(d.defaultCtx, []*apiv2.Routing{req})
-	if !respSuccessV2(resp) {
+func (d *DiscoverTestSuit) deleteCommonRoutingConfigV2(t *testing.T, req *apitraffic.RouteRule) {
+	resp := d.server.DeleteRoutingConfigsV2(d.defaultCtx, []*apitraffic.RouteRule{req})
+	if !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo())
 	}
 }
 
 // 更新一个路由配置
-func (d *DiscoverTestSuit) updateCommonRoutingConfig(t *testing.T, req *api.Routing) {
-	resp := d.server.UpdateRoutingConfigs(d.defaultCtx, []*api.Routing{req})
+func (d *DiscoverTestSuit) updateCommonRoutingConfig(t *testing.T, req *apitraffic.Routing) {
+	resp := d.server.UpdateRoutingConfigs(d.defaultCtx, []*apitraffic.Routing{req})
 	if !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
@@ -1097,7 +1093,7 @@ func (d *DiscoverTestSuit) truncateCommonRoutingConfigV2() {
 }
 
 // 彻底删除一个路由配置
-func (d *DiscoverTestSuit) cleanCommonRoutingConfigV2(rules []*apiv2.Routing) {
+func (d *DiscoverTestSuit) cleanCommonRoutingConfigV2(rules []*apitraffic.RouteRule) {
 
 	if d.storage.Name() == sqldb.STORENAME {
 		func() {
@@ -1151,7 +1147,7 @@ func (d *DiscoverTestSuit) cleanCommonRoutingConfigV2(rules []*apiv2.Routing) {
 	}
 }
 
-func (d *DiscoverTestSuit) CheckGetService(t *testing.T, expectReqs []*api.Service, actualReqs []*api.Service) {
+func (d *DiscoverTestSuit) CheckGetService(t *testing.T, expectReqs []*apiservice.Service, actualReqs []*apiservice.Service) {
 	if len(expectReqs) != len(actualReqs) {
 		t.Fatalf("error: %d %d", len(expectReqs), len(actualReqs))
 	}
@@ -1194,7 +1190,7 @@ func (d *DiscoverTestSuit) CheckGetService(t *testing.T, expectReqs []*api.Servi
 }
 
 // 检查服务发现的字段是否一致
-func (d *DiscoverTestSuit) discoveryCheck(t *testing.T, req *api.Service, resp *api.DiscoverResponse) {
+func (d *DiscoverTestSuit) discoveryCheck(t *testing.T, req *apiservice.Service, resp *apiservice.DiscoverResponse) {
 	if resp == nil {
 		t.Fatalf("error")
 	}
@@ -1217,7 +1213,7 @@ func (d *DiscoverTestSuit) discoveryCheck(t *testing.T, req *api.Service, resp *
 }
 
 // 实例校验
-func instanceCheck(t *testing.T, expect *api.Instance, actual *api.Instance) {
+func instanceCheck(t *testing.T, expect *apiservice.Instance, actual *apiservice.Instance) {
 	// #lizard forgives
 	switch {
 	case expect.GetService().GetValue() != actual.GetService().GetValue():
@@ -1271,7 +1267,7 @@ func instanceCheck(t *testing.T, expect *api.Instance, actual *api.Instance) {
 }
 
 // 完整对比service的各个属性
-func serviceCheck(t *testing.T, expect *api.Service, actual *api.Service) {
+func serviceCheck(t *testing.T, expect *apiservice.Service, actual *apiservice.Service) {
 	switch {
 	case expect.GetName().GetValue() != actual.GetName().GetValue():
 		t.Fatalf("error")
@@ -1306,34 +1302,34 @@ func serviceCheck(t *testing.T, expect *api.Service, actual *api.Service) {
 }
 
 // 创建限流规则
-func (d *DiscoverTestSuit) createCommonRateLimit(t *testing.T, service *api.Service, index int) (*api.Rule, *api.Rule) {
+func (d *DiscoverTestSuit) createCommonRateLimit(t *testing.T, service *apiservice.Service, index int) (*apitraffic.Rule, *apitraffic.Rule) {
 	// 先不考虑Cluster
-	rateLimit := &api.Rule{
+	rateLimit := &apitraffic.Rule{
 		Name:      &wrappers.StringValue{Value: fmt.Sprintf("rule_name_%d", index)},
 		Service:   service.GetName(),
 		Namespace: service.GetNamespace(),
 		Priority:  utils.NewUInt32Value(uint32(index)),
-		Resource:  api.Rule_QPS,
-		Type:      api.Rule_GLOBAL,
-		Arguments: []*api.MatchArgument{
+		Resource:  apitraffic.Rule_QPS,
+		Type:      apitraffic.Rule_GLOBAL,
+		Arguments: []*apitraffic.MatchArgument{
 			{
-				Type: api.MatchArgument_CUSTOM,
+				Type: apitraffic.MatchArgument_CUSTOM,
 				Key:  fmt.Sprintf("name-%d", index),
-				Value: &api.MatchString{
-					Type:  api.MatchString_EXACT,
+				Value: &apimodel.MatchString{
+					Type:  apimodel.MatchString_EXACT,
 					Value: utils.NewStringValue(fmt.Sprintf("value-%d", index)),
 				},
 			},
 			{
-				Type: api.MatchArgument_CUSTOM,
+				Type: apitraffic.MatchArgument_CUSTOM,
 				Key:  fmt.Sprintf("name-%d", index+1),
-				Value: &api.MatchString{
-					Type:  api.MatchString_EXACT,
+				Value: &apimodel.MatchString{
+					Type:  apimodel.MatchString_EXACT,
 					Value: utils.NewStringValue(fmt.Sprintf("value-%d", index+1)),
 				},
 			},
 		},
-		Amounts: []*api.Amount{
+		Amounts: []*apitraffic.Amount{
 			{
 				MaxAmount: utils.NewUInt32Value(uint32(10 * index)),
 				ValidDuration: &duration.Duration{
@@ -1344,7 +1340,7 @@ func (d *DiscoverTestSuit) createCommonRateLimit(t *testing.T, service *api.Serv
 		},
 		Action:  utils.NewStringValue(fmt.Sprintf("behavior-%d", index)),
 		Disable: utils.NewBoolValue(false),
-		Report: &api.Report{
+		Report: &apitraffic.Report{
 			Interval: &duration.Duration{
 				Seconds: int64(index),
 			},
@@ -1353,7 +1349,7 @@ func (d *DiscoverTestSuit) createCommonRateLimit(t *testing.T, service *api.Serv
 		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
 	}
 
-	resp := d.server.CreateRateLimits(d.defaultCtx, []*api.Rule{rateLimit})
+	resp := d.server.CreateRateLimits(d.defaultCtx, []*apitraffic.Rule{rateLimit})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
@@ -1361,15 +1357,15 @@ func (d *DiscoverTestSuit) createCommonRateLimit(t *testing.T, service *api.Serv
 }
 
 // 删除限流规则
-func (d *DiscoverTestSuit) deleteRateLimit(t *testing.T, rateLimit *api.Rule) {
-	if resp := d.server.DeleteRateLimits(d.defaultCtx, []*api.Rule{rateLimit}); !respSuccess(resp) {
+func (d *DiscoverTestSuit) deleteRateLimit(t *testing.T, rateLimit *apitraffic.Rule) {
+	if resp := d.server.DeleteRateLimits(d.defaultCtx, []*apitraffic.Rule{rateLimit}); !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
 }
 
 // 更新单个限流规则
-func (d *DiscoverTestSuit) updateRateLimit(t *testing.T, rateLimit *api.Rule) {
-	if resp := d.server.UpdateRateLimits(d.defaultCtx, []*api.Rule{rateLimit}); !respSuccess(resp) {
+func (d *DiscoverTestSuit) updateRateLimit(t *testing.T, rateLimit *apitraffic.Rule) {
+	if resp := d.server.UpdateRateLimits(d.defaultCtx, []*apitraffic.Rule{rateLimit}); !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
 }
@@ -1467,21 +1463,21 @@ func (d *DiscoverTestSuit) cleanRateLimitRevision(service, namespace string) {
 }
 
 // 更新限流规则内容
-func updateRateLimitContent(rateLimit *api.Rule, index int) {
+func updateRateLimitContent(rateLimit *apitraffic.Rule, index int) {
 	rateLimit.Priority = utils.NewUInt32Value(uint32(index))
-	rateLimit.Resource = api.Rule_CONCURRENCY
-	rateLimit.Type = api.Rule_LOCAL
-	rateLimit.Labels = map[string]*api.MatchString{
+	rateLimit.Resource = apitraffic.Rule_CONCURRENCY
+	rateLimit.Type = apitraffic.Rule_LOCAL
+	rateLimit.Labels = map[string]*apimodel.MatchString{
 		fmt.Sprintf("name-%d", index): {
-			Type:  api.MatchString_EXACT,
+			Type:  apimodel.MatchString_EXACT,
 			Value: utils.NewStringValue(fmt.Sprintf("value-%d", index)),
 		},
 		fmt.Sprintf("name-%d", index+1): {
-			Type:  api.MatchString_REGEX,
+			Type:  apimodel.MatchString_REGEX,
 			Value: utils.NewStringValue(fmt.Sprintf("value-%d", index+1)),
 		},
 	}
-	rateLimit.Amounts = []*api.Amount{
+	rateLimit.Amounts = []*apitraffic.Amount{
 		{
 			MaxAmount: utils.NewUInt32Value(uint32(index)),
 			ValidDuration: &duration.Duration{
@@ -1491,7 +1487,7 @@ func updateRateLimitContent(rateLimit *api.Rule, index int) {
 	}
 	rateLimit.Action = utils.NewStringValue(fmt.Sprintf("value-%d", index))
 	rateLimit.Disable = utils.NewBoolValue(true)
-	rateLimit.Report = &api.Report{
+	rateLimit.Report = &apitraffic.Report{
 		Interval: &duration.Duration{
 			Seconds: int64(index),
 		},
@@ -1502,7 +1498,7 @@ func updateRateLimitContent(rateLimit *api.Rule, index int) {
 /*
  * @brief 对比限流规则的各个属性
  */
-func checkRateLimit(t *testing.T, expect *api.Rule, actual *api.Rule) {
+func checkRateLimit(t *testing.T, expect *apitraffic.Rule, actual *apitraffic.Rule) {
 	switch {
 	case expect.GetId().GetValue() != actual.GetId().GetValue():
 		t.Fatalf("error id, expect %s, actual %s", expect.GetId().GetValue(), actual.GetId().GetValue())
@@ -1562,8 +1558,8 @@ func checkRateLimit(t *testing.T, expect *api.Rule, actual *api.Rule) {
 }
 
 // 增加熔断规则
-func (d *DiscoverTestSuit) createCommonCircuitBreaker(t *testing.T, id int) (*api.CircuitBreaker, *api.CircuitBreaker) {
-	circuitBreaker := &api.CircuitBreaker{
+func (d *DiscoverTestSuit) createCommonCircuitBreaker(t *testing.T, id int) (*apifault.CircuitBreaker, *apifault.CircuitBreaker) {
+	circuitBreaker := &apifault.CircuitBreaker{
 		Name:       utils.NewStringValue(fmt.Sprintf("name-test-%d", id)),
 		Namespace:  utils.NewStringValue(DefaultNamespace),
 		Owners:     utils.NewStringValue("owner-test"),
@@ -1573,18 +1569,18 @@ func (d *DiscoverTestSuit) createCommonCircuitBreaker(t *testing.T, id int) (*ap
 	}
 	ruleNum := 1
 	// 填充source规则
-	sources := make([]*api.SourceMatcher, 0, ruleNum)
+	sources := make([]*apifault.SourceMatcher, 0, ruleNum)
 	for i := 0; i < ruleNum; i++ {
-		source := &api.SourceMatcher{
+		source := &apifault.SourceMatcher{
 			Service:   utils.NewStringValue(fmt.Sprintf("service-test-%d", i)),
 			Namespace: utils.NewStringValue(fmt.Sprintf("namespace-test-%d", i)),
-			Labels: map[string]*api.MatchString{
+			Labels: map[string]*apimodel.MatchString{
 				fmt.Sprintf("name-%d", i): {
-					Type:  api.MatchString_EXACT,
+					Type:  apimodel.MatchString_EXACT,
 					Value: utils.NewStringValue(fmt.Sprintf("value-%d", i)),
 				},
 				fmt.Sprintf("name-%d", i+1): {
-					Type:  api.MatchString_REGEX,
+					Type:  apimodel.MatchString_REGEX,
 					Value: utils.NewStringValue(fmt.Sprintf("value-%d", i+1)),
 				},
 			},
@@ -1593,18 +1589,18 @@ func (d *DiscoverTestSuit) createCommonCircuitBreaker(t *testing.T, id int) (*ap
 	}
 
 	// 填充destination规则
-	destinations := make([]*api.DestinationSet, 0, ruleNum)
+	destinations := make([]*apifault.DestinationSet, 0, ruleNum)
 	for i := 0; i < ruleNum; i++ {
-		destination := &api.DestinationSet{
+		destination := &apifault.DestinationSet{
 			Service:   utils.NewStringValue(fmt.Sprintf("service-test-%d", i)),
 			Namespace: utils.NewStringValue(fmt.Sprintf("namespace-test-%d", i)),
-			Metadata: map[string]*api.MatchString{
+			Metadata: map[string]*apimodel.MatchString{
 				fmt.Sprintf("name-%d", i): {
-					Type:  api.MatchString_EXACT,
+					Type:  apimodel.MatchString_EXACT,
 					Value: utils.NewStringValue(fmt.Sprintf("value-%d", i)),
 				},
 				fmt.Sprintf("name-%d", i+1): {
-					Type:  api.MatchString_REGEX,
+					Type:  apimodel.MatchString_REGEX,
 					Value: utils.NewStringValue(fmt.Sprintf("value-%d", i+1)),
 				},
 			},
@@ -1618,25 +1614,25 @@ func (d *DiscoverTestSuit) createCommonCircuitBreaker(t *testing.T, id int) (*ap
 			UpdateInterval: &duration.Duration{
 				Seconds: int64(i),
 			},
-			Recover: &api.RecoverConfig{},
-			Policy:  &api.CbPolicy{},
+			Recover: &apifault.RecoverConfig{},
+			Policy:  &apifault.CbPolicy{},
 		}
 		destinations = append(destinations, destination)
 	}
 
 	// 填充inbound规则
-	inbounds := make([]*api.CbRule, 0, ruleNum)
+	inbounds := make([]*apifault.CbRule, 0, ruleNum)
 	for i := 0; i < ruleNum; i++ {
-		inbound := &api.CbRule{
+		inbound := &apifault.CbRule{
 			Sources:      sources,
 			Destinations: destinations,
 		}
 		inbounds = append(inbounds, inbound)
 	}
 	// 填充outbound规则
-	outbounds := make([]*api.CbRule, 0, ruleNum)
+	outbounds := make([]*apifault.CbRule, 0, ruleNum)
 	for i := 0; i < ruleNum; i++ {
-		outbound := &api.CbRule{
+		outbound := &apifault.CbRule{
 			Sources:      sources,
 			Destinations: destinations,
 		}
@@ -1645,7 +1641,7 @@ func (d *DiscoverTestSuit) createCommonCircuitBreaker(t *testing.T, id int) (*ap
 	circuitBreaker.Inbounds = inbounds
 	circuitBreaker.Outbounds = outbounds
 
-	resp := d.server.CreateCircuitBreakers(d.defaultCtx, []*api.CircuitBreaker{circuitBreaker})
+	resp := d.server.CreateCircuitBreakers(d.defaultCtx, []*apifault.CircuitBreaker{circuitBreaker})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
@@ -1653,9 +1649,9 @@ func (d *DiscoverTestSuit) createCommonCircuitBreaker(t *testing.T, id int) (*ap
 }
 
 // 增加熔断规则版本
-func (d *DiscoverTestSuit) createCommonCircuitBreakerVersion(t *testing.T, cb *api.CircuitBreaker, index int) (
-	*api.CircuitBreaker, *api.CircuitBreaker) {
-	cbVersion := &api.CircuitBreaker{
+func (d *DiscoverTestSuit) createCommonCircuitBreakerVersion(t *testing.T, cb *apifault.CircuitBreaker, index int) (
+	*apifault.CircuitBreaker, *apifault.CircuitBreaker) {
+	cbVersion := &apifault.CircuitBreaker{
 		Id:        cb.GetId(),
 		Name:      cb.GetName(),
 		Namespace: cb.GetNamespace(),
@@ -1665,7 +1661,7 @@ func (d *DiscoverTestSuit) createCommonCircuitBreakerVersion(t *testing.T, cb *a
 		Token:     cb.GetToken(),
 	}
 
-	resp := d.server.CreateCircuitBreakerVersions(d.defaultCtx, []*api.CircuitBreaker{cbVersion})
+	resp := d.server.CreateCircuitBreakerVersions(d.defaultCtx, []*apifault.CircuitBreaker{cbVersion})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
@@ -1673,47 +1669,47 @@ func (d *DiscoverTestSuit) createCommonCircuitBreakerVersion(t *testing.T, cb *a
 }
 
 // 删除熔断规则
-func (d *DiscoverTestSuit) deleteCircuitBreaker(t *testing.T, circuitBreaker *api.CircuitBreaker) {
-	if resp := d.server.DeleteCircuitBreakers(d.defaultCtx, []*api.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
+func (d *DiscoverTestSuit) deleteCircuitBreaker(t *testing.T, circuitBreaker *apifault.CircuitBreaker) {
+	if resp := d.server.DeleteCircuitBreakers(d.defaultCtx, []*apifault.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
 }
 
 // 更新熔断规则内容
-func (d *DiscoverTestSuit) updateCircuitBreaker(t *testing.T, circuitBreaker *api.CircuitBreaker) {
-	if resp := d.server.UpdateCircuitBreakers(d.defaultCtx, []*api.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
+func (d *DiscoverTestSuit) updateCircuitBreaker(t *testing.T, circuitBreaker *apifault.CircuitBreaker) {
+	if resp := d.server.UpdateCircuitBreakers(d.defaultCtx, []*apifault.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
 }
 
 // 发布熔断规则
-func (d *DiscoverTestSuit) releaseCircuitBreaker(t *testing.T, cb *api.CircuitBreaker, service *api.Service) {
-	release := &api.ConfigRelease{
+func (d *DiscoverTestSuit) releaseCircuitBreaker(t *testing.T, cb *apifault.CircuitBreaker, service *apiservice.Service) {
+	release := &apiservice.ConfigRelease{
 		Service:        service,
 		CircuitBreaker: cb,
 	}
 
-	resp := d.server.ReleaseCircuitBreakers(d.defaultCtx, []*api.ConfigRelease{release})
+	resp := d.server.ReleaseCircuitBreakers(d.defaultCtx, []*apiservice.ConfigRelease{release})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
 }
 
 // 解绑熔断规则
-func (d *DiscoverTestSuit) unBindCircuitBreaker(t *testing.T, cb *api.CircuitBreaker, service *api.Service) {
-	unbind := &api.ConfigRelease{
+func (d *DiscoverTestSuit) unBindCircuitBreaker(t *testing.T, cb *apifault.CircuitBreaker, service *apiservice.Service) {
+	unbind := &apiservice.ConfigRelease{
 		Service:        service,
 		CircuitBreaker: cb,
 	}
 
-	resp := d.server.UnBindCircuitBreakers(d.defaultCtx, []*api.ConfigRelease{unbind})
+	resp := d.server.UnBindCircuitBreakers(d.defaultCtx, []*apiservice.ConfigRelease{unbind})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
 }
 
 // 对比熔断规则的各个属性
-func checkCircuitBreaker(t *testing.T, expect, expectMaster *api.CircuitBreaker, actual *api.CircuitBreaker) {
+func checkCircuitBreaker(t *testing.T, expect, expectMaster *apifault.CircuitBreaker, actual *apifault.CircuitBreaker) {
 	switch {
 	case expectMaster.GetId().GetValue() != actual.GetId().GetValue():
 		t.Fatal("error id")
@@ -1853,325 +1849,6 @@ func (d *DiscoverTestSuit) cleanCircuitBreakerRelation(name, namespace, ruleID, 
 		}()
 	}
 }
-
-// // 创建一个网格规则
-// func createMeshResource(typeUrl, meshID, meshToken, rule string) (*api.MeshResource, *api.Response) {
-//	resource := &api.MeshResource{
-//		MeshId:    utils.NewStringValue(meshID),
-//		MeshToken: utils.NewStringValue(meshToken),
-//		TypeUrl:   utils.NewStringValue(typeUrl),
-//		Body:      utils.NewStringValue(rule),
-//	}
-//	reqResource := &api.MeshResource{
-//		MeshId:    utils.NewStringValue(meshID),
-//		MeshToken: utils.NewStringValue(meshToken),
-//		TypeUrl:   utils.NewStringValue(typeUrl),
-//		Body:      utils.NewStringValue(rule),
-//	}
-//	return reqResource, server.CreateMeshResource(defaultCtx, resource)
-// }
-//
-// // 创建一个网格
-// func createMesh(req *api.Mesh, withSystemToken bool) *api.Response {
-//	ctx := defaultCtx
-//	if withSystemToken {
-//		ctx = context.Background()
-//		ctx = context.WithValue(ctx, utils.StringContext("polaris-token"), "polaris@12345678")
-//	}
-//	return server.CreateMesh(ctx, req)
-// }
-//
-// func checkReqMesh(t *testing.T, expect *api.Mesh, actual *api.Mesh) {
-//	switch {
-//	case actual.GetName().GetValue() != expect.GetName().GetValue():
-//		t.Fatalf("mesh name not match")
-//	case actual.GetBusiness().GetValue() != expect.GetBusiness().GetValue():
-//		t.Fatalf("mesh business not match")
-//	case actual.GetDepartment().GetValue() != expect.GetDepartment().GetValue():
-//		t.Fatalf("mesh department not match")
-//	case actual.GetOwners().GetValue() != expect.GetOwners().GetValue():
-//		t.Fatalf("mesh owners not match")
-//	case actual.GetManaged().GetValue() != expect.GetManaged().GetValue():
-//		t.Fatalf("mesh managed not match")
-//	case actual.GetIstioVersion().GetValue() != expect.GetIstioVersion().GetValue():
-//		t.Fatalf("mesh istio version not match")
-//	case actual.GetComment().GetValue() != expect.GetComment().GetValue():
-//		t.Fatalf("mesh comment not match")
-//	}
-// }
-//
-// func checkReqMeshComplete(t *testing.T, expect *api.Mesh, actual *api.Mesh) {
-//	checkReqMesh(t, expect, actual)
-//	switch {
-//	case actual.GetId().GetValue() != expect.GetId().GetValue():
-//		t.Fatalf("mesh id not match")
-//	case actual.GetRevision().GetValue() != expect.GetRevision().GetValue():
-//		t.Fatalf("mesh revision not match")
-//	}
-// }
-//
-// // 比较两个网格规则是否一致
-// func checkReqMeshResource(t *testing.T, expect *api.MeshResource, actual *api.MeshResource) {
-//	switch {
-//	case actual.GetName().GetValue() != expect.GetName().GetValue():
-//		t.Fatalf("mesh resource name not match")
-//	case actual.GetTypeUrl().GetValue() != expect.GetTypeUrl().GetValue():
-//		t.Fatalf("mesh resource typeUrl not match")
-//	case actual.GetMeshNamespace().GetValue() != expect.GetMeshNamespace().GetValue():
-//		t.Fatalf("mesh resource mesh namespace not match")
-//	case actual.GetBody().GetValue() != expect.GetBody().GetValue():
-//		t.Fatalf("mesh resource body not match")
-//	case actual.GetId().GetValue() == "":
-//		t.Fatalf("mesh resource id empty")
-//	default:
-//		break
-//	}
-// }
-//
-// // 比较从cache中获取的规则是否符合预期
-// func checkCacheMeshResource(t *testing.T, expect *api.MeshResource, actual *api.MeshResource) {
-//	switch {
-//	case expect.GetName().GetValue() != actual.GetName().GetValue():
-//		t.Fatalf("mesh resource name not match")
-//	case expect.GetTypeUrl().GetValue() != actual.GetTypeUrl().GetValue():
-//		t.Fatalf("mesh resource typeUrl not match")
-//	case expect.GetRevision().GetValue() != actual.GetRevision().GetValue():
-//		t.Fatalf("mesh resource revision not match")
-//	case expect.GetBody().GetValue() != actual.GetBody().GetValue():
-//		t.Fatalf("mesh resource body not match")
-//	case expect.GetMeshId().GetValue() != actual.GetMeshId().GetValue():
-//		t.Fatalf("mesh id not match")
-//	default:
-//		break
-//	}
-// }
-
-// 比较利用控制台接口获取的规则是否符合预期
-// func checkHttpMeshResource(t *testing.T, expect *api.MeshResource, actual *api.MeshResource) {
-//	switch {
-//	case actual.GetId().GetValue() != expect.GetId().GetValue():
-//		t.Fatalf("mesh resource id not match")
-//	case actual.GetNamespace().GetValue() != expect.GetNamespace().GetValue():
-//		t.Fatalf("mesh resource namespace not match")
-//	case actual.GetName().GetValue() != expect.GetName().GetValue():
-//		t.Fatalf("mesh resource name not match")
-//	case actual.GetTypeUrl().GetValue() != expect.GetTypeUrl().GetValue():
-//		t.Fatalf("mesh resource typeUrl not match")
-//	case actual.GetBusiness().GetValue() != expect.GetBusiness().GetValue():
-//		t.Fatalf("mesh resource business not match")
-//	case actual.GetComment().GetValue() != expect.GetComment().GetValue():
-//		t.Fatalf("mesh resource comment not match")
-//	case actual.GetDepartment().GetValue() != expect.GetDepartment().GetValue():
-//		t.Fatalf("mesh resource department not match")
-//	case actual.GetBody().GetValue() != expect.GetBody().GetValue():
-//		t.Fatalf("mesh resource body not match")
-//	case actual.GetOwners().GetValue() != expect.GetOwners().GetValue():
-//		t.Fatalf("mesh resource owners not match")
-//	default:
-//		break
-//	}
-// }
-
-// 获取一个更新规则请求
-// func updateMeshResource(baseResource *api.MeshResource) *api.MeshResource {
-//	return &api.MeshResource{
-//		Namespace: utils.NewStringValue(baseResource.GetNamespace().GetValue()),
-//		Name:      utils.NewStringValue(baseResource.GetName().GetValue()),
-//		Token:     utils.NewStringValue(baseResource.GetToken().GetValue()),
-//		TypeUrl:   utils.NewStringValue(baseResource.GetTypeUrl().GetValue()),
-//		Business:  utils.NewStringValue(baseResource.GetBusiness().GetValue()),
-//		Id:        utils.NewStringValue(baseResource.GetId().GetValue()),
-//	}
-// }
-
-// // 清除网格规则
-// func cleanMeshResource(namespace, name string) {
-//	str := `delete from mesh_resource where name = ? and namespace = ?`
-//	if _, err := db.Exec(str, name, namespace); err != nil {
-//		panic(err)
-//	}
-// }
-//
-// // 清除网格规则版本号
-// func cleanMeshResourceRevision(namespace, business, typeUrl string) {
-//	str := `delete from mesh_revision where namespace = ? and business = ? and type_url = ?`
-//	if _, err := db.Exec(str, namespace, business, typeUrl); err != nil {
-//		panic(err)
-//	}
-// }
-
-// func cleanMeshResourceByMeshID(meshID string) {
-//	log.Infof("cleanMeshResourceByMeshID: %s", meshID)
-//	str := `delete from mesh_resource where mesh_id = ?`
-//	if _, err := db.Exec(str, meshID); err != nil {
-//		panic(err)
-//	}
-//	str = `delete from mesh_resource_revision where mesh_id = ?`
-//	if _, err := db.Exec(str, meshID); err != nil {
-//		panic(err)
-//	}
-// }
-//
-// // 清除网格
-// func cleanMesh(id string) {
-//	str := `delete from mesh where id = ?`
-//	if _, err := db.Exec(str, id); err != nil {
-//		panic(err)
-//	}
-// }
-//
-// func cleanMeshService(meshID string) {
-//	str := `delete from mesh_service where mesh_id = ?`
-//	if _, err := db.Exec(str, meshID); err != nil {
-//		panic(err)
-//	}
-//	str = `delete from mesh_service_revision where mesh_id = ?`
-//	if _, err := db.Exec(str, meshID); err != nil {
-//		panic(err)
-//	}
-// }
-//
-// // 删除一个网格
-// func deleteMesh(mesh *api.Mesh) *api.Response {
-//	dMesh := &api.Mesh{
-//		Id:    utils.NewStringValue(mesh.GetId().GetValue()),
-//		Token: utils.NewStringValue(mesh.GetToken().GetValue()),
-//	}
-//	return server.DeleteMesh(defaultCtx, dMesh)
-// }
-//
-// // 更新一个网格
-// func updateMesh(mesh *api.Mesh) *api.Response {
-//	return server.UpdateMesh(defaultCtx, mesh)
-// }
-//
-// // 删除一个网格规则
-// func deleteMeshResource(name, namespace, token string) *api.Response {
-//	resource := &api.MeshResource{
-//		Name:      utils.NewStringValue(name),
-//		MeshToken: utils.NewStringValue(token),
-//	}
-//	return server.DeleteMeshResource(defaultCtx, resource)
-// }
-//
-// // 创建flux限流规则
-// func createCommonFluxRateLimit(t *testing.T, service *api.Service, index int) (*api.FluxConsoleRateLimitRule,
-//	*api.FluxConsoleRateLimitRule) {
-//	rateLimit := &api.FluxConsoleRateLimitRule{
-//		Name:                  utils.NewStringValue(fmt.Sprintf("test-%d", index)),
-//		Description:           utils.NewStringValue("test"),
-//		CalleeServiceName:     service.GetName(),
-//		CalleeServiceEnv:      service.GetNamespace(),
-//		CallerServiceBusiness: utils.NewStringValue(fmt.Sprintf("business-%d", index)),
-//		SetKey:                utils.NewStringValue(fmt.Sprintf("set-key-%d", index)),
-//		SetAlertQps:           utils.NewStringValue(fmt.Sprintf("%d", index*10)),
-//		SetWarningQps:         utils.NewStringValue(fmt.Sprintf("%d", index*8)),
-//		SetRemark:             utils.NewStringValue(fmt.Sprintf("set-remark-%d", index)),
-//		DefaultKey:            utils.NewStringValue(fmt.Sprintf("default-key-%d", index)),
-//		DefaultAlertQps:       utils.NewStringValue(fmt.Sprintf("%d", index*2)),
-//		DefaultWarningQps:     utils.NewStringValue(fmt.Sprintf("%d", index)),
-//		DefaultRemark:         utils.NewStringValue(fmt.Sprintf("default-remark-%d", index)),
-//		Creator:               utils.NewStringValue("test"),
-//		Updater:               utils.NewStringValue("test"),
-//		Status:                utils.NewUInt32Value(1),
-//		Type:                  utils.NewUInt32Value(2),
-//		ServiceToken:          utils.NewStringValue(service.GetToken().GetValue()),
-//	}
-//
-//	resp := server.CreateFluxRateLimit(defaultCtx, rateLimit)
-//	if !respSuccess(resp) {
-//		t.Fatalf("error: %+v", resp)
-//	}
-//	return rateLimit, resp.GetFluxConsoleRateLimitRule()
-// }
-//
-// // 删除限流规则
-// func deleteFluxRateLimit(t *testing.T, rateLimit *api.FluxConsoleRateLimitRule) {
-//	if resp := server.DeleteFluxRateLimit(defaultCtx, rateLimit); !respSuccess(resp) {
-//		t.Fatalf("%s", resp.GetInfo().GetValue())
-//	}
-// }
-//
-// // 更新单个限流规则
-// func updateFluxRateLimit(t *testing.T, rateLimit *api.FluxConsoleRateLimitRule) {
-//	if resp := server.UpdateFluxRateLimit(defaultCtx, rateLimit); !respSuccess(resp) {
-//		t.Fatalf("%s", resp.GetInfo().GetValue())
-//	}
-// }
-//
-// // 彻底删除限流规则
-// func cleanFluxRateLimit(id string) {
-//	str := `delete from ratelimit_flux_rule_config where id = ?`
-//	if _, err := db.Exec(str, id); err != nil {
-//		panic(err)
-//	}
-// }
-//
-// // 彻底删除限流规则版本号
-// func cleanFluxRateLimitRevision(service, namespace string) {
-//	str := `delete from ratelimit_flux_rule_revision using ratelimit_flux_rule_revision, service
-//			where service_id = service.id and name = ? and namespace = ?`
-//	if _, err := db.Exec(str, service, namespace); err != nil {
-//		panic(err)
-//	}
-// }
-//
-// // 更新限流规则内容
-// func updateFluxRateLimitContent(rateLimit *api.FluxConsoleRateLimitRule, index int) {
-//	rateLimit.SetAlertQps = utils.NewStringValue(fmt.Sprintf("%d", index*10))
-//	rateLimit.SetWarningQps = utils.NewStringValue(fmt.Sprintf("%d", index*5))
-//	rateLimit.SetKey = utils.NewStringValue(fmt.Sprintf("set-key-%d", index))
-//	rateLimit.SetRemark = utils.NewStringValue(fmt.Sprintf("remark-%d", index))
-//	rateLimit.DefaultAlertQps = utils.NewStringValue(fmt.Sprintf("%d", index*2))
-//	rateLimit.DefaultWarningQps = utils.NewStringValue(fmt.Sprintf("%d", index))
-//	rateLimit.DefaultKey = utils.NewStringValue(fmt.Sprintf("default-key-%d", index))
-//	rateLimit.DefaultRemark = utils.NewStringValue(fmt.Sprintf("default-remark-%d", index))
-// }
-//
-// /*
-// * @brief 对比限流规则的各个属性
-// */
-// func checkFluxRateLimit(t *testing.T, expect *api.FluxConsoleRateLimitRule, actual *api.FluxConsoleRateLimitRule) {
-//	switch {
-//	case (expect.GetId().GetValue()) != "" && (expect.GetId().GetValue() != actual.GetId().GetValue()):
-//		t.Fatal("invalid id")
-//	case expect.GetName().GetValue() != actual.GetName().GetValue():
-//		t.Fatal("error name")
-//	case expect.GetDescription().GetValue() != actual.GetDescription().GetValue():
-//		t.Fatal("error description")
-//	case expect.GetStatus().GetValue() != actual.GetStatus().GetValue():
-//		t.Fatal("invalid status")
-//	case expect.GetCalleeServiceName().GetValue() != actual.GetCalleeServiceName().GetValue():
-//		t.Fatal("invalid CalleeServiceName")
-//	case expect.GetCalleeServiceEnv().GetValue() != actual.GetCalleeServiceEnv().GetValue():
-//		t.Fatal("invalid CalleeServiceEnv")
-//	case expect.GetCallerServiceBusiness().GetValue() != actual.GetCallerServiceBusiness().GetValue():
-//		t.Fatal("invalid GetCallerServiceBusiness")
-//	case expect.GetSetKey().GetValue() != actual.GetSetKey().GetValue():
-//		t.Fatal("error set key")
-//	case expect.GetSetAlertQps().GetValue() != actual.GetSetAlertQps().GetValue():
-//		t.Fatal("error set alert qps")
-//	case expect.GetSetWarningQps().GetValue() != actual.GetSetWarningQps().GetValue():
-//		t.Fatal("error set warning qps")
-//	case expect.GetSetRemark().GetValue() != actual.GetSetRemark().GetValue():
-//		t.Fatal("error set remark")
-//	case expect.GetDefaultKey().GetValue() != actual.GetDefaultKey().GetValue():
-//		t.Fatal("error default key")
-//	case expect.GetDefaultAlertQps().GetValue() != actual.GetDefaultAlertQps().GetValue():
-//		t.Fatal("error default alert qps")
-//	case expect.GetDefaultWarningQps().GetValue() != actual.GetDefaultWarningQps().GetValue():
-//		t.Fatal("error default warning qps")
-//	case expect.GetDefaultRemark().GetValue() != actual.GetDefaultRemark().GetValue():
-//		t.Fatal("error default remark")
-//	case expect.GetType().GetValue() != actual.GetType().GetValue():
-//		t.Fatal("error type")
-//	case expect.GetStatus().GetValue() != actual.GetStatus().GetValue():
-//		t.Fatal("error status")
-//	default:
-//		break
-//	}
-//	t.Log("check success")
-// }
 
 // 获取指定长度str
 func genSpecialStr(n int) string {

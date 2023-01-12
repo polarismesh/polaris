@@ -23,9 +23,9 @@ import (
 	"strings"
 	"time"
 
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"go.uber.org/zap"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -546,7 +546,7 @@ func createDefaultStrategy(tx *BaseTx, role model.PrincipalType, id, name, owner
 	strategy := &model.StrategyDetail{
 		ID:        utils.NewUUID(),
 		Name:      model.BuildDefaultStrategyName(role, name),
-		Action:    api.AuthAction_READ_WRITE.String(),
+		Action:    apisecurity.AuthAction_READ_WRITE.String(),
 		Default:   true,
 		Owner:     owner,
 		Revision:  utils.NewUUID(),

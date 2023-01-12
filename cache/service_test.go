@@ -19,6 +19,7 @@ package cache
 
 import (
 	"fmt"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -26,7 +27,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 
-	v1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -122,7 +122,7 @@ func genModelInstancesByServicesWithInsId(
 		instancesSvc := make([]*model.Instance, 0, instCount)
 		for i := 0; i < instCount; i++ {
 			entry := &model.Instance{
-				Proto: &v1.Instance{
+				Proto: &apiservice.Instance{
 					Id:   utils.NewStringValue(fmt.Sprintf("%s-instanceID-%s-%d", insIdPrefix, label, idx)),
 					Host: utils.NewStringValue(fmt.Sprintf("host-%s-%d", label, idx)),
 					Port: utils.NewUInt32Value(uint32(idx + 10)),
@@ -353,7 +353,7 @@ func genModelInstancesByServices(
 		instancesSvc := make([]*model.Instance, 0, instCount)
 		for i := 0; i < instCount; i++ {
 			entry := &model.Instance{
-				Proto: &v1.Instance{
+				Proto: &apiservice.Instance{
 					Id:   utils.NewStringValue(fmt.Sprintf("instanceID-%s-%d", label, idx)),
 					Host: utils.NewStringValue(fmt.Sprintf("host-%s-%d", label, idx)),
 					Port: utils.NewUInt32Value(uint32(idx + 10)),

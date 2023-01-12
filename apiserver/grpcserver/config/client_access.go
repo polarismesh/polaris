@@ -20,13 +20,14 @@ package config
 import (
 	"context"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+
 	"github.com/polarismesh/polaris/apiserver/grpcserver"
-	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 // GetConfigFile 拉取配置
 func (g *ConfigGRPCServer) GetConfigFile(ctx context.Context,
-	configFile *api.ClientConfigFileInfo) (*api.ConfigClientResponse, error) {
+	configFile *apiconfig.ClientConfigFileInfo) (*apiconfig.ConfigClientResponse, error) {
 	ctx = grpcserver.ConvertContext(ctx)
 	response := g.configServer.GetConfigFileForClient(ctx, configFile)
 	return response, nil
@@ -34,7 +35,7 @@ func (g *ConfigGRPCServer) GetConfigFile(ctx context.Context,
 
 // WatchConfigFiles 订阅配置变更
 func (g *ConfigGRPCServer) WatchConfigFiles(ctx context.Context,
-	request *api.ClientWatchConfigFileRequest) (*api.ConfigClientResponse, error) {
+	request *apiconfig.ClientWatchConfigFileRequest) (*apiconfig.ConfigClientResponse, error) {
 	ctx = grpcserver.ConvertContext(ctx)
 
 	// 阻塞等待响应

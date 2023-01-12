@@ -24,6 +24,8 @@ import (
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/cache"
@@ -39,7 +41,7 @@ const (
 )
 
 // Service2Api *model.service转换为*api.service
-type Service2Api func(service *model.Service) *api.Service
+type Service2Api func(service *model.Service) *apiservice.Service
 
 var (
 	serviceFilter           = 1 // 过滤服务的
@@ -65,22 +67,22 @@ var (
 )
 
 // CreateServices 批量创建服务
-func (s *Server) CreateServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse {
+func (s *Server) CreateServices(ctx context.Context, req []*apiservice.Service) *apiservice.BatchWriteResponse {
 	if checkError := checkBatchService(req); checkError != nil {
 		return checkError
 	}
 
-	responses := api.NewBatchWriteResponse(api.ExecuteSuccess)
+	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, service := range req {
 		response := s.CreateService(ctx, service)
-		responses.Collect(response)
+		api.Collect(responses, response)
 	}
 
 	return api.FormatBatchWriteResponse(responses)
 }
 
 // CreateService 创建单个服务
-func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Response {
+func (s *Server) CreateService(ctx context.Context, req *apiservice.Service) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
 	// 参数检查
@@ -98,31 +100,31 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 	// 检查命名空间是否存在
 	namespace, err := s.storage.GetNamespace(namespaceName)
 	if err != nil {
-		log.Error("[Service] get namespace fail", utils.ZapRequestID(requestID),
-			utils.ZapPlatformID(platformID), zap.Error(err))
-		return api.NewServiceResponse(api.StoreLayerException, req)
+		log.Error("[Service] get namespace fail",
+			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
+		return api.NewServiceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if namespace == nil {
-		return api.NewServiceResponse(api.NotFoundNamespace, req)
+		return api.NewServiceResponse(apimodel.Code_NotFoundNamespace, req)
 	}
 
 	// 检查是否存在
 	service, err := s.storage.GetService(serviceName, namespaceName)
 	if err != nil {
-		log.Error("[Service] get service fail", utils.ZapRequestID(requestID),
-			utils.ZapPlatformID(platformID), zap.Error(err))
-		return api.NewServiceResponse(api.StoreLayerException, req)
+		log.Error("[Service] get service fail",
+			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
+		return api.NewServiceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if service != nil {
 		req.Id = utils.NewStringValue(service.ID)
-		return api.NewServiceResponse(api.ExistedResource, req)
+		return api.NewServiceResponse(apimodel.Code_ExistedResource, req)
 	}
 
 	// 存储层操作
 	data := s.createServiceModel(req)
 	if err := s.storage.AddService(data); err != nil {
-		log.Error("[Service] save service fail", utils.ZapRequestID(requestID),
-			utils.ZapPlatformID(platformID), zap.Error(err))
+		log.Error("[Service] save service fail",
+			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
 		return wrapperServiceStoreResponse(req, err)
 	}
 
@@ -131,7 +133,7 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 	log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 	s.RecordHistory(ctx, serviceRecordEntry(ctx, req, data, model.OCreate))
 
-	out := &api.Service{
+	out := &apiservice.Service{
 		Id:        utils.NewStringValue(data.ID),
 		Name:      req.GetName(),
 		Namespace: req.GetNamespace(),
@@ -139,22 +141,22 @@ func (s *Server) CreateService(ctx context.Context, req *api.Service) *api.Respo
 	}
 
 	if err := s.afterServiceResource(ctx, req, data, false); err != nil {
-		return api.NewResponseWithMsg(api.ExecuteException, err.Error())
+		return api.NewResponseWithMsg(apimodel.Code_ExecuteException, err.Error())
 	}
 
-	return api.NewServiceResponse(api.ExecuteSuccess, out)
+	return api.NewServiceResponse(apimodel.Code_ExecuteSuccess, out)
 }
 
 // DeleteServices 批量删除服务
-func (s *Server) DeleteServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse {
+func (s *Server) DeleteServices(ctx context.Context, req []*apiservice.Service) *apiservice.BatchWriteResponse {
 	if checkError := checkBatchService(req); checkError != nil {
 		return checkError
 	}
 
-	responses := api.NewBatchWriteResponse(api.ExecuteSuccess)
+	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, service := range req {
 		response := s.DeleteService(ctx, service)
-		responses.Collect(response)
+		api.Collect(responses, response)
 	}
 
 	return api.FormatBatchWriteResponse(responses)
@@ -164,7 +166,7 @@ func (s *Server) DeleteServices(ctx context.Context, req []*api.Service) *api.Ba
 //
 //	删除操作需要对服务进行加锁操作，
 //	防止有与服务关联的实例或者配置有新增的操作
-func (s *Server) DeleteService(ctx context.Context, req *api.Service) *api.Response {
+func (s *Server) DeleteService(ctx context.Context, req *apiservice.Service) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
 
@@ -180,10 +182,10 @@ func (s *Server) DeleteService(ctx context.Context, req *api.Service) *api.Respo
 	service, err := s.storage.GetService(serviceName, namespaceName)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		return api.NewServiceResponse(api.StoreLayerException, req)
+		return api.NewServiceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if service == nil {
-		return api.NewServiceResponse(api.ExecuteSuccess, req)
+		return api.NewServiceResponse(apimodel.Code_ExecuteSuccess, req)
 	}
 
 	// 判断service下的资源是否已经全部被删除
@@ -201,28 +203,28 @@ func (s *Server) DeleteService(ctx context.Context, req *api.Service) *api.Respo
 	s.RecordHistory(ctx, serviceRecordEntry(ctx, req, nil, model.ODelete))
 
 	if err := s.afterServiceResource(ctx, req, service, true); err != nil {
-		return api.NewServiceResponse(api.ExecuteException, req)
+		return api.NewServiceResponse(apimodel.Code_ExecuteException, req)
 	}
-	return api.NewServiceResponse(api.ExecuteSuccess, req)
+	return api.NewServiceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
 // UpdateServices 批量修改服务
-func (s *Server) UpdateServices(ctx context.Context, req []*api.Service) *api.BatchWriteResponse {
+func (s *Server) UpdateServices(ctx context.Context, req []*apiservice.Service) *apiservice.BatchWriteResponse {
 	if checkError := checkBatchService(req); checkError != nil {
 		return checkError
 	}
 
-	responses := api.NewBatchWriteResponse(api.ExecuteSuccess)
+	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, service := range req {
 		response := s.UpdateService(ctx, service)
-		responses.Collect(response)
+		api.Collect(responses, response)
 	}
 
 	return api.FormatBatchWriteResponse(responses)
 }
 
 // UpdateService 修改单个服务
-func (s *Server) UpdateService(ctx context.Context, req *api.Service) *api.Response {
+func (s *Server) UpdateService(ctx context.Context, req *apiservice.Service) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
 	// 校验基础参数合法性
@@ -238,7 +240,7 @@ func (s *Server) UpdateService(ctx context.Context, req *api.Service) *api.Respo
 
 	// [2020.02.18]If service is alias, not allowed to modify
 	if service.IsAlias() {
-		return api.NewServiceResponse(api.NotAllowAliasUpdate, req)
+		return api.NewServiceResponse(apimodel.Code_NotAllowAliasUpdate, req)
 	}
 
 	log.Info(fmt.Sprintf("old service: %+v", service), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
@@ -253,10 +255,10 @@ func (s *Server) UpdateService(ctx context.Context, req *api.Service) *api.Respo
 		log.Info("update service data no change, no need update",
 			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.String("service", req.String()))
 		if err := s.afterServiceResource(ctx, req, service, false); err != nil {
-			return api.NewServiceResponse(api.ExecuteException, req)
+			return api.NewServiceResponse(apimodel.Code_ExecuteException, req)
 		}
 
-		return api.NewServiceResponse(api.NoNeedUpdate, req)
+		return api.NewServiceResponse(apimodel.Code_NoNeedUpdate, req)
 	}
 
 	// 存储层操作
@@ -270,14 +272,14 @@ func (s *Server) UpdateService(ctx context.Context, req *api.Service) *api.Respo
 	s.RecordHistory(ctx, serviceRecordEntry(ctx, req, service, model.OUpdate))
 
 	if err := s.afterServiceResource(ctx, req, service, false); err != nil {
-		return api.NewServiceResponse(api.ExecuteException, req)
+		return api.NewServiceResponse(apimodel.Code_ExecuteException, req)
 	}
 
-	return api.NewServiceResponse(api.ExecuteSuccess, req)
+	return api.NewServiceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
 // UpdateServiceToken 更新服务token
-func (s *Server) UpdateServiceToken(ctx context.Context, req *api.Service) *api.Response {
+func (s *Server) UpdateServiceToken(ctx context.Context, req *apiservice.Service) *apiservice.Response {
 	// 校验参数合法性
 	if resp := checkReviseService(req); resp != nil {
 		return resp
@@ -289,7 +291,7 @@ func (s *Server) UpdateServiceToken(ctx context.Context, req *api.Service) *api.
 		return resp
 	}
 	if service.IsAlias() {
-		return api.NewServiceResponse(api.NotAllowAliasUpdate, req)
+		return api.NewServiceResponse(apimodel.Code_NotAllowAliasUpdate, req)
 	}
 	rid := utils.ParseRequestID(ctx)
 	pid := utils.ParsePlatformID(ctx)
@@ -308,16 +310,16 @@ func (s *Server) UpdateServiceToken(ctx context.Context, req *api.Service) *api.
 	s.RecordHistory(ctx, serviceRecordEntry(ctx, req, service, model.OUpdateToken))
 
 	// 填充新的token返回
-	out := &api.Service{
+	out := &apiservice.Service{
 		Name:      req.GetName(),
 		Namespace: req.GetNamespace(),
 		Token:     utils.NewStringValue(service.Token),
 	}
-	return api.NewServiceResponse(api.ExecuteSuccess, out)
+	return api.NewServiceResponse(apimodel.Code_ExecuteSuccess, out)
 }
 
 // GetServices 查询服务 注意：不包括别名
-func (s *Server) GetServices(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+func (s *Server) GetServices(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	serviceFilters := make(map[string]string)
 	instanceFilters := make(map[string]string)
 	var metaKeys, metaValues string
@@ -325,12 +327,13 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *api.
 		typ, ok := ServiceFilterAttributes[key]
 		if !ok {
 			log.Errorf("[Server][Service][Query] attribute(%s) it not allowed", key)
-			return api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
+			return api.NewBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, key+" is not allowed")
 		}
 		// 元数据value允许为空
 		if key != "values" && value == "" {
 			log.Errorf("[Server][Service][Query] attribute(%s: %s) is not allowed empty", key, value)
-			return api.NewBatchQueryResponseWithMsg(api.InvalidParameter, "the value for "+key+" is empty")
+			return api.NewBatchQueryResponseWithMsg(
+				apimodel.Code_InvalidParameter, "the value for "+key+" is empty")
 		}
 		switch {
 		case typ == serviceFilter:
@@ -346,10 +349,10 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *api.
 		}
 	}
 
-	instanceArgs, err := utils.ParseInstanceArgs(instanceFilters)
+	instanceArgs, err := ParseInstanceArgs(instanceFilters)
 	if err != nil {
 		log.Errorf("[Server][Service][Query] instance args error: %s", err.Error())
-		return api.NewBatchQueryResponseWithMsg(api.InvalidParameter, err.Error())
+		return api.NewBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, err.Error())
 	}
 
 	// 解析metaKeys，metaValues
@@ -361,7 +364,7 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *api.
 	// 判断offset和limit是否为int，并从filters清除offset/limit参数
 	offset, limit, err := utils.ParseOffsetAndLimit(serviceFilters)
 	if err != nil {
-		return api.NewBatchQueryResponse(api.InvalidParameter)
+		return api.NewBatchQueryResponse(apimodel.Code_InvalidParameter)
 	}
 
 	serviceArgs := parseServiceArgs(serviceFilters, serviceMetas, ctx)
@@ -369,15 +372,15 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *api.
 	err = s.caches.Service().Update()
 	if err != nil {
 		log.Errorf("[Server][Service][Query] req(%+v) update store err: %s", query, err.Error())
-		return api.NewBatchQueryResponse(api.StoreLayerException)
+		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
 	}
 	total, services, err := s.caches.Service().GetServicesByFilter(serviceArgs, instanceArgs, offset, limit)
 	if err != nil {
 		log.Errorf("[Server][Service][Query] req(%+v) store err: %s", query, err.Error())
-		return api.NewBatchQueryResponse(api.StoreLayerException)
+		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
 	}
 
-	resp := api.NewBatchQueryResponse(api.ExecuteSuccess)
+	resp := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
 	resp.Amount = utils.NewUInt32Value(total)
 	resp.Size = utils.NewUInt32Value(uint32(len(services)))
 	resp.Services = enhancedServices2Api(services, service2Api)
@@ -417,21 +420,21 @@ func parseServiceArgs(filter map[string]string, metaFilter map[string]string, ct
 }
 
 // GetServicesCount 查询服务总数
-func (s *Server) GetServicesCount(ctx context.Context) *api.BatchQueryResponse {
+func (s *Server) GetServicesCount(ctx context.Context) *apiservice.BatchQueryResponse {
 	count, err := s.storage.GetServicesCount()
 	if err != nil {
 		log.Errorf("[Server][Service][Count] get service count storage err: %s", err.Error())
-		return api.NewBatchQueryResponse(api.StoreLayerException)
+		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
 	}
 
-	out := api.NewBatchQueryResponse(api.ExecuteSuccess)
+	out := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
 	out.Amount = utils.NewUInt32Value(count)
-	out.Services = make([]*api.Service, 0)
+	out.Services = make([]*apiservice.Service, 0)
 	return out
 }
 
 // GetServiceToken 查询Service的token
-func (s *Server) GetServiceToken(ctx context.Context, req *api.Service) *api.Response {
+func (s *Server) GetServiceToken(ctx context.Context, req *apiservice.Service) *apiservice.Response {
 	// 校验参数合法性
 	if resp := checkReviseService(req); resp != nil {
 		return resp
@@ -444,8 +447,8 @@ func (s *Server) GetServiceToken(ctx context.Context, req *api.Service) *api.Res
 	}
 
 	// s.RecordHistory(serviceRecordEntry(ctx, req, model.OGetToken))
-	out := api.NewResponse(api.ExecuteSuccess)
-	out.Service = &api.Service{
+	out := api.NewResponse(apimodel.Code_ExecuteSuccess)
+	out.Service = &apiservice.Service{
 		Name:      req.GetName(),
 		Namespace: req.GetNamespace(),
 		Token:     utils.NewStringValue(token),
@@ -454,7 +457,7 @@ func (s *Server) GetServiceToken(ctx context.Context, req *api.Service) *api.Res
 }
 
 // GetServiceOwner 查询服务负责人
-func (s *Server) GetServiceOwner(ctx context.Context, req []*api.Service) *api.BatchQueryResponse {
+func (s *Server) GetServiceOwner(ctx context.Context, req []*apiservice.Service) *apiservice.BatchQueryResponse {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParseRequestID(ctx)
 
@@ -465,10 +468,10 @@ func (s *Server) GetServiceOwner(ctx context.Context, req []*api.Service) *api.B
 	services, err := s.storage.GetServicesBatch(apis2ServicesName(req))
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		return api.NewBatchQueryResponseWithMsg(api.StoreLayerException, err.Error())
+		return api.NewBatchQueryResponseWithMsg(apimodel.Code_StoreLayerException, err.Error())
 	}
 
-	resp := api.NewBatchQueryResponse(api.ExecuteSuccess)
+	resp := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
 	resp.Amount = utils.NewUInt32Value(uint32(len(services)))
 	resp.Size = utils.NewUInt32Value(uint32(len(services)))
 	resp.Services = services2Api(services, serviceOwner2Api)
@@ -476,20 +479,20 @@ func (s *Server) GetServiceOwner(ctx context.Context, req []*api.Service) *api.B
 }
 
 // createNamespaceIfAbsent Automatically create namespaces
-func (s *Server) createNamespaceIfAbsent(ctx context.Context, svc *api.Service) (uint32, error) {
-	err := s.Namespace().CreateNamespaceIfAbsent(ctx, &api.Namespace{
+func (s *Server) createNamespaceIfAbsent(ctx context.Context, svc *apiservice.Service) (apimodel.Code, error) {
+	err := s.Namespace().CreateNamespaceIfAbsent(ctx, &apimodel.Namespace{
 		Name:   utils.NewStringValue(svc.GetNamespace().GetValue()),
 		Owners: svc.Owners,
 	})
 	if err != nil {
-		return api.ExecuteException, err
+		return apimodel.Code_ExecuteException, err
 	}
 
-	return api.ExecuteSuccess, nil
+	return apimodel.Code_ExecuteSuccess, nil
 }
 
 // createServiceModel 创建存储层服务模型
-func (s *Server) createServiceModel(req *api.Service) *model.Service {
+func (s *Server) createServiceModel(req *apiservice.Service) *model.Service {
 	return &model.Service{
 		ID:         utils.NewUUID(),
 		Name:       req.GetName().GetValue(),
@@ -510,10 +513,11 @@ func (s *Server) createServiceModel(req *api.Service) *model.Service {
 }
 
 // updateServiceAttribute 修改服务属性
-func (s *Server) updateServiceAttribute(req *api.Service, service *model.Service) (*api.Response, bool, bool) {
+func (s *Server) updateServiceAttribute(
+	req *apiservice.Service, service *model.Service) (*apiservice.Response, bool, bool) {
 	// 待更新的参数检查
 	if err := checkMetadata(req.GetMetadata()); err != nil {
-		return api.NewServiceResponse(api.InvalidMetadata, req), false, false
+		return api.NewServiceResponse(apimodel.Code_InvalidMetadata, req), false, false
 	}
 
 	var (
@@ -651,59 +655,59 @@ func (s *Server) getCircuitBreakerCountWithService(name string, namespace string
 }
 
 // isServiceExistedResource 检查服务下的资源存在情况，在删除服务的时候需要用到
-func (s *Server) isServiceExistedResource(rid, pid string, service *model.Service) *api.Response {
+func (s *Server) isServiceExistedResource(rid, pid string, service *model.Service) *apiservice.Response {
 	// 服务别名，不需要判断
 	if service.IsAlias() {
 		return nil
 	}
-	out := &api.Service{
+	out := &apiservice.Service{
 		Name:      utils.NewStringValue(service.Name),
 		Namespace: utils.NewStringValue(service.Namespace),
 	}
 	total, err := s.getInstancesCountWithService(service.Name, service.Namespace)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return api.NewServiceResponse(api.StoreLayerException, out)
+		return api.NewServiceResponse(apimodel.Code_StoreLayerException, out)
 	}
 	if total != 0 {
-		return api.NewServiceResponse(api.ServiceExistedInstances, out)
+		return api.NewServiceResponse(apimodel.Code_ServiceExistedInstances, out)
 	}
 
 	total, err = s.getServiceAliasCountWithService(service.Name, service.Namespace)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return api.NewServiceResponse(api.StoreLayerException, out)
+		return api.NewServiceResponse(apimodel.Code_StoreLayerException, out)
 	}
 	if total != 0 {
-		return api.NewServiceResponse(api.ServiceExistedAlias, out)
+		return api.NewServiceResponse(apimodel.Code_ServiceExistedAlias, out)
 	}
 
 	total, err = s.getRoutingCountWithService(service.ID)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return api.NewServiceResponse(api.StoreLayerException, out)
+		return api.NewServiceResponse(apimodel.Code_StoreLayerException, out)
 	}
 
 	if total != 0 {
-		return api.NewServiceResponse(api.ServiceExistedRoutings, out)
+		return api.NewServiceResponse(apimodel.Code_ServiceExistedRoutings, out)
 	}
 
 	total, err = s.getRateLimitingCountWithService(service.Name, service.Namespace)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return api.NewServiceResponse(api.StoreLayerException, out)
+		return api.NewServiceResponse(apimodel.Code_StoreLayerException, out)
 	}
 	if total != 0 {
-		return api.NewServiceResponse(api.ServiceExistedRateLimits, out)
+		return api.NewServiceResponse(apimodel.Code_ServiceExistedRateLimits, out)
 	}
 
 	total, err = s.getCircuitBreakerCountWithService(service.Name, service.Namespace)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return api.NewServiceResponse(api.StoreLayerException, out)
+		return api.NewServiceResponse(apimodel.Code_StoreLayerException, out)
 	}
 	if total != 0 {
-		return api.NewServiceResponse(api.ServiceExistedCircuitBreakers, out)
+		return api.NewServiceResponse(apimodel.Code_ServiceExistedCircuitBreakers, out)
 	}
 
 	return nil
@@ -711,8 +715,8 @@ func (s *Server) isServiceExistedResource(rid, pid string, service *model.Servic
 
 // checkServiceAuthority 对服务进行鉴权，并且返回model.Service
 // return service, token, response
-func (s *Server) checkServiceAuthority(ctx context.Context, req *api.Service) (*model.Service,
-	string, *api.Response) {
+func (s *Server) checkServiceAuthority(ctx context.Context, req *apiservice.Service) (*model.Service,
+	string, *apiservice.Response) {
 	rid := utils.ParseRequestID(ctx)
 	pid := utils.ParsePlatformID(ctx)
 	namespaceName := req.GetNamespace().GetValue()
@@ -722,19 +726,19 @@ func (s *Server) checkServiceAuthority(ctx context.Context, req *api.Service) (*
 	svc, err := s.storage.GetService(serviceName, namespaceName)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return nil, "", api.NewServiceResponse(api.StoreLayerException, req)
+		return nil, "", api.NewServiceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if svc == nil {
-		return nil, "", api.NewServiceResponse(api.NotFoundResource, req)
+		return nil, "", api.NewServiceResponse(apimodel.Code_NotFoundResource, req)
 	}
 	if svc.Reference != "" {
 		svc, err = s.storage.GetServiceByID(svc.Reference)
 		if err != nil {
 			log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-			return nil, "", api.NewServiceResponse(api.StoreLayerException, req)
+			return nil, "", api.NewServiceResponse(apimodel.Code_StoreLayerException, req)
 		}
 		if svc == nil {
-			return nil, "", api.NewServiceResponse(api.NotFoundResource, req)
+			return nil, "", api.NewServiceResponse(apimodel.Code_NotFoundResource, req)
 		}
 	}
 
@@ -744,13 +748,13 @@ func (s *Server) checkServiceAuthority(ctx context.Context, req *api.Service) (*
 }
 
 // service2Api model.Service 转为 api.Service
-func service2Api(service *model.Service) *api.Service {
+func service2Api(service *model.Service) *apiservice.Service {
 	if service == nil {
 		return nil
 	}
 
 	// note: 不包括token，token比较特殊
-	out := &api.Service{
+	out := &apiservice.Service{
 		Id:         utils.NewStringValue(service.ID),
 		Name:       utils.NewStringValue(service.Name),
 		Namespace:  utils.NewStringValue(service.Namespace),
@@ -774,11 +778,11 @@ func service2Api(service *model.Service) *api.Service {
 
 // serviceOwner2Api model.Service转为api.Service
 // 只转name+namespace+owner
-func serviceOwner2Api(service *model.Service) *api.Service {
+func serviceOwner2Api(service *model.Service) *apiservice.Service {
 	if service == nil {
 		return nil
 	}
-	out := &api.Service{
+	out := &apiservice.Service{
 		Name:      utils.NewStringValue(service.Name),
 		Namespace: utils.NewStringValue(service.Namespace),
 		Owners:    utils.NewStringValue(service.Owner),
@@ -787,8 +791,8 @@ func serviceOwner2Api(service *model.Service) *api.Service {
 }
 
 // services2Api service数组转为[]*api.Service
-func services2Api(services []*model.Service, handler Service2Api) []*api.Service {
-	out := make([]*api.Service, 0, len(services))
+func services2Api(services []*model.Service, handler Service2Api) []*apiservice.Service {
+	out := make([]*apiservice.Service, 0, len(services))
 	for _, entry := range services {
 		out = append(out, handler(entry))
 	}
@@ -797,8 +801,8 @@ func services2Api(services []*model.Service, handler Service2Api) []*api.Service
 }
 
 // enhancedServices2Api service数组转为[]*api.Service
-func enhancedServices2Api(services []*model.EnhancedService, handler Service2Api) []*api.Service {
-	out := make([]*api.Service, 0, len(services))
+func enhancedServices2Api(services []*model.EnhancedService, handler Service2Api) []*apiservice.Service {
+	out := make([]*apiservice.Service, 0, len(services))
 	for _, entry := range services {
 		outSvc := handler(entry.Service)
 		outSvc.HealthyInstanceCount = &wrappers.UInt32Value{Value: entry.HealthyInstanceCount}
@@ -810,7 +814,7 @@ func enhancedServices2Api(services []*model.EnhancedService, handler Service2Api
 }
 
 // apis2ServicesName api数组转为[]*model.Service
-func apis2ServicesName(reqs []*api.Service) []*model.Service {
+func apis2ServicesName(reqs []*apiservice.Service) []*model.Service {
 	if reqs == nil {
 		return nil
 	}
@@ -823,7 +827,7 @@ func apis2ServicesName(reqs []*api.Service) []*model.Service {
 }
 
 // api2ServiceName api转为*model.Service
-func api2ServiceName(req *api.Service) *model.Service {
+func api2ServiceName(req *apiservice.Service) *model.Service {
 	if req == nil {
 		return nil
 	}
@@ -835,7 +839,7 @@ func api2ServiceName(req *api.Service) *model.Service {
 }
 
 // serviceMetaNeedUpdate 检查服务metadata是否需要更新
-func serviceMetaNeedUpdate(req *api.Service, service *model.Service) bool {
+func serviceMetaNeedUpdate(req *apiservice.Service, service *model.Service) bool {
 	// 收到的请求的metadata为空，则代表metadata不需要更新
 	if req.GetMetadata() == nil {
 		return false
@@ -880,47 +884,47 @@ func serviceMetaNeedUpdate(req *api.Service, service *model.Service) bool {
 }
 
 // checkBatchService检查批量请求
-func checkBatchService(req []*api.Service) *api.BatchWriteResponse {
+func checkBatchService(req []*apiservice.Service) *apiservice.BatchWriteResponse {
 	if len(req) == 0 {
-		return api.NewBatchWriteResponse(api.EmptyRequest)
+		return api.NewBatchWriteResponse(apimodel.Code_EmptyRequest)
 	}
 
 	if len(req) > MaxBatchSize {
-		return api.NewBatchWriteResponse(api.BatchSizeOverLimit)
+		return api.NewBatchWriteResponse(apimodel.Code_BatchSizeOverLimit)
 	}
 
 	return nil
 }
 
 // checkBatchReadService 检查批量读请求
-func checkBatchReadService(req []*api.Service) *api.BatchQueryResponse {
+func checkBatchReadService(req []*apiservice.Service) *apiservice.BatchQueryResponse {
 	if len(req) == 0 {
-		return api.NewBatchQueryResponse(api.EmptyRequest)
+		return api.NewBatchQueryResponse(apimodel.Code_EmptyRequest)
 	}
 
 	if len(req) > MaxBatchSize {
-		return api.NewBatchQueryResponse(api.BatchSizeOverLimit)
+		return api.NewBatchQueryResponse(apimodel.Code_BatchSizeOverLimit)
 	}
 
 	return nil
 }
 
 // checkCreateService 检查创建服务请求参数
-func checkCreateService(req *api.Service) *api.Response {
+func checkCreateService(req *apiservice.Service) *apiservice.Response {
 	if req == nil {
-		return api.NewServiceResponse(api.EmptyRequest, req)
+		return api.NewServiceResponse(apimodel.Code_EmptyRequest, req)
 	}
 
 	if err := checkResourceName(req.GetName()); err != nil {
-		return api.NewServiceResponse(api.InvalidServiceName, req)
+		return api.NewServiceResponse(apimodel.Code_InvalidServiceName, req)
 	}
 
 	if err := checkResourceName(req.GetNamespace()); err != nil {
-		return api.NewServiceResponse(api.InvalidNamespaceName, req)
+		return api.NewServiceResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
 
 	if err := checkMetadata(req.GetMetadata()); err != nil {
-		return api.NewServiceResponse(api.InvalidMetadata, req)
+		return api.NewServiceResponse(apimodel.Code_InvalidMetadata, req)
 	}
 
 	// 检查字段长度是否大于DB中对应字段长
@@ -933,17 +937,17 @@ func checkCreateService(req *api.Service) *api.Response {
 }
 
 // checkReviseService 检查删除/修改/服务token的服务请求参数
-func checkReviseService(req *api.Service) *api.Response {
+func checkReviseService(req *apiservice.Service) *apiservice.Response {
 	if req == nil {
-		return api.NewServiceResponse(api.EmptyRequest, req)
+		return api.NewServiceResponse(apimodel.Code_EmptyRequest, req)
 	}
 
 	if err := checkResourceName(req.GetName()); err != nil {
-		return api.NewServiceResponse(api.InvalidServiceName, req)
+		return api.NewServiceResponse(apimodel.Code_InvalidServiceName, req)
 	}
 
 	if err := checkResourceName(req.GetNamespace()); err != nil {
-		return api.NewServiceResponse(api.InvalidNamespaceName, req)
+		return api.NewServiceResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
 
 	// 检查字段长度是否大于DB中对应字段长
@@ -956,7 +960,7 @@ func checkReviseService(req *api.Service) *api.Response {
 }
 
 // wrapperServiceStoreResponse wrapper service error
-func wrapperServiceStoreResponse(service *api.Service, err error) *api.Response {
+func wrapperServiceStoreResponse(service *apiservice.Service, err error) *apiservice.Response {
 	resp := storeError2Response(err)
 	if resp == nil {
 		return nil
@@ -976,7 +980,7 @@ func parseRequestToken(ctx context.Context, value string) string {
 }
 
 // serviceRecordEntry 生成服务的记录entry
-func serviceRecordEntry(ctx context.Context, req *api.Service, md *model.Service,
+func serviceRecordEntry(ctx context.Context, req *apiservice.Service, md *model.Service,
 	operationType model.OperationType) *model.RecordEntry {
 
 	marshaler := jsonpb.Marshaler{}
@@ -996,45 +1000,45 @@ func serviceRecordEntry(ctx context.Context, req *api.Service, md *model.Service
 }
 
 // CheckDbServiceFieldLen 检查DB中service表对应的入参字段合法性
-func CheckDbServiceFieldLen(req *api.Service) (*api.Response, bool) {
+func CheckDbServiceFieldLen(req *apiservice.Service) (*apiservice.Response, bool) {
 	if err := utils.CheckDbStrFieldLen(req.GetName(), MaxDbServiceNameLength); err != nil {
-		return api.NewServiceResponse(api.InvalidServiceName, req), true
+		return api.NewServiceResponse(apimodel.Code_InvalidServiceName, req), true
 	}
 	if err := utils.CheckDbStrFieldLen(req.GetNamespace(), MaxDbServiceNamespaceLength); err != nil {
-		return api.NewServiceResponse(api.InvalidNamespaceName, req), true
+		return api.NewServiceResponse(apimodel.Code_InvalidNamespaceName, req), true
 	}
 	if err := utils.CheckDbMetaDataFieldLen(req.GetMetadata()); err != nil {
-		return api.NewServiceResponse(api.InvalidMetadata, req), true
+		return api.NewServiceResponse(apimodel.Code_InvalidMetadata, req), true
 	}
 	if err := utils.CheckDbStrFieldLen(req.GetPorts(), MaxDbServicePortsLength); err != nil {
-		return api.NewServiceResponse(api.InvalidServicePorts, req), true
+		return api.NewServiceResponse(apimodel.Code_InvalidServicePorts, req), true
 	}
 	if err := utils.CheckDbStrFieldLen(req.GetBusiness(), MaxDbServiceBusinessLength); err != nil {
-		return api.NewServiceResponse(api.InvalidServiceBusiness, req), true
+		return api.NewServiceResponse(apimodel.Code_InvalidServiceBusiness, req), true
 	}
 	if err := utils.CheckDbStrFieldLen(req.GetDepartment(), MaxDbServiceDeptLength); err != nil {
-		return api.NewServiceResponse(api.InvalidServiceDepartment, req), true
+		return api.NewServiceResponse(apimodel.Code_InvalidServiceDepartment, req), true
 	}
 	if err := utils.CheckDbStrFieldLen(req.GetCmdbMod1(), MaxDbServiceCMDBLength); err != nil {
-		return api.NewServiceResponse(api.InvalidServiceCMDB, req), true
+		return api.NewServiceResponse(apimodel.Code_InvalidServiceCMDB, req), true
 	}
 	if err := utils.CheckDbStrFieldLen(req.GetCmdbMod2(), MaxDbServiceCMDBLength); err != nil {
-		return api.NewServiceResponse(api.InvalidServiceCMDB, req), true
+		return api.NewServiceResponse(apimodel.Code_InvalidServiceCMDB, req), true
 	}
 	if err := utils.CheckDbStrFieldLen(req.GetCmdbMod3(), MaxDbServiceCMDBLength); err != nil {
-		return api.NewServiceResponse(api.InvalidServiceCMDB, req), true
+		return api.NewServiceResponse(apimodel.Code_InvalidServiceCMDB, req), true
 	}
 	if err := utils.CheckDbStrFieldLen(req.GetComment(), MaxDbServiceCommentLength); err != nil {
-		return api.NewServiceResponse(api.InvalidServiceComment, req), true
+		return api.NewServiceResponse(apimodel.Code_InvalidServiceComment, req), true
 	}
 	if err := utils.CheckDbStrFieldLen(req.GetOwners(), MaxDbServiceOwnerLength); err != nil {
-		return api.NewServiceResponse(api.InvalidServiceOwners, req), true
+		return api.NewServiceResponse(apimodel.Code_InvalidServiceOwners, req), true
 	}
 	if err := utils.CheckDbStrFieldLen(req.GetToken(), MaxDbServiceToken); err != nil {
-		return api.NewServiceResponse(api.InvalidServiceToken, req), true
+		return api.NewServiceResponse(apimodel.Code_InvalidServiceToken, req), true
 	}
 	if err := utils.CheckDbStrFieldLen(req.GetPlatformId(), MaxPlatformIDLength); err != nil {
-		return api.NewServiceResponse(api.InvalidPlatformID, req), true
+		return api.NewServiceResponse(apimodel.Code_InvalidPlatformID, req), true
 	}
 	return nil, false
 }

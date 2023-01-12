@@ -21,13 +21,11 @@ import (
 	"sort"
 	"time"
 
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	apiv1 "github.com/polarismesh/polaris/common/api/v1"
-	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 	"github.com/polarismesh/polaris/common/model"
-	v2 "github.com/polarismesh/polaris/common/model/v2"
 	routingcommon "github.com/polarismesh/polaris/common/routing"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -40,19 +38,19 @@ const (
 
 type (
 	// RoutingIterProc 遍历路由规则的方法定义
-	RoutingIterProc func(key string, value *v2.ExtendRoutingConfig)
+	RoutingIterProc func(key string, value *model.ExtendRouterConfig)
 
 	// RoutingConfigCache routing配置的cache接口
 	RoutingConfigCache interface {
 		Cache
 		// GetRoutingConfigV1 根据ServiceID获取路由配置
-		GetRoutingConfigV1(id, service, namespace string) (*apiv1.Routing, error)
-		// GetRoutingConfig 根据ServiceID获取路由配置
-		GetRoutingConfigV2(id, service, namespace string) ([]*apiv2.Routing, error)
+		GetRoutingConfigV1(id, service, namespace string) (*apitraffic.Routing, error)
+		// GetRoutingConfigV2 根据ServiceID获取路由配置
+		GetRoutingConfigV2(id, service, namespace string) ([]*apitraffic.RouteRule, error)
 		// GetRoutingConfigCount 获取路由配置缓存的总个数
 		GetRoutingConfigCount() int
 		// GetRoutingConfigsV2 查询路由配置列表
-		GetRoutingConfigsV2(args *RoutingArgs) (uint32, []*v2.ExtendRoutingConfig, error)
+		GetRoutingConfigsV2(args *RoutingArgs) (uint32, []*model.ExtendRouterConfig, error)
 		// IsConvertFromV1 当前路由规则是否是从 v1 规则转换过来的
 		IsConvertFromV1(id string) (string, bool)
 	}
@@ -166,14 +164,14 @@ func (rc *routingConfigCache) name() string {
 // case 1: 如果只存在 v2 的路由规则，使用 v2
 // case 2: 如果只存在 v1 的路由规则，使用 v1
 // case 3: 如果同时存在 v1 和 v2 的路由规则，进行合并
-func (rc *routingConfigCache) GetRoutingConfigV1(id, service, namespace string) (*apiv1.Routing, error) {
+func (rc *routingConfigCache) GetRoutingConfigV1(id, service, namespace string) (*apitraffic.Routing, error) {
 	if id == "" && service == "" && namespace == "" {
 		return nil, nil
 	}
 
 	v2rules := rc.bucketV2.listByServiceWithPredicate(service, namespace,
 		// 只返回 enable 状态的路由规则进行下发
-		func(item *v2.ExtendRoutingConfig) bool {
+		func(item *model.ExtendRouterConfig) bool {
 			return item.Enable
 		})
 	v1rules := rc.bucketV1.get(id)
@@ -207,7 +205,7 @@ func (rc *routingConfigCache) GetRoutingConfigV1(id, service, namespace string) 
 }
 
 // formatRoutingResponseV1 给客户端的缓存，不需要暴露 ExtendInfo 信息数据
-func formatRoutingResponseV1(ret *apiv1.Routing) *apiv1.Routing {
+func formatRoutingResponseV1(ret *apitraffic.Routing) *apitraffic.Routing {
 	inBounds := ret.Inbounds
 	outBounds := ret.Outbounds
 
@@ -222,13 +220,13 @@ func formatRoutingResponseV1(ret *apiv1.Routing) *apiv1.Routing {
 }
 
 // GetRoutingConfigV2 根据服务信息获取该服务下的所有 v2 版本的规则路由
-func (rc *routingConfigCache) GetRoutingConfigV2(_, service, namespace string) ([]*apiv2.Routing, error) {
+func (rc *routingConfigCache) GetRoutingConfigV2(_, service, namespace string) ([]*apitraffic.RouteRule, error) {
 	v2rules := rc.bucketV2.listByServiceWithPredicate(service, namespace,
-		func(item *v2.ExtendRoutingConfig) bool {
+		func(item *model.ExtendRouterConfig) bool {
 			return item.Enable
 		})
 
-	ret := make([]*apiv2.Routing, 0, len(v2rules))
+	ret := make([]*apitraffic.RouteRule, 0, len(v2rules))
 	for level := range v2rules {
 		items := v2rules[level]
 		for i := range items {
@@ -290,7 +288,7 @@ func (rc *routingConfigCache) setRoutingConfigV1(cs []*model.RoutingConfig) erro
 }
 
 // setRoutingConfigV2 存储 v2 路由规则缓存
-func (rc *routingConfigCache) setRoutingConfigV2(cs []*v2.RoutingConfig) error {
+func (rc *routingConfigCache) setRoutingConfigV2(cs []*model.RouterConfig) error {
 	if len(cs) == 0 {
 		return nil
 	}
@@ -342,7 +340,7 @@ func (rc *routingConfigCache) IsConvertFromV1(id string) (string, bool) {
 	return val, ok
 }
 
-func (rc *routingConfigCache) convertRoutingV1toV2(rule *model.RoutingConfig) ([]*v2.ExtendRoutingConfig, error) {
+func (rc *routingConfigCache) convertRoutingV1toV2(rule *model.RoutingConfig) ([]*model.ExtendRouterConfig, error) {
 	svc := rc.serviceCache.GetServiceByID(rule.ID)
 	if svc == nil {
 		_svc, err := rc.storage.GetServiceByID(rule.ID)
@@ -361,7 +359,7 @@ func (rc *routingConfigCache) convertRoutingV1toV2(rule *model.RoutingConfig) ([
 		return nil, err
 	}
 
-	ret := make([]*v2.ExtendRoutingConfig, 0, len(in)+len(out))
+	ret := make([]*model.ExtendRouterConfig, 0, len(in)+len(out))
 	ret = append(ret, in...)
 	ret = append(ret, out...)
 
@@ -369,8 +367,8 @@ func (rc *routingConfigCache) convertRoutingV1toV2(rule *model.RoutingConfig) ([
 }
 
 // convertRoutingV2toV1 v2 版本的路由规则转为 v1 版本进行返回给客户端，用于兼容 SDK 下发配置的场景
-func (rc *routingConfigCache) convertRoutingV2toV1(entries map[routingLevel][]*v2.ExtendRoutingConfig,
-	service, namespace string) *apiv1.Routing {
+func (rc *routingConfigCache) convertRoutingV2toV1(entries map[routingLevel][]*model.ExtendRouterConfig,
+	service, namespace string) *apitraffic.Routing {
 	level1 := entries[level1RoutingV2]
 	sort.Slice(level1, func(i, j int) bool {
 		return routingcommon.CompareRoutingV2(level1[i], level1[j])
@@ -400,17 +398,17 @@ func (rc *routingConfigCache) convertRoutingV2toV1(entries map[routingLevel][]*v
 		return nil
 	}
 
-	inRoutes := make([]*apiv1.Route, 0, len(level1inRoutes)+len(level2inRoutes)+len(level3inRoutes))
+	inRoutes := make([]*apitraffic.Route, 0, len(level1inRoutes)+len(level2inRoutes)+len(level3inRoutes))
 	inRoutes = append(inRoutes, level1inRoutes...)
 	inRoutes = append(inRoutes, level2inRoutes...)
 	inRoutes = append(inRoutes, level3inRoutes...)
 
-	outRoutes := make([]*apiv1.Route, 0, len(level1outRoutes)+len(level2outRoutes)+len(level3outRoutes))
+	outRoutes := make([]*apitraffic.Route, 0, len(level1outRoutes)+len(level2outRoutes)+len(level3outRoutes))
 	outRoutes = append(outRoutes, level1outRoutes...)
 	outRoutes = append(outRoutes, level2outRoutes...)
 	outRoutes = append(outRoutes, level3outRoutes...)
 
-	return &apiv1.Routing{
+	return &apitraffic.Routing{
 		Service:   utils.NewStringValue(service),
 		Namespace: utils.NewStringValue(namespace),
 		Inbounds:  inRoutes,

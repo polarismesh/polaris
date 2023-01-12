@@ -19,13 +19,13 @@ package defaultauth
 
 import (
 	"fmt"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/polarismesh/polaris/cache"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	storemock "github.com/polarismesh/polaris/store/mock"
@@ -163,13 +163,13 @@ func createMockUser(total int, prefix ...string) []*model.User {
 	return users
 }
 
-func createApiMockUser(total int, prefix ...string) []*api.User {
-	users := make([]*api.User, 0, total)
+func createApiMockUser(total int, prefix ...string) []*apisecurity.User {
+	users := make([]*apisecurity.User, 0, total)
 
 	models := createMockUser(total, prefix...)
 
 	for i := range models {
-		users = append(users, &api.User{
+		users = append(users, &apisecurity.User{
 			Name:     utils.NewStringValue("test-" + models[i].Name),
 			Password: utils.NewStringValue("123456"),
 			Source:   utils.NewStringValue("Polaris"),
@@ -213,7 +213,7 @@ func createMockUserGroup(users []*model.User) []*model.UserGroupDetail {
 }
 
 // createMockApiUserGroup
-func createMockApiUserGroup(users []*api.User) []*api.UserGroup {
+func createMockApiUserGroup(users []*apisecurity.User) []*apisecurity.UserGroup {
 	musers := make([]*model.User, 0, len(users))
 	for i := range users {
 		musers = append(musers, &model.User{
@@ -222,14 +222,14 @@ func createMockApiUserGroup(users []*api.User) []*api.UserGroup {
 	}
 
 	models := createMockUserGroup(musers)
-	ret := make([]*api.UserGroup, 0, len(models))
+	ret := make([]*apisecurity.UserGroup, 0, len(models))
 
 	for i := range models {
-		ret = append(ret, &api.UserGroup{
+		ret = append(ret, &apisecurity.UserGroup{
 			Name:    utils.NewStringValue(models[i].Name),
 			Comment: utils.NewStringValue(models[i].Comment),
-			Relation: &api.UserGroupRelation{
-				Users: []*api.User{
+			Relation: &apisecurity.UserGroupRelation{
+				Users: []*apisecurity.User{
 					{
 						Id: utils.NewStringValue(users[i].GetId().GetValue()),
 					},
@@ -261,7 +261,7 @@ func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, se
 		strategies = append(strategies, &model.StrategyDetail{
 			ID:      id,
 			Name:    fmt.Sprintf("strategy_user_%s_%d", user.Name, i),
-			Action:  api.AuthAction_READ_WRITE.String(),
+			Action:  apisecurity.AuthAction_READ_WRITE.String(),
 			Comment: "",
 			Principals: []model.Principal{
 				{
@@ -274,12 +274,12 @@ func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, se
 			Resources: []model.StrategyResource{
 				{
 					StrategyID: id,
-					ResType:    int32(api.ResourceType_Namespaces),
+					ResType:    int32(apisecurity.ResourceType_Namespaces),
 					ResID:      service.Namespace,
 				},
 				{
 					StrategyID: id,
-					ResType:    int32(api.ResourceType_Services),
+					ResType:    int32(apisecurity.ResourceType_Services),
 					ResID:      service.ID,
 				},
 			},
@@ -292,7 +292,7 @@ func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, se
 		defaultStrategies = append(defaultStrategies, &model.StrategyDetail{
 			ID:      id,
 			Name:    fmt.Sprintf("strategy_default_user_%s_%d", user.Name, i),
-			Action:  api.AuthAction_READ_WRITE.String(),
+			Action:  apisecurity.AuthAction_READ_WRITE.String(),
 			Comment: "",
 			Principals: []model.Principal{
 				{
@@ -305,12 +305,12 @@ func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, se
 			Resources: []model.StrategyResource{
 				{
 					StrategyID: id,
-					ResType:    int32(api.ResourceType_Namespaces),
+					ResType:    int32(apisecurity.ResourceType_Namespaces),
 					ResID:      service.Namespace,
 				},
 				{
 					StrategyID: id,
-					ResType:    int32(api.ResourceType_Services),
+					ResType:    int32(apisecurity.ResourceType_Services),
 					ResID:      service.ID,
 				},
 			},
@@ -328,7 +328,7 @@ func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, se
 		strategies = append(strategies, &model.StrategyDetail{
 			ID:      id,
 			Name:    fmt.Sprintf("strategy_group_%s_%d", group.Name, i),
-			Action:  api.AuthAction_READ_WRITE.String(),
+			Action:  apisecurity.AuthAction_READ_WRITE.String(),
 			Comment: "",
 			Principals: []model.Principal{
 				{
@@ -341,12 +341,12 @@ func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, se
 			Resources: []model.StrategyResource{
 				{
 					StrategyID: id,
-					ResType:    int32(api.ResourceType_Namespaces),
+					ResType:    int32(apisecurity.ResourceType_Namespaces),
 					ResID:      service.Namespace,
 				},
 				{
 					StrategyID: id,
-					ResType:    int32(api.ResourceType_Services),
+					ResType:    int32(apisecurity.ResourceType_Services),
 					ResID:      service.ID,
 				},
 			},
@@ -359,7 +359,7 @@ func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, se
 		defaultStrategies = append(defaultStrategies, &model.StrategyDetail{
 			ID:      id,
 			Name:    fmt.Sprintf("strategy_default_group_%s_%d", group.Name, i),
-			Action:  api.AuthAction_READ_WRITE.String(),
+			Action:  apisecurity.AuthAction_READ_WRITE.String(),
 			Comment: "",
 			Principals: []model.Principal{
 				{
@@ -372,12 +372,12 @@ func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, se
 			Resources: []model.StrategyResource{
 				{
 					StrategyID: id,
-					ResType:    int32(api.ResourceType_Namespaces),
+					ResType:    int32(apisecurity.ResourceType_Namespaces),
 					ResID:      service.Namespace,
 				},
 				{
 					StrategyID: id,
-					ResType:    int32(api.ResourceType_Services),
+					ResType:    int32(apisecurity.ResourceType_Services),
 					ResID:      service.ID,
 				},
 			},

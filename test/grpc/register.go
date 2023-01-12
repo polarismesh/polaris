@@ -20,16 +20,16 @@ package grpc
 import (
 	"context"
 	"fmt"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"time"
 
 	"google.golang.org/grpc/metadata"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 // RegisterInstance 注册服务实例
-func (c *Client) RegisterInstance(instance *api.Instance) error {
+func (c *Client) RegisterInstance(instance *apiservice.Instance) error {
 	fmt.Printf("\nregister instance\n")
 
 	md := metadata.Pairs("request-id", utils.NewUUID())
@@ -50,7 +50,7 @@ func (c *Client) RegisterInstance(instance *api.Instance) error {
 }
 
 // DeregisterInstance 反注册服务实例
-func (c *Client) DeregisterInstance(instance *api.Instance) error {
+func (c *Client) DeregisterInstance(instance *apiservice.Instance) error {
 	fmt.Printf("\nderegister instance\n")
 
 	md := metadata.Pairs("request-id", utils.NewUUID())

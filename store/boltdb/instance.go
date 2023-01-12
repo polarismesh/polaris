@@ -26,9 +26,9 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 )
@@ -210,7 +210,7 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 			if !ok {
 				return false
 			}
-			id := insProto.(*api.Instance).GetId().GetValue()
+			id := insProto.(*apiservice.Instance).GetId().GetValue()
 			_, ok = ids[id]
 			return ok
 		})
@@ -283,7 +283,7 @@ func (i *instanceStore) GetInstance(instanceID string) (*model.Instance, error) 
 			if !ok {
 				return false
 			}
-			id := insProto.(*api.Instance).GetId().GetValue()
+			id := insProto.(*apiservice.Instance).GetId().GetValue()
 			return id == instanceID
 		})
 	if err != nil {
@@ -332,7 +332,7 @@ func (i *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*mo
 			}
 
 			svcId := sId.(string)
-			h := insProto.(*api.Instance).GetHost().GetValue()
+			h := insProto.(*apiservice.Instance).GetHost().GetValue()
 			if svcId != serviceID {
 				return false
 			}
@@ -388,7 +388,7 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 			if !ok {
 				return false
 			}
-			ins := insProto.(*api.Instance)
+			ins := insProto.(*apiservice.Instance)
 			host, isHost := filter["host"]
 			port, isPort := filter["port"]
 			protocol, isProtocol := filter["protocol"]
@@ -462,8 +462,8 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 		ins := v.(*model.Instance)
 		service, ok := svcRets[ins.ServiceID]
 		if !ok {
-			log.Errorf("[Store][boltdb] no found instance relate service, instance-id: %s, service-id: %s",
-				ins.ID(), ins.ServiceID)
+			log.Errorf("[Store][boltdb] no found instance relate service, "+
+				"instance-id: %s, service-id: %s", ins.ID(), ins.ServiceID)
 			return 0, nil, errors.New("no found instance relate service")
 		}
 		ins.Proto.Service = wrapperspb.String(service.(*model.Service).Name)
@@ -503,7 +503,7 @@ func (i *instanceStore) GetMoreInstances(
 			if !ok {
 				return false
 			}
-			ins := insProto.(*api.Instance)
+			ins := insProto.(*apiservice.Instance)
 			serviceId := svcId.(string)
 
 			insMtime, err := time.Parse("2006-01-02 15:04:05", ins.GetMtime().GetValue())
@@ -556,7 +556,7 @@ func (i *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, rev
 			if !ok {
 				return false
 			}
-			insId := insProto.(*api.Instance).GetId().GetValue()
+			insId := insProto.(*apiservice.Instance).GetId().GetValue()
 
 			return insId == instanceID
 		})
@@ -619,7 +619,7 @@ func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, 
 			if !ok {
 				return false
 			}
-			insId := proto.(*api.Instance).GetId().GetValue()
+			insId := proto.(*apiservice.Instance).GetId().GetValue()
 
 			_, ok = insIds[insId]
 			return ok

@@ -18,15 +18,15 @@
 package cache
 
 import (
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"testing"
 
-	apiv2 "github.com/polarismesh/polaris/common/api/v2"
-	v2 "github.com/polarismesh/polaris/common/model/v2"
+	"github.com/polarismesh/polaris/common/model"
 )
 
 func Test_queryRoutingRuleV2ByService(t *testing.T) {
 	type args struct {
-		rule            *v2.ExtendRoutingConfig
+		rule            *model.ExtendRouterConfig
 		sourceNamespace string
 		sourceService   string
 		destNamespace   string
@@ -41,15 +41,15 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 		{
 			name: "命名空间-或-精确查询",
 			args: args{
-				rule: &v2.ExtendRoutingConfig{
-					RuleRouting: &apiv2.RuleRoutingConfig{
-						Sources: []*apiv2.Source{
+				rule: &model.ExtendRouterConfig{
+					RuleRouting: &apitraffic.RuleRoutingConfig{
+						Sources: []*apitraffic.SourceService{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
 							},
 						},
-						Destinations: []*apiv2.Destination{
+						Destinations: []*apitraffic.DestinationGroup{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
@@ -68,15 +68,15 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 		{
 			name: "命名空间-与-精确查询",
 			args: args{
-				rule: &v2.ExtendRoutingConfig{
-					RuleRouting: &apiv2.RuleRoutingConfig{
-						Sources: []*apiv2.Source{
+				rule: &model.ExtendRouterConfig{
+					RuleRouting: &apitraffic.RuleRoutingConfig{
+						Sources: []*apitraffic.SourceService{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
 							},
 						},
-						Destinations: []*apiv2.Destination{
+						Destinations: []*apitraffic.DestinationGroup{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
@@ -95,15 +95,15 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 		{
 			name: "命名空间-或-模糊查询",
 			args: args{
-				rule: &v2.ExtendRoutingConfig{
-					RuleRouting: &apiv2.RuleRoutingConfig{
-						Sources: []*apiv2.Source{
+				rule: &model.ExtendRouterConfig{
+					RuleRouting: &apitraffic.RuleRoutingConfig{
+						Sources: []*apitraffic.SourceService{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
 							},
 						},
-						Destinations: []*apiv2.Destination{
+						Destinations: []*apitraffic.DestinationGroup{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
@@ -122,15 +122,15 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 		{
 			name: "命名空间-与-模糊查询",
 			args: args{
-				rule: &v2.ExtendRoutingConfig{
-					RuleRouting: &apiv2.RuleRoutingConfig{
-						Sources: []*apiv2.Source{
+				rule: &model.ExtendRouterConfig{
+					RuleRouting: &apitraffic.RuleRoutingConfig{
+						Sources: []*apitraffic.SourceService{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
 							},
 						},
-						Destinations: []*apiv2.Destination{
+						Destinations: []*apitraffic.DestinationGroup{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
@@ -149,15 +149,15 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 		{
 			name: "(命名空间精确查询+服务名精确查询)-或",
 			args: args{
-				rule: &v2.ExtendRoutingConfig{
-					RuleRouting: &apiv2.RuleRoutingConfig{
-						Sources: []*apiv2.Source{
+				rule: &model.ExtendRouterConfig{
+					RuleRouting: &apitraffic.RuleRoutingConfig{
+						Sources: []*apitraffic.SourceService{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
 							},
 						},
-						Destinations: []*apiv2.Destination{
+						Destinations: []*apitraffic.DestinationGroup{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
@@ -176,15 +176,15 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 		{
 			name: "(命名空间精确查询+服务名精确查询)-与",
 			args: args{
-				rule: &v2.ExtendRoutingConfig{
-					RuleRouting: &apiv2.RuleRoutingConfig{
-						Sources: []*apiv2.Source{
+				rule: &model.ExtendRouterConfig{
+					RuleRouting: &apitraffic.RuleRoutingConfig{
+						Sources: []*apitraffic.SourceService{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
 							},
 						},
-						Destinations: []*apiv2.Destination{
+						Destinations: []*apitraffic.DestinationGroup{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
@@ -203,15 +203,15 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 		{
 			name: "(命名空间精确查询+服务名精确查询)-与",
 			args: args{
-				rule: &v2.ExtendRoutingConfig{
-					RuleRouting: &apiv2.RuleRoutingConfig{
-						Sources: []*apiv2.Source{
+				rule: &model.ExtendRouterConfig{
+					RuleRouting: &apitraffic.RuleRoutingConfig{
+						Sources: []*apitraffic.SourceService{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
 							},
 						},
-						Destinations: []*apiv2.Destination{
+						Destinations: []*apitraffic.DestinationGroup{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
@@ -230,15 +230,15 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 		{
 			name: "(命名空间模糊+服务名精确查询)-或",
 			args: args{
-				rule: &v2.ExtendRoutingConfig{
-					RuleRouting: &apiv2.RuleRoutingConfig{
-						Sources: []*apiv2.Source{
+				rule: &model.ExtendRouterConfig{
+					RuleRouting: &apitraffic.RuleRoutingConfig{
+						Sources: []*apitraffic.SourceService{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
 							},
 						},
-						Destinations: []*apiv2.Destination{
+						Destinations: []*apitraffic.DestinationGroup{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
@@ -257,15 +257,15 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 		{
 			name: "(命名空间模糊+服务名精确查询)-或",
 			args: args{
-				rule: &v2.ExtendRoutingConfig{
-					RuleRouting: &apiv2.RuleRoutingConfig{
-						Sources: []*apiv2.Source{
+				rule: &model.ExtendRouterConfig{
+					RuleRouting: &apitraffic.RuleRoutingConfig{
+						Sources: []*apitraffic.SourceService{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
 							},
 						},
-						Destinations: []*apiv2.Destination{
+						Destinations: []*apitraffic.DestinationGroup{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
@@ -284,15 +284,15 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 		{
 			name: "(命名空间模糊+服务名精确查询)-或",
 			args: args{
-				rule: &v2.ExtendRoutingConfig{
-					RuleRouting: &apiv2.RuleRoutingConfig{
-						Sources: []*apiv2.Source{
+				rule: &model.ExtendRouterConfig{
+					RuleRouting: &apitraffic.RuleRoutingConfig{
+						Sources: []*apitraffic.SourceService{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",
 							},
 						},
-						Destinations: []*apiv2.Destination{
+						Destinations: []*apitraffic.DestinationGroup{
 							{
 								Service:   "test-1",
 								Namespace: "test-1",

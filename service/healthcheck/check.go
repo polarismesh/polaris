@@ -23,9 +23,10 @@ import (
 	"sync"
 	"time"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/srand"
 	"github.com/polarismesh/polaris/common/timewheel"
@@ -306,7 +307,7 @@ func (c *CheckScheduler) AddClient(clientWithChecker *ClientWithChecker) {
 	c.addUnHealthyCallback(instValue)
 }
 
-func getExpireDurationSec(instance *api.Instance) uint32 {
+func getExpireDurationSec(instance *apiservice.Instance) uint32 {
 	ttlValue := instance.GetHealthCheck().GetHeartbeat().GetTtl().GetValue()
 	return expireTtlCount * ttlValue
 }
@@ -372,7 +373,6 @@ func (c *CheckScheduler) checkCallbackClient(value interface{}) {
 	}
 	instanceValue.mutex.Lock()
 	defer instanceValue.mutex.Unlock()
-
 	var checkResp *plugin.CheckResponse
 	var err error
 	defer func() {
@@ -409,7 +409,7 @@ func (c *CheckScheduler) checkCallbackClient(value interface{}) {
 				"[Health Check][Check]client change from healthy to unhealthy, id is %s, address is %s",
 				instanceValue.id, instanceValue.host)
 			code := server.asyncDeleteClient(cachedClient.Proto())
-			if code != api.ExecuteSuccess {
+			if code != apimodel.Code_ExecuteSuccess {
 				log.Errorf("[Health Check][Check]fail to update client, id is %s, address is %s, code is %d",
 					instanceValue.id, instanceValue.host, code)
 			}
@@ -472,7 +472,7 @@ func (c *CheckScheduler) checkCallbackInstance(value interface{}) {
 				"[Health Check][Check]instance change from healthy to unhealthy, id is %s, address is %s:%d",
 				instanceValue.id, instanceValue.host, instanceValue.port)
 		}
-		if code != api.ExecuteSuccess {
+		if code != apimodel.Code_ExecuteSuccess {
 			log.Errorf(
 				"[Health Check][Check]fail to update instance, id is %s, address is %s:%d, code is %d",
 				instanceValue.id, instanceValue.host, instanceValue.port, code)
@@ -513,19 +513,19 @@ func (c *CheckScheduler) delIfPresent(instanceId string) bool {
 }
 
 // setInsDbStatus 修改实例状态, 需要打印操作记录
-func setInsDbStatus(instance *model.Instance, healthStatus bool) uint32 {
+func setInsDbStatus(instance *model.Instance, healthStatus bool) apimodel.Code {
 	id := instance.ID()
 	host := instance.Host()
 	port := instance.Port()
 	log.Infof("[Health Check][Check]addr:%s:%d id:%s set db status %v", host, port, id, healthStatus)
 
-	var code uint32
+	var code apimodel.Code
 	if server.bc.HeartbeatOpen() {
 		code = server.asyncSetInsDbStatus(instance.Proto, healthStatus)
 	} else {
 		code = server.serialSetInsDbStatus(instance.Proto, healthStatus)
 	}
-	if code != api.ExecuteSuccess {
+	if code != apimodel.Code_ExecuteSuccess {
 		return code
 	}
 
@@ -556,7 +556,7 @@ func setInsDbStatus(instance *model.Instance, healthStatus bool) uint32 {
 // 底层函数会合并delete请求，增加并发创建的吞吐
 // req 原始请求
 // ins 包含了req数据与instanceID，serviceToken
-func (s *Server) asyncSetInsDbStatus(ins *api.Instance, healthStatus bool) uint32 {
+func (s *Server) asyncSetInsDbStatus(ins *apiservice.Instance, healthStatus bool) apimodel.Code {
 	future := s.bc.AsyncHeartbeat(ins, healthStatus)
 	if err := future.Wait(); err != nil {
 		log.Error(err.Error())
@@ -568,7 +568,7 @@ func (s *Server) asyncSetInsDbStatus(ins *api.Instance, healthStatus bool) uint3
 // 底层函数会合并delete请求，增加并发创建的吞吐
 // req 原始请求
 // ins 包含了req数据与instanceID，serviceToken
-func (s *Server) asyncDeleteClient(client *api.Client) uint32 {
+func (s *Server) asyncDeleteClient(client *apiservice.Client) apimodel.Code {
 	future := s.bc.AsyncDeregisterClient(client)
 	if err := future.Wait(); err != nil {
 		log.Error("[Health Check][Check] async delete client", zap.String("client-id", client.GetId().GetValue()),
@@ -580,14 +580,14 @@ func (s *Server) asyncDeleteClient(client *api.Client) uint32 {
 // serialSetInsDbStatus 同步串行创建实例
 // req为原始的请求体
 // ins包括了req的内容，并且填充了instanceID与serviceToken
-func (s *Server) serialSetInsDbStatus(ins *api.Instance, healthStatus bool) uint32 {
+func (s *Server) serialSetInsDbStatus(ins *apiservice.Instance, healthStatus bool) apimodel.Code {
 	id := ins.GetId().GetValue()
 	err := server.storage.SetInstanceHealthStatus(id, model.StatusBoolToInt(healthStatus), utils.NewUUID())
 	if err != nil {
 		log.Errorf("[Health Check][Check]id: %s set db status err:%s", id, err)
-		return api.StoreLayerException
+		return apimodel.Code_StoreLayerException
 	}
-	return api.ExecuteSuccess
+	return apimodel.Code_ExecuteSuccess
 }
 
 type leaderChangeEventHandler struct {
@@ -699,7 +699,7 @@ func (handler *leaderChangeEventHandler) doCheckSelfServiceInstance(cachedInstan
 				"[Health Check][Check]selfService instance change from healthy to unhealthy, id is %s, address is %s:%d",
 				cachedInstance.ID(), cachedInstance.Host(), cachedInstance.Port())
 		}
-		if code != api.ExecuteSuccess {
+		if code != apimodel.Code_ExecuteSuccess {
 			log.Errorf(
 				"[Health Check][Check]fail to update selfService instance, id is %s, address is %s:%d, code is %d",
 				cachedInstance.ID(), cachedInstance.Host(), cachedInstance.Port(), code)

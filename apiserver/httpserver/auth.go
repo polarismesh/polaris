@@ -22,6 +22,9 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/proto"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -71,8 +74,8 @@ func (h *HTTPServer) AuthStatus(req *restful.Request, rsp *restful.Response) {
 	checker := h.authServer.GetAuthChecker()
 
 	isOpen := (checker.IsOpenClientAuth() || checker.IsOpenConsoleAuth())
-	resp := api.NewResponse(api.ExecuteSuccess)
-	resp.OptionSwitch = &api.OptionSwitch{
+	resp := api.NewAuthResponse(apimodel.Code_ExecuteSuccess)
+	resp.OptionSwitch = &apiservice.OptionSwitch{
 		Options: map[string]string{
 			"auth": strconv.FormatBool(isOpen),
 		},
@@ -88,11 +91,11 @@ func (h *HTTPServer) Login(req *restful.Request, rsp *restful.Response) {
 		Response: rsp,
 	}
 
-	loginReq := &api.LoginRequest{}
+	loginReq := &apisecurity.LoginRequest{}
 
 	_, err := handler.Parse(loginReq)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewAuthResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -109,12 +112,12 @@ func (h *HTTPServer) CreateUsers(req *restful.Request, rsp *restful.Response) {
 	var users UserArr
 
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.User{}
+		msg := &apisecurity.User{}
 		users = append(users, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -128,11 +131,11 @@ func (h *HTTPServer) UpdateUser(req *restful.Request, rsp *restful.Response) {
 		Response: rsp,
 	}
 
-	user := &api.User{}
+	user := &apisecurity.User{}
 
 	ctx, err := handler.Parse(user)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -146,11 +149,11 @@ func (h *HTTPServer) UpdateUserPassword(req *restful.Request, rsp *restful.Respo
 		Response: rsp,
 	}
 
-	user := &api.ModifyUserPassword{}
+	user := &apisecurity.ModifyUserPassword{}
 
 	ctx, err := handler.Parse(user)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -167,12 +170,12 @@ func (h *HTTPServer) DeleteUsers(req *restful.Request, rsp *restful.Response) {
 	var users UserArr
 
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.User{}
+		msg := &apisecurity.User{}
 		users = append(users, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -200,7 +203,7 @@ func (h *HTTPServer) GetUserToken(req *restful.Request, rsp *restful.Response) {
 	}
 	queryParams := httpcommon.ParseQueryParams(req)
 
-	user := &api.User{
+	user := &apisecurity.User{
 		Id: utils.NewStringValue(queryParams["id"]),
 	}
 
@@ -214,11 +217,11 @@ func (h *HTTPServer) UpdateUserToken(req *restful.Request, rsp *restful.Response
 		Response: rsp,
 	}
 
-	user := &api.User{}
+	user := &apisecurity.User{}
 
 	ctx, err := handler.Parse(user)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -232,11 +235,11 @@ func (h *HTTPServer) ResetUserToken(req *restful.Request, rsp *restful.Response)
 		Response: rsp,
 	}
 
-	user := &api.User{}
+	user := &apisecurity.User{}
 
 	ctx, err := handler.Parse(user)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -250,11 +253,11 @@ func (h *HTTPServer) CreateGroup(req *restful.Request, rsp *restful.Response) {
 		Response: rsp,
 	}
 
-	group := &api.UserGroup{}
+	group := &apisecurity.UserGroup{}
 
 	ctx, err := handler.Parse(group)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -271,12 +274,12 @@ func (h *HTTPServer) UpdateGroups(req *restful.Request, rsp *restful.Response) {
 	var groups ModifyGroupArr
 
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.ModifyUserGroup{}
+		msg := &apisecurity.ModifyUserGroup{}
 		groups = append(groups, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -293,12 +296,12 @@ func (h *HTTPServer) DeleteGroups(req *restful.Request, rsp *restful.Response) {
 	var groups GroupArr
 
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.UserGroup{}
+		msg := &apisecurity.UserGroup{}
 		groups = append(groups, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -328,7 +331,7 @@ func (h *HTTPServer) GetGroup(req *restful.Request, rsp *restful.Response) {
 	queryParams := httpcommon.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
-	group := &api.UserGroup{
+	group := &apisecurity.UserGroup{
 		Id: utils.NewStringValue(queryParams["id"]),
 	}
 
@@ -345,7 +348,7 @@ func (h *HTTPServer) GetGroupToken(req *restful.Request, rsp *restful.Response) 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
-	group := &api.UserGroup{
+	group := &apisecurity.UserGroup{
 		Id: utils.NewStringValue(queryParams["id"]),
 	}
 
@@ -359,11 +362,11 @@ func (h *HTTPServer) UpdateGroupToken(req *restful.Request, rsp *restful.Respons
 		Response: rsp,
 	}
 
-	group := &api.UserGroup{}
+	group := &apisecurity.UserGroup{}
 
 	ctx, err := handler.Parse(group)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -377,11 +380,11 @@ func (h *HTTPServer) ResetGroupToken(req *restful.Request, rsp *restful.Response
 		Response: rsp,
 	}
 
-	group := &api.UserGroup{}
+	group := &apisecurity.UserGroup{}
 
 	ctx, err := handler.Parse(group)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -395,11 +398,11 @@ func (h *HTTPServer) CreateStrategy(req *restful.Request, rsp *restful.Response)
 		Response: rsp,
 	}
 
-	strategy := &api.AuthStrategy{}
+	strategy := &apisecurity.AuthStrategy{}
 
 	ctx, err := handler.Parse(strategy)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewAuthResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -416,12 +419,12 @@ func (h *HTTPServer) UpdateStrategies(req *restful.Request, rsp *restful.Respons
 	var strategies ModifyStrategyArr
 
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.ModifyAuthStrategy{}
+		msg := &apisecurity.ModifyAuthStrategy{}
 		strategies = append(strategies, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -438,12 +441,12 @@ func (h *HTTPServer) DeleteStrategies(req *restful.Request, rsp *restful.Respons
 	var strategies StrategyArr
 
 	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &api.AuthStrategy{}
+		msg := &apisecurity.AuthStrategy{}
 		strategies = append(strategies, msg)
 		return msg
 	})
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -473,7 +476,7 @@ func (h *HTTPServer) GetStrategy(req *restful.Request, rsp *restful.Response) {
 	queryParams := httpcommon.ParseQueryParams(req)
 	ctx := handler.ParseHeaderContext()
 
-	strategy := &api.AuthStrategy{
+	strategy := &apisecurity.AuthStrategy{
 		Id: utils.NewStringValue(queryParams["id"]),
 	}
 

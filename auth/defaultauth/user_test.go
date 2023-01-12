@@ -19,6 +19,7 @@ package defaultauth
 
 import (
 	"context"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"testing"
 	"time"
 
@@ -147,7 +148,7 @@ func Test_server_CreateUsers(t *testing.T) {
 	defer userTest.Clean()
 
 	t.Run("主账户创建账户-成功", func(t *testing.T) {
-		createUsersReq := []*api.User{
+		createUsersReq := []*apisecurity.User{
 			{
 				Id:       &wrappers.StringValue{Value: utils.NewUUID()},
 				Name:     &wrappers.StringValue{Value: "create-user-1"},
@@ -165,7 +166,7 @@ func Test_server_CreateUsers(t *testing.T) {
 	})
 
 	t.Run("主账户创建账户-无用户名-失败", func(t *testing.T) {
-		createUsersReq := []*api.User{
+		createUsersReq := []*apisecurity.User{
 			{
 				Id: &wrappers.StringValue{Value: utils.NewUUID()},
 			},
@@ -179,7 +180,7 @@ func Test_server_CreateUsers(t *testing.T) {
 	})
 
 	t.Run("主账户创建账户-密码错误-失败", func(t *testing.T) {
-		createUsersReq := []*api.User{
+		createUsersReq := []*apisecurity.User{
 			{
 				Id:       &wrappers.StringValue{Value: utils.NewUUID()},
 				Name:     &wrappers.StringValue{Value: "create-user-1"},
@@ -195,7 +196,7 @@ func Test_server_CreateUsers(t *testing.T) {
 	})
 
 	t.Run("主账户创建账户-同名用户-失败", func(t *testing.T) {
-		createUsersReq := []*api.User{
+		createUsersReq := []*apisecurity.User{
 			{
 				Id:       &wrappers.StringValue{Value: utils.NewUUID()},
 				Name:     &wrappers.StringValue{Value: "create-user-2"},
@@ -213,7 +214,7 @@ func Test_server_CreateUsers(t *testing.T) {
 	})
 
 	t.Run("主账户创建账户-与主账户同名", func(t *testing.T) {
-		createUsersReq := []*api.User{
+		createUsersReq := []*apisecurity.User{
 			{
 				Id:       &wrappers.StringValue{Value: utils.NewUUID()},
 				Name:     &wrappers.StringValue{Value: userTest.ownerOne.Name},
@@ -231,7 +232,7 @@ func Test_server_CreateUsers(t *testing.T) {
 	})
 
 	t.Run("主账户创建账户-token为空-失败", func(t *testing.T) {
-		createUsersReq := []*api.User{
+		createUsersReq := []*apisecurity.User{
 			{
 				Id:       &wrappers.StringValue{Value: utils.NewUUID()},
 				Name:     &wrappers.StringValue{Value: "create-user-2"},
@@ -245,7 +246,7 @@ func Test_server_CreateUsers(t *testing.T) {
 	})
 
 	t.Run("主账户创建账户-token非法-失败", func(t *testing.T) {
-		createUsersReq := []*api.User{
+		createUsersReq := []*apisecurity.User{
 			{
 				Id:       &wrappers.StringValue{Value: utils.NewUUID()},
 				Name:     &wrappers.StringValue{Value: "create-user-2"},
@@ -264,7 +265,7 @@ func Test_server_CreateUsers(t *testing.T) {
 		// 让 cache 可以刷新到
 		time.Sleep(time.Second)
 
-		createUsersReq := []*api.User{
+		createUsersReq := []*apisecurity.User{
 			{
 				Id:       &wrappers.StringValue{Value: utils.NewUUID()},
 				Name:     &wrappers.StringValue{Value: "create-user-2"},
@@ -283,7 +284,7 @@ func Test_server_CreateUsers(t *testing.T) {
 	})
 
 	t.Run("子主账户创建账户-失败", func(t *testing.T) {
-		createUsersReq := []*api.User{
+		createUsersReq := []*apisecurity.User{
 			{
 				Id:       &wrappers.StringValue{Value: utils.NewUUID()},
 				Name:     &wrappers.StringValue{Value: "create-user-1"},
@@ -299,7 +300,7 @@ func Test_server_CreateUsers(t *testing.T) {
 	})
 
 	t.Run("用户组token创建账户-失败", func(t *testing.T) {
-		createUsersReq := []*api.User{
+		createUsersReq := []*apisecurity.User{
 			{
 				Id:       &wrappers.StringValue{Value: utils.NewUUID()},
 				Name:     &wrappers.StringValue{Value: "create-user-1"},
@@ -321,7 +322,7 @@ func Test_server_UpdateUser(t *testing.T) {
 	defer userTest.Clean()
 
 	t.Run("主账户更新账户信息-正常更新自己的信息", func(t *testing.T) {
-		req := &api.User{
+		req := &apisecurity.User{
 			Id:      &wrappers.StringValue{Value: userTest.users[0].ID},
 			Comment: &wrappers.StringValue{Value: "update owner account info"},
 		}
@@ -337,7 +338,7 @@ func Test_server_UpdateUser(t *testing.T) {
 
 	t.Run("主账户更新账户信息-更新不存在的子账户", func(t *testing.T) {
 		uid := utils.NewUUID()
-		req := &api.User{
+		req := &apisecurity.User{
 			Id:      &wrappers.StringValue{Value: uid},
 			Comment: &wrappers.StringValue{Value: "update owner account info"},
 		}
@@ -353,7 +354,7 @@ func Test_server_UpdateUser(t *testing.T) {
 
 	t.Run("主账户更新账户信息-更新不属于自己的子账户", func(t *testing.T) {
 		uid := utils.NewUUID()
-		req := &api.User{
+		req := &apisecurity.User{
 			Id:      &wrappers.StringValue{Value: uid},
 			Comment: &wrappers.StringValue{Value: "update owner account info"},
 		}
@@ -371,7 +372,7 @@ func Test_server_UpdateUser(t *testing.T) {
 	})
 
 	t.Run("子账户更新账户信息-正常更新自己的信息", func(t *testing.T) {
-		req := &api.User{
+		req := &apisecurity.User{
 			Id:      &wrappers.StringValue{Value: userTest.users[1].ID},
 			Comment: &wrappers.StringValue{Value: "update owner account info"},
 		}
@@ -386,7 +387,7 @@ func Test_server_UpdateUser(t *testing.T) {
 	})
 
 	t.Run("子账户更新账户信息-更新别的账户", func(t *testing.T) {
-		req := &api.User{
+		req := &apisecurity.User{
 			Id:      &wrappers.StringValue{Value: userTest.users[2].ID},
 			Comment: &wrappers.StringValue{Value: "update owner account info"},
 		}
@@ -401,7 +402,7 @@ func Test_server_UpdateUser(t *testing.T) {
 	})
 
 	t.Run("用户组Token更新账户信息-更新别的账户", func(t *testing.T) {
-		req := &api.User{
+		req := &apisecurity.User{
 			Id:      &wrappers.StringValue{Value: userTest.users[2].ID},
 			Comment: &wrappers.StringValue{Value: "update owner account info"},
 		}
@@ -420,7 +421,7 @@ func Test_server_UpdateUserPassword(t *testing.T) {
 	defer userTest.Clean()
 
 	t.Run("主账户正常更新自身账户密码", func(t *testing.T) {
-		req := &api.ModifyUserPassword{
+		req := &apisecurity.ModifyUserPassword{
 			Id:          &wrappers.StringValue{Value: userTest.users[0].ID},
 			OldPassword: &wrappers.StringValue{Value: "polaris"},
 			NewPassword: &wrappers.StringValue{Value: "polaris@2021"},
@@ -435,7 +436,7 @@ func Test_server_UpdateUserPassword(t *testing.T) {
 	})
 
 	t.Run("主账户正常更新自身账户密码-新密码非法", func(t *testing.T) {
-		req := &api.ModifyUserPassword{
+		req := &apisecurity.ModifyUserPassword{
 			Id:          &wrappers.StringValue{Value: userTest.users[0].ID},
 			OldPassword: &wrappers.StringValue{Value: "polaris"},
 			NewPassword: &wrappers.StringValue{Value: "pola"},
@@ -448,7 +449,7 @@ func Test_server_UpdateUserPassword(t *testing.T) {
 		t.Logf("CreateUsers resp : %+v", resp)
 		assert.Equal(t, api.ExecuteException, resp.Code.GetValue(), "update user must fail")
 
-		req = &api.ModifyUserPassword{
+		req = &apisecurity.ModifyUserPassword{
 			Id:          &wrappers.StringValue{Value: userTest.users[0].ID},
 			OldPassword: &wrappers.StringValue{Value: "polaris"},
 			NewPassword: &wrappers.StringValue{Value: ""},
@@ -461,7 +462,7 @@ func Test_server_UpdateUserPassword(t *testing.T) {
 		t.Logf("CreateUsers resp : %+v", resp)
 		assert.Equal(t, api.ExecuteException, resp.Code.GetValue(), "update user must fail")
 
-		req = &api.ModifyUserPassword{
+		req = &apisecurity.ModifyUserPassword{
 			Id:          &wrappers.StringValue{Value: userTest.users[0].ID},
 			OldPassword: &wrappers.StringValue{Value: "polaris"},
 			NewPassword: &wrappers.StringValue{Value: "polarispolarispolarispolaris"},
@@ -476,7 +477,7 @@ func Test_server_UpdateUserPassword(t *testing.T) {
 	})
 
 	t.Run("主账户正常更新子账户密码", func(t *testing.T) {
-		req := &api.ModifyUserPassword{
+		req := &apisecurity.ModifyUserPassword{
 			Id:          &wrappers.StringValue{Value: userTest.users[1].ID},
 			NewPassword: &wrappers.StringValue{Value: "polaris@sub"},
 		}
@@ -493,7 +494,7 @@ func Test_server_UpdateUserPassword(t *testing.T) {
 
 		uid := utils.NewUUID()
 
-		req := &api.ModifyUserPassword{
+		req := &apisecurity.ModifyUserPassword{
 			Id:          &wrappers.StringValue{Value: uid},
 			NewPassword: &wrappers.StringValue{Value: "polaris@subaccount"},
 		}
@@ -510,7 +511,7 @@ func Test_server_UpdateUserPassword(t *testing.T) {
 	})
 
 	t.Run("子账户更新账户密码-自身-携带正确原密码", func(t *testing.T) {
-		req := &api.ModifyUserPassword{
+		req := &apisecurity.ModifyUserPassword{
 			Id:          &wrappers.StringValue{Value: userTest.users[2].ID},
 			OldPassword: &wrappers.StringValue{Value: "polaris"},
 			NewPassword: &wrappers.StringValue{Value: "users[1].Password"},
@@ -525,7 +526,7 @@ func Test_server_UpdateUserPassword(t *testing.T) {
 	})
 
 	t.Run("子账户更新账户密码-自身-携带错误原密码", func(t *testing.T) {
-		req := &api.ModifyUserPassword{
+		req := &apisecurity.ModifyUserPassword{
 			Id:          &wrappers.StringValue{Value: userTest.users[1].ID},
 			OldPassword: &wrappers.StringValue{Value: "users[1].Password"},
 			NewPassword: &wrappers.StringValue{Value: "users[1].Password"},
@@ -540,7 +541,7 @@ func Test_server_UpdateUserPassword(t *testing.T) {
 	})
 
 	t.Run("子账户更新账户密码-自身-无携带原密码", func(t *testing.T) {
-		req := &api.ModifyUserPassword{
+		req := &apisecurity.ModifyUserPassword{
 			Id:          &wrappers.StringValue{Value: userTest.users[1].ID},
 			NewPassword: &wrappers.StringValue{Value: "users[1].Password"},
 		}
@@ -554,7 +555,7 @@ func Test_server_UpdateUserPassword(t *testing.T) {
 	})
 
 	t.Run("子账户更新账户密码-不是自己", func(t *testing.T) {
-		req := &api.ModifyUserPassword{
+		req := &apisecurity.ModifyUserPassword{
 			Id:          &wrappers.StringValue{Value: userTest.users[2].ID},
 			NewPassword: &wrappers.StringValue{Value: "users[2].Password"},
 		}
@@ -576,7 +577,7 @@ func Test_server_DeleteUser(t *testing.T) {
 		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(userTest.users[0], nil)
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[0].Token)
-		resp := userTest.svr.DeleteUser(reqCtx, &api.User{
+		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[0].ID),
 		})
 
@@ -592,7 +593,7 @@ func Test_server_DeleteUser(t *testing.T) {
 		}, nil)
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[0].Token)
-		resp := userTest.svr.DeleteUser(reqCtx, &api.User{
+		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(uid),
 		})
 
@@ -603,7 +604,7 @@ func Test_server_DeleteUser(t *testing.T) {
 		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.users[1].ID)).Return(userTest.users[1], nil)
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[0].Token)
-		resp := userTest.svr.DeleteUser(reqCtx, &api.User{
+		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[1].ID),
 		})
 
@@ -620,7 +621,7 @@ func Test_server_DeleteUser(t *testing.T) {
 		}, nil)
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[0].Token)
-		resp := userTest.svr.DeleteUser(reqCtx, &api.User{
+		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(uid),
 		})
 
@@ -632,7 +633,7 @@ func Test_server_DeleteUser(t *testing.T) {
 		userTest.storage.EXPECT().GetSubCount(gomock.Any()).Return(uint32(0), nil)
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.admin.Token)
-		resp := userTest.svr.DeleteUser(reqCtx, &api.User{
+		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[0].ID),
 		})
 
@@ -644,7 +645,7 @@ func Test_server_DeleteUser(t *testing.T) {
 		userTest.storage.EXPECT().GetSubCount(gomock.Any()).Return(uint32(1), nil)
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.admin.Token)
-		resp := userTest.svr.DeleteUser(reqCtx, &api.User{
+		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[0].ID),
 		})
 
@@ -653,7 +654,7 @@ func Test_server_DeleteUser(t *testing.T) {
 
 	t.Run("子账户删除用户", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[1].Token)
-		resp := userTest.svr.DeleteUser(reqCtx, &api.User{
+		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[0].ID),
 		})
 
@@ -669,7 +670,7 @@ func Test_server_GetUserToken(t *testing.T) {
 	t.Run("主账户查询自己的Token", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
 
-		resp := userTest.svr.GetUserToken(reqCtx, &api.User{
+		resp := userTest.svr.GetUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[0].ID),
 		})
 
@@ -679,7 +680,7 @@ func Test_server_GetUserToken(t *testing.T) {
 	t.Run("子账户查询自己的Token", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[1].Token)
 
-		resp := userTest.svr.GetUserToken(reqCtx, &api.User{
+		resp := userTest.svr.GetUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[1].ID),
 		})
 
@@ -689,7 +690,7 @@ func Test_server_GetUserToken(t *testing.T) {
 	t.Run("主账户查询子账户的Token", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
 
-		resp := userTest.svr.GetUserToken(reqCtx, &api.User{
+		resp := userTest.svr.GetUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[1].ID),
 		})
 
@@ -699,7 +700,7 @@ func Test_server_GetUserToken(t *testing.T) {
 	t.Run("主账户查询别的主账户的Token", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
 
-		resp := userTest.svr.GetUserToken(reqCtx, &api.User{
+		resp := userTest.svr.GetUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.ownerTwo.ID),
 		})
 
@@ -709,7 +710,7 @@ func Test_server_GetUserToken(t *testing.T) {
 	t.Run("主账户查询不属于自己子账户的Token", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
 
-		resp := userTest.svr.GetUserToken(reqCtx, &api.User{
+		resp := userTest.svr.GetUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.newUsers[1].ID),
 		})
 
@@ -727,7 +728,7 @@ func Test_server_RefreshUserToken(t *testing.T) {
 
 		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(userTest.users[0], nil)
 
-		resp := userTest.svr.ResetUserToken(reqCtx, &api.User{
+		resp := userTest.svr.ResetUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[0].ID),
 		})
 
@@ -737,7 +738,7 @@ func Test_server_RefreshUserToken(t *testing.T) {
 	t.Run("子账户刷新自己的Token", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[1].Token)
 		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(userTest.users[1], nil)
-		resp := userTest.svr.ResetUserToken(reqCtx, &api.User{
+		resp := userTest.svr.ResetUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[1].ID),
 		})
 
@@ -747,7 +748,7 @@ func Test_server_RefreshUserToken(t *testing.T) {
 	t.Run("主账户刷新子账户的Token", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
 		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(userTest.users[1], nil)
-		resp := userTest.svr.ResetUserToken(reqCtx, &api.User{
+		resp := userTest.svr.ResetUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[1].ID),
 		})
 
@@ -757,7 +758,7 @@ func Test_server_RefreshUserToken(t *testing.T) {
 	t.Run("主账户刷新别的主账户的Token", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
 		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(userTest.ownerTwo, nil)
-		resp := userTest.svr.ResetUserToken(reqCtx, &api.User{
+		resp := userTest.svr.ResetUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.ownerTwo.ID),
 		})
 
@@ -767,7 +768,7 @@ func Test_server_RefreshUserToken(t *testing.T) {
 	t.Run("主账户刷新不属于自己子账户的Token", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
 		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(userTest.newUsers[1], nil)
-		resp := userTest.svr.ResetUserToken(reqCtx, &api.User{
+		resp := userTest.svr.ResetUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.newUsers[1].ID),
 		})
 
@@ -785,7 +786,7 @@ func Test_server_UpdateUserToken(t *testing.T) {
 
 		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.users[0].ID)).Return(userTest.users[0], nil)
 
-		resp := userTest.svr.UpdateUserToken(reqCtx, &api.User{
+		resp := userTest.svr.UpdateUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[0].ID),
 		})
 
@@ -794,7 +795,7 @@ func Test_server_UpdateUserToken(t *testing.T) {
 
 	t.Run("子账户刷新自己的Token状态", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[4].Token)
-		resp := userTest.svr.UpdateUserToken(reqCtx, &api.User{
+		resp := userTest.svr.UpdateUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[4].ID),
 		})
 
@@ -804,7 +805,7 @@ func Test_server_UpdateUserToken(t *testing.T) {
 	t.Run("主账户刷新子账户的Token状态", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
 		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.users[3].ID)).Return(userTest.users[3], nil)
-		resp := userTest.svr.UpdateUserToken(reqCtx, &api.User{
+		resp := userTest.svr.UpdateUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[3].ID),
 		})
 
@@ -817,7 +818,7 @@ func Test_server_UpdateUserToken(t *testing.T) {
 		t.Logf("operator-id : %s, user-two-owner : %s", userTest.ownerOne.ID, userTest.ownerTwo.Owner)
 
 		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.ownerTwo.ID)).Return(userTest.ownerTwo, nil)
-		resp := userTest.svr.UpdateUserToken(reqCtx, &api.User{
+		resp := userTest.svr.UpdateUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.ownerTwo.ID),
 		})
 
@@ -827,7 +828,7 @@ func Test_server_UpdateUserToken(t *testing.T) {
 	t.Run("主账户刷新不属于自己子账户的Token状态", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
 		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.newUsers[3].ID)).Return(userTest.newUsers[3], nil)
-		resp := userTest.svr.UpdateUserToken(reqCtx, &api.User{
+		resp := userTest.svr.UpdateUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.newUsers[3].ID),
 		})
 
@@ -881,7 +882,7 @@ func Test_AuthServer_NormalOperateUser(t *testing.T) {
 	})
 
 	t.Run("正常删除用户", func(t *testing.T) {
-		resp := suit.server.DeleteUsers(suit.defaultCtx, []*api.User{users[3]})
+		resp := suit.server.DeleteUsers(suit.defaultCtx, []*apisecurity.User{users[3]})
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())

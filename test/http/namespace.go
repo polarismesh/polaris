@@ -21,6 +21,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"io"
 
 	"github.com/golang/protobuf/jsonpb"
@@ -29,7 +31,7 @@ import (
 )
 
 // JSONFromNamespaces 将命名空间数组转换为JSON
-func JSONFromNamespaces(namespaces []*api.Namespace) (*bytes.Buffer, error) {
+func JSONFromNamespaces(namespaces []*apimodel.Namespace) (*bytes.Buffer, error) {
 	m := jsonpb.Marshaler{Indent: " "}
 
 	buffer := bytes.NewBuffer([]byte{})
@@ -51,7 +53,7 @@ func JSONFromNamespaces(namespaces []*api.Namespace) (*bytes.Buffer, error) {
 }
 
 // CreateNamespaces 创建命名空间
-func (c *Client) CreateNamespaces(namespaces []*api.Namespace) (*api.BatchWriteResponse, error) {
+func (c *Client) CreateNamespaces(namespaces []*apimodel.Namespace) (*apiservice.BatchWriteResponse, error) {
 	fmt.Printf("\ncreate namespaces\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/namespaces", c.Address, c.Version)
@@ -78,7 +80,7 @@ func (c *Client) CreateNamespaces(namespaces []*api.Namespace) (*api.BatchWriteR
 }
 
 // DeleteNamespaces 删除命名空间
-func (c *Client) DeleteNamespaces(namespaces []*api.Namespace) error {
+func (c *Client) DeleteNamespaces(namespaces []*apimodel.Namespace) error {
 	fmt.Printf("\ndelete namespaces\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/namespaces/delete", c.Address, c.Version)
@@ -109,7 +111,7 @@ func (c *Client) DeleteNamespaces(namespaces []*api.Namespace) error {
 }
 
 // DeleteNamespaces 删除命名空间
-func (c *Client) DeleteNamespacesGetResp(namespaces []*api.Namespace) (*api.BatchWriteResponse, error) {
+func (c *Client) DeleteNamespacesGetResp(namespaces []*apimodel.Namespace) (*apiservice.BatchWriteResponse, error) {
 	fmt.Printf("\ndelete namespaces\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/namespaces/delete", c.Address, c.Version)
@@ -136,7 +138,7 @@ func (c *Client) DeleteNamespacesGetResp(namespaces []*api.Namespace) (*api.Batc
 }
 
 // UpdateNamesapces 更新命名空间
-func (c *Client) UpdateNamesapces(namespaces []*api.Namespace) error {
+func (c *Client) UpdateNamesapces(namespaces []*apimodel.Namespace) error {
 	fmt.Printf("\nupdate namespaces\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/namespaces", c.Address, c.Version)
@@ -167,7 +169,7 @@ func (c *Client) UpdateNamesapces(namespaces []*api.Namespace) error {
 }
 
 // GetNamespaces 查询命名空间
-func (c *Client) GetNamespaces(namespaces []*api.Namespace) ([]*api.Namespace, error) {
+func (c *Client) GetNamespaces(namespaces []*apimodel.Namespace) ([]*apimodel.Namespace, error) {
 	fmt.Printf("\nget namespaces\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/namespaces", c.Address, c.Version)
@@ -202,7 +204,7 @@ func (c *Client) GetNamespaces(namespaces []*api.Namespace) ([]*api.Namespace, e
 		return nil, errors.New("invalid batch size")
 	}
 
-	collection := make(map[string]*api.Namespace)
+	collection := make(map[string]*apimodel.Namespace)
 	for _, namespace := range namespaces {
 		collection[namespace.GetName().GetValue()] = namespace
 	}
@@ -227,8 +229,8 @@ func (c *Client) GetNamespaces(namespaces []*api.Namespace) ([]*api.Namespace, e
 /**
  * @brief 检查创建命名空间的回复
  */
-func checkCreateNamespacesResponse(ret *api.BatchWriteResponse, namespaces []*api.Namespace) (
-	*api.BatchWriteResponse, error) {
+func checkCreateNamespacesResponse(ret *apiservice.BatchWriteResponse, namespaces []*apimodel.Namespace) (
+	*apiservice.BatchWriteResponse, error) {
 	if ret.GetCode() == nil || ret.GetCode().GetValue() != api.ExecuteSuccess {
 		return nil, errors.New("invalid batch code")
 	}
@@ -268,7 +270,7 @@ func checkCreateNamespacesResponse(ret *api.BatchWriteResponse, namespaces []*ap
 /**
  * @brief 比较namespace是否相等
  */
-func compareNamespace(correctItem *api.Namespace, item *api.Namespace) bool {
+func compareNamespace(correctItem *apimodel.Namespace, item *apimodel.Namespace) bool {
 	correctName := correctItem.GetName().GetValue()
 	correctComment := correctItem.GetComment().GetValue()
 

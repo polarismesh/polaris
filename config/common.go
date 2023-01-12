@@ -21,7 +21,8 @@ import (
 	"context"
 	"errors"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -51,12 +52,12 @@ func (s *Server) checkNamespaceExisted(namespaceName string) bool {
 	return namespace != nil
 }
 
-func convertToErrCode(err error) uint32 {
+func convertToErrCode(err error) apimodel.Code {
 	if errors.Is(err, model.ErrorTokenNotExist) {
-		return api.TokenNotExisted
+		return apimodel.Code_TokenNotExisted
 	}
 	if errors.Is(err, model.ErrorTokenDisabled) {
-		return api.TokenDisabled
+		return apimodel.Code_TokenDisabled
 	}
-	return api.NotAllowedAccess
+	return apimodel.Code_NotAllowedAccess
 }

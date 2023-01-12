@@ -19,14 +19,14 @@ package local
 
 import (
 	"context"
+	"github.com/golang/protobuf/ptypes/wrappers"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/stretchr/testify/assert"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 )
 
@@ -71,7 +71,7 @@ func Test_discoverEventLocal_Run(t *testing.T) {
 			Id:        "123456",
 			Namespace: "DemoNamespace",
 			Service:   "DemoService",
-			Instance: &api.Instance{
+			Instance: &apiservice.Instance{
 				Host: &wrappers.StringValue{Value: "127.0.0.1"},
 				Port: &wrappers.UInt32Value{Value: 8080},
 			},
@@ -83,7 +83,7 @@ func Test_discoverEventLocal_Run(t *testing.T) {
 			Id:        "111111",
 			Namespace: "DemoNamespace",
 			Service:   "DemoService",
-			Instance: &api.Instance{
+			Instance: &apiservice.Instance{
 				Host: &wrappers.StringValue{Value: "127.0.0.1"},
 				Port: &wrappers.UInt32Value{Value: 8080},
 			},

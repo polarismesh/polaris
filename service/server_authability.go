@@ -21,11 +21,15 @@ import (
 	"context"
 	"errors"
 
+	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	servicecommon "github.com/polarismesh/polaris/common/service"
 	"github.com/polarismesh/polaris/common/utils"
@@ -70,7 +74,7 @@ func (svr *serverAuthAbility) GetServiceInstanceRevision(serviceID string,
 //	@param req 实际请求对象
 //	@param resourceOp 该接口的数据操作类型
 //	@return *model.AcquireContext 返回鉴权上下文
-func (svr *serverAuthAbility) collectServiceAuthContext(ctx context.Context, req []*api.Service,
+func (svr *serverAuthAbility) collectServiceAuthContext(ctx context.Context, req []*apiservice.Service,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
@@ -88,7 +92,7 @@ func (svr *serverAuthAbility) collectServiceAuthContext(ctx context.Context, req
 //	@param req 实际请求对象
 //	@param resourceOp 该接口的数据操作类型
 //	@return *model.AcquireContext 返回鉴权上下文
-func (svr *serverAuthAbility) collectServiceAliasAuthContext(ctx context.Context, req []*api.ServiceAlias,
+func (svr *serverAuthAbility) collectServiceAliasAuthContext(ctx context.Context, req []*apiservice.ServiceAlias,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
@@ -106,7 +110,7 @@ func (svr *serverAuthAbility) collectServiceAliasAuthContext(ctx context.Context
 //	@param req 实际请求对象
 //	@param resourceOp 该接口的数据操作类型
 //	@return *model.AcquireContext 返回鉴权上下文
-func (svr *serverAuthAbility) collectInstanceAuthContext(ctx context.Context, req []*api.Instance,
+func (svr *serverAuthAbility) collectInstanceAuthContext(ctx context.Context, req []*apiservice.Instance,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
@@ -118,7 +122,7 @@ func (svr *serverAuthAbility) collectInstanceAuthContext(ctx context.Context, re
 }
 
 // collectClientInstanceAuthContext 对于服务实例的处理，收集所有的与鉴权的相关信息
-func (svr *serverAuthAbility) collectClientInstanceAuthContext(ctx context.Context, req []*api.Instance,
+func (svr *serverAuthAbility) collectClientInstanceAuthContext(ctx context.Context, req []*apiservice.Instance,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
@@ -137,7 +141,7 @@ func (svr *serverAuthAbility) collectClientInstanceAuthContext(ctx context.Conte
 //	@param req 实际请求对象
 //	@param resourceOp 该接口的数据操作类型
 //	@return *model.AcquireContext 返回鉴权上下文
-func (svr *serverAuthAbility) collectCircuitBreakerAuthContext(ctx context.Context, req []*api.CircuitBreaker,
+func (svr *serverAuthAbility) collectCircuitBreakerAuthContext(ctx context.Context, req []*apifault.CircuitBreaker,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
@@ -155,8 +159,8 @@ func (svr *serverAuthAbility) collectCircuitBreakerAuthContext(ctx context.Conte
 //	@param req
 //	@param resourceOp
 //	@return *model.AcquireContext
-func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx context.Context, req []*api.ConfigRelease,
-	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
+func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx context.Context,
+	req []*apiservice.ConfigRelease, resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithOperation(resourceOp),
@@ -173,7 +177,7 @@ func (svr *serverAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx contex
 //	@param req 实际请求对象
 //	@param resourceOp 该接口的数据操作类型
 //	@return *model.AcquireContext 返回鉴权上下文
-func (svr *serverAuthAbility) collectRouteRuleAuthContext(ctx context.Context, req []*api.Routing,
+func (svr *serverAuthAbility) collectRouteRuleAuthContext(ctx context.Context, req []*apitraffic.Routing,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
@@ -191,7 +195,7 @@ func (svr *serverAuthAbility) collectRouteRuleAuthContext(ctx context.Context, r
 //	@param req 实际请求对象
 //	@param resourceOp 该接口的数据操作类型
 //	@return *model.AcquireContext 返回鉴权上下文
-func (svr *serverAuthAbility) collectRateLimitAuthContext(ctx context.Context, req []*api.Rule,
+func (svr *serverAuthAbility) collectRateLimitAuthContext(ctx context.Context, req []*apitraffic.Rule,
 	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
@@ -204,9 +208,9 @@ func (svr *serverAuthAbility) collectRateLimitAuthContext(ctx context.Context, r
 
 // queryServiceResource  根据所给的 service 信息，收集对应的 ResourceEntry 列表
 func (svr *serverAuthAbility) queryServiceResource(
-	req []*api.Service) map[api.ResourceType][]model.ResourceEntry {
+	req []*apiservice.Service) map[apisecurity.ResourceType][]model.ResourceEntry {
 	if len(req) == 0 {
-		return make(map[api.ResourceType][]model.ResourceEntry)
+		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
 	}
 
 	names := utils.NewStringSet()
@@ -227,9 +231,9 @@ func (svr *serverAuthAbility) queryServiceResource(
 
 // queryServiceAliasResource  根据所给的 servicealias 信息，收集对应的 ResourceEntry 列表
 func (svr *serverAuthAbility) queryServiceAliasResource(
-	req []*api.ServiceAlias) map[api.ResourceType][]model.ResourceEntry {
+	req []*apiservice.ServiceAlias) map[apisecurity.ResourceType][]model.ResourceEntry {
 	if len(req) == 0 {
-		return make(map[api.ResourceType][]model.ResourceEntry)
+		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
 	}
 
 	names := utils.NewStringSet()
@@ -255,9 +259,9 @@ func (svr *serverAuthAbility) queryServiceAliasResource(
 // queryInstanceResource 根据所给的 instances 信息，收集对应的 ResourceEntry 列表
 // 由于实例是注册到服务下的，因此只需要判断，是否有对应服务的权限即可
 func (svr *serverAuthAbility) queryInstanceResource(
-	req []*api.Instance) map[api.ResourceType][]model.ResourceEntry {
+	req []*apiservice.Instance) map[apisecurity.ResourceType][]model.ResourceEntry {
 	if len(req) == 0 {
-		return make(map[api.ResourceType][]model.ResourceEntry)
+		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
 	}
 
 	names := utils.NewStringSet()
@@ -293,9 +297,9 @@ func (svr *serverAuthAbility) queryInstanceResource(
 
 // queryCircuitBreakerResource 根据所给的 CircuitBreaker 信息，收集对应的 ResourceEntry 列表
 func (svr *serverAuthAbility) queryCircuitBreakerResource(
-	req []*api.CircuitBreaker) map[api.ResourceType][]model.ResourceEntry {
+	req []*apifault.CircuitBreaker) map[apisecurity.ResourceType][]model.ResourceEntry {
 	if len(req) == 0 {
-		return make(map[api.ResourceType][]model.ResourceEntry)
+		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
 	}
 
 	names := utils.NewStringSet()
@@ -315,9 +319,9 @@ func (svr *serverAuthAbility) queryCircuitBreakerResource(
 
 // queryCircuitBreakerReleaseResource 根据所给的 CircuitBreakerRelease 信息，收集对应的 ResourceEntry 列表
 func (svr *serverAuthAbility) queryCircuitBreakerReleaseResource(
-	req []*api.ConfigRelease) map[api.ResourceType][]model.ResourceEntry {
+	req []*apiservice.ConfigRelease) map[apisecurity.ResourceType][]model.ResourceEntry {
 	if len(req) == 0 {
-		return make(map[api.ResourceType][]model.ResourceEntry)
+		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
 	}
 
 	names := utils.NewStringSet()
@@ -338,9 +342,9 @@ func (svr *serverAuthAbility) queryCircuitBreakerReleaseResource(
 
 // queryRouteRuleResource 根据所给的 RouteRule 信息，收集对应的 ResourceEntry 列表
 func (svr *serverAuthAbility) queryRouteRuleResource(
-	req []*api.Routing) map[api.ResourceType][]model.ResourceEntry {
+	req []*apitraffic.Routing) map[apisecurity.ResourceType][]model.ResourceEntry {
 	if len(req) == 0 {
-		return make(map[api.ResourceType][]model.ResourceEntry)
+		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
 	}
 
 	names := utils.NewStringSet()
@@ -361,9 +365,9 @@ func (svr *serverAuthAbility) queryRouteRuleResource(
 
 // queryRateLimitConfigResource 根据所给的 RateLimit 信息，收集对应的 ResourceEntry 列表
 func (svr *serverAuthAbility) queryRateLimitConfigResource(
-	req []*api.Rule) map[api.ResourceType][]model.ResourceEntry {
+	req []*apitraffic.Rule) map[apisecurity.ResourceType][]model.ResourceEntry {
 	if len(req) == 0 {
-		return make(map[api.ResourceType][]model.ResourceEntry)
+		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
 	}
 
 	names := utils.NewStringSet()
@@ -384,7 +388,7 @@ func (svr *serverAuthAbility) queryRateLimitConfigResource(
 
 // convertToDiscoverResourceEntryMaps 通用方法，进行转换为期望的、服务相关的 ResourceEntry
 func (svr *serverAuthAbility) convertToDiscoverResourceEntryMaps(nsSet utils.StringSet,
-	svcSet *servicecommon.ServiceSet) map[api.ResourceType][]model.ResourceEntry {
+	svcSet *servicecommon.ServiceSet) map[apisecurity.ResourceType][]model.ResourceEntry {
 	var (
 		param = nsSet.ToSlice()
 		nsArr = svr.Cache().Namespace().GetNamespacesByName(param)
@@ -408,18 +412,18 @@ func (svr *serverAuthAbility) convertToDiscoverResourceEntryMaps(nsSet utils.Str
 		})
 	}
 
-	return map[api.ResourceType][]model.ResourceEntry{
-		api.ResourceType_Namespaces: nsRet,
-		api.ResourceType_Services:   svcRet,
+	return map[apisecurity.ResourceType][]model.ResourceEntry{
+		apisecurity.ResourceType_Namespaces: nsRet,
+		apisecurity.ResourceType_Services:   svcRet,
 	}
 }
 
-func convertToErrCode(err error) uint32 {
+func convertToErrCode(err error) apimodel.Code {
 	if errors.Is(err, model.ErrorTokenNotExist) {
-		return api.TokenNotExisted
+		return apimodel.Code_TokenNotExisted
 	}
 	if errors.Is(err, model.ErrorTokenDisabled) {
-		return api.TokenDisabled
+		return apimodel.Code_TokenDisabled
 	}
-	return api.NotAllowedAccess
+	return apimodel.Code_NotAllowedAccess
 }

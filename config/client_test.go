@@ -19,6 +19,7 @@ package config
 
 import (
 	"fmt"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"strconv"
 	"testing"
 	"time"
@@ -44,7 +45,7 @@ func TestClientSetupAndFileNotExisted(t *testing.T) {
 		}
 	}()
 
-	fileInfo := &api.ClientConfigFileInfo{
+	fileInfo := &apiconfig.ClientConfigFileInfo{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
 		Group:     &wrapperspb.StringValue{Value: testGroup},
 		FileName:  &wrapperspb.StringValue{Value: testFile},
@@ -83,7 +84,7 @@ func TestClientSetupAndFileExisted(t *testing.T) {
 	rsp2 := testSuit.testService.PublishConfigFile(testSuit.defaultCtx, assembleConfigFileRelease(configFile))
 	assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 
-	fileInfo := &api.ClientConfigFileInfo{
+	fileInfo := &apiconfig.ClientConfigFileInfo{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
 		Group:     &wrapperspb.StringValue{Value: testGroup},
 		FileName:  &wrapperspb.StringValue{Value: testFile},
@@ -143,7 +144,7 @@ func TestClientVersionBehindServer(t *testing.T) {
 	clientVersion := uint64(4)
 	latestContent := "content4"
 
-	fileInfo := &api.ClientConfigFileInfo{
+	fileInfo := &apiconfig.ClientConfigFileInfo{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
 		Group:     &wrapperspb.StringValue{Value: testGroup},
 		FileName:  &wrapperspb.StringValue{Value: testFile},
@@ -198,7 +199,7 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 			testSuit.testServer.WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
 		}()
 
-		testSuit.testServer.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *api.ConfigClientResponse) bool {
+		testSuit.testServer.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
 			t.Logf("clientId=[%s] receive config publish msg", clientId)
 			received <- rsp.ConfigFile.Version.GetValue()
 			return true
@@ -223,7 +224,7 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 
 		clientId := "TestWatchConfigFileAtFirstPublish-second"
 
-		testSuit.testServer.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *api.ConfigClientResponse) bool {
+		testSuit.testServer.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
 			t.Logf("clientId=[%s] receive config publish msg", clientId)
 			received <- rsp.ConfigFile.Version.GetValue()
 			return true
@@ -262,7 +263,7 @@ func Test10000ClientWatchConfigFile(t *testing.T) {
 		clientId := fmt.Sprintf("Test10000ClientWatchConfigFile-client-id=%d", i)
 		received[clientId] = false
 		receivedVersion[clientId] = uint64(0)
-		testSuit.testServer.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *api.ConfigClientResponse) bool {
+		testSuit.testServer.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
 			received[clientId] = true
 			receivedVersion[clientId] = rsp.ConfigFile.Version.GetValue()
 			return true
@@ -331,7 +332,7 @@ func TestDeleteConfigFile(t *testing.T) {
 
 	t.Log("add config watcher")
 
-	testSuit.testServer.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *api.ConfigClientResponse) bool {
+	testSuit.testServer.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
 		received <- rsp.ConfigFile.Version.GetValue()
 		return true
 	})
@@ -346,7 +347,7 @@ func TestDeleteConfigFile(t *testing.T) {
 	receivedVersion := <-received
 	assert.Equal(t, uint64(2), receivedVersion)
 
-	fileInfo := &api.ClientConfigFileInfo{
+	fileInfo := &apiconfig.ClientConfigFileInfo{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
 		Group:     &wrapperspb.StringValue{Value: testGroup},
 		FileName:  &wrapperspb.StringValue{Value: testFile},

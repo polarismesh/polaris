@@ -25,6 +25,9 @@ import (
 	"sync"
 	"time"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
@@ -130,12 +133,12 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 }
 
 // Report heartbeat request
-func (s *Server) Report(ctx context.Context, req *api.Instance) *api.Response {
+func (s *Server) Report(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	return s.doReport(ctx, req)
 }
 
 // ReportByClient report heartbeat request by client
-func (s *Server) ReportByClient(ctx context.Context, req *api.Client) *api.Response {
+func (s *Server) ReportByClient(ctx context.Context, req *apiservice.Client) *apiservice.Response {
 	return s.doReportByClient(ctx, req)
 }
 
@@ -222,9 +225,9 @@ func (s *Server) receiveEventAndPush() {
 }
 
 // GetLastHeartbeat 获取上一次心跳的时间
-func (s *Server) GetLastHeartbeat(req *api.Instance) *api.Response {
+func (s *Server) GetLastHeartbeat(req *apiservice.Instance) *apiservice.Response {
 	if len(s.checkers) == 0 {
-		return api.NewResponse(api.HealthCheckNotOpen)
+		return api.NewResponse(apimodel.Code_HealthCheckNotOpen)
 	}
 	id, errRsp := checkHeartbeatInstance(req)
 	if errRsp != nil {
@@ -233,11 +236,11 @@ func (s *Server) GetLastHeartbeat(req *api.Instance) *api.Response {
 	req.Id = utils.NewStringValue(id)
 	insCache := s.cacheProvider.GetInstance(id)
 	if insCache == nil {
-		return api.NewInstanceResponse(api.NotFoundResource, req)
+		return api.NewInstanceResponse(apimodel.Code_NotFoundResource, req)
 	}
 	checker, ok := s.checkers[int32(insCache.HealthCheck().GetType())]
 	if !ok {
-		return api.NewInstanceResponse(api.HeartbeatTypeNotFound, req)
+		return api.NewInstanceResponse(apimodel.Code_HeartbeatTypeNotFound, req)
 	}
 	queryResp, err := checker.Query(&plugin.QueryRequest{
 		InstanceId: insCache.ID(),
@@ -245,7 +248,7 @@ func (s *Server) GetLastHeartbeat(req *api.Instance) *api.Response {
 		Port:       insCache.Port(),
 	})
 	if err != nil {
-		return api.NewInstanceRespWithError(api.ExecuteException, err, req)
+		return api.NewInstanceRespWithError(apimodel.Code_ExecuteException, err, req)
 	}
 	req.Service = insCache.Proto.GetService()
 	req.Namespace = insCache.Proto.GetNamespace()
@@ -256,7 +259,7 @@ func (s *Server) GetLastHeartbeat(req *api.Instance) *api.Response {
 	req.Metadata["last-heartbeat-timestamp"] = strconv.Itoa(int(queryResp.LastHeartbeatSec))
 	req.Metadata["last-heartbeat-time"] = commontime.Time2String(time.Unix(queryResp.LastHeartbeatSec, 0))
 	req.Metadata["system-time"] = commontime.Time2String(time.Unix(currentTimeSec(), 0))
-	return api.NewInstanceResponse(api.ExecuteSuccess, req)
+	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
 func currentTimeSec() int64 {

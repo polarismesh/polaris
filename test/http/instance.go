@@ -21,18 +21,18 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"io"
 	"reflect"
 
 	"github.com/golang/protobuf/jsonpb"
-
-	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 /**
  * @brief 实例数组转JSON
  */
-func JSONFromInstances(instances []*api.Instance) (*bytes.Buffer, error) {
+func JSONFromInstances(instances []*apiservice.Instance) (*bytes.Buffer, error) {
 	m := jsonpb.Marshaler{Indent: " "}
 
 	buffer := bytes.NewBuffer([]byte{})
@@ -55,7 +55,7 @@ func JSONFromInstances(instances []*api.Instance) (*bytes.Buffer, error) {
 /**
  * @brief 创建实例
  */
-func (c *Client) CreateInstances(instances []*api.Instance) (*api.BatchWriteResponse, error) {
+func (c *Client) CreateInstances(instances []*apiservice.Instance) (*apiservice.BatchWriteResponse, error) {
 	fmt.Printf("\ncreate instances\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/instances", c.Address, c.Version)
@@ -84,7 +84,7 @@ func (c *Client) CreateInstances(instances []*api.Instance) (*api.BatchWriteResp
 /**
  * @brief 删除实例
  */
-func (c *Client) DeleteInstances(instances []*api.Instance) error {
+func (c *Client) DeleteInstances(instances []*apiservice.Instance) error {
 	fmt.Printf("\ndelete instances\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/instances/delete", c.Address, c.Version)
@@ -117,7 +117,7 @@ func (c *Client) DeleteInstances(instances []*api.Instance) error {
 /**
  * @brief 更新实例
  */
-func (c *Client) UpdateInstances(instances []*api.Instance) error {
+func (c *Client) UpdateInstances(instances []*apiservice.Instance) error {
 	fmt.Printf("\nupdate instances\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/instances", c.Address, c.Version)
@@ -150,7 +150,7 @@ func (c *Client) UpdateInstances(instances []*api.Instance) error {
 /**
  * @brief 查询实例
  */
-func (c *Client) GetInstances(instances []*api.Instance) error {
+func (c *Client) GetInstances(instances []*apiservice.Instance) error {
 	fmt.Printf("\nget instances\n")
 
 	url := fmt.Sprintf("http://%v/naming/%v/instances", c.Address, c.Version)
@@ -172,7 +172,7 @@ func (c *Client) GetInstances(instances []*api.Instance) error {
 		return err
 	}
 
-	if ret.GetCode() == nil || ret.GetCode().GetValue() != api.ExecuteSuccess {
+	if ret.GetCode() == nil || ret.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 		return errors.New("invalid batch code")
 	}
 
@@ -186,7 +186,7 @@ func (c *Client) GetInstances(instances []*api.Instance) error {
 		return errors.New("invalid batch size")
 	}
 
-	collection := make(map[string]*api.Instance)
+	collection := make(map[string]*apiservice.Instance)
 	for _, instance := range instances {
 		collection[instance.GetId().GetValue()] = instance
 	}
@@ -211,11 +211,11 @@ func (c *Client) GetInstances(instances []*api.Instance) error {
 /**
  * @brief 检查创建实例的回复
  */
-func checkCreateInstancesResponse(ret *api.BatchWriteResponse, instances []*api.Instance) (
-	*api.BatchWriteResponse, error) {
+func checkCreateInstancesResponse(ret *apiservice.BatchWriteResponse, instances []*apiservice.Instance) (
+	*apiservice.BatchWriteResponse, error) {
 
 	switch {
-	case ret.GetCode().GetValue() != api.ExecuteSuccess:
+	case ret.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess):
 		return nil, errors.New("invalid batch code")
 	case ret.GetSize().GetValue() != uint32(len(instances)):
 		return nil, errors.New("invalid batch size")
@@ -229,12 +229,12 @@ func checkCreateInstancesResponse(ret *api.BatchWriteResponse, instances []*api.
 /**
  * @brief 检查创建实例每个实例的信息
  */
-func checkInstancesResponseEntry(ret *api.BatchWriteResponse, instances []*api.Instance) error {
+func checkInstancesResponseEntry(ret *apiservice.BatchWriteResponse, instances []*apiservice.Instance) error {
 	items := ret.GetResponses()
 	for index, item := range items {
 		instance := item.GetInstance()
 		switch {
-		case item.GetCode().GetValue() != api.ExecuteSuccess:
+		case item.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess):
 			return errors.New("invalid code")
 		case item.GetInstance() == nil:
 			return errors.New("empty instance")
@@ -257,7 +257,7 @@ func checkInstancesResponseEntry(ret *api.BatchWriteResponse, instances []*api.I
 /**
  * @brief 比较instance是否相等
  */
-func compareInstance(correctItem *api.Instance, item *api.Instance) bool {
+func compareInstance(correctItem *apiservice.Instance, item *apiservice.Instance) bool {
 	// #lizard forgives
 	correctID := correctItem.GetId().GetValue()
 	correctService := correctItem.GetService().GetValue()

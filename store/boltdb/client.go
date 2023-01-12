@@ -22,9 +22,10 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -157,20 +158,20 @@ func convertToClientObject(client *model.Client) (*clientObject, error) {
 }
 
 func convertToModelClient(client *clientObject) (*model.Client, error) {
-	stat := make([]*api.StatInfo, 0, 4)
+	stat := make([]*apiservice.StatInfo, 0, 4)
 	err := json.Unmarshal([]byte(client.StatArrStr), &stat)
 	if err != nil {
 		return nil, err
 	}
 
-	c := &api.Client{
+	c := &apiservice.Client{
 		Id:      utils.NewStringValue(client.Id),
 		Host:    utils.NewStringValue(client.Host),
-		Type:    api.Client_ClientType(api.Client_ClientType_value[client.Type]),
+		Type:    apiservice.Client_ClientType(apiservice.Client_ClientType_value[client.Type]),
 		Version: utils.NewStringValue(client.Version),
 		Ctime:   utils.NewStringValue(commontime.Time2String(client.Ctime)),
 		Mtime:   utils.NewStringValue(commontime.Time2String(client.Mtime)),
-		Location: &api.Location{
+		Location: &apimodel.Location{
 			Region: utils.NewStringValue(client.Location["region"]),
 			Zone:   utils.NewStringValue(client.Location["zone"]),
 			Campus: utils.NewStringValue(client.Location["campus"]),

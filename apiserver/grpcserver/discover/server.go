@@ -21,16 +21,15 @@ import (
 	"context"
 	"fmt"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/apiserver/grpcserver"
 	v1 "github.com/polarismesh/polaris/apiserver/grpcserver/discover/v1"
-	v2 "github.com/polarismesh/polaris/apiserver/grpcserver/discover/v2"
 	"github.com/polarismesh/polaris/bootstrap"
-	apiv1 "github.com/polarismesh/polaris/common/api/v1"
-	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/service"
@@ -41,10 +40,10 @@ var (
 	namingLog = commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName)
 
 	cacheTypes = map[string]struct{}{
-		apiv1.DiscoverResponse_INSTANCE.String():        {},
-		apiv1.DiscoverResponse_ROUTING.String():         {},
-		apiv1.DiscoverResponse_RATE_LIMIT.String():      {},
-		apiv1.DiscoverResponse_CIRCUIT_BREAKER.String(): {},
+		apiservice.DiscoverResponse_INSTANCE.String():        {},
+		apiservice.DiscoverResponse_ROUTING.String():         {},
+		apiservice.DiscoverResponse_RATE_LIMIT.String():      {},
+		apiservice.DiscoverResponse_CIRCUIT_BREAKER.String(): {},
 	}
 )
 
@@ -56,7 +55,6 @@ type GRPCServer struct {
 	openAPI           map[string]apiserver.APIConfig
 
 	v1server *v1.DiscoverServer
-	v2server *v2.DiscoverServer
 }
 
 // GetPort 获取端口
@@ -95,13 +93,6 @@ func (g *GRPCServer) Initialize(ctx context.Context, option map[string]interface
 		v1.WithHealthCheckerServer(g.healthCheckServer),
 		v1.WithNamingServer(g.namingServer),
 	)
-	g.v2server = v2.NewDiscoverServer(
-		v2.WithAllowAccess(g.allowAccess),
-		v2.WithEnterRateLimit(g.enterRateLimit),
-		v2.WithHealthCheckerServer(g.healthCheckServer),
-		v2.WithNamingServer(g.namingServer),
-	)
-
 	return nil
 }
 
@@ -114,9 +105,7 @@ func (g *GRPCServer) Run(errCh chan error) {
 			case "client":
 				if config.Enable {
 					// 注册 v1 版本的 spec discover server
-					apiv1.RegisterPolarisGRPCServer(server, g.v1server)
-					// 注册 v2 版本的 spec discover server
-					apiv2.RegisterPolarisGRPCServer(server, g.v2server)
+					apiservice.RegisterPolarisGRPCServer(server, g.v1server)
 					openMethod, getErr := apiserver.GetClientOpenMethod(config.Include, g.GetProtocol())
 					if getErr != nil {
 						return getErr
@@ -191,13 +180,13 @@ func (g *GRPCServer) buildInitOptions(option map[string]interface{}) []grpcserve
 // 3. DiscoverResponse_RATE_LIMIT
 // 4. DiscoverResponse_CIRCUIT_BREAKER
 func discoverCacheConvert(m interface{}) *grpcserver.CacheObject {
-	resp, ok := m.(*apiv1.DiscoverResponse)
+	resp, ok := m.(*apiservice.DiscoverResponse)
 
 	if !ok {
 		return nil
 	}
 
-	if resp.Code.GetValue() != apiv1.ExecuteSuccess {
+	if resp.Code.GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 		return nil
 	}
 

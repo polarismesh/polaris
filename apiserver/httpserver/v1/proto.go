@@ -19,12 +19,14 @@ package v1
 
 import (
 	"github.com/golang/protobuf/proto"
-
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 )
 
 // NamespaceArr 命名空间数组定义
-type NamespaceArr []*api.Namespace
+type NamespaceArr []*apimodel.Namespace
 
 // Reset 重置初始化
 func (m *NamespaceArr) Reset() { *m = NamespaceArr{} }
@@ -36,7 +38,7 @@ func (m *NamespaceArr) String() string { return proto.CompactTextString(m) }
 func (*NamespaceArr) ProtoMessage() {}
 
 // ServiceArr 服务数组定义
-type ServiceArr []*api.Service
+type ServiceArr []*apiservice.Service
 
 // Reset 重置初始化
 func (m *ServiceArr) Reset() { *m = ServiceArr{} }
@@ -48,7 +50,7 @@ func (m *ServiceArr) String() string { return proto.CompactTextString(m) }
 func (*ServiceArr) ProtoMessage() {}
 
 // InstanceArr 服务实例数组定义
-type InstanceArr []*api.Instance
+type InstanceArr []*apiservice.Instance
 
 // Reset reset initialization
 func (m *InstanceArr) Reset() { *m = InstanceArr{} }
@@ -60,7 +62,7 @@ func (m *InstanceArr) String() string { return proto.CompactTextString(m) }
 func (*InstanceArr) ProtoMessage() {}
 
 // RoutingArr 路由规则数组定义
-type RoutingArr []*api.Routing
+type RoutingArr []*apitraffic.Routing
 
 // Reset reset initialization
 func (m *RoutingArr) Reset() { *m = RoutingArr{} }
@@ -72,7 +74,7 @@ func (m *RoutingArr) String() string { return proto.CompactTextString(m) }
 func (*RoutingArr) ProtoMessage() {}
 
 // RateLimitArr 限流规则数组定义
-type RateLimitArr []*api.Rule
+type RateLimitArr []*apitraffic.Rule
 
 // Reset reset initialization
 func (m *RateLimitArr) Reset() { *m = RateLimitArr{} }
@@ -84,7 +86,7 @@ func (m *RateLimitArr) String() string { return proto.CompactTextString(m) }
 func (*RateLimitArr) ProtoMessage() {}
 
 // CircuitBreakerArr 熔断规则数组定义
-type CircuitBreakerArr []*api.CircuitBreaker
+type CircuitBreakerArr []*apifault.CircuitBreaker
 
 // Reset reset initialization
 func (m *CircuitBreakerArr) Reset() { *m = CircuitBreakerArr{} }
@@ -96,7 +98,7 @@ func (m *CircuitBreakerArr) String() string { return proto.CompactTextString(m) 
 func (*CircuitBreakerArr) ProtoMessage() {}
 
 // ConfigReleaseArr 发布规则数组定义
-type ConfigReleaseArr []*api.ConfigRelease
+type ConfigReleaseArr []*apiservice.ConfigRelease
 
 // Reset reset initialization
 func (m *ConfigReleaseArr) Reset() { *m = ConfigReleaseArr{} }
@@ -108,7 +110,7 @@ func (m *ConfigReleaseArr) String() string { return proto.CompactTextString(m) }
 func (*ConfigReleaseArr) ProtoMessage() {}
 
 // ServiceAliasArr 服务实例数组定义
-type ServiceAliasArr []*api.ServiceAlias
+type ServiceAliasArr []*apiservice.ServiceAlias
 
 // Reset reset initialization
 func (m *ServiceAliasArr) Reset() { *m = ServiceAliasArr{} }
@@ -118,3 +120,39 @@ func (m *ServiceAliasArr) String() string { return proto.CompactTextString(m) }
 
 // ProtoMessage proto message
 func (*ServiceAliasArr) ProtoMessage() {}
+
+// RouterArr 路由规则数组定义
+type RouterArr []*apitraffic.RouteRule
+
+// Reset reset initialization
+func (m *RouterArr) Reset() { *m = RouterArr{} }
+
+// String return string
+func (m *RouterArr) String() string { return proto.CompactTextString(m) }
+
+// ProtoMessage return proto message
+func (*RouterArr) ProtoMessage() {}
+
+// CircuitBreakerRuleAttr circuitbreaker rule array define
+type CircuitBreakerRuleAttr []*apifault.CircuitBreakerRule
+
+// Reset reset initialization
+func (m *CircuitBreakerRuleAttr) Reset() { *m = CircuitBreakerRuleAttr{} }
+
+// String return string
+func (m *CircuitBreakerRuleAttr) String() string { return proto.CompactTextString(m) }
+
+// ProtoMessage return proto message
+func (*CircuitBreakerRuleAttr) ProtoMessage() {}
+
+// FaultDetectRuleAttr fault detect rule array define
+type FaultDetectRuleAttr []*apifault.FaultDetectRule
+
+// Reset reset initialization
+func (m *FaultDetectRuleAttr) Reset() { *m = FaultDetectRuleAttr{} }
+
+// String return string
+func (m *FaultDetectRuleAttr) String() string { return proto.CompactTextString(m) }
+
+// ProtoMessage return proto message
+func (*FaultDetectRuleAttr) ProtoMessage() {}

@@ -19,13 +19,14 @@ package cache
 
 import (
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store/mock"
@@ -49,17 +50,17 @@ func mockClients(cnt int) map[string]*model.Client {
 
 		id := utils.NewUUID()
 
-		ret[id] = model.NewClient(&apiv1.Client{
+		ret[id] = model.NewClient(&apiservice.Client{
 			Host:    utils.NewStringValue(fmt.Sprintf("127.0.0.%d", i+1)),
 			Type:    0,
 			Version: utils.NewStringValue("v1.0.0"),
-			Location: &apiv1.Location{
+			Location: &apimodel.Location{
 				Region: utils.NewStringValue("region"),
 				Zone:   utils.NewStringValue("zone"),
 				Campus: utils.NewStringValue("campus"),
 			},
 			Id:   utils.NewStringValue(id),
-			Stat: []*apiv1.StatInfo{},
+			Stat: []*apiservice.StatInfo{},
 		})
 
 		ret[id].SetValid(true)

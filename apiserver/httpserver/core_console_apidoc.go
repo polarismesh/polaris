@@ -20,8 +20,7 @@ package httpserver
 import (
 	"github.com/emicklei/go-restful/v3"
 	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
-
-	v1 "github.com/polarismesh/polaris/common/api/v1"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 )
 
 var (
@@ -42,7 +41,7 @@ func enrichCreateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 	return r.
 		Doc("创建命名空间").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).
-		Reads([]v1.Namespace{}, "create namespaces").
+		Reads([]apimodel.Namespace{}, "create namespaces").
 		Notes(enrichCreateNamespacesApiNotes)
 }
 
@@ -50,7 +49,7 @@ func enrichDeleteNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 	return r.
 		Doc("删除命名空间").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).
-		Reads([]v1.Namespace{}, "delete namespaces").
+		Reads([]apimodel.Namespace{}, "delete namespaces").
 		Notes(enrichDeleteNamespacesApiNotes)
 }
 
@@ -58,7 +57,7 @@ func enrichUpdateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 	return r.
 		Doc("更新命名空间").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).
-		Reads([]v1.Namespace{}, "update namespaces").
+		Reads([]apimodel.Namespace{}, "update namespaces").
 		Notes(enrichUpdateNamespacesApiNotes)
 }
 

@@ -24,21 +24,19 @@ import (
 
 // DiscoverServer Server discovered by the service
 type DiscoverServer interface {
-	// DiscoverServerV1
+	// DiscoverServerV1 DiscoverServerV1
 	DiscoverServerV1
-	// DiscoverServerV2
-	DiscoverServerV2
-	// Service alias operation interface definition
+	// ServiceAliasOperateServer Service alias operation interface definition
 	ServiceAliasOperateServer
-	// Service operation interface definition
+	// ServiceOperateServer Service operation interface definition
 	ServiceOperateServer
-	// Instance Operation Interface Definition
+	// InstanceOperateServer Instance Operation Interface Definition
 	InstanceOperateServer
-	// Client operation interface definition
+	// ClientServer Client operation interface definition
 	ClientServer
-	// Get cache management
+	// Cache Get cache management
 	Cache() *cache.CacheManager
-	// L5 related operations
+	// L5OperateServer L5 related operations
 	L5OperateServer
 	// GetServiceInstanceRevision Get the version of the service
 	GetServiceInstanceRevision(serviceID string, instances []*model.Instance) (string, error)

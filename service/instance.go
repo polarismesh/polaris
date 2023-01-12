@@ -25,6 +25,8 @@ import (
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -71,7 +73,7 @@ var (
 )
 
 // CreateInstances 批量创建服务实例
-func (s *Server) CreateInstances(ctx context.Context, reqs []*api.Instance) *api.BatchWriteResponse {
+func (s *Server) CreateInstances(ctx context.Context, reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	if checkError := checkBatchInstance(reqs); checkError != nil {
 		return checkError
 	}
@@ -81,7 +83,7 @@ func (s *Server) CreateInstances(ctx context.Context, reqs []*api.Instance) *api
 
 // CreateInstance 创建单个服务实例
 // 注意：创建实例需要对服务进行加锁保护服务不被删除
-func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Response {
+func (s *Server) CreateInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	rid := utils.ParseRequestID(ctx)
 	pid := utils.ParsePlatformID(ctx)
 	start := time.Now()
@@ -94,7 +96,7 @@ func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Res
 	if ok := s.allowInstanceAccess(instanceID); !ok {
 		log.Error("create instance not allowed to access: exceed ratelimit",
 			utils.ZapRequestID(rid), utils.ZapPlatformID(pid), utils.ZapInstanceID(instanceID))
-		return api.NewInstanceResponse(api.InstanceTooManyRequests, req)
+		return api.NewInstanceResponse(apimodel.Code_InstanceTooManyRequests, req)
 	}
 
 	// 防止污染req，拷贝一份出来，并且填充一下token ID
@@ -124,7 +126,7 @@ func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Res
 		CreateTime: time.Time{},
 	})
 	s.RecordHistory(ctx, instanceRecordEntry(ctx, req, svc, data, model.OCreate))
-	out := &api.Instance{
+	out := &apiservice.Instance{
 		Id:        ins.GetId(),
 		Service:   req.GetService(),
 		Namespace: req.GetNamespace(),
@@ -132,14 +134,14 @@ func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Res
 		Host:      req.GetHost(),
 		Port:      req.GetPort(),
 	}
-	return api.NewInstanceResponse(api.ExecuteSuccess, out)
+	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, out)
 }
 
 // createInstance store operate
-func (s *Server) createInstance(ctx context.Context, req *api.Instance, ins *api.Instance) (
-	*model.Instance, *api.Response) {
+func (s *Server) createInstance(ctx context.Context, req *apiservice.Instance, ins *apiservice.Instance) (
+	*model.Instance, *apiservice.Response) {
 	// create service if absent
-	code, svcId, err := s.createServiceIfAbsent(ctx, req)
+	code, svcId, err := s.createWrapServiceIfAbsent(ctx, req)
 	if err != nil {
 		return nil, api.NewInstanceResponse(code, req)
 	}
@@ -157,13 +159,14 @@ func (s *Server) createInstance(ctx context.Context, req *api.Instance, ins *api
 // 底层函数会合并create请求，增加并发创建的吞吐
 // req 原始请求
 // ins 包含了req数据与instanceID，serviceToken
-func (s *Server) asyncCreateInstance(ctx context.Context, svcId string, req *api.Instance, ins *api.Instance) (
-	*model.Instance, *api.Response) {
+func (s *Server) asyncCreateInstance(
+	ctx context.Context, svcId string, req *apiservice.Instance, ins *apiservice.Instance) (
+	*model.Instance, *apiservice.Response) {
 	allowAsyncRegis, _ := ctx.Value(utils.ContextOpenAsyncRegis).(bool)
 	future := s.bc.AsyncCreateInstance(svcId, ins, !allowAsyncRegis)
 
 	if err := future.Wait(); err != nil {
-		if future.Code() == api.ExistedResource {
+		if future.Code() == apimodel.Code_ExistedResource {
 			req.Id = utils.NewStringValue(ins.GetId().GetValue())
 		}
 		return nil, api.NewInstanceResponse(future.Code(), req)
@@ -175,15 +178,17 @@ func (s *Server) asyncCreateInstance(ctx context.Context, svcId string, req *api
 // 同步串行创建实例
 // req为原始的请求体
 // ins包括了req的内容，并且填充了instanceID与serviceToken
-func (s *Server) serialCreateInstance(ctx context.Context, svcId string, req *api.Instance, ins *api.Instance) (
-	*model.Instance, *api.Response) {
+func (s *Server) serialCreateInstance(
+	ctx context.Context, svcId string, req *apiservice.Instance, ins *apiservice.Instance) (
+	*model.Instance, *apiservice.Response) {
 	rid := utils.ParseRequestID(ctx)
 	pid := utils.ParsePlatformID(ctx)
 
 	instance, err := s.storage.GetInstance(ins.GetId().GetValue())
 	if err != nil {
-		log.Error("[Instance] get instance from store", utils.ZapRequestID(rid), utils.ZapPlatformID(pid), zap.Error(err))
-		return nil, api.NewInstanceResponse(api.StoreLayerException, req)
+		log.Error("[Instance] get instance from store",
+			utils.ZapRequestID(rid), utils.ZapPlatformID(pid), zap.Error(err))
+		return nil, api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	// 如果存在，则替换实例的属性数据，但是需要保留用户设置的隔离状态，以免出现关键状态丢失
 	if instance != nil && ins.Isolate == nil {
@@ -200,7 +205,7 @@ func (s *Server) serialCreateInstance(ctx context.Context, svcId string, req *ap
 }
 
 // DeleteInstances 批量删除服务实例
-func (s *Server) DeleteInstances(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse {
+func (s *Server) DeleteInstances(ctx context.Context, req []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	if checkError := checkBatchInstance(req); checkError != nil {
 		return checkError
 	}
@@ -209,7 +214,7 @@ func (s *Server) DeleteInstances(ctx context.Context, req []*api.Instance) *api.
 }
 
 // DeleteInstance 删除单个服务实例
-func (s *Server) DeleteInstance(ctx context.Context, req *api.Instance) *api.Response {
+func (s *Server) DeleteInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	rid := utils.ParseRequestID(ctx)
 	pid := utils.ParsePlatformID(ctx)
 
@@ -221,7 +226,7 @@ func (s *Server) DeleteInstance(ctx context.Context, req *api.Instance) *api.Res
 	// 限制instance频繁反注册
 	if ok := s.allowInstanceAccess(instanceID); !ok {
 		log.Error("delete instance is not allow access", utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return api.NewInstanceResponse(api.InstanceTooManyRequests, req)
+		return api.NewInstanceResponse(apimodel.Code_InstanceTooManyRequests, req)
 	}
 
 	ins := *req // 防止污染外部的req
@@ -233,7 +238,8 @@ func (s *Server) DeleteInstance(ctx context.Context, req *api.Instance) *api.Res
 // 删除实例的store操作
 // req 原始请求
 // ins 填充了instanceID与serviceToken
-func (s *Server) deleteInstance(ctx context.Context, req *api.Instance, ins *api.Instance) *api.Response {
+func (s *Server) deleteInstance(
+	ctx context.Context, req *apiservice.Instance, ins *apiservice.Instance) *apiservice.Response {
 	if s.bc == nil || !s.bc.DeleteInstanceOpen() {
 		return s.serialDeleteInstance(ctx, req, ins)
 	}
@@ -243,7 +249,8 @@ func (s *Server) deleteInstance(ctx context.Context, req *api.Instance, ins *api
 
 // 串行删除实例
 // 返回实例所属的服务和resp
-func (s *Server) serialDeleteInstance(ctx context.Context, req *api.Instance, ins *api.Instance) *api.Response {
+func (s *Server) serialDeleteInstance(
+	ctx context.Context, req *apiservice.Instance, ins *apiservice.Instance) *apiservice.Response {
 	start := time.Now()
 	// 检查服务实例是否存在
 	rid := utils.ParseRequestID(ctx)
@@ -251,11 +258,11 @@ func (s *Server) serialDeleteInstance(ctx context.Context, req *api.Instance, in
 	instance, err := s.storage.GetInstance(ins.GetId().GetValue())
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid))
-		return api.NewInstanceResponse(api.StoreLayerException, req)
+		return api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if instance == nil {
 		// 实例不存在，则返回成功
-		return api.NewInstanceResponse(api.ExecuteSuccess, req)
+		return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 	}
 	// 鉴权
 	service, resp := s.instanceAuth(ctx, req, instance.ServiceID)
@@ -282,12 +289,13 @@ func (s *Server) serialDeleteInstance(ctx context.Context, req *api.Instance, in
 		CreateTime: time.Time{},
 	})
 
-	return api.NewInstanceResponse(api.ExecuteSuccess, req)
+	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
 // 异步删除实例
 // 返回实例所属的服务和resp
-func (s *Server) asyncDeleteInstance(ctx context.Context, req *api.Instance, ins *api.Instance) *api.Response {
+func (s *Server) asyncDeleteInstance(
+	ctx context.Context, req *apiservice.Instance, ins *apiservice.Instance) *apiservice.Response {
 	start := time.Now()
 	rid := utils.ParseRequestID(ctx)
 	pid := utils.ParsePlatformID(ctx)
@@ -295,8 +303,8 @@ func (s *Server) asyncDeleteInstance(ctx context.Context, req *api.Instance, ins
 	future := s.bc.AsyncDeleteInstance(ins)
 	if err := future.Wait(); err != nil {
 		// 如果发现不存在资源，意味着实例已经被删除，直接返回成功
-		if future.Code() == api.NotFoundResource {
-			return api.NewInstanceResponse(api.ExecuteSuccess, req)
+		if future.Code() == apimodel.Code_NotFoundResource {
+			return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 		}
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return api.NewInstanceResponse(future.Code(), req)
@@ -318,11 +326,12 @@ func (s *Server) asyncDeleteInstance(ctx context.Context, req *api.Instance, ins
 		CreateTime: time.Time{},
 	})
 
-	return api.NewInstanceResponse(api.ExecuteSuccess, req)
+	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
 // DeleteInstancesByHost 根据host批量删除服务实例
-func (s *Server) DeleteInstancesByHost(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse {
+func (s *Server) DeleteInstancesByHost(
+	ctx context.Context, req []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	if checkError := checkBatchInstance(req); checkError != nil {
 		return checkError
 	}
@@ -331,7 +340,7 @@ func (s *Server) DeleteInstancesByHost(ctx context.Context, req []*api.Instance)
 }
 
 // DeleteInstanceByHost 根据host删除服务实例
-func (s *Server) DeleteInstanceByHost(ctx context.Context, req *api.Instance) *api.Response {
+func (s *Server) DeleteInstanceByHost(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
 
@@ -347,7 +356,7 @@ func (s *Server) DeleteInstanceByHost(ctx context.Context, req *api.Instance) *a
 	}
 
 	if instances == nil {
-		return api.NewInstanceResponse(api.ExecuteSuccess, req)
+		return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 	}
 
 	ids := make([]interface{}, 0, len(instances))
@@ -374,11 +383,11 @@ func (s *Server) DeleteInstanceByHost(ctx context.Context, req *api.Instance) *a
 			CreateTime: time.Time{},
 		})
 	}
-	return api.NewInstanceResponse(api.ExecuteSuccess, req)
+	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
 // UpdateInstances 批量修改服务实例
-func (s *Server) UpdateInstances(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse {
+func (s *Server) UpdateInstances(ctx context.Context, req []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	if checkError := checkBatchInstance(req); checkError != nil {
 		return checkError
 	}
@@ -387,13 +396,13 @@ func (s *Server) UpdateInstances(ctx context.Context, req []*api.Instance) *api.
 }
 
 // UpdateInstance 修改单个服务实例
-func (s *Server) UpdateInstance(ctx context.Context, req *api.Instance) *api.Response {
+func (s *Server) UpdateInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	service, instance, preErr := s.execInstancePreStep(ctx, req)
 	if preErr != nil {
 		return preErr
 	}
 	if err := checkMetadata(req.GetMetadata()); err != nil {
-		return api.NewInstanceResponse(api.InvalidMetadata, req)
+		return api.NewInstanceResponse(apimodel.Code_InvalidMetadata, req)
 	}
 
 	// 修改
@@ -408,7 +417,7 @@ func (s *Server) UpdateInstance(ctx context.Context, req *api.Instance) *api.Res
 	if needUpdate := s.updateInstanceAttribute(req, instance); !needUpdate {
 		log.Info("update instance no data change, no need update",
 			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.String("instance", req.String()))
-		return api.NewInstanceResponse(api.NoNeedUpdate, req)
+		return api.NewInstanceResponse(apimodel.Code_NoNeedUpdate, req)
 	}
 	if err := s.storage.UpdateInstance(instance); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
@@ -432,12 +441,13 @@ func (s *Server) UpdateInstance(ctx context.Context, req *api.Instance) *api.Res
 		})
 	}
 
-	return api.NewInstanceResponse(api.ExecuteSuccess, req)
+	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
 // UpdateInstancesIsolate 批量修改服务实例隔离状态
 // @note 必填参数为service+namespace+host
-func (s *Server) UpdateInstancesIsolate(ctx context.Context, req []*api.Instance) *api.BatchWriteResponse {
+func (s *Server) UpdateInstancesIsolate(
+	ctx context.Context, req []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	if checkError := checkBatchInstance(req); checkError != nil {
 		return checkError
 	}
@@ -447,7 +457,7 @@ func (s *Server) UpdateInstancesIsolate(ctx context.Context, req []*api.Instance
 
 // UpdateInstanceIsolate 修改服务实例隔离状态
 // @note 必填参数为service+namespace+ip
-func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *api.Response {
+func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
 
@@ -456,7 +466,7 @@ func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *
 		return err
 	}
 	if req.GetIsolate() == nil {
-		return api.NewInstanceResponse(api.InvalidInstanceIsolate, req)
+		return api.NewInstanceResponse(apimodel.Code_InvalidInstanceIsolate, req)
 	}
 
 	// 获取实例
@@ -465,7 +475,7 @@ func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *
 		return err
 	}
 	if instances == nil {
-		return api.NewInstanceResponse(api.NotFoundInstance, req)
+		return api.NewInstanceResponse(apimodel.Code_NotFoundInstance, req)
 	}
 
 	// 判断是否需要更新
@@ -477,7 +487,7 @@ func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *
 		}
 	}
 	if !needUpdate {
-		return api.NewInstanceResponse(api.NoNeedUpdate, req)
+		return api.NewInstanceResponse(apimodel.Code_NoNeedUpdate, req)
 	}
 
 	isolate := 0
@@ -520,24 +530,24 @@ func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *api.Instance) *
 		}
 	}
 
-	return api.NewInstanceResponse(api.ExecuteSuccess, req)
+	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
 /**
  * @brief 根据ip隔离和删除服务实例的参数检查
  */
-func checkInstanceByHost(req *api.Instance) *api.Response {
+func checkInstanceByHost(req *apiservice.Instance) *apiservice.Response {
 	if req == nil {
-		return api.NewInstanceResponse(api.EmptyRequest, req)
+		return api.NewInstanceResponse(apimodel.Code_EmptyRequest, req)
 	}
 	if err := checkResourceName(req.GetService()); err != nil {
-		return api.NewInstanceResponse(api.InvalidServiceName, req)
+		return api.NewInstanceResponse(apimodel.Code_InvalidServiceName, req)
 	}
 	if err := checkResourceName(req.GetNamespace()); err != nil {
-		return api.NewInstanceResponse(api.InvalidNamespaceName, req)
+		return api.NewInstanceResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
 	if err := checkInstanceHost(req.GetHost()); err != nil {
-		return api.NewInstanceResponse(api.InvalidInstanceHost, req)
+		return api.NewInstanceResponse(apimodel.Code_InvalidInstanceHost, req)
 	}
 	return nil
 }
@@ -545,8 +555,8 @@ func checkInstanceByHost(req *api.Instance) *api.Response {
 /**
  * @brief 根据服务和host获取服务实例
  */
-func (s *Server) getInstancesMainByService(ctx context.Context, req *api.Instance) (
-	[]*model.Instance, *model.Service, *api.Response) {
+func (s *Server) getInstancesMainByService(ctx context.Context, req *apiservice.Instance) (
+	[]*model.Instance, *model.Service, *apiservice.Response) {
 	requestID := utils.ParseRequestID(ctx)
 	platformID := utils.ParsePlatformID(ctx)
 
@@ -555,17 +565,17 @@ func (s *Server) getInstancesMainByService(ctx context.Context, req *api.Instanc
 	service, err := s.storage.GetSourceServiceToken(req.GetService().GetValue(), req.GetNamespace().GetValue())
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		return nil, nil, api.NewInstanceResponse(api.StoreLayerException, req)
+		return nil, nil, api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if service == nil {
-		return nil, nil, api.NewInstanceResponse(api.NotFoundService, req)
+		return nil, nil, api.NewInstanceResponse(apimodel.Code_NotFoundService, req)
 	}
 
 	// 获取服务实例
 	instances, err := s.storage.GetInstancesMainByService(service.ID, req.GetHost().GetValue())
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		return nil, nil, api.NewInstanceResponse(api.StoreLayerException, req)
+		return nil, nil, api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	return instances, service, nil
 }
@@ -573,7 +583,7 @@ func (s *Server) getInstancesMainByService(ctx context.Context, req *api.Instanc
 /**
  * @brief 修改服务属性
  */
-func (s *Server) updateInstanceAttribute(req *api.Instance, instance *model.Instance) bool {
+func (s *Server) updateInstanceAttribute(req *apiservice.Instance, instance *model.Instance) bool {
 	// #lizard forgives
 	instance.MallocProto()
 	needUpdate := false
@@ -640,7 +650,7 @@ func (s *Server) updateInstanceAttribute(req *api.Instance, instance *model.Inst
 	return needUpdate
 }
 
-func instanceLocationNeedUpdate(req *api.Location, old *api.Location) bool {
+func instanceLocationNeedUpdate(req *apimodel.Location, old *apimodel.Location) bool {
 	if req.GetRegion().GetValue() != old.GetRegion().GetValue() {
 		return true
 	}
@@ -655,7 +665,7 @@ func instanceLocationNeedUpdate(req *api.Location, old *api.Location) bool {
 }
 
 // 健康检查的更新
-func updateHealthCheck(req *api.Instance, instance *model.Instance) bool {
+func updateHealthCheck(req *apiservice.Instance, instance *model.Instance) bool {
 	needUpdate := false
 	insProto := instance.Proto
 	// health Check，healthCheck不能为空，且没有把enable_health_check置为false
@@ -678,12 +688,12 @@ func updateHealthCheck(req *api.Instance, instance *model.Instance) bool {
 			// ttl有变更
 			needUpdate = true
 		}
-		if api.HealthCheck_HEARTBEAT != instance.HealthCheck().GetType() {
+		if apiservice.HealthCheck_HEARTBEAT != instance.HealthCheck().GetType() {
 			// health check type有变更
 			needUpdate = true
 		}
 		insProto.HealthCheck = req.GetHealthCheck()
-		insProto.HealthCheck.Type = api.HealthCheck_HEARTBEAT
+		insProto.HealthCheck.Type = apiservice.HealthCheck_HEARTBEAT
 		if insProto.HealthCheck.Heartbeat.Ttl == nil {
 			insProto.HealthCheck.Heartbeat.Ttl = utils.NewUInt32Value(0)
 		}
@@ -707,7 +717,7 @@ func updateHealthCheck(req *api.Instance, instance *model.Instance) bool {
 }
 
 // GetInstances 查询服务实例
-func (s *Server) GetInstances(ctx context.Context, query map[string]string) *api.BatchQueryResponse {
+func (s *Server) GetInstances(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	// 对数据先进行提前处理一下
 	filters, metaFilter, batchErr := preGetInstances(query)
 	if batchErr != nil {
@@ -716,20 +726,20 @@ func (s *Server) GetInstances(ctx context.Context, query map[string]string) *api
 	// 分页数据
 	offset, limit, err := utils.ParseOffsetAndLimit(filters)
 	if err != nil {
-		return api.NewBatchQueryResponse(api.InvalidParameter)
+		return api.NewBatchQueryResponse(apimodel.Code_InvalidParameter)
 	}
 
 	total, instances, err := s.storage.GetExpandInstances(filters, metaFilter, offset, limit)
 	if err != nil {
 		log.Errorf("[Server][Instances][Query] instances store err: %s", err.Error())
-		return api.NewBatchQueryResponse(api.StoreLayerException)
+		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
 	}
 
-	out := api.NewBatchQueryResponse(api.ExecuteSuccess)
+	out := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
 	out.Amount = utils.NewUInt32Value(total)
 	out.Size = utils.NewUInt32Value(uint32(len(instances)))
 
-	apiInstances := make([]*api.Instance, 0, len(instances))
+	apiInstances := make([]*apiservice.Instance, 0, len(instances))
 	for _, instance := range instances {
 		// 数据来源于数据库，不需要拷贝一份，直接填充后返回
 		s.packCmdb(instance.Proto)
@@ -740,7 +750,7 @@ func (s *Server) GetInstances(ctx context.Context, query map[string]string) *api
 	return out
 }
 
-func (s *Server) GetInstanceLabels(ctx context.Context, query map[string]string) *api.Response {
+func (s *Server) GetInstanceLabels(ctx context.Context, query map[string]string) *apiservice.Response {
 	var (
 		serviceId string
 		namespace = DefaultNamespace
@@ -762,36 +772,36 @@ func (s *Server) GetInstanceLabels(ctx context.Context, query map[string]string)
 	}
 
 	if serviceId == "" {
-		return api.NewResponse(api.NotFoundService)
+		return api.NewResponse(apimodel.Code_NotFoundService)
 	}
 
 	ret := s.Cache().Instance().GetInstanceLabels(serviceId)
-	resp := api.NewResponse(api.ExecuteSuccess)
+	resp := api.NewResponse(apimodel.Code_ExecuteSuccess)
 	resp.InstanceLabels = ret
 	return resp
 }
 
 // GetInstancesCount 查询总的服务实例，不带过滤条件的
-func (s *Server) GetInstancesCount(ctx context.Context) *api.BatchQueryResponse {
+func (s *Server) GetInstancesCount(ctx context.Context) *apiservice.BatchQueryResponse {
 	count, err := s.storage.GetInstancesCount()
 	if err != nil {
 		log.Errorf("[Server][Instance][Count] storage get err: %s", err.Error())
-		return api.NewBatchQueryResponse(api.StoreLayerException)
+		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
 	}
 
-	out := api.NewBatchQueryResponse(api.ExecuteSuccess)
+	out := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
 	out.Amount = utils.NewUInt32Value(count)
-	out.Instances = make([]*api.Instance, 0)
+	out.Instances = make([]*apiservice.Instance, 0)
 	return out
 }
 
 // CleanInstance 清理无效的实例(flag == 1)
-func (s *Server) CleanInstance(ctx context.Context, req *api.Instance) *api.Response {
+func (s *Server) CleanInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	// 无效数据，不需要鉴权，直接删除
-	getInstanceID := func() (string, *api.Response) {
+	getInstanceID := func() (string, *apiservice.Response) {
 		if req.GetId() != nil {
 			if req.GetId().GetValue() == "" {
-				return "", api.NewInstanceResponse(api.InvalidInstanceID, req)
+				return "", api.NewInstanceResponse(apimodel.Code_InvalidInstanceID, req)
 			}
 			return req.GetId().GetValue(), nil
 		}
@@ -803,17 +813,18 @@ func (s *Server) CleanInstance(ctx context.Context, req *api.Instance) *api.Resp
 		return resp
 	}
 	if err := s.storage.CleanInstance(instanceID); err != nil {
-		log.Error("Clean instance", zap.String("err", err.Error()), utils.ZapRequestID(utils.ParseRequestID(ctx)))
-		return api.NewInstanceResponse(api.StoreLayerException, req)
+		log.Error("Clean instance",
+			zap.String("err", err.Error()), utils.ZapRequestID(utils.ParseRequestID(ctx)))
+		return api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
 	}
 
 	log.Info("Clean instance", utils.ZapRequestID(utils.ParseRequestID(ctx)), utils.ZapInstanceID(instanceID))
-	return api.NewInstanceResponse(api.ExecuteSuccess, req)
+	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
 // update/delete instance前置条件
-func (s *Server) execInstancePreStep(ctx context.Context, req *api.Instance) (
-	*model.Service, *model.Instance, *api.Response) {
+func (s *Server) execInstancePreStep(ctx context.Context, req *apiservice.Instance) (
+	*model.Service, *model.Instance, *apiservice.Response) {
 	rid := utils.ParseRequestID(ctx)
 
 	// 参数检查
@@ -827,10 +838,10 @@ func (s *Server) execInstancePreStep(ctx context.Context, req *api.Instance) (
 	if err != nil {
 		log.Error("[Instance] get instance from store", utils.ZapRequestID(rid), utils.ZapInstanceID(instanceID),
 			zap.Error(err))
-		return nil, nil, api.NewInstanceResponse(api.StoreLayerException, req)
+		return nil, nil, api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if instance == nil {
-		return nil, nil, api.NewInstanceResponse(api.NotFoundInstance, req)
+		return nil, nil, api.NewInstanceResponse(apimodel.Code_NotFoundInstance, req)
 	}
 
 	service, resp := s.instanceAuth(ctx, req, instance.ServiceID)
@@ -842,23 +853,23 @@ func (s *Server) execInstancePreStep(ctx context.Context, req *api.Instance) (
 }
 
 // 实例鉴权
-func (s *Server) instanceAuth(ctx context.Context, req *api.Instance, serviceID string) (
-	*model.Service, *api.Response) {
+func (s *Server) instanceAuth(ctx context.Context, req *apiservice.Instance, serviceID string) (
+	*model.Service, *apiservice.Response) {
 	service, err := s.storage.GetServiceByID(serviceID)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(utils.ParseRequestID(ctx)))
-		return nil, api.NewInstanceResponse(api.StoreLayerException, req)
+		return nil, api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if service == nil {
-		return nil, api.NewInstanceResponse(api.NotFoundResource, req)
+		return nil, api.NewInstanceResponse(apimodel.Code_NotFoundResource, req)
 	}
 
 	return service, nil
 }
 
 // 获取api.instance
-func (s *Server) getInstance(service *api.Service, instance *api.Instance) *api.Instance {
-	out := &api.Instance{
+func (s *Server) getInstance(service *apiservice.Service, instance *apiservice.Instance) *apiservice.Instance {
+	out := &apiservice.Instance{
 		Id:                instance.GetId(),
 		Service:           service.GetName(),
 		Namespace:         service.GetNamespace(),
@@ -886,7 +897,7 @@ func (s *Server) getInstance(service *api.Service, instance *api.Instance) *api.
 }
 
 // 获取cmdb
-func (s *Server) packCmdb(instance *api.Instance) {
+func (s *Server) packCmdb(instance *apiservice.Instance) {
 	if s.cmdb == nil {
 		return
 	}
@@ -908,7 +919,7 @@ func (s *Server) packCmdb(instance *api.Instance) {
 	}
 }
 
-func isEmptyLocation(loc *api.Location) bool {
+func isEmptyLocation(loc *apimodel.Location) bool {
 	return loc == nil || (loc.GetRegion().GetValue() == "" &&
 		loc.GetZone().GetValue() == "" &&
 		loc.GetCampus().GetValue() == "")
@@ -920,26 +931,49 @@ func (s *Server) sendDiscoverEvent(event model.InstanceEvent) {
 	eventhub.Publish(eventhub.InstanceEventTopic, event)
 }
 
-type svcName interface {
+type wrapSvcName interface {
 	// GetService 获取服务名
 	GetService() *wrappers.StringValue
 	// GetNamespace 获取命名空间
 	GetNamespace() *wrappers.StringValue
 }
 
-// createServiceIfAbsent 如果服务不存在，则进行创建，并返回服务的ID信息
-func (s *Server) createServiceIfAbsent(ctx context.Context, instance svcName) (uint32, string, error) {
-	svc, err := s.loadService(instance)
+type rawSvcName interface {
+	// GetService 获取服务名
+	GetService() string
+	// GetNamespace 获取命名空间
+	GetNamespace() string
+}
+
+// createWrapServiceIfAbsent 如果服务不存在，则进行创建，并返回服务的ID信息
+func (s *Server) createWrapServiceIfAbsent(ctx context.Context, instance wrapSvcName) (apimodel.Code, string, error) {
+	return s.createServiceIfAbsent(ctx, instance.GetNamespace().GetValue(), instance.GetService().GetValue())
+}
+
+// createWrapServiceIfAbsent 如果服务不存在，则进行创建，并返回服务的ID信息
+func (s *Server) createRawServiceIfAbsent(ctx context.Context, instance rawSvcName) (apimodel.Code, string, error) {
+	return s.createServiceIfAbsent(ctx, instance.GetNamespace(), instance.GetService())
+}
+
+func (s *Server) createServiceIfAbsent(
+	ctx context.Context, namespace string, svcName string) (apimodel.Code, string, error) {
+	if len(namespace) == 0 || namespace == utils.MatchAll {
+		return apimodel.Code_ExecuteSuccess, "", nil
+	}
+	if len(svcName) == 0 || svcName == utils.MatchAll {
+		return apimodel.Code_ExecuteSuccess, "", nil
+	}
+	svc, err := s.loadService(namespace, svcName)
 	if err != nil {
-		return api.ExecuteException, "", err
+		return apimodel.Code_ExecuteException, "", err
 	}
 	if svc != nil {
-		return api.ExecuteSuccess, svc.ID, nil
+		return apimodel.Code_ExecuteSuccess, svc.ID, nil
 	}
 
-	simpleService := &api.Service{
-		Name:      utils.NewStringValue(instance.GetService().GetValue()),
-		Namespace: utils.NewStringValue(instance.GetNamespace().GetValue()),
+	simpleService := &apiservice.Service{
+		Name:      utils.NewStringValue(svcName),
+		Namespace: utils.NewStringValue(namespace),
 		Owners: func() *wrapperspb.StringValue {
 			owner := utils.ParseOwnerID(ctx)
 			if owner == "" {
@@ -958,9 +992,9 @@ func (s *Server) createServiceIfAbsent(ctx context.Context, instance svcName) (u
 		return resp, nil
 	})
 
-	resp := ret.(*api.Response)
-	retCode := resp.GetCode().GetValue()
-	if retCode != api.ExecuteSuccess && retCode != api.ExistedResource {
+	resp := ret.(*apiservice.Response)
+	retCode := apimodel.Code(resp.GetCode().GetValue())
+	if retCode != apimodel.Code_ExecuteSuccess && retCode != apimodel.Code_ExistedResource {
 		return retCode, "", errors.New(resp.GetInfo().GetValue())
 	}
 
@@ -968,8 +1002,8 @@ func (s *Server) createServiceIfAbsent(ctx context.Context, instance svcName) (u
 	return retCode, svcId, nil
 }
 
-func (s *Server) loadService(instance svcName) (*model.Service, error) {
-	svc := s.caches.Service().GetServiceByName(instance.GetService().GetValue(), instance.GetNamespace().GetValue())
+func (s *Server) loadService(namespace string, svcName string) (*model.Service, error) {
+	svc := s.caches.Service().GetServiceByName(svcName, namespace)
 	if svc != nil {
 		if svc.IsAlias() {
 			return nil, errors.New("service is alias")
@@ -978,7 +1012,7 @@ func (s *Server) loadService(instance svcName) (*model.Service, error) {
 	}
 
 	// 再走数据库查询一遍
-	svc, err := s.storage.GetService(instance.GetService().GetValue(), instance.GetNamespace().GetValue())
+	svc, err := s.storage.GetService(svcName, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -993,13 +1027,13 @@ func (s *Server) loadService(instance svcName) (*model.Service, error) {
 /*
  * @brief 检查批量请求
  */
-func checkBatchInstance(req []*api.Instance) *api.BatchWriteResponse {
+func checkBatchInstance(req []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	if len(req) == 0 {
-		return api.NewBatchWriteResponse(api.EmptyRequest)
+		return api.NewBatchWriteResponse(apimodel.Code_EmptyRequest)
 	}
 
 	if len(req) > MaxBatchSize {
-		return api.NewBatchWriteResponse(api.BatchSizeOverLimit)
+		return api.NewBatchWriteResponse(apimodel.Code_BatchSizeOverLimit)
 	}
 
 	return nil
@@ -1008,13 +1042,13 @@ func checkBatchInstance(req []*api.Instance) *api.BatchWriteResponse {
 /*
  * @brief 检查创建服务实例请求参数
  */
-func checkCreateInstance(req *api.Instance) (string, *api.Response) {
+func checkCreateInstance(req *apiservice.Instance) (string, *apiservice.Response) {
 	if req == nil {
-		return "", api.NewInstanceResponse(api.EmptyRequest, req)
+		return "", api.NewInstanceResponse(apimodel.Code_EmptyRequest, req)
 	}
 
 	if err := checkMetadata(req.GetMetadata()); err != nil {
-		return "", api.NewInstanceResponse(api.InvalidMetadata, req)
+		return "", api.NewInstanceResponse(apimodel.Code_InvalidMetadata, req)
 	}
 
 	// 检查字段长度是否大于DB中对应字段长
@@ -1029,14 +1063,14 @@ func checkCreateInstance(req *api.Instance) (string, *api.Response) {
 /*
  * @brief 检查删除/修改服务实例请求参数
  */
-func checkReviseInstance(req *api.Instance) (string, *api.Response) {
+func checkReviseInstance(req *apiservice.Instance) (string, *apiservice.Response) {
 	if req == nil {
-		return "", api.NewInstanceResponse(api.EmptyRequest, req)
+		return "", api.NewInstanceResponse(apimodel.Code_EmptyRequest, req)
 	}
 
 	if req.GetId() != nil {
 		if req.GetId().GetValue() == "" {
-			return "", api.NewInstanceResponse(api.InvalidInstanceID, req)
+			return "", api.NewInstanceResponse(apimodel.Code_InvalidInstanceID, req)
 		}
 		return req.GetId().GetValue(), nil
 	}
@@ -1055,13 +1089,13 @@ func checkReviseInstance(req *api.Instance) (string, *api.Response) {
  * 检查是否存在token，以及 id或者四元组
  * 注意：心跳上报只允许从client上报，因此token只会存在req中
  */
-func checkHeartbeatInstance(req *api.Instance) (string, *api.Response) {
+func checkHeartbeatInstance(req *apiservice.Instance) (string, *apiservice.Response) {
 	if req == nil {
-		return "", api.NewInstanceResponse(api.EmptyRequest, req)
+		return "", api.NewInstanceResponse(apimodel.Code_EmptyRequest, req)
 	}
 	if req.GetId() != nil {
 		if req.GetId().GetValue() == "" {
-			return "", api.NewInstanceResponse(api.InvalidInstanceID, req)
+			return "", api.NewInstanceResponse(apimodel.Code_InvalidInstanceID, req)
 		}
 		return req.GetId().GetValue(), nil
 	}
@@ -1069,7 +1103,7 @@ func checkHeartbeatInstance(req *api.Instance) (string, *api.Response) {
 }
 
 // 获取instance请求的token信息
-func parseInstanceReqToken(ctx context.Context, req *api.Instance) string {
+func parseInstanceReqToken(ctx context.Context, req *apiservice.Instance) string {
 	if reqToken := req.GetServiceToken().GetValue(); reqToken != "" {
 		return reqToken
 	}
@@ -1078,17 +1112,17 @@ func parseInstanceReqToken(ctx context.Context, req *api.Instance) string {
 }
 
 // 实例查询前置处理
-func preGetInstances(query map[string]string) (map[string]string, map[string]string, *api.BatchQueryResponse) {
+func preGetInstances(query map[string]string) (map[string]string, map[string]string, *apiservice.BatchQueryResponse) {
 	// 不允许全量查询服务实例
 	if len(query) == 0 {
-		return nil, nil, api.NewBatchQueryResponse(api.EmptyQueryParameter)
+		return nil, nil, api.NewBatchQueryResponse(apimodel.Code_EmptyQueryParameter)
 	}
 	_, serviceIsAvail := query["service"]
 	_, namespaceIsAvail := query["namespace"]
 	_, hostIsAvail := query["host"]
 	// 要么（service，namespace）存在，要么host存在，不然视为参数不完整
 	if !((serviceIsAvail && namespaceIsAvail) || hostIsAvail) {
-		return nil, nil, api.NewBatchQueryResponse(api.InvalidQueryInsParameter)
+		return nil, nil, api.NewBatchQueryResponse(apimodel.Code_InvalidQueryInsParameter)
 	}
 
 	var metaFilter map[string]string
@@ -1096,7 +1130,7 @@ func preGetInstances(query map[string]string) (map[string]string, map[string]str
 	metaValue, metaValueAvail := query["values"]
 	if metaKeyAvail != metaValueAvail {
 		return nil, nil, api.NewBatchQueryResponseWithMsg(
-			api.InvalidQueryInsParameter, "instance metadata key and value must be both provided")
+			apimodel.Code_InvalidQueryInsParameter, "instance metadata key and value must be both provided")
 	}
 	if metaKeyAvail {
 		metaFilter = map[string]string{metaKey: metaValue}
@@ -1130,13 +1164,14 @@ func preGetInstances(query map[string]string) (map[string]string, map[string]str
 	for key, value := range query {
 		if _, ok := InstanceFilterAttributes[key]; !ok {
 			log.Errorf("[Server][Instance][Query] attribute(%s) is not allowed", key)
-			return nil, metaFilter, api.NewBatchQueryResponseWithMsg(api.InvalidParameter, key+" is not allowed")
+			return nil, metaFilter, api.NewBatchQueryResponseWithMsg(
+				apimodel.Code_InvalidParameter, key+" is not allowed")
 		}
 
 		if value == "" {
 			log.Errorf("[Server][Instance][Query] attribute(%s: %s) is not allowed empty", key, value)
-			return nil, metaFilter,
-				api.NewBatchQueryResponseWithMsg(api.InvalidParameter, "the value for "+key+" is empty")
+			return nil, metaFilter, api.NewBatchQueryResponseWithMsg(
+				apimodel.Code_InvalidParameter, "the value for "+key+" is empty")
 		}
 		if attr, ok := InsFilter2toreAttr[key]; ok {
 			key = attr
@@ -1191,28 +1226,28 @@ func instanceMetaNeedUpdate(req map[string]string, old map[string]string) bool {
 }
 
 // 批量操作实例
-func batchOperateInstances(ctx context.Context, reqs []*api.Instance,
-	handler func(ctx context.Context, req *api.Instance) *api.Response) *api.BatchWriteResponse {
-	responses := api.NewBatchWriteResponse(api.ExecuteSuccess)
+func batchOperateInstances(ctx context.Context, reqs []*apiservice.Instance,
+	handler func(ctx context.Context, req *apiservice.Instance) *apiservice.Response) *apiservice.BatchWriteResponse {
+	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 
-	chs := make([]chan *api.Response, 0, len(reqs))
+	chs := make([]chan *apiservice.Response, 0, len(reqs))
 	for i, instance := range reqs {
-		chs = append(chs, make(chan *api.Response))
-		go func(index int, ins *api.Instance) {
+		chs = append(chs, make(chan *apiservice.Response))
+		go func(index int, ins *apiservice.Instance) {
 			chs[index] <- handler(ctx, ins)
 		}(i, instance)
 	}
 
 	for _, ch := range chs {
 		resp := <-ch
-		responses.Collect(resp)
+		api.Collect(responses, resp)
 	}
 
 	return api.FormatBatchWriteResponse(responses)
 }
 
 // wrapper instance store response
-func wrapperInstanceStoreResponse(instance *api.Instance, err error) *api.Response {
+func wrapperInstanceStoreResponse(instance *apiservice.Instance, err error) *apiservice.Response {
 	resp := storeError2Response(err)
 	if resp == nil {
 		return nil
@@ -1223,7 +1258,7 @@ func wrapperInstanceStoreResponse(instance *api.Instance, err error) *api.Respon
 }
 
 // 生成instance的记录entry
-func instanceRecordEntry(ctx context.Context, req *api.Instance, service *model.Service, ins *model.Instance,
+func instanceRecordEntry(ctx context.Context, req *apiservice.Instance, service *model.Service, ins *model.Instance,
 	opt model.OperationType) *model.RecordEntry {
 	if service == nil || ins == nil {
 		return nil
@@ -1243,39 +1278,39 @@ func instanceRecordEntry(ctx context.Context, req *api.Instance, service *model.
 }
 
 // CheckDbInstanceFieldLen 检查DB中service表对应的入参字段合法性
-func CheckDbInstanceFieldLen(req *api.Instance) (*api.Response, bool) {
+func CheckDbInstanceFieldLen(req *apiservice.Instance) (*apiservice.Response, bool) {
 	if err := utils.CheckDbStrFieldLen(req.GetService(), MaxDbServiceNameLength); err != nil {
-		return api.NewInstanceResponse(api.InvalidServiceName, req), true
+		return api.NewInstanceResponse(apimodel.Code_InvalidServiceName, req), true
 	}
 	if err := utils.CheckDbStrFieldLen(req.GetNamespace(), MaxDbServiceNamespaceLength); err != nil {
-		return api.NewInstanceResponse(api.InvalidNamespaceName, req), true
+		return api.NewInstanceResponse(apimodel.Code_InvalidNamespaceName, req), true
 	}
 	if err := utils.CheckDbStrFieldLen(req.GetHost(), MaxDbInsHostLength); err != nil {
-		return api.NewInstanceResponse(api.InvalidInstanceHost, req), true
+		return api.NewInstanceResponse(apimodel.Code_InvalidInstanceHost, req), true
 	}
 	if err := utils.CheckDbStrFieldLen(req.GetProtocol(), MaxDbInsProtocolLength); err != nil {
-		return api.NewInstanceResponse(api.InvalidInstanceProtocol, req), true
+		return api.NewInstanceResponse(apimodel.Code_InvalidInstanceProtocol, req), true
 	}
 	if err := utils.CheckDbStrFieldLen(req.GetVersion(), MaxDbInsVersionLength); err != nil {
-		return api.NewInstanceResponse(api.InvalidInstanceVersion, req), true
+		return api.NewInstanceResponse(apimodel.Code_InvalidInstanceVersion, req), true
 	}
 	if err := utils.CheckDbStrFieldLen(req.GetLogicSet(), MaxDbInsLogicSetLength); err != nil {
-		return api.NewInstanceResponse(api.InvalidInstanceLogicSet, req), true
+		return api.NewInstanceResponse(apimodel.Code_InvalidInstanceLogicSet, req), true
 	}
 	if err := utils.CheckDbMetaDataFieldLen(req.GetMetadata()); err != nil {
-		return api.NewInstanceResponse(api.InvalidMetadata, req), true
+		return api.NewInstanceResponse(apimodel.Code_InvalidMetadata, req), true
 	}
 	if req.GetPort().GetValue() > 65535 {
-		return api.NewInstanceResponse(api.InvalidInstancePort, req), true
+		return api.NewInstanceResponse(apimodel.Code_InvalidInstancePort, req), true
 	}
 
 	if req.GetWeight().GetValue() > 65535 {
-		return api.NewInstanceResponse(api.InvalidParameter, req), true
+		return api.NewInstanceResponse(apimodel.Code_InvalidParameter, req), true
 	}
 	return nil, false
 }
 
-func diffInstanceEvent(req *api.Instance, save *model.Instance) []model.InstanceEventType {
+func diffInstanceEvent(req *apiservice.Instance, save *model.Instance) []model.InstanceEventType {
 	eventTypes := make([]model.InstanceEventType, 0)
 	if req.Isolate != nil && save.Isolate() != req.Isolate.GetValue() {
 		if req.Isolate.GetValue() {

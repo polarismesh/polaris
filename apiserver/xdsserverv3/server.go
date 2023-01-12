@@ -49,6 +49,10 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/atomic"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -284,12 +288,12 @@ type ServiceInfo struct {
 	ID                   string
 	Name                 string
 	Namespace            string
-	Instances            []*api.Instance
+	Instances            []*apiservice.Instance
 	SvcInsRevision       string
-	Routing              *api.Routing
+	Routing              *apitraffic.Routing
 	SvcRoutingRevision   string
 	Ports                string
-	RateLimit            *api.RateLimit
+	RateLimit            *apitraffic.RateLimit
 	SvcRateLimitRevision string
 }
 
@@ -328,7 +332,7 @@ func makeOutlierDetection(conf *model.ServiceWithCircuitBreaker) *cluster.Outlie
 			return nil
 		}
 
-		var inBounds []*api.CbRule
+		var inBounds []*apifault.CbRule
 		if err := json.Unmarshal([]byte(cbRules), &inBounds); err != nil {
 			log.Errorf("unmarshal inbounds circuitBreaker rule error, %v", err)
 			return nil
@@ -340,10 +344,10 @@ func makeOutlierDetection(conf *model.ServiceWithCircuitBreaker) *cluster.Outlie
 		}
 
 		var (
-			consecutiveErrConfig *api.CbPolicy_ConsecutiveErrConfig
-			errorRateConfig      *api.CbPolicy_ErrRateConfig
-			policy               *api.CbPolicy
-			dest                 *api.DestinationSet
+			consecutiveErrConfig *apifault.CbPolicy_ConsecutiveErrConfig
+			errorRateConfig      *apifault.CbPolicy_ErrRateConfig
+			policy               *apifault.CbPolicy
+			dest                 *apifault.DestinationSet
 		)
 
 		dest = inBounds[0].GetDestinations()[0]
@@ -369,7 +373,7 @@ func makeOutlierDetection(conf *model.ServiceWithCircuitBreaker) *cluster.Outlie
 	return nil
 }
 
-func getEndpointMetaFromPolarisIns(ins *api.Instance) *core.Metadata {
+func getEndpointMetaFromPolarisIns(ins *apiservice.Instance) *core.Metadata {
 	meta := &core.Metadata{}
 	fields := make(map[string]*_struct.Value)
 	for k, v := range ins.Metadata {
@@ -462,10 +466,10 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 				} else {
 					for name, matchString := range source.Metadata {
 						if name == model.LabelKeyPath {
-							if matchString.Type == api.MatchString_EXACT {
+							if matchString.Type == apimodel.MatchString_EXACT {
 								routeMatch.PathSpecifier = &route.RouteMatch_Path{
 									Path: matchString.GetValue().GetValue()}
-							} else if matchString.Type == api.MatchString_REGEX {
+							} else if matchString.Type == apimodel.MatchString_REGEX {
 								routeMatch.PathSpecifier = &route.RouteMatch_SafeRegex{SafeRegex: &v32.RegexMatcher{
 									Regex: matchString.GetValue().GetValue()}}
 							}
@@ -476,7 +480,7 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 							}
 							headerSubName = headerSubName[1:]
 							var headerMatch *route.HeaderMatcher
-							if matchString.Type == api.MatchString_EXACT {
+							if matchString.Type == apimodel.MatchString_EXACT {
 								headerMatch = &route.HeaderMatcher{
 									Name: headerSubName,
 									HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -486,7 +490,7 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 									},
 								}
 							}
-							if matchString.Type == api.MatchString_NOT_EQUALS {
+							if matchString.Type == apimodel.MatchString_NOT_EQUALS {
 								headerMatch = &route.HeaderMatcher{
 									Name: headerSubName,
 									HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -497,7 +501,7 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 									InvertMatch: true,
 								}
 							}
-							if matchString.Type == api.MatchString_REGEX {
+							if matchString.Type == apimodel.MatchString_REGEX {
 								headerMatch = &route.HeaderMatcher{
 									Name: headerSubName,
 									HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -519,7 +523,7 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 							}
 							querySubName = querySubName[1:]
 							var queryMatcher *route.QueryParameterMatcher
-							if matchString.Type == api.MatchString_EXACT {
+							if matchString.Type == apimodel.MatchString_EXACT {
 								queryMatcher = &route.QueryParameterMatcher{
 									Name: querySubName,
 									QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{
@@ -529,7 +533,7 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 									},
 								}
 							}
-							if matchString.Type == api.MatchString_REGEX {
+							if matchString.Type == apimodel.MatchString_REGEX {
 								queryMatcher = &route.QueryParameterMatcher{
 									Name: querySubName,
 									QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{
@@ -682,7 +686,7 @@ func makeLocalRateLimit(conf []*model.RateLimit) map[string]*anypb.Any {
 			if rlRule == "" {
 				continue
 			}
-			rule := new(api.Rule)
+			rule := new(apitraffic.Rule)
 			if err := json.Unmarshal([]byte(rlRule), rule); err != nil {
 				log.Errorf("unmarshal local rate limit rule error,%v", err)
 				continue
@@ -694,7 +698,7 @@ func makeLocalRateLimit(conf []*model.RateLimit) map[string]*anypb.Any {
 			}
 
 			// 跳过全局限流配置
-			if rule.Type == api.Rule_GLOBAL || rule.Disable.Value {
+			if rule.Type == apitraffic.Rule_GLOBAL || rule.Disable.Value {
 				continue
 			}
 
@@ -717,7 +721,7 @@ func makeLocalRateLimit(conf []*model.RateLimit) map[string]*anypb.Any {
 				descriptor.Entries = entries
 				rateLimitConf.Descriptors = append(rateLimitConf.Descriptors, descriptor)
 			}
-			if rule.AmountMode == api.Rule_GLOBAL_TOTAL {
+			if rule.AmountMode == apitraffic.Rule_GLOBAL_TOTAL {
 				rateLimitConf.LocalRateLimitPerDownstreamConnection = true
 			}
 		}
@@ -879,7 +883,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 			ID:        value.ID,
 			Name:      value.Name,
 			Namespace: value.Namespace,
-			Instances: []*api.Instance{},
+			Instances: []*apiservice.Instance{},
 			Ports:     value.Ports,
 		}
 
@@ -903,7 +907,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 	// 遍历每一个服务，获取路由、熔断策略和全量的服务实例信息
 	for _, v := range registryInfo {
 		for _, svc := range v {
-			s := &api.Service{
+			s := &apiservice.Service{
 				Name: &wrappers.StringValue{
 					Value: svc.Name,
 				},

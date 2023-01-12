@@ -19,13 +19,17 @@ package v2
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/proto"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
+	v1 "github.com/polarismesh/polaris/apiserver/httpserver/v1"
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
-	apiv2 "github.com/polarismesh/polaris/common/api/v2"
 )
 
 const (
@@ -84,6 +88,20 @@ func (h *HTTPServerV2) addDefaultAccess(ws *restful.WebService) {
 	ws.Route(enrichEnableRoutingsApiDocs(ws.PUT("/routings/enable").To(h.EnableRoutings)))
 }
 
+const (
+	deprecatedRoutingV2TypeUrl = "type.googleapis.com/v2."
+	newRoutingV2TypeUrl        = "type.googleapis.com/v1."
+)
+
+func (h *HTTPServerV2) replaceV2TypeUrl(req *restful.Request) (string, error) {
+	requestBytes, err := io.ReadAll(req.Request.Body)
+	if err != nil {
+		return "", err
+	}
+	requestText := strings.ReplaceAll(string(requestBytes), deprecatedRoutingV2TypeUrl, newRoutingV2TypeUrl)
+	return requestText, nil
+}
+
 // CreateRoutings 创建规则路由
 func (h *HTTPServerV2) CreateRoutings(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{
@@ -91,14 +109,19 @@ func (h *HTTPServerV2) CreateRoutings(req *restful.Request, rsp *restful.Respons
 		Response: rsp,
 	}
 
-	var routings RoutingArr
-	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &apiv2.Routing{}
+	requestText, err := h.replaceV2TypeUrl(req)
+	if err != nil {
+		handler.WriteHeaderAndProtoV2(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+	var routings v1.RouterArr
+	ctx, err := handler.ParseArrayByText(func() proto.Message {
+		msg := &apitraffic.RouteRule{}
 		routings = append(routings, msg)
 		return msg
-	})
+	}, requestText)
 	if err != nil {
-		handler.WriteHeaderAndProtoV2(apiv2.NewBatchWriteResponseWithMsg(apiv1.ParseException, err.Error()))
+		handler.WriteHeaderAndProtoV2(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -112,15 +135,19 @@ func (h *HTTPServerV2) DeleteRoutings(req *restful.Request, rsp *restful.Respons
 		Request:  req,
 		Response: rsp,
 	}
-
-	var routings RoutingArr
-	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &apiv2.Routing{}
+	requestText, err := h.replaceV2TypeUrl(req)
+	if err != nil {
+		handler.WriteHeaderAndProtoV2(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+	var routings v1.RouterArr
+	ctx, err := handler.ParseArrayByText(func() proto.Message {
+		msg := &apitraffic.RouteRule{}
 		routings = append(routings, msg)
 		return msg
-	})
+	}, requestText)
 	if err != nil {
-		handler.WriteHeaderAndProtoV2(apiv2.NewBatchWriteResponseWithMsg(apiv1.ParseException, err.Error()))
+		handler.WriteHeaderAndProtoV2(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -134,15 +161,19 @@ func (h *HTTPServerV2) UpdateRoutings(req *restful.Request, rsp *restful.Respons
 		Request:  req,
 		Response: rsp,
 	}
-
-	var routings RoutingArr
-	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &apiv2.Routing{}
+	requestText, err := h.replaceV2TypeUrl(req)
+	if err != nil {
+		handler.WriteHeaderAndProtoV2(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+	var routings v1.RouterArr
+	ctx, err := handler.ParseArrayByText(func() proto.Message {
+		msg := &apitraffic.RouteRule{}
 		routings = append(routings, msg)
 		return msg
-	})
+	}, requestText)
 	if err != nil {
-		handler.WriteHeaderAndProtoV2(apiv2.NewBatchWriteResponseWithMsg(apiv1.ParseException, err.Error()))
+		handler.WriteHeaderAndProtoV2(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -168,15 +199,19 @@ func (h *HTTPServerV2) EnableRoutings(req *restful.Request, rsp *restful.Respons
 		Request:  req,
 		Response: rsp,
 	}
-
-	var routings RoutingArr
-	ctx, err := handler.ParseArray(func() proto.Message {
-		msg := &apiv2.Routing{}
+	requestText, err := h.replaceV2TypeUrl(req)
+	if err != nil {
+		handler.WriteHeaderAndProtoV2(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+	var routings v1.RouterArr
+	ctx, err := handler.ParseArrayByText(func() proto.Message {
+		msg := &apitraffic.RouteRule{}
 		routings = append(routings, msg)
 		return msg
-	})
+	}, requestText)
 	if err != nil {
-		handler.WriteHeaderAndProtoV2(apiv2.NewBatchWriteResponseWithMsg(apiv1.ParseException, err.Error()))
+		handler.WriteHeaderAndProtoV2(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 

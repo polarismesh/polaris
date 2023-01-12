@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -383,8 +384,8 @@ func (d *defaultAuthChecker) removeNoStrategyResources(authCtx *model.AcquireCon
 	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
 	resources := authCtx.GetAccessResources()
 	cacheMgn := d.Cache()
-	newAccessRes := make(map[api.ResourceType][]model.ResourceEntry, 0)
-	checkIsFree := func(resType api.ResourceType, entry model.ResourceEntry) bool {
+	newAccessRes := make(map[apisecurity.ResourceType][]model.ResourceEntry, 0)
+	checkIsFree := func(resType apisecurity.ResourceType, entry model.ResourceEntry) bool {
 		// if entry.Owner == "" ||
 		// 	strings.Compare(strings.ToLower(entry.Owner), strings.ToLower("polaris")) == 0 {
 		// 	return true
@@ -393,42 +394,42 @@ func (d *defaultAuthChecker) removeNoStrategyResources(authCtx *model.AcquireCon
 	}
 
 	// 检查命名空间
-	nsRes := resources[api.ResourceType_Namespaces]
+	nsRes := resources[apisecurity.ResourceType_Namespaces]
 	newNsRes := make([]model.ResourceEntry, 0)
 	for index := range nsRes {
-		if checkIsFree(api.ResourceType_Namespaces, nsRes[index]) {
+		if checkIsFree(apisecurity.ResourceType_Namespaces, nsRes[index]) {
 			continue
 		}
 
 		newNsRes = append(newNsRes, nsRes[index])
 	}
 
-	newAccessRes[api.ResourceType_Namespaces] = newNsRes
+	newAccessRes[apisecurity.ResourceType_Namespaces] = newNsRes
 	if authCtx.GetModule() == model.DiscoverModule {
 		// 检查服务
-		svcRes := resources[api.ResourceType_Services]
+		svcRes := resources[apisecurity.ResourceType_Services]
 		newSvcRes := make([]model.ResourceEntry, 0)
 		for index := range svcRes {
-			if checkIsFree(api.ResourceType_Services, svcRes[index]) {
+			if checkIsFree(apisecurity.ResourceType_Services, svcRes[index]) {
 				continue
 			}
 
 			newSvcRes = append(newSvcRes, svcRes[index])
 		}
-		newAccessRes[api.ResourceType_Services] = newSvcRes
+		newAccessRes[apisecurity.ResourceType_Services] = newSvcRes
 	}
 
 	if authCtx.GetModule() == model.ConfigModule {
 		// 检查配置
-		cfgRes := resources[api.ResourceType_ConfigGroups]
+		cfgRes := resources[apisecurity.ResourceType_ConfigGroups]
 		newCfgRes := make([]model.ResourceEntry, 0)
 		for index := range cfgRes {
-			if checkIsFree(api.ResourceType_ConfigGroups, cfgRes[index]) {
+			if checkIsFree(apisecurity.ResourceType_ConfigGroups, cfgRes[index]) {
 				continue
 			}
 			newCfgRes = append(newCfgRes, cfgRes[index])
 		}
-		newAccessRes[api.ResourceType_ConfigGroups] = newCfgRes
+		newAccessRes[apisecurity.ResourceType_ConfigGroups] = newCfgRes
 	}
 
 	log.Info("[Auth][Checker] remove no link strategy final result", utils.ZapRequestID(reqId),
@@ -468,14 +469,14 @@ func (d *defaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext,
 		searchMaps := buildSearchMap(rule.Resources)
 
 		// 检查 namespace
-		checkNamespace = checkAnyElementExist(userId, reqRes[api.ResourceType_Namespaces], searchMaps[0])
+		checkNamespace = checkAnyElementExist(userId, reqRes[apisecurity.ResourceType_Namespaces], searchMaps[0])
 		// 检查 service
 		if authCtx.GetModule() == model.DiscoverModule {
-			checkService = checkAnyElementExist(userId, reqRes[api.ResourceType_Services], searchMaps[1])
+			checkService = checkAnyElementExist(userId, reqRes[apisecurity.ResourceType_Services], searchMaps[1])
 		}
 		// 检查 config_group
 		if authCtx.GetModule() == model.ConfigModule {
-			checkConfigGroup = checkAnyElementExist(userId, reqRes[api.ResourceType_ConfigGroups], searchMaps[2])
+			checkConfigGroup = checkAnyElementExist(userId, reqRes[apisecurity.ResourceType_ConfigGroups], searchMaps[2])
 		}
 
 		if checkNamespace && (checkService && checkConfigGroup) {
@@ -533,17 +534,17 @@ func buildSearchMap(ss []model.StrategyResource) []*searchMap {
 	}
 
 	for _, val := range ss {
-		if val.ResType == int32(api.ResourceType_Namespaces) {
+		if val.ResType == int32(apisecurity.ResourceType_Namespaces) {
 			nsSearchMaps.items[val.ResID] = emptyVal
 			nsSearchMaps.passAll = (val.ResID == "*") || nsSearchMaps.passAll
 			continue
 		}
-		if val.ResType == int32(api.ResourceType_Services) {
+		if val.ResType == int32(apisecurity.ResourceType_Services) {
 			svcSearchMaps.items[val.ResID] = emptyVal
 			svcSearchMaps.passAll = (val.ResID == "*") || nsSearchMaps.passAll
 			continue
 		}
-		if val.ResType == int32(api.ResourceType_ConfigGroups) {
+		if val.ResType == int32(apisecurity.ResourceType_ConfigGroups) {
 			cfgSearchMaps.items[val.ResID] = emptyVal
 			cfgSearchMaps.passAll = (val.ResID == "*") || nsSearchMaps.passAll
 			continue

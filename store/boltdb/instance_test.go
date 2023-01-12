@@ -19,6 +19,7 @@ package boltdb
 
 import (
 	"fmt"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"os"
 	"strconv"
 	"testing"
@@ -26,7 +27,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 )
@@ -67,7 +67,7 @@ func batchAddInstances(t *testing.T, insStore *instanceStore, svcId string, insC
 		nowt := commontime.Time2String(time.Now())
 
 		err := insStore.AddInstance(&model.Instance{
-			Proto: &api.Instance{
+			Proto: &apiservice.Instance{
 				Id:                &wrappers.StringValue{Value: "insid" + strconv.Itoa(i)},
 				Host:              &wrappers.StringValue{Value: "1.1.1." + strconv.Itoa(i)},
 				Port:              &wrappers.UInt32Value{Value: uint32(i + 1)},
@@ -112,7 +112,7 @@ func TestInstanceStore_BatchAddInstances(t *testing.T) {
 		nowt := commontime.Time2String(time.Now())
 
 		ins := &model.Instance{
-			Proto: &api.Instance{
+			Proto: &apiservice.Instance{
 				Id:                &wrappers.StringValue{Value: "insid" + strconv.Itoa(i)},
 				Host:              &wrappers.StringValue{Value: "1.1.1." + strconv.Itoa(i)},
 				Port:              &wrappers.UInt32Value{Value: uint32(i)},
@@ -292,7 +292,7 @@ func TestInstanceStore_UpdateInstance(t *testing.T) {
 	batchAddInstances(t, insStore, "svcid1", insCount)
 
 	insM := &model.Instance{
-		Proto: &api.Instance{
+		Proto: &apiservice.Instance{
 			Id:                &wrappers.StringValue{Value: "insid" + strconv.Itoa(0)},
 			Service:           &wrappers.StringValue{Value: "svcid1"},
 			Namespace:         &wrappers.StringValue{Value: "testns"},

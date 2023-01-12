@@ -20,10 +20,10 @@ package namespace
 import (
 	"context"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris/cache"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
@@ -40,7 +40,7 @@ type Server struct {
 	hooks                 []ResourceHook
 }
 
-func (s *Server) afterNamespaceResource(ctx context.Context, req *api.Namespace, save *model.Namespace,
+func (s *Server) afterNamespaceResource(ctx context.Context, req *apimodel.Namespace, save *model.Namespace,
 	remove bool) error {
 	event := &ResourceEvent{
 		ReqNamespace: req,

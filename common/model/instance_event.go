@@ -20,7 +20,7 @@ package model
 import (
 	"time"
 
-	v1 "github.com/polarismesh/polaris/common/api/v1"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 // InstanceEventType 探测事件类型
@@ -50,7 +50,7 @@ type InstanceEvent struct {
 	Id         string
 	Namespace  string
 	Service    string
-	Instance   *v1.Instance
+	Instance   *apiservice.Instance
 	EType      InstanceEventType
 	CreateTime time.Time
 }

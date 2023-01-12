@@ -20,16 +20,16 @@ package grpc
 import (
 	"context"
 	"fmt"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"time"
 
 	"google.golang.org/grpc/metadata"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 // Heartbeat 上报心跳
-func (c *Client) Heartbeat(instance *api.Instance) error {
+func (c *Client) Heartbeat(instance *apiservice.Instance) error {
 	fmt.Printf("\nheartbeat\n")
 
 	md := metadata.Pairs("request-id", utils.NewUUID())

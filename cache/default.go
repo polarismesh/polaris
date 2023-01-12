@@ -80,6 +80,7 @@ func newCacheManager(ctx context.Context, cacheOpt *Config, storage store.Store)
 	}
 	mgr.caches[CacheRateLimit] = newRateLimitCache(storage)
 	mgr.caches[CacheCircuitBreaker] = newCircuitBreakerCache(storage)
+	mgr.caches[CacheFaultDetector] = newFaultDetectCache(storage)
 
 	notify := make(chan interface{}, 8)
 

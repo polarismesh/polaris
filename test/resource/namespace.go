@@ -19,8 +19,8 @@ package resource
 
 import (
 	"fmt"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -31,12 +31,12 @@ const (
 /**
  * @brief 创建测试命名空间
  */
-func CreateNamespaces() []*api.Namespace {
-	var namespaces []*api.Namespace
+func CreateNamespaces() []*apimodel.Namespace {
+	var namespaces []*apimodel.Namespace
 	for index := 0; index < 2; index++ {
 		name := fmt.Sprintf(namespaceName, utils.NewUUID(), index)
 
-		namespace := &api.Namespace{
+		namespace := &apimodel.Namespace{
 			Name:    utils.NewStringValue(name),
 			Comment: utils.NewStringValue("test"),
 			Owners:  utils.NewStringValue("test"),
@@ -50,7 +50,7 @@ func CreateNamespaces() []*api.Namespace {
 /**
  * @brief 更新测试命名空间
  */
-func UpdateNamespaces(namespaces []*api.Namespace) {
+func UpdateNamespaces(namespaces []*apimodel.Namespace) {
 	for _, namespace := range namespaces {
 		namespace.Comment = utils.NewStringValue("update")
 		namespace.Owners = utils.NewStringValue("update")

@@ -24,7 +24,8 @@ import (
 	"strings"
 	"time"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -146,7 +147,7 @@ func (cs *clientStore) batchAddClients(clients []*model.Client) error {
 	defer func() { _ = tx.Rollback() }()
 
 	ids := make([]string, 0, len(clients))
-	var client2StatInfos = make(map[string][]*api.StatInfo)
+	var client2StatInfos = make(map[string][]*apiservice.StatInfo)
 	builder := strings.Builder{}
 	for idx, entry := range clients {
 		if idx > 0 {
@@ -154,7 +155,7 @@ func (cs *clientStore) batchAddClients(clients []*model.Client) error {
 		}
 		builder.WriteString("?")
 		ids = append(ids, entry.Proto().GetId().GetValue())
-		var statInfos []*api.StatInfo
+		var statInfos []*apiservice.StatInfo
 		if len(entry.Proto().GetStat()) > 0 {
 			statInfos = append(statInfos, entry.Proto().GetStat()...)
 			client2StatInfos[entry.Proto().GetId().GetValue()] = statInfos
@@ -382,7 +383,7 @@ func batchAddClientMain(tx *BaseTx, clients []*model.Client) error {
 	return err
 }
 
-func batchAddClientStat(tx *BaseTx, client2Stats map[string][]*api.StatInfo) error {
+func batchAddClientStat(tx *BaseTx, client2Stats map[string][]*apiservice.StatInfo) error {
 	if len(client2Stats) == 0 {
 		return nil
 	}

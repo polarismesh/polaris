@@ -21,8 +21,9 @@ import (
 	"sort"
 	"strings"
 
-	apiv2 "github.com/polarismesh/polaris/common/api/v2"
-	v2 "github.com/polarismesh/polaris/common/model/v2"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -66,7 +67,7 @@ func (rc *routingConfigCache) forceUpdate() error {
 	return nil
 }
 
-func queryRoutingRuleV2ByService(rule *v2.ExtendRoutingConfig, sourceNamespace, sourceService,
+func queryRoutingRuleV2ByService(rule *model.ExtendRouterConfig, sourceNamespace, sourceService,
 	destNamespace, destService string, both bool) bool {
 	var (
 		sourceFind bool
@@ -142,21 +143,21 @@ func queryRoutingRuleV2ByService(rule *v2.ExtendRoutingConfig, sourceNamespace, 
 }
 
 // GetRoutingConfigsV2 查询路由配置列表
-func (rc *routingConfigCache) GetRoutingConfigsV2(args *RoutingArgs) (uint32, []*v2.ExtendRoutingConfig, error) {
+func (rc *routingConfigCache) GetRoutingConfigsV2(args *RoutingArgs) (uint32, []*model.ExtendRouterConfig, error) {
 	if err := rc.forceUpdate(); err != nil {
 		return 0, nil, err
 	}
 	hasSourceQuery := len(args.SourceService) != 0 || len(args.SourceNamespace) != 0
 	hasDestQuery := len(args.DestinationService) != 0 || len(args.DestinationNamespace) != 0
 
-	res := make([]*v2.ExtendRoutingConfig, 0, 8)
+	res := make([]*model.ExtendRouterConfig, 0, 8)
 
-	var process = func(_ string, svc *v2.ExtendRoutingConfig) {
+	var process = func(_ string, svc *model.ExtendRouterConfig) {
 		if args.ID != "" && args.ID != svc.ID {
 			return
 		}
 
-		if svc.GetRoutingPolicy() == apiv2.RoutingPolicy_RulePolicy {
+		if svc.GetRoutingPolicy() == apitraffic.RoutingPolicy_RulePolicy {
 			// 主被调服务都查询
 			if args.Namespace != "" && args.Service != "" {
 				if !queryRoutingRuleV2ByService(svc, args.Namespace, args.Service,
@@ -191,7 +192,7 @@ func (rc *routingConfigCache) GetRoutingConfigsV2(args *RoutingArgs) (uint32, []
 		res = append(res, svc)
 	}
 
-	rc.IteratorRoutings(func(key string, value *v2.ExtendRoutingConfig) {
+	rc.IteratorRoutings(func(key string, value *model.ExtendRouterConfig) {
 		process(key, value)
 	})
 
@@ -199,8 +200,8 @@ func (rc *routingConfigCache) GetRoutingConfigsV2(args *RoutingArgs) (uint32, []
 	return amount, routings, nil
 }
 
-func (rc *routingConfigCache) sortBeforeTrim(routings []*v2.ExtendRoutingConfig,
-	args *RoutingArgs) (uint32, []*v2.ExtendRoutingConfig) {
+func (rc *routingConfigCache) sortBeforeTrim(routings []*model.ExtendRouterConfig,
+	args *RoutingArgs) (uint32, []*model.ExtendRouterConfig) {
 	// 所有符合条件的路由规则数量
 	amount := uint32(len(routings))
 	// 判断 offset 和 limit 是否允许返回对应的服务
@@ -222,7 +223,7 @@ func (rc *routingConfigCache) sortBeforeTrim(routings []*v2.ExtendRoutingConfig,
 	return amount, routings[args.Offset:endIdx]
 }
 
-func orderByRoutingModifyTime(a, b *v2.ExtendRoutingConfig, asc bool) bool {
+func orderByRoutingModifyTime(a, b *model.ExtendRouterConfig, asc bool) bool {
 	if a.Priority < b.Priority {
 		return asc
 	}
@@ -235,7 +236,7 @@ func orderByRoutingModifyTime(a, b *v2.ExtendRoutingConfig, asc bool) bool {
 	return strings.Compare(a.ID, b.ID) < 0 && asc
 }
 
-func orderByRoutingPriority(a, b *v2.ExtendRoutingConfig, asc bool) bool {
+func orderByRoutingPriority(a, b *model.ExtendRouterConfig, asc bool) bool {
 	if a.ModifyTime.After(b.ModifyTime) {
 		return asc
 	}

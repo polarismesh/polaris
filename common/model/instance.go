@@ -21,14 +21,15 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	commontime "github.com/polarismesh/polaris/common/time"
 )
 
 // Instance 组合了api的Instance对象
 type Instance struct {
-	Proto             *api.Instance
+	Proto             *apiservice.Instance
 	ServiceID         string
 	ServicePlatformID string
 	// Valid Whether it is deleted by logic
@@ -128,7 +129,7 @@ func (i *Instance) EnableHealthCheck() bool {
 }
 
 // HealthCheck get health check
-func (i *Instance) HealthCheck() *api.HealthCheck {
+func (i *Instance) HealthCheck() *apiservice.HealthCheck {
 	if i.Proto == nil {
 		return nil
 	}
@@ -152,7 +153,7 @@ func (i *Instance) Isolate() bool {
 }
 
 // Location gets location
-func (i *Instance) Location() *api.Location {
+func (i *Instance) Location() *apimodel.Location {
 	if i.Proto == nil {
 		return nil
 	}
@@ -210,7 +211,7 @@ func (i *Instance) ServiceToken() string {
 // MallocProto malloc proto if proto is null
 func (i *Instance) MallocProto() {
 	if i.Proto == nil {
-		i.Proto = &api.Instance{}
+		i.Proto = &apiservice.Instance{}
 	}
 }
 
@@ -253,7 +254,7 @@ type ExpandInstanceStore struct {
 // Store2Instance store的数据转换为组合了api的数据结构
 func Store2Instance(is *InstanceStore) *Instance {
 	ins := &Instance{
-		Proto: &api.Instance{
+		Proto: &apiservice.Instance{
 			Id:                &wrappers.StringValue{Value: is.ID},
 			VpcId:             &wrappers.StringValue{Value: is.VpcID},
 			Host:              &wrappers.StringValue{Value: is.Host},
@@ -264,7 +265,7 @@ func Store2Instance(is *InstanceStore) *Instance {
 			Weight:            &wrappers.UInt32Value{Value: is.Weight},
 			EnableHealthCheck: &wrappers.BoolValue{Value: Int2bool(is.EnableHealthCheck)},
 			Healthy:           &wrappers.BoolValue{Value: Int2bool(is.HealthStatus)},
-			Location: &api.Location{
+			Location: &apimodel.Location{
 				Region: &wrappers.StringValue{Value: is.Region},
 				Zone:   &wrappers.StringValue{Value: is.Zone},
 				Campus: &wrappers.StringValue{Value: is.Campus},
@@ -282,16 +283,16 @@ func Store2Instance(is *InstanceStore) *Instance {
 	}
 	// 如果不存在checkType，即checkType==-1。HealthCheck置为nil
 	if is.CheckType != -1 {
-		ins.Proto.HealthCheck = &api.HealthCheck{
-			Type: api.HealthCheck_HealthCheckType(is.CheckType),
-			Heartbeat: &api.HeartbeatHealthCheck{
+		ins.Proto.HealthCheck = &apiservice.HealthCheck{
+			Type: apiservice.HealthCheck_HealthCheckType(is.CheckType),
+			Heartbeat: &apiservice.HeartbeatHealthCheck{
 				Ttl: &wrappers.UInt32Value{Value: is.TTL},
 			},
 		}
 	}
 	// 如果location不为空，那么填充一下location
 	if is.Region != "" {
-		ins.Proto.Location = &api.Location{
+		ins.Proto.Location = &apimodel.Location{
 			Region: &wrappers.StringValue{Value: is.Region},
 			Zone:   &wrappers.StringValue{Value: is.Zone},
 			Campus: &wrappers.StringValue{Value: is.Campus},

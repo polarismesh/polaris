@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"os"
 	"testing"
 	"time"
@@ -33,7 +34,6 @@ import (
 	_ "github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
 	_ "github.com/polarismesh/polaris/cache"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
@@ -266,7 +266,10 @@ func (c *ConfigCenterTest) clearTestDataWhenUseRDS() error {
 	if err != nil {
 		return err
 	}
-
+	_, err = tx.Exec("delete from config_file_template where name in (?,?) ", templateName1, templateName2)
+	if err != nil {
+		return err
+	}
 	// 清理缓存
 	c.testServer.Cache().CleanAll()
 
@@ -278,105 +281,105 @@ func randomStr() string {
 	return uuid.String()
 }
 
-func assembleConfigFileGroup() *api.ConfigFileGroup {
-	return &api.ConfigFileGroup{
+func assembleConfigFileGroup() *apiconfig.ConfigFileGroup {
+	return &apiconfig.ConfigFileGroup{
 		Namespace: utils.NewStringValue(testNamespace),
 		Name:      utils.NewStringValue(testGroup),
 		Comment:   utils.NewStringValue("autotest"),
 	}
 }
 
-func assembleRandomConfigFileGroup() *api.ConfigFileGroup {
-	return &api.ConfigFileGroup{
+func assembleRandomConfigFileGroup() *apiconfig.ConfigFileGroup {
+	return &apiconfig.ConfigFileGroup{
 		Namespace: utils.NewStringValue(testNamespace),
 		Name:      utils.NewStringValue(randomGroupPrefix + randomStr()),
 		Comment:   utils.NewStringValue("autotest"),
 	}
 }
 
-func assembleConfigFile() *api.ConfigFile {
-	tag1 := &api.ConfigFileTag{
+func assembleConfigFile() *apiconfig.ConfigFile {
+	tag1 := &apiconfig.ConfigFileTag{
 		Key:   utils.NewStringValue("k1"),
 		Value: utils.NewStringValue("v1"),
 	}
 
-	tag2 := &api.ConfigFileTag{
+	tag2 := &apiconfig.ConfigFileTag{
 		Key:   utils.NewStringValue("k1"),
 		Value: utils.NewStringValue("v2"),
 	}
 
-	tag3 := &api.ConfigFileTag{
+	tag3 := &apiconfig.ConfigFileTag{
 		Key:   utils.NewStringValue("k2"),
 		Value: utils.NewStringValue("v1"),
 	}
 
-	return &api.ConfigFile{
+	return &apiconfig.ConfigFile{
 		Namespace: utils.NewStringValue(testNamespace),
 		Group:     utils.NewStringValue(testGroup),
 		Name:      utils.NewStringValue(testFile),
 		Format:    utils.NewStringValue(utils.FileFormatText),
 		Content:   utils.NewStringValue("k1=v1,k2=v2"),
-		Tags:      []*api.ConfigFileTag{tag1, tag2, tag3},
+		Tags:      []*apiconfig.ConfigFileTag{tag1, tag2, tag3},
 		CreateBy:  utils.NewStringValue(operator),
 	}
 }
 
-func assembleConfigFileWithFixedGroupAndRandomFileName(group string) *api.ConfigFile {
-	tag1 := &api.ConfigFileTag{
+func assembleConfigFileWithFixedGroupAndRandomFileName(group string) *apiconfig.ConfigFile {
+	tag1 := &apiconfig.ConfigFileTag{
 		Key:   utils.NewStringValue("k1"),
 		Value: utils.NewStringValue("v1"),
 	}
 
-	tag2 := &api.ConfigFileTag{
+	tag2 := &apiconfig.ConfigFileTag{
 		Key:   utils.NewStringValue("k1"),
 		Value: utils.NewStringValue("v2"),
 	}
 
-	tag3 := &api.ConfigFileTag{
+	tag3 := &apiconfig.ConfigFileTag{
 		Key:   utils.NewStringValue("k2"),
 		Value: utils.NewStringValue("v1"),
 	}
 
-	return &api.ConfigFile{
+	return &apiconfig.ConfigFile{
 		Namespace: utils.NewStringValue(testNamespace),
 		Group:     utils.NewStringValue(group),
 		Name:      utils.NewStringValue(randomStr()),
 		Format:    utils.NewStringValue(utils.FileFormatText),
 		Content:   utils.NewStringValue("k1=v1,k2=v2"),
-		Tags:      []*api.ConfigFileTag{tag1, tag2, tag3},
+		Tags:      []*apiconfig.ConfigFileTag{tag1, tag2, tag3},
 		CreateBy:  utils.NewStringValue(operator),
 	}
 }
 
-func assembleConfigFileWithRandomGroupAndFixedFileName(fileName string) *api.ConfigFile {
-	tag1 := &api.ConfigFileTag{
+func assembleConfigFileWithRandomGroupAndFixedFileName(fileName string) *apiconfig.ConfigFile {
+	tag1 := &apiconfig.ConfigFileTag{
 		Key:   utils.NewStringValue("k1"),
 		Value: utils.NewStringValue("v1"),
 	}
 
-	tag2 := &api.ConfigFileTag{
+	tag2 := &apiconfig.ConfigFileTag{
 		Key:   utils.NewStringValue("k1"),
 		Value: utils.NewStringValue("v2"),
 	}
 
-	tag3 := &api.ConfigFileTag{
+	tag3 := &apiconfig.ConfigFileTag{
 		Key:   utils.NewStringValue("k2"),
 		Value: utils.NewStringValue("v1"),
 	}
 
-	return &api.ConfigFile{
+	return &apiconfig.ConfigFile{
 		Namespace: utils.NewStringValue(testNamespace),
 		Group:     utils.NewStringValue(randomStr()),
 		Name:      utils.NewStringValue(fileName),
 		Format:    utils.NewStringValue(utils.FileFormatText),
 		Content:   utils.NewStringValue("k1=v1,k2=v2"),
-		Tags:      []*api.ConfigFileTag{tag1, tag2, tag3},
+		Tags:      []*apiconfig.ConfigFileTag{tag1, tag2, tag3},
 		CreateBy:  utils.NewStringValue(operator),
 	}
 }
 
-func assembleConfigFileRelease(configFile *api.ConfigFile) *api.ConfigFileRelease {
-	return &api.ConfigFileRelease{
+func assembleConfigFileRelease(configFile *apiconfig.ConfigFile) *apiconfig.ConfigFileRelease {
+	return &apiconfig.ConfigFileRelease{
 		Name:      utils.NewStringValue("release-name"),
 		Namespace: configFile.Namespace,
 		Group:     configFile.Group,
@@ -385,8 +388,8 @@ func assembleConfigFileRelease(configFile *api.ConfigFile) *api.ConfigFileReleas
 	}
 }
 
-func assembleDefaultClientConfigFile(version uint64) []*api.ClientConfigFileInfo {
-	return []*api.ClientConfigFileInfo{
+func assembleDefaultClientConfigFile(version uint64) []*apiconfig.ClientConfigFileInfo {
+	return []*apiconfig.ClientConfigFileInfo{
 		{
 			Namespace: utils.NewStringValue(testNamespace),
 			Group:     utils.NewStringValue(testGroup),

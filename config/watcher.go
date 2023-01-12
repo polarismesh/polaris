@@ -20,9 +20,9 @@ package config
 import (
 	"sync"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"go.uber.org/zap"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	utils2 "github.com/polarismesh/polaris/config/utils"
@@ -32,7 +32,7 @@ const (
 	QueueSize = 10240
 )
 
-type FileReleaseCallback func(clientId string, rsp *api.ConfigClientResponse) bool
+type FileReleaseCallback func(clientId string, rsp *apiconfig.ConfigClientResponse) bool
 
 type watchContext struct {
 	fileReleaseCb FileReleaseCallback
@@ -67,7 +67,7 @@ func NewWatchCenter(eventCenter *Center) *watchCenter {
 }
 
 // AddWatcher 新增订阅者
-func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*api.ClientConfigFileInfo,
+func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*apiconfig.ClientConfigFileInfo,
 	fileReleaseCb FileReleaseCallback) {
 	if len(watchConfigFiles) == 0 {
 		return
@@ -105,7 +105,7 @@ func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*api.Clien
 }
 
 // RemoveWatcher 删除订阅者
-func (wc *watchCenter) RemoveWatcher(clientId string, watchConfigFiles []*api.ClientConfigFileInfo) {
+func (wc *watchCenter) RemoveWatcher(clientId string, watchConfigFiles []*apiconfig.ClientConfigFileInfo) {
 	if len(watchConfigFiles) == 0 {
 		return
 	}

@@ -20,6 +20,8 @@ package config
 import (
 	"context"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/cache"
@@ -29,19 +31,20 @@ import (
 )
 
 type (
-	compareFunction func(clientConfigFile *api.ClientConfigFileInfo, cacheEntry *cache.Entry) bool
+	compareFunction func(clientConfigFile *apiconfig.ClientConfigFileInfo, cacheEntry *cache.Entry) bool
 )
 
 // GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
 func (s *Server) GetConfigFileForClient(ctx context.Context,
-	client *api.ClientConfigFileInfo) *api.ConfigClientResponse {
+	client *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
 	namespace := client.GetNamespace().GetValue()
 	group := client.GetGroup().GetValue()
 	fileName := client.GetFileName().GetValue()
 	clientVersion := client.GetVersion().GetValue()
 
 	if namespace == "" || group == "" || fileName == "" {
-		return api.NewConfigClientResponseWithMessage(api.BadRequest, "namespace & group & fileName can not be empty")
+		return api.NewConfigClientResponseWithMessage(
+			apimodel.Code_BadRequest, "namespace & group & fileName can not be empty")
 	}
 
 	requestID := utils.ParseRequestID(ctx)
@@ -58,11 +61,12 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 			zap.String("requestId", requestID),
 			zap.Error(err))
 
-		return api.NewConfigClientResponseWithMessage(api.ExecuteException, "load config file error")
+		return api.NewConfigClientResponseWithMessage(
+			apimodel.Code_ExecuteException, "load config file error")
 	}
 
 	if entry.Empty {
-		return api.NewConfigClientResponse(api.NotFoundResource, nil)
+		return api.NewConfigClientResponse(apimodel.Code_NotFoundResource, nil)
 	}
 
 	// 客户端版本号大于服务端版本号，服务端需要重新加载缓存
@@ -73,7 +77,8 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 				zap.String("requestId", requestID),
 				zap.Error(err))
 
-			return api.NewConfigClientResponseWithMessage(api.ExecuteException, "load config file error")
+			return api.NewConfigClientResponseWithMessage(
+				apimodel.Code_ExecuteException, "load config file error")
 		}
 	}
 
@@ -88,12 +93,12 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 }
 
 func (s *Server) WatchConfigFiles(ctx context.Context,
-	request *api.ClientWatchConfigFileRequest) (WatchCallback, error) {
+	request *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error) {
 	clientAddr := utils.ParseClientAddress(ctx)
 	watchFiles := request.GetWatchFiles()
 	// 2. 检查客户端是否有版本落后
 	if resp := s.doCheckClientConfigFile(ctx, watchFiles, compareByVersion); resp.Code.GetValue() != api.DataNoChange {
-		return func() *api.ConfigClientResponse {
+		return func() *apiconfig.ConfigClientResponse {
 			return resp
 		}, nil
 	}
@@ -103,23 +108,23 @@ func (s *Server) WatchConfigFiles(ctx context.Context,
 
 	finishChan := s.ConnManager().AddConn(clientId, watchFiles)
 
-	return func() *api.ConfigClientResponse {
+	return func() *apiconfig.ConfigClientResponse {
 		return <-finishChan
 	}, nil
 }
 
-func compareByVersion(clientConfigFile *api.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
+func compareByVersion(clientConfigFile *apiconfig.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
 	return !cacheEntry.Empty && clientConfigFile.Version.GetValue() < cacheEntry.Version
 }
 
-func compareByMD5(clientConfigFile *api.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
+func compareByMD5(clientConfigFile *apiconfig.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
 	return clientConfigFile.Md5.GetValue() != cacheEntry.Md5
 }
 
-func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api.ClientConfigFileInfo,
-	compartor compareFunction) *api.ConfigClientResponse {
+func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*apiconfig.ClientConfigFileInfo,
+	compartor compareFunction) *apiconfig.ConfigClientResponse {
 	if len(configFiles) == 0 {
-		return api.NewConfigClientResponse(api.InvalidWatchConfigFileFormat, nil)
+		return api.NewConfigClientResponse(apimodel.Code_InvalidWatchConfigFileFormat, nil)
 	}
 
 	requestID := utils.ParseRequestID(ctx)
@@ -129,7 +134,7 @@ func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api
 		fileName := configFile.FileName.GetValue()
 
 		if namespace == "" || group == "" || fileName == "" {
-			return api.NewConfigClientResponseWithMessage(api.BadRequest,
+			return api.NewConfigClientResponseWithMessage(apimodel.Code_BadRequest,
 				"namespace & group & fileName can not be empty")
 		}
 
@@ -142,7 +147,7 @@ func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api
 				zap.String("fileName", fileName),
 				zap.Error(err))
 
-			return api.NewConfigClientResponse(api.ExecuteException, nil)
+			return api.NewConfigClientResponse(apimodel.Code_ExecuteException, nil)
 		}
 
 		if compartor(configFile, entry) {
@@ -150,5 +155,5 @@ func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api
 		}
 	}
 
-	return api.NewConfigClientResponse(api.DataNoChange, nil)
+	return api.NewConfigClientResponse(apimodel.Code_DataNoChange, nil)
 }

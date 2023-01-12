@@ -21,6 +21,8 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"reflect"
 	"testing"
 	"time"
@@ -38,28 +40,27 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 )
 
-func generateRateLimitString(ruleType api.Rule_Type) (string, string, map[string]*anypb.Any) {
-	rule := &api.Rule{
+func generateRateLimitString(ruleType apitraffic.Rule_Type) (string, string, map[string]*anypb.Any) {
+	rule := &apitraffic.Rule{
 		Namespace: &wrappers.StringValue{Value: "Test"},
 		Service:   &wrappers.StringValue{Value: "TestService1"},
-		Resource:  api.Rule_QPS,
+		Resource:  apitraffic.Rule_QPS,
 		Type:      ruleType,
-		Method: &api.MatchString{
+		Method: &apimodel.MatchString{
 			Type:  0,
 			Value: &wrappers.StringValue{Value: "/info"},
 		},
-		Labels: map[string]*api.MatchString{
+		Labels: map[string]*apimodel.MatchString{
 			"uin": {
 				Type:  0,
 				Value: &wrappers.StringValue{Value: "109870111"},
 			},
 		},
-		AmountMode: api.Rule_GLOBAL_TOTAL,
-		Amounts: []*api.Amount{
+		AmountMode: apitraffic.Rule_GLOBAL_TOTAL,
+		Amounts: []*apitraffic.Amount{
 			{
 				MaxAmount: &wrappers.UInt32Value{Value: 1000},
 				ValidDuration: &duration.Duration{
@@ -68,7 +69,7 @@ func generateRateLimitString(ruleType api.Rule_Type) (string, string, map[string
 			},
 		},
 		Action:   &wrappers.StringValue{Value: "reject"},
-		Failover: api.Rule_FAILOVER_LOCAL,
+		Failover: apitraffic.Rule_FAILOVER_LOCAL,
 		Disable:  &wrappers.BoolValue{Value: false},
 	}
 	// 期待的结果
@@ -90,7 +91,7 @@ func generateRateLimitString(ruleType api.Rule_Type) (string, string, map[string
 			},
 		},
 	}
-	if rule.AmountMode == api.Rule_GLOBAL_TOTAL {
+	if rule.AmountMode == apitraffic.Rule_GLOBAL_TOTAL {
 		expectStruct.LocalRateLimitPerDownstreamConnection = true
 	}
 	expectStruct.Descriptors = []*envoy_extensions_common_ratelimit_v3.LocalRateLimitDescriptor{
@@ -117,14 +118,14 @@ func generateRateLimitString(ruleType api.Rule_Type) (string, string, map[string
 	labelStr, _ := json.Marshal(rule.Labels)
 	rule.Labels = nil
 	ruleStr, _ := json.Marshal(rule)
-	if ruleType == api.Rule_GLOBAL {
+	if ruleType == apitraffic.Rule_GLOBAL {
 		expectRes = nil
 	}
 	return string(ruleStr), string(labelStr), expectRes
 }
 
 func generateGlobalRateLimitRule() ([]*model.RateLimit, map[string]*anypb.Any) {
-	ruleStr, labelStr, expectRes := generateRateLimitString(api.Rule_GLOBAL)
+	ruleStr, labelStr, expectRes := generateRateLimitString(apitraffic.Rule_GLOBAL)
 	var rateLimits []*model.RateLimit
 	rateLimits = append(rateLimits, &model.RateLimit{
 		ID:         "ratelimit-1",
@@ -140,7 +141,7 @@ func generateGlobalRateLimitRule() ([]*model.RateLimit, map[string]*anypb.Any) {
 }
 
 func generateLocalRateLimitRule() ([]*model.RateLimit, map[string]*anypb.Any) {
-	ruleStr, labelStr, expectRes := generateRateLimitString(api.Rule_LOCAL)
+	ruleStr, labelStr, expectRes := generateRateLimitString(apitraffic.Rule_LOCAL)
 	var rateLimits []*model.RateLimit
 	rateLimits = append(rateLimits, &model.RateLimit{
 		ID:         "ratelimit-2",

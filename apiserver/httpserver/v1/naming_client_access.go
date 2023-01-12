@@ -21,6 +21,8 @@ import (
 	"fmt"
 
 	"github.com/emicklei/go-restful/v3"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/apiserver"
@@ -83,10 +85,10 @@ func (h *HTTPServerV1) ReportClient(req *restful.Request, rsp *restful.Response)
 		Request:  req,
 		Response: rsp,
 	}
-	client := &api.Client{}
+	client := &apiservice.Client{}
 	ctx, err := handler.Parse(client)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -100,10 +102,10 @@ func (h *HTTPServerV1) RegisterInstance(req *restful.Request, rsp *restful.Respo
 		Response: rsp,
 	}
 
-	instance := &api.Instance{}
+	instance := &apiservice.Instance{}
 	ctx, err := handler.Parse(instance)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -117,10 +119,10 @@ func (h *HTTPServerV1) DeregisterInstance(req *restful.Request, rsp *restful.Res
 		Response: rsp,
 	}
 
-	instance := &api.Instance{}
+	instance := &apiservice.Instance{}
 	ctx, err := handler.Parse(instance)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -134,35 +136,37 @@ func (h *HTTPServerV1) Discover(req *restful.Request, rsp *restful.Response) {
 		Response: rsp,
 	}
 
-	discoverRequest := &api.DiscoverRequest{}
+	discoverRequest := &apiservice.DiscoverRequest{}
 	ctx, err := handler.Parse(discoverRequest)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
 	msg := fmt.Sprintf("receive http discover request: %s", discoverRequest.Service.String())
 	namingLog.Info(msg,
-		zap.String("type", api.DiscoverRequest_DiscoverRequestType_name[int32(discoverRequest.Type)]),
+		zap.String("type", apiservice.DiscoverRequest_DiscoverRequestType_name[int32(discoverRequest.Type)]),
 		zap.String("client-address", req.Request.RemoteAddr),
 		zap.String("user-agent", req.HeaderParameter("User-Agent")),
 		utils.ZapRequestID(req.HeaderParameter("Request-Id")),
 	)
 
-	var ret *api.DiscoverResponse
+	var ret *apiservice.DiscoverResponse
 	switch discoverRequest.Type {
-	case api.DiscoverRequest_INSTANCE:
+	case apiservice.DiscoverRequest_INSTANCE:
 		ret = h.namingServer.ServiceInstancesCache(ctx, discoverRequest.Service)
-	case api.DiscoverRequest_ROUTING:
+	case apiservice.DiscoverRequest_ROUTING:
 		ret = h.namingServer.GetRoutingConfigWithCache(ctx, discoverRequest.Service)
-	case api.DiscoverRequest_RATE_LIMIT:
+	case apiservice.DiscoverRequest_RATE_LIMIT:
 		ret = h.namingServer.GetRateLimitWithCache(ctx, discoverRequest.Service)
-	case api.DiscoverRequest_CIRCUIT_BREAKER:
+	case apiservice.DiscoverRequest_CIRCUIT_BREAKER:
 		ret = h.namingServer.GetCircuitBreakerWithCache(ctx, discoverRequest.Service)
-	case api.DiscoverRequest_SERVICES:
+	case apiservice.DiscoverRequest_SERVICES:
 		ret = h.namingServer.GetServiceWithCache(ctx, discoverRequest.Service)
+	case apiservice.DiscoverRequest_FAULT_DETECTOR:
+		ret = h.namingServer.GetFaultDetectWithCache(ctx, discoverRequest.Service)
 	default:
-		ret = api.NewDiscoverRoutingResponse(api.InvalidDiscoverResource, discoverRequest.Service)
+		ret = api.NewDiscoverRoutingResponse(apimodel.Code_InvalidDiscoverResource, discoverRequest.Service)
 	}
 
 	handler.WriteHeaderAndProto(ret)
@@ -175,10 +179,10 @@ func (h *HTTPServerV1) Heartbeat(req *restful.Request, rsp *restful.Response) {
 		Response: rsp,
 	}
 
-	instance := &api.Instance{}
+	instance := &apiservice.Instance{}
 	ctx, err := handler.Parse(instance)
 	if err != nil {
-		handler.WriteHeaderAndProto(api.NewResponseWithMsg(api.ParseException, err.Error()))
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 

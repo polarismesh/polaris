@@ -18,29 +18,30 @@
 package batch
 
 import (
-	api "github.com/polarismesh/polaris/common/api/v1"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+
 	"github.com/polarismesh/polaris/store"
 )
 
-var storeCodeAPICodeMap = map[store.StatusCode]uint32{
-	store.EmptyParamsErr:             api.InvalidParameter,
-	store.OutOfRangeErr:              api.InvalidParameter,
-	store.DataConflictErr:            api.DataConflict,
-	store.NotFoundNamespace:          api.NotFoundNamespace,
-	store.NotFoundService:            api.NotFoundService,
-	store.NotFoundMasterConfig:       api.NotFoundMasterConfig,
-	store.NotFoundTagConfigOrService: api.NotFoundTagConfigOrService,
-	store.ExistReleasedConfig:        api.ExistReleasedConfig,
-	store.DuplicateEntryErr:          api.ExistedResource,
+var storeCodeAPICodeMap = map[store.StatusCode]apimodel.Code{
+	store.EmptyParamsErr:             apimodel.Code_InvalidParameter,
+	store.OutOfRangeErr:              apimodel.Code_InvalidParameter,
+	store.DataConflictErr:            apimodel.Code_DataConflict,
+	store.NotFoundNamespace:          apimodel.Code_NotFoundNamespace,
+	store.NotFoundService:            apimodel.Code_NotFoundService,
+	store.NotFoundMasterConfig:       apimodel.Code_NotFoundMasterConfig,
+	store.NotFoundTagConfigOrService: apimodel.Code_NotFoundTagConfigOrService,
+	store.ExistReleasedConfig:        apimodel.Code_ExistReleasedConfig,
+	store.DuplicateEntryErr:          apimodel.Code_ExistedResource,
 }
 
 // StoreCode2APICode store code to api code
-func StoreCode2APICode(err error) uint32 {
+func StoreCode2APICode(err error) apimodel.Code {
 	code := store.Code(err)
 	apiCode, ok := storeCodeAPICodeMap[code]
 	if ok {
 		return apiCode
 	}
 
-	return api.StoreLayerException
+	return apimodel.Code_StoreLayerException
 }

@@ -21,6 +21,9 @@ import (
 	"context"
 	"fmt"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -28,8 +31,8 @@ import (
 
 // CreateConfigFileGroup 创建配置文件组
 func (s *serverAuthability) CreateConfigFileGroup(ctx context.Context,
-	configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
-	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{configFileGroup},
+	configFileGroup *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse {
+	authCtx := s.collectConfigGroupAuthContext(ctx, []*apiconfig.ConfigFileGroup{configFileGroup},
 		model.Create, "CreateConfigFileGroup")
 
 	// 验证 token 信息
@@ -45,8 +48,8 @@ func (s *serverAuthability) CreateConfigFileGroup(ctx context.Context,
 
 // QueryConfigFileGroups 查询配置文件组
 func (s *serverAuthability) QueryConfigFileGroups(ctx context.Context, namespace, groupName,
-	fileName string, offset, limit uint32) *api.ConfigBatchQueryResponse {
-	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{{Name: utils.NewStringValue(groupName),
+	fileName string, offset, limit uint32) *apiconfig.ConfigBatchQueryResponse {
+	authCtx := s.collectConfigGroupAuthContext(ctx, []*apiconfig.ConfigFileGroup{{Name: utils.NewStringValue(groupName),
 		Namespace: utils.NewStringValue(namespace)}}, model.Read, "QueryConfigFileGroups")
 
 	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
@@ -68,7 +71,7 @@ func (s *serverAuthability) QueryConfigFileGroups(ctx context.Context, namespace
 			// 如果鉴权能力没有开启，那就默认都可以进行编辑
 			if s.checker.IsOpenConsoleAuth() {
 				editable = s.targetServer.caches.AuthStrategy().IsResourceEditable(principal,
-					api.ResourceType_ConfigGroups, fmt.Sprintf("%d", group.GetId().GetValue()))
+					apisecurity.ResourceType_ConfigGroups, fmt.Sprintf("%d", group.GetId().GetValue()))
 			}
 			group.Editable = utils.NewBoolValue(editable)
 		}
@@ -78,8 +81,9 @@ func (s *serverAuthability) QueryConfigFileGroups(ctx context.Context, namespace
 }
 
 // DeleteConfigFileGroup 删除配置文件组
-func (s *serverAuthability) DeleteConfigFileGroup(ctx context.Context, namespace, name string) *api.ConfigResponse {
-	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{{Name: utils.NewStringValue(name),
+func (s *serverAuthability) DeleteConfigFileGroup(
+	ctx context.Context, namespace, name string) *apiconfig.ConfigResponse {
+	authCtx := s.collectConfigGroupAuthContext(ctx, []*apiconfig.ConfigFileGroup{{Name: utils.NewStringValue(name),
 		Namespace: utils.NewStringValue(namespace)}}, model.Delete, "DeleteConfigFileGroup")
 
 	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
@@ -94,8 +98,8 @@ func (s *serverAuthability) DeleteConfigFileGroup(ctx context.Context, namespace
 
 // UpdateConfigFileGroup 更新配置文件组
 func (s *serverAuthability) UpdateConfigFileGroup(ctx context.Context,
-	configFileGroup *api.ConfigFileGroup) *api.ConfigResponse {
-	authCtx := s.collectConfigGroupAuthContext(ctx, []*api.ConfigFileGroup{configFileGroup},
+	configFileGroup *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse {
+	authCtx := s.collectConfigGroupAuthContext(ctx, []*apiconfig.ConfigFileGroup{configFileGroup},
 		model.Modify, "UpdateConfigFileGroup")
 
 	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {

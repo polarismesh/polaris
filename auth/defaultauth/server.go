@@ -20,6 +20,9 @@ package defaultauth
 import (
 	"errors"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
@@ -50,7 +53,7 @@ func (svr *server) initialize() error {
 }
 
 // Login 登录动作
-func (svr *server) Login(req *api.LoginRequest) *api.Response {
+func (svr *server) Login(req *apisecurity.LoginRequest) *apiservice.Response {
 	username := req.GetName().GetValue()
 	ownerName := req.GetOwner().GetValue()
 	if ownerName == "" {
@@ -58,19 +61,20 @@ func (svr *server) Login(req *api.LoginRequest) *api.Response {
 	}
 	user := svr.cacheMgn.User().GetUserByName(username, ownerName)
 	if user == nil {
-		return api.NewResponse(api.NotFoundUser)
+		return api.NewAuthResponse(apimodel.Code_NotFoundUser)
 	}
 
 	// TODO AES 解密操作，在进行密码比对计算
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.GetPassword().GetValue()))
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return api.NewResponseWithMsg(api.NotAllowedAccess, model.ErrorWrongUsernameOrPassword.Error())
+			return api.NewAuthResponseWithMsg(
+				apimodel.Code_NotAllowedAccess, model.ErrorWrongUsernameOrPassword.Error())
 		}
-		return api.NewResponseWithMsg(api.ExecuteException, model.ErrorWrongUsernameOrPassword.Error())
+		return api.NewAuthResponseWithMsg(apimodel.Code_ExecuteException, model.ErrorWrongUsernameOrPassword.Error())
 	}
 
-	return api.NewLoginResponse(api.ExecuteSuccess, &api.LoginResponse{
+	return api.NewLoginResponse(apimodel.Code_ExecuteSuccess, &apisecurity.LoginResponse{
 		UserId:  utils.NewStringValue(user.ID),
 		OwnerId: utils.NewStringValue(user.Owner),
 		Token:   utils.NewStringValue(user.Token),
@@ -132,7 +136,8 @@ func (svr *server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 
 	log.Info("[Auth][Server] add resource to principal default strategy",
 		zap.Any("resource", afterCtx.GetAttachment(model.ResourceAttachmentKey)),
-		zap.Any("add_user", addUserIds), zap.Any("add_group", addGroupIds), zap.Any("remove_user", removeUserIds),
+		zap.Any("add_user", addUserIds),
+		zap.Any("add_group", addGroupIds), zap.Any("remove_user", removeUserIds),
 		zap.Any("remove_group", removeGroupIds),
 	)
 
@@ -218,8 +223,9 @@ func (svr *server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 
 	var (
 		strategyResource = make([]model.StrategyResource, 0)
-		resources        = afterCtx.GetAttachment(model.ResourceAttachmentKey).(map[api.ResourceType][]model.ResourceEntry)
-		strategyId       = strategy.ID
+		resources        = afterCtx.GetAttachment(
+			model.ResourceAttachmentKey).(map[apisecurity.ResourceType][]model.ResourceEntry)
+		strategyId = strategy.ID
 	)
 
 	// 资源删除时，清理该资源与所有策略的关联关系
