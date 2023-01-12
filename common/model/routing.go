@@ -171,7 +171,7 @@ func (r *RouterConfig) ToExpendRoutingConfig() (*ExtendRouterConfig, error) {
 	policy := r.GetRoutingPolicy()
 	var err error
 	if strings.HasPrefix(configText, "{") {
-		//process with json
+		// process with json
 		switch policy {
 		case apitraffic.RoutingPolicy_RulePolicy:
 			rule := &apitraffic.RuleRoutingConfig{}
@@ -210,17 +210,17 @@ func (r *RouterConfig) parseBinaryAnyMessage(
 		}
 		if err := unmarshalToAny(anyMsg, rule); nil != err {
 			// parse v2 binary
-			//ruleV2 := &v2.RuleRoutingConfig{}
-			//anyMsg = &anypb.Any{
-			//	TypeUrl: RuleRoutingTypeUrlV2,
-			//	Value:   []byte(r.Config),
-			//}
-			//if err = unmarshalToAny(anyMsg, ruleV2); nil != err {
-			//	return err
-			//}
-			//if err = utils.ConvertSameStructureMessage(ruleV2, rule); nil != err {
-			//	return err
-			//}
+			// ruleV2 := &v2.RuleRoutingConfig{}
+			// anyMsg = &anypb.Any{
+			//	 TypeUrl: RuleRoutingTypeUrlV2,
+			//	 Value:   []byte(r.Config),
+			// }
+			// if err = unmarshalToAny(anyMsg, ruleV2); nil != err {
+			//	 return err
+			// }
+			// if err = utils.ConvertSameStructureMessage(ruleV2, rule); nil != err {
+			//	 return err
+			// }
 			return err
 		}
 		ret.RuleRouting = rule
