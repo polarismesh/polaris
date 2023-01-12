@@ -19,6 +19,7 @@ package utils
 
 import (
 	"bytes"
+
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -58,10 +59,10 @@ func UnmarshalFromJsonString(message proto.Message, text string) error {
 }
 
 // ConvertSameStructureMessage convert the same structure 2 message
-func ConvertSameStructureMessage(from proto.Message, to proto.Message) error {
-	sourceJsonText, err := MarshalToJsonString(from)
-	if nil != err {
-		return err
-	}
-	return UnmarshalFromJsonString(to, sourceJsonText)
-}
+//func ConvertSameStructureMessage(from proto.Message, to proto.Message) error {
+//	sourceJsonText, err := MarshalToJsonString(from)
+//	if nil != err {
+//		return err
+//	}
+//	return UnmarshalFromJsonString(to, sourceJsonText)
+//}
