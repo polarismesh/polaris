@@ -19,6 +19,7 @@ package resource
 
 import (
 	"fmt"
+
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	"github.com/polarismesh/polaris/common/utils"

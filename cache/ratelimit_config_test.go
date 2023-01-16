@@ -20,13 +20,13 @@ package cache
 import (
 	"encoding/json"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/duration"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris/common/model"

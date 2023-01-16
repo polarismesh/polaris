@@ -21,9 +21,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	"github.com/golang/protobuf/jsonpb"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 )

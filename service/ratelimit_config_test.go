@@ -21,14 +21,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/duration"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"github.com/stretchr/testify/assert"
 
 	api "github.com/polarismesh/polaris/common/api/v1"

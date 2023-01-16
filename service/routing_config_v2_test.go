@@ -19,13 +19,13 @@ package service
 
 import (
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"testing"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/anypb"
 
