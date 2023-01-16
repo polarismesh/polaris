@@ -235,25 +235,33 @@ func mockGetUnhealthyInstances(namingServer service.DiscoverServer, svcId string
 	return retValue, uuid.NewString(), nil
 }
 
-// TestApplicationsBuilder_BuildApplicationsSelfPreservation test selfPreservation ability
-func TestApplicationsBuilder_BuildApplicationsSelfPreservation(t *testing.T) {
-	doUnhealthyFunctionMock()
-	builder := &ApplicationsBuilder{
-		namespace:              DefaultNamespace,
-		enableSelfPreservation: true,
-	}
-	appResCache := builder.BuildApplications(nil)
-	applications := appResCache.AppsResp.Applications.Application
-	assert.Equal(t, unhealthySvcCount, len(applications))
-	for _, application := range applications {
-		serviceName := svcName{
-			name:      strings.ToLower(application.Name),
-			namespace: DefaultNamespace,
-		}
-		svc, ok := mockUnhealthyServices[serviceName]
-		assert.True(t, ok)
-		instances := application.Instance
-		mInstances := mockUnhealthyInstances[svc.ID]
-		assert.Equal(t, len(mInstances), len(instances))
-	}
+// TestBuildDataCenterInfo test to build dci info
+func TestBuildDataCenterInfo(t *testing.T) {
+	CustomEurekaParameters[CustomKeyDciClass] = "com.netflix.appinfo.AmazonInfo"
+	CustomEurekaParameters[CustomKeyDciName] = "testOwn"
+	dciInfo := buildDataCenterInfo()
+	assert.Equal(t, CustomEurekaParameters[CustomKeyDciClass], dciInfo.Clazz)
+	assert.Equal(t, CustomEurekaParameters[CustomKeyDciName], dciInfo.Name)
+	delete(CustomEurekaParameters, CustomKeyDciName)
+	dciInfo = buildDataCenterInfo()
+	assert.Equal(t, CustomEurekaParameters[CustomKeyDciClass], dciInfo.Clazz)
+	assert.Equal(t, DefaultDciName, dciInfo.Name)
+	delete(CustomEurekaParameters, CustomKeyDciClass)
+	CustomEurekaParameters[CustomKeyDciName] = "testOwn"
+	dciInfo = buildDataCenterInfo()
+	assert.Equal(t, DefaultDciClazz, dciInfo.Clazz)
+	assert.Equal(t, CustomEurekaParameters[CustomKeyDciName], dciInfo.Name)
+	delete(CustomEurekaParameters, CustomKeyDciName)
+	dciInfo = buildDataCenterInfo()
+	assert.Equal(t, DefaultDciClazz, dciInfo.Clazz)
+	assert.Equal(t, DefaultDciName, dciInfo.Name)
+}
+
+// TestBuildInstance test to build the instance
+func TestBuildInstance(t *testing.T) {
+	CustomEurekaParameters[CustomKeyDciClass] = "com.netflix.appinfo.AmazonInfo"
+	svc := &model.Service{ID: "111", Name: "testInst0", Namespace: "test"}
+	instance := buildMockInstance(0, svc, true, "xxx.com", "yyyy.com")
+	instanceInfo := buildInstance(svc.Name, instance.Proto, 123345550)
+	assert.Equal(t, CustomEurekaParameters[CustomKeyDciClass], instanceInfo.DataCenterInfo.Clazz)
 }

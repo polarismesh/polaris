@@ -104,6 +104,9 @@ const (
 	statusSuffix = "/status"
 
 	statusCodeHeader = utils.PolarisCode
+
+	CustomKeyDciClass = "dataCenterInfoClass"
+	CustomKeyDciName  = "dataCenterInfoName"
 )
 
 var (
@@ -112,6 +115,8 @@ var (
 		Name:  DefaultDciName,
 	}
 	DefaultCountryId = strconv.Itoa(DefaultCountryIdInt)
+
+	CustomEurekaParameters = make(map[string]string)
 )
 
 // EurekaServer is the Eureka server
@@ -225,6 +230,13 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 		enableSelfPreservation = DefaultEnableSelfPreservation
 	}
 	h.enableSelfPreservation = enableSelfPreservation
+
+	if raw, _ := option[optionCustomValues].(map[interface{}]interface{}); raw != nil {
+		for k, v := range raw {
+			CustomEurekaParameters[k.(string)] = fmt.Sprintf("%v", v)
+		}
+	}
+	log.Infof("[EUREKA] custom eureka parameters: %v", CustomEurekaParameters)
 	return nil
 }
 
