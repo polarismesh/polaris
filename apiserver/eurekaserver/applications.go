@@ -140,45 +140,15 @@ func (a *ApplicationsBuilder) BuildApplications(oldAppsCache *ApplicationsRespCa
 	return constructResponseCache(newApps, instCount, false)
 }
 
-func filterLatestHealthyInstances(instances []*model.Instance) ([]*model.Instance, int) {
-	var out = make([]*model.Instance, 0, len(instances))
-	var healthyCount = 0
-	for _, instance := range instances {
-		if instance.Healthy() {
-			out = append(out, instance)
-			healthyCount++
-			continue
-		}
-		healthCheck := instance.HealthCheck()
-		if healthCheck == nil {
-			continue
-		}
-		modifySince := time.Since(instance.ModifyTime)
-		if modifySince < DefaultSelfPreservationDuration {
-			out = append(out, instance)
-		}
-	}
-	return out, healthyCount
-}
-
 func (a *ApplicationsBuilder) constructApplication(app *Application, instances []*model.Instance) {
 	if len(instances) == 0 {
 		return
 	}
 	app.StatusCounts = make(map[string]int)
 
-	var fallbackUnhealthy bool
-	var healthyCount int
-	instances, healthyCount = filterLatestHealthyInstances(instances)
-	if a.enableSelfPreservation && len(instances) > 0 {
-		if (healthyCount/len(instances))*100 < DefaultSelfPreservationPercent {
-			fallbackUnhealthy = true
-		}
-	}
-
 	// 转换时候要区分2种情况，一种是从eureka注册上来的，一种不是
 	for _, instance := range instances {
-		if !instance.Healthy() && !fallbackUnhealthy {
+		if !instance.Healthy() {
 			continue
 		}
 		instanceInfo := buildInstance(app.Name, instance.Proto, instance.ModifyTime.UnixNano()/1e6)
@@ -277,6 +247,8 @@ func (a *ApplicationsBuilder) buildDeltaApps(oldAppsCache *ApplicationsRespCache
 func parseStatus(instance *api.Instance) string {
 	if instance.GetIsolate().GetValue() {
 		return StatusOutOfService
+	} else if !instance.GetHealthy().GetValue() {
+		return StatusDown
 	}
 	return StatusUp
 }
@@ -422,7 +394,7 @@ func buildInstance(appName string, instance *api.Instance, lastModifyTime int64)
 			Name:  dciName,
 		}
 	} else {
-		instanceInfo.DataCenterInfo = DefaultDataCenterInfo
+		instanceInfo.DataCenterInfo = buildDataCenterInfo()
 	}
 	parseLeaseInfo(instanceInfo.LeaseInfo, instance)
 	for metaKey, metaValue := range metadata {
@@ -456,6 +428,29 @@ func buildInstance(appName string, instance *api.Instance, lastModifyTime int64)
 	instanceInfo.LastUpdatedTimestamp = strconv.Itoa(int(lastModifyTime))
 	instanceInfo.ActionType = ActionAdded
 	return instanceInfo
+}
+
+func buildDataCenterInfo() *DataCenterInfo {
+	customDciClass, ok1 := CustomEurekaParameters[CustomKeyDciClass]
+	customDciName, ok2 := CustomEurekaParameters[CustomKeyDciName]
+	if ok1 && ok2 {
+		return &DataCenterInfo{
+			Clazz: customDciClass,
+			Name:  customDciName,
+		}
+	} else if ok1 && !ok2 {
+		return &DataCenterInfo{
+			Clazz: customDciClass,
+			Name:  DefaultDciName,
+		}
+	} else if !ok1 && ok2 {
+		return &DataCenterInfo{
+			Clazz: DefaultDciClazz,
+			Name:  customDciName,
+		}
+	} else {
+		return DefaultDataCenterInfo
+	}
 }
 
 func buildLocationInfo(instanceInfo *InstanceInfo, instance *api.Instance) {
