@@ -412,9 +412,11 @@ plugin:
   #   option:
   #     ip: [127.0.0.1]
   history:
-    - name: HistoryLogger
+    entries:
+      - name: HistoryLogger
   discoverEvent:
-    - name: discoverEventLocal
+    entries:
+      - name: discoverEventLocal
   discoverStatis:
     name: discoverLocal
     option:

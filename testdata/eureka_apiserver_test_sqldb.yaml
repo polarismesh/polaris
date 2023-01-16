@@ -285,9 +285,11 @@ store:
 # 插件配置
 plugin:
   history:
-    - name: HistoryLogger
+    entries:
+      - name: HistoryLogger
   discoverEvent:
-    - name: discoverEventLocal
+    entries:
+      - name: discoverEventLocal
   discoverStatis:
     name: discoverLocal
     option:
