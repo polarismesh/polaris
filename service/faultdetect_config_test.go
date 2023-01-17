@@ -19,14 +19,15 @@ package service
 
 import (
 	"fmt"
+	"sync"
+	"testing"
+
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
-	"sync"
-	"testing"
 )
 
 func buildUnnamedFaultDetectRule() *apifault.FaultDetectRule {

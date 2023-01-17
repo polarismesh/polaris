@@ -418,9 +418,11 @@ plugin:
       url: "http://127.0.0.1:35225"
       interval: 60s
   history:
-    - name: HistoryLogger
+    entries:
+      - name: HistoryLogger
   discoverEvent:
-    - name: discoverEventLocal
+    entries:
+      - name: discoverEventLocal
   discoverStatis:
     name: discoverLocal
     option:

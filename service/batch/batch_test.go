@@ -20,11 +20,11 @@ package batch
 import (
 	"context"
 	"fmt"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"sync"
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	. "github.com/smartystreets/goconvey/convey"
 
 	amock "github.com/polarismesh/polaris/auth/mock"

@@ -19,11 +19,11 @@ package config
 
 import (
 	"fmt"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"strconv"
 	"testing"
 	"time"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 

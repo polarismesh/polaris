@@ -19,11 +19,11 @@ package defaultauth
 
 import (
 	"context"
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 

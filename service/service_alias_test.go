@@ -20,15 +20,15 @@ package service
 import (
 	"context"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"regexp"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	. "github.com/smartystreets/goconvey/convey"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 

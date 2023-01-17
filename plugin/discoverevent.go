@@ -38,14 +38,22 @@ type DiscoverChannel interface {
 
 // GetDiscoverEvent Get service discovery event plug -in
 func GetDiscoverEvent() DiscoverChannel {
-	c := config.DiscoverEvent
-
 	if compositeDiscoverChannel != nil {
 		return compositeDiscoverChannel
 	}
 
 	discoverEventOnce.Do(func() {
-		compositeDiscoverChannel = newCompositeDiscoverChannel(c)
+		var (
+			entries []ConfigEntry
+		)
+
+		if len(config.DiscoverEvent.Entries) != 0 {
+			entries = append(entries, config.DiscoverEvent.Entries...)
+		} else {
+			entries = append(entries, config.DiscoverEvent.ConfigEntry)
+		}
+
+		compositeDiscoverChannel = newCompositeDiscoverChannel(entries)
 		if err := compositeDiscoverChannel.Initialize(nil); err != nil {
 			log.Errorf("DiscoverChannel plugin init err: %s", err.Error())
 			os.Exit(-1)

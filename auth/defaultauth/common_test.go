@@ -19,10 +19,10 @@ package defaultauth
 
 import (
 	"fmt"
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"time"
 
 	"github.com/golang/mock/gomock"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/polarismesh/polaris/cache"
