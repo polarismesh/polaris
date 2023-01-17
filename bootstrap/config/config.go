@@ -112,7 +112,7 @@ func Load(filePath string) (*Config, error) {
 	}()
 	buf, err := ioutil.ReadFile(filePath)
 	if nil != err {
-		return nil, errors.New(fmt.Sprintf("read file %s error", filePath))
+		return nil, fmt.Errorf("read file %s error", filePath)
 	}
 
 	conf := &Config{}
