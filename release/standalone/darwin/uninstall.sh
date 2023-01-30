@@ -79,10 +79,10 @@ function uninstallPrometheus() {
 }
 
 function uninstallPushGateway() {
-  echo -e "uninstall pushgateway ... "
-  local pid=$(ps -ef | grep pushgateway | grep -v grep | awk '{print $2}')
+  echo -e "uninstall polaris-pushgateway ... "
+  local pid=$(ps -ef | grep polaris-pushgateway | grep -v grep | awk '{print $2}')
   if [ "${pid}" != "" ]; then
-    echo -e "start to kill pushgateway process ${pid}"
+    echo -e "start to kill polaris-pushgateway process ${pid}"
     kill ${pid}
   fi
   local pushgateway_dirname=$(find . -name "pushgateway*" -type d | awk 'NR==1{print}')
@@ -90,7 +90,7 @@ function uninstallPushGateway() {
     echo -e "start to remove ${pushgateway_dirname}"
     rm -rf ${pushgateway_dirname}
   fi
-  echo -e "uninstall pushgateway success"
+  echo -e "uninstall polaris-pushgateway success"
 }
 
 # 卸载 server
