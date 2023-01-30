@@ -15,6 +15,17 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+ACTUAL_ARCH="$(/usr/bin/uname -m)"
+EXPECT_ARCH=$(cat arch.txt)
+
+actual_is_arm=$(/usr/bin/uname -m | grep "arm" | wc -l)
+expect_is_arm=$(cat arch.txt | grep "arm" | wc -l)
+
+if [ ${actual_is_arm} -ne ${expect_is_arm} ]; then
+  echo "machine arch is ${ACTUAL_ARCH}, but Installation package arch is ${EXPECT_ARCH}"
+  exit 1
+fi
+
 function getProperties() {
   result=""
   proFilePath="./port.properties"
@@ -46,7 +57,6 @@ console_port=$(getProperties polaris_console_port)
 
 eureka_port=$(getProperties polaris_eureka_port)
 xdsv3_port=$(getProperties polaris_xdsv3_port)
-prometheus_sd_port=$(getProperties polaris_prometheus_sd_port)
 service_grpc_port=$(getProperties polaris_service_grpc_port)
 config_grpc_port=$(getProperties polaris_config_grpc_port)
 api_http_port=$(getProperties polaris_open_api_port)
@@ -65,7 +75,6 @@ echo ""
 echo "polaris-server listen port info"
 echo "eureka_port=${eureka_port}"
 echo "xdsv3_port=${xdsv3_port}"
-echo "prometheus_sd_port=${prometheus_sd_port}"
 echo "service_grpc_port=${service_grpc_port}"
 echo "config_grpc_port=${config_grpc_port}"
 echo "api_http_port=${api_http_port}"
@@ -111,8 +120,6 @@ function installPolarisServer() {
   sed -i "s/listenPort: 8761/listenPort: ${eureka_port}/g" polaris-server.yaml
   # 修改 polaris-server xdsv3 端口信息
   sed -i "s/listenPort: 15010/listenPort: ${xdsv3_port}/g" polaris-server.yaml
-  # 修改 polaris-server prometheus-sd 端口信息
-  sed -i "s/listenPort: 9000/listenPort: ${prometheus_sd_port}/g" polaris-server.yaml
   # 修改 polaris-server service-grpc 端口信息
   sed -i "s/listenPort: 8091/listenPort: ${service_grpc_port}/g" polaris-server.yaml
   # 修改 polaris-server config-grpc 端口信息
@@ -203,7 +210,6 @@ function installPrometheus() {
   popd
 }
 
-# 安装北极星分布式限流服务端
 # 安装北极星分布式限流服务端
 function installPolarisLimiter() {
   echo -e "install polaris limiter ... "

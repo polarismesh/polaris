@@ -96,6 +96,7 @@ else
         mv ../port.properties ./port.properties
         mv ../prometheus-help.sh ./prometheus-help.sh
     fi
+    echo "${GOARCH}" > arch.txt
     popd
     PACKAGE_NAME=${DIR_NAME}.zip
     zip -r ${PACKAGE_NAME} ${DIR_NAME}
