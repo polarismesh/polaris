@@ -19,6 +19,7 @@ package service
 
 import (
 	"fmt"
+	"strconv"
 	"sync"
 	"testing"
 
@@ -123,6 +124,10 @@ func createCircuitBreakerRules(discoverSuit *DiscoverTestSuit, count int) ([]*ap
 	return cbRules, resp
 }
 
+func queryCircuitBreakerRules(discoverSuit *DiscoverTestSuit, query map[string]string) *apiservice.BatchQueryResponse {
+	return discoverSuit.server.GetCircuitBreakerRules(discoverSuit.defaultCtx, query)
+}
+
 func cleanCircuitBreakerRules(discoverSuit *DiscoverTestSuit, response *apiservice.BatchWriteResponse) {
 	cbRules := parseResponseToCircuitBreakerRules(response)
 	if len(cbRules) == 0 {
@@ -167,7 +172,10 @@ func TestCreateCircuitBreakerRule(t *testing.T) {
 	t.Run("正常创建熔断规则，返回成功", func(t *testing.T) {
 		cbRules, resp := createCircuitBreakerRules(discoverSuit, testCount)
 		defer cleanCircuitBreakerRules(discoverSuit, resp)
+		qResp := queryCircuitBreakerRules(discoverSuit, map[string]string{"level": strconv.Itoa(int(apifault.Level_GROUP))})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), qResp.GetCode().GetValue())
 		checkCircuitBreakerRuleResponse(t, cbRules, resp)
+
 	})
 
 	t.Run("重复创建熔断规则，返回错误", func(t *testing.T) {

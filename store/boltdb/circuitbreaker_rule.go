@@ -256,7 +256,7 @@ func (c *circuitBreakerStore) GetCircuitBreakerRules(
 					var inLevel = false
 					for _, level := range levels {
 						levelInt, _ := strconv.Atoi(level)
-						if levelInt == fieldValue.(int) {
+						if int64(levelInt) == fieldValue.(int64) {
 							inLevel = true
 							break
 						}
