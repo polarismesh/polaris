@@ -206,7 +206,7 @@ func BuildOutBoundsFromV2(service, namespace string, item *model.ExtendRouterCon
 	destinations := item.RuleRouting.Destinations
 	for i := range destinations {
 		entry := &apitraffic.Destination{
-			Name:      utils.NewStringValue(destinations[i].Name),
+			Name:      utils.NewStringValue(fmt.Sprintf("%s.%s", item.Name, destinations[i].Name)),
 			Service:   utils.NewStringValue(destinations[i].Service),
 			Namespace: utils.NewStringValue(destinations[i].Namespace),
 			Priority:  utils.NewUInt32Value(destinations[i].GetPriority()),
@@ -414,7 +414,7 @@ func BuildV2ExtendRouting(req *apitraffic.Routing, route *apitraffic.Route) (*mo
 	routing := &model.ExtendRouterConfig{
 		RouterConfig: &model.RouterConfig{
 			ID:       v2Id,
-			Name:     "",
+			Name:     v2Id,
 			Enable:   true,
 			Policy:   apitraffic.RoutingPolicy_RulePolicy.String(),
 			Revision: req.GetRevision().GetValue(),
