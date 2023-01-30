@@ -138,21 +138,21 @@ jobs:
               sed -i 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' conf/polaris-server.yaml
           fi
 
-          cat conf/polaris-server.yaml
-
           chmod +x ./tool/*.sh
           ./tool/start.sh
 
           sleep 120s
           ls -alR
           cat ./log/stdout 2>&1
-          grep -nr "error" ./log/runtime/* 2>&1
 
           cd ..
           ls -lstrh
           # 先测试普通的集成测试
           pushd ./test
-          go test -count=1 -v -tags integration  -timeout 60m
+          echo "[INTEGRATION TEST] begin"
+          curl http://127.0.0.1:8090
+          go test -count=1 -v -tags integration -timeout 60m
+          echo "[INTEGRATION TEST] end"
           popd
           cd $work_dir
           ./tool/stop.sh

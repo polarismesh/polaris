@@ -389,7 +389,7 @@ cache:
 #    - name: l5 # Load L5 data
 # Storage configuration
 store:
-  # Single -machine file storage plug -in
+  # Standalone file storage plugin
   name: boltdbStore
   option:
     path: ./polaris.bolt
