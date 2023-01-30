@@ -17,8 +17,8 @@ if [ ${INNER_GOOS} == "kubernetes" ]; then
 
     sed -i "s/##POLARIS_SERVER_VERSION##/${INNER_SERVER_VERSION}/g" kubernetes/03-polaris-server.yaml
     sed -i "s/##POLARIS_CONSOLE_VERSION##/${INNER_CONSOLE_VERSION}/g" kubernetes/03-polaris-server.yaml
-    sed -i "s/##POLARIS_PROMETHEUS_VERSION##/${INNER_SERVER_VERSION}/g" kubernetes/04-prometheus.yaml
-    sed -i "s/##POLARIS_LIMITER_VERSION##/${INNER_LIMITER_VERSION}/g" kubernetes/06-polaris-limiter.yaml
+    sed -i "s/##POLARIS_PROMETHEUS_VERSION##/${INNER_SERVER_VERSION}/g" kubernetes/05-prometheus.yaml
+    sed -i "s/##POLARIS_LIMITER_VERSION##/${INNER_LIMITER_VERSION}/g" kubernetes/07-polaris-limiter.yaml
 
     DIR_NAME=polaris-standalone-release_${INNER_SERVER_VERSION}.${INNER_GOOS}
     mkdir ${DIR_NAME}
