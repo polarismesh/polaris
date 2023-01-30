@@ -21,13 +21,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/smartystreets/goconvey/convey"
 
 	api "github.com/polarismesh/polaris/common/api/v1"

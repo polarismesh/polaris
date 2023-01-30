@@ -43,9 +43,19 @@ func GetHistory() History {
 	}
 
 	historyOnce.Do(func() {
+		var (
+			entries []ConfigEntry
+		)
+
+		if len(config.History.Entries) != 0 {
+			entries = append(entries, config.History.Entries...)
+		} else {
+			entries = append(entries, config.History.ConfigEntry)
+		}
+
 		compositeHistory = &CompositeHistory{
-			chain:   make([]History, 0, len(config.History)),
-			options: config.History,
+			chain:   make([]History, 0, len(entries)),
+			options: entries,
 		}
 
 		if err := compositeHistory.Initialize(nil); err != nil {

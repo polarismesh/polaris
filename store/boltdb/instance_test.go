@@ -19,13 +19,13 @@ package boltdb
 
 import (
 	"fmt"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"os"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"

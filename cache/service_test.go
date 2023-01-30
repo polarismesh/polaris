@@ -19,13 +19,13 @@ package cache
 
 import (
 	"fmt"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"math/rand"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"

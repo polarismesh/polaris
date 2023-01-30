@@ -23,11 +23,11 @@ package mock
 
 import (
 	context "context"
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	auth "github.com/polarismesh/polaris/auth"
 	cache "github.com/polarismesh/polaris/cache"

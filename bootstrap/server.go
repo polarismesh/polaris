@@ -28,6 +28,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/apiserver"
@@ -304,8 +305,8 @@ func StartServers(ctx context.Context, cfg *boot_config.Config, errCh chan error
 	for _, protocol := range cfg.APIServers {
 		slot, exist := apiserver.Slots[protocol.Name]
 		if !exist {
-			fmt.Printf("[ERROR] apiserver slot %s not exists\n", protocol.Name)
-			return nil, fmt.Errorf("apiserver slot %s not exists", protocol.Name)
+			log.Warn("[ERROR] apiserver slot not exists", zap.String("name", protocol.Name))
+			continue
 		}
 
 		err := slot.Initialize(ctx, protocol.Option, protocol.API)

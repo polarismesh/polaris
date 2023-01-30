@@ -323,13 +323,19 @@ func (rc *routingConfigCache) setRoutingConfigV1ToV2() {
 	for id := range rc.pendingV1RuleIds {
 		entry := rc.bucketV1.get(id)
 		// 保存到新的 v2 缓存
-		if v2rule, err := rc.convertRoutingV1toV2(entry); err != nil {
-			log.Error("[Cache] routing parse v1 => v2, will try again next",
+		v2rule, err := rc.convertRoutingV1toV2(entry)
+		if err != nil {
+			log.Warn("[Cache] routing parse v1 => v2 fail, will try again next",
 				zap.String("rule-id", entry.ID), zap.Error(err))
-		} else {
-			rc.bucketV2.saveV1(entry, v2rule)
-			delete(rc.pendingV1RuleIds, id)
+			continue
 		}
+		if v2rule == nil {
+			log.Warn("[Cache] routing parse v1 => v2 is nil, will try again next",
+				zap.String("rule-id", entry.ID), zap.Error(err))
+			continue
+		}
+		rc.bucketV2.saveV1(entry, v2rule)
+		delete(rc.pendingV1RuleIds, id)
 	}
 
 	log.Infof("[Cache] convert routing parse v1 => v2 count : %d", rc.bucketV2.convertV2Size())

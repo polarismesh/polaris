@@ -46,7 +46,7 @@ func (nc *CacheManager) watchStoreTime(ctx context.Context) {
 			}
 			// 防止时间回退
 			if preStoreTime != 0 && preStoreTime > storeSec {
-				atomic.StoreInt64(&nc.storeTimeDiffSec, preStoreTime-storeSec)
+				atomic.StoreInt64(&nc.storeTimeDiffSec, storeSec-preStoreTime)
 			} else {
 				preStoreTime = storeSec
 				atomic.StoreInt64(&nc.storeTimeDiffSec, 0)

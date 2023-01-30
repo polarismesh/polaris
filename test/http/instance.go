@@ -21,12 +21,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"io"
 	"reflect"
 
 	"github.com/golang/protobuf/jsonpb"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 /**

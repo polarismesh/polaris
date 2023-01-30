@@ -19,7 +19,6 @@ package boltdb
 
 import (
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -28,6 +27,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	"github.com/polarismesh/polaris/common/model"
 )

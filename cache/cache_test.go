@@ -20,11 +20,11 @@ package cache
 import (
 	"context"
 	"fmt"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/polarismesh/polaris/common/model"

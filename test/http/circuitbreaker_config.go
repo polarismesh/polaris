@@ -22,11 +22,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"io"
 
 	"github.com/golang/protobuf/jsonpb"
+	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 )

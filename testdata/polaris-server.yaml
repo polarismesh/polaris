@@ -417,15 +417,11 @@ plugin:
       url: "http://127.0.0.1:36247"
       interval: 60s
   history:
-    - name: HistoryLogger
+    entries:
+      - name: HistoryLogger
   discoverEvent:
-    - name: discoverEventLocal
-    # option:
-    #   queueSize: 1024
-    #   outputPath: ./discover-event
-    #   rotationMaxSize: 500
-    #   rotationMaxAge: 8
-    #   rotationMaxBackups: 100
+    entries:
+      - name: discoverEventLocal
   discoverStatis:
     name: discoverLocal
     option:

@@ -20,6 +20,9 @@ package service
 import (
 	"context"
 	"fmt"
+	"sync"
+	"testing"
+
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -28,8 +31,6 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
-	"sync"
-	"testing"
 
 	"github.com/polarismesh/polaris/common/utils"
 )

@@ -21,13 +21,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/boltdb/bolt"
 	"github.com/google/uuid"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/auth"

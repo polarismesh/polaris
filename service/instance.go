@@ -750,6 +750,7 @@ func (s *Server) GetInstances(ctx context.Context, query map[string]string) *api
 	return out
 }
 
+// GetInstanceLabels 获取实例标签列表
 func (s *Server) GetInstanceLabels(ctx context.Context, query map[string]string) *apiservice.Response {
 	var (
 		serviceId string
@@ -772,7 +773,9 @@ func (s *Server) GetInstanceLabels(ctx context.Context, query map[string]string)
 	}
 
 	if serviceId == "" {
-		return api.NewResponse(apimodel.Code_NotFoundService)
+		resp := api.NewResponse(apimodel.Code_ExecuteSuccess)
+		resp.InstanceLabels = &apiservice.InstanceLabels{}
+		return resp
 	}
 
 	ret := s.Cache().Instance().GetInstanceLabels(serviceId)
