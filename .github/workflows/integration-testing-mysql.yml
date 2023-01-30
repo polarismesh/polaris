@@ -138,15 +138,12 @@ jobs:
               sed -i 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' conf/polaris-server.yaml
           fi
 
-          cat conf/polaris-server.yaml
-
           chmod +x ./tool/*.sh
           ./tool/start.sh
 
           sleep 120s
           ls -alR
           cat ./log/stdout 2>&1
-          grep -nr "error" ./log/runtime/* 2>&1
 
           cd ..
           ls -lstrh
