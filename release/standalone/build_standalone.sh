@@ -1,19 +1,26 @@
 #!/bin/bash
 
+
+INNER_GOOS=${GOOS}
+INNER_GOARCH=${GOARCH}
+INNER_SERVER_VERSION=${SERVER_VERSION}
+INNER_CONSOLE_VERSION=${CONSOLE_VERSION}
+INNER_LIMITER_VERSION=${LIMITER_VERSION}
+
 set -e
 workdir=${WORKDIR}
 
-if [ ${GOOS} == "kubernetes" ]; then
+if [ ${INNER_GOOS} == "kubernetes" ]; then
     # ---------------------- 出简单 kubernetes 安装包 ----------------------
     cd ${workdir}
     cd release/cluster
 
-    sed -i "s/##POLARIS_SERVER_VERSION##/${SERVER_VERSION}/g" kubernetes/03-polaris-server.yaml
-    sed -i "s/##POLARIS_CONSOLE_VERSION##/${CONSOLE_VERSION}/g" kubernetes/03-polaris-server.yaml
-    sed -i "s/##POLARIS_PROMETHEUS_VERSION##/${SERVER_VERSION}/g" kubernetes/04-prometheus.yaml
-    sed -i "s/##POLARIS_LIMITER_VERSION##/${LIMITER_VERSION}/g" kubernetes/06-polaris-limiter.yaml
+    sed -i "s/##POLARIS_SERVER_VERSION##/${INNER_SERVER_VERSION}/g" kubernetes/03-polaris-server.yaml
+    sed -i "s/##POLARIS_CONSOLE_VERSION##/${INNER_CONSOLE_VERSION}/g" kubernetes/03-polaris-server.yaml
+    sed -i "s/##POLARIS_PROMETHEUS_VERSION##/${INNER_SERVER_VERSION}/g" kubernetes/04-prometheus.yaml
+    sed -i "s/##POLARIS_LIMITER_VERSION##/${INNER_LIMITER_VERSION}/g" kubernetes/06-polaris-limiter.yaml
 
-    DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}
+    DIR_NAME=polaris-standalone-release_${INNER_SERVER_VERSION}.${INNER_GOOS}
     mkdir ${DIR_NAME}
     pushd ${DIR_NAME}
     cp -rf ../kubernetes/* ./
@@ -28,12 +35,12 @@ if [ ${GOOS} == "kubernetes" ]; then
     cd ${workdir}
     cd release/standalone
 
-    sed -i "s/##POLARIS_SERVER_VERSION##/${SERVER_VERSION}/g" docker-compose/docker-compose.yaml
-    sed -i "s/##POLARIS_CONSOLE_VERSION##/${CONSOLE_VERSION}/g" docker-compose/docker-compose.yaml
-    sed -i "s/##POLARIS_PROMETHEUS_VERSION##/${SERVER_VERSION}/g" docker-compose/docker-compose.yaml
-    sed -i "s/##POLARIS_LIMITER_VERSION##/${LIMITER_VERSION}/g" docker-compose/docker-compose.yaml
+    sed -i "s/##POLARIS_SERVER_VERSION##/${INNER_SERVER_VERSION}/g" docker-compose/docker-compose.yaml
+    sed -i "s/##POLARIS_CONSOLE_VERSION##/${INNER_CONSOLE_VERSION}/g" docker-compose/docker-compose.yaml
+    sed -i "s/##POLARIS_PROMETHEUS_VERSION##/${INNER_SERVER_VERSION}/g" docker-compose/docker-compose.yaml
+    sed -i "s/##POLARIS_LIMITER_VERSION##/${INNER_LIMITER_VERSION}/g" docker-compose/docker-compose.yaml
 
-    DOCKER_COMPOSE_DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.docker-compose
+    DOCKER_COMPOSE_DIR_NAME=polaris-standalone-release_${INNER_SERVER_VERSION}.docker-compose
     mkdir ${DOCKER_COMPOSE_DIR_NAME}
     pushd ${DOCKER_COMPOSE_DIR_NAME}
     cp -rf ../docker-compose/* ./
@@ -48,12 +55,12 @@ if [ ${GOOS} == "kubernetes" ]; then
     cd ${workdir}
     cd release/cluster
 
-    sed -i "s/##POLARIS_SERVER_VERSION##/${SERVER_VERSION}/g" helm/values.yaml
-    sed -i "s/##POLARIS_CONSOLE_VERSION##/${CONSOLE_VERSION}/g" helm/values.yaml
-    sed -i "s/##POLARIS_PROMETHEUS_VERSION##/${SERVER_VERSION}/g" helm/values.yaml
-    sed -i "s/##POLARIS_LIMITER_VERSION##/${LIMITER_VERSION}/g" helm/values.yaml
+    sed -i "s/##POLARIS_SERVER_VERSION##/${INNER_SERVER_VERSION}/g" helm/values.yaml
+    sed -i "s/##POLARIS_CONSOLE_VERSION##/${INNER_CONSOLE_VERSION}/g" helm/values.yaml
+    sed -i "s/##POLARIS_PROMETHEUS_VERSION##/${INNER_SERVER_VERSION}/g" helm/values.yaml
+    sed -i "s/##POLARIS_LIMITER_VERSION##/${INNER_LIMITER_VERSION}/g" helm/values.yaml
 
-    HELM_DIR_NAME=polaris-helm-release_${SERVER_VERSION}.${GOOS}
+    HELM_DIR_NAME=polaris-helm-release_${INNER_SERVER_VERSION}.${INNER_GOOS}
     mkdir ${HELM_DIR_NAME}
     pushd ${HELM_DIR_NAME}
     cp -rf ../helm/* ./
@@ -68,35 +75,35 @@ else
     
     POLARIS_GIT_PATH=https://github.com/polarismesh
     
-    DIR_NAME=polaris-standalone-release_${SERVER_VERSION}.${GOOS}.${GOARCH}
+    DIR_NAME=polaris-standalone-release_${INNER_SERVER_VERSION}.${INNER_GOOS}.${INNER_GOARCH}
     
     mkdir ${DIR_NAME}
     pushd ${DIR_NAME}
     
-    SERVER_PKG_NAME=polaris-server-release_${SERVER_VERSION}.${GOOS}.${GOARCH}.zip
-    wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris/releases/download/${SERVER_VERSION}/${SERVER_PKG_NAME} --no-check-certificate
+    SERVER_PKG_NAME=polaris-server-release_${INNER_SERVER_VERSION}.${INNER_GOOS}.${INNER_GOARCH}.zip
+    wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris/releases/download/${INNER_SERVER_VERSION}/${SERVER_PKG_NAME} --no-check-certificate
     
-    CONSOLE_PKG_NAME=polaris-console-release_${CONSOLE_VERSION}.${GOOS}.${GOARCH}.zip
-    wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris-console/releases/download/${CONSOLE_VERSION}/${CONSOLE_PKG_NAME} --no-check-certificate
+    CONSOLE_PKG_NAME=polaris-console-release_${INNER_CONSOLE_VERSION}.${INNER_GOOS}.${INNER_GOARCH}.zip
+    wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris-console/releases/download/${INNER_CONSOLE_VERSION}/${CONSOLE_PKG_NAME} --no-check-certificate
     
-    LIMITER_PKG_NAME=polaris-limiter-release_${LIMITER_VERSION}.${GOOS}.${GOARCH}.zip
-    wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris-limiter/releases/download/${LIMITER_VERSION}/${LIMITER_PKG_NAME} --no-check-certificate
+    LIMITER_PKG_NAME=polaris-limiter-release_${INNER_LIMITER_VERSION}.${INNER_GOOS}.${INNER_GOARCH}.zip
+    wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris-limiter/releases/download/${INNER_LIMITER_VERSION}/${LIMITER_PKG_NAME} --no-check-certificate
     
-    if [ ${GOOS} == "windows" ]; then
-        wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.zip
-        mv ../${GOOS}/install.bat ./install.bat
-        mv ../${GOOS}/install-windows.ps1 ./install-windows.ps1
-        mv ../${GOOS}/uninstall.bat ./uninstall.bat
-        mv ../${GOOS}/uninstall-windows.ps1 ./uninstall-windows.ps1
+    if [ ${INNER_GOOS} == "windows" ]; then
+        wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${INNER_GOOS}-${INNER_GOARCH}.zip
+        mv ../${INNER_GOOS}/install.bat ./install.bat
+        mv ../${INNER_GOOS}/install-windows.ps1 ./install-windows.ps1
+        mv ../${INNER_GOOS}/uninstall.bat ./uninstall.bat
+        mv ../${INNER_GOOS}/uninstall-windows.ps1 ./uninstall-windows.ps1
         mv ../port.properties ./port.properties
     else
-        wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz
-        mv ../${GOOS}/install.sh ./install.sh
-        mv ../${GOOS}/uninstall.sh ./uninstall.sh
+        wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${INNER_GOOS}-${INNER_GOARCH}.tar.gz
+        mv ../${INNER_GOOS}/install.sh ./install.sh
+        mv ../${INNER_GOOS}/uninstall.sh ./uninstall.sh
         mv ../port.properties ./port.properties
         mv ../prometheus-help.sh ./prometheus-help.sh
     fi
-    echo "${GOARCH}" > arch.txt
+    echo "${INNER_GOARCH}" > arch.txt
     popd
     PACKAGE_NAME=${DIR_NAME}.zip
     zip -r ${PACKAGE_NAME} ${DIR_NAME}

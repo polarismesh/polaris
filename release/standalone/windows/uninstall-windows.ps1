@@ -95,6 +95,27 @@ function uninstallPrometheus {
     Write-Output "uninstall prometheus success"
 }
 
+function uninstallPushGateway {
+    Write-Output "uninstall pushgateway ... "
+    Get-Process | ForEach-Object($_.name) {
+        if($_.name -eq "pushgateway") {
+            $process_pid = $_.Id
+            Write-Output "start to kill pushgateway process $process_pid"
+            Stop-Process -Id $process_pid
+            Start-Sleep -Seconds 2
+        }
+    }
+    $target_pgw_pkg =  (Get-ChildItem "pushgateway-*.zip")[0].Name
+    $pgw_dirname = ([io.fileinfo]$target_pgw_pkg).basename
+    $exists = (Test-Path $pgw_dirname)
+    if ($exists) {
+        Write-Output "start to remove $pgw_dirname"
+        Remove-Item ".\\${pgw_dirname}" -Recurse
+        return
+    }
+    Write-Output "uninstall pushgateway success"
+}
+
 # 卸载 server
 uninstallPolarisServer
 # 卸载 console
@@ -103,3 +124,5 @@ uninstallPolarisConsole
 uninstallPolarisLimiter
 # 卸载 prometheus
 uninstallPrometheus
+# 卸载 pushgateway
+uninstallPushGateway

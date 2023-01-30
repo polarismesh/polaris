@@ -78,6 +78,22 @@ function uninstallPrometheus() {
   echo -e "uninstall polaris-prometheus success"
 }
 
+function uninstallPushGateway() {
+  echo -e "uninstall pushgateway ... "
+  local pid=$(ps -ef | grep pushgateway | grep -v grep | awk '{print $2}')
+  if [ "${pid}" != "" ]; then
+    echo -e "start to kill pushgateway process ${pid}"
+    kill ${pid}
+  fi
+  local pushgateway_dirname=$(find . -name "pushgateway*" -type d | awk 'NR==1{print}')
+  if [ -e ${pushgateway_dirname} ]; then
+    echo -e "start to remove ${pushgateway_dirname}"
+    rm -rf ${pushgateway_dirname}
+  fi
+  echo -e "uninstall pushgateway success"
+}
+
+
 # 卸载 server
 uninstallPolarisServer
 # 卸载 console
@@ -86,3 +102,5 @@ uninstallPolarisConsole
 uninstallPolarisLimiter
 # 卸载 prometheus
 uninstallPrometheus
+# 卸载 pushgateway
+uninstallPushGateway
