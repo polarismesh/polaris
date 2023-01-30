@@ -25,8 +25,8 @@ for GOARCH in ${arch_list[@]}; do
     LIMITER_PKG_NAME=polaris-limiter-release_${LIMITER_VERSION}.${GOOS}.${GOARCH}.zip
     wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris-limiter/releases/download/${LIMITER_VERSION}/${LIMITER_PKG_NAME} --no-check-certificate
 
-    wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz
-    wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${GOOS}-${GOARCH}.tar.gz
+    wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz --no-check-certificate
+    wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${GOOS}-${GOARCH}.tar.gz --no-check-certificate
 
     platforms+="${GOOS}/${GOARCH},"
 done
@@ -38,10 +38,12 @@ cp ./linux/uninstall.sh ./uninstall.sh
 cp ./prometheus-help.sh ./prometheus-help.sh
 cp ./port.properties ./port.properties
 cp ./docker/Dockerfile ./Dockerfile
+cp ./docker/install-pushgateway.sh ./install-pushgateway.sh
 
 echo "#!/bin/bash" >"run.sh"
 echo "" >>"run.sh"
 echo "bash install.sh" >>"run.sh"
+echo "bash install-pushgateway.sh" >>"run.sh"
 echo "while ((1))" >>"run.sh"
 echo "do" >>"run.sh"
 echo "   sleep 1" >>"run.sh"

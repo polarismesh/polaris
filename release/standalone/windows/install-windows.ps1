@@ -37,7 +37,6 @@ function installPolarisServer() {
     Push-Location $polaris_server_dirname
     sed "polaris-server.yaml" "listenPort: 8761" "listenPort: ${eureka_port}"
     sed "polaris-server.yaml" "listenPort: 15010" "listenPort: ${xdsv3_port}"
-    sed "polaris-server.yaml" "listenPort: 9000" "listenPort: ${prometheus_sd_port}"
     sed "polaris-server.yaml" "listenPort: 8091" "listenPort: ${service_grpc_port}"
     sed "polaris-server.yaml" "listenPort: 8093" "listenPort: ${config_grpc_port}"
     sed "polaris-server.yaml" "listenPort: 8090" "listenPort: ${api_http_port}"
@@ -141,7 +140,6 @@ $config = ConvertFrom-StringData($fileContent)
 $console_port = $config.'polaris_console_port'
 $eureka_port = $config.'polaris_eureka_port'
 $xdsv3_port = $config.'polaris_xdsv3_port'
-$prometheus_sd_port = $config.'polaris_prometheus_sd_port'
 $service_grpc_port = $config.'polaris_service_grpc_port'
 $config_grpc_port = $config.'polaris_config_grpc_port'
 $api_http_port = $config.'polaris_open_api_port'
