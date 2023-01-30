@@ -43,6 +43,11 @@ jobs:
             goarch: arm64
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.server_version }}
+
       - name: Build
         id: build
         env:

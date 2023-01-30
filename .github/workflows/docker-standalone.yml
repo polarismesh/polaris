@@ -41,6 +41,11 @@ jobs:
             goarch: arm64
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.server_version }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
         with:
