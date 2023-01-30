@@ -242,7 +242,7 @@ function installPushGateway() {
   echo -e "install pushgateway ... "
   local pgw_num=$(ps -ef | grep polaris-pushgateway | grep -v grep | wc -l)
   if [ $pgw_num -ge 1 ]; then
-    echo -e "pushgateway is running, exit"
+    echo -e "polaris-pushgateway is running, exit"
     return -1
   fi
 
@@ -264,7 +264,7 @@ function installPushGateway() {
   mv pushgateway polaris-pushgateway
   chmod +x polaris-pushgateway
   nohup ./polaris-pushgateway --web.enable-lifecycle --web.enable-admin-api --web.listen-address=:${pushgateway_port} >>pgw.out 2>&1 &
-  echo "install pushgateway success"
+  echo "install polaris-pushgateway success"
   popd
 }
 

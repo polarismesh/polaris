@@ -211,10 +211,10 @@ function installPrometheus() {
 }
 
 function installPushGateway() {
-  echo -e "install pushgateway ... "
+  echo -e "install polaris-pushgateway ... "
   local pgw_num=$(ps -ef | grep polaris-pushgateway | grep -v grep | wc -l)
   if [ $pgw_num -ge 1 ]; then
-    echo -e "pushgateway is running, exit"
+    echo -e "polaris-pushgateway is running, exit"
     return -1
   fi
 
