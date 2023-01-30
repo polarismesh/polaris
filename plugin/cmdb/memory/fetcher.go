@@ -90,6 +90,10 @@ func (f *fetcher) GetIPs() ([]IPInfo, IPs, error) {
 }
 
 func (f *fetcher) getFromRemote() ([]IPInfo, error) {
+	if f.url == "" {
+		return []IPInfo{}, nil
+	}
+
 	requestId := utils.NewUUID()
 
 	total := 0

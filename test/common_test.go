@@ -21,10 +21,11 @@
 package test
 
 import (
+	"testing"
+
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-	"testing"
 
 	"github.com/polarismesh/polaris/test/http"
 	"github.com/polarismesh/polaris/test/resource"

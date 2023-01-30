@@ -19,11 +19,11 @@ package resource
 
 import (
 	"fmt"
+
+	"github.com/golang/protobuf/ptypes/duration"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
-
-	"github.com/golang/protobuf/ptypes/duration"
 
 	"github.com/polarismesh/polaris/common/utils"
 )

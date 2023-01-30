@@ -19,9 +19,9 @@ package grpc
 
 import (
 	"fmt"
+
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-
 	"google.golang.org/grpc"
 )
 

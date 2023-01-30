@@ -19,7 +19,6 @@ package http
 
 import (
 	"fmt"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -27,6 +26,7 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	"github.com/polarismesh/polaris/apiserver/httpserver/i18n"
 	api "github.com/polarismesh/polaris/common/api/v1"

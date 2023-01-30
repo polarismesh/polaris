@@ -1,4 +1,30 @@
 #!/bin/bash
+# Tencent is pleased to support the open source community by making Polaris available.
+#
+# Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
+#
+# Licensed under the BSD 3-Clause License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software distributed
+# under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+# CONDITIONS OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the License.
+
+# Get Darwin CPU is AMD64 or ARM64
+ACTUAL_ARCH="$(/usr/bin/uname -m)"
+EXPECT_ARCH=$(cat arch.txt)
+
+actual_is_arm=$(/usr/bin/uname -m | grep "arm" | wc -l)
+expect_is_arm=$(cat arch.txt | grep "arm" | wc -l)
+
+if [ ${actual_is_arm} -ne ${expect_is_arm} ]; then
+  echo "machine arch is ${ACTUAL_ARCH}, but Installation package arch is ${EXPECT_ARCH}"
+  exit 1
+fi
 
 function getProperties() {
   result=""
@@ -38,14 +64,10 @@ else
   install_path=$(pwd)/$(dirname "$0")
 fi
 
-# Get Darwin CPU is AMD64 or ARM64
-UNAME_MACHINE="$(/usr/bin/uname -m)"
-
 console_port=$(getProperties "polaris_console_port")
 
 eureka_port=$(getProperties "polaris_eureka_port")
 xdsv3_port=$(getProperties "polaris_xdsv3_port")
-prometheus_sd_port=$(getProperties "polaris_prometheus_sd_port")
 service_grpc_port=$(getProperties "polaris_service_grpc_port")
 config_grpc_port=$(getProperties "polaris_config_grpc_port")
 api_http_port=$(getProperties "polaris_open_api_port")
@@ -113,8 +135,6 @@ function installPolarisServer() {
   sed -i "" "s/listenPort: 8761/listenPort: ${eureka_port}/g" polaris-server.yaml
   # 修改 polaris-server xdsv3 端口信息
   sed -i "" "s/listenPort: 15010/listenPort: ${xdsv3_port}/g" polaris-server.yaml
-  # 修改 polaris-server prometheus-sd 端口信息
-  sed -i "" "s/listenPort: 9000/listenPort: ${prometheus_sd_port}/g" polaris-server.yaml
   # 修改 polaris-server service-grpc 端口信息
   sed -i "" "s/listenPort: 8091/listenPort: ${service_grpc_port}/g" polaris-server.yaml
   # 修改 polaris-server config-grpc 端口信息

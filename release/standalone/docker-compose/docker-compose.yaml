@@ -21,14 +21,15 @@ services:
     expose: # 用于北极星集群内部访问
       - 8090    # api-http
       - 8091    # service-grpc
-      - 9000    # prometheus-sd
       - 8093    # config-grpc
       - 8761    # service-eureka
       - 15010   # xds-v3
     ports: # 用于其他服务访问北极星
       - "8090:8090" # api-http
       - "8091:8091" # service-grpc
-      - "8093:8093" # service-grpc
+      - "8093:8093" # config-grpc
+      - "8761:8761" # service-eureka
+      - "15010:15010" # xds-v3
     networks:
       - backend
     links:
@@ -59,6 +60,9 @@ services:
     image: polarismesh/polaris-limiter:##POLARIS_LIMITER_VERSION##
     volumes:
       - ./limiter/polaris-limiter.yaml:/root/polaris-limiter.yaml
+    expose: # 用于北极星集群内部访问
+      - 8100    # service-http
+      - 8101    # service-grpc
     ports:
       - "8100:8100"
       - "8101:8101"

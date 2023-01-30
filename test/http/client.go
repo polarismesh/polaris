@@ -21,12 +21,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"io"
 	"net/http"
 
 	"github.com/golang/protobuf/jsonpb"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 // NewClient 创建HTTP客户端

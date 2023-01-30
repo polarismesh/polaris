@@ -20,9 +20,9 @@ package grpc
 import (
 	"context"
 	"fmt"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"time"
 
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"google.golang.org/grpc/metadata"
 
 	"github.com/polarismesh/polaris/common/utils"

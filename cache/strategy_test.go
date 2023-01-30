@@ -19,9 +19,9 @@ package cache
 
 import (
 	"fmt"
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"testing"
 
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris/common/model"

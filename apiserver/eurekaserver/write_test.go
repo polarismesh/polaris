@@ -19,11 +19,11 @@ package eurekaserver
 
 import (
 	"context"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 

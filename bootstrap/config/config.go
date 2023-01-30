@@ -20,6 +20,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"gopkg.in/yaml.v2"
@@ -109,12 +110,28 @@ func Load(filePath string) (*Config, error) {
 	defer func() {
 		_ = file.Close()
 	}()
+	buf, err := ioutil.ReadFile(filePath)
+	if nil != err {
+		return nil, fmt.Errorf("read file %s error", filePath)
+	}
 
 	conf := &Config{}
-	if err = yaml.NewDecoder(file).Decode(conf); err != nil {
+	if err = parseYamlContent(string(buf), conf); err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
 		return nil, err
 	}
 
 	return conf, nil
+}
+
+func parseYamlContent(content string, conf *Config) error {
+	if err := yaml.Unmarshal([]byte(replaceEnv(content)), conf); nil != err {
+		return fmt.Errorf("parse yaml %s error:%w", content, err)
+	}
+	return nil
+}
+
+// replaceEnv replace holder by env list
+func replaceEnv(configContent string) string {
+	return os.ExpandEnv(configContent)
 }

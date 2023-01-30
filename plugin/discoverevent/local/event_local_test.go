@@ -19,12 +19,12 @@ package local
 
 import (
 	"context"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris/common/model"
