@@ -90,14 +90,16 @@ else
     wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris-limiter/releases/download/${INNER_LIMITER_VERSION}/${LIMITER_PKG_NAME} --no-check-certificate
     
     if [ ${INNER_GOOS} == "windows" ]; then
-        wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${INNER_GOOS}-${INNER_GOARCH}.zip
+        wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${INNER_GOOS}-${INNER_GOARCH}.zip --no-check-certificate
+        wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${INNER_GOOS}-${INNER_GOARCH}.zip --no-check-certificate
         mv ../${INNER_GOOS}/install.bat ./install.bat
         mv ../${INNER_GOOS}/install-windows.ps1 ./install-windows.ps1
         mv ../${INNER_GOOS}/uninstall.bat ./uninstall.bat
         mv ../${INNER_GOOS}/uninstall-windows.ps1 ./uninstall-windows.ps1
         mv ../port.properties ./port.properties
     else
-        wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${INNER_GOOS}-${INNER_GOARCH}.tar.gz
+        wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${INNER_GOOS}-${INNER_GOARCH}.tar.gz --no-check-certificate
+        wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${INNER_GOOS}-${INNER_GOARCH}.tar.gz --no-check-certificate
         mv ../${INNER_GOOS}/install.sh ./install.sh
         mv ../${INNER_GOOS}/uninstall.sh ./uninstall.sh
         mv ../port.properties ./port.properties
