@@ -221,4 +221,25 @@ func TestCreateCircuitBreakerRule(t *testing.T) {
 		}
 		wg.Wait()
 	})
+
+	t.Run("创建多个熔断规则，并进行查询，返回查询结果", func(t *testing.T) {
+		cbRules, firstResp := createCircuitBreakerRules(discoverSuit, 5)
+		defer cleanCircuitBreakerRules(discoverSuit, firstResp)
+		checkCircuitBreakerRuleResponse(t, cbRules, firstResp)
+		batchResp := discoverSuit.server.GetCircuitBreakerRules(
+			discoverSuit.defaultCtx, map[string]string{"name": "test-circuitbreaker-rule"})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), batchResp.GetCode().GetValue())
+		anyValues := batchResp.GetData()
+		assert.Equal(t, len(cbRules), len(anyValues))
+		batchResp = discoverSuit.server.GetCircuitBreakerRules(
+			discoverSuit.defaultCtx, map[string]string{"name": "test-circuitbreaker-rule", "srcNamespace": "test1"})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), batchResp.GetCode().GetValue())
+		anyValues = batchResp.GetData()
+		assert.Equal(t, 0, len(anyValues))
+		batchResp = discoverSuit.server.GetCircuitBreakerRules(
+			discoverSuit.defaultCtx, map[string]string{"name": "test-circuitbreaker-rule", "dstService": "test1"})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), batchResp.GetCode().GetValue())
+		anyValues = batchResp.GetData()
+		assert.Equal(t, 0, len(anyValues))
+	})
 }

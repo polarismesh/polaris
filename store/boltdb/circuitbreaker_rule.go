@@ -204,6 +204,10 @@ func (c *circuitBreakerStore) GetCircuitBreakerRules(
 	excludeIdValue, hasExcludeId := filter[excludeId]
 	delete(filter, excludeId)
 	delete(filter, "brief")
+	lowerFilter := make(map[string]string, len(filter))
+	for k, v := range filter {
+		lowerFilter[strings.ToLower(k)] = v
+	}
 	result, err := c.handler.LoadValuesByFilter(tblCircuitBreakerRule, cbSearchFields, &model.CircuitBreakerRule{},
 		func(m map[string]interface{}) bool {
 			validVal, ok := m[CommonFieldValid]
@@ -229,13 +233,13 @@ func (c *circuitBreakerStore) GetCircuitBreakerRules(
 					return false
 				}
 			}
-			if len(filter) == 0 {
+			if len(lowerFilter) == 0 {
 				return true
 			}
 			var matched = true
 			for fieldKey, fieldValue := range m {
 				lowerKey := strings.ToLower(fieldKey)
-				filterValue, ok := filter[lowerKey]
+				filterValue, ok := lowerFilter[lowerKey]
 				if !ok {
 					continue
 				}
