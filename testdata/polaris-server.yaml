@@ -414,7 +414,7 @@ plugin:
   cmdb:
     name: memory
     option:
-      url: "http://127.0.0.1:36247"
+      url: ""
       interval: 60s
   history:
     entries:

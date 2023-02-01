@@ -265,7 +265,6 @@ Header X-Polaris-Token: {访问凭据}
   "aliases": [],
   "rateLimits": [],
   "configWithServices": [],
-  "platforms": [],
   "users": [],
   "userGroups": [],
   "authStrategies": [],
