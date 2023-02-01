@@ -41,7 +41,9 @@ const (
 			dstService, dstNamespace, dstMethod, config, ctime, mtime, etime)
 			values(?,?,?,?,?,?,?,?,?,?,?,?,?, sysdate(),sysdate(), %s)`
 	updateCircuitBreakerRuleSql = `update circuitbreaker_rule_v2 set name = ?, namespace=?, enable = ?, revision= ?,
-			description = ?, level = ?, config = ?, mtime = sysdate(), etime=%s where id = ?`
+			description = ?, level = ?, srcService = ?, srcNamespace = ?,
+            dstService = ?, dstNamespace = ?, dstMethod = ?,
+			config = ?, mtime = sysdate(), etime=%s where id = ?`
 	deleteCircuitBreakerRuleSql = `update circuitbreaker_rule_v2 set flag = 1, mtime = sysdate() where id = ?`
 	enableCircuitBreakerRuleSql = `update circuitbreaker_rule_v2 set enable = ?, revision = ?, mtime = sysdate(), 
 			etime=%s where id = ?`
@@ -98,7 +100,8 @@ func (c *circuitBreakerStore) updateCircuitBreakerRule(cbRule *model.CircuitBrea
 		etimeStr := buildEtimeStr(cbRule.Enable)
 		str := fmt.Sprintf(updateCircuitBreakerRuleSql, etimeStr)
 		if _, err := tx.Exec(str, cbRule.Name, cbRule.Namespace, cbRule.Enable,
-			cbRule.Revision, cbRule.Description, cbRule.Level, cbRule.Rule, cbRule.ID); err != nil {
+			cbRule.Revision, cbRule.Description, cbRule.Level, cbRule.SrcService, cbRule.SrcNamespace,
+			cbRule.DstService, cbRule.DstNamespace, cbRule.DstMethod, cbRule.Rule, cbRule.ID); err != nil {
 			log.Errorf("[Store][database] fail to %s exec sql, err: %s", labelUpdateCircuitBreakerRule, err.Error())
 			return err
 		}
