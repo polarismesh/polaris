@@ -42,7 +42,7 @@ const (
 	MatchAll = "*"
 )
 
-// RoutingConfigV1ToAPI 把内部数据结构转换为API参数传递出去
+// RoutingConfigV1ToAPI Convert the internal data structure to API parameter to pass out
 func RoutingConfigV1ToAPI(req *model.RoutingConfig, service string, namespace string) (*apitraffic.Routing, error) {
 	if req == nil {
 		return nil, nil
@@ -74,20 +74,17 @@ func RoutingConfigV1ToAPI(req *model.RoutingConfig, service string, namespace st
 	return out, nil
 }
 
-// CompositeRoutingV1AndV2 合并 v1 版本的路由规则以及 v2 版本的规则路由
+// CompositeRoutingV1AndV2 The routing rules of the V1 version and the rules of the V2 version
 func CompositeRoutingV1AndV2(v1rule *apitraffic.Routing, level1, level2,
 	level3 []*model.ExtendRouterConfig) (*apitraffic.Routing, []string) {
-	// 先确保规则的排序是从最高优先级开始排序
 	sort.Slice(level1, func(i, j int) bool {
 		return CompareRoutingV2(level1[i], level1[j])
 	})
 
-	// 先确保规则的排序是从最高优先级开始排序
 	sort.Slice(level2, func(i, j int) bool {
 		return CompareRoutingV2(level2[i], level2[j])
 	})
 
-	// 先确保规则的排序是从最高优先级开始排序
 	sort.Slice(level3, func(i, j int) bool {
 		return CompareRoutingV2(level3[i], level3[j])
 	})
@@ -102,7 +99,7 @@ func CompositeRoutingV1AndV2(v1rule *apitraffic.Routing, level1, level2,
 	inBounds := v1rule.GetInbounds()
 	outBounds := v1rule.GetOutbounds()
 
-	// 处理 inbounds 规则，level1 cache -> v1rules -> level2 cache -> level3 cache
+	// Processing inbounds rules，level1 cache -> v1rules -> level2 cache -> level3 cache
 	if len(level1inRoutes) > 0 {
 		v1rule.Inbounds = append(level1inRoutes, inBounds...)
 	}
@@ -113,7 +110,7 @@ func CompositeRoutingV1AndV2(v1rule *apitraffic.Routing, level1, level2,
 		v1rule.Inbounds = append(v1rule.Inbounds, level3inRoutes...)
 	}
 
-	// 处理 outbounds 规则，level1 cache -> v1rules -> level2 cache -> level3 cache
+	// Processing OutBounds rules，level1 cache -> v1rules -> level2 cache -> level3 cache
 	if len(level1outRoutes) > 0 {
 		v1rule.Outbounds = append(level1outRoutes, outBounds...)
 	}
@@ -139,7 +136,8 @@ func CompositeRoutingV1AndV2(v1rule *apitraffic.Routing, level1, level2,
 	return v1rule, revisions
 }
 
-// BuildV1RoutesFromV2 根据 v2 版本的路由规则适配成 v1 版本的路由规则，分为别 inBounds 以及 outBounds
+// BuildV1RoutesFromV2 According to the routing rules of the V2 version, it is adapted to the V1 version
+// of the routing rules.
 // return inBound outBound revisions
 func BuildV1RoutesFromV2(service, namespace string,
 	entries []*model.ExtendRouterConfig) ([]*apitraffic.Route, []*apitraffic.Route, []string) {
@@ -147,7 +145,6 @@ func BuildV1RoutesFromV2(service, namespace string,
 		return []*apitraffic.Route{}, []*apitraffic.Route{}, []string{}
 	}
 
-	// 将 v2rules 分为 inbound 以及 outbound
 	revisions := make([]string, 0, len(entries))
 	outRoutes := make([]*apitraffic.Route, 0, 8)
 	inRoutes := make([]*apitraffic.Route, 0, 8)
@@ -163,7 +160,8 @@ func BuildV1RoutesFromV2(service, namespace string,
 	return inRoutes, outRoutes, revisions
 }
 
-// BuildOutBoundsFromV2 根据 v2 版本的路由规则适配成 v1 版本的路由规则中的 OutBounds
+// BuildOutBoundsFromV2 According to the routing rules of the V2 version, it is adapted to the
+// outbounds in the routing rule of V1 version
 func BuildOutBoundsFromV2(service, namespace string, item *model.ExtendRouterConfig) []*apitraffic.Route {
 	if item.GetRoutingPolicy() != apitraffic.RoutingPolicy_RulePolicy {
 		return []*apitraffic.Route{}
@@ -184,63 +182,69 @@ func BuildOutBoundsFromV2(service, namespace string, item *model.ExtendRouterCon
 		return false
 	}
 
-	v1sources := make([]*apitraffic.Source, 0, len(item.RuleRouting.Sources))
-	sources := item.RuleRouting.Sources
-	for i := range sources {
-		if matchService(sources[i]) {
-			find = true
-			entry := &apitraffic.Source{
-				Service:   utils.NewStringValue(service),
-				Namespace: utils.NewStringValue(namespace),
-			}
-			entry.Metadata = RoutingArguments2Labels(sources[i].GetArguments())
-			v1sources = append(v1sources, entry)
-		}
-	}
+	routes := make([]*apitraffic.Route, 0, 8)
 
-	if !find {
-		return []*apitraffic.Route{}
-	}
-
-	v1destinations := make([]*apitraffic.Destination, 0, len(item.RuleRouting.Destinations))
-	destinations := item.RuleRouting.Destinations
-	for i := range destinations {
-		entry := &apitraffic.Destination{
-			Name:      utils.NewStringValue(fmt.Sprintf("%s.%s", item.Name, destinations[i].Name)),
-			Service:   utils.NewStringValue(destinations[i].Service),
-			Namespace: utils.NewStringValue(destinations[i].Namespace),
-			Priority:  utils.NewUInt32Value(destinations[i].GetPriority()),
-			Weight:    utils.NewUInt32Value(destinations[i].GetWeight()),
-			Transfer:  utils.NewStringValue(destinations[i].GetTransfer()),
-			Isolate:   utils.NewBoolValue(destinations[i].GetIsolate()),
-		}
-
-		v1labels := make(map[string]*apimodel.MatchString)
-		v2labels := destinations[i].GetLabels()
-		for index := range v2labels {
-			v1labels[index] = &apimodel.MatchString{
-				Type:      v2labels[index].GetType(),
-				Value:     v2labels[index].GetValue(),
-				ValueType: v2labels[index].GetValueType(),
+	for i := range item.RuleRouting.Rules {
+		subRule := item.RuleRouting.Rules[i]
+		sources := item.RuleRouting.Rules[i].Sources
+		v1sources := make([]*apitraffic.Source, 0, len(sources))
+		for i := range sources {
+			if matchService(sources[i]) {
+				find = true
+				entry := &apitraffic.Source{
+					Service:   utils.NewStringValue(service),
+					Namespace: utils.NewStringValue(namespace),
+				}
+				entry.Metadata = RoutingArguments2Labels(sources[i].GetArguments())
+				v1sources = append(v1sources, entry)
 			}
 		}
 
-		entry.Metadata = v1labels
-		v1destinations = append(v1destinations, entry)
-	}
+		if !find {
+			return []*apitraffic.Route{}
+		}
 
-	return []*apitraffic.Route{
-		{
+		destinations := item.RuleRouting.Rules[i].Destinations
+		v1destinations := make([]*apitraffic.Destination, 0, len(destinations))
+		for i := range destinations {
+			name := fmt.Sprintf("%s.%s.%s", item.Name, subRule.Name, destinations[i].Name)
+			entry := &apitraffic.Destination{
+				Name:      utils.NewStringValue(name),
+				Service:   utils.NewStringValue(destinations[i].Service),
+				Namespace: utils.NewStringValue(destinations[i].Namespace),
+				Priority:  utils.NewUInt32Value(destinations[i].GetPriority()),
+				Weight:    utils.NewUInt32Value(destinations[i].GetWeight()),
+				Transfer:  utils.NewStringValue(destinations[i].GetTransfer()),
+				Isolate:   utils.NewBoolValue(destinations[i].GetIsolate()),
+			}
+
+			v1labels := make(map[string]*apimodel.MatchString)
+			v2labels := destinations[i].GetLabels()
+			for index := range v2labels {
+				v1labels[index] = &apimodel.MatchString{
+					Type:      v2labels[index].GetType(),
+					Value:     v2labels[index].GetValue(),
+					ValueType: v2labels[index].GetValueType(),
+				}
+			}
+
+			entry.Metadata = v1labels
+			v1destinations = append(v1destinations, entry)
+		}
+
+		routes = append(routes, &apitraffic.Route{
 			Sources:      v1sources,
 			Destinations: v1destinations,
 			ExtendInfo: map[string]string{
 				model.V2RuleIDKey: item.ID,
 			},
-		},
+		})
 	}
+
+	return routes
 }
 
-// BuildInBoundsFromV2 将 v2 的路由规则转为 v1 的路由规则中的 InBounds
+// BuildInBoundsFromV2 Convert the routing rules of V2 to the inbounds in the routing rule of V1
 func BuildInBoundsFromV2(service, namespace string, item *model.ExtendRouterConfig) []*apitraffic.Route {
 	if item.GetRoutingPolicy() != apitraffic.RoutingPolicy_RulePolicy {
 		return []*apitraffic.Route{}
@@ -261,60 +265,70 @@ func BuildInBoundsFromV2(service, namespace string, item *model.ExtendRouterConf
 		return false
 	}
 
-	v1destinations := make([]*apitraffic.Destination, 0, len(item.RuleRouting.Destinations))
-	destinations := item.RuleRouting.Destinations
-	for i := range destinations {
-		if matchService(destinations[i]) {
-			find = true
-			entry := &apitraffic.Destination{
-				Service:   utils.NewStringValue(service),
-				Namespace: utils.NewStringValue(namespace),
-				Priority:  utils.NewUInt32Value(destinations[i].GetPriority()),
-				Weight:    utils.NewUInt32Value(destinations[i].GetWeight()),
-				Transfer:  utils.NewStringValue(destinations[i].GetTransfer()),
-				Isolate:   utils.NewBoolValue(destinations[i].GetIsolate()),
-			}
+	routes := make([]*apitraffic.Route, 0, 8)
 
-			v1labels := make(map[string]*apimodel.MatchString)
-			v2labels := destinations[i].GetLabels()
-			for index := range v2labels {
-				v1labels[index] = &apimodel.MatchString{
-					Type:      v2labels[index].GetType(),
-					Value:     v2labels[index].GetValue(),
-					ValueType: v2labels[index].GetValueType(),
+	for i := range item.RuleRouting.Rules {
+		subRule := item.RuleRouting.Rules[i]
+		destinations := item.RuleRouting.Rules[i].Destinations
+		v1destinations := make([]*apitraffic.Destination, 0, len(destinations))
+		for i := range destinations {
+			if matchService(destinations[i]) {
+				find = true
+				name := fmt.Sprintf("%s.%s.%s", item.Name, subRule.Name, destinations[i].Name)
+				entry := &apitraffic.Destination{
+					Name:      utils.NewStringValue(name),
+					Service:   utils.NewStringValue(service),
+					Namespace: utils.NewStringValue(namespace),
+					Priority:  utils.NewUInt32Value(destinations[i].GetPriority()),
+					Weight:    utils.NewUInt32Value(destinations[i].GetWeight()),
+					Transfer:  utils.NewStringValue(destinations[i].GetTransfer()),
+					Isolate:   utils.NewBoolValue(destinations[i].GetIsolate()),
 				}
+
+				v1labels := make(map[string]*apimodel.MatchString)
+				v2labels := destinations[i].GetLabels()
+				for index := range v2labels {
+					v1labels[index] = &apimodel.MatchString{
+						Type:      v2labels[index].GetType(),
+						Value:     v2labels[index].GetValue(),
+						ValueType: v2labels[index].GetValueType(),
+					}
+				}
+
+				entry.Metadata = v1labels
+				v1destinations = append(v1destinations, entry)
+			}
+		}
+
+		if !find {
+			return []*apitraffic.Route{}
+		}
+
+		sources := item.RuleRouting.Rules[i].Sources
+		v1sources := make([]*apitraffic.Source, 0, len(sources))
+		for i := range sources {
+			entry := &apitraffic.Source{
+				Service:   utils.NewStringValue(sources[i].Service),
+				Namespace: utils.NewStringValue(sources[i].Namespace),
 			}
 
-			entry.Metadata = v1labels
-			v1destinations = append(v1destinations, entry)
-		}
-	}
-
-	if !find {
-		return []*apitraffic.Route{}
-	}
-
-	v1sources := make([]*apitraffic.Source, 0, len(item.RuleRouting.Sources))
-	sources := item.RuleRouting.Sources
-	for i := range sources {
-		entry := &apitraffic.Source{
-			Service:   utils.NewStringValue(sources[i].Service),
-			Namespace: utils.NewStringValue(sources[i].Namespace),
+			entry.Metadata = RoutingArguments2Labels(sources[i].GetArguments())
+			v1sources = append(v1sources, entry)
 		}
 
-		entry.Metadata = RoutingArguments2Labels(sources[i].GetArguments())
-		v1sources = append(v1sources, entry)
-	}
-
-	return []*apitraffic.Route{
-		{
+		routes = append(routes, &apitraffic.Route{
 			Sources:      v1sources,
 			Destinations: v1destinations,
-		},
+			ExtendInfo: map[string]string{
+				model.V2RuleIDKey: item.ID,
+			},
+		})
 	}
+
+	return routes
 }
 
-// RoutingLabels2Arguments 将旧的标签模型适配成参数列表
+// RoutingLabels2Arguments Adapting the old label model into a list of parameters
 func RoutingLabels2Arguments(labels map[string]*apimodel.MatchString) []*apitraffic.SourceMatch {
 	if len(labels) == 0 {
 		return []*apitraffic.SourceMatch{}
@@ -336,7 +350,7 @@ func RoutingLabels2Arguments(labels map[string]*apimodel.MatchString) []*apitraf
 	return arguments
 }
 
-// RoutingArguments2Labels 将参数列表适配成旧的标签模型
+// RoutingArguments2Labels Adapt the parameter list to the old label model
 func RoutingArguments2Labels(args []*apitraffic.SourceMatch) map[string]*apimodel.MatchString {
 	labels := make(map[string]*apimodel.MatchString)
 	for i := range args {
@@ -371,19 +385,19 @@ func RoutingArguments2Labels(args []*apitraffic.SourceMatch) map[string]*apimode
 	return labels
 }
 
-// BuildV2RoutingFromV1Route 构建 v2 版本的API数据对象路由规则
+// BuildV2RoutingFromV1Route Build a V2 version of API data object routing rules
 func BuildV2RoutingFromV1Route(req *apitraffic.Routing, route *apitraffic.Route) (*apitraffic.RouteRule, error) {
-	rule := ConvertV1RouteToV2Route(route)
-	any, err := ptypes.MarshalAny(rule)
-	if err != nil {
-		return nil, err
-	}
-
 	var v2Id string
 	if extendInfo := route.GetExtendInfo(); len(extendInfo) > 0 {
 		v2Id = extendInfo[model.V2RuleIDKey]
 	} else {
 		v2Id = utils.NewRoutingV2UUID()
+	}
+
+	rule := convertV1RouteToV2Route(route)
+	any, err := ptypes.MarshalAny(rule)
+	if err != nil {
+		return nil, err
 	}
 
 	routing := &apitraffic.RouteRule{
@@ -399,10 +413,8 @@ func BuildV2RoutingFromV1Route(req *apitraffic.Routing, route *apitraffic.Route)
 	return routing, nil
 }
 
-// BuildV2ExtendRouting 构建 v2 版本的内部数据对象路由规则
+// BuildV2ExtendRouting Build the internal data object routing rules of V2 version
 func BuildV2ExtendRouting(req *apitraffic.Routing, route *apitraffic.Route) (*model.ExtendRouterConfig, error) {
-	rule := ConvertV1RouteToV2Route(route)
-
 	var v2Id string
 	if extendInfo := route.GetExtendInfo(); len(extendInfo) > 0 {
 		v2Id = extendInfo[model.V2RuleIDKey]
@@ -420,14 +432,14 @@ func BuildV2ExtendRouting(req *apitraffic.Routing, route *apitraffic.Route) (*mo
 			Revision: req.GetRevision().GetValue(),
 			Priority: 0,
 		},
-		RuleRouting: rule,
+		RuleRouting: convertV1RouteToV2Route(route),
 	}
 
 	return routing, nil
 }
 
-// ConvertV1RouteToV2Route 将 v1 版本的路由规则转为 v2 版本的路由规则
-func ConvertV1RouteToV2Route(route *apitraffic.Route) *apitraffic.RuleRoutingConfig {
+// convertV1RouteToV2Route Turn the routing rules of the V1 version to the routing rules of V2 version
+func convertV1RouteToV2Route(route *apitraffic.Route) *apitraffic.RuleRoutingConfig {
 	v2sources := make([]*apitraffic.SourceService, 0, len(route.GetSources()))
 	v1sources := route.GetSources()
 	for i := range v1sources {
@@ -467,12 +479,16 @@ func ConvertV1RouteToV2Route(route *apitraffic.Route) *apitraffic.RuleRoutingCon
 	}
 
 	return &apitraffic.RuleRoutingConfig{
-		Sources:      v2sources,
-		Destinations: v2destinations,
+		Rules: []*apitraffic.SubRuleRouting{
+			{
+				Sources:      v2sources,
+				Destinations: v2destinations,
+			},
+		},
 	}
 }
 
-// CompareRoutingV2 比较两个路由的优先级。
+// CompareRoutingV2 Compare the priority of two routing.
 func CompareRoutingV2(a, b *model.ExtendRouterConfig) bool {
 	if a.Priority != b.Priority {
 		return a.Priority < b.Priority
@@ -480,7 +496,8 @@ func CompareRoutingV2(a, b *model.ExtendRouterConfig) bool {
 	return a.CreateTime.Before(b.CreateTime)
 }
 
-// ConvertRoutingV1ToExtendV2 v1 版本的路由规则转为 v2 版本进行存储
+// ConvertRoutingV1ToExtendV2 The routing rules of the V1 version are converted to V2 version for storage
+// TODO Reduce duplicate code logic
 func ConvertRoutingV1ToExtendV2(svcName, svcNamespace string,
 	rule *model.RoutingConfig) ([]*model.ExtendRouterConfig, []*model.ExtendRouterConfig, error) {
 	inRet := make([]*model.ExtendRouterConfig, 0, 4)

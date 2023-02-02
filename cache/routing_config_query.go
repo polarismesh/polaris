@@ -27,25 +27,25 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-// RoutingArgs 路由规则查询参数
+// RoutingArgs Routing rules query parameters
 type RoutingArgs struct {
-	// Filter
+	// Filter extend filter params
 	Filter map[string]string
-	// ID 路由规则 ID
+	// ID route rule id
 	ID string
-	// Name 条件中的服务名
+	// Name route rule name
 	Name string
-	// Service 主调 or 被调服务名称
+	// Service service name
 	Service string
-	// Namespace 主调 or 被调服务所在命名空间
+	// Namespace namesapce
 	Namespace string
-	// SourceService 主调服务
+	// SourceService source service name
 	SourceService string
-	// SourceNamespace 主调服务所在命名空间
+	// SourceNamespace source service namespace
 	SourceNamespace string
-	// DestinationService 被调服务
+	// DestinationService destination service name
 	DestinationService string
-	// DestinationNamespace 被调服务所在命名空间
+	// DestinationNamespace destination service namespace
 	DestinationNamespace string
 	// Enable
 	Enable *bool
@@ -53,9 +53,9 @@ type RoutingArgs struct {
 	Offset uint32
 	// Limit
 	Limit uint32
-	// OrderField 排序字段
+	// OrderField Sort field
 	OrderField string
-	// OrderType 排序规则
+	// OrderType Sorting rules
 	OrderType string
 }
 
@@ -84,55 +84,58 @@ func queryRoutingRuleV2ByService(rule *model.ExtendRouterConfig, sourceNamespace
 	destService, isWildDestSvc := utils.ParseWildName(destService)
 	destNamespace, isWildDestNamespace := utils.ParseWildName(destNamespace)
 
-	sources := rule.RuleRouting.GetSources()
-	if hasSourceNamespace || hasSourceSvc {
-		for i := range sources {
-			item := sources[i]
-			if hasSourceSvc {
-				if isWildSourceSvc {
-					if !strings.Contains(item.Service, sourceService) {
+	for i := range rule.RuleRouting.Rules {
+		subRule := rule.RuleRouting.Rules[i]
+		sources := subRule.GetSources()
+		if hasSourceNamespace || hasSourceSvc {
+			for i := range sources {
+				item := sources[i]
+				if hasSourceSvc {
+					if isWildSourceSvc {
+						if !strings.Contains(item.Service, sourceService) {
+							continue
+						}
+					} else if item.Service != sourceService {
 						continue
 					}
-				} else if item.Service != sourceService {
-					continue
 				}
-			}
-			if hasSourceNamespace {
-				if isWildSourceNamespace {
-					if !strings.Contains(item.Namespace, sourceNamespace) {
+				if hasSourceNamespace {
+					if isWildSourceNamespace {
+						if !strings.Contains(item.Namespace, sourceNamespace) {
+							continue
+						}
+					} else if item.Namespace != sourceNamespace {
 						continue
 					}
-				} else if item.Namespace != sourceNamespace {
-					continue
 				}
+				sourceFind = true
+				break
 			}
-			sourceFind = true
-			break
 		}
-	}
 
-	destinations := rule.RuleRouting.GetDestinations()
-	if hasDestNamespace || hasDestSvc {
-		for i := range destinations {
-			item := destinations[i]
-			if hasDestSvc {
-				if isWildDestSvc && !strings.Contains(item.Service, destService) {
-					continue
+		destinations := subRule.GetDestinations()
+		if hasDestNamespace || hasDestSvc {
+			for i := range destinations {
+				item := destinations[i]
+				if hasDestSvc {
+					if isWildDestSvc && !strings.Contains(item.Service, destService) {
+						continue
+					}
+					if item.Service != destService {
+						continue
+					}
 				}
-				if item.Service != destService {
-					continue
+				if hasDestNamespace {
+					if isWildDestNamespace && !strings.Contains(item.Namespace, destNamespace) {
+						continue
+					}
+					if item.Namespace != destNamespace {
+						continue
+					}
 				}
+				destFind = true
+				break
 			}
-			if hasDestNamespace {
-				if isWildDestNamespace && !strings.Contains(item.Namespace, destNamespace) {
-					continue
-				}
-				if item.Namespace != destNamespace {
-					continue
-				}
-			}
-			destFind = true
-			break
 		}
 	}
 
@@ -142,7 +145,7 @@ func queryRoutingRuleV2ByService(rule *model.ExtendRouterConfig, sourceNamespace
 	return sourceFind || destFind
 }
 
-// GetRoutingConfigsV2 查询路由配置列表
+// GetRoutingConfigsV2 Query Route Configuration List
 func (rc *routingConfigCache) GetRoutingConfigsV2(args *RoutingArgs) (uint32, []*model.ExtendRouterConfig, error) {
 	if err := rc.forceUpdate(); err != nil {
 		return 0, nil, err
@@ -152,22 +155,21 @@ func (rc *routingConfigCache) GetRoutingConfigsV2(args *RoutingArgs) (uint32, []
 
 	res := make([]*model.ExtendRouterConfig, 0, 8)
 
-	var process = func(_ string, svc *model.ExtendRouterConfig) {
-		if args.ID != "" && args.ID != svc.ID {
+	var process = func(_ string, routeRule *model.ExtendRouterConfig) {
+		if args.ID != "" && args.ID != routeRule.ID {
 			return
 		}
 
-		if svc.GetRoutingPolicy() == apitraffic.RoutingPolicy_RulePolicy {
-			// 主被调服务都查询
+		if routeRule.GetRoutingPolicy() == apitraffic.RoutingPolicy_RulePolicy {
 			if args.Namespace != "" && args.Service != "" {
-				if !queryRoutingRuleV2ByService(svc, args.Namespace, args.Service,
+				if !queryRoutingRuleV2ByService(routeRule, args.Namespace, args.Service,
 					args.Namespace, args.Service, false) {
 					return
 				}
 			}
 
 			if hasSourceQuery || hasDestQuery {
-				if !queryRoutingRuleV2ByService(svc, args.SourceNamespace, args.SourceService, args.DestinationNamespace,
+				if !queryRoutingRuleV2ByService(routeRule, args.SourceNamespace, args.SourceService, args.DestinationNamespace,
 					args.DestinationService, hasSourceQuery && hasDestQuery) {
 					return
 				}
@@ -177,19 +179,19 @@ func (rc *routingConfigCache) GetRoutingConfigsV2(args *RoutingArgs) (uint32, []
 		if args.Name != "" {
 			name, fuzzy := utils.ParseWildName(args.Name)
 			if fuzzy {
-				if !strings.Contains(svc.Name, name) {
+				if !strings.Contains(routeRule.Name, name) {
 					return
 				}
-			} else if args.Name != svc.Name {
+			} else if args.Name != routeRule.Name {
 				return
 			}
 		}
 
-		if args.Enable != nil && *args.Enable != svc.Enable {
+		if args.Enable != nil && *args.Enable != routeRule.Enable {
 			return
 		}
 
-		res = append(res, svc)
+		res = append(res, routeRule)
 	}
 
 	rc.IteratorRoutings(func(key string, value *model.ExtendRouterConfig) {
@@ -202,13 +204,10 @@ func (rc *routingConfigCache) GetRoutingConfigsV2(args *RoutingArgs) (uint32, []
 
 func (rc *routingConfigCache) sortBeforeTrim(routings []*model.ExtendRouterConfig,
 	args *RoutingArgs) (uint32, []*model.ExtendRouterConfig) {
-	// 所有符合条件的路由规则数量
 	amount := uint32(len(routings))
-	// 判断 offset 和 limit 是否允许返回对应的服务
 	if args.Offset >= amount || args.Limit == 0 {
 		return amount, nil
 	}
-	// 将路由规则按照修改时间和 id 进行排序
 	sort.Slice(routings, func(i, j int) bool {
 		asc := strings.ToLower(args.OrderType) == "asc" || args.OrderType == ""
 		if strings.ToLower(args.OrderField) == "priority" {

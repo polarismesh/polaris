@@ -272,7 +272,7 @@ func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 
-	// 查询 level1 级别的 v2 版本路由规则
+	// Query Level1 level V2 version routing rules
 	key := buildServiceKey(namespace, service)
 	ids := b.level1Rules[key]
 	level1 := make([]*model.ExtendRouterConfig, 0, 4)

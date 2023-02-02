@@ -24,31 +24,31 @@ import (
 	commontime "github.com/polarismesh/polaris/common/time"
 )
 
-// OperationType 操作类型
+// OperationType Operating type
 type OperationType string
 
-// 定义包含的操作类型
+// Define the type of operation containing
 const (
-	// OCreate 新建
+	// OCreate create
 	OCreate OperationType = "Create"
-	// ODelete 删除
+	// ODelete delete
 	ODelete OperationType = "Delete"
-	// OUpdate 更新
+	// OUpdate update
 	OUpdate OperationType = "Update"
-	// OUpdateIsolate 更新隔离状态
+	// OUpdateIsolate Update isolation state
 	OUpdateIsolate OperationType = "UpdateIsolate"
-	// OUpdateToken 更新token
+	// OUpdateToken Update token
 	OUpdateToken OperationType = "UpdateToken"
-	// OUpdateGroup 更新用户-用户组关联关系
+	// OUpdateGroup Update user-user group association relationship
 	OUpdateGroup OperationType = "UpdateGroup"
-	// OEnableRateLimit 更新启用状态
+	// OEnableRateLimit Update enable state
 	OUpdateEnable OperationType = "UpdateEnable"
 )
 
-// Resource 操作资源
+// Resource Operating resources
 type Resource string
 
-// 定义包含的资源类型
+// Define the type of resource type
 const (
 	RNamespace          Resource = "Namespace"
 	RService            Resource = "Service"
@@ -67,7 +67,7 @@ const (
 	RFaultDetectRule    Resource = "FaultDetectRule"
 )
 
-// RecordEntry 操作记录entry
+// RecordEntry Operation records
 type RecordEntry struct {
 	ResourceType  Resource
 	ResourceName  string
