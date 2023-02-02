@@ -18,8 +18,11 @@
 package sqldb
 
 import (
+	"bytes"
 	"database/sql"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/polarismesh/polaris/store"
 )
@@ -158,4 +161,15 @@ func timeToTimestamp(t time.Time) int64 {
 		ts = 0
 	}
 	return ts
+}
+
+func toUnderscoreName(name string) string {
+	var buf bytes.Buffer
+	for i, token := range name {
+		if unicode.IsUpper(token) && i > 0 {
+			buf.WriteString("_")
+		}
+		buf.WriteString(strings.ToLower(string(token)))
+	}
+	return buf.String()
 }

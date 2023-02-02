@@ -259,6 +259,10 @@ func (c *circuitBreakerCache) storeCircuitBreakerToServiceCache(
 			wildcardRules, ok = c.nsWildcardRules[svcKey.Namespace]
 			if !ok {
 				wildcardRules = createAndStoreServiceWithCircuitBreakerRules(svcKey, svcKey.Namespace, c.nsWildcardRules)
+				// add all exists wildcard rules
+				c.allWildcardRules.IterateCircuitBreakerRules(func(rule *model.CircuitBreakerRule) {
+					wildcardRules.AddCircuitBreakerRule(rule)
+				})
 			}
 			c.storeAndReloadCircuitBreakerRules(wildcardRules, entry)
 			svcRules, ok := c.circuitBreakers[svcKey.Namespace]
@@ -284,6 +288,17 @@ func (c *circuitBreakerCache) storeCircuitBreakerToServiceCache(
 			rules, ok = svcRules[svcToReload.Name]
 			if !ok {
 				rules = createAndStoreServiceWithCircuitBreakerRules(svcToReload, svcToReload.Name, svcRules)
+				// add all exists wildcard rules
+				c.allWildcardRules.IterateCircuitBreakerRules(func(rule *model.CircuitBreakerRule) {
+					rules.AddCircuitBreakerRule(rule)
+				})
+				// add all namespace wildcard rules
+				nsRules, ok := c.nsWildcardRules[svcToReload.Namespace]
+				if ok {
+					nsRules.IterateCircuitBreakerRules(func(rule *model.CircuitBreakerRule) {
+						rules.AddCircuitBreakerRule(rule)
+					})
+				}
 			}
 			c.storeAndReloadCircuitBreakerRules(rules, entry)
 		}
@@ -307,7 +322,6 @@ func getServicesInvolveByCircuitBreakerRule(cbRule *model.CircuitBreakerRule) ma
 		}] = true
 	}
 	addService(cbRule.DstService, cbRule.DstNamespace)
-	addService(cbRule.SrcService, cbRule.SrcNamespace)
 	return svcKeys
 }
 

@@ -37,23 +37,25 @@ const (
 
 const (
 	insertCircuitBreakerRuleSql = `insert into circuitbreaker_rule_v2(
-			id, name, namespace, enable, revision, description, level, srcService, srcNamespace, 
-			dstService, dstNamespace, dstMethod, config, ctime, mtime, etime)
+			id, name, namespace, enable, revision, description, level, src_service, src_namespace, 
+			dst_service, dst_namespace, dst_method, config, ctime, mtime, etime)
 			values(?,?,?,?,?,?,?,?,?,?,?,?,?, sysdate(),sysdate(), %s)`
 	updateCircuitBreakerRuleSql = `update circuitbreaker_rule_v2 set name = ?, namespace=?, enable = ?, revision= ?,
-			description = ?, level = ?, config = ?, mtime = sysdate(), etime=%s where id = ?`
+			description = ?, level = ?, src_service = ?, src_namespace = ?,
+            dst_service = ?, dst_namespace = ?, dst_method = ?,
+			config = ?, mtime = sysdate(), etime=%s where id = ?`
 	deleteCircuitBreakerRuleSql = `update circuitbreaker_rule_v2 set flag = 1, mtime = sysdate() where id = ?`
 	enableCircuitBreakerRuleSql = `update circuitbreaker_rule_v2 set enable = ?, revision = ?, mtime = sysdate(), 
 			etime=%s where id = ?`
 	countCircuitBreakerRuleSql     = `select count(*) from circuitbreaker_rule_v2 where flag = 0`
-	queryCircuitBreakerRuleFullSql = `select id, name, namespace, enable, revision, description, level, srcService, 
-			srcNamespace, dstService, dstNamespace, dstMethod, config, unix_timestamp(ctime), unix_timestamp(mtime), 
+	queryCircuitBreakerRuleFullSql = `select id, name, namespace, enable, revision, description, level, src_service, 
+			src_namespace, dst_service, dst_namespace, dst_method, config, unix_timestamp(ctime), unix_timestamp(mtime), 
 			unix_timestamp(etime) from circuitbreaker_rule_v2 where flag = 0`
-	queryCircuitBreakerRuleBriefSql = `select id, name, namespace, enable, revision, level, srcService, srcNamespace, 
-			dstService, dstNamespace, dstMethod, unix_timestamp(ctime), unix_timestamp(mtime), unix_timestamp(etime)
+	queryCircuitBreakerRuleBriefSql = `select id, name, namespace, enable, revision, level, src_service, src_namespace, 
+			dst_service, dst_namespace, dst_method, unix_timestamp(ctime), unix_timestamp(mtime), unix_timestamp(etime)
 			from circuitbreaker_rule_v2 where flag = 0`
-	queryCircuitBreakerRuleCacheSql = `select id, name, namespace, enable, revision, description, level, srcService, 
-			srcNamespace, dstService, dstNamespace, dstMethod, config, flag, unix_timestamp(ctime), 
+	queryCircuitBreakerRuleCacheSql = `select id, name, namespace, enable, revision, description, level, src_service, 
+			src_namespace, dst_service, dst_namespace, dst_method, config, flag, unix_timestamp(ctime), 
 			unix_timestamp(mtime), unix_timestamp(etime) from circuitbreaker_rule_v2 where mtime > FROM_UNIXTIME(?)`
 )
 
@@ -98,7 +100,8 @@ func (c *circuitBreakerStore) updateCircuitBreakerRule(cbRule *model.CircuitBrea
 		etimeStr := buildEtimeStr(cbRule.Enable)
 		str := fmt.Sprintf(updateCircuitBreakerRuleSql, etimeStr)
 		if _, err := tx.Exec(str, cbRule.Name, cbRule.Namespace, cbRule.Enable,
-			cbRule.Revision, cbRule.Description, cbRule.Level, cbRule.Rule, cbRule.ID); err != nil {
+			cbRule.Revision, cbRule.Description, cbRule.Level, cbRule.SrcService, cbRule.SrcNamespace,
+			cbRule.DstService, cbRule.DstNamespace, cbRule.DstMethod, cbRule.Rule, cbRule.ID); err != nil {
 			log.Errorf("[Store][database] fail to %s exec sql, err: %s", labelUpdateCircuitBreakerRule, err.Error())
 			return err
 		}
@@ -287,16 +290,17 @@ func genCircuitBreakerRuleSQL(query map[string]string) (string, []interface{}) {
 			svcNamespaceQueryValue = value
 			continue
 		}
+		storeKey := toUnderscoreName(key)
 		if _, ok := blurQueryKeys[key]; ok {
-			str += fmt.Sprintf(" and %s like ?", key)
+			str += fmt.Sprintf(" and %s like ?", storeKey)
 			args = append(args, "%"+value+"%")
 		} else if key == "enable" {
-			str += fmt.Sprintf(" and %s = ?", key)
+			str += fmt.Sprintf(" and %s = ?", storeKey)
 			arg, _ := strconv.ParseBool(value)
 			args = append(args, arg)
 		} else if key == "level" {
 			tokens := strings.Split(value, ",")
-			str += fmt.Sprintf(" and %s in (%s)", key, placeholders(len(tokens)))
+			str += fmt.Sprintf(" and %s in (%s)", storeKey, placeholders(len(tokens)))
 			for _, token := range tokens {
 				args = append(args, token)
 			}
@@ -307,15 +311,16 @@ func genCircuitBreakerRuleSQL(query map[string]string) (string, []interface{}) {
 			str += " and id != ?"
 			args = append(args, value)
 		} else {
-			str += fmt.Sprintf(" and %s = ?", key)
+			str += fmt.Sprintf(" and %s = ?", storeKey)
 			args = append(args, value)
 		}
 	}
-	if len(svcQueryValue) > 0 && len(svcNamespaceQueryValue) > 0 {
-		str += " and ( (srcService = ? and srcNamespace = ?) or (dstService = ? and dstNamespace = ?) )"
+	if len(svcQueryValue) > 0 {
+		str += " and (dst_service = ? or dst_service = '*')"
 		args = append(args, svcQueryValue)
-		args = append(args, svcNamespaceQueryValue)
-		args = append(args, svcQueryValue)
+	}
+	if len(svcNamespaceQueryValue) > 0 {
+		str += " and (dst_namespace = ? or dst_namespace = '*')"
 		args = append(args, svcNamespaceQueryValue)
 	}
 	return str, args
