@@ -125,7 +125,7 @@ func (c *ConfigCenterTest) doInitialize() error {
 
 	nsOp, err := namespace.TestInitialize(ctx, &c.cfg.Namespace, s, cacheMgr, authSvr)
 	if err != nil {
-		fmt.Printf("[ERROR] configure init cache fail: %v\n", err)
+		fmt.Printf("[ERROR] configure init namespace fail: %v\n", err)
 		return err
 	}
 
@@ -324,6 +324,32 @@ func assembleConfigFile() *apiconfig.ConfigFile {
 	}
 }
 
+func assembleConfigFileWithNamespaceAndGroupAndName(namespace, group, name string) *apiconfig.ConfigFile {
+	tag1 := &apiconfig.ConfigFileTag{
+		Key:   utils.NewStringValue("k1"),
+		Value: utils.NewStringValue("v1"),
+	}
+
+	tag2 := &apiconfig.ConfigFileTag{
+		Key:   utils.NewStringValue("k1"),
+		Value: utils.NewStringValue("v2"),
+	}
+
+	tag3 := &apiconfig.ConfigFileTag{
+		Key:   utils.NewStringValue("k2"),
+		Value: utils.NewStringValue("v1"),
+	}
+
+	return &apiconfig.ConfigFile{
+		Namespace: utils.NewStringValue(namespace),
+		Group:     utils.NewStringValue(group),
+		Name:      utils.NewStringValue(name),
+		Format:    utils.NewStringValue(utils.FileFormatText),
+		Content:   utils.NewStringValue("k1=v1,k2=v2"),
+		Tags:      []*apiconfig.ConfigFileTag{tag1, tag2, tag3},
+		CreateBy:  utils.NewStringValue(operator),
+	}
+}
 func assembleConfigFileWithFixedGroupAndRandomFileName(group string) *apiconfig.ConfigFile {
 	tag1 := &apiconfig.ConfigFileTag{
 		Key:   utils.NewStringValue("k1"),

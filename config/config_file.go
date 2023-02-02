@@ -18,8 +18,12 @@
 package config
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"path"
 	"strings"
 	"time"
 
@@ -37,51 +41,16 @@ import (
 
 // CreateConfigFile 创建配置文件
 func (s *Server) CreateConfigFile(ctx context.Context, configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	if configFile.Format.GetValue() == "" {
-		configFile.Format = utils.NewStringValue(utils.FileFormatText)
+	if rsp := s.prepareCreateConfigFile(ctx, configFile); rsp.Code.Value != api.ExecuteSuccess {
+		return rsp
 	}
-
-	if checkRsp := checkConfigFileParams(configFile, true); checkRsp != nil {
-		return checkRsp
-	}
-
-	userName := utils.ParseUserName(ctx)
-	configFile.CreateBy = utils.NewStringValue(userName)
-	configFile.ModifyBy = utils.NewStringValue(userName)
 
 	namespace := configFile.Namespace.GetValue()
 	group := configFile.Group.GetValue()
 	name := configFile.Name.GetValue()
-
 	requestID := utils.ParseRequestID(ctx)
 
-	// 如果 namespace 不存在则自动创建
-	if err := s.namespaceOperator.CreateNamespaceIfAbsent(ctx, &apimodel.Namespace{
-		Name: utils.NewStringValue(namespace),
-	}); err != nil {
-		log.Error("[Config][Service] create config file error because of create namespace failed.",
-			utils.ZapRequestID(requestID),
-			zap.String("namespace", namespace),
-			zap.String("group", group),
-			zap.String("name", name),
-			zap.Error(err))
-		return api.NewConfigFileResponse(apimodel.Code_StoreLayerException, configFile)
-	}
-
-	// 如果配置文件组不存在则自动创建
-	createGroupRsp := s.createConfigFileGroupIfAbsent(ctx, &apiconfig.ConfigFileGroup{
-		Namespace: configFile.Namespace,
-		Name:      configFile.Group,
-		CreateBy:  configFile.CreateBy,
-		Comment:   utils.NewStringValue("auto created"),
-	})
-
-	if createGroupRsp.Code.GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
-		return api.NewConfigFileResponse(apimodel.Code(createGroupRsp.Code.GetValue()), configFile)
-	}
-
 	managedFile, err := s.storage.GetConfigFile(s.getTx(ctx), namespace, group, name)
-
 	if err != nil {
 		log.Error("[Config][Service] get config file error.",
 			utils.ZapRequestID(requestID),
@@ -92,7 +61,6 @@ func (s *Server) CreateConfigFile(ctx context.Context, configFile *apiconfig.Con
 
 		return api.NewConfigFileResponse(apimodel.Code_StoreLayerException, configFile)
 	}
-
 	if managedFile != nil {
 		return api.NewConfigFileResponse(apimodel.Code_ExistedResource, configFile)
 	}
@@ -123,12 +91,51 @@ func (s *Server) CreateConfigFile(ctx context.Context, configFile *apiconfig.Con
 		utils.ZapRequestID(requestID),
 		zap.String("namespace", namespace),
 		zap.String("group", group),
-		zap.String("name", name),
-		zap.Error(err))
+		zap.String("name", name))
 
 	s.RecordHistory(ctx, configFileRecordEntry(ctx, configFile, model.OCreate))
 
 	return api.NewConfigFileResponse(apimodel.Code_ExecuteSuccess, transferConfigFileStoreModel2APIModel(createdFile))
+}
+
+func (s *Server) prepareCreateConfigFile(ctx context.Context,
+	configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+	if configFile.Format.GetValue() == "" {
+		configFile.Format = utils.NewStringValue(utils.FileFormatText)
+	}
+
+	if checkRsp := checkConfigFileParams(configFile, true); checkRsp != nil {
+		return checkRsp
+	}
+
+	userName := utils.ParseUserName(ctx)
+	configFile.CreateBy = utils.NewStringValue(userName)
+	configFile.ModifyBy = utils.NewStringValue(userName)
+
+	// 如果 namespace 不存在则自动创建
+	if err := s.namespaceOperator.CreateNamespaceIfAbsent(ctx, &apimodel.Namespace{
+		Name: configFile.Namespace,
+	}); err != nil {
+		log.Error("[Config][Service] create config file error because of create namespace failed.",
+			utils.ZapRequestIDByCtx(ctx),
+			zap.String("namespace", configFile.Namespace.GetValue()),
+			zap.String("group", configFile.Group.GetValue()),
+			zap.String("name", configFile.Name.GetValue()),
+			zap.Error(err))
+		return api.NewConfigFileResponse(apimodel.Code_StoreLayerException, configFile)
+	}
+	// 如果配置文件组不存在则自动创建
+	createGroupRsp := s.createConfigFileGroupIfAbsent(ctx, &apiconfig.ConfigFileGroup{
+		Namespace: configFile.Namespace,
+		Name:      configFile.Group,
+		CreateBy:  configFile.CreateBy,
+		Comment:   utils.NewStringValue("auto created"),
+	})
+
+	if createGroupRsp.Code.GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
+		return api.NewConfigFileResponse(apimodel.Code(createGroupRsp.Code.GetValue()), configFile)
+	}
+	return api.NewConfigFileResponse(apimodel.Code_ExecuteSuccess, nil)
 }
 
 // GetConfigFileBaseInfo 获取配置文件，只返回基础元信息
@@ -483,6 +490,242 @@ func (s *Server) BatchDeleteConfigFile(ctx context.Context, configFiles []*apico
 		}
 	}
 	return api.NewConfigFileResponse(apimodel.Code_ExecuteSuccess, nil)
+}
+
+// ExportConfigFile 导出配置文件
+func (s *Server) ExportConfigFile(ctx context.Context,
+	configFileExport *apiconfig.ConfigFileExportRequest) *apiconfig.ConfigExportResponse {
+	namespace := configFileExport.Namespace.GetValue()
+	var groups []string
+	for _, group := range configFileExport.Groups {
+		groups = append(groups, group.GetValue())
+	}
+	var names []string
+	for _, name := range configFileExport.Names {
+		names = append(names, name.GetValue())
+	}
+	// 检查参数
+	if err := utils2.CheckResourceName(configFileExport.Namespace); err != nil {
+		return api.NewConfigFileExportResponse(apimodel.Code_InvalidNamespaceName, nil)
+	}
+	var (
+		isExportGroup bool
+		configFiles   []*model.ConfigFile
+	)
+	if len(groups) >= 1 && len(names) == 0 {
+		// 导出配置组
+		isExportGroup = true
+		for _, group := range groups {
+			files, err := s.getGroupAllConfigFiles(namespace, group)
+			if err != nil {
+				log.Error("[Config][Service] get config file by group error.",
+					utils.ZapRequestIDByCtx(ctx),
+					zap.String("namespace", namespace),
+					zap.String("group", group),
+					zap.Error(err))
+				return api.NewConfigFileExportResponse(apimodel.Code_StoreLayerException, nil)
+			}
+			configFiles = append(configFiles, files...)
+		}
+	} else if len(groups) == 1 && len(names) > 0 {
+		// 导出配置文件
+		for _, name := range names {
+			file, err := s.storage.GetConfigFile(nil, namespace, groups[0], name)
+			if err != nil {
+				log.Error("[Config][Service] get config file error.",
+					utils.ZapRequestIDByCtx(ctx),
+					zap.String("namespace", namespace),
+					zap.String("group", groups[0]),
+					zap.String("name", name),
+					zap.Error(err))
+				return api.NewConfigFileExportResponse(apimodel.Code_StoreLayerException, nil)
+			}
+			configFiles = append(configFiles, file)
+		}
+	} else {
+		log.Error("[Config][Service] export config file error.",
+			utils.ZapRequestIDByCtx(ctx),
+			zap.String("namespace", namespace),
+			zap.String("groups", strings.Join(groups, ",")),
+			zap.String("names", strings.Join(names, ",")))
+		return api.NewConfigFileExportResponse(apimodel.Code_InvalidParameter, nil)
+	}
+	if len(configFiles) == 0 {
+		return api.NewConfigFileExportResponse(apimodel.Code_NotFoundResourceConfigFile, nil)
+	}
+	// 查询配置文件的标签
+	fileID2Tags := make(map[uint64][]*model.ConfigFileTag)
+	for _, file := range configFiles {
+		tags, err := s.storage.QueryTagByConfigFile(file.Namespace, file.Group, file.Name)
+		if err != nil {
+			log.Error("[Config][Servie]query config file tag error.",
+				utils.ZapRequestIDByCtx(ctx),
+				zap.String("namespace", file.Namespace),
+				zap.String("group", file.Group),
+				zap.String("name", file.Name),
+				zap.Error(err))
+			return api.NewConfigFileExportResponse(apimodel.Code_StoreLayerException, nil)
+		}
+		fileID2Tags[file.Id] = tags
+	}
+	// 生成ZIP文件
+	buf, err := compressToZIP(configFiles, fileID2Tags, isExportGroup)
+	if err != nil {
+		log.Error("[Config][Servie]export config files compress to zip error.",
+			zap.Error(err))
+	}
+	return api.NewConfigFileExportResponse(apimodel.Code_ExecuteSuccess, buf.Bytes())
+}
+
+// ImportConfigFile 导入配置文件
+func (s *Server) ImportConfigFile(ctx context.Context,
+	configFiles []*apiconfig.ConfigFile, conflictHandling string) *apiconfig.ConfigImportResponse {
+	// 预创建命名空间和分组
+	// TODO 由于创建命名空间和配置分组的boltDB store API未支持外部传入Tx，导致无法放入到业务显示开启的事物后，否则会因重复开启读写事物导致死锁
+	for _, configFile := range configFiles {
+		if rsp := s.prepareCreateConfigFile(ctx, configFile); rsp.Code.Value != api.ExecuteSuccess {
+			return api.NewConfigFileImportResponse(apimodel.Code(rsp.Code.GetValue()), nil, nil, nil)
+		}
+	}
+
+	// 开启事务
+	tx, ctx, _ := s.StartTxAndSetToContext(ctx)
+	defer func() { _ = tx.Rollback() }()
+
+	// 记录创建，跳过，覆盖的配置文件
+	var (
+		createConfigFiles    []*apiconfig.ConfigFile
+		skipConfigFiles      []*apiconfig.ConfigFile
+		overwriteConfigFiles []*apiconfig.ConfigFile
+	)
+	requestID := utils.ParseRequestID(ctx)
+	for _, configFile := range configFiles {
+		namespace := configFile.Namespace.GetValue()
+		group := configFile.Group.GetValue()
+		name := configFile.Name.GetValue()
+
+		managedFile, err := s.storage.GetConfigFile(s.getTx(ctx), namespace, group, name)
+		if err != nil {
+			log.Error("[Config][Service] get config file error.",
+				utils.ZapRequestID(requestID),
+				zap.String("namespace", namespace),
+				zap.String("group", group),
+				zap.String("name", name),
+				zap.Error(err))
+			return api.NewConfigFileImportResponse(apimodel.Code_StoreLayerException, nil, nil, nil)
+		}
+		// 如果配置文件存在
+		if managedFile != nil {
+			if conflictHandling == utils.ConfigFileImportConflictSkip {
+				skipConfigFiles = append(skipConfigFiles, configFile)
+				continue
+			} else if conflictHandling == utils.ConfigFileImportConflictOverwrite {
+				updatedFile, err := s.storage.UpdateConfigFile(s.getTx(ctx), transferConfigFileAPIModel2StoreModel(configFile))
+				if err != nil {
+					log.Error("[Config][Service] update config file error.",
+						utils.ZapRequestID(requestID),
+						zap.String("namespace", namespace),
+						zap.String("group", group),
+						zap.String("name", name),
+						zap.Error(err))
+					return api.NewConfigFileImportResponse(apimodel.Code_StoreLayerException, nil, nil, nil)
+				}
+				if response, success := s.createOrUpdateConfigFileTags(ctx, configFile, utils.ParseUserName(ctx)); !success {
+					return api.NewConfigFileImportResponse(apimodel.Code(response.Code.GetValue()), nil, nil, nil)
+				}
+				overwriteConfigFiles = append(overwriteConfigFiles, transferConfigFileStoreModel2APIModel(updatedFile))
+				s.RecordHistory(ctx, configFileRecordEntry(ctx, configFile, model.OUpdate))
+			}
+		} else {
+			// 配置文件不存在则创建
+			createdFile, err := s.storage.CreateConfigFile(s.getTx(ctx), transferConfigFileAPIModel2StoreModel(configFile))
+			if err != nil {
+				log.Error("[Config][Service] create config file error.",
+					utils.ZapRequestID(requestID),
+					zap.String("namespace", namespace),
+					zap.String("group", group),
+					zap.String("name", name),
+					zap.Error(err))
+				return api.NewConfigFileImportResponse(apimodel.Code_StoreLayerException, nil, nil, nil)
+			}
+			if response, success := s.createOrUpdateConfigFileTags(ctx, configFile, utils.ParseUserName(ctx)); !success {
+				return api.NewConfigFileImportResponse(apimodel.Code(response.Code.GetValue()), nil, nil, nil)
+			}
+			createConfigFiles = append(createConfigFiles, transferConfigFileStoreModel2APIModel(createdFile))
+			s.RecordHistory(ctx, configFileRecordEntry(ctx, configFile, model.OCreate))
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Error("[Config][Service] commit import config file tx error.",
+			utils.ZapRequestID(requestID),
+			zap.Error(err))
+		return api.NewConfigFileImportResponse(apimodel.Code_StoreLayerException, nil, nil, nil)
+	}
+
+	return api.NewConfigFileImportResponse(apimodel.Code_ExecuteSuccess,
+		createConfigFiles, skipConfigFiles, overwriteConfigFiles)
+}
+
+func (s *Server) getGroupAllConfigFiles(namespace, group string) ([]*model.ConfigFile, error) {
+	var configFiles []*model.ConfigFile
+	offset := uint32(0)
+	limit := uint32(100)
+	for {
+		_, files, err := s.storage.QueryConfigFilesByGroup(namespace, group, offset, limit)
+		if err != nil {
+			return nil, err
+		}
+		if len(files) == 0 {
+			break
+		}
+		configFiles = append(configFiles, files...)
+		offset += uint32(len(files))
+	}
+	return configFiles, nil
+}
+
+func compressToZIP(files []*model.ConfigFile,
+	fileID2Tags map[uint64][]*model.ConfigFileTag, isExportGroup bool) (*bytes.Buffer, error) {
+	var buf bytes.Buffer
+	w := zip.NewWriter(&buf)
+	defer w.Close()
+
+	var configFileMetas = make(map[string]*utils.ConfigFileMeta)
+	for _, file := range files {
+		fileName := file.Name
+		if isExportGroup {
+			fileName = path.Join(file.Group, file.Name)
+		}
+
+		configFileMetas[fileName] = &utils.ConfigFileMeta{
+			Tags:    make(map[string]string),
+			Comment: file.Comment,
+		}
+		for _, tag := range fileID2Tags[file.Id] {
+			configFileMetas[fileName].Tags[tag.Key] = tag.Value
+		}
+		f, err := w.Create(fileName)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := f.Write([]byte(file.Content)); err != nil {
+			return nil, err
+		}
+	}
+	// 生成配置元文件
+	f, err := w.Create(utils.ConfigFileMetaFileName)
+	if err != nil {
+		return nil, err
+	}
+	data, err := json.MarshalIndent(configFileMetas, "", "\t")
+	if err != nil {
+		return nil, err
+	}
+	if _, err := f.Write(data); err != nil {
+		return nil, err
+	}
+	return &buf, nil
 }
 
 func checkConfigFileParams(configFile *apiconfig.ConfigFile, checkFormat bool) *apiconfig.ConfigResponse {

@@ -112,3 +112,20 @@ func (s *serverAuthability) BatchDeleteConfigFile(ctx context.Context, configFil
 
 	return s.targetServer.BatchDeleteConfigFile(ctx, configFiles, operator)
 }
+
+func (s *serverAuthability) ExportConfigFile(ctx context.Context,
+	configFileExport *apiconfig.ConfigFileExportRequest) *apiconfig.ConfigExportResponse {
+	return s.targetServer.ExportConfigFile(ctx, configFileExport)
+}
+
+func (s *serverAuthability) ImportConfigFile(ctx context.Context,
+	configFiles []*apiconfig.ConfigFile, conflictHandling string) *apiconfig.ConfigImportResponse {
+	authCtx := s.collectConfigFileAuthContext(ctx, configFiles, model.Create, "ImportConfigFile")
+	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigFileImportResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+	return s.targetServer.ImportConfigFile(ctx, configFiles, conflictHandling)
+}

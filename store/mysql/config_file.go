@@ -35,7 +35,6 @@ func (cf *configFileStore) CreateConfigFile(tx store.Tx, file *model.ConfigFile)
 	if err != nil {
 		return nil, err
 	}
-
 	createSql := "insert into config_file(name,namespace,`group`,content,comment,format,create_time, " +
 		"create_by,modify_time,modify_by) values " +
 		"(?,?,?,?,?,?,sysdate(),?,sysdate(),?)"
@@ -49,7 +48,6 @@ func (cf *configFileStore) CreateConfigFile(tx store.Tx, file *model.ConfigFile)
 	if err != nil {
 		return nil, store.Error(err)
 	}
-
 	return cf.GetConfigFile(tx, file.Namespace, file.Group, file.Name)
 }
 

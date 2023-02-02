@@ -150,3 +150,29 @@ func NewConfigFileReleaseHistoryResponse(
 		ConfigFileReleaseHistory: configFileReleaseHistory,
 	}
 }
+
+func NewConfigFileImportResponse(code apimodel.Code,
+	createConfigFiles, skipConfigFiles, overwriteConfigFiles []*apiconfig.ConfigFile) *apiconfig.ConfigImportResponse {
+	return &apiconfig.ConfigImportResponse{
+		Code:                 &wrappers.UInt32Value{Value: uint32(code)},
+		Info:                 &wrappers.StringValue{Value: code2info[uint32(code)]},
+		CreateConfigFiles:    createConfigFiles,
+		SkipConfigFiles:      skipConfigFiles,
+		OverwriteConfigFiles: overwriteConfigFiles,
+	}
+}
+
+func NewConfigFileImportResponseWithMessage(code apimodel.Code, message string) *apiconfig.ConfigImportResponse {
+	return &apiconfig.ConfigImportResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: code2info[uint32(code)] + ":" + message},
+	}
+}
+
+func NewConfigFileExportResponse(code apimodel.Code, data []byte) *apiconfig.ConfigExportResponse {
+	return &apiconfig.ConfigExportResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: code2info[uint32(code)]},
+		Data: &wrappers.BytesValue{Value: data},
+	}
+}
