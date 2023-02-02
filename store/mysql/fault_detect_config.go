@@ -46,14 +46,14 @@ const (
 			dstService = ?, dstNamespace = ?, dstMethod = ?, config = ?, mtime = sysdate() where id = ?`
 	deleteFaultDetectSql    = `update fault_detect_rule set flag = 1, mtime = sysdate() where id = ?`
 	countFaultDetectSql     = `select count(*) from fault_detect_rule where flag = 0`
-	queryFaultDetectFullSql = `select id, name, namespace, revision, description, dstService, 
-			dstNamespace, dstMethod, config, unix_timestamp(ctime), unix_timestamp(mtime)
+	queryFaultDetectFullSql = `select id, name, namespace, revision, description, dst_service, 
+			dst_namespace, dst_method, config, unix_timestamp(ctime), unix_timestamp(mtime)
             from fault_detect_rule where flag = 0`
-	queryFaultDetectBriefSql = `select id, name, namespace, revision, description, dstService, 
-			dstNamespace, dstMethod, unix_timestamp(ctime), unix_timestamp(mtime)
+	queryFaultDetectBriefSql = `select id, name, namespace, revision, description, dst_service, 
+			dst_namespace, dst_method, unix_timestamp(ctime), unix_timestamp(mtime)
             from fault_detect_rule where flag = 0`
-	queryFaultDetectCacheSql = `select id, name, namespace, revision, description, dstService, 
-			dstNamespace, dstMethod, config, flag, unix_timestamp(ctime), unix_timestamp(mtime)
+	queryFaultDetectCacheSql = `select id, name, namespace, revision, description, dst_service, 
+			dst_namespace, dst_method, config, flag, unix_timestamp(ctime), unix_timestamp(mtime)
 			from fault_detect_rule where mtime > FROM_UNIXTIME(?)`
 )
 
@@ -255,8 +255,9 @@ func genFaultDetectRuleSQL(query map[string]string) (string, []interface{}) {
 			svcNamespaceQueryValue = value
 			continue
 		}
+		storeKey := toUnderscoreName(key)
 		if _, ok := blurQueryKeys[key]; ok {
-			str += fmt.Sprintf(" and %s like ?", key)
+			str += fmt.Sprintf(" and %s like ?", storeKey)
 			args = append(args, "%"+value+"%")
 		} else if key == exactName {
 			str += " and name = ?"
@@ -265,13 +266,16 @@ func genFaultDetectRuleSQL(query map[string]string) (string, []interface{}) {
 			str += " and id != ?"
 			args = append(args, value)
 		} else {
-			str += fmt.Sprintf(" and %s = ?", key)
+			str += fmt.Sprintf(" and %s = ?", storeKey)
 			args = append(args, value)
 		}
 	}
-	if len(svcQueryValue) > 0 && len(svcNamespaceQueryValue) > 0 {
-		str += " and dstService = ? and dstNamespace = ?"
+	if len(svcQueryValue) > 0 {
+		str += " and (dst_service = ? or dst_service = '*')"
 		args = append(args, svcQueryValue)
+	}
+	if len(svcNamespaceQueryValue) > 0 {
+		str += " and (dst_namespace = ? or dst_namespace = '*')"
 		args = append(args, svcNamespaceQueryValue)
 	}
 	return str, args
