@@ -52,9 +52,9 @@ func (svr *serverAuthAbility) EnableRoutings(ctx context.Context,
 	return svr.targetServer.EnableRoutings(ctx, req)
 }
 
-// GetRoutingConfigsV2 提供给OSS的查询路由配置的接口
-func (svr *serverAuthAbility) GetRoutingConfigsV2(ctx context.Context,
+// QueryRoutingConfigsV2 提供给OSS的查询路由配置的接口
+func (svr *serverAuthAbility) QueryRoutingConfigsV2(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
 
-	return svr.targetServer.GetRoutingConfigsV2(ctx, query)
+	return svr.targetServer.QueryRoutingConfigsV2(ctx, query)
 }

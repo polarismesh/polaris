@@ -54,7 +54,7 @@ func TestCreateRoutingConfigV2(t *testing.T) {
 
 		// 对写进去的数据进行查询
 		time.Sleep(discoverSuit.updateCacheInterval * 5)
-		out := discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out := discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 		})
@@ -69,7 +69,7 @@ func TestCreateRoutingConfigV2(t *testing.T) {
 
 		// 按照名字查询
 
-		out = discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out = discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 			"name":   req[0].Name,
@@ -97,7 +97,7 @@ func TestCreateRoutingConfigV2(t *testing.T) {
 		assert.NoError(t, err)
 
 		// 基于服务信息查询
-		out = discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out = discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":     "100",
 			"offset":    "0",
 			"namespace": expendItem.RuleRouting.Rules[0].Sources[0].Namespace,
@@ -123,35 +123,43 @@ func TestCreateRoutingConfigV2(t *testing.T) {
 // TestCompatibleRoutingConfigV2AndV1 测试V2版本的路由规则和V1版本的路由规则
 func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
 
-	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
-		t.Fatal(err)
-	}
-	defer discoverSuit.Destroy()
-
 	svc := &apiservice.Service{
 		Name:      utils.NewStringValue("compatible-routing"),
 		Namespace: utils.NewStringValue("compatible"),
 	}
 
-	createSvcResp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{svc})
-	if !respSuccess(createSvcResp) {
-		t.Fatalf("error: %s", createSvcResp.GetInfo().GetValue())
+	initSuitFunc := func(t *testing.T) *DiscoverTestSuit {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.initialize(); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			discoverSuit.Destroy()
+		})
+
+		createSvcResp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{svc})
+		if !respSuccess(createSvcResp) {
+			t.Fatalf("error: %s", createSvcResp.GetInfo().GetValue())
+		}
+
+		_ = createSvcResp.Responses[0].GetService()
+		t.Cleanup(func() {
+			discoverSuit.cleanServices([]*apiservice.Service{svc})
+		})
+		return discoverSuit
 	}
 
-	_ = createSvcResp.Responses[0].GetService()
-	defer discoverSuit.cleanServices([]*apiservice.Service{svc})
-
 	t.Run("V1的存量规则-走V2接口可以查询到，ExtendInfo符合要求", func(t *testing.T) {
+		discoverSuit := initSuitFunc(t)
 		_, _ = discoverSuit.createCommonRoutingConfigV1IntoOldStore(t, svc, 3, 0)
-		defer func() {
+		t.Cleanup(func() {
 			discoverSuit.cleanCommonRoutingConfig(svc.GetName().GetValue(), svc.GetNamespace().GetValue())
 			discoverSuit.truncateCommonRoutingConfigV2()
-		}()
+		})
 
 		time.Sleep(discoverSuit.updateCacheInterval * 5)
 		// 从缓存中查询应该查到 3+3 条 v2 的路由规则
-		out := discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out := discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 		})
@@ -175,15 +183,16 @@ func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
 	})
 
 	t.Run("V1的存量规则-走v2规则的启用可正常迁移v1规则", func(t *testing.T) {
+		discoverSuit := initSuitFunc(t)
 		_, _ = discoverSuit.createCommonRoutingConfigV1IntoOldStore(t, svc, 3, 0)
-		defer func() {
+		t.Cleanup(func() {
 			discoverSuit.cleanCommonRoutingConfig(svc.GetName().GetValue(), svc.GetNamespace().GetValue())
 			discoverSuit.truncateCommonRoutingConfigV2()
-		}()
+		})
 
 		time.Sleep(discoverSuit.updateCacheInterval * 5)
 		// 从缓存中查询应该查到 3 条 v2 的路由规则
-		out := discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out := discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 		})
@@ -206,7 +215,7 @@ func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
 		assert.Equal(t, 0, len(routingsV1), "v1 routing ret len need zero")
 
 		// 从缓存中查询应该查到 3 条 v2 的路由规则
-		out = discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out = discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 		})
@@ -229,15 +238,16 @@ func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
 	})
 
 	t.Run("V1的存量规则-走v2规则的删除可正常迁移v1规则", func(t *testing.T) {
+		discoverSuit := initSuitFunc(t)
 		_, _ = discoverSuit.createCommonRoutingConfigV1IntoOldStore(t, svc, 3, 0)
-		defer func() {
+		t.Cleanup(func() {
 			discoverSuit.cleanCommonRoutingConfig(svc.GetName().GetValue(), svc.GetNamespace().GetValue())
 			discoverSuit.truncateCommonRoutingConfigV2()
-		}()
+		})
 
 		time.Sleep(discoverSuit.updateCacheInterval * 5)
 		// 从缓存中查询应该查到 3+3 条 v2 的路由规则
-		out := discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out := discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 		})
@@ -267,7 +277,7 @@ func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
 
 		time.Sleep(discoverSuit.updateCacheInterval * 5)
 		// 从缓存中查询应该查到 2 条 v2 的路由规则
-		out = discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out = discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 		})
@@ -290,15 +300,16 @@ func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
 	})
 
 	t.Run("V1的存量规则-走v2规则的编辑可正常迁移v1规则", func(t *testing.T) {
+		discoverSuit := initSuitFunc(t)
 		_, _ = discoverSuit.createCommonRoutingConfigV1IntoOldStore(t, svc, 3, 0)
-		defer func() {
+		t.Cleanup(func() {
 			discoverSuit.cleanCommonRoutingConfig(svc.GetName().GetValue(), svc.GetNamespace().GetValue())
 			discoverSuit.truncateCommonRoutingConfigV2()
-		}()
+		})
 
 		time.Sleep(discoverSuit.updateCacheInterval * 5)
 		// 从缓存中查询应该查到 3+3 条 v2 的路由规则
-		out := discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out := discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 		})
@@ -330,7 +341,7 @@ func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
 		assert.Equal(t, rulesV2[0].Description, ruleV2.Description)
 
 		time.Sleep(discoverSuit.updateCacheInterval * 5)
-		out = discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out = discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 		})
@@ -394,7 +405,7 @@ func TestUpdateRoutingConfigV2(t *testing.T) {
 		defer discoverSuit.cleanCommonRoutingConfigV2(req)
 		// 对写进去的数据进行查询
 		time.Sleep(discoverSuit.updateCacheInterval)
-		out := discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out := discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 		})
@@ -413,7 +424,7 @@ func TestUpdateRoutingConfigV2(t *testing.T) {
 
 		discoverSuit.server.UpdateRoutingConfigsV2(discoverSuit.defaultCtx, []*apitraffic.RouteRule{routing})
 		time.Sleep(discoverSuit.updateCacheInterval)
-		out = discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out = discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 			"id":     routing.Id,

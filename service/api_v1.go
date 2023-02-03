@@ -252,8 +252,8 @@ type RouterRuleOperateServer interface {
 	DeleteRoutingConfigsV2(ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse
 	// UpdateRoutingConfigsV2 Batch update routing configuration
 	UpdateRoutingConfigsV2(ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse
-	// GetRoutingConfigsV2 Inquiry route configuration to OSS
-	GetRoutingConfigsV2(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse
+	// QueryRoutingConfigsV2 Inquiry route configuration to OSS
+	QueryRoutingConfigsV2(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse
 	// EnableRoutings batch enable routing rules
 	EnableRoutings(ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse
 }

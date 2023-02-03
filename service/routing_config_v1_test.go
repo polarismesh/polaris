@@ -192,7 +192,7 @@ func TestUpdateRoutingConfig(t *testing.T) {
 		assert.Equal(t, 0, len(routingsV1), "v1 routing ret len need zero")
 
 		// 从缓存中查询应该查到 6 条 v2 的路由规则
-		out := discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out := discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 		})

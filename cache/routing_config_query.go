@@ -109,7 +109,7 @@ func queryRoutingRuleV2ByService(rule *model.ExtendRouterConfig, sourceNamespace
 					}
 				}
 				sourceFind = true
-				break
+				goto FINDEND
 			}
 		}
 
@@ -134,10 +134,11 @@ func queryRoutingRuleV2ByService(rule *model.ExtendRouterConfig, sourceNamespace
 					}
 				}
 				destFind = true
-				break
+				goto FINDEND
 			}
 		}
 	}
+FINDEND:
 
 	if both {
 		return sourceFind && destFind
@@ -145,8 +146,8 @@ func queryRoutingRuleV2ByService(rule *model.ExtendRouterConfig, sourceNamespace
 	return sourceFind || destFind
 }
 
-// GetRoutingConfigsV2 Query Route Configuration List
-func (rc *routingConfigCache) GetRoutingConfigsV2(args *RoutingArgs) (uint32, []*model.ExtendRouterConfig, error) {
+// QueryRoutingConfigsV2 Query Route Configuration List
+func (rc *routingConfigCache) QueryRoutingConfigsV2(args *RoutingArgs) (uint32, []*model.ExtendRouterConfig, error) {
 	if err := rc.forceUpdate(); err != nil {
 		return 0, nil, err
 	}

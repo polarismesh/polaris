@@ -200,14 +200,14 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 	return apiv1.NewResponse(apimodel.Code_ExecuteSuccess)
 }
 
-// GetRoutingConfigsV2 The interface of the query configuration to the OSS
-func (s *Server) GetRoutingConfigsV2(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+// QueryRoutingConfigsV2 The interface of the query configuration to the OSS
+func (s *Server) QueryRoutingConfigsV2(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	args, presp := parseRoutingArgs(query, ctx)
 	if presp != nil {
 		return apiv1.NewBatchQueryResponse(apimodel.Code(presp.GetCode().GetValue()))
 	}
 
-	total, ret, err := s.Cache().RoutingConfig().GetRoutingConfigsV2(args)
+	total, ret, err := s.Cache().RoutingConfig().QueryRoutingConfigsV2(args)
 	if err != nil {
 		log.Error("[Routing][V2] query routing list from cache", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return apiv1.NewBatchQueryResponse(apimodel.Code_ExecuteException)

@@ -50,8 +50,8 @@ type (
 		GetRoutingConfigV2(id, service, namespace string) ([]*apitraffic.RouteRule, error)
 		// GetRoutingConfigCount Get the total number of routing configuration cache
 		GetRoutingConfigCount() int
-		// GetRoutingConfigsV2 Query Route Configuration List
-		GetRoutingConfigsV2(args *RoutingArgs) (uint32, []*model.ExtendRouterConfig, error)
+		// QueryRoutingConfigsV2 Query Route Configuration List
+		QueryRoutingConfigsV2(args *RoutingArgs) (uint32, []*model.ExtendRouterConfig, error)
 		// IsConvertFromV1 Whether the current routing rules are converted from the V1 rule
 		IsConvertFromV1(id string) (string, bool)
 	}
