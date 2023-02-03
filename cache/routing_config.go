@@ -171,7 +171,6 @@ func (rc *routingConfigCache) GetRoutingConfigV1(id, service, namespace string) 
 	}
 
 	v2rules := rc.bucketV2.listByServiceWithPredicate(service, namespace,
-		// Only routing rules of the enable status are returned to the issue
 		func(item *model.ExtendRouterConfig) bool {
 			return item.Enable
 		})

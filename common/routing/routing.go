@@ -183,7 +183,6 @@ func BuildOutBoundsFromV2(service, namespace string, item *model.ExtendRouterCon
 	}
 
 	routes := make([]*apitraffic.Route, 0, 8)
-
 	for i := range item.RuleRouting.Rules {
 		subRule := item.RuleRouting.Rules[i]
 		sources := item.RuleRouting.Rules[i].Sources
@@ -201,7 +200,7 @@ func BuildOutBoundsFromV2(service, namespace string, item *model.ExtendRouterCon
 		}
 
 		if !find {
-			return []*apitraffic.Route{}
+			break
 		}
 
 		destinations := item.RuleRouting.Rules[i].Destinations
@@ -301,7 +300,7 @@ func BuildInBoundsFromV2(service, namespace string, item *model.ExtendRouterConf
 		}
 
 		if !find {
-			return []*apitraffic.Route{}
+			break
 		}
 
 		sources := item.RuleRouting.Rules[i].Sources
