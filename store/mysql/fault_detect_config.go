@@ -40,10 +40,10 @@ const (
 
 const (
 	insertFaultDetectSql = `insert into fault_detect_rule(
-			id, name, namespace, revision, description, dstService, dstNamespace, dstMethod, config, ctime, mtime)
+			id, name, namespace, revision, description, dst_service, dst_namespace, dst_method, config, ctime, mtime)
 			values(?,?,?,?,?,?,?,?,?, sysdate(),sysdate())`
 	updateFaultDetectSql = `update fault_detect_rule set name = ?, namespace = ?, revision = ?, description = ?,
-			dstService = ?, dstNamespace = ?, dstMethod = ?, config = ?, mtime = sysdate() where id = ?`
+			dst_service = ?, dst_namespace = ?, dst_method = ?, config = ?, mtime = sysdate() where id = ?`
 	deleteFaultDetectSql    = `update fault_detect_rule set flag = 1, mtime = sysdate() where id = ?`
 	countFaultDetectSql     = `select count(*) from fault_detect_rule where flag = 0`
 	queryFaultDetectFullSql = `select id, name, namespace, revision, description, dst_service, 
