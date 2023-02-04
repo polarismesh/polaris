@@ -270,7 +270,7 @@ func (b *routingBucketV2) size() int {
 
 type predicate func(item *model.ExtendRouterConfig) bool
 
-// listByServiceWithPredicate Inquire the routing rules of the V2 version through the service name, 
+// listByServiceWithPredicate Inquire the routing rules of the V2 version through the service name,
 // and perform some filtering according to the Predicate
 func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
 	predicate predicate) map[routingLevel][]*model.ExtendRouterConfig {
