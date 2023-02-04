@@ -304,9 +304,7 @@ func doClientPage(ret []*model.Client, offset, limit uint32) []*model.Client {
 		endIndex = totalCount
 	}
 
-	for i := range ret {
-		clients = append(clients, ret[i])
-	}
+	clients = append(clients, ret...)
 
 	sort.Slice(clients, func(i, j int) bool {
 		return clients[i].ModifyTime().After(clients[j].ModifyTime())
