@@ -109,7 +109,7 @@ func queryRoutingRuleV2ByService(rule *model.ExtendRouterConfig, sourceNamespace
 					}
 				}
 				sourceFind = true
-				goto FINDEND
+				break
 			}
 		}
 
@@ -134,16 +134,19 @@ func queryRoutingRuleV2ByService(rule *model.ExtendRouterConfig, sourceNamespace
 					}
 				}
 				destFind = true
-				goto FINDEND
+				break
 			}
 		}
-	}
-FINDEND:
 
-	if both {
-		return sourceFind && destFind
+		if both {
+			if sourceFind && destFind {
+				return true
+			}
+		} else if sourceFind || destFind {
+			return true
+		}
 	}
-	return sourceFind || destFind
+	return false
 }
 
 // QueryRoutingConfigsV2 Query Route Configuration List
