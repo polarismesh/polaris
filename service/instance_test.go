@@ -2065,13 +2065,12 @@ func Test_isEmptyLocation(t *testing.T) {
 	}
 }
 
-// 验证
+// TestAsyncCreateInstanceLockService 异步服务实例注册时，能够 rlock 住服务，如果 rlock 发现服务不存在，则直接实例注册失败
 func TestAsyncCreateInstanceLockService(t *testing.T) {
 	discoverSuit := &DiscoverTestSuit{}
 	if err := discoverSuit.initialize(); err != nil {
 		t.Fatal(err)
 	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(func() {
 		cancel()
@@ -2086,25 +2085,11 @@ func TestAsyncCreateInstanceLockService(t *testing.T) {
 			Concurrency:   8,
 			TaskLife:      "30s",
 		},
-		Deregister: &batch.CtrlConfig{
-			Open: false,
-		},
-		Heartbeat: &batch.CtrlConfig{
-			Open: false,
-		},
-		ClientRegister: &batch.CtrlConfig{
-			Open: false,
-		},
-		ClientDeregister: &batch.CtrlConfig{
-			Open: false,
-		},
 	})
 	ctrl.Start(ctx)
 
 	svcReq, svc := discoverSuit.createCommonService(t, 1)
-
 	assert.NoError(t, err)
-
 	wait := sync.WaitGroup{}
 	totalInstanceCnt := 10
 	wait.Add(totalInstanceCnt)
@@ -2147,7 +2132,6 @@ func TestAsyncCreateInstanceLockService(t *testing.T) {
 	stopCh := make(chan struct{})
 	// 一个协程不断删除目标服务
 	go func() {
-		timer := time.NewTimer(50 * time.Millisecond)
 		for {
 			select {
 			case <-stopCh:
@@ -2158,9 +2142,6 @@ func TestAsyncCreateInstanceLockService(t *testing.T) {
 				if resp.GetCode().GetValue() == uint32(apimodel.Code_ExecuteSuccess) {
 					atomic.StoreInt32(&deleteSvcSuccess, 1)
 				}
-
-				<-timer.C
-				timer.Reset(50 * time.Millisecond)
 			}
 		}
 	}()
