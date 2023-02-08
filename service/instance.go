@@ -114,11 +114,12 @@ func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Res
 		Name:      req.GetService().GetValue(),
 		Namespace: req.GetNamespace().GetValue(),
 	}
+	instanceProto := data.Proto
 	event := &model.InstanceEvent{
 		Id:         instanceID,
 		Namespace:  svc.Namespace,
 		Service:    svc.Name,
-		Instance:   &ins,
+		Instance:   data.Proto,
 		EType:      model.EventInstanceOnline,
 		CreateTime: time.Time{},
 	}
@@ -127,11 +128,11 @@ func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Res
 	s.RecordHistory(instanceRecordEntry(ctx, svc, data, model.OCreate))
 	out := &api.Instance{
 		Id:        ins.GetId(),
-		Service:   req.GetService(),
-		Namespace: req.GetNamespace(),
-		VpcId:     req.GetVpcId(),
-		Host:      req.GetHost(),
-		Port:      req.GetPort(),
+		Service:   &wrappers.StringValue{Value: svc.Namespace},
+		Namespace: &wrappers.StringValue{Value: svc.Name},
+		VpcId:     instanceProto.GetVpcId(),
+		Host:      instanceProto.GetHost(),
+		Port:      instanceProto.GetPort(),
 	}
 	return api.NewInstanceResponse(api.ExecuteSuccess, out)
 }

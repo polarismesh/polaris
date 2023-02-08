@@ -530,6 +530,15 @@ func (i *InstanceEvent) InjectMetadata(ctx context.Context) {
 	i.MetaData = value.(map[string]string)
 }
 
+func (i *InstanceEvent) String() string {
+	if nil == i {
+		return "nil"
+	}
+	hostPortStr := fmt.Sprintf("%s:%d", i.Instance.GetHost().GetValue(), i.Instance.GetPort().GetValue())
+	return fmt.Sprintf("InstanceEvent(id=%s, namespace=%s, service=%s, type=%v, instance=%s, healthy=%v)",
+		i.Id, i.Namespace, i.Service, i.EType, hostPortStr, i.Instance.GetHealthy().GetValue())
+}
+
 // InstanceCount Service instance statistics
 type InstanceCount struct {
 	// HealthyInstanceCount 健康实例数
