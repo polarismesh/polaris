@@ -128,8 +128,8 @@ func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Res
 	s.RecordHistory(instanceRecordEntry(ctx, svc, data, model.OCreate))
 	out := &api.Instance{
 		Id:        ins.GetId(),
-		Service:   &wrappers.StringValue{Value: svc.Namespace},
-		Namespace: &wrappers.StringValue{Value: svc.Name},
+		Service:   &wrappers.StringValue{Value: svc.Name},
+		Namespace: &wrappers.StringValue{Value: svc.Namespace},
 		VpcId:     instanceProto.GetVpcId(),
 		Host:      instanceProto.GetHost(),
 		Port:      instanceProto.GetPort(),
