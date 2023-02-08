@@ -26,6 +26,7 @@ import (
 	"github.com/golang/mock/gomock"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 
 	amock "github.com/polarismesh/polaris/auth/mock"
 	"github.com/polarismesh/polaris/common/metrics"
@@ -129,17 +130,54 @@ func sendAsyncCreateInstance(bc *Controller) error {
 	return nil
 }
 
+type mockTrx struct {
+	svc *model.Service
+	ns  *model.Namespace
+}
+
+// Commit Transaction
+func (t *mockTrx) Commit() error {
+	return nil
+}
+
+// LockBootstrap Start the lock, limit the concurrent number of Server boot
+func (t *mockTrx) LockBootstrap(key string, server string) error {
+	return nil
+}
+
+// LockNamespace Row it locks Namespace
+func (t *mockTrx) LockNamespace(name string) (*model.Namespace, error) {
+	return t.ns, nil
+}
+
+// DeleteNamespace Delete Namespace
+func (t *mockTrx) DeleteNamespace(name string) error {
+	return nil
+}
+
+// LockService Row it locks service
+func (t *mockTrx) LockService(name string, namespace string) (*model.Service, error) {
+	return t.svc, nil
+}
+
+// RLockService Shared lock service
+func (t *mockTrx) RLockService(name string, namespace string) (*model.Service, error) {
+	return t.svc, nil
+}
+
 // TestAsyncCreateInstance test AsyncCreateInstance
 func TestAsyncCreateInstance(t *testing.T) {
-	Convey("正常创建实例", t, func() {
+	t.Run("正常创建实例", func(t *testing.T) {
 		bc, storage, authority, cancel := newCreateInstanceController(t)
 		defer cancel()
 		storage.EXPECT().BatchGetInstanceIsolate(gomock.Any()).Return(nil, nil).AnyTimes()
 		storage.EXPECT().GetSourceServiceToken(gomock.Any(), gomock.Any()).
 			Return(&model.Service{ID: "1"}, nil).AnyTimes()
+		storage.EXPECT().GetServiceByID(gomock.Any()).Return(&model.Service{ID: "1"}, nil).AnyTimes()
+		storage.EXPECT().CreateTransaction().Return(&mockTrx{svc: &model.Service{ID: "1"}}, nil).AnyTimes()
 		authority.EXPECT().VerifyInstance(gomock.Any(), gomock.Any()).Return(true).AnyTimes()
 		storage.EXPECT().BatchAddInstances(gomock.Any()).Return(nil).AnyTimes()
-		So(sendAsyncCreateInstance(bc), ShouldBeNil)
+		assert.NoError(t, sendAsyncCreateInstance(bc))
 	})
 }
 

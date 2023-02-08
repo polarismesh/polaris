@@ -29,6 +29,7 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
@@ -37,15 +38,17 @@ import (
 // 测试新增服务
 func TestCreateService(t *testing.T) {
 
-	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
-		t.Fatal(err)
-	}
-	defer discoverSuit.Destroy()
-
 	t.Run("正常创建服务", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.initialize(); err != nil {
+			t.Fatal(err)
+		}
 		serviceReq, serviceResp := discoverSuit.createCommonService(t, 9)
-		defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
+
+		t.Cleanup(func() {
+			discoverSuit.cleanAllService()
+			discoverSuit.Destroy()
+		})
 
 		if serviceResp.GetName().GetValue() == serviceReq.GetName().GetValue() &&
 			serviceResp.GetNamespace().GetValue() == serviceReq.GetNamespace().GetValue() &&
@@ -57,8 +60,16 @@ func TestCreateService(t *testing.T) {
 	})
 
 	t.Run("创建重复名字的服务，会返回失败", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.initialize(); err != nil {
+			t.Fatal(err)
+		}
+
 		serviceReq, _ := discoverSuit.createCommonService(t, 9)
-		defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
+		t.Cleanup(func() {
+			discoverSuit.cleanAllService()
+			discoverSuit.Destroy()
+		})
 
 		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{serviceReq})
 		if !respSuccess(resp) {
@@ -69,8 +80,16 @@ func TestCreateService(t *testing.T) {
 	})
 
 	t.Run("创建服务，删除，再次创建，可以正常创建", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.initialize(); err != nil {
+			t.Fatal(err)
+		}
+
 		serviceReq, serviceResp := discoverSuit.createCommonService(t, 100)
-		defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
+		t.Cleanup(func() {
+			discoverSuit.cleanAllService()
+			discoverSuit.Destroy()
+		})
 
 		req := &apiservice.Service{
 			Name:      utils.NewStringValue(serviceResp.GetName().GetValue()),
@@ -85,7 +104,16 @@ func TestCreateService(t *testing.T) {
 
 		t.Logf("pass")
 	})
-	t.Run("并发创建服务", func(t *testing.T) {
+	t.Run("并发创建不同服务", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.initialize(); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			discoverSuit.cleanAllService()
+			discoverSuit.Destroy()
+		})
+
 		var wg sync.WaitGroup
 		for i := 0; i < 50; i++ {
 			wg.Add(1)
@@ -97,7 +125,41 @@ func TestCreateService(t *testing.T) {
 		}
 		wg.Wait()
 	})
+	t.Run("并发创建相同服务", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.initialize(); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			discoverSuit.cleanAllService()
+			discoverSuit.Destroy()
+		})
+
+		var wg sync.WaitGroup
+		for i := 0; i < 50; i++ {
+			wg.Add(1)
+			go func(_ int) {
+				defer wg.Done()
+				serviceReq := genMainService(1)
+				resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{serviceReq})
+
+				if resp.GetCode().GetValue() == uint32(apimodel.Code_ExistedResource) {
+					assert.True(t, len(resp.GetResponses()[0].GetService().GetId().GetValue()) > 0)
+				}
+			}(i)
+		}
+		wg.Wait()
+	})
 	t.Run("命名空间不存在，可以自动创建服务", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.initialize(); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			discoverSuit.cleanAllService()
+			discoverSuit.Destroy()
+		})
+
 		service := &apiservice.Service{
 			Name:      utils.NewStringValue("abc"),
 			Namespace: utils.NewStringValue(utils.NewUUID()),
@@ -110,6 +172,15 @@ func TestCreateService(t *testing.T) {
 		t.Logf("pass: %s", resp.GetInfo().GetValue())
 	})
 	t.Run("创建服务，metadata个数太多，报错", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.initialize(); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			discoverSuit.cleanAllService()
+			discoverSuit.Destroy()
+		})
+
 		svc := &apiservice.Service{
 			Name:      utils.NewStringValue("999"),
 			Namespace: utils.NewStringValue("Polaris"),
@@ -126,6 +197,7 @@ func TestCreateService(t *testing.T) {
 		}
 	})
 }
+
 
 // delete services
 func TestRemoveServices(t *testing.T) {

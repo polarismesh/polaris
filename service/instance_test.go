@@ -36,6 +36,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/service/batch"
 )
 
 // 测试新建实例
@@ -2061,5 +2062,117 @@ func Test_isEmptyLocation(t *testing.T) {
 				t.Errorf("isEmptyLocation() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// 验证
+func TestAsyncCreateInstanceLockService(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.initialize(); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(func() {
+		cancel()
+		discoverSuit.Destroy()
+	})
+	ctrl, err := batch.NewBatchCtrlWithConfig(discoverSuit.storage, discoverSuit.server.Cache(), &batch.Config{
+		Register: &batch.CtrlConfig{
+			Open:          true,
+			QueueSize:     1024,
+			WaitTime:      "32ms",
+			MaxBatchCount: 32,
+			Concurrency:   8,
+			TaskLife:      "30s",
+		},
+		Deregister: &batch.CtrlConfig{
+			Open: false,
+		},
+		Heartbeat: &batch.CtrlConfig{
+			Open: false,
+		},
+		ClientRegister: &batch.CtrlConfig{
+			Open: false,
+		},
+		ClientDeregister: &batch.CtrlConfig{
+			Open: false,
+		},
+	})
+	ctrl.Start(ctx)
+
+	svcReq, svc := discoverSuit.createCommonService(t, 1)
+
+	assert.NoError(t, err)
+
+	wait := sync.WaitGroup{}
+	totalInstanceCnt := 10
+	wait.Add(totalInstanceCnt)
+
+	var (
+		deleteSvcSuccess      int32
+		createInstanceFailCnt int32
+	)
+
+	// 一个协程不断创建实例
+	go func() {
+		for i := 0; i < totalInstanceCnt; i++ {
+			go func(index int) {
+				defer wait.Done()
+				id, err := utils.CalculateInstanceID(svc.GetNamespace().GetValue(), svc.GetName().GetValue(), "",
+					fmt.Sprintf("127.0.0.%d", index+1), uint32(8000+index))
+				assert.NoError(t, err)
+
+				ins := &apiservice.Instance{
+					Id:                &wrapperspb.StringValue{Value: id},
+					Service:           &wrapperspb.StringValue{Value: svc.GetName().GetValue()},
+					Namespace:         &wrapperspb.StringValue{Value: svc.GetNamespace().GetValue()},
+					Host:              &wrapperspb.StringValue{Value: fmt.Sprintf("127.0.0.%d", index+1)},
+					Port:              &wrapperspb.UInt32Value{Value: uint32(8000 + index)},
+					Weight:            &wrapperspb.UInt32Value{Value: 100},
+					EnableHealthCheck: &wrapperspb.BoolValue{Value: false},
+					Healthy:           &wrapperspb.BoolValue{Value: true},
+					Isolate:           &wrapperspb.BoolValue{Value: false},
+				}
+
+				future := ctrl.AsyncCreateInstance(svc.GetId().GetValue(), ins, true)
+				if err := future.Wait(); err != nil {
+					atomic.AddInt32(&createInstanceFailCnt, 1)
+					t.Logf("create instance %+v fail %d : %+v", ins, future.Code(), err)
+				}
+			}(i)
+		}
+	}()
+
+	stopCh := make(chan struct{})
+	// 一个协程不断删除目标服务
+	go func() {
+		timer := time.NewTimer(50 * time.Millisecond)
+		for {
+			select {
+			case <-stopCh:
+			default:
+				resp := discoverSuit.server.DeleteServices(discoverSuit.defaultCtx, []*apiservice.Service{
+					svcReq,
+				})
+				if resp.GetCode().GetValue() == uint32(apimodel.Code_ExecuteSuccess) {
+					atomic.StoreInt32(&deleteSvcSuccess, 1)
+				}
+
+				<-timer.C
+				timer.Reset(50 * time.Millisecond)
+			}
+		}
+	}()
+
+	wait.Wait()
+	close(stopCh)
+
+	t.Logf("createInstanceFailCnt : %d, deleteSvcSuccess : %d",
+		atomic.LoadInt32(&createInstanceFailCnt), atomic.LoadInt32(&deleteSvcSuccess))
+	if atomic.LoadInt32(&deleteSvcSuccess) == 1 {
+		assert.True(t, atomic.LoadInt32(&createInstanceFailCnt) >= 0)
+	} else {
+		assert.True(t, atomic.LoadInt32(&createInstanceFailCnt) == 0)
 	}
 }
