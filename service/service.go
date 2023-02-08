@@ -33,6 +33,7 @@ import (
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/service/batch"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -125,6 +126,19 @@ func (s *Server) CreateService(ctx context.Context, req *apiservice.Service) *ap
 	if err := s.storage.AddService(data); err != nil {
 		log.Error("[Service] save service fail",
 			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
+		// 如果在存储层发现资源存在错误，则需要再一次从存储层获取响应的信息，填充响应的 svc_id 信息
+		if batch.StoreCode2APICode(err) == apimodel.Code_ExistedResource {
+			// 检查是否存在
+			service, err := s.storage.GetService(serviceName, namespaceName)
+			if err != nil {
+				log.Error("[Service] get service fail", ZapRequestID(requestID), zap.Error(err))
+				return api.NewServiceResponse(apimodel.Code_StoreLayerException, req)
+			}
+			if service != nil {
+				req.Id = utils.NewStringValue(service.ID)
+				return api.NewServiceResponse(apimodel.Code_ExistedResource, req)
+			}
+		}
 		return wrapperServiceStoreResponse(req, err)
 	}
 

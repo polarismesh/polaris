@@ -287,25 +287,40 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 	}
 
 	// 统一判断实例是否存在，存在则需要更新部分数据
-	firstRegisInstances, err := ctrl.batchRestoreInstanceIsolate(remains)
-	if err != nil {
+	if err := ctrl.batchRestoreInstanceIsolate(remains); err != nil {
 		log.Errorf("[Batch] batch check instances existed err: %s", err.Error())
 	}
 
 	// 判断入参数组是否为0
 	if len(remains) == 0 {
-		log.Infof("[Batch] all instances is existed, return create instances process")
+		log.Info("[Batch] all instances is existed, return create instances process")
 		return nil
 	}
-
 	// 构造model数据
 	for _, entry := range remains {
 		ins := instancecommon.CreateInstanceModel(entry.serviceId, entry.request)
-		if _, ok := firstRegisInstances[ins.ID()]; ok {
-			ins.FirstRegis = true
-		}
 		entry.SetInstance(ins)
 	}
+
+	unlockServce := make(map[string]func())
+	for i := range remains {
+		svcId := remains[i].serviceId
+		if _, ok := unlockServce[svcId]; ok {
+			continue
+		}
+		_, releaseFunc, err := ctrl.lockServiceByID(context.Background(), svcId)
+		if err != nil {
+			sendReply(futures, apimodel.Code_StoreLayerException, err)
+			continue
+		}
+		unlockServce[svcId] = releaseFunc
+	}
+
+	defer func() {
+		for k := range unlockServce {
+			unlockServce[k]()
+		}
+	}()
 
 	// 调用batch接口，创建实例
 	instances := make([]*model.Instance, 0, len(remains))
@@ -428,9 +443,9 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 }
 
 // batchRestoreInstanceIsolate 批量恢复实例的隔离状态，以请求为准，请求如果不存在，就以数据库为准
-func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*InstanceFuture) (map[string]struct{}, error) {
+func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*InstanceFuture) error {
 	if len(futures) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	// 初始化所有的id都是不存在的
@@ -443,31 +458,21 @@ func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*Instan
 	if id2Isolate, err = ctrl.storage.BatchGetInstanceIsolate(ids); err != nil {
 		log.Errorf("[Batch] check instances existed storage err: %s", err.Error())
 		sendReply(futures, apimodel.Code_StoreLayerException, err)
-		return nil, err
+		return err
 	}
 
-	firstRegisInstances := make(map[string]struct{})
 	if len(id2Isolate) == 0 {
-		for id := range futures {
-			firstRegisInstances[id] = struct{}{}
-		}
-		return firstRegisInstances, err
+		return err
 	}
 
 	if len(id2Isolate) > 0 {
-		for id := range ids {
-			if _, ok := id2Isolate[id]; !ok {
-				firstRegisInstances[id] = struct{}{}
-			}
-		}
-
 		for id, isolate := range id2Isolate {
 			if future, ok := futures[id]; ok && future.request.Isolate == nil {
 				future.request.Isolate = &wrappers.BoolValue{Value: isolate}
 			}
 		}
 	}
-	return firstRegisInstances, err
+	return err
 }
 
 // batchVerifyInstances 对请求futures进行统一的鉴权
@@ -488,7 +493,7 @@ func (ctrl *InstanceCtrl) batchVerifyInstances(futures map[string]*InstanceFutur
 	return futures, serviceIDs, nil
 }
 
-func (ctrl *InstanceCtrl) loadService(entry *InstanceFuture, name, namespace string) (*model.Service, bool) {
+func (ctrl *InstanceCtrl) lockServiceByID(ctx context.Context, svcID string) (*model.Service, func(), error) {
 	var (
 		err        error
 		tmpService *model.Service
@@ -496,27 +501,38 @@ func (ctrl *InstanceCtrl) loadService(entry *InstanceFuture, name, namespace str
 
 	// 判断缓存中是否可以找到该服务
 	if ctrl.cacheMgn != nil {
-		tmpService = ctrl.cacheMgn.Service().GetServiceByName(name, namespace)
+		tmpService = ctrl.cacheMgn.Service().GetServiceByID(svcID)
 	}
 
 	// 缓存中不存在，在走store层在发起一次查询
 	if tmpService == nil {
-		tmpService, err = ctrl.storage.GetSourceServiceToken(name, namespace)
+		tmpService, err = ctrl.storage.GetServiceByID(svcID)
 		if err != nil {
-			log.Errorf("[Controller] get source service(%s, %s) token err: %s",
-				entry.request.GetService().GetValue(), entry.request.GetNamespace().GetValue(), err.Error())
-			entry.Reply(time.Now(), apimodel.Code_StoreLayerException, err)
-
-			return nil, false
+			return nil, nil, err
 		}
 		if tmpService == nil {
-			log.Errorf("[Controller] get source service(%s, %s) token is empty, verify failed",
-				entry.request.GetService().GetValue(), entry.request.GetNamespace().GetValue())
-			entry.Reply(time.Now(), apimodel.Code_NotFoundResource, ErrorNotFoundService)
-
-			return nil, false
+			return nil, nil, errors.New("not found service")
 		}
 	}
 
-	return tmpService, true
+	tx, err := ctrl.storage.CreateTransaction()
+	if err != nil {
+		return nil, nil, err
+	}
+	cancel := func() {
+		_ = tx.Commit()
+	}
+
+	svc, err := tx.RLockService(tmpService.Name, tmpService.Namespace)
+	if err != nil {
+		return nil, nil, err
+	}
+	if svc == nil {
+		return nil, nil, errors.New("not found service in rlock")
+	}
+	if svc.IsAlias() {
+		return nil, nil, errors.New("alias not allow to create instance")
+	}
+
+	return svc, cancel, nil
 }

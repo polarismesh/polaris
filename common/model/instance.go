@@ -36,8 +36,6 @@ type Instance struct {
 	Valid bool
 	// ModifyTime Update time of instance
 	ModifyTime time.Time
-	// FirstRegis Whether the label instance is the first registration
-	FirstRegis bool
 }
 
 // ID get id
