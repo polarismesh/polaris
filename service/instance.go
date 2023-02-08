@@ -119,7 +119,7 @@ func (s *Server) CreateInstance(ctx context.Context, req *api.Instance) *api.Res
 		Id:         instanceID,
 		Namespace:  svc.Namespace,
 		Service:    svc.Name,
-		Instance:   data.Proto,
+		Instance:   instanceProto,
 		EType:      model.EventInstanceOnline,
 		CreateTime: time.Time{},
 	}
