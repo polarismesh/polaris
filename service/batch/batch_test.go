@@ -28,7 +28,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 
-	amock "github.com/polarismesh/polaris/auth/mock"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -76,11 +75,9 @@ func TestNewBatchCtrlWithConfig(t *testing.T) {
 	})
 }
 
-func newCreateInstanceController(t *testing.T) (*Controller, *smock.MockStore, *amock.MockAuthority,
-	context.CancelFunc) {
+func newCreateInstanceController(t *testing.T) (*Controller, *smock.MockStore, context.CancelFunc) {
 	ctl := gomock.NewController(t)
 	storage := smock.NewMockStore(ctl)
-	authority := amock.NewMockAuthority(ctl)
 	defer ctl.Finish()
 	config := &Config{
 		Register: &CtrlConfig{
@@ -97,7 +94,7 @@ func newCreateInstanceController(t *testing.T) (*Controller, *smock.MockStore, *
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	bc.Start(ctx)
-	return bc, storage, authority, cancel
+	return bc, storage, cancel
 	// defer cancel()
 }
 
@@ -168,14 +165,13 @@ func (t *mockTrx) RLockService(name string, namespace string) (*model.Service, e
 // TestAsyncCreateInstance test AsyncCreateInstance
 func TestAsyncCreateInstance(t *testing.T) {
 	t.Run("正常创建实例", func(t *testing.T) {
-		bc, storage, authority, cancel := newCreateInstanceController(t)
+		bc, storage, cancel := newCreateInstanceController(t)
 		defer cancel()
 		storage.EXPECT().BatchGetInstanceIsolate(gomock.Any()).Return(nil, nil).AnyTimes()
 		storage.EXPECT().GetSourceServiceToken(gomock.Any(), gomock.Any()).
 			Return(&model.Service{ID: "1"}, nil).AnyTimes()
 		storage.EXPECT().GetServiceByID(gomock.Any()).Return(&model.Service{ID: "1"}, nil).AnyTimes()
 		storage.EXPECT().CreateTransaction().Return(&mockTrx{svc: &model.Service{ID: "1"}}, nil).AnyTimes()
-		authority.EXPECT().VerifyInstance(gomock.Any(), gomock.Any()).Return(true).AnyTimes()
 		storage.EXPECT().BatchAddInstances(gomock.Any()).Return(nil).AnyTimes()
 		assert.NoError(t, sendAsyncCreateInstance(bc))
 	})

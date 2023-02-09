@@ -88,7 +88,7 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 		Option: map[string]interface{}{
 			"": nil,
 		},
-	}, cacheMgn)
+	}, storage, cacheMgn)
 	checker.cacheMgn = cacheMgn
 
 	t.Run("主账户正常情况", func(t *testing.T) {

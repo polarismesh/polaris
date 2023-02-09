@@ -19,6 +19,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -27,16 +28,24 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/proto"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/sync/singleflight"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/service/batch"
+	"github.com/polarismesh/polaris/store"
+	"github.com/polarismesh/polaris/store/mock"
 )
 
 // 测试新建实例
@@ -2063,6 +2072,227 @@ func Test_isEmptyLocation(t *testing.T) {
 			}
 		})
 	}
+}
+
+type mockTrx struct {
+	lock        sync.RWMutex
+	releaseFunc func()
+}
+
+// Commit Transaction
+func (t *mockTrx) Commit() error {
+	if t.releaseFunc != nil {
+		t.releaseFunc()
+	}
+	return nil
+}
+
+// LockBootstrap Start the lock, limit the concurrent number of Server boot
+func (t *mockTrx) LockBootstrap(key string, server string) error {
+	return nil
+}
+
+// LockNamespace Row it locks Namespace
+func (t *mockTrx) LockNamespace(name string) (*model.Namespace, error) {
+	return nil, nil
+}
+
+// DeleteNamespace Delete Namespace
+func (t *mockTrx) DeleteNamespace(name string) error {
+	return nil
+}
+
+// LockService Row it locks service
+func (t *mockTrx) LockService(name string, namespace string) (*model.Service, error) {
+	id := fmt.Sprintf("%s@@%s", namespace, name)
+	if !t.lock.TryLock() {
+		return nil, errors.New("transaction is busy")
+	}
+	t.releaseFunc = func() {
+		t.lock.Unlock()
+	}
+	return &model.Service{
+		ID:        id,
+		Name:      name,
+		Namespace: namespace,
+	}, nil
+}
+
+// RLockService Shared lock service
+func (t *mockTrx) RLockService(name string, namespace string) (*model.Service, error) {
+	id := fmt.Sprintf("%s@@%s", namespace, name)
+	if !t.lock.TryRLock() {
+		return nil, errors.New("transaction is busy")
+	}
+	t.releaseFunc = func() {
+		t.lock.RUnlock()
+	}
+	return &model.Service{
+		ID:        id,
+		Name:      name,
+		Namespace: namespace,
+	}, nil
+}
+
+type mockTrxManager struct {
+	lock sync.RWMutex
+	trxs map[string]*mockTrx
+}
+
+func (mgr *mockTrxManager) Create(svc, namespace string) *mockTrx {
+	mgr.lock.Lock()
+	defer mgr.lock.Unlock()
+
+	id := svc + "@@" + namespace
+	val, ok := mgr.trxs[id]
+	if ok {
+		return val
+	}
+
+	mgr.trxs[id] = &mockTrx{}
+	return mgr.trxs[id]
+}
+
+func TestCreateInstanceLockService(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	t.Cleanup(func() {
+		ctrl.Finish()
+	})
+
+	createMockResource := func() (*Server, *mock.MockStore) {
+		var (
+			err      error
+			cacheMgr *cache.CacheManager
+			nsSvr    namespace.NamespaceOperateServer
+		)
+
+		mockStore := mock.NewMockStore(ctrl)
+		err = cache.Initialize(context.TODO(), &cache.Config{
+			Open: true,
+		}, mockStore)
+		assert.NoError(t, err)
+		cacheMgr, err = cache.GetCacheManager()
+		assert.NoError(t, err)
+
+		_, err = auth.TestInitialize(context.TODO(), &auth.Config{
+			Name: "defaultAuth",
+			Option: map[string]interface{}{
+				"clientOpen":  false,
+				"consoleOpen": false,
+			},
+		}, mockStore, cacheMgr)
+		assert.NoError(t, err)
+
+		namespace.Initialize(context.TODO(), &namespace.Config{
+			AutoCreate: true,
+		}, mockStore, cacheMgr)
+		nsSvr, err = namespace.GetOriginServer()
+		assert.NoError(t, err)
+
+		svr := &Server{
+			storage:             mockStore,
+			namespaceSvr:        nsSvr,
+			caches:              cacheMgr,
+			createServiceSingle: &singleflight.Group{},
+			hooks:               []ResourceHook{},
+		}
+
+		return svr, mockStore
+	}
+
+	var (
+		req = &apiservice.Instance{
+			Namespace: &wrapperspb.StringValue{
+				Value: "test_ns",
+			},
+			Service: &wrapperspb.StringValue{
+				Value: "test_svc",
+			},
+			Host: &wrapperspb.StringValue{
+				Value: "127.0.0.1",
+			},
+			Port: &wrapperspb.UInt32Value{
+				Value: 8080,
+			},
+		}
+		trxMgr = &mockTrxManager{
+			trxs: map[string]*mockTrx{},
+		}
+	)
+
+	instanceID, checkError := checkCreateInstance(req)
+	assert.Nil(t, checkError)
+
+	ins := *req
+	ins.Id = utils.NewStringValue(instanceID)
+
+	t.Run("正常创建实例", func(t *testing.T) {
+		svr, mockStore := createMockResource()
+		mockStore.EXPECT().GetInstance(gomock.Any()).Return(nil, nil).AnyTimes()
+		mockStore.EXPECT().CreateTransaction().DoAndReturn(func() (store.Transaction, error) {
+			return trxMgr.Create(req.GetService().GetValue(), req.GetNamespace().GetValue()), nil
+		}).AnyTimes()
+		mockStore.EXPECT().AddInstance(gomock.Any()).Return(nil).AnyTimes()
+
+		_, resp := svr.serialCreateInstance(context.TODO(), "", req, &ins)
+		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+	})
+
+	t.Run("创建实例的同时删除服务", func(t *testing.T) {
+		svr, mockStore := createMockResource()
+		mockStore.EXPECT().GetInstance(gomock.Any()).Return(nil, nil).AnyTimes()
+		mockStore.EXPECT().CreateTransaction().DoAndReturn(func() (store.Transaction, error) {
+			return trxMgr.Create(req.GetService().GetValue(), req.GetNamespace().GetValue()), nil
+		}).AnyTimes()
+		mockStore.EXPECT().AddInstance(gomock.Any()).Return(nil).AnyTimes()
+		mockStore.EXPECT().GetService(gomock.Any(), gomock.Any()).Return(&model.Service{Name: "mock"}, nil).AnyTimes()
+		mockStore.EXPECT().DeleteService(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_, _, _ string) error {
+				trx := trxMgr.Create(req.GetService().GetValue(), req.GetNamespace().GetValue())
+				_, err := trx.LockService(req.Service.Value, req.Namespace.Value)
+				return err
+			}).AnyTimes()
+		mockStore.EXPECT().GetExpandInstances(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(uint32(0), nil, nil).AnyTimes()
+		mockStore.EXPECT().GetServiceAliases(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(uint32(0), nil, nil).AnyTimes()
+		mockStore.EXPECT().GetExtendRateLimits(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(uint32(0), nil, nil).AnyTimes()
+		mockStore.EXPECT().GetRoutingConfigWithID(gomock.Any()).
+			Return(uint32(0), nil).AnyTimes()
+		mockStore.EXPECT().GetCircuitBreakersByService(gomock.Any(), gomock.Any()).
+			Return(uint32(0), nil).AnyTimes()
+
+		wait := sync.WaitGroup{}
+		wait.Add(2)
+
+		var (
+			createInsCode uint32
+			deleteSvcCode uint32
+		)
+
+		go func() {
+			defer wait.Done()
+			_, resp := svr.serialCreateInstance(context.TODO(), "", req, &ins)
+			atomic.StoreUint32(&createInsCode, resp.GetCode().GetValue())
+		}()
+
+		go func() {
+			defer wait.Done()
+			resp := svr.DeleteService(context.TODO(), &apiservice.Service{
+				Namespace: &wrapperspb.StringValue{
+					Value: "test_ns",
+				},
+				Name: &wrapperspb.StringValue{
+					Value: "test_svc",
+				},
+			})
+			atomic.StoreUint32(&deleteSvcCode, resp.GetCode().GetValue())
+		}()
+
+		wait.Wait()
+	})
 }
 
 // TestAsyncCreateInstanceLockService 异步服务实例注册时，能够 rlock 住服务，如果 rlock 发现服务不存在，则直接实例注册失败

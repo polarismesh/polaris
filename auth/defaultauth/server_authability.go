@@ -41,7 +41,7 @@ func (svr *serverAuthAbility) Initialize(authOpt *auth.Config, storage store.Sto
 		history = plugin.GetHistory()
 		authMgn = &defaultAuthChecker{}
 	)
-	if err := authMgn.Initialize(authOpt, cacheMgn); err != nil {
+	if err := authMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
 		return err
 	}
 

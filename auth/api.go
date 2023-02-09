@@ -58,7 +58,7 @@ type AuthServer interface {
 // AuthChecker 权限管理通用接口定义
 type AuthChecker interface {
 	// Initialize 执行初始化动作
-	Initialize(options *Config, cacheMgn *cache.CacheManager) error
+	Initialize(options *Config, storage store.Store, cacheMgn *cache.CacheManager) error
 	// VerifyCredential 验证令牌
 	VerifyCredential(preCtx *model.AcquireContext) error
 	// CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据

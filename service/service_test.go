@@ -20,19 +20,29 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/sync/singleflight"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/namespace"
+	"github.com/polarismesh/polaris/store"
+	"github.com/polarismesh/polaris/store/mock"
 )
 
 // 测试新增服务
@@ -197,7 +207,6 @@ func TestCreateService(t *testing.T) {
 		}
 	})
 }
-
 
 // delete services
 func TestRemoveServices(t *testing.T) {
@@ -1233,5 +1242,123 @@ func TestCheckServiceFieldLen(t *testing.T) {
 		if resp.Code.Value != api.InvalidServiceName {
 			t.Fatalf("%+v", resp)
 		}
+	})
+}
+
+func TestConcurrencyCreateSameService(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	t.Cleanup(func() {
+		ctrl.Finish()
+	})
+
+	createMockResource := func() (*Server, *mock.MockStore) {
+		var (
+			err      error
+			cacheMgr *cache.CacheManager
+			nsSvr    namespace.NamespaceOperateServer
+		)
+
+		mockStore := mock.NewMockStore(ctrl)
+
+		err = cache.Initialize(context.TODO(), &cache.Config{
+			Open: true,
+		}, mockStore)
+		assert.NoError(t, err)
+		cacheMgr, err = cache.GetCacheManager()
+		assert.NoError(t, err)
+
+		_, err = auth.TestInitialize(context.TODO(), &auth.Config{
+			Name: "defaultAuth",
+			Option: map[string]interface{}{
+				"clientOpen":  false,
+				"consoleOpen": false,
+			},
+		}, mockStore, cacheMgr)
+		assert.NoError(t, err)
+
+		namespace.Initialize(context.TODO(), &namespace.Config{
+			AutoCreate: true,
+		}, mockStore, cacheMgr)
+		nsSvr, err = namespace.GetOriginServer()
+		assert.NoError(t, err)
+
+		svr := &Server{
+			storage:             mockStore,
+			namespaceSvr:        nsSvr,
+			caches:              cacheMgr,
+			createServiceSingle: &singleflight.Group{},
+			hooks:               []ResourceHook{},
+		}
+
+		return svr, mockStore
+	}
+
+	var (
+		req = &apiservice.Service{
+			Namespace: &wrapperspb.StringValue{
+				Value: "test_ns",
+			},
+			Name: &wrapperspb.StringValue{
+				Value: "test_svc",
+			},
+		}
+	)
+
+	t.Run("正常创建服务", func(t *testing.T) {
+		svr, mockStore := createMockResource()
+
+		mockStore.EXPECT().GetNamespace(gomock.Any()).Return(&model.Namespace{
+			Name: "mock_ns",
+		}, nil).AnyTimes()
+		mockStore.EXPECT().GetService(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+		mockStore.EXPECT().AddService(gomock.Any()).Return(nil).AnyTimes()
+
+		resp := svr.CreateService(context.TODO(), req)
+		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+		assert.True(t, len(resp.GetService().GetId().GetValue()) > 0)
+	})
+
+	t.Run("正常创建服务-目标服务已存在", func(t *testing.T) {
+		svr, mockStore := createMockResource()
+		mockStore.EXPECT().GetNamespace(gomock.Any()).Return(&model.Namespace{
+			Name: "mock_ns",
+		}, nil).AnyTimes()
+		mockStore.EXPECT().GetService(gomock.Any(), gomock.Any()).Return(&model.Service{
+			ID: "mock_svc_id",
+		}, nil).AnyTimes()
+
+		resp := svr.CreateService(context.TODO(), req)
+		assert.Equal(t, apimodel.Code_ExistedResource, apimodel.Code(resp.GetCode().GetValue()))
+		assert.True(t, len(resp.GetService().GetId().GetValue()) > 0)
+	})
+
+	t.Run("正常创建服务-存储层主键冲突", func(t *testing.T) {
+		svr, mockStore := createMockResource()
+		mockStore.EXPECT().GetNamespace(gomock.Any()).Return(&model.Namespace{
+			Name: "mock_ns",
+		}, nil).AnyTimes()
+
+		var (
+			execTime  int32
+			mockSvcId = "mock_svc_id"
+		)
+
+		mockStore.EXPECT().GetService(gomock.Any(), gomock.Any()).DoAndReturn(func(_, _ string) (*model.Service, error) {
+			execTime++
+			if execTime == 1 {
+				return nil, nil
+			}
+			if execTime == 2 {
+				return &model.Service{ID: mockSvcId}, nil
+			}
+			return nil, errors.New("run to many times")
+		}).AnyTimes()
+		mockStore.EXPECT().AddService(gomock.Any()).
+			Return(store.NewStatusError(store.DuplicateEntryErr, "mock duplicate error")).AnyTimes()
+
+		resp := svr.CreateService(context.TODO(), req)
+		assert.Equal(t, apimodel.Code_ExistedResource, apimodel.Code(resp.GetCode().GetValue()))
+		assert.Equal(t, mockSvcId, resp.GetService().GetId().GetValue())
 	})
 }
