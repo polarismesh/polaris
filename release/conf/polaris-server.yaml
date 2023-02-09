@@ -386,6 +386,7 @@ cache:
       option:
         # Configuration file cache expires time, unit S
         expireTimeAfterWrite: 3600
+    - name: faultDetectRule
 #    - name: l5 # Load L5 data
 # Storage configuration
 store:
