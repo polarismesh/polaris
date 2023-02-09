@@ -2235,8 +2235,8 @@ func TestCreateInstanceLockService(t *testing.T) {
 		}).AnyTimes()
 		mockStore.EXPECT().AddInstance(gomock.Any()).Return(nil).AnyTimes()
 
-		_, resp := svr.serialCreateInstance(context.TODO(), "", req, &ins)
-		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+		_, errResp := svr.serialCreateInstance(context.TODO(), "mock_svc_id", req, &ins)
+		assert.Nil(t, errResp)
 	})
 
 	t.Run("创建实例的同时删除服务", func(t *testing.T) {
@@ -2260,9 +2260,9 @@ func TestCreateInstanceLockService(t *testing.T) {
 		mockStore.EXPECT().GetExtendRateLimits(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(uint32(0), nil, nil).AnyTimes()
 		mockStore.EXPECT().GetRoutingConfigWithID(gomock.Any()).
-			Return(uint32(0), nil).AnyTimes()
+			Return(nil, nil).AnyTimes()
 		mockStore.EXPECT().GetCircuitBreakersByService(gomock.Any(), gomock.Any()).
-			Return(uint32(0), nil).AnyTimes()
+			Return(nil, nil).AnyTimes()
 
 		wait := sync.WaitGroup{}
 		wait.Add(2)
@@ -2292,6 +2292,12 @@ func TestCreateInstanceLockService(t *testing.T) {
 		}()
 
 		wait.Wait()
+		createInsApiCode := apimodel.Code(atomic.LoadUint32(&createInsCode))
+		deleteSvcApiCode := apimodel.Code(atomic.LoadUint32(&deleteSvcCode))
+
+		if deleteSvcApiCode == apimodel.Code_ExecuteSuccess {
+			assert.NotEqual(t, apimodel.Code_ExecuteSuccess, createInsApiCode)
+		}
 	})
 }
 
