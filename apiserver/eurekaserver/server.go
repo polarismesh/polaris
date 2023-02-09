@@ -305,7 +305,7 @@ func (h *EurekaServer) Run(errCh chan error) {
 	} else {
 		err = server.ServeTLS(ln, h.tlsInfo.CertFile, h.tlsInfo.KeyFile)
 	}
-	if err != nil {
+	if err != nil && err != http.ErrServerClosed {
 		log.Errorf("%+v", err)
 		if !h.restart {
 			log.Infof("not in restart progress, broadcast error")
