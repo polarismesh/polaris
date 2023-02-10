@@ -83,7 +83,8 @@ func (h *EurekaServer) BatchReplication(req *restful.Request, rsp *restful.Respo
 	}
 }
 
-func (h *EurekaServer) doBatchReplicate(replicateRequest *ReplicationList, token string) (*ReplicationListResponse, uint32) {
+func (h *EurekaServer) doBatchReplicate(
+	replicateRequest *ReplicationList, token string) (*ReplicationListResponse, uint32) {
 	batchResponse := &ReplicationListResponse{ResponseList: []*ReplicationInstanceResponse{}}
 	var resultCode = api.ExecuteSuccess
 	for _, instanceInfo := range replicateRequest.ReplicationList {
@@ -98,7 +99,8 @@ func (h *EurekaServer) doBatchReplicate(replicateRequest *ReplicationList, token
 	return batchResponse, resultCode
 }
 
-func (h *EurekaServer) dispatch(replicationInstance *ReplicationInstance, token string) (*ReplicationInstanceResponse, uint32) {
+func (h *EurekaServer) dispatch(
+	replicationInstance *ReplicationInstance, token string) (*ReplicationInstanceResponse, uint32) {
 	appName := formatReadName(replicationInstance.AppName)
 	ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, token)
 	var retCode = api.ExecuteSuccess

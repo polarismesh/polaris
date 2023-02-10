@@ -112,7 +112,8 @@ func (r *ReplicateWorker) doBatchReplicate(tasks []*ReplicationInstance) {
 	}
 }
 
-func (r *ReplicateWorker) doReplicateToPeer(peer string, tasks []*ReplicationInstance, jsonData []byte, replicateInfo []string) {
+func (r *ReplicateWorker) doReplicateToPeer(
+	peer string, tasks []*ReplicationInstance, jsonData []byte, replicateInfo []string) {
 	response, err := sendHttpRequest(peer, jsonData, replicateInfo)
 	if nil != err {
 		log.Errorf("[EUREKA-SERVER] fail to batch replicate to %s, err: %v", peer, err)

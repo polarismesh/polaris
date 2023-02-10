@@ -171,8 +171,10 @@ func convertEurekaInstance(instance *InstanceInfo, namespace string, appId strin
 	return targetInstance
 }
 
-func (h *EurekaServer) registerInstances(ctx context.Context, appId string, instance *InstanceInfo, replicated bool) uint32 {
-	ctx = context.WithValue(ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
+func (h *EurekaServer) registerInstances(
+	ctx context.Context, appId string, instance *InstanceInfo, replicated bool) uint32 {
+	ctx = context.WithValue(
+		ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
 	appId = formatWriteName(appId)
 	// 1. 先转换数据结构
 	totalInstance := convertEurekaInstance(instance, h.namespace, appId)
@@ -199,25 +201,30 @@ func (h *EurekaServer) registerInstances(ctx context.Context, appId string, inst
 	return resp.GetCode().GetValue()
 }
 
-func (h *EurekaServer) deregisterInstance(ctx context.Context, appId string, instanceId string, replicated bool) uint32 {
-	ctx = context.WithValue(ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
+func (h *EurekaServer) deregisterInstance(
+	ctx context.Context, appId string, instanceId string, replicated bool) uint32 {
+	ctx = context.WithValue(
+		ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
 	resp := h.namingServer.DeregisterInstance(ctx, &apiservice.Instance{Id: &wrappers.StringValue{Value: instanceId}})
 	return resp.GetCode().GetValue()
 }
 
-func (h *EurekaServer) updateStatus(ctx context.Context, appId string, instanceId string, status string, replicated bool) uint32 {
+func (h *EurekaServer) updateStatus(
+	ctx context.Context, appId string, instanceId string, status string, replicated bool) uint32 {
 	var isolated = false
 	if status != StatusUp {
 		isolated = true
 	}
-	ctx = context.WithValue(ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
+	ctx = context.WithValue(
+		ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
 	resp := h.namingServer.UpdateInstances(ctx,
 		[]*apiservice.Instance{{Id: &wrappers.StringValue{Value: instanceId}, Isolate: &wrappers.BoolValue{Value: isolated}}})
 	return resp.GetCode().GetValue()
 }
 
 func (h *EurekaServer) renew(ctx context.Context, appId string, instanceId string, replicated bool) uint32 {
-	ctx = context.WithValue(ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
+	ctx = context.WithValue(
+		ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
 	resp := h.healthCheckServer.Report(ctx, &apiservice.Instance{Id: &wrappers.StringValue{Value: instanceId}})
 	code := resp.GetCode().GetValue()
 
