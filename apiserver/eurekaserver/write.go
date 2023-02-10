@@ -27,9 +27,10 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 )
 
-func buildBaseInstance(instance *InstanceInfo, namespace string, appId string, replicated bool) *apiservice.Instance {
+func buildBaseInstance(instance *InstanceInfo, namespace string, appId string) *apiservice.Instance {
 	targetInstance := &apiservice.Instance{}
 	eurekaMetadata := make(map[string]string)
 
@@ -66,9 +67,6 @@ func buildBaseInstance(instance *InstanceInfo, namespace string, appId string, r
 	}
 	if len(instance.SecureVipAddress) > 0 {
 		eurekaMetadata[MetadataSecureVipAddress] = instance.SecureVipAddress
-	}
-	if replicated {
-		eurekaMetadata[MetadataReplicate] = "true"
 	}
 	targetInstance.Id = &wrappers.StringValue{Value: instance.InstanceId}
 	targetInstance.Metadata = eurekaMetadata
@@ -138,8 +136,7 @@ func buildStatus(instance *InstanceInfo, targetInstance *apiservice.Instance) {
 	}
 }
 
-func convertEurekaInstance(
-	instance *InstanceInfo, namespace string, appId string, replicated bool) *apiservice.Instance {
+func convertEurekaInstance(instance *InstanceInfo, namespace string, appId string) *apiservice.Instance {
 	var secureEnable bool
 	var securePort int
 	var insecureEnable bool
@@ -162,7 +159,7 @@ func convertEurekaInstance(
 		insecurePort = DefaultInsecurePort
 	}
 
-	targetInstance := buildBaseInstance(instance, namespace, appId, replicated)
+	targetInstance := buildBaseInstance(instance, namespace, appId)
 
 	// 同时打开2个端口，通过medata保存http端口
 	targetInstance.Protocol = &wrappers.StringValue{Value: InsecureProtocol}
@@ -174,12 +171,11 @@ func convertEurekaInstance(
 	return targetInstance
 }
 
-func (h *EurekaServer) registerInstances(ctx context.Context, appId string, instance *InstanceInfo,
-	replicated bool) uint32 {
-
+func (h *EurekaServer) registerInstances(ctx context.Context, appId string, instance *InstanceInfo, replicated bool) uint32 {
+	ctx = context.WithValue(ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
 	appId = formatWriteName(appId)
 	// 1. 先转换数据结构
-	totalInstance := convertEurekaInstance(instance, h.namespace, appId, replicated)
+	totalInstance := convertEurekaInstance(instance, h.namespace, appId)
 	// 3. 注册实例
 	resp := h.namingServer.RegisterInstance(ctx, totalInstance)
 	// 4. 注册成功，则返回
@@ -203,22 +199,25 @@ func (h *EurekaServer) registerInstances(ctx context.Context, appId string, inst
 	return resp.GetCode().GetValue()
 }
 
-func (h *EurekaServer) deregisterInstance(ctx context.Context, appId string, instanceId string) uint32 {
+func (h *EurekaServer) deregisterInstance(ctx context.Context, appId string, instanceId string, replicated bool) uint32 {
+	ctx = context.WithValue(ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
 	resp := h.namingServer.DeregisterInstance(ctx, &apiservice.Instance{Id: &wrappers.StringValue{Value: instanceId}})
 	return resp.GetCode().GetValue()
 }
 
-func (h *EurekaServer) updateStatus(ctx context.Context, appId string, instanceId string, status string) uint32 {
+func (h *EurekaServer) updateStatus(ctx context.Context, appId string, instanceId string, status string, replicated bool) uint32 {
 	var isolated = false
 	if status != StatusUp {
 		isolated = true
 	}
+	ctx = context.WithValue(ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
 	resp := h.namingServer.UpdateInstances(ctx,
 		[]*apiservice.Instance{{Id: &wrappers.StringValue{Value: instanceId}, Isolate: &wrappers.BoolValue{Value: isolated}}})
 	return resp.GetCode().GetValue()
 }
 
-func (h *EurekaServer) renew(ctx context.Context, appId string, instanceId string) uint32 {
+func (h *EurekaServer) renew(ctx context.Context, appId string, instanceId string, replicated bool) uint32 {
+	ctx = context.WithValue(ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
 	resp := h.healthCheckServer.Report(ctx, &apiservice.Instance{Id: &wrappers.StringValue{Value: instanceId}})
 	code := resp.GetCode().GetValue()
 

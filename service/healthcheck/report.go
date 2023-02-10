@@ -83,11 +83,13 @@ func (s *Server) doReport(ctx context.Context, instance *apiservice.Instance) *a
 	}
 	err := checker.Report(request)
 
-	s.publishInstanceEvent(ins.ServiceID, model.InstanceEvent{
+	event := &model.InstanceEvent{
 		Id:       ins.ID(),
-		Instance: instance,
+		Instance: ins.Proto,
 		EType:    model.EventInstanceSendHeartbeat,
-	})
+	}
+	event.InjectMetadata(ctx)
+	s.publishInstanceEvent(ins.ServiceID, *event)
 
 	if err != nil {
 		log.Errorf("[Heartbeat][Server]fail to do report for %s:%d, id is %s, err is %v",

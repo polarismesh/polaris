@@ -106,14 +106,13 @@ func (r *ReplicateWorker) doBatchReplicate(tasks []*ReplicationInstance) {
 	for _, task := range tasks {
 		replicateInfo = append(replicateInfo, fmt.Sprintf("%s:%s", task.Action, task.Id))
 	}
+	log.Infof("start to send replicate text %s, peers %v", string(jsonData), r.peers)
 	for _, peer := range r.peers {
 		go r.doReplicateToPeer(peer, tasks, jsonData, replicateInfo)
 	}
 }
 
-func (r *ReplicateWorker) doReplicateToPeer(peer string, tasks []*ReplicationInstance,
-	jsonData []byte, replicateInfo []string) {
-
+func (r *ReplicateWorker) doReplicateToPeer(peer string, tasks []*ReplicationInstance, jsonData []byte, replicateInfo []string) {
 	response, err := sendHttpRequest(peer, jsonData, replicateInfo)
 	if nil != err {
 		log.Errorf("[EUREKA-SERVER] fail to batch replicate to %s, err: %v", peer, err)
@@ -160,6 +159,11 @@ func sendHttpRequest(peer string, jsonData []byte, replicateInfo []string) (*Rep
 		log.Errorf("[EUREKA-SERVER] fail to send replicate request: %v", err)
 		return nil, err
 	}
+	defer func() {
+		if nil != response && nil != response.Body {
+			_ = response.Body.Close()
+		}
+	}()
 	respStr, _ := io.ReadAll(response.Body)
 	respObj := &ReplicationListResponse{}
 	err = json.Unmarshal(respStr, respObj)
@@ -167,7 +171,6 @@ func sendHttpRequest(peer string, jsonData []byte, replicateInfo []string) (*Rep
 		log.Errorf("[EUREKA-SERVER] fail unmarshal text %s to ReplicationListResponse: %v", string(respStr), err)
 		return nil, err
 	}
-	_ = response.Body.Close()
 	log.Infof("[EUREKA-SERVER] success to replicate to %s, instances %v", peer, replicateInfo)
 	return respObj, nil
 }
