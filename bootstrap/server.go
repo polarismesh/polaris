@@ -583,6 +583,8 @@ func SelfDeregister() {
 			log.Errorf("Deregister instance error: %s", resp.GetInfo().GetValue())
 		}
 	}
+	// wait the async event handler to finish
+	time.Sleep(5 * time.Second)
 }
 
 // getLocalHost 获取本地IP地址

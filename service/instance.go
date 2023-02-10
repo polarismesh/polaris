@@ -117,22 +117,25 @@ func (s *Server) CreateInstance(ctx context.Context, req *apiservice.Instance) *
 		Name:      req.GetService().GetValue(),
 		Namespace: req.GetNamespace().GetValue(),
 	}
-	s.sendDiscoverEvent(model.InstanceEvent{
+	instanceProto := data.Proto
+	event := &model.InstanceEvent{
 		Id:         instanceID,
 		Namespace:  svc.Namespace,
 		Service:    svc.Name,
-		Instance:   &ins,
+		Instance:   instanceProto,
 		EType:      model.EventInstanceOnline,
 		CreateTime: time.Time{},
-	})
+	}
+	event.InjectMetadata(ctx)
+	s.sendDiscoverEvent(*event)
 	s.RecordHistory(ctx, instanceRecordEntry(ctx, req, svc, data, model.OCreate))
 	out := &apiservice.Instance{
 		Id:        ins.GetId(),
-		Service:   req.GetService(),
-		Namespace: req.GetNamespace(),
-		VpcId:     req.GetVpcId(),
-		Host:      req.GetHost(),
-		Port:      req.GetPort(),
+		Service:   &wrappers.StringValue{Value: svc.Name},
+		Namespace: &wrappers.StringValue{Value: svc.Namespace},
+		VpcId:     instanceProto.GetVpcId(),
+		Host:      instanceProto.GetHost(),
+		Port:      instanceProto.GetPort(),
 	}
 	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, out)
 }
@@ -280,14 +283,16 @@ func (s *Server) serialDeleteInstance(
 		instance.ID(), service.Namespace, service.Name, instance.Host(), instance.Port())
 	log.Info(msg, utils.ZapRequestID(rid), utils.ZapPlatformID(pid), zap.Duration("cost", time.Since(start)))
 	s.RecordHistory(ctx, instanceRecordEntry(ctx, req, service, instance, model.ODelete))
-	s.sendDiscoverEvent(model.InstanceEvent{
+	event := &model.InstanceEvent{
 		Id:         instance.ID(),
 		Namespace:  service.Namespace,
 		Service:    service.Name,
 		Instance:   instance.Proto,
 		EType:      model.EventInstanceOffline,
 		CreateTime: time.Time{},
-	})
+	}
+	event.InjectMetadata(ctx)
+	s.sendDiscoverEvent(*event)
 
 	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 }
@@ -317,14 +322,16 @@ func (s *Server) asyncDeleteInstance(
 	log.Info(msg, utils.ZapRequestID(rid), utils.ZapPlatformID(pid), zap.Duration("cost", time.Since(start)))
 	service := &model.Service{Name: instance.Service(), Namespace: instance.Namespace()}
 	s.RecordHistory(ctx, instanceRecordEntry(ctx, req, service, instance, model.ODelete))
-	s.sendDiscoverEvent(model.InstanceEvent{
+	event := &model.InstanceEvent{
 		Id:         instance.ID(),
 		Namespace:  service.Namespace,
 		Service:    service.Name,
 		Instance:   instance.Proto,
 		EType:      model.EventInstanceOffline,
 		CreateTime: time.Time{},
-	})
+	}
+	event.InjectMetadata(ctx)
+	s.sendDiscoverEvent(*event)
 
 	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 }
@@ -431,14 +438,16 @@ func (s *Server) UpdateInstance(ctx context.Context, req *apiservice.Instance) *
 	s.RecordHistory(ctx, instanceRecordEntry(ctx, req, service, instance, model.OUpdate))
 
 	for i := range eventTypes {
-		s.sendDiscoverEvent(model.InstanceEvent{
+		event := &model.InstanceEvent{
 			Id:         instance.ID(),
 			Namespace:  service.Namespace,
 			Service:    service.Name,
 			Instance:   instance.Proto,
 			EType:      eventTypes[i],
 			CreateTime: time.Time{},
-		})
+		}
+		event.InjectMetadata(ctx)
+		s.sendDiscoverEvent(*event)
 	}
 
 	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)

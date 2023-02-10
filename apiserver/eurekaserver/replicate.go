@@ -20,6 +20,7 @@ package eurekaserver
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/emicklei/go-restful/v3"
@@ -76,25 +77,30 @@ func (h *EurekaServer) BatchReplication(req *restful.Request, rsp *restful.Respo
 		writeHeader(http.StatusForbidden, rsp)
 		return
 	}
+	batchResponse, resultCode := h.doBatchReplicate(replicateRequest, token)
+	if err := writeEurekaResponseWithCode(restful.MIME_JSON, batchResponse, req, rsp, resultCode); nil != err {
+		log.Errorf("[EurekaServer]fail to write replicate response, client: %s, err: %v", remoteAddr, err)
+	}
+}
+
+func (h *EurekaServer) doBatchReplicate(
+	replicateRequest *ReplicationList, token string) (*ReplicationListResponse, uint32) {
 	batchResponse := &ReplicationListResponse{ResponseList: []*ReplicationInstanceResponse{}}
 	var resultCode = api.ExecuteSuccess
 	for _, instanceInfo := range replicateRequest.ReplicationList {
 		resp, code := h.dispatch(instanceInfo, token)
 		if code != api.ExecuteSuccess {
 			resultCode = code
-			log.Warnf("[EUREKA-SERVER] fail to process replicate instance request, code is %d, "+
-				" action %s, instance %s, app %s",
+			log.Warnf("[EUREKA-SERVER] fail to process replicate instance request, code is %d, action %s, instance %s, app %s",
 				code, instanceInfo.Action, instanceInfo.Id, instanceInfo.AppName)
 		}
 		batchResponse.ResponseList = append(batchResponse.ResponseList, resp)
 	}
-	if err := writeEurekaResponseWithCode(restful.MIME_JSON, batchResponse, req, rsp, resultCode); nil != err {
-		log.Errorf("[EurekaServer]fail to write replicate response, client: %s, err: %v", remoteAddr, err)
-	}
+	return batchResponse, resultCode
 }
 
-func (h *EurekaServer) dispatch(replicationInstance *ReplicationInstance,
-	token string) (*ReplicationInstanceResponse, uint32) {
+func (h *EurekaServer) dispatch(
+	replicationInstance *ReplicationInstance, token string) (*ReplicationInstanceResponse, uint32) {
 	appName := formatReadName(replicationInstance.AppName)
 	ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, token)
 	var retCode = api.ExecuteSuccess
@@ -102,8 +108,7 @@ func (h *EurekaServer) dispatch(replicationInstance *ReplicationInstance,
 	if nil != replicationInstance.InstanceInfo {
 		_ = convertInstancePorts(replicationInstance.InstanceInfo)
 		log.Debugf("[EurekaServer]dispatch replicate instance %+v, port %+v, sport %+v",
-			replicationInstance.InstanceInfo, replicationInstance.InstanceInfo.Port,
-			replicationInstance.InstanceInfo.SecurePort)
+			replicationInstance.InstanceInfo, replicationInstance.InstanceInfo.Port, replicationInstance.InstanceInfo.SecurePort)
 	}
 	switch replicationInstance.Action {
 	case actionRegister:
@@ -114,23 +119,23 @@ func (h *EurekaServer) dispatch(replicationInstance *ReplicationInstance,
 		}
 	case actionHeartbeat:
 		instanceId := replicationInstance.Id
-		retCode = h.renew(ctx, appName, instanceId)
+		retCode = h.renew(ctx, appName, instanceId, true)
 		if retCode == api.ExecuteSuccess || retCode == api.HeartbeatExceedLimit {
 			retCode = api.ExecuteSuccess
 		}
 	case actionCancel:
 		instanceId := replicationInstance.Id
-		retCode = h.deregisterInstance(ctx, appName, instanceId)
+		retCode = h.deregisterInstance(ctx, appName, instanceId, true)
 		if retCode == api.ExecuteSuccess || retCode == api.NotFoundResource || retCode == api.SameInstanceRequest {
 			retCode = api.ExecuteSuccess
 		}
 	case actionStatusUpdate:
 		status := replicationInstance.Status
 		instanceId := replicationInstance.Id
-		retCode = h.updateStatus(ctx, appName, instanceId, status)
+		retCode = h.updateStatus(ctx, appName, instanceId, status, true)
 	case actionDeleteStatusOverride:
 		instanceId := replicationInstance.Id
-		retCode = h.updateStatus(ctx, appName, instanceId, StatusUp)
+		retCode = h.updateStatus(ctx, appName, instanceId, StatusUp, true)
 	}
 
 	statusCode := http.StatusOK
@@ -175,11 +180,12 @@ func (h *EurekaServer) shouldReplicate(e model.InstanceEvent) bool {
 		// only process the service in same namespace
 		return false
 	}
-	metadata := e.Instance.GetMetadata()
+	metadata := e.MetaData
 	if len(metadata) > 0 {
-		if _, ok := metadata[MetadataReplicate]; ok {
+		if value, ok := metadata[MetadataReplicate]; ok {
 			// we should not replicate around
-			return false
+			isReplicate, _ := strconv.ParseBool(value)
+			return !isReplicate
 		}
 	}
 	return true

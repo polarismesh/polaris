@@ -18,6 +18,8 @@
 package model
 
 import (
+	"context"
+	"fmt"
 	"time"
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -45,6 +47,9 @@ const (
 	EventInstanceSendHeartbeat InstanceEventType = "InstanceSendHeartbeat"
 )
 
+// CtxEventKeyMetadata 用于将metadata从Context中传入并取出
+const CtxEventKeyMetadata = "ctx_event_metadata"
+
 // InstanceEvent 服务实例事件
 type InstanceEvent struct {
 	Id         string
@@ -53,4 +58,23 @@ type InstanceEvent struct {
 	Instance   *apiservice.Instance
 	EType      InstanceEventType
 	CreateTime time.Time
+	MetaData   map[string]string
+}
+
+// InjectMetadata 从context中获取metadata并注入到事件对象
+func (i *InstanceEvent) InjectMetadata(ctx context.Context) {
+	value := ctx.Value(CtxEventKeyMetadata)
+	if nil == value {
+		return
+	}
+	i.MetaData = value.(map[string]string)
+}
+
+func (i *InstanceEvent) String() string {
+	if nil == i {
+		return "nil"
+	}
+	hostPortStr := fmt.Sprintf("%s:%d", i.Instance.GetHost().GetValue(), i.Instance.GetPort().GetValue())
+	return fmt.Sprintf("InstanceEvent(id=%s, namespace=%s, service=%s, type=%v, instance=%s, healthy=%v)",
+		i.Id, i.Namespace, i.Service, i.EType, hostPortStr, i.Instance.GetHealthy().GetValue())
 }
