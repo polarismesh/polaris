@@ -1247,9 +1247,13 @@ func TestCheckServiceFieldLen(t *testing.T) {
 
 func TestConcurrencyCreateSameService(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	t.Cleanup(func() {
+		cancel()
 		ctrl.Finish()
+
+		time.Sleep(10 * time.Second)
 	})
 
 	createMockResource := func() (*Server, *mock.MockStore) {
@@ -1260,15 +1264,13 @@ func TestConcurrencyCreateSameService(t *testing.T) {
 		)
 
 		mockStore := mock.NewMockStore(ctrl)
-
-		err = cache.Initialize(context.TODO(), &cache.Config{
+		mockStore.EXPECT().GetUnixSecond().Return(time.Now().Unix(), nil).AnyTimes()
+		cacheMgr, err = cache.TestCacheInitialize(ctx, &cache.Config{
 			Open: true,
 		}, mockStore)
 		assert.NoError(t, err)
-		cacheMgr, err = cache.GetCacheManager()
-		assert.NoError(t, err)
 
-		_, err = auth.TestInitialize(context.TODO(), &auth.Config{
+		authSvr, err := auth.TestInitialize(ctx, &auth.Config{
 			Name: "defaultAuth",
 			Option: map[string]interface{}{
 				"clientOpen":  false,
@@ -1277,10 +1279,9 @@ func TestConcurrencyCreateSameService(t *testing.T) {
 		}, mockStore, cacheMgr)
 		assert.NoError(t, err)
 
-		namespace.Initialize(context.TODO(), &namespace.Config{
+		nsSvr, err = namespace.TestInitialize(ctx, &namespace.Config{
 			AutoCreate: true,
-		}, mockStore, cacheMgr)
-		nsSvr, err = namespace.GetOriginServer()
+		}, mockStore, cacheMgr, authSvr)
 		assert.NoError(t, err)
 
 		svr := &Server{
