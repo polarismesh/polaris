@@ -55,19 +55,15 @@ func (s *Server) ReportClient(ctx context.Context, req *apiservice.Client) *apis
 
 	// 客户端信息不写入到DB中
 	host := req.GetHost().GetValue()
-
 	// 从CMDB查询地理位置信息
 	if s.cmdb != nil {
 		location, err := s.cmdb.GetLocation(host)
 		if err != nil {
-			log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
-			return api.NewClientResponse(apimodel.Code_CMDBPluginException, req)
+			log.Errora(utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		}
-
-		if location == nil {
-			return api.NewClientResponse(apimodel.Code_CMDBNotFindHost, req)
+		if location != nil {
+			req.Location = location.Proto
 		}
-		req.Location = location.Proto
 	}
 
 	// save the client with unique id into store
