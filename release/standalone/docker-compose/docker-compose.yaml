@@ -91,7 +91,7 @@ services:
     volumes:
       - vlm_data_mysql:/var/lib/mysql
       - ./mysql/mysqld.cnf:/etc/mysql/conf.d/custom.cnf:cached
-      - ../../store/mysql/scripts/polaris_server.sql:/docker-entrypoint-initdb.d/polaris_server.sql
+      - ./mysql/scripts/polaris_server.sql:/docker-entrypoint-initdb.d/polaris_server.sql
     ports:
       - "3306:3306"
     expose:
