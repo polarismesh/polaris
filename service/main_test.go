@@ -362,6 +362,59 @@ func (d *DiscoverTestSuit) cleanNamespace(name string) {
 	}
 }
 
+// 从数据库彻底删除全部服务
+func (d *DiscoverTestSuit) cleanAllService() {
+
+	if d.storage.Name() == sqldb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
+
+			defer dbTx.Rollback()
+
+			if _, err := dbTx.Exec("delete from service_metadata"); err != nil {
+				dbTx.Rollback()
+				panic(err)
+			}
+
+			if _, err := dbTx.Exec("delete from service"); err != nil {
+				dbTx.Rollback()
+				panic(err)
+			}
+
+			if _, err := dbTx.Exec("delete from owner_service_map"); err != nil {
+				dbTx.Rollback()
+				panic(err)
+			}
+
+			dbTx.Commit()
+		}()
+	} else if d.storage.Name() == boltdb.STORENAME {
+		func() {
+			tx, err := d.storage.StartTx()
+			if err != nil {
+				panic(err)
+			}
+
+			dbTx := tx.GetDelegateTx().(*bolt.Tx)
+			defer dbTx.Rollback()
+
+			if err := dbTx.DeleteBucket([]byte(tblNameService)); err != nil {
+				if !errors.Is(err, bolt.ErrBucketNotFound) {
+					dbTx.Rollback()
+					panic(err)
+				}
+			}
+
+			dbTx.Commit()
+		}()
+	}
+}
+
 // 从数据库彻底删除服务
 func (d *DiscoverTestSuit) cleanService(name, namespace string) {
 

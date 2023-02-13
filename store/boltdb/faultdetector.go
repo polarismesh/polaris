@@ -302,7 +302,7 @@ func (c *faultDetectStore) GetFaultDetectRulesForCache(
 	}
 
 	results, err := handler.LoadValuesByFilter(
-		tblFaultDetectRule, []string{CommonFieldModifyTime}, &model.CircuitBreakerRule{},
+		tblFaultDetectRule, []string{CommonFieldModifyTime}, &model.FaultDetectRule{},
 		func(m map[string]interface{}) bool {
 			mt := m[CommonFieldModifyTime].(time.Time)
 			isAfter := !mt.Before(mtime)

@@ -287,24 +287,41 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 	}
 
 	// 统一判断实例是否存在，存在则需要更新部分数据
-	firstRegisInstances, err := ctrl.batchRestoreInstanceIsolate(remains)
-	if err != nil {
+	if err := ctrl.batchRestoreInstanceIsolate(remains); err != nil {
 		log.Errorf("[Batch] batch check instances existed err: %s", err.Error())
 	}
 
 	// 判断入参数组是否为0
 	if len(remains) == 0 {
-		log.Infof("[Batch] all instances is existed, return create instances process")
+		log.Info("[Batch] all instances is existed, return create instances process")
 		return nil
 	}
-
 	// 构造model数据
 	for _, entry := range remains {
 		ins := instancecommon.CreateInstanceModel(entry.serviceId, entry.request)
-		if _, ok := firstRegisInstances[ins.ID()]; ok {
-			ins.FirstRegis = true
-		}
 		entry.SetInstance(ins)
+	}
+
+	tx, err := ctrl.storage.CreateTransaction()
+	if err != nil {
+		sendReply(remains, apimodel.Code_StoreLayerException, err)
+		return nil
+	}
+	defer func() {
+		_ = tx.Commit()
+	}()
+	lockedService := make(map[string]struct{})
+	for i := range remains {
+		future := remains[i]
+		svcId := future.serviceId
+		if _, ok := lockedService[svcId]; ok {
+			continue
+		}
+		if _, err := ctrl.lockServiceByID(tx, svcId); err != nil {
+			future.Reply(time.Now(), apimodel.Code_StoreLayerException, err)
+			continue
+		}
+		lockedService[svcId] = struct{}{}
 	}
 
 	// 调用batch接口，创建实例
@@ -408,7 +425,7 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 	}
 
 	if len(remains) == 0 {
-		log.Infof("[Batch] deregister all instances verify failed or instances is not existed, no remain any instances")
+		log.Infof("[Batch] deregister instances verify failed or instances is not existed, no remain any instances")
 		return nil
 	}
 
@@ -428,9 +445,9 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 }
 
 // batchRestoreInstanceIsolate 批量恢复实例的隔离状态，以请求为准，请求如果不存在，就以数据库为准
-func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*InstanceFuture) (map[string]struct{}, error) {
+func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*InstanceFuture) error {
 	if len(futures) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	// 初始化所有的id都是不存在的
@@ -443,52 +460,24 @@ func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*Instan
 	if id2Isolate, err = ctrl.storage.BatchGetInstanceIsolate(ids); err != nil {
 		log.Errorf("[Batch] check instances existed storage err: %s", err.Error())
 		sendReply(futures, apimodel.Code_StoreLayerException, err)
-		return nil, err
+		return err
 	}
 
-	firstRegisInstances := make(map[string]struct{})
 	if len(id2Isolate) == 0 {
-		for id := range futures {
-			firstRegisInstances[id] = struct{}{}
-		}
-		return firstRegisInstances, err
+		return nil
 	}
 
 	if len(id2Isolate) > 0 {
-		for id := range ids {
-			if _, ok := id2Isolate[id]; !ok {
-				firstRegisInstances[id] = struct{}{}
-			}
-		}
-
 		for id, isolate := range id2Isolate {
 			if future, ok := futures[id]; ok && future.request.Isolate == nil {
 				future.request.Isolate = &wrappers.BoolValue{Value: isolate}
 			}
 		}
 	}
-	return firstRegisInstances, err
+	return nil
 }
 
-// batchVerifyInstances 对请求futures进行统一的鉴权
-// 目的：遇到同名的服务，可以减少getService的次数
-// 返回：过滤后的futures, 实例ID->ServiceID, error
-func (ctrl *InstanceCtrl) batchVerifyInstances(futures map[string]*InstanceFuture) (
-	map[string]*InstanceFuture, map[string]string, error) {
-	if len(futures) == 0 {
-		return nil, nil, nil
-	}
-
-	serviceIDs := make(map[string]string) // 实例ID -> ServiceID
-	// services := make(map[string]*model.Service) // 保存Service的鉴权结果
-	for _, entry := range futures {
-		serviceIDs[entry.request.GetId().GetValue()] = entry.serviceId
-	}
-
-	return futures, serviceIDs, nil
-}
-
-func (ctrl *InstanceCtrl) loadService(entry *InstanceFuture, name, namespace string) (*model.Service, bool) {
+func (ctrl *InstanceCtrl) lockServiceByID(tx store.Transaction, svcID string) (*model.Service, error) {
 	var (
 		err        error
 		tmpService *model.Service
@@ -496,27 +485,30 @@ func (ctrl *InstanceCtrl) loadService(entry *InstanceFuture, name, namespace str
 
 	// 判断缓存中是否可以找到该服务
 	if ctrl.cacheMgn != nil {
-		tmpService = ctrl.cacheMgn.Service().GetServiceByName(name, namespace)
+		tmpService = ctrl.cacheMgn.Service().GetServiceByID(svcID)
 	}
 
 	// 缓存中不存在，在走store层在发起一次查询
 	if tmpService == nil {
-		tmpService, err = ctrl.storage.GetSourceServiceToken(name, namespace)
+		tmpService, err = ctrl.storage.GetServiceByID(svcID)
 		if err != nil {
-			log.Errorf("[Controller] get source service(%s, %s) token err: %s",
-				entry.request.GetService().GetValue(), entry.request.GetNamespace().GetValue(), err.Error())
-			entry.Reply(time.Now(), apimodel.Code_StoreLayerException, err)
-
-			return nil, false
+			return nil, err
 		}
 		if tmpService == nil {
-			log.Errorf("[Controller] get source service(%s, %s) token is empty, verify failed",
-				entry.request.GetService().GetValue(), entry.request.GetNamespace().GetValue())
-			entry.Reply(time.Now(), apimodel.Code_NotFoundResource, ErrorNotFoundService)
-
-			return nil, false
+			return nil, errors.New("not found service")
 		}
 	}
 
-	return tmpService, true
+	svc, err := tx.RLockService(tmpService.Name, tmpService.Namespace)
+	if err != nil {
+		return nil, err
+	}
+	if svc == nil {
+		return nil, errors.New("not found service in rlock")
+	}
+	if svc.IsAlias() {
+		return nil, errors.New("alias not allow to create instance")
+	}
+
+	return svc, nil
 }

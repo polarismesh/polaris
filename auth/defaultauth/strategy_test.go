@@ -109,7 +109,7 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 			"salt":        "polarismesh@2021",
 			"strict":      false,
 		},
-	}, cacheMgn)
+	}, storage, cacheMgn)
 	checker.cacheMgn = cacheMgn
 
 	svr := &serverAuthAbility{

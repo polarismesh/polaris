@@ -284,11 +284,12 @@ cache:
     - name: users # 加载用户、用户组数据
     - name: strategyRule # 加载鉴权规则数据
     - name: namespace # 加载命名空间数据
-    - name: client # 加载上报的客户端数据
+    - name: client # 加载命名空间数据
     - name: configFile
       option:
         #配置文件缓存过期时间，单位s
         expireTimeAfterWrite: 3600
+    - name: faultDetectRule
 #    - name: l5 # 加载l5数据
 # 存储配置
 store:
