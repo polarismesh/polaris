@@ -1043,22 +1043,25 @@ func (s *Server) lockService(ctx context.Context, namespace string,
 	if err != nil {
 		return nil, nil, apimodel.Code_StoreLayerException
 	}
-	cancel := func() {
+	release := func() {
 		_ = tx.Commit()
 	}
 
 	svc, err := tx.RLockService(svcName, namespace)
 	if err != nil {
+		release()
 		return nil, nil, apimodel.Code_StoreLayerException
 	}
 	if svc == nil {
+		release()
 		return nil, nil, apimodel.Code_NotFoundService
 	}
 	if svc.IsAlias() {
+		release()
 		return nil, nil, apimodel.Code_NotAllowAliasCreateInstance
 	}
 
-	return svc, cancel, apimodel.Code_ExecuteSuccess
+	return svc, release, apimodel.Code_ExecuteSuccess
 }
 
 /*

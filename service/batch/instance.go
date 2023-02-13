@@ -302,10 +302,10 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 		entry.SetInstance(ins)
 	}
 
-	unlockServce := make(map[string]func())
+	unlockService := make(map[string]func())
 	for i := range remains {
 		svcId := remains[i].serviceId
-		if _, ok := unlockServce[svcId]; ok {
+		if _, ok := unlockService[svcId]; ok {
 			continue
 		}
 		_, releaseFunc, err := ctrl.lockServiceByID(context.Background(), svcId)
@@ -313,12 +313,12 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 			sendReply(futures, apimodel.Code_StoreLayerException, err)
 			continue
 		}
-		unlockServce[svcId] = releaseFunc
+		unlockService[svcId] = releaseFunc
 	}
 
 	defer func() {
-		for k := range unlockServce {
-			unlockServce[k]()
+		for k := range unlockService {
+			unlockService[k]()
 		}
 	}()
 
@@ -423,7 +423,7 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 	}
 
 	if len(remains) == 0 {
-		log.Infof("[Batch] deregister all instances verify failed or instances is not existed, no remain any instances")
+		log.Infof("[Batch] deregister instances verify failed or instances is not existed, no remain any instances")
 		return nil
 	}
 
@@ -475,24 +475,6 @@ func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*Instan
 	return err
 }
 
-// batchVerifyInstances 对请求futures进行统一的鉴权
-// 目的：遇到同名的服务，可以减少getService的次数
-// 返回：过滤后的futures, 实例ID->ServiceID, error
-func (ctrl *InstanceCtrl) batchVerifyInstances(futures map[string]*InstanceFuture) (
-	map[string]*InstanceFuture, map[string]string, error) {
-	if len(futures) == 0 {
-		return nil, nil, nil
-	}
-
-	serviceIDs := make(map[string]string) // 实例ID -> ServiceID
-	// services := make(map[string]*model.Service) // 保存Service的鉴权结果
-	for _, entry := range futures {
-		serviceIDs[entry.request.GetId().GetValue()] = entry.serviceId
-	}
-
-	return futures, serviceIDs, nil
-}
-
 func (ctrl *InstanceCtrl) lockServiceByID(ctx context.Context, svcID string) (*model.Service, func(), error) {
 	var (
 		err        error
@@ -519,20 +501,23 @@ func (ctrl *InstanceCtrl) lockServiceByID(ctx context.Context, svcID string) (*m
 	if err != nil {
 		return nil, nil, err
 	}
-	cancel := func() {
+	release := func() {
 		_ = tx.Commit()
 	}
 
 	svc, err := tx.RLockService(tmpService.Name, tmpService.Namespace)
 	if err != nil {
+		release()
 		return nil, nil, err
 	}
 	if svc == nil {
+		release()
 		return nil, nil, errors.New("not found service in rlock")
 	}
 	if svc.IsAlias() {
+		release()
 		return nil, nil, errors.New("alias not allow to create instance")
 	}
 
-	return svc, cancel, nil
+	return svc, release, nil
 }

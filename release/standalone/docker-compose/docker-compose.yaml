@@ -58,6 +58,8 @@ services:
     container_name: polaris-limiter
     hostname: polaris-limiter
     image: polarismesh/polaris-limiter:##POLARIS_LIMITER_VERSION##
+    environment:
+      - MY_ID=1
     volumes:
       - ./limiter/polaris-limiter.yaml:/root/polaris-limiter.yaml
     expose: # 用于北极星集群内部访问
