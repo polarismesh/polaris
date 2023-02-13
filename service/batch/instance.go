@@ -464,7 +464,7 @@ func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*Instan
 	}
 
 	if len(id2Isolate) == 0 {
-		return err
+		return nil
 	}
 
 	if len(id2Isolate) > 0 {
@@ -474,7 +474,7 @@ func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*Instan
 			}
 		}
 	}
-	return err
+	return nil
 }
 
 func (ctrl *InstanceCtrl) lockServiceByID(tx store.Transaction, svcID string) (*model.Service, error) {
