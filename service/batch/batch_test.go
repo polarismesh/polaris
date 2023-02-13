@@ -175,7 +175,7 @@ func TestAsyncCreateInstance(t *testing.T) {
 		})
 		mockSvc := &model.Service{ID: "1"}
 		actualCommit := int32(0)
-		totalCommit := int32(100)
+		totalIns := int32(100)
 		mockTrx := smock.NewMockTransaction(ctrl)
 		mockTrx.EXPECT().Commit().Do(func() {
 			atomic.AddInt32(&actualCommit, 1)
@@ -190,8 +190,8 @@ func TestAsyncCreateInstance(t *testing.T) {
 		storage.EXPECT().GetServiceByID(gomock.Any()).Return(mockSvc, nil).AnyTimes()
 		storage.EXPECT().CreateTransaction().Return(mockTrx, nil).AnyTimes()
 		storage.EXPECT().BatchAddInstances(gomock.Any()).Return(nil).AnyTimes()
-		assert.NoError(t, sendAsyncCreateInstance(bc, totalCommit))
-		assert.Equal(t, totalCommit, actualCommit)
+		assert.NoError(t, sendAsyncCreateInstance(bc, totalIns))
+		assert.True(t, totalIns/int32(8) <= actualCommit && actualCommit <= totalIns/int32(8)+int32(1))
 	})
 
 	t.Run("创建实例-lockService随机出现错误", func(t *testing.T) {
@@ -202,7 +202,7 @@ func TestAsyncCreateInstance(t *testing.T) {
 		})
 		mockSvc := &model.Service{ID: "1"}
 		actualCommit := int32(0)
-		totalCommit := int32(100)
+		totalIns := int32(100)
 		hasErr := int32(0)
 		mockTrx := smock.NewMockTransaction(ctrl)
 		mockTrx.EXPECT().Commit().Do(func() {
@@ -222,8 +222,13 @@ func TestAsyncCreateInstance(t *testing.T) {
 		storage.EXPECT().GetServiceByID(gomock.Any()).Return(mockSvc, nil).AnyTimes()
 		storage.EXPECT().CreateTransaction().Return(mockTrx, nil).AnyTimes()
 		storage.EXPECT().BatchAddInstances(gomock.Any()).Return(nil).AnyTimes()
-		assert.True(t, sendAsyncCreateInstance(bc, totalCommit) != nil && atomic.LoadInt32(&hasErr) == 1)
-		assert.Equal(t, totalCommit, actualCommit)
+		err := sendAsyncCreateInstance(bc, totalIns)
+		if atomic.LoadInt32(&hasErr) == 1 {
+			assert.Error(t, err)			
+		} else {
+			assert.NoError(t, err)		
+		}
+		assert.True(t, totalIns/int32(8) <= actualCommit && actualCommit <= totalIns/int32(8)+int32(1))
 	})
 }
 

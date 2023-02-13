@@ -302,25 +302,27 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 		entry.SetInstance(ins)
 	}
 
-	unlockService := make(map[string]func())
-	for i := range remains {
-		svcId := remains[i].serviceId
-		if _, ok := unlockService[svcId]; ok {
-			continue
-		}
-		_, releaseFunc, err := ctrl.lockServiceByID(context.Background(), svcId)
-		if err != nil {
-			sendReply(futures, apimodel.Code_StoreLayerException, err)
-			continue
-		}
-		unlockService[svcId] = releaseFunc
+	tx, err := ctrl.storage.CreateTransaction()
+	if err != nil {
+		sendReply(remains, apimodel.Code_StoreLayerException, err)
+		return nil
 	}
-
 	defer func() {
-		for k := range unlockService {
-			unlockService[k]()
-		}
+		_ = tx.Commit()
 	}()
+	lockedService := make(map[string]struct{})
+	for i := range remains {
+		future := remains[i]
+		svcId := future.serviceId
+		if _, ok := lockedService[svcId]; ok {
+			continue
+		}
+		if _, err := ctrl.lockServiceByID(tx, svcId); err != nil {
+			future.Reply(time.Now(), apimodel.Code_StoreLayerException, err)
+			continue
+		}
+		lockedService[svcId] = struct{}{}
+	}
 
 	// 调用batch接口，创建实例
 	instances := make([]*model.Instance, 0, len(remains))
@@ -475,7 +477,7 @@ func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*Instan
 	return err
 }
 
-func (ctrl *InstanceCtrl) lockServiceByID(ctx context.Context, svcID string) (*model.Service, func(), error) {
+func (ctrl *InstanceCtrl) lockServiceByID(tx store.Transaction, svcID string) (*model.Service, error) {
 	var (
 		err        error
 		tmpService *model.Service
@@ -490,34 +492,23 @@ func (ctrl *InstanceCtrl) lockServiceByID(ctx context.Context, svcID string) (*m
 	if tmpService == nil {
 		tmpService, err = ctrl.storage.GetServiceByID(svcID)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		if tmpService == nil {
-			return nil, nil, errors.New("not found service")
+			return nil, errors.New("not found service")
 		}
-	}
-
-	tx, err := ctrl.storage.CreateTransaction()
-	if err != nil {
-		return nil, nil, err
-	}
-	release := func() {
-		_ = tx.Commit()
 	}
 
 	svc, err := tx.RLockService(tmpService.Name, tmpService.Namespace)
 	if err != nil {
-		release()
-		return nil, nil, err
+		return nil, err
 	}
 	if svc == nil {
-		release()
-		return nil, nil, errors.New("not found service in rlock")
+		return nil, errors.New("not found service in rlock")
 	}
 	if svc.IsAlias() {
-		release()
-		return nil, nil, errors.New("alias not allow to create instance")
+		return nil, errors.New("alias not allow to create instance")
 	}
 
-	return svc, release, nil
+	return svc, nil
 }
