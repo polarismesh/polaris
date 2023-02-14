@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -56,7 +55,6 @@ var (
 	SelfServiceInstance = make([]*apiservice.Instance, 0)
 	ConfigFilePath      = ""
 	selfHeathChecker    *SelfHeathChecker
-	ApiServerWaitGroup  = new(sync.WaitGroup)
 )
 
 // Start 启动
@@ -139,6 +137,7 @@ func Start(configFilePath string) {
 
 	// 等待信号量
 	WaitSignal(servers, errCh)
+	fmt.Println("begin stop server")
 }
 
 // StartComponents start health check and naming components
@@ -301,7 +300,6 @@ func StartServers(ctx context.Context, cfg *boot_config.Config, errCh chan error
 	var servers []apiserver.Apiserver
 
 	// 等待所有ApiServer都监听完成
-
 	for _, protocol := range cfg.APIServers {
 		slot, exist := apiserver.Slots[protocol.Name]
 		if !exist {
@@ -316,10 +314,8 @@ func StartServers(ctx context.Context, cfg *boot_config.Config, errCh chan error
 		}
 
 		servers = append(servers, slot)
-		ApiServerWaitGroup.Add(1)
 		go slot.Run(errCh)
 	}
-	ApiServerWaitGroup.Wait()
 	return servers, nil
 }
 

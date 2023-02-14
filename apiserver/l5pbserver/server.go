@@ -26,7 +26,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/apiserver"
-	"github.com/polarismesh/polaris/bootstrap"
 	"github.com/polarismesh/polaris/common/api/l5"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service"
@@ -106,7 +105,6 @@ func (l *L5pbserver) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
-	bootstrap.ApiServerWaitGroup.Done()
 	l.listener = listener
 
 	for {
