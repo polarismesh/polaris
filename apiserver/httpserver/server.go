@@ -35,7 +35,6 @@ import (
 	v1 "github.com/polarismesh/polaris/apiserver/httpserver/v1"
 	v2 "github.com/polarismesh/polaris/apiserver/httpserver/v2"
 	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/bootstrap"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	commonlog "github.com/polarismesh/polaris/common/log"
@@ -222,7 +221,6 @@ func (h *HTTPServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
-	bootstrap.ApiServerWaitGroup.Done()
 
 	ln = &tcpKeepAliveListener{ln.(*net.TCPListener)}
 	// 开启最大连接数限制

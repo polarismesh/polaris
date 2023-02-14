@@ -42,6 +42,7 @@ services:
     container_name: polaris-console
     hostname: polaris-console
     image: polarismesh/polaris-console:##POLARIS_CONSOLE_VERSION##
+    restart: always
     volumes:
       - ./console/polaris-console.yaml:/root/polaris-console.yaml
     ports:
@@ -58,6 +59,7 @@ services:
     container_name: polaris-limiter
     hostname: polaris-limiter
     image: polarismesh/polaris-limiter:##POLARIS_LIMITER_VERSION##
+    restart: always
     environment:
       - MY_ID=1
     volumes:
@@ -75,23 +77,23 @@ services:
     links:
       - polaris-server
   mysql:
+    build: mysql
     container_name: mysql
     hostname: mysql
     platform: linux/amd64
-    build: mysql
     restart: always
     command: mysqld --optimizer-trace-max-mem-size=102400
     environment:
       - TZ=Asia/Shanghai
       - LANG=zh_CN.utf8
-      - MYSQL_DATABASE=default
+      - MYSQL_DATABASE=polaris_server
       - MYSQL_USER=default
       - MYSQL_PASSWORD=secret
       - MYSQL_ROOT_PASSWORD=polaris
     volumes:
       - vlm_data_mysql:/var/lib/mysql
       - ./mysql/mysqld.cnf:/etc/mysql/conf.d/custom.cnf:cached
-      - ./mysql/scripts/polaris_server.sql:/docker-entrypoint-initdb.d/polaris_server.sql
+      - ./mysql/scripts:/docker-entrypoint-initdb.d
     ports:
       - "3306:3306"
     expose:
@@ -112,7 +114,7 @@ services:
   polaris-prometheus:
     container_name: polaris-prometheus
     hostname: polaris-prometheus
-    image: polarismesh/polaris-prometheus:##POLARIS_PROMETHEUS_VERSION##
+    build: prometheus
     networks:
       - backend
     expose:

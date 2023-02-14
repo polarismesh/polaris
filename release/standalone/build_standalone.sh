@@ -35,9 +35,7 @@ if [ ${INNER_GOOS} == "kubernetes" ]; then
     cd ${workdir}
     cd release/standalone
 
-    mkdir -p docker-compose/mysql/scripts
-
-    cp -rf ../../store/mysql/scripts docker-compose/mysql/scripts
+    cp -rf ../../store/mysql/scripts/* docker-compose/mysql/
 
     sed -i "s/##POLARIS_SERVER_VERSION##/${INNER_SERVER_VERSION}/g" docker-compose/docker-compose.yaml
     sed -i "s/##POLARIS_CONSOLE_VERSION##/${INNER_CONSOLE_VERSION}/g" docker-compose/docker-compose.yaml

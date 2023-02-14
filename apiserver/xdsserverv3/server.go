@@ -58,7 +58,6 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/polarismesh/polaris/apiserver"
-	"github.com/polarismesh/polaris/bootstrap"
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
@@ -166,7 +165,6 @@ func (x *XDSServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
-	bootstrap.ApiServerWaitGroup.Done()
 
 	if x.connLimitConfig != nil && x.connLimitConfig.OpenConnLimit {
 		log.Infof("grpc server use max connection limit: %d, grpc max limit: %d",
