@@ -1,3 +1,18 @@
+# Tencent is pleased to support the open source community by making Polaris available.
+#
+# Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
+#
+# Licensed under the BSD 3-Clause License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software distributed
+# under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+# CONDITIONS OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the License.
+
 version: '3.9'
 
 networks:
@@ -51,10 +66,10 @@ services:
       - backend
     depends_on:
       - polaris-server
-      - polaris-pushgateway
+      - pushgateway
     links:
       - polaris-server
-      - polaris-pushgateway
+      - pushgateway
   polaris-limiter:
     container_name: polaris-limiter
     hostname: polaris-limiter
@@ -93,7 +108,7 @@ services:
     volumes:
       - vlm_data_mysql:/var/lib/mysql
       - ./mysql/mysqld.cnf:/etc/mysql/conf.d/custom.cnf:cached
-      - ./mysql/scripts:/docker-entrypoint-initdb.d
+      - ./mysql:/docker-entrypoint-initdb.d
     ports:
       - "3306:3306"
     expose:
@@ -111,27 +126,30 @@ services:
       - backend
     expose:
       - 6379
-  polaris-prometheus:
-    container_name: polaris-prometheus
+  prometheus:
+    container_name: prometheus
     hostname: polaris-prometheus
     build: prometheus
+    restart: always
     networks:
       - backend
     expose:
       - 9090
     links:
       - polaris-server # 采集北极星性能
-  polaris-pushgateway:
+  pushgateway:
     container_name: polaris-pushgateway
     image: prom/pushgateway:latest
     hostname: polaris-pushgateway
+    restart: always
     networks:
       - backend
     expose:
       - 9091
-  polaris-grafana:
+  grafana:
     container_name: polaris-grafana
     build: grafana
+    restart: always
     ports:
       - "3000:3000"
     volumes:
@@ -139,7 +157,7 @@ services:
       - ./grafana/dashboards:/etc/grafana/dashboards/:rw
       - ./grafana/grafana.ini:/etc/grafana/grafana.ini:rw
     depends_on:
-      - polaris-prometheus
-      - polaris-pushgateway
+      - prometheus
+      - pushgateway
     networks:
       - backend
