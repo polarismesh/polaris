@@ -196,7 +196,7 @@ function installPrometheus() {
   cp prometheus-help.sh ${prometheus_dirname}/
   pushd ${prometheus_dirname}
   echo "    http_sd_configs:" >>prometheus.yml
-  echo "    - url: http://localhost:9000/prometheus/v1/clients" >>prometheus.yml
+  echo "    - url: http://localhost:8090/prometheus/v1/clients" >>prometheus.yml
   echo "" >>prometheus.yml
   echo "  - job_name: 'push-metrics'" >>prometheus.yml
   echo "    static_configs:" >>prometheus.yml

@@ -223,7 +223,7 @@ function installPrometheus() {
   local push_count=$(cat prometheus.yml | grep "push-metrics" | wc -l)
   if [ $push_count -eq 0 ]; then
     echo "    http_sd_configs:" >>prometheus.yml
-    echo "    - url: http://localhost:9000/prometheus/v1/clients" >>prometheus.yml
+    echo "    - url: http://localhost:8090/prometheus/v1/clients" >>prometheus.yml
     echo "" >>prometheus.yml
     echo "  - job_name: 'push-metrics'" >>prometheus.yml
     echo "    static_configs:" >>prometheus.yml
