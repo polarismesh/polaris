@@ -25,7 +25,7 @@ import (
 
 var (
 	configConsoleApiTags = []string{"ConfigConsole"}
-	configClientApiTags  = []string{"ConfigClient"}
+	configClientApiTags  = []string{"Client"}
 )
 
 func enrichCreateConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {

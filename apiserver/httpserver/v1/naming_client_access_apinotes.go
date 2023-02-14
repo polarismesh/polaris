@@ -17,116 +17,12 @@
 
 package v1
 
+import "github.com/polarismesh/polaris/apiserver/httpserver/v1/apinotes"
+
 const (
-	enrichRegisterInstanceApiNotes = `
-请求示例
-
-~~~
-POST /v1/RegisterInstance
-
-# 开启北极星客户端接口鉴权开关后，需要添加下面的 header
-Header X-Polaris-Token: {访问凭据}
-
-{
-    "service": "xxxx",
-    "namespace": "xxx",
-    "host": "xxx",
-    "port": 8080,
-	"protocol": "xx",
-	"version": "xx",
-    "location": {
-        "region": "xxx",
-        "zone": "xxx",
-        "campus": ""
-    },
-    "metadata": {
-        "key": "value"
-    }
-}
-~~~
-`
-	enrichDeregisterInstanceApiNotes = `
-请求示例
-
-~~~
-POST /v1/DeRegisterInstance
-
-# 开启北极星客户端接口鉴权开关后，需要添加下面的 header
-Header X-Polaris-Token: {访问凭据}
-~~~
-`
-	enrichHeartbeatApiNotes = `
-
-请求示例
-
-~~~
-POST /v1/Heartbeat
-
-# 开启北极星客户端接口鉴权开关后，需要添加下面的 header
-Header X-Polaris-Token: {访问凭据}
-
-{
-    "namespace": "", // 命名空间，必填；string
-    "service": "",	// 服务名称，必填；string
-    "host":"",		// 实例 host 信息，必填；string
-    "port": 80		// 实例 port 信息，必填；int
-}
-~~~
-
-
-应答示例：
-
-- 正常心跳上报结果。
-
-~~~json
-{
-    "code": 200000,
-    "info": "execute success",
-    "instance": {
-        "service": "BootEchoServer",
-        "namespace": "default",
-        "host": "127.0.0.1",
-        "port": 28888
-    }
-}
-~~~
-
-- 若实例不存在或者实例未开启心跳上报
-
-~~~json
-{
-    "code": 400141,
-    "info": "heartbeat on disabled instance",
-    "instance": {
-        "service": "BootEchoServer",
-        "namespace": "default",
-        "vpc_id": null,
-        "host": "127.0.0.1",
-        "port": 28881
-    }
-}
-~~~
-`
-	enrichReportClientApiNotes = `
-请求示例
-
-~~~
-POST /v1/ReportClient
-
-# 开启北极星客户端接口鉴权开关后，需要添加下面的 header
-Header X-Polaris-Token: {访问凭据}
-
-{
-	"host": "xxx",
-	"type": "xxx",
-	"version": "xx",
-	"location": {
-		"region": "xxx",
-		"zone": "xxx",	
-		"campus": ""
-	}
-}
-~~~
-`
-	enrichDiscoverApiNotes = ``
+	enrichRegisterInstanceApiNotes   = apinotes.EnrichRegisterInstanceApiNotes
+	enrichDeregisterInstanceApiNotes = apinotes.EnrichDeregisterInstanceApiNotes
+	enrichHeartbeatApiNotes          = apinotes.EnrichHeartbeatApiNotes
+	enrichReportClientApiNotes       = apinotes.EnrichReportClientApiNotes
+	enrichDiscoverApiNotes           = apinotes.EnrichDiscoverApiNotes
 )

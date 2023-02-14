@@ -44,8 +44,7 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Contact: &spec.ContactInfo{
 				ContactInfoProps: spec.ContactInfoProps{
 					Name: "Polaris Mesh",
-					//Email: "polaris@qq.com",
-					URL: "https://polarismesh.cn/",
+					URL:  "https://polarismesh.cn/",
 				},
 			},
 			License: &spec.License{
@@ -59,17 +58,14 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 	}
 	swo.Tags = []spec.Tag{
 		{TagProps: spec.TagProps{
-			Name:        "Auth",
-			Description: "鉴权管理"}},
-		{TagProps: spec.TagProps{
-			Name:        "ConfigClient",
-			Description: "客户端API接口"}},
+			Name:        "Client",
+			Description: "客户端接口"}},
 		{TagProps: spec.TagProps{
 			Name:        "ConfigConsole",
-			Description: "服务端接口"}},
+			Description: "配置管理"}},
 		{TagProps: spec.TagProps{
 			Name:        "CircuitBreakers",
-			Description: "熔断限流"}},
+			Description: "熔断规则管理"}},
 		{TagProps: spec.TagProps{
 			Name:        "Instances",
 			Description: "实例管理"}},
@@ -86,17 +82,14 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Name:        "RateLimits",
 			Description: "限流规则管理"}},
 		{TagProps: spec.TagProps{
-			Name:        "RegisterInstance",
-			Description: "服务发现"}},
-		{TagProps: spec.TagProps{
 			Name:        "Services",
 			Description: "服务管理"}},
 		{TagProps: spec.TagProps{
-			Name:        "Users",
-			Description: "用户管理"}},
+			Name:        "AuthRule",
+			Description: "鉴权规则管理"}},
 		{TagProps: spec.TagProps{
-			Name:        "UserGroup",
-			Description: "用户组"}},
+			Name:        "Users",
+			Description: "用户/用户组管理"}},
 	}
 
 	swo.SecurityDefinitions = map[string]*spec.SecurityScheme{
