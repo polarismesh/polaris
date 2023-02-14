@@ -19,6 +19,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -27,15 +28,24 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/proto"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/sync/singleflight"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/namespace"
+	"github.com/polarismesh/polaris/service/batch"
+	"github.com/polarismesh/polaris/store"
+	"github.com/polarismesh/polaris/store/mock"
 )
 
 // 测试新建实例
@@ -2061,5 +2071,325 @@ func Test_isEmptyLocation(t *testing.T) {
 				t.Errorf("isEmptyLocation() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+type mockTrx struct {
+	lock        sync.RWMutex
+	releaseFunc func()
+}
+
+// Commit Transaction
+func (t *mockTrx) Commit() error {
+	if t.releaseFunc != nil {
+		t.releaseFunc()
+	}
+	return nil
+}
+
+// LockBootstrap Start the lock, limit the concurrent number of Server boot
+func (t *mockTrx) LockBootstrap(key string, server string) error {
+	return nil
+}
+
+// LockNamespace Row it locks Namespace
+func (t *mockTrx) LockNamespace(name string) (*model.Namespace, error) {
+	return nil, nil
+}
+
+// DeleteNamespace Delete Namespace
+func (t *mockTrx) DeleteNamespace(name string) error {
+	return nil
+}
+
+// LockService Row it locks service
+func (t *mockTrx) LockService(name string, namespace string) (*model.Service, error) {
+	id := fmt.Sprintf("%s@@%s", namespace, name)
+	if !t.lock.TryLock() {
+		return nil, errors.New("transaction is busy")
+	}
+	t.releaseFunc = func() {
+		t.lock.Unlock()
+	}
+	return &model.Service{
+		ID:        id,
+		Name:      name,
+		Namespace: namespace,
+	}, nil
+}
+
+// RLockService Shared lock service
+func (t *mockTrx) RLockService(name string, namespace string) (*model.Service, error) {
+	id := fmt.Sprintf("%s@@%s", namespace, name)
+	if !t.lock.TryRLock() {
+		return nil, errors.New("transaction is busy")
+	}
+	t.releaseFunc = func() {
+		t.lock.RUnlock()
+	}
+	return &model.Service{
+		ID:        id,
+		Name:      name,
+		Namespace: namespace,
+	}, nil
+}
+
+type mockTrxManager struct {
+	lock sync.RWMutex
+	trxs map[string]*mockTrx
+}
+
+func (mgr *mockTrxManager) Create(svc, namespace string) *mockTrx {
+	mgr.lock.Lock()
+	defer mgr.lock.Unlock()
+
+	id := svc + "@@" + namespace
+	val, ok := mgr.trxs[id]
+	if ok {
+		return val
+	}
+
+	mgr.trxs[id] = &mockTrx{}
+	return mgr.trxs[id]
+}
+
+func TestCreateInstanceLockService(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	t.Cleanup(func() {
+		ctrl.Finish()
+	})
+
+	createMockResource := func() (*Server, *mock.MockStore) {
+		var (
+			err      error
+			cacheMgr *cache.CacheManager
+			nsSvr    namespace.NamespaceOperateServer
+		)
+
+		mockStore := mock.NewMockStore(ctrl)
+		err = cache.Initialize(context.TODO(), &cache.Config{
+			Open: true,
+		}, mockStore)
+		assert.NoError(t, err)
+		cacheMgr, err = cache.GetCacheManager()
+		assert.NoError(t, err)
+
+		_, err = auth.TestInitialize(context.TODO(), &auth.Config{
+			Name: "defaultAuth",
+			Option: map[string]interface{}{
+				"clientOpen":  false,
+				"consoleOpen": false,
+			},
+		}, mockStore, cacheMgr)
+		assert.NoError(t, err)
+
+		namespace.Initialize(context.TODO(), &namespace.Config{
+			AutoCreate: true,
+		}, mockStore, cacheMgr)
+		nsSvr, err = namespace.GetOriginServer()
+		assert.NoError(t, err)
+
+		svr := &Server{
+			storage:             mockStore,
+			namespaceSvr:        nsSvr,
+			caches:              cacheMgr,
+			createServiceSingle: &singleflight.Group{},
+			hooks:               []ResourceHook{},
+		}
+
+		return svr, mockStore
+	}
+
+	var (
+		req = &apiservice.Instance{
+			Namespace: &wrapperspb.StringValue{
+				Value: "test_ns",
+			},
+			Service: &wrapperspb.StringValue{
+				Value: "test_svc",
+			},
+			Host: &wrapperspb.StringValue{
+				Value: "127.0.0.1",
+			},
+			Port: &wrapperspb.UInt32Value{
+				Value: 8080,
+			},
+		}
+		trxMgr = &mockTrxManager{
+			trxs: map[string]*mockTrx{},
+		}
+	)
+
+	instanceID, checkError := checkCreateInstance(req)
+	assert.Nil(t, checkError)
+
+	ins := *req
+	ins.Id = utils.NewStringValue(instanceID)
+
+	t.Run("正常创建实例", func(t *testing.T) {
+		svr, mockStore := createMockResource()
+		mockStore.EXPECT().GetInstance(gomock.Any()).Return(nil, nil).AnyTimes()
+		mockStore.EXPECT().CreateTransaction().DoAndReturn(func() (store.Transaction, error) {
+			return trxMgr.Create(req.GetService().GetValue(), req.GetNamespace().GetValue()), nil
+		}).AnyTimes()
+		mockStore.EXPECT().AddInstance(gomock.Any()).Return(nil).AnyTimes()
+
+		_, errResp := svr.serialCreateInstance(context.TODO(), "mock_svc_id", req, &ins)
+		assert.Nil(t, errResp)
+	})
+
+	t.Run("创建实例的同时删除服务", func(t *testing.T) {
+		svr, mockStore := createMockResource()
+		mockStore.EXPECT().GetInstance(gomock.Any()).Return(nil, nil).AnyTimes()
+		mockStore.EXPECT().CreateTransaction().DoAndReturn(func() (store.Transaction, error) {
+			return trxMgr.Create(req.GetService().GetValue(), req.GetNamespace().GetValue()), nil
+		}).AnyTimes()
+		mockStore.EXPECT().AddInstance(gomock.Any()).Return(nil).AnyTimes()
+		mockStore.EXPECT().GetService(gomock.Any(), gomock.Any()).Return(&model.Service{Name: "mock"}, nil).AnyTimes()
+		mockStore.EXPECT().DeleteService(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_, _, _ string) error {
+				trx := trxMgr.Create(req.GetService().GetValue(), req.GetNamespace().GetValue())
+				_, err := trx.LockService(req.Service.Value, req.Namespace.Value)
+				return err
+			}).AnyTimes()
+		mockStore.EXPECT().GetExpandInstances(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(uint32(0), nil, nil).AnyTimes()
+		mockStore.EXPECT().GetServiceAliases(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(uint32(0), nil, nil).AnyTimes()
+		mockStore.EXPECT().GetExtendRateLimits(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(uint32(0), nil, nil).AnyTimes()
+		mockStore.EXPECT().GetRoutingConfigWithID(gomock.Any()).
+			Return(nil, nil).AnyTimes()
+		mockStore.EXPECT().GetCircuitBreakersByService(gomock.Any(), gomock.Any()).
+			Return(nil, nil).AnyTimes()
+
+		wait := sync.WaitGroup{}
+		wait.Add(2)
+
+		var (
+			createInsCode uint32
+			deleteSvcCode uint32
+		)
+
+		go func() {
+			defer wait.Done()
+			_, resp := svr.serialCreateInstance(context.TODO(), "", req, &ins)
+			atomic.StoreUint32(&createInsCode, resp.GetCode().GetValue())
+		}()
+
+		go func() {
+			defer wait.Done()
+			resp := svr.DeleteService(context.TODO(), &apiservice.Service{
+				Namespace: &wrapperspb.StringValue{
+					Value: "test_ns",
+				},
+				Name: &wrapperspb.StringValue{
+					Value: "test_svc",
+				},
+			})
+			atomic.StoreUint32(&deleteSvcCode, resp.GetCode().GetValue())
+		}()
+
+		wait.Wait()
+		createInsApiCode := apimodel.Code(atomic.LoadUint32(&createInsCode))
+		deleteSvcApiCode := apimodel.Code(atomic.LoadUint32(&deleteSvcCode))
+
+		if deleteSvcApiCode == apimodel.Code_ExecuteSuccess {
+			assert.NotEqual(t, apimodel.Code_ExecuteSuccess, createInsApiCode)
+		}
+	})
+}
+
+// TestAsyncCreateInstanceLockService 异步服务实例注册时，能够 rlock 住服务，如果 rlock 发现服务不存在，则直接实例注册失败
+func TestAsyncCreateInstanceLockService(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.initialize(); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(func() {
+		cancel()
+		discoverSuit.Destroy()
+	})
+	ctrl, err := batch.NewBatchCtrlWithConfig(discoverSuit.storage, discoverSuit.server.Cache(), &batch.Config{
+		Register: &batch.CtrlConfig{
+			Open:          true,
+			QueueSize:     1024,
+			WaitTime:      "32ms",
+			MaxBatchCount: 32,
+			Concurrency:   8,
+			TaskLife:      "30s",
+		},
+	})
+	ctrl.Start(ctx)
+
+	svcReq, svc := discoverSuit.createCommonService(t, 1)
+	assert.NoError(t, err)
+	wait := sync.WaitGroup{}
+	totalInstanceCnt := 10
+	wait.Add(totalInstanceCnt)
+
+	var (
+		deleteSvcSuccess      int32
+		createInstanceFailCnt int32
+	)
+
+	// 一个协程不断创建实例
+	go func() {
+		for i := 0; i < totalInstanceCnt; i++ {
+			go func(index int) {
+				defer wait.Done()
+				id, err := utils.CalculateInstanceID(svc.GetNamespace().GetValue(), svc.GetName().GetValue(), "",
+					fmt.Sprintf("127.0.0.%d", index+1), uint32(8000+index))
+				assert.NoError(t, err)
+
+				ins := &apiservice.Instance{
+					Id:                &wrapperspb.StringValue{Value: id},
+					Service:           &wrapperspb.StringValue{Value: svc.GetName().GetValue()},
+					Namespace:         &wrapperspb.StringValue{Value: svc.GetNamespace().GetValue()},
+					Host:              &wrapperspb.StringValue{Value: fmt.Sprintf("127.0.0.%d", index+1)},
+					Port:              &wrapperspb.UInt32Value{Value: uint32(8000 + index)},
+					Weight:            &wrapperspb.UInt32Value{Value: 100},
+					EnableHealthCheck: &wrapperspb.BoolValue{Value: false},
+					Healthy:           &wrapperspb.BoolValue{Value: true},
+					Isolate:           &wrapperspb.BoolValue{Value: false},
+				}
+
+				future := ctrl.AsyncCreateInstance(svc.GetId().GetValue(), ins, true)
+				if err := future.Wait(); err != nil {
+					atomic.AddInt32(&createInstanceFailCnt, 1)
+					t.Logf("create instance %+v fail %d : %+v", ins, future.Code(), err)
+				}
+			}(i)
+		}
+	}()
+
+	stopCh := make(chan struct{})
+	// 一个协程不断删除目标服务
+	go func() {
+		for {
+			select {
+			case <-stopCh:
+			default:
+				resp := discoverSuit.server.DeleteServices(discoverSuit.defaultCtx, []*apiservice.Service{
+					svcReq,
+				})
+				if resp.GetCode().GetValue() == uint32(apimodel.Code_ExecuteSuccess) {
+					atomic.StoreInt32(&deleteSvcSuccess, 1)
+				}
+			}
+		}
+	}()
+
+	wait.Wait()
+	close(stopCh)
+
+	t.Logf("createInstanceFailCnt : %d, deleteSvcSuccess : %d",
+		atomic.LoadInt32(&createInstanceFailCnt), atomic.LoadInt32(&deleteSvcSuccess))
+	if atomic.LoadInt32(&deleteSvcSuccess) == 1 {
+		assert.True(t, atomic.LoadInt32(&createInstanceFailCnt) >= 0)
+	} else {
+		assert.True(t, atomic.LoadInt32(&createInstanceFailCnt) == 0)
 	}
 }

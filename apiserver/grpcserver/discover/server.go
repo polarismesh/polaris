@@ -29,7 +29,6 @@ import (
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/apiserver/grpcserver"
 	v1 "github.com/polarismesh/polaris/apiserver/grpcserver/discover/v1"
-	"github.com/polarismesh/polaris/bootstrap"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/service"
@@ -99,7 +98,6 @@ func (g *GRPCServer) Initialize(ctx context.Context, option map[string]interface
 // Run 启动GRPC API服务器
 func (g *GRPCServer) Run(errCh chan error) {
 	g.BaseGrpcServer.Run(errCh, g.GetProtocol(), func(server *grpc.Server) error {
-		defer bootstrap.ApiServerWaitGroup.Done()
 		for name, config := range g.openAPI {
 			switch name {
 			case "client":

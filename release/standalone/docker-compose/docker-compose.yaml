@@ -1,3 +1,18 @@
+# Tencent is pleased to support the open source community by making Polaris available.
+#
+# Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
+#
+# Licensed under the BSD 3-Clause License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software distributed
+# under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+# CONDITIONS OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the License.
+
 version: '3.9'
 
 networks:
@@ -42,6 +57,7 @@ services:
     container_name: polaris-console
     hostname: polaris-console
     image: polarismesh/polaris-console:##POLARIS_CONSOLE_VERSION##
+    restart: always
     volumes:
       - ./console/polaris-console.yaml:/root/polaris-console.yaml
     ports:
@@ -50,14 +66,17 @@ services:
       - backend
     depends_on:
       - polaris-server
-      - polaris-pushgateway
+      - pushgateway
     links:
       - polaris-server
-      - polaris-pushgateway
+      - pushgateway
   polaris-limiter:
     container_name: polaris-limiter
     hostname: polaris-limiter
     image: polarismesh/polaris-limiter:##POLARIS_LIMITER_VERSION##
+    restart: always
+    environment:
+      - MY_ID=1
     volumes:
       - ./limiter/polaris-limiter.yaml:/root/polaris-limiter.yaml
     expose: # 用于北极星集群内部访问
@@ -73,23 +92,23 @@ services:
     links:
       - polaris-server
   mysql:
+    build: mysql
     container_name: mysql
     hostname: mysql
     platform: linux/amd64
-    build: mysql
     restart: always
     command: mysqld --optimizer-trace-max-mem-size=102400
     environment:
       - TZ=Asia/Shanghai
       - LANG=zh_CN.utf8
-      - MYSQL_DATABASE=default
+      - MYSQL_DATABASE=polaris_server
       - MYSQL_USER=default
       - MYSQL_PASSWORD=secret
       - MYSQL_ROOT_PASSWORD=polaris
     volumes:
       - vlm_data_mysql:/var/lib/mysql
       - ./mysql/mysqld.cnf:/etc/mysql/conf.d/custom.cnf:cached
-      - ../../store/mysql/scripts/polaris_server.sql:/docker-entrypoint-initdb.d/polaris_server.sql
+      - ./mysql:/docker-entrypoint-initdb.d
     ports:
       - "3306:3306"
     expose:
@@ -107,27 +126,30 @@ services:
       - backend
     expose:
       - 6379
-  polaris-prometheus:
-    container_name: polaris-prometheus
+  prometheus:
+    container_name: prometheus
     hostname: polaris-prometheus
-    image: polarismesh/polaris-prometheus:##POLARIS_PROMETHEUS_VERSION##
+    build: prometheus
+    restart: always
     networks:
       - backend
     expose:
       - 9090
     links:
       - polaris-server # 采集北极星性能
-  polaris-pushgateway:
+  pushgateway:
     container_name: polaris-pushgateway
     image: prom/pushgateway:latest
     hostname: polaris-pushgateway
+    restart: always
     networks:
       - backend
     expose:
       - 9091
-  polaris-grafana:
+  grafana:
     container_name: polaris-grafana
     build: grafana
+    restart: always
     ports:
       - "3000:3000"
     volumes:
@@ -135,7 +157,7 @@ services:
       - ./grafana/dashboards:/etc/grafana/dashboards/:rw
       - ./grafana/grafana.ini:/etc/grafana/grafana.ini:rw
     depends_on:
-      - polaris-prometheus
-      - polaris-pushgateway
+      - prometheus
+      - pushgateway
     networks:
       - backend

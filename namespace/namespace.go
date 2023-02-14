@@ -71,13 +71,10 @@ func (s *Server) CreateNamespaceIfAbsent(ctx context.Context, req *apimodel.Name
 
 	_, err, _ := s.createNamespaceSingle.Do(req.GetName().GetValue(), func() (interface{}, error) {
 		resp := s.CreateNamespace(ctx, req)
-
 		code := resp.GetCode().GetValue()
-
 		if code == uint32(apimodel.Code_ExecuteSuccess) || code == uint32(apimodel.Code_ExistedResource) {
 			return nil, nil
 		}
-
 		return nil, errors.New(resp.GetInfo().GetValue())
 	})
 

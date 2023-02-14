@@ -358,6 +358,7 @@ data:
           option:
             #配置文件缓存过期时间，单位s
             expireTimeAfterWrite: 3600
+        - name: faultDetectRule
     #    - name: l5 # 加载l5数据
     # 存储配置
     store:

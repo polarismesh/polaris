@@ -41,6 +41,7 @@ func TestInitialize(_ context.Context, authOpt *Config, storage store.Store,
 	}
 
 	authSvr = mgn
+	finishInit = true
 
 	if err := authSvr.Initialize(authOpt, storage, cacheMgn); err != nil {
 		log.Printf("auth manager do initialize err: %s", err.Error())

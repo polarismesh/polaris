@@ -11,10 +11,10 @@ scrape_configs:
   # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
   - job_name: "prometheus"
     static_configs:
-      - targets: [ "localhost:9090" ]
+      - targets: [ "http://localhost:9090" ]
   - job_name: "push-metrics"
     static_configs:
-      - targets: [ "polaris-pushgateway:9091" ]
+      - targets: [ "http://polaris-pushgateway:9091" ]
   - job_name: "polaris-server"
     http_sd_configs:
-      - url: "polaris-server:8090/prometheus/v1/clients"
+      - url: "http://polaris-server:8090/prometheus/v1/clients"

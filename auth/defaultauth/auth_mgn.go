@@ -19,7 +19,6 @@ package defaultauth
 
 import (
 	"encoding/json"
-	"errors"
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
@@ -32,7 +31,7 @@ type defaultAuthChecker struct {
 }
 
 // Initialize 执行初始化动作
-func (d *defaultAuthChecker) Initialize(options *auth.Config, cacheMgn *cache.CacheManager) error {
+func (d *defaultAuthChecker) Initialize(options *auth.Config, s store.Store, cacheMgn *cache.CacheManager) error {
 	contentBytes, err := json.Marshal(options.Option)
 	if err != nil {
 		return err
@@ -48,18 +47,6 @@ func (d *defaultAuthChecker) Initialize(options *auth.Config, cacheMgn *cache.Ca
 	}
 
 	AuthOption = cfg
-
-	// 获取存储层对象
-	s, err := store.GetStore()
-	if err != nil {
-		log.Errorf("[Auth][Server] can not get store, err: %s", err.Error())
-		return errors.New("auth-checker can not get store")
-	}
-	if s == nil {
-		log.Errorf("[Auth][Server] store is null")
-		return errors.New("store is null")
-	}
-
 	d.cacheMgn = cacheMgn
 
 	return nil

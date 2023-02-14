@@ -81,25 +81,23 @@ func (s *Server) CreateInstances(ctx context.Context, reqs []*apiservice.Instanc
 	return batchOperateInstances(ctx, reqs, s.CreateInstance)
 }
 
-// CreateInstance 创建单个服务实例
-// 注意：创建实例需要对服务进行加锁保护服务不被删除
+// CreateInstance create a single service instance
 func (s *Server) CreateInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	rid := utils.ParseRequestID(ctx)
 	pid := utils.ParsePlatformID(ctx)
 	start := time.Now()
-	// 参数检查
 	instanceID, checkError := checkCreateInstance(req)
 	if checkError != nil {
 		return checkError
 	}
-	// 限制instance频繁注册
+	// Restricted Instance frequently registered
 	if ok := s.allowInstanceAccess(instanceID); !ok {
 		log.Error("create instance not allowed to access: exceed ratelimit",
 			utils.ZapRequestID(rid), utils.ZapPlatformID(pid), utils.ZapInstanceID(instanceID))
 		return api.NewInstanceResponse(apimodel.Code_InstanceTooManyRequests, req)
 	}
 
-	// 防止污染req，拷贝一份出来，并且填充一下token ID
+	// Prevent pollution api.Instance struct, copy and fill token
 	ins := *req
 	ins.ServiceToken = utils.NewStringValue(parseInstanceReqToken(ctx, req))
 	ins.Id = utils.NewStringValue(instanceID)
@@ -108,7 +106,6 @@ func (s *Server) CreateInstance(ctx context.Context, req *apiservice.Instance) *
 		return resp
 	}
 
-	// 处理create成功的消息
 	msg := fmt.Sprintf("create instance: id=%v, namespace=%v, service=%v, host=%v, port=%v",
 		ins.GetId().GetValue(), req.GetNamespace().GetValue(), req.GetService().GetValue(),
 		req.GetHost().GetValue(), req.GetPort().GetValue())
@@ -149,7 +146,7 @@ func (s *Server) createInstance(ctx context.Context, req *apiservice.Instance, i
 		return nil, api.NewInstanceResponse(code, req)
 	}
 
-	// 填充实例的地理位置信息
+	// fill instance location info
 	s.packCmdb(ins)
 
 	if namingServer.bc == nil || !namingServer.bc.CreateInstanceOpen() {
@@ -199,6 +196,16 @@ func (s *Server) serialCreateInstance(
 	}
 	// 直接同步创建服务实例
 	data := instancecommon.CreateInstanceModel(svcId, ins)
+
+	// need lock service to protect not delete in create instance
+	_, releaseFunc, errCode := s.lockService(ctx, req.GetNamespace().GetValue(),
+		req.GetService().GetValue())
+	if errCode != apimodel.Code_ExecuteSuccess {
+		return nil, api.NewInstanceResponse(errCode, req)
+	}
+
+	defer releaseFunc()
+
 	if err := s.storage.AddInstance(data); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return nil, wrapperInstanceStoreResponse(req, err)
@@ -1034,6 +1041,36 @@ func (s *Server) loadService(namespace string, svcName string) (*model.Service, 
 	}
 
 	return svc, nil
+}
+
+type releaseFunc func()
+
+func (s *Server) lockService(ctx context.Context, namespace string,
+	svcName string) (*model.Service, releaseFunc, apimodel.Code) {
+
+	tx, err := s.storage.CreateTransaction()
+	if err != nil {
+		return nil, nil, apimodel.Code_StoreLayerException
+	}
+	release := func() {
+		_ = tx.Commit()
+	}
+
+	svc, err := tx.RLockService(svcName, namespace)
+	if err != nil {
+		release()
+		return nil, nil, apimodel.Code_StoreLayerException
+	}
+	if svc == nil {
+		release()
+		return nil, nil, apimodel.Code_NotFoundService
+	}
+	if svc.IsAlias() {
+		release()
+		return nil, nil, apimodel.Code_NotAllowAliasCreateInstance
+	}
+
+	return svc, release, apimodel.Code_ExecuteSuccess
 }
 
 /*

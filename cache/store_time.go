@@ -38,7 +38,6 @@ func (nc *CacheManager) watchStoreTime(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-
 			storeSec, err := nc.storage.GetUnixSecond()
 			if err != nil {
 				log.Error("[Store][Time] watch store time", zap.Error(err))

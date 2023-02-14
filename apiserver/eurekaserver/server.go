@@ -31,8 +31,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/apiserver"
-	"github.com/polarismesh/polaris/bootstrap"
-	"github.com/polarismesh/polaris/common/conn/limit"
+	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/secure"
 	"github.com/polarismesh/polaris/common/utils"
@@ -283,8 +282,6 @@ func (h *EurekaServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
-	bootstrap.ApiServerWaitGroup.Done()
-
 	ln = &tcpKeepAliveListener{ln.(*net.TCPListener)}
 	// 开启最大连接数限制
 	if h.connLimitConfig != nil && h.connLimitConfig.OpenConnLimit {
