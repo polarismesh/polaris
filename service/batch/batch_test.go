@@ -224,9 +224,9 @@ func TestAsyncCreateInstance(t *testing.T) {
 		storage.EXPECT().BatchAddInstances(gomock.Any()).Return(nil).AnyTimes()
 		err := sendAsyncCreateInstance(bc, totalIns)
 		if atomic.LoadInt32(&hasErr) == 1 {
-			assert.Error(t, err)			
+			assert.Error(t, err)
 		} else {
-			assert.NoError(t, err)		
+			assert.NoError(t, err)
 		}
 		assert.True(t, totalIns/int32(8) <= actualCommit && actualCommit <= totalIns/int32(8)+int32(1))
 	})

@@ -1065,7 +1065,6 @@ func (s *Server) loadServiceByID(svcID string) (*model.Service, error) {
 	return svc, nil
 }
 
-
 type releaseFunc func()
 
 func (s *Server) lockService(ctx context.Context, namespace string,
