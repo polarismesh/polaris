@@ -41,6 +41,17 @@ const (
 	FileFormatProperties = "properties"
 
 	FileIdSeparator = "+"
+
+	// MaxRequestBodySize 导入配置文件请求体最大 4M
+	MaxRequestBodySize = 4 * 1024 * 1024
+	// ConfigFileFormKey 配置文件表单键
+	ConfigFileFormKey = "config"
+	// ConfigFileMetaFileName 配置文件元数据文件名
+	ConfigFileMetaFileName = "META"
+	// ConfigFileImportConflictSkip 导入配置文件发生冲突跳过
+	ConfigFileImportConflictSkip = "skip"
+	// ConfigFileImportConflictOverwrite 导入配置文件发生冲突覆盖原配置文件
+	ConfigFileImportConflictOverwrite = "overwrite"
 )
 
 // GenFileId 生成文件 Id
@@ -52,4 +63,10 @@ func GenFileId(namespace, group, fileName string) string {
 func ParseFileId(fileId string) (namespace, group, fileName string) {
 	fileInfo := strings.Split(fileId, FileIdSeparator)
 	return fileInfo[0], fileInfo[1], fileInfo[2]
+}
+
+// ConfigFileMeta 导入配置文件ZIP包中的元数据结构
+type ConfigFileMeta struct {
+	Tags    map[string]string `json:"tags"`
+	Comment string            `json:"comment"`
 }

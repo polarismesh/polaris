@@ -21,73 +21,91 @@
 package test
 
 import (
+	"os"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/test/http"
 	"github.com/polarismesh/polaris/test/resource"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func TestConfigCenter_ConfigFileGroup(t *testing.T) {
-
+func TestConfigCenter_ConfigFile(t *testing.T) {
 	client := http.NewClient(httpserverAddress, httpserverVersion)
 
 	ns := resource.CreateNamespaces()
+
 	groups := resource.MockConfigGroups(ns[0])
+
+	files := resource.MockConfigFiles(groups[0])
 
 	defer func() {
 		for i := range groups {
 			if _, err := client.DeleteConfigGroup(groups[i]); err != nil {
-				t.Fatal(err)
+				t.Log(err)
 			}
 		}
 		client.DeleteNamespaces(ns)
+		os.Remove("export.zip")
 	}()
 
-	t.Run("配置中心-创建配置分组", func(t *testing.T) {
-
-		for i := range groups {
-
-			resp, err := client.CreateConfigGroup(groups[i])
-
+	t.Run("配置中心-创建配置文件", func(t *testing.T) {
+		for _, file := range files {
+			resp, err := client.CreateConfigFile(file)
 			if err != nil {
 				t.Fatal(err)
 			}
-
 			assert.Equal(t, resp.GetCode().GetValue(), api.ExecuteSuccess, resp.GetInfo().GetValue())
 		}
 	})
 
-	t.Run("配置中心-更新配置分组", func(t *testing.T) {
+	t.Run("配置中心-更新配置文件", func(t *testing.T) {
+		for _, file := range files {
+			file.Content = &wrapperspb.StringValue{
+				Value: `name: polarismesh_test`,
+			}
+			resp, err := client.UpdateConfigFile(file)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, resp.GetCode().GetValue(), api.ExecuteSuccess, resp.GetInfo().GetValue())
+		}
+	})
 
-		group := groups[0]
+	t.Run("配置中心-导出配置文件", func(t *testing.T) {
+		req := &apiconfig.ConfigFileExportRequest{
+			Namespace: ns[0].Name,
+			Groups: []*wrapperspb.StringValue{
+				groups[0].Name,
+			},
+		}
+		err := client.ExportConfigFile(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
 
-		newComment := utils.NewStringValue("update config_file_group " + utils.NewUUID())
-		group.Comment = newComment
-
-		resp, err := client.UpdateConfigGroup(group)
-
+	t.Run("配置中心-导入配置文件", func(t *testing.T) {
+		namespace := ns[1].Name.Value
+		conflictHandling := utils.ConfigFileImportConflictSkip
+		resp, err := client.ImportConfigFile(namespace, "", conflictHandling)
 		if err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, resp.GetCode().GetValue(), api.ExecuteSuccess, resp.GetInfo().GetValue())
+	})
 
-		queryResp, err := client.QueryConfigGroup(group, 0, 100)
-		if err != nil {
-			t.Fatal(err)
+	t.Run("配置中心-删除配置文件", func(t *testing.T) {
+		for _, file := range files {
+			resp, err := client.DeleteConfigFile(file)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, resp.GetCode().GetValue(), api.ExecuteSuccess, resp.GetInfo().GetValue())
 		}
-		assert.Equal(t, resp.GetCode().GetValue(), api.ExecuteSuccess, resp.GetInfo().GetValue())
-		assert.Equal(t, 1, len(queryResp.ConfigFileGroups), resp.GetInfo().GetValue())
-
-		queryGroup := queryResp.ConfigFileGroups[0]
-		assert.NotNil(t, queryGroup, "query group nil")
-		assert.Equal(t, group.Comment, queryGroup.Comment, "group comment is not equal")
-
 	})
 
-	t.Run("配置中心-删除配置分组", func(t *testing.T) {
-	})
 }

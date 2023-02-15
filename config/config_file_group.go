@@ -317,6 +317,9 @@ func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name stri
 
 		return api.NewConfigFileGroupResponse(apimodel.Code_StoreLayerException, nil)
 	}
+	if configGroup == nil {
+		return api.NewConfigFileGroupResponse(apimodel.Code_NotFoundResource, nil)
+	}
 
 	if err := s.storage.DeleteConfigFileGroup(namespace, name); err != nil {
 		log.Error("[Config][Service] delete config file group failed. ",
