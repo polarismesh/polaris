@@ -254,3 +254,30 @@ func GetSimpleResponse(response *http.Response) (*apiservice.Response, error) {
 		return nil, errors.New("body decode failed")
 	}
 }
+
+// GetConfigImportResponse 获取ConfigImportResponse
+func GetConfigImportResponse(response *http.Response) (*apiconfig.ConfigImportResponse, error) {
+	// 打印回复
+	fmt.Printf("http code: %v\n", response.StatusCode)
+
+	ret := &apiconfig.ConfigImportResponse{}
+	checkErr := jsonpb.Unmarshal(response.Body, ret)
+	if checkErr == nil {
+		fmt.Printf("%+v\n", ret)
+	} else {
+		fmt.Printf("%v\n", checkErr)
+	}
+
+	// 检查回复
+	if response.StatusCode != 200 {
+		return nil, errors.New("invalid http code")
+	}
+
+	if checkErr == nil {
+		return ret, nil
+	} else if checkErr == io.EOF {
+		return nil, io.EOF
+	} else {
+		return nil, errors.New("body decode failed")
+	}
+}

@@ -18,7 +18,9 @@
 package httpserver
 
 import (
+	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/proto"
@@ -239,6 +241,73 @@ func (h *HTTPServer) BatchDeleteConfigFile(req *restful.Request, rsp *restful.Re
 	}
 
 	response := h.configServer.BatchDeleteConfigFile(ctx, configFiles, operator)
+	handler.WriteHeaderAndProto(response)
+}
+
+// ExportConfigFile 导出配置文件
+func (h *HTTPServer) ExportConfigFile(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	configFileExport := &apiconfig.ConfigFileExportRequest{}
+	ctx, err := handler.Parse(configFileExport)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+	response := h.configServer.ExportConfigFile(ctx, configFileExport)
+	if response.Code.Value != api.ExecuteSuccess {
+		handler.WriteHeaderAndProto(response)
+	} else {
+		handler.WriteHeader(api.ExecuteSuccess, http.StatusOK)
+		handler.Response.AddHeader("Content-Type", "application/zip")
+		handler.Response.AddHeader("Content-Disposition", "attachment; filename=config.zip")
+		if _, err := handler.Response.ResponseWriter.Write(response.Data.Value); err != nil {
+			configLog.Error("[Config][HttpServer] response write error.",
+				utils.ZapRequestIDByCtx(ctx),
+				zap.String("error", err.Error()))
+		}
+	}
+}
+
+// ImportConfigFile 导入配置文件
+func (h *HTTPServer) ImportConfigFile(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	ctx := handler.ParseHeaderContext()
+	configFiles, err := handler.ParseFile()
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+	namespace := handler.Request.QueryParameter("namespace")
+	group := handler.Request.QueryParameter("group")
+	conflictHandling := handler.Request.QueryParameter("conflict_handling")
+
+	for _, file := range configFiles {
+		file.Namespace = utils.NewStringValue(namespace)
+		if group != "" {
+			file.Group = utils.NewStringValue(group)
+		}
+	}
+
+	var filenames []string
+	for _, file := range configFiles {
+		filenames = append(filenames, file.String())
+	}
+	configLog.Info("[Config][HttpServer]import config file",
+		zap.String("namespace", namespace),
+		zap.String("group", group),
+		zap.String("conflict_handling", conflictHandling),
+		zap.String("files", strings.Join(filenames, ",")),
+	)
+
+	response := h.configServer.ImportConfigFile(ctx, configFiles, conflictHandling)
 	handler.WriteHeaderAndProto(response)
 }
 
