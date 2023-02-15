@@ -27,9 +27,9 @@ var (
 )
 
 const (
-	ComponentServer = "server"
-	ComponentRedis  = "redis"
-
+	ComponentServer        = "server"
+	ComponentRedis         = "redis"
+	ComponentDB            = "db"
 	ComponentProtobufCache = "protobuf"
 )
 
