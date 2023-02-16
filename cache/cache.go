@@ -25,7 +25,6 @@ import (
 	"hash"
 	"sort"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/polarismesh/polaris/common/model"
@@ -105,11 +104,6 @@ const (
 	DefaultTimeDiff = -10 * time.Second
 )
 
-type Args struct {
-	// StoreTimeRollbackSec 存储层时钟回拨情况
-	StoreTimeRollbackSec time.Duration
-}
-
 // Cache 缓存接口
 type Cache interface {
 	// initialize
@@ -119,7 +113,7 @@ type Cache interface {
 	addListener(listeners []Listener)
 
 	// update
-	update(storeRollbackSec time.Duration) error
+	update() error
 
 	// clear
 	clear() error
@@ -177,10 +171,9 @@ type CacheManager struct {
 	storage store.Store
 	caches  []Cache
 
-	comRevisionCh    chan *revisionNotify
-	revisions        map[string]string // service id -> reversion (所有instance reversion 的累计计算值)
-	lock             sync.RWMutex      // for revisions rw lock
-	storeTimeDiffSec int64
+	comRevisionCh chan *revisionNotify
+	revisions     map[string]string // service id -> reversion (所有instance reversion 的累计计算值)
+	lock          sync.RWMutex      // for revisions rw lock
 }
 
 // initialize 缓存对象初始化
@@ -212,10 +205,7 @@ func (nc *CacheManager) update() error {
 		wg.Add(1)
 		go func(c Cache) {
 			defer wg.Done()
-
-			sec := atomic.LoadInt64(&nc.storeTimeDiffSec)
-
-			_ = c.update(time.Duration(sec * int64(time.Second)))
+			_ = c.update()
 		}(nc.caches[index])
 	}
 
@@ -259,8 +249,6 @@ func (nc *CacheManager) Start(ctx context.Context) error {
 	log.Infof("[Cache] cache goroutine start")
 	// 先启动revision计算协程
 	go nc.revisionWorker(ctx)
-
-	go nc.watchStoreTime(ctx)
 
 	// 启动的时候，先更新一版缓存
 	log.Infof("[Cache] cache update now first time")

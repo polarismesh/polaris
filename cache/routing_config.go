@@ -32,6 +32,10 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var (
+	_ RoutingConfigCache = (*routingConfigCache)(nil)
+)
+
 const (
 	// RoutingConfigName router config name
 	RoutingConfigName = "routingConfig"
@@ -113,7 +117,7 @@ func (rc *routingConfigCache) initBuckets() {
 func (rc *routingConfigCache) update(storeRollbackSec time.Duration) error {
 	// Multiple thread competition, only one thread is updated
 	_, err, _ := rc.singleFlight.Do("RoutingCache", func() (interface{}, error) {
-		return nil, rc.realUpdate(storeRollbackSec)
+		return nil, rc.realUpdate()
 	})
 	return err
 }
@@ -126,7 +130,7 @@ func (rc *routingConfigCache) realUpdate(storeRollbackSec time.Duration) error {
 		return err
 	}
 
-	outV2, err := rc.storage.GetRoutingConfigsV2ForCache(rc.lastMtimeV2.Add(storeRollbackSec), rc.firstUpdate)
+	outV2, err := rc.storage.GetRoutingConfigsV2ForCache(rc.lastMtimeV2, rc.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache] routing config v2 cache get from store err: %s", err.Error())
 		return err

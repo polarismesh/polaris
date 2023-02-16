@@ -144,7 +144,7 @@ func TestUserCache_UpdateNormal(t *testing.T) {
 		store.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).Return(copyUsers, nil)
 		store.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).Return(copyGroups, nil)
 
-		err := uc.update(0)
+		err := uc.update()
 		assert.NoError(t, err, err)
 
 		u := uc.GetUserByID(users[1].ID)
@@ -202,7 +202,7 @@ func TestUserCache_UpdateNormal(t *testing.T) {
 		store.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).Return(copyUsers, nil)
 		store.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).Return(copyGroups, nil)
 
-		err := uc.update(0)
+		err := uc.update()
 		assert.NoError(t, err, err)
 
 		for i := range users {

@@ -28,6 +28,10 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var (
+	_ RateLimitCache = (*rateLimitCache)(nil)
+)
+
 const (
 	// RateLimitConfigName rate limit config name
 	RateLimitConfigName = "rateLimitConfig"
@@ -90,8 +94,8 @@ func (rlc *rateLimitCache) initialize(_ map[string]interface{}) error {
 }
 
 // update 实现Cache接口的update函数
-func (rlc *rateLimitCache) update(storeRollbackSec time.Duration) error {
-	rateLimits, revisions, err := rlc.storage.GetRateLimitsForCache(rlc.lastTime.Add(storeRollbackSec),
+func (rlc *rateLimitCache) update() error {
+	rateLimits, revisions, err := rlc.storage.GetRateLimitsForCache(rlc.lastTime,
 		rlc.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache] rate limit cache update err: %s", err.Error())

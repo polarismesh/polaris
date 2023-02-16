@@ -88,8 +88,8 @@ func (c *circuitBreakerCache) initialize(_ map[string]interface{}) error {
 }
 
 // update 实现Cache接口的函数
-func (c *circuitBreakerCache) update(storeRollbackSec time.Duration) error {
-	lastTime := c.lastTime.Add(storeRollbackSec)
+func (c *circuitBreakerCache) update() error {
+	lastTime := c.lastTime
 	cbRules, err := c.storage.GetCircuitBreakerRulesForCache(lastTime, c.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache] circuit breaker config cache update err:%s", err.Error())

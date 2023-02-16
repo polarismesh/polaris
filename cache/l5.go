@@ -20,11 +20,14 @@ package cache
 import (
 	"container/list"
 	"sync"
-	"time"
 
 	cl5common "github.com/polarismesh/polaris/common/cl5"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
+)
+
+var (
+	_ L5Cache = (*l5Cache)(nil)
 )
 
 const (
@@ -94,7 +97,7 @@ func (lc *l5Cache) initialize(_ map[string]interface{}) error {
 	return nil
 }
 
-func (lc *l5Cache) update(_ time.Duration) error {
+func (lc *l5Cache) update() error {
 	err := lc.updateCL5Route()
 	if err != nil {
 		log.Errorf("[Cache][CL5] update l5 route cache err: %s", err.Error())

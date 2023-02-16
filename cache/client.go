@@ -101,7 +101,7 @@ func (c *clientCache) initialize(_ map[string]interface{}) error {
 }
 
 // update 更新缓存函数
-func (c *clientCache) update(storeRollbackSec time.Duration) error {
+func (c *clientCache) update() error {
 	// 一分钟update一次
 	timeDiff := time.Since(c.lastUpdateTime).Minutes()
 	if !c.firstUpdate && 1 > timeDiff {
@@ -115,16 +115,16 @@ func (c *clientCache) update(storeRollbackSec time.Duration) error {
 			c.lastMtimeLogged = logLastMtime(c.lastMtimeLogged, c.lastMtime, "Client")
 		}()
 
-		return nil, c.realUpdate(storeRollbackSec)
+		return nil, c.realUpdate()
 	})
 
 	return err
 }
 
-func (c *clientCache) realUpdate(storeRollbackSec time.Duration) error {
+func (c *clientCache) realUpdate() error {
 	// 拉取diff前的所有数据
 	start := time.Now()
-	lastMtime := c.LastMtime().Add(storeRollbackSec)
+	lastMtime := c.LastMtime()
 	clients, err := c.storage.GetMoreClients(lastMtime, c.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache][Client] update get storage more err: %s", err.Error())

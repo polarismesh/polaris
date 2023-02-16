@@ -29,6 +29,10 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var (
+	_ ServiceCache = (*serviceCache)(nil)
+)
+
 const (
 	ServiceName = "service"
 )
@@ -180,22 +184,22 @@ func (sc *serviceCache) LastMtime() time.Time {
 
 // update Service缓存更新函数
 // service + service_metadata作为一个整体获取
-func (sc *serviceCache) update(storeRollbackSec time.Duration) error {
+func (sc *serviceCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := sc.singleFlight.Do(ServiceName, func() (interface{}, error) {
 		defer func() {
 			sc.lastMtimeLogged = logLastMtime(sc.lastMtimeLogged, sc.lastMtime, "Service")
 		}()
-		return nil, sc.realUpdate(storeRollbackSec)
+		return nil, sc.realUpdate()
 	})
 	return err
 }
 
-func (sc *serviceCache) realUpdate(storeRollbackSec time.Duration) error {
+func (sc *serviceCache) realUpdate() error {
 	// 获取几秒前的全部数据
 	start := time.Now()
 	lastMtime := sc.LastMtime()
-	services, err := sc.storage.GetMoreServices(lastMtime.Add(storeRollbackSec),
+	services, err := sc.storage.GetMoreServices(lastMtime,
 		sc.firstUpdate, sc.disableBusiness, sc.needMeta)
 	if err != nil {
 		log.Errorf("[Cache][Service] update services err: %s", err.Error())

@@ -316,19 +316,19 @@ func (uc *userCache) initBuckets() {
 	}
 }
 
-func (uc *userCache) update(storeRollbackSec time.Duration) error {
+func (uc *userCache) update() error {
 	// Multiple threads competition, only one thread is updated
 	_, err, _ := uc.singleFlight.Do(UsersName, func() (interface{}, error) {
-		return nil, uc.realUpdate(storeRollbackSec)
+		return nil, uc.realUpdate()
 	})
 	return err
 }
 
-func (uc *userCache) realUpdate(storeRollbackSec time.Duration) error {
+func (uc *userCache) realUpdate() error {
 	// Get all data before a few seconds
 	start := time.Now()
 	userlastMtime := time.Unix(uc.lastUserCacheUpdateTime, 0)
-	users, err := uc.storage.GetUsersForCache(userlastMtime.Add(storeRollbackSec), uc.userCacheFirstUpdate)
+	users, err := uc.storage.GetUsersForCache(userlastMtime, uc.userCacheFirstUpdate)
 	if err != nil {
 		log.Errorf("[Cache][User] update user err: %s", err.Error())
 		return err

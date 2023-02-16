@@ -87,8 +87,8 @@ func (f *faultDetectCache) initialize(_ map[string]interface{}) error {
 }
 
 // update 实现Cache接口的函数
-func (f *faultDetectCache) update(storeRollbackSec time.Duration) error {
-	lastTime := f.lastTime.Add(storeRollbackSec)
+func (f *faultDetectCache) update() error {
+	lastTime := f.lastTime
 	fdRules, err := f.storage.GetFaultDetectRulesForCache(lastTime, f.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache] fault detect config cache update err:%s", err.Error())

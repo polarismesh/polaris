@@ -140,7 +140,7 @@ func TestRevisionWorker(t *testing.T) {
 			}
 			storage.EXPECT().GetMoreServices(gomock.Any(), true, false, false).Return(services, nil)
 			// 触发计算
-			_ = nc.caches[CacheService].update(0)
+			_ = nc.caches[CacheService].update()
 			time.Sleep(time.Second * 10)
 			So(nc.GetServiceRevisionCount(), ShouldEqual, maxTotal)
 
@@ -157,7 +157,7 @@ func TestRevisionWorker(t *testing.T) {
 			}
 			storage.EXPECT().GetMoreServices(gomock.Any(), false, false, false).Return(services, nil)
 			// 触发计算
-			_ = nc.caches[CacheService].update(0)
+			_ = nc.caches[CacheService].update()
 			time.Sleep(time.Second * 20)
 			// 检查是否有正常计算
 			So(nc.GetServiceRevisionCount(), ShouldEqual, maxTotal/2)

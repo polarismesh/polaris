@@ -168,7 +168,7 @@ func TestServiceUpdate(t *testing.T) {
 				Return(nil, nil),
 		)
 
-		if err := sc.update(0); err != nil {
+		if err := sc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
@@ -184,7 +184,7 @@ func TestServiceUpdate(t *testing.T) {
 				Return(services, nil),
 		)
 
-		if err := sc.update(0); err != nil {
+		if err := sc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
@@ -201,7 +201,7 @@ func TestServiceUpdate(t *testing.T) {
 				Return(services1, nil),
 		)
 
-		if err := sc.update(0); err != nil {
+		if err := sc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
@@ -209,7 +209,7 @@ func TestServiceUpdate(t *testing.T) {
 			storage.EXPECT().GetMoreServices(gomock.Any(), sc.firstUpdate, sc.disableBusiness, sc.needMeta).
 				Return(services2, nil),
 		)
-		_ = sc.update(0)
+		_ = sc.update()
 		if sum := getServiceCacheCount(sc); sum != 300 {
 			t.Fatalf("error: %d", sum)
 		}
@@ -226,7 +226,7 @@ func TestServiceUpdate1(t *testing.T) {
 		services := genModelService(100)
 		gomock.InOrder(storage.EXPECT().
 			GetMoreServices(gomock.Any(), sc.firstUpdate, sc.disableBusiness, sc.needMeta).Return(services, nil))
-		_ = sc.update(0)
+		_ = sc.update()
 
 		// 把所有的都置为false
 		for _, service := range services {
@@ -235,7 +235,7 @@ func TestServiceUpdate1(t *testing.T) {
 
 		gomock.InOrder(storage.EXPECT().
 			GetMoreServices(gomock.Any(), sc.firstUpdate, sc.disableBusiness, sc.needMeta).Return(services, nil))
-		_ = sc.update(0)
+		_ = sc.update()
 
 		if sum := getServiceCacheCount(sc); sum != 0 {
 			t.Fatalf("error: %d", sum)
@@ -247,7 +247,7 @@ func TestServiceUpdate1(t *testing.T) {
 		services := genModelService(100)
 		gomock.InOrder(storage.EXPECT().
 			GetMoreServices(gomock.Any(), sc.firstUpdate, sc.disableBusiness, sc.needMeta).Return(services, nil))
-		_ = sc.update(0)
+		_ = sc.update()
 
 		// 把所有的都置为false
 		idx := 0
@@ -260,7 +260,7 @@ func TestServiceUpdate1(t *testing.T) {
 
 		gomock.InOrder(storage.EXPECT().
 			GetMoreServices(gomock.Any(), sc.firstUpdate, sc.disableBusiness, sc.needMeta).Return(services, nil))
-		_ = sc.update(0)
+		_ = sc.update()
 
 		if sum := getServiceCacheCount(sc); sum != 50 { // remain half
 			t.Fatalf("error: %d", sum)
@@ -280,7 +280,7 @@ func TestServiceUpdate2(t *testing.T) {
 				Return(nil, fmt.Errorf("store error")),
 		)
 
-		if err := sc.update(0); err != nil {
+		if err := sc.update(); err != nil {
 			t.Logf("pass: %s", err.Error())
 		} else {
 			t.Fatalf("error")
