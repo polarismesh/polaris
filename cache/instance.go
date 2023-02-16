@@ -27,6 +27,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -139,7 +140,11 @@ func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 func (ic *instanceCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := ic.singleFlight.Do(InstanceName, func() (interface{}, error) {
-		curStoreTime, _ := ic.storage.GetUnixSecond()
+		curStoreTime, err := ic.storage.GetUnixSecond()
+		if err != nil {
+			curStoreTime = ic.lastMtime
+			log.Warn("[Cache][Instance] get store timestamp fail, skip update lastMtime", zap.Error(err))
+		}
 		defer func() {
 			ic.lastMtimeLogged = logLastMtime(ic.lastMtimeLogged, ic.lastMtime, "Instance")
 			ic.lastMtime = curStoreTime
@@ -178,7 +183,8 @@ func (ic *instanceCache) realUpdate() error {
 	// 拉取diff前的所有数据
 	start := time.Now()
 	lastMtime := ic.LastMtime()
-	instances, err := ic.storage.GetMoreInstances(lastMtime, ic.firstUpdate, ic.needMeta, ic.systemServiceID)
+	instances, err := ic.storage.GetMoreInstances(lastMtime.Add(DefaultTimeDiff),
+		ic.firstUpdate, ic.needMeta, ic.systemServiceID)
 	if err != nil {
 		log.Errorf("[Cache][Instance] update get storage more err: %s", err.Error())
 		return err
@@ -187,6 +193,7 @@ func (ic *instanceCache) realUpdate() error {
 	ic.firstUpdate = false
 	update, del := ic.setInstances(instances)
 	timeDiff := time.Since(start)
+	metrics.RecordCacheUpdateCost(timeDiff, ic.name(), int64(len(instances)))
 	if timeDiff > 1*time.Second {
 		log.Info("[Cache][Instance] get more instances",
 			zap.Int("update", update), zap.Int("delete", del),
@@ -296,7 +303,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 	if ic.lastMtime != lastMtime {
 		log.Infof("[Cache][Instance] instance lastMtime update from %s to %s",
 			time.Unix(ic.lastMtime, 0), time.Unix(lastMtime, 0))
-		ic.lastMtime = lastMtime
+		// ic.lastMtime = lastMtime
 	}
 	if ic.instanceCount != instanceCount {
 		log.Infof("[Cache][Instance] instance count update from %d to %d",

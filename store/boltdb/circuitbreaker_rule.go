@@ -102,7 +102,7 @@ func (c *circuitBreakerStore) DeleteCircuitBreakerRule(id string) error {
 	})
 }
 
-// GetRateLimitWithID 根据限流ID拉取限流规则
+// getCircuitBreakerRuleWithID 根据规则ID拉取熔断规则
 func (c *circuitBreakerStore) getCircuitBreakerRuleWithID(id string) (*model.CircuitBreakerRule, error) {
 	if id == "" {
 		return nil, ErrBadParam
@@ -374,4 +374,18 @@ func (c *circuitBreakerStore) EnableCircuitBreakerRule(cbRule *model.CircuitBrea
 		}
 		return nil
 	})
+}
+
+// GetCircuitBreakerRuleCount
+func (c *circuitBreakerStore) GetCircuitBreakerRuleCount() (int64, error) {
+	handler := c.handler
+
+	results, err := handler.LoadValuesByFilter(
+		tblCircuitBreakerRule, []string{CommonFieldValid}, &model.CircuitBreakerRule{},
+		func(m map[string]interface{}) bool {
+			valid, _ := m[CommonFieldValid].(bool)
+			return valid
+		})
+
+	return int64(len(results)), err
 }

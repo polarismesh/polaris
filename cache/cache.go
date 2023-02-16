@@ -101,7 +101,7 @@ var (
 
 const (
 	// DefaultTimeDiff default time diff
-	DefaultTimeDiff = -10 * time.Second
+	DefaultTimeDiff = -5 * time.Second
 )
 
 // Cache 缓存接口

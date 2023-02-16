@@ -27,6 +27,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -261,9 +262,13 @@ func (sc *strategyCache) realUpdate() error {
 
 	sc.firstUpdate = false
 	add, update, del := sc.setStrategys(strategys)
-	log.Info("[Cache][AuthStrategy] get more auth strategy",
-		zap.Int("add", add), zap.Int("update", update), zap.Int("delete", del),
-		zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
+	timeDiff := time.Since(start)
+	metrics.RecordCacheUpdateCost(timeDiff, sc.name(), int64(len(strategys)))
+	if timeDiff > time.Second {
+		log.Info("[Cache][AuthStrategy] get more auth strategy",
+			zap.Int("add", add), zap.Int("update", update), zap.Int("delete", del),
+			zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
+	}
 	return nil
 }
 

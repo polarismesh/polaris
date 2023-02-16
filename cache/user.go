@@ -19,7 +19,6 @@ package cache
 
 import (
 	"fmt"
-	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -27,6 +26,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -96,182 +96,20 @@ type userCache struct {
 
 	storage store.Store
 
-	adminUser                atomic.Value
-	users                    *userBucket       // userid -> user
-	name2Users               *usernameBucket   // username -> user
-	groups                   *groupBucket      // groupid -> group
-	user2Groups              *userGroupsBucket // userid -> groups
-	userCacheFirstUpdate     bool
-	groupCacheFirstUpdate    bool
-	lastUserCacheUpdateTime  int64
-	lastGroupCacheUpdateTime int64
+	adminUser   atomic.Value
+	users       *userBucket       // userid -> user
+	name2Users  *usernameBucket   // username -> user
+	groups      *groupBucket      // groupid -> group
+	user2Groups *userGroupsBucket // userid -> groups
+	firstUpdate bool
+	lastMtime   int64
 
-	notifyCh chan interface{}
+	lastCheckAllTime int64
+	userCount        int64
+	groupCount       int64
 
+	notifyCh     chan interface{}
 	singleFlight *singleflight.Group
-}
-
-type userBucket struct {
-	lock sync.RWMutex
-	// userid -> user
-	users map[string]*model.User
-}
-
-func (u *userBucket) get(userId string) (*model.User, bool) {
-	u.lock.RLock()
-	defer u.lock.RUnlock()
-
-	v, ok := u.users[userId]
-
-	return v, ok
-}
-
-func (u *userBucket) save(key string, user *model.User) {
-	u.lock.Lock()
-	defer u.lock.Unlock()
-
-	u.users[key] = user
-}
-
-func (u *userBucket) delete(key string) {
-	u.lock.Lock()
-	defer u.lock.Unlock()
-
-	delete(u.users, key)
-}
-
-type usernameBucket struct {
-	lock sync.RWMutex
-	// username -> user
-	users map[string]*model.User
-}
-
-func (u *usernameBucket) get(userId string) (*model.User, bool) {
-	u.lock.RLock()
-	defer u.lock.RUnlock()
-
-	v, ok := u.users[userId]
-
-	return v, ok
-}
-
-func (u *usernameBucket) save(key string, user *model.User) {
-	u.lock.Lock()
-	defer u.lock.Unlock()
-
-	u.users[key] = user
-}
-
-func (u *usernameBucket) delete(key string) {
-	u.lock.Lock()
-	defer u.lock.Unlock()
-
-	delete(u.users, key)
-}
-
-type userGroupsBucket struct {
-	lock sync.RWMutex
-	// userid -> groups
-	groups map[string]*groupIdSlice
-}
-
-func (u *userGroupsBucket) get(userId string) (*groupIdSlice, bool) {
-	u.lock.RLock()
-	defer u.lock.RUnlock()
-
-	v, ok := u.groups[userId]
-
-	return v, ok
-}
-
-func (u *userGroupsBucket) save(key string) {
-	u.lock.Lock()
-	defer u.lock.Unlock()
-
-	if _, ok := u.groups[key]; ok {
-		return
-	}
-
-	u.groups[key] = &groupIdSlice{
-		lock:     sync.RWMutex{},
-		groupIds: make(map[string]struct{}),
-	}
-}
-
-func (u *userGroupsBucket) delete(key string) {
-	u.lock.Lock()
-	defer u.lock.Unlock()
-
-	delete(u.groups, key)
-}
-
-type groupIdSlice struct {
-	lock     sync.RWMutex
-	groupIds map[string]struct{}
-}
-
-func (u *groupIdSlice) toSlice() []string {
-	u.lock.RLock()
-	defer u.lock.RUnlock()
-
-	ret := make([]string, 0, len(u.groupIds))
-
-	for k := range u.groupIds {
-		ret = append(ret, k)
-	}
-
-	return ret
-}
-
-func (u *groupIdSlice) contains(groupID string) bool {
-	u.lock.RLock()
-	defer u.lock.RUnlock()
-
-	_, ok := u.groupIds[groupID]
-
-	return ok
-}
-
-func (u *groupIdSlice) save(groupID string) {
-	u.lock.Lock()
-	defer u.lock.Unlock()
-
-	u.groupIds[groupID] = struct{}{}
-}
-
-func (u *groupIdSlice) delete(key string) {
-	u.lock.Lock()
-	defer u.lock.Unlock()
-
-	delete(u.groupIds, key)
-}
-
-type groupBucket struct {
-	lock   sync.RWMutex
-	groups map[string]*model.UserGroupDetail
-}
-
-func (u *groupBucket) get(userId string) (*model.UserGroupDetail, bool) {
-	u.lock.RLock()
-	defer u.lock.RUnlock()
-
-	v, ok := u.groups[userId]
-
-	return v, ok
-}
-
-func (u *groupBucket) save(key string, group *model.UserGroupDetail) {
-	u.lock.Lock()
-	defer u.lock.Unlock()
-
-	u.groups[key] = group
-}
-
-func (u *groupBucket) delete(key string) {
-	u.lock.Lock()
-	defer u.lock.Unlock()
-
-	delete(u.groups, key)
 }
 
 // newUserCache
@@ -288,10 +126,11 @@ func (uc *userCache) initialize(_ map[string]interface{}) error {
 	uc.initBuckets()
 	uc.adminUser = atomic.Value{}
 
-	uc.userCacheFirstUpdate = true
-	uc.groupCacheFirstUpdate = true
-	uc.lastUserCacheUpdateTime = 0
-	uc.lastGroupCacheUpdateTime = 0
+	uc.firstUpdate = true
+	uc.lastMtime = 0
+	uc.lastCheckAllTime = 0
+	uc.userCount = 0
+	uc.groupCount = 0
 
 	uc.singleFlight = new(singleflight.Group)
 	return nil
@@ -319,6 +158,14 @@ func (uc *userCache) initBuckets() {
 func (uc *userCache) update() error {
 	// Multiple threads competition, only one thread is updated
 	_, err, _ := uc.singleFlight.Do(UsersName, func() (interface{}, error) {
+		curStoreTime, err := uc.storage.GetUnixSecond()
+		if err != nil {
+			curStoreTime = uc.lastMtime
+			log.Warn("[Cache][Service] get store timestamp fail, skip update lastMtime", zap.Error(err))
+		}
+		defer func() {
+			uc.lastMtime = curStoreTime
+		}()
 		return nil, uc.realUpdate()
 	})
 	return err
@@ -327,34 +174,38 @@ func (uc *userCache) update() error {
 func (uc *userCache) realUpdate() error {
 	// Get all data before a few seconds
 	start := time.Now()
-	userlastMtime := time.Unix(uc.lastUserCacheUpdateTime, 0)
-	users, err := uc.storage.GetUsersForCache(userlastMtime, uc.userCacheFirstUpdate)
+	lastMtime := time.Unix(uc.lastMtime, 0)
+	users, err := uc.storage.GetUsersForCache(lastMtime.Add(DefaultTimeDiff), uc.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache][User] update user err: %s", err.Error())
 		return err
 	}
+	metrics.RecordCacheUpdateCost(time.Since(start), "users", int64(len(users)))
 
-	grouplastMtime := time.Unix(uc.lastGroupCacheUpdateTime, 0)
-	groups, err := uc.storage.GetGroupsForCache(grouplastMtime.Add(DefaultTimeDiff), uc.groupCacheFirstUpdate)
+	groups, err := uc.storage.GetGroupsForCache(lastMtime.Add(DefaultTimeDiff), uc.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache][Group] update group err: %s", err.Error())
 		return err
 	}
+	metrics.RecordCacheUpdateCost(time.Since(start), "groups", int64(len(groups)))
 
-	uc.userCacheFirstUpdate = false
-	uc.groupCacheFirstUpdate = false
+	uc.firstUpdate = false
 	refreshRet := uc.setUserAndGroups(users, groups)
-	log.Info("[Cache][User] get more user",
-		zap.Int("add", refreshRet.userAdd),
-		zap.Int("update", refreshRet.userUpdate),
-		zap.Int("delete", refreshRet.userDel),
-		zap.Time("last", userlastMtime), zap.Duration("used", time.Since(start)))
 
-	log.Info("[Cache][Group] get more group",
-		zap.Int("add", refreshRet.groupAdd),
-		zap.Int("update", refreshRet.groupUpdate),
-		zap.Int("delete", refreshRet.groupDel),
-		zap.Time("last", grouplastMtime), zap.Duration("used", time.Since(start)))
+	timeDiff := time.Since(start)
+	if timeDiff > time.Second {
+		log.Info("[Cache][User] get more user",
+			zap.Int("add", refreshRet.userAdd),
+			zap.Int("update", refreshRet.userUpdate),
+			zap.Int("delete", refreshRet.userDel),
+			zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
+
+		log.Info("[Cache][Group] get more group",
+			zap.Int("add", refreshRet.groupAdd),
+			zap.Int("update", refreshRet.groupUpdate),
+			zap.Int("delete", refreshRet.groupDel),
+			zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
+	}
 	return nil
 }
 
@@ -397,8 +248,6 @@ func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult,
 			uc.adminUser.Store(user)
 			uc.users.save(user.ID, user)
 			uc.name2Users.save(fmt.Sprintf(NameLinkOwnerTemp, user.Name, user.Name), user)
-			uc.lastUserCacheUpdateTime = int64(math.Max(float64(user.ModifyTime.Unix()),
-				float64(uc.lastUserCacheUpdateTime)))
 			continue
 		}
 
@@ -423,9 +272,6 @@ func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult,
 			}
 			uc.users.save(user.ID, user)
 			uc.name2Users.save(fmt.Sprintf(NameLinkOwnerTemp, owner.Name, user.Name), user)
-
-			uc.lastUserCacheUpdateTime = int64(math.Max(float64(user.ModifyTime.Unix()),
-				float64(uc.lastUserCacheUpdateTime)))
 		}
 	}
 }
@@ -475,9 +321,6 @@ func (uc *userCache) handlerGroupCacheUpdate(ret *userAndGroupCacheRefreshResult
 				val, _ := uc.user2Groups.get(uid)
 				val.save(group.ID)
 			}
-
-			uc.lastGroupCacheUpdateTime = int64(math.Max(float64(group.ModifyTime.Unix()),
-				float64(uc.lastGroupCacheUpdateTime)))
 		}
 	}
 }
@@ -486,10 +329,11 @@ func (uc *userCache) clear() error {
 	uc.initBuckets()
 	uc.adminUser = atomic.Value{}
 
-	uc.userCacheFirstUpdate = false
-	uc.groupCacheFirstUpdate = false
-	uc.lastUserCacheUpdateTime = 0
-	uc.lastGroupCacheUpdateTime = 0
+	uc.firstUpdate = true
+	uc.lastMtime = 0
+	uc.lastCheckAllTime = 0
+	uc.userCount = 0
+	uc.groupCount = 0
 	return nil
 }
 

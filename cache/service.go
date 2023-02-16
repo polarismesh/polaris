@@ -25,6 +25,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -134,6 +135,9 @@ type serviceCache struct {
 	pendingServices     map[string]int8
 	namespaceServiceCnt *sync.Map // namespace -> model.NamespaceServiceCount
 	cancel              context.CancelFunc
+
+	serviceCount     int64
+	lastCheckAllTime int64
 }
 
 // init 自注册到缓存列表
@@ -187,19 +191,48 @@ func (sc *serviceCache) LastMtime() time.Time {
 func (sc *serviceCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := sc.singleFlight.Do(ServiceName, func() (interface{}, error) {
+		curStoreTime, err := sc.storage.GetUnixSecond()
+		if err != nil {
+			curStoreTime = sc.lastMtime
+			log.Warn("[Cache][Service] get store timestamp fail, skip update lastMtime", zap.Error(err))
+		}
 		defer func() {
 			sc.lastMtimeLogged = logLastMtime(sc.lastMtimeLogged, sc.lastMtime, "Service")
+			sc.lastMtime = curStoreTime
+			sc.checkAll()
 		}()
 		return nil, sc.realUpdate()
 	})
 	return err
 }
 
+func (sc *serviceCache) checkAll() {
+	curTimeSec := time.Now().Unix()
+	if curTimeSec-sc.lastCheckAllTime < checkAllIntervalSec {
+		return
+	}
+	defer func() {
+		sc.lastCheckAllTime = curTimeSec
+	}()
+	count, err := sc.storage.GetServicesCount()
+	if err != nil {
+		log.Errorf("[Cache][Service] get service count from storage err: %s", err.Error())
+		return
+	}
+	if sc.serviceCount == int64(count) {
+		return
+	}
+	log.Infof(
+		"[Cache][Service] service count not match, expect %d, actual %d, fallback to load all",
+		count, sc.serviceCount)
+	sc.lastMtime = 0
+}
+
 func (sc *serviceCache) realUpdate() error {
 	// 获取几秒前的全部数据
 	start := time.Now()
 	lastMtime := sc.LastMtime()
-	services, err := sc.storage.GetMoreServices(lastMtime,
+	services, err := sc.storage.GetMoreServices(lastMtime.Add(DefaultTimeDiff),
 		sc.firstUpdate, sc.disableBusiness, sc.needMeta)
 	if err != nil {
 		log.Errorf("[Cache][Service] update services err: %s", err.Error())
@@ -208,9 +241,13 @@ func (sc *serviceCache) realUpdate() error {
 
 	sc.firstUpdate = false
 	update, del := sc.setServices(services)
-	log.Info(
-		"[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
-		zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
+	costTime := time.Since(start)
+	metrics.RecordCacheUpdateCost(costTime, sc.name(), int64(len(services)))
+	if costTime > time.Second {
+		log.Info(
+			"[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
+			zap.Time("last", lastMtime), zap.Duration("used", costTime))
+	}
 	return nil
 }
 
@@ -392,9 +429,9 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 		/******兼容cl5******/
 	}
 
-	if sc.lastMtime < lastMtime {
-		sc.lastMtime = lastMtime
-	}
+	// if sc.lastMtime < lastMtime {
+	// 	sc.lastMtime = lastMtime
+	// }
 
 	sc.postProcessUpdatedServices(changeNs)
 	return update, del

@@ -200,6 +200,8 @@ type RoutingConfigStore interface {
 	GetRoutingConfigWithID(id string) (*model.RoutingConfig, error)
 	// GetRoutingConfigs 查询路由配置列表
 	GetRoutingConfigs(filter map[string]string, offset uint32, limit uint32) (uint32, []*model.ExtendRoutingConfig, error)
+	// GetRoutingConfigCount get valid routing v1 rule count
+	GetRoutingConfigCount() (int64, error)
 }
 
 // RateLimitStore 限流规则的存储接口
@@ -225,6 +227,9 @@ type RateLimitStore interface {
 	// GetRateLimitsForCache 根据修改时间拉取增量限流规则及最新版本号
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, []*model.RateLimitRevision, error)
+
+	// GetRateLimitCount get valid ratelimit rule total count
+	GetRateLimitCount() (int64, error)
 }
 
 // CircuitBreakerStore 熔断规则的存储接口
@@ -319,6 +324,9 @@ type CircuitBreakerStore interface {
 
 	// EnableCircuitBreakerRule enable specific circuitbreaker rule
 	EnableCircuitBreakerRule(cbRule *model.CircuitBreakerRule) error
+
+	// GetCircuitBreakerRuleCount get valid circuitbreaker rule total count
+	GetCircuitBreakerRuleCount() (int64, error)
 }
 
 // ClientStore store interface for client info
@@ -353,6 +361,8 @@ type RoutingConfigStoreV2 interface {
 	GetRoutingConfigV2WithID(id string) (*model.RouterConfig, error)
 	// GetRoutingConfigV2WithIDTx 根据服务ID拉取路由配置
 	GetRoutingConfigV2WithIDTx(tx Tx, id string) (*model.RouterConfig, error)
+	// GetRoutingConfigV2Count get valid routing v2 rule total count
+	GetRoutingConfigV2Count() (int64, error)
 }
 
 // FaultDetectRuleStore store api for the fault detector config
@@ -380,4 +390,7 @@ type FaultDetectRuleStore interface {
 
 	// GetFaultDetectRulesForCache get increment fault detect rules
 	GetFaultDetectRulesForCache(mtime time.Time, firstUpdate bool) ([]*model.FaultDetectRule, error)
+
+	// GetFaultDetectCount get valid faultdetect rule total count
+	GetFaultDetectCount() (int64, error)
 }

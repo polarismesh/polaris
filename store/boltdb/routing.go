@@ -29,6 +29,8 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var _ store.RoutingConfigStore = (*routingStore)(nil)
+
 type routingStore struct {
 	handler BoltHandler
 }
@@ -344,6 +346,17 @@ func toRouteConf(m map[string]interface{}) []*model.RoutingConfig {
 	}
 
 	return routeConf
+}
+
+func (r *routingStore) GetRoutingConfigCount() (int64, error) {
+	fields := []string{CommonFieldValid}
+	routeConf, err := r.handler.LoadValuesByFilter(tblNameRouting, fields, &model.RoutingConfig{},
+		func(m map[string]interface{}) bool {
+			valid, _ := m[CommonFieldValid].(bool)
+			return valid
+		})
+
+	return int64(len(routeConf)), err
 }
 
 func getRealRouteConfList(routeConf []*model.ExtendRoutingConfig, offset, limit uint32) []*model.ExtendRoutingConfig {
