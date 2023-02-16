@@ -23,6 +23,18 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
+const (
+	labelServerNode    = "polaris_server_instance"
+	labelNamespace     = "namespace"
+	labelService       = "service"
+	labelServiceStatus = "status"
+	labelVersion       = "version"
+	labelApi           = "api"
+	labelApiType       = "api_type"
+	labelProtocol      = "protocol"
+	labelErrCode       = "err_code"
+)
+
 var (
 	metricsPort int32
 )
@@ -42,7 +54,7 @@ var (
 		Name: "instance_regis_cost_time",
 		Help: "instance regis cost time",
 		ConstLabels: map[string]string{
-			"polaris_server_instance": utils.LocalHost,
+			labelServerNode: utils.LocalHost,
 		},
 	})
 
@@ -51,7 +63,7 @@ var (
 		Name: "instance_regis_task_expire",
 		Help: "instance regis task expire that server drop it",
 		ConstLabels: map[string]string{
-			"polaris_server_instance": utils.LocalHost,
+			labelServerNode: utils.LocalHost,
 		},
 	})
 )
@@ -62,7 +74,7 @@ var (
 		Name: "redis_read_failure",
 		Help: "polaris exec redis read operation failure",
 		ConstLabels: map[string]string{
-			"polaris_server_instance": utils.LocalHost,
+			labelServerNode: utils.LocalHost,
 		},
 	})
 
@@ -70,7 +82,7 @@ var (
 		Name: "redis_write_failure",
 		Help: "polaris exec redis write operation failure",
 		ConstLabels: map[string]string{
-			"polaris_server_instance": utils.LocalHost,
+			labelServerNode: utils.LocalHost,
 		},
 	})
 
@@ -90,7 +102,7 @@ var (
 		Name: "discovery_conn_total",
 		Help: "polaris discovery client connection total",
 		ConstLabels: map[string]string{
-			"polaris_server_instance": utils.LocalHost,
+			labelServerNode: utils.LocalHost,
 		},
 	})
 
@@ -99,7 +111,7 @@ var (
 		Name: "config_conn_total",
 		Help: "polaris configuration client connection total",
 		ConstLabels: map[string]string{
-			"polaris_server_instance": utils.LocalHost,
+			labelServerNode: utils.LocalHost,
 		},
 	})
 
@@ -108,7 +120,18 @@ var (
 		Name: "sdk_client_total",
 		Help: "polaris client connection total",
 		ConstLabels: map[string]string{
-			"polaris_server_instance": utils.LocalHost,
+			labelServerNode: utils.LocalHost,
+		},
+	})
+)
+
+// sdk instance metrics
+var (
+	clientInstanceTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "client_total",
+		Help: "polaris client instance total number",
+		ConstLabels: map[string]string{
+			labelServerNode: utils.LocalHost,
 		},
 	})
 )

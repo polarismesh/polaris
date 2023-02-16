@@ -287,7 +287,6 @@ func doClientPage(ret []*model.Client, offset, limit uint32) []*model.Client {
 	}
 
 	clients = append(clients, ret...)
-
 	sort.Slice(clients, func(i, j int) bool {
 		return clients[i].ModifyTime().After(clients[j].ModifyTime())
 	})

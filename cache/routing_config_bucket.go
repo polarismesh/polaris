@@ -255,13 +255,12 @@ func (b *routingBucketV2) deleteV1(serviceId string) {
 	delete(b.v1rules, serviceId)
 }
 
-// size v2 路由缓存的规则数量
+// size Number of routing-v2 cache rules
 func (b *routingBucketV2) size() int {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 
 	cnt := len(b.rules)
-
 	for k := range b.v1rules {
 		cnt += len(b.v1rules[k])
 	}
@@ -271,7 +270,8 @@ func (b *routingBucketV2) size() int {
 
 type predicate func(item *model.ExtendRouterConfig) bool
 
-// listByServiceWithPredicate 通过服务名称查询 v2 版本的路由规则，同时以及 predicate 进行一些过滤
+// listByServiceWithPredicate Inquire the routing rules of the V2 version through the service name,
+// and perform some filtering according to the Predicate
 func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
 	predicate predicate) map[routingLevel][]*model.ExtendRouterConfig {
 	ret := make(map[routingLevel][]*model.ExtendRouterConfig)
@@ -280,7 +280,7 @@ func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 
-	// 查询 level1 级别的 v2 版本路由规则
+	// Query Level1 level V2 version routing rules
 	key := buildServiceKey(namespace, service)
 	ids := b.level1Rules[key]
 	level1 := make([]*model.ExtendRouterConfig, 0, 4)
@@ -300,7 +300,6 @@ func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
 			if v == nil {
 				continue
 			}
-			// 已经存在，不需要在重复加一次了
 			if _, ok := tmpRecord[v.ID]; ok {
 				continue
 			}
@@ -314,13 +313,13 @@ func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
 		return ret
 	}
 
-	// 查询 level2 级别的 v2 版本路由规则
+	// Query Level 2 level routing-v2 rules
 	level2 := make([]*model.ExtendRouterConfig, 0, 4)
 	level2 = append(level2, handler(b.level2Rules[outBound][namespace], outBound)...)
 	level2 = append(level2, handler(b.level2Rules[inBound][namespace], inBound)...)
 	ret[level2RoutingV2] = level2
 
-	// 查询 level3 级别的 v2 版本路由规则
+	// Query Level3 level routing-v2 rules
 	level3 := make([]*model.ExtendRouterConfig, 0, 4)
 	level3 = append(level3, handler(b.level3Rules[outBound], outBound)...)
 	level3 = append(level3, handler(b.level3Rules[inBound], inBound)...)
@@ -328,7 +327,7 @@ func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
 	return ret
 }
 
-// foreach 遍历所有的路由规则
+// foreach Traversing all routing rules
 func (b *routingBucketV2) foreach(proc RoutingIterProc) {
 	b.lock.RLock()
 	defer b.lock.RUnlock()

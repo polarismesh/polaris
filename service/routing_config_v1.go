@@ -44,7 +44,7 @@ var (
 	}
 )
 
-// CreateRoutingConfigs 批量创建路由配置
+// CreateRoutingConfigs Create a routing configuration
 func (s *Server) CreateRoutingConfigs(ctx context.Context, req []*apitraffic.Routing) *apiservice.BatchWriteResponse {
 	if err := checkBatchRoutingConfig(req); err != nil {
 		return err
@@ -58,10 +58,9 @@ func (s *Server) CreateRoutingConfigs(ctx context.Context, req []*apitraffic.Rou
 	return api.FormatBatchWriteResponse(resp)
 }
 
-// CreateRoutingConfig 创建一个路由配置
-// Deprecated: 该方法准备舍弃
-// CreateRoutingConfig 创建一个路由配置
-// 创建路由配置需要锁住服务，防止服务被删除
+// CreateRoutingConfig Create a routing configuration, Creating route configuration requires locking
+// services to prevent the service from being deleted
+// Deprecated: This method is ready to abandon
 func (s *Server) CreateRoutingConfig(ctx context.Context, req *apitraffic.Routing) *apiservice.Response {
 	rid := utils.ParseRequestID(ctx)
 	pid := utils.ParsePlatformID(ctx)
@@ -90,7 +89,6 @@ func (s *Server) CreateRoutingConfig(ctx context.Context, req *apitraffic.Routin
 		return api.NewRoutingResponse(apimodel.Code_NotAllowAliasCreateRouting, req)
 	}
 
-	// 检查路由配置是否已经存在了
 	routingConfig, err := s.storage.GetRoutingConfigWithService(service.Name, service.Namespace)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
@@ -100,7 +98,6 @@ func (s *Server) CreateRoutingConfig(ctx context.Context, req *apitraffic.Routin
 		return api.NewRoutingResponse(apimodel.Code_ExistedResource, req)
 	}
 
-	// 构造底层数据结构，并且写入store
 	conf, err := api2RoutingConfig(service.ID, req)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
@@ -115,7 +112,7 @@ func (s *Server) CreateRoutingConfig(ctx context.Context, req *apitraffic.Routin
 	return api.NewRoutingResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
-// DeleteRoutingConfigs 批量删除路由配置
+// DeleteRoutingConfigs Batch delete routing configuration
 func (s *Server) DeleteRoutingConfigs(ctx context.Context, req []*apitraffic.Routing) *apiservice.BatchWriteResponse {
 	if err := checkBatchRoutingConfig(req); err != nil {
 		return err
@@ -130,9 +127,8 @@ func (s *Server) DeleteRoutingConfigs(ctx context.Context, req []*apitraffic.Rou
 	return api.FormatBatchWriteResponse(out)
 }
 
-// DeleteRoutingConfig 删除一个路由配置
-// Deprecated: 该方法准备舍弃
-// DeleteRoutingConfig 删除一个路由配置
+// DeleteRoutingConfig Delete a routing configuration
+// Deprecated: This method is ready to abandon
 func (s *Server) DeleteRoutingConfig(ctx context.Context, req *apitraffic.Routing) *apiservice.Response {
 	rid := utils.ParseRequestID(ctx)
 	pid := utils.ParsePlatformID(ctx)
@@ -141,8 +137,6 @@ func (s *Server) DeleteRoutingConfig(ctx context.Context, req *apitraffic.Routin
 		return resp
 	}
 
-	// store操作
-	// TODO 需要进行多表事务一致性保证
 	if err := s.storage.DeleteRoutingConfig(service.ID); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return wrapperRoutingStoreResponse(req, err)
@@ -152,7 +146,7 @@ func (s *Server) DeleteRoutingConfig(ctx context.Context, req *apitraffic.Routin
 	return api.NewResponse(apimodel.Code_ExecuteSuccess)
 }
 
-// UpdateRoutingConfigs 批量更新路由配置
+// UpdateRoutingConfigs Batch update routing configuration
 func (s *Server) UpdateRoutingConfigs(ctx context.Context, req []*apitraffic.Routing) *apiservice.BatchWriteResponse {
 	if err := checkBatchRoutingConfig(req); err != nil {
 		return err
@@ -167,9 +161,8 @@ func (s *Server) UpdateRoutingConfigs(ctx context.Context, req []*apitraffic.Rou
 	return api.FormatBatchWriteResponse(out)
 }
 
-// UpdateRoutingConfig 更新一个路由配置
+// UpdateRoutingConfig Update a routing configuration
 // Deprecated: 该方法准备舍弃
-// UpdateRoutingConfig 更新单个路由配置
 func (s *Server) UpdateRoutingConfig(ctx context.Context, req *apitraffic.Routing) *apiservice.Response {
 	rid := utils.ParseRequestID(ctx)
 	pid := utils.ParsePlatformID(ctx)
@@ -178,7 +171,6 @@ func (s *Server) UpdateRoutingConfig(ctx context.Context, req *apitraffic.Routin
 		return resp
 	}
 
-	// 检查路由配置是否存在
 	conf, err := s.storage.GetRoutingConfigWithService(service.Name, service.Namespace)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
@@ -188,7 +180,6 @@ func (s *Server) UpdateRoutingConfig(ctx context.Context, req *apitraffic.Routin
 		return api.NewRoutingResponse(apimodel.Code_NotFoundRouting, req)
 	}
 
-	// 作为一个整体进行Update，所有参数都要传递
 	reqModel, err := api2RoutingConfig(service.ID, req)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
@@ -204,20 +195,18 @@ func (s *Server) UpdateRoutingConfig(ctx context.Context, req *apitraffic.Routin
 	return api.NewRoutingResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
-// GetRoutingConfigs 批量获取路由配置
-// Deprecated: 该方法准备舍弃
-// GetRoutingConfigs 提供给OSS的查询路由配置的接口
+// GetRoutingConfigs Get the routing configuration in batches, and provide the interface of
+// the query routing configuration to the OSS
+// Deprecated: This method is ready to abandon
 func (s *Server) GetRoutingConfigs(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	rid := utils.ParseRequestID(ctx)
 	pid := utils.ParsePlatformID(ctx)
 
-	// 先处理offset和limit
 	offset, limit, err := utils.ParseOffsetAndLimit(query)
 	if err != nil {
 		return api.NewBatchQueryResponse(apimodel.Code_InvalidParameter)
 	}
 
-	// 处理剩余的参数
 	filter := make(map[string]string)
 	for key, value := range query {
 		if _, ok := RoutingConfigFilterAttrs[key]; !ok {
@@ -226,20 +215,19 @@ func (s *Server) GetRoutingConfigs(ctx context.Context, query map[string]string)
 		}
 		filter[key] = value
 	}
-	// service -- > name 这个特殊处理一下
+	// service -- > name This special treatment
 	if service, ok := filter["service"]; ok {
 		filter["name"] = service
 		delete(filter, "service")
 	}
 
-	// 可以根据name和namespace过滤
+	// Can be filtered according to name and namespace
 	total, routings, err := s.storage.GetRoutingConfigs(filter, offset, limit)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
 	}
 
-	// 格式化输出
 	resp := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
 	resp.Amount = utils.NewUInt32Value(total)
 	resp.Size = utils.NewUInt32Value(uint32(len(routings)))
@@ -256,7 +244,7 @@ func (s *Server) GetRoutingConfigs(ctx context.Context, query map[string]string)
 	return resp
 }
 
-// routingConfigCommonCheck 路由配置操作的公共检查
+// routingConfigCommonCheck Public examination of routing configuration operation
 func (s *Server) routingConfigCommonCheck(
 	ctx context.Context, req *apitraffic.Routing) (*model.Service, *apiservice.Response) {
 	if resp := checkRoutingConfig(req); resp != nil {
@@ -280,7 +268,7 @@ func (s *Server) routingConfigCommonCheck(
 	return service, nil
 }
 
-// checkRoutingConfig 检查路由配置基础参数有效性
+// checkRoutingConfig Check the validity of the basic parameter of the routing configuration
 func checkRoutingConfig(req *apitraffic.Routing) *apiservice.Response {
 	if req == nil {
 		return api.NewRoutingResponse(apimodel.Code_EmptyRequest, req)
@@ -306,7 +294,7 @@ func checkRoutingConfig(req *apitraffic.Routing) *apiservice.Response {
 	return nil
 }
 
-// parseServiceRoutingToken 从routingConfig请求参数中获取token
+// parseServiceRoutingToken Get token from RoutingConfig request parameters
 func parseServiceRoutingToken(ctx context.Context, req *apitraffic.Routing) string {
 	if reqToken := req.GetServiceToken().GetValue(); reqToken != "" {
 		return reqToken
@@ -315,7 +303,7 @@ func parseServiceRoutingToken(ctx context.Context, req *apitraffic.Routing) stri
 	return utils.ParseToken(ctx)
 }
 
-// api2RoutingConfig 把API参数转换为内部的数据结构
+// api2RoutingConfig Convert the API parameter to internal data structure
 func api2RoutingConfig(serviceID string, req *apitraffic.Routing) (*model.RoutingConfig, error) {
 	inBounds, outBounds, err := marshalRoutingConfig(req.GetInbounds(), req.GetOutbounds())
 	if err != nil {
@@ -332,7 +320,7 @@ func api2RoutingConfig(serviceID string, req *apitraffic.Routing) (*model.Routin
 	return out, nil
 }
 
-// routingConfig2API 把内部数据结构转换为API参数传递出去
+// routingConfig2API Convert the internal data structure to API parameter to pass out
 func routingConfig2API(req *model.RoutingConfig, service string, namespace string) (*apitraffic.Routing, error) {
 	if req == nil {
 		return nil, nil
@@ -364,7 +352,7 @@ func routingConfig2API(req *model.RoutingConfig, service string, namespace strin
 	return out, nil
 }
 
-// marshalRoutingConfig 格式化inbounds和outbounds
+// marshalRoutingConfig Formulate Inbounds and OUTBOUNDS
 func marshalRoutingConfig(in []*apitraffic.Route, out []*apitraffic.Route) ([]byte, []byte, error) {
 	inBounds, err := json.Marshal(in)
 	if err != nil {
@@ -379,7 +367,7 @@ func marshalRoutingConfig(in []*apitraffic.Route, out []*apitraffic.Route) ([]by
 	return inBounds, outBounds, nil
 }
 
-// checkBatchRoutingConfig 检查批量请求
+// checkBatchRoutingConfig Check batch request
 func checkBatchRoutingConfig(req []*apitraffic.Routing) *apiservice.BatchWriteResponse {
 	if len(req) == 0 {
 		return api.NewBatchWriteResponse(apimodel.Code_EmptyRequest)
@@ -392,7 +380,7 @@ func checkBatchRoutingConfig(req []*apitraffic.Routing) *apiservice.BatchWriteRe
 	return nil
 }
 
-// routingRecordEntry 构建routingConfig的记录entry
+// routingRecordEntry Construction of RoutingConfig's record Entry
 func routingRecordEntry(ctx context.Context, req *apitraffic.Routing, svc *model.Service, md *model.RoutingConfig,
 	opt model.OperationType) *model.RecordEntry {
 
@@ -412,7 +400,7 @@ func routingRecordEntry(ctx context.Context, req *apitraffic.Routing, svc *model
 	return entry
 }
 
-// routingV2RecordEntry 构建routingConfig的记录entry
+// routingV2RecordEntry Construction of RoutingConfig's record Entry
 func routingV2RecordEntry(ctx context.Context, req *apitraffic.RouteRule, md *model.RouterConfig,
 	opt model.OperationType) *model.RecordEntry {
 
@@ -431,7 +419,7 @@ func routingV2RecordEntry(ctx context.Context, req *apitraffic.RouteRule, md *mo
 	return entry
 }
 
-// wrapperRoutingStoreResponse 封装路由存储层错误
+// wrapperRoutingStoreResponse Packing routing storage layer error
 func wrapperRoutingStoreResponse(routing *apitraffic.Routing, err error) *apiservice.Response {
 	resp := storeError2Response(err)
 	if resp == nil {

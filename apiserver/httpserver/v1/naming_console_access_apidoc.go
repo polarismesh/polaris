@@ -515,35 +515,35 @@ func enrichGetCircuitBreakerRulesApiDocs(r *restful.RouteBuilder) *restful.Route
 }
 
 func enrichEnableCircuitBreakerRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("启用限流规则").
+	return r.Doc("启用熔断规则").
 		Metadata(restfulspec.KeyOpenAPITags, circuitBreakerRulesApiTags).
 		Reads([]apitraffic.RateLimit{}, "enable rate limits").
 		Notes(enrichEnableCircuitBreakerRulesApiNotes)
 }
 
 func enrichCreateFaultDetectRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("创建健康检查规则").
+	return r.Doc("创建主动探测规则").
 		Metadata(restfulspec.KeyOpenAPITags, faultDetectsApiTags).
 		Reads([]apifault.FaultDetectRule{}, "create fault detect rules").
 		Notes(enrichCreateFaultDetectRulesApiNotes)
 }
 
 func enrichDeleteFaultDetectRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("删除健康检查规则").
+	return r.Doc("删除主动探测规则").
 		Metadata(restfulspec.KeyOpenAPITags, faultDetectsApiTags).
 		Reads([]apifault.FaultDetectRule{}, "delete fault detect rules").
 		Notes(enrichDeleteFaultDetectRulesApiNotes)
 }
 
 func enrichUpdateFaultDetectRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("更新熔断规则").
+	return r.Doc("更新主动探测规则").
 		Metadata(restfulspec.KeyOpenAPITags, faultDetectsApiTags).
 		Reads([]apifault.FaultDetectRule{}, "update fault detect rules").
 		Notes(enrichUpdateFaultDetectRulesApiNotes)
 }
 
 func enrichGetFaultDetectRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("查询熔断规则").
+	return r.Doc("查询主动探测规则").
 		Metadata(restfulspec.KeyOpenAPITags, faultDetectsApiTags).
 		Param(restful.PathParameter("brief", "是否只显示概要信息，brief=true时，"+
 			"则不返回规则详情，只返回规则列表概要信息，默认为false").DataType("boolean").

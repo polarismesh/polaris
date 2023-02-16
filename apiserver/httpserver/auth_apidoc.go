@@ -24,9 +24,9 @@ import (
 )
 
 var (
-	authApiTags      = []string{"Auth"}
+	authApiTags      = []string{"AuthRule"}
 	usersApiTags     = []string{"Users"}
-	userGroupApiTags = []string{"UserGroup"}
+	userGroupApiTags = []string{"Users"}
 )
 
 func enrichAuthStatusApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {

@@ -20,7 +20,6 @@ package eurekaserver
 import (
 	"testing"
 
-	"bou.ke/monkey"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
@@ -93,8 +92,8 @@ func buildMockSvipInstances() {
 
 func doVipFunctionMock() {
 	buildMockVipInstances()
-	monkey.Patch(getCacheServices, mockGetVipServices)
-	monkey.Patch(getCacheInstances, mockGetVipInstances)
+	getCacheServicesFunc = mockGetVipServices
+	getCacheInstancesFunc = mockGetVipInstances
 }
 
 func mockGetVipServices(namingServer service.DiscoverServer, namespace string) map[string]*model.Service {
@@ -149,8 +148,8 @@ func TestBuildApplicationsForVip(t *testing.T) {
 
 func doSVipFunctionMock() {
 	buildMockSvipInstances()
-	monkey.Patch(getCacheServices, mockGetSvipServices)
-	monkey.Patch(getCacheInstances, mockGetSvipInstances)
+	getCacheServicesFunc = mockGetSvipServices
+	getCacheInstancesFunc = mockGetSvipInstances
 }
 
 func mockGetSvipServices(namingServer service.DiscoverServer, namespace string) map[string]*model.Service {

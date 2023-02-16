@@ -1,9 +1,8 @@
 module github.com/polarismesh/polaris
 
-go 1.17
+go 1.18
 
 require (
-	bou.ke/monkey v1.0.2
 	github.com/BurntSushi/toml v1.2.0
 	github.com/boltdb/bolt v1.3.1
 	github.com/emicklei/go-restful/v3 v3.9.0

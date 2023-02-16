@@ -29,13 +29,13 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-// RoutingConfigStoreV2 的实现
+// RoutingConfigStoreV2 impl
 type routingConfigStoreV2 struct {
 	master *BaseDB
 	slave  *BaseDB
 }
 
-// CreateRoutingConfigV2 新增一个路由配置
+// CreateRoutingConfigV2 Add a new routing configuration
 func (r *routingConfigStoreV2) CreateRoutingConfigV2(conf *model.RouterConfig) error {
 	if conf.ID == "" || conf.Revision == "" {
 		log.Errorf("[Store][boltdb] create routing config v2 missing id or revision")
@@ -103,7 +103,7 @@ func (r *routingConfigStoreV2) createRoutingConfigV2Tx(tx *BaseTx, conf *model.R
 	return nil
 }
 
-// UpdateRoutingConfigV2 更新一个路由配置
+// UpdateRoutingConfigV2 Update a routing configuration
 func (r *routingConfigStoreV2) UpdateRoutingConfigV2(conf *model.RouterConfig) error {
 
 	tx, err := r.master.Begin()
@@ -147,16 +147,16 @@ func (r *routingConfigStoreV2) updateRoutingConfigV2Tx(tx *BaseTx, conf *model.R
 	}
 
 	str := "update routing_config_v2 set name = ?, policy = ?, config = ?, revision = ?, priority = ?, " +
-		" description = ?, mtime = sysdate() where id = ? and namespace = ?"
+		" description = ?, mtime = sysdate() where id = ?"
 	if _, err := tx.Exec(str, conf.Name, conf.Policy, conf.Config, conf.Revision, conf.Priority, conf.Description,
-		conf.ID, conf.Namespace); err != nil {
+		conf.ID); err != nil {
 		log.Errorf("[Store][database] update routing config v2(%+v) exec err: %s", conf, err.Error())
 		return store.Error(err)
 	}
 	return nil
 }
 
-// EnableRateLimit 启用限流规则
+// EnableRateLimit Enable current limit rules
 func (r *routingConfigStoreV2) EnableRouting(conf *model.RouterConfig) error {
 	if conf.ID == "" || conf.Revision == "" {
 		return errors.New("[Store][database] enable routing config v2 missing some params")
@@ -187,7 +187,7 @@ func (r *routingConfigStoreV2) EnableRouting(conf *model.RouterConfig) error {
 	return store.Error(err)
 }
 
-// DeleteRoutingConfigV2 删除一个路由配置
+// DeleteRoutingConfigV2 Delete a routing configuration
 func (r *routingConfigStoreV2) DeleteRoutingConfigV2(ruleID string) error {
 
 	if ruleID == "" {
@@ -204,8 +204,7 @@ func (r *routingConfigStoreV2) DeleteRoutingConfigV2(ruleID string) error {
 	return nil
 }
 
-// GetRoutingConfigsV2ForCache 通过mtime拉取增量的路由配置信息
-// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
+// GetRoutingConfigsV2ForCache Pull the incremental routing configuration information through mtime
 func (r *routingConfigStoreV2) GetRoutingConfigsV2ForCache(
 	mtime time.Time, firstUpdate bool) ([]*model.RouterConfig, error) {
 	str := `select id, name, policy, config, enable, revision, flag, priority, description,
@@ -228,7 +227,7 @@ func (r *routingConfigStoreV2) GetRoutingConfigsV2ForCache(
 	return out, nil
 }
 
-// GetRoutingConfigV2WithID 根据服务ID拉取路由配置
+// GetRoutingConfigV2WithID Pull the routing configuration according to the rules ID
 func (r *routingConfigStoreV2) GetRoutingConfigV2WithID(ruleID string) (*model.RouterConfig, error) {
 
 	tx, err := r.master.Begin()
@@ -242,7 +241,7 @@ func (r *routingConfigStoreV2) GetRoutingConfigV2WithID(ruleID string) (*model.R
 	return r.getRoutingConfigV2WithIDTx(tx, ruleID)
 }
 
-// GetRoutingConfigV2WithIDTx 根据服务ID拉取路由配置
+// GetRoutingConfigV2WithIDTx Pull the routing configuration according to the rules ID
 func (r *routingConfigStoreV2) GetRoutingConfigV2WithIDTx(tx store.Tx, ruleID string) (*model.RouterConfig, error) {
 
 	if tx == nil {
@@ -277,7 +276,7 @@ func (r *routingConfigStoreV2) getRoutingConfigV2WithIDTx(tx *BaseTx, ruleID str
 	return out[0], nil
 }
 
-// fetchRoutingConfigRows 读取数据库的数据，并且释放rows
+// fetchRoutingConfigRows Read the data of the database and release ROWS
 func fetchRoutingConfigV2Rows(rows *sql.Rows) ([]*model.RouterConfig, error) {
 	defer rows.Close()
 	var out []*model.RouterConfig

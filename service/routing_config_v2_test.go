@@ -54,7 +54,7 @@ func TestCreateRoutingConfigV2(t *testing.T) {
 
 		// 对写进去的数据进行查询
 		time.Sleep(discoverSuit.updateCacheInterval * 5)
-		out := discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out := discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 		})
@@ -69,7 +69,7 @@ func TestCreateRoutingConfigV2(t *testing.T) {
 
 		// 按照名字查询
 
-		out = discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out = discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 			"name":   req[0].Name,
@@ -97,7 +97,7 @@ func TestCreateRoutingConfigV2(t *testing.T) {
 		assert.NoError(t, err)
 
 		// 基于服务信息查询
-		out = discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out = discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":     "100",
 			"offset":    "0",
 			"namespace": expendItem.RuleRouting.Rules[0].Sources[0].Namespace,
@@ -159,7 +159,7 @@ func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
 
 		time.Sleep(discoverSuit.updateCacheInterval * 5)
 		// 从缓存中查询应该查到 3+3 条 v2 的路由规则
-		out := discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out := discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 		})
@@ -247,7 +247,7 @@ func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
 
 		time.Sleep(discoverSuit.updateCacheInterval * 5)
 		// 从缓存中查询应该查到 3+3 条 v2 的路由规则
-		out := discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out := discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 		})
@@ -309,7 +309,7 @@ func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
 
 		time.Sleep(discoverSuit.updateCacheInterval * 5)
 		// 从缓存中查询应该查到 3+3 条 v2 的路由规则
-		out := discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out := discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 		})
@@ -405,7 +405,7 @@ func TestUpdateRoutingConfigV2(t *testing.T) {
 		defer discoverSuit.cleanCommonRoutingConfigV2(req)
 		// 对写进去的数据进行查询
 		time.Sleep(discoverSuit.updateCacheInterval)
-		out := discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out := discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 		})
@@ -424,7 +424,7 @@ func TestUpdateRoutingConfigV2(t *testing.T) {
 
 		discoverSuit.server.UpdateRoutingConfigsV2(discoverSuit.defaultCtx, []*apitraffic.RouteRule{routing})
 		time.Sleep(discoverSuit.updateCacheInterval)
-		out = discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+		out = discoverSuit.server.QueryRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
 			"id":     routing.Id,

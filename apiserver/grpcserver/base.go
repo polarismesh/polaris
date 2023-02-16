@@ -458,7 +458,7 @@ func (h *connCounterHook) OnAccept(conn net.Conn) {
 	if h.bz == model.ConfigModule {
 		metrics.AddConfigurationClientConn()
 	}
-	metrics.AddSDKClient()
+	metrics.AddSDKClientConn()
 }
 
 func (h *connCounterHook) OnRelease(conn net.Conn) {
@@ -468,11 +468,11 @@ func (h *connCounterHook) OnRelease(conn net.Conn) {
 	if h.bz == model.ConfigModule {
 		metrics.RemoveConfigurationClientConn()
 	}
-	metrics.RemoveSDKClient()
+	metrics.RemoveSDKClientConn()
 }
 
 func (h *connCounterHook) OnClose() {
 	metrics.ResetDiscoveryClientConn()
 	metrics.ResetConfigurationClientConn()
-	metrics.ResetSDKClient()
+	metrics.ResetSDKClientConn()
 }

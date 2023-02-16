@@ -23,11 +23,11 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"github.com/stretchr/testify/assert"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 )
 
 var (

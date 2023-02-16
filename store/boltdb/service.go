@@ -907,7 +907,6 @@ func doPageAliasServices(originServices []*model.ServiceAlias, offset, limit uin
 	}
 
 	services = append(services, originServices...)
-
 	sort.Slice(services, func(i, j int) bool {
 		// sort by modifyTime
 		if services[i].ModifyTime.After(services[j].ModifyTime) {

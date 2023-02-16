@@ -350,6 +350,7 @@ func assembleConfigFileWithNamespaceAndGroupAndName(namespace, group, name strin
 		CreateBy:  utils.NewStringValue(operator),
 	}
 }
+
 func assembleConfigFileWithFixedGroupAndRandomFileName(group string) *apiconfig.ConfigFile {
 	tag1 := &apiconfig.ConfigFileTag{
 		Key:   utils.NewStringValue("k1"),

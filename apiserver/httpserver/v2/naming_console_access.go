@@ -189,7 +189,7 @@ func (h *HTTPServerV2) GetRoutings(req *restful.Request, rsp *restful.Response) 
 	}
 
 	queryParams := httpcommon.ParseQueryParams(req)
-	ret := h.namingServer.GetRoutingConfigsV2(handler.ParseHeaderContext(), queryParams)
+	ret := h.namingServer.QueryRoutingConfigsV2(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProtoV2(ret)
 }
 
