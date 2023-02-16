@@ -35,11 +35,11 @@ function installPolarisServer() {
     }
     Expand-Archive -Path $target_polaris_server_pkg -DestinationPath .
     Push-Location $polaris_server_dirname
-    sed "polaris-server.yaml" "listenPort: 8761" "listenPort: ${eureka_port}"
-    sed "polaris-server.yaml" "listenPort: 15010" "listenPort: ${xdsv3_port}"
-    sed "polaris-server.yaml" "listenPort: 8091" "listenPort: ${service_grpc_port}"
-    sed "polaris-server.yaml" "listenPort: 8093" "listenPort: ${config_grpc_port}"
-    sed "polaris-server.yaml" "listenPort: 8090" "listenPort: ${api_http_port}"
+    sed "conf/polaris-server.yaml" "listenPort: 8761" "listenPort: ${eureka_port}"
+    sed "conf/polaris-server.yaml" "listenPort: 15010" "listenPort: ${xdsv3_port}"
+    sed "conf/polaris-server.yaml" "listenPort: 8091" "listenPort: ${service_grpc_port}"
+    sed "conf/polaris-server.yaml" "listenPort: 8093" "listenPort: ${config_grpc_port}"
+    sed "conf/polaris-server.yaml" "listenPort: 8090" "listenPort: ${api_http_port}"
     Start-Process -FilePath ".\\polaris-server.exe" -ArgumentList ('start') -WindowStyle Hidden
     Write-Output "install polaris server success"
     Pop-Location
