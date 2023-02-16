@@ -23,11 +23,12 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
+
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
-	"go.uber.org/zap"
-	"golang.org/x/sync/singleflight"
 )
 
 const (

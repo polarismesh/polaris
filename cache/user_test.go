@@ -125,12 +125,12 @@ func TestUserCache_UpdateNormal(t *testing.T) {
 	t.Run("首次更新用户", func(t *testing.T) {
 		copyUsers := make([]*model.User, 0, len(users))
 		copyGroups := make([]*model.UserGroupDetail, 0, len(groups))
-	
+
 		for i := range users {
 			copyUser := *users[i]
 			copyUsers = append(copyUsers, &copyUser)
 		}
-	
+
 		for i := range groups {
 			copyGroup := *groups[i]
 			newUserIds := make(map[string]struct{}, len(copyGroup.UserIds))
@@ -205,7 +205,7 @@ func TestUserCache_UpdateNormal(t *testing.T) {
 		mockTn := time.Now()
 		for i := range users {
 			u := uc.GetUserByID(users[i].ID)
-			
+
 			users[i].CreateTime = mockTn
 			users[i].ModifyTime = mockTn
 

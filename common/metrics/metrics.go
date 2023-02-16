@@ -158,7 +158,7 @@ func ResetSDKClient() {
 // RecordCacheUpdateCost record per cache update cost time
 func RecordCacheUpdateCost(cost time.Duration, cacheTye string, total int64) {
 	cacheUpdateCost.With(map[string]string{
-		labelCacheType: cacheTye,
-		labelCacheUpdateCount: strconv.FormatInt(total, 10), 
+		labelCacheType:        cacheTye,
+		labelCacheUpdateCount: strconv.FormatInt(total, 10),
 	})
 }

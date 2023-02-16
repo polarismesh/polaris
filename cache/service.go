@@ -433,7 +433,7 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 
 	if sc.serviceCount != svcCount {
 		log.Infof("[Cache][Service] service count update from %d to %d",
-		sc.serviceCount, svcCount)
+			sc.serviceCount, svcCount)
 		sc.serviceCount = svcCount
 	}
 

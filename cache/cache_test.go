@@ -120,7 +120,7 @@ func TestRevisionWorker(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		nc, err := TestCacheInitialize(ctx, &Config{Open: true}, storage)
 		assert.Nil(t, err)
-		t.Cleanup(func ()  {
+		t.Cleanup(func() {
 			cancel()
 			_ = nc.Clear()
 		})
