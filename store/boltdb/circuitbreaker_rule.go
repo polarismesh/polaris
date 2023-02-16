@@ -375,17 +375,3 @@ func (c *circuitBreakerStore) EnableCircuitBreakerRule(cbRule *model.CircuitBrea
 		return nil
 	})
 }
-
-// GetCircuitBreakerRuleCount
-func (c *circuitBreakerStore) GetCircuitBreakerRuleCount() (int64, error) {
-	handler := c.handler
-
-	results, err := handler.LoadValuesByFilter(
-		tblCircuitBreakerRule, []string{CommonFieldValid}, &model.CircuitBreakerRule{},
-		func(m map[string]interface{}) bool {
-			valid, _ := m[CommonFieldValid].(bool)
-			return valid
-		})
-
-	return int64(len(results)), err
-}

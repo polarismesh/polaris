@@ -240,19 +240,6 @@ func toRouteConfV2(m map[string]interface{}) []*model.RouterConfig {
 	return routeConf
 }
 
-// GetRoutingConfigV2Count
-func (r *routingStoreV2) GetRoutingConfigV2Count() (int64, error) {
-	fields := []string{CommonFieldValid}
-
-	routes, err := r.handler.LoadValuesByFilter(tblNameRoutingV2, fields, &model.RouterConfig{},
-		func(m map[string]interface{}) bool {
-			valid, _ := m[CommonFieldValid].(bool)
-			return valid
-		})
-
-	return int64(len(routes)), err
-}
-
 // GetRoutingConfigV2WithID 根据服务ID拉取路由配置
 func (r *routingStoreV2) GetRoutingConfigV2WithID(id string) (*model.RouterConfig, error) {
 	tx, err := r.handler.StartTx()

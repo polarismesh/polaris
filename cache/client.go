@@ -25,6 +25,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -110,9 +111,15 @@ func (c *clientCache) update() error {
 	}
 
 	// 多个线程竞争，只有一个线程进行更新
-	_, err, _ := c.singleFlight.Do(InstanceName, func() (interface{}, error) {
+	_, err, _ := c.singleFlight.Do(c.name(), func() (interface{}, error) {
+		curStoreTime, err := c.storage.GetUnixSecond()
+		if err != nil {
+			curStoreTime = c.lastMtime
+			log.Warn("[Cache][CircuitBreaker] get store timestamp fail, skip update lastMtime", zap.Error(err))
+		}
 		defer func() {
 			c.lastMtimeLogged = logLastMtime(c.lastMtimeLogged, c.lastMtime, "Client")
+			c.lastMtime = curStoreTime
 		}()
 
 		return nil, c.realUpdate()
@@ -124,16 +131,17 @@ func (c *clientCache) update() error {
 func (c *clientCache) realUpdate() error {
 	// 拉取diff前的所有数据
 	start := time.Now()
-	lastMtime := c.LastMtime()
+	lastMtime := c.LastMtime().Add(DefaultTimeDiff)
 	clients, err := c.storage.GetMoreClients(lastMtime, c.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache][Client] update get storage more err: %s", err.Error())
 		return err
 	}
+	timeDiff := time.Since(start)
+	metrics.RecordCacheUpdateCost(time.Since(start), c.name(), int64(len(clients)))
 
 	c.firstUpdate = false
 	update, del := c.setClients(clients)
-	timeDiff := time.Since(start)
 	if timeDiff > 1*time.Second {
 		log.Info("[Cache][Client] get more clients",
 			zap.Int("update", update), zap.Int("delete", del),
@@ -141,7 +149,6 @@ func (c *clientCache) realUpdate() error {
 	}
 
 	c.lastUpdateTime = time.Now()
-
 	return nil
 }
 
@@ -172,7 +179,6 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (int, int) {
 		return 0, 0
 	}
 
-	lastMtime := c.lastMtime
 	update := 0
 	del := 0
 	progress := 0
@@ -180,11 +186,6 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (int, int) {
 		progress++
 		if progress%50000 == 0 {
 			log.Infof("[Cache][Client] set clients progress: %d / %d", progress, len(clients))
-		}
-
-		modifyTime := client.ModifyTime().Unix()
-		if lastMtime < modifyTime {
-			lastMtime = modifyTime
 		}
 
 		id := client.Proto().GetId().GetValue()
@@ -196,7 +197,6 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (int, int) {
 			if itemExist {
 				c.manager.onEvent(client, EventDeleted)
 			}
-
 			continue
 		}
 
@@ -208,12 +208,6 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (int, int) {
 		} else {
 			c.manager.onEvent(client, EventUpdated)
 		}
-	}
-
-	if c.lastMtime != lastMtime {
-		log.Infof("[Cache][Client] Client lastMtime update from %s to %s",
-			time.Unix(c.lastMtime, 0), time.Unix(lastMtime, 0))
-		c.lastMtime = lastMtime
 	}
 
 	return update, del

@@ -19,7 +19,6 @@ package cache
 
 import (
 	"fmt"
-	"math"
 	"sync"
 	"time"
 
@@ -82,118 +81,6 @@ type strategyCache struct {
 	principalCh chan interface{}
 }
 
-type strategyBucket struct {
-	lock       sync.RWMutex
-	strategies map[string]*model.StrategyDetailCache
-}
-
-func (s *strategyBucket) save(key string, val *model.StrategyDetailCache) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	s.strategies[key] = val
-}
-
-func (s *strategyBucket) delete(key string) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	delete(s.strategies, key)
-}
-
-func (s *strategyBucket) get(key string) (*model.StrategyDetailCache, bool) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	val, ok := s.strategies[key]
-	return val, ok
-}
-
-type strategyIdBucket struct {
-	lock sync.RWMutex
-	ids  map[string]struct{}
-}
-
-func (s *strategyIdBucket) save(key string) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	s.ids[key] = struct{}{}
-}
-
-func (s *strategyIdBucket) delete(key string) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	delete(s.ids, key)
-}
-
-func (s *strategyIdBucket) toSlice() []string {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
-	ret := make([]string, 0, len(s.ids))
-
-	for k := range s.ids {
-		ret = append(ret, k)
-	}
-
-	return ret
-}
-
-type strategyLinkBucket struct {
-	lock       sync.RWMutex
-	strategies map[string]*strategyIdBucket
-}
-
-func (s *strategyLinkBucket) save(linkId, strategyId string) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	if _, ok := s.strategies[linkId]; !ok {
-		s.strategies[linkId] = &strategyIdBucket{
-			lock: sync.RWMutex{},
-			ids:  make(map[string]struct{}),
-		}
-	}
-
-	s.strategies[linkId].save(strategyId)
-}
-
-func (s *strategyLinkBucket) deleteAllLink(linkId string) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	delete(s.strategies, linkId)
-}
-
-func (s *strategyLinkBucket) delete(linkId, strategyID string) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	v, ok := s.strategies[linkId]
-	if !ok {
-		return
-	}
-
-	v.delete(strategyID)
-
-	if len(v.ids) == 0 {
-		delete(s.strategies, linkId)
-	}
-}
-
-func (s *strategyLinkBucket) get(key string) ([]string, bool) {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
-	val, ok := s.strategies[key]
-	if !ok {
-		return []string{}, ok
-	}
-	return val.toSlice(), ok
-}
-
 // newStrategyCache
 func newStrategyCache(storage store.Store, principalCh chan interface{}, userCache UserCache) StrategyCache {
 	return &strategyCache{
@@ -242,7 +129,15 @@ func (sc *strategyCache) initialize(c map[string]interface{}) error {
 
 func (sc *strategyCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
-	_, err, _ := sc.singleFlight.Do(StrategyRuleName, func() (interface{}, error) {
+	_, err, _ := sc.singleFlight.Do(sc.name(), func() (interface{}, error) {
+		curStoreTime, err := sc.storage.GetUnixSecond()
+		if err != nil {
+			curStoreTime = sc.lastUpdateTime
+			log.Warn("[Cache][AuthStrategy] get store timestamp fail, skip update lastMtime", zap.Error(err))
+		}
+		defer func() {
+			sc.lastUpdateTime = curStoreTime
+		}()
 		return nil, sc.realUpdate()
 	})
 	return err
@@ -252,7 +147,7 @@ func (sc *strategyCache) realUpdate() error {
 	// 获取几秒前的全部数据
 	var (
 		start          = time.Now()
-		lastMtime      = time.Unix(sc.lastUpdateTime, 0)
+		lastMtime      = time.Unix(sc.lastUpdateTime, 0).Add(DefaultTimeDiff)
 		strategys, err = sc.storage.GetStrategyDetailsForCache(lastMtime, sc.firstUpdate)
 	)
 	if err != nil {
@@ -294,8 +189,6 @@ func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (int, 
 				update++
 			}
 			sc.strategys.save(rule.ID, buildEnchanceStrategyDetail(rule))
-
-			sc.lastUpdateTime = int64(math.Max(float64(sc.lastUpdateTime), float64(rule.ModifyTime.Unix())))
 		}
 	}
 

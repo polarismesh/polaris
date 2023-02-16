@@ -157,11 +157,11 @@ func (uc *userCache) initBuckets() {
 
 func (uc *userCache) update() error {
 	// Multiple threads competition, only one thread is updated
-	_, err, _ := uc.singleFlight.Do(UsersName, func() (interface{}, error) {
+	_, err, _ := uc.singleFlight.Do(uc.name(), func() (interface{}, error) {
 		curStoreTime, err := uc.storage.GetUnixSecond()
 		if err != nil {
 			curStoreTime = uc.lastMtime
-			log.Warn("[Cache][Service] get store timestamp fail, skip update lastMtime", zap.Error(err))
+			log.Warn("[Cache][User] get store timestamp fail, skip update lastMtime", zap.Error(err))
 		}
 		defer func() {
 			uc.lastMtime = curStoreTime
@@ -174,15 +174,15 @@ func (uc *userCache) update() error {
 func (uc *userCache) realUpdate() error {
 	// Get all data before a few seconds
 	start := time.Now()
-	lastMtime := time.Unix(uc.lastMtime, 0)
-	users, err := uc.storage.GetUsersForCache(lastMtime.Add(DefaultTimeDiff), uc.firstUpdate)
+	lastMtime := time.Unix(uc.lastMtime, 0).Add(DefaultTimeDiff)
+	users, err := uc.storage.GetUsersForCache(lastMtime, uc.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache][User] update user err: %s", err.Error())
 		return err
 	}
 	metrics.RecordCacheUpdateCost(time.Since(start), "users", int64(len(users)))
 
-	groups, err := uc.storage.GetGroupsForCache(lastMtime.Add(DefaultTimeDiff), uc.firstUpdate)
+	groups, err := uc.storage.GetGroupsForCache(lastMtime, uc.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache][Group] update group err: %s", err.Error())
 		return err
@@ -233,9 +233,7 @@ func (uc *userCache) setUserAndGroups(users []*model.User,
 	}, ownerSupplier)
 
 	uc.handlerGroupCacheUpdate(&ret, groups)
-
 	uc.postProcess(users, groups)
-
 	return ret
 }
 

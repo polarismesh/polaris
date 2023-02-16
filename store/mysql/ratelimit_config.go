@@ -29,6 +29,8 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var _ store.RateLimitStore = (*rateLimitStore)(nil)
+
 // rateLimitStore RateLimitStore的实现
 type rateLimitStore struct {
 	db *BaseDB

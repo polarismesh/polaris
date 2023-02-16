@@ -23,8 +23,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
+	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 )
 
 const (
@@ -54,10 +57,14 @@ type circuitBreakerCache struct {
 	// key1: namespace
 	nsWildcardRules map[string]*model.ServiceWithCircuitBreakerRules
 	// all rules are wildcard specific
-	allWildcardRules *model.ServiceWithCircuitBreakerRules
-	lock             sync.RWMutex
-	lastTime         time.Time
-	firstUpdate      bool
+	allWildcardRules        *model.ServiceWithCircuitBreakerRules
+	lock                    sync.RWMutex
+	lastTime                int64
+	lastCheckAllTime        int64
+	circuitBreakerRuleCount int64
+	firstUpdate             bool
+
+	singleFlight singleflight.Group
 }
 
 // init 自注册到缓存列表
@@ -81,20 +88,41 @@ func newCircuitBreakerCache(s store.Store) *circuitBreakerCache {
 
 // initialize 实现Cache接口的函数
 func (c *circuitBreakerCache) initialize(_ map[string]interface{}) error {
-	c.lastTime = time.Unix(0, 0)
-	c.firstUpdate = true
-
+	c.lastTime = 0
+	c.lastCheckAllTime = 0
+	c.circuitBreakerRuleCount = 0
+	c.lastCheckAllTime = 0
 	return nil
 }
 
 // update 实现Cache接口的函数
 func (c *circuitBreakerCache) update() error {
-	lastTime := c.lastTime
+	// 多个线程竞争，只有一个线程进行更新
+	_, err, _ := c.singleFlight.Do(c.name(), func() (interface{}, error) {
+		curStoreTime, err := c.storage.GetUnixSecond()
+		if err != nil {
+			curStoreTime = c.lastTime
+			log.Warn("[Cache][CircuitBreaker] get store timestamp fail, skip update lastMtime", zap.Error(err))
+		}
+		defer func() {
+			c.lastTime = curStoreTime
+		}()
+		return nil, c.realUpdate()
+	})
+	return err
+}
+
+// update 实现Cache接口的函数
+func (c *circuitBreakerCache) realUpdate() error {
+	start := time.Now()
+
+	lastTime := time.Unix(c.lastTime, 0).Add(DefaultTimeDiff)
 	cbRules, err := c.storage.GetCircuitBreakerRulesForCache(lastTime, c.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache] circuit breaker config cache update err:%s", err.Error())
 		return err
 	}
+	metrics.RecordCacheUpdateCost(time.Since(start), c.name(), int64(len(cbRules)))
 	c.firstUpdate = false
 	return c.setCircuitBreaker(cbRules)
 }
@@ -107,7 +135,10 @@ func (c *circuitBreakerCache) clear() error {
 	c.circuitBreakers = make(map[string]map[string]*model.ServiceWithCircuitBreakerRules)
 	c.lock.Unlock()
 
-	c.lastTime = time.Unix(0, 0)
+	c.lastTime = 0
+	c.lastCheckAllTime = 0
+	c.circuitBreakerRuleCount = 0
+	c.lastCheckAllTime = 0
 	return nil
 }
 
@@ -331,12 +362,7 @@ func (c *circuitBreakerCache) setCircuitBreaker(cbRules []*model.CircuitBreakerR
 		return nil
 	}
 
-	lastTime := c.lastTime.Unix()
-
 	for _, cbRule := range cbRules {
-		if cbRule.ModifyTime.Unix() > lastTime {
-			lastTime = cbRule.ModifyTime.Unix()
-		}
 		svcKeys := getServicesInvolveByCircuitBreakerRule(cbRule)
 		if !cbRule.Valid {
 			c.deleteCircuitBreakerFromServiceCache(cbRule.ID, svcKeys)
@@ -344,11 +370,6 @@ func (c *circuitBreakerCache) setCircuitBreaker(cbRules []*model.CircuitBreakerR
 		}
 		c.storeCircuitBreakerToServiceCache(cbRule, svcKeys)
 	}
-
-	if c.lastTime.Unix() < lastTime {
-		c.lastTime = time.Unix(lastTime, 0)
-	}
-
 	return nil
 }
 

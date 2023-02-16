@@ -324,17 +324,3 @@ func (c *faultDetectStore) GetFaultDetectRulesForCache(
 
 	return out, nil
 }
-
-// GetFaultDetectCount get valid faultdetect rule total count
-func (c *faultDetectStore) GetFaultDetectCount() (int64, error) {
-	handler := c.handler
-
-	results, err := handler.LoadValuesByFilter(
-		tblFaultDetectRule, []string{CommonFieldValid}, &model.FaultDetectRule{},
-		func(m map[string]interface{}) bool {
-			valid, _ := m[CommonFieldValid].(bool)
-			return valid
-		})
-
-	return int64(len(results)), err
-}

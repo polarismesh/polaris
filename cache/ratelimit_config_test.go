@@ -170,9 +170,7 @@ func TestRateLimitUpdate(t *testing.T) {
 
 	t.Run("正常更新缓存，可以获取到数据", func(t *testing.T) {
 		_ = rlc.clear()
-
-		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).
-			Return(rateLimits, revisions, nil)
+		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).Return(rateLimits, revisions, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
@@ -204,7 +202,6 @@ func TestRateLimitUpdate(t *testing.T) {
 
 	t.Run("缓存数据为空", func(t *testing.T) {
 		_ = rlc.clear()
-
 		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).
 			Return(nil, nil, nil)
 		if err := rlc.update(); err != nil {
@@ -222,7 +219,7 @@ func TestRateLimitUpdate(t *testing.T) {
 	t.Run("lastMtime正确更新", func(t *testing.T) {
 		_ = rlc.clear()
 
-		currentTime := time.Unix(100, 0)
+		currentTime := time.Now()
 		rateLimits[0].ModifyTime = currentTime
 		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).
 			Return(rateLimits, revisions, nil)
@@ -230,7 +227,7 @@ func TestRateLimitUpdate(t *testing.T) {
 			t.Fatalf("error: %s", err.Error())
 		}
 
-		if rlc.lastTime.Unix() == currentTime.Unix() {
+		if rlc.lastTime == currentTime.Unix() {
 			t.Log("pass")
 		} else {
 			t.Fatalf("last mtime error")

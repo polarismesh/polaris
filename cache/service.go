@@ -190,7 +190,7 @@ func (sc *serviceCache) LastMtime() time.Time {
 // service + service_metadata作为一个整体获取
 func (sc *serviceCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
-	_, err, _ := sc.singleFlight.Do(ServiceName, func() (interface{}, error) {
+	_, err, _ := sc.singleFlight.Do(sc.name(), func() (interface{}, error) {
 		curStoreTime, err := sc.storage.GetUnixSecond()
 		if err != nil {
 			curStoreTime = sc.lastMtime
@@ -390,17 +390,13 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 
 	// 这里要记录 ns 的变动情况，避免由于 svc delete 之后，命名空间的服务计数无法更新
 	changeNs := make(map[string]bool)
+	svcCount := sc.serviceCount
 
-	lastMtime := sc.lastMtime
 	for _, service := range services {
 		progress++
 		if progress%20000 == 0 {
 			log.Infof(
 				"[Cache][Service] update service item progress(%d / %d)", progress, len(services))
-		}
-		serviceMtime := service.ModifyTime.Unix()
-		if lastMtime < serviceMtime {
-			lastMtime = serviceMtime
 		}
 
 		spaceName := service.Namespace
@@ -410,10 +406,16 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 			sc.removeServices(service)
 			sc.revisionCh <- newRevisionNotify(service.ID, false)
 			del++
+			svcCount--
 			continue
 		}
 
 		update++
+		_, exist := sc.ids.Load(service.ID)
+		if !exist {
+			svcCount++
+		}
+
 		sc.ids.Store(service.ID, service)
 		sc.revisionCh <- newRevisionNotify(service.ID, true)
 
@@ -429,9 +431,11 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 		/******兼容cl5******/
 	}
 
-	// if sc.lastMtime < lastMtime {
-	// 	sc.lastMtime = lastMtime
-	// }
+	if sc.serviceCount != svcCount {
+		log.Infof("[Cache][Service] service count update from %d to %d",
+		sc.serviceCount, svcCount)
+		sc.serviceCount = svcCount
+	}
 
 	sc.postProcessUpdatedServices(changeNs)
 	return update, del
@@ -472,12 +476,11 @@ func (sc *serviceCache) watchCountChangeCh(ctx context.Context) {
 		case event := <-sc.countChangeCh:
 			affect := make(map[string]bool)
 
-			// The last Reload notification from InstanceCache, but ServiceCache has no statutory task corresponding to data.
 			if len(sc.pendingServices) != 0 {
 				for svcId := range sc.pendingServices {
 					svc, ok := sc.ids.Load(svcId)
 					if !ok {
-						log.Debugf("[Cache][Service] service-id : %s still no found when reload namespace count", svcId)
+						log.Debugf("[Cache][Service] id : %s no found when reload namespace count", svcId)
 						continue
 					}
 					affect[svc.(*model.Service).Namespace] = true

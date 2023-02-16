@@ -115,15 +115,16 @@ func TestCircuitBreakersUpdate(t *testing.T) {
 	t.Run("lastMtime正确更新", func(t *testing.T) {
 		_ = cbc.clear()
 
-		currentTime := time.Unix(100, 0)
+		currentTime := time.Now()
 		serviceWithCircuitBreakers[0].ModifyTime = currentTime
+		storage.EXPECT().GetUnixSecond().Return(currentTime.Unix(), nil).AnyTimes()
 		storage.EXPECT().GetCircuitBreakerRulesForCache(gomock.Any(), cbc.firstUpdate).
 			Return(serviceWithCircuitBreakers, nil)
 		if err := cbc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
-		if cbc.lastTime.Unix() == currentTime.Unix() {
+		if cbc.lastTime == currentTime.Unix() {
 			t.Log("pass")
 		} else {
 			t.Fatalf("last mtime error")

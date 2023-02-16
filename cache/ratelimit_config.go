@@ -23,7 +23,10 @@ import (
 	"time"
 
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -67,8 +70,10 @@ type rateLimitCache struct {
 	storage     store.Store
 	ids         *sync.Map
 	revisions   *sync.Map
-	lastTime    time.Time
+	lastTime    int64
 	firstUpdate bool
+
+	singleFlight singleflight.Group
 }
 
 // init 自注册到缓存列表
@@ -88,19 +93,38 @@ func newRateLimitCache(s store.Store) *rateLimitCache {
 func (rlc *rateLimitCache) initialize(_ map[string]interface{}) error {
 	rlc.ids = new(sync.Map)
 	rlc.revisions = new(sync.Map)
-	rlc.lastTime = time.Unix(0, 0)
+	rlc.lastTime = 0
 	rlc.firstUpdate = true
 	return nil
 }
 
 // update 实现Cache接口的update函数
 func (rlc *rateLimitCache) update() error {
-	rateLimits, revisions, err := rlc.storage.GetRateLimitsForCache(rlc.lastTime,
-		rlc.firstUpdate)
+	// 多个线程竞争，只有一个线程进行更新
+	_, err, _ := rlc.singleFlight.Do(rlc.name(), func() (interface{}, error) {
+		curStoreTime, err := rlc.storage.GetUnixSecond()
+		if err != nil {
+			curStoreTime = rlc.lastTime
+			log.Warn("[Cache][RateLimit] get store timestamp fail, skip update lastMtime", zap.Error(err))
+		}
+		defer func() {
+			rlc.lastTime = curStoreTime
+		}()
+		return nil, rlc.realUpdate()
+	})
+
+	return err
+}
+
+func (rlc *rateLimitCache) realUpdate() error {
+	start := time.Now()
+	lastTime := time.Unix(rlc.lastTime, 0).Add(DefaultTimeDiff)
+	rateLimits, revisions, err := rlc.storage.GetRateLimitsForCache(lastTime, rlc.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache] rate limit cache update err: %s", err.Error())
 		return err
 	}
+	metrics.RecordCacheUpdateCost(time.Since(start), rlc.name(), int64(len(rateLimits)))
 	rlc.firstUpdate = false
 	return rlc.setRateLimit(rateLimits, revisions)
 }
@@ -114,7 +138,8 @@ func (rlc *rateLimitCache) name() string {
 func (rlc *rateLimitCache) clear() error {
 	rlc.ids = new(sync.Map)
 	rlc.revisions = new(sync.Map)
-	rlc.lastTime = time.Unix(0, 0)
+	rlc.lastTime = 0
+	rlc.firstUpdate = true
 	return nil
 }
 
@@ -137,15 +162,11 @@ func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit,
 		return nil
 	}
 
-	lastMtime := rlc.lastTime.Unix()
 	for _, item := range rateLimits {
 		err := rateLimitToProto(item)
 		if nil != err {
 			log.Errorf("[Cache]fail to unmarshal rule to proto, err: %v", err)
 			continue
-		}
-		if item.ModifyTime.Unix() > lastMtime {
-			lastMtime = item.ModifyTime.Unix()
 		}
 
 		// 待删除的rateLimit
@@ -169,10 +190,6 @@ func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit,
 	// 更新last revision
 	for _, item := range revisions {
 		rlc.revisions.Store(item.ServiceID, item.LastRevision)
-	}
-
-	if rlc.lastTime.Unix() < lastMtime {
-		rlc.lastTime = time.Unix(lastMtime, 0)
 	}
 	return nil
 }

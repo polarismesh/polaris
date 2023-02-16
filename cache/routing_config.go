@@ -26,6 +26,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	routingcommon "github.com/polarismesh/polaris/common/routing"
 	"github.com/polarismesh/polaris/common/utils"
@@ -67,13 +68,11 @@ type (
 		serviceCache ServiceCache
 		storage      store.Store
 
-		firstUpdate bool
-
 		bucketV1 *routingBucketV1
 		bucketV2 *routingBucketV2
 
-		lastMtimeV1 time.Time
-		lastMtimeV2 time.Time
+		firstUpdate bool
+		lastMtime   int64
 
 		singleFlight singleflight.Group
 
@@ -100,11 +99,8 @@ func newRoutingConfigCache(s store.Store, serviceCache ServiceCache) *routingCon
 // initialize The function of implementing the cache interface
 func (rc *routingConfigCache) initialize(_ map[string]interface{}) error {
 	rc.firstUpdate = true
-
+	rc.lastMtime = 0
 	rc.initBuckets()
-	rc.lastMtimeV1 = time.Unix(0, 0)
-	rc.lastMtimeV2 = time.Unix(0, 0)
-
 	return nil
 }
 
@@ -114,27 +110,40 @@ func (rc *routingConfigCache) initBuckets() {
 }
 
 // update The function of implementing the cache interface
-func (rc *routingConfigCache) update(storeRollbackSec time.Duration) error {
+func (rc *routingConfigCache) update() error {
 	// Multiple thread competition, only one thread is updated
-	_, err, _ := rc.singleFlight.Do("RoutingCache", func() (interface{}, error) {
+	_, err, _ := rc.singleFlight.Do(rc.name(), func() (interface{}, error) {
+		curStoreTime, err := rc.storage.GetUnixSecond()
+		if err != nil {
+			curStoreTime = rc.lastMtime
+			log.Warn("[Cache][Routing] get store timestamp fail, skip update lastMtime", zap.Error(err))
+		}
+		defer func() {
+			rc.lastMtime = curStoreTime
+		}()
 		return nil, rc.realUpdate()
 	})
 	return err
 }
 
 // update The function of implementing the cache interface
-func (rc *routingConfigCache) realUpdate(storeRollbackSec time.Duration) error {
-	outV1, err := rc.storage.GetRoutingConfigsForCache(rc.lastMtimeV1.Add(storeRollbackSec), rc.firstUpdate)
+func (rc *routingConfigCache) realUpdate() error {
+	start := time.Now()
+	lastMtime := time.Unix(rc.lastMtime, 0).Add(DefaultTimeDiff)
+	outV1, err := rc.storage.GetRoutingConfigsForCache(lastMtime, rc.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache] routing config v1 cache get from store err: %s", err.Error())
 		return err
 	}
+	metrics.RecordCacheUpdateCost(time.Since(start), rc.name(), int64(len(outV1)))
 
-	outV2, err := rc.storage.GetRoutingConfigsV2ForCache(rc.lastMtimeV2, rc.firstUpdate)
+	start = time.Now()
+	outV2, err := rc.storage.GetRoutingConfigsV2ForCache(lastMtime, rc.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache] routing config v2 cache get from store err: %s", err.Error())
 		return err
 	}
+	metrics.RecordCacheUpdateCost(time.Since(start), rc.name()+"v2", int64(len(outV2)))
 
 	rc.firstUpdate = false
 	if err := rc.setRoutingConfigV1(outV1); err != nil {
@@ -152,10 +161,8 @@ func (rc *routingConfigCache) realUpdate(storeRollbackSec time.Duration) error {
 // clear The function of implementing the cache interface
 func (rc *routingConfigCache) clear() error {
 	rc.firstUpdate = true
-
+	rc.lastMtime = 0
 	rc.initBuckets()
-	rc.lastMtimeV1 = time.Unix(0, 0)
-	rc.lastMtimeV2 = time.Unix(0, 0)
 
 	return nil
 }
@@ -262,13 +269,9 @@ func (rc *routingConfigCache) setRoutingConfigV1(cs []*model.RoutingConfig) erro
 		return nil
 	}
 
-	lastMtimeV1 := rc.lastMtimeV1.Unix()
 	for _, entry := range cs {
 		if entry.ID == "" {
 			continue
-		}
-		if entry.ModifyTime.Unix() > lastMtimeV1 {
-			lastMtimeV1 = entry.ModifyTime.Unix()
 		}
 		if !entry.Valid {
 			// Delete the old V1 cache
@@ -284,10 +287,6 @@ func (rc *routingConfigCache) setRoutingConfigV1(cs []*model.RoutingConfig) erro
 		rc.bucketV1.save(entry)
 		rc.pendingV1RuleIds[entry.ID] = struct{}{}
 	}
-
-	if rc.lastMtimeV1.Unix() < lastMtimeV1 {
-		rc.lastMtimeV1 = time.Unix(lastMtimeV1, 0)
-	}
 	return nil
 }
 
@@ -297,13 +296,9 @@ func (rc *routingConfigCache) setRoutingConfigV2(cs []*model.RouterConfig) error
 		return nil
 	}
 
-	lastMtimeV2 := rc.lastMtimeV2.Unix()
 	for _, entry := range cs {
 		if entry.ID == "" {
 			continue
-		}
-		if entry.ModifyTime.Unix() > lastMtimeV2 {
-			lastMtimeV2 = entry.ModifyTime.Unix()
 		}
 		if !entry.Valid {
 			rc.bucketV2.deleteV2(entry.ID)
@@ -315,9 +310,6 @@ func (rc *routingConfigCache) setRoutingConfigV2(cs []*model.RouterConfig) error
 			continue
 		}
 		rc.bucketV2.saveV2(extendEntry)
-	}
-	if rc.lastMtimeV2.Unix() < lastMtimeV2 {
-		rc.lastMtimeV2 = time.Unix(lastMtimeV2, 0)
 	}
 
 	return nil

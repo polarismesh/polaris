@@ -211,22 +211,6 @@ func (f *faultDetectRuleStore) GetFaultDetectRulesForCache(
 	return fdRules, nil
 }
 
-// GetFaultDetectCount get valid faultdetect rule total count
-func (f *faultDetectRuleStore) GetFaultDetectCount() (int64, error) {
-	str := countFaultDetectSql
-	var total int64
-	err := f.master.QueryRow(str).Scan(&total)
-	switch {
-	case err == sql.ErrNoRows:
-		return 0, nil
-	case err != nil:
-		log.Errorf("[Store][database] get fault detect rule count err: %s", err.Error())
-		return 0, err
-	default:
-	}
-	return total, nil
-}
-
 func fetchFaultDetectRulesRows(rows *sql.Rows) ([]*model.FaultDetectRule, error) {
 	defer rows.Close()
 	var out []*model.FaultDetectRule

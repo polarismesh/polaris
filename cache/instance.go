@@ -139,7 +139,7 @@ func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 // update 更新缓存函数
 func (ic *instanceCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
-	_, err, _ := ic.singleFlight.Do(InstanceName, func() (interface{}, error) {
+	_, err, _ := ic.singleFlight.Do(ic.name(), func() (interface{}, error) {
 		curStoreTime, err := ic.storage.GetUnixSecond()
 		if err != nil {
 			curStoreTime = ic.lastMtime

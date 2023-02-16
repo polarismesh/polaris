@@ -93,7 +93,7 @@ func (nsCache *namespaceCache) initialize(c map[string]interface{}) error {
 //	@return error
 func (nsCache *namespaceCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
-	_, err, _ := nsCache.updater.Do(NamespaceName, func() (interface{}, error) {
+	_, err, _ := nsCache.updater.Do(nsCache.name(), func() (interface{}, error) {
 		return nil, nsCache.realUpdate()
 	})
 	return err
@@ -101,7 +101,7 @@ func (nsCache *namespaceCache) update() error {
 
 func (nsCache *namespaceCache) realUpdate() error {
 	var (
-		lastMtime = time.Unix(nsCache.lastTime, 0)
+		lastMtime = time.Unix(nsCache.lastTime, 0).Add(DefaultTimeDiff)
 		ret, err  = nsCache.storage.GetMoreNamespaces(lastMtime)
 	)
 	if err != nil {

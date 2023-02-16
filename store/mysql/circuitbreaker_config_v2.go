@@ -418,7 +418,7 @@ func (c *circuitBreakerStore) GetCircuitBreakerRulesForCache(
 	if firstUpdate {
 		str += " and flag != 1"
 	}
-	rows, err := c.master.Query(str, timeToTimestamp(mtime))
+	rows, err := c.slave.Query(str, timeToTimestamp(mtime))
 	if err != nil {
 		log.Errorf("[Store][database] query circuitbreaker rules with mtime err: %s", err.Error())
 		return nil, err

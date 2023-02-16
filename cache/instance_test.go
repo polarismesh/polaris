@@ -19,6 +19,7 @@ package cache
 
 import (
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -139,12 +140,15 @@ func TestInstanceCache_Update(t *testing.T) {
 	t.Run("lastMtime可以正常更新", func(t *testing.T) {
 		_ = ic.clear()
 		instances := genModelInstances("services", 10)
-		maxMtime := time.Unix(1000, 0)
+		maxMtime := time.Now()
 		instances[fmt.Sprintf("instanceID-%s-%d", "services", 5)].ModifyTime = maxMtime
 
-		gomock.InOrder(storage.EXPECT().
-			GetMoreInstances(gomock.Any(), ic.firstUpdate, ic.needMeta, ic.systemServiceID).
-			Return(instances, nil))
+		gomock.InOrder(
+			storage.EXPECT().
+				GetMoreInstances(gomock.Any(), gomock.Any(), ic.needMeta, ic.systemServiceID).
+				Return(instances, nil),
+			storage.EXPECT().GetUnixSecond().Return(maxMtime.Unix(), nil).AnyTimes(),
+		)
 		if err := ic.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
@@ -171,6 +175,7 @@ func TestInstanceCache_Update2(t *testing.T) {
 			t.Errorf("error")
 		}
 	})
+
 	t.Run("更新数据，再删除部分数据，缓存正常", func(t *testing.T) {
 		_ = ic.clear()
 		instances := genModelInstances("service-a", 20)
@@ -200,6 +205,26 @@ func TestInstanceCache_Update2(t *testing.T) {
 		servicesCount, instancesCount := iteratorInstances(ic)
 		if servicesCount != 1 || instancesCount != 10 {
 			t.Fatalf("error: %d %d", servicesCount, instancesCount)
+		}
+	})
+
+	t.Run("对账发现缓存数据数量和存储层不一致", func(t *testing.T) {
+		_ = ic.clear()
+		instances := genModelInstances("service-a", 20)
+		queryCount := int32(0)
+		storage.EXPECT().GetInstancesCount().Return(uint32(0), nil)
+		storage.EXPECT().
+			GetMoreInstances(gomock.Any(), ic.firstUpdate, ic.needMeta, ic.systemServiceID).
+			DoAndReturn(func(mtime time.Time, firstUpdate, needMeta bool, svcIds []string) (map[string]*model.Instance, error) {
+				atomic.AddInt32(&queryCount, 1)
+				if atomic.LoadInt32(&queryCount) == 2 {
+					assert.Equal(t, time.Unix(0, 0), mtime)
+				}
+				return instances, nil
+			}).AnyTimes()
+
+		if err := ic.update(); err != nil {
+			t.Fatalf("error: %s", err.Error())
 		}
 	})
 }

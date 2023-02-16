@@ -241,21 +241,6 @@ func (rs *routingConfigStore) GetRoutingConfigs(filter map[string]string,
 	return total, out, nil
 }
 
-func (r *routingConfigStore) GetRoutingConfigCount() (int64, error) {
-	countSql := `select count(*) from routing_config where flag = 0`
-	var total int64
-	err := r.master.QueryRow(countSql).Scan(&total)
-	switch {
-	case err == sql.ErrNoRows:
-		return 0, nil
-	case err != nil:
-		log.Errorf("[Store][database] get routing rule count err: %s", err.Error())
-		return 0, err
-	default:
-	}
-	return total, nil
-}
-
 // cleanRoutingConfig 从数据库彻底清理路由配置
 func (rs *routingConfigStore) cleanRoutingConfig(serviceID string) error {
 	str := `delete from routing_config where id = ? and flag = 1`

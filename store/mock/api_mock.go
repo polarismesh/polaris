@@ -892,21 +892,6 @@ func (mr *MockStoreMockRecorder) GetCircuitBreakerRelation(ruleID, ruleVersion i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakerRelation", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakerRelation), ruleID, ruleVersion)
 }
 
-// GetCircuitBreakerRuleCount mocks base method.
-func (m *MockStore) GetCircuitBreakerRuleCount() (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCircuitBreakerRuleCount")
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCircuitBreakerRuleCount indicates an expected call of GetCircuitBreakerRuleCount.
-func (mr *MockStoreMockRecorder) GetCircuitBreakerRuleCount() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakerRuleCount", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakerRuleCount))
-}
-
 // GetCircuitBreakerRules mocks base method.
 func (m *MockStore) GetCircuitBreakerRules(filter map[string]string, offset, limit uint32) (uint32, []*model.CircuitBreakerRule, error) {
 	m.ctrl.T.Helper()
@@ -1103,21 +1088,6 @@ func (m *MockStore) GetExtendRateLimits(query map[string]string, offset, limit u
 func (mr *MockStoreMockRecorder) GetExtendRateLimits(query, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetExtendRateLimits", reflect.TypeOf((*MockStore)(nil).GetExtendRateLimits), query, offset, limit)
-}
-
-// GetFaultDetectCount mocks base method.
-func (m *MockStore) GetFaultDetectCount() (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetFaultDetectCount")
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetFaultDetectCount indicates an expected call of GetFaultDetectCount.
-func (mr *MockStoreMockRecorder) GetFaultDetectCount() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFaultDetectCount", reflect.TypeOf((*MockStore)(nil).GetFaultDetectCount))
 }
 
 // GetFaultDetectRules mocks base method.
@@ -1468,21 +1438,6 @@ func (mr *MockStoreMockRecorder) GetNamespaces(filter, offset, limit interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespaces", reflect.TypeOf((*MockStore)(nil).GetNamespaces), filter, offset, limit)
 }
 
-// GetRateLimitCount mocks base method.
-func (m *MockStore) GetRateLimitCount() (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRateLimitCount")
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetRateLimitCount indicates an expected call of GetRateLimitCount.
-func (mr *MockStoreMockRecorder) GetRateLimitCount() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRateLimitCount", reflect.TypeOf((*MockStore)(nil).GetRateLimitCount))
-}
-
 // GetRateLimitWithID mocks base method.
 func (m *MockStore) GetRateLimitWithID(id string) (*model.RateLimit, error) {
 	m.ctrl.T.Helper()
@@ -1512,36 +1467,6 @@ func (m *MockStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]
 func (mr *MockStoreMockRecorder) GetRateLimitsForCache(mtime, firstUpdate interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRateLimitsForCache", reflect.TypeOf((*MockStore)(nil).GetRateLimitsForCache), mtime, firstUpdate)
-}
-
-// GetRoutingConfigCount mocks base method.
-func (m *MockStore) GetRoutingConfigCount() (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRoutingConfigCount")
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetRoutingConfigCount indicates an expected call of GetRoutingConfigCount.
-func (mr *MockStoreMockRecorder) GetRoutingConfigCount() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoutingConfigCount", reflect.TypeOf((*MockStore)(nil).GetRoutingConfigCount))
-}
-
-// GetRoutingConfigV2Count mocks base method.
-func (m *MockStore) GetRoutingConfigV2Count() (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRoutingConfigV2Count")
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetRoutingConfigV2Count indicates an expected call of GetRoutingConfigV2Count.
-func (mr *MockStoreMockRecorder) GetRoutingConfigV2Count() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoutingConfigV2Count", reflect.TypeOf((*MockStore)(nil).GetRoutingConfigV2Count))
 }
 
 // GetRoutingConfigV2WithID mocks base method.

@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 	"go.uber.org/zap"
@@ -95,7 +96,7 @@ func (f *faultDetectCache) initialize(_ map[string]interface{}) error {
 }
 
 func (f *faultDetectCache) update() error {
-	_, err, _ := f.singleFlight.Do(InstanceName, func() (interface{}, error) {
+	_, err, _ := f.singleFlight.Do(f.name(), func() (interface{}, error) {
 		curStoreTime, err := f.storage.GetUnixSecond()
 		if err != nil {
 			curStoreTime = f.lastMtime
@@ -103,43 +104,22 @@ func (f *faultDetectCache) update() error {
 		}
 		defer func() {
 			f.lastMtime = curStoreTime
-			f.checkAll()
 		}()
 		return nil, f.realUpdate()
 	})
 	return err
 }
 
-func (f *faultDetectCache) checkAll() {
-	curTimeSec := time.Now().Unix()
-	if curTimeSec-f.lastCheckAllTime < checkAllIntervalSec {
-		return
-	}
-	defer func() {
-		f.lastCheckAllTime = curTimeSec
-	}()
-	count, err := f.storage.GetFaultDetectCount()
-	if err != nil {
-		log.Errorf("[Cache][FaultDetect] get faultdetect count from storage err: %s", err.Error())
-		return
-	}
-	if f.faultDetectCount == int64(count) {
-		return
-	}
-	log.Infof(
-		"[Cache][FaultDetect] faultdetect count not match, expect %d, actual %d, fallback to load all",
-		count, f.faultDetectCount)
-	f.lastMtime = 0
-}
-
 // update 实现Cache接口的函数
 func (f *faultDetectCache) realUpdate() error {
-	lastTime := time.Unix(f.lastMtime, 0)
-	fdRules, err := f.storage.GetFaultDetectRulesForCache(lastTime.Add(DefaultTimeDiff), f.firstUpdate)
+	start := time.Now()
+	lastTime := time.Unix(f.lastMtime, 0).Add(DefaultTimeDiff)
+	fdRules, err := f.storage.GetFaultDetectRulesForCache(lastTime, f.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache] fault detect config cache update err:%s", err.Error())
 		return err
 	}
+	metrics.RecordCacheUpdateCost(time.Since(start), f.name(), int64(len(fdRules)))
 	f.firstUpdate = false
 	return f.setFaultDetectRules(fdRules)
 }
