@@ -152,7 +152,7 @@ func (d *AuthTestSuit) initialize(opts ...options) error {
 	commonlog.GetScopeOrDefaultByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 	commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 
-	metrics.InitMetrics()
+	metrics.TestInitMetrics()
 
 	// 初始化存储层
 	store.SetStoreConfig(&d.cfg.Store)
