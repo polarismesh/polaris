@@ -27,8 +27,9 @@ import (
 	"os"
 
 	"github.com/golang/protobuf/jsonpb"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 /**
