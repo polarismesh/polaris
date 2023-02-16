@@ -68,7 +68,6 @@ func TestCacheManager_Start(t *testing.T) {
 		c, err := TestCacheInitialize(context.Background(), &Config{Open: true}, storage)
 		So(err, ShouldBeNil)
 		So(c, ShouldNotBeNil)
-
 		beg := time.Unix(0, 0).Add(DefaultTimeDiff)
 		storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 		storage.EXPECT().GetMoreInstances(beg, true, false, nil).Return(nil, nil).MaxTimes(1)
@@ -98,6 +97,15 @@ func TestCacheManager_Start(t *testing.T) {
 
 		// 等待cache更新
 		time.Sleep(c.GetUpdateCacheInterval() + time.Second)
+	})
+
+	Convey("测试TestRefresh", t, func() {
+		c, err := TestCacheInitialize(context.Background(), &Config{Open: true}, storage)
+		So(err, ShouldBeNil)
+		So(c, ShouldNotBeNil)
+
+		err = c.TestRefresh()
+		So(err, ShouldBeNil)
 	})
 }
 

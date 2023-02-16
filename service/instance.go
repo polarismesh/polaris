@@ -1043,6 +1043,28 @@ func (s *Server) loadService(namespace string, svcName string) (*model.Service, 
 	return svc, nil
 }
 
+func (s *Server) loadServiceByID(svcID string) (*model.Service, error) {
+	svc := s.caches.Service().GetServiceByID(svcID)
+	if svc != nil {
+		if svc.IsAlias() {
+			return nil, errors.New("service is alias")
+		}
+		return svc, nil
+	}
+
+	// 再走数据库查询一遍
+	svc, err := s.storage.GetServiceByID(svcID)
+	if err != nil {
+		return nil, err
+	}
+
+	if svc != nil && svc.IsAlias() {
+		return nil, errors.New("service is alias")
+	}
+
+	return svc, nil
+}
+
 type releaseFunc func()
 
 func (s *Server) lockService(ctx context.Context, namespace string,

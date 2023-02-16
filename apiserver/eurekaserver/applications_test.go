@@ -23,7 +23,6 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
@@ -173,8 +172,8 @@ func mockGetCacheInstances(namingServer service.DiscoverServer, svcId string) ([
 
 func doFunctionMock() {
 	buildMockSvcInstances()
-	monkey.Patch(getCacheServices, mockGetCacheServices)
-	monkey.Patch(getCacheInstances, mockGetCacheInstances)
+	getCacheServicesFunc = mockGetCacheServices
+	getCacheInstancesFunc = mockGetCacheInstances
 }
 
 // TestApplicationsBuilder_BuildApplications testing method for application builder
@@ -210,8 +209,8 @@ func TestApplicationsBuilder_BuildApplications(t *testing.T) {
 
 func doUnhealthyFunctionMock() {
 	buildMockUnhealthyInstances()
-	monkey.Patch(getCacheServices, mockGetUnhealthyServices)
-	monkey.Patch(getCacheInstances, mockGetUnhealthyInstances)
+	getCacheServicesFunc = mockGetUnhealthyServices
+	getCacheInstancesFunc = mockGetUnhealthyInstances
 }
 
 func mockGetUnhealthyServices(namingServer service.DiscoverServer, namespace string) map[string]*model.Service {

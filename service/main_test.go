@@ -177,7 +177,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	commonlog.GetScopeOrDefaultByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 	commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 
-	metrics.InitMetrics()
+	metrics.TestInitMetrics()
 	eventhub.InitEventHub()
 
 	// 初始化存储层
@@ -475,7 +475,10 @@ func (d *DiscoverTestSuit) cleanService(name, namespace string) {
 			defer dbTx.Rollback()
 
 			if err := dbTx.Bucket([]byte(tblNameService)).DeleteBucket([]byte(svc.ID)); err != nil {
-				panic(err)
+				if !errors.Is(err, bolt.ErrBucketNotFound) {
+					dbTx.Rollback()
+					panic(err)
+				}
 			}
 
 			dbTx.Commit()
@@ -538,8 +541,10 @@ func (d *DiscoverTestSuit) cleanServices(services []*apiservice.Service) {
 
 			for i := range ids {
 				if err := dbTx.Bucket([]byte(tblNameService)).DeleteBucket([]byte(ids[i])); err != nil {
-					dbTx.Rollback()
-					panic(err)
+					if !errors.Is(err, bolt.ErrBucketNotFound) {
+						dbTx.Rollback()
+						panic(err)
+					}
 				}
 			}
 			dbTx.Commit()

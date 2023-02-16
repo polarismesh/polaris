@@ -33,6 +33,11 @@ import (
 	"github.com/polarismesh/polaris/service"
 )
 
+var (
+	getCacheServicesFunc  = getCacheServices
+	getCacheInstancesFunc = getCacheInstances
+)
+
 // ApplicationsRespCache 全量服务缓存
 type ApplicationsRespCache struct {
 	AppsResp      *ApplicationsResponse
@@ -76,13 +81,13 @@ func getCacheInstances(namingServer service.DiscoverServer, svcId string) ([]*mo
 // BuildApplications build applications cache with compare to the latest cache
 func (a *ApplicationsBuilder) BuildApplications(oldAppsCache *ApplicationsRespCache) *ApplicationsRespCache {
 	// 获取所有的服务数据
-	var newServices = getCacheServices(a.namingServer, a.namespace)
+	var newServices = getCacheServicesFunc(a.namingServer, a.namespace)
 	var instCount int
 	svcToRevision := make(map[string]string, len(newServices))
 	svcToToInstances := make(map[string][]*model.Instance)
 	var changed bool
 	for _, newService := range newServices {
-		instances, revision, err := getCacheInstances(a.namingServer, newService.ID)
+		instances, revision, err := getCacheInstancesFunc(a.namingServer, newService.ID)
 		if err != nil {
 			log.Errorf("[EurekaServer]fail to get revision for service %s, err is %v", newService.Name, err)
 			continue

@@ -24,13 +24,14 @@ import (
 	"os"
 	"testing"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/test/http"
 	"github.com/polarismesh/polaris/test/resource"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	"github.com/stretchr/testify/assert"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestConfigCenter_ConfigFile(t *testing.T) {

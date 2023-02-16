@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	registerInstanceApiTags = []string{"RegisterInstance"}
+	registerInstanceApiTags = []string{"Client"}
 )
 
 func enrichReportClientApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {

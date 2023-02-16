@@ -15,14 +15,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package v1
+package metrics
 
-import "github.com/polarismesh/polaris/apiserver/httpserver/v1/apinotes"
-
-const (
-	enrichRegisterInstanceApiNotes   = apinotes.EnrichRegisterInstanceApiNotes
-	enrichDeregisterInstanceApiNotes = apinotes.EnrichDeregisterInstanceApiNotes
-	enrichHeartbeatApiNotes          = apinotes.EnrichHeartbeatApiNotes
-	enrichReportClientApiNotes       = apinotes.EnrichReportClientApiNotes
-	enrichDiscoverApiNotes           = apinotes.EnrichDiscoverApiNotes
-)
+// TestInitMetrics 初始化 metrics 的所有指标
+func TestInitMetrics() {
+	_ = registry.Register(instanceAsyncRegisCost)
+	_ = registry.Register(instanceRegisTaskExpire)
+	_ = registry.Register(redisReadFailure)
+	_ = registry.Register(redisWriteFailure)
+	_ = registry.Register(redisAliveStatus)
+}
