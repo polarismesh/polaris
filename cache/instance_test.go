@@ -212,7 +212,7 @@ func TestInstanceCache_Update2(t *testing.T) {
 		_ = ic.clear()
 		instances := genModelInstances("service-a", 20)
 		queryCount := int32(0)
-		storage.EXPECT().GetInstancesCount().Return(uint32(0), nil)
+		storage.EXPECT().GetInstancesCount().Return(uint32(0), nil).AnyTimes()
 		storage.EXPECT().
 			GetMoreInstances(gomock.Any(), ic.firstUpdate, ic.needMeta, ic.systemServiceID).
 			DoAndReturn(func(mtime time.Time, firstUpdate, needMeta bool, svcIds []string) (map[string]*model.Instance, error) {
