@@ -26,7 +26,8 @@ import (
 )
 
 type configFileReleaseStore struct {
-	db *BaseDB
+	db    *BaseDB
+	slave *BaseDB
 }
 
 // CreateConfigFileRelease 新建配置文件发布
@@ -133,7 +134,7 @@ func (cfr *configFileReleaseStore) DeleteConfigFileRelease(tx store.Tx, namespac
 func (cfr *configFileReleaseStore) FindConfigFileReleaseByModifyTimeAfter(
 	modifyTime time.Time) ([]*model.ConfigFileRelease, error) {
 	s := cfr.baseQuerySql() + " where modify_time > FROM_UNIXTIME(?)"
-	rows, err := cfr.db.Query(s, timeToTimestamp(modifyTime))
+	rows, err := cfr.slave.Query(s, timeToTimestamp(modifyTime))
 	if err != nil {
 		return nil, err
 	}

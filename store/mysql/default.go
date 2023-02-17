@@ -254,7 +254,7 @@ func (s *stableStore) newStore() {
 
 	s.l5Store = &l5Store{db: s.master}
 
-	s.rateLimitStore = &rateLimitStore{db: s.master}
+	s.rateLimitStore = &rateLimitStore{db: s.master, slave: s.slave}
 
 	s.circuitBreakerStore = &circuitBreakerStore{master: s.master, slave: s.slave}
 
@@ -272,7 +272,7 @@ func (s *stableStore) newStore() {
 
 	s.configFileStore = &configFileStore{db: s.master}
 
-	s.configFileReleaseStore = &configFileReleaseStore{db: s.master}
+	s.configFileReleaseStore = &configFileReleaseStore{db: s.master, slave: s.slave}
 
 	s.configFileReleaseHistoryStore = &configFileReleaseHistoryStore{db: s.master}
 
