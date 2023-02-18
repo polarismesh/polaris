@@ -62,7 +62,7 @@ func MockConfigFiles(group *apiconfig.ConfigFileGroup) []*apiconfig.ConfigFile {
 
 		ret = append(ret, &apiconfig.ConfigFile{
 			Name: &wrapperspb.StringValue{
-				Value: fmt.Sprintf(confiGroupNameTemp, utils.NewUUID(), i),
+				Value: fmt.Sprintf(configFileNameTemp, utils.NewUUID(), i),
 			},
 			Namespace: group.Namespace,
 			Group:     group.Name,

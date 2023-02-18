@@ -34,7 +34,7 @@ func (h *HTTPServer) GetConfigAccessServer(include []string) (*restful.WebServic
 	consoleAccess := []string{configDefaultAccess}
 
 	ws := new(restful.WebService)
-	ws.Path("/config/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
+	ws.Path("/config/v1").Consumes(restful.MIME_JSON, "multipart/form-data").Produces(restful.MIME_JSON, "application/zip")
 
 	if len(include) == 0 {
 		include = consoleAccess
@@ -73,6 +73,8 @@ func (h *HTTPServer) bindConfigConsoleEndpoint(ws *restful.WebService) {
 	ws.Route(enrichUpdateConfigFileApiDocs(ws.PUT("/configfiles").To(h.UpdateConfigFile)))
 	ws.Route(enrichDeleteConfigFileApiDocs(ws.DELETE("/configfiles").To(h.DeleteConfigFile)))
 	ws.Route(enrichBatchDeleteConfigFileApiDocs(ws.POST("/configfiles/batchdelete").To(h.BatchDeleteConfigFile)))
+	ws.Route(enrichExportConfigFileApiDocs(ws.POST("/configfiles/export").To(h.ExportConfigFile)))
+	ws.Route(enrichImportConfigFileApiDocs(ws.POST("/configfiles/import").To(h.ImportConfigFile)))
 
 	// 配置文件发布
 	ws.Route(enrichPublishConfigFileApiDocs(ws.POST("/configfiles/release").To(h.PublishConfigFile)))

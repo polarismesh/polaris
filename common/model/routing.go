@@ -51,10 +51,6 @@ var (
 	RuleRoutingTypeUrl string
 	// MetaRoutingTypeUrl 记录 anypb.Any 中关于 MetadataRoutingConfig 的 url 信息
 	MetaRoutingTypeUrl string
-	// RuleRoutingTypeUrlV2 记录 anypb.Any 中关于 RuleRoutingConfigV2 的 url 信息
-	// RuleRoutingTypeUrlV2 string
-	// MetaRoutingTypeUrlV2 记录 anypb.Any 中关于 MetadataRoutingConfigV2 的 url 信息
-	// MetaRoutingTypeUrlV2 string
 )
 
 func init() {
@@ -63,12 +59,6 @@ func init() {
 
 	RuleRoutingTypeUrl = ruleAny.GetTypeUrl()
 	MetaRoutingTypeUrl = metaAny.GetTypeUrl()
-
-	// ruleAnyV2, _ := ptypes.MarshalAny(&v2.RuleRoutingConfig{})
-	// metaAnyV2, _ := ptypes.MarshalAny(&v2.MetadataRoutingConfig{})
-	// RuleRoutingTypeUrlV2 = ruleAnyV2.GetTypeUrl()
-	// MetaRoutingTypeUrlV2 = metaAnyV2.GetTypeUrl()
-
 }
 
 // ExtendRouterConfig 路由信息的扩展
@@ -82,7 +72,7 @@ type ExtendRouterConfig struct {
 	ExtendInfo map[string]string
 }
 
-// ToApi 转为 api 对象
+// ToApi Turn to API object
 func (r *ExtendRouterConfig) ToApi() (*apitraffic.RouteRule, error) {
 	var (
 		anyValue *anypb.Any
@@ -117,37 +107,37 @@ func (r *ExtendRouterConfig) ToApi() (*apitraffic.RouteRule, error) {
 	}, nil
 }
 
-// RouterConfig 路由规则
+// RouterConfig Routing rules
 type RouterConfig struct {
-	// ID 规则唯一标识
+	// ID The unique id of the rules
 	ID string `json:"id"`
-	// namespace 所属的命名空间
+	// namespace router config owner namespace
 	Namespace string `json:"namespace"`
-	// name 规则名称
+	// name router config name
 	Name string `json:"name"`
-	// policy 规则类型
+	// policy Rules
 	Policy string `json:"policy"`
-	// config 具体的路由规则内容
+	// config Specific routing rules content
 	Config string `json:"config"`
-	// enable 路由规则是否启用
+	// enable Whether the routing rules are enabled
 	Enable bool `json:"enable"`
-	// priority 规则优先级
+	// priority Rules priority
 	Priority uint32 `json:"priority"`
-	// revision 路由规则的版本信息
+	// revision Edition information of routing rules
 	Revision string `json:"revision"`
-	// Description 规则简单描述
+	// Description Simple description of rules
 	Description string `json:"description"`
-	// valid 路由规则是否有效，没有被逻辑删除
+	// valid Whether the routing rules are valid and have not been deleted by logic
 	Valid bool `json:"flag"`
-	// createtime 规则创建时间
+	// createtime Rules creation time
 	CreateTime time.Time `json:"ctime"`
-	// modifytime 规则修改时间
+	// modifytime Rules modify time
 	ModifyTime time.Time `json:"mtime"`
-	// enabletime 规则最近一次启用时间
+	// enabletime The last time the rules enabled
 	EnableTime time.Time `json:"etime"`
 }
 
-// GetRoutingPolicy 查询路由规则类型
+// GetRoutingPolicy Query routing rules type
 func (r *RouterConfig) GetRoutingPolicy() apitraffic.RoutingPolicy {
 	v, ok := apitraffic.RoutingPolicy_value[r.Policy]
 
@@ -158,7 +148,7 @@ func (r *RouterConfig) GetRoutingPolicy() apitraffic.RoutingPolicy {
 	return apitraffic.RoutingPolicy(v)
 }
 
-// ToExpendRoutingConfig 转为扩展对象，提前序列化出相应的 pb struct
+// ToExpendRoutingConfig Converted to an expansion object, serialize the corresponding PB Struct in advance
 func (r *RouterConfig) ToExpendRoutingConfig() (*ExtendRouterConfig, error) {
 	ret := &ExtendRouterConfig{
 		RouterConfig: r,
@@ -178,6 +168,7 @@ func (r *RouterConfig) ToExpendRoutingConfig() (*ExtendRouterConfig, error) {
 			if err = utils.UnmarshalFromJsonString(rule, configText); nil != err {
 				return nil, err
 			}
+			parseSubRouteRule(rule)
 			ret.RuleRouting = rule
 			break
 		case apitraffic.RoutingPolicy_MetadataPolicy:
@@ -191,8 +182,7 @@ func (r *RouterConfig) ToExpendRoutingConfig() (*ExtendRouterConfig, error) {
 		return ret, nil
 	}
 
-	err = r.parseBinaryAnyMessage(policy, ret)
-	if err != nil {
+	if err := r.parseBinaryAnyMessage(policy, ret); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -209,20 +199,9 @@ func (r *RouterConfig) parseBinaryAnyMessage(
 			Value:   []byte(r.Config),
 		}
 		if err := unmarshalToAny(anyMsg, rule); nil != err {
-			// parse v2 binary
-			// ruleV2 := &v2.RuleRoutingConfig{}
-			// anyMsg = &anypb.Any{
-			//	 TypeUrl: RuleRoutingTypeUrlV2,
-			//	 Value:   []byte(r.Config),
-			// }
-			// if err = unmarshalToAny(anyMsg, ruleV2); nil != err {
-			//	 return err
-			// }
-			// if err = utils.ConvertSameStructureMessage(ruleV2, rule); nil != err {
-			//	 return err
-			// }
 			return err
 		}
+		parseSubRouteRule(rule)
 		ret.RuleRouting = rule
 	case apitraffic.RoutingPolicy_MetadataPolicy:
 		rule := &apitraffic.MetadataRoutingConfig{}
@@ -231,18 +210,6 @@ func (r *RouterConfig) parseBinaryAnyMessage(
 			Value:   []byte(r.Config),
 		}
 		if err := unmarshalToAny(anyMsg, rule); nil != err {
-			// parse v2 binary
-			// ruleV2 := &v2.MetadataRoutingConfig{}
-			// anyMsg = &anypb.Any{
-			//	 TypeUrl: MetaRoutingTypeUrlV2,
-			//	 Value:   []byte(r.Config),
-			// }
-			// if err = unmarshalToAny(anyMsg, ruleV2); nil != err {
-			//	 return err
-			// }
-			// if err = utils.ConvertSameStructureMessage(ruleV2, rule); nil != err {
-			//	 return err
-			// }
 			return err
 		}
 		ret.MetadataRouting = rule
@@ -250,12 +217,13 @@ func (r *RouterConfig) parseBinaryAnyMessage(
 	return nil
 }
 
-// ParseRouteRuleFromAPI 从 API 对象中转换出内部对象
+// ParseRouteRuleFromAPI Convert an internal object from the API object
 func (r *RouterConfig) ParseRouteRuleFromAPI(routing *apitraffic.RouteRule) error {
 	ruleMessage, err := ParseRouteRuleAnyToMessage(routing.RoutingPolicy, routing.RoutingConfig)
 	if nil != err {
 		return err
 	}
+
 	if r.Config, err = utils.MarshalToJsonString(ruleMessage); nil != err {
 		return err
 	}
@@ -268,7 +236,7 @@ func (r *RouterConfig) ParseRouteRuleFromAPI(routing *apitraffic.RouteRule) erro
 	r.Priority = routing.Priority
 	r.Description = routing.Description
 
-	// 优先级区间范围 [0, 10]
+	// Priority range range [0, 10]
 	if r.Priority > 10 {
 		r.Priority = 10
 	}
@@ -290,6 +258,8 @@ func ParseRouteRuleAnyToMessage(policy apitraffic.RoutingPolicy, anyMessage *any
 		if err := unmarshalToAny(anyMessage, rule); err != nil {
 			return nil, err
 		}
+		ruleRouting := rule.(*apitraffic.RuleRoutingConfig)
+		parseSubRouteRule(ruleRouting)
 		break
 	case apitraffic.RoutingPolicy_MetadataPolicy:
 		rule = &apitraffic.MetadataRoutingConfig{}
@@ -301,4 +271,21 @@ func ParseRouteRuleAnyToMessage(policy apitraffic.RoutingPolicy, anyMessage *any
 		break
 	}
 	return rule, nil
+}
+
+func parseSubRouteRule(ruleRouting *apitraffic.RuleRoutingConfig) {
+	if len(ruleRouting.Rules) == 0 {
+		subRule := &apitraffic.SubRuleRouting{
+			Name:         "",
+			Sources:      ruleRouting.GetSources(),
+			Destinations: ruleRouting.GetDestinations(),
+		}
+		ruleRouting.Rules = []*apitraffic.SubRuleRouting{
+			subRule,
+		}
+	} else {
+		// Abandon the value of the old field
+		ruleRouting.Destinations = nil
+		ruleRouting.Sources = nil
+	}
 }

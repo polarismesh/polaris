@@ -25,7 +25,7 @@ import (
 
 var (
 	configConsoleApiTags = []string{"ConfigConsole"}
-	configClientApiTags  = []string{"ConfigClient"}
+	configClientApiTags  = []string{"Client"}
 )
 
 func enrichCreateConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -53,7 +53,7 @@ func enrichQueryConfigFileGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteB
 
 func enrichDeleteConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
-		Doc("删除配置文件").
+		Doc("删除配置文件组").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
 		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
 		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(true))
@@ -118,7 +118,7 @@ func enrichSearchConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 
 func enrichUpdateConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
-		Doc("创建配置文件").
+		Doc("更新配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
 		Reads(apiconfig.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
 			" X-Polaris-Token: {访问凭据}\n ```{\n    \"name\":\"application.properties\",\n   "+
@@ -130,7 +130,7 @@ func enrichUpdateConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 
 func enrichDeleteConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
-		Doc("创建配置文件").
+		Doc("删除配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
 		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
 		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(true)).
@@ -146,6 +146,28 @@ func enrichBatchDeleteConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteB
 		Reads(apiconfig.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
 			" X-Polaris-Token: {访问凭据}\n```[\n     {\n         \"name\":\"application.properties\",\n "+
 			"        \"namespace\":\"someNamespace\",\n         \"group\":\"someGroup\"\n     }\n]\n```")
+}
+
+func enrichExportConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("导出配置文件").
+		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
+		Reads(apiconfig.ConfigFileExportRequest{}, "```[\n     {\n         \"namespace\":\"someNamespace\",\n "+
+			"        \"groups\":[\"someGroups\"]\n     \"names\":[\"application.properties\"],\n         }\n]\n```")
+}
+
+func enrichImportConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("导入配置文件").
+		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
+		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
+		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(false)).
+		Param(restful.MultiPartFormParameter("conflict_handling",
+			"配置文件冲突处理，跳过skip，覆盖overwrite").DataType("string").Required(true)).
+		Param(restful.MultiPartFormParameter("config", "配置文件").DataType("file").Required(true)).
+		Reads(apiconfig.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader"+
+			" X-Polaris-Token: {访问凭据}\n```[\n     {\n         \"name\":\"application.properties\",\n "+
+			"       \"namespace\":\"someNamespace\",\n         \"group\":\"someGroup\"\n     }\n]\n```")
 }
 
 func enrichPublishConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {

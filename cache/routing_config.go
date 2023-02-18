@@ -18,6 +18,7 @@
 package cache
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -37,25 +38,25 @@ const (
 )
 
 type (
-	// RoutingIterProc 遍历路由规则的方法定义
+	// RoutingIterProc Method definition of routing rules
 	RoutingIterProc func(key string, value *model.ExtendRouterConfig)
 
-	// RoutingConfigCache routing配置的cache接口
+	// RoutingConfigCache Cache interface configured by routing
 	RoutingConfigCache interface {
 		Cache
-		// GetRoutingConfigV1 根据ServiceID获取路由配置
+		// GetRoutingConfigV1 Obtain routing configuration based on serviceid
 		GetRoutingConfigV1(id, service, namespace string) (*apitraffic.Routing, error)
-		// GetRoutingConfigV2 根据ServiceID获取路由配置
+		// GetRoutingConfigV2 Obtain routing configuration based on serviceid
 		GetRoutingConfigV2(id, service, namespace string) ([]*apitraffic.RouteRule, error)
-		// GetRoutingConfigCount 获取路由配置缓存的总个数
+		// GetRoutingConfigCount Get the total number of routing configuration cache
 		GetRoutingConfigCount() int
-		// GetRoutingConfigsV2 查询路由配置列表
-		GetRoutingConfigsV2(args *RoutingArgs) (uint32, []*model.ExtendRouterConfig, error)
-		// IsConvertFromV1 当前路由规则是否是从 v1 规则转换过来的
+		// QueryRoutingConfigsV2 Query Route Configuration List
+		QueryRoutingConfigsV2(args *RoutingArgs) (uint32, []*model.ExtendRouterConfig, error)
+		// IsConvertFromV1 Whether the current routing rules are converted from the V1 rule
 		IsConvertFromV1(id string) (string, bool)
 	}
 
-	// routingConfigCache 路由规则缓存
+	// routingConfigCache Routing rules cache
 	routingConfigCache struct {
 		*baseCache
 
@@ -72,17 +73,17 @@ type (
 
 		singleFlight singleflight.Group
 
-		// pendingV1RuleIds 记录需要从 v1 转换到 v2 的路由规则id
+		// pendingV1RuleIds Records need to be converted from V1 to V2 routing rules ID
 		pendingV1RuleIds map[string]struct{}
 	}
 )
 
-// init 自注册到缓存列表
+// init From registration to cache list
 func init() {
 	RegisterCache(RoutingConfigName, CacheRoutingConfig)
 }
 
-// newRoutingConfigCache 返回一个操作RoutingConfigCache的对象
+// newRoutingConfigCache Return a object of operating RoutingConfigcache
 func newRoutingConfigCache(s store.Store, serviceCache ServiceCache) *routingConfigCache {
 	return &routingConfigCache{
 		baseCache:        newBaseCache(),
@@ -92,7 +93,7 @@ func newRoutingConfigCache(s store.Store, serviceCache ServiceCache) *routingCon
 	}
 }
 
-// initialize 实现Cache接口的函数
+// initialize The function of implementing the cache interface
 func (rc *routingConfigCache) initialize(_ map[string]interface{}) error {
 	rc.firstUpdate = true
 
@@ -108,16 +109,16 @@ func (rc *routingConfigCache) initBuckets() {
 	rc.bucketV2 = newRoutingBucketV2()
 }
 
-// update 实现Cache接口的函数
+// update The function of implementing the cache interface
 func (rc *routingConfigCache) update(storeRollbackSec time.Duration) error {
-	// 多个线程竞争，只有一个线程进行更新
+	// Multiple thread competition, only one thread is updated
 	_, err, _ := rc.singleFlight.Do("RoutingCache", func() (interface{}, error) {
 		return nil, rc.realUpdate(storeRollbackSec)
 	})
 	return err
 }
 
-// update 实现Cache接口的函数
+// update The function of implementing the cache interface
 func (rc *routingConfigCache) realUpdate(storeRollbackSec time.Duration) error {
 	outV1, err := rc.storage.GetRoutingConfigsForCache(rc.lastMtimeV1.Add(storeRollbackSec), rc.firstUpdate)
 	if err != nil {
@@ -144,7 +145,7 @@ func (rc *routingConfigCache) realUpdate(storeRollbackSec time.Duration) error {
 	return nil
 }
 
-// clear 实现Cache接口的函数
+// clear The function of implementing the cache interface
 func (rc *routingConfigCache) clear() error {
 	rc.firstUpdate = true
 
@@ -155,22 +156,21 @@ func (rc *routingConfigCache) clear() error {
 	return nil
 }
 
-// name 实现Cache接口的函数
+// name The function of implementing the cache interface
 func (rc *routingConfigCache) name() string {
 	return RoutingConfigName
 }
 
-// GetRoutingConfigV1 根据ServiceID获取路由配置
-// case 1: 如果只存在 v2 的路由规则，使用 v2
-// case 2: 如果只存在 v1 的路由规则，使用 v1
-// case 3: 如果同时存在 v1 和 v2 的路由规则，进行合并
+// GetRoutingConfigV1 Obtain routing configuration based on serviceid
+// case 1: If there is only V2's routing rules, use V2
+// case 2: If there is only V1's routing rules, use V1
+// case 3: If there are routing rules for V1 and V2 at the same time, merge
 func (rc *routingConfigCache) GetRoutingConfigV1(id, service, namespace string) (*apitraffic.Routing, error) {
 	if id == "" && service == "" && namespace == "" {
 		return nil, nil
 	}
 
 	v2rules := rc.bucketV2.listByServiceWithPredicate(service, namespace,
-		// 只返回 enable 状态的路由规则进行下发
 		func(item *model.ExtendRouterConfig) bool {
 			return item.Enable
 		})
@@ -204,7 +204,7 @@ func (rc *routingConfigCache) GetRoutingConfigV1(id, service, namespace string) 
 	return formatRoutingResponseV1(compositeRule), nil
 }
 
-// formatRoutingResponseV1 给客户端的缓存，不需要暴露 ExtendInfo 信息数据
+// formatRoutingResponseV1 Give the client's cache, no need to expose EXTENDINFO information data
 func formatRoutingResponseV1(ret *apitraffic.Routing) *apitraffic.Routing {
 	inBounds := ret.Inbounds
 	outBounds := ret.Outbounds
@@ -219,7 +219,7 @@ func formatRoutingResponseV1(ret *apitraffic.Routing) *apitraffic.Routing {
 	return ret
 }
 
-// GetRoutingConfigV2 根据服务信息获取该服务下的所有 v2 版本的规则路由
+// GetRoutingConfigV2 Obtain all V2 versions under the service information according to the service information
 func (rc *routingConfigCache) GetRoutingConfigV2(_, service, namespace string) ([]*apitraffic.RouteRule, error) {
 	v2rules := rc.bucketV2.listByServiceWithPredicate(service, namespace,
 		func(item *model.ExtendRouterConfig) bool {
@@ -243,16 +243,16 @@ func (rc *routingConfigCache) GetRoutingConfigV2(_, service, namespace string) (
 
 // IteratorRoutings
 func (rc *routingConfigCache) IteratorRoutings(iterProc RoutingIterProc) {
-	// 这里只需要遍历 v2 的 routing cache bucket 即可
+	// need to traverse the Routing cache bucket of V2 here
 	rc.bucketV2.foreach(iterProc)
 }
 
-// GetRoutingConfigCount 获取路由配置缓存的总个数
+// GetRoutingConfigCount Get the total number of routing configuration cache
 func (rc *routingConfigCache) GetRoutingConfigCount() int {
 	return rc.bucketV2.size()
 }
 
-// setRoutingConfigV1 更新store的数据到cache中
+// setRoutingConfigV1 Update the data of the store to the cache
 func (rc *routingConfigCache) setRoutingConfigV1(cs []*model.RoutingConfig) error {
 	if len(cs) == 0 {
 		return nil
@@ -267,16 +267,16 @@ func (rc *routingConfigCache) setRoutingConfigV1(cs []*model.RoutingConfig) erro
 			lastMtimeV1 = entry.ModifyTime.Unix()
 		}
 		if !entry.Valid {
-			// 删除老的 v1 缓存
+			// Delete the old V1 cache
 			rc.bucketV1.delete(entry.ID)
-			// 删除转换为 v2 的缓存
+			// Delete the cache converted to V2
 			rc.bucketV2.deleteV1(entry.ID)
-			// 删除 v1 转换到 v2 的任务id
+			// Delete the task ID of V1 to V2
 			delete(rc.pendingV1RuleIds, entry.ID)
 			continue
 		}
 
-		// 保存到老的 v1 缓存
+		// Save to the old V1 cache
 		rc.bucketV1.save(entry)
 		rc.pendingV1RuleIds[entry.ID] = struct{}{}
 	}
@@ -287,7 +287,7 @@ func (rc *routingConfigCache) setRoutingConfigV1(cs []*model.RoutingConfig) erro
 	return nil
 }
 
-// setRoutingConfigV2 存储 v2 路由规则缓存
+// setRoutingConfigV2 Store V2 Router Caches
 func (rc *routingConfigCache) setRoutingConfigV2(cs []*model.RouterConfig) error {
 	if len(cs) == 0 {
 		return nil
@@ -322,7 +322,7 @@ func (rc *routingConfigCache) setRoutingConfigV2(cs []*model.RouterConfig) error
 func (rc *routingConfigCache) setRoutingConfigV1ToV2() {
 	for id := range rc.pendingV1RuleIds {
 		entry := rc.bucketV1.get(id)
-		// 保存到新的 v2 缓存
+		// Save to the new V2 cache
 		v2rule, err := rc.convertRoutingV1toV2(entry)
 		if err != nil {
 			log.Warn("[Cache] routing parse v1 => v2 fail, will try again next",
@@ -331,13 +331,12 @@ func (rc *routingConfigCache) setRoutingConfigV1ToV2() {
 		}
 		if v2rule == nil {
 			log.Warn("[Cache] routing parse v1 => v2 is nil, will try again next",
-				zap.String("rule-id", entry.ID), zap.Error(err))
+				zap.String("rule-id", entry.ID))
 			continue
 		}
 		rc.bucketV2.saveV1(entry, v2rule)
 		delete(rc.pendingV1RuleIds, id)
 	}
-
 	log.Infof("[Cache] convert routing parse v1 => v2 count : %d", rc.bucketV2.convertV2Size())
 }
 
@@ -349,15 +348,17 @@ func (rc *routingConfigCache) IsConvertFromV1(id string) (string, bool) {
 func (rc *routingConfigCache) convertRoutingV1toV2(rule *model.RoutingConfig) ([]*model.ExtendRouterConfig, error) {
 	svc := rc.serviceCache.GetServiceByID(rule.ID)
 	if svc == nil {
-		_svc, err := rc.storage.GetServiceByID(rule.ID)
+		s, err := rc.storage.GetServiceByID(rule.ID)
 		if err != nil {
 			return nil, err
 		}
-		if _svc == nil {
+		if s == nil {
 			return nil, nil
 		}
-
-		svc = _svc
+		svc = s
+	}
+	if svc.IsAlias() {
+		return nil, fmt.Errorf("svc: %+v is alias", svc)
 	}
 
 	in, out, err := routingcommon.ConvertRoutingV1ToExtendV2(svc.Name, svc.Namespace, rule)
@@ -372,7 +373,8 @@ func (rc *routingConfigCache) convertRoutingV1toV2(rule *model.RoutingConfig) ([
 	return ret, nil
 }
 
-// convertRoutingV2toV1 v2 版本的路由规则转为 v1 版本进行返回给客户端，用于兼容 SDK 下发配置的场景
+// convertRoutingV2toV1 The routing rules of the V2 version are converted to V1 version to return to the client,
+// which is used to compatible with SDK issuance configuration.
 func (rc *routingConfigCache) convertRoutingV2toV1(entries map[routingLevel][]*model.ExtendRouterConfig,
 	service, namespace string) *apitraffic.Routing {
 	level1 := entries[level1RoutingV2]

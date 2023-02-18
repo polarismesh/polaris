@@ -55,7 +55,7 @@ var (
 	}
 )
 
-// CreateRoutingConfigsV2 批量创建路由配置
+// CreateRoutingConfigsV2 Create a routing configuration
 func (s *Server) CreateRoutingConfigsV2(
 	ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 	if err := checkBatchRoutingConfigV2(req); err != nil {
@@ -70,13 +70,12 @@ func (s *Server) CreateRoutingConfigsV2(
 	return apiv1.FormatBatchWriteResponse(resp)
 }
 
-// createRoutingConfigV2 创建一个路由配置
+// createRoutingConfigV2 Create a routing configuration
 func (s *Server) createRoutingConfigV2(ctx context.Context, req *apitraffic.RouteRule) *apiservice.Response {
 	if resp := checkRoutingConfigV2(req); resp != nil {
 		return resp
 	}
 
-	// 构造底层数据结构，并且写入store
 	conf, err := api2RoutingConfigV2(req)
 	if err != nil {
 		log.Error("[Routing][V2] parse routing config v2 from request for create",
@@ -96,7 +95,7 @@ func (s *Server) createRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 	return apiv1.NewRouterResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
-// DeleteRoutingConfigsV2 批量删除路由配置
+// DeleteRoutingConfigsV2 Batch delete routing configuration
 func (s *Server) DeleteRoutingConfigsV2(
 	ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 	if err := checkBatchRoutingConfigV2(req); err != nil {
@@ -112,13 +111,13 @@ func (s *Server) DeleteRoutingConfigsV2(
 	return apiv1.FormatBatchWriteResponse(out)
 }
 
-// DeleteRoutingConfigV2 删除一个路由配置
+// DeleteRoutingConfigV2 Delete a routing configuration
 func (s *Server) deleteRoutingConfigV2(ctx context.Context, req *apitraffic.RouteRule) *apiservice.Response {
 	if resp := checkRoutingConfigIDV2(req); resp != nil {
 		return resp
 	}
 
-	// 判断当前的路由规则是否只是从 v1 版本中的内存中转换过来的
+	// Determine whether the current routing rules are only converted from the memory transmission in the V1 version
 	if _, ok := s.Cache().RoutingConfig().IsConvertFromV1(req.Id); ok {
 		resp := s.transferV1toV2OnModify(ctx, req)
 		if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
@@ -139,7 +138,7 @@ func (s *Server) deleteRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 	return apiv1.NewRouterResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
-// UpdateRoutingConfigsV2 批量更新路由配置
+// UpdateRoutingConfigsV2 Batch update routing configuration
 func (s *Server) UpdateRoutingConfigsV2(
 	ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 	if err := checkBatchRoutingConfigV2(req); err != nil {
@@ -155,13 +154,12 @@ func (s *Server) UpdateRoutingConfigsV2(
 	return apiv1.FormatBatchWriteResponse(out)
 }
 
-// updateRoutingConfigV2 更新单个路由配置
+// updateRoutingConfigV2 Update a single routing configuration
 func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apitraffic.RouteRule) *apiservice.Response {
-	// 如果当前待修改的 v2 路由规则，其实是从 v1 规则在 cache 中转换而来的，则需要先做以下几个步骤
-	// step 1: 将 v1 规则真实的转为 v2 规则
-	// step 2: 将本次要修改的 v2 规则，在 v1 规则中的 inBound 或者 outBound 找到对应的 route，设置其规则 ID
-	// step 3: 进行存储持久化
-	// 判断当前的路由规则是否只是从 v1 版本中的内存中转换过来的
+	// If V2 routing rules to be modified are from the V1 rule in the cache, need to do the following steps first
+	// step 1: Turn the V1 rule to the real V2 rule
+	// step 2: Find the corresponding route to the V2 rules to be modified in the V1 rules, set their rules ID
+	// step 3: Store persistence
 	if _, ok := s.Cache().RoutingConfig().IsConvertFromV1(req.Id); ok {
 		resp := s.transferV1toV2OnModify(ctx, req)
 		if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
@@ -173,7 +171,7 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 		return resp
 	}
 
-	// 检查路由配置是否存在
+	// Check whether the routing configuration exists
 	conf, err := s.storage.GetRoutingConfigV2WithID(req.Id)
 	if err != nil {
 		log.Error("[Routing][V2] get routing config v2 store layer",
@@ -184,7 +182,6 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 		return apiv1.NewResponse(apimodel.Code_NotFoundRouting)
 	}
 
-	// 作为一个整体进行Update，所有参数都要传递
 	reqModel, err := api2RoutingConfigV2(req)
 	reqModel.Revision = utils.NewV2Revision()
 	if err != nil {
@@ -203,14 +200,14 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 	return apiv1.NewResponse(apimodel.Code_ExecuteSuccess)
 }
 
-// GetRoutingConfigsV2 提供给OSS的查询路由配置的接口
-func (s *Server) GetRoutingConfigsV2(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+// QueryRoutingConfigsV2 The interface of the query configuration to the OSS
+func (s *Server) QueryRoutingConfigsV2(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	args, presp := parseRoutingArgs(query, ctx)
 	if presp != nil {
 		return apiv1.NewBatchQueryResponse(apimodel.Code(presp.GetCode().GetValue()))
 	}
 
-	total, ret, err := s.Cache().RoutingConfig().GetRoutingConfigsV2(args)
+	total, ret, err := s.Cache().RoutingConfig().QueryRoutingConfigsV2(args)
 	if err != nil {
 		log.Error("[Routing][V2] query routing list from cache", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return apiv1.NewBatchQueryResponse(apimodel.Code_ExecuteException)
@@ -246,7 +243,6 @@ func (s *Server) enableRoutings(ctx context.Context, req *apitraffic.RouteRule) 
 		return resp
 	}
 
-	// 判断当前的路由规则是否只是从 v1 版本中的内存中转换过来的
 	if _, ok := s.Cache().RoutingConfig().IsConvertFromV1(req.Id); ok {
 		resp := s.transferV1toV2OnModify(ctx, req)
 		if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
@@ -254,7 +250,6 @@ func (s *Server) enableRoutings(ctx context.Context, req *apitraffic.RouteRule) 
 		}
 	}
 
-	// 检查路由配置是否存在
 	conf, err := s.storage.GetRoutingConfigV2WithID(req.Id)
 	if err != nil {
 		log.Error("[Routing][V2] get routing config v2 store layer",
@@ -278,7 +273,8 @@ func (s *Server) enableRoutings(ctx context.Context, req *apitraffic.RouteRule) 
 	return apiv1.NewResponse(apimodel.Code_ExecuteSuccess)
 }
 
-// transferV1toV2OnModify 在针对 v2 规则进行启用或者禁止时，需要将 v1 规则转为 v2 规则并执行持久化存储
+// transferV1toV2OnModify When enabled or prohibited for the V2 rules, the V1 rules need to be converted to V2 rules
+// and execute persistent storage
 func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apitraffic.RouteRule) *apiservice.Response {
 	svcId, _ := s.Cache().RoutingConfig().IsConvertFromV1(req.Id)
 	v1conf, err := s.storage.GetRoutingConfigWithID(svcId)
@@ -288,21 +284,13 @@ func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apitraffic.Rou
 		return apiv1.NewResponse(apimodel.Code_StoreLayerException)
 	}
 	if v1conf != nil {
-		svc := s.Cache().Service().GetServiceByID(svcId)
-		if svc == nil {
-			_svc, err := s.storage.GetServiceByID(svcId)
-			if err != nil {
-				return nil
-			}
-			svc = _svc
-		}
+		svc, err := s.loadServiceByID(svcId)
 		if svc == nil {
 			log.Error("[Routing][V2] convert routing config v1 to v2 find svc",
 				utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 			return apiv1.NewResponse(apimodel.Code_NotFoundService)
 		}
 
-		// 这里需要将 apiModel 的 id 全部生成一遍 extendInfo 信息
 		inV2, outV2, err := routingcommon.ConvertRoutingV1ToExtendV2(svc.Name, svc.Namespace, v1conf)
 		if err != nil {
 			log.Error("[Routing][V2] convert routing config v1 to v2",
@@ -342,9 +330,8 @@ func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apitraffic.Rou
 	return apiv1.NewResponse(apimodel.Code_ExecuteSuccess)
 }
 
-// parseServiceArgs 解析服务的查询条件
+// parseServiceArgs The query conditions of the analysis service
 func parseRoutingArgs(query map[string]string, ctx context.Context) (*cache.RoutingArgs, *apiservice.Response) {
-	// 先处理offset和limit
 	offset, limit, err := utils.ParseOffsetAndLimit(query)
 	if err != nil {
 		return nil, apiv1.NewResponse(apimodel.Code_InvalidParameter)
@@ -392,7 +379,7 @@ func parseRoutingArgs(query map[string]string, ctx context.Context) (*cache.Rout
 	return res, nil
 }
 
-// checkBatchRoutingConfig 检查批量请求
+// checkBatchRoutingConfig Check batch request
 func checkBatchRoutingConfigV2(req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 	if len(req) == 0 {
 		return apiv1.NewBatchWriteResponse(apimodel.Code_EmptyRequest)
@@ -405,7 +392,7 @@ func checkBatchRoutingConfigV2(req []*apitraffic.RouteRule) *apiservice.BatchWri
 	return nil
 }
 
-// checkRoutingConfig 检查路由配置基础参数有效性
+// checkRoutingConfig Check the validity of the basic parameter of the routing configuration
 func checkRoutingConfigV2(req *apitraffic.RouteRule) *apiservice.Response {
 	if req == nil {
 		return apiv1.NewRouterResponse(apimodel.Code_EmptyRequest, req)
@@ -426,7 +413,7 @@ func checkRoutingConfigV2(req *apitraffic.RouteRule) *apiservice.Response {
 	return nil
 }
 
-// checkUpdateRoutingConfigV2 检查路由配置基础参数有效性
+// checkUpdateRoutingConfigV2 Check the validity of the basic parameter of the routing configuration
 func checkUpdateRoutingConfigV2(req *apitraffic.RouteRule) *apiservice.Response {
 	if resp := checkRoutingConfigIDV2(req); resp != nil {
 		return resp
@@ -493,7 +480,7 @@ func checkRoutingPolicyV2(req *apitraffic.RouteRule) *apiservice.Response {
 		return apiv1.NewRouterResponse(apimodel.Code_InvalidRoutingPolicy, req)
 	}
 
-	// 自动根据 policy 补充 @type 属性
+	// Automatically supplement @Type attribute according to Policy
 	if req.RoutingConfig.TypeUrl == "" {
 		if req.GetRoutingPolicy() == apitraffic.RoutingPolicy_RulePolicy {
 			req.RoutingConfig.TypeUrl = model.RuleRoutingTypeUrl
@@ -506,7 +493,7 @@ func checkRoutingPolicyV2(req *apitraffic.RouteRule) *apiservice.Response {
 	return nil
 }
 
-// api2RoutingConfig 把API参数转换为内部的数据结构
+// api2RoutingConfig Convert the API parameter to internal data structure
 func api2RoutingConfigV2(req *apitraffic.RouteRule) (*model.RouterConfig, error) {
 	out := &model.RouterConfig{
 		Valid: true,
@@ -525,7 +512,7 @@ func api2RoutingConfigV2(req *apitraffic.RouteRule) (*model.RouterConfig, error)
 	return out, nil
 }
 
-// marshalRoutingV2toAnySlice 转换为 []*anypb.Any 数组
+// marshalRoutingV2toAnySlice Converted to []*anypb.Any array
 func marshalRoutingV2toAnySlice(routings []*model.ExtendRouterConfig) ([]*any.Any, error) {
 	ret := make([]*any.Any, 0, len(routings))
 

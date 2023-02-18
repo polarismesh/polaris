@@ -31,7 +31,7 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-// createRoutingConfigV1toV2 这里需要兼容 v1 版本的创建路由规则动作，将 v1 的数据转为 v2 进行存储
+// createRoutingConfigV1toV2 Compatible with V1 version of the creation routing rules, convert V1 to V2 for storage
 func (s *Server) createRoutingConfigV1toV2(ctx context.Context, req *apitraffic.Routing) *apiservice.Response {
 	if resp := checkRoutingConfig(req); resp != nil {
 		return resp
@@ -39,10 +39,10 @@ func (s *Server) createRoutingConfigV1toV2(ctx context.Context, req *apitraffic.
 
 	serviceTx, err := s.storage.CreateTransaction()
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
+		log.Error("[Service][Routing] create routing v1 open tx fail",
+			zap.Error(err), utils.ZapRequestIDByCtx(ctx))
 		return apiv1.NewRoutingResponse(apimodel.Code_StoreLayerException, req)
 	}
-	// 释放对于服务的锁
 	defer func() {
 		_ = serviceTx.Commit()
 	}()
@@ -67,16 +67,16 @@ func (s *Server) createRoutingConfigV1toV2(ctx context.Context, req *apitraffic.
 		return resp
 	}
 
-	if resp := s.saveRoutingV1toV2(ctx, svc.ID, inDatas, outDatas); resp.GetCode().GetValue() != uint32(
-		apimodel.Code_ExecuteSuccess) {
+	resp = s.saveRoutingV1toV2(ctx, svc.ID, inDatas, outDatas)
+	if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 		return resp
 	}
 
 	return apiv1.NewRoutingResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
-// updateRoutingConfigV1toV2 这里需要兼容 v1 版本的更新路由规则动作，将 v1 的数据转为 v2 进行存储
-// 一旦将 v1 规则转为 v2 规则，那么原本的 v1 规则将从存储中移除
+// updateRoutingConfigV1toV2 Compatible with V1 version update routing rules, convert the data of V1 to V2 for storage
+// Once the V1 rule is converted to V2 rules, the original V1 rules will be removed from storage
 func (s *Server) updateRoutingConfigV1toV2(ctx context.Context, req *apitraffic.Routing) *apiservice.Response {
 	svc, resp := s.routingConfigCommonCheck(ctx, req)
 	if resp != nil {
@@ -88,20 +88,18 @@ func (s *Server) updateRoutingConfigV1toV2(ctx context.Context, req *apitraffic.
 		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
 		return apiv1.NewRoutingResponse(apimodel.Code_StoreLayerException, req)
 	}
-	// 释放对于服务的锁
+	// Release the lock for the service
 	defer func() {
 		_ = serviceTx.Commit()
 	}()
 
-	// 需要禁止对 v1 规则的并发修改
-	_, err = serviceTx.LockService(svc.Name, svc.Namespace)
-	if err != nil {
+	// Need to prohibit the concurrent modification of the V1 rules
+	if _, err = serviceTx.LockService(svc.Name, svc.Namespace); err != nil {
 		log.Error("[Service][Routing] get service x-lock", zap.String("service", svc.Name),
 			zap.String("namespace", svc.Namespace), utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return apiv1.NewRoutingResponse(apimodel.Code_StoreLayerException, req)
 	}
 
-	// 检查路由配置是否存在
 	conf, err := s.storage.GetRoutingConfigWithService(svc.Name, svc.Namespace)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
@@ -124,7 +122,7 @@ func (s *Server) updateRoutingConfigV1toV2(ctx context.Context, req *apitraffic.
 	return apiv1.NewRoutingResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
-// saveRoutingV1toV2 将目标的 v1 规则转为 v2 规则
+// saveRoutingV1toV2 Convert the V1 rules of the target to V2 rule
 func (s *Server) saveRoutingV1toV2(ctx context.Context, svcId string,
 	inRules, outRules []*apitraffic.RouteRule) *apiservice.Response {
 	tx, err := s.storage.StartTx()
@@ -137,7 +135,7 @@ func (s *Server) saveRoutingV1toV2(ctx context.Context, svcId string,
 		_ = tx.Rollback()
 	}()
 
-	// 这里需要删除掉 v1 的路由规则
+	// Need to delete the routing rules of V1 first
 	if err := s.storage.DeleteRoutingConfigTx(tx, svcId); err != nil {
 		log.Error("[Service][Routing] clean routing v1 from store",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))

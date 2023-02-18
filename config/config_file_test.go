@@ -19,8 +19,11 @@ package config
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"github.com/stretchr/testify/assert"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -236,6 +239,139 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, 3, len(rsp.ConfigFiles))
 	})
 
+	t.Run("step8-export", func(t *testing.T) {
+		namespace := "namespace_0"
+		for i := 0; i < 3; i++ {
+			group := fmt.Sprintf("group_%d", i)
+			for j := 0; j < 3; j++ {
+				name := fmt.Sprintf("file_%d", j)
+				configFile := assembleConfigFileWithNamespaceAndGroupAndName(namespace, group, name)
+				rsp := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+				assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
+			}
+		}
+		// 导出 group
+		configFileExport := &apiconfig.ConfigFileExportRequest{
+			Namespace: utils.NewStringValue("namespace_0"),
+			Groups: []*wrappers.StringValue{
+				utils.NewStringValue("group_0"),
+				utils.NewStringValue("group_1"),
+			},
+		}
+		rsp := testSuit.testService.ExportConfigFile(testSuit.defaultCtx, configFileExport)
+		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
+		// 导出 file
+		configFileExport = &apiconfig.ConfigFileExportRequest{
+			Namespace: utils.NewStringValue("namespace_0"),
+			Groups: []*wrappers.StringValue{
+				utils.NewStringValue("group_0"),
+			},
+			Names: []*wrappers.StringValue{
+				utils.NewStringValue("file_0"),
+				utils.NewStringValue("file_1"),
+				utils.NewStringValue("file_2"),
+			},
+		}
+		rsp = testSuit.testService.ExportConfigFile(testSuit.defaultCtx, configFileExport)
+		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
+		// 导出参数错误：无效的命名空间
+		configFileExport = &apiconfig.ConfigFileExportRequest{
+			Namespace: utils.NewStringValue(""),
+		}
+		rsp = testSuit.testServer.ExportConfigFile(testSuit.defaultCtx, configFileExport)
+		assert.Equal(t, api.InvalidNamespaceName, rsp.Code.GetValue())
+		// 导出参数错误：无效的组和文件
+		configFileExport = &apiconfig.ConfigFileExportRequest{
+			Namespace: utils.NewStringValue("namespace_0"),
+			Groups: []*wrappers.StringValue{
+				utils.NewStringValue("group_0"),
+				utils.NewStringValue("group_1"),
+			},
+			Names: []*wrappers.StringValue{
+				utils.NewStringValue("file_0"),
+			},
+		}
+		rsp = testSuit.testServer.ExportConfigFile(testSuit.defaultCtx, configFileExport)
+		assert.Equal(t, api.InvalidParameter, rsp.Code.GetValue())
+		// 导出配置不存在
+		configFileExport = &apiconfig.ConfigFileExportRequest{
+			Namespace: utils.NewStringValue("namespace_0"),
+			Groups: []*wrappers.StringValue{
+				utils.NewStringValue("group_10"),
+			},
+		}
+		rsp = testSuit.testServer.ExportConfigFile(testSuit.defaultCtx, configFileExport)
+		assert.Equal(t, api.NotFoundResourceConfigFile, rsp.Code.GetValue())
+	})
+
+	t.Run("step9-import", func(t *testing.T) {
+		// 导入配置文件错误
+		namespace := "namespace_0"
+		var configFiles []*apiconfig.ConfigFile
+		for i := 0; i < 2; i++ {
+			group := fmt.Sprintf("group_%d", i)
+			for j := 1; j < 4; j++ {
+				name := ""
+				configFile := assembleConfigFileWithNamespaceAndGroupAndName(namespace, group, name)
+				configFiles = append(configFiles, configFile)
+			}
+		}
+		rsp := testSuit.testService.ImportConfigFile(testSuit.defaultCtx, configFiles, utils.ConfigFileImportConflictSkip)
+		assert.Equal(t, api.InvalidConfigFileName, rsp.Code.GetValue())
+	})
+	t.Run("step10-import-conflict-skip", func(t *testing.T) {
+		namespace := "namespace_import_skip"
+		group := fmt.Sprintf("group_0")
+		for j := 0; j < 3; j++ {
+			name := fmt.Sprintf("file_%d", j)
+			configFile := assembleConfigFileWithNamespaceAndGroupAndName(namespace, group, name)
+			rsp := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+			assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
+		}
+
+		var configFiles []*apiconfig.ConfigFile
+		for i := 0; i < 2; i++ {
+			group := fmt.Sprintf("group_%d", i)
+			for j := 1; j < 4; j++ {
+				name := fmt.Sprintf("file_%d", j)
+				configFile := assembleConfigFileWithNamespaceAndGroupAndName(namespace, group, name)
+				configFiles = append(configFiles, configFile)
+			}
+		}
+		rsp := testSuit.testService.ImportConfigFile(testSuit.defaultCtx, configFiles, utils.ConfigFileImportConflictSkip)
+		t.Log(rsp.Code.GetValue())
+		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
+		assert.Equal(t, 4, len(rsp.CreateConfigFiles))
+		assert.Equal(t, 2, len(rsp.SkipConfigFiles))
+		assert.Equal(t, 0, len(rsp.OverwriteConfigFiles))
+	})
+
+	t.Run("step11-import-conflict-overwrite", func(t *testing.T) {
+		namespace := "namespace_import_overwrite"
+		group := fmt.Sprintf("group_0")
+		for j := 0; j < 3; j++ {
+			name := fmt.Sprintf("file_%d", j)
+			configFile := assembleConfigFileWithNamespaceAndGroupAndName(namespace, group, name)
+			rsp := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+			assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
+		}
+
+		var configFiles []*apiconfig.ConfigFile
+		for i := 0; i < 2; i++ {
+			group := fmt.Sprintf("group_%d", i)
+			for j := 1; j < 4; j++ {
+				name := fmt.Sprintf("file_%d", j)
+				configFile := assembleConfigFileWithNamespaceAndGroupAndName(namespace, group, name)
+				configFiles = append(configFiles, configFile)
+			}
+		}
+		rsp := testSuit.testService.ImportConfigFile(testSuit.defaultCtx, configFiles, utils.ConfigFileImportConflictOverwrite)
+		t.Log(rsp.Code.GetValue())
+		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
+		assert.Equal(t, 4, len(rsp.CreateConfigFiles))
+		assert.Equal(t, 0, len(rsp.SkipConfigFiles))
+		assert.Equal(t, 2, len(rsp.OverwriteConfigFiles))
+	})
 }
 
 // TestPublishConfigFile 测试配置文件发布相关的用例
