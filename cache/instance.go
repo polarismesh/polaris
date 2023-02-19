@@ -183,9 +183,8 @@ const maxLoadTimeDuration = 1 * time.Second
 func (ic *instanceCache) realUpdate() error {
 	// 拉取diff前的所有数据
 	start := time.Now()
-	lastMtime := ic.LastMtime()
-	instances, err := ic.storage.GetMoreInstances(lastMtime.Add(DefaultTimeDiff),
-		ic.firstUpdate, ic.needMeta, ic.systemServiceID)
+	lastTime := time.Unix(ic.lastTime, 0).Add(DefaultTimeDiff)
+	instances, err := ic.storage.GetMoreInstances(lastTime, ic.firstUpdate, ic.needMeta, ic.systemServiceID)
 	if err != nil {
 		log.Errorf("[Cache][Instance] update get storage more err: %s", err.Error())
 		return err
@@ -198,7 +197,7 @@ func (ic *instanceCache) realUpdate() error {
 	if timeDiff > 1*time.Second {
 		log.Info("[Cache][Instance] get more instances",
 			zap.Int("update", update), zap.Int("delete", del),
-			zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
+			zap.Time("last", lastTime), zap.Duration("used", time.Since(start)))
 	}
 	return nil
 }
@@ -211,6 +210,7 @@ func (ic *instanceCache) clear() error {
 	ic.servicePortsBucket.reset()
 	ic.instanceCount = 0
 	ic.lastMtime = 0
+	ic.lastTime = 0
 	return nil
 }
 

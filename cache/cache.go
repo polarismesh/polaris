@@ -99,7 +99,7 @@ var (
 	}
 )
 
-const (
+var (
 	// DefaultTimeDiff default time diff
 	DefaultTimeDiff = -5 * time.Second
 )
@@ -178,6 +178,10 @@ type CacheManager struct {
 
 // initialize 缓存对象初始化
 func (nc *CacheManager) initialize() error {
+	if config.DiffTime != 0 {
+		DefaultTimeDiff = config.DiffTime
+	}
+
 	for _, obj := range nc.caches {
 		var option map[string]interface{}
 		for _, entry := range config.Resources {
