@@ -71,6 +71,7 @@ type rateLimitCache struct {
 	ids         *sync.Map
 	revisions   *sync.Map
 	lastTime    int64
+	lastMtime   time.Time
 	firstUpdate bool
 
 	singleFlight singleflight.Group
@@ -162,11 +163,15 @@ func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit,
 		return nil
 	}
 
+	lastMtime := rlc.lastMtime.Unix()
 	for _, item := range rateLimits {
 		err := rateLimitToProto(item)
 		if nil != err {
 			log.Errorf("[Cache]fail to unmarshal rule to proto, err: %v", err)
 			continue
+		}
+		if item.ModifyTime.Unix() > lastMtime {
+			lastMtime = item.ModifyTime.Unix()
 		}
 
 		// 待删除的rateLimit
@@ -191,6 +196,13 @@ func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit,
 	for _, item := range revisions {
 		rlc.revisions.Store(item.ServiceID, item.LastRevision)
 	}
+
+	if rlc.lastMtime.Unix() < lastMtime {
+		log.Infof("[Cache][RateLimit] RateLimit lastMtime update from %s to %s",
+			rlc.lastMtime, time.Unix(lastMtime, 0))
+		rlc.lastMtime = time.Unix(lastMtime, 0)
+	}
+
 	return nil
 }
 

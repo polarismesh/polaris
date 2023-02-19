@@ -119,9 +119,6 @@ type serviceCache struct {
 	*baseCache
 
 	storage             store.Store
-	lastMtime           int64
-	lastMtimeLogged     int64
-	firstUpdate         bool
 	ids                 *sync.Map // service_id -> service
 	names               *sync.Map // namespace -> [serviceName -> service]
 	cl5Sid2Name         *sync.Map // 兼容Cl5，sid -> name
@@ -135,6 +132,11 @@ type serviceCache struct {
 	pendingServices     map[string]int8
 	namespaceServiceCnt *sync.Map // namespace -> model.NamespaceServiceCount
 	cancel              context.CancelFunc
+
+	lastTime        int64
+	lastMtime       int64
+	lastMtimeLogged int64
+	firstUpdate     bool
 
 	serviceCount     int64
 	lastCheckAllTime int64
@@ -158,7 +160,9 @@ func newServiceCache(storage store.Store, ch chan *revisionNotify, instCache Ins
 // initialize 缓存对象初始化
 func (sc *serviceCache) initialize(opt map[string]interface{}) error {
 	sc.singleFlight = new(singleflight.Group)
+	sc.lastTime = 0
 	sc.lastMtime = 0
+	sc.firstUpdate = true
 	sc.ids = new(sync.Map)
 	sc.names = new(sync.Map)
 	sc.cl5Sid2Name = new(sync.Map)
@@ -193,12 +197,12 @@ func (sc *serviceCache) update() error {
 	_, err, _ := sc.singleFlight.Do(sc.name(), func() (interface{}, error) {
 		curStoreTime, err := sc.storage.GetUnixSecond()
 		if err != nil {
-			curStoreTime = sc.lastMtime
+			curStoreTime = sc.lastTime
 			log.Warn("[Cache][Service] get store timestamp fail, skip update lastMtime", zap.Error(err))
 		}
 		defer func() {
 			sc.lastMtimeLogged = logLastMtime(sc.lastMtimeLogged, sc.lastMtime, "Service")
-			sc.lastMtime = curStoreTime
+			sc.lastTime = curStoreTime
 			sc.checkAll()
 		}()
 		return nil, sc.realUpdate()
@@ -259,7 +263,9 @@ func (sc *serviceCache) clear() error {
 	sc.cl5Names = new(sync.Map)
 	sc.namespaceServiceCnt = new(sync.Map)
 	sc.pendingServices = make(map[string]int8)
+	sc.lastTime = 0
 	sc.lastMtime = 0
+	sc.firstUpdate = true
 	return nil
 }
 
@@ -384,6 +390,8 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 		return 0, 0
 	}
 
+	lastMtime := sc.lastMtime
+
 	progress := 0
 	update := 0
 	del := 0
@@ -397,6 +405,10 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 		if progress%20000 == 0 {
 			log.Infof(
 				"[Cache][Service] update service item progress(%d / %d)", progress, len(services))
+		}
+		serviceMtime := service.ModifyTime.Unix()
+		if lastMtime < serviceMtime {
+			lastMtime = serviceMtime
 		}
 
 		spaceName := service.Namespace
@@ -431,6 +443,11 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 		/******兼容cl5******/
 	}
 
+	if sc.lastMtime < lastMtime {
+		log.Infof("[Cache][Service] Service lastMtime update from %s to %s",
+			time.Unix(sc.lastMtime, 0), time.Unix(lastMtime, 0))
+		sc.lastMtime = lastMtime
+	}
 	if sc.serviceCount != svcCount {
 		log.Infof("[Cache][Service] service count update from %d to %d",
 			sc.serviceCount, svcCount)

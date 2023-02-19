@@ -19,6 +19,7 @@ package cache
 
 import (
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -73,8 +74,9 @@ type strategyCache struct {
 
 	userCache UserCache
 
-	firstUpdate    bool
-	lastUpdateTime int64
+	firstUpdate bool
+	lastMtime   int64
+	lastTime    int64
 
 	singleFlight *singleflight.Group
 
@@ -123,7 +125,8 @@ func (sc *strategyCache) initialize(c map[string]interface{}) error {
 	sc.initBuckets()
 	sc.singleFlight = new(singleflight.Group)
 	sc.firstUpdate = true
-	sc.lastUpdateTime = 0
+	sc.lastMtime = 0
+	sc.lastTime = 0
 	return nil
 }
 
@@ -132,11 +135,11 @@ func (sc *strategyCache) update() error {
 	_, err, _ := sc.singleFlight.Do(sc.name(), func() (interface{}, error) {
 		curStoreTime, err := sc.storage.GetUnixSecond()
 		if err != nil {
-			curStoreTime = sc.lastUpdateTime
+			curStoreTime = sc.lastTime
 			log.Warn("[Cache][AuthStrategy] get store timestamp fail, skip update lastMtime", zap.Error(err))
 		}
 		defer func() {
-			sc.lastUpdateTime = curStoreTime
+			sc.lastTime = curStoreTime
 		}()
 		return nil, sc.realUpdate()
 	})
@@ -147,8 +150,8 @@ func (sc *strategyCache) realUpdate() error {
 	// 获取几秒前的全部数据
 	var (
 		start          = time.Now()
-		lastMtime      = time.Unix(sc.lastUpdateTime, 0).Add(DefaultTimeDiff)
-		strategys, err = sc.storage.GetStrategyDetailsForCache(lastMtime, sc.firstUpdate)
+		lastTime       = time.Unix(sc.lastTime, 0).Add(DefaultTimeDiff)
+		strategys, err = sc.storage.GetStrategyDetailsForCache(lastTime, sc.firstUpdate)
 	)
 	if err != nil {
 		log.Errorf("[Cache][AuthStrategy] refresh auth strategy cache err: %s", err.Error())
@@ -162,7 +165,7 @@ func (sc *strategyCache) realUpdate() error {
 	if timeDiff > time.Second {
 		log.Info("[Cache][AuthStrategy] get more auth strategy",
 			zap.Int("add", add), zap.Int("update", update), zap.Int("delete", del),
-			zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
+			zap.Time("last", lastTime), zap.Duration("used", time.Since(start)))
 	}
 	return nil
 }
@@ -175,6 +178,8 @@ func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (int, 
 
 	sc.handlerResourceStrategy(strategies)
 	sc.handlerPrincipalStrategy(strategies)
+
+	lastMtime := sc.lastMtime
 
 	for index := range strategies {
 		rule := strategies[index]
@@ -190,6 +195,14 @@ func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (int, 
 			}
 			sc.strategys.save(rule.ID, buildEnchanceStrategyDetail(rule))
 		}
+
+		lastMtime = int64(math.Max(float64(lastMtime), float64(rule.ModifyTime.Unix())))
+	}
+
+	if lastMtime != sc.lastMtime {
+		log.Infof("[Cache][AuthStrategy] AuthStrategy lastMtime update from %s to %s",
+			time.Unix(sc.lastMtime, 0), time.Unix(lastMtime, 0))
+		sc.lastMtime = lastMtime
 	}
 
 	sc.postProcessPrincipalCh()
@@ -362,7 +375,8 @@ func (sc *strategyCache) clear() error {
 	sc.initBuckets()
 
 	sc.firstUpdate = true
-	sc.lastUpdateTime = 0
+	sc.lastTime = 0
+	sc.lastMtime = 0
 	return nil
 }
 

@@ -73,6 +73,7 @@ type instanceCache struct {
 	*baseCache
 
 	storage            store.Store
+	lastTime           int64
 	lastMtime          int64
 	lastMtimeLogged    int64
 	firstUpdate        bool
@@ -142,12 +143,12 @@ func (ic *instanceCache) update() error {
 	_, err, _ := ic.singleFlight.Do(ic.name(), func() (interface{}, error) {
 		curStoreTime, err := ic.storage.GetUnixSecond()
 		if err != nil {
-			curStoreTime = ic.lastMtime
+			curStoreTime = ic.lastTime
 			log.Warn("[Cache][Instance] get store timestamp fail, skip update lastMtime", zap.Error(err))
 		}
 		defer func() {
 			ic.lastMtimeLogged = logLastMtime(ic.lastMtimeLogged, ic.lastMtime, "Instance")
-			ic.lastMtime = curStoreTime
+			ic.lastTime = curStoreTime
 			ic.checkAll()
 		}()
 		return nil, ic.realUpdate()
@@ -303,7 +304,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 	if ic.lastMtime != lastMtime {
 		log.Infof("[Cache][Instance] instance lastMtime update from %s to %s",
 			time.Unix(ic.lastMtime, 0), time.Unix(lastMtime, 0))
-		// ic.lastMtime = lastMtime
+		ic.lastMtime = lastMtime
 	}
 	if ic.instanceCount != instanceCount {
 		log.Infof("[Cache][Instance] instance count update from %d to %d",

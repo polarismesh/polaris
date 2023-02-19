@@ -58,12 +58,11 @@ type circuitBreakerCache struct {
 	// key1: namespace
 	nsWildcardRules map[string]*model.ServiceWithCircuitBreakerRules
 	// all rules are wildcard specific
-	allWildcardRules        *model.ServiceWithCircuitBreakerRules
-	lock                    sync.RWMutex
-	lastTime                int64
-	lastCheckAllTime        int64
-	circuitBreakerRuleCount int64
-	firstUpdate             bool
+	allWildcardRules *model.ServiceWithCircuitBreakerRules
+	lock             sync.RWMutex
+	lastTime         int64
+	lastMtime        time.Time
+	firstUpdate      bool
 
 	singleFlight singleflight.Group
 }
@@ -90,9 +89,7 @@ func newCircuitBreakerCache(s store.Store) *circuitBreakerCache {
 // initialize 实现Cache接口的函数
 func (c *circuitBreakerCache) initialize(_ map[string]interface{}) error {
 	c.lastTime = 0
-	c.lastCheckAllTime = 0
-	c.circuitBreakerRuleCount = 0
-	c.lastCheckAllTime = 0
+	c.lastMtime = time.Unix(0, 0)
 	return nil
 }
 
@@ -137,9 +134,7 @@ func (c *circuitBreakerCache) clear() error {
 	c.lock.Unlock()
 
 	c.lastTime = 0
-	c.lastCheckAllTime = 0
-	c.circuitBreakerRuleCount = 0
-	c.lastCheckAllTime = 0
+	c.lastMtime = time.Unix(0, 0)
 	return nil
 }
 
@@ -363,7 +358,12 @@ func (c *circuitBreakerCache) setCircuitBreaker(cbRules []*model.CircuitBreakerR
 		return nil
 	}
 
+	lastMtime := c.lastMtime.Unix()
+
 	for _, cbRule := range cbRules {
+		if cbRule.ModifyTime.Unix() > lastMtime {
+			lastMtime = cbRule.ModifyTime.Unix()
+		}
 		svcKeys := getServicesInvolveByCircuitBreakerRule(cbRule)
 		if !cbRule.Valid {
 			c.deleteCircuitBreakerFromServiceCache(cbRule.ID, svcKeys)
@@ -371,6 +371,13 @@ func (c *circuitBreakerCache) setCircuitBreaker(cbRules []*model.CircuitBreakerR
 		}
 		c.storeCircuitBreakerToServiceCache(cbRule, svcKeys)
 	}
+
+	if c.lastMtime.Unix() < lastMtime {
+		log.Infof("[Cache][CircuitBreaker] CircuitBreaker lastMtime update from %s to %s",
+			c.lastMtime, time.Unix(lastMtime, 0))
+		c.lastMtime = time.Unix(lastMtime, 0)
+	}
+
 	return nil
 }
 

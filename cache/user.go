@@ -102,11 +102,7 @@ type userCache struct {
 	groups      *groupBucket      // groupid -> group
 	user2Groups *userGroupsBucket // userid -> groups
 	firstUpdate bool
-	lastMtime   int64
-
-	lastCheckAllTime int64
-	userCount        int64
-	groupCount       int64
+	lastTime    int64
 
 	notifyCh     chan interface{}
 	singleFlight *singleflight.Group
@@ -127,10 +123,7 @@ func (uc *userCache) initialize(_ map[string]interface{}) error {
 	uc.adminUser = atomic.Value{}
 
 	uc.firstUpdate = true
-	uc.lastMtime = 0
-	uc.lastCheckAllTime = 0
-	uc.userCount = 0
-	uc.groupCount = 0
+	uc.lastTime = 0
 
 	uc.singleFlight = new(singleflight.Group)
 	return nil
@@ -160,11 +153,11 @@ func (uc *userCache) update() error {
 	_, err, _ := uc.singleFlight.Do(uc.name(), func() (interface{}, error) {
 		curStoreTime, err := uc.storage.GetUnixSecond()
 		if err != nil {
-			curStoreTime = uc.lastMtime
+			curStoreTime = uc.lastTime
 			log.Warn("[Cache][User] get store timestamp fail, skip update lastMtime", zap.Error(err))
 		}
 		defer func() {
-			uc.lastMtime = curStoreTime
+			uc.lastTime = curStoreTime
 		}()
 		return nil, uc.realUpdate()
 	})
@@ -174,15 +167,15 @@ func (uc *userCache) update() error {
 func (uc *userCache) realUpdate() error {
 	// Get all data before a few seconds
 	start := time.Now()
-	lastMtime := time.Unix(uc.lastMtime, 0).Add(DefaultTimeDiff)
-	users, err := uc.storage.GetUsersForCache(lastMtime, uc.firstUpdate)
+	lastTime := time.Unix(uc.lastTime, 0).Add(DefaultTimeDiff)
+	users, err := uc.storage.GetUsersForCache(lastTime, uc.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache][User] update user err: %s", err.Error())
 		return err
 	}
 	metrics.RecordCacheUpdateCost(time.Since(start), "users", int64(len(users)))
 
-	groups, err := uc.storage.GetGroupsForCache(lastMtime, uc.firstUpdate)
+	groups, err := uc.storage.GetGroupsForCache(lastTime, uc.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache][Group] update group err: %s", err.Error())
 		return err
@@ -198,13 +191,13 @@ func (uc *userCache) realUpdate() error {
 			zap.Int("add", refreshRet.userAdd),
 			zap.Int("update", refreshRet.userUpdate),
 			zap.Int("delete", refreshRet.userDel),
-			zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
+			zap.Time("last", lastTime), zap.Duration("used", time.Since(start)))
 
 		log.Info("[Cache][Group] get more group",
 			zap.Int("add", refreshRet.groupAdd),
 			zap.Int("update", refreshRet.groupUpdate),
 			zap.Int("delete", refreshRet.groupDel),
-			zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
+			zap.Time("last", lastTime), zap.Duration("used", time.Since(start)))
 	}
 	return nil
 }
@@ -328,10 +321,7 @@ func (uc *userCache) clear() error {
 	uc.adminUser = atomic.Value{}
 
 	uc.firstUpdate = true
-	uc.lastMtime = 0
-	uc.lastCheckAllTime = 0
-	uc.userCount = 0
-	uc.groupCount = 0
+	uc.lastTime = 0
 	return nil
 }
 

@@ -59,11 +59,9 @@ type faultDetectCache struct {
 	// all rules are wildcard specific
 	allWildcardRules *model.ServiceWithFaultDetectRules
 	lock             sync.RWMutex
-	lastMtime        int64
+	lastTime         int64
+	lastMtime        time.Time
 	firstUpdate      bool
-
-	lastCheckAllTime int64
-	faultDetectCount int64
 
 	singleFlight singleflight.Group
 }
@@ -89,10 +87,9 @@ func newFaultDetectCache(s store.Store) *faultDetectCache {
 
 // initialize 实现Cache接口的函数
 func (f *faultDetectCache) initialize(_ map[string]interface{}) error {
-	f.lastMtime = 0
+	f.lastTime = 0
+	f.lastMtime = time.Unix(0, 0)
 	f.firstUpdate = true
-	f.lastCheckAllTime = 0
-	f.faultDetectCount = 0
 	return nil
 }
 
@@ -100,11 +97,11 @@ func (f *faultDetectCache) update() error {
 	_, err, _ := f.singleFlight.Do(f.name(), func() (interface{}, error) {
 		curStoreTime, err := f.storage.GetUnixSecond()
 		if err != nil {
-			curStoreTime = f.lastMtime
+			curStoreTime = f.lastTime
 			log.Warn("[Cache][FaultDetect] get store timestamp fail, skip update lastMtime", zap.Error(err))
 		}
 		defer func() {
-			f.lastMtime = curStoreTime
+			f.lastTime = curStoreTime
 		}()
 		return nil, f.realUpdate()
 	})
@@ -114,7 +111,7 @@ func (f *faultDetectCache) update() error {
 // update 实现Cache接口的函数
 func (f *faultDetectCache) realUpdate() error {
 	start := time.Now()
-	lastTime := time.Unix(f.lastMtime, 0).Add(DefaultTimeDiff)
+	lastTime := time.Unix(f.lastTime, 0).Add(DefaultTimeDiff)
 	fdRules, err := f.storage.GetFaultDetectRulesForCache(lastTime, f.firstUpdate)
 	if err != nil {
 		log.Errorf("[Cache] fault detect config cache update err:%s", err.Error())
@@ -133,10 +130,9 @@ func (f *faultDetectCache) clear() error {
 	f.svcSpecificRules = make(map[string]map[string]*model.ServiceWithFaultDetectRules)
 	f.lock.Unlock()
 
-	f.lastMtime = 0
-	f.lastCheckAllTime = 0
+	f.lastTime = 0
+	f.lastMtime = time.Unix(0, 0)
 	f.firstUpdate = true
-	f.faultDetectCount = 0
 	return nil
 }
 
@@ -342,7 +338,12 @@ func (f *faultDetectCache) setFaultDetectRules(fdRules []*model.FaultDetectRule)
 		return nil
 	}
 
+	lastMtime := f.lastMtime.Unix()
+
 	for _, fdRule := range fdRules {
+		if fdRule.ModifyTime.Unix() > lastMtime {
+			lastMtime = fdRule.ModifyTime.Unix()
+		}
 		svcKeys := getServicesInvolveByFaultDetectRule(fdRule)
 		if !fdRule.Valid {
 			f.deleteFaultDetectRuleFromServiceCache(fdRule.ID, svcKeys)
@@ -350,6 +351,13 @@ func (f *faultDetectCache) setFaultDetectRules(fdRules []*model.FaultDetectRule)
 		}
 		f.storeFaultDetectRuleToServiceCache(fdRule, svcKeys)
 	}
+
+	if f.lastMtime.Unix() < lastMtime {
+		log.Infof("[Cache][FaultDetector] FaultDetector lastMtime update from %s to %s",
+			f.lastMtime, time.Unix(lastMtime, 0))
+		f.lastMtime = time.Unix(lastMtime, 0)
+	}
+
 	return nil
 }
 
