@@ -225,7 +225,7 @@ naming:
     clientRegister:
       open: true
       queueSize: 10240
-      waitTime: 32s
+      waitTime: 32ms
       maxBatchCount: 1024
       concurrency: 64
     clientDeregister:
@@ -245,6 +245,8 @@ healthcheck:
   slotNum: 30
   minCheckInterval: 1s
   maxCheckInterval: 30s
+  clientCheckInterval: 1s
+  clientCheckTtl: 2s
   batch:
     heartbeat:
       open: true
