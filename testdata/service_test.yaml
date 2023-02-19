@@ -185,11 +185,14 @@ bootstrap:
       #   - stdout
       # errorOutputPaths:
       #   - stderr
-#  - name: l5pbserver
-#    option:
-#      listenIP: 0.0.0.0
-#      listenPort: 7779
-#      clusterName: cl5.discover
+  polaris_service:
+    # probe_address: ##DB_ADDR##
+    enable_register: true
+    isolated: false
+    services:
+      - name: polaris.checker
+        protocols:
+          - service-grpc
 # 核心逻辑的配置
 auth:
   # 鉴权插件
@@ -225,7 +228,7 @@ naming:
     clientRegister:
       open: true
       queueSize: 10240
-      waitTime: 32s
+      waitTime: 32ms
       maxBatchCount: 1024
       concurrency: 64
     clientDeregister:
@@ -248,6 +251,8 @@ healthcheck:
   slotNum: 30
   minCheckInterval: 1s
   maxCheckInterval: 30s
+  clientCheckInterval: 1s
+  clientCheckTtl: 2s
   batch:
     heartbeat:
       open: true
