@@ -189,10 +189,9 @@ func (bc *baseCache) doCacheUpdate(name string, executor func() error) error {
 	return nil
 }
 
-func (bc *baseCache) clear() error {
+func (bc *baseCache) clear() {
 	bc.lastFetchTime = 0
 	bc.fitstUpdate = true
-	return nil
 }
 
 // addListener 添加
