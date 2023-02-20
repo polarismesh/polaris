@@ -244,7 +244,7 @@ func (s *stableStore) StartTx() (store.Tx, error) {
 
 // newStore 初始化子类
 func (s *stableStore) newStore() {
-	s.namespaceStore = &namespaceStore{db: s.master}
+	s.namespaceStore = &namespaceStore{db: s.master, slave: s.slave}
 
 	s.serviceStore = &serviceStore{master: s.master, slave: s.slave}
 
