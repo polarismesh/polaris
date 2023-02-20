@@ -25,21 +25,24 @@ import (
 
 // Config 健康检查配置
 type Config struct {
-	Open                 bool                   `yaml:"open"`
-	Service              string                 `yaml:"service"`
-	SlotNum              int                    `yaml:"slotNum"`
-	LocalHost            string                 `yaml:"localHost"`
-	MinCheckInterval     time.Duration          `yaml:"minCheckInterval"`
-	MaxCheckInterval     time.Duration          `yaml:"maxCheckInterval"`
-	ClientReportInterval time.Duration          `yaml:"clientReportInterval"`
-	Checkers             []plugin.ConfigEntry   `yaml:"checkers"`
-	Batch                map[string]interface{} `yaml:"batch"`
+	Open                bool                   `yaml:"open"`
+	Service             string                 `yaml:"service"`
+	SlotNum             int                    `yaml:"slotNum"`
+	LocalHost           string                 `yaml:"localHost"`
+	MinCheckInterval    time.Duration          `yaml:"minCheckInterval"`
+	MaxCheckInterval    time.Duration          `yaml:"maxCheckInterval"`
+	ClientCheckInterval time.Duration          `yaml:"clientCheckInterval"`
+	ClientCheckTtl      time.Duration          `yaml:"clientCheckTtl"`
+	Checkers            []plugin.ConfigEntry   `yaml:"checkers"`
+	Batch               map[string]interface{} `yaml:"batch"`
 }
 
 const (
-	minCheckInterval            = 1 * time.Second
-	maxCheckInterval            = 30 * time.Second
-	defaultClientReportInterval = 120 * time.Second
+	defaultMinCheckInterval    = 1 * time.Second
+	defaultMaxCheckInterval    = 30 * time.Second
+	defaultSlotNum             = 30
+	defaultClientReportTtl     = 120 * time.Second
+	defaultClientCheckInterval = 120 * time.Second
 )
 
 // SetDefault 设置默认值
@@ -48,19 +51,22 @@ func (c *Config) SetDefault() {
 		c.Service = "polaris.checker"
 	}
 	if c.SlotNum == 0 {
-		c.SlotNum = 30
+		c.SlotNum = defaultSlotNum
 	}
 	if c.MinCheckInterval == 0 {
-		c.MinCheckInterval = minCheckInterval
+		c.MinCheckInterval = defaultMinCheckInterval
 	}
 	if c.MaxCheckInterval == 0 {
-		c.MaxCheckInterval = maxCheckInterval
+		c.MaxCheckInterval = defaultMaxCheckInterval
 	}
 	if c.MinCheckInterval > c.MaxCheckInterval {
-		c.MinCheckInterval = minCheckInterval
-		c.MaxCheckInterval = maxCheckInterval
+		c.MinCheckInterval = defaultMinCheckInterval
+		c.MaxCheckInterval = defaultMaxCheckInterval
 	}
-	if c.ClientReportInterval == 0 {
-		c.ClientReportInterval = defaultClientReportInterval
+	if c.ClientCheckInterval == 0 {
+		c.ClientCheckInterval = defaultClientCheckInterval
+	}
+	if c.ClientCheckTtl == 0 {
+		c.ClientCheckTtl = defaultClientReportTtl
 	}
 }

@@ -65,7 +65,8 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 
 	testServer.cacheProvider = newCacheProvider(hcOpt.Service, testServer)
 	testServer.timeAdjuster = newTimeAdjuster(ctx, storage)
-	testServer.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval, hcOpt.MaxCheckInterval)
+	testServer.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
+		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
 	testServer.dispatcher = newDispatcher(ctx, testServer)
 
 	testServer.discoverCh = make(chan eventWrapper, 32)

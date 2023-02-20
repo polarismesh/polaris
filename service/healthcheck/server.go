@@ -114,7 +114,8 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 
 	server.cacheProvider = newCacheProvider(hcOpt.Service, server)
 	server.timeAdjuster = newTimeAdjuster(ctx, server.storage)
-	server.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval, hcOpt.MaxCheckInterval)
+	server.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
+		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
 	server.dispatcher = newDispatcher(ctx, server)
 
 	server.discoverCh = make(chan eventWrapper, 32)
@@ -149,6 +150,11 @@ func GetServer() (*Server, error) {
 	}
 
 	return server, nil
+}
+
+// SetServer for test only
+func SetServer(srv *Server) {
+	server = srv
 }
 
 // SetServiceCache 设置服务缓存

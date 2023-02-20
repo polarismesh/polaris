@@ -320,7 +320,7 @@ naming:
     clientRegister:
       open: true
       queueSize: 10240
-      waitTime: 32s
+      waitTime: 32ms
       maxBatchCount: 1024
       concurrency: 64
     clientDeregister:

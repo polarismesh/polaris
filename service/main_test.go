@@ -242,6 +242,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	if err != nil {
 		panic(err)
 	}
+	healthcheck.SetServer(healthCheckServer)
 	cacheProvider, err := healthCheckServer.CacheProvider()
 	if err != nil {
 		panic(err)

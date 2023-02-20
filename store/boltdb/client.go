@@ -141,15 +141,15 @@ func convertToClientObject(client *model.Client) (*clientObject, error) {
 	}
 	tn := time.Now()
 	return &clientObject{
-		Host:    client.Proto().Host.Value,
-		Type:    client.Proto().Type.String(),
-		Version: client.Proto().Version.Value,
+		Host:    client.Proto().GetHost().GetValue(),
+		Type:    client.Proto().GetType().String(),
+		Version: client.Proto().GetVersion().GetValue(),
 		Location: map[string]string{
 			"region": client.Proto().GetLocation().GetRegion().GetValue(),
 			"zone":   client.Proto().GetLocation().GetZone().GetValue(),
 			"campus": client.Proto().GetLocation().GetCampus().GetValue(),
 		},
-		Id:         client.Proto().Id.Value,
+		Id:         client.Proto().GetId().GetValue(),
 		Ctime:      tn,
 		Mtime:      tn,
 		StatArrStr: string(data),
