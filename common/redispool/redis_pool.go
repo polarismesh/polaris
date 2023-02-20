@@ -442,7 +442,12 @@ func (p *Pool) afterHandleTask(startTime time.Time, command string, task *Task, 
 		}
 	}
 	if p.statis != nil {
-		_ = p.statis.AddRedisCall(command, code, costDuration.Nanoseconds())
+		p.statis.ReportCallMetrics(metrics.CallMetric{
+			Type:     metrics.ServerCallMetric,
+			API:      command,
+			Code:     int(code),
+			Duration: costDuration,
+		})
 	}
 }
 

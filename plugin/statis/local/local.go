@@ -18,8 +18,10 @@
 package local
 
 import (
+	"context"
 	"time"
 
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
 )
@@ -37,12 +39,14 @@ func init() {
 // StatisWorker 本地统计插件
 type StatisWorker struct {
 	interval time.Duration
+	cancel   context.CancelFunc
 
 	acc chan *APICall
 	acs *APICallStatis
 
-	cacheCall   chan *CacheCall
 	cacheStatis *CacheCallStatis
+
+	discoveryHandle *discoveryMetricHandle
 }
 
 // Name 获取统计插件名称
@@ -52,6 +56,9 @@ func (s *StatisWorker) Name() string {
 
 // Initialize 初始化统计插件
 func (s *StatisWorker) Initialize(conf *plugin.ConfigEntry) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	s.cancel = cancel
+
 	// 设置统计打印周期
 	var err error
 	interval := conf.Option["interval"].(int)
@@ -69,11 +76,10 @@ func (s *StatisWorker) Initialize(conf *plugin.ConfigEntry) error {
 	if err != nil {
 		return err
 	}
+	s.cacheStatis, err = newCacheCallStatis(ctx)
+	s.discoveryHandle = newDiscoveryMetricHandle()
+
 	go s.Run()
-
-	s.cacheCall = make(chan *CacheCall, 1024)
-	s.cacheStatis, err = newCacheCallStatis(prometheusStatis)
-
 	return nil
 }
 
@@ -84,43 +90,43 @@ func (s *StatisWorker) Destroy() error {
 
 const maxAddDuration = 800 * time.Millisecond
 
-// AddAPICall 上报请求
-func (s *StatisWorker) AddAPICall(api string, protocol string, code int, duration int64) error {
-	startTime := time.Now()
-	s.acc <- &APICall{
-		api:       api,
-		protocol:  protocol,
-		code:      code,
-		duration:  duration,
-		component: plugin.ComponentServer,
+// ReportCallMetrics report call metrics info
+func (s *StatisWorker) ReportCallMetrics(metric metrics.CallMetric) {
+	switch metric.Type {
+	case metrics.ServerCallMetric:
+		startTime := time.Now()
+		s.acc <- &APICall{
+			api:       metric.API,
+			protocol:  metric.Protocol,
+			code:      metric.Code,
+			duration:  int64(metric.Duration.Nanoseconds()),
+			component: "server",
+		}
+		passDuration := time.Since(startTime)
+		if passDuration >= maxAddDuration {
+			log.Warnf("[APICall]add api call cost %s, exceed max %s", passDuration, maxAddDuration)
+		}
+	case metrics.RedisCallMetric:
+		s.acc <- &APICall{
+			api:       metric.API,
+			protocol:  metric.Protocol,
+			code:      metric.Code,
+			duration:  int64(metric.Duration.Nanoseconds()),
+			component: "redis",
+		}
+	case metrics.ProtobufCacheCallMetric:
+		s.cacheStatis.add(metric)
 	}
-	passDuration := time.Since(startTime)
-	if passDuration >= maxAddDuration {
-		log.Warnf("[APICall]add api call cost %s, exceed max %s", passDuration, maxAddDuration)
-	}
-	return nil
 }
 
-// AddRedisCall 上报redis请求
-func (s *StatisWorker) AddRedisCall(api string, code int, duration int64) error {
-	s.acc <- &APICall{
-		api:       api,
-		code:      code,
-		duration:  duration,
-		component: plugin.ComponentRedis,
-	}
-	return nil
+// ReportDiscoveryMetrics report discovery metrics
+func (s *StatisWorker) ReportDiscoveryMetrics(metric ...metrics.DiscoveryMetric) {
+	s.discoveryHandle.handle(metric)
 }
 
-// AddCacheCall 上报 Cache 指标信息
-func (s *StatisWorker) AddCacheCall(component string, cacheType string, miss bool, call int) error {
-	s.cacheCall <- &CacheCall{
-		cacheType: cacheType,
-		miss:      miss,
-		component: component,
-		count:     int32(call),
-	}
-	return nil
+// ReportConfigMetrics report config_center metrics
+func (s *StatisWorker) ReportConfigMetrics(metric ...metrics.ConfigMetricType) {
+
 }
 
 // Run 主流程
@@ -155,11 +161,8 @@ func (s *StatisWorker) Run() {
 		select {
 		case <-ticker.C:
 			s.acs.log()
-			s.cacheStatis.log()
 		case ac := <-s.acc:
 			s.acs.add(ac)
-		case ac := <-s.cacheCall:
-			s.cacheStatis.add(ac)
 		}
 	}
 }

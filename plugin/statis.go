@@ -20,28 +20,32 @@ package plugin
 import (
 	"os"
 	"sync"
+
+	"github.com/polarismesh/polaris/common/metrics"
 )
 
 var (
 	statisOnce sync.Once
 )
 
+type ComponentType string
+
 const (
-	ComponentServer        = "server"
-	ComponentRedis         = "redis"
-	ComponentDB            = "db"
-	ComponentProtobufCache = "protobuf"
+	ComponentServer        ComponentType = "server"
+	ComponentRedis         ComponentType = "redis"
+	ComponentDB            ComponentType = "db"
+	ComponentProtobufCache ComponentType = "protobuf"
 )
 
 // Statis Statistical plugin interface
 type Statis interface {
 	Plugin
-
-	AddAPICall(api string, protocol string, code int, duration int64) error
-
-	AddRedisCall(api string, code int, duration int64) error
-
-	AddCacheCall(component string, cacheType string, miss bool, call int) error
+	// ReportCallMetrics report call metrics info
+	ReportCallMetrics(metric metrics.CallMetric)
+	// ReportDiscoveryMetrics report discovery metrics
+	ReportDiscoveryMetrics(metric ...metrics.DiscoveryMetric)
+	// ReportConfigMetrics report config_center metrics
+	ReportConfigMetrics(metric ...metrics.ConfigMetricType)
 }
 
 // GetStatis Get statistical plugin

@@ -518,7 +518,13 @@ func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 	}
 
 	if recordApiCall {
-		_ = h.statis.AddAPICall(method, "HTTP", int(code), diff.Nanoseconds())
+		h.statis.ReportCallMetrics(metrics.CallMetric{
+			Type:     metrics.ServerCallMetric,
+			API:      method,
+			Protocol: "HTTP",
+			Code:     int(code),
+			Duration: diff,
+		})
 	}
 }
 

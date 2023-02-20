@@ -33,7 +33,7 @@ type APICall struct {
 	code      int
 	duration  int64
 	protocol  string
-	component string
+	component plugin.ComponentType
 }
 
 // APICallStatisItem 接口调用统计条目
@@ -184,15 +184,15 @@ func (c *ComponentStatics) collect() {
 
 // APICallStatis 接口调用统计
 type APICallStatis struct {
-	components       map[string]*ComponentStatics
+	components       map[plugin.ComponentType]*ComponentStatics
 	prometheusStatis *PrometheusStatis
 }
 
 func newAPICallStatis(prometheusStatis *PrometheusStatis) (*APICallStatis, error) {
 	value := &APICallStatis{
-		components: make(map[string]*ComponentStatics),
+		components: make(map[plugin.ComponentType]*ComponentStatics),
 	}
-	componentNames := []string{plugin.ComponentServer, plugin.ComponentRedis}
+	componentNames := []plugin.ComponentType{plugin.ComponentServer, plugin.ComponentRedis}
 	for _, componentName := range componentNames {
 		value.components[componentName] = newComponentStatics(value)
 	}

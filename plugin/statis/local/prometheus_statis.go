@@ -58,8 +58,7 @@ func (s *PrometheusStatis) registerMetrics() error {
 			continue
 		}
 
-		err := s.registry.Register(collector)
-		if err != nil {
+		if err := s.registry.Register(collector); err != nil {
 			log.Errorf("[APICall] register prometheus collector error, %v", err)
 			return err
 		}

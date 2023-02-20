@@ -18,7 +18,6 @@
 package cache
 
 import (
-	"strconv"
 	"sync"
 	"time"
 
@@ -330,6 +329,9 @@ func (ic *instanceCache) postProcessUpdatedServices(affect map[string]bool) {
 			if isInstanceHealthy(instance) {
 				count.HealthyInstanceCount++
 			}
+			if instance.Proto.GetIsolate().GetValue() {
+				count.IsolateInstanceCount++
+			}
 			return true
 		})
 		if count.TotalInstanceCount == 0 {
@@ -481,52 +483,4 @@ func iteratorInstancesProc(data *sync.Map, iterProc InstanceIterProc) error {
 
 	data.Range(proc)
 	return err
-}
-
-type servicePortsBucket struct {
-	lock sync.RWMutex
-	// servicePorts service-id -> []port
-	servicePorts map[string]map[string]struct{}
-}
-
-func (b *servicePortsBucket) reset() {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-
-	b.servicePorts = make(map[string]map[string]struct{})
-}
-
-func (b *servicePortsBucket) appendPort(serviceID string, port int) {
-	if serviceID == "" || port == 0 {
-		return
-	}
-
-	b.lock.Lock()
-	defer b.lock.Unlock()
-
-	if _, ok := b.servicePorts[serviceID]; !ok {
-		b.servicePorts[serviceID] = map[string]struct{}{}
-	}
-
-	ports := b.servicePorts[serviceID]
-	ports[strconv.FormatInt(int64(port), 10)] = struct{}{}
-}
-
-func (b *servicePortsBucket) listPort(serviceID string) []string {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
-
-	ret := make([]string, 0, 4)
-
-	val, ok := b.servicePorts[serviceID]
-
-	if !ok {
-		return ret
-	}
-
-	for k := range val {
-		ret = append(ret, k)
-	}
-
-	return ret
 }

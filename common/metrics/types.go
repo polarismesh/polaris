@@ -24,15 +24,14 @@ import (
 )
 
 const (
-	labelServerNode       = "polaris_server_instance"
-	labelNamespace        = "namespace"
-	labelService          = "service"
-	labelServiceStatus    = "status"
-	labelVersion          = "version"
-	labelApi              = "api"
-	labelApiType          = "api_type"
-	labelProtocol         = "protocol"
-	labelErrCode          = "err_code"
+	LabelServerNode       = "polaris_server_instance"
+	LabelNamespace        = "namespace"
+	LabelService          = "service"
+	LabelVersion          = "version"
+	LabelApi              = "api"
+	LabelApiType          = "api_type"
+	LabelProtocol         = "protocol"
+	LabelErrCode          = "err_code"
 	labelCacheType        = "cache_type"
 	labelCacheUpdateCount = "cache_update_count"
 )
@@ -56,7 +55,7 @@ var (
 		Name: "instance_regis_cost_time",
 		Help: "instance regis cost time",
 		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
+			LabelServerNode: utils.LocalHost,
 		},
 	})
 
@@ -65,7 +64,7 @@ var (
 		Name: "instance_regis_task_expire",
 		Help: "instance regis task expire that server drop it",
 		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
+			LabelServerNode: utils.LocalHost,
 		},
 	})
 )
@@ -76,7 +75,7 @@ var (
 		Name: "redis_read_failure",
 		Help: "polaris exec redis read operation failure",
 		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
+			LabelServerNode: utils.LocalHost,
 		},
 	})
 
@@ -84,7 +83,7 @@ var (
 		Name: "redis_write_failure",
 		Help: "polaris exec redis write operation failure",
 		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
+			LabelServerNode: utils.LocalHost,
 		},
 	})
 
@@ -104,7 +103,7 @@ var (
 		Name: "discovery_conn_total",
 		Help: "polaris discovery client connection total",
 		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
+			LabelServerNode: utils.LocalHost,
 		},
 	})
 
@@ -113,7 +112,7 @@ var (
 		Name: "config_conn_total",
 		Help: "polaris configuration client connection total",
 		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
+			LabelServerNode: utils.LocalHost,
 		},
 	})
 
@@ -122,90 +121,9 @@ var (
 		Name: "sdk_client_total",
 		Help: "polaris client connection total",
 		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
+			LabelServerNode: utils.LocalHost,
 		},
 	})
-)
-
-// sdk instance metrics
-var (
-	clientInstanceTotal = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "client_total",
-		Help: "polaris client instance total number",
-		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
-		},
-	})
-)
-
-// service metrics
-var (
-	serviceCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "service_count",
-		Help: "service total number",
-		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
-		},
-	}, []string{labelNamespace})
-
-	serviceOnlineCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "service_online_count",
-		Help: "total number of service status is online",
-		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
-		},
-	}, []string{labelNamespace})
-
-	serviceAbnormalCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "service_abnormal_count",
-		Help: "total number of service status is abnormal",
-		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
-		},
-	}, []string{labelNamespace})
-
-	serviceOfflineCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "service_offline_count",
-		Help: "total number of service status is offline",
-		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
-		},
-	}, []string{labelNamespace})
-)
-
-// instance metrics
-var (
-	instanceCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "instance_count",
-		Help: "instance total number",
-		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
-		},
-	}, []string{labelNamespace, labelService})
-
-	instanceOnlineCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "instance_online_count",
-		Help: "total number of instance status is health",
-		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
-		},
-	}, []string{labelNamespace, labelService})
-
-	instanceAbnormalCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "instance_abnormal_count",
-		Help: "total number of instance status is unhealth",
-		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
-		},
-	}, []string{labelNamespace, labelService})
-
-	instanceIsolateCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "instance_isolate_count",
-		Help: "total number of instance status is isolate",
-		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
-		},
-	}, []string{labelNamespace, labelService})
 )
 
 var (
@@ -222,25 +140,25 @@ var (
 		Name: "client_rq_total",
 		Help: "total number of client request",
 		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
+			LabelServerNode: utils.LocalHost,
 		},
-	}, []string{labelApi, labelApiType, labelErrCode, labelProtocol})
+	}, []string{LabelApi, LabelApiType, LabelErrCode, LabelProtocol})
 
 	clientRequestFailureCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "client_rq_failure",
 		Help: "total number of client request status is failure",
 		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
+			LabelServerNode: utils.LocalHost,
 		},
-	}, []string{labelApi, labelApiType, labelErrCode, labelProtocol})
+	}, []string{LabelApi, LabelApiType, LabelErrCode, LabelProtocol})
 
 	clientRequestTime = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "client_rq_time",
 		Help: "cost time of per client request",
 		ConstLabels: map[string]string{
-			labelServerNode: utils.LocalHost,
+			LabelServerNode: utils.LocalHost,
 		},
-	}, []string{labelApi, labelApiType, labelErrCode, labelProtocol})
+	}, []string{LabelApi, LabelApiType, LabelErrCode, LabelProtocol})
 )
 
 var (
