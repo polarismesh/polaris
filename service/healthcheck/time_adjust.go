@@ -73,5 +73,8 @@ func (t *TimeAdjuster) calcDiff() {
 
 // GetDiff get diff time between store and current PC
 func (t *TimeAdjuster) GetDiff() int64 {
+	if nil == t {
+		return 0
+	}
 	return atomic.LoadInt64(&t.diff)
 }

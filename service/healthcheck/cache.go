@@ -133,11 +133,11 @@ func storeClient(clientWithChecker *ClientWithChecker, values *shardMap) bool {
 }
 
 func deleteClient(client *apiservice.Client, values *shardMap) bool {
-	instanceId := client.GetId().GetValue()
-	ok := values.DeleteIfExist(instanceId)
+	clientId := client.GetId().GetValue()
+	ok := values.DeleteIfExist(clientId)
 	if ok {
-		log.Infof("[Health Check][Cache]delete service instance is %s, id is %s",
-			client.GetHost().GetValue(), instanceId)
+		log.Infof("[Health Check][Cache]delete client is %s, id is %s",
+			client.GetHost().GetValue(), clientId)
 	}
 	return true
 }

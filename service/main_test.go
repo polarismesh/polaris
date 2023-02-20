@@ -103,6 +103,7 @@ type TestConfig struct {
 type DiscoverTestSuit struct {
 	cfg                 *TestConfig
 	server              DiscoverServer
+	healthCheckServer   *healthcheck.Server
 	namespaceSvr        namespace.NamespaceOperateServer
 	cancelFlag          bool
 	updateCacheInterval time.Duration
@@ -242,6 +243,8 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	if err != nil {
 		panic(err)
 	}
+	healthcheck.SetServer(healthCheckServer)
+	d.healthCheckServer = healthCheckServer
 	cacheProvider, err := healthCheckServer.CacheProvider()
 	if err != nil {
 		panic(err)
