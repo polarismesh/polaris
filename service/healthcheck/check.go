@@ -19,7 +19,6 @@ package healthcheck
 
 import (
 	"context"
-	"strconv"
 	"sync"
 	"time"
 
@@ -32,7 +31,6 @@ import (
 	"github.com/polarismesh/polaris/common/timewheel"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
-	"github.com/polarismesh/polaris/store"
 )
 
 const (
@@ -43,10 +41,13 @@ const (
 type CheckScheduler struct {
 	rwMutex            *sync.RWMutex
 	scheduledInstances map[string]*itemValue
+	scheduledClients   map[string]*clientItemValue
 
-	timeWheel           *timewheel.TimeWheel
-	minCheckIntervalSec int64
-	maxCheckIntervalSec int64
+	timeWheel              *timewheel.TimeWheel
+	minCheckIntervalSec    int64
+	maxCheckIntervalSec    int64
+	clientCheckIntervalSec int64
+	clientCheckTtlSec      int64
 
 	adoptInstancesChan chan AdoptEvent
 	ctx                context.Context
@@ -59,69 +60,43 @@ type AdoptEvent struct {
 	Checker    plugin.HealthChecker
 }
 
-//go:generate stringer -type=ItemType
-type ItemType int
-
-const (
-	itemTypeInstance ItemType = iota
-	itemTypeClient
-)
-
-func _() {
-	// An "invalid array index" compiler error signifies that the constant values have changed.
-	// Re-run the stringer command to generate them again.
-	var x [1]struct{}
-	_ = x[itemTypeInstance-0]
-	_ = x[itemTypeClient-1]
-}
-
-const _ItemType_name = "itemTypeInstanceitemTypeClient"
-
-var _ItemType_index = [...]uint8{0, 16, 30}
-
-func (i ItemType) String() string {
-	if i < 0 || i >= ItemType(len(_ItemType_index)-1) {
-		return "ItemType(" + strconv.FormatInt(int64(i), 10) + ")"
-	}
-	return _ItemType_name[_ItemType_index[i]:_ItemType_index[i+1]]
+type clientItemValue struct {
+	itemValue
+	lastCheckTimeSec int64
 }
 
 type itemValue struct {
-	mutex               *sync.Mutex
-	id                  string
-	host                string
-	port                uint32
-	scheduled           uint32
-	lastSetEventTimeSec int64
-	ttlDurationSec      uint32
-	expireDurationSec   uint32
-	checker             plugin.HealthChecker
-	ItemType            ItemType
+	mutex             *sync.Mutex
+	id                string
+	host              string
+	port              uint32
+	scheduled         uint32
+	ttlDurationSec    uint32
+	expireDurationSec uint32
+	checker           plugin.HealthChecker
 }
 
-func (i *itemValue) eventExpired() (int64, bool) {
-	curTimeSec := time.Now().Unix()
-	return curTimeSec, curTimeSec-i.lastSetEventTimeSec >= int64(i.expireDurationSec)
-}
-
-func newCheckScheduler(ctx context.Context, slotNum int,
-	minCheckInterval time.Duration, maxCheckInterval time.Duration) *CheckScheduler {
+func newCheckScheduler(ctx context.Context, slotNum int, minCheckInterval time.Duration,
+	maxCheckInterval time.Duration, clientCheckInterval time.Duration, clientCheckTtl time.Duration) *CheckScheduler {
 	scheduler := &CheckScheduler{
-		rwMutex:             &sync.RWMutex{},
-		scheduledInstances:  make(map[string]*itemValue),
-		timeWheel:           timewheel.New(time.Second, slotNum, "health-interval-check"),
-		minCheckIntervalSec: int64(minCheckInterval.Seconds()),
-		maxCheckIntervalSec: int64(maxCheckInterval.Seconds()),
-		adoptInstancesChan:  make(chan AdoptEvent, 1024),
-		ctx:                 ctx,
+		rwMutex:                &sync.RWMutex{},
+		scheduledInstances:     make(map[string]*itemValue),
+		scheduledClients:       make(map[string]*clientItemValue),
+		timeWheel:              timewheel.New(time.Second, slotNum, "health-interval-check"),
+		minCheckIntervalSec:    int64(minCheckInterval.Seconds()),
+		maxCheckIntervalSec:    int64(maxCheckInterval.Seconds()),
+		clientCheckIntervalSec: int64(clientCheckInterval.Seconds()),
+		clientCheckTtlSec:      int64(clientCheckTtl.Seconds()),
+		adoptInstancesChan:     make(chan AdoptEvent, 1024),
+		ctx:                    ctx,
 	}
-
-	go scheduler.doCheck(ctx)
+	go scheduler.doCheckInstances(ctx)
+	go scheduler.doCheckClient(ctx)
 	go scheduler.doAdopt(ctx)
 	return scheduler
 }
 
-func (c *CheckScheduler) doCheck(ctx context.Context) {
+func (c *CheckScheduler) doCheckInstances(ctx context.Context) {
 	c.timeWheel.Start()
 	log.Infof("[Health Check][Check]timeWheel has been started")
 
@@ -242,35 +217,34 @@ func (c *CheckScheduler) putInstanceIfAbsent(instanceWithChecker *InstanceWithCh
 		expireDurationSec: getExpireDurationSec(instance.Proto),
 		checker:           instanceWithChecker.checker,
 		ttlDurationSec:    instance.HealthCheck().GetHeartbeat().GetTtl().GetValue(),
-		ItemType:          itemTypeInstance,
 	}
 	c.scheduledInstances[instance.ID()] = instValue
 	return false, instValue
 }
 
-const clientReportTtlSec uint32 = 120
-
-func (c *CheckScheduler) putClientIfAbsent(clientWithChecker *ClientWithChecker) (bool, *itemValue) {
+func (c *CheckScheduler) putClientIfAbsent(clientWithChecker *ClientWithChecker) (bool, *clientItemValue) {
 	c.rwMutex.Lock()
 	defer c.rwMutex.Unlock()
 	client := clientWithChecker.client
-	var instValue *itemValue
+	var instValue *clientItemValue
 	var ok bool
 	clientId := client.Proto().GetId().GetValue()
-	if instValue, ok = c.scheduledInstances[clientId]; ok {
+	if instValue, ok = c.scheduledClients[clientId]; ok {
 		return true, instValue
 	}
-	instValue = &itemValue{
-		mutex:             &sync.Mutex{},
-		host:              client.Proto().GetHost().GetValue(),
-		port:              0,
-		id:                clientId,
-		expireDurationSec: expireTtlCount * clientReportTtlSec,
-		checker:           clientWithChecker.checker,
-		ttlDurationSec:    clientReportTtlSec,
-		ItemType:          itemTypeClient,
+	instValue = &clientItemValue{
+		itemValue: itemValue{
+			mutex:             &sync.Mutex{},
+			host:              client.Proto().GetHost().GetValue(),
+			port:              0,
+			id:                clientId,
+			expireDurationSec: uint32(expireTtlCount * c.clientCheckTtlSec),
+			checker:           clientWithChecker.checker,
+			ttlDurationSec:    uint32(c.clientCheckTtlSec),
+		},
+		lastCheckTimeSec: 0,
 	}
-	c.scheduledInstances[clientId] = instValue
+	c.scheduledClients[clientId] = instValue
 	return false, instValue
 }
 
@@ -278,6 +252,13 @@ func (c *CheckScheduler) getInstanceValue(instanceId string) (*itemValue, bool) 
 	c.rwMutex.RLock()
 	defer c.rwMutex.RUnlock()
 	value, ok := c.scheduledInstances[instanceId]
+	return value, ok
+}
+
+func (c *CheckScheduler) getClientValue(clientId string) (*clientItemValue, bool) {
+	c.rwMutex.RLock()
+	defer c.rwMutex.RUnlock()
+	value, ok := c.scheduledClients[clientId]
 	return value, ok
 }
 
@@ -294,7 +275,7 @@ func (c *CheckScheduler) AddInstance(instanceWithChecker *InstanceWithChecker) {
 	c.addUnHealthyCallback(instValue)
 }
 
-// AddInstance add instance to check
+// AddClient add client to check
 func (c *CheckScheduler) AddClient(clientWithChecker *ClientWithChecker) {
 	exists, instValue := c.putClientIfAbsent(clientWithChecker)
 	if exists {
@@ -302,9 +283,8 @@ func (c *CheckScheduler) AddClient(clientWithChecker *ClientWithChecker) {
 	}
 	c.addAdopting(instValue.id, instValue.checker)
 	client := clientWithChecker.client
-	log.Infof("[Health Check][Check]add check instance is %s, host is %s:%d",
+	log.Infof("[Health Check][Check]add check client is %s, host is %s:%d",
 		client.Proto().GetId().GetValue(), client.Proto().GetHost(), 0)
-	c.addUnHealthyCallback(instValue)
 }
 
 func getExpireDurationSec(instance *apiservice.Instance) uint32 {
@@ -337,13 +317,9 @@ func (c *CheckScheduler) addHealthyCallback(instance *itemValue, lastHeartbeatTi
 	port := instance.port
 	instanceId := instance.id
 	delayMilli := delaySec*1000 + getRandDelayMilli()
-	log.Debugf("[Health Check][Check]add healthy callback, %s is %s:%d, id is %s, delay is %d(ms)",
-		instance.ItemType.String(), host, port, instanceId, delayMilli)
-	if instance.ItemType == itemTypeClient {
-		c.timeWheel.AddTask(delayMilli, instanceId, c.checkCallbackClient)
-	} else {
-		c.timeWheel.AddTask(delayMilli, instanceId, c.checkCallbackInstance)
-	}
+	log.Debugf("[Health Check][Check]add healthy instance callback, addr is %s:%d, id is %s, delay is %d(ms)",
+		host, port, instanceId, delayMilli)
+	c.timeWheel.AddTask(delayMilli, instanceId, c.checkCallbackInstance)
 }
 
 func (c *CheckScheduler) addUnHealthyCallback(instance *itemValue) {
@@ -355,66 +331,55 @@ func (c *CheckScheduler) addUnHealthyCallback(instance *itemValue) {
 	port := instance.port
 	instanceId := instance.id
 	delayMilli := delaySec*1000 + getRandDelayMilli()
-	log.Debugf("[Health Check][Check]add unhealthy callback, %s is %s:%d, id is %s, delay is %d(ms)",
-		instance.ItemType.String(), host, port, instanceId, delayMilli)
-	if instance.ItemType == itemTypeClient {
-		c.timeWheel.AddTask(delayMilli, instanceId, c.checkCallbackClient)
-	} else {
-		c.timeWheel.AddTask(delayMilli, instanceId, c.checkCallbackInstance)
-	}
+	log.Debugf("[Health Check][Check]add unhealthy instance callback, addr is %s:%d, id is %s, delay is %d(ms)",
+		host, port, instanceId, delayMilli)
+	c.timeWheel.AddTask(delayMilli, instanceId, c.checkCallbackInstance)
 }
 
-func (c *CheckScheduler) checkCallbackClient(value interface{}) {
-	clientId := value.(string)
-	instanceValue, ok := c.getInstanceValue(clientId)
+func (c *CheckScheduler) checkCallbackClient(clientId string) *clientItemValue {
+	clientValue, ok := c.getClientValue(clientId)
 	if !ok {
 		log.Infof("[Health Check][Check]client %s has been removed from callback", clientId)
-		return
+		return nil
 	}
-	instanceValue.mutex.Lock()
-	defer instanceValue.mutex.Unlock()
+	clientValue.mutex.Lock()
+	defer clientValue.mutex.Unlock()
 	var checkResp *plugin.CheckResponse
 	var err error
-	defer func() {
-		if checkResp != nil && checkResp.Regular && checkResp.Healthy {
-			c.addHealthyCallback(instanceValue, checkResp.LastHeartbeatTimeSec)
-		} else {
-			c.addUnHealthyCallback(instanceValue)
-		}
-	}()
 	cachedClient := server.cacheProvider.GetClient(clientId)
 	if cachedClient == nil {
-		log.Infof("[Health Check][Check]client %s has been deleted", instanceValue.id)
-		return
+		log.Infof("[Health Check][Check]client %s has been deleted", clientValue.id)
+		return clientValue
 	}
 	request := &plugin.CheckRequest{
 		QueryRequest: plugin.QueryRequest{
-			InstanceId: toClientId(instanceValue.id),
-			Host:       instanceValue.host,
-			Port:       instanceValue.port,
+			InstanceId: toClientId(clientValue.id),
+			Host:       clientValue.host,
+			Port:       clientValue.port,
 			Healthy:    true,
 		},
 		CurTimeSec:        currentTimeSec,
-		ExpireDurationSec: instanceValue.expireDurationSec,
+		ExpireDurationSec: clientValue.expireDurationSec,
 	}
-	checkResp, err = instanceValue.checker.Check(request)
+	checkResp, err = clientValue.checker.Check(request)
 	if err != nil {
 		log.Errorf("[Health Check][Check]fail to check client %s, id is %s, err is %v",
-			instanceValue.host, instanceValue.id, err)
-		return
+			clientValue.host, clientValue.id, err)
+		return clientValue
 	}
 	if !checkResp.StayUnchanged {
 		if !checkResp.Healthy {
 			log.Infof(
 				"[Health Check][Check]client change from healthy to unhealthy, id is %s, address is %s",
-				instanceValue.id, instanceValue.host)
-			code := server.asyncDeleteClient(cachedClient.Proto())
+				clientValue.id, clientValue.host)
+			code := asyncDeleteClient(cachedClient.Proto())
 			if code != apimodel.Code_ExecuteSuccess {
 				log.Errorf("[Health Check][Check]fail to update client, id is %s, address is %s, code is %d",
-					instanceValue.id, instanceValue.host, code)
+					clientValue.id, clientValue.host, code)
 			}
 		}
 	}
+	return clientValue
 }
 
 func (c *CheckScheduler) checkCallbackInstance(value interface{}) {
@@ -480,12 +445,12 @@ func (c *CheckScheduler) checkCallbackInstance(value interface{}) {
 	}
 }
 
-// DelInstance del instance from check
+// DelClient del client from check
 func (c *CheckScheduler) DelClient(clientWithChecker *ClientWithChecker) {
 	client := clientWithChecker.client
 	clientId := client.Proto().GetId().GetValue()
-	exists := c.delIfPresent(clientId)
-	log.Infof("[Health Check][Check]remove check instance is %s:%d, id is %s, exists is %v",
+	exists := c.delClientIfPresent(clientId)
+	log.Infof("[Health Check][Check]remove check client is %s:%d, id is %s, exists is %v",
 		client.Proto().GetHost().GetValue(), 0, clientId, exists)
 	if exists {
 		c.removeAdopting(clientId, clientWithChecker.checker)
@@ -496,7 +461,7 @@ func (c *CheckScheduler) DelClient(clientWithChecker *ClientWithChecker) {
 func (c *CheckScheduler) DelInstance(instanceWithChecker *InstanceWithChecker) {
 	instance := instanceWithChecker.instance
 	instanceId := instance.ID()
-	exists := c.delIfPresent(instanceId)
+	exists := c.delInstanceIfPresent(instanceId)
 	log.Infof("[Health Check][Check]remove check instance is %s:%d, id is %s, exists is %v",
 		instance.Host(), instance.Port(), instanceId, exists)
 	if exists {
@@ -504,12 +469,63 @@ func (c *CheckScheduler) DelInstance(instanceWithChecker *InstanceWithChecker) {
 	}
 }
 
-func (c *CheckScheduler) delIfPresent(instanceId string) bool {
+func (c *CheckScheduler) delInstanceIfPresent(instanceId string) bool {
 	c.rwMutex.Lock()
 	defer c.rwMutex.Unlock()
 	_, ok := c.scheduledInstances[instanceId]
 	delete(c.scheduledInstances, instanceId)
 	return ok
+}
+
+func (c *CheckScheduler) delClientIfPresent(clientId string) bool {
+	c.rwMutex.Lock()
+	defer c.rwMutex.Unlock()
+	_, ok := c.scheduledClients[clientId]
+	delete(c.scheduledClients, clientId)
+	return ok
+}
+
+func (c *CheckScheduler) doCheckClient(ctx context.Context) {
+	log.Infof("[Health Check][Check]client check worker has been started, tick seconds is %d",
+		c.clientCheckIntervalSec)
+	tick := time.NewTicker(time.Duration(c.clientCheckIntervalSec*1000+int64(getRandDelayMilli())) * time.Millisecond)
+	defer tick.Stop()
+	for {
+		select {
+		case <-tick.C:
+			var itemsToCheck []string
+			if len(c.scheduledClients) == 0 {
+				continue
+			}
+			curTimeSec := currentTimeSec()
+			c.rwMutex.RLock()
+			for id, value := range c.scheduledClients {
+				if value.lastCheckTimeSec == 0 {
+					itemsToCheck = append(itemsToCheck, id)
+				}
+				diff := curTimeSec - value.lastCheckTimeSec
+				if diff < 0 || diff >= int64(value.expireDurationSec) {
+					itemsToCheck = append(itemsToCheck, id)
+				}
+			}
+			c.rwMutex.RUnlock()
+			if len(itemsToCheck) == 0 {
+				continue
+			}
+			for _, id := range itemsToCheck {
+				item := c.checkCallbackClient(id)
+				if nil != item {
+					item.lastCheckTimeSec = currentTimeSec()
+				}
+			}
+			timeCost := currentTimeSec() - curTimeSec
+			log.Infof("[Health Check][Check]client check finished, time cost %d, client count %d",
+				timeCost, len(itemsToCheck))
+		case <-ctx.Done():
+			log.Infof("[Health Check][Check]client check worker has been stopped")
+			return
+		}
+	}
 }
 
 // setInsDbStatus 修改实例状态, 需要打印操作记录
@@ -521,9 +537,9 @@ func setInsDbStatus(instance *model.Instance, healthStatus bool) apimodel.Code {
 
 	var code apimodel.Code
 	if server.bc.HeartbeatOpen() {
-		code = server.asyncSetInsDbStatus(instance.Proto, healthStatus)
+		code = asyncSetInsDbStatus(instance.Proto, healthStatus)
 	} else {
-		code = server.serialSetInsDbStatus(instance.Proto, healthStatus)
+		code = serialSetInsDbStatus(instance.Proto, healthStatus)
 	}
 	if code != apimodel.Code_ExecuteSuccess {
 		return code
@@ -556,8 +572,8 @@ func setInsDbStatus(instance *model.Instance, healthStatus bool) apimodel.Code {
 // 底层函数会合并delete请求，增加并发创建的吞吐
 // req 原始请求
 // ins 包含了req数据与instanceID，serviceToken
-func (s *Server) asyncSetInsDbStatus(ins *apiservice.Instance, healthStatus bool) apimodel.Code {
-	future := s.bc.AsyncHeartbeat(ins, healthStatus)
+func asyncSetInsDbStatus(ins *apiservice.Instance, healthStatus bool) apimodel.Code {
+	future := server.bc.AsyncHeartbeat(ins, healthStatus)
 	if err := future.Wait(); err != nil {
 		log.Error(err.Error())
 	}
@@ -568,8 +584,8 @@ func (s *Server) asyncSetInsDbStatus(ins *apiservice.Instance, healthStatus bool
 // 底层函数会合并delete请求，增加并发创建的吞吐
 // req 原始请求
 // ins 包含了req数据与instanceID，serviceToken
-func (s *Server) asyncDeleteClient(client *apiservice.Client) apimodel.Code {
-	future := s.bc.AsyncDeregisterClient(client)
+func asyncDeleteClient(client *apiservice.Client) apimodel.Code {
+	future := server.bc.AsyncDeregisterClient(client)
 	if err := future.Wait(); err != nil {
 		log.Error("[Health Check][Check] async delete client", zap.String("client-id", client.GetId().GetValue()),
 			zap.Error(err))
@@ -580,7 +596,7 @@ func (s *Server) asyncDeleteClient(client *apiservice.Client) apimodel.Code {
 // serialSetInsDbStatus 同步串行创建实例
 // req为原始的请求体
 // ins包括了req的内容，并且填充了instanceID与serviceToken
-func (s *Server) serialSetInsDbStatus(ins *apiservice.Instance, healthStatus bool) apimodel.Code {
+func serialSetInsDbStatus(ins *apiservice.Instance, healthStatus bool) apimodel.Code {
 	id := ins.GetId().GetValue()
 	err := server.storage.SetInstanceHealthStatus(id, model.StatusBoolToInt(healthStatus), utils.NewUUID())
 	if err != nil {
@@ -588,121 +604,4 @@ func (s *Server) serialSetInsDbStatus(ins *apiservice.Instance, healthStatus boo
 		return apimodel.Code_StoreLayerException
 	}
 	return apimodel.Code_ExecuteSuccess
-}
-
-type leaderChangeEventHandler struct {
-	cacheProvider    *CacheProvider
-	ctx              context.Context
-	cancel           context.CancelFunc
-	minCheckInterval time.Duration
-}
-
-// newLeaderChangeEventHandler
-func newLeaderChangeEventHandler(cacheProvider *CacheProvider,
-	minCheckInterval time.Duration) *leaderChangeEventHandler {
-
-	return &leaderChangeEventHandler{
-		cacheProvider:    cacheProvider,
-		minCheckInterval: minCheckInterval,
-	}
-}
-
-// checkSelfServiceInstances
-func (handler *leaderChangeEventHandler) handle(ctx context.Context, i interface{}) error {
-	e := i.(store.LeaderChangeEvent)
-	if e.Key != store.ELECTION_KEY_SELF_SERVICE_CHECKER {
-		return nil
-	}
-
-	if e.Leader {
-		handler.startCheckSelfServiceInstances()
-	} else {
-		handler.stopCheckSelfServiceInstances()
-	}
-	return nil
-}
-
-// startCheckSelfServiceInstances
-func (handler *leaderChangeEventHandler) startCheckSelfServiceInstances() {
-	if handler.ctx != nil {
-		log.Warn("[healthcheck] receive unexpected leader state event")
-		return
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	handler.ctx = ctx
-	handler.cancel = cancel
-	go func() {
-		log.Info("[healthcheck] i am leader, start check health of selfService instances")
-		ticker := time.NewTicker(handler.minCheckInterval)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				handler.cacheProvider.selfServiceInstances.Range(func(instanceId string, value ItemWithChecker) {
-					handler.doCheckSelfServiceInstance(value.GetInstance())
-				})
-			case <-ctx.Done():
-				log.Info("[healthcheck] stop check health of selfService instances")
-				return
-			}
-		}
-	}()
-}
-
-// startCheckSelfServiceInstances
-func (handler *leaderChangeEventHandler) stopCheckSelfServiceInstances() {
-	if handler.ctx == nil {
-		log.Warn("[healthcheck] receive unexpected follower state event")
-		return
-	}
-	handler.cancel()
-	handler.ctx = nil
-	handler.cancel = nil
-}
-
-// startCheckSelfServiceInstances
-func (handler *leaderChangeEventHandler) doCheckSelfServiceInstance(cachedInstance *model.Instance) {
-	hcEnable, checker := handler.cacheProvider.isHealthCheckEnable(cachedInstance.Proto)
-	if !hcEnable {
-		log.Warnf("[Health Check][Check] selfService instance %s:%d not enable healthcheck",
-			cachedInstance.Host(), cachedInstance.Port())
-		return
-	}
-
-	request := &plugin.CheckRequest{
-		QueryRequest: plugin.QueryRequest{
-			InstanceId: cachedInstance.ID(),
-			Host:       cachedInstance.Host(),
-			Port:       cachedInstance.Port(),
-			Healthy:    cachedInstance.Healthy(),
-		},
-		CurTimeSec:        currentTimeSec,
-		ExpireDurationSec: getExpireDurationSec(cachedInstance.Proto),
-	}
-	checkResp, err := checker.Check(request)
-	if err != nil {
-		log.Errorf("[Health Check][Check]fail to check selfService instance %s:%d, id is %s, err is %v",
-			cachedInstance.Host(), cachedInstance.Port(), cachedInstance.ID(), err)
-		return
-	}
-	if !checkResp.StayUnchanged {
-		code := setInsDbStatus(cachedInstance, checkResp.Healthy)
-		if checkResp.Healthy {
-			// from unhealthy to healthy
-			log.Infof(
-				"[Health Check][Check]selfService instance change from unhealthy to healthy, id is %s, address is %s:%d",
-				cachedInstance.ID(), cachedInstance.Host(), cachedInstance.Port())
-		} else {
-			// from healthy to unhealthy
-			log.Infof(
-				"[Health Check][Check]selfService instance change from healthy to unhealthy, id is %s, address is %s:%d",
-				cachedInstance.ID(), cachedInstance.Host(), cachedInstance.Port())
-		}
-		if code != apimodel.Code_ExecuteSuccess {
-			log.Errorf(
-				"[Health Check][Check]fail to update selfService instance, id is %s, address is %s:%d, code is %d",
-				cachedInstance.ID(), cachedInstance.Host(), cachedInstance.Port(), code)
-		}
-	}
 }
