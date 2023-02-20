@@ -19,6 +19,7 @@ package cache
 
 import (
 	"fmt"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -101,8 +102,9 @@ type userCache struct {
 	name2Users  *usernameBucket   // username -> user
 	groups      *groupBucket      // groupid -> group
 	user2Groups *userGroupsBucket // userid -> groups
-	firstUpdate bool
-	lastTime    int64
+
+	lastUserMtime  int64
+	lastGroupMtime int64
 
 	notifyCh     chan interface{}
 	singleFlight *singleflight.Group
@@ -111,7 +113,7 @@ type userCache struct {
 // newUserCache
 func newUserCache(storage store.Store, notifyCh chan interface{}) UserCache {
 	return &userCache{
-		baseCache: newBaseCache(),
+		baseCache: newBaseCache(storage),
 		storage:   storage,
 		notifyCh:  notifyCh,
 	}
@@ -121,10 +123,6 @@ func newUserCache(storage store.Store, notifyCh chan interface{}) UserCache {
 func (uc *userCache) initialize(_ map[string]interface{}) error {
 	uc.initBuckets()
 	uc.adminUser = atomic.Value{}
-
-	uc.firstUpdate = true
-	uc.lastTime = 0
-
 	uc.singleFlight = new(singleflight.Group)
 	return nil
 }
@@ -151,15 +149,7 @@ func (uc *userCache) initBuckets() {
 func (uc *userCache) update() error {
 	// Multiple threads competition, only one thread is updated
 	_, err, _ := uc.singleFlight.Do(uc.name(), func() (interface{}, error) {
-		curStoreTime, err := uc.storage.GetUnixSecond()
-		if err != nil {
-			curStoreTime = uc.lastTime
-			log.Warn("[Cache][User] get store timestamp fail, skip update lastMtime", zap.Error(err))
-		}
-		defer func() {
-			uc.lastTime = curStoreTime
-		}()
-		return nil, uc.realUpdate()
+		return nil, uc.doCacheUpdate(uc.name(), uc.realUpdate)
 	})
 	return err
 }
@@ -167,22 +157,20 @@ func (uc *userCache) update() error {
 func (uc *userCache) realUpdate() error {
 	// Get all data before a few seconds
 	start := time.Now()
-	lastTime := time.Unix(uc.lastTime, 0).Add(DefaultTimeDiff)
-	users, err := uc.storage.GetUsersForCache(lastTime, uc.firstUpdate)
+	users, err := uc.storage.GetUsersForCache(uc.LastFetchTime(), uc.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache][User] update user err: %s", err.Error())
 		return err
 	}
 	metrics.RecordCacheUpdateCost(time.Since(start), "users", int64(len(users)))
 
-	groups, err := uc.storage.GetGroupsForCache(lastTime, uc.firstUpdate)
+	groups, err := uc.storage.GetGroupsForCache(uc.LastFetchTime(), uc.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache][Group] update group err: %s", err.Error())
 		return err
 	}
 	metrics.RecordCacheUpdateCost(time.Since(start), "groups", int64(len(groups)))
 
-	uc.firstUpdate = false
 	refreshRet := uc.setUserAndGroups(users, groups)
 
 	timeDiff := time.Since(start)
@@ -191,13 +179,13 @@ func (uc *userCache) realUpdate() error {
 			zap.Int("add", refreshRet.userAdd),
 			zap.Int("update", refreshRet.userUpdate),
 			zap.Int("delete", refreshRet.userDel),
-			zap.Time("last", lastTime), zap.Duration("used", time.Since(start)))
+			zap.Time("last", time.Unix(uc.lastUserMtime, 0)), zap.Duration("used", time.Since(start)))
 
 		log.Info("[Cache][Group] get more group",
 			zap.Int("add", refreshRet.groupAdd),
 			zap.Int("update", refreshRet.groupUpdate),
 			zap.Int("delete", refreshRet.groupDel),
-			zap.Time("last", lastTime), zap.Duration("used", time.Since(start)))
+			zap.Time("last", time.Unix(uc.lastGroupMtime, 0)), zap.Duration("used", time.Since(start)))
 	}
 	return nil
 }
@@ -235,6 +223,9 @@ func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult,
 	filter func(user *model.User) bool, ownerSupplier func(user *model.User) *model.User) {
 	for i := range users {
 		user := users[i]
+
+		uc.lastUserMtime = int64(math.Max(float64(uc.lastUserMtime), float64(user.ModifyTime.Unix())))
+
 		if user.Type == model.AdminUserRole {
 			uc.adminUser.Store(user)
 			uc.users.save(user.ID, user)
@@ -273,6 +264,9 @@ func (uc *userCache) handlerGroupCacheUpdate(ret *userAndGroupCacheRefreshResult
 	// 更新 groups 数据信息
 	for i := range groups {
 		group := groups[i]
+
+		uc.lastGroupMtime = int64(math.Max(float64(uc.lastGroupMtime), float64(group.ModifyTime.Unix())))
+
 		if !group.Valid {
 			uc.groups.delete(group.ID)
 			ret.groupDel++
@@ -317,11 +311,9 @@ func (uc *userCache) handlerGroupCacheUpdate(ret *userAndGroupCacheRefreshResult
 }
 
 func (uc *userCache) clear() error {
+	uc.baseCache.clear()
 	uc.initBuckets()
 	uc.adminUser = atomic.Value{}
-
-	uc.firstUpdate = true
-	uc.lastTime = 0
 	return nil
 }
 

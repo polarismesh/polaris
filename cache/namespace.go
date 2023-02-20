@@ -18,9 +18,7 @@
 package cache
 
 import (
-	"math"
 	"sync"
-	"time"
 
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
@@ -60,16 +58,14 @@ type NamespaceCache interface {
 
 type namespaceCache struct {
 	*baseCache
-	storage     store.Store
-	ids         *sync.Map
-	lastTime    int64
-	firstUpdate bool
-	updater     *singleflight.Group
+	storage store.Store
+	ids     *sync.Map
+	updater *singleflight.Group
 }
 
 func newNamespaceCache(storage store.Store) NamespaceCache {
 	return &namespaceCache{
-		baseCache: newBaseCache(),
+		baseCache: newBaseCache(storage),
 		storage:   storage,
 	}
 }
@@ -80,11 +76,7 @@ func newNamespaceCache(storage store.Store) NamespaceCache {
 //	@return error
 func (nsCache *namespaceCache) initialize(c map[string]interface{}) error {
 	nsCache.ids = new(sync.Map)
-	nsCache.lastTime = 0
-	nsCache.firstUpdate = true
-
 	nsCache.updater = new(singleflight.Group)
-
 	return nil
 }
 
@@ -94,21 +86,20 @@ func (nsCache *namespaceCache) initialize(c map[string]interface{}) error {
 func (nsCache *namespaceCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := nsCache.updater.Do(nsCache.name(), func() (interface{}, error) {
-		return nil, nsCache.realUpdate()
+		return nil, nsCache.doCacheUpdate(nsCache.name(), nsCache.realUpdate)
 	})
 	return err
 }
 
 func (nsCache *namespaceCache) realUpdate() error {
 	var (
-		lastMtime = time.Unix(nsCache.lastTime, 0).Add(DefaultTimeDiff)
-		ret, err  = nsCache.storage.GetMoreNamespaces(lastMtime)
+		lastTime = nsCache.LastFetchTime()
+		ret, err = nsCache.storage.GetMoreNamespaces(lastTime)
 	)
 	if err != nil {
 		log.Error("[Cache][Namespace] get storage more", zap.Error(err))
 		return err
 	}
-	nsCache.firstUpdate = false
 	_ = nsCache.setNamespaces(ret)
 	return nil
 }
@@ -120,7 +111,6 @@ func (nsCache *namespaceCache) setNamespaces(nsSlice []*model.Namespace) error {
 			nsCache.ids.Delete(ns.Name)
 		} else {
 			nsCache.ids.Store(ns.Name, ns)
-			nsCache.lastTime = int64(math.Max(float64(nsCache.lastTime), float64(ns.ModifyTime.Unix())))
 		}
 	}
 
@@ -131,10 +121,8 @@ func (nsCache *namespaceCache) setNamespaces(nsSlice []*model.Namespace) error {
 //
 //	@return error
 func (nsCache *namespaceCache) clear() error {
+	nsCache.baseCache.clear()
 	nsCache.ids = new(sync.Map)
-	nsCache.lastTime = 0
-	nsCache.firstUpdate = true
-
 	return nil
 }
 

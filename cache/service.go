@@ -133,10 +133,8 @@ type serviceCache struct {
 	namespaceServiceCnt *sync.Map // namespace -> model.NamespaceServiceCount
 	cancel              context.CancelFunc
 
-	lastTime        int64
 	lastMtime       int64
 	lastMtimeLogged int64
-	firstUpdate     bool
 
 	serviceCount     int64
 	lastCheckAllTime int64
@@ -150,7 +148,7 @@ func init() {
 // newServiceCache 返回一个serviceCache
 func newServiceCache(storage store.Store, ch chan *revisionNotify, instCache InstanceCache) *serviceCache {
 	return &serviceCache{
-		baseCache:  newBaseCache(),
+		baseCache:  newBaseCache(storage),
 		storage:    storage,
 		revisionCh: ch,
 		instCache:  instCache,
@@ -160,14 +158,11 @@ func newServiceCache(storage store.Store, ch chan *revisionNotify, instCache Ins
 // initialize 缓存对象初始化
 func (sc *serviceCache) initialize(opt map[string]interface{}) error {
 	sc.singleFlight = new(singleflight.Group)
-	sc.lastTime = 0
 	sc.lastMtime = 0
-	sc.firstUpdate = true
 	sc.ids = new(sync.Map)
 	sc.names = new(sync.Map)
 	sc.cl5Sid2Name = new(sync.Map)
 	sc.cl5Names = new(sync.Map)
-	sc.firstUpdate = true
 
 	sc.countChangeCh = make(chan map[string]bool, 1024)
 	sc.namespaceServiceCnt = new(sync.Map)
@@ -195,17 +190,11 @@ func (sc *serviceCache) LastMtime() time.Time {
 func (sc *serviceCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := sc.singleFlight.Do(sc.name(), func() (interface{}, error) {
-		curStoreTime, err := sc.storage.GetUnixSecond()
-		if err != nil {
-			curStoreTime = sc.lastTime
-			log.Warn("[Cache][Service] get store timestamp fail, skip update lastMtime", zap.Error(err))
-		}
 		defer func() {
 			sc.lastMtimeLogged = logLastMtime(sc.lastMtimeLogged, sc.lastMtime, "Service")
-			sc.lastTime = curStoreTime
 			sc.checkAll()
 		}()
-		return nil, sc.realUpdate()
+		return nil, sc.doCacheUpdate(sc.name(), sc.realUpdate)
 	})
 	return err
 }
@@ -235,37 +224,33 @@ func (sc *serviceCache) checkAll() {
 func (sc *serviceCache) realUpdate() error {
 	// 获取几秒前的全部数据
 	start := time.Now()
-	lastMtime := sc.LastMtime()
-	services, err := sc.storage.GetMoreServices(lastMtime.Add(DefaultTimeDiff),
-		sc.firstUpdate, sc.disableBusiness, sc.needMeta)
+	services, err := sc.storage.GetMoreServices(sc.LastFetchTime(), sc.IsFirstUpdate(), sc.disableBusiness, sc.needMeta)
 	if err != nil {
 		log.Errorf("[Cache][Service] update services err: %s", err.Error())
 		return err
 	}
 
-	sc.firstUpdate = false
 	update, del := sc.setServices(services)
 	costTime := time.Since(start)
 	metrics.RecordCacheUpdateCost(costTime, sc.name(), int64(len(services)))
 	if costTime > time.Second {
 		log.Info(
 			"[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
-			zap.Time("last", lastMtime), zap.Duration("used", costTime))
+			zap.Time("last", sc.LastMtime()), zap.Duration("used", costTime))
 	}
 	return nil
 }
 
 // clear 清理内部缓存数据
 func (sc *serviceCache) clear() error {
+	sc.baseCache.clear()
 	sc.ids = new(sync.Map)
 	sc.names = new(sync.Map)
 	sc.cl5Sid2Name = new(sync.Map)
 	sc.cl5Names = new(sync.Map)
 	sc.namespaceServiceCnt = new(sync.Map)
 	sc.pendingServices = make(map[string]int8)
-	sc.lastTime = 0
 	sc.lastMtime = 0
-	sc.firstUpdate = true
 	return nil
 }
 

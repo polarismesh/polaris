@@ -73,11 +73,7 @@ type strategyCache struct {
 	configGroup2Strategy *strategyLinkBucket
 
 	userCache UserCache
-
-	firstUpdate bool
 	lastMtime   int64
-	lastTime    int64
-
 	singleFlight *singleflight.Group
 
 	principalCh chan interface{}
@@ -86,7 +82,7 @@ type strategyCache struct {
 // newStrategyCache
 func newStrategyCache(storage store.Store, principalCh chan interface{}, userCache UserCache) StrategyCache {
 	return &strategyCache{
-		baseCache:   newBaseCache(),
+		baseCache:   newBaseCache(storage),
 		storage:     storage,
 		principalCh: principalCh,
 		userCache:   userCache,
@@ -124,24 +120,14 @@ func (sc *strategyCache) initBuckets() {
 func (sc *strategyCache) initialize(c map[string]interface{}) error {
 	sc.initBuckets()
 	sc.singleFlight = new(singleflight.Group)
-	sc.firstUpdate = true
 	sc.lastMtime = 0
-	sc.lastTime = 0
 	return nil
 }
 
 func (sc *strategyCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := sc.singleFlight.Do(sc.name(), func() (interface{}, error) {
-		curStoreTime, err := sc.storage.GetUnixSecond()
-		if err != nil {
-			curStoreTime = sc.lastTime
-			log.Warn("[Cache][AuthStrategy] get store timestamp fail, skip update lastMtime", zap.Error(err))
-		}
-		defer func() {
-			sc.lastTime = curStoreTime
-		}()
-		return nil, sc.realUpdate()
+		return nil, sc.doCacheUpdate(sc.name(), sc.realUpdate)
 	})
 	return err
 }
@@ -150,15 +136,14 @@ func (sc *strategyCache) realUpdate() error {
 	// 获取几秒前的全部数据
 	var (
 		start          = time.Now()
-		lastTime       = time.Unix(sc.lastTime, 0).Add(DefaultTimeDiff)
-		strategys, err = sc.storage.GetStrategyDetailsForCache(lastTime, sc.firstUpdate)
+		lastTime       = sc.LastFetchTime()
+		strategys, err = sc.storage.GetStrategyDetailsForCache(lastTime, sc.IsFirstUpdate())
 	)
 	if err != nil {
 		log.Errorf("[Cache][AuthStrategy] refresh auth strategy cache err: %s", err.Error())
 		return err
 	}
 
-	sc.firstUpdate = false
 	add, update, del := sc.setStrategys(strategys)
 	timeDiff := time.Since(start)
 	metrics.RecordCacheUpdateCost(timeDiff, sc.name(), int64(len(strategys)))
@@ -372,10 +357,8 @@ func (sc *strategyCache) postProcessPrincipalCh() {
 }
 
 func (sc *strategyCache) clear() error {
+	sc.baseCache.clear()
 	sc.initBuckets()
-
-	sc.firstUpdate = true
-	sc.lastTime = 0
 	sc.lastMtime = 0
 	return nil
 }

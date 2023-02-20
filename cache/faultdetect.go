@@ -23,7 +23,6 @@ import (
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris/common/metrics"
@@ -59,9 +58,7 @@ type faultDetectCache struct {
 	// all rules are wildcard specific
 	allWildcardRules *model.ServiceWithFaultDetectRules
 	lock             sync.RWMutex
-	lastTime         int64
 	lastMtime        time.Time
-	firstUpdate      bool
 
 	singleFlight singleflight.Group
 }
@@ -74,7 +71,7 @@ func init() {
 // newFaultDetectCache faultDetectCache constructor
 func newFaultDetectCache(s store.Store) *faultDetectCache {
 	return &faultDetectCache{
-		baseCache:        newBaseCache(),
+		baseCache:        newBaseCache(s),
 		storage:          s,
 		svcSpecificRules: make(map[string]map[string]*model.ServiceWithFaultDetectRules),
 		nsWildcardRules:  make(map[string]*model.ServiceWithFaultDetectRules),
@@ -87,23 +84,13 @@ func newFaultDetectCache(s store.Store) *faultDetectCache {
 
 // initialize 实现Cache接口的函数
 func (f *faultDetectCache) initialize(_ map[string]interface{}) error {
-	f.lastTime = 0
 	f.lastMtime = time.Unix(0, 0)
-	f.firstUpdate = true
 	return nil
 }
 
 func (f *faultDetectCache) update() error {
 	_, err, _ := f.singleFlight.Do(f.name(), func() (interface{}, error) {
-		curStoreTime, err := f.storage.GetUnixSecond()
-		if err != nil {
-			curStoreTime = f.lastTime
-			log.Warn("[Cache][FaultDetect] get store timestamp fail, skip update lastMtime", zap.Error(err))
-		}
-		defer func() {
-			f.lastTime = curStoreTime
-		}()
-		return nil, f.realUpdate()
+		return nil, f.doCacheUpdate(f.name(), f.realUpdate)
 	})
 	return err
 }
@@ -111,28 +98,24 @@ func (f *faultDetectCache) update() error {
 // update 实现Cache接口的函数
 func (f *faultDetectCache) realUpdate() error {
 	start := time.Now()
-	lastTime := time.Unix(f.lastTime, 0).Add(DefaultTimeDiff)
-	fdRules, err := f.storage.GetFaultDetectRulesForCache(lastTime, f.firstUpdate)
+	fdRules, err := f.storage.GetFaultDetectRulesForCache(f.LastFetchTime(), f.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] fault detect config cache update err:%s", err.Error())
 		return err
 	}
 	metrics.RecordCacheUpdateCost(time.Since(start), f.name(), int64(len(fdRules)))
-	f.firstUpdate = false
 	return f.setFaultDetectRules(fdRules)
 }
 
 // clear 实现Cache接口的函数
 func (f *faultDetectCache) clear() error {
+	f.baseCache.clear()
 	f.lock.Lock()
 	f.allWildcardRules.Clear()
 	f.nsWildcardRules = make(map[string]*model.ServiceWithFaultDetectRules)
 	f.svcSpecificRules = make(map[string]map[string]*model.ServiceWithFaultDetectRules)
 	f.lock.Unlock()
-
-	f.lastTime = 0
 	f.lastMtime = time.Unix(0, 0)
-	f.firstUpdate = true
 	return nil
 }
 

@@ -170,7 +170,7 @@ func TestRateLimitUpdate(t *testing.T) {
 
 	t.Run("正常更新缓存，可以获取到数据", func(t *testing.T) {
 		_ = rlc.clear()
-		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).Return(rateLimits, revisions, nil)
+		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.IsFirstUpdate()).Return(rateLimits, revisions, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
@@ -202,7 +202,7 @@ func TestRateLimitUpdate(t *testing.T) {
 
 	t.Run("缓存数据为空", func(t *testing.T) {
 		_ = rlc.clear()
-		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).
+		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.IsFirstUpdate()).
 			Return(nil, nil, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -221,13 +221,13 @@ func TestRateLimitUpdate(t *testing.T) {
 
 		currentTime := time.Now()
 		rateLimits[0].ModifyTime = currentTime
-		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).
+		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.IsFirstUpdate()).
 			Return(rateLimits, revisions, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
-		if rlc.lastTime == currentTime.Unix() {
+		if rlc.lastFetchTime == currentTime.Unix() {
 			t.Log("pass")
 		} else {
 			t.Fatalf("last mtime error")
@@ -235,7 +235,7 @@ func TestRateLimitUpdate(t *testing.T) {
 	})
 
 	t.Run("数据库返回错误，update错误", func(t *testing.T) {
-		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).
+		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.IsFirstUpdate()).
 			Return(nil, nil, fmt.Errorf("stoarge error"))
 		if err := rlc.update(); err != nil {
 			t.Log("pass")
@@ -259,14 +259,14 @@ func TestRateLimitUpdate2(t *testing.T) {
 		_ = rlc.clear()
 
 		rateLimits, revisions := genRateLimits(0, totalServices, totalRateLimits, true)
-		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).
+		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.IsFirstUpdate()).
 			Return(rateLimits, revisions, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
 		rateLimits, revisions = genRateLimits(5, totalServices, totalRateLimits, true)
-		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).
+		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.IsFirstUpdate()).
 			Return(rateLimits, revisions, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -283,7 +283,7 @@ func TestRateLimitUpdate2(t *testing.T) {
 		_ = rlc.clear()
 
 		rateLimits, revisions := genRateLimits(0, totalServices, totalRateLimits, true)
-		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).
+		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.IsFirstUpdate()).
 			Return(rateLimits, revisions, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -293,7 +293,7 @@ func TestRateLimitUpdate2(t *testing.T) {
 			rateLimits[i].Valid = false
 		}
 
-		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).
+		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.IsFirstUpdate()).
 			Return(rateLimits, revisions, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -322,7 +322,7 @@ func TestGetRateLimitsByServiceID(t *testing.T) {
 		totalRateLimits := 15
 		rateLimits, revisions := genRateLimits(0, totalServices, totalRateLimits, true)
 
-		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).
+		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.IsFirstUpdate()).
 			Return(rateLimits, revisions, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -373,7 +373,7 @@ func TestGetRateLimitsByServiceID(t *testing.T) {
 		totalRateLimits := 15
 		rateLimits, revisions := genRateLimits(0, totalServices, totalRateLimits, false)
 
-		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.firstUpdate).
+		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.IsFirstUpdate()).
 			Return(rateLimits, revisions, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())

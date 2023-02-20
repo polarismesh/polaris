@@ -65,7 +65,6 @@ type clientCache struct {
 	storage         store.Store
 	lastMtime       int64
 	lastMtimeLogged int64
-	firstUpdate     bool
 	clients         map[string]*model.Client // instance id -> instance
 	lock            sync.RWMutex
 	singleFlight    *singleflight.Group
@@ -85,7 +84,7 @@ func (c *clientCache) LastMtime() time.Time {
 // newClientCache 新建一个clientCache
 func newClientCache(storage store.Store) *clientCache {
 	return &clientCache{
-		baseCache: newBaseCache(),
+		baseCache: newBaseCache(storage),
 		storage:   storage,
 		clients:   map[string]*model.Client{},
 	}
@@ -96,8 +95,6 @@ func (c *clientCache) initialize(_ map[string]interface{}) error {
 	c.singleFlight = &singleflight.Group{}
 	c.lastMtime = 0
 	c.lastUpdateTime = time.Unix(0, 0)
-	c.firstUpdate = true
-
 	return nil
 }
 
@@ -105,24 +102,17 @@ func (c *clientCache) initialize(_ map[string]interface{}) error {
 func (c *clientCache) update() error {
 	// 一分钟update一次
 	timeDiff := time.Since(c.lastUpdateTime).Minutes()
-	if !c.firstUpdate && 1 > timeDiff {
+	if !c.IsFirstUpdate() && 1 > timeDiff {
 		log.Debug("[Cache][Client] update get storage ignore", zap.Float64("time-diff", timeDiff))
 		return nil
 	}
 
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := c.singleFlight.Do(c.name(), func() (interface{}, error) {
-		curStoreTime, err := c.storage.GetUnixSecond()
-		if err != nil {
-			curStoreTime = c.lastMtime
-			log.Warn("[Cache][CircuitBreaker] get store timestamp fail, skip update lastMtime", zap.Error(err))
-		}
 		defer func() {
 			c.lastMtimeLogged = logLastMtime(c.lastMtimeLogged, c.lastMtime, "Client")
-			c.lastMtime = curStoreTime
 		}()
-
-		return nil, c.realUpdate()
+		return nil, c.doCacheUpdate(c.name(), c.realUpdate)
 	})
 
 	return err
@@ -131,8 +121,7 @@ func (c *clientCache) update() error {
 func (c *clientCache) realUpdate() error {
 	// 拉取diff前的所有数据
 	start := time.Now()
-	lastMtime := c.LastMtime().Add(DefaultTimeDiff)
-	clients, err := c.storage.GetMoreClients(lastMtime, c.firstUpdate)
+	clients, err := c.storage.GetMoreClients(c.LastFetchTime(), c.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache][Client] update get storage more err: %s", err.Error())
 		return err
@@ -140,12 +129,11 @@ func (c *clientCache) realUpdate() error {
 	timeDiff := time.Since(start)
 	metrics.RecordCacheUpdateCost(time.Since(start), c.name(), int64(len(clients)))
 
-	c.firstUpdate = false
 	update, del := c.setClients(clients)
 	if timeDiff > 1*time.Second {
 		log.Info("[Cache][Client] get more clients",
 			zap.Int("update", update), zap.Int("delete", del),
-			zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
+			zap.Time("last", time.Unix(c.lastMtime, 0)), zap.Duration("used", time.Since(start)))
 	}
 
 	c.lastUpdateTime = time.Now()
@@ -217,6 +205,7 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (int, int) {
 //
 //	@return error
 func (c *clientCache) clear() error {
+	c.baseCache.clear()
 	c.lock.Lock()
 	c.clients = map[string]*model.Client{}
 	c.lock.Unlock()

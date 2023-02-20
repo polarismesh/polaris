@@ -73,10 +73,8 @@ type instanceCache struct {
 	*baseCache
 
 	storage            store.Store
-	lastTime           int64
 	lastMtime          int64
 	lastMtimeLogged    int64
-	firstUpdate        bool
 	ids                *sync.Map // instanceid -> instance
 	services           *sync.Map // service id -> [instanceid ->instance]
 	instanceCounts     *sync.Map // service id -> [instanceCount]
@@ -97,7 +95,7 @@ func init() {
 // newInstanceCache 新建一个instanceCache
 func newInstanceCache(storage store.Store, ch chan *revisionNotify) *instanceCache {
 	return &instanceCache{
-		baseCache:  newBaseCache(),
+		baseCache:  newBaseCache(storage),
 		storage:    storage,
 		revisionCh: ch,
 	}
@@ -114,7 +112,6 @@ func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 		servicePorts: make(map[string]map[string]struct{}),
 	}
 	ic.lastMtime = 0
-	ic.firstUpdate = true
 	if opt == nil {
 		return nil
 	}
@@ -141,17 +138,11 @@ func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 func (ic *instanceCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := ic.singleFlight.Do(ic.name(), func() (interface{}, error) {
-		curStoreTime, err := ic.storage.GetUnixSecond()
-		if err != nil {
-			curStoreTime = ic.lastTime
-			log.Warn("[Cache][Instance] get store timestamp fail, skip update lastMtime", zap.Error(err))
-		}
 		defer func() {
 			ic.lastMtimeLogged = logLastMtime(ic.lastMtimeLogged, ic.lastMtime, "Instance")
-			ic.lastTime = curStoreTime
 			ic.checkAll()
 		}()
-		return nil, ic.realUpdate()
+		return nil, ic.doCacheUpdate(ic.name(), ic.realUpdate)
 	})
 	return err
 }
@@ -183,14 +174,13 @@ const maxLoadTimeDuration = 1 * time.Second
 func (ic *instanceCache) realUpdate() error {
 	// 拉取diff前的所有数据
 	start := time.Now()
-	lastTime := time.Unix(ic.lastTime, 0).Add(DefaultTimeDiff)
-	instances, err := ic.storage.GetMoreInstances(lastTime, ic.firstUpdate, ic.needMeta, ic.systemServiceID)
+	lastTime := ic.LastFetchTime()
+	instances, err := ic.storage.GetMoreInstances(lastTime, ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID)
 	if err != nil {
 		log.Errorf("[Cache][Instance] update get storage more err: %s", err.Error())
 		return err
 	}
 
-	ic.firstUpdate = false
 	update, del := ic.setInstances(instances)
 	timeDiff := time.Since(start)
 	metrics.RecordCacheUpdateCost(timeDiff, ic.name(), int64(len(instances)))
@@ -204,13 +194,13 @@ func (ic *instanceCache) realUpdate() error {
 
 // clear 清理内部缓存数据
 func (ic *instanceCache) clear() error {
+	ic.baseCache.clear()
 	ic.ids = new(sync.Map)
 	ic.services = new(sync.Map)
 	ic.instanceCounts = new(sync.Map)
 	ic.servicePortsBucket.reset()
 	ic.instanceCount = 0
 	ic.lastMtime = 0
-	ic.lastTime = 0
 	return nil
 }
 

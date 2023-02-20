@@ -23,7 +23,6 @@ import (
 	"time"
 
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
-	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris/common/metrics"
@@ -70,9 +69,7 @@ type rateLimitCache struct {
 	storage     store.Store
 	ids         *sync.Map
 	revisions   *sync.Map
-	lastTime    int64
 	lastMtime   time.Time
-	firstUpdate bool
 
 	singleFlight singleflight.Group
 }
@@ -85,7 +82,7 @@ func init() {
 // newRateLimitCache 返回一个操作RateLimitCache的对象
 func newRateLimitCache(s store.Store) *rateLimitCache {
 	return &rateLimitCache{
-		baseCache: newBaseCache(),
+		baseCache: newBaseCache(s),
 		storage:   s,
 	}
 }
@@ -94,8 +91,6 @@ func newRateLimitCache(s store.Store) *rateLimitCache {
 func (rlc *rateLimitCache) initialize(_ map[string]interface{}) error {
 	rlc.ids = new(sync.Map)
 	rlc.revisions = new(sync.Map)
-	rlc.lastTime = 0
-	rlc.firstUpdate = true
 	return nil
 }
 
@@ -103,15 +98,7 @@ func (rlc *rateLimitCache) initialize(_ map[string]interface{}) error {
 func (rlc *rateLimitCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := rlc.singleFlight.Do(rlc.name(), func() (interface{}, error) {
-		curStoreTime, err := rlc.storage.GetUnixSecond()
-		if err != nil {
-			curStoreTime = rlc.lastTime
-			log.Warn("[Cache][RateLimit] get store timestamp fail, skip update lastMtime", zap.Error(err))
-		}
-		defer func() {
-			rlc.lastTime = curStoreTime
-		}()
-		return nil, rlc.realUpdate()
+		return nil, rlc.doCacheUpdate(rlc.name(), rlc.realUpdate)
 	})
 
 	return err
@@ -119,14 +106,12 @@ func (rlc *rateLimitCache) update() error {
 
 func (rlc *rateLimitCache) realUpdate() error {
 	start := time.Now()
-	lastTime := time.Unix(rlc.lastTime, 0).Add(DefaultTimeDiff)
-	rateLimits, revisions, err := rlc.storage.GetRateLimitsForCache(lastTime, rlc.firstUpdate)
+	rateLimits, revisions, err := rlc.storage.GetRateLimitsForCache(rlc.LastFetchTime(), rlc.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] rate limit cache update err: %s", err.Error())
 		return err
 	}
 	metrics.RecordCacheUpdateCost(time.Since(start), rlc.name(), int64(len(rateLimits)))
-	rlc.firstUpdate = false
 	return rlc.setRateLimit(rateLimits, revisions)
 }
 
@@ -137,10 +122,9 @@ func (rlc *rateLimitCache) name() string {
 
 // clear 实现Cache接口的clear函数
 func (rlc *rateLimitCache) clear() error {
+	rlc.baseCache.clear()
 	rlc.ids = new(sync.Map)
 	rlc.revisions = new(sync.Map)
-	rlc.lastTime = 0
-	rlc.firstUpdate = true
 	return nil
 }
 

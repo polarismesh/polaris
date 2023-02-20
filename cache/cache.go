@@ -45,6 +45,7 @@ var (
 	_ StrategyCache       = (*strategyCache)(nil)
 	_ L5Cache             = (*l5Cache)(nil)
 	_ FileCache           = (*fileCache)(nil)
+	_ FaultDetectCache    = (*faultDetectCache)(nil)
 )
 
 const (
@@ -70,32 +71,34 @@ const (
 type CacheName string
 
 const (
-	CacheNameService        CacheName = "Service"
-	CacheNameInstance       CacheName = "Instance"
-	CacheNameRoutingConfig  CacheName = "RoutingConfig"
-	CacheNameCL5            CacheName = "CL5"
-	CacheNameRateLimit      CacheName = "RateLimit"
-	CacheNameCircuitBreaker CacheName = "CircuitBreaker"
-	CacheNameUser           CacheName = "User"
-	CacheNameAuthStrategy   CacheName = "AuthStrategy"
-	CacheNameNamespace      CacheName = "Namespace"
-	CacheNameClient         CacheName = "Client"
-	CacheNameConfigFile     CacheName = "ConfigFile"
+	CacheNameService         CacheName = "Service"
+	CacheNameInstance        CacheName = "Instance"
+	CacheNameRoutingConfig   CacheName = "RoutingConfig"
+	CacheNameCL5             CacheName = "CL5"
+	CacheNameRateLimit       CacheName = "RateLimit"
+	CacheNameCircuitBreaker  CacheName = "CircuitBreaker"
+	CacheNameUser            CacheName = "User"
+	CacheNameAuthStrategy    CacheName = "AuthStrategy"
+	CacheNameNamespace       CacheName = "Namespace"
+	CacheNameClient          CacheName = "Client"
+	CacheNameConfigFile      CacheName = "ConfigFile"
+	CacheNameFaultDetectRule CacheName = "FaultDetectRule"
 )
 
 var (
 	cacheIndexMap = map[CacheName]int{
-		CacheNameService:        CacheService,
-		CacheNameInstance:       CacheInstance,
-		CacheNameRoutingConfig:  CacheRoutingConfig,
-		CacheNameCL5:            CacheCL5,
-		CacheNameRateLimit:      CacheRateLimit,
-		CacheNameCircuitBreaker: CacheCircuitBreaker,
-		CacheNameUser:           CacheUser,
-		CacheNameAuthStrategy:   CacheAuthStrategy,
-		CacheNameNamespace:      CacheNamespace,
-		CacheNameClient:         CacheClient,
-		CacheNameConfigFile:     CacheConfigFile,
+		CacheNameService:         CacheService,
+		CacheNameInstance:        CacheInstance,
+		CacheNameRoutingConfig:   CacheRoutingConfig,
+		CacheNameCL5:             CacheCL5,
+		CacheNameRateLimit:       CacheRateLimit,
+		CacheNameCircuitBreaker:  CacheCircuitBreaker,
+		CacheNameUser:            CacheUser,
+		CacheNameAuthStrategy:    CacheAuthStrategy,
+		CacheNameNamespace:       CacheNamespace,
+		CacheNameClient:          CacheClient,
+		CacheNameConfigFile:      CacheConfigFile,
+		CacheNameFaultDetectRule: CacheFaultDetector,
 	}
 )
 
@@ -124,15 +127,72 @@ type Cache interface {
 
 // baseCache 对于 Cache 中的一些 func 做统一实现，避免重复逻辑
 type baseCache struct {
-	manager *listenerManager
+	fitstUpdate   bool
+	s             store.Store
+	lastFetchTime int64
+	manager       *listenerManager
 }
 
-func newBaseCache() *baseCache {
-	return &baseCache{
+func newBaseCache(s store.Store) *baseCache {
+	c := &baseCache{
+		s: s,
 		manager: &listenerManager{
 			listeners: make([]Listener, 0, 4),
 		},
 	}
+
+	c.initialize()
+	return c
+}
+
+func (bc *baseCache) initialize() {
+	bc.lastFetchTime = 0
+	bc.fitstUpdate = true
+}
+
+var (
+	zeroTime = time.Unix(0, 0)
+)
+
+func (bc *baseCache) LastFetchTime() time.Time {
+	return formatFetchTime(bc.lastFetchTime)
+}
+
+func formatFetchTime(fetchTime int64) time.Time {
+	lastTime := time.Unix(fetchTime, 0)
+	tmp := lastTime.Add(DefaultTimeDiff)
+	if zeroTime.After(tmp) {
+		return lastTime
+	}
+	lastTime = tmp
+	return lastTime
+}
+
+func (bc *baseCache) IsFirstUpdate() bool {
+	return bc.fitstUpdate
+}
+
+// update
+func (bc *baseCache) doCacheUpdate(name string, executor func() error) error {
+	curStoreTime, err := bc.s.GetUnixSecond()
+	if err != nil {
+		curStoreTime = bc.lastFetchTime
+		log.Warnf("[Cache][%s] get store timestamp fail, skip update lastMtime, err : %v", name, err)
+	}
+	defer func() {
+		bc.lastFetchTime = curStoreTime
+	}()
+	if err := executor(); err != nil {
+		return err
+	}
+	bc.fitstUpdate = true
+	return nil
+}
+
+func (bc *baseCache) clear() error {
+	bc.lastFetchTime = 0
+	bc.fitstUpdate = true
+	return nil
 }
 
 // addListener 添加

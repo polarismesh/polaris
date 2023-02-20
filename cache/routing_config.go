@@ -71,9 +71,6 @@ type (
 		bucketV1 *routingBucketV1
 		bucketV2 *routingBucketV2
 
-		firstUpdate bool
-		lastTime    int64
-
 		lastMtimeV1 time.Time
 		lastMtimeV2 time.Time
 
@@ -92,7 +89,7 @@ func init() {
 // newRoutingConfigCache Return a object of operating RoutingConfigcache
 func newRoutingConfigCache(s store.Store, serviceCache ServiceCache) *routingConfigCache {
 	return &routingConfigCache{
-		baseCache:        newBaseCache(),
+		baseCache:        newBaseCache(s),
 		storage:          s,
 		serviceCache:     serviceCache,
 		pendingV1RuleIds: map[string]struct{}{},
@@ -101,8 +98,6 @@ func newRoutingConfigCache(s store.Store, serviceCache ServiceCache) *routingCon
 
 // initialize The function of implementing the cache interface
 func (rc *routingConfigCache) initialize(_ map[string]interface{}) error {
-	rc.firstUpdate = true
-	rc.lastTime = 0
 	rc.lastMtimeV1 = time.Unix(0, 0)
 	rc.lastMtimeV2 = time.Unix(0, 0)
 	rc.initBuckets()
@@ -118,15 +113,7 @@ func (rc *routingConfigCache) initBuckets() {
 func (rc *routingConfigCache) update() error {
 	// Multiple thread competition, only one thread is updated
 	_, err, _ := rc.singleFlight.Do(rc.name(), func() (interface{}, error) {
-		curStoreTime, err := rc.storage.GetUnixSecond()
-		if err != nil {
-			curStoreTime = rc.lastTime
-			log.Warn("[Cache][Routing] get store timestamp fail, skip update lastMtime", zap.Error(err))
-		}
-		defer func() {
-			rc.lastTime = curStoreTime
-		}()
-		return nil, rc.realUpdate()
+		return nil, rc.doCacheUpdate(rc.name(), rc.realUpdate)
 	})
 	return err
 }
@@ -134,8 +121,7 @@ func (rc *routingConfigCache) update() error {
 // update The function of implementing the cache interface
 func (rc *routingConfigCache) realUpdate() error {
 	start := time.Now()
-	lastMtime := time.Unix(rc.lastTime, 0).Add(DefaultTimeDiff)
-	outV1, err := rc.storage.GetRoutingConfigsForCache(lastMtime, rc.firstUpdate)
+	outV1, err := rc.storage.GetRoutingConfigsForCache(rc.LastFetchTime(), rc.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] routing config v1 cache get from store err: %s", err.Error())
 		return err
@@ -143,14 +129,13 @@ func (rc *routingConfigCache) realUpdate() error {
 	metrics.RecordCacheUpdateCost(time.Since(start), rc.name(), int64(len(outV1)))
 
 	start = time.Now()
-	outV2, err := rc.storage.GetRoutingConfigsV2ForCache(lastMtime, rc.firstUpdate)
+	outV2, err := rc.storage.GetRoutingConfigsV2ForCache(rc.LastFetchTime(), rc.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] routing config v2 cache get from store err: %s", err.Error())
 		return err
 	}
 	metrics.RecordCacheUpdateCost(time.Since(start), rc.name()+"v2", int64(len(outV2)))
 
-	rc.firstUpdate = false
 	if err := rc.setRoutingConfigV1(outV1); err != nil {
 		log.Errorf("[Cache] routing config v1 cache update err: %s", err.Error())
 		return err
@@ -165,8 +150,7 @@ func (rc *routingConfigCache) realUpdate() error {
 
 // clear The function of implementing the cache interface
 func (rc *routingConfigCache) clear() error {
-	rc.firstUpdate = true
-	rc.lastTime = 0
+	rc.baseCache.clear()
 	rc.initBuckets()
 	rc.lastMtimeV1 = time.Unix(0, 0)
 	rc.lastMtimeV2 = time.Unix(0, 0)

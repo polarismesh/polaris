@@ -78,7 +78,7 @@ type l5Cache struct {
 
 func newL5Cache(s store.Store) *l5Cache {
 	return &l5Cache{
-		baseCache: newBaseCache(),
+		baseCache: newBaseCache(s),
 		storage:   s,
 	}
 }
