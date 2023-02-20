@@ -185,7 +185,7 @@ func (bc *baseCache) doCacheUpdate(name string, executor func() error) error {
 	if err := executor(); err != nil {
 		return err
 	}
-	bc.fitstUpdate = true
+	bc.fitstUpdate = false
 	return nil
 }
 

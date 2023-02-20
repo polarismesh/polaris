@@ -24,11 +24,12 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store/mock"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-	"github.com/stretchr/testify/assert"
 )
 
 // TestCacheManager_Start 测试cache函数是否正常
@@ -226,6 +227,6 @@ func TestComputeRevision(t *testing.T) {
 func Test_baseCache_LastFetchTime(t *testing.T) {
 	lastTime := time.Unix(0, 0)
 	fetchTime := formatFetchTime(0)
-	
+
 	assert.Equal(t, lastTime, fetchTime)
 }

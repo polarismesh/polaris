@@ -66,10 +66,10 @@ type RateLimitCache interface {
 type rateLimitCache struct {
 	*baseCache
 
-	storage     store.Store
-	ids         *sync.Map
-	revisions   *sync.Map
-	lastMtime   time.Time
+	storage   store.Store
+	ids       *sync.Map
+	revisions *sync.Map
+	lastMtime time.Time
 
 	singleFlight singleflight.Group
 }

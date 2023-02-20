@@ -72,8 +72,8 @@ type strategyCache struct {
 	service2Strategy     *strategyLinkBucket
 	configGroup2Strategy *strategyLinkBucket
 
-	userCache UserCache
-	lastMtime   int64
+	userCache    UserCache
+	lastMtime    int64
 	singleFlight *singleflight.Group
 
 	principalCh chan interface{}
