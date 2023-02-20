@@ -110,7 +110,6 @@ func (c *circuitBreakerCache) update() error {
 	return err
 }
 
-// update 实现Cache接口的函数
 func (c *circuitBreakerCache) realUpdate() error {
 	start := time.Now()
 
