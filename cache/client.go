@@ -127,7 +127,7 @@ func (c *clientCache) realUpdate() error {
 		return err
 	}
 	timeDiff := time.Since(start)
-	metrics.RecordCacheUpdateCost(time.Since(start), c.name(), int64(len(clients)))
+	metrics.RecordCacheUpdateCost(timeDiff, c.name(), int64(len(clients)))
 
 	update, del := c.setClients(clients)
 	if timeDiff > 1*time.Second {
@@ -167,6 +167,7 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (int, int) {
 		return 0, 0
 	}
 
+	lastMtime := c.lastMtime
 	update := 0
 	del := 0
 	progress := 0
@@ -174,6 +175,11 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (int, int) {
 		progress++
 		if progress%50000 == 0 {
 			log.Infof("[Cache][Client] set clients progress: %d / %d", progress, len(clients))
+		}
+
+		modifyTime := client.ModifyTime().Unix()
+		if lastMtime < modifyTime {
+			lastMtime = modifyTime
 		}
 
 		id := client.Proto().GetId().GetValue()
@@ -196,6 +202,12 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (int, int) {
 		} else {
 			c.manager.onEvent(client, EventUpdated)
 		}
+	}
+
+	if c.lastMtime != lastMtime {
+		log.Infof("[Cache][Client] Client lastMtime update from %s to %s",
+			time.Unix(c.lastMtime, 0), time.Unix(lastMtime, 0))
+		c.lastMtime = lastMtime
 	}
 
 	return update, del

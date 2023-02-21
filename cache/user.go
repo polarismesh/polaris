@@ -314,6 +314,8 @@ func (uc *userCache) clear() error {
 	uc.baseCache.clear()
 	uc.initBuckets()
 	uc.adminUser = atomic.Value{}
+	uc.lastUserMtime = 0
+	uc.lastGroupMtime = 0
 	return nil
 }
 

@@ -30,10 +30,6 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-var (
-	_ ServiceCache = (*serviceCache)(nil)
-)
-
 const (
 	ServiceName = "service"
 )

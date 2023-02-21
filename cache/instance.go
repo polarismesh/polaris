@@ -32,10 +32,6 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-var (
-	_ InstanceCache = (*instanceCache)(nil)
-)
-
 const (
 	// InstanceName instance name
 	InstanceName = "instance"
@@ -174,8 +170,7 @@ const maxLoadTimeDuration = 1 * time.Second
 func (ic *instanceCache) realUpdate() error {
 	// 拉取diff前的所有数据
 	start := time.Now()
-	lastTime := ic.LastFetchTime()
-	instances, err := ic.storage.GetMoreInstances(lastTime, ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID)
+	instances, err := ic.storage.GetMoreInstances(ic.LastFetchTime(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID)
 	if err != nil {
 		log.Errorf("[Cache][Instance] update get storage more err: %s", err.Error())
 		return err
@@ -187,7 +182,7 @@ func (ic *instanceCache) realUpdate() error {
 	if timeDiff > 1*time.Second {
 		log.Info("[Cache][Instance] get more instances",
 			zap.Int("update", update), zap.Int("delete", del),
-			zap.Time("last", lastTime), zap.Duration("used", time.Since(start)))
+			zap.Time("last", ic.LastMtime()), zap.Duration("used", time.Since(start)))
 	}
 	return nil
 }

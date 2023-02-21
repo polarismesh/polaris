@@ -26,10 +26,6 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-var (
-	_ L5Cache = (*l5Cache)(nil)
-)
-
 const (
 	// L5Name l5 name
 	L5Name = "l5"

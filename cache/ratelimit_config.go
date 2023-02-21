@@ -125,6 +125,7 @@ func (rlc *rateLimitCache) clear() error {
 	rlc.baseCache.clear()
 	rlc.ids = new(sync.Map)
 	rlc.revisions = new(sync.Map)
+	rlc.lastMtime = time.Unix(0, 0)
 	return nil
 }
 
@@ -182,9 +183,10 @@ func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit,
 	}
 
 	if rlc.lastMtime.Unix() < lastMtime {
+		curLastMtime := time.Unix(lastMtime, 0)
 		log.Infof("[Cache][RateLimit] RateLimit lastMtime update from %s to %s",
-			rlc.lastMtime, time.Unix(lastMtime, 0))
-		rlc.lastMtime = time.Unix(lastMtime, 0)
+			rlc.lastMtime, curLastMtime)
+		rlc.lastMtime = curLastMtime
 	}
 
 	return nil

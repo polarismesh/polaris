@@ -336,9 +336,10 @@ func (f *faultDetectCache) setFaultDetectRules(fdRules []*model.FaultDetectRule)
 	}
 
 	if f.lastMtime.Unix() < lastMtime {
+		curLastMtime := time.Unix(lastMtime, 0)
 		log.Infof("[Cache][FaultDetector] FaultDetector lastMtime update from %s to %s",
-			f.lastMtime, time.Unix(lastMtime, 0))
-		f.lastMtime = time.Unix(lastMtime, 0)
+			f.lastMtime, curLastMtime)
+		f.lastMtime = curLastMtime
 	}
 
 	return nil

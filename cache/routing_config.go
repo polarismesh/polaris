@@ -282,9 +282,10 @@ func (rc *routingConfigCache) setRoutingConfigV1(cs []*model.RoutingConfig) erro
 	}
 
 	if rc.lastMtimeV1.Unix() < lastMtimeV1 {
+		curLastMtime := time.Unix(lastMtimeV1, 0)
 		log.Infof("[Cache][Routing] routing v1 lastMtime update from %s to %s",
-			rc.lastMtimeV1, time.Unix(lastMtimeV1, 0))
-		rc.lastMtimeV1 = time.Unix(lastMtimeV1, 0)
+			rc.lastMtimeV1, curLastMtime)
+		rc.lastMtimeV1 = curLastMtime
 	}
 
 	return nil
@@ -316,9 +317,10 @@ func (rc *routingConfigCache) setRoutingConfigV2(cs []*model.RouterConfig) error
 		rc.bucketV2.saveV2(extendEntry)
 	}
 	if rc.lastMtimeV2.Unix() < lastMtimeV2 {
+		curLastMtime := time.Unix(lastMtimeV2, 0)
 		log.Infof("[Cache][Routing] routing v1 lastMtime update from %s to %s",
-			rc.lastMtimeV2, time.Unix(lastMtimeV2, 0))
-		rc.lastMtimeV2 = time.Unix(lastMtimeV2, 0)
+			rc.lastMtimeV2, curLastMtime)
+		rc.lastMtimeV2 = curLastMtime
 	}
 
 	return nil
