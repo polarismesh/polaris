@@ -17,15 +17,73 @@
 
 package cache
 
-import "time"
+import (
+	"context"
+	"time"
 
-func (fc *fileCache) reportMetricsInfo() {
+	"github.com/polarismesh/polaris/common/metrics"
+	"github.com/polarismesh/polaris/plugin"
+	"go.uber.org/zap"
+)
+
+func (fc *fileCache) reportMetricsInfo(ctx context.Context) {
 	ticker := time.NewTicker(time.Minute)
-
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
-		case <-fc.ctx.Done():
+			configFiles, err := fc.storage.CountConfigFileEachGroup()
+			if err != nil {
+				log.Error("[Cache][ConfigFile] report metrics for config_file each group", zap.Error(err))
+				continue
+			}
+
+			releaseFiles, err := fc.storage.CountConfigFileReleaseEachGroup()
+			if err != nil {
+				log.Error("[Cache][ConfigFile] report metrics for release config_file each group", zap.Error(err))
+				continue
+			}
+
+			metricValues := make([]metrics.ConfigMetrics, 0, 64)
+
+			for ns, groups := range configFiles {
+				metricValues = append(metricValues, metrics.ConfigMetrics{
+					Type:    metrics.ConfigGroupMetric,
+					Total:   int64(len(groups)),
+					Release: 0,
+					Labels: map[string]string{
+						metrics.LabelNamespace: ns,
+					},
+				})
+
+				for group, total := range groups {
+					metricValues = append(metricValues, metrics.ConfigMetrics{
+						Type:  metrics.FileMetric,
+						Total: total,
+						Labels: map[string]string{
+							metrics.LabelNamespace: ns,
+							metrics.LabelGroup:     group,
+						},
+					})
+				}
+			}
+
+			for ns, groups := range releaseFiles {
+				for group, total := range groups {
+					metricValues = append(metricValues, metrics.ConfigMetrics{
+						Type:  metrics.ReleaseFileMetric,
+						Total: total,
+						Labels: map[string]string{
+							metrics.LabelNamespace: ns,
+							metrics.LabelGroup:     group,
+						},
+					})
+				}
+			}
+
+			plugin.GetStatis().ReportConfigMetrics(metricValues...)
+		case <-ctx.Done():
+			return
 		}
 	}
 }

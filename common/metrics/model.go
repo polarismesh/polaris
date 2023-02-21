@@ -62,6 +62,7 @@ type ConfigMetricType string
 const (
 	ConfigGroupMetric ConfigMetricType = "config_group"
 	FileMetric        ConfigMetricType = "file"
+	ReleaseFileMetric ConfigMetricType = "release_file"
 )
 
 type ConfigMetrics struct {

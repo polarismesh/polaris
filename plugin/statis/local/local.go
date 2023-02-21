@@ -47,6 +47,7 @@ type StatisWorker struct {
 	cacheStatis *CacheCallStatis
 
 	discoveryHandle *discoveryMetricHandle
+	configHandle    *configMetricHandle
 }
 
 // Name 获取统计插件名称
@@ -78,6 +79,7 @@ func (s *StatisWorker) Initialize(conf *plugin.ConfigEntry) error {
 	}
 	s.cacheStatis, err = newCacheCallStatis(ctx)
 	s.discoveryHandle = newDiscoveryMetricHandle()
+	s.configHandle = newConfigMetricHandle()
 
 	go s.Run()
 	return nil
@@ -125,7 +127,7 @@ func (s *StatisWorker) ReportDiscoveryMetrics(metric ...metrics.DiscoveryMetric)
 }
 
 // ReportConfigMetrics report config_center metrics
-func (s *StatisWorker) ReportConfigMetrics(metric ...metrics.ConfigMetricType) {
+func (s *StatisWorker) ReportConfigMetrics(metric ...metrics.ConfigMetrics) {
 
 }
 

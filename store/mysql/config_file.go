@@ -206,7 +206,6 @@ func (cf *configFileStore) CountByConfigFileGroup(namespace, group string) (uint
 
 func (cf *configFileStore) CountConfigFileEachGroup() (map[string]map[string]int64, error) {
 	metricsSql := "SELECT namespace, `group`, count(name) FROM config_file WHERE flag = 0 GROUP by namesapce, `group`"
-
 	rows, err := cf.slave.Query(metricsSql)
 	if err != nil {
 		return nil, store.Error(err)
@@ -216,7 +215,24 @@ func (cf *configFileStore) CountConfigFileEachGroup() (map[string]map[string]int
 		_ = rows.Close()
 	}()
 
-	return nil, nil
+	ret := map[string]map[string]int64{}
+	for rows.Next() {
+		var (
+			namespce string
+			group    string
+			cnt      int64
+		)
+
+		if err := rows.Scan(&namespce, &group, cnt); err != nil {
+			return nil, err
+		}
+		if _, ok := ret[namespce]; !ok {
+			ret[namespce] = map[string]int64{}
+		}
+		ret[namespce][group] = cnt
+	}
+
+	return ret, nil
 }
 
 func (cf *configFileStore) baseSelectConfigFileSql() string {
