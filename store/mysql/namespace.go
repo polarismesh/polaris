@@ -29,7 +29,8 @@ import (
 
 // namespaceStore 实现了NamespaceStore
 type namespaceStore struct {
-	db *BaseDB
+	db    *BaseDB
+	slave *BaseDB
 }
 
 // AddNamespace 添加命名空间
@@ -122,7 +123,7 @@ func (ns *namespaceStore) GetNamespaces(filter map[string][]string, offset, limi
 // GetMoreNamespaces 根据mtime获取命名空间
 func (ns *namespaceStore) GetMoreNamespaces(mtime time.Time) ([]*model.Namespace, error) {
 	str := genNamespaceSelectSQL() + " where mtime >= FROM_UNIXTIME(?)"
-	rows, err := ns.db.Query(str, timeToTimestamp(mtime))
+	rows, err := ns.slave.Query(str, timeToTimestamp(mtime))
 	if err != nil {
 		log.Errorf("[Store][database] get more namespace query err: %s", err.Error())
 		return nil, err

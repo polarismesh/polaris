@@ -80,6 +80,8 @@ func initCache(ctrl *gomock.Controller) (*cache.Config, *storemock.MockStore) {
 
 	storage := storemock.NewMockStore(ctrl)
 
+	storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(1), nil)
+	storage.EXPECT().GetInstancesCount().AnyTimes().Return(uint32(1), nil)
 	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 
 	return cfg, storage

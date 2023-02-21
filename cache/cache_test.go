@@ -25,7 +25,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -64,10 +64,10 @@ func TestCacheManager_Start(t *testing.T) {
 	}
 	SetCacheConfig(conf)
 
-	Convey("测试正常的更新缓存逻辑", t, func() {
+	t.Run("测试正常的更新缓存逻辑", func(t *testing.T) {
 		c, err := TestCacheInitialize(context.Background(), &Config{Open: true}, storage)
-		So(err, ShouldBeNil)
-		So(c, ShouldNotBeNil)
+		assert.Nil(t, err)
+		assert.NotNil(t, c)
 		beg := time.Unix(0, 0).Add(DefaultTimeDiff)
 		storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 		storage.EXPECT().GetMoreInstances(beg, true, false, nil).Return(nil, nil).MaxTimes(1)
@@ -90,22 +90,22 @@ func TestCacheManager_Start(t *testing.T) {
 		defer cancel()
 
 		err = c.initialize()
-		So(err, ShouldBeNil)
+		assert.Nil(t, err)
 
 		err = c.Start(ctx)
-		So(err, ShouldBeNil)
+		assert.Nil(t, err)
 
 		// 等待cache更新
 		time.Sleep(c.GetUpdateCacheInterval() + time.Second)
 	})
 
-	Convey("测试TestRefresh", t, func() {
+	t.Run("测试TestRefresh", func(t *testing.T) {
 		c, err := TestCacheInitialize(context.Background(), &Config{Open: true}, storage)
-		So(err, ShouldBeNil)
-		So(c, ShouldNotBeNil)
+		assert.Nil(t, err)
+		assert.NotNil(t, c)
 
 		err = c.TestRefresh()
-		So(err, ShouldBeNil)
+		assert.Nil(t, err)
 	})
 }
 
@@ -116,16 +116,17 @@ func TestRevisionWorker(t *testing.T) {
 	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 	defer ctl.Finish()
 
-	Convey("revision计算，chan可以正常收发", t, func() {
-		nc, err := TestCacheInitialize(context.TODO(), &Config{Open: true}, storage)
-		defer func() { _ = nc.Clear() }()
-		So(err, ShouldBeNil)
-
+	t.Run("revision计算，chan可以正常收发", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+		nc, err := TestCacheInitialize(ctx, &Config{Open: true}, storage)
+		assert.Nil(t, err)
+		t.Cleanup(func() {
+			cancel()
+			_ = nc.Clear()
+		})
 		go nc.revisionWorker(ctx)
 
-		Convey("revision计算，实例有增加有减少，计算正常", func() {
+		t.Run("revision计算，实例有增加有减少，计算正常", func(t *testing.T) {
 			_ = nc.Clear()
 			// mock一下cache中服务的数据
 			maxTotal := 20480
@@ -138,11 +139,12 @@ func TestRevisionWorker(t *testing.T) {
 				}
 				services[item.ID] = item
 			}
+			storage.EXPECT().GetServicesCount().Return(uint32(maxTotal), nil).AnyTimes()
 			storage.EXPECT().GetMoreServices(gomock.Any(), true, false, false).Return(services, nil)
 			// 触发计算
-			_ = nc.caches[CacheService].update(0)
+			_ = nc.caches[CacheService].update()
 			time.Sleep(time.Second * 10)
-			So(nc.GetServiceRevisionCount(), ShouldEqual, maxTotal)
+			assert.Equal(t, maxTotal, nc.GetServiceRevisionCount())
 
 			services = make(map[string]*model.Service)
 			for i := 0; i < maxTotal; i++ {
@@ -155,25 +157,26 @@ func TestRevisionWorker(t *testing.T) {
 					services[item.ID] = item
 				}
 			}
+			storage.EXPECT().GetServicesCount().Return(uint32(maxTotal), nil).AnyTimes()
 			storage.EXPECT().GetMoreServices(gomock.Any(), false, false, false).Return(services, nil)
 			// 触发计算
-			_ = nc.caches[CacheService].update(0)
+			_ = nc.caches[CacheService].update()
 			time.Sleep(time.Second * 20)
 			// 检查是否有正常计算
-			So(nc.GetServiceRevisionCount(), ShouldEqual, maxTotal/2)
+			assert.Equal(t, maxTotal/2, nc.GetServiceRevisionCount())
 		})
 	})
 }
 
 // TestComputeRevision 测试计算revision的函数
 func TestComputeRevision(t *testing.T) {
-	Convey("instances为空，可以正常计算", t, func() {
+	t.Run("instances为空，可以正常计算", func(t *testing.T) {
 		out, err := ComputeRevision("123", nil)
-		So(err, ShouldBeNil)
-		So(out, ShouldNotBeEmpty)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, out)
 	})
 
-	Convey("instances内容一样，不同顺序，计算出的revision一样", t, func() {
+	t.Run("instances内容一样，不同顺序，计算出的revision一样", func(t *testing.T) {
 		instances := make([]*model.Instance, 0, 6)
 		for i := 0; i < 6; i++ {
 			instances = append(instances, &model.Instance{
@@ -184,8 +187,8 @@ func TestComputeRevision(t *testing.T) {
 		}
 
 		lhs, err := ComputeRevision("123", nil)
-		So(err, ShouldBeNil)
-		So(lhs, ShouldNotBeEmpty)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, lhs)
 
 		// 交换一下数据，数据内容不变，revision应该保证不变
 		tmp := instances[0]
@@ -194,29 +197,38 @@ func TestComputeRevision(t *testing.T) {
 		instances[3] = tmp
 
 		rhs, err := ComputeRevision("123", nil)
-		So(err, ShouldBeNil)
-		So(lhs, ShouldEqual, rhs)
+		assert.NoError(t, err)
+		assert.Equal(t, lhs, rhs)
 	})
 
-	Convey("serviceRevision发生改变，返回改变", t, func() {
+	t.Run("serviceRevision发生改变，返回改变", func(t *testing.T) {
 		lhs, err := ComputeRevision("123", nil)
-		So(err, ShouldBeNil)
-		So(lhs, ShouldNotBeEmpty)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, lhs)
 
 		rhs, err := ComputeRevision("456", nil)
-		So(err, ShouldBeNil)
-		So(lhs, ShouldNotEqual, rhs)
+		assert.NoError(t, err)
+		assert.NotEqual(t, lhs, rhs)
 	})
 
-	Convey("instances内容改变，返回改变", t, func() {
+	t.Run("instances内容改变，返回改变", func(t *testing.T) {
 		instance := &model.Instance{Proto: &apiservice.Instance{Revision: utils.NewStringValue("123456")}}
 		lhs, err := ComputeRevision("123", []*model.Instance{instance})
-		So(err, ShouldBeNil)
-		So(lhs, ShouldNotBeEmpty)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, lhs)
 
 		instance.Proto.Revision.Value = "654321"
 		rhs, err := ComputeRevision("456", []*model.Instance{instance})
-		So(err, ShouldBeNil)
-		So(lhs, ShouldNotEqual, rhs)
+		assert.NoError(t, err)
+		assert.NotEqual(t, lhs, rhs)
 	})
+}
+
+func Test_baseCache_LastFetchTime(t *testing.T) {
+	bc := &baseCache{lastFetchTime: 0}
+
+	lastTime := time.Unix(0, 0)
+	fetchTime := bc.LastFetchTime()
+
+	assert.Equal(t, lastTime, fetchTime)
 }

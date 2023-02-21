@@ -102,7 +102,7 @@ func (c *circuitBreakerStore) DeleteCircuitBreakerRule(id string) error {
 	})
 }
 
-// GetRateLimitWithID 根据限流ID拉取限流规则
+// getCircuitBreakerRuleWithID 根据规则ID拉取熔断规则
 func (c *circuitBreakerStore) getCircuitBreakerRuleWithID(id string) (*model.CircuitBreakerRule, error) {
 	if id == "" {
 		return nil, ErrBadParam

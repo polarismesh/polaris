@@ -32,6 +32,10 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var (
+	_ RoutingConfigCache = (*routingConfigCache)(nil)
+)
+
 const (
 	// RoutingConfigName router config name
 	RoutingConfigName = "routingConfig"
@@ -63,8 +67,6 @@ type (
 		serviceCache ServiceCache
 		storage      store.Store
 
-		firstUpdate bool
-
 		bucketV1 *routingBucketV1
 		bucketV2 *routingBucketV2
 
@@ -86,7 +88,7 @@ func init() {
 // newRoutingConfigCache Return a object of operating RoutingConfigcache
 func newRoutingConfigCache(s store.Store, serviceCache ServiceCache) *routingConfigCache {
 	return &routingConfigCache{
-		baseCache:        newBaseCache(),
+		baseCache:        newBaseCache(s),
 		storage:          s,
 		serviceCache:     serviceCache,
 		pendingV1RuleIds: map[string]struct{}{},
@@ -95,12 +97,9 @@ func newRoutingConfigCache(s store.Store, serviceCache ServiceCache) *routingCon
 
 // initialize The function of implementing the cache interface
 func (rc *routingConfigCache) initialize(_ map[string]interface{}) error {
-	rc.firstUpdate = true
-
-	rc.initBuckets()
 	rc.lastMtimeV1 = time.Unix(0, 0)
 	rc.lastMtimeV2 = time.Unix(0, 0)
-
+	rc.initBuckets()
 	return nil
 }
 
@@ -110,49 +109,41 @@ func (rc *routingConfigCache) initBuckets() {
 }
 
 // update The function of implementing the cache interface
-func (rc *routingConfigCache) update(storeRollbackSec time.Duration) error {
+func (rc *routingConfigCache) update() error {
 	// Multiple thread competition, only one thread is updated
-	_, err, _ := rc.singleFlight.Do("RoutingCache", func() (interface{}, error) {
-		return nil, rc.realUpdate(storeRollbackSec)
+	_, err, _ := rc.singleFlight.Do(rc.name(), func() (interface{}, error) {
+		return nil, rc.doCacheUpdate(rc.name(), rc.realUpdate)
 	})
 	return err
 }
 
 // update The function of implementing the cache interface
-func (rc *routingConfigCache) realUpdate(storeRollbackSec time.Duration) error {
-	outV1, err := rc.storage.GetRoutingConfigsForCache(rc.lastMtimeV1.Add(storeRollbackSec), rc.firstUpdate)
+func (rc *routingConfigCache) realUpdate() (map[string]time.Time, int64, error) {
+	outV1, err := rc.storage.GetRoutingConfigsForCache(rc.LastFetchTime(), rc.isFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] routing config v1 cache get from store err: %s", err.Error())
-		return err
+		return nil, -1, err
 	}
 
-	outV2, err := rc.storage.GetRoutingConfigsV2ForCache(rc.lastMtimeV2.Add(storeRollbackSec), rc.firstUpdate)
+	outV2, err := rc.storage.GetRoutingConfigsV2ForCache(rc.LastFetchTime(), rc.isFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] routing config v2 cache get from store err: %s", err.Error())
-		return err
+		return nil, -1, err
 	}
 
-	rc.firstUpdate = false
-	if err := rc.setRoutingConfigV1(outV1); err != nil {
-		log.Errorf("[Cache] routing config v1 cache update err: %s", err.Error())
-		return err
-	}
-	if err := rc.setRoutingConfigV2(outV2); err != nil {
-		log.Errorf("[Cache] routing config v2 cache update err: %s", err.Error())
-		return err
-	}
+	lastMtimes := map[string]time.Time{}
+	rc.setRoutingConfigV1(lastMtimes, outV1)
+	rc.setRoutingConfigV2(lastMtimes, outV2)
 	rc.setRoutingConfigV1ToV2()
-	return nil
+	return lastMtimes, int64(len(outV1) + len(outV2)), err
 }
 
 // clear The function of implementing the cache interface
 func (rc *routingConfigCache) clear() error {
-	rc.firstUpdate = true
-
+	rc.baseCache.clear()
 	rc.initBuckets()
 	rc.lastMtimeV1 = time.Unix(0, 0)
 	rc.lastMtimeV2 = time.Unix(0, 0)
-
 	return nil
 }
 
@@ -253,12 +244,11 @@ func (rc *routingConfigCache) GetRoutingConfigCount() int {
 }
 
 // setRoutingConfigV1 Update the data of the store to the cache
-func (rc *routingConfigCache) setRoutingConfigV1(cs []*model.RoutingConfig) error {
+func (rc *routingConfigCache) setRoutingConfigV1(lastMtimes map[string]time.Time, cs []*model.RoutingConfig) {
 	if len(cs) == 0 {
-		return nil
+		return
 	}
-
-	lastMtimeV1 := rc.lastMtimeV1.Unix()
+	lastMtimeV1 := rc.LastMtime(rc.name()).Unix()
 	for _, entry := range cs {
 		if entry.ID == "" {
 			continue
@@ -281,19 +271,16 @@ func (rc *routingConfigCache) setRoutingConfigV1(cs []*model.RoutingConfig) erro
 		rc.pendingV1RuleIds[entry.ID] = struct{}{}
 	}
 
-	if rc.lastMtimeV1.Unix() < lastMtimeV1 {
-		rc.lastMtimeV1 = time.Unix(lastMtimeV1, 0)
-	}
-	return nil
+	lastMtimes[rc.name()] = time.Unix(lastMtimeV1, 0)
 }
 
 // setRoutingConfigV2 Store V2 Router Caches
-func (rc *routingConfigCache) setRoutingConfigV2(cs []*model.RouterConfig) error {
+func (rc *routingConfigCache) setRoutingConfigV2(lastMtimes map[string]time.Time, cs []*model.RouterConfig) {
 	if len(cs) == 0 {
-		return nil
+		return
 	}
 
-	lastMtimeV2 := rc.lastMtimeV2.Unix()
+	lastMtimeV2 := rc.LastMtime(rc.name() + "v2").Unix()
 	for _, entry := range cs {
 		if entry.ID == "" {
 			continue
@@ -312,11 +299,7 @@ func (rc *routingConfigCache) setRoutingConfigV2(cs []*model.RouterConfig) error
 		}
 		rc.bucketV2.saveV2(extendEntry)
 	}
-	if rc.lastMtimeV2.Unix() < lastMtimeV2 {
-		rc.lastMtimeV2 = time.Unix(lastMtimeV2, 0)
-	}
-
-	return nil
+	lastMtimes[rc.name()+"v2"] = time.Unix(lastMtimeV2, 0)
 }
 
 func (rc *routingConfigCache) setRoutingConfigV1ToV2() {

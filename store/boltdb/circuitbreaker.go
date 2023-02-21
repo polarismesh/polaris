@@ -33,6 +33,8 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var _ store.CircuitBreakerStore = (*circuitBreakerStore)(nil)
+
 const (
 	// rule 相关信息以及映射
 	tblCircuitBreaker string = "circuitbreaker_rule"

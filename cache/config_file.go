@@ -125,7 +125,7 @@ func (fc *fileCache) addListener(_ []Listener) {
 }
 
 // update
-func (fc *fileCache) update(_ time.Duration) error {
+func (fc *fileCache) update() error {
 	return nil
 }
 

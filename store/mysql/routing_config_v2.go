@@ -29,6 +29,8 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var _ store.RoutingConfigStoreV2 = (*routingConfigStoreV2)(nil)
+
 // RoutingConfigStoreV2 impl
 type routingConfigStoreV2 struct {
 	master *BaseDB

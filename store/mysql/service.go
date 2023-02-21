@@ -59,9 +59,7 @@ func (ss *serviceStore) addService(s *model.Service) error {
 		return err
 	}
 	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
+		_ = tx.Rollback()
 	}()
 
 	// 锁namespace
@@ -114,9 +112,7 @@ func (ss *serviceStore) deleteService(id, serviceName, namespaceName string) err
 		return err
 	}
 	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
+		_ = tx.Rollback()
 	}()
 
 	// 锁住服务
@@ -198,9 +194,7 @@ func (ss *serviceStore) updateServiceAlias(alias *model.Service, needUpdateOwner
 		return err
 	}
 	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
+		_ = tx.Rollback()
 	}()
 
 	updateStmt := `
@@ -285,9 +279,7 @@ func (ss *serviceStore) updateService(service *model.Service, needUpdateOwner bo
 		return err
 	}
 	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
+		_ = tx.Rollback()
 	}()
 
 	// 更新main表
