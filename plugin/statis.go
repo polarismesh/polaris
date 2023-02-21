@@ -103,6 +103,30 @@ func (c *compositeStatis) ReportConfigMetrics(metric ...metrics.ConfigMetrics) {
 	}
 }
 
+type noopStatis struct {
+}
+
+func (n *noopStatis) Name() string {
+	return "noopStatis"
+}
+
+func (n *noopStatis) Initialize(c *ConfigEntry) error {
+	return nil
+}
+
+func (n *noopStatis) Destroy() error {
+	return nil
+}
+
+// ReportCallMetrics report call metrics info
+func (n *noopStatis) ReportCallMetrics(metric metrics.CallMetric) {}
+
+// ReportDiscoveryMetrics report discovery metrics
+func (n *noopStatis) ReportDiscoveryMetrics(metric ...metrics.DiscoveryMetric) {}
+
+// ReportConfigMetrics report config_center metrics
+func (n *noopStatis) ReportConfigMetrics(metric ...metrics.ConfigMetrics) {}
+
 // GetStatis Get statistical plugin
 func GetStatis() Statis {
 	if _statis != nil {
