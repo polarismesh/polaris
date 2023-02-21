@@ -27,6 +27,7 @@ const (
 	LabelServerNode       = "polaris_server_instance"
 	LabelNamespace        = "namespace"
 	LabelService          = "service"
+	LabelGroup            = "group"
 	LabelVersion          = "version"
 	LabelApi              = "api"
 	LabelApiType          = "api_type"
