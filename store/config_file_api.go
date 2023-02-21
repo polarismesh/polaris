@@ -81,6 +81,9 @@ type ConfigFileStore interface {
 
 	// CountByConfigFileGroup 获取一个配置文件组下的文件数量
 	CountByConfigFileGroup(namespace, group string) (uint64, error)
+
+	// CountConfigFileEachGroup 统计 namespace.group 下的配置文件数量
+	CountConfigFileEachGroup() (map[string]map[string]int64, error)
 }
 
 // ConfigFileReleaseStore 配置文件发布存储接口
@@ -104,6 +107,9 @@ type ConfigFileReleaseStore interface {
 	// FindConfigFileReleaseByModifyTimeAfter 获取最近更新的配置文件发布
 	// 此方法用于 cache 增量更新，需要注意 modifyTime 应为数据库时间戳
 	FindConfigFileReleaseByModifyTimeAfter(modifyTime time.Time) ([]*model.ConfigFileRelease, error)
+
+	// CountConfigFileReleaseEachGroup 统计 namespace.group 下的已发布配置文件数量
+	CountConfigFileReleaseEachGroup() (map[string]map[string]int64, error)
 }
 
 // ConfigFileReleaseHistoryStore 配置文件发布历史存储接口

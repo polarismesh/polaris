@@ -25,6 +25,8 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var _ store.ConfigFileReleaseStore = (*configFileReleaseStore)(nil)
+
 type configFileReleaseStore struct {
 	db    *BaseDB
 	slave *BaseDB
@@ -144,6 +146,10 @@ func (cfr *configFileReleaseStore) FindConfigFileReleaseByModifyTimeAfter(
 	}
 
 	return releases, nil
+}
+
+func (cfr *configFileReleaseStore) CountConfigFileReleaseEachGroup() (map[string]map[string]int64, error) {
+	return nil, nil
 }
 
 func (cfr *configFileReleaseStore) baseQuerySql() string {

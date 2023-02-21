@@ -29,6 +29,8 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var _ store.ConfigFileReleaseStore = (*configFileReleaseStore)(nil)
+
 const (
 	tblConfigFileRelease   string = "ConfigFileRelease"
 	tblConfigFileReleaseID string = "ConfigFileReleaseID"
@@ -301,4 +303,8 @@ func (cfr *configFileReleaseStore) FindConfigFileReleaseByModifyTimeAfter(
 	}
 
 	return releases, nil
+}
+
+func (cfr *configFileReleaseStore) CountConfigFileReleaseEachGroup() (map[string]map[string]int64, error) {
+	return nil, nil
 }

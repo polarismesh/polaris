@@ -25,8 +25,11 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var _ store.ConfigFileStore = (*configFileStore)(nil)
+
 type configFileStore struct {
-	db *BaseDB
+	db    *BaseDB
+	slave *BaseDB
 }
 
 // CreateConfigFile 创建配置文件
@@ -199,6 +202,21 @@ func (cf *configFileStore) CountByConfigFileGroup(namespace, group string) (uint
 		return 0, err
 	}
 	return count, nil
+}
+
+func (cf *configFileStore) CountConfigFileEachGroup() (map[string]map[string]int64, error) {
+	metricsSql := "SELECT namespace, `group`, count(name) FROM config_file WHERE flag = 0 GROUP by namesapce, `group`"
+
+	rows, err := cf.slave.Query(metricsSql)
+	if err != nil {
+		return nil, store.Error(err)
+	}
+
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	return nil, nil
 }
 
 func (cf *configFileStore) baseSelectConfigFileSql() string {
