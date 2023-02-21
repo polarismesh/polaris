@@ -26,6 +26,7 @@ import (
 	"github.com/polarismesh/polaris-server/common/log"
 	"github.com/polarismesh/polaris-server/common/model"
 	"github.com/polarismesh/polaris-server/store"
+	"golang.org/x/sync/singleflight"
 )
 
 const (
@@ -60,11 +61,11 @@ type RateLimitCache interface {
 type rateLimitCache struct {
 	*baseCache
 
-	storage     store.Store
-	ids         *sync.Map
-	revisions   *sync.Map
-	lastTime    time.Time
-	firstUpdate bool
+	storage   store.Store
+	ids       *sync.Map
+	revisions *sync.Map
+
+	singleFlight singleflight.Group
 }
 
 // init 自注册到缓存列表
@@ -75,7 +76,7 @@ func init() {
 // newRateLimitCache 返回一个操作RateLimitCache的对象
 func newRateLimitCache(s store.Store) *rateLimitCache {
 	return &rateLimitCache{
-		baseCache: newBaseCache(),
+		baseCache: newBaseCache(s),
 		storage:   s,
 	}
 }
@@ -84,8 +85,6 @@ func newRateLimitCache(s store.Store) *rateLimitCache {
 func (rlc *rateLimitCache) initialize(opt map[string]interface{}) error {
 	rlc.ids = new(sync.Map)
 	rlc.revisions = new(sync.Map)
-	rlc.lastTime = time.Unix(0, 0)
-	rlc.firstUpdate = true
 	if opt == nil {
 		return nil
 	}
@@ -93,15 +92,24 @@ func (rlc *rateLimitCache) initialize(opt map[string]interface{}) error {
 }
 
 // update 实现Cache接口的update函数
-func (rlc *rateLimitCache) update(storeRollbackSec time.Duration) error {
-	rateLimits, revisions, err := rlc.storage.GetRateLimitsForCache(rlc.lastTime.Add(storeRollbackSec),
-		rlc.firstUpdate)
+func (rlc *rateLimitCache) update() error {
+	// 多个线程竞争，只有一个线程进行更新
+	_, err, _ := rlc.singleFlight.Do(rlc.name(), func() (interface{}, error) {
+		return nil, rlc.doCacheUpdate(rlc.name(), rlc.realUpdate)
+	})
+
+	return err
+}
+
+func (rlc *rateLimitCache) realUpdate() (map[string]time.Time, int64, error) {
+	rateLimits, revisions, err := rlc.storage.GetRateLimitsForCache(rlc.LastFetchTime(), rlc.isFirstUpdate())
 	if err != nil {
-		log.CacheScope().Errorf("[Cache] rate limit cache update err: %s", err.Error())
-		return err
+		log.Errorf("[Cache] rate limit cache update err: %s", err.Error())
+		return nil, -1, err
 	}
-	rlc.firstUpdate = false
-	return rlc.setRateLimit(rateLimits, revisions)
+	rlc.setRateLimit(rateLimits, revisions)
+
+	return nil, int64(len(rateLimits)), err
 }
 
 // name 获取资源名称
@@ -111,9 +119,9 @@ func (rlc *rateLimitCache) name() string {
 
 // clear 实现Cache接口的clear函数
 func (rlc *rateLimitCache) clear() error {
+	rlc.baseCache.clear()
 	rlc.ids = new(sync.Map)
 	rlc.revisions = new(sync.Map)
-	rlc.lastTime = time.Unix(0, 0)
 	return nil
 }
 
@@ -131,12 +139,12 @@ func rateLimitToProto(rateLimit *model.RateLimit) error {
 
 // setRateLimit 更新限流规则到缓存中
 func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit,
-	revisions []*model.RateLimitRevision) error {
+	revisions []*model.RateLimitRevision) map[string]time.Time {
 	if len(rateLimits) == 0 {
 		return nil
 	}
 
-	lastMtime := rlc.lastTime.Unix()
+	lastMtime := rlc.LastMtime(rlc.name()).Unix()
 	for _, item := range rateLimits {
 		err := rateLimitToProto(item)
 		if nil != err {
@@ -170,10 +178,9 @@ func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit,
 		rlc.revisions.Store(item.ServiceID, item.LastRevision)
 	}
 
-	if rlc.lastTime.Unix() < lastMtime {
-		rlc.lastTime = time.Unix(lastMtime, 0)
+	return map[string]time.Time{
+		rlc.name(): time.Unix(lastMtime, 0),
 	}
-	return nil
 }
 
 // GetRateLimit 根据serviceID进行迭代回调

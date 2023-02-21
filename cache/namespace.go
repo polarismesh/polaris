@@ -61,91 +61,92 @@ type NamespaceCache interface {
 
 type namespaceCache struct {
 	*baseCache
-	storage     store.Store
-	ids         *sync.Map
-	lastTime    int64
-	firstUpdate bool
-	updater     *singleflight.Group
+	storage store.Store
+	ids     *sync.Map
+	updater *singleflight.Group
 }
 
 func newNamespaceCache(storage store.Store) NamespaceCache {
 	return &namespaceCache{
-		baseCache: newBaseCache(),
+		baseCache: newBaseCache(storage),
 		storage:   storage,
 	}
 }
 
 // initialize
-//  @param c
-//  @return error
+//
+//	@param c
+//	@return error
 func (nsCache *namespaceCache) initialize(c map[string]interface{}) error {
 	nsCache.ids = new(sync.Map)
-	nsCache.lastTime = 0
-	nsCache.firstUpdate = true
-
 	nsCache.updater = new(singleflight.Group)
-
 	return nil
 }
 
 // update
-//  @return error
-func (nsCache *namespaceCache) update(storeRollbackSec time.Duration) error {
+//
+//	@return error
+func (nsCache *namespaceCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
-	_, err, _ := nsCache.updater.Do(NamespaceName, func() (interface{}, error) {
-		return nil, nsCache.realUpdate(storeRollbackSec)
+	_, err, _ := nsCache.updater.Do(nsCache.name(), func() (interface{}, error) {
+		return nil, nsCache.doCacheUpdate(nsCache.name(), nsCache.realUpdate)
 	})
 	return err
 }
 
-func (nsCache *namespaceCache) realUpdate(storeRollbackSec time.Duration) error {
-
-	lastMtime := time.Unix(nsCache.lastTime, 0).Add(storeRollbackSec)
-
-	ret, err := nsCache.storage.GetMoreNamespaces(lastMtime)
+func (nsCache *namespaceCache) realUpdate() (map[string]time.Time, int64, error) {
+	var (
+		lastTime = nsCache.LastFetchTime()
+		ret, err = nsCache.storage.GetMoreNamespaces(lastTime)
+	)
 	if err != nil {
-		log.CacheScope().Error("[Cache][Namespace] get storage more", zap.Error(err))
-		return err
+		log.Error("[Cache][Namespace] get storage more", zap.Error(err))
+		return nil, -1, err
 	}
-	nsCache.firstUpdate = false
-	nsCache.setNamespaces(ret)
-	return nil
+	lastMtimes := nsCache.setNamespaces(ret)
+	return lastMtimes, int64(len(ret)), nil
 }
 
-func (nsCache *namespaceCache) setNamespaces(nsSlice []*model.Namespace) error {
+func (nsCache *namespaceCache) setNamespaces(nsSlice []*model.Namespace) map[string]time.Time {
+	lastMtime := nsCache.LastMtime(nsCache.name()).Unix()
+
 	for index := range nsSlice {
 		ns := nsSlice[index]
 		if !ns.Valid {
 			nsCache.ids.Delete(ns.Name)
 		} else {
 			nsCache.ids.Store(ns.Name, ns)
-			nsCache.lastTime = int64(math.Max(float64(nsCache.lastTime), float64(ns.ModifyTime.Unix())))
 		}
+
+		lastMtime = int64(math.Max(float64(lastMtime), float64(ns.ModifyTime.Unix())))
 	}
 
-	return nil
+	return map[string]time.Time{
+		nsCache.name(): time.Unix(lastMtime, 0),
+	}
 }
 
 // clear
-//  @return error
+//
+//	@return error
 func (nsCache *namespaceCache) clear() error {
+	nsCache.baseCache.clear()
 	nsCache.ids = new(sync.Map)
-	nsCache.lastTime = 0
-	nsCache.firstUpdate = true
-
 	return nil
 }
 
 // name
-//  @return string
+//
+//	@return string
 func (nsCache *namespaceCache) name() string {
 	return NamespaceName
 }
 
 // GetNamespace
-//  @receiver nsCache
-//  @param id
-//  @return *model.Namespace
+//
+//	@receiver nsCache
+//	@param id
+//	@return *model.Namespace
 func (nsCache *namespaceCache) GetNamespace(id string) *model.Namespace {
 	val, ok := nsCache.ids.Load(id)
 
@@ -157,10 +158,11 @@ func (nsCache *namespaceCache) GetNamespace(id string) *model.Namespace {
 }
 
 // GetNamespacesByName
-//  @receiver nsCache
-//  @param names
-//  @return []*model.Namespace
-//  @return error
+//
+//	@receiver nsCache
+//	@param names
+//	@return []*model.Namespace
+//	@return error
 func (nsCache *namespaceCache) GetNamespacesByName(names []string) []*model.Namespace {
 	nsArr := make([]*model.Namespace, 0, len(names))
 
@@ -175,8 +177,9 @@ func (nsCache *namespaceCache) GetNamespacesByName(names []string) []*model.Name
 }
 
 // GetNamespaceList
-//  @receiver nsCache
-//  @return []*model.Namespace
+//
+//	@receiver nsCache
+//	@return []*model.Namespace
 func (nsCache *namespaceCache) GetNamespaceList() []*model.Namespace {
 
 	nsArr := make([]*model.Namespace, 0, 8)
