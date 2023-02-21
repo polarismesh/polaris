@@ -29,9 +29,12 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var _ store.RateLimitStore = (*rateLimitStore)(nil)
+
 // rateLimitStore RateLimitStore的实现
 type rateLimitStore struct {
-	db *BaseDB
+	db    *BaseDB
+	slave *BaseDB
 }
 
 // CreateRateLimit 新建限流规则
@@ -300,7 +303,7 @@ func (rls *rateLimitStore) GetRateLimitsForCache(mtime time.Time,
 	if firstUpdate {
 		str += " and flag != 1"
 	}
-	rows, err := rls.db.Query(str, timeToTimestamp(mtime))
+	rows, err := rls.slave.Query(str, timeToTimestamp(mtime))
 	if err != nil {
 		log.Errorf("[Store][database] query rate limits with mtime err: %s", err.Error())
 		return nil, nil, err

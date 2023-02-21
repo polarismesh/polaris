@@ -29,6 +29,8 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var _ store.RoutingConfigStore = (*routingStore)(nil)
+
 type routingStore struct {
 	handler BoltHandler
 }

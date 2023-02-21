@@ -27,6 +27,8 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var _ store.FaultDetectRuleStore = (*faultDetectRuleStore)(nil)
+
 type faultDetectRuleStore struct {
 	master *BaseDB
 	slave  *BaseDB

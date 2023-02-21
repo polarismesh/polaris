@@ -28,6 +28,8 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var _ store.RoutingConfigStoreV2 = (*routingStoreV2)(nil)
+
 var (
 	// ErrMultipleRoutingV2Found 多个路由配置
 	ErrMultipleRoutingV2Found = errors.New("multiple routing v2 found")

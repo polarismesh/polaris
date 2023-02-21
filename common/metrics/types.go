@@ -24,15 +24,17 @@ import (
 )
 
 const (
-	labelServerNode    = "polaris_server_instance"
-	labelNamespace     = "namespace"
-	labelService       = "service"
-	labelServiceStatus = "status"
-	labelVersion       = "version"
-	labelApi           = "api"
-	labelApiType       = "api_type"
-	labelProtocol      = "protocol"
-	labelErrCode       = "err_code"
+	labelServerNode       = "polaris_server_instance"
+	labelNamespace        = "namespace"
+	labelService          = "service"
+	labelServiceStatus    = "status"
+	labelVersion          = "version"
+	labelApi              = "api"
+	labelApiType          = "api_type"
+	labelProtocol         = "protocol"
+	labelErrCode          = "err_code"
+	labelCacheType        = "cache_type"
+	labelCacheUpdateCount = "cache_update_count"
 )
 
 var (
@@ -139,6 +141,16 @@ var (
 const (
 	labelCacheType        = "cache_type"
 	labelCacheUpdateCount = "cache_update_count"
+)
+
+var (
+	cacheUpdateCost = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "cache_update_cost",
+		Help: "cache update cost per resource cache",
+		ConstLabels: map[string]string{
+			"polaris_server_instance": utils.LocalHost,
+		},
+	}, []string{labelCacheType, labelCacheUpdateCount})
 )
 
 var (

@@ -73,6 +73,7 @@ func newUserTest(t *testing.T) *UserTest {
 
 	storage := storemock.NewMockStore(ctrl)
 	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
+	storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(1), nil)
 	storage.EXPECT().AddUser(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().GetUserByName(gomock.Eq("create-user-1"), gomock.Any()).AnyTimes().Return(nil, nil)
 	storage.EXPECT().GetUserByName(gomock.Eq("create-user-2"), gomock.Any()).AnyTimes().Return(&model.User{

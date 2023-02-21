@@ -186,7 +186,6 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (map[string]t
 			if itemExist {
 				c.manager.onEvent(client, EventDeleted)
 			}
-
 			continue
 		}
 

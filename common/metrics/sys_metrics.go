@@ -18,6 +18,7 @@
 package metrics
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -78,4 +79,12 @@ func ReportRedisIsDead() {
 // ReportRedisIsAlive report redis alive status is health
 func ReportRedisIsAlive() {
 	redisAliveStatus.Set(1)
+}
+
+// RecordCacheUpdateCost record per cache update cost time
+func RecordCacheUpdateCost(cost time.Duration, cacheTye string, total int64) {
+	cacheUpdateCost.With(map[string]string{
+		labelCacheType:        cacheTye,
+		labelCacheUpdateCount: strconv.FormatInt(total, 10),
+	})
 }

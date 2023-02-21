@@ -29,6 +29,7 @@ RUN set -eux && \
 
 ARG TARGETARCH
 COPY polaris-server-${TARGETARCH} /root/polaris-server
+COPY ./release/conf /root/conf
 
 WORKDIR /root
 
