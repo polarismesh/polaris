@@ -128,6 +128,7 @@ type Cache interface {
 
 // baseCache 对于 Cache 中的一些 func 做统一实现，避免重复逻辑
 type baseCache struct {
+	lock          sync.RWMutex
 	firtstUpdate  bool
 	s             store.Store
 	lastFetchTime int64
@@ -138,9 +139,6 @@ type baseCache struct {
 func newBaseCache(s store.Store) *baseCache {
 	c := &baseCache{
 		s: s,
-		manager: &listenerManager{
-			listeners: make([]Listener, 0, 4),
-		},
 	}
 
 	c.initialize()
@@ -148,8 +146,15 @@ func newBaseCache(s store.Store) *baseCache {
 }
 
 func (bc *baseCache) initialize() {
+	bc.lock.Lock()
+	defer bc.lock.Unlock()
+
 	bc.lastFetchTime = 0
 	bc.firtstUpdate = true
+	bc.manager = &listenerManager{
+		listeners: make([]Listener, 0, 4),
+	}
+	bc.lastMtimes = map[string]time.Time{}
 }
 
 var (
@@ -157,10 +162,14 @@ var (
 )
 
 func (bc *baseCache) restLastMtime(label string) {
+	bc.lock.Lock()
+	defer bc.lock.Unlock()
 	bc.lastMtimes[label] = time.Unix(0, 0)
 }
 
 func (bc *baseCache) LastMtime(label string) time.Time {
+	bc.lock.RLock()
+	defer bc.lock.RUnlock()
 	v, ok := bc.lastMtimes[label]
 	if ok {
 		return v
@@ -200,6 +209,8 @@ func (bc *baseCache) doCacheUpdate(name string, executor func() (map[string]time
 		return err
 	}
 
+	bc.lock.Lock()
+	defer bc.lock.Unlock()
 	if len(lastMtimes) != 0 {
 		if len(bc.lastMtimes) != 0 {
 			for label, lastMtime := range lastMtimes {
@@ -219,12 +230,17 @@ func (bc *baseCache) doCacheUpdate(name string, executor func() (map[string]time
 }
 
 func (bc *baseCache) clear() {
+	bc.lock.Lock()
+	defer bc.lock.Unlock()
+	bc.lastMtimes = make(map[string]time.Time)
 	bc.lastFetchTime = 0
 	bc.firtstUpdate = true
 }
 
 // addListener 添加
 func (bc *baseCache) addListener(listeners []Listener) {
+	bc.lock.Lock()
+	defer bc.lock.Unlock()
 	bc.manager.listeners = append(bc.manager.listeners, listeners...)
 }
 
