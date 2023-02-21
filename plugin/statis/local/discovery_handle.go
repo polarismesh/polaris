@@ -34,6 +34,8 @@ func init() {
 		instanceOnlineCount,
 		instanceAbnormalCount,
 		instanceIsolateCount,
+
+		clientInstanceTotal,
 	}...)
 }
 
