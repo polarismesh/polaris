@@ -27,7 +27,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -69,7 +68,6 @@ type instanceCache struct {
 	*baseCache
 
 	storage            store.Store
-	lastMtime          int64
 	lastMtimeLogged    int64
 	ids                *sync.Map // instanceid -> instance
 	services           *sync.Map // service id -> [instanceid ->instance]
@@ -107,7 +105,6 @@ func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 		lock:         sync.RWMutex{},
 		servicePorts: make(map[string]map[string]struct{}),
 	}
-	ic.lastMtime = 0
 	if opt == nil {
 		return nil
 	}
@@ -135,12 +132,16 @@ func (ic *instanceCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := ic.singleFlight.Do(ic.name(), func() (interface{}, error) {
 		defer func() {
-			ic.lastMtimeLogged = logLastMtime(ic.lastMtimeLogged, ic.lastMtime, "Instance")
+			ic.lastMtimeLogged = logLastMtime(ic.lastMtimeLogged, ic.LastMtime().Unix(), "Instance")
 			ic.checkAll()
 		}()
 		return nil, ic.doCacheUpdate(ic.name(), ic.realUpdate)
 	})
 	return err
+}
+
+func (ic *instanceCache) LastMtime() time.Time {
+	return ic.baseCache.LastMtime(ic.name())
 }
 
 func (ic *instanceCache) checkAll() {
@@ -162,29 +163,28 @@ func (ic *instanceCache) checkAll() {
 	log.Infof(
 		"[Cache][Instance] instance count not match, expect %d, actual %d, fallback to load all",
 		count, ic.instanceCount)
-	ic.lastMtime = 0
+	ic.restLastMtime(ic.name())
 }
 
 const maxLoadTimeDuration = 1 * time.Second
 
-func (ic *instanceCache) realUpdate() error {
+func (ic *instanceCache) realUpdate() (map[string]time.Time, int64, error) {
 	// 拉取diff前的所有数据
 	start := time.Now()
-	instances, err := ic.storage.GetMoreInstances(ic.LastFetchTime(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID)
+	instances, err := ic.storage.GetMoreInstances(ic.LastFetchTime(), ic.isFirstUpdate(), ic.needMeta, ic.systemServiceID)
 	if err != nil {
 		log.Errorf("[Cache][Instance] update get storage more err: %s", err.Error())
-		return err
+		return nil, -1, err
 	}
 
-	update, del := ic.setInstances(instances)
+	lastMimes, update, del := ic.setInstances(instances)
 	timeDiff := time.Since(start)
-	metrics.RecordCacheUpdateCost(timeDiff, ic.name(), int64(len(instances)))
 	if timeDiff > 1*time.Second {
 		log.Info("[Cache][Instance] get more instances",
 			zap.Int("update", update), zap.Int("delete", del),
 			zap.Time("last", ic.LastMtime()), zap.Duration("used", time.Since(start)))
 	}
-	return nil
+	return lastMimes, int64(len(instances)), err
 }
 
 // clear 清理内部缓存数据
@@ -195,18 +195,12 @@ func (ic *instanceCache) clear() error {
 	ic.instanceCounts = new(sync.Map)
 	ic.servicePortsBucket.reset()
 	ic.instanceCount = 0
-	ic.lastMtime = 0
 	return nil
 }
 
 // name 获取资源名称
 func (ic *instanceCache) name() string {
 	return InstanceName
-}
-
-// LastMtime 最后一次更新时间
-func (ic *instanceCache) LastMtime() time.Time {
-	return time.Unix(ic.lastMtime, 0)
 }
 
 // getSystemServices 获取系统服务ID
@@ -221,12 +215,12 @@ func (ic *instanceCache) getSystemServices() ([]*model.Service, error) {
 
 // setInstances 保存instance到内存中
 // 返回：更新个数，删除个数
-func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int) {
+func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[string]time.Time, int, int) {
 	if len(ins) == 0 {
-		return 0, 0
+		return nil, 0, 0
 	}
 
-	lastMtime := ic.lastMtime
+	lastMtime := ic.LastMtime().Unix()
 	update := 0
 	del := 0
 	affect := make(map[string]bool)
@@ -286,11 +280,6 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 		value.(*sync.Map).Store(item.ID(), item)
 	}
 
-	if ic.lastMtime != lastMtime {
-		log.Infof("[Cache][Instance] instance lastMtime update from %s to %s",
-			time.Unix(ic.lastMtime, 0), time.Unix(lastMtime, 0))
-		ic.lastMtime = lastMtime
-	}
 	if ic.instanceCount != instanceCount {
 		log.Infof("[Cache][Instance] instance count update from %d to %d",
 			ic.instanceCount, instanceCount)
@@ -298,7 +287,9 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (int, int)
 	}
 	ic.postProcessUpdatedServices(affect)
 	ic.manager.onEvent(affect, EventInstanceReload)
-	return update, del
+	return map[string]time.Time{
+		ic.name(): time.Unix(lastMtime, 0),
+	}, update, del
 }
 
 func fillInternalLabels(item *model.Instance) *model.Instance {

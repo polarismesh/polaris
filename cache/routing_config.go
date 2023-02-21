@@ -26,7 +26,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	routingcommon "github.com/polarismesh/polaris/common/routing"
 	"github.com/polarismesh/polaris/common/utils"
@@ -119,33 +118,24 @@ func (rc *routingConfigCache) update() error {
 }
 
 // update The function of implementing the cache interface
-func (rc *routingConfigCache) realUpdate() error {
-	start := time.Now()
-	outV1, err := rc.storage.GetRoutingConfigsForCache(rc.LastFetchTime(), rc.IsFirstUpdate())
+func (rc *routingConfigCache) realUpdate() (map[string]time.Time, int64, error) {
+	outV1, err := rc.storage.GetRoutingConfigsForCache(rc.LastFetchTime(), rc.isFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] routing config v1 cache get from store err: %s", err.Error())
-		return err
+		return nil, -1, err
 	}
-	metrics.RecordCacheUpdateCost(time.Since(start), rc.name(), int64(len(outV1)))
 
-	start = time.Now()
-	outV2, err := rc.storage.GetRoutingConfigsV2ForCache(rc.LastFetchTime(), rc.IsFirstUpdate())
+	outV2, err := rc.storage.GetRoutingConfigsV2ForCache(rc.LastFetchTime(), rc.isFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] routing config v2 cache get from store err: %s", err.Error())
-		return err
+		return nil, -1, err
 	}
-	metrics.RecordCacheUpdateCost(time.Since(start), rc.name()+"v2", int64(len(outV2)))
 
-	if err := rc.setRoutingConfigV1(outV1); err != nil {
-		log.Errorf("[Cache] routing config v1 cache update err: %s", err.Error())
-		return err
-	}
-	if err := rc.setRoutingConfigV2(outV2); err != nil {
-		log.Errorf("[Cache] routing config v2 cache update err: %s", err.Error())
-		return err
-	}
+	lastMtimes := map[string]time.Time{}
+	rc.setRoutingConfigV1(lastMtimes, outV1)
+	rc.setRoutingConfigV2(lastMtimes, outV2)
 	rc.setRoutingConfigV1ToV2()
-	return nil
+	return lastMtimes, int64(len(outV1) + len(outV2)), err
 }
 
 // clear The function of implementing the cache interface
@@ -254,11 +244,11 @@ func (rc *routingConfigCache) GetRoutingConfigCount() int {
 }
 
 // setRoutingConfigV1 Update the data of the store to the cache
-func (rc *routingConfigCache) setRoutingConfigV1(cs []*model.RoutingConfig) error {
+func (rc *routingConfigCache) setRoutingConfigV1(lastMtimes map[string]time.Time, cs []*model.RoutingConfig) {
 	if len(cs) == 0 {
-		return nil
+		return
 	}
-	lastMtimeV1 := rc.lastMtimeV1.Unix()
+	lastMtimeV1 := rc.LastMtime(rc.name()).Unix()
 	for _, entry := range cs {
 		if entry.ID == "" {
 			continue
@@ -281,23 +271,16 @@ func (rc *routingConfigCache) setRoutingConfigV1(cs []*model.RoutingConfig) erro
 		rc.pendingV1RuleIds[entry.ID] = struct{}{}
 	}
 
-	if rc.lastMtimeV1.Unix() < lastMtimeV1 {
-		curLastMtime := time.Unix(lastMtimeV1, 0)
-		log.Infof("[Cache][Routing] routing v1 lastMtime update from %s to %s",
-			rc.lastMtimeV1, curLastMtime)
-		rc.lastMtimeV1 = curLastMtime
-	}
-
-	return nil
+	lastMtimes[rc.name()] = time.Unix(lastMtimeV1, 0)
 }
 
 // setRoutingConfigV2 Store V2 Router Caches
-func (rc *routingConfigCache) setRoutingConfigV2(cs []*model.RouterConfig) error {
+func (rc *routingConfigCache) setRoutingConfigV2(lastMtimes map[string]time.Time, cs []*model.RouterConfig) {
 	if len(cs) == 0 {
-		return nil
+		return
 	}
 
-	lastMtimeV2 := rc.lastMtimeV2.Unix()
+	lastMtimeV2 := rc.LastMtime(rc.name() + "v2").Unix()
 	for _, entry := range cs {
 		if entry.ID == "" {
 			continue
@@ -316,14 +299,7 @@ func (rc *routingConfigCache) setRoutingConfigV2(cs []*model.RouterConfig) error
 		}
 		rc.bucketV2.saveV2(extendEntry)
 	}
-	if rc.lastMtimeV2.Unix() < lastMtimeV2 {
-		curLastMtime := time.Unix(lastMtimeV2, 0)
-		log.Infof("[Cache][Routing] routing v1 lastMtime update from %s to %s",
-			rc.lastMtimeV2, curLastMtime)
-		rc.lastMtimeV2 = curLastMtime
-	}
-
-	return nil
+	lastMtimes[rc.name()+"v2"] = time.Unix(lastMtimeV2, 0)
 }
 
 func (rc *routingConfigCache) setRoutingConfigV1ToV2() {

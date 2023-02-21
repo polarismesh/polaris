@@ -25,7 +25,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -63,7 +62,6 @@ type clientCache struct {
 	*baseCache
 
 	storage         store.Store
-	lastMtime       int64
 	lastMtimeLogged int64
 	clients         map[string]*model.Client // instance id -> instance
 	lock            sync.RWMutex
@@ -78,7 +76,7 @@ func (c *clientCache) name() string {
 
 // LastMtime 最后一次更新时间
 func (c *clientCache) LastMtime() time.Time {
-	return time.Unix(c.lastMtime, 0)
+	return c.baseCache.LastMtime(c.name())
 }
 
 // newClientCache 新建一个clientCache
@@ -93,7 +91,6 @@ func newClientCache(storage store.Store) *clientCache {
 // initialize 初始化函数
 func (c *clientCache) initialize(_ map[string]interface{}) error {
 	c.singleFlight = &singleflight.Group{}
-	c.lastMtime = 0
 	c.lastUpdateTime = time.Unix(0, 0)
 	return nil
 }
@@ -102,7 +99,7 @@ func (c *clientCache) initialize(_ map[string]interface{}) error {
 func (c *clientCache) update() error {
 	// 一分钟update一次
 	timeDiff := time.Since(c.lastUpdateTime).Minutes()
-	if !c.IsFirstUpdate() && 1 > timeDiff {
+	if !c.isFirstUpdate() && 1 > timeDiff {
 		log.Debug("[Cache][Client] update get storage ignore", zap.Float64("time-diff", timeDiff))
 		return nil
 	}
@@ -110,7 +107,7 @@ func (c *clientCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := c.singleFlight.Do(c.name(), func() (interface{}, error) {
 		defer func() {
-			c.lastMtimeLogged = logLastMtime(c.lastMtimeLogged, c.lastMtime, "Client")
+			c.lastMtimeLogged = logLastMtime(c.lastMtimeLogged, c.LastMtime().Unix(), "Client")
 		}()
 		return nil, c.doCacheUpdate(c.name(), c.realUpdate)
 	})
@@ -118,26 +115,24 @@ func (c *clientCache) update() error {
 	return err
 }
 
-func (c *clientCache) realUpdate() error {
+func (c *clientCache) realUpdate() (map[string]time.Time, int64, error) {
 	// 拉取diff前的所有数据
 	start := time.Now()
-	clients, err := c.storage.GetMoreClients(c.LastFetchTime(), c.IsFirstUpdate())
+	clients, err := c.storage.GetMoreClients(c.LastFetchTime(), c.isFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache][Client] update get storage more err: %s", err.Error())
-		return err
+		return nil, -1, err
 	}
 	timeDiff := time.Since(start)
-	metrics.RecordCacheUpdateCost(timeDiff, c.name(), int64(len(clients)))
-
-	update, del := c.setClients(clients)
+	lastMtimes, update, del := c.setClients(clients)
 	if timeDiff > 1*time.Second {
 		log.Info("[Cache][Client] get more clients",
 			zap.Int("update", update), zap.Int("delete", del),
-			zap.Time("last", time.Unix(c.lastMtime, 0)), zap.Duration("used", time.Since(start)))
+			zap.Time("last", c.LastMtime()), zap.Duration("used", time.Since(start)))
 	}
 
 	c.lastUpdateTime = time.Now()
-	return nil
+	return lastMtimes, int64(len(clients)), nil
 }
 
 func (c *clientCache) getClient(id string) (*model.Client, bool) {
@@ -162,12 +157,12 @@ func (c *clientCache) storeClient(id string, client *model.Client) {
 
 // setClients 保存client到内存中
 // 返回：更新个数，删除个数
-func (c *clientCache) setClients(clients map[string]*model.Client) (int, int) {
+func (c *clientCache) setClients(clients map[string]*model.Client) (map[string]time.Time, int, int) {
 	if len(clients) == 0 {
-		return 0, 0
+		return nil, 0, 0
 	}
 
-	lastMtime := c.lastMtime
+	lastMtime := c.LastMtime().Unix()
 	update := 0
 	del := 0
 	progress := 0
@@ -204,13 +199,9 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (int, int) {
 		}
 	}
 
-	if c.lastMtime != lastMtime {
-		log.Infof("[Cache][Client] Client lastMtime update from %s to %s",
-			time.Unix(c.lastMtime, 0), time.Unix(lastMtime, 0))
-		c.lastMtime = lastMtime
-	}
-
-	return update, del
+	return map[string]time.Time{
+		c.name(): time.Unix(lastMtime, 0),
+	}, update, del
 }
 
 // clear
@@ -221,8 +212,6 @@ func (c *clientCache) clear() error {
 	c.lock.Lock()
 	c.clients = map[string]*model.Client{}
 	c.lock.Unlock()
-
-	c.lastMtime = 0
 	return nil
 }
 

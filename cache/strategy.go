@@ -27,7 +27,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -132,39 +131,38 @@ func (sc *strategyCache) update() error {
 	return err
 }
 
-func (sc *strategyCache) realUpdate() error {
+func (sc *strategyCache) realUpdate() (map[string]time.Time, int64, error) {
 	// 获取几秒前的全部数据
 	var (
-		start          = time.Now()
-		lastTime       = sc.LastFetchTime()
-		strategys, err = sc.storage.GetStrategyDetailsForCache(lastTime, sc.IsFirstUpdate())
+		start           = time.Now()
+		lastTime        = sc.LastFetchTime()
+		strategies, err = sc.storage.GetStrategyDetailsForCache(lastTime, sc.isFirstUpdate())
 	)
 	if err != nil {
 		log.Errorf("[Cache][AuthStrategy] refresh auth strategy cache err: %s", err.Error())
-		return err
+		return nil, -1, err
 	}
 
-	add, update, del := sc.setStrategys(strategys)
+	lastMtimes, add, update, del := sc.setStrategys(strategies)
 	timeDiff := time.Since(start)
-	metrics.RecordCacheUpdateCost(timeDiff, sc.name(), int64(len(strategys)))
 	if timeDiff > time.Second {
 		log.Info("[Cache][AuthStrategy] get more auth strategy",
 			zap.Int("add", add), zap.Int("update", update), zap.Int("delete", del),
 			zap.Time("last", lastTime), zap.Duration("used", time.Since(start)))
 	}
-	return nil
+	return lastMtimes, int64(len(strategies)), nil
 }
 
 // setStrategys 处理策略的数据更新情况
 // step 1. 先处理resource以及principal的数据更新情况（主要是为了能够获取到新老数据进行对比计算）
 // step 2. 处理真正的 strategy 的缓存更新
-func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (int, int, int) {
+func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (map[string]time.Time, int, int, int) {
 	var add, remove, update int
 
 	sc.handlerResourceStrategy(strategies)
 	sc.handlerPrincipalStrategy(strategies)
 
-	lastMtime := sc.lastMtime
+	lastMtime := sc.LastMtime(sc.name()).Unix()
 
 	for index := range strategies {
 		rule := strategies[index]
@@ -184,14 +182,8 @@ func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (int, 
 		lastMtime = int64(math.Max(float64(lastMtime), float64(rule.ModifyTime.Unix())))
 	}
 
-	if lastMtime != sc.lastMtime {
-		log.Infof("[Cache][AuthStrategy] AuthStrategy lastMtime update from %s to %s",
-			time.Unix(sc.lastMtime, 0), time.Unix(lastMtime, 0))
-		sc.lastMtime = lastMtime
-	}
-
 	sc.postProcessPrincipalCh()
-	return add, update, remove
+	return map[string]time.Time{sc.name(): time.Unix(lastMtime, 0)}, add, update, remove
 }
 
 func buildEnchanceStrategyDetail(strategy *model.StrategyDetail) *model.StrategyDetailCache {

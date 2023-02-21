@@ -25,7 +25,6 @@ import (
 
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -58,7 +57,6 @@ type faultDetectCache struct {
 	// all rules are wildcard specific
 	allWildcardRules *model.ServiceWithFaultDetectRules
 	lock             sync.RWMutex
-	lastMtime        time.Time
 
 	singleFlight singleflight.Group
 }
@@ -84,7 +82,6 @@ func newFaultDetectCache(s store.Store) *faultDetectCache {
 
 // initialize 实现Cache接口的函数
 func (f *faultDetectCache) initialize(_ map[string]interface{}) error {
-	f.lastMtime = time.Unix(0, 0)
 	return nil
 }
 
@@ -96,15 +93,15 @@ func (f *faultDetectCache) update() error {
 }
 
 // update 实现Cache接口的函数
-func (f *faultDetectCache) realUpdate() error {
-	start := time.Now()
-	fdRules, err := f.storage.GetFaultDetectRulesForCache(f.LastFetchTime(), f.IsFirstUpdate())
+func (f *faultDetectCache) realUpdate() (map[string]time.Time, int64, error) {
+	fdRules, err := f.storage.GetFaultDetectRulesForCache(f.LastFetchTime(), f.isFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] fault detect config cache update err:%s", err.Error())
-		return err
+		return nil, -1, err
 	}
-	metrics.RecordCacheUpdateCost(time.Since(start), f.name(), int64(len(fdRules)))
-	return f.setFaultDetectRules(fdRules)
+	lastMtimes := f.setFaultDetectRules(fdRules)
+
+	return lastMtimes, int64(len(fdRules)), nil
 }
 
 // clear 实现Cache接口的函数
@@ -115,7 +112,6 @@ func (f *faultDetectCache) clear() error {
 	f.nsWildcardRules = make(map[string]*model.ServiceWithFaultDetectRules)
 	f.svcSpecificRules = make(map[string]map[string]*model.ServiceWithFaultDetectRules)
 	f.lock.Unlock()
-	f.lastMtime = time.Unix(0, 0)
 	return nil
 }
 
@@ -316,12 +312,12 @@ func getServicesInvolveByFaultDetectRule(fdRule *model.FaultDetectRule) map[mode
 }
 
 // setCircuitBreaker 更新store的数据到cache中
-func (f *faultDetectCache) setFaultDetectRules(fdRules []*model.FaultDetectRule) error {
+func (f *faultDetectCache) setFaultDetectRules(fdRules []*model.FaultDetectRule) map[string]time.Time {
 	if len(fdRules) == 0 {
 		return nil
 	}
 
-	lastMtime := f.lastMtime.Unix()
+	lastMtime := f.LastMtime(f.name()).Unix()
 
 	for _, fdRule := range fdRules {
 		if fdRule.ModifyTime.Unix() > lastMtime {
@@ -335,14 +331,9 @@ func (f *faultDetectCache) setFaultDetectRules(fdRules []*model.FaultDetectRule)
 		f.storeFaultDetectRuleToServiceCache(fdRule, svcKeys)
 	}
 
-	if f.lastMtime.Unix() < lastMtime {
-		curLastMtime := time.Unix(lastMtime, 0)
-		log.Infof("[Cache][FaultDetector] FaultDetector lastMtime update from %s to %s",
-			f.lastMtime, curLastMtime)
-		f.lastMtime = curLastMtime
+	return map[string]time.Time{
+		f.name(): time.Unix(lastMtime, 0),
 	}
-
-	return nil
 }
 
 // GetFaultDetectRuleCount 获取探测规则总数

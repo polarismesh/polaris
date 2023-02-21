@@ -25,7 +25,6 @@ import (
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -69,7 +68,6 @@ type rateLimitCache struct {
 	storage   store.Store
 	ids       *sync.Map
 	revisions *sync.Map
-	lastMtime time.Time
 
 	singleFlight singleflight.Group
 }
@@ -104,15 +102,15 @@ func (rlc *rateLimitCache) update() error {
 	return err
 }
 
-func (rlc *rateLimitCache) realUpdate() error {
-	start := time.Now()
-	rateLimits, revisions, err := rlc.storage.GetRateLimitsForCache(rlc.LastFetchTime(), rlc.IsFirstUpdate())
+func (rlc *rateLimitCache) realUpdate() (map[string]time.Time, int64, error) {
+	rateLimits, revisions, err := rlc.storage.GetRateLimitsForCache(rlc.LastFetchTime(), rlc.isFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] rate limit cache update err: %s", err.Error())
-		return err
+		return nil, -1, err
 	}
-	metrics.RecordCacheUpdateCost(time.Since(start), rlc.name(), int64(len(rateLimits)))
-	return rlc.setRateLimit(rateLimits, revisions)
+	rlc.setRateLimit(rateLimits, revisions)
+
+	return nil, int64(len(rateLimits)), err
 }
 
 // name 获取资源名称
@@ -125,7 +123,6 @@ func (rlc *rateLimitCache) clear() error {
 	rlc.baseCache.clear()
 	rlc.ids = new(sync.Map)
 	rlc.revisions = new(sync.Map)
-	rlc.lastMtime = time.Unix(0, 0)
 	return nil
 }
 
@@ -143,12 +140,12 @@ func rateLimitToProto(rateLimit *model.RateLimit) error {
 
 // setRateLimit 更新限流规则到缓存中
 func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit,
-	revisions []*model.RateLimitRevision) error {
+	revisions []*model.RateLimitRevision) map[string]time.Time {
 	if len(rateLimits) == 0 {
 		return nil
 	}
 
-	lastMtime := rlc.lastMtime.Unix()
+	lastMtime := rlc.LastMtime(rlc.name()).Unix()
 	for _, item := range rateLimits {
 		err := rateLimitToProto(item)
 		if nil != err {
@@ -182,14 +179,9 @@ func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit,
 		rlc.revisions.Store(item.ServiceID, item.LastRevision)
 	}
 
-	if rlc.lastMtime.Unix() < lastMtime {
-		curLastMtime := time.Unix(lastMtime, 0)
-		log.Infof("[Cache][RateLimit] RateLimit lastMtime update from %s to %s",
-			rlc.lastMtime, curLastMtime)
-		rlc.lastMtime = curLastMtime
+	return map[string]time.Time{
+		rlc.name(): time.Unix(lastMtime, 0),
 	}
-
-	return nil
 }
 
 // GetRateLimit 根据serviceID进行迭代回调

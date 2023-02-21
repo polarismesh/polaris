@@ -25,7 +25,6 @@ import (
 
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -59,7 +58,6 @@ type circuitBreakerCache struct {
 	// all rules are wildcard specific
 	allWildcardRules *model.ServiceWithCircuitBreakerRules
 	lock             sync.RWMutex
-	lastMtime        time.Time
 
 	singleFlight singleflight.Group
 }
@@ -85,7 +83,6 @@ func newCircuitBreakerCache(s store.Store) *circuitBreakerCache {
 
 // initialize 实现Cache接口的函数
 func (c *circuitBreakerCache) initialize(_ map[string]interface{}) error {
-	c.lastMtime = time.Unix(0, 0)
 	return nil
 }
 
@@ -98,16 +95,14 @@ func (c *circuitBreakerCache) update() error {
 	return err
 }
 
-func (c *circuitBreakerCache) realUpdate() error {
-	start := time.Now()
-
-	cbRules, err := c.storage.GetCircuitBreakerRulesForCache(c.LastFetchTime(), c.IsFirstUpdate())
+func (c *circuitBreakerCache) realUpdate() (map[string]time.Time, int64, error) {
+	cbRules, err := c.storage.GetCircuitBreakerRulesForCache(c.LastFetchTime(), c.isFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] circuit breaker config cache update err:%s", err.Error())
-		return err
+		return nil, -1, err
 	}
-	metrics.RecordCacheUpdateCost(time.Since(start), c.name(), int64(len(cbRules)))
-	return c.setCircuitBreaker(cbRules)
+	lastMtimes := c.setCircuitBreaker(cbRules)
+	return lastMtimes, int64(len(cbRules)), nil
 }
 
 // clear 实现Cache接口的函数
@@ -118,7 +113,6 @@ func (c *circuitBreakerCache) clear() error {
 	c.nsWildcardRules = make(map[string]*model.ServiceWithCircuitBreakerRules)
 	c.circuitBreakers = make(map[string]map[string]*model.ServiceWithCircuitBreakerRules)
 	c.lock.Unlock()
-	c.lastMtime = time.Unix(0, 0)
 	return nil
 }
 
@@ -337,12 +331,12 @@ func getServicesInvolveByCircuitBreakerRule(cbRule *model.CircuitBreakerRule) ma
 }
 
 // setCircuitBreaker 更新store的数据到cache中
-func (c *circuitBreakerCache) setCircuitBreaker(cbRules []*model.CircuitBreakerRule) error {
+func (c *circuitBreakerCache) setCircuitBreaker(cbRules []*model.CircuitBreakerRule) map[string]time.Time {
 	if len(cbRules) == 0 {
 		return nil
 	}
 
-	lastMtime := c.lastMtime.Unix()
+	lastMtime := c.LastMtime(c.name()).Unix()
 
 	for _, cbRule := range cbRules {
 		if cbRule.ModifyTime.Unix() > lastMtime {
@@ -356,14 +350,9 @@ func (c *circuitBreakerCache) setCircuitBreaker(cbRules []*model.CircuitBreakerR
 		c.storeCircuitBreakerToServiceCache(cbRule, svcKeys)
 	}
 
-	if c.lastMtime.Unix() < lastMtime {
-		curLastMtime := time.Unix(lastMtime, 0)
-		log.Infof("[Cache][CircuitBreaker] CircuitBreaker lastMtime update from %s to %s",
-			c.lastMtime, curLastMtime)
-		c.lastMtime = curLastMtime
+	return map[string]time.Time{
+		c.name(): time.Unix(lastMtime, 0),
 	}
-
-	return nil
 }
 
 // GetCircuitBreakerCount 获取熔断规则总数

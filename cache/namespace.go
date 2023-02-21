@@ -18,7 +18,9 @@
 package cache
 
 import (
+	"math"
 	"sync"
+	"time"
 
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
@@ -91,20 +93,23 @@ func (nsCache *namespaceCache) update() error {
 	return err
 }
 
-func (nsCache *namespaceCache) realUpdate() error {
+func (nsCache *namespaceCache) realUpdate() (map[string]time.Time, int64, error) {
 	var (
 		lastTime = nsCache.LastFetchTime()
 		ret, err = nsCache.storage.GetMoreNamespaces(lastTime)
 	)
 	if err != nil {
 		log.Error("[Cache][Namespace] get storage more", zap.Error(err))
-		return err
+		return nil, -1, err
 	}
-	_ = nsCache.setNamespaces(ret)
-	return nil
+	lastMtimes := nsCache.setNamespaces(ret)
+	return lastMtimes, int64(len(ret)), nil
 }
 
-func (nsCache *namespaceCache) setNamespaces(nsSlice []*model.Namespace) error {
+func (nsCache *namespaceCache) setNamespaces(nsSlice []*model.Namespace) map[string]time.Time {
+
+	lastMtime := nsCache.LastMtime(nsCache.name()).Unix()
+
 	for index := range nsSlice {
 		ns := nsSlice[index]
 		if !ns.Valid {
@@ -112,9 +117,13 @@ func (nsCache *namespaceCache) setNamespaces(nsSlice []*model.Namespace) error {
 		} else {
 			nsCache.ids.Store(ns.Name, ns)
 		}
+
+		lastMtime = int64(math.Max(float64(lastMtime), float64(ns.ModifyTime.Unix())))
 	}
 
-	return nil
+	return map[string]time.Time{
+		nsCache.name(): time.Unix(lastMtime, 0),
+	}
 }
 
 // clear

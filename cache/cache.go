@@ -27,6 +27,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -127,9 +128,10 @@ type Cache interface {
 
 // baseCache 对于 Cache 中的一些 func 做统一实现，避免重复逻辑
 type baseCache struct {
-	fitstUpdate   bool
+	firtstUpdate  bool
 	s             store.Store
 	lastFetchTime int64
+	lastMtimes    map[string]time.Time
 	manager       *listenerManager
 }
 
@@ -147,19 +149,28 @@ func newBaseCache(s store.Store) *baseCache {
 
 func (bc *baseCache) initialize() {
 	bc.lastFetchTime = 0
-	bc.fitstUpdate = true
+	bc.firtstUpdate = true
 }
 
 var (
 	zeroTime = time.Unix(0, 0)
 )
 
-func (bc *baseCache) LastFetchTime() time.Time {
-	return formatFetchTime(bc.lastFetchTime)
+func (bc *baseCache) restLastMtime(label string) {
+	bc.lastMtimes[label] = time.Unix(0, 0)
 }
 
-func formatFetchTime(fetchTime int64) time.Time {
-	lastTime := time.Unix(fetchTime, 0)
+func (bc *baseCache) LastMtime(label string) time.Time {
+	v, ok := bc.lastMtimes[label]
+	if ok {
+		return v
+	}
+
+	return time.Unix(0, 0)
+}
+
+func (bc *baseCache) LastFetchTime() time.Time {
+	lastTime := time.Unix(bc.lastFetchTime, 0)
 	tmp := lastTime.Add(DefaultTimeDiff)
 	if zeroTime.After(tmp) {
 		return lastTime
@@ -168,12 +179,12 @@ func formatFetchTime(fetchTime int64) time.Time {
 	return lastTime
 }
 
-func (bc *baseCache) IsFirstUpdate() bool {
-	return bc.fitstUpdate
+func (bc *baseCache) isFirstUpdate() bool {
+	return bc.firtstUpdate
 }
 
 // update
-func (bc *baseCache) doCacheUpdate(name string, executor func() error) error {
+func (bc *baseCache) doCacheUpdate(name string, executor func() (map[string]time.Time, int64, error)) error {
 	curStoreTime, err := bc.s.GetUnixSecond()
 	if err != nil {
 		curStoreTime = bc.lastFetchTime
@@ -182,16 +193,34 @@ func (bc *baseCache) doCacheUpdate(name string, executor func() error) error {
 	defer func() {
 		bc.lastFetchTime = curStoreTime
 	}()
-	if err := executor(); err != nil {
+
+	start := time.Now()
+	lastMtimes, total, err := executor()
+	if err != nil {
 		return err
 	}
-	bc.fitstUpdate = false
+
+	if len(lastMtimes) != 0 {
+		if len(bc.lastMtimes) != 0 {
+			for label, lastMtime := range lastMtimes {
+				preLastMtime := bc.lastMtimes[label]
+				log.Infof("[Cache][%s] Client lastMtime update from %s to %s",
+					label, preLastMtime, lastMtime)
+			}
+		}
+		bc.lastMtimes = lastMtimes
+	}
+
+	if total != -1 {
+		metrics.RecordCacheUpdateCost(time.Since(start), name, total)
+	}
+	bc.firtstUpdate = false
 	return nil
 }
 
 func (bc *baseCache) clear() {
 	bc.lastFetchTime = 0
-	bc.fitstUpdate = true
+	bc.firtstUpdate = true
 }
 
 // addListener 添加

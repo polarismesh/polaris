@@ -25,7 +25,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -129,7 +128,6 @@ type serviceCache struct {
 	namespaceServiceCnt *sync.Map // namespace -> model.NamespaceServiceCount
 	cancel              context.CancelFunc
 
-	lastMtime       int64
 	lastMtimeLogged int64
 
 	serviceCount     int64
@@ -154,7 +152,6 @@ func newServiceCache(storage store.Store, ch chan *revisionNotify, instCache Ins
 // initialize 缓存对象初始化
 func (sc *serviceCache) initialize(opt map[string]interface{}) error {
 	sc.singleFlight = new(singleflight.Group)
-	sc.lastMtime = 0
 	sc.ids = new(sync.Map)
 	sc.names = new(sync.Map)
 	sc.cl5Sid2Name = new(sync.Map)
@@ -178,7 +175,7 @@ func (sc *serviceCache) initialize(opt map[string]interface{}) error {
 
 // LastMtime 最后一次更新时间
 func (sc *serviceCache) LastMtime() time.Time {
-	return time.Unix(sc.lastMtime, 0)
+	return sc.baseCache.LastMtime(sc.name())
 }
 
 // update Service缓存更新函数
@@ -187,7 +184,7 @@ func (sc *serviceCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := sc.singleFlight.Do(sc.name(), func() (interface{}, error) {
 		defer func() {
-			sc.lastMtimeLogged = logLastMtime(sc.lastMtimeLogged, sc.lastMtime, "Service")
+			sc.lastMtimeLogged = logLastMtime(sc.lastMtimeLogged, sc.LastMtime().Unix(), "Service")
 			sc.checkAll()
 		}()
 		return nil, sc.doCacheUpdate(sc.name(), sc.realUpdate)
@@ -214,27 +211,26 @@ func (sc *serviceCache) checkAll() {
 	log.Infof(
 		"[Cache][Service] service count not match, expect %d, actual %d, fallback to load all",
 		count, sc.serviceCount)
-	sc.lastMtime = 0
+	sc.restLastMtime(sc.name())
 }
 
-func (sc *serviceCache) realUpdate() error {
+func (sc *serviceCache) realUpdate() (map[string]time.Time, int64, error) {
 	// 获取几秒前的全部数据
 	start := time.Now()
-	services, err := sc.storage.GetMoreServices(sc.LastFetchTime(), sc.IsFirstUpdate(), sc.disableBusiness, sc.needMeta)
+	services, err := sc.storage.GetMoreServices(sc.LastFetchTime(), sc.isFirstUpdate(), sc.disableBusiness, sc.needMeta)
 	if err != nil {
 		log.Errorf("[Cache][Service] update services err: %s", err.Error())
-		return err
+		return nil, -1, err
 	}
 
-	update, del := sc.setServices(services)
+	lastMtimes, update, del := sc.setServices(services)
 	costTime := time.Since(start)
-	metrics.RecordCacheUpdateCost(costTime, sc.name(), int64(len(services)))
 	if costTime > time.Second {
 		log.Info(
 			"[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
 			zap.Time("last", sc.LastMtime()), zap.Duration("used", costTime))
 	}
-	return nil
+	return lastMtimes, int64(len(services)), err
 }
 
 // clear 清理内部缓存数据
@@ -246,7 +242,6 @@ func (sc *serviceCache) clear() error {
 	sc.cl5Names = new(sync.Map)
 	sc.namespaceServiceCnt = new(sync.Map)
 	sc.pendingServices = make(map[string]int8)
-	sc.lastMtime = 0
 	return nil
 }
 
@@ -366,12 +361,12 @@ func (sc *serviceCache) removeServices(service *model.Service) {
 
 // setServices 服务缓存更新
 // 返回：更新数量，删除数量
-func (sc *serviceCache) setServices(services map[string]*model.Service) (int, int) {
+func (sc *serviceCache) setServices(services map[string]*model.Service) (map[string]time.Time, int, int) {
 	if len(services) == 0 {
-		return 0, 0
+		return nil, 0, 0
 	}
 
-	lastMtime := sc.lastMtime
+	lastMtime := sc.LastMtime().Unix()
 
 	progress := 0
 	update := 0
@@ -424,11 +419,6 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 		/******兼容cl5******/
 	}
 
-	if sc.lastMtime < lastMtime {
-		log.Infof("[Cache][Service] Service lastMtime update from %s to %s",
-			time.Unix(sc.lastMtime, 0), time.Unix(lastMtime, 0))
-		sc.lastMtime = lastMtime
-	}
 	if sc.serviceCount != svcCount {
 		log.Infof("[Cache][Service] service count update from %d to %d",
 			sc.serviceCount, svcCount)
@@ -436,7 +426,9 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 	}
 
 	sc.postProcessUpdatedServices(changeNs)
-	return update, del
+	return map[string]time.Time{
+		sc.name(): time.Unix(lastMtime, 0),
+	}, update, del
 }
 
 func (sc *serviceCache) notifyServiceCountReload(svcIds map[string]bool) {

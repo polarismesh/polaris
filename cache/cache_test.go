@@ -225,8 +225,10 @@ func TestComputeRevision(t *testing.T) {
 }
 
 func Test_baseCache_LastFetchTime(t *testing.T) {
+	bc := &baseCache{lastFetchTime: 0}
+
 	lastTime := time.Unix(0, 0)
-	fetchTime := formatFetchTime(0)
+	fetchTime := bc.LastFetchTime()
 
 	assert.Equal(t, lastTime, fetchTime)
 }
