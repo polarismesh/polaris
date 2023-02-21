@@ -133,6 +133,7 @@ func (ic *instanceCache) update() error {
 		defer func() {
 			ic.lastMtimeLogged = logLastMtime(ic.lastMtimeLogged, ic.LastMtime().Unix(), "Instance")
 			ic.checkAll()
+			ic.reportMetricsInfo()
 		}()
 		return nil, ic.doCacheUpdate(ic.name(), ic.realUpdate)
 	})

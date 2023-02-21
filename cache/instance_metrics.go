@@ -30,8 +30,12 @@ func (ic *instanceCache) reportMetricsInfo() {
 		log.Warn("[Cache][Instance] report metrics get cache manager, but impossible", zap.Error(err))
 		return
 	}
-	serviceCache := cacheMgr.Service()
 
+	allServices := map[string]map[string]struct{}{}
+	onlineService := map[string]map[string]struct{}{}
+	offlineService := map[string]map[string]struct{}{}
+	abnormalService := map[string]map[string]struct{}{}
+	serviceCache := cacheMgr.Service()
 	metricValues := make([]metrics.DiscoveryMetric, 0, 32)
 
 	// instance count metrics
@@ -43,6 +47,29 @@ func (ic *instanceCache) reportMetricsInfo() {
 		if svc == nil {
 			log.Debug("[Cache][Instance] report metrics get service not found", zap.String("svc-id", serviceID))
 			return true
+		}
+		if _, ok := allServices[svc.Namespace]; !ok {
+			allServices[svc.Namespace] = map[string]struct{}{}
+		}
+		allServices[svc.Namespace][svc.Name] = struct{}{}
+		if _, ok := onlineService[svc.Namespace]; !ok {
+			onlineService[svc.Namespace] = map[string]struct{}{}
+		}
+		if _, ok := offlineService[svc.Namespace]; !ok {
+			offlineService[svc.Namespace] = map[string]struct{}{}
+		}
+		if _, ok := abnormalService[svc.Namespace]; !ok {
+			abnormalService[svc.Namespace] = map[string]struct{}{}
+		}
+
+		if countInfo.TotalInstanceCount == 0 {
+			offlineService[svc.Namespace][svc.Name] = struct{}{}
+		}
+		if countInfo.TotalInstanceCount != 0 && countInfo.HealthyInstanceCount == 0 {
+			abnormalService[svc.Namespace][svc.Name] = struct{}{}
+		}
+		if countInfo.TotalInstanceCount != 0 && countInfo.HealthyInstanceCount > 0 {
+			onlineService[svc.Namespace][svc.Name] = struct{}{}
 		}
 
 		metricValues = append(metricValues, metrics.DiscoveryMetric{
@@ -59,6 +86,19 @@ func (ic *instanceCache) reportMetricsInfo() {
 
 		return true
 	})
+
+	for ns := range allServices {
+		metricValues = append(metricValues, metrics.DiscoveryMetric{
+			Type:     metrics.ServiceMetrics,
+			Total:    int64(len(allServices[ns])),
+			Abnormal: int64(len(abnormalService[ns])),
+			Offline:  int64(len(offlineService[ns])),
+			Online:   int64(len(onlineService[ns])),
+			Labels: map[string]string{
+				metrics.LabelNamespace: ns,
+			},
+		})
+	}
 
 	plugin.GetStatis().ReportDiscoveryMetrics(metricValues...)
 }
