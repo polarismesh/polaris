@@ -161,7 +161,7 @@ var (
 	zeroTime = time.Unix(0, 0)
 )
 
-func (bc *baseCache) restLastMtime(label string) {
+func (bc *baseCache) resetLastMtime(label string) {
 	bc.lock.Lock()
 	defer bc.lock.Unlock()
 	bc.lastMtimes[label] = time.Unix(0, 0)
@@ -215,14 +215,14 @@ func (bc *baseCache) doCacheUpdate(name string, executor func() (map[string]time
 		if len(bc.lastMtimes) != 0 {
 			for label, lastMtime := range lastMtimes {
 				preLastMtime := bc.lastMtimes[label]
-				log.Infof("[Cache][%s] Client lastMtime update from %s to %s",
+				log.Infof("[Cache][%s] lastMtime update from %s to %s",
 					label, preLastMtime, lastMtime)
 			}
 		}
 		bc.lastMtimes = lastMtimes
 	}
 
-	if total != -1 {
+	if total >= 0 {
 		metrics.RecordCacheUpdateCost(time.Since(start), name, total)
 	}
 	bc.firtstUpdate = false

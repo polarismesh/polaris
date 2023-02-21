@@ -211,7 +211,7 @@ func (sc *serviceCache) checkAll() {
 	log.Infof(
 		"[Cache][Service] service count not match, expect %d, actual %d, fallback to load all",
 		count, sc.serviceCount)
-	sc.restLastMtime(sc.name())
+	sc.resetLastMtime(sc.name())
 }
 
 func (sc *serviceCache) realUpdate() (map[string]time.Time, int64, error) {
