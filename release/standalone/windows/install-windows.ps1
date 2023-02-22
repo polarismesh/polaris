@@ -94,6 +94,7 @@ function installPolarisLimiter() {
     }
     Expand-Archive -Path $target_polaris_limiter_pkg -DestinationPath .
     Push-Location $polaris_limiter_dirname
+    sed "polaris-limiter.yaml" "polaris-server-address: 127.0.0.1:8091" "polaris-server-address: 127.0.0.1:${service_grpc_port}"
     sed "polaris-limiter.yaml" "port: 8100" "port: ${limiter_http_port}"
     sed "polaris-limiter.yaml" "port: 8101" "port: ${limiter_grpc_port}"
     Start-Process -FilePath ".\\polaris-limiter.exe" -ArgumentList ('start') -WindowStyle Hidden
