@@ -388,6 +388,7 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 			lastMtime = serviceMtime
 		}
 
+		_, exist := sc.ids.Load(service.ID)
 		spaceName := service.Namespace
 		changeNs[spaceName] = true
 		// 发现有删除操作
@@ -395,12 +396,13 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 			sc.removeServices(service)
 			sc.revisionCh <- newRevisionNotify(service.ID, false)
 			del++
-			svcCount--
+			if exist {
+				svcCount--
+			}
 			continue
 		}
 
 		update++
-		_, exist := sc.ids.Load(service.ID)
 		if !exist {
 			svcCount++
 		}
