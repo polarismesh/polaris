@@ -98,7 +98,7 @@ func (c *clientCache) initialize(_ map[string]interface{}) error {
 // update 更新缓存函数
 func (c *clientCache) update() error {
 	// 一分钟update一次
-	timeDiff := time.Now().Sub(c.lastUpdateTime).Minutes()
+	timeDiff := time.Since(c.lastUpdateTime).Minutes()
 	if !c.isFirstUpdate() && 1 > timeDiff {
 		log.Debug("[Cache][Client] update get storage ignore", zap.Float64("time-diff", timeDiff))
 		return nil
@@ -286,9 +286,7 @@ func doClientPage(ret []*model.Client, offset, limit uint32) []*model.Client {
 		endIndex = totalCount
 	}
 
-	for i := range ret {
-		clients = append(clients, ret[i])
-	}
+	clients = append(clients, ret...)
 
 	sort.Slice(clients, func(i, j int) bool {
 		return clients[i].ModifyTime().After(clients[j].ModifyTime())
