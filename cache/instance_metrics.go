@@ -18,10 +18,11 @@
 package cache
 
 import (
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/plugin"
-	"go.uber.org/zap"
 )
 
 func (ic *instanceCache) reportMetricsInfo() {

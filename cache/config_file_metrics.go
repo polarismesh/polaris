@@ -21,9 +21,10 @@ import (
 	"context"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/plugin"
-	"go.uber.org/zap"
 )
 
 func (fc *fileCache) reportMetricsInfo(ctx context.Context) {

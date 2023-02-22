@@ -441,14 +441,12 @@ func (p *Pool) afterHandleTask(startTime time.Time, command string, task *Task, 
 			metrics.ReportRedisReadFailure()
 		}
 	}
-	if p.statis != nil {
-		p.statis.ReportCallMetrics(metrics.CallMetric{
-			Type:     metrics.ServerCallMetric,
-			API:      command,
-			Code:     int(code),
-			Duration: costDuration,
-		})
-	}
+	p.statis.ReportCallMetrics(metrics.CallMetric{
+		Type:     metrics.ServerCallMetric,
+		API:      command,
+		Code:     int(code),
+		Duration: costDuration,
+	})
 }
 
 func (p *Pool) doHandleTask(task *Task, piper redis.Pipeliner) redis.Cmder {
