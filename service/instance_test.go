@@ -169,6 +169,24 @@ func TestCreateInstance(t *testing.T) {
 			t.Fatalf("error")
 		}
 	})
+	t.Run("instance可以提供id，以覆盖server生成id的逻辑", func(t *testing.T) {
+		const providedInstanceId = "instance-provided-id"
+		instanceReq := &apiservice.Instance{
+			Id:           utils.NewStringValue(providedInstanceId),
+			ServiceToken: utils.NewStringValue(serviceResp.GetToken().GetValue()),
+			Service:      utils.NewStringValue(serviceResp.GetName().GetValue()),
+			Namespace:    utils.NewStringValue(serviceResp.GetNamespace().GetValue()),
+			Host:         utils.NewStringValue("123"),
+			Port:         utils.NewUInt32Value(456),
+		}
+		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq})
+		assert.True(t, resp.GetCode().GetValue() == api.ExecuteSuccess)
+		if resp.Responses[0].GetInstance().GetId().GetValue() != providedInstanceId {
+			t.Fatalf("error")
+		} else {
+			t.Logf("pass: %s", resp.GetInfo().GetValue())
+		}
+	})
 }
 
 // 测试异常场景
