@@ -62,9 +62,7 @@ type clientCache struct {
 	*baseCache
 
 	storage         store.Store
-	lastMtime       int64
 	lastMtimeLogged int64
-	firstUpdate     bool
 	clients         map[string]*model.Client // instance id -> instance
 	lock            sync.RWMutex
 	singleFlight    *singleflight.Group
@@ -78,13 +76,13 @@ func (c *clientCache) name() string {
 
 // LastMtime 最后一次更新时间
 func (c *clientCache) LastMtime() time.Time {
-	return time.Unix(c.lastMtime, 0)
+	return c.baseCache.LastMtime(c.name())
 }
 
 // newClientCache 新建一个clientCache
 func newClientCache(storage store.Store) *clientCache {
 	return &clientCache{
-		baseCache: newBaseCache(),
+		baseCache: newBaseCache(storage),
 		storage:   storage,
 		clients:   map[string]*model.Client{},
 	}
@@ -93,56 +91,48 @@ func newClientCache(storage store.Store) *clientCache {
 // initialize 初始化函数
 func (c *clientCache) initialize(_ map[string]interface{}) error {
 	c.singleFlight = &singleflight.Group{}
-	c.lastMtime = 0
 	c.lastUpdateTime = time.Unix(0, 0)
-	c.firstUpdate = true
-
 	return nil
 }
 
 // update 更新缓存函数
-func (c *clientCache) update(storeRollbackSec time.Duration) error {
+func (c *clientCache) update() error {
 	// 一分钟update一次
-	timeDiff := time.Since(c.lastUpdateTime).Minutes()
-	if !c.firstUpdate && 1 > timeDiff {
+	timeDiff := time.Now().Sub(c.lastUpdateTime).Minutes()
+	if !c.isFirstUpdate() && 1 > timeDiff {
 		log.Debug("[Cache][Client] update get storage ignore", zap.Float64("time-diff", timeDiff))
 		return nil
 	}
 
 	// 多个线程竞争，只有一个线程进行更新
-	_, err, _ := c.singleFlight.Do(InstanceName, func() (interface{}, error) {
+	_, err, _ := c.singleFlight.Do(c.name(), func() (interface{}, error) {
 		defer func() {
-			c.lastMtimeLogged = logLastMtime(c.lastMtimeLogged, c.lastMtime, "Client")
+			c.lastMtimeLogged = logLastMtime(c.lastMtimeLogged, c.LastMtime().Unix(), "Client")
 		}()
-
-		return nil, c.realUpdate(storeRollbackSec)
+		return nil, c.doCacheUpdate(c.name(), c.realUpdate)
 	})
 
 	return err
 }
 
-func (c *clientCache) realUpdate(storeRollbackSec time.Duration) error {
+func (c *clientCache) realUpdate() (map[string]time.Time, int64, error) {
 	// 拉取diff前的所有数据
 	start := time.Now()
-	lastMtime := c.LastMtime().Add(storeRollbackSec)
-	clients, err := c.storage.GetMoreClients(lastMtime, c.firstUpdate)
+	clients, err := c.storage.GetMoreClients(c.LastFetchTime(), c.isFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache][Client] update get storage more err: %s", err.Error())
-		return err
+		return nil, -1, err
 	}
-
-	c.firstUpdate = false
-	update, del := c.setClients(clients)
 	timeDiff := time.Since(start)
+	lastMtimes, update, del := c.setClients(clients)
 	if timeDiff > 1*time.Second {
 		log.Info("[Cache][Client] get more clients",
 			zap.Int("update", update), zap.Int("delete", del),
-			zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
+			zap.Time("last", c.LastMtime()), zap.Duration("used", time.Since(start)))
 	}
 
 	c.lastUpdateTime = time.Now()
-
-	return nil
+	return lastMtimes, int64(len(clients)), nil
 }
 
 func (c *clientCache) getClient(id string) (*model.Client, bool) {
@@ -167,12 +157,12 @@ func (c *clientCache) storeClient(id string, client *model.Client) {
 
 // setClients 保存client到内存中
 // 返回：更新个数，删除个数
-func (c *clientCache) setClients(clients map[string]*model.Client) (int, int) {
+func (c *clientCache) setClients(clients map[string]*model.Client) (map[string]time.Time, int, int) {
 	if len(clients) == 0 {
-		return 0, 0
+		return nil, 0, 0
 	}
 
-	lastMtime := c.lastMtime
+	lastMtime := c.LastMtime().Unix()
 	update := 0
 	del := 0
 	progress := 0
@@ -210,24 +200,19 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (int, int) {
 		}
 	}
 
-	if c.lastMtime != lastMtime {
-		log.Infof("[Cache][Client] Client lastMtime update from %s to %s",
-			time.Unix(c.lastMtime, 0), time.Unix(lastMtime, 0))
-		c.lastMtime = lastMtime
-	}
-
-	return update, del
+	return map[string]time.Time{
+		c.name(): time.Unix(lastMtime, 0),
+	}, update, del
 }
 
 // clear
 //
 //	@return error
 func (c *clientCache) clear() error {
+	c.baseCache.clear()
 	c.lock.Lock()
 	c.clients = map[string]*model.Client{}
 	c.lock.Unlock()
-
-	c.lastMtime = 0
 	return nil
 }
 
@@ -262,13 +247,12 @@ func (c *clientCache) IteratorClients(iterProc ClientIterProc) {
 // GetClientsByFilter Query client information
 func (c *clientCache) GetClientsByFilter(filters map[string]string, offset, limit uint32) (uint32,
 	[]*model.Client, error) {
-	var (
-		ret                 = make([]*model.Client, 0, 16)
-		host, hasHost       = filters["host"]
-		clientType, hasType = filters["type"]
-		version, hasVer     = filters["version"]
-		id, hasId           = filters["id"]
-	)
+
+	ret := make([]*model.Client, 0, 16)
+	host, hasHost := filters["host"]
+	clientType, hasType := filters["type"]
+	version, hasVer := filters["version"]
+
 	c.IteratorClients(func(_ string, value *model.Client) bool {
 		if hasHost && value.Proto().GetHost().GetValue() != host {
 			return true
@@ -276,10 +260,7 @@ func (c *clientCache) GetClientsByFilter(filters map[string]string, offset, limi
 		if hasType && value.Proto().GetType().String() != clientType {
 			return true
 		}
-		if hasVer && value.Proto().GetVersion().GetValue() != version {
-			return true
-		}
-		if hasId && value.Proto().GetId().GetValue() != id {
+		if hasVer && value.Proto().GetVersion().String() != version {
 			return true
 		}
 
@@ -287,7 +268,8 @@ func (c *clientCache) GetClientsByFilter(filters map[string]string, offset, limi
 		return true
 	})
 
-	return uint32(len(ret)), doClientPage(ret, offset, limit), nil
+	amount := uint32(len(ret))
+	return amount, doClientPage(ret, offset, limit), nil
 }
 
 // doClientPage 进行分页, 仅用于控制台查询时的排序
@@ -304,7 +286,9 @@ func doClientPage(ret []*model.Client, offset, limit uint32) []*model.Client {
 		endIndex = totalCount
 	}
 
-	clients = append(clients, ret...)
+	for i := range ret {
+		clients = append(clients, ret[i])
+	}
 
 	sort.Slice(clients, func(i, j int) bool {
 		return clients[i].ModifyTime().After(clients[j].ModifyTime())

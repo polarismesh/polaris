@@ -19,6 +19,7 @@ package metrics
 
 import (
 	"net/http"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -152,4 +153,12 @@ func RemoveSDKClient() {
 // ResetSDKClient reset client connection number
 func ResetSDKClient() {
 	sdkClientTotal.Set(0)
+}
+
+// RecordCacheUpdateCost record per cache update cost time
+func RecordCacheUpdateCost(cost time.Duration, cacheTye string, total int64) {
+	cacheUpdateCost.With(map[string]string{
+		labelCacheType:        cacheTye,
+		labelCacheUpdateCount: strconv.FormatInt(total, 10),
+	})
 }

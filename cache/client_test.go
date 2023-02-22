@@ -85,7 +85,7 @@ func Test_clientCache_GetClient(t *testing.T) {
 
 		store.EXPECT().GetMoreClients(gomock.Any(), gomock.Any()).Return(ret, nil)
 
-		err := clientCache.update(time.Duration(0))
+		err := clientCache.update()
 		assert.NoError(t, err)
 
 		item := clientCache.GetClient(id)
@@ -111,7 +111,7 @@ func Test_clientCache_GetClientByFilter(t *testing.T) {
 
 		store.EXPECT().GetMoreClients(gomock.Any(), gomock.Any()).Return(ret, nil)
 
-		err := clientCache.update(time.Duration(0))
+		err := clientCache.update()
 		assert.NoError(t, err)
 
 		total, item, err := clientCache.GetClientsByFilter(map[string]string{

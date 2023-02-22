@@ -114,9 +114,6 @@ type serviceCache struct {
 	*baseCache
 
 	storage             store.Store
-	lastMtime           int64
-	lastMtimeLogged     int64
-	firstUpdate         bool
 	ids                 *sync.Map // service_id -> service
 	names               *sync.Map // namespace -> [serviceName -> service]
 	cl5Sid2Name         *sync.Map // 兼容Cl5，sid -> name
@@ -130,6 +127,11 @@ type serviceCache struct {
 	pendingServices     map[string]int8
 	namespaceServiceCnt *sync.Map // namespace -> model.NamespaceServiceCount
 	cancel              context.CancelFunc
+
+	lastMtimeLogged int64
+
+	serviceCount     int64
+	lastCheckAllTime int64
 }
 
 // init 自注册到缓存列表
@@ -140,7 +142,7 @@ func init() {
 // newServiceCache 返回一个serviceCache
 func newServiceCache(storage store.Store, ch chan *revisionNotify, instCache InstanceCache) *serviceCache {
 	return &serviceCache{
-		baseCache:  newBaseCache(),
+		baseCache:  newBaseCache(storage),
 		storage:    storage,
 		revisionCh: ch,
 		instCache:  instCache,
@@ -150,12 +152,10 @@ func newServiceCache(storage store.Store, ch chan *revisionNotify, instCache Ins
 // initialize 缓存对象初始化
 func (sc *serviceCache) initialize(opt map[string]interface{}) error {
 	sc.singleFlight = new(singleflight.Group)
-	sc.lastMtime = 0
 	sc.ids = new(sync.Map)
 	sc.names = new(sync.Map)
 	sc.cl5Sid2Name = new(sync.Map)
 	sc.cl5Names = new(sync.Map)
-	sc.firstUpdate = true
 
 	sc.countChangeCh = make(chan map[string]bool, 1024)
 	sc.namespaceServiceCnt = new(sync.Map)
@@ -175,50 +175,73 @@ func (sc *serviceCache) initialize(opt map[string]interface{}) error {
 
 // LastMtime 最后一次更新时间
 func (sc *serviceCache) LastMtime() time.Time {
-	return time.Unix(sc.lastMtime, 0)
+	return sc.baseCache.LastMtime(sc.name())
 }
 
 // update Service缓存更新函数
 // service + service_metadata作为一个整体获取
-func (sc *serviceCache) update(storeRollbackSec time.Duration) error {
+func (sc *serviceCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
-	_, err, _ := sc.singleFlight.Do(ServiceName, func() (interface{}, error) {
+	_, err, _ := sc.singleFlight.Do(sc.name(), func() (interface{}, error) {
 		defer func() {
-			sc.lastMtimeLogged = logLastMtime(sc.lastMtimeLogged, sc.lastMtime, "Service")
+			sc.lastMtimeLogged = logLastMtime(sc.lastMtimeLogged, sc.LastMtime().Unix(), "Service")
+			sc.checkAll()
 		}()
-		return nil, sc.realUpdate(storeRollbackSec)
+		return nil, sc.doCacheUpdate(sc.name(), sc.realUpdate)
 	})
 	return err
 }
 
-func (sc *serviceCache) realUpdate(storeRollbackSec time.Duration) error {
+func (sc *serviceCache) checkAll() {
+	curTimeSec := time.Now().Unix()
+	if curTimeSec-sc.lastCheckAllTime < checkAllIntervalSec {
+		return
+	}
+	defer func() {
+		sc.lastCheckAllTime = curTimeSec
+	}()
+	count, err := sc.storage.GetServicesCount()
+	if err != nil {
+		log.Errorf("[Cache][Service] get service count from storage err: %s", err.Error())
+		return
+	}
+	if sc.serviceCount == int64(count) {
+		return
+	}
+	log.Infof(
+		"[Cache][Service] service count not match, expect %d, actual %d, fallback to load all",
+		count, sc.serviceCount)
+	sc.resetLastMtime(sc.name())
+}
+
+func (sc *serviceCache) realUpdate() (map[string]time.Time, int64, error) {
 	// 获取几秒前的全部数据
 	start := time.Now()
-	lastMtime := sc.LastMtime()
-	services, err := sc.storage.GetMoreServices(lastMtime.Add(storeRollbackSec),
-		sc.firstUpdate, sc.disableBusiness, sc.needMeta)
+	services, err := sc.storage.GetMoreServices(sc.LastFetchTime(), sc.isFirstUpdate(), sc.disableBusiness, sc.needMeta)
 	if err != nil {
 		log.Errorf("[Cache][Service] update services err: %s", err.Error())
-		return err
+		return nil, -1, err
 	}
 
-	sc.firstUpdate = false
-	update, del := sc.setServices(services)
-	log.Info(
-		"[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
-		zap.Time("last", lastMtime), zap.Duration("used", time.Since(start)))
-	return nil
+	lastMtimes, update, del := sc.setServices(services)
+	costTime := time.Since(start)
+	if costTime > time.Second {
+		log.Info(
+			"[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
+			zap.Time("last", sc.LastMtime()), zap.Duration("used", costTime))
+	}
+	return lastMtimes, int64(len(services)), err
 }
 
 // clear 清理内部缓存数据
 func (sc *serviceCache) clear() error {
+	sc.baseCache.clear()
 	sc.ids = new(sync.Map)
 	sc.names = new(sync.Map)
 	sc.cl5Sid2Name = new(sync.Map)
 	sc.cl5Names = new(sync.Map)
 	sc.namespaceServiceCnt = new(sync.Map)
 	sc.pendingServices = make(map[string]int8)
-	sc.lastMtime = 0
 	return nil
 }
 
@@ -338,10 +361,12 @@ func (sc *serviceCache) removeServices(service *model.Service) {
 
 // setServices 服务缓存更新
 // 返回：更新数量，删除数量
-func (sc *serviceCache) setServices(services map[string]*model.Service) (int, int) {
+func (sc *serviceCache) setServices(services map[string]*model.Service) (map[string]time.Time, int, int) {
 	if len(services) == 0 {
-		return 0, 0
+		return nil, 0, 0
 	}
+
+	lastMtime := sc.LastMtime().Unix()
 
 	progress := 0
 	update := 0
@@ -349,8 +374,8 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 
 	// 这里要记录 ns 的变动情况，避免由于 svc delete 之后，命名空间的服务计数无法更新
 	changeNs := make(map[string]bool)
+	svcCount := sc.serviceCount
 
-	lastMtime := sc.lastMtime
 	for _, service := range services {
 		progress++
 		if progress%20000 == 0 {
@@ -369,10 +394,16 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 			sc.removeServices(service)
 			sc.revisionCh <- newRevisionNotify(service.ID, false)
 			del++
+			svcCount--
 			continue
 		}
 
 		update++
+		_, exist := sc.ids.Load(service.ID)
+		if !exist {
+			svcCount++
+		}
+
 		sc.ids.Store(service.ID, service)
 		sc.revisionCh <- newRevisionNotify(service.ID, true)
 
@@ -388,12 +419,16 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (int, in
 		/******兼容cl5******/
 	}
 
-	if sc.lastMtime < lastMtime {
-		sc.lastMtime = lastMtime
+	if sc.serviceCount != svcCount {
+		log.Infof("[Cache][Service] service count update from %d to %d",
+			sc.serviceCount, svcCount)
+		sc.serviceCount = svcCount
 	}
 
 	sc.postProcessUpdatedServices(changeNs)
-	return update, del
+	return map[string]time.Time{
+		sc.name(): time.Unix(lastMtime, 0),
+	}, update, del
 }
 
 func (sc *serviceCache) notifyServiceCountReload(svcIds map[string]bool) {
@@ -431,12 +466,11 @@ func (sc *serviceCache) watchCountChangeCh(ctx context.Context) {
 		case event := <-sc.countChangeCh:
 			affect := make(map[string]bool)
 
-			// The last Reload notification from InstanceCache, but ServiceCache has no statutory task corresponding to data.
 			if len(sc.pendingServices) != 0 {
 				for svcId := range sc.pendingServices {
 					svc, ok := sc.ids.Load(svcId)
 					if !ok {
-						log.Debugf("[Cache][Service] service-id : %s still no found when reload namespace count", svcId)
+						log.Debugf("[Cache][Service] id : %s no found when reload namespace count", svcId)
 						continue
 					}
 					affect[svc.(*model.Service).Namespace] = true
