@@ -171,6 +171,9 @@ func TestUserCache_UpdateNormal(t *testing.T) {
 				continue
 			}
 			if rand.Int31n(3) < 1 {
+				if users[i].Type != model.SubAccountUserRole {
+					continue
+				}
 				users[i].Valid = false
 				delete(groups[i].UserIds, users[i].ID)
 				deleteCnt++
