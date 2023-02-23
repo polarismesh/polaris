@@ -41,6 +41,8 @@ func newTestUserCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *userC
 	opt := map[string]interface{}{}
 	_ = uc.initialize(opt)
 
+	storage.EXPECT().GetUnixSecond().Return(time.Now().Unix(), nil).AnyTimes()
+
 	return ctl, storage, uc.(*userCache)
 }
 
@@ -144,7 +146,7 @@ func TestUserCache_UpdateNormal(t *testing.T) {
 		store.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).Return(copyUsers, nil)
 		store.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).Return(copyGroups, nil)
 
-		err := uc.update(0)
+		err := uc.update()
 		assert.NoError(t, err, err)
 
 		u := uc.GetUserByID(users[1].ID)
@@ -169,6 +171,9 @@ func TestUserCache_UpdateNormal(t *testing.T) {
 		deleteCnt := 0
 		for i := range users {
 			if rand.Int31n(3) < 1 {
+				if users[i].Type != model.SubAccountUserRole {
+					continue
+				}
 				users[i].Valid = false
 				delete(groups[i].UserIds, users[i].ID)
 				deleteCnt++
@@ -198,7 +203,7 @@ func TestUserCache_UpdateNormal(t *testing.T) {
 		store.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).Return(copyUsers, nil)
 		store.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).Return(copyGroups, nil)
 
-		err := uc.update(0)
+		err := uc.update()
 		assert.NoError(t, err, err)
 
 		for i := range users {

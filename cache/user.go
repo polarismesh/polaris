@@ -81,7 +81,7 @@ type UserCache interface {
 	GetUserLinkGroupIds(id string) []string
 }
 
-type userAndGroupCacheRefreshResult struct {
+type userRefreshResult struct {
 	userAdd    int
 	userUpdate int
 	userDel    int
@@ -97,18 +97,16 @@ type userCache struct {
 
 	storage store.Store
 
-	adminUser                atomic.Value
-	users                    *userBucket       // userid -> user
-	name2Users               *usernameBucket   // username -> user
-	groups                   *groupBucket      // groupid -> group
-	user2Groups              *userGroupsBucket // userid -> groups
-	userCacheFirstUpdate     bool
-	groupCacheFirstUpdate    bool
-	lastUserCacheUpdateTime  int64
-	lastGroupCacheUpdateTime int64
+	adminUser   atomic.Value
+	users       *userBucket       // userid -> user
+	name2Users  *usernameBucket   // username -> user
+	groups      *groupBucket      // groupid -> group
+	user2Groups *userGroupsBucket // userid -> groups
 
-	notifyCh chan interface{}
+	lastUserMtime  int64
+	lastGroupMtime int64
 
+	notifyCh     chan interface{}
 	singleFlight *singleflight.Group
 }
 
@@ -278,7 +276,7 @@ func (u *groupBucket) delete(key string) {
 // newUserCache
 func newUserCache(storage store.Store, notifyCh chan interface{}) UserCache {
 	return &userCache{
-		baseCache: newBaseCache(),
+		baseCache: newBaseCache(storage),
 		storage:   storage,
 		notifyCh:  notifyCh,
 	}
@@ -288,12 +286,6 @@ func newUserCache(storage store.Store, notifyCh chan interface{}) UserCache {
 func (uc *userCache) initialize(c map[string]interface{}) error {
 	uc.initBuckets()
 	uc.adminUser = atomic.Value{}
-
-	uc.userCacheFirstUpdate = true
-	uc.groupCacheFirstUpdate = true
-	uc.lastUserCacheUpdateTime = 0
-	uc.lastGroupCacheUpdateTime = 0
-
 	uc.singleFlight = new(singleflight.Group)
 	return nil
 }
@@ -317,51 +309,50 @@ func (uc *userCache) initBuckets() {
 	}
 }
 
-func (uc *userCache) update(storeRollbackSec time.Duration) error {
+func (uc *userCache) update() error {
 	// Multiple threads competition, only one thread is updated
-	_, err, _ := uc.singleFlight.Do(UsersName, func() (interface{}, error) {
-		return nil, uc.realUpdate(storeRollbackSec)
+	_, err, _ := uc.singleFlight.Do(uc.name(), func() (interface{}, error) {
+		return nil, uc.doCacheUpdate(uc.name(), uc.realUpdate)
 	})
 	return err
 }
 
-func (uc *userCache) realUpdate(storeRollbackSec time.Duration) error {
+func (uc *userCache) realUpdate() (map[string]time.Time, int64, error) {
 	// Get all data before a few seconds
 	start := time.Now()
-	userlastMtime := time.Unix(uc.lastUserCacheUpdateTime, 0)
-	users, err := uc.storage.GetUsersForCache(userlastMtime.Add(storeRollbackSec), uc.userCacheFirstUpdate)
+	users, err := uc.storage.GetUsersForCache(uc.LastFetchTime(), uc.isFirstUpdate())
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][User] update user err: %s", err.Error())
-		return err
+		log.Errorf("[Cache][User] update user err: %s", err.Error())
+		return nil, -1, err
 	}
 
-	grouplastMtime := time.Unix(uc.lastGroupCacheUpdateTime, 0)
-	groups, err := uc.storage.GetGroupsForCache(grouplastMtime.Add(DefaultTimeDiff), uc.groupCacheFirstUpdate)
+	groups, err := uc.storage.GetGroupsForCache(uc.LastFetchTime(), uc.isFirstUpdate())
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][Group] update group err: %s", err.Error())
-		return err
+		log.Errorf("[Cache][Group] update group err: %s", err.Error())
+		return nil, -1, err
 	}
+	lastMimes, refreshRet := uc.setUserAndGroups(users, groups)
 
-	uc.userCacheFirstUpdate = false
-	uc.groupCacheFirstUpdate = false
-	refreshRet := uc.setUserAndGroups(users, groups)
-	log.CacheScope().Info("[Cache][User] get more user",
-		zap.Int("add", refreshRet.userAdd),
-		zap.Int("update", refreshRet.userUpdate),
-		zap.Int("delete", refreshRet.userDel),
-		zap.Time("last", userlastMtime), zap.Duration("used", time.Now().Sub(start)))
+	timeDiff := time.Since(start)
+	if timeDiff > time.Second {
+		log.Info("[Cache][User] get more user",
+			zap.Int("add", refreshRet.userAdd),
+			zap.Int("update", refreshRet.userUpdate),
+			zap.Int("delete", refreshRet.userDel),
+			zap.Time("last", time.Unix(uc.lastUserMtime, 0)), zap.Duration("used", time.Since(start)))
 
-	log.CacheScope().Info("[Cache][Group] get more group",
-		zap.Int("add", refreshRet.groupAdd),
-		zap.Int("update", refreshRet.groupUpdate),
-		zap.Int("delete", refreshRet.groupDel),
-		zap.Time("last", grouplastMtime), zap.Duration("used", time.Now().Sub(start)))
-	return nil
+		log.Info("[Cache][Group] get more group",
+			zap.Int("add", refreshRet.groupAdd),
+			zap.Int("update", refreshRet.groupUpdate),
+			zap.Int("delete", refreshRet.groupDel),
+			zap.Time("last", time.Unix(uc.lastGroupMtime, 0)), zap.Duration("used", time.Since(start)))
+	}
+	return lastMimes, int64(len(users) + len(groups)), nil
 }
 
 func (uc *userCache) setUserAndGroups(users []*model.User,
-	groups []*model.UserGroupDetail) userAndGroupCacheRefreshResult {
-	ret := userAndGroupCacheRefreshResult{}
+	groups []*model.UserGroupDetail) (map[string]time.Time, userRefreshResult) {
+	ret := userRefreshResult{}
 
 	ownerSupplier := func(user *model.User) *model.User {
 		if user.Type == model.SubAccountUserRole {
@@ -371,37 +362,40 @@ func (uc *userCache) setUserAndGroups(users []*model.User,
 		return user
 	}
 
+	lastMimes := map[string]time.Time{}
+
 	// 更新 users 缓存
 	// step 1. 先更新 owner 用户
-	uc.handlerUserCacheUpdate(&ret, users, func(user *model.User) bool {
+	uc.handlerUserCacheUpdate(lastMimes, &ret, users, func(user *model.User) bool {
 		return user.Type == model.OwnerUserRole
 	}, ownerSupplier)
 
 	// step 2. 更新非 owner 用户
-	uc.handlerUserCacheUpdate(&ret, users, func(user *model.User) bool {
+	uc.handlerUserCacheUpdate(lastMimes, &ret, users, func(user *model.User) bool {
 		return user.Type == model.SubAccountUserRole
 	}, ownerSupplier)
 
-	uc.handlerGroupCacheUpdate(&ret, groups)
-
+	uc.handlerGroupCacheUpdate(lastMimes, &ret, groups)
 	uc.postProcess(users, groups)
-
-	return ret
+	return lastMimes, ret
 }
 
 // handlerUserCacheUpdate 处理用户信息更新
-func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult, users []*model.User,
-	filter func(user *model.User) bool,
-	ownerSupplier func(user *model.User) *model.User) {
+// handlerUserCacheUpdate 处理用户信息更新
+func (uc *userCache) handlerUserCacheUpdate(lastMimes map[string]time.Time, ret *userRefreshResult,
+	users []*model.User, filter func(user *model.User) bool, ownerSupplier func(user *model.User) *model.User) {
+
+	lastUserMtime := uc.LastMtime("users").Unix()
 
 	for i := range users {
 		user := users[i]
+
+		lastUserMtime = int64(math.Max(float64(lastUserMtime), float64(user.ModifyTime.Unix())))
+
 		if user.Type == model.AdminUserRole {
 			uc.adminUser.Store(user)
 			uc.users.save(user.ID, user)
 			uc.name2Users.save(fmt.Sprintf(NameLinkOwnerTemp, user.Name, user.Name), user)
-			uc.lastUserCacheUpdateTime = int64(math.Max(float64(user.ModifyTime.Unix()),
-				float64(uc.lastUserCacheUpdateTime)))
 			continue
 		}
 
@@ -426,20 +420,24 @@ func (uc *userCache) handlerUserCacheUpdate(ret *userAndGroupCacheRefreshResult,
 			}
 			uc.users.save(user.ID, user)
 			uc.name2Users.save(fmt.Sprintf(NameLinkOwnerTemp, owner.Name, user.Name), user)
-
-			uc.lastUserCacheUpdateTime = int64(math.Max(float64(user.ModifyTime.Unix()),
-				float64(uc.lastUserCacheUpdateTime)))
 		}
 	}
+
+	lastMimes["users"] = time.Unix(lastUserMtime, 0)
 }
 
 // handlerGroupCacheUpdate 处理用户组信息更新
-func (uc *userCache) handlerGroupCacheUpdate(ret *userAndGroupCacheRefreshResult,
+func (uc *userCache) handlerGroupCacheUpdate(lastMimes map[string]time.Time, ret *userRefreshResult,
 	groups []*model.UserGroupDetail) {
+
+	lastGroupMtime := uc.LastMtime("group").Unix()
 
 	// 更新 groups 数据信息
 	for i := range groups {
 		group := groups[i]
+
+		lastGroupMtime = int64(math.Max(float64(lastGroupMtime), float64(group.ModifyTime.Unix())))
+
 		if !group.Valid {
 			uc.groups.delete(group.ID)
 			ret.groupDel++
@@ -479,21 +477,18 @@ func (uc *userCache) handlerGroupCacheUpdate(ret *userAndGroupCacheRefreshResult
 				val, _ := uc.user2Groups.get(uid)
 				val.save(group.ID)
 			}
-
-			uc.lastGroupCacheUpdateTime = int64(math.Max(float64(group.ModifyTime.Unix()),
-				float64(uc.lastGroupCacheUpdateTime)))
 		}
 	}
+
+	lastMimes["group"] = time.Unix(lastGroupMtime, 0)
 }
 
 func (uc *userCache) clear() error {
+	uc.baseCache.clear()
 	uc.initBuckets()
 	uc.adminUser = atomic.Value{}
-
-	uc.userCacheFirstUpdate = false
-	uc.groupCacheFirstUpdate = false
-	uc.lastUserCacheUpdateTime = 0
-	uc.lastGroupCacheUpdateTime = 0
+	uc.lastUserMtime = 0
+	uc.lastGroupMtime = 0
 	return nil
 }
 

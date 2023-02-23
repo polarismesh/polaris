@@ -27,13 +27,13 @@ import (
 	"github.com/polarismesh/polaris-server/common/model"
 )
 
-//
 func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 	t.Run("资源没有关联任何策略", func(t *testing.T) {
 		userCache := &userCache{}
 		userCache.initBuckets()
 		strategyCache := &strategyCache{
 			userCache: userCache,
+			baseCache: newBaseCache(nil),
 		}
 		strategyCache.initBuckets()
 
@@ -52,6 +52,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		userCache.initBuckets()
 		strategyCache := &strategyCache{
 			userCache: userCache,
+			baseCache: newBaseCache(nil),
 		}
 		strategyCache.initBuckets()
 
@@ -89,6 +90,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		userCache.initBuckets()
 		strategyCache := &strategyCache{
 			userCache: userCache,
+			baseCache: newBaseCache(nil),
 		}
 		strategyCache.initBuckets()
 		strategyCache.setStrategys(buildStrategies(10))
@@ -106,6 +108,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		userCache.initBuckets()
 		strategyCache := &strategyCache{
 			userCache: userCache,
+			baseCache: newBaseCache(nil),
 		}
 		strategyCache.initBuckets()
 
@@ -137,6 +140,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		userCache.initBuckets()
 		strategyCache := &strategyCache{
 			userCache: userCache,
+			baseCache: newBaseCache(nil),
 		}
 		strategyCache.initBuckets()
 
@@ -218,6 +222,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		userCache.initBuckets()
 		strategyCache := &strategyCache{
 			userCache: userCache,
+			baseCache: newBaseCache(nil),
 		}
 		strategyCache.initBuckets()
 

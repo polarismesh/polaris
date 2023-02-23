@@ -82,6 +82,7 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 
 	storage := storemock.NewMockStore(ctrl)
 
+	storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(0), nil)
 	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(groups, nil)

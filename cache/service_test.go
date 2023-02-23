@@ -52,7 +52,7 @@ func newTestServiceCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *se
 	}
 	_ = ic.initialize(opt)
 	_ = sc.initialize(opt)
-
+	testSvcCacheMap["serviceCache"] = sc
 	ic.addListener([]Listener{
 		&WatchInstanceReload{
 			Handler: func(val interface{}) {
@@ -62,8 +62,6 @@ func newTestServiceCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *se
 			},
 		},
 	})
-
-	testSvcCacheMap["serviceCache"] = sc
 
 	return ctl, storage, sc, ic
 }
@@ -164,11 +162,12 @@ func TestServiceUpdate(t *testing.T) {
 	t.Run("所有数据为空，可以正常获取数据", func(t *testing.T) {
 		gomock.InOrder(
 			storage.EXPECT().
-				GetMoreServices(gomock.Any(), sc.firstUpdate, sc.disableBusiness, sc.needMeta).
-				Return(nil, nil),
+				GetMoreServices(gomock.Any(), sc.isFirstUpdate(), sc.disableBusiness, sc.needMeta).
+				Return(nil, nil).Times(1),
+			storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(0), nil),
 		)
 
-		if err := sc.update(0); err != nil {
+		if err := sc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
@@ -180,11 +179,12 @@ func TestServiceUpdate(t *testing.T) {
 		_ = sc.clear()
 		services := genModelService(100)
 		gomock.InOrder(
-			storage.EXPECT().GetMoreServices(gomock.Any(), sc.firstUpdate, sc.disableBusiness, sc.needMeta).
+			storage.EXPECT().GetMoreServices(gomock.Any(), sc.isFirstUpdate(), sc.disableBusiness, sc.needMeta).
 				Return(services, nil),
+			storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(len(services)), nil),
 		)
 
-		if err := sc.update(0); err != nil {
+		if err := sc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
@@ -197,19 +197,21 @@ func TestServiceUpdate(t *testing.T) {
 		services1 := genModelService(100)
 		services2 := genModelService(300)
 		gomock.InOrder(
-			storage.EXPECT().GetMoreServices(gomock.Any(), sc.firstUpdate, sc.disableBusiness, sc.needMeta).
+			storage.EXPECT().GetMoreServices(gomock.Any(), sc.isFirstUpdate(), sc.disableBusiness, sc.needMeta).
 				Return(services1, nil),
+			storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(len(services1)), nil),
 		)
 
-		if err := sc.update(0); err != nil {
+		if err := sc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
 		gomock.InOrder(
-			storage.EXPECT().GetMoreServices(gomock.Any(), sc.firstUpdate, sc.disableBusiness, sc.needMeta).
+			storage.EXPECT().GetMoreServices(gomock.Any(), sc.isFirstUpdate(), sc.disableBusiness, sc.needMeta).
 				Return(services2, nil),
+			storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(len(services2)), nil),
 		)
-		_ = sc.update(0)
+		_ = sc.update()
 		if sum := getServiceCacheCount(sc); sum != 300 {
 			t.Fatalf("error: %d", sum)
 		}
@@ -225,8 +227,10 @@ func TestServiceUpdate1(t *testing.T) {
 		_ = sc.clear()
 		services := genModelService(100)
 		gomock.InOrder(storage.EXPECT().
-			GetMoreServices(gomock.Any(), sc.firstUpdate, sc.disableBusiness, sc.needMeta).Return(services, nil))
-		_ = sc.update(0)
+			GetMoreServices(gomock.Any(), sc.isFirstUpdate(), sc.disableBusiness, sc.needMeta).Return(services, nil),
+			storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(100), nil),
+		)
+		_ = sc.update()
 
 		// 把所有的都置为false
 		for _, service := range services {
@@ -234,8 +238,10 @@ func TestServiceUpdate1(t *testing.T) {
 		}
 
 		gomock.InOrder(storage.EXPECT().
-			GetMoreServices(gomock.Any(), sc.firstUpdate, sc.disableBusiness, sc.needMeta).Return(services, nil))
-		_ = sc.update(0)
+			GetMoreServices(gomock.Any(), sc.isFirstUpdate(), sc.disableBusiness, sc.needMeta).Return(services, nil),
+			storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(0), nil),
+		)
+		_ = sc.update()
 
 		if sum := getServiceCacheCount(sc); sum != 0 {
 			t.Fatalf("error: %d", sum)
@@ -246,21 +252,27 @@ func TestServiceUpdate1(t *testing.T) {
 		_ = sc.clear()
 		services := genModelService(100)
 		gomock.InOrder(storage.EXPECT().
-			GetMoreServices(gomock.Any(), sc.firstUpdate, sc.disableBusiness, sc.needMeta).Return(services, nil))
-		_ = sc.update(0)
+			GetMoreServices(gomock.Any(), sc.isFirstUpdate(), sc.disableBusiness, sc.needMeta).Return(services, nil),
+			storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(len(services)), nil),
+		)
+		_ = sc.update()
 
 		// 把所有的都置为false
+		count := len(services)
 		idx := 0
 		for _, service := range services {
 			if idx%2 == 0 {
 				service.Valid = false
+				count--
 			}
 			idx++
 		}
 
 		gomock.InOrder(storage.EXPECT().
-			GetMoreServices(gomock.Any(), sc.firstUpdate, sc.disableBusiness, sc.needMeta).Return(services, nil))
-		_ = sc.update(0)
+			GetMoreServices(gomock.Any(), sc.isFirstUpdate(), sc.disableBusiness, sc.needMeta).Return(services, nil),
+			storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(count), nil),
+		)
+		_ = sc.update()
 
 		if sum := getServiceCacheCount(sc); sum != 50 { // remain half
 			t.Fatalf("error: %d", sum)
@@ -276,11 +288,12 @@ func TestServiceUpdate2(t *testing.T) {
 	t.Run("store返回失败，update会返回失败", func(t *testing.T) {
 		_ = sc.clear()
 		gomock.InOrder(
-			storage.EXPECT().GetMoreServices(gomock.Any(), sc.firstUpdate, sc.disableBusiness, sc.needMeta).
+			storage.EXPECT().GetMoreServices(gomock.Any(), sc.isFirstUpdate(), sc.disableBusiness, sc.needMeta).
 				Return(nil, fmt.Errorf("store error")),
+			storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(0), nil),
 		)
 
-		if err := sc.update(0); err != nil {
+		if err := sc.update(); err != nil {
 			t.Logf("pass: %s", err.Error())
 		} else {
 			t.Fatalf("error")
@@ -506,7 +519,7 @@ func TestServiceCache_NamespaceCount(t *testing.T) {
 			ic := sc.instCache.(*instanceCache)
 			ic.setInstances(instances)
 
-			time.Sleep(time.Duration(2 * time.Second))
+			time.Sleep(5 * time.Second)
 
 			// 这个时候计算，数据应该正确
 			acutalNsInsCount = make(map[string]int)

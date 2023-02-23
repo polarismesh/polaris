@@ -53,7 +53,7 @@ type RoutingArgs struct {
 
 // forceUpdate 更新配置
 func (rc *routingConfigCache) forceUpdate() error {
-	if err := rc.update(0); err != nil {
+	if err := rc.update(); err != nil {
 		return err
 	}
 	return nil

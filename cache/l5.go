@@ -20,7 +20,6 @@ package cache
 import (
 	"container/list"
 	"sync"
-	"time"
 
 	cl5common "github.com/polarismesh/polaris-server/common/cl5"
 	"github.com/polarismesh/polaris-server/common/log"
@@ -76,7 +75,7 @@ type l5Cache struct {
 
 func newL5Cache(s store.Store) *l5Cache {
 	return &l5Cache{
-		baseCache: newBaseCache(),
+		baseCache: newBaseCache(s),
 		storage:   s,
 	}
 }
@@ -102,7 +101,7 @@ func (lc *l5Cache) initialize(opt map[string]interface{}) error {
 	return nil
 }
 
-func (lc *l5Cache) update(storeRollbackSec time.Duration) error {
+func (lc *l5Cache) update() error {
 	err := lc.updateCL5Route()
 	if err != nil {
 		log.CacheScope().Errorf("[Cache][CL5] update l5 route cache err: %s", err.Error())

@@ -17,9 +17,12 @@
 
 package cache
 
+import "time"
+
 // Config 缓存配置
 type Config struct {
-	Open      bool `yaml:"open"`
+	Open      bool          `yaml:"open"`
+	DiffTime  time.Duration `yaml:"diffTime"`
 	Resources []ConfigEntry
 }
 

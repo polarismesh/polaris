@@ -74,9 +74,6 @@ type strategyCache struct {
 
 	userCache UserCache
 
-	firstUpdate    bool
-	lastUpdateTime int64
-
 	singleFlight *singleflight.Group
 
 	principalCh chan interface{}
@@ -197,7 +194,7 @@ func (s *strategyLinkBucket) get(key string) ([]string, bool) {
 // newStrategyCache
 func newStrategyCache(storage store.Store, principalCh chan interface{}, userCache UserCache) StrategyCache {
 	return &strategyCache{
-		baseCache:   newBaseCache(),
+		baseCache:   newBaseCache(storage),
 		storage:     storage,
 		principalCh: principalCh,
 		userCache:   userCache,
@@ -234,52 +231,50 @@ func (sc *strategyCache) initBuckets() {
 
 func (sc *strategyCache) initialize(c map[string]interface{}) error {
 	sc.initBuckets()
-
 	sc.singleFlight = new(singleflight.Group)
-	sc.firstUpdate = true
-	sc.lastUpdateTime = 0
 	return nil
 }
 
-func (sc *strategyCache) update(storeRollbackSec time.Duration) error {
+func (sc *strategyCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
-	_, err, _ := sc.singleFlight.Do(StrategyRuleName, func() (interface{}, error) {
-		return nil, sc.realUpdate(storeRollbackSec)
+	_, err, _ := sc.singleFlight.Do(sc.name(), func() (interface{}, error) {
+		return nil, sc.doCacheUpdate(sc.name(), sc.realUpdate)
 	})
 	return err
 }
 
-func (sc *strategyCache) realUpdate(storeRollbackSec time.Duration) error {
+func (sc *strategyCache) realUpdate() (map[string]time.Time, int64, error) {
 	// 获取几秒前的全部数据
-	start := time.Now()
-	lastMtime := time.Unix(sc.lastUpdateTime, 0)
-	strategys, err := sc.storage.GetStrategyDetailsForCache(lastMtime.Add(storeRollbackSec), sc.firstUpdate)
+	var (
+		start           = time.Now()
+		lastTime        = sc.LastFetchTime()
+		strategies, err = sc.storage.GetStrategyDetailsForCache(lastTime, sc.isFirstUpdate())
+	)
 	if err != nil {
-		log.CacheScope().Errorf("[Cache][AuthStrategy] refresh auth strategy cache err: %s", err.Error())
-		return err
+		log.Errorf("[Cache][AuthStrategy] refresh auth strategy cache err: %s", err.Error())
+		return nil, -1, err
 	}
 
-	sc.firstUpdate = false
-	add, update, del := sc.setStrategys(strategys)
-	log.CacheScope().Info("[Cache][AuthStrategy] get more auth strategy",
-		zap.Int("add", add), zap.Int("update", update), zap.Int("delete", del),
-		zap.Time("last", lastMtime), zap.Duration("used", time.Now().Sub(start)))
-	return nil
+	lastMtimes, add, update, del := sc.setStrategys(strategies)
+	timeDiff := time.Since(start)
+	if timeDiff > time.Second {
+		log.Info("[Cache][AuthStrategy] get more auth strategy",
+			zap.Int("add", add), zap.Int("update", update), zap.Int("delete", del),
+			zap.Time("last", lastTime), zap.Duration("used", time.Since(start)))
+	}
+	return lastMtimes, int64(len(strategies)), nil
 }
 
 // setStrategys 处理策略的数据更新情况
 // step 1. 先处理resource以及principal的数据更新情况（主要是为了能够获取到新老数据进行对比计算）
 // step 2. 处理真正的 strategy 的缓存更新
-func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (int, int, int) {
-
-	var (
-		add    int
-		remove int
-		update int
-	)
+func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (map[string]time.Time, int, int, int) {
+	var add, remove, update int
 
 	sc.handlerResourceStrategy(strategies)
 	sc.handlerPrincipalStrategy(strategies)
+
+	lastMtime := sc.LastMtime(sc.name()).Unix()
 
 	for index := range strategies {
 		rule := strategies[index]
@@ -294,14 +289,14 @@ func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (int, 
 				update++
 			}
 			sc.strategys.save(rule.ID, buildEnchanceStrategyDetail(rule))
-
-			sc.lastUpdateTime = int64(math.Max(float64(sc.lastUpdateTime), float64(rule.ModifyTime.Unix())))
 		}
+
+		lastMtime = int64(math.Max(float64(lastMtime), float64(rule.ModifyTime.Unix())))
 	}
 
 	sc.postProcessPrincipalCh()
 
-	return add, update, remove
+	return map[string]time.Time{sc.name(): time.Unix(lastMtime, 0)}, add, update, remove
 }
 
 func buildEnchanceStrategyDetail(strategy *model.StrategyDetail) *model.StrategyDetailCache {
@@ -468,10 +463,8 @@ func (sc *strategyCache) postProcessPrincipalCh() {
 }
 
 func (sc *strategyCache) clear() error {
+	sc.baseCache.clear()
 	sc.initBuckets()
-
-	sc.firstUpdate = true
-	sc.lastUpdateTime = 0
 	return nil
 }
 
