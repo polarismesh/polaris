@@ -25,10 +25,10 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
+	"github.com/polarismesh/specification/source/go/api/v1/model"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
-	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -43,32 +43,22 @@ func checkSameRoutingConfig(t *testing.T, lhs *apitraffic.Routing, rhs *apitraff
 		t.Fatalf("error: (%s), (%s)", lhs, rhs)
 	}
 
-	checkFunc := func(in []*apitraffic.Route, out []*apitraffic.Route) bool {
+	checkFunc := func(labels string, in []*apitraffic.Route, out []*apitraffic.Route) bool {
 		if len(in) == 0 && len(out) == 0 {
 			return true
 		}
 
 		inStr, err := json.Marshal(in)
-		if err != nil {
-			t.Fatalf("error: %s", err.Error())
-			return false
-		}
-
+		assert.NoError(t, err)
 		outStr, err := json.Marshal(out)
-		if err != nil {
-			t.Fatalf("error: %s", err.Error())
-			return false
-		}
+		assert.NoError(t, err)
 
 		if in == nil || out == nil {
-			t.Fatalf("error: empty (%s), (%s)", string(inStr), string(outStr))
+			t.Fatalf("%s error: empty (%s), (%s)", labels, string(inStr), string(outStr))
 			return false
 		}
 
-		if len(in) != len(out) {
-			t.Fatalf("error: %d, %d", len(in), len(out))
-			return false
-		}
+		assert.Equalf(t, len(in), len(out), "%s len(in) != len(out)", labels)
 
 		inRoutes := []*apitraffic.Route{}
 		outRoutes := []*apitraffic.Route{}
@@ -83,38 +73,34 @@ func checkSameRoutingConfig(t *testing.T, lhs *apitraffic.Routing, rhs *apitraff
 
 		for i := range inRoutes {
 			for j := range inRoutes[i].Destinations {
+				inRoutes[i].Destinations[j].Name = nil
 				inRoutes[i].Destinations[j].Isolate = nil
-			}
-		}
-
-		for i := range outRoutes {
-			for j := range outRoutes[i].Destinations {
+				outRoutes[i].Destinations[j].Name = nil
 				outRoutes[i].Destinations[j].Isolate = nil
 			}
 		}
 
 		if !reflect.DeepEqual(inRoutes, outRoutes) {
-			t.Fatalf("error: (%s), (%s)", string(inStr), string(outStr))
+			t.Fatalf("%s error: (%s), (%s)", labels, string(inStr), string(outStr))
 			return false
 		}
 
 		return true
 	}
 
-	checkFunc(lhs.Inbounds, rhs.Inbounds)
-	checkFunc(lhs.Outbounds, rhs.Outbounds)
+	checkFunc("Inbounds", lhs.Inbounds, rhs.Inbounds)
+	checkFunc("Outbounds", lhs.Outbounds, rhs.Outbounds)
 }
 
 // 测试创建路由配置
 func TestCreateRoutingConfig(t *testing.T) {
+	t.Run("正常创建路由配置配置请求", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.initialize(); err != nil {
+			t.Fatal(err)
+		}
 
-	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
-		t.Fatal(err)
-	}
-	defer discoverSuit.Destroy()
-
-	Convey("正常创建路由配置配置请求", t, func() {
+		defer discoverSuit.Destroy()
 		_, serviceResp := discoverSuit.createCommonService(t, 200)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		_, _ = discoverSuit.createCommonRoutingConfig(t, serviceResp, 3, 0)
@@ -127,12 +113,8 @@ func TestCreateRoutingConfig(t *testing.T) {
 			t.Fatalf("error: %+v", out)
 		}
 	})
-}
 
-// 测试创建路由配置
-func TestCreateRoutingConfig2(t *testing.T) {
-
-	Convey("参数缺失，报错", t, func() {
+	t.Run("参数缺失，报错", func(t *testing.T) {
 		discoverSuit := &DiscoverTestSuit{}
 		if err := discoverSuit.initialize(); err != nil {
 			t.Fatal(err)
@@ -144,22 +126,22 @@ func TestCreateRoutingConfig2(t *testing.T) {
 
 		req := &apitraffic.Routing{}
 		resp := discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*apitraffic.Routing{req})
-		So(respSuccess(resp), ShouldEqual, false)
+		assert.False(t, respSuccess(resp))
 		t.Logf("%s", resp.GetInfo().GetValue())
 
 		req.Service = serviceResp.Name
 		resp = discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*apitraffic.Routing{req})
-		So(respSuccess(resp), ShouldEqual, false)
+		assert.False(t, respSuccess(resp))
 		t.Logf("%s", resp.GetInfo().GetValue())
 
 		req.Namespace = serviceResp.Namespace
 		resp = discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*apitraffic.Routing{req})
 		defer discoverSuit.cleanCommonRoutingConfig(req.GetService().GetValue(), req.GetNamespace().GetValue())
-		So(respSuccess(resp), ShouldEqual, true)
+		assert.True(t, respSuccess(resp))
 		t.Logf("%s", resp.GetInfo().GetValue())
 	})
 
-	Convey("服务不存在，创建路由配置，报错", t, func() {
+	t.Run("服务不存在，创建路由配置，报错", func(t *testing.T) {
 		discoverSuit := &DiscoverTestSuit{}
 		if err := discoverSuit.initialize(); err != nil {
 			t.Fatal(err)
@@ -174,15 +156,69 @@ func TestCreateRoutingConfig2(t *testing.T) {
 		req.Namespace = serviceResp.Namespace
 		req.ServiceToken = serviceResp.Token
 		resp := discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*apitraffic.Routing{req})
-		So(respSuccess(resp), ShouldEqual, false)
+		assert.False(t, respSuccess(resp))
 		t.Logf("%s", resp.GetInfo().GetValue())
+	})
+}
+
+// 测试创建路由配置
+func TestUpdateRoutingConfig(t *testing.T) {
+	t.Run("更新V1路由规则, 成功转为V2规则", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.initialize(); err != nil {
+			t.Fatal(err)
+		}
+
+		_, svc := discoverSuit.createCommonService(t, 200)
+		v1Rule, _ := discoverSuit.createCommonRoutingConfigV1IntoOldStore(t, svc, 3, 0)
+		t.Cleanup(func() {
+			discoverSuit.cleanServiceName(svc.GetName().GetValue(), svc.GetNamespace().GetValue())
+			discoverSuit.cleanCommonRoutingConfig(svc.GetName().GetValue(), svc.GetNamespace().GetValue())
+			discoverSuit.truncateCommonRoutingConfigV2()
+			discoverSuit.Destroy()
+		})
+
+		v1Rule.Outbounds = v1Rule.Inbounds
+		uResp := discoverSuit.server.UpdateRoutingConfigs(discoverSuit.defaultCtx, []*apitraffic.Routing{v1Rule})
+		assert.True(t, respSuccess(uResp))
+
+		// 等缓存层更新
+		time.Sleep(discoverSuit.updateCacheInterval * 5)
+
+		// 直接查询存储无法查询到 v1 的路由规则
+		total, routingsV1, err := discoverSuit.storage.GetRoutingConfigs(map[string]string{}, 0, 100)
+		assert.NoError(t, err, err)
+		assert.Equal(t, uint32(0), total, "v1 routing must delete and transfer to v1")
+		assert.Equal(t, 0, len(routingsV1), "v1 routing ret len need zero")
+
+		// 从缓存中查询应该查到 6 条 v2 的路由规则
+		out := discoverSuit.server.GetRoutingConfigsV2(discoverSuit.defaultCtx, map[string]string{
+			"limit":  "100",
+			"offset": "0",
+		})
+		if !respSuccess(out) {
+			t.Fatalf("error: %+v", out)
+		}
+		assert.Equal(t, int(6), int(out.GetAmount().GetValue()), "query routing size")
+		rulesV2, err := unmarshalRoutingV2toAnySlice(out.GetData())
+		assert.NoError(t, err)
+		for i := range rulesV2 {
+			item := rulesV2[i]
+			assert.True(t, item.Enable, "v1 to v2 need default open enable")
+			msg := &apitraffic.RuleRoutingConfig{}
+			err := ptypes.UnmarshalAny(item.GetRoutingConfig(), msg)
+			assert.NoError(t, err)
+			assert.True(t, len(msg.GetSources()) == 0, "RuleRoutingConfig.Sources len != 0")
+			assert.True(t, len(msg.GetDestinations()) == 0, "RuleRoutingConfig.Destinations len != 0")
+			assert.True(t, len(msg.GetRules()) != 0, "RuleRoutingConfig.Rules len == 0")
+		}
 	})
 }
 
 // 测试缓存获取路由配置
 func TestGetRoutingConfigWithCache(t *testing.T) {
 
-	Convey("多个服务的，多个路由配置，都可以查询到", t, func() {
+	t.Run("多个服务的，多个路由配置，都可以查询到", func(t *testing.T) {
 		discoverSuit := &DiscoverTestSuit{}
 		if err := discoverSuit.initialize(); err != nil {
 			t.Fatal(err)
@@ -202,7 +238,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 			routingResps = append(routingResps, routingResp)
 		}
 
-		time.Sleep(discoverSuit.updateCacheInterval)
+		time.Sleep(discoverSuit.updateCacheInterval * 5)
 		for i := 0; i < total; i++ {
 			t.Logf("service : name=%s namespace=%s", serviceResps[i].GetName().GetValue(), serviceResps[i].GetNamespace().GetValue())
 			out := discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, serviceResps[i])
@@ -210,7 +246,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 		}
 	})
 
-	Convey("走v2接口创建路由规则，不启用查不到，启用可以查到", t, func() {
+	t.Run("走v2接口创建路由规则，不启用查不到，启用可以查到", func(t *testing.T) {
 		discoverSuit := &DiscoverTestSuit{}
 		if err := discoverSuit.initialize(); err != nil {
 			t.Fatal(err)
@@ -263,7 +299,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 		assert.True(t, len(out.GetRouting().GetOutbounds()) == 1, "inBounds must be one")
 	})
 
-	Convey("走v2接口创建路由规则，通配服务", t, func() {
+	t.Run("走v2接口创建路由规则，通配服务", func(t *testing.T) {
 		discoverSuit := &DiscoverTestSuit{}
 		if err := discoverSuit.initialize(); err != nil {
 			t.Fatal(err)
@@ -366,7 +402,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 		assert.True(t, len(out.GetRouting().GetOutbounds()) == 1, "inBounds must be one")
 	})
 
-	Convey("服务路由数据不改变，传递了路由revision，不返回数据", t, func() {
+	t.Run("服务路由数据不改变，传递了路由revision，不返回数据", func(t *testing.T) {
 		discoverSuit := &DiscoverTestSuit{}
 		if err := discoverSuit.initialize(); err != nil {
 			t.Fatal(err)
@@ -388,12 +424,9 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 		if secondResp.GetService().GetRevision().GetValue() != serviceResp.GetRevision().GetValue() {
 			t.Fatalf("error")
 		}
-		if secondResp.GetRouting() != nil {
-			t.Fatalf("error: %+v", secondResp.GetRouting())
-		}
-		t.Logf("%+v", secondResp)
+		assert.Equal(t, model.Code(secondResp.GetCode().GetValue()), apimodel.Code_DataNoChange)
 	})
-	Convey("路由不存在，不会出异常", t, func() {
+	t.Run("路由不存在，不会出异常", func(t *testing.T) {
 		discoverSuit := &DiscoverTestSuit{}
 		if err := discoverSuit.initialize(); err != nil {
 			t.Fatal(err)

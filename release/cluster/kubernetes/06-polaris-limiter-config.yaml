@@ -7,7 +7,7 @@ data:
   polaris-limiter.yaml: |-
     registry:
       enable: true
-      polaris-server-address: polaris.polaris-system:8090
+      polaris-server-address: polaris.polaris-system:8091
       name: polaris.limiter
       namespace: Polaris
       health-check-enable: true

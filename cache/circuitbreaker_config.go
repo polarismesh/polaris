@@ -23,6 +23,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/singleflight"
+
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -56,8 +58,8 @@ type circuitBreakerCache struct {
 	// all rules are wildcard specific
 	allWildcardRules *model.ServiceWithCircuitBreakerRules
 	lock             sync.RWMutex
-	lastTime         time.Time
-	firstUpdate      bool
+
+	singleFlight singleflight.Group
 }
 
 // init 自注册到缓存列表
@@ -68,7 +70,7 @@ func init() {
 // newCircuitBreakerCache 返回一个操作CircuitBreakerCache的对象
 func newCircuitBreakerCache(s store.Store) *circuitBreakerCache {
 	return &circuitBreakerCache{
-		baseCache:       newBaseCache(),
+		baseCache:       newBaseCache(s),
 		storage:         s,
 		circuitBreakers: make(map[string]map[string]*model.ServiceWithCircuitBreakerRules),
 		nsWildcardRules: make(map[string]*model.ServiceWithCircuitBreakerRules),
@@ -81,33 +83,36 @@ func newCircuitBreakerCache(s store.Store) *circuitBreakerCache {
 
 // initialize 实现Cache接口的函数
 func (c *circuitBreakerCache) initialize(_ map[string]interface{}) error {
-	c.lastTime = time.Unix(0, 0)
-	c.firstUpdate = true
-
 	return nil
 }
 
 // update 实现Cache接口的函数
-func (c *circuitBreakerCache) update(storeRollbackSec time.Duration) error {
-	lastTime := c.lastTime.Add(storeRollbackSec)
-	cbRules, err := c.storage.GetCircuitBreakerRulesForCache(lastTime, c.firstUpdate)
+func (c *circuitBreakerCache) update() error {
+	// 多个线程竞争，只有一个线程进行更新
+	_, err, _ := c.singleFlight.Do(c.name(), func() (interface{}, error) {
+		return nil, c.doCacheUpdate(c.name(), c.realUpdate)
+	})
+	return err
+}
+
+func (c *circuitBreakerCache) realUpdate() (map[string]time.Time, int64, error) {
+	cbRules, err := c.storage.GetCircuitBreakerRulesForCache(c.LastFetchTime(), c.isFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] circuit breaker config cache update err:%s", err.Error())
-		return err
+		return nil, -1, err
 	}
-	c.firstUpdate = false
-	return c.setCircuitBreaker(cbRules)
+	lastMtimes := c.setCircuitBreaker(cbRules)
+	return lastMtimes, int64(len(cbRules)), nil
 }
 
 // clear 实现Cache接口的函数
 func (c *circuitBreakerCache) clear() error {
+	c.baseCache.clear()
 	c.lock.Lock()
 	c.allWildcardRules.Clear()
 	c.nsWildcardRules = make(map[string]*model.ServiceWithCircuitBreakerRules)
 	c.circuitBreakers = make(map[string]map[string]*model.ServiceWithCircuitBreakerRules)
 	c.lock.Unlock()
-
-	c.lastTime = time.Unix(0, 0)
 	return nil
 }
 
@@ -326,16 +331,16 @@ func getServicesInvolveByCircuitBreakerRule(cbRule *model.CircuitBreakerRule) ma
 }
 
 // setCircuitBreaker 更新store的数据到cache中
-func (c *circuitBreakerCache) setCircuitBreaker(cbRules []*model.CircuitBreakerRule) error {
+func (c *circuitBreakerCache) setCircuitBreaker(cbRules []*model.CircuitBreakerRule) map[string]time.Time {
 	if len(cbRules) == 0 {
 		return nil
 	}
 
-	lastTime := c.lastTime.Unix()
+	lastMtime := c.LastMtime(c.name()).Unix()
 
 	for _, cbRule := range cbRules {
-		if cbRule.ModifyTime.Unix() > lastTime {
-			lastTime = cbRule.ModifyTime.Unix()
+		if cbRule.ModifyTime.Unix() > lastMtime {
+			lastMtime = cbRule.ModifyTime.Unix()
 		}
 		svcKeys := getServicesInvolveByCircuitBreakerRule(cbRule)
 		if !cbRule.Valid {
@@ -345,11 +350,9 @@ func (c *circuitBreakerCache) setCircuitBreaker(cbRules []*model.CircuitBreakerR
 		c.storeCircuitBreakerToServiceCache(cbRule, svcKeys)
 	}
 
-	if c.lastTime.Unix() < lastTime {
-		c.lastTime = time.Unix(lastTime, 0)
+	return map[string]time.Time{
+		c.name(): time.Unix(lastMtime, 0),
 	}
-
-	return nil
 }
 
 // GetCircuitBreakerCount 获取熔断规则总数
