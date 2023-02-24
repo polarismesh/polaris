@@ -40,10 +40,6 @@ const (
 	StrategyRuleName string = "strategyRule"
 )
 
-const (
-	removePrincipalChSize = 8
-)
-
 // StrategyCache is a cache for strategy rules.
 type StrategyCache interface {
 	Cache
