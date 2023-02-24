@@ -40,6 +40,7 @@ import (
 var (
 	// InstanceFilterAttributes 查询实例支持的过滤字段
 	InstanceFilterAttributes = map[string]bool{
+		"id":            true,
 		"service":       true, // 服务name
 		"namespace":     true, // 服务namespace
 		"host":          true,

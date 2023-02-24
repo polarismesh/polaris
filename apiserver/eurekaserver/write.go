@@ -217,8 +217,8 @@ func (h *EurekaServer) updateStatus(
 	}
 	ctx = context.WithValue(
 		ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
-	resp := h.namingServer.UpdateInstances(ctx,
-		[]*apiservice.Instance{{Id: &wrappers.StringValue{Value: instanceId}, Isolate: &wrappers.BoolValue{Value: isolated}}})
+	resp := h.namingServer.UpdateInstance(ctx, &apiservice.Instance{
+		Id: &wrappers.StringValue{Value: instanceId}, Isolate: &wrappers.BoolValue{Value: isolated}})
 	return resp.GetCode().GetValue()
 }
 
@@ -237,7 +237,7 @@ func (h *EurekaServer) renew(ctx context.Context, appId string, instanceId strin
 }
 
 func (h *EurekaServer) updateMetadata(ctx context.Context, instanceId string, metadata map[string]string) uint32 {
-	resp := h.namingServer.UpdateInstances(ctx,
-		[]*apiservice.Instance{{Id: &wrappers.StringValue{Value: instanceId}, Metadata: metadata}})
+	resp := h.namingServer.UpdateInstance(ctx,
+		&apiservice.Instance{Id: &wrappers.StringValue{Value: instanceId}, Metadata: metadata})
 	return resp.GetCode().GetValue()
 }
