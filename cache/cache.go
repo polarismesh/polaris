@@ -188,13 +188,6 @@ func (bc *baseCache) isFirstUpdate() bool {
 	return bc.firtstUpdate
 }
 
-func (bc *baseCache) resetLastFetchTime() {
-	bc.lock.Lock()
-	defer bc.lock.Unlock()
-	bc.lastFetchTime = 0
-	bc.firtstUpdate = true
-}
-
 // update
 func (bc *baseCache) doCacheUpdate(name string, executor func() (map[string]time.Time, int64, error)) error {
 	curStoreTime, err := bc.s.GetUnixSecond()
