@@ -167,6 +167,13 @@ func (bc *baseCache) resetLastMtime(label string) {
 	bc.lastMtimes[label] = time.Unix(0, 0)
 }
 
+func (bc *baseCache) resetLastFetchTime() {
+	bc.lock.Lock()
+	defer bc.lock.Unlock()
+	bc.lastFetchTime = 0
+	bc.firtstUpdate = true
+}
+
 func (bc *baseCache) LastMtime(label string) time.Time {
 	bc.lock.RLock()
 	defer bc.lock.RUnlock()

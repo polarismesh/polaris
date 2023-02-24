@@ -36,8 +36,7 @@ func init() {
 }
 
 const (
-	UsersName = "users"
-
+	UsersName         = "users"
 	NameLinkOwnerTemp = "%s@%s"
 )
 
@@ -90,6 +89,11 @@ type userRefreshResult struct {
 	groupDel    int
 }
 
+type userNotify struct {
+	ResetStrategyCache bool
+	Principals         []model.Principal
+}
+
 // userCache 用户信息缓存
 type userCache struct {
 	*baseCache
@@ -105,16 +109,14 @@ type userCache struct {
 	lastUserMtime  int64
 	lastGroupMtime int64
 
-	notifyCh     chan interface{}
 	singleFlight *singleflight.Group
 }
 
 // newUserCache
-func newUserCache(storage store.Store, notifyCh chan interface{}) UserCache {
+func newUserCache(storage store.Store) UserCache {
 	return &userCache{
 		baseCache: newBaseCache(storage),
 		storage:   storage,
-		notifyCh:  notifyCh,
 	}
 }
 
@@ -356,7 +358,6 @@ func (uc *userCache) IsUserInGroup(userId, groupId string) bool {
 	if group == nil {
 		return false
 	}
-
 	_, exist := group.UserIds[userId]
 	return exist
 }
@@ -368,11 +369,9 @@ func (uc *userCache) GetUserByID(id string) *model.User {
 	}
 
 	val, ok := uc.users.get(id)
-
 	if !ok {
 		return nil
 	}
-
 	return val
 }
 
@@ -383,7 +382,6 @@ func (uc *userCache) GetUserByName(name, ownerName string) *model.User {
 	if !ok {
 		return nil
 	}
-
 	return val
 }
 
@@ -407,11 +405,9 @@ func (uc *userCache) GetUserLinkGroupIds(userId string) []string {
 		return nil
 	}
 	val, ok := uc.user2Groups.get(userId)
-
 	if !ok {
 		return nil
 	}
-
 	return val.toSlice()
 }
 
@@ -432,7 +428,6 @@ func (uc *userCache) postProcess(users []*model.User, groups []*model.UserGroupD
 			groupRemoves = append(groupRemoves, group.UserGroup)
 		}
 	}
-
 	uc.onRemove(userRemoves, groupRemoves)
 }
 
@@ -442,7 +437,6 @@ func (uc *userCache) onRemove(users []*model.User, groups []*model.UserGroup) {
 
 	for index := range users {
 		user := users[index]
-
 		principals = append(principals, model.Principal{
 			PrincipalID:   user.ID,
 			PrincipalRole: model.PrincipalUser,
@@ -451,12 +445,13 @@ func (uc *userCache) onRemove(users []*model.User, groups []*model.UserGroup) {
 
 	for index := range groups {
 		group := groups[index]
-
 		principals = append(principals, model.Principal{
 			PrincipalID:   group.ID,
 			PrincipalRole: model.PrincipalGroup,
 		})
 	}
 
-	uc.notifyCh <- principals
+	if len(principals) != 0 {
+		uc.manager.onEvent(principals, EventPrincipalRemove)
+	}
 }
