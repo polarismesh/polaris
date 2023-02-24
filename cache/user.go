@@ -89,6 +89,11 @@ type userRefreshResult struct {
 	groupDel    int
 }
 
+type userNotify struct {
+	ResetStrategyCache bool
+	Principals         []model.Principal
+}
+
 // userCache 用户信息缓存
 type userCache struct {
 	*baseCache
