@@ -106,7 +106,6 @@ type userCache struct {
 	lastUserMtime  int64
 	lastGroupMtime int64
 
-	notifyCh     chan interface{}
 	singleFlight *singleflight.Group
 }
 
@@ -274,11 +273,10 @@ func (u *groupBucket) delete(key string) {
 }
 
 // newUserCache
-func newUserCache(storage store.Store, notifyCh chan interface{}) UserCache {
+func newUserCache(storage store.Store) UserCache {
 	return &userCache{
 		baseCache: newBaseCache(storage),
 		storage:   storage,
-		notifyCh:  notifyCh,
 	}
 }
 
@@ -623,5 +621,7 @@ func (uc *userCache) onRemove(users []*model.User, groups []*model.UserGroup) {
 		})
 	}
 
-	uc.notifyCh <- principals
+	if len(principals) != 0 {
+		uc.manager.onEvent(principals, EventPrincipalRemove)
+	}
 }

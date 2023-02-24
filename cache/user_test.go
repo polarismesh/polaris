@@ -37,7 +37,7 @@ func newTestUserCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *userC
 	ctl := gomock.NewController(t)
 
 	storage := mock.NewMockStore(ctl)
-	uc := newUserCache(storage, make(chan interface{}, 4))
+	uc := newUserCache(storage)
 	opt := map[string]interface{}{}
 	_ = uc.initialize(opt)
 
