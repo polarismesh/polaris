@@ -224,7 +224,6 @@ func (sc *strategyCache) initBuckets() {
 }
 
 func (sc *strategyCache) initialize(c map[string]interface{}) error {
-	sc.userCache.addListener([]Listener{sc})
 	sc.initBuckets()
 	sc.singleFlight = new(singleflight.Group)
 	return nil
@@ -586,36 +585,4 @@ func (sc *strategyCache) IsResourceLinkStrategy(resType api.ResourceType, resId 
 
 func hasLinkRule(val []string) bool {
 	return len(val) != 0
-}
-
-// OnCreated callback when cache value created
-func (sc *strategyCache) OnCreated(value interface{}) {}
-
-// OnUpdated callback when cache value updated
-func (sc *strategyCache) OnUpdated(value interface{}) {}
-
-// OnDeleted callback when cache value deleted
-func (sc *strategyCache) OnDeleted(value interface{}) {}
-
-// OnBatchCreated callback when cache value created
-func (sc *strategyCache) OnBatchCreated(value interface{}) {}
-
-// OnBatchUpdated callback when cache value updated
-func (sc *strategyCache) OnBatchUpdated(value interface{}) {}
-
-// OnBatchDeleted callback when cache value deleted
-func (sc *strategyCache) OnBatchDeleted(value interface{}) {
-	principals, ok := value.([]model.Principal)
-	if !ok {
-		return
-	}
-
-	select {
-	case sc.principalCh <- principals:
-		return
-	default:
-		// 如果到了这里，表示 StrategyCache 出现了刷新问题，需要通知 StrategyCache 直接全量拉取一次确保最终数据一致
-		log.Warn("[Cache][Strategy] strategy data maybe inconsistent, force to pull all from store")
-		sc.resetLastFetchTime()
-	}
 }
