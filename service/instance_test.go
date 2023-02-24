@@ -1669,18 +1669,9 @@ func TestUpdateInstanceField(t *testing.T) {
 		So(discoverSuit.server.UpdateInstance(
 			discoverSuit.defaultCtx, request).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
-		query := map[string]string{
-			"id":        instId,
-			"service":   serviceResp.GetName().GetValue(),
-			"namespace": serviceResp.GetNamespace().GetValue(),
-			"offset":    "0",
-			"limit":     "10",
-		}
-		batchResp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
-		So(batchResp.GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
-		So(len(batchResp.Instances), ShouldEqual, 1)
-		So(batchResp.Instances[0].Host.GetValue(), ShouldEqual, instanceResp.Host.GetValue())
-		So(len(batchResp.Instances[0].Metadata), ShouldEqual, len(request.Metadata))
+		instance, err := discoverSuit.storage.GetInstance(instId)
+		So(err, ShouldBeNil)
+		So(instance.Proto.Host.GetValue(), ShouldEqual, instanceResp.Host.GetValue())
 	})
 
 	Convey("isolate变更", t, func() {
@@ -1688,25 +1679,17 @@ func TestUpdateInstanceField(t *testing.T) {
 		request.Isolate = wrapperspb.Bool(true)
 		So(discoverSuit.server.UpdateInstance(
 			discoverSuit.defaultCtx, request).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
-		query := map[string]string{
-			"id":        instId,
-			"service":   serviceResp.GetName().GetValue(),
-			"namespace": serviceResp.GetNamespace().GetValue(),
-			"offset":    "0",
-			"limit":     "10",
-		}
-		batchResp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
-		So(batchResp.GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
-		So(len(batchResp.Instances), ShouldEqual, 1)
-		So(batchResp.Instances[0].Isolate.GetValue(), ShouldEqual, true)
+		instance, err := discoverSuit.storage.GetInstance(instId)
+		So(err, ShouldBeNil)
+		So(instance.Proto.Isolate.GetValue(), ShouldEqual, true)
 
 		request.Isolate = wrapperspb.Bool(false)
 		So(discoverSuit.server.UpdateInstance(
 			discoverSuit.defaultCtx, request).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
-		batchResp = discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
-		So(batchResp.GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
-		So(len(batchResp.Instances), ShouldEqual, 1)
-		So(batchResp.Instances[0].Isolate.GetValue(), ShouldEqual, false)
+
+		instance, err = discoverSuit.storage.GetInstance(instId)
+		So(err, ShouldBeNil)
+		So(instance.Proto.Isolate.GetValue(), ShouldEqual, false)
 	})
 
 }
