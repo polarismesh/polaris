@@ -40,10 +40,6 @@ const (
 	StrategyRuleName string = "strategyRule"
 )
 
-const (
-	removePrincipalChSize = 8
-)
-
 // StrategyCache is a cache for strategy rules.
 type StrategyCache interface {
 	Cache
@@ -79,7 +75,6 @@ type strategyCache struct {
 	userCache UserCache
 
 	singleFlight *singleflight.Group
-	principalCh  chan []model.Principal
 }
 
 type strategyBucket struct {
@@ -190,10 +185,9 @@ func (s *strategyLinkBucket) get(key string) ([]string, bool) {
 // newStrategyCache
 func newStrategyCache(storage store.Store, userCache UserCache) StrategyCache {
 	return &strategyCache{
-		baseCache:   newBaseCache(storage),
-		storage:     storage,
-		userCache:   userCache,
-		principalCh: make(chan []model.Principal, removePrincipalChSize),
+		baseCache: newBaseCache(storage),
+		storage:   storage,
+		userCache: userCache,
 	}
 }
 
