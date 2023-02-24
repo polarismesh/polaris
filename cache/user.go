@@ -106,7 +106,6 @@ type userCache struct {
 	lastUserMtime  int64
 	lastGroupMtime int64
 
-	notifyCh     chan interface{}
 	singleFlight *singleflight.Group
 }
 
@@ -274,11 +273,10 @@ func (u *groupBucket) delete(key string) {
 }
 
 // newUserCache
-func newUserCache(storage store.Store, notifyCh chan interface{}) UserCache {
+func newUserCache(storage store.Store) UserCache {
 	return &userCache{
 		baseCache: newBaseCache(storage),
 		storage:   storage,
-		notifyCh:  notifyCh,
 	}
 }
 
@@ -376,11 +374,9 @@ func (uc *userCache) setUserAndGroups(users []*model.User,
 	}, ownerSupplier)
 
 	uc.handlerGroupCacheUpdate(lastMimes, &ret, groups)
-	uc.postProcess(users, groups)
 	return lastMimes, ret
 }
 
-// handlerUserCacheUpdate 处理用户信息更新
 // handlerUserCacheUpdate 处理用户信息更新
 func (uc *userCache) handlerUserCacheUpdate(lastMimes map[string]time.Time, ret *userRefreshResult,
 	users []*model.User, filter func(user *model.User) bool, ownerSupplier func(user *model.User) *model.User) {
@@ -578,50 +574,4 @@ func (uc *userCache) GetUserLinkGroupIds(userId string) []string {
 	}
 
 	return val.toSlice()
-}
-
-func (uc *userCache) postProcess(users []*model.User, groups []*model.UserGroupDetail) {
-	userRemoves := make([]*model.User, 0, 8)
-	groupRemoves := make([]*model.UserGroup, 0, 8)
-
-	for index := range users {
-		user := users[index]
-		if !user.Valid {
-			userRemoves = append(userRemoves, user)
-		}
-	}
-
-	for index := range groups {
-		group := groups[index]
-		if !group.Valid {
-			groupRemoves = append(groupRemoves, group.UserGroup)
-		}
-	}
-
-	uc.onRemove(userRemoves, groupRemoves)
-}
-
-// onRemove 通知 listner 出现了批量的用户、用户组移除事件
-func (uc *userCache) onRemove(users []*model.User, groups []*model.UserGroup) {
-	principals := make([]model.Principal, 0, len(users)+len(groups))
-
-	for index := range users {
-		user := users[index]
-
-		principals = append(principals, model.Principal{
-			PrincipalID:   user.ID,
-			PrincipalRole: model.PrincipalUser,
-		})
-	}
-
-	for index := range groups {
-		group := groups[index]
-
-		principals = append(principals, model.Principal{
-			PrincipalID:   group.ID,
-			PrincipalRole: model.PrincipalGroup,
-		})
-	}
-
-	uc.notifyCh <- principals
 }

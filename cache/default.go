@@ -82,10 +82,8 @@ func newCacheManager(_ context.Context, cacheOpt *Config, storage store.Store) (
 	mgr.caches[CacheRateLimit] = newRateLimitCache(storage)
 	mgr.caches[CacheCircuitBreaker] = newCircuitBreakerCache(storage)
 
-	notify := make(chan interface{}, 8)
-
-	mgr.caches[CacheUser] = newUserCache(storage, notify)
-	mgr.caches[CacheAuthStrategy] = newStrategyCache(storage, notify, mgr.caches[CacheUser].(UserCache))
+	mgr.caches[CacheUser] = newUserCache(storage)
+	mgr.caches[CacheAuthStrategy] = newStrategyCache(storage, mgr.caches[CacheUser].(UserCache))
 	mgr.caches[CacheNamespace] = newNamespaceCache(storage)
 	mgr.caches[CacheClient] = newClientCache(storage)
 
