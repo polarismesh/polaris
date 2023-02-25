@@ -41,11 +41,6 @@ func (ss *serviceStore) AddService(s *model.Service) error {
 			"add service missing some params, id is %s, name is %s, namespace is %s", s.ID, s.Name, s.Namespace))
 	}
 
-	// 先清理无效数据
-	if err := ss.cleanService(s.Name, s.Namespace); err != nil {
-		return err
-	}
-
 	err := RetryTransaction("addService", func() error {
 		return ss.addService(s)
 	})
@@ -69,6 +64,11 @@ func (ss *serviceStore) addService(s *model.Service) error {
 	}
 	if namespace == "" {
 		return store.NewStatusError(store.NotFoundNamespace, "not found namespace")
+	}
+
+	// 先清理无效数据
+	if err := ss.cleanService(s.Name, s.Namespace); err != nil {
+		return err
 	}
 
 	// 填充main表
@@ -717,8 +717,7 @@ func (ss *serviceStore) getServiceByID(serviceID string) (*model.Service, error)
 	return out[0], nil
 }
 
-// cleanService 清理无效数据，flag=1的数据
-// 只需要删除service即可
+// cleanService 清理无效数据，flag=1的数据，只需要删除service即可
 func (ss *serviceStore) cleanService(name string, namespace string) error {
 	log.Infof("[Store][database] clean service(%s, %s)", name, namespace)
 	str := "delete from service where name = ? and namespace = ? and flag = 1"
