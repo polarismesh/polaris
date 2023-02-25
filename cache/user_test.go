@@ -40,6 +40,7 @@ func newTestUserCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *userC
 	uc := newUserCache(storage, make(chan interface{}, 4))
 	opt := map[string]interface{}{}
 	_ = uc.initialize(opt)
+	storage.EXPECT().GetUnixSecond().Return(time.Now().Unix(), nil).AnyTimes()
 
 	return ctl, storage, uc.(*userCache)
 }
@@ -114,7 +115,6 @@ func genModelUserGroups(users []*model.User) []*model.UserGroupDetail {
 }
 
 func TestUserCache_UpdateNormal(t *testing.T) {
-
 	ctrl, store, uc := newTestUserCache(t)
 
 	defer ctrl.Finish()
@@ -122,30 +122,28 @@ func TestUserCache_UpdateNormal(t *testing.T) {
 	users := genModelUsers(10)
 	groups := genModelUserGroups(users)
 
-	copyUsers := make([]*model.User, 0, len(users))
-	copyGroups := make([]*model.UserGroupDetail, 0, len(groups))
-
-	for i := range users {
-		copyUser := *users[i]
-		copyUsers = append(copyUsers, &copyUser)
-	}
-
-	for i := range groups {
-		copyGroup := *groups[i]
-		newUserIds := make(map[string]struct{}, len(copyGroup.UserIds))
-		for k, v := range groups[i].UserIds {
-			newUserIds[k] = v
-		}
-		copyGroup.UserIds = newUserIds
-		copyGroups = append(copyGroups, &copyGroup)
-	}
-
 	t.Run("首次更新用户", func(t *testing.T) {
-		store.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).Return(copyUsers, nil)
-		store.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).Return(copyGroups, nil)
+		copyUsers := make([]*model.User, 0, len(users))
+		copyGroups := make([]*model.UserGroupDetail, 0, len(groups))
 
-		err := uc.update(0)
-		assert.NoError(t, err, err)
+		for i := range users {
+			copyUser := *users[i]
+			copyUsers = append(copyUsers, &copyUser)
+		}
+
+		for i := range groups {
+			copyGroup := *groups[i]
+			newUserIds := make(map[string]struct{}, len(copyGroup.UserIds))
+			for k, v := range groups[i].UserIds {
+				newUserIds[k] = v
+			}
+			copyGroup.UserIds = newUserIds
+			copyGroups = append(copyGroups, &copyGroup)
+		}
+		store.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).Return(copyUsers, nil).Times(1)
+		store.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).Return(copyGroups, nil).Times(1)
+
+		assert.NoError(t, uc.update())
 
 		u := uc.GetUserByID(users[1].ID)
 		assert.NotNil(t, u)
@@ -199,15 +197,21 @@ func TestUserCache_UpdateNormal(t *testing.T) {
 			copyGroups = append(copyGroups, &copyGroup)
 		}
 
-		store.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).Return(copyUsers, nil)
-		store.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).Return(copyGroups, nil)
+		store.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).Return(copyUsers, nil).Times(1)
+		store.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).Return(copyGroups, nil).Times(1)
 
-		err := uc.update(0)
-		assert.NoError(t, err, err)
+		assert.NoError(t, uc.update())
 
+		mockTn := time.Now()
 		for i := range users {
 			u := uc.GetUserByID(users[i].ID)
+
+			users[i].CreateTime = mockTn
+			users[i].ModifyTime = mockTn
+
 			if users[i].Valid {
+				u.CreateTime = mockTn
+				u.ModifyTime = mockTn
 				assert.NotNil(t, u)
 				assert.Equal(t, u, users[i])
 

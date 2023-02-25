@@ -32,6 +32,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		userCache := &userCache{}
 		userCache.initBuckets()
 		strategyCache := &strategyCache{
+			baseCache: newBaseCache(nil),
 			userCache: userCache,
 		}
 		strategyCache.initBuckets()
@@ -50,6 +51,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		userCache := &userCache{}
 		userCache.initBuckets()
 		strategyCache := &strategyCache{
+			baseCache: newBaseCache(nil),
 			userCache: userCache,
 		}
 		strategyCache.initBuckets()
@@ -87,6 +89,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		userCache := &userCache{}
 		userCache.initBuckets()
 		strategyCache := &strategyCache{
+			baseCache: newBaseCache(nil),
 			userCache: userCache,
 		}
 		strategyCache.initBuckets()
@@ -104,6 +107,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		userCache := &userCache{}
 		userCache.initBuckets()
 		strategyCache := &strategyCache{
+			baseCache: newBaseCache(nil),
 			userCache: userCache,
 		}
 		strategyCache.initBuckets()
@@ -135,6 +139,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		userCache := &userCache{}
 		userCache.initBuckets()
 		strategyCache := &strategyCache{
+			baseCache: newBaseCache(nil),
 			userCache: userCache,
 		}
 		strategyCache.initBuckets()
@@ -216,6 +221,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		userCache := &userCache{}
 		userCache.initBuckets()
 		strategyCache := &strategyCache{
+			baseCache: newBaseCache(nil),
 			userCache: userCache,
 		}
 		strategyCache.initBuckets()
