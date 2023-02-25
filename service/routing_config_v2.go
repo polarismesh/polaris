@@ -210,7 +210,7 @@ func (s *Server) GetRoutingConfigsV2(ctx context.Context, query map[string]strin
 		return apiv1.NewBatchQueryResponse(apimodel.Code(presp.GetCode().GetValue()))
 	}
 
-	total, ret, err := s.Cache().RoutingConfig().GetRoutingConfigsV2(args)
+	total, ret, err := s.Cache().RoutingConfig().QueryRoutingConfigsV2(args)
 	if err != nil {
 		log.Error("[Routing][V2] query routing list from cache", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return apiv1.NewBatchQueryResponse(apimodel.Code_ExecuteException)

@@ -23,6 +23,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/singleflight"
+
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -55,8 +57,8 @@ type faultDetectCache struct {
 	// all rules are wildcard specific
 	allWildcardRules *model.ServiceWithFaultDetectRules
 	lock             sync.RWMutex
-	lastTime         time.Time
-	firstUpdate      bool
+
+	singleFlight singleflight.Group
 }
 
 // init 自注册到缓存列表
@@ -67,7 +69,7 @@ func init() {
 // newFaultDetectCache faultDetectCache constructor
 func newFaultDetectCache(s store.Store) *faultDetectCache {
 	return &faultDetectCache{
-		baseCache:        newBaseCache(),
+		baseCache:        newBaseCache(s),
 		storage:          s,
 		svcSpecificRules: make(map[string]map[string]*model.ServiceWithFaultDetectRules),
 		nsWildcardRules:  make(map[string]*model.ServiceWithFaultDetectRules),
@@ -80,33 +82,36 @@ func newFaultDetectCache(s store.Store) *faultDetectCache {
 
 // initialize 实现Cache接口的函数
 func (f *faultDetectCache) initialize(_ map[string]interface{}) error {
-	f.lastTime = time.Unix(0, 0)
-	f.firstUpdate = true
-
 	return nil
 }
 
+func (f *faultDetectCache) update() error {
+	_, err, _ := f.singleFlight.Do(f.name(), func() (interface{}, error) {
+		return nil, f.doCacheUpdate(f.name(), f.realUpdate)
+	})
+	return err
+}
+
 // update 实现Cache接口的函数
-func (f *faultDetectCache) update(storeRollbackSec time.Duration) error {
-	lastTime := f.lastTime.Add(storeRollbackSec)
-	fdRules, err := f.storage.GetFaultDetectRulesForCache(lastTime, f.firstUpdate)
+func (f *faultDetectCache) realUpdate() (map[string]time.Time, int64, error) {
+	fdRules, err := f.storage.GetFaultDetectRulesForCache(f.LastFetchTime(), f.isFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] fault detect config cache update err:%s", err.Error())
-		return err
+		return nil, -1, err
 	}
-	f.firstUpdate = false
-	return f.setFaultDetectRules(fdRules)
+	lastMtimes := f.setFaultDetectRules(fdRules)
+
+	return lastMtimes, int64(len(fdRules)), nil
 }
 
 // clear 实现Cache接口的函数
 func (f *faultDetectCache) clear() error {
+	f.baseCache.clear()
 	f.lock.Lock()
 	f.allWildcardRules.Clear()
 	f.nsWildcardRules = make(map[string]*model.ServiceWithFaultDetectRules)
 	f.svcSpecificRules = make(map[string]map[string]*model.ServiceWithFaultDetectRules)
 	f.lock.Unlock()
-
-	f.lastTime = time.Unix(0, 0)
 	return nil
 }
 
@@ -307,16 +312,16 @@ func getServicesInvolveByFaultDetectRule(fdRule *model.FaultDetectRule) map[mode
 }
 
 // setCircuitBreaker 更新store的数据到cache中
-func (f *faultDetectCache) setFaultDetectRules(fdRules []*model.FaultDetectRule) error {
+func (f *faultDetectCache) setFaultDetectRules(fdRules []*model.FaultDetectRule) map[string]time.Time {
 	if len(fdRules) == 0 {
 		return nil
 	}
 
-	lastTime := f.lastTime.Unix()
+	lastMtime := f.LastMtime(f.name()).Unix()
 
 	for _, fdRule := range fdRules {
-		if fdRule.ModifyTime.Unix() > lastTime {
-			lastTime = fdRule.ModifyTime.Unix()
+		if fdRule.ModifyTime.Unix() > lastMtime {
+			lastMtime = fdRule.ModifyTime.Unix()
 		}
 		svcKeys := getServicesInvolveByFaultDetectRule(fdRule)
 		if !fdRule.Valid {
@@ -326,11 +331,9 @@ func (f *faultDetectCache) setFaultDetectRules(fdRules []*model.FaultDetectRule)
 		f.storeFaultDetectRuleToServiceCache(fdRule, svcKeys)
 	}
 
-	if f.lastTime.Unix() < lastTime {
-		f.lastTime = time.Unix(lastTime, 0)
+	return map[string]time.Time{
+		f.name(): time.Unix(lastMtime, 0),
 	}
-
-	return nil
 }
 
 // GetFaultDetectRuleCount 获取探测规则总数

@@ -112,3 +112,18 @@ var (
 		},
 	})
 )
+
+const (
+	labelCacheType        = "cache_type"
+	labelCacheUpdateCount = "cache_update_count"
+)
+
+var (
+	cacheUpdateCost = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "cache_update_cost",
+		Help: "cache update cost per resource cache",
+		ConstLabels: map[string]string{
+			"polaris_server_instance": utils.LocalHost,
+		},
+	}, []string{labelCacheType, labelCacheUpdateCount})
+)

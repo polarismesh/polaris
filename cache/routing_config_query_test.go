@@ -44,16 +44,20 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			args: args{
 				rule: &model.ExtendRouterConfig{
 					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Sources: []*apitraffic.SourceService{
+						Rules: []*apitraffic.SubRuleRouting{
 							{
-								Service:   "test-1",
-								Namespace: "test-1",
-							},
-						},
-						Destinations: []*apitraffic.DestinationGroup{
-							{
-								Service:   "test-1",
-								Namespace: "test-1",
+								Sources: []*apitraffic.SourceService{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
+								Destinations: []*apitraffic.DestinationGroup{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
 							},
 						},
 					},
@@ -71,16 +75,20 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			args: args{
 				rule: &model.ExtendRouterConfig{
 					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Sources: []*apitraffic.SourceService{
+						Rules: []*apitraffic.SubRuleRouting{
 							{
-								Service:   "test-1",
-								Namespace: "test-1",
-							},
-						},
-						Destinations: []*apitraffic.DestinationGroup{
-							{
-								Service:   "test-1",
-								Namespace: "test-1",
+								Sources: []*apitraffic.SourceService{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
+								Destinations: []*apitraffic.DestinationGroup{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
 							},
 						},
 					},
@@ -98,16 +106,20 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			args: args{
 				rule: &model.ExtendRouterConfig{
 					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Sources: []*apitraffic.SourceService{
+						Rules: []*apitraffic.SubRuleRouting{
 							{
-								Service:   "test-1",
-								Namespace: "test-1",
-							},
-						},
-						Destinations: []*apitraffic.DestinationGroup{
-							{
-								Service:   "test-1",
-								Namespace: "test-1",
+								Sources: []*apitraffic.SourceService{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
+								Destinations: []*apitraffic.DestinationGroup{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
 							},
 						},
 					},
@@ -125,16 +137,20 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			args: args{
 				rule: &model.ExtendRouterConfig{
 					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Sources: []*apitraffic.SourceService{
+						Rules: []*apitraffic.SubRuleRouting{
 							{
-								Service:   "test-1",
-								Namespace: "test-1",
-							},
-						},
-						Destinations: []*apitraffic.DestinationGroup{
-							{
-								Service:   "test-1",
-								Namespace: "test-1",
+								Sources: []*apitraffic.SourceService{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
+								Destinations: []*apitraffic.DestinationGroup{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
 							},
 						},
 					},
@@ -152,16 +168,20 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			args: args{
 				rule: &model.ExtendRouterConfig{
 					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Sources: []*apitraffic.SourceService{
+						Rules: []*apitraffic.SubRuleRouting{
 							{
-								Service:   "test-1",
-								Namespace: "test-1",
-							},
-						},
-						Destinations: []*apitraffic.DestinationGroup{
-							{
-								Service:   "test-1",
-								Namespace: "test-1",
+								Sources: []*apitraffic.SourceService{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
+								Destinations: []*apitraffic.DestinationGroup{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
 							},
 						},
 					},
@@ -179,16 +199,20 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			args: args{
 				rule: &model.ExtendRouterConfig{
 					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Sources: []*apitraffic.SourceService{
+						Rules: []*apitraffic.SubRuleRouting{
 							{
-								Service:   "test-1",
-								Namespace: "test-1",
-							},
-						},
-						Destinations: []*apitraffic.DestinationGroup{
-							{
-								Service:   "test-1",
-								Namespace: "test-1",
+								Sources: []*apitraffic.SourceService{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
+								Destinations: []*apitraffic.DestinationGroup{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
 							},
 						},
 					},
@@ -206,16 +230,20 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			args: args{
 				rule: &model.ExtendRouterConfig{
 					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Sources: []*apitraffic.SourceService{
+						Rules: []*apitraffic.SubRuleRouting{
 							{
-								Service:   "test-1",
-								Namespace: "test-1",
-							},
-						},
-						Destinations: []*apitraffic.DestinationGroup{
-							{
-								Service:   "test-1",
-								Namespace: "test-1",
+								Sources: []*apitraffic.SourceService{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
+								Destinations: []*apitraffic.DestinationGroup{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
 							},
 						},
 					},
@@ -233,16 +261,20 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			args: args{
 				rule: &model.ExtendRouterConfig{
 					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Sources: []*apitraffic.SourceService{
+						Rules: []*apitraffic.SubRuleRouting{
 							{
-								Service:   "test-1",
-								Namespace: "test-1",
-							},
-						},
-						Destinations: []*apitraffic.DestinationGroup{
-							{
-								Service:   "test-1",
-								Namespace: "test-1",
+								Sources: []*apitraffic.SourceService{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
+								Destinations: []*apitraffic.DestinationGroup{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
 							},
 						},
 					},
@@ -260,16 +292,20 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			args: args{
 				rule: &model.ExtendRouterConfig{
 					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Sources: []*apitraffic.SourceService{
+						Rules: []*apitraffic.SubRuleRouting{
 							{
-								Service:   "test-1",
-								Namespace: "test-1",
-							},
-						},
-						Destinations: []*apitraffic.DestinationGroup{
-							{
-								Service:   "test-1",
-								Namespace: "test-1",
+								Sources: []*apitraffic.SourceService{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
+								Destinations: []*apitraffic.DestinationGroup{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
 							},
 						},
 					},
@@ -287,16 +323,20 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			args: args{
 				rule: &model.ExtendRouterConfig{
 					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Sources: []*apitraffic.SourceService{
+						Rules: []*apitraffic.SubRuleRouting{
 							{
-								Service:   "test-1",
-								Namespace: "test-1",
-							},
-						},
-						Destinations: []*apitraffic.DestinationGroup{
-							{
-								Service:   "test-1",
-								Namespace: "test-1",
+								Sources: []*apitraffic.SourceService{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
+								Destinations: []*apitraffic.DestinationGroup{
+									{
+										Service:   "test-1",
+										Namespace: "test-1",
+									},
+								},
 							},
 						},
 					},

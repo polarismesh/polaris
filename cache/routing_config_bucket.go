@@ -161,16 +161,19 @@ func (b *routingBucketV2) saveV2(conf *model.ExtendRouterConfig) {
 	}
 
 	if conf.GetRoutingPolicy() == apitraffic.RoutingPolicy_RulePolicy {
-		sources := conf.RuleRouting.Sources
-		for i := range sources {
-			item := sources[i]
-			handler(outBound, item)
-		}
+		subRules := conf.RuleRouting.Rules
+		for i := range subRules {
+			sources := subRules[i].Sources
+			for i := range sources {
+				item := sources[i]
+				handler(outBound, item)
+			}
 
-		destinations := conf.RuleRouting.Destinations
-		for i := range destinations {
-			item := destinations[i]
-			handler(inBound, item)
+			destinations := subRules[i].Destinations
+			for i := range destinations {
+				item := destinations[i]
+				handler(inBound, item)
+			}
 		}
 	}
 }
@@ -209,23 +212,28 @@ func (b *routingBucketV2) deleteV2(id string) {
 	if rule.GetRoutingPolicy() != apitraffic.RoutingPolicy_RulePolicy {
 		return
 	}
-	for i := range rule.RuleRouting.GetSources() {
-		service := rule.RuleRouting.GetSources()[i].GetService()
-		namespace := rule.RuleRouting.GetSources()[i].GetNamespace()
 
-		if service == routingcommon.MatchAll && namespace == routingcommon.MatchAll {
-			delete(b.level3Rules[outBound], id)
-			delete(b.level3Rules[inBound], id)
-		}
+	subRules := rule.RuleRouting.Rules
+	for i := range subRules {
+		for j := range subRules[i].GetSources() {
+			source := subRules[i].GetSources()[j]
+			service := source.GetService()
+			namespace := source.GetNamespace()
 
-		if service == routingcommon.MatchAll && namespace != routingcommon.MatchAll {
-			delete(b.level2Rules[outBound][namespace], id)
-			delete(b.level2Rules[inBound][namespace], id)
-		}
+			if service == routingcommon.MatchAll && namespace == routingcommon.MatchAll {
+				delete(b.level3Rules[outBound], id)
+				delete(b.level3Rules[inBound], id)
+			}
 
-		if service != routingcommon.MatchAll && namespace != routingcommon.MatchAll {
-			key := buildServiceKey(namespace, service)
-			delete(b.level1Rules[key], id)
+			if service == routingcommon.MatchAll && namespace != routingcommon.MatchAll {
+				delete(b.level2Rules[outBound][namespace], id)
+				delete(b.level2Rules[inBound][namespace], id)
+			}
+
+			if service != routingcommon.MatchAll && namespace != routingcommon.MatchAll {
+				key := buildServiceKey(namespace, service)
+				delete(b.level1Rules[key], id)
+			}
 		}
 	}
 }

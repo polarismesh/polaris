@@ -58,6 +58,7 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 
 	storage := storemock.NewMockStore(ctrl)
 
+	storage.EXPECT().GetServicesCount().Return(uint32(0), nil).AnyTimes()
 	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return([]*model.UserGroupDetail{}, nil)
@@ -216,6 +217,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 
 	cfg, storage := initCache(ctrl)
 
+	storage.EXPECT().GetServicesCount().Return(uint32(0), nil).AnyTimes()
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(groups, nil)
 	storage.EXPECT().GetStrategyDetailsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(strategies, nil)
@@ -456,6 +458,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 
 	cfg, storage := initCache(ctrl)
 
+	storage.EXPECT().GetServicesCount().Return(uint32(0), nil).AnyTimes()
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(groups, nil)
 	storage.EXPECT().GetStrategyDetailsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(strategies, nil)
@@ -652,6 +655,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 
 	cfg, storage := initCache(ctrl)
 
+	storage.EXPECT().GetServicesCount().Return(uint32(0), nil).AnyTimes()
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(groups, nil)
 	storage.EXPECT().GetStrategyDetailsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(strategies, nil)
@@ -869,6 +873,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 
 	cfg, storage := initCache(ctrl)
 
+	storage.EXPECT().GetServicesCount().Return(uint32(0), nil).AnyTimes()
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(groups, nil)
 	storage.EXPECT().GetStrategyDetailsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(strategies, nil)
