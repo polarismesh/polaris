@@ -214,7 +214,6 @@ func (uc *userCache) setUserAndGroups(users []*model.User,
 	}, ownerSupplier)
 
 	uc.handlerGroupCacheUpdate(lastMimes, &ret, groups)
-	uc.postProcess(users, groups)
 	return lastMimes, ret
 }
 
@@ -409,49 +408,4 @@ func (uc *userCache) GetUserLinkGroupIds(userId string) []string {
 		return nil
 	}
 	return val.toSlice()
-}
-
-func (uc *userCache) postProcess(users []*model.User, groups []*model.UserGroupDetail) {
-	userRemoves := make([]*model.User, 0, 8)
-	groupRemoves := make([]*model.UserGroup, 0, 8)
-
-	for index := range users {
-		user := users[index]
-		if !user.Valid {
-			userRemoves = append(userRemoves, user)
-		}
-	}
-
-	for index := range groups {
-		group := groups[index]
-		if !group.Valid {
-			groupRemoves = append(groupRemoves, group.UserGroup)
-		}
-	}
-	uc.onRemove(userRemoves, groupRemoves)
-}
-
-// onRemove 通知 listner 出现了批量的用户、用户组移除事件
-func (uc *userCache) onRemove(users []*model.User, groups []*model.UserGroup) {
-	principals := make([]model.Principal, 0, len(users)+len(groups))
-
-	for index := range users {
-		user := users[index]
-		principals = append(principals, model.Principal{
-			PrincipalID:   user.ID,
-			PrincipalRole: model.PrincipalUser,
-		})
-	}
-
-	for index := range groups {
-		group := groups[index]
-		principals = append(principals, model.Principal{
-			PrincipalID:   group.ID,
-			PrincipalRole: model.PrincipalGroup,
-		})
-	}
-
-	if len(principals) != 0 {
-		uc.manager.onEvent(principals, EventPrincipalRemove)
-	}
 }

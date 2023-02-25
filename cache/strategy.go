@@ -78,17 +78,14 @@ type strategyCache struct {
 	userCache    UserCache
 	lastMtime    int64
 	singleFlight *singleflight.Group
-
-	principalCh chan []model.Principal
 }
 
 // newStrategyCache
 func newStrategyCache(storage store.Store, userCache UserCache) StrategyCache {
 	return &strategyCache{
-		baseCache:   newBaseCache(storage),
-		storage:     storage,
-		principalCh: make(chan []model.Principal, removePrincipalChSize),
-		userCache:   userCache,
+		baseCache: newBaseCache(storage),
+		storage:   storage,
+		userCache: userCache,
 	}
 }
 
@@ -121,7 +118,6 @@ func (sc *strategyCache) initBuckets() {
 }
 
 func (sc *strategyCache) initialize(c map[string]interface{}) error {
-	sc.userCache.addListener([]Listener{sc})
 	sc.initBuckets()
 	sc.singleFlight = new(singleflight.Group)
 	sc.lastMtime = 0
@@ -187,7 +183,6 @@ func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (map[s
 		lastMtime = int64(math.Max(float64(lastMtime), float64(rule.ModifyTime.Unix())))
 	}
 
-	sc.postProcessPrincipalCh()
 	return map[string]time.Time{sc.name(): time.Unix(lastMtime, 0)}, add, update, remove
 }
 
@@ -331,28 +326,6 @@ func (sc *strategyCache) addPrincipalLink(principal model.Principal, rule *model
 		sc.uid2Strategy.save(principal.PrincipalID, rule.ID)
 	} else {
 		sc.groupid2Strategy.save(principal.PrincipalID, rule.ID)
-	}
-}
-
-// postProcessPrincipalCh
-func (sc *strategyCache) postProcessPrincipalCh() {
-	timer := time.NewTimer(100 * time.Millisecond)
-	defer timer.Stop()
-	for {
-		select {
-		case principals := <-sc.principalCh:
-			for index := range principals {
-				principal := principals[index]
-
-				if principal.PrincipalRole == model.PrincipalUser {
-					sc.uid2Strategy.deleteAllLink(principal.PrincipalID)
-				} else {
-					sc.groupid2Strategy.deleteAllLink(principal.PrincipalID)
-				}
-			}
-		case <-timer.C:
-			return
-		}
 	}
 }
 
@@ -506,36 +479,4 @@ func (sc *strategyCache) IsResourceLinkStrategy(resType apisecurity.ResourceType
 
 func hasLinkRule(val []string) bool {
 	return len(val) != 0
-}
-
-// OnCreated callback when cache value created
-func (sc *strategyCache) OnCreated(value interface{}) {}
-
-// OnUpdated callback when cache value updated
-func (sc *strategyCache) OnUpdated(value interface{}) {}
-
-// OnDeleted callback when cache value deleted
-func (sc *strategyCache) OnDeleted(value interface{}) {}
-
-// OnBatchCreated callback when cache value created
-func (sc *strategyCache) OnBatchCreated(value interface{}) {}
-
-// OnBatchUpdated callback when cache value updated
-func (sc *strategyCache) OnBatchUpdated(value interface{}) {}
-
-// OnBatchDeleted callback when cache value deleted
-func (sc *strategyCache) OnBatchDeleted(value interface{}) {
-	principals, ok := value.([]model.Principal)
-	if !ok {
-		return
-	}
-
-	select {
-	case sc.principalCh <- principals:
-		return
-	default:
-		// 如果到了这里，表示 StrategyCache 出现了刷新问题，需要通知 StrategyCache 直接全量拉取一次确保最终数据一致
-		log.Warn("[Cache][Strategy] strategy data maybe inconsistent, force to pull all from store")
-		sc.resetLastFetchTime()
-	}
 }
