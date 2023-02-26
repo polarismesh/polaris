@@ -199,7 +199,7 @@ func (f *faultDetectRuleStore) GetFaultDetectRulesForCache(
 	if firstUpdate {
 		str += " and flag != 1"
 	}
-	rows, err := f.master.Query(str, timeToTimestamp(mtime))
+	rows, err := f.slave.Query(str, timeToTimestamp(mtime))
 	if err != nil {
 		log.Errorf("[Store][database] query fault detect rules with mtime err: %s", err.Error())
 		return nil, err

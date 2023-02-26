@@ -63,11 +63,6 @@ func (u *groupStore) AddGroup(group *model.UserGroupDetail) error {
 			"add usergroup missing some params, groupId is %s, name is %s", group.ID, group.Name))
 	}
 
-	// 先清理无效数据
-	if err := u.cleanInValidGroup(group.Name, group.Owner); err != nil {
-		return store.Error(err)
-	}
-
 	err := RetryTransaction("addGroup", func() error {
 		return u.addGroup(group)
 	})
@@ -82,6 +77,11 @@ func (u *groupStore) addGroup(group *model.UserGroupDetail) error {
 	}
 
 	defer func() { _ = tx.Rollback() }()
+
+	// 先清理无效数据
+	if err := u.cleanInValidGroup(group.Name, group.Owner); err != nil {
+		return store.Error(err)
+	}
 
 	addSql := `
 	  INSERT INTO user_group (id, name, owner, token, token_enable, comment, flag, ctime, mtime)

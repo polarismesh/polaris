@@ -67,7 +67,7 @@ func (ss *serviceStore) addService(s *model.Service) error {
 	}
 
 	// 先清理无效数据
-	if err := ss.cleanService(s.Name, s.Namespace); err != nil {
+	if err := cleanService(tx, s.Name, s.Namespace); err != nil {
 		return err
 	}
 
@@ -159,13 +159,19 @@ func deleteServiceByID(tx *BaseTx, id string) error {
 
 // DeleteServiceAlias 删除服务别名
 func (ss *serviceStore) DeleteServiceAlias(name string, namespace string) error {
-	str := "update service set flag = 1, mtime = sysdate() where name = ? and namespace = ?"
-	if _, err := ss.master.Exec(str, name, namespace); err != nil {
-		log.Errorf("[Store][database] delete service alias err: %s", err.Error())
-		return store.Error(err)
-	}
+	return ss.master.processWithTransaction("deleteServiceAlias", func(tx *BaseTx) error {
+		str := "update service set flag = 1, mtime = sysdate() where name = ? and namespace = ?"
+		if _, err := tx.Exec(str, name, namespace); err != nil {
+			log.Errorf("[Store][database] delete service alias err: %s", err.Error())
+			return store.Error(err)
+		}
 
-	return nil
+		if err := tx.Commit(); err != nil {
+			log.Errorf("[Store][database] batch delete service alias commit tx err: %s", err.Error())
+			return err
+		}
+		return nil
+	})
 }
 
 // UpdateServiceAlias 更新服务别名
@@ -311,14 +317,21 @@ func (ss *serviceStore) updateService(service *model.Service, needUpdateOwner bo
 
 // UpdateServiceToken 更新服务token
 func (ss *serviceStore) UpdateServiceToken(id string, token string, revision string) error {
-	str := `update service set token = ?, revision = ?, mtime = sysdate() where id = ?`
-	_, err := ss.master.Exec(str, token, revision, id)
-	if err != nil {
-		log.Errorf("[Store][database] update service(%s) token err: %s", id, err.Error())
-		return store.Error(err)
-	}
+	return ss.master.processWithTransaction("updateServiceToken", func(tx *BaseTx) error {
+		str := `update service set token = ?, revision = ?, mtime = sysdate() where id = ?`
+		_, err := tx.Exec(str, token, revision, id)
+		if err != nil {
+			log.Errorf("[Store][database] update service(%s) token err: %s", id, err.Error())
+			return store.Error(err)
+		}
 
-	return nil
+		if err := tx.Commit(); err != nil {
+			log.Errorf("[Store][database] update service token tx commit err: %s", err.Error())
+			return err
+		}
+
+		return nil
+	})
 }
 
 // GetService 获取服务详情，只返回有效的数据
@@ -718,10 +731,10 @@ func (ss *serviceStore) getServiceByID(serviceID string) (*model.Service, error)
 }
 
 // cleanService 清理无效数据，flag=1的数据，只需要删除service即可
-func (ss *serviceStore) cleanService(name string, namespace string) error {
+func cleanService(tx *BaseTx, name string, namespace string) error {
 	log.Infof("[Store][database] clean service(%s, %s)", name, namespace)
 	str := "delete from service where name = ? and namespace = ? and flag = 1"
-	_, err := ss.master.Exec(str, name, namespace)
+	_, err := tx.Exec(str, name, namespace)
 	if err != nil {
 		log.Errorf("[Store][database] clean service(%s, %s) err: %s", name, namespace, err.Error())
 		return err
