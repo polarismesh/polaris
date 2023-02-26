@@ -79,7 +79,7 @@ func (u *groupStore) addGroup(group *model.UserGroupDetail) error {
 	defer func() { _ = tx.Rollback() }()
 
 	// 先清理无效数据
-	if err := u.cleanInValidGroup(group.Name, group.Owner); err != nil {
+	if err := cleanInValidGroup(tx, group.Name, group.Owner); err != nil {
 		return store.Error(err)
 	}
 
@@ -589,11 +589,11 @@ func fetchRown2UserGroup(rows *sql.Rows) (*model.UserGroup, error) {
 }
 
 // cleanInValidUserGroup 清理无效的用户组数据
-func (u *groupStore) cleanInValidGroup(name, owner string) error {
+func cleanInValidGroup(tx *BaseTx, name, owner string) error {
 	log.Infof("[Store][User] clean usergroup(%s)", name)
 
 	str := "delete from user_group where name = ? and flag = 1"
-	if _, err := u.master.Exec(str, name); err != nil {
+	if _, err := tx.Exec(str, name); err != nil {
 		log.Errorf("[Store][User] clean usergroup(%s) err: %s", name, err.Error())
 		return err
 	}
