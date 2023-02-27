@@ -22,6 +22,7 @@ import (
 	"errors"
 
 	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/maintain/job"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
 	"github.com/polarismesh/polaris/store"
@@ -61,6 +62,11 @@ func initialize(_ context.Context, namingService service.DiscoverServer, healthC
 	maintainServer.namingServer = namingService
 	maintainServer.healthCheckServer = healthCheckServer
 	maintainServer.storage = storage
+
+	err = job.StartMaintianJobs(config.Jobs)
+	if err != nil {
+		return err
+	}
 
 	server = newServerAuthAbility(maintainServer, authServer)
 	return nil
