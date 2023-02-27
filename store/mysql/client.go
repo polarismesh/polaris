@@ -66,13 +66,13 @@ func (cs *clientStore) UpdateClient(client *model.Client) error {
 }
 
 // deleteClient delete the client info
-func (cs *clientStore) deleteClient(clientID string) error {
+func deleteClient(tx *BaseTx, clientID string) error {
 	if clientID == "" {
 		return errors.New("delete client missing client id")
 	}
 
 	str := "update client set flag = 1, mtime = sysdate() where `id` = ?"
-	_, err := cs.master.Exec(str, clientID)
+	_, err := tx.Exec(str, clientID)
 	return store.Error(err)
 }
 
@@ -302,7 +302,7 @@ func (cs *clientStore) createClient(client *model.Client) error {
 	}
 	defer func() { _ = tx.Rollback() }()
 	// clean the old items before add
-	if err := cs.deleteClient(client.Proto().GetId().GetValue()); err != nil {
+	if err := deleteClient(tx, client.Proto().GetId().GetValue()); err != nil {
 		return err
 	}
 	if err := addClientMain(tx, client); err != nil {
