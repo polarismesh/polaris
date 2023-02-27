@@ -2029,21 +2029,6 @@ func (mr *MockStoreMockRecorder) ListMasterCircuitBreakers(filters, offset, limi
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMasterCircuitBreakers", reflect.TypeOf((*MockStore)(nil).ListMasterCircuitBreakers), filters, offset, limit)
 }
 
-// ListNamespaces mocks base method.
-func (m *MockStore) ListNamespaces(owner string) ([]*model.Namespace, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListNamespaces", owner)
-	ret0, _ := ret[0].([]*model.Namespace)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListNamespaces indicates an expected call of ListNamespaces.
-func (mr *MockStoreMockRecorder) ListNamespaces(owner interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNamespaces", reflect.TypeOf((*MockStore)(nil).ListNamespaces), owner)
-}
-
 // ListReleaseCircuitBreakers mocks base method.
 func (m *MockStore) ListReleaseCircuitBreakers(filters map[string]string, offset, limit uint32) (*model.CircuitBreakerDetail, error) {
 	m.ctrl.T.Helper()
@@ -2679,21 +2664,6 @@ func (m *MockNamespaceStore) GetNamespaces(filter map[string][]string, offset, l
 func (mr *MockNamespaceStoreMockRecorder) GetNamespaces(filter, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespaces", reflect.TypeOf((*MockNamespaceStore)(nil).GetNamespaces), filter, offset, limit)
-}
-
-// ListNamespaces mocks base method.
-func (m *MockNamespaceStore) ListNamespaces(owner string) ([]*model.Namespace, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListNamespaces", owner)
-	ret0, _ := ret[0].([]*model.Namespace)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListNamespaces indicates an expected call of ListNamespaces.
-func (mr *MockNamespaceStoreMockRecorder) ListNamespaces(owner interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNamespaces", reflect.TypeOf((*MockNamespaceStore)(nil).ListNamespaces), owner)
 }
 
 // UpdateNamespace mocks base method.
