@@ -91,3 +91,19 @@ func (svr *serverAuthAbility) GetRateLimitWithCache(ctx context.Context, req *ap
 func (svr *serverAuthAbility) GetCircuitBreakerWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse {
 	return svr.targetServer.GetCircuitBreakerWithCache(ctx, req)
 }
+
+// UpdateInstance 修改单个服务实例
+func (svr *serverAuthAbility) UpdateInstance(ctx context.Context, req *api.Instance) *api.Response {
+	authCtx := svr.collectClientInstanceAuthContext(ctx, []*api.Instance{req}, model.Modify, "UpdateInstance")
+
+	_, err := svr.authMgn.CheckClientPermission(authCtx)
+	if err != nil {
+		resp := api.NewResponseWithMsg(convertToErrCode(err), err.Error())
+		return resp
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.targetServer.UpdateInstance(ctx, req)
+}

@@ -203,6 +203,9 @@ type ClientServer interface {
 
 	// GetCircuitBreakerWithCache Fuse configuration information for obtaining services for clients
 	GetCircuitBreakerWithCache(ctx context.Context, req *api.Service) *api.DiscoverResponse
+
+	// UpdateInstance 修改单个服务实例
+	UpdateInstance(ctx context.Context, req *api.Instance) *api.Response
 }
 
 // L5OperateServer L5 related operations

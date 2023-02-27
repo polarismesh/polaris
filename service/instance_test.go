@@ -20,6 +20,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -1632,9 +1633,57 @@ func TestInstanceNoNeedUpdate(t *testing.T) {
 	})
 }
 
+func TestUpdateInstanceField(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+
+	_, serviceResp := discoverSuit.createCommonService(t, 181)
+	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+
+	_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 181)
+	defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
+	instId := instanceResp.GetId().GetValue()
+	Convey("metadata变更", t, func() {
+		request := &api.Instance{Id: wrapperspb.String(instId)}
+		request.Metadata = map[string]string{}
+		So(discoverSuit.server.UpdateInstance(
+			discoverSuit.defaultCtx, request).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+
+		request.Metadata = map[string]string{"123": "456", "789": "abc", "135": "246"}
+		So(discoverSuit.server.UpdateInstance(
+			discoverSuit.defaultCtx, request).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+
+		instance, err := discoverSuit.storage.GetInstance(instId)
+		So(err, ShouldBeNil)
+		So(instance.Proto.Host.GetValue(), ShouldEqual, instanceResp.Host.GetValue())
+	})
+
+	Convey("isolate变更", t, func() {
+		request := &api.Instance{Id: wrapperspb.String(instId)}
+		request.Isolate = wrapperspb.Bool(true)
+		So(discoverSuit.server.UpdateInstance(
+			discoverSuit.defaultCtx, request).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		instance, err := discoverSuit.storage.GetInstance(instId)
+		So(err, ShouldBeNil)
+		So(instance.Proto.Isolate.GetValue(), ShouldEqual, true)
+
+		request.Isolate = wrapperspb.Bool(false)
+		So(discoverSuit.server.UpdateInstance(
+			discoverSuit.defaultCtx, request).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+
+		instance, err = discoverSuit.storage.GetInstance(instId)
+		So(err, ShouldBeNil)
+		So(instance.Proto.Isolate.GetValue(), ShouldEqual, false)
+	})
+
+}
+
 // 实例数据更新测试
 // 部分数据变更，触发更新
-func TestUpdateInstanceFiled(t *testing.T) {
+func TestUpdateInstancesFiled(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
 	if err := discoverSuit.initialize(); err != nil {
