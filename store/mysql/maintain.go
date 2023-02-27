@@ -71,19 +71,27 @@ type leaderElectionStore struct {
 	master *BaseDB
 }
 
-// CreateLeaderElection
+// CreateLeaderElection insert election key into leader table
 func (l *leaderElectionStore) CreateLeaderElection(key string) error {
 	log.Debugf("[Store][database] create leader election (%s)", key)
-	mainStr := "insert ignore into leader_election (elect_key, leader) values (?, ?)"
+	return l.master.processWithTransaction("createLeaderElection", func(tx *BaseTx) error {
+		mainStr := "insert ignore into leader_election (elect_key, leader) values (?, ?)"
 
-	_, err := l.master.Exec(mainStr, key, "")
-	if err != nil {
-		log.Errorf("[Store][database] create leader election (%s), err: %s", key, err.Error())
-	}
-	return err
+		_, err := tx.Exec(mainStr, key, "")
+		if err != nil {
+			log.Errorf("[Store][database] create leader election (%s), err: %s", key, err.Error())
+		}
+
+		if err := tx.Commit(); err != nil {
+			log.Errorf("[Store][database] create leader election (%s) commit tx err: %s", key, err.Error())
+			return err
+		}
+
+		return nil
+	})
 }
 
-// GetVersion
+// GetVersion get the version from election
 func (l *leaderElectionStore) GetVersion(key string) (int64, error) {
 	log.Debugf("[Store][database] get version (%s)", key)
 	mainStr := "select version from leader_election where elect_key = ?"
@@ -96,26 +104,36 @@ func (l *leaderElectionStore) GetVersion(key string) (int64, error) {
 	return count, store.Error(err)
 }
 
-// CompareAndSwapVersion
+// CompareAndSwapVersion compare key version and update
 func (l *leaderElectionStore) CompareAndSwapVersion(key string, curVersion int64, newVersion int64,
 	leader string) (bool, error) {
+	var rows int64
+	err := l.master.processWithTransaction("compareAndSwapVersion", func(tx *BaseTx) error {
+		log.Debugf("[Store][database] compare and swap version (%s, %d, %d, %s)", key, curVersion, newVersion, leader)
+		mainStr := "update leader_election set leader = ?, version = ? where elect_key = ? and version = ?"
+		result, err := tx.Exec(mainStr, leader, newVersion, key, curVersion)
+		if err != nil {
+			log.Errorf("[Store][database] compare and swap version (%s), err: %s", key, err.Error())
+			return store.Error(err)
+		}
+		tRows, err := result.RowsAffected()
+		if err != nil {
+			log.Errorf("[Store][database] compare and swap version (%s), get RowsAffected err: %s", key, err.Error())
+			return store.Error(err)
+		}
 
-	log.Debugf("[Store][database] compare and swap version (%s, %d, %d, %s)", key, curVersion, newVersion, leader)
-	mainStr := "update leader_election set leader = ?, version = ? where elect_key = ? and version = ?"
-	result, err := l.master.DB.Exec(mainStr, leader, newVersion, key, curVersion)
-	if err != nil {
-		log.Errorf("[Store][database] compare and swap version (%s), err: %s", key, err.Error())
-		return false, store.Error(err)
-	}
-	rows, err := result.RowsAffected()
-	if err != nil {
-		log.Errorf("[Store][database] compare and swap version (%s), get RowsAffected err: %s", key, err.Error())
-		return false, store.Error(err)
-	}
-	return (rows > 0), nil
+		if err := tx.Commit(); err != nil {
+			log.Errorf("[Store][database] create leader election (%s) commit tx err: %s", key, err.Error())
+			return err
+		}
+
+		rows = tRows
+		return nil
+	})
+	return rows > 0, err
 }
 
-// CheckMtimeExpired
+// CheckMtimeExpired check last modify time expired
 func (l *leaderElectionStore) CheckMtimeExpired(key string, leaseTime int32) (bool, error) {
 	log.Debugf("[Store][database] check mtime expired (%s, %d)", key, leaseTime)
 	mainStr := "select count(1) from leader_election where elect_key = ? and mtime < " +
@@ -129,7 +147,7 @@ func (l *leaderElectionStore) CheckMtimeExpired(key string, leaseTime int32) (bo
 	return (count > 0), store.Error(err)
 }
 
-// ListLeaderElection
+// ListLeaderElections list the election records
 func (l *leaderElectionStore) ListLeaderElections() ([]*model.LeaderElection, error) {
 	log.Info("[Store][database] list leader election")
 	mainStr := "select elect_key, leader, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) from leader_election"
@@ -331,7 +349,7 @@ func (le *leaderElectionStateMachine) setReleaseTickLimit() {
 	le.releaseTickLimit = LeaseTime / TickTime * 3
 }
 
-// StartLeaderElection
+// StartLeaderElection start the election procedure
 func (m *maintainStore) StartLeaderElection(key string) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -361,7 +379,7 @@ func (m *maintainStore) StartLeaderElection(key string) error {
 	return nil
 }
 
-// StopLeaderElections
+// StopLeaderElections stop the election procedure
 func (m *maintainStore) StopLeaderElections() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -371,27 +389,27 @@ func (m *maintainStore) StopLeaderElections() {
 	}
 }
 
-// IsLeader
-func (maintain *maintainStore) IsLeader(key string) bool {
-	maintain.mutex.Lock()
-	defer maintain.mutex.Unlock()
-	le, ok := maintain.leMap[key]
+// IsLeader check leader
+func (m *maintainStore) IsLeader(key string) bool {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	le, ok := m.leMap[key]
 	if !ok {
 		return false
 	}
 	return le.isLeaderAtomic()
 }
 
-// ListLeaderElections
-func (maintain *maintainStore) ListLeaderElections() ([]*model.LeaderElection, error) {
-	return maintain.leStore.ListLeaderElections()
+// ListLeaderElections list election records
+func (m *maintainStore) ListLeaderElections() ([]*model.LeaderElection, error) {
+	return m.leStore.ListLeaderElections()
 }
 
-// ReleaseLeaderElection
-func (maintain *maintainStore) ReleaseLeaderElection(key string) error {
-	maintain.mutex.Lock()
-	defer maintain.mutex.Unlock()
-	le, ok := maintain.leMap[key]
+// ReleaseLeaderElection release election lock
+func (m *maintainStore) ReleaseLeaderElection(key string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	le, ok := m.leMap[key]
 	if !ok {
 		return fmt.Errorf("LeaderElection(%s) not started", key)
 	}
@@ -401,21 +419,32 @@ func (maintain *maintainStore) ReleaseLeaderElection(key string) error {
 }
 
 // BatchCleanDeletedInstances batch clean soft deleted instances
-func (maintain *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
+func (m *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
 	log.Infof("[Store][database] batch clean soft deleted instances(%d)", batchSize)
-	mainStr := "delete from instance where flag = 1 limit ?"
-	result, err := maintain.master.Exec(mainStr, batchSize)
-	if err != nil {
-		log.Errorf("[Store][database] batch clean soft deleted instances(%d), err: %s", batchSize, err.Error())
-		return 0, store.Error(err)
-	}
+	var rows int64
+	err := m.master.processWithTransaction("batchCleanDeletedInstances", func(tx *BaseTx) error {
+		mainStr := "delete from instance where flag = 1 limit ?"
+		result, err := tx.Exec(mainStr, batchSize)
+		if err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted instances(%d), err: %s", batchSize, err.Error())
+			return store.Error(err)
+		}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		log.Warnf("[Store][database] batch clean soft deleted instances(%d), get RowsAffected err: %s",
-			batchSize, err.Error())
-		return 0, store.Error(err)
-	}
+		tRows, err := result.RowsAffected()
+		if err != nil {
+			log.Warnf("[Store][database] batch clean soft deleted instances(%d), get RowsAffected err: %s",
+				batchSize, err.Error())
+			return store.Error(err)
+		}
 
-	return uint32(rows), nil
+		if err := tx.Commit(); err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted instances(%d) commit tx err: %s",
+				batchSize, err.Error())
+			return err
+		}
+
+		rows = tRows
+		return nil
+	})
+	return uint32(rows), err
 }

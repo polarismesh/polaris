@@ -244,7 +244,8 @@ func (s *stableStore) StartTx() (store.Tx, error) {
 
 // newStore 初始化子类
 func (s *stableStore) newStore() {
-	s.namespaceStore = &namespaceStore{db: s.master}
+
+	s.namespaceStore = &namespaceStore{master: s.master, slave: s.slave}
 
 	s.serviceStore = &serviceStore{master: s.master, slave: s.slave}
 
@@ -252,9 +253,9 @@ func (s *stableStore) newStore() {
 
 	s.routingConfigStore = &routingConfigStore{master: s.master, slave: s.slave}
 
-	s.l5Store = &l5Store{db: s.master}
+	s.l5Store = &l5Store{master: s.master, slave: s.slave}
 
-	s.rateLimitStore = &rateLimitStore{db: s.master}
+	s.rateLimitStore = &rateLimitStore{master: s.master, slave: s.slave}
 
 	s.circuitBreakerStore = &circuitBreakerStore{master: s.master, slave: s.slave}
 

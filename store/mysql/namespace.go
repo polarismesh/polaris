@@ -29,7 +29,8 @@ import (
 
 // namespaceStore 实现了NamespaceStore
 type namespaceStore struct {
-	db *BaseDB
+	master *BaseDB // 大部分操作都用主数据库
+	slave  *BaseDB // 缓存相关的读取，请求到slave
 }
 
 // AddNamespace 添加命名空间
@@ -37,15 +38,26 @@ func (ns *namespaceStore) AddNamespace(namespace *model.Namespace) error {
 	if namespace.Name == "" {
 		return errors.New("store add namespace name is empty")
 	}
+	return RetryTransaction("addNamespace", func() error {
+		return ns.master.processWithTransaction("addNamespace", func(tx *BaseTx) error {
+			// 先删除无效数据，再添加新数据
+			if err := cleanNamespace(tx, namespace.Name); err != nil {
+				return err
+			}
 
-	// 先删除无效数据，再添加新数据
-	if err := ns.cleanNamespace(namespace.Name); err != nil {
-		return err
-	}
+			str := "insert into namespace(name, comment, token, owner, ctime, mtime) values(?,?,?,?,sysdate(),sysdate())"
+			if _, err := tx.Exec(str, namespace.Name, namespace.Comment, namespace.Token, namespace.Owner); err != nil {
+				return store.Error(err)
+			}
 
-	str := "insert into namespace(name, comment, token, owner, ctime, mtime) values(?,?,?,?,sysdate(),sysdate())"
-	_, err := ns.db.Exec(str, namespace.Name, namespace.Comment, namespace.Token, namespace.Owner)
-	return store.Error(err)
+			if err := tx.Commit(); err != nil {
+				log.Errorf("[Store][database] batch delete instance commit tx err: %s", err.Error())
+				return err
+			}
+
+			return nil
+		})
+	})
 }
 
 // UpdateNamespace 更新命名空间，目前只更新owner
@@ -53,10 +65,21 @@ func (ns *namespaceStore) UpdateNamespace(namespace *model.Namespace) error {
 	if namespace.Name == "" {
 		return errors.New("store update namespace name is empty")
 	}
+	return RetryTransaction("updateNamespace", func() error {
+		return ns.master.processWithTransaction("updateNamespace", func(tx *BaseTx) error {
+			str := "update namespace set owner = ?, comment = ?,mtime = sysdate() where name = ?"
+			if _, err := tx.Exec(str, namespace.Owner, namespace.Comment, namespace.Name); err != nil {
+				return store.Error(err)
+			}
 
-	str := "update namespace set owner = ?, comment = ?,mtime = sysdate() where name = ?"
-	_, err := ns.db.Exec(str, namespace.Owner, namespace.Comment, namespace.Name)
-	return store.Error(err)
+			if err := tx.Commit(); err != nil {
+				log.Errorf("[Store][database] batch delete instance commit tx err: %s", err.Error())
+				return err
+			}
+
+			return nil
+		})
+	})
 }
 
 // UpdateNamespaceToken 更新命名空间token
@@ -65,25 +88,21 @@ func (ns *namespaceStore) UpdateNamespaceToken(name string, token string) error 
 		return fmt.Errorf(
 			"store update namespace token some param are empty, name is %s, token is %s", name, token)
 	}
+	return RetryTransaction("updateNamespaceToken", func() error {
+		return ns.master.processWithTransaction("updateNamespaceToken", func(tx *BaseTx) error {
+			str := "update namespace set token = ?, mtime = sysdate() where name = ?"
+			if _, err := tx.Exec(str, token, name); err != nil {
+				return store.Error(err)
+			}
 
-	str := "update namespace set token = ?, mtime = sysdate() where name = ?"
-	_, err := ns.db.Exec(str, token, name)
-	return store.Error(err)
-}
+			if err := tx.Commit(); err != nil {
+				log.Errorf("[Store][database] batch delete instance commit tx err: %s", err.Error())
+				return err
+			}
 
-// ListNamespaces 展示owner下所有的命名空间 TODO
-func (ns *namespaceStore) ListNamespaces(owner string) ([]*model.Namespace, error) {
-	if owner == "" {
-		return nil, errors.New("store list namespaces owner is empty")
-	}
-
-	str := genNamespaceSelectSQL() + " where owner like '%?%'"
-	rows, err := ns.db.Query(str, owner)
-	if err != nil {
-		return nil, err
-	}
-
-	return namespaceFetchRows(rows)
+			return nil
+		})
+	})
 }
 
 // GetNamespace 根据名字获取命名空间详情，只返回有效的
@@ -122,7 +141,7 @@ func (ns *namespaceStore) GetNamespaces(filter map[string][]string, offset, limi
 // GetMoreNamespaces 根据mtime获取命名空间
 func (ns *namespaceStore) GetMoreNamespaces(mtime time.Time) ([]*model.Namespace, error) {
 	str := genNamespaceSelectSQL() + " where mtime >= FROM_UNIXTIME(?)"
-	rows, err := ns.db.Query(str, timeToTimestamp(mtime))
+	rows, err := ns.slave.Query(str, timeToTimestamp(mtime))
 	if err != nil {
 		log.Errorf("[Store][database] get more namespace query err: %s", err.Error())
 		return nil, err
@@ -137,7 +156,7 @@ func (ns *namespaceStore) getNamespacesCount(filter map[string][]string) (uint32
 	str, args := genNamespaceWhereSQLAndArgs(str, filter, nil, 0, 1)
 
 	var count uint32
-	err := ns.db.QueryRow(str, args...).Scan(&count)
+	err := ns.master.QueryRow(str, args...).Scan(&count)
 	switch {
 	case err == sql.ErrNoRows:
 		log.Errorf("[Store][database] no row with this namespace filter")
@@ -156,7 +175,7 @@ func (ns *namespaceStore) getNamespaces(filter map[string][]string, offset, limi
 	order := &Order{"mtime", "desc"}
 	str, args := genNamespaceWhereSQLAndArgs(str, filter, order, offset, limit)
 
-	rows, err := ns.db.Query(str, args...)
+	rows, err := ns.master.Query(str, args...)
 	if err != nil {
 		log.Errorf("[Store][database] get namespaces by filter query err: %s", err.Error())
 		return nil, err
@@ -172,7 +191,7 @@ func (ns *namespaceStore) getNamespace(name string) (*model.Namespace, error) {
 	}
 
 	str := genNamespaceSelectSQL() + " where name = ?"
-	rows, err := ns.db.Query(str, name)
+	rows, err := ns.master.Query(str, name)
 	if err != nil {
 		log.Errorf("[Store][database] get namespace query err: %s", err.Error())
 		return nil, err
@@ -190,11 +209,11 @@ func (ns *namespaceStore) getNamespace(name string) (*model.Namespace, error) {
 }
 
 // clean真实的数据，只有flag=1的数据才可以清除
-func (ns *namespaceStore) cleanNamespace(name string) error {
+func cleanNamespace(tx *BaseTx, name string) error {
 	str := "delete from namespace where name = ? and flag = 1"
 	// 必须打印日志说明
 	log.Infof("[Store][database] clean namespace(%s)", name)
-	if _, err := ns.db.Exec(str, name); err != nil {
+	if _, err := tx.Exec(str, name); err != nil {
 		log.Infof("[Store][database] clean namespace(%s) err: %s", name, err.Error())
 		return err
 	}

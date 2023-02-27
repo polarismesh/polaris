@@ -61,6 +61,11 @@ func TestCreateInstance(t *testing.T) {
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
 	t.Run("正常创建实例-服务没有提前创建", func(t *testing.T) {
+		bc := namingServer.bc
+		namingServer.bc = nil
+		defer func() {
+			namingServer.bc = bc
+		}()
 		instanceReq, instanceResp := discoverSuit.createCommonInstance(t, &apiservice.Service{
 			Name:      utils.NewStringValue("test-nocreate-service"),
 			Namespace: utils.NewStringValue(DefaultNamespace),
