@@ -105,21 +105,6 @@ func (ns *namespaceStore) UpdateNamespaceToken(name string, token string) error 
 	})
 }
 
-// ListNamespaces 展示owner下所有的命名空间 TODO
-func (ns *namespaceStore) ListNamespaces(owner string) ([]*model.Namespace, error) {
-	if owner == "" {
-		return nil, errors.New("store list namespaces owner is empty")
-	}
-
-	str := genNamespaceSelectSQL() + " where owner like '%?%'"
-	rows, err := ns.master.Query(str, owner)
-	if err != nil {
-		return nil, err
-	}
-
-	return namespaceFetchRows(rows)
-}
-
 // GetNamespace 根据名字获取命名空间详情，只返回有效的
 func (ns *namespaceStore) GetNamespace(name string) (*model.Namespace, error) {
 	namespace, err := ns.getNamespace(name)
