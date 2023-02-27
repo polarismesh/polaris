@@ -108,3 +108,20 @@ func (svr *serverAuthAbility) GetRouterConfigWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	return svr.targetServer.GetRouterConfigWithCache(ctx, req)
 }
+
+// UpdateInstance update single instance
+func (svr *serverAuthAbility) UpdateInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
+	authCtx := svr.collectClientInstanceAuthContext(
+		ctx, []*apiservice.Instance{req}, model.Modify, "UpdateInstance")
+
+	_, err := svr.authMgn.CheckClientPermission(authCtx)
+	if err != nil {
+		resp := api.NewResponseWithMsg(convertToErrCode(err), err.Error())
+		return resp
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.targetServer.UpdateInstance(ctx, req)
+}

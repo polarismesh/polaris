@@ -226,6 +226,9 @@ type ClientServer interface {
 	GetRouterConfigWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse
 
 	GetFaultDetectWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse
+
+	// UpdateInstance update one instance by client
+	UpdateInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response
 }
 
 // L5OperateServer L5 related operations
