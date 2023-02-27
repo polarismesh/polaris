@@ -44,20 +44,29 @@ func (rs *routingConfigStore) CreateRoutingConfig(conf *model.RoutingConfig) err
 		return store.NewStatusError(store.EmptyParamsErr, "missing some params")
 	}
 
-	// 新建之前，先清理老数据
-	if err := rs.cleanRoutingConfig(conf.ID); err != nil {
-		return store.Error(err)
-	}
+	return RetryTransaction("createRoutingConfig", func() error {
+		return rs.master.processWithTransaction("createRoutingConfig", func(tx *BaseTx) error {
+			// 新建之前，先清理老数据
+			if err := cleanRoutingConfig(tx, conf.ID); err != nil {
+				return store.Error(err)
+			}
 
-	// 服务配置的创建由外层进行服务的保护，这里不需要加锁
-	str := `insert into routing_config(id, in_bounds, out_bounds, revision, ctime, mtime)
+			// 服务配置的创建由外层进行服务的保护，这里不需要加锁
+			str := `insert into routing_config(id, in_bounds, out_bounds, revision, ctime, mtime)
 			values(?,?,?,?,sysdate(),sysdate())`
-	if _, err := rs.master.Exec(str, conf.ID, conf.InBounds, conf.OutBounds, conf.Revision); err != nil {
-		log.Errorf("[Store][database] create routing(%+v) err: %s", conf, err.Error())
-		return store.Error(err)
-	}
+			if _, err := tx.Exec(str, conf.ID, conf.InBounds, conf.OutBounds, conf.Revision); err != nil {
+				log.Errorf("[Store][database] create routing(%+v) err: %s", conf, err.Error())
+				return store.Error(err)
+			}
 
-	return nil
+			if err := tx.Commit(); err != nil {
+				log.Errorf("[Store][database] fail to create routing commit tx, rule(%+v) commit tx err: %s",
+					conf, err.Error())
+				return err
+			}
+			return nil
+		})
+	})
 }
 
 // UpdateRoutingConfig 更新
@@ -70,14 +79,22 @@ func (rs *routingConfigStore) UpdateRoutingConfig(conf *model.RoutingConfig) err
 		log.Errorf("[Store][database] update routing config missing params")
 		return store.NewStatusError(store.EmptyParamsErr, "missing some params")
 	}
+	return RetryTransaction("updateRoutingConfig", func() error {
+		return rs.master.processWithTransaction("updateRoutingConfig", func(tx *BaseTx) error {
+			str := `update routing_config set in_bounds = ?, out_bounds = ?, revision = ?, mtime = sysdate() where id = ?`
+			if _, err := tx.Exec(str, conf.InBounds, conf.OutBounds, conf.Revision, conf.ID); err != nil {
+				log.Errorf("[Store][database] update routing config(%+v) exec err: %s", conf, err.Error())
+				return store.Error(err)
+			}
 
-	str := `update routing_config set in_bounds = ?, out_bounds = ?, revision = ?, mtime = sysdate() where id = ?`
-	if _, err := rs.master.Exec(str, conf.InBounds, conf.OutBounds, conf.Revision, conf.ID); err != nil {
-		log.Errorf("[Store][database] update routing config(%+v) exec err: %s", conf, err.Error())
-		return store.Error(err)
-	}
-
-	return nil
+			if err := tx.Commit(); err != nil {
+				log.Errorf("[Store][database] fail to update routing commit tx, rule(%+v) commit tx err: %s",
+					conf, err.Error())
+				return err
+			}
+			return nil
+		})
+	})
 }
 
 // DeleteRoutingConfig 删除
@@ -86,14 +103,22 @@ func (rs *routingConfigStore) DeleteRoutingConfig(serviceID string) error {
 		log.Errorf("[Store][database] delete routing config missing service id")
 		return store.NewStatusError(store.EmptyParamsErr, "missing service id")
 	}
+	return RetryTransaction("deleteRoutingConfig", func() error {
+		return rs.master.processWithTransaction("deleteRoutingConfig", func(tx *BaseTx) error {
+			str := `update routing_config set flag = 1, mtime = sysdate() where id = ?`
+			if _, err := tx.Exec(str, serviceID); err != nil {
+				log.Errorf("[Store][database] delete routing config(%s) err: %s", serviceID, err.Error())
+				return store.Error(err)
+			}
 
-	str := `update routing_config set flag = 1, mtime = sysdate() where id = ?`
-	if _, err := rs.master.Exec(str, serviceID); err != nil {
-		log.Errorf("[Store][database] delete routing config(%s) err: %s", serviceID, err.Error())
-		return store.Error(err)
-	}
-
-	return nil
+			if err := tx.Commit(); err != nil {
+				log.Errorf("[Store][database] fail to delete routing commit tx, rule(%s) commit tx err: %s",
+					serviceID, err.Error())
+				return err
+			}
+			return nil
+		})
+	})
 }
 
 // DeleteRoutingConfigTx 删除
@@ -242,9 +267,9 @@ func (rs *routingConfigStore) GetRoutingConfigs(filter map[string]string,
 }
 
 // cleanRoutingConfig 从数据库彻底清理路由配置
-func (rs *routingConfigStore) cleanRoutingConfig(serviceID string) error {
+func cleanRoutingConfig(tx *BaseTx, serviceID string) error {
 	str := `delete from routing_config where id = ? and flag = 1`
-	if _, err := rs.master.Exec(str, serviceID); err != nil {
+	if _, err := tx.Exec(str, serviceID); err != nil {
 		log.Errorf("[Store][database] clean routing config(%s) err: %s", serviceID, err.Error())
 		return err
 	}

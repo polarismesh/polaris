@@ -78,31 +78,6 @@ func TestNamespaceStore_AddNamespace(t *testing.T) {
 	}
 }
 
-func TestNamespaceStore_ListNamespaces(t *testing.T) {
-	_ = os.RemoveAll("./table.bolt")
-	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer handler.Close()
-	nsStore := &namespaceStore{handler: handler}
-
-	if err := InitNamespaceData(nsStore, nsCount); err != nil {
-		t.Fatal(err)
-	}
-
-	namespaces, err := nsStore.ListNamespaces(nsOwner)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, namespace := range namespaces {
-		fmt.Printf("namespace is %+v\n", namespace)
-	}
-	if len(namespaces) != nsCount {
-		t.Fatal(fmt.Sprintf("namespaces count not match, expect %d, got %d", nsCount, len(namespaces)))
-	}
-}
-
 func TestNamespaceStore_GetNamespaces(t *testing.T) {
 	_ = os.RemoveAll("./table.bolt")
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})

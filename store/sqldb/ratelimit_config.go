@@ -31,7 +31,8 @@ import (
 
 // rateLimitStore RateLimitStore的实现
 type rateLimitStore struct {
-	db *BaseDB
+	master *BaseDB
+	slave  *BaseDB
 }
 
 // CreateRateLimit 新建限流规则
@@ -60,7 +61,7 @@ func limitToEtimeStr(limit *model.RateLimit) string {
 
 // createRateLimit
 func (rls *rateLimitStore) createRateLimit(limit *model.RateLimit) error {
-	tx, err := rls.db.Begin()
+	tx, err := rls.master.Begin()
 	if err != nil {
 		log.Errorf("[Store][database] create rate limit(%+v) begin tx err: %s", limit, err.Error())
 		return err
@@ -126,7 +127,7 @@ func (rls *rateLimitStore) EnableRateLimit(limit *model.RateLimit) error {
 
 // enableRateLimit
 func (rls *rateLimitStore) enableRateLimit(limit *model.RateLimit) error {
-	tx, err := rls.db.Begin()
+	tx, err := rls.master.Begin()
 	if err != nil {
 		log.Errorf("[Store][database] update rate limit(%+v) begin tx err: %s", limit, err.Error())
 		return err
@@ -144,7 +145,7 @@ func (rls *rateLimitStore) enableRateLimit(limit *model.RateLimit) error {
 		return err
 	}
 
-	if err := rls.updateLastRevision(tx, limit.ServiceID, limit.Revision); err != nil {
+	if err := updateLastRevision(tx, limit.ServiceID, limit.Revision); err != nil {
 		log.Errorf("[Store][database][Update] update rate limit revision with service id(%s) err: %s",
 			limit.ServiceID, err.Error())
 		return err
@@ -159,7 +160,7 @@ func (rls *rateLimitStore) enableRateLimit(limit *model.RateLimit) error {
 
 // updateRateLimit
 func (rls *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
-	tx, err := rls.db.Begin()
+	tx, err := rls.master.Begin()
 	if err != nil {
 		log.Errorf("[Store][database] update rate limit(%+v) begin tx err: %s", limit, err.Error())
 		return err
@@ -178,7 +179,7 @@ func (rls *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 		return err
 	}
 
-	if err := rls.updateLastRevision(tx, limit.ServiceID, limit.Revision); err != nil {
+	if err := updateLastRevision(tx, limit.ServiceID, limit.Revision); err != nil {
 		log.Errorf("[Store][database][Update] update rate limit revision with service id(%s) err: %s",
 			limit.ServiceID, err.Error())
 		return err
@@ -206,7 +207,7 @@ func (rls *rateLimitStore) DeleteRateLimit(limit *model.RateLimit) error {
 
 // deleteRateLimit
 func (rls *rateLimitStore) deleteRateLimit(limit *model.RateLimit) error {
-	tx, err := rls.db.Begin()
+	tx, err := rls.master.Begin()
 	if err != nil {
 		log.Errorf("[Store][database] delete rate limit(%+v) begin tx err: %s", limit, err.Error())
 		return err
@@ -222,7 +223,7 @@ func (rls *rateLimitStore) deleteRateLimit(limit *model.RateLimit) error {
 		return err
 	}
 
-	if err := rls.updateLastRevision(tx, limit.ServiceID, limit.Revision); err != nil {
+	if err := updateLastRevision(tx, limit.ServiceID, limit.Revision); err != nil {
 		log.Errorf("[Store][database][Delete] update rate limit revision with service id(%s) err: %s",
 			limit.ServiceID, err.Error())
 		return err
@@ -245,7 +246,7 @@ func (rls *rateLimitStore) GetRateLimitWithID(id string) (*model.RateLimit, erro
 	str := `select id, name, disable, service_id, method, labels, priority, rule, revision, flag,
 			unix_timestamp(ctime), unix_timestamp(mtime), unix_timestamp(etime)
 			from ratelimit_config where id = ? and flag = 0`
-	rows, err := rls.db.Query(str, id)
+	rows, err := rls.master.Query(str, id)
 	if err != nil {
 		log.Errorf("[Store][database] query rate limit with id(%s) err: %s", id, err.Error())
 		return nil, err
@@ -300,7 +301,7 @@ func (rls *rateLimitStore) GetRateLimitsForCache(mtime time.Time,
 	if firstUpdate {
 		str += " and flag != 1"
 	}
-	rows, err := rls.db.Query(str, timeToTimestamp(mtime))
+	rows, err := rls.slave.Query(str, timeToTimestamp(mtime))
 	if err != nil {
 		log.Errorf("[Store][database] query rate limits with mtime err: %s", err.Error())
 		return nil, nil, err
@@ -387,7 +388,7 @@ func (rls *rateLimitStore) getBriefRateLimits(
 	args = append(args, offset, limit)
 	str = str + queryStr + ` order by ratelimit_config.mtime desc limit ?, ?`
 
-	rows, err := rls.db.Query(str, args...)
+	rows, err := rls.master.Query(str, args...)
 	if err != nil {
 		log.Errorf("[Store][database] query rate limits err: %s", err.Error())
 		return nil, err
@@ -445,7 +446,7 @@ func (rls *rateLimitStore) getExpandRateLimits(
 	args = append(args, offset, limit)
 	str = str + queryStr + ` order by ratelimit_config.mtime desc limit ?, ?`
 
-	rows, err := rls.db.Query(str, args...)
+	rows, err := rls.master.Query(str, args...)
 	if err != nil {
 		log.Errorf("[Store][database] query rate limits err: %s", err.Error())
 		return nil, err
@@ -501,7 +502,7 @@ func (rls *rateLimitStore) getExpandRateLimitsCount(filter map[string]string) (u
 	queryStr, args := genFilterRateLimitSQL(filter)
 	str = str + queryStr
 	var total uint32
-	err := rls.db.QueryRow(str, args...).Scan(&total)
+	err := rls.master.QueryRow(str, args...).Scan(&total)
 	switch {
 	case err == sql.ErrNoRows:
 		return 0, nil
@@ -548,18 +549,8 @@ func genFilterRateLimitSQL(query map[string]string) (string, []interface{}) {
 	return str, args
 }
 
-// cleanRateLimit 从数据库清除限流规则数据
-func (rls *rateLimitStore) cleanRateLimit(id string) error {
-	str := `delete from ratelimit_config where id = ? and flag = 1`
-	if _, err := rls.db.Exec(str, id); err != nil {
-		log.Errorf("[Store][database] clean rate limit id(%s) err: %s", id, err.Error())
-		return err
-	}
-	return nil
-}
-
 // updateLastRevision 更新last_revision
-func (rls *rateLimitStore) updateLastRevision(tx *BaseTx, serviceID string, revision string) error {
+func updateLastRevision(tx *BaseTx, serviceID string, revision string) error {
 	str := `update ratelimit_revision set last_revision = ?, mtime = sysdate() where service_id = ?`
 	if _, err := tx.Exec(str, revision, serviceID); err != nil {
 		return err

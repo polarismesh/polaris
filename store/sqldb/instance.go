@@ -36,11 +36,6 @@ type instanceStore struct {
 
 // AddInstance 添加实例
 func (ins *instanceStore) AddInstance(instance *model.Instance) error {
-	// 新增数据之前，必须先清理老数据
-	if err := ins.CleanInstance(instance.ID()); err != nil {
-		return err
-	}
-
 	err := RetryTransaction("addInstance", func() error {
 		return ins.addInstance(instance)
 	})
@@ -62,6 +57,12 @@ func (ins *instanceStore) addInstance(instance *model.Instance) error {
 		log.Errorf("[Store][database] rlock service(%s) err: %s", instance.ServiceID, err.Error())
 		return err
 	}
+
+	// 新增数据之前，必须先清理老数据
+	if err := cleanInstance(tx, instance.ID()); err != nil {
+		return err
+	}
+
 	if revision == "" {
 		log.Errorf("[Store][database] not found service(%s)", instance.ServiceID)
 		return store.NewStatusError(store.NotFoundService, "not found service")
@@ -91,11 +92,6 @@ func (ins *instanceStore) addInstance(instance *model.Instance) error {
 
 // BatchAddInstances 批量增加实例
 func (ins *instanceStore) BatchAddInstances(instances []*model.Instance) error {
-	// 由于已经走了 replace into 逻辑，因为这里不需要在进行额外的数据删除动作
-	// if err := ins.BatchClearInstances(instances); err != nil {
-	// 	log.Errorf("[Store][database] batch clear instances err: %s", err.Error())
-	// 	return err
-	// }
 
 	err := RetryTransaction("batchAddInstances", func() error {
 		return ins.batchAddInstances(instances)
@@ -131,37 +127,6 @@ func (ins *instanceStore) batchAddInstances(instances []*model.Instance) error {
 
 	if err := tx.Commit(); err != nil {
 		log.Errorf("[Store][database] batch add instance commit tx err: %s", err.Error())
-		return err
-	}
-
-	return nil
-}
-
-// BatchClearInstances 批量清理实例信息
-// 注意：依赖instance表修改结果，id外键修改为删除级联
-func (ins *instanceStore) BatchClearInstances(instances []*model.Instance) error {
-	if len(instances) == 0 {
-		return nil
-	}
-
-	ids := make([]interface{}, 0, len(instances))
-	var paramStr string
-	first := true
-	for _, entry := range instances {
-		if first {
-			paramStr = "(?"
-			first = false
-		} else {
-			paramStr += ", ?"
-		}
-		ids = append(ids, entry.ID())
-	}
-	paramStr += ")"
-
-	log.Infof("[Store][database] clean instance(%+v)", ids) // 先打印日志
-	mainStr := "delete from instance where flag = 1 and id in " + paramStr
-	if _, err := ins.master.Exec(mainStr, ids...); err != nil {
-		log.Errorf("[Store][database] clean instance main err: %s", err.Error())
 		return err
 	}
 
@@ -218,11 +183,29 @@ func (ins *instanceStore) updateInstance(instance *model.Instance) error {
 }
 
 // CleanInstance 清理数据
-// TODO 后续修改instance表，id外键删除级联，那么可以执行一次delete操作
 func (ins *instanceStore) CleanInstance(instanceID string) error {
+	return RetryTransaction("cleanInstance", func() error {
+		return ins.master.processWithTransaction("cleanInstance", func(tx *BaseTx) error {
+			if err := cleanInstance(tx, instanceID); err != nil {
+				return err
+			}
+
+			if err := tx.Commit(); err != nil {
+				log.Errorf("[Store][database] clean instance commit tx err: %s", err.Error())
+				return err
+			}
+
+			return nil
+		})
+	})
+}
+
+// cleanInstance 清理数据
+// TODO 后续修改instance表，id外键删除级联，那么可以执行一次delete操作
+func cleanInstance(tx *BaseTx, instanceID string) error {
 	log.Infof("[Store][database] clean instance(%s)", instanceID)
 	mainStr := "delete from instance where id = ? and flag = 1"
-	if _, err := ins.master.Exec(mainStr, instanceID); err != nil {
+	if _, err := tx.Exec(mainStr, instanceID); err != nil {
 		log.Errorf("[Store][database] clean instance(%s), err: %s", instanceID, err.Error())
 		return store.Error(err)
 	}
@@ -234,21 +217,45 @@ func (ins *instanceStore) DeleteInstance(instanceID string) error {
 	if instanceID == "" {
 		return errors.New("delete Instance Missing instance id")
 	}
+	return RetryTransaction("deleteInstance", func() error {
+		return ins.master.processWithTransaction("deleteInstance", func(tx *BaseTx) error {
+			str := "update instance set flag = 1, mtime = sysdate() where `id` = ?"
+			if _, err := tx.Exec(str, instanceID); err != nil {
+				return store.Error(err)
+			}
 
-	str := "update instance set flag = 1, mtime = sysdate() where `id` = ?"
-	_, err := ins.master.Exec(str, instanceID)
-	return store.Error(err)
+			if err := tx.Commit(); err != nil {
+				log.Errorf("[Store][database] delete instance commit tx err: %s", err.Error())
+				return err
+			}
+
+			return nil
+		})
+	})
 }
 
 // BatchDeleteInstances 批量删除实例
 func (ins *instanceStore) BatchDeleteInstances(ids []interface{}) error {
-	return BatchOperation("delete-instance", ids, func(objects []interface{}) error {
-		if len(objects) == 0 {
+	return RetryTransaction("batchDeleteInstance", func() error {
+		return ins.master.processWithTransaction("batchDeleteInstance", func(tx *BaseTx) error {
+			if err := BatchOperation("delete-instance", ids, func(objects []interface{}) error {
+				if len(objects) == 0 {
+					return nil
+				}
+				str := `update instance set flag = 1, mtime = sysdate() where id in ( ` + PlaceholdersN(len(objects)) + `)`
+				_, err := tx.Exec(str, objects...)
+				return store.Error(err)
+			}); err != nil {
+				return err
+			}
+
+			if err := tx.Commit(); err != nil {
+				log.Errorf("[Store][database] batch delete instance commit tx err: %s", err.Error())
+				return err
+			}
+
 			return nil
-		}
-		str := `update instance set flag = 1, mtime = sysdate() where id in ( ` + PlaceholdersN(len(objects)) + `)`
-		_, err := ins.master.Exec(str, objects...)
-		return store.Error(err)
+		})
 	})
 }
 
@@ -507,42 +514,80 @@ func (ins *instanceStore) GetInstanceMeta(instanceID string) (map[string]string,
 
 // SetInstanceHealthStatus 设置实例健康状态
 func (ins *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, revision string) error {
-	str := "update instance set health_status = ?, revision = ?, mtime = sysdate() where `id` = ?"
-	_, err := ins.master.Exec(str, flag, revision, instanceID)
-	return store.Error(err)
+	return RetryTransaction("setInstanceHealthStatus", func() error {
+		return ins.master.processWithTransaction("setInstanceHealthStatus", func(tx *BaseTx) error {
+			str := "update instance set health_status = ?, revision = ?, mtime = sysdate() where `id` = ?"
+			if _, err := tx.Exec(str, flag, revision, instanceID); err != nil {
+				return store.Error(err)
+			}
+
+			if err := tx.Commit(); err != nil {
+				log.Errorf("[Store][database] set instance health status commit tx err: %s", err.Error())
+				return err
+			}
+
+			return nil
+		})
+	})
 }
 
 // BatchSetInstanceHealthStatus 批量设置健康状态
 func (ins *instanceStore) BatchSetInstanceHealthStatus(ids []interface{}, isolate int, revision string) error {
-	return BatchOperation("set-instance-healthy", ids, func(objects []interface{}) error {
-		if len(objects) == 0 {
+	return RetryTransaction("batchSetInstanceHealthStatus", func() error {
+		return ins.master.processWithTransaction("batchSetInstanceHealthStatus", func(tx *BaseTx) error {
+			if err := BatchOperation("set-instance-healthy", ids, func(objects []interface{}) error {
+				if len(objects) == 0 {
+					return nil
+				}
+				str := "update instance set health_status = ?, revision = ?, mtime = sysdate() where id in "
+				str += "(" + PlaceholdersN(len(objects)) + ")"
+				args := make([]interface{}, 0, len(objects)+2)
+				args = append(args, isolate)
+				args = append(args, revision)
+				args = append(args, objects...)
+				_, err := tx.Exec(str, args...)
+				return store.Error(err)
+			}); err != nil {
+				return err
+			}
+
+			if err := tx.Commit(); err != nil {
+				log.Errorf("[Store][database] batch set instance health status commit tx err: %s", err.Error())
+				return err
+			}
+
 			return nil
-		}
-		str := "update instance set health_status = ?, revision = ?, mtime = sysdate() where id in "
-		str += "(" + PlaceholdersN(len(objects)) + ")"
-		args := make([]interface{}, 0, len(objects)+2)
-		args = append(args, isolate)
-		args = append(args, revision)
-		args = append(args, objects...)
-		_, err := ins.master.Exec(str, args...)
-		return store.Error(err)
+		})
 	})
 }
 
 // BatchSetInstanceIsolate 批量设置实例隔离状态
 func (ins *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, revision string) error {
-	return BatchOperation("set-instance-isolate", ids, func(objects []interface{}) error {
-		if len(objects) == 0 {
+	return RetryTransaction("batchSetInstanceIsolate", func() error {
+		return ins.master.processWithTransaction("batchSetInstanceIsolate", func(tx *BaseTx) error {
+			if err := BatchOperation("set-instance-isolate", ids, func(objects []interface{}) error {
+				if len(objects) == 0 {
+					return nil
+				}
+				str := "update instance set isolate = ?, revision = ?, mtime = sysdate() where id in "
+				str += "(" + PlaceholdersN(len(objects)) + ")"
+				args := make([]interface{}, 0, len(objects)+2)
+				args = append(args, isolate)
+				args = append(args, revision)
+				args = append(args, objects...)
+				_, err := tx.Exec(str, args...)
+				return store.Error(err)
+			}); err != nil {
+				return err
+			}
+
+			if err := tx.Commit(); err != nil {
+				log.Errorf("[Store][database] batch set instance isolate commit tx err: %s", err.Error())
+				return err
+			}
+
 			return nil
-		}
-		str := "update instance set isolate = ?, revision = ?, mtime = sysdate() where id in "
-		str += "(" + PlaceholdersN(len(objects)) + ")"
-		args := make([]interface{}, 0, len(objects)+2)
-		args = append(args, isolate)
-		args = append(args, revision)
-		args = append(args, objects...)
-		_, err := ins.master.Exec(str, args...)
-		return store.Error(err)
+		})
 	})
 }
 
