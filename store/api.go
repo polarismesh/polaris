@@ -67,9 +67,6 @@ type NamespaceStore interface {
 	// UpdateNamespaceToken Update namespace token
 	UpdateNamespaceToken(name string, token string) error
 
-	// ListNamespaces Query all namespaces under Owner
-	ListNamespaces(owner string) ([]*model.Namespace, error)
-
 	// GetNamespace Get the details of the namespace according to Name
 	GetNamespace(name string) (*model.Namespace, error)
 
