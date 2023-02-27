@@ -20,31 +20,50 @@ package service
 import (
 	"context"
 
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 func (svr *serverAuthAbility) CreateFaultDetectRules(
 	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
+
+	authCtx := svr.collectFaultDetectAuthContext(ctx, request, model.Read, "CreateFaultDetectRules")
+	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchWriteResponse(convertToErrCode(err))
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return svr.targetServer.CreateFaultDetectRules(ctx, request)
 }
 
 func (svr *serverAuthAbility) DeleteFaultDetectRules(
 	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
+
+	authCtx := svr.collectFaultDetectAuthContext(ctx, request, model.Read, "DeleteFaultDetectRules")
+	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchWriteResponse(convertToErrCode(err))
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return svr.targetServer.DeleteFaultDetectRules(ctx, request)
 }
 
 func (svr *serverAuthAbility) UpdateFaultDetectRules(
 	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
+
+	authCtx := svr.collectFaultDetectAuthContext(ctx, request, model.Read, "UpdateFaultDetectRules")
+	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchWriteResponse(convertToErrCode(err))
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return svr.targetServer.UpdateFaultDetectRules(ctx, request)
 }
 
 func (svr *serverAuthAbility) GetFaultDetectRules(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	return svr.targetServer.GetFaultDetectRules(ctx, query)
-}
-
-func (svr *serverAuthAbility) GetFaultDetectWithCache(
-	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
-	return svr.targetServer.GetFaultDetectWithCache(ctx, req)
 }

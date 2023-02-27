@@ -123,7 +123,7 @@ func reportRegisInstanceCost(begin, cur time.Time, code apimodel.Code) {
 	}
 	diff := cur.Sub(begin)
 	plugin.GetStatis().ReportCallMetrics(metrics.CallMetric{
-		Type:     metrics.ServerCallMetric,
+		Type:     metrics.SystemCallMetric,
 		API:      "AsyncRegisInstance",
 		Code:     int(apimodel.Code_ExecuteSuccess),
 		Duration: diff,

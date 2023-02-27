@@ -128,41 +128,6 @@ var (
 )
 
 var (
-	MetricForClientRqTotal         string = "client_rq_total"
-	MetricForClientRqFailure       string = "client_rq_failure"
-	MetricForClientRqTimeout       string = "client_rq_timeout"
-	MetricForClientRqIntervalCount string = "client_rq_interval_count"
-	MetricForClientRqTimeoutMin    string = "client_rq_timeout_min"
-	MetricForClientRqTimeoutAvg    string = "client_rq_timeout_avg"
-	MetricForClientRqTimeoutMax    string = "client_rq_timeout_max"
-	MetricForClientRqTimeoutP99    string = "client_rq_timeout_p99"
-
-	clientRequestCount = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "client_rq_total",
-		Help: "total number of client request",
-		ConstLabels: map[string]string{
-			LabelServerNode: utils.LocalHost,
-		},
-	}, []string{LabelApi, LabelApiType, LabelErrCode, LabelProtocol})
-
-	clientRequestFailureCount = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "client_rq_failure",
-		Help: "total number of client request status is failure",
-		ConstLabels: map[string]string{
-			LabelServerNode: utils.LocalHost,
-		},
-	}, []string{LabelApi, LabelApiType, LabelErrCode, LabelProtocol})
-
-	clientRequestTime = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name: "client_rq_time",
-		Help: "cost time of per client request",
-		ConstLabels: map[string]string{
-			LabelServerNode: utils.LocalHost,
-		},
-	}, []string{LabelApi, LabelApiType, LabelErrCode, LabelProtocol})
-)
-
-var (
 	cacheUpdateCost = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "cache_update_cost",
 		Help: "cache update cost per resource cache",

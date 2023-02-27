@@ -20,7 +20,7 @@ package store
 import "github.com/polarismesh/polaris/common/model"
 
 const (
-	ELECTION_KEY_SELF_SERVICE_CHECKER = "polaris.checker"
+	ElectionKeySelfServiceChecker = "polaris.checker"
 )
 
 type MaintainStore interface {

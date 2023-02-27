@@ -34,6 +34,7 @@ const (
 	ComponentServer        ComponentType = "server"
 	ComponentRedis         ComponentType = "redis"
 	ComponentDB            ComponentType = "db"
+	ComponentInner         ComponentType = "inner"
 	ComponentProtobufCache ComponentType = "protobuf"
 )
 

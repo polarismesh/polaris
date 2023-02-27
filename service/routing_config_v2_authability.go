@@ -20,6 +20,9 @@ package service
 import (
 	"context"
 
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 )
@@ -28,6 +31,13 @@ import (
 func (svr *serverAuthAbility) CreateRoutingConfigsV2(ctx context.Context,
 	req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 
+	// TODO not support RouteRuleV2 resource auth, so we set op is read
+	authCtx := svr.collectRouteRuleV2AuthContext(ctx, req, model.Read, "CreateRoutingConfigsV2")
+	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchWriteResponse(convertToErrCode(err))
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return svr.targetServer.CreateRoutingConfigsV2(ctx, req)
 }
 
@@ -35,6 +45,12 @@ func (svr *serverAuthAbility) CreateRoutingConfigsV2(ctx context.Context,
 func (svr *serverAuthAbility) DeleteRoutingConfigsV2(ctx context.Context,
 	req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 
+	authCtx := svr.collectRouteRuleV2AuthContext(ctx, req, model.Read, "DeleteRoutingConfigsV2")
+	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchWriteResponse(convertToErrCode(err))
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return svr.targetServer.DeleteRoutingConfigsV2(ctx, req)
 }
 
@@ -42,6 +58,12 @@ func (svr *serverAuthAbility) DeleteRoutingConfigsV2(ctx context.Context,
 func (svr *serverAuthAbility) UpdateRoutingConfigsV2(ctx context.Context,
 	req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 
+	authCtx := svr.collectRouteRuleV2AuthContext(ctx, req, model.Read, "UpdateRoutingConfigsV2")
+	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchWriteResponse(convertToErrCode(err))
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return svr.targetServer.UpdateRoutingConfigsV2(ctx, req)
 }
 
@@ -49,6 +71,12 @@ func (svr *serverAuthAbility) UpdateRoutingConfigsV2(ctx context.Context,
 func (svr *serverAuthAbility) EnableRoutings(ctx context.Context,
 	req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 
+	authCtx := svr.collectRouteRuleV2AuthContext(ctx, req, model.Read, "EnableRoutings")
+	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchWriteResponse(convertToErrCode(err))
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return svr.targetServer.EnableRoutings(ctx, req)
 }
 

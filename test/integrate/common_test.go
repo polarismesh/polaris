@@ -27,8 +27,8 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	"github.com/polarismesh/polaris/test/http"
-	"github.com/polarismesh/polaris/test/resource"
+	"github.com/polarismesh/polaris/test/integrate/http"
+	"github.com/polarismesh/polaris/test/integrate/resource"
 )
 
 const (

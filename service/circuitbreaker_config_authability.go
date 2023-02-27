@@ -86,7 +86,8 @@ func (svr *serverAuthAbility) UpdateCircuitBreakers(ctx context.Context,
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
-
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return svr.targetServer.UpdateCircuitBreakers(ctx, reqs)
 }
 

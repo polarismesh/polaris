@@ -48,7 +48,7 @@ import (
 	"github.com/polarismesh/polaris/service/healthcheck"
 	"github.com/polarismesh/polaris/store"
 	storemock "github.com/polarismesh/polaris/store/mock"
-	"github.com/polarismesh/polaris/testdata"
+	testdata "github.com/polarismesh/polaris/test/data"
 )
 
 type Bootstrap struct {

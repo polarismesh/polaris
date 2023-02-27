@@ -109,6 +109,11 @@ func (svr *serverAuthAbility) GetRouterConfigWithCache(
 	return svr.targetServer.GetRouterConfigWithCache(ctx, req)
 }
 
+func (svr *serverAuthAbility) GetFaultDetectWithCache(
+	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+	return svr.targetServer.GetFaultDetectWithCache(ctx, req)
+}
+
 // UpdateInstance update single instance
 func (svr *serverAuthAbility) UpdateInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	authCtx := svr.collectClientInstanceAuthContext(

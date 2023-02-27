@@ -29,8 +29,8 @@ import (
 
 	v1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
-	"github.com/polarismesh/polaris/test/http"
-	"github.com/polarismesh/polaris/test/resource"
+	"github.com/polarismesh/polaris/test/integrate/http"
+	"github.com/polarismesh/polaris/test/integrate/resource"
 )
 
 /**

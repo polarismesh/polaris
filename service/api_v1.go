@@ -225,6 +225,7 @@ type ClientServer interface {
 	// GetRouterConfigWithCache User Client Get Service Routing Configuration Information
 	GetRouterConfigWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse
 
+	// GetFaultDetectWithCache User Client Get FaultDetect Rule Information
 	GetFaultDetectWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse
 
 	// UpdateInstance update one instance by client

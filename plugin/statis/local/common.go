@@ -17,7 +17,30 @@
 
 package local
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/polarismesh/polaris/common/metrics"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+func init() {
+	metrics.GetRegistry().MustRegister(
+		clientRequestTimeout,
+	)
+}
+
+var (
+	clientRequestTimeout = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "client_rq_time_ms",
+		Help: "time consumed per interface call",
+		ConstLabels: map[string]string{
+			metrics.LabelServerNode: utils.LocalHost,
+		},
+		Buckets: []float64{1, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000, 5000, 100000},
+	}, []string{metrics.LabelApi, metrics.LabelErrCode, metrics.LabelProtocol})
+)
 
 // MetricData metric 结构体
 type MetricData struct {
@@ -43,7 +66,6 @@ const (
 	MetricForClientRqTimeoutMin    string = "client_rq_timeout_min"
 	MetricForClientRqTimeoutAvg    string = "client_rq_timeout_avg"
 	MetricForClientRqTimeoutMax    string = "client_rq_timeout_max"
-	MetricForClientRqTimeoutP99    string = "client_rq_timeout_p99"
 
 	// metric label
 	LabelForPolarisServerInstance string = "polaris_server_instance"
@@ -129,17 +151,6 @@ var (
 		{
 			Name:       MetricForClientRqTimeoutAvg,
 			Help:       "average latency of client requests",
-			MetricType: TypeForGaugeVec,
-			LabelNames: []string{
-				LabelForPolarisServerInstance,
-				LabelForApi,
-				LabelForProtocol,
-				LabelForErrCode,
-			},
-		},
-		{
-			Name:       MetricForClientRqTimeoutP99,
-			Help:       "P99 latency of client requests",
 			MetricType: TypeForGaugeVec,
 			LabelNames: []string{
 				LabelForPolarisServerInstance,

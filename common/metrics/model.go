@@ -17,11 +17,15 @@
 
 package metrics
 
-import "time"
+import (
+	"strconv"
+	"time"
+)
 
 type CallMetricType string
 
 const (
+	SystemCallMetric        CallMetricType = "inner"
 	ServerCallMetric        CallMetricType = "server"
 	RedisCallMetric         CallMetricType = "redis"
 	StoreCallMetric         CallMetricType = "db"
@@ -37,6 +41,16 @@ type CallMetric struct {
 	Success  bool
 	Duration time.Duration
 	Labels   map[string]string
+}
+
+func (m CallMetric) GetLabels() map[string]string {
+	if len(m.Labels) == 0 {
+		m.Labels = map[string]string{}
+	}
+	m.Labels[LabelApi] = m.API
+	m.Labels[LabelProtocol] = m.Protocol
+	m.Labels[LabelErrCode] = strconv.FormatInt(int64(m.Code), 10)
+	return m.Labels
 }
 
 type DiscoveryMetricType string
