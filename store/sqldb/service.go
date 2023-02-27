@@ -41,11 +41,6 @@ func (ss *serviceStore) AddService(s *model.Service) error {
 			"add service missing some params, id is %s, name is %s, namespace is %s", s.ID, s.Name, s.Namespace))
 	}
 
-	// 先清理无效数据
-	if err := ss.cleanService(s.Name, s.Namespace); err != nil {
-		return err
-	}
-
 	err := RetryTransaction("addService", func() error {
 		return ss.addService(s)
 	})
@@ -63,6 +58,11 @@ func (ss *serviceStore) addService(s *model.Service) error {
 			_ = tx.Rollback()
 		}
 	}()
+
+	// 先清理无效数据
+	if err := ss.cleanService(tx, s.Name, s.Namespace); err != nil {
+		return err
+	}
 
 	// 锁namespace
 	namespace, err := rlockNamespace(tx.QueryRow, s.Namespace)
@@ -728,10 +728,10 @@ func (ss *serviceStore) getServiceByID(serviceID string) (*model.Service, error)
 
 // cleanService 清理无效数据，flag=1的数据
 // 只需要删除service即可
-func (ss *serviceStore) cleanService(name string, namespace string) error {
+func (ss *serviceStore) cleanService(tx *BaseTx, name string, namespace string) error {
 	log.Infof("[Store][database] clean service(%s, %s)", name, namespace)
 	str := "delete from service where name = ? and namespace = ? and flag = 1"
-	_, err := ss.master.Exec(str, name, namespace)
+	_, err := tx.Exec(str, name, namespace)
 	if err != nil {
 		log.Errorf("[Store][database] clean service(%s, %s) err: %s", name, namespace, err.Error())
 		return err
