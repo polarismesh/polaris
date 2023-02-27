@@ -43,10 +43,6 @@ func (cs *clientStore) CreateClient(client *model.Client) error {
 		return fmt.Errorf("add Business missing some params, id %s, name %s", clientID,
 			client.Proto().GetHost().GetValue())
 	}
-	// clean the old items before add
-	if err := cs.DeleteClient(clientID); err != nil {
-		return err
-	}
 	err := RetryTransaction("createClient", func() error {
 		return cs.createClient(client)
 	})
@@ -69,14 +65,14 @@ func (cs *clientStore) UpdateClient(client *model.Client) error {
 	return serr
 }
 
-// DeleteClient delete the client info
-func (cs *clientStore) DeleteClient(clientID string) error {
+// deleteClient delete the client info
+func deleteClient(tx *BaseTx, clientID string) error {
 	if clientID == "" {
 		return errors.New("delete client missing client id")
 	}
 
 	str := "update client set flag = 1, mtime = sysdate() where `id` = ?"
-	_, err := cs.master.Exec(str, clientID)
+	_, err := tx.Exec(str, clientID)
 	return store.Error(err)
 }
 
@@ -305,6 +301,10 @@ func (cs *clientStore) createClient(client *model.Client) error {
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
+	// clean the old items before add
+	if err := deleteClient(tx, client.Proto().GetId().GetValue()); err != nil {
+		return err
+	}
 	if err := addClientMain(tx, client); err != nil {
 		log.Errorf("[Store][database] add client main err: %s", err.Error())
 		return err

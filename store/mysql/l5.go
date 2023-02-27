@@ -27,7 +27,8 @@ import (
 
 // l5Store 实现了L5Store
 type l5Store struct {
-	db *BaseDB
+	master *BaseDB // 大部分操作都用主数据库
+	slave  *BaseDB // 缓存相关的读取，请求到slave
 }
 
 // GetL5Extend 获取L5扩展数据
@@ -55,7 +56,7 @@ func (l5 *l5Store) GenNextL5Sid(layoutID uint32) (string, error) {
 
 // genNextL5Sid
 func (l5 *l5Store) genNextL5Sid(layoutID uint32) (string, error) {
-	tx, err := l5.db.Begin()
+	tx, err := l5.master.Begin()
 	if err != nil {
 		log.Errorf("[Store][database] get next l5 sid tx begin err: %s", err.Error())
 		return "", err
@@ -104,7 +105,7 @@ func (l5 *l5Store) GetMoreL5Extend(mtime time.Time) (map[string]map[string]inter
 // GetMoreL5Routes 获取更多的L5 Route信息
 func (l5 *l5Store) GetMoreL5Routes(flow uint32) ([]*model.Route, error) {
 	str := getL5RouteSelectSQL() + " where Fflow > ?"
-	rows, err := l5.db.Query(str, flow)
+	rows, err := l5.slave.Query(str, flow)
 	if err != nil {
 		log.Errorf("[Store][database] get more l5 route query err: %s", err.Error())
 		return nil, err
@@ -116,7 +117,7 @@ func (l5 *l5Store) GetMoreL5Routes(flow uint32) ([]*model.Route, error) {
 // GetMoreL5Policies 获取更多的L5 Policy信息
 func (l5 *l5Store) GetMoreL5Policies(flow uint32) ([]*model.Policy, error) {
 	str := getL5PolicySelectSQL() + " where Fflow > ?"
-	rows, err := l5.db.Query(str, flow)
+	rows, err := l5.slave.Query(str, flow)
 	if err != nil {
 		log.Errorf("[Store][database] get more l5 policy query err: %s", err.Error())
 		return nil, err
@@ -128,7 +129,7 @@ func (l5 *l5Store) GetMoreL5Policies(flow uint32) ([]*model.Policy, error) {
 // GetMoreL5Sections 获取更多的L5 Section信息
 func (l5 *l5Store) GetMoreL5Sections(flow uint32) ([]*model.Section, error) {
 	str := getL5SectionSelectSQL() + " where Fflow > ?"
-	rows, err := l5.db.Query(str, flow)
+	rows, err := l5.slave.Query(str, flow)
 	if err != nil {
 		log.Errorf("[Store][database] get more l5 section query err: %s", err.Error())
 		return nil, err
@@ -140,7 +141,7 @@ func (l5 *l5Store) GetMoreL5Sections(flow uint32) ([]*model.Section, error) {
 // GetMoreL5IPConfigs 获取更多的L5 IPConfig信息
 func (l5 *l5Store) GetMoreL5IPConfigs(flow uint32) ([]*model.IPConfig, error) {
 	str := getL5IPConfigSelectSQL() + " where Fflow > ?"
-	rows, err := l5.db.Query(str, flow)
+	rows, err := l5.slave.Query(str, flow)
 	if err != nil {
 		log.Errorf("[Store][database] get more l5 ip config query err: %s", err.Error())
 		return nil, err

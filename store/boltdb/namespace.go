@@ -131,25 +131,6 @@ func (n *namespaceStore) UpdateNamespaceToken(name string, token string) error {
 	return n.handler.UpdateValue(tblNameNamespace, name, properties)
 }
 
-// ListNamespaces query all namespaces by owner
-func (n *namespaceStore) ListNamespaces(owner string) ([]*model.Namespace, error) {
-	if owner == "" {
-		return nil, errors.New("store lst namespaces owner is empty")
-	}
-	values, err := n.handler.LoadValuesByFilter(
-		tblNameNamespace, []string{"Owner"}, &model.Namespace{}, func(value map[string]interface{}) bool {
-			ownerValue, ok := value["Owner"]
-			if !ok {
-				return false
-			}
-			return strings.Contains(ownerValue.(string), owner)
-		})
-	if err != nil {
-		return nil, err
-	}
-	return toNamespaces(values), nil
-}
-
 // GetNamespace query namespace by name
 func (n *namespaceStore) GetNamespace(name string) (*model.Namespace, error) {
 	values, err := n.handler.LoadValues(tblNameNamespace, []string{name}, &model.Namespace{})
