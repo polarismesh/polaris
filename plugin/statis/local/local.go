@@ -96,17 +96,26 @@ const maxAddDuration = 800 * time.Millisecond
 func (s *StatisWorker) ReportCallMetrics(metric metrics.CallMetric) {
 	switch metric.Type {
 	case metrics.ServerCallMetric:
+		clientRequestTimeout.With(metric.GetLabels()).Observe(float64(metric.Duration.Milliseconds()))
 		startTime := time.Now()
 		s.acc <- &APICall{
 			api:       metric.API,
 			protocol:  metric.Protocol,
 			code:      metric.Code,
 			duration:  int64(metric.Duration.Nanoseconds()),
-			component: "server",
+			component: plugin.ComponentServer,
 		}
 		passDuration := time.Since(startTime)
 		if passDuration >= maxAddDuration {
 			log.Warnf("[APICall]add api call cost %s, exceed max %s", passDuration, maxAddDuration)
+		}
+	case metrics.SystemCallMetric:
+		s.acc <- &APICall{
+			api:       metric.API,
+			protocol:  metric.Protocol,
+			code:      metric.Code,
+			duration:  int64(metric.Duration.Nanoseconds()),
+			component: plugin.ComponentInner,
 		}
 	case metrics.RedisCallMetric:
 		s.acc <- &APICall{
@@ -114,7 +123,7 @@ func (s *StatisWorker) ReportCallMetrics(metric metrics.CallMetric) {
 			protocol:  metric.Protocol,
 			code:      metric.Code,
 			duration:  int64(metric.Duration.Nanoseconds()),
-			component: "redis",
+			component: plugin.ComponentRedis,
 		}
 	case metrics.ProtobufCacheCallMetric:
 		s.cacheStatis.add(metric)
@@ -128,7 +137,7 @@ func (s *StatisWorker) ReportDiscoveryMetrics(metric ...metrics.DiscoveryMetric)
 
 // ReportConfigMetrics report config_center metrics
 func (s *StatisWorker) ReportConfigMetrics(metric ...metrics.ConfigMetrics) {
-
+	s.configHandle.handle(metric)
 }
 
 // Run 主流程

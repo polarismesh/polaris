@@ -192,7 +192,7 @@ func newAPICallStatis(prometheusStatis *PrometheusStatis) (*APICallStatis, error
 	value := &APICallStatis{
 		components: make(map[plugin.ComponentType]*ComponentStatics),
 	}
-	componentNames := []plugin.ComponentType{plugin.ComponentServer, plugin.ComponentRedis}
+	componentNames := []plugin.ComponentType{plugin.ComponentServer, plugin.ComponentRedis, plugin.ComponentInner}
 	for _, componentName := range componentNames {
 		value.components[componentName] = newComponentStatics(value)
 	}
