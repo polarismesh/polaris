@@ -178,18 +178,10 @@ func (ic *instanceCache) realUpdate() (map[string]time.Time, int64, error) {
 	}
 
 	lastMimes, update, del := ic.setInstances(instances)
-	timeDiff := time.Since(start)
-	if timeDiff > 1*time.Second {
-		log.Info("[Cache][Instance] get more instances",
-			zap.Int("update", update), zap.Int("delete", del),
-			zap.Time("last", ic.LastMtime()), zap.Duration("used", time.Since(start)))
-	}
-	if log.DebugEnabled() {
-		log.Debug("[Cache][Instance] get more instances",
-			zap.Any("instances", instances),
-			zap.Int("update", update), zap.Int("delete", del),
-			zap.Time("last", ic.LastMtime()), zap.Duration("used", time.Since(start)))
-	}
+	log.Info("[Cache][Instance] get more instances",
+		zap.Int("pull-from-store", len(instances)),
+		zap.Int("update", update), zap.Int("delete", del),
+		zap.Time("last", ic.LastMtime()), zap.Duration("used", time.Since(start)))
 	return lastMimes, int64(len(instances)), err
 }
 
@@ -226,6 +218,10 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 		return nil, 0, 0
 	}
 
+	addInstances := map[string]struct{}{}
+	updateInstances := map[string]struct{}{}
+	deleteInstances := map[string]struct{}{}
+
 	lastMtime := ic.LastMtime().Unix()
 	update := 0
 	del := 0
@@ -245,6 +241,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 		_, itemExist := ic.ids.Load(item.ID())
 		// 待删除的instance
 		if !item.Valid {
+			deleteInstances[item.ID()] = struct{}{}
 			del++
 			ic.ids.Delete(item.ID())
 			if itemExist {
@@ -270,9 +267,11 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 
 		ic.ids.Store(item.ID(), item)
 		if !itemExist {
+			addInstances[item.ID()] = struct{}{}
 			instanceCount++
 			ic.manager.onEvent(item, EventCreated)
 		} else {
+			updateInstances[item.ID()] = struct{}{}
 			ic.manager.onEvent(item, EventUpdated)
 		}
 		value, ok := ic.services.Load(item.ServiceID)
@@ -291,6 +290,12 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 			ic.instanceCount, instanceCount)
 		ic.instanceCount = instanceCount
 	}
+
+	if log.DebugEnabled() {
+		log.Debug("[Cache][Instance] instances change info", zap.Any("add", addInstances),
+			zap.Any("update", updateInstances), zap.Any("delete", deleteInstances))
+	}
+
 	ic.postProcessUpdatedServices(affect)
 	ic.manager.onEvent(affect, EventInstanceReload)
 	return map[string]time.Time{
