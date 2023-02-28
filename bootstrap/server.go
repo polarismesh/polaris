@@ -196,7 +196,7 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 	}
 
 	// 初始化运维操作模块
-	if err := maintain.Initialize(ctx, namingSvr, healthCheckServer, s); err != nil {
+	if err := maintain.Initialize(ctx, &cfg.Maintain, namingSvr, healthCheckServer, s); err != nil {
 		return err
 	}
 

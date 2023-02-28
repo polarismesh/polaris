@@ -21,44 +21,62 @@ import (
 	"fmt"
 
 	"github.com/robfig/cron/v3"
+
+	commonlog "github.com/polarismesh/polaris/common/log"
 )
 
-var (
-	jobs        map[string]MaintainJob = map[string]MaintainJob{}
-	startedJobs map[string]MaintainJob = map[string]MaintainJob{}
-	scheduler                          = newCron()
-)
+var log = commonlog.GetScopeOrDefaultByName(commonlog.DefaultLoggerName)
 
-func init() {
+// MaintainJobs
+type MaintainJobs struct {
+	jobs        map[string]maintainJob
+	startedJobs map[string]maintainJob
+	scheduler   *cron.Cron
+}
 
+// NewMaintainJobs
+func NewMaintainJobs() *MaintainJobs {
+	return &MaintainJobs{
+		jobs: map[string]maintainJob{
+			"DeleteUnHealthyInstance": &deleteUnHealthyInstanceJob{},
+		},
+		startedJobs: map[string]maintainJob{},
+		scheduler:   newCron(),
+	}
 }
 
 // StartMaintainJobs
-func StartMaintianJobs(configs []JobConfig) error {
+func (mj *MaintainJobs) StartMaintianJobs(configs []JobConfig) error {
 	for _, cfg := range configs {
-		job, ok := jobs[cfg.Name]
+		job, ok := mj.jobs[cfg.Name]
 		if !ok {
 			return fmt.Errorf("[Maintain][Job] job (%s) not exist", cfg.Name)
 		}
-		_, ok = startedJobs[cfg.Name]
+		_, ok = mj.startedJobs[cfg.Name]
 		if ok {
 			return fmt.Errorf("[Maintain][Job] job (%s) duplicated", cfg.Name)
 		}
-		job.Init(cfg.Option)
-		_, err := scheduler.AddFunc(cfg.CronSpec, job.Execute())
+		err := job.Init(cfg.Option)
 		if err != nil {
+			log.Errorf("[Maintain][Job] job (%s) fail to init, err: %v", cfg.Name, err)
+			return fmt.Errorf("[Maintain][Job] job (%s) fail to init", cfg.Name)
+		}
+		_, err = mj.scheduler.AddFunc(cfg.CronSpec, job.Execute())
+		if err != nil {
+			log.Errorf("[Maintain][Job] job (%s) fail to start, err: %v", cfg.Name, err)
 			return fmt.Errorf("[Maintain][Job] job (%s) fail to start", cfg.Name)
 		}
-		startedJobs[cfg.Name] = job
+		mj.startedJobs[cfg.Name] = job
 	}
-	scheduler.Start()
+	mj.scheduler.Start()
 	return nil
 }
 
 // StopMaintainJobs
-func StopMaintainJobs() {
-	_ = scheduler.Stop()
-	startedJobs = map[string]MaintainJob{}
+func (mj *MaintainJobs) StopMaintainJobs() {
+	ctx := mj.scheduler.Stop()
+	<-ctx.Done()
+	mj.startedJobs = map[string]maintainJob{}
 }
 
 func newCron() *cron.Cron {
@@ -68,12 +86,7 @@ func newCron() *cron.Cron {
 			cron.Minute|cron.Hour|cron.Dom|cron.Month|cron.Dow|cron.Descriptor)))
 }
 
-func registerJob(job MaintainJob) {
-	jobs[job.Name()] = job
-}
-
-type MaintainJob interface {
-	Init(cfg map[string]interface{})
+type maintainJob interface {
+	Init(cfg map[string]interface{}) error
 	Execute() func()
-	Name() string
 }

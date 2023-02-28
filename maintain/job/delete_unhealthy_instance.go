@@ -17,23 +17,44 @@
 
 package job
 
-type DeleteUnHealthyInstanceJobConfig struct {
+import (
+	"time"
+
+	"github.com/mitchellh/mapstructure"
+)
+
+type deleteUnHealthyInstanceJobConfig struct {
+	instanceDeleteTimeout time.Duration `mapstructure:"instanceDeleteTimeout"`
 }
 
-// DeleteUnHealthyInstanceJob
-type DeleteUnHealthyInstanceJob struct {
-	cfg DeleteUnHealthyInstanceJobConfig
+type deleteUnHealthyInstanceJob struct {
+	cfg *deleteUnHealthyInstanceJobConfig
 }
 
-func (job *DeleteUnHealthyInstanceJob) Init(cfg map[string]interface{}) {
-}
+func (job *deleteUnHealthyInstanceJob) Init(raw map[string]interface{}) error {
+	cfg := &deleteUnHealthyInstanceJobConfig{}
+	decodeConfig := &mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
+		Result:     cfg,
+	}
+	decoder, err := mapstructure.NewDecoder(decodeConfig)
+	if err != nil {
+		log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] new config decoder err: %v", err)
+		return err
+	}
 
-func (job *DeleteUnHealthyInstanceJob) Name() string {
-	return "DeleteUnHealthyInstance"
+	err = decoder.Decode(raw)
+	if err != nil {
+		log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] parse config err: %v", err)
+		return err
+	}
+
+	job.cfg = cfg
+	return nil
 }
 
 // Execute
-func (job *DeleteUnHealthyInstanceJob) Execute() func() {
+func (job *deleteUnHealthyInstanceJob) Execute() func() {
 	return func() {
 	}
 }

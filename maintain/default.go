@@ -35,14 +35,14 @@ var (
 )
 
 // Initialize 初始化
-func Initialize(ctx context.Context, namingService service.DiscoverServer, healthCheckServer *healthcheck.Server,
+func Initialize(ctx context.Context, cfg *Config, namingService service.DiscoverServer, healthCheckServer *healthcheck.Server,
 	storage store.Store) error {
 
 	if finishInit {
 		return nil
 	}
 
-	err := initialize(ctx, namingService, healthCheckServer, storage)
+	err := initialize(ctx, cfg, namingService, healthCheckServer, storage)
 	if err != nil {
 		return err
 	}
@@ -51,7 +51,7 @@ func Initialize(ctx context.Context, namingService service.DiscoverServer, healt
 	return nil
 }
 
-func initialize(_ context.Context, namingService service.DiscoverServer, healthCheckServer *healthcheck.Server,
+func initialize(_ context.Context, cfg *Config, namingService service.DiscoverServer, healthCheckServer *healthcheck.Server,
 	storage store.Store) error {
 
 	authServer, err := auth.GetAuthServer()
@@ -63,7 +63,8 @@ func initialize(_ context.Context, namingService service.DiscoverServer, healthC
 	maintainServer.healthCheckServer = healthCheckServer
 	maintainServer.storage = storage
 
-	err = job.StartMaintianJobs(config.Jobs)
+	maintainJobs := job.NewMaintainJobs()
+	err = maintainJobs.StartMaintianJobs(cfg.Jobs)
 	if err != nil {
 		return err
 	}
