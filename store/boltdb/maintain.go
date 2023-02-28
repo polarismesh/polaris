@@ -132,3 +132,7 @@ func (m *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, er
 	}
 	return count, nil
 }
+
+func (m *maintainStore) GetUnHealthyInstances(timeout time.Duration, limit uint32) ([]string, error) {
+	return nil, nil
+}

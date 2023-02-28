@@ -23,6 +23,7 @@ import (
 	"github.com/robfig/cron/v3"
 
 	commonlog "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/store"
 )
 
 var log = commonlog.GetScopeOrDefaultByName(commonlog.DefaultLoggerName)
@@ -35,10 +36,10 @@ type MaintainJobs struct {
 }
 
 // NewMaintainJobs
-func NewMaintainJobs() *MaintainJobs {
+func NewMaintainJobs(storage store.Store) *MaintainJobs {
 	return &MaintainJobs{
 		jobs: map[string]maintainJob{
-			"DeleteUnHealthyInstance": &deleteUnHealthyInstanceJob{},
+			"DeleteUnHealthyInstance": &deleteUnHealthyInstanceJob{storage: storage},
 		},
 		startedJobs: map[string]maintainJob{},
 		scheduler:   newCron(),
@@ -56,12 +57,12 @@ func (mj *MaintainJobs) StartMaintianJobs(configs []JobConfig) error {
 		if ok {
 			return fmt.Errorf("[Maintain][Job] job (%s) duplicated", cfg.Name)
 		}
-		err := job.Init(cfg.Option)
+		err := job.init(cfg.Option)
 		if err != nil {
 			log.Errorf("[Maintain][Job] job (%s) fail to init, err: %v", cfg.Name, err)
 			return fmt.Errorf("[Maintain][Job] job (%s) fail to init", cfg.Name)
 		}
-		_, err = mj.scheduler.AddFunc(cfg.CronSpec, job.Execute())
+		_, err = mj.scheduler.AddFunc(cfg.CronSpec, func() { job.execute() })
 		if err != nil {
 			log.Errorf("[Maintain][Job] job (%s) fail to start, err: %v", cfg.Name, err)
 			return fmt.Errorf("[Maintain][Job] job (%s) fail to start", cfg.Name)
@@ -87,6 +88,6 @@ func newCron() *cron.Cron {
 }
 
 type maintainJob interface {
-	Init(cfg map[string]interface{}) error
-	Execute() func()
+	init(cfg map[string]interface{}) error
+	execute()
 }

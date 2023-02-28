@@ -448,3 +448,8 @@ func (m *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, er
 	})
 	return uint32(rows), err
 }
+
+func (m *maintainStore) GetUnHealthyInstances(timeout time.Duration, limit uint32) ([]string, error) {
+	log.Infof("[Store][database] get unhealthy instances which mtime timeout %s (%d)", timeout, limit)
+	return nil, nil
+}

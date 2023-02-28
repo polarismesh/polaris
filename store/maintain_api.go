@@ -17,10 +17,15 @@
 
 package store
 
-import "github.com/polarismesh/polaris/common/model"
+import (
+	"time"
+
+	"github.com/polarismesh/polaris/common/model"
+)
 
 const (
-	ELECTION_KEY_SELF_SERVICE_CHECKER = "polaris.checker"
+	ELECTION_KEY_SELF_SERVICE_CHECKER                   = "polaris.checker"
+	ELECTION_KEY_MAINTAIN_JOB_DELETE_UNHEALTHY_INSTANCE = "MaintainJob.DeleteUnHealthyInstance"
 )
 
 type MaintainStore interface {
@@ -38,6 +43,9 @@ type MaintainStore interface {
 
 	// BatchCleanDeletedInstances batch clean soft deleted instances
 	BatchCleanDeletedInstances(batchSize uint32) (uint32, error)
+
+	// GetUnHealthyInstances get unhealty instances which mtime time out
+	GetUnHealthyInstances(timeout time.Duration, limit uint32) ([]string, error)
 }
 
 // LeaderChangeEvent

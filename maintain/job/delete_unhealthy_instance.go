@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/mitchellh/mapstructure"
+	"github.com/polarismesh/polaris/store"
 )
 
 type deleteUnHealthyInstanceJobConfig struct {
@@ -28,10 +29,11 @@ type deleteUnHealthyInstanceJobConfig struct {
 }
 
 type deleteUnHealthyInstanceJob struct {
-	cfg *deleteUnHealthyInstanceJobConfig
+	cfg     *deleteUnHealthyInstanceJobConfig
+	storage store.Store
 }
 
-func (job *deleteUnHealthyInstanceJob) Init(raw map[string]interface{}) error {
+func (job *deleteUnHealthyInstanceJob) init(raw map[string]interface{}) error {
 	cfg := &deleteUnHealthyInstanceJobConfig{}
 	decodeConfig := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
@@ -42,19 +44,28 @@ func (job *deleteUnHealthyInstanceJob) Init(raw map[string]interface{}) error {
 		log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] new config decoder err: %v", err)
 		return err
 	}
-
 	err = decoder.Decode(raw)
 	if err != nil {
 		log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] parse config err: %v", err)
 		return err
 	}
-
 	job.cfg = cfg
+
+	err = job.storage.StartLeaderElection(store.ELECTION_KEY_MAINTAIN_JOB_DELETE_UNHEALTHY_INSTANCE)
+	if err != nil {
+		log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] start leader election err: %v", err)
+		return err
+	}
+
 	return nil
 }
 
-// Execute
-func (job *deleteUnHealthyInstanceJob) Execute() func() {
-	return func() {
+func (job *deleteUnHealthyInstanceJob) execute() {
+	if !job.storage.IsLeader(store.ELECTION_KEY_MAINTAIN_JOB_DELETE_UNHEALTHY_INSTANCE) {
+		log.Info("[Maintain][Job][DeleteUnHealthyInstance] I am follower")
+		return
 	}
+
+	log.Info("[Maintain][Job][DeleteUnHealthyInstance] I am leader, execute job")
+
 }
