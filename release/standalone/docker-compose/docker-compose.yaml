@@ -97,7 +97,7 @@ services:
     hostname: mysql
     platform: linux/amd64
     restart: always
-    command: mysqld --optimizer-trace-max-mem-size=102400
+    command: mysqld --optimizer-trace-max-mem-size=102400 --default-authentication-plugin=mysql_native_password
     environment:
       - TZ=Asia/Shanghai
       - LANG=zh_CN.utf8
