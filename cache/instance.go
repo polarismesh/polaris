@@ -184,6 +184,12 @@ func (ic *instanceCache) realUpdate() (map[string]time.Time, int64, error) {
 			zap.Int("update", update), zap.Int("delete", del),
 			zap.Time("last", ic.LastMtime()), zap.Duration("used", time.Since(start)))
 	}
+	if log.DebugEnabled() {
+		log.Debug("[Cache][Instance] get more instances",
+			zap.Any("instances", instances),
+			zap.Int("update", update), zap.Int("delete", del),
+			zap.Time("last", ic.LastMtime()), zap.Duration("used", time.Since(start)))
+	}
 	return lastMimes, int64(len(instances)), err
 }
 
