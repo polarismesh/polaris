@@ -107,7 +107,10 @@ func (r *MemoryHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 		if curTimeSec-lastHeartbeatTime >= int64(request.ExpireDurationSec) {
 			// 心跳超时
 			checkResp.Healthy = false
-			_ = r.Delete(request.InstanceId)
+			// 支持查询不健康实例的最后一次上报心跳时间，直到10倍超时才真正删除最后一次心跳时间
+			if curTimeSec-lastHeartbeatTime >= 10*int64(request.ExpireDurationSec) {
+				_ = r.Delete(request.InstanceId)
+			}
 
 			if request.Healthy {
 				log.Infof("[Health Check][MemoryCheck]health check expired, "+

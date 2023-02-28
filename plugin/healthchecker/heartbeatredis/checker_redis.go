@@ -244,7 +244,8 @@ func (r *RedisHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckR
 		} else {
 			checkResp.StayUnchanged = true
 		}
-		if queryResp.Exists {
+		// 支持查询不健康实例的最后一次上报心跳时间，直到10倍超时才真正删除最后一次心跳时间
+		if queryResp.Exists && curTimeSec-lastHeartbeatTime >= 10*int64(request.ExpireDurationSec) {
 			err := r.Delete(request.InstanceId)
 			if err != nil {
 				log.Errorf("[Health Check][RedisCheck]addr is %s:%d, id is %s, delete redis err is %s",
