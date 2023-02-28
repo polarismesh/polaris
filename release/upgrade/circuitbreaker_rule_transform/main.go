@@ -34,13 +34,19 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-var dbAddr string
+const (
+	EnvDbAddr = "env_db_addr"
+	EnvDbName = "env_db_name"
+	EnvDbUser = "env_db_user"
+	EnvDbPwd  = "env_db_pwd"
+)
 
-var dbName string
-
-var dbUser string
-
-var dbPwd string
+var (
+	dbAddr string
+	dbName string
+	dbUser string
+	dbPwd  string
+)
 
 func init() {
 	flag.StringVar(&dbAddr, "db_addr", "", "Input database address")
@@ -122,6 +128,7 @@ func queryOldRule(db *sql.DB) ([]*CircuitBreakerData, error) {
 		}
 		breaker.CreateTime = time.Unix(ctime, 0)
 		breaker.ModifyTime = time.Unix(mtime, 0)
+		log.Printf("old circuitbreaker rule query is %v", breaker)
 		out = append(out, &breaker)
 	}
 
@@ -277,6 +284,7 @@ func oldCbRuleToNewCbRule(cbRule *CircuitBreakerData) ([]*NewCircuitBreakerData,
 				Revision:     NewUUID(),
 				Enable:       true,
 			}
+			log.Printf("converted new inbound circuitbreaker rule query is %v", *newRuleData)
 			ret = append(ret, newRuleData)
 		}
 	}
@@ -306,6 +314,7 @@ func oldCbRuleToNewCbRule(cbRule *CircuitBreakerData) ([]*NewCircuitBreakerData,
 				Revision:     NewUUID(),
 				Enable:       true,
 			}
+			log.Printf("converted new outbound circuitbreaker rule query is %v", *newRuleData)
 			ret = append(ret, newRuleData)
 		}
 	}
@@ -320,11 +329,24 @@ func NewUUID() string {
 
 func main() {
 	flag.Parse()
+	if len(dbAddr) == 0 {
+		dbAddr = os.Getenv(EnvDbAddr)
+	}
+	if len(dbName) == 0 {
+		dbName = os.Getenv(EnvDbName)
+	}
+	if len(dbUser) == 0 {
+		dbUser = os.Getenv(EnvDbUser)
+	}
+	if len(dbPwd) == 0 {
+		dbPwd = os.Getenv(EnvDbPwd)
+	}
 	if len(dbAddr) == 0 || len(dbName) == 0 || len(dbUser) == 0 || len(dbPwd) == 0 {
 		log.Printf("invalid arguments: dbAddr %s, dbName %s, dbUser %s, dbPwd %s", dbAddr, dbName, dbUser, dbPwd)
 		os.Exit(1)
 	}
 	dns := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPwd, dbAddr, dbName)
+	log.Printf("start to connection database %s", dns)
 	db, err := sql.Open("mysql", dns)
 	if err != nil {
 		log.Printf("sql open err: %s", err.Error())
@@ -350,7 +372,7 @@ func main() {
 	log.Printf("converted new circuitbreaker rule count %d", len(newRules))
 
 	for _, newRule := range newRules {
-		log.Printf("start to process rule %s, name %s", newRule.ID, newRule.Name)
+		log.Printf("start to insert rule %s into database, name %s", newRule.ID, newRule.Name)
 		err = createCircuitBreakerRule(db, newRule)
 		if nil != err {
 			log.Printf("fail to process rule %s, name %s, err: %v", newRule.ID, newRule.Name, err)
