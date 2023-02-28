@@ -262,6 +262,9 @@ func (s *Server) GetLastHeartbeat(req *apiservice.Instance) *apiservice.Response
 	req.Port = insCache.Proto.Port
 	req.VpcId = insCache.Proto.GetVpcId()
 	req.HealthCheck = insCache.Proto.GetHealthCheck()
+	if req.Metadata == nil {
+		req.Metadata = make(map[string]string, 3)
+	}
 	req.Metadata["last-heartbeat-timestamp"] = strconv.Itoa(int(queryResp.LastHeartbeatSec))
 	req.Metadata["last-heartbeat-time"] = commontime.Time2String(time.Unix(queryResp.LastHeartbeatSec, 0))
 	req.Metadata["system-time"] = commontime.Time2String(time.Unix(currentTimeSec(), 0))
