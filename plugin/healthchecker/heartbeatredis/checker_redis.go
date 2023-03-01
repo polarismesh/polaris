@@ -244,14 +244,6 @@ func (r *RedisHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckR
 		} else {
 			checkResp.StayUnchanged = true
 		}
-		if queryResp.Exists {
-			err := r.Delete(request.InstanceId)
-			if err != nil {
-				log.Errorf("[Health Check][RedisCheck]addr is %s:%d, id is %s, delete redis err is %s",
-					request.Host, request.Port, request.InstanceId, err)
-				return nil, err
-			}
-		}
 	} else {
 		// 心跳恢复
 		checkResp.Healthy = true
