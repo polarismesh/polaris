@@ -48,6 +48,7 @@ var (
 // Server health checks the main server
 type Server struct {
 	storage        store.Store
+	defaultChecker plugin.HealthChecker
 	checkers       map[int32]plugin.HealthChecker
 	cacheProvider  *CacheProvider
 	timeAdjuster   *TimeAdjuster
@@ -97,9 +98,13 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 			if exist {
 				return fmt.Errorf("[healthcheck]duplicate healthchecker %s, checkType %d", entry.Name, checker.Type())
 			}
-
 			server.checkers[int32(checker.Type())] = checker
+			if nil == server.defaultChecker {
+				server.defaultChecker = checker
+			}
 		}
+	} else {
+		return fmt.Errorf("[healthcheck]no checker config")
 	}
 	var err error
 	if server.storage, err = store.GetStore(); err != nil {
@@ -116,7 +121,7 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 	server.timeAdjuster = newTimeAdjuster(ctx, server.storage)
 	server.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
 		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
-	server.dispatcher = newDispatcher(ctx, server)
+	server.dispatcher = newDispatcher(ctx, server, hcOpt.OmitReplicated)
 
 	server.discoverCh = make(chan eventWrapper, 32)
 	go server.receiveEventAndPush()
