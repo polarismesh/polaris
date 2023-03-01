@@ -51,8 +51,8 @@ func GetHistory() History {
 			entries = append(entries, config.History.Entries...)
 		} else {
 			entries = append(entries, ConfigEntry{
-				Name:   config.DiscoverEvent.Name,
-				Option: config.DiscoverEvent.Option,
+				Name:   config.History.Name,
+				Option: config.History.Option,
 			})
 		}
 
