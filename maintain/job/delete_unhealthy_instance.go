@@ -18,10 +18,19 @@
 package job
 
 import (
+	"context"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/store"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+)
+
+const (
+	defaultQueryLimit = 100
 )
 
 type deleteUnHealthyInstanceJobConfig struct {
@@ -29,8 +38,9 @@ type deleteUnHealthyInstanceJobConfig struct {
 }
 
 type deleteUnHealthyInstanceJob struct {
-	cfg     *deleteUnHealthyInstanceJobConfig
-	storage store.Store
+	cfg          *deleteUnHealthyInstanceJobConfig
+	namingServer service.DiscoverServer
+	storage      store.Store
 }
 
 func (job *deleteUnHealthyInstanceJob) init(raw map[string]interface{}) error {
@@ -66,6 +76,34 @@ func (job *deleteUnHealthyInstanceJob) execute() {
 		return
 	}
 
-	log.Info("[Maintain][Job][DeleteUnHealthyInstance] I am leader, execute job")
+	log.Info("[Maintain][Job][DeleteUnHealthyInstance] I am leader, job start")
+	for {
+		instanceIds, err := job.storage.GetUnHealthyInstances(job.cfg.instanceDeleteTimeout, defaultQueryLimit)
+		if err != nil {
+			log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] get unhealthy instances, err: %v", err)
+			break
+		}
+		if len(instanceIds) == 0 {
+			break
+		}
+
+		var req []*apiservice.Instance
+		for _, id := range instanceIds {
+			req = append(req, &apiservice.Instance{Id: utils.NewStringValue(id)})
+		}
+
+		resp := job.namingServer.DeleteInstances(context.Background(), req)
+		if api.CalcCode(resp) == 200 {
+			log.Infof("[Maintain][Job][DeleteUnHealthyInstance] delete instance count %d, list: %v", len(instanceIds), instanceIds)
+		} else {
+			log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] delete instance list: %v, err: %d %s", instanceIds, resp.Code.GetValue(), resp.Info.GetValue())
+			break
+		}
+
+		if len(instanceIds) < defaultQueryLimit {
+			break
+		}
+	}
+	log.Info("[Maintain][Job][DeleteUnHealthyInstance] I am leader, job end")
 
 }

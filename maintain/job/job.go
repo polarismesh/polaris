@@ -23,6 +23,7 @@ import (
 	"github.com/robfig/cron/v3"
 
 	commonlog "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -36,10 +37,10 @@ type MaintainJobs struct {
 }
 
 // NewMaintainJobs
-func NewMaintainJobs(storage store.Store) *MaintainJobs {
+func NewMaintainJobs(namingServer service.DiscoverServer, storage store.Store) *MaintainJobs {
 	return &MaintainJobs{
 		jobs: map[string]maintainJob{
-			"DeleteUnHealthyInstance": &deleteUnHealthyInstanceJob{storage: storage},
+			"DeleteUnHealthyInstance": &deleteUnHealthyInstanceJob{namingServer: namingServer, storage: storage},
 		},
 		startedJobs: map[string]maintainJob{},
 		scheduler:   newCron(),

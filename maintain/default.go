@@ -63,7 +63,7 @@ func initialize(_ context.Context, cfg *Config, namingService service.DiscoverSe
 	maintainServer.healthCheckServer = healthCheckServer
 	maintainServer.storage = storage
 
-	maintainJobs := job.NewMaintainJobs(storage)
+	maintainJobs := job.NewMaintainJobs(namingService, storage)
 	err = maintainJobs.StartMaintianJobs(cfg.Jobs)
 	if err != nil {
 		return err
