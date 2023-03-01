@@ -171,11 +171,18 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 
 	if replicatePeersValue, ok := option[optionPeerNodesToReplicate]; ok {
 		replicatePeerObjs := replicatePeersValue.([]interface{})
+		replicatePeers := make([]string, 0, len(replicatePeerObjs))
 		if len(replicatePeerObjs) > 0 {
-			replicatePeers := make([]string, 0, len(replicatePeerObjs))
 			for _, replicatePeerObj := range replicatePeerObjs {
+				replicatePeerStr := replicatePeerObj.(string)
+				if replicatePeerStr == utils.LocalHost {
+					// If the url represents this host, do not replicate to yourself.
+					continue
+				}
 				replicatePeers = append(replicatePeers, replicatePeerObj.(string))
 			}
+		}
+		if len(replicatePeers) > 0 {
 			h.replicateWorker = NewReplicateWorker(ctx, replicatePeers)
 			if err := eventhub.Subscribe(eventhub.InstanceEventTopic, "eureka-replication", h.handleInstanceEvent); nil != err {
 				return err

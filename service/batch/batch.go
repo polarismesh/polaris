@@ -152,7 +152,7 @@ func (bc *Controller) AsyncCreateInstance(svcId string, instance *apiservice.Ins
 }
 
 // AsyncDeleteInstance 异步合并反注册
-func (bc *Controller) AsyncDeleteInstance(instance *apiservice.Instance) *InstanceFuture {
+func (bc *Controller) AsyncDeleteInstance(instance *apiservice.Instance, needWait bool) *InstanceFuture {
 	future := &InstanceFuture{
 		request:  instance,
 		result:   make(chan error, 1),
