@@ -20,9 +20,10 @@ package local
 import (
 	"fmt"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 func init() {
