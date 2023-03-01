@@ -50,7 +50,10 @@ func GetHistory() History {
 		if len(config.History.Entries) != 0 {
 			entries = append(entries, config.History.Entries...)
 		} else {
-			entries = append(entries, config.History.ConfigEntry)
+			entries = append(entries, ConfigEntry{
+				Name:   config.DiscoverEvent.Name,
+				Option: config.DiscoverEvent.Option,
+			})
 		}
 
 		compositeHistory = &CompositeHistory{

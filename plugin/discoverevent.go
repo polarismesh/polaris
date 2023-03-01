@@ -50,7 +50,10 @@ func GetDiscoverEvent() DiscoverChannel {
 		if len(config.DiscoverEvent.Entries) != 0 {
 			entries = append(entries, config.DiscoverEvent.Entries...)
 		} else {
-			entries = append(entries, config.DiscoverEvent.ConfigEntry)
+			entries = append(entries, ConfigEntry{
+				Name:   config.DiscoverEvent.Name,
+				Option: config.DiscoverEvent.Option,
+			})
 		}
 
 		compositeDiscoverChannel = newCompositeDiscoverChannel(entries)
