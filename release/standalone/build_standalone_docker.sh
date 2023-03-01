@@ -33,12 +33,12 @@ done
 
 platforms=${platforms::-1}
 
-cp ./linux/install.sh ./install.sh
-cp ./linux/uninstall.sh ./uninstall.sh
-cp ./prometheus-help.sh ./prometheus-help.sh
-cp ./port.properties ./port.properties
-cp ./docker/Dockerfile ./Dockerfile
-cp ./docker/install-pushgateway.sh ./install-pushgateway.sh
+cp ../linux/install.sh ./install.sh
+cp ../linux/uninstall.sh ./uninstall.sh
+cp ../prometheus-help.sh ./prometheus-help.sh
+cp ../port.properties ./port.properties
+cp ../docker/Dockerfile ./Dockerfile
+cp ../docker/install-pushgateway.sh ./install-pushgateway.sh
 
 echo "#!/bin/bash" >"run.sh"
 echo "" >>"run.sh"
