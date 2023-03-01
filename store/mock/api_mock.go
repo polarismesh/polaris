@@ -1790,6 +1790,21 @@ func (mr *MockStoreMockRecorder) GetSystemServices() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSystemServices", reflect.TypeOf((*MockStore)(nil).GetSystemServices))
 }
 
+// GetUnHealthyInstances mocks base method.
+func (m *MockStore) GetUnHealthyInstances(timeout time.Duration, limit uint32) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUnHealthyInstances", timeout, limit)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUnHealthyInstances indicates an expected call of GetUnHealthyInstances.
+func (mr *MockStoreMockRecorder) GetUnHealthyInstances(timeout, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnHealthyInstances", reflect.TypeOf((*MockStore)(nil).GetUnHealthyInstances), timeout, limit)
+}
+
 // GetUnixSecond mocks base method.
 func (m *MockStore) GetUnixSecond() (int64, error) {
 	m.ctrl.T.Helper()

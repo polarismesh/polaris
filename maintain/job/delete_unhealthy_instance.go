@@ -22,15 +22,12 @@ import (
 	"time"
 
 	"github.com/mitchellh/mapstructure"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/store"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-)
-
-const (
-	defaultQueryLimit = 100
 )
 
 type deleteUnHealthyInstanceJobConfig struct {
@@ -77,8 +74,9 @@ func (job *deleteUnHealthyInstanceJob) execute() {
 	}
 
 	log.Info("[Maintain][Job][DeleteUnHealthyInstance] I am leader, job start")
+	batchSize := uint32(100)
 	for {
-		instanceIds, err := job.storage.GetUnHealthyInstances(job.cfg.instanceDeleteTimeout, defaultQueryLimit)
+		instanceIds, err := job.storage.GetUnHealthyInstances(job.cfg.instanceDeleteTimeout, batchSize)
 		if err != nil {
 			log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] get unhealthy instances, err: %v", err)
 			break
@@ -97,10 +95,6 @@ func (job *deleteUnHealthyInstanceJob) execute() {
 			log.Infof("[Maintain][Job][DeleteUnHealthyInstance] delete instance count %d, list: %v", len(instanceIds), instanceIds)
 		} else {
 			log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] delete instance list: %v, err: %d %s", instanceIds, resp.Code.GetValue(), resp.Info.GetValue())
-			break
-		}
-
-		if len(instanceIds) < defaultQueryLimit {
 			break
 		}
 	}

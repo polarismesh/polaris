@@ -24,8 +24,10 @@ import (
 )
 
 const (
-	ELECTION_KEY_SELF_SERVICE_CHECKER                   = "polaris.checker"
-	ELECTION_KEY_MAINTAIN_JOB_DELETE_UNHEALTHY_INSTANCE = "MaintainJob.DeleteUnHealthyInstance"
+	ELECTION_KEY_SELF_SERVICE_CHECKER                          = "polaris.checker"
+	ELECTION_KEY_MAINTAIN_JOB_DELETE_UNHEALTHY_INSTANCE        = "MaintainJob.DeleteUnHealthyInstance"
+	ELECTION_KEY_MAINTAIN_JOB_DELETE_EMPTY_AUTOCREATED_SERVICE = "MaintainJob.DeleteEmptyAutoCreatedService"
+	ELECTION_KEY_MAINTAIN_JOB_CLEAN_DELETED_INSTANCE           = "MaintainJob.CleanDeletedInstance"
 )
 
 type MaintainStore interface {

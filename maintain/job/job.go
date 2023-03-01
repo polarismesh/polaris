@@ -40,7 +40,9 @@ type MaintainJobs struct {
 func NewMaintainJobs(namingServer service.DiscoverServer, storage store.Store) *MaintainJobs {
 	return &MaintainJobs{
 		jobs: map[string]maintainJob{
-			"DeleteUnHealthyInstance": &deleteUnHealthyInstanceJob{namingServer: namingServer, storage: storage},
+			"DeleteUnHealthyInstance":       &deleteUnHealthyInstanceJob{namingServer: namingServer, storage: storage},
+			"DeleteEmptyAutoCreatedService": &deleteEmptyAutoCreatedServiceJob{namingServer: namingServer, storage: storage},
+			"CleanDeletedInstances":         &cleanDeletedInstancesJob{storage: storage},
 		},
 		startedJobs: map[string]maintainJob{},
 		scheduler:   newCron(),
