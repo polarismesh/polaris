@@ -18,6 +18,7 @@
 package service
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,14 +39,16 @@ func TestPreProcess(t *testing.T) {
 		}
 		return nil
 	}}
-	event := &model.InstanceEvent{SvcId: svcId}
-	svr.resolveServiceName(event)
-	assert.Equal(t, mockSvc.Namespace, event.Namespace)
-	assert.Equal(t, mockSvc.Name, event.Service)
+	event := model.InstanceEvent{SvcId: svcId}
+	event0bj := svr.PreProcess(context.Background(), event)
+	eventNext := event0bj.(model.InstanceEvent)
+	assert.Equal(t, mockSvc.Namespace, eventNext.Namespace)
+	assert.Equal(t, mockSvc.Name, eventNext.Service)
 
-	event = &model.InstanceEvent{SvcId: "xyz"}
-	svr.resolveServiceName(event)
-	assert.Equal(t, "", event.Namespace)
-	assert.Equal(t, "", event.Service)
+	event = model.InstanceEvent{SvcId: "xyz"}
+	event0bj = svr.PreProcess(context.Background(), event)
+	eventNext = event0bj.(model.InstanceEvent)
+	assert.Equal(t, "", eventNext.Namespace)
+	assert.Equal(t, "", eventNext.Service)
 
 }
