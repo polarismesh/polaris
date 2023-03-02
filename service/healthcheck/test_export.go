@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 
 	"github.com/polarismesh/polaris/plugin"
@@ -74,6 +75,10 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 	testServer.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
 	go testServer.receiveEventAndPush()
 	go testServer.handleInstanceEventWorker()
+
+	if err := eventhub.Subscribe(eventhub.InstanceEventTopic, "instanceHealthChecker",
+		server.handleInstanceEvent); err != nil {
+	}
 
 	finishInit = true
 
