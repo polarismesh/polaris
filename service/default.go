@@ -117,6 +117,17 @@ func initialize(ctx context.Context, namingOpt *Config, opts ...InitOption) erro
 	return nil
 }
 
+type PluginInstanceEventHandler struct {
+	*BaseInstanceEventHandler
+	subscriber plugin.DiscoverChannel
+}
+
+func (p *PluginInstanceEventHandler) OnEvent(ctx context.Context, any2 any) error {
+	e := any2.(model.InstanceEvent)
+	p.subscriber.PublishEvent(e)
+	return nil
+}
+
 // 插件初始化
 func pluginInitialize() {
 	// 获取CMDB插件
@@ -149,12 +160,11 @@ func pluginInitialize() {
 		return
 	}
 
-	if err := eventhub.Subscribe(eventhub.InstanceEventTopic, subscriber.Name(),
-		func(ctx context.Context, i interface{}) error {
-			e := i.(model.InstanceEvent)
-			subscriber.PublishEvent(e)
-			return nil
-		}); err != nil {
+	eventHandler := &PluginInstanceEventHandler{
+		BaseInstanceEventHandler: NewBaseInstanceEventHandler(namingServer),
+		subscriber:               subscriber,
+	}
+	if err := eventhub.Subscribe(eventhub.InstanceEventTopic, subscriber.Name(), eventHandler); err != nil {
 		log.Warnf("register DiscoverEvent into eventhub:%s %v", subscriber.Name(), err)
 	}
 

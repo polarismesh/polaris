@@ -33,7 +33,6 @@ import (
 	"github.com/polarismesh/polaris/apiserver"
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	"github.com/polarismesh/polaris/common/eventhub"
-	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/secure"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -119,8 +118,6 @@ var (
 	CustomEurekaParameters = make(map[string]string)
 )
 
-type ServiceNameResolver func(string) *model.Service
-
 // EurekaServer is the Eureka server
 type EurekaServer struct {
 	server                 *http.Server
@@ -143,7 +140,7 @@ type EurekaServer struct {
 	deltaExpireInterval    time.Duration
 	enableSelfPreservation bool
 	replicateWorker        *ReplicateWorker
-	svcResolver            ServiceNameResolver
+	eventHandlerHandler    *EurekaInstanceEventHandler
 }
 
 // GetPort 获取端口
@@ -188,7 +185,10 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 		}
 		if len(replicatePeers) > 0 {
 			h.replicateWorker = NewReplicateWorker(ctx, replicatePeers)
-			if err := eventhub.Subscribe(eventhub.InstanceEventTopic, "eureka-replication", h.handleInstanceEvent); nil != err {
+			h.eventHandlerHandler = &EurekaInstanceEventHandler{
+				BaseInstanceEventHandler: service.NewBaseInstanceEventHandler(h.namingServer), svr: h}
+			if err := eventhub.Subscribe(
+				eventhub.InstanceEventTopic, "eureka-replication", h.eventHandlerHandler); nil != err {
 				return err
 			}
 		}
@@ -246,8 +246,6 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 			CustomEurekaParameters[k.(string)] = fmt.Sprintf("%v", v)
 		}
 	}
-
-	h.svcResolver = h.resolveService
 
 	log.Infof("[EUREKA] custom eureka parameters: %v", CustomEurekaParameters)
 	return nil

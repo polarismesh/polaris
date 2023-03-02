@@ -124,7 +124,7 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 
 	leaderChangeEventHandler := newLeaderChangeEventHandler(server.cacheProvider, hcOpt.MinCheckInterval)
 	if err = eventhub.Subscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker",
-		leaderChangeEventHandler.handle); err != nil {
+		leaderChangeEventHandler); err != nil {
 		return err
 	}
 	if err = server.storage.StartLeaderElection(store.ELECTION_KEY_SELF_SERVICE_CHECKER); err != nil {

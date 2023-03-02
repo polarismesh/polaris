@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package eurekaserver
+package service
 
 import (
 	"testing"
@@ -25,14 +25,14 @@ import (
 	"github.com/polarismesh/polaris/common/model"
 )
 
-func TestResolveServiceName(t *testing.T) {
+func TestPreProcess(t *testing.T) {
 	svcId := "1234"
 	mockSvc := &model.Service{
 		ID:        svcId,
 		Namespace: DefaultNamespace,
 		Name:      "testSvc",
 	}
-	svr := &EurekaServer{svcResolver: func(s string) *model.Service {
+	svr := &BaseInstanceEventHandler{svcResolver: func(s string) *model.Service {
 		if s == svcId {
 			return mockSvc
 		}
