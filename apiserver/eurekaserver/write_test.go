@@ -142,7 +142,11 @@ func TestEurekaServer_renew(t *testing.T) {
 		svr := &EurekaServer{
 			healthCheckServer: eurekaSuit.healthSvr,
 		}
-		code := svr.renew(context.Background(), "", utils.NewUUID(), false)
+		var code uint32
+		for i := 0; i < 5; i++ {
+			code = svr.renew(context.Background(), "", utils.NewUUID(), false)
+			time.Sleep(time.Second)
+		}
 		assert.Equalf(t, api.NotFoundResource, code, "code need notfound, actual : %d", code)
 	})
 
