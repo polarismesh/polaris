@@ -41,6 +41,8 @@ const (
 	Sep = ":"
 	// Servers key to manage hb servers
 	Servers = "servers"
+	// CountSep separator to divide server and count
+	CountSep = "|"
 )
 
 // RedisHealthChecker 心跳检测redis
@@ -102,6 +104,7 @@ func (r *RedisHealthChecker) Type() plugin.HealthCheckType {
 type HeathCheckRecord struct {
 	LocalHost  string
 	CurTimeSec int64
+	Count      int64
 }
 
 // IsEmpty 是否空对象
@@ -112,24 +115,33 @@ func (h *HeathCheckRecord) IsEmpty() bool {
 // Serialize 序列化成字符串
 func (h *HeathCheckRecord) Serialize(compatible bool) string {
 	if compatible {
-		return fmt.Sprintf("1%s%d%s%s", Sep, h.CurTimeSec, Sep, h.LocalHost)
+		return fmt.Sprintf("1%s%d%s%s%s%d", Sep, h.CurTimeSec, Sep, h.LocalHost, CountSep, h.Count)
 	}
-	return fmt.Sprintf("%d%s%s", h.CurTimeSec, Sep, h.LocalHost)
+	return fmt.Sprintf("%d%s%s%s%d", h.CurTimeSec, Sep, h.LocalHost, CountSep, h.Count)
 }
 
-func parseHeartbeatValue(value string, startIdx int) (host string, curTimeSec int64, err error) {
+func parseHeartbeatValue(value string, startIdx int) (host string, curTimeSec int64, count int64, err error) {
 	tokens := strings.Split(value, Sep)
-	if len(tokens) != startIdx+2 {
-		return "", 0, fmt.Errorf("invalid redis value %s", value)
+	if len(tokens) < startIdx+2 {
+		return "", 0, 0, fmt.Errorf("invalid redis value %s", value)
 	}
 	lastHeartbeatTimeStr := tokens[startIdx]
 	lastHeartbeatTime, err := strconv.ParseInt(lastHeartbeatTimeStr, 10, 64)
 	if err != nil {
-		return "", 0, err
+		return "", 0, 0, err
 	}
 	host = tokens[startIdx+1]
 	curTimeSec = lastHeartbeatTime
-	return host, curTimeSec, nil
+	countSepIndex := strings.LastIndex(host, CountSep)
+	var countValue int64
+	if countSepIndex > 0 && countSepIndex < len(host) {
+		countStr := host[countSepIndex+1:]
+		countValue, err = strconv.ParseInt(countStr, 10, 64)
+		if err != nil {
+			return "", 0, 0, err
+		}
+	}
+	return host, curTimeSec, countValue, nil
 }
 
 // Deserialize 反序列为对象
@@ -139,9 +151,9 @@ func (h *HeathCheckRecord) Deserialize(value string, compatible bool) error {
 	}
 	var err error
 	if compatible {
-		h.LocalHost, h.CurTimeSec, err = parseHeartbeatValue(value, 1)
+		h.LocalHost, h.CurTimeSec, h.Count, err = parseHeartbeatValue(value, 1)
 	} else {
-		h.LocalHost, h.CurTimeSec, err = parseHeartbeatValue(value, 0)
+		h.LocalHost, h.CurTimeSec, h.Count, err = parseHeartbeatValue(value, 0)
 	}
 	return err
 }
@@ -156,6 +168,7 @@ func (r *RedisHealthChecker) Report(request *plugin.ReportRequest) error {
 	value := &HeathCheckRecord{
 		LocalHost:  request.LocalHost,
 		CurTimeSec: request.CurTimeSec,
+		Count:      request.Count,
 	}
 
 	log.Debugf("[Health Check][RedisCheck]redis set key is %s, value is %s", request.InstanceId, *value)
@@ -191,6 +204,7 @@ func (r *RedisHealthChecker) Query(request *plugin.QueryRequest) (*plugin.QueryR
 	}
 	queryResp.Server = heathCheckRecord.LocalHost
 	queryResp.LastHeartbeatSec = heathCheckRecord.CurTimeSec
+	queryResp.Count = heathCheckRecord.Count
 	return queryResp, nil
 }
 
