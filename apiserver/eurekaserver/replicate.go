@@ -191,9 +191,35 @@ func (h *EurekaServer) shouldReplicate(e model.InstanceEvent) bool {
 	return true
 }
 
+const maxRetryGetServiceName = 5
+
+func (h *EurekaServer) resolveService(svcId string) *model.Service {
+	return h.namingServer.Cache().Service().GetServiceByID(svcId)
+}
+
+func (h *EurekaServer) resolveServiceName(event *model.InstanceEvent) {
+	if len(event.Service) == 0 && len(event.SvcId) > 0 {
+		for i := 0; i < maxRetryGetServiceName; i++ {
+			svcObject := h.svcResolver(event.SvcId)
+			if nil == svcObject {
+				time.Sleep(500 * time.Millisecond)
+				continue
+			}
+			event.Service = svcObject.Name
+			event.Namespace = svcObject.Namespace
+			break
+		}
+	}
+}
+
 func (h *EurekaServer) handleInstanceEvent(ctx context.Context, i interface{}) error {
 	e := i.(model.InstanceEvent)
 	if !h.shouldReplicate(e) {
+		return nil
+	}
+	h.resolveServiceName(&e)
+	if len(e.Service) == 0 {
+		log.Warnf("[EUREKA]fail to replicate, service name is empty for event %s", e)
 		return nil
 	}
 	appName := formatReadName(e.Service)

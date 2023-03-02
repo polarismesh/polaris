@@ -53,6 +53,7 @@ const CtxEventKeyMetadata = "ctx_event_metadata"
 // InstanceEvent 服务实例事件
 type InstanceEvent struct {
 	Id         string
+	SvcId      string
 	Namespace  string
 	Service    string
 	Instance   *apiservice.Instance
@@ -75,6 +76,6 @@ func (i *InstanceEvent) String() string {
 		return "nil"
 	}
 	hostPortStr := fmt.Sprintf("%s:%d", i.Instance.GetHost().GetValue(), i.Instance.GetPort().GetValue())
-	return fmt.Sprintf("InstanceEvent(id=%s, namespace=%s, service=%s, type=%v, instance=%s, healthy=%v)",
-		i.Id, i.Namespace, i.Service, i.EType, hostPortStr, i.Instance.GetHealthy().GetValue())
+	return fmt.Sprintf("InstanceEvent(id=%s, namespace=%s, svcId=%s, service=%s, type=%v, instance=%s, healthy=%v)",
+		i.Id, i.Namespace, i.SvcId, i.Service, i.EType, hostPortStr, i.Instance.GetHealthy().GetValue())
 }

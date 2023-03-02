@@ -74,9 +74,6 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
 	testServer.dispatcher = newDispatcher(ctx, testServer, hcOpt.OmitReplicated)
 
-	testServer.discoverCh = make(chan eventWrapper, 32)
-	go testServer.receiveEventAndPush()
-
 	finishInit = true
 
 	return testServer, nil
