@@ -307,7 +307,7 @@ func (s *Server) handleInstanceEventWorker() {
 					break
 				}
 				log.Infof("[Health Check]delete instance heart beat information, id is %s", event.Id)
-				checker.Delete(event.Id)
+				_ = checker.Delete(event.Id)
 			}
 		}
 	}

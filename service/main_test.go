@@ -147,6 +147,12 @@ func respSuccess(resp api.ResponseMessage) bool {
 	return ret
 }
 
+func respNotFound(resp api.ResponseMessage) bool {
+	res := apimodel.Code(resp.GetCode().GetValue()) == apimodel.Code_NotFoundResource
+
+	return res
+}
+
 type options func(cfg *TestConfig)
 
 // 内部初始化函数
@@ -621,6 +627,28 @@ func (d *DiscoverTestSuit) createCommonService(t *testing.T, id int) (*apiservic
 
 	return serviceReq, resp.Responses[0].GetService()
 }
+
+func (d *DiscoverTestSuit) HeartBeat(t *testing.T, service *apiservice.Service, instanceID string) {
+	req := &apiservice.Instance{
+		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
+		Id:           utils.NewStringValue(instanceID),
+	}
+
+	resp := d.healthCheckServer.Report(d.defaultCtx, req)
+	if !respSuccess(resp) {
+		t.Fatalf("error: %s", resp.GetInfo().GetValue())
+	}
+}
+
+func (d *DiscoverTestSuit) GetLastHeartBeat(t *testing.T, service *apiservice.Service, instanceID string) *apiservice.Response {
+	req := &apiservice.Instance{
+		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
+		Id:           utils.NewStringValue(instanceID),
+	}
+
+	return d.healthCheckServer.GetLastHeartbeat(req)
+}
+
 
 // 生成服务的主要数据
 func genMainService(id int) *apiservice.Service {

@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/polarismesh/polaris/common/model"
 
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service/batch"
@@ -70,7 +71,9 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 	testServer.dispatcher = newDispatcher(ctx, testServer)
 
 	testServer.discoverCh = make(chan eventWrapper, 32)
+	testServer.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
 	go testServer.receiveEventAndPush()
+	go testServer.handleInstanceEventWorker()
 
 	finishInit = true
 
