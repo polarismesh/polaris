@@ -58,23 +58,12 @@ func (job *deleteUnHealthyInstanceJob) init(raw map[string]interface{}) error {
 	}
 	job.cfg = cfg
 
-	err = job.storage.StartLeaderElection(store.ELECTION_KEY_MAINTAIN_JOB_DELETE_UNHEALTHY_INSTANCE)
-	if err != nil {
-		log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] start leader election err: %v", err)
-		return err
-	}
-
 	return nil
 }
 
 func (job *deleteUnHealthyInstanceJob) execute() {
-	if !job.storage.IsLeader(store.ELECTION_KEY_MAINTAIN_JOB_DELETE_UNHEALTHY_INSTANCE) {
-		log.Info("[Maintain][Job][DeleteUnHealthyInstance] I am follower")
-		return
-	}
-
-	log.Info("[Maintain][Job][DeleteUnHealthyInstance] I am leader, job start")
 	batchSize := uint32(100)
+	var count int = 0
 	for {
 		instanceIds, err := job.storage.GetUnHealthyInstances(job.cfg.instanceDeleteTimeout, batchSize)
 		if err != nil {
@@ -92,12 +81,16 @@ func (job *deleteUnHealthyInstanceJob) execute() {
 
 		resp := job.namingServer.DeleteInstances(context.Background(), req)
 		if api.CalcCode(resp) == 200 {
-			log.Infof("[Maintain][Job][DeleteUnHealthyInstance] delete instance count %d, list: %v", len(instanceIds), instanceIds)
+			log.Infof("[Maintain][Job][DeleteUnHealthyInstance] delete instance count %d, list: %v",
+				len(instanceIds), instanceIds)
 		} else {
-			log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] delete instance list: %v, err: %d %s", instanceIds, resp.Code.GetValue(), resp.Info.GetValue())
+			log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] delete instance list: %v, err: %d %s",
+				instanceIds, resp.Code.GetValue(), resp.Info.GetValue())
 			break
 		}
+		count += len(instanceIds)
 	}
-	log.Info("[Maintain][Job][DeleteUnHealthyInstance] I am leader, job end")
+
+	log.Infof("[Maintain][Job][DeleteUnHealthyInstance] delete unhealthy instance count %d", count)
 
 }

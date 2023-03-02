@@ -26,22 +26,10 @@ type cleanDeletedInstancesJob struct {
 }
 
 func (job *cleanDeletedInstancesJob) init(raw map[string]interface{}) error {
-	err := job.storage.StartLeaderElection(store.ELECTION_KEY_MAINTAIN_JOB_CLEAN_DELETED_INSTANCE)
-	if err != nil {
-		log.Errorf("[Maintain][Job][CleanDeletedInstances] start leader election err: %v", err)
-		return err
-	}
-
 	return nil
 }
 
 func (job *cleanDeletedInstancesJob) execute() {
-	if !job.storage.IsLeader(store.ELECTION_KEY_MAINTAIN_JOB_CLEAN_DELETED_INSTANCE) {
-		log.Info("[Maintain][Job][DeleteEmptyAutoCreatedService] I am follower")
-		return
-	}
-
-	log.Info("[Maintain][Job][CleanDeletedInstances] I am leader, job start")
 	batchSize := uint32(100)
 	for {
 		count, err := job.storage.BatchCleanDeletedInstances(batchSize)
@@ -56,5 +44,4 @@ func (job *cleanDeletedInstancesJob) execute() {
 			break
 		}
 	}
-	log.Info("[Maintain][Job][CleanDeletedInstances] I am leader, job end")
 }

@@ -26,38 +26,21 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/service"
-	"github.com/polarismesh/polaris/store"
 )
 
 type deleteEmptyAutoCreatedServiceJob struct {
 	namingServer service.DiscoverServer
-	storage      store.Store
 }
 
 func (job *deleteEmptyAutoCreatedServiceJob) init(raw map[string]interface{}) error {
-	err := job.storage.StartLeaderElection(store.ELECTION_KEY_MAINTAIN_JOB_DELETE_EMPTY_AUTOCREATED_SERVICE)
-	if err != nil {
-		log.Errorf("[Maintain][Job][DeleteEmptyAutoCreatedService] start leader election err: %v", err)
-		return err
-	}
-
 	return nil
 }
 
 func (job *deleteEmptyAutoCreatedServiceJob) execute() {
-	if !job.storage.IsLeader(store.ELECTION_KEY_MAINTAIN_JOB_DELETE_EMPTY_AUTOCREATED_SERVICE) {
-		log.Info("[Maintain][Job][DeleteEmptyAutoCreatedService] I am follower")
-		return
-	}
-
-	log.Info("[Maintain][Job][DeleteEmptyAutoCreatedService] I am leader, job start")
 	err := job.deleteEmptyAutoCreatedServices()
 	if err != nil {
-		log.Errorf("[Maintain][Job][DeleteEmptyAutoCreatedService] delete emtpy autocreated services, err: %v", err)
+		log.Errorf("[Maintain][Job][DeleteEmptyAutoCreatedService] delete empty autocreated services, err: %v", err)
 	}
-
-	log.Info("[Maintain][Job][DeleteEmptyAutoCreatedService] I am leader, job end")
-
 }
 
 func (job *deleteEmptyAutoCreatedServiceJob) getEmptyAutoCreatedServices() ([]*apiservice.Service, error) {
@@ -71,6 +54,7 @@ func (job *deleteEmptyAutoCreatedServiceJob) getEmptyAutoCreatedServices() ([]*a
 
 	for {
 		resp := job.namingServer.GetServices(context.Background(), query)
+		log.Infof("recv %v", resp)
 		if api.CalcCode(resp) != 200 {
 			return nil, fmt.Errorf("GetServices err, code: %d, info: %s", resp.Code.GetValue(), resp.Info.GetValue())
 		}
@@ -107,10 +91,12 @@ func (job *deleteEmptyAutoCreatedServiceJob) deleteEmptyAutoCreatedServices() er
 
 		resp := job.namingServer.DeleteServices(context.Background(), emptyServices[i:j])
 		if api.CalcCode(resp) != 200 {
-			log.Errorf("[Maintain][Job][DeleteEmptyAutoCreatedService] delete services err, code: %d, info: %s", resp.Code.GetValue(), resp.Info.GetValue())
+			log.Errorf("[Maintain][Job][DeleteEmptyAutoCreatedService] delete services err, code: %d, info: %s",
+				resp.Code.GetValue(), resp.Info.GetValue())
 		}
 	}
 
-	log.Infof("[Maintain][Job][DeleteEmptyAutoCreatedService] delete empty auto-created services count %d, list %v", len(emptyServices), emptyServices)
+	log.Infof("[Maintain][Job][DeleteEmptyAutoCreatedService] delete empty auto-created services count %d",
+		len(emptyServices))
 	return nil
 }

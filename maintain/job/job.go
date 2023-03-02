@@ -34,6 +34,7 @@ type MaintainJobs struct {
 	jobs        map[string]maintainJob
 	startedJobs map[string]maintainJob
 	scheduler   *cron.Cron
+	storage     store.Store
 }
 
 // NewMaintainJobs
@@ -41,11 +42,12 @@ func NewMaintainJobs(namingServer service.DiscoverServer, storage store.Store) *
 	return &MaintainJobs{
 		jobs: map[string]maintainJob{
 			"DeleteUnHealthyInstance":       &deleteUnHealthyInstanceJob{namingServer: namingServer, storage: storage},
-			"DeleteEmptyAutoCreatedService": &deleteEmptyAutoCreatedServiceJob{namingServer: namingServer, storage: storage},
+			"DeleteEmptyAutoCreatedService": &deleteEmptyAutoCreatedServiceJob{namingServer: namingServer},
 			"CleanDeletedInstances":         &cleanDeletedInstancesJob{storage: storage},
 		},
 		startedJobs: map[string]maintainJob{},
 		scheduler:   newCron(),
+		storage:     storage,
 	}
 }
 
@@ -65,7 +67,12 @@ func (mj *MaintainJobs) StartMaintianJobs(configs []JobConfig) error {
 			log.Errorf("[Maintain][Job] job (%s) fail to init, err: %v", cfg.Name, err)
 			return fmt.Errorf("[Maintain][Job] job (%s) fail to init", cfg.Name)
 		}
-		_, err = mj.scheduler.AddFunc(cfg.CronSpec, func() { job.execute() })
+		err = mj.storage.StartLeaderElection(store.ELECTION_KEY_MAINTAIN_JOB_PRFIX + cfg.Name)
+		if err != nil {
+			log.Errorf("[Maintain][Job][%s] start leader election err: %v", cfg.Name, err)
+			return err
+		}
+		_, err = mj.scheduler.AddFunc(cfg.CronSpec, newCronCmd(cfg.Name, job, mj.storage))
 		if err != nil {
 			log.Errorf("[Maintain][Job] job (%s) fail to start, err: %v", cfg.Name, err)
 			return fmt.Errorf("[Maintain][Job] job (%s) fail to start", cfg.Name)
@@ -88,6 +95,19 @@ func newCron() *cron.Cron {
 		cron.Recover(cron.DefaultLogger)),
 		cron.WithParser(cron.NewParser(
 			cron.Minute|cron.Hour|cron.Dom|cron.Month|cron.Dow|cron.Descriptor)))
+}
+
+func newCronCmd(name string, job maintainJob, storage store.Store) func() {
+	return func() {
+		if !storage.IsLeader(store.ELECTION_KEY_MAINTAIN_JOB_PRFIX + name) {
+			log.Infof("[Maintain][Job][%s] I am follower", name)
+			return
+		}
+		log.Infof("[Maintain][Job][%s] I am leader, job start", name)
+		job.execute()
+		log.Infof("[Maintain][Job][%s] I am leader, job end", name)
+
+	}
 }
 
 type maintainJob interface {

@@ -35,8 +35,8 @@ var (
 )
 
 // Initialize 初始化
-func Initialize(ctx context.Context, cfg *Config, namingService service.DiscoverServer, healthCheckServer *healthcheck.Server,
-	storage store.Store) error {
+func Initialize(ctx context.Context, cfg *Config, namingService service.DiscoverServer,
+	healthCheckServer *healthcheck.Server, storage store.Store) error {
 
 	if finishInit {
 		return nil
@@ -51,8 +51,8 @@ func Initialize(ctx context.Context, cfg *Config, namingService service.Discover
 	return nil
 }
 
-func initialize(_ context.Context, cfg *Config, namingService service.DiscoverServer, healthCheckServer *healthcheck.Server,
-	storage store.Store) error {
+func initialize(_ context.Context, cfg *Config, namingService service.DiscoverServer,
+	healthCheckServer *healthcheck.Server, storage store.Store) error {
 
 	authServer, err := auth.GetAuthServer()
 	if err != nil {

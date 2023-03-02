@@ -451,7 +451,8 @@ func (m *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, er
 
 func (m *maintainStore) GetUnHealthyInstances(timeout time.Duration, limit uint32) ([]string, error) {
 	log.Infof("[Store][database] get unhealthy instances which mtime timeout %s (%d)", timeout, limit)
-	queryStr := "select id from instance where flag=0 and enable_health_check=1 and health_status=0 and mtime < FROM_UNIXTIME(UNIX_TIMESTAMP(SYSDATE()) - ?) limit ?"
+	queryStr := "select id from instance where flag=0 and enable_health_check=1 and health_status=0 " +
+		"and mtime < FROM_UNIXTIME(UNIX_TIMESTAMP(SYSDATE()) - ?) limit ?"
 	rows, err := m.master.Query(queryStr, int32(timeout.Seconds()), limit)
 	if err != nil {
 		log.Errorf("[Store][database] get unhealthy instances, err: %s", err.Error())
