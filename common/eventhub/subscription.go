@@ -31,7 +31,12 @@ const (
 )
 
 // Handler event handler
-type Handler func(context.Context, interface{}) error
+type Handler interface {
+	// PreProcess do preprocess logic for event
+	PreProcess(context.Context, any) any
+	// OnEvent event process logic
+	OnEvent(ctx context.Context, any2 any) error
+}
 
 // Subscription subscription info
 type subscription struct {
@@ -81,7 +86,8 @@ func (s *subscription) receive(ctx context.Context) {
 		select {
 		case event := <-s.queue:
 			log.Debug(fmt.Sprintf("[EventHub] subscription:%s receive event:%v", s.name, event))
-			if err := s.handler(ctx, event); err != nil {
+			event = s.handler.PreProcess(ctx, event)
+			if err := s.handler.OnEvent(ctx, event); err != nil {
 				log.Error(fmt.Sprintf("[EventHub] subscriptions:%s handler event error:%s", s.name, err.Error()))
 			}
 		case <-s.closeCh:

@@ -140,6 +140,7 @@ type EurekaServer struct {
 	deltaExpireInterval    time.Duration
 	enableSelfPreservation bool
 	replicateWorker        *ReplicateWorker
+	eventHandlerHandler    *EurekaInstanceEventHandler
 }
 
 // GetPort 获取端口
@@ -184,7 +185,10 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 		}
 		if len(replicatePeers) > 0 {
 			h.replicateWorker = NewReplicateWorker(ctx, replicatePeers)
-			if err := eventhub.Subscribe(eventhub.InstanceEventTopic, "eureka-replication", h.handleInstanceEvent); nil != err {
+			h.eventHandlerHandler = &EurekaInstanceEventHandler{
+				BaseInstanceEventHandler: service.NewBaseInstanceEventHandler(h.namingServer), svr: h}
+			if err := eventhub.Subscribe(
+				eventhub.InstanceEventTopic, "eureka-replication", h.eventHandlerHandler); nil != err {
 				return err
 			}
 		}
@@ -242,6 +246,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 			CustomEurekaParameters[k.(string)] = fmt.Sprintf("%v", v)
 		}
 	}
+
 	log.Infof("[EUREKA] custom eureka parameters: %v", CustomEurekaParameters)
 	return nil
 }
