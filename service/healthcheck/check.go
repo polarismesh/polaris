@@ -82,7 +82,8 @@ type InstanceEventHealthCheckHandler struct {
 }
 
 // newLeaderChangeEventHandler
-func newInstanceEventHealthCheckHandler(ctx context.Context, eventChannel chan *model.InstanceEvent) *InstanceEventHealthCheckHandler {
+func newInstanceEventHealthCheckHandler(ctx context.Context,
+	eventChannel chan *model.InstanceEvent) *InstanceEventHealthCheckHandler {
 	return &InstanceEventHealthCheckHandler{
 		ctx:                  ctx,
 		instanceEventChannel: eventChannel,

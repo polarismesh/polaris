@@ -268,14 +268,15 @@ func (s *Server) handleInstanceEventWorker(ctx context.Context) {
 				}
 				checker, ok := s.checkers[int32(insCache.HealthCheck().GetType())]
 				if !ok {
-					log.Errorf("[Health Check]heart beat type not found checkType %d", int32(insCache.HealthCheck().GetType()))
+					log.Errorf("[Health Check]heart beat type not found checkType %d",
+						int32(insCache.HealthCheck().GetType()))
 					break
 				}
 				log.Infof("[Health Check]delete instance heart beat information, id is %s", event.Id)
 				err := checker.Delete(event.Id)
 				if err != nil {
 					log.Errorf("[Health Check]addr is %s:%d, id is %s, delete err is %s",
-						insCache.Host, insCache.Port, insCache.ID(), err)
+						insCache.Host(), insCache.Port(), insCache.ID(), err)
 				}
 			}
 		case <-ctx.Done():
