@@ -25,9 +25,6 @@ import (
 	"sync"
 	"time"
 
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
@@ -37,6 +34,8 @@ import (
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service/batch"
 	"github.com/polarismesh/polaris/store"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 var (
@@ -47,19 +46,19 @@ var (
 
 // Server health checks the main server
 type Server struct {
-	storage        store.Store
-	defaultChecker plugin.HealthChecker
-	checkers       map[int32]plugin.HealthChecker
-	cacheProvider  *CacheProvider
-	timeAdjuster   *TimeAdjuster
-	dispatcher     *Dispatcher
-	checkScheduler *CheckScheduler
-	history        plugin.History
-	discoverEvent  plugin.DiscoverChannel
-	localHost      string
-	bc             *batch.Controller
-	serviceCache   cache.ServiceCache
-	instanceCache  cache.InstanceCache
+	storage              store.Store
+	defaultChecker       plugin.HealthChecker
+	checkers             map[int32]plugin.HealthChecker
+	cacheProvider        *CacheProvider
+	timeAdjuster         *TimeAdjuster
+	dispatcher           *Dispatcher
+	checkScheduler       *CheckScheduler
+	history              plugin.History
+	discoverEvent        plugin.DiscoverChannel
+	localHost            string
+	bc                   *batch.Controller
+	serviceCache         cache.ServiceCache
+	instanceCache        cache.InstanceCache
 	instanceEventChannel chan *model.InstanceEvent
 }
 
@@ -123,18 +122,18 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
 	server.dispatcher = newDispatcher(ctx, server, hcOpt.OmitReplicated)
 
-	server.discoverCh = make(chan eventWrapper, 32)
 	server.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
-	go server.receiveEventAndPush()
-	go server.handleInstanceEventWorker()
+	go server.handleInstanceEventWorker(ctx)
 
 	leaderChangeEventHandler := newLeaderChangeEventHandler(server.cacheProvider, hcOpt.MinCheckInterval)
 	if err = eventhub.Subscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker",
 		leaderChangeEventHandler); err != nil {
 		return err
 	}
+
+	instanceEventHandler := newInstanceEventHealthCheckHandler(ctx, server.instanceEventChannel)
 	if err = eventhub.Subscribe(eventhub.InstanceEventTopic, "instanceHealthChecker",
-		server.handleInstanceEvent); err != nil {
+		instanceEventHandler); err != nil {
 		return err
 	}
 	if err = server.storage.StartLeaderElection(store.ELECTION_KEY_SELF_SERVICE_CHECKER); err != nil {
@@ -256,18 +255,7 @@ func (s *Server) GetLastHeartbeat(req *apiservice.Instance) *apiservice.Response
 	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
-func (s *Server) handleInstanceEvent(ctx context.Context, i interface{}) error {
-	e := i.(model.InstanceEvent)
-	select {
-	case s.instanceEventChannel <- &e:
-		log.Infof("[Health Check]get instance event, id is %s, type is %s", e.Id, e.EType)
-	default:
-		log.Errorf("[Health Check]instance event handler channel is full, drop event, id is %s", e.Id)
-	}
-	return nil
-}
-
-func (s *Server) handleInstanceEventWorker() {
+func (s *Server) handleInstanceEventWorker(ctx context.Context) {
 	for {
 		select {
 		case event := <-s.instanceEventChannel:
@@ -278,17 +266,21 @@ func (s *Server) handleInstanceEventWorker() {
 					log.Errorf("[Health Check] cannot get instance from cache, instance id is %s", event.Id)
 					break
 				}
-				if insCache.HealthCheck() == nil {
-					break
-				}
 				checker, ok := s.checkers[int32(insCache.HealthCheck().GetType())]
 				if !ok {
 					log.Errorf("[Health Check]heart beat type not found checkType %d", int32(insCache.HealthCheck().GetType()))
 					break
 				}
 				log.Infof("[Health Check]delete instance heart beat information, id is %s", event.Id)
-				_ = checker.Delete(event.Id)
+				err := checker.Delete(event.Id)
+				if err != nil {
+					log.Errorf("[Health Check]addr is %s:%d, id is %s, delete err is %s",
+						insCache.Host, insCache.Port, insCache.ID(), err)
+				}
 			}
+		case <-ctx.Done():
+			log.Infof("[Health Check]instance event handler loop stopped")
+			return
 		}
 	}
 }

@@ -76,6 +76,35 @@ type itemValue struct {
 	checker           plugin.HealthChecker
 }
 
+type InstanceEventHealthCheckHandler struct {
+	ctx                  context.Context
+	instanceEventChannel chan *model.InstanceEvent
+}
+
+// newLeaderChangeEventHandler
+func newInstanceEventHealthCheckHandler(ctx context.Context, eventChannel chan *model.InstanceEvent) *InstanceEventHealthCheckHandler {
+	return &InstanceEventHealthCheckHandler{
+		ctx:                  ctx,
+		instanceEventChannel: eventChannel,
+	}
+}
+
+func (handler *InstanceEventHealthCheckHandler) PreProcess(ctx context.Context, value any) any {
+	return value
+}
+
+// OnEvent event trigger
+func (handler *InstanceEventHealthCheckHandler) OnEvent(ctx context.Context, i interface{}) error {
+	e := i.(model.InstanceEvent)
+	select {
+	case handler.instanceEventChannel <- &e:
+		log.Infof("[Health Check]get instance event, id is %s, type is %s", e.Id, e.EType)
+	default:
+		log.Errorf("[Health Check]instance event handler channel is full, drop event, id is %s", e.Id)
+	}
+	return nil
+}
+
 func newCheckScheduler(ctx context.Context, slotNum int, minCheckInterval time.Duration,
 	maxCheckInterval time.Duration, clientCheckInterval time.Duration, clientCheckTtl time.Duration) *CheckScheduler {
 	scheduler := &CheckScheduler{
