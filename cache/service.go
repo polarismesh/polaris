@@ -33,42 +33,6 @@ const (
 	ServiceName = "service"
 )
 
-// WatchInstanceReload Listener 的一个简单实现
-type WatchInstanceReload struct {
-	// 实际的处理方法
-	Handler func(val interface{})
-}
-
-// OnCreated callback when cache value created
-func (fc *WatchInstanceReload) OnCreated(value interface{}) {
-
-}
-
-// OnUpdated callback when cache value updated
-func (fc *WatchInstanceReload) OnUpdated(value interface{}) {
-
-}
-
-// OnDeleted callback when cache value deleted
-func (fc *WatchInstanceReload) OnDeleted(value interface{}) {
-
-}
-
-// OnBatchCreated callback when cache value created
-func (fc *WatchInstanceReload) OnBatchCreated(value interface{}) {
-
-}
-
-// OnBatchUpdated callback when cache value updated
-func (fc *WatchInstanceReload) OnBatchUpdated(value interface{}) {
-	fc.Handler(value)
-}
-
-// OnBatchDeleted callback when cache value deleted
-func (fc *WatchInstanceReload) OnBatchDeleted(value interface{}) {
-
-}
-
 // ServiceIterProc 迭代回调函数
 type ServiceIterProc func(key string, value *model.Service) (bool, error)
 
@@ -555,4 +519,40 @@ func (sc *serviceCache) updateCl5SidAndNames(service *model.Service) {
 // 部分cl5Name与已有服务名存在冲突，因此给cl5Name加上一个前缀
 func genCl5Name(name string) string {
 	return "cl5." + name
+}
+
+// WatchInstanceReload Listener 的一个简单实现
+type WatchInstanceReload struct {
+	// 实际的处理方法
+	Handler func(val interface{})
+}
+
+// OnCreated callback when cache value created
+func (fc *WatchInstanceReload) OnCreated(value interface{}) {
+
+}
+
+// OnUpdated callback when cache value updated
+func (fc *WatchInstanceReload) OnUpdated(value interface{}) {
+
+}
+
+// OnDeleted callback when cache value deleted
+func (fc *WatchInstanceReload) OnDeleted(value interface{}) {
+
+}
+
+// OnBatchCreated callback when cache value created
+func (fc *WatchInstanceReload) OnBatchCreated(value interface{}) {
+
+}
+
+// OnBatchUpdated callback when cache value updated
+func (fc *WatchInstanceReload) OnBatchUpdated(value interface{}) {
+	fc.Handler(value)
+}
+
+// OnBatchDeleted callback when cache value deleted
+func (fc *WatchInstanceReload) OnBatchDeleted(value interface{}) {
+
 }

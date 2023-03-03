@@ -36,6 +36,8 @@ import (
 )
 
 type GroupTest struct {
+	ctrl *gomock.Controller
+
 	ownerOne *model.User
 	ownerTwo *model.User
 
@@ -56,7 +58,6 @@ type GroupTest struct {
 func newGroupTest(t *testing.T) *GroupTest {
 	reset(false)
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	users := createMockUser(10)
 	groups := createMockUserGroup(users)
@@ -105,6 +106,8 @@ func newGroupTest(t *testing.T) *GroupTest {
 	}
 
 	return &GroupTest{
+		ctrl: ctrl,
+
 		ownerOne: users[0],
 		ownerTwo: newUsers[0],
 
@@ -123,9 +126,8 @@ func newGroupTest(t *testing.T) *GroupTest {
 }
 
 func (g *GroupTest) Clean() {
+	g.ctrl.Finish()
 	g.cancel()
-	_ = g.cacheMgn.Clear()
-	time.Sleep(2 * time.Second)
 }
 
 func Test_server_CreateGroup(t *testing.T) {
@@ -647,7 +649,7 @@ func Test_AuthServer_NormalOperateUserGroup(t *testing.T) {
 		time.Sleep(time.Second)
 
 		req := []*apisecurity.ModifyUserGroup{
-			&apisecurity.ModifyUserGroup{
+			{
 				Id:   utils.NewStringValue(groups[0].GetId().GetValue()),
 				Name: utils.NewStringValue(groups[0].GetName().GetValue()),
 				Comment: &wrapperspb.StringValue{
