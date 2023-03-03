@@ -340,7 +340,7 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 		return
 	}
 	registrationRequest := &RegistrationRequest{}
-	acceptValue := getParamFromEurekaRequestHeader(req, restful.HEADER_Accept)
+	acceptValue := getParamFromEurekaRequestHeader(req, restful.HEADER_ContentType)
 	var err error
 	if acceptValue == restful.MIME_XML {
 		instance := &InstanceInfo{}
