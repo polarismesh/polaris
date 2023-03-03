@@ -33,7 +33,7 @@ mv goimports-reviser ../
 
 cd ../
 
-find . -name "*.go" -type f | grep -v .pb.go|grep -v test/integrate/tools/tools.go | grep -v ./plugin.go |\
+find . -name "*.go" -type f | grep -v .pb.go|grep -v test/tools/tools.go | grep -v ./plugin.go |\
 xargs -I {} ./goimports-reviser -rm-unused -format {} -local github.com/polarismesh/specification -project-name github.com/polarismesh/polaris
 
 # 处理 go 代码格式化
