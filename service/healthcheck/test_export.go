@@ -56,7 +56,12 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 			}
 
 			testServer.checkers[int32(checker.Type())] = checker
+			if nil == testServer.defaultChecker {
+				testServer.defaultChecker = checker
+			}
 		}
+	} else {
+		return nil, fmt.Errorf("[healthcheck]no checker config")
 	}
 
 	testServer.storage = storage
@@ -69,7 +74,7 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 	testServer.timeAdjuster = newTimeAdjuster(ctx, storage)
 	testServer.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
 		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
-	testServer.dispatcher = newDispatcher(ctx, testServer)
+	testServer.dispatcher = newDispatcher(ctx, testServer, hcOpt.OmitReplicated)
 
 	testServer.discoverCh = make(chan eventWrapper, 32)
 	testServer.instanceEventChannel = make(chan *model.InstanceEvent, 1000)

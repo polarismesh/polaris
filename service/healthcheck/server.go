@@ -48,6 +48,7 @@ var (
 // Server health checks the main server
 type Server struct {
 	storage        store.Store
+	defaultChecker plugin.HealthChecker
 	checkers       map[int32]plugin.HealthChecker
 	cacheProvider  *CacheProvider
 	timeAdjuster   *TimeAdjuster
@@ -56,7 +57,6 @@ type Server struct {
 	history        plugin.History
 	discoverEvent  plugin.DiscoverChannel
 	localHost      string
-	discoverCh     chan eventWrapper
 	bc             *batch.Controller
 	serviceCache   cache.ServiceCache
 	instanceCache  cache.InstanceCache
@@ -98,9 +98,13 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 			if exist {
 				return fmt.Errorf("[healthcheck]duplicate healthchecker %s, checkType %d", entry.Name, checker.Type())
 			}
-
 			server.checkers[int32(checker.Type())] = checker
+			if nil == server.defaultChecker {
+				server.defaultChecker = checker
+			}
 		}
+	} else {
+		return fmt.Errorf("[healthcheck]no checker config")
 	}
 	var err error
 	if server.storage, err = store.GetStore(); err != nil {
@@ -117,7 +121,7 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 	server.timeAdjuster = newTimeAdjuster(ctx, server.storage)
 	server.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
 		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
-	server.dispatcher = newDispatcher(ctx, server)
+	server.dispatcher = newDispatcher(ctx, server, hcOpt.OmitReplicated)
 
 	server.discoverCh = make(chan eventWrapper, 32)
 	server.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
@@ -126,7 +130,7 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 
 	leaderChangeEventHandler := newLeaderChangeEventHandler(server.cacheProvider, hcOpt.MinCheckInterval)
 	if err = eventhub.Subscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker",
-		leaderChangeEventHandler.handle); err != nil {
+		leaderChangeEventHandler); err != nil {
 		return err
 	}
 	if err = eventhub.Subscribe(eventhub.InstanceEventTopic, "instanceHealthChecker",
@@ -209,32 +213,8 @@ func (s *Server) RecordHistory(entry *model.RecordEntry) {
 
 // publishInstanceEvent 发布服务事件
 func (s *Server) publishInstanceEvent(serviceID string, event model.InstanceEvent) {
-	s.discoverCh <- eventWrapper{
-		ServiceID: serviceID,
-		Event:     event,
-	}
-}
-
-func (s *Server) receiveEventAndPush() {
-	for wrapper := range s.discoverCh {
-		var (
-			svcID   = wrapper.ServiceID
-			event   = wrapper.Event
-			service *model.Service
-		)
-		for {
-			service = s.serviceCache.GetServiceByID(svcID)
-			if service == nil {
-				time.Sleep(500 * time.Millisecond)
-				continue
-			}
-			break
-		}
-		event.Namespace = service.Namespace
-		event.Service = service.Name
-
-		eventhub.Publish(eventhub.InstanceEventTopic, event)
-	}
+	event.SvcId = serviceID
+	eventhub.Publish(eventhub.InstanceEventTopic, event)
 }
 
 // GetLastHeartbeat 获取上一次心跳的时间

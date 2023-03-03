@@ -19,6 +19,7 @@ package healthcheck
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -48,12 +49,14 @@ type Dispatcher struct {
 	selfServiceBuckets map[Bucket]bool
 	continuum          *Continuum
 	mutex              *sync.Mutex
+	omitReplicated     bool
 }
 
-func newDispatcher(ctx context.Context, svr *Server) *Dispatcher {
+func newDispatcher(ctx context.Context, svr *Server, omitReplicated bool) *Dispatcher {
 	dispatcher := &Dispatcher{
-		svr:   svr,
-		mutex: &sync.Mutex{},
+		svr:            svr,
+		mutex:          &sync.Mutex{},
+		omitReplicated: omitReplicated,
 	}
 	dispatcher.startDispatchingJob(ctx)
 	return dispatcher
@@ -110,6 +113,18 @@ func compareBuckets(src map[Bucket]bool, dst map[Bucket]bool) bool {
 		}
 	}
 	return true
+}
+
+func isReplicated(metadata map[string]string) bool {
+	if len(metadata) == 0 {
+		return false
+	}
+	value, ok := metadata[model.MetadataReplicated]
+	if !ok {
+		return false
+	}
+	replicated, _ := strconv.ParseBool(value)
+	return replicated
 }
 
 func (d *Dispatcher) reloadSelfContinuum() bool {
@@ -175,9 +190,15 @@ func (d *Dispatcher) reloadManagedClients() {
 
 func (d *Dispatcher) reloadManagedInstances() {
 	nextInstances := make(map[string]*InstanceWithChecker)
-
+	var omittedCount int
 	if d.continuum != nil {
 		d.svr.cacheProvider.RangeHealthCheckInstances(func(itemChecker ItemWithChecker, instance *model.Instance) {
+			if d.omitReplicated && isReplicated(instance.Metadata()) {
+				log.Debugf("[Health Check][Dispatcher]instance %s is replicated, omit health checking",
+					instance.ID())
+				omittedCount++
+				return
+			}
 			instanceId := instance.ID()
 			host := d.continuum.Hash(itemChecker.GetHashValue())
 			if host == d.svr.localHost {
@@ -185,6 +206,7 @@ func (d *Dispatcher) reloadManagedInstances() {
 			}
 		})
 	}
+	log.Infof("[Health Check][Dispatcher]count %d replicated instances are omitted", omittedCount)
 	log.Infof("[Health Check][Dispatcher]count %d instances has been dispatched to %s, total is %d",
 		len(nextInstances), d.svr.localHost, d.svr.cacheProvider.healthCheckInstances.Count())
 	originInstances := d.managedInstances

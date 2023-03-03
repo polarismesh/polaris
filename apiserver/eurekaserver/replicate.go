@@ -30,6 +30,7 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/service"
 )
 
 const (
@@ -180,6 +181,10 @@ func (h *EurekaServer) shouldReplicate(e model.InstanceEvent) bool {
 		// only process the service in same namespace
 		return false
 	}
+	if len(e.Service) == 0 {
+		log.Warnf("[EUREKA]fail to replicate, service name is empty for event %s", e)
+		return false
+	}
 	metadata := e.MetaData
 	if len(metadata) > 0 {
 		if value, ok := metadata[MetadataReplicate]; ok {
@@ -189,6 +194,15 @@ func (h *EurekaServer) shouldReplicate(e model.InstanceEvent) bool {
 		}
 	}
 	return true
+}
+
+type EurekaInstanceEventHandler struct {
+	*service.BaseInstanceEventHandler
+	svr *EurekaServer
+}
+
+func (e *EurekaInstanceEventHandler) OnEvent(ctx context.Context, any2 any) error {
+	return e.svr.handleInstanceEvent(ctx, any2)
 }
 
 func (h *EurekaServer) handleInstanceEvent(ctx context.Context, i interface{}) error {

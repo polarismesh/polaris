@@ -27,6 +27,8 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/polarismesh/polaris/common/model"
 )
 
 func TestInstanceCheck(t *testing.T) {
@@ -58,7 +60,7 @@ func TestInstanceCheck(t *testing.T) {
 		})
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue())
 	}
-	time.Sleep(20 * time.Second)
+	//time.Sleep(20 * time.Second)
 	for i := 0; i < 50; i++ {
 		for instanceId := range instanceIds {
 			fmt.Printf("%d report instance for %s, round 1\n", i, instanceId)
@@ -84,6 +86,118 @@ func TestInstanceCheck(t *testing.T) {
 		}
 		time.Sleep(1 * time.Second)
 	}
+	instance1 = discoverSuit.server.Cache().Instance().GetInstance(instanceId1)
+	assert.NotNil(t, instance1)
+	assert.Equal(t, true, instance1.Proto.GetHealthy().GetValue())
+	instance2 = discoverSuit.server.Cache().Instance().GetInstance(instanceId2)
+	assert.NotNil(t, instance2)
+	assert.Equal(t, false, instance2.Proto.GetHealthy().GetValue())
+}
+
+func TestInstanceImmediatelyCheck(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+
+	instanceId1 := "inst_333"
+	instanceId2 := "inst_444"
+
+	discoverSuit.addInstance(t, &apiservice.Instance{
+		Service:   wrapperspb.String("polaris.checker"),
+		Namespace: wrapperspb.String("Polaris"),
+		Host:      wrapperspb.String("127.0.0.1"),
+		Port:      wrapperspb.UInt32(8091),
+		Protocol:  wrapperspb.String("grpc"),
+		Metadata:  map[string]string{"polaris_service": "polaris.checker"},
+	})
+	instanceIds := map[string]bool{instanceId1: true, instanceId2: true}
+	for id := range instanceIds {
+		resp := discoverSuit.server.RegisterInstance(context.Background(), &apiservice.Instance{Id: wrapperspb.String(id),
+			Service: wrapperspb.String("testSvc"), Namespace: wrapperspb.String("default"),
+			Host: wrapperspb.String("127.0.0.1"), Port: wrapperspb.UInt32(8888), Weight: wrapperspb.UInt32(100),
+			HealthCheck: &apiservice.HealthCheck{Type: apiservice.HealthCheck_HEARTBEAT, Heartbeat: &apiservice.HeartbeatHealthCheck{
+				Ttl: wrapperspb.UInt32(2),
+			}},
+		})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue())
+	}
+	for i := 0; i < 10; i++ {
+		for instanceId := range instanceIds {
+			fmt.Printf("%d report instance for %s, round 2\n", i, instanceId)
+			hbResp := discoverSuit.healthCheckServer.Report(
+				context.Background(), &apiservice.Instance{Id: &wrapperspb.StringValue{Value: instanceId}})
+			assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), hbResp.GetCode().GetValue())
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func TestInstanceCheckReplicated(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.initialize(func(cfg *TestConfig) {
+		cfg.HealthChecks.OmitReplicated = true
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+
+	instanceId1 := "inst_555"
+	instanceId2 := "inst_666"
+
+	discoverSuit.addInstance(t, &apiservice.Instance{
+		Service:   wrapperspb.String("polaris.checker"),
+		Namespace: wrapperspb.String("Polaris"),
+		Host:      wrapperspb.String("127.0.0.1"),
+		Port:      wrapperspb.UInt32(8091),
+		Protocol:  wrapperspb.String("grpc"),
+		Metadata:  map[string]string{"polaris_service": "polaris.checker"},
+	})
+	instanceIds := map[string]bool{instanceId1: true, instanceId2: true}
+	for id := range instanceIds {
+		instance := &apiservice.Instance{
+			Id:        wrapperspb.String(id),
+			Service:   wrapperspb.String("testSvc"),
+			Namespace: wrapperspb.String("default"),
+			Host:      wrapperspb.String("127.0.0.1"),
+			Port:      wrapperspb.UInt32(8888),
+			Weight:    wrapperspb.UInt32(100),
+			Healthy:   wrapperspb.Bool(true),
+			HealthCheck: &apiservice.HealthCheck{
+				Type: apiservice.HealthCheck_HEARTBEAT, Heartbeat: &apiservice.HeartbeatHealthCheck{
+					Ttl: wrapperspb.UInt32(3),
+				}},
+		}
+		if instance.GetId().GetValue() == instanceId1 {
+			instance.Metadata = map[string]string{model.MetadataReplicated: "true"}
+		}
+		resp := discoverSuit.server.RegisterInstance(context.Background(), instance)
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue())
+	}
+	for i := 0; i < 50; i++ {
+		instanceId := instanceId2
+		fmt.Printf("%d report instance for %s, round 1\n", i, instanceId)
+		discoverSuit.healthCheckServer.Report(
+			context.Background(), &apiservice.Instance{Id: &wrapperspb.StringValue{Value: instanceId}})
+		time.Sleep(1 * time.Second)
+	}
+
+	instance1 := discoverSuit.server.Cache().Instance().GetInstance(instanceId1)
+	assert.NotNil(t, instance1)
+	assert.Equal(t, true, instance1.Proto.GetHealthy().GetValue())
+	instance2 := discoverSuit.server.Cache().Instance().GetInstance(instanceId2)
+	assert.NotNil(t, instance2)
+	assert.Equal(t, true, instance2.Proto.GetHealthy().GetValue())
+
+	for i := 0; i < 50; i++ {
+		instanceId := instanceId1
+		fmt.Printf("%d report instance for %s, round 1\n", i, instanceId)
+		discoverSuit.healthCheckServer.Report(
+			context.Background(), &apiservice.Instance{Id: &wrapperspb.StringValue{Value: instanceId}})
+		time.Sleep(1 * time.Second)
+	}
+
 	instance1 = discoverSuit.server.Cache().Instance().GetInstance(instanceId1)
 	assert.NotNil(t, instance1)
 	assert.Equal(t, true, instance1.Proto.GetHealthy().GetValue())
