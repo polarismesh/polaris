@@ -28,13 +28,14 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store/mock"
 )
 
 func TestEurekaServer_renew(t *testing.T) {
-
+	eventhub.InitEventHub()
 	ins := &model.Instance{
 		ServiceID: utils.NewUUID(),
 		Proto: &apiservice.Instance{
