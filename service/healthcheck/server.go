@@ -57,7 +57,6 @@ type Server struct {
 	history        plugin.History
 	discoverEvent  plugin.DiscoverChannel
 	localHost      string
-	discoverCh     chan eventWrapper
 	bc             *batch.Controller
 	serviceCache   cache.ServiceCache
 	instanceCache  cache.InstanceCache
@@ -123,12 +122,9 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
 	server.dispatcher = newDispatcher(ctx, server, hcOpt.OmitReplicated)
 
-	server.discoverCh = make(chan eventWrapper, 32)
-	go server.receiveEventAndPush()
-
 	leaderChangeEventHandler := newLeaderChangeEventHandler(server.cacheProvider, hcOpt.MinCheckInterval)
 	if err = eventhub.Subscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker",
-		leaderChangeEventHandler.handle); err != nil {
+		leaderChangeEventHandler); err != nil {
 		return err
 	}
 	if err = server.storage.StartLeaderElection(store.ELECTION_KEY_SELF_SERVICE_CHECKER); err != nil {
@@ -207,32 +203,8 @@ func (s *Server) RecordHistory(entry *model.RecordEntry) {
 
 // publishInstanceEvent 发布服务事件
 func (s *Server) publishInstanceEvent(serviceID string, event model.InstanceEvent) {
-	s.discoverCh <- eventWrapper{
-		ServiceID: serviceID,
-		Event:     event,
-	}
-}
-
-func (s *Server) receiveEventAndPush() {
-	for wrapper := range s.discoverCh {
-		var (
-			svcID   = wrapper.ServiceID
-			event   = wrapper.Event
-			service *model.Service
-		)
-		for {
-			service = s.serviceCache.GetServiceByID(svcID)
-			if service == nil {
-				time.Sleep(500 * time.Millisecond)
-				continue
-			}
-			break
-		}
-		event.Namespace = service.Namespace
-		event.Service = service.Name
-
-		eventhub.Publish(eventhub.InstanceEventTopic, event)
-	}
+	event.SvcId = serviceID
+	eventhub.Publish(eventhub.InstanceEventTopic, event)
 }
 
 // GetLastHeartbeat 获取上一次心跳的时间
