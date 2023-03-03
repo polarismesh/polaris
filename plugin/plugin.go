@@ -70,6 +70,7 @@ type Config struct {
 
 // PluginChanConfig 插件执行链配置
 type PluginChanConfig struct {
-	ConfigEntry
-	Entries []ConfigEntry
+	Name    string                 `yaml:"name"`
+	Option  map[string]interface{} `yaml:"option"`
+	Entries []ConfigEntry          `yaml:"entries"`
 }
