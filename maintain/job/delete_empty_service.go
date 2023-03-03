@@ -54,7 +54,6 @@ func (job *deleteEmptyAutoCreatedServiceJob) getEmptyAutoCreatedServices() ([]*a
 
 	for {
 		resp := job.namingServer.GetServices(context.Background(), query)
-		log.Infof("recv %v", resp)
 		if api.CalcCode(resp) != 200 {
 			return nil, fmt.Errorf("GetServices err, code: %d, info: %s", resp.Code.GetValue(), resp.Info.GetValue())
 		}
