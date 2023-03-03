@@ -56,6 +56,9 @@ type ConfigFileGroupStore interface {
 
 	// GetConfigFileGroupById 根据Id获取文件组信息
 	GetConfigFileGroupById(id uint64) (*model.ConfigFileGroup, error)
+
+	// CountConfigGroupEachNamespace 统计 namespace 下的配置分组数量
+	CountGroupEachNamespace() (map[string]int64, error)
 }
 
 // ConfigFileStore 配置文件存储接口

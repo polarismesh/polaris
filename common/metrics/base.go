@@ -43,6 +43,7 @@ func GetHttpHandler() http.Handler {
 	// 添加 Golang runtime metrics
 	registry.MustRegister(collectors.NewGoCollector(
 		collectors.WithGoCollections(collectors.GoRuntimeMetricsCollection),
+		collectors.WithGoCollections(collectors.GoRuntimeMemStatsCollection),
 	))
 	return promhttp.HandlerFor(registry, promhttp.HandlerOpts{EnableOpenMetrics: true})
 }
@@ -50,4 +51,5 @@ func GetHttpHandler() http.Handler {
 // InitMetrics 初始化 metrics 的所有指标
 func InitMetrics() {
 	registerSysMetrics()
+	registerClientMetrics()
 }

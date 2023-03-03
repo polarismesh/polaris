@@ -292,6 +292,24 @@ func (fg *configFileGroupStore) GetConfigFileGroupById(id uint64) (*model.Config
 	return nil, nil
 }
 
+func (fg *configFileGroupStore) CountGroupEachNamespace() (map[string]int64, error) {
+	values, err := fg.handler.LoadValuesAll(tblConfigFileGroup, &model.ConfigFile{})
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make(map[string]int64)
+	for i := range values {
+		file := values[i].(*model.ConfigFile)
+		if _, ok := ret[file.Namespace]; !ok {
+			ret[file.Namespace] = 0
+		}
+		ret[file.Namespace] = ret[file.Namespace] + 1
+	}
+
+	return ret, nil
+}
+
 // doConfigFileGroupPage 进行分页
 func doConfigFileGroupPage(ret map[string]interface{}, offset, limit uint32) []*model.ConfigFileGroup {
 	var (

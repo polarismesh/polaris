@@ -33,6 +33,12 @@ func (fc *fileCache) reportMetricsInfo(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
+			configGroups, err := fc.storage.CountGroupEachNamespace()
+			if err != nil {
+				log.Error("[Cache][ConfigFile] report metrics for config_group each namespace", zap.Error(err))
+				continue
+			}
+
 			configFiles, err := fc.storage.CountConfigFileEachGroup()
 			if err != nil {
 				log.Error("[Cache][ConfigFile] report metrics for config_file each group", zap.Error(err))
@@ -47,16 +53,18 @@ func (fc *fileCache) reportMetricsInfo(ctx context.Context) {
 
 			metricValues := make([]metrics.ConfigMetrics, 0, 64)
 
-			for ns, groups := range configFiles {
+			for ns := range configGroups {
 				metricValues = append(metricValues, metrics.ConfigMetrics{
 					Type:    metrics.ConfigGroupMetric,
-					Total:   int64(len(groups)),
+					Total:   configGroups[ns],
 					Release: 0,
 					Labels: map[string]string{
 						metrics.LabelNamespace: ns,
 					},
 				})
+			}
 
+			for ns, groups := range configFiles {
 				for group, total := range groups {
 					metricValues = append(metricValues, metrics.ConfigMetrics{
 						Type:  metrics.FileMetric,
