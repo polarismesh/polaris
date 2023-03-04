@@ -136,13 +136,11 @@ func (m *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, er
 }
 
 func (m *maintainStore) GetUnHealthyInstances(timeout time.Duration, limit uint32) ([]string, error) {
+	return m.getUnHealthyInstancesBefore(time.Now().Add(-timeout), limit)
+}
+
+func (m *maintainStore) getUnHealthyInstancesBefore(mtime time.Time, limit uint32) ([]string, error) {
 	fields := []string{insFieldProto, insFieldValid}
-
-	/*
-		queryStr := "select id from instance where flag=0 and enable_health_check=1 and health_status=0 " +
-			"and mtime < FROM_UNIXTIME(UNIX_TIMESTAMP(SYSDATE()) - ?) limit ?"
-	*/
-
 	instances, err := m.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
 
@@ -164,7 +162,7 @@ func (m *maintainStore) GetUnHealthyInstances(timeout time.Duration, limit uint3
 				return false
 			}
 
-			if time.Now().Before(insMtime.Add(timeout)) {
+			if insMtime.Before(mtime) {
 				return false
 			}
 
@@ -185,8 +183,13 @@ func (m *maintainStore) GetUnHealthyInstances(timeout time.Duration, limit uint3
 	}
 
 	var instanceIds []string
+	var count uint32 = 0
 	for _, v := range instances {
 		instanceIds = append(instanceIds, v.(*model.Instance).ID())
+		count += 1
+		if count >= limit {
+			break
+		}
 	}
 
 	return instanceIds, nil
