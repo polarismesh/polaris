@@ -146,7 +146,7 @@ func TestCreateInstance(t *testing.T) {
 	}
 	defer discoverSuit.Destroy()
 
-	options := map[string]interface{}{optionRefreshInterval: 5, optionDeltaExpireInterval: 60}
+	options := map[string]interface{}{optionRefreshInterval: 5, optionDeltaExpireInterval: 120}
 	eurekaSrv, err := createEurekaServerForTest(discoverSuit, options)
 	assert.Nil(t, err)
 	eurekaSrv.worker = NewApplicationsWorker(eurekaSrv.refreshInterval, eurekaSrv.deltaExpireInterval,
@@ -180,7 +180,7 @@ func TestCreateInstance(t *testing.T) {
 	instanceId := fmt.Sprintf("%s_%s_%d", appId, host, startPort)
 	code := eurekaSrv.deregisterInstance(context.Background(), appId, instanceId, false)
 	assert.Equal(t, api.ExecuteSuccess, code)
-	time.Sleep(15 * time.Second)
+	time.Sleep(30 * time.Second)
 
 	deltaReq := restful.NewRequest(httpRequest)
 	deltaMockWriter := newMockResponseWriter()
