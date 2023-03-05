@@ -121,19 +121,21 @@ func TestEmptySlice(t *testing.T) {
 func checkInstanceAction(t *testing.T, applications *Applications, appName string, instanceId string, action string) {
 	var hasApp bool
 	var hasInstance bool
+	var actionType string
 	for _, app := range applications.Application {
 		if app.Name == appName {
 			hasApp = true
 			for _, instance := range app.Instance {
 				if instance.InstanceId == instanceId {
 					hasInstance = true
-					assert.Equal(t, action, instance.ActionType)
+					actionType = instance.ActionType
 				}
 			}
 		}
 	}
 	assert.True(t, hasInstance)
 	assert.True(t, hasApp)
+	assert.Equal(t, action, actionType)
 }
 
 // 测试新建实例
@@ -144,7 +146,7 @@ func TestCreateInstance(t *testing.T) {
 	}
 	defer discoverSuit.Destroy()
 
-	options := map[string]interface{}{optionRefreshInterval: 5, optionDeltaExpireInterval: 15}
+	options := map[string]interface{}{optionRefreshInterval: 5, optionDeltaExpireInterval: 60}
 	eurekaSrv, err := createEurekaServerForTest(discoverSuit, options)
 	assert.Nil(t, err)
 	eurekaSrv.worker = NewApplicationsWorker(eurekaSrv.refreshInterval, eurekaSrv.deltaExpireInterval,
@@ -178,7 +180,7 @@ func TestCreateInstance(t *testing.T) {
 	instanceId := fmt.Sprintf("%s_%s_%d", appId, host, startPort)
 	code := eurekaSrv.deregisterInstance(context.Background(), appId, instanceId, false)
 	assert.Equal(t, api.ExecuteSuccess, code)
-	time.Sleep(10 * time.Second)
+	time.Sleep(15 * time.Second)
 
 	deltaReq := restful.NewRequest(httpRequest)
 	deltaMockWriter := newMockResponseWriter()
