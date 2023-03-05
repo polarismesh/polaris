@@ -25,6 +25,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
 )
@@ -32,6 +33,16 @@ import (
 func sha1s(bytes []byte) string {
 	r := sha1.Sum(bytes)
 	return hex.EncodeToString(r[:])
+}
+
+type Lease struct {
+	instance          *InstanceInfo
+	lastUpdateTimeSec int64
+}
+
+// Expired check lease expired
+func (l *Lease) Expired(curTimeSec int64, deltaExpireInterval time.Duration) bool {
+	return curTimeSec-l.lastUpdateTimeSec >= deltaExpireInterval.Milliseconds()/1000
 }
 
 // ApplicationsWorker 应用缓存协程
@@ -62,8 +73,8 @@ type ApplicationsWorker struct {
 
 	healthCheckServer *healthcheck.Server
 
-	// 上一次清理增量缓存的时间
-	deltaExpireTimesMilli int64
+	// 增量缓存
+	leases []*Lease
 }
 
 // NewApplicationsWorker 构造函数
@@ -85,6 +96,7 @@ func NewApplicationsWorker(interval time.Duration,
 		vipCache:            make(map[VipCacheKey]*ApplicationsRespCache),
 		healthCheckServer:   healthCheckServer,
 		appBuilder:          appBuilder,
+		leases:              make([]*Lease, 0),
 	}
 }
 
@@ -100,6 +112,25 @@ func (a *ApplicationsWorker) getCachedApps() *ApplicationsRespCache {
 		return appsValue.(*ApplicationsRespCache)
 	}
 	return nil
+}
+
+func (a *ApplicationsWorker) cleanupExpiredLeases() {
+	curTimeSec := commontime.CurrentMillisecond() / 1000
+	var startIndex = -1
+	for i, lease := range a.leases {
+		if !lease.Expired(curTimeSec, a.deltaExpireInterval) {
+			startIndex = i
+			break
+		}
+		log.Infof("[Eureka]lease %s(%s) has expired, lastUpdateTime %d, curTimeSec %d",
+			lease.instance.InstanceId, lease.instance.ActionType, lease.lastUpdateTimeSec, curTimeSec)
+	}
+	if startIndex == -1 && len(a.leases) > 0 {
+		// all expired
+		a.leases = make([]*Lease, 0)
+	} else if startIndex > -1 {
+		a.leases = a.leases[startIndex:]
+	}
 }
 
 // GetCachedAppsWithLoad 从缓存中获取全量服务信息，如果不存在就读取
@@ -154,7 +185,7 @@ func (a *ApplicationsWorker) timingReloadAppsCache(workerCtx context.Context) {
 		case <-ticker.C:
 			oldApps := a.getCachedApps()
 			newApps := a.appBuilder.BuildApplications(oldApps)
-			newDeltaApps := a.appBuilder.buildDeltaApps(oldApps, newApps, a.getLatestDeltaAppsCache())
+			newDeltaApps := a.buildDeltaApps(oldApps, newApps)
 			a.appsCache.Store(newApps)
 			a.deltaCache.Store(newDeltaApps)
 			a.clearExpiredVipResources()
@@ -174,27 +205,13 @@ func (a *ApplicationsWorker) clearExpiredVipResources() {
 	}
 }
 
-func (a *ApplicationsWorker) getLatestDeltaAppsCache() *ApplicationsRespCache {
-	var oldDeltaAppsCache *ApplicationsRespCache
-	curTimeMs := time.Now().UnixNano() / 1e6
-	diffTimeMs := curTimeMs - a.deltaExpireTimesMilli
-	if diffTimeMs > 0 && diffTimeMs < a.deltaExpireInterval.Milliseconds() {
-		oldDeltaAppsCache = a.GetDeltaApps()
-	} else {
-		a.deltaExpireTimesMilli = curTimeMs
-	}
-	return oldDeltaAppsCache
-}
-
-func diffApplication(oldApplication *Application, newApplication *Application) *Application {
+func diffApplicationInstances(curTimeSec int64, oldApplication *Application, newApplication *Application) []*Lease {
+	var out []*Lease
 	oldRevision := oldApplication.Revision
 	newRevision := newApplication.Revision
 	if len(oldRevision) > 0 && len(newRevision) > 0 && oldRevision == newRevision {
 		// 完全相同，没有变更
-		return nil
-	}
-	diffApplication := &Application{
-		Name: newApplication.Name,
+		return out
 	}
 	// 获取新增和修改
 	newInstances := newApplication.Instance
@@ -203,7 +220,7 @@ func diffApplication(oldApplication *Application, newApplication *Application) *
 			oldInstance := oldApplication.GetInstance(instance.InstanceId)
 			if oldInstance == nil {
 				// 新增实例
-				diffApplication.Instance = append(diffApplication.Instance, instance)
+				out = append(out, &Lease{instance: instance.Clone(ActionAdded), lastUpdateTimeSec: curTimeSec})
 				continue
 			}
 			// 比较实际的实例是否发生了变更
@@ -211,7 +228,7 @@ func diffApplication(oldApplication *Application, newApplication *Application) *
 				continue
 			}
 			// 新创建一个instance
-			diffApplication.Instance = append(diffApplication.Instance, instance.Clone(ActionModified))
+			out = append(out, &Lease{instance: instance.Clone(ActionModified), lastUpdateTimeSec: curTimeSec})
 		}
 	}
 	// 获取删除
@@ -221,15 +238,96 @@ func diffApplication(oldApplication *Application, newApplication *Application) *
 			newInstance := newApplication.GetInstance(instance.InstanceId)
 			if newInstance == nil {
 				// 被删除了
-				// 新创建一个instance
-				diffApplication.Instance = append(diffApplication.Instance, instance.Clone(ActionDeleted))
+				out = append(out, &Lease{instance: instance.Clone(ActionDeleted), lastUpdateTimeSec: curTimeSec})
 			}
 		}
 	}
-	if len(diffApplication.Instance) > 0 {
-		return diffApplication
+	return out
+}
+
+func calculateDeltaInstances(oldAppsCache *ApplicationsRespCache, newAppsCache *ApplicationsRespCache) []*Lease {
+	var out []*Lease
+	newApps := newAppsCache.AppsResp.Applications
+	curTimeSec := commontime.CurrentMillisecond() / 1000
+	// 1. 处理服务新增场景
+	if nil == oldAppsCache {
+		applications := newApps.Application
+		for _, app := range applications {
+			for _, instance := range app.Instance {
+				out = append(out, &Lease{instance: instance.Clone(ActionAdded), lastUpdateTimeSec: curTimeSec})
+			}
+		}
+		return out
 	}
-	return nil
+	// 2. 处理服务变更场景
+	if oldAppsCache.Revision != newAppsCache.Revision {
+		oldApps := oldAppsCache.AppsResp.Applications
+		applications := newApps.Application
+		for _, application := range applications {
+			var oldApplication = oldApps.GetApplication(application.Name)
+			if oldApplication == nil {
+				// 新增，全部加入
+				for _, instance := range application.Instance {
+					out = append(out, &Lease{instance: instance.Clone(ActionAdded), lastUpdateTimeSec: curTimeSec})
+				}
+				continue
+			}
+			// 修改，需要比较实例的变更
+			leases := diffApplicationInstances(curTimeSec, oldApplication, application)
+			if len(leases) > 0 {
+				out = append(out, leases...)
+			}
+		}
+		// 3. 处理服务删除场景
+		oldApplications := oldApps.Application
+		if len(oldApplications) > 0 {
+			for _, application := range oldApplications {
+				var newApplication = newApps.GetApplication(application.Name)
+				if newApplication == nil {
+					// 删除
+					for _, instance := range application.Instance {
+						out = append(out, &Lease{instance: instance.Clone(ActionDeleted), lastUpdateTimeSec: curTimeSec})
+					}
+				}
+			}
+		}
+	}
+	return out
+}
+
+func (a *ApplicationsWorker) buildDeltaApps(
+	oldAppsCache *ApplicationsRespCache, newAppsCache *ApplicationsRespCache) *ApplicationsRespCache {
+	// 1. 清理过期的增量缓存
+	a.cleanupExpiredLeases()
+	// 2. 构建新增的增量缓存
+	leases := calculateDeltaInstances(oldAppsCache, newAppsCache)
+	a.leases = append(a.leases, leases...)
+	// 3. 创建新的delta对象
+	var instCount int
+	newApps := newAppsCache.AppsResp.Applications
+	newDeltaApps := &Applications{
+		VersionsDelta:  newApps.VersionsDelta,
+		AppsHashCode:   newApps.AppsHashCode,
+		Application:    make([]*Application, 0),
+		ApplicationMap: make(map[string]*Application, 0),
+	}
+	// 4. 拷贝lease对象
+	for _, lease := range a.leases {
+		instance := lease.instance
+		appName := instance.AppName
+		var app *Application
+		var ok bool
+		if app, ok = newDeltaApps.ApplicationMap[appName]; !ok {
+			app = &Application{
+				Name: appName,
+			}
+			newDeltaApps.Application = append(newDeltaApps.Application, app)
+			newDeltaApps.ApplicationMap[appName] = app
+		}
+		app.Instance = append(app.Instance, instance)
+		instCount++
+	}
+	return constructResponseCache(newDeltaApps, instCount, true)
 }
 
 // StartWorker 启动缓存构建器
@@ -248,8 +346,7 @@ func (a *ApplicationsWorker) StartWorker() context.Context {
 	defer waitCancel()
 	apps := a.appBuilder.BuildApplications(nil)
 	a.appsCache.Store(apps)
-	a.deltaCache.Store(apps)
-	a.deltaExpireTimesMilli = time.Now().UnixNano() / 1e6
+	a.deltaCache.Store(a.buildDeltaApps(nil, apps))
 	// 开启定时任务构建
 	var workerCtx context.Context
 	workerCtx, a.workerCancel = context.WithCancel(context.Background())

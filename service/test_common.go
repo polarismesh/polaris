@@ -112,6 +112,14 @@ type DiscoverTestSuit struct {
 	storage             store.Store
 }
 
+func (d *DiscoverTestSuit) DiscoverServer() DiscoverServer {
+	return d.server
+}
+
+func (d *DiscoverTestSuit) HealthCheckServer() *healthcheck.Server {
+	return d.healthCheckServer
+}
+
 // 加载配置
 func (d *DiscoverTestSuit) loadConfig() error {
 
@@ -148,6 +156,10 @@ func respSuccess(resp api.ResponseMessage) bool {
 }
 
 type options func(cfg *TestConfig)
+
+func (d *DiscoverTestSuit) Initialize(opts ...options) error {
+	return d.initialize(opts...)
+}
 
 // 内部初始化函数
 func (d *DiscoverTestSuit) initialize(opts ...options) error {

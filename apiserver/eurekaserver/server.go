@@ -156,8 +156,16 @@ func (h *EurekaServer) GetProtocol() string {
 // Initialize 初始化HTTP API服务器
 func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interface{},
 	api map[string]apiserver.APIConfig) error {
-	h.listenIP = option[optionListenIP].(string)
-	h.listenPort = uint32(option[optionListenPort].(int))
+	if ipValue, ok := option[optionListenIP]; ok {
+		h.listenIP = ipValue.(string)
+	} else {
+		h.listenIP = DefaultListenIP
+	}
+	if portValue, ok := option[optionListenPort]; ok {
+		h.listenPort = uint32(portValue.(int))
+	} else {
+		h.listenPort = uint32(DefaultListenPort)
+	}
 	h.option = option
 	h.openAPI = api
 
@@ -198,7 +206,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 	if value, ok := option[optionRefreshInterval]; ok {
 		refreshInterval = value.(int)
 	}
-	if refreshInterval < DefaultRefreshInterval {
+	if refreshInterval == 0 {
 		refreshInterval = DefaultRefreshInterval
 	}
 
@@ -206,7 +214,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 	if value, ok := option[optionDeltaExpireInterval]; ok {
 		deltaExpireInterval = value.(int)
 	}
-	if deltaExpireInterval < DefaultDetailExpireInterval {
+	if deltaExpireInterval == 0 {
 		deltaExpireInterval = DefaultDetailExpireInterval
 	}
 
