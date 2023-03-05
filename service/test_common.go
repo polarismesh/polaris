@@ -488,7 +488,8 @@ func (d *DiscoverTestSuit) cleanService(name, namespace string) {
 				panic(err)
 			}
 
-			if _, err := dbTx.Exec("delete from owner_service_map where service=? and namespace=?", name, namespace); err != nil {
+			if _, err := dbTx.Exec(
+				"delete from owner_service_map where service=? and namespace=?", name, namespace); err != nil {
 				rollbackDbTx(dbTx)
 				panic(err)
 			}
@@ -548,10 +549,12 @@ func (d *DiscoverTestSuit) cleanServices(services []*apiservice.Service) {
 			str := "delete from service where name = ? and namespace = ?"
 			cleanOwnerSql := "delete from owner_service_map where service=? and namespace=?"
 			for _, service := range services {
-				if _, err := dbTx.Exec(str, service.GetName().GetValue(), service.GetNamespace().GetValue()); err != nil {
+				if _, err := dbTx.Exec(
+					str, service.GetName().GetValue(), service.GetNamespace().GetValue()); err != nil {
 					panic(err)
 				}
-				if _, err := dbTx.Exec(cleanOwnerSql, service.GetName().GetValue(), service.GetNamespace().GetValue()); err != nil {
+				if _, err := dbTx.Exec(
+					cleanOwnerSql, service.GetName().GetValue(), service.GetNamespace().GetValue()); err != nil {
 					panic(err)
 				}
 			}
@@ -742,7 +745,8 @@ func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *apiservice.Se
 	}
 
 	// repeated
-	InstanceID, _ := utils.CalculateInstanceID(instanceReq.GetNamespace().GetValue(), instanceReq.GetService().GetValue(),
+	InstanceID, _ := utils.CalculateInstanceID(
+		instanceReq.GetNamespace().GetValue(), instanceReq.GetService().GetValue(),
 		instanceReq.GetVpcId().GetValue(), instanceReq.GetHost().GetValue(), instanceReq.GetPort().GetValue())
 	d.cleanInstance(InstanceID)
 	t.Logf("repeatd create instance(%s)", InstanceID)
@@ -814,7 +818,8 @@ func (d *DiscoverTestSuit) removeCommonInstance(t *testing.T, service *apiservic
 }
 
 // 通过四元组或者五元组删除实例
-func (d *DiscoverTestSuit) removeInstanceWithAttrs(t *testing.T, service *apiservice.Service, instance *apiservice.Instance) {
+func (d *DiscoverTestSuit) removeInstanceWithAttrs(
+	t *testing.T, service *apiservice.Service, instance *apiservice.Instance) {
 	req := &apiservice.Instance{
 		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
 		Service:      utils.NewStringValue(service.GetName().GetValue()),
@@ -829,7 +834,8 @@ func (d *DiscoverTestSuit) removeInstanceWithAttrs(t *testing.T, service *apiser
 }
 
 // 创建一个路由配置
-func (d *DiscoverTestSuit) createCommonRoutingConfig(t *testing.T, service *apiservice.Service, inCount int, outCount int) (*apitraffic.Routing, *apitraffic.Routing) {
+func (d *DiscoverTestSuit) createCommonRoutingConfig(
+	t *testing.T, service *apiservice.Service, inCount int, outCount int) (*apitraffic.Routing, *apitraffic.Routing) {
 	inBounds := make([]*apitraffic.Route, 0, inCount)
 	for i := 0; i < inCount; i++ {
 		matchString := &apimodel.MatchString{
@@ -1031,7 +1037,8 @@ func (d *DiscoverTestSuit) createCommonRoutingConfigV2(t *testing.T, cnt int32) 
 }
 
 // 创建一个路由配置
-func (d *DiscoverTestSuit) createCommonRoutingConfigV2WithReq(t *testing.T, rules []*apitraffic.RouteRule) []*apitraffic.RouteRule {
+func (d *DiscoverTestSuit) createCommonRoutingConfigV2WithReq(
+	t *testing.T, rules []*apitraffic.RouteRule) []*apitraffic.RouteRule {
 	resp := d.server.CreateRoutingConfigsV2(d.defaultCtx, rules)
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
@@ -1244,7 +1251,8 @@ func (d *DiscoverTestSuit) cleanCommonRoutingConfigV2(rules []*apitraffic.RouteR
 	}
 }
 
-func (d *DiscoverTestSuit) CheckGetService(t *testing.T, expectReqs []*apiservice.Service, actualReqs []*apiservice.Service) {
+func (d *DiscoverTestSuit) CheckGetService(
+	t *testing.T, expectReqs []*apiservice.Service, actualReqs []*apiservice.Service) {
 	if len(expectReqs) != len(actualReqs) {
 		t.Fatalf("error: %d %d", len(expectReqs), len(actualReqs))
 	}
@@ -1399,7 +1407,8 @@ func serviceCheck(t *testing.T, expect *apiservice.Service, actual *apiservice.S
 }
 
 // 创建限流规则
-func (d *DiscoverTestSuit) createCommonRateLimit(t *testing.T, service *apiservice.Service, index int) (*apitraffic.Rule, *apitraffic.Rule) {
+func (d *DiscoverTestSuit) createCommonRateLimit(
+	t *testing.T, service *apiservice.Service, index int) (*apitraffic.Rule, *apitraffic.Rule) {
 	// 先不考虑Cluster
 	rateLimit := &apitraffic.Rule{
 		Name:      &wrappers.StringValue{Value: fmt.Sprintf("rule_name_%d", index)},
@@ -1522,7 +1531,8 @@ func (d *DiscoverTestSuit) cleanRateLimitRevision(service, namespace string) {
 
 			defer rollbackDbTx(dbTx)
 
-			str := `delete from ratelimit_revision using ratelimit_revision, service where service_id = service.id and name = ? and namespace = ?`
+			str := "delete from ratelimit_revision using ratelimit_revision, service " +
+				"where service_id = service.id and name = ? and namespace = ?"
 			if _, err := dbTx.Exec(str, service, namespace); err != nil {
 				panic(err)
 			}
@@ -1600,19 +1610,25 @@ func checkRateLimit(t *testing.T, expect *apitraffic.Rule, actual *apitraffic.Ru
 	case expect.GetId().GetValue() != actual.GetId().GetValue():
 		t.Fatalf("error id, expect %s, actual %s", expect.GetId().GetValue(), actual.GetId().GetValue())
 	case expect.GetService().GetValue() != actual.GetService().GetValue():
-		t.Fatalf("error service, expect %s, actual %s", expect.GetService().GetValue(), actual.GetService().GetValue())
+		t.Fatalf(
+			"error service, expect %s, actual %s",
+			expect.GetService().GetValue(), actual.GetService().GetValue())
 	case expect.GetNamespace().GetValue() != actual.GetNamespace().GetValue():
-		t.Fatalf("error namespace, expect %s, actual %s", expect.GetNamespace().GetValue(), actual.GetNamespace().GetValue())
+		t.Fatalf("error namespace, expect %s, actual %s",
+			expect.GetNamespace().GetValue(), actual.GetNamespace().GetValue())
 	case expect.GetPriority().GetValue() != actual.GetPriority().GetValue():
-		t.Fatalf("error priority, expect %v, actual %v", expect.GetPriority().GetValue(), actual.GetPriority().GetValue())
+		t.Fatalf("error priority, expect %v, actual %v",
+			expect.GetPriority().GetValue(), actual.GetPriority().GetValue())
 	case expect.GetResource() != actual.GetResource():
 		t.Fatalf("error resource, expect %v, actual %v", expect.GetResource(), actual.GetResource())
 	case expect.GetType() != actual.GetType():
 		t.Fatalf("error type, expect %v, actual %v", expect.GetType(), actual.GetType())
 	case expect.GetDisable().GetValue() != actual.GetDisable().GetValue():
-		t.Fatalf("error disable, expect %v, actual %v", expect.GetDisable().GetValue(), actual.GetDisable().GetValue())
+		t.Fatalf("error disable, expect %v, actual %v",
+			expect.GetDisable().GetValue(), actual.GetDisable().GetValue())
 	case expect.GetAction().GetValue() != actual.GetAction().GetValue():
-		t.Fatalf("error action, expect %s, actual %s", expect.GetAction().GetValue(), actual.GetAction().GetValue())
+		t.Fatalf("error action, expect %s, actual %s",
+			expect.GetAction().GetValue(), actual.GetAction().GetValue())
 	default:
 		break
 	}
@@ -1655,7 +1671,8 @@ func checkRateLimit(t *testing.T, expect *apitraffic.Rule, actual *apitraffic.Ru
 }
 
 // 增加熔断规则
-func (d *DiscoverTestSuit) createCommonCircuitBreaker(t *testing.T, id int) (*apifault.CircuitBreaker, *apifault.CircuitBreaker) {
+func (d *DiscoverTestSuit) createCommonCircuitBreaker(
+	t *testing.T, id int) (*apifault.CircuitBreaker, *apifault.CircuitBreaker) {
 	circuitBreaker := &apifault.CircuitBreaker{
 		Name:       utils.NewStringValue(fmt.Sprintf("name-test-%d", id)),
 		Namespace:  utils.NewStringValue(DefaultNamespace),
@@ -1767,20 +1784,23 @@ func (d *DiscoverTestSuit) createCommonCircuitBreakerVersion(t *testing.T, cb *a
 
 // 删除熔断规则
 func (d *DiscoverTestSuit) deleteCircuitBreaker(t *testing.T, circuitBreaker *apifault.CircuitBreaker) {
-	if resp := d.server.DeleteCircuitBreakers(d.defaultCtx, []*apifault.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
+	if resp := d.server.DeleteCircuitBreakers(
+		d.defaultCtx, []*apifault.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
 }
 
 // 更新熔断规则内容
 func (d *DiscoverTestSuit) updateCircuitBreaker(t *testing.T, circuitBreaker *apifault.CircuitBreaker) {
-	if resp := d.server.UpdateCircuitBreakers(d.defaultCtx, []*apifault.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
+	if resp := d.server.UpdateCircuitBreakers(
+		d.defaultCtx, []*apifault.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
 }
 
 // 发布熔断规则
-func (d *DiscoverTestSuit) releaseCircuitBreaker(t *testing.T, cb *apifault.CircuitBreaker, service *apiservice.Service) {
+func (d *DiscoverTestSuit) releaseCircuitBreaker(
+	t *testing.T, cb *apifault.CircuitBreaker, service *apiservice.Service) {
 	release := &apiservice.ConfigRelease{
 		Service:        service,
 		CircuitBreaker: cb,
@@ -1793,7 +1813,8 @@ func (d *DiscoverTestSuit) releaseCircuitBreaker(t *testing.T, cb *apifault.Circ
 }
 
 // 解绑熔断规则
-func (d *DiscoverTestSuit) unBindCircuitBreaker(t *testing.T, cb *apifault.CircuitBreaker, service *apiservice.Service) {
+func (d *DiscoverTestSuit) unBindCircuitBreaker(
+	t *testing.T, cb *apifault.CircuitBreaker, service *apiservice.Service) {
 	unbind := &apiservice.ConfigRelease{
 		Service:        service,
 		CircuitBreaker: cb,
@@ -1806,7 +1827,8 @@ func (d *DiscoverTestSuit) unBindCircuitBreaker(t *testing.T, cb *apifault.Circu
 }
 
 // 对比熔断规则的各个属性
-func checkCircuitBreaker(t *testing.T, expect, expectMaster *apifault.CircuitBreaker, actual *apifault.CircuitBreaker) {
+func checkCircuitBreaker(
+	t *testing.T, expect, expectMaster *apifault.CircuitBreaker, actual *apifault.CircuitBreaker) {
 	switch {
 	case expectMaster.GetId().GetValue() != actual.GetId().GetValue():
 		t.Fatal("error id")
@@ -1888,7 +1910,8 @@ func (d *DiscoverTestSuit) cleanCircuitBreaker(id, version string) {
 
 			dbTx := tx.GetDelegateTx().(*bolt.Tx)
 
-			if err := dbTx.Bucket([]byte(tblCircuitBreaker)).DeleteBucket([]byte(buildCircuitBreakerKey(id, version))); err != nil {
+			if err := dbTx.Bucket(
+				[]byte(tblCircuitBreaker)).DeleteBucket([]byte(buildCircuitBreakerKey(id, version))); err != nil {
 				if !errors.Is(err, bolt.ErrBucketNotFound) {
 					panic(err)
 				}
@@ -1913,7 +1936,8 @@ func (d *DiscoverTestSuit) cleanCircuitBreakerRelation(name, namespace, ruleID, 
 
 			defer rollbackDbTx(dbTx)
 
-			str := `delete from circuitbreaker_rule_relation using circuitbreaker_rule_relation, service where service_id = service.id and name = ? and namespace = ? and rule_id = ? and rule_version = ?`
+			str := "delete from circuitbreaker_rule_relation using circuitbreaker_rule_relation, service " +
+				"where service_id = service.id and name = ? and namespace = ? and rule_id = ? and rule_version = ?"
 			if _, err := dbTx.Exec(str, name, namespace, ruleID, ruleVersion); err != nil {
 				panic(err)
 			}
@@ -1934,7 +1958,8 @@ func (d *DiscoverTestSuit) cleanCircuitBreakerRelation(name, namespace, ruleID, 
 			dbTx := tx.GetDelegateTx().(*bolt.Tx)
 
 			for i := range releations {
-				if err := dbTx.Bucket([]byte(tblCircuitBreakerRelation)).DeleteBucket([]byte(releations[i].ServiceID)); err != nil {
+				if err := dbTx.Bucket(
+					[]byte(tblCircuitBreakerRelation)).DeleteBucket([]byte(releations[i].ServiceID)); err != nil {
 					if !errors.Is(err, bolt.ErrBucketNotFound) {
 						rollbackBoltTx(dbTx)
 						panic(err)
