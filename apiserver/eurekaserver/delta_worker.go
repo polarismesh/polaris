@@ -220,7 +220,7 @@ func diffApplicationInstances(curTimeSec int64, oldApplication *Application, new
 			oldInstance := oldApplication.GetInstance(instance.InstanceId)
 			if oldInstance == nil {
 				// 新增实例
-				out = append(out, &Lease{instance: instance.Clone(ActionAdded), lastUpdateTimeSec: curTimeSec})
+				out = addLease(out, &Lease{instance: instance.Clone(ActionAdded), lastUpdateTimeSec: curTimeSec})
 				continue
 			}
 			// 比较实际的实例是否发生了变更
@@ -228,7 +228,7 @@ func diffApplicationInstances(curTimeSec int64, oldApplication *Application, new
 				continue
 			}
 			// 新创建一个instance
-			out = append(out, &Lease{instance: instance.Clone(ActionModified), lastUpdateTimeSec: curTimeSec})
+			out = addLease(out, &Lease{instance: instance.Clone(ActionModified), lastUpdateTimeSec: curTimeSec})
 		}
 	}
 	// 获取删除
@@ -238,10 +238,16 @@ func diffApplicationInstances(curTimeSec int64, oldApplication *Application, new
 			newInstance := newApplication.GetInstance(instance.InstanceId)
 			if newInstance == nil {
 				// 被删除了
-				out = append(out, &Lease{instance: instance.Clone(ActionDeleted), lastUpdateTimeSec: curTimeSec})
+				out = addLease(out, &Lease{instance: instance.Clone(ActionDeleted), lastUpdateTimeSec: curTimeSec})
 			}
 		}
 	}
+	return out
+}
+
+func addLease(out []*Lease, lease *Lease) []*Lease {
+	log.Infof("[EUREKA] add delta instance %s(%s)", lease.instance.InstanceId, lease.instance.ActionType)
+	out = append(out, lease)
 	return out
 }
 
@@ -254,7 +260,7 @@ func calculateDeltaInstances(oldAppsCache *ApplicationsRespCache, newAppsCache *
 		applications := newApps.Application
 		for _, app := range applications {
 			for _, instance := range app.Instance {
-				out = append(out, &Lease{instance: instance.Clone(ActionAdded), lastUpdateTimeSec: curTimeSec})
+				out = addLease(out, &Lease{instance: instance.Clone(ActionAdded), lastUpdateTimeSec: curTimeSec})
 			}
 		}
 		return out
@@ -268,7 +274,7 @@ func calculateDeltaInstances(oldAppsCache *ApplicationsRespCache, newAppsCache *
 			if oldApplication == nil {
 				// 新增，全部加入
 				for _, instance := range application.Instance {
-					out = append(out, &Lease{instance: instance.Clone(ActionAdded), lastUpdateTimeSec: curTimeSec})
+					out = addLease(out, &Lease{instance: instance.Clone(ActionAdded), lastUpdateTimeSec: curTimeSec})
 				}
 				continue
 			}
@@ -286,7 +292,7 @@ func calculateDeltaInstances(oldAppsCache *ApplicationsRespCache, newAppsCache *
 				if newApplication == nil {
 					// 删除
 					for _, instance := range application.Instance {
-						out = append(out, &Lease{instance: instance.Clone(ActionDeleted), lastUpdateTimeSec: curTimeSec})
+						out = addLease(out, &Lease{instance: instance.Clone(ActionDeleted), lastUpdateTimeSec: curTimeSec})
 					}
 				}
 			}
